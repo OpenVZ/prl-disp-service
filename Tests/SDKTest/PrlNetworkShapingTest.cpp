@@ -14,12 +14,12 @@
 /// of the GNU General Public License as published by the Free Software
 /// Foundation; either version 2 of the License, or (at your option) any
 /// later version.
-/// 
+///
 /// This program is distributed in the hope that it will be useful,
 /// but WITHOUT ANY WARRANTY; without even the implied warranty of
 /// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 /// GNU General Public License for more details.
-/// 
+///
 /// You should have received a copy of the GNU General Public License
 /// along with this program; if not, write to the Free Software
 /// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
@@ -152,12 +152,18 @@ void PrlNetworkShapingTest::CreateNetworkShapingEntry(SdkHandleWrap &hEntry, PRL
 {
 	PRL_UINT32 nTotalRate = 4;
 	PRL_UINT32 nRate = 4;
+	PRL_INT32 nRateMPU;
 
 	CHECK_RET_CODE_EXP(PrlNetworkShapingEntry_Create(nClassId, nTotalRate, hEntry.GetHandlePtr()));
 	CHECK_HANDLE_TYPE(hEntry, PHT_NETWORK_SHAPING);
+	// If not defined, this should be turned on with default mpu.
+	CHECK_RET_CODE_EXP(PrlNetworkShapingEntry_getRateMPU(hEntry, &nRateMPU));
+	QVERIFY(nRateMPU == NRM_ENABLED);
+	nRateMPU = NRM_DISABLED;
 
 	CHECK_RET_CODE_EXP(PrlNetworkShapingEntry_SetDevice(hEntry, QSTR2UTF8(sDevOrig)));
 	CHECK_RET_CODE_EXP(PrlNetworkShapingEntry_SetRate(hEntry, nRate));
+	CHECK_RET_CODE_EXP(PrlNetworkShapingEntry_SetPacketLimited(hEntry, nRateMPU));
 
 	NETWORK_SHAPING_ENTRY_TO_XML_OBJECT
 	NETWORK_SHAPING_ENTRY_FROM_XML_OBJECT
@@ -166,6 +172,7 @@ void PrlNetworkShapingTest::CreateNetworkShapingEntry(SdkHandleWrap &hEntry, PRL
 	PRL_UINT32 _nTotalRate = 0;
 	PRL_UINT32 _nRate = 0;
 	QString sDev = "xxx";
+	PRL_INT32 _nRateMPU = NRM_ENABLED;
 
 	CHECK_RET_CODE_EXP(PrlNetworkShapingEntry_GetClassId(hEntry, &_nClassId));
 	QVERIFY(_nClassId == nClassId);
@@ -176,6 +183,8 @@ void PrlNetworkShapingTest::CreateNetworkShapingEntry(SdkHandleWrap &hEntry, PRL
 
 	PRL_EXTRACT_STRING_VALUE(sDev, hEntry, PrlNetworkShapingEntry_GetDevice);
 	QCOMPARE(sDev, sDevOrig);
+	CHECK_RET_CODE_EXP(PrlNetworkShapingEntry_GetRateMPU(hEntry, &_nRateMPU));
+	QVERIFY(_nRateMPU == nRateMPU);
 }
 
 void PrlNetworkShapingTest::testCreateNetworkShapingEntry()
@@ -206,6 +215,12 @@ void PrlNetworkShapingTest::testCreateNetworkShapingEntryWrongParams()
 
 	CHECK_CONCRETE_EXPRESSION_RET_CODE(PrlNetworkShapingEntry_GetRate(NULL, NULL), PRL_ERR_INVALID_ARG);
 	CHECK_CONCRETE_EXPRESSION_RET_CODE(PrlNetworkShapingEntry_GetRate(m_hServer, NULL), PRL_ERR_INVALID_ARG);
+
+	CHECK_CONCRETE_EXPRESSION_RET_CODE(PrlNetworkShapingEntry_SetRateMPU(NULL, NRM_DISABLED), PRL_ERR_INVALID_ARG);
+	CHECK_CONCRETE_EXPRESSION_RET_CODE(PrlNetworkShapingEntry_SetRateMPU(m_hServer, NRM_DISABLED), PRL_ERR_INVALID_ARG);
+
+	CHECK_CONCRETE_EXPRESSION_RET_CODE(PrlNetworkShapingEntry_GetRateMPU(NULL, NULL), PRL_ERR_INVALID_ARG);
+	CHECK_CONCRETE_EXPRESSION_RET_CODE(PrlNetworkShapingEntry_GetRateMPU(m_hServer, NULL), PRL_ERR_INVALID_ARG);
 }
 
 void PrlNetworkShapingTest::testCreateNetworkBandwidthEntryWrongParams()
@@ -355,6 +370,7 @@ void PrlNetworkShapingTest::testUpdateNetworkClassesConfig()
 	QVERIFY(entry.getClassId() == entryOrig.getClassId()); \
 	QVERIFY(entry.getTotalRate() == entryOrig.getTotalRate()); \
 	QVERIFY(entry.getRate() == entryOrig.getRate()); \
+	QVERIFY(entry.getRateMPU() == entryOrig.getRateMPU()); \
 }
 
 void PrlNetworkShapingTest::testUpdateNetworkShapingConfig()
