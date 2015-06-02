@@ -1,0 +1,45 @@
+#!/bin/bash
+
+OOM_GROUPS_CONF=/etc/vz/oom-groups.conf
+
+setup_oom_groups()
+{
+	[ ! -f "$OOM_GROUPS_CONF" ] && return
+	cat $OOM_GROUPS_CONF > /proc/vz/oom_score_adj 2>/dev/null
+}
+
+setup_ve_sysfs()
+{
+
+[ ! -f /sys/fs/cgroup/ve/ve.default_sysfs_permissions ] && return 0
+
+PERM="/ rx
+block rx
+class rx
+class/block rx
+class/net rx
+class/tty rx
+class/mem rx
+devices rx
+devices/system rx
+devices/virtual rx
+devices/virtual/net rx
+dev rx
+dev/block rx
+dev/char rx
+fs rx
+fs/cgroup rw
+kernel rx
+kernel/uevent_seqnum r"
+
+	local ifs=$IFS
+	IFS="
+"
+	for i in $PERM; do
+        	echo "$i" > /sys/fs/cgroup/ve/ve.default_sysfs_permissions 2>/dev/null
+	done
+	IFS=$ifs
+}
+
+setup_oom_groups
+setup_ve_sysfs

@@ -1,0 +1,3 @@
+NON_SUBDIRS = yes
+include(memleak8745.pro)
+

@@ -1,0 +1,7 @@
+TARGET = test_sdk_PrlVmDefaultConfigTest
+PROJ_PATH = $$PWD
+include(../../../../Sources/Build/qmake/build_target.pri)
+
+include($$SRC_LEVEL/XmlModel/XmlModel.pri)
+include($$LIBS_LEVEL/HostUtils/HostUtils.pri)
+include($$SRC_LEVEL/SDK/Handles/SDK.pri)

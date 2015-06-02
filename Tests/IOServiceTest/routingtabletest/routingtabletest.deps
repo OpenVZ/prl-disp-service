@@ -1,0 +1,6 @@
+TARGET = test_routingtable
+PROJ_PATH = $$PWD
+include(../../../../Sources/Build/qmake/build_target.pri)
+
+include($$LIBS_LEVEL/IOService/IOService.pri)
+include($$LIBS_LEVEL/Logging/Logging.pri)

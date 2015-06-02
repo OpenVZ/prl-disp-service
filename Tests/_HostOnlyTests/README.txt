@@ -1,0 +1,2 @@
+Note: Tests from that directory SHOULD EXECUTED ONLY ON HOST OS.
+IF YOU TRY EXCUTE THEIR UNDER GUEST OS (under VM) IT CRASHED !!!!

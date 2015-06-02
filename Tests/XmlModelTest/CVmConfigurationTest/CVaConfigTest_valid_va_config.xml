@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VirtualAppliance schemaVersion="1.0">
+	<Category>5</Category>
+	<Title>ASPLinux 11.2</Title>
+	<Abstract>Typical ASPLinux desktop</Abstract>
+	<DevelopmentStatus>2</DevelopmentStatus>
+	<Version>11.2 Updated</Version>
+	<LastUpdate>29 May 07</LastUpdate>
+	<OsUtilized>ASPLinux 11.2</OsUtilized>
+	<PackageSize>834 Mb</PackageSize>
+	<Description>This is desktop solution by one of the most popular Linux distributive vendors ASPLinux. The default installation includes all the rest of office applications, browsers, email clients and many other desktop tools.&lt;br>&#xd;
+Network is configured dynamically with DHCP.&lt;br>&#xd;
+&lt;br>&#xd;
+Applications installed:&lt;br>&#xd;
+- Xorg 6.9.0;&lt;br>&#xd;
+- OpenOffice 2.0.1;&lt;br>&#xd;
+- Gnome 2.14.3;&lt;br>&#xd;
+- KDE 3.5.5;&lt;br>&#xd;
+- Xfce 2.4.3;&lt;br>&#xd;
+- Firefox 1.5.0.10;&lt;br>&#xd;
+and many others...&lt;br>&#xd;
+&lt;br>&#xd;
+md5sum:&lt;br>&#xd;
+d762fb7a22dcedcada246e5e0586ec08</Description>
+	<ToolsVersion/>
+	<AuthorName/>
+	<AuthorEmail/>
+	<DownloadURL>http://www2.bigupload.com/download_frame.php?id_file=4B8C4193</DownloadURL>
+	<DownloadURL>http://rapidshare.com/files/33270511/asplinux112_updated.tar.part01.rar</DownloadURL>
+	<Licences>
+		<IsCommercial>1</IsCommercial>
+		<List>GPL</List>
+		<List>others</List>
+	</Licences>
+	<Requirements>
+		<CPU>Intel or AMD 2 Ghz</CPU>
+		<Memory>256 Mb</Memory>
+		<Disk>Disk space: 3 Gb + up to 4 Gb for data</Disk>
+		<Other/>
+	</Requirements>
+	<AdminInterface>
+		<URL>GUI</URL>
+		<Login>root</Login>
+		<Password>1Qwerty</Password>
+	</AdminInterface>
+	<AdminInterface>
+		<URL>GUI</URL>
+		<Login>asplinux</Login>
+		<Password>asplinux</Password>
+	</AdminInterface>
+	<AdminInterface>
+		<URL>https://&lt;ip-address></URL>
+		<Login>user</Login>
+		<Password>pass</Password>
+	</AdminInterface>
+</VirtualAppliance>

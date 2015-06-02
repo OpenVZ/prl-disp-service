@@ -1,0 +1,14 @@
+#include <winver.h>
+
+#define VER_FILETYPE                VFT_DLL
+#define VER_FILESUBTYPE             VFT2_UNKNOWN
+
+#define VER_FILEDESCRIPTION_STR     "Parallels Dispatcher Service"
+#define VER_INTERNALNAME_STR        "prl_disp_service"
+#define VER_ORIGINALFILENAME_STR    "prl_disp_service.exe"
+
+#include "..\..\Build\Current.ver"
+
+// On Windows Explorer associates with the binary first icon of its
+// embeded resources - so keeping application icon in the front :)
+IDR_MAINFRAME	ICON	"..\..\GUI\Resources\pixmaps\GenericExecutable.ico"

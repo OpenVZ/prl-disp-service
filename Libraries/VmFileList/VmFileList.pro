@@ -1,0 +1,10 @@
+TEMPLATE = lib
+CONFIG += staticlib
+
+include(VmFileList.pri)
+
+HEADERS += \
+	CVmFileListCopy.h
+
+SOURCES += \
+	CVmFileListCopy.cpp

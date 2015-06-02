@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ParallelsVirtualMachine xmlns="" schemaVersion="1.0" appVersion="4.0.1293" >
+  <appVersion xmlns="">1.0</appVersion>
+  <Identification xmlns="">
+    <VmUuid xmlns="">VM_UUID</VmUuid>
+    <VmName xmlns="">VM_NAME</VmName>
+    <ServerUuid xmlns="">SERVER_NAME</ServerUuid>
+    <ServerHost xmlns="">SERVER_HOST</ServerHost>
+    <VmHome xmlns="">HOME_PATH</VmHome>
+    <ChangedBy xmlns="">MODIFIER_NAME</ChangedBy>
+    <ChangeDateTime xmlns="">2007-11-29 17:00:19</ChangeDateTime>
+  </Identification>
+  <Security xmlns="">
+    <AccessControlList xmlns="">131</AccessControlList>
+  </Security>
+  <Settings xmlns="">
+    <General xmlns="">
+      <OsType xmlns="">1</OsType>
+      <OsNumber xmlns="">311</OsNumber>
+      <Icon xmlns="">VM_ICON</Icon>
+      <VmDescription xmlns="">VM_DESCRIPTION</VmDescription>
+      <IsTemplate xmlns="">0</IsTemplate>
+    </General>
+    <Startup xmlns="">
+      <AutoStart xmlns="">1</AutoStart>
+      <WindowMode xmlns="">0</WindowMode>
+      <BootingOrder xmlns=""></BootingOrder>
+    </Startup>
+    <Runtime xmlns="">
+      <ForegroundPriority xmlns="">1</ForegroundPriority>
+      <BackgroundPriority xmlns="">1</BackgroundPriority>
+      <DiskCachePolicy xmlns="">1</DiskCachePolicy>
+      <SystemFlags xmlns=""></SystemFlags>
+      <DockIcon xmlns="">2</DockIcon>
+      <OsResolutionInFullScreen xmlns="">1</OsResolutionInFullScreen>
+      <CloseAppOnShutdown xmlns="">0</CloseAppOnShutdown>
+      <UndoDisks xmlns="">1</UndoDisks>
+      <Enabled xmlns="">1</Enabled>
+    </Runtime>
+    <Coherence xmlns="">
+      <ShowTaskBar xmlns="">0</ShowTaskBar>
+      <RelocateTaskBar xmlns="">0</RelocateTaskBar>
+      <ExcludeDock xmlns="">0</ExcludeDock>
+      <MultiDisplay xmlns="">0</MultiDisplay>
+      <AppInDock xmlns="">1</AppInDock>
+      <GroupAllWindows xmlns="">1</GroupAllWindows>
+      <DisableDropShadow xmlns="">1</DisableDropShadow>
+      <DoNotMinimizeToDock xmlns="">1</DoNotMinimizeToDock>
+      <BringToFront xmlns="">1</BringToFront>
+    </Coherence>
+    <SharedFolders xmlns="">
+      <HostSharing xmlns="">
+        <Enabled xmlns="">0</Enabled>
+        <ShareAllMacDisks xmlns="">0</ShareAllMacDisks>
+        <ShareUserHomeDir xmlns="">0</ShareUserHomeDir>
+        <MapSharedFoldersOnLetters xmlns="">0</MapSharedFoldersOnLetters>
+        <SharedFolder xmlns="">
+          <Name xmlns="">NAME</Name>
+          <Path xmlns="">PATH</Path>
+          <FolderDescription xmlns=""></FolderDescription>
+          <ReadOnly xmlns="">0</ReadOnly>
+          <Enabled xmlns="">1</Enabled>
+        </SharedFolder>
+      </HostSharing>
+      <GuestSharing xmlns="">
+        <Enabled xmlns="">0</Enabled>
+        <AutoMount xmlns="">0</AutoMount>
+        <EnableSpotlight xmlns="">0</EnableSpotlight>
+      </GuestSharing>
+    </SharedFolders>
+    <Schedule xmlns="">
+      <SchedBasis xmlns="">1</SchedBasis>
+      <SchedGranularity xmlns="">1</SchedGranularity>
+      <SchedDayOfWeek xmlns="">1</SchedDayOfWeek>
+      <SchedDayOfMonth xmlns="">1</SchedDayOfMonth>
+      <SchedDay xmlns="">1</SchedDay>
+      <SchedWeek xmlns="">1</SchedWeek>
+      <SchedMonth xmlns="">1</SchedMonth>
+      <SchedStartDate xmlns="">2007-11-29</SchedStartDate>
+      <SchedStartTime xmlns="">17:00:19</SchedStartTime>
+      <SchedStopDate xmlns="">2007-11-30</SchedStopDate>
+      <SchedStopTime xmlns="">18:00:19</SchedStopTime>
+    </Schedule>
+    <RemoteDisplay xmlns="">
+      <Enabled xmlns="">0</Enabled>
+      <HostName xmlns="">HOST_NAME</HostName>
+      <Password xmlns="">PASSWORD</Password>
+      <PortNumber xmlns="">6000</PortNumber>
+    </RemoteDisplay>
+    <SharedProfile xmlns="">
+      <Enabled xmlns="">0</Enabled>
+      <UseDesktop xmlns="">0</UseDesktop>
+      <UseDocuments xmlns="">0</UseDocuments>
+      <UsePictures xmlns="">0</UsePictures>
+      <UseMusic xmlns="">0</UseMusic>
+    </SharedProfile>
+    <SharedApplications xmlns="">
+      <FromWinToMac xmlns="">0</FromWinToMac>
+      <FromMacToWin xmlns="">0</FromMacToWin>
+      <SmartSelect xmlns="">0</SmartSelect>
+      <AppInDock xmlns="">1</AppInDock>
+    </SharedApplications>
+    <Tools xmlns="">
+      <EnableClipboardSync xmlns="">0</EnableClipboardSync>
+      <EnableMouseSync xmlns="">0</EnableMouseSync>
+      <TimeSync xmlns="">
+        <Enabled xmlns="">0</Enabled>
+        <KeepTimeDiff xmlns="">0</KeepTimeDiff>
+        <SyncInterval xmlns="">100</SyncInterval>
+      </TimeSync>
+    </Tools>
+  </Settings>
+  <Hardware xmlns="">
+    <Cpu xmlns="">
+      <Number xmlns="">2</Number>
+      <Mode xmlns="">1</Mode>
+      <AccelerationLevel xmlns="">1</AccelerationLevel>
+      <EnableVTxSupport xmlns="">0</EnableVTxSupport>
+    </Cpu>
+    <Memory xmlns="">
+      <RAM xmlns="">256</RAM>
+    </Memory>
+    <Video xmlns="">
+      <VideoMemorySize xmlns="">32</VideoMemorySize>
+      <EnableDirectXShaders xmlns="">0</EnableDirectXShaders>
+      <ScreenResolutions xmlns="">
+        <Enabled xmlns="">0</Enabled>
+        <ScreenResolution xmlns="">
+          <Enabled xmlns="">1</Enabled>
+          <Width xmlns="">800</Width>
+          <Height xmlns="">600</Height>
+        </ScreenResolution>
+      </ScreenResolutions>
+    </Video>
+  </Hardware>
+</ParallelsVirtualMachine>

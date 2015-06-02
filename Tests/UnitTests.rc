@@ -1,0 +1,12 @@
+#include <winver.h>
+
+#define VER_FILETYPE                VFT_DLL
+#define VER_FILESUBTYPE             VFT2_UNKNOWN
+
+#define VER_FILEDESCRIPTION_STR     "Parallels Unit Test"
+#define VER_INTERNALNAME_STR        "Parallels Unit Test"
+#define VER_ORIGINALFILENAME_STR    "Parallels Unit Test"
+
+// On Windows Explorer associates with the binary first icon of its
+// embeded resources - so keeping application icon in the front :)
+IDR_MAINFRAME	ICON	"..\GUI\Resources\pixmaps\UnitTest.ico"

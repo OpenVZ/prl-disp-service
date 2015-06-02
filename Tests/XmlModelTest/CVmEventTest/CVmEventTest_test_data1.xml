@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ParallelsEvent schemaVersion="1.0" >
+	<EventType>2</EventType>
+	<EventLevel>0</EventLevel>
+	<EventCode>100036</EventCode>
+	<EventNeedResponse>1</EventNeedResponse>
+	<EventIssuerType>0</EventIssuerType>
+	<EventIssuerId>{e2ec0d93-78c1-44a2-9f16-1fca32eeed7f}</EventIssuerId>
+	<EventSource></EventSource>
+					   
+	<EventInitialRequestId>{00000000-0000-0000-0000-000000000000}</EventInitialRequestId>
+	<EventParameters>
+		<EventParameter>
+			<Name>vm_message</Name>
+			<Type>0</Type>
+			<Value>1002</Value>
+		</EventParameter>
+		<EventParameter>
+			<Name>vm_message_choice_0</Name>
+			<Type>0</Type>
+			<Value>2002</Value>
+		</EventParameter>
+		<EventParameter>
+			<Name>vm_message_choice_1</Name>
+			<Type>0</Type>
+			<Value>2003</Value>
+		</EventParameter>
+		<EventParameter>
+			<Name>vm_message_param_0</Name>
+			<Type>1</Type>
+			<Value>C:\Parallels Virtual Machines\DOS\lpt.txt</Value>
+		</EventParameter>
+		<EventParameter>
+			<Name>executive_server</Name>
+			<Type>1</Type>
+			<Value>localhost</Value>
+		</EventParameter>
+	</EventParameters>
+</ParallelsEvent>
+

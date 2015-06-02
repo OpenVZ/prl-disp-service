@@ -1,0 +1,17 @@
+TARGETNAME = prl_common_utils
+TARGETTYPE = LIBRARY
+
+TOOLS_LEVEL=..\..\..\Tools
+!include $(TOOLS_LEVEL)\ddkus.inc
+
+USE_STL=1
+STL_VER=70
+USE_LIBCMT=1
+USE_NATIVE_EH=1
+
+TARGETLIBS =	$(TARGETPATH)\*\wmiwrap.lib
+
+SOURCES= \
+	..\OsInfo.c \
+	..\OsInfo_Wmi.cpp
+	

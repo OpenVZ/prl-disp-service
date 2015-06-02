@@ -1,0 +1,6 @@
+LIBTARGET = DispToDispProtocols
+PROJ_FILE = $$PWD/DispToDispProtocols.pro
+QTCONFIG = core
+!include(../../Build/qmake/staticlib.pri): error(include error)
+
+include($$LIBS_LEVEL/ProtoSerializer/ProtoSerializer.pri)

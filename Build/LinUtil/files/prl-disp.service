@@ -1,0 +1,17 @@
+[Unit]
+Description=Dispatcher service.
+After=syslog.target network.target
+After=libvirtd.service systemd-modules-load.service vzevent.service vcmmd.service
+Wants=libvirtd.service systemd-modules-load.service vzevent.service vcmmd.service
+
+[Service]
+Type=forking
+PIDFile=/var/run/prl_disp_service.pid
+ExecStartPre=/usr/libexec/vz_pre_start
+ExecStart=/usr/sbin/prl_disp_service --pidfile /var/run/prl_disp_service.pid
+KillMode=process
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

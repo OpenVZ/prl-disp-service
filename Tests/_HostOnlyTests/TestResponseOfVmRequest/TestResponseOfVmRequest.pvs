@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ParallelsVirtualMachine schemaVersion="1.0" >
+   <Identification>
+      <VmUuid>{80cc9432-1156-42bc-9bc5-36ede8477e4f}</VmUuid>
+      <VmName>TestResponseOfVmRequest</VmName>
+      <ServerUuid></ServerUuid>
+      <ServerHost></ServerHost>
+   </Identification>
+   <Settings>
+      <General>
+         <OsType>135</OsType>
+         <OsNumber>0</OsNumber>
+      </General>
+      <Startup>
+         <AutoStart>0</AutoStart>
+         <WindowMode>0</WindowMode>
+         <BootingOrder>0</BootingOrder>
+      </Startup>
+      <Runtime>
+         <ForegroundPriority>1</ForegroundPriority>
+         <BackgroundPriority>1</BackgroundPriority>
+         <DiskCachePolicy>1</DiskCachePolicy>
+         <SystemFlags></SystemFlags>
+         <DockIcon>0</DockIcon>
+         <OsResolutionInFullScreen>0</OsResolutionInFullScreen>
+         <CloseAppOnShutdown>1</CloseAppOnShutdown>
+         <UndoDisks enabled="0" >0</UndoDisks>
+      </Runtime>
+      <Coherence>
+         <ShowTaskBar>1</ShowTaskBar>
+         <RelocateTaskBar>1</RelocateTaskBar>
+         <ExcludeDock>1</ExcludeDock>
+         <MultiDisplay>1</MultiDisplay>
+         <AppInDock>0</AppInDock>
+      </Coherence>
+   </Settings>
+   <Hardware>
+      <Cpu>
+         <Number>1</Number>
+         <Mode>0</Mode>
+         <AccelerationLevel>2</AccelerationLevel>
+         <EnableVTxSupport>1</EnableVTxSupport>
+      </Cpu>
+      <Memory>
+         <RAM>256</RAM>
+         <Video>16</Video>
+      </Memory>
+   </Hardware>
+</ParallelsVirtualMachine>

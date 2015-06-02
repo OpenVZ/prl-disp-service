@@ -1,0 +1,2 @@
+NON_SUBDIRS = yes
+include(UuidTest.pro)

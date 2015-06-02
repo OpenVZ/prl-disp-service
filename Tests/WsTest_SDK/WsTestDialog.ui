@@ -1,0 +1,594 @@
+<ui version="4.0" >
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow" >
+  <property name="geometry" >
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>810</width>
+    <height>525</height>
+   </rect>
+  </property>
+  <property name="windowTitle" >
+   <string>Parallels Web Services Test</string>
+  </property>
+  <widget class="QWidget" name="centralWidget" >
+   <layout class="QGridLayout" >
+    <property name="leftMargin" >
+     <number>9</number>
+    </property>
+    <property name="topMargin" >
+     <number>9</number>
+    </property>
+    <property name="rightMargin" >
+     <number>9</number>
+    </property>
+    <property name="bottomMargin" >
+     <number>9</number>
+    </property>
+    <property name="horizontalSpacing" >
+     <number>6</number>
+    </property>
+    <property name="verticalSpacing" >
+     <number>6</number>
+    </property>
+    <item row="3" column="2" >
+     <widget class="QPushButton" name="pbGetVmConfig" >
+      <property name="text" >
+       <string>Get VM Config</string>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="1" >
+     <widget class="QPushButton" name="pbEditVm" >
+      <property name="text" >
+       <string>Edit VM</string>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="1" >
+     <widget class="QPushButton" name="pbValidateVm" >
+      <property name="text" >
+       <string>Validate VM</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0" colspan="4" >
+     <layout class="QGridLayout" >
+      <property name="leftMargin" >
+       <number>0</number>
+      </property>
+      <property name="topMargin" >
+       <number>0</number>
+      </property>
+      <property name="rightMargin" >
+       <number>0</number>
+      </property>
+      <property name="bottomMargin" >
+       <number>0</number>
+      </property>
+      <property name="horizontalSpacing" >
+       <number>6</number>
+      </property>
+      <property name="verticalSpacing" >
+       <number>6</number>
+      </property>
+      <item row="1" column="0" >
+       <widget class="QLabel" name="lblCallArguments" >
+        <property name="text" >
+         <string>Call Arguments:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1" >
+       <widget class="QLineEdit" name="edtCallArguments" />
+      </item>
+      <item row="0" column="1" >
+       <widget class="QLineEdit" name="edtWebServicesHost" />
+      </item>
+      <item row="0" column="0" >
+       <widget class="QLabel" name="lblWebServicesHost" >
+        <property name="text" >
+         <string>WebServices Host:</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="6" column="1" >
+     <widget class="QPushButton" name="pbConnectDevice" >
+      <property name="text" >
+       <string>Connect Device</string>
+      </property>
+     </widget>
+    </item>
+    <item row="11" column="3" >
+     <widget class="QPushButton" name="pbShutdownVM" >
+      <property name="text" >
+       <string>Shutdown VM</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="2" >
+     <widget class="QPushButton" name="pbGetVMStatistics" >
+      <property name="enabled" >
+       <bool>true</bool>
+      </property>
+      <property name="text" >
+       <string>GetVMStatistics</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="0" >
+     <widget class="QPushButton" name="pbGetVmList" >
+      <property name="enabled" >
+       <bool>true</bool>
+      </property>
+      <property name="text" >
+       <string>Get VM List</string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="0" >
+     <widget class="QPushButton" name="pbGetHostInfo" >
+      <property name="enabled" >
+       <bool>true</bool>
+      </property>
+      <property name="text" >
+       <string>Get Host Info</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="3" >
+     <widget class="QPushButton" name="pbReserved_28" >
+      <property name="enabled" >
+       <bool>false</bool>
+      </property>
+      <property name="text" >
+       <string>Reserved28</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="1" >
+     <widget class="QPushButton" name="pbDeleteVm" >
+      <property name="text" >
+       <string>Delete VM</string>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="0" >
+     <widget class="QPushButton" name="pbVmReset" >
+      <property name="text" >
+       <string>VM Reset</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="0" >
+     <widget class="QPushButton" name="pbRegNewVm" >
+      <property name="enabled" >
+       <bool>true</bool>
+      </property>
+      <property name="text" >
+       <string>Reg New VM</string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="2" >
+     <widget class="QPushButton" name="pbReserved_23" >
+      <property name="enabled" >
+       <bool>false</bool>
+      </property>
+      <property name="text" >
+       <string>Reserved23</string>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="3" >
+     <widget class="QPushButton" name="pbRemoteFileOpen" >
+      <property name="enabled" >
+       <bool>true</bool>
+      </property>
+      <property name="text" >
+       <string>Remote File Open</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0" >
+     <widget class="QPushButton" name="pbVmStart" >
+      <property name="text" >
+       <string>VM Start</string>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="1" >
+     <widget class="QPushButton" name="pbCloneVm" >
+      <property name="text" >
+       <string>Clone VM</string>
+      </property>
+     </widget>
+    </item>
+    <item row="15" column="0" colspan="5" >
+     <layout class="QHBoxLayout" >
+      <property name="spacing" >
+       <number>6</number>
+      </property>
+      <property name="leftMargin" >
+       <number>0</number>
+      </property>
+      <property name="topMargin" >
+       <number>0</number>
+      </property>
+      <property name="rightMargin" >
+       <number>0</number>
+      </property>
+      <property name="bottomMargin" >
+       <number>0</number>
+      </property>
+      <item>
+       <spacer>
+        <property name="orientation" >
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" >
+         <size>
+          <width>401</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" >
+        <property name="spacing" >
+         <number>6</number>
+        </property>
+        <property name="leftMargin" >
+         <number>0</number>
+        </property>
+        <property name="topMargin" >
+         <number>0</number>
+        </property>
+        <property name="rightMargin" >
+         <number>0</number>
+        </property>
+        <property name="bottomMargin" >
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QPushButton" name="pbBreak" >
+          <property name="text" >
+           <string>Break</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pbClearOutput" >
+          <property name="text" >
+           <string>Clear</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer>
+          <property name="orientation" >
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" >
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pbExit" >
+          <property name="text" >
+           <string>Exit</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+    <item row="12" column="0" >
+     <widget class="QPushButton" name="pbDisconnectUser" >
+      <property name="text" >
+       <string>DisconnectUser</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="3" >
+     <widget class="QPushButton" name="pbReserved_27" >
+      <property name="enabled" >
+       <bool>false</bool>
+      </property>
+      <property name="text" >
+       <string>Reserved27</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="0" >
+     <widget class="QPushButton" name="pbLogin" >
+      <property name="text" >
+       <string>Login</string>
+      </property>
+     </widget>
+    </item>
+    <item row="11" column="1" >
+     <widget class="QPushButton" name="pbGetHistoryByVm" >
+      <property name="text" >
+       <string>GetHistoryByVM</string>
+      </property>
+     </widget>
+    </item>
+    <item row="14" column="0" colspan="4" >
+     <spacer>
+      <property name="orientation" >
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeHint" >
+       <size>
+        <width>20</width>
+        <height>16</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="10" column="0" >
+     <widget class="QPushButton" name="pbVmPause" >
+      <property name="text" >
+       <string>VM Pause</string>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="3" >
+     <widget class="QPushButton" name="pbRemoteFileSave" >
+      <property name="enabled" >
+       <bool>true</bool>
+      </property>
+      <property name="text" >
+       <string>Remote File Save</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="2" >
+     <widget class="QPushButton" name="pbGetHostCommonInfo" >
+      <property name="text" >
+       <string>GetHostCommonInfo</string>
+      </property>
+     </widget>
+    </item>
+    <item row="12" column="3" >
+     <widget class="QPushButton" name="pbShutdownDisp" >
+      <property name="text" >
+       <string>ShutdownDisp</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="2" >
+     <widget class="QPushButton" name="pbInstallGuestOS" >
+      <property name="text" >
+       <string>Install Guest OS</string>
+      </property>
+     </widget>
+    </item>
+    <item row="12" column="1" >
+     <widget class="QPushButton" name="pbGetHistoryByUser" >
+      <property name="text" >
+       <string>GetHistoryByUser</string>
+      </property>
+     </widget>
+    </item>
+    <item row="11" column="2" >
+     <widget class="QPushButton" name="pbRestartVM" >
+      <property name="text" >
+       <string>Restart VM</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="0" >
+     <widget class="QPushButton" name="pbLogoff" >
+      <property name="text" >
+       <string>Logoff</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="1" >
+     <widget class="QPushButton" name="pbCancelRequest" >
+      <property name="text" >
+       <string>Cancel Request</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="3" >
+     <widget class="QPushButton" name="pbReserved_31" >
+      <property name="enabled" >
+       <bool>false</bool>
+      </property>
+      <property name="text" >
+       <string>Reserved31</string>
+      </property>
+     </widget>
+    </item>
+    <item row="12" column="2" >
+     <widget class="QPushButton" name="pbRestartDisp" >
+      <property name="text" >
+       <string>RestartDisp</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="0" >
+     <widget class="QPushButton" name="pbVmStop" >
+      <property name="text" >
+       <string>VM Stop</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="1" >
+     <widget class="QPushButton" name="pbUnRegVm" >
+      <property name="text" >
+       <string>UnReg VM</string>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="2" >
+     <widget class="QPushButton" name="pbReserved_24" >
+      <property name="enabled" >
+       <bool>false</bool>
+      </property>
+      <property name="text" >
+       <string>Reserved24</string>
+      </property>
+     </widget>
+    </item>
+    <item rowspan="12" row="0" column="4" >
+     <widget class="QTextBrowser" name="textOutputArea" />
+    </item>
+    <item row="3" column="3" >
+     <widget class="QPushButton" name="pbReserved_29" >
+      <property name="enabled" >
+       <bool>false</bool>
+      </property>
+      <property name="text" >
+       <string>Reserved29</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="1" >
+     <widget class="QPushButton" name="pbVmResume" >
+      <property name="text" >
+       <string>VM Resume</string>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="3" >
+     <widget class="QPushButton" name="pbOpen" >
+      <property name="enabled" >
+       <bool>true</bool>
+      </property>
+      <property name="text" >
+       <string>Open</string>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="2" >
+     <widget class="QPushButton" name="pbReserved_26" >
+      <property name="enabled" >
+       <bool>false</bool>
+      </property>
+      <property name="text" >
+       <string>Reserved26</string>
+      </property>
+     </widget>
+    </item>
+    <item row="11" column="0" >
+     <widget class="QPushButton" name="pbSMCGetRTInfo" >
+      <property name="text" >
+       <string>Get Disp RTInfo</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="2" >
+     <widget class="QPushButton" name="pbGetVmInfo" >
+      <property name="enabled" >
+       <bool>true</bool>
+      </property>
+      <property name="text" >
+       <string>Get Vm Info</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="1" >
+     <widget class="QPushButton" name="pbVmSuspend" >
+      <property name="text" >
+       <string>VM Suspend</string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="3" >
+     <widget class="QPushButton" name="pbProblemReportXml" >
+      <property name="enabled" >
+       <bool>true</bool>
+      </property>
+      <property name="text" >
+       <string>BugRep XML</string>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="0" >
+     <widget class="QPushButton" name="pbGetUserProfile" >
+      <property name="enabled" >
+       <bool>true</bool>
+      </property>
+      <property name="text" >
+       <string>Get Profile</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="3" >
+     <widget class="QPushButton" name="pbReserved_30" >
+      <property name="enabled" >
+       <bool>false</bool>
+      </property>
+      <property name="text" >
+       <string>Reserved30</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="2" >
+     <widget class="QPushButton" name="pbCreateDiskImage" >
+      <property name="text" >
+       <string>Create Disk Image</string>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="2" >
+     <widget class="QPushButton" name="pbReserved_25" >
+      <property name="enabled" >
+       <bool>false</bool>
+      </property>
+      <property name="text" >
+       <string>Reserved25</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="3" >
+     <widget class="QPushButton" name="pbReserved_32" >
+      <property name="enabled" >
+       <bool>false</bool>
+      </property>
+      <property name="text" >
+       <string>Reserved32</string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="1" >
+     <widget class="QPushButton" name="pbDisconnectDevice" >
+      <property name="text" >
+       <string>Disconnect Device</string>
+      </property>
+     </widget>
+    </item>
+    <item row="13" column="0" >
+     <widget class="QPushButton" name="pbDisconnectAllUsers" >
+      <property name="text" >
+       <string>Disconnect All Users</string>
+      </property>
+     </widget>
+    </item>
+    <item row="13" column="2" >
+     <widget class="QPushButton" name="pbCancelUserRequest" >
+      <property name="text" >
+       <string>Cancel User Request</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusBar" />
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

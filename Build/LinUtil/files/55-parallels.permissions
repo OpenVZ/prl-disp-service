@@ -1,0 +1,5 @@
+# /etc/udev/udev.permissions:  permission/ownership map for udev
+prl_hypervisor:root:root:0666
+prl_netbridge:root:root:0666
+prl_vnic:root:root:0666
+prl_vtdhook:root:root:0666

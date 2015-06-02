@@ -1,0 +1,6 @@
+TARGET = test_ssl
+PROJ_PATH = $$PWD
+include(../../../../Sources/Build/qmake/build_target.pri)
+include(../../../../Sources/Parallels.pri)
+
+include($$LIBS_LEVEL/IOService/src/IOCommunication/IOCommunication.pri)

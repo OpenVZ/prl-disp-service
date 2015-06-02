@@ -1,0 +1,63 @@
+Introduction
+------------
+This directory contains automated tests that allow one to *quickly*
+validate the functionality of the hypervisor virtualization
+functionality, i.e. `prl_vm_app` + `Monitor` + `hypervisor`.
+
+It's a tool to provide developers with some confidence that these
+components remain operational after the newly introduced changes.
+
+It does *not* depend on the auxiliary stuff like `Dispatcher`, `SDK`,
+and the like, so even if those components fail to build you still can
+run the tests and validate the changes you make.
+
+Approach
+--------
+To make the tests easy to use and extend, the following approach has been
+taken:
+
+* The test VM is a JEOS (Just Enough Operating System).  It's a bootable CD
+  image using the kernel and initial ramfs images from the installation CD of
+  Fedora distribution (others may do too but need testing).
+  +
+  In addition, a custom initial ramfs image is created on the fly during the
+  test, and is included in the bootable image.  It replaces the
+  distribution-provided init, and thus takes over the control but preserves the
+  ability to use the software included in the distro image.
+  +
+  This custom init does very basic initialization, runs the test python script,
+  and shuts the guest system down.
+
+* The guest is run with its console directed to the serial port.  Therefore the
+  test script(s) executed in the guest can dump their status and other
+  information to stdout; the host part can then parse the log file associated
+  with the VM's serial port to obtain that data.
+
+* The `prl_vm_app` is run with javascript interpreter on the stdin; the test
+  communicates with it via a pipe.
+
+How to use
+----------
+Prerequisites
+~~~~~~~~~~~~~
+* `prl_vm_app` executable built and on PATH.
+
+* `Monitor` image.
+
+* host driver modules built and loaded.  You only need `prl_hypervisor`;
+  others may be needed for specific tests.
+
+Running
+~~~~~~~
+Just run the test script, e.g.:
+
+  python test_01boot.py
+
+Analysis
+~~~~~~~~
+Tests are reusing builtin python unittest infrastructure; all documentation
+therein applies.
+
+How to extend
+-------------
+TBD

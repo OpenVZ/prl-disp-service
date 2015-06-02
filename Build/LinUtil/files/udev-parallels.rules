@@ -1,0 +1,3 @@
+KERNEL=="prl_hypervisor",	OWNER="root", GROUP="root", MODE="666"
+KERNEL=="prl_netbridge",	OWNER="root", GROUP="root", MODE="666"
+KERNEL=="prl_vtdhook",		OWNER="root", GROUP="root", MODE="666"

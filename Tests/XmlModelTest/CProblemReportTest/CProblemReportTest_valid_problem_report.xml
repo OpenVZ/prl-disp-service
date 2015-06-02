@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ParallelsProblemReport schemaVersion="1.0" created="1752-01-01 00:00:00" >
+   <Preamble><![CDATA[This is a Parallels problem report. Please send this file to Parallels Software International Inc. mailto:reports@parallels.com]]></Preamble>
+   <LicenseInfo>
+      <ProductName>no data</ProductName>
+      <ProductVersion>no data</ProductVersion>
+      <ProductId>no data</ProductId>
+      <ProductValidFrom>1752-01-01</ProductValidFrom>
+      <ProductValidTo>1752-01-01</ProductValidTo>
+      <ActivationStatus>0</ActivationStatus>
+   </LicenseInfo>
+   <ContactInfo>
+      <Name>abc</Name>
+      <EMail>someone@somewhere.out</EMail>
+   </ContactInfo>
+   <HostInfo>
+      <HostPrimaryOs><![CDATA[no data]]></HostPrimaryOs>
+      <HostCPU><![CDATA[no data]]></HostCPU>
+      <HostMemory><![CDATA[no data]]></HostMemory>
+      <HostDisplay><![CDATA[no data]]></HostDisplay>
+      <HostEnvironment><![CDATA[no data]]></HostEnvironment>
+   </HostInfo>
+   <AppConfig>
+      <CurrentVm><![CDATA[no data]]></CurrentVm>
+      <OverallMemory>
+         <MaxLimit>0</MaxLimit>
+         <AssignedLimit>0</AssignedLimit>
+         <MemoryUsed>0</MemoryUsed>
+         <VMsRunning>0</VMsRunning>
+      </OverallMemory>
+      <NetworkPrefs>
+         <ScopeStartIp>no data</ScopeStartIp>
+         <ScopeEndIp>no data</ScopeEndIp>
+         <ScopeMask>no data</ScopeMask>
+      </NetworkPrefs>
+      <Autoupdate>
+         <LastUpdate>1752-01-01 00:00:00</LastUpdate>
+      </Autoupdate>
+      <UserInterface>
+         <ReleaseKeySeq>no data</ReleaseKeySeq>
+         <FsmKeySeq>no data</FsmKeySeq>
+      </UserInterface>
+   </AppConfig>
+   <GuestOsInfo>
+      <GuestOsVersion>no data</GuestOsVersion>
+      <GuestBooting>
+         <GuestBootDevices>0</GuestBootDevices>
+         <GuestBootSequence>no data</GuestBootSequence>
+      </GuestBooting>
+      <GuestMemory>
+         <GuestMemSize>0</GuestMemSize>
+         <GuestMemBlockSize>0</GuestMemBlockSize>
+         <GuestWorkingSetCur>0x0</GuestWorkingSetCur>
+         <GuestWorkingSetMax>0x0</GuestWorkingSetMax>
+      </GuestMemory>
+      <GuestScreenData>
+         <Resolution>no data</Resolution>
+         <VesaMode>0x0</VesaMode>
+      </GuestScreenData>
+      <GuestDevices><![CDATA[no data]]></GuestDevices>
+      <MonitorFlags><![CDATA[no data]]></MonitorFlags>
+      <GuestCpuState><![CDATA[no data]]></GuestCpuState>
+   </GuestOsInfo>
+   <MonitorData><![CDATA[no data]]></MonitorData>
+   <UserDefined>
+      <ProblemDescription><![CDATA[no data]]></ProblemDescription>
+      <ScreenShots>
+         <ScreenShot>
+            <Name>SHOT_NAME</Name>
+            <CData><![CDATA[SHOT_DATA]]></CData>
+         </ScreenShot>
+         <ScreenShot>
+            <Name>SHOT_NAME</Name>
+            <CData><![CDATA[SHOT_DATA]]></CData>
+         </ScreenShot>
+      </ScreenShots>
+   </UserDefined>
+</ParallelsProblemReport>

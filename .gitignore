@@ -1,0 +1,13 @@
+Build/Build.pri
+Build/BuildUtil.pyc
+Build/Current-gen.ver
+Libraries/PrlCommonUtilsBase/PrlStringifyConsts.cpp
+**/Makefile*
+!Makefile.version
+!Libraries/PrlCommonUtils/build.win/Makefile
+XmlModel/
+!XmlModel/Messaging/
+!XmlModel/ParallelsObjects/
+!XmlModel/Schema/
+!XmlModel/Utils/
+z-Build/

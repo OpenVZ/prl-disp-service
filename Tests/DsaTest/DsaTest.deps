@@ -1,0 +1,6 @@
+TARGET = test_vi_dsa
+PROJ_PATH = $$PWD
+include(../../../Sources/Build/qmake/build_target.pri)
+include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
+include($$LIBS_LEVEL/License/Activation/Activation.pri)
+include($$EXT_LEVEL/ssl/ssl.pri)

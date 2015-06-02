@@ -1,0 +1,8 @@
+TARGET = test_system_statistics
+PROJ_PATH = $$PWD
+include(../../../../Sources/Build/qmake/build_target.pri)
+
+include($$SRC_LEVEL/XmlModel/XmlModel.pri)
+include($$EXT_LEVEL/ssl/ssl.pri)
+include($$LIBS_LEVEL/Logging/Logging.pri)
+include($$LIBS_LEVEL/PrlDataSerializer/PrlDataSerializer.pri)

@@ -1,0 +1,36 @@
+TARGET = prl_disp_service
+PROJ_PATH = $$PWD
+include(../Build/qmake/build_target.pri)
+
+LIBS += -lqtservice
+
+include($$LIBS_LEVEL/IOService/IOService.pri)
+include($$LIBS_LEVEL/HostInfo/CHostInfo.pri)
+include($$LIBS_LEVEL/ProtoSerializer/ProtoSerializer.pri)
+include($$LIBS_LEVEL/DispToDispProtocols/DispToDispProtocols.pri)
+include($$LIBS_LEVEL/PrlNetworking/PrlNetworking.pri)
+include($$SRC_LEVEL/XmlModel/XmlModel.pri)
+include($$LIBS_LEVEL/PrlDataSerializer/PrlDataSerializer.pri)
+include($$LIBS_LEVEL/ProblemReportUtils/ProblemReportUtils.pri)
+include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
+include($$LIBS_LEVEL/CAuth/CAuth.pri)
+#include($$LIBS_LEVEL/PrlBreakpad/PrlBreakpad.pri)
+include($$LIBS_LEVEL/Logging/Logging.pri)
+include($$LIBS_LEVEL/VmFileList/VmFileList.pri)
+include($$LIBS_LEVEL/Virtuozzo/Virtuozzo.pri)
+include($$LIBS_LEVEL/StatesUtils/StatesUtils.pri)
+include($$LIBS_LEVEL/StatesStore/StatesStore.pri)
+include($$LIBS_LEVEL/PerfCount/PerfLib/PerfCounter.pri)
+
+include($$LIBS_LEVEL/PowerWatcher/PowerWatcher.pri)
+win32: include($$LIBS_LEVEL/BattWatcher/BattWatcher.pri)
+include($$LIBS_LEVEL/Etrace/Etrace.pri)
+win32 {
+	include($$LIBS_LEVEL/WinUAC/ElevatedPriveleges/ElevatedPriveleges.pri)
+	include($$LIBS_LEVEL/WinSecurityChecks/SigningValidity/SigningValidity.pri)
+	include($$LIBS_LEVEL/WinDbgUtils/WinDbgUtils.pri)
+}
+libvirt {
+	include($$LIBS_LEVEL/Transponster/Transponster.pri)
+	LIBS += -lvirt
+}

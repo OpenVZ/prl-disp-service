@@ -1,0 +1,12 @@
+#!/bin/sh
+
+VTD_MODULE=prl_vtdhook
+VTD_CONFIG=/etc/parallels/vtd.hook
+
+if [ -f $VTD_CONFIG ]; then
+       modprobe $VTD_MODULE `cat $VTD_CONFIG`
+else
+       modprobe $VTD_MODULE
+fi
+
+(echo 0 > /proc/sys/vm/zone_reclaim_mode) > /dev/null 2>&1 || true

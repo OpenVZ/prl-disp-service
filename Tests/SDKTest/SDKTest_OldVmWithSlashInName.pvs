@@ -1,0 +1,131 @@
+[System]
+App Version = 3.0.5626
+Parallels VM Name = XP autostart disabled, docked apps, kis 752/19
+VM Id = {02e75f9d-b3a8-446a-af5c-6a44fcad755f}
+VM Description = 
+Boot = c
+OS Type = 135
+Memory = 752
+Video Memory = 19
+Memory block size = 14
+Acceleration level = 2
+Enable write-back disk cache = 1
+VT-x support = 1
+Start auto = 0
+AutoShutdown = 0
+Start full screen = 21
+Start dashmode = 0
+Start full screen warning = 1
+PC Speaker enable = 1
+Window Mode = 0
+Application Doc Icon = 1
+Multi frame = -1
+Guest Tools Status = 2
+Undo Disks = 0
+Undo Disk Uuid = {00000000-0000-0000-0000-000000000000}
+DirectX Shaders support = 0
+[Shared folders]
+Shared folders enabled = 1
+Sharing enabled = 2
+Map folders to drive = 1
+Shared folders count = 0
+[Shared Profiles]
+Shared Profiles enabled = 0
+Shared Profiles use desktop = 1
+Shared Profiles use documents = 1
+Shared Profiles use pictures = 1
+Shared Profiles use music = 1
+[Windows sharing]
+Windows sharing enabled = 1
+AutoMount enabled = 1
+Spotlight processing enabled = 0
+[Video]
+Video resolutions enabled = 1
+Video resolutions count = 0
+[Coherence]
+Show taskbar = 1
+Relocate taskbar = 0
+Exclude Dock = 1
+Multiple displays = 0
+Group all windows = 0
+Disable drop shadow = 0
+Remove Wallpaper = 0
+Do Not Minimize to doc = 0
+Bring to front = 0
+Show taskbar in Coherence = 1
+[Shared Application]
+Shared from Win to Mac = 1
+Shared from Mac to Win = 1
+SmartSelect = 1
+Shared from Win to Mac Old = 1
+Shared from Mac to Win Old = 1
+SmartSelect Old = 1
+[Floppy disks]
+Floppy 0 enabled = 1
+Floppy 0 = 1
+Floppy 0 image = /Library/Parallels/Tools/vmtools.fdd
+Floppy 0 connected = 0
+[IDE devices]
+Disk 0:0 enabled = 1
+Disk 0:0 = 1
+Disk 0:0 media = 0
+Disk 0:0 connected = 1
+Disk 0:0 image = winxp.hdd
+Disk 0:0 cylinders = 0
+Disk 0:0 heads = 0
+Disk 0:0 sectors = 0
+Disk 0:1 enabled = 1
+Disk 0:1 = 2
+Disk 0:1 media = 1
+Disk 0:1 connected = 1
+Disk 0:1 image = Default CD/DVD-ROM
+Disk 1:0 enabled = 0
+Disk 1:0 = 0
+Disk 1:1 enabled = 0
+Disk 1:1 = 0
+[Serial ports]
+COM1 enabled = 0
+COM1 = 0
+COM2 enabled = 0
+COM2 = 0
+COM3 enabled = 0
+COM3 = 0
+COM4 enabled = 0
+COM4 = 0
+[Parallel ports]
+LPT1 enabled = 1
+LPT1 = 3
+LPT1 connected = 1
+LPT1 image = Default Printer
+LPT2 enabled = 0
+LPT2 = 0
+LPT3 enabled = 0
+LPT3 = 0
+[Sound]
+Sound enabled = 1
+Sound = 1
+Sound connected = 1
+Sound device = Default Audio
+Mixer device = Default Audio
+[Network]
+Network enabled = 1
+Network = 1
+Network connected = 1
+Adapter No = 0
+Adapter name = Default Adapter
+Adapter type = 4
+Port = 0x00000300
+IRQ = 3
+MAC address = 001c42ee18ca
+Network2 enabled = 0
+Network2 = 0
+Network3 enabled = 0
+Network3 = 0
+Network4 enabled = 0
+Network4 = 0
+Network5 enabled = 0
+Network5 = 0
+[Usb]
+USB enabled = 1
+USB = 1
+USB autoconnect = 2

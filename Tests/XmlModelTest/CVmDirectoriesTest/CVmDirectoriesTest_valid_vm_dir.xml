@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ParallelsVmDirectories schemaVersion="1.0" >
+   <ServerIdentification>
+      <ServerUuid>SERVER_UUID</ServerUuid>
+   </ServerIdentification>
+   <VmDirectory uuid="VM_DIR_UUID" >
+      <DefaultVmFolder>DEFAULT_VM_FOLDER</DefaultVmFolder>
+      <UserFriendlyName>USER_FRIENDLY_NAME</UserFriendlyName>
+      <VirtualMachine uuid="VM_UUID" >
+         <IsRegistered>1</IsRegistered>
+         <IsValid>1</IsValid>
+         <VmHome>VM_HOME</VmHome>
+         <IsPrivate>1</IsPrivate>
+         <RegisteredBy>REGISTERED_BY</RegisteredBy>
+         <RegistrationDateTime>2007-07-12 17:39:36</RegistrationDateTime>
+         <ChangedBy>CHANGED_BY</ChangedBy>
+         <ChangeDateTime>2007-07-12 17:39:36</ChangeDateTime>
+      </VirtualMachine>
+      <VirtualMachine uuid="VM_UUID" >
+         <IsRegistered>1</IsRegistered>
+         <IsValid>1</IsValid>
+         <VmHome>VM_HOME</VmHome>
+         <IsPrivate>1</IsPrivate>
+         <RegisteredBy>REGISTERED_BY</RegisteredBy>
+         <RegistrationDateTime>2007-07-12 17:39:36</RegistrationDateTime>
+         <ChangedBy>CHANGED_BY</ChangedBy>
+         <ChangeDateTime>2007-07-12 17:39:36</ChangeDateTime>
+      </VirtualMachine>
+   </VmDirectory>
+   <VmDirectory uuid="VM_DIR_UUID" >
+      <DefaultVmFolder>DEFAULT_VM_FOLDER</DefaultVmFolder>
+      <UserFriendlyName>USER_FRIENDLY_NAME</UserFriendlyName>
+      <VirtualMachine uuid="VM_UUID" >
+         <IsRegistered>1</IsRegistered>
+         <IsValid>1</IsValid>
+         <VmHome>VM_HOME</VmHome>
+         <IsPrivate>1</IsPrivate>
+         <RegisteredBy>REGISTERED_BY</RegisteredBy>
+         <RegistrationDateTime>2007-07-12 17:39:36</RegistrationDateTime>
+         <ChangedBy>CHANGED_BY</ChangedBy>
+         <ChangeDateTime>2007-07-12 17:39:36</ChangeDateTime>
+      </VirtualMachine>
+      <VirtualMachine uuid="VM_UUID" >
+         <IsRegistered>1</IsRegistered>
+         <IsValid>1</IsValid>
+         <VmHome>VM_HOME</VmHome>
+         <IsPrivate>1</IsPrivate>
+         <RegisteredBy>REGISTERED_BY</RegisteredBy>
+         <RegistrationDateTime>2007-07-12 17:39:36</RegistrationDateTime>
+         <ChangedBy>CHANGED_BY</ChangedBy>
+         <ChangeDateTime>2007-07-12 17:39:36</ChangeDateTime>
+      </VirtualMachine>
+   </VmDirectory>
+</ParallelsVmDirectories>

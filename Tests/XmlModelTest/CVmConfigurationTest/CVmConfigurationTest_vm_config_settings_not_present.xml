@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ParallelsVirtualMachine schemaVersion="1.0">
+	<Identification>
+		<VmUuid>VM_UUID</VmUuid>
+		<VmName>VM_NAME</VmName>
+		<ServerUuid>SERVER_NAME</ServerUuid>
+		<ServerHost>SERVER_HOST</ServerHost>
+		<VmHome>HOME_PATH</VmHome>
+		<ChangedBy>MODIFIER_NAME</ChangedBy>
+		<ChangeDateTime>2007-03-15 19:13:09</ChangeDateTime>
+	</Identification>
+	<Hardware>
+		<CpuQuantity>1</CpuQuantity>
+		<Memory>
+			<RAM>256</RAM>
+			<Video>16</Video>
+		</Memory>
+		<Fdd index="0">
+			<Enabled>0</Enabled>
+			<Connected>1</Connected>
+			<EmulatedType>1</EmulatedType>
+			<Path/>
+		</Fdd>
+		<CdRom index="0">
+			<Enabled>0</Enabled>
+			<Connected>1</Connected>
+			<EmulatedType>1</EmulatedType>
+			<Path/>
+			<InterfaceType>0</InterfaceType>
+			<StackIndex>0</StackIndex>
+			<Passthrough>1</Passthrough>
+		</CdRom>
+		<CdRom index="0">
+			<Enabled>0</Enabled>
+			<Connected>1</Connected>
+			<EmulatedType>1</EmulatedType>
+			<Path/>
+			<InterfaceType>0</InterfaceType>
+			<StackIndex>0</StackIndex>
+			<Passthrough>1</Passthrough>
+		</CdRom>
+		<Hdd index="0">
+			<Enabled>0</Enabled>
+			<Connected>1</Connected>
+			<EmulatedType>1</EmulatedType>
+			<Path/>
+			<InterfaceType>0</InterfaceType>
+			<StackIndex>0</StackIndex>
+			<DiskType>1</DiskType>
+			<Size>0</Size>
+			<SizeOnDisk>0</SizeOnDisk>
+		         <Passthrough>1</Passthrough>
+		         <Splitted>1</Splitted>
+		         <Persistent>1</Persistent>
+		</Hdd>
+		<Hdd index="0">
+			<Enabled>0</Enabled>
+			<Connected>1</Connected>
+			<EmulatedType>1</EmulatedType>
+			<Path/>
+			<InterfaceType>0</InterfaceType>
+			<StackIndex>0</StackIndex>
+			<DiskType>1</DiskType>
+			<Size>0</Size>
+			<SizeOnDisk>0</SizeOnDisk>
+		         <Passthrough>1</Passthrough>
+		         <Splitted>1</Splitted>
+		         <Persistent>1</Persistent>
+		</Hdd>
+		<Serial index="0">
+			<Enabled>0</Enabled>
+			<Connected>1</Connected>
+			<EmulatedType>0</EmulatedType>
+			<Path/>
+		</Serial>
+		<Serial index="0">
+			<Enabled>0</Enabled>
+			<Connected>1</Connected>
+			<EmulatedType>0</EmulatedType>
+			<Path/>
+		</Serial>
+		<Parallel index="0">
+			<Enabled>0</Enabled>
+			<Connected>1</Connected>
+			<EmulatedType>0</EmulatedType>
+			<Path/>
+		</Parallel>
+		<Parallel index="0">
+			<Enabled>0</Enabled>
+			<Connected>1</Connected>
+			<EmulatedType>0</EmulatedType>
+			<Path/>
+		</Parallel>
+		<NetworkAdapter index="0">
+			<Enabled>0</Enabled>
+			<Connected>1</Connected>
+			<EmulatedType>1</EmulatedType>
+			<AdapterNumber>1</AdapterNumber>
+			<AdapterName>BOUND_ADAPTER_NAME</AdapterName>
+			<MAC>MAC_ADDRESS</MAC>
+		</NetworkAdapter>
+		<NetworkAdapter index="0">
+			<Enabled>0</Enabled>
+			<Connected>1</Connected>
+			<EmulatedType>1</EmulatedType>
+			<AdapterNumber>1</AdapterNumber>
+			<AdapterName>BOUND_ADAPTER_NAME</AdapterName>
+			<MAC>MAC_ADDRESS</MAC>
+		</NetworkAdapter>
+		<Sound>
+			<Enabled>0</Enabled>
+			<Connected>1</Connected>
+			<EmulatedType>0</EmulatedType>
+			<Output>OUTPUT_DEVICE</Output>
+			<Mixer>MIXER_DEVICE</Mixer>
+		</Sound>
+		<USB>
+			<Enabled>0</Enabled>
+			<Connected>1</Connected>
+			<EmulatedType>0</EmulatedType>
+			<AutoConnect>1</AutoConnect>
+		</USB>
+		<USB>
+			<Enabled>0</Enabled>
+			<Connected>1</Connected>
+			<EmulatedType>0</EmulatedType>
+			<AutoConnect>1</AutoConnect>
+		</USB>
+	</Hardware>
+</ParallelsVirtualMachine>

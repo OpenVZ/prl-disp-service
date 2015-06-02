@@ -1,0 +1,15 @@
+TARGET = test_sdk_PrlVmManipulationsTest
+PROJ_PATH = $$PWD
+include(../../../../Sources/Build/qmake/build_target.pri)
+
+include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
+include($$SRC_LEVEL/XmlModel/XmlModel.pri)
+include($$LIBS_LEVEL/Logging/Logging.pri)
+include($$LIBS_LEVEL/ProtoSerializer/ProtoSerializer.pri)
+include($$LIBS_LEVEL/CAuth/CAuth.pri)
+include($$LIBS_LEVEL/PrlNetworking/PrlNetworking.pri)
+include($$LIBS_LEVEL/HostUtils/HostUtils.pri)
+linux-*: include($$LIBS_LEVEL/Virtuozzo/Virtuozzo.pri)
+include($$SRC_LEVEL/SDK/Handles/SDK.pri)
+include($$LIBS_LEVEL/StatesStore/StatesStore.pri)
+include($$LIBS_LEVEL/TimeMachineHelper/TimeMachineHelper.pri)

@@ -1,0 +1,8 @@
+TARGET = test_parallels_dir
+PROJ_PATH = $$PWD
+include(../../../Sources/Build/qmake/build_target.pri)
+
+include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
+include($$LIBS_LEVEL/CAuth/CAuth.pri)
+include($$LIBS_LEVEL/Logging/Logging.pri)
+include($$LIBS_LEVEL/HostUtils/HostUtils.pri)

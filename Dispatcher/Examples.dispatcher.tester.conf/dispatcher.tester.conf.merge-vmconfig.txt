@@ -1,0 +1,10 @@
+#
+# DESCRIPTION:
+# test set for task https://jira.sw.ru/browse/PDFM-15111 
+# [ Need implement merge vm configuraction to prevent edit conflicts  ]
+#
+# USAGE NOTE:
+#	It works only if macros "EXTERNALLY_AVAILABLE_BUILD" disabled
+
+# trace merged configs to /tmp/
+MERGE_TEST.VMCONFIG.DUMP_ENABLED = 1

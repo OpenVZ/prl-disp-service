@@ -1,0 +1,103 @@
+////////////////////////////////////////////////////////////////////////////////
+///
+/// @file CDspVmNetworkHelper.h
+///
+///	Definition of the class CDspVmNetworkHelper
+///	This class implements functions to help manage vm network parameters
+///
+/// @author andreydanin
+///
+/// Copyright (c) 2005-2015 Parallels IP Holdings GmbH
+///
+/// This file is part of Virtuozzo Core. Virtuozzo Core is free
+/// software; you can redistribute it and/or modify it under the terms
+/// of the GNU General Public License as published by the Free Software
+/// Foundation; either version 2 of the License, or (at your option) any
+/// later version.
+/// 
+/// This program is distributed in the hope that it will be useful,
+/// but WITHOUT ANY WARRANTY; without even the implied warranty of
+/// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+/// GNU General Public License for more details.
+/// 
+/// You should have received a copy of the GNU General Public License
+/// along with this program; if not, write to the Free Software
+/// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+/// 02110-1301, USA.
+///
+/// Our contact details: Parallels IP Holdings GmbH, Vordergasse 59, 8200
+/// Schaffhausen, Switzerland.
+///
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef __CDspVmNetworkHelper_H_
+#define __CDspVmNetworkHelper_H_
+
+#include <QSet>
+#include <QString>
+#include "CDspLibvirt.h"
+#include "Libraries/Std/SmartPtr.h"
+#include "XmlModel/VmConfig/CVmGenericNetworkAdapter.h"
+#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include "Libraries/HostUtils/HostUtils.h"
+
+enum HostMacUpdateFlags {
+	HMU_NONE = 0,
+	HMU_CHECK_NONEMPTY = (1 << 0),
+};
+
+class CDspVmNetworkHelper
+{
+	public:
+		static void extractMacAddressesFromVMConfiguration(SmartPtr<CVmConfiguration> config,
+															QSet<QString>& macs,
+															bool hostAddresses);
+		static bool extractAllVmMacAddresses(QSet<QString>& macs, bool hostAddresses);
+
+		/// returns true if mac-address conflicts with some interface in the list/vm mac.
+		static bool isMacAddrConflicts(const QString& mac, const QSet<QString>& used);
+
+		/// Check and correct mac address to be unique
+		static bool checkAndMakeUniqueMacAddr(QString& mac, const QSet<QString>& used,
+				HostUtils::MacPrefixType prefix = HostUtils::MAC_PREFIX_VM);
+
+		/// get mac addresses of (a) physical/virtual host adapters and
+		// (b) VM's host macs
+		static void getUsedHostMacAddresses(QSet< QString >& hostMacs);
+
+		/// Update host mac address for all vm net adapters
+		static void updateHostMacAddresses(SmartPtr<CVmConfiguration> pVmConfig,
+			QSet<QString>* usedMacs, HostMacUpdateFlags flags);
+
+	private:
+		/// Update host mac address for specified vm net adapter
+		static void updateHostMacAddress(SmartPtr<CVmConfiguration> pVmConfig,
+			CVmGenericNetworkAdapter *pAdapter, const QSet<QString>& used, HostMacUpdateFlags flags);
+};
+
+namespace Network
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Dao
+
+struct Dao
+{
+	explicit Dao(Libvirt::Tools::Agent::Hub& libvirt_);
+
+	PRL_RESULT list(QList<CVirtualNetwork>& dst_);
+	PRL_RESULT create(const CVirtualNetwork& model_);
+	PRL_RESULT remove(const CVirtualNetwork& model_);
+	PRL_RESULT update(const CVirtualNetwork& model_);
+
+private:
+	PRL_RESULT define(CVirtualNetwork network_);
+	PRL_RESULT craftBridge(CVirtualNetwork& network_);
+
+	Libvirt::Tools::Agent::Network::List m_networks;
+	Libvirt::Tools::Agent::Interface::List m_interfaces;
+};
+
+} // namespace Network
+
+#endif // __CDspVmNetworkHelper_H_
+
