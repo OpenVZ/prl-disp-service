@@ -2611,9 +2611,9 @@ int CVzOperationHelper::clone_env(const QString &uuid, const QString &sNewHome,
 		return res;
 
 	if (!sNewName.isEmpty()) {
-		res = set_env_name(uuid, sNewName);
+		res = set_env_name(dst_uuid, sNewName);
 		if (PRL_FAILED(res)) {
-			delete_env(uuid);
+			delete_env(dst_uuid);
 			return res;
 		}
 	}
