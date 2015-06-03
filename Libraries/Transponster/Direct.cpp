@@ -109,6 +109,7 @@ PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics:
 PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 0>::type& bridge_) const
 {
 	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter());
+	a->setIndex(m_hardware->m_lstNetworkAdapters.size());
 	a->setConnected();
 	a->setEnabled(PVE::DeviceEnabled);
 	a->setEmulatedType(PNA_BRIDGED_ETHERNET);
@@ -137,6 +138,7 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 3>::type& network_) const
 {
 	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter());
+	a->setIndex(m_hardware->m_lstNetworkAdapters.size());
 	a->setConnected();
 	a->setEnabled(PVE::DeviceEnabled);
 	a->setEmulatedType(PNA_BRIDGED_ETHERNET);
@@ -156,6 +158,7 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 4>::type& direct_) const
 {
 	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter());
+	a->setIndex(m_hardware->m_lstNetworkAdapters.size());
 	a->setConnected();
 	a->setEnabled(PVE::DeviceEnabled);
 	a->setEmulatedType(PNA_DIRECT_ASSIGN);
@@ -191,6 +194,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice912::
 		return PRL_ERR_UNEXPECTED;
 
 	CVmSoundDevice* d = new CVmSoundDevice();
+	d->setIndex(h->m_lstSoundDevices.size());
 	if (sound_.getValue().getAlias())
 		d->setUserFriendlyName(sound_.getValue().getAlias().get());
 
@@ -205,6 +209,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice912::
 		return PRL_ERR_UNEXPECTED;
 
 	CVmParallelPort* p = new CVmParallelPort();
+	p->setIndex(h->m_lstParallelPorts.size());
 	if (parallel_.getValue().getAlias())
 		p->setUserFriendlyName(parallel_.getValue().getAlias().get());
 
@@ -228,6 +233,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice912::
 		return PRL_ERR_SUCCESS;
 
 	CVmSerialPort* p = new CVmSerialPort();
+	p->setIndex(h->m_lstSerialPorts.size());
 	p->setEnabled(true);
 	p->setUserFriendlyName(serial_.getValue().getQemucdevSrcDef()
 		.getSourceList().front().getPath().get());
