@@ -254,6 +254,11 @@ PRL_RESULT CDspVmDirManager::addVmDirItem( const QString& dirUuid, CVmDirectoryI
 	}
 	else
 	{
+		
+#if _CT_
+		if (pVmDirItem->getVmType() == PVT_CT)
+			CVzHelper::update_ctid_map(pVmDirItem->getVmUuid(), pVmDirItem->getCtId());
+#endif
 		if (pVmDirItem->getVmType() == PVT_VM)
 		{
 			CDspService::instance()->getVmConfigWatcher().registerVmToWatch( pVmDirItem->getVmHome(),
@@ -305,6 +310,7 @@ PRL_RESULT CDspVmDirManager::deleteVmDirItem( const QString& dirUuid, const QStr
 #if _CT_
 		if (pItem->getVmType() == PVT_CT)
 		{
+			CVzHelper::update_ctid_map(pItem->getVmUuid(), QString());
 			CDspService::instance()->getVzHelper()->getConfigCache().
 				remove(pItem->getVmHome());
 		}
@@ -666,6 +672,9 @@ PRL_RESULT CDspVmDirManager::initVzDirCatalogue()
 	}
 
 	pCatalogue->addVmDirectory( pVzDir );
+
+	foreach(CVmDirectoryItem *pItem, pVzDir->m_lstVmDirectoryItems)
+		CVzHelper::update_ctid_map(pItem->getVmUuid(), pItem->getCtId());
 
 	result = saveVmDirCatalogue();
 

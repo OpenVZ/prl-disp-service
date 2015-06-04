@@ -32,10 +32,9 @@
 #include "Tasks/Task_VzStateMonitor.h"
 #include "Tasks/Task_VzManager.h"
 #include "Libraries/PrlCommonUtils/CFirewallHelper.h"
-#ifdef _LIN_
-#include "Libraries/Virtuozzo/PrlLibvzctlWrap.h"
-#endif
 #include "CDspVzHelper.h"
+
+#include <vzctl/libvzctl.h>
 
 Task_VzStateMonitor::Task_VzStateMonitor(const SmartPtr<CDspClient> &user,
 		const SmartPtr<IOPackage> &p) :
