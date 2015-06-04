@@ -171,10 +171,12 @@ PRL_RESULT CDspVzHelper::fillVzDirectory(CVmDirectory *pDir)
 
 	foreach(QString uuid, lst)
 	{
-		SmartPtr<CVmConfiguration> pConfig = getVzlibHelper().get_env_config(uuid);
+		SmartPtr<CVmConfiguration> pConfig = getVzlibHelper().
+						get_env_config_by_ctid(uuid);
 		if (!pConfig)
 			continue;
 		CVmDirectoryItem *pItem = new CVmDirectoryItem;
+		pItem->setCtId(pConfig->getVmIdentification()->getCtId());
 		pItem->setVmUuid(pConfig->getVmIdentification()->getVmUuid());
 		pItem->setVmType(PVT_CT);
 		pItem->setRegistered(PVE::VmRegistered);

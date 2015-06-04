@@ -83,6 +83,8 @@
 #define BIN_VZCTL	"/usr/sbin/vzctl"
 
 static bool s_lib_loaded = false;
+QMutex CVzHelper::s_mtxEnvUuidMap;
+QHash< QString, QString > CVzHelper::s_envUuidMap;
 
 CNumaNode CVzHelper::s_numanodes;
 QMutex CVzHelper::s_mtxNodemask(QMutex::Recursive);
@@ -1108,8 +1110,12 @@ int CVzHelper::get_env_status(const QString &uuid, VIRTUAL_MACHINE_STATE &nState
 	if (!is_lib_loaded())
 		return PRL_ERR_VZ_API_NOT_INITIALIZED;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	vzctl_env_status_t status;
-	if (vzctl2_get_env_status(QSTR2UTF8(uuid), &status, ENV_STATUS_ALL)) {
+	if (vzctl2_get_env_status(QSTR2UTF8(ctid), &status, ENV_STATUS_ALL)) {
 		WRITE_TRACE(DBG_FATAL, "Filed to get Ct %s status: %s",
 				QSTR2UTF8(uuid), vzctl2_get_last_error());
 		return PRL_ERR_OPERATION_FAILED;
@@ -1322,7 +1328,7 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 		if (vzctl2_get_name(h, &data) == 0)
 			p->setVmName(UTF8_2QSTR(data));
 		else
-			p->setVmName(p->getVmUuid());
+			p->setVmName(p->getCtId());
 		// Uptime
 		quint64 uptime, start_date;
 		if ((ret = vzctl2_env_get_uptime(h, &uptime, &start_date)) == 0)
@@ -1664,25 +1670,17 @@ int CVzHelper::get_vz_config_param(const char *param, QString &out)
 	return 0;
 }
 
-SmartPtr<CVmConfiguration> CVzHelper::get_env_config(const QString &uuid)
+SmartPtr<CVmConfiguration> CVzHelper::get_env_config_by_ctid(const QString &ctid)
 {
 	int ret;
 
 	SmartPtr<CVmConfiguration> pConfig;
 
-	if (!is_lib_loaded())
-		return pConfig;
-
-	if (uuid.isEmpty()) {
-		WRITE_TRACE(DBG_FATAL, "get_env_config: invalid uuis");
-		return pConfig;
-	}
-
-	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(uuid), 0, &ret));
+	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
 	if (h == NULL)
 	{
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s %s [%d]",
-			QSTR2UTF8(uuid), vzctl2_get_last_error(), ret);
+			QSTR2UTF8(ctid), vzctl2_get_last_error(), ret);
 		return pConfig;
 	}
 
@@ -1691,6 +1689,20 @@ SmartPtr<CVmConfiguration> CVzHelper::get_env_config(const QString &uuid)
 	ret = get_vm_config(h, pConfig);
 
 	return pConfig;
+}
+
+SmartPtr<CVmConfiguration> CVzHelper::get_env_config(const QString &uuid)
+{
+	SmartPtr<CVmConfiguration> pConfig;
+
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty()) {
+		WRITE_TRACE(DBG_FATAL, "get_env_config: invalid ctid '%s'",
+				QSTR2UTF8(uuid));
+		return pConfig;
+	}
+
+	return get_env_config_by_ctid(ctid);
 }
 
 SmartPtr<CVmConfiguration> CVzHelper::get_env_config_from_file(
@@ -1771,7 +1783,11 @@ int CVzOperationHelper::set_env_name(const QString &uuid, const QString &name)
 	if (!is_lib_loaded())
 		return PRL_ERR_VZ_API_NOT_INITIALIZED;
 
-	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(uuid), 0, &ret));
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
 	if (h == NULL)
 	{
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s %s",
@@ -2366,11 +2382,16 @@ int CVzOperationHelper::apply_env_config(SmartPtr<CVmConfiguration> &pConfig,
 
 	QString uuid = pConfig->getVmIdentification()->getVmUuid();
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+
 	if (!pConfig->getVmSettings()->getVmCommonOptions()->getConfigSampleName().isEmpty()) {
                 QStringList args;
 
 		args += "set";
-		args += uuid;
+		args += ctid;
 		args += "--applyconfig";
 		args += pConfig->getVmSettings()->getVmCommonOptions()->getConfigSampleName();
 		args += "--save";
@@ -2493,15 +2514,20 @@ int CVzOperationHelper::register_env(const QString &sPath, const QString &sUuid,
 	return PRL_ERR_SUCCESS;
 }
 
-int CVzOperationHelper::unregister_env(const QString &sUuid, int flags)
+int CVzOperationHelper::unregister_env(const QString &uuid, int flags)
 {
 	Q_UNUSED(flags);
 	QStringList args;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	WRITE_TRACE(DBG_FATAL, "Unregister Container %s",
-			QSTR2UTF8(sUuid));
+			QSTR2UTF8(ctid));
+
 	args += "unregister";
-	args += sUuid;
+	args += ctid;
 
 	return run_prg(BIN_VZCTL, args);
 }
@@ -2583,11 +2609,14 @@ int CVzOperationHelper::clone_env(const QString &uuid, const QString &sNewHome,
 		const QString &sNewName, PRL_UINT32 nFlags, SmartPtr<CVmConfiguration> &pNewConfig)
 {
 	Q_UNUSED(nFlags);
-
 	QStringList args;
 
 	if (!is_lib_loaded())
 		return PRL_ERR_VZ_API_NOT_INITIALIZED;
+
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
 
 	// vzmlocal -C 101 --new-id 201 [--new-private /vz/private/test] --new-uuid <uuid>
 	QString dst_uuid = pNewConfig->getVmIdentification()->getVmUuid();
@@ -2595,7 +2624,7 @@ int CVzOperationHelper::clone_env(const QString &uuid, const QString &sNewHome,
 	dst_uuid.remove(QChar('}'));
 
 	args += "-C";
-	args += uuid;
+	args += ctid;
 
 	if (!sNewHome.isEmpty()) {
 		// Convert sNewHome to VE_PRIVATE
@@ -2666,8 +2695,12 @@ int CVzOperationHelper::create_env_disk(const QString &uuid, const CVmHardDisk &
 	unsigned int nNewSize = disk.getSize();
 	QStringList args;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	args += "set";
-	args += uuid;
+	args += ctid;
 	args += "--save";
 
 	args += "--device-add";
@@ -2704,8 +2737,12 @@ int CVzOperationHelper::del_env_disk(const QString &uuid, const CVmHardDisk &dis
 {
 	QStringList args;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	args += "set";
-	args += uuid;
+	args += ctid;
 	args += "--save";
 	args += "--device-del";
 	args += disk.getUuid();
@@ -2747,7 +2784,11 @@ int CVzOperationHelper::resize_env_disk(const QString &uuid, const QString &sPat
 	int ret;
 	unsigned long long nDiskSize;
 
-	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(uuid), 0, &ret));
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
 	if (h == NULL) {
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s %s",
 				QSTR2UTF8(uuid), vzctl2_get_last_error());
@@ -2756,7 +2797,7 @@ int CVzOperationHelper::resize_env_disk(const QString &uuid, const QString &sPat
 
 	QStringList args;
 	args += "set";
-	args += uuid;
+	args += ctid;
 	args += "--save";
 
 	// Mb -> 1Kb
@@ -2796,8 +2837,12 @@ int CVzOperationHelper::start_env(const QString &uuid, PRL_UINT32 nFlags)
 {
 	QStringList args;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	args += "start";
-	args += uuid;
+	args += ctid;
 	if (nFlags & PNSF_VM_START_WAIT)
 		args += "--wait";
 
@@ -2808,8 +2853,12 @@ int CVzOperationHelper::restart_env(const QString &uuid)
 {
 	QStringList args;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	args += "restart";
-	args += uuid;
+	args += ctid;
 
 	return run_prg(BIN_VZCTL, args);
 }
@@ -2818,8 +2867,12 @@ int CVzOperationHelper::mount_env(const QString &uuid)
 {
 	QStringList args;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	args += "mount";
-	args += uuid;
+	args += ctid;
 
 	return run_prg(BIN_VZCTL, args);
 }
@@ -2828,8 +2881,12 @@ int CVzOperationHelper::umount_env(const QString &uuid)
 {
 	QStringList args;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	args += "umount";
-	args += uuid;
+	args += ctid;
 
 	if (PRL_FAILED(run_prg(BIN_VZCTL, args)))
 		return vz2prl_err(get_rc());
@@ -2841,8 +2898,12 @@ int CVzOperationHelper::stop_env(const QString &uuid, PRL_UINT32 nMode)
 {
 	QStringList args;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	args += "stop";
-	args += uuid;
+	args += ctid;
 	if ((nMode & PRL_VM_STOP_MODE_MASK) == PSM_KILL)
 		args += "--fast";
 
@@ -2855,8 +2916,12 @@ int CVzOperationHelper::suspend_env(const QString &uuid)
 {
 	QStringList args;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	args += "suspend";
-	args += uuid;
+	args += ctid;
 
 	CVzHelper::sync_env_uptime(uuid);
 
@@ -2867,8 +2932,12 @@ int CVzOperationHelper::resume_env(const QString &uuid, PRL_UINT32 flags)
 {
 	QStringList args;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	args += "resume";
-	args += uuid;
+	args += ctid;
 	if (flags & PNSF_CT_SKIP_ARPDETECT)
 		 args += "--skip_arpdetect";
 
@@ -2879,8 +2948,12 @@ int CVzOperationHelper::delete_env(const QString &uuid)
 {
 	QStringList args;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	args += "destroy";
-	args += uuid;
+	args += ctid;
 
 	return run_prg(BIN_VZCTL, args);
 }
@@ -2890,8 +2963,12 @@ int CVzOperationHelper::set_env_userpasswd(const QString &uuid, const QString &u
 {
 	QStringList args;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	args += "set";
-	args += uuid;
+	args += ctid;
 	args += "--userpasswd";
 	args += QString("%1:%2").arg(user).arg(pw);
 	if (nFlags & PSPF_PASSWD_CRYPTED)
@@ -2906,7 +2983,11 @@ int CVzOperationHelper::auth_env_user(const QString &uuid, const QString &user, 
 {
 	int ret;
 
-	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(uuid), 0, &ret));
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
 	if (h == NULL) {
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
 				QSTR2UTF8(uuid), vzctl2_get_last_error());
@@ -2930,11 +3011,15 @@ int CVzOperationHelper::create_env_snapshot(const QString &uuid,
 
 	QStringList args;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	if (!Uuid::isUuid(snap_uuid))
 		return PRL_ERR_INVALID_ARG;
 
 	args += "snapshot";
-	args += uuid;
+	args += ctid;
 	args += "--uuid"; args += snap_uuid;
 	args += "--env";
 
@@ -2950,11 +3035,15 @@ int CVzOperationHelper::delete_env_snapshot(const QString &uuid, const QString &
 	Q_UNUSED(bDelChild);
 	QStringList args;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	if (!Uuid::isUuid(snap_uuid))
 		return PRL_ERR_INVALID_ARG;
 
 	args += "snapshot-delete";
-	args += uuid;
+	args += ctid;
 	args += "--uuid"; args += snap_uuid;
 
 	return run_prg(BIN_VZCTL, args);
@@ -2968,8 +3057,12 @@ int CVzOperationHelper::switch_env_snapshot(const QString &uuid, const QString &
 	if (!Uuid::isUuid(snap_uuid))
 		return PRL_ERR_INVALID_ARG;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	args += "snapshot-switch";
-	args += uuid;
+	args += ctid;
 	args += "--uuid"; args += snap_uuid;
 
 	if (flags & PSSF_SKIP_RESUME)
@@ -3115,7 +3208,11 @@ int CVzOperationHelper::create_tsnapshot(const QString &uuid,
 	if (!is_lib_loaded())
 		return PRL_ERR_VZ_API_NOT_INITIALIZED;
 
-	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(uuid), 0, &ret));
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
 	if (h == NULL) {
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
 				QSTR2UTF8(uuid), vzctl2_get_last_error());
@@ -3163,7 +3260,11 @@ int CVzOperationHelper::merge_snapshot(const QString &uuid, const QString &snap_
 	if (!is_lib_loaded())
 		return -1;
 
-	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(uuid), 0, &ret));
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
 	if (h == NULL) {
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s %s [%d]",
 				QSTR2UTF8(uuid), vzctl2_get_last_error(), ret);
@@ -3184,7 +3285,11 @@ int CVzOperationHelper::delete_tsnapshot(const QString &uuid, const QString &sna
 	if (!is_lib_loaded())
 		return -1;
 
-	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(uuid), 0, &ret));
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
 	if (h == NULL) {
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
 				QSTR2UTF8(uuid), vzctl2_get_last_error());
@@ -3210,7 +3315,11 @@ int CVzOperationHelper::remove_disks_from_env_config(SmartPtr<CVmConfiguration> 
 
 	QString uuid = pConfig->getVmIdentification()->getVmUuid();
 
-	VzctlHandleWrap h(vzctl2_env_open_conf(QSTR2UTF8(uuid), QSTR2UTF8(sNewConfName), 0, &ret));
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	VzctlHandleWrap h(vzctl2_env_open_conf(QSTR2UTF8(ctid), QSTR2UTF8(sNewConfName), 0, &ret));
 	if (h == NULL) {
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
 			QSTR2UTF8(uuid), vzctl2_get_last_error());
@@ -3239,8 +3348,12 @@ int CVzHelper::get_env_iostat(const QString &uuid, CDiskStatistics& dst_)
 	if (!is_lib_loaded())
 		return PRL_ERR_VZ_API_NOT_INITIALIZED;
 
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 	struct vzctl_iostat stat = vzctl_iostat();
-	(void)vzctl2_get_env_iostat(QSTR2UTF8(uuid), &stat, sizeof(struct vzctl_iostat));
+	(void)vzctl2_get_env_iostat(QSTR2UTF8(ctid), &stat, sizeof(struct vzctl_iostat));
 
 	dst_.setReadBytesTotal(stat.read);
 	dst_.setWriteBytesTotal(stat.write);
@@ -3255,7 +3368,11 @@ int CVzHelper::get_env_cpustat(const QString &uuid, Ct::Statistics::Cpu& dst_)
 	if (!is_lib_loaded())
 		return PRL_ERR_VZ_API_NOT_INITIALIZED;
 
-	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(uuid), 0, &ret));
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
 	if (h == NULL) {
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
 			QSTR2UTF8(uuid), vzctl2_get_last_error());
@@ -3281,7 +3398,11 @@ int CVzHelper::get_env_meminfo(const QString &uuid, CMemoryStatistics& dst_)
 	if (!is_lib_loaded())
 		return PRL_ERR_VZ_API_NOT_INITIALIZED;
 
-	if (vzctl2_get_env_meminfo(QSTR2UTF8(uuid), &meminfo, sizeof(struct vzctl_meminfo)))
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	if (vzctl2_get_env_meminfo(QSTR2UTF8(ctid), &meminfo, sizeof(struct vzctl_meminfo)))
 		return PRL_ERR_FAILURE;
 
 	dst_.setTotalSize(meminfo.total);
@@ -3300,7 +3421,11 @@ int CVzHelper::set_env_uptime(const QString &uuid, const quint64 uptime, const Q
 	if (!is_lib_loaded())
 		return PRL_ERR_VZ_API_NOT_INITIALIZED;
 
-	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(uuid), 0, &ret));
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
 	if (h == NULL) {
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
 			QSTR2UTF8(uuid), vzctl2_get_last_error());
@@ -3327,7 +3452,11 @@ int CVzHelper::sync_env_uptime(const QString &uuid)
 	if (!is_lib_loaded())
 		return PRL_ERR_VZ_API_NOT_INITIALIZED;
 
-	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(uuid), 0, &ret));
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
 	if (h == NULL) {
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
 			QSTR2UTF8(uuid), vzctl2_get_last_error());

@@ -270,6 +270,7 @@ public:
 	static int get_network_shaping_config(CNetworkShapingConfig &conf);
 	static int set_rate(const QString &uuid, const CVmNetworkRates &lstRate);
 
+	static SmartPtr<CVmConfiguration> get_env_config_by_ctid(const QString &ctid);
 	static SmartPtr<CVmConfiguration> get_env_config(const QString &uuid);
 	static SmartPtr<CVmConfiguration> get_env_config_from_file(const QString &sFile,
 			int &err, int layout = 0,
@@ -308,6 +309,44 @@ public:
 	 * @param lckfd         lock file descriptor
 	 */
 	static void unlock_env(unsigned int id, int lockfd);
+	static void update_ctid_map(const QString &uuid, const QString &ctid)
+	{
+		QMutexLocker lock(&s_mtxEnvUuidMap);
+		if (ctid.isEmpty())
+			s_envUuidMap.remove(uuid);
+		else
+			s_envUuidMap[uuid] = ctid;
+	}
+
+	static const QString get_ctid_by_uuid(const QString &uuid) 
+	{
+		QMutexLocker lock(&s_mtxEnvUuidMap);
+		QHash<QString, QString>::const_iterator it = s_envUuidMap.find(uuid);
+		if (it != s_envUuidMap.end())
+			return it.value();
+
+		return QString();
+	}
+
+	static const QString get_uuid_by_ctid(const QString &ctid) 
+	{
+		QMutexLocker lock(&s_mtxEnvUuidMap);
+
+		QHashIterator<QString, QString> it(s_envUuidMap);
+		while (it.hasNext()) {
+			it.next();
+			if (it.value() == ctid)
+				return it.key();
+		}
+
+		return QString();
+	}
+
+
+private:
+
+	static QMutex s_mtxEnvUuidMap;
+	static QHash<QString, QString > s_envUuidMap;
 };
 
 struct callback_data
