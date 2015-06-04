@@ -294,7 +294,6 @@ public:
 	static int sync_env_uptime(const QString& uuid_);
 	int set_vziolimit(const char *name);
 
-	static bool initialized();
 	static int init_lib();
 
 	/* Lock Container

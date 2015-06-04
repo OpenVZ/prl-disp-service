@@ -2849,12 +2849,6 @@ PRL_RESULT Task_EditVm::configureVzParameters(const CVmIdent &ident,
 	if (bSetRate)
 		Task_NetworkShapingManagement::setNetworkRate(pNewVmConfig);
 
-#ifndef EXTERNALLY_AVAILABLE_BUILD
-	/* Do not fail Vm start PSBM-25184 by skipping setting IO related parameters */
-	if (bSet && !CVzHelper::initialized())
-		return PRL_ERR_SUCCESS;
-#endif
-
 	// IoPriority
 	if (pOldVmConfig)
 		oldVal = pOldVmConfig->getVmSettings()->getVmRuntimeOptions()->getIoPriority();
