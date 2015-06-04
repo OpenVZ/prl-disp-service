@@ -1353,38 +1353,6 @@ QString PrlNet::GetOffmgmtServiceByPort(const CParallelsNetworkConfig *pNetworkC
 	return "";
 }
 
-static PRL_RESULT CreateDefaultOffmgmtPortsBuffer(
-		const CParallelsNetworkConfig *pNetworkConfig,
-		UINT16 **ppBuffer, unsigned *pcnt)
-{
-	COffmgmtServices *services = pNetworkConfig->getOffmgmtServices();
-	if (!services) {
-		PRL_ASSERT(services);
-		return 0;
-	}
-
-	if (0 == services->m_lstOffmgmtService.size())
-		return 0;
-
-	UINT16 ports_cnt = 0;
-	UINT16 *ports = (UINT16 *)malloc(services->m_lstOffmgmtService.size() * sizeof(UINT16));
-	if (NULL == ports)
-		return PRL_ERR_OUT_OF_MEMORY;
-
-	foreach (COffmgmtService *srv, services->m_lstOffmgmtService) {
-		if (srv->isUsedByDefault())
-			ports[ports_cnt++] = srv->getPort();
-	}
-	if (ports_cnt == 0) {
-		::free(ports);
-		ports = NULL;
-	}
-
-	*ppBuffer = ports;
-	*pcnt = ports_cnt;
-	return 0;
-}
-
 static QAbstractSocket::NetworkLayerProtocol
 ipmask_to_ip(const QString &ip_mask, QHostAddress &addr)
 {
