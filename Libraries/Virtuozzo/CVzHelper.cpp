@@ -72,7 +72,6 @@
 
 #define BIN_VZCTL	"/usr/sbin/vzctl"
 
-static bool s_lib_loaded = false;
 QMutex CVzHelper::s_mtxEnvUuidMap;
 QHash< QString, QString > CVzHelper::s_envUuidMap;
 
