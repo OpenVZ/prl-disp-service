@@ -1385,10 +1385,15 @@ PRL_RESULT Task_VzManager::move_env()
 		return res;
 	}
 
-	PRL_UINT32 nCtId = -1;
-	res = get_op_helper()->move_env(sNewHome, sName, &nCtId);
+	QString sCtid = CVzHelper::get_ctid_by_uuid(sUuid);
+	if (sCtid.isEmpty()) {
+		WRITE_TRACE(DBG_FATAL, "Can not get container ID for UUID %s", QSTR2UTF8(sUuid));
+		return PRL_ERR_CT_NOT_FOUND;
+	}
+
+	res = get_op_helper()->move_env(sNewHome, sName, sCtid);
 	if (PRL_SUCCEEDED(res)) {
-		sNewConfPath = sNewHome + QString("/%1").arg(nCtId) + "/" + VMDIR_DEFAULT_VM_CONFIG_FILE;
+		sNewConfPath = sNewHome + QString("/%1").arg(sCtid) + "/" + VMDIR_DEFAULT_VM_CONFIG_FILE;
 		CDspLockedPointer< CVmDirectoryItem >
 			pVmDirItem = CDspService::instance()->getVmDirManager()
 			.getVmDirItemByUuid(m_sVzDirUuid, sUuid );
