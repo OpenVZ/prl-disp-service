@@ -2499,7 +2499,10 @@ int CVzOperationHelper::create_env(const QString &dst, SmartPtr<CVmConfiguration
 		return vz2prl_err(get_rc());;
 	}
 
-	SmartPtr<CVmConfiguration> pNewConfig = CVzHelper::get_env_config(uuid);
+	SmartPtr<CVmConfiguration> pNewConfig = CVzHelper::get_env_config_by_ctid(uuid);
+	if (!pNewConfig)
+		return PRL_ERR_VZ_OPERATION_FAILED;
+ 
 	QString cfg = get_env_xml_config_path(pNewConfig);
 	// Store xml copy (#PSBM-8440)
 	pConfig->saveToFile(cfg, true, true);
