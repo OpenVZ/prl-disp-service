@@ -3644,15 +3644,15 @@ retry:
 	m_kevt_fd = -1;
 }
 
-int CVzOperationHelper::move_env(const QString &sNewHome, const QString &sName, PRL_UINT32_PTR pnCtId)
+int CVzOperationHelper::move_env(const QString &sNewHome, const QString &sName,
+	const QString &sSrcCtid)
 {
-	unsigned int srcid, dstid;
+	QString sDstCtid;
 	QStringList args;
 
 	bool bIsNum;
 
-	srcid = *pnCtId;
-	QString sNewPrivate = QString("%1/%2").arg(sNewHome).arg(srcid);
+	QString sNewPrivate = QString("%1/%2").arg(sNewHome).arg(sSrcCtid);
 	if (QFileInfo(sNewPrivate).exists()) {
 		sName.toUInt(&bIsNum);
 		if (sName.isEmpty() || bIsNum) {
@@ -3662,20 +3662,29 @@ int CVzOperationHelper::move_env(const QString &sNewHome, const QString &sName, 
 				QSTR2UTF8(sNewPrivate));
 			return PRL_ERR_UNNAMED_CT_MOVE;
 		}
+#if 0
 		// target private already exists, will find free ID (https://jira.sw.ru/browse/PSBM-15737)
+		if (CVzHelper::lock_envid(&dstid, sNewHome + QString("/$VEID"))) {
+			WRITE_TRACE(DBG_FATAL, "Unable to get Container dstid: %s",
+				vzctl2_get_last_error());
+			return c;
+		}
+		envidLockWrap.set_envid(dstid);
+#endif
+		return PRL_ERR_UNIMPLEMENTED;
 	} else {
-		dstid = srcid;
+		sDstCtid = sSrcCtid;
  	}
-	sNewPrivate = QString("%1/%2").arg(sNewHome).arg(dstid);
+	sNewPrivate = QString("%1/%2").arg(sNewHome).arg(sDstCtid);
 
 	// vzmlocal 101 --new-private /vz/private/test
-	args += QString("%1").arg(srcid);
+	args += sSrcCtid;
 	args += "--new-private";
-	args += QString("%1").arg(sNewPrivate);
+	args += sNewPrivate;
 
-	if (srcid != dstid) {
+	if (sSrcCtid != sDstCtid) {
 		args += "--new-id";
-		args += QString("%1").arg(dstid);
+		args += sDstCtid;
 	}
 
 	PRL_RESULT res = run_prg("/usr/sbin/vzmlocal", args);

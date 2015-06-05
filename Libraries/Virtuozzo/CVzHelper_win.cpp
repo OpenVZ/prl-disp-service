@@ -3456,11 +3456,12 @@ void CVzStateMonitor::start(state_event_handler_fn cb, void *obj)
 	}
 }
 
-int CVzOperationHelper::move_env(const QString &sNewHome, const QString &sName, PRL_UINT32_PTR pnCtId)
+int CVzOperationHelper::move_env(const QString &sNewHome, const QString &sName,
+	const QString &sSrcCtid)
 {
 	Q_UNUSED(sNewHome);
 	Q_UNUSED(sName);
-	Q_UNUSED(pnCtId);
+	Q_UNUSED(sSrcCtid);
 	return PRL_ERR_UNIMPLEMENTED;
 }
 
