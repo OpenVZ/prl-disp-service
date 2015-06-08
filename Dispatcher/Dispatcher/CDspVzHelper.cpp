@@ -273,7 +273,7 @@ SmartPtr<CVmConfiguration> CDspVzHelper::getCtConfig(
 	if (!pConfig)
 	{
 		/* get From Disk */
-		pConfig = getVzlibHelper().get_env_config_by_ctid(sUuid);
+		pConfig = getVzlibHelper().get_env_config(sUuid);
 		if (!pConfig)
 			return SmartPtr<CVmConfiguration>();
 		/* update Cache */

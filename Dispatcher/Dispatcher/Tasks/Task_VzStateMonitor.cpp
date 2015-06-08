@@ -57,16 +57,16 @@ void Task_VzStateMonitor::stateEventHandler(void *obj, const QString &uuid, int 
 	task->sendState(uuid, state);
 }
 
-void Task_VzStateMonitor::processRegisterEvt(const QString &uuid)
+void Task_VzStateMonitor::processRegisterEvt(const QString &ctid)
 {
 	PRL_RESULT res;
 
 	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->getVzHelper()->
-			getVzlibHelper().get_env_config(uuid);
+			getVzlibHelper().get_env_config_by_ctid(ctid);
 
 	if (!pConfig)
 		return;
-	QString vm_uuid = uuid;
+	QString vm_uuid = pConfig->getVmIdentification()->getVmUuid();
 	QString vm_name = pConfig->getVmIdentification()->getVmName();
 	QString vm_home = pConfig->getVmIdentification()->getHomePath();
 
@@ -136,10 +136,10 @@ void Task_VzStateMonitor::processChangeCtState(QString uuid, VIRTUAL_MACHINE_STA
 	CDspService::instance()->getTaskManager().schedule(new Task_VzManager(pFakeSession, p, uuid, vm_state));
 }
 
-void Task_VzStateMonitor::sendState(const QString &uuid, int state)
+void Task_VzStateMonitor::sendState(const QString &ctid, int state)
 {
 	WRITE_TRACE( DBG_INFO, "vzevent: state=%d, envid=%s",
-			state, QSTR2UTF8(uuid));
+			state, QSTR2UTF8(ctid));
 
 #ifdef _LIN_
 	// Node events
@@ -154,7 +154,14 @@ void Task_VzStateMonitor::sendState(const QString &uuid, int state)
 	if (state == VZCTL_ENV_CREATED ||
 			state == VZCTL_ENV_REGISTERED)
 	{
-		processRegisterEvt(uuid);
+		processRegisterEvt(ctid);
+	}
+
+	QString uuid = CVzHelper::get_uuid_by_ctid(ctid);
+	if (uuid.isEmpty()) {
+		WRITE_TRACE(DBG_FATAL, "Unable to find Container uuid by id=%s",
+				QSTR2UTF8(ctid));
+		return;
 	}
 
 	CVmEvent event( PET_DSP_EVT_VM_STATE_CHANGED, uuid, PIE_DISPATCHER );
