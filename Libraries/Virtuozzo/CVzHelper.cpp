@@ -3648,28 +3648,40 @@ int CVzOperationHelper::move_env(const QString &sNewHome, const QString &sName,
 	QString sDstCtid;
 	QStringList args;
 
-	bool bIsNum;
-
 	QString sNewPrivate = QString("%1/%2").arg(sNewHome).arg(sSrcCtid);
 	if (QFileInfo(sNewPrivate).exists()) {
-		sName.toUInt(&bIsNum);
-		if (sName.isEmpty() || bIsNum) {
+
+		// target private already exists, fail immediately if source CTID
+		// present in UUID format
+		bool bIsNum;
+		sSrcCtid.toUInt(&bIsNum);
+		if (!bIsNum) {
+			WRITE_TRACE(DBG_FATAL,
+				"Private %s already exists, but it is not possible to change "
+				"ID for container with UUID name",
+				QSTR2UTF8(sNewPrivate));
+			return PRL_ERR_OPERATION_FAILED;
+		}
+
+		// for unnamed containers dispatcher copy name from VEID, so suppose
+		// we move unnamed container if name matches VEID or name empty
+		if (sName.isEmpty() || (sName == sSrcCtid)) {
 			WRITE_TRACE(DBG_FATAL,
 				"Private %s already exists, "
-				"but it is not possible to chande ID for unnamed Container",
+				"but it is not possible to chande ID for unnamed container",
 				QSTR2UTF8(sNewPrivate));
 			return PRL_ERR_UNNAMED_CT_MOVE;
 		}
-#if 0
-		// target private already exists, will find free ID (https://jira.sw.ru/browse/PSBM-15737)
-		if (CVzHelper::lock_envid(&dstid, sNewHome + QString("/$VEID"))) {
-			WRITE_TRACE(DBG_FATAL, "Unable to get Container dstid: %s",
-				vzctl2_get_last_error());
-			return c;
+
+		// initialize destination CTID using containers UUID if source CTID
+		// present in old-style numeric format (VEID)
+		sDstCtid = CVzHelper::get_uuid_by_ctid(sSrcCtid);
+		if (sDstCtid.isEmpty()) {
+			WRITE_TRACE(DBG_FATAL, "Can't get UUID for CT %s",
+				QSTR2UTF8(sSrcCtid));
+			return PRL_ERR_OPERATION_FAILED;
 		}
-		envidLockWrap.set_envid(dstid);
-#endif
-		return PRL_ERR_UNIMPLEMENTED;
+
 	} else {
 		sDstCtid = sSrcCtid;
  	}
