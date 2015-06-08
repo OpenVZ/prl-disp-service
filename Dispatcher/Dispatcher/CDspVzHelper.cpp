@@ -135,6 +135,7 @@ PRL_RESULT CDspVzHelper::insertVmDirectoryItem(SmartPtr<CVmConfiguration> &pConf
 	}
 
 	CVmDirectoryItem *pItem = new CVmDirectoryItem;
+	pItem->setCtId(pConfig->getVmIdentification()->getCtId());
 	pItem->setVmUuid(pConfig->getVmIdentification()->getVmUuid());
 	pItem->setVmName(pConfig->getVmIdentification()->getVmName());
 	pItem->setVmHome(pConfig->getVmIdentification()->getHomePath());
