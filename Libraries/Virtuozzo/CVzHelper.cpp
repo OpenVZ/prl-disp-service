@@ -3508,11 +3508,6 @@ CVzStateMonitor::~CVzStateMonitor()
 	stop();
 }
 
-static QString ctid2uuid(const QString &ctid)
-{
-	return QString("{%1}").arg(ctid);
-}
-
 void CVzStateMonitor::start(state_event_handler_fn cb, void *obj)
 {
 	int ret;
@@ -3596,7 +3591,7 @@ retry:
 						sizeof(struct vzctl_state_evt)) == 0)
 				{
 					if (!m_bStopStatusMonitor){
-						cb(obj, ctid2uuid(QString(state_evt.ctid)),
+						cb(obj, QString(state_evt.ctid),
 								state_evt.state);
 					}
 				}
@@ -3630,7 +3625,7 @@ retry:
 						continue;
 
 					if (!m_bStopStatusMonitor)
-						cb(obj, ctid2uuid(lst[1]), state);
+						cb(obj, lst[1], state);
 				}
 			}
 		}
