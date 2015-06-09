@@ -416,28 +416,53 @@ quint32 getHostCpus()
 	return cpus = c->getNumber();
 }
 
-CVmEventParameter *eventParamUint32(quint32 v)
+namespace Conversion
 {
-	return new CVmEventParameter(PVE::UnsignedInt, QString::number(v));
-}
 
-CVmEventParameter *eventParamUint64(quint64 v)
-{
-	return new CVmEventParameter(PVE::UInt64, QString::number(v));
-}
+///////////////////////////////////////////////////////////////////////////////
+// struct Uint32
 
-CVmBinaryEventParameter *eventParam(const PRL_STAT_NET_TRAFFIC &stat)
-{
-	CVmBinaryEventParameter *p = new CVmBinaryEventParameter();
-	int sz = p->getBinaryDataStream()->writeRawData((const char*)&stat, sizeof(stat));
-	PRL_ASSERT(sizeof(stat) == sz);
-	return p;
-}
+struct Uint32 {
+	static CVmEventParameter *convert(quint32 v)
+	{
+		return new CVmEventParameter(PVE::UnsignedInt, QString::number(v));
+	}
+};
 
-CVmEventParameter *eventParam(const QString& s_)
-{
-	return new CVmEventParameter(PVE::String, s_);
-}
+///////////////////////////////////////////////////////////////////////////////
+// struct Uint64
+
+struct Uint64 {
+	static CVmEventParameter *convert(quint64 v)
+	{
+		return new CVmEventParameter(PVE::UInt64, QString::number(v));
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Network
+
+struct Network {
+	static CVmBinaryEventParameter *convert(const PRL_STAT_NET_TRAFFIC &stat)
+	{
+		CVmBinaryEventParameter *p = new CVmBinaryEventParameter();
+		int sz = p->getBinaryDataStream()->writeRawData((const char*)&stat, sizeof(stat));
+		PRL_ASSERT(sizeof(stat) == sz);
+		return p;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct String
+
+struct String {
+	static CVmEventParameter *convert(const QString& s_)
+	{
+		return new CVmEventParameter(PVE::String, s_);
+	}
+};
+
+} // namespace Conversion
 
 bool isContainer(const QString &uuid)
 {
@@ -452,10 +477,11 @@ bool isContainer(const QString &uuid)
 ///////////////////////////////////////////////////////////////////////////////
 // struct SingleCounter
 
-template <typename Flavor>
+template <typename Flavor, typename Conversion>
 struct SingleCounter {
 
 	typedef typename Flavor::source_type source_type;
+	typedef typename Flavor::value_type value_type;
 
 	explicit SingleCounter(const source_type &source)
 		: m_source(&source)
@@ -467,7 +493,12 @@ struct SingleCounter {
 		return Flavor::getName();
 	}
 
-	CVmEventParameter *getValue() const
+	CVmEventParameter *getParam() const
+	{
+		return Conversion::convert(getValue());
+	}
+
+	value_type getValue() const
 	{
 		return Flavor::extract(*m_source);
 	}
@@ -632,15 +663,19 @@ struct VCpuTime {
 		return multiCounterName("guest.vcpu", m_index, "time");
 	}
 
-	CVmEventParameter *getValue() const
+	quint64 getValue() const
 	{
 		/* typedef unsigned int uint128_t __attribute__((mode(TI))); */
 
 		// FIXME commented as getTscHz is not provided
 		// convert from TSC to nanosec
 		/* quint64 ns = ((uint128_t) m_vcpu->getValue(m_index)) * 1000000000ULL / CDspHostInfo::GetTscHz(); */
-		quint64 ns = m_vcpu->getValue(m_index);
-		return eventParamUint64(ns);
+		return m_vcpu->getValue(m_index);
+	}
+
+	CVmEventParameter *getParam() const
+	{
+		return Conversion::Uint64::convert(getValue());
 	}
 
 private:
@@ -648,21 +683,24 @@ private:
 	quint32 m_index;
 };
 
+namespace Flavor
+{
 ///////////////////////////////////////////////////////////////////////////////
 // struct GuestUsage
 
 struct GuestUsage {
 
 	typedef const Meter source_type;
+	typedef quint32 value_type;
 
 	static const char *getName()
 	{
 		return PRL_GUEST_CPU_USAGE_PTRN;
 	}
 
-	static CVmEventParameter *extract(const Meter &m)
+	static value_type extract(source_type &m)
 	{
-		return eventParamUint32(m.report().getPercent());
+		return m.report().getPercent();
 	}
 };
 
@@ -672,15 +710,16 @@ struct GuestUsage {
 struct GuestTimeDelta {
 
 	typedef const Meter source_type;
+	typedef quint64 value_type;
 
 	static const char *getName()
 	{
 		return PRL_GUEST_CPU_TIME_PTRN;
 	}
 
-	static CVmEventParameter *extract(const Meter &m)
+	static value_type extract(source_type &m)
 	{
-		return eventParamUint64(m.report().getValueDelta());
+		return m.report().getValueDelta();
 	}
 };
 
@@ -690,76 +729,235 @@ struct GuestTimeDelta {
 struct HostTimeDelta {
 
 	typedef const Meter source_type;
+	typedef quint64 value_type;
 
 	static const char *getName()
 	{
 		return PRL_HOST_CPU_TIME_PTRN;
 	}
 
-	static CVmEventParameter *extract(const Meter &m)
+	static value_type extract(source_type &m)
 	{
-		return eventParamUint64(m.report().getTimeDelta());
+		return m.report().getTimeDelta();
 	}
 };
 
+} //namespace Flavor
+
+typedef SingleCounter<Flavor::GuestUsage, Conversion::Uint32> GuestUsage;
+typedef SingleCounter<Flavor::GuestTimeDelta, Conversion::Uint64> GuestTimeDelta;
+typedef SingleCounter<Flavor::HostTimeDelta, Conversion::Uint64> HostTimeDelta;
+
+namespace Memory
+{
+namespace Flavor
+{
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reclaimable
 
 struct Reclaimable {
 
 	typedef const ProcPerfStoragesContainer source_type;
+	typedef quint64 value_type;
 
 	static const char *getName()
 	{
 		return PRL_WS_RECLAIMABLE_PTRN;
 	}
 
-	static CVmEventParameter *extract(const ProcPerfStoragesContainer &c)
+	static quint32 extract(source_type &c)
 	{
-		return eventParamUint32(extractUint32(c));
-	}
-
-	static quint32 extractUint32(const ProcPerfStoragesContainer &c)
-	{
-		return GetPerfCounter(c, "kernel.ws.reclaimable") / 256;
+		// pages to bytes
+		return GetPerfCounter(c, "kernel.ws.reclaimable") << 12;
 	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct MemoryUsed
+// struct Used
 
-struct MemoryUsed {
+struct Used {
 
 	typedef const ProcPerfStoragesContainer source_type;
+	typedef quint64 value_type;
 
 	static const char *getName()
 	{
 		return PRL_GUEST_RAM_USAGE_PTRN;
 	}
 
-	static CVmEventParameter *extract(const ProcPerfStoragesContainer &c)
+	static value_type extract(source_type &c)
 	{
-		return eventParamUint32(GetPerfCounter(c, "mem.guest_used") / 1024);
+		// kb to bytes
+		return GetPerfCounter(c, "mem.guest_used") << 10;
 	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct MemoryCached
+// struct Cached
 
-struct MemoryCached {
+struct Cached {
 
 	typedef const ProcPerfStoragesContainer source_type;
+	typedef quint64 value_type;
 
 	static const char *getName()
 	{
 		return PRL_GUEST_RAM_CACHED_PTRN;
 	}
 
-	static CVmEventParameter *extract(const ProcPerfStoragesContainer &c)
+	static value_type extract(source_type &c)
 	{
-		return eventParamUint32(GetPerfCounter(c, "mem.guest_cached") / 1024);
+		// kb to bytes
+		return GetPerfCounter(c, "mem.guest_cached") << 10;
 	}
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Total
+
+struct Total {
+
+	typedef const ProcPerfStoragesContainer source_type;
+	typedef quint64 value_type;
+
+	static const char *getName()
+	{
+		return PRL_GUEST_RAM_TOTAL_PTRN;
+	}
+
+	static value_type extract(source_type &c)
+	{
+		// kb to bytes
+		return GetPerfCounter(c, "mem.guest_total") << 10;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct BalloonActual
+
+struct BalloonActual {
+
+	typedef const ProcPerfStoragesContainer source_type;
+	typedef quint64 value_type;
+
+	static const char *getName()
+	{
+		return PRL_GUEST_RAM_BALLOON_ACTUAL;
+	}
+
+	static value_type extract(source_type &c)
+	{
+		// pages to bytes
+		return GetPerfCounter(c, "kernel.ws.balloon_size") << 12;
+	}
+};
+} // namespace Flavor
+
+///////////////////////////////////////////////////////////////////////////////
+// struct MemoryConversion
+
+struct MemoryConversion {
+	static CVmEventParameter *convert(quint64 v)
+	{
+		// bytes to Mb
+		return Conversion::Uint32::convert(v >> 20);
+	}
+};
+
+typedef SingleCounter<Flavor::Reclaimable, MemoryConversion> Reclaimable;
+typedef SingleCounter<Flavor::Used, MemoryConversion> Used;
+typedef SingleCounter<Flavor::Cached, MemoryConversion> Cached;
+typedef SingleCounter<Flavor::Total, MemoryConversion> Total;
+typedef SingleCounter<Flavor::BalloonActual, MemoryConversion> BalloonActual;
+
+} // namespace Memory
+
+namespace Flavor
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct SwapIn
+
+struct SwapIn {
+
+	typedef const ProcPerfStoragesContainer source_type;
+	typedef quint64 value_type;
+
+	static const char *getName()
+	{
+		return PRL_GUEST_RAM_SWAP_IN;
+	}
+
+	static value_type extract(source_type &c)
+	{
+		return GetPerfCounter(c, "mem.guest_swap_in");
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct SwapOut
+
+struct SwapOut {
+
+	typedef const ProcPerfStoragesContainer source_type;
+	typedef quint64 value_type;
+
+	static const char *getName()
+	{
+		return PRL_GUEST_RAM_SWAP_OUT;
+	}
+
+	static value_type extract(source_type &c)
+	{
+		return GetPerfCounter(c, "mem.guest_swap_out");
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct MinorFault
+
+struct MinorFault {
+
+	typedef const ProcPerfStoragesContainer source_type;
+	typedef quint64 value_type;
+
+	static const char *getName()
+	{
+		return PRL_GUEST_RAM_MINOR_FAULT;
+	}
+
+	static value_type extract(source_type &c)
+	{
+		return GetPerfCounter(c, "mem.guest_minor_fault");
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct MajorFault
+
+struct MajorFault {
+
+	typedef const ProcPerfStoragesContainer source_type;
+	typedef quint64 value_type;
+
+	static const char *getName()
+	{
+		return PRL_GUEST_RAM_MAJOR_FAULT;
+	}
+
+	static value_type extract(source_type &c)
+	{
+		return GetPerfCounter(c, "mem.guest_major_fault");
+	}
+};
+
+} // namespace Flavor
+
+typedef SingleCounter<Flavor::SwapIn, Conversion::Uint64> SwapIn;
+typedef SingleCounter<Flavor::SwapOut, Conversion::Uint64> SwapOut;
+typedef SingleCounter<Flavor::MinorFault, Conversion::Uint64> MinorFault;
+typedef SingleCounter<Flavor::MajorFault, Conversion::Uint64> MajorFault;
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Traits
@@ -829,9 +1027,14 @@ struct VmCounter {
 		return Traits<Name>::getExternal(m_name);
 	}
 
-	CVmEventParameter *getValue() const
+	quint64 getValue() const
 	{
-		return eventParamUint64(GetPerfCounter(*m_storage, Traits<Name>::getInternal(m_name)));
+		return GetPerfCounter(*m_storage, Traits<Name>::getInternal(m_name));
+	}
+
+	CVmEventParameter *getParam() const
+	{
+		return Conversion::Uint64::convert(getValue());
 	}
 
 private:
@@ -1022,7 +1225,7 @@ struct ClassfulOffline {
 		return PRL_NET_CLASSFUL_TRAFFIC_PTRN;
 	}
 
-	CVmEventParameter *getValue() const;
+	CVmEventParameter *getParam() const;
 
 private:
 
@@ -1030,16 +1233,10 @@ private:
 };
 
 
-CVmEventParameter *ClassfulOffline::getValue() const
+CVmEventParameter *ClassfulOffline::getParam() const
 {
-	PRL_STAT_NET_TRAFFIC stat = PRL_STAT_NET_TRAFFIC();
-#ifdef _CT_
-	int r = CVzHelper::get_net_stat(m_uuid, &stat);
-#else
-	int r = -1;
-#endif
-
-	return r ? NULL : eventParam(stat);
+	QScopedPointer<PRL_STAT_NET_TRAFFIC> s(CVzHelper::get_net_stat(m_uuid));
+	return s.isNull() ? NULL : Conversion::Network::convert(*s);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1058,7 +1255,7 @@ struct ClassfulOnline {
 		return PRL_NET_CLASSFUL_TRAFFIC_PTRN;
 	}
 
-	CVmEventParameter *getValue() const;
+	CVmEventParameter *getParam() const;
 
 private:
 
@@ -1067,9 +1264,9 @@ private:
 	const QList<CVmGenericNetworkAdapter*>* m_nics;
 };
 
-CVmEventParameter *ClassfulOnline::getValue() const
+CVmEventParameter *ClassfulOnline::getParam() const
 {
-	CVmEventParameter *p = ClassfulOffline(m_uuid).getValue();
+	CVmEventParameter *p = ClassfulOffline(m_uuid).getParam();
 	if (p != NULL)
 		return p;
 
@@ -1084,7 +1281,7 @@ CVmEventParameter *ClassfulOnline::getValue() const
 		stat.outgoing_pkt[1] += GetPerfCounter(*m_storage, Name<BytesOut>(i)());
 	}
 
-	return eventParam(stat);
+	return Conversion::Network::convert(stat);
 }
 
 }; // namespace Network
@@ -1223,7 +1420,12 @@ struct Unit
 		return Traits<Name<Tag> >::getExternal(m_name);
 	}
 
-	CVmEventParameter *getValue() const;
+	CVmEventParameter *getParam() const
+	{
+		return Conversion::String::convert(getValue());
+	}
+
+	QString getValue() const;
 
 private:
 	static int find(counters_storage_t *, counter_t *counter_, void *context_)
@@ -1243,11 +1445,11 @@ private:
 	Name<Tag> m_name;
 };
 
-CVmEventParameter *Unit::getValue() const
+QString Unit::getValue() const
 {
 	Find f(Traits<Name<Tag> >::getInternal(m_name) + ".");
 	m_storage.enum_counters(find, &f);
-	return eventParam(f.getResult());
+	return f.getResult();
 }
 
 } // namespace Device
@@ -1303,21 +1505,24 @@ quint32 getVcpuNum(const QString &uuid)
 	return v == PRL_CPU_UNLIMITED ? getHostCpus() : v;
 }
 
+namespace Flavor
+{
 ///////////////////////////////////////////////////////////////////////////////
 // struct GuestUsage
 
 struct GuestUsage {
 
 	typedef const Meter source_type;
+	typedef quint32 value_type;
 
 	static const char *getName()
 	{
 		return PRL_GUEST_CPU_USAGE_PTRN;
 	}
 
-	static CVmEventParameter *extract(const Meter &m)
+	static value_type extract(source_type &m)
 	{
-		return eventParamUint32(m.report().getPercent());
+		return m.report().getPercent();
 	}
 };
 
@@ -1327,15 +1532,16 @@ struct GuestUsage {
 struct GuestTimeDelta {
 
 	typedef const Meter source_type;
+	typedef quint64 value_type;
 
 	static const char *getName()
 	{
 		return PRL_GUEST_CPU_TIME_PTRN;
 	}
 
-	static CVmEventParameter *extract(const Meter &m)
+	static value_type extract(source_type &m)
 	{
-		return eventParamUint64(m.report().getValueDelta());
+		return m.report().getValueDelta();
 	}
 };
 
@@ -1345,183 +1551,408 @@ struct GuestTimeDelta {
 struct HostTimeDelta {
 
 	typedef const Meter source_type;
+	typedef quint64 value_type;
 
 	static const char *getName()
 	{
 		return PRL_HOST_CPU_TIME_PTRN;
 	}
 
-	static CVmEventParameter *extract(const Meter &m)
+	static value_type extract(source_type &m)
 	{
-		return eventParamUint64(m.report().getTimeDelta());
+		return m.report().getTimeDelta();
 	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct DiskRead
+// struct Uptime
 
-struct DiskRead {
+struct Uptime {
 
-	typedef const CDiskStatistics source_type;
+	typedef const Ct::Statistics::Cpu source_type;
+	typedef quint64 value_type;
+
+	static const char *getName()
+	{
+		return "host.cpu.time.cumulative";
+	}
+
+	static value_type extract(source_type &c)
+	{
+		return c.uptime;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct SystemAverage
+
+struct SystemAverage {
+
+	typedef const Ct::Statistics::Cpu source_type;
+	typedef quint64 value_type;
+
+	static const char *getName()
+	{
+		return "guest.cpu.system_average";
+	}
+
+	static value_type extract(source_type &c)
+	{
+		return c.system / getHostCpus() ?: 1;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct UserAverage
+
+struct UserAverage {
+
+	typedef const Ct::Statistics::Cpu source_type;
+	typedef quint64 value_type;
+
+	static const char *getName()
+	{
+		return "guest.cpu.user_average";
+	}
+
+	static value_type extract(source_type &c)
+	{
+		return c.user / getHostCpus() ?: 1;
+	}
+};
+
+} // namespace Flavor
+
+typedef SingleCounter<Flavor::GuestUsage, Conversion::Uint32> GuestUsage;
+typedef SingleCounter<Flavor::GuestTimeDelta, Conversion::Uint64> GuestTimeDelta;
+typedef SingleCounter<Flavor::HostTimeDelta, Conversion::Uint64> HostTimeDelta;
+typedef SingleCounter<Flavor::Uptime, Conversion::Uint64> Uptime;
+typedef SingleCounter<Flavor::SystemAverage, Conversion::Uint64> SystemAverage;
+typedef SingleCounter<Flavor::UserAverage, Conversion::Uint64> UserAverage;
+
+
+namespace Disk
+{
+namespace Flavor
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Read
+
+struct Read {
+
+	typedef const Ct::Statistics::Disk source_type;
+	typedef quint64 value_type;
 
 	static const char *getName()
 	{
 		return "devices.ide0.read_total";
 	}
 
-	static CVmEventParameter *extract(const CDiskStatistics &disk)
+	static value_type extract(source_type &disk)
 	{
-		return eventParamUint64(disk.getReadBytesTotal());
+		return disk.read;
 	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct DiskWrite
+// struct Write
 
-struct DiskWrite {
+struct Write {
 
-	typedef const CDiskStatistics source_type;
+	typedef const Ct::Statistics::Disk source_type;
+	typedef quint64 value_type;
 
 	static const char *getName()
 	{
 		return "devices.ide0.write_total";
 	}
 
-	static CVmEventParameter *extract(const CDiskStatistics &disk)
+	static value_type extract(source_type &disk)
 	{
-		return eventParamUint64(disk.getWriteBytesTotal());
+		return disk.write;
 	}
 };
 
+} // namespace Flavor
+
+typedef SingleCounter<Flavor::Read, Conversion::Uint64> Read;
+typedef SingleCounter<Flavor::Write, Conversion::Uint64> Write;
+
+} // namespace Disk
+
+namespace Network
+{
+namespace Flavor
+{
 ///////////////////////////////////////////////////////////////////////////////
 // struct Classful
 
 struct Classful {
 
 	typedef const PRL_STAT_NET_TRAFFIC source_type;
+	typedef PRL_STAT_NET_TRAFFIC value_type;
 
 	static const char *getName()
 	{
 		return PRL_NET_CLASSFUL_TRAFFIC_PTRN;
 	}
 
-	static CVmEventParameter *extract(const PRL_STAT_NET_TRAFFIC &net)
+	static value_type extract(source_type &net)
 	{
-		return eventParam(net);
+		return net;
 	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct NetBytesIn
+// struct ReceivedSize
 
-struct NetBytesIn {
+struct ReceivedSize {
 
 	typedef const PRL_STAT_NET_TRAFFIC source_type;
+	typedef quint64 value_type;
 
 	static const char *getName()
 	{
 		return "net.nic0.bytes_in";
 	}
 
-	static CVmEventParameter *extract(const PRL_STAT_NET_TRAFFIC &net)
+	static value_type extract(source_type &net)
 	{
-		return eventParamUint64(accumulateTraffic(net.incoming));
+		return accumulateTraffic(net.incoming);
 	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct NetBytesOut
+// struct TransmittedSize
 
-struct NetBytesOut {
+struct TransmittedSize {
 
 	typedef const PRL_STAT_NET_TRAFFIC source_type;
+	typedef quint64 value_type;
 
 	static const char *getName()
 	{
 		return "net.nic0.bytes_out";
 	}
 
-	static CVmEventParameter *extract(const PRL_STAT_NET_TRAFFIC &net)
+	static value_type extract(source_type &net)
 	{
-		return eventParamUint64(accumulateTraffic(net.outgoing));
+		return accumulateTraffic(net.outgoing);
 	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct NetPacketsIn
+// struct ReceivedPackets
 
-struct NetPacketsIn {
+struct ReceivedPackets {
 
 	typedef const PRL_STAT_NET_TRAFFIC source_type;
+	typedef quint64 value_type;
 
 	static const char *getName()
 	{
 		return "net.nic0.pkts_in";
 	}
 
-	static CVmEventParameter *extract(const PRL_STAT_NET_TRAFFIC &net)
+	static value_type extract(source_type &net)
 	{
-		return eventParamUint64(accumulateTraffic(net.incoming_pkt));
+		return accumulateTraffic(net.incoming_pkt);
 	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct NetPacketsOut
+// struct TransmittedPackets
 
-struct NetPacketsOut {
+struct TransmittedPackets {
 
 	typedef const PRL_STAT_NET_TRAFFIC source_type;
+	typedef quint64 value_type;
 
 	static const char *getName()
 	{
 		return "net.nic0.pkts_out";
 	}
 
-	static CVmEventParameter *extract(const PRL_STAT_NET_TRAFFIC &net)
+	static value_type extract(source_type &net)
 	{
-		return eventParamUint64(accumulateTraffic(net.outgoing_pkt));
+		return accumulateTraffic(net.outgoing_pkt);
 	}
 };
 
+} // namespace Flavor
+
+typedef SingleCounter<Flavor::Classful, Conversion::Network> Classful;
+typedef SingleCounter<Flavor::ReceivedSize, Conversion::Uint64> ReceivedSize;
+typedef SingleCounter<Flavor::TransmittedSize, Conversion::Uint64> TransmittedSize;
+typedef SingleCounter<Flavor::ReceivedPackets, Conversion::Uint64> ReceivedPackets;
+typedef SingleCounter<Flavor::TransmittedPackets, Conversion::Uint64> TransmittedPackets;
+
+} // namespace Network
+
+namespace Memory
+{
+
+namespace Flavour
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct MemoryUsed
+// struct Used
 
-struct MemoryUsed {
+struct Used {
 
-	typedef const CMemoryStatistics source_type;
+	typedef const Ct::Statistics::Memory source_type;
+	typedef quint64 value_type;
 
 	static const char *getName()
 	{
 		return PRL_GUEST_RAM_USAGE_PTRN;
 	}
 
-	static CVmEventParameter *extract(const CMemoryStatistics &memory)
+	static quint64 extract(source_type &m)
 	{
-		if (memory.getTotalSize() == 0)
-			return NULL;
-		return eventParamUint32(memory.getUsageSize() >> 20);
+		return m.total - m.free;
 	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct MemoryCached
+// struct Cached
 
-struct MemoryCached {
+struct Cached {
 
-	typedef const CMemoryStatistics source_type;
+	typedef const Ct::Statistics::Memory source_type;
+	typedef quint64 value_type;
 
 	static const char *getName()
 	{
 		return PRL_GUEST_RAM_CACHED_PTRN;
 	}
 
-	static CVmEventParameter *extract(const CMemoryStatistics &memory)
+	static quint64 extract(source_type &m)
 	{
-		if (memory.getTotalSize() == 0)
-			return NULL;
-		return eventParamUint32((memory.getUsageSize() - memory.getRealSize()) >> 20);
+		return m.cached;
 	}
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Total
+
+struct Total {
+
+	typedef const Ct::Statistics::Memory source_type;
+	typedef quint64 value_type;
+
+	static const char *getName()
+	{
+		return PRL_GUEST_RAM_TOTAL_PTRN;
+	}
+
+	static quint64 extract(source_type &m)
+	{
+		return m.total;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Free
+
+struct Free {
+
+	typedef const Ct::Statistics::Memory source_type;
+	typedef quint64 value_type;
+
+	static const char *getName()
+	{
+		return "guest.ram.free";
+	}
+
+	static quint64 extract(source_type &m)
+	{
+		return m.free;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Real
+
+struct Real {
+
+	typedef const Ct::Statistics::Memory source_type;
+	typedef quint64 value_type;
+
+	static const char *getName()
+	{
+		return "guest.ram.real";
+	}
+
+	static quint64 extract(source_type &m)
+	{
+		return m.total - m.free - m.cached;
+	}
+};
+
+} // namespace Flavour
+
+struct MemoryConversion {
+	static CVmEventParameter *convert(quint64 v)
+	{
+		// bytes to Mb
+		return Conversion::Uint64::convert(v >> 20);
+	}
+};
+
+typedef SingleCounter<Flavour::Free, MemoryConversion> Free;
+typedef SingleCounter<Flavour::Total, MemoryConversion> Total;
+typedef SingleCounter<Flavour::Cached, MemoryConversion> Cached;
+typedef SingleCounter<Flavour::Real, MemoryConversion> Real;
+typedef SingleCounter<Flavour::Used, MemoryConversion> Used;
+
+} // namespace Memory
+
+
+namespace Flavor
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct SwapIn
+
+struct SwapIn {
+
+	typedef const Statistics::Memory source_type;
+	typedef quint64 value_type;
+
+	static const char *getName()
+	{
+		return PRL_GUEST_RAM_SWAP_IN;
+	}
+
+	static value_type extract(const Statistics::Memory &m)
+	{
+		return m.swap_in;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct SwapOut
+
+struct SwapOut {
+
+	typedef const Statistics::Memory source_type;
+	typedef quint64 value_type;
+
+	static const char *getName()
+	{
+		return PRL_GUEST_RAM_SWAP_OUT;
+	}
+
+	static value_type extract(const Statistics::Memory &m)
+	{
+		return m.swap_out;
+	}
+};
+
+} // namespace Flavor
+
+typedef SingleCounter<Flavor::SwapIn, Conversion::Uint64> SwapIn;
+typedef SingleCounter<Flavor::SwapOut, Conversion::Uint64> SwapOut;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct VCpuTime
@@ -1538,9 +1969,15 @@ struct VCpuTime {
 		return multiCounterName("guest.vcpu", m_index, "time");
 	}
 
-	CVmEventParameter *getValue() const
+	quint64 getValue() const
 	{
-		return eventParamUint64((m_cpu->user + m_cpu->system + m_cpu->nice) * 1000 / m_number);
+		// convert from microseconds to nanoseconds
+		return (m_cpu->user + m_cpu->system + m_cpu->nice) * 1000 / m_number;
+	}
+
+	CVmEventParameter *getParam() const
+	{
+		return Conversion::Uint64::convert(getValue());
 	}
 
 private:
@@ -1571,31 +2008,28 @@ struct Collector {
 
 private:
 
-	QString fixFilter(QString filter);
-
 	template <typename Counter>
 	void collect(const Counter &c);
 
-	const QRegExp m_regexp;
+	QRegExp m_regexp;
 	CVmEvent *m_event;
 };
 
 Collector::Collector(QString filter, CVmEvent &event) :
-	m_regexp(fixFilter(filter)),
 	m_event(&event)
 {
-}
-
-QString Collector::fixFilter(QString filter)
-{
 	if (filter.isEmpty())
-		return ".*";
+	{
+		filter = ".*";
+	}
+	else
+	{
+		filter.replace('.', "\\.");
+		filter.replace('*', ".*");
+		filter.replace('#', "[0-9]+");
+	}
 
-	filter.replace('.', "\\.");
-	filter.replace('*', ".*");
-	filter.replace('#', "[0-9]+");
-
-	return filter;
+	m_regexp = QRegExp(filter);
 }
 
 void Collector::collectCt(const QString &uuid,
@@ -1603,27 +2037,34 @@ void Collector::collectCt(const QString &uuid,
 {
 	using namespace Ct::Counter;
 
-	DAO<Meter> d;
-	Meter m = d.get(uuid);
-	Cpu(a.getCpu()).record(m);
-	d.set(uuid, m);
+	DAO<Meter> dao;
+	Meter t = dao.get(uuid);
+	Cpu(a.cpu).record(t);
+	dao.set(uuid, t);
 
-	collect(SingleCounter<GuestUsage>(m));
-	collect(SingleCounter<GuestTimeDelta>(m));
-	collect(SingleCounter<HostTimeDelta>(m));
-	collect(SingleCounter<DiskRead>(a.getDisk()));
-	collect(SingleCounter<DiskWrite>(a.getDisk()));
-	collect(SingleCounter<Classful>(a.getNetworkClassful()));
-	collect(SingleCounter<NetBytesIn>(a.getNetworkClassful()));
-	collect(SingleCounter<NetBytesOut>(a.getNetworkClassful()));
-	collect(SingleCounter<NetPacketsIn>(a.getNetworkClassful()));
-	collect(SingleCounter<NetPacketsOut>(a.getNetworkClassful()));
-	collect(SingleCounter<MemoryUsed>(a.getMemory()));
-	collect(SingleCounter<MemoryCached>(a.getMemory()));
+	collect(GuestUsage(t));
+	collect(GuestTimeDelta(t));
+	collect(HostTimeDelta(t));
+	collect(Disk::Read(a.disk));
+	collect(Disk::Write(a.disk));
+	collect(Network::Classful(a.net));
+	collect(Network::ReceivedSize(a.net));
+	collect(Network::TransmittedSize(a.net));
+	collect(Network::ReceivedPackets(a.net));
+	collect(Network::TransmittedPackets(a.net));
+
+	Ct::Statistics::Memory *m = a.memory.get();
+	if (m != NULL) {
+		collect(Memory::Used(*m));
+		collect(Memory::Cached(*m));
+		collect(Memory::Total(*m));
+		collect(SwapIn(*m));
+		collect(SwapOut(*m));
+	}
 
 	quint32 vcpunum = getVcpuNum(uuid);
 	for (quint32 i = 0; i < vcpunum; ++i)
-		collect(VCpuTime(a.getCpu(), i, vcpunum));
+		collect(VCpuTime(a.cpu, i, vcpunum));
 }
 
 void Collector::collectVmOnline(CDspVm &vm, const CVmConfiguration &config)
@@ -1645,13 +2086,19 @@ void Collector::collectVmOnline(CDspVm &vm, const CVmConfiguration &config)
 	for (quint32 i = 0; i < config.getVmHardwareList()->getCpu()->getNumber(); ++i)
 		collect(VCpuTime(VCpu(ct), i));
 
-	collect(SingleCounter<GuestUsage>(t));
-	collect(SingleCounter<GuestTimeDelta>(t));
-	collect(SingleCounter<HostTimeDelta>(t));
+	collect(GuestUsage(t));
+	collect(GuestTimeDelta(t));
+	collect(HostTimeDelta(t));
 
-	collect(SingleCounter<Reclaimable>(ct));
-	collect(SingleCounter<MemoryUsed>(ct));
-	collect(SingleCounter<MemoryCached>(ct));
+	collect(Memory::Reclaimable(ct));
+	collect(Memory::Used(ct));
+	collect(Memory::Cached(ct));
+	collect(Memory::Total(ct));
+	collect(Memory::BalloonActual(ct));
+	collect(SwapIn(ct));
+	collect(SwapOut(ct));
+	collect(MinorFault(ct));
+	collect(MajorFault(ct));
 
 	foreach (const CVmHardDisk* d, config.getVmHardwareList()->m_lstHardDisks) {
 		PRL_MASS_STORAGE_INTERFACE_TYPE t = d->getInterfaceType();
@@ -1697,7 +2144,7 @@ void Collector::collect(const Counter &c)
 	if (!m_regexp.exactMatch(c.getName()))
 		return;
 
-	CVmEventParameter *p = c.getValue();
+	CVmEventParameter *p = c.getParam();
 	if (p == NULL)
 		return;
 
@@ -2465,36 +2912,50 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 #ifdef _CT_
 	if (isContainer(sVmUuid))
 	{
+		using namespace Ct::Counter;
 		SmartPtr< ::Ct::Statistics::Aggregate> a(CVzHelper::get_env_stat(sVmUuid));
 		if (!a.isValid())
 			return SmartPtr<CSystemStatistics>();
-		DAO<Meter> d;
-		Meter m = d.get(sVmUuid);
-		Ct::Counter::Cpu(a->getCpu()).record(m);
-		d.set(sVmUuid, m);
+		DAO<Meter> dao;
+		Meter t = dao.get(sVmUuid);
+		Ct::Counter::Cpu(a->cpu).record(t);
+		dao.set(sVmUuid, t);
 
-		SmartPtr<CSystemStatistics> output(new CSystemStatistics(a->getSystem()));
-		CCpuStatistics *cpu = new CCpuStatistics();
-		CNetIfaceStatistics *net = new CNetIfaceStatistics();
+		SmartPtr<CSystemStatistics> output(new CSystemStatistics());
+		QScopedPointer<CNetIfaceStatistics> net(new CNetIfaceStatistics());
+		QScopedPointer<CDiskStatistics> disk(new CDiskStatistics());
 
-		Ct::Statistics::Cpu c = a->getCpu();
-		cpu->setTotalTime(c.uptime);
-		cpu->setUserTime(c.user / (getHostCpus() ?: 1));
-		cpu->setSystemTime(c.system / (getHostCpus() ?: 1));
-		cpu->setPercentsUsage(m.report().getPercent());
-
+		QScopedPointer<CCpuStatistics> cpu(new CCpuStatistics());
+		const Ct::Statistics::Cpu &c = a->cpu;
+		cpu->setTotalTime(Uptime(c).getValue());
+		cpu->setUserTime(UserAverage(c).getValue());
+		cpu->setSystemTime(SystemAverage(c).getValue());
+		cpu->setPercentsUsage(GuestUsage(t).getValue());
+		output->m_lstCpusStatistics.append(cpu.take());
+		output->getUptimeStatistics()->setOsUptime(Uptime(c).getValue());
 
 		using ::Ct::Counter::accumulateTraffic;
-		const PRL_STAT_NET_TRAFFIC& r = a->getNetworkClassful();
-		net->setInDataSize(accumulateTraffic(r.incoming));
-		net->setOutDataSize(accumulateTraffic(r.outgoing));
-		net->setInPkgsCount(accumulateTraffic(r.incoming_pkt));
-		net->setOutPkgsCount(accumulateTraffic(r.outgoing_pkt));
+		const PRL_STAT_NET_TRAFFIC& n = a->net;
+		net->setInDataSize(Network::ReceivedSize(n).getValue());
+		net->setOutDataSize(Network::TransmittedSize(n).getValue());
+		net->setInPkgsCount(Network::ReceivedPackets(n).getValue());
+		net->setOutPkgsCount(Network::TransmittedPackets(n).getValue());
+		*output->getNetClassStatistics() = n;
+		output->m_lstNetIfacesStatistics.append(net.take());
 
-		output->m_lstCpusStatistics.append(cpu);
-		output->m_lstNetIfacesStatistics.append(net);
-		output->m_lstDisksStatistics.append(new CDiskStatistics(a->getDisk()));
-		output->getUptimeStatistics()->setOsUptime(a->getCpu().uptime);
+		CMemoryStatistics *memory = output->getMemoryStatistics();
+		Ct::Statistics::Memory m;
+		if (a->memory.isValid())
+			m = *a->memory;
+		memory->setTotalSize(Memory::Total(m).getValue());
+		memory->setUsageSize(Memory::Used(m).getValue());
+		memory->setFreeSize(Memory::Free(m).getValue());
+		memory->setRealSize(Memory::Real(m).getValue());
+
+		const Ct::Statistics::Disk &d = a->disk;
+		disk->setReadBytesTotal(Disk::Read(d).getValue());
+		disk->setWriteBytesTotal(Disk::Write(d).getValue());
+		output->m_lstDisksStatistics.append(disk.take());
 
 		return output;
 	}
@@ -2523,7 +2984,7 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 		nVmUptime = pVm->getVmProcessUptimeInSecs();
 
 		CDspStatCollector::GetProcsStatInfo(pProcsStatInfo, pVm->getVmProcessId());
-		usage = Vm::Counter::Reclaimable::extractUint32(*ct.getPtr()) * 1024 * 1024;
+		usage = Vm::Counter::Memory::Reclaimable(*ct.getPtr()).getValue();
 
 		using namespace Vm::Counter;
 		typedef QPair<Meter, Meter> VmMeter;

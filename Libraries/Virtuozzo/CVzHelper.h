@@ -116,41 +116,41 @@ struct Cpu {
 	quint64 system;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Memory
+
+struct Memory {
+	Memory() : total(0), free(0), cached(0),
+		swap_in(0), swap_out(0)
+	{
+	}
+	// bytes
+	quint64 total;
+	quint64 free;
+	quint64 cached;
+	// count
+	quint64 swap_in;
+	quint64 swap_out;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Disk
+
+struct Disk {
+	Disk() : read(0), write(0)
+	{
+	}
+	// bytes
+	quint64 read;
+	quint64 write;
+};
+
 struct Aggregate
 {
-	Aggregate(const Ct::Statistics::Cpu &cpu,
-			const CDiskStatistics &disk,
-			const CSystemStatistics &system)
-		: m_cpu(cpu), m_disk(disk), m_system(system)
-	{
-	}
-
-	const Cpu& getCpu() const
-	{
-		return m_cpu;
-	}
-	const CDiskStatistics& getDisk() const
-	{
-		return m_disk;
-	}
-	const CMemoryStatistics& getMemory() const
-	{
-		return *m_system.getMemoryStatistics();
-	}
-	const PRL_STAT_NET_TRAFFIC& getNetworkClassful() const
-	{
-		return *m_system.getNetClassStatistics();
-	}
-
-	const CSystemStatistics& getSystem() const
-	{
-		return m_system;
-	}
-
-private:
-	const Cpu m_cpu;
-	const CDiskStatistics m_disk;
-	mutable CSystemStatistics m_system;
+	Cpu cpu;
+	SmartPtr<Memory> memory;
+	PRL_STAT_NET_TRAFFIC net;
+	Disk disk;
 };
 
 } // namespace Statistics
@@ -263,7 +263,7 @@ public:
 	static CNumaNode s_numanodes;
 #endif
 
-	static int get_net_stat(const QString &uuid, PRL_STAT_NET_TRAFFIC *statbuf);
+	static PRL_STAT_NET_TRAFFIC *get_net_stat(const QString &uuid);
 	static int update_network_classes_config(const CNetworkClassesConfig &conf);
 	static int get_network_classes_config(CNetworkClassesConfig &conf);
 	static int update_network_shaping_config(const CNetworkShapingConfig &conf);
@@ -285,9 +285,6 @@ public:
 	static int get_vz_config_param(const char *param, QString &out);
 	int get_envid_list(QStringList &lst);
 	static int get_env_status(const QString &uuid, VIRTUAL_MACHINE_STATE &nState);
-	static int get_env_cpustat(const QString &uuid, Ct::Statistics::Cpu& dst_);
-	static int get_env_iostat(const QString &uuid, CDiskStatistics& dst_);
-	static int get_env_meminfo(const QString &uuid, CMemoryStatistics& dst_);
 	static Ct::Statistics::Aggregate* get_env_stat(const QString& uuid_);
 	int set_env_uptime(const QString &uuid, const quint64 uptime, const QDateTime & date);
 	int reset_env_uptime(const QString &uuid);
