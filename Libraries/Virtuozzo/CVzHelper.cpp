@@ -423,6 +423,13 @@ static int numa_node_to_cpu(int nid, unsigned long *cpumask, int nmaskbits)
 	return 0;
 }
 
+static QString& remove_brackets_from_uuid(QString& uuid)
+{
+	uuid.remove(QChar('{'));
+	uuid.remove(QChar('}'));
+	return uuid;
+}
+
 int CNodeMask::get_free_cpu()
 {
 	unsigned long cpumask[CPUMASK_SIZE];
@@ -2459,11 +2466,8 @@ int CVzOperationHelper::create_env(const QString &dst, SmartPtr<CVmConfiguration
 		return ret;
 	}
 
-	uuid.remove(QChar('{'));
-	uuid.remove(QChar('}'));
-
 	args += "create";
-	args += uuid;
+	args += remove_brackets_from_uuid(uuid);
 
 	if (!dst.isEmpty()) {
 		args += "--private";
@@ -2524,10 +2528,6 @@ int CVzOperationHelper::clone_env(const QString &uuid, const QString &sNewHome,
 		return PRL_ERR_CT_NOT_FOUND;
 
 	// vzmlocal -C 101 --new-id 201 [--new-private /vz/private/test] --new-uuid <uuid>
-	QString dst_uuid = pNewConfig->getVmIdentification()->getVmUuid();
-	dst_uuid.remove(QChar('{'));
-	dst_uuid.remove(QChar('}'));
-
 	args += "-C";
 	args += ctid;
 
@@ -2537,8 +2537,9 @@ int CVzOperationHelper::clone_env(const QString &uuid, const QString &sNewHome,
 		args += QString("%1/%2").arg(sNewHome).arg(uuid);
 	}
 
+	QString dst_uuid = pNewConfig->getVmIdentification()->getVmUuid();
 	args += "--new-uuid";
-	args += dst_uuid;
+	args += remove_brackets_from_uuid(dst_uuid);
 
 	PRL_RESULT res = run_prg("/usr/sbin/vzmlocal", args);
 	if (PRL_FAILED(res))
@@ -3676,6 +3677,7 @@ int CVzOperationHelper::move_env(const QString &sNewHome, const QString &sName,
 		// initialize destination CTID using containers UUID if source CTID
 		// present in old-style numeric format (VEID)
 		sDstCtid = CVzHelper::get_uuid_by_ctid(sSrcCtid);
+		remove_brackets_from_uuid(sDstCtid);
 		if (sDstCtid.isEmpty()) {
 			WRITE_TRACE(DBG_FATAL, "Can't get UUID for CT %s",
 				QSTR2UTF8(sSrcCtid));
