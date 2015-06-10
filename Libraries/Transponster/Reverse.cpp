@@ -161,7 +161,7 @@ struct Flavor<CVmOpticalDisk>
 		getDriverFormat()
 	{
 		mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type output;
-		output.setValue(Libvirt::Domain::Xml::EStorageFormatIso);
+		output.setValue(Libvirt::Domain::Xml::EStorageFormatRaw);
 		return output;
 	}
 };
