@@ -2537,6 +2537,11 @@ int CVzOperationHelper::clone_env(const QString &uuid, const QString &sNewHome,
 		args += QString("%1/%2").arg(sNewHome).arg(uuid);
 	}
 
+	if (!sNewName.isEmpty()) {
+		args += "--new-name";
+		args += sNewName;
+	}
+
 	QString dst_uuid = pNewConfig->getVmIdentification()->getVmUuid();
 	args += "--new-uuid";
 	args += remove_brackets_from_uuid(dst_uuid);
@@ -2545,15 +2550,8 @@ int CVzOperationHelper::clone_env(const QString &uuid, const QString &sNewHome,
 	if (PRL_FAILED(res))
 		return res;
 
-	if (!sNewName.isEmpty()) {
-		res = set_env_name(dst_uuid, sNewName);
-		if (PRL_FAILED(res)) {
-			delete_env(dst_uuid);
-			return res;
-		}
-	}
 	// Get new Config
-	pNewConfig = CVzHelper::get_env_config(dst_uuid);
+	pNewConfig = CVzHelper::get_env_config_by_ctid(dst_uuid);
 
 	return res;
 }
