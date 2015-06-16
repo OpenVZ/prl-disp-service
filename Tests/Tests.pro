@@ -1,7 +1,7 @@
 TEMPLATE = subdirs
 
 LEVEL = ../..
-include($$LEVEL/Sources/Build/Options.pri)
+include($$LEVEL/Build/Options.pri)
 
 include($$PWD/CoreUtilsTest/CoreUtilsTest.deps)
 include($$PWD/DispatcherInternalTest/DispatcherInternalTest.deps)

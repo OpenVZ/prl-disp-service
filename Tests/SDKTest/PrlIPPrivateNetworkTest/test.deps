@@ -1,6 +1,6 @@
 TARGET = test_sdk_PrlIPPrivateNetworkTest
 PROJ_PATH = $$PWD
-include(../../../../Sources/Build/qmake/build_target.pri)
+include(../../../Build/qmake/build_target.pri)
 
 include($$SRC_LEVEL/XmlModel/XmlModel.pri)
 linux-*: include($$LIBS_LEVEL/Virtuozzo/Virtuozzo.pri)

@@ -1,5 +1,5 @@
 TARGET = test_sdk_HandlesManipulationsTest
 PROJ_PATH = $$PWD
-include(../../../../Sources/Build/qmake/build_target.pri)
+include(../../../Build/qmake/build_target.pri)
 
 include($$SRC_LEVEL/SDK/Handles/SDK.pri)

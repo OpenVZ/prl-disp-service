@@ -1,6 +1,6 @@
 TARGET = test_sdk
 PROJ_PATH = $$PWD
-include(../../../Sources/Build/qmake/build_target.pri)
+include(../../Build/qmake/build_target.pri)
 
 include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
 include($$SRC_LEVEL/XmlModel/XmlModel.pri)
@@ -15,7 +15,6 @@ include($$LIBS_LEVEL/HostInfo/CHostInfo.pri)
 include($$LIBS_LEVEL/PrlNetworking/PrlNetworking.pri)
 include($$LIBS_LEVEL/HostUtils/HostUtils.pri)
 linux-*: include($$LIBS_LEVEL/Virtuozzo/Virtuozzo.pri)
-include($$EXT_LEVEL/ssl/ssl.pri)
 include($$SRC_LEVEL/SDK/Handles/SDK.pri)
 include($$LIBS_LEVEL/StatesStore/StatesStore.pri)
 include($$LIBS_LEVEL/TimeMachineHelper/TimeMachineHelper.pri)

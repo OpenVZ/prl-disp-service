@@ -49,7 +49,7 @@ win32 {
 }
 
 macx {
-	# include($$LEVEL/Sources/Build/MacUtil/Frameworks.pri)
+	# include($$LEVEL/Build/MacUtil/Frameworks.pri)
 	LIBS += \
 		-framework Security
 }

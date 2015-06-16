@@ -1,9 +1,8 @@
 TARGET = test_vm_configuration
 PROJ_PATH = $$PWD
-include(../../../../Sources/Build/qmake/build_target.pri)
+include(../../../Build/qmake/build_target.pri)
 
 include($$SRC_LEVEL/XmlModel/XmlModel.pri)
-include($$EXT_LEVEL/ssl/ssl.pri)
 include($$LIBS_LEVEL/Logging/Logging.pri)
 include($$LIBS_LEVEL/Std/Std.pri)
 include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
