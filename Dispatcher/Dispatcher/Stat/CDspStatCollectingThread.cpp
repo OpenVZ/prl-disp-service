@@ -434,6 +434,11 @@ CVmBinaryEventParameter *eventParam(const PRL_STAT_NET_TRAFFIC &stat)
 	return p;
 }
 
+CVmEventParameter *eventParam(const QString& s_)
+{
+	return new CVmEventParameter(PVE::String, s_);
+}
+
 bool isContainer(const QString &uuid)
 {
 	PRL_VM_TYPE t = PVT_VM;
@@ -757,6 +762,58 @@ struct MemoryCached {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Traits
+
+template<class T>
+struct Traits
+{
+	static QString getExternal(const T& t_)
+	{
+		return t_();
+	}
+
+	static QString getInternal(const T& t_)
+	{
+		return t_();
+	}
+};
+
+namespace Filesystem {
+
+template <class T>
+struct Name;
+
+namespace Disk {
+struct Name;
+} // namespace Disk
+
+template<class T>
+struct Traits
+{
+	static QString getExternal(const T& t_)
+	{
+		return t_().prepend("guest.");
+	}
+
+	static QString getInternal(const T& t_)
+	{
+		return t_();
+	}
+};
+
+} // namespace Filesystem
+
+template <class T>
+struct Traits<Filesystem::Name<T> > : Filesystem::Traits<Filesystem::Name<T> >
+{
+};
+
+template<>
+struct Traits<Filesystem::Disk::Name> : Filesystem::Traits<Filesystem::Disk::Name>
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct VmCounter
 
 template <typename Name>
@@ -769,12 +826,12 @@ struct VmCounter {
 
 	QString getName() const
 	{
-		return m_name();
+		return Traits<Name>::getExternal(m_name);
 	}
 
 	CVmEventParameter *getValue() const
 	{
-		return eventParamUint64(GetPerfCounter(*m_storage, m_name()));
+		return eventParamUint64(GetPerfCounter(*m_storage, Traits<Name>::getInternal(m_name)));
 	}
 
 private:
@@ -1024,7 +1081,7 @@ CVmEventParameter *ClassfulOnline::getValue() const
 		stat.incoming[1] += GetPerfCounter(*m_storage, Name<PacketsIn>(i)());
 		stat.outgoing[1] += GetPerfCounter(*m_storage, Name<PacketsOut>(i)());
 		stat.incoming_pkt[1] += GetPerfCounter(*m_storage, Name<BytesIn>(i)());
-		stat.outgoing_pkt[1] += GetPerfCounter(*m_storage, Name<BytesOut>(i)());;
+		stat.outgoing_pkt[1] += GetPerfCounter(*m_storage, Name<BytesOut>(i)());
 	}
 
 	return eventParam(stat);
@@ -1032,6 +1089,169 @@ CVmEventParameter *ClassfulOnline::getValue() const
 
 }; // namespace Network
 
+namespace Filesystem {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Name
+
+template <typename Leaf>
+struct Name
+{
+	explicit Name(unsigned index_) : m_index(index_)
+	{
+	}
+
+	QString operator()() const
+	{
+		return QString("fs%1.%2").arg(m_index).arg(Leaf::getName());
+	}
+
+private:
+	unsigned m_index;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Total
+
+struct Total
+{
+	static QString getName()
+	{
+		return "total";
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Free
+
+struct Free
+{
+	static QString getName()
+	{
+		return "free";
+	}
+};
+
+namespace Disk {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Count
+
+struct Count
+{
+	static QString getName()
+	{
+		return "disk.count";
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Name
+
+struct Name
+{
+	Name(unsigned filesystem_, unsigned disk_)
+		: m_name(filesystem_), m_index(disk_)
+	{
+	}
+
+	QString operator()() const
+	{
+		return QString("%1.%2").arg(m_name()).arg(m_index);
+	}
+
+private:
+	struct Tag
+	{
+		static QString getName()
+		{
+			return "disk";
+		}
+	};
+
+	Filesystem::Name<Tag> m_name;
+	unsigned m_index;
+};
+
+} // namespace Disk
+
+namespace Device {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Find
+
+struct Find
+{
+	explicit Find(const QString& prefix_) : m_prefix(prefix_)
+	{
+	}
+
+	int operator()(const counter_t& counter_);
+
+	QString getResult() const
+	{
+		return m_result;
+	}
+
+private:
+	QString m_prefix;
+	QString m_result;
+};
+
+int Find::operator()(const counter_t& counter_)
+{
+	QString n = UTF8_2QSTR(counter_.name + sizeof(PERF_COUNT_TYPE_INC) - 1);
+	if (n.startsWith(m_prefix) && PERF_COUNT_ATOMIC_GET(&counter_) != 0) {
+		m_result = n.remove(m_prefix);
+		return ENUM_BREAK;
+	}
+	return ENUM_CONTINUE;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+struct Unit
+{
+	Unit(const ProcPerfStoragesContainer& storage_, unsigned index_)
+		: m_storage(storage_), m_name(index_)
+	{
+	}
+
+	QString getName() const
+	{
+		return Traits<Name<Tag> >::getExternal(m_name);
+	}
+
+	CVmEventParameter *getValue() const;
+
+private:
+	static int find(counters_storage_t *, counter_t *counter_, void *context_)
+	{
+		return (*static_cast<Find*>(context_))(*counter_);
+	}
+
+	struct Tag
+	{
+		static QString getName()
+		{
+			return "name";
+		}
+	};
+
+	const ProcPerfStoragesContainer& m_storage;
+	Name<Tag> m_name;
+};
+
+CVmEventParameter *Unit::getValue() const
+{
+	Find f(Traits<Name<Tag> >::getInternal(m_name) + ".");
+	m_storage.enum_counters(find, &f);
+	return eventParam(f.getResult());
+}
+
+} // namespace Device
+} // namespace Filesystem
 
 } // namespace Counter
 } // namespace
@@ -1451,6 +1671,17 @@ void Collector::collectVmOnline(CDspVm &vm, const CVmConfiguration &config)
 		collect(makeVmCounter(ct, Network::Name<Network::PacketsOut>(i)));
 		collect(makeVmCounter(ct, Network::Name<Network::BytesIn>(i)));
 		collect(makeVmCounter(ct, Network::Name<Network::BytesOut>(i)));
+	}
+
+	quint64 fsCount = GetPerfCounter(ct, "fs.count");
+	for (unsigned i = 0; i < fsCount; ++i) {
+		collect(makeVmCounter(ct, Filesystem::Name<Filesystem::Total>(i)));
+		collect(makeVmCounter(ct, Filesystem::Name<Filesystem::Free>(i)));
+		collect(Filesystem::Device::Unit(ct, i));
+		quint64 diskCount = GetPerfCounter(ct,
+			QSTR2UTF8(Filesystem::Name<Filesystem::Disk::Count>(i)()));
+		for (unsigned j = 0; j < diskCount; ++j)
+			collect(makeVmCounter(ct, Filesystem::Disk::Name(i, j)));
 	}
 }
 
