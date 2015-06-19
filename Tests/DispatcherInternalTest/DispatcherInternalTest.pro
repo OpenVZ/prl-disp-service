@@ -1,6 +1,7 @@
 CONFIG += qtestlib
 QT = xml network core
 
+INCLUDEPATH += /usr/share /usr/include/prlsdk
 include(DispatcherInternalTest.deps)
 
 HEADERS += \

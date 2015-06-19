@@ -1,6 +1,8 @@
 CONFIG += qtestlib
 QT = xml core
 
+INCLUDEPATH += /usr/share /usr/include/prlsdk
+
 include(CVmEventTest.deps)
 
 HEADERS += CVmEventTest.h

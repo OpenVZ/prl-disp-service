@@ -1,6 +1,8 @@
 CONFIG += qtestlib
 QT = network xml core
 
+INCLUDEPATH += /usr/share /usr/include/prlsdk
+
 include(CProblemReportTest.deps)
 
 HEADERS += CProblemReportTest.h

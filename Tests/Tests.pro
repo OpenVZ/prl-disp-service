@@ -1,6 +1,14 @@
 TEMPLATE = subdirs
 
-LEVEL = ../..
+LEVEL = ..
+
+#archive.target = $$LEVEL/z-Build/unittests.zip
+#archive.target = $$LEVEL/z-Build/Debug/out.txt
+#archive.command = $$PWD/PackTests.sh
+#QMAKE_EXTRA_TARGETS += archive
+#
+#POST_TARGETDEPS += archive
+
 include($$LEVEL/Build/Options.pri)
 
 include($$PWD/CoreUtilsTest/CoreUtilsTest.deps)
@@ -21,6 +29,7 @@ addSubdirsDir(MonitorAtomicOpsTest, $$PWD/MonitorAtomicOpsTest)
 include($$PWD/ParallelsDirTest/ParallelsDirTest.deps)
 include($$PWD/StdTest/StdTest.pro)
 include($$PWD/QtLibraryTest/QtLibraryTest.deps)
+addSubdirsDir(ArchiveTests, $$PWD/ArchiveTests)
 
 #win32:SUBDIRS += MonitorStdTest
 

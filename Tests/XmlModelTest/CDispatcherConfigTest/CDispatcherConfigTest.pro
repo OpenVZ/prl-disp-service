@@ -1,6 +1,8 @@
 CONFIG += qtestlib
 QT = xml core network
 
+INCLUDEPATH += /usr/share /usr/include/prlsdk
+
 include(CDispatcherConfigTest.deps)
 
 HEADERS += CDispatcherConfigTest.h

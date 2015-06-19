@@ -1,6 +1,8 @@
 CONFIG += qtestlib
 QT = core
 
+INCLUDEPATH += /usr/share /usr/include/prlsdk
+
 include(ParallelsDirTest.deps)
 
 HEADERS += \

@@ -1,6 +1,8 @@
 CONFIG += qtestlib
 QT = xml core network
 
+INCLUDEPATH += /usr/share /usr/include/prlsdk
+
 include(CClientPreferencesTest.deps)
 
 HEADERS += CClientPreferencesTest.h

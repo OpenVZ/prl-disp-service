@@ -1,6 +1,8 @@
 CONFIG += qtestlib
 QT = core xml
 
+INCLUDEPATH += /usr/share /usr/include/prlsdk
+
 include(PrlDataSerializerTest.deps)
 
 HEADERS += \

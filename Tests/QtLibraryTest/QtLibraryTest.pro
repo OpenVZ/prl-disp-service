@@ -1,6 +1,8 @@
 CONFIG += qtestlib
 QT = xml network core
 
+INCLUDEPATH += /usr/share /usr/include/prlsdk
+
 include(QtLibraryTest.deps)
 
 HEADERS += QtCoreTest.h \
