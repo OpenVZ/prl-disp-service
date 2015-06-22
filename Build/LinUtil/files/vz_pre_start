@@ -22,8 +22,11 @@ class/tty rx
 class/mem rx
 devices rx
 devices/system rx
+devices/system/cpu rx
 devices/virtual rx
 devices/virtual/net rx
+devices/virtual/mem rx
+devices/virtual/tty rx
 dev rx
 dev/block rx
 dev/char rx
