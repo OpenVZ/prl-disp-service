@@ -313,7 +313,7 @@ static int parse_RATEMPU(QList<CNetworkShaping> &lst, const char *str)
 
 		PRL_UINT32 nClassId = lstParams[1].toUInt();
 		PRL_INT32 nRateMPU = (lstParams.count() == 2 ?
-				NPM_ENABLED : lstParams[2].toInt());
+				NRM_ENABLED : lstParams[2].toInt());
 
 		CNetworkShaping entry;
 
@@ -381,7 +381,7 @@ static void merge_lst(CNetworkShapingConfig &conf,
 			 totalrate.setRate(default_rate.getRate());
 
 		bool ratempu_set = false;
-		default_ratempu.setRateMPU(NPM_ENABLED);
+		default_ratempu.setRateMPU(NRM_ENABLED);
 		foreach(const CNetworkShaping& ratempu, lstRATEMPU)
 		{
 			// Classes are independent in this case, we do not care about inclusion.
