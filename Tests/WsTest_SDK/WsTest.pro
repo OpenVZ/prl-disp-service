@@ -6,7 +6,7 @@ QT += network core xml
 LEVEL = ../../..
 
 include($$LEVEL/Sources/Parallels.pri)
-include($$LEVEL/Sources/Build/Debug.pri)
+include($$LEVEL/Build/Debug.pri)
 include($$LEVEL/Sources/Libraries/CComm/pvsCComm/pvsCComm.pri)
 include(../../XmlModel/XmlModel.pri)
 

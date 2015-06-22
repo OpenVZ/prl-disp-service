@@ -2,7 +2,7 @@
 TEMPLATE = subdirs
 
 LEVEL = ../../..
-include($$LEVEL/Sources/Build/Options.pri)
+include($$LEVEL/Build/Options.pri)
 
 include(communicationtest/communicationtest.deps)
 include(communicationtest_gui/communicationtest_gui.pro)

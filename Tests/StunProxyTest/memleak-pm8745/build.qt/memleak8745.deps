@@ -1,4 +1,4 @@
 TARGET = memleak8745_test
 PROJ_PATH = $$PWD
-include(../../../../Build/qmake/build_target.pri)
+include(../../../Build/qmake/build_target.pri)
 

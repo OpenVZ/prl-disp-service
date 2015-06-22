@@ -1,8 +1,8 @@
 
 TEMPLATE = subdirs
 
-LEVEL = ../../..
-include($$LEVEL/Sources/Build/Options.pri)
+LEVEL = ../..
+include($$LEVEL/Build/Options.pri)
 
 include($$PWD/CDispatcherConfigTest/CDispatcherConfigTest.deps)
 include($$PWD/CHwFileSystemInfoTest/CHwFileSystemInfoTest.deps)

@@ -1,6 +1,6 @@
 TARGET = test_core_utils
 PROJ_PATH = $$PWD
-include(../../../Sources/Build/qmake/build_target.pri)
+include(../../Build/qmake/build_target.pri)
 
 include($$LIBS_LEVEL/HostUtils/HostUtils.pri)
 include($$LIBS_LEVEL/Std/Std.pri)

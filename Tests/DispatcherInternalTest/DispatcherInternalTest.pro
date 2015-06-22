@@ -1,6 +1,7 @@
 CONFIG += qtestlib
 QT = xml network core
 
+INCLUDEPATH += /usr/share /usr/include/prlsdk
 include(DispatcherInternalTest.deps)
 
 HEADERS += \
@@ -49,7 +50,7 @@ win32 {
 }
 
 macx {
-	# include($$LEVEL/Sources/Build/MacUtil/Frameworks.pri)
+	# include($$LEVEL/Build/MacUtil/Frameworks.pri)
 	LIBS += \
 		-framework Security
 }

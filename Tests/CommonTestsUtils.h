@@ -46,7 +46,7 @@
 #include <QtTest/QtTest>
 #include "Libraries/Logging/Logging.h"
 #include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
-#include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
+#include <prlsdk/helpers/SdkWrap/SdkHandleWrap.h>
 
 #define PRL_JOB_WAIT_TIMEOUT 18000
 #define STR_BUF_LENGTH 32768

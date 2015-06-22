@@ -1,5 +1,5 @@
 TARGET = testm_power_watcher
 PROJ_PATH = $$PWD
-include(../../../../Sources/Build/qmake/build_target.pri)
+include(../../../Build/qmake/build_target.pri)
 
 include($$LIBS_LEVEL/PowerWatcher/PowerWatcher.pri)

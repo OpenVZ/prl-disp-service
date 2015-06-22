@@ -1,6 +1,6 @@
 TARGET = test_sdk_race_on_deinit
 PROJ_PATH = $$PWD
-include(../../../../Sources/Build/qmake/build_target.pri)
+include(../../../Build/qmake/build_target.pri)
 
 include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
 include($$LIBS_LEVEL/Logging/Logging.pri)
