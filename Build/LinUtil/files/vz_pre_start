@@ -33,6 +33,8 @@ dev/char rx
 fs rx
 fs/cgroup rw
 kernel rx
+kernel/fscaps r
+kernel/profiling r
 kernel/uevent_seqnum r"
 
 	local ifs=$IFS
