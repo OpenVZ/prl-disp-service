@@ -645,6 +645,13 @@ void CDspClientManager::handleToDispatcherPackage (
 		return;
 							  }
 							  ///////////////////////////////////////////////
+	case PVE::DspCmdDirReg3rdPartyVm: {
+		CVmEvent evt;
+		evt.setEventCode( PRL_ERR_UNIMPLEMENTED );
+		client->sendResponseError( evt, p );
+		return;
+							  }
+							  ///////////////////////////////////////////////
 	case PVE::DspCmdDirRestoreVm: {
 		CDspService::instance()->getVmDirHelper().restoreVm( client, p);
 		return;
