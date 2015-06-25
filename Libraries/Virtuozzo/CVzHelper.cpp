@@ -2405,17 +2405,35 @@ int CVzOperationHelper::register_env(const QString &sPath, const QString &sUuid,
 		PRL_UINT32 nFlags, SmartPtr<CVmConfiguration> &pConfig)
 {
 	int ret;
+	QString ctid;
 	QStringList args;
+	QFileInfo fi(sPath);
+	ctid_t buf;
 
-	WRITE_TRACE(DBG_FATAL, "Register Container uuid='%s'",
+	/* get ctid from VE_PRIVATE/$CTID */
+	if (vzctl2_parse_ctid(QSTR2UTF8(fi.fileName()), buf) == 0)
+		ctid = buf;
+	else {
+		/* use uuid as CTID */
+		ctid = sUuid;
+		remove_brackets_from_uuid(ctid);
+	}
+
+	WRITE_TRACE(DBG_FATAL, "Register Container ctid=%s path=%s",
+			QSTR2UTF8(ctid),
 			QSTR2UTF8(sPath));
 
 	if (nFlags & PRVF_IGNORE_HA_CLUSTER)
 		args += "--ignore-ha-cluster";
+
 	args += "register";
 	args += sPath;
-	args += "--uuid";
-	args += sUuid;
+	args += ctid;
+
+	if (nFlags & PRVF_REGENERATE_VM_UUID) {
+		args += "--uuid";
+		args += sUuid;
+	}
 
 	if (nFlags & PRCF_FORCE)
 		args += "--force";
@@ -2424,7 +2442,7 @@ int CVzOperationHelper::register_env(const QString &sPath, const QString &sUuid,
 	if (ret)
 		return ret;
 
-	pConfig = CVzHelper::get_env_config(sUuid);
+	pConfig = CVzHelper::get_env_config_by_ctid(ctid);
 
 	return PRL_ERR_SUCCESS;
 }
