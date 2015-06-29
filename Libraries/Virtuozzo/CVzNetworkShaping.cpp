@@ -81,6 +81,32 @@ static QString get_TOTALRATE_string(const CNetworkShapingConfig &conf)
 	return str;
 }
 
+static QString get_RATEMPU_string(const CNetworkShapingConfig &conf)
+{
+	QString str;
+	foreach(CNetworkShaping *entry, conf.m_lstNetworkShaping) {
+		PRL_INT32 mpu = entry->getRateMPU();
+		switch (mpu) {
+		case NRM_DISABLED:
+			break;
+		case NRM_ENABLED:
+			str += QString("%1:%2 ")
+				.arg(entry->getDevice().isEmpty() ?
+						"*" : entry->getDevice())
+				.arg(entry->getClassId());
+			break;
+		default:
+			str += QString("%1:%2:%3 ")
+				.arg(entry->getDevice().isEmpty() ?
+						"*" : entry->getDevice())
+				.arg(entry->getClassId())
+				.arg(mpu);
+			break;
+		}
+	}
+	return str;
+}
+
 static QString get_RATE_string(const CNetworkShapingConfig &conf)
 {
 	QString str;
@@ -101,6 +127,7 @@ int CVzNetworkShaping::update_network_shaping_config(const CNetworkShapingConfig
 	char tmp_path[4096], orig_path[4096];
 	bool bandwidth_printed = false;
 	bool totalrate_printed = false;
+	bool ratempu_printed = false;
 	bool rate_printed = false;
 	bool enable_printed = false;
 	QStringList args;
@@ -138,6 +165,11 @@ int CVzNetworkShaping::update_network_shaping_config(const CNetworkShapingConfig
 			if (!tmp.isEmpty())
 				fprintf(wfp, "TOTALRATE=\"%s\"\n", QSTR2UTF8(tmp));
 			totalrate_printed = true;
+		} else if (strncmp(p, "RATEMPU=", 8) == 0) {
+			QString tmp = get_RATEMPU_string(conf);
+			if (!tmp.isEmpty())
+				fprintf(wfp, "RATEMPU=\"%s\"\n", QSTR2UTF8(tmp));
+			ratempu_printed = true;
 		} else if (strncmp(p, "RATE=", 5) == 0) {
 			QString tmp = get_RATE_string(conf);
 			if (!tmp.isEmpty())
@@ -161,6 +193,11 @@ int CVzNetworkShaping::update_network_shaping_config(const CNetworkShapingConfig
 		QString tmp = get_TOTALRATE_string(conf);
 		if (!tmp.isEmpty())
 			fprintf(wfp, "TOTALRATE=\"%s\"\n", QSTR2UTF8(tmp));
+	}
+	if (!ratempu_printed) {
+		QString tmp = get_RATEMPU_string(conf);
+		if (!tmp.isEmpty())
+			fprintf(wfp, "RATEMPU=\"%s\"\n", QSTR2UTF8(tmp));
 	}
 	if (!rate_printed) {
 		QString tmp = get_RATE_string(conf);
@@ -257,6 +294,37 @@ static int parse_TOTALRATE(QList<CNetworkShaping> &lst, const char *str)
 	return 0;
 }
 
+static int parse_RATEMPU(QList<CNetworkShaping> &lst, const char *str)
+{
+	QStringList lstStr;
+	QString sStr(str);
+
+	// "dev:class[:mpu] ..."
+	sStr.remove(QChar('"'));
+	lstStr = sStr.split(QRegExp("\\s+"), QString::SkipEmptyParts);
+
+	foreach(const QString& sEntry, lstStr) {
+		QStringList lstParams;
+
+		lstParams = sEntry.split(":");
+
+		if (lstParams.count() != 3 && lstParams.count() != 2)
+			continue;
+
+		PRL_UINT32 nClassId = lstParams[1].toUInt();
+		PRL_INT32 nRateMPU = (lstParams.count() == 2 ?
+				NRM_ENABLED : lstParams[2].toInt());
+
+		CNetworkShaping entry;
+
+		entry.setDevice(lstParams[0]);
+		entry.setClassId(nClassId);
+		entry.setRateMPU(nRateMPU);
+		lst += entry;
+	}
+	return 0;
+}
+
 static int parse_RATE(QList<CNetworkShaping> &lst, const char *str)
 {
 	QStringList lstStr;
@@ -292,9 +360,10 @@ static int parse_RATE(QList<CNetworkShaping> &lst, const char *str)
 static void merge_lst(CNetworkShapingConfig &conf,
 		QList<CDeviceBandwidth> &lstBANDWIDTH,
 		QList<CNetworkShaping > &lstTOTALRATE,
+		QList<CNetworkShaping> &lstRATEMPU,
 		QList<CNetworkShaping > &lstRATE)
 {
-	CNetworkShaping default_rate;
+	CNetworkShaping default_rate, default_ratempu;
 	foreach(CNetworkShaping totalrate, lstTOTALRATE)
 	{
 		foreach(CNetworkShaping rate, lstRATE)
@@ -310,6 +379,28 @@ static void merge_lst(CNetworkShapingConfig &conf,
 		}
 		if (totalrate.getRate() == 0)
 			 totalrate.setRate(default_rate.getRate());
+
+		bool ratempu_set = false;
+		default_ratempu.setRateMPU(NRM_ENABLED);
+		foreach(const CNetworkShaping& ratempu, lstRATEMPU)
+		{
+			// Classes are independent in this case, we do not care about inclusion.
+			if (ratempu.getDevice() == "*" &&
+			    ratempu.getClassId() == totalrate.getClassId())
+			{
+				default_ratempu = ratempu;
+			}
+			if (ratempu.getClassId() == totalrate.getClassId() &&
+			    ratempu.getDevice() == totalrate.getDevice())
+			{
+				totalrate.setRateMPU(ratempu.getRateMPU());
+				ratempu_set = true;
+				break;
+			}
+		}
+		if (!ratempu_set)
+			 totalrate.setRateMPU(default_ratempu.getRateMPU());
+
 		conf.m_lstNetworkShaping += new CNetworkShaping(totalrate);
 	}
 
@@ -332,6 +423,7 @@ int CVzNetworkShaping::get_network_shaping_config(CNetworkShapingConfig &conf)
 	CNetworkShapingConfig newConf;
 	QList<CDeviceBandwidth> lstBANDWIDTH;
 	QList<CNetworkShaping > lstTOTALRATE;
+	QList<CNetworkShaping > lstRATEMPU;
 	QList<CNetworkShaping > lstRATE;
 
 	while (fgets(buf, sizeof(buf), fp) != NULL) {
@@ -343,6 +435,8 @@ int CVzNetworkShaping::get_network_shaping_config(CNetworkShapingConfig &conf)
 			parse_BANDWIDTH(lstBANDWIDTH, p + 10);
 		} else if (strncmp(p, "TOTALRATE=", 10) == 0) {
 			parse_TOTALRATE(lstTOTALRATE, p + 10);
+		} else if (strncmp(p, "RATEMPU=", 8) == 0) {
+			parse_RATEMPU(lstRATEMPU, p + 8);
 		} else if (strncmp(p, "RATE=", 5) == 0) {
 			parse_RATE(lstRATE, p + 5);
 		} else if (strncmp(p, "TRAFFIC_SHAPING=", 16) == 0) {
@@ -352,11 +446,11 @@ int CVzNetworkShaping::get_network_shaping_config(CNetworkShapingConfig &conf)
 	}
 	fclose(fp);
 
-	merge_lst(newConf, lstBANDWIDTH, lstTOTALRATE, lstRATE);
+	merge_lst(newConf, lstBANDWIDTH, lstTOTALRATE, lstRATEMPU, lstRATE);
 
 	conf.fromString(newConf.toString());
 
-        return 0;
+	return 0;
 }
 
 int CVzNetworkShaping::update_network_classes_config(const CNetworkClassesConfig &conf)
