@@ -423,7 +423,14 @@ PRL_RESULT Reverse::setBlank()
 
 	m_result.reset(new Libvirt::Domain::Xml::Domain());
 	m_result->setType(Libvirt::Domain::Xml::ETypeQemu);
-	m_result->setOs(mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type());
+
+	Libvirt::Domain::Xml::Os2 o;
+	o.setBootList(QList<Libvirt::Domain::Xml::EDev>()
+		<< Libvirt::Domain::Xml::EDevHd
+		<< Libvirt::Domain::Xml::EDevCdrom);
+	mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type a;
+	a.setValue(o);
+	m_result->setOs(a);
 	return PRL_ERR_SUCCESS;
 }
 
