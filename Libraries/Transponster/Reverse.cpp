@@ -268,7 +268,7 @@ Libvirt::Domain::Xml::Devices List::getResult() const
 void List::add(const CVmHardDisk* disk_)
 {
 	if (NULL != disk_)
-		add(Disk(*disk_));
+		add(Disk(*disk_, m_boot(*disk_)));
 }
 
 void List::add(const CVmParallelPort* port_)
@@ -306,7 +306,7 @@ void List::add(const CVmSerialPort* port_)
 void List::add(const CVmOpticalDisk* cdrom_)
 {
 	if (NULL != cdrom_ && cdrom_->getEmulatedType() != Flavor<CVmOpticalDisk>::real)
-		add(Cdrom(*cdrom_));
+		add(Cdrom(*cdrom_, m_boot(*cdrom_)));
 }
 
 void List::add(const CVmSoundDevice* sound_)
@@ -423,14 +423,7 @@ PRL_RESULT Reverse::setBlank()
 
 	m_result.reset(new Libvirt::Domain::Xml::Domain());
 	m_result->setType(Libvirt::Domain::Xml::ETypeQemu);
-
-	Libvirt::Domain::Xml::Os2 o;
-	o.setBootList(QList<Libvirt::Domain::Xml::EDev>()
-		<< Libvirt::Domain::Xml::EDevHd
-		<< Libvirt::Domain::Xml::EDevCdrom);
-	mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type a;
-	a.setValue(o);
-	m_result->setOs(a);
+	m_result->setOs(mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type());
 	return PRL_ERR_SUCCESS;
 }
 
@@ -481,7 +474,8 @@ PRL_RESULT Reverse::setDevices()
 	if (NULL == h)
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
-	Device::List b;
+	Device::List b(Boot::Reverse(m_input.getVmSettings()->
+		getVmStartupOptions()->getBootDeviceList()));
 	b.add(m_input.getVmSettings()->getVmRemoteDisplay());
 	foreach (const CVmVideo* d, h->m_lstVideo)
 	{
@@ -834,5 +828,38 @@ QString Reverse::getResult() const
 
 } // namespace Bridge
 } // namespace Interface
+
+namespace Boot
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Reverse
+
+Reverse::Reverse(const QList<device_type* >& list_)
+{
+	unsigned o = 0;
+	std::list<device_type* > x = list_.toStdList();
+	x.sort(boost::bind(&device_type::getBootingNumber, _1) <
+		boost::bind(&device_type::getBootingNumber, _2));
+	foreach(device_type* d, x)
+	{
+		if (!d->isInUse())
+			continue;
+
+		key_type k = qMakePair(d->getType(), d->getIndex());
+		m_map[k] = ++o;
+	}
+}
+
+Reverse::order_type Reverse::operator()(const CVmDevice& device_) const
+{
+	key_type k = qMakePair(device_.getDeviceType(), device_.getIndex());
+	map_type::const_iterator p = m_map.find(k);
+	if (m_map.end() == p)
+		return order_type();
+
+	return p.value();
+}
+
+} // namespace Boot
 } // namespace Transponster
 

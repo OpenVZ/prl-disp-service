@@ -38,6 +38,30 @@
 
 namespace Transponster
 {
+namespace Boot
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Reverse
+
+struct Reverse
+{
+	typedef CVmStartupOptions::CVmBootDevice device_type;
+	typedef boost::optional<Libvirt::Domain::Xml::PPositiveInteger::value_type >
+		order_type;
+
+	explicit Reverse(const QList<device_type* >& list_);
+
+	order_type operator()(const CVmDevice& device_) const;
+
+private:
+	typedef QPair<PRL_DEVICE_TYPE, unsigned> key_type;
+	typedef QHash<key_type, order_type::value_type> map_type;
+
+	map_type m_map;
+};
+
+} // namespace Boot
+
 namespace Device
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -52,6 +76,8 @@ struct Flavor;
 template<class T>
 struct Clustered
 {
+	typedef Boot::Reverse::order_type boot_type;
+
 	Clustered(): m_device()
 	{
 	}
@@ -144,8 +170,17 @@ struct Clustered
 			return boost::optional<Libvirt::Domain::Xml::ETray>();
 		}
 	}
+	const boot_type& getBoot() const
+	{
+		return m_boot;
+	}
+
 
 protected:
+	void setBoot(const boot_type& value_)
+	{
+		m_boot = value_;
+	}
 	void setDevice(const T& value_)
 	{
 		m_device = &value_;
@@ -157,6 +192,7 @@ protected:
 
 private:
 	const T* m_device;
+	boot_type m_boot;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -164,8 +200,9 @@ private:
 
 struct Disk: Clustered<CVmHardDisk>
 {
-	explicit Disk(const CVmHardDisk& device_)
+	Disk(const CVmHardDisk& device_, const boot_type& boot_)
 	{
+		setBoot(boot_);
 		setDevice(device_);
 	}
 
@@ -177,8 +214,9 @@ struct Disk: Clustered<CVmHardDisk>
 
 struct Cdrom: Clustered<CVmOpticalDisk>
 {
-	explicit Cdrom(const CVmOpticalDisk& device_)
+	Cdrom(const CVmOpticalDisk& device_, const boot_type& boot_)
 	{
+		setBoot(boot_);
 		setDevice(device_);
 	}
 };
@@ -215,6 +253,10 @@ private:
 
 struct List
 {
+	explicit List(const Boot::Reverse& boot_): m_boot(boot_)
+	{
+	}
+
 	Libvirt::Domain::Xml::Devices getResult() const;
 	void add(const CVmRemoteDisplay* vnc_);
 	void add(const CVmHardDisk* disk_);
@@ -249,11 +291,12 @@ private:
 		c.setValue(false);
 
 		Libvirt::Domain::Xml::Disk d;
+		d.setBoot(clustered_.getBoot());
 		d.setDisk(Libvirt::Domain::Xml::VDisk(y));
 		d.setTarget(t);
 		d.setReadonly(clustered_.isReadonly());
 		QString a = clustered_.getAlias();
-		if (a.isEmpty())
+		if (!a.isEmpty())
 			d.setAlias(a);
 
 		d.setDriver(clustered_.getDriver());
@@ -262,6 +305,7 @@ private:
 		add<0>(d);
 	}
 
+	Boot::Reverse m_boot;
 	QList<Libvirt::Domain::Xml::VChoice912 > m_devices;
 };
 
