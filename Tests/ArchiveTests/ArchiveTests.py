@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 import os
+import fnmatch
 import sys
 import zipfile
+import shutil
 
 enable_archive_debug = True
 
@@ -135,7 +137,7 @@ def archive_path( path, arch, exclude_paths = [], exclude_files = [], include_ex
 
 def pack_tests(version):
     # Copying some files to include in python tests archive
-    include_only = [ 'test_' ]
+    include_only = [ 'test_', 'xml' ]
     archives_dir = '../../z-Build/%s/tests' % version
     tests_archive = '%s/prl-disp-unittests.zip' % archives_dir
     python_tests_archive = '%s/pythontests.zip' % archives_dir
@@ -143,6 +145,9 @@ def pack_tests(version):
     try:
         if not os.path.exists(archives_dir):
            os.mkdir(archives_dir)
+        for root, dirnames, filenames in os.walk('..'):
+            for filename in fnmatch.filter(filenames, '*.xml'):
+                shutil.copy(os.path.join(root, filename), '../../z-Build/%s' % version)
         archive_path('../../z-Build/%s' % version, tests_archive, include_only=include_only)
         archive_path('../_Python', python_tests_archive)
     except Exception, e:
