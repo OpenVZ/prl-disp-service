@@ -101,27 +101,20 @@ class CommonTests:
         # ---------------------------------------------------------
         def Test_GetLicenseInfo_Basic( self, server ):
 
-            #print 1
 
             job = server.get_license_info()
-            job.wait( max_wait_timeout )
+            try:
+                job.wait( max_wait_timeout )
+                result = job.get_result()
 
-            #print 3
+            except prlsdkapi.PrlSDKError:
+                retCode = job.get_ret_code()
+                retCode = (0x100000000L + retCode) & 0xffffffffL
+                retCodeUnimplimented = (0x100000000L + prlsdkapi.errors.PRL_ERR_UNIMPLEMENTED) & 0xffffffffL
+                if retCode == retCodeUnimplimented:
+                    return 0
 
-            result = job.get_result()
-
-            # print 4
-
-            lic = result.get_param()
-
-            #  raw_input ("press any key")
-            #licStr = lic.ToString()
-
-            #print 6
-
-            # print 'license = %s' % licStr
-
-            return 0
+            return 1
 
         # ---------------------------------------------------------
         def Test_bugs3115_2511_CantRecreateImage( self, server ):

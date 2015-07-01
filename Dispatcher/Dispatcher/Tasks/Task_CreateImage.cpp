@@ -529,6 +529,17 @@ PRL_RESULT Task_CreateImage::createHdd(const CVmHardDisk& dto_)
 	if (PRL_FAILED(output))
 		return output;
 
+	if (!m_flgRecreateIsAllowed &&
+		CFileHelper::FileExists(strFullPath, &getClient()->getAuthHelper()))
+	{
+		WRITE_TRACE(DBG_FATAL, "Disk image [%s] is already exist.", QSTR2UTF8(strFullPath));
+		getLastError()->addEventParameter(
+				new CVmEventParameter(PVE::String,
+									  strFullPath,
+									  EVT_PARAM_MESSAGE_PARAM_0));
+		return PRL_ERR_HDD_IMAGE_IS_ALREADY_EXIST;
+	}
+
 	QStringList a;
 	a << "create" << "-f" << "qcow2" << strFullPath;
 	a << QString::number(dto_.getSize()).append("M");
