@@ -41,6 +41,29 @@
 
 namespace Transponster
 {
+namespace Boot
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Direct
+
+struct Direct
+{
+	typedef CVmStartupOptions::CVmBootDevice device_type;
+	typedef boost::optional<Libvirt::Domain::Xml::PPositiveInteger::value_type >
+		order_type;
+
+	void operator()(const CVmDevice& device_, const order_type& order_);
+	QList<device_type*> getResult() const;
+
+private:
+	typedef std::map<unsigned, std::pair<PRL_DEVICE_TYPE, unsigned> >
+		map_type;
+
+	map_type m_map;
+};
+
+} // namespace Boot
+
 namespace Visitor
 {
 namespace Source
@@ -188,22 +211,53 @@ private:
 	QScopedPointer<T> m_device;
 };
 
-typedef Clustered<CVmFloppyDisk> Floppy;
+///////////////////////////////////////////////////////////////////////////////
+// struct Floppy
+
+struct Floppy: private Clustered<CVmFloppyDisk>
+{
+	explicit Floppy(CVmHardware& hardware_): m_hardware(&hardware_)
+	{
+	}
+
+	PRL_RESULT operator()(const Libvirt::Domain::Xml::Disk& disk_);
+
+private:
+	CVmHardware* m_hardware;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Disk
 
-struct Disk: Clustered<CVmHardDisk>
+struct Disk: private Clustered<CVmHardDisk>
 {
-	bool operator()(const Libvirt::Domain::Xml::Disk& disk_);
+	Disk(CVmHardware& hardware_, Boot::Direct& boot_):
+		m_hardware(&hardware_), m_boot(&boot_)
+	{
+	}
+
+	PRL_RESULT operator()(const Libvirt::Domain::Xml::Disk& disk_);
+
+private:
+	CVmHardware* m_hardware;
+	Boot::Direct* m_boot;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Cdrom
 
-struct Cdrom: Clustered<CVmOpticalDisk>
+struct Cdrom: private Clustered<CVmOpticalDisk>
 {
-	bool operator()(const Libvirt::Domain::Xml::Disk& disk_);
+	Cdrom(CVmHardware& hardware_, Boot::Direct& boot_):
+		m_hardware(&hardware_), m_boot(&boot_)
+	{
+	}
+
+	PRL_RESULT operator()(const Libvirt::Domain::Xml::Disk& disk_);
+
+private:
+	CVmHardware* m_hardware;
+	Boot::Direct* m_boot;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -253,7 +307,8 @@ private:
 
 struct Device: boost::static_visitor<PRL_RESULT>
 {
-	explicit Device(CVmConfiguration& vm_): m_vm(&vm_)
+	Device(CVmConfiguration& vm_, Boot::Direct& boot_):
+		m_boot(&boot_), m_vm(&vm_)
 	{
 	}
 
@@ -274,6 +329,7 @@ struct Device: boost::static_visitor<PRL_RESULT>
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice912::types, 12>::type& serial_) const;
 
 private:
+	Boot::Direct* m_boot;
 	CVmConfiguration* m_vm;
 };
 

@@ -48,26 +48,58 @@ bool Unit<CVmHardDisk>::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSo
 } // namespace Source
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Floppy
+
+PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
+{
+	if (!Clustered<CVmFloppyDisk>::operator()(disk_))
+		return PRL_ERR_UNIMPLEMENTED;
+
+	CVmFloppyDisk* d = getResult();
+	if (NULL == d)
+		return PRL_ERR_UNEXPECTED;
+
+	d->setIndex(m_hardware->m_lstFloppyDisks.size());
+	m_hardware->addFloppyDisk(d);
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Disk
 
-bool Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
+PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 {
 	if (!Clustered<CVmHardDisk>::operator()(disk_))
-		return false;
+		return PRL_ERR_UNIMPLEMENTED;
 
 	getDevice().setEncrypted(disk_.getEncryption());
-	return true;
+	CVmHardDisk* d = getResult();
+	if (NULL == d)
+		return PRL_ERR_UNEXPECTED;
+
+	d->setIndex(m_hardware->m_lstHardDisks.size());
+	m_hardware->addHardDisk(d);
+	m_boot->operator()(*d, disk_.getBoot());
+	return PRL_ERR_SUCCESS;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Cdrom
 
-bool Cdrom::operator()(const Libvirt::Domain::Xml::Disk& disk_)
+PRL_RESULT Cdrom::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 {
 	Clustered<CVmOpticalDisk>::operator()(disk_);
 	getDevice().setPassthrough(disk_.getTransient() ?
 		PVE::PassthroughEnabled : PVE::PassthroughDisabled);
-	return true;
+
+	CVmOpticalDisk* d = getResult();
+	if (NULL == d)
+		return PRL_ERR_UNEXPECTED;
+
+	d->setIndex(m_hardware->m_lstOpticalDisks.size());
+	m_hardware->addOpticalDisk(d);
+	m_boot->operator()(*d, disk_.getBoot());
+	return PRL_ERR_SUCCESS;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -248,42 +280,21 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice912::
 
 	const Libvirt::Domain::Xml::EDevice* e = boost::get<mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type>
 		(disk_.getValue().getDisk()).getValue().get_ptr();
-	if (NULL == e)
-		return PRL_ERR_UNIMPLEMENTED;
-
-	CVmHardware* h = m_vm->getVmHardwareList();
-	if (NULL == h)
-		return PRL_ERR_UNEXPECTED;
-
-	switch (*e)
+	if (NULL != e)
 	{
-	case Libvirt::Domain::Xml::EDeviceDisk:
-	{
-		Disk d;
-		if (!d(disk_.getValue()))
-			return PRL_ERR_UNIMPLEMENTED;
+		CVmHardware* h = m_vm->getVmHardwareList();
+		if (NULL == h)
+			return PRL_ERR_UNEXPECTED;
 
-		h->addHardDisk(d.getResult());
-		return PRL_ERR_SUCCESS;
-	}
-	case Libvirt::Domain::Xml::EDeviceCdrom:
-	{
-		Cdrom d;
-		if (!d(disk_.getValue()))
-			return PRL_ERR_UNIMPLEMENTED;
-
-		h->addOpticalDisk(d.getResult());
-		return PRL_ERR_SUCCESS;
-	}
-	case Libvirt::Domain::Xml::EDeviceFloppy:
-	{
-		Floppy d;
-		if (!d(disk_.getValue()))
-			return PRL_ERR_UNIMPLEMENTED;
-
-		h->addFloppyDisk(d.getResult());
-		return PRL_ERR_SUCCESS;
-	}
+		switch (*e)
+		{
+		case Libvirt::Domain::Xml::EDeviceDisk:
+			return Disk(*h, *m_boot)(disk_.getValue());
+		case Libvirt::Domain::Xml::EDeviceCdrom:
+			return Cdrom(*h, *m_boot)(disk_.getValue());
+		case Libvirt::Domain::Xml::EDeviceFloppy:
+			return Floppy(*h)(disk_.getValue());
+		}
 	}
 	return PRL_ERR_UNIMPLEMENTED;
 }
@@ -423,10 +434,13 @@ PRL_RESULT Direct::setDevices()
 	const Libvirt::Domain::Xml::Devices* d = m_input->getDevices().get_ptr();
 	if (NULL != d)
 	{
+		Boot::Direct b;
 		foreach (const Libvirt::Domain::Xml::VChoice912& v, d->getChoice912List())
 		{
-			boost::apply_visitor(Visitor::Device(*m_result), v);
+			boost::apply_visitor(Visitor::Device(*m_result, b), v);
 		}
+		m_result->getVmSettings()->
+			getVmStartupOptions()->setBootDeviceList(b.getResult());
 	}
 	return PRL_ERR_SUCCESS;
 }
@@ -626,5 +640,33 @@ PRL_RESULT Direct::setInterface()
 
 } // namespace Bridge
 } // namespace Interface
+
+namespace Boot
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Direct
+
+void Direct::operator()(const CVmDevice& device_, const order_type& order_)
+{
+	order_type::pointer_const_type o = order_.get_ptr();
+	if (NULL == o)
+		return;
+
+	m_map[*o] = std::make_pair(device_.getDeviceType(), device_.getIndex());
+}
+
+QList<Direct::device_type*> Direct::getResult() const
+{
+	unsigned o = 0;
+	QList<device_type*> output;
+	foreach (map_type::const_reference x, m_map)
+	{
+		output << new device_type(x.second.first, x.second.second,
+			++o, true);
+	}
+	return output;
+}
+
+} // namespace Boot
 } // namespace Transponster
 
