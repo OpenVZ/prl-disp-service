@@ -52,7 +52,7 @@ import prlsdkapi
 CommonTestsUtils.init_sdk(prlsdkapi)
 
 
-max_wait_timeout = 10*1000 # 70 sec is max wait timeout
+max_wait_timeout = 3600*1000
 
 
 # ---------------------------------------------------------
@@ -71,8 +71,10 @@ def test():
 
         # 1. Create VM
         vm = server.create_vm()
+        vm.refresh_config()
+        vm.set_vm_type( prlsdkapi.consts.PVT_CT )
         vm.set_uuid ( new_vm_uuid )
-        vm.set_name ( "regVm_" + vm.get_uuid() )
+        vm.set_name ( "regVm_" + vm.get_uuid().strip('{}') )
 		print "CreateVm done."
 
         # raw_input ("press any key")
@@ -86,8 +88,9 @@ def test():
             vm.refresh_config().wait( max_wait_timeout )
 			print "GetConfig done."
 
-            path_to_config_pvs = vm.get_home_path()
-            vm_dir = os.path.dirname( path_to_config_pvs )
+            # path_to_config_pvs = vm.get_home_path()
+            # vm_dir = os.path.dirname( path_to_config_pvs )
+            vm_dir = vm.get_home_path()
 
             print "vm_dir = [%s]" % vm_dir
 
