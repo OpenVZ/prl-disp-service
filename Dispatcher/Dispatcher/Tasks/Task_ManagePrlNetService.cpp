@@ -532,7 +532,12 @@ PRL_RESULT Task_ManagePrlNetService::cmdAddVirtualNetwork()
 
 	CVirtualNetwork k;
 	k.fromString(sVirtNet);
-	if (PRL_FAILED(e = Network::Dao(Libvirt::Kit).create(k)))
+	if (getRequestFlags() & PGVC_SEARCH_BY_NAME)
+		e = Network::Dao(Libvirt::Kit).attachExisting(k, k.getNetworkID());
+	else
+		e = Network::Dao(Libvirt::Kit).create(k);
+
+	if (PRL_FAILED(e))
 	{
 		getLastError()->addEventParameter(
 				new CVmEventParameter(PVE::String,
