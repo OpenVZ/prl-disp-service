@@ -338,5 +338,23 @@ PRL_RESULT Dao::craftBridge(CVirtualNetwork& network_)
 	return PRL_ERR_SUCCESS;
 }
 
+PRL_RESULT Dao::attachExisting(CVirtualNetwork model_,
+	const QString& bridge_)
+{
+	if (PVN_HOST_ONLY == model_.getNetworkType())
+		return PRL_ERR_INVALID_ARG;
+
+	CVZVirtualNetwork* z = new CVZVirtualNetwork();
+	z->setBridgeName(bridge_);
+	model_.setVZVirtualNetwork(z);
+	Libvirt::Tools::Agent::Network::Unit u;
+	PRL_RESULT e = m_networks.define(model_, &u);
+	if (PRL_FAILED(e))
+		return e;
+
+	u.start();
+	return PRL_ERR_SUCCESS;
+}
+
 } // namespace Network
 

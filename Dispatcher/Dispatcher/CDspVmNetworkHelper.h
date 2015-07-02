@@ -88,6 +88,7 @@ struct Dao
 	PRL_RESULT create(const CVirtualNetwork& model_);
 	PRL_RESULT remove(const CVirtualNetwork& model_);
 	PRL_RESULT update(const CVirtualNetwork& model_);
+	PRL_RESULT attachExisting(CVirtualNetwork model_, const QString& bridge_);
 
 private:
 	PRL_RESULT define(CVirtualNetwork network_);
