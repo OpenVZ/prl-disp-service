@@ -2339,7 +2339,7 @@ int CVzOperationHelper::apply_env_config(SmartPtr<CVmConfiguration> &pConfig,
 		}
 	}
 
-	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(uuid), 0, &ret));
+	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
 	if (h == NULL) {
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
 				QSTR2UTF8(uuid), vzctl2_get_last_error());
