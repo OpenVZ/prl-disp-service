@@ -86,8 +86,12 @@ getDefaultRouteAdapter(const EthIfaceList &ethList)
 	}
 
 	// skip first line;
-	if (!fgets(buf, 1023, f)) {
-		WRITE_TRACE(DBG_WARNING, "failed to read /proc/net/route");
+	if (NULL == fgets(buf, 1023, f)) {
+		if (feof(f))
+			WRITE_TRACE(DBG_WARNING, "empty /proc/net/route");
+		else if (ferror(f))
+			WRITE_TRACE(DBG_WARNING, "failed to read /proc/net/route");
+
 		fclose(f);
 		return itDefaultIface;
 	}
