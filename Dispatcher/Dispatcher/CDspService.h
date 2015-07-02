@@ -361,7 +361,7 @@ private:
 	bool checkConfigsIntegrity ();
 	void initHypervisor();
 	void precacheVmConfigs();
-	void autoStartVm();
+	void autoStartCt();
 	void reconnectToRunningVms();
 
 	bool createDispConfig ();

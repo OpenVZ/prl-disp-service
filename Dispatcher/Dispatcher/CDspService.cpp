@@ -1482,7 +1482,7 @@ bool CDspService::init()
 
 		initHypervisor(); // before start any vm!
 
-//		autoStartVm();
+		autoStartCt();
 
 		PRL_APPLICATION_MODE mode = ParallelsDirs::getAppExecuteMode();
 		if( mode == PAM_SERVER )
@@ -1713,7 +1713,7 @@ void CDspService::precacheVmConfigs()
 		}
 }
 
-void CDspService::autoStartVm()
+void CDspService::autoStartCt()
 {
 	PRL_APPLICATION_MODE mode = ParallelsDirs::getAppExecuteMode();
 	if( mode != PAM_SERVER )

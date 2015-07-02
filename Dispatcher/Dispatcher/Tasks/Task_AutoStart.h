@@ -62,7 +62,6 @@ protected:
 	virtual PRL_RESULT run_body();
 private:
 	PRL_RESULT runTask(SmartPtr<IOPackage> p);
-	PRL_RESULT startVms();
 	void startCts();
 };
 
