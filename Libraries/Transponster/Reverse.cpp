@@ -143,6 +143,10 @@ struct Flavor<CVmHardDisk>
 		output.setValue(Libvirt::Domain::Xml::EStorageFormatBackingQcow2);
 		return output;
 	}
+	static boost::optional<Libvirt::Domain::Xml::ETray> getTray(int )
+	{
+		return boost::optional<Libvirt::Domain::Xml::ETray>();
+	}
 };
 
 template<>
@@ -164,6 +168,18 @@ struct Flavor<CVmOpticalDisk>
 		output.setValue(Libvirt::Domain::Xml::EStorageFormatRaw);
 		return output;
 	}
+	static boost::optional<Libvirt::Domain::Xml::ETray> getTray(int type_)
+	{
+		switch (type_)
+		{
+		case real:
+			return Libvirt::Domain::Xml::ETrayOpen;
+		case image:
+			return Libvirt::Domain::Xml::ETrayClosed;
+		default:
+			return boost::optional<Libvirt::Domain::Xml::ETray>(); 
+		}
+	}
 };
 
 template<>
@@ -184,6 +200,16 @@ struct Flavor<CVmFloppyDisk>
 		mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type output;
 		output.setValue(Libvirt::Domain::Xml::EStorageFormatRaw);
 		return output;
+	}
+	static boost::optional<Libvirt::Domain::Xml::ETray> getTray(int type_)
+	{
+		switch (type_)
+		{
+		case real:
+			return Libvirt::Domain::Xml::ETrayOpen;
+		default:
+			return boost::optional<Libvirt::Domain::Xml::ETray>(); 
+		}
 	}
 };
 
