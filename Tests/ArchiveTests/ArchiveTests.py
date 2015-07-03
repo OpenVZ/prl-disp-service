@@ -137,7 +137,7 @@ def archive_path( path, arch, exclude_paths = [], exclude_files = [], include_ex
 
 def pack_tests(version):
     # Copying some files to include in python tests archive
-    include_only = [ 'test_', 'xml' ]
+    include_only = [ 'test_', '.xml' ]
     archives_dir = '../../z-Build/%s/tests' % version
     tests_archive = '%s/prl-disp-unittests.zip' % archives_dir
     python_tests_archive = '%s/pythontests.zip' % archives_dir

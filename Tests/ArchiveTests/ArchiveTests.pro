@@ -10,4 +10,4 @@ CONFIG(debug) {
 	VER = Release
 }
 
-QMAKE_POST_LINK += $$PWD/ArchiveTests.py $$VER | tee /tmp/out.txt
+QMAKE_POST_LINK += $$PWD/ArchiveTests.py $$VER
