@@ -1,6 +1,0 @@
-TARGET = test_sparse_bitmap
-PROJ_PATH = $$PWD
-include(../../../Build/qmake/build_target.pri)
-
-include($$LIBS_LEVEL/Logging/Logging.pri)
-include($$LIBS_LEVEL/Std/Std.pri)

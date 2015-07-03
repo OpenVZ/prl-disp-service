@@ -26,7 +26,6 @@ INCLUDEPATH += ../../..
 		   poll_event.h \
 		   pollset_private.h \
 		   delete_ptr.h \
-		   sparse_bitmap.h \
 		   HackParam.h
 
 	SOURCES += \
@@ -37,7 +36,6 @@ INCLUDEPATH += ../../..
 		Base32.cpp \
 		rbtree.c \
 		pollset.cpp \
-		sparse_bitmap.c \
 		HackParam.cpp
 
 	linux-*:SOURCES += \
