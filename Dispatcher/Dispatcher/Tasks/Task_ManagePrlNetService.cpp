@@ -532,7 +532,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdAddVirtualNetwork()
 
 	CVirtualNetwork k;
 	k.fromString(sVirtNet);
-	if (getRequestFlags() & PGVC_SEARCH_BY_NAME)
+	if (getRequestFlags() & PRL_USE_VNET_NAME_FOR_BRIDGE_NAME)
 		e = Network::Dao(Libvirt::Kit).attachExisting(k, k.getNetworkID());
 	else
 		e = Network::Dao(Libvirt::Kit).create(k);
