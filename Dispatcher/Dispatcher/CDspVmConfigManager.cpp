@@ -67,7 +67,7 @@ struct Work
 	}
 	CAuthHelper* getAuth() const
 	{
-		return m_user.isValid() ? NULL : &(m_user->getAuthHelper());
+		return m_user.isValid() ? &(m_user->getAuthHelper()) : NULL;
 	}
 	const SmartPtr<CVmConfiguration>& getConfig() const
 	{
