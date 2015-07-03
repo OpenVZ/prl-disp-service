@@ -533,25 +533,27 @@ int CVzHelper::is_vz_running()
 	return 0;
 }
 
-int CVzHelper::get_net_stat(const QString &uuid, PRL_STAT_NET_TRAFFIC *statbuf)
+PRL_STAT_NET_TRAFFIC *CVzHelper::get_net_stat_vm(const QString &uuid)
 {
 	if (hVzcapi == NULL)
-		return PRL_ERR_VZ_API_NOT_INITIALIZED;
+		return NULL;
 
 	unsigned int id = get_envid_by_uuid(uuid);
 	if (id == 0)
-		return PRL_ERR_CT_NOT_FOUND;
+		return NULL;
 
-	return get_net_stat(id, statbuf);
+	return get_net_stat(id);
 }
 
-int CVzHelper::get_net_stat(unsigned int id, PRL_STAT_NET_TRAFFIC *statbuf)
+PRL_STAT_NET_TRAFFIC *CVzHelper::get_net_stat(unsigned int id)
 {
 	ULONG ctid = (ULONG) id;
 	VzCmd<VZC_QUERY_VPS_COMMAND> pCmd(VZC_CMD_QUERY_VPS);
 	VzCmd<VZC_QUERY_VPS_COMMAND> pCmdV6(VZC_CMD_QUERY_VPS);
 	if (pCmd == NULL || pCmdV6 == NULL)
-		return PRL_ERR_API_WASNT_INITIALIZED;
+		return NULL;
+
+	QScopedPointer<PRL_STAT_NET_TRAFFIC> n(new PRL_STAT_NET_TRAFFIC());
 
 	pCmd->vpsIdList = &ctid;
 	pCmd->vpsIdListCount = 1;
@@ -570,32 +572,30 @@ int CVzHelper::get_net_stat(unsigned int id, PRL_STAT_NET_TRAFFIC *statbuf)
 	if (pCmdV6.Execute() == PRL_ERR_SUCCESS && pCmdV6->vpsInfoListCount == 1)
 		pInfoV6 = (PVZC_NETSTATS_INFO)pCmdV6->vpsInfoList[0].vpsInfo;
 
-	memset(statbuf, 0, sizeof(*statbuf));
-
 	ULONG i;
 	for (i = 0; pInfo != NULL && i < pInfo->uItems; ++i) {
 		if (pInfo->netStats[i].classId >= PRL_TC_CLASS_MAX)
 			continue;
-		statbuf->outgoing[pInfo->netStats[i].classId] += pInfo->netStats[i].bytesSent.QuadPart;
-		statbuf->incoming[pInfo->netStats[i].classId] += pInfo->netStats[i].bytesReceived.QuadPart;
-		statbuf->outgoing_pkt[pInfo->netStats[i].classId] +=
+		n->outgoing[pInfo->netStats[i].classId] += pInfo->netStats[i].bytesSent.QuadPart;
+		n->incoming[pInfo->netStats[i].classId] += pInfo->netStats[i].bytesReceived.QuadPart;
+		n->outgoing_pkt[pInfo->netStats[i].classId] +=
 			(PRL_UINT32)pInfo->netStats[i].packetsSent.QuadPart;
-		statbuf->incoming_pkt[pInfo->netStats[i].classId] +=
+		n->incoming_pkt[pInfo->netStats[i].classId] +=
 			(PRL_UINT32)pInfo->netStats[i].packetsReceived.QuadPart;
 	}
 
 	for (i = 0; pInfoV6 != NULL && i < pInfoV6->uItems; ++i) {
 		if (pInfoV6->netStats[i].classId >= PRL_TC_CLASS_MAX)
 			continue;
-		statbuf->outgoing[pInfoV6->netStats[i].classId] += pInfoV6->netStats[i].bytesSent.QuadPart;
-		statbuf->incoming[pInfoV6->netStats[i].classId] += pInfoV6->netStats[i].bytesReceived.QuadPart;
-		statbuf->outgoing_pkt[pInfoV6->netStats[i].classId] +=
+		n->outgoing[pInfoV6->netStats[i].classId] += pInfoV6->netStats[i].bytesSent.QuadPart;
+		n->incoming[pInfoV6->netStats[i].classId] += pInfoV6->netStats[i].bytesReceived.QuadPart;
+		n->outgoing_pkt[pInfoV6->netStats[i].classId] +=
 			(PRL_UINT32)pInfoV6->netStats[i].packetsSent.QuadPart;
-		statbuf->incoming_pkt[pInfoV6->netStats[i].classId] +=
+		n->incoming_pkt[pInfoV6->netStats[i].classId] +=
 			(PRL_UINT32)pInfoV6->netStats[i].packetsReceived.QuadPart;
 	}
 
-	return PRL_ERR_SUCCESS;
+	return n.take();
 }
 
 int CVzHelper::update_network_classes_config(const CNetworkClassesConfig &conf)
@@ -3474,13 +3474,11 @@ Ct::Statistics::Aggregate *CVzHelper::get_env_stat(const QString& uuid_)
 	if (0 == id)
 		return NULL;
 
-	PRL_STAT_NET_TRAFFIC n = PRL_STAT_NET_TRAFFIC();
-	(void)CVzHelper::get_net_stat(id, &n);
+	using Ct::Statistics::Aggregate;
+	QScopedPointer<Aggregate> a(new Aggregate());
 
-	Ct::Statistics::Cpu c;
-	CDiskStatistics d;
-	CSystemStatistics s;
+	QScopedPointer<PRL_STAT_NET_TRAFFIC> n(get_net_stat(id));
+	a->net = n.isNull() ? PRL_STAT_NET_TRAFFIC() : *n;
 
-	*s.getNetClassStatistics() = n;
-	return new Ct::Statistics::Aggregate(c, d, s);
+	return a.take();
 }

@@ -813,43 +813,42 @@ int CVzHelper::set_iopslimit(const QString &uuid, unsigned int value)
 	return PRL_ERR_UNIMPLEMENTED;
 }
 
-static int get_netstat(const QString &uuid, PRL_STAT_NET_TRAFFIC *statbuf)
+static PRL_STAT_NET_TRAFFIC *get_netstat(const QString &uuid)
 {
 	Q_UNUSED(uuid)
-	Q_UNUSED(statbuf)
 
-	return PRL_ERR_UNIMPLEMENTED;
+	return NULL;
 }
 
-static int get_netstat6(const QString &uuid, PRL_STAT_NET_TRAFFIC *statbuf)
+static PRL_STAT_NET_TRAFFIC *get_netstat6(const QString &uuid)
 {
 	Q_UNUSED(uuid)
-	Q_UNUSED(statbuf)
 
-	return PRL_ERR_UNIMPLEMENTED;
+	return NULL;
 }
 
-int CVzHelper::get_net_stat(const QString &uuid, PRL_STAT_NET_TRAFFIC *statbuf)
+PRL_STAT_NET_TRAFFIC *CVzHelper::get_net_stat(const QString &uuid)
 {
 	if (!is_vz_running())
-		return -1;
+		return NULL;
 
-	int ret = get_netstat(uuid, statbuf);
-	if (ret)
-		return ret;
+	QScopedPointer<PRL_STAT_NET_TRAFFIC> n(get_netstat(uuid));
+	if (n.isNull())
+		return NULL;
 
-	PRL_STAT_NET_TRAFFIC statbuf6;
-	ret = get_netstat6(uuid, &statbuf6);
-	if (ret == 0) {
-		for (unsigned int i = 0;i < PRL_TC_CLASS_MAX; i++)
-		{
-			statbuf->incoming[i] += statbuf6.incoming[i];
-			statbuf->outgoing[i] += statbuf6.outgoing[i];
-			statbuf->incoming_pkt[i] += statbuf6.incoming_pkt[i];
-			statbuf->outgoing_pkt[i] += statbuf6.outgoing_pkt[i];
-		}
+	QScopedPointer<PRL_STAT_NET_TRAFFIC> n6(get_netstat6(uuid));
+	if (n6.isNull())
+		return n.take();
+
+	for (unsigned int i = 0;i < PRL_TC_CLASS_MAX; i++)
+	{
+		n->incoming[i] += n6->incoming[i];
+		n->outgoing[i] += n6->outgoing[i];
+		n->incoming_pkt[i] += n6->incoming_pkt[i];
+		n->outgoing_pkt[i] += n6->outgoing_pkt[i];
 	}
-	return ret;
+
+	return n.take();
 }
 
 int CVzHelper::update_network_classes_config(const CNetworkClassesConfig &conf)
@@ -3239,66 +3238,71 @@ int CVzOperationHelper::remove_disks_from_env_config(SmartPtr<CVmConfiguration> 
 	return 0;
 }
 
-int CVzHelper::get_env_iostat(const QString &uuid, CDiskStatistics& dst_)
+static Ct::Statistics::Disk get_env_iostat(const QString &uuid)
 {
+	Ct::Statistics::Disk d;
 	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
 	if (ctid.isEmpty())
-		return PRL_ERR_CT_NOT_FOUND;
+		return d;
 
-	struct vzctl_iostat stat = vzctl_iostat();
-	(void)vzctl2_get_env_iostat(QSTR2UTF8(ctid), &stat, sizeof(struct vzctl_iostat));
+	struct vzctl_iostat s = vzctl_iostat();
+	if (vzctl2_get_env_iostat(QSTR2UTF8(ctid), &s, sizeof(s)))
+		return d;
 
-	dst_.setReadBytesTotal(stat.read);
-	dst_.setWriteBytesTotal(stat.write);
+	d.read = s.read;
+	d.write = s.write;
 
-	return PRL_ERR_SUCCESS;
+	return d;
 }
 
-int CVzHelper::get_env_cpustat(const QString &uuid, Ct::Statistics::Cpu& dst_)
+static Ct::Statistics::Cpu get_env_cpustat(const QString &uuid)
 {
 	int ret;
-
+	Ct::Statistics::Cpu c;
 	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
 	if (ctid.isEmpty())
-		return PRL_ERR_CT_NOT_FOUND;
+		return c;
 
 	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
 	if (h == NULL) {
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
 			QSTR2UTF8(uuid), vzctl2_get_last_error());
-		return -1;
+		return c;
 	}
 
-	struct vzctl_cpustat stat = vzctl_cpustat();
-	(void)vzctl2_env_cpustat(h, &stat, sizeof(stat));
+	struct vzctl_cpustat s = vzctl_cpustat();
+	if (vzctl2_env_cpustat(h, &s, sizeof(s)))
+		return c;
 
 	const quint64 s_to_ms = 1000000;
-	dst_.uptime = stat.uptime * s_to_ms;
-	dst_.system = stat.system * s_to_ms;
-	dst_.user = stat.user * s_to_ms;
-	dst_.nice = stat.nice * s_to_ms;
+	c.uptime = s.uptime * s_to_ms;
+	c.system = s.system * s_to_ms;
+	c.user = s.user * s_to_ms;
+	c.nice = s.nice * s_to_ms;
 
-	return PRL_ERR_SUCCESS;
+	return c;
 }
 
-int CVzHelper::get_env_meminfo(const QString &uuid, CMemoryStatistics& dst_)
+static Ct::Statistics::Memory *get_env_meminfo(const QString &uuid)
 {
-	struct vzctl_meminfo meminfo = vzctl_meminfo();
-
 	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
 	if (ctid.isEmpty())
-		return PRL_ERR_CT_NOT_FOUND;
+		return NULL;
 
-	if (vzctl2_get_env_meminfo(QSTR2UTF8(ctid), &meminfo, sizeof(struct vzctl_meminfo)))
-		return PRL_ERR_FAILURE;
+	struct vzctl_meminfo s = vzctl_meminfo();
+	if (vzctl2_get_env_meminfo(QSTR2UTF8(ctid), &s, sizeof(s)))
+		return NULL;
 
-	dst_.setTotalSize(meminfo.total);
-	dst_.setUsageSize(meminfo.total - meminfo.free);
-	dst_.setFreeSize(meminfo.free);
-	dst_.setRealSize(meminfo.total - meminfo.free - meminfo.cached);
+	using Ct::Statistics::Memory;
 
+	QScopedPointer<Memory> m(new Memory());
+	m->total = s.total;
+	m->free = s.free;
+	m->cached = s.cached;
+	m->swap_in = s.swap_in;
+	m->swap_out = s.swap_out;
 
-	return PRL_ERR_SUCCESS;
+	return m.take();
 }
 
 int CVzHelper::set_env_uptime(const QString &uuid, const quint64 uptime, const QDateTime & date)
@@ -3745,20 +3749,15 @@ Ct::Statistics::Aggregate *CVzHelper::get_env_stat(const QString& uuid)
 
 	using Ct::Statistics::Aggregate;
 
-	PRL_STAT_NET_TRAFFIC n;
-	CDiskStatistics d;
-	CMemoryStatistics m;
-	Ct::Statistics::Cpu c;
+	QScopedPointer<Aggregate> a(new Aggregate());
 
-	(void)get_net_stat(uuid, &n);
+	QScopedPointer<PRL_STAT_NET_TRAFFIC> n(get_net_stat(uuid));
+	a->net = n.isNull() ? PRL_STAT_NET_TRAFFIC() : *n;
 	if (st.mask & ENV_STATUS_RUNNING) {
-		(void)get_env_iostat(uuid, d);
-		(void)get_env_meminfo(uuid, m);
-		(void)get_env_cpustat(uuid, c);
+		a->disk = get_env_iostat(uuid);
+		a->memory = SmartPtr<Ct::Statistics::Memory>(get_env_meminfo(uuid));
+		a->cpu = get_env_cpustat(uuid);
 	}
 
-	CSystemStatistics s;
-	*s.getMemoryStatistics() = m;
-	*s.getNetClassStatistics() = n;
-	return new Aggregate(c, d, s);
+	return a.take();
 }
