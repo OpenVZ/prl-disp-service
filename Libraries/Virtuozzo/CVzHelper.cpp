@@ -2410,17 +2410,20 @@ int CVzOperationHelper::register_env(const QString &sPath, const QString &sUuid,
 	ctid_t buf;
 
 	/* get ctid from VE_PRIVATE/$CTID */
-	if (vzctl2_parse_ctid(QSTR2UTF8(fi.fileName()), buf) == 0)
+	if (sUuid.isEmpty() &&
+			vzctl2_parse_ctid(QSTR2UTF8(fi.fileName()), buf) == 0)
+	{
 		ctid = buf;
-	else {
+	} else {
 		/* use uuid as CTID */
 		ctid = sUuid;
 		remove_brackets_from_uuid(ctid);
 	}
 
-	WRITE_TRACE(DBG_FATAL, "Register Container ctid=%s path=%s",
+	WRITE_TRACE(DBG_FATAL, "Register Container ctid=%s path=%s, uuid=%s",
 			QSTR2UTF8(ctid),
-			QSTR2UTF8(sPath));
+			QSTR2UTF8(sPath),
+			QSTR2UTF8(sUuid));
 
 	if (nFlags & PRVF_IGNORE_HA_CLUSTER)
 		args += "--ignore-ha-cluster";
@@ -2429,7 +2432,7 @@ int CVzOperationHelper::register_env(const QString &sPath, const QString &sUuid,
 	args += sPath;
 	args += ctid;
 
-	if (nFlags & PRVF_REGENERATE_VM_UUID) {
+	if (!sUuid.isEmpty()) {
 		args += "--uuid";
 		args += sUuid;
 	}
