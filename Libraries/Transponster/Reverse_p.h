@@ -162,7 +162,7 @@ struct Clustered
 	}
 	boost::optional<Libvirt::Domain::Xml::ETray> getTray() const
 	{
-		return Flavor<T>::getTray(getDevice().getInterfaceType());
+		return Flavor<T>::getTray(getDevice().getEmulatedType());
 	}
 	const boot_type& getBoot() const
 	{
