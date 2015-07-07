@@ -55,7 +55,7 @@
 int main(int argc, char *argv[])
 {
 	QCoreApplication a(argc, argv);
-	TestConfig::readTestParameters(argv[0]);
+	TestConfig::readTestParameters();
 
 	int nRet = 0;
 	EXECUTE_TESTS_SUITE( CFileHelperTest )

@@ -77,21 +77,8 @@ TestConfig::InitRandom::InitRandom()
 	qsrand( QDateTime::currentDateTime().toTime_t() );
 }
 
-void TestConfig::readTestParameters(const char* appname)
+void TestConfig::readTestParameters()
 {
-	QPair<PRL_APPLICATION_MODE, ParallelsDirs::InitOptions>
-		fullMode = ParallelsDirs::loadAppExecuteMode( UTF8_2QSTR(appname) );
-	TestConfig::g_executeMode = fullMode.first;
-	g_nInitOptions	= fullMode.second;
-
-	if( PAM_UNKNOWN != TestConfig::g_executeMode )
-	{
-		PRL_ASSERT( ParallelsDirs::Init( TestConfig::g_executeMode, g_nInitOptions ) );
-		return;
-	}
-
-	WRITE_TRACE(DBG_FATAL, "Wrong value of execute mode. File %s.params is not found or wrong", appname );
-
 	TestConfig::g_executeMode = ParallelsDirs::getBuildExecutionMode();
 	if( PAM_UNKNOWN != TestConfig::g_executeMode )
 	{

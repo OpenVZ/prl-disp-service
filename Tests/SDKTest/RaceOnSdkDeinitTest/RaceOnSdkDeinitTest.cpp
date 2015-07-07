@@ -128,7 +128,7 @@ void RaceOnSdkDeinitTest::test()
 
 int main(int argc, char *argv[])
 {
-	TestConfig::readTestParameters(argv[0]);
+	TestConfig::readTestParameters();
 #ifdef DYN_API_WRAP
 	if ( !SdkWrap_LoadLibFromStdPaths() )
 	{

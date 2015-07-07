@@ -77,7 +77,7 @@ void DeinitSdk()
 
 int main(int argc, char *argv[])
 {
-	TestConfig::readTestParameters(argv[0]);
+	TestConfig::readTestParameters();
 	int ret = 0;
 	QCoreApplication a(argc, argv);
 

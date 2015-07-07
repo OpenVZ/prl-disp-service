@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 	QCoreApplication app(argc, argv);
 	PrlSrvManipulationsTest test;
 
-	TestConfig::readTestParameters(argv[0]);
+	TestConfig::readTestParameters();
 	PrlApi_InitEx(PARALLELS_API_VER, PAM_SERVER, 0, 0);
 
 	QTest::qExec(&test, argc, argv);
