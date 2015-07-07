@@ -44,14 +44,10 @@
 #include "Tests/CommonTestsUtils.h"
 #include "Build/Current.ver"
 
-#ifdef _WIN_
-#	include <windows.h>
-#else
-#	include <unistd.h>
-#	include <sys/types.h>
-#	include <pwd.h>
-#	include <errno.h>
-#endif
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <errno.h>
 
 void ParallelsDirTest::testGetDispatcherConfigDir()
 {
@@ -82,15 +78,7 @@ void ParallelsDirTest::testGetCallerUserPreferencesDir()
 
 	QVERIFY(currentProcessHasRootPermission());
 
-#ifdef _WIN_
-	TCHAR loginName[1024];
-	DWORD sz=sizeof(loginName)/sizeof(TCHAR);
-	QVERIFY(GetUserName(loginName, &sz));
-	userName=UTF16_2QSTR(loginName);
-#else
 	userName=TestConfig::getUserLogin();
-#endif
-
 
 	QString path;
 	QString expectedPath = QDir::homePath();
@@ -150,11 +138,7 @@ void ParallelsDirTest::testGetDefaultVmCatalogue_desktopMode()
 
 	QVERIFY(authUser->AuthUser(TestConfig::getUserPassword()));
 
-#	ifdef _WIN_
-	ParallelsDirs::UserInfo userInfo(authUser->GetAuth()->GetTokenHandle()
-#	else
 	ParallelsDirs::UserInfo userInfo(TestConfig::getUserLogin()
-#endif
 		, authUser->getHomePath() );
 
 	QString path;
@@ -166,14 +150,8 @@ void ParallelsDirTest::testGetDefaultVmCatalogue_desktopMode()
 	switch(getOsType())
 	{
 	case osWinVista:
-#ifdef _WIN_
-		expectedPath = winGetUserHomePathPrefix(authUser) + "/Documents/My Parallels";
-#endif
 		break;
 	case osWinXp:
-#ifdef _WIN_
-		expectedPath = winGetUserHomePathPrefix(authUser) + "/My Documents/My Parallels";
-#endif
 		break;
 	case osLinux: expectedPath=linuxGetUserHomePath(TestConfig::getUserLogin())+"/parallels";
 		break;
@@ -197,11 +175,7 @@ void ParallelsDirTest::testGetDefaultVmCatalogue_desktopMode2()
 	QVERIFY(authUser->AuthUser(TestConfig::getUserPassword()));
 
 
-#	ifdef _WIN_
-	ParallelsDirs::UserInfo userInfo(authUser->GetAuth()->GetTokenHandle()
-#	else
 	ParallelsDirs::UserInfo userInfo(TestConfig::getUserLogin()
-#endif
 		, authUser->getHomePath() );
 
 	QString path;
@@ -213,14 +187,8 @@ void ParallelsDirTest::testGetDefaultVmCatalogue_desktopMode2()
 	switch(getOsType())
 	{
 	case osWinVista:
-#ifdef _WIN_
-		expectedPath = winGetUserHomePathPrefix(authUser) + "/Documents/My Parallels";
-#endif
 		break;
 	case osWinXp:
-#ifdef _WIN_
-		expectedPath = winGetUserHomePathPrefix(authUser) + "/My Documents/My Parallels";
-#endif
 		break;
 	case osLinux: expectedPath=linuxGetUserHomePath(TestConfig::getUserLogin())+"/parallels";
 		break;
@@ -241,11 +209,6 @@ void ParallelsDirTest::testGetToolsBaseImagePath()
 	QString path;
 	QString expectedPath;
 
-#ifdef _WIN_
-	expectedPath = ParallelsDirs::getProductInstallDir( VER_REG_TREE_ROOT_STR ) + "/Tools/";
-	expectedPath[0] = expectedPath.toUpper().at(0);
-#endif
-
 	// Server
 	mode = PAM_SERVER;
 	path = ParallelsDirs::getToolsBaseImagePath(mode);
@@ -263,22 +226,12 @@ void ParallelsDirTest::testGetToolsImage()
 
 	nOsVersion = PVS_GUEST_VER_LIN_OTHER;
 	path = ParallelsDirs::getToolsImage(mode, nOsVersion);
-#ifdef _LIN_
-	expectedPath = "/usr/share/parallels-desktop/tools/prl-tools-lin.iso";
-#elif _WIN_
-	expectedPath = ParallelsDirs::getProductInstallDir( VER_REG_TREE_ROOT_STR ) + "/Tools/prl-tools-lin.iso";
-	expectedPath[0] = expectedPath.toUpper().at(0);
-#endif // _LIN_
+	expectedPath = "/usr/share/parallels-server/tools/prl-tools-lin.iso";
 	QCOMPARE(path, expectedPath);
 
 	nOsVersion = PVS_GUEST_VER_WIN_OTHER;
 	path = ParallelsDirs::getToolsImage(mode, nOsVersion);
-#ifdef _LIN_
-	expectedPath = "/usr/share/parallels-desktop/tools/prl-tools-win.iso";
-#elif _WIN_
-	expectedPath = ParallelsDirs::getProductInstallDir( VER_REG_TREE_ROOT_STR ) + "/Tools/prl-tools-win.iso";
-	expectedPath[0] = expectedPath.toUpper().at(0);
-#endif // _LIN_
+	expectedPath = "/usr/share/parallels-server/tools/prl-tools-win.iso";
 	QCOMPARE(path, expectedPath);
 }
 
@@ -288,11 +241,7 @@ void ParallelsDirTest::testGetLinReconfigImage()
 	QString expectedPath;
 	QString path = ParallelsDirs::getLinReconfigImage(PAM_UNKNOWN);
 
-#ifdef _MAC_
-	expectedPath = "/Library/Parallels/Downloads/reconfiguration.iso";
-#elif _LIN_
 	expectedPath = "/usr/share/parallels-reconfiguration/reconfiguration.iso";
-#endif // _MAC_
 
 	QCOMPARE(path, expectedPath);
 }
@@ -303,50 +252,24 @@ void ParallelsDirTest::testGetProductPath()
 	QString expectedPath;
 	QString path = ParallelsDirs::getProductPath();
 
-#ifdef _MAC_
-	expectedPath = "/Library/Parallels/Parallels Service.app/";
-#elif _LIN_
 	expectedPath = "/usr/share/parallels-desktop/";
-#endif // _MAC_
 
-#ifdef _WIN_
-	QSKIP("not implemented properly for windows.", SkipSingle);
-#else
 	QCOMPARE(path, expectedPath);
-#endif // not _WIN_
 }
 
 
 bool ParallelsDirTest::currentProcessHasRootPermission()
 {
-#ifdef _WIN_
-	return true;
-#else
 	return 0==getuid();
-#endif
 }
 
 ParallelsDirTest::OsType ParallelsDirTest::getOsType()
 {
-#ifdef _WIN_
-	OSVERSIONINFO verInfo;
-	verInfo.dwOSVersionInfoSize=sizeof(OSVERSIONINFO);
-	if(!GetVersionEx(&verInfo))
-		return osUnknown;
-	if(6==verInfo.dwMajorVersion)
-		return osWinVista;
-	else
-		return osWinXp;
-#elif _LIN_
 	return osLinux;
-#elif _MAC_
-	return osMac;
-#endif
 }
 
 void ParallelsDirTest::unixImpersonateTo(const QString& userName)
 {
-#ifndef _WIN_
 	m_last_euid=geteuid();
 	struct passwd* pwd=getpwnam(QSTR2UTF8(userName));
 	if (!pwd)
@@ -355,23 +278,15 @@ void ParallelsDirTest::unixImpersonateTo(const QString& userName)
 		return;
 	}
 	seteuid(pwd->pw_uid);
-#else
-	Q_UNUSED(userName);
-#endif
-
-
 }
 
 void ParallelsDirTest::unixRevertToSelf()
 {
-#ifndef _WIN_
 	seteuid(m_last_euid);
-#endif
 }
 
 QString ParallelsDirTest::linuxGetUserHomePath(const QString& userName)
 {
-#ifndef _WIN_
 	m_last_euid=geteuid();
 	struct passwd* pwd=getpwnam(QSTR2UTF8(userName));
 	if (!pwd)
@@ -380,10 +295,6 @@ QString ParallelsDirTest::linuxGetUserHomePath(const QString& userName)
 		return "";
 	}
 	return UTF8_2QSTR(pwd->pw_dir);
-#else
-	Q_UNUSED(userName);
-	return "";
-#endif
 }
 
 QString ParallelsDirTest::winGetUserHomePathPrefix(CAuthHelper *pUser)

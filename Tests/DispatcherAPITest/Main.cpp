@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 	return 0;
 
 	QCoreApplication a(argc, argv);
-	TestConfig::readTestParameters(argv[0]);
+	TestConfig::readTestParameters();
 
 	if (!TestConfig::isServerMode())
 	{
