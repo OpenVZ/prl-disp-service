@@ -1,8 +1,8 @@
 [Unit]
 Description=Dispatcher service.
 After=syslog.target network.target
-After=libvirtd.service systemd-modules-load.service vzevent.service vcmmd.service vz.service
-Wants=libvirtd.service systemd-modules-load.service vzevent.service vcmmd.service vz.service
+After=libvirtd.service systemd-modules-load.service vzevent.service vz.service
+Wants=libvirtd.service systemd-modules-load.service vzevent.service vz.service
 
 [Service]
 Type=forking
