@@ -381,7 +381,8 @@ static void merge_lst(CNetworkShapingConfig &conf,
 			 totalrate.setRate(default_rate.getRate());
 
 		bool ratempu_set = false;
-		default_ratempu.setRateMPU(NRM_ENABLED);
+		// If dev:class is not in RATEMPU then packet rate limit is disabled.
+		default_ratempu.setRateMPU(NRM_DISABLED);
 		foreach(const CNetworkShaping& ratempu, lstRATEMPU)
 		{
 			// Classes are independent in this case, we do not care about inclusion.
