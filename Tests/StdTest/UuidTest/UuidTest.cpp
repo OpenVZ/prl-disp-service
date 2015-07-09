@@ -237,9 +237,9 @@ void UuidTest::streamUuids ()
     stream1 << prlUuid;
     stream2 << qtUuid;
 
-    QVERIFY( 0 == qstrcmp(ba1.data(), ba2.data()) );
+    QVERIFY( ba1 == ba2 );
     ba1.clear();
-    QVERIFY( 0 != qstrcmp(ba1.data(), ba2.data()) );
+    QVERIFY( ba1 != ba2 );
 
     ba2.clear();
 

@@ -1160,8 +1160,11 @@ static int merge_params(SmartPtr<CVmConfiguration> &pConfig)
 	foreach(CVmHardDisk *pVmHdd, pVmConfig->getVmHardwareList()->m_lstHardDisks) {
 		CVmHardDisk *pHdd;
 
-		if ((pHdd = findDiskInList(pVmHdd, pConfig->getVmHardwareList()->m_lstHardDisks)))
+		if ((pHdd = findDiskInList(pVmHdd, pConfig->getVmHardwareList()->m_lstHardDisks))) {
 			pHdd->setIndex(pVmHdd->getIndex());
+			pHdd->setStackIndex(pVmHdd->getStackIndex());
+			pHdd->setInterfaceType(pVmHdd->getInterfaceType());
+		}
 	}
 
 	return 0;
