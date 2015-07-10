@@ -385,7 +385,7 @@ PRL_RESULT Direct::setBlank()
 	if (m_input.isNull())
 		return PRL_ERR_READ_XML_CONTENT;
  
-	if (Libvirt::Domain::Xml::ETypeQemu != m_input->getType())
+	if (Libvirt::Domain::Xml::ETypeKvm != m_input->getType())
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
 	m_result.reset(new CVmConfiguration());

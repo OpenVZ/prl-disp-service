@@ -448,7 +448,7 @@ PRL_RESULT Reverse::setBlank()
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
 	m_result.reset(new Libvirt::Domain::Xml::Domain());
-	m_result->setType(Libvirt::Domain::Xml::ETypeQemu);
+	m_result->setType(Libvirt::Domain::Xml::ETypeKvm);
 	m_result->setOs(mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type());
 	return PRL_ERR_SUCCESS;
 }
