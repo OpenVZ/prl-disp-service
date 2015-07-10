@@ -319,6 +319,9 @@ void List::add(const CVmSerialPort* port_)
 	if (NULL == port_)
 		return;
 
+	if (PVE::SerialOutputFile != port_->getEmulatedType())
+		return;
+
 	Libvirt::Domain::Xml::Source15 a;
 	a.setPath(port_->getUserFriendlyName());
 	if (a.getPath().get().isEmpty())

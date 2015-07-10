@@ -243,7 +243,10 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice912::
 	CVmParallelPort* p = new CVmParallelPort();
 	p->setIndex(h->m_lstParallelPorts.size());
 	if (parallel_.getValue().getAlias())
+	{
 		p->setUserFriendlyName(parallel_.getValue().getAlias().get());
+		p->setSystemName(p->getUserFriendlyName());
+	}
 
 	h->addParallelPort(p);
 	return PRL_ERR_SUCCESS;
@@ -267,8 +270,10 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice912::
 	CVmSerialPort* p = new CVmSerialPort();
 	p->setIndex(h->m_lstSerialPorts.size());
 	p->setEnabled(true);
+	p->setEmulatedType(PVE::SerialOutputFile);
 	p->setUserFriendlyName(serial_.getValue().getQemucdevSrcDef()
 		.getSourceList().front().getPath().get());
+	p->setSystemName(p->getUserFriendlyName());
 	h->addSerialPort(p);
 	return PRL_ERR_SUCCESS;
 }
