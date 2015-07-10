@@ -841,6 +841,16 @@ void CDspProblemReportHelper::FillVmProblemReportData(CProblemReport & cReport,
 	WRITE_REPORT_PROFILER_STRING( "addVmReconfigLog" );
 	cReport.appendSystemLog( strReconfigLogPath, "vm_reconfiguration.log" );
 
+	WRITE_REPORT_PROFILER_STRING( "addVmSerialPortLogs" );
+	foreach( CVmSerialPort * pVmSerialPort, vmConfig.getVmHardwareList()->m_lstSerialPorts )
+	{
+		if ( pVmSerialPort->getEmulatedType() == PVE::SerialOutputFile )
+		{
+			cReport.appendSystemLog( pVmSerialPort->getSystemName(),
+					QString( "vm-serial%1.log" ).arg( pVmSerialPort->getIndex() ) );
+		}
+	}
+
 	WRITE_REPORT_PROFILER_STRING( "addAdvancedVmInfo" );
 	addVmAdvancedInfoToReport( cReport, vmConfig );
 	cReport.setVmConfig( vmConfig.toString() );
@@ -958,7 +968,7 @@ void CDspProblemReportHelper::FillProblemReportData(
 
         if( !bHasValidVmCfg || !bVmRunning )
             addFreshRegisteredVmLogsAndConfigs( cReport, strDirUuid, strVmUuid );
-	
+
 	WRITE_REPORT_PROFILER_STRING( "addSysrqTriggerToReport" );
 	addSysrqTriggerToReport( cReport );
 
