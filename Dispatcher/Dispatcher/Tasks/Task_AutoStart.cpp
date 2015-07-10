@@ -44,6 +44,9 @@
 #ifdef _CT_
 #include "CDspVzHelper.h"
 #include "Dispatcher/Tasks/Task_VzManager.h"
+#ifdef _LIN_
+#include <sys/vfs.h>
+#endif
 #endif
 
 using namespace Parallels;
@@ -83,8 +86,34 @@ bool sortByBootOrderPrio(const SmartPtr<CVmConfiguration> &s1, const SmartPtr<CV
 		s2->getVmSettings()->getVmStartupOptions()->getBootOrderPrio();
 }
 
+static bool isFirstStart()
+{
+#ifdef _LIN_
+	struct statfs fs;
+
+#ifndef TMPFS_MAGIC
+#define TMPFS_MAGIC	0x01021994
+#endif
+	if (statfs("/run", &fs) || fs.f_type != TMPFS_MAGIC)
+		return true;
+
+	QDir().mkdir("/run/prl-disp");
+
+	QFile f("/run/prl-disp/.ct_start.lck");
+	if (f.exists())
+		return false;
+
+	f.open(QIODevice::ReadWrite | QIODevice::Truncate | QIODevice::Text);
+#endif
+
+	return true;
+}
+
 void Task_AutoStart::startCts()
 {
+	if (!isFirstStart())
+		return;
+
 	QList<SmartPtr<CVmConfiguration> > configs, startList, resumeList;
 
 	CDspService::instance()->getVzHelper()->getCtConfigList(getClient(), 0, configs);
