@@ -142,28 +142,44 @@ using namespace Parallels;
 
 namespace
 {
-	const char* g_sPidFileName_DEFAULT =
-		#ifndef _WIN_
-			"/var/run/prl_disp_service.pid";
-		#else
-			0;
-		#endif
+const char* g_sPidFileName_DEFAULT =
+	#ifndef _WIN_
+		"/var/run/prl_disp_service.pid";
+	#else
+		0;
+	#endif
 
-	IOSendJob::Handle convey(IOSendJob::Handle job_, IOServerPool& io_)
+IOSendJob::Handle convey(IOSendJob::Handle job_, IOServerPool& io_)
+{
+	if (IOSendJob::SendQueueIsFull == io_.getSendResult(job_))
 	{
-		if (IOSendJob::SendQueueIsFull == io_.getSendResult(job_))
-		{
-			WRITE_TRACE(DBG_FATAL, "cannot send the response: the output queue is full");
-		}
-		return job_;
+		WRITE_TRACE(DBG_FATAL, "cannot send the response: the output queue is full");
 	}
-
-	inline IOServer* setup(IOServer* server_)
-	{
-		server_->getJobManager()->setActiveJobsLimit(2000);
-		return server_;
-	}
+	return job_;
 }
+
+inline IOServer* setup(IOServer* server_)
+{
+	server_->getJobManager()->setActiveJobsLimit(2000);
+	return server_;
+}
+
+#ifdef _LIN_
+int handle(const storage_descriptor_t* unit_, void* data_)
+{
+	QStringList* d = reinterpret_cast<QStringList* >(data_);
+	if (NULL != d && unit_ != NULL)
+	{
+		QString p("/proc/self/fd/");
+		p += QString::number(reinterpret_cast<intptr_t>(unit_->internal));
+		QString t = QFile::symLinkTarget(p);
+		if (!t.isEmpty())
+			*d << t;
+	}
+	return ENUM_CONTINUE;
+}
+#endif // _LIN_
+} // namespace
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct CDspPid
@@ -1789,7 +1805,13 @@ bool CDspService::setupDispEnv ()
 			.arg( "But Dispatcher will continue initialization.");
 		printHorrorLogMessage( msg, PRL_ERR_SUCCESS );
 	}
-
+#ifdef _LIN_
+	QStringList h;
+	perf_enum_storages(&handle, &h, perf_get_storage_lock());
+	perf_release_storage_lock();
+	bool (* f)(const QString& ) = &QFile::remove;
+	std::for_each(h.begin(), h.end(), f);
+#endif // _LIN_
 	return true;
 }
 
