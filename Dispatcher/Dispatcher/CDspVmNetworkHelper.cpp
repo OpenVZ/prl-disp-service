@@ -269,6 +269,7 @@ PRL_RESULT Dao::remove(const CVirtualNetwork& model_)
 			QSTR2UTF8(x));
 		return PRL_NET_VIRTUAL_NETWORK_ID_NOT_EXISTS;
 	}
+	u.stop();
 	return u.undefine();
 }
 
