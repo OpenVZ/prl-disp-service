@@ -462,7 +462,7 @@ public:
 	int auth_env_user(const QString &uuid, const QString &user, const QString &pw);
 	int clone_env(const QString &uuid, const QString &sNewHome, const QString &sNewName,
 			PRL_UINT32 nFlags,  SmartPtr<CVmConfiguration> &pNewConfig);
-	int move_env(const QString &sNewHome, const QString &sName, const QString &sSrcCtid);
+	int move_env(const QString &sUuid, const QString &sNewHome, const QString &sName);
 	int convert2_env(const QString &srcPath, const QString &dstPath, unsigned int layout);
 	int set_env_name(const QString &uuid, const QString &name);
 	int set_env_name(unsigned int id, const QString &name);

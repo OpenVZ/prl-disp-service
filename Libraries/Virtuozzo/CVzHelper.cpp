@@ -3669,11 +3669,18 @@ retry:
 	m_kevt_fd = -1;
 }
 
-int CVzOperationHelper::move_env(const QString &sNewHome, const QString &sName,
-	const QString &sSrcCtid)
+int CVzOperationHelper::move_env(const QString &sUuid, const QString &sNewHome,
+	const QString &sName)
 {
+	QString sSrcCtid;
 	QString sDstCtid;
 	QStringList args;
+
+	sSrcCtid = CVzHelper::get_ctid_by_uuid(sUuid);
+	if (sSrcCtid.isEmpty()) {
+		WRITE_TRACE(DBG_FATAL, "Can not get container ID for UUID %s", QSTR2UTF8(sUuid));
+		return PRL_ERR_CT_NOT_FOUND;
+	}
 
 	QString sNewPrivate = QString("%1/%2").arg(sNewHome).arg(sSrcCtid);
 	if (QFileInfo(sNewPrivate).exists()) {
@@ -3715,8 +3722,9 @@ int CVzOperationHelper::move_env(const QString &sNewHome, const QString &sName,
  	}
 	sNewPrivate = QString("%1/%2").arg(sNewHome).arg(sDstCtid);
 
-	// vzmlocal 101 --new-private /vz/private/test
+	// vzmlocal 101 --noevent --new-private /vz/private/test
 	args += sSrcCtid;
+	args += "--noevent";
 	args += "--new-private";
 	args += sNewPrivate;
 
@@ -3728,6 +3736,9 @@ int CVzOperationHelper::move_env(const QString &sNewHome, const QString &sName,
 	PRL_RESULT res = run_prg("/usr/sbin/vzmlocal", args);
 	if (PRL_FAILED(res))
 		return res;
+
+	if (sSrcCtid != sDstCtid)
+		CVzHelper::update_ctid_map(sUuid, sDstCtid);
 
 	return res;
 }

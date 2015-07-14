@@ -1340,7 +1340,6 @@ PRL_RESULT Task_VzManager::move_env()
 
 	QString sUuid = pCmd->GetVmUuid();
 	QString sNewHome = pCmd->GetNewHomePath();
-	QString sNewConfPath;
 
 	if (sNewHome.isEmpty()) {
 		WRITE_TRACE(DBG_FATAL, "New container home path path is empty");
@@ -1385,15 +1384,21 @@ PRL_RESULT Task_VzManager::move_env()
 		return res;
 	}
 
-	QString sCtid = CVzHelper::get_ctid_by_uuid(sUuid);
-	if (sCtid.isEmpty()) {
-		WRITE_TRACE(DBG_FATAL, "Can not get container ID for UUID %s", QSTR2UTF8(sUuid));
-		return PRL_ERR_CT_NOT_FOUND;
+	res = get_op_helper()->move_env(sUuid, sNewHome, sName);
+
+	// Get updated config
+	if (PRL_SUCCEEDED(res)) {
+		pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+		if (!pConfig) {
+			WRITE_TRACE(DBG_FATAL, "Can not get container ID for UUID %s after move",
+				QSTR2UTF8(sUuid));
+			res = PRL_ERR_CT_NOT_FOUND;
+		}
 	}
 
-	res = get_op_helper()->move_env(sNewHome, sName, sCtid);
+	// Update Vm directory item
 	if (PRL_SUCCEEDED(res)) {
-		sNewConfPath = sNewHome + QString("/%1").arg(sCtid) + "/" + VMDIR_DEFAULT_VM_CONFIG_FILE;
+
 		CDspLockedPointer< CVmDirectoryItem >
 			pVmDirItem = CDspService::instance()->getVmDirManager()
 			.getVmDirItemByUuid(m_sVzDirUuid, sUuid );
@@ -1402,23 +1407,23 @@ PRL_RESULT Task_VzManager::move_env()
 			WRITE_TRACE(DBG_FATAL, "Can't found VmDirItem by vmUuid = %s",
 					QSTR2UTF8(sUuid));
 		} else {
-			pVmDirItem->setVmHome(sNewConfPath);
+			QString newConfPath = pConfig->getVmIdentification()->getHomePath() +
+				"/" + VMDIR_DEFAULT_VM_CONFIG_FILE;
+			pVmDirItem->setVmHome(newConfPath);
+			pVmDirItem->setCtId(pConfig->getVmIdentification()->getCtId());
 			res = CDspService::instance()->getVmDirManager().updateVmDirItem(pVmDirItem);
 			if (PRL_FAILED(res) )
 				WRITE_TRACE(DBG_FATAL, "Can't update Container %s VmCatalogue by error: %s",
 					QSTR2UTF8(sUuid), PRL_RESULT_TO_STRING(res));
 		}
 	}
-	// delete temporary registration
+
+	// Delete temporary registration
 	CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(&vmInfo);
 
 	if (PRL_FAILED(res))
 		return res;
 
-	pConfig->getVmIdentification()->setHomePath(sNewConfPath);
-#if 0	/* getEnvId -> getCtId */
-	pConfig->getVmIdentification()->setEnvId(nCtId);
-#endif
 	getResponseCmd()->SetVmConfig(pConfig->toString());
 
 	// Set some parameters in the response
