@@ -395,22 +395,25 @@ class storage_helper {
 
 static int perf_process_shared_storage(enum_storage_proc proc, const char *fname, void *user_data, lock_object_t *lock)
 {
-    file_handle_t fd = open_shared_file(fname, 0) ;
-    if ((int)fd < 0)
-        return ENUM_CONTINUE ;
+	int output = ENUM_CONTINUE;
+	file_handle_t fd = open_shared_file(fname, 0);
+	if ((int)fd < 0)
+		return output;
 
-    WRITE_TRACE(DBG_FATAL, "shared mem found: %s (%d)\n", fname, fd) ;
-    storage_helper storage_helper(fd, lock) ;
-    /* descriptor was mapped - we can close it */
-    close(fd) ;
-    if (!storage_helper.ref_count()) {
-        WRITE_TRACE(DBG_FATAL, "skip not used shared mem: %s (%d)\n", fname, fd) ;
-        return ENUM_CONTINUE ;
-    }
-    int result = proc(&storage_helper.descriptor(), user_data) ;
-    if (result & ENUM_DONOT_RELEASE_STORAGE)
-        storage_helper.zero() ;
-    return result ;
+	WRITE_TRACE(DBG_FATAL, "shared mem found: %s (%d)\n", fname, fd) ;
+	storage_helper storage_helper(fd, lock);
+	if (storage_helper.ref_count())
+	{
+		output = proc(&storage_helper.descriptor(), user_data);
+		if (output & ENUM_DONOT_RELEASE_STORAGE)
+			storage_helper.zero();
+	}
+	else
+		WRITE_TRACE(DBG_FATAL, "skip not used shared mem: %s (%d)\n", fname, fd) ;
+
+	// descriptor was mapped - we can close it
+	close(fd) ;
+	return output;
 }
 
 static void perf_process_pid_storages(enum_storage_proc proc, pid_t pid, void *user_data, lock_object_t *lock)
