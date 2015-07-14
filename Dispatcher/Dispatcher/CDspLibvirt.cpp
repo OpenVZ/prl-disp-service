@@ -310,17 +310,15 @@ PRL_RESULT Unit::getConfig(CVirtualNetwork& dst_) const
 	{
 		Libvirt::Tools::Agent::Interface::Bridge b;
 		PRL_RESULT e = Libvirt::Kit.interfaces().find(z->getBridgeName(), b);
+		dst_.getHostOnlyNetwork()->
+			getParallelsAdapter()->setName(z->getBridgeName());
 		if (PRL_SUCCEEDED(e))
 		{
 			dst_.setBoundCardMac(b.getMaster().getMacAddress());
 			z->setMasterInterface(b.getMaster().getDeviceName());
 		}
 		else if (PRL_ERR_FILE_NOT_FOUND == e)
-		{
-			dst_.getHostOnlyNetwork()->
-				getParallelsAdapter()->setName(z->getBridgeName());
 			dst_.setVZVirtualNetwork(NULL);
-		}
 		else
 			return e;
 	}
