@@ -37,6 +37,7 @@
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Dispatcher/Dispatcher/Tasks/Task_UpdateCommonPrefs.h"
+#include "CDspVmStateSender.h"
 
 #ifdef _LIN_
 #include "vzctl/libvzctl.h"
@@ -972,6 +973,14 @@ PRL_RESULT Task_VzManager::prepareTask()
 PRL_RESULT Task_VzManager::process_state()
 {
 	PRL_RESULT res = PRL_ERR_SUCCESS;
+
+	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
+	if (s && m_nState != VMS_UNKNOWN)
+	{
+		VIRTUAL_MACHINE_STATE state;
+		if (PRL_SUCCEEDED(CVzHelper::get_env_status(getVmUuid(), state)))
+			s->onVmStateChanged(state, m_nState, getVmUuid(), m_sVzDirUuid, false);
+	}
 
 	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), getVmUuid());
 	if (!pConfig)

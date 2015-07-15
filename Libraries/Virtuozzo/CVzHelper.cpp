@@ -3311,7 +3311,7 @@ static Ct::Statistics::Memory *get_env_meminfo(const QString &uuid)
 	return m.take();
 }
 
-static int get_env_fstat(const QString &uuid, QList<Ct::Statistics::Filesystem>& fs)
+int CVzHelper::get_env_fstat(const QString &uuid, QList<Ct::Statistics::Filesystem>& fs)
 {
 	SmartPtr<CVmConfiguration> config = CVzHelper::get_env_config(uuid);
 	if (!config.isValid())
@@ -3815,7 +3815,6 @@ Ct::Statistics::Aggregate *CVzHelper::get_env_stat(const QString& uuid)
 		a->disk = get_env_iostat(uuid);
 		a->memory = SmartPtr<Ct::Statistics::Memory>(get_env_meminfo(uuid));
 		a->cpu = get_env_cpustat(uuid);
-		get_env_fstat(uuid, a->filesystem);
 	}
 
 	return a.take();

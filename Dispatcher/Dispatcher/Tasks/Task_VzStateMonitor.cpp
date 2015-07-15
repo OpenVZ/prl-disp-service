@@ -223,10 +223,8 @@ void Task_VzStateMonitor::sendState(const QString &ctid, int state)
 			return;
 		}
 		processChangeCtState(uuid, vm_state);
-
-		event.addEventParameter( new CVmEventParameter (PVE::Integer
-				, QString("%1").arg((int)vm_state)
-				, EVT_PARAM_VMINFO_VM_STATE ) );
+		// the event will be sent in Task_VzManager::process_state()
+		return;
 	}
 	else
 	{

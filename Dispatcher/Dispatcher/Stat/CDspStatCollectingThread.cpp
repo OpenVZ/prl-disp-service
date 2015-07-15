@@ -70,10 +70,119 @@
 
 using namespace Parallels;
 
+namespace {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct DAO
+
+template <typename Entity>
+struct DAO
+{
+	Entity get(const QString &uuid) const;
+	void set(const QString &uuid, const Entity &e) const;
+
+private:
+	static QMutex s_mutex;
+	static QMap<QString, Entity> s_map;
+};
+
+template <typename Entity>
+QMutex DAO<Entity>::s_mutex;
+template <typename Entity>
+QMap<QString, Entity> DAO<Entity>::s_map;
+
+template <typename Entity>
+Entity DAO<Entity>::get(const QString &uuid) const
+{
+	QMutexLocker guard(&s_mutex);
+	return s_map[uuid];
+}
+
+template <typename Entity>
+void DAO<Entity>::set(const QString &uuid, const Entity &e) const
+{
+	QMutexLocker guard(&s_mutex);
+	s_map[uuid] = e;
+}
+
+} // anonymous namespace
+
 namespace Stat
 {
 namespace Collecting
 {
+
+namespace Ct {
+
+static DAO<QList< ::Ct::Statistics::Filesystem> > s_dao;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Farmer
+
+Farmer::Farmer(const CVmIdent& ident_):
+	m_timer(startTimer(0)), m_period(STAT_COLLECTING_TIMEOUT), m_ident(ident_)
+{
+	qint64 p = CDspService::instance()->getDispConfigGuard()
+		.getDispWorkSpacePrefs()->getVmGuestCollectPeriod() * 1000;
+	m_period = qMax(p, qint64(m_period));
+}
+
+void Farmer::reset()
+{
+	if (m_watcher)
+	{
+		m_watcher->disconnect(this, SLOT(finish()));
+		m_watcher->waitForFinished();
+		m_watcher.reset();
+	}
+}
+
+void Farmer::handle(unsigned state_, QString uuid_, QString dir_, bool flag_)
+{
+	Q_UNUSED(flag_);
+	if (uuid_ != m_ident.first || m_ident.second != dir_)
+		return;
+
+	if (VMS_RUNNING != state_)
+		reset();
+	else if (m_watcher)
+		return;
+
+	if (0 != m_timer)
+		killTimer(m_timer);
+
+	m_timer = VMS_RUNNING == state_ ? startTimer(0) : 0;
+}
+
+void Farmer::collect()
+{
+	const QString& u = m_ident.first;
+	QList< ::Ct::Statistics::Filesystem> f;
+	CVzHelper::get_env_fstat(u, f);
+	s_dao.set(u, f);
+}
+
+void Farmer::finish()
+{
+	reset();
+}
+
+void Farmer::timerEvent(QTimerEvent *event_)
+{
+	killTimer(event_->timerId());
+	if (!m_watcher)
+	{
+		m_watcher.reset(new QFutureWatcher<void>);
+		this->connect(m_watcher.data(), SIGNAL(finished()), SLOT(finish()));
+		m_watcher->setFuture(QtConcurrent::run(this, &Farmer::collect));
+	}
+	m_timer = startTimer(m_period);
+}
+
+} // namespace Ct
+
+namespace Vm {
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Farmer
 
@@ -189,13 +298,15 @@ void Farmer::timerEvent(QTimerEvent* event_)
 	m_timer = startTimer(m_period);
 }
 
+} // namespace Vm
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Mapper
 
 void Mapper::abort(const CVmIdent& ident_)
 {
 	QString k = QString(ident_.first).append(ident_.second);
-	Farmer* f = findChild<Farmer* >(k);
+	QObject* f = findChild<QObject* >(k);
 	if (NULL == f)
 		return;
 	f->setParent(NULL);
@@ -209,15 +320,15 @@ void Mapper::abort(const CVmIdent& ident_)
 void Mapper::begin(const CVmIdent& ident_)
 {
 	QString k = QString(ident_.first).append(ident_.second);
-	Farmer* f = findChild<Farmer* >(k);
+	QObject* f = findChild<QObject* >(k);
 	if (NULL != f)
 		return;
 
 	PRL_VM_TYPE t = PVT_VM;
 	if (CDspService::instance()->getVmDirManager().getVmTypeByUuid(ident_.first, t))
-		return;
-
-	f = new Farmer(ident_);
+		f = new Ct::Farmer(ident_);
+	else
+		f = new Vm::Farmer(ident_);
 	f->setObjectName(k);
 	f->setParent(this);
 	typedef CDspLockedPointer<CDspVmStateSender> sender_type;
@@ -363,39 +474,6 @@ Usage Meter::report() const
 {
 	return Usage(m_time.second - m_time.first,
 			m_value.second - m_value.first);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct DAO
-
-template <typename Entity>
-struct DAO
-{
-	Entity get(const QString &uuid) const;
-	void set(const QString &uuid, const Entity &e) const;
-
-private:
-	static QMutex s_mutex;
-	static QMap<QString, Entity> s_map;
-};
-
-template <typename Entity>
-QMutex DAO<Entity>::s_mutex;
-template <typename Entity>
-QMap<QString, Entity> DAO<Entity>::s_map;
-
-template <typename Entity>
-Entity DAO<Entity>::get(const QString &uuid) const
-{
-	QMutexLocker guard(&s_mutex);
-	return s_map[uuid];
-}
-
-template <typename Entity>
-void DAO<Entity>::set(const QString &uuid, const Entity &e) const
-{
-	QMutexLocker guard(&s_mutex);
-	s_map[uuid] = e;
 }
 
 quint32 getHostCpus()
@@ -2243,9 +2321,10 @@ void Collector::collectCt(const QString &uuid,
 	for (quint32 i = 0; i < vcpunum; ++i)
 		collect(VCpuTime(a.cpu, i, vcpunum));
 
-	for (int i = 0; i < a.filesystem.size(); ++i)
+	const QList< ::Ct::Statistics::Filesystem>& f = Stat::Collecting::Ct::s_dao.get(uuid);
+	for (int i = 0; i < f.size(); ++i)
 	{
-		const Ct::Statistics::Filesystem& fs = a.filesystem.at(i);
+		const Ct::Statistics::Filesystem& fs = f.at(i);
 		collect(Filesystem::Total(i, fs));
 		collect(Filesystem::Free(i, fs));
 		collect(Filesystem::Device(i, fs));
