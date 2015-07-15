@@ -3482,3 +3482,10 @@ Ct::Statistics::Aggregate *CVzHelper::get_env_stat(const QString& uuid_)
 
 	return a.take();
 }
+
+int CVzHelper::get_env_fstat(const QString &uuid, QList<Ct::Statistics::Filesystem>& fs)
+{
+	Q_UNUSED(uuid);
+	Q_UNUSED(fs);
+	return PRL_ERR_UNIMPLEMENTED;
+}

@@ -47,6 +47,39 @@ struct Perf;
 
 namespace Collecting
 {
+
+namespace Ct {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Farmer
+
+class Farmer: public QObject
+{
+	Q_OBJECT
+public:
+	explicit Farmer(const CVmIdent& ident_);
+
+public slots:
+	void finish();
+	void handle(unsigned state_, QString uuid_, QString dir_, bool flag_);
+
+protected:
+	void timerEvent(QTimerEvent* event_);
+
+private:
+	void reset();
+	void collect();
+
+	int m_timer;
+	quint64 m_period;
+	CVmIdent m_ident;
+	QScopedPointer<QFutureWatcher<void> > m_watcher;
+};
+
+} // namespace Ct
+
+namespace Vm {
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Farmer
 
@@ -75,6 +108,8 @@ private:
 	IOSendJob::Handle m_pending;
 	SmartPtr<IOPackage> m_request;
 };
+
+} // namespace Vm
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Mapper

@@ -305,6 +305,7 @@ public:
 	int get_envid_list(QStringList &lst);
 	static int get_env_status(const QString &uuid, VIRTUAL_MACHINE_STATE &nState);
 	static Ct::Statistics::Aggregate* get_env_stat(const QString& uuid_);
+	static int get_env_fstat(const QString &uuid, QList<Ct::Statistics::Filesystem>& fs);
 	int set_env_uptime(const QString &uuid, const quint64 uptime, const QDateTime & date);
 	int reset_env_uptime(const QString &uuid);
 	static int sync_env_uptime(const QString& uuid_);
