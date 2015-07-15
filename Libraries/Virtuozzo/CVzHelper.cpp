@@ -3749,8 +3749,12 @@ int CVzOperationHelper::convert2_env(const QString &srcPath, const QString &dstP
 
 Ct::Statistics::Aggregate *CVzHelper::get_env_stat(const QString& uuid)
 {
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return NULL;
+
 	vzctl_env_status_t st;
-	if (0 != vzctl2_get_env_status(QSTR2UTF8(uuid), &st, ENV_STATUS_RUNNING))
+	if (0 != vzctl2_get_env_status(QSTR2UTF8(ctid), &st, ENV_STATUS_RUNNING))
 		return NULL;
 
 	using Ct::Statistics::Aggregate;
