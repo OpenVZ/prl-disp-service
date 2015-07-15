@@ -3311,6 +3311,43 @@ static Ct::Statistics::Memory *get_env_meminfo(const QString &uuid)
 	return m.take();
 }
 
+static int get_env_fstat(const QString &uuid, QList<Ct::Statistics::Filesystem>& fs)
+{
+	SmartPtr<CVmConfiguration> config = CVzHelper::get_env_config(uuid);
+	if (!config.isValid())
+		return PRL_ERR_FAILURE;
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+	int ret;
+	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
+	if (h == NULL) {
+		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
+			QSTR2UTF8(uuid), vzctl2_get_last_error());
+		return -1;
+	}
+
+	QList<Ct::Statistics::Filesystem> tmp;
+	foreach (const CVmHardDisk& disk, config->getVmHardwareList()->m_lstHardDisks) {
+		struct vzctl_disk_stats stats;
+		ret = vzctl2_env_get_disk_stats(h, QSTR2UTF8(disk.getUuid()),
+			&stats, sizeof(stats));
+		if (ret)
+			return PRL_ERR_FAILURE;
+		// take only filesystems that are mounted inside CT
+		if (stats.device[0] == '\0')
+			continue;
+		Ct::Statistics::Filesystem f;
+		f.total = stats.total;
+		f.free = stats.free;
+		f.index = disk.getIndex();
+		f.device = QString(stats.device);
+		tmp.append(f);
+	}
+	fs.swap(tmp);
+	return PRL_ERR_SUCCESS;
+}
+
 int CVzHelper::set_env_uptime(const QString &uuid, const quint64 uptime, const QDateTime & date)
 {
 	int ret;
@@ -3767,6 +3804,7 @@ Ct::Statistics::Aggregate *CVzHelper::get_env_stat(const QString& uuid)
 		a->disk = get_env_iostat(uuid);
 		a->memory = SmartPtr<Ct::Statistics::Memory>(get_env_meminfo(uuid));
 		a->cpu = get_env_cpustat(uuid);
+		get_env_fstat(uuid, a->filesystem);
 	}
 
 	return a.take();

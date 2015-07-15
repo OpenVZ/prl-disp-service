@@ -102,7 +102,7 @@ namespace Statistics
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Aggregate
+// struct Cpu
 
 struct Cpu {
 	Cpu() : uptime(0), nice(0), user(0), system(0)
@@ -145,12 +145,31 @@ struct Disk {
 	quint64 write;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Filesystem
+
+struct Filesystem
+{
+	Filesystem() : total(0), free(0), index(0)
+	{
+	}
+
+	quint64 total;
+	quint64 free;
+	quint64 index;
+	QString device;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Aggregate
+
 struct Aggregate
 {
 	Cpu cpu;
 	SmartPtr<Memory> memory;
 	PRL_STAT_NET_TRAFFIC net;
 	Disk disk;
+	QList<Filesystem> filesystem;
 };
 
 } // namespace Statistics

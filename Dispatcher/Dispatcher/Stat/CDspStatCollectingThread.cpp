@@ -45,6 +45,7 @@
 #include <prlsdk/PrlIOStructs.h>
 #include "Libraries/HostUtils/HostUtils.h"
 #include "Libraries/Std/PrlTime.h"
+#include "Libraries/Std/BitOps.h"
 
 #include <QDateTime>
 #include <QRegExp>
@@ -508,6 +509,150 @@ private:
 	const source_type * const m_source;
 };
 
+namespace Names {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Traits
+
+template<class T>
+struct Traits
+{
+	static QString getExternal(const T& t_)
+	{
+		return t_();
+	}
+
+	static QString getInternal(const T& t_)
+	{
+		return t_();
+	}
+};
+
+namespace Filesystem {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Name
+
+template <typename Leaf>
+struct Name
+{
+	explicit Name(unsigned index_) : m_index(index_)
+	{
+	}
+
+	QString operator()() const
+	{
+		return QString("fs%1.%2").arg(m_index).arg(Leaf::getName());
+	}
+
+private:
+	unsigned m_index;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Total
+
+struct Total
+{
+	static QString getName()
+	{
+		return "total";
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Free
+
+struct Free
+{
+	static QString getName()
+	{
+		return "free";
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Device
+
+struct Device
+{
+	static QString getName()
+	{
+		return "name";
+	}
+};
+
+namespace Disk {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Name
+
+struct Name
+{
+	Name(unsigned filesystem_, unsigned disk_)
+		: m_name(filesystem_), m_index(disk_)
+	{
+	}
+
+	QString operator()() const
+	{
+		return QString("%1.%2").arg(m_name()).arg(m_index);
+	}
+
+private:
+	struct Tag
+	{
+		static QString getName()
+		{
+			return "disk";
+		}
+	};
+
+	Filesystem::Name<Tag> m_name;
+	unsigned m_index;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Count
+
+struct Count
+{
+	static QString getName()
+	{
+		return "disk.count";
+	}
+};
+
+} // namespace Disk
+
+template<class T>
+struct Traits
+{
+	static QString getExternal(const T& t_)
+	{
+		return t_().prepend("guest.");
+	}
+
+	static QString getInternal(const T& t_)
+	{
+		return t_();
+	}
+};
+
+} // namespace Filesystem
+
+template <class T>
+struct Traits<Filesystem::Name<T> > : Filesystem::Traits<Filesystem::Name<T> >
+{
+};
+
+template<>
+struct Traits<Filesystem::Disk::Name> : Filesystem::Traits<Filesystem::Disk::Name>
+{
+};
+
+} // namespace Names
+
 } // end of namespace
 
 QString multiCounterName(const char *prefix, quint32 i, const char *suffix)
@@ -958,7 +1103,6 @@ typedef SingleCounter<Flavor::SwapOut, Conversion::Uint64> SwapOut;
 typedef SingleCounter<Flavor::MinorFault, Conversion::Uint64> MinorFault;
 typedef SingleCounter<Flavor::MajorFault, Conversion::Uint64> MajorFault;
 
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Traits
 
@@ -976,41 +1120,6 @@ struct Traits
 	}
 };
 
-namespace Filesystem {
-
-template <class T>
-struct Name;
-
-namespace Disk {
-struct Name;
-} // namespace Disk
-
-template<class T>
-struct Traits
-{
-	static QString getExternal(const T& t_)
-	{
-		return t_().prepend("guest.");
-	}
-
-	static QString getInternal(const T& t_)
-	{
-		return t_();
-	}
-};
-
-} // namespace Filesystem
-
-template <class T>
-struct Traits<Filesystem::Name<T> > : Filesystem::Traits<Filesystem::Name<T> >
-{
-};
-
-template<>
-struct Traits<Filesystem::Disk::Name> : Filesystem::Traits<Filesystem::Disk::Name>
-{
-};
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct VmCounter
 
@@ -1024,7 +1133,7 @@ struct VmCounter {
 
 	QString getName() const
 	{
-		return Traits<Name>::getExternal(m_name);
+		return Names::Traits<Name>::getExternal(m_name);
 	}
 
 	quint64 getValue() const
@@ -1288,89 +1397,7 @@ CVmEventParameter *ClassfulOnline::getParam() const
 
 namespace Filesystem {
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Name
-
-template <typename Leaf>
-struct Name
-{
-	explicit Name(unsigned index_) : m_index(index_)
-	{
-	}
-
-	QString operator()() const
-	{
-		return QString("fs%1.%2").arg(m_index).arg(Leaf::getName());
-	}
-
-private:
-	unsigned m_index;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Total
-
-struct Total
-{
-	static QString getName()
-	{
-		return "total";
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Free
-
-struct Free
-{
-	static QString getName()
-	{
-		return "free";
-	}
-};
-
-namespace Disk {
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Count
-
-struct Count
-{
-	static QString getName()
-	{
-		return "disk.count";
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Name
-
-struct Name
-{
-	Name(unsigned filesystem_, unsigned disk_)
-		: m_name(filesystem_), m_index(disk_)
-	{
-	}
-
-	QString operator()() const
-	{
-		return QString("%1.%2").arg(m_name()).arg(m_index);
-	}
-
-private:
-	struct Tag
-	{
-		static QString getName()
-		{
-			return "disk";
-		}
-	};
-
-	Filesystem::Name<Tag> m_name;
-	unsigned m_index;
-};
-
-} // namespace Disk
+namespace nf = Names::Filesystem;
 
 namespace Device {
 
@@ -1417,7 +1444,7 @@ struct Unit
 
 	QString getName() const
 	{
-		return Traits<Name<Tag> >::getExternal(m_name);
+		return nf::Traits<nf::Name<nf::Device> >::getExternal(m_name);
 	}
 
 	CVmEventParameter *getParam() const
@@ -1433,28 +1460,77 @@ private:
 		return (*static_cast<Find*>(context_))(*counter_);
 	}
 
-	struct Tag
-	{
-		static QString getName()
-		{
-			return "name";
-		}
-	};
-
 	const ProcPerfStoragesContainer& m_storage;
-	Name<Tag> m_name;
+	nf::Name<nf::Device> m_name;
 };
 
 QString Unit::getValue() const
 {
-	Find f(Traits<Name<Tag> >::getInternal(m_name) + ".");
+	Find f(nf::Traits<nf::Name<nf::Device> >::getInternal(m_name) + ".");
 	m_storage.enum_counters(find, &f);
 	return f.getResult();
 }
 
 } // namespace Device
-} // namespace Filesystem
 
+namespace Disk {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Index
+
+struct Index
+{
+	Index(const ProcPerfStoragesContainer& storage_,
+		const CVmConfiguration& config_,
+		unsigned index_, unsigned diskIndex_)
+	: m_storage(storage_), m_config(config_), m_name(index_, diskIndex_)
+	{
+	}
+
+	QString getName() const
+	{
+		return nf::Traits<nf::Disk::Name>::getExternal(m_name);
+	}
+
+	CVmEventParameter *getParam() const
+	{
+		return Conversion::Uint64::convert(getValue());
+	}
+
+	quint64 getValue() const;
+
+private:
+
+	const ProcPerfStoragesContainer& m_storage;
+	const CVmConfiguration& m_config;
+	nf::Disk::Name m_name;
+};
+
+quint64 Index::getValue() const
+{
+	quint64 p = GetPerfCounter(m_storage, nf::Traits<nf::Disk::Name>::getInternal(m_name));
+	PRL_MASS_STORAGE_INTERFACE_TYPE i = PMS_UNKNOWN_DEVICE;
+	if (p < PIM_SCSI_MASK_OFFSET) {
+		i = PMS_IDE_DEVICE;
+		p /= PIM_IDE_MASK_OFFSET;
+	} else if (p < PIM_SATA_MASK_OFFSET) {
+		i = PMS_SCSI_DEVICE;
+		p /= PIM_SCSI_MASK_OFFSET;
+	} else {
+		i = PMS_SATA_DEVICE;
+		p /= PIM_SATA_MASK_OFFSET;
+	}
+
+	int x = BitFindLowestSet64(p);
+	foreach(const CVmHardDisk& d, m_config.getVmHardwareList()->m_lstHardDisks) {
+		if (d.getInterfaceType() == i && (int)d.getStackIndex() == x)
+			return d.getIndex();
+	}
+	return 0;
+}
+
+} // namespace Disk
+} // namespace Filesystem
 } // namespace Counter
 } // namespace
 } // namespace Vm
@@ -1986,6 +2062,107 @@ private:
 	const quint32 m_number;
 };
 
+namespace Filesystem {
+
+namespace Disk {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Index
+
+struct Index
+{
+	static QString getName()
+	{
+		return "disk.0";
+	}
+};
+
+} // namespace Disk
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Flavor
+
+template <class Name>
+struct Flavor
+{
+	typedef Statistics::Filesystem source_type;
+	typedef Names::Filesystem::Name<Name> name_type;
+
+	explicit Flavor(unsigned index_) : m_name(index_)
+	{
+	}
+
+	const name_type& getName() const
+	{
+		return m_name;
+	}
+
+	static CVmEventParameter *getParam(const source_type& f_);
+
+private:
+	name_type m_name;
+};
+
+template<>
+CVmEventParameter *Flavor<Names::Filesystem::Total>::getParam(const source_type& f_)
+{
+	return Conversion::Uint64::convert(f_.total);
+}
+
+template<>
+CVmEventParameter *Flavor<Names::Filesystem::Free>::getParam(const source_type& f_)
+{
+	return Conversion::Uint64::convert(f_.free);
+}
+
+template<>
+CVmEventParameter *Flavor<Disk::Index>::getParam(const source_type& f_)
+{
+	return Conversion::Uint64::convert(f_.index);
+}
+
+template<>
+CVmEventParameter *Flavor<Names::Filesystem::Device>::getParam(const source_type& f_)
+{
+	return Conversion::String::convert(f_.device);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Counter
+
+template <class Name>
+struct Counter
+{
+	typedef typename Flavor<Name>::source_type source_type;
+	typedef typename Flavor<Name>::name_type name_type;
+
+	Counter(unsigned index_, const source_type& source_)
+		: m_flavor(index_), m_source(&source_)
+	{
+	}
+
+	QString getName() const
+	{
+		return Names::Filesystem::Traits<name_type>::getExternal(m_flavor.getName());
+	}
+
+	CVmEventParameter *getParam() const
+	{
+		return Flavor<Name>::getParam(*m_source);
+	}
+
+private:
+	const Flavor<Name> m_flavor;
+	const source_type * const m_source;
+};
+
+typedef Counter<Names::Filesystem::Total> Total;
+typedef Counter<Names::Filesystem::Free> Free;
+typedef Counter<Disk::Index> Index;
+typedef Counter<Names::Filesystem::Device> Device;
+
+} // namespace Filesystem
+
 } // namespace Counter
 
 } // namespace
@@ -2065,6 +2242,15 @@ void Collector::collectCt(const QString &uuid,
 	quint32 vcpunum = getVcpuNum(uuid);
 	for (quint32 i = 0; i < vcpunum; ++i)
 		collect(VCpuTime(a.cpu, i, vcpunum));
+
+	for (int i = 0; i < a.filesystem.size(); ++i)
+	{
+		const Ct::Statistics::Filesystem& fs = a.filesystem.at(i);
+		collect(Filesystem::Total(i, fs));
+		collect(Filesystem::Free(i, fs));
+		collect(Filesystem::Device(i, fs));
+		collect(Filesystem::Index(i, fs));
+	}
 }
 
 void Collector::collectVmOnline(CDspVm &vm, const CVmConfiguration &config)
@@ -2120,15 +2306,16 @@ void Collector::collectVmOnline(CDspVm &vm, const CVmConfiguration &config)
 		collect(makeVmCounter(ct, Network::Name<Network::BytesOut>(i)));
 	}
 
+	namespace nf = Names::Filesystem;
 	quint64 fsCount = GetPerfCounter(ct, "fs.count");
 	for (unsigned i = 0; i < fsCount; ++i) {
-		collect(makeVmCounter(ct, Filesystem::Name<Filesystem::Total>(i)));
-		collect(makeVmCounter(ct, Filesystem::Name<Filesystem::Free>(i)));
+		collect(makeVmCounter(ct, nf::Name<nf::Total>(i)));
+		collect(makeVmCounter(ct, nf::Name<nf::Free>(i)));
 		collect(Filesystem::Device::Unit(ct, i));
 		quint64 diskCount = GetPerfCounter(ct,
-			QSTR2UTF8(Filesystem::Name<Filesystem::Disk::Count>(i)()));
+			QSTR2UTF8(nf::Name<nf::Disk::Count>(i)()));
 		for (unsigned j = 0; j < diskCount; ++j)
-			collect(makeVmCounter(ct, Filesystem::Disk::Name(i, j)));
+			collect(Filesystem::Disk::Index(ct, config, i, j));
 	}
 }
 
