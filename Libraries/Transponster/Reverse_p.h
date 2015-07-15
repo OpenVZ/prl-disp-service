@@ -107,9 +107,9 @@ struct Clustered
 		case Flavor<T>::image:
 		{
 			Libvirt::Domain::Xml::Source s;
-			QString f = getDevice().getSystemName();
+			QString f = getDevice().getUserFriendlyName();
 			if (f.isEmpty())
-				f = getDevice().getUserFriendlyName();
+				f = getDevice().getSystemName();
 
 			s.setFile(f);
 			mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 0>::type x;
