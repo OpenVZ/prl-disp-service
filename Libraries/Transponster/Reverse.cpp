@@ -289,7 +289,11 @@ Libvirt::Domain::Xml::Interface615 Network<4>::prepare(const CVmGenericNetworkAd
 Libvirt::Domain::Xml::Devices List::getResult() const
 {
 	Libvirt::Domain::Xml::Devices output;
-	output.setEmulator(QString("/usr/libexec/qemu-kvm"));
+	if (QFile::exists("/usr/bin/qemu-kvm"))
+		output.setEmulator(QString("/usr/bin/qemu-kvm"));
+	else if (QFile::exists("/usr/libexec/qemu-kvm"))
+		output.setEmulator(QString("/usr/libexec/qemu-kvm"));
+
 	output.setChoice912List(m_devices);
 	return output;
 }
