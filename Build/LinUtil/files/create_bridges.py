@@ -103,11 +103,14 @@ class NetworkServiceManager(object):
             return {"loaded": False, "running": False}
         cp = NoSectionConfigParser()
         cp.readfp(StringIO(stdout))
-        if cp["LoadState"] != "loaded":
+        try:
+            if cp["LoadState"] != "loaded":
+                return {"loaded": False, "running": False}
+            if cp["ActiveState"] == "active" and cp["SubState"] == "running":
+                return {"loaded": True, "running": True}
+            return {"loaded": True, "running": False}
+        except:
             return {"loaded": False, "running": False}
-        if cp["ActiveState"] == "active" and cp["SubState"] == "running":
-            return {"loaded": True, "running": True}
-        return {"loaded": True, "running": False}
 
     @staticmethod
     def call_network_service(netservice, command):
