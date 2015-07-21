@@ -48,6 +48,9 @@
 #include <Interfaces/ParallelsTypes.h>
 #include <prlsdk/PrlErrors.h>
 #include <XmlModel/NetworkConfig/CHostOnlyNetwork.h>
+#include <XmlModel/VmConfig/CVmConfiguration.h>
+#include <XmlModel/VmConfig/CVmGenericNetworkAdapter.h>
+#include <Libraries/Std/SmartPtr.h>
 #include "PrlNetworkingConstants.h"
 
 class CParallelsNetworkConfig;
@@ -335,6 +338,9 @@ PRL_NET_MODE getMode();
 
 /// Get vme* adapter name
 QString getVirtAdapterName(const QString &vmuuid, const int adapterIndex);
+
+/// Returns default virtual adapter name depending on VM type
+QString getDefaultVirtAdapterName(CVmGenericNetworkAdapter* device, const SmartPtr<CVmConfiguration>& vmConfig);
 
 /// returns true if IPv6 default route is present on host
 bool IsIPv6DefaultRoutePresent();
