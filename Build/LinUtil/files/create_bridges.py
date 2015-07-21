@@ -197,6 +197,7 @@ def create_bridges():
             if attr != "ONBOOT":
                 interfaces[iface].delete(attr)
         bridge["TYPE"] = "\"Bridge\""
+        bridge["DELAY"] = "\"2\""
         bridge["UUID"] = "\"%s\"" % open(
                 "/proc/sys/kernel/random/uuid").read().strip()
         # Save to config files. (ConfigParser, filename, backup).
