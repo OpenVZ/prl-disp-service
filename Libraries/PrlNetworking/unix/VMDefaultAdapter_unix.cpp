@@ -39,6 +39,7 @@
 #include <net/route.h>
 #include <linux/types.h>
 #include <list>
+#include <Libraries/PrlCommonUtilsBase/netutils.h>
 
 #elif defined(_MAC_)
 #include <net/if.h>
@@ -59,7 +60,7 @@
 
 #include <cassert>
 #include <memory>
-
+#include <boost/bind.hpp>
 #include <Libraries/Logging/Logging.h>
 #include <Interfaces/ParallelsQt.h>
 
@@ -68,6 +69,23 @@
 #endif
 
 #if defined(_LIN_)
+
+static EthIfaceList::const_iterator match(const EthIfaceList& eths_, const QString& name_)
+{
+	if (!QDir(QString("/sys/class/net/%1/bridge").arg(name_)).exists())
+	{
+		return std::find_if(eths_.begin(), eths_.end(),
+			boost::bind(&EthIface::_name, _1) == boost::cref(name_));
+	}
+	QFile f(QString("/sys/class/net/%1/address").arg(name_));
+	if (!f.open(QFile::ReadOnly | QFile::Text))
+		return eths_.end();
+
+	QString x = QTextStream(&f).readAll().trimmed().toUpper();
+	return std::find_if(eths_.begin(), eths_.end(),
+		boost::bind(&PrlNet::ethAddressToString,
+			boost::bind(&EthIface::_macAddr, _1)) == boost::cref(x));
+}
 
 // returns iterator within IfEntryLinList to default adapter
 // @param sock [in] ControlSocket
@@ -113,12 +131,10 @@ getDefaultRouteAdapter(const EthIfaceList &ethList)
 		iface[16] = '\0';
 		// note: it is possible to search using lowest metric but this will
 		// require iteration through all records in file.
-		for (EthIfaceList::const_iterator it = ethList.begin(); it != ethList.end(); ++it) {
-			if (it->_name == iface) {
-				itDefaultIface = it;
-				goto found;
-			}
-		}
+		itDefaultIface = match(ethList, iface);
+		if (ethList.end() != itDefaultIface)
+			goto found;
+
 		WRITE_TRACE(DBG_FATAL, "Default-GW Interface %s (ip %08x) is not bindable",
 			iface, htonl(gw));
 	}
