@@ -94,6 +94,25 @@ QString PrlNet::getVirtAdapterName(const QString &vmUuid, const int adapterIndex
 	return veth;
 }
 
+QString PrlNet::getDefaultVirtAdapterName(CVmGenericNetworkAdapter* device, const SmartPtr<CVmConfiguration>& vmConfig)
+{
+	QString defaultVirtAdapterName;
+	QString ctId = vmConfig->getVmIdentification()->getCtId();
+	PRL_UINT32 nId = device->getIndex();
+
+	switch (vmConfig->getVmType())
+	{
+	case PVT_CT:
+		defaultVirtAdapterName = "veth" + ctId.left(8) 
+				+ "." + QString::number(nId, 10);
+		break;
+	case PVT_VM:
+		defaultVirtAdapterName = PrlNet::getVirtAdapterName(ctId, nId);
+		break;
+	}
+	return defaultVirtAdapterName;
+}
+
 /**
  * getAdapter() implementation
  */
