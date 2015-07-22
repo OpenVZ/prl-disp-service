@@ -3500,11 +3500,15 @@ int CVzExecHelper::run_cmd(const QString &uuid,
 	(void) nFlags;
 	QStringList args;
 	int fdnull;
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
 
 	args += BIN_VZCTL;
 	args += "--quiet";
 	args += "exec2";
-	args += uuid;
+	args += ctid;
 	args += sPrg;
 	args += Args;
 
