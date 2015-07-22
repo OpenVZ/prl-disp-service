@@ -10,7 +10,7 @@ import re
 
 CONFIG_PATH = "/etc/sysconfig/network-scripts"
 SECTION_NAME = "section"
-BACKUP_EXT = ".old"
+BACKUP_PREFIX = "vz_preserved-"
 
 
 class FakeSection(object):
@@ -157,9 +157,6 @@ def create_bridges():
     current_bridge_id = 0
     for ifcfg in glob.glob("ifcfg-*"):
         iface = ifcfg.replace("ifcfg-", "")
-        # Ignore backups.
-        if iface.endswith(BACKUP_EXT):
-            continue
         cp = NoSectionConfigParser()
         cp.read(ifcfg)
         interfaces[iface] = cp
@@ -178,6 +175,8 @@ def create_bridges():
             continue
         elif dequote(cp.get("TYPE", "").lower()) in ["venet", "bridge"]:
             # TODO: Or only for existing bridges?
+            continue
+        elif dequote(cp.get("ONBOOT", "").lower()) != "yes":
             continue
         to_bridges.append(iface)
 
@@ -198,6 +197,7 @@ def create_bridges():
                 interfaces[iface].delete(attr)
         bridge["TYPE"] = "\"Bridge\""
         bridge["DELAY"] = "\"2\""
+        bridge["STP"] = "\"off\""
         bridge["UUID"] = "\"%s\"" % open(
                 "/proc/sys/kernel/random/uuid").read().strip()
         # Save to config files. (ConfigParser, filename, backup).
@@ -219,7 +219,7 @@ def create_bridges():
     for cp, filename, backup in to_write:
         try:
             if backup:
-                os.rename(filename, filename + BACKUP_EXT)
+                os.rename(filename, BACKUP_PREFIX + filename)
                 written.append((filename, backup))
                 cp.write(open(filename, "w"))
             else:
@@ -235,7 +235,7 @@ def create_bridges():
             # Best effort.
             try:
                 if backup:
-                    os.rename(filename + BACKUP_EXT, filename)
+                    os.rename(BACKUP_PREFIX + filename, filename)
                 else:
                     os.remove(filename)
             except:
