@@ -2281,6 +2281,9 @@ static int create_env_config(const QString &uuid, SmartPtr<CVmConfiguration> &pC
 				d.path = path.data();
 			}
 
+			if (pHdd->getEmulatedType() == PVE::RealHardDisk)
+				d.use_device = 1;
+
 			if (vzctl2_env_attach_disk(h, &d)) {
 				WRITE_TRACE(DBG_FATAL, "vzctl2_env_attach_disk, failed: %s [%d]",
 					vzctl2_get_last_error(), ret);
