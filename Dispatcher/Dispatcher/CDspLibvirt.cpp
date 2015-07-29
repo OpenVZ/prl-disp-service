@@ -1060,6 +1060,11 @@ int wakeUp(virConnectPtr , virDomainPtr domain_, int , void* opaque_)
 	return 0;
 }
 
+int reboot(virConnectPtr connect_, virDomainPtr domain_, void* opaque_)
+{
+	return wakeUp(connect_, domain_, 0, opaque_);
+}
+
 int deviceDisconnect(virConnectPtr , virDomainPtr domain_, const char* device_,
                         void* opaque_)
 {
@@ -1369,7 +1374,7 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 	m_eventReboot = virConnectDomainEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_DOMAIN_EVENT_ID_REBOOT,
-							VIR_DOMAIN_EVENT_CALLBACK(&Callback::Plain::wakeUp),
+							VIR_DOMAIN_EVENT_CALLBACK(&Callback::Plain::reboot),
 							new View::Coarse(m_view),
 							&Callback::Plain::delete_<View::Coarse>);
 	m_eventWakeUp = virConnectDomainEventRegisterAny(libvirtd_.data(),
