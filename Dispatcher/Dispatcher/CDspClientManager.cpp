@@ -214,8 +214,12 @@ QHash< IOSender::Handle, SmartPtr<CDspClient> > CDspClientManager::getSessionLis
 QHash< IOSender::Handle, SmartPtr<CDspClient> > CDspClientManager::getSessionListByVm(
 		const QString& vmDirUuid, const QString& vmUuid, int accessRights) const
 {
-	QHash< IOSender::Handle, SmartPtr<CDspClient> >
-		sessions = getSessionsListSnapshot( vmDirUuid );
+	bool bAllClients = vmDirUuid == CDspService::instance()->
+				getVmDirManager().getVzDirectoryUuid();
+
+	QHash< IOSender::Handle, SmartPtr<CDspClient> > sessions =
+				bAllClients ? getSessionsListSnapshot( ) :
+					getSessionsListSnapshot( vmDirUuid );
 
 	CDspLockedPointer<CVmDirectoryItem>
 		pLockedVmDirItem = CDspService::instance()->getVmDirManager().getVmDirItemByUuid( vmDirUuid, vmUuid );

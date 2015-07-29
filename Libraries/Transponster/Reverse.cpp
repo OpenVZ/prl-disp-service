@@ -116,9 +116,21 @@ boost::optional<Libvirt::Domain::Xml::EBus> Clustered<CVmFloppyDisk>::getBus() c
 }
 
 template<>
-boost::optional<Libvirt::Domain::Xml::ETray> Clustered<CVmHardDisk>::getTray() const
+void Clustered<CVmHardDisk>::setSource(result_type& result_)
 {
-	return boost::optional<Libvirt::Domain::Xml::ETray>();
+	Libvirt::Domain::Xml::VDiskSource x = getSource();
+	if (!x.empty())
+		return result_.setDiskSource(x);
+
+	if (PVE::BootCampHardDisk == getDevice().getEmulatedType())
+	{
+		Libvirt::Domain::Xml::Source4 s;
+		s.setVolume(getDevice().getSystemName());
+		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type x;
+		x.setValue(s);
+		return result_.setDiskSource(x);
+
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -127,7 +139,7 @@ boost::optional<Libvirt::Domain::Xml::ETray> Clustered<CVmHardDisk>::getTray() c
 template<>
 struct Flavor<CVmHardDisk>
 {
-	static const Libvirt::Domain::Xml::EDevice kind = Libvirt::Domain::Xml::EDeviceDisk;
+	static const Libvirt::Domain::Xml::EDevice kind;
 	static const int real = PVE::RealHardDisk;
 	static const int image = PVE::HardDiskImage;
 	static const bool readonly = false;
@@ -148,11 +160,12 @@ struct Flavor<CVmHardDisk>
 		return boost::optional<Libvirt::Domain::Xml::ETray>();
 	}
 };
+const Libvirt::Domain::Xml::EDevice Flavor<CVmHardDisk>::kind = Libvirt::Domain::Xml::EDeviceDisk;
 
 template<>
 struct Flavor<CVmOpticalDisk>
 {
-	static const Libvirt::Domain::Xml::EDevice kind = Libvirt::Domain::Xml::EDeviceCdrom;
+	static const Libvirt::Domain::Xml::EDevice kind;
 	static const int real = PVE::RealCdRom;
 	static const int image = PVE::CdRomImage;
 	static const bool readonly = true;
@@ -181,11 +194,12 @@ struct Flavor<CVmOpticalDisk>
 		}
 	}
 };
+const Libvirt::Domain::Xml::EDevice Flavor<CVmOpticalDisk>::kind = Libvirt::Domain::Xml::EDeviceCdrom;
 
 template<>
 struct Flavor<CVmFloppyDisk>
 {
-	static const Libvirt::Domain::Xml::EDevice kind = Libvirt::Domain::Xml::EDeviceFloppy;
+	static const Libvirt::Domain::Xml::EDevice kind;
 	static const int real = PVE::RealFloppyDisk;
 	static const int image = PVE::FloppyDiskImage;
 	static const bool readonly = false;
@@ -212,26 +226,7 @@ struct Flavor<CVmFloppyDisk>
 		}
 	}
 };
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Disk
-
-Libvirt::Domain::Xml::VDiskSource Disk::getSource() const
-{
-	Libvirt::Domain::Xml::VDiskSource x = Clustered<CVmHardDisk>::getSource();
-	if (!x.empty())
-		return x;
-
-	if (PVE::BootCampHardDisk == getDevice().getEmulatedType())
-	{
-		Libvirt::Domain::Xml::Source4 s;
-		s.setVolume(getDevice().getSystemName());
-		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type x;
-		x.setValue(s);
-		return x;
-	}
-	return Libvirt::Domain::Xml::VDiskSource();
-}
+const Libvirt::Domain::Xml::EDevice Flavor<CVmFloppyDisk>::kind = Libvirt::Domain::Xml::EDeviceFloppy;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Network
@@ -284,6 +279,58 @@ Libvirt::Domain::Xml::Interface615 Network<4>::prepare(const CVmGenericNetworkAd
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Attachment
+
+Libvirt::Domain::Xml::VAddress Attachment::craft(quint16 controller_, quint16 unit_)
+{
+	Libvirt::Domain::Xml::Driveaddress a;
+	a.setUnit(QString::number(unit_));
+	a.setController(QString::number(controller_));
+	mpl::at_c<Libvirt::Domain::Xml::VAddress::types, 1>::type v;
+	v.setValue(a);
+	return Libvirt::Domain::Xml::VAddress(v);
+}
+
+template<Libvirt::Domain::Xml::EType5 T>
+void Attachment::craftController(quint16 index_)
+{
+	mpl::at_c<Libvirt::Domain::Xml::VChoice574::types, 0>::type v;
+	v.setValue(T);
+	Libvirt::Domain::Xml::Controller x;
+	x.setIndex(index_);
+	x.setChoice574(v);
+	mpl::at_c<Libvirt::Domain::Xml::VChoice912::types, 1>::type y;
+	y.setValue(x);
+	m_controllerList << Libvirt::Domain::Xml::VChoice912(y);
+}
+
+Libvirt::Domain::Xml::VAddress Attachment::craftIde()
+{
+	if (SATA_BUSES > m_implicit)
+		return craft(0, m_implicit++);
+
+	quint16 u = m_ide++ % IDE_BUSES;
+	quint16 c = (m_ide + IDE_BUSES - 1) / IDE_BUSES;
+	if (0 == u)
+		craftController<Libvirt::Domain::Xml::EType5Ide>(c);
+
+	return craft(c, u);
+}
+
+Libvirt::Domain::Xml::VAddress Attachment::craftSata()
+{
+	if (SATA_BUSES > m_implicit)
+		return craft(0, m_implicit++);
+
+	quint16 u = m_sata++ % SATA_BUSES;
+	quint16 c = (m_sata + SATA_BUSES - 1) / SATA_BUSES;
+	if (0 == u)
+		craftController<Libvirt::Domain::Xml::EType5Sata>(c);
+
+	return craft(c, u);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct List
 
 Libvirt::Domain::Xml::Devices List::getResult() const
@@ -294,14 +341,14 @@ Libvirt::Domain::Xml::Devices List::getResult() const
 	else if (QFile::exists("/usr/libexec/qemu-kvm"))
 		output.setEmulator(QString("/usr/libexec/qemu-kvm"));
 
-	output.setChoice912List(m_devices);
+	output.setChoice912List(list_type() << m_deviceList << m_attachment.getControllers());
 	return output;
 }
 
 void List::add(const CVmHardDisk* disk_)
 {
 	if (NULL != disk_)
-		add(Disk(*disk_, m_boot(*disk_)));
+		add(Clustered<CVmHardDisk>(*disk_, m_boot(*disk_)));
 }
 
 void List::add(const CVmParallelPort* port_)
@@ -342,7 +389,7 @@ void List::add(const CVmSerialPort* port_)
 void List::add(const CVmOpticalDisk* cdrom_)
 {
 	if (NULL != cdrom_ && cdrom_->getEmulatedType() != Flavor<CVmOpticalDisk>::real)
-		add(Cdrom(*cdrom_, m_boot(*cdrom_)));
+		add(Clustered<CVmOpticalDisk>(*cdrom_, m_boot(*cdrom_)));
 }
 
 void List::add(const CVmSoundDevice* sound_)
@@ -358,7 +405,7 @@ void List::add(const CVmSoundDevice* sound_)
 void List::add(const CVmFloppyDisk* floppy_)
 {
 	if (NULL != floppy_)
-		add(Floppy(*floppy_));
+		add(Clustered<CVmFloppyDisk>(*floppy_));
 }
 
 void List::add(const CVmRemoteDisplay* vnc_)
