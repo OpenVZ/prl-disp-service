@@ -504,9 +504,14 @@ PRL_RESULT Reverse::setBlank()
 	if (PVT_VM != m_input.getVmType())
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
+	Libvirt::Domain::Xml::Features f;
+	f.setPae(true);
+	f.setAcpi(true);
+	f.setApic(Libvirt::Domain::Xml::Apic());
 	m_result.reset(new Libvirt::Domain::Xml::Domain());
 	m_result->setType(Libvirt::Domain::Xml::ETypeKvm);
 	m_result->setOs(mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type());
+	m_result->setFeatures(f);
 	return PRL_ERR_SUCCESS;
 }
 
