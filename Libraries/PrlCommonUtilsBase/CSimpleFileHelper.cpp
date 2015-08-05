@@ -196,10 +196,6 @@ bool CSimpleFileHelper::ClearAndDeleteDir(const QString & strDir, int attempts)
 		{
 			if(cFileList.at(i).isDir() )
 			{
-				// #125021 to prevent infinity recursion by QT bug in QDir::entryInfoList()
-				if( QFileInfo(strDir) == cFileList.at(i) )
-					continue;
-
 				QString strTemp = cFileList.at(i).filePath();
 #ifdef _WIN_
 				CleanupReadOnlyAttr( strTemp );
@@ -210,7 +206,13 @@ bool CSimpleFileHelper::ClearAndDeleteDir(const QString & strDir, int attempts)
 					QFile::remove( strTemp);
 				}
 				else
+				{
+					// #125021 to prevent infinity recursion by QT bug in QDir::entryInfoList()
+					if( QFileInfo(strDir) == cFileList.at(i) )
+						continue;
+
 					ClearAndDeleteDir(strTemp);
+				}
 			}
 			else
 			{
