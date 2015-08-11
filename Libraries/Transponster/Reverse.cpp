@@ -228,6 +228,22 @@ struct Flavor<CVmFloppyDisk>
 };
 const Libvirt::Domain::Xml::EDevice Flavor<CVmFloppyDisk>::kind = Libvirt::Domain::Xml::EDeviceFloppy;
 
+namespace
+{
+QString generateAdapterType(PRL_VM_NET_ADAPTER_TYPE type_)
+{
+	switch (type_) {
+	case PNT_RTL:
+		return QString("ne2k_pci");
+	case PNT_E1000:
+		return QString("e1000");
+	default:
+		return QString("virtio");
+	}
+}
+
+} // namespace
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Network
 
@@ -251,7 +267,7 @@ template<>
 Libvirt::Domain::Xml::Interface605 Network<0>::prepare(const CVmGenericNetworkAdapter& network_)
 {
 	Libvirt::Domain::Xml::Interface605 output;
-	output.setModel(QString("virtio"));
+	output.setModel(generateAdapterType(network_.getAdapterType()));
 	output.setSource(network_.getHostInterfaceName());
 	return output;
 }
@@ -262,7 +278,7 @@ Libvirt::Domain::Xml::Interface613 Network<3>::prepare(const CVmGenericNetworkAd
 	Libvirt::Domain::Xml::Interface613 output;
 	Libvirt::Domain::Xml::Source7 s;
 	s.setNetwork(network_.getVirtualNetworkID());
-	output.setModel(QString("virtio"));
+	output.setModel(generateAdapterType(network_.getAdapterType()));
 	output.setSource(s);
 	return output;
 }
@@ -273,7 +289,7 @@ Libvirt::Domain::Xml::Interface615 Network<4>::prepare(const CVmGenericNetworkAd
 	Libvirt::Domain::Xml::Interface615 output;
 	Libvirt::Domain::Xml::Source8 s;
 	s.setDev(network_.getHostInterfaceName());
-	output.setModel(QString("virtio"));
+	output.setModel(generateAdapterType(network_.getAdapterType()));
 	output.setSource(s);
 	return output;
 }

@@ -138,6 +138,17 @@ PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Network
 
+PRL_VM_NET_ADAPTER_TYPE Network::parseAdapterType(const QString& type)
+{
+	if (type == "ne2k_pci")
+		return PNT_RTL;
+	else if (type == "e1000")
+		return PNT_E1000;
+	else if (type == "virtio")
+		return PNT_VIRTIO;
+	return PNT_UNDEFINED;
+}
+
 PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 0>::type& bridge_) const
 {
 	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter());
@@ -145,6 +156,10 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	a->setConnected();
 	a->setEnabled(PVE::DeviceEnabled);
 	a->setEmulatedType(PNA_BRIDGED_ETHERNET);
+	if (bridge_.getValue().getModel())
+	{
+		a->setAdapterType(parseAdapterType(bridge_.getValue().getModel().get()));
+	}
 	if (bridge_.getValue().getSource())
 	{
 		a->setHostInterfaceName(bridge_.getValue().getSource().get());
@@ -174,6 +189,10 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	a->setConnected();
 	a->setEnabled(PVE::DeviceEnabled);
 	a->setEmulatedType(PNA_BRIDGED_ETHERNET);
+	if (network_.getValue().getModel())
+	{
+		a->setAdapterType(parseAdapterType(network_.getValue().getModel().get()));
+	}
 	a->setVirtualNetworkID(network_.getValue().getSource().getNetwork());
 	if (network_.getValue().getMac())
 	{
@@ -194,6 +213,10 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	a->setConnected();
 	a->setEnabled(PVE::DeviceEnabled);
 	a->setEmulatedType(PNA_DIRECT_ASSIGN);
+	if (direct_.getValue().getModel())
+	{
+		a->setAdapterType(parseAdapterType(direct_.getValue().getModel().get()));
+	}
 	a->setHostInterfaceName(direct_.getValue().getSource().getDev());
 	if (direct_.getValue().getMac())
 	{
