@@ -298,6 +298,8 @@ struct Network: boost::static_visitor<PRL_RESULT>
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 3>::type& network_) const;
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 4>::type& direct_) const;
 
+	static PRL_VM_NET_ADAPTER_TYPE parseAdapterType(const QString& type);
+
 private:
 	CVmHardware* m_hardware;
 };
