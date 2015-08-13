@@ -887,6 +887,15 @@ void CDspProblemReportHelper::FillCtProblemReportData()
 
 }
 
+namespace
+{
+void addSystemLog(CProblemReport& report, const QFileInfo& info)
+{
+	if (info.exists())
+		report.appendSystemLog(info.filePath(), info.fileName());
+}
+}
+
 /**
 * fill data to problem report object .
 *
@@ -983,18 +992,16 @@ void CDspProblemReportHelper::FillProblemReportData(
 	cReport.setMountInfo( HostUtils::GetMountInfo() );
 
 #ifdef _LIN_
-	QFileInfo shamanInfo( "/var/log/shaman.log" );
-	if( shamanInfo.exists() )
-		cReport.appendSystemLog( shamanInfo.filePath(), shamanInfo.fileName() );
+	addSystemLog(cReport, QFileInfo("/var/log/shaman.log"));
 	QFileInfoList a = CDspHaClusterHelper::getReport();
 	foreach (QFileInfo f, a)
 	{
 		cReport.appendSystemLog(f.filePath(), f.fileName());
 		QFile::remove(f.filePath());
 	}
-	QFileInfo cpufeaturesInfo( "/var/log/cpufeatures.log" );
-	if( cpufeaturesInfo.exists() )
-		cReport.appendSystemLog( cpufeaturesInfo.filePath(), cpufeaturesInfo.fileName() );
+	addSystemLog(cReport, QFileInfo("/var/log/cpufeatures.log"));
+	addSystemLog(cReport, QFileInfo("/var/log/ploop.log"));
+	addSystemLog(cReport, QFileInfo("/var/log/pcompact.log"));
 #endif
 	WRITE_REPORT_PROFILER_STRING( "EndOfFillProblemReport" );
 }
