@@ -41,6 +41,9 @@
 #include "CDspVmManager.h"
 #include "CDspVmSuspendHelper.h"
 
+#include <qtconcurrentmap.h>
+#include <boost/bind.hpp>
+
 #ifdef _CT_
 #include "CDspVzHelper.h"
 #include "Dispatcher/Tasks/Task_VzManager.h"
@@ -56,7 +59,7 @@ Task_AutoStart::Task_AutoStart(SmartPtr<CDspClient> &pUser,
 : CDspTaskHelper(pUser, pRequestPkg)
 {}
 
-static SmartPtr<IOPackage> getStartPkg(SmartPtr<CVmConfiguration> &pConfig)
+static SmartPtr<IOPackage> getStartPkg(const SmartPtr<CVmConfiguration> &pConfig)
 {
 	return DispatcherPackage::createInstance(
 			PVE::DspCmdVmStartEx,
@@ -64,7 +67,7 @@ static SmartPtr<IOPackage> getStartPkg(SmartPtr<CVmConfiguration> &pConfig)
 				pConfig->getVmIdentification()->getVmUuid(), 0, 0));
 }
 
-static SmartPtr<IOPackage> getResumePkg(SmartPtr<CVmConfiguration> &pConfig)
+static SmartPtr<IOPackage> getResumePkg(const SmartPtr<CVmConfiguration> &pConfig)
 {
 	 return DispatcherPackage::createInstance(
 			 PVE::DspCmdVmResume,
@@ -78,6 +81,29 @@ PRL_RESULT Task_AutoStart::runTask(SmartPtr<IOPackage> p)
 {
 	SmartPtr<CDspTaskHelper> pTask(new Task_VzManager(getClient(), p));
 	return runExternalTask(pTask.getImpl());
+}
+
+void Task_AutoStart::resumeCt(
+		const SmartPtr<CVmConfiguration> pConfig)
+{
+	WRITE_TRACE(DBG_FATAL, "Auto resume CT %s",
+		QSTR2UTF8(pConfig->getVmIdentification()->getVmUuid()));
+
+	/* Destroy suspend in PRAM mark */
+	QFile f(CDspVzHelper::getVzrebootMarkFile(pConfig));
+	f.remove();
+
+	if (PRL_FAILED(runTask(getResumePkg(pConfig))))
+		runTask(getStartPkg(pConfig));
+}
+
+void Task_AutoStart::startCt(
+		const SmartPtr<CVmConfiguration> pConfig)
+{
+	WRITE_TRACE(DBG_FATAL, "Auto start CT %s",
+		QSTR2UTF8(pConfig->getVmIdentification()->getVmUuid()));
+
+	runTask(getStartPkg(pConfig));
 }
 
 bool sortByBootOrderPrio(const SmartPtr<CVmConfiguration> &s1, const SmartPtr<CVmConfiguration> &s2)
@@ -114,7 +140,7 @@ void Task_AutoStart::startCts()
 	if (!isFirstStart())
 		return;
 
-	QList<SmartPtr<CVmConfiguration> > configs, startList, resumeList;
+	QList<SmartPtr<CVmConfiguration> > configs, resumeList;
 
 	CDspService::instance()->getVzHelper()->getCtConfigList(getClient(), 0, configs);
 
@@ -122,42 +148,27 @@ void Task_AutoStart::startCts()
 
 	resumeList = CDspService::instance()->getVzHelper()->getAutoResumeCtList(configs);
 
-	SmartPtr<CDspVmSuspendMounter> pSuspendMounter;
-
 	if (!resumeList.empty())
 	{
 		/* PRAM is shared resource between VM & CT
 		 * so it needed to synchronize PRAM destroy,
 		 */
-		pSuspendMounter = CDspService::instance()->
+		SmartPtr<CDspVmSuspendMounter> pSuspendMounter = CDspService::instance()->
 			getVmManager().getSuspendHelper()->prepareCtForResume();
 
-		foreach(SmartPtr<CVmConfiguration> pConfig, resumeList)
-		{
-			WRITE_TRACE(DBG_FATAL, "Auto resume CT %s",
-					QSTR2UTF8(pConfig->getVmIdentification()->getVmUuid()));
-			/* CT will started in case resume failure */
-			if (PRL_FAILED(runTask(getResumePkg(pConfig))))
-				startList += pConfig;
-
-			/* Destroy suspend in PRAM mark */
-			QFile f(CDspVzHelper::getVzrebootMarkFile(pConfig));
-			f.remove();
-		}
+		QtConcurrent::blockingMap(resumeList,
+			boost::bind(&Task_AutoStart::resumeCt, this, _1));
 	}
 	else
 	{
+		QList<SmartPtr<CVmConfiguration> > startList;
+		
 		foreach(SmartPtr<CVmConfiguration> pConfig, configs)
 			if (pConfig->getVmSettings()->getVmStartupOptions()->getAutoStart() != PAO_VM_START_MANUAL)
 				startList += pConfig;
-	}
 
-	foreach(SmartPtr<CVmConfiguration> pConfig, startList)
-	{
-		WRITE_TRACE(DBG_FATAL, "Auto start CT %s",
-				QSTR2UTF8(pConfig->getVmIdentification()->getVmUuid()));
-
-		runTask(getStartPkg(pConfig));
+		QtConcurrent::blockingMap(startList,
+			boost::bind(&Task_AutoStart::startCt, this, _1));
 	}
 }
 

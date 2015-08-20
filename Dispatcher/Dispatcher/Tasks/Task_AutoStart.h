@@ -62,6 +62,8 @@ protected:
 	virtual PRL_RESULT run_body();
 private:
 	PRL_RESULT runTask(SmartPtr<IOPackage> p);
+	void resumeCt(const SmartPtr<CVmConfiguration> pConfig);
+	void startCt(const SmartPtr<CVmConfiguration> pConfig);
 	void startCts();
 };
 
