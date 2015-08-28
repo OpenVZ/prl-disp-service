@@ -1226,6 +1226,12 @@ static int conf_get_disk(SmartPtr<CVmConfiguration> &pConfig, vzctl_env_param_pt
 	return 0;
 }
 
+static QStringList getEnvRawParam()
+{
+	return (QStringList() << "BINDMOUNT" << "ORIGIN_SAMPLE" << "PCI"
+		<< "NETDEV" << "DEVNODES" << "JOURNALED_QUOTA" << "TEMPLATES");
+}
+
 static int get_vm_config(vzctl_env_handle_ptr h,
 		SmartPtr<CVmConfiguration> &pConfig)
 {
@@ -1373,6 +1379,14 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 			pRes->setLimit(ul);
 			pCt->addResource(pRes);
 		}
+
+		QStringList l;
+		foreach(QString s, getEnvRawParam()) {
+			if (vzctl2_env_get_param(h, QSTR2UTF8(s), &data) == 0 && data != NULL)
+				l += QString("%1=%2").arg(s).arg(data);
+		}
+
+		pCt->setRawParam(l);
 	}
 	// Hardware
 	{
@@ -2251,6 +2265,21 @@ static int create_env_config(const QString &uuid, SmartPtr<CVmConfiguration> &pC
 	vzctl2_env_set_diskspace(new_param, &res);
 	res.b = res.l = diskSize / 4;
 	vzctl2_env_set_diskinodes(new_param, &res);
+
+	foreach(QString s, pConfig->getCtSettings()->getRawParam()) {
+		int n = s.indexOf('=');
+
+		if (n < 2)
+			continue;
+
+		std::string l = s.left(n - 1).toStdString();
+		std::string r = s.mid(n + 1).toStdString();
+
+		if (l.empty() || r.empty())
+			continue;
+
+		vzctl2_env_set_param(h, l.c_str(), r.c_str());
+	}
 
 	ret = vzctl2_apply_param(h, new_param, VZCTL_SKIP_SETUP|VZCTL_SAVE);
 	if (ret) {
