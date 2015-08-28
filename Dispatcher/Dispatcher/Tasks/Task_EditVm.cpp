@@ -1350,6 +1350,44 @@ void CorrectDevicePathsInVmConfigCommon(
 void CorrectDevicePaths(CVmDevice &vmDevice, const QString &sOldVmHomePath, const QString &sNewVmHomePath);
 void CorrectHddPaths(CVmHardDisk &hardDisk, const QString &sOldVmHomePath, const QString &sNewVmHomePath);
 
+PRL_RESULT UpdateClusterResourceVm(
+	SmartPtr<CVmConfiguration> &pVmConfigOld,
+	SmartPtr<CVmConfiguration> &pVmConfigNew,
+	const QString &newDirName,
+	bool bVmWasRenamed)
+{
+	PRL_RESULT ret;
+	CVmHighAvailability oldHa(pVmConfigOld->getVmSettings()->getHighAvailability()),
+			    newHa(pVmConfigNew->getVmSettings()->getHighAvailability());
+
+	// We consider only HA-enabled non-template VMs.
+	oldHa.setEnabled(oldHa.isEnabled() &&
+			 !pVmConfigOld->getVmSettings()->getVmCommonOptions()->isTemplate());
+	newHa.setEnabled(newHa.isEnabled() &&
+			 !pVmConfigNew->getVmSettings()->getVmCommonOptions()->isTemplate());
+
+	const QString &oldVmName = pVmConfigOld->getVmIdentification()->getVmName(),
+		      &newVmName = pVmConfigNew->getVmIdentification()->getVmName();
+
+	// Below we use only the new name so we must rename it before.
+	if (bVmWasRenamed && oldHa.isEnabled())
+	{
+		ret = CDspService::instance()->getHaClusterHelper()->renameClusterResource(
+				oldVmName, &oldHa, newVmName, newDirName);
+		if (PRL_FAILED(ret))
+			return ret;
+	}
+
+	if (oldHa.toString() != newHa.toString())
+	{
+		ret = CDspService::instance()->getHaClusterHelper()->updateClusterResourceParams(
+				newVmName, &oldHa, &newHa, newDirName);
+		if (PRL_FAILED(ret))
+			return ret;
+	}
+	return PRL_ERR_SUCCESS;
+}
+
 } // anonymous namespace
 
 
@@ -2263,27 +2301,9 @@ PRL_RESULT Task_EditVm::editVm()
 			// handle VM only on shared FS - nfs, gfs, gfs2, pcs
 			if (CDspService::isServerModePSBM() && CFileHelper::isSharedFS(strVmHome) )
 			{
-				if (bVmWasRenamed &&
-					!pVmConfigNew->getVmSettings()->getVmCommonOptions()->isTemplate())
-				{
-					ret = CDspService::instance()->getHaClusterHelper()->renameClusterResource(
-							oldVmName,
-							pVmConfigOld->getVmSettings()->getHighAvailability(),
-							newVmName, qsNewDirName);
-					if ( PRL_FAILED( ret ) )
-						throw ret;
-				}
-
-				if ( pVmConfigNew->getVmSettings()->getHighAvailability()->toString() !=
-					pVmConfigOld->getVmSettings()->getHighAvailability()->toString() )
-				{
-					ret = CDspService::instance()->getHaClusterHelper()->updateClusterResourceParams(newVmName,
-							pVmConfigOld->getVmSettings()->getHighAvailability(),
-							pVmConfigNew->getVmSettings()->getHighAvailability(),
-							qsNewDirName);
-					if ( PRL_FAILED( ret ) )
-						throw ret;
-				}
+				ret = UpdateClusterResourceVm(pVmConfigOld, pVmConfigNew, qsNewDirName, bVmWasRenamed);
+				if (PRL_FAILED(ret))
+					throw ret;
 			}
 
 			// save VM configuration to file
