@@ -426,7 +426,7 @@ void List::add(const CVmFloppyDisk* floppy_)
 
 void List::add(const CVmRemoteDisplay* vnc_)
 {
-	if (NULL == vnc_)
+	if (NULL == vnc_ || vnc_->getMode() == PRD_DISABLED)
 		return;
 
 	Libvirt::Domain::Xml::Variant665 v;
