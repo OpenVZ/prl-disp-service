@@ -671,44 +671,10 @@ static void addSysrqTriggerToReport( CProblemReport & cReport )
 
 static void addCrashDumpsToReport( CProblemReport & cReport,
 								  const ParallelsDirs::UserInfo* pUserInfo,
-								  const CDspCrashReportMonitor::RepCache& repCache,
 								  unsigned maxDumpsCount)
 {
 	unsigned dumpsAdded = 0;
 
-	//
-	// Crash logs on Mac OS or crash dumps on other platforms
-	//
-	if ( ! repCache.isEmpty() )
-	{
-		foreach ( QString app, repCache.keys() )
-		{
-			const QHash<QDateTime, CDspCrashReportMonitor::CrashReport>& reps =
-				repCache[ app ];
-			QList<QDateTime> dtList = reps.keys();
-			qSort( dtList.begin(), dtList.end() );
-			foreach ( QDateTime dt, dtList )
-			{
-				if (dumpsAdded >= maxDumpsCount)
-					break;
-
-				const CDspCrashReportMonitor::CrashReport& crashRep =
-					reps[ dt ];
-				CRepCrashDump* crashDump = new CRepCrashDump;
-				crashDump->setDump( crashRep.report.toBase64() );
-				crashDump->setPath( crashRep.reportPath );
-				crashDump->setApplicationPid( QString("%1").arg(crashRep.pid) );
-				crashDump->setCreationDateTime( crashRep.reportDt.toString(XML_DATETIME_FORMAT_LONG) );
-
-				cReport.appendCrashDump( crashDump );
-				++dumpsAdded;
-			}
-		}
-
-	}
-	// Just pick up old crash logs on Mac OS
-	// old by manual request to get problem-report
-	else
 	{
 		QStringList crashDirList;
 
@@ -904,8 +870,7 @@ void addSystemLog(CProblemReport& report, const QFileInfo& info)
 void CDspProblemReportHelper::FillProblemReportData(
 	CProblemReport & cReport
 	, const SmartPtr<CDspClient>& pUser
-	, const QString & strDirUuid
-	, const CDspCrashReportMonitor::RepCache& repCache )
+	, const QString & strDirUuid)
 {
 	INIT_PROBLEM_REPORT_PROFILER_TIME
 
@@ -982,7 +947,7 @@ void CDspProblemReportHelper::FillProblemReportData(
 	addSysrqTriggerToReport( cReport );
 
 	WRITE_REPORT_PROFILER_STRING( "addCrashDumpsToReport" );
-	addCrashDumpsToReport( cReport, pUserInfo, repCache, CRASH_DUMPS_MAX_COUNT );
+	addCrashDumpsToReport( cReport, pUserInfo, CRASH_DUMPS_MAX_COUNT );
 
 
 	WRITE_REPORT_PROFILER_STRING( "GetLoadedDrivers" );

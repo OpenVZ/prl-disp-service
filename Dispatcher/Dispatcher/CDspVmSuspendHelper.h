@@ -38,7 +38,6 @@
 #define __CDspVmSuspendHelper_H_
 
 #include "ParallelsNamespace.h"
-#include "CDspCrashReportMonitor.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "Libraries/Std/SmartPtr.h"
 

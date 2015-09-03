@@ -55,7 +55,6 @@
 #include "CDspVmConfigurationChangesWatcher.h"
 #include "CDspVmConfigManager.h"
 #include "CDspBroadcastListener.h"
-#include "CDspCrashReportMonitor.h"
 #include "CDspIOClientHandler.h"
 #include "CDspIOCtClientHandler.h"
 #include "CDspHaClusterHelper.h"
@@ -224,9 +223,6 @@ public:
 	/** Returns hw Monitor thread object*/
 	CDspHwMonitorThread &getHwMonitorThread();
 
-	/** Returns crash report monitor */
-	CDspCrashReportMonitor &getCrashReportMonitor();
-
     /** Get the manager of the task downloading metadata for the recognition **/
     CDspRecognitionMetadataMgr& getRecognitionMetadataMgr();
 
@@ -337,11 +333,6 @@ private slots:
 	void clientDetached ( IOSender::Handle h,
 						  const IOCommunication::DetachedClient dc );
 
-	/** Slot for handling crash report */
-	void crashReportHandler ( SmartPtr<CDspClient>,
-							  CDspCrashReportMonitor::RepCache sysRep,
-							  CDspCrashReportMonitor::RepCache usrRep,
-							  CDspCrashReportMonitor::RepCache fullUsrReps );
 	void onClientStateChanged( IOServerInterface*, IOSender::Handle, IOSender::State );
 
 	/** Slot for doing work when user credentials become available */
@@ -516,8 +507,6 @@ private:
 	SmartPtr<CDspBroadcastListener> m_pBroadcastMsgsProcessingService;
 	/** Host hardware changes monitoring thread */
 	SmartPtr<CDspHwMonitorThread> m_pHwMonitorThread;
-	/** Crash report monitor */
-	SmartPtr<CDspCrashReportMonitor> m_pCrashReportMonitor;
 	/** System events monitor */
 	SmartPtr<CDspSystemEventsMonitor> m_pSystemEventsMonitor;
 

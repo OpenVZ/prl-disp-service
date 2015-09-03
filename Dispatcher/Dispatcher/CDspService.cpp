@@ -786,11 +786,6 @@ CDspHwMonitorThread &CDspService::getHwMonitorThread()
 	return (*m_pHwMonitorThread.getImpl());
 }
 
-CDspCrashReportMonitor &CDspService::getCrashReportMonitor()
-{
-	return (*m_pCrashReportMonitor.getImpl());
-}
-
 CDspLockedPointer<CDspVmStateSender> CDspService::getVmStateSender()
 {
 	PRL_ASSERT( m_pVmStateSenderThread );
@@ -983,19 +978,7 @@ void CDspService::start ()
 		m_pTaskManager = SmartPtr<CDspTaskManager>(new CDspTaskManager);
 		m_pVmConfigWatcher = SmartPtr<CDspVmConfigurationChangesWatcher>(new CDspVmConfigurationChangesWatcher());
 		m_pVmStateSenderThread = SmartPtr<CDspVmStateSenderThread>( new CDspVmStateSenderThread );
-		m_pCrashReportMonitor =
-			SmartPtr<CDspCrashReportMonitor>(new CDspCrashReportMonitor()) ;
-		bool bConnected = QObject::connect( (const QObject *) m_pCrashReportMonitor.getImpl(),
-			SIGNAL(onCrashReport(SmartPtr<CDspClient>,
-			CDspCrashReportMonitor::RepCache,
-			CDspCrashReportMonitor::RepCache,
-			CDspCrashReportMonitor::RepCache)),
-			SLOT(crashReportHandler(SmartPtr<CDspClient>,
-			CDspCrashReportMonitor::RepCache,
-			CDspCrashReportMonitor::RepCache,
-			CDspCrashReportMonitor::RepCache)),
-			Qt::DirectConnection );
-		PRL_ASSERT(bConnected);
+		bool bConnected;
 		Q_UNUSED(bConnected);
 
 		if( !init() )
@@ -1042,9 +1025,6 @@ void CDspService::start ()
 			m_pHwMonitorThread->start( QThread::NormalPriority ); //QThread::LowPriority );
 
 		m_pSystemEventsMonitor->startMonitor();
-
-		// Starts monitor
-		m_pCrashReportMonitor->startMonitor();
 
 		m_bInitWasDone = true;
 		if(	m_bStopWasSentOnInitPhase )
@@ -1107,8 +1087,6 @@ void CDspService::stop (CDspService::StopMode stop_mode)
 		break;
 	}
 
-	m_pCrashReportMonitor->stopMonitor();
-
 	m_pHwMonitorThread->FinalizeThreadWork();
 	m_pHwMonitorThread->wait();
 
@@ -1154,8 +1132,6 @@ void CDspService::stop (CDspService::StopMode stop_mode)
 
 	// #PDFM-30119 second call to clear all static object after tasks finished.
 	cleanupAllStaticObjects();
-
-	m_pCrashReportMonitor = SmartPtr<CDspCrashReportMonitor>(0);
 
 	if ( m_pVmStateSenderThread->isRunning() )
 	{
@@ -2877,15 +2853,6 @@ void CDspService::clientDetached ( IOSender::Handle h,
 		handler->handleDetachClient( h, dc );
 	}
 	COMMON_CATCH_WITH_INT_PARAM( m_ioServerPool->clientSenderType( h ) );
-}
-
-void CDspService::crashReportHandler (
-	SmartPtr<CDspClient> pUser,
-	CDspCrashReportMonitor::RepCache sysRep,
-	CDspCrashReportMonitor::RepCache usrRep,
-	CDspCrashReportMonitor::RepCache fullRepCache )
-{
-	CrashHandlerWrap::crashReportHandler( pUser, sysRep, usrRep, fullRepCache );
 }
 
 /****************************************************************************/
