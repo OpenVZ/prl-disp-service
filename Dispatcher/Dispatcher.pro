@@ -63,7 +63,6 @@ HEADERS += \
 	CDspVmConfigurationChangesWatcher.h \
 	CDspVmConfigManager.h \
 	CDspVmAutoTaskManagerBase.h \
-	CDspCrashReportMonitor.h \
 	CDspVmStateSender.h \
 	CDspTestConfig.h \
 	CDspBugPatcherLogic.h \
@@ -171,7 +170,6 @@ SOURCES += \
 	CDspVmConfigurationChangesWatcher.cpp \
 	CDspVmConfigManager.cpp \
 	CDspVmAutoTaskManagerBase.cpp \
-	CDspCrashReportMonitor.cpp \
 	CDspVmStateSender.cpp \
 	CDspTestConfig.cpp \
 	CDspBugPatcherLogic.cpp \

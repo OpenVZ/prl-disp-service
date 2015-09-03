@@ -36,10 +36,10 @@
 #include "Libraries/Std/SmartPtr.h"
 #include "Libraries/IOService/src/IOCommunication/IOServer.h"
 #include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
-#include "CDspCrashReportMonitor.h"
+#include "CDspClient.h"
+#include "CDspVm.h"
 
 class CProblemReport;
-class CDspCrashReportMonitor;
 
 class CDspProblemReportHelper
 {
@@ -75,9 +75,7 @@ public:
 	**/
 	static void FillProblemReportData( CProblemReport & cReport,
 			const SmartPtr<CDspClient>& pUser,
-			const QString & strDirUuid,
-			const CDspCrashReportMonitor::RepCache& repCache =
-			CDspCrashReportMonitor::RepCache() );
+			const QString & strDirUuid);
 
 	/**
 	* fill data to problem report object if generated on disconnect vm.

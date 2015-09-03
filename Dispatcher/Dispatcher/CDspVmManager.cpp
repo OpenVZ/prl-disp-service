@@ -977,13 +977,6 @@ void CDspVmManager::handleClientDisconnected ( const IOSender::Handle& h )
 
 	if (pVm->isUndoDisksMode() && pVm->getVmState() != VMS_SUSPENDING_SYNC)
 	{
-		// For now only on Mac OS we must send report if Vm suddenly
-		// disconnects! On other platforms report will be send
-		// after crash report monitor has detected Vm dump.
-		// If crash dump has not been generated in 10 seconds,
-		// we send dumpless report to the clients.
-		tryToSendProblemReport(pVm);
-
 		bool bRes = pVm->startUndoDisksRevertOrCommitTask();
 		if (!bRes)
 		{
@@ -1021,123 +1014,10 @@ void CDspVmManager::handleClientDisconnected ( const IOSender::Handle& h )
 				sendPackageToVmClients( pStop, pVm->getVmDirUuid(), pVm->getVmUuid() );
 		}
 
-		// For now only on Mac OS we must send report if Vm suddenly
-		// disconnects! On other platforms report will be send
-		// after crash report monitor has detected Vm dump.
-		// If crash dump has not been generated in 10 seconds,
-		// we send dumpless report to the clients.
-		tryToSendProblemReport(pVm);
-
 		PRL_RESULT nRetCode = PRL_ERR_UNINITIALIZED;
 		SmartPtr<CVmConfiguration> pVmConfig =
 						CDspService::instance()->getVmDirHelper().getVmConfigByUuid(
 									pVm->getVmDirUuid(), pVm->getVmUuid(), nRetCode);
-	}
-}
-
-// For now only on Mac OS we must send report if Vm suddenly
-// disconnects! On other platforms report will be send
-// after crash report monitor has detected Vm dump.
-// If crash dump has not been generated in 10 seconds,
-// we send dumpless report to the clients.
-void CDspVmManager::tryToSendProblemReport( SmartPtr<CDspVm> pVm )
-{
-
-	const QString prl_vm_app( "prl_vm_app" );
-
-	PRL_ASSERT(pVm.isValid());
-	if (!pVm.isValid())
-	{
-		return;
-	}
-
-	if (   pVm->getVmState() == VMS_STOPPED
-		|| pVm->getVmState() == VMS_STOPPING
-		|| pVm->getVmState() == VMS_SUSPENDED
-		|| pVm->getVmState() == VMS_SUSPENDING_SYNC)
-	{
-		return;
-	}
-
-	if( CDspService::instance()->isServerStopping() )
-	{
-		WRITE_TRACE( DBG_FATAL, "Skip problem report collecting because dispatcher is in STOPPING state now." );
-		return;
-	}
-
-	// we have crash or kill vm process here
-	SmartPtr<CDspClient> pUser = pVm->getVmRunner();
-	QString vmUuid = pVm->getVmUuid();
-	QString vmDirUuid = pVm->getVmDirUuid();
-
-	CDspCrashReportMonitor::RepCache repCache;
-
-	// Wait for 10 seconds for Vm crash dump.
-	// If nothing was created, just send report from here.
-	bool dumpCreated = CDspService::instance()->getCrashReportMonitor().
-		waitForVmCrashDump( vmDirUuid, vmUuid, 10000 );
-	if ( dumpCreated )
-		// Great, dump was created, just return.
-		return;
-
-	CPackedProblemReport * pTmpReport = NULL;
-	CPackedProblemReport::createInstance( CPackedProblemReport::DispSide, &pTmpReport );
-	SmartPtr<CPackedProblemReport> pReport( pTmpReport );
-	if ( !pReport )
-	{
-		WRITE_TRACE(DBG_FATAL, "cannot create report instance!");
-		PRL_ASSERT(false);
-		return;
-	}
-
-	// try get vm config
-	PRL_RESULT res = PRL_ERR_SUCCESS;
-	SmartPtr<CVmConfiguration> pVmConfig =
-		CDspService::instance()->getVmDirHelper().getVmConfigByUuid(vmDirUuid,
-																	vmUuid,
-																	res);
-	if( pVmConfig )
-		CDspProblemReportHelper::FormProblemReportDataForDisconnect( *pReport.getImpl(), pVmConfig );
-	else
-	{
-		WRITE_TRACE(DBG_FATAL, "Unable to get vm config for vm uuid %s, error %s"
-			, QSTR2UTF8( pVm->getVmUuid() )
-			, PRL_RESULT_TO_STRING( res ) );
-	}
-
-	// Fill problem report with report cache
-	CDspProblemReportHelper::FillProblemReportData( *pReport.getImpl(), pUser, vmDirUuid, repCache );
-
-	pReport->saveMainXml();
-
-	QList< SmartPtr<CDspClient> > lstOldClients;
-	QList< SmartPtr<CDspClient> > lstNewClients;
-
-	CDspProblemReportHelper::getOldAndNewProblemReportClients( vmDirUuid, vmUuid, lstOldClients, lstNewClients );
-
-	SmartPtr<IOPackage> p =
-		CDspProblemReportHelper::createProblemReportEventPackage( *pReport.getImpl() );
-
-	// Send to all clients except LIGHTWEIGHT
-	foreach ( SmartPtr<CDspClient> client, lstNewClients )
-	{
-		if ( client->getFlags() & PCF_LIGHTWEIGHT_CLIENT )
-			continue;
-		client->sendPackage( p );
-	}
-
-	if ( ! lstOldClients.isEmpty() )
-	{
-		SmartPtr<CProblemReport> pOldReport = pReport->convertToProblemReportOldFormat();
-		p = CDspProblemReportHelper::createProblemReportOldFormatEventPackage( *pOldReport.getImpl() );
-
-		// Send to all clients except LIGHTWEIGHT
-		foreach ( SmartPtr<CDspClient> client, lstOldClients )
-		{
-			if ( client->getFlags() & PCF_LIGHTWEIGHT_CLIENT )
-				continue;
-			client->sendPackage( p );
-		}
 	}
 }
 

@@ -226,12 +226,6 @@ private:
 	void sendPackageFromVmToPermittedUsers( SmartPtr<CDspVm> pVm,
 										  const SmartPtr<IOPackage> &p,
 										  int accessRights = CDspAccessManager::VmAccessRights::arCanRead);
-	// For now only on Mac OS we must send report if Vm suddenly
-	// disconnects! On other platforms report will be send
-	// after crash report monitor has detected Vm dump.
-	// If crash dump has not been generated in 10 seconds,
-	// we send dumpless report to the clients.
-	void tryToSendProblemReport( SmartPtr<CDspVm> pVm );
 
 	/** Update USB device state by event from VM */
 	void updateUsbDeviceState( const SmartPtr<CDspVm> &pVm, const CVmEvent &_evt );

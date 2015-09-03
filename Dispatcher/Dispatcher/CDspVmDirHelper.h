@@ -49,7 +49,7 @@
 #include "ParallelsNamespace.h"
 
 #include "CDspClient.h"
-#include "CDspCrashReportMonitor.h"
+#include "CDspVm.h"
 
 #include "Libraries/IOService/src/IOCommunication/IOServer.h"
 
