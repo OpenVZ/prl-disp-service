@@ -66,9 +66,8 @@ public:
 	Task_HandleDispPackage(
 		IOSendJobInterface *pSendJobInterface,
 		IOSendJob::Handle &hJob,
-		int *nFd,
-		int nFdSize);
-	~Task_HandleDispPackage(){ delete[] m_bActiveFd; };
+		QVector<int> &nFd);
+	~Task_HandleDispPackage() {}
 	void run();
 	/* wake up response waitings for task termination */
 	inline IOSendJob::Result urgentResponseWakeUp()
@@ -82,9 +81,8 @@ private:
 private:
 	IOSendJobInterface *m_pSendJobInterface;
 	IOSendJob::Handle m_hJob;
-	int *m_nFd;
-	int m_nFdSize;
-	bool *m_bActiveFd;
+	QVector<int> &m_nFd;
+	QVector<bool> m_bActiveFd;
 signals:
 	void onDispPackageHandlerFailed(PRL_RESULT nRetCode, const QString &sErrInfo);
 };
@@ -118,8 +116,7 @@ private:
 	void readOutFromVzMigrate();
 
 private:
-	int m_nFd[PRL_CT_MIGRATE_SWAP_FD + 1];
-	int m_nFdSize;
+	QVector<int> m_nFd;
 
 	quint32 m_nBufferSize;
 	SmartPtr<char> m_pBuffer;
@@ -135,6 +132,11 @@ private:
 	Task_HandleDispPackage *m_pHandleDispPackageTask;
 	QMutex m_terminateVzMigrateMutex;
 	QMutex m_terminateHandleDispPackageTaskMutex;
+
+	void (Task_VzMigrate::*m_pfnTermination)(pid_t);
+private:
+	void setPidPolicy(pid_t p);
+	void terminatePidPolicy(pid_t p);
 
 private slots:
 	void handleDispPackageHandlerFailed(PRL_RESULT nRetCode, const QString &sErrInfo);

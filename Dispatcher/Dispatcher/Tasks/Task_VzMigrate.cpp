@@ -59,6 +59,7 @@
 #include "Task_VzMigrate.h"
 #include "CDspService.h"
 #include "Libraries/Std/PrlAssert.h"
+#include "Libraries/Std/noncopyable.h"
 
 
 /*
@@ -74,19 +75,147 @@
  In main thread will use waitpid(WNOHANG) and poll()
 */
 
+namespace
+{
+namespace Migrate
+{
+
+inline void close_fd(int &fd)
+{
+	::close(fd);
+	fd = -1;
+}
+
+struct Endpoint : private noncopyable
+{
+	explicit Endpoint(int fd)
+		: m_fd(fd)
+	{}
+
+	~Endpoint()
+	{
+		close();
+	}
+
+	void dup(int fd) const
+	{
+		dup2(m_fd, fd);
+	}
+
+	void setCloseOnExec(bool close) const
+	{
+		fcntl(m_fd, F_SETFD, (close? FD_CLOEXEC : ~FD_CLOEXEC));
+	}
+
+	void close()
+	{
+		close_fd(m_fd);
+	}
+
+	QString toString() const
+	{
+		return QString::number(m_fd);
+	}
+
+	bool operator==(const Endpoint &e) const
+	{
+		return (e.m_fd == m_fd);
+	}
+
+	void setNonBlock() const
+	{
+		long flags;
+		if ((flags = fcntl(m_fd, F_GETFL)) != -1)
+			fcntl(m_fd, F_SETFL, flags | O_NONBLOCK);
+	}
+
+	int release()
+	{
+		int tmp = m_fd;
+		m_fd = -1;
+		return tmp;
+	}
+
+	ssize_t read(void *buffer, size_t count) const
+	{
+		ssize_t r;
+		while ((r = ::read(m_fd, buffer, count)) < 0) {
+			if (errno != EINTR)
+				break;
+		}
+		return r;
+	}
+
+private:
+	int m_fd;
+};
+
+struct EndpointPair
+{
+	static EndpointPair* createPipe()
+	{
+		int f[2] = {-1, -1};
+		if (pipe(f) < 0) {
+			WRITE_TRACE(DBG_FATAL, "pipe() : %m");
+			return NULL;
+		}
+
+		return new (std::nothrow) EndpointPair(f);
+	}
+
+	static EndpointPair* createSocketPair()
+	{
+		int f[2] = {-1, -1};
+		if (socketpair(AF_UNIX, SOCK_STREAM, 0, f) < 0) {
+			WRITE_TRACE(DBG_FATAL, "socketpair() : %m");
+			return NULL;
+		}
+		return new (std::nothrow) EndpointPair(f);
+	}
+
+	explicit EndpointPair(int (&fds)[2])
+		: m_parent(fds[0]), m_child(fds[1])
+	{}
+
+	Endpoint& parent()
+	{
+		return m_parent;
+	}
+
+	Endpoint& child()
+	{
+		return m_child;
+	}
+
+private:
+	Endpoint m_parent;
+	Endpoint m_child;
+};
+
+void exec_cmd(const QStringList &args)
+{
+	QVector<char *> p(args.size() + 1, NULL);
+	for (int i = 0; i < args.size(); ++i)
+		p[i] = ::strdup(QSTR2UTF8(args[i]));
+
+	::execvp(QSTR2UTF8(args[0]), p.data());
+	WRITE_TRACE(DBG_FATAL, "execvp() error : %m");
+	foreach (char *t, p)
+		::free(t);
+}
+
+} // namespace Migrate
+} // namespace anonymous
 
 Task_VzMigrate::Task_VzMigrate(const SmartPtr<CDspClient> &client, const SmartPtr<IOPackage> &p)
 :CDspTaskHelper(client, p),
-Task_DispToDispConnHelper(getLastError())
+	Task_DispToDispConnHelper(getLastError()),
+	m_nFd(PRL_CT_MIGRATE_SWAP_FD + 1, -1),
+	m_nBufferSize(PRL_DISP_IO_BUFFER_SIZE),
+	m_pid(-1),
+	m_pHandleDispPackageTask(NULL),
+	m_pfnTermination(&Task_VzMigrate::setPidPolicy)
 {
-	m_nFdSize = sizeof(m_nFd)/sizeof(int);
-	for (int i = 0; i < m_nFdSize; i++)
-		m_nFd[i] = -1;
-
-	m_nBufferSize = PRL_DISP_IO_BUFFER_SIZE;
-	m_pid = -1;
-	m_pHandleDispPackageTask = NULL;
-
 	/* alloc buffer for data from vzmigrate and link this buffer with IO package */
 	m_pBuffer = SmartPtr<char>(new char[m_nBufferSize], SmartPtrPolicy::ArrayStorage);
 }
@@ -97,9 +226,8 @@ Task_VzMigrate::~Task_VzMigrate()
 
 	terminateHandleDispPackageTask();
 
-	for (int i = 0; i < m_nFdSize; i++)
-		if (m_nFd[i] != -1)
-			close(m_nFd[i]);
+	foreach (int i, m_nFd)
+		::close(i);
 }
 
 PRL_RESULT Task_VzMigrate::readFromVzMigrate(quint16 nFdNum)
@@ -108,7 +236,7 @@ PRL_RESULT Task_VzMigrate::readFromVzMigrate(quint16 nFdNum)
 	quint32 nSize = 0;
 	ssize_t rc;
 
-	PRL_ASSERT( nFdNum < m_nFdSize );
+	PRL_ASSERT(nFdNum < m_nFd.size());
 
 	/* read data */
 	while (1) {
@@ -126,8 +254,7 @@ PRL_RESULT Task_VzMigrate::readFromVzMigrate(quint16 nFdNum)
 		} else if ((rc == 0) || (errno == ECONNRESET)) {
 			/* end of file - pipe was close, will check client exit code */
 			WRITE_TRACE(DBG_DEBUG, "EOF");
-			close(m_nFd[nFdNum]);
-			m_nFd[nFdNum] = -1;
+			Migrate::close_fd(m_nFd[nFdNum]);
 			nRetCode = sendDispPackage(nFdNum, nSize);
 			if (PRL_FAILED(nRetCode))
 				return nRetCode;
@@ -169,8 +296,7 @@ void Task_VzMigrate::readOutFromVzMigrate()
 			/* end of file - pipe was close, will check client exit code */
 			pBuffer[nSize] = '\0';
 			WRITE_TRACE(DBG_INFO, "%s", pBuffer);
-			close(m_nFd[PRL_CT_MIGRATE_OUT_FD]);
-			m_nFd[PRL_CT_MIGRATE_OUT_FD] = -1;
+			Migrate::close_fd(m_nFd[PRL_CT_MIGRATE_OUT_FD]);
 			return;
 		} else if ((errno == EAGAIN) || (errno == EINTR)) {
 			pBuffer[nSize] = '\0';
@@ -201,175 +327,124 @@ PRL_RESULT Task_VzMigrate::sendDispPackage(quint16 nType, quint32 nSize)
 */
 PRL_RESULT Task_VzMigrate::startVzMigrate(const QString &sCmd, const QStringList &lstArgs)
 {
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	int out_fds[2], cmd_socks[2], data_socks[2], tmpl_data_socks[2], swap_socks[2];
-	int status;
-	pid_t pid;
-	char buffer[11];
-	long flags;
-	char **pArgv = NULL;
-	size_t nArgs, ndx;
-	int i;
-	QString sMgrtCmd;
+	QScopedPointer<Migrate::EndpointPair> out_fds(Migrate::EndpointPair::createPipe());
+	QScopedPointer<Migrate::EndpointPair> err_pipe(Migrate::EndpointPair::createPipe());
+	QScopedPointer<Migrate::EndpointPair> cmd_socks(Migrate::EndpointPair::createSocketPair());
+	QScopedPointer<Migrate::EndpointPair> data_socks(Migrate::EndpointPair::createSocketPair());
+	QScopedPointer<Migrate::EndpointPair> tmpl_data_socks(Migrate::EndpointPair::createSocketPair());
+	QScopedPointer<Migrate::EndpointPair> swap_socks(Migrate::EndpointPair::createSocketPair());
 
 	m_sCmd = sCmd;
 
-	nArgs = lstArgs.size()+7;
-	pArgv = (char **)calloc(nArgs, sizeof(char *));
-	if (pArgv == NULL) {
-		WRITE_TRACE(DBG_FATAL, "calloc() : %m");
+	if (out_fds.isNull() || cmd_socks.isNull() || data_socks.isNull() ||
+		tmpl_data_socks.isNull() || swap_socks.isNull() || err_pipe.isNull())
 		return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-	}
-	if (pipe(out_fds) < 0) {
-		WRITE_TRACE(DBG_FATAL, "pipe() : %m");
-		nRetCode = PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-		goto cleanup_0;
-	}
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, cmd_socks) < 0) {
-		WRITE_TRACE(DBG_FATAL, "socketpair() : %m");
-		nRetCode = PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-		goto cleanup_1;
-	}
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, data_socks) < 0) {
-		WRITE_TRACE(DBG_FATAL, "socketpair() : %m");
-		nRetCode = PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-		goto cleanup_2;
-	}
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, tmpl_data_socks) < 0) {
-		WRITE_TRACE(DBG_FATAL, "socketpair() : %m");
-		nRetCode = PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-		goto cleanup_3;
-	}
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, swap_socks) < 0) {
-		WRITE_TRACE(DBG_FATAL, "socketpair() : %m");
-		nRetCode = PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-		goto cleanup_4;
-	}
 
-	ndx = 0;
-	pArgv[ndx++] = strdup(QSTR2UTF8(m_sCmd));
-	pArgv[ndx++] = strdup("-ps");
-	snprintf(buffer, sizeof(buffer), "%d", cmd_socks[1]);
-	pArgv[ndx++] = strdup(buffer);
-	snprintf(buffer, sizeof(buffer), "%d", data_socks[1]);
-	pArgv[ndx++] = strdup(buffer);
-	snprintf(buffer, sizeof(buffer), "%d", tmpl_data_socks[1]);
-	pArgv[ndx++] = strdup(buffer);
-	snprintf(buffer, sizeof(buffer), "%d", swap_socks[1]);
-	pArgv[ndx++] = strdup(buffer);
-
-	for(i = 0; i < lstArgs.size(); i++, ndx++) {
-		pArgv[ndx] = strdup(QSTR2UTF8(lstArgs.at(i)));
-		PRL_ASSERT(nArgs > ndx-1);
-	}
-	pArgv[ndx] = NULL;
-
-	// Print final cmd line to log
-	for(i = 0; i < (int)ndx; i++)
-		sMgrtCmd.append(QString(" \'%1\'").arg(pArgv[i]));
-	WRITE_TRACE(DBG_INFO, "Run migration command: %s", QSTR2UTF8(sMgrtCmd));
-
-	if ((flags = fcntl(out_fds[0], F_GETFL)) != -1)
-		fcntl(out_fds[0], F_SETFL, flags | O_NONBLOCK);
-	if ((flags = fcntl(cmd_socks[0], F_GETFL)) != -1)
-		fcntl(cmd_socks[0], F_SETFL, flags | O_NONBLOCK);
-	if ((flags = fcntl(swap_socks[0], F_GETFL)) != -1)
-		fcntl(swap_socks[0], F_SETFL, flags | O_NONBLOCK);
-
-	m_pid = fork();
-	if (m_pid < 0) {
+	pid_t p = ::fork();
+	if (p < 0) {
 		WRITE_TRACE(DBG_FATAL, "fork() : %m");
-		nRetCode = PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-		goto cleanup_5;
-	} else if (m_pid == 0) {
+		return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
+	} else if (p == 0) {
 		/* this f..ing child calls kill(0, signum) from signal handler */
-		if( setpgrp() )
+		if (::setpgrp())
 		{
 			WRITE_TRACE(DBG_FATAL, "setpgrp() error: %m");
 			_exit(-1);
 		}
+
+		QStringList args;
+		args.append(m_sCmd);
+		args.append("-ps");
+		args.append(cmd_socks->child().toString());
+		args.append(data_socks->child().toString());
+		args.append(tmpl_data_socks->child().toString());
+		args.append(swap_socks->child().toString());
+		args.append(lstArgs);
+
+		WRITE_TRACE(DBG_INFO, "Run migration command: '%s'", QSTR2UTF8(args.join(" ")));
+
 		/* to close all unused descriptors */
-		int fdnum;
+		int fdnum = 1024;
 		struct rlimit rlim;
 		if (getrlimit(RLIMIT_NOFILE, &rlim) == 0)
 			fdnum = (int)rlim.rlim_cur;
-		else
-			fdnum = 1024;
-		for (i = 3; i < fdnum; ++i) {
-			if (	(i == out_fds[1]) ||
-				(i == cmd_socks[1]) ||
-				(i == data_socks[1]) ||
-				(i == tmpl_data_socks[1]) ||
-				(i == swap_socks[1]))
-				continue;
-			close(i);
+
+		for (int i = 3; i < fdnum; ++i) {
+			Migrate::Endpoint e(i);
+			if ((e == out_fds->child()) ||
+				(e == cmd_socks->child()) ||
+				(e == data_socks->child()) ||
+				(e == tmpl_data_socks->child()) ||
+				(e == swap_socks->child()) ||
+				(e == err_pipe->child()))
+				e.release();
 		}
 
 		/* try to redirect stdin to /dev/null */
-		int fd = open("/dev/null", O_RDWR);
-		if (fd != -1)
-			dup2(fd, STDIN_FILENO);
-		/* redirect stderr & stdout to out_fds[1] */
-		fcntl(out_fds[1], F_SETFD, ~FD_CLOEXEC);
-		dup2(out_fds[1], STDOUT_FILENO);
-		dup2(out_fds[1], STDERR_FILENO);
+		Migrate::Endpoint(::open("/dev/null", O_RDWR)).dup(STDIN_FILENO);
 
-		fcntl(cmd_socks[1], F_SETFD, ~FD_CLOEXEC);
-		fcntl(data_socks[1], F_SETFD, ~FD_CLOEXEC);
-		fcntl(tmpl_data_socks[1], F_SETFD, ~FD_CLOEXEC);
-		fcntl(swap_socks[1], F_SETFD, ~FD_CLOEXEC);
-		execvp(QSTR2UTF8(m_sCmd), (char* const*)pArgv);
-		WRITE_TRACE(DBG_FATAL, "execvp() error : %m");
+		out_fds->child().setCloseOnExec(false);
+		out_fds->child().dup(STDOUT_FILENO);
+		out_fds->child().dup(STDERR_FILENO);
+
+		cmd_socks->child().setCloseOnExec(false);
+		data_socks->child().setCloseOnExec(false);
+		tmpl_data_socks->child().setCloseOnExec(false);
+		swap_socks->child().setCloseOnExec(false);
+		err_pipe->child().setCloseOnExec(true);
+
+		cmd_socks->child().release();
+		data_socks->child().release();
+		tmpl_data_socks->child().release();
+		swap_socks->child().release();
+		err_pipe->child().release();
+		out_fds->child().release();
+
+		Migrate::exec_cmd(args);
 		_exit(-1);
 	}
-	close(out_fds[1]);
-	close(cmd_socks[1]);
-	close(data_socks[1]);
-	close(tmpl_data_socks[1]);
-	close(swap_socks[1]);
 
-	while ((pid = waitpid(m_pid, &status, WNOHANG)) == -1)
-		if (errno != EINTR)
-			break;
-
-	if (pid < 0) {
-		WRITE_TRACE(DBG_FATAL, "waitpid() error : %m");
-		nRetCode = PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-		goto cleanup_5;
+	err_pipe->child().close();
+	int t;
+	if (err_pipe->parent().read(&t, sizeof(t)) != 0) {
+		WRITE_TRACE(DBG_FATAL, "read failed : %m");
+		{
+			QMutexLocker l(&m_terminateVzMigrateMutex);
+			terminatePidPolicy(p);
+		}
+		return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
 	}
-	m_nFd[PRL_CT_MIGRATE_OUT_FD] = out_fds[0];
-	m_nFd[PRL_CT_MIGRATE_CMD_FD] = cmd_socks[0];
-	m_nFd[PRL_CT_MIGRATE_DATA_FD] = data_socks[0];
-	m_nFd[PRL_CT_MIGRATE_TMPLDATA_FD] = tmpl_data_socks[0];
-	m_nFd[PRL_CT_MIGRATE_SWAP_FD] = swap_socks[0];
+	{
+		QMutexLocker l(&m_terminateVzMigrateMutex);
+		(this->*m_pfnTermination)(p);
+		p = m_pid;
+	}
 
-	for (i = 0; pArgv[i]; ++i)
-		free(pArgv[i]);
-	delete pArgv;
+	if (p > 0) {
+		pid_t pid;
+		int status;
+		while ((pid = ::waitpid(p, &status, WNOHANG)) == -1) {
+			if (errno != EINTR)
+				break;
+		}
+
+		if (pid < 0) {
+			WRITE_TRACE(DBG_FATAL, "waitpid() error : %m");
+			return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
+		}
+	}
+
+	out_fds->parent().setNonBlock();
+	cmd_socks->parent().setNonBlock();
+	swap_socks->parent().setNonBlock();
+
+	m_nFd[PRL_CT_MIGRATE_OUT_FD]      = out_fds->parent().release();
+	m_nFd[PRL_CT_MIGRATE_CMD_FD]      = cmd_socks->parent().release();
+	m_nFd[PRL_CT_MIGRATE_DATA_FD]     = data_socks->parent().release();
+	m_nFd[PRL_CT_MIGRATE_TMPLDATA_FD] = tmpl_data_socks->parent().release();
+	m_nFd[PRL_CT_MIGRATE_SWAP_FD]     = swap_socks->parent().release();
 
 	return PRL_ERR_SUCCESS;
-
-cleanup_5:
-	close(swap_socks[0]);
-	close(swap_socks[1]);
-cleanup_4:
-	close(tmpl_data_socks[0]);
-	close(tmpl_data_socks[1]);
-cleanup_3:
-	close(data_socks[0]);
-	close(data_socks[1]);
-cleanup_2:
-	close(cmd_socks[0]);
-	close(cmd_socks[1]);
-cleanup_1:
-	close(out_fds[0]);
-	close(out_fds[1]);
-cleanup_0:
-	for (i = 0; pArgv[i]; ++i)
-		free(pArgv[i]);
-	delete pArgv;
-
-	return nRetCode;
 }
 
 /*
@@ -387,14 +462,12 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 	pid_t pid;
 	int status;
 	int rc;
-	int nFd;
-	struct pollfd fds[sizeof(m_nFd)/sizeof(int)];
-	int i;
+	struct pollfd fds[m_nFd.size()];
 
 	{
 		QMutexLocker _lock(&m_terminateHandleDispPackageTaskMutex);
 		/* start incoming dispatcher package handler */
-		m_pHandleDispPackageTask = new Task_HandleDispPackage(pSendJobInterface, hJob, m_nFd, m_nFdSize);
+		m_pHandleDispPackageTask = new Task_HandleDispPackage(pSendJobInterface, hJob, m_nFd);
 		bool bConnected = QObject::connect(m_pHandleDispPackageTask,
 				SIGNAL(onDispPackageHandlerFailed(PRL_RESULT, const QString &)),
 				SLOT(handleDispPackageHandlerFailed(PRL_RESULT, const QString &)),
@@ -407,36 +480,38 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 	m_pPackage = IOPackage::createInstance(CtMigrateCmd, 2, pParentPackage, false);
 
 	do {
-		PRL_ASSERT(m_pid != -1);
-		pid = waitpid(m_pid, &status, WNOHANG);
-		if (pid < 0) {
-			if (errno == EINTR)
-				continue;
-			m_pid = -1;
-			if (errno != ECHILD)
-				terminateVzMigrate();
-			WRITE_TRACE(DBG_FATAL, "waitpid() : %m");
-			return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-		} else if (pid == m_pid) {
-			m_pid = -1;
-			terminateHandleDispPackageTask();
-			break;
+		{
+			QMutexLocker l(&m_terminateVzMigrateMutex);
+			if (m_pid <= 0)
+				return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
+			pid = ::waitpid(m_pid, &status, WNOHANG);
+			if (pid < 0) {
+				if (errno == EINTR)
+					continue;
+				m_pid = -1;
+				WRITE_TRACE(DBG_FATAL, "waitpid() : %m");
+				return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
+			} else if (pid == m_pid) {
+				m_pid = -1;
+				break;
+			}
 		}
 
-		for (i = 0, nFd = 0; i < m_nFdSize; i++) {
-			if (m_nFd[i] == -1)
+		int nFd = 0;
+		foreach (int fd, m_nFd) {
+			if (fd == -1)
 				continue;
-			fds[nFd].fd = m_nFd[i];
+			fds[nFd].fd = fd;
 			fds[nFd].events = POLLIN;
 			nFd++;
 		}
-		rc = poll(fds, nFd, -1);
+		rc = ::poll(fds, nFd, -1);
 		if (rc == -1) {
 			/* will ignore poll() error and wait child exit */
 			continue;
 		}
 /* TODO : progress */
-		for (i = 0; i < nFd; i++) {
+		for (int i = 0; i < nFd; i++) {
 			if (!(fds[i].revents & POLLIN))
 				continue;
 
@@ -462,6 +537,8 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 			}
 		}
 	} while(true);
+
+	terminateHandleDispPackageTask();
 
 	if (WIFEXITED(status)) {
 		if ((rc = WEXITSTATUS(status))) {
@@ -509,36 +586,17 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 
 void Task_VzMigrate::terminateVzMigrate()
 {
-	pid_t pid = m_pid;
+	pid_t p;
 
-	if (pid == -1)
+	QMutexLocker l(&m_terminateVzMigrateMutex);
+	if (m_pid <= 0) {
+		m_pfnTermination = &Task_VzMigrate::terminatePidPolicy;
 		return;
-
-	time_t t0 = time(NULL);
-	int ret = -1;
-
-	QMutexLocker _lock(&m_terminateVzMigrateMutex);
-	// give to vzmdest chance to complete undo operations during timeout of 300 sec
-	WRITE_TRACE(DBG_FATAL, "Sending SIGTERM to %d...", pid);
-	::kill(pid, SIGTERM);
-	while ((time(NULL) - t0) < 300) {
-		ret = waitpid(pid, NULL, WNOHANG);
-		if (ret == pid)
-			break;
-		if (ret == -1)
-			break;
-		sleep(1);
 	}
-	if (ret != pid) {
-		// vzmdest may have zombie with other PGID (rm, as sample)
-		WRITE_TRACE(DBG_FATAL, "Sending SIGKILL to %d...", pid);
-		::kill(pid, SIGKILL);
-		while (waitpid(pid, NULL, 0) == -1)
-			if (errno != EINTR)
-				break;
-	}
-	for (int i = 0; i < m_nFdSize; i++)
-		shutdown(m_nFd[i], SHUT_RDWR);
+
+	p = m_pid;
+	m_pid = -1;
+	terminatePidPolicy(p);
 }
 
 void Task_VzMigrate::terminateHandleDispPackageTask()
@@ -575,16 +633,12 @@ void Task_VzMigrate::handleDispPackageHandlerFailed(PRL_RESULT nRetCode, const Q
 Task_HandleDispPackage::Task_HandleDispPackage(
 		IOSendJobInterface *pSendJobInterface,
 		IOSendJob::Handle &hJob,
-		int *nFd,
-		int nFdSize)
+		QVector<int> &nFd)
 :m_pSendJobInterface(pSendJobInterface),
-m_hJob(hJob)
+	m_hJob(hJob),
+	m_nFd(nFd),
+	m_bActiveFd(nFd.size(), true)
 {
-	m_nFd = nFd;
-	m_nFdSize = nFdSize;
-	m_bActiveFd = new bool[nFdSize];
-	for (int i = 0; i < nFdSize; ++i)
-		m_bActiveFd[i] = true;
 }
 
 PRL_RESULT Task_HandleDispPackage::writeToVzMigrate(quint16 nFdNum, char *data, quint32 size)
@@ -593,7 +647,7 @@ PRL_RESULT Task_HandleDispPackage::writeToVzMigrate(quint16 nFdNum, char *data, 
 	size_t count;
 	struct pollfd fds[1];
 
-	if (nFdNum >= m_nFdSize) {
+	if (nFdNum >= m_nFd.size()) {
 		WRITE_TRACE( DBG_FATAL, "Invalid FD type : %d", nFdNum);
 		return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
 	}
@@ -621,7 +675,7 @@ PRL_RESULT Task_HandleDispPackage::writeToVzMigrate(quint16 nFdNum, char *data, 
 	while (1) {
 		while (1) {
 			errno = 0;
-			rc = write(m_nFd[nFdNum], data + count, (size_t)(size - count));
+			rc = ::write(m_nFd[nFdNum], data + count, (size_t)(size - count));
 			if (rc > 0) {
 				count += rc;
 				if (count >= size)
@@ -639,7 +693,7 @@ PRL_RESULT Task_HandleDispPackage::writeToVzMigrate(quint16 nFdNum, char *data, 
 		}
 
 		while (true) {
-			rc = poll(fds, 1, -1);
+			rc = ::poll(fds, 1, -1);
 			if (rc < 0) {
 				WRITE_TRACE(DBG_FATAL, "poll(write) : %m");
 				return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
@@ -727,7 +781,7 @@ void Task_HandleDispPackage::run()
 			} else {
 				/* empty package indicate that this descriptor closed on remote side.
 				   close this descriptor on our side too */
-				shutdown(m_nFd[*pnFdNum], SHUT_RDWR);
+				::shutdown(m_nFd[*pnFdNum], SHUT_RDWR);
 			}
 			if (PRL_FAILED(nRetCode))
 				break;
@@ -736,4 +790,43 @@ void Task_HandleDispPackage::run()
 			break;
 	}
 	emit onDispPackageHandlerFailed(nRetCode, sErrInfo);
+}
+
+void Task_VzMigrate::setPidPolicy(pid_t p)
+{
+	if (p > 0)
+		m_pid = p;
+	else
+		WRITE_TRACE(DBG_FATAL, "Bad pid");
+}
+
+void Task_VzMigrate::terminatePidPolicy(pid_t p)
+{
+	int ret = -1;
+	if (p <= 0) {
+		WRITE_TRACE(DBG_FATAL, "Bad pid");
+		return;
+	}
+	// give to vzmdest chance to complete undo operations during timeout of 300 sec
+	WRITE_TRACE(DBG_FATAL, "Sending SIGTERM to %d...", p);
+	::kill(p, SIGTERM);
+	time_t t0 = ::time(NULL);
+	while ((::time(NULL) - t0) < 300) {
+		ret = ::waitpid(p, NULL, WNOHANG);
+		if (ret == p)
+			break;
+		if (ret == -1)
+			break;
+		::sleep(1);
+	}
+	if (ret != p) {
+		// vzmdest may have zombie with other PGID (rm, as sample)
+		WRITE_TRACE(DBG_FATAL, "Sending SIGKILL to %d...", p);
+		::kill(p, SIGKILL);
+		while (::waitpid(p, NULL, 0) == -1)
+			if (errno != EINTR)
+				break;
+	}
+	foreach (int i, m_nFd)
+		::shutdown(i, SHUT_RDWR);
 }
