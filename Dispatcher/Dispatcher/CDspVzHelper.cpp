@@ -1082,7 +1082,9 @@ void CDspVzHelper::appendAdvancedParamsToCtConfig(SmartPtr<CVmConfiguration> pOu
 	}
 
 	foreach ( CVmGenericNetworkAdapter* device, pOutConfig->getVmHardwareList()->m_lstNetworkAdapters ) {
-		device->setHostInterfaceName(PrlNet::getDefaultVirtAdapterName(device, pOutConfig));
+		if (device->getHostInterfaceName().isEmpty()) {
+			device->setHostInterfaceName(PrlNet::getDefaultVirtAdapterName(device, pOutConfig));
+		}
 	}
 }
 
