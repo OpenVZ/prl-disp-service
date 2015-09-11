@@ -295,6 +295,8 @@ private:
 	typename boost::disable_if<boost::is_pointer<T> >::type
 		add(T builder_);
 
+	Libvirt::Domain::Xml::Panic craftPanic() const;
+
 	Boot::Reverse m_boot;
 	list_type m_deviceList;
 	Attachment m_attachment;
