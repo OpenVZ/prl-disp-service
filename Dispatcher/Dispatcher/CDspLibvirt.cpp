@@ -72,6 +72,14 @@ PRL_RESULT Unit::stop()
 
 PRL_RESULT Unit::start()
 {
+	int s = VIR_DOMAIN_NOSTATE;
+
+	if (-1 == virDomainGetState(m_domain.data(), &s, NULL, 0))
+		return PRL_ERR_VM_GET_STATUS_FAILED;
+
+	if (s == VIR_DOMAIN_CRASHED)
+		do_(m_domain.data(), boost::bind(&virDomainDestroy, _1));
+
 	return do_(m_domain.data(), boost::bind(&virDomainCreateWithFlags, _1, VIR_DOMAIN_START_FORCE_BOOT));
 }
 
@@ -1132,8 +1140,19 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 		break;
 	case VIR_DOMAIN_EVENT_STOPPED:
 	case VIR_DOMAIN_EVENT_SHUTDOWN:
-	case VIR_DOMAIN_EVENT_CRASHED:
 		v->setState(domain_, VMS_STOPPED);
+		break;
+	case VIR_DOMAIN_EVENT_CRASHED:
+		switch (detail_)
+		{
+		case VIR_DOMAIN_EVENT_CRASHED_PANICKED:
+			WRITE_TRACE(DBG_DEBUG, "VM \"%s\" got guest panic.", virDomainGetName(domain_));
+			// Guest OS crashed. If libvirt has "preserve" action for on_crash event
+			// you can do coredumping and problem reporting here.
+		default:
+			v->setState(domain_, VMS_STOPPED);
+			break;
+		}
 		break;
 	}
 	return 0;

@@ -358,6 +358,9 @@ Libvirt::Domain::Xml::Devices List::getResult() const
 		output.setEmulator(QString("/usr/libexec/qemu-kvm"));
 
 	output.setChoice912List(list_type() << m_deviceList << m_attachment.getControllers());
+
+	output.setPanic(craftPanic());
+
 	return output;
 }
 
@@ -486,6 +489,23 @@ void List::add(const CVmGenericNetworkAdapter* network_)
 	}
 }
 
+Libvirt::Domain::Xml::Panic List::craftPanic() const
+{
+	Libvirt::Domain::Xml::Panic p;
+	Libvirt::Domain::Xml::Isaaddress a;
+
+	// The only one right value.
+	// See: https://libvirt.org/formatdomain.html#elementsPanic
+	a.setIobase(QString("0x505"));
+
+	mpl::at_c<Libvirt::Domain::Xml::VAddress::types, 7>::type v;
+	v.setValue(a);
+
+	p.setAddress(Libvirt::Domain::Xml::VAddress(v));
+
+	return p;
+}
+
 } // namespace Devices
 
 namespace Vm
@@ -528,6 +548,7 @@ PRL_RESULT Reverse::setBlank()
 	m_result->setType(Libvirt::Domain::Xml::ETypeKvm);
 	m_result->setOs(mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type());
 	m_result->setFeatures(f);
+	m_result->setOnCrash(Libvirt::Domain::Xml::ECrashOptionsPreserve);
 	return PRL_ERR_SUCCESS;
 }
 
