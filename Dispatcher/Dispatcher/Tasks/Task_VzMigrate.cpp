@@ -436,6 +436,8 @@ PRL_RESULT Task_VzMigrate::startVzMigrate(const QString &sCmd, const QStringList
 
 	out_fds->parent().setNonBlock();
 	cmd_socks->parent().setNonBlock();
+	data_socks->parent().setNonBlock();
+	tmpl_data_socks->parent().setNonBlock();
 	swap_socks->parent().setNonBlock();
 
 	m_nFd[PRL_CT_MIGRATE_OUT_FD]      = out_fds->parent().release();
