@@ -1695,12 +1695,8 @@ PRL_RESULT Task_RegisterVm::saveVmConfig( )
 				getVmServerIdentification()->getServerUuid()
 		);
 		PRL_RESULT save_rc = PRL_ERR_FAILURE;
-		if (doRegisterOnly())
-		{
-			save_rc = CDspService::instance()->getVmConfigManager()
-				.saveConfig(m_pVmConfig, m_pVmInfo->vmXmlPath, getClient(), true, true);
-		}
-		else
+		m_pVmConfig->getVmIdentification()->setHomePath(m_pVmInfo->vmXmlPath);
+		if (!doRegisterOnly())
 		{
 			ret = checkStartUpVmSettings();
 			if (PRL_FAILED(ret))
@@ -1711,12 +1707,11 @@ PRL_RESULT Task_RegisterVm::saveVmConfig( )
 			if (PRL_FAILED(ret))
 				throw ret;
 */
-			m_pVmConfig->getVmIdentification()->setHomePath(m_pVmInfo->vmXmlPath);
 			CDspService::instance()->getVmDirHelper().resetSecureParamsFromVmConfig(m_pVmConfig);
-#ifdef _LIBVIRT_
-			save_rc = Libvirt::Kit.vms().define(*m_pVmConfig);
-#endif // _LIBVIRT_
 		}
+#ifdef _LIBVIRT_
+		save_rc = Libvirt::Kit.vms().define(*m_pVmConfig);
+#endif // _LIBVIRT_
 		if( !IS_OPERATION_SUCCEEDED( save_rc ) )
 		{
 			WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher unable to save configuration of the VM %s to file %s. Reason: %ld: %s",
