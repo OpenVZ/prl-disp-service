@@ -81,6 +81,7 @@ struct Unit
 	PRL_RESULT undefine();
 	PRL_RESULT getState(VIRTUAL_MACHINE_STATE& dst_) const;
 	PRL_RESULT getConfig(CVmConfiguration& dst_) const;
+	PRL_RESULT getConfig(QString& dst_) const;
 	PRL_RESULT setConfig(const CVmConfiguration& value_);
 	Performance getPerformance() const
 	{
@@ -88,6 +89,12 @@ struct Unit
 	}
 
 private:
+	char* getConfig() const
+	{
+		return virDomainGetXMLDesc(m_domain.data(),
+			VIR_DOMAIN_XML_INACTIVE | VIR_DOMAIN_XML_SECURE);
+	}
+
 	QSharedPointer<virDomain> m_domain;
 };
 

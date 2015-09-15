@@ -108,8 +108,8 @@ PRL_RESULT Unit::getState(VIRTUAL_MACHINE_STATE& dst_) const
 
 PRL_RESULT Unit::getConfig(CVmConfiguration& dst_) const
 {
-	char* x = virDomainGetXMLDesc(m_domain.data(),
-			VIR_DOMAIN_XML_INACTIVE | VIR_DOMAIN_XML_SECURE);
+	char* x = getConfig();
+
 	if (NULL == x)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
@@ -128,6 +128,18 @@ PRL_RESULT Unit::getConfig(CVmConfiguration& dst_) const
                         ->getVmServerIdentification()->getServerUuid());
 	dst_ = *output;
 	delete output;
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Unit::getConfig(QString& dst_) const
+{
+	char* x = getConfig();
+
+	if (NULL == x)
+		return PRL_ERR_VM_GET_CONFIG_FAILED;
+
+	dst_ = x;
+	free(x);
 	return PRL_ERR_SUCCESS;
 }
 
