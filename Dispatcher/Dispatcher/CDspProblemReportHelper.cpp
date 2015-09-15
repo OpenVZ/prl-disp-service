@@ -821,6 +821,10 @@ void CDspProblemReportHelper::FillVmProblemReportData(CProblemReport & cReport,
 	addVmAdvancedInfoToReport( cReport, vmConfig );
 	cReport.setVmConfig( vmConfig.toString() );
 
+	QString strDomainDesc;
+	Libvirt::Kit.vms().at(strVmUuid).getConfig(strDomainDesc);
+	cReport.setVmDomain(strDomainDesc);
+
 	const QDateTime minDumpTime = QDateTime::currentDateTime().addDays(-GUEST_CRASH_DUMPS_MAX_AGE_IN_DAYS);
 	WRITE_REPORT_PROFILER_STRING( "addGuestCrashDumps" );
 	CDspProblemReportHelper::AddGuestCrashDumps( cReport, strVmDir,

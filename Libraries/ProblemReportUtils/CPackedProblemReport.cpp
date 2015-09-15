@@ -773,6 +773,7 @@ QStringList CPackedProblemReport::createReportFilesList()
 	lstFiles += getElementPathFromArchive( getClientProxyInfo() );
 	lstFiles += getElementPathFromArchive( getLoadedDrivers() );
 	lstFiles += getElementPathFromArchive( getVmConfig() );
+	lstFiles += getElementPathFromArchive(getVmDomain());
 	lstFiles += getElementPathFromArchive( getPerformanceCounters() );
 	lstFiles += getElementPathFromArchive( getMonitorData() );
 	lstFiles += getElementPathFromArchive( getNetConfig() );
@@ -963,6 +964,7 @@ SmartPtr<CProblemReport> CPackedProblemReport::convertToProblemReportOldFormat()
 	pPR->setMonitorData( getValue( pPR->getNetConfig() ) );
 	pPR->setPerformanceCounters( getValue( pPR->getPerformanceCounters() ) );
 	pPR->setVmConfig( getValue( pPR->getVmConfig() ) );
+	pPR->setVmDomain(getValue(pPR->getVmDomain()));
 	pPR->setVmUpdaterInfo( getValue( pPR->getVmUpdaterInfo() ) );
 	pPR->setGuestOs( getValue( pPR->getGuestOs() ) );
 	pPR->setVmDirectory( getValue( pPR->getVmDirectory() ) );
@@ -1014,6 +1016,11 @@ QString CPackedProblemReport::getValue( const QString & strNameInArchive ) const
 QString CPackedProblemReport::getVmConfigFromArchive() const
 {
 	return getValue( PR_PACKED_REP_CURRENT_VM );
+}
+
+QString CPackedProblemReport::getVmDomainFromArchive() const
+{
+	return getValue(PR_PACKED_REP_CURRENT_VM_DOMAIN);
 }
 
 #define setValuePointerWithCaller( pointer, nameInArchive, functionName ) \
@@ -1158,6 +1165,11 @@ void CPackedProblemReport::setVmConfig(QString value)
 	setValueWithCaller( value, PR_PACKED_REP_CURRENT_VM, setVmConfig );
 }
 
+void CPackedProblemReport::setVmDomain(QString value)
+{
+	setValueWithCaller(value, PR_PACKED_REP_CURRENT_VM_DOMAIN, setVmDomain);
+}
+
 void CPackedProblemReport::setVmUpdaterInfo(QString value)
 {
 	setValueWithCaller( value, PR_PACKED_REP_UPDATER_VM_INFO, setVmUpdaterInfo );
@@ -1230,6 +1242,8 @@ int CPackedProblemReport::fromBaseReport( const QString & strBaseReport )
 	setPerformanceCounters( CProblemReport::getPerformanceCounters() );
 
 	setVmConfig( CProblemReport::getVmConfig() );
+
+	setVmDomain( CProblemReport::getVmDomain() );
 
 	setVmUpdaterInfo( CProblemReport::getVmUpdaterInfo() );
 
