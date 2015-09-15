@@ -155,6 +155,7 @@ Libvirt::Domain::Xml::VDiskSource Clustered<T>::getSource() const
 			f = getDevice().getSystemName();
 
 		s.setFile(f);
+		s.setStartupPolicy(Libvirt::Domain::Xml::EStartupPolicyOptional);
 		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 0>::type x;
 		x.setValue(s);
 		return x;
