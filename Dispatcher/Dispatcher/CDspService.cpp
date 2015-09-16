@@ -112,11 +112,6 @@
 
 #include "CDspVzHelper.h"
 
-// breakpad includes
-// #if defined(_WIN_) || defined(_LIN_)
-// #include "parallels_breakpad.h"
-// #endif
-
 #if defined(_LIN_)
 #include "Libraries/PrlCommonUtils/RLimits.h"
 #endif
@@ -3053,23 +3048,6 @@ void CDspService::handleVmMigrateEvent(SmartPtr<CDspVm> pVm, const SmartPtr<IOPa
 
 /*****************************************************************************/
 
-/* This function will called in any case: on exit(), on abort()
- * and ever on crash */
-/*
-static bool CrashDetectionCallback(
-	void* context
-#ifdef _WIN_
-	, EXCEPTION_POINTERS* ep, MDRawAssertionInfo* inf
-#endif
-	)
-{
-#if defined(_WIN_)
-	return ParallelsBreakpad::FilterCallback(context, ep, inf);
-#else
-	return ParallelsBreakpad::FilterCallback(context);
-#endif
-}*/
-
 #ifndef _WIN_
 void sigterm_handler ( int signum )
 {
@@ -3115,16 +3093,6 @@ int main_part(int argc, char** argv)
 
 int main ( int argc, char** argv )
 {
-/*
-#if defined(_WIN_) || defined(_LIN_)
-	// Create breakpad handler
-	ParallelsBreakpad::CREATE_CRASH_HANDLER(
-									0, // empty extra_dump_name
-									ParallelsBreakpad::GenFilenameCallback,
-									ParallelsBreakpad::MinidumpCallback,
-									&CrashDetectionCallback);
-#endif
-*/
 	return main_part(argc, argv);
 }
 
