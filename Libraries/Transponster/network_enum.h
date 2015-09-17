@@ -31,16 +31,16 @@ namespace Network
 {
 namespace Xml
 {
-enum EIpv6
+enum EVirYesNo
 {
-	EIpv6Yes,
-	EIpv6No
+	EVirYesNoYes,
+	EVirYesNoNo
 };
 
-enum EStp
+enum EVirOnOff
 {
-	EStpOn,
-	EStpOff
+	EVirOnOffOn,
+	EVirOnOffOff
 };
 
 enum EMode
@@ -54,40 +54,16 @@ enum EMode
 	EModeHostdev
 };
 
-enum EManaged
-{
-	EManagedYes,
-	EManagedNo
-};
-
-enum EMultifunction
-{
-	EMultifunctionOn,
-	EMultifunctionOff
-};
-
 enum EName
 {
 	ENameKvm,
 	ENameVfio
 };
 
-enum EDefault
-{
-	EDefaultYes,
-	EDefaultNo
-};
-
 enum ENativeMode
 {
 	ENativeModeTagged,
 	ENativeModeUntagged
-};
-
-enum EForwardPlainNames
-{
-	EForwardPlainNamesYes,
-	EForwardPlainNamesNo
 };
 
 enum EState

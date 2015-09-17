@@ -240,7 +240,7 @@ struct Attachment
 
 	Libvirt::Domain::Xml::VAddress craftIde();
 	Libvirt::Domain::Xml::VAddress craftSata();
-	QList<Libvirt::Domain::Xml::VChoice912 > getControllers() const
+	QList<Libvirt::Domain::Xml::VChoice928 > getControllers() const
 	{
 		return m_controllerList;
 	}
@@ -253,13 +253,13 @@ private:
 	};
 
 	static Libvirt::Domain::Xml::VAddress craft(quint16 controller_, quint16 unit_);
-	template<Libvirt::Domain::Xml::EType5 T>
+	template<Libvirt::Domain::Xml::EType6 T>
 	void craftController(quint16 index_);
 
 	quint16 m_ide;
 	quint16 m_sata;
 	quint8 m_implicit;
-	QList<Libvirt::Domain::Xml::VChoice912 > m_controllerList;
+	QList<Libvirt::Domain::Xml::VChoice928 > m_controllerList;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -283,12 +283,12 @@ struct List
 	void add(const CVmGenericNetworkAdapter* network_);
 
 private:
-	typedef QList<Libvirt::Domain::Xml::VChoice912 > list_type;
+	typedef QList<Libvirt::Domain::Xml::VChoice928 > list_type;
 
 	template<int N, class T>
 	void add(const T& value_)
 	{
-		typename mpl::at_c<Libvirt::Domain::Xml::VChoice912::types, N>::type x;
+		typename mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, N>::type x;
 		x.setValue(value_);
 		m_deviceList << x;
 	}

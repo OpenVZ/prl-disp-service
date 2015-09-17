@@ -319,16 +319,16 @@ struct Device: boost::static_visitor<PRL_RESULT>
 	{
 		return PRL_ERR_SUCCESS;
 	}
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice912::types, 0>::type& disk_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice912::types, 4>::type& interface_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice912::types, 6>::type& sound_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice912::types, 8>::type& graphics_) const
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 0>::type& disk_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 4>::type& interface_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 6>::type& sound_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 8>::type& graphics_) const
 	{
 		return boost::apply_visitor(Graphics(*m_vm), graphics_.getValue()); 
 	}
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice912::types, 9>::type& video_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice912::types, 11>::type& parallel_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice912::types, 12>::type& serial_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 9>::type& video_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 11>::type& parallel_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 12>::type& serial_) const;
 
 private:
 	Boot::Direct* m_boot;
@@ -399,17 +399,17 @@ struct Addressing: boost::static_visitor<void>
 		consume(group_.getValue().getProtocol());
 		consume(group_.getValue().getProtocol2());
 	}
-	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1244::types, 0>::type& ) const
+	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1263::types, 0>::type& ) const
 	{
 		m_sink->setConfigureWithDhcp(true);
 	}
-	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1244::types, 1>::type& ) const
+	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1263::types, 1>::type& ) const
 	{
 		m_sink->setConfigureWithDhcp(false);
 	}
 
 private:
-	void consume(const boost::optional<Libvirt::Iface::Xml::VChoice1244 >& ipv4_) const
+	void consume(const boost::optional<Libvirt::Iface::Xml::VChoice1263 >& ipv4_) const
 	{
 		if (ipv4_)
 			boost::apply_visitor(*this, ipv4_.get());

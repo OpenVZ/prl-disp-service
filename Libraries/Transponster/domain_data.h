@@ -2568,13 +2568,13 @@ struct Validatable<Domain::Xml::PAliasName>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1076
+// struct PData1096
 
 namespace Domain
 {
 namespace Xml
 {
-struct PData1076
+struct PData1096
 {
 	typedef QString value_type;
 };
@@ -2583,20 +2583,20 @@ struct PData1076
 } // namespace Domain
 
 template<>
-struct Validatable<Domain::Xml::PData1076>: mpl::true_
+struct Validatable<Domain::Xml::PData1096>: mpl::true_
 {
-	static bool validate(const Domain::Xml::PData1076::value_type& value_);
+	static bool validate(const Domain::Xml::PData1096::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1078
+// struct PData1098
 
 namespace Domain
 {
 namespace Xml
 {
-struct PData1078
+struct PData1098
 {
 	typedef QString value_type;
 };
@@ -2605,20 +2605,20 @@ struct PData1078
 } // namespace Domain
 
 template<>
-struct Validatable<Domain::Xml::PData1078>: mpl::true_
+struct Validatable<Domain::Xml::PData1098>: mpl::true_
 {
-	static bool validate(const Domain::Xml::PData1078::value_type& value_);
+	static bool validate(const Domain::Xml::PData1098::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1080
+// struct PData1100
 
 namespace Domain
 {
 namespace Xml
 {
-struct PData1080
+struct PData1100
 {
 	typedef qint32 value_type;
 };
@@ -2627,18 +2627,18 @@ struct PData1080
 } // namespace Domain
 
 template<>
-struct Traits<Domain::Xml::PData1080>
+struct Traits<Domain::Xml::PData1100>
 {
-	static bool parse(const QString& src_, Domain::Xml::PData1080::value_type& dst_);
+	static bool parse(const QString& src_, Domain::Xml::PData1100::value_type& dst_);
 
-	static QString generate(Domain::Xml::PData1080::value_type src_);
+	static QString generate(Domain::Xml::PData1100::value_type src_);
 
 };
 
 template<>
-struct Validatable<Domain::Xml::PData1080>: mpl::true_
+struct Validatable<Domain::Xml::PData1100>: mpl::true_
 {
-	static bool validate(Domain::Xml::PData1080::value_type value_);
+	static bool validate(Domain::Xml::PData1100::value_type value_);
 
 };
 
@@ -2665,13 +2665,13 @@ struct Validatable<Domain::Xml::PCcwSsidRange>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1082
+// struct PData1102
 
 namespace Domain
 {
 namespace Xml
 {
-struct PData1082
+struct PData1102
 {
 	typedef QString value_type;
 };
@@ -2680,20 +2680,20 @@ struct PData1082
 } // namespace Domain
 
 template<>
-struct Validatable<Domain::Xml::PData1082>: mpl::true_
+struct Validatable<Domain::Xml::PData1102>: mpl::true_
 {
-	static bool validate(const Domain::Xml::PData1082::value_type& value_);
+	static bool validate(const Domain::Xml::PData1102::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1084
+// struct PData1104
 
 namespace Domain
 {
 namespace Xml
 {
-struct PData1084
+struct PData1104
 {
 	typedef qint32 value_type;
 };
@@ -2702,18 +2702,18 @@ struct PData1084
 } // namespace Domain
 
 template<>
-struct Traits<Domain::Xml::PData1084>
+struct Traits<Domain::Xml::PData1104>
 {
-	static bool parse(const QString& src_, Domain::Xml::PData1084::value_type& dst_);
+	static bool parse(const QString& src_, Domain::Xml::PData1104::value_type& dst_);
 
-	static QString generate(Domain::Xml::PData1084::value_type src_);
+	static QString generate(Domain::Xml::PData1104::value_type src_);
 
 };
 
 template<>
-struct Validatable<Domain::Xml::PData1084>: mpl::true_
+struct Validatable<Domain::Xml::PData1104>: mpl::true_
 {
-	static bool validate(Domain::Xml::PData1084::value_type value_);
+	static bool validate(Domain::Xml::PData1104::value_type value_);
 
 };
 
@@ -2834,7 +2834,7 @@ namespace Domain
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<EType2, VStorageFormat > > VTypeImpl;
+typedef Choice<mpl::vector<EType3, VStorageFormat > > VTypeImpl;
 typedef VTypeImpl::value_type VType;
 
 } // namespace Xml
@@ -2856,7 +2856,7 @@ namespace Domain
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<PData1076, PData1078, PData1080 > > VCcwCssidRangeImpl;
+typedef Choice<mpl::vector<PData1096, PData1098, PData1100 > > VCcwCssidRangeImpl;
 typedef VCcwCssidRangeImpl::value_type VCcwCssidRange;
 
 } // namespace Xml
@@ -2878,7 +2878,7 @@ namespace Domain
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<PData1082, PData1084 > > VCcwDevnoRangeImpl;
+typedef Choice<mpl::vector<PData1102, PData1104 > > VCcwDevnoRangeImpl;
 typedef VCcwDevnoRangeImpl::value_type VCcwDevnoRange;
 
 } // namespace Xml
