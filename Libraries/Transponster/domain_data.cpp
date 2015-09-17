@@ -393,7 +393,7 @@ bool Validatable<Domain::Xml::PDeviceName>::validate(const Domain::Xml::PDeviceN
 
 bool Validatable<Domain::Xml::PFilePath>::validate(const Domain::Xml::PFilePath::value_type& value_)
 {
-	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"'<>/%]+");
+	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%]+");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -405,7 +405,7 @@ bool Validatable<Domain::Xml::PFilePath>::validate(const Domain::Xml::PFilePath:
 
 bool Validatable<Domain::Xml::PDirPath>::validate(const Domain::Xml::PDirPath::value_type& value_)
 {
-	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"'<>/%]+");
+	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%]+");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -429,7 +429,7 @@ bool Validatable<Domain::Xml::PAbsFilePath>::validate(const Domain::Xml::PAbsFil
 
 bool Validatable<Domain::Xml::PAbsDirPath>::validate(const Domain::Xml::PAbsDirPath::value_type& value_)
 {
-	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"'<>/%]*");
+	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%]*");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -1587,9 +1587,9 @@ bool Validatable<Domain::Xml::PAliasName>::validate(const Domain::Xml::PAliasNam
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1076
+// struct PData1096
 
-bool Validatable<Domain::Xml::PData1076>::validate(const Domain::Xml::PData1076::value_type& value_)
+bool Validatable<Domain::Xml::PData1096>::validate(const Domain::Xml::PData1096::value_type& value_)
 {
 	QRegExp q("0x[0-9a-eA-E][0-9a-fA-F]?");
 	if (!q.exactMatch(value_))
@@ -1599,9 +1599,9 @@ bool Validatable<Domain::Xml::PData1076>::validate(const Domain::Xml::PData1076:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1078
+// struct PData1098
 
-bool Validatable<Domain::Xml::PData1078>::validate(const Domain::Xml::PData1078::value_type& value_)
+bool Validatable<Domain::Xml::PData1098>::validate(const Domain::Xml::PData1098::value_type& value_)
 {
 	QRegExp q("0x[fF][0-9a-eA-E]?");
 	if (!q.exactMatch(value_))
@@ -1611,21 +1611,21 @@ bool Validatable<Domain::Xml::PData1078>::validate(const Domain::Xml::PData1078:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1080
+// struct PData1100
 
-bool Traits<Domain::Xml::PData1080>::parse(const QString& src_, Domain::Xml::PData1080::value_type& dst_)
+bool Traits<Domain::Xml::PData1100>::parse(const QString& src_, Domain::Xml::PData1100::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Domain::Xml::PData1080>::generate(Domain::Xml::PData1080::value_type src_)
+QString Traits<Domain::Xml::PData1100>::generate(Domain::Xml::PData1100::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Domain::Xml::PData1080>::validate(Domain::Xml::PData1080::value_type value_)
+bool Validatable<Domain::Xml::PData1100>::validate(Domain::Xml::PData1100::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -1649,9 +1649,9 @@ bool Validatable<Domain::Xml::PCcwSsidRange>::validate(const Domain::Xml::PCcwSs
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1082
+// struct PData1102
 
-bool Validatable<Domain::Xml::PData1082>::validate(const Domain::Xml::PData1082::value_type& value_)
+bool Validatable<Domain::Xml::PData1102>::validate(const Domain::Xml::PData1102::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,4}");
 	if (!q.exactMatch(value_))
@@ -1661,21 +1661,21 @@ bool Validatable<Domain::Xml::PData1082>::validate(const Domain::Xml::PData1082:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1084
+// struct PData1104
 
-bool Traits<Domain::Xml::PData1084>::parse(const QString& src_, Domain::Xml::PData1084::value_type& dst_)
+bool Traits<Domain::Xml::PData1104>::parse(const QString& src_, Domain::Xml::PData1104::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Domain::Xml::PData1084>::generate(Domain::Xml::PData1084::value_type src_)
+QString Traits<Domain::Xml::PData1104>::generate(Domain::Xml::PData1104::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Domain::Xml::PData1084>::validate(Domain::Xml::PData1084::value_type value_)
+bool Validatable<Domain::Xml::PData1104>::validate(Domain::Xml::PData1104::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -1873,7 +1873,7 @@ bool Traits<Domain::Xml::VType>::parse(const QString& src_, Domain::Xml::VType& 
 {
 	int x;
 	mpl::at_c<Domain::Xml::VType::types, 0>::type a0;
-	x = Marshal<Domain::Xml::EType2>::setString(src_, a0);
+	x = Marshal<Domain::Xml::EType3>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
@@ -1895,7 +1895,7 @@ QString Traits<Domain::Xml::VType>::generate(const Domain::Xml::VType& src_)
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Domain::Xml::EType2>::getString(boost::get<mpl::at_c<Domain::Xml::VType::types, 0>::type>(src_));
+		return Marshal<Domain::Xml::EType3>::getString(boost::get<mpl::at_c<Domain::Xml::VType::types, 0>::type>(src_));
 	case 1:
 		return Marshal<Domain::Xml::VStorageFormat>::getString(boost::get<mpl::at_c<Domain::Xml::VType::types, 1>::type>(src_));
 	}
@@ -1909,21 +1909,21 @@ bool Traits<Domain::Xml::VCcwCssidRange>::parse(const QString& src_, Domain::Xml
 {
 	int x;
 	mpl::at_c<Domain::Xml::VCcwCssidRange::types, 0>::type a0;
-	x = Marshal<Domain::Xml::PData1076>::setString(src_, a0);
+	x = Marshal<Domain::Xml::PData1096>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
 		return true;
 	}
 	mpl::at_c<Domain::Xml::VCcwCssidRange::types, 1>::type a1;
-	x = Marshal<Domain::Xml::PData1078>::setString(src_, a1);
+	x = Marshal<Domain::Xml::PData1098>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
 		return true;
 	}
 	mpl::at_c<Domain::Xml::VCcwCssidRange::types, 2>::type a2;
-	x = Marshal<Domain::Xml::PData1080>::setString(src_, a2);
+	x = Marshal<Domain::Xml::PData1100>::setString(src_, a2);
 	if (0 < x)
 	{
 		dst_ = a2;
@@ -1938,11 +1938,11 @@ QString Traits<Domain::Xml::VCcwCssidRange>::generate(const Domain::Xml::VCcwCss
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Domain::Xml::PData1076>::getString(boost::get<mpl::at_c<Domain::Xml::VCcwCssidRange::types, 0>::type>(src_));
+		return Marshal<Domain::Xml::PData1096>::getString(boost::get<mpl::at_c<Domain::Xml::VCcwCssidRange::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Domain::Xml::PData1078>::getString(boost::get<mpl::at_c<Domain::Xml::VCcwCssidRange::types, 1>::type>(src_));
+		return Marshal<Domain::Xml::PData1098>::getString(boost::get<mpl::at_c<Domain::Xml::VCcwCssidRange::types, 1>::type>(src_));
 	case 2:
-		return Marshal<Domain::Xml::PData1080>::getString(boost::get<mpl::at_c<Domain::Xml::VCcwCssidRange::types, 2>::type>(src_));
+		return Marshal<Domain::Xml::PData1100>::getString(boost::get<mpl::at_c<Domain::Xml::VCcwCssidRange::types, 2>::type>(src_));
 	}
 	return QString();
 }
@@ -1954,14 +1954,14 @@ bool Traits<Domain::Xml::VCcwDevnoRange>::parse(const QString& src_, Domain::Xml
 {
 	int x;
 	mpl::at_c<Domain::Xml::VCcwDevnoRange::types, 0>::type a0;
-	x = Marshal<Domain::Xml::PData1082>::setString(src_, a0);
+	x = Marshal<Domain::Xml::PData1102>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
 		return true;
 	}
 	mpl::at_c<Domain::Xml::VCcwDevnoRange::types, 1>::type a1;
-	x = Marshal<Domain::Xml::PData1084>::setString(src_, a1);
+	x = Marshal<Domain::Xml::PData1104>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
@@ -1976,9 +1976,9 @@ QString Traits<Domain::Xml::VCcwDevnoRange>::generate(const Domain::Xml::VCcwDev
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Domain::Xml::PData1082>::getString(boost::get<mpl::at_c<Domain::Xml::VCcwDevnoRange::types, 0>::type>(src_));
+		return Marshal<Domain::Xml::PData1102>::getString(boost::get<mpl::at_c<Domain::Xml::VCcwDevnoRange::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Domain::Xml::PData1084>::getString(boost::get<mpl::at_c<Domain::Xml::VCcwDevnoRange::types, 1>::type>(src_));
+		return Marshal<Domain::Xml::PData1104>::getString(boost::get<mpl::at_c<Domain::Xml::VCcwDevnoRange::types, 1>::type>(src_));
 	}
 	return QString();
 }

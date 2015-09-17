@@ -50,19 +50,19 @@ Enum<Iface::Xml::EState>::data_type Enum<Iface::Xml::EState>::getData()
 }
 
 template<>
-Enum<Iface::Xml::EYesOrNo>::data_type Enum<Iface::Xml::EYesOrNo>::getData()
+Enum<Iface::Xml::EVirYesNo>::data_type Enum<Iface::Xml::EVirYesNo>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Iface::Xml::EYesOrNoYes, "yes"))
-			(data_type::value_type(Iface::Xml::EYesOrNoNo, "no"));
+			(data_type::value_type(Iface::Xml::EVirYesNoYes, "yes"))
+			(data_type::value_type(Iface::Xml::EVirYesNoNo, "no"));
 }
 
 template<>
-Enum<Iface::Xml::EOnOrOff>::data_type Enum<Iface::Xml::EOnOrOff>::getData()
+Enum<Iface::Xml::EVirOnOff>::data_type Enum<Iface::Xml::EVirOnOff>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Iface::Xml::EOnOrOffOn, "on"))
-			(data_type::value_type(Iface::Xml::EOnOrOffOff, "off"));
+			(data_type::value_type(Iface::Xml::EVirOnOffOn, "on"))
+			(data_type::value_type(Iface::Xml::EVirOnOffOff, "off"));
 }
 
 template<>

@@ -28,19 +28,19 @@ namespace ba = boost::assign;
 namespace Libvirt
 {
 template<>
-Enum<Network::Xml::EIpv6>::data_type Enum<Network::Xml::EIpv6>::getData()
+Enum<Network::Xml::EVirYesNo>::data_type Enum<Network::Xml::EVirYesNo>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Network::Xml::EIpv6Yes, "yes"))
-			(data_type::value_type(Network::Xml::EIpv6No, "no"));
+			(data_type::value_type(Network::Xml::EVirYesNoYes, "yes"))
+			(data_type::value_type(Network::Xml::EVirYesNoNo, "no"));
 }
 
 template<>
-Enum<Network::Xml::EStp>::data_type Enum<Network::Xml::EStp>::getData()
+Enum<Network::Xml::EVirOnOff>::data_type Enum<Network::Xml::EVirOnOff>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Network::Xml::EStpOn, "on"))
-			(data_type::value_type(Network::Xml::EStpOff, "off"));
+			(data_type::value_type(Network::Xml::EVirOnOffOn, "on"))
+			(data_type::value_type(Network::Xml::EVirOnOffOff, "off"));
 }
 
 template<>
@@ -57,22 +57,6 @@ Enum<Network::Xml::EMode>::data_type Enum<Network::Xml::EMode>::getData()
 }
 
 template<>
-Enum<Network::Xml::EManaged>::data_type Enum<Network::Xml::EManaged>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Network::Xml::EManagedYes, "yes"))
-			(data_type::value_type(Network::Xml::EManagedNo, "no"));
-}
-
-template<>
-Enum<Network::Xml::EMultifunction>::data_type Enum<Network::Xml::EMultifunction>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Network::Xml::EMultifunctionOn, "on"))
-			(data_type::value_type(Network::Xml::EMultifunctionOff, "off"));
-}
-
-template<>
 Enum<Network::Xml::EName>::data_type Enum<Network::Xml::EName>::getData()
 {
 	return ba::list_of<data_type::relation>
@@ -81,27 +65,11 @@ Enum<Network::Xml::EName>::data_type Enum<Network::Xml::EName>::getData()
 }
 
 template<>
-Enum<Network::Xml::EDefault>::data_type Enum<Network::Xml::EDefault>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Network::Xml::EDefaultYes, "yes"))
-			(data_type::value_type(Network::Xml::EDefaultNo, "no"));
-}
-
-template<>
 Enum<Network::Xml::ENativeMode>::data_type Enum<Network::Xml::ENativeMode>::getData()
 {
 	return ba::list_of<data_type::relation>
 			(data_type::value_type(Network::Xml::ENativeModeTagged, "tagged"))
 			(data_type::value_type(Network::Xml::ENativeModeUntagged, "untagged"));
-}
-
-template<>
-Enum<Network::Xml::EForwardPlainNames>::data_type Enum<Network::Xml::EForwardPlainNames>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Network::Xml::EForwardPlainNamesYes, "yes"))
-			(data_type::value_type(Network::Xml::EForwardPlainNamesNo, "no"));
 }
 
 template<>

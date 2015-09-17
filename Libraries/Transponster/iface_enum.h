@@ -49,16 +49,16 @@ enum EState
 	EStateUp
 };
 
-enum EYesOrNo
+enum EVirYesNo
 {
-	EYesOrNoYes,
-	EYesOrNoNo
+	EVirYesNoYes,
+	EVirYesNoNo
 };
 
-enum EOnOrOff
+enum EVirOnOff
 {
-	EOnOrOffOn,
-	EOnOrOffOff
+	EVirOnOffOn,
+	EVirOnOffOff
 };
 
 enum EMode1
