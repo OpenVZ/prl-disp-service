@@ -450,6 +450,18 @@ PRL_RESULT Direct::setSettings()
 	if (m_input->getDescription())
 		o->setVmDescription(m_input->getDescription().get());
 
+	//EFI boot support
+	const Libvirt::Domain::Xml::Loader* l
+		= boost::get<mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type>
+			(m_input->getOs()).getValue().getLoader().get_ptr();
+	if (l && l->getType() &&
+		l->getType().get() == Libvirt::Domain::Xml::EType2Pflash)
+	{
+		s->getVmStartupOptions()
+			->getBios()
+			->setEfiEnabled(true);
+	}
+
 	m_result->setVmSettings(s);
 	return PRL_ERR_SUCCESS;
 }
