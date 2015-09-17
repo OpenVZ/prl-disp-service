@@ -546,7 +546,24 @@ PRL_RESULT Reverse::setBlank()
 	f.setApic(Libvirt::Domain::Xml::Apic());
 	m_result.reset(new Libvirt::Domain::Xml::Domain());
 	m_result->setType(Libvirt::Domain::Xml::ETypeKvm);
-	m_result->setOs(mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type());
+	mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
+
+	//EFI boot support
+	if (m_input.getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled())
+	{
+		Libvirt::Domain::Xml::Loader l;
+		l.setReadonly(Libvirt::Domain::Xml::EReadonlyYes);
+		l.setType(Libvirt::Domain::Xml::EType2Pflash);
+
+		// package OVMF.x86_64
+		l.setOwnValue(QString("/usr/share/OVMF/OVMF_CODE.fd"));
+
+		Libvirt::Domain::Xml::Os2 os;
+		os.setLoader(l);
+		vos.setValue(os);
+	}
+
+	m_result->setOs(vos);
 	m_result->setFeatures(f);
 	m_result->setOnCrash(Libvirt::Domain::Xml::ECrashOptionsPreserve);
 	return PRL_ERR_SUCCESS;
