@@ -54,11 +54,12 @@ CommonTestsUtils.init_sdk(prlsdkapi)
 
 max_wait_timeout = 3600*1000
 
+vm_type_str = {prlsdkapi.consts.PVT_CT: "CT", prlsdkapi.consts.PVT_VM:"VM"}
 
 # ---------------------------------------------------------
 # Test response of vm requestes
 # ---------------------------------------------------------
-def test():
+def test(vm_type):
         res = 1 # return value
 
         new_vm_uuid = CommonTestsUtils.gen_random_guid()
@@ -72,16 +73,16 @@ def test():
         # 1. Create VM
         vm = server.create_vm()
         vm.refresh_config()
-        vm.set_vm_type( prlsdkapi.consts.PVT_CT )
+        vm.set_vm_type( vm_type )
         vm.set_uuid ( new_vm_uuid )
-        vm.set_name ( "regVm_" + vm.get_uuid().strip('{}') )
-		print "CreateVm done."
+        vm.set_name ( "reg" + vm_type_str[vm_type] + "_" + vm.get_uuid().strip('{}') )
+		print "Create " + vm_type_str[vm_type] + " done."
 
         # raw_input ("press any key")
 
         job = vm.reg('')
         job.wait( max_wait_timeout )
-		print "RegVm done."
+		print "Reg " + vm_type_str[vm_type] + " done."
 
         try:
             # 2. Get Vm Path
@@ -114,12 +115,12 @@ def test():
         job.wait( max_wait_timeout )
         result = job.get_result()
 		vm = result.get_param()
-		print "RegisterVm done"
+		print "Register " + vm_type_str[vm_type] + " done."
 
 		# 5. Clean test space - remove temorally VM
         job = vm.delete()
         job.wait( max_wait_timeout )
-		print "VmDelete2 done"
+		print vm_type_str[vm_type] + " Delete2 done."
 
         try:
             job = server.logoff()
@@ -142,15 +143,18 @@ if ( __name__ == '__main__' ):
 
     ret = 9
 
-    try:
-        ret = test()
-    finally:
-        os.chdir( saved_path )
-        print '=============='
-        if 0==ret:
-            print 'PASSED'
-        else:
-            print 'FAILED!'
-        print '=============='
+	for vm_type in (prlsdkapi.consts.PVT_CT, prlsdkapi.consts.PVT_VM):
+		try:
+			ret = test(vm_type)
+		finally:
+			os.chdir( saved_path )
+			print '=============='
+			if 0==ret:
+				print 'PASSED'
+				print '=============='
+			else:
+				print 'FAILED!'
+				print '=============='
+				sys.exit( ret )
 
-    sys.exit( ret )
+    sys.exit( 0 )
