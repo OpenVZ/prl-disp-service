@@ -138,6 +138,9 @@ void Clustered<T>::setDriver(result_type& result_)
 	b.setName("qemu");
 	b.setType(Libvirt::Domain::Xml::VType(a));
 	Libvirt::Domain::Xml::Driver d;
+	d.setCache(Libvirt::Domain::Xml::ECacheNone);
+	d.setIo(Libvirt::Domain::Xml::EIoNative);
+	d.setDiscard(Libvirt::Domain::Xml::EDiscardUnmap);
 	d.setDriverFormat(b);
 	result_.setDriver(d);
 }
