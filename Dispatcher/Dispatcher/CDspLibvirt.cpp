@@ -73,7 +73,6 @@ PRL_RESULT Unit::stop()
 PRL_RESULT Unit::start()
 {
 	int s = VIR_DOMAIN_NOSTATE;
-
 	if (-1 == virDomainGetState(m_domain.data(), &s, NULL, 0))
 		return PRL_ERR_VM_GET_STATUS_FAILED;
 
@@ -81,6 +80,23 @@ PRL_RESULT Unit::start()
 		do_(m_domain.data(), boost::bind(&virDomainDestroy, _1));
 
 	return do_(m_domain.data(), boost::bind(&virDomainCreateWithFlags, _1, VIR_DOMAIN_START_FORCE_BOOT));
+}
+
+PRL_RESULT Unit::resume(const QString& sav_)
+{
+	virConnectPtr x = virDomainGetConnect(m_domain.data());
+	if (NULL == x)
+		return PRL_ERR_UNINITIALIZED;
+
+	return do_(x, boost::bind
+		(&virDomainRestore, _1, qPrintable(sav_)));
+}
+
+PRL_RESULT Unit::suspend(const QString& sav_)
+{
+	return do_(m_domain.data(), boost::bind
+		(&virDomainSaveFlags, _1, qPrintable(sav_), (const char* )NULL,
+			VIR_DOMAIN_SAVE_RUNNING));
 }
 
 PRL_RESULT Unit::undefine()
@@ -1151,6 +1167,16 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 		}
 		break;
 	case VIR_DOMAIN_EVENT_STOPPED:
+		switch (detail_)
+		{
+		case VIR_DOMAIN_EVENT_STOPPED_SAVED:
+			v->setState(domain_, VMS_SUSPENDED);
+			break;
+		default:
+			v->setState(domain_, VMS_STOPPED);
+			break;
+		}
+		break;
 	case VIR_DOMAIN_EVENT_SHUTDOWN:
 		v->setState(domain_, VMS_STOPPED);
 		break;
@@ -1205,10 +1231,14 @@ void Domain::setState(VIRTUAL_MACHINE_STATE value_)
 
 void Domain::setConfig(CVmConfiguration& value_)
 {
+	// NB. there is no home in a libvirt VM config. it is still required
+	// by different activities. now we put it into the default VM folder
+	// from a user profile. later this behaviour would be re-designed.
 	QString n = value_.getVmIdentification()->getVmName();
 	QString h = QDir(m_user->getUserDefaultVmDirPath())
 		.absoluteFilePath(QString(n).append(VMDIR_DEFAULT_BUNDLE_SUFFIX));
 	m_home = QDir(h).absoluteFilePath(VMDIR_DEFAULT_VM_CONFIG_FILE);
+	value_.getVmIdentification()->setHomePath(m_home);
 	QScopedPointer<CVmDirectoryItem> x(new CVmDirectoryItem());
 	x->setVmUuid(m_uuid);
 	x->setVmName(n);

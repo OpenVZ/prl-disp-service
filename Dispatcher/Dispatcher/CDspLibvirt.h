@@ -78,6 +78,8 @@ struct Unit
 	PRL_RESULT getUuid(QString& dst_) const;
 	PRL_RESULT stop();
 	PRL_RESULT start();
+	PRL_RESULT resume(const QString& sav_);
+	PRL_RESULT suspend(const QString& sav_);
 	PRL_RESULT undefine();
 	PRL_RESULT getState(VIRTUAL_MACHINE_STATE& dst_) const;
 	PRL_RESULT getConfig(CVmConfiguration& dst_) const;

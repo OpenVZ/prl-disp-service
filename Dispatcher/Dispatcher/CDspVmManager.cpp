@@ -642,15 +642,48 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStop> >::run()
 {
 #ifdef _LIBVIRT_
 	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).stop());
+#else // _LIBVIRT_
+	m_context.reply(PRL_ERR_UNIMPLEMENTED);
 #endif // _LIBVIRT_
 }
 
 template<>
 void Body<Tag::Libvirt<PVE::DspCmdVmStart> >::run()
 {
+	SmartPtr<CVmConfiguration> c = Details::Assistant(m_context).getConfig();
+	if (!c.isValid())
+		return;
+
 #ifdef _LIBVIRT_
-	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).start());
+	CStatesHelper h(c->getVmIdentification()->getHomePath());
+	if (!h.savFileExists())
+		return m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).start());
+
+	PRL_RESULT e = Libvirt::Kit.vms().at(m_context.getVmUuid())
+			.resume(h.getSavFileName());
+	if (PRL_SUCCEEDED(e))
+		h.dropStateFiles();
+
+	m_context.reply(e);
+#else // _LIBVIRT_
+	m_context.reply(PRL_ERR_UNIMPLEMENTED);
 #endif // _LIBVIRT_
+}
+
+template<>
+void Body<Tag::Libvirt<PVE::DspCmdVmSuspend> >::run()
+{
+	SmartPtr<CVmConfiguration> c = Details::Assistant(m_context).getConfig();
+	if (c.isValid())
+	{
+#ifdef _LIBVIRT_
+		CStatesHelper h(c->getVmIdentification()->getHomePath());
+		m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid())
+			.suspend(h.getSavFileName()));
+#else // _LIBVIRT_
+		m_context.reply(PRL_ERR_UNIMPLEMENTED);
+#endif // _LIBVIRT_
+	}
 }
 
 } // namespace Details
@@ -693,7 +726,7 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmInternal] = map(Tag::General<PVE::DspCmdVmInternal>());
 	m_map[PVE::DspCmdVmReset] = map(Tag::General<PVE::DspCmdVmReset>());
 	m_map[PVE::DspCmdVmPause] = map(Tag::General<PVE::DspCmdVmPause>());
-	m_map[PVE::DspCmdVmSuspend] = map(Tag::General<PVE::DspCmdVmSuspend>());
+	m_map[PVE::DspCmdVmSuspend] = map(Tag::Libvirt<PVE::DspCmdVmSuspend>());
 	m_map[PVE::DspCmdVmDevConnect] = map(Tag::General<PVE::DspCmdVmDevConnect>());
 	m_map[PVE::DspCmdVmDevDisconnect] = map(Tag::General<PVE::DspCmdVmDevDisconnect>());
 	m_map[PVE::DspCmdVmInitiateDevStateNotifications] = map(Tag::General<PVE::DspCmdVmInitiateDevStateNotifications>());
