@@ -247,17 +247,6 @@ void ParallelsDirTest::testGetLinReconfigImage()
 }
 
 
-void ParallelsDirTest::testGetProductPath()
-{
-	QString expectedPath;
-	QString path = ParallelsDirs::getProductPath();
-
-	expectedPath = "/usr/share/parallels-desktop/";
-
-	QCOMPARE(path, expectedPath);
-}
-
-
 bool ParallelsDirTest::currentProcessHasRootPermission()
 {
 	return 0==getuid();
