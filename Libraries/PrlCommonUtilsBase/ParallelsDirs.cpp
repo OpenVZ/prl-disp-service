@@ -446,7 +446,7 @@ QString ParallelsDirs::getDefaultVmCatalogue(
 //Workstation: C:\Users\<username>\Documents\My Parallels
 //
 //Lin:
-//Server: /var/paralles
+//Server: /vz/vmprivate
 //Workstation: $HOME/parallels/
 //
 //Mac:
@@ -500,12 +500,7 @@ QString ParallelsDirs::getDefaultVmCatalogue(
 		{
 			if(NULL == pUserInfo)
 			{
-#			ifdef _LIN_
-				path=QString("/var");
-#			else
-#				error "Unsupported platform"
-#			endif
-				path+=QString("/")+ UTF8_2QSTR(g_strParallelsDirName);
+				path = "/vz/vmprivate";
 			}
 			else
 			{

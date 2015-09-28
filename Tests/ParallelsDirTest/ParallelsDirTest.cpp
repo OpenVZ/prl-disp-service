@@ -118,7 +118,7 @@ void ParallelsDirTest::testGetDefaultVmCatalogue_serverMode()
 		break;
 	case osWinVista: expectedPath="C:/Users/Public/Documents/Public Parallels";
 		break;
-	case osLinux: expectedPath="/var/parallels";
+	case osLinux: expectedPath="/vz/vmprivate";
 		break;
 	case osMac: expectedPath="/Users/Shared/Parallels";
 		break;
