@@ -66,6 +66,8 @@ private:
 	void unixRevertToSelf();
 	QString linuxGetUserHomePath(const QString& userName);
 	QString winGetUserHomePathPrefix(class CAuthHelper *pUser);
+
+	uid_t m_last_euid;
 };
 
 #endif
