@@ -141,35 +141,15 @@ public:
 	// get reconfiguration image path
 	static QString getLinReconfigImage(PRL_APPLICATION_MODE mode);
 
-	// get fill path to unrar utility
-	static QString getUnrarPath();
-
 	static QString getCrashDumpsPath();
 
 	static QString getSystemLogPath();
 	static QString getDefaultSystemLogPath(PRL_APPLICATION_MODE nAppMode);
 	static QString getClientLogPath();
 
-	static QString getNaptdPidPath();
-
-#ifndef _WIN_
-	static QString getClientLogDirPath( const QString & strUserHome );
-#endif
-
-	static void setClientLogPathByAppMode(PRL_APPLICATION_MODE nAppMode);
-
 	static QString getCurrentUserHomeDir();
 
 	static QString getPVAInstallLogPath();
-
-	static QString getScreenshotSoundFile();
-
-	static QString getAppResourcesPath();
-
-	static QString getProductPath();
-
-	static QString getDispatcherPluginsPath();
-
 
 	// developers issue to load app mode from file "appPath" + ".params"
 	//		need to start applications from Run.py
@@ -186,25 +166,8 @@ public:
 	static QString getDefaultPramPath();
 	static QString getDefaultBackupDir();
 
-#ifdef _WIN_
-	// get product install directory
-	// Note: VER_REG_TREE_ROOT_STR can be used as argument to get install
-	// Note: directory for current build product.
-	// Note: Include "Build/Current.ver" to get
-
-	// Note: Installer uses only 32-bit registry view
-	static QString getProductInstallDir(const char *const productRegistry);
-#endif
-
 	static QString getDefaultSwapPathForVMOnNetworkShares();
 
-	// Get migration statistics/reports file path
-	static QString getMigrationReportFilePath();
-
-	// Get mounter statistics/reports file path
-	static QString getMounterReportFilePath();
-
-	// Get Installation log file path
 	static QStringList getInstallationLogFilePaths();
 
 	// Get path to dispatcher local UNIX socket
@@ -212,9 +175,6 @@ public:
 
 	// Returns true if build is run in PSBM environment.
 	static bool isServerModePSBM();
-
-	// Returns true if build is run in Virtuozzo for Windows environment.
-	static bool isServerModeVZWIN();
 
 	// returns Vm memory file location (directory)
 	static QString getVmMemoryFileLocation(
@@ -232,18 +192,7 @@ public:
 	static QString getVmScriptsDir(const QString &sBaseDir);
 	static QString getVmActionScriptPath(const QString &sBaseDir, PRL_VM_ACTION nAction);
 	static QString getVmConfigurationSamplePath(const QString &sName);
-	static QString get7zipUtilityPath( const QDir& baseDir );
-	static QString getMkisoUtilityPath( const QDir& baseDir );
-	static QString getUpdaterUtilityPath(const QString &sBaseDir,
-										 const QString& buildMode,
-										 PRL_APPLICATION_MODE mode = PAM_UNKNOWN);
 	static QString getUpdaterUrl(PRL_APPLICATION_MODE appMode);
-
-#ifdef _WIN_
-	static QString getProcDumpToolPath(bool bX64);
-#endif
-
-	static bool isMultilanguagesBuild();
 
 	static QString getServiceAppName();
 
@@ -254,29 +203,21 @@ private:
 public:
 	struct UserInfo
 	{
-#ifdef _WIN_
-		UserInfo( void* userAuthToken, const QString& homePath);
-#else
 		UserInfo( const QString& userName, const QString& homePath);
-#endif
 
-	UserInfo( const UserInfo& );
-	explicit UserInfo();
+		UserInfo( const UserInfo& );
+		explicit UserInfo();
 
-	UserInfo& operator=( const UserInfo& );
-	void printUserInfo();
-	QString getHomePath() const {return m_homePath; }
+		UserInfo& operator=( const UserInfo& );
+		void printUserInfo();
+		QString getHomePath() const {return m_homePath; }
 
 	private:
 		friend class ParallelsDirs;
 
 		bool isValid()  const;
 
-#ifdef _WIN_
-		void* m_userAuthToken;
-#else
 		QString m_userName;
-#endif
 		QString m_homePath;
 	}; //UserInfo
 

@@ -118,7 +118,7 @@ void ParallelsDirTest::testGetDefaultVmCatalogue_serverMode()
 		break;
 	case osWinVista: expectedPath="C:/Users/Public/Documents/Public Parallels";
 		break;
-	case osLinux: expectedPath="/var/parallels";
+	case osLinux: expectedPath="/vz/vmprivate";
 		break;
 	case osMac: expectedPath="/Users/Shared/Parallels";
 		break;
@@ -242,17 +242,6 @@ void ParallelsDirTest::testGetLinReconfigImage()
 	QString path = ParallelsDirs::getLinReconfigImage(PAM_UNKNOWN);
 
 	expectedPath = "/usr/share/parallels-reconfiguration/reconfiguration.iso";
-
-	QCOMPARE(path, expectedPath);
-}
-
-
-void ParallelsDirTest::testGetProductPath()
-{
-	QString expectedPath;
-	QString path = ParallelsDirs::getProductPath();
-
-	expectedPath = "/usr/share/parallels-desktop/";
 
 	QCOMPARE(path, expectedPath);
 }

@@ -55,13 +55,8 @@ private slots:
 	void testGetToolsBaseImagePath();
 	void testGetToolsImage();
 	void testGetLinReconfigImage();
-	void testGetProductPath();
 private:
 	enum OsType {osUnknown=-1, osWinXp, osWinVista, osLinux, osMac};
-
-#	ifndef _WIN_
-	uid_t m_last_euid;
-#  endif
 
 private:
 	OsType getOsType();
