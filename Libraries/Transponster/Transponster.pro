@@ -15,6 +15,9 @@ HEADERS += \
 	network_enum.h \
 	network_data.h \
 	network_type.h \
+	snapshot_enum.h \
+	snapshot_data.h \
+	snapshot_type.h \
 	marshal.h \
 	patterns.h \
 	Direct_p.h \
@@ -32,5 +35,8 @@ SOURCES	+= \
 	network_data.cpp \
 	network_enum.cpp \
 	network_type.cpp \
+	snapshot_data.cpp \
+	snapshot_enum.cpp \
+	snapshot_type.cpp \
 	Direct.cpp \
 	Reverse.cpp
