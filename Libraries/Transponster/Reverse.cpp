@@ -30,6 +30,47 @@ namespace Transponster
 ///////////////////////////////////////////////////////////////////////////////
 // struct Resources
 
+void Resources::setVCpu(const Libvirt::Domain::Xml::VCpu& src_)
+{
+	boost::apply_visitor(Visitor::Cpu(*m_hardware), src_);
+}
+
+namespace
+{
+
+void disableFeature(QList<Libvirt::Domain::Xml::Feature>& features_, const QString& name_)
+{
+	Libvirt::Domain::Xml::Feature f;
+	f.setName(name_);
+	f.setPolicy(Libvirt::Domain::Xml::EPolicyDisable);
+	features_.append(f);
+}
+
+} // namespace
+
+bool Resources::getVCpu(Libvirt::Domain::Xml::VCpu& dst_)
+{
+	CVmCpu* u = m_hardware->getCpu();
+	if (NULL == u)
+		return false;
+
+	Libvirt::Domain::Xml::Cpu948 c;
+	c.setMode(Libvirt::Domain::Xml::EModeHostPassthrough);
+
+#if (LIBVIR_VERSION_NUMBER >= 1002013)
+	QList<Libvirt::Domain::Xml::Feature> l;
+	if (!u->isVirtualizedHV())
+		disableFeature(l, QString("vmx"));
+	c.setFeatureList(l);
+#endif
+
+	mpl::at_c<Libvirt::Domain::Xml::VCpu::types, 2>::type v;
+	v.setValue(c);
+	dst_ = Libvirt::Domain::Xml::VCpu(v);
+
+	return true;
+}
+
 void Resources::setCpu(const Libvirt::Domain::Xml::Vcpu& src_)
 {
 	CVmCpu* u = new CVmCpu();
@@ -669,9 +710,13 @@ PRL_RESULT Reverse::setResources()
 	if (u.getMemory(m))
 		m_result->setMemory(m);
 
-	Libvirt::Domain::Xml::Vcpu c;
-	if (u.getCpu(c))
-		m_result->setVcpu(c);
+	Libvirt::Domain::Xml::VCpu c;
+	if (u.getVCpu(c))
+		m_result->setCpu(c);
+
+	Libvirt::Domain::Xml::Vcpu v;
+	if (u.getCpu(v))
+		m_result->setVcpu(v);
 
 	Libvirt::Domain::Xml::Clock t;
 	if (u.getClock(t))

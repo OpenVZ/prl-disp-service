@@ -153,6 +153,25 @@ struct Unit<CVmHardDisk>: Clustered<CVmHardDisk, PVE::HardDiskImage, PVE::RealHa
 } // namespace Source
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
+
+struct Cpu: boost::static_visitor<void>
+{
+	Cpu(CVmHardware& hw_): m_hardware(&hw_)
+	{
+	}
+
+	template<class T>
+	void operator()(const T& ) const
+	{
+	}
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VCpu::types, 2>::type& cpu_) const;
+
+private:
+	CVmHardware* m_hardware;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Clustered
 
 template<class T>
