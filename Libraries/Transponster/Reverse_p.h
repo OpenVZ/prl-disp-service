@@ -340,6 +340,8 @@ struct Resources
 	{
 	}
 
+	void setVCpu(const Libvirt::Domain::Xml::VCpu& src_);
+	bool getVCpu(Libvirt::Domain::Xml::VCpu& dst_);
 	void setCpu(const Libvirt::Domain::Xml::Vcpu& src_);
 	bool getCpu(Libvirt::Domain::Xml::Vcpu& dst_);
 	void setClock(const Libvirt::Domain::Xml::Clock& src_);

@@ -48,6 +48,23 @@ bool Unit<CVmHardDisk>::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSo
 } // namespace Source
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
+
+void Cpu::operator()(const mpl::at_c<Libvirt::Domain::Xml::VCpu::types, 2>::type& cpu_) const
+{
+	foreach (const Libvirt::Domain::Xml::Feature& f,
+		cpu_.getValue().getFeatureList())
+	{
+		if (f.getName().compare(QString("vmx"), Qt::CaseInsensitive))
+		{
+			if (f.getPolicy() == Libvirt::Domain::Xml::EPolicyDisable)
+				m_hardware->getCpu()->setVirtualizedHV(false);
+			break;
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Floppy
 
 PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
@@ -492,6 +509,8 @@ PRL_RESULT Direct::setResources()
 
 	Resources r(*m_result->getVmHardwareList());
 	r.setMemory(m_input->getMemory());
+	if (m_input->getCpu())
+		r.setVCpu(m_input->getCpu().get());
 	if (m_input->getVcpu())
 		r.setCpu(m_input->getVcpu().get());
 	if (m_input->getClock())
