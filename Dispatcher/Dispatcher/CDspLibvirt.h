@@ -36,6 +36,7 @@
 #include <QWeakPointer>
 #include <prlsdk/PrlTypes.h>
 #include <libvirt/libvirt.h>
+#include <libvirt/libvirt-qemu.h>
 #include <libvirt/virterror.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
 #include <XmlModel/NetworkConfig/CVirtualNetwork.h>
@@ -69,6 +70,24 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Guest
+
+struct Guest
+{
+	explicit Guest(const  QSharedPointer<virDomain>& domain_): m_domain(domain_)
+	{
+	}
+
+	PRL_RESULT dumpMemory(const QString& path, QString& reply);
+	PRL_RESULT dumpState(const QString& path, QString& reply);
+
+private:
+	PRL_RESULT execute(const QString& cmd, QString& reply);
+
+	QSharedPointer<virDomain> m_domain;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
 struct Unit
@@ -88,6 +107,10 @@ struct Unit
 	Performance getPerformance() const
 	{
 		return Performance(m_domain);
+	}
+	Guest getGuest() const
+	{
+		return Guest(m_domain);
 	}
 
 private:
