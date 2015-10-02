@@ -208,6 +208,34 @@ PRL_RESULT Performance::getNetwork() const
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Guest
+
+PRL_RESULT Guest::dumpMemory(const QString& path, QString& reply)
+{
+	return execute(QString("dump-guest-memory -p %1").arg(path), reply);
+}
+
+PRL_RESULT Guest::dumpState(const QString& path, QString& reply)
+{
+	return execute(QString("migrate -s \"exec:gzip -c > %1\"").arg(path), reply);
+}
+
+PRL_RESULT Guest::execute(const QString& cmd, QString& reply)
+{
+	char* result = NULL;
+	if (0 != virDomainQemuMonitorCommand(m_domain.data(),
+			cmd.toUtf8().constData(),
+			&result,
+			VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP))
+	{
+		return PRL_ERR_FAILURE;
+	}
+	reply = QString::fromUtf8(result);
+	free(result);
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct List
 
 Unit List::at(const QString& uuid_) const

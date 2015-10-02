@@ -40,6 +40,7 @@
 #include "CDspProblemReportHelper.h"
 #include "CDspVmInfoDatabase.h"
 
+#include "Libraries/PrlCommonUtilsBase/CommandLine.h"
 #include "Libraries/PrlCommonUtils/CVmQuestionHelper.h"
 #include "Libraries/NonQtUtils/CQuestionHelper.h"
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
@@ -656,6 +657,52 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStart> >::run()
 } // namespace Details
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Internal
+
+struct Internal
+{
+	static PRL_RESULT dumpMemory(Context& context_, CProtoVmInternalCommand& command_);
+};
+
+PRL_RESULT Internal::dumpMemory(Context& context_, CProtoVmInternalCommand& command_)
+{
+	QStringList args = command_.GetCommandArguments();
+	args.prepend(command_.GetCommandName());
+	CommandLine::Parser p(args);
+
+	QString fname = p.getValueByKey("--name");
+	if (fname.isEmpty())
+		fname = "memory.dmp";
+
+	QString fpath = p.getValueByKey("--path");
+	if (fpath.isEmpty())
+	{
+		fpath = QFileInfo(CDspService::instance()->getVmDirManager()
+				.getVmHomeByUuid(context_.getIdent())).absolutePath();
+	}
+	
+	QString fullpath = QDir(fpath).absoluteFilePath(fname);
+	QString reply;
+	PRL_RESULT res;
+#ifdef _LIBVIRT_
+	res = Libvirt::Kit.vms().at(context_.getVmUuid()).getGuest()
+		.dumpMemory(fullpath, reply);
+#else // _LIBVIRT_
+	return PRL_ERR_UNIMPLEMENTED;
+#endif // _LIBVIRT_
+
+	if (!reply.isEmpty())
+	{
+		WRITE_TRACE(DBG_FATAL, "Guest memory dump for VM '%s' is failed: %s",
+			qPrintable(context_.getVmUuid()), qPrintable(reply));
+		return PRL_ERR_FAILURE;
+	}
+	if (PRL_SUCCEEDED(res))
+		QFile::setPermissions(fullpath, QFile::ReadOwner|QFile::WriteOwner);
+	return res;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Dispatcher
 
 struct Dispatcher
@@ -667,14 +714,18 @@ struct Dispatcher
 private:
 	typedef void ( *command_type)(Context& context_);
 	typedef QHash<PVE::IDispatcherCommands, command_type> map_type;
+	typedef PRL_RESULT ( *internal_command_type)(Context& context_, CProtoVmInternalCommand& command_);
+	typedef QHash<QString, internal_command_type> internal_map_type;
 
 	template<class T>
 	static command_type map(T)
 	{
 		return &Details::Body<T>::run;
 	}
+	void doInternal_(Context& context_) const;
 
 	map_type m_map;
+	internal_map_type m_internal;
 };
 
 Dispatcher::Dispatcher()
@@ -690,7 +741,6 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmAnswer] = map(Tag::Simple<PVE::DspCmdVmAnswer>());
 	m_map[PVE::DspCmdVmStartVNCServer] = map(Tag::Simple<PVE::DspCmdVmStartVNCServer>());
 	m_map[PVE::DspCmdVmStopVNCServer] = map(Tag::Simple<PVE::DspCmdVmStopVNCServer>());
-	m_map[PVE::DspCmdVmInternal] = map(Tag::General<PVE::DspCmdVmInternal>());
 	m_map[PVE::DspCmdVmReset] = map(Tag::General<PVE::DspCmdVmReset>());
 	m_map[PVE::DspCmdVmPause] = map(Tag::General<PVE::DspCmdVmPause>());
 	m_map[PVE::DspCmdVmSuspend] = map(Tag::General<PVE::DspCmdVmSuspend>());
@@ -711,12 +761,18 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmGuestGetNetworkSettings] = map(Tag::GuestSession());
 	m_map[PVE::DspCmdVmGuestSetUserPasswd] = map(Tag::GuestSession());
 	m_map[PVE::DspCmdVmGuestChangeSID] = map(Tag::GuestSession());
+
+	m_internal[QString("dbgdump")] = Internal::dumpMemory;
 }
 
 void Dispatcher::do_(const SmartPtr<CDspClient>& session_, const SmartPtr<IOPackage>& package_) const
 {
 	Context x(session_, package_);
 	PVE::IDispatcherCommands y = x.getCommand();
+
+	if (y == PVE::DspCmdVmInternal)
+		return doInternal_(x);
+
 	map_type::const_iterator p = m_map.find(y);
 	if (m_map.end() != p)
 		return p.value()(x);
@@ -724,6 +780,27 @@ void Dispatcher::do_(const SmartPtr<CDspClient>& session_, const SmartPtr<IOPack
 	WRITE_TRACE(DBG_FATAL, "Couldn't to process package with type %d '%s'",
 		y, PVE::DispatcherCommandToString(y));
 	x.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
+}
+
+void Dispatcher::doInternal_(Context& context_) const
+{
+	CProtoVmInternalCommand* x = CProtoSerializer::CastToProtoCommand
+		<CProtoVmInternalCommand>(context_.getRequest());
+
+	PRL_RESULT res;
+	if (!x->IsValid() || !m_internal.contains(x->GetCommandName()))
+		res = PRL_ERR_UNRECOGNIZED_REQUEST;
+	else
+		res = m_internal[x->GetCommandName()](context_, *x);
+
+	if (PRL_FAILED(res))
+	{
+		CVmEvent evt;
+		evt.setEventCode(res);
+		context_.reply(evt);
+	}
+	else
+		context_.reply(res);
 }
 
 Q_GLOBAL_STATIC(Dispatcher, getDispatcher);

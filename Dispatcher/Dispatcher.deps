@@ -32,5 +32,5 @@ win32 {
 }
 libvirt {
 	include($$LIBS_LEVEL/Transponster/Transponster.pri)
-	LIBS += -lvirt
+	LIBS += -lvirt -lvirt-qemu
 }
