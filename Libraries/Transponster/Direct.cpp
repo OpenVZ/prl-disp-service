@@ -95,8 +95,13 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 		return PRL_ERR_UNEXPECTED;
 
 	d->setIndex(m_hardware->m_lstHardDisks.size());
+	d->setStackIndex(m_clip->getBusSlot(d->getInterfaceType()));
 	m_hardware->addHardDisk(d);
-	m_boot->operator()(*d, disk_.getBoot());
+	if (disk_.getBoot())
+	{
+		m_clip->getBootSlot(disk_.getBoot().get())
+			.set(d->getDeviceType(), d->getIndex());
+	}
 	return PRL_ERR_SUCCESS;
 }
 
@@ -114,8 +119,13 @@ PRL_RESULT Cdrom::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 		return PRL_ERR_UNEXPECTED;
 
 	d->setIndex(m_hardware->m_lstOpticalDisks.size());
+	d->setStackIndex(m_clip->getBusSlot(d->getInterfaceType()));
 	m_hardware->addOpticalDisk(d);
-	m_boot->operator()(*d, disk_.getBoot());
+	if (disk_.getBoot())
+	{
+		m_clip->getBootSlot(disk_.getBoot().get())
+			.set(d->getDeviceType(), d->getIndex());
+	}
 	return PRL_ERR_SUCCESS;
 }
 
@@ -334,9 +344,9 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::
 		switch (*e)
 		{
 		case Libvirt::Domain::Xml::EDeviceDisk:
-			return Disk(*h, *m_boot)(disk_.getValue());
+			return Disk(*h, *m_clip)(disk_.getValue());
 		case Libvirt::Domain::Xml::EDeviceCdrom:
-			return Cdrom(*h, *m_boot)(disk_.getValue());
+			return Cdrom(*h, *m_clip)(disk_.getValue());
 		case Libvirt::Domain::Xml::EDeviceFloppy:
 			return Floppy(*h)(disk_.getValue());
 		}
@@ -491,13 +501,11 @@ PRL_RESULT Direct::setDevices()
 	const Libvirt::Domain::Xml::Devices* d = m_input->getDevices().get_ptr();
 	if (NULL != d)
 	{
-		Boot::Direct b;
+		Clip c(*m_result->getVmSettings()->getVmStartupOptions());
 		foreach (const Libvirt::Domain::Xml::VChoice928& v, d->getChoice928List())
 		{
-			boost::apply_visitor(Visitor::Device(*m_result, b), v);
+			boost::apply_visitor(Visitor::Device(*m_result, c), v);
 		}
-		m_result->getVmSettings()->
-			getVmStartupOptions()->setBootDeviceList(b.getResult());
 	}
 	return PRL_ERR_SUCCESS;
 }
@@ -700,32 +708,23 @@ PRL_RESULT Direct::setInterface()
 } // namespace Bridge
 } // namespace Interface
 
-namespace Boot
-{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Direct
+// struct Clip
 
-void Direct::operator()(const CVmDevice& device_, const order_type& order_)
+Boot::Slot Clip::getBootSlot(Libvirt::Domain::Xml::PPositiveInteger::value_type order_)
 {
-	order_type::pointer_const_type o = order_.get_ptr();
-	if (NULL == o)
-		return;
+	CVmStartupOptions::CVmBootDevice* d = new CVmStartupOptions::CVmBootDevice();
+	d->sequenceNumber = order_;
+	d->inUseStatus = true;
 
-	m_map[*o] = std::make_pair(device_.getDeviceType(), device_.getIndex());
+	QList<CVmStartupOptions::CVmBootDevice*>::iterator it =
+		std::lower_bound(m_bootList->begin(), m_bootList->end(), d,
+			boost::bind(std::less<unsigned>(),
+				boost::bind(&CVmStartupOptions::CVmBootDevice::getBootingNumber, _1),
+				order_));
+	m_bootList->insert(it, d);
+
+	return Boot::Slot(*d);
 }
 
-QList<Direct::device_type*> Direct::getResult() const
-{
-	unsigned o = 0;
-	QList<device_type*> output;
-	foreach (map_type::const_reference x, m_map)
-	{
-		output << new device_type(x.second.first, x.second.second,
-			++o, true);
-	}
-	return output;
-}
-
-} // namespace Boot
 } // namespace Transponster
-

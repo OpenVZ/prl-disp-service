@@ -338,9 +338,10 @@ Libvirt::Domain::Xml::Interface625 Network<4>::prepare(const CVmGenericNetworkAd
 ///////////////////////////////////////////////////////////////////////////////
 // struct Attachment
 
-Libvirt::Domain::Xml::VAddress Attachment::craft(quint16 controller_, quint16 unit_)
+Libvirt::Domain::Xml::VAddress Attachment::craft(quint16 controller_, quint16 unit_, quint16 bus_)
 {
 	Libvirt::Domain::Xml::Driveaddress a;
+	a.setBus(QString::number(bus_));
 	a.setUnit(QString::number(unit_));
 	a.setController(QString::number(controller_));
 	mpl::at_c<Libvirt::Domain::Xml::VAddress::types, 1>::type v;
@@ -348,14 +349,11 @@ Libvirt::Domain::Xml::VAddress Attachment::craft(quint16 controller_, quint16 un
 	return Libvirt::Domain::Xml::VAddress(v);
 }
 
-template<Libvirt::Domain::Xml::EType6 T>
-void Attachment::craftController(quint16 index_)
+void Attachment::craftController(const Libvirt::Domain::Xml::VChoice585& bus_, quint16 index_)
 {
-	mpl::at_c<Libvirt::Domain::Xml::VChoice585::types, 0>::type v;
-	v.setValue(T);
 	Libvirt::Domain::Xml::Controller x;
 	x.setIndex(index_);
-	x.setChoice585(v);
+	x.setChoice585(bus_);
 	mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 1>::type y;
 	y.setValue(x);
 	m_controllerList << Libvirt::Domain::Xml::VChoice928(y);
@@ -363,28 +361,47 @@ void Attachment::craftController(quint16 index_)
 
 Libvirt::Domain::Xml::VAddress Attachment::craftIde()
 {
-	if (SATA_BUSES > m_implicit)
-		return craft(0, m_implicit++);
+	quint16 c = m_ide / IDE_UNITS / IDE_BUSES;
+	quint16 b = m_ide / IDE_UNITS % IDE_BUSES;
+	quint16 u = m_ide++ % IDE_UNITS;
 
-	quint16 u = m_ide++ % IDE_BUSES;
-	quint16 c = (m_ide + IDE_BUSES - 1) / IDE_BUSES;
-	if (0 == u)
-		craftController<Libvirt::Domain::Xml::EType6Ide>(c);
+	if (c > 0 && u == 0 && b == 0)
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VChoice585::types, 0>::type v;
+		v.setValue(Libvirt::Domain::Xml::EType6Ide);
+		craftController(v, c);
+	}
 
-	return craft(c, u);
+	return craft(c, u, b);
 }
 
 Libvirt::Domain::Xml::VAddress Attachment::craftSata()
 {
-	if (SATA_BUSES > m_implicit)
-		return craft(0, m_implicit++);
+	quint16 c = m_sata / SATA_UNITS;
+	quint16 u = m_sata++ % SATA_UNITS;
 
-	quint16 u = m_sata++ % SATA_BUSES;
-	quint16 c = (m_sata + SATA_BUSES - 1) / SATA_BUSES;
-	if (0 == u)
-		craftController<Libvirt::Domain::Xml::EType6Sata>(c);
+	if (c > 0 && u == 0)
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VChoice585::types, 0>::type v;
+		v.setValue(Libvirt::Domain::Xml::EType6Sata);
+		craftController(v, c);
+	}
 
-	return craft(c, u);
+	return craft(c, u, 0);
+}
+
+Libvirt::Domain::Xml::VAddress Attachment::craftScsi()
+{
+	quint16 c = m_scsi / SATA_UNITS;
+	quint16 u = m_scsi++ % SATA_UNITS;
+
+	if (c > 0 && u == 0)
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VChoice585::types, 1>::type v;
+		craftController(v, c);
+	}
+
+	return craft(c, u, 0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
