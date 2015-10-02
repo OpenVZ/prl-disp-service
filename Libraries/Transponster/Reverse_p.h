@@ -237,12 +237,13 @@ private:
 
 struct Attachment
 {
-	Attachment(): m_ide(), m_sata(), m_implicit()
+	Attachment(): m_ide(0), m_sata(0)
 	{
 	}
 
 	Libvirt::Domain::Xml::VAddress craftIde();
 	Libvirt::Domain::Xml::VAddress craftSata();
+	Libvirt::Domain::Xml::VAddress craftScsi();
 	QList<Libvirt::Domain::Xml::VChoice928 > getControllers() const
 	{
 		return m_controllerList;
@@ -251,17 +252,17 @@ struct Attachment
 private:
 	enum
 	{
+		IDE_UNITS = 2,
 		IDE_BUSES = 2,
-		SATA_BUSES = 6
+		SATA_UNITS = 6
 	};
 
-	static Libvirt::Domain::Xml::VAddress craft(quint16 controller_, quint16 unit_);
-	template<Libvirt::Domain::Xml::EType6 T>
-	void craftController(quint16 index_);
+	static Libvirt::Domain::Xml::VAddress craft(quint16 controller_, quint16 unit_, quint16 bus_);
+	void craftController(const Libvirt::Domain::Xml::VChoice585& bus_, quint16 index_);
 
 	quint16 m_ide;
 	quint16 m_sata;
-	quint8 m_implicit;
+	quint16 m_scsi;
 	QList<Libvirt::Domain::Xml::VChoice928 > m_controllerList;
 };
 
@@ -325,6 +326,9 @@ typename boost::disable_if<boost::is_pointer<T> >::type List::add(T builder_)
 		break;
 	case Libvirt::Domain::Xml::EBusSata:
 		d.setAddress(m_attachment.craftSata());
+		break;
+	case Libvirt::Domain::Xml::EBusScsi:
+		d.setAddress(m_attachment.craftScsi());
 		break;
 	default:
 		break;

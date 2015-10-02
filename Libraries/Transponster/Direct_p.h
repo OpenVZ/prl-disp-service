@@ -44,25 +44,45 @@ namespace Transponster
 namespace Boot
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Direct
+// struct Slot
 
-struct Direct
+struct Slot
 {
-	typedef CVmStartupOptions::CVmBootDevice device_type;
-	typedef boost::optional<Libvirt::Domain::Xml::PPositiveInteger::value_type >
-		order_type;
+	explicit Slot(CVmStartupOptions::CVmBootDevice& device_): m_device(&device_)
+	{
+	}
 
-	void operator()(const CVmDevice& device_, const order_type& order_);
-	QList<device_type*> getResult() const;
+	void set(PRL_DEVICE_TYPE t_, uint index_)
+	{
+		m_device->deviceType = t_;
+		m_device->deviceIndex = index_;
+	}
 
 private:
-	typedef std::map<unsigned, std::pair<PRL_DEVICE_TYPE, unsigned> >
-		map_type;
-
-	map_type m_map;
+	CVmStartupOptions::CVmBootDevice* m_device;
 };
 
 } // namespace Boot
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Clip
+
+struct Clip
+{
+	Clip(CVmStartupOptions& boot_): m_bootList(&boot_.m_lstBootDeviceList)
+	{
+	}
+
+	Boot::Slot getBootSlot(Libvirt::Domain::Xml::PPositiveInteger::value_type order_);
+	size_t getBusSlot(PRL_MASS_STORAGE_INTERFACE_TYPE bus_)
+	{
+		return m_busIndexMap[bus_]++;
+	}
+
+private:
+	QList<CVmStartupOptions::CVmBootDevice*>* m_bootList;
+	std::map<PRL_MASS_STORAGE_INTERFACE_TYPE, size_t> m_busIndexMap;
+};
 
 namespace Visitor
 {
@@ -231,8 +251,8 @@ private:
 
 struct Disk: private Clustered<CVmHardDisk>
 {
-	Disk(CVmHardware& hardware_, Boot::Direct& boot_):
-		m_hardware(&hardware_), m_boot(&boot_)
+	Disk(CVmHardware& hardware_, Clip& clip_):
+		m_hardware(&hardware_), m_clip(&clip_)
 	{
 	}
 
@@ -240,7 +260,7 @@ struct Disk: private Clustered<CVmHardDisk>
 
 private:
 	CVmHardware* m_hardware;
-	Boot::Direct* m_boot;
+	Clip* m_clip;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -248,8 +268,8 @@ private:
 
 struct Cdrom: private Clustered<CVmOpticalDisk>
 {
-	Cdrom(CVmHardware& hardware_, Boot::Direct& boot_):
-		m_hardware(&hardware_), m_boot(&boot_)
+	Cdrom(CVmHardware& hardware_, Clip& clip_):
+		m_hardware(&hardware_), m_clip(&clip_)
 	{
 	}
 
@@ -257,7 +277,7 @@ struct Cdrom: private Clustered<CVmOpticalDisk>
 
 private:
 	CVmHardware* m_hardware;
-	Boot::Direct* m_boot;
+	Clip* m_clip;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -309,8 +329,8 @@ private:
 
 struct Device: boost::static_visitor<PRL_RESULT>
 {
-	Device(CVmConfiguration& vm_, Boot::Direct& boot_):
-		m_boot(&boot_), m_vm(&vm_)
+	Device(CVmConfiguration& vm_, Clip& clip_):
+		m_clip(&clip_), m_vm(&vm_)
 	{
 	}
 
@@ -331,7 +351,7 @@ struct Device: boost::static_visitor<PRL_RESULT>
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 12>::type& serial_) const;
 
 private:
-	Boot::Direct* m_boot;
+	Clip* m_clip;
 	CVmConfiguration* m_vm;
 };
 
