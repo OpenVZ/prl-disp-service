@@ -223,10 +223,10 @@ PRL_RESULT Ploop::Attach(bool bReadOnly)
 		return PRL_ERR_UNEXPECTED;
 	}
 
-	if (ploop_read_disk_descr(&m_di, m_szPloopDiskPath.c_str())) {
+	if (ploop_open_dd(&m_di, m_szPloopDiskPath.c_str())) {
 		WRITE_TRACE(DBG_FATAL, "Can't read ploop disk descriptor %s",
 			m_szPloopDiskPath.c_str());
-		ploop_free_diskdescriptor(m_di);
+		ploop_close_dd(m_di);
 		m_di = NULL;
 		return PRL_ERR_UNEXPECTED;
 	}
@@ -240,7 +240,7 @@ PRL_RESULT Ploop::Attach(bool bReadOnly)
 	{
 		WRITE_TRACE(DBG_FATAL, "Can't mount ploop %s",
 			m_szPloopDiskPath.c_str());
-		ploop_free_diskdescriptor(m_di);
+		ploop_close_dd(m_di);
 		m_di = NULL;
 		return PRL_ERR_UNEXPECTED;
 	}
@@ -294,7 +294,7 @@ PRL_RESULT Ploop::Detach()
 		res = PRL_ERR_UNEXPECTED;
 	}
 
-	ploop_free_diskdescriptor(m_di);
+	ploop_close_dd(m_di);
 	m_szPloopDeviceName = "";
 	m_di = NULL;
 
@@ -389,10 +389,10 @@ PRL_RESULT Image::getDiskDescriptor(DiskDescriptor& dd) const
 	if (PRL_FAILED(rc))
 		return rc;
 	ploop_disk_images_data *di;
-	int res = ploop_read_disk_descr(&di, QSTR2UTF8(m_path));
+	int res = ploop_open_dd(&di, QSTR2UTF8(m_path));
 	if (res)
 	{
-		trace("ploop_read_disk_descr", res);
+		trace("ploop_open_dd", res);
 		return PRL_ERR_UNEXPECTED;
 	}
 
@@ -408,7 +408,7 @@ PRL_RESULT Image::getDiskDescriptor(DiskDescriptor& dd) const
 	for (int i = 0; i < di->nsnapshots; ++i)
 		dd.snapshots.append(SnapshotData(di->snapshots[i]->guid, di->snapshots[i]->parent_guid));
 
-	ploop_free_diskdescriptor(di);
+	ploop_close_dd(di);
 	return PRL_ERR_SUCCESS;
 }
 
