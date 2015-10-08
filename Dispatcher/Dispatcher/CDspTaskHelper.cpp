@@ -550,3 +550,55 @@ PRL_RESULT CDspTaskHelper::runExternalTask(CDspTaskHelper *pTask)
 	setExternalTask();
 	return pTask->getLastError()->getEventCode();
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// struct CDspTaskFailure
+
+CDspTaskFailure& CDspTaskFailure::setCode(PRL_RESULT code_)
+{
+	m_code = code_;
+	return *this;
+}
+
+CDspTaskFailure& CDspTaskFailure::setToken(const QString& token_)
+{
+	getError().addEventParameter(
+		new CVmEventParameter(PVE::String, token_, EVT_PARAM_RETURN_PARAM_TOKEN));
+	return *this;
+}
+
+PRL_RESULT CDspTaskFailure::operator()()
+{
+	PRL_RESULT output = m_code;
+	getError().setEventCode(output);
+	m_code = PRL_ERR_SUCCESS;
+	return output;
+}
+
+PRL_RESULT CDspTaskFailure::operator()(const QString& first_)
+{
+	getError().addEventParameter(
+		new CVmEventParameter(PVE::String, first_, EVT_PARAM_MESSAGE_PARAM_0));
+	return operator()();
+}
+
+PRL_RESULT CDspTaskFailure::operator()(const QString& first_, const QString& second_)
+{
+	getError().addEventParameter(
+		new CVmEventParameter(PVE::String, first_, EVT_PARAM_MESSAGE_PARAM_0));
+	getError().addEventParameter(
+		new CVmEventParameter(PVE::String, second_, EVT_PARAM_MESSAGE_PARAM_1));
+	return operator()();
+}
+
+PRL_RESULT CDspTaskFailure::operator()(const CVmEvent& src_)
+{
+	getError().fromString(src_.toString());
+	return operator()(src_.getEventCode());
+}
+
+CVmEvent& CDspTaskFailure::getError() const
+{
+	return *(m_task->getLastError());
+}
+

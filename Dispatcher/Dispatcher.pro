@@ -121,6 +121,7 @@ HEADERS += \
 	Tasks/Task_DispToDispConnHelper.h \
 	Tasks/Task_ConvertDisks.h \
 	Tasks/Task_EditVm.h \
+	Tasks/Task_EditVm_p.h \
 	Tasks/Task_VmDataStatistic.h \
 	Tasks/Task_EventLoopBase.h \
 	\

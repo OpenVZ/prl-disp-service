@@ -31,6 +31,7 @@
 
 
 #include "Task_EditVm.h"
+#include "Task_EditVm_p.h"
 
 #include "Libraries/Std/PrlAssert.h"
 #include "Libraries/PrlCommonUtilsBase/SysError.h"
@@ -50,12 +51,12 @@
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_DiskImageResizer.h"
 #include "Tasks/Mixin_CreateHddSupport.h"
-
+#include <boost/mpl/vector.hpp>
 #include "CDspCommon.h"
 #include "CDspService.h"
 #include "CVmValidateConfig.h"
 #include "CDspVmNetworkHelper.h"
-
+#include <boost/mpl/for_each.hpp>
 #include "EditHelpers/CMultiEditMergeVmConfig.h"
 
 #include "CDspVzHelper.h"
@@ -2598,44 +2599,16 @@ void Task_EditVm::applyVmConfig(SmartPtr<CDspClient> pUserSession,
 								SmartPtr<CVmConfiguration> pVmConfigOld,
 								const SmartPtr<IOPackage>& pkg)
 {
+	Q_UNUSED(pkg);
 	CDspService::instance()->getVmDirHelper()
 		.appendAdvancedParamsToVmConfig( pUserSession, pVmConfigNew );
 
-	// Extract VM Uuid
-	QString vm_uuid = pVmConfigNew->getVmIdentification()->getVmUuid();
-
-	SmartPtr< CDspVm > pVm = CDspVm::GetVmInstanceByUuid( vm_uuid, pUserSession->getVmDirectoryUuid() );
-	if( ! pVm )
-		return; // vm is not running
-
-	CVmEvent evt;
-	evt.addEventParameter (
-		new CVmEventParameter( PVE::VmConfiguration
-		,pVmConfigNew->toString()
-		,EVT_PARAM_VM_CONFIG
-		)
-		);
-	evt.addEventParameter (
-		new CVmEventParameter( PVE::VmConfiguration
-		,pVmConfigOld->toString()
-		,EVT_PARAM_VM_CONFIG_OLD
-		)
-		);
-
-	//CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand( PVE::DspCmdCtlApplyVmConfig, evt.toString() );
-	CProtoCommandPtr
-		pCmd = CProtoSerializer::CreateProtoCommandWithOneStrParam( PVE::DspCmdCtlApplyVmConfig, evt.toString() );
-
-	SmartPtr<IOPackage> applyPkg = DispatcherPackage::createInstance( PVE::DspCmdCtlApplyVmConfig, pCmd );
-
-	//set sender to packet!
-	applyPkg->makeForwardRequest( pkg );
-
-	pVm->sendPackageToVm( applyPkg );
-	if (getRequestFlags() & PVCF_WAIT_FOR_APPLY) {
-		// network settings can take up to at least 120 seconds due to DHCP timeouts.
-		if (!pVm->waitForApplyConfig(300 * 1000))
-			WRITE_TRACE(DBG_FATAL, "Wait for apply config timed out");
+	Edit::Vm::Request r(*this, pVmConfigOld, pVmConfigNew);
+	QScopedPointer<Edit::Vm::Action> a(Edit::Vm::Runtime::Factory()(r));
+	if (!a.isNull())
+	{
+		CDspTaskFailure f(*this);
+		a->execute(f);
 	}
 }
 
@@ -3170,3 +3143,140 @@ PRL_RESULT Task_EditVm::editFirewall(SmartPtr<CVmConfiguration> pVmConfigNew,
 
 	return PRL_ERR_SUCCESS;
 }
+
+namespace Edit
+{
+namespace Vm
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Action
+
+Action::~Action()
+{
+}
+
+bool Action::execute(CDspTaskFailure& feedback_)
+{
+	return m_next.isNull() || m_next->execute(feedback_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Request
+
+Request::Request(Task_EditVm& task_, const config_type& start_, const config_type& final_):
+	m_task(&task_), m_start(start_), m_final(final_)
+{
+	CVmIdentification* x = final_->getVmIdentification();
+	if (NULL == x)
+		return;
+
+	QString d;
+	SmartPtr<CDspClient> a = task_.getClient();
+	if (a.isValid())
+		d = a->getVmDirectoryUuid();
+
+	m_object = MakeVmIdent(x->getVmUuid(), d);
+}
+
+namespace Runtime
+{
+namespace Cdrom
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Action
+
+bool Action::execute(CDspTaskFailure& feedback_)
+{
+	PRL_RESULT e = Libvirt::Kit.vms().at(m_vm).changeMedia(m_device);
+	if (PRL_FAILED(e))
+	{
+		feedback_.setCode(e);
+		return false;
+	}
+	return Vm::Action::execute(feedback_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+Action* Factory::operator()(const Request& input_) const
+{
+	Action* output = NULL;
+	QList<CVmOpticalDisk* > o = input_.getStart().getVmHardwareList()->m_lstOpticalDisks;
+	foreach (CVmOpticalDisk* d, input_.getFinal().getVmHardwareList()->m_lstOpticalDisks)
+	{
+		CVmOpticalDisk* x = CXmlModelHelper::IsElemInList(d, o);
+		if (NULL == x)
+			continue;
+
+		if (PVE::CdRomImage != d->getEmulatedType() ||
+			d->getEmulatedType() != x->getEmulatedType())
+			continue;
+
+		Action* a = NULL;
+		if (x->getSystemName() != d->getSystemName())
+			a = new Action(input_.getObject().first, *d);
+		else if (x->getConnected() != d->getConnected())
+			a = new Action(input_.getObject().first, *d);
+		else
+			continue;
+
+		a->setNext(output);
+		output = a;
+	}
+	return output;
+}
+
+} // namespace Cdrom
+
+namespace Memory
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+Vm::Action* Factory::operator()(const Request& input_) const
+{
+	CVmMemory* o = input_.getStart().getVmHardwareList()->getMemory();
+	CVmMemory* n = input_.getFinal().getVmHardwareList()->getMemory();
+	if (NULL == n)
+		return NULL;
+
+	unsigned a = 0, b = n->getRamSize();
+	if (NULL != o)
+		a = o->getRamSize();
+	if (a == b)
+		return NULL;
+	if (a < b)
+	{
+		if (!n->isEnableHotplug())
+			return NULL;
+	}
+	else
+	{
+	}
+	return NULL;
+}
+
+} // namespace Memory
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+Action* Factory::operator()(const Request& input_) const
+{
+	VIRTUAL_MACHINE_STATE s;
+	if (PRL_FAILED(Libvirt::Kit.vms().at(input_.getObject().first).getState(s)))
+		return NULL;
+	if (VMS_RUNNING != s)
+		return NULL;
+
+	Visitor v(input_);
+	typedef boost::mpl::vector<Cdrom::Factory, Memory::Factory> list_type;
+	boost::mpl::for_each<list_type>(boost::ref(v));
+	return v.getResult();
+}
+
+} // namespace Runtime
+} // namespace Vm
+} // namespace Edit
+

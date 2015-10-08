@@ -307,6 +307,41 @@ private:
 	SmartPtr<CDspTaskHelper> m_task;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct CDspTaskFailure
+
+struct CDspTaskFailure
+{
+	explicit CDspTaskFailure(CDspTaskHelper& task_): m_code(), m_task(&task_)
+	{
+	}
+
+	PRL_RESULT getCode() const
+	{
+		return getError().getEventCode();
+	}
+	CDspTaskFailure& setCode(PRL_RESULT code_);
+	CDspTaskFailure& setToken(const QString& token_);
+	PRL_RESULT operator()();
+	PRL_RESULT operator()(PRL_RESULT code_)
+	{
+		return setCode(code_)();
+	}
+	PRL_RESULT operator()(const CVmEvent& src_);
+	PRL_RESULT operator()(const QString& first_);
+	PRL_RESULT operator()(PRL_RESULT code_, const QString& first_)
+	{
+		return setCode(code_)(first_);
+	}
+	PRL_RESULT operator()(const QString& first_, const QString& second_);
+
+private:
+	CVmEvent& getError() const;
+
+	PRL_RESULT m_code;
+	CDspTaskHelper* m_task;
+};
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

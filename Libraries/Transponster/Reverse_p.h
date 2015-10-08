@@ -64,6 +64,8 @@ private:
 
 namespace Device
 {
+namespace Clustered
+{
 ///////////////////////////////////////////////////////////////////////////////
 // struct Flavor
 
@@ -71,65 +73,125 @@ template<class T>
 struct Flavor;
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Clustered
+// struct Model
 
 template<class T>
-struct Clustered
+struct Model
+{
+	explicit Model(const T& dataSource_): m_dataSource(&dataSource_)
+	{
+	}
+
+	QString getTargetName() const
+	{
+		return QString(Flavor<T>::getTarget())
+			.append(QString::number(m_dataSource->getIndex() + 1));
+	}
+	QString getImageFile() const
+	{
+		QString f = m_dataSource->getUserFriendlyName();
+		if (!f.isEmpty())
+			return f;
+
+		return m_dataSource->getSystemName();
+	}
+	QString getRealDeviceName() const
+	{
+		QRegExp r("[(]([^)]+)[)]");
+		if (-1 < r.indexIn(m_dataSource->getUserFriendlyName()))
+			return r.cap(1);
+
+		return m_dataSource->getSystemName();
+	}
+	typename Flavor<T>::emulated_type getEmulatedType() const
+	{
+		return m_dataSource->getEmulatedType();
+	}
+	boost::optional<Libvirt::Domain::Xml::EBus> getBus() const
+	{
+		switch (m_dataSource->getInterfaceType())
+		{
+		case PMS_IDE_DEVICE:
+			return Libvirt::Domain::Xml::EBusIde;
+		case PMS_SCSI_DEVICE:
+			return Libvirt::Domain::Xml::EBusScsi;
+		case PMS_SATA_DEVICE:
+			return Libvirt::Domain::Xml::EBusSata;
+		default:
+			return boost::optional<Libvirt::Domain::Xml::EBus>();
+		}
+	}
+	bool isConnected() const
+	{
+		return PVE::DeviceConnected == m_dataSource->getConnected();
+	}
+
+private:
+	const T* m_dataSource;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+template<class T>
+struct Builder
 {
 	typedef Boot::Reverse::order_type boot_type;
 	typedef Libvirt::Domain::Xml::Disk result_type;
 
-	Clustered(const T& device_, const boot_type& boot_ = boot_type()):
-		m_device(&device_), m_boot(boot_)
+	Builder(const T& dataSource_, const boot_type& boot_ = boot_type()):
+		m_model(dataSource_), m_boot(boot_)
 	{
 	}
 
-	void setBoot(result_type& result_)
+	void setBoot()
 	{
-		result_.setBoot(m_boot);
+		m_result.setBoot(m_boot);
 	}
-	void setDisk(result_type& result_);
-	void setAlias(result_type& result_)
+	void setDisk();
+	void setAlias();
+	void setReadonly()
 	{
-		result_.setAlias(getDevice().getUserFriendlyName());
+		m_result.setReadonly(Flavor<T>::readonly);
 	}
-	void setReadonly(result_type& result_)
+	void setDriver();
+	void setSource()
 	{
-		result_.setReadonly(Flavor<T>::readonly);
+		m_result.setDiskSource(getSource());
 	}
-	void setDriver(result_type& result_);
-	void setSource(result_type& result_)
+	void setTarget();
+	void setBackingChain();
+
+	const result_type& getResult() const
 	{
-		result_.setDiskSource(getSource());
+		return m_result;
 	}
-	void setTarget(result_type& result_);
-	void setBackingChain(result_type& result_);
 
 protected:
-	const T& getDevice() const
+	const Model<T>& getModel() const
 	{
-		return *m_device;
+		return m_model;
 	}
 	Libvirt::Domain::Xml::VDiskSource getSource() const;
-	boost::optional<Libvirt::Domain::Xml::EBus> getBus() const;
 
 private:
-	const T* m_device;
+	Model<T> m_model;
 	boot_type m_boot;
+	result_type m_result;
 };
 
 template<class T>
-void Clustered<T>::setDisk(result_type& result_)
+void Builder<T>::setDisk()
 {
 	mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type x;
 	x.setValue(Flavor<T>::kind);
-	result_.setDisk(Libvirt::Domain::Xml::VDisk(x));
+	m_result.setDisk(Libvirt::Domain::Xml::VDisk(x));
 }
 
 template<class T>
-void Clustered<T>::setDriver(result_type& result_)
+void Builder<T>::setDriver()
 {
-	if (Flavor<T>::image != getDevice().getEmulatedType())
+	if (Flavor<T>::image != getModel().getEmulatedType())
 		return;
 
 	mpl::at_c<Libvirt::Domain::Xml::VType::types, 1>::type a;
@@ -142,22 +204,20 @@ void Clustered<T>::setDriver(result_type& result_)
 	d.setIo(Libvirt::Domain::Xml::EIoNative);
 	d.setDiscard(Libvirt::Domain::Xml::EDiscardUnmap);
 	d.setDriverFormat(b);
-	result_.setDriver(d);
+	m_result.setDriver(d);
 }
 
 template<class T>
-Libvirt::Domain::Xml::VDiskSource Clustered<T>::getSource() const
+Libvirt::Domain::Xml::VDiskSource Builder<T>::getSource() const
 {
-	switch (getDevice().getEmulatedType())
+	switch (getModel().getEmulatedType())
 	{
 	case Flavor<T>::image:
 	{
 		Libvirt::Domain::Xml::Source s;
-		QString f = getDevice().getUserFriendlyName();
-		if (f.isEmpty())
-			f = getDevice().getSystemName();
-
-		s.setFile(f);
+		QString f = getModel().getImageFile();
+		if (!f.isEmpty() && getModel().isConnected())
+			s.setFile(f);
 		s.setStartupPolicy(Libvirt::Domain::Xml::EStartupPolicyOptional);
 		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 0>::type x;
 		x.setValue(s);
@@ -166,12 +226,7 @@ Libvirt::Domain::Xml::VDiskSource Clustered<T>::getSource() const
 	case Flavor<T>::real:
 	{
 		Libvirt::Domain::Xml::Source1 s;
-		QRegExp r("[(]([^)]+)[)]");
-		if (-1 < r.indexIn(getDevice().getUserFriendlyName()))
-			s.setDev(r.cap(1));
-		else
-			s.setDev(getDevice().getSystemName());
-
+		s.setDev(getModel().getRealDeviceName());
 		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 1>::type x;
 		x.setValue(s);
 		return x;
@@ -182,39 +237,34 @@ Libvirt::Domain::Xml::VDiskSource Clustered<T>::getSource() const
 }
 
 template<class T>
-boost::optional<Libvirt::Domain::Xml::EBus> Clustered<T>::getBus() const
+void Builder<T>::setAlias()
 {
-	switch (getDevice().getInterfaceType())
-	{
-	case PMS_IDE_DEVICE:
-		return Libvirt::Domain::Xml::EBusIde;
-	case PMS_SCSI_DEVICE:
-		return Libvirt::Domain::Xml::EBusScsi;
-	case PMS_SATA_DEVICE:
-		return Libvirt::Domain::Xml::EBusSata;
-	default:
-		return boost::optional<Libvirt::Domain::Xml::EBus>();
-	}
+	if (Flavor<T>::image == getModel().getEmulatedType() &&
+		!getModel().isConnected())
+		m_result.setSerial(QString(getModel().getImageFile().toUtf8().toHex()));
+	else
+		m_result.setSerial(QString());
 }
 
 template<class T>
-void Clustered<T>::setTarget(result_type& result_)
+void Builder<T>::setTarget()
 {
 	Libvirt::Domain::Xml::Target t;
-	t.setBus(getBus());
-	t.setDev(QString(Flavor<T>::getTarget())
-		.append(QString::number(getDevice().getIndex() + 1)));
-	t.setTray(Flavor<T>::getTray(getDevice().getEmulatedType()));
-	result_.setTarget(t);
+	t.setBus(getModel().getBus());
+	t.setDev(getModel().getTargetName());
+	t.setTray(Flavor<T>::getTray(getModel().getEmulatedType()));
+	m_result.setTarget(t);
 }
 
 template<class T>
-void Clustered<T>::setBackingChain(result_type& result_)
+void Builder<T>::setBackingChain()
 {
 	mpl::at_c<Libvirt::Domain::Xml::VDiskBackingChain::types, 1>::type x;
 	x.setValue(false);
-	result_.setDiskBackingChain(Libvirt::Domain::Xml::VDiskBackingChain(x));
+	m_result.setDiskBackingChain(Libvirt::Domain::Xml::VDiskBackingChain(x));
 }
+
+} // namespace Clustered
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Network
@@ -310,15 +360,16 @@ private:
 template<class T>
 typename boost::disable_if<boost::is_pointer<T> >::type List::add(T builder_)
 {
-	Libvirt::Domain::Xml::Disk d;
-	builder_.setBoot(d);
-	builder_.setDisk(d);
-	builder_.setAlias(d);
-	builder_.setDriver(d);
-	builder_.setSource(d);
-	builder_.setTarget(d);
-	builder_.setReadonly(d);
-	builder_.setBackingChain(d);
+	builder_.setBoot();
+	builder_.setDisk();
+	builder_.setAlias();
+	builder_.setDriver();
+	builder_.setSource();
+	builder_.setTarget();
+	builder_.setReadonly();
+	builder_.setBackingChain();
+
+	Libvirt::Domain::Xml::Disk d = builder_.getResult();
 	switch (d.getTarget().getBus().get())
 	{
 	case Libvirt::Domain::Xml::EBusIde:

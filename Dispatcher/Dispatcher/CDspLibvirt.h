@@ -100,6 +100,7 @@ struct Unit
 	PRL_RESULT resume(const QString& sav_);
 	PRL_RESULT suspend(const QString& sav_);
 	PRL_RESULT undefine();
+	PRL_RESULT changeMedia(const CVmOpticalDisk& device_);
 	PRL_RESULT getState(VIRTUAL_MACHINE_STATE& dst_) const;
 	PRL_RESULT getConfig(CVmConfiguration& dst_) const;
 	PRL_RESULT getConfig(QString& dst_) const;

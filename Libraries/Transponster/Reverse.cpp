@@ -147,42 +147,19 @@ void Resources::setChipset(const Libvirt::Domain::Xml::Sysinfo& src_)
 
 namespace Device
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Clustered
-
-template<>
-boost::optional<Libvirt::Domain::Xml::EBus> Clustered<CVmFloppyDisk>::getBus() const
+namespace Clustered
 {
-	return Libvirt::Domain::Xml::EBusFdc;
-}
-
-template<>
-void Clustered<CVmHardDisk>::setSource(result_type& result_)
-{
-	Libvirt::Domain::Xml::VDiskSource x = getSource();
-	if (!x.empty())
-		return result_.setDiskSource(x);
-
-	if (PVE::BootCampHardDisk == getDevice().getEmulatedType())
-	{
-		Libvirt::Domain::Xml::Source4 s;
-		s.setVolume(getDevice().getSystemName());
-		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type x;
-		x.setValue(s);
-		return result_.setDiskSource(x);
-
-	}
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Flavor
 
 template<>
 struct Flavor<CVmHardDisk>
 {
+	typedef PVE::HardDiskEmulatedType emulated_type;
+
 	static const Libvirt::Domain::Xml::EDevice kind;
-	static const int real = PVE::RealHardDisk;
-	static const int image = PVE::HardDiskImage;
+	static const emulated_type real;
+	static const emulated_type image;
 	static const bool readonly = false;
 
 	static const char* getTarget()
@@ -201,14 +178,18 @@ struct Flavor<CVmHardDisk>
 		return boost::optional<Libvirt::Domain::Xml::ETray>();
 	}
 };
+const Flavor<CVmHardDisk>::emulated_type Flavor<CVmHardDisk>::real = PVE::RealHardDisk;
+const Flavor<CVmHardDisk>::emulated_type Flavor<CVmHardDisk>::image = PVE::HardDiskImage;
 const Libvirt::Domain::Xml::EDevice Flavor<CVmHardDisk>::kind = Libvirt::Domain::Xml::EDeviceDisk;
 
 template<>
 struct Flavor<CVmOpticalDisk>
 {
+	typedef PVE::CdromEmulatedType emulated_type;
+
 	static const Libvirt::Domain::Xml::EDevice kind;
-	static const int real = PVE::RealCdRom;
-	static const int image = PVE::CdRomImage;
+	static const emulated_type real;
+	static const emulated_type image;
 	static const bool readonly = true;
 
 	static const char* getTarget()
@@ -222,27 +203,28 @@ struct Flavor<CVmOpticalDisk>
 		output.setValue(Libvirt::Domain::Xml::EStorageFormatRaw);
 		return output;
 	}
-	static boost::optional<Libvirt::Domain::Xml::ETray> getTray(int type_)
+	static boost::optional<Libvirt::Domain::Xml::ETray> getTray(emulated_type type_)
 	{
-		switch (type_)
-		{
-		case real:
+		if (real == type_)
 			return Libvirt::Domain::Xml::ETrayOpen;
-		case image:
+		if (image == type_)
 			return Libvirt::Domain::Xml::ETrayClosed;
-		default:
-			return boost::optional<Libvirt::Domain::Xml::ETray>(); 
-		}
+
+		return boost::optional<Libvirt::Domain::Xml::ETray>(); 
 	}
 };
+const Flavor<CVmOpticalDisk>::emulated_type Flavor<CVmOpticalDisk>::real = PVE::RealCdRom;
+const Flavor<CVmOpticalDisk>::emulated_type Flavor<CVmOpticalDisk>::image = PVE::CdRomImage;
 const Libvirt::Domain::Xml::EDevice Flavor<CVmOpticalDisk>::kind = Libvirt::Domain::Xml::EDeviceCdrom;
 
 template<>
 struct Flavor<CVmFloppyDisk>
 {
+	typedef PVE::FloppyEmulatedType emulated_type;
+
 	static const Libvirt::Domain::Xml::EDevice kind;
-	static const int real = PVE::RealFloppyDisk;
-	static const int image = PVE::FloppyDiskImage;
+	static const emulated_type real;
+	static const emulated_type image;
 	static const bool readonly = false;
 
 	static const char* getTarget()
@@ -256,18 +238,49 @@ struct Flavor<CVmFloppyDisk>
 		output.setValue(Libvirt::Domain::Xml::EStorageFormatRaw);
 		return output;
 	}
-	static boost::optional<Libvirt::Domain::Xml::ETray> getTray(int type_)
+	static boost::optional<Libvirt::Domain::Xml::ETray> getTray(emulated_type type_)
 	{
-		switch (type_)
-		{
-		case real:
+		if (real == type_)
 			return Libvirt::Domain::Xml::ETrayOpen;
-		default:
-			return boost::optional<Libvirt::Domain::Xml::ETray>(); 
-		}
+
+		return boost::optional<Libvirt::Domain::Xml::ETray>(); 
 	}
 };
+const Flavor<CVmFloppyDisk>::emulated_type Flavor<CVmFloppyDisk>::real = PVE::RealFloppyDisk;
+const Flavor<CVmFloppyDisk>::emulated_type Flavor<CVmFloppyDisk>::image = PVE::FloppyDiskImage;
 const Libvirt::Domain::Xml::EDevice Flavor<CVmFloppyDisk>::kind = Libvirt::Domain::Xml::EDeviceFloppy;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Model
+
+template<>
+boost::optional<Libvirt::Domain::Xml::EBus> Model<CVmFloppyDisk>::getBus() const
+{
+	return Libvirt::Domain::Xml::EBusFdc;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+template<>
+void Builder<CVmHardDisk>::setSource()
+{
+	Libvirt::Domain::Xml::VDiskSource x = getSource();
+	if (!x.empty())
+		return m_result.setDiskSource(x);
+
+	if (PVE::BootCampHardDisk == getModel().getEmulatedType())
+	{
+		Libvirt::Domain::Xml::Source4 s;
+		s.setVolume(getModel().getRealDeviceName());
+		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type x;
+		x.setValue(s);
+		return m_result.setDiskSource(x);
+
+	}
+}
+
+} // namespace Clustered
 
 namespace
 {
@@ -425,7 +438,7 @@ Libvirt::Domain::Xml::Devices List::getResult() const
 void List::add(const CVmHardDisk* disk_)
 {
 	if (NULL != disk_)
-		add(Clustered<CVmHardDisk>(*disk_, m_boot(*disk_)));
+		add(Clustered::Builder<CVmHardDisk>(*disk_, m_boot(*disk_)));
 }
 
 void List::add(const CVmParallelPort* port_)
@@ -465,8 +478,8 @@ void List::add(const CVmSerialPort* port_)
 
 void List::add(const CVmOpticalDisk* cdrom_)
 {
-	if (NULL != cdrom_ && cdrom_->getEmulatedType() != Flavor<CVmOpticalDisk>::real)
-		add(Clustered<CVmOpticalDisk>(*cdrom_, m_boot(*cdrom_)));
+	if (NULL != cdrom_ && cdrom_->getEmulatedType() != Clustered::Flavor<CVmOpticalDisk>::real)
+		add(Clustered::Builder<CVmOpticalDisk>(*cdrom_, m_boot(*cdrom_)));
 }
 
 void List::add(const CVmSoundDevice* sound_)
@@ -482,7 +495,7 @@ void List::add(const CVmSoundDevice* sound_)
 void List::add(const CVmFloppyDisk* floppy_)
 {
 	if (NULL != floppy_)
-		add(Clustered<CVmFloppyDisk>(*floppy_));
+		add(Clustered::Builder<CVmFloppyDisk>(*floppy_));
 }
 
 void List::add(const CVmRemoteDisplay* vnc_)
@@ -568,10 +581,41 @@ Libvirt::Domain::Xml::Panic List::craftPanic() const
 
 namespace Vm
 {
+namespace Reverse
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Cdrom
+
+PRL_RESULT Cdrom::operator()()
+{
+	m_result = boost::none;
+	Device::Clustered::Builder<CVmOpticalDisk> b(m_input);
+	b.setDisk();
+	b.setAlias();
+	b.setSource();
+	b.setTarget();
+	b.setReadonly();
+	b.setBackingChain();
+	m_result = b.getResult();
+
+	return PRL_ERR_SUCCESS;
+}
+
+QString Cdrom::getResult()
+{
+	if (!m_result)
+		return QString();
+
+	QDomDocument x;
+	m_result->save(x);
+	m_result = boost::none;
+	return x.toString();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reverse
 
-Reverse::Reverse(const CVmConfiguration& input_): m_input(input_)
+Vm::Vm(const CVmConfiguration& input_): m_input(input_)
 {
 	QString x;
 	CVmHardware* h;
@@ -593,8 +637,9 @@ bad:
 	m_input.setVmType(PVT_CT);
 }
 
-PRL_RESULT Reverse::setBlank()
+PRL_RESULT Vm::setBlank()
 {
+	m_result = boost::none;
 	if (PVT_VM != m_input.getVmType())
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
@@ -602,7 +647,7 @@ PRL_RESULT Reverse::setBlank()
 	f.setPae(true);
 	f.setAcpi(true);
 	f.setApic(Libvirt::Domain::Xml::Apic());
-	m_result.reset(new Libvirt::Domain::Xml::Domain());
+	m_result = Libvirt::Domain::Xml::Domain();
 	m_result->setType(Libvirt::Domain::Xml::ETypeKvm);
 	mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
 
@@ -627,9 +672,9 @@ PRL_RESULT Reverse::setBlank()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Reverse::setIdentification()
+PRL_RESULT Vm::setIdentification()
 {
-	if (m_result.isNull())
+	if (!m_result)
 		return PRL_ERR_UNINITIALIZED;
 
 	CVmIdentification* i = m_input.getVmIdentification();
@@ -645,9 +690,9 @@ PRL_RESULT Reverse::setIdentification()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Reverse::setSettings()
+PRL_RESULT Vm::setSettings()
 {
-	if (m_result.isNull())
+	if (!m_result)
 		return PRL_ERR_UNINITIALIZED;
 
 	CVmSettings* s = m_input.getVmSettings();
@@ -665,9 +710,9 @@ PRL_RESULT Reverse::setSettings()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Reverse::setDevices()
+PRL_RESULT Vm::setDevices()
 {
-	if (m_result.isNull())
+	if (!m_result)
 		return PRL_ERR_UNINITIALIZED;
 
 	CVmHardware* h = m_input.getVmHardwareList();
@@ -713,9 +758,9 @@ PRL_RESULT Reverse::setDevices()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Reverse::setResources()
+PRL_RESULT Vm::setResources()
 {
-	if (m_result.isNull())
+	if (!m_result)
 		return PRL_ERR_UNINITIALIZED;
 
 	CVmHardware* h = m_input.getVmHardwareList();
@@ -742,17 +787,18 @@ PRL_RESULT Reverse::setResources()
 	return PRL_ERR_SUCCESS;
 }
 
-QString Reverse::getResult()
+QString Vm::getResult()
 {
-	if (m_result.isNull())
+	if (!m_result)
 		return QString();
 
 	QDomDocument x;
 	m_result->save(x);
-	m_result.reset();
+	m_result = boost::none;
 	return x.toString();
 }
 
+} // namespace Reverse
 } // namespace Vm
 
 namespace Network
@@ -1065,5 +1111,101 @@ Reverse::order_type Reverse::operator()(const CVmDevice& device_) const
 }
 
 } // namespace Boot
+
+namespace Snapshot
+{
+namespace
+{
+template<class T>
+QList<Libvirt::Snapshot::Xml::Disk> getAbsentee(const QList<T* >& list_)
+{
+	QList<Libvirt::Snapshot::Xml::Disk> output;
+	foreach (const T* d, list_)
+	{
+		if (!d->getEnabled())
+			continue;
+
+		mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
+		a.setValue(Device::Clustered::Model<T>(*d).getTargetName());
+		mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 0>::type b;
+		b.setValue(Libvirt::Snapshot::Xml::Disk1723());
+		Libvirt::Snapshot::Xml::Disk x;
+		x.setName(Libvirt::Snapshot::Xml::VName(a));
+		x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
+		output << x;
+	}
+	return output;
+}
+
+} // namespace
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Reverse
+
+Reverse::Reverse(const QString& uuid_, const CVmConfiguration& input_):
+	m_uuid(uuid_), m_hardware(input_.getVmHardwareList())
+{
+	CVmIdentification* i = input_.getVmIdentification();
+	if (NULL == i)
+		return;
+
+	QString x = QFileInfo(i->getHomePath()).absolutePath();
+	if (!x.isEmpty())
+		m_hardware.RevertDevicesPathToAbsolute(x);
+}
+
+PRL_RESULT Reverse::setBlank()
+{
+	m_result.setName(m_uuid);
+	m_result.setDescription(QString("Snapshot by dispatcher"));
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Reverse::setMemory()
+{
+	mpl::at_c<Libvirt::Snapshot::Xml::VMemory::types, 0>::type a;
+	a.setValue(Libvirt::Snapshot::Xml::ESnapshotInternal);
+	m_result.setMemory(Libvirt::Snapshot::Xml::VMemory(a));
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Reverse::setDevices()
+{
+	QList<Libvirt::Snapshot::Xml::Disk> e;
+	e << getAbsentee(m_hardware.m_lstFloppyDisks);
+	e << getAbsentee(m_hardware.m_lstOpticalDisks);
+	foreach (const CVmHardDisk* d, m_hardware.m_lstHardDisks)
+	{
+		if (!d->getEnabled() || d->getEmulatedType() != PVE::HardDiskImage)
+			continue;
+
+		Device::Clustered::Model<CVmHardDisk> m(*d);
+		mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
+		a.setValue(m.getTargetName());
+		mpl::at_c<Libvirt::Snapshot::Xml::VChoice1721::types, 0>::type b;
+		Libvirt::Snapshot::Xml::Source s;
+		s.setFile(m.getImageFile());
+		Libvirt::Snapshot::Xml::Variant1718 v;
+		v.setSource(s);
+		b.setValue(v);
+		mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 2>::type c;
+		c.setValue(b);
+		Libvirt::Snapshot::Xml::Disk x;
+		x.setName(Libvirt::Snapshot::Xml::VName(a));
+		x.setDisk(Libvirt::Snapshot::Xml::VDisk(c));
+		e << x;
+	}
+	m_result.setDisks(e);
+	return PRL_ERR_SUCCESS;
+}
+
+QString Reverse::getResult() const
+{
+	QDomDocument x;
+	m_result.save(x);
+	return x.toString();
+}
+
+} // namespace Snapshot
 } // namespace Transponster
 

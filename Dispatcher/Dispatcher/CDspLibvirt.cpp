@@ -137,7 +137,7 @@ PRL_RESULT Unit::getConfig(CVmConfiguration& dst_) const
 	if (NULL == x)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
-	WRITE_TRACE(DBG_FATAL, "xml:\n%s", x);
+//	WRITE_TRACE(DBG_FATAL, "xml:\n%s", x);
 	Transponster::Vm::Direct u(x);
 	if (PRL_FAILED(Transponster::Director::domain(u)))
 		return PRL_ERR_PARSE_VM_DIR_CONFIG;
@@ -173,7 +173,7 @@ PRL_RESULT Unit::setConfig(const CVmConfiguration& value_)
 	if (NULL == x)
 		return PRL_ERR_UNINITIALIZED;
 
-	Transponster::Vm::Reverse u(value_);
+	Transponster::Vm::Reverse::Vm u(value_);
 	if (PRL_FAILED(Transponster::Director::domain(u)))
 		return PRL_ERR_BAD_VM_DIR_CONFIG_FILE_SPECIFIED;
 
@@ -201,6 +201,15 @@ PRL_RESULT Unit::getUuid(QString& dst_) const
 	PrlUuid x(u);
 	dst_ = x.toString(PrlUuid::WithBrackets).c_str();
 	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Unit::changeMedia(const CVmOpticalDisk& device_)
+{
+	Transponster::Vm::Reverse::Cdrom u(device_);
+	u();
+	QByteArray b = u.getResult().toUtf8();
+	return do_(m_domain.data(), boost::bind(&virDomainUpdateDeviceFlags, _1,
+		b.data(), VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -294,7 +303,7 @@ PRL_RESULT List::define(const CVmConfiguration& config_, Unit* dst_)
 	if (m_link.isNull())
 		return PRL_ERR_CANT_CONNECT_TO_DISPATCHER;
 
-	Transponster::Vm::Reverse u(config_);
+	Transponster::Vm::Reverse::Vm u(config_);
 	if (PRL_FAILED(Transponster::Director::domain(u)))
 		return PRL_ERR_BAD_VM_DIR_CONFIG_FILE_SPECIFIED;
 
