@@ -98,6 +98,9 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	d->setItemId(m_hardware->m_lstHardDisks.size());
 	d->setIndex(m_hardware->m_lstHardDisks.size());
 	d->setStackIndex(m_clip->getBusSlot(d->getInterfaceType()));
+	boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> m = m_clip->getControllerModel(disk_);
+	if (m)
+		d->setSubType(m.get());
 	m_hardware->addHardDisk(d);
 	if (disk_.getBoot())
 	{
@@ -123,6 +126,9 @@ PRL_RESULT Cdrom::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	d->setItemId(m_hardware->m_lstOpticalDisks.size());
 	d->setIndex(m_hardware->m_lstOpticalDisks.size());
 	d->setStackIndex(m_clip->getBusSlot(d->getInterfaceType()));
+	boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> m = m_clip->getControllerModel(disk_);
+	if (m)
+		d->setSubType(m.get());
 	m_hardware->addOpticalDisk(d);
 	if (disk_.getBoot())
 	{
@@ -510,7 +516,12 @@ PRL_RESULT Direct::setDevices()
 	const Libvirt::Domain::Xml::Devices* d = m_input->getDevices().get_ptr();
 	if (NULL != d)
 	{
-		Clip c(*m_result->getVmSettings()->getVmStartupOptions());
+		Visitor::Controller::Collect::output_type x;
+		foreach (const Libvirt::Domain::Xml::VChoice928& v, d->getChoice928List())
+		{
+			boost::apply_visitor(Visitor::Controller::Collect(x), v);
+		}
+		Clip c(*m_result->getVmSettings()->getVmStartupOptions(), x);
 		foreach (const Libvirt::Domain::Xml::VChoice928& v, d->getChoice928List())
 		{
 			boost::apply_visitor(Visitor::Device(*m_result, c), v);
@@ -734,6 +745,28 @@ Boot::Slot Clip::getBootSlot(Libvirt::Domain::Xml::PPositiveInteger::value_type 
 	m_bootList->insert(it, d);
 
 	return Boot::Slot(*d);
+}
+
+boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> Clip::getControllerModel(const Libvirt::Domain::Xml::Disk& disk_) const
+{
+	boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> m;
+	if (!disk_.getAddress() || !disk_.getTarget().getBus())
+		return m;
+	if (disk_.getTarget().getBus().get() != Libvirt::Domain::Xml::EBusScsi)
+		return m;
+	const Libvirt::Domain::Xml::Driveaddress& a = boost::get<mpl::at_c<Libvirt::Domain::Xml::VAddress::types, 1>::type>
+		(disk_.getAddress().get()).getValue();
+	if (!a.getController())
+		return m;
+	foreach(const Libvirt::Domain::Xml::Controller& c, *m_controllerList)
+	{
+		if (a.getController().get() != QString::number(c.getIndex()))
+			continue;
+		boost::apply_visitor(Visitor::Controller::Scsi(m), c.getChoice585());
+		if (m)
+			break;
+	}
+	return m;
 }
 
 } // namespace Transponster

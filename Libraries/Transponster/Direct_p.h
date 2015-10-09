@@ -69,7 +69,10 @@ private:
 
 struct Clip
 {
-	Clip(CVmStartupOptions& boot_): m_bootList(&boot_.m_lstBootDeviceList)
+	typedef QList<Libvirt::Domain::Xml::Controller> controllerList_type;
+
+	Clip(CVmStartupOptions& boot_, const controllerList_type& controllers_)
+		: m_bootList(&boot_.m_lstBootDeviceList), m_controllerList(&controllers_)
 	{
 	}
 
@@ -79,9 +82,12 @@ struct Clip
 		return m_busIndexMap[bus_]++;
 	}
 
+	boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> getControllerModel(const Libvirt::Domain::Xml::Disk& disk_) const;
+
 private:
 	QList<CVmStartupOptions::CVmBootDevice*>* m_bootList;
 	std::map<PRL_MASS_STORAGE_INTERFACE_TYPE, size_t> m_busIndexMap;
+	const controllerList_type *m_controllerList;
 };
 
 namespace Visitor
@@ -468,6 +474,77 @@ private:
 	CHwNetAdapter* m_sink;
 };
 
+namespace Controller
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Collect
+
+struct Collect: boost::static_visitor<void>
+{
+	typedef QList<Libvirt::Domain::Xml::Controller> output_type;
+
+	explicit Collect(output_type& output_) : m_output(&output_)
+	{
+	}
+
+	template<class T>
+	void operator()(const T& ) const
+	{
+	}
+
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 1>::type& controller_) const
+	{
+		m_output->append(controller_.getValue());
+	}
+
+private:
+	output_type *m_output;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Scsi
+
+struct Scsi: boost::static_visitor<void>
+{
+	explicit Scsi(boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE>& model_) : m_model(&model_)
+	{
+	}
+
+	template<class T>
+	void operator()(const T& ) const
+	{
+	}
+
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice585::types, 1>::type& model_) const
+	{
+		if (!model_.getValue())
+			return;
+		switch (model_.getValue().get())
+		{
+		case Libvirt::Domain::Xml::EModelBuslogic:
+			m_model->reset(PCD_BUSLOGIC);
+			break;
+		case Libvirt::Domain::Xml::EModelLsilogic:
+			m_model->reset(PCD_LSI_SPI);
+			break;
+		case Libvirt::Domain::Xml::EModelLsisas1068:
+		case Libvirt::Domain::Xml::EModelLsisas1078:
+			m_model->reset(PCD_LSI_SAS);
+			break;
+		case Libvirt::Domain::Xml::EModelVirtioScsi:
+			m_model->reset(PCD_VIRTIO_SCSI);
+			break;
+		default:
+			break;
+		}
+	}
+
+private:
+	boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> *m_model;
+};
+
+} // namespace Controller
 } // namespace Visitor
 } // namespace Transponster
 
