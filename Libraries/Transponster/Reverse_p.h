@@ -126,6 +126,23 @@ struct Model
 		return PVE::DeviceConnected == m_dataSource->getConnected();
 	}
 
+	boost::optional<Libvirt::Domain::Xml::EModel> getScsiModel() const
+	{
+		switch (m_dataSource->getSubType())
+		{
+		case PCD_BUSLOGIC:
+			return Libvirt::Domain::Xml::EModelBuslogic;
+		case PCD_LSI_SAS:
+			return Libvirt::Domain::Xml::EModelLsisas1078;
+		case PCD_LSI_SPI:
+			return Libvirt::Domain::Xml::EModelLsilogic;
+		case PCD_VIRTIO_SCSI:
+			return Libvirt::Domain::Xml::EModelVirtioScsi;
+		default:
+			return boost::optional<Libvirt::Domain::Xml::EModel>();
+		}
+	}
+
 private:
 	const T* m_dataSource;
 };
@@ -167,11 +184,12 @@ struct Builder
 		return m_result;
 	}
 
-protected:
 	const Model<T>& getModel() const
 	{
 		return m_model;
 	}
+
+protected:
 	Libvirt::Domain::Xml::VDiskSource getSource() const;
 
 private:
@@ -242,8 +260,6 @@ void Builder<T>::setAlias()
 	if (Flavor<T>::image == getModel().getEmulatedType() &&
 		!getModel().isConnected())
 		m_result.setSerial(QString(getModel().getImageFile().toUtf8().toHex()));
-	else
-		m_result.setSerial(QString());
 }
 
 template<class T>
@@ -287,13 +303,13 @@ private:
 
 struct Attachment
 {
-	Attachment(): m_ide(0), m_sata(0)
+	Attachment(): m_ide(0), m_sata(0), m_scsi(0)
 	{
 	}
 
 	Libvirt::Domain::Xml::VAddress craftIde();
 	Libvirt::Domain::Xml::VAddress craftSata();
-	Libvirt::Domain::Xml::VAddress craftScsi();
+	Libvirt::Domain::Xml::VAddress craftScsi(const boost::optional<Libvirt::Domain::Xml::EModel>& model_);
 	QList<Libvirt::Domain::Xml::VChoice928 > getControllers() const
 	{
 		return m_controllerList;
@@ -304,7 +320,8 @@ private:
 	{
 		IDE_UNITS = 2,
 		IDE_BUSES = 2,
-		SATA_UNITS = 6
+		SATA_UNITS = 6,
+		SCSI_UNITS = 6
 	};
 
 	static Libvirt::Domain::Xml::VAddress craft(quint16 controller_, quint16 unit_, quint16 bus_);
@@ -379,7 +396,7 @@ typename boost::disable_if<boost::is_pointer<T> >::type List::add(T builder_)
 		d.setAddress(m_attachment.craftSata());
 		break;
 	case Libvirt::Domain::Xml::EBusScsi:
-		d.setAddress(m_attachment.craftScsi());
+		d.setAddress(m_attachment.craftScsi(builder_.getModel().getScsiModel()));
 		break;
 	default:
 		break;

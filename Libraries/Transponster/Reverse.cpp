@@ -406,14 +406,16 @@ Libvirt::Domain::Xml::VAddress Attachment::craftSata()
 	return craft(c, u, 0);
 }
 
-Libvirt::Domain::Xml::VAddress Attachment::craftScsi()
+Libvirt::Domain::Xml::VAddress Attachment::craftScsi(const boost::optional<Libvirt::Domain::Xml::EModel>& model_)
 {
-	quint16 c = m_scsi / SATA_UNITS;
-	quint16 u = m_scsi++ % SATA_UNITS;
+	quint16 c = m_scsi / SCSI_UNITS;
+	quint16 u = m_scsi++ % SCSI_UNITS;
 
-	if (c > 0 && u == 0)
+	if (u == 0)
 	{
 		mpl::at_c<Libvirt::Domain::Xml::VChoice585::types, 1>::type v;
+		if (model_)
+			v.setValue(model_.get());
 		craftController(v, c);
 	}
 
