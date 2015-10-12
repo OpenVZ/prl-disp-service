@@ -309,7 +309,8 @@ Libvirt::Domain::Xml::Interface615 Network<0>::prepare(const CVmGenericNetworkAd
 {
 	Libvirt::Domain::Xml::Interface615 output;
 	output.setModel(generateAdapterType(network_.getAdapterType()));
-	output.setSource(network_.getHostInterfaceName());
+	output.setSource(network_.getSystemName());
+	output.setTarget(network_.getHostInterfaceName());
 	return output;
 }
 
@@ -319,6 +320,7 @@ Libvirt::Domain::Xml::Interface623 Network<3>::prepare(const CVmGenericNetworkAd
 	Libvirt::Domain::Xml::Interface623 output;
 	Libvirt::Domain::Xml::Source7 s;
 	s.setNetwork(network_.getVirtualNetworkID());
+	output.setTarget(network_.getHostInterfaceName());
 	output.setModel(generateAdapterType(network_.getAdapterType()));
 	output.setSource(s);
 	return output;
@@ -329,8 +331,9 @@ Libvirt::Domain::Xml::Interface625 Network<4>::prepare(const CVmGenericNetworkAd
 {
 	Libvirt::Domain::Xml::Interface625 output;
 	Libvirt::Domain::Xml::Source8 s;
-	s.setDev(network_.getHostInterfaceName());
+	s.setDev(network_.getSystemName());
 	output.setModel(generateAdapterType(network_.getAdapterType()));
+	output.setTarget(network_.getHostInterfaceName());
 	output.setSource(s);
 	return output;
 }

@@ -43,7 +43,9 @@
 	/**
 	* generate parallels mac address
 	*/
+	static QString parseMacAddress (const QString& mac);
 	static QString generateMacAddress (HostUtils::MacPrefixType prefix = HostUtils::MAC_PREFIX_VM);
+	static QString generateHostInterfaceName (const QString& mac);
 
 	/**
 	* Checks whether specified value is proper MAC address

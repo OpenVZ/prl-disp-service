@@ -24,6 +24,7 @@
 #include "Direct.h"
 #include "Direct_p.h"
 #include "Reverse_p.h"
+#include <Libraries/HostUtils/HostUtils.h>
 
 namespace Transponster
 {
@@ -189,16 +190,16 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	}
 	if (bridge_.getValue().getSource())
 	{
-		a->setHostInterfaceName(bridge_.getValue().getSource().get());
+		a->setSystemName(bridge_.getValue().getSource().get());
 		a->setBoundAdapterName(bridge_.getValue().getSource().get());
 	}
 	if (bridge_.getValue().getMac())
 	{
-		a->setMacAddress(bridge_.getValue().getMac().get());
+		a->setMacAddress(HostUtils::parseMacAddress(bridge_.getValue().getMac().get()));
 	}
 	if (bridge_.getValue().getTarget())
 	{
-		a->setSystemName(bridge_.getValue().getTarget().get());
+		a->setHostInterfaceName(bridge_.getValue().getTarget().get());
 	}
 	if (bridge_.getValue().getFilterref())
 	{
@@ -223,11 +224,11 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	a->setVirtualNetworkID(network_.getValue().getSource().getNetwork());
 	if (network_.getValue().getMac())
 	{
-		a->setMacAddress(network_.getValue().getMac().get());
+		a->setMacAddress(HostUtils::parseMacAddress(network_.getValue().getMac().get()));
 	}
 	if (network_.getValue().getTarget())
 	{
-		a->setSystemName(network_.getValue().getTarget().get());
+		a->setHostInterfaceName(network_.getValue().getTarget().get());
 	}
 	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
@@ -244,14 +245,14 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	{
 		a->setAdapterType(parseAdapterType(direct_.getValue().getModel().get()));
 	}
-	a->setHostInterfaceName(direct_.getValue().getSource().getDev());
+	a->setSystemName(direct_.getValue().getSource().getDev());
 	if (direct_.getValue().getMac())
 	{
-		a->setMacAddress(direct_.getValue().getMac().get());
+		a->setMacAddress(HostUtils::parseMacAddress(direct_.getValue().getMac().get()));
 	}
 	if (direct_.getValue().getTarget())
 	{
-		a->setSystemName(direct_.getValue().getTarget().get());
+		a->setHostInterfaceName(direct_.getValue().getTarget().get());
 	}
 	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
@@ -636,7 +637,7 @@ PRL_RESULT Direct::operator()()
 
 	m_result.setDeviceName(m_input->getName());
 	if (m_input->getMac())
-		m_result.setMacAddress(m_input->getMac().get());
+		m_result.setMacAddress(m_input->getMac().get().toUpper().remove(QString(":")));
 
 	boost::apply_visitor(Visitor::Addressing(m_result),
 		m_input->getInterfaceAddressing());
@@ -673,7 +674,7 @@ PRL_RESULT Direct::setMaster()
 
 		m_master.setDeviceName(boost::get<eth_type>(a).getValue().getName());
 		if (boost::get<eth_type>(a).getValue().getMac())
-			m_master.setMacAddress(boost::get<eth_type>(a).getValue().getMac().get());
+			m_master.setMacAddress(boost::get<eth_type>(a).getValue().getMac().get().toUpper().remove(QString(":")));
 
 		return PRL_ERR_SUCCESS;
 	}

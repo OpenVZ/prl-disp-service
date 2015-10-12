@@ -33,6 +33,7 @@
 #endif
 
 #include "Libraries/PrlUuid/Uuid.h"
+#include <QRegExp>
 
 /**
  * @function Sleep for a while
@@ -51,6 +52,11 @@ void HostUtils::Sleep(UINT uiMsec)
 #elif defined (_LIN_)
 	usleep(uiMsec * 1000);
 #endif
+}
+
+QString HostUtils::parseMacAddress(const QString& mac)
+{
+	return mac.toUpper().remove(QRegExp("[:\\-\\.]"));
 }
 
 QString HostUtils::generateMacAddress (HostUtils::MacPrefixType prefix)
@@ -77,6 +83,14 @@ QString HostUtils::generateMacAddress (HostUtils::MacPrefixType prefix)
 
 	macAddress.sprintf( "%02X%02X%02X", addrBytes[0], addrBytes[1], addrBytes[2] );
 	return macPrefix + macAddress;
+}
+
+QString HostUtils::generateHostInterfaceName(const QString& mac)
+{
+	if (!checkMacAddress(mac, false))
+		return QString();
+
+	return QString("vme") + mac.mid(4).toLower();
 }
 
 bool HostUtils::checkMacAddress(const QString &sMacAddress, bool bCheckPrlAddress)
