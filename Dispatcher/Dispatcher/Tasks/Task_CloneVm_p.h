@@ -847,6 +847,8 @@ struct Flavor<T, typename EnableIf<IsSame<T, Vm::General>::value ||
 		{
 			// regenerate mac address for cloned VM or CT
 			a->setMacAddress(HostUtils::generateMacAddress(prefix));
+			a->setHostInterfaceName
+				(HostUtils::generateHostInterfaceName(a->getMacAddress()));
 		}
 		CDspVmNetworkHelper::updateHostMacAddresses(grub_, NULL, HMU_CHECK_NONEMPTY);
 	}

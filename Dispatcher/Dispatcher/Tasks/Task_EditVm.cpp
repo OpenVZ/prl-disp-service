@@ -1565,14 +1565,24 @@ PRL_RESULT Task_EditVm::editVm()
 				CVmGenericNetworkAdapter * old_adapter =
 						PrlNet::GetAdapterByIndex(pVmConfigOld->getVmHardwareList()->m_lstNetworkAdapters,
 										new_adapter->getIndex());
-				if (!old_adapter ||
-					old_adapter->getMacAddress() != new_adapter->getMacAddress())
+
+				if (!old_adapter)
 				{
-					// Clear host mac to regenerate it
+					new_adapter->setHostMacAddress();
+					new_adapter->setHostInterfaceName(HostUtils::generateHostInterfaceName(new_adapter->getMacAddress()));
+					continue;
+				}
+				
+				if (old_adapter->getMacAddress() != new_adapter->getMacAddress())
+				{
 					new_adapter->setHostMacAddress();
 
-					if (!old_adapter)
-						continue;
+					if (new_adapter->getHostInterfaceName()
+						.compare(HostUtils::generateHostInterfaceName(old_adapter->getMacAddress())))
+					{
+						new_adapter->setHostInterfaceName
+							(HostUtils::generateHostInterfaceName(new_adapter->getMacAddress()));
+					}
 				}
 
 				if (!(old_adapter->getNetAddresses() == new_adapter->getNetAddresses())) {

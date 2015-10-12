@@ -257,6 +257,10 @@ void Task_RegisterVm::createMACAddress(SmartPtr<CVmConfiguration> config,
 
 					if( bNeedCreate )
 					{
+						if(adapter->getHostInterfaceName()
+							.compare(HostUtils::generateHostInterfaceName(adapter->getMacAddress())))
+							adapter->setHostInterfaceName();
+
 						adapter->setMacAddress(HostUtils::generateMacAddress());
 						adapter->setHostMacAddress();
 					}
@@ -1109,6 +1113,9 @@ void Task_RegisterVm::PatchNetworkAdapters()
 	CVirtualNetwork *pBridgedNet = PrlNet::GetBridgedNetwork( pNetworkConfig.getPtr() );
 	foreach(CVmGenericNetworkAdapter *pNetAdapter, m_pVmConfig->getVmHardwareList()->m_lstNetworkAdapters)
 	{
+		if (pNetAdapter->getHostInterfaceName().isEmpty())
+			pNetAdapter->setHostInterfaceName(HostUtils::generateHostInterfaceName(pNetAdapter->getMacAddress()));
+
 		QString sNetworkId = pNetAdapter->getVirtualNetworkID();
 		if ( ! sNetworkId.isEmpty() )//Virtual network ID already configured - skip
 			continue;

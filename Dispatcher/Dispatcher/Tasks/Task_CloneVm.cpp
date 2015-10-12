@@ -1762,7 +1762,9 @@ void Task_CloneVm::ResetNetSettings( SmartPtr<CVmConfiguration> pVmConfig )
 	foreach(CVmGenericNetworkAdapter *pNetAdapter, pVmConfig->getVmHardwareList()->m_lstNetworkAdapters)
 	{
 		// regenerate mac address for cloned VM or CT
-		pNetAdapter->setMacAddress( HostUtils::generateMacAddress(prefix) );
+		pNetAdapter->setMacAddress(HostUtils::generateMacAddress(prefix));
+		pNetAdapter->setHostInterfaceName
+			(HostUtils::generateHostInterfaceName(pNetAdapter->getMacAddress()));
 
 		// reset IP addresses for templates
 		if ( bCreateTemplate )
