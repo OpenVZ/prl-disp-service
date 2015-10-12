@@ -115,6 +115,9 @@ struct Clustered: boost::static_visitor<bool>
 			getDevice().setSystemName(v->getFile().get());
 			getDevice().setUserFriendlyName(v->getFile().get());
 		}
+		else
+			getDevice().setConnected(PVE::DeviceDisconnected);
+
 		return true;
 	}
 	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 1>::type& source_) const
@@ -208,11 +211,6 @@ struct Clustered
 
 		getDevice().setEnabled(PVE::DeviceEnabled);
 		getDevice().setConnected();
-		if (disk_.getAlias())
-		{
-			getDevice().setUserFriendlyName
-				(disk_.getAlias().get());
-		}
 		if (disk_.getTarget().getBus())
 		{
 			switch (disk_.getTarget().getBus().get())
@@ -233,7 +231,16 @@ struct Clustered
 		}
 		Source::Unit<T> v;
 		v.setDevice(getDevice());
-		return boost::apply_visitor(v, disk_.getDiskSource());
+		if (!boost::apply_visitor(v, disk_.getDiskSource()))
+			return false;
+		if (PVE::DeviceDisconnected == getDevice().getConnected() &&
+			disk_.getSerial())
+		{
+			QByteArray a = QByteArray::fromHex(disk_.getSerial().get().toUtf8());
+			getDevice().setSystemName(QString(a));
+			getDevice().setUserFriendlyName(QString(a));
+		}
+		return true;
 	}
 	T* getResult()
 	{

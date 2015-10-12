@@ -687,6 +687,26 @@ void Body<Tag::Libvirt<PVE::DspCmdVmSuspend> >::run()
 	}
 }
 
+template<>
+void Body<Tag::Libvirt<PVE::DspCmdVmDevConnect> >::run()
+{
+#ifdef _LIBVIRT_
+	CProtoVmDeviceCommand* x = CProtoSerializer::CastToProtoCommand
+		<CProtoVmDeviceCommand>(m_context.getRequest());
+	if (NULL == x)
+		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
+
+	if (PDE_OPTICAL_DISK != x->GetDeviceType())
+		return m_context.reply(PRL_ERR_UNIMPLEMENTED);
+
+	CVmOpticalDisk y;
+	StringToElement<CVmOpticalDisk* >(&y, x->GetDeviceConfig());
+	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).changeMedia(y));
+#else // _LIBVIRT_
+	m_context.reply(PRL_ERR_UNIMPLEMENTED);
+#endif // _LIBVIRT_
+}
+
 } // namespace Details
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -777,8 +797,8 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmReset] = map(Tag::General<PVE::DspCmdVmReset>());
 	m_map[PVE::DspCmdVmPause] = map(Tag::General<PVE::DspCmdVmPause>());
 	m_map[PVE::DspCmdVmSuspend] = map(Tag::Libvirt<PVE::DspCmdVmSuspend>());
-	m_map[PVE::DspCmdVmDevConnect] = map(Tag::General<PVE::DspCmdVmDevConnect>());
-	m_map[PVE::DspCmdVmDevDisconnect] = map(Tag::General<PVE::DspCmdVmDevDisconnect>());
+	m_map[PVE::DspCmdVmDevConnect] = map(Tag::Libvirt<PVE::DspCmdVmDevConnect>());
+	m_map[PVE::DspCmdVmDevDisconnect] = map(Tag::Libvirt<PVE::DspCmdVmDevConnect>());
 	m_map[PVE::DspCmdVmInitiateDevStateNotifications] = map(Tag::General<PVE::DspCmdVmInitiateDevStateNotifications>());
 	m_map[PVE::DspCmdVmInstallUtility] = map(Tag::General<PVE::DspCmdVmInstallUtility>());
 	m_map[PVE::DspCmdVmInstallTools] = map(Tag::General<PVE::DspCmdVmInstallTools>());

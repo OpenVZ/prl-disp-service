@@ -35,6 +35,7 @@
 #include "iface_type.h"
 #include "domain_type.h"
 #include "network_type.h"
+#include "snapshot_type.h"
 #include <XmlModel/VmConfig/CVmConfiguration.h>
 #include <XmlModel/NetworkConfig/CVirtualNetwork.h>
 #include <XmlModel/HostHardwareInfo/CHwNetAdapter.h>
@@ -43,12 +44,32 @@ namespace Transponster
 {
 namespace Vm
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Reverse
-
-struct Reverse
+namespace Reverse
 {
-	explicit Reverse(const CVmConfiguration& input_);
+///////////////////////////////////////////////////////////////////////////////
+// struct Cdrom
+
+struct Cdrom
+{
+	explicit Cdrom(const CVmOpticalDisk& input_): m_input(input_)
+	{
+	}
+
+	PRL_RESULT operator()();
+
+	QString getResult();
+
+private:
+	CVmOpticalDisk m_input;
+	boost::optional<Libvirt::Domain::Xml::Disk> m_result;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+struct Vm
+{
+	explicit Vm(const CVmConfiguration& input_);
 
 	PRL_RESULT setBlank();
 	PRL_RESULT setIdentification();
@@ -60,9 +81,10 @@ struct Reverse
 
 private:
 	CVmConfiguration m_input;
-	QScopedPointer<Libvirt::Domain::Xml::Domain> m_result;
+	boost::optional<Libvirt::Domain::Xml::Domain> m_result;
 };
 
+} // namespace Reverse
 } // namespace Vm
 
 namespace Network
@@ -118,6 +140,29 @@ private:
 
 } // namespace Bridge
 } // namespace Interface
+
+namespace Snapshot
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Reverse
+
+struct Reverse
+{
+	Reverse(const QString& uuid_, const CVmConfiguration& input_);
+
+	PRL_RESULT setBlank();
+	PRL_RESULT setMemory();
+	PRL_RESULT setDevices();
+
+	QString getResult() const;
+
+private:
+	QString m_uuid;
+	CVmHardware m_hardware;
+	Libvirt::Snapshot::Xml::Domainsnapshot m_result;
+};
+
+} // namespace Snapshot
 } // namespace Transponster
 
 #endif // __REVERSE_H__

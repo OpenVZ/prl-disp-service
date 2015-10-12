@@ -76,6 +76,7 @@ PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	if (NULL == d)
 		return PRL_ERR_UNEXPECTED;
 
+	d->setItemId(m_hardware->m_lstFloppyDisks.size());
 	d->setIndex(m_hardware->m_lstFloppyDisks.size());
 	m_hardware->addFloppyDisk(d);
 	return PRL_ERR_SUCCESS;
@@ -94,6 +95,7 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	if (NULL == d)
 		return PRL_ERR_UNEXPECTED;
 
+	d->setItemId(m_hardware->m_lstHardDisks.size());
 	d->setIndex(m_hardware->m_lstHardDisks.size());
 	d->setStackIndex(m_clip->getBusSlot(d->getInterfaceType()));
 	m_hardware->addHardDisk(d);
@@ -118,6 +120,7 @@ PRL_RESULT Cdrom::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	if (NULL == d)
 		return PRL_ERR_UNEXPECTED;
 
+	d->setItemId(m_hardware->m_lstOpticalDisks.size());
 	d->setIndex(m_hardware->m_lstOpticalDisks.size());
 	d->setStackIndex(m_clip->getBusSlot(d->getInterfaceType()));
 	m_hardware->addOpticalDisk(d);
@@ -179,6 +182,7 @@ PRL_VM_NET_ADAPTER_TYPE Network::parseAdapterType(const QString& type)
 PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 0>::type& bridge_) const
 {
 	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter());
+	a->setItemId(m_hardware->m_lstNetworkAdapters.size());
 	a->setIndex(m_hardware->m_lstNetworkAdapters.size());
 	a->setConnected();
 	a->setEnabled(PVE::DeviceEnabled);
@@ -212,6 +216,7 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 3>::type& network_) const
 {
 	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter());
+	a->setItemId(m_hardware->m_lstNetworkAdapters.size());
 	a->setIndex(m_hardware->m_lstNetworkAdapters.size());
 	a->setConnected();
 	a->setEnabled(PVE::DeviceEnabled);
@@ -236,6 +241,7 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 4>::type& direct_) const
 {
 	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter());
+	a->setItemId(m_hardware->m_lstNetworkAdapters.size());
 	a->setIndex(m_hardware->m_lstNetworkAdapters.size());
 	a->setConnected();
 	a->setEnabled(PVE::DeviceEnabled);
@@ -277,6 +283,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::
 
 	CVmSoundDevice* d = new CVmSoundDevice();
 	d->setIndex(h->m_lstSoundDevices.size());
+	d->setItemId(h->m_lstSoundDevices.size());
 	if (sound_.getValue().getAlias())
 		d->setUserFriendlyName(sound_.getValue().getAlias().get());
 
@@ -292,6 +299,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::
 
 	CVmParallelPort* p = new CVmParallelPort();
 	p->setIndex(h->m_lstParallelPorts.size());
+	p->setItemId(h->m_lstParallelPorts.size());
 	if (parallel_.getValue().getAlias())
 	{
 		p->setUserFriendlyName(parallel_.getValue().getAlias().get());
@@ -319,6 +327,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::
 
 	CVmSerialPort* p = new CVmSerialPort();
 	p->setIndex(h->m_lstSerialPorts.size());
+	p->setItemId(h->m_lstSerialPorts.size());
 	p->setEnabled(true);
 	p->setEmulatedType(PVE::SerialOutputFile);
 	p->setUserFriendlyName(serial_.getValue().getQemucdevSrcDef()
