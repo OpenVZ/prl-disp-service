@@ -260,8 +260,6 @@ void Builder<T>::setAlias()
 	if (Flavor<T>::image == getModel().getEmulatedType() &&
 		!getModel().isConnected())
 		m_result.setSerial(QString(getModel().getImageFile().toUtf8().toHex()));
-	else
-		m_result.setSerial(QString());
 }
 
 template<class T>
