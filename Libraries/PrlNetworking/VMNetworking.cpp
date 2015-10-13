@@ -83,36 +83,6 @@ static bool IsPrlAdapter(PrlNet::EthernetAdapter &ethAdapter )
 	return false;
 }
 
-QString PrlNet::getVirtAdapterName(const QString &vmUuid, const int adapterIndex)
-{
-	QString veth;
-
-	UINT32 vzid = Uuid::toVzid( vmUuid );
-
-	veth.sprintf(NET_IFACE_NAME_FORMAT, vzid, adapterIndex);
-
-	return veth;
-}
-
-QString PrlNet::getDefaultVirtAdapterName(CVmGenericNetworkAdapter* device, const SmartPtr<CVmConfiguration>& vmConfig)
-{
-	QString defaultVirtAdapterName;
-	QString ctId = vmConfig->getVmIdentification()->getCtId();
-	PRL_UINT32 nId = device->getIndex();
-
-	switch (vmConfig->getVmType())
-	{
-	case PVT_CT:
-		defaultVirtAdapterName = "veth" + ctId.left(8) 
-				+ "." + QString::number(nId, 10);
-		break;
-	case PVT_VM:
-		defaultVirtAdapterName = PrlNet::getVirtAdapterName(ctId, nId);
-		break;
-	}
-	return defaultVirtAdapterName;
-}
-
 /**
  * getAdapter() implementation
  */
