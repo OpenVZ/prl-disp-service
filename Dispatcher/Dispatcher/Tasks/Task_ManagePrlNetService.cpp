@@ -1141,8 +1141,8 @@ SmartPtr<CDispNetworkPreferences> Task_ManagePrlNetService::convertNetworkConfig
 void Task_ManagePrlNetService::updateAdapter(SmartPtr<CVmConfiguration> pVmConfig,
 		CVmGenericNetworkAdapter *pAdapter, bool bEnable)
 {
-	QString vmUuid = pVmConfig->getVmIdentification()->getVmUuid();
-	QString vnic_name = PrlNet::getVirtAdapterName(vmUuid, pAdapter->getIndex());
+	Q_UNUSED(pVmConfig);
+	QString vnic_name = pAdapter->getHostInterfaceName();
 
 #if 0
 	if (CVzHelper::is_vz_running() && bEnable) {

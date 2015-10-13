@@ -336,12 +336,6 @@ unsigned char getIPv6PrefixFromMask(const Q_IPV6ADDR *mask);
 /// Gets current networking mode (vme* or vnic*)
 PRL_NET_MODE getMode();
 
-/// Get vme* adapter name
-QString getVirtAdapterName(const QString &vmuuid, const int adapterIndex);
-
-/// Returns default virtual adapter name depending on VM type
-QString getDefaultVirtAdapterName(CVmGenericNetworkAdapter* device, const SmartPtr<CVmConfiguration>& vmConfig);
-
 /// returns true if IPv6 default route is present on host
 bool IsIPv6DefaultRoutePresent();
 

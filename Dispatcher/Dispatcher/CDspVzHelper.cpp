@@ -1080,12 +1080,6 @@ void CDspVzHelper::appendAdvancedParamsToCtConfig(SmartPtr<CVmConfiguration> pOu
 	} else if ( remDisplay->getMode() == PRD_DISABLED ) {
 		remDisplay->setPortNumber(0);
 	}
-
-	foreach ( CVmGenericNetworkAdapter* device, pOutConfig->getVmHardwareList()->m_lstNetworkAdapters ) {
-		if (device->getHostInterfaceName().isEmpty()) {
-			device->setHostInterfaceName(PrlNet::getDefaultVirtAdapterName(device, pOutConfig));
-		}
-	}
 }
 
 void CDspVzHelper::initTotalRunningCtMemory()
