@@ -184,6 +184,8 @@
 // allowed to use up to 8 symbols by design.
 #define PRL_VM_REMOTE_DISPLAY_MAX_PASS_LEN 8
 
+#define PRL_VM_REMOTE_DISPAY_MIN_PORT 5900
+
 //GUI aplication name related defines set
 #define PRL_PRODUCT_NAME_CONSOLE        "Parallels Management Console"
 #define PRL_PRODUCT_NAME_DESKTOP        "Parallels Desktop"

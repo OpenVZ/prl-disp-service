@@ -301,6 +301,7 @@ bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
 		case PRL_ERR_VMCONF_MAIN_MEMORY_MQ_INVALID_RANGE:
 		case PRL_ERR_VMCONF_MAIN_MEMORY_MQ_MIN_LESS_VMM_OVERHEAD_VALUE:
 		case PRL_ERR_VMCONF_MAIN_MEMORY_MQ_MIN_OUT_OF_RANGE:
+		case PRL_ERR_REMOTE_DISPLAY_WRONG_PORT_NUMBER:
 		{
 			evtResult.setEventType(PET_DSP_EVT_ERROR_MESSAGE);
 			evtResult.setEventCode(m_lstResults[i]);
@@ -934,9 +935,10 @@ void CVmValidateConfig::CheckRemoteDisplay()
 
 	QString qsRDM_id = pRemoteDisplay->getMode_id();
 
-	if (!pRemoteDisplay->getPortNumber())
+	if (pRemoteDisplay->getMode() == PRD_MANUAL
+	    && pRemoteDisplay->getPortNumber() < PRL_VM_REMOTE_DISPAY_MIN_PORT)
 	{
-		m_lstResults += PRL_ERR_VMCONF_REMOTE_DISPLAY_PORT_NUMBER_IS_ZERO;
+		m_lstResults += PRL_ERR_REMOTE_DISPLAY_WRONG_PORT_NUMBER;
 		ADD_FID(E_SET << qsRDM_id << pRemoteDisplay->getPortNumber_id());
 	}
 
