@@ -149,10 +149,6 @@ PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics:
 	const mpl::at_c<Libvirt::Domain::Xml::VChoice683::types, 0>::type* s =
 		boost::get<mpl::at_c<Libvirt::Domain::Xml::VChoice683::types, 0>::type>
 			(&vnc_.getValue().getChoice683());
-	if (s->getValue().getPort())
-	{
-		v->setPortNumber(s->getValue().getPort().get());
-	}
 	if (s->getValue().getListen())
 	{
 		v->setHostName(s->getValue().getListen().get());
@@ -161,6 +157,10 @@ PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics:
 	{
 		v->setMode(Libvirt::Domain::Xml::EVirYesNoYes == s->getValue().getAutoport().get() ?
 			PRD_AUTO : PRD_MANUAL);
+	}
+	if (v->getMode() == PRD_MANUAL && s->getValue().getPort())
+	{
+		v->setPortNumber(s->getValue().getPort().get());
 	}
 	m_vm->getVmSettings()->setVmRemoteDisplay(v.take());
 	return PRL_ERR_SUCCESS;
