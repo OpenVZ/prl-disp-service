@@ -971,6 +971,14 @@ void CDspProblemReportHelper::FillProblemReportData(
 	addSystemLog(cReport, QFileInfo("/var/log/cpufeatures.log"));
 	addSystemLog(cReport, QFileInfo("/var/log/ploop.log"));
 	addSystemLog(cReport, QFileInfo("/var/log/pcompact.log"));
+	if (bHasValidVmCfg)
+	{
+		cReport.appendSystemLog(
+			QString("/var/log/libvirt/qemu/%1.log")
+				.arg(vmConfig.getVmIdentification()->getVmName()),
+			QString("libvirt-%1.log")
+				.arg(vmConfig.getVmIdentification()->getVmName()));
+	}
 #endif
 	WRITE_REPORT_PROFILER_STRING( "EndOfFillProblemReport" );
 }
