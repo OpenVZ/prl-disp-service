@@ -685,9 +685,9 @@ PRL_RESULT Direct::setMaster()
 	if (m_input.isNull())
 		return PRL_ERR_READ_XML_CONTENT;
  
-	typedef mpl::at_c<Libvirt::Iface::Xml::VChoice1227::types, 0>::type eth_type;
-	foreach (const Libvirt::Iface::Xml::VChoice1227& a,
-		m_input->getBridge().getChoice1227List())
+	typedef mpl::at_c<Libvirt::Iface::Xml::VChoice1228::types, 0>::type eth_type;
+	foreach (const Libvirt::Iface::Xml::VChoice1228& a,
+		m_input->getBridge().getChoice1228List())
 	{
 		if (0 != a.which())
 			continue;
@@ -729,6 +729,55 @@ PRL_RESULT Direct::setInterface()
 } // namespace Bridge
 } // namespace Interface
 
+namespace Snapshot
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Direct
+
+Direct::Direct(char* xml_)
+{
+	shape(xml_, m_input);
+}
+
+PRL_RESULT Direct::setInstructions()
+{
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Direct::setIdentity()
+{
+	if (m_input.isNull())
+		return PRL_ERR_READ_XML_CONTENT;
+
+	m_result.SetGuid(m_input->getName().get());
+	m_result.SetName(m_input->getName().get());
+	if (m_input->getDescription())
+		m_result.SetDescription(m_input->getDescription().get());
+	if (m_input->getCreationTime())
+		m_result.SetCreateTime(m_input->getCreationTime().get());
+	if (m_input->getState())
+	{
+		switch (m_input->getState().get())
+		{
+		case Libvirt::Snapshot::Xml::EStateRunning:
+			m_result.SetVmState(PVE::SnapshotedVmRunning);
+			break;
+		case Libvirt::Snapshot::Xml::EStatePaused:
+			m_result.SetVmState(PVE::SnapshotedVmPaused);
+			break;
+		default:
+			m_result.SetVmState(PVE::SnapshotedVmPoweredOff);
+			break;
+		}
+	}
+	if (m_input->getActive())
+		m_result.SetCurrent(m_input->getActive().get() == Libvirt::Snapshot::Xml::EActive1);
+
+	return PRL_ERR_SUCCESS;
+}
+
+} // namespace Snapshot
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Clip
 
@@ -740,9 +789,7 @@ Boot::Slot Clip::getBootSlot(Libvirt::Domain::Xml::PPositiveInteger::value_type 
 
 	QList<CVmStartupOptions::CVmBootDevice*>::iterator it =
 		std::lower_bound(m_bootList->begin(), m_bootList->end(), d,
-			boost::bind(std::less<unsigned>(),
-				boost::bind(&CVmStartupOptions::CVmBootDevice::getBootingNumber, _1),
-				order_));
+			boost::bind(&CVmStartupOptions::CVmBootDevice::getBootingNumber, _1) < order_);
 	m_bootList->insert(it, d);
 
 	return Boot::Slot(*d);

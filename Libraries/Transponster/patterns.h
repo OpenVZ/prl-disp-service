@@ -661,7 +661,7 @@ struct Attribute: Access<T>, Pattern
 		for (uint i = m.length(); i-- > 0;)
 		{
 			QDomAttr b = m.item(i).toAttr();
-			if (N::consume(b.nodeName()))
+			if (Name::Traits<N>::consume(b))
 			{
 				a = b;
 				break;
@@ -676,7 +676,12 @@ struct Attribute: Access<T>, Pattern
 	}
 	int produce(QDomElement& dst_) const
 	{
-		dst_.setAttribute(N::produce(), Marshal<T>::getString(*this));
+		QDomAttr a = Name::Traits<N>::produceAttribute(dst_);
+		if (a.isNull())
+			return -1;
+
+		a.setValue(Marshal<T>::getString(*this));
+		dst_.setAttributeNode(a);
 		return 0;
 	}
 };
@@ -772,7 +777,7 @@ struct Element: Fragment<T>
 		if (e.isNull())
 			return -1;
 
-		if (!N::consume(e.nodeName()))
+		if (!Name::Traits<N>::consume(e))
 			return -1;
 
 		stack_.push(e.firstChildElement());
@@ -790,11 +795,12 @@ struct Element: Fragment<T>
 	}
 	int produce(QDomElement& dst_) const
 	{
-		return hang(dst_.ownerDocument().createElement(N::produce()), dst_);
+		QDomDocument d = dst_.ownerDocument();
+		return hang(Name::Traits<N>::produceElement(d), dst_);
 	}
 	int produce(QDomDocument& dst_) const
 	{
-		return hang(dst_.createElement(N::produce()), dst_);
+		return hang(Name::Traits<N>::produceElement(dst_), dst_);
 	}
 
 private:

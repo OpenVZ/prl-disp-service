@@ -45,7 +45,7 @@
 #include "CDspClientManager.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "CDspVmInfoDatabase.h"
-
+#include <boost/foreach.hpp>
 
 #include "Libraries/PrlCommonUtilsBase/SysError.h"
 #include "Libraries/Std/PrlAssert.h"
@@ -68,6 +68,70 @@
 #include <QImage>
 
 using namespace Parallels;
+
+namespace
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct View
+
+struct View
+{
+	typedef QList<Libvirt::Tools::Agent::Vm::Snapshot::Unit> model_type;
+
+	bool operator()();
+	void setModel(const model_type& value_);
+	const CSavedStateStore& getResult() const
+	{
+		return m_result;
+	}
+
+private:
+	typedef std::map<QString, model_type> tree_type;
+
+	tree_type m_input;
+	CSavedStateStore m_result;
+};
+
+bool View::operator()()
+{
+	CSavedState f;
+	f.SetGuid(Uuid::createUuid().toString());
+	m_result.ClearSavedStateTree();
+	m_result.CreateSnapshot(f);
+	QStack<CSavedStateTree* > s;
+	for (s.push(m_result.GetSavedStateTree()); !s.isEmpty();)
+	{
+		tree_type::mapped_type& c = m_input[s.top()->GetGuid()];
+		if (c.isEmpty())
+		{
+			CSavedStateTree* x = s.pop();
+			if (!s.isEmpty())
+				s.top()->AddChild(x);
+		}
+		else
+		{
+			model_type::value_type u = c.takeFirst();
+			CSavedStateTree* x = new CSavedStateTree();
+			u.getState(*x);
+			s.push(x);
+		}
+	}
+	m_result.DeleteNode(f.GetGuid());
+	return true;
+}
+
+void View::setModel(const model_type& value_)
+{
+	m_input.clear();
+	BOOST_FOREACH(model_type::const_reference u, value_)
+	{
+		QString i;
+		u.getParent().getUuid(i);
+		m_input[i] << u;
+	}
+}
+
+} // namespace
 
 // constructor
 CDspVmSnapshotStoreHelper::CDspVmSnapshotStoreHelper( )
@@ -390,59 +454,32 @@ PRL_RESULT CDspVmSnapshotStoreHelper::sendSnapshotsTree(SmartPtr<CDspClient> pUs
 	CAuthHelperImpersonateWrapper authWrap( &pUser->getAuthHelper() );
 
 	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(pkg);
-	if (!cmd->IsValid()) {
+	if (!cmd->IsValid())
+	{
 		// Send error
 		pUser->sendSimpleResponse(pkg, PRL_ERR_FAILURE);
 		return PRL_ERR_FAILURE;
 	}
-	QString sVmUuid = cmd->GetVmUuid();
-	quint32 nFlags = cmd->GetCommandFlags();
-
-	PRL_RESULT nError;
-	CVmEvent errEvt;
-	SmartPtr<CVmConfiguration> pVmConfig =  CDspService::instance()->getVmDirHelper()
-		.getVmConfigByUuid( pUser, sVmUuid, nError, &errEvt );
-	if( !pVmConfig )
+	View::model_type x;
+	PRL_RESULT e = Libvirt::Kit.vms().at(cmd->GetVmUuid()).getSnapshot().all(x);
+	if (PRL_FAILED(e))
 	{
-		WRITE_TRACE( DBG_FATAL, "Unable to load config for %s by error %s"
-			, QSTR2UTF8(sVmUuid)
-			, PRL_RESULT_TO_STRING(nError));
-		pUser->sendResponseError( errEvt, pkg );
-		return nError;
+		WRITE_TRACE(DBG_FATAL, "Unable to load snapshot tree for vm %s",
+			QSTR2UTF8(cmd->GetVmUuid()));
 	}
-
-	CVmIdent vmIdent = MakeVmIdent(sVmUuid, pUser->getVmDirectoryUuid());
-
-	QString strTree;
-	CSavedStateStore snapTree;
-	bool bRes = getSnapshotsTree( pUser->getVmIdent( sVmUuid ), &snapTree);
-	if (bRes)
-		fillSnapshotRuntimeFields(vmIdent, snapTree.GetSavedStateTree());
-
-	if ( ! bRes )
-		WRITE_TRACE( DBG_FATAL, "Unable to load snapshot tree for vm %s", QSTR2UTF8(sVmUuid) );
-	else if ( CDspService::isServerMode() )
-		strTree = getSnapshotTreeWithBase64Images( pUser, pVmConfig, nFlags, snapTree );
+	View v;
+	v.setModel(x);
+	v();
+	QBuffer buffer;
+	if (!buffer.open( QIODevice::WriteOnly))
+		WRITE_TRACE(DBG_FATAL, "Can't open internal buffer");
 	else
-	{
-		QBuffer buffer;
-		if( !buffer.open( QIODevice::WriteOnly) )
-			WRITE_TRACE( DBG_FATAL, "Can't open internal buffer");
-		else
-			snapTree.Save( buffer, true );
-		strTree = UTF8_2QSTR( buffer.data() );
-	}
-
-#if 0
-	PUT_RAW_MESSAGE( "!!!!!!!!!!BUFFER:\n" );
-	PUT_RAW_MESSAGE( QSTR2UTF8( strTree) );
-	PUT_RAW_MESSAGE( "\n" );
-#endif
+		v.getResult().Save(buffer, true);
 
 	// Prepare response
 	CProtoCommandPtr pCmd = CProtoSerializer::CreateDspWsResponseCommand( pkg, PRL_ERR_SUCCESS );
 	CProtoCommandDspWsResponse *pResponseCmd = CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>( pCmd );
-	pResponseCmd->SetSnapshotsTree( strTree );
+	pResponseCmd->SetSnapshotsTree(UTF8_2QSTR(buffer.data()));
 	SmartPtr<IOPackage> responsePkg = DispatcherPackage::createInstance( PVE::DspWsResponse, pCmd, pkg );
 	pUser->sendPackage(responsePkg);
 

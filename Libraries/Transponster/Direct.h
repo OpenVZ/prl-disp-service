@@ -35,7 +35,9 @@
 #include "iface_type.h"
 #include "domain_type.h"
 #include "network_type.h"
+#include "snapshot_type.h"
 #include <XmlModel/VmConfig/CVmConfiguration.h>
+#include <Libraries/StatesStore/SavedStateTree.h>
 #include <XmlModel/NetworkConfig/CVirtualNetwork.h>
 #include <XmlModel/HostHardwareInfo/CHwNetAdapter.h>
 
@@ -167,6 +169,30 @@ private:
 } // namespace Bridge
 } // namespace Interface
 
+namespace Snapshot
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Direct
+
+struct Direct
+{
+	explicit Direct(char* xml_);
+
+	PRL_RESULT setIdentity();
+	PRL_RESULT setInstructions();
+
+	const CSavedStateTree& getResult() const
+	{
+		return m_result;
+	}
+
+private:
+	CSavedStateTree m_result;
+	QScopedPointer<Libvirt::Snapshot::Xml::Domainsnapshot> m_input;
+};
+
+} // namespace Snapshot
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Director
 
@@ -233,6 +259,18 @@ struct Director
 			return e;
 
 		if (PRL_FAILED(e = builder_.setInterface()))
+			return e;
+
+		return PRL_ERR_SUCCESS;
+	}
+	template<class T>
+	static PRL_RESULT snapshot(T& builder_)
+	{
+		PRL_RESULT e;
+		if (PRL_FAILED(e = builder_.setIdentity()))
+			return e;
+
+		if (PRL_FAILED(e = builder_.setInstructions()))
 			return e;
 
 		return PRL_ERR_SUCCESS;

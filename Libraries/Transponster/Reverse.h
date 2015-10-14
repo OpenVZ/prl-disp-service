@@ -150,9 +150,9 @@ struct Reverse
 {
 	Reverse(const QString& uuid_, const CVmConfiguration& input_);
 
-	PRL_RESULT setBlank();
-	PRL_RESULT setMemory();
-	PRL_RESULT setDevices();
+	PRL_RESULT setIdentity();
+	PRL_RESULT setInstructions();
+	void setMemory();
 
 	QString getResult() const;
 

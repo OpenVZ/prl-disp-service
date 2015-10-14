@@ -506,7 +506,7 @@ SnapshotParser::SnapshotReturnCode CSavedStateStore::Save(const QString& sXmlFil
  * @param file name
  * @return operation result
  */
-SnapshotParser::SnapshotReturnCode CSavedStateStore::Save(QIODevice& ioDevice, bool all_save)
+SnapshotParser::SnapshotReturnCode CSavedStateStore::Save(QIODevice& ioDevice, bool all_save) const
 {
 	QDomDocument xmlDummyParentDoc;
 

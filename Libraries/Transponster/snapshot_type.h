@@ -49,20 +49,6 @@ typedef VMemoryImpl::value_type VMemory;
 } // namespace Snapshot
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Disk1723
-
-namespace Snapshot
-{
-namespace Xml
-{
-struct Disk1723
-{
-};
-
-} // namespace Xml
-} // namespace Snapshot
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Disk1724
 
 namespace Snapshot
@@ -70,6 +56,20 @@ namespace Snapshot
 namespace Xml
 {
 struct Disk1724
+{
+};
+
+} // namespace Xml
+} // namespace Snapshot
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Disk1725
+
+namespace Snapshot
+{
+namespace Xml
+{
+struct Disk1725
 {
 };
 
@@ -142,13 +142,13 @@ private:
 } // namespace Snapshot
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant1718
+// struct Variant1719
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct Variant1718
+struct Variant1719
 {
 	const boost::optional<Source >& getSource() const
 	{
@@ -176,13 +176,13 @@ private:
 } // namespace Snapshot
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant1719
+// struct Variant1720
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct Variant1719
+struct Variant1720
 {
 	const boost::optional<PAbsFilePath1::value_type >& getSource() const
 	{
@@ -210,13 +210,13 @@ private:
 } // namespace Snapshot
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Host1564
+// struct Host1565
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct Host1564
+struct Host1565
 {
 	const boost::optional<ETransport >& getTransport() const
 	{
@@ -259,7 +259,7 @@ namespace Snapshot
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Host1564, Ordered<mpl::vector<Attribute<mpl::int_<497>, Name::Strict<491> >, Attribute<Snapshot::Xml::PAbsFilePath1, Name::Strict<498> > > > > > VHostImpl;
+typedef Choice<mpl::vector<Host1565, Ordered<mpl::vector<Attribute<mpl::int_<497>, Name::Strict<491> >, Attribute<Snapshot::Xml::PAbsFilePath1, Name::Strict<498> > > > > > VHostImpl;
 typedef VHostImpl::value_type VHost;
 
 } // namespace Xml
@@ -314,14 +314,14 @@ private:
 } // namespace Snapshot
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VChoice1721
+// struct VChoice1722
 
 namespace Snapshot
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Variant1718, Variant1719, Ordered<mpl::vector<Attribute<mpl::int_<423>, Name::Strict<99> >, Element<Snapshot::Xml::Source1, Name::Strict<478> > > > > > VChoice1721Impl;
-typedef VChoice1721Impl::value_type VChoice1721;
+typedef Choice<mpl::vector<Variant1719, Variant1720, Ordered<mpl::vector<Attribute<mpl::int_<423>, Name::Strict<99> >, Element<Snapshot::Xml::Source1, Name::Strict<478> > > > > > VChoice1722Impl;
+typedef VChoice1722Impl::value_type VChoice1722;
 
 } // namespace Xml
 } // namespace Snapshot
@@ -333,7 +333,7 @@ namespace Snapshot
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Disk1723, Disk1724, Ordered<mpl::vector<Optional<Attribute<mpl::int_<441>, Name::Strict<439> > >, Snapshot::Xml::VChoice1721Impl > > > > VDiskImpl;
+typedef Choice<mpl::vector<Disk1724, Disk1725, Ordered<mpl::vector<Optional<Attribute<mpl::int_<441>, Name::Strict<439> > >, Snapshot::Xml::VChoice1722Impl > > > > VDiskImpl;
 typedef VDiskImpl::value_type VDisk;
 
 } // namespace Xml
@@ -377,14 +377,14 @@ private:
 } // namespace Snapshot
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VChoice1705
+// struct VChoice1706
 
 namespace Snapshot
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Element<Element<Text<Snapshot::Xml::VUUID >, Name::Strict<139> >, Name::Strict<1> >, Element<Domain::Xml::Domain, Name::Strict<1> > > > VChoice1705Impl;
-typedef VChoice1705Impl::value_type VChoice1705;
+typedef Choice<mpl::vector<Element<Element<Text<Snapshot::Xml::VUUID >, Name::Strict<139> >, Name::Strict<1> >, Element<Domain::Xml::Domain, Name::Strict<1> > > > VChoice1706Impl;
+typedef VChoice1706Impl::value_type VChoice1706;
 
 } // namespace Xml
 } // namespace Snapshot
@@ -454,13 +454,13 @@ struct Domainsnapshot
 	{
 		m_active = value_;
 	}
-	const boost::optional<VChoice1705 >& getChoice1705() const
+	const boost::optional<VChoice1706 >& getChoice1706() const
 	{
-		return m_choice1705;
+		return m_choice1706;
 	}
-	void setChoice1705(const boost::optional<VChoice1705 >& value_)
+	void setChoice1706(const boost::optional<VChoice1706 >& value_)
 	{
-		m_choice1705 = value_;
+		m_choice1706 = value_;
 	}
 	const boost::optional<QString >& getParent() const
 	{
@@ -482,7 +482,7 @@ private:
 	boost::optional<VMemory > m_memory;
 	boost::optional<QList<Disk > > m_disks;
 	boost::optional<EActive > m_active;
-	boost::optional<VChoice1705 > m_choice1705;
+	boost::optional<VChoice1706 > m_choice1706;
 	boost::optional<QString > m_parent;
 };
 
@@ -490,27 +490,27 @@ private:
 } // namespace Snapshot
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Disk1723 traits
-
-template<>
-struct Traits<Snapshot::Xml::Disk1723>
-{
-	typedef Attribute<mpl::int_<130>, Name::Strict<439> > marshal_type;
-
-	static int parse(Snapshot::Xml::Disk1723& , QStack<QDomElement>& );
-	static int generate(const Snapshot::Xml::Disk1723& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Disk1724 traits
 
 template<>
 struct Traits<Snapshot::Xml::Disk1724>
 {
-	typedef Attribute<mpl::int_<440>, Name::Strict<439> > marshal_type;
+	typedef Attribute<mpl::int_<130>, Name::Strict<439> > marshal_type;
 
 	static int parse(Snapshot::Xml::Disk1724& , QStack<QDomElement>& );
 	static int generate(const Snapshot::Xml::Disk1724& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Disk1725 traits
+
+template<>
+struct Traits<Snapshot::Xml::Disk1725>
+{
+	typedef Attribute<mpl::int_<440>, Name::Strict<439> > marshal_type;
+
+	static int parse(Snapshot::Xml::Disk1725& , QStack<QDomElement>& );
+	static int generate(const Snapshot::Xml::Disk1725& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -538,39 +538,39 @@ struct Traits<Snapshot::Xml::Driver>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant1718 traits
-
-template<>
-struct Traits<Snapshot::Xml::Variant1718>
-{
-	typedef Ordered<mpl::vector<Optional<Attribute<mpl::int_<477>, Name::Strict<99> > >, Unordered<mpl::vector<Optional<Element<Snapshot::Xml::Source, Name::Strict<478> > >, Optional<Element<Snapshot::Xml::Driver, Name::Strict<523> > > > > > > marshal_type;
-
-	static int parse(Snapshot::Xml::Variant1718& , QStack<QDomElement>& );
-	static int generate(const Snapshot::Xml::Variant1718& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Variant1719 traits
 
 template<>
 struct Traits<Snapshot::Xml::Variant1719>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<479>, Name::Strict<99> >, Unordered<mpl::vector<Optional<Element<Attribute<Snapshot::Xml::PAbsFilePath1, Name::Strict<419> >, Name::Strict<478> > >, Optional<Element<Snapshot::Xml::Driver, Name::Strict<523> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<mpl::int_<477>, Name::Strict<99> > >, Unordered<mpl::vector<Optional<Element<Snapshot::Xml::Source, Name::Strict<478> > >, Optional<Element<Snapshot::Xml::Driver, Name::Strict<523> > > > > > > marshal_type;
 
 	static int parse(Snapshot::Xml::Variant1719& , QStack<QDomElement>& );
 	static int generate(const Snapshot::Xml::Variant1719& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Host1564 traits
+// struct Variant1720 traits
 
 template<>
-struct Traits<Snapshot::Xml::Host1564>
+struct Traits<Snapshot::Xml::Variant1720>
+{
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<479>, Name::Strict<99> >, Unordered<mpl::vector<Optional<Element<Attribute<Snapshot::Xml::PAbsFilePath1, Name::Strict<419> >, Name::Strict<478> > >, Optional<Element<Snapshot::Xml::Driver, Name::Strict<523> > > > > > > marshal_type;
+
+	static int parse(Snapshot::Xml::Variant1720& , QStack<QDomElement>& );
+	static int generate(const Snapshot::Xml::Variant1720& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Host1565 traits
+
+template<>
+struct Traits<Snapshot::Xml::Host1565>
 {
 	typedef Ordered<mpl::vector<Optional<Attribute<Snapshot::Xml::ETransport, Name::Strict<491> > >, Attribute<Snapshot::Xml::VName1, Name::Strict<101> >, Optional<Attribute<Snapshot::Xml::PUnsignedInt1, Name::Strict<200> > > > > marshal_type;
 
-	static int parse(Snapshot::Xml::Host1564& , QStack<QDomElement>& );
-	static int generate(const Snapshot::Xml::Host1564& , QDomElement& );
+	static int parse(Snapshot::Xml::Host1565& , QStack<QDomElement>& );
+	static int generate(const Snapshot::Xml::Host1565& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -603,7 +603,7 @@ struct Traits<Snapshot::Xml::Disk>
 template<>
 struct Traits<Snapshot::Xml::Domainsnapshot>
 {
-	typedef Unordered<mpl::vector<Optional<Element<Text<QString >, Name::Strict<101> > >, Optional<Element<Text<QString >, Name::Strict<201> > >, Optional<Element<Text<Snapshot::Xml::EState >, Name::Strict<120> > >, Optional<Element<Text<QString >, Name::Strict<1483> > >, Optional<Element<Snapshot::Xml::VMemoryImpl, Name::Strict<311> > >, Optional<Element<ZeroOrMore<Element<Snapshot::Xml::Disk, Name::Strict<449> > >, Name::Strict<1486> > >, Optional<Element<Text<Snapshot::Xml::EActive >, Name::Strict<1250> > >, Optional<Snapshot::Xml::VChoice1705Impl >, Optional<Element<Element<Text<QString >, Name::Strict<101> >, Name::Strict<110> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Optional<Element<Text<QString >, Name::Strict<101> > >, Optional<Element<Text<QString >, Name::Strict<201> > >, Optional<Element<Text<Snapshot::Xml::EState >, Name::Strict<120> > >, Optional<Element<Text<QString >, Name::Strict<1484> > >, Optional<Element<Snapshot::Xml::VMemoryImpl, Name::Strict<311> > >, Optional<Element<ZeroOrMore<Element<Snapshot::Xml::Disk, Name::Strict<449> > >, Name::Strict<1487> > >, Optional<Element<Text<Snapshot::Xml::EActive >, Name::Strict<1251> > >, Optional<Snapshot::Xml::VChoice1706Impl >, Optional<Element<Element<Text<QString >, Name::Strict<101> >, Name::Strict<110> > > > > marshal_type;
 
 	static int parse(Snapshot::Xml::Domainsnapshot& , QStack<QDomElement>& );
 	static int generate(const Snapshot::Xml::Domainsnapshot& , QDomElement& );
