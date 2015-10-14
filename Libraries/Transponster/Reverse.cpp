@@ -425,6 +425,16 @@ Libvirt::Domain::Xml::VAddress Attachment::craftScsi(const boost::optional<Libvi
 ///////////////////////////////////////////////////////////////////////////////
 // struct List
 
+List::List(const Boot::Reverse& boot_): m_boot(boot_)
+{
+	Libvirt::Domain::Xml::Channel1 c;
+	c.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceUnix);
+	mpl::at_c<Libvirt::Domain::Xml::VChoice842::types, 1>::type x;
+	x.setValue(QString("org.qemu.guest_agent.0"));
+	c.setChoice842(x);
+	add<13>(c);
+}
+
 Libvirt::Domain::Xml::Devices List::getResult() const
 {
 	Libvirt::Domain::Xml::Devices output;
