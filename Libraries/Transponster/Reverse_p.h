@@ -338,9 +338,7 @@ private:
 
 struct List
 {
-	explicit List(const Boot::Reverse& boot_): m_boot(boot_)
-	{
-	}
+	explicit List(const Boot::Reverse& boot_);
 
 	Libvirt::Domain::Xml::Devices getResult() const;
 	void add(const CVmRemoteDisplay* vnc_);
