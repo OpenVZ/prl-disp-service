@@ -161,16 +161,8 @@ struct Builder
 	{
 	}
 
-	void setBoot()
-	{
-		m_result.setBoot(m_boot);
-	}
 	void setDisk();
-	void setAlias();
-	void setReadonly()
-	{
-		m_result.setReadonly(Flavor<T>::readonly);
-	}
+	void setFlags();
 	void setDriver();
 	void setSource()
 	{
@@ -204,6 +196,25 @@ void Builder<T>::setDisk()
 	mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type x;
 	x.setValue(Flavor<T>::kind);
 	m_result.setDisk(Libvirt::Domain::Xml::VDisk(x));
+}
+
+template<class T>
+void Builder<T>::setFlags()
+{
+	// boot
+	m_result.setBoot(m_boot);
+	// connected
+	if (Flavor<T>::image == getModel().getEmulatedType() &&
+		!getModel().isConnected())
+		m_result.setSerial(QString(getModel().getImageFile().toUtf8().toHex()));
+
+	// readonly
+	m_result.setReadonly(Flavor<T>::readonly);
+	// snapshot
+	if (Flavor<T>::image == getModel().getEmulatedType())
+		m_result.setSnapshot(Flavor<T>::snapshot);
+	else
+		m_result.setSnapshot(Libvirt::Domain::Xml::ESnapshotNo);
 }
 
 template<class T>
@@ -252,14 +263,6 @@ Libvirt::Domain::Xml::VDiskSource Builder<T>::getSource() const
 	default:
 		return Libvirt::Domain::Xml::VDiskSource();
 	}
-}
-
-template<class T>
-void Builder<T>::setAlias()
-{
-	if (Flavor<T>::image == getModel().getEmulatedType() &&
-		!getModel().isConnected())
-		m_result.setSerial(QString(getModel().getImageFile().toUtf8().toHex()));
 }
 
 template<class T>
@@ -375,13 +378,11 @@ private:
 template<class T>
 typename boost::disable_if<boost::is_pointer<T> >::type List::add(T builder_)
 {
-	builder_.setBoot();
 	builder_.setDisk();
-	builder_.setAlias();
+	builder_.setFlags();
 	builder_.setDriver();
 	builder_.setSource();
 	builder_.setTarget();
-	builder_.setReadonly();
 	builder_.setBackingChain();
 
 	Libvirt::Domain::Xml::Disk d = builder_.getResult();

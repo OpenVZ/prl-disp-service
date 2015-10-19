@@ -638,14 +638,11 @@ private:
 	Context m_context;
 };
 
+#ifdef _LIBVIRT_
 template<>
 void Body<Tag::Libvirt<PVE::DspCmdVmStop> >::run()
 {
-#ifdef _LIBVIRT_
 	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).stop());
-#else // _LIBVIRT_
-	m_context.reply(PRL_ERR_UNIMPLEMENTED);
-#endif // _LIBVIRT_
 }
 
 template<>
@@ -655,7 +652,6 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStart> >::run()
 	if (!c.isValid())
 		return;
 
-#ifdef _LIBVIRT_
 	CStatesHelper h(c->getVmIdentification()->getHomePath());
 	if (!h.savFileExists())
 		return m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).start());
@@ -666,9 +662,6 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStart> >::run()
 		h.dropStateFiles();
 
 	m_context.reply(e);
-#else // _LIBVIRT_
-	m_context.reply(PRL_ERR_UNIMPLEMENTED);
-#endif // _LIBVIRT_
 }
 
 template<>
@@ -677,20 +670,15 @@ void Body<Tag::Libvirt<PVE::DspCmdVmSuspend> >::run()
 	SmartPtr<CVmConfiguration> c = Details::Assistant(m_context).getConfig();
 	if (c.isValid())
 	{
-#ifdef _LIBVIRT_
 		CStatesHelper h(c->getVmIdentification()->getHomePath());
 		m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid())
 			.suspend(h.getSavFileName()));
-#else // _LIBVIRT_
-		m_context.reply(PRL_ERR_UNIMPLEMENTED);
-#endif // _LIBVIRT_
 	}
 }
 
 template<>
 void Body<Tag::Libvirt<PVE::DspCmdVmDevConnect> >::run()
 {
-#ifdef _LIBVIRT_
 	CProtoVmDeviceCommand* x = CProtoSerializer::CastToProtoCommand
 		<CProtoVmDeviceCommand>(m_context.getRequest());
 	if (NULL == x)
@@ -702,10 +690,89 @@ void Body<Tag::Libvirt<PVE::DspCmdVmDevConnect> >::run()
 	CVmOpticalDisk y;
 	StringToElement<CVmOpticalDisk* >(&y, x->GetDeviceConfig());
 	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).changeMedia(y));
-#else // _LIBVIRT_
-	m_context.reply(PRL_ERR_UNIMPLEMENTED);
-#endif // _LIBVIRT_
 }
+
+template<>
+void Body<Tag::Libvirt<PVE::DspCmdVmCreateSnapshot> >::run()
+{
+	CProtoCreateSnapshotCommand* x = CProtoSerializer::CastToProtoCommand
+		<CProtoCreateSnapshotCommand>(m_context.getRequest());
+	if (NULL == x)
+		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
+
+	PRL_RESULT e;
+	if (PCSF_BACKUP & x->GetCommandFlags())
+	{
+// NB. external user doesn't work with backup snapshots. this code is
+// here for demostration purposes only. resurect it when backup management
+// will be implemented.
+//		e = Libvirt::Kit.vms().at(x->GetVmUuid())
+//			.getSnapshot()
+//			.defineConsistent("{704718e1-2314-44C8-9087-d78ed36b0f4e}");
+	}
+	else
+	{
+		e = Libvirt::Kit.vms().at(x->GetVmUuid()).getSnapshot()
+			.define(x->GetSnapshotUuid());
+	}
+	if (PRL_FAILED(e))
+		return m_context.reply(e);
+
+	CDspClientManager& m = CDspService::instance()->getClientManager();
+	SmartPtr<IOPackage> a, b = m_context.getPackage();
+	// tree changed
+	a = DispatcherPackage::createInstance(PVE::DspVmEvent, CVmEvent
+		(PET_DSP_EVT_VM_SNAPSHOTS_TREE_CHANGED, x->GetVmUuid(), PIE_DISPATCHER), b);
+	m.sendPackageToVmClients(a, m_context.getDirectoryUuid(), x->GetVmUuid());
+	// snapshooted
+	a = DispatcherPackage::createInstance(PVE::DspVmEvent, CVmEvent
+		(PET_DSP_EVT_VM_SNAPSHOTED, x->GetVmUuid(), PIE_DISPATCHER), b);
+	m.sendPackageToVmClients(a, m_context.getDirectoryUuid(), x->GetVmUuid());
+	// reply
+	CProtoCommandPtr r = CProtoSerializer::CreateDspWsResponseCommand(b, e);
+	CProtoCommandDspWsResponse* d = CProtoSerializer::CastToProtoCommand
+		<CProtoCommandDspWsResponse>(r);
+	d->AddStandardParam(x->GetSnapshotUuid());
+	m_context.getSession()->sendResponse(r, b);
+}
+
+template<>
+void Body<Tag::Libvirt<PVE::DspCmdVmSwitchToSnapshot> >::run()
+{
+	CProtoSwitchToSnapshotCommand* x = CProtoSerializer::CastToProtoCommand
+		<CProtoSwitchToSnapshotCommand>(m_context.getRequest());
+	if (NULL == x)
+		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
+
+	m_context.reply(Libvirt::Kit.vms()
+		.at(x->GetVmUuid()).getSnapshot()
+		.at(x->GetSnapshotUuid()).revert());
+}
+
+template<>
+void Body<Tag::Libvirt<PVE::DspCmdVmDeleteSnapshot> >::run()
+{
+	CProtoDeleteSnapshotCommand* x = CProtoSerializer::CastToProtoCommand
+		<CProtoDeleteSnapshotCommand>(m_context.getRequest());
+	if (NULL == x)
+		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
+
+	Libvirt::Tools::Agent::Vm::Snapshot::Unit s = Libvirt::Kit.vms()
+		.at(x->GetVmUuid()).getSnapshot().at(x->GetSnapshotUuid());
+	if (x->GetChild())
+		m_context.reply(s.undefineRecursive());
+	else
+		m_context.reply(s.undefine());
+}
+
+#else // _LIBVIRT_
+template<PVE::IDispatcherCommands X>
+void Body<Tag::Libvirt<X> >::run()
+{
+	m_context.reply(PRL_ERR_UNIMPLEMENTED);
+}
+
+#endif // _LIBVIRT_
 
 } // namespace Details
 
@@ -788,9 +855,9 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmAuthWithGuestSecurityDb] = map(Tag::Special<PVE::DspCmdVmAuthWithGuestSecurityDb>());
 	m_map[PVE::DspCmdVmStart] = map(Tag::Libvirt<PVE::DspCmdVmStart>());
 	m_map[PVE::DspCmdVmStartEx] = map(Tag::Libvirt<PVE::DspCmdVmStart>());
-	m_map[PVE::DspCmdVmCreateSnapshot] = map(Tag::CreateDspVm<PVE::DspCmdVmCreateSnapshot>());
-	m_map[PVE::DspCmdVmSwitchToSnapshot] = map(Tag::CreateDspVm<PVE::DspCmdVmSwitchToSnapshot>());
-	m_map[PVE::DspCmdVmDeleteSnapshot] = map(Tag::CreateDspVm<PVE::DspCmdVmDeleteSnapshot>());
+	m_map[PVE::DspCmdVmCreateSnapshot] = map(Tag::Libvirt<PVE::DspCmdVmCreateSnapshot>());
+	m_map[PVE::DspCmdVmSwitchToSnapshot] = map(Tag::Libvirt<PVE::DspCmdVmSwitchToSnapshot>());
+	m_map[PVE::DspCmdVmDeleteSnapshot] = map(Tag::Libvirt<PVE::DspCmdVmDeleteSnapshot>());
 	m_map[PVE::DspCmdVmAnswer] = map(Tag::Simple<PVE::DspCmdVmAnswer>());
 	m_map[PVE::DspCmdVmStartVNCServer] = map(Tag::Simple<PVE::DspCmdVmStartVNCServer>());
 	m_map[PVE::DspCmdVmStopVNCServer] = map(Tag::Simple<PVE::DspCmdVmStopVNCServer>());

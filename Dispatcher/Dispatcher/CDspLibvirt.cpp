@@ -133,14 +133,13 @@ PRL_RESULT Unit::getState(VIRTUAL_MACHINE_STATE& dst_) const
 PRL_RESULT Unit::getConfig(CVmConfiguration& dst_) const
 {
 	char* x = getConfig();
-
 	if (NULL == x)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
 //	WRITE_TRACE(DBG_FATAL, "xml:\n%s", x);
 	Transponster::Vm::Direct u(x);
 	if (PRL_FAILED(Transponster::Director::domain(u)))
-		return PRL_ERR_PARSE_VM_DIR_CONFIG;
+		return PRL_ERR_PARSE_VM_CONFIG;
 		
 	CVmConfiguration* output = u.getResult();
 	if (NULL == output)
@@ -158,7 +157,6 @@ PRL_RESULT Unit::getConfig(CVmConfiguration& dst_) const
 PRL_RESULT Unit::getConfig(QString& dst_) const
 {
 	char* x = getConfig();
-
 	if (NULL == x)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
@@ -336,6 +334,140 @@ PRL_RESULT List::all(QList<Unit>& dst_)
 	return PRL_ERR_SUCCESS;
 }
 
+namespace Snapshot
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+Unit::Unit(virDomainSnapshotPtr snapshot_): m_snapshot(snapshot_, &virDomainSnapshotFree)
+{
+}
+
+PRL_RESULT Unit::getUuid(QString& dst_) const
+{
+	const char* n = virDomainSnapshotGetName(m_snapshot.data());
+	if (NULL == n)
+		return PRL_ERR_INVALID_HANDLE;
+
+	QString x = n;
+	if (!PrlUuid::isUuid(x.toStdString()))
+		return PRL_ERR_INVALID_HANDLE;
+
+	dst_ = x;
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Unit::getState(CSavedStateTree& dst_) const
+{
+	char* x = virDomainSnapshotGetXMLDesc(m_snapshot.data(), VIR_DOMAIN_XML_SECURE);
+	if (NULL == x)
+		return PRL_ERR_INVALID_HANDLE;
+
+	Transponster::Snapshot::Direct y(x);
+	if (PRL_FAILED(Transponster::Director::snapshot(y)))
+		return PRL_ERR_PARSE_VM_DIR_CONFIG;
+
+	dst_ = y.getResult();
+	return PRL_ERR_SUCCESS;
+}
+
+Unit Unit::getParent() const
+{
+	return Unit(virDomainSnapshotGetParent(m_snapshot.data(), 0));
+}
+
+PRL_RESULT Unit::revert()
+{
+	return do_(m_snapshot.data(), boost::bind
+		(&virDomainRevertToSnapshot, _1, 0));
+}
+
+PRL_RESULT Unit::undefine()
+{
+	return do_(m_snapshot.data(), boost::bind
+		(&virDomainSnapshotDelete, _1, 0));
+}
+
+PRL_RESULT Unit::undefineRecursive()
+{
+	return do_(m_snapshot.data(), boost::bind
+		(&virDomainSnapshotDelete, _1,  VIR_DOMAIN_SNAPSHOT_DELETE_CHILDREN));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+
+Unit List::at(const QString& uuid_) const
+{
+	return Unit(virDomainSnapshotLookupByName(m_domain.data(), qPrintable(uuid_), 0));
+}
+
+PRL_RESULT List::all(QList<Unit>& dst_) const
+{
+	virDomainSnapshotPtr* a = NULL;
+	int n = virDomainListAllSnapshots(m_domain.data(), &a, 0);
+	if (0 > n)
+		return PRL_ERR_INVALID_HANDLE;
+
+	for (int i = 0; i < n; ++i)
+	{
+		QString u;
+		Unit o(a[i]);
+		if (PRL_SUCCEEDED(o.getUuid(u)))
+			dst_ << o;
+	}
+	free(a);
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT List::define(const QString& uuid_, quint32 flags_, Unit* dst_)
+{
+	PRL_RESULT e;
+	virDomainRef(m_domain.data());
+	Vm::Unit m(m_domain.data());
+	CVmConfiguration x;
+	if (PRL_FAILED(e = m.getConfig(x)))
+		return e;
+
+	VIRTUAL_MACHINE_STATE s;
+	if (PRL_FAILED(e = m.getState(s)))
+		return e;
+
+	Transponster::Snapshot::Reverse y(uuid_, x);
+	if (PRL_FAILED(e = Transponster::Director::snapshot(y)))
+		return e;
+
+	if (VMS_RUNNING == s)
+	{
+		y.setMemory();
+		flags_ |= VIR_DOMAIN_SNAPSHOT_CREATE_LIVE;
+	}
+	WRITE_TRACE(DBG_FATAL, "xml:\n%s", y.getResult().toUtf8().data());
+	virDomainSnapshotPtr p = virDomainSnapshotCreateXML(m_domain.data(),
+					y.getResult().toUtf8().data(), flags_);
+	if (NULL == p)
+		return PRL_ERR_FAILURE;
+
+	Unit u(p);
+	if (NULL != dst_)
+		*dst_ = u;
+
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT List::define(const QString& uuid_, Unit* dst_)
+{
+	return define(uuid_, VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC, dst_);
+}
+
+PRL_RESULT List::defineConsistent(const QString& uuid_, Unit* dst_)
+{
+	return define(uuid_, VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE |
+			VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC, dst_);
+}
+
+
+} // namespace Snapshot
 } // namespace Vm
 
 namespace Network

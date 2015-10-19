@@ -365,8 +365,6 @@ namespace Xml
 {
 struct Cpu948
 {
-	Cpu948();
-
 	const boost::optional<EMode >& getMode() const
 	{
 		return m_mode;
@@ -375,19 +373,19 @@ struct Cpu948
 	{
 		m_mode = value_;
 	}
-	EMatch getMatch() const
+	const boost::optional<EMatch >& getMatch() const
 	{
 		return m_match;
 	}
-	void setMatch(EMatch value_)
+	void setMatch(const boost::optional<EMatch >& value_)
 	{
 		m_match = value_;
 	}
-	const Model& getModel() const
+	const boost::optional<Model >& getModel() const
 	{
 		return m_model;
 	}
-	void setModel(const Model& value_)
+	void setModel(const boost::optional<Model >& value_)
 	{
 		m_model = value_;
 	}
@@ -426,8 +424,8 @@ struct Cpu948
 
 private:
 	boost::optional<EMode > m_mode;
-	EMatch m_match;
-	Model m_model;
+	boost::optional<EMatch > m_match;
+	boost::optional<Model > m_model;
 	boost::optional<QString > m_vendor;
 	boost::optional<Topology > m_topology;
 	QList<Feature > m_featureList;
@@ -2270,13 +2268,13 @@ private:
 } // namespace Domain
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Memory1107
+// struct Memory1108
 
 namespace Domain
 {
 namespace Xml
 {
-struct Memory1107
+struct Memory1108
 {
 };
 
@@ -2290,7 +2288,7 @@ namespace Domain
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Ordered<mpl::vector<Optional<Attribute<mpl::int_<223>, Name::Strict<322> > >, Optional<Attribute<Domain::Xml::PCpuset, Name::Strict<318> > > > >, Memory1107 > > VMemoryImpl;
+typedef Choice<mpl::vector<Ordered<mpl::vector<Optional<Attribute<mpl::int_<223>, Name::Strict<322> > >, Optional<Attribute<Domain::Xml::PCpuset, Name::Strict<318> > > > >, Memory1108 > > VMemoryImpl;
 typedef VMemoryImpl::value_type VMemory;
 
 } // namespace Xml
@@ -3879,13 +3877,13 @@ private:
 } // namespace Domain
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1108
+// struct Anonymous1109
 
 namespace Domain
 {
 namespace Xml
 {
-struct Anonymous1108
+struct Anonymous1109
 {
 	const boost::optional<Source >& getSource() const
 	{
@@ -3947,20 +3945,20 @@ struct Mirror1022
 	{
 		m_job = value_;
 	}
-	const boost::optional<Anonymous1108 >& getAnonymous1108() const
+	const boost::optional<Anonymous1109 >& getAnonymous1109() const
 	{
-		return m_anonymous1108;
+		return m_anonymous1109;
 	}
-	void setAnonymous1108(const boost::optional<Anonymous1108 >& value_)
+	void setAnonymous1109(const boost::optional<Anonymous1109 >& value_)
 	{
-		m_anonymous1108 = value_;
+		m_anonymous1109 = value_;
 	}
 
 private:
 	PAbsFilePath::value_type m_file;
 	boost::optional<VStorageFormat > m_format;
 	boost::optional<EJob > m_job;
-	boost::optional<Anonymous1108 > m_anonymous1108;
+	boost::optional<Anonymous1109 > m_anonymous1109;
 };
 
 } // namespace Xml
@@ -4650,13 +4648,13 @@ private:
 } // namespace Domain
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1109
+// struct Anonymous1110
 
 namespace Domain
 {
 namespace Xml
 {
-struct Anonymous1109
+struct Anonymous1110
 {
 	const VCcwCssidRange& getCssid() const
 	{
@@ -4737,7 +4735,7 @@ namespace Domain
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Ordered<mpl::vector<Attribute<mpl::int_<572>, Name::Strict<99> >, Fragment<Pciaddress > > >, Ordered<mpl::vector<Attribute<mpl::int_<991>, Name::Strict<99> >, Fragment<Driveaddress > > >, Ordered<mpl::vector<Attribute<mpl::int_<582>, Name::Strict<99> >, Fragment<Virtioserialaddress > > >, Ordered<mpl::vector<Attribute<mpl::int_<550>, Name::Strict<99> >, Fragment<Ccidaddress > > >, Ordered<mpl::vector<Attribute<mpl::int_<508>, Name::Strict<99> >, Fragment<Usbportaddress > > >, Ordered<mpl::vector<Attribute<mpl::int_<996>, Name::Strict<99> >, Optional<Attribute<Domain::Xml::PSpaprvioReg, Name::Strict<895> > > > >, Ordered<mpl::vector<Attribute<mpl::int_<998>, Name::Strict<99> >, Optional<Fragment<Anonymous1109 > > > >, Ordered<mpl::vector<Attribute<mpl::int_<1000>, Name::Strict<99> >, Fragment<Isaaddress > > > > > VAddressImpl;
+typedef Choice<mpl::vector<Ordered<mpl::vector<Attribute<mpl::int_<572>, Name::Strict<99> >, Fragment<Pciaddress > > >, Ordered<mpl::vector<Attribute<mpl::int_<991>, Name::Strict<99> >, Fragment<Driveaddress > > >, Ordered<mpl::vector<Attribute<mpl::int_<582>, Name::Strict<99> >, Fragment<Virtioserialaddress > > >, Ordered<mpl::vector<Attribute<mpl::int_<550>, Name::Strict<99> >, Fragment<Ccidaddress > > >, Ordered<mpl::vector<Attribute<mpl::int_<508>, Name::Strict<99> >, Fragment<Usbportaddress > > >, Ordered<mpl::vector<Attribute<mpl::int_<996>, Name::Strict<99> >, Optional<Attribute<Domain::Xml::PSpaprvioReg, Name::Strict<895> > > > >, Ordered<mpl::vector<Attribute<mpl::int_<998>, Name::Strict<99> >, Optional<Fragment<Anonymous1110 > > > >, Ordered<mpl::vector<Attribute<mpl::int_<1000>, Name::Strict<99> >, Fragment<Isaaddress > > > > > VAddressImpl;
 typedef VAddressImpl::value_type VAddress;
 
 } // namespace Xml
@@ -11913,7 +11911,7 @@ struct Traits<Domain::Xml::Feature>
 template<>
 struct Traits<Domain::Xml::Cpu948>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::EMode, Name::Strict<356> > >, Attribute<Domain::Xml::EMatch, Name::Strict<953> >, Unordered<mpl::vector<Element<Domain::Xml::Model, Name::Strict<216> >, Optional<Element<Text<QString >, Name::Strict<437> > >, Optional<Element<Domain::Xml::Topology, Name::Strict<966> > >, ZeroOrMore<Element<Domain::Xml::Feature, Name::Strict<960> > >, Optional<Element<OneOrMore<Element<Domain::Xml::Cell, Name::Strict<971> > >, Name::Strict<969> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::EMode, Name::Strict<356> > >, Optional<Attribute<Domain::Xml::EMatch, Name::Strict<953> > >, Unordered<mpl::vector<Optional<Element<Domain::Xml::Model, Name::Strict<216> > >, Optional<Element<Text<QString >, Name::Strict<437> > >, Optional<Element<Domain::Xml::Topology, Name::Strict<966> > >, ZeroOrMore<Element<Domain::Xml::Feature, Name::Strict<960> > >, Optional<Element<OneOrMore<Element<Domain::Xml::Cell, Name::Strict<971> > >, Name::Strict<969> > > > > > > marshal_type;
 
 	static int parse(Domain::Xml::Cpu948& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Cpu948& , QDomElement& );
@@ -12412,15 +12410,15 @@ struct Traits<Domain::Xml::Cputune>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Memory1107 traits
+// struct Memory1108 traits
 
 template<>
-struct Traits<Domain::Xml::Memory1107>
+struct Traits<Domain::Xml::Memory1108>
 {
 	typedef Attribute<mpl::int_<323>, Name::Strict<322> > marshal_type;
 
-	static int parse(Domain::Xml::Memory1107& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Memory1107& , QDomElement& );
+	static int parse(Domain::Xml::Memory1108& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Memory1108& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -12621,7 +12619,7 @@ struct Traits<Domain::Xml::Idmap>
 template<>
 struct Traits<Domain::Xml::Disk456>
 {
-	typedef Ordered<mpl::vector<Attribute<Domain::Xml::EDevice1, Name::Strict<333> >, Optional<Attribute<Domain::Xml::EVirYesNo, Name::Strict<1107> > >, Optional<Attribute<Domain::Xml::ESgio, Name::Strict<454> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Domain::Xml::EDevice1, Name::Strict<333> >, Optional<Attribute<Domain::Xml::EVirYesNo, Name::Strict<1108> > >, Optional<Attribute<Domain::Xml::ESgio, Name::Strict<454> > > > > marshal_type;
 
 	static int parse(Domain::Xml::Disk456& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Disk456& , QDomElement& );
@@ -12760,15 +12758,15 @@ struct Traits<Domain::Xml::Driver>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1108 traits
+// struct Anonymous1109 traits
 
 template<>
-struct Traits<Domain::Xml::Anonymous1108>
+struct Traits<Domain::Xml::Anonymous1109>
 {
 	typedef Unordered<mpl::vector<Ordered<mpl::vector<Optional<Attribute<mpl::int_<477>, Name::Strict<99> > >, Optional<Element<Domain::Xml::Source, Name::Strict<478> > > > >, Optional<Element<Attribute<Domain::Xml::VStorageFormat, Name::Strict<99> >, Name::Strict<134> > > > > marshal_type;
 
-	static int parse(Domain::Xml::Anonymous1108& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Anonymous1108& , QDomElement& );
+	static int parse(Domain::Xml::Anonymous1109& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Anonymous1109& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -12777,7 +12775,7 @@ struct Traits<Domain::Xml::Anonymous1108>
 template<>
 struct Traits<Domain::Xml::Mirror1022>
 {
-	typedef Ordered<mpl::vector<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<477> >, Optional<Attribute<Domain::Xml::VStorageFormat, Name::Strict<134> > >, Optional<Attribute<Domain::Xml::EJob, Name::Strict<1021> > >, Optional<Fragment<Domain::Xml::Anonymous1108 > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<477> >, Optional<Attribute<Domain::Xml::VStorageFormat, Name::Strict<134> > >, Optional<Attribute<Domain::Xml::EJob, Name::Strict<1021> > >, Optional<Fragment<Domain::Xml::Anonymous1109 > > > > marshal_type;
 
 	static int parse(Domain::Xml::Mirror1022& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Mirror1022& , QDomElement& );
@@ -12964,15 +12962,15 @@ struct Traits<Domain::Xml::Usbportaddress>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1109 traits
+// struct Anonymous1110 traits
 
 template<>
-struct Traits<Domain::Xml::Anonymous1109>
+struct Traits<Domain::Xml::Anonymous1110>
 {
 	typedef Ordered<mpl::vector<Attribute<Domain::Xml::VCcwCssidRange, Name::Strict<898> >, Attribute<Domain::Xml::PCcwSsidRange, Name::Strict<900> >, Attribute<Domain::Xml::VCcwDevnoRange, Name::Strict<902> > > > marshal_type;
 
-	static int parse(Domain::Xml::Anonymous1109& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Anonymous1109& , QDomElement& );
+	static int parse(Domain::Xml::Anonymous1110& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Anonymous1110& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -13833,7 +13831,7 @@ struct Traits<Domain::Xml::Source884>
 template<>
 struct Traits<Domain::Xml::Hostdevsubsysscsi>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<506>, Name::Strict<99> >, Optional<Attribute<Domain::Xml::ESgio1, Name::Strict<454> > >, Optional<Attribute<Domain::Xml::EVirYesNo, Name::Strict<1107> > >, Element<Domain::Xml::VSource2Impl, Name::Strict<478> > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<506>, Name::Strict<99> >, Optional<Attribute<Domain::Xml::ESgio1, Name::Strict<454> > >, Optional<Attribute<Domain::Xml::EVirYesNo, Name::Strict<1108> > >, Element<Domain::Xml::VSource2Impl, Name::Strict<478> > > > marshal_type;
 
 	static int parse(Domain::Xml::Hostdevsubsysscsi& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Hostdevsubsysscsi& , QDomElement& );
@@ -14361,7 +14359,7 @@ struct Traits<Domain::Xml::Commandline>
 template<>
 struct Traits<Domain::Xml::Domain>
 {
-	typedef Ordered<mpl::vector<Attribute<Domain::Xml::EType, Name::Strict<99> >, Fragment<Domain::Xml::Ids >, Unordered<mpl::vector<Optional<Element<Text<Domain::Xml::PTitle >, Name::Strict<202> > >, Optional<Element<Text<QString >, Name::Strict<201> > >, Optional<Element<Domain::Xml::VCpuImpl, Name::Strict<205> > >, Optional<Element<Domain::Xml::Sysinfo, Name::Strict<206> > >, Domain::Xml::VOsImpl, Optional<Element<Domain::Xml::Clock, Name::Strict<208> > >, Element<Domain::Xml::Memory, Name::Strict<311> >, Optional<Element<Domain::Xml::ScaledInteger, Name::Strict<313> > >, Optional<Element<Domain::Xml::MemoryBacking, Name::Strict<314> > >, Optional<Element<Domain::Xml::Vcpu, Name::Strict<321> > >, Optional<Element<Text<Domain::Xml::PUnsignedInt >, Name::Strict<326> > >, Optional<Element<Domain::Xml::Blkiotune, Name::Strict<327> > >, Optional<Element<Domain::Xml::Memtune, Name::Strict<328> > >, Optional<Element<Domain::Xml::Cputune, Name::Strict<329> > >, Optional<Element<Domain::Xml::Numatune, Name::Strict<330> > >, Optional<Element<Element<Text<Domain::Xml::PAbsFilePath >, Name::Strict<365> >, Name::Strict<364> > >, Optional<Element<Domain::Xml::Features, Name::Strict<143> > >, Optional<Element<Text<Domain::Xml::EOffOptions >, Name::Strict<747> > >, Optional<Element<Text<Domain::Xml::EOffOptions >, Name::Strict<749> > >, Optional<Element<Text<Domain::Xml::ECrashOptions >, Name::Strict<750> > >, Optional<Element<Text<Domain::Xml::ELockfailureOptions >, Name::Strict<752> > >, Optional<Element<Domain::Xml::Pm, Name::Strict<211> > >, Optional<Element<Domain::Xml::Idmap, Name::Strict<212> > >, Optional<Element<Domain::Xml::Devices, Name::Strict<213> > >, ZeroOrMore<Element<Domain::Xml::Seclabel1, Name::Strict<214> > >, Optional<Element<Domain::Xml::Commandline, Name::Strict<1087> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Domain::Xml::EType, Name::Strict<99> >, Fragment<Domain::Xml::Ids >, Unordered<mpl::vector<Optional<Element<Text<Domain::Xml::PTitle >, Name::Strict<202> > >, Optional<Element<Text<QString >, Name::Strict<201> > >, Optional<Element<Domain::Xml::VCpuImpl, Name::Strict<205> > >, Optional<Element<Domain::Xml::Sysinfo, Name::Strict<206> > >, Domain::Xml::VOsImpl, Optional<Element<Domain::Xml::Clock, Name::Strict<208> > >, Element<Domain::Xml::Memory, Name::Strict<311> >, Optional<Element<Domain::Xml::ScaledInteger, Name::Strict<313> > >, Optional<Element<Domain::Xml::MemoryBacking, Name::Strict<314> > >, Optional<Element<Domain::Xml::Vcpu, Name::Strict<321> > >, Optional<Element<Text<Domain::Xml::PUnsignedInt >, Name::Strict<326> > >, Optional<Element<Domain::Xml::Blkiotune, Name::Strict<327> > >, Optional<Element<Domain::Xml::Memtune, Name::Strict<328> > >, Optional<Element<Domain::Xml::Cputune, Name::Strict<329> > >, Optional<Element<Domain::Xml::Numatune, Name::Strict<330> > >, Optional<Element<Element<Text<Domain::Xml::PAbsFilePath >, Name::Strict<365> >, Name::Strict<364> > >, Optional<Element<Domain::Xml::Features, Name::Strict<143> > >, Optional<Element<Text<Domain::Xml::EOffOptions >, Name::Strict<747> > >, Optional<Element<Text<Domain::Xml::EOffOptions >, Name::Strict<749> > >, Optional<Element<Text<Domain::Xml::ECrashOptions >, Name::Strict<750> > >, Optional<Element<Text<Domain::Xml::ELockfailureOptions >, Name::Strict<752> > >, Optional<Element<Domain::Xml::Pm, Name::Strict<211> > >, Optional<Element<Domain::Xml::Idmap, Name::Strict<212> > >, Optional<Element<Domain::Xml::Devices, Name::Strict<213> > >, ZeroOrMore<Element<Domain::Xml::Seclabel1, Name::Strict<214> > >, Optional<Element<Domain::Xml::Commandline, Name::Scoped<1087, 1090> > > > > > > marshal_type;
 
 	static int parse(Domain::Xml::Domain& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Domain& , QDomElement& );

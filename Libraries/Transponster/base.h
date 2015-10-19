@@ -24,6 +24,7 @@
 #ifndef __BASE_H__
 #define __BASE_H__
 #include <QString>
+#include <QDomNode>
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/back.hpp>
 #include <boost/mpl/size.hpp>
@@ -58,16 +59,62 @@ struct Any
 ///////////////////////////////////////////////////////////////////////////////
 // struct Strict
 
-template<unsigned I>
+template<unsigned N>
 struct Strict
 {
-	static bool consume(const QString& name_)
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Scoped
+
+template<unsigned N, unsigned S>
+struct Scoped
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Traits
+
+template<class T>
+struct Traits;
+
+template<unsigned N>
+struct Traits<Strict<N> >
+{
+	static bool consume(const QDomNode& node_)
 	{
-		return getText(I) == name_;
+
+		QString x = node_.localName();
+		if (x.isEmpty())
+			x = node_.nodeName();
+
+		return getText(N) == x;
 	}
-	static const QString produce()
+	static const QDomAttr produceAttribute(QDomElement& dst_)
 	{
-		return getText(I);
+		return dst_.ownerDocument().createAttribute(getText(N));
+	}
+	static const QDomElement produceElement(QDomDocument& dst_)
+	{
+		return dst_.createElement(getText(N));
+	}
+};
+
+template<unsigned N, unsigned S>
+struct Traits<Scoped<N, S> >
+{
+	static bool consume(const QDomNode& node_)
+	{
+		return node_.localName() == getText(N) &&
+			node_.namespaceURI() == getText(S);
+	}
+	static const QDomAttr produceAttribute(QDomElement& dst_)
+	{
+		return dst_.ownerDocument().createAttributeNS(getText(S), getText(N));
+	}
+	static const QDomElement produceElement(QDomDocument& dst_)
+	{
+		return dst_.createElementNS(getText(S), getText(N));
 	}
 };
 

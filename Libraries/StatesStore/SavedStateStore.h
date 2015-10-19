@@ -145,7 +145,7 @@ public:
 	 */
 	SnapshotParser::SnapshotReturnCode Save(bool all_save = false);
 	SnapshotParser::SnapshotReturnCode Save(const QString& sXmlFileName, bool all_save = false);
-	SnapshotParser::SnapshotReturnCode Save(QIODevice& ioDevice, bool all_save = false);
+	SnapshotParser::SnapshotReturnCode Save(QIODevice& ioDevice, bool all_save = false) const;
 
 	/**
 	 * Clear tree of saved states

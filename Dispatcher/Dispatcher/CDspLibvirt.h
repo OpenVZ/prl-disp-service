@@ -42,6 +42,8 @@
 #include <XmlModel/NetworkConfig/CVirtualNetwork.h>
 #include <XmlModel/HostHardwareInfo/CHwNetAdapter.h>
 
+class CSavedStateTree;
+
 namespace Libvirt
 {
 namespace Tools
@@ -87,6 +89,48 @@ private:
 	QSharedPointer<virDomain> m_domain;
 };
 
+namespace Snapshot
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+struct Unit
+{
+	explicit Unit(virDomainSnapshotPtr snapshot_);
+
+	Unit getParent() const;
+	PRL_RESULT getUuid(QString& dst_) const;
+	PRL_RESULT getState(CSavedStateTree& dst_) const;
+	PRL_RESULT revert();
+	PRL_RESULT undefine();
+	PRL_RESULT undefineRecursive();
+
+private:
+	QSharedPointer<virDomainSnapshot> m_snapshot;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+
+struct List
+{
+	explicit List(const QSharedPointer<virDomain>& domain_): m_domain(domain_)
+	{
+	}
+
+	Unit at(const QString& uuid_) const;
+	PRL_RESULT all(QList<Unit>& dst_) const;
+	PRL_RESULT define(const QString& uuid_, Unit* dst_ = NULL);
+	PRL_RESULT defineConsistent(const QString& uuid_, Unit* dst_ = NULL);
+
+private:
+	PRL_RESULT define(const QString& uuid_, quint32 flags_, Unit* dst_);
+
+	QSharedPointer<virDomain> m_domain;
+};
+
+} // namespace Snapshot
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
@@ -112,6 +156,10 @@ struct Unit
 	Guest getGuest() const
 	{
 		return Guest(m_domain);
+	}
+	Snapshot::List getSnapshot() const
+	{
+		return Snapshot::List(m_domain);
 	}
 
 private:
