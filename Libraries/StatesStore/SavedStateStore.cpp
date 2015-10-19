@@ -547,6 +547,9 @@ SnapshotParser::SnapshotReturnCode CSavedStateStore::Save(QIODevice& ioDevice, b
  */
 void CSavedStateStore::ClearSavedStateTree()
 {
+	if (IsEmpty())
+		return;
+
 	// Get root element
 	CSavedStateTree *node = m_SST->GetRoot();
 	m_SST = NULL;
