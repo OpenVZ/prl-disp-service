@@ -231,6 +231,9 @@ struct Clustered
 			case Libvirt::Domain::Xml::EBusSata:
 				getDevice().setInterfaceType(PMS_SATA_DEVICE);
 				break;
+			case Libvirt::Domain::Xml::EBusVirtio:
+				getDevice().setInterfaceType(PMS_VIRTIO_BLOCK_DEVICE);
+				break;
 			default:
 				return false;
 			}

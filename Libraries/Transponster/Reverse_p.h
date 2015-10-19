@@ -117,6 +117,8 @@ struct Model
 			return Libvirt::Domain::Xml::EBusScsi;
 		case PMS_SATA_DEVICE:
 			return Libvirt::Domain::Xml::EBusSata;
+		case PMS_VIRTIO_BLOCK_DEVICE:
+			return Libvirt::Domain::Xml::EBusVirtio;
 		default:
 			return boost::optional<Libvirt::Domain::Xml::EBus>();
 		}
