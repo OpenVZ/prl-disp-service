@@ -82,6 +82,11 @@ PRL_RESULT Unit::start()
 	return do_(m_domain.data(), boost::bind(&virDomainCreateWithFlags, _1, VIR_DOMAIN_START_FORCE_BOOT));
 }
 
+PRL_RESULT Unit::reboot()
+{
+	return do_(m_domain.data(), boost::bind(&virDomainReboot, _1, 0));
+}
+
 PRL_RESULT Unit::resume(const QString& sav_)
 {
 	virConnectPtr x = virDomainGetConnect(m_domain.data());
