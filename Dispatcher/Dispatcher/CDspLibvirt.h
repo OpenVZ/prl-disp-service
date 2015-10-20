@@ -141,6 +141,7 @@ struct Unit
 	PRL_RESULT getUuid(QString& dst_) const;
 	PRL_RESULT stop();
 	PRL_RESULT start();
+	PRL_RESULT reboot();
 	PRL_RESULT resume(const QString& sav_);
 	PRL_RESULT suspend(const QString& sav_);
 	PRL_RESULT undefine();
