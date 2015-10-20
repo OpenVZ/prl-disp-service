@@ -1686,69 +1686,51 @@ PRL_RESULT Task_RegisterVm::saveVmConfig( )
 		CAuthHelperImpersonateWrapper _impersonate( &getClient()->getAuthHelper() );
 		strVmDirPath = CFileHelper::GetFileRoot(m_pVmInfo->vmXmlPath);
 	}
-
-	try
+	do
 	{
 		/**
 		 * reset additional parameters in VM configuration
 		 */
 		CDspService::instance()->getVmDirHelper().resetAdvancedParamsFromVmConfig( m_pVmConfig );
-		CDspService::instance()->getVmDirHelper().resetSecureParamsFromVmConfig( m_pVmConfig );
-
 
 		//Fill server UUID field because it information needing at VM check access procedure
 		m_pVmConfig->getVmIdentification()->setServerUuid(
 			CDspService::instance()->getDispConfigGuard().getDispConfig()->
 				getVmServerIdentification()->getServerUuid()
 		);
-		PRL_RESULT save_rc = PRL_ERR_FAILURE;
 		m_pVmConfig->getVmIdentification()->setHomePath(m_pVmInfo->vmXmlPath);
-		if (!doRegisterOnly())
+		CDspService::instance()->getVmDirHelper().resetSecureParamsFromVmConfig(m_pVmConfig);
+		ret = CDspService::instance()->getVmConfigManager()
+				.saveConfig(m_pVmConfig, m_pVmInfo->vmXmlPath, getClient(), true, true);
+
+		if (IS_OPERATION_SUCCEEDED(ret))
 		{
-			ret = checkStartUpVmSettings();
-			if (PRL_FAILED(ret))
-				throw ret;
-/*
-			ret = CDspService::instance()->getVmDirHelper().saveSecureData(getClient()
-				, m_pVmConfig, *getLastError() );
-			if (PRL_FAILED(ret))
-				throw ret;
-*/
-			CDspService::instance()->getVmDirHelper().resetSecureParamsFromVmConfig(m_pVmConfig);
-		}
 #ifdef _LIBVIRT_
-		save_rc = Libvirt::Kit.vms().define(*m_pVmConfig);
+			ret = Libvirt::Kit.vms().define(*m_pVmConfig);
 #endif // _LIBVIRT_
-		if( !IS_OPERATION_SUCCEEDED( save_rc ) )
-		{
-			WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher unable to save configuration of the VM %s to file %s. Reason: %ld: %s",
-				QSTR2UTF8(m_pVmInfo->vmName),
-				QSTR2UTF8(m_pVmConfig->getOutFileName()),
-				Prl::GetLastError(),
-				QSTR2UTF8(Prl::GetLastErrorAsString())
-			);
-
-			// check error code - it may be not free space for save config
-			if ( save_rc == PRL_ERR_NOT_ENOUGH_DISK_SPACE_TO_XML_SAVE )
-				throw save_rc;
-
-			// send error to user: can't save VM config to file
-			getLastError()->setEventCode(PRL_ERR_SAVE_VM_CONFIG);
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String, m_pVmInfo->vmName,
-				EVT_PARAM_MESSAGE_PARAM_0));
-			getLastError()->addEventParameter(
-			    new CVmEventParameter(PVE::String, strVmDirPath,
-			    EVT_PARAM_MESSAGE_PARAM_1));
-
-			throw PRL_ERR_SAVE_VM_CONFIG;
+			break;
 		}
-	}
-	catch (PRL_RESULT code)
+
+		WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher unable to save configuration of the VM %s to file %s. Reason: %ld: %s",
+			QSTR2UTF8(m_pVmInfo->vmName),
+			QSTR2UTF8(m_pVmConfig->getOutFileName()),
+			Prl::GetLastError(),
+			QSTR2UTF8(Prl::GetLastErrorAsString())
+		);
+
+		// check error code - it may be not free space for save config
+		if (PRL_ERR_NOT_ENOUGH_DISK_SPACE_TO_XML_SAVE == ret)
+			break;
+
+		// send error to user: can't save VM config to file
+		CDspTaskFailure f(*this);
+		ret = f.setCode(PRL_ERR_SAVE_VM_CONFIG)(m_pVmInfo->vmName, strVmDirPath);	
+	} while (false);
+
+	if (PRL_FAILED(ret))
 	{
-		ret = code;
 		WRITE_TRACE(DBG_FATAL, "Error occurred while registering configuration with code [%#x][%s]",
-			code, PRL_RESULT_TO_STRING( code ) );
+			ret, PRL_RESULT_TO_STRING(ret));
 	}
 	return ret;
 }
