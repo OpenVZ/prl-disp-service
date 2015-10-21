@@ -373,6 +373,7 @@ PRL_RESULT Unit::getState(CSavedStateTree& dst_) const
 		return PRL_ERR_PARSE_VM_DIR_CONFIG;
 
 	dst_ = y.getResult();
+	dst_.SetCurrent(1 == virDomainSnapshotIsCurrent(m_snapshot.data(), 0));
 	return PRL_ERR_SUCCESS;
 }
 
