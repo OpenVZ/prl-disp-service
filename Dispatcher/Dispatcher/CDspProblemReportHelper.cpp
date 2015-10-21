@@ -1057,17 +1057,8 @@ SmartPtr<CPackedProblemReport> CDspProblemReportHelper::getProblemReportObj(
 
 	QString sVmUuid = cmd->GetVmUuid();
 	CDspService::instance()->getVmDirManager().getVmTypeByUuid(sVmUuid, nType);
+	WRITE_TRACE(DBG_FATAL, "Creating report for vm %s", qPrintable(sVmUuid));
 
-    if ((p->header.type == PVE::DspCmdSendProblemReport) && !sVmUuid.isEmpty())
-    {
-        WRITE_TRACE(DBG_FATAL, "Cannot send vm report via server - unimplemented");
-        pUser->sendSimpleResponse( p, PRL_ERR_UNIMPLEMENTED );
-        return SmartPtr<CPackedProblemReport>();
-    }
-
-	if((CDspVm::getVmState(sVmUuid,pUser->getVmDirectoryUuid()) != VMS_RUNNING) ||
-		sVmUuid.isEmpty() || bSendByTimeout || nType != PVT_VM )
-	{
         CPackedProblemReport * pTmpReport = NULL;
         CPackedProblemReport::createInstance( CPackedProblemReport::DispSide, &pTmpReport );
         SmartPtr<CPackedProblemReport> pReport( pTmpReport );
@@ -1139,12 +1130,6 @@ SmartPtr<CPackedProblemReport> CDspProblemReportHelper::getProblemReportObj(
 
 		pReport->saveMainXml();
         return pReport;
-	}
-
-    // add to queue package
-	CDspService::instance()->getRequestToVmHandler().addPostedRequest( p, pUser );
-
-    return SmartPtr<CPackedProblemReport>();
 }
 
 bool CDspProblemReportHelper::isOldProblemReportClient(SmartPtr<CDspClient> pClient, const SmartPtr<IOPackage>& p)
