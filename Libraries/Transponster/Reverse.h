@@ -80,6 +80,8 @@ struct Vm
 	QString getResult();
 
 private:
+	void setCommandline();
+
 	CVmConfiguration m_input;
 	boost::optional<Libvirt::Domain::Xml::Domain> m_result;
 };

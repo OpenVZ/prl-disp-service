@@ -689,6 +689,7 @@ PRL_RESULT Vm::setBlank()
 	m_result->setOs(vos);
 	m_result->setFeatures(f);
 	m_result->setOnCrash(Libvirt::Domain::Xml::ECrashOptionsPreserve);
+	setCommandline();
 	return PRL_ERR_SUCCESS;
 }
 
@@ -816,6 +817,13 @@ QString Vm::getResult()
 	m_result->save(x);
 	m_result = boost::none;
 	return x.toString();
+}
+
+void Vm::setCommandline()
+{
+	Libvirt::Domain::Xml::Commandline q;
+	q.setArgList(QList<QString>() << "-d" << "guest_errors,unimp,cpu_reset");
+	m_result->setCommandline(q);
 }
 
 } // namespace Reverse
