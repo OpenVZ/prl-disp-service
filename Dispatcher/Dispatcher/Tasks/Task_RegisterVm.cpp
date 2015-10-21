@@ -257,8 +257,7 @@ void Task_RegisterVm::createMACAddress(SmartPtr<CVmConfiguration> config,
 
 					if( bNeedCreate )
 					{
-						if(adapter->getHostInterfaceName()
-							.compare(HostUtils::generateHostInterfaceName(adapter->getMacAddress())))
+						if(adapter->getHostInterfaceName() == HostUtils::generateHostInterfaceName(adapter->getMacAddress()))
 							adapter->setHostInterfaceName();
 
 						adapter->setMacAddress(HostUtils::generateMacAddress());
