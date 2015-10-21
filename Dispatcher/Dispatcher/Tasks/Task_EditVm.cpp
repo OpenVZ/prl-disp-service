@@ -1576,8 +1576,7 @@ PRL_RESULT Task_EditVm::editVm()
 				{
 					new_adapter->setHostMacAddress();
 
-					if (new_adapter->getHostInterfaceName()
-						.compare(HostUtils::generateHostInterfaceName(old_adapter->getMacAddress())))
+					if (new_adapter->getHostInterfaceName() == HostUtils::generateHostInterfaceName(old_adapter->getMacAddress()))
 					{
 						new_adapter->setHostInterfaceName
 							(HostUtils::generateHostInterfaceName(new_adapter->getMacAddress()));
