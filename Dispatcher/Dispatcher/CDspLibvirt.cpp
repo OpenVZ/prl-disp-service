@@ -106,7 +106,8 @@ PRL_RESULT Unit::suspend(const QString& sav_)
 
 PRL_RESULT Unit::undefine()
 {
-	return do_(m_domain.data(), boost::bind(&virDomainUndefineFlags, _1, 0));
+	return do_(m_domain.data(), boost::bind(&virDomainUndefineFlags, _1,
+		VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA));
 }
 
 PRL_RESULT Unit::getState(VIRTUAL_MACHINE_STATE& dst_) const
