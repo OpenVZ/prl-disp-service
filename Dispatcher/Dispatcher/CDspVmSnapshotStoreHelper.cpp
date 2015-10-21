@@ -98,6 +98,7 @@ bool View::operator()()
 	f.SetGuid(Uuid::createUuid().toString());
 	m_result.ClearSavedStateTree();
 	m_result.CreateSnapshot(f);
+	m_result.FindCurrentSnapshot()->SetCurrent(false);
 	QStack<CSavedStateTree* > s;
 	for (s.push(m_result.GetSavedStateTree()); !s.isEmpty();)
 	{
