@@ -781,30 +781,6 @@ bool Validatable<Domain::Xml::PMachine>::validate(const Domain::Xml::PMachine::v
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PMachine1
-
-bool Validatable<Domain::Xml::PMachine1>::validate(const Domain::Xml::PMachine1::value_type& value_)
-{
-	QRegExp q("[a-zA-Z0-9_\\.\\-]+");
-	if (!q.exactMatch(value_))
-		return false;
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PMachine2
-
-bool Validatable<Domain::Xml::PMachine2>::validate(const Domain::Xml::PMachine2::value_type& value_)
-{
-	QRegExp q("[a-zA-Z0-9_\\.\\-]+");
-	if (!q.exactMatch(value_))
-		return false;
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 bool Traits<Domain::Xml::PReadIopsSec>::parse(const QString& src_, Domain::Xml::PReadIopsSec::value_type& dst_)
@@ -1002,20 +978,6 @@ QString Traits<Domain::Xml::PPasswdValidTo>::generate(const Domain::Xml::PPasswd
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PPasswdValidTo1
-
-bool Traits<Domain::Xml::PPasswdValidTo1>::parse(const QString& src_, Domain::Xml::PPasswdValidTo1::value_type& dst_)
-{
-	dst_ = QDateTime::fromString(src_);
-	return !dst_.isNull();
-}
-
-QString Traits<Domain::Xml::PPasswdValidTo1>::generate(const Domain::Xml::PPasswdValidTo1::value_type& src_)
-{
-	return src_.toString();
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct PVendorId
 
 bool Validatable<Domain::Xml::PVendorId>::validate(const Domain::Xml::PVendorId::value_type& value_)
@@ -1050,36 +1012,6 @@ bool Traits<Domain::Xml::PTotalBytesSec>::parse(const QString& src_, Domain::Xml
 }
 
 QString Traits<Domain::Xml::PTotalBytesSec>::generate(Domain::Xml::PTotalBytesSec::value_type src_)
-{
-	return QString::number(src_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PReadBytesSec1
-
-bool Traits<Domain::Xml::PReadBytesSec1>::parse(const QString& src_, Domain::Xml::PReadBytesSec1::value_type& dst_)
-{
-	bool output = false;
-	dst_ = src_.toULong(&output);
-	return output;
-}
-
-QString Traits<Domain::Xml::PReadBytesSec1>::generate(Domain::Xml::PReadBytesSec1::value_type src_)
-{
-	return QString::number(src_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PWriteBytesSec1
-
-bool Traits<Domain::Xml::PWriteBytesSec1>::parse(const QString& src_, Domain::Xml::PWriteBytesSec1::value_type& dst_)
-{
-	bool output = false;
-	dst_ = src_.toULong(&output);
-	return output;
-}
-
-QString Traits<Domain::Xml::PWriteBytesSec1>::generate(Domain::Xml::PWriteBytesSec1::value_type src_)
 {
 	return QString::number(src_);
 }

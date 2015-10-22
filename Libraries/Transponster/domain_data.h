@@ -1234,50 +1234,6 @@ struct Validatable<Domain::Xml::PMachine>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PMachine1
-
-namespace Domain
-{
-namespace Xml
-{
-struct PMachine1
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-template<>
-struct Validatable<Domain::Xml::PMachine1>: mpl::true_
-{
-	static bool validate(const Domain::Xml::PMachine1::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PMachine2
-
-namespace Domain
-{
-namespace Xml
-{
-struct PMachine2
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-template<>
-struct Validatable<Domain::Xml::PMachine2>: mpl::true_
-{
-	static bool validate(const Domain::Xml::PMachine2::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 namespace Domain
@@ -1616,31 +1572,6 @@ struct Traits<Domain::Xml::PPasswdValidTo>
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PPasswdValidTo1
-
-namespace Domain
-{
-namespace Xml
-{
-struct PPasswdValidTo1
-{
-	typedef QDateTime value_type;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-template<>
-struct Traits<Domain::Xml::PPasswdValidTo1>
-{
-	static bool parse(const QString& src_, Domain::Xml::PPasswdValidTo1::value_type& dst_);
-
-	static QString generate(const Domain::Xml::PPasswdValidTo1::value_type& src_);
-
-};
-
-
-///////////////////////////////////////////////////////////////////////////////
 // struct PVendorId
 
 namespace Domain
@@ -1721,56 +1652,6 @@ struct Traits<Domain::Xml::PTotalBytesSec>
 	static bool parse(const QString& src_, Domain::Xml::PTotalBytesSec::value_type& dst_);
 
 	static QString generate(Domain::Xml::PTotalBytesSec::value_type src_);
-
-};
-
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PReadBytesSec1
-
-namespace Domain
-{
-namespace Xml
-{
-struct PReadBytesSec1
-{
-	typedef ulong value_type;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-template<>
-struct Traits<Domain::Xml::PReadBytesSec1>
-{
-	static bool parse(const QString& src_, Domain::Xml::PReadBytesSec1::value_type& dst_);
-
-	static QString generate(Domain::Xml::PReadBytesSec1::value_type src_);
-
-};
-
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PWriteBytesSec1
-
-namespace Domain
-{
-namespace Xml
-{
-struct PWriteBytesSec1
-{
-	typedef ulong value_type;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-template<>
-struct Traits<Domain::Xml::PWriteBytesSec1>
-{
-	static bool parse(const QString& src_, Domain::Xml::PWriteBytesSec1::value_type& dst_);
-
-	static QString generate(Domain::Xml::PWriteBytesSec1::value_type src_);
 
 };
 

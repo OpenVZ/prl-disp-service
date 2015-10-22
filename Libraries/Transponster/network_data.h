@@ -1218,56 +1218,6 @@ struct Traits<Network::Xml::PDelay>
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PConnections1
-
-namespace Network
-{
-namespace Xml
-{
-struct PConnections1
-{
-	typedef quint32 value_type;
-};
-
-} // namespace Xml
-} // namespace Network
-
-template<>
-struct Traits<Network::Xml::PConnections1>
-{
-	static bool parse(const QString& src_, Network::Xml::PConnections1::value_type& dst_);
-
-	static QString generate(Network::Xml::PConnections1::value_type src_);
-
-};
-
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PConnections2
-
-namespace Network
-{
-namespace Xml
-{
-struct PConnections2
-{
-	typedef quint32 value_type;
-};
-
-} // namespace Xml
-} // namespace Network
-
-template<>
-struct Traits<Network::Xml::PConnections2>
-{
-	static bool parse(const QString& src_, Network::Xml::PConnections2::value_type& dst_);
-
-	static QString generate(Network::Xml::PConnections2::value_type src_);
-
-};
-
-
-///////////////////////////////////////////////////////////////////////////////
 // struct VUUID
 
 namespace Network
