@@ -1,0 +1,20 @@
+################################################################################
+# Libvirt includes logging facilities to facilitate the tracing of library execution.
+# These logs will frequently be requested when trying to obtain support for Virtuozzo.
+#
+# LIBVIRT_DEBUG specifies the minimum priority level messages that will be logged.
+# Priority levels - DEBUG = 1, INFO = 2, WARNING = 3, ERROR = 4
+
+LIBVIRT_DEBUG=3
+
+# Log filters - patterns and priorities which control whether or not a particular message is displayed.
+# The format for a filter is: "level:word"
+
+LIBVIRT_LOG_FILTERS="1:qemu 1:remote"
+
+#  Log outputs - where to send the message once it has passed through filters.
+
+LIBVIRT_LOG_OUTPUTS="1:file:/var/log/libvirt/libvirtd.log"
+
+#
+################################################################################
