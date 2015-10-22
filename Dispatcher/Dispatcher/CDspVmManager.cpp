@@ -897,7 +897,10 @@ void Dispatcher::do_(const SmartPtr<CDspClient>& session_, const SmartPtr<IOPack
 	PVE::IDispatcherCommands y = x.getCommand();
 
 	if (y == PVE::DspCmdVmInternal)
-		return doInternal_(x);
+	{
+		QtConcurrent::run(this, &Dispatcher::doInternal_, x);
+		return;
+	}
 
 	map_type::const_iterator p = m_map.find(y);
 	if (m_map.end() != p)
