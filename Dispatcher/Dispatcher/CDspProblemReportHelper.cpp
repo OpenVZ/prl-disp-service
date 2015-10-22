@@ -979,6 +979,7 @@ void CDspProblemReportHelper::FillProblemReportData(
 			QString("libvirt-%1.log")
 				.arg(vmConfig.getVmIdentification()->getVmName()));
 	}
+	addSystemLog(cReport, QFileInfo("/var/log/libvirt/libvirtd.log"));
 #endif
 	WRITE_REPORT_PROFILER_STRING( "EndOfFillProblemReport" );
 }
