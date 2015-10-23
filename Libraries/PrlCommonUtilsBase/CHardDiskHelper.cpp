@@ -28,6 +28,7 @@
 #include <prlsdk/PrlDisk.h>
 #include "CHardDiskHelper.h"
 #include <prlsdk/PrlOses.h>
+#include <QtGlobal>
 
 bool CHardDiskHelper::isEfiPartition(unsigned int nPartitionType)
 {
@@ -69,17 +70,9 @@ bool CHardDiskHelper::isBootCampPartition(unsigned int nPartitionType)
 
 bool CHardDiskHelper::isSataSupportedForOs( unsigned int ioOsType, unsigned int uiOsVer )
 {
-	if ( ioOsType == PVS_GUEST_TYPE_MACOS
-		|| ( ioOsType == PVS_GUEST_TYPE_LINUX &&
-			uiOsVer != PVS_GUEST_VER_LIN_KRNL_24 &&
-			uiOsVer != PVS_GUEST_VER_LIN_OTHER )
-		|| ( uiOsVer >= PVS_GUEST_VER_WIN_VISTA &&
-			uiOsVer <= PVS_GUEST_VER_WIN_LAST ) )
-		return true;
-
-	if( uiOsVer >= PVS_GUEST_VER_BSD_7X && uiOsVer <= PVS_GUEST_VER_BSD_LAST )
-		return true;
-
+	// SATA support is dropped in VZ7 #https://jira.sw.ru/browse/PSBM-40485
+	Q_UNUSED(ioOsType);
+	Q_UNUSED(uiOsVer);
 	return false;
 }
 
