@@ -66,9 +66,16 @@ Unit::Unit(virDomainPtr domain_): m_domain(domain_, &virDomainFree)
 {
 }
 
-PRL_RESULT Unit::stop()
+PRL_RESULT Unit::kill()
 {
 	return do_(m_domain.data(), boost::bind(&virDomainDestroy, _1));
+}
+
+PRL_RESULT Unit::shutdown()
+{
+	return do_(m_domain.data(), boost::bind
+		(&virDomainShutdownFlags, _1, VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN |
+			VIR_DOMAIN_SHUTDOWN_GUEST_AGENT));
 }
 
 PRL_RESULT Unit::start()
@@ -78,7 +85,7 @@ PRL_RESULT Unit::start()
 		return PRL_ERR_VM_GET_STATUS_FAILED;
 
 	if (s == VIR_DOMAIN_CRASHED)
-		do_(m_domain.data(), boost::bind(&virDomainDestroy, _1));
+		kill();
 
 	return do_(m_domain.data(), boost::bind(&virDomainCreateWithFlags, _1, VIR_DOMAIN_START_FORCE_BOOT));
 }

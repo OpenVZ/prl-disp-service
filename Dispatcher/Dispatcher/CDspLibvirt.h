@@ -139,7 +139,8 @@ struct Unit
 	explicit Unit(virDomainPtr domain_ = NULL);
 
 	PRL_RESULT getUuid(QString& dst_) const;
-	PRL_RESULT stop();
+	PRL_RESULT kill();
+	PRL_RESULT shutdown();
 	PRL_RESULT start();
 	PRL_RESULT reboot();
 	PRL_RESULT resume(const QString& sav_);
