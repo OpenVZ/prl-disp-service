@@ -261,11 +261,12 @@ struct Coarse
 
 	void setState(virDomainPtr domain_, VIRTUAL_MACHINE_STATE value_);
 	void remove(virDomainPtr domain_);
+	void sendProblemReport(virDomainPtr domain_);
 	QSharedPointer<Domain> access(virDomainPtr domain_);
 
-private:
 	static QString getUuid(virDomainPtr domain_);
 
+private:
 	QSharedPointer<System> m_fine;
 };
 

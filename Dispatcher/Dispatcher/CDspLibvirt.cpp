@@ -27,6 +27,7 @@
 #include <QtCore/qmetatype.h>
 #include "CDspVmStateSender.h"
 #include "CDspVmNetworkHelper.h"
+#include "Tasks/Task_CreateProblemReport.h"
 #include <Libraries/PrlUuid/PrlUuid.h>
 #include <Libraries/Transponster/Direct.h>
 #include <Libraries/Transponster/Reverse.h>
@@ -1360,9 +1361,9 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 		switch (detail_)
 		{
 		case VIR_DOMAIN_EVENT_CRASHED_PANICKED:
-			WRITE_TRACE(DBG_DEBUG, "VM \"%s\" got guest panic.", virDomainGetName(domain_));
-			// Guest OS crashed. If libvirt has "preserve" action for on_crash event
-			// you can do coredumping and problem reporting here.
+			WRITE_TRACE(DBG_FATAL, "VM \"%s\" got guest panic.", virDomainGetName(domain_));
+			v->sendProblemReport(domain_);
+			break;
 		default:
 			v->setState(domain_, VMS_STOPPED);
 			break;
@@ -1518,6 +1519,15 @@ void Coarse::setState(virDomainPtr domain_, VIRTUAL_MACHINE_STATE value_)
 void Coarse::remove(virDomainPtr domain_)
 {
 	m_fine->remove(getUuid(domain_));
+}
+
+void Coarse::sendProblemReport(virDomainPtr domain_)
+{
+	CProtoCommandPtr cmd(new CProtoSendProblemReport(QString(), getUuid(domain_), 0));
+	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspCmdSendProblemReport, cmd);
+	QString vmDir = CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->getDefaultVmDirectory();
+	SmartPtr<CDspClient> c = CDspClient::makeServiceUser(vmDir);
+	CDspService::instance()->getTaskManager().schedule(new Task_CreateProblemReport(c, p));
 }
 
 QSharedPointer<Domain> Coarse::access(virDomainPtr domain_)

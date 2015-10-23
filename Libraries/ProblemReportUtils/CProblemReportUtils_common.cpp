@@ -188,7 +188,6 @@ void formNetworkRequestToPost( QNetworkRequest & request/*IN*/, QByteArray & dat
 	config.setProtocol( QSsl::AnyProtocol );
 
 	QSslCertificate certificate( CaReportCertificate );
-	PRL_ASSERT( ! certificate.isNull() );
 	if ( ! certificate.isNull() )
 	{
 		QList<QSslCertificate> list;
