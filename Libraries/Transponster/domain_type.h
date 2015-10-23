@@ -978,18 +978,18 @@ struct Hvmarm
 	{
 		m_arch = value_;
 	}
-	const boost::optional<PMachine1::value_type >& getMachine() const
+	const boost::optional<PMachine::value_type >& getMachine() const
 	{
 		return m_machine;
 	}
-	void setMachine(const boost::optional<PMachine1::value_type >& value_)
+	void setMachine(const boost::optional<PMachine::value_type >& value_)
 	{
 		m_machine = value_;
 	}
 
 private:
 	boost::optional<EArch3 > m_arch;
-	boost::optional<PMachine1::value_type > m_machine;
+	boost::optional<PMachine::value_type > m_machine;
 };
 
 } // namespace Xml
@@ -1012,18 +1012,18 @@ struct Hvmaarch64
 	{
 		m_arch = value_;
 	}
-	const boost::optional<PMachine2::value_type >& getMachine() const
+	const boost::optional<PMachine::value_type >& getMachine() const
 	{
 		return m_machine;
 	}
-	void setMachine(const boost::optional<PMachine2::value_type >& value_)
+	void setMachine(const boost::optional<PMachine::value_type >& value_)
 	{
 		m_machine = value_;
 	}
 
 private:
 	boost::optional<EArch4 > m_arch;
-	boost::optional<PMachine2::value_type > m_machine;
+	boost::optional<PMachine::value_type > m_machine;
 };
 
 } // namespace Xml
@@ -4290,26 +4290,26 @@ namespace Xml
 {
 struct Variant1037
 {
-	const boost::optional<PReadBytesSec1::value_type >& getReadBytesSec() const
+	const boost::optional<PReadBytesSec::value_type >& getReadBytesSec() const
 	{
 		return m_readBytesSec;
 	}
-	void setReadBytesSec(const boost::optional<PReadBytesSec1::value_type >& value_)
+	void setReadBytesSec(const boost::optional<PReadBytesSec::value_type >& value_)
 	{
 		m_readBytesSec = value_;
 	}
-	const boost::optional<PWriteBytesSec1::value_type >& getWriteBytesSec() const
+	const boost::optional<PWriteBytesSec::value_type >& getWriteBytesSec() const
 	{
 		return m_writeBytesSec;
 	}
-	void setWriteBytesSec(const boost::optional<PWriteBytesSec1::value_type >& value_)
+	void setWriteBytesSec(const boost::optional<PWriteBytesSec::value_type >& value_)
 	{
 		m_writeBytesSec = value_;
 	}
 
 private:
-	boost::optional<PReadBytesSec1::value_type > m_readBytesSec;
-	boost::optional<PWriteBytesSec1::value_type > m_writeBytesSec;
+	boost::optional<PReadBytesSec::value_type > m_readBytesSec;
+	boost::optional<PWriteBytesSec::value_type > m_writeBytesSec;
 };
 
 } // namespace Xml
@@ -9656,11 +9656,11 @@ struct Graphics725
 	{
 		m_keymap = value_;
 	}
-	const boost::optional<PPasswdValidTo1::value_type >& getPasswdValidTo() const
+	const boost::optional<PPasswdValidTo::value_type >& getPasswdValidTo() const
 	{
 		return m_passwdValidTo;
 	}
-	void setPasswdValidTo(const boost::optional<PPasswdValidTo1::value_type >& value_)
+	void setPasswdValidTo(const boost::optional<PPasswdValidTo::value_type >& value_)
 	{
 		m_passwdValidTo = value_;
 	}
@@ -9768,7 +9768,7 @@ private:
 	boost::optional<PAddrIPorName::value_type > m_listen;
 	boost::optional<QString > m_passwd;
 	boost::optional<QString > m_keymap;
-	boost::optional<PPasswdValidTo1::value_type > m_passwdValidTo;
+	boost::optional<PPasswdValidTo::value_type > m_passwdValidTo;
 	boost::optional<EConnected1 > m_connected;
 	boost::optional<EDefaultMode > m_defaultMode;
 	QList<VListen > m_listenList;
@@ -12091,7 +12091,7 @@ struct Traits<Domain::Xml::Hvms390>
 template<>
 struct Traits<Domain::Xml::Hvmarm>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::EArch3, Name::Strict<270> > >, Optional<Attribute<Domain::Xml::PMachine1, Name::Strict<271> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::EArch3, Name::Strict<270> > >, Optional<Attribute<Domain::Xml::PMachine, Name::Strict<271> > > > > marshal_type;
 
 	static int parse(Domain::Xml::Hvmarm& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Hvmarm& , QDomElement& );
@@ -12103,7 +12103,7 @@ struct Traits<Domain::Xml::Hvmarm>
 template<>
 struct Traits<Domain::Xml::Hvmaarch64>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::EArch4, Name::Strict<270> > >, Optional<Attribute<Domain::Xml::PMachine2, Name::Strict<271> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::EArch4, Name::Strict<270> > >, Optional<Attribute<Domain::Xml::PMachine, Name::Strict<271> > > > > marshal_type;
 
 	static int parse(Domain::Xml::Hvmaarch64& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Hvmaarch64& , QDomElement& );
@@ -12871,7 +12871,7 @@ struct Traits<Domain::Xml::Encryption>
 template<>
 struct Traits<Domain::Xml::Variant1037>
 {
-	typedef Ordered<mpl::vector<Unordered<mpl::vector<Optional<Element<Text<Domain::Xml::PReadBytesSec1 >, Name::Strict<337> > >, Optional<Element<Text<Domain::Xml::PWriteBytesSec1 >, Name::Strict<338> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Unordered<mpl::vector<Optional<Element<Text<Domain::Xml::PReadBytesSec >, Name::Strict<337> > >, Optional<Element<Text<Domain::Xml::PWriteBytesSec >, Name::Strict<338> > > > > > > marshal_type;
 
 	static int parse(Domain::Xml::Variant1037& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Variant1037& , QDomElement& );
@@ -13927,7 +13927,7 @@ struct Traits<Domain::Xml::Channel>
 template<>
 struct Traits<Domain::Xml::Graphics725>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<692>, Name::Strict<99> >, Optional<Attribute<Domain::Xml::PPortNumber, Name::Strict<200> > >, Optional<Attribute<Domain::Xml::PPortNumber, Name::Strict<693> > >, Optional<Attribute<Domain::Xml::EVirYesNo, Name::Strict<675> > >, Optional<Attribute<Domain::Xml::PAddrIPorName, Name::Strict<677> > >, Optional<Attribute<QString, Name::Strict<685> > >, Optional<Attribute<QString, Name::Strict<686> > >, Optional<Attribute<Domain::Xml::PPasswdValidTo1, Name::Strict<687> > >, Optional<Attribute<Domain::Xml::EConnected1, Name::Strict<688> > >, Optional<Attribute<Domain::Xml::EDefaultMode, Name::Strict<696> > >, Unordered<mpl::vector<ZeroOrMore<Element<Domain::Xml::VListenImpl, Name::Strict<677> > >, ZeroOrMore<Element<Domain::Xml::Channel, Name::Strict<700> > >, Optional<Element<Attribute<Domain::Xml::ECompression, Name::Strict<709> >, Name::Strict<708> > >, Optional<Element<Attribute<Domain::Xml::ECompression1, Name::Strict<709> >, Name::Strict<715> > >, Optional<Element<Attribute<Domain::Xml::ECompression2, Name::Strict<709> >, Name::Strict<718> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<709> >, Name::Strict<704> > >, Optional<Element<Attribute<Domain::Xml::EMode8, Name::Strict<356> >, Name::Strict<719> > >, Optional<Element<Attribute<Domain::Xml::EVirYesNo, Name::Strict<723> >, Name::Strict<722> > >, Optional<Element<Attribute<Domain::Xml::EMode9, Name::Strict<356> >, Name::Strict<724> > >, Optional<Element<Attribute<Domain::Xml::EVirYesNo, Name::Strict<266> >, Name::Strict<725> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<692>, Name::Strict<99> >, Optional<Attribute<Domain::Xml::PPortNumber, Name::Strict<200> > >, Optional<Attribute<Domain::Xml::PPortNumber, Name::Strict<693> > >, Optional<Attribute<Domain::Xml::EVirYesNo, Name::Strict<675> > >, Optional<Attribute<Domain::Xml::PAddrIPorName, Name::Strict<677> > >, Optional<Attribute<QString, Name::Strict<685> > >, Optional<Attribute<QString, Name::Strict<686> > >, Optional<Attribute<Domain::Xml::PPasswdValidTo, Name::Strict<687> > >, Optional<Attribute<Domain::Xml::EConnected1, Name::Strict<688> > >, Optional<Attribute<Domain::Xml::EDefaultMode, Name::Strict<696> > >, Unordered<mpl::vector<ZeroOrMore<Element<Domain::Xml::VListenImpl, Name::Strict<677> > >, ZeroOrMore<Element<Domain::Xml::Channel, Name::Strict<700> > >, Optional<Element<Attribute<Domain::Xml::ECompression, Name::Strict<709> >, Name::Strict<708> > >, Optional<Element<Attribute<Domain::Xml::ECompression1, Name::Strict<709> >, Name::Strict<715> > >, Optional<Element<Attribute<Domain::Xml::ECompression2, Name::Strict<709> >, Name::Strict<718> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<709> >, Name::Strict<704> > >, Optional<Element<Attribute<Domain::Xml::EMode8, Name::Strict<356> >, Name::Strict<719> > >, Optional<Element<Attribute<Domain::Xml::EVirYesNo, Name::Strict<723> >, Name::Strict<722> > >, Optional<Element<Attribute<Domain::Xml::EMode9, Name::Strict<356> >, Name::Strict<724> > >, Optional<Element<Attribute<Domain::Xml::EVirYesNo, Name::Strict<266> >, Name::Strict<725> > > > > > > marshal_type;
 
 	static int parse(Domain::Xml::Graphics725& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Graphics725& , QDomElement& );

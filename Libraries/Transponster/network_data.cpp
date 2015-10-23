@@ -775,36 +775,6 @@ QString Traits<Network::Xml::PDelay>::generate(Network::Xml::PDelay::value_type 
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PConnections1
-
-bool Traits<Network::Xml::PConnections1>::parse(const QString& src_, Network::Xml::PConnections1::value_type& dst_)
-{
-	bool output = false;
-	dst_ = src_.toUInt(&output);
-	return output;
-}
-
-QString Traits<Network::Xml::PConnections1>::generate(Network::Xml::PConnections1::value_type src_)
-{
-	return QString::number(src_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PConnections2
-
-bool Traits<Network::Xml::PConnections2>::parse(const QString& src_, Network::Xml::PConnections2::value_type& dst_)
-{
-	bool output = false;
-	dst_ = src_.toUInt(&output);
-	return output;
-}
-
-QString Traits<Network::Xml::PConnections2>::generate(Network::Xml::PConnections2::value_type src_)
-{
-	return QString::number(src_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct VUUID
 
 bool Traits<Network::Xml::VUUID>::parse(const QString& src_, Network::Xml::VUUID& dst_)

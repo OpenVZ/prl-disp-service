@@ -97,11 +97,11 @@ struct Interface
 	{
 		m_dev = value_;
 	}
-	const boost::optional<PConnections1::value_type >& getConnections() const
+	const boost::optional<PConnections::value_type >& getConnections() const
 	{
 		return m_connections;
 	}
-	void setConnections(const boost::optional<PConnections1::value_type >& value_)
+	void setConnections(const boost::optional<PConnections::value_type >& value_)
 	{
 		m_connections = value_;
 	}
@@ -111,7 +111,7 @@ struct Interface
 
 private:
 	PDeviceName::value_type m_dev;
-	boost::optional<PConnections1::value_type > m_connections;
+	boost::optional<PConnections::value_type > m_connections;
 };
 
 } // namespace Xml
@@ -197,11 +197,11 @@ struct Address
 	{
 		m_pciaddress = value_;
 	}
-	const boost::optional<PConnections2::value_type >& getConnections() const
+	const boost::optional<PConnections::value_type >& getConnections() const
 	{
 		return m_connections;
 	}
-	void setConnections(const boost::optional<PConnections2::value_type >& value_)
+	void setConnections(const boost::optional<PConnections::value_type >& value_)
 	{
 		m_connections = value_;
 	}
@@ -211,7 +211,7 @@ struct Address
 
 private:
 	Pciaddress m_pciaddress;
-	boost::optional<PConnections2::value_type > m_connections;
+	boost::optional<PConnections::value_type > m_connections;
 };
 
 } // namespace Xml
@@ -1657,7 +1657,7 @@ struct Traits<Network::Xml::Bridge>
 template<>
 struct Traits<Network::Xml::Interface>
 {
-	typedef Ordered<mpl::vector<Attribute<Network::Xml::PDeviceName, Name::Strict<419> >, Optional<Attribute<Network::Xml::PConnections1, Name::Strict<1141> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Network::Xml::PDeviceName, Name::Strict<419> >, Optional<Attribute<Network::Xml::PConnections, Name::Strict<1141> > > > > marshal_type;
 
 	static int parse(Network::Xml::Interface& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Interface& , QDomElement& );
@@ -1681,7 +1681,7 @@ struct Traits<Network::Xml::Pciaddress>
 template<>
 struct Traits<Network::Xml::Address>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<572>, Name::Strict<99> >, Fragment<Network::Xml::Pciaddress >, Optional<Attribute<Network::Xml::PConnections2, Name::Strict<1141> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<572>, Name::Strict<99> >, Fragment<Network::Xml::Pciaddress >, Optional<Attribute<Network::Xml::PConnections, Name::Strict<1141> > > > > marshal_type;
 
 	static int parse(Network::Xml::Address& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Address& , QDomElement& );
