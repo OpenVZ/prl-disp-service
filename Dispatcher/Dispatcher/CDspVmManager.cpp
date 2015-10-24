@@ -33,13 +33,14 @@
 #define FORCE_LOGGING_LEVEL DBG_INFO
 
 #include "CDspVmManager.h"
+#include "CDspVmManager_p.h"
 #include "CDspService.h"
 #include "CDspHandlerRegistrator.h"
 #include "CDspClientManager.h"
 #include "CDspRouter.h"
 #include "CDspProblemReportHelper.h"
 #include "CDspVmInfoDatabase.h"
-
+#include "CDspVmStateSender.h"
 #include "Libraries/PrlCommonUtilsBase/CommandLine.h"
 #include "Libraries/PrlCommonUtils/CVmQuestionHelper.h"
 #include "Libraries/NonQtUtils/CQuestionHelper.h"
@@ -92,6 +93,69 @@ static void SendEchoEventToVm( SmartPtr<CDspVm> &pVm, const CVmEvent& evt )
 
 namespace Command
 {
+namespace Vm
+{
+namespace Shutdown
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Handler
+
+void Handler::react(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_)
+{
+	Q_UNUSED(oldState_);
+	Q_UNUSED(dirUuid_);
+	if (VMS_STOPPED != newState_)
+		return;
+	if (vmUuid_ == m_uuid)
+		m_loop->exit(PRL_ERR_SUCCESS);
+}
+
+void Handler::timerEvent(QTimerEvent* event_)
+{
+	killTimer(event_->timerId());
+	m_loop->exit(PRL_ERR_TIMEOUT);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Begin
+
+void Begin::timerEvent(QTimerEvent* event_)
+{
+	killTimer(event_->timerId());
+	PRL_RESULT e = m_agent.shutdown();
+	if (PRL_FAILED(e))
+		m_loop->exit(e);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+PRL_RESULT Unit::operator()()
+{
+	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
+	if (!s.isValid())
+		return PRL_ERR_UNEXPECTED;
+
+	Handler h(m_uuid, m_loop);
+	if (!h.connect(s.getPtr(), SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
+		SLOT(react(unsigned, unsigned, QString, QString)), Qt::QueuedConnection))
+		return PRL_ERR_UNEXPECTED;
+
+	s.unlock();
+	Libvirt::Tools::Agent::Vm::Unit a = Libvirt::Kit.vms().at(m_uuid);
+	Begin b(a, m_loop);
+	b.startTimer(0);
+	h.startTimer(1000 * m_timeout);
+	PRL_RESULT e = m_loop.exec();
+	if (PRL_FAILED(e) && e != PRL_ERR_TIMEOUT)
+		return e;
+
+	return a.kill();
+}
+
+} // namespace Shutdown
+} // namespace Vm
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Context
 
@@ -642,7 +706,21 @@ private:
 template<>
 void Body<Tag::Libvirt<PVE::DspCmdVmStop> >::run()
 {
-	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).stop());
+	CProtoVmCommandStop* x = CProtoSerializer::CastToProtoCommand
+		<CProtoVmCommandStop>(m_context.getRequest());
+	if (NULL == x)
+		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
+
+	switch (x->GetStopMode())
+	{
+	case PSM_ACPI:
+	case PSM_SHUTDOWN:
+		return m_context.reply(Vm::Shutdown::Unit
+			(m_context.getVmUuid(), 120)());
+	default:
+		return m_context.reply(Libvirt::Kit.vms()
+			.at(m_context.getVmUuid()).kill());
+	}
 }
 
 template<>
