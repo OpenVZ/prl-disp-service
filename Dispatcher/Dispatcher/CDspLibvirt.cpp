@@ -24,6 +24,7 @@
 #include "CDspService.h"
 #include "CDspLibvirt_p.h"
 #include <boost/function.hpp>
+#include <boost/mpl/fold.hpp>
 #include <QtCore/qmetatype.h>
 #include "CDspVmStateSender.h"
 #include "CDspVmNetworkHelper.h"
@@ -135,9 +136,9 @@ PRL_RESULT Unit::getState(VIRTUAL_MACHINE_STATE& dst_) const
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Unit::getConfig(CVmConfiguration& dst_) const
+PRL_RESULT Unit::getConfig(CVmConfiguration& dst_, bool runtime_) const
 {
-	char* x = getConfig();
+	char* x = getConfig(runtime_);
 	if (NULL == x)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
@@ -159,9 +160,9 @@ PRL_RESULT Unit::getConfig(CVmConfiguration& dst_) const
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Unit::getConfig(QString& dst_) const
+PRL_RESULT Unit::getConfig(QString& dst_, bool runtime_) const
 {
-	char* x = getConfig();
+	char* x = getConfig(runtime_);
 	if (NULL == x)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
@@ -827,13 +828,13 @@ Domain::Domain(virDomainPtr model_, QSharedPointer<View::Domain> view_):
 
 void Domain::run()
 {
+	CVmConfiguration c;
+	if (PRL_SUCCEEDED(m_agent.getConfig(c)))
+		m_view->setConfig(c);	
+
 	VIRTUAL_MACHINE_STATE s;
 	if (PRL_SUCCEEDED(m_agent.getState(s)))
 		m_view->setState(s);
-
-	CVmConfiguration c;
-	if (PRL_SUCCEEDED(m_agent.getConfig(c)))
-		m_view->setConfig(c);
 }
 
 namespace Breeding
@@ -1430,6 +1431,12 @@ void Domain::setConfig(CVmConfiguration& value_)
 		x.take();
 }
 
+CVmConfiguration Domain::getConfig()
+{
+	PRL_RESULT ret;
+	return *CDspService::instance()->getVmDirHelper().getVmConfigByUuid(m_user, m_uuid, ret);
+}
+
 void Domain::setCpuUsage()
 {
 }
@@ -1533,6 +1540,45 @@ QSharedPointer<Domain> Coarse::access(virDomainPtr domain_)
 namespace Monitor
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+State::State(QSharedPointer<View::System> system_): m_system(system_)
+{
+	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
+	if (s.isValid())
+	{
+		this->connect(s.getPtr(),
+			SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
+			SLOT(updateConfig(unsigned, unsigned, QString, QString)));
+	}
+}
+
+void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_)
+{
+	Q_UNUSED(oldState_);
+	Q_UNUSED(dirUuid_);
+
+	if (VMS_RUNNING != newState_)
+		return;
+
+	QSharedPointer<View::Domain> d = m_system->find(vmUuid_);
+	if (d.isNull())
+		return;
+
+	CVmConfiguration stored = d->getConfig();
+
+	CVmConfiguration runtime;
+	Tools::Agent::Vm::Unit v = Kit.vms().at(vmUuid_);
+	if (PRL_FAILED(v.getConfig(runtime, true)))
+		return;
+
+	boost::mpl::fold<Vm::Config::revise_types, void, Vm::Config::Reviser<boost::mpl::_2, boost::mpl::_1> >
+		::type::do_(stored, runtime);
+
+	d->setConfig(stored);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Link
 
 Link::Link(int timeout_)
@@ -1587,7 +1633,8 @@ void Link::disconnect(virConnectPtr libvirtd_, int reason_, void* opaque_)
 // struct Domains
 
 Domains::Domains(int timeout_): m_eventState(-1), m_eventReboot(-1),
-	m_eventWakeUp(-1), m_eventDeviceDisconnect(-1), m_view(new View::System())
+	m_eventWakeUp(-1), m_eventDeviceDisconnect(-1),
+	m_view(new View::System()), m_stateWatcher(m_view)
 {
 	m_timer.stop();
 	m_timer.setInterval(timeout_);

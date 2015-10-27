@@ -219,10 +219,11 @@ struct Domain
 	}
 	void setState(VIRTUAL_MACHINE_STATE value_);
 	void setConfig(CVmConfiguration& value_);
-        void setCpuUsage();
-        void setDiskUsage();
-        void setMemoryUsage();
-        void setNetworkUsage();
+	CVmConfiguration getConfig();
+	void setCpuUsage();
+	void setDiskUsage();
+	void setMemoryUsage();
+	void setNetworkUsage();
 
 private:
 	quint32 m_pid;
@@ -278,6 +279,19 @@ enum
 	DEFAULT_TIMEOUT = 1000
 };
 
+struct State: QObject
+{
+	State(QSharedPointer<View::System> system_);
+
+public slots:
+	void updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_);
+
+private:
+	Q_OBJECT
+
+	QSharedPointer<View::System> m_system;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Link
 
@@ -324,6 +338,7 @@ private:
 	int m_eventDeviceDisconnect;
 	QWeakPointer<virConnect> m_libvirtd;
 	QSharedPointer<View::System> m_view;
+	State m_stateWatcher;
 };
 
 } // namespace Monitor

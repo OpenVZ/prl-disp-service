@@ -1308,8 +1308,17 @@ PRL_RESULT CDspVmDirHelper::fillVmInfo(
 		new CVmEventParameter( PVE::String, pVmSecurity->toString(), EVT_PARAM_VMINFO_VM_SECURITY )
 		);
 
+	PRL_RESULT err = PRL_ERR_FAILURE;
+	SmartPtr<CVmConfiguration> c = getVmConfigByUuid(pUserSession, vm_uuid, err);
+	Libvirt::Tools::Agent::Vm::Unit u = Libvirt::Kit.vms().at(vm_uuid);
 
-	bool bIsVncServerStarted = CDspVm::IsVmRemoteDisplayRunning( vm_uuid, pUserSession->getVmDirectoryUuid() );
+	VIRTUAL_MACHINE_STATE s;
+	bool bIsVncServerStarted = PRL_SUCCEEDED(u.getState(s))
+		&& s == VMS_RUNNING
+		&& PRL_SUCCEEDED(err)
+		&& c->getVmSettings()->getVmRemoteDisplay()->getMode()
+			!= PRD_DISABLED;
+
 	outVmEvent.addEventParameter( new CVmEventParameter(PVE::UnsignedInt
 		, QString("%1").arg(bIsVncServerStarted)
 		, EVT_PARAM_VMINFO_IS_VNC_SERVER_STARTED ));
@@ -2686,7 +2695,7 @@ CDspVmDirHelper::getVmConfigForDirectoryItem(SmartPtr<CDspClient> pUserSession,
 * @param pUserSession
 */
 SmartPtr<CVmConfiguration>
-CDspVmDirHelper::getVmConfigForDirectoryItem(CVmDirectoryItem* pDirectoryItem, PRL_RESULT& error, bool bAbsolute, bool bLoadConfigDirectlyFromDisk ) const
+CDspVmDirHelper::getVmConfigForDirectoryItem(CVmDirectoryItem* pDirectoryItem, PRL_RESULT& error, bool bAbsolute, bool bLoadConfigDirectlyFromDisk )
 {
 	error = PRL_ERR_SUCCESS;
 
@@ -2924,15 +2933,8 @@ void CDspVmDirHelper::appendAdvancedParamsToVmConfig(
 			pVm->getVmUptimeInSecs()
 		);
 
-	CVmRemoteDisplay *remDisplay = pOutVmConfig->getVmSettings()->getVmRemoteDisplay();
-	if ( remDisplay->getMode() == PRD_AUTO ) {
-		PRL_UINT32 port = 0;
-		if ( pVm )
-			port = pVm->getVNCPort();
-		remDisplay->setPortNumber(port);
-	} else if ( remDisplay->getMode() == PRD_DISABLED ) {
-		remDisplay->setPortNumber(0);
-	}
+	if (pOutVmConfig->getVmSettings()->getVmRemoteDisplay()->getMode() == PRD_DISABLED)
+		pOutVmConfig->getVmSettings()->getVmRemoteDisplay()->setPortNumber(0);
 
 	LOG_MESSAGE( DBG_DEBUG, "After adding advanced parameters config: \n%s"
 		, QSTR2UTF8( pOutVmConfig->toString() )

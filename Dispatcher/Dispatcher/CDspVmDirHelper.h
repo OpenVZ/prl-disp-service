@@ -294,7 +294,7 @@ public:
 	 * @param pointer to additional error info (necessary error message parameters such as VM name
 	 *			and etc. will be stored here if operation'll fail)
 	 */
-	SmartPtr<CVmConfiguration> getVmConfigByUuid ( SmartPtr<CDspClient>,
+	static SmartPtr<CVmConfiguration> getVmConfigByUuid ( SmartPtr<CDspClient>,
 		const QString& vm_uuid,
 		PRL_RESULT&	outError,
 		CVmEvent *pErrorInfo = NULL);
@@ -517,8 +517,8 @@ private:
 		QString vm_uuid );
 protected:
 	// Get VM configuration for specific Directory item
-	SmartPtr<CVmConfiguration> getVmConfigForDirectoryItem(CVmDirectoryItem* pDirectoryItem
-		,PRL_RESULT& error, bool bAbsolute = true, bool bLoadConfigDirectlyFromDisk= false ) const;
+	static SmartPtr<CVmConfiguration> getVmConfigForDirectoryItem(CVmDirectoryItem* pDirectoryItem
+		,PRL_RESULT& error, bool bAbsolute = true, bool bLoadConfigDirectlyFromDisk= false );
 
 private:
 	enum ItemParamType {paramIsVmUuid, paramIsVmHome, paramIsVmName};
@@ -531,7 +531,7 @@ private:
 	 * @param pointer to additional error info (necessary error message parameters such as VM name
 	 *			and etc. will be stored here if operation'll fail)
 	 */
-	SmartPtr<CVmConfiguration> getVmConfigForDirectoryItem (
+	static SmartPtr<CVmConfiguration> getVmConfigForDirectoryItem (
 		SmartPtr<CDspClient>,
 		CVmDirectoryItem* ,
 		PRL_RESULT&	outError,
