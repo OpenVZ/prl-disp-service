@@ -84,6 +84,19 @@ PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Iotune
+
+void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1042::types, 0>::type& iopsLimit_) const
+{
+	m_disk->setIopsLimit(iopsLimit_.getValue());
+}
+
+void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1038::types, 0>::type& ioLimit_) const
+{
+	m_disk->setIoLimit(new CVmIoLimit(PRL_IOLIMIT_BS, ioLimit_.getValue()));
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Disk
 
 PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
@@ -108,6 +121,14 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 		m_clip->getBootSlot(disk_.getBoot().get())
 			.set(d->getDeviceType(), d->getIndex());
 	}
+	boost::optional<Libvirt::Domain::Xml::Iotune> t = disk_.getIotune();
+	if (t)
+	{
+		Iotune v(d);
+		boost::apply_visitor(v, (*t).getChoice1042());
+		boost::apply_visitor(v, (*t).getChoice1038());
+	}
+	d->setTargetDeviceName(disk_.getTarget().getDev());
 	return PRL_ERR_SUCCESS;
 }
 

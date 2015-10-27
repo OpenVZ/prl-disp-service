@@ -89,6 +89,25 @@ private:
 	QSharedPointer<virDomain> m_domain;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Runtime
+
+struct Runtime
+{
+	explicit Runtime(const QSharedPointer<virDomain>& domain_)
+		: m_domain(domain_)
+	{
+	}
+
+	PRL_RESULT setIoLimit(const CVmHardDisk& disk_, quint32 limit_);
+	PRL_RESULT setIopsLimit(const CVmHardDisk& disk_, quint32 limit_);
+	PRL_RESULT changeMedia(const CVmOpticalDisk& device_);
+
+private:
+	PRL_RESULT setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_);
+	QSharedPointer<virDomain> m_domain;
+};
+
 namespace Snapshot
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -148,7 +167,6 @@ struct Unit
 	PRL_RESULT resume(const QString& sav_);
 	PRL_RESULT suspend(const QString& sav_);
 	PRL_RESULT undefine();
-	PRL_RESULT changeMedia(const CVmOpticalDisk& device_);
 	PRL_RESULT getState(VIRTUAL_MACHINE_STATE& dst_) const;
 	PRL_RESULT getConfig(CVmConfiguration& dst_, bool runtime_ = false) const;
 	PRL_RESULT getConfig(QString& dst_, bool runtime_ = false) const;
@@ -166,6 +184,8 @@ struct Unit
 	{
 		return Snapshot::List(m_domain);
 	}
+
+	Runtime getRuntime() const;
 
 private:
 	char* getConfig(bool runtime_ = false) const

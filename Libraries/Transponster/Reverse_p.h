@@ -64,12 +64,16 @@ private:
 
 namespace Device
 {
+
+struct List;
+typedef QList<Libvirt::Domain::Xml::VChoice928 > deviceList_type;
+
 namespace Clustered
 {
 ///////////////////////////////////////////////////////////////////////////////
 // struct Flavor
 
-template<class T>
+template <typename T>
 struct Flavor;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -145,145 +149,14 @@ struct Model
 		}
 	}
 
+protected:
+	const T* getDataSource() const
+	{
+		return m_dataSource;
+	}
 private:
 	const T* m_dataSource;
 };
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Builder
-
-template<class T>
-struct Builder
-{
-	typedef Boot::Reverse::order_type boot_type;
-	typedef Libvirt::Domain::Xml::Disk result_type;
-
-	Builder(const T& dataSource_, const boot_type& boot_ = boot_type()):
-		m_model(dataSource_), m_boot(boot_)
-	{
-	}
-
-	void setDisk();
-	void setFlags();
-	void setDriver();
-	void setSource()
-	{
-		m_result.setDiskSource(getSource());
-	}
-	void setTarget();
-	void setBackingChain();
-
-	const result_type& getResult() const
-	{
-		return m_result;
-	}
-
-	const Model<T>& getModel() const
-	{
-		return m_model;
-	}
-
-protected:
-	Libvirt::Domain::Xml::VDiskSource getSource() const;
-
-private:
-	Model<T> m_model;
-	boot_type m_boot;
-	result_type m_result;
-};
-
-template<class T>
-void Builder<T>::setDisk()
-{
-	mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type x;
-	x.setValue(Flavor<T>::kind);
-	m_result.setDisk(Libvirt::Domain::Xml::VDisk(x));
-}
-
-template<class T>
-void Builder<T>::setFlags()
-{
-	// boot
-	m_result.setBoot(m_boot);
-	// connected
-	if (Flavor<T>::image == getModel().getEmulatedType() &&
-		!getModel().isConnected())
-		m_result.setSerial(QString(getModel().getImageFile().toUtf8().toHex()));
-
-	// readonly
-	m_result.setReadonly(Flavor<T>::readonly);
-	// snapshot
-	if (Flavor<T>::image == getModel().getEmulatedType())
-		m_result.setSnapshot(Flavor<T>::snapshot);
-	else
-		m_result.setSnapshot(Libvirt::Domain::Xml::ESnapshotNo);
-}
-
-template<class T>
-void Builder<T>::setDriver()
-{
-	if (Flavor<T>::image != getModel().getEmulatedType())
-		return;
-
-	mpl::at_c<Libvirt::Domain::Xml::VType::types, 1>::type a;
-	a.setValue(Libvirt::Domain::Xml::VStorageFormat(Flavor<T>::getDriverFormat()));
-	Libvirt::Domain::Xml::DriverFormat b;
-	b.setName("qemu");
-	b.setType(Libvirt::Domain::Xml::VType(a));
-	Libvirt::Domain::Xml::Driver d;
-	d.setCache(Libvirt::Domain::Xml::ECacheNone);
-	d.setIo(Libvirt::Domain::Xml::EIoNative);
-	d.setDiscard(Libvirt::Domain::Xml::EDiscardUnmap);
-	d.setDriverFormat(b);
-	m_result.setDriver(d);
-}
-
-template<class T>
-Libvirt::Domain::Xml::VDiskSource Builder<T>::getSource() const
-{
-	switch (getModel().getEmulatedType())
-	{
-	case Flavor<T>::image:
-	{
-		Libvirt::Domain::Xml::Source s;
-		QString f = getModel().getImageFile();
-		if (!f.isEmpty() && getModel().isConnected())
-			s.setFile(f);
-		s.setStartupPolicy(Libvirt::Domain::Xml::EStartupPolicyOptional);
-		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 0>::type x;
-		x.setValue(s);
-		return x;
-	}
-	case Flavor<T>::real:
-	{
-		Libvirt::Domain::Xml::Source1 s;
-		s.setDev(getModel().getRealDeviceName());
-		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 1>::type x;
-		x.setValue(s);
-		return x;
-	}
-	default:
-		return Libvirt::Domain::Xml::VDiskSource();
-	}
-}
-
-template<class T>
-void Builder<T>::setTarget()
-{
-	Libvirt::Domain::Xml::Target t;
-	t.setBus(getModel().getBus());
-	t.setDev(getModel().getTargetName());
-	t.setTray(Flavor<T>::getTray(getModel().getEmulatedType()));
-	m_result.setTarget(t);
-}
-
-template<class T>
-void Builder<T>::setBackingChain()
-{
-	mpl::at_c<Libvirt::Domain::Xml::VDiskBackingChain::types, 1>::type x;
-	x.setValue(false);
-	m_result.setDiskBackingChain(Libvirt::Domain::Xml::VDiskBackingChain(x));
-}
 
 } // namespace Clustered
 
@@ -351,7 +224,7 @@ struct Attachment
 	Libvirt::Domain::Xml::VAddress craftIde();
 	Libvirt::Domain::Xml::VAddress craftSata();
 	Libvirt::Domain::Xml::VAddress craftScsi(const boost::optional<Libvirt::Domain::Xml::EModel>& model_);
-	QList<Libvirt::Domain::Xml::VChoice928 > getControllers() const
+	deviceList_type getControllers() const
 	{
 		return m_controllerList;
 	}
@@ -370,7 +243,7 @@ private:
 	quint16 m_ide;
 	quint16 m_sata;
 	QMap<Libvirt::Domain::Xml::EModel, quint16> m_scsi;
-	QList<Libvirt::Domain::Xml::VChoice928 > m_controllerList;
+	deviceList_type m_controllerList;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -378,42 +251,58 @@ private:
 
 struct List
 {
-	explicit List(const Boot::Reverse& boot_);
+	explicit List();
 
 	Libvirt::Domain::Xml::Devices getResult() const;
 	void add(const CVmRemoteDisplay* vnc_);
-	void add(const CVmHardDisk* disk_);
+	void add(const Libvirt::Domain::Xml::Disk& disk_);
 	void add(const CVmParallelPort* port_);
 	void add(const CVmSerialPort* port_);
-	void add(const CVmOpticalDisk* cdrom_);
 	void add(const CVmSoundDevice* sound_);
 	void add(const CVmVideo* video_);
-	void add(const CVmFloppyDisk* floppy_);
 	void add(const CVmGenericNetworkAdapter* network_);
 
 private:
-	typedef QList<Libvirt::Domain::Xml::VChoice928 > list_type;
-
 	template<int N, class T>
 	void add(const T& value_)
 	{
-		typename mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, N>::type x;
+		typename mpl::at_c<deviceList_type::value_type::types, N>::type x;
 		x.setValue(value_);
 		m_deviceList << x;
 	}
-	template<class T>
-	typename boost::disable_if<boost::is_pointer<T> >::type
-		add(T builder_);
-
 	Libvirt::Domain::Xml::Panic craftPanic() const;
 
+	deviceList_type m_deviceList;
+};
+
+namespace Clustered
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+
+struct List
+{
+	explicit List(const Boot::Reverse& boot_, Device::List& list_);
+
+	const Attachment& getAttachment() const;
+
+	void add(const CVmHardDisk* hdd_, const CVmRunTimeOptions* runtime_);
+	void add(const CVmOpticalDisk* cdrom_);
+	void add(const CVmFloppyDisk* floppy_);
+
+private:
+	template<class T>
+	void build(T builder_);
+
+private:
 	Boot::Reverse m_boot;
-	list_type m_deviceList;
+	Device::List& m_deviceList;
 	Attachment m_attachment;
 };
 
 template<class T>
-typename boost::disable_if<boost::is_pointer<T> >::type List::add(T builder_)
+void List::build(T builder_)
 {
 	builder_.setDisk();
 	builder_.setFlags();
@@ -422,7 +311,7 @@ typename boost::disable_if<boost::is_pointer<T> >::type List::add(T builder_)
 	builder_.setTarget();
 	builder_.setBackingChain();
 
-	Libvirt::Domain::Xml::Disk d = builder_.getResult();
+	Libvirt::Domain::Xml::Disk d = static_cast<const T&>(builder_).getResult();
 	switch (d.getTarget().getBus().get())
 	{
 	case Libvirt::Domain::Xml::EBusIde:
@@ -437,8 +326,10 @@ typename boost::disable_if<boost::is_pointer<T> >::type List::add(T builder_)
 	default:
 		break;
 	}
-	return add<0>(d);
+	m_deviceList.add(d);
 }
+
+} // namespace Clustered
 
 } // namespace Device
 

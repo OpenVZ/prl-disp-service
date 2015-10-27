@@ -69,6 +69,15 @@ void OsInfo::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 		(new_.getVmSettings()->getVmCommonOptions()->getOsVersion());
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct RuntimeOptions
+
+void RuntimeOptions::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+{
+	old_.getVmSettings()->setVmRuntimeOptions
+		(new CVmRunTimeOptions(new_.getVmSettings()->getVmRuntimeOptions()));
+}
+
 namespace Access
 {
 ///////////////////////////////////////////////////////////////////////////////

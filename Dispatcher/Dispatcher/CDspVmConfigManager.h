@@ -62,6 +62,11 @@ struct OsInfo
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
 
+struct RuntimeOptions
+{
+	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reviser
 
@@ -85,7 +90,7 @@ struct Reviser<N, void>
 };
 
 typedef boost::mpl::vector<RemoteDisplay> revise_types;
-typedef boost::mpl::vector<OsInfo> untranslatable_types;
+typedef boost::mpl::vector<OsInfo, RuntimeOptions> untranslatable_types;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Repairer

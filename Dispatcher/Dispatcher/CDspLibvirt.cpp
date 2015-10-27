@@ -249,13 +249,9 @@ PRL_RESULT Unit::getUuid(QString& dst_) const
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Unit::changeMedia(const CVmOpticalDisk& device_)
+Runtime Unit::getRuntime() const
 {
-	Transponster::Vm::Reverse::Cdrom u(device_);
-	u();
-	QByteArray b = u.getResult().toUtf8();
-	return do_(m_domain.data(), boost::bind(&virDomainUpdateDeviceFlags, _1,
-		b.data(), VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG));
+	return Runtime(m_domain);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -324,6 +320,46 @@ PRL_RESULT Guest::execute(const QString& cmd, QString& reply)
 	reply = QString::fromUtf8(result);
 	free(result);
 	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Runtime
+
+PRL_RESULT Runtime::setIoLimit(const CVmHardDisk& disk_, quint32 limit_)
+{
+	return setBlockIoTune(disk_, VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC, limit_);
+}
+
+PRL_RESULT Runtime::setIopsLimit(const CVmHardDisk& disk_, quint32 limit_)
+{
+	return setBlockIoTune(disk_, VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC, limit_);
+}
+
+PRL_RESULT Runtime::setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_)
+{
+	virTypedParameterPtr p = NULL;
+	qint32 s = 0;
+	qint32 m = 0;
+
+	if (PRL_FAILED(do_(&p, boost::bind(&virTypedParamsAddULLong, _1,
+					&s, &m, param_, limit_))))
+		return PRL_ERR_SET_IOLIMIT;
+
+	PRL_RESULT r = do_(m_domain.data(), boost::bind(&virDomainSetBlockIoTune, _1,
+							QSTR2UTF8(disk_.getTargetDeviceName()),
+							p, s, VIR_DOMAIN_AFFECT_CURRENT |
+							VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE));
+	virTypedParamsFree(p, s);
+	return r;
+}
+
+PRL_RESULT Runtime::changeMedia(const CVmOpticalDisk& device_)
+{
+	Transponster::Vm::Reverse::Cdrom u(device_);
+	u();
+	QByteArray b = u.getResult().toUtf8();
+	return do_(m_domain.data(), boost::bind(&virDomainUpdateDeviceFlags, _1,
+		b.data(), VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

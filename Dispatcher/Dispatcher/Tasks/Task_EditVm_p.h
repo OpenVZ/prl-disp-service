@@ -33,6 +33,7 @@
 #define __TASK_EDITVM_P_H__
 
 #include "CDspTaskHelper.h"
+#include "CDspLibvirt.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 
 class Task_EditVm;
@@ -159,6 +160,78 @@ struct Factory
 };
 
 } // namespace Memory
+
+namespace Disk
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Action
+
+namespace Limit
+{
+
+namespace Policy
+{
+
+struct Io
+{
+static PRL_RESULT setLimit(Libvirt::Tools::Agent::Vm::Runtime& device_,
+	const CVmHardDisk* disk_, quint32 limit_)
+{
+	return device_.setIoLimit(disk_, limit_);
+}
+};
+
+struct Iops
+{
+static PRL_RESULT setLimit(Libvirt::Tools::Agent::Vm::Runtime& device_,
+	const CVmHardDisk* disk_, quint32 limit_)
+{
+	return device_.setIopsLimit(disk_, limit_);
+}
+};
+
+} // namespace Policy
+
+template <typename T>
+struct Unit: Vm::Action
+{
+	Unit(const QString& vm_, const CVmHardDisk& device_, quint32 limit_):
+		m_vm(vm_), m_device(device_), m_limit(limit_)
+	{
+	}
+
+	bool execute(CDspTaskFailure& feedback_)
+	{
+		Libvirt::Tools::Agent::Vm::Runtime d = Libvirt::Kit.vms().at(m_vm).getRuntime();
+		PRL_RESULT e = T::setLimit(d, &m_device, m_limit);
+		if (PRL_FAILED(e))
+		{
+			feedback_.setCode(e);
+			return false;
+		}
+		return Vm::Action::execute(feedback_);
+	}
+
+private:
+	QString m_vm;
+	CVmHardDisk m_device;
+	quint32 m_limit;
+};
+
+} // namespace Limit
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+struct Factory
+{
+	Vm::Action* operator()(const Request& input_) const;
+private:
+	bool isDiskIoUntunable(const CVmHardDisk* disk_) const;
+};
+
+} // namespace Disk
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory

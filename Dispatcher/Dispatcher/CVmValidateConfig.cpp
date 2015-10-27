@@ -900,22 +900,6 @@ void CVmValidateConfig::CheckGeneralParameters()
 			m_lstResults += PRL_ERR_VMCONF_IOPRIO_NOT_SUPPORTED;
 			ADD_FID(E_SET << m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->getIoPriority_id());
 		}
-
-		if (m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->getIopsLimit() !=
-				m_pVmConfigOld->getVmSettings()->getVmRuntimeOptions()->getIopsLimit())
-		{
-			m_lstResults += PRL_ERR_VMCONF_IOPSLIMIT_NOT_SUPPORTED;
-			ADD_FID(E_SET << m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->getIopsLimit_id());
-		}
-
-		CVmIoLimit *pNewIoLimit = m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->getIoLimit();
-		CVmIoLimit *pOldIoLimit = m_pVmConfigOld->getVmSettings()->getVmRuntimeOptions()->getIoLimit();
-		if (pNewIoLimit && (!pOldIoLimit || !(*pNewIoLimit == *pOldIoLimit)))
-		{
-			m_lstResults += PRL_ERR_VMCONF_IOLIMIT_NOT_SUPPORTED;
-			ADD_FID(E_SET << pNewIoLimit->getFullItemId()
-				<< pNewIoLimit->getIoLimitType_id() << pNewIoLimit->getIoLimitValue_id());
-		}
 	}
 }
 

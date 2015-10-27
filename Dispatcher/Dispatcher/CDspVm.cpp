@@ -1257,7 +1257,7 @@ void CDspVm::handshakeWithVmProcess(const IOSender::Handle &h)
 		fixConfigBeforeStartVm( hostInfo, pVmConfig );
 		if (CDspService::isServerModePSBM())
 		{
-			res = Task_EditVm::configureVzParameters(ident(), pVmConfig);
+			res = Task_EditVm::configureVzParameters(pVmConfig);
 			if (PRL_FAILED(res))
 			{
 				WRITE_TRACE(DBG_FATAL, "Failed to configure Virtuozzo parameters %s [%x]",
@@ -1576,8 +1576,6 @@ void CDspVm::dropLimits()
 
 
 	Task_EditVm::SetCpuLimit(getVmUuid(), &cpuLimit);
-	Task_EditVm::SetIoLimit(getVmUuid(), 0);
-	Task_EditVm::SetIopsLimit(getVmUuid(), 0);
 }
 
 void CDspVm::stop(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p, PRL_UINT32 nStopMode, bool bActionByDispatcher)

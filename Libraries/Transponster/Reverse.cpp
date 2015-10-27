@@ -208,6 +208,7 @@ void Resources::setChipset(const Libvirt::Domain::Xml::Sysinfo& src_)
 
 namespace Device
 {
+
 namespace Clustered
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -326,11 +327,155 @@ boost::optional<Libvirt::Domain::Xml::EBus> Model<CVmFloppyDisk>::getBus() const
 	return Libvirt::Domain::Xml::EBusFdc;
 }
 
+namespace Builder
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Builder
+// struct Base
+
+template<class T>
+struct Base
+{
+	typedef Boot::Reverse::order_type boot_type;
+	typedef Libvirt::Domain::Xml::Disk result_type;
+
+	Base(const T& dataSource_, const boot_type& boot_ = boot_type()):
+		m_model(dataSource_), m_boot(boot_)
+	{
+	}
+
+	~Base()
+	{
+	}
+
+	void setDisk();
+	void setFlags();
+	void setDriver();
+	void setSource()
+	{
+		m_result.setDiskSource(getSource());
+	}
+	void setTarget();
+	void setBackingChain();
+
+	const result_type& getResult() const
+	{
+		return m_result;
+	}
+
+	const Model<T>& getModel() const
+	{
+		return m_model;
+	}
+
+protected:
+	result_type& getResult()
+	{
+		return m_result;
+	}
+
+	Libvirt::Domain::Xml::VDiskSource getSource() const;
+
+private:
+	Model<T> m_model;
+	boot_type m_boot;
+	result_type m_result;
+};
+
+template<class T>
+void Base<T>::setDisk()
+{
+	mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type x;
+	x.setValue(Flavor<T>::kind);
+	m_result.setDisk(Libvirt::Domain::Xml::VDisk(x));
+}
+
+template<class T>
+void Base<T>::setFlags()
+{
+	// boot
+	m_result.setBoot(m_boot);
+	// connected
+	if (Flavor<T>::image == getModel().getEmulatedType() &&
+		!getModel().isConnected())
+		m_result.setSerial(QString(getModel().getImageFile().toUtf8().toHex()));
+
+	// readonly
+	m_result.setReadonly(Flavor<T>::readonly);
+	// snapshot
+	if (Flavor<T>::image == getModel().getEmulatedType())
+		m_result.setSnapshot(Flavor<T>::snapshot);
+	else
+		m_result.setSnapshot(Libvirt::Domain::Xml::ESnapshotNo);
+}
+
+template<class T>
+void Base<T>::setDriver()
+{
+	if (Flavor<T>::image != getModel().getEmulatedType())
+		return;
+
+	mpl::at_c<Libvirt::Domain::Xml::VType::types, 1>::type a;
+	a.setValue(Libvirt::Domain::Xml::VStorageFormat(Flavor<T>::getDriverFormat()));
+	Libvirt::Domain::Xml::DriverFormat b;
+	b.setName("qemu");
+	b.setType(Libvirt::Domain::Xml::VType(a));
+	Libvirt::Domain::Xml::Driver d;
+	d.setCache(Libvirt::Domain::Xml::ECacheNone);
+	d.setIo(Libvirt::Domain::Xml::EIoNative);
+	d.setDiscard(Libvirt::Domain::Xml::EDiscardUnmap);
+	d.setDriverFormat(b);
+	m_result.setDriver(d);
+}
+
+template<class T>
+Libvirt::Domain::Xml::VDiskSource Base<T>::getSource() const
+{
+	switch (getModel().getEmulatedType())
+	{
+	case Flavor<T>::image:
+	{
+		Libvirt::Domain::Xml::Source s;
+		QString f = getModel().getImageFile();
+		if (!f.isEmpty() && getModel().isConnected())
+			s.setFile(f);
+		s.setStartupPolicy(Libvirt::Domain::Xml::EStartupPolicyOptional);
+		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 0>::type x;
+		x.setValue(s);
+		return x;
+	}
+	case Flavor<T>::real:
+	{
+		Libvirt::Domain::Xml::Source1 s;
+		s.setDev(getModel().getRealDeviceName());
+		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 1>::type x;
+		x.setValue(s);
+		return x;
+	}
+	default:
+		return Libvirt::Domain::Xml::VDiskSource();
+	}
+}
+
+template<class T>
+void Base<T>::setTarget()
+{
+	Libvirt::Domain::Xml::Target t;
+	t.setBus(getModel().getBus());
+	t.setDev(getModel().getTargetName());
+	t.setTray(Flavor<T>::getTray(getModel().getEmulatedType()));
+	m_result.setTarget(t);
+}
+
+template<class T>
+void Base<T>::setBackingChain()
+{
+	mpl::at_c<Libvirt::Domain::Xml::VDiskBackingChain::types, 1>::type x;
+	x.setValue(false);
+	m_result.setDiskBackingChain(Libvirt::Domain::Xml::VDiskBackingChain(x));
+}
 
 template<>
-void Builder<CVmHardDisk>::setSource()
+void Base<CVmHardDisk>::setSource()
 {
 	Libvirt::Domain::Xml::VDiskSource x = getSource();
 	if (!x.empty())
@@ -345,6 +490,114 @@ void Builder<CVmHardDisk>::setSource()
 		return m_result.setDiskSource(x);
 
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hdd
+
+struct Hdd: Base<CVmHardDisk>
+{
+	Hdd(const CVmHardDisk& dataSource_, const CVmRunTimeOptions* runtime_,
+			const boot_type& boot_ = boot_type())
+		: Base<CVmHardDisk>(dataSource_, boot_),
+			m_runtime(runtime_),
+			m_hdd(dataSource_)
+	{
+	}
+
+	~Hdd()
+	{
+	}
+
+	void setIoLimit();
+	void setIopsLimit();
+
+private:
+	const CVmRunTimeOptions* m_runtime;
+	const CVmHardDisk& m_hdd;
+};
+
+void Hdd::setIoLimit()
+{
+	Libvirt::Domain::Xml::Iotune t(getResult().getIotune() ?
+									*getResult().getIotune() :
+									Libvirt::Domain::Xml::Iotune());
+	quint32 p = 0;
+
+	if (m_runtime->getIoLimit() != NULL)
+		p = m_runtime->getIoLimit()->getIoLimitValue()? : p;
+
+	if (m_hdd.getIoLimit() != NULL)
+		p = m_hdd.getIoLimit()->getIoLimitValue()? : p;
+
+	if (p != 0)
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VChoice1038::types, 0>::type y;
+		y.setValue(p);
+		t.setChoice1038(Libvirt::Domain::Xml::VChoice1038(y));
+	}
+
+	getResult().setIotune(t);
+}
+
+void Hdd::setIopsLimit()
+{
+	Libvirt::Domain::Xml::Iotune t(getResult().getIotune() ?
+									*getResult().getIotune() :
+									Libvirt::Domain::Xml::Iotune());
+	quint32 p = 0;
+	p = m_runtime->getIopsLimit()? : p;
+	p = m_hdd.getIopsLimit()? : p;
+
+	if (p != 0)
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VChoice1042::types, 0>::type y;
+		y.setValue(p);
+		t.setChoice1042(Libvirt::Domain::Xml::VChoice1042(y));
+	}
+
+	getResult().setIotune(t);
+}
+
+} // namespace Builder
+
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+
+List::List(const Boot::Reverse& boot_, Device::List& list_)
+	: m_boot(boot_), m_deviceList(list_)
+{
+}
+
+void List::add(const CVmHardDisk* hdd_, const CVmRunTimeOptions* runtime_)
+{
+	if (hdd_ == NULL)
+		return;
+	Builder::Hdd b(*hdd_, runtime_, m_boot(*hdd_));
+	b.setIoLimit();
+	b.setIopsLimit();
+	build(b);
+}
+
+void List::add(const CVmOpticalDisk* cdrom_)
+{
+	if (cdrom_ == NULL)
+		return;
+	if (cdrom_->getEmulatedType() != Flavor<CVmOpticalDisk>::real)
+		return;
+	build(Builder::Base<CVmOpticalDisk>(*cdrom_, m_boot(*cdrom_)));
+}
+
+void List::add(const CVmFloppyDisk* floppy_)
+{
+	if (floppy_ == NULL)
+		return;
+	build(Builder::Base<CVmFloppyDisk>(*floppy_, m_boot(*floppy_)));
+}
+
+const Attachment& List::getAttachment() const
+{
+	return m_attachment;
 }
 
 } // namespace Clustered
@@ -483,7 +736,7 @@ Libvirt::Domain::Xml::VAddress Attachment::craftScsi(const boost::optional<Libvi
 ///////////////////////////////////////////////////////////////////////////////
 // struct List
 
-List::List(const Boot::Reverse& boot_): m_boot(boot_)
+List::List()
 {
 	Libvirt::Domain::Xml::Channel1 c;
 	c.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceUnix);
@@ -501,18 +754,13 @@ Libvirt::Domain::Xml::Devices List::getResult() const
 	else if (QFile::exists("/usr/libexec/qemu-kvm"))
 		output.setEmulator(QString("/usr/libexec/qemu-kvm"));
 
-	output.setChoice928List(list_type() << m_deviceList << m_attachment.getControllers());
+	output.setChoice928List(deviceList_type() << m_deviceList);
 
 	output.setPanic(craftPanic());
 
 	return output;
 }
 
-void List::add(const CVmHardDisk* disk_)
-{
-	if (NULL != disk_)
-		add(Clustered::Builder<CVmHardDisk>(*disk_, m_boot(*disk_)));
-}
 
 void List::add(const CVmParallelPort* port_)
 {
@@ -549,12 +797,6 @@ void List::add(const CVmSerialPort* port_)
 	add<12>(p);
 }
 
-void List::add(const CVmOpticalDisk* cdrom_)
-{
-	if (NULL != cdrom_ && cdrom_->getEmulatedType() != Clustered::Flavor<CVmOpticalDisk>::real)
-		add(Clustered::Builder<CVmOpticalDisk>(*cdrom_, m_boot(*cdrom_)));
-}
-
 void List::add(const CVmSoundDevice* sound_)
 {
 	if (NULL != sound_)
@@ -563,12 +805,6 @@ void List::add(const CVmSoundDevice* sound_)
 		s.setAlias(sound_->getUserFriendlyName());
 		add<6>(s);
 	}
-}
-
-void List::add(const CVmFloppyDisk* floppy_)
-{
-	if (NULL != floppy_)
-		add(Clustered::Builder<CVmFloppyDisk>(*floppy_));
 }
 
 void List::add(const CVmRemoteDisplay* vnc_)
@@ -633,6 +869,11 @@ void List::add(const CVmGenericNetworkAdapter* network_)
 	}
 }
 
+void List::add(const Libvirt::Domain::Xml::Disk& disk_)
+{
+	add<0>(disk_);
+}
+
 Libvirt::Domain::Xml::Panic List::craftPanic() const
 {
 	Libvirt::Domain::Xml::Panic p;
@@ -662,13 +903,14 @@ namespace Reverse
 PRL_RESULT Cdrom::operator()()
 {
 	m_result = boost::none;
-	Device::Clustered::Builder<CVmOpticalDisk> b(m_input);
+	typedef Device::Clustered::Builder::Base<CVmOpticalDisk> builder_type;
+	builder_type b(m_input);
 	b.setDisk();
 	b.setFlags();
 	b.setSource();
 	b.setTarget();
 	b.setBackingChain();
-	m_result = b.getResult();
+	m_result = static_cast<const builder_type&>(b).getResult();
 
 	return PRL_ERR_SUCCESS;
 }
@@ -788,22 +1030,23 @@ PRL_RESULT Vm::setDevices()
 	if (NULL == h)
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
-	Device::List b(Boot::Reverse(m_input.getVmSettings()->
-		getVmStartupOptions()->getBootDeviceList()));
-	b.add(m_input.getVmSettings()->getVmRemoteDisplay());
-	foreach (const CVmVideo* d, h->m_lstVideo)
+	Device::List b;
+	Device::Clustered::List t(Boot::Reverse(m_input.getVmSettings()->
+		getVmStartupOptions()->getBootDeviceList()), b);
+	foreach (const CVmHardDisk* d, h->m_lstHardDisks)
 	{
-		b.add(d);
+		t.add(d, m_input.getVmSettings()->getVmRuntimeOptions());
 	}
 	foreach (const CVmFloppyDisk* d, h->m_lstFloppyDisks)
 	{
-		b.add(d);
+		t.add(d);
 	}
 	foreach (const CVmOpticalDisk* d, h->m_lstOpticalDisks)
 	{
-		b.add(d);
+		t.add(d);
 	}
-	foreach (const CVmHardDisk* d, h->m_lstHardDisks)
+	b.add(m_input.getVmSettings()->getVmRemoteDisplay());
+	foreach (const CVmVideo* d, h->m_lstVideo)
 	{
 		b.add(d);
 	}
@@ -823,7 +1066,11 @@ PRL_RESULT Vm::setDevices()
 	{
 		b.add(d);
 	}
-	m_result->setDevices(b.getResult());
+	Libvirt::Domain::Xml::Devices x = b.getResult();
+	QList<Libvirt::Domain::Xml::VChoice928> n(x.getChoice928List());
+	n << t.getAttachment().getControllers();
+	x.setChoice928List(n);
+	m_result->setDevices(x);
 	return PRL_ERR_SUCCESS;
 }
 

@@ -780,7 +780,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmDevConnect> >::run()
 
 	CVmOpticalDisk y;
 	StringToElement<CVmOpticalDisk* >(&y, x->GetDeviceConfig());
-	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).changeMedia(y));
+	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).getRuntime().changeMedia(y));
 }
 
 template<>

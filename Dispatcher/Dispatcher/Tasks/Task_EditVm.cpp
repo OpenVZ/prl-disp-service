@@ -57,6 +57,8 @@
 #include "CVmValidateConfig.h"
 #include "CDspVmNetworkHelper.h"
 #include <boost/mpl/for_each.hpp>
+#include <algorithm>
+#include <boost/bind.hpp>
 #include "EditHelpers/CMultiEditMergeVmConfig.h"
 
 #include "CDspVzHelper.h"
@@ -2433,7 +2435,7 @@ PRL_RESULT Task_EditVm::editVm()
 		//////////////////////////////////////////////////////////////////////////
 		// configure Virtuozzo specific parameters
 		/////////////////////////////////////////////////////////////////////////
-		configureVzParameters(getVmIdent(), pVmConfigNew, pVmConfigOld);
+		configureVzParameters(pVmConfigNew, pVmConfigOld);
 	}
 	catch (PRL_RESULT code)
 	{
@@ -2724,48 +2726,10 @@ PRL_RESULT Task_EditVm::SetIoPriority(const QString &sVmUuid, PRL_UINT32 nIoPrio
 #endif
 }
 
-PRL_RESULT Task_EditVm::SetIoLimit(const QString &sVmUuid, PRL_UINT32 nIoLimit)
-{
-#ifndef _LIN_
-	Q_UNUSED(sVmUuid)
-	Q_UNUSED(nIoLimit);
-	return PRL_ERR_UNIMPLEMENTED;
-#else
-
-	if (nIoLimit == (unsigned int) -1)
-		return PRL_ERR_SUCCESS;
-
-	if (CVzHelper::set_iolimit(sVmUuid, nIoLimit))
-		return PRL_ERR_SET_IOLIMIT;
-
-	return PRL_ERR_SUCCESS;
-#endif
-}
-
-PRL_RESULT Task_EditVm::SetIopsLimit(const QString &sVmUuid, PRL_UINT32 nLimit)
-{
-#ifndef _LIN_
-	Q_UNUSED(sVmUuid)
-	Q_UNUSED(nLimit);
-	return PRL_ERR_UNIMPLEMENTED;
-#else
-
-	if (nLimit == (unsigned int) -1)
-		return PRL_ERR_SUCCESS;
-
-	if (CVzHelper::set_iopslimit(sVmUuid, nLimit))
-		return PRL_ERR_SET_IOLIMIT;
-
-	return PRL_ERR_SUCCESS;
-#endif
-}
-
-PRL_RESULT Task_EditVm::configureVzParameters(const CVmIdent &ident,
-					SmartPtr<CVmConfiguration> pNewVmConfig,
+PRL_RESULT Task_EditVm::configureVzParameters(SmartPtr<CVmConfiguration> pNewVmConfig,
 					SmartPtr<CVmConfiguration> pOldVmConfig)
 {
 #ifndef _LIN_
-	Q_UNUSED(ident);
 	Q_UNUSED(pNewVmConfig);
 	Q_UNUSED(pOldVmConfig);
 #else
@@ -2778,8 +2742,11 @@ PRL_RESULT Task_EditVm::configureVzParameters(const CVmIdent &ident,
 
 	QString sVmUuid = pNewVmConfig->getVmIdentification()->getVmUuid();
 	// Configure for running VM only
-	SmartPtr< CDspVm > pVm = CDspVm::GetVmInstanceByUuid(ident);
-	if (!pVm)
+	VIRTUAL_MACHINE_STATE s;
+	prlResult = Libvirt::Kit.vms().at(sVmUuid).getState(s);
+	if (PRL_FAILED(prlResult))
+		return prlResult;
+	if (s != VMS_RUNNING)
 		return PRL_ERR_SUCCESS;
 	// CpuUnits
 	if (pOldVmConfig)
@@ -2837,28 +2804,6 @@ PRL_RESULT Task_EditVm::configureVzParameters(const CVmIdent &ident,
 			return prlResult;
 	}
 
-	// IoLimit
-	CVmIoLimit *pOldIoLimit = NULL;
-	if (pOldVmConfig)
-		pOldIoLimit = pOldVmConfig->getVmSettings()->getVmRuntimeOptions()->getIoLimit();
-	CVmIoLimit *pNewIoLimit = pNewVmConfig->getVmSettings()->getVmRuntimeOptions()->getIoLimit();
-	if (pNewIoLimit && (!pOldIoLimit ||
-				pNewIoLimit->getIoLimitValue() != pOldIoLimit->getIoLimitValue()))
-	{
-		prlResult = SetIoLimit(sVmUuid, pNewIoLimit->getIoLimitValue());
-		if (PRL_FAILED(prlResult))
-			return prlResult;
-	}
-	// IOPS Limit
-	if (pOldVmConfig)
-		oldVal = pOldVmConfig->getVmSettings()->getVmRuntimeOptions()->getIopsLimit();
-	newVal = pNewVmConfig->getVmSettings()->getVmRuntimeOptions()->getIopsLimit();
-	if (bSet || newVal != oldVal)
-	{
-		prlResult = SetIopsLimit(sVmUuid, newVal);
-		if (PRL_FAILED(prlResult))
-			return prlResult;
-	}
 #endif
 	return PRL_ERR_SUCCESS;
 }
@@ -3191,7 +3136,7 @@ namespace Cdrom
 
 bool Action::execute(CDspTaskFailure& feedback_)
 {
-	PRL_RESULT e = Libvirt::Kit.vms().at(m_vm).changeMedia(m_device);
+	PRL_RESULT e = Libvirt::Kit.vms().at(m_vm).getRuntime().changeMedia(m_device);
 	if (PRL_FAILED(e))
 	{
 		feedback_.setCode(e);
@@ -3263,6 +3208,67 @@ Vm::Action* Factory::operator()(const Request& input_) const
 
 } // namespace Memory
 
+namespace Disk
+{
+namespace
+{
+bool isHardDisksSystemPathEqual(const CVmHardDisk* lhs_, const CVmHardDisk* rhs_)
+{
+	return CFileHelper::IsPathsEqual(lhs_->getSystemName(), rhs_->getSystemName());
+}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+Vm::Action* Factory::operator()(const Request& input_) const
+{
+	Action* output = NULL;
+	QList<CVmHardDisk* > o = input_.getStart().getVmHardwareList()->m_lstHardDisks;
+	foreach (CVmHardDisk* d, input_.getFinal().getVmHardwareList()->m_lstHardDisks)
+	{
+		// If disk was disconnected or disabled, its config is absent in libvirt cfg
+		// All runtime parameters will be applied automatically with new device cfg
+		if (isDiskIoUntunable(d))
+			continue;
+
+		QList<CVmHardDisk *>::const_iterator x =
+			std::find_if(o.begin(), o.end(), boost::bind(isHardDisksSystemPathEqual, _1, d));
+		if (x == o.end())
+			continue;
+
+		if (isDiskIoUntunable(*x))
+			continue;
+
+		CVmIoLimit* l(d->getIoLimit());
+		if ((l != NULL) &&
+			(l->getIoLimitValue() != (*x)->getIoLimit()->getIoLimitValue()))
+		{
+			Action* a(new Limit::Unit<Limit::Policy::Io>(input_.getObject().first, *d, l->getIoLimitValue()));
+			a->setNext(output);
+			output = a;
+		}
+
+		if (d->getIopsLimit() != (*x)->getIopsLimit()) {
+			Action* a(new Limit::Unit<Limit::Policy::Iops>(input_.getObject().first, *d, d->getIopsLimit()));
+			a->setNext(output);
+			output = a;
+		}
+	}
+	return output;
+}
+
+bool Factory::isDiskIoUntunable(const CVmHardDisk* disk_) const
+{
+	bool r = false;
+	r = (disk_->getEmulatedType() != PVE::HardDiskImage);
+	r |= (disk_->getEnabled() == PVE::DeviceDisabled);
+	r |= (disk_->getConnected() == PVE::DeviceDisconnected);
+	return r;
+}
+
+} // namespace Disk
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
@@ -3275,7 +3281,7 @@ Action* Factory::operator()(const Request& input_) const
 		return NULL;
 
 	Visitor v(input_);
-	typedef boost::mpl::vector<Cdrom::Factory, Memory::Factory> list_type;
+	typedef boost::mpl::vector<Cdrom::Factory, Memory::Factory, Disk::Factory> list_type;
 	boost::mpl::for_each<list_type>(boost::ref(v));
 	return v.getResult();
 }
