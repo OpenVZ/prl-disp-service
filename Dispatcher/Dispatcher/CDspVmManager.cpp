@@ -117,18 +117,15 @@ void Handler::timerEvent(QTimerEvent* event_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Begin
+// struct Unit
 
-void Begin::timerEvent(QTimerEvent* event_)
+void Unit::timerEvent(QTimerEvent* event_)
 {
 	killTimer(event_->timerId());
-	PRL_RESULT e = m_agent.shutdown();
+	PRL_RESULT e = Libvirt::Kit.vms().at(m_uuid).shutdown();
 	if (PRL_FAILED(e))
-		m_loop->exit(e);
+		m_loop.exit(e);
 }
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Unit
 
 PRL_RESULT Unit::operator()()
 {
@@ -142,15 +139,14 @@ PRL_RESULT Unit::operator()()
 		return PRL_ERR_UNEXPECTED;
 
 	s.unlock();
-	Libvirt::Tools::Agent::Vm::Unit a = Libvirt::Kit.vms().at(m_uuid);
-	Begin b(a, m_loop);
-	b.startTimer(0);
-	h.startTimer(1000 * m_timeout);
+	startTimer(0);
+	int t = h.startTimer(1000 * m_timeout);
 	PRL_RESULT e = m_loop.exec();
+	h.killTimer(t);
 	if (PRL_FAILED(e) && e != PRL_ERR_TIMEOUT)
 		return e;
 
-	return a.kill();
+	return Libvirt::Kit.vms().at(m_uuid).kill();
 }
 
 } // namespace Shutdown

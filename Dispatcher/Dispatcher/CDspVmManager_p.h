@@ -63,29 +63,9 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Begin
-
-struct Begin: QObject
-{
-	Begin(const Libvirt::Tools::Agent::Vm::Unit& agent_, QEventLoop& loop_):
-		m_loop(&loop_), m_agent(agent_)
-	{
-	}
-
-protected:
-	void timerEvent(QTimerEvent* event_);
-
-private:
-	Q_OBJECT
-
-	QEventLoop* m_loop;
-	Libvirt::Tools::Agent::Vm::Unit m_agent;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
-struct Unit
+struct Unit: QObject
 {
 	Unit(const QString& uuid_, quint32 timeout_):
 		m_uuid(uuid_), m_timeout(timeout_)
@@ -94,7 +74,12 @@ struct Unit
 
 	PRL_RESULT operator()();
 
+protected:
+	void timerEvent(QTimerEvent* event_);
+
 private:
+	Q_OBJECT
+
 	QEventLoop m_loop;
 	const QString m_uuid;
 	const quint32 m_timeout;
