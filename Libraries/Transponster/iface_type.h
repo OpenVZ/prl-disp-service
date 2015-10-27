@@ -23,8 +23,6 @@
 
 #ifndef __IFACE_TYPE_H__
 #define __IFACE_TYPE_H__
-#define BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS
-#define BOOST_MPL_LIMIT_VECTOR_SIZE 40
 #include "base.h"
 #include "iface_data.h"
 #include "iface_enum.h"

@@ -23,8 +23,6 @@
 
 #ifndef __DOMAIN_TYPE_H__
 #define __DOMAIN_TYPE_H__
-#define BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS
-#define BOOST_MPL_LIMIT_VECTOR_SIZE 40
 #include "base.h"
 #include "domain_data.h"
 #include "domain_enum.h"

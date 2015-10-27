@@ -38,6 +38,7 @@
 #include <QReadWriteLock>
 #include <QHash>
 #include <QDateTime>
+#include <boost/mpl/vector.hpp>
 
 class CDspClient;
 class CVmConfiguration;
@@ -47,6 +48,38 @@ namespace Vm
 {
 namespace Config
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct RemoteDisplay
+
+struct RemoteDisplay
+{
+	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Reviser
+
+template <class N, typename B>
+struct Reviser
+{
+	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+	{
+		B::do_(old_, new_);
+		N::do_(old_, new_);
+	}
+};
+
+template<class N>
+struct Reviser<N, void>
+{
+	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+	{
+		N::do_(old_, new_);
+	}
+};
+
+typedef boost::mpl::vector<RemoteDisplay> revise_types;
+
 namespace Access
 {
 struct Work;

@@ -49,6 +49,15 @@ namespace Vm
 {
 namespace Config
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct RemoteDisplay
+
+void RemoteDisplay::do_(CVmConfiguration& old_, const CVmConfiguration& new_) 
+{
+	old_.getVmSettings()->getVmRemoteDisplay()->setPortNumber
+		(new_.getVmSettings()->getVmRemoteDisplay()->getPortNumber());
+}
+
 namespace Access
 {
 ///////////////////////////////////////////////////////////////////////////////
