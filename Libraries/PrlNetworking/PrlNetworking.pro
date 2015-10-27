@@ -24,9 +24,6 @@ linux-* {
 
 	SOURCES += unix/VMDefaultAdapter_unix.cpp
 
-	HEADERS += unix/libnetlink.h
-	SOURCES += unix/libnetlink.cpp
-
 	HEADERS += unix/libarp.h
 	SOURCES += unix/libarp.cpp
 
