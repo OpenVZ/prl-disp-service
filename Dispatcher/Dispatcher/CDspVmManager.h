@@ -165,21 +165,6 @@ public:
 	/** Returns sign whether some running VMs present */
 	bool hasAnyRunningVms() const;
 
-	/** Shutdown all VMs #9246 */
-	void shutdownVms( bool useAutoStopOpt = true ) const;
-
-	/** Shutdown VMs from list */
-	void shutdownVms ( const QList< SmartPtr<CDspVm> >& lstVms,
-					   bool useAutoStopOpt ) const;
-
-	/** Shutdown VMs by client */
-	void shutdownVmsByClient ( const SmartPtr<CDspClient>& pUser,
-							   bool useAutoStopOpt ) const;
-
-	/** Shutdown result */
-	void shutdownVmsFinal() const;
-
-
 	/** Get VM question */
 	QList< SmartPtr<IOPackage> > getVmQuestions(const SmartPtr<CDspClient>& pClient) const;
 
