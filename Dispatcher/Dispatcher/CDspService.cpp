@@ -1053,10 +1053,6 @@ void CDspService::stop (CDspService::StopMode stop_mode)
 
 	switch(stop_mode)
 	{
-	case SM_FORCE_STOP:
-		// #9246
-		getVmManager().shutdownVms();
-		break;
 	case SM_BEGIN_STOP:
 		if (m_bRebootHost)
 		{
@@ -1070,15 +1066,9 @@ void CDspService::stop (CDspService::StopMode stop_mode)
 			getClientManager().sendPackageToAllClients(p);
 		}
 
-		stopServiceStatus(SP_START_STOPPING);
-
-		m_nStopTimerId = startTimer(ST_STEP_TIMER_AT_STOPPING);
-		m_nStopTimeout = (int )(1000 * getDispConfigGuard().getDispWorkSpacePrefs()->getVmTimeoutOnShutdown());
-			// #9246
-		getVmManager().shutdownVms();
-		return;
+		break;
+	case SM_FORCE_STOP:
 	case SM_END_STOP:
-		getVmManager().shutdownVmsFinal();
 		break;
 	}
 
