@@ -164,10 +164,13 @@ PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics:
 		v->setMode(Libvirt::Domain::Xml::EVirYesNoYes == s->getValue().getAutoport().get() ?
 			PRD_AUTO : PRD_MANUAL);
 	}
-	if (v->getMode() == PRD_MANUAL && s->getValue().getPort())
+	if (s->getValue().getPort() && s->getValue().getPort().get() > 0)
 	{
 		v->setPortNumber(s->getValue().getPort().get());
 	}
+	else
+		v->setPortNumber(0);
+
 	m_vm->getVmSettings()->setVmRemoteDisplay(v.take());
 	return PRL_ERR_SUCCESS;
 }

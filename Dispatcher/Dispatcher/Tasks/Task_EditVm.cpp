@@ -2214,17 +2214,6 @@ PRL_RESULT Task_EditVm::editVm()
 
 			// Check VNC config difference for running VM
 			do {
-				// Extract VM Uuid
-				QString vm_uuid =
-					pVmConfigNew->getVmIdentification()->getVmUuid();
-
-				// Get running VM
-				SmartPtr< CDspVm > pVm =
-					CDspVm::GetVmInstanceByUuid( vm_uuid,
-										   getClient()->getVmDirectoryUuid() );
-				if ( ! pVm )
-					break;
-
 				/* We can't stop VNC server here, because main thread
 				 * may issue cleanupAllBeginEditMarksByAccessToken, which
 				 * will try to occure MultiEditDispatcher lock, but it is
@@ -2257,6 +2246,9 @@ PRL_RESULT Task_EditVm::editVm()
 
 
 			} while (0);
+
+			if(state != VMS_STOPPED && (bNeedVNCStop || bNeedVNCStart))
+				throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
 
 			//Do not let change VM uptime through VM edit
 			//https://bugzilla.sw.ru/show_bug.cgi?id=464218

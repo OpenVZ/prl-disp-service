@@ -148,8 +148,8 @@ struct Unit
 	PRL_RESULT undefine();
 	PRL_RESULT changeMedia(const CVmOpticalDisk& device_);
 	PRL_RESULT getState(VIRTUAL_MACHINE_STATE& dst_) const;
-	PRL_RESULT getConfig(CVmConfiguration& dst_) const;
-	PRL_RESULT getConfig(QString& dst_) const;
+	PRL_RESULT getConfig(CVmConfiguration& dst_, bool runtime_ = false) const;
+	PRL_RESULT getConfig(QString& dst_, bool runtime_ = false) const;
 	PRL_RESULT setConfig(const CVmConfiguration& value_);
 	Performance getPerformance() const
 	{
@@ -165,10 +165,10 @@ struct Unit
 	}
 
 private:
-	char* getConfig() const
+	char* getConfig(bool runtime_ = false) const
 	{
-		return virDomainGetXMLDesc(m_domain.data(),
-			VIR_DOMAIN_XML_INACTIVE | VIR_DOMAIN_XML_SECURE);
+		return virDomainGetXMLDesc(m_domain.data(), VIR_DOMAIN_XML_SECURE
+			| runtime_ ? 0 : VIR_DOMAIN_XML_INACTIVE);
 	}
 
 	QSharedPointer<virDomain> m_domain;
