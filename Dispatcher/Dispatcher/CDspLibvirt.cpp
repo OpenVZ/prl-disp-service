@@ -453,10 +453,8 @@ PRL_RESULT List::define(const QString& uuid_, quint32 flags_, Unit* dst_)
 		return e;
 
 	if (VMS_RUNNING == s)
-	{
 		y.setMemory();
-		flags_ |= VIR_DOMAIN_SNAPSHOT_CREATE_LIVE;
-	}
+
 	WRITE_TRACE(DBG_FATAL, "xml:\n%s", y.getResult().toUtf8().data());
 	virDomainSnapshotPtr p = virDomainSnapshotCreateXML(m_domain.data(),
 					y.getResult().toUtf8().data(), flags_);
