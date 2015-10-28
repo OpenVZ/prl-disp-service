@@ -2290,15 +2290,13 @@ PRL_RESULT Task_EditVm::editVm()
 
 			// save VM configuration to file
 			//////////////////////////////////////////////////////////////////////////
-/*
+
 			PRL_RESULT save_rc =
 				CDspService::instance()->getVmConfigManager().saveConfig(pVmConfigNew,
 				strVmHome,
 				getClient(),
 				true,
 				true);
-*/
-			PRL_RESULT save_rc = PRL_ERR_FAILURE;
 #ifdef _LIBVIRT_
 			pVmConfigNew->getVmIdentification()->setHomePath(strVmHome);
 			save_rc = Libvirt::Kit.vms().at(vm_uuid).setConfig(*pVmConfigNew);
