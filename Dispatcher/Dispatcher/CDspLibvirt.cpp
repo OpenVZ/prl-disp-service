@@ -24,7 +24,6 @@
 #include "CDspService.h"
 #include "CDspLibvirt_p.h"
 #include <boost/function.hpp>
-#include <boost/mpl/fold.hpp>
 #include <QtCore/qmetatype.h>
 #include "CDspVmStateSender.h"
 #include "CDspVmNetworkHelper.h"
@@ -1429,6 +1428,7 @@ void Domain::setConfig(CVmConfiguration& value_)
 	x->setVmType(value_.getVmType());
 	x->setValid(PVE::VmValid);
 	x->setRegistered(PVE::VmRegistered);
+	Vm::Config::Repairer<Vm::Config::untranslatable_types>::type::do_(value_, getConfig());
 	CDspService::instance()->getVmConfigManager().saveConfig(
 		SmartPtr<CVmConfiguration>(&value_, SmartPtrPolicy::DoNotReleasePointee),
 		m_home, m_user, true, false);
@@ -1589,9 +1589,7 @@ void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_
 	if (PRL_FAILED(v.getConfig(runtime, true)))
 		return;
 
-	boost::mpl::fold<Vm::Config::revise_types, void, Vm::Config::Reviser<boost::mpl::_2, boost::mpl::_1> >
-		::type::do_(stored, runtime);
-
+	Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(stored, runtime);
 	d->setConfig(stored);
 }
 

@@ -58,6 +58,17 @@ void RemoteDisplay::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 		(new_.getVmSettings()->getVmRemoteDisplay()->getPortNumber());
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct OsInfo
+
+void OsInfo::do_(CVmConfiguration& old_, const CVmConfiguration& new_) 
+{
+	old_.getVmSettings()->getVmCommonOptions()->setOsType
+		(new_.getVmSettings()->getVmCommonOptions()->getOsType());
+	old_.getVmSettings()->getVmCommonOptions()->setOsVersion
+		(new_.getVmSettings()->getVmCommonOptions()->getOsVersion());
+}
+
 namespace Access
 {
 ///////////////////////////////////////////////////////////////////////////////
