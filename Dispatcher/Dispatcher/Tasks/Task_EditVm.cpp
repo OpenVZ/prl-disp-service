@@ -2236,8 +2236,9 @@ PRL_RESULT Task_EditVm::editVm()
 						  oldRemDisplay->getMode() != PRD_DISABLED &&
 						  (oldRemDisplay->getHostName() !=
 						   newRemDisplay->getHostName() ||
-						   oldRemDisplay->getPortNumber() !=
-						   newRemDisplay->getPortNumber() ||
+						   (oldRemDisplay->getPortNumber() !=
+						    newRemDisplay->getPortNumber() &&
+						    oldRemDisplay->getMode() == PRD_MANUAL) ||
 						   oldRemDisplay->getPassword() !=
 						   newRemDisplay->getPassword()) ) {
 					bNeedVNCStart = true;
@@ -2247,8 +2248,12 @@ PRL_RESULT Task_EditVm::editVm()
 
 			} while (0);
 
-			if(state != VMS_STOPPED && (bNeedVNCStop || bNeedVNCStart))
+			if (state != VMS_STOPPED && (bNeedVNCStop || bNeedVNCStart))
+			{
+				WRITE_TRACE(DBG_FATAL, "Unable to edit VNC preferences for running VM %s.",
+					qPrintable(vm_uuid));
 				throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
+			}
 
 			//Do not let change VM uptime through VM edit
 			//https://bugzilla.sw.ru/show_bug.cgi?id=464218
