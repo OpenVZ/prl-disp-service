@@ -41,6 +41,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "CVmValidateConfig.h"
+#include "CVmValidateConfig_p.h"
 #include "CDspService.h"
 #include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
@@ -58,11 +59,100 @@
 #include "XmlModel/ParallelsObjects/CXmlModelHelper.h"
 #include "Interfaces/Config.h"
 #include "Interfaces/ApiDevNums.h"
-
+#include <boost/mpl/quote.hpp>
+#include <boost/mpl/for_each.hpp>
 #define SCSI_HOST_INDEX 7
 
 static const QStringList g_UrlSchemeList = QStringList()
 	<< "ftp://" << "http://" << "https://" << "smb://" << "nfs://";
+
+namespace Validation
+{
+typedef boost::mpl::vector<VmNameEmpty, VmNameInvalidSymbols, VmNameLength> problem_types;
+
+////////////////////////////////////////////////////////////////////////////////
+// struct Traits
+
+template <>
+boost::optional<VmNameEmpty> Traits<VmNameEmpty>::check(const CVmConfiguration& vm_)
+{
+	if (!vm_.getVmIdentification()->getVmName().isEmpty())
+		return boost::none;
+	
+	return VmNameEmpty();
+}
+
+template <>
+boost::optional<VmNameInvalidSymbols> Traits<VmNameInvalidSymbols>::check(const CVmConfiguration& vm_)
+{
+	QString name = vm_.getVmIdentification()->getVmName();
+	if (!name.contains(QRegExp("[\\/:*?\"<>|%]")))
+		return boost::none;
+
+	return VmNameInvalidSymbols(name);
+}
+
+template <>
+boost::optional<VmNameLength> Traits<VmNameLength>::check(const CVmConfiguration& vm_)
+{
+	const int maxLength = 59;
+	if (vm_.getVmIdentification()->getVmName().length() <= maxLength)
+		return boost::none;
+
+	return VmNameLength(maxLength);
+}
+
+template <>
+QSet<QString> Traits<VmNameEmpty>::getIds(const CVmConfiguration& vm_)
+{
+	return QSet<QString>() << vm_.getVmIdentification()->getVmName_id();
+}
+
+template <>
+QSet<QString> Traits<VmNameInvalidSymbols>::getIds(const CVmConfiguration& vm_)
+{
+	return QSet<QString>() << vm_.getVmIdentification()->getVmName_id();
+}
+
+template <>
+QSet<QString> Traits<VmNameLength>::getIds(const CVmConfiguration& vm_)
+{
+	return QSet<QString>() << vm_.getVmIdentification()->getVmName_id();
+}
+
+template<>
+PRL_RESULT Traits<VmNameEmpty>::getError()
+{
+	return PRL_ERR_VMCONF_VM_NAME_IS_EMPTY;
+}
+
+template<>
+PRL_RESULT Traits<VmNameInvalidSymbols>::getError()
+{
+	return PRL_ERR_VMCONF_VM_NAME_HAS_INVALID_SYMBOL;
+}
+template<>
+PRL_RESULT Traits<VmNameLength>::getError()
+{
+	return PRL_ERR_VMCONF_VM_NAME_IS_TOO_LONG;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// struct Sink
+
+template<class T>
+void Sink::operator()(const T&)
+{
+	typename T::check_type r = T::check(*m_config);
+	if (!r)
+		return;
+
+	m_results->append(T::getError());
+	m_idsMap->insert(m_results->size(), T::getIds(*m_config));
+	m_paramsMap->insert(m_results->size(), r->getParams());
+}
+
+} // namespace Validation
 
 #ifdef E_SET
 #error Error: E_SET macro using conflict !
@@ -329,6 +419,13 @@ bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
 				return true;
 			}
 		break;
+		case PRL_ERR_VMCONF_VM_NAME_IS_TOO_LONG:
+		{
+			evtResult.setEventType(PET_DSP_EVT_ERROR_MESSAGE);
+			evtResult.setEventCode(m_lstResults[i]);
+			AddParameters(i, evtResult);
+			return true;
+		}
 		default:
 			;
 		}
@@ -585,29 +682,9 @@ void CVmValidateConfig::CheckGeneralParameters()
 		return;
 	}
 
-	QString sVmName = m_pVmConfig->getVmIdentification()->getVmName();
-	if (sVmName.isEmpty())
-	{
-		m_lstResults += PRL_ERR_VMCONF_VM_NAME_IS_EMPTY;
-		ADD_FID(E_SET << m_pVmConfig->getVmIdentification()->getVmName_id());
-	}
-	else
-	{
-		QString wrong_symbols = CFileHelper::GetInvalidPathSymbols();
-		for(int i = 0; i < wrong_symbols.size(); ++i)
-		{
-			if (sVmName.contains(wrong_symbols.at(i)))
-			{
-				m_lstResults += PRL_ERR_VMCONF_VM_NAME_HAS_INVALID_SYMBOL;
+	Validation::Sink sink(*m_pVmConfig, m_lstResults, m_mapParameters, m_mapFullItemIds);
 
-				QStringList lstParams;
-				lstParams << QString("%1").arg(sVmName);
-				m_mapParameters.insert(m_lstResults.size(), lstParams);
-				ADD_FID(E_SET << m_pVmConfig->getVmIdentification()->getVmName_id());
-				break;
-			}
-		}
-	}
+	boost::mpl::for_each<Validation::problem_types, boost::mpl::quote1<Validation::Traits> >(boost::ref(sink));
 
 	unsigned int nOsType = m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsType();
 	unsigned int nOsVersion = m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsVersion();
