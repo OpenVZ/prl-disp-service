@@ -539,7 +539,7 @@ PRL_RESULT Direct::setResources()
 	if (m_result.isNull())
 		return PRL_ERR_UNINITIALIZED;
 
-	Resources r(*m_result->getVmHardwareList());
+	Resources r(*m_result);
 	r.setMemory(m_input->getMemory());
 	if (m_input->getCpu())
 		r.setVCpu(m_input->getCpu().get());

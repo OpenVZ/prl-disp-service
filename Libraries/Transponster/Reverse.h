@@ -81,6 +81,7 @@ struct Vm
 
 private:
 	void setCommandline();
+	void setFeatures();
 
 	CVmConfiguration m_input;
 	boost::optional<Libvirt::Domain::Xml::Domain> m_result;

@@ -412,7 +412,7 @@ typename boost::disable_if<boost::is_pointer<T> >::type List::add(T builder_)
 
 struct Resources
 {
-	explicit Resources(CVmHardware& hardware_): m_hardware(&hardware_)
+	explicit Resources(CVmConfiguration& config_): m_config(&config_)
 	{
 	}
 
@@ -425,8 +425,14 @@ struct Resources
 	void setMemory(const Libvirt::Domain::Xml::Memory& src_);
 	bool getMemory(Libvirt::Domain::Xml::Memory& dst_);
 	void setChipset(const Libvirt::Domain::Xml::Sysinfo& src_);
+
 private:
-	CVmHardware* m_hardware;
+	CVmHardware* getHardware()
+	{
+		return m_config->getVmHardwareList();
+	}
+
+	CVmConfiguration* m_config;
 };
 
 namespace Network

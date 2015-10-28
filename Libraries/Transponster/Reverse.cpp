@@ -24,6 +24,7 @@
 #include "Reverse.h"
 #include "Reverse_p.h"
 #include "Direct_p.h"
+#include <prlsdk/PrlOses.h>
 
 namespace Transponster
 {
@@ -32,7 +33,11 @@ namespace Transponster
 
 void Resources::setVCpu(const Libvirt::Domain::Xml::VCpu& src_)
 {
-	boost::apply_visitor(Visitor::Cpu(*m_hardware), src_);
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return;
+
+	boost::apply_visitor(Visitor::Cpu(*h), src_);
 }
 
 namespace
@@ -50,7 +55,11 @@ void disableFeature(QList<Libvirt::Domain::Xml::Feature>& features_, const QStri
 
 bool Resources::getVCpu(Libvirt::Domain::Xml::VCpu& dst_)
 {
-	CVmCpu* u = m_hardware->getCpu();
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return false;
+
+	CVmCpu* u = h->getCpu();
 	if (NULL == u)
 		return false;
 
@@ -73,17 +82,25 @@ bool Resources::getVCpu(Libvirt::Domain::Xml::VCpu& dst_)
 
 void Resources::setCpu(const Libvirt::Domain::Xml::Vcpu& src_)
 {
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return;
+
 	CVmCpu* u = new CVmCpu();
 	u->setNumber(src_.getOwnValue());
 	if (src_.getCpuset())
 		u->setCpuMask(src_.getCpuset().get());
 
-	m_hardware->setCpu(u);
+	h->setCpu(u);
 }
 
 bool Resources::getCpu(Libvirt::Domain::Xml::Vcpu& dst_)
 {
-	CVmCpu* u = m_hardware->getCpu();
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return false;
+
+	CVmCpu* u = h->getCpu();
 	if (NULL == u)
 		return false;
 
@@ -97,23 +114,55 @@ bool Resources::getCpu(Libvirt::Domain::Xml::Vcpu& dst_)
 
 void Resources::setClock(const Libvirt::Domain::Xml::Clock& src_)
 {
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return;
+
 	::Clock* c = new ::Clock();
 	boost::apply_visitor(Visitor::Clock(*c), src_.getClock());
-	m_hardware->setClock(c);
+	h->setClock(c);
 }
 
 bool Resources::getClock(Libvirt::Domain::Xml::Clock& dst_)
 {
-	::Clock* c = m_hardware->getClock();
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return false;
+
+	::Clock* c = h->getClock();
 	if (NULL == c)
 		return false;
 
-	if (0 == c->getTimeShift())
+	CVmSettings* s = m_config->getVmSettings();
+	if (NULL == s)
 		return false;
 
-	Libvirt::Domain::Xml::Clock378 k;
-	k.setAdjustment(QString::number(c->getTimeShift()));
-	mpl::at_c<Libvirt::Domain::Xml::VClock::types, 2>::type a;
+	CVmCommonOptions* o = s->getVmCommonOptions();
+	if (NULL == o)
+		return false;
+
+	QList<Libvirt::Domain::Xml::Timer> timers;
+	quint32 os = m_config->getVmSettings()->getVmCommonOptions()->getOsVersion();
+	if (IS_WINDOWS(os) && os >= PVS_GUEST_VER_WIN_2008)
+	{
+		Libvirt::Domain::Xml::Timer t;
+		mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 3>::type v;
+		v.setValue(Libvirt::Domain::Xml::EName2Hypervclock);
+		t.setTimer(Libvirt::Domain::Xml::VTimer(v));
+		t.setPresent(Libvirt::Domain::Xml::EVirYesNoYes);
+		timers.append(t);
+	}
+	dst_.setTimerList(timers);
+
+	Libvirt::Domain::Xml::Clock372 k;
+	k.setOffset(Libvirt::Domain::Xml::EOffsetUtc);
+	if (0 != c->getTimeShift())
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VAdjustment::types, 1>::type va;
+		va.setValue(QString::number(c->getTimeShift()));
+		k.setAdjustment(Libvirt::Domain::Xml::VAdjustment(va));
+	}
+	mpl::at_c<Libvirt::Domain::Xml::VClock::types, 0>::type a;
 	a.setValue(k);
 	dst_.setClock(a);
 	return true;
@@ -121,14 +170,22 @@ bool Resources::getClock(Libvirt::Domain::Xml::Clock& dst_)
 
 void Resources::setMemory(const Libvirt::Domain::Xml::Memory& src_)
 {
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return;
+
 	CVmMemory* m = new CVmMemory();
 	m->setRamSize(src_.getScaledInteger().getOwnValue() >> 10);
-	m_hardware->setMemory(m);
+	h->setMemory(m);
 }
 
 bool Resources::getMemory(Libvirt::Domain::Xml::Memory& dst_)
 {
-	CVmMemory* m = m_hardware->getMemory();
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return false;
+
+	CVmMemory* m = h->getMemory();
 	if (NULL == m)
 		return false;
 
@@ -140,9 +197,13 @@ bool Resources::getMemory(Libvirt::Domain::Xml::Memory& dst_)
 
 void Resources::setChipset(const Libvirt::Domain::Xml::Sysinfo& src_)
 {
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return;
+
 	(void)src_;
 	Chipset* c = new Chipset();
-	m_hardware->setChipset(c);
+	h->setChipset(c);
 }
 
 namespace Device
@@ -663,10 +724,6 @@ PRL_RESULT Vm::setBlank()
 	if (PVT_VM != m_input.getVmType())
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
-	Libvirt::Domain::Xml::Features f;
-	f.setPae(true);
-	f.setAcpi(true);
-	f.setApic(Libvirt::Domain::Xml::Apic());
 	m_result = Libvirt::Domain::Xml::Domain();
 	m_result->setType(Libvirt::Domain::Xml::ETypeKvm);
 	mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
@@ -687,8 +744,8 @@ PRL_RESULT Vm::setBlank()
 	}
 
 	m_result->setOs(vos);
-	m_result->setFeatures(f);
 	m_result->setOnCrash(Libvirt::Domain::Xml::ECrashOptionsPreserve);
+	setFeatures();
 	setCommandline();
 	return PRL_ERR_SUCCESS;
 }
@@ -721,7 +778,7 @@ PRL_RESULT Vm::setSettings()
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
 	CVmCommonOptions* o = s->getVmCommonOptions();
-	if (NULL == s)
+	if (NULL == o)
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
 	QString d = o->getVmDescription();
@@ -788,7 +845,7 @@ PRL_RESULT Vm::setResources()
 	if (NULL == h)
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
-	Resources u(*h);
+	Resources u(m_input);
 	Libvirt::Domain::Xml::Memory m;
 	if (u.getMemory(m))
 		m_result->setMemory(m);
@@ -824,6 +881,38 @@ void Vm::setCommandline()
 	Libvirt::Domain::Xml::Commandline q;
 	q.setArgList(QList<QString>() << "-d" << "guest_errors,unimp,cpu_reset");
 	m_result->setCommandline(q);
+}
+
+void Vm::setFeatures()
+{
+	Libvirt::Domain::Xml::Features f;
+	f.setPae(true);
+	f.setAcpi(true);
+	f.setApic(Libvirt::Domain::Xml::Apic());
+
+	m_result->setFeatures(f);
+
+	CVmSettings* s = m_input.getVmSettings();
+	if (NULL == s)
+		return;
+
+	CVmCommonOptions* o = s->getVmCommonOptions();
+	if (NULL == o)
+		return;
+
+	quint32 os = o->getOsVersion();
+	if (IS_WINDOWS(os) && os >= PVS_GUEST_VER_WIN_2008)
+	{
+		Libvirt::Domain::Xml::Hyperv hv;
+		hv.setRelaxed(Libvirt::Domain::Xml::EVirOnOffOn);
+		hv.setVapic(Libvirt::Domain::Xml::EVirOnOffOn);
+		Libvirt::Domain::Xml::Spinlocks s;
+		s.setState(Libvirt::Domain::Xml::EVirOnOffOn);
+		s.setRetries(8191);
+		hv.setSpinlocks(s);
+		f.setHyperv(hv);
+	}
+	m_result->setFeatures(f);
 }
 
 } // namespace Reverse
