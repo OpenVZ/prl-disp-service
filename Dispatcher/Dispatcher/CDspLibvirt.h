@@ -151,6 +151,7 @@ struct Unit
 	PRL_RESULT getConfig(CVmConfiguration& dst_, bool runtime_ = false) const;
 	PRL_RESULT getConfig(QString& dst_, bool runtime_ = false) const;
 	PRL_RESULT setConfig(const CVmConfiguration& value_);
+	PRL_RESULT completeConfig(CVmConfiguration& config_);
 	Performance getPerformance() const
 	{
 		return Performance(m_domain);

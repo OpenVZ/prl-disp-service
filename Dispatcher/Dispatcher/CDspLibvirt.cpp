@@ -204,6 +204,25 @@ PRL_RESULT Unit::setConfig(const CVmConfiguration& value_)
 	return PRL_ERR_SUCCESS;
 }
 
+PRL_RESULT Unit::completeConfig(CVmConfiguration& config_)
+{
+	if (m_domain.isNull())
+		return PRL_ERR_UNINITIALIZED;
+	foreach(CVmHardDisk *d, config_.getVmHardwareList()->m_lstHardDisks)
+	{
+		if (d->getEmulatedType() != PVE::HardDiskImage)
+			continue;
+		virDomainBlockInfo b;
+		if (virDomainGetBlockInfo(m_domain.data(), QSTR2UTF8(d->getSystemName()),
+			&b, 0) == 0)
+		{
+			d->setSize(b.capacity >> 20);
+			d->setSizeOnDisk(b.physical >> 20);
+		}
+	}
+	return PRL_ERR_SUCCESS;
+}
+
 PRL_RESULT Unit::getUuid(QString& dst_) const
 {
 	char u[VIR_UUID_STRING_BUFLEN] = {};
@@ -1429,6 +1448,7 @@ void Domain::setConfig(CVmConfiguration& value_)
 	x->setValid(PVE::VmValid);
 	x->setRegistered(PVE::VmRegistered);
 	Vm::Config::Repairer<Vm::Config::untranslatable_types>::type::do_(value_, getConfig());
+	Kit.vms().at(m_uuid).completeConfig(value_);
 	CDspService::instance()->getVmConfigManager().saveConfig(
 		SmartPtr<CVmConfiguration>(&value_, SmartPtrPolicy::DoNotReleasePointee),
 		m_home, m_user, true, false);
