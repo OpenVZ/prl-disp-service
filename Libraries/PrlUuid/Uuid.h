@@ -68,8 +68,7 @@ public:
 
 	/***
 	 *  Convert 16 bytes uuid to 4 bytes id.
-	 *  Get low 4 bytes from uuid and set 30 bit to 1
-	 *  make id not intersect with Container ID.
+	 *  Same as ctid2veid() from libvzctl.
 	 */
 	static unsigned int toVzid( const QString& uuidStr );
 
