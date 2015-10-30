@@ -195,8 +195,8 @@ public:
 		);
 
 
-	static PRL_RESULT getVmNetworkRates(SmartPtr<CVmConfiguration> &pVmCfg, CVmNetworkRates &lstRates);
-	static PRL_RESULT setNetworkRate(SmartPtr<CVmConfiguration> &pVmCfg);
+	static PRL_RESULT getVmNetworkRates(const CVmConfiguration &config_, CVmNetworkRates &lstRates);
+	static PRL_RESULT setNetworkRate(const CVmConfiguration &config_);
 	static PRL_RESULT getDefaultNetworkRates(CVmNetworkRates *defRates);
 
 private:

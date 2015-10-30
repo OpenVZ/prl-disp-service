@@ -398,7 +398,7 @@ m_pVmConfig(pVmConfig)
 {
 }
 
-PRL_RESULT Task_NetworkShapingManagement::getVmNetworkRates(SmartPtr<CVmConfiguration> &pVmCfg, CVmNetworkRates &lstRates)
+PRL_RESULT Task_NetworkShapingManagement::getVmNetworkRates(const CVmConfiguration &config_, CVmNetworkRates &lstRates)
 {
 
 	CDspLockedPointer<CParallelsNetworkConfig> pNetCfg = CDspService::instance()->getNetworkConfig();
@@ -408,7 +408,7 @@ PRL_RESULT Task_NetworkShapingManagement::getVmNetworkRates(SmartPtr<CVmConfigur
 	if (!pShpCfg->isEnabled())
 		return PRL_ERR_SUCCESS;
 
-	CVmNetworkRates *lst = pVmCfg->getVmSettings()->getGlobalNetwork()->getNetworkRates();
+	CVmNetworkRates *lst = config_.getVmSettings()->getGlobalNetwork()->getNetworkRates();
 
 	lstRates.setRateBound(lst->isRateBound());
 	if (!lst->m_lstNetworkRates.empty())
@@ -451,35 +451,19 @@ PRL_RESULT Task_NetworkShapingManagement::getVmNetworkRates(SmartPtr<CVmConfigur
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Task_NetworkShapingManagement::setNetworkRate(SmartPtr<CVmConfiguration> &pVmCfg)
+PRL_RESULT Task_NetworkShapingManagement::setNetworkRate(const CVmConfiguration &config_)
 {
-#ifndef _CT_
-	Q_UNUSED(pVmCfg)
-        return PRL_ERR_UNIMPLEMENTED;
-#else
-        if ( !CDspService::instance()->isServerMode() )
-        {
-                WRITE_TRACE(DBG_FATAL, "Skip network classes setup in non server mode");
-                return PRL_ERR_UNIMPLEMENTED;
-        }
-
-	PRL_RESULT res;
-	QString sVmUuid = pVmCfg->getVmIdentification()->getVmUuid();
-
 	CVmNetworkRates lstRates;
-
-	getVmNetworkRates(pVmCfg, lstRates);
+	getVmNetworkRates(config_, lstRates);
 
 	if (lstRates.m_lstNetworkRates.empty())
 		return PRL_ERR_SUCCESS;
-	res = CVzHelper::set_rate(sVmUuid, lstRates);
-	return res;
-#endif
+	return CVzHelper::set_rate(config_.getVmIdentification()->getVmUuid(), lstRates);
 }
 
 PRL_RESULT Task_NetworkShapingManagement::ConcreteDoBackgroundJob()
 {
-	return setNetworkRate(m_pVmConfig);
+	return setNetworkRate(*m_pVmConfig);
 }
 
 Task_CalcVmSize::Task_CalcVmSize( const SmartPtr<CDspClient> &pUser, const SmartPtr<IOPackage> &p )

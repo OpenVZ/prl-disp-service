@@ -2824,7 +2824,7 @@ PRL_RESULT Task_EditVm::configureVzParameters(const CVmIdent &ident,
 		bSetRate = isNetworkRatesChanged(pOldVmConfig->getVmSettings()->getGlobalNetwork()->getNetworkRates(),
 					pNewVmConfig->getVmSettings()->getGlobalNetwork()->getNetworkRates());
 	if (bSetRate)
-		Task_NetworkShapingManagement::setNetworkRate(pNewVmConfig);
+		Task_NetworkShapingManagement::setNetworkRate(*pNewVmConfig);
 
 	// IoPriority
 	if (pOldVmConfig)
