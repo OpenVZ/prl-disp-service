@@ -304,11 +304,47 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Address
+
+struct Address
+{
+	explicit Address(quint16 controller_)
+	{
+		m_address.setController(QString::number(controller_));
+	}
+
+	Address& setUnit(quint16 unit_)
+	{
+		m_address.setUnit(QString::number(unit_));
+		return *this;
+	}
+	Address& setTarget(quint16 target_)
+	{
+		m_address.setTarget(QString::number(target_));
+		return *this;
+	}
+	Address& setBus(quint16 bus_)
+	{
+		m_address.setBus(QString::number(bus_));
+		return *this;
+	}	
+	Libvirt::Domain::Xml::VAddress operator()()
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VAddress::types, 1>::type v;
+		v.setValue(m_address);
+		return Libvirt::Domain::Xml::VAddress(v);
+	}
+
+private:
+	Libvirt::Domain::Xml::Driveaddress m_address;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Attachment
 
 struct Attachment
 {
-	Attachment(): m_ide(0), m_sata(0), m_scsi(0)
+	Attachment(): m_ide(0), m_sata(0)
 	{
 	}
 
@@ -326,15 +362,14 @@ private:
 		IDE_UNITS = 2,
 		IDE_BUSES = 2,
 		SATA_UNITS = 6,
-		SCSI_UNITS = 6
+		SCSI_TARGETS = 256
 	};
 
-	static Libvirt::Domain::Xml::VAddress craft(quint16 controller_, quint16 unit_, quint16 bus_);
 	void craftController(const Libvirt::Domain::Xml::VChoice585& bus_, quint16 index_);
 
 	quint16 m_ide;
 	quint16 m_sata;
-	quint16 m_scsi;
+	QMap<Libvirt::Domain::Xml::EModel, quint16> m_scsi;
 	QList<Libvirt::Domain::Xml::VChoice928 > m_controllerList;
 };
 
