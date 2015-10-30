@@ -421,17 +421,6 @@ Libvirt::Domain::Xml::Interface625 Network<4>::prepare(const CVmGenericNetworkAd
 ///////////////////////////////////////////////////////////////////////////////
 // struct Attachment
 
-Libvirt::Domain::Xml::VAddress Attachment::craft(quint16 controller_, quint16 unit_, quint16 bus_)
-{
-	Libvirt::Domain::Xml::Driveaddress a;
-	a.setBus(QString::number(bus_));
-	a.setUnit(QString::number(unit_));
-	a.setController(QString::number(controller_));
-	mpl::at_c<Libvirt::Domain::Xml::VAddress::types, 1>::type v;
-	v.setValue(a);
-	return Libvirt::Domain::Xml::VAddress(v);
-}
-
 void Attachment::craftController(const Libvirt::Domain::Xml::VChoice585& bus_, quint16 index_)
 {
 	Libvirt::Domain::Xml::Controller x;
@@ -455,7 +444,7 @@ Libvirt::Domain::Xml::VAddress Attachment::craftIde()
 		craftController(v, c);
 	}
 
-	return craft(c, u, b);
+	return Address(c).setUnit(u).setBus(b)();
 }
 
 Libvirt::Domain::Xml::VAddress Attachment::craftSata()
@@ -470,23 +459,25 @@ Libvirt::Domain::Xml::VAddress Attachment::craftSata()
 		craftController(v, c);
 	}
 
-	return craft(c, u, 0);
+	return Address(c).setUnit(u)();
 }
 
 Libvirt::Domain::Xml::VAddress Attachment::craftScsi(const boost::optional<Libvirt::Domain::Xml::EModel>& model_)
 {
-	quint16 c = m_scsi / SCSI_UNITS;
-	quint16 u = m_scsi++ % SCSI_UNITS;
+	Libvirt::Domain::Xml::EModel m = Libvirt::Domain::Xml::EModelAuto;
+	if (model_)
+		m = model_.get();
+	quint16 c = m_scsi[m] / SCSI_TARGETS;
+	quint16 t = m_scsi[m]++ % SCSI_TARGETS;
 
-	if (u == 0)
+	if (t == 0)
 	{
 		mpl::at_c<Libvirt::Domain::Xml::VChoice585::types, 1>::type v;
-		if (model_)
-			v.setValue(model_.get());
+		v.setValue(m);
 		craftController(v, c);
 	}
 
-	return craft(c, u, 0);
+	return Address(c).setTarget(t)();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
