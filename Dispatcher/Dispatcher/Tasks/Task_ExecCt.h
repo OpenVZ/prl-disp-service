@@ -53,6 +53,7 @@ private:
 	virtual PRL_RESULT prepareTask();
 	virtual PRL_RESULT run_body();
 	virtual void cancelOperation(SmartPtr<CDspClient>, const SmartPtr<IOPackage> &);
+	virtual void timerEvent(QTimerEvent*);
 
 public slots:
 	void slotProcessStdin(const SmartPtr<IOPackage>& p);
@@ -65,20 +66,22 @@ private:
 	Task_ExecCt *m_pExec;
 	QMutex m_mutex;
 	QWaitCondition m_cond;
+	int m_timerId;
+	int m_timerCount;
 };
 
 class Task_ExecCt : public CDspTaskHelper
 {
 public:
 	Task_ExecCt(const SmartPtr<CDspClient>& pClient,
-			const SmartPtr<IOPackage>& p);
+			const SmartPtr<IOPackage>& p, bool bIsVm = false);
 	virtual ~Task_ExecCt();
 
 	int sendEvent(int type);
 	void processStdin(const SmartPtr<IOPackage>& p);
-	void wakeUp();
 	const QString &getSessionUuid() const  { return m_sSessionUuid; }
 	const QString &getGuestSessionUuid() const  { return m_sGuestSessionUuid; }
+	bool vmCheckCmdFinished();
 
 private:
 	CProtoCommandDspWsResponse *getResponseCmd();
@@ -88,12 +91,13 @@ private:
 	virtual void finalizeTask();
 	virtual void cancelOperation(SmartPtr<CDspClient>, const SmartPtr<IOPackage> &);
 	virtual QString getVmUuid() { return m_sVmUuid; }
-	int getStdEvtTypeByFd(int fd);
-	int sendStdData(int &fd);
 	int sendToClient(int type, const char *data, int size);
 	PRL_RESULT startResponseProcessor();
-	PRL_RESULT processStd();
-	PRL_RESULT execCmd();
+
+	int ctSendStdData(int &fd, int type);
+	PRL_RESULT ctProcessStd();
+	PRL_RESULT ctExecCmd();
+	PRL_RESULT vmExecCmd();
 
 private:
 	unsigned int m_nFlags;
@@ -110,8 +114,21 @@ private:
 	int m_stdinfd[2];
 	int m_stdoutfd[2];
 	int m_stderrfd[2];
+	int m_exitcode;
+	int m_pid;
+	QByteArray m_stdindata;
+	boost::optional<Libvirt::Tools::Agent::Vm::Guest::ExitStatus> m_exitStatus;
 	bool m_bCancelled;
+	bool m_bIsVm;
 	bool m_bFinProcessed;
+	bool m_bStdinFinished;
+	bool m_bCmdFinished;
+
+private:
+	void wakeUp(bool& bCondition);
+	bool waitFor(const char* what, bool& bCond, unsigned int timeout = 0);
+public:
+	void wakeUpFinProcessed() { wakeUp(m_bFinProcessed); }
 };
 
 #endif	// __Task_ExecCt_H__

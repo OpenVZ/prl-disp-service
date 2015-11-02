@@ -64,6 +64,7 @@
 #include "Tasks/Task_SwitchToSnapshot.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_ChangeSID.h"
+#include "Tasks/Task_ExecCt.h"
 
 #ifdef _WIN_
 	#include <process.h>
@@ -797,7 +798,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmCreateSnapshot> >::run()
 	if (NULL == x)
 		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
 
-	PRL_RESULT e;
+	PRL_RESULT e(PRL_ERR_SUCCESS);
 	if (PCSF_BACKUP & x->GetCommandFlags())
 	{
 // NB. external user doesn't work with backup snapshots. this code is
@@ -879,6 +880,38 @@ void Body<Tag::Libvirt<PVE::DspCmdVmGuestSetUserPasswd> >::run()
 			qPrintable(m_context.getVmUuid()), PRL_RESULT_TO_STRING(e));
 	}
 	m_context.reply(e);
+}
+
+void Body<Tag::Special<PVE::DspCmdVmGuestRunProgram> >::run(Context& context_)
+{
+	CDspService::instance()->getTaskManager().schedule(
+			new Task_ExecCt(context_.getSession(), context_.getPackage(), true));
+}
+
+template<>
+void Body<Tag::Libvirt<PVE::DspCmdVmLoginInGuest> >::run()
+{
+	CProtoVmLoginInGuestCommand* x = CProtoSerializer::CastToProtoCommand
+		<CProtoVmLoginInGuestCommand>(m_context.getRequest());
+	if (NULL == x)
+		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
+
+	SmartPtr<IOPackage> b = m_context.getPackage();
+	// reply
+	CProtoCommandPtr r = CProtoSerializer::CreateDspWsResponseCommand(b, PRL_ERR_SUCCESS);
+	CProtoCommandDspWsResponse* d = CProtoSerializer::CastToProtoCommand
+		<CProtoCommandDspWsResponse>(r);
+	//d->AddStandardParam(m_context.getSession()->getSessionUuid());
+	QString s = Uuid::createUuid().toString();
+
+	d->AddStandardParam(s);
+	m_context.getSession()->sendResponse(r, b);
+}
+
+template<>
+void Body<Tag::Libvirt<PVE::DspCmdVmGuestLogout> >::run()
+{
+        m_context.reply(PRL_ERR_SUCCESS);
 }
 
 #else // _LIBVIRT_
@@ -991,9 +1024,9 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmMigrateCancel] = map(Tag::General<PVE::DspCmdVmMigrateCancel>());
 	m_map[PVE::DspCmdVmRestartGuest] = map(Tag::Libvirt<PVE::DspCmdVmRestartGuest>());
 	m_map[PVE::DspCmdVmStop] = map(Tag::Libvirt<PVE::DspCmdVmStop>());
-	m_map[PVE::DspCmdVmLoginInGuest] = map(Tag::GuestSession());
-	m_map[PVE::DspCmdVmGuestLogout] = map(Tag::GuestSession());
-	m_map[PVE::DspCmdVmGuestRunProgram] = map(Tag::GuestSession());
+	m_map[PVE::DspCmdVmLoginInGuest] = map(Tag::Libvirt<PVE::DspCmdVmLoginInGuest>());
+	m_map[PVE::DspCmdVmGuestLogout] = map(Tag::Libvirt<PVE::DspCmdVmGuestLogout>());
+	m_map[PVE::DspCmdVmGuestRunProgram] = map(Tag::Special<PVE::DspCmdVmGuestRunProgram>());
 	m_map[PVE::DspCmdVmGuestGetNetworkSettings] = map(Tag::GuestSession());
 	m_map[PVE::DspCmdVmGuestSetUserPasswd] = map(Tag::Libvirt<PVE::DspCmdVmGuestSetUserPasswd>());
 	m_map[PVE::DspCmdVmGuestChangeSID] = map(Tag::GuestSession());

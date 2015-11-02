@@ -45,6 +45,8 @@
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #include "Libraries/IOService/src/IOCommunication/Socket/Socket_p.h"
 
+#define INVALID_TIMER_ID 0
+
 static int set_nonblock(int fd)
 {
 	int oldfl;
@@ -61,9 +63,10 @@ void CDspTaskFuture<Task_ResponseProcessor>::doStop(Task_ResponseProcessor& task
 }
 
 Task_ExecCt::Task_ExecCt(const SmartPtr<CDspClient>& pClient,
-		const SmartPtr<IOPackage>& p) :
+		const SmartPtr<IOPackage>& p, bool bIsVm) :
 	CDspTaskHelper(pClient, p),
-	m_pResponseCmd(CProtoSerializer::CreateDspWsResponseCommand( getRequestPackage(), PRL_ERR_SUCCESS ))
+	m_pResponseCmd(CProtoSerializer::CreateDspWsResponseCommand( getRequestPackage(), PRL_ERR_SUCCESS )),
+	m_bIsVm(bIsVm)
 {
 
 	m_nTimeout = CDspService::instance()->getDispConfigGuard().
@@ -76,6 +79,9 @@ Task_ExecCt::Task_ExecCt(const SmartPtr<CDspClient>& pClient,
 	m_stderrfd[0] = -1;
 	m_stderrfd[1] = -1;
 	m_bFinProcessed = false;
+	m_bStdinFinished = false;
+	m_bCmdFinished = false;
+	m_pid = -1;
 }
 
 Task_ExecCt::~Task_ExecCt()
@@ -121,8 +127,13 @@ void Task_ExecCt::processStdin(const SmartPtr<IOPackage>& p)
 				QSTR2UTF8(m_sVmUuid),
 				QSTR2UTF8(Uuid::toString(p->header.parentUuid)));
 
-		close(m_stdinfd[1]);
-		m_stdinfd[1] = -1;
+		if (!m_bIsVm) {
+			close(m_stdinfd[1]);
+			m_stdinfd[1] = -1;
+		}
+
+		wakeUp(m_bStdinFinished);
+
 	} else if (p->header.type == PET_IO_STDIN_PORTION) {
 		IOPackage::EncodingType type;
 		SmartPtr<char> data;
@@ -134,10 +145,14 @@ void Task_ExecCt::processStdin(const SmartPtr<IOPackage>& p)
 				QSTR2UTF8(m_sSessionUuid), size);
 		p->getBuffer(0, type, data, size);
 
-		if (write(m_stdinfd[1], data.getImpl(), size) != size) {
-			WRITE_TRACE(DBG_FATAL, "Failed to write %d bytes to stdin (fd=%d): %m",
-					size, m_stdinfd[1]);
-			setLastErrorCode(PRL_ERR_OPERATION_FAILED);
+		if (m_bIsVm) {
+			m_stdindata.append(data.getImpl(), size);
+		} else {
+			if (write(m_stdinfd[1], data.getImpl(), size) != size) {
+				WRITE_TRACE(DBG_FATAL, "Failed to write %d bytes to stdin (fd=%d): %m",
+						size, m_stdinfd[1]);
+				setLastErrorCode(PRL_ERR_OPERATION_FAILED);
+			}
 		}
 	}
 }
@@ -161,8 +176,6 @@ int Task_ExecCt::sendEvent(int type)
 
 int Task_ExecCt::sendToClient(int type, const char *data, int size)
 {
-	LOG_MESSAGE(DBG_WARNING, "-> sendToClient type=%d len=%d", type, size);
-
 	if (!m_ioClient.isValid())
 		return 0;
 
@@ -182,12 +195,7 @@ int Task_ExecCt::sendToClient(int type, const char *data, int size)
 	return PRL_ERR_SUCCESS;
 }
 
-int Task_ExecCt::getStdEvtTypeByFd(int fd)
-{
-	return fd == m_stdoutfd[0] ? PET_IO_STDOUT_PORTION : PET_IO_STDERR_PORTION;
-}
-
-int Task_ExecCt::sendStdData(int &fd)
+int Task_ExecCt::ctSendStdData(int &fd, int type)
 {
 	int len;
 	char buf[10240];
@@ -204,10 +212,10 @@ int Task_ExecCt::sendStdData(int &fd)
 		return 0; // fd is closed
 	}
 
-	return sendToClient(getStdEvtTypeByFd(fd), buf, len);
+	return sendToClient(type, buf, len);
 }
 
-PRL_RESULT Task_ExecCt::processStd()
+PRL_RESULT Task_ExecCt::ctProcessStd()
 {
 	int n;
 
@@ -247,8 +255,11 @@ PRL_RESULT Task_ExecCt::processStd()
 			for (int i = 0; i < nfds; i++) {
 				if (!fds[i].revents & POLLIN)
 					continue;
-
-				if (sendStdData(fds[i].fd == m_stdoutfd[0] ? m_stdoutfd[0] : m_stderrfd[0]))
+				if (ctSendStdData(
+					fds[i].fd == m_stdoutfd[0] ?
+						m_stdoutfd[0] : m_stderrfd[0],
+					fds[i].fd == m_stdoutfd[0] ?
+						PET_IO_STDOUT_PORTION : PET_IO_STDERR_PORTION))
 					return PRL_ERR_OPERATION_FAILED;
 			}
 		} else if (n < 0 && errno != EINTR) {
@@ -273,7 +284,7 @@ PRL_RESULT Task_ExecCt::startResponseProcessor()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Task_ExecCt::execCmd()
+PRL_RESULT Task_ExecCt::ctExecCmd()
 {
 	PRL_RESULT ret;
 	int stdfd[3] = {-1, -1, -1};
@@ -311,7 +322,7 @@ PRL_RESULT Task_ExecCt::execCmd()
 	if (getRequestFlags() & PFD_STDIN)
 		sendEvent(PET_IO_READY_TO_ACCEPT_STDIN_PKGS);
 
-	ret = processStd();
+	ret = ctProcessStd();
 	if (PRL_FAILED(ret))
 		return ret;
 
@@ -326,14 +337,86 @@ PRL_RESULT Task_ExecCt::execCmd()
 	if (sendToClient(PET_IO_FIN_TO_TRANSMIT_STDOUT_STDERR, NULL, 0))
 		return PRL_ERR_OPERATION_FAILED;
 
-	QMutexLocker _lock(&m_mutex);
-	if (!m_bFinProcessed && !m_cond.wait(&m_mutex, m_nTimeout)) {
-		WRITE_TRACE(DBG_FATAL, "Task_ExecCt failed to wait fin responce");
+	if (!waitFor("fin response", m_bFinProcessed))
 		return PRL_ERR_TIMEOUT;
+
+	m_exitcode = m_exec.get_retcode();
+
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Task_ExecCt::vmExecCmd()
+{
+	PRL_RESULT ret;
+
+	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(getRequestPackage());
+	CProtoVmGuestRunProgramCommand *c =
+		CProtoSerializer::CastToProtoCommand<CProtoVmGuestRunProgramCommand>(pCmd);
+
+	if (getRequestFlags() & PFD_STDIN) {
+		sendEvent(PET_IO_READY_TO_ACCEPT_STDIN_PKGS);
+		// Ignore timeout for now, to workaround prlctl exec cmd without stdin
+		waitFor("stdin data", m_bStdinFinished, 1000);
 	}
 
-	return PRL_ERR_SUCCESS ;
+        Libvirt::Tools::Agent::Vm::Guest s = Libvirt::Kit.vms()
+		.at(m_sVmUuid).getGuest();
+	ret = s.runCommand(
+			c->GetProgramName(),
+			c->GetProgramArguments(),
+			m_stdindata,
+			m_pid);
+	if (PRL_FAILED(ret))
+		return ret;
+
+	if (!waitFor("command finished", m_bCmdFinished))
+		return PRL_ERR_TIMEOUT;
+
+	if (m_bCancelled)
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	if (getRequestFlags() & PFD_STDOUT && m_exitStatus.get().stdOut.size()) {
+		if (sendToClient(PET_IO_STDOUT_PORTION,
+				 m_exitStatus.get().stdOut.data(),
+				 m_exitStatus.get().stdOut.size()))
+			return PRL_ERR_OPERATION_FAILED;
+	}
+
+	if (getRequestFlags() & PFD_STDERR && m_exitStatus.get().stdErr.size()) {
+		if (sendToClient(PET_IO_STDERR_PORTION,
+				 m_exitStatus.get().stdErr.data(),
+				 m_exitStatus.get().stdErr.size()))
+			return PRL_ERR_OPERATION_FAILED;
+	}
+
+	if (sendToClient(PET_IO_FIN_TO_TRANSMIT_STDOUT_STDERR, NULL, 0))
+		return PRL_ERR_OPERATION_FAILED;
+
+	if (!waitFor("fin response", m_bFinProcessed))
+		return PRL_ERR_TIMEOUT;
+
+	return PRL_ERR_SUCCESS;
 }
+
+bool Task_ExecCt::vmCheckCmdFinished()
+{
+	if (m_pid == -1)
+		return false;
+
+	Libvirt::Tools::Agent::Vm::Guest g = Libvirt::Kit.vms()
+		.at(m_sVmUuid).getGuest();
+
+	PRL_RESULT ret = g.getCommandStatus(m_pid, m_exitStatus);
+	if (PRL_FAILED(ret) || m_exitStatus) {
+		if (m_exitStatus)
+			m_exitcode = m_exitStatus.get().exitcode;
+		wakeUp(m_bCmdFinished);
+		return true;
+	}
+
+	return false;
+}
+
 
 PRL_RESULT Task_ExecCt::prepareTask()
 {
@@ -359,7 +442,7 @@ PRL_RESULT Task_ExecCt::prepareTask()
 		m_ioClient = CDspService::instance()->getIoCtClientManager().
 			getIOUserSession(m_sSessionUuid);
 		if (!m_ioClient.isValid()) {
-			WRITE_TRACE(DBG_FATAL, "Ct IO client is not found by id %s",
+			WRITE_TRACE(DBG_FATAL, "IO client is not found by id %s",
 					QSTR2UTF8(pRunCmd->GetVmSessionUuid()));
 			res = PRL_ERR_OPERATION_FAILED;
 			break;
@@ -388,21 +471,33 @@ PRL_RESULT Task_ExecCt::prepareTask()
 
 PRL_RESULT Task_ExecCt::run_body()
 {
-	PRL_RESULT ret = execCmd();
+	PRL_RESULT ret = m_bIsVm ? vmExecCmd() : ctExecCmd();
+
 	if (PRL_FAILED(ret))
 		WRITE_TRACE(DBG_FATAL, "Exec Action failed with code [%#x][%s]",
 			ret, PRL_RESULT_TO_STRING( ret ) );
 
-	setLastErrorCode( ret );
-
+	setLastErrorCode(ret);
 	return ret;
 }
 
-void Task_ExecCt::wakeUp()
+void Task_ExecCt::wakeUp(bool& bCondition)
 {
 	QMutexLocker _lock(&m_mutex);
-	m_bFinProcessed = true;
+	bCondition = true;
 	m_cond.wakeAll();
+}
+
+bool Task_ExecCt::waitFor(const char* what, bool& bCondition, unsigned int timeout)
+{
+	QMutexLocker _lock(&m_mutex);
+	WRITE_TRACE(DBG_DEBUG, "wait for: %s", what);
+	if (!bCondition && !m_cond.wait(&m_mutex, timeout ? timeout : m_nTimeout)) {
+		WRITE_TRACE(DBG_FATAL, "Task_ExecCt failed to wait %s", what);
+		return false;
+	}
+	WRITE_TRACE(DBG_DEBUG, "wait for: %s [COMPLETED]", what);
+	return true;
 }
 
 void Task_ExecCt::finalizeTask()
@@ -417,7 +512,7 @@ void Task_ExecCt::finalizeTask()
 	CVmEvent answer;
 	answer.addEventParameter( new CVmEventParameter (
 				PVE::UnsignedInt,
-				QString::number(m_exec.get_retcode()),
+				QString::number(m_exitcode),
 				EVT_PARAM_VM_EXEC_APP_RET_CODE ) );
 	getResponseCmd()->AddStandardParam(answer.toString());
 
@@ -431,13 +526,17 @@ Task_ResponseProcessor::Task_ResponseProcessor(const SmartPtr<CDspClient>& pClie
 	m_bStarted(false),
 	m_sSessionUuid(pExec->getSessionUuid()),
 	m_sGuestSessionUuid(pExec->getGuestSessionUuid()),
-	m_pExec(pExec)
+	m_pExec(pExec),
+	m_timerId(INVALID_TIMER_ID),
+	m_timerCount(0)
 {
 }
 
 Task_ResponseProcessor::~Task_ResponseProcessor()
 {
 	QMutexLocker _lock(&m_mutex);
+	if (m_timerId != INVALID_TIMER_ID)
+		killTimer(m_timerId);
 	m_cond.wakeAll();
 }
 
@@ -455,6 +554,26 @@ void Task_ResponseProcessor::waitForStart()
 		m_cond.wait(&m_mutex);
 }
 
+void Task_ResponseProcessor::timerEvent(QTimerEvent * pEvent)
+{
+	Q_UNUSED(pEvent);
+	if (m_pExec->vmCheckCmdFinished()) {
+		killTimer(m_timerId);
+		m_timerId = INVALID_TIMER_ID;
+	}
+
+	// Progressive timer starting from 0.1 sec, then 1 sec, then 10 sec
+	m_timerCount++;
+	if (m_timerCount == 10) {
+		killTimer(m_timerId);
+		m_timerId = startTimer(1000);
+	}
+	if (m_timerCount == 20) {
+		killTimer(m_timerId);
+		m_timerId = startTimer(10000);
+	}
+}
+
 void Task_ResponseProcessor::slotProcessStdin(const SmartPtr<IOPackage>& p)
 {
 	m_pExec->processStdin(p);
@@ -462,7 +581,7 @@ void Task_ResponseProcessor::slotProcessStdin(const SmartPtr<IOPackage>& p)
 
 void Task_ResponseProcessor::slotProcessFin()
 {
-	m_pExec->wakeUp();
+	m_pExec->wakeUpFinProcessed();
 }
 
 PRL_RESULT Task_ResponseProcessor::prepareTask()
@@ -483,7 +602,6 @@ PRL_RESULT Task_ResponseProcessor::prepareTask()
 				this,
 				SLOT(slotProcessStdin(const SmartPtr<IOPackage> &)),
 				Qt::QueuedConnection);
-
 		PRL_ASSERT(bConnected);
 	}
 
@@ -492,8 +610,10 @@ PRL_RESULT Task_ResponseProcessor::prepareTask()
 		this,
 		SLOT(slotProcessFin()),
 		Qt::QueuedConnection);
-
 	PRL_ASSERT(bConnected);
+
+	// check for command completed
+	m_timerId = startTimer(100);
 
 	/* prepare done */
 	QMutexLocker _lock(&m_mutex);

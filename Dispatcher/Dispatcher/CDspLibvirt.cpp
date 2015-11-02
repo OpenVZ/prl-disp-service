@@ -23,7 +23,6 @@
 
 #include "CDspService.h"
 #include "CDspLibvirt_p.h"
-#include <boost/function.hpp>
 #include <QtCore/qmetatype.h>
 #include "CDspVmStateSender.h"
 #include "CDspVmNetworkHelper.h"
@@ -37,6 +36,12 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <linux/if_tun.h>
+
+#include <boost/function.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace Libvirt
 {
@@ -258,7 +263,6 @@ Runtime Unit::getRuntime() const
 {
 	return Runtime(m_domain);
 }
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Performance
 
@@ -319,6 +323,100 @@ PRL_RESULT Guest::setUserPasswd(const QString& user_, const QString& passwd_)
 			passwd_.toUtf8().constData(), 0));
 }
 
+PRL_RESULT Guest::getCommandStatus(int pid, boost::optional<Guest::ExitStatus>& status)
+{
+	PRL_RESULT r;
+	boost::property_tree::ptree cmd, params;
+
+	params.put("pid", "pid-value"); // replace placeholder later
+
+	cmd.put("execute", "guest-exec-status");
+	cmd.add_child("arguments", params);
+
+	std::stringstream ss;
+	boost::property_tree::json_parser::write_json(ss, cmd, false);
+
+	// boost json has no int varant, so...
+	std::string s = ss.str();
+	boost::replace_all<std::string>(s, "\"pid-value\"", boost::lexical_cast<std::string>(pid));
+
+	QString reply;
+	r = executeInAgent(QString::fromUtf8(s.c_str()), reply);
+	if (r != PRL_ERR_SUCCESS)
+		return r;
+
+	std::istringstream is(reply.toUtf8().data());
+	boost::property_tree::ptree result;
+	boost::property_tree::json_parser::read_json(is, result);
+
+	bool exited = result.get<bool>("return.exited");
+	if (exited) {
+		Guest::ExitStatus st;
+		st.exitcode = result.get<int>("return.signal", -1);
+		if (st.exitcode != -1) {
+			st.signaled = true;
+		} else {
+			st.exitcode = result.get<int>("return.exitcode", -1);
+		}
+
+		std::string s;
+		s = result.get<std::string>("return.out-data", "");
+		st.stdOut = QByteArray::fromBase64(s.c_str());
+		s = result.get<std::string>("return.err-data", "");
+		st.stdErr = QByteArray::fromBase64(s.c_str());
+
+		status = st;
+	}
+
+	return r;
+}
+
+PRL_RESULT Guest::runCommand(const QString& path, const QList<QString>& args,
+	const QByteArray& stdIn, int& pid)
+{
+	PRL_RESULT r;
+	boost::property_tree::ptree cmd, argv, params;
+
+	params.put("path", QSTR2UTF8(path));
+	params.put("capture-output", "capture-output-value"); // replace placeholder later
+
+	if (stdIn.size() > 0) {
+		params.put("input-data", stdIn.toBase64().data());
+	}
+
+	if (args.size() > 0) {
+		foreach (const QString a, args) {
+			boost::property_tree::ptree e;
+			e.put_value(a.toStdString());
+			argv.push_back(std::make_pair("", e));
+		}
+		params.add_child("arg", argv);
+	}
+
+	cmd.put("execute", "guest-exec");
+	cmd.add_child("arguments", params);
+
+	std::stringstream ss;
+	boost::property_tree::json_parser::write_json(ss, cmd, false);
+
+	// boost json has no int varant, so...
+	std::string s = ss.str();
+	boost::replace_all<std::string>(s, "\"capture-output-value\"", "true");
+
+	QString reply;
+	r = executeInAgent(QString::fromUtf8(s.c_str()), reply);
+	if (r != PRL_ERR_SUCCESS)
+		return r;
+
+	std::istringstream is(reply.toUtf8().data());
+	boost::property_tree::ptree result;
+	boost::property_tree::json_parser::read_json(is, result);
+
+	pid = result.get<int>("return.pid");
+
+	return r;
+}
+
 PRL_RESULT Guest::execute(const QString& cmd, QString& reply)
 {
 	char* result = NULL;
@@ -331,6 +429,20 @@ PRL_RESULT Guest::execute(const QString& cmd, QString& reply)
 	}
 	reply = QString::fromUtf8(result);
 	free(result);
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Guest::executeInAgent(const QString& cmd, QString& reply)
+{
+	WRITE_TRACE(DBG_DEBUG, "executeInAgent:\n%s", cmd.toUtf8().constData());
+	char* s = virDomainQemuAgentCommand(m_domain.data(),
+			cmd.toUtf8().constData(), -1, 0);
+	if (s == NULL)
+		return PRL_ERR_FAILURE;
+
+	reply = QString::fromUtf8(s);
+	WRITE_TRACE(DBG_DEBUG, "execute result:\n%s", s);
+	free(s);
 	return PRL_ERR_SUCCESS;
 }
 
