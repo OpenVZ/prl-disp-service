@@ -346,6 +346,7 @@ PRL_RESULT Task_DeleteVm::run_body()
 	}
 	if ( doUnregisterOnly() )
 	{
+		setLastErrorCode(ret);
 		return ret;
 	}
 
@@ -500,7 +501,7 @@ PRL_RESULT Task_DeleteVm::run_body()
 	/**
 	* finalize and cleanup
 	*/
-
+	setLastErrorCode(ret);
 	return ret;
 
 }
