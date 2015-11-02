@@ -1447,22 +1447,32 @@ void Domain::setConfig(CVmConfiguration& value_)
 	x->setVmType(value_.getVmType());
 	x->setValid(PVE::VmValid);
 	x->setRegistered(PVE::VmRegistered);
-	Vm::Config::Repairer<Vm::Config::untranslatable_types>::type::do_(value_, getConfig());
-	Kit.vms().at(m_uuid).completeConfig(value_);
-	CDspService::instance()->getVmConfigManager().saveConfig(
-		SmartPtr<CVmConfiguration>(&value_, SmartPtrPolicy::DoNotReleasePointee),
-		m_home, m_user, true, false);
-
 	PRL_RESULT e = CDspService::instance()->getVmDirHelper()
 			.insertVmDirectoryItem(m_user->getVmDirectoryUuid(), x.data());
 	if (PRL_SUCCEEDED(e))
 		x.take();
+
+	boost::optional<CVmConfiguration> y = getConfig();
+	if (y)
+	{
+		Vm::Config::Repairer<Vm::Config::untranslatable_types>
+			::type::do_(value_, y.get());
+	}
+	Kit.vms().at(m_uuid).completeConfig(value_);
+	CDspService::instance()->getVmConfigManager().saveConfig(
+		SmartPtr<CVmConfiguration>(&value_, SmartPtrPolicy::DoNotReleasePointee),
+		m_home, m_user, true, false);
 }
 
-CVmConfiguration Domain::getConfig()
+boost::optional<CVmConfiguration> Domain::getConfig() const
 {
-	PRL_RESULT ret;
-	return *CDspService::instance()->getVmDirHelper().getVmConfigByUuid(m_user, m_uuid, ret);
+	PRL_RESULT e = PRL_ERR_SUCCESS;
+	SmartPtr<CVmConfiguration> x = CDspService::instance()->getVmDirHelper()
+		.getVmConfigByUuid(m_user, m_uuid, e);
+	if (PRL_FAILED(e) || !x.isValid())
+		return boost::none;
+
+	return *x;
 }
 
 void Domain::setCpuUsage()
@@ -1602,15 +1612,17 @@ void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_
 	if (d.isNull())
 		return;
 
-	CVmConfiguration stored = d->getConfig();
+	boost::optional<CVmConfiguration> y = d->getConfig();
+	if (!y)
+		return;
 
 	CVmConfiguration runtime;
 	Tools::Agent::Vm::Unit v = Kit.vms().at(vmUuid_);
 	if (PRL_FAILED(v.getConfig(runtime, true)))
 		return;
 
-	Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(stored, runtime);
-	d->setConfig(stored);
+	Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(y.get(), runtime);
+	d->setConfig(y.get());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
