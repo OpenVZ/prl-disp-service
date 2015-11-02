@@ -36,6 +36,7 @@
 #include "CDspClient.h"
 #include "CDspLibvirt.h"
 #include <QSocketNotifier>
+#include <boost/optional.hpp>
 #include <boost/noncopyable.hpp>
 #include <Libraries/Std/SmartPtr.h>
 #include <Libraries/Std/noncopyable.h>
@@ -219,11 +220,11 @@ struct Domain
 	}
 	void setState(VIRTUAL_MACHINE_STATE value_);
 	void setConfig(CVmConfiguration& value_);
-	CVmConfiguration getConfig();
 	void setCpuUsage();
 	void setDiskUsage();
 	void setMemoryUsage();
 	void setNetworkUsage();
+	boost::optional<CVmConfiguration> getConfig() const;
 
 private:
 	quint32 m_pid;
