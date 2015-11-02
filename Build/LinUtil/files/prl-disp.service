@@ -6,6 +6,7 @@ Wants=libvirtd.service systemd-modules-load.service vzevent.service vz.service
 
 [Service]
 Type=forking
+LimitCORE=268435456
 EnvironmentFile=-/etc/sysconfig/prl-disp
 PIDFile=/var/run/prl_disp_service.pid
 ExecStart=/usr/sbin/prl_disp_service --pidfile /var/run/prl_disp_service.pid
