@@ -308,11 +308,6 @@ private:
 
 struct Address
 {
-	explicit Address(quint16 controller_)
-	{
-		m_address.setController(QString::number(controller_));
-	}
-
 	Address& setUnit(quint16 unit_)
 	{
 		m_address.setUnit(QString::number(unit_));
@@ -328,15 +323,20 @@ struct Address
 		m_address.setBus(QString::number(bus_));
 		return *this;
 	}	
-	Libvirt::Domain::Xml::VAddress operator()()
+	Libvirt::Domain::Xml::VAddress operator()(quint16 controller_)
 	{
+		address_type a;
+		std::swap(a, m_address);
+		a.setController(QString::number(controller_));
 		mpl::at_c<Libvirt::Domain::Xml::VAddress::types, 1>::type v;
-		v.setValue(m_address);
+		v.setValue(a);
 		return Libvirt::Domain::Xml::VAddress(v);
 	}
 
 private:
-	Libvirt::Domain::Xml::Driveaddress m_address;
+	typedef Libvirt::Domain::Xml::Driveaddress address_type;
+
+	address_type m_address;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

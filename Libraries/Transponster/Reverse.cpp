@@ -444,7 +444,7 @@ Libvirt::Domain::Xml::VAddress Attachment::craftIde()
 		craftController(v, c);
 	}
 
-	return Address(c).setUnit(u).setBus(b)();
+	return Address().setUnit(u).setBus(b)(c);
 }
 
 Libvirt::Domain::Xml::VAddress Attachment::craftSata()
@@ -459,7 +459,7 @@ Libvirt::Domain::Xml::VAddress Attachment::craftSata()
 		craftController(v, c);
 	}
 
-	return Address(c).setUnit(u)();
+	return Address().setUnit(u)(c);
 }
 
 Libvirt::Domain::Xml::VAddress Attachment::craftScsi(const boost::optional<Libvirt::Domain::Xml::EModel>& model_)
@@ -477,7 +477,7 @@ Libvirt::Domain::Xml::VAddress Attachment::craftScsi(const boost::optional<Libvi
 		craftController(v, c);
 	}
 
-	return Address(c).setTarget(t)();
+	return Address().setTarget(t)(c);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
