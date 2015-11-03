@@ -1694,13 +1694,15 @@ void State::tuneTraffic(unsigned oldState_, unsigned newState_,
 	QSharedPointer<View::Domain> d = m_system->find(vmUuid_);
 	if (d.isNull())
 		return;
-	CVmConfiguration c = d->getConfig();
+	boost::optional<CVmConfiguration> c = d->getConfig();
+	if (!c)
+		return;
 	Tools::Traffic::Accounting x(vmUuid_);
-	foreach (CVmGenericNetworkAdapter *a, c.getVmHardwareList()->m_lstNetworkAdapters)
+	foreach (CVmGenericNetworkAdapter *a, c->getVmHardwareList()->m_lstNetworkAdapters)
 	{
 		x(QSTR2UTF8(a->getHostInterfaceName()));
 	}
-	Task_NetworkShapingManagement::setNetworkRate(c);
+	Task_NetworkShapingManagement::setNetworkRate(*c);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
