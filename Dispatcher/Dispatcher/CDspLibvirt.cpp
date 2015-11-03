@@ -28,10 +28,15 @@
 #include "CDspVmStateSender.h"
 #include "CDspVmNetworkHelper.h"
 #include "Tasks/Task_CreateProblemReport.h"
+#include "Tasks/Task_BackgroundJob.h"
 #include <Libraries/PrlUuid/PrlUuid.h>
 #include <Libraries/Transponster/Direct.h>
 #include <Libraries/Transponster/Reverse.h>
 #include <Libraries/PrlNetworking/netconfig.h>
+
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <linux/if_tun.h>
 
 namespace Libvirt
 {
@@ -1019,6 +1024,37 @@ void Performance::pull(Agent::Vm::Unit agent_)
 }
 */
 
+namespace Traffic
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Accounting
+
+Accounting::Accounting(const QString& uuid_)
+	: m_id(Uuid::toVzid(uuid_)), m_control("/dev/net/tun")
+{
+}
+
+void Accounting::operator()(const QString& device_)
+{
+	if (!m_control.isOpen() && !m_control.open(QIODevice::ReadWrite))
+	{
+		WRITE_TRACE(DBG_FATAL, "failed to open %s: %s",
+			QSTR2UTF8(m_control.fileName()),
+			QSTR2UTF8(m_control.errorString()));
+		return;
+	}
+	struct tun_acctid x;
+	qstrncpy(x.ifname, QSTR2UTF8(device_), sizeof(x.ifname));
+	x.acctid = m_id;
+	if (::ioctl(m_control.handle(), TUNSETACCTID, &x) == -1)
+	{
+		WRITE_TRACE(DBG_FATAL, "ioctl(TUNSETACCTID, %s, %u) failed: %m",
+			x.ifname, x.acctid);
+	}
+}
+
+} // namespace Traffic
 } // namespace Tools
 
 namespace Callback
@@ -1300,6 +1336,25 @@ int wakeUp(virConnectPtr , virDomainPtr domain_, int , void* opaque_)
 int reboot(virConnectPtr connect_, virDomainPtr domain_, void* opaque_)
 {
 	return wakeUp(connect_, domain_, 0, opaque_);
+}
+
+int deviceConnect(virConnectPtr , virDomainPtr domain_, const char *device_,
+	void *opaque_)
+{
+	Q_UNUSED(device_);
+	Q_UNUSED(domain_);
+	Q_UNUSED(opaque_);
+/*
+	// XXX: enable this for vme* devices when network device hotplug is fixed
+	View::Coarse* v = (View::Coarse* )opaque_;
+	QSharedPointer<View::Domain> d = v->access(domain_);
+	if (!d.isNull())
+	{
+		CVmConfiguration c = d->getConfig();
+		Tools::Traffic::Accounting(c.getVmIdentification()->getVmUuid())(device_);
+	}
+*/
+	return 0;
 }
 
 int deviceDisconnect(virConnectPtr , virDomainPtr domain_, const char* device_,
@@ -1597,6 +1652,9 @@ State::State(QSharedPointer<View::System> system_): m_system(system_)
 		this->connect(s.getPtr(),
 			SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
 			SLOT(updateConfig(unsigned, unsigned, QString, QString)));
+		this->connect(s.getPtr(),
+			SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
+			SLOT(tuneTraffic(unsigned, unsigned, QString, QString)));
 	}
 }
 
@@ -1623,6 +1681,26 @@ void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_
 
 	Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(y.get(), runtime);
 	d->setConfig(y.get());
+}
+
+void State::tuneTraffic(unsigned oldState_, unsigned newState_,
+	QString vmUuid_, QString dirUuid_)
+{
+	Q_UNUSED(oldState_);
+	Q_UNUSED(dirUuid_);
+
+	if (newState_ != VMS_RUNNING)
+		return;
+	QSharedPointer<View::Domain> d = m_system->find(vmUuid_);
+	if (d.isNull())
+		return;
+	CVmConfiguration c = d->getConfig();
+	Tools::Traffic::Accounting x(vmUuid_);
+	foreach (CVmGenericNetworkAdapter *a, c.getVmHardwareList()->m_lstNetworkAdapters)
+	{
+		x(QSTR2UTF8(a->getHostInterfaceName()));
+	}
+	Task_NetworkShapingManagement::setNetworkRate(c);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1680,7 +1758,7 @@ void Link::disconnect(virConnectPtr libvirtd_, int reason_, void* opaque_)
 // struct Domains
 
 Domains::Domains(int timeout_): m_eventState(-1), m_eventReboot(-1),
-	m_eventWakeUp(-1), m_eventDeviceDisconnect(-1),
+	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
 	m_view(new View::System()), m_stateWatcher(m_view)
 {
 	m_timer.stop();
@@ -1710,6 +1788,12 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 							NULL,
 							VIR_DOMAIN_EVENT_ID_PMWAKEUP,
 							VIR_DOMAIN_EVENT_CALLBACK(&Callback::Plain::wakeUp),
+							new View::Coarse(m_view),
+							&Callback::Plain::delete_<View::Coarse>);
+	m_eventDeviceConnect = virConnectDomainEventRegisterAny(libvirtd_.data(),
+							NULL,
+							VIR_DOMAIN_EVENT_ID_DEVICE_ADDED,
+							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::deviceConnect),
 							new View::Coarse(m_view),
 							&Callback::Plain::delete_<View::Coarse>);
 	m_eventDeviceDisconnect = virConnectDomainEventRegisterAny(libvirtd_.data(),
@@ -1746,6 +1830,8 @@ void Domains::setDisconnected()
 	m_eventReboot = -1;
 	virConnectDomainEventDeregisterAny(x.data(), m_eventWakeUp);
 	m_eventWakeUp = -1;
+	virConnectDomainEventDeregisterAny(x.data(), m_eventDeviceConnect);
+	m_eventDeviceConnect = -1;
 	virConnectDomainEventDeregisterAny(x.data(), m_eventDeviceDisconnect);
 	m_eventDeviceDisconnect = -1;
 	m_libvirtd.clear();
@@ -1778,5 +1864,3 @@ void Host::run()
 }
 
 } // namespace Libvirt
-
-
