@@ -36,6 +36,7 @@
 #include "CDspClient.h"
 #include "CDspLibvirt.h"
 #include <QSocketNotifier>
+#include <boost/optional.hpp>
 #include <boost/noncopyable.hpp>
 #include <Libraries/Std/SmartPtr.h>
 #include <Libraries/Std/noncopyable.h>
@@ -219,11 +220,11 @@ struct Domain
 	}
 	void setState(VIRTUAL_MACHINE_STATE value_);
 	void setConfig(CVmConfiguration& value_);
-	CVmConfiguration getConfig();
 	void setCpuUsage();
 	void setDiskUsage();
 	void setMemoryUsage();
 	void setNetworkUsage();
+	boost::optional<CVmConfiguration> getConfig() const;
 
 private:
 	quint32 m_pid;
@@ -286,6 +287,8 @@ struct State: QObject
 
 public slots:
 	void updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_);
+	void tuneTraffic(unsigned oldState_, unsigned newState_,
+		QString vmUuid_, QString dirUuid_);
 
 private:
 	Q_OBJECT
@@ -336,6 +339,7 @@ private:
 	int m_eventState;
 	int m_eventReboot;
 	int m_eventWakeUp;
+	int m_eventDeviceConnect;
 	int m_eventDeviceDisconnect;
 	QWeakPointer<virConnect> m_libvirtd;
 	QSharedPointer<View::System> m_view;
@@ -430,6 +434,22 @@ private:
 	QSharedPointer<View::System> m_view;
 };
 
+namespace Traffic
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Accounting
+
+struct Accounting
+{
+	Accounting(const QString& uuid_);
+	void operator()(const QString& device_);
+
+private:
+	quint32 m_id;
+	QFile m_control;
+};
+
+} // namespace Traffic
 } // namespace Tools
 } // namespace Libvirt
 

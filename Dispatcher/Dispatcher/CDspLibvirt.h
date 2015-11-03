@@ -144,6 +144,8 @@ struct Unit
 	PRL_RESULT shutdown();
 	PRL_RESULT start();
 	PRL_RESULT reboot();
+	PRL_RESULT pause();
+	PRL_RESULT unpause();
 	PRL_RESULT resume(const QString& sav_);
 	PRL_RESULT suspend(const QString& sav_);
 	PRL_RESULT undefine();
@@ -152,6 +154,7 @@ struct Unit
 	PRL_RESULT getConfig(CVmConfiguration& dst_, bool runtime_ = false) const;
 	PRL_RESULT getConfig(QString& dst_, bool runtime_ = false) const;
 	PRL_RESULT setConfig(const CVmConfiguration& value_);
+	PRL_RESULT completeConfig(CVmConfiguration& config_);
 	Performance getPerformance() const
 	{
 		return Performance(m_domain);

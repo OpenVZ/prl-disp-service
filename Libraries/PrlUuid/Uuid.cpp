@@ -147,10 +147,9 @@ unsigned int Uuid::toVzid( const QString& uuidStr )
 	Uuid_t u;
 
 	Uuid::dump(uuidStr, u);
-	unsigned int id = ((unsigned int *)u)[0];
+	quint32 id = (quint32)u[0] << 24 | u[1] << 16 | u[2] << 8 | u[3];
 
 	id &= ~(1<<31);
-	id |= (1<<30);
 
 	return id;
 }

@@ -1614,7 +1614,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdRestartNetworkShaping()
 		if (!pVmCfg || !PRL_SUCCEEDED(nRetCode))
 			continue;
 
-		Task_NetworkShapingManagement::setNetworkRate(pVmCfg);
+		Task_NetworkShapingManagement::setNetworkRate(*pVmCfg);
 	}
 	QMutexLocker _lock(g_pRestartShapingMtx);
 	g_restartShaping = false;

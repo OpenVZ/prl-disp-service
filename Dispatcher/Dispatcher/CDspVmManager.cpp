@@ -726,16 +726,27 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStart> >::run()
 	if (!c.isValid())
 		return;
 
+	PRL_RESULT e;
+	Libvirt::Tools::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_context.getVmUuid());
 	CStatesHelper h(c->getVmIdentification()->getHomePath());
-	if (!h.savFileExists())
-		return m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).start());
+	if (h.savFileExists())
+	{
+		if (PRL_SUCCEEDED(e = u.resume(h.getSavFileName())))
+			h.dropStateFiles();
+	}
+	else
+	{
+		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+		if (PRL_SUCCEEDED(e = u.getState(s)))
+			e = VMS_PAUSED == s ? u.unpause() : u.start();
+	}
+	return m_context.reply(e);
+}
 
-	PRL_RESULT e = Libvirt::Kit.vms().at(m_context.getVmUuid())
-			.resume(h.getSavFileName());
-	if (PRL_SUCCEEDED(e))
-		h.dropStateFiles();
-
-	m_context.reply(e);
+template<>
+void Body<Tag::Libvirt<PVE::DspCmdVmPause> >::run()
+{
+	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).pause());
 }
 
 template<>
@@ -959,7 +970,7 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmStartVNCServer] = map(Tag::Simple<PVE::DspCmdVmStartVNCServer>());
 	m_map[PVE::DspCmdVmStopVNCServer] = map(Tag::Simple<PVE::DspCmdVmStopVNCServer>());
 	m_map[PVE::DspCmdVmReset] = map(Tag::General<PVE::DspCmdVmReset>());
-	m_map[PVE::DspCmdVmPause] = map(Tag::General<PVE::DspCmdVmPause>());
+	m_map[PVE::DspCmdVmPause] = map(Tag::Libvirt<PVE::DspCmdVmPause>());
 	m_map[PVE::DspCmdVmSuspend] = map(Tag::Libvirt<PVE::DspCmdVmSuspend>());
 	m_map[PVE::DspCmdVmDevConnect] = map(Tag::Libvirt<PVE::DspCmdVmDevConnect>());
 	m_map[PVE::DspCmdVmDevDisconnect] = map(Tag::Libvirt<PVE::DspCmdVmDevConnect>());

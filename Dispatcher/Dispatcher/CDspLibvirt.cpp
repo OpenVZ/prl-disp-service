@@ -28,10 +28,15 @@
 #include "CDspVmStateSender.h"
 #include "CDspVmNetworkHelper.h"
 #include "Tasks/Task_CreateProblemReport.h"
+#include "Tasks/Task_BackgroundJob.h"
 #include <Libraries/PrlUuid/PrlUuid.h>
 #include <Libraries/Transponster/Direct.h>
 #include <Libraries/Transponster/Reverse.h>
 #include <Libraries/PrlNetworking/netconfig.h>
+
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <linux/if_tun.h>
 
 namespace Libvirt
 {
@@ -105,6 +110,16 @@ PRL_RESULT Unit::resume(const QString& sav_)
 		(&virDomainRestore, _1, qPrintable(sav_)));
 }
 
+PRL_RESULT Unit::pause()
+{
+	return do_(m_domain.data(), boost::bind(&virDomainSuspend, _1));
+}
+
+PRL_RESULT Unit::unpause()
+{
+	return do_(m_domain.data(), boost::bind(&virDomainResume, _1));
+}
+
 PRL_RESULT Unit::suspend(const QString& sav_)
 {
 	return do_(m_domain.data(), boost::bind
@@ -115,7 +130,7 @@ PRL_RESULT Unit::suspend(const QString& sav_)
 PRL_RESULT Unit::undefine()
 {
 	return do_(m_domain.data(), boost::bind(&virDomainUndefineFlags, _1,
-		VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA));
+		VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA | VIR_DOMAIN_UNDEFINE_NVRAM));
 }
 
 PRL_RESULT Unit::getState(VIRTUAL_MACHINE_STATE& dst_) const
@@ -201,6 +216,25 @@ PRL_RESULT Unit::setConfig(const CVmConfiguration& value_)
 		return PRL_ERR_VM_OPERATION_FAILED;
 
 	m_domain = QSharedPointer<virDomain>(d, &virDomainFree);
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Unit::completeConfig(CVmConfiguration& config_)
+{
+	if (m_domain.isNull())
+		return PRL_ERR_UNINITIALIZED;
+	foreach(CVmHardDisk *d, config_.getVmHardwareList()->m_lstHardDisks)
+	{
+		if (d->getEmulatedType() != PVE::HardDiskImage)
+			continue;
+		virDomainBlockInfo b;
+		if (virDomainGetBlockInfo(m_domain.data(), QSTR2UTF8(d->getSystemName()),
+			&b, 0) == 0)
+		{
+			d->setSize(b.capacity >> 20);
+			d->setSizeOnDisk(b.physical >> 20);
+		}
+	}
 	return PRL_ERR_SUCCESS;
 }
 
@@ -1012,6 +1046,37 @@ void Performance::pull(Agent::Vm::Unit agent_)
 }
 */
 
+namespace Traffic
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Accounting
+
+Accounting::Accounting(const QString& uuid_)
+	: m_id(Uuid::toVzid(uuid_)), m_control("/dev/net/tun")
+{
+}
+
+void Accounting::operator()(const QString& device_)
+{
+	if (!m_control.isOpen() && !m_control.open(QIODevice::ReadWrite))
+	{
+		WRITE_TRACE(DBG_FATAL, "failed to open %s: %s",
+			QSTR2UTF8(m_control.fileName()),
+			QSTR2UTF8(m_control.errorString()));
+		return;
+	}
+	struct tun_acctid x;
+	qstrncpy(x.ifname, QSTR2UTF8(device_), sizeof(x.ifname));
+	x.acctid = m_id;
+	if (::ioctl(m_control.handle(), TUNSETACCTID, &x) == -1)
+	{
+		WRITE_TRACE(DBG_FATAL, "ioctl(TUNSETACCTID, %s, %u) failed: %m",
+			x.ifname, x.acctid);
+	}
+}
+
+} // namespace Traffic
 } // namespace Tools
 
 namespace Callback
@@ -1295,6 +1360,25 @@ int reboot(virConnectPtr connect_, virDomainPtr domain_, void* opaque_)
 	return wakeUp(connect_, domain_, 0, opaque_);
 }
 
+int deviceConnect(virConnectPtr , virDomainPtr domain_, const char *device_,
+	void *opaque_)
+{
+	Q_UNUSED(device_);
+	Q_UNUSED(domain_);
+	Q_UNUSED(opaque_);
+/*
+	// XXX: enable this for vme* devices when network device hotplug is fixed
+	View::Coarse* v = (View::Coarse* )opaque_;
+	QSharedPointer<View::Domain> d = v->access(domain_);
+	if (!d.isNull())
+	{
+		CVmConfiguration c = d->getConfig();
+		Tools::Traffic::Accounting(c.getVmIdentification()->getVmUuid())(device_);
+	}
+*/
+	return 0;
+}
+
 int deviceDisconnect(virConnectPtr , virDomainPtr domain_, const char* device_,
                         void* opaque_)
 {
@@ -1440,21 +1524,32 @@ void Domain::setConfig(CVmConfiguration& value_)
 	x->setVmType(value_.getVmType());
 	x->setValid(PVE::VmValid);
 	x->setRegistered(PVE::VmRegistered);
-	Vm::Config::Repairer<Vm::Config::untranslatable_types>::type::do_(value_, getConfig());
-	CDspService::instance()->getVmConfigManager().saveConfig(
-		SmartPtr<CVmConfiguration>(&value_, SmartPtrPolicy::DoNotReleasePointee),
-		m_home, m_user, true, false);
-
 	PRL_RESULT e = CDspService::instance()->getVmDirHelper()
 			.insertVmDirectoryItem(m_user->getVmDirectoryUuid(), x.data());
 	if (PRL_SUCCEEDED(e))
 		x.take();
+
+	boost::optional<CVmConfiguration> y = getConfig();
+	if (y)
+	{
+		Vm::Config::Repairer<Vm::Config::untranslatable_types>
+			::type::do_(value_, y.get());
+	}
+	Kit.vms().at(m_uuid).completeConfig(value_);
+	CDspService::instance()->getVmConfigManager().saveConfig(
+		SmartPtr<CVmConfiguration>(&value_, SmartPtrPolicy::DoNotReleasePointee),
+		m_home, m_user, true, false);
 }
 
-CVmConfiguration Domain::getConfig()
+boost::optional<CVmConfiguration> Domain::getConfig() const
 {
-	PRL_RESULT ret;
-	return *CDspService::instance()->getVmDirHelper().getVmConfigByUuid(m_user, m_uuid, ret);
+	PRL_RESULT e = PRL_ERR_SUCCESS;
+	SmartPtr<CVmConfiguration> x = CDspService::instance()->getVmDirHelper()
+		.getVmConfigByUuid(m_user, m_uuid, e);
+	if (PRL_FAILED(e) || !x.isValid())
+		return boost::none;
+
+	return *x;
 }
 
 void Domain::setCpuUsage()
@@ -1579,6 +1674,9 @@ State::State(QSharedPointer<View::System> system_): m_system(system_)
 		this->connect(s.getPtr(),
 			SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
 			SLOT(updateConfig(unsigned, unsigned, QString, QString)));
+		this->connect(s.getPtr(),
+			SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
+			SLOT(tuneTraffic(unsigned, unsigned, QString, QString)));
 	}
 }
 
@@ -1594,15 +1692,39 @@ void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_
 	if (d.isNull())
 		return;
 
-	CVmConfiguration stored = d->getConfig();
+	boost::optional<CVmConfiguration> y = d->getConfig();
+	if (!y)
+		return;
 
 	CVmConfiguration runtime;
 	Tools::Agent::Vm::Unit v = Kit.vms().at(vmUuid_);
 	if (PRL_FAILED(v.getConfig(runtime, true)))
 		return;
 
-	Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(stored, runtime);
-	d->setConfig(stored);
+	Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(y.get(), runtime);
+	d->setConfig(y.get());
+}
+
+void State::tuneTraffic(unsigned oldState_, unsigned newState_,
+	QString vmUuid_, QString dirUuid_)
+{
+	Q_UNUSED(oldState_);
+	Q_UNUSED(dirUuid_);
+
+	if (newState_ != VMS_RUNNING)
+		return;
+	QSharedPointer<View::Domain> d = m_system->find(vmUuid_);
+	if (d.isNull())
+		return;
+	boost::optional<CVmConfiguration> c = d->getConfig();
+	if (!c)
+		return;
+	Tools::Traffic::Accounting x(vmUuid_);
+	foreach (CVmGenericNetworkAdapter *a, c->getVmHardwareList()->m_lstNetworkAdapters)
+	{
+		x(QSTR2UTF8(a->getHostInterfaceName()));
+	}
+	Task_NetworkShapingManagement::setNetworkRate(*c);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1660,7 +1782,7 @@ void Link::disconnect(virConnectPtr libvirtd_, int reason_, void* opaque_)
 // struct Domains
 
 Domains::Domains(int timeout_): m_eventState(-1), m_eventReboot(-1),
-	m_eventWakeUp(-1), m_eventDeviceDisconnect(-1),
+	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
 	m_view(new View::System()), m_stateWatcher(m_view)
 {
 	m_timer.stop();
@@ -1690,6 +1812,12 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 							NULL,
 							VIR_DOMAIN_EVENT_ID_PMWAKEUP,
 							VIR_DOMAIN_EVENT_CALLBACK(&Callback::Plain::wakeUp),
+							new View::Coarse(m_view),
+							&Callback::Plain::delete_<View::Coarse>);
+	m_eventDeviceConnect = virConnectDomainEventRegisterAny(libvirtd_.data(),
+							NULL,
+							VIR_DOMAIN_EVENT_ID_DEVICE_ADDED,
+							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::deviceConnect),
 							new View::Coarse(m_view),
 							&Callback::Plain::delete_<View::Coarse>);
 	m_eventDeviceDisconnect = virConnectDomainEventRegisterAny(libvirtd_.data(),
@@ -1726,6 +1854,8 @@ void Domains::setDisconnected()
 	m_eventReboot = -1;
 	virConnectDomainEventDeregisterAny(x.data(), m_eventWakeUp);
 	m_eventWakeUp = -1;
+	virConnectDomainEventDeregisterAny(x.data(), m_eventDeviceConnect);
+	m_eventDeviceConnect = -1;
 	virConnectDomainEventDeregisterAny(x.data(), m_eventDeviceDisconnect);
 	m_eventDeviceDisconnect = -1;
 	m_libvirtd.clear();
@@ -1758,5 +1888,3 @@ void Host::run()
 }
 
 } // namespace Libvirt
-
-
