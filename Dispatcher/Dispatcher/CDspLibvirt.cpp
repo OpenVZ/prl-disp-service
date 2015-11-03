@@ -277,6 +277,18 @@ PRL_RESULT Guest::dumpState(const QString& path, QString& reply)
 	return execute(QString("migrate -s \"exec:gzip -c > %1\"").arg(path), reply);
 }
 
+PRL_RESULT Guest::setUserPasswd(const QString& user_, const QString& passwd_)
+{
+	if (0 != virDomainSetUserPassword(m_domain.data(),
+			user_.toUtf8().constData(),
+			passwd_.toUtf8().constData(),
+			0))
+	{
+		return PRL_ERR_FAILURE;
+	}
+	return PRL_ERR_SUCCESS;
+}
+
 PRL_RESULT Guest::execute(const QString& cmd, QString& reply)
 {
 	char* result = NULL;
