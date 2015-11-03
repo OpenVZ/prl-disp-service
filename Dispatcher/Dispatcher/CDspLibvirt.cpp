@@ -110,6 +110,16 @@ PRL_RESULT Unit::resume(const QString& sav_)
 		(&virDomainRestore, _1, qPrintable(sav_)));
 }
 
+PRL_RESULT Unit::pause()
+{
+	return do_(m_domain.data(), boost::bind(&virDomainSuspend, _1));
+}
+
+PRL_RESULT Unit::unpause()
+{
+	return do_(m_domain.data(), boost::bind(&virDomainResume, _1));
+}
+
 PRL_RESULT Unit::suspend(const QString& sav_)
 {
 	return do_(m_domain.data(), boost::bind
@@ -120,7 +130,7 @@ PRL_RESULT Unit::suspend(const QString& sav_)
 PRL_RESULT Unit::undefine()
 {
 	return do_(m_domain.data(), boost::bind(&virDomainUndefineFlags, _1,
-		VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA));
+		VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA | VIR_DOMAIN_UNDEFINE_NVRAM));
 }
 
 PRL_RESULT Unit::getState(VIRTUAL_MACHINE_STATE& dst_) const

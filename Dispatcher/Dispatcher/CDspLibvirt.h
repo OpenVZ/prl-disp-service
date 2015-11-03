@@ -143,6 +143,8 @@ struct Unit
 	PRL_RESULT shutdown();
 	PRL_RESULT start();
 	PRL_RESULT reboot();
+	PRL_RESULT pause();
+	PRL_RESULT unpause();
 	PRL_RESULT resume(const QString& sav_);
 	PRL_RESULT suspend(const QString& sav_);
 	PRL_RESULT undefine();
