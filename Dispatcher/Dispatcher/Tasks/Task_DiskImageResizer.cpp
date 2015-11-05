@@ -7,12 +7,12 @@
 /// of the GNU General Public License as published by the Free Software
 /// Foundation; either version 2 of the License, or (at your option) any
 /// later version.
-/// 
+///
 /// This program is distributed in the hope that it will be useful,
 /// but WITHOUT ANY WARRANTY; without even the implied warranty of
 /// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 /// GNU General Public License for more details.
-/// 
+///
 /// You should have received a copy of the GNU General Public License
 /// along with this program; if not, write to the Free Software
 /// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
@@ -42,14 +42,8 @@
 #include "Libraries/StatesUtils/StatesHelper.h"
 
 #include "XmlModel/DiskImageInfo/CDiskImageInfo.h"
-// #include "VI/Sources/ImageTool/resizer/ImageToolSharedInfo.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 
-#ifndef _WIN_
-       #include <sys/types.h>
-       #include <sys/stat.h>
-       #include <fcntl.h>
-#endif
 
 using namespace Parallels;
 
@@ -58,14 +52,6 @@ using namespace Parallels;
 
 #define MAX_TIME_INTERVAL 500
 
-// Values for shared memory name generation
-#ifdef _WIN_
-        #define IPCMEM_DEFAULT_PATH "Global\\"
-#else
-        #define IPCMEM_DEFAULT_PATH "/tmp/"
-#endif
-
-#define IPCMEM_DEFAULT_PREFIX "prl_shared_mem_"
 #define MB2SECT(x)	((PRL_UINT64) (x) << 11)
 #define SECT2MB(x)	((x) >> 11)
 #define BYTE2MB(x)	((x) >> 20)
@@ -77,24 +63,11 @@ Task_DiskImageResizer::Task_DiskImageResizer(SmartPtr<CDspClient>& user,
 	CDspTaskHelper(user, p),
 	m_OpFlags(nOpFlags),
 	m_CurProgress(0),
-// VirtualDisk commented out by request from CP team
-//	m_pDisk(NULL),
-//	m_ImageToolInfo(NULL),
 	m_bflLocked(PRL_FALSE),
-//	m_pMemory(NULL),
 	m_Flags(0)
 {
 	m_pVmConfig = SmartPtr<CVmConfiguration>(new CVmConfiguration());
 	setLastErrorCode(PRL_ERR_SUCCESS);
-}
-
-Task_DiskImageResizer::~Task_DiskImageResizer()
-{
-//	DeinitIPCMemory();
-// VirtualDisk commented out by request from CP team
-//	if (m_pDisk != NULL)
-//		m_pDisk->Release();
-
 }
 
 QString Task_DiskImageResizer::getVmUuid()
@@ -167,10 +140,6 @@ PRL_RESULT Task_DiskImageResizer::prepareTask()
 			m_bflLocked = PRL_TRUE;
 		}
 
-//		ret = InitIPCMemory();
-//		if (PRL_FAILED(ret))
-//			throw ret;
-
 		ret = PRL_ERR_SUCCESS;
 	}
 	catch (PRL_RESULT code)
@@ -229,29 +198,11 @@ void Task_DiskImageResizer::finalizeTask()
 	}
 	else
 	{
-		// DiskDescriptor.xml is chnged
+		// DiskDescriptor.xml is changed
 		Notify(PET_DSP_EVT_VM_CONFIG_CHANGED);
 
 		CProtoCommandPtr pCmd = CProtoSerializer::CreateDspWsResponseCommand(
 				getRequestPackage(), PRL_ERR_SUCCESS);
-/* commented out by request from CP team
- * 		if (m_ImageToolInfo != NULL)
-		{
-			// Add image info to the response
-			CDiskImageInfo di;
-
-			ResizeSharedInfo *resizeInfo = &m_ImageToolInfo->m_SpecInfo.resizeInfo;
-			di.setSuspended(resizeInfo->m_Suspended);
-			di.setSnapshotCount(resizeInfo->m_SnapCount);
-			di.setResizeSupported(resizeInfo->m_resizeSupported);
-			di.setCurrentSize(resizeInfo->m_currentSize);
-			di.setMinSize(resizeInfo->m_minSize < 100 ? 100 : resizeInfo->m_minSize);
-			di.setMaxSize(resizeInfo->m_maxSize);
-
-			CProtoCommandDspWsResponse *pResponseCmd =
-					CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>(pCmd);
-			pResponseCmd->AddStandardParam(di.toString());
-		} */
 
 		if (!(m_OpFlags & TASK_SKIP_SEND_RESPONSE))
 			getClient()->sendResponse(pCmd, getRequestPackage());
@@ -322,21 +273,8 @@ PRL_RESULT Task_DiskImageResizer::IsHasRightsForResize( CVmEvent& evtOutError )
 	return PRL_ERR_SUCCESS;
 }
 
-/* void dump_it_data(struct ImageToolSharedInfo *ImageToolInfo)
-{
-	ResizeSharedInfo *resizeInfo = &ImageToolInfo->m_SpecInfo.resizeInfo;
-	WRITE_TRACE(DBG_FATAL, "ResizeStructSize=%d Completion=%d Break=%d Error=%d"
-				" Split=%d Suspended=%d SnapCount=%d Compactable=%d"
-				" fsNotSupported=%d currentSize=%llu minSize=%lluu",
-		ImageToolInfo->m_SpecSize, ImageToolInfo->m_Completion, ImageToolInfo->m_Break, ImageToolInfo->m_Error,
-		resizeInfo->m_Split, resizeInfo->m_Suspended, resizeInfo->m_SnapCount, resizeInfo->m_Compactable,
-		resizeInfo->m_fsNotSupported, resizeInfo->m_currentSize, resizeInfo->m_minSize
-		   );
-} */
-
 PRL_RESULT Task_DiskImageResizer::run_disk_tool()
 {
-
 	QStringList lstArgs;
 	bool infoMode = (m_Flags & PRIF_DISK_INFO);
 
@@ -353,7 +291,7 @@ PRL_RESULT Task_DiskImageResizer::run_disk_tool()
 
 	lstArgs += "resize";
 	lstArgs += QString("--hdd");
-	lstArgs += QFileInfo(m_DiskImage).isDir() ? m_DiskImage : QFileInfo(m_DiskImage).canonicalPath();
+	lstArgs += m_DiskImage;
 	if (infoMode) {
 		lstArgs += "--info";
 	}
@@ -362,11 +300,6 @@ PRL_RESULT Task_DiskImageResizer::run_disk_tool()
 	}
 	if (m_Flags & PRIF_RESIZE_LAST_PARTITION)
 		lstArgs += QString("--resize_partition");
-
-	lstArgs += QString("--comm"); lstArgs += m_IPCName;
-
-	if ( !CDspService::instance()->isServerMode() )
-		lstArgs += "--tr-err"; // translate errors: see bug #482607
 
 	QProcess resizer_proc;
 
@@ -380,52 +313,22 @@ PRL_RESULT Task_DiskImageResizer::run_disk_tool()
 	/* Progress event loop untill error arived or programm exited */
 	while (bContinue)
 	{
-		if (operationIsCancelled())
-		{
-			Cancel(getCancelResult());
-			ret = getCancelResult();
-			break;
-		}
 		if (resizer_proc.state() == QProcess::NotRunning)
 			bContinue = false;
 
-/*		dump_it_data(m_ImageToolInfo);
-		if (PRL_FAILED(m_ImageToolInfo->m_Error))
-		{
-			WRITE_TRACE(DBG_FATAL, "resizing utility exits with error [%x]", m_ImageToolInfo->m_Error);
-			ret = m_ImageToolInfo->m_Error;
-			break;
-		}
-
-		// Completion to percents
-		PRL_UINT32 completion;
-		if (m_ImageToolInfo->m_Completion == PRL_DISK_PROGRESS_COMPLETED)
-			completion = 100;
-		else
-			completion = (100 * m_ImageToolInfo->m_Completion) / PRL_DISK_PROGRESS_MAX;
-
-		if (completion != m_CurProgress)
-		{
-			m_CurProgress = completion;
-			Notify(PET_DSP_EVT_DISK_RESIZE_PROGRESS_CHANGED);
-		} */
 		QCoreApplication::processEvents(QEventLoop::AllEvents, MAX_TIME_INTERVAL);
 
 		HostUtils::Sleep(MAX_TIME_INTERVAL);
 	}
-	resizer_proc.waitForFinished(60 * 1000);
 
 	/* remove from cache */
 	if (!infoMode)
 		CDspService::instance()->getVmConfigManager().getHardDiskConfigCache().remove( m_DiskImage );
 
 	if (infoMode) {
-		/* explicitly set m_fsNotSupported on error */
-		/*if (PRL_FAILED(m_ImageToolInfo->m_Error))
-			m_ImageToolInfo->m_SpecInfo.resizeInfo.m_resizeSupported = 0; */
 		ret = PRL_ERR_SUCCESS;
 	} else if (resizer_proc.exitCode() != 0 && !operationIsCancelled()) {
-	/*	ret = m_ImageToolInfo->m_Error;
+		ret = resizer_proc.exitCode();
 		CVmEvent *pEvent = getLastError();
 		pEvent->setEventCode(ret);
 
@@ -434,114 +337,14 @@ PRL_RESULT Task_DiskImageResizer::run_disk_tool()
 			qsErrorOutput, EVT_PARAM_DETAIL_DESCRIPTION));
 
 		WRITE_TRACE(DBG_FATAL, "HDD resize utility exited with output: cmd='%s %s'"
-					" it_result=0x%x [%d]\nerr=%s\nout=%s\n\n",
+					" result=%d\nerr=%s\nout=%s\n\n",
 			QSTR2UTF8(resizer_cmd),
 			QSTR2UTF8(lstArgs.join(" ")),
-			m_ImageToolInfo->m_Error,
 			resizer_proc.exitCode(),
 			QSTR2UTF8(qsErrorOutput),
-			resizer_proc.readAllStandardOutput().data()); */
+			resizer_proc.readAllStandardOutput().data());
 		ret = PRL_ERR_OPERATION_FAILED;
 	}
 
 	return ret;
 }
-
-void Task_DiskImageResizer::Cancel(unsigned int uErrorCode)
-{
-	// Cancel operation
-	setLastErrorCode(uErrorCode);
-
-	WRITE_TRACE(DBG_FATAL, "Cancel disk image resizing initiated...");
-	// Set cancelation to shared memory
-	// m_ImageToolInfo->m_Break = PRL_TRUE;
-}
-
-// Shared memory interprocess communication
-/*
-PRL_RESULT Task_DiskImageResizer::InitIPCMemory()
-{
-	PRL_RESULT ret = PRL_ERR_FILE_OR_DIR_ALREADY_EXISTS;
-
-	// Cleanup before init
-	DeinitIPCMemory();
-
-	QDateTime tm = QDateTime::currentDateTime();
-	// Create shared memory object
-	m_IPCName = QString(IPCMEM_DEFAULT_PATH) + QString(IPCMEM_DEFAULT_PREFIX) +
-						getVmUuid() + QString("%1").arg(tm.toTime_t());
-#ifndef _WIN_
-	int fd;
-	fd = open(m_IPCName.toUtf8().data(), O_RDWR | O_CREAT | O_EXCL, 0600);
-	if (fd == -1)
-	{
-		WRITE_TRACE(DBG_FATAL, "Error creating file %s errno=%d",
-			QSTR2UTF8(m_IPCName), HostUtils::GetLastError());
-		ret = PRL_ERR_OPERATION_FAILED;
-		goto ErrorExit;
-	}
-
-	close(fd);
-#endif
-
-	m_pMemory = IPCMemory::Attach(m_IPCName, sizeof(struct ImageToolSharedInfo), ret, IPCMemory::CurrentUser);
-
-	if (PRL_FAILED(ret) || m_pMemory->Data() == NULL)
-	{
-		WRITE_TRACE(DBG_FATAL, "Error creating IPC memory object: %s 0x%x",
-				PRL_RESULT_TO_STRING(ret), ret);
-#ifndef _WIN_
-		QFile::remove(m_IPCName);
-#endif
-		goto ErrorExit;
-	}
-	m_ImageToolInfo = (struct ImageToolSharedInfo *) m_pMemory->Data();
-	// Initialize shared data
-	memset(m_ImageToolInfo, 0, sizeof(struct ImageToolSharedInfo));
-	m_ImageToolInfo->m_Version = IMAGE_TOOL_PROTOCOL_VERSION_CURRENT;
-	m_ImageToolInfo->m_SpecSize = sizeof(struct ResizeSharedInfo);
-
-	return PRL_ERR_SUCCESS;
-
-ErrorExit:
-	m_IPCName.clear();
-	return ret;
-}
-
-void Task_DiskImageResizer::DeinitIPCMemory()
-{
-	// Deinit memory
-	if (m_pMemory)
-		m_pMemory->Detach();
-	m_pMemory = NULL;
-
-#ifndef _WIN_
-	if (!m_IPCName.isEmpty())
-		QFile::remove(m_IPCName);
-#endif
-} */
-
-PRL_RESULT Task_DiskImageResizer::updateSplittedState( bool& isSplitted )
-{
-	CAuthHelperImpersonateWrapper impersonate(&getClient()->getAuthHelper());
-
-	QList<CVmHardDisk*> lstHdd;
-	foreach(CVmHardDisk* pHdd, m_pVmConfig->getVmHardwareList()->m_lstHardDisks)
-	{
-		if ( ! pHdd
-			|| pHdd->getSystemName().isEmpty()
-			|| ! CFileHelper::IsPathsEqual( pHdd->getSystemName(), m_DiskImage )
-			)
-		   continue;
-		lstHdd << pHdd;
-		break;
-	}
-	PRL_ASSERT( lstHdd.size() );
-	if( !lstHdd.size() )
-		return PRL_ERR_FAILURE;
-
-	PRL_RESULT res = CDspVmDirHelper::UpdateHardDiskInformation( lstHdd, getClient() );
-	isSplitted = lstHdd[0]->isSplitted();
-	return res;
-}
-
