@@ -868,8 +868,10 @@ void Body<Tag::Libvirt<PVE::DspCmdVmGuestSetUserPasswd> >::run()
 			.setUserPasswd(x->GetUserLoginName(), x->GetUserPassword());
 
 	if (PRL_FAILED(e))
+	{
 		WRITE_TRACE(DBG_FATAL, "Set user password for VM '%s' is failed: %s",
 			qPrintable(m_context.getVmUuid()), PRL_RESULT_TO_STRING(e));
+	}
 	m_context.reply(e);
 }
 

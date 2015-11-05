@@ -313,14 +313,9 @@ PRL_RESULT Guest::dumpState(const QString& path, QString& reply)
 
 PRL_RESULT Guest::setUserPasswd(const QString& user_, const QString& passwd_)
 {
-	if (0 != virDomainSetUserPassword(m_domain.data(),
-			user_.toUtf8().constData(),
-			passwd_.toUtf8().constData(),
-			0))
-	{
-		return PRL_ERR_FAILURE;
-	}
-	return PRL_ERR_SUCCESS;
+	return do_(m_domain.data(), boost::bind
+		(&virDomainSetUserPassword, _1, user_.toUtf8().constData(),
+			passwd_.toUtf8().constData(), 0));
 }
 
 PRL_RESULT Guest::execute(const QString& cmd, QString& reply)
