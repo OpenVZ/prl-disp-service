@@ -73,8 +73,36 @@ namespace Clustered
 ///////////////////////////////////////////////////////////////////////////////
 // struct Flavor
 
-template <typename T>
+template<class T>
 struct Flavor;
+
+template<>
+struct Flavor<CVmHardDisk>
+{
+	typedef PVE::HardDiskEmulatedType emulated_type;
+
+	static const Libvirt::Domain::Xml::EDevice kind;
+	static const emulated_type real;
+	static const emulated_type image;
+	static const bool readonly = false;
+	static const boost::none_t snapshot;
+
+	static const char* getTarget()
+	{
+		return "hda";
+	}
+	static mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 1>::type
+		getDriverFormat()
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 1>::type output;
+		output.setValue(Libvirt::Domain::Xml::EStorageFormatBackingQcow2);
+		return output;
+	}
+	static boost::optional<Libvirt::Domain::Xml::ETray> getTray(int )
+	{
+		return boost::optional<Libvirt::Domain::Xml::ETray>();
+	}
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Model
@@ -158,6 +186,167 @@ private:
 	const T* m_dataSource;
 };
 
+namespace Builder
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Ordinary
+
+template<class T>
+struct Ordinary
+{
+	typedef Boot::Reverse::order_type boot_type;
+	typedef Libvirt::Domain::Xml::Disk result_type;
+
+	Ordinary(const T& dataSource_, const boot_type& boot_ = boot_type()):
+		m_model(dataSource_), m_boot(boot_)
+	{
+	}
+
+	void setDisk();
+	void setFlags();
+	void setDriver();
+	void setSource()
+	{
+		m_result.setDiskSource(getSource());
+	}
+	void setTarget();
+	void setBackingChain();
+
+	const result_type& getResult() const
+	{
+		return m_result;
+	}
+
+	const Model<T>& getModel() const
+	{
+		return m_model;
+	}
+
+protected:
+	result_type& getResult()
+	{
+		return m_result;
+	}
+
+	Libvirt::Domain::Xml::VDiskSource getSource() const;
+
+private:
+	Model<T> m_model;
+	boot_type m_boot;
+	result_type m_result;
+};
+
+template<class T>
+void Ordinary<T>::setDisk()
+{
+	mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type x;
+	x.setValue(Flavor<T>::kind);
+	m_result.setDisk(Libvirt::Domain::Xml::VDisk(x));
+}
+
+template<class T>
+void Ordinary<T>::setFlags()
+{
+	// boot
+	m_result.setBoot(m_boot);
+	// connected
+	if (Flavor<T>::image == getModel().getEmulatedType() &&
+		!getModel().isConnected())
+		m_result.setSerial(QString(getModel().getImageFile().toUtf8().toHex()));
+
+	// readonly
+	m_result.setReadonly(Flavor<T>::readonly);
+	// snapshot
+	if (Flavor<T>::image == getModel().getEmulatedType())
+		m_result.setSnapshot(Flavor<T>::snapshot);
+	else
+		m_result.setSnapshot(Libvirt::Domain::Xml::ESnapshotNo);
+}
+
+template<class T>
+void Ordinary<T>::setDriver()
+{
+	if (Flavor<T>::image != getModel().getEmulatedType())
+		return;
+
+	mpl::at_c<Libvirt::Domain::Xml::VType::types, 1>::type a;
+	a.setValue(Libvirt::Domain::Xml::VStorageFormat(Flavor<T>::getDriverFormat()));
+	Libvirt::Domain::Xml::DriverFormat b;
+	b.setName("qemu");
+	b.setType(Libvirt::Domain::Xml::VType(a));
+	Libvirt::Domain::Xml::Driver d;
+	d.setCache(Libvirt::Domain::Xml::ECacheNone);
+	d.setIo(Libvirt::Domain::Xml::EIoNative);
+	d.setDiscard(Libvirt::Domain::Xml::EDiscardUnmap);
+	d.setDriverFormat(b);
+	m_result.setDriver(d);
+}
+
+template<class T>
+Libvirt::Domain::Xml::VDiskSource Ordinary<T>::getSource() const
+{
+	switch (getModel().getEmulatedType())
+	{
+	case Flavor<T>::image:
+	{
+		Libvirt::Domain::Xml::Source s;
+		QString f = getModel().getImageFile();
+		if (!f.isEmpty() && getModel().isConnected())
+			s.setFile(f);
+		s.setStartupPolicy(Libvirt::Domain::Xml::EStartupPolicyOptional);
+		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 0>::type x;
+		x.setValue(s);
+		return x;
+	}
+	case Flavor<T>::real:
+	{
+		Libvirt::Domain::Xml::Source1 s;
+		s.setDev(getModel().getRealDeviceName());
+		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 1>::type x;
+		x.setValue(s);
+		return x;
+	}
+	default:
+		return Libvirt::Domain::Xml::VDiskSource();
+	}
+}
+
+template<class T>
+void Ordinary<T>::setTarget()
+{
+	Libvirt::Domain::Xml::Target t;
+	t.setBus(getModel().getBus());
+	t.setDev(getModel().getTargetName());
+	t.setTray(Flavor<T>::getTray(getModel().getEmulatedType()));
+	m_result.setTarget(t);
+}
+
+template<class T>
+void Ordinary<T>::setBackingChain()
+{
+	mpl::at_c<Libvirt::Domain::Xml::VDiskBackingChain::types, 1>::type x;
+	x.setValue(false);
+	m_result.setDiskBackingChain(Libvirt::Domain::Xml::VDiskBackingChain(x));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hdd
+
+struct Hdd: Ordinary<CVmHardDisk>
+{
+	Hdd(const CVmHardDisk& dataSource_, const boot_type& boot_ = boot_type()):
+		Ordinary<CVmHardDisk>(dataSource_, boot_), m_hdd(dataSource_)
+	{
+	}
+
+	void setIoLimit(const CVmIoLimit* global_);
+	void setIopsLimit(const CVmRunTimeOptions& runtime_);
+
+private:
+	const CVmHardDisk& m_hdd;
+};
+
+} // namespace Builder
 } // namespace Clustered
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -330,7 +519,6 @@ void List::build(T builder_)
 }
 
 } // namespace Clustered
-
 } // namespace Device
 
 ///////////////////////////////////////////////////////////////////////////////
