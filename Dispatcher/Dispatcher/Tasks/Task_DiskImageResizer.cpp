@@ -291,7 +291,7 @@ PRL_RESULT Task_DiskImageResizer::run_disk_tool()
 
 	lstArgs += "resize";
 	lstArgs += QString("--hdd");
-	lstArgs += QFileInfo(m_DiskImage).isDir() ? m_DiskImage : QFileInfo(m_DiskImage).canonicalPath();
+	lstArgs += m_DiskImage;
 	if (infoMode) {
 		lstArgs += "--info";
 	}
