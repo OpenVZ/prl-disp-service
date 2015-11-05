@@ -856,6 +856,25 @@ void Body<Tag::Libvirt<PVE::DspCmdVmDeleteSnapshot> >::run()
 		m_context.reply(s.undefine());
 }
 
+template<>
+void Body<Tag::Libvirt<PVE::DspCmdVmGuestSetUserPasswd> >::run()
+{
+	CProtoVmGuestSetUserPasswdCommand *x = CProtoSerializer::CastToProtoCommand
+		<CProtoVmGuestSetUserPasswdCommand>(m_context.getRequest());
+	if (NULL == x)
+		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
+
+	PRL_RESULT e = Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest()
+			.setUserPasswd(x->GetUserLoginName(), x->GetUserPassword());
+
+	if (PRL_FAILED(e))
+	{
+		WRITE_TRACE(DBG_FATAL, "Set user password for VM '%s' is failed: %s",
+			qPrintable(m_context.getVmUuid()), PRL_RESULT_TO_STRING(e));
+	}
+	m_context.reply(e);
+}
+
 #else // _LIBVIRT_
 template<PVE::IDispatcherCommands X>
 void Body<Tag::Libvirt<X> >::run()
@@ -970,7 +989,7 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmGuestLogout] = map(Tag::GuestSession());
 	m_map[PVE::DspCmdVmGuestRunProgram] = map(Tag::GuestSession());
 	m_map[PVE::DspCmdVmGuestGetNetworkSettings] = map(Tag::GuestSession());
-	m_map[PVE::DspCmdVmGuestSetUserPasswd] = map(Tag::GuestSession());
+	m_map[PVE::DspCmdVmGuestSetUserPasswd] = map(Tag::Libvirt<PVE::DspCmdVmGuestSetUserPasswd>());
 	m_map[PVE::DspCmdVmGuestChangeSID] = map(Tag::GuestSession());
 
 	m_internal[QString("dbgdump")] = Internal::dumpMemory;

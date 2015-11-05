@@ -82,6 +82,7 @@ struct Guest
 
 	PRL_RESULT dumpMemory(const QString& path, QString& reply);
 	PRL_RESULT dumpState(const QString& path, QString& reply);
+	PRL_RESULT setUserPasswd(const QString& user, const QString& passwd);
 
 private:
 	PRL_RESULT execute(const QString& cmd, QString& reply);
