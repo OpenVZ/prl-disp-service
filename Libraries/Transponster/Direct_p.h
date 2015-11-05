@@ -282,6 +282,27 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Iotune
+
+struct Iotune: boost::static_visitor<void>
+{
+	Iotune(CVmHardDisk* disk_): m_disk(disk_)
+	{
+	}
+
+	template<class T>
+	void operator()(const T& ) const
+	{
+	}
+
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1042::types, 0>::type& iopsLimit_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1038::types, 0>::type& ioLimit_) const;
+
+private:
+	CVmHardDisk* m_disk;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Disk
 
 struct Disk: private Clustered<CVmHardDisk>

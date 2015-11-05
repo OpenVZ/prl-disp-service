@@ -69,13 +69,10 @@ public:
 		const QString &sOldVmHomePath,
 		const QString &sNewVmHomePath);
 
-	static PRL_RESULT configureVzParameters(const CVmIdent &ident,
-			SmartPtr<CVmConfiguration> pNewVmConfig,
+	static PRL_RESULT configureVzParameters(SmartPtr<CVmConfiguration> pNewVmConfig,
 			SmartPtr<CVmConfiguration> pOldVmConfig = SmartPtr<CVmConfiguration>());
 
 	static PRL_RESULT SetCpuLimit(const QString &sVmUuid, PRL_CPULIMIT_DATA_PTR pVmCpuLimit);
-	static PRL_RESULT SetIoLimit(const QString &sVmUuid, PRL_UINT32 nIoLimit);
-	static PRL_RESULT SetIopsLimit(const QString &sVmUuid, PRL_UINT32 nLimit);
 
 	/**
 	* reset network addresses from config if template
