@@ -1574,3 +1574,26 @@ bool HostUtils::ReadXCr0(UINT64* pXCr0)
 	return true;
 }
 
+namespace
+{
+// weight values are taken from libvzctl
+const quint32 ioprioWeight[] = {
+	320, 365, 410, 460, 500, 550, 600, 640
+};
+
+}
+
+quint32 HostUtils::convertWeightToIoprio(quint32 weight_)
+{
+	for (quint32 i = 0; i < ARRAY_SIZE(ioprioWeight); ++i) {
+		if (ioprioWeight[i] == weight_)
+			return i;
+	}
+	return 0;
+}
+
+quint32 HostUtils::convertIoprioToWeight(quint32 prio_)
+{
+	return ioprioWeight[(prio_ < ARRAY_SIZE(ioprioWeight)? prio_ : 0)];
+}
+

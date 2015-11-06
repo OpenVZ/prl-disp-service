@@ -3289,6 +3289,38 @@ bool Factory::isDiskIoUntunable(const CVmHardDisk* disk_) const
 
 } // namespace Disk
 
+namespace Blkiotune
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Action
+
+bool Action::execute(CDspTaskFailure& feedback_)
+{
+	PRL_RESULT e = Libvirt::Kit.vms().at(m_vm).getRuntime().setIoPriority(m_ioprio);
+	if (PRL_FAILED(e))
+	{
+		feedback_.setCode(e);
+		return false;
+	}
+	return Vm::Action::execute(feedback_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+Vm::Action* Factory::operator()(const Request& input_) const
+{
+	quint32 o(input_.getStart().getVmSettings()->getVmRuntimeOptions()->getIoPriority());
+	quint32 n(input_.getFinal().getVmSettings()->getVmRuntimeOptions()->getIoPriority());
+	if (o == n)
+		return NULL;
+
+	return new Action(input_.getObject().first, n);
+}
+
+} // namespace Blkiotune
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
@@ -3301,7 +3333,7 @@ Action* Factory::operator()(const Request& input_) const
 		return NULL;
 
 	Visitor v(input_);
-	typedef boost::mpl::vector<Cdrom::Factory, Memory::Factory, Disk::Factory> list_type;
+	typedef boost::mpl::vector<Cdrom::Factory, Memory::Factory, Disk::Factory, Blkiotune::Factory> list_type;
 	boost::mpl::for_each<list_type>(boost::ref(v));
 	return v.getResult();
 }

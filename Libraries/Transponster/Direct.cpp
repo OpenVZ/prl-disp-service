@@ -517,6 +517,15 @@ PRL_RESULT Direct::setSettings()
 	if (m_input->getDescription())
 		o->setVmDescription(m_input->getDescription().get());
 
+	CVmRunTimeOptions* r(new CVmRunTimeOptions());
+	s->setVmRuntimeOptions(r);
+	if (m_input->getBlkiotune())
+	{
+		const Libvirt::Domain::Xml::Blkiotune& b(m_input->getBlkiotune().get());
+		if (b.getWeight())
+			r->setIoPriority(HostUtils::convertWeightToIoprio(b.getWeight().get()));
+	}
+
 	//EFI boot support
 	const Libvirt::Domain::Xml::Loader* l
 		= boost::get<mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type>
