@@ -394,7 +394,7 @@ void List::add(const CVmOpticalDisk* cdrom_)
 {
 	if (cdrom_ == NULL)
 		return;
-	if (cdrom_->getEmulatedType() != Flavor<CVmOpticalDisk>::real)
+	if (cdrom_->getEmulatedType() == Flavor<CVmOpticalDisk>::real)
 		return;
 	build(Builder::Ordinary<CVmOpticalDisk>(*cdrom_, m_boot(*cdrom_)));
 }
