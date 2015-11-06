@@ -25,6 +25,7 @@
 #include "Reverse_p.h"
 #include "Direct_p.h"
 #include <prlsdk/PrlOses.h>
+#include <Libraries/HostUtils/HostUtils.h>
 
 namespace Transponster
 {
@@ -829,6 +830,13 @@ PRL_RESULT Vm::setSettings()
 	if (!d.isEmpty())
 		m_result->setDescription(d);
 
+	CVmRunTimeOptions* r(s->getVmRuntimeOptions());
+	if (NULL == r)
+		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
+
+	Libvirt::Domain::Xml::Blkiotune b;
+	b.setWeight(HostUtils::convertIoprioToWeight(r->getIoPriority()));
+	m_result->setBlkiotune(b);
 	return PRL_ERR_SUCCESS;
 }
 

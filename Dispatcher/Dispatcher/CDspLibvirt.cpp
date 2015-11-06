@@ -360,6 +360,23 @@ PRL_RESULT Runtime::setBlockIoTune(const CVmHardDisk& disk_, const char* param_,
 	return r;
 }
 
+PRL_RESULT Runtime::setIoPriority(quint32 ioprio_)
+{
+	virTypedParameterPtr p(NULL);
+	qint32 s(0);
+	qint32 m(0);
+
+	if (PRL_FAILED(do_(&p, boost::bind(&virTypedParamsAddUInt, _1,
+					&s, &m, VIR_DOMAIN_BLKIO_WEIGHT, ioprio_))))
+		return PRL_ERR_SET_IOPRIO;
+
+	PRL_RESULT r(do_(m_domain.data(), boost::bind(&virDomainSetBlkioParameters, _1,
+							p, s, VIR_DOMAIN_AFFECT_CURRENT |
+							VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE)));
+	virTypedParamsFree(p, s);
+	return r;
+}
+
 PRL_RESULT Runtime::changeMedia(const CVmOpticalDisk& device_)
 {
 	Transponster::Vm::Reverse::Cdrom u(device_);

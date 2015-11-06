@@ -164,9 +164,6 @@ struct Factory
 namespace Disk
 {
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Action
-
 namespace Limit
 {
 
@@ -192,6 +189,9 @@ static PRL_RESULT setLimit(Libvirt::Tools::Agent::Vm::Runtime& device_,
 };
 
 } // namespace Policy
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
 
 template <typename T>
 struct Unit: Vm::Action
@@ -232,6 +232,35 @@ private:
 };
 
 } // namespace Disk
+
+namespace Blkiotune
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Action
+
+struct Action: Vm::Action
+{
+	Action(const QString& vm_, quint32 ioprio_): m_vm(vm_), m_ioprio(ioprio_)
+	{
+	}
+
+	bool execute(CDspTaskFailure& feedback_);
+
+private:
+	QString m_vm;
+	quint32 m_ioprio;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+struct Factory
+{
+	Vm::Action* operator()(const Request& input_) const;
+};
+
+} // namespace Blkiotune
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory

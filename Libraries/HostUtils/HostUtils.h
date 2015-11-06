@@ -428,6 +428,8 @@ public:
 
 	static bool ReadXCr0(UINT64* pXCr0);
 
+	static quint32 convertWeightToIoprio(quint32 weight_);
+	static quint32 convertIoprioToWeight(quint32 prio_);
 private:
 	// Get FS type (win)
 	static PRL_FILE_SYSTEM_FS_TYPE GetFSType_Win(const QString& fileName);

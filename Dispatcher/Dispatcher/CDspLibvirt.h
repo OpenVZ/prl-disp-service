@@ -103,6 +103,7 @@ struct Runtime
 	PRL_RESULT setIoLimit(const CVmHardDisk& disk_, quint32 limit_);
 	PRL_RESULT setIopsLimit(const CVmHardDisk& disk_, quint32 limit_);
 	PRL_RESULT changeMedia(const CVmOpticalDisk& device_);
+	PRL_RESULT setIoPriority(quint32 ioprio_);
 
 private:
 	PRL_RESULT setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_);
