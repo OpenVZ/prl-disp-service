@@ -1283,7 +1283,7 @@ bool Validatable<Domain::Xml::PDomainName>::validate(const Domain::Xml::PDomainN
 
 bool Validatable<Domain::Xml::PDiskSerial>::validate(const Domain::Xml::PDiskSerial::value_type& value_)
 {
-	QRegExp q("[A-Za-z0-9_\\.\\+\\-]+");
+	QRegExp q("[A-Za-z0-9_\\.\\+\\-]*");
 	if (!q.exactMatch(value_))
 		return false;
 
