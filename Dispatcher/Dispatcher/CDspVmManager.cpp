@@ -756,6 +756,12 @@ void Body<Tag::Libvirt<PVE::DspCmdVmRestartGuest> >::run()
 }
 
 template<>
+void Body<Tag::Libvirt<PVE::DspCmdVmReset> >::run()
+{
+	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).reset());
+}
+
+template<>
 void Body<Tag::Libvirt<PVE::DspCmdVmSuspend> >::run()
 {
 	SmartPtr<CVmConfiguration> c = Details::Assistant(m_context).getConfig();
@@ -971,7 +977,7 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmAnswer] = map(Tag::Simple<PVE::DspCmdVmAnswer>());
 	m_map[PVE::DspCmdVmStartVNCServer] = map(Tag::Simple<PVE::DspCmdVmStartVNCServer>());
 	m_map[PVE::DspCmdVmStopVNCServer] = map(Tag::Simple<PVE::DspCmdVmStopVNCServer>());
-	m_map[PVE::DspCmdVmReset] = map(Tag::General<PVE::DspCmdVmReset>());
+	m_map[PVE::DspCmdVmReset] = map(Tag::Libvirt<PVE::DspCmdVmReset>());
 	m_map[PVE::DspCmdVmPause] = map(Tag::Libvirt<PVE::DspCmdVmPause>());
 	m_map[PVE::DspCmdVmSuspend] = map(Tag::Libvirt<PVE::DspCmdVmSuspend>());
 	m_map[PVE::DspCmdVmDevConnect] = map(Tag::Libvirt<PVE::DspCmdVmDevConnect>());
