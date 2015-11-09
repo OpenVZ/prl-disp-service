@@ -35,8 +35,6 @@
 
 #include "CDspTaskHelper.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
-//#include <CommandProtocol/CommandDispatcher.h>  // VI commented out by request from CP team
-//#include <MounterDaemonAPI/MounterDaemonAPI.h>  // VI commented out by request from CP team
 
 class Task_MountVm : public  CDspTaskHelper
 {
@@ -74,9 +72,6 @@ protected:
 	virtual void finalizeTask();
 
 	QString getVmUuid();
-// VI commented out by request from CP team
-//	static PRL_RESULT SendCommand(CCommandDispatcher& cmdDispatcher, CommandPtr cmd, QString &sOut);
-//	static PRL_RESULT ProcessCommand(CommandPtr cmd, QString &sOut);
 	PRL_RESULT MountVmInfo();
 	PRL_RESULT MountVm();
 	PRL_RESULT UmountVm();
