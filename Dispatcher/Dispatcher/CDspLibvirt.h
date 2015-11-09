@@ -65,11 +65,11 @@ struct Simple
 	{
 	}
 
-	CVmEvent convertToEvent() const
+	CVmEvent convertToEvent(const QString &paramName_ = EVT_PARAM_DETAIL_DESCRIPTION) const
 	{
 		CVmEvent e;
 		e.setEventCode(m_data.first);
-		e.addEventParameter(new CVmEventParameter(PVE::String, m_data.second, EVT_PARAM_DETAIL_DESCRIPTION));
+		e.addEventParameter(new CVmEventParameter(PVE::String, m_data.second, paramName_));
 		return e;
 	}
 

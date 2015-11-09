@@ -50,6 +50,7 @@
 
 #include "CDspClient.h"
 #include "CDspVm.h"
+#include "CDspVmMounter.h"
 
 #include "Libraries/IOService/src/IOCommunication/IOServer.h"
 
@@ -705,6 +706,7 @@ private:
 
 	CMultiEditMergeVmConfig* m_pVmConfigEdit;
 	ExclusiveVmOperations	m_exclusiveVmOperations;
+	SmartPtr<CDspVmMountRegistry> m_vmMountRegistry;
 
 	friend class Task_EditVm;
 	friend class Task_RegisterVm;

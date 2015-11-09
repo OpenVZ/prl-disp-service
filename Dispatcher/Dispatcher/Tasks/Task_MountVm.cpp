@@ -29,21 +29,25 @@
 
 #include <Libraries/Std/PrlAssert.h>
 #include <Libraries/ProtoSerializer/CProtoSerializer.h>
+#include <Libraries/PrlCommonUtils/CFileHelper.h>
+#include <Libraries/PrlUuid/Uuid.h>
 
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Task_MountVm.h"
 #include "Task_CommonHeaders.h"
-#include "XmlModel/DispConfig/CDispMountPreferences.h"
-
+#include "CDspVmMounter.h"
+#include "CDspLibvirt.h"
+#include "CDspVzHelper.h"
 
 using namespace Parallels;
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
 
 
-Task_MountVm::Task_MountVm(SmartPtr<CDspClient> &pUser, const SmartPtr<IOPackage> &p, PVE::IDispatcherCommands nCmd )
+Task_MountVm::Task_MountVm(
+		SmartPtr<CDspClient> &pUser, const SmartPtr<IOPackage> &p,
+		PVE::IDispatcherCommands nCmd, SmartPtr<CDspVmMountRegistry> &registry)
 	: CDspTaskHelper(pUser, p)
-	, m_nCmd(nCmd)
+	, m_nCmd(nCmd), m_registry(registry)
 {}
 
 
@@ -82,18 +86,20 @@ PRL_RESULT Task_MountVm::prepareTask()
 		if (PRL_FAILED(res))
 			throw res;
 
-		if (m_sMountPoint.isEmpty())
-		{
-			CDispMountPreferences *pPref =
-				CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()->getMountPreferences();
-
-			m_sMountPoint = pPref->getDefaultMountPath();
-			if (m_sMountPoint.isEmpty())
-				m_sMountPoint = "/vz/mnt/";
-			 m_sMountPoint += getVmUuid();
+		if (m_sMountPoint.isEmpty()) {
+			int ret = CDspService::instance()->getVzHelper()->
+				getVzlibHelper().get_vz_config_param("VE_ROOT", m_sMountPoint);
+			if (ret != 0)
+				m_sMountPoint = "/vz/root/$VEID";
+			QString uuid = Uuid(getVmUuid()).toStringWithoutBrackets();
+			m_sMountPoint.replace("$VEID", uuid);
 		}
-		if (!CFileHelper::WriteDirectory(m_sMountPoint, &getClient()->getAuthHelper()))
-			throw PRL_ERR_MAKE_DIRECTORY;
+		if (!CFileHelper::WriteDirectory(m_sMountPoint, &getClient()->getAuthHelper())) {
+			// Maybe it remains from mount on crashed dispatcher?
+			CDspVmMount::releaseMountpoint(m_sMountPoint);
+			if (!CFileHelper::WriteDirectory(m_sMountPoint, &getClient()->getAuthHelper()))
+				throw PRL_ERR_MAKE_DIRECTORY;
+		}
 	}
 	catch (PRL_RESULT code)
 	{
@@ -116,9 +122,10 @@ PRL_RESULT Task_MountVm::run_body()
 			res = UmountVm();
 			break;
 		case PVE::DspCmdVmMount:
-			if (!m_nFlags & PMVD_INFO)
-				res = PRL_ERR_UNIMPLEMENTED;
-			else
+			if (m_nFlags & PMVD_INFO) {
+				MountVmInfo();
+				res = PRL_ERR_SUCCESS;
+			} else
 				res = MountVm();
 			break;
 		default:
@@ -147,22 +154,14 @@ void Task_MountVm::finalizeTask()
 	{
 		CProtoCommandPtr pCmd = CProtoSerializer::CreateDspWsResponseCommand(
 				getRequestPackage(), PRL_ERR_SUCCESS );
-		/*
 		CProtoCommandDspWsResponse *pResponseCmd =
 			CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>( pCmd );
 
 		pResponseCmd->AddStandardParam(m_sMountInfo);
-		*/
 		getClient()->sendResponse( pCmd, getRequestPackage() );
 	}
 	else
 	{
-		/*
-		getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String,
-					m_sError,
-					EVT_PARAM_MESSAGE_PARAM_0));
-		*/
 		getClient()->sendResponseError(getLastError(), getRequestPackage());
 	}
 }
@@ -170,30 +169,50 @@ void Task_MountVm::finalizeTask()
 
 PRL_RESULT Task_MountVm::UmountVm()
 {
-	QString sVmHome = CDspVmDirManager::getVmHomeByUuid( getVmIdent() );
+	QString sVmHome = CDspVmDirManager::getVmHomeByUuid(getVmIdent());
 	WRITE_TRACE(DBG_FATAL, "Unmounting mnt='%s' home='%s'",
 			QSTR2UTF8(m_sMountPoint), QSTR2UTF8(sVmHome));
 
-	return PRL_ERR_FAILURE;
-}
-
-PRL_RESULT Task_MountVm::UmountVmAll()
-{
-	WRITE_TRACE(DBG_INFO, "Unmounting all");
-	return PRL_ERR_FAILURE;
+	Libvirt::Result result = m_registry->umount(getVmUuid());
+	if (result.isFailed()) {
+		return CDspTaskFailure(*this)
+			(result.error().convertToEvent(EVT_PARAM_MESSAGE_PARAM_0));
+	}
+	return PRL_ERR_SUCCESS;
 }
 
 PRL_RESULT Task_MountVm::MountVm()
 {
-	QString sVmHome = CDspVmDirManager::getVmHomeByUuid( getVmIdent() );
+	QString sVmHome = CDspVmDirManager::getVmHomeByUuid(getVmIdent());
 
 	WRITE_TRACE(DBG_FATAL, "Mounting home='%s' mnt='%s'",
 			QSTR2UTF8(sVmHome), QSTR2UTF8(m_sMountPoint));
 
-	bool ro = false;
+	/* Deny rw for running or suspended. */
+	VIRTUAL_MACHINE_STATE s;
+	if (Libvirt::Kit.vms().at(getVmUuid()).getState(s).isFailed())
+		return PRL_ERR_FAILURE;
+	if (VMS_RUNNING == s && !(m_nFlags & PMVD_READ_ONLY)) {
+		WRITE_TRACE(DBG_FATAL, "Cannot mount running VM in read-write mode");
+		return PRL_ERR_DISP_VM_IS_NOT_STOPPED;
+	}
+	if (VMS_SUSPENDED == s && !(m_nFlags & PMVD_READ_ONLY)) {
+		WRITE_TRACE(DBG_FATAL, "Cannot mount suspended VM in read-write mode");
+		return PRL_ERR_CANT_EDIT_SUSPENDED_VM;
+	}
 
-	if (m_nFlags & PMVD_READ_ONLY)
-		ro = true;
+	Libvirt::Result result = m_registry->mount(
+			m_pVmConfig, getClient()->getVmDirectoryUuid(),
+			m_sMountPoint, (bool)m_nFlags & PMVD_READ_ONLY);
 
-	return PRL_ERR_FAILURE;
+	if (result.isFailed()) {
+		return CDspTaskFailure(*this)
+			(result.error().convertToEvent(EVT_PARAM_MESSAGE_PARAM_0));
+	}
+	return PRL_ERR_SUCCESS;
+}
+
+void Task_MountVm::MountVmInfo()
+{
+	m_sMountInfo = m_registry->getInfo(getVmUuid());
 }

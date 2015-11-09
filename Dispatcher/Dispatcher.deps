@@ -2,7 +2,7 @@ TARGET = prl_disp_service
 PROJ_PATH = $$PWD
 include(../Build/qmake/build_target.pri)
 
-LIBS += -lqtservice
+LIBS += -lqtservice -lguestfs
 
 include($$LIBS_LEVEL/IOService/IOService.pri)
 include($$LIBS_LEVEL/HostInfo/CHostInfo.pri)

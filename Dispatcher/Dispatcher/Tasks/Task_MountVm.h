@@ -34,6 +34,7 @@
 #define __Task_MountVm_H_
 
 #include "CDspTaskHelper.h"
+#include "CDspVmMounter.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 
 class Task_MountVm : public  CDspTaskHelper
@@ -48,14 +49,14 @@ public:
 	* @param pointer to the list with paths of old VM hdd
 	*/
 	Task_MountVm(SmartPtr<CDspClient> &pUser,
-		const SmartPtr<IOPackage> &p, PVE::IDispatcherCommands nCmd);
+		const SmartPtr<IOPackage> &p, PVE::IDispatcherCommands nCmd,
+		SmartPtr<CDspVmMountRegistry> &registry);
 
 	/**
 	* Class destructor
 	*/
 	virtual ~Task_MountVm() {}
 
-	static PRL_RESULT UmountVmAll();
 protected:
 	/**
 	* Returns result code which specifies whether all prestart conditions correct
@@ -72,7 +73,7 @@ protected:
 	virtual void finalizeTask();
 
 	QString getVmUuid();
-	PRL_RESULT MountVmInfo();
+	void MountVmInfo();
 	PRL_RESULT MountVm();
 	PRL_RESULT UmountVm();
 
@@ -83,7 +84,7 @@ private:
 	PVE::IDispatcherCommands m_nCmd;
 	quint32 m_nFlags;
 	QString m_sMountInfo;
-	QString m_sError;
+	SmartPtr<CDspVmMountRegistry> m_registry;
 };
 
 #endif //__Task_MountVm_H__
