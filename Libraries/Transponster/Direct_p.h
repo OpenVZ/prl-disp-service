@@ -397,6 +397,7 @@ struct Device: boost::static_visitor<PRL_RESULT>
 		return PRL_ERR_SUCCESS;
 	}
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice930::types, 0>::type& disk_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice930::types, 1>::type& controller_) const;
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice930::types, 4>::type& interface_) const;
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice930::types, 6>::type& sound_) const;
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice930::types, 8>::type& graphics_) const
@@ -567,6 +568,27 @@ struct Scsi: boost::static_visitor<void>
 
 private:
 	boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> *m_model;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Usb
+
+struct Usb: boost::static_visitor<void>
+{
+	Usb(CVmUsbController& settings_, CVmHardware& hardware_)
+		: m_settings(&settings_), m_hardware(&hardware_)
+	{
+	}
+
+	template<class T>
+	void operator()(const T& ) const
+	{
+	}
+
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice585::types, 2>::type& usb_) const;
+private:
+	CVmUsbController *m_settings;
+	CVmHardware *m_hardware;
 };
 
 } // namespace Controller
