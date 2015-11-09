@@ -339,6 +339,8 @@ PRL_NET_MODE getMode();
 /// returns true if IPv6 default route is present on host
 bool IsIPv6DefaultRoutePresent();
 
+QHostAddress getIPv4MaskFromPrefix(quint32 prefix4_);
+QHostAddress getIPv6MaskFromPrefix(quint32 prefix6_);
 }
 
 #endif // PrlNetLibrary_h__

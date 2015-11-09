@@ -37,6 +37,7 @@
 #include <QDomDocument>
 #include <boost/function.hpp>
 #include <Libraries/PrlUuid/Uuid.h>
+#include <Libraries/PrlNetworking/PrlNetLibrary.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
 
 namespace Transponster
@@ -569,6 +570,130 @@ private:
 };
 
 } // namespace Controller
+
+namespace Address
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ip
+
+struct Ip: boost::static_visitor<void>
+{
+	explicit Ip(CHostOnlyNetwork& result_): m_result(&result_)
+	{
+	}
+	
+	template<class T>
+	void operator()(const T& ) const
+	{
+	}
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VIpAddr::types, 0>::type& addr4_) const
+	{
+		m_result->setHostIPAddress(QHostAddress(addr4_.getValue()));
+		m_result->setDhcpIPAddress(QHostAddress(addr4_.getValue()));
+	}
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VIpAddr::types, 1>::type& addr6_) const
+	{
+		m_result->setHostIP6Address(QHostAddress(addr6_.getValue()));
+		m_result->setDhcpIP6Address(QHostAddress(addr6_.getValue()));
+	}
+
+private:
+	CHostOnlyNetwork* m_result;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mask
+
+struct Mask: boost::static_visitor<void>
+{
+	explicit Mask(CHostOnlyNetwork& result_): m_result(&result_)
+	{
+	}
+	
+	template<class T>
+	void operator()(const T& ) const
+	{
+	}
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice1164::types, 0>::type& addr_) const
+	{
+		m_result->setIPNetMask(QHostAddress(addr_.getValue()));
+	}
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice1164::types, 1>::type& prefix_) const
+	{
+		boost::apply_visitor(*this, prefix_.getValue());
+	}
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VIpPrefix::types, 0>::type& prefix4_) const
+	{
+		m_result->setIPNetMask(PrlNet::getIPv4MaskFromPrefix(prefix4_.getValue()));
+	}
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VIpPrefix::types, 1>::type& prefix6_) const
+	{
+		m_result->setIP6NetMask(PrlNet::getIPv6MaskFromPrefix(prefix6_.getValue()));
+	}
+
+private:
+	CHostOnlyNetwork* m_result;
+};
+
+} // namespace Address
+
+namespace Dhcp
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Start
+
+struct Start: boost::static_visitor<void>
+{
+	explicit Start(CHostOnlyNetwork& result_): m_result(&result_)
+	{
+	}
+	
+	template<class T>
+	void operator()(const T& ) const
+	{
+	}
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VIpAddr::types, 0>::type& addr4_) const
+	{
+		m_result->getDHCPServer()->setIPScopeStart(QHostAddress(addr4_.getValue()));
+	}
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VIpAddr::types, 1>::type& addr6_) const
+	{
+		m_result->getDHCPv6Server()->setIPScopeStart(QHostAddress(addr6_.getValue()));
+	}
+
+private:
+	CHostOnlyNetwork* m_result;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct End
+
+struct End: boost::static_visitor<void>
+{
+	explicit End(CHostOnlyNetwork& result_): m_result(&result_)
+	{
+	}
+	
+	template<class T>
+	void operator()(const T& ) const
+	{
+	}
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VIpAddr::types, 0>::type& addr4_) const
+	{
+		m_result->getDHCPServer()->setIPScopeEnd(QHostAddress(addr4_.getValue()));
+	}
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VIpAddr::types, 1>::type& addr6_) const
+	{
+		m_result->getDHCPv6Server()->setIPScopeEnd(QHostAddress(addr6_.getValue()));
+	}
+
+private:
+	CHostOnlyNetwork* m_result;
+};
+
+} // namespace Dhcp
 } // namespace Visitor
 } // namespace Transponster
 

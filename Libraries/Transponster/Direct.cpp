@@ -665,6 +665,43 @@ PRL_RESULT Direct::setVlan()
 
 PRL_RESULT Direct::setHostOnly()
 {
+	if (m_input.isNull())
+		return PRL_ERR_READ_XML_CONTENT;
+
+	CHostOnlyNetwork* h = m_result.getHostOnlyNetwork();
+	if (NULL == h)
+		return PRL_ERR_UNEXPECTED;
+
+	foreach (const Libvirt::Network::Xml::Ip& p, m_input->getIpList())
+	{
+		boost::optional<Libvirt::Network::Xml::VIpAddr> a = p.getAddress();
+		if (a)
+			boost::apply_visitor(Visitor::Address::Ip(*h), a.get());
+
+		boost::optional<Libvirt::Network::Xml::VChoice1164> m = p.getChoice1164();
+		if (m)
+			boost::apply_visitor(Visitor::Address::Mask(*h), m.get());
+
+		boost::optional<Libvirt::Network::Xml::Dhcp> d = p.getDhcp();
+		if (d)
+		{
+			QList<Libvirt::Network::Xml::Range> l = d->getRangeList();
+
+			// If no DHCP range is specified then DHCP is disabled
+			if (l.isEmpty())
+				continue;
+
+			boost::optional<QString> f = p.getFamily();
+			if (f && QString("ipv6") == f.get())
+				h->getDHCPv6Server()->setEnabled(true);
+			else
+				h->getDHCPServer()->setEnabled(true);
+
+			// Virtuozzo supports only one DHCP range per network
+			boost::apply_visitor(Visitor::Dhcp::Start(*h), l[0].getStart());
+			boost::apply_visitor(Visitor::Dhcp::End(*h), l[0].getEnd());
+		}
+	}
 	return PRL_ERR_SUCCESS;
 }
 

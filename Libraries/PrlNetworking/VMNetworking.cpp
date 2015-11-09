@@ -226,6 +226,22 @@ calc_rest:
 	return prefix;
 }
 
+QHostAddress PrlNet::getIPv4MaskFromPrefix(quint32 prefix4_)
+{
+	return QHostAddress(quint32(-1) << (32 - prefix4_));
+}
+
+QHostAddress PrlNet::getIPv6MaskFromPrefix(quint32 prefix6_)
+{
+	quint8 a[16] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+	int p = 128 - prefix6_;
+	for (int i = 0; p > 0; i++, p -= 8)
+		a[i] = a[i] << p;
+
+	return QHostAddress(a);
+}
 
 #if defined(_LIN_) || defined(_MAC_)
 // #133154  fake call to link prl_net_start  with PrlNetworking library without errors for linux / MAC OS X Tiger
