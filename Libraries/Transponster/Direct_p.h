@@ -296,8 +296,8 @@ struct Iotune: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1042::types, 0>::type& iopsLimit_) const;
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1038::types, 0>::type& ioLimit_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1043::types, 0>::type& iopsLimit_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1039::types, 0>::type& ioLimit_) const;
 
 private:
 	CVmHardDisk* m_disk;
@@ -396,16 +396,16 @@ struct Device: boost::static_visitor<PRL_RESULT>
 	{
 		return PRL_ERR_SUCCESS;
 	}
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 0>::type& disk_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 4>::type& interface_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 6>::type& sound_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 8>::type& graphics_) const
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice930::types, 0>::type& disk_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice930::types, 4>::type& interface_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice930::types, 6>::type& sound_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice930::types, 8>::type& graphics_) const
 	{
 		return boost::apply_visitor(Graphics(*m_vm), graphics_.getValue()); 
 	}
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 9>::type& video_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 11>::type& parallel_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 12>::type& serial_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice930::types, 9>::type& video_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice930::types, 11>::type& parallel_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice930::types, 12>::type& serial_) const;
 
 private:
 	Clip* m_clip;
@@ -518,7 +518,7 @@ struct Collect: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 1>::type& controller_) const
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice930::types, 1>::type& controller_) const
 	{
 		m_output->append(controller_.getValue());
 	}
