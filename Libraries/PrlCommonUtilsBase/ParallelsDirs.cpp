@@ -483,7 +483,7 @@ QString ParallelsDirs::getToolsBaseImagePath(PRL_APPLICATION_MODE mode)
 	QString path;
 
 	if (mode == PAM_SERVER)
-		path = "/usr/share/parallels-server/tools/";
+		path = "/usr/share/virtuozzo/";
 	return path;
 }
 
@@ -500,7 +500,7 @@ QString ParallelsDirs::getToolsImage(PRL_APPLICATION_MODE mode, unsigned int nOs
 	}
 	else if IS_LINUX(nOsVersion)
 	{
-		qsFileName = "prl-tools-lin.iso";
+		qsFileName = "vz-guest-tools-lin.iso";
 	}
 	else
 	{
