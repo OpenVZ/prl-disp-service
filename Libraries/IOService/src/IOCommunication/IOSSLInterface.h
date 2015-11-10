@@ -51,8 +51,5 @@ namespace IOService
 	bool generateCSR(const IOCredentials& credentials, QByteArray& signingRequest);
 
 	bool parseCertificateSignResponse(const QByteArray& signedCert, IOCredentials& credentials);
-
-	static const QString s_HostRoleString = "Host";
-	static const QString s_ClientRoleString = "Client";
 }
 #endif // IOSSLINTERFACE_H
