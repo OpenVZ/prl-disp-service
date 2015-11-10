@@ -304,7 +304,7 @@ PRL_RESULT Performance::getNetwork() const
 
 PRL_RESULT Guest::dumpMemory(const QString& path, QString& reply)
 {
-	return execute(QString("dump-guest-memory -p %1").arg(path), reply);
+	return execute(QString("dump-guest-memory -z %1").arg(path), reply);
 }
 
 PRL_RESULT Guest::dumpState(const QString& path, QString& reply)
