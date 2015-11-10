@@ -790,6 +790,35 @@ void Body<Tag::Libvirt<PVE::DspCmdVmDevConnect> >::run()
 }
 
 template<>
+void Body<Tag::Libvirt<PVE::DspCmdVmInstallTools> >::run()
+{
+	SmartPtr<CVmConfiguration> c = Details::Assistant(m_context).getConfig();
+	if (!c.isValid())
+		return;
+
+	QString x = ParallelsDirs::getToolsImage(ParallelsDirs::getAppExecuteMode(),
+			c->getVmSettings()->getVmCommonOptions()->getOsVersion());
+	if (x.isEmpty())
+		return m_context.reply(PRL_ERR_TOOLS_UNSUPPORTED_GUEST);
+
+	foreach(CVmOpticalDisk *d, c->getVmHardwareList()->m_lstOpticalDisks)
+	{
+		if (d->getEnabled())
+		{
+			d->setSystemName(x);
+			d->setUserFriendlyName(x);
+			d->setConnected(PVE::DeviceConnected);
+			d->setEmulatedType(PVE::CdRomImage);
+			d->setRemote(false);
+			return m_context.reply(Libvirt::Kit.vms().at(
+				m_context.getVmUuid()).getRuntime().changeMedia(*d));
+		}
+	}
+
+	return m_context.reply(PRL_ERR_NO_CD_DRIVE_AVAILABLE);
+}
+
+template<>
 void Body<Tag::Libvirt<PVE::DspCmdVmCreateSnapshot> >::run()
 {
 	CProtoCreateSnapshotCommand* x = CProtoSerializer::CastToProtoCommand
@@ -984,7 +1013,7 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmDevDisconnect] = map(Tag::Libvirt<PVE::DspCmdVmDevConnect>());
 	m_map[PVE::DspCmdVmInitiateDevStateNotifications] = map(Tag::General<PVE::DspCmdVmInitiateDevStateNotifications>());
 	m_map[PVE::DspCmdVmInstallUtility] = map(Tag::General<PVE::DspCmdVmInstallUtility>());
-	m_map[PVE::DspCmdVmInstallTools] = map(Tag::General<PVE::DspCmdVmInstallTools>());
+	m_map[PVE::DspCmdVmInstallTools] = map(Tag::Libvirt<PVE::DspCmdVmInstallTools>());
 	m_map[PVE::DspCmdVmUpdateToolsSection] = map(Tag::General<PVE::DspCmdVmUpdateToolsSection>());
 	m_map[PVE::DspCmdVmRunCompressor] = map(Tag::General<PVE::DspCmdVmRunCompressor>());
 	m_map[PVE::DspCmdVmCancelCompressor] = map(Tag::General<PVE::DspCmdVmCancelCompressor>());
