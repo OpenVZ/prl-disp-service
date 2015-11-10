@@ -342,7 +342,7 @@ PRL_RESULT Guest::getCommandStatus(int pid, boost::optional<Guest::ExitStatus>& 
 
 	QString reply;
 	r = executeInAgent(QString::fromUtf8(s.c_str()), reply);
-	if (r != PRL_ERR_SUCCESS)
+	if (PRL_FAILED(r))
 		return r;
 
 	std::istringstream is(reply.toUtf8().data());
@@ -368,7 +368,7 @@ PRL_RESULT Guest::getCommandStatus(int pid, boost::optional<Guest::ExitStatus>& 
 		status = st;
 	}
 
-	return r;
+	return PRL_ERR_SUCCESS;
 }
 
 PRL_RESULT Guest::runCommand(const QString& path, const QList<QString>& args,
@@ -405,7 +405,7 @@ PRL_RESULT Guest::runCommand(const QString& path, const QList<QString>& args,
 
 	QString reply;
 	r = executeInAgent(QString::fromUtf8(s.c_str()), reply);
-	if (r != PRL_ERR_SUCCESS)
+	if (PRL_FAILED(r))
 		return r;
 
 	std::istringstream is(reply.toUtf8().data());

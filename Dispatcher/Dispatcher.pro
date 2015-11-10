@@ -270,14 +270,14 @@ contains(DEFINES, _CT_) {
 			Tasks/Task_MigrateCtSource.h \
 			Tasks/Task_MigrateCtTarget.h \
 			Tasks/Task_CopyCtTemplate.h \
-			Tasks/Task_ExecCt.h
+			Tasks/Task_ExecVm.h
 
 		SOURCES += \
 			Tasks/Task_VzMigrate.cpp \
 			Tasks/Task_MigrateCtSource.cpp \
 			Tasks/Task_MigrateCtTarget.cpp \
 			Tasks/Task_CopyCtTemplate.cpp \
-			Tasks/Task_ExecCt.cpp
+			Tasks/Task_ExecVm.cpp
 	}
 
 	win32 {

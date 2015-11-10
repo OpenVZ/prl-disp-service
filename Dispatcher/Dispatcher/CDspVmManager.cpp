@@ -64,7 +64,7 @@
 #include "Tasks/Task_SwitchToSnapshot.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_ChangeSID.h"
-#include "Tasks/Task_ExecCt.h"
+#include "Tasks/Task_ExecVm.h"
 
 #ifdef _WIN_
 	#include <process.h>
@@ -882,10 +882,11 @@ void Body<Tag::Libvirt<PVE::DspCmdVmGuestSetUserPasswd> >::run()
 	m_context.reply(e);
 }
 
+template<>
 void Body<Tag::Special<PVE::DspCmdVmGuestRunProgram> >::run(Context& context_)
 {
 	CDspService::instance()->getTaskManager().schedule(
-			new Task_ExecCt(context_.getSession(), context_.getPackage(), true));
+			new Task_ExecVm(context_.getSession(), context_.getPackage(), Exec::Vm()));
 }
 
 template<>
@@ -901,10 +902,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmLoginInGuest> >::run()
 	CProtoCommandPtr r = CProtoSerializer::CreateDspWsResponseCommand(b, PRL_ERR_SUCCESS);
 	CProtoCommandDspWsResponse* d = CProtoSerializer::CastToProtoCommand
 		<CProtoCommandDspWsResponse>(r);
-	//d->AddStandardParam(m_context.getSession()->getSessionUuid());
-	QString s = Uuid::createUuid().toString();
-
-	d->AddStandardParam(s);
+	d->AddStandardParam(Uuid::createUuid().toString());
 	m_context.getSession()->sendResponse(r, b);
 }
 
