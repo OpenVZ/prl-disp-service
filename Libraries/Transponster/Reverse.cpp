@@ -64,7 +64,7 @@ bool Resources::getVCpu(Libvirt::Domain::Xml::VCpu& dst_)
 	if (NULL == u)
 		return false;
 
-	Libvirt::Domain::Xml::Cpu948 c;
+	Libvirt::Domain::Xml::Cpu950 c;
 	c.setMode(Libvirt::Domain::Xml::EModeHostPassthrough);
 
 #if (LIBVIR_VERSION_NUMBER >= 1002013)
@@ -341,9 +341,9 @@ void Hdd::setIoLimit(const CVmIoLimit* global_)
 
 	if (p != 0)
 	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice1038::types, 0>::type y;
+		mpl::at_c<Libvirt::Domain::Xml::VChoice1039::types, 0>::type y;
 		y.setValue(p);
-		t.setChoice1038(Libvirt::Domain::Xml::VChoice1038(y));
+		t.setChoice1039(Libvirt::Domain::Xml::VChoice1039(y));
 	}
 
 	getResult().setIotune(t);
@@ -360,9 +360,9 @@ void Hdd::setIopsLimit(const CVmRunTimeOptions& runtime_)
 
 	if (p != 0)
 	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice1042::types, 0>::type y;
+		mpl::at_c<Libvirt::Domain::Xml::VChoice1043::types, 0>::type y;
 		y.setValue(p);
-		t.setChoice1042(Libvirt::Domain::Xml::VChoice1042(y));
+		t.setChoice1043(Libvirt::Domain::Xml::VChoice1043(y));
 	}
 
 	getResult().setIotune(t);
@@ -454,7 +454,9 @@ Libvirt::Domain::Xml::Interface615 Network<0>::prepare(const CVmGenericNetworkAd
 {
 	Libvirt::Domain::Xml::Interface615 output;
 	output.setModel(generateAdapterType(network_.getAdapterType()));
-	output.setSource(network_.getSystemName());
+	Libvirt::Domain::Xml::Source6 s;
+	s.setBridge(network_.getSystemName());
+	output.setSource(s);
 	output.setTarget(network_.getHostInterfaceName());
 	return output;
 }
@@ -463,7 +465,7 @@ template<>
 Libvirt::Domain::Xml::Interface623 Network<3>::prepare(const CVmGenericNetworkAdapter& network_)
 {
 	Libvirt::Domain::Xml::Interface623 output;
-	Libvirt::Domain::Xml::Source7 s;
+	Libvirt::Domain::Xml::Source8 s;
 	s.setNetwork(network_.getVirtualNetworkID());
 	output.setTarget(network_.getHostInterfaceName());
 	output.setModel(generateAdapterType(network_.getAdapterType()));
@@ -475,7 +477,7 @@ template<>
 Libvirt::Domain::Xml::Interface625 Network<4>::prepare(const CVmGenericNetworkAdapter& network_)
 {
 	Libvirt::Domain::Xml::Interface625 output;
-	Libvirt::Domain::Xml::Source8 s;
+	Libvirt::Domain::Xml::Source9 s;
 	s.setDev(network_.getSystemName());
 	output.setModel(generateAdapterType(network_.getAdapterType()));
 	output.setTarget(network_.getHostInterfaceName());
@@ -491,9 +493,9 @@ void Attachment::craftController(const Libvirt::Domain::Xml::VChoice585& bus_, q
 	Libvirt::Domain::Xml::Controller x;
 	x.setIndex(index_);
 	x.setChoice585(bus_);
-	mpl::at_c<Libvirt::Domain::Xml::VChoice928::types, 1>::type y;
+	mpl::at_c<Libvirt::Domain::Xml::VChoice930::types, 1>::type y;
 	y.setValue(x);
-	m_controllerList << Libvirt::Domain::Xml::VChoice928(y);
+	m_controllerList << Libvirt::Domain::Xml::VChoice930(y);
 }
 
 Libvirt::Domain::Xml::VAddress Attachment::craftIde()
@@ -552,9 +554,9 @@ List::List()
 {
 	Libvirt::Domain::Xml::Channel1 c;
 	c.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceUnix);
-	mpl::at_c<Libvirt::Domain::Xml::VChoice842::types, 1>::type x;
+	mpl::at_c<Libvirt::Domain::Xml::VChoice844::types, 1>::type x;
 	x.setValue(QString("org.qemu.guest_agent.0"));
-	c.setChoice842(x);
+	c.setChoice844(x);
 	add<13>(c);
 }
 
@@ -566,7 +568,7 @@ Libvirt::Domain::Xml::Devices List::getResult() const
 	else if (QFile::exists("/usr/libexec/qemu-kvm"))
 		output.setEmulator(QString("/usr/libexec/qemu-kvm"));
 
-	output.setChoice928List(deviceList_type() << m_deviceList);
+	output.setChoice930List(deviceList_type() << m_deviceList);
 
 	output.setPanic(craftPanic());
 
@@ -579,10 +581,10 @@ void List::add(const CVmParallelPort* port_)
 	if (NULL == port_)
 		return;
 
-	Libvirt::Domain::Xml::Source14 a;
+	Libvirt::Domain::Xml::Source15 a;
 	a.setPath(port_->getUserFriendlyName());
 	Libvirt::Domain::Xml::QemucdevSrcDef b;
-	b.setSourceList(QList<Libvirt::Domain::Xml::Source14 >() << a);
+	b.setSourceList(QList<Libvirt::Domain::Xml::Source15 >() << a);
 	Libvirt::Domain::Xml::Qemucdev p;
 	p.setQemucdevSrcDef(b);
 	add<11>(p);
@@ -596,13 +598,13 @@ void List::add(const CVmSerialPort* port_)
 	if (PVE::SerialOutputFile != port_->getEmulatedType())
 		return;
 
-	Libvirt::Domain::Xml::Source14 a;
+	Libvirt::Domain::Xml::Source15 a;
 	a.setPath(port_->getUserFriendlyName());
 	if (a.getPath().get().isEmpty())
 		return;
 
 	Libvirt::Domain::Xml::QemucdevSrcDef b;
-	b.setSourceList(QList<Libvirt::Domain::Xml::Source14 >() << a);
+	b.setSourceList(QList<Libvirt::Domain::Xml::Source15 >() << a);
 	Libvirt::Domain::Xml::Qemucdev p;
 	p.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceFile);
 	p.setQemucdevSrcDef(b);
@@ -624,16 +626,16 @@ void List::add(const CVmRemoteDisplay* vnc_)
 	if (NULL == vnc_ || vnc_->getMode() == PRD_DISABLED)
 		return;
 
-	Libvirt::Domain::Xml::Variant681 v;
+	Libvirt::Domain::Xml::Variant683 v;
 	v.setPort(vnc_->getPortNumber());
 	v.setListen(vnc_->getHostName());
 	if (PRD_AUTO == vnc_->getMode())
 		v.setAutoport(Libvirt::Domain::Xml::EVirYesNoYes);
 
-	mpl::at_c<Libvirt::Domain::Xml::VChoice683::types, 0>::type y;
+	mpl::at_c<Libvirt::Domain::Xml::VChoice685::types, 0>::type y;
 	y.setValue(v);
-	Libvirt::Domain::Xml::Graphics690 g;
-	g.setChoice683(Libvirt::Domain::Xml::VChoice683(y));
+	Libvirt::Domain::Xml::Graphics692 g;
+	g.setChoice685(Libvirt::Domain::Xml::VChoice685(y));
 	QString p = vnc_->getPassword();
 	if (!p.isEmpty())
 		g.setPasswd(p);
@@ -886,9 +888,9 @@ PRL_RESULT Vm::setDevices()
 		b.add(d);
 	}
 	Libvirt::Domain::Xml::Devices x = b.getResult();
-	QList<Libvirt::Domain::Xml::VChoice928> n(x.getChoice928List());
+	QList<Libvirt::Domain::Xml::VChoice930> n(x.getChoice930List());
 	n << t.getAttachment().getControllers();
-	x.setChoice928List(n);
+	x.setChoice930List(n);
 	m_result->setDevices(x);
 	return PRL_ERR_SUCCESS;
 }
