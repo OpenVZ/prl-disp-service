@@ -734,6 +734,29 @@ void List::craftController(Libvirt::Domain::Xml::EModel1 model_)
 	add<1>(y);
 }
 
+void List::add(Libvirt::Domain::Xml::EType10 type_)
+{
+	Libvirt::Domain::Xml::Input x;
+	x.setType(type_);
+	x.setBus(m_controller ? Libvirt::Domain::Xml::EBus1Usb : Libvirt::Domain::Xml::EBus1Ps2);
+	add<5>(x);
+}
+
+void List::addKeyboard()
+{
+	add(Libvirt::Domain::Xml::EType10Keyboard);
+}
+
+void List::addMouse()
+{
+	// if a USB controller is present, then add a USB tablet device
+	// otherwise - add a ps/2 mouse
+	if (m_controller)
+		add(Libvirt::Domain::Xml::EType10Tablet);
+	else
+		add(Libvirt::Domain::Xml::EType10Mouse);
+}
+
 } // namespace Usb
 } // namespace Devices
 
@@ -926,6 +949,8 @@ PRL_RESULT Vm::setDevices()
 	{
 		u.add(d);
 	}
+	u.addKeyboard();
+	u.addMouse();
 
 	Libvirt::Domain::Xml::Devices x = b.getResult();
 	QList<Libvirt::Domain::Xml::VChoice930> n(x.getChoice930List());

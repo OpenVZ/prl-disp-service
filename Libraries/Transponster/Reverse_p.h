@@ -537,6 +537,8 @@ struct List
 	}
 
 	void add(const CVmUsbDevice* usb_);
+	void addKeyboard();
+	void addMouse();
 
 private:
 	template<int N, class T>
@@ -548,6 +550,7 @@ private:
 	}
 
 	void craftController(Libvirt::Domain::Xml::EModel1 model_);
+	void add(Libvirt::Domain::Xml::EType10 type_);
 
 	const CVmUsbController* m_settings;
 	deviceList_type m_deviceList;
