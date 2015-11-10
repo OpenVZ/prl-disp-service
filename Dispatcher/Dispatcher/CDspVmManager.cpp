@@ -794,7 +794,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmInstallTools> >::run()
 {
 	SmartPtr<CVmConfiguration> c = Details::Assistant(m_context).getConfig();
 	if (!c.isValid())
-		return m_context.reply(PRL_ERR_VM_UUID_NOT_FOUND);
+		return;
 
 	QString x = ParallelsDirs::getToolsImage(ParallelsDirs::getAppExecuteMode(),
 			c->getVmSettings()->getVmCommonOptions()->getOsVersion());
