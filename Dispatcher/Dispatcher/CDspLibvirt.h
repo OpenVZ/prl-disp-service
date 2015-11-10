@@ -38,9 +38,11 @@
 #include <libvirt/libvirt.h>
 #include <libvirt/libvirt-qemu.h>
 #include <libvirt/virterror.h>
+#include <libvirt/libvirt-qemu.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
 #include <XmlModel/NetworkConfig/CVirtualNetwork.h>
 #include <XmlModel/HostHardwareInfo/CHwNetAdapter.h>
+#include <boost/optional.hpp>
 
 class CSavedStateTree;
 
@@ -76,16 +78,27 @@ private:
 
 struct Guest
 {
+	struct ExitStatus {
+		int exitcode;
+		bool signaled;
+		QByteArray stdOut;
+		QByteArray stdErr;
+	};
+
 	explicit Guest(const  QSharedPointer<virDomain>& domain_): m_domain(domain_)
 	{
 	}
-
+ 
 	PRL_RESULT dumpMemory(const QString& path, QString& reply);
 	PRL_RESULT dumpState(const QString& path, QString& reply);
 	PRL_RESULT setUserPasswd(const QString& user, const QString& passwd);
+	PRL_RESULT getCommandStatus(int pid, boost::optional<ExitStatus>& status);
+	PRL_RESULT runCommand(const QString& path, const QList<QString>& args,
+			const QByteArray& stdIn, int& pid);
 
 private:
 	PRL_RESULT execute(const QString& cmd, QString& reply);
+	PRL_RESULT executeInAgent(const QString& cmd, QString& reply);
 
 	QSharedPointer<virDomain> m_domain;
 };

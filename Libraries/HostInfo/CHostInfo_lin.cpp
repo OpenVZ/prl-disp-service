@@ -771,10 +771,12 @@ static QString get_os_type(void)
 	for( int i = 0; release_info[i].open; i++)
 		if( (fp = release_info[i].open(release_info[i].fname, "r")) != NULL )
 		{
-			fgets(buffer, sizeof(buffer) - 1, fp);
-			*strchrnul( buffer, '\n' ) = 0;
+			char * s = fgets(buffer, sizeof(buffer) - 1, fp);
 			release_info[i].close( fp );
-			return  UTF8_2QSTR(buffer);
+			if (s != NULL) {
+				*strchrnul( buffer, '\n' ) = 0;
+				return  UTF8_2QSTR(buffer);
+			}
 		}
 
 	return QString();

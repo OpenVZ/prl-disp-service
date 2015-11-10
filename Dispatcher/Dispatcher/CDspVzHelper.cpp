@@ -42,7 +42,7 @@
 #endif
 
 #ifdef _LIN_
-#include "Tasks/Task_ExecCt.h"
+#include "Tasks/Task_ExecVm.h"
 #endif
 #include "Libraries/Std/PrlAssert.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
@@ -703,7 +703,7 @@ void CDspVzHelper::guestRunProgram(const IOSender::Handle& sender,
 		pUser->sendResponseError( &evt, p );
 		return;
 	}
-	CDspService::instance()->getTaskManager().schedule(new Task_ExecCt(pUser, p));
+	CDspService::instance()->getTaskManager().schedule(new Task_ExecVm(pUser, p, Exec::Ct()));
 #else
 	Q_UNUSED(pUser);
 	CDspService::instance()->sendSimpleResponseToClient(sender, p, PRL_ERR_UNIMPLEMENTED);
