@@ -172,7 +172,7 @@ namespace Policy
 
 struct Io
 {
-static PRL_RESULT setLimit(Libvirt::Tools::Agent::Vm::Runtime& device_,
+static Libvirt::Result setLimit(Libvirt::Tools::Agent::Vm::Runtime& device_,
 	const CVmHardDisk* disk_, quint32 limit_)
 {
 	return device_.setIoLimit(disk_, limit_);
@@ -181,7 +181,7 @@ static PRL_RESULT setLimit(Libvirt::Tools::Agent::Vm::Runtime& device_,
 
 struct Iops
 {
-static PRL_RESULT setLimit(Libvirt::Tools::Agent::Vm::Runtime& device_,
+static Libvirt::Result setLimit(Libvirt::Tools::Agent::Vm::Runtime& device_,
 	const CVmHardDisk* disk_, quint32 limit_)
 {
 	return device_.setIopsLimit(disk_, limit_);
@@ -204,10 +204,10 @@ struct Unit: Vm::Action
 	bool execute(CDspTaskFailure& feedback_)
 	{
 		Libvirt::Tools::Agent::Vm::Runtime d = Libvirt::Kit.vms().at(m_vm).getRuntime();
-		PRL_RESULT e = T::setLimit(d, &m_device, m_limit);
-		if (PRL_FAILED(e))
+		Libvirt::Result e(T::setLimit(d, &m_device, m_limit));
+		if (e.isFailed())
 		{
-			feedback_.setCode(e);
+			feedback_(e.error().convertToEvent());
 			return false;
 		}
 		return Vm::Action::execute(feedback_);

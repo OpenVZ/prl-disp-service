@@ -52,11 +52,11 @@ Domain::Domain(virDomainPtr model_, QSharedPointer<Model::Domain> view_):
 void Domain::run()
 {
 	CVmConfiguration c;
-	if (PRL_SUCCEEDED(m_agent.getConfig(c)))
+	if (m_agent.getConfig(c).isSucceed())
 		m_view->setConfig(c);	
 
 	VIRTUAL_MACHINE_STATE s;
-	if (PRL_SUCCEEDED(m_agent.getState(s)))
+	if (m_agent.getState(s).isSucceed())
 		m_view->setState(s);
 }
 
@@ -904,7 +904,7 @@ void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_
 
 	CVmConfiguration runtime;
 	Tools::Agent::Vm::Unit v = Kit.vms().at(vmUuid_);
-	if (PRL_FAILED(v.getConfig(runtime, true)))
+	if (v.getConfig(runtime, true).isFailed())
 		return;
 
 	Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(y.get(), runtime);

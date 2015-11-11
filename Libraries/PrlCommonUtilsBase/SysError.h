@@ -28,11 +28,113 @@
 #define STD_SysError_h__
 
 #include <QString>
+#include <boost/optional.hpp>
+#include <boost/variant.hpp>
+#include <boost/type_traits.hpp>
+#include <boost/utility/enable_if.hpp>
+#include <utility>
+#include <prlsdk/PrlTypes.h>
 
 namespace Prl
 {
-	QString GetLastErrorAsString();
-	long GetLastError();
-}
+QString GetLastErrorAsString();
+long GetLastError();
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Expected
+
+template <typename T, typename E>
+struct Expected
+{
+	explicit Expected()
+	{
+	}
+
+	explicit Expected(const T& value_)
+		: m_data(value_)
+	{
+	}
+
+	explicit Expected(const E& error_)
+		: m_data(error_)
+	{
+	}
+
+	bool isFailed() const
+	{
+		return !isSucceed();
+	}
+
+	bool isSucceed() const
+	{
+		return (m_data.which() == 0);
+	}
+
+	const T& value() const
+	{
+		return boost::get<0>(m_data);
+	}
+
+	T& value()
+	{
+		return boost::get<0>(m_data);
+	}
+
+	const E& error() const
+	{
+		return boost::get<1>(m_data);
+	}
+
+	E& error()
+	{
+		return boost::get<1>(m_data);
+	}
+
+private:
+	boost::variant<T, E> m_data;
+};
+
+template <typename T>
+struct Expected<T, T>;
+template <>
+struct Expected<void, void>;
+
+template <typename E>
+struct Expected<void, E>
+{
+	explicit Expected()
+	{
+	}
+
+	explicit Expected(const E& error_)
+		: m_error(error_)
+	{
+	}
+
+	bool isFailed() const
+	{
+		return !isSucceed();
+	}
+
+	bool isSucceed() const
+	{
+		return !m_error;
+	}
+
+	const E& error() const
+	{
+		return *m_error;
+	}
+
+	E& error()
+	{
+		return *m_error;
+	}
+
+private:
+	boost::optional<E> m_error;
+};
+
+} // namespace Prl
 
 #endif //STD_SysError_h__

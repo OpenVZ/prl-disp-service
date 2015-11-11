@@ -462,8 +462,8 @@ PRL_RESULT CDspVmSnapshotStoreHelper::sendSnapshotsTree(SmartPtr<CDspClient> pUs
 		return PRL_ERR_FAILURE;
 	}
 	View::model_type x;
-	PRL_RESULT e = Libvirt::Kit.vms().at(cmd->GetVmUuid()).getSnapshot().all(x);
-	if (PRL_FAILED(e))
+	Libvirt::Result e = Libvirt::Kit.vms().at(cmd->GetVmUuid()).getSnapshot().all(x);
+	if (e.isFailed())
 	{
 		WRITE_TRACE(DBG_FATAL, "Unable to load snapshot tree for vm %s",
 			QSTR2UTF8(cmd->GetVmUuid()));

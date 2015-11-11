@@ -340,8 +340,9 @@ PRL_RESULT Task_DeleteVm::run_body()
 	if (PRL_SUCCEEDED(ret))
 	{
 #ifdef _LIBVIRT_
-		ret = Libvirt::Kit.vms().at(m_pVmConfig->getVmIdentification()->getVmUuid())
-				.undefine();
+		Libvirt::Result r(Libvirt::Kit.vms().at(m_pVmConfig->getVmIdentification()->getVmUuid())
+				.undefine());
+		ret = (r.isFailed()? r.error().code() : PRL_ERR_SUCCESS);
 #endif // _LIBVIRT_
 	}
 	if ( doUnregisterOnly() )

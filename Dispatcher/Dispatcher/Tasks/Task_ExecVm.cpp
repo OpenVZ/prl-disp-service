@@ -152,13 +152,13 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 	int p = -1;
         Libvirt::Tools::Agent::Vm::Guest s = Libvirt::Kit.vms()
 		.at(m_task->getVmUuid()).getGuest();
-	PRL_RESULT ret = s.runCommand(
+	Libvirt::Result r = s.runCommand(
 			cmd->GetProgramName(),
 			cmd->GetProgramArguments(),
 			variant_.getStdin(),
 			p);
-	if (PRL_FAILED(ret))
-		return ret;
+	if (r.isFailed())
+		return r.error().code();
 
 	if (!variant_.checkCmdFinished(p, *m_task))
 		return PRL_ERR_TIMEOUT;
@@ -373,9 +373,8 @@ bool Vm::checkCmdFinished(int pid_, Task_ExecVm& task_)
 		Libvirt::Tools::Agent::Vm::Guest g = Libvirt::Kit.vms()
 			.at(task_.getVmUuid()).getGuest();
 
-		PRL_RESULT ret = g.getCommandStatus(pid_, m_exitStatus);
-		if (PRL_FAILED(ret) || m_exitStatus)
-		{
+		Libvirt::Result ret = g.getCommandStatus(pid_, m_exitStatus);
+		if (ret.isFailed() || m_exitStatus) {
 			task_.wakeUpStage();
 			return true;
 		}

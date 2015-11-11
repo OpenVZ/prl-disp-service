@@ -208,8 +208,8 @@ Dao::Dao(Libvirt::Tools::Agent::Hub& libvirt_):
 PRL_RESULT Dao::list(QList<CVirtualNetwork>& dst_)
 {
 	QList<Libvirt::Tools::Agent::Network::Unit> a;
-	PRL_RESULT e = m_networks.all(a);
-	if (PRL_FAILED(e))
+	Libvirt::Result e = m_networks.all(a);
+	if (e.isFailed())
 	{
 		WRITE_TRACE(DBG_FATAL, "Cannot list networks!");
 		return PRL_ERR_UNEXPECTED;
@@ -218,10 +218,11 @@ PRL_RESULT Dao::list(QList<CVirtualNetwork>& dst_)
 	foreach(Libvirt::Tools::Agent::Network::Unit n, a)
 	{
 		CVirtualNetwork y;
-		if (PRL_FAILED(e = n.getConfig(y)))
+		e = n.getConfig(y);
+		if (e.isFailed())
 		{
 			WRITE_TRACE(DBG_FATAL, "Cannot get the network config!");
-			return e;
+			return e.error().code();
 		}
 		dst_ << y;
 	}
@@ -240,8 +241,9 @@ PRL_RESULT Dao::define(CVirtualNetwork model_)
 		return e;
 
 	Libvirt::Tools::Agent::Network::Unit u;
-	if (PRL_FAILED(e = m_networks.define(model_, &u)))
-		return e;
+	Libvirt::Result z = m_networks.define(model_, &u);
+	if (z.isFailed())
+		return z.error().code();
 
 	u.stop();
 	u.start();
@@ -251,7 +253,7 @@ PRL_RESULT Dao::define(CVirtualNetwork model_)
 PRL_RESULT Dao::create(const CVirtualNetwork& model_)
 {
 	QString x = model_.getNetworkID();
-	if (PRL_SUCCEEDED(m_networks.find(x)))
+	if (m_networks.find(x).isSucceed())
 	{
 		WRITE_TRACE(DBG_FATAL, "Duplicated new network ID '%s' !", QSTR2UTF8(x));
 		return PRL_NET_DUPLICATE_VIRTUAL_NETWORK_ID;
@@ -263,14 +265,15 @@ PRL_RESULT Dao::remove(const CVirtualNetwork& model_)
 {
 	QString x = model_.getNetworkID();
 	Libvirt::Tools::Agent::Network::Unit u;
-	if (PRL_FAILED(m_networks.find(x, &u)))
+	if (m_networks.find(x, &u).isFailed())
 	{
 		WRITE_TRACE(DBG_FATAL, "The network ID '%s' does not exist !",
 			QSTR2UTF8(x));
 		return PRL_NET_VIRTUAL_NETWORK_ID_NOT_EXISTS;
 	}
 	u.stop();
-	return u.undefine();
+	Libvirt::Result r = u.undefine();
+	return (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
 }
 
 PRL_RESULT Dao::update(const CVirtualNetwork& model_)
@@ -278,7 +281,7 @@ PRL_RESULT Dao::update(const CVirtualNetwork& model_)
 	CVirtualNetwork w;
 	QString x = model_.getNetworkID();
 	Libvirt::Tools::Agent::Network::Unit u = m_networks.at(model_.getUuid());
-	if (PRL_FAILED(u.getConfig(w)))
+	if (u.getConfig(w).isFailed())
 	{
 		WRITE_TRACE(DBG_FATAL, "The network ID '%s' was not found by uuid!", QSTR2UTF8(x));
 		return PRL_NET_VIRTUAL_NETWORK_NOT_FOUND;
@@ -312,17 +315,23 @@ PRL_RESULT Dao::craftBridge(CVirtualNetwork& network_)
 			e = PRL_ERR_FILE_NOT_FOUND;
 	}
 	else
-		e = m_interfaces.find(network_.getBoundCardMac(), m);
+	{
+		Libvirt::Result r = m_interfaces.find(network_.getBoundCardMac(), m);
+		e = (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
+	}
 
 	if (PRL_FAILED(e))
 		return e;
 
 	Libvirt::Tools::Agent::Interface::Bridge b;
-	e = m_interfaces.find(m, b);
+	Libvirt::Result r = m_interfaces.find(m, b);
+	e = (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
 	if (PRL_ERR_FILE_NOT_FOUND == e)
 	{
-		if (PRL_FAILED(e = m_interfaces.define(m, b)))
-			return e;
+		r = m_interfaces.define(m, b);
+
+		if (r.isFailed())
+			return r.error().code();
 
 		QProcess::execute("ifdown", QStringList() << m.getDeviceName());
 		QProcess::execute("ifup", QStringList() << b.getName());
@@ -349,9 +358,9 @@ PRL_RESULT Dao::attachExisting(CVirtualNetwork model_,
 	z->setBridgeName(bridge_);
 	model_.setVZVirtualNetwork(z);
 	Libvirt::Tools::Agent::Network::Unit u;
-	PRL_RESULT e = m_networks.define(model_, &u);
-	if (PRL_FAILED(e))
-		return e;
+	Libvirt::Result e = m_networks.define(model_, &u);
+	if (e.isFailed())
+		return e.error().code();
 
 	u.start();
 	return PRL_ERR_SUCCESS;

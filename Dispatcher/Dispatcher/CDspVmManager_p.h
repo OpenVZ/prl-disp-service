@@ -72,7 +72,7 @@ struct Unit: QObject
 	{
 	}
 
-	PRL_RESULT operator()();
+	Libvirt::Result operator()();
 
 protected:
 	void timerEvent(QTimerEvent* event_);

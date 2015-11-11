@@ -1705,7 +1705,8 @@ PRL_RESULT Task_RegisterVm::saveVmConfig( )
 		if (IS_OPERATION_SUCCEEDED(ret))
 		{
 #ifdef _LIBVIRT_
-			ret = Libvirt::Kit.vms().define(*m_pVmConfig);
+			Libvirt::Result r(Libvirt::Kit.vms().define(*m_pVmConfig));
+			ret = (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
 #endif // _LIBVIRT_
 			break;
 		}
