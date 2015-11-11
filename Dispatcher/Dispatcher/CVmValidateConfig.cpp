@@ -392,6 +392,7 @@ bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
 		case PRL_ERR_VMCONF_MAIN_MEMORY_MQ_MIN_LESS_VMM_OVERHEAD_VALUE:
 		case PRL_ERR_VMCONF_MAIN_MEMORY_MQ_MIN_OUT_OF_RANGE:
 		case PRL_ERR_REMOTE_DISPLAY_WRONG_PORT_NUMBER:
+		case PRL_ERR_UNSUPPORTED_DEVICE_TYPE:
 		{
 			evtResult.setEventType(PET_DSP_EVT_ERROR_MESSAGE);
 			evtResult.setEventCode(m_lstResults[i]);
@@ -1904,7 +1905,11 @@ void CVmValidateConfig::CheckSound()
 		return;
 	}
 
-	// TODO: Add here some sound validation
+	QList<CVmSoundDevice* > x = m_pVmConfig->getVmHardwareList()->m_lstSoundDevices;
+	if (!x.isEmpty())
+	{
+		m_lstResults += PRL_ERR_UNSUPPORTED_DEVICE_TYPE;
+	}
 }
 
 void CVmValidateConfig::CheckSerialPort()
