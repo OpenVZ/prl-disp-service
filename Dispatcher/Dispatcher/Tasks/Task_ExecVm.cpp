@@ -62,40 +62,132 @@ void CDspTaskFuture<Task_ResponseProcessor>::doStop(Task_ResponseProcessor& task
 
 namespace Exec
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Stdin
 
-struct OnStdinClosed : boost::static_visitor<void> {
-	template <class T>
-	void operator() (T& t) const
+template <class T>
+PRL_RESULT Stdin::operator()(T& mode_) const
+{
+	if (PET_IO_STDIN_WAS_CLOSED == m_package->header.type)
 	{
-		t.closeStdin();
+		LOG_MESSAGE(DBG_WARNING, " -> PET_IO_STDIN_WAS_CLOSED vmuid=%s session=%s",
+				QSTR2UTF8(m_task->getVmUuid()),
+				QSTR2UTF8(Uuid::toString(m_package->header.parentUuid)));
+
+		mode_.closeStdin();
+		m_task->wakeUpStage();
 	}
-};
-
-struct OnStdinData: boost::static_visitor<PRL_RESULT> {
-	OnStdinData(const char * d, size_t s) : m_data(d), m_size(s) {}
-
-	template <class T>
-	PRL_RESULT operator()(T& t) const
+	else if (PET_IO_STDIN_PORTION == m_package->header.type)
 	{
-		return t.processStdinData(m_data, m_size);
+		IOPackage::EncodingType type;
+		SmartPtr<char> data;
+		quint32 size = 0;
+		m_package->getBuffer(0, type, data, size);
+
+		LOG_MESSAGE(DBG_WARNING, "-> PET_IO_STDIN_PORTION vmuuid=%s session=%s size=%d",
+				QSTR2UTF8(m_task->getVmUuid()),
+				QSTR2UTF8(Uuid::toString(m_package->header.parentUuid)),
+				QSTR2UTF8(m_task->getSessionUuid()), size);
+
+		return mode_.processStdinData(data.getImpl(), size);
+	}
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Run
+
+PRL_RESULT Run::operator()(Exec::Ct& variant_) const
+{
+	PRL_RESULT ret;
+	int flags = m_task->getRequestFlags();
+	CProtoCommandPtr p = CProtoSerializer::ParseCommand(m_task->getRequestPackage());
+	CProtoVmGuestRunProgramCommand* cmd = CProtoSerializer::CastToProtoCommand<CProtoVmGuestRunProgramCommand>(p);
+
+	ret = variant_.runCommand(cmd, m_task->getVmUuid(), flags);
+	if (PRL_FAILED(ret))
+		return PRL_ERR_OPERATION_FAILED;
+
+	if (flags & PFD_STDIN)
+		m_task->sendEvent(PET_IO_READY_TO_ACCEPT_STDIN_PKGS);
+
+	ret = variant_.processStd(m_task);
+	if (PRL_FAILED(ret))
+		return ret;
+
+	if (variant_.getExecer().wait()) {
+		WRITE_TRACE(DBG_FATAL, "Task_ExecVm wait failed");
+		return PRL_ERR_OPERATION_FAILED;
 	}
 
-private:
-	const char * m_data;
-	size_t m_size;
-};
+	if (m_task->operationIsCancelled())
+		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-struct Run : boost::static_visitor<PRL_RESULT> {
-	explicit Run(Task_ExecVm* t) : m_task(t) {}
+	if (m_task->sendToClient(PET_IO_FIN_TO_TRANSMIT_STDOUT_STDERR, NULL, 0))
+		return PRL_ERR_OPERATION_FAILED;
 
-	PRL_RESULT operator()(Exec::Ct& t) const;
-	PRL_RESULT operator()(Exec::Vm& t) const;
+	if (!m_task->waitForStage("fin response"))
+		return PRL_ERR_TIMEOUT;
 
-private:
-	Task_ExecVm  * m_task;
-};
+	m_task->setExitCode(variant_.getExecer().get_retcode());
 
-// struct Ct //////////////////////
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Run::operator()(Exec::Vm& variant_) const
+{
+	int flags = m_task->getRequestFlags();
+	CProtoCommandPtr d = CProtoSerializer::ParseCommand(m_task->getRequestPackage());
+	CProtoVmGuestRunProgramCommand* cmd = CProtoSerializer::CastToProtoCommand<CProtoVmGuestRunProgramCommand>(d);
+
+	if (flags & PFD_STDIN) {
+		m_task->sendEvent(PET_IO_READY_TO_ACCEPT_STDIN_PKGS);
+		// Ignore timeout for now, to workaround prlctl exec cmd without stdin
+		m_task->waitForStage("stdin data");
+	}
+	int p = -1;
+        Libvirt::Tools::Agent::Vm::Guest s = Libvirt::Kit.vms()
+		.at(m_task->getVmUuid()).getGuest();
+	PRL_RESULT ret = s.runCommand(
+			cmd->GetProgramName(),
+			cmd->GetProgramArguments(),
+			variant_.getStdin(),
+			p);
+	if (PRL_FAILED(ret))
+		return ret;
+
+	if (!variant_.checkCmdFinished(p, *m_task))
+		return PRL_ERR_TIMEOUT;
+
+	if (m_task->operationIsCancelled())
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	m_task->setExitCode(variant_.getExitStatus().get().exitcode);
+	if (flags & PFD_STDOUT && variant_.getExitStatus().get().stdOut.size()) {
+		if (m_task->sendToClient(PET_IO_STDOUT_PORTION,
+				 variant_.getExitStatus().get().stdOut.data(),
+				 variant_.getExitStatus().get().stdOut.size()))
+			return PRL_ERR_OPERATION_FAILED;
+	}
+
+	if (flags & PFD_STDERR && variant_.getExitStatus().get().stdErr.size()) {
+		if (m_task->sendToClient(PET_IO_STDERR_PORTION,
+				 variant_.getExitStatus().get().stdErr.data(),
+				 variant_.getExitStatus().get().stdErr.size()))
+			return PRL_ERR_OPERATION_FAILED;
+	}
+
+	if (m_task->sendToClient(PET_IO_FIN_TO_TRANSMIT_STDOUT_STDERR, NULL, 0))
+		return PRL_ERR_OPERATION_FAILED;
+
+	if (!m_task->waitForStage("fin response"))
+		return PRL_ERR_TIMEOUT;
+
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ct
 
 Ct::Ct()
 {
@@ -232,12 +324,6 @@ PRL_RESULT Ct::processStd(Task_ExecVm* task)
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Vm::processStdinData(const char * data, size_t size)
-{
-	m_stdindata.append(data, size);
-	return PRL_ERR_SUCCESS;
-}
-
 PRL_RESULT Ct::processStdinData(const char * data, size_t size)
 {
 	if (write(m_stdinfd[1], data, size) != (ssize_t)size) {
@@ -254,143 +340,53 @@ void Ct::closeStdin()
 	m_stdinfd[1] = -1;
 }
 
-// struct Vm //////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
 
-int Vm::calculateTimeout(int i) const
+PRL_RESULT Vm::processStdinData(const char * data, size_t size)
 {
-	if (i < 10) {
+	m_stdindata.append(data, size);
+	return PRL_ERR_SUCCESS;
+}
+
+int Vm::calculateTimeout(int iteration_)
+{
+	switch (iteration_ / 10)
+	{
+	case 0:
 		return 100;
-	} else if (i < 20) {
+	case 1:
 		return 1000;
-	} else {
+	default:
 		return 10000;
 	}
 }
 
-bool Vm::checkCmdFinished(Task_ExecVm * task)
+bool Vm::checkCmdFinished(int pid_, Task_ExecVm& task_)
 {
-	int i, msecs;
 	int timeout = CDspService::instance()->getDispConfigGuard().
 		getDispToDispPrefs()->getSendReceiveTimeout() * 1000;
 
-	for (i=0; ; i++) {
+	for (int i=0; ; ++i) {
 
 		Libvirt::Tools::Agent::Vm::Guest g = Libvirt::Kit.vms()
-			.at(task->getVmUuid()).getGuest();
+			.at(task_.getVmUuid()).getGuest();
 
-		PRL_RESULT ret = g.getCommandStatus(m_pid, m_exitStatus);
-		if (PRL_FAILED(ret) || m_exitStatus) {
-			if (m_exitStatus)
-				task->setExitCode(m_exitStatus.get().exitcode);
-			task->wakeUpStage();
+		PRL_RESULT ret = g.getCommandStatus(pid_, m_exitStatus);
+		if (PRL_FAILED(ret) || m_exitStatus)
+		{
+			task_.wakeUpStage();
 			return true;
 		}
-
 		// Progressive timer starting from 0.1 sec, then 1 sec, then 10 sec
-		msecs = calculateTimeout(i);
+		int msecs = calculateTimeout(i);
 		timeout -= msecs;
 		if (timeout <= 0)
 			break;
 
-		task->waitForStage("command completion", msecs);
+		task_.waitForStage("command completion", msecs);
 	}
-
 	return false;
-}
-
-void Vm::closeStdin()
-{
-}
-
-// struct Run //////////////////////
- 
-PRL_RESULT Run::operator()(Exec::Ct& t) const
-{
-	PRL_RESULT ret;
-	int flags = m_task->getRequestFlags();
-	CProtoCommandPtr p = CProtoSerializer::ParseCommand(m_task->getRequestPackage());
-	CProtoVmGuestRunProgramCommand* cmd = CProtoSerializer::CastToProtoCommand<CProtoVmGuestRunProgramCommand>(p);
-
-	ret = t.runCommand(cmd, m_task->getVmUuid(), flags);
-	if (PRL_FAILED(ret))
-		return PRL_ERR_OPERATION_FAILED;
-
-	if (flags & PFD_STDIN)
-		m_task->sendEvent(PET_IO_READY_TO_ACCEPT_STDIN_PKGS);
-
-	ret = t.processStd(m_task);
-	if (PRL_FAILED(ret))
-		return ret;
-
-	if (t.getExecer().wait()) {
-		WRITE_TRACE(DBG_FATAL, "Task_ExecVm wait failed");
-		return PRL_ERR_OPERATION_FAILED;
-	}
-
-	if (m_task->operationIsCancelled())
-		return PRL_ERR_OPERATION_WAS_CANCELED;
-
-	if (m_task->sendToClient(PET_IO_FIN_TO_TRANSMIT_STDOUT_STDERR, NULL, 0))
-		return PRL_ERR_OPERATION_FAILED;
-
-	if (!m_task->waitForStage("fin response"))
-		return PRL_ERR_TIMEOUT;
-
-	m_task->setExitCode(t.getExecer().get_retcode());
-
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Run::operator()(Exec::Vm& t) const
-{
-	PRL_RESULT ret;
-	int flags = m_task->getRequestFlags();
-	CProtoCommandPtr p = CProtoSerializer::ParseCommand(m_task->getRequestPackage());
-	CProtoVmGuestRunProgramCommand* cmd = CProtoSerializer::CastToProtoCommand<CProtoVmGuestRunProgramCommand>(p);
-
-	if (flags & PFD_STDIN) {
-		m_task->sendEvent(PET_IO_READY_TO_ACCEPT_STDIN_PKGS);
-		// Ignore timeout for now, to workaround prlctl exec cmd without stdin
-		m_task->waitForStage("stdin data");
-	}
-
-        Libvirt::Tools::Agent::Vm::Guest s = Libvirt::Kit.vms()
-		.at(m_task->getVmUuid()).getGuest();
-	ret = s.runCommand(
-			cmd->GetProgramName(),
-			cmd->GetProgramArguments(),
-			t.m_stdindata,
-			t.m_pid);
-	if (PRL_FAILED(ret))
-		return ret;
-
-	if (!t.checkCmdFinished(m_task))
-		return PRL_ERR_TIMEOUT;
-
-	if (m_task->operationIsCancelled())
-		return PRL_ERR_OPERATION_WAS_CANCELED;
-
-	if (flags & PFD_STDOUT && t.m_exitStatus.get().stdOut.size()) {
-		if (m_task->sendToClient(PET_IO_STDOUT_PORTION,
-				 t.m_exitStatus.get().stdOut.data(),
-				 t.m_exitStatus.get().stdOut.size()))
-			return PRL_ERR_OPERATION_FAILED;
-	}
-
-	if (flags & PFD_STDERR && t.m_exitStatus.get().stdErr.size()) {
-		if (m_task->sendToClient(PET_IO_STDERR_PORTION,
-				 t.m_exitStatus.get().stdErr.data(),
-				 t.m_exitStatus.get().stdErr.size()))
-			return PRL_ERR_OPERATION_FAILED;
-	}
-
-	if (m_task->sendToClient(PET_IO_FIN_TO_TRANSMIT_STDOUT_STDERR, NULL, 0))
-		return PRL_ERR_OPERATION_FAILED;
-
-	if (!m_task->waitForStage("fin response"))
-		return PRL_ERR_TIMEOUT;
-
-	return PRL_ERR_SUCCESS;
 }
 
 } // namespace Exec
@@ -430,29 +426,9 @@ void Task_ExecVm::cancelOperation(SmartPtr<CDspClient> pUserSession, const Smart
 
 void Task_ExecVm::processStdin(const SmartPtr<IOPackage>& p)
 {
-	if (p->header.type == PET_IO_STDIN_WAS_CLOSED) {
-		LOG_MESSAGE(DBG_WARNING, " -> PET_IO_STDIN_WAS_CLOSED vmuid=%s session=%s",
-				QSTR2UTF8(m_sVmUuid),
-				QSTR2UTF8(Uuid::toString(p->header.parentUuid)));
-
-		boost::apply_visitor(Exec::OnStdinClosed(), m_mode);
-		wakeUpStage();
-
-	} else if (p->header.type == PET_IO_STDIN_PORTION) {
-		IOPackage::EncodingType type;
-		SmartPtr<char> data;
-		quint32 size;
-
-		LOG_MESSAGE(DBG_WARNING, "-> PET_IO_STDIN_PORTION vmuuid=%s session=%s size=%d",
-				QSTR2UTF8(m_sVmUuid),
-				QSTR2UTF8(Uuid::toString(p->header.parentUuid)),
-				QSTR2UTF8(m_sSessionUuid), size);
-		p->getBuffer(0, type, data, size);
-
-		PRL_RESULT ret = boost::apply_visitor(Exec::OnStdinData(data.getImpl(), size), m_mode);
-		if (PRL_FAILED(ret))
-			setLastErrorCode(ret);
-	}
+	PRL_RESULT e = boost::apply_visitor(Exec::Stdin(p, *this), m_mode);
+	if (PRL_FAILED(e))
+		setLastErrorCode(e);
 }
 
 PRL_RESULT Task_ExecVm::sendEvent(int type)
@@ -560,7 +536,7 @@ PRL_RESULT Task_ExecVm::run_body()
 {
 	PRL_RESULT ret;
 	
-	ret = boost::apply_visitor(Exec::Run(this), m_mode);
+	ret = boost::apply_visitor(Exec::Run(*this), m_mode);
 
 	if (PRL_FAILED(ret))
 		WRITE_TRACE(DBG_FATAL, "Exec Action failed with code [%#x][%s]",
