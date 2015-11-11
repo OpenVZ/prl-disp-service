@@ -705,6 +705,59 @@ Libvirt::Domain::Xml::Panic List::craftPanic() const
 	return p;
 }
 
+namespace Usb
+{
+
+void List::add(const CVmUsbDevice* usb_)
+{
+	if (usb_ == NULL || m_settings == NULL)
+		return;
+	if (usb_->getUsbType() != PUDT_OTHER)
+		return;
+	if (m_settings->isUhcEnabled())
+		craftController(Libvirt::Domain::Xml::EModel1Piix3Uhci);
+	if (m_settings->isEhcEnabled())
+		craftController(Libvirt::Domain::Xml::EModel1Ehci);
+	if (m_settings->isXhcEnabled())
+		craftController(Libvirt::Domain::Xml::EModel1NecXhci);
+}
+
+void List::craftController(Libvirt::Domain::Xml::EModel1 model_)
+{
+	Libvirt::Domain::Xml::Variant570 v;
+	v.setModel(model_);
+	mpl::at_c<Libvirt::Domain::Xml::VChoice585::types, 2>::type x;
+	x.setValue(v);
+	Libvirt::Domain::Xml::Controller y;
+	y.setIndex(m_controller++);
+	y.setChoice585(x);
+	add<1>(y);
+}
+
+void List::add(Libvirt::Domain::Xml::EType10 type_)
+{
+	Libvirt::Domain::Xml::Input x;
+	x.setType(type_);
+	x.setBus(m_controller ? Libvirt::Domain::Xml::EBus1Usb : Libvirt::Domain::Xml::EBus1Ps2);
+	add<5>(x);
+}
+
+void List::addKeyboard()
+{
+	add(Libvirt::Domain::Xml::EType10Keyboard);
+}
+
+void List::addMouse()
+{
+	// if a USB controller is present, then add a USB tablet device
+	// otherwise - add a ps/2 mouse
+	if (m_controller)
+		add(Libvirt::Domain::Xml::EType10Tablet);
+	else
+		add(Libvirt::Domain::Xml::EType10Mouse);
+}
+
+} // namespace Usb
 } // namespace Devices
 
 namespace Vm
@@ -850,13 +903,16 @@ PRL_RESULT Vm::setDevices()
 	CVmHardware* h = m_input.getVmHardwareList();
 	if (NULL == h)
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
+	CVmSettings* s = m_input.getVmSettings();
+	if (NULL == s)
+		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
 	Device::List b;
-	Device::Clustered::List t(Boot::Reverse(m_input.getVmSettings()->
+	Device::Clustered::List t(Boot::Reverse(s->
 		getVmStartupOptions()->getBootDeviceList()), b);
 	foreach (const CVmHardDisk* d, h->m_lstHardDisks)
 	{
-		t.add(d, m_input.getVmSettings()->getVmRuntimeOptions());
+		t.add(d, s->getVmRuntimeOptions());
 	}
 	foreach (const CVmFloppyDisk* d, h->m_lstFloppyDisks)
 	{
@@ -866,7 +922,7 @@ PRL_RESULT Vm::setDevices()
 	{
 		t.add(d);
 	}
-	b.add(m_input.getVmSettings()->getVmRemoteDisplay());
+	b.add(s->getVmRemoteDisplay());
 	foreach (const CVmVideo* d, h->m_lstVideo)
 	{
 		b.add(d);
@@ -887,9 +943,18 @@ PRL_RESULT Vm::setDevices()
 	{
 		b.add(d);
 	}
+
+	Device::Usb::List u(s->getUsbController());
+	foreach (const CVmUsbDevice* d, h->m_lstUsbDevices)
+	{
+		u.add(d);
+	}
+	u.addKeyboard();
+	u.addMouse();
+
 	Libvirt::Domain::Xml::Devices x = b.getResult();
 	QList<Libvirt::Domain::Xml::VChoice930> n(x.getChoice930List());
-	n << t.getAttachment().getControllers();
+	n << t.getAttachment().getControllers() << u.getDevices();
 	x.setChoice930List(n);
 	m_result->setDevices(x);
 	return PRL_ERR_SUCCESS;

@@ -422,6 +422,23 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice930::
 	return PRL_ERR_SUCCESS;
 }
 
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice930::types, 1>::type& controller_) const
+{
+	if (controller_.getValue().getChoice585().which() != 2)
+		return PRL_ERR_SUCCESS;
+	if (m_vm->getVmSettings() == NULL)
+		return PRL_ERR_UNEXPECTED;
+	CVmUsbController* u = m_vm->getVmSettings()->getUsbController();
+	if (u == NULL)
+		return PRL_ERR_UNEXPECTED;
+	CVmHardware* h = m_vm->getVmHardwareList();
+	if (NULL == h)
+		return PRL_ERR_UNEXPECTED;
+	boost::apply_visitor(Visitor::Controller::Usb(*u, *h),
+		controller_.getValue().getChoice585());
+	return PRL_ERR_SUCCESS;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Clock
 
@@ -443,6 +460,45 @@ void Clock::operator()(const mpl::at_c<Libvirt::Domain::Xml::VClock::types, 2>::
 	m_clock->setTimeShift(variable_.getValue().getAdjustment().get().toLongLong());
 }
 
+namespace Controller
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Usb
+
+void Usb::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice585::types, 2>::type& usb_) const
+{
+	boost::optional<Libvirt::Domain::Xml::EModel1> m = usb_.getValue().getModel();
+	if (!m)
+		return;
+	switch (m.get())
+	{
+	case Libvirt::Domain::Xml::EModel1Piix3Uhci:
+		m_settings->setUhcEnabled(true);
+		break;
+	case Libvirt::Domain::Xml::EModel1Ehci:
+		m_settings->setEhcEnabled(true);
+		break;
+	case Libvirt::Domain::Xml::EModel1NecXhci:
+		m_settings->setXhcEnabled(true);
+		break;
+	default:
+		return;
+	}
+
+	const QList<CVmUsbDevice*>& u = m_hardware->m_lstUsbDevices;
+	if (std::find_if(u.begin(), u.end(),
+		boost::bind(&CVmUsbDevice::getUsbType, _1) == PUDT_OTHER)
+		== u.end())
+	{
+		CVmUsbDevice* d = new(CVmUsbDevice);
+		d->setEnabled(PVE::DeviceEnabled);
+		d->setUsbType(PUDT_OTHER);
+		m_hardware->addUsbDevice(d);
+	}
+}
+
+} // namespace Controller
 } // namespace Visitor
 
 namespace
@@ -538,6 +594,12 @@ PRL_RESULT Direct::setSettings()
 			->getBios()
 			->setEfiEnabled(true);
 	}
+
+	CVmUsbController* u(new CVmUsbController());
+	u->setUhcEnabled(false);
+	u->setEhcEnabled(false);
+	u->setXhcEnabled(false);
+	s->setUsbController(u);
 
 	m_result->setVmSettings(s);
 	return PRL_ERR_SUCCESS;

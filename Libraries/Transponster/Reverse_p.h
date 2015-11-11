@@ -519,6 +519,45 @@ void List::build(T builder_)
 }
 
 } // namespace Clustered
+
+namespace Usb
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+struct List
+{
+	List(const CVmUsbController* settings_) : m_settings(settings_), m_controller(0)
+	{
+	}
+
+	deviceList_type getDevices() const
+	{
+		return m_deviceList;
+	}
+
+	void add(const CVmUsbDevice* usb_);
+	void addKeyboard();
+	void addMouse();
+
+private:
+	template<int N, class T>
+	void add(const T& value_)
+	{
+		typename mpl::at_c<deviceList_type::value_type::types, N>::type x;
+		x.setValue(value_);
+		m_deviceList << x;
+	}
+
+	void craftController(Libvirt::Domain::Xml::EModel1 model_);
+	void add(Libvirt::Domain::Xml::EType10 type_);
+
+	const CVmUsbController* m_settings;
+	deviceList_type m_deviceList;
+	quint16 m_controller;
+};
+
+} // namespace Usb
 } // namespace Device
 
 ///////////////////////////////////////////////////////////////////////////////
