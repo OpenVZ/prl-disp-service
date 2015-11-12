@@ -142,8 +142,12 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 
 	if (flags & PFD_STDIN) {
 		m_task->sendEvent(PET_IO_READY_TO_ACCEPT_STDIN_PKGS);
-		// Ignore timeout for now, to workaround prlctl exec cmd without stdin
-		m_task->waitForStage("stdin data");
+		// workaround prlctl exec cmd without stdin
+		if(!m_task->waitForStage("stdin data", 1000) && !variant_.getStdin().isEmpty()) {
+			if (!m_task->waitForStage("stdin data")) {
+				return PRL_ERR_TIMEOUT;
+			}
+		}
 	}
 	int p = -1;
         Libvirt::Tools::Agent::Vm::Guest s = Libvirt::Kit.vms()
@@ -179,9 +183,6 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 
 	if (m_task->sendToClient(PET_IO_FIN_TO_TRANSMIT_STDOUT_STDERR, NULL, 0))
 		return PRL_ERR_OPERATION_FAILED;
-
-	if (!m_task->waitForStage("fin response"))
-		return PRL_ERR_TIMEOUT;
 
 	return PRL_ERR_SUCCESS;
 }
