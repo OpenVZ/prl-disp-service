@@ -328,7 +328,21 @@ PRL_RESULT Task_VzManager::mount_env()
 	if (PRL_FAILED(res))
 		return res;
 
-	return get_op_helper()->mount_env(sUuid);
+	bool infoMode = (cmd->GetCommandFlags() & PMVD_INFO);
+
+	if (infoMode) {
+		SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+		if (!pConfig)
+			return PRL_ERR_VM_GET_CONFIG_FAILED;
+		Prl::Expected<QString, PRL_RESULT> info =
+			get_op_helper()->get_env_mount_info(pConfig);
+		if (info.isFailed())
+			return info.error();
+		getResponseCmd()->AddStandardParam(info.value());
+	} else {
+		res = get_op_helper()->mount_env(sUuid);
+	}
+	return res;
 }
 
 PRL_RESULT Task_VzManager::umount_env()

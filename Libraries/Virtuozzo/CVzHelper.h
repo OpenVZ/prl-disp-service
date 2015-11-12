@@ -38,6 +38,7 @@
 #endif
 
 #include "Libraries/Std/SmartPtr.h"
+#include "Libraries/PrlCommonUtilsBase/SysError.h"
 #include <prlsdk/PrlEnums.h>
 #include "XmlModel/NetworkConfig/CNetworkClassesConfig.h"
 #include "XmlModel/NetworkConfig/CNetworkShapingConfig.h"
@@ -470,6 +471,8 @@ public:
 	int stop_env(const QString &uuid, PRL_UINT32 nMode);
 	int mount_env(const QString &uuid);
 	int umount_env(const QString &uuid);
+	Prl::Expected<QString, PRL_RESULT> get_env_mount_info(
+			const SmartPtr<CVmConfiguration> &pConfig);
 	int suspend_env(const QString &uuid);
 	int resume_env(const QString &uuid, PRL_UINT32 flags);
 	int delete_env(const QString &uuid);

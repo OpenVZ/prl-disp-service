@@ -229,4 +229,23 @@ QString currencySign( const QString& currencyId )
 	return currencySigns.value( currencyId.toUpper(), currencyId );
 }
 
+QString formatMountInfo(
+		const QString &volumeId, const QString &imagePath,
+		const QString &mountPath, const QString &filesystem,
+		quint64 totalSpace, quint64 freeSpace)
+{
+		QString pattern("Volume %1:\n"
+						"    %2 %3\n"
+						"    %4 %5\n"
+						"    %6 %7 M\n"
+						"    %8 %9 M\n"
+						"    %10 %11\n");
+		return pattern.arg(volumeId)
+					  .arg("image", -27).arg(imagePath)
+					  .arg("filesystem", -27).arg(filesystem)
+					  .arg("size", -27).arg(totalSpace >> 20)
+					  .arg("free space", -27).arg(freeSpace >> 20)
+					  .arg("mountpoint", -27).arg(mountPath);
+}
+
 }
