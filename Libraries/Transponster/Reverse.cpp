@@ -1239,11 +1239,10 @@ PRL_RESULT Reverse::setHostOnly()
 	if (NULL != v4 && v4->isEnabled())
 		x << craft<Address::IPv4>(*v4, n->getHostIPAddress(), n->getIPNetMask());
 
-/*
 	CDHCPServer* v6 = n->getDHCPv6ServerOrig();
 	if (NULL != v6 && v6->isEnabled())
 		x << craft<Address::IPv6>(*v6, n->getHostIP6Address(), n->getIP6NetMask());
-*/
+
 	if (!x.isEmpty())
 		m_result.setIpList(x);
 
