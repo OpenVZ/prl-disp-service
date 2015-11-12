@@ -33,7 +33,8 @@
 #include <Libraries/Transponster/Reverse.h>
 #include <Libraries/PrlNetworking/netconfig.h>
 
-#include <net/if.h>
+#include <sys/socket.h>
+#include <linux/if.h>
 #include <sys/ioctl.h>
 #include <linux/if_tun.h>
 
@@ -1231,13 +1232,13 @@ void Accounting::operator()(const QString& device_)
 			QSTR2UTF8(m_control.errorString()));
 		return;
 	}
-	struct tun_acctid x;
-	qstrncpy(x.ifname, QSTR2UTF8(device_), sizeof(x.ifname));
-	x.acctid = m_id;
+	struct ifreq x;
+	qstrncpy(x.ifr_name, QSTR2UTF8(device_), sizeof(x.ifr_name));
+	x.ifr_acctid = m_id;
 	if (::ioctl(m_control.handle(), TUNSETACCTID, &x) == -1)
 	{
 		WRITE_TRACE(DBG_FATAL, "ioctl(TUNSETACCTID, %s, %u) failed: %m",
-			x.ifname, x.acctid);
+			x.ifr_name, x.ifr_acctid);
 	}
 }
 
