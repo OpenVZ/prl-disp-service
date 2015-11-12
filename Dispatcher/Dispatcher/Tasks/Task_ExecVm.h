@@ -41,6 +41,9 @@
 using namespace Parallels;
 
 class Task_ExecVm;
+///////////////////////////////////////////////////////////////////////////////
+// class Task_ResponseProcessor
+
 class Task_ResponseProcessor : public CDspTaskHelper
 {
 	Q_OBJECT
@@ -70,51 +73,107 @@ private:
 };
 
 
-class Task_ExecVm;
-
 namespace Exec {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Stdin
+
+struct Stdin: boost::static_visitor<PRL_RESULT>
+{
+	Stdin(const SmartPtr<IOPackage>& package_, Task_ExecVm& task_):
+		m_task(&task_), m_package(package_)
+	{
+	}
+
+	template <class T>
+	PRL_RESULT operator()(T& mode_) const;
+
+private:
+	Task_ExecVm* m_task;
+	SmartPtr<IOPackage> m_package;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ct
 
 struct Ct {
 	Ct();
 	~Ct();
+
 	int sendStdData(Task_ExecVm*, int &fd, int type);
 	PRL_RESULT processStd(Task_ExecVm*);
 	PRL_RESULT runCommand(
 		CProtoVmGuestRunProgramCommand* req, const QString& uuid, int flags);
 	void closeStdin();
 	PRL_RESULT processStdinData(const char * data, size_t size);
-	CVzExecHelper& getExecer() { return m_exec; }
+	CVzExecHelper& getExecer()
+	{
+		return m_exec;
+	}
 
+private:
 	int m_stdinfd[2];
 	int m_stdoutfd[2];
 	int m_stderrfd[2];
 	CVzExecHelper m_exec;
 };
 
-struct Vm {
-	Vm() : m_pid(-1) {}
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+struct Vm
+{
+	typedef boost::optional<Libvirt::Tools::Agent::Vm::Guest::ExitStatus>
+		exitStatus_type;
+
 	PRL_RESULT runCommand(
 		CProtoVmGuestRunProgramCommand* req, const QString& uuid, int flags);
-	void closeStdin();
+	void closeStdin()
+	{
+	}
 	PRL_RESULT processStdinData(const char * data, size_t size);
-	int calculateTimeout(int i) const;
-	bool checkCmdFinished(Task_ExecVm*);
+	bool checkCmdFinished(int pid_, Task_ExecVm& );
+	const QByteArray& getStdin() const
+	{
+		return m_stdindata;
+	}
+	const exitStatus_type& getExitStatus() const
+	{
+		return m_exitStatus;
+	}
 
-	int m_pid;
+private:
+	static int calculateTimeout(int iteration_);
+
 	QByteArray m_stdindata;
-	boost::optional<Libvirt::Tools::Agent::Vm::Guest::ExitStatus> m_exitStatus;
+	exitStatus_type m_exitStatus;
 };
 
-struct Run;
+///////////////////////////////////////////////////////////////////////////////
+// struct Run
+
+struct Run: boost::static_visitor<PRL_RESULT>
+{
+	explicit Run(Task_ExecVm& task_): m_task(&task_)
+	{
+	}
+
+	PRL_RESULT operator()(Exec::Ct& variant_) const;
+	PRL_RESULT operator()(Exec::Vm& variant_) const;
+
+private:
+	Task_ExecVm* m_task;
+};
 
 typedef boost::variant<Exec::Vm, Exec::Ct> Mode;
 
 } // namespace Exec
 
+///////////////////////////////////////////////////////////////////////////////
+// class Task_ExecVm
 
 class Task_ExecVm : public CDspTaskHelper
 {
-	friend Exec::Run;
 public:
 	Task_ExecVm(const SmartPtr<CDspClient>& pClient,
 		const SmartPtr<IOPackage>& p, Exec::Mode mode);
@@ -126,17 +185,18 @@ public:
 	const QString &getSessionUuid() const  { return m_sSessionUuid; }
 	const QString &getGuestSessionUuid() const  { return m_sGuestSessionUuid; }
 	PRL_RESULT sendToClient(int type, const char *data, int size);
+	void setExitCode(int code) { m_exitcode = code; }
+	bool waitForStage(const char* what, unsigned int timeout = 0);
+	void wakeUpStage();
 
 private:
 	CProtoCommandDspWsResponse *getResponseCmd();
-private:
 	virtual PRL_RESULT prepareTask();
 	virtual PRL_RESULT run_body();
 	virtual void finalizeTask();
 	virtual void cancelOperation(SmartPtr<CDspClient>, const SmartPtr<IOPackage> &);
 	PRL_RESULT startResponseProcessor();
 
-private:
 	unsigned int m_nFlags;
 	unsigned int m_nTimeout;
 	CProtoCommandPtr m_pResponseCmd;
@@ -150,11 +210,6 @@ private:
 	QString m_sGuestSessionUuid;
 	int m_exitcode;
 	Exec::Mode m_mode;
-
-public:
-	void setExitCode(int code) { m_exitcode = code; }
-	bool waitForStage(const char* what, unsigned int timeout = 0);
-	void wakeUpStage();
 };
 
 #endif	// __Task_ExecVm_H__
