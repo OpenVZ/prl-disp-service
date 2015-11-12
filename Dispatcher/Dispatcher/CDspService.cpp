@@ -1131,10 +1131,6 @@ void CDspService::stop (CDspService::StopMode stop_mode)
 
 	m_pVmConfigWatcher->unregisterAll();
 
-	// #126543, #132528  fix to prevent deadlock on destroy QFileSystemWatcher.
-	// delete all QFileSystemWatcher objects before stop main event loop
-	m_pVmConfigWatcher = SmartPtr<CDspVmConfigurationChangesWatcher>(0);
-
 	if (CDspService::isServerMode())
 	{
 #ifdef _CT_
@@ -1153,6 +1149,10 @@ void CDspService::stop (CDspService::StopMode stop_mode)
 #endif // _LIBVIRT_
 #endif
 	}
+
+	// #126543, #132528  fix to prevent deadlock on destroy QFileSystemWatcher.
+	// delete all QFileSystemWatcher objects before stop main event loop
+	m_pVmConfigWatcher = SmartPtr<CDspVmConfigurationChangesWatcher>(0);
 
 #ifndef _WIN_
 	// revert sighandler
