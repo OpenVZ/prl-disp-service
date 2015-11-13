@@ -42,6 +42,7 @@
 #include <Libraries/Std/noncopyable.h>
 #include <boost/ptr_container/ptr_map.hpp>
 
+class CDspService;
 class CDspDispConfigGuard;
 
 namespace Libvirt
@@ -205,15 +206,48 @@ private:
 
 } // namespace Callback
 
-namespace View
+namespace Model
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+struct Vm
+{
+	Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_);
+
+	const QString& getUuid() const
+	{
+		return m_uuid;
+	}
+	QString getHome() const
+	{
+		return m_home.absoluteFilePath();
+	}
+	void setName(const QString& value_);
+	void updateState(VIRTUAL_MACHINE_STATE from_, VIRTUAL_MACHINE_STATE to_);
+	void updateDirectory(PRL_VM_TYPE type_);
+	void updateConfig(CVmConfiguration value_);
+	boost::optional<CVmConfiguration> getConfig() const;
+
+private:
+	QString m_name;
+	QString m_uuid;
+	QFileInfo m_home;
+	CDspService* m_service;
+	SmartPtr<CDspClient> m_user;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Domain
 
 struct Domain
 {
-	Domain(const QString& uuid_, const SmartPtr<CDspClient>& user_);
+	explicit Domain(const Vm& vm_);
 
+	const Vm& getVm() const
+	{
+		return m_vm;
+	}
 	void setPid(quint32 value_)
 	{
 		m_pid = value_;
@@ -224,13 +258,10 @@ struct Domain
 	void setDiskUsage();
 	void setMemoryUsage();
 	void setNetworkUsage();
-	boost::optional<CVmConfiguration> getConfig() const;
 
 private:
+	Vm m_vm;
 	quint32 m_pid;
-	QString m_home;
-	QString m_uuid;
-	SmartPtr<CDspClient> m_user;
 	VIRTUAL_MACHINE_STATE m_state;
 	VIRTUAL_MACHINE_STATE m_formerState;
 };
@@ -272,7 +303,7 @@ private:
 	QSharedPointer<System> m_fine;
 };
 
-} // namespace View
+} // namespace Model
 
 namespace Monitor
 {
@@ -283,7 +314,7 @@ enum
 
 struct State: QObject
 {
-	State(QSharedPointer<View::System> system_);
+	explicit State(const QSharedPointer<Model::System>& system_);
 
 public slots:
 	void updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_);
@@ -293,7 +324,7 @@ public slots:
 private:
 	Q_OBJECT
 
-	QSharedPointer<View::System> m_system;
+	QSharedPointer<Model::System> m_system;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -342,7 +373,7 @@ private:
 	int m_eventDeviceConnect;
 	int m_eventDeviceDisconnect;
 	QWeakPointer<virConnect> m_libvirtd;
-	QSharedPointer<View::System> m_view;
+	QSharedPointer<Model::System> m_view;
 	State m_stateWatcher;
 };
 
@@ -355,17 +386,17 @@ namespace Tools
 
 struct Domain: QRunnable
 {
-	Domain(const Agent::Vm::Unit& agent_, QSharedPointer<View::Domain> view_):
+	Domain(const Agent::Vm::Unit& agent_, QSharedPointer<Model::Domain> view_):
 		m_agent(agent_), m_view(view_)
 	{
 	}
-	Domain(virDomainPtr model_, QSharedPointer<View::Domain> view_);
+	Domain(virDomainPtr model_, QSharedPointer<Model::Domain> view_);
 
 	void run();
 
 private:
 	Agent::Vm::Unit m_agent;
-	QSharedPointer<View::Domain> m_view;
+	QSharedPointer<Model::Domain> m_view;
 };
 
 namespace Breeding
@@ -375,14 +406,14 @@ namespace Breeding
 
 struct Vm
 {
-	explicit Vm(const QSharedPointer<View::System>& view_): m_view(view_)
+	explicit Vm(const QSharedPointer<Model::System>& view_): m_view(view_)
 	{
 	}
 
 	void operator()(Agent::Hub& hub_);
 
 private:
-	QSharedPointer<View::System> m_view;
+	QSharedPointer<Model::System> m_view;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -403,7 +434,7 @@ private:
 
 struct Subject: QRunnable
 {
-	Subject(QSharedPointer<virConnect> , QSharedPointer<View::System> );
+	Subject(QSharedPointer<virConnect> , QSharedPointer<Model::System> );
 
 	void run();
 
@@ -420,7 +451,7 @@ private:
 
 struct Performance: QRunnable
 {
-	Performance(QSharedPointer<virConnect> libvirtd_, QSharedPointer<View::System> view_):
+	Performance(QSharedPointer<virConnect> libvirtd_, QSharedPointer<Model::System> view_):
 		m_agent(libvirtd_), m_view(view_)
 	{
 	}
@@ -431,7 +462,7 @@ private:
 	void pull(Agent::Vm::Unit vm_);
 
 	Agent::Vm::List m_agent;
-	QSharedPointer<View::System> m_view;
+	QSharedPointer<Model::System> m_view;
 };
 
 namespace Traffic

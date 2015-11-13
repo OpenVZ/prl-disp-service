@@ -297,7 +297,8 @@ libvirt {
 		CDspLibvirt_p.h
 
 	SOURCES += \
-		CDspLibvirt.cpp
+		CDspLibvirt.cpp \
+		CDspLibvirtAgent.cpp
 
 	DEFINES += _LIBVIRT_=1
 }
