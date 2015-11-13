@@ -251,7 +251,7 @@ void Ordinary<T>::setFlags()
 	m_result.setBoot(m_boot);
 	// connected
 	if (Flavor<T>::image == getModel().getEmulatedType() &&
-		!getModel().isConnected())
+		!getModel().isConnected() && !getModel().getImageFile().isEmpty())
 		m_result.setSerial(QString(getModel().getImageFile().toUtf8().toHex()));
 
 	// readonly
