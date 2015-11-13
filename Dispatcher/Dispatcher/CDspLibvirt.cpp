@@ -654,64 +654,76 @@ void error(void* opaque_, virErrorPtr value_)
 } // namespace Plain
 } // namespace Callback
 
-namespace View
+namespace Model
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Domain
+// struct Vm
 
-Domain::Domain(const QString& uuid_, const SmartPtr<CDspClient>& user_):
-	m_pid(), m_uuid(uuid_), m_user(user_), m_state(VMS_UNKNOWN),
-	m_formerState(VMS_UNKNOWN)
+Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_):
+	m_uuid(uuid_), m_service(CDspService::instance()), m_user(user_)
 {
 }
 
-void Domain::setState(VIRTUAL_MACHINE_STATE value_)
-{
-	m_formerState = m_state;
-	m_state = value_;
-	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
-	if (s.isValid())
-	{
-		s->onVmStateChanged(m_formerState, m_state, m_uuid,
-			m_user->getVmDirectoryUuid(), false);
-	}
-}
-
-void Domain::setConfig(CVmConfiguration& value_)
+void Vm::setName(const QString& value_)
 {
 	// NB. there is no home in a libvirt VM config. it is still required
 	// by different activities. now we put it into the default VM folder
 	// from a user profile. later this behaviour would be re-designed.
-	QString n = value_.getVmIdentification()->getVmName();
+	m_name = value_;
 	QString h = QDir(m_user->getUserDefaultVmDirPath())
-		.absoluteFilePath(QString(n).append(VMDIR_DEFAULT_BUNDLE_SUFFIX));
-	m_home = QDir(h).absoluteFilePath(VMDIR_DEFAULT_VM_CONFIG_FILE);
-	value_.getVmIdentification()->setHomePath(m_home);
+		.absoluteFilePath(QString(m_name).append(VMDIR_DEFAULT_BUNDLE_SUFFIX));
+	m_home = QFileInfo(QDir(h), VMDIR_DEFAULT_VM_CONFIG_FILE);
+}
+
+void Vm::updateState(VIRTUAL_MACHINE_STATE from_, VIRTUAL_MACHINE_STATE to_)
+{
+	CDspLockedPointer<CDspVmStateSender> s = m_service->getVmStateSender();
+	if (s.isValid())
+	{
+		s->onVmStateChanged(from_, to_, m_uuid,
+			m_user->getVmDirectoryUuid(), false);
+	}
+}
+
+void Vm::updateDirectory(PRL_VM_TYPE type_)
+{
+	typedef CVmDirectory::TemporaryCatalogueItem item_type;
+
+	CDspVmDirManager& m = m_service->getVmDirManager();
+	QScopedPointer<item_type> t(new item_type(m_uuid, m_home.absolutePath(), m_name));
+	PRL_RESULT e = m.checkAndLockNotExistsExclusiveVmParameters
+				(QStringList(), t.data());
+	if (PRL_FAILED(e))
+		return;
+
 	QScopedPointer<CVmDirectoryItem> x(new CVmDirectoryItem());
 	x->setVmUuid(m_uuid);
-	x->setVmName(n);
-	x->setVmHome(m_home);
-	x->setVmType(value_.getVmType());
+	x->setVmName(m_name);
+	x->setVmHome(getHome());
+	x->setVmType(type_);
 	x->setValid(PVE::VmValid);
 	x->setRegistered(PVE::VmRegistered);
-	PRL_RESULT e = CDspService::instance()->getVmDirHelper()
-			.insertVmDirectoryItem(m_user->getVmDirectoryUuid(), x.data());
+	e = m_service->getVmDirHelper().insertVmDirectoryItem(m_user->getVmDirectoryUuid(), x.data());
 	if (PRL_SUCCEEDED(e))
 		x.take();
 
+	m.unlockExclusiveVmParameters(t.data());
+}
+
+void Vm::updateConfig(CVmConfiguration value_)
+{
 	boost::optional<CVmConfiguration> y = getConfig();
 	if (y)
 	{
-		Vm::Config::Repairer<Vm::Config::untranslatable_types>
+		::Vm::Config::Repairer< ::Vm::Config::untranslatable_types>
 			::type::do_(value_, y.get());
 	}
-	Kit.vms().at(m_uuid).completeConfig(value_);
-	CDspService::instance()->getVmConfigManager().saveConfig(
-		SmartPtr<CVmConfiguration>(&value_, SmartPtrPolicy::DoNotReleasePointee),
-		m_home, m_user, true, false);
+	m_service->getVmConfigManager().saveConfig(SmartPtr<CVmConfiguration>
+		(&value_, SmartPtrPolicy::DoNotReleasePointee),
+		m_home.absoluteFilePath(), m_user, true, false);
 }
 
-boost::optional<CVmConfiguration> Domain::getConfig() const
+boost::optional<CVmConfiguration> Vm::getConfig() const
 {
 	PRL_RESULT e = PRL_ERR_SUCCESS;
 	SmartPtr<CVmConfiguration> x = CDspService::instance()->getVmDirHelper()
@@ -720,6 +732,30 @@ boost::optional<CVmConfiguration> Domain::getConfig() const
 		return boost::none;
 
 	return *x;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Domain
+
+Domain::Domain(const Vm& vm_): m_vm(vm_), m_pid(), m_state(VMS_UNKNOWN),
+	m_formerState(VMS_UNKNOWN)
+{
+}
+
+void Domain::setState(VIRTUAL_MACHINE_STATE value_)
+{
+	m_formerState = m_state;
+	m_state = value_;
+	m_vm.updateState(m_formerState, m_state);
+}
+
+void Domain::setConfig(CVmConfiguration& value_)
+{
+	m_vm.setName(value_.getVmIdentification()->getVmName());
+	value_.getVmIdentification()->setHomePath(m_vm.getHome());
+	m_vm.updateDirectory(value_.getVmType());
+	Kit.vms().at(m_vm.getUuid()).completeConfig(value_);
+	m_vm.updateConfig(value_);
 }
 
 void Domain::setCpuUsage()
@@ -774,7 +810,7 @@ QSharedPointer<Domain> System::add(const QString& uuid_)
 	if (!u.isValid())
 		return QSharedPointer<Domain>();
 
-	QSharedPointer<Domain> x(new Domain(uuid_, u));
+	QSharedPointer<Domain> x(new Domain(Vm(uuid_, u)));
 	return m_domainMap[uuid_] = x;
 }
 
@@ -883,10 +919,10 @@ void State::tuneTraffic(unsigned oldState_, unsigned newState_,
 
 	if (newState_ != VMS_RUNNING)
 		return;
-	QSharedPointer<View::Domain> d = m_system->find(vmUuid_);
+	QSharedPointer<Model::Domain> d = m_system->find(vmUuid_);
 	if (d.isNull())
 		return;
-	boost::optional<CVmConfiguration> c = d->getConfig();
+	boost::optional<CVmConfiguration> c = d->getVm().getConfig();
 	if (!c)
 		return;
 	Tools::Traffic::Accounting x(vmUuid_);

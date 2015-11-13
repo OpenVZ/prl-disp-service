@@ -42,6 +42,7 @@
 #include <Libraries/Std/noncopyable.h>
 #include <boost/ptr_container/ptr_map.hpp>
 
+class CDspService;
 class CDspDispConfigGuard;
 
 namespace Libvirt
@@ -205,15 +206,48 @@ private:
 
 } // namespace Callback
 
-namespace View
+namespace Model
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+struct Vm
+{
+	Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_);
+
+	const QString& getUuid() const
+	{
+		return m_uuid;
+	}
+	QString getHome() const
+	{
+		return m_home.absoluteFilePath();
+	}
+	void setName(const QString& value_);
+	void updateState(VIRTUAL_MACHINE_STATE from_, VIRTUAL_MACHINE_STATE to_);
+	void updateDirectory(PRL_VM_TYPE type_);
+	void updateConfig(CVmConfiguration value_);
+	boost::optional<CVmConfiguration> getConfig() const;
+
+private:
+	QString m_name;
+	QString m_uuid;
+	QFileInfo m_home;
+	CDspService* m_service;
+	SmartPtr<CDspClient> m_user;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Domain
 
 struct Domain
 {
-	Domain(const QString& uuid_, const SmartPtr<CDspClient>& user_);
+	explicit Domain(const Vm& vm_);
 
+	const Vm& getVm() const
+	{
+		return m_vm;
+	}
 	void setPid(quint32 value_)
 	{
 		m_pid = value_;
@@ -224,13 +258,10 @@ struct Domain
 	void setDiskUsage();
 	void setMemoryUsage();
 	void setNetworkUsage();
-	boost::optional<CVmConfiguration> getConfig() const;
 
 private:
+	Vm m_vm;
 	quint32 m_pid;
-	QString m_home;
-	QString m_uuid;
-	SmartPtr<CDspClient> m_user;
 	VIRTUAL_MACHINE_STATE m_state;
 	VIRTUAL_MACHINE_STATE m_formerState;
 };
