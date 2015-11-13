@@ -272,7 +272,7 @@ private:
 	QSharedPointer<System> m_fine;
 };
 
-} // namespace View
+} // namespace Model
 
 namespace Monitor
 {
@@ -283,7 +283,7 @@ enum
 
 struct State: QObject
 {
-	State(QSharedPointer<View::System> system_);
+	explicit State(const QSharedPointer<Model::System>& system_);
 
 public slots:
 	void updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_);
@@ -293,7 +293,7 @@ public slots:
 private:
 	Q_OBJECT
 
-	QSharedPointer<View::System> m_system;
+	QSharedPointer<Model::System> m_system;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -342,7 +342,7 @@ private:
 	int m_eventDeviceConnect;
 	int m_eventDeviceDisconnect;
 	QWeakPointer<virConnect> m_libvirtd;
-	QSharedPointer<View::System> m_view;
+	QSharedPointer<Model::System> m_view;
 	State m_stateWatcher;
 };
 
@@ -355,17 +355,17 @@ namespace Tools
 
 struct Domain: QRunnable
 {
-	Domain(const Agent::Vm::Unit& agent_, QSharedPointer<View::Domain> view_):
+	Domain(const Agent::Vm::Unit& agent_, QSharedPointer<Model::Domain> view_):
 		m_agent(agent_), m_view(view_)
 	{
 	}
-	Domain(virDomainPtr model_, QSharedPointer<View::Domain> view_);
+	Domain(virDomainPtr model_, QSharedPointer<Model::Domain> view_);
 
 	void run();
 
 private:
 	Agent::Vm::Unit m_agent;
-	QSharedPointer<View::Domain> m_view;
+	QSharedPointer<Model::Domain> m_view;
 };
 
 namespace Breeding
@@ -375,14 +375,14 @@ namespace Breeding
 
 struct Vm
 {
-	explicit Vm(const QSharedPointer<View::System>& view_): m_view(view_)
+	explicit Vm(const QSharedPointer<Model::System>& view_): m_view(view_)
 	{
 	}
 
 	void operator()(Agent::Hub& hub_);
 
 private:
-	QSharedPointer<View::System> m_view;
+	QSharedPointer<Model::System> m_view;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -403,7 +403,7 @@ private:
 
 struct Subject: QRunnable
 {
-	Subject(QSharedPointer<virConnect> , QSharedPointer<View::System> );
+	Subject(QSharedPointer<virConnect> , QSharedPointer<Model::System> );
 
 	void run();
 
@@ -420,7 +420,7 @@ private:
 
 struct Performance: QRunnable
 {
-	Performance(QSharedPointer<virConnect> libvirtd_, QSharedPointer<View::System> view_):
+	Performance(QSharedPointer<virConnect> libvirtd_, QSharedPointer<Model::System> view_):
 		m_agent(libvirtd_), m_view(view_)
 	{
 	}
@@ -431,7 +431,7 @@ private:
 	void pull(Agent::Vm::Unit vm_);
 
 	Agent::Vm::List m_agent;
-	QSharedPointer<View::System> m_view;
+	QSharedPointer<Model::System> m_view;
 };
 
 namespace Traffic

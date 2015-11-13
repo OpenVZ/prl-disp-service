@@ -73,7 +73,7 @@ void Vm::operator()(Agent::Hub& hub_)
 	{
 		QString u;
 		m.getUuid(u);
-		QSharedPointer<View::Domain> v = m_view->add(u);
+		QSharedPointer<Model::Domain> v = m_view->add(u);
 		if (v.isNull())
 			v = m_view->find(u);
 
@@ -139,7 +139,7 @@ void Network::operator()(Agent::Hub& hub_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Subject
 
-Subject::Subject(QSharedPointer<virConnect> libvirtd_, QSharedPointer<View::System> view_):
+Subject::Subject(QSharedPointer<virConnect> libvirtd_, QSharedPointer<Model::System> view_):
 	m_vm(view_), m_network(ParallelsDirs::getNetworkConfigFilePath())
 {
 	m_hub.setLink(libvirtd_);
@@ -164,7 +164,7 @@ void Performance::run()
 	{
 		QString u;
 		m.getUuid(u);
-		QSharedPointer<View::Domain> v = m_view->find(u);
+		QSharedPointer<Model::Domain> v = m_view->find(u);
 		if (v.isNull())
 			continue;
 
@@ -186,7 +186,7 @@ void Performance::pull(Agent::Vm::Unit agent_)
 {
 	QString u;
 	m.getUuid(u);
-	QSharedPointer<View::Domain> d = m_view->find(domain_);
+	QSharedPointer<Model::Domain> d = m_view->find(domain_);
 	if (d.isNull())
 		return;
 
@@ -520,7 +520,7 @@ int remove(int id_)
 
 int wakeUp(virConnectPtr , virDomainPtr domain_, int , void* opaque_)
 {
-	View::Coarse* v = (View::Coarse* )opaque_;
+	Model::Coarse* v = (Model::Coarse* )opaque_;
 	v->setState(domain_, VMS_RUNNING);
 	return 0;
 }
@@ -538,8 +538,8 @@ int deviceConnect(virConnectPtr , virDomainPtr domain_, const char *device_,
 	Q_UNUSED(opaque_);
 /*
 	// XXX: enable this for vme* devices when network device hotplug is fixed
-	View::Coarse* v = (View::Coarse* )opaque_;
-	QSharedPointer<View::Domain> d = v->access(domain_);
+	Model::Coarse* v = (Model::Coarse* )opaque_;
+	QSharedPointer<Model::Domain> d = v->access(domain_);
 	if (!d.isNull())
 	{
 		CVmConfiguration c = d->getConfig();
@@ -569,8 +569,8 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
                 int detail_, void* opaque_)
 {
 
-	QSharedPointer<View::Domain> d;
-	View::Coarse* v = (View::Coarse* )opaque_;
+	QSharedPointer<Model::Domain> d;
+	Model::Coarse* v = (Model::Coarse* )opaque_;
 	switch (event_)
 	{
 	case VIR_DOMAIN_EVENT_DEFINED:
@@ -829,14 +829,14 @@ QSharedPointer<Domain> Coarse::access(virDomainPtr domain_)
 	return output;
 }
 
-} // namespace View
+} // namespace Model
 
 namespace Monitor
 {
 ///////////////////////////////////////////////////////////////////////////////
 // struct State
 
-State::State(QSharedPointer<View::System> system_): m_system(system_)
+State::State(const QSharedPointer<Model::System>& system_): m_system(system_)
 {
 	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
 	if (s.isValid())
@@ -858,11 +858,11 @@ void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_
 	if (VMS_RUNNING != newState_)
 		return;
 
-	QSharedPointer<View::Domain> d = m_system->find(vmUuid_);
+	QSharedPointer<Model::Domain> d = m_system->find(vmUuid_);
 	if (d.isNull())
 		return;
 
-	boost::optional<CVmConfiguration> y = d->getConfig();
+	boost::optional<CVmConfiguration> y = d->getVm().getConfig();
 	if (!y)
 		return;
 
@@ -953,7 +953,7 @@ void Link::disconnect(virConnectPtr libvirtd_, int reason_, void* opaque_)
 
 Domains::Domains(int timeout_): m_eventState(-1), m_eventReboot(-1),
 	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
-	m_view(new View::System()), m_stateWatcher(m_view)
+	m_view(new Model::System()), m_stateWatcher(m_view)
 {
 	m_timer.stop();
 	m_timer.setInterval(timeout_);
@@ -970,32 +970,32 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 							NULL,
 							VIR_DOMAIN_EVENT_ID_LIFECYCLE,
 							VIR_DOMAIN_EVENT_CALLBACK(&Callback::Plain::lifecycle),
-							new View::Coarse(m_view),
-							&Callback::Plain::delete_<View::Coarse>);
+							new Model::Coarse(m_view),
+							&Callback::Plain::delete_<Model::Coarse>);
 	m_eventReboot = virConnectDomainEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_DOMAIN_EVENT_ID_REBOOT,
 							VIR_DOMAIN_EVENT_CALLBACK(&Callback::Plain::reboot),
-							new View::Coarse(m_view),
-							&Callback::Plain::delete_<View::Coarse>);
+							new Model::Coarse(m_view),
+							&Callback::Plain::delete_<Model::Coarse>);
 	m_eventWakeUp = virConnectDomainEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_DOMAIN_EVENT_ID_PMWAKEUP,
 							VIR_DOMAIN_EVENT_CALLBACK(&Callback::Plain::wakeUp),
-							new View::Coarse(m_view),
-							&Callback::Plain::delete_<View::Coarse>);
+							new Model::Coarse(m_view),
+							&Callback::Plain::delete_<Model::Coarse>);
 	m_eventDeviceConnect = virConnectDomainEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_DOMAIN_EVENT_ID_DEVICE_ADDED,
 							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::deviceConnect),
-							new View::Coarse(m_view),
-							&Callback::Plain::delete_<View::Coarse>);
+							new Model::Coarse(m_view),
+							&Callback::Plain::delete_<Model::Coarse>);
 	m_eventDeviceDisconnect = virConnectDomainEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED,
 							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::deviceDisconnect),
-							new View::Coarse(m_view),
-							&Callback::Plain::delete_<View::Coarse>);
+							new Model::Coarse(m_view),
+							&Callback::Plain::delete_<Model::Coarse>);
 	QRunnable* q = new Tools::Breeding::Subject(m_libvirtd, m_view);
 	q->setAutoDelete(true);
 	QThreadPool::globalInstance()->start(q);
