@@ -43,11 +43,71 @@
 #include <XmlModel/NetworkConfig/CVirtualNetwork.h>
 #include <XmlModel/HostHardwareInfo/CHwNetAdapter.h>
 #include <boost/optional.hpp>
+#include <Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h>
+#include <Libraries/PrlCommonUtilsBase/SysError.h>
+#include <utility>
 
 class CSavedStateTree;
 
 namespace Libvirt
 {
+
+namespace Error
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Simple
+
+struct Simple
+{
+	Simple(PRL_RESULT result_, const QString& str_ = QString())
+		: m_data(std::make_pair(result_, str_))
+	{
+	}
+
+	CVmEvent convertToEvent() const
+	{
+		CVmEvent e;
+		e.setEventCode(m_data.first);
+		e.addEventParameter(new CVmEventParameter(PVE::String, m_data.second, EVT_PARAM_DETAIL_DESCRIPTION));
+		return e;
+	}
+
+	PRL_RESULT code() const
+	{
+		return m_data.first;
+	}
+
+protected:
+	QString& details()
+	{
+		return m_data.second;
+	}
+
+private:
+	std::pair<PRL_RESULT, QString> m_data;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Detailed
+
+struct Detailed : Simple
+{
+	Detailed(PRL_RESULT result_)
+		: Simple(result_)
+	{
+		#if (LIBVIR_VERSION_NUMBER > 1000004)
+		const char* m = virGetLastErrorMessage();
+		WRITE_TRACE(DBG_FATAL, "libvirt error %s", m ? : "unknown");
+		details() = m;
+		#endif
+	}
+};
+
+} // namespace Error
+
+typedef Prl::Expected<void, Error::Simple> Result;
+
 namespace Tools
 {
 namespace Agent
@@ -64,10 +124,10 @@ struct Performance
 	{
 	}
 
-	PRL_RESULT getCpu(quint64& nanoseconds_) const;
-	PRL_RESULT getDisk() const;
-	PRL_RESULT getMemory() const;
-	PRL_RESULT getNetwork() const;
+	Result getCpu(quint64& nanoseconds_) const;
+	Result getDisk() const;
+	Result getMemory() const;
+	Result getNetwork() const;
 
 private:
 	QSharedPointer<virDomain> m_domain;
@@ -89,16 +149,16 @@ struct Guest
 	{
 	}
  
-	PRL_RESULT dumpMemory(const QString& path, QString& reply);
-	PRL_RESULT dumpState(const QString& path, QString& reply);
-	PRL_RESULT setUserPasswd(const QString& user, const QString& passwd);
-	PRL_RESULT getCommandStatus(int pid, boost::optional<ExitStatus>& status);
-	PRL_RESULT runCommand(const QString& path, const QList<QString>& args,
+	Result dumpMemory(const QString& path, QString& reply);
+	Result dumpState(const QString& path, QString& reply);
+	Result setUserPasswd(const QString& user, const QString& passwd);
+	Result getCommandStatus(int pid, boost::optional<ExitStatus>& status);
+	Result runCommand(const QString& path, const QList<QString>& args,
 			const QByteArray& stdIn, int& pid);
 
 private:
-	PRL_RESULT execute(const QString& cmd, QString& reply);
-	PRL_RESULT executeInAgent(const QString& cmd, QString& reply);
+	Result execute(const QString& cmd, QString& reply);
+	Result executeInAgent(const QString& cmd, QString& reply);
 
 	QSharedPointer<virDomain> m_domain;
 };
@@ -113,13 +173,13 @@ struct Runtime
 	{
 	}
 
-	PRL_RESULT setIoLimit(const CVmHardDisk& disk_, quint32 limit_);
-	PRL_RESULT setIopsLimit(const CVmHardDisk& disk_, quint32 limit_);
-	PRL_RESULT changeMedia(const CVmOpticalDisk& device_);
-	PRL_RESULT setIoPriority(quint32 ioprio_);
+	Result setIoLimit(const CVmHardDisk& disk_, quint32 limit_);
+	Result setIopsLimit(const CVmHardDisk& disk_, quint32 limit_);
+	Result changeMedia(const CVmOpticalDisk& device_);
+	Result setIoPriority(quint32 ioprio_);
 
 private:
-	PRL_RESULT setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_);
+	Result setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_);
 	QSharedPointer<virDomain> m_domain;
 };
 
@@ -133,11 +193,11 @@ struct Unit
 	explicit Unit(virDomainSnapshotPtr snapshot_);
 
 	Unit getParent() const;
-	PRL_RESULT getUuid(QString& dst_) const;
-	PRL_RESULT getState(CSavedStateTree& dst_) const;
-	PRL_RESULT revert();
-	PRL_RESULT undefine();
-	PRL_RESULT undefineRecursive();
+	Result getUuid(QString& dst_) const;
+	Result getState(CSavedStateTree& dst_) const;
+	Result revert();
+	Result undefine();
+	Result undefineRecursive();
 
 private:
 	QSharedPointer<virDomainSnapshot> m_snapshot;
@@ -153,12 +213,12 @@ struct List
 	}
 
 	Unit at(const QString& uuid_) const;
-	PRL_RESULT all(QList<Unit>& dst_) const;
-	PRL_RESULT define(const QString& uuid_, Unit* dst_ = NULL);
-	PRL_RESULT defineConsistent(const QString& uuid_, Unit* dst_ = NULL);
+	Result all(QList<Unit>& dst_) const;
+	Result define(const QString& uuid_, Unit* dst_ = NULL);
+	Result defineConsistent(const QString& uuid_, Unit* dst_ = NULL);
 
 private:
-	PRL_RESULT define(const QString& uuid_, quint32 flags_, Unit* dst_);
+	Result define(const QString& uuid_, quint32 flags_, Unit* dst_);
 
 	QSharedPointer<virDomain> m_domain;
 };
@@ -172,22 +232,22 @@ struct Unit
 {
 	explicit Unit(virDomainPtr domain_ = NULL);
 
-	PRL_RESULT getUuid(QString& dst_) const;
-	PRL_RESULT kill();
-	PRL_RESULT shutdown();
-	PRL_RESULT start();
-	PRL_RESULT reboot();
-	PRL_RESULT reset();
-	PRL_RESULT pause();
-	PRL_RESULT unpause();
-	PRL_RESULT resume(const QString& sav_);
-	PRL_RESULT suspend(const QString& sav_);
-	PRL_RESULT undefine();
-	PRL_RESULT getState(VIRTUAL_MACHINE_STATE& dst_) const;
-	PRL_RESULT getConfig(CVmConfiguration& dst_, bool runtime_ = false) const;
-	PRL_RESULT getConfig(QString& dst_, bool runtime_ = false) const;
-	PRL_RESULT setConfig(const CVmConfiguration& value_);
-	PRL_RESULT completeConfig(CVmConfiguration& config_);
+	Result getUuid(QString& dst_) const;
+	Result kill();
+	Result shutdown();
+	Result start();
+	Result reboot();
+	Result reset();
+	Result pause();
+	Result unpause();
+	Result resume(const QString& sav_);
+	Result suspend(const QString& sav_);
+	Result undefine();
+	Result getState(VIRTUAL_MACHINE_STATE& dst_) const;
+	Result getConfig(CVmConfiguration& dst_, bool runtime_ = false) const;
+	Result getConfig(QString& dst_, bool runtime_ = false) const;
+	Result setConfig(const CVmConfiguration& value_);
+	Result completeConfig(CVmConfiguration& config_);
 	Performance getPerformance() const
 	{
 		return Performance(m_domain);
@@ -223,8 +283,8 @@ struct List
 	}
 
 	Unit at(const QString& uuid_) const;
-	PRL_RESULT all(QList<Unit>& dst_);
-	PRL_RESULT define(const CVmConfiguration& config_, Unit* dst_ = NULL);
+	Result all(QList<Unit>& dst_);
+	Result define(const CVmConfiguration& config_, Unit* dst_ = NULL);
 
 private:
 	QSharedPointer<virConnect> m_link;
@@ -241,10 +301,10 @@ struct Unit
 {
 	explicit Unit(virNetworkPtr network_ = NULL);
 
-	PRL_RESULT stop();
-	PRL_RESULT start();
-	PRL_RESULT undefine();
-	PRL_RESULT getConfig(CVirtualNetwork& dst_) const;
+	Result stop();
+	Result start();
+	Result undefine();
+	Result getConfig(CVirtualNetwork& dst_) const;
 
 private:
 	QSharedPointer<virNetwork> m_network;
@@ -260,9 +320,9 @@ struct List
 	}
 
 	Unit at(const QString& uuid_) const;
-	PRL_RESULT all(QList<Unit>& dst_) const;
-	PRL_RESULT find(const QString& name_, Unit* dst_ = NULL) const;
-	PRL_RESULT define(const CVirtualNetwork& config_, Unit* dst_ = NULL);
+	Result all(QList<Unit>& dst_) const;
+	Result find(const QString& name_, Unit* dst_ = NULL) const;
+	Result define(const CVirtualNetwork& config_, Unit* dst_ = NULL);
 
 private:
 	QSharedPointer<virConnect> m_link;
@@ -287,9 +347,9 @@ struct Bridge
 	{
 		return m_master;
 	}
-	PRL_RESULT stop();
-	PRL_RESULT start();
-	PRL_RESULT undefine();
+	Result stop();
+	Result start();
+	Result undefine();
 
 private:
 	CHwNetAdapter m_master;
@@ -305,11 +365,11 @@ struct List
 	{
 	}
 
-	PRL_RESULT all(QList<Bridge>& dst_) const;
-	PRL_RESULT find(const QString& mac_, CHwNetAdapter& dst_) const;
-	PRL_RESULT find(const QString& name_, Bridge& dst_) const;
-	PRL_RESULT find(const CHwNetAdapter& eth_, Bridge& dst_) const;
-	PRL_RESULT define(const CHwNetAdapter& eth_, Bridge& dst_);
+	Result all(QList<Bridge>& dst_) const;
+	Result find(const QString& mac_, CHwNetAdapter& dst_) const;
+	Result find(const QString& name_, Bridge& dst_) const;
+	Result find(const CHwNetAdapter& eth_, Bridge& dst_) const;
+	Result define(const CHwNetAdapter& eth_, Bridge& dst_);
 
 private:
 	QSharedPointer<virConnect> m_link;

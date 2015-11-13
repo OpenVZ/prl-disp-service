@@ -1313,7 +1313,7 @@ PRL_RESULT CDspVmDirHelper::fillVmInfo(
 	Libvirt::Tools::Agent::Vm::Unit u = Libvirt::Kit.vms().at(vm_uuid);
 
 	VIRTUAL_MACHINE_STATE s;
-	bool bIsVncServerStarted = PRL_SUCCEEDED(u.getState(s))
+	bool bIsVncServerStarted = u.getState(s).isSucceed()
 		&& s == VMS_RUNNING
 		&& PRL_SUCCEEDED(err)
 		&& c->getVmSettings()->getVmRemoteDisplay()->getMode()

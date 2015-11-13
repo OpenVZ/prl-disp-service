@@ -123,21 +123,21 @@ void Handler::timerEvent(QTimerEvent* event_)
 void Unit::timerEvent(QTimerEvent* event_)
 {
 	killTimer(event_->timerId());
-	PRL_RESULT e = Libvirt::Kit.vms().at(m_uuid).shutdown();
-	if (PRL_FAILED(e))
-		m_loop.exit(e);
+	Libvirt::Result e = Libvirt::Kit.vms().at(m_uuid).shutdown();
+	if (e.isFailed())
+		m_loop.exit(e.error().code());
 }
 
-PRL_RESULT Unit::operator()()
+Libvirt::Result Unit::operator()()
 {
 	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
 	if (!s.isValid())
-		return PRL_ERR_UNEXPECTED;
+		return Libvirt::Result(Libvirt::Error::Simple(PRL_ERR_UNEXPECTED));
 
 	Handler h(m_uuid, m_loop);
 	if (!h.connect(s.getPtr(), SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
 		SLOT(react(unsigned, unsigned, QString, QString)), Qt::QueuedConnection))
-		return PRL_ERR_UNEXPECTED;
+		return Libvirt::Result(Libvirt::Error::Simple(PRL_ERR_UNEXPECTED));
 
 	s.unlock();
 	startTimer(0);
@@ -145,7 +145,7 @@ PRL_RESULT Unit::operator()()
 	PRL_RESULT e = m_loop.exec();
 	h.killTimer(t);
 	if (PRL_FAILED(e) && e != PRL_ERR_TIMEOUT)
-		return e;
+		return Libvirt::Result(Libvirt::Error::Simple(e));
 
 	return Libvirt::Kit.vms().at(m_uuid).kill();
 }
@@ -192,6 +192,14 @@ struct Context
 	{
 		m_session->sendSimpleResponse(m_package, code_);
 	}
+	void reply(const Libvirt::Result& result_)
+	{
+		if (result_.isFailed())
+			m_session->sendResponseError(result_.error().convertToEvent(), m_package);
+		else
+			m_session->sendResponseError(CVmEvent(), m_package);
+	}
+
 	void reply(const CVmEvent& error_) const
 	{
 		m_session->sendResponseError(&error_, m_package);
@@ -727,18 +735,20 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStart> >::run()
 	if (!c.isValid())
 		return;
 
-	PRL_RESULT e;
+	Libvirt::Result e;
 	Libvirt::Tools::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_context.getVmUuid());
 	CStatesHelper h(c->getVmIdentification()->getHomePath());
 	if (h.savFileExists())
 	{
-		if (PRL_SUCCEEDED(e = u.resume(h.getSavFileName())))
+		e = u.resume(h.getSavFileName());
+		if (e.isSucceed())
 			h.dropStateFiles();
 	}
 	else
 	{
 		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
-		if (PRL_SUCCEEDED(e = u.getState(s)))
+		e = u.getState(s);
+		if (e.isSucceed())
 			e = VMS_PAUSED == s ? u.unpause() : u.start();
 	}
 	return m_context.reply(e);
@@ -827,7 +837,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmCreateSnapshot> >::run()
 	if (NULL == x)
 		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
 
-	PRL_RESULT e(PRL_ERR_SUCCESS);
+	Libvirt::Result e;
 	if (PCSF_BACKUP & x->GetCommandFlags())
 	{
 // NB. external user doesn't work with backup snapshots. this code is
@@ -842,7 +852,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmCreateSnapshot> >::run()
 		e = Libvirt::Kit.vms().at(x->GetVmUuid()).getSnapshot()
 			.define(x->GetSnapshotUuid());
 	}
-	if (PRL_FAILED(e))
+	if (e.isFailed())
 		return m_context.reply(e);
 
 	CDspClientManager& m = CDspService::instance()->getClientManager();
@@ -856,7 +866,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmCreateSnapshot> >::run()
 		(PET_DSP_EVT_VM_SNAPSHOTED, x->GetVmUuid(), PIE_DISPATCHER), b);
 	m.sendPackageToVmClients(a, m_context.getDirectoryUuid(), x->GetVmUuid());
 	// reply
-	CProtoCommandPtr r = CProtoSerializer::CreateDspWsResponseCommand(b, e);
+	CProtoCommandPtr r = CProtoSerializer::CreateDspWsResponseCommand(b, PRL_ERR_SUCCESS);
 	CProtoCommandDspWsResponse* d = CProtoSerializer::CastToProtoCommand
 		<CProtoCommandDspWsResponse>(r);
 	d->AddStandardParam(x->GetSnapshotUuid());
@@ -900,13 +910,13 @@ void Body<Tag::Libvirt<PVE::DspCmdVmGuestSetUserPasswd> >::run()
 	if (NULL == x)
 		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
 
-	PRL_RESULT e = Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest()
+	Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest()
 			.setUserPasswd(x->GetUserLoginName(), x->GetUserPassword());
 
-	if (PRL_FAILED(e))
+	if (e.isFailed())
 	{
 		WRITE_TRACE(DBG_FATAL, "Set user password for VM '%s' is failed: %s",
-			qPrintable(m_context.getVmUuid()), PRL_RESULT_TO_STRING(e));
+			qPrintable(m_context.getVmUuid()), PRL_RESULT_TO_STRING(e.error().code()));
 	}
 	m_context.reply(e);
 }
@@ -979,7 +989,7 @@ PRL_RESULT Internal::dumpMemory(Context& context_, CProtoVmInternalCommand& comm
 	
 	QString fullpath = QDir(fpath).absoluteFilePath(fname);
 	QString reply;
-	PRL_RESULT res;
+	Libvirt::Result res;
 #ifdef _LIBVIRT_
 	res = Libvirt::Kit.vms().at(context_.getVmUuid()).getGuest()
 		.dumpMemory(fullpath, reply);
@@ -993,9 +1003,12 @@ PRL_RESULT Internal::dumpMemory(Context& context_, CProtoVmInternalCommand& comm
 			qPrintable(context_.getVmUuid()), qPrintable(reply));
 		return PRL_ERR_FAILURE;
 	}
-	if (PRL_SUCCEEDED(res))
+	PRL_RESULT r(PRL_ERR_SUCCESS);
+	if (res.isSucceed())
 		QFile::setPermissions(fullpath, QFile::ReadOwner|QFile::WriteOwner);
-	return res;
+	else
+		r = res.error().code();
+	return r;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

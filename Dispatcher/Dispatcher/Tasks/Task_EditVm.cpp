@@ -2326,7 +2326,8 @@ PRL_RESULT Task_EditVm::editVm()
 				true);
 #ifdef _LIBVIRT_
 			pVmConfigNew->getVmIdentification()->setHomePath(strVmHome);
-			save_rc = Libvirt::Kit.vms().at(vm_uuid).setConfig(*pVmConfigNew);
+			Libvirt::Result r(Libvirt::Kit.vms().at(vm_uuid).setConfig(*pVmConfigNew));
+			save_rc = (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
 #endif // _LIBVIRT_
 			if( !IS_OPERATION_SUCCEEDED( save_rc ) )
 			{
@@ -2763,9 +2764,9 @@ PRL_RESULT Task_EditVm::configureVzParameters(SmartPtr<CVmConfiguration> pNewVmC
 	QString sVmUuid = pNewVmConfig->getVmIdentification()->getVmUuid();
 	// Configure for running VM only
 	VIRTUAL_MACHINE_STATE s;
-	prlResult = Libvirt::Kit.vms().at(sVmUuid).getState(s);
-	if (PRL_FAILED(prlResult))
-		return prlResult;
+	Libvirt::Result r(Libvirt::Kit.vms().at(sVmUuid).getState(s));
+	if (r.isFailed())
+		return r.error().code();
 	if (s != VMS_RUNNING)
 		return PRL_ERR_SUCCESS;
 	// CpuUnits
@@ -3156,10 +3157,10 @@ namespace Cdrom
 
 bool Action::execute(CDspTaskFailure& feedback_)
 {
-	PRL_RESULT e = Libvirt::Kit.vms().at(m_vm).getRuntime().changeMedia(m_device);
-	if (PRL_FAILED(e))
+	Libvirt::Result e = Libvirt::Kit.vms().at(m_vm).getRuntime().changeMedia(m_device);
+	if (e.isFailed())
 	{
-		feedback_.setCode(e);
+		feedback_(e.error().convertToEvent());
 		return false;
 	}
 	return Vm::Action::execute(feedback_);
@@ -3297,10 +3298,10 @@ namespace Blkiotune
 
 bool Action::execute(CDspTaskFailure& feedback_)
 {
-	PRL_RESULT e = Libvirt::Kit.vms().at(m_vm).getRuntime().setIoPriority(m_ioprio);
-	if (PRL_FAILED(e))
+	Libvirt::Result e = Libvirt::Kit.vms().at(m_vm).getRuntime().setIoPriority(m_ioprio);
+	if (e.isFailed())
 	{
-		feedback_.setCode(e);
+		feedback_(e.error().convertToEvent());
 		return false;
 	}
 	return Vm::Action::execute(feedback_);
@@ -3327,7 +3328,7 @@ Vm::Action* Factory::operator()(const Request& input_) const
 Action* Factory::operator()(const Request& input_) const
 {
 	VIRTUAL_MACHINE_STATE s;
-	if (PRL_FAILED(Libvirt::Kit.vms().at(input_.getObject().first).getState(s)))
+	if (Libvirt::Kit.vms().at(input_.getObject().first).getState(s).isFailed())
 		return NULL;
 	if (VMS_RUNNING != s)
 		return NULL;
