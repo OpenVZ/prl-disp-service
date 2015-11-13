@@ -150,6 +150,8 @@ PRL_RESULT Task_CreateProblemReport::processReportSending()
         m_pPRSender.reset(0);
     }
 
+	pPR->setCleanupTempDir(true);
+
     if (PRL_FAILED(retCode))
     {
         getClient()->sendSimpleResponse(getRequestPackage(), retCode);
