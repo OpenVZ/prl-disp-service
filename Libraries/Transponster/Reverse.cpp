@@ -949,7 +949,6 @@ PRL_RESULT Vm::setDevices()
 	{
 		u.add(d);
 	}
-	u.addKeyboard();
 	u.addMouse();
 
 	Libvirt::Domain::Xml::Devices x = b.getResult();
