@@ -67,6 +67,11 @@ struct RuntimeOptions
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
 
+struct GlobalNetwork
+{
+	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reviser
 
@@ -90,7 +95,7 @@ struct Reviser<N, void>
 };
 
 typedef boost::mpl::vector<RemoteDisplay> revise_types;
-typedef boost::mpl::vector<OsInfo, RuntimeOptions> untranslatable_types;
+typedef boost::mpl::vector<OsInfo, RuntimeOptions, GlobalNetwork> untranslatable_types;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Repairer
