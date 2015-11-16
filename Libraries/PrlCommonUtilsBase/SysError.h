@@ -50,13 +50,11 @@ struct Expected
 	{
 	}
 
-	explicit Expected(const T& value_)
-		: m_data(value_)
+	Expected(const T& value_): m_data(value_)
 	{
 	}
 
-	explicit Expected(const E& error_)
-		: m_data(error_)
+	Expected(const E& error_): m_data(error_)
 	{
 	}
 
@@ -72,22 +70,22 @@ struct Expected
 
 	const T& value() const
 	{
-		return boost::get<0>(m_data);
+		return boost::get<T>(m_data);
 	}
 
 	T& value()
 	{
-		return boost::get<0>(m_data);
+		return boost::get<T>(m_data);
 	}
 
 	const E& error() const
 	{
-		return boost::get<1>(m_data);
+		return boost::get<E>(m_data);
 	}
 
 	E& error()
 	{
-		return boost::get<1>(m_data);
+		return boost::get<E>(m_data);
 	}
 
 private:
@@ -102,12 +100,11 @@ struct Expected<void, void>;
 template <typename E>
 struct Expected<void, E>
 {
-	explicit Expected()
+	Expected()
 	{
 	}
 
-	explicit Expected(const E& error_)
-		: m_error(error_)
+	Expected(const E& error_): m_error(error_)
 	{
 	}
 
