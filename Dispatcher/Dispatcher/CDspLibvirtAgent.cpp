@@ -637,9 +637,9 @@ Result List::all(QList<Unit>& dst_) const
 Result List::define(const QString& uuid_, quint32 flags_, Unit* dst_)
 {
 	Result e;
+	CVmConfiguration x;
 	virDomainRef(m_domain.data());
 	Vm::Unit m(m_domain.data());
-	CVmConfiguration x;
 	if ((e = m.getConfig(x)).isFailed())
 		return e;
 
@@ -648,9 +648,9 @@ Result List::define(const QString& uuid_, quint32 flags_, Unit* dst_)
 		return e;
 
 	Transponster::Snapshot::Reverse y(uuid_, x);
-	e = Result(Error::Simple(Transponster::Director::snapshot(y)));
-	if (e.isFailed())
-		return e;
+	PRL_RESULT f = Transponster::Director::snapshot(y);
+	if (PRL_FAILED(f))
+		return Error::Simple(f);
 
 	if (VMS_RUNNING == s)
 		y.setMemory();
