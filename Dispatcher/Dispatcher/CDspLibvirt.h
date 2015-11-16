@@ -264,11 +264,7 @@ struct Unit
 	Runtime getRuntime() const;
 
 private:
-	char* getConfig(bool runtime_ = false) const
-	{
-		return virDomainGetXMLDesc(m_domain.data(), VIR_DOMAIN_XML_SECURE
-			| runtime_ ? 0 : VIR_DOMAIN_XML_INACTIVE);
-	}
+	char* getConfig(bool runtime_ = false) const;
 
 	QSharedPointer<virDomain> m_domain;
 };
