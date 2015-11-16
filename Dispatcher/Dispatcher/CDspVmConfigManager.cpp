@@ -78,6 +78,15 @@ void RuntimeOptions::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 		(new CVmRunTimeOptions(new_.getVmSettings()->getVmRuntimeOptions()));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct GlobalNetwork
+
+void GlobalNetwork::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+{
+	old_.getVmSettings()->setGlobalNetwork(
+		(new CVmGlobalNetwork(new_.getVmSettings()->getGlobalNetwork())));
+}
+
 namespace Access
 {
 ///////////////////////////////////////////////////////////////////////////////
