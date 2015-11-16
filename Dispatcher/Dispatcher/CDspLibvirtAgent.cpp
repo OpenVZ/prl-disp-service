@@ -155,6 +155,12 @@ Result Unit::getState(VIRTUAL_MACHINE_STATE& dst_) const
 	return Result();
 }
 
+char* Unit::getConfig(bool runtime_) const
+{
+	return virDomainGetXMLDesc(m_domain.data(), VIR_DOMAIN_XML_SECURE
+		| (runtime_ ? 0 : VIR_DOMAIN_XML_INACTIVE));
+}
+
 Result Unit::getConfig(CVmConfiguration& dst_, bool runtime_) const
 {
 	char* x = getConfig(runtime_);
