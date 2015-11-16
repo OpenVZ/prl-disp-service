@@ -212,7 +212,7 @@ void ParallelsDirTest::testGetToolsBaseImagePath()
 	// Server
 	mode = PAM_SERVER;
 	path = ParallelsDirs::getToolsBaseImagePath(mode);
-	expectedPath = "/usr/share/parallels-server/tools/";
+	expectedPath = "/usr/share/virtuozzo/";
 	QCOMPARE(path, expectedPath);
 }
 
@@ -226,12 +226,12 @@ void ParallelsDirTest::testGetToolsImage()
 
 	nOsVersion = PVS_GUEST_VER_LIN_OTHER;
 	path = ParallelsDirs::getToolsImage(mode, nOsVersion);
-	expectedPath = "/usr/share/parallels-server/tools/prl-tools-lin.iso";
+	expectedPath = "/usr/share/virtuozzo/vz-guest-tools-lin.iso";
 	QCOMPARE(path, expectedPath);
 
 	nOsVersion = PVS_GUEST_VER_WIN_OTHER;
 	path = ParallelsDirs::getToolsImage(mode, nOsVersion);
-	expectedPath = "/usr/share/parallels-server/tools/prl-tools-win.iso";
+	expectedPath = "/usr/share/virtuozzo/prl-tools-win.iso";
 	QCOMPARE(path, expectedPath);
 }
 
