@@ -134,6 +134,29 @@ PRL_RESULT Run::operator()(Exec::Ct& variant_) const
 	return PRL_ERR_SUCCESS;
 }
 
+PRL_RESULT Run::processVmResult(const Libvirt::Tools::Agent::Vm::Exec::Result& s) const
+{
+	int flags = m_task->getRequestFlags();
+
+	m_task->setExitCode(s.exitcode);
+	if (flags & PFD_STDOUT && s.stdOut.size()) {
+		if (m_task->sendToClient(PET_IO_STDOUT_PORTION,
+				s.stdOut.data(), s.stdOut.size()))
+			return PRL_ERR_OPERATION_FAILED;
+	}
+
+	if (flags & PFD_STDERR && s.stdErr.size()) {
+		if (m_task->sendToClient(PET_IO_STDERR_PORTION,
+				 s.stdErr.data(), s.stdErr.size()))
+			return PRL_ERR_OPERATION_FAILED;
+	}
+
+	if (m_task->sendToClient(PET_IO_FIN_TO_TRANSMIT_STDOUT_STDERR, NULL, 0))
+		return PRL_ERR_OPERATION_FAILED;
+	
+	return PRL_ERR_SUCCESS;
+}
+
 PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 {
 	int flags = m_task->getRequestFlags();
@@ -149,42 +172,24 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 			}
 		}
 	}
-	int p = -1;
-        Libvirt::Tools::Agent::Vm::Guest s = Libvirt::Kit.vms()
-		.at(m_task->getVmUuid()).getGuest();
-	Libvirt::Result r = s.runCommand(
+	Vm::Guest g = Libvirt::Kit.vms().at(m_task->getVmUuid()).getGuest();
+	Prl::Expected<Vm::Future,Libvirt::Error::Simple> f = g.startProgram(
 			cmd->GetProgramName(),
 			cmd->GetProgramArguments(),
-			variant_.getStdin(),
-			p);
-	if (r.isFailed())
-		return r.error().code();
+			variant_.getStdin());
+	if (f.isFailed())
+		return f.error().code();
 
-	if (!variant_.checkCmdFinished(p, *m_task))
-		return PRL_ERR_TIMEOUT;
+	Libvirt::Result e = f.value().wait();
+	if (e.isFailed())
+		return e.error().code();
+
+	Vm::Result s = f.value().getResult();
 
 	if (m_task->operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	m_task->setExitCode(variant_.getExitStatus().get().exitcode);
-	if (flags & PFD_STDOUT && variant_.getExitStatus().get().stdOut.size()) {
-		if (m_task->sendToClient(PET_IO_STDOUT_PORTION,
-				 variant_.getExitStatus().get().stdOut.data(),
-				 variant_.getExitStatus().get().stdOut.size()))
-			return PRL_ERR_OPERATION_FAILED;
-	}
-
-	if (flags & PFD_STDERR && variant_.getExitStatus().get().stdErr.size()) {
-		if (m_task->sendToClient(PET_IO_STDERR_PORTION,
-				 variant_.getExitStatus().get().stdErr.data(),
-				 variant_.getExitStatus().get().stdErr.size()))
-			return PRL_ERR_OPERATION_FAILED;
-	}
-
-	if (m_task->sendToClient(PET_IO_FIN_TO_TRANSMIT_STDOUT_STDERR, NULL, 0))
-		return PRL_ERR_OPERATION_FAILED;
-
-	return PRL_ERR_SUCCESS;
+	return processVmResult(s.get());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -348,45 +353,6 @@ PRL_RESULT Vm::processStdinData(const char * data, size_t size)
 {
 	m_stdindata.append(data, size);
 	return PRL_ERR_SUCCESS;
-}
-
-int Vm::calculateTimeout(int iteration_)
-{
-	switch (iteration_ / 10)
-	{
-	case 0:
-		return 100;
-	case 1:
-		return 1000;
-	default:
-		return 10000;
-	}
-}
-
-bool Vm::checkCmdFinished(int pid_, Task_ExecVm& task_)
-{
-	int timeout = CDspService::instance()->getDispConfigGuard().
-		getDispToDispPrefs()->getSendReceiveTimeout() * 1000;
-
-	for (int i=0; ; ++i) {
-
-		Libvirt::Tools::Agent::Vm::Guest g = Libvirt::Kit.vms()
-			.at(task_.getVmUuid()).getGuest();
-
-		Libvirt::Result ret = g.getCommandStatus(pid_, m_exitStatus);
-		if (ret.isFailed() || m_exitStatus) {
-			task_.wakeUpStage();
-			return true;
-		}
-		// Progressive timer starting from 0.1 sec, then 1 sec, then 10 sec
-		int msecs = calculateTimeout(i);
-		timeout -= msecs;
-		if (timeout <= 0)
-			break;
-
-		task_.waitForStage("command completion", msecs);
-	}
-	return false;
 }
 
 } // namespace Exec
