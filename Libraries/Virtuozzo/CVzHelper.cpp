@@ -149,14 +149,6 @@ int CVzHelper::init_lib()
 	return 0;
 }
 
-int CVzHelper::set_cpuunits(const QString &uuid, unsigned int units)
-{
-	Q_UNUSED(uuid)
-	Q_UNUSED(units)
-
-	return PRL_ERR_UNIMPLEMENTED;
-}
-
 
 #define BITS_PER_LONG		(sizeof(unsigned long) * 8)
 #define BITS_PER_CPUMASK	(CPUMASK_SIZE * BITS_PER_LONG)
@@ -770,47 +762,6 @@ void CVzHelper::release_cpu_mask(const QString &uuid)
 	QMutexLocker locker(&s_mtxNodemask);
 
 	numa_release_cpu_mask(Uuid::toVzid(uuid));
-}
-
-int CVzHelper::set_cpumask(const QString &uuid, const QString &sCpuMask, unsigned int nVCpu)
-{
-	Q_UNUSED(uuid)
-	Q_UNUSED(sCpuMask)
-	Q_UNUSED(nVCpu)
-
-	return PRL_ERR_UNIMPLEMENTED;
-}
-
-int CVzHelper::set_cpulimit(const QString &uuid, float limit)
-{
-	Q_UNUSED(uuid)
-	Q_UNUSED(limit)
-
-	return PRL_ERR_UNIMPLEMENTED;
-}
-
-int CVzHelper::set_ioprio(const QString &uuid, unsigned int prio)
-{
-	Q_UNUSED(uuid)
-	Q_UNUSED(prio)
-
-	return PRL_ERR_UNIMPLEMENTED;
-}
-
-int CVzHelper::set_iolimit(const QString &uuid, unsigned int value)
-{
-	Q_UNUSED(uuid)
-	Q_UNUSED(value)
-
-	return PRL_ERR_UNIMPLEMENTED;
-}
-
-int CVzHelper::set_iopslimit(const QString &uuid, unsigned int value)
-{
-	Q_UNUSED(uuid)
-	Q_UNUSED(value)
-
-	return PRL_ERR_UNIMPLEMENTED;
 }
 
 static PRL_STAT_NET_TRAFFIC *get_netstat(const QString &uuid)

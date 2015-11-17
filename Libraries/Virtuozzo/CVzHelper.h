@@ -180,39 +180,6 @@ class CVzHelper {
 public:
 	CVzHelper();
 	~CVzHelper();
-	/***
-	 * Cpuunits is CPU weight for a Vm. Argument is positive non-zero
-	 * number, passed to and used in the kernel fair scheduler.
-	 * The larger the number is, the more CPU time this container gets.
-	 * Maximum value is 500000, minimal is 8.  Number is relative to
-	 * weights of all the other running Vm.
-	 */
-	static int set_cpuunits(const QString &uuid, unsigned int units);
-
-	/***
-	 * Limit of CPU usage for the Vm, in per cent.
-	 * Note if the computer has 2 CPUs, it has total of 200% CPU time.
-	 * To drop cpu limit the 0 value should passed.
-	 */
-	static int set_cpulimit(const QString &uuid, float limit);
-
-	static int set_cpumask(const QString &uuid, const QString &sCpuMask, unsigned int nVCpu);
-
-	/***
-	 * Assigns I/O priority. Priority range is 0-7. The greater priority is,
-	 * the more time for I/O  activity Vm has. By default each Vm has priority of 4.
-	 */
-	static int set_ioprio(const QString &uuid, unsigned int prio);
-
-	/***
-	 * Assigns I/O limit in bytes per second.
-	 */
-	static int set_iolimit(const QString &uuid, unsigned int limit);
-
-	/***
-	 * Assigns IOPS limit
-	 */
-	static int set_iopslimit(const QString &uuid, unsigned int value);
 
 	/***
 	 * Check Vz status: 1 - running

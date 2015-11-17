@@ -2646,123 +2646,9 @@ void Task_EditVm::applyVmConfig(SmartPtr<CDspClient> pUserSession,
 	}
 }
 
-PRL_RESULT Task_EditVm::SetCpuUnits(const QString &sVmUuid, PRL_UINT32 cpuUnits)
-{
-#ifndef _LIN_
-	Q_UNUSED(sVmUuid)
-	Q_UNUSED(cpuUnits)
-	return PRL_ERR_UNIMPLEMENTED;
-#else
-	if (cpuUnits == 0)
-		return PRL_ERR_SUCCESS;
-
-	if (CVzHelper::set_cpuunits(sVmUuid, cpuUnits))
-		return PRL_ERR_SET_CPUUNITS;
-#endif
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Task_EditVm::SetCpuMask(const QString &sVmUuid, const QString &sCpuMask, PRL_UINT32 nVCpu)
-{
-#ifndef _LIN_
-	Q_UNUSED(sVmUuid)
-	Q_UNUSED(sCpuMask)
-	Q_UNUSED(nVCpu)
-	return PRL_ERR_UNIMPLEMENTED;
-#else
-
-	if (CVzHelper::set_cpumask(sVmUuid, sCpuMask, nVCpu))
-		return PRL_ERR_SET_CPUMASK;
-#endif
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Task_EditVm::SetCpuLimit(const QString &sVmUuid, PRL_CPULIMIT_DATA_PTR pVmCpuLimit)
-{
-#ifndef _LIN_
-	Q_UNUSED(sVmUuid)
-	Q_UNUSED(pVmCpuLimit)
-	return PRL_ERR_UNIMPLEMENTED;
-#else
-	float cpuLimit;
-	int nCpu = 1;
-
-	if (pVmCpuLimit->type == 0)
-		return PRL_ERR_SUCCESS;
-
-	CHostHardwareInfo hostInfo;
-	{
-		CDspLockedPointer<CDspHostInfo> lockedHostInfo =
-			CDspService::instance()->getHostInfo();
-		hostInfo.fromString( lockedHostInfo->data()->toString() );
-	}
-
-	CHwCpu *pCpu = hostInfo.getCpu();
-	if (pCpu)
-		nCpu = pCpu->getNumber();
-
-	if (pVmCpuLimit->type == PRL_CPULIMIT_MHZ) {
-		unsigned int totalSpeed = 0;
-
-		if (pCpu)
-			totalSpeed = pCpu->getSpeed();
-
-		if (totalSpeed == 0) {
-			WRITE_TRACE(DBG_FATAL, "Unable to get CPU speed, set the cpu limit failed.");
-			return PRL_ERR_SET_CPULIMIT;
-		}
-		totalSpeed *= nCpu;
-		cpuLimit = pVmCpuLimit->value;
-		if (cpuLimit > totalSpeed)
-			cpuLimit = totalSpeed;
-
-		cpuLimit = (100.0 * cpuLimit * nCpu / totalSpeed);
-
-		WRITE_TRACE(DBG_FATAL, "set cpulimit total=%dMhz limit=%dMhz (%f%%)",
-				totalSpeed, pVmCpuLimit->value, cpuLimit);
-	} else if (pVmCpuLimit->type == PRL_CPULIMIT_PERCENTS100) {
-		cpuLimit = pVmCpuLimit->value * nCpu;
-	} else if (pVmCpuLimit->type == PRL_CPULIMIT_PERCENTS) {
-		cpuLimit = pVmCpuLimit->value;
-	} else {
-		return PRL_ERR_SET_CPULIMIT;
-	}
-
-	if (CVzHelper::set_cpulimit(sVmUuid, cpuLimit))
-		return PRL_ERR_SET_CPULIMIT;
-
-	return PRL_ERR_SUCCESS;
-#endif
-}
-
-
-PRL_RESULT Task_EditVm::SetIoPriority(const QString &sVmUuid, PRL_UINT32 nIoPriority)
-{
-#ifndef _LIN_
-	Q_UNUSED(sVmUuid)
-	Q_UNUSED(nIoPriority);
-	return PRL_ERR_UNIMPLEMENTED;
-#else
-
-	if (nIoPriority == (unsigned int) -1)
-		return PRL_ERR_SUCCESS;
-
-	if (CVzHelper::set_ioprio(sVmUuid, nIoPriority))
-		return PRL_ERR_SET_IOPRIO;
-
-	return PRL_ERR_SUCCESS;
-#endif
-}
-
 PRL_RESULT Task_EditVm::configureVzParameters(SmartPtr<CVmConfiguration> pNewVmConfig,
 					SmartPtr<CVmConfiguration> pOldVmConfig)
 {
-#ifndef _LIN_
-	Q_UNUSED(pNewVmConfig);
-	Q_UNUSED(pOldVmConfig);
-#else
-	PRL_RESULT prlResult;
-	unsigned int oldVal = 0, newVal;
 	bool bSet = !pOldVmConfig;
 
 	if (!CDspService::isServerModePSBM())
@@ -2776,42 +2662,6 @@ PRL_RESULT Task_EditVm::configureVzParameters(SmartPtr<CVmConfiguration> pNewVmC
 		return r.error().code();
 	if (s != VMS_RUNNING)
 		return PRL_ERR_SUCCESS;
-	// CpuUnits
-	if (pOldVmConfig)
-		oldVal = pOldVmConfig->getVmHardwareList()->getCpu()->getCpuUnits();
-	newVal = pNewVmConfig->getVmHardwareList()->getCpu()->getCpuUnits();
-	if (bSet || (newVal != oldVal))
-	{
-		prlResult = SetCpuUnits(sVmUuid, newVal);
-		if (PRL_FAILED(prlResult))
-			return prlResult;
-	}
-
-	// CpuMask
-	QString sCpuMask, sOldCpuMask;
-	if (pOldVmConfig)
-		sOldCpuMask = pOldVmConfig->getVmHardwareList()->getCpu()->getCpuMask();
-	sCpuMask = pNewVmConfig->getVmHardwareList()->getCpu()->getCpuMask();
-	if (pOldVmConfig && sCpuMask != sOldCpuMask)
-	{
-		prlResult = SetCpuMask(sVmUuid, sCpuMask,
-			pNewVmConfig->getVmHardwareList()->getCpu()->getNumber());
-		if (PRL_FAILED(prlResult))
-			return prlResult;
-	}
-
-	// CpuLimit
-	PRL_CPULIMIT_DATA oldCpuLimit;
-	PRL_CPULIMIT_DATA newCpuLimit;
-	if (pOldVmConfig)
-		pOldVmConfig->getVmHardwareList()->getCpu()->getCpuLimitData(&oldCpuLimit);
-	pNewVmConfig->getVmHardwareList()->getCpu()->getCpuLimitData(&newCpuLimit);
-	if (bSet || (newCpuLimit.value != oldCpuLimit.value || newCpuLimit.type != oldCpuLimit.type))
-	{
-		prlResult = SetCpuLimit(sVmUuid, &newCpuLimit);
-		if (PRL_FAILED(prlResult))
-			return prlResult;
-	}
 
 	// Rate
 	bool bSetRate = bSet;
@@ -2821,18 +2671,6 @@ PRL_RESULT Task_EditVm::configureVzParameters(SmartPtr<CVmConfiguration> pNewVmC
 	if (bSetRate)
 		Task_NetworkShapingManagement::setNetworkRate(*pNewVmConfig);
 
-	// IoPriority
-	if (pOldVmConfig)
-		oldVal = pOldVmConfig->getVmSettings()->getVmRuntimeOptions()->getIoPriority();
-	newVal = pNewVmConfig->getVmSettings()->getVmRuntimeOptions()->getIoPriority();
-	if (bSet || newVal != oldVal)
-	{
-		prlResult = SetIoPriority(sVmUuid, newVal);
-		if (PRL_FAILED(prlResult))
-			return prlResult;
-	}
-
-#endif
 	return PRL_ERR_SUCCESS;
 }
 
