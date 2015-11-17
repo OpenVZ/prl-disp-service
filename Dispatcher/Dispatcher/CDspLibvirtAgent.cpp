@@ -340,6 +340,18 @@ Guest::startProgram(const QString& path, const QList<QString>& args, const QByte
 	return Exec::Future(m_domain, r.value());
 }
 
+Prl::Expected<Exec::Result, Error::Simple>
+Guest::runProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn)
+{
+	Prl::Expected<Exec::Future, Error::Simple> f = startProgram(path, args, stdIn);
+	if (f.isFailed())
+		return f.error();
+	Result r = f.value().wait();
+	if (r.isFailed())
+		return r.error();
+	return f.value().getResult().get();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Exec
 

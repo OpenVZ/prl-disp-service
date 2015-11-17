@@ -219,6 +219,8 @@ struct Guest
 	Result setUserPasswd(const QString& user, const QString& passwd);
 	Prl::Expected<Exec::Future, Error::Simple>
 		startProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn);
+	Prl::Expected<Exec::Result, Error::Simple>
+		runProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn);
 
 private:
 	Result execute(const QString& cmd, QString& reply);
