@@ -159,11 +159,10 @@ PRL_RESULT Run::processVmResult(const Libvirt::Tools::Agent::Vm::Exec::Result& s
 
 PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 {
-	int flags = m_task->getRequestFlags();
 	CProtoCommandPtr d = CProtoSerializer::ParseCommand(m_task->getRequestPackage());
 	CProtoVmGuestRunProgramCommand* cmd = CProtoSerializer::CastToProtoCommand<CProtoVmGuestRunProgramCommand>(d);
 
-	if (flags & PFD_STDIN) {
+	if (m_task->getRequestFlags() & PFD_STDIN) {
 		m_task->sendEvent(PET_IO_READY_TO_ACCEPT_STDIN_PKGS);
 		// workaround prlctl exec cmd without stdin
 		if(!m_task->waitForStage("stdin data", 1000) && !variant_.getStdin().isEmpty()) {
@@ -172,11 +171,11 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 			}
 		}
 	}
-	Vm::Guest g = Libvirt::Kit.vms().at(m_task->getVmUuid()).getGuest();
-	Prl::Expected<Vm::Future,Libvirt::Error::Simple> f = g.startProgram(
-			cmd->GetProgramName(),
-			cmd->GetProgramArguments(),
-			variant_.getStdin());
+	Prl::Expected<Vm::Future,Libvirt::Error::Simple> f = Libvirt::Kit.vms()
+			.at(m_task->getVmUuid()).getGuest().startProgram(
+				cmd->GetProgramName(),
+				cmd->GetProgramArguments(),
+				variant_.getStdin());
 	if (f.isFailed())
 		return f.error().code();
 
@@ -184,12 +183,10 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 	if (e.isFailed())
 		return e.error().code();
 
-	Vm::Result s = f.value().getResult();
-
 	if (m_task->operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	return processVmResult(s.get());
+	return processVmResult(f.value().getResult().get());
 }
 
 ///////////////////////////////////////////////////////////////////////////////

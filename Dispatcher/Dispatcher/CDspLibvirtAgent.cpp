@@ -334,8 +334,7 @@ Prl::Expected<Exec::Future, Error::Simple>
 Guest::startProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn)
 {
 	Exec::Exec e(m_domain);
-	Prl::Expected<int, Error::Simple> r;
-	r = e.runCommand(path, args, stdIn);
+	Prl::Expected<int, Error::Simple> r = e.runCommand(path, args, stdIn);
 	if (r.isFailed())
 		return r.error();
 	return Exec::Future(m_domain, r.value());
@@ -387,10 +386,8 @@ Exec::Exec::getCommandStatus(int pid)
 		st.stdErr = QByteArray::fromBase64(s.c_str());
 
 		return boost::optional<Result>(st);
-	} else {
-		return boost::optional<Result>();
 	}
-
+	return boost::optional<Result>();
 }
 
 Prl::Expected<int, Error::Simple>
@@ -441,7 +438,7 @@ Result Exec::Exec::executeInAgent(const QString& cmd, QString& reply)
 	char* s = virDomainQemuAgentCommand(m_domain.data(),
 			cmd.toUtf8().constData(), -1, 0);
 	if (s == NULL)
-		return ::Libvirt::Result(Error::Detailed(PRL_ERR_FAILURE));
+		return Error::Detailed(PRL_ERR_FAILURE);
 
 	reply = QString::fromUtf8(s);
 	free(s);
@@ -467,7 +464,8 @@ Libvirt::Result
 Exec::Future::wait(int timeout)
 {
 	if (m_status)
-		return Libvirt::Result(Libvirt::Error::Simple(PRL_ERR_SUCCESS));
+		return Libvirt::Result();
+
 	Prl::Expected<boost::optional<Result>, Error::Simple> st;
 	Waiter waiter;
 	int msecs, total = 0;
@@ -478,13 +476,13 @@ Exec::Future::wait(int timeout)
 			return st.error();
 		if (st.value()) {
 			m_status = st.value();
-			return Libvirt::Result(Libvirt::Error::Simple(PRL_ERR_SUCCESS));
+			return Libvirt::Result();
 		}
 		msecs = calculateTimeout(i);
 		waiter.wait(msecs);
 		total += msecs;
 		if (timeout && timeout > total)
-			return Libvirt::Result(Libvirt::Error::Simple(PRL_ERR_TIMEOUT));
+			return Error::Simple(PRL_ERR_TIMEOUT);
 	}
 }
 
