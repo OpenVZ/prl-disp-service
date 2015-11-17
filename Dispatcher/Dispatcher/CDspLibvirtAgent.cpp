@@ -315,7 +315,37 @@ Result Guest::setUserPasswd(const QString& user_, const QString& passwd_)
 			passwd_.toUtf8().constData(), 0));
 }
 
-Result Guest::getCommandStatus(int pid, boost::optional<Guest::ExitStatus>& status)
+Result Guest::execute(const QString& cmd, QString& reply)
+{
+	char* s = NULL;
+	if (0 != virDomainQemuMonitorCommand(m_domain.data(),
+			cmd.toUtf8().constData(),
+			&s,
+			VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP))
+	{
+		return Result(Error::Detailed(PRL_ERR_FAILURE));
+	}
+	reply = QString::fromUtf8(s);
+	free(s);
+	return Result();
+}
+
+Prl::Expected<Exec::Future, Error::Simple>
+Guest::startProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn)
+{
+	Exec::Exec e(m_domain);
+	Prl::Expected<int, Error::Simple> r;
+	r = e.runCommand(path, args, stdIn);
+	if (r.isFailed())
+		return r.error();
+	return Exec::Future(m_domain, r.value());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Exec
+
+Prl::Expected<boost::optional<Exec::Result>, Error::Simple>
+Exec::Exec::getCommandStatus(int pid)
 {
 	boost::property_tree::ptree cmd, params;
 
@@ -332,9 +362,9 @@ Result Guest::getCommandStatus(int pid, boost::optional<Guest::ExitStatus>& stat
 	boost::replace_all<std::string>(s, "\"pid-value\"", boost::lexical_cast<std::string>(pid));
 
 	QString reply;
-	Result r = executeInAgent(QString::fromUtf8(s.c_str()), reply);
+	::Libvirt::Result r = executeInAgent(QString::fromUtf8(s.c_str()), reply);
 	if (r.isFailed())
-		return r;
+		return r.error();
 
 	std::istringstream is(reply.toUtf8().data());
 	boost::property_tree::ptree result;
@@ -342,7 +372,7 @@ Result Guest::getCommandStatus(int pid, boost::optional<Guest::ExitStatus>& stat
 
 	bool exited = result.get<bool>("return.exited");
 	if (exited) {
-		Guest::ExitStatus st;
+		Result st;
 		st.exitcode = result.get<int>("return.signal", -1);
 		if (st.exitcode != -1) {
 			st.signaled = true;
@@ -356,14 +386,15 @@ Result Guest::getCommandStatus(int pid, boost::optional<Guest::ExitStatus>& stat
 		s = result.get<std::string>("return.err-data", "");
 		st.stdErr = QByteArray::fromBase64(s.c_str());
 
-		status = st;
+		return boost::optional<Result>(st);
+	} else {
+		return boost::optional<Result>();
 	}
 
-	return Result();
 }
 
-Result Guest::runCommand(const QString& path, const QList<QString>& args,
-	const QByteArray& stdIn, int& pid)
+Prl::Expected<int, Error::Simple>
+Exec::Exec::runCommand(const QString& path, const QList<QString>& args, const QByteArray& stdIn)
 {
 	boost::property_tree::ptree cmd, argv, params;
 
@@ -394,44 +425,67 @@ Result Guest::runCommand(const QString& path, const QList<QString>& args,
 	boost::replace_all<std::string>(s, "\"capture-output-value\"", "true");
 
 	QString reply;
-	Result r = executeInAgent(QString::fromUtf8(s.c_str()), reply);
+	::Libvirt::Result r = executeInAgent(QString::fromUtf8(s.c_str()), reply);
 	if (r.isFailed())
-		return r;
+		return r.error();
 
 	std::istringstream is(reply.toUtf8().data());
 	boost::property_tree::ptree result;
 	boost::property_tree::json_parser::read_json(is, result);
 
-	pid = result.get<int>("return.pid");
-
-	return r;
+	return result.get<int>("return.pid");
 }
 
-Result Guest::execute(const QString& cmd, QString& reply)
-{
-	char* s = NULL;
-	if (0 != virDomainQemuMonitorCommand(m_domain.data(),
-			cmd.toUtf8().constData(),
-			&s,
-			VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP))
-	{
-		return Result(Error::Detailed(PRL_ERR_FAILURE));
-	}
-	reply = QString::fromUtf8(s);
-	free(s);
-	return Result();
-}
-
-Result Guest::executeInAgent(const QString& cmd, QString& reply)
+Result Exec::Exec::executeInAgent(const QString& cmd, QString& reply)
 {
 	char* s = virDomainQemuAgentCommand(m_domain.data(),
 			cmd.toUtf8().constData(), -1, 0);
 	if (s == NULL)
-		return Result(Error::Detailed(PRL_ERR_FAILURE));
+		return ::Libvirt::Result(Error::Detailed(PRL_ERR_FAILURE));
 
 	reply = QString::fromUtf8(s);
 	free(s);
-	return Result();
+	return ::Libvirt::Result();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Future
+
+int Exec::Future::calculateTimeout(int i) const
+{
+	switch (i / 10) {
+		case 0:
+			return 100;
+		case 1:
+			return 1000;
+		default:
+			return 10000;
+	}
+}
+
+Libvirt::Result
+Exec::Future::wait(int timeout)
+{
+	if (m_status)
+		return Libvirt::Result(Libvirt::Error::Simple(PRL_ERR_SUCCESS));
+	Prl::Expected<boost::optional<Result>, Error::Simple> st;
+	Waiter waiter;
+	int msecs, total = 0;
+	for (int i=0; ; i++) {
+		Exec e(m_domain);
+		st = e.getCommandStatus(m_pid);
+		if (st.isFailed())
+			return st.error();
+		if (st.value()) {
+			m_status = st.value();
+			return Libvirt::Result(Libvirt::Error::Simple(PRL_ERR_SUCCESS));
+		}
+		msecs = calculateTimeout(i);
+		waiter.wait(msecs);
+		total += msecs;
+		if (timeout && timeout > total)
+			return Libvirt::Result(Libvirt::Error::Simple(PRL_ERR_TIMEOUT));
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -133,18 +133,83 @@ private:
 	QSharedPointer<virDomain> m_domain;
 };
 
+namespace Exec
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Waiter
+
+struct Waiter : QObject {
+private slots:
+	void stop()
+	{
+		m_loop.exit(0);
+	}
+public:
+	void wait(int msecs)
+	{
+		QTimer::singleShot(msecs, this, SLOT(stop()));
+		m_loop.exec();
+	}
+private:
+	Q_OBJECT
+	QEventLoop m_loop;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Result
+
+struct Result {
+	int exitcode;
+	bool signaled;
+	QByteArray stdOut;
+	QByteArray stdErr;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Future
+
+struct Future {
+	Future(const QSharedPointer<virDomain>& domain_, int pid_): m_domain(domain_), m_pid(pid_)
+	{
+	}
+	::Libvirt::Result wait(int timeout = 0);
+	boost::optional<Result> getResult()
+	{
+		return m_status;
+	}
+private:
+	int calculateTimeout(int i) const;
+
+	QSharedPointer<virDomain> m_domain;
+	int m_pid;
+	boost::optional<Result> m_status;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Exec
+
+struct Exec {
+	explicit Exec (const  QSharedPointer<virDomain>& domain_): m_domain(domain_)
+	{
+	}
+	Prl::Expected<int, Error::Simple>
+		runCommand(const QString& path, const QList<QString>& args, const QByteArray& stdIn);
+
+	Prl::Expected<boost::optional<Result>, Error::Simple>
+		getCommandStatus(int pid);
+	::Libvirt::Result executeInAgent(const QString& cmd, QString& reply);
+private:
+	QSharedPointer<virDomain> m_domain;
+};
+
+}; //namespace Exec
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Guest
 
 struct Guest
 {
-	struct ExitStatus {
-		int exitcode;
-		bool signaled;
-		QByteArray stdOut;
-		QByteArray stdErr;
-	};
-
 	explicit Guest(const  QSharedPointer<virDomain>& domain_): m_domain(domain_)
 	{
 	}
@@ -152,13 +217,11 @@ struct Guest
 	Result dumpMemory(const QString& path, QString& reply);
 	Result dumpState(const QString& path, QString& reply);
 	Result setUserPasswd(const QString& user, const QString& passwd);
-	Result getCommandStatus(int pid, boost::optional<ExitStatus>& status);
-	Result runCommand(const QString& path, const QList<QString>& args,
-			const QByteArray& stdIn, int& pid);
+	Prl::Expected<Exec::Future, Error::Simple>
+		startProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn);
 
 private:
 	Result execute(const QString& cmd, QString& reply);
-	Result executeInAgent(const QString& cmd, QString& reply);
 
 	QSharedPointer<virDomain> m_domain;
 };

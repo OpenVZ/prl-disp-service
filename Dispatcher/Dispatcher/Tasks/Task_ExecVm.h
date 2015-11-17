@@ -123,30 +123,24 @@ private:
 
 struct Vm
 {
-	typedef boost::optional<Libvirt::Tools::Agent::Vm::Guest::ExitStatus>
-		exitStatus_type;
+	typedef Libvirt::Tools::Agent::Vm::Exec::Future
+		Future;
+	typedef boost::optional<Libvirt::Tools::Agent::Vm::Exec::Result>
+		Result;
+	typedef Libvirt::Tools::Agent::Vm::Guest
+		Guest;
 
-	PRL_RESULT runCommand(
-		CProtoVmGuestRunProgramCommand* req, const QString& uuid, int flags);
 	void closeStdin()
 	{
 	}
 	PRL_RESULT processStdinData(const char * data, size_t size);
-	bool checkCmdFinished(int pid_, Task_ExecVm& );
 	const QByteArray& getStdin() const
 	{
 		return m_stdindata;
 	}
-	const exitStatus_type& getExitStatus() const
-	{
-		return m_exitStatus;
-	}
 
 private:
-	static int calculateTimeout(int iteration_);
-
 	QByteArray m_stdindata;
-	exitStatus_type m_exitStatus;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -160,6 +154,7 @@ struct Run: boost::static_visitor<PRL_RESULT>
 
 	PRL_RESULT operator()(Exec::Ct& variant_) const;
 	PRL_RESULT operator()(Exec::Vm& variant_) const;
+	PRL_RESULT processVmResult(const Libvirt::Tools::Agent::Vm::Exec::Result& s) const;
 
 private:
 	Task_ExecVm* m_task;
