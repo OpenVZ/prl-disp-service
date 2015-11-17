@@ -871,6 +871,10 @@ void Body<Tag::Libvirt<PVE::DspCmdVmCreateSnapshot> >::run()
 		<CProtoCommandDspWsResponse>(r);
 	d->AddStandardParam(x->GetSnapshotUuid());
 	m_context.getSession()->sendResponse(r, b);
+	// swapping finished
+	a = DispatcherPackage::createInstance(PVE::DspVmEvent, CVmEvent
+		(PET_DSP_EVT_VM_MEMORY_SWAPPING_FINISHED, x->GetVmUuid(), PIE_VIRTUAL_MACHINE), b);
+	m.sendPackageToVmClients(a, m_context.getDirectoryUuid(), x->GetVmUuid());
 }
 
 template<>
