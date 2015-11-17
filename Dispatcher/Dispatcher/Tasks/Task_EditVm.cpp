@@ -38,6 +38,7 @@
 #include "Libraries/PrlNetworking/netconfig.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/PrlCommonUtils/CFirewallHelper.h"
+#include "Libraries/PrlCommonUtilsBase/NetworkUtils.h"
 #include "Libraries/StatesUtils/StatesHelper.h"
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 #include "Libraries/HostUtils/HostUtils.h"
@@ -3322,6 +3323,280 @@ Vm::Action* Factory::operator()(const Request& input_) const
 
 } // namespace Blkiotune
 
+namespace Network
+{
+static void parseNetAddresses(const CVmGenericNetworkAdapter *a, QStringList &lst4, QStringList &lst6)
+{
+	foreach (QString ip, a->getNetAddresses())
+	{
+		if (QHostAddress(ip).protocol() == QAbstractSocket::IPv6Protocol && !a->isConfigureWithDhcpIPv6())
+			lst6 << ip;
+		else if (QHostAddress(ip).protocol() == QAbstractSocket::IPv4Protocol && !a->isConfigureWithDhcp())
+			lst4 << ip;
+	}
+}
+
+static CVmGenericNetworkAdapter* findNetAdapter(const QList<CVmGenericNetworkAdapter* > &lstAdapters,
+		const CVmGenericNetworkAdapter *pAdapter)
+{
+	QString ifname = pAdapter->getSystemName();
+	uint ifidx = pAdapter->getIndex();
+	foreach(CVmGenericNetworkAdapter* p, lstAdapters)
+	{
+		if ((!ifname.isEmpty() && ifname == p->getSystemName()) || ifidx == p->getIndex())
+			return p;
+	}
+	return NULL;
+}
+
+static bool isEqualNetAdapter(const CVmGenericNetworkAdapter* a, const CVmGenericNetworkAdapter *b)
+{
+	if (a == NULL || b == NULL)
+		return a == b;
+
+	return
+		a->getConnected() == b->getConnected() &&
+		a->getEnabled() == b->getEnabled() &&
+		a->isAutoApply() == b->isAutoApply() &&
+		a->getEmulatedType() == b->getEmulatedType() &&
+		PrlNet::isEqualEthAddress(a->getMacAddress(), b->getMacAddress()) &&
+		a->getNetAddresses() == b->getNetAddresses() &&
+		a->getDefaultGateway() == b->getDefaultGateway() &&
+		a->getDefaultGatewayIPv6() == b->getDefaultGatewayIPv6() &&
+		a->isConfigureWithDhcp() == b->isConfigureWithDhcp() &&
+		a->isConfigureWithDhcpIPv6() == b->isConfigureWithDhcpIPv6() &&
+		a->getDnsIPAddresses() == b->getDnsIPAddresses() &&
+		a->getVirtualNetworkID() == b->getVirtualNetworkID();
+}
+
+void calcGwConfigured(const QList<CVmGenericNetworkAdapter *> &lst, bool &gwConfigured4, bool &gwConfigured6)
+{
+	gwConfigured4 = true;
+	gwConfigured6 = true;
+	foreach(CVmGenericNetworkAdapter *a, lst)
+	{
+		if (a->getEnabled() != PVE::DeviceEnabled)
+			continue;
+
+		if (!a->isAutoApply())
+			continue;
+
+		if (a->getEmulatedType() == PNA_ROUTED)
+			continue;
+
+		if (a->isConfigureWithDhcp() || !a->getDefaultGateway().isEmpty())
+			gwConfigured4 = false;
+
+		if (a->isConfigureWithDhcpIPv6() || !a->getDefaultGatewayIPv6().isEmpty())
+			gwConfigured6 = false;
+	}
+}
+
+QStringList GetNetworkSettingArgs(const CVmGlobalNetwork *dg, const CVmGlobalNetwork *og,
+	const QList<CVmGenericNetworkAdapter *> &dl, const QList<CVmGenericNetworkAdapter *> &ol)
+{
+	QStringList args = QStringList();
+	bool adapterSearchDomainsChanged = false;
+	bool applyIpOnly = dg->isAutoApplyIpOnly();
+
+	// Filter out not enabled and not managed adapters
+	QList<CVmGenericNetworkAdapter *> fl;
+	foreach(CVmGenericNetworkAdapter *a, dl)
+	{
+		if (a->isAutoApply() && a->getEnabled() == PVE::DeviceEnabled &&
+				a->getConnected() == PVE::DeviceConnected)
+		fl.push_back(a);
+		
+	}
+
+	// touch global network settings only if there is no adapters in ipOnly apply mode
+	if (!applyIpOnly)
+	{
+		// add global search domains
+		QStringList sd = dg->getSearchDomains();
+
+		// add per adapter search domains to global list for now - due to
+		// absence of support in guest parts
+		foreach(CVmGenericNetworkAdapter *a, fl)
+		{
+			CVmGenericNetworkAdapter *oa = findNetAdapter(ol, a);
+			if (!oa || a->getSearchDomains() != oa->getSearchDomains())
+				adapterSearchDomainsChanged = true;
+			sd += a->getSearchDomains();
+		}
+
+		// set searchDomains only if something changed
+		if ((adapterSearchDomainsChanged ||
+			dg->getSearchDomains() != og->getSearchDomains()) && !sd.isEmpty())
+			args << "--search-domain" << sd.join(" ");
+
+		// configure hostname
+		QString hostname = dg->getHostName();
+		if (hostname !=  og->getHostName() && !hostname.isEmpty())
+			args << "--hostname" << hostname;
+	}
+
+	bool AllowRouted, AllowRoutedIPv6;
+	bool oldAllowRouted, oldAllowRoutedIPv6;
+
+	calcGwConfigured(dl, AllowRouted, AllowRoutedIPv6);
+	calcGwConfigured(ol, oldAllowRouted, oldAllowRoutedIPv6);
+
+	bool gwChanged = (oldAllowRouted != AllowRouted) || (AllowRoutedIPv6 != oldAllowRoutedIPv6);
+
+	foreach(CVmGenericNetworkAdapter *a, fl)
+	{
+		CVmGenericNetworkAdapter *oa = findNetAdapter(ol, a);
+		bool isRouted = a->getEmulatedType() == PNA_ROUTED;
+
+		if (isEqualNetAdapter(oa, a) && dg->isAutoApplyIpOnly() == og->isAutoApplyIpOnly() &&
+				!(isRouted && gwChanged))
+			continue;
+
+		bool isDhcpApplied = false;
+
+		QString mac = a->getMacAddress();
+		if (!PrlNet::convertMacAddress(mac))
+			continue;
+
+		// DHCP has no sense with Routed adapters
+		if (!isRouted && a->isConfigureWithDhcp())
+		{
+			args << "--dhcp" << mac;
+			isDhcpApplied = true;
+		}
+
+		if (!isRouted && a->isConfigureWithDhcpIPv6())
+			args << "--dhcpv6" << mac;
+
+		if (!a->isConfigureWithDhcp() || !a->isConfigureWithDhcpIPv6())
+		{
+			QStringList lst4, lst6;
+
+			parseNetAddresses(a, lst4, lst6);
+
+			if (!lst4.isEmpty() || !lst6.isEmpty())
+				args << "--ip" << mac << lst4 << lst6;
+
+			QString gw_arg, route_arg;
+
+			if (!lst4.isEmpty())
+			{
+				QString gw = a->getDefaultGateway();
+				if (isRouted)
+				{
+					NetworkUtils::ParseIpMask(DEFAULT_HOSTROUTED_GATEWAY, gw);
+					if (!AllowRouted)
+					{
+						route_arg += gw + " ";
+						gw = "";
+					}
+				}
+
+				if (gw.length() > 0)
+					gw_arg += gw + " ";
+				else
+					gw_arg += "remove ";
+			}
+			else if (!isDhcpApplied && !isRouted && lst6.isEmpty())
+			{
+				// automatic switch to DHCP if list of IPs empty (#427177)
+				args << "--dhcp" << mac;
+				isDhcpApplied = true;
+			}
+
+			if (!lst6.isEmpty())
+			{
+				QString gw = a->getDefaultGatewayIPv6();
+				if (isRouted)
+				{
+					NetworkUtils::ParseIpMask(DEFAULT_HOSTROUTED_GATEWAY6, gw);
+					if (!AllowRoutedIPv6)
+					{
+						route_arg += gw + " ";
+						gw = "";
+					}
+				}
+
+				if (gw.length() > 0)
+					gw_arg += gw + " ";
+				else
+					gw_arg += "removev6 ";
+			}
+
+			if (gw_arg.length() > 0)
+				args << "--gateway" << mac << gw_arg;
+
+			if (route_arg.length() > 0)
+				args << "--route" << mac << route_arg;
+			else if (gw_arg.length() == 0)
+				args << "--route" << mac << "remove";
+
+			if (lst4.isEmpty() && !isDhcpApplied && lst6.isEmpty())
+			{
+				//remove ips in routed network adapter #PSBM-8099
+				args << "--ip" << mac << "remove";
+			}
+		}
+		else if (isRouted) //adapter->isConfigureWithDhcp() && adapter->isConfigureWithDhcpIPv6()
+		{
+			//ipv6 and ipv4 are configured to DHCP - say prl_nettool
+			//to remove all IPs
+			args << "--ip" << mac << "remove";
+		}
+		else
+		{
+			// bridged && dhcp && dhcp6
+			args << "--route" << mac << "remove";
+		}
+
+		// ipOnly autoApply skips all except ip/route/gw args
+		// currently this is just dns ips args
+		if (applyIpOnly)
+			continue;
+
+		if (!a->getDnsIPAddresses().isEmpty())
+			args << "--dns" << mac << QStringList(a->getDnsIPAddresses()).join(" ");
+	}
+	return args;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Action
+
+bool Action::execute(CDspTaskFailure& feedback_)
+{
+	Prl::Expected<Libvirt::Tools::Agent::Vm::Exec::Result,Libvirt::Error::Simple> e = Libvirt::Kit.vms()
+		.at(m_vm).getGuest().runProgram("prl_nettool", m_args, QByteArray());
+	if (e.isFailed())
+	{
+		feedback_(e.error().convertToEvent());
+		return false;
+	}
+
+	return Vm::Action::execute(feedback_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+Action* Factory::operator()(const Request& input_) const
+{
+	const CVmGlobalNetwork *og = input_.getStart().getVmSettings()->getGlobalNetwork();
+	const CVmGlobalNetwork *dg = input_.getFinal().getVmSettings()->getGlobalNetwork();
+	const QList<CVmGenericNetworkAdapter *> ol = input_.getStart().getVmHardwareList()->m_lstNetworkAdapters;
+	const QList<CVmGenericNetworkAdapter *> dl = input_.getFinal().getVmHardwareList()->m_lstNetworkAdapters;
+
+	QStringList args = GetNetworkSettingArgs(dg, og, dl, ol);
+	if (args.isEmpty())
+		return NULL;
+
+	args.insert(0, "set");
+	return new Action(input_.getObject().first, args);
+}
+
+} // namespace Network
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
@@ -3334,7 +3609,8 @@ Action* Factory::operator()(const Request& input_) const
 		return NULL;
 
 	Visitor v(input_);
-	typedef boost::mpl::vector<Cdrom::Factory, Memory::Factory, Disk::Factory, Blkiotune::Factory> list_type;
+	typedef boost::mpl::vector<Cdrom::Factory, Memory::Factory, Disk::Factory,
+		Blkiotune::Factory, Network::Factory> list_type;
 	boost::mpl::for_each<list_type>(boost::ref(v));
 	return v.getResult();
 }

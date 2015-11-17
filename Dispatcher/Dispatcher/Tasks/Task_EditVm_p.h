@@ -262,6 +262,35 @@ struct Factory
 
 } // namespace Blkiotune
 
+namespace Network
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Action
+
+struct Action: Vm::Action
+{
+	Action(const QString& vm_, const QStringList& args_):
+		m_vm(vm_), m_args(args_)
+	{
+	}
+
+	bool execute(CDspTaskFailure& feedback_);
+
+private:
+	QString m_vm;
+	QStringList m_args;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+struct Factory
+{
+	Action* operator()(const Request& input_) const;
+};
+
+} // namespace Network
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
