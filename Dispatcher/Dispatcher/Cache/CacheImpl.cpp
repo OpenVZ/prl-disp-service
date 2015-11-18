@@ -68,7 +68,7 @@ template<class T> bool Cache<T>::FileTimestamp::operator!=(const FileTimestamp& 
 template<class T> Cache<T>::ConfigInfo::ConfigInfo(
 	const SmartPtr<T>& pConfigOrig, const FileTimestamp& ts )
 : pConfig( new T( pConfigOrig.getImpl() ) )
-	, dtChangeTime(ts)
+	, dtChangeTime(ts), nextTimeStampCheck(0)
 {
 	lastAccess = PrlGetTickCount64();
 	PRL_ASSERT(pConfigOrig);
@@ -77,7 +77,7 @@ template<class T> Cache<T>::ConfigInfo::ConfigInfo(
 template<> Cache<CVmConfiguration>::ConfigInfo::ConfigInfo(
 	const SmartPtr<CVmConfiguration>& pConfigOrig, const FileTimestamp& ts )
 : pConfig( new CVmConfiguration( pConfigOrig.getImpl() ) )
-	, dtChangeTime(ts)
+	, dtChangeTime(ts), nextTimeStampCheck(0)
 {
 	lastAccess = PrlGetTickCount64();
 	// will keep only absolute paths in cache (https://jira.sw.ru/browse/PSBM-13477)
@@ -151,14 +151,17 @@ template<class T> SmartPtr<T> Cache<T>::getFromCache( const QString& strFileName
 	typename QHash< CacheKey, ConfigInfo >::const_iterator cIt = m_hashConfigs.find(key);
 	if( cIt != m_hashConfigs.end() )
 	{
-		FileTimestamp ts( strFileName );
-		if( cIt->dtChangeTime != ts )
+		bool changed = false;
+		if (cIt->nextTimeStampCheck < PrlGetTimeMonotonic())
 		{
-			LOG_MESSAGE( DBG_FATAL, "xxx ZZZ-1: Config file was changed on the disk. "
-					"TimeStamps: cached: %s, current %s,  path = %s"
-				, QSTR2UTF8(cIt->dtChangeTime.toString()), QSTR2UTF8(ts.toString()), QSTR2UTF8(strFileName) );
+			FileTimestamp ts( strFileName );
+
+			changed = cIt->dtChangeTime != ts;
+			cIt->nextTimeStampCheck = PrlGetTimeMonotonic() +
+					(60 * 1000000);
 		}
-		else
+
+		if (!changed)
 		{
 			LOG_MESSAGE( DBG_FATAL, "xxx ZZZ-2: Config was got from cache. path = %s", QSTR2UTF8(strFileName) );
 			cIt->lastAccess = PrlGetTickCount64();
