@@ -104,7 +104,7 @@ struct Ct {
 	PRL_RESULT processStd(Task_ExecVm*);
 	PRL_RESULT runCommand(
 		CProtoVmGuestRunProgramCommand* req, const QString& uuid, int flags);
-	void closeStdin();
+	void closeStdin(Task_ExecVm*);
 	PRL_RESULT processStdinData(const char * data, size_t size);
 	CVzExecHelper& getExecer()
 	{
@@ -130,9 +130,7 @@ struct Vm
 	typedef Libvirt::Tools::Agent::Vm::Guest
 		Guest;
 
-	void closeStdin()
-	{
-	}
+	void closeStdin(Task_ExecVm*);
 	PRL_RESULT processStdinData(const char * data, size_t size);
 	const QByteArray& getStdin() const
 	{
