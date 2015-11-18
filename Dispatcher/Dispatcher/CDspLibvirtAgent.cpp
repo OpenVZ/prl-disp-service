@@ -295,6 +295,52 @@ Result Performance::getNetwork() const
 	return Result();
 }
 
+namespace Command
+{
+///////////////////////////////////////////////////////////////////////////////
+//struct Future
+
+Result Future::wait(int timeout_)
+{
+	if (m_status.empty())
+		return Result();
+
+	boost::property_tree::ptree c, r;
+	c.put("execute","query-status");
+	std::stringstream ss;
+	boost::property_tree::json_parser::write_json(ss, c, false);
+	QString cmd = QString::fromUtf8(ss.str().c_str());
+
+	// Wait befor migration is over and unpause VM
+	Exec::Waiter w;
+	do
+	{
+		w.wait(timeout_ >= 100 ? 100 : timeout_);
+		timeout_ -= 100;
+
+		QString state;
+		Result res = m_guest.execute(cmd, state, false);
+		if (res.isFailed())
+			return res;
+
+		std::istringstream is(state.toUtf8().data());
+		boost::property_tree::json_parser::read_json(is, r);
+		std::string status = r.get<std::string>("return.status", std::string("none"));
+
+		// Is state changed?
+		if (status != m_status)
+		{
+			m_status.clear();
+			return res;
+		}
+	}
+	while(timeout_ > 0);
+
+	return Error::Simple(PRL_ERR_TIMEOUT);
+}
+
+} // namespace Command
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Guest
 
@@ -309,9 +355,26 @@ Result Guest::dumpMemory(const QString& path, QString& reply)
 	return execute(QString("dump-guest-memory -z %1").arg(path), reply);
 }
 
-Result Guest::dumpState(const QString& path, QString& reply)
+Prl::Expected<Command::Future, Error::Simple>
+Guest::dumpState(const QString& path_)
 {
-	return execute(QString("migrate -s \"exec:gzip -c > %1\"").arg(path), reply);
+	int s = VIR_DOMAIN_NOSTATE;
+
+	if (-1 == virDomainGetState(m_domain.data(), &s, NULL, 0))
+		return Error::Detailed(PRL_ERR_VM_GET_STATUS_FAILED);
+
+	// Cannot get state for stopped VM.
+	if (s == VIR_DOMAIN_SHUTDOWN || s == VIR_DOMAIN_SHUTOFF)
+		return Error::Simple(PRL_ERR_VM_PROCESS_IS_NOT_STARTED);
+
+	QString r;
+	Result res = execute(QString("migrate -s \"exec:gzip -c > %1\"").arg(path_), r);
+
+	if (res.isFailed())
+		return res.error();
+
+	// "finish-migrate" - guest is paused to finish the migration process
+	return Command::Future(m_domain, std::string("finish-migrate"));
 }
 
 Result Guest::setUserPasswd(const QString& user_, const QString& passwd_)
@@ -321,13 +384,13 @@ Result Guest::setUserPasswd(const QString& user_, const QString& passwd_)
 			passwd_.toUtf8().constData(), 0));
 }
 
-Result Guest::execute(const QString& cmd, QString& reply)
+Result Guest::execute(const QString& cmd, QString& reply, bool isHmp)
 {
 	char* s = NULL;
 	if (0 != virDomainQemuMonitorCommand(m_domain.data(),
 			cmd.toUtf8().constData(),
 			&s,
-			VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP))
+			isHmp ? VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP : 0))
 	{
 		return Result(Error::Detailed(PRL_ERR_FAILURE));
 	}

@@ -204,6 +204,12 @@ private:
 
 }; //namespace Exec
 
+namespace Command
+{
+
+struct Future;
+
+} //namespace Command
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Guest
@@ -216,19 +222,40 @@ struct Guest
 
 	Result traceEvents(bool enable_); 
 	Result dumpMemory(const QString& path, QString& reply);
-	Result dumpState(const QString& path, QString& reply);
+	Prl::Expected<Command::Future, Error::Simple>
+		dumpState(const QString& path_);
 	Result setUserPasswd(const QString& user, const QString& passwd);
 	Prl::Expected<Exec::Future, Error::Simple>
 		startProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn);
 	Prl::Expected<Exec::Result, Error::Simple>
 		runProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn);
+	Result execute(const QString& cmd, QString& reply, bool isHmp = true);
 
 private:
-	Result execute(const QString& cmd, QString& reply);
-
 	QSharedPointer<virDomain> m_domain;
 };
 
+namespace Command
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Future
+
+struct Future
+{
+	explicit Future(const QSharedPointer<virDomain>& domain_,
+		const std::string& status_ = std::string())
+	: m_guest(domain_), m_status(status_)
+	{
+	}
+
+	Result wait(int timeout_);
+
+private:
+	Guest m_guest;
+	std::string m_status;
+};
+
+} // namespace Command
 ///////////////////////////////////////////////////////////////////////////////
 // struct Runtime
 
