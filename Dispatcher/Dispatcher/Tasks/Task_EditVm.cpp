@@ -1625,6 +1625,12 @@ PRL_RESULT Task_EditVm::editVm()
 					}
 				}
 
+				if (new_adapter->getHostInterfaceName().isEmpty())
+				{
+					new_adapter->setHostInterfaceName
+							(HostUtils::generateHostInterfaceName(new_adapter->getMacAddress()));
+				}
+
 				if (!(old_adapter->getNetAddresses() == new_adapter->getNetAddresses())) {
 					WRITE_TRACE(DBG_INFO, "IP will be changed for VM %s",
 							QSTR2UTF8(vm_uuid));
