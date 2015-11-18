@@ -213,7 +213,8 @@ struct Guest
 	explicit Guest(const  QSharedPointer<virDomain>& domain_): m_domain(domain_)
 	{
 	}
- 
+
+	Result traceEvents(bool enable_); 
 	Result dumpMemory(const QString& path, QString& reply);
 	Result dumpState(const QString& path, QString& reply);
 	Result setUserPasswd(const QString& user, const QString& passwd);
