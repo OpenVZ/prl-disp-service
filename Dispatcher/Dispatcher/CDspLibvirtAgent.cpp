@@ -298,6 +298,12 @@ Result Performance::getNetwork() const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Guest
 
+Result Guest::traceEvents(bool enable_)
+{
+	QString r;
+	return execute
+		(QString("trace-event * %1").arg(enable_ ? "on" : "off"), r);
+}
 Result Guest::dumpMemory(const QString& path, QString& reply)
 {
 	return execute(QString("dump-guest-memory -z %1").arg(path), reply);

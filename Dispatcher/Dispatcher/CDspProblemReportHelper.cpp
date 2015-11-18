@@ -118,6 +118,27 @@
 #define HOST_PROC_MINIDUMP_CREATE_CMD_TIMEOUT	1 * 60 * 1000
 #define REPORT_COMMAND_TIMEOUT			3 * 60 * 1000
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Trace
+
+struct Trace
+{
+	explicit Trace(const QString& uuid_):
+	m_guest(Libvirt::Kit.vms().at(uuid_).getGuest())
+	{
+	}
+
+	void collect(unsigned timeout_ = 1000)
+	{
+		m_guest.traceEvents(true);
+		HostUtils::Sleep(timeout_);
+		m_guest.traceEvents(false);
+	}
+
+private:
+	Libvirt::Tools::Agent::Vm::Guest m_guest;
+};
+
 class CVzConfig
 {
 public:
@@ -937,6 +958,12 @@ void CDspProblemReportHelper::FillProblemReportData(
         bool bVmRunning =
             ( CDspVm::getVmState( strVmUuid , strDirUuid ) == VMS_RUNNING );
 
+	QFuture<void> trace;
+	if (bVmRunning && nType == PVT_VM)
+	{
+		trace = QtConcurrent::run(Trace(strVmUuid), &Trace::collect, 15000);
+	}
+
         if ( bHasValidVmCfg ) {
             if ( nType == PVT_VM )
                 FillVmProblemReportData( cReport, vmConfig, strDirUuid );
@@ -971,8 +998,11 @@ void CDspProblemReportHelper::FillProblemReportData(
 	addSystemLog(cReport, QFileInfo("/var/log/cpufeatures.log"));
 	addSystemLog(cReport, QFileInfo("/var/log/ploop.log"));
 	addSystemLog(cReport, QFileInfo("/var/log/pcompact.log"));
-	if (bHasValidVmCfg)
+	if (nType == PVT_VM)
 	{
+		if (bVmRunning)
+			trace.waitForFinished();
+
 		cReport.appendSystemLog(
 			QString("/var/log/libvirt/qemu/%1.log")
 				.arg(vmConfig.getVmIdentification()->getVmName()),
