@@ -62,6 +62,7 @@ class Cache : public CacheBase< T>
 				ConfigInfo(  const SmartPtr<T>& pConfig, const FileTimestamp& changeTime );
 				SmartPtr<T> pConfig;
 				FileTimestamp dtChangeTime;
+				mutable PRL_UINT64 nextTimeStampCheck;
 				mutable PRL_UINT64 lastAccess;
 
 				// FIXME: Need check also for Config ModificationTime - in PSBM on PCS we have disabled ConfigWatcher.
