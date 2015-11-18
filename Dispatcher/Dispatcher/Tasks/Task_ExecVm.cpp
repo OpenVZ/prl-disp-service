@@ -154,6 +154,9 @@ PRL_RESULT Run::processVmResult(const Libvirt::Tools::Agent::Vm::Exec::Result& s
 	if (m_task->sendToClient(PET_IO_FIN_TO_TRANSMIT_STDOUT_STDERR, NULL, 0))
 		return PRL_ERR_OPERATION_FAILED;
 	
+	if (!m_task->waitForStage("fin response"))
+		return PRL_ERR_TIMEOUT;
+
 	return PRL_ERR_SUCCESS;
 }
 
