@@ -53,6 +53,7 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/StatesUtils/StatesHelper.h"
 #include <Libraries/PowerWatcher/PowerWatcher.h>
+#include "Libraries/PrlNetworking/netconfig.h"
 
 #include "XmlModel/Messaging/CVmEventParameter.h"
 #include "XmlModel/ProblemReport/CProblemReport.h"
@@ -906,6 +907,91 @@ void Body<Tag::Libvirt<PVE::DspCmdVmDeleteSnapshot> >::run()
 		m_context.reply(s.undefine());
 }
 
+CHostHardwareInfo parsePrlNetToolOut(const QString &data)
+{
+	CHostHardwareInfo h;
+	QMap<QString, QStringList> m;
+	foreach(QString s, data.split("\n"))
+	{
+		s.remove('\r');
+		if (s.isEmpty())
+			continue;
+
+		QStringList params = s.split(";", QString::SkipEmptyParts);
+		if (params.size() < 2)
+			continue;
+		m.insert(params.takeFirst(), params);
+	}
+
+	h.getNetworkSettings()->getGlobalNetwork()->setSearchDomains(
+		m.take("SEARCHDOMAIN").takeFirst().split(" ", QString::SkipEmptyParts));
+
+	QMap<QString, QMap<QString, QStringList> > n;
+	for(QMap<QString, QStringList>::iterator i = m.begin(); i != m.end(); ++i)
+	{
+		QString mac = i.value().takeFirst();
+		if (!n.contains(mac))
+			n.insert(mac, QMap<QString, QStringList>());
+		n.find(mac).value().insert(i.key(), i.value());
+	}
+
+	for(QMap<QString, QMap<QString, QStringList> >::iterator j = n.begin(); j != n.end(); ++j)
+	{
+		CHwNetAdapter  *a = new CHwNetAdapter;
+		a->setMacAddress(j.key());
+
+		QMap<QString, QStringList> x(j.value());
+		if (!x.value("DNS").isEmpty())
+			a->setDnsIPAddresses(x.value("DNS").first().split(" ", QString::SkipEmptyParts));
+		if (!x.value("DHCP").isEmpty())
+			a->setConfigureWithDhcp(x.value("DHCP").first() == "TRUE");
+		if (!x.value("DHCPV6").isEmpty())
+			a->setConfigureWithDhcpIPv6(x.value("DHCPV6").first() == "TRUE");
+		if (!x.value("IP").isEmpty())
+			a->setNetAddresses(x.value("IP").first().split(" ", QString::SkipEmptyParts));
+		if (!x.value("GATEWAY").isEmpty())
+		{
+			foreach(QString ip, x.value("GATEWAY").first().split(" ", QString::SkipEmptyParts))
+			{
+				if (QHostAddress(ip).protocol() == QAbstractSocket::IPv6Protocol)
+					a->setDefaultGatewayIPv6(ip);
+				else
+					a->setDefaultGateway(ip);
+			}
+		}
+		h.m_lstNetworkAdapters.append(a);
+	}
+
+	return h;
+}
+
+template<>
+void Body<Tag::Libvirt<PVE::DspCmdVmGuestGetNetworkSettings> >::run()
+{
+	Prl::Expected<Libvirt::Tools::Agent::Vm::Exec::Result,Libvirt::Error::Simple> e =
+		Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest().runProgram(
+			"prl_nettool", QList<QString>(), QByteArray());
+	if (e.isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "GetNetworkSettings for VM '%s' is failed: %s",
+			qPrintable(m_context.getVmUuid()), PRL_RESULT_TO_STRING(e.error().code()));
+		return m_context.reply(e.error());
+	}
+	else if (e.value().stdOut.isEmpty())
+	{
+		WRITE_TRACE(DBG_FATAL, "prl_nettool return empty response");
+		return m_context.reply(PRL_ERR_GUEST_PROGRAM_EXECUTION_FAILED);
+	}
+
+	SmartPtr<IOPackage> b = m_context.getPackage();
+	CProtoCommandPtr r = CProtoSerializer::CreateDspWsResponseCommand(b, e.value().exitcode);
+	CProtoCommandDspWsResponse* d = CProtoSerializer::CastToProtoCommand
+		<CProtoCommandDspWsResponse>(r);
+
+	d->AddStandardParam(parsePrlNetToolOut(QString(e.value().stdOut)).toString());
+	m_context.getSession()->sendResponse(r, b);
+}
+
 template<>
 void Body<Tag::Libvirt<PVE::DspCmdVmGuestSetUserPasswd> >::run()
 {
@@ -1071,7 +1157,7 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmLoginInGuest] = map(Tag::Libvirt<PVE::DspCmdVmLoginInGuest>());
 	m_map[PVE::DspCmdVmGuestLogout] = map(Tag::Libvirt<PVE::DspCmdVmGuestLogout>());
 	m_map[PVE::DspCmdVmGuestRunProgram] = map(Tag::Special<PVE::DspCmdVmGuestRunProgram>());
-	m_map[PVE::DspCmdVmGuestGetNetworkSettings] = map(Tag::GuestSession());
+	m_map[PVE::DspCmdVmGuestGetNetworkSettings] = map(Tag::Libvirt<PVE::DspCmdVmGuestGetNetworkSettings>());
 	m_map[PVE::DspCmdVmGuestSetUserPasswd] = map(Tag::Libvirt<PVE::DspCmdVmGuestSetUserPasswd>());
 	m_map[PVE::DspCmdVmGuestChangeSID] = map(Tag::GuestSession());
 
