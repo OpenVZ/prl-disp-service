@@ -36,7 +36,6 @@
 #include <QWriteLocker>
 #include "CDspVmDirManager.h"
 #include "CDspService.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "XmlModel/VmConfig/CVmHardDisk.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/Std/PrlAssert.h"
@@ -44,6 +43,7 @@
 #include "Interfaces/ParallelsDomModel.h"
 
 #include "Dispatcher/Dispatcher/Cache/CacheImpl.h"
+
 
 namespace Vm
 {
@@ -56,6 +56,23 @@ void RemoteDisplay::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 {
 	old_.getVmSettings()->getVmRemoteDisplay()->setPortNumber
 		(new_.getVmSettings()->getVmRemoteDisplay()->getPortNumber());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct DeviceIndex
+
+template<>
+unsigned DeviceIndex<CVmHardDisk, PDE_HARD_DISK>::findIndex(const CVmHardDisk* disk_)
+{
+	QList<CVmHardDisk*>::iterator it = std::find_if
+		(m_disks.begin(), m_disks.end(),
+		 boost::bind(&CVmHardDisk::getSystemName, _1) ==
+			disk_->getSystemName());
+
+	if (it != m_disks.end())
+		return (*it)->getIndex();
+
+	return getAvaliableIndex();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

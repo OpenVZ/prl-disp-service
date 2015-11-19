@@ -32,14 +32,18 @@
 #ifndef CDSP_VM_CONFIG_ACCESS_SYNCH_H
 #define CDSP_VM_CONFIG_ACCESS_SYNCH_H
 
+#include "XmlModel/VmConfig/CVmConfiguration.h"
 #include <prlsdk/PrlErrors.h>
 #include "Libraries/Std/SmartPtr.h"
 #include "Dispatcher/Dispatcher/Cache/Cache.h"
 #include <QReadWriteLock>
 #include <QHash>
+#include <QVector>
 #include <QDateTime>
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/fold.hpp>
+#include <boost/bind.hpp>
+#include <boost/lambda/lambda.hpp>
 
 class CDspClient;
 class CVmConfiguration;
@@ -55,6 +59,77 @@ namespace Config
 struct RemoteDisplay
 {
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct DeviceIndex
+
+template <class T, PRL_DEVICE_TYPE D>
+struct DeviceIndex
+{
+	DeviceIndex(const CVmConfiguration& config_)
+	: m_disks(config_.getVmHardwareList()->m_lstHardDisks)
+	{
+		m_indexes.resize(m_disks.length());
+		std::transform(m_disks.begin(), m_disks.end(), m_indexes.begin(),
+			boost::bind(&T::getIndex, _1));
+		qSort(m_indexes);
+	}
+
+	unsigned findIndex(const T* disk_);
+	unsigned getAvaliableIndex()
+	{
+		unsigned index = 0;
+
+		if (!m_indexes.isEmpty() || m_indexes.first() != 0)
+		{
+			QVector<unsigned>::const_iterator ii =
+				std::adjacent_find(m_indexes.constBegin(), m_indexes.constEnd(),
+					boost::lambda::_1 + 1 < boost::lambda::_2);
+
+			if (ii != m_indexes.constEnd())
+				index = *ii + 1;
+			else
+				index = m_indexes.last() + 1;
+		}
+
+		m_indexes.insert(index, index);
+		return index;
+	}
+
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+	{
+		typedef QList<CVmStartupOptions::CVmBootDevice*> bootList_type;
+
+		QList<T*>& newList = new_.getVmHardwareList()->m_lstHardDisks;
+		bootList_type bootListCopy = 
+			new_.getVmSettings()->getVmStartupOptions()->m_lstBootDeviceList;
+
+		DeviceIndex<T, D> di(old_);
+		foreach(T* h, newList)
+		{
+			unsigned index = di.findIndex(h);
+			bootList_type::iterator b = std::find_if(bootListCopy.begin(), bootListCopy.end(),
+				 boost::bind(&CVmStartupOptions::CVmBootDevice::getIndex, _1)
+					== h->getIndex() &&
+				 boost::bind(&CVmStartupOptions::CVmBootDevice::getType, _1)
+					== D);
+
+			if (b != bootListCopy.end())
+			{
+				(*b)->setIndex(index);
+				bootListCopy.erase(b);
+			}
+
+			h->setIndex(index);
+		}
+		std::sort(newList.begin(), newList.end(), boost::bind(&T::getIndex, _1) <
+				boost::bind(&T::getIndex, _2));
+	};
+
+private:
+	QList<T*> m_disks;
+	QVector<unsigned> m_indexes;
 };
 
 struct OsInfo
@@ -95,7 +170,7 @@ struct Reviser<N, void>
 };
 
 typedef boost::mpl::vector<RemoteDisplay> revise_types;
-typedef boost::mpl::vector<OsInfo, RuntimeOptions, GlobalNetwork> untranslatable_types;
+typedef boost::mpl::vector<OsInfo, RuntimeOptions, GlobalNetwork, DeviceIndex<CVmHardDisk, PDE_HARD_DISK> > untranslatable_types;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Repairer
