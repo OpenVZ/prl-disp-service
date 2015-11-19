@@ -3263,12 +3263,14 @@ Vm::Action* Factory::operator()(const Request& input_) const
 			continue;
 
 		CVmIoLimit* l(d->getIoLimit());
-		if ((l != NULL) &&
-			(l->getIoLimitValue() != (*x)->getIoLimit()->getIoLimitValue()))
-		{
-			Action* a(new Limit::Unit<Limit::Policy::Io>(input_.getObject().first, *d, l->getIoLimitValue()));
-			a->setNext(output);
-			output = a;
+		if (l != NULL) {
+			CVmIoLimit* p((*x)->getIoLimit());
+			if (p == NULL || l->getIoLimitValue() != p->getIoLimitValue())
+			{
+				Action* a(new Limit::Unit<Limit::Policy::Io>(input_.getObject().first, *d, l->getIoLimitValue()));
+				a->setNext(output);
+				output = a;
+			}
 		}
 
 		if (d->getIopsLimit() != (*x)->getIopsLimit()) {
