@@ -264,6 +264,137 @@ struct Factory
 
 namespace Network
 {
+typedef CVmGlobalNetwork general_type;
+typedef CVmGenericNetworkAdapter device_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Dao
+
+struct Dao
+{
+	typedef QList<device_type* > list_type;
+
+	explicit Dao(const list_type& dataSource_);
+
+	const list_type& getEligible() const
+	{
+		return m_eligible;
+	}
+	device_type* findDefaultGwIp4Bridge() const;
+	device_type* findDefaultGwIp6Bridge() const;
+	device_type* find(const QString& name_, quint32 index_) const;
+
+private:
+	list_type m_eligible;
+	list_type m_dataSource;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Bridge
+
+struct Bridge
+{
+	explicit Bridge(const QString& mac_): m_mac(mac_)
+	{
+	}
+
+	const QString& getMac() const
+	{
+		return m_mac;
+	}
+
+private:
+	QString m_mac;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Routed
+
+struct Routed
+{
+	Routed(const QString& mac_, const device_type* defaultGwIp4Bridge_,
+		const device_type* defaultGwIp6Bridge_);
+
+	const QString& getMac() const
+	{
+		return m_mac;
+	}
+	std::pair<QString, QString> getIp4Defaults() const;
+	std::pair<QString, QString> getIp6Defaults() const;
+
+private:
+	QString m_mac;
+	const device_type* m_defaultGwIp4Bridge;
+	const device_type* m_defaultGwIp6Bridge;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Address
+
+struct Address
+{
+	explicit Address(const device_type& device_);
+
+	QStringList operator()(const Routed& mode_);
+	QStringList operator()(const Bridge& mode_);
+
+private:
+	QStringList m_v4;
+	QStringList m_v6;
+	const device_type* m_device;
+};
+
+namespace Difference
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct SearchDomain
+
+struct SearchDomain
+{
+	SearchDomain(const general_type& general_, const Dao& devices_);
+
+	QStringList calculate(const general_type& general_, const Dao& devices_);
+
+private:
+	QStringList m_general;
+	QList<device_type* > m_devices;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Device
+
+struct Device
+{
+	Device(const general_type& general_, const Dao& devices_);
+
+	QStringList calculate(const general_type& general_, const Dao& devices_);
+
+private:
+	static bool isEqual(const device_type* first_, const device_type* second_);
+
+	Dao m_devices;
+	const general_type* m_general;
+	const device_type* m_defaultGwIp4Bridge;
+	const device_type* m_defaultGwIp6Bridge;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+struct Vm
+{
+	Vm(const general_type& general_, const Dao& devices_);
+
+	QStringList calculate(const general_type& general_, const Dao& devices_);
+
+private:
+	Device m_device;
+	boost::optional<QString> m_hostname;
+	boost::optional<SearchDomain> m_searchDomain;
+};
+
+} // namespace Difference
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Action
 
