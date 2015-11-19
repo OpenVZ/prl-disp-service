@@ -814,10 +814,10 @@ enum EModel5
 	EModel5Virtio
 };
 
-enum EChoice1008
+enum EChoice1010
 {
-	EChoice1008DevRandom,
-	EChoice1008DevHwrng
+	EChoice1010DevRandom,
+	EChoice1010DevHwrng
 };
 
 enum EModel6

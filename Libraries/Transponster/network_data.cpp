@@ -99,9 +99,9 @@ QString Traits<Network::Xml::POctalMode>::generate(Network::Xml::POctalMode::val
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1112
+// struct PData1114
 
-bool Validatable<Network::Xml::PData1112>::validate(const Network::Xml::PData1112::value_type& value_)
+bool Validatable<Network::Xml::PData1114>::validate(const Network::Xml::PData1114::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,2}");
 	if (!q.exactMatch(value_))
@@ -111,21 +111,21 @@ bool Validatable<Network::Xml::PData1112>::validate(const Network::Xml::PData111
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1114
+// struct PData1116
 
-bool Traits<Network::Xml::PData1114>::parse(const QString& src_, Network::Xml::PData1114::value_type& dst_)
+bool Traits<Network::Xml::PData1116>::parse(const QString& src_, Network::Xml::PData1116::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Network::Xml::PData1114>::generate(Network::Xml::PData1114::value_type src_)
+QString Traits<Network::Xml::PData1116>::generate(Network::Xml::PData1116::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Network::Xml::PData1114>::validate(Network::Xml::PData1114::value_type value_)
+bool Validatable<Network::Xml::PData1116>::validate(Network::Xml::PData1116::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -137,9 +137,9 @@ bool Validatable<Network::Xml::PData1114>::validate(Network::Xml::PData1114::val
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1116
+// struct PData1118
 
-bool Validatable<Network::Xml::PData1116>::validate(const Network::Xml::PData1116::value_type& value_)
+bool Validatable<Network::Xml::PData1118>::validate(const Network::Xml::PData1118::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,6}");
 	if (!q.exactMatch(value_))
@@ -149,21 +149,21 @@ bool Validatable<Network::Xml::PData1116>::validate(const Network::Xml::PData111
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1118
+// struct PData1120
 
-bool Traits<Network::Xml::PData1118>::parse(const QString& src_, Network::Xml::PData1118::value_type& dst_)
+bool Traits<Network::Xml::PData1120>::parse(const QString& src_, Network::Xml::PData1120::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Network::Xml::PData1118>::generate(Network::Xml::PData1118::value_type src_)
+QString Traits<Network::Xml::PData1120>::generate(Network::Xml::PData1120::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Network::Xml::PData1118>::validate(Network::Xml::PData1118::value_type value_)
+bool Validatable<Network::Xml::PData1120>::validate(Network::Xml::PData1120::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -175,9 +175,9 @@ bool Validatable<Network::Xml::PData1118>::validate(Network::Xml::PData1118::val
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1120
+// struct PData1122
 
-bool Validatable<Network::Xml::PData1120>::validate(const Network::Xml::PData1120::value_type& value_)
+bool Validatable<Network::Xml::PData1122>::validate(const Network::Xml::PData1122::value_type& value_)
 {
 	QRegExp q("[a-fA-F0-9]{32}");
 	if (!q.exactMatch(value_))
@@ -187,9 +187,9 @@ bool Validatable<Network::Xml::PData1120>::validate(const Network::Xml::PData112
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1122
+// struct PData1124
 
-bool Validatable<Network::Xml::PData1122>::validate(const Network::Xml::PData1122::value_type& value_)
+bool Validatable<Network::Xml::PData1124>::validate(const Network::Xml::PData1124::value_type& value_)
 {
 	QRegExp q("[a-fA-F0-9]{8}\\-([a-fA-F0-9]{4}\\-){3}[a-fA-F0-9]{12}");
 	if (!q.exactMatch(value_))
@@ -781,14 +781,14 @@ bool Traits<Network::Xml::VUUID>::parse(const QString& src_, Network::Xml::VUUID
 {
 	int x;
 	mpl::at_c<Network::Xml::VUUID::types, 0>::type a0;
-	x = Marshal<Network::Xml::PData1120>::setString(src_, a0);
+	x = Marshal<Network::Xml::PData1122>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
 		return true;
 	}
 	mpl::at_c<Network::Xml::VUUID::types, 1>::type a1;
-	x = Marshal<Network::Xml::PData1122>::setString(src_, a1);
+	x = Marshal<Network::Xml::PData1124>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
@@ -803,9 +803,9 @@ QString Traits<Network::Xml::VUUID>::generate(const Network::Xml::VUUID& src_)
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Network::Xml::PData1120>::getString(boost::get<mpl::at_c<Network::Xml::VUUID::types, 0>::type>(src_));
+		return Marshal<Network::Xml::PData1122>::getString(boost::get<mpl::at_c<Network::Xml::VUUID::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Network::Xml::PData1122>::getString(boost::get<mpl::at_c<Network::Xml::VUUID::types, 1>::type>(src_));
+		return Marshal<Network::Xml::PData1124>::getString(boost::get<mpl::at_c<Network::Xml::VUUID::types, 1>::type>(src_));
 	}
 	return QString();
 }
@@ -817,14 +817,14 @@ bool Traits<Network::Xml::VUint8range>::parse(const QString& src_, Network::Xml:
 {
 	int x;
 	mpl::at_c<Network::Xml::VUint8range::types, 0>::type a0;
-	x = Marshal<Network::Xml::PData1112>::setString(src_, a0);
+	x = Marshal<Network::Xml::PData1114>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
 		return true;
 	}
 	mpl::at_c<Network::Xml::VUint8range::types, 1>::type a1;
-	x = Marshal<Network::Xml::PData1114>::setString(src_, a1);
+	x = Marshal<Network::Xml::PData1116>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
@@ -839,9 +839,9 @@ QString Traits<Network::Xml::VUint8range>::generate(const Network::Xml::VUint8ra
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Network::Xml::PData1112>::getString(boost::get<mpl::at_c<Network::Xml::VUint8range::types, 0>::type>(src_));
+		return Marshal<Network::Xml::PData1114>::getString(boost::get<mpl::at_c<Network::Xml::VUint8range::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Network::Xml::PData1114>::getString(boost::get<mpl::at_c<Network::Xml::VUint8range::types, 1>::type>(src_));
+		return Marshal<Network::Xml::PData1116>::getString(boost::get<mpl::at_c<Network::Xml::VUint8range::types, 1>::type>(src_));
 	}
 	return QString();
 }
@@ -853,14 +853,14 @@ bool Traits<Network::Xml::VUint24range>::parse(const QString& src_, Network::Xml
 {
 	int x;
 	mpl::at_c<Network::Xml::VUint24range::types, 0>::type a0;
-	x = Marshal<Network::Xml::PData1116>::setString(src_, a0);
+	x = Marshal<Network::Xml::PData1118>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
 		return true;
 	}
 	mpl::at_c<Network::Xml::VUint24range::types, 1>::type a1;
-	x = Marshal<Network::Xml::PData1118>::setString(src_, a1);
+	x = Marshal<Network::Xml::PData1120>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
@@ -875,9 +875,9 @@ QString Traits<Network::Xml::VUint24range>::generate(const Network::Xml::VUint24
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Network::Xml::PData1116>::getString(boost::get<mpl::at_c<Network::Xml::VUint24range::types, 0>::type>(src_));
+		return Marshal<Network::Xml::PData1118>::getString(boost::get<mpl::at_c<Network::Xml::VUint24range::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Network::Xml::PData1118>::getString(boost::get<mpl::at_c<Network::Xml::VUint24range::types, 1>::type>(src_));
+		return Marshal<Network::Xml::PData1120>::getString(boost::get<mpl::at_c<Network::Xml::VUint24range::types, 1>::type>(src_));
 	}
 	return QString();
 }

@@ -36,7 +36,7 @@ bool Bridge::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Bridge, Name::Strict<614> > m;
+	Element<Bridge, Name::Strict<616> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -46,14 +46,14 @@ bool Bridge::load(const QDomElement& src_)
 
 bool Bridge::save(QDomElement& dst_) const
 {
-	Element<Bridge, Name::Strict<614> > m;
+	Element<Bridge, Name::Strict<616> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Bridge::save(QDomDocument& dst_) const
 {
-	Element<Bridge, Name::Strict<614> > m;
+	Element<Bridge, Name::Strict<616> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -99,7 +99,7 @@ bool Interface::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Interface, Name::Strict<613> > m;
+	Element<Interface, Name::Strict<615> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -109,14 +109,14 @@ bool Interface::load(const QDomElement& src_)
 
 bool Interface::save(QDomElement& dst_) const
 {
-	Element<Interface, Name::Strict<613> > m;
+	Element<Interface, Name::Strict<615> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Interface::save(QDomDocument& dst_) const
 {
-	Element<Interface, Name::Strict<613> > m;
+	Element<Interface, Name::Strict<615> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -399,7 +399,7 @@ bool Nat::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Nat, Name::Strict<1146> > m;
+	Element<Nat, Name::Strict<1148> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -409,14 +409,14 @@ bool Nat::load(const QDomElement& src_)
 
 bool Nat::save(QDomElement& dst_) const
 {
-	Element<Nat, Name::Strict<1146> > m;
+	Element<Nat, Name::Strict<1148> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Nat::save(QDomDocument& dst_) const
 {
-	Element<Nat, Name::Strict<1146> > m;
+	Element<Nat, Name::Strict<1148> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -459,7 +459,7 @@ bool Forward::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Forward, Name::Strict<1145> > m;
+	Element<Forward, Name::Strict<1147> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -469,14 +469,14 @@ bool Forward::load(const QDomElement& src_)
 
 bool Forward::save(QDomElement& dst_) const
 {
-	Element<Forward, Name::Strict<1145> > m;
+	Element<Forward, Name::Strict<1147> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Forward::save(QDomDocument& dst_) const
 {
-	Element<Forward, Name::Strict<1145> > m;
+	Element<Forward, Name::Strict<1147> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -494,7 +494,7 @@ int Traits<Network::Xml::Forward>::parse(Network::Xml::Forward& dst_, QStack<QDo
 		dst_.setDev(m.get<0>().getValue());
 		dst_.setMode(m.get<1>().getValue());
 		dst_.setManaged(m.get<2>().getValue());
-		dst_.setChoice1150(m.get<3>().get<0>().getValue());
+		dst_.setChoice1152(m.get<3>().get<0>().getValue());
 		dst_.setPf(m.get<3>().get<1>().getValue());
 		dst_.setDriver(m.get<3>().get<2>().getValue());
 		dst_.setNat(m.get<3>().get<3>().getValue());
@@ -511,7 +511,7 @@ int Traits<Network::Xml::Forward>::generate(const Network::Xml::Forward& src_, Q
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getManaged(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice1150(), m.get<3>().get<0>()))
+	if (0 > Details::Marshal::assign(src_.getChoice1152(), m.get<3>().get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getPf(), m.get<3>().get<1>()))
 		return -1;
@@ -1040,7 +1040,7 @@ bool Portgroup::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Portgroup, Name::Strict<623> > m;
+	Element<Portgroup, Name::Strict<625> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1050,14 +1050,14 @@ bool Portgroup::load(const QDomElement& src_)
 
 bool Portgroup::save(QDomElement& dst_) const
 {
-	Element<Portgroup, Name::Strict<623> > m;
+	Element<Portgroup, Name::Strict<625> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Portgroup::save(QDomDocument& dst_) const
 {
-	Element<Portgroup, Name::Strict<623> > m;
+	Element<Portgroup, Name::Strict<625> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1109,7 +1109,7 @@ bool Txt::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Txt, Name::Strict<1158> > m;
+	Element<Txt, Name::Strict<1160> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1119,14 +1119,14 @@ bool Txt::load(const QDomElement& src_)
 
 bool Txt::save(QDomElement& dst_) const
 {
-	Element<Txt, Name::Strict<1158> > m;
+	Element<Txt, Name::Strict<1160> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Txt::save(QDomDocument& dst_) const
 {
-	Element<Txt, Name::Strict<1158> > m;
+	Element<Txt, Name::Strict<1160> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1159,34 +1159,34 @@ int Traits<Network::Xml::Txt>::generate(const Network::Xml::Txt& src_, QDomEleme
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1178
+// struct Anonymous1180
 
 namespace Network
 {
 namespace Xml
 {
-Anonymous1178::Anonymous1178(): m_port(), m_priority(), m_weight()
+Anonymous1180::Anonymous1180(): m_port(), m_priority(), m_weight()
 {
 }
 
-bool Anonymous1178::load(const QDomElement& src_)
+bool Anonymous1180::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
 	k.push(src_.firstChildElement());
-	return 0 <= Traits<Anonymous1178>::parse(*this, k);
+	return 0 <= Traits<Anonymous1180>::parse(*this, k);
 }
 
-bool Anonymous1178::save(QDomElement& dst_) const
+bool Anonymous1180::save(QDomElement& dst_) const
 {
-	return 0 <= Traits<Anonymous1178>::generate(*this, dst_);
+	return 0 <= Traits<Anonymous1180>::generate(*this, dst_);
 }
 
 
 } // namespace Xml
 } // namespace Network
 
-int Traits<Network::Xml::Anonymous1178>::parse(Network::Xml::Anonymous1178& dst_, QStack<QDomElement>& stack_)
+int Traits<Network::Xml::Anonymous1180>::parse(Network::Xml::Anonymous1180& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -1201,7 +1201,7 @@ int Traits<Network::Xml::Anonymous1178>::parse(Network::Xml::Anonymous1178& dst_
 	return output;
 }
 
-int Traits<Network::Xml::Anonymous1178>::generate(const Network::Xml::Anonymous1178& src_, QDomElement& dst_)
+int Traits<Network::Xml::Anonymous1180>::generate(const Network::Xml::Anonymous1180& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getDomain(), m.get<0>()))
@@ -1229,7 +1229,7 @@ bool Srv::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Srv, Name::Strict<1159> > m;
+	Element<Srv, Name::Strict<1161> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1239,14 +1239,14 @@ bool Srv::load(const QDomElement& src_)
 
 bool Srv::save(QDomElement& dst_) const
 {
-	Element<Srv, Name::Strict<1159> > m;
+	Element<Srv, Name::Strict<1161> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Srv::save(QDomDocument& dst_) const
 {
-	Element<Srv, Name::Strict<1159> > m;
+	Element<Srv, Name::Strict<1161> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1263,7 +1263,7 @@ int Traits<Network::Xml::Srv>::parse(Network::Xml::Srv& dst_, QStack<QDomElement
 	{
 		dst_.setService(m.get<0>().getValue());
 		dst_.setProtocol(m.get<1>().getValue());
-		dst_.setAnonymous1178(m.get<2>().getValue());
+		dst_.setAnonymous1180(m.get<2>().getValue());
 	}
 	return output;
 }
@@ -1275,7 +1275,7 @@ int Traits<Network::Xml::Srv>::generate(const Network::Xml::Srv& src_, QDomEleme
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getProtocol(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAnonymous1178(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getAnonymous1180(), m.get<2>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1292,7 +1292,7 @@ bool Host::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Host, Name::Strict<490> > m;
+	Element<Host, Name::Strict<492> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1302,14 +1302,14 @@ bool Host::load(const QDomElement& src_)
 
 bool Host::save(QDomElement& dst_) const
 {
-	Element<Host, Name::Strict<490> > m;
+	Element<Host, Name::Strict<492> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Host::save(QDomDocument& dst_) const
 {
-	Element<Host, Name::Strict<490> > m;
+	Element<Host, Name::Strict<492> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1352,7 +1352,7 @@ bool Dns::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Dns, Name::Strict<1154> > m;
+	Element<Dns, Name::Strict<1156> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1362,14 +1362,14 @@ bool Dns::load(const QDomElement& src_)
 
 bool Dns::save(QDomElement& dst_) const
 {
-	Element<Dns, Name::Strict<1154> > m;
+	Element<Dns, Name::Strict<1156> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Dns::save(QDomDocument& dst_) const
 {
-	Element<Dns, Name::Strict<1154> > m;
+	Element<Dns, Name::Strict<1156> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1421,7 +1421,7 @@ bool Range::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Range, Name::Strict<1167> > m;
+	Element<Range, Name::Strict<1169> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1431,14 +1431,14 @@ bool Range::load(const QDomElement& src_)
 
 bool Range::save(QDomElement& dst_) const
 {
-	Element<Range, Name::Strict<1167> > m;
+	Element<Range, Name::Strict<1169> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Range::save(QDomDocument& dst_) const
 {
-	Element<Range, Name::Strict<1167> > m;
+	Element<Range, Name::Strict<1169> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1471,24 +1471,24 @@ int Traits<Network::Xml::Range>::generate(const Network::Xml::Range& src_, QDomE
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Host1170
+// struct Host1172
 
-int Traits<Network::Xml::Host1170>::parse(Network::Xml::Host1170& dst_, QStack<QDomElement>& stack_)
+int Traits<Network::Xml::Host1172>::parse(Network::Xml::Host1172& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setChoice1169(m.get<0>().getValue());
+		dst_.setChoice1171(m.get<0>().getValue());
 		dst_.setName(m.get<1>().getValue());
 	}
 	return output;
 }
 
-int Traits<Network::Xml::Host1170>::generate(const Network::Xml::Host1170& src_, QDomElement& dst_)
+int Traits<Network::Xml::Host1172>::generate(const Network::Xml::Host1172& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getChoice1169(), m.get<0>()))
+	if (0 > Details::Marshal::assign(src_.getChoice1171(), m.get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getName(), m.get<1>()))
 		return -1;
@@ -1507,7 +1507,7 @@ bool Host1::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Host1, Name::Strict<490> > m;
+	Element<Host1, Name::Strict<492> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1517,14 +1517,14 @@ bool Host1::load(const QDomElement& src_)
 
 bool Host1::save(QDomElement& dst_) const
 {
-	Element<Host1, Name::Strict<490> > m;
+	Element<Host1, Name::Strict<492> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Host1::save(QDomDocument& dst_) const
 {
-	Element<Host1, Name::Strict<490> > m;
+	Element<Host1, Name::Strict<492> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1567,7 +1567,7 @@ bool Bootp::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Bootp, Name::Strict<1173> > m;
+	Element<Bootp, Name::Strict<1175> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1577,14 +1577,14 @@ bool Bootp::load(const QDomElement& src_)
 
 bool Bootp::save(QDomElement& dst_) const
 {
-	Element<Bootp, Name::Strict<1173> > m;
+	Element<Bootp, Name::Strict<1175> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Bootp::save(QDomDocument& dst_) const
 {
-	Element<Bootp, Name::Strict<1173> > m;
+	Element<Bootp, Name::Strict<1175> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1627,7 +1627,7 @@ bool Dhcp::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Dhcp, Name::Strict<1166> > m;
+	Element<Dhcp, Name::Strict<1168> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1637,14 +1637,14 @@ bool Dhcp::load(const QDomElement& src_)
 
 bool Dhcp::save(QDomElement& dst_) const
 {
-	Element<Dhcp, Name::Strict<1166> > m;
+	Element<Dhcp, Name::Strict<1168> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Dhcp::save(QDomDocument& dst_) const
 {
-	Element<Dhcp, Name::Strict<1166> > m;
+	Element<Dhcp, Name::Strict<1168> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1690,7 +1690,7 @@ bool Ip::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Ip, Name::Strict<647> > m;
+	Element<Ip, Name::Strict<649> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1700,14 +1700,14 @@ bool Ip::load(const QDomElement& src_)
 
 bool Ip::save(QDomElement& dst_) const
 {
-	Element<Ip, Name::Strict<647> > m;
+	Element<Ip, Name::Strict<649> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Ip::save(QDomDocument& dst_) const
 {
-	Element<Ip, Name::Strict<647> > m;
+	Element<Ip, Name::Strict<649> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1723,7 +1723,7 @@ int Traits<Network::Xml::Ip>::parse(Network::Xml::Ip& dst_, QStack<QDomElement>&
 	if (0 <= output)
 	{
 		dst_.setAddress(m.get<0>().getValue());
-		dst_.setChoice1164(m.get<1>().getValue());
+		dst_.setChoice1166(m.get<1>().getValue());
 		dst_.setFamily(m.get<2>().getValue());
 		dst_.setTftp(m.get<3>().getValue());
 		dst_.setDhcp(m.get<4>().getValue());
@@ -1736,7 +1736,7 @@ int Traits<Network::Xml::Ip>::generate(const Network::Xml::Ip& src_, QDomElement
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice1164(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getChoice1166(), m.get<1>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getFamily(), m.get<2>()))
 		return -1;
@@ -1759,7 +1759,7 @@ bool Route::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Route, Name::Strict<1147> > m;
+	Element<Route, Name::Strict<1149> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1769,14 +1769,14 @@ bool Route::load(const QDomElement& src_)
 
 bool Route::save(QDomElement& dst_) const
 {
-	Element<Route, Name::Strict<1147> > m;
+	Element<Route, Name::Strict<1149> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Route::save(QDomDocument& dst_) const
 {
-	Element<Route, Name::Strict<1147> > m;
+	Element<Route, Name::Strict<1149> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1793,7 +1793,7 @@ int Traits<Network::Xml::Route>::parse(Network::Xml::Route& dst_, QStack<QDomEle
 	{
 		dst_.setFamily(m.get<0>().getValue());
 		dst_.setAddress(m.get<1>().getValue());
-		dst_.setChoice1175(m.get<2>().getValue());
+		dst_.setChoice1177(m.get<2>().getValue());
 		dst_.setGateway(m.get<3>().getValue());
 		dst_.setMetric(m.get<4>().getValue());
 	}
@@ -1807,7 +1807,7 @@ int Traits<Network::Xml::Route>::generate(const Network::Xml::Route& src_, QDomE
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice1175(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getChoice1177(), m.get<2>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getGateway(), m.get<3>()))
 		return -1;
@@ -1828,7 +1828,7 @@ bool Network::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Network, Name::Strict<423> > m;
+	Element<Network, Name::Strict<425> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1838,14 +1838,14 @@ bool Network::load(const QDomElement& src_)
 
 bool Network::save(QDomElement& dst_) const
 {
-	Element<Network, Name::Strict<423> > m;
+	Element<Network, Name::Strict<425> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Network::save(QDomDocument& dst_) const
 {
-	Element<Network, Name::Strict<423> > m;
+	Element<Network, Name::Strict<425> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
