@@ -1829,39 +1829,6 @@ void CVmValidateConfig::CheckNetworkAdapter(SmartPtr<CDspClient> pUser)
 			}
 		}
 
-		/*
-		   Should be activated after it will be possible to configure in GUI
-		   to have a possibility to fix the problem.
-		*/
-
-		/* GuestTools is required to setup ip addresses on bridged interfaces */
-		int vmToolsState = -1;
-		if ((pNetAdapter->getEmulatedType() == PNA_BRIDGED_ETHERNET
-			  || pNetAdapter->getEmulatedType() == PNA_ROUTED)
-			 && (!pNetAdapter->getNetAddresses().empty()
-				 || pNetAdapter->isConfigureWithDhcp()
-				 || pNetAdapter->isConfigureWithDhcpIPv6()))
-		{
-			if (vmToolsState == -1 && pUser.getImpl())
-			{
-				QString toolsStateString =
-					CDspVm::getVmToolsStateString(m_pVmConfig->getVmIdentification()->getVmUuid(),
-							pUser->getVmDirectoryUuid());
-
-				CVmEvent e(toolsStateString);
-				vmToolsState = PTS_UNKNOWN;
-				CVmEventParameter* pParam = e.getEventParameter( EVT_PARAM_VM_TOOLS_STATE );
-				if (pParam)
-					vmToolsState = pParam->getParamValue().toInt();
-			}
-
-			if (vmToolsState == PTS_NOT_INSTALLED)
-			{
-				m_lstResults += PRL_ERR_VMCONF_NETWORK_ADAPTER_GUEST_TOOLS_NOT_AVAILABLE;
-				m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
-				ADD_FID(E_SET << pNetAdapter->getEmulatedType_id() << pNetAdapter->getNetAddresses_id());
-			}
-		}
 		if (pNetAdapter->getEmulatedType() == PNA_ROUTED)
 		{
 			bool dhcp = pNetAdapter->isConfigureWithDhcp() || pNetAdapter->isConfigureWithDhcpIPv6();
