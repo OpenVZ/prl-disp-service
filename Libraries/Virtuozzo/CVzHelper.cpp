@@ -56,6 +56,8 @@
 #include "Libraries/HostInfo/CHostInfo.h"
 #include "Interfaces/ParallelsNamespace.h"
 #include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
+#include "Libraries/HostUtils/HostUtils.h"
+#include "Libraries/PrlCommonUtilsBase/StringUtils.h"
 
 #include <vzctl/libvzctl.h>
 #include <vzctl/vzctl_param.h>
@@ -71,6 +73,7 @@
 #define QUOTENAME(x) #x
 
 #define BIN_VZCTL	"/usr/sbin/vzctl"
+#define FINDMNT		"/usr/bin/findmnt"
 
 QMutex CVzHelper::s_mtxEnvUuidMap;
 QHash< QString, QString > CVzHelper::s_envUuidMap;
@@ -2851,6 +2854,67 @@ int CVzOperationHelper::umount_env(const QString &uuid)
 		return vz2prl_err(get_rc());
 
 	return 0;
+}
+
+namespace
+{
+
+void get_device_mount_info(const QString &device, QString &fstype, QString &mountpoint)
+{
+	fstype = mountpoint = "unknown";
+	if (device.isEmpty())
+		return;
+
+	QString out;
+	QStringList args;
+	args << FINDMNT << "-n" << "-o" << "FSTYPE,TARGET" << "-S" << device;
+	if (!HostUtils::RunCmdLineUtility(args.join(" "), out))
+		return;
+
+	// In case of multiple mountpoints, we take first.
+	out = out.split("\n")[0];
+
+	QRegExp re("^(\\S+)\\s+(.+)$");
+	if (re.indexIn(out) == -1)
+		return;
+	fstype = re.cap(1);
+	mountpoint = re.cap(2).trimmed();
+}
+
+} // namespace
+
+Prl::Expected<QString, PRL_RESULT> CVzOperationHelper::get_env_mount_info(
+		const SmartPtr<CVmConfiguration> &pConfig)
+{
+	QString uuid = pConfig->getVmIdentification()->getVmUuid();
+	QList<Ct::Statistics::Filesystem> filesystems;
+	PRL_RESULT res;
+	if (PRL_FAILED(res = CVzHelper::get_env_fstat(uuid, filesystems)))
+		return res;
+
+	QStringList lstMounts;
+	QList<CVmHardDisk*> lstDisk = pConfig->getVmHardwareList()->m_lstHardDisks;
+	foreach(const Ct::Statistics::Filesystem &fs, filesystems) {
+		if (fs.device.isEmpty())
+			continue;
+
+		QString image;
+		foreach(CVmHardDisk* pDisk, lstDisk) {
+			if (pDisk->getIndex() == fs.index) {
+				image = pDisk->getUserFriendlyName();
+				break;
+			}
+		}
+		if (image.isEmpty())
+			continue;
+
+		QString fstype, mountpoint;
+		get_device_mount_info(fs.device + "p1", fstype, mountpoint);
+		// Kb to bytes.
+		lstMounts << Parallels::formatMountInfo(
+				fs.device, image, mountpoint, fstype, fs.total << 10, fs.free << 10);
+	}
+	return lstMounts.join("\n");
 }
 
 int CVzOperationHelper::stop_env(const QString &uuid, PRL_UINT32 nMode)

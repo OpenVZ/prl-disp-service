@@ -89,7 +89,20 @@ unsigned int getBitsCount(char *p, unsigned int size);
  * Returns currency sign ($, €, ect), based on currency ID (USD, EUR, etc)
  */
 QString currencySign( const QString& currencyId );
-}
 
+/* Return string representation of VE mount information.
+ * @p volumeId specifies volume name
+ * @p imagePath path to image file/dir
+ * @p mountPath path to directory where image is mounted
+ * @p filesystem filesystem type
+ * @p totalSpace Image total space in bytes
+ * @p freeSpace Image free space in bytes
+ */
+QString formatMountInfo(
+		const QString &volumeId, const QString &imagePath,
+		const QString &mountPath, const QString &filesystem,
+		quint64 totalSpace, quint64 freeSpace);
+
+}
 
 #endif
