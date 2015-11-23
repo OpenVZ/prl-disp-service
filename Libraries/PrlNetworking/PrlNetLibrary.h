@@ -341,6 +341,8 @@ bool IsIPv6DefaultRoutePresent();
 
 QHostAddress getIPv4MaskFromPrefix(quint32 prefix4_);
 QHostAddress getIPv6MaskFromPrefix(quint32 prefix6_);
+
+QString findAdapterName(const QString& mac_, unsigned short vlan_);
 }
 
 #endif // PrlNetLibrary_h__

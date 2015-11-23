@@ -123,6 +123,29 @@ private:
 
 } // namespace Physical
 
+namespace Vlan
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Direct
+
+struct Direct
+{
+	Direct(char* xml_, bool enabled_);
+
+	PRL_RESULT operator()();
+
+	const CHwNetAdapter& getResult() const
+	{
+		return m_result;
+	}
+
+private:
+	CHwNetAdapter m_result;
+	QScopedPointer<Libvirt::Iface::Xml::Interface4> m_input;
+};
+
+} // namespace Vlan
+
 namespace Bridge
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -245,6 +268,11 @@ struct Director
 	}
 	template<class T>
 	static PRL_RESULT physical(T& builder_)
+	{
+		return builder_();
+	}
+	template<class T>
+	static PRL_RESULT vlan(T& builder_)
 	{
 		return builder_();
 	}

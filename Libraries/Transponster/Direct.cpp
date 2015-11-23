@@ -803,6 +803,40 @@ PRL_RESULT Direct::operator()()
 
 } // namespace Physical
 
+namespace Vlan
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Direct
+
+Direct::Direct(char* xml_, bool enabled_)
+{
+	m_result.setEnabled(enabled_);
+	shape(xml_, m_input);
+}
+
+PRL_RESULT Direct::operator()()
+{
+	if (m_input.isNull())
+		return PRL_ERR_READ_XML_CONTENT;
+
+	Libvirt::Iface::Xml::VlanInterfaceCommon c = m_input->getVlanInterfaceCommon();
+	if (c.getName())
+		m_result.setDeviceName(c.getName().get());
+
+	Libvirt::Iface::Xml::Vlan v = m_input->getVlan();
+	m_result.setVLANTag(v.getTag());
+
+	boost::apply_visitor(Visitor::Addressing(m_result),
+		m_input->getInterfaceAddressing());
+
+	if (m_result.isConfigureWithDhcp())
+		m_result.setConfigureWithDhcpIPv6(true);
+
+	return PRL_ERR_SUCCESS;
+}
+
+} // namespace Vlan
+
 namespace Bridge
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -818,18 +852,11 @@ PRL_RESULT Direct::setMaster()
 	if (m_input.isNull())
 		return PRL_ERR_READ_XML_CONTENT;
  
-	typedef mpl::at_c<Libvirt::Iface::Xml::VChoice1230::types, 0>::type eth_type;
 	foreach (const Libvirt::Iface::Xml::VChoice1230& a,
 		m_input->getBridge().getChoice1230List())
 	{
-		if (0 != a.which())
-			continue;
-
-		m_master.setDeviceName(boost::get<eth_type>(a).getValue().getName());
-		if (boost::get<eth_type>(a).getValue().getMac())
-			m_master.setMacAddress(boost::get<eth_type>(a).getValue().getMac().get().toUpper().remove(QString(":")));
-
-		return PRL_ERR_SUCCESS;
+		if (boost::apply_visitor(Visitor::Bridge::Master(m_master), a))
+			return PRL_ERR_SUCCESS;
 	}
 	return PRL_ERR_FILE_NOT_FOUND;
 }

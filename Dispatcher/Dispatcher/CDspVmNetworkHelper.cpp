@@ -316,7 +316,7 @@ PRL_RESULT Dao::craftBridge(CVirtualNetwork& network_)
 	}
 	else
 	{
-		Libvirt::Result r = m_interfaces.find(network_.getBoundCardMac(), m);
+		Libvirt::Result r = m_interfaces.find(network_.getBoundCardMac(), network_.getVLANTag(), m);
 		e = (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
 	}
 
@@ -326,7 +326,7 @@ PRL_RESULT Dao::craftBridge(CVirtualNetwork& network_)
 	Libvirt::Tools::Agent::Interface::Bridge b;
 	Libvirt::Result r = m_interfaces.find(m, b);
 	e = (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
-	if (PRL_ERR_FILE_NOT_FOUND == e)
+	if (PRL_ERR_NETWORK_ADAPTER_NOT_FOUND == e)
 	{
 		r = m_interfaces.define(m, b);
 
