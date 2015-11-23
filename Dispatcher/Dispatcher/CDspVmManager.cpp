@@ -198,7 +198,7 @@ struct Context
 		if (result_.isFailed())
 			m_session->sendResponseError(result_.error().convertToEvent(), m_package);
 		else
-			m_session->sendResponseError(CVmEvent(), m_package);
+			reply(PRL_ERR_SUCCESS);
 	}
 
 	void reply(const CVmEvent& error_) const
@@ -886,9 +886,18 @@ void Body<Tag::Libvirt<PVE::DspCmdVmSwitchToSnapshot> >::run()
 	if (NULL == x)
 		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
 
-	m_context.reply(Libvirt::Kit.vms()
-		.at(x->GetVmUuid()).getSnapshot()
-		.at(x->GetSnapshotUuid()).revert());
+	Libvirt::Result e = Libvirt::Kit.vms().at(x->GetVmUuid()).getSnapshot()
+		.at(x->GetSnapshotUuid()).revert();
+	m_context.reply(e);
+	if (e.isFailed())
+		return;
+
+	// swapping finished
+	SmartPtr<IOPackage> a, b = m_context.getPackage();
+	a = DispatcherPackage::createInstance(PVE::DspVmEvent, CVmEvent
+		(PET_DSP_EVT_VM_MEMORY_SWAPPING_FINISHED, x->GetVmUuid(), PIE_VIRTUAL_MACHINE), b);
+	CDspService::instance()->getClientManager()
+		.sendPackageToVmClients(a, m_context.getDirectoryUuid(), x->GetVmUuid());
 }
 
 template<>
