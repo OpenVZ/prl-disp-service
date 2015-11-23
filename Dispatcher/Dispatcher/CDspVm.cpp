@@ -1567,17 +1567,6 @@ void CDspVm::stopVNCServer ( SmartPtr<CDspClient> pUser, const SmartPtr<IOPackag
 	CDspService::instance()->sendSimpleResponseToClient( pUser->getClientHandle(), p, nRetCode );
 }
 
-void CDspVm::dropLimits()
-{
-	PRL_CPULIMIT_DATA cpuLimit;
-
-	cpuLimit.value = 0;
-	cpuLimit.type = PRL_CPULIMIT_PERCENTS;
-
-
-	Task_EditVm::SetCpuLimit(getVmUuid(), &cpuLimit);
-}
-
 void CDspVm::stop(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p, PRL_UINT32 nStopMode, bool bActionByDispatcher)
 {
 	PRL_RESULT rc = checkUserAccessRights(pUser, PVE::DspCmdVmStart );
@@ -1651,11 +1640,6 @@ void CDspVm::stop(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p, PRL_
 	{
 		d().m_pUndoDisksPkg = p;
 		d().m_pUndoDisksUser = pUser;
-	}
-
-	if (bActionByDispatcher)
-	{
-		dropLimits();
 	}
 
 	sendPackageToVmEx(p, state, !bActionByDispatcher, bActionByDispatcher);

@@ -204,11 +204,6 @@ public:
      */
 	void restartGuest(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
 
-	/**
-	* Drop IO/Cpu limit for Vm
-	**/
-	void dropLimits();
-
     /**
      * Processes command of stop VM
      * @param pointer to the user session object that initialized request

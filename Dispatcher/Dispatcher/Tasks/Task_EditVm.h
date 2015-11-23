@@ -72,8 +72,6 @@ public:
 	static PRL_RESULT configureVzParameters(SmartPtr<CVmConfiguration> pNewVmConfig,
 			SmartPtr<CVmConfiguration> pOldVmConfig = SmartPtr<CVmConfiguration>());
 
-	static PRL_RESULT SetCpuLimit(const QString &sVmUuid, PRL_CPULIMIT_DATA_PTR pVmCpuLimit);
-
 	/**
 	* reset network addresses from config if template
 	*/
@@ -126,9 +124,6 @@ private:
 											SmartPtr<CDspClient> pUser);
 
 	static bool isNetworkRatesChanged(const CVmNetworkRates *oldRates, const CVmNetworkRates *newRates);
-	static PRL_RESULT SetCpuUnits(const QString &sVmUuid, PRL_UINT32 cpuUnits);
-	static PRL_RESULT SetCpuMask(const QString &sVmUuid, const QString &sCpuMask, PRL_UINT32 nVCpu);
-	static PRL_RESULT SetIoPriority(const QString &sVmUuid, PRL_UINT32 nIoPriority);
 	PRL_RESULT renameExtDisks(const CVmConfiguration& config, const QString& qsOldDirName,
 			const QString& qsNewDirName, QList<QPair<QString, QString> > renamedBundles, const QString& vmName,
 			CVmEvent &error);
