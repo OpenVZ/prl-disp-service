@@ -842,9 +842,39 @@ void CDspProblemReportHelper::FillVmProblemReportData(CProblemReport & cReport,
 	addVmAdvancedInfoToReport( cReport, vmConfig );
 	cReport.setVmConfig( vmConfig.toString() );
 
+	// Append domain description
+	Libvirt::Tools::Agent::Vm::Unit u = Libvirt::Kit.vms().at(strVmUuid);
 	QString strDomainDesc;
-	Libvirt::Kit.vms().at(strVmUuid).getConfig(strDomainDesc);
+	u.getConfig(strDomainDesc);
 	cReport.setVmDomain(strDomainDesc);
+
+	bool isRunning = CDspVm::getVmState(strVmUuid, strDirUuid) == VMS_RUNNING;
+
+	// Append QEMU state
+	QString stateFile = QDir::temp()
+		.absoluteFilePath("qemu-statefile-%1-%2.gz").arg(strVmUuid)
+		.arg(QDateTime::currentMSecsSinceEpoch());
+
+	Prl::Expected<Libvirt::Tools::Agent::Vm::Command::Future, Libvirt::Error::Simple> e = 
+		u.getGuest().dumpState(stateFile);
+
+	if (e.isSucceed())
+		e.value().wait(10000);
+
+	// It doesn't matter if wait failed or migration failed, we need to try unpause VM.
+	if (isRunning && CDspVm::getVmState(strVmUuid, strDirUuid) == VMS_PAUSED)
+	{
+		Libvirt::Result r = u.unpause();
+		if (r.isFailed())
+		{
+			WRITE_TRACE(DBG_FATAL, "Problem report got error. VM %s may be paused",
+				qPrintable(strVmUuid));
+		}
+	}
+
+	// Try to add file even after error
+	cReport.appendSystemLog(stateFile, "qemu-statefile.gz");
+	QFile::remove(stateFile);
 
 	const QDateTime minDumpTime = QDateTime::currentDateTime().addDays(-GUEST_CRASH_DUMPS_MAX_AGE_IN_DAYS);
 	WRITE_REPORT_PROFILER_STRING( "addGuestCrashDumps" );
