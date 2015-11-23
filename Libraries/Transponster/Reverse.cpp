@@ -1187,6 +1187,10 @@ PRL_RESULT Reverse::setBridge()
 
 PRL_RESULT Reverse::setVlan()
 {
+	// <vlan> tag is not for linux bridge
+	if (PVN_BRIDGED_ETHERNET == m_input.getNetworkType())
+		return PRL_ERR_SUCCESS;
+
 	unsigned short x = m_input.getVLANTag();
 	if (Libvirt::Validatable<Libvirt::Network::Xml::PId>::validate(x))
 	{

@@ -455,7 +455,9 @@ struct List
 	}
 
 	Result all(QList<Bridge>& dst_) const;
-	Result find(const QString& mac_, CHwNetAdapter& dst_) const;
+	Result find(const QString& mac_, unsigned short vlan_, CHwNetAdapter& dst_) const;
+	Result find(const QString& name_, CHwNetAdapter& dst_) const;
+	Result findBridge(const QString& name_, CHwNetAdapter& dst_) const;
 	Result find(const QString& name_, Bridge& dst_) const;
 	Result find(const CHwNetAdapter& eth_, Bridge& dst_) const;
 	Result define(const CHwNetAdapter& eth_, Bridge& dst_);

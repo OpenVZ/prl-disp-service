@@ -1053,7 +1053,7 @@ Result List::all(QList<Bridge>& dst_) const
 Result List::find(const QString& name_, Bridge& dst_) const
 {
 	if (!name_.startsWith("br"))
-		return Result(Error::Simple(PRL_ERR_FILE_NOT_FOUND));
+		return Error::Simple(PRL_ERR_NETWORK_ADAPTER_NOT_FOUND);
 
 	QList<Bridge> a;
 	Result e = all(a);
@@ -1068,7 +1068,7 @@ Result List::find(const QString& name_, Bridge& dst_) const
 			return Result();
 		}
 	}
-	return Result(Error::Simple(PRL_ERR_FILE_NOT_FOUND));
+	return Error::Simple(PRL_ERR_NETWORK_ADAPTER_NOT_FOUND);
 }
 
 Result List::find(const CHwNetAdapter& eth_, Bridge& dst_) const
@@ -1086,27 +1086,45 @@ Result List::find(const CHwNetAdapter& eth_, Bridge& dst_) const
 			return Result();
 		}
 	}
-	return Result(Error::Simple(PRL_ERR_FILE_NOT_FOUND));
+	return Error::Simple(PRL_ERR_NETWORK_ADAPTER_NOT_FOUND);
 }
 
-Result List::find(const QString& mac_, CHwNetAdapter& dst_) const
+Result List::find(const QString& mac_, unsigned short vlan_, CHwNetAdapter& dst_) const
+{
+	QString name = PrlNet::findAdapterName(mac_, vlan_);
+
+	if (vlan_ == PRL_INVALID_VLAN_TAG)
+		return find(name, dst_);
+	
+	return findBridge(name, dst_);
+}
+
+Result List::find(const QString& name_, CHwNetAdapter& dst_) const
 {
 	if (m_link.isNull())
 		return Result(Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER));
 
-	virInterfacePtr f = virInterfaceLookupByMACString(m_link.data(), mac_.toUtf8().data());
+	virInterfacePtr f = virInterfaceLookupByName(m_link.data(), name_.toUtf8().data());
+
 	if (NULL != f)
 	{
 		Transponster::Interface::Physical::Direct u(
 			virInterfaceGetXMLDesc(f, VIR_INTERFACE_XML_INACTIVE),
 			0 < virInterfaceIsActive(f));
 		virInterfaceFree(f);
+
 		if (PRL_SUCCEEDED(Transponster::Director::physical(u)))
 		{
 			dst_ = u.getResult();
 			return Result();
 		}
 	}
+
+	return findBridge(name_, dst_);
+}
+
+Result List::findBridge(const QString& name_, CHwNetAdapter& dst_) const
+{
 	QList<Bridge> a;
 	Result e = all(a);
 	if (e.isFailed())
@@ -1114,13 +1132,13 @@ Result List::find(const QString& mac_, CHwNetAdapter& dst_) const
 
 	foreach (const Bridge& b, a)
 	{
-		if (b.getMaster().getMacAddress() == mac_)
+		if (b.getMaster().getDeviceName() == name_)
 		{
 			dst_ = b.getMaster();
 			return Result();
 		}
 	}
-	return Result(Error::Simple(PRL_ERR_FILE_NOT_FOUND));
+	return Error::Simple(PRL_ERR_NETWORK_ADAPTER_NOT_FOUND);
 }
 
 Result List::define(const CHwNetAdapter& eth_, Bridge& dst_)
@@ -1133,7 +1151,8 @@ Result List::define(const CHwNetAdapter& eth_, Bridge& dst_)
 	uint x = ~0;
 	foreach (const Bridge& b, a)
 	{
-		if (b.getMaster().getMacAddress() == eth_.getMacAddress())
+		if (b.getMaster().getMacAddress() == eth_.getMacAddress()
+			&& b.getMaster().getDeviceName() == eth_.getDeviceName())
 			return Result(Error::Simple(PRL_ERR_ENTRY_ALREADY_EXISTS));
 
 		x = qMax(x + 1, b.getName().mid(2).toUInt() + 1) - 1;

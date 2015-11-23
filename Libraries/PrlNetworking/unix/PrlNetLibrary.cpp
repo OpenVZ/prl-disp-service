@@ -80,6 +80,21 @@ PRL_RESULT PrlNet_Private::findPrlAdapter( int adapterIndex, PrlNet::EthernetAda
 // Other functions
 //
 
+QString PrlNet::findAdapterName(const QString& mac_, unsigned short vlan_)
+{
+	EthIfaceList l;
+	if(!::makeEthIfacesList(l, false))
+		return QString();
+
+	foreach(const EthIface& e, l)
+	{
+		if (ethAddressToString(e._macAddr) == mac_ && e._vlanTag == vlan_)
+			return QString(e._name);
+	}
+
+	return QString();
+}
+
 PRL_RESULT PrlNet::makePrlAdaptersList( PrlNet::EthAdaptersList &adaptersList )
 {
 	adaptersList.clear();

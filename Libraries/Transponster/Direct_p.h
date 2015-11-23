@@ -716,6 +716,48 @@ private:
 };
 
 } // namespace Dhcp
+
+namespace Bridge
+{
+
+struct Master: boost::static_visitor<bool>
+{
+	explicit Master(CHwNetAdapter& result_): m_result(&result_)
+	{
+	}
+
+	template<class T>
+	bool operator()(const T&) const
+	{
+		return false;
+	}
+	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1230::types, 0>::type& ethernet_) const
+	{
+		m_result->setDeviceName(ethernet_.getValue().getName());
+		if (ethernet_.getValue().getMac())
+		{
+			m_result->setMacAddress(ethernet_.getValue()
+				.getMac().get().toUpper().remove(QString(":")));
+		}
+		return true;
+	}
+	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1230::types, 1>::type& vlan_) const
+	{
+		Libvirt::Iface::Xml::VlanInterfaceCommon c = vlan_.getValue().getVlanInterfaceCommon();
+		if (c.getName())
+			m_result->setDeviceName(c.getName().get());
+
+		Libvirt::Iface::Xml::Vlan v = vlan_.getValue().getVlan();
+		m_result->setVLANTag(v.getTag());
+		return true;
+	}
+
+private:
+	CHwNetAdapter* m_result;
+};
+
+} // namespace Bridge
+
 } // namespace Visitor
 } // namespace Transponster
 
