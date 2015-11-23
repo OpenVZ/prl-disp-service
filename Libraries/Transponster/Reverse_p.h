@@ -89,7 +89,7 @@ struct Flavor<CVmHardDisk>
 
 	static const char* getTarget()
 	{
-		return "hda";
+		return "hd";
 	}
 	static mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 1>::type
 		getDriverFormat()
@@ -116,8 +116,17 @@ struct Model
 
 	QString getTargetName() const
 	{
-		return QString(Flavor<T>::getTarget())
-			.append(QString::number(m_dataSource->getIndex() + 1));
+		int i = m_dataSource->getIndex();
+		// convert digital index to string
+		// 1 -> "a", 2 -> "b", .., 26 -> "ba"
+
+		// 26 is the alphabet size
+		QString e('a' + i % 26);
+
+		while ((i /= 26) > 0)
+			e.prepend('a' + i % 26);
+
+		return QString(Flavor<T>::getTarget()) + e;
 	}
 	QString getImageFile() const
 	{

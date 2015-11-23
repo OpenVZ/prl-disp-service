@@ -233,7 +233,7 @@ struct Flavor<CVmOpticalDisk>
 
 	static const char* getTarget()
 	{
-		return "sda";
+		return "sd";
 	}
 	static mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type
 		getDriverFormat()
@@ -270,7 +270,7 @@ struct Flavor<CVmFloppyDisk>
 
 	static const char* getTarget()
 	{
-		return "fda";
+		return "fd";
 	}
 	static mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type
 		getDriverFormat()
