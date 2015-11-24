@@ -524,15 +524,86 @@ void shape(char* xml_, QScopedPointer<T>& dst_)
 
 namespace Vm
 {
+namespace Direct
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Direct
+// struct Cpu
 
-Direct::Direct(char* xml_)
+Cpu::Cpu(const Libvirt::Domain::Xml::Domain& vm_, CVmCpu* prototype_,
+	const VtInfo& vt_): m_result(new CVmCpu(prototype_)),
+	m_vcpu(vm_.getVcpu()), m_tune(vm_.getCputune())
+{
+	QemuKvm* k = vt_.getQemuKvm();
+	if (NULL != k  && k->getVCpuInfo() != NULL)
+		m_period = k->getVCpuInfo()->getDefaultPeriod();
+}
+
+PRL_RESULT Cpu::setMask()
+{
+	if (m_result.isNull())
+		return PRL_ERR_UNINITIALIZED;
+
+	if (!m_vcpu)
+		return PRL_ERR_NO_DATA;
+
+	if (m_vcpu->getCpuset())
+		m_result->setCpuMask(m_vcpu->getCpuset().get());
+
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Cpu::setUnits()
+{
+	if (m_result.isNull())
+		return PRL_ERR_UNINITIALIZED;
+
+	if (m_tune && m_tune->getShares())
+		m_result->setCpuUnits(m_tune->getShares().get() * 1000 / 1024);
+
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Cpu::setLimit()
+{
+	if (m_result.isNull())
+		return PRL_ERR_UNINITIALIZED;
+
+	if (!m_tune || !m_tune->getQuota())
+		return PRL_ERR_SUCCESS;
+
+	qint32 p = 0, q = m_tune->getQuota().get();
+	if (m_tune->getPeriod())
+		p = m_tune->getPeriod().get();
+	else if (m_period)
+		return PRL_ERR_SUCCESS;
+	else
+		p = m_period.get();
+
+	m_result->setCpuLimit(q == -1 ? 0 : q * 100 / p);
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Cpu::setNumber()
+{
+	if (m_result.isNull())
+		return PRL_ERR_UNINITIALIZED;
+
+	if (!m_vcpu)
+		return PRL_ERR_NO_DATA;
+
+	m_result->setNumber(m_vcpu->getOwnValue());
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+Vm::Vm(char* xml_)
 {
 	shape(xml_, m_input);
 }
 
-PRL_RESULT Direct::setBlank()
+PRL_RESULT Vm::setBlank()
 {
 	if (m_input.isNull())
 		return PRL_ERR_READ_XML_CONTENT;
@@ -546,7 +617,7 @@ PRL_RESULT Direct::setBlank()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Direct::setIdentification()
+PRL_RESULT Vm::setIdentification()
 {
 	if (m_result.isNull())
 		return PRL_ERR_UNINITIALIZED;
@@ -563,7 +634,7 @@ PRL_RESULT Direct::setIdentification()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Direct::setSettings()
+PRL_RESULT Vm::setSettings()
 {
 	if (m_result.isNull())
 		return PRL_ERR_UNINITIALIZED;
@@ -605,7 +676,7 @@ PRL_RESULT Direct::setSettings()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Direct::setDevices()
+PRL_RESULT Vm::setDevices()
 {
 	if (m_result.isNull())
 		return PRL_ERR_UNINITIALIZED;
@@ -627,17 +698,17 @@ PRL_RESULT Direct::setDevices()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Direct::setResources()
+PRL_RESULT Vm::setResources(const VtInfo& vt_)
 {
 	if (m_result.isNull())
 		return PRL_ERR_UNINITIALIZED;
 
 	Resources r(*m_result);
 	r.setMemory(m_input->getMemory());
+	if (m_input->getVcpu())
+		r.setCpu(*m_input, vt_);
 	if (m_input->getCpu())
 		r.setVCpu(m_input->getCpu().get());
-	if (m_input->getVcpu())
-		r.setCpu(m_input->getVcpu().get());
 	if (m_input->getClock())
 		r.setClock(m_input->getClock().get());
 	if (m_input->getSysinfo())
@@ -646,6 +717,7 @@ PRL_RESULT Direct::setResources()
 	return PRL_ERR_SUCCESS;
 }
 
+} // namespace Direct
 } // namespace Vm
 
 namespace Network

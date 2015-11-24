@@ -36,6 +36,7 @@
 #include "domain_type.h"
 #include "network_type.h"
 #include "snapshot_type.h"
+#include <XmlModel/VtInfo/VtInfo.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
 #include <XmlModel/NetworkConfig/CVirtualNetwork.h>
 #include <XmlModel/HostHardwareInfo/CHwNetAdapter.h>
@@ -46,6 +47,34 @@ namespace Vm
 {
 namespace Reverse
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
+
+struct Cpu
+{
+	Cpu(const CVmCpu& input_, const VtInfo& vt_);
+
+	PRL_RESULT setMask();
+	PRL_RESULT setUnits();
+	PRL_RESULT setLimit();
+	PRL_RESULT setNumber();
+
+	const boost::optional<Libvirt::Domain::Xml::Vcpu>& getVcpu() const
+	{
+		return m_vcpu;
+	}
+	const boost::optional<Libvirt::Domain::Xml::Cputune>& getTune() const
+	{
+		return m_tune;
+	}
+
+private:
+	CVmCpu m_input;
+	CVCpuInfo* m_vt;
+	boost::optional<Libvirt::Domain::Xml::Vcpu> m_vcpu;
+	boost::optional<Libvirt::Domain::Xml::Cputune> m_tune;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Cdrom
 
@@ -75,7 +104,7 @@ struct Vm
 	PRL_RESULT setIdentification();
 	PRL_RESULT setSettings();
 	PRL_RESULT setDevices();
-	PRL_RESULT setResources();
+	PRL_RESULT setResources(const VtInfo& vt_);
 
 	QString getResult();
 

@@ -33,19 +33,19 @@
 #define __CDSPLIBVIRT_H__
 
 #include <QThread>
+#include <utility>
 #include <QWeakPointer>
 #include <prlsdk/PrlTypes.h>
 #include <libvirt/libvirt.h>
-#include <libvirt/libvirt-qemu.h>
 #include <libvirt/virterror.h>
 #include <libvirt/libvirt-qemu.h>
+#include <XmlModel/VtInfo/VtInfo.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
 #include <XmlModel/NetworkConfig/CVirtualNetwork.h>
 #include <XmlModel/HostHardwareInfo/CHwNetAdapter.h>
 #include <boost/optional.hpp>
 #include <Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h>
 #include <Libraries/PrlCommonUtilsBase/SysError.h>
-#include <utility>
 
 class CSavedStateTree;
 
@@ -270,6 +270,9 @@ struct Runtime
 	Result setIopsLimit(const CVmHardDisk& disk_, quint32 limit_);
 	Result changeMedia(const CVmOpticalDisk& device_);
 	Result setIoPriority(quint32 ioprio_);
+	Result setCpuLimit(quint32 limit_, quint32 period_);
+	Result setCpuUnits(quint32 units_);
+	Result setCpuCount(quint32 count_);
 
 private:
 	Result setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_);
@@ -353,11 +356,11 @@ struct Unit
 	{
 		return Snapshot::List(m_domain);
 	}
-
 	Runtime getRuntime() const;
 
 private:
 	char* getConfig(bool runtime_ = false) const;
+	QSharedPointer<virConnect> getLink() const;
 
 	QSharedPointer<virDomain> m_domain;
 };
@@ -469,6 +472,21 @@ private:
 } // namespace Interface
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Host
+
+struct Host
+{
+	explicit Host(QSharedPointer<virConnect> link_): m_link(link_)
+	{
+	}
+
+	Prl::Expected<VtInfo, Error::Simple> getVt() const;
+
+private:
+	QSharedPointer<virConnect> m_link;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Hub
 
 struct Hub
@@ -488,6 +506,10 @@ struct Hub
 	void setLink(QSharedPointer<virConnect> value_)
 	{
 		m_link = value_.toWeakRef();
+	}
+	Host host()
+	{
+		return Host(m_link);
 	}
 
 private:

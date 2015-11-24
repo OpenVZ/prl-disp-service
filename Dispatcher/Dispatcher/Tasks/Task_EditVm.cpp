@@ -2636,7 +2636,6 @@ void Task_EditVm::applyVmConfig(SmartPtr<CDspClient> pUserSession,
 	Q_UNUSED(pkg);
 	CDspService::instance()->getVmDirHelper()
 		.appendAdvancedParamsToVmConfig( pUserSession, pVmConfigNew );
-
 	Edit::Vm::Request r(*this, pVmConfigOld, pVmConfigNew);
 	QScopedPointer<Edit::Vm::Action> a(Edit::Vm::Runtime::Factory()(r));
 	if (!a.isNull())
@@ -2978,8 +2977,8 @@ bool Action::execute(CDspTaskFailure& feedback_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Request
 
-Request::Request(Task_EditVm& task_, const config_type& start_, const config_type& final_):
-	m_task(&task_), m_start(start_), m_final(final_)
+Request::Request(Task_EditVm& task_, const config_type& start_, const config_type& final_)
+	: m_task(&task_), m_start(start_), m_final(final_)
 {
 	CVmIdentification* x = final_->getVmIdentification();
 	if (NULL == x)
@@ -3506,6 +3505,77 @@ Action* Factory::operator()(const Request& input_) const
 
 } // namespace Network
 
+namespace Cpu
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Visitor
+
+Libvirt::Result Visitor::operator()(const Count& variant_) const
+{
+	return Libvirt::Kit.vms().at(m_vm).getRuntime().setCpuCount(variant_.m_value);
+}
+
+Libvirt::Result Visitor::operator()(const Limit& variant_) const
+{
+	Prl::Expected<VtInfo, Libvirt::Error::Simple> v =
+		Libvirt::Kit.host().getVt(); 
+	if (v.isFailed())
+		return v.error();
+
+	return Libvirt::Kit.vms().at(m_vm).getRuntime().setCpuLimit(variant_.m_value,
+			v.value().getQemuKvm()->getVCpuInfo()->getDefaultPeriod());
+}
+
+Libvirt::Result Visitor::operator()(const Units& variant_) const
+{
+	return Libvirt::Kit.vms().at(m_vm).getRuntime().setCpuUnits(variant_.m_value);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Set
+
+bool Set::execute(CDspTaskFailure& feedback_)
+{
+	Libvirt::Result e = boost::apply_visitor(Visitor(m_vm), m_mode);
+	if (e.isFailed())
+	{
+		feedback_(e.error().convertToEvent());
+		return false;
+	}
+	return Vm::Action::execute(feedback_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+Vm::Action* Factory::operator()(const Request& input_) const
+{
+	Action* output = NULL;
+
+	quint32 o = input_.getStart().getVmHardwareList()->getCpu()->getCpuUnits();
+	quint32 n = input_.getFinal().getVmHardwareList()->getCpu()->getCpuUnits();
+	if (o != n)
+		output = new Set(input_.getObject().first, Units(n));
+
+	o = input_.getStart().getVmHardwareList()->getCpu()->getCpuLimit();
+	n = input_.getFinal().getVmHardwareList()->getCpu()->getCpuLimit();
+	if (o != n) {
+		Action* a(new Set(input_.getObject().first, Limit(n)));
+		a->setNext(output);
+		output = a;
+	}
+	o = input_.getStart().getVmHardwareList()->getCpu()->getNumber();
+	n = input_.getFinal().getVmHardwareList()->getCpu()->getNumber();
+	if (o != n) {
+		Action* a(new Set(input_.getObject().first, Count(n)));
+		a->setNext(output);
+		output = a;
+	}
+	return output;
+}
+
+} // namespace Cpu
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
@@ -3519,7 +3589,7 @@ Action* Factory::operator()(const Request& input_) const
 
 	Visitor v(input_);
 	typedef boost::mpl::vector<Cdrom::Factory, Memory::Factory, Disk::Factory,
-		Blkiotune::Factory, Network::Factory> list_type;
+		Blkiotune::Factory, Network::Factory, Cpu::Factory> list_type;
 	boost::mpl::for_each<list_type>(boost::ref(v));
 	return v.getResult();
 }

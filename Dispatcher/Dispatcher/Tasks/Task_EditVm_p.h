@@ -422,6 +422,89 @@ struct Factory
 
 } // namespace Network
 
+namespace Cpu
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Count
+
+struct Count
+{
+	explicit Count(quint32 value_): m_value(value_)
+	{
+	}
+
+	quint32 m_value;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Limit
+
+struct Limit
+{
+	explicit Limit(quint32 value_): m_value(value_)
+	{
+	}
+
+	quint32 m_value;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Units
+
+struct Units
+{
+	explicit Units(quint32 value_): m_value(value_)
+	{
+	}
+
+	quint32 m_value;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Visitor
+
+struct Visitor: boost::static_visitor<Libvirt::Result>
+{
+	explicit Visitor(const QString& vm_): m_vm(vm_)
+	{
+	}
+
+	Libvirt::Result operator()(const Count& variant_) const;
+	Libvirt::Result operator()(const Limit& variant_) const;
+	Libvirt::Result operator()(const Units& variant_) const;
+
+private:
+	const QString m_vm;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Set
+
+struct Set: Vm::Action
+{
+	typedef boost::variant<Count, Limit, Units> mode_type;
+
+	Set(const QString& vm_, const mode_type& mode_): m_vm(vm_), m_mode(mode_)
+	{
+	}
+
+	bool execute(CDspTaskFailure& feedback_);
+
+private:
+	QString m_vm;
+	mode_type m_mode;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+struct Factory
+{
+	Action* operator()(const Request& input_) const;
+};
+
+} // namespace Cpu
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 

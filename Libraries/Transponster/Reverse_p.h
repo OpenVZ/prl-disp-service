@@ -34,6 +34,7 @@
 
 #include "domain_type.h"
 #include <QDomDocument>
+#include <XmlModel/VtInfo/VtInfo.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
 
 namespace Transponster
@@ -580,8 +581,8 @@ struct Resources
 
 	void setVCpu(const Libvirt::Domain::Xml::VCpu& src_);
 	bool getVCpu(Libvirt::Domain::Xml::VCpu& dst_);
-	void setCpu(const Libvirt::Domain::Xml::Vcpu& src_);
-	bool getCpu(Libvirt::Domain::Xml::Vcpu& dst_);
+	void setCpu(const Libvirt::Domain::Xml::Domain& vm_, const VtInfo& vt_);
+	bool getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Domain& dst_);
 	void setClock(const Libvirt::Domain::Xml::Clock& src_);
 	bool getClock(Libvirt::Domain::Xml::Clock& dst_);
 	void setMemory(const Libvirt::Domain::Xml::Memory& src_);
