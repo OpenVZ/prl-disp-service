@@ -492,7 +492,7 @@ QString ParallelsDirs::getToolsImage(PRL_APPLICATION_MODE mode, unsigned int nOs
 	QString qsFileName;
 	if (IS_WINDOWS(nOsVersion) && (nOsVersion >= PVS_GUEST_VER_WIN_2K))
 	{
-		qsFileName = "prl-tools-win.iso";
+		qsFileName = "vz-guest-tools-win.iso";
 	}
 	else if IS_MACOS(nOsVersion)
 	{
