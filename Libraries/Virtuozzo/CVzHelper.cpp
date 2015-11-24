@@ -998,16 +998,12 @@ int CVzHelper::get_envid_list(QStringList &lst)
 	return PRL_ERR_SUCCESS;
 }
 
-int CVzHelper::get_env_status(const QString &uuid, VIRTUAL_MACHINE_STATE &nState)
+int CVzHelper::get_env_status_by_ctid(const QString &ctid, VIRTUAL_MACHINE_STATE &nState)
 {
-	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
-	if (ctid.isEmpty())
-		return PRL_ERR_CT_NOT_FOUND;
-
 	vzctl_env_status_t status;
 	if (vzctl2_get_env_status(QSTR2UTF8(ctid), &status, ENV_STATUS_ALL)) {
-		WRITE_TRACE(DBG_FATAL, "Filed to get Ct %s status: %s",
-				QSTR2UTF8(uuid), vzctl2_get_last_error());
+		WRITE_TRACE(DBG_FATAL, "Failed to get Ct %s status: %s",
+				QSTR2UTF8(ctid), vzctl2_get_last_error());
 		return PRL_ERR_OPERATION_FAILED;
 	}
 
@@ -1023,6 +1019,15 @@ int CVzHelper::get_env_status(const QString &uuid, VIRTUAL_MACHINE_STATE &nState
 		nState = VMS_UNKNOWN;
 
 	return 0;
+}
+
+int CVzHelper::get_env_status(const QString &uuid, VIRTUAL_MACHINE_STATE &nState)
+{
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	return get_env_status_by_ctid(ctid, nState);
 }
 
 static unsigned int Ostemplate2Dist(const char *str)
