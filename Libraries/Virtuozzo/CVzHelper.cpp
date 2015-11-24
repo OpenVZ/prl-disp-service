@@ -2389,6 +2389,16 @@ void CVzHelper::unlock_env(unsigned int id, int lockfd)
 #endif
 }
 
+QString CVzHelper::parse_ctid(const QString& src)
+{
+	ctid_t ctid;
+
+	if (vzctl2_parse_ctid(QSTR2UTF8(src), ctid) != 0)
+		return QString();
+
+	return QString(ctid);
+}
+
 int CVzOperationHelper::register_env(const QString &sPath, const QString &sUuid,
 		PRL_UINT32 nFlags, SmartPtr<CVmConfiguration> &pConfig)
 {

@@ -326,6 +326,7 @@ public:
 		return QString();
 	}
 
+	static QString parse_ctid(const QString& src);
 
 private:
 
