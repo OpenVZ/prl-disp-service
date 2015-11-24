@@ -231,7 +231,7 @@ void ParallelsDirTest::testGetToolsImage()
 
 	nOsVersion = PVS_GUEST_VER_WIN_OTHER;
 	path = ParallelsDirs::getToolsImage(mode, nOsVersion);
-	expectedPath = "/usr/share/virtuozzo/prl-tools-win.iso";
+	expectedPath = "/usr/share/virtuozzo/vz-guest-tools-win.iso";
 	QCOMPARE(path, expectedPath);
 }
 
