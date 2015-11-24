@@ -36,6 +36,7 @@
 #include "domain_type.h"
 #include "network_type.h"
 #include "snapshot_type.h"
+#include <XmlModel/VtInfo/VtInfo.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
 #include <Libraries/StatesStore/SavedStateTree.h>
 #include <XmlModel/NetworkConfig/CVirtualNetwork.h>
@@ -45,18 +46,45 @@ namespace Transponster
 {
 namespace Vm
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Direct
-
-struct Direct
+namespace Direct
 {
-	explicit Direct(char* xml_);
+///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
+
+struct Cpu
+{
+	Cpu(const Libvirt::Domain::Xml::Domain& vm_, CVmCpu* prototype_,
+		const VtInfo& vt_);
+
+	PRL_RESULT setMask();
+	PRL_RESULT setUnits();
+	PRL_RESULT setLimit();
+	PRL_RESULT setNumber();
+
+	CVmCpu* getResult()
+	{
+		return m_result.take();
+	}
+
+private:
+	QScopedPointer<CVmCpu> m_result;
+	boost::optional<qint32> m_period;
+	boost::optional<Libvirt::Domain::Xml::Vcpu> m_vcpu;
+	boost::optional<Libvirt::Domain::Xml::Cputune> m_tune;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+struct Vm
+{
+	explicit Vm(char* xml_);
 
 	PRL_RESULT setBlank();
 	PRL_RESULT setIdentification();
 	PRL_RESULT setSettings();
 	PRL_RESULT setDevices();
-	PRL_RESULT setResources();
+	PRL_RESULT setResources(const VtInfo& vt_);
 
 	CVmConfiguration* getResult()
 	{
@@ -68,6 +96,7 @@ private:
 	QScopedPointer<CVmConfiguration> m_result;
 };
 
+} // namespace Direct
 } // namespace Vm
 
 namespace Network
@@ -222,7 +251,7 @@ private:
 struct Director
 {
 	template<class T>
-	static PRL_RESULT domain(T& builder_)
+	static PRL_RESULT domain(T& builder_, const VtInfo& vt_)
 	{
 		PRL_RESULT e;
 		if (PRL_FAILED(e = builder_.setBlank()))
@@ -237,7 +266,7 @@ struct Director
 		if (PRL_FAILED(e = builder_.setDevices()))
 			return e;
 
-		if (PRL_FAILED(e = builder_.setResources()))
+		if (PRL_FAILED(e = builder_.setResources(vt_)))
 			return e;
 
 		return PRL_ERR_SUCCESS;
@@ -299,6 +328,24 @@ struct Director
 			return e;
 
 		if (PRL_FAILED(e = builder_.setInstructions()))
+			return e;
+
+		return PRL_ERR_SUCCESS;
+	}
+	template<class T>
+	static PRL_RESULT cpu(T& builder_)
+	{
+		PRL_RESULT e;
+		if (PRL_FAILED(e = builder_.setNumber()))
+			return e;
+
+		if (PRL_FAILED(e = builder_.setMask()))
+			return e;
+
+		if (PRL_FAILED(e = builder_.setUnits()))
+			return e;
+
+		if (PRL_FAILED(e = builder_.setLimit()))
 			return e;
 
 		return PRL_ERR_SUCCESS;

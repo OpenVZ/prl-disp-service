@@ -104,6 +104,15 @@ void GlobalNetwork::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 		(new CVmGlobalNetwork(new_.getVmSettings()->getGlobalNetwork())));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
+
+void Cpu::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+{
+	old_.getVmHardwareList()->setCpu
+		(new CVmCpu(new_.getVmHardwareList()->getCpu()));
+}
+
 namespace Access
 {
 ///////////////////////////////////////////////////////////////////////////////

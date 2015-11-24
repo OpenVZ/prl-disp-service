@@ -21,6 +21,7 @@
  * Schaffhausen, Switzerland.
  */
 
+#include "Direct.h"
 #include "Reverse.h"
 #include "Reverse_p.h"
 #include "Direct_p.h"
@@ -81,21 +82,18 @@ bool Resources::getVCpu(Libvirt::Domain::Xml::VCpu& dst_)
 	return true;
 }
 
-void Resources::setCpu(const Libvirt::Domain::Xml::Vcpu& src_)
+void Resources::setCpu(const Libvirt::Domain::Xml::Domain& vm_, const VtInfo& vt_)
 {
 	CVmHardware* h = getHardware();
 	if (NULL == h)
 		return;
 
-	CVmCpu* u = new CVmCpu();
-	u->setNumber(src_.getOwnValue());
-	if (src_.getCpuset())
-		u->setCpuMask(src_.getCpuset().get());
-
-	h->setCpu(u);
+	Vm::Direct::Cpu b(vm_, h->getCpu(), vt_);
+	if (PRL_SUCCEEDED(Director::cpu(b)))
+		h->setCpu(b.getResult());
 }
 
-bool Resources::getCpu(Libvirt::Domain::Xml::Vcpu& dst_)
+bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Domain& dst_)
 {
 	CVmHardware* h = getHardware();
 	if (NULL == h)
@@ -105,10 +103,12 @@ bool Resources::getCpu(Libvirt::Domain::Xml::Vcpu& dst_)
 	if (NULL == u)
 		return false;
 
-	dst_.setOwnValue(u->getNumber());
-	QString m = u->getCpuMask();
-	if (!m.isEmpty())
-		dst_.setCpuset(m);
+	Vm::Reverse::Cpu b(*u, vt_);
+	if (PRL_FAILED(Director::cpu(b)))
+		return false;
+
+	dst_.setVcpu(b.getVcpu());
+	dst_.setCputune(b.getTune());
 
 	return true;
 }
@@ -765,6 +765,72 @@ namespace Vm
 namespace Reverse
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
+
+Cpu::Cpu(const CVmCpu& input_, const VtInfo& vt_): m_input(input_), m_vt()
+{
+	if (NULL == vt_.getQemuKvm())
+		return;
+
+	m_vt = vt_.getQemuKvm()->getVCpuInfo();
+	if (NULL != m_vt)
+	{
+		m_vcpu = Libvirt::Domain::Xml::Vcpu();
+		m_tune = Libvirt::Domain::Xml::Cputune();
+	}
+}
+
+PRL_RESULT Cpu::setMask()
+{
+	QString m = m_input.getCpuMask();
+	if (m.isEmpty())
+		return PRL_ERR_SUCCESS;
+
+	if (!m_vcpu)
+		return PRL_ERR_UNINITIALIZED;
+
+	m_vcpu->setCpuset(m);
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Cpu::setUnits()
+{
+	if (!m_tune)
+		return PRL_ERR_UNINITIALIZED;
+
+	m_tune->setShares(m_input.getCpuUnits() * 1024 / 1000);
+	m_tune->setPeriod(m_vt->getDefaultPeriod());
+	m_tune->setQuota(-1);
+
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Cpu::setLimit()
+{
+	qint32 l = m_input.getCpuLimit();
+	if (0 == l)
+		return PRL_ERR_SUCCESS;
+
+	if (!m_tune)
+		return PRL_ERR_UNINITIALIZED;
+
+	m_tune->setQuota(m_vt->getDefaultPeriod() * l / 100);
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Cpu::setNumber()
+{
+	if (!m_vcpu)
+		return PRL_ERR_UNINITIALIZED;
+
+	m_vcpu->setOwnValue(m_input.isEnableHotplug()? m_vt->getMaxVCpu(): m_input.getNumber());
+	m_vcpu->setCurrent(m_input.getNumber());
+
+	return PRL_ERR_SUCCESS;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Cdrom
 
 PRL_RESULT Cdrom::operator()()
@@ -959,7 +1025,7 @@ PRL_RESULT Vm::setDevices()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Vm::setResources()
+PRL_RESULT Vm::setResources(const VtInfo& vt_)
 {
 	if (!m_result)
 		return PRL_ERR_UNINITIALIZED;
@@ -977,14 +1043,11 @@ PRL_RESULT Vm::setResources()
 	if (u.getVCpu(c))
 		m_result->setCpu(c);
 
-	Libvirt::Domain::Xml::Vcpu v;
-	if (u.getCpu(v))
-		m_result->setVcpu(v);
-
 	Libvirt::Domain::Xml::Clock t;
 	if (u.getClock(t))
 		m_result->setClock(t);
 
+	u.getCpu(vt_, m_result.get());
 	return PRL_ERR_SUCCESS;
 }
 
