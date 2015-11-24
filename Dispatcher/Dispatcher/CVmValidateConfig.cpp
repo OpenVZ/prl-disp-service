@@ -95,7 +95,7 @@ boost::optional<VmNameInvalidSymbols> Traits<VmNameInvalidSymbols>::check(const 
 template <>
 boost::optional<VmNameLength> Traits<VmNameLength>::check(const CVmConfiguration& vm_)
 {
-	const int maxLength = 59;
+	const int maxLength = 40;
 	if (vm_.getVmIdentification()->getVmName().length() <= maxLength)
 		return boost::none;
 
