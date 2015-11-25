@@ -180,7 +180,8 @@ namespace Snapshot
 
 struct Reverse
 {
-	Reverse(const QString& uuid_, const CVmConfiguration& input_);
+	Reverse(const QString& uuid_, const QString& description_,
+		const CVmConfiguration& input_);
 
 	PRL_RESULT setIdentity();
 	PRL_RESULT setInstructions();
@@ -190,6 +191,7 @@ struct Reverse
 
 private:
 	QString m_uuid;
+	QString m_description;
 	CVmHardware m_hardware;
 	Libvirt::Snapshot::Xml::Domainsnapshot m_result;
 };

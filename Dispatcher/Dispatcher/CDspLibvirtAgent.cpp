@@ -817,20 +817,21 @@ Result List::all(QList<Unit>& dst_) const
 	return Result();
 }
 
-Result List::define(const QString& uuid_, quint32 flags_, Unit* dst_)
+Prl::Expected<Unit, Error::Simple>
+	List::define(const QString& uuid_, const QString& description_, quint32 flags_)
 {
-	Result e;
 	CVmConfiguration x;
 	virDomainRef(m_domain.data());
 	Vm::Unit m(m_domain.data());
-	if ((e = m.getConfig(x)).isFailed())
-		return e;
+	Result e = m.getConfig(x);
+	if (e.isFailed())
+		return e.error();
 
 	VIRTUAL_MACHINE_STATE s;
 	if ((e = m.getState(s)).isFailed())
-		return e;
+		return e.error();
 
-	Transponster::Snapshot::Reverse y(uuid_, x);
+	Transponster::Snapshot::Reverse y(uuid_, description_, x);
 	PRL_RESULT f = Transponster::Director::snapshot(y);
 	if (PRL_FAILED(f))
 		return Error::Simple(f);
@@ -842,24 +843,31 @@ Result List::define(const QString& uuid_, quint32 flags_, Unit* dst_)
 	virDomainSnapshotPtr p = virDomainSnapshotCreateXML(m_domain.data(),
 					y.getResult().toUtf8().data(), flags_);
 	if (NULL == p)
-		return Result(Error::Detailed(PRL_ERR_FAILURE));
+		return Error::Detailed(PRL_ERR_FAILURE);
 
-	Unit u(p);
+	return Unit(p);
+}
+
+Result List::translate(const Prl::Expected<Unit, Error::Simple>& result_, Unit* dst_)
+{
+	if (result_.isFailed())
+		return result_.error();
 	if (NULL != dst_)
-		*dst_ = u;
+		*dst_ = result_.value();
 
 	return Result();
 }
 
-Result List::define(const QString& uuid_, Unit* dst_)
+Result List::define(const QString& uuid_, const QString& description_, Unit* dst_)
 {
-	return define(uuid_, VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC, dst_);
+	return translate(define(uuid_, description_,
+		VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC), dst_);
 }
 
-Result List::defineConsistent(const QString& uuid_, Unit* dst_)
+Result List::defineConsistent(const QString& uuid_, const QString& description_, Unit* dst_)
 {
-	return define(uuid_, VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE |
-			VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC, dst_);
+	return translate(define(uuid_, description_,
+		VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE | VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC), dst_);
 }
 
 

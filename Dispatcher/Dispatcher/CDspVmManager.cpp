@@ -851,7 +851,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmCreateSnapshot> >::run()
 	else
 	{
 		e = Libvirt::Kit.vms().at(x->GetVmUuid()).getSnapshot()
-			.define(x->GetSnapshotUuid());
+			.define(x->GetSnapshotUuid(), x->GetDescription());
 	}
 	if (e.isFailed())
 		return m_context.reply(e);
