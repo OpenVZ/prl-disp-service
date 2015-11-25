@@ -1359,13 +1359,7 @@ void CVmValidateConfig::CheckCdDvdRom()
 
 		QString qsSysName = pOpticalDisk->getSystemName();
 		if	(qsSysName.isEmpty())
-		{
-			m_lstResults += PRL_ERR_VMCONF_CD_DVD_ROM_SYS_NAME_IS_EMPTY;
-			m_mapParameters.insert(m_lstResults.size(),
-				QStringList()<<QString("%1").arg(pOpticalDisk->getIndex() + 1));
-			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pOpticalDisk->getIndex(), pOpticalDisk->getItemId()));
-			ADD_FID(setIds);
-		}
+			continue;
 		else if (   IsUrlFormatSysName(qsSysName)
 				 && pOpticalDisk->getEmulatedType() == PVE::CdRomImage)
 		{
