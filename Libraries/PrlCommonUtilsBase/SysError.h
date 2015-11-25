@@ -108,6 +108,13 @@ struct Expected<void, E>
 	{
 	}
 
+	template<typename T>
+	Expected(const Expected<T, E>& expected_)
+	{
+		if (expected_.isFailed())
+			m_error = expected_.error();
+	}
+
 	bool isFailed() const
 	{
 		return !isSucceed();

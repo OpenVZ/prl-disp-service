@@ -472,6 +472,33 @@ QString CPackedProblemReport::getPathToSave( packedReportSide side, const QStrin
 	return strPath;
 }
 
+bool CPackedProblemReport::appendScreenshot(const QString& image_, const QString& name_)
+{
+	if (!QFile::exists(image_))
+		return false;
+
+	if(!QFile::copy(image_, QDir(m_strTempDirPath).absoluteFilePath(name_)))
+		return false;
+
+	CRepScreenShot* s = new CRepScreenShot();
+	s->setName(name_);
+	s->setData();
+	CRepUserDefinedData* d = this->getUserDefinedData();
+	if (NULL == d)
+	{ 
+		d = new CRepUserDefinedData;
+		this->setUserDefinedData(d);
+	} 
+	CRepScreenShots* ss = d->getScreenShots();
+	if(NULL == ss)
+	{ 
+		ss = new CRepScreenShots;
+		d->setScreenShots(ss);
+	} 
+	ss->appendScreenshot(s);
+	return true;
+}
+
 void CPackedProblemReport::appendCrashDump(CRepCrashDump * pDump)
 {
 	QString strPath = pDump->getPath();
