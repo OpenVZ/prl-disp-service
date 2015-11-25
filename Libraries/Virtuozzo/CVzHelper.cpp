@@ -2404,6 +2404,16 @@ QString CVzHelper::parse_ctid(const QString& src)
 	return QString(ctid);
 }
 
+/*
+ * Create ctid copying its value from uuid with removed brackets.
+ */
+QString CVzHelper::build_ctid_from_uuid(const QString& uuid)
+{
+	QString ctid = uuid;
+	remove_brackets_from_uuid(ctid);
+	return ctid;
+}
+
 int CVzOperationHelper::register_env(const QString &sPath, const QString &sUuid,
 		PRL_UINT32 nFlags, SmartPtr<CVmConfiguration> &pConfig)
 {
