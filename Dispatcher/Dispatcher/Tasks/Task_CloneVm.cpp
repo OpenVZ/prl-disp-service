@@ -987,7 +987,7 @@ PRL_RESULT Builder::saveConfig(const QString& name_, const QString& uuid_)
 		if (r.isSucceed())
 			return PRL_ERR_SUCCESS;
 
-		return f(e.error().convertToEvent());
+		return f(r.error().convertToEvent());
 #endif // _LIBVIRT_
 	}
 
