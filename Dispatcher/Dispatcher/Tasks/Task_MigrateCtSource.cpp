@@ -144,11 +144,19 @@ PRL_RESULT Task_MigrateCtSource::run_body()
 	CDispToDispCommandPtr pCmd;
 	CDispToDispResponseCommand *pRespCmd;
 	QStringList lstArgs;
-	QString sStr;
 	QString sVmHomePath = m_pVmConfig->getVmIdentification()->getHomePath();
+	QString ctid;
 
 	if (operationIsCancelled())
 		setLastErrorCode(PRL_ERR_OPERATION_WAS_CANCELED);
+
+	ctid = CVzHelper::get_ctid_by_uuid(m_sCtUuid);
+	if (ctid.isEmpty()) {
+		WRITE_TRACE(DBG_FATAL, "Unable to find Container with uuid %s",
+			QSTR2UTF8(m_sCtUuid));
+		return PRL_ERR_CT_NOT_FOUND;
+	}
+
 	if (m_sTargetServerCtHomePath.size())
 	{
 		// add CTID to target path, as for VM (https://jira.sw.ru/browse/PSBM-14488)
@@ -178,7 +186,8 @@ PRL_RESULT Task_MigrateCtSource::run_body()
 		lstArgs.append("yes");
 	}
 
-	if (!m_sTargetServerCtName.isEmpty() && CDspVzHelper::toCtId(m_sTargetServerCtName) == 0)
+	// If target name not empty and don't contain valid CTID treat it as containers name
+	if (!m_sTargetServerCtName.isEmpty() && CVzHelper::parse_ctid(m_sTargetServerCtName).isEmpty())
 		lstArgs.append(QString("--new-name=%1").arg(m_sTargetServerCtName));
 
 	/*lstArgs.append("-v");*/
@@ -188,7 +197,7 @@ PRL_RESULT Task_MigrateCtSource::run_body()
 	lstArgs.append("--nonsharedfs");
 
 	lstArgs.append(m_sServerHostname);
-	lstArgs.append(m_pVmConfig->getVmIdentification()->getVmUuid());
+	lstArgs.append(ctid);
 
 	QObject::connect(m_pIoClient.getImpl(),
 		SIGNAL(onResponsePackageReceived(IOSendJob::Handle, const SmartPtr<IOPackage>)),
