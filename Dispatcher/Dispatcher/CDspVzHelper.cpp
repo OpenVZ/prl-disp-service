@@ -1152,13 +1152,4 @@ void CDspVzHelper::syncCtsUptime()
 }
 #endif // _LIN_
 
-quint32 CDspVzHelper::toCtId(const QString& src_)
-{
-	if (src_.isEmpty())
-		return 0;
-
-	bool d = false;
-	return src_.toUInt(&d);
-}
-
 #endif

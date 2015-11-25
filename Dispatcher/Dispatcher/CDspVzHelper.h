@@ -104,9 +104,6 @@ public:
 	QList<SmartPtr<CVmConfiguration> > getAutoResumeCtList(
 			QList<SmartPtr<CVmConfiguration> > &configs);
 
-	// Returns 0 if string is empty of conversion has failed.
-	static quint32 toCtId(const QString& src_);
-
 	class CConfigCache
 	{
 	public:
