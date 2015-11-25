@@ -222,7 +222,8 @@ struct Guest
 
 	Result traceEvents(bool enable_); 
 	Result dumpScreen(const QString& path);
-	Result dumpMemory(const QString& path, QString& reply);
+	Prl::Expected<QString, Error::Simple>
+		dumpMemory(const QString& path);
 	Prl::Expected<Command::Future, Error::Simple>
 		dumpState(const QString& path_);
 	Result setUserPasswd(const QString& user, const QString& passwd);
@@ -230,7 +231,8 @@ struct Guest
 		startProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn);
 	Prl::Expected<Exec::Result, Error::Simple>
 		runProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn);
-	Result execute(const QString& cmd, QString& reply, bool isHmp = true);
+	Prl::Expected<QString, Error::Simple>
+		execute(const QString& cmd, bool isHmp = true);
 
 private:
 	QSharedPointer<virDomain> m_domain;

@@ -318,10 +318,10 @@ Result Future::wait(int timeout_)
 		w.wait(timeout_ >= 100 ? 100 : timeout_);
 		timeout_ -= 100;
 
-		QString state;
-		Result res = m_guest.execute(cmd, state, false);
+		Prl::Expected<QString, Error::Simple> res = m_guest.execute(cmd, false);
 		if (res.isFailed())
 			return res;
+		QString state = res.value();
 
 		std::istringstream is(state.toUtf8().data());
 		boost::property_tree::json_parser::read_json(is, r);
@@ -346,20 +346,18 @@ Result Future::wait(int timeout_)
 
 Result Guest::traceEvents(bool enable_)
 {
-	QString r;
-	return execute
-		(QString("trace-event * %1").arg(enable_ ? "on" : "off"), r);
+	return execute(QString("trace-event * %1").arg(enable_ ? "on" : "off"));
 }
 
 Result Guest::dumpScreen(const QString& path)
 {
-	QString r;
-	return execute(QString("screendump %1").arg(path), r);
+	return execute(QString("screendump %1").arg(path));
 }
 
-Result Guest::dumpMemory(const QString& path, QString& reply)
+Prl::Expected<QString, Error::Simple>
+Guest::dumpMemory(const QString& path)
 {
-	return execute(QString("dump-guest-memory -z %1").arg(path), reply);
+	return execute(QString("dump-guest-memory -z %1").arg(path));
 }
 
 Prl::Expected<Command::Future, Error::Simple>
@@ -374,8 +372,7 @@ Guest::dumpState(const QString& path_)
 	if (s == VIR_DOMAIN_SHUTDOWN || s == VIR_DOMAIN_SHUTOFF)
 		return Error::Simple(PRL_ERR_VM_PROCESS_IS_NOT_STARTED);
 
-	QString r;
-	Result res = execute(QString("migrate -s \"exec:gzip -c > %1\"").arg(path_), r);
+	Result res = execute(QString("migrate -s \"exec:gzip -c > %1\"").arg(path_));
 
 	if (res.isFailed())
 		return res.error();
@@ -391,7 +388,8 @@ Result Guest::setUserPasswd(const QString& user_, const QString& passwd_)
 			passwd_.toUtf8().constData(), 0));
 }
 
-Result Guest::execute(const QString& cmd, QString& reply, bool isHmp)
+Prl::Expected<QString, Error::Simple>
+Guest::execute(const QString& cmd, bool isHmp)
 {
 	char* s = NULL;
 	if (0 != virDomainQemuMonitorCommand(m_domain.data(),
@@ -399,11 +397,11 @@ Result Guest::execute(const QString& cmd, QString& reply, bool isHmp)
 			&s,
 			isHmp ? VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP : 0))
 	{
-		return Result(Error::Detailed(PRL_ERR_FAILURE));
+		return Error::Detailed(PRL_ERR_FAILURE);
 	}
-	reply = QString::fromUtf8(s);
+	QString reply(s);
 	free(s);
-	return Result();
+	return reply;
 }
 
 Prl::Expected<Exec::Future, Error::Simple>

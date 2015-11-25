@@ -1087,19 +1087,21 @@ PRL_RESULT Internal::dumpMemory(Context& context_, CProtoVmInternalCommand& comm
 	}
 	
 	QString fullpath = QDir(fpath).absoluteFilePath(fname);
-	QString reply;
-	Libvirt::Result res;
+	Prl::Expected<QString, Libvirt::Error::Simple> res;
 #ifdef _LIBVIRT_
 	res = Libvirt::Kit.vms().at(context_.getVmUuid()).getGuest()
-		.dumpMemory(fullpath, reply);
+		.dumpMemory(fullpath);
 #else // _LIBVIRT_
 	return PRL_ERR_UNIMPLEMENTED;
 #endif // _LIBVIRT_
 
-	if (!reply.isEmpty())
+	if (res.isFailed())
+		return res.error().code();
+
+	if (!res.value().isEmpty())
 	{
 		WRITE_TRACE(DBG_FATAL, "Guest memory dump for VM '%s' is failed: %s",
-			qPrintable(context_.getVmUuid()), qPrintable(reply));
+			qPrintable(context_.getVmUuid()), qPrintable(res.value()));
 		return PRL_ERR_FAILURE;
 	}
 	PRL_RESULT r(PRL_ERR_SUCCESS);
