@@ -47,6 +47,7 @@
 #include "Tasks/Task_BackgroundJob.h"
 #include "CDspVm.h"
 #include "CDspVmNetworkHelper.h"
+#include "CDspLibvirt.h"
 #include "Libraries/Std/noncopyable.h"
 #include "Libraries/PrlCommonUtilsBase/SysError.h"
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
@@ -785,6 +786,7 @@ PRL_RESULT Private::addFile(SmartPtr<CVmConfiguration> config_)
 	if (PRL_FAILED(e))
 		return e;
 
+	config_->getVmIdentification()->setHomePath(p);
 	////////////////////////////////////////////////////////////////////////////
 	// Set default permissions to vm files
 	// NOTE: It need as SYSTEM user ( after revertToSelf )
@@ -979,7 +981,15 @@ PRL_RESULT Builder::saveConfig(const QString& name_, const QString& uuid_)
 
 	PRL_RESULT e = m_private->addFile(m_config);
 	if (PRL_SUCCEEDED(e))
-		return PRL_ERR_SUCCESS;
+	{
+#ifdef _LIBVIRT_
+		Libvirt::Result r(Libvirt::Kit.vms().define(*m_config));
+		if (r.isSucceed())
+			return PRL_ERR_SUCCESS;
+
+		return f(e.error().convertToEvent());
+#endif // _LIBVIRT_
+	}
 
 	QString p = m_private->getPath(VMDIR_DEFAULT_VM_CONFIG_FILE);
 	WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher unable to save configuration of the VM %s to file %s. Reason: %ld: %s",
