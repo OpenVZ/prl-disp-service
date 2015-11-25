@@ -2962,6 +2962,8 @@ namespace Edit
 {
 namespace Vm
 {
+namespace vm = Libvirt::Tools::Agent::Vm;
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Action
 
@@ -2997,24 +2999,11 @@ namespace Runtime
 namespace Cdrom
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Action
-
-bool Action::execute(CDspTaskFailure& feedback_)
-{
-	Libvirt::Result e = Libvirt::Kit.vms().at(m_vm).getRuntime().changeMedia(m_device);
-	if (e.isFailed())
-	{
-		feedback_(e.error().convertToEvent());
-		return false;
-	}
-	return Vm::Action::execute(feedback_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
 Action* Factory::operator()(const Request& input_) const
 {
+	Forge f(input_);
 	Action* output = NULL;
 	QList<CVmOpticalDisk* > o = input_.getStart().getVmHardwareList()->m_lstOpticalDisks;
 	foreach (CVmOpticalDisk* d, input_.getFinal().getVmHardwareList()->m_lstOpticalDisks)
@@ -3029,9 +3018,9 @@ Action* Factory::operator()(const Request& input_) const
 
 		Action* a = NULL;
 		if (x->getSystemName() != d->getSystemName())
-			a = new Action(input_.getObject().first, *d);
+			a = f.craftRuntime(boost::bind(&vm::Runtime::changeMedia, _1, *d));
 		else if (x->getConnected() != d->getConnected())
-			a = new Action(input_.getObject().first, *d);
+			a = f.craftRuntime(boost::bind(&vm::Runtime::changeMedia, _1, *d));
 		else
 			continue;
 
@@ -3088,6 +3077,7 @@ bool isHardDisksSystemPathEqual(const CVmHardDisk* lhs_, const CVmHardDisk* rhs_
 
 Vm::Action* Factory::operator()(const Request& input_) const
 {
+	Forge f(input_);
 	Action* output = NULL;
 	QList<CVmHardDisk* > o = input_.getStart().getVmHardwareList()->m_lstHardDisks;
 	foreach (CVmHardDisk* d, input_.getFinal().getVmHardwareList()->m_lstHardDisks)
@@ -3110,14 +3100,16 @@ Vm::Action* Factory::operator()(const Request& input_) const
 			CVmIoLimit* p((*x)->getIoLimit());
 			if (p == NULL || l->getIoLimitValue() != p->getIoLimitValue())
 			{
-				Action* a(new Limit::Unit<Limit::Policy::Io>(input_.getObject().first, *d, l->getIoLimitValue()));
+				Action* a(f.craftRuntime(boost::bind
+					(&vm::Runtime::setIoLimit, _1, d, l->getIoLimitValue())));
 				a->setNext(output);
 				output = a;
 			}
 		}
 
 		if (d->getIopsLimit() != (*x)->getIopsLimit()) {
-			Action* a(new Limit::Unit<Limit::Policy::Iops>(input_.getObject().first, *d, d->getIopsLimit()));
+			Action* a(f.craftRuntime(boost::bind
+				(&vm::Runtime::setIopsLimit, _1, d, d->getIopsLimit())));
 			a->setNext(output);
 			output = a;
 		}
@@ -3140,20 +3132,6 @@ namespace Blkiotune
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Action
-
-bool Action::execute(CDspTaskFailure& feedback_)
-{
-	Libvirt::Result e = Libvirt::Kit.vms().at(m_vm).getRuntime().setIoPriority(m_ioprio);
-	if (e.isFailed())
-	{
-		feedback_(e.error().convertToEvent());
-		return false;
-	}
-	return Vm::Action::execute(feedback_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
 Vm::Action* Factory::operator()(const Request& input_) const
@@ -3163,7 +3141,7 @@ Vm::Action* Factory::operator()(const Request& input_) const
 	if (o == n)
 		return NULL;
 
-	return new Action(input_.getObject().first, n);
+	return Forge(input_).craftRuntime(boost::bind(&vm::Runtime::setIoPriority, _1, n));
 }
 
 } // namespace Blkiotune
@@ -3472,23 +3450,18 @@ QStringList Address::operator()(const Bridge& mode_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Action
 
-bool Action::execute(CDspTaskFailure& feedback_)
+Libvirt::Result Action::operator()(Libvirt::Tools::Agent::Vm::Guest agent_)
 {
-	Prl::Expected<Libvirt::Tools::Agent::Vm::Exec::Result,Libvirt::Error::Simple> e = Libvirt::Kit.vms()
-		.at(m_vm).getGuest().runProgram("prl_nettool", m_args, QByteArray());
-	if (e.isFailed())
-	{
-		feedback_(e.error().convertToEvent());
-		return false;
-	}
-
-	return Vm::Action::execute(feedback_);
+	Prl::Expected<Libvirt::Tools::Agent::Vm::Exec::Result,
+		Libvirt::Error::Simple> e = agent_
+			.runProgram("prl_nettool", m_args, QByteArray());
+	return e.isFailed() ? e.error() : Libvirt::Result();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
-Action* Factory::operator()(const Request& input_) const
+Vm::Action* Factory::operator()(const Request& input_) const
 {
 	const general_type* a = input_.getStart().getVmSettings()->getGlobalNetwork();
 	const general_type* b = input_.getFinal().getVmSettings()->getGlobalNetwork();
@@ -3500,7 +3473,7 @@ Action* Factory::operator()(const Request& input_) const
 		return NULL;
 
 	d.insert(0, "set");
-	return new Action(input_.getObject().first, d);
+	return Forge(input_).craftGuest(Action(d));
 }
 
 } // namespace Network
@@ -3508,41 +3481,16 @@ Action* Factory::operator()(const Request& input_) const
 namespace Cpu
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Visitor
+// struct Limit
 
-Libvirt::Result Visitor::operator()(const Count& variant_) const
+Libvirt::Result Limit::operator()(vm::Runtime agent_) const
 {
-	return Libvirt::Kit.vms().at(m_vm).getRuntime().setCpuCount(variant_.m_value);
-}
-
-Libvirt::Result Visitor::operator()(const Limit& variant_) const
-{
-	Prl::Expected<VtInfo, Libvirt::Error::Simple> v =
-		Libvirt::Kit.host().getVt(); 
+	Prl::Expected<VtInfo, Libvirt::Error::Simple> v = Libvirt::Kit.host().getVt();
 	if (v.isFailed())
 		return v.error();
 
-	return Libvirt::Kit.vms().at(m_vm).getRuntime().setCpuLimit(variant_.m_value,
-			v.value().getQemuKvm()->getVCpuInfo()->getDefaultPeriod());
-}
-
-Libvirt::Result Visitor::operator()(const Units& variant_) const
-{
-	return Libvirt::Kit.vms().at(m_vm).getRuntime().setCpuUnits(variant_.m_value);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Set
-
-bool Set::execute(CDspTaskFailure& feedback_)
-{
-	Libvirt::Result e = boost::apply_visitor(Visitor(m_vm), m_mode);
-	if (e.isFailed())
-	{
-		feedback_(e.error().convertToEvent());
-		return false;
-	}
-	return Vm::Action::execute(feedback_);
+	return agent_.setCpuLimit(m_value, v.value()
+		.getQemuKvm()->getVCpuInfo()->getDefaultPeriod());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3551,23 +3499,23 @@ bool Set::execute(CDspTaskFailure& feedback_)
 Vm::Action* Factory::operator()(const Request& input_) const
 {
 	Action* output = NULL;
-
+	Forge f(input_);
 	quint32 o = input_.getStart().getVmHardwareList()->getCpu()->getCpuUnits();
 	quint32 n = input_.getFinal().getVmHardwareList()->getCpu()->getCpuUnits();
 	if (o != n)
-		output = new Set(input_.getObject().first, Units(n));
+		output = f.craftRuntime(boost::bind(&vm::Runtime::setCpuUnits, _1, n));
 
 	o = input_.getStart().getVmHardwareList()->getCpu()->getCpuLimit();
 	n = input_.getFinal().getVmHardwareList()->getCpu()->getCpuLimit();
 	if (o != n) {
-		Action* a(new Set(input_.getObject().first, Limit(n)));
+		Action* a(f.craftRuntime(Limit(n)));
 		a->setNext(output);
 		output = a;
 	}
 	o = input_.getStart().getVmHardwareList()->getCpu()->getNumber();
 	n = input_.getFinal().getVmHardwareList()->getCpu()->getNumber();
 	if (o != n) {
-		Action* a(new Set(input_.getObject().first, Count(n)));
+		Action* a(f.craftRuntime(boost::bind(&vm::Runtime::setCpuCount, _1, n)));
 		a->setNext(output);
 		output = a;
 	}

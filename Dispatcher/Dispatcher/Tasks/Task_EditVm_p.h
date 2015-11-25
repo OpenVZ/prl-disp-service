@@ -59,6 +59,32 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Domain
+
+template<class T, class U>
+struct Domain: Action
+{
+	Domain(const U& agent_, const T& decorated_): m_agent(agent_), m_decorated(decorated_)
+	{
+	}
+
+	bool execute(CDspTaskFailure& feedback_)
+	{
+		Libvirt::Result e = m_decorated(m_agent);
+		if (e.isFailed())
+		{
+			feedback_(e.error().convertToEvent());
+			return true;
+		}
+		return Action::execute(feedback_);
+	}
+
+private:
+	U m_agent;
+	T m_decorated;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Request
 
 struct Request
@@ -86,6 +112,46 @@ private:
 	Task_EditVm* m_task;
 	const config_type m_start;
 	const config_type m_final;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Forge
+
+struct Forge
+{
+	explicit Forge(const QString& vm_): m_vm(vm_)
+	{
+	}
+	explicit Forge(const Request& request_): m_vm(request_.getObject().first)
+	{
+	}
+
+	template<class T>
+	Action* craft(const T& decorated_) const
+	{
+		return new Domain<T, Libvirt::Tools::Agent::Vm::Unit>
+			(getUnit(), decorated_);
+	}
+	template<class T>
+	Action* craftGuest(const T& decorated_) const
+	{
+		return new Domain<T, Libvirt::Tools::Agent::Vm::Guest>
+			(getUnit().getGuest(), decorated_);
+	}
+	template<class T>
+	Action* craftRuntime(const T& decorated_) const
+	{
+		return new Domain<T, Libvirt::Tools::Agent::Vm::Runtime>
+			(getUnit().getRuntime(), decorated_);
+	}
+
+private:
+	Libvirt::Tools::Agent::Vm::Unit getUnit() const
+	{
+		return Libvirt::Kit.vms().at(m_vm);
+	}
+
+	const QString m_vm;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -123,23 +189,6 @@ namespace Runtime
 namespace Cdrom
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Action
-
-struct Action: Vm::Action
-{
-	Action(const QString& vm_, const CVmOpticalDisk& device_):
-		m_vm(vm_), m_device(device_)
-	{
-	}
-
-	bool execute(CDspTaskFailure& feedback_);
-
-private:
-	QString m_vm;
-	CVmOpticalDisk m_device;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
 struct Factory
@@ -163,64 +212,6 @@ struct Factory
 
 namespace Disk
 {
-
-namespace Limit
-{
-
-namespace Policy
-{
-
-struct Io
-{
-static Libvirt::Result setLimit(Libvirt::Tools::Agent::Vm::Runtime& device_,
-	const CVmHardDisk* disk_, quint32 limit_)
-{
-	return device_.setIoLimit(disk_, limit_);
-}
-};
-
-struct Iops
-{
-static Libvirt::Result setLimit(Libvirt::Tools::Agent::Vm::Runtime& device_,
-	const CVmHardDisk* disk_, quint32 limit_)
-{
-	return device_.setIopsLimit(disk_, limit_);
-}
-};
-
-} // namespace Policy
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Unit
-
-template <typename T>
-struct Unit: Vm::Action
-{
-	Unit(const QString& vm_, const CVmHardDisk& device_, quint32 limit_):
-		m_vm(vm_), m_device(device_), m_limit(limit_)
-	{
-	}
-
-	bool execute(CDspTaskFailure& feedback_)
-	{
-		Libvirt::Tools::Agent::Vm::Runtime d = Libvirt::Kit.vms().at(m_vm).getRuntime();
-		Libvirt::Result e(T::setLimit(d, &m_device, m_limit));
-		if (e.isFailed())
-		{
-			feedback_(e.error().convertToEvent());
-			return false;
-		}
-		return Vm::Action::execute(feedback_);
-	}
-
-private:
-	QString m_vm;
-	CVmHardDisk m_device;
-	quint32 m_limit;
-};
-
-} // namespace Limit
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
@@ -235,22 +226,6 @@ private:
 
 namespace Blkiotune
 {
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Action
-
-struct Action: Vm::Action
-{
-	Action(const QString& vm_, quint32 ioprio_): m_vm(vm_), m_ioprio(ioprio_)
-	{
-	}
-
-	bool execute(CDspTaskFailure& feedback_);
-
-private:
-	QString m_vm;
-	quint32 m_ioprio;
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
@@ -398,17 +373,15 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Action
 
-struct Action: Vm::Action
+struct Action
 {
-	Action(const QString& vm_, const QStringList& args_):
-		m_vm(vm_), m_args(args_)
+	explicit Action(const QStringList& args_): m_args(args_)
 	{
 	}
 
-	bool execute(CDspTaskFailure& feedback_);
+	Libvirt::Result operator()(Libvirt::Tools::Agent::Vm::Guest agent_);
 
 private:
-	QString m_vm;
 	QStringList m_args;
 };
 
@@ -417,25 +390,13 @@ private:
 
 struct Factory
 {
-	Action* operator()(const Request& input_) const;
+	Vm::Action* operator()(const Request& input_) const;
 };
 
 } // namespace Network
 
 namespace Cpu
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Count
-
-struct Count
-{
-	explicit Count(quint32 value_): m_value(value_)
-	{
-	}
-
-	quint32 m_value;
-};
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Limit
 
@@ -445,54 +406,10 @@ struct Limit
 	{
 	}
 
-	quint32 m_value;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Units
-
-struct Units
-{
-	explicit Units(quint32 value_): m_value(value_)
-	{
-	}
-
-	quint32 m_value;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Visitor
-
-struct Visitor: boost::static_visitor<Libvirt::Result>
-{
-	explicit Visitor(const QString& vm_): m_vm(vm_)
-	{
-	}
-
-	Libvirt::Result operator()(const Count& variant_) const;
-	Libvirt::Result operator()(const Limit& variant_) const;
-	Libvirt::Result operator()(const Units& variant_) const;
+	Libvirt::Result operator()(Libvirt::Tools::Agent::Vm::Runtime agent_) const;
 
 private:
-	const QString m_vm;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Set
-
-struct Set: Vm::Action
-{
-	typedef boost::variant<Count, Limit, Units> mode_type;
-
-	Set(const QString& vm_, const mode_type& mode_): m_vm(vm_), m_mode(mode_)
-	{
-	}
-
-	bool execute(CDspTaskFailure& feedback_);
-
-private:
-	QString m_vm;
-	mode_type m_mode;
+	quint32 m_value;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
