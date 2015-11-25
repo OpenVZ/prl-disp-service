@@ -1448,8 +1448,9 @@ QList<Libvirt::Snapshot::Xml::Disk> getAbsentee(const QList<T* >& list_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reverse
 
-Reverse::Reverse(const QString& uuid_, const CVmConfiguration& input_):
-	m_uuid(uuid_), m_hardware(input_.getVmHardwareList())
+Reverse::Reverse(const QString& uuid_, const QString& description_,
+	const CVmConfiguration& input_): m_uuid(uuid_),
+	m_description(description_), m_hardware(input_.getVmHardwareList())
 {
 	CVmIdentification* i = input_.getVmIdentification();
 	if (NULL == i)
@@ -1463,7 +1464,7 @@ Reverse::Reverse(const QString& uuid_, const CVmConfiguration& input_):
 PRL_RESULT Reverse::setIdentity()
 {
 	m_result.setName(m_uuid);
-	m_result.setDescription(QString("Snapshot by dispatcher"));
+	m_result.setDescription(m_description);
 	return PRL_ERR_SUCCESS;
 }
 

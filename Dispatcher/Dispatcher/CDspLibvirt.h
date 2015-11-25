@@ -310,11 +310,17 @@ struct List
 
 	Unit at(const QString& uuid_) const;
 	Result all(QList<Unit>& dst_) const;
-	Result define(const QString& uuid_, Unit* dst_ = NULL);
-	Result defineConsistent(const QString& uuid_, Unit* dst_ = NULL);
+	Result define(const QString& uuid_, const QString& description_,
+		Unit* dst_ = NULL);
+	Result defineConsistent(const QString& uuid_, const QString& description_,
+		Unit* dst_ = NULL);
 
 private:
-	Result define(const QString& uuid_, quint32 flags_, Unit* dst_);
+	Prl::Expected<Unit, Error::Simple>
+		define(const QString& uuid_, const QString& description_, quint32 flags_);
+
+	static Result translate
+		(const Prl::Expected<Unit, Error::Simple>& result_, Unit* dst_);
 
 	QSharedPointer<virDomain> m_domain;
 };
