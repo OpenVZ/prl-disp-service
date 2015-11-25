@@ -809,9 +809,8 @@ static void addFreshRegisteredVmLogsAndConfigs( CProblemReport & cReport,
 }
 
 
-void CDspProblemReportHelper::FillVmProblemReportData(CProblemReport & cReport,
-													  CVmConfiguration &vmConfig,
-													  const QString & strDirUuid)
+void CDspProblemReportHelper::FillVmProblemReportData
+	(CPackedProblemReport& cReport, CVmConfiguration &vmConfig, const QString & strDirUuid)
 {
 	QString strVmUuid = vmConfig.getVmIdentification()->getVmUuid();
 	QString strVmHome = CDspVmDirManager::getVmHomeByUuid( MakeVmIdent( strVmUuid, strDirUuid ) );
@@ -850,11 +849,25 @@ void CDspProblemReportHelper::FillVmProblemReportData(CProblemReport & cReport,
 
 	bool isRunning = CDspVm::getVmState(strVmUuid, strDirUuid) == VMS_RUNNING;
 
-	// Append QEMU state
-	QString stateFile = QDir::temp()
-		.absoluteFilePath("qemu-statefile-%1-%2.gz").arg(strVmUuid)
+	QString tmpFileName = QDir::temp()
+		.absoluteFilePath("vz-%1-%2").arg(strVmUuid)
 		.arg(QDateTime::currentMSecsSinceEpoch());
 
+	QString screenImage = tmpFileName + ".pnm";
+	// QEMU renerates screenshot in PNM format
+	u.getGuest().dumpScreen(screenImage);
+
+	// Convert to PNG and attach
+	QProcess convertImage;
+	convertImage.setStandardOutputFile(screenImage + ".png");
+	QString output;
+	if (HostUtils::RunCmdLineUtility("pnmtopng " + screenImage, output, 10000, &convertImage))
+		cReport.appendScreenshot(screenImage + ".png", "screenshot.png");
+
+	QFile::remove(screenImage);
+	QFile::remove(screenImage + ".png");
+
+	QString stateFile = tmpFileName + ".state";
 	Prl::Expected<Libvirt::Tools::Agent::Vm::Command::Future, Libvirt::Error::Simple> e = 
 		u.getGuest().dumpState(stateFile);
 
@@ -922,10 +935,8 @@ void addSystemLog(CProblemReport& report, const QFileInfo& info)
 *
 **/
 
-void CDspProblemReportHelper::FillProblemReportData(
-	CProblemReport & cReport
-	, const SmartPtr<CDspClient>& pUser
-	, const QString & strDirUuid)
+void CDspProblemReportHelper::FillProblemReportData
+	(CPackedProblemReport& cReport, const SmartPtr<CDspClient>& pUser, const QString& strDirUuid)
 {
 	INIT_PROBLEM_REPORT_PROFILER_TIME
 
@@ -1180,14 +1191,29 @@ SmartPtr<CPackedProblemReport> CDspProblemReportHelper::getProblemReportObj(
 		CDspProblemReportHelper::FillProblemReportData( *pReport.getImpl(), pUser, pUser->getVmDirectoryUuid() );
 		// set report type
 		if(bSendByTimeout)
+		{
 			pReport->setReportType(PRT_USER_DEFINED_ON_NOT_RESPONDING_VM_REPORT);
-		else
-			if (sVmUuid.isEmpty())
-				pReport->setReportType(PRT_USER_DEFINED_ON_CONNECTED_SERVER);
-			else if (nType == PVT_VM)
+		}
+		else if (sVmUuid.isEmpty())
+		{
+			pReport->setReportType(PRT_USER_DEFINED_ON_CONNECTED_SERVER);
+		}
+		else if (nType == PVT_VM)
+		{
+			switch(CDspVm::getVmState(sVmUuid, pUser->getVmDirectoryUuid()))
+			{
+			case VMS_RUNNING:
+			case VMS_PAUSED:
+				pReport->setReportType(PRT_USER_DEFINED_ON_RUNNING_VM_REPORT);
+				break;
+			default:
 				pReport->setReportType(PRT_USER_DEFINED_ON_STOPPED_VM_REPORT);
-			else
-				pReport->setReportType(PRT_USER_DEFINED_ON_CONTAINER_REPORT);
+			}
+		}
+		else
+		{
+			pReport->setReportType(PRT_USER_DEFINED_ON_CONTAINER_REPORT);
+		}
 
 		pReport->saveMainXml();
         return pReport;

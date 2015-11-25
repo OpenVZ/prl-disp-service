@@ -350,6 +350,13 @@ Result Guest::traceEvents(bool enable_)
 	return execute
 		(QString("trace-event * %1").arg(enable_ ? "on" : "off"), r);
 }
+
+Result Guest::dumpScreen(const QString& path)
+{
+	QString r;
+	return execute(QString("screendump %1").arg(path), r);
+}
+
 Result Guest::dumpMemory(const QString& path, QString& reply)
 {
 	return execute(QString("dump-guest-memory -z %1").arg(path), reply);

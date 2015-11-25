@@ -73,9 +73,8 @@ public:
 	* note this function uses locked pointers
 	* do not call it in lock space
 	**/
-	static void FillProblemReportData( CProblemReport & cReport,
-			const SmartPtr<CDspClient>& pUser,
-			const QString & strDirUuid);
+	static void FillProblemReportData
+		(CPackedProblemReport& cReport,	const SmartPtr<CDspClient>& pUser, const QString& strDirUuid);
 
 	/**
 	* fill data to problem report object if generated on disconnect vm.
@@ -150,9 +149,9 @@ private:
 
 	static void fillVersionMatrix( CRepVersionMatrix* pVersionMatrix );
 
-	static void FillVmProblemReportData( CProblemReport & cReport,
-										 CVmConfiguration &vmConfig,
-										 const QString & strDirUuid );
+	static void FillVmProblemReportData
+		(CPackedProblemReport& cReport, CVmConfiguration& vmConfig, const QString& strDirUuid);
+
 	static void FillCtProblemReportData();
 };
 

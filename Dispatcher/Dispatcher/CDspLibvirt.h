@@ -221,6 +221,7 @@ struct Guest
 	}
 
 	Result traceEvents(bool enable_); 
+	Result dumpScreen(const QString& path);
 	Result dumpMemory(const QString& path, QString& reply);
 	Prl::Expected<Command::Future, Error::Simple>
 		dumpState(const QString& path_);

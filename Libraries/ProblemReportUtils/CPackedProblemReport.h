@@ -124,6 +124,8 @@ public:
 							const QString& strCustomName,
 							int iLogsCount );
 
+	bool appendScreenshot(const QString& image_, const QString& name_);
+
 	virtual void appendCrashDump( CRepCrashDump * pDump );
 	virtual void appendMemoryDump( CRepMemoryDump * pDump );
 
