@@ -111,263 +111,109 @@ static void NotifyCopyEvent(CDspTaskHelper * lpcTaskHelper, _PRL_EVENT_TYPE type
 //
 //
 /////////////////////////////////////////////////////////////////////////////
-//
-PRL_RESULT CFileHelperDepPart::CopyFileWithNotifications(const QString & strSrcFile,
-																  const QString & strDestFile,
-																  CAuthHelper* pDestOwner,
-																  CDspTaskHelper * lpcTaskHelper,
-																  PRL_DEVICE_TYPE devType,
-																  int iDevNum
+
+namespace
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct CopyProgress
+
+struct CopyProgress: QFile
+{
+	CopyProgress(const QString& filename_, const QString& uuid_, CDspTaskHelper* taskHelper_,
+			PRL_DEVICE_TYPE devType_, int devNum_)
+		: QFile(filename_),
+			m_uuid(uuid_),
+			m_total(0),
+			m_read(0),
+			m_currentPercent(0),
+			m_taskHelper(taskHelper_),
+			m_devType(devType_),
+			m_devNum(devNum_)
+	{
+		m_total = QFile::size();
+	}
+
+protected:
+	virtual qint64 readData(char* data, qint64 maxSize_)
+	{
+		qint64 r = QFile::readData(data, maxSize_);
+		handleWrittenBytes(r);
+		return r;
+	}
+
+private:
+	void handleWrittenBytes(qint64 bytes_)
+	{
+		m_read += bytes_;
+		quint32 c(((double)m_read)/((double)m_total) * 100.0 + 0.5);
+		if (m_currentPercent == c || c == 100)
+			return;
+
+		m_currentPercent = c;
+		notifyCurrentProgress();
+	}
+
+	void notifyCurrentProgress()
+	{
+		CVmEvent event(PET_JOB_FILE_COPY_PROGRESS_CHANGED, m_uuid, PIE_DISPATCHER);
+
+		event.addEventParameter(new CVmEventParameter(PVE::UnsignedInt,
+			QString::number(m_currentPercent),
+			EVT_PARAM_PROGRESS_CHANGED));
+		event.addEventParameter(new CVmEventParameter(PVE::UnsignedInt,
+			QString::number(m_devType),
+			EVT_PARAM_DEVICE_TYPE));
+		event.addEventParameter(new CVmEventParameter(PVE::UnsignedInt,
+			QString::number(m_devNum),
+			EVT_PARAM_DEVICE_INDEX));
+
+		SmartPtr<IOPackage> p =
+			DispatcherPackage::createInstance(PVE::DspVmEvent, event,
+											  m_taskHelper->getRequestPackage());
+
+		m_taskHelper->getClient()->sendPackage(p);
+	}
+
+private:
+	QString m_uuid;
+	quint64 m_total;
+	quint64 m_read;
+	quint32 m_currentPercent;
+	CDspTaskHelper* m_taskHelper;
+	PRL_DEVICE_TYPE m_devType;
+	int m_devNum;
+};
+
+} // anonymous namespace
+
+
+PRL_RESULT CFileHelperDepPart::CopyFileWithNotifications(const QString & source_,
+																  const QString & dest_,
+																  CAuthHelper* owner_,
+																  CDspTaskHelper* taskHelper_,
+																  PRL_DEVICE_TYPE devType_,
+																  int devNum_
 																  )
 {
-	quint64  sz = 0;
-	PRL_RESULT r;
+	NotifyCopyEvent(taskHelper_, PET_VM_INF_START_BUNCH_COPYING, devType_, devNum_);
 
-	NotifyCopyEvent(lpcTaskHelper, PET_VM_INF_START_BUNCH_COPYING, devType, iDevNum);
-	r =  CopyFileWithNotifications ( strSrcFile, strDestFile, pDestOwner
-		, lpcTaskHelper, devType, iDevNum
-		, sz, sz);
-	if (PRL_ERR_SUCCESS == r)
-		NotifyCopyEvent(lpcTaskHelper, PET_VM_INF_END_BUNCH_COPYING, devType, iDevNum);
-	return r;
-}
-
-
-PRL_RESULT CFileHelperDepPart::CopyFileWithNotifications(const QString & /*strSrcFile*/,
-										  const QString & /*strDestFile*/,
-										  CAuthHelper* pDestOwner,
-										  CDspTaskHelper * /*lpcTaskHelper*/,
-										  PRL_DEVICE_TYPE /*devType*/,
-										  int /*iDevNum*/,
-										  quint64 /*uiTotalCopySize*/,
-										  quint64 /*uiTotalCompleteSize*/
-										  )
-{
 	//https://bugzilla.sw.ru/show_bug.cgi?id=267152
-	CAuthHelperImpersonateWrapper _impersonate( pDestOwner );
+	CAuthHelperImpersonateWrapper _impersonate(owner_);
 
-	PRL_RESULT retCode=PRL_ERR_OPERATION_FAILED;
-// AbstractFile commented out by request from CP team
-//	char * szData = 0;
-//	// Calculated suze of temporary buffer
-//	quint64	ui64BufSize = 0;
-//
-//	ICommonFile *pSrcFile = NULL, *pDstFile = NULL;
-//	try
-//	{
-//		// open source file
-//		pSrcFile = ICommonFile::CreateSpecFile(AF_INVALID_ID);
-//
-//		// Check is we created file abstraction correctly
-//		if (!pSrcFile)
-//			throw PRL_ERR_OUT_OF_MEMORY;
-//
-//		pSrcFile->Open(strSrcFile, FA_READ, FSHR_READ, FO_EXISTING, 0);
-//
-//		if (!pSrcFile->IsValid())
-//		{
-//			WRITE_TRACE(DBG_FATAL, "Couldn't to open source file '%s' due error %u", QSTR2UTF8(strSrcFile), pSrcFile->GetError());
-//			throw (PRL_ERR_OPERATION_FAILED);
-//		}
-//
-//		// get size of file
-//		quint64 ui64FileSize = pSrcFile->GetSize();
-//
-//		// Change operation type to noncached in case of aligned file
-//		if (!(ui64FileSize % SECTOR_SIZE))
-//		{
-//		    LOG_MESSAGE(DBG_DEBUG, "Reopen file in case of alignment: %s",
-//		    						strSrcFile.toUtf8().data());
-//
-//			// Remove reference
-//			pSrcFile->Delete();
-//			// Reopen
-//			pSrcFile = ICommonFile::CreateSpecFile(AF_INVALID_ID);
-//			pSrcFile->Open(strSrcFile, FA_READ, FSHR_READ,
-//						   FO_EXISTING, FF_NO_BUFFERING);
-//			if (!pSrcFile->IsValid())
-//			{
-//				WRITE_TRACE(DBG_FATAL, "Couldn't reopen source file '%s', error %u",
-//					QSTR2UTF8(strSrcFile), pSrcFile->GetError());
-//				throw (PRL_ERR_OPERATION_FAILED);
-//			}
-//		} else
-//		    LOG_MESSAGE(DBG_DEBUG, "File should not be NONcached in case of alignment: %s",
-//		    						strSrcFile.toUtf8().data());
-//
-//
-//		// position after open is undefined
-//		if (pSrcFile->Seek(0, FS_BEGIN) != 0) {
-//			WRITE_TRACE(DBG_FATAL,
-//				"Couldn't seek to the start of src-file '%s', error %u",
-//				QSTR2UTF8(strSrcFile), pSrcFile->GetError());
-//			throw (PRL_ERR_OPERATION_FAILED);
-//		}
-//
-//		// calculate buffer size
-//		ui64BufSize = ui64FileSize/20;
-//		// align to sector
-//		ui64BufSize = ui64BufSize + SECTOR_SIZE - (ui64BufSize % SECTOR_SIZE);
-//		// to optimal copying & economy memory
-//		const quint64 ui64MaxBufSize = 16*1024*1024;
-//		if (ui64BufSize > ui64MaxBufSize)
-//			ui64BufSize = ui64MaxBufSize;
-//
-//		if ( !pDestOwner )
-//		{
-//			WRITE_TRACE(DBG_FATAL, "invalid owner" );
-//			throw PRL_ERR_OPERATION_FAILED;
-//		}
-//
-//		// open destination file
-//		pDstFile = ICommonFile::CreateSpecFile(AF_INVALID_ID);
-//
-//		// Check is we created file abstraction correctly
-//		if (!pDstFile)
-//			throw PRL_ERR_OUT_OF_MEMORY;
-//
-//		pDstFile->Open(strDestFile, FA_WRITE, FSHR_READ, FO_CREATE, 0);
-//		if(!pDstFile->IsValid())
-//		{
-//			WRITE_TRACE(DBG_FATAL, "Couldn't to open destination file '%s' due error %u",
-//				QSTR2UTF8(strDestFile), pDstFile->GetError());
-//			throw PRL_ERR_OPERATION_FAILED;
-//		}
-//
-//		// position after open is undefined
-//		if (pDstFile->Seek(0, FS_BEGIN) != 0) {
-//			WRITE_TRACE(DBG_FATAL,
-//				"Couldn't seek to the start of dst-file '%s', error %u",
-//				QSTR2UTF8(strDestFile), pDstFile->GetError());
-//			throw (PRL_ERR_OPERATION_FAILED);
-//		}
-//
-//		if ( ! CDspAccessManager::setOwner ( strDestFile, pDestOwner, false ) )
-//				throw PRL_ERR_CANT_CHANGE_OWNER_OF_FILE;
-//
-//
-//		quint32	ui32ReadSize = 0;
-//		quint64 ui64TotalReadSize = 0;
-//
-//		// Noncached file operates only with "block" aligned offsets in memory
-//		szData = (char *)prl_valloc(ui64BufSize);
-//
-//		if (!szData)
-//			throw PRL_ERR_CANT_ALOCA_MEM_FILE_COPY;
-//
-//		NotifyCopyEvent(lpcTaskHelper, PET_VM_INF_START_FILE_COPYING, devType, iDevNum);
-//
-//		// main copying cycle
-//		PRL_UINT64 timeStampOfLastEvent = PrlGetTickCount64();
-//		int nLastPercent = 0;
-//		while( ui64TotalReadSize != ui64FileSize )
-//		{
-//			if (!pSrcFile->Read(szData, ui64BufSize, &ui32ReadSize))
-//				throw PRL_ERR_FILE_READ_ERROR;
-//
-//			if (lpcTaskHelper->operationIsCancelled())
-//				throw lpcTaskHelper->getCancelResult();
-//
-//			quint32 ui32WriteSize = 0;
-//			pDstFile->Write(szData, ui32ReadSize, &ui32WriteSize);
-//			// Check that all data was written
-//			if (ui32ReadSize != ui32WriteSize)
-//			{
-//				quint64 uiFreeDiskSpace = 0;
-//				GetDiskAvailableSpace( GetFileRoot(strDestFile),&uiFreeDiskSpace );
-//
-//				if (uiFreeDiskSpace <= ui32ReadSize)
-//					throw PRL_ERR_FILE_DISK_SPACE_ERROR;
-//				else
-//					throw PRL_ERR_FILE_WRITE_ERROR;
-//
-//			}
-//
-//			ui64TotalReadSize += ui32ReadSize;
-//			int nCurrentPercent = ( uiTotalCopySize == 0 )
-//				?(100 * ui64TotalReadSize) / ui64FileSize
-//				:(100 * ( uiTotalCompleteSize + ui64TotalReadSize ) ) / uiTotalCopySize;
-//
-//			// safe of event flood
-//			if ( nCurrentPercent == nLastPercent
-//				|| PrlGetTickCount64() <= timeStampOfLastEvent + 1 * PrlGetTicksPerSecond() )
-//				continue;
-//
-//			// Create event for client
-//			CVmEvent event(	PET_JOB_FILE_COPY_PROGRESS_CHANGED,
-//							Uuid().toString(),
-//							PIE_DISPATCHER
-//							);
-//
-//			/**
-//			 * Add event parameters
-//			 */
-//
-//			event.addEventParameter(new CVmEventParameter( PVE::UnsignedInt,
-//				QString::number(nCurrentPercent),
-//				EVT_PARAM_PROGRESS_CHANGED));
-//
-//			event.addEventParameter(new CVmEventParameter( PVE::UnsignedInt,
-//				QString::number(devType),
-//				EVT_PARAM_DEVICE_TYPE));
-//
-//			event.addEventParameter(new CVmEventParameter( PVE::UnsignedInt,
-//				QString::number(iDevNum),
-//				EVT_PARAM_DEVICE_INDEX));
-//
-//			SmartPtr<IOPackage> p =
-//				DispatcherPackage::createInstance( PVE::DspVmEvent, event,
-//												  lpcTaskHelper->getRequestPackage());
-//
-//			lpcTaskHelper->getClient()->sendPackage( p );
-//
-//			timeStampOfLastEvent = PrlGetTickCount64();
-//			nLastPercent = nCurrentPercent;
-//		}
-//		NotifyCopyEvent(lpcTaskHelper, PET_VM_INF_END_FILE_COPYING, devType, iDevNum);
-//
-//		retCode=PRL_ERR_SUCCESS;
-//	}
-//	catch (PRL_RESULT ret)
-//	{
-//		WRITE_TRACE(DBG_FATAL,
-//			"CopyFileWithNotifications [from: %s] [to: %s] failed by error [%d][ %s ]"
-//			,QSTR2UTF8( strSrcFile )
-//			,QSTR2UTF8( strDestFile )
-//			,ret
-//			, PRL_RESULT_TO_STRING( ret )
-//			);
-//
-//		//To unblock file
-//		if (pDstFile)
-//		{
-//			pDstFile->Delete();
-//			pDstFile = NULL;
-//		}
-//
-//		if ( ! QFile::remove( strDestFile ) )
-//			WRITE_TRACE(DBG_FATAL, "QFile::remove() failed" );
-//		retCode=ret;
-//	}
-//
-//	if (szData)
-//	{
-//		prl_vfree(szData);
-//	}
-//
-//	if (pSrcFile)
-//	{
-//		pSrcFile->Delete();
-//		pSrcFile = NULL;
-//	}
-//
-//	if (pDstFile)
-//	{
-//		pDstFile->Delete();
-//		pDstFile = NULL;
-//	}
+	NotifyCopyEvent(taskHelper_, PET_VM_INF_START_FILE_COPYING, devType_, devNum_);
 
-	return retCode;
+	CopyProgress p(source_, Uuid().toString(), taskHelper_, devType_, devNum_);
+	if (!p.open(QIODevice::ReadOnly | QIODevice::Unbuffered))
+		return PRL_ERR_FILE_NOT_FOUND;
+	if (!p.copy(dest_))
+		return PRL_ERR_OPERATION_FAILED;
+	if (!CDspAccessManager::setOwner(source_, owner_, false))
+		return PRL_ERR_CANT_CHANGE_OWNER_OF_FILE;
+
+	NotifyCopyEvent(taskHelper_, PET_VM_INF_END_FILE_COPYING, devType_, devNum_);
+	NotifyCopyEvent(taskHelper_, PET_VM_INF_END_BUNCH_COPYING, devType_, devNum_);
+	return PRL_ERR_SUCCESS;;
 }
 
 
@@ -506,8 +352,7 @@ PRL_RESULT CFileHelperDepPart::CopyDirectoryWithNotifications(const QString& str
 				QString strNewFile = QString("%1/%2").arg( strNewDir ).arg( fi.fileName() );
 
 				ret = CopyFileWithNotifications( fi.filePath(), strNewFile, pAuthHelper
-					,lpcTaskHelper, devType, iDevNum
-					,uiTotalCopySize, uiTotalCompleteSize);
+					,lpcTaskHelper, devType, iDevNum);
 
 				if ( PRL_SUCCEEDED( ret ) )
 					uiTotalCompleteSize += fi.size();
