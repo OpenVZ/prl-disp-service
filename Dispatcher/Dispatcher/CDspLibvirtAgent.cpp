@@ -926,7 +926,7 @@ Result Unit::getConfig(CVirtualNetwork& dst_) const
 			dst_.setBoundCardMac(b.getMaster().getMacAddress());
 			z->setMasterInterface(b.getMaster().getDeviceName());
 		}
-		else if (PRL_ERR_FILE_NOT_FOUND == e.error().code())
+		else if (PRL_ERR_NETWORK_ADAPTER_NOT_FOUND == e.error().code())
 			dst_.setVZVirtualNetwork(NULL);
 		else
 			return e;
