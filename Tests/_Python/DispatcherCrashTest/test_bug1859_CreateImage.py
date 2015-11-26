@@ -58,7 +58,7 @@ def test_CreateImage():
 	# raw_input ("press any key")
 
 	vm.set_uuid ( CommonTestsUtils.gen_random_guid()  )
-	vm.set_name ( "createImage_" + vm.get_uuid() )
+	vm.set_name("createImage_" + vm.get_uuid()[:20])
 
 	job = vm.reg('')
 	job.wait( max_wait_timeout )
