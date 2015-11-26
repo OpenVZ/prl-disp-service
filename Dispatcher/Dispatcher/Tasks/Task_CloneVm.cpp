@@ -1152,7 +1152,7 @@ bool Filter::operator()(const CVmHardDisk& device_, const QString& name_) const
 
 PRL_RESULT Copy::operator()(CVmHardDisk& device_, const QString& target_)
 {
-	m_batch->addPrivateFolder(Flavor::getLocation(device_), target_);
+	m_batch->addFile(Flavor::getLocation(device_), target_);
 	Flavor::update(device_, target_);
 	return PRL_ERR_SUCCESS;
 }
@@ -1164,7 +1164,7 @@ PRL_RESULT Copy::operator()(CVmHardDisk& device_, const Clone::Copy::Reporter& r
 
 	QString s = Flavor::getLocation(device_);
 	QString t = Flavor::getExternal(device_, m_batch->getToolkit());
-	PRL_RESULT e = m_batch->addExternalFolder(s, t);
+	PRL_RESULT e = m_batch->addExternalFile(s, t);
 	if (PRL_SUCCEEDED(e) || e == PRL_ERR_ENTRY_DOES_NOT_EXIST)
 	{
 		Flavor::update(device_, t);
@@ -1285,6 +1285,31 @@ PRL_RESULT Batch::addExternalFolder(const QString& source_, const QString& targe
 		m_journal->push_back(target_);
 
 	m_folders << qMakePair(source_, target_);
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Batch::addExternalFile(const QString& source_, const QString& target_)
+{
+	if (!fileExists(source_))
+		return PRL_ERR_ENTRY_DOES_NOT_EXIST;
+
+	if (fileExists(target_))
+		return PRL_ERR_FILE_OR_DIR_ALREADY_EXISTS;
+
+	QString b(QFileInfo(target_).absoluteDir().absolutePath());
+	if (!folderExists(b))
+	{
+		PRL_RESULT e = addFolder(b);
+		if (PRL_FAILED(e))
+			return e;
+		if (NULL != m_journal)
+			m_journal->push_back(b);
+	}
+
+	if (NULL != m_journal)
+		m_journal->push_back(target_);
+
+	m_files << qMakePair(source_, target_);
 	return PRL_ERR_SUCCESS;
 }
 

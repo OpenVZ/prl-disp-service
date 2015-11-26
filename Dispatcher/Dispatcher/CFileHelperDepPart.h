@@ -42,12 +42,12 @@ class CFileHelperDepPart : public CFileHelper
 {
 public:
 	 // file copy with cancel check
-	 static PRL_RESULT CopyFileWithNotifications(const QString & strSrcFile,
-		 const QString & strDestFile,
-		 CAuthHelper* pDestOwner,
-		 CDspTaskHelper * lpcTaskHelper,
-		 PRL_DEVICE_TYPE devType,
-		 int iDevNum);
+	 static PRL_RESULT CopyFileWithNotifications(const QString & source_,
+		 const QString& dest_,
+		 CAuthHelper* owner_,
+		 CDspTaskHelper* taskHelper_,
+		 PRL_DEVICE_TYPE devType_,
+		 int devNum_);
 
 	 static PRL_RESULT CopyDirectoryWithNotifications(const QString& strSourceDir,
 		 const QString& strTargetDir,
@@ -59,17 +59,6 @@ public:
 		 );
 
 private:
-	// file copy with cancel check
-	static PRL_RESULT CopyFileWithNotifications(const QString & strSrcFile,
-		const QString & strDestFile,
-		CAuthHelper* pDestOwner,
-		CDspTaskHelper * lpcTaskHelper,
-		PRL_DEVICE_TYPE devType,
-		int iDevNum,
-		quint64 uiTotalCopySize,
-		quint64 uiTotalCompleteSize
-		);
-
 	static PRL_RESULT CopyDirectoryWithNotifications(const QString& strSourceDir,
 		const QString& strTargetDir,
 		CAuthHelper *pAuthHelper,

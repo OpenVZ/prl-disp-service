@@ -493,6 +493,7 @@ struct Batch: private Toolkit
 	Batch& addFile(const QString& source_, const QString& target_);
 	Batch& addPrivateFolder(const QString& source_, const QString& target_);
 	PRL_RESULT addExternalFolder(const QString& source_, const QString& target_);
+	PRL_RESULT addExternalFile(const QString& source_, const QString& target_);
 	PRL_RESULT commit(PRL_DEVICE_TYPE kind_, Failure& reporter_)
 	{
 		return commit(kind_, Reporter(reporter_, *m_source));
