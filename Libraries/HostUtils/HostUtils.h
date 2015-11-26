@@ -240,16 +240,6 @@ public:
 	static bool IsDevice(const QString& fileName);
 
 	/**
-	 * Check is file a valid floppy image
-	 */
-	static bool IsFddImage(const QString& fileName);
-
-	/**
-	 * Check is file a valid CD image
-	 */
-	static bool IsCdImage(const QString& fileName);
-
-	/**
 	 * Get last error value
 	 */
 	static UINT GetLastError();

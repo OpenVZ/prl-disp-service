@@ -1272,26 +1272,15 @@ void CVmValidateConfig::CheckFloppyDisk()
 			ADD_FID(setIds);
 		}
 		else if (   !pFloppyDisk->isRemote()
-				 && !CFileHelper::isRemotePath(qsSysName))
+				&& !CFileHelper::isRemotePath(qsSysName)
+				&& !QFile::exists(qsSysName))
 		{
-			if (!QFile::exists(qsSysName))
-			{
-				m_lstResults += PRL_ERR_VMCONF_FLOPPY_DISK_IMAGE_IS_NOT_EXIST;
+			m_lstResults += PRL_ERR_VMCONF_FLOPPY_DISK_IMAGE_IS_NOT_EXIST;
 
-				QStringList lstParams;
-				lstParams << QString("%1").arg(qsSysName);
-				m_mapParameters.insert(m_lstResults.size(), lstParams);
-				ADD_FID((E_SET << pFloppyDisk->getRemote_id()) + setIds);
-			}
-			else if (!HostUtils::IsFddImage(qsSysName))
-			{
-				m_lstResults += PRL_ERR_VMCONF_FLOPPY_DISK_IMAGE_IS_NOT_VALID;
-
-				QStringList lstParams;
-				lstParams << QString("%1").arg(qsSysName);
-				m_mapParameters.insert(m_lstResults.size(), lstParams);
-				ADD_FID((E_SET << pFloppyDisk->getRemote_id()) + setIds);
-			}
+			QStringList lstParams;
+			lstParams << QString("%1").arg(qsSysName);
+			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			ADD_FID((E_SET << pFloppyDisk->getRemote_id()) + setIds);
 		}
 	}
 	else if (pFloppyDisk->getEmulatedType() == PVE::RealFloppyDisk)
