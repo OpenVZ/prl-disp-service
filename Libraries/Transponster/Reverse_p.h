@@ -469,7 +469,6 @@ private:
 		x.setValue(value_);
 		m_deviceList << x;
 	}
-	Libvirt::Domain::Xml::Panic craftPanic() const;
 
 	deviceList_type m_deviceList;
 };
@@ -568,6 +567,26 @@ private:
 };
 
 } // namespace Usb
+
+namespace Panic
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+
+struct List
+{
+	const QList<Libvirt::Domain::Xml::Panic>& getResult() const
+	{
+		return m_list;
+	}
+	void add(quint32 os_);
+
+private:
+	QList<Libvirt::Domain::Xml::Panic> m_list;
+};
+
+} // namespace Panic
+
 } // namespace Device
 
 ///////////////////////////////////////////////////////////////////////////////

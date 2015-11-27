@@ -570,8 +570,6 @@ Libvirt::Domain::Xml::Devices List::getResult() const
 
 	output.setChoice932List(deviceList_type() << m_deviceList);
 
-	output.setPanicList(QList<Libvirt::Domain::Xml::Panic>() << craftPanic());
-
 	return output;
 }
 
@@ -688,23 +686,6 @@ void List::add(const Libvirt::Domain::Xml::Disk& disk_)
 	add<0>(disk_);
 }
 
-Libvirt::Domain::Xml::Panic List::craftPanic() const
-{
-	Libvirt::Domain::Xml::Panic p;
-	Libvirt::Domain::Xml::Isaaddress a;
-
-	// The only one right value.
-	// See: https://libvirt.org/formatdomain.html#elementsPanic
-	a.setIobase(QString("0x505"));
-
-	mpl::at_c<Libvirt::Domain::Xml::VAddress::types, 7>::type v;
-	v.setValue(a);
-
-	p.setAddress(Libvirt::Domain::Xml::VAddress(v));
-
-	return p;
-}
-
 namespace Usb
 {
 
@@ -758,6 +739,39 @@ void List::addMouse()
 }
 
 } // namespace Usb
+
+namespace Panic
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+
+void List::add(quint32 os_)
+{
+	Libvirt::Domain::Xml::Panic p;
+
+	if (IS_WINDOWS(os_) && os_ >= PVS_GUEST_VER_WIN_2008)
+	{
+		p.setModel(Libvirt::Domain::Xml::EModel9Hyperv);
+	}
+	else
+	{
+		p.setModel(Libvirt::Domain::Xml::EModel9Isa);
+		Libvirt::Domain::Xml::Isaaddress a;
+
+		// The only one right value.
+		// See: https://libvirt.org/formatdomain.html#elementsPanic
+		a.setIobase(QString("0x505"));
+
+		mpl::at_c<Libvirt::Domain::Xml::VAddress::types, 7>::type v;
+		v.setValue(a);
+
+		p.setAddress(Libvirt::Domain::Xml::VAddress(v));
+	}
+
+	m_list << p;
+}
+
+} // namespace Panic
 } // namespace Devices
 
 namespace Vm
@@ -972,6 +986,9 @@ PRL_RESULT Vm::setDevices()
 	CVmSettings* s = m_input.getVmSettings();
 	if (NULL == s)
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
+	CVmCommonOptions* o = s->getVmCommonOptions();
+	if (NULL == o)
+		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
 	Device::List b;
 	Device::Clustered::List t(Boot::Reverse(s->
@@ -1021,6 +1038,11 @@ PRL_RESULT Vm::setDevices()
 	QList<Libvirt::Domain::Xml::VChoice932> n(x.getChoice932List());
 	n << t.getAttachment().getControllers() << u.getDevices();
 	x.setChoice932List(n);
+
+	Device::Panic::List p;
+	p.add(o->getOsVersion());
+	x.setPanicList(p.getResult());
+
 	m_result->setDevices(x);
 	return PRL_ERR_SUCCESS;
 }
