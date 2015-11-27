@@ -197,7 +197,9 @@ struct Exec {
 
 	Prl::Expected<boost::optional<Result>, Error::Simple>
 		getCommandStatus(int pid);
-	::Libvirt::Result executeInAgent(const QString& cmd, QString& reply);
+
+	Prl::Expected<QString, Error::Simple>
+		executeInAgent(const QString& cmd);
 private:
 	QSharedPointer<virDomain> m_domain;
 };
@@ -227,6 +229,7 @@ struct Guest
 	Prl::Expected<Command::Future, Error::Simple>
 		dumpState(const QString& path_);
 	Result setUserPasswd(const QString& user, const QString& passwd);
+	Result checkGuestAgent();
 	Prl::Expected<Exec::Future, Error::Simple>
 		startProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn);
 	Prl::Expected<Exec::Result, Error::Simple>
