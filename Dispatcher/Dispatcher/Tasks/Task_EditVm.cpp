@@ -52,12 +52,10 @@
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_DiskImageResizer.h"
 #include "Tasks/Mixin_CreateHddSupport.h"
-#include <boost/mpl/vector.hpp>
 #include "CDspCommon.h"
 #include "CDspService.h"
 #include "CVmValidateConfig.h"
 #include "CDspVmNetworkHelper.h"
-#include <boost/mpl/for_each.hpp>
 #include <algorithm>
 #include <boost/bind.hpp>
 #include "EditHelpers/CMultiEditMergeVmConfig.h"
@@ -2333,10 +2331,9 @@ PRL_RESULT Task_EditVm::editVm()
 				true);
 #ifdef _LIBVIRT_
 			pVmConfigNew->getVmIdentification()->setHomePath(strVmHome);
-			Libvirt::Result r(Libvirt::Kit.vms().at(vm_uuid).setConfig(*pVmConfigNew));
-			save_rc = (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
+			Edit::Vm::driver_type(*this)(pVmConfigOld, pVmConfigNew);
 #endif // _LIBVIRT_
-			if( !IS_OPERATION_SUCCEEDED( save_rc ) )
+			if( !IS_OPERATION_SUCCEEDED(getLastErrorCode()) )
 			{
 				WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher unable to save configuration "
 					"of the VM %s to file %s. Reason: %ld(%s)",
@@ -2636,13 +2633,7 @@ void Task_EditVm::applyVmConfig(SmartPtr<CDspClient> pUserSession,
 	Q_UNUSED(pkg);
 	CDspService::instance()->getVmDirHelper()
 		.appendAdvancedParamsToVmConfig( pUserSession, pVmConfigNew );
-	Edit::Vm::Request r(*this, pVmConfigOld, pVmConfigNew);
-	QScopedPointer<Edit::Vm::Action> a(Edit::Vm::Runtime::Factory()(r));
-	if (!a.isNull())
-	{
-		CDspTaskFailure f(*this);
-		a->execute(f);
-	}
+	Edit::Vm::Runtime::Driver(*this)(pVmConfigOld, pVmConfigNew);
 }
 
 PRL_RESULT Task_EditVm::configureVzParameters(SmartPtr<CVmConfiguration> pNewVmConfig,
@@ -2994,14 +2985,40 @@ Request::Request(Task_EditVm& task_, const config_type& start_, const config_typ
 	m_object = MakeVmIdent(x->getVmUuid(), d);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Apply
+
+Action* Apply::operator()(const Request& input_) const
+{
+	Forge f(input_);
+	bool a = input_.getStart().getVmSettings()->getVmCommonOptions()->isTemplate();
+	bool b = input_.getFinal().getVmSettings()->getVmCommonOptions()->isTemplate();
+	if (a != b)
+	{
+		if (b)
+			return f.craft(boost::bind(&vm::Unit::undefine, _1));
+
+		return f.craft(boost::bind(&define, _1, boost::cref
+			(input_.getFinal())));
+	}
+	if (b)
+		return NULL;
+
+	return f.craft(boost::bind(&vm::Unit::setConfig, _1,
+			boost::cref(input_.getFinal())));
+}
+
+Libvirt::Result Apply::define(vm::Unit agent_, const CVmConfiguration& config_)
+{
+	return agent_.up().define(config_);
+}
+
 namespace Runtime
 {
-namespace Cdrom
-{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Factory
+// struct Cdrom
 
-Action* Factory::operator()(const Request& input_) const
+Action* Cdrom::operator()(const Request& input_) const
 {
 	Forge f(input_);
 	Action* output = NULL;
@@ -3030,14 +3047,10 @@ Action* Factory::operator()(const Request& input_) const
 	return output;
 }
 
-} // namespace Cdrom
-
-namespace Memory
-{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Factory
+// struct Memory
 
-Vm::Action* Factory::operator()(const Request& input_) const
+Vm::Action* Memory::operator()(const Request& input_) const
 {
 	CVmMemory* o = input_.getStart().getVmHardwareList()->getMemory();
 	CVmMemory* n = input_.getFinal().getVmHardwareList()->getMemory();
@@ -3060,22 +3073,19 @@ Vm::Action* Factory::operator()(const Request& input_) const
 	return NULL;
 }
 
-} // namespace Memory
-
-namespace Disk
-{
 namespace
 {
 bool isHardDisksSystemPathEqual(const CVmHardDisk* lhs_, const CVmHardDisk* rhs_)
 {
 	return CFileHelper::IsPathsEqual(lhs_->getSystemName(), rhs_->getSystemName());
 }
-}
+
+} // namespace
 
 /////////////////////////////////////////////////////////////////////////////
-// struct Factory
+// struct Disk
 
-Vm::Action* Factory::operator()(const Request& input_) const
+Vm::Action* Disk::operator()(const Request& input_) const
 {
 	Forge f(input_);
 	Action* output = NULL;
@@ -3117,7 +3127,7 @@ Vm::Action* Factory::operator()(const Request& input_) const
 	return output;
 }
 
-bool Factory::isDiskIoUntunable(const CVmHardDisk* disk_) const
+bool Disk::isDiskIoUntunable(const CVmHardDisk* disk_) const
 {
 	bool r = false;
 	r = (disk_->getEmulatedType() != PVE::HardDiskImage);
@@ -3126,15 +3136,10 @@ bool Factory::isDiskIoUntunable(const CVmHardDisk* disk_) const
 	return r;
 }
 
-} // namespace Disk
-
-namespace Blkiotune
-{
-
 ///////////////////////////////////////////////////////////////////////////////
-// struct Factory
+// struct Blkiotune
 
-Vm::Action* Factory::operator()(const Request& input_) const
+Vm::Action* Blkiotune::operator()(const Request& input_) const
 {
 	quint32 o(input_.getStart().getVmSettings()->getVmRuntimeOptions()->getIoPriority());
 	quint32 n(input_.getFinal().getVmSettings()->getVmRuntimeOptions()->getIoPriority());
@@ -3143,8 +3148,6 @@ Vm::Action* Factory::operator()(const Request& input_) const
 
 	return Forge(input_).craftRuntime(boost::bind(&vm::Runtime::setIoPriority, _1, n));
 }
-
-} // namespace Blkiotune
 
 namespace Network
 {
@@ -3452,10 +3455,7 @@ QStringList Address::operator()(const Bridge& mode_)
 
 Libvirt::Result Action::operator()(Libvirt::Tools::Agent::Vm::Guest agent_)
 {
-	Prl::Expected<Libvirt::Tools::Agent::Vm::Exec::Result,
-		Libvirt::Error::Simple> e = agent_
-			.runProgram("prl_nettool", m_args, QByteArray());
-	return e.isFailed() ? e.error() : Libvirt::Result();
+	return agent_.runProgram("prl_nettool", m_args, QByteArray());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3525,9 +3525,9 @@ Vm::Action* Factory::operator()(const Request& input_) const
 } // namespace Cpu
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Factory
+// struct Driver
 
-Action* Factory::operator()(const Request& input_) const
+Action* Driver::prime(const Request& input_) const
 {
 	VIRTUAL_MACHINE_STATE s;
 	if (Libvirt::Kit.vms().at(input_.getObject().first).getState(s).isFailed())
@@ -3535,11 +3535,7 @@ Action* Factory::operator()(const Request& input_) const
 	if (VMS_RUNNING != s)
 		return NULL;
 
-	Visitor v(input_);
-	typedef boost::mpl::vector<Cdrom::Factory, Memory::Factory, Disk::Factory,
-		Blkiotune::Factory, Network::Factory, Cpu::Factory> list_type;
-	boost::mpl::for_each<list_type>(boost::ref(v));
-	return v.getResult();
+	return Gear<Driver, probeList_type>::prime(input_);
 }
 
 } // namespace Runtime

@@ -336,6 +336,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
+struct List;
 struct Unit
 {
 	explicit Unit(virDomainPtr domain_ = NULL);
@@ -356,6 +357,7 @@ struct Unit
 	Result getConfig(QString& dst_, bool runtime_ = false) const;
 	Result setConfig(const CVmConfiguration& value_);
 	Result completeConfig(CVmConfiguration& config_);
+	List up() const;
 	Performance getPerformance() const
 	{
 		return Performance(m_domain);
