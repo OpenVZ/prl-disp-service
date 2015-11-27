@@ -380,6 +380,11 @@ Result Guest::setUserPasswd(const QString& user_, const QString& passwd_)
 			passwd_.toUtf8().constData(), 0));
 }
 
+Result Guest::checkGuestAgent()
+{
+       return Exec::Exec(m_domain).executeInAgent(QString("{\"execute\":\"guest-ping\"}"));
+}
+
 Prl::Expected<QString, Error::Simple>
 Guest::execute(const QString& cmd, bool isHmp)
 {
@@ -438,12 +443,12 @@ Exec::Exec::getCommandStatus(int pid)
 	std::string s = ss.str();
 	boost::replace_all<std::string>(s, "\"pid-value\"", boost::lexical_cast<std::string>(pid));
 
-	QString reply;
-	::Libvirt::Result r = executeInAgent(QString::fromUtf8(s.c_str()), reply);
+	Prl::Expected<QString, Error::Simple> r =
+		executeInAgent(QString::fromUtf8(s.c_str()));
 	if (r.isFailed())
 		return r.error();
 
-	std::istringstream is(reply.toUtf8().data());
+	std::istringstream is(r.value().toUtf8().data());
 	boost::property_tree::ptree result;
 	boost::property_tree::json_parser::read_json(is, result);
 
@@ -499,28 +504,29 @@ Exec::Exec::runCommand(const QString& path, const QList<QString>& args, const QB
 	std::string s = ss.str();
 	boost::replace_all<std::string>(s, "\"capture-output-value\"", "true");
 
-	QString reply;
-	::Libvirt::Result r = executeInAgent(QString::fromUtf8(s.c_str()), reply);
+	Prl::Expected<QString, Error::Simple> r = 
+		executeInAgent(QString::fromUtf8(s.c_str()));
 	if (r.isFailed())
 		return r.error();
 
-	std::istringstream is(reply.toUtf8().data());
+	std::istringstream is(r.value().toUtf8().data());
 	boost::property_tree::ptree result;
 	boost::property_tree::json_parser::read_json(is, result);
 
 	return result.get<int>("return.pid");
 }
 
-Result Exec::Exec::executeInAgent(const QString& cmd, QString& reply)
+Prl::Expected<QString, Error::Simple>
+Exec::Exec::executeInAgent(const QString& cmd)
 {
 	char* s = virDomainQemuAgentCommand(m_domain.data(),
 			cmd.toUtf8().constData(), -1, 0);
 	if (s == NULL)
 		return Error::Detailed(PRL_ERR_FAILURE);
 
-	reply = QString::fromUtf8(s);
+	QString reply = QString::fromUtf8(s);
 	free(s);
-	return ::Libvirt::Result();
+	return reply;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

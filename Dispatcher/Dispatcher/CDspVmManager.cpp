@@ -1035,6 +1035,12 @@ void Body<Tag::Libvirt<PVE::DspCmdVmLoginInGuest> >::run()
 	if (NULL == x)
 		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
 
+	Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest()
+			.checkGuestAgent();
+
+	if (e.isFailed())
+		return m_context.reply(e);
+
 	SmartPtr<IOPackage> b = m_context.getPackage();
 	// reply
 	CProtoCommandPtr r = CProtoSerializer::CreateDspWsResponseCommand(b, PRL_ERR_SUCCESS);
