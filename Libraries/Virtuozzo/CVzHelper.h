@@ -271,6 +271,7 @@ public:
 	 */
 	static int get_vz_config_param(const char *param, QString &out);
 	int get_envid_list(QStringList &lst);
+	static int get_env_status_by_ctid(const QString &ctid, VIRTUAL_MACHINE_STATE &nState);
 	static int get_env_status(const QString &uuid, VIRTUAL_MACHINE_STATE &nState);
 	static Ct::Statistics::Aggregate* get_env_stat(const QString& uuid_);
 	static int get_env_fstat(const QString &uuid, QList<Ct::Statistics::Filesystem>& fs);
@@ -326,6 +327,8 @@ public:
 		return QString();
 	}
 
+	static QString parse_ctid(const QString& src);
+	static QString build_ctid_from_uuid(const QString& uuid);
 
 private:
 

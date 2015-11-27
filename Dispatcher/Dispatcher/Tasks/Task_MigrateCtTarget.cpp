@@ -84,8 +84,6 @@ Task_MigrateCtTarget::Task_MigrateCtTarget(
 		CDispToDispCommandPtr pCmd,
 		const SmartPtr<IOPackage> &p)
 :Task_VzMigrate(pDispConnection->getUserSession(), p),
-m_nCtOrigId(0),
-m_nCtNewId(0),
 m_pParent(parent),
 m_pDispConnection(pDispConnection),
 m_nFlags(0)
@@ -103,8 +101,10 @@ m_nFlags(0)
 	m_sVmConfig = pCheckCmd->GetVmConfig();
 	m_sSrcHostInfo = pCheckCmd->GetSourceHostHardwareInfo();
 
-	m_nCtNewId = CDspVzHelper::toCtId(pCheckCmd->GetTargetVmName());
-	if (m_nCtNewId == 0)
+	// Check name, treat it as CTID if it contain valid CTID,
+	// treat it as containers name otherwise.
+	m_sCtNewId = CVzHelper::parse_ctid(pCheckCmd->GetTargetVmName());
+	if (m_sCtNewId.isEmpty())
 		m_sCtNewName = pCheckCmd->GetTargetVmName();
 
 	m_sCtNewPrivate = pCheckCmd->GetTargetVmHomePath();
@@ -131,7 +131,7 @@ PRL_RESULT Task_MigrateCtTarget::prepareTask()
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	CVzHelper & VzHelper = CDspService::instance()->getVzHelper()->getVzlibHelper();
 	VIRTUAL_MACHINE_STATE nState;
-	quint32 nCtId = 0;
+	QString ctid;
 	bool bCtExists = false;
 
 	{
@@ -160,32 +160,30 @@ PRL_RESULT Task_MigrateCtTarget::prepareTask()
 	else
 		m_sCtUuid = m_sCtOrigUuid;
 	m_sSrcCtUuid = m_cVmConfig.getVmIdentification()->getVmUuid();
-#if 0	/* getEnvId -> getCtId */
-	m_nCtOrigId = m_cVmConfig.getVmIdentification()->getEnvId();
-#endif
+	m_sCtOrigId = m_cVmConfig.getVmIdentification()->getCtId();
 
 	if (m_sCtNewName.isEmpty()) {
-		/* check Vm Name from config.
-		 * If it's a numeric value, it's CTID, otherwise it's name of the Container */
-		if (CDspVzHelper::toCtId(m_cVmConfig.getVmIdentification()->getVmName()) == 0)
-			m_sCtNewName = m_cVmConfig.getVmIdentification()->getVmName();
+		// Check name from config, treat it as CTID if it contain valid CTID,
+		// treat it as containers name otherwise.
+		QString vmName = m_cVmConfig.getVmIdentification()->getVmName();
+		if (CVzHelper::parse_ctid(vmName).isEmpty())
+			m_sCtNewName = vmName;
 	}
 
-	if (m_nCtNewId) {
-		nCtId = m_nCtNewId;
-#if 0	/* getEnvId -> getCtId */
-		m_cVmConfig.getVmIdentification()->setEnvId(m_nCtNewId);
-#endif
+	if (!m_sCtNewId.isEmpty()) {
+		ctid = m_sCtNewId;
+		m_cVmConfig.getVmIdentification()->setCtId(m_sCtNewId);
 	} else
-		nCtId = m_nCtOrigId;
+		ctid = m_sCtOrigId;
 
-	nRetCode = VzHelper.get_env_status(m_sCtUuid, nState);
+	nRetCode = VzHelper.get_env_status_by_ctid(ctid, nState);
 	if (PRL_FAILED(nRetCode)) {
-		WRITE_TRACE(DBG_FATAL, "Failed to retrieve information about CT #%u status."
-			" Reason: %#x (%s)", nCtId, nRetCode, PRL_RESULT_TO_STRING(nRetCode));
+		WRITE_TRACE(DBG_FATAL, "Failed to retrieve information about CT #%s status."
+			" Reason: %#x (%s)", QSTR2UTF8(ctid), nRetCode, PRL_RESULT_TO_STRING(nRetCode));
 		goto exit;
 	}
-	// check if CT with m_nCtOrigId exists locally.
+
+	// check if CT with m_sCtOrigId exists locally.
 	bCtExists = (nState != VMS_UNKNOWN);
 
 	do {
@@ -209,34 +207,35 @@ PRL_RESULT Task_MigrateCtTarget::prepareTask()
 	if (bCtExists) {
 		QString sPrivate;
 		if (!m_sCtNewPrivate.isEmpty()) {
-			// the format is always vz_root/m_nCtOrigId. see Task_MigrateCtSource.cpp.
+			// the format is always vz_root/m_sCtOrigId. see Task_MigrateCtSource.cpp.
 			sPrivate = QFileInfo(m_sCtNewPrivate).path().append("/$VEID");
 		}
 
 		/* CT with such ID already exists */
-		if (m_nCtNewId > 0 || m_sCtNewName.isEmpty()) {
+		if (!m_sCtNewId.isEmpty() || m_sCtNewName.isEmpty()) {
 			/* failure */
 			nRetCode = PRL_ERR_CT_MIGRATE_ID_ALREADY_EXIST;
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::UnsignedInt,
-					QString::number(nCtId), EVT_PARAM_MESSAGE_PARAM_0));
-			WRITE_TRACE(DBG_FATAL, "[%s] Container with ID %d already exist",
-				__FUNCTION__, nCtId);
+			getLastError()->addEventParameter(new CVmEventParameter(
+				PVE::String, ctid, EVT_PARAM_MESSAGE_PARAM_0));
+			WRITE_TRACE(DBG_FATAL, "[%s] Container with ID %s already exist",
+				__FUNCTION__, QSTR2UTF8(ctid));
 			goto exit;
+
 		} else {
-			/* CT name defined - will autogenerate new CTID */
-			quint32 nEnvId = m_nCtOrigId;
-			if (nEnvId != m_nCtOrigId) {
-				m_nCtNewId = nEnvId;
-#if 0	/* getEnvId -> getCtId */
-				m_cVmConfig.getVmIdentification()->setEnvId(nEnvId);
-#endif
+			/* CT name defined - use containers UUID as CTID if it is not
+			 * already exist as well. */
+			QString normUuid = CVzHelper::build_ctid_from_uuid(m_sCtUuid);
+			if (ctid == normUuid) {
+				nRetCode = PRL_ERR_CT_MIGRATE_ID_ALREADY_EXIST;
+				goto exit;
 			}
+			m_sCtNewId = normUuid;
+			m_cVmConfig.getVmIdentification()->setCtId(m_sCtNewId);
 		}
 
-		if (!m_sCtNewPrivate.isEmpty() && m_nCtNewId > 0) {
+		if (!m_sCtNewPrivate.isEmpty() && !m_sCtNewId.isEmpty()) {
 			m_sCtNewPrivate = QString("%1/%2").arg(QFileInfo(m_sCtNewPrivate).path())
-					.arg(m_nCtNewId);
+					.arg(m_sCtNewId);
 		}
 	}
 
@@ -306,7 +305,6 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 	SmartPtr<IOPackage> pPackage;
 	IOSendJob::Handle hJob;
 	QStringList lstArgs;
-	QString sStr;
 	QString sVmUuid;
 	SmartPtr<CVmConfiguration> pConfig;
 	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspCmdCtlDispatherFakeCommand);
@@ -373,9 +371,9 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 	lstArgs.append("--nonsharedfs");
 
 	lstArgs.append("localhost");
-	lstArgs.append(sStr.setNum(m_nCtOrigId));
-	if (m_nCtNewId != 0)
-		lstArgs.append(QString("--new-id=%1").arg(m_nCtNewId));
+	lstArgs.append(m_sCtOrigId);
+	if (!m_sCtNewId.isEmpty())
+		lstArgs.append(QString("--new-id=%1").arg(m_sCtNewId));
 	if (m_sCtNewPrivate.size())
 		lstArgs.append(QString("--new-private=%1").arg(m_sCtNewPrivate));
 
@@ -394,7 +392,7 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 		goto exit;
 
 	pConfig = CDspService::instance()->getVzHelper()->getVzlibHelper().
-			get_env_config(m_cVmConfig.getVmIdentification()->getVmUuid());
+			get_env_config_by_ctid(m_cVmConfig.getVmIdentification()->getCtId());
 	if (!pConfig) {
 		WRITE_TRACE(DBG_FATAL, "Can't get config for CT %s [%s]",
 			QSTR2UTF8(m_sCtUuid),
@@ -422,6 +420,8 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 		Task_CloneVm::ResetNetSettings(pNewConfig);
 		/* call apply_env_config() before pConfig->getVmIdentification()->setVmUuid(m_sCtUuid), otherwise
 		   pNewConfig == pConfig and apply_env_config() will not update config file */
+		CDspService::instance()->getVzHelper()->getVzlibHelper().
+			update_ctid_map(m_sCtUuid, m_cVmConfig.getVmIdentification()->getCtId());
 		get_op_helper().apply_env_config(pNewConfig, pConfig, 0);
 	}
 

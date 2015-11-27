@@ -102,8 +102,8 @@ private:
 	QString m_sCtUuid;
 	QString m_sSrcCtUuid;
 	QString m_sVzDirUuid;
-	quint32 m_nCtOrigId;
-	quint32 m_nCtNewId;
+	QString m_sCtOrigId;
+	QString m_sCtNewId;
 	QString m_sCtNewName;
 	VIRTUAL_MACHINE_STATE m_nPrevVmState;
 	quint32 m_nMigrationFlags;
