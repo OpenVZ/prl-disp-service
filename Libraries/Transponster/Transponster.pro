@@ -22,6 +22,7 @@ HEADERS += \
 	snapshot_type.h \
 	marshal.h \
 	patterns.h \
+	Direct.h \
 	Direct_p.h \
 	Reverse.h \
 	Reverse_p.h \
