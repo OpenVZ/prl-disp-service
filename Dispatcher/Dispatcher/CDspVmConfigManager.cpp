@@ -62,17 +62,55 @@ void RemoteDisplay::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 // struct DeviceIndex
 
 template<>
-unsigned DeviceIndex<CVmHardDisk, PDE_HARD_DISK>::findIndex(const CVmHardDisk* disk_)
+QList<CVmHardDisk*>::iterator
+DeviceIndex<CVmHardDisk, PDE_HARD_DISK>::findDevice
+	(QList<CVmHardDisk*>::iterator begin_, QList<CVmHardDisk*>::iterator end_,
+	 	const CVmHardDisk* disk_)
 {
-	QList<CVmHardDisk*>::iterator it = std::find_if
-		(m_disks.begin(), m_disks.end(),
+	return std::find_if(begin_, end_,
 		 boost::bind(&CVmHardDisk::getSystemName, _1) ==
 			disk_->getSystemName());
+}
 
-	if (it != m_disks.end())
-		return (*it)->getIndex();
+template<>
+QList<CVmOpticalDisk*>::iterator
+DeviceIndex<CVmOpticalDisk, PDE_OPTICAL_DISK>::findDevice
+	(QList<CVmOpticalDisk*>::iterator begin_, QList<CVmOpticalDisk*>::iterator end_,
+	 	const CVmOpticalDisk* cdrom_)
+{
+	return std::find_if(begin_, end_,
+		 boost::bind(&CVmOpticalDisk::getSystemName, _1) ==
+			cdrom_->getSystemName());
+}
 
-	return getAvaliableIndex();
+template<>
+QList<CVmGenericNetworkAdapter*>::iterator
+DeviceIndex<CVmGenericNetworkAdapter, PDE_GENERIC_NETWORK_ADAPTER>::findDevice
+	(QList<CVmGenericNetworkAdapter*>::iterator begin_, QList<CVmGenericNetworkAdapter*>::iterator end_,
+		const CVmGenericNetworkAdapter* adapter_)
+{
+	return std::find_if(begin_, end_,
+		 boost::bind(&CVmGenericNetworkAdapter::getHostInterfaceName, _1) ==
+			adapter_->getHostInterfaceName());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Indexes
+
+void Indexes::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	QList<CVmStartupOptions::CVmBootDevice*> b = new_.getVmSettings()
+		->getVmStartupOptions()->m_lstBootDeviceList;
+
+	DeviceIndex<CVmHardDisk, PDE_HARD_DISK>
+		(old_.getVmHardwareList()->m_lstHardDisks, b)
+			(new_.getVmHardwareList()->m_lstHardDisks);
+	DeviceIndex<CVmOpticalDisk, PDE_OPTICAL_DISK>
+		(old_.getVmHardwareList()->m_lstOpticalDisks, b)
+			(new_.getVmHardwareList()->m_lstOpticalDisks);
+	DeviceIndex<CVmGenericNetworkAdapter, PDE_GENERIC_NETWORK_ADAPTER>
+		(old_.getVmHardwareList()->m_lstNetworkAdapters, b)
+			(new_.getVmHardwareList()->m_lstNetworkAdapters);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

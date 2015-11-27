@@ -62,21 +62,77 @@ struct RemoteDisplay
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct BootIndex
+
+template <PRL_DEVICE_TYPE D>
+struct BootIndex
+{
+	typedef QList<CVmStartupOptions::CVmBootDevice*> bootList_type;
+
+	BootIndex(const bootList_type& bootList_)
+	: m_bootList(bootList_)
+	{
+	}
+
+	void change(unsigned old_, unsigned new_)
+	{
+		bootList_type::iterator b = std::find_if(m_bootList.begin(), m_bootList.end(),
+			boost::bind(&CVmStartupOptions::CVmBootDevice::getIndex, _1) == old_
+			&& boost::bind(&CVmStartupOptions::CVmBootDevice::getType, _1) == D);
+
+		if (b != m_bootList.end())
+		{
+			(*b)->setIndex(new_);
+			m_bootList.erase(b);
+		}
+	}
+
+private:
+	bootList_type m_bootList;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct DeviceIndex
 
 template <class T, PRL_DEVICE_TYPE D>
 struct DeviceIndex
 {
-	DeviceIndex(const CVmConfiguration& config_)
-	: m_disks(config_.getVmHardwareList()->m_lstHardDisks)
+	DeviceIndex(const QList<T*>& devices_, const QList<CVmStartupOptions::CVmBootDevice*>& bootList_)
+	: m_devices(devices_), m_bootList(bootList_)
 	{
-		m_indexes.resize(m_disks.length());
-		std::transform(m_disks.begin(), m_disks.end(), m_indexes.begin(),
-			boost::bind(&T::getIndex, _1));
-		qSort(m_indexes);
 	}
 
-	unsigned findIndex(const T* disk_);
+	void operator()(QList<T*>& newDevices_)
+	{
+		m_indexes.clear();
+		std::transform(m_devices.begin(), m_devices.end(), std::back_inserter(m_indexes),
+			boost::bind(&T::getIndex, _1));
+		qSort(m_indexes);
+
+		BootIndex<D> boot(m_bootList);
+		foreach(T* h, newDevices_)
+		{
+			unsigned index = findIndex(h);
+			boot.change(h->getIndex(), index);
+			h->setIndex(index);
+		}
+		std::sort(newDevices_.begin(), newDevices_.end(), boost::bind(&T::getIndex, _1) <
+				boost::bind(&T::getIndex, _2));
+		m_devices = newDevices_;
+	}
+
+private:
+	typename QList<T*>::iterator findDevice
+		(typename QList<T*>::iterator begin_, typename QList<T*>::iterator end_, const T* device_);
+	unsigned findIndex(const T* device_)
+	{
+		typename QList<T*>::iterator it = findDevice(m_devices.begin(), m_devices.end(), device_);
+
+		if (it != m_devices.end())
+			return (*it)->getIndex();
+
+		return getAvaliableIndex();
+	}
 	unsigned getAvaliableIndex()
 	{
 		unsigned index = 0;
@@ -97,39 +153,17 @@ struct DeviceIndex
 		return index;
 	}
 
-	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_)
-	{
-		typedef QList<CVmStartupOptions::CVmBootDevice*> bootList_type;
-
-		QList<T*>& newList = new_.getVmHardwareList()->m_lstHardDisks;
-		bootList_type bootListCopy = 
-			new_.getVmSettings()->getVmStartupOptions()->m_lstBootDeviceList;
-
-		DeviceIndex<T, D> di(old_);
-		foreach(T* h, newList)
-		{
-			unsigned index = di.findIndex(h);
-			bootList_type::iterator b = std::find_if(bootListCopy.begin(), bootListCopy.end(),
-				 boost::bind(&CVmStartupOptions::CVmBootDevice::getIndex, _1)
-					== h->getIndex() &&
-				 boost::bind(&CVmStartupOptions::CVmBootDevice::getType, _1)
-					== D);
-
-			if (b != bootListCopy.end())
-			{
-				(*b)->setIndex(index);
-				bootListCopy.erase(b);
-			}
-
-			h->setIndex(index);
-		}
-		std::sort(newList.begin(), newList.end(), boost::bind(&T::getIndex, _1) <
-				boost::bind(&T::getIndex, _2));
-	};
-
-private:
-	QList<T*> m_disks;
+	QList<T*> m_devices;
+	QList<CVmStartupOptions::CVmBootDevice*> m_bootList;
 	QVector<unsigned> m_indexes;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Indexes
+
+struct Indexes
+{
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
 struct OsInfo
@@ -176,7 +210,7 @@ struct Reviser<N, void>
 
 typedef boost::mpl::vector<RemoteDisplay> revise_types;
 typedef boost::mpl::vector<OsInfo, RuntimeOptions, GlobalNetwork,
-		DeviceIndex<CVmHardDisk, PDE_HARD_DISK>, Cpu> untranslatable_types;
+		Indexes, Cpu> untranslatable_types;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Repairer
