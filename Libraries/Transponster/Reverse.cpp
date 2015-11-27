@@ -570,7 +570,7 @@ Libvirt::Domain::Xml::Devices List::getResult() const
 
 	output.setChoice932List(deviceList_type() << m_deviceList);
 
-	output.setPanic(craftPanic());
+	output.setPanicList(QList<Libvirt::Domain::Xml::Panic>() << craftPanic());
 
 	return output;
 }

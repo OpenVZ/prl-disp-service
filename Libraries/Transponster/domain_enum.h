@@ -848,6 +848,13 @@ enum EModel8
 	EModel8None
 };
 
+enum EModel9
+{
+	EModel9Isa,
+	EModel9Pseries,
+	EModel9Hyperv
+};
+
 
 } // namespace Xml
 } // namespace Domain
