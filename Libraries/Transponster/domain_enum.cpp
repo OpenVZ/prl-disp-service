@@ -1068,4 +1068,13 @@ Enum<Domain::Xml::EModel8>::data_type Enum<Domain::Xml::EModel8>::getData()
 			(data_type::value_type(Domain::Xml::EModel8None, "none"));
 }
 
+template<>
+Enum<Domain::Xml::EModel9>::data_type Enum<Domain::Xml::EModel9>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EModel9Isa, "isa"))
+			(data_type::value_type(Domain::Xml::EModel9Pseries, "pseries"))
+			(data_type::value_type(Domain::Xml::EModel9Hyperv, "hyperv"));
+}
+
 } // namespace Libvirt

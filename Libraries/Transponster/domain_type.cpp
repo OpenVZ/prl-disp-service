@@ -11477,7 +11477,8 @@ int Traits<Domain::Xml::Panic>::parse(Domain::Xml::Panic& dst_, QStack<QDomEleme
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setAddress(m.get<0>().getValue());
+		dst_.setModel(m.get<0>().getValue());
+		dst_.setAddress(m.get<1>().getValue());
 	}
 	return output;
 }
@@ -11485,7 +11486,9 @@ int Traits<Domain::Xml::Panic>::parse(Domain::Xml::Panic& dst_, QStack<QDomEleme
 int Traits<Domain::Xml::Panic>::generate(const Domain::Xml::Panic& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<0>()))
+	if (0 > Details::Marshal::assign(src_.getModel(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -11539,7 +11542,7 @@ int Traits<Domain::Xml::Devices>::parse(Domain::Xml::Devices& dst_, QStack<QDomE
 		dst_.setWatchdog(m.get<2>().getValue());
 		dst_.setMemballoon(m.get<3>().getValue());
 		dst_.setNvram(m.get<4>().getValue());
-		dst_.setPanic(m.get<5>().getValue());
+		dst_.setPanicList(m.get<5>().getValue());
 	}
 	return output;
 }
@@ -11557,7 +11560,7 @@ int Traits<Domain::Xml::Devices>::generate(const Domain::Xml::Devices& src_, QDo
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getNvram(), m.get<4>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getPanic(), m.get<5>()))
+	if (0 > Details::Marshal::assign(src_.getPanicList(), m.get<5>()))
 		return -1;
 
 	return m.produce(dst_);

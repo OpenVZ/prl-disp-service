@@ -11343,6 +11343,14 @@ namespace Xml
 {
 struct Panic
 {
+	const boost::optional<EModel9 >& getModel() const
+	{
+		return m_model;
+	}
+	void setModel(const boost::optional<EModel9 >& value_)
+	{
+		m_model = value_;
+	}
 	const boost::optional<VAddress >& getAddress() const
 	{
 		return m_address;
@@ -11356,6 +11364,7 @@ struct Panic
 	bool save(QDomDocument& ) const;
 
 private:
+	boost::optional<EModel9 > m_model;
 	boost::optional<VAddress > m_address;
 };
 
@@ -11411,13 +11420,13 @@ struct Devices
 	{
 		m_nvram = value_;
 	}
-	const boost::optional<Panic >& getPanic() const
+	const QList<Panic >& getPanicList() const
 	{
-		return m_panic;
+		return m_panicList;
 	}
-	void setPanic(const boost::optional<Panic >& value_)
+	void setPanicList(const QList<Panic >& value_)
 	{
-		m_panic = value_;
+		m_panicList = value_;
 	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
@@ -11429,7 +11438,7 @@ private:
 	boost::optional<Watchdog > m_watchdog;
 	boost::optional<Memballoon > m_memballoon;
 	boost::optional<Nvram1 > m_nvram;
-	boost::optional<Panic > m_panic;
+	QList<Panic > m_panicList;
 };
 
 } // namespace Xml
@@ -14419,7 +14428,7 @@ struct Traits<Domain::Xml::Nvram1>
 template<>
 struct Traits<Domain::Xml::Panic>
 {
-	typedef Ordered<mpl::vector<Optional<Element<Domain::Xml::VAddressImpl, Name::Strict<105> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::EModel9, Name::Strict<216> > >, Optional<Element<Domain::Xml::VAddressImpl, Name::Strict<105> > > > > marshal_type;
 
 	static int parse(Domain::Xml::Panic& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Panic& , QDomElement& );
@@ -14431,7 +14440,7 @@ struct Traits<Domain::Xml::Panic>
 template<>
 struct Traits<Domain::Xml::Devices>
 {
-	typedef Unordered<mpl::vector<Optional<Element<Text<Domain::Xml::PAbsFilePath >, Name::Strict<670> > >, ZeroOrMore<Domain::Xml::VChoice932Impl >, Optional<Element<Domain::Xml::Watchdog, Name::Strict<833> > >, Optional<Element<Domain::Xml::Memballoon, Name::Strict<839> > >, Optional<Element<Domain::Xml::Nvram1, Name::Strict<262> > >, Optional<Element<Domain::Xml::Panic, Name::Strict<934> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Optional<Element<Text<Domain::Xml::PAbsFilePath >, Name::Strict<670> > >, ZeroOrMore<Domain::Xml::VChoice932Impl >, Optional<Element<Domain::Xml::Watchdog, Name::Strict<833> > >, Optional<Element<Domain::Xml::Memballoon, Name::Strict<839> > >, Optional<Element<Domain::Xml::Nvram1, Name::Strict<262> > >, ZeroOrMore<Element<Domain::Xml::Panic, Name::Strict<934> > > > > marshal_type;
 
 	static int parse(Domain::Xml::Devices& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Devices& , QDomElement& );
