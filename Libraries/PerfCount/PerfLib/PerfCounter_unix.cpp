@@ -203,11 +203,24 @@ file_handle_t open_shared_file(const char *fname, unsigned int mem_size)
 
 void* memory_map(file_handle_t fd, unsigned int mem_size)
 {
-    void *result = mmap(NULL, mem_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0) ;
-    if( MAP_FAILED == result )
-        return NULL;
-
-    return result ;
+	struct stat x;
+	void* output = NULL;
+	if (-1 != fstat(fd, &x))
+	{
+		if (x.st_size == mem_size)
+		{
+			output = mmap(NULL, mem_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+			if (MAP_FAILED == output)
+				output = NULL;
+		}
+		else
+		{
+			WRITE_TRACE(DBG_FATAL, "The shared segment size %lld differs from the required size %u\n",
+				int64_t(x.st_size), mem_size);
+		}
+	}
+	close(fd);
+	return output;
 }
 
 int memory_unmap(void *mem, file_handle_t, unsigned int mem_size)
