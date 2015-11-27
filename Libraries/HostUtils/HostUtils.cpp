@@ -155,51 +155,6 @@ bool HostUtils::IsDevice(const QString& fileName)
 }
 
 
-/*
- * @function Check is file a valid floppy image
- * @brief Check is file a valid floppy image
- *
- * @param File name, to discover
- *
- * @return If specified file is a valid floppy image, function returns true, else false
- *
- * @author antonz@
- */
-bool HostUtils::IsFddImage(const QString& fileName)
-{
-	QFileInfo fi(fileName);
-	quint64 size = fi.size();
-
-	// Check for the size, taking into consideration that
-	// some image creators add their signature after main floppy image body.
-	// For example, once popular DiskImage 2.01 adds -
-	// "DiskImage 2.01 (C) 1990,1991 Digital Research Inc." (overall 418 bytes).
-	//
-	// To fix the issue we soften the check:
-	// (1,474,560) <= X <= (1,474,560 + 1024)
-
-	return (CFG_144_IMAGE_SIZE <= size) && (size <= CFG_144_IMAGE_SIZE + 1024);
-}
-
-
-/**
- * @function Check is file a valid CD image
- * @brief Check is file a valid CD image
- *
- * @param File name, to discover
- *
- * @return If specified file is a valid CD image, function returns true, else false
- *
- * @author antonz@
- * Check is file a valid CD image
- */
-bool HostUtils::IsCdImage(const QString& fileName)
-{
-	Q_UNUSED(fileName);
-	return false;
-}
-
-
 /**
  * @function Get last error value. Host independent.
  * @brief Get last error value. Host independent.

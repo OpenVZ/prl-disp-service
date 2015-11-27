@@ -3062,20 +3062,6 @@ PRL_RESULT CDspVmDirHelper::UpdateHardDiskInformation(QList<CVmHardDisk*>& lstHd
 	return result;
 }
 
-void CDspVmDirHelper::appendComplexEvent( CVmEvent& dest, const CVmEvent& src )
-{
-	for( int indx = 0; indx < src.m_lstEventParameters.size(); ++indx ) {
-		CVmEventParameter* param = src.m_lstEventParameters.at( indx );
-		// Assumming inner CData is another CVmEvent
-		if( param->getParamType() == PVE::CData )
-			dest.addEventParameter( new CVmEventParameter(PVE::CData, param->getCdata(),EVT_PARAM_COMPLEX_EVENT) );
-		else
-			dest.addEventParameter( new CVmEventParameter( param ) );
-
-	}
-}
-
-
 PRL_RESULT CDspVmDirHelper::registerExclusiveVmOperation( const QString& vmUuid,
 		const QString& vmDirUuid,
 		PVE::IDispatcherCommands cmd,

@@ -566,13 +566,6 @@ public:
 
 private:
 	/**
-	* Assumming inner CData is another CVmEvent
-	* @param dest
-	* @param src
-	*/
-	void appendComplexEvent( CVmEvent& dest, const CVmEvent& src );
-
-	/**
 	* Fill Vm Security
 	* @return SmartPtr<CVmSecurity>
 	* @param  pUserSession  user session object

@@ -1063,9 +1063,8 @@ void CVmValidateConfig::CheckSharedFolders()
 		if (!dir.exists(sFolderPath))
 		{
 			m_lstResults += PRL_ERR_VMCONF_SHARED_FOLDERS_INVALID_FOLDER_PATH;
-			QStringList lstParams;
-			lstParams << sFolderName << sFolderPath;
-			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapParameters.insert(m_lstResults.size(), QStringList()
+					<< sFolderName << sFolderPath);
 			ADD_FID((E_SET << pSharedFolder->getPath_id()) + setIds);
 		}
 
@@ -1108,10 +1107,8 @@ void CVmValidateConfig::CheckCpu()
 		if (nCpuCount > maxAllowedCpuCount)
 		{
 			m_lstResults += PRL_ERR_VMCONF_CPU_COUNT_MORE_MAX_CPU_COUNT;
-
-			QStringList lstParams;
-			lstParams << QString::number( maxAllowedCpuCount );
-			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapParameters.insert(m_lstResults.size(), QStringList()
+						<< QString::number(maxAllowedCpuCount));
 			ADD_FID(E_SET << pCpu->getNumber_id());
 		}
 
@@ -1135,9 +1132,8 @@ void CVmValidateConfig::CheckCpu()
 
 				if (nCpuCount < nHostCpuCount && nBits < nCpuCount) {
 					m_lstResults += PRL_ERR_VMCONF_CPU_MASK_INVALID_CPU_NUM;
-					QStringList lstParams;
-					lstParams << QString("%1").arg(nBits);
-					m_mapParameters.insert(m_lstResults.size(), lstParams);
+					m_mapParameters.insert(m_lstResults.size(), QStringList()
+						<< QString::number(nBits));
 					ADD_FID(E_SET << pCpu->getCpuMask_id() << pCpu->getNumber_id());
 				}
 			}
@@ -1165,10 +1161,8 @@ void CVmValidateConfig::CheckMainMemory()
 	else if (nMemSize < VM_MIN_MEM || nMemSize > uiMaxVmMemory)
 	{
 		m_lstResults += PRL_ERR_VMCONF_MAIN_MEMORY_OUT_OF_RANGE;
-
-		QStringList lstParams;
-		lstParams << QString("%1").arg(VM_MIN_MEM) << QString("%1").arg(uiMaxVmMemory);
-		m_mapParameters.insert(m_lstResults.size(), lstParams);
+		m_mapParameters.insert(m_lstResults.size(), QStringList()
+			<< QString::number(VM_MIN_MEM) << QString::number(uiMaxVmMemory));
 		ADD_FID(E_SET << m_pVmConfig->getVmHardwareList()->getMemory()->getRamSize_id());
 	}
 	else if ((nMemSize & 3) != 0)
@@ -1186,11 +1180,9 @@ void CVmValidateConfig::CheckMainMemory()
 		if (nMemSize < nMinRecommendSize || nMemSize > nMaxRecommendSize)
 		{
 			m_lstResults += PRL_ERR_VMCONF_MAIN_MEMORY_SIZE_NOT_EAQUAL_RECOMMENDED;
-
-			QStringList lstParams;
-			lstParams << QString("%1").arg(nMemSize) << QString("%1").arg(nMinRecommendSize) <<
-				QString("%1").arg(nMaxRecommendSize);
-			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapParameters.insert(m_lstResults.size(), QStringList()
+				<< QString::number(nMemSize) << QString::number(nMinRecommendSize)
+				<< QString::number(nMaxRecommendSize));
 			ADD_FID(E_SET << m_pVmConfig->getVmHardwareList()->getMemory()->getRamSize_id());
 		}
 	}
@@ -1210,10 +1202,8 @@ void CVmValidateConfig::CheckVideoMemory()
 	if ( !(nVideoMemSize >= VM_MIN_VIDEO_MEM && nVideoMemSize <= VM_MAX_VIDEO_MEM) )
 	{
 		m_lstResults += PRL_ERR_VMCONF_VIDEO_MEMORY_OUT_OF_RANGE;
-
-		QStringList lstParams;
-		lstParams << QString("%1").arg(VM_MIN_VIDEO_MEM) << QString("%1").arg(VM_MAX_VIDEO_MEM);
-		m_mapParameters.insert(m_lstResults.size(), lstParams);
+		m_mapParameters.insert(m_lstResults.size(), QStringList()
+			<< QString::number(VM_MIN_VIDEO_MEM) << QString::number(VM_MAX_VIDEO_MEM));
 		ADD_FID(E_SET << m_pVmConfig->getVmHardwareList()->getVideo()->getMemorySize_id());
 	}
 }
@@ -1256,42 +1246,23 @@ void CVmValidateConfig::CheckFloppyDisk()
 		if (IsUrlFormatSysName(qsSysName))
 		{
 			m_lstResults += PRL_ERR_VMCONF_FLOPPY_DISK_URL_FORMAT_SYS_NAME;
-
-			QStringList lstParams;
-			lstParams << QString("%1").arg(qsSysName);
-			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapParameters.insert(m_lstResults.size(), QStringList() << qsSysName);
 			ADD_FID(setIds);
 		}
 		else if (HasSysNameInvalidSymbol(qsSysName))
 		{
 			m_lstResults += PRL_ERR_VMCONF_FLOPPY_DISK_SYS_NAME_HAS_INVALID_SYMBOL;
-
-			QStringList lstParams;
-			lstParams << QString("%1").arg(GetFileNameFromInvalidPath(qsSysName));
-			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapParameters.insert(m_lstResults.size(), QStringList()
+						<< GetFileNameFromInvalidPath(qsSysName));
 			ADD_FID(setIds);
 		}
 		else if (   !pFloppyDisk->isRemote()
-				 && !CFileHelper::isRemotePath(qsSysName))
+				&& !CFileHelper::isRemotePath(qsSysName)
+				&& !QFile::exists(qsSysName))
 		{
-			if (!QFile::exists(qsSysName))
-			{
-				m_lstResults += PRL_ERR_VMCONF_FLOPPY_DISK_IMAGE_IS_NOT_EXIST;
-
-				QStringList lstParams;
-				lstParams << QString("%1").arg(qsSysName);
-				m_mapParameters.insert(m_lstResults.size(), lstParams);
-				ADD_FID((E_SET << pFloppyDisk->getRemote_id()) + setIds);
-			}
-			else if (!HostUtils::IsFddImage(qsSysName))
-			{
-				m_lstResults += PRL_ERR_VMCONF_FLOPPY_DISK_IMAGE_IS_NOT_VALID;
-
-				QStringList lstParams;
-				lstParams << QString("%1").arg(qsSysName);
-				m_mapParameters.insert(m_lstResults.size(), lstParams);
-				ADD_FID((E_SET << pFloppyDisk->getRemote_id()) + setIds);
-			}
+			m_lstResults += PRL_ERR_VMCONF_FLOPPY_DISK_IMAGE_IS_NOT_EXIST;
+			m_mapParameters.insert(m_lstResults.size(), QStringList() << qsSysName);
+			ADD_FID((E_SET << pFloppyDisk->getRemote_id()) + setIds);
 		}
 	}
 	else if (pFloppyDisk->getEmulatedType() == PVE::RealFloppyDisk)
@@ -1335,7 +1306,7 @@ void CVmValidateConfig::CheckCdDvdRom()
 		{
 			m_lstResults += PRL_ERR_VMCONF_CD_DVD_ROM_SET_SATA_FOR_OLD_CHIPSET;
 			m_mapParameters.insert(m_lstResults.size(),
-				QStringList()<<QString("%1").arg(pOpticalDisk->getIndex() + 1));
+				QStringList()<<QString::number(pOpticalDisk->getIndex() + 1));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pOpticalDisk->getIndex(), pOpticalDisk->getItemId()));
 			ADD_FID((E_SET << pOpticalDisk->getInterfaceType_id()
 				<< m_pVmConfig->getVmHardwareList()->getChipset()->getType_id()) + setIds);
@@ -1348,7 +1319,7 @@ void CVmValidateConfig::CheckCdDvdRom()
 		{
 			m_lstResults += PRL_ERR_VMCONF_CD_DVD_ROM_SET_SATA_FOR_UNSUPPORTED_OS;
 			m_mapParameters.insert(m_lstResults.size(),
-				QStringList()<<QString("%1").arg(pOpticalDisk->getIndex() + 1));
+				QStringList()<<QString::number(pOpticalDisk->getIndex() + 1));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pOpticalDisk->getIndex(), pOpticalDisk->getItemId()));
 			ADD_FID((E_SET << pOpticalDisk->getInterfaceType_id()
 				<< m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsType_id()
@@ -1364,10 +1335,8 @@ void CVmValidateConfig::CheckCdDvdRom()
 				 && pOpticalDisk->getEmulatedType() == PVE::CdRomImage)
 		{
 			m_lstResults += PRL_ERR_VMCONF_CD_DVD_ROM_URL_FORMAT_SYS_NAME;
-
-			QStringList lstParams;
-			lstParams << QString("%1").arg(qsSysName) << QString("%1").arg(pOpticalDisk->getIndex() + 1);
-			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapParameters.insert(m_lstResults.size(), QStringList()
+				<< qsSysName << QString::number(pOpticalDisk->getIndex() + 1));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pOpticalDisk->getIndex(), pOpticalDisk->getItemId()));
 			ADD_FID((E_SET << pOpticalDisk->getEmulatedType_id()) + setIds);
 		}
@@ -1375,7 +1344,7 @@ void CVmValidateConfig::CheckCdDvdRom()
 		{
 			m_lstResults += PRL_ERR_VMCONF_CD_DVD_ROM_DUPLICATE_SYS_NAME;
 			m_mapParameters.insert(m_lstResults.size(),
-				QStringList()<<QString("%1").arg(pOpticalDisk->getIndex() + 1));
+				QStringList()<<QString::number(pOpticalDisk->getIndex() + 1));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pOpticalDisk->getIndex(), pOpticalDisk->getItemId()));
 			ADD_FID((E_SET << pOpticalDisk->getEmulatedType_id()) + setIds);
 		}
@@ -1390,11 +1359,8 @@ void CVmValidateConfig::CheckCdDvdRom()
 				&& !CFileHelper::isRemotePath(qsSysName))
 			{
 				m_lstResults += PRL_ERR_VMCONF_CD_DVD_ROM_IMAGE_IS_NOT_EXIST;
-
-				QStringList lstParams;
-				lstParams << QString("%1").arg(qsSysName)
-					<< QString("%1").arg(pOpticalDisk->getIndex() + 1);
-				m_mapParameters.insert(m_lstResults.size(), lstParams);
+				m_mapParameters.insert(m_lstResults.size(), QStringList()
+					<< qsSysName << QString::number(pOpticalDisk->getIndex() + 1));
 				m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pOpticalDisk->getIndex(), pOpticalDisk->getItemId()));
 				ADD_FID((E_SET << pOpticalDisk->getEmulatedType_id()
 					<< pOpticalDisk->getRemote_id()) + setIds);
@@ -1429,7 +1395,7 @@ void CVmValidateConfig::CheckHardDisk()
 		{
 			m_lstResults += PRL_ERR_VMCONF_HARD_DISK_SET_SATA_FOR_OLD_CHIPSET;
 			m_mapParameters.insert(m_lstResults.size(),
-				QStringList()<<QString("%1").arg(pHardDisk->getIndex() + 1));
+				QStringList()<<QString::number(pHardDisk->getIndex() + 1));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
 			ADD_FID((E_SET << pHardDisk->getInterfaceType_id()
 				<< m_pVmConfig->getVmHardwareList()->getChipset()->getType_id()) + setIds);
@@ -1442,7 +1408,7 @@ void CVmValidateConfig::CheckHardDisk()
 		{
 			m_lstResults += PRL_ERR_VMCONF_HARD_DISK_SET_SATA_FOR_UNSUPPORTED_OS;
 			m_mapParameters.insert(m_lstResults.size(),
-				QStringList()<<QString("%1").arg(pHardDisk->getIndex() + 1));
+				QStringList()<<QString::number(pHardDisk->getIndex() + 1));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
 			ADD_FID((E_SET << pHardDisk->getInterfaceType_id()
 				<< m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsType_id()
@@ -1457,7 +1423,7 @@ void CVmValidateConfig::CheckHardDisk()
 		{
 			m_lstResults += PRL_ERR_VMCONF_HARD_DISK_SYS_NAME_IS_EMPTY;
 			m_mapParameters.insert(m_lstResults.size(),
-				QStringList() << QString("%1").arg(pHardDisk->getIndex() + 1));
+				QStringList() << QString::number(pHardDisk->getIndex() + 1));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
 			ADD_FID((E_SET << qsSN_id) + setIds);
 		}
@@ -1465,10 +1431,8 @@ void CVmValidateConfig::CheckHardDisk()
 				 && pHardDisk->getEmulatedType() == PVE::HardDiskImage)
 		{
 			m_lstResults += PRL_ERR_VMCONF_HARD_DISK_URL_FORMAT_SYS_NAME;
-
-			QStringList lstParams;
-			lstParams << QString("%1").arg(qsSysName) << QString("%1").arg(pHardDisk->getIndex() + 1);
-			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapParameters.insert(m_lstResults.size(), QStringList()
+				<< qsSysName << QString::number(pHardDisk->getIndex() + 1));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
 			ADD_FID((E_SET << qsSN_id << qsET_id) + setIds);
 		}
@@ -1476,9 +1440,7 @@ void CVmValidateConfig::CheckHardDisk()
 				 && pHardDisk->getEmulatedType() == PVE::HardDiskImage)
 		{
 			m_lstResults += PRL_ERR_VMCONF_HARD_DISK_SYS_NAME_HAS_INVALID_SYMBOL;
-			QStringList lstParams;
-			lstParams << QString("%1").arg(GetFileNameFromInvalidPath(qsSysName));
-			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapParameters.insert(m_lstResults.size(), QStringList() << GetFileNameFromInvalidPath(qsSysName));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
 			ADD_FID((E_SET << qsSN_id << qsET_id) + setIds);
 		}
@@ -1486,7 +1448,7 @@ void CVmValidateConfig::CheckHardDisk()
 		{
 			m_lstResults += PRL_ERR_VMCONF_HARD_DISK_DUPLICATE_SYS_NAME;
 			m_mapParameters.insert(m_lstResults.size(),
-				QStringList()<<QString("%1").arg(sysNamesToDevIdxMap[qsSysName]));
+				QStringList() << QString::number(sysNamesToDevIdxMap[qsSysName]));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
 			ADD_FID((E_SET << qsSN_id) + setIds);
 		}
@@ -1501,11 +1463,8 @@ void CVmValidateConfig::CheckHardDisk()
 				if ( !QFile::exists(qsSysName) )
 				{
 					m_lstResults += PRL_ERR_VMCONF_HARD_DISK_IMAGE_IS_NOT_EXIST;
-
-					QStringList lstParams;
-					lstParams << QString("%1").arg(qsSysName)
-						<< QString("%1").arg(pHardDisk->getIndex() + 1);
-					m_mapParameters.insert(m_lstResults.size(), lstParams);
+					m_mapParameters.insert(m_lstResults.size(), QStringList()
+						<< qsSysName << QString::number(pHardDisk->getIndex() + 1));
 					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
 					ADD_FID((E_SET << qsSN_id << qsET_id << pHardDisk->getRemote_id()) + setIds);
 				}
@@ -1615,10 +1574,9 @@ void CVmValidateConfig::CheckNetworkAdapter(SmartPtr<CDspClient> pUser)
 					WRITE_TRACE(DBG_FATAL, "Virtual network %s does not exist.",
 							QSTR2UTF8(pNetAdapter->getVirtualNetworkID()));
 					m_lstResults += PRL_NET_VMDEVICE_VIRTUAL_NETWORK_NOT_EXIST;
-					QStringList lstParams;
-					lstParams << pNetAdapter->getSystemName()
-						<< pNetAdapter->getVirtualNetworkID();
-					m_mapParameters.insert(m_lstResults.size(), lstParams);
+					m_mapParameters.insert(m_lstResults.size(), QStringList()
+						<< pNetAdapter->getSystemName()
+						<< pNetAdapter->getVirtualNetworkID());
 					ADD_FID(setIds);
 				}
 			}
@@ -1632,7 +1590,7 @@ void CVmValidateConfig::CheckNetworkAdapter(SmartPtr<CDspClient> pUser)
 				{
 					m_lstResults += PRL_ERR_VMCONF_NETWORK_ADAPTER_INVALID_BOUND_INDEX;
 					m_mapParameters.insert(m_lstResults.size(),
-						QStringList() << QString("%1").arg(i + 1));
+						QStringList() << QString::number(i + 1));
 					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
 					ADD_FID(setIds);
 				}
@@ -1663,10 +1621,8 @@ void CVmValidateConfig::CheckNetworkAdapter(SmartPtr<CDspClient> pUser)
 		if ( errCode != PRL_ERR_SUCCESS )
 		{
 			m_lstResults += errCode;
-
-			QStringList lstParams;
-			lstParams << QString::number( lstNetworkAdapters[i]->getIndex()+1 );
-			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapParameters.insert(m_lstResults.size(), QStringList()
+				<< QString::number(lstNetworkAdapters[i]->getIndex() + 1));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
 			ADD_FID((E_SET << pNetAdapter->getMacAddress_id()) + setIds);
 		}
@@ -1696,11 +1652,9 @@ void CVmValidateConfig::CheckNetworkAdapter(SmartPtr<CDspClient> pUser)
 					&& ! NetworkUtils::ParseIpMask(pNetAdapter->getDefaultGateway(), qsGatewayIp) )
 				{
 					m_lstResults += PRL_ERR_VMCONF_NETWORK_ADAPTER_INVALID_GATEWAY_IP_ADDRESS;
-
-					QStringList lstParams;
-					lstParams << pNetAdapter->getDefaultGateway()
-						<< QString::number( pNetAdapter->getIndex()+1 );
-					m_mapParameters.insert(m_lstResults.size(), lstParams);
+					m_mapParameters.insert(m_lstResults.size(), QStringList()
+						<< pNetAdapter->getDefaultGateway()
+						<< QString::number(pNetAdapter->getIndex() + 1));
 					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
 					ADD_FID((E_SET << qsAA_id << qsCWD_id << pNetAdapter->getDefaultGateway_id()) + setIds);
 				}
@@ -1716,10 +1670,8 @@ void CVmValidateConfig::CheckNetworkAdapter(SmartPtr<CDspClient> pUser)
 					if ( ! NetworkUtils::ParseIpMask(ip_mask, ip, mask) )
 					{
 						m_lstResults += PRL_ERR_VMCONF_NETWORK_ADAPTER_INVALID_IP_ADDRESS;
-
-						QStringList lstParams;
-						lstParams << ip_mask << QString::number( pNetAdapter->getIndex()+1 );
-						m_mapParameters.insert(m_lstResults.size(), lstParams);
+						m_mapParameters.insert(m_lstResults.size(), QStringList()
+							<< ip_mask << QString::number(pNetAdapter->getIndex() + 1));
 						m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
 						ADD_FID((E_SET << qsAA_id << qsCWD_id << pNetAdapter->getNetAddresses_id()) + setIds);
 						continue;
@@ -1732,20 +1684,16 @@ void CVmValidateConfig::CheckNetworkAdapter(SmartPtr<CDspClient> pUser)
 						&& uiIP <= QHostAddress("239.255.255.255").toIPv4Address())
 					{
 						m_lstResults += PRL_ERR_VMCONF_NETWORK_ADAPTER_MULTICAST_IP_ADDRESS;
-
-						QStringList lstParams;
-						lstParams << ip_mask << QString::number( pNetAdapter->getIndex()+1 );
-						m_mapParameters.insert(m_lstResults.size(), lstParams);
+						m_mapParameters.insert(m_lstResults.size(), QStringList()
+							<< ip_mask << QString::number(pNetAdapter->getIndex() + 1));
 						m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
 						ADD_FID((E_SET << qsAA_id << qsCWD_id << pNetAdapter->getNetAddresses_id()) + setIds);
 					}
 					else if ( ( uiIP & (~uiMask) ) == (~uiMask) )
 					{
 						m_lstResults += PRL_ERR_VMCONF_NETWORK_ADAPTER_BROADCAST_IP_ADDRESS;
-
-						QStringList lstParams;
-						lstParams << ip_mask << QString::number( pNetAdapter->getIndex()+1 );
-						m_mapParameters.insert(m_lstResults.size(), lstParams);
+						m_mapParameters.insert(m_lstResults.size(), QStringList()
+							<< ip_mask << QString::number(pNetAdapter->getIndex() + 1));
 						m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
 						ADD_FID((E_SET << qsAA_id << qsCWD_id << pNetAdapter->getNetAddresses_id()) + setIds);
 					}
@@ -1776,10 +1724,8 @@ void CVmValidateConfig::CheckNetworkAdapter(SmartPtr<CDspClient> pUser)
 					&& ! adapterIps.isEmpty() )
 				{
 					m_lstResults += PRL_ERR_VMCONF_NETWORK_ADAPTER_GATEWAY_NOT_IN_SUBNET;
-
-					QStringList lstParams;
-					lstParams << qsGatewayIp << QString::number( pNetAdapter->getIndex()+1 );
-					m_mapParameters.insert(m_lstResults.size(), lstParams);
+					m_mapParameters.insert(m_lstResults.size(), QStringList()
+							<< qsGatewayIp << QString::number(pNetAdapter->getIndex() + 1));
 					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
 					ADD_FID((E_SET << qsAA_id << qsCWD_id << pNetAdapter->getNetAddresses_id()
 						<< pNetAdapter->getDefaultGateway_id()) + setIds);
@@ -1795,10 +1741,8 @@ void CVmValidateConfig::CheckNetworkAdapter(SmartPtr<CDspClient> pUser)
 				if ( ! NetworkUtils::ParseIpMask(ip_mask, ip) )
 				{
 					m_lstResults += PRL_ERR_VMCONF_NETWORK_ADAPTER_INVALID_DNS_IP_ADDRESS;
-
-					QStringList lstParams;
-					lstParams << ip_mask << QString::number( pNetAdapter->getIndex()+1 );
-					m_mapParameters.insert(m_lstResults.size(), lstParams);
+					m_mapParameters.insert(m_lstResults.size(), QStringList()
+							<< ip_mask << QString::number(pNetAdapter->getIndex() + 1));
 					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
 					ADD_FID((E_SET << qsAA_id << pNetAdapter->getDnsIPAddresses_id()) + setIds);
 				}
@@ -1813,10 +1757,8 @@ void CVmValidateConfig::CheckNetworkAdapter(SmartPtr<CDspClient> pUser)
 				if ( ! re.exactMatch(qsDomain) )
 				{
 					m_lstResults += PRL_ERR_VMCONF_NETWORK_ADAPTER_INVALID_SEARCH_DOMAIN_NAME;
-
-					QStringList lstParams;
-					lstParams << qsDomain << QString::number( pNetAdapter->getIndex()+1 );
-					m_mapParameters.insert(m_lstResults.size(), lstParams);
+					m_mapParameters.insert(m_lstResults.size(), QStringList()
+							<< qsDomain<< QString::number(pNetAdapter->getIndex() + 1));
 					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
 					ADD_FID((E_SET << qsAA_id << pNetAdapter->getSearchDomains_id()) + setIds);
 				}
@@ -1898,7 +1840,7 @@ void CVmValidateConfig::CheckSerialPort()
 		{
 			m_lstResults += PRL_ERR_VMCONF_SERIAL_PORT_SYS_NAME_IS_EMPTY;
 			m_mapParameters.insert(m_lstResults.size(),
-				QStringList()<<QString("%1").arg(pSerialPort->getIndex() + 1));
+				QStringList()<<QString::number(pSerialPort->getIndex() + 1));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pSerialPort->getIndex(), pSerialPort->getItemId()));
 			ADD_FID(setIds);
 			continue;
@@ -1910,10 +1852,8 @@ void CVmValidateConfig::CheckSerialPort()
 				 && pSerialPort->getEmulatedType() == PVE::SerialOutputFile)
 		{
 			m_lstResults += PRL_ERR_VMCONF_SERIAL_PORT_URL_FORMAT_SYS_NAME;
-
-			QStringList lstParams;
-			lstParams << QString("%1").arg(qsSysName) << QString("%1").arg(pSerialPort->getIndex() + 1);
-			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapParameters.insert(m_lstResults.size(), QStringList()
+				<< qsSysName << QString::number(pSerialPort->getIndex() + 1));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pSerialPort->getIndex(), pSerialPort->getItemId()));
 			ADD_FID(setIds);
 		}
@@ -1921,9 +1861,7 @@ void CVmValidateConfig::CheckSerialPort()
 				 && pSerialPort->getEmulatedType() == PVE::SerialOutputFile)
 		{
 			m_lstResults += PRL_ERR_VMCONF_SERIAL_PORT_SYS_NAME_HAS_INVALID_SYMBOL;
-			QStringList lstParams;
-			lstParams << QString("%1").arg(GetFileNameFromInvalidPath(qsSysName));
-			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapParameters.insert(m_lstResults.size(), QStringList() << GetFileNameFromInvalidPath(qsSysName));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pSerialPort->getIndex(), pSerialPort->getItemId()));
 			ADD_FID(setIds);
 		}
@@ -1964,7 +1902,7 @@ void CVmValidateConfig::CheckParallelPort()
 		{
 			m_lstResults += PRL_ERR_VMCONF_PARALLEL_PORT_SYS_NAME_IS_EMPTY;
 			m_mapParameters.insert(m_lstResults.size(),
-				QStringList()<<QString("%1").arg(pParallelPort->getIndex() + 1));
+				QStringList()<<QString::number(pParallelPort->getIndex() + 1));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pParallelPort->getIndex(), pParallelPort->getItemId()));
 			ADD_FID(setIds);
 			continue;
@@ -1976,10 +1914,8 @@ void CVmValidateConfig::CheckParallelPort()
 				 && pParallelPort->getEmulatedType() == PVE::ParallelOutputFile)
 		{
 			m_lstResults += PRL_ERR_VMCONF_PARALLEL_PORT_URL_FORMAT_SYS_NAME;
-
-			QStringList lstParams;
-			lstParams << QString("%1").arg(qsSysName) << QString("%1").arg(pParallelPort->getIndex() + 1);
-			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapParameters.insert(m_lstResults.size(), QStringList()
+				<< qsSysName << QString::number(pParallelPort->getIndex() + 1));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pParallelPort->getIndex(), pParallelPort->getItemId()));
 			ADD_FID(setIds);
 		}
@@ -1987,9 +1923,7 @@ void CVmValidateConfig::CheckParallelPort()
 				 && pParallelPort->getEmulatedType() == PVE::ParallelOutputFile)
 		{
 			m_lstResults += PRL_ERR_VMCONF_PARALLEL_PORT_SYS_NAME_HAS_INVALID_SYMBOL;
-			QStringList lstParams;
-			lstParams << QString("%1").arg(GetFileNameFromInvalidPath(qsSysName));
-			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapParameters.insert(m_lstResults.size(), QStringList() << GetFileNameFromInvalidPath(qsSysName));
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pParallelPort->getIndex(), pParallelPort->getItemId()));
 			ADD_FID(setIds);
 		}
@@ -2106,21 +2040,21 @@ void CVmValidateConfig::CheckMassStorageDevices(PRL_MASS_STORAGE_INTERFACE_TYPE 
 	{
 		m_lstResults += PRL_ERR_VMCONF_IDE_DEVICES_COUNT_OUT_OF_RANGE;
 		m_mapParameters.insert(m_lstResults.size(),
-			QStringList(QString("%1").arg(PRL_MAX_IDE_DEVICES_NUM)));
+			QStringList(QString::number(PRL_MAX_IDE_DEVICES_NUM)));
 		bErrorDetected = true;
 	}
 	else if (type == PMS_SATA_DEVICE && nCountDevices > PRL_MAX_SATA_DEVICES_NUM)
 	{
 		m_lstResults += PRL_ERR_VMCONF_SATA_DEVICES_COUNT_OUT_OF_RANGE;
 		m_mapParameters.insert(m_lstResults.size(),
-				QStringList(QString("%1").arg(PRL_MAX_SATA_DEVICES_NUM)));
+				QStringList(QString::number(PRL_MAX_SATA_DEVICES_NUM)));
 		bErrorDetected = true;
 	}
 	else if (type == PMS_SCSI_DEVICE && nCountDevices > PRL_MAX_SCSI_DEVICES_NUM)
 	{
 		m_lstResults += PRL_ERR_VMCONF_SCSI_DEVICES_COUNT_OUT_OF_RANGE;
 		m_mapParameters.insert(m_lstResults.size(),
-				QStringList(QString("%1").arg(PRL_MAX_SCSI_DEVICES_NUM)));
+				QStringList(QString::number(PRL_MAX_SCSI_DEVICES_NUM)));
 		bErrorDetected = true;
 	}
 	if (bErrorDetected)
@@ -2278,11 +2212,8 @@ void CVmValidateConfig::CheckGenericPci()
 				if (mapDevStates.value(qsSysName) != PGS_CONNECTED_TO_VM)
 				{
 					m_lstResults += PRL_ERR_VMCONF_GENERIC_PCI_DEVICE_NOT_CONNECTED;
-
-					QStringList lstParams;
-					lstParams << QString("%1").arg(qsSysName)
-						<< QString("%1").arg(mapFriendlyNames.value(qsSysName));
-					m_mapParameters.insert(m_lstResults.size(), lstParams);
+					m_mapParameters.insert(m_lstResults.size(), QStringList()
+						<< qsSysName << mapFriendlyNames.value(qsSysName));
 					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pPciDev->getIndex(), pPciDev->getItemId()));
 					m_mapPciDevClasses.insert(m_lstResults.size(), mapPciClasses.value(qsSysName));
 					ADD_FID(setIds);
@@ -2311,11 +2242,8 @@ void CVmValidateConfig::CheckGenericPci()
 				if ( bWrongDevice )
 				{
 					m_lstResults += PRL_ERR_VMCONF_GENERIC_PCI_WRONG_DEVICE;
-
-					QStringList lstParams;
-					lstParams << QString("%1").arg(qsSysName)
-						<< QString("%1").arg(mapFriendlyNames.value(qsSysName));
-					m_mapParameters.insert(m_lstResults.size(), lstParams);
+					m_mapParameters.insert(m_lstResults.size(), QStringList()
+						<< qsSysName << mapFriendlyNames.value(qsSysName));
 					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pPciDev->getIndex(), pPciDev->getItemId()));
 					m_mapPciDevClasses.insert(m_lstResults.size(), mapPciClasses.value(qsSysName));
 					ADD_FID(setIds);
@@ -2329,10 +2257,7 @@ void CVmValidateConfig::CheckGenericPci()
 				mapCfgTypeToHwType.insert( PDE_GENERIC_PCI_DEVICE, PGD_PCI_OTHER );
 
 				m_lstResults += PRL_ERR_VMCONF_GENERIC_PCI_DEVICE_NOT_FOUND;
-
-				QStringList lstParams;
-				lstParams << QString("%1").arg( pPciDev->getUserFriendlyName() );
-				m_mapParameters.insert(m_lstResults.size(), lstParams);
+				m_mapParameters.insert(m_lstResults.size(), QStringList() << pPciDev->getUserFriendlyName());
 				m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pPciDev->getIndex(), pPciDev->getItemId()));
 				m_mapPciDevClasses.insert(m_lstResults.size(), mapCfgTypeToHwType.value(pPciDev->getDeviceType()));
 				ADD_FID(setIds);
@@ -2341,11 +2266,8 @@ void CVmValidateConfig::CheckGenericPci()
 			if (setSysNames.contains(qsSysName))
 			{
 				m_lstResults += PRL_ERR_VMCONF_GENERIC_PCI_DUPLICATE_SYS_NAME;
-
-				QStringList lstParams;
-				lstParams << QString("%1").arg(qsSysName)
-					<< QString("%1").arg(mapFriendlyNames.value(qsSysName));
-				m_mapParameters.insert(m_lstResults.size(), lstParams);
+				m_mapParameters.insert(m_lstResults.size(), QStringList()
+						<< qsSysName << mapFriendlyNames.value(qsSysName));
 				m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pPciDev->getIndex(), pPciDev->getItemId()));
 				m_mapPciDevClasses.insert(m_lstResults.size(), mapPciClasses.value(qsSysName));
 				ADD_FID(setIds);
@@ -2365,12 +2287,9 @@ void CVmValidateConfig::CheckGenericPci()
 				bHasRunningAnotherVm = mapDevStates.contains(qsSysName) ? bHasRunningAnotherVm : false;
 
 				m_lstResults += PRL_ERR_VMCONF_GENERIC_PCI_DEVICE_DUPLICATE_IN_ANOTHER_VM;
-
-				QStringList lstParams;
-				lstParams << QString("%1").arg(qsSysName)
-				<< QString("%1").arg(mapFriendlyNames.value(qsSysName))
-				<< QString("%1").arg(bHasRunningAnotherVm ? 1 : 0);
-				m_mapParameters.insert(m_lstResults.size(), lstParams);
+				m_mapParameters.insert(m_lstResults.size(), QStringList()
+						<< qsSysName << mapFriendlyNames.value(qsSysName)
+						<< QString::number(bHasRunningAnotherVm));
 				m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pPciDev->getIndex(), pPciDev->getItemId()));
 				m_mapPciDevClasses.insert(m_lstResults.size(), mapPciClasses.value(qsSysName));
 				ADD_FID(setIds);
