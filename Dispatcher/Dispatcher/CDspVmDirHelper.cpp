@@ -685,6 +685,8 @@ PRL_RESULT CDspVmDirHelper::ExclusiveVmOperations::getFailureCode( PVE::IDispatc
 		return PRL_ERR_VM_LOCKED_FOR_COPY_IMAGE;
 	case PVE::DspCmdDirVmMove:
 		return PRL_ERR_VM_LOCKED_FOR_MOVE;
+	case PVE::DspCmdVmMount:
+		return PRL_ERR_VM_LOCKED_FOR_INTERNAL_REASON;
 	default:
 		PRL_ASSERT( PRL_ERR_VM_LOCKED_FOR_INTERNAL_REASON == 0 );
 		return PRL_ERR_VM_LOCKED_FOR_INTERNAL_REASON;
@@ -696,6 +698,7 @@ PRL_RESULT CDspVmDirHelper::ExclusiveVmOperations::getFailureCode( PVE::IDispatc
 CDspVmDirHelper::CDspVmDirHelper( )
 {
 	m_pVmConfigEdit= new CMultiEditMergeVmConfig();
+	m_vmMountRegistry = SmartPtr<CDspVmMountRegistry>(new CDspVmMountRegistry);
 }
 
 
@@ -3339,7 +3342,8 @@ void CDspVmDirHelper::mountVm( SmartPtr<CDspClient> pUserSession, const SmartPtr
 	}
 #ifdef _LIN_
 	CDspService::instance()->getTaskManager()
-		.schedule(new Task_MountVm(pUserSession, p, PVE::DspCmdVmMount));
+		.schedule(new Task_MountVm(pUserSession, p, PVE::DspCmdVmMount,
+								   m_vmMountRegistry));
 #else
 	pUserSession->sendSimpleResponse( p, PRL_ERR_UNIMPLEMENTED);
 #endif
@@ -3358,7 +3362,8 @@ void CDspVmDirHelper::umountVm( SmartPtr<CDspClient> pUserSession, const SmartPt
 
 #ifdef _LIN_
 	CDspService::instance()->getTaskManager()
-		.schedule(new Task_MountVm(pUserSession, p, PVE::DspCmdVmUmount));
+		.schedule(new Task_MountVm(pUserSession, p, PVE::DspCmdVmUmount,
+								   m_vmMountRegistry));
 #else
 	pUserSession->sendSimpleResponse( p, PRL_ERR_UNIMPLEMENTED);
 #endif

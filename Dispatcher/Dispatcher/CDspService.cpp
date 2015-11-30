@@ -1138,7 +1138,6 @@ void CDspService::stop (CDspService::StopMode stop_mode)
 		getVzHelper()->removeAllCtVNCServer();
 #endif
 #ifdef _LIN_
-		Task_MountVm::UmountVmAll();
 #ifdef _LIBVIRT_
 		if (!m_hypervisor.isNull())
 		{
