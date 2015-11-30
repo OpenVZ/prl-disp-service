@@ -75,7 +75,7 @@ def test(vm_type):
         vm.refresh_config()
         vm.set_vm_type( vm_type )
         vm.set_uuid ( new_vm_uuid )
-        vm.set_name ( "reg" + vm_type_str[vm_type] + "_" + vm.get_uuid().strip('{}') )
+		vm.set_name ( "reg" + vm_type_str[vm_type] + "_" + vm.get_uuid().strip('{}')[:20] )
 		print "Create " + vm_type_str[vm_type] + " done."
 
         # raw_input ("press any key")
