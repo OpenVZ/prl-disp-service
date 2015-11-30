@@ -1254,7 +1254,7 @@ Prl::Expected<VtInfo, Error::Simple> Host::getVt() const
 	if (do_(m_link.data(), boost::bind(&virNodeGetInfo, _1, &h)).isFailed())
 		return Error::Detailed(PRL_ERR_CANT_INIT_REAL_CPUS_INFO);
 
-	i->setMaxVCpu(std::max<quint32>(x, h.cpus));
+	i->setMaxVCpu(std::min<quint32>(x, h.cpus));
 	i->setDefaultPeriod(100000);
 	return v;
 }
