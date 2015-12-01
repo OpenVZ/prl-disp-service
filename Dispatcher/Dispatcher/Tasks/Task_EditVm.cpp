@@ -3368,16 +3368,7 @@ std::pair<QString, QString> Routed::getIp6Defaults() const
 
 Address::Address(const device_type& device_): m_device(&device_)
 {
-	foreach (const QString& a, m_device->getNetAddresses())
-	{
-		QString b;
-		if(!NetworkUtils::ParseIpMask(a, b))
-			continue;
-		if (QHostAddress(b).protocol() == QAbstractSocket::IPv6Protocol)
-			m_v6 << a;
-		else if (QHostAddress(b).protocol() == QAbstractSocket::IPv4Protocol)
-			m_v4 << a;
-	}
+	boost::tie(m_v4, m_v6) = NetworkUtils::ParseIps(m_device->getNetAddresses());
 }
 
 QStringList Address::operator()(const Routed& mode_)

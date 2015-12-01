@@ -85,3 +85,20 @@ bool NetworkUtils::ParseIpMask(const QString &ip_mask, QString &ip, QString &mas
 
 	return true;
 }
+
+std::pair<QStringList, QStringList> NetworkUtils::ParseIps(const QList<QString>& ips_)
+{
+	QStringList ipv4, ipv6;
+	foreach (const QString& a, ips_)
+	{
+		QString b;
+		if(!NetworkUtils::ParseIpMask(a, b))
+			continue;
+
+		if (QHostAddress(b).protocol() == QAbstractSocket::IPv6Protocol)
+			ipv6 << a;
+		else if (QHostAddress(b).protocol() == QAbstractSocket::IPv4Protocol)
+			ipv4 << a;
+	}
+	return std::make_pair(ipv4 ,ipv6);
+}
