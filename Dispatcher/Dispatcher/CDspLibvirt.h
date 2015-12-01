@@ -161,7 +161,8 @@ struct Exec {
 	{
 	}
 	Prl::Expected<int, Error::Simple>
-		runCommand(const QString& path, const QList<QString>& args, const QByteArray& stdIn);
+		runCommand(const QString& path, const QList<QString>& args, const QByteArray& stdIn,
+			bool executeInShell = false);
 
 	Prl::Expected<boost::optional<Result>, Error::Simple>
 		getCommandStatus(int pid);
@@ -199,9 +200,11 @@ struct Guest
 	Result setUserPasswd(const QString& user, const QString& passwd);
 	Result checkGuestAgent();
 	Prl::Expected<Exec::Future, Error::Simple>
-		startProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn);
+		startProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn,
+			bool executeInShell = false);
 	Prl::Expected<Exec::Result, Error::Simple>
-		runProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn);
+		runProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn,
+			bool executeInShell = false);
 	Prl::Expected<QString, Error::Simple>
 		execute(const QString& cmd, bool isHmp = true);
 

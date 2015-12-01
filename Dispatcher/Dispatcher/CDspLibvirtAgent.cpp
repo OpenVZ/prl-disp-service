@@ -414,19 +414,21 @@ Guest::execute(const QString& cmd, bool isHmp)
 }
 
 Prl::Expected<Exec::Future, Error::Simple>
-Guest::startProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn)
+Guest::startProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn,
+	bool executeInShell)
 {
 	Exec::Exec e(m_domain);
-	Prl::Expected<int, Error::Simple> r = e.runCommand(path, args, stdIn);
+	Prl::Expected<int, Error::Simple> r = e.runCommand(path, args, stdIn, executeInShell);
 	if (r.isFailed())
 		return r.error();
 	return Exec::Future(m_domain, r.value());
 }
 
 Prl::Expected<Exec::Result, Error::Simple>
-Guest::runProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn)
+Guest::runProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn,
+	bool executeInShell)
 {
-	Prl::Expected<Exec::Future, Error::Simple> f = startProgram(path, args, stdIn);
+	Prl::Expected<Exec::Future, Error::Simple> f = startProgram(path, args, stdIn, executeInShell);
 	if (f.isFailed())
 		return f.error();
 	Result r = f.value().wait();
@@ -486,12 +488,14 @@ Exec::Exec::getCommandStatus(int pid)
 }
 
 Prl::Expected<int, Error::Simple>
-Exec::Exec::runCommand(const QString& path, const QList<QString>& args, const QByteArray& stdIn)
+Exec::Exec::runCommand(const QString& path, const QList<QString>& args, const QByteArray& stdIn,
+	bool executeInShell)
 {
 	boost::property_tree::ptree cmd, argv, params;
 
 	params.put("path", QSTR2UTF8(path));
 	params.put("capture-output", "capture-output-value"); // replace placeholder later
+	params.put("execute-in-shell", "execute-in-shell-value"); // replace placeholder later
 
 	if (stdIn.size() > 0) {
 		params.put("input-data", stdIn.toBase64().data());
@@ -515,6 +519,7 @@ Exec::Exec::runCommand(const QString& path, const QList<QString>& args, const QB
 	// boost json has no int varant, so...
 	std::string s = ss.str();
 	boost::replace_all<std::string>(s, "\"capture-output-value\"", "true");
+	boost::replace_all<std::string>(s, "\"execute-in-shell-value\"", executeInShell ? "true" : "false");
 
 	Prl::Expected<QString, Error::Simple> r = 
 		executeInAgent(QString::fromUtf8(s.c_str()));

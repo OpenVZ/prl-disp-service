@@ -186,7 +186,8 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 			.at(m_task->getVmUuid()).getGuest().startProgram(
 				cmd->GetProgramName(),
 				cmd->GetProgramArguments(),
-				variant_.getStdin());
+				variant_.getStdin(),
+				m_task->getRequestFlags() & PRPM_RUN_PROGRAM_IN_SHELL);
 	if (f.isFailed())
 		return f.error().code();
 
