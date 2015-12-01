@@ -245,8 +245,13 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	if (bridge_.getValue().getSource() && bridge_.getValue().getSource().get().getBridge())
 	{
 		const QString& n = bridge_.getValue().getSource().get().getBridge().get();
-		a->setSystemName(n);
-		a->setBoundAdapterName(n);
+		if (n == QString("host-routed"))
+			a->setEmulatedType(PNA_ROUTED);
+		else
+		{
+			a->setSystemName(n);
+			a->setBoundAdapterName(n);
+		}
 	}
 	if (bridge_.getValue().getMac())
 	{

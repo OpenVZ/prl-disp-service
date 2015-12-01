@@ -699,7 +699,14 @@ void List::add(const CVmGenericNetworkAdapter* network_)
 			return add<4>(Network<3>()(*network_));
 
 	case PNA_DIRECT_ASSIGN:
-		add<4>(Network<4>()(*network_));
+		return add<4>(Network<4>()(*network_));
+
+	case PNA_ROUTED:
+		{
+			CVmGenericNetworkAdapter routed(*network_);
+			routed.setSystemName(QString("host-routed"));
+			return add<4>(Network<0>()(routed));
+		}
 	default:
 		return;
 	}
