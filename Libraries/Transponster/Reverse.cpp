@@ -414,6 +414,27 @@ const Attachment& List::getAttachment() const
 
 } // namespace Clustered
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Ips
+
+QList<Libvirt::Domain::Xml::Ip> Ips::operator()(const QList<QString>& ips_)
+{
+	QList<Libvirt::Domain::Xml::Ip> ips;
+	QStringList ipv4, ipv6;
+	boost::tie(ipv4, ipv6) = NetworkUtils::ParseIps(ips_);
+	foreach(const QString& e, ipv4)
+	{
+		QPair<QHostAddress, int> am = QHostAddress::parseSubnet(e);
+		ips.append(craft<Transponster::Network::Address::IPv4>(e.split('/').first(), am.second));
+	}
+	foreach(const QString e, ipv6)
+	{
+		QPair<QHostAddress, int> am = QHostAddress::parseSubnet(e);
+		ips.append(craft<Transponster::Network::Address::IPv6>(e.split('/').first(), am.second));
+	}
+	return ips;
+}
+
 namespace
 {
 QString generateAdapterType(PRL_VM_NET_ADAPTER_TYPE type_)
@@ -453,6 +474,7 @@ template<>
 Libvirt::Domain::Xml::Interface617 Network<0>::prepare(const CVmGenericNetworkAdapter& network_)
 {
 	Libvirt::Domain::Xml::Interface617 output;
+	output.setIpList(Ips()(network_.getNetAddresses()));
 	output.setModel(generateAdapterType(network_.getAdapterType()));
 	Libvirt::Domain::Xml::Source6 s;
 	s.setBridge(network_.getSystemName());
@@ -467,6 +489,7 @@ Libvirt::Domain::Xml::Interface625 Network<3>::prepare(const CVmGenericNetworkAd
 	Libvirt::Domain::Xml::Interface625 output;
 	Libvirt::Domain::Xml::Source8 s;
 	s.setNetwork(network_.getVirtualNetworkID());
+	output.setIpList(Ips()(network_.getNetAddresses()));
 	output.setTarget(network_.getHostInterfaceName());
 	output.setModel(generateAdapterType(network_.getAdapterType()));
 	output.setSource(s);
@@ -479,6 +502,7 @@ Libvirt::Domain::Xml::Interface627 Network<4>::prepare(const CVmGenericNetworkAd
 	Libvirt::Domain::Xml::Interface627 output;
 	Libvirt::Domain::Xml::Source9 s;
 	s.setDev(network_.getSystemName());
+	output.setIpList(Ips()(network_.getNetAddresses()));
 	output.setModel(generateAdapterType(network_.getAdapterType()));
 	output.setTarget(network_.getHostInterfaceName());
 	output.setSource(s);
@@ -675,7 +699,14 @@ void List::add(const CVmGenericNetworkAdapter* network_)
 			return add<4>(Network<3>()(*network_));
 
 	case PNA_DIRECT_ASSIGN:
-		add<4>(Network<4>()(*network_));
+		return add<4>(Network<4>()(*network_));
+
+	case PNA_ROUTED:
+		{
+			CVmGenericNetworkAdapter routed(*network_);
+			routed.setSystemName(QString("host-routed"));
+			return add<4>(Network<0>()(routed));
+		}
 	default:
 		return;
 	}

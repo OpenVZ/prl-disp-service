@@ -358,6 +358,14 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Ips
+
+struct Ips
+{
+	QList<QString> operator()(const QList<Libvirt::Domain::Xml::Ip>& ips_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Network
 
 struct Network: boost::static_visitor<PRL_RESULT>
@@ -595,6 +603,21 @@ private:
 
 namespace Address
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Stringify
+
+struct Stringify: boost::static_visitor<QString>
+{
+	template<class T>
+	QString operator()(const T& t) const
+	{
+		return QString("%1").arg(t.getValue());
+	}
+	QString operator()(const mpl::at_c<Libvirt::Domain::Xml::VIpPrefix::types, 0>::type& prefix4_) const
+	{
+		return PrlNet::getIPv4MaskFromPrefix(prefix4_.getValue()).toString();
+	}
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Ip

@@ -9,6 +9,7 @@ Type=forking
 LimitCORE=268435456
 EnvironmentFile=-/etc/sysconfig/prl-disp
 PIDFile=/var/run/prl_disp_service.pid
+ExecStartPre=-/sbin/brctl addbr host-routed
 ExecStart=/usr/sbin/prl_disp_service --pidfile /var/run/prl_disp_service.pid
 KillMode=process
 Restart=on-failure

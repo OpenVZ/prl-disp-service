@@ -34,6 +34,7 @@
 
 #include "domain_type.h"
 #include <QDomDocument>
+#include <Libraries/PrlCommonUtilsBase/NetworkUtils.h>
 #include <XmlModel/VtInfo/VtInfo.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
 
@@ -62,6 +63,35 @@ private:
 };
 
 } // namespace Boot
+
+namespace Network
+{
+namespace Address
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct IPv4
+
+struct IPv4
+{
+	static const int index = 0;
+	static QHostAddress patchEnd(const QHostAddress& start_, const QHostAddress& end_);
+	static int getMask(const QHostAddress& mask_);
+	static const char* getFamily();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct IPv6
+
+struct IPv6
+{
+	static const int index = 1;
+	static QHostAddress patchEnd(const QHostAddress& start_, const QHostAddress& end_);
+	static int getMask(const QHostAddress& mask_);
+	static const char* getFamily();
+};
+
+} // namespace Address
+} // namespace Network
 
 namespace Device
 {
@@ -360,6 +390,27 @@ private:
 } // namespace Clustered
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Ips
+
+struct Ips
+{
+	QList<Libvirt::Domain::Xml::Ip> operator()(const QList<QString>& ips_);
+
+	template<class T>
+	Libvirt::Domain::Xml::Ip craft(const QString& address_, int prefix_)
+	{
+		typename mpl::at_c<Libvirt::Domain::Xml::VIpAddr::types, T::index>::type a;
+		a.setValue(address_);
+		typename mpl::at_c<Libvirt::Domain::Xml::VIpPrefix::types, T::index>::type p;
+		p.setValue(prefix_);
+		Libvirt::Domain::Xml::Ip ip;
+		ip.setAddress(Libvirt::Domain::Xml::VIpAddr(a));
+		ip.setPrefix(Libvirt::Domain::Xml::VIpPrefix(p));
+		return ip;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Network
 
 template<int N>
@@ -617,34 +668,6 @@ private:
 	CVmConfiguration* m_config;
 };
 
-namespace Network
-{
-namespace Address
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct IPv4
-
-struct IPv4
-{
-	static const int index = 0;
-	static QHostAddress patchEnd(const QHostAddress& start_, const QHostAddress& end_);
-	static int getMask(const QHostAddress& mask_);
-	static const char* getFamily();
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct IPv6
-
-struct IPv6
-{
-	static const int index = 1;
-	static QHostAddress patchEnd(const QHostAddress& start_, const QHostAddress& end_);
-	static int getMask(const QHostAddress& mask_);
-	static const char* getFamily();
-};
-
-} // namespace Address
-} // namespace Network
 } // namespace Transponster
 
 #endif // __REVERSE_P_H__

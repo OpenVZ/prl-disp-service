@@ -210,6 +210,26 @@ PRL_VM_NET_ADAPTER_TYPE Network::parseAdapterType(const QString& type)
 	return PNT_UNDEFINED;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Ips
+
+QList<QString> Ips::operator()(const QList<Libvirt::Domain::Xml::Ip>& ips_)
+{
+	QList<QString> ips;
+	foreach (const Libvirt::Domain::Xml::Ip& ip, ips_)
+	{
+		QString a = boost::apply_visitor(Visitor::Address::Stringify(), ip.getAddress());
+		QString res = QString("%1/%2").arg(a);
+
+		if (ip.getPrefix())
+			ips << res.arg(boost::apply_visitor(Visitor::Address::Stringify(), ip.getPrefix().get()));
+		else
+			ips << (QHostAddress(a).protocol() == QAbstractSocket::IPv4Protocol
+				? res.arg("255.255.255.0") : res.arg(64));
+	}
+	return ips;
+}	
+
 PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 0>::type& bridge_) const
 {
 	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter());
@@ -225,8 +245,13 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	if (bridge_.getValue().getSource() && bridge_.getValue().getSource().get().getBridge())
 	{
 		const QString& n = bridge_.getValue().getSource().get().getBridge().get();
-		a->setSystemName(n);
-		a->setBoundAdapterName(n);
+		if (n == QString("host-routed"))
+			a->setEmulatedType(PNA_ROUTED);
+		else
+		{
+			a->setSystemName(n);
+			a->setBoundAdapterName(n);
+		}
 	}
 	if (bridge_.getValue().getMac())
 	{
@@ -241,6 +266,9 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 		CNetPktFilter* f = new CNetPktFilter();
 		a->setPktFilter(f);
 	}
+
+	a->setNetAddresses(Ips()(bridge_.getValue().getIpList()));
+
 	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
 }
@@ -266,6 +294,9 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	{
 		a->setHostInterfaceName(network_.getValue().getTarget().get());
 	}
+
+	a->setNetAddresses(Ips()(network_.getValue().getIpList()));
+
 	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
 }
@@ -291,6 +322,9 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	{
 		a->setHostInterfaceName(direct_.getValue().getTarget().get());
 	}
+
+	a->setNetAddresses(Ips()(direct_.getValue().getIpList()));
+
 	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
 }

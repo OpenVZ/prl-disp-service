@@ -52,5 +52,6 @@ function extract IP from "IP/MASK"
 */
 bool ParseIpMask(const QString &ip_mask, QString &ip);
 
+std::pair<QStringList, QStringList> ParseIps(const QList<QString>& ips_);
 }
 
