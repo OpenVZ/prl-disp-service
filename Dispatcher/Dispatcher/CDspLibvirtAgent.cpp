@@ -418,7 +418,9 @@ Guest::startProgram(const QString& path, const QList<QString>& args, const QByte
 	bool executeInShell)
 {
 	Exec::Exec e(m_domain);
-	Prl::Expected<int, Error::Simple> r = e.runCommand(path, args, stdIn, executeInShell);
+	if (executeInShell)
+		e.setRunInShell(true);
+	Prl::Expected<int, Error::Simple> r = e.runCommand(path, args, stdIn);
 	if (r.isFailed())
 		return r.error();
 	return Exec::Future(m_domain, r.value());
@@ -488,8 +490,7 @@ Exec::Exec::getCommandStatus(int pid)
 }
 
 Prl::Expected<int, Error::Simple>
-Exec::Exec::runCommand(const QString& path, const QList<QString>& args, const QByteArray& stdIn,
-	bool executeInShell)
+Exec::Exec::runCommand(const QString& path, const QList<QString>& args, const QByteArray& stdIn)
 {
 	boost::property_tree::ptree cmd, argv, params;
 
@@ -519,7 +520,7 @@ Exec::Exec::runCommand(const QString& path, const QList<QString>& args, const QB
 	// boost json has no int varant, so...
 	std::string s = ss.str();
 	boost::replace_all<std::string>(s, "\"capture-output-value\"", "true");
-	boost::replace_all<std::string>(s, "\"execute-in-shell-value\"", executeInShell ? "true" : "false");
+	boost::replace_all<std::string>(s, "\"execute-in-shell-value\"", m_runInShell ? "true" : "false");
 
 	Prl::Expected<QString, Error::Simple> r = 
 		executeInAgent(QString::fromUtf8(s.c_str()));

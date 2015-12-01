@@ -157,19 +157,24 @@ private:
 // struct Exec
 
 struct Exec {
-	explicit Exec (const  QSharedPointer<virDomain>& domain_): m_domain(domain_)
+	explicit Exec (const  QSharedPointer<virDomain>& domain_)
+		: m_runInShell(false), m_domain(domain_)
 	{
 	}
 	Prl::Expected<int, Error::Simple>
-		runCommand(const QString& path, const QList<QString>& args, const QByteArray& stdIn,
-			bool executeInShell = false);
+		runCommand(const QString& path, const QList<QString>& args, const QByteArray& stdIn);
 
 	Prl::Expected<boost::optional<Result>, Error::Simple>
 		getCommandStatus(int pid);
 
 	Prl::Expected<QString, Error::Simple>
 		executeInAgent(const QString& cmd);
+	void setRunInShell(bool val)
+	{
+		m_runInShell = val;
+	}
 private:
+	bool m_runInShell;
 	QSharedPointer<virDomain> m_domain;
 };
 
