@@ -541,7 +541,7 @@ bool Validatable<Domain::Xml::PVolName>::validate(const Domain::Xml::PVolName::v
 bool Traits<Domain::Xml::PPortNumber>::parse(const QString& src_, Domain::Xml::PPortNumber::value_type& dst_)
 {
 	bool output = false;
-	dst_ = src_.toShort(&output);
+	dst_ = src_.toInt(&output);
 	return output;
 }
 
@@ -553,6 +553,9 @@ QString Traits<Domain::Xml::PPortNumber>::generate(Domain::Xml::PPortNumber::val
 bool Validatable<Domain::Xml::PPortNumber>::validate(Domain::Xml::PPortNumber::value_type value_)
 {
 	if (-1 > value_)
+		return false;
+
+	if (65535 < value_)
 		return false;
 
 	return true;

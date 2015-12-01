@@ -880,7 +880,7 @@ namespace Xml
 {
 struct PPortNumber
 {
-	typedef qint16 value_type;
+	typedef qint32 value_type;
 };
 
 } // namespace Xml
