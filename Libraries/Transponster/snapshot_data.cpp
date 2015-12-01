@@ -541,7 +541,7 @@ bool Validatable<Snapshot::Xml::PVolName>::validate(const Snapshot::Xml::PVolNam
 bool Traits<Snapshot::Xml::PPortNumber>::parse(const QString& src_, Snapshot::Xml::PPortNumber::value_type& dst_)
 {
 	bool output = false;
-	dst_ = src_.toShort(&output);
+	dst_ = src_.toInt(&output);
 	return output;
 }
 
@@ -553,6 +553,9 @@ QString Traits<Snapshot::Xml::PPortNumber>::generate(Snapshot::Xml::PPortNumber:
 bool Validatable<Snapshot::Xml::PPortNumber>::validate(Snapshot::Xml::PPortNumber::value_type value_)
 {
 	if (-1 > value_)
+		return false;
+
+	if (65535 < value_)
 		return false;
 
 	return true;

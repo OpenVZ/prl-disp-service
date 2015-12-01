@@ -541,7 +541,7 @@ bool Validatable<Iface::Xml::PVolName>::validate(const Iface::Xml::PVolName::val
 bool Traits<Iface::Xml::PPortNumber>::parse(const QString& src_, Iface::Xml::PPortNumber::value_type& dst_)
 {
 	bool output = false;
-	dst_ = src_.toShort(&output);
+	dst_ = src_.toInt(&output);
 	return output;
 }
 
@@ -553,6 +553,9 @@ QString Traits<Iface::Xml::PPortNumber>::generate(Iface::Xml::PPortNumber::value
 bool Validatable<Iface::Xml::PPortNumber>::validate(Iface::Xml::PPortNumber::value_type value_)
 {
 	if (-1 > value_)
+		return false;
+
+	if (65535 < value_)
 		return false;
 
 	return true;
