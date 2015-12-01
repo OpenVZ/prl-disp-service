@@ -32,8 +32,10 @@
 #ifndef __TASK_EDITVM_P_H__
 #define __TASK_EDITVM_P_H__
 
-#include "CDspTaskHelper.h"
 #include "CDspLibvirt.h"
+#include "CDspTaskHelper.h"
+#include <boost/mpl/vector.hpp>
+#include <boost/mpl/for_each.hpp>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 
 class Task_EditVm;
@@ -184,58 +186,96 @@ private:
 	QScopedPointer<Action> m_result;
 };
 
-namespace Runtime
-{
-namespace Cdrom
-{
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
+template<class T>
 struct Factory
+{
+	Action* prime(const Request& input_) const
+	{
+		Visitor v(input_);
+		boost::mpl::for_each<T>(boost::ref(v));
+		return v.getResult();
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Gear
+
+template<class T, class U>
+struct Gear: protected Factory<U>
+{
+	explicit Gear(Task_EditVm& task_): m_task(&task_)
+	{
+	}
+
+	void operator()(const Request::config_type& old_, const Request::config_type& new_)
+	{
+		Request r(*m_task, old_, new_);
+		QScopedPointer<Edit::Vm::Action> a(static_cast<T& >(*this).prime(r));
+		if (!a.isNull())
+		{
+			CDspTaskFailure f(*m_task);
+			a->execute(f);
+		}
+	}
+
+private:
+	Task_EditVm* m_task;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Apply
+
+struct Apply
+{
+	Action* operator()(const Request& input_) const;
+
+private:
+	static Libvirt::Result define(Libvirt::Tools::Agent::Vm::Unit agent_,
+					const CVmConfiguration& config_);
+};
+
+typedef boost::mpl::vector<Apply> probeList_type;
+typedef Gear<Factory<probeList_type>, probeList_type> driver_type;
+
+namespace Runtime
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Cdrom
+
+struct Cdrom
 {
 	Action* operator()(const Request& input_) const;
 };
 
-} // namespace Cdrom
-
-namespace Memory
-{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Factory
+// struct Memory
 
-struct Factory
+struct Memory
 {
-	Vm::Action* operator()(const Request& input_) const;
+	Action* operator()(const Request& input_) const;
 };
 
-} // namespace Memory
-
-namespace Disk
-{
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
-struct Factory
+struct Disk
 {
-	Vm::Action* operator()(const Request& input_) const;
+	Action* operator()(const Request& input_) const;
+
 private:
 	bool isDiskIoUntunable(const CVmHardDisk* disk_) const;
 };
 
-} // namespace Disk
-
-namespace Blkiotune
-{
-
 ///////////////////////////////////////////////////////////////////////////////
-// struct Factory
+// struct Blkiotune
 
-struct Factory
+struct Blkiotune
 {
 	Vm::Action* operator()(const Request& input_) const;
 };
-
-} // namespace Blkiotune
 
 namespace Network
 {
@@ -423,11 +463,18 @@ struct Factory
 } // namespace Cpu
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Factory
+// struct Driver
 
-struct Factory
+typedef boost::mpl::vector<Cdrom, Memory, Disk, Blkiotune,
+		Network::Factory, Cpu::Factory> probeList_type;
+
+struct Driver: Gear<Driver, probeList_type>
 {
-	Action* operator()(const Request& input_) const;
+	explicit Driver(Task_EditVm& task_): Gear<Driver, probeList_type>(task_)
+	{
+	}
+
+	Action* prime(const Request& input_) const;
 };
 
 } // namespace Runtime

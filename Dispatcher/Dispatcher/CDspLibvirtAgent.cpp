@@ -242,6 +242,12 @@ Result Unit::getUuid(QString& dst_) const
 	return Result();
 }
 
+List Unit::up() const
+{
+	QSharedPointer<virConnect> x = getLink();
+	return x.isNull() ? Kit.vms() : List(x);
+}
+
 Runtime Unit::getRuntime() const
 {
 	return Runtime(m_domain);
