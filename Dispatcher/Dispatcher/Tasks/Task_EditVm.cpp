@@ -3367,9 +3367,12 @@ Address::Address(const device_type& device_): m_device(&device_)
 {
 	foreach (const QString& a, m_device->getNetAddresses())
 	{
-		if (QHostAddress(a).protocol() == QAbstractSocket::IPv6Protocol)
+		QString b;
+		if(!NetworkUtils::ParseIpMask(a, b))
+			continue;
+		if (QHostAddress(b).protocol() == QAbstractSocket::IPv6Protocol)
 			m_v6 << a;
-		else if (QHostAddress(a).protocol() == QAbstractSocket::IPv4Protocol)
+		else if (QHostAddress(b).protocol() == QAbstractSocket::IPv4Protocol)
 			m_v4 << a;
 	}
 }
