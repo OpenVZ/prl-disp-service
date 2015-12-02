@@ -58,12 +58,14 @@ void RemoteDisplay::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 		(new_.getVmSettings()->getVmRemoteDisplay()->getPortNumber());
 }
 
+namespace Index
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct DeviceIndex
+// struct Device
 
 template<>
 QList<CVmHardDisk*>::iterator
-DeviceIndex<CVmHardDisk, PDE_HARD_DISK>::findDevice
+Device<CVmHardDisk, PDE_HARD_DISK>::findDevice
 	(QList<CVmHardDisk*>::iterator begin_, QList<CVmHardDisk*>::iterator end_,
 	 	const CVmHardDisk* disk_)
 {
@@ -74,7 +76,7 @@ DeviceIndex<CVmHardDisk, PDE_HARD_DISK>::findDevice
 
 template<>
 QList<CVmOpticalDisk*>::iterator
-DeviceIndex<CVmOpticalDisk, PDE_OPTICAL_DISK>::findDevice
+Device<CVmOpticalDisk, PDE_OPTICAL_DISK>::findDevice
 	(QList<CVmOpticalDisk*>::iterator begin_, QList<CVmOpticalDisk*>::iterator end_,
 	 	const CVmOpticalDisk* cdrom_)
 {
@@ -85,7 +87,7 @@ DeviceIndex<CVmOpticalDisk, PDE_OPTICAL_DISK>::findDevice
 
 template<>
 QList<CVmGenericNetworkAdapter*>::iterator
-DeviceIndex<CVmGenericNetworkAdapter, PDE_GENERIC_NETWORK_ADAPTER>::findDevice
+Device<CVmGenericNetworkAdapter, PDE_GENERIC_NETWORK_ADAPTER>::findDevice
 	(QList<CVmGenericNetworkAdapter*>::iterator begin_, QList<CVmGenericNetworkAdapter*>::iterator end_,
 		const CVmGenericNetworkAdapter* adapter_)
 {
@@ -95,23 +97,52 @@ DeviceIndex<CVmGenericNetworkAdapter, PDE_GENERIC_NETWORK_ADAPTER>::findDevice
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Indexes
+// struct Pool
 
-void Indexes::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+Pool::Pool(const population_type& initial_): m_population(initial_)
+{
+	qSort(m_population);
+}
+
+quint32 Pool::getAvailable()
+{
+	quint32 output = 0;
+	if (!m_population.isEmpty() || m_population.first() != 0)
+	{
+		population_type::const_iterator ii =
+			std::adjacent_find(m_population.constBegin(), m_population.constEnd(),
+				boost::lambda::_1 + 1 < boost::lambda::_2);
+
+		if (ii != m_population.constEnd())
+			output = *ii + 1;
+		else
+			output = m_population.last() + 1;
+	}
+
+	m_population.insert(output, output);
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Patch
+
+void Patch::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
 	QList<CVmStartupOptions::CVmBootDevice*> b = new_.getVmSettings()
 		->getVmStartupOptions()->m_lstBootDeviceList;
 
-	DeviceIndex<CVmHardDisk, PDE_HARD_DISK>
+	Device<CVmHardDisk, PDE_HARD_DISK>
 		(old_.getVmHardwareList()->m_lstHardDisks, b)
 			(new_.getVmHardwareList()->m_lstHardDisks);
-	DeviceIndex<CVmOpticalDisk, PDE_OPTICAL_DISK>
+	Device<CVmOpticalDisk, PDE_OPTICAL_DISK>
 		(old_.getVmHardwareList()->m_lstOpticalDisks, b)
 			(new_.getVmHardwareList()->m_lstOpticalDisks);
-	DeviceIndex<CVmGenericNetworkAdapter, PDE_GENERIC_NETWORK_ADAPTER>
+	Device<CVmGenericNetworkAdapter, PDE_GENERIC_NETWORK_ADAPTER>
 		(old_.getVmHardwareList()->m_lstNetworkAdapters, b)
 			(new_.getVmHardwareList()->m_lstNetworkAdapters);
 }
+
+} // namespace Index
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct OsInfo
