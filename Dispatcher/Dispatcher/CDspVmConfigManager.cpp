@@ -182,6 +182,31 @@ void Cpu::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 		(new CVmCpu(new_.getVmHardwareList()->getCpu()));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct NetworkDevices
+
+void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	QList<CVmGenericNetworkAdapter*>& l = new_.getVmHardwareList()->m_lstNetworkAdapters;
+	QList<CVmGenericNetworkAdapter*>& o = old_.getVmHardwareList()->m_lstNetworkAdapters;
+
+	foreach(CVmGenericNetworkAdapter* a, l)
+	{
+		QList<CVmGenericNetworkAdapter*>::iterator it = std::find_if(o.begin(), o.end(),
+			 boost::bind(&CVmGenericNetworkAdapter::getIndex, _1)
+			 	== a->getIndex());
+
+		if (it == o.end())
+			continue;
+
+		a->setAutoApply((*it)->isAutoApply());
+		a->setDefaultGateway((*it)->getDefaultGateway());
+		a->setDefaultGatewayIPv6((*it)->getDefaultGatewayIPv6());
+		a->setConfigureWithDhcp((*it)->isConfigureWithDhcp());
+		a->setConfigureWithDhcpIPv6((*it)->isConfigureWithDhcpIPv6());
+	}
+}
+
 namespace Access
 {
 ///////////////////////////////////////////////////////////////////////////////
