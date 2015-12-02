@@ -186,6 +186,11 @@ struct Cpu
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
 
+struct NetworkDevices
+{
+	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reviser
 
@@ -210,7 +215,7 @@ struct Reviser<N, void>
 
 typedef boost::mpl::vector<RemoteDisplay> revise_types;
 typedef boost::mpl::vector<OsInfo, RuntimeOptions, GlobalNetwork,
-		Indexes, Cpu> untranslatable_types;
+		Indexes, Cpu, NetworkDevices> untranslatable_types;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Repairer
