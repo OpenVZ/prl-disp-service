@@ -1001,7 +1001,10 @@ int CVzHelper::get_envid_list(QStringList &lst)
 int CVzHelper::get_env_status_by_ctid(const QString &ctid, VIRTUAL_MACHINE_STATE &nState)
 {
 	vzctl_env_status_t status;
-	if (vzctl2_get_env_status(QSTR2UTF8(ctid), &status, ENV_STATUS_ALL)) {
+	int mask = ENV_STATUS_RUNNING | ENV_STATUS_SUSPENDED |
+		ENV_STATUS_MOUNTED_FAST | ENV_STATUS_EXISTS;
+
+	if (vzctl2_get_env_status(QSTR2UTF8(ctid), &status, mask)) {
 		WRITE_TRACE(DBG_FATAL, "Failed to get Ct %s status: %s",
 				QSTR2UTF8(ctid), vzctl2_get_last_error());
 		return PRL_ERR_OPERATION_FAILED;
