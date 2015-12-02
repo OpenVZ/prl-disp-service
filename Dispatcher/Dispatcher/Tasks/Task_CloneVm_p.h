@@ -722,12 +722,14 @@ struct Dress: private Facade
 	Dress(Task_CloneVm& task_, Private& private_,
 		SmartPtr<CVmConfiguration> config_);
 
+	void undoLibvirtDomain();
 	void undoDirectoryItem();
 	void undoClusterResource();
 	PRL_RESULT setDirectoryItem();
 	PRL_RESULT addClusterResource();
 	PRL_RESULT changeSid();
 	PRL_RESULT importBootcamps();
+	PRL_RESULT addLibvirtDomain();
 private:
 	static CDspService& s();
 
@@ -904,11 +906,10 @@ private:
 	stepList_type getSteps() const
 	{
 		stepList_type output;
-		if (CDspService::isServerModePSBM())
-		{
-			output.push_back(step_type(&Dress::addClusterResource,
-						&Dress::undoClusterResource));
-		}
+		output.push_back(step_type(&Dress::addLibvirtDomain,
+					&Dress::undoLibvirtDomain));
+		output.push_back(step_type(&Dress::addClusterResource,
+					&Dress::undoClusterResource));
 		output.push_back(step_type(&Dress::setDirectoryItem,
 					&Dress::undoDirectoryItem));
 		if (this->getBootcamps())
