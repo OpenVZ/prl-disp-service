@@ -73,8 +73,7 @@ public:
 #ifdef _LIN_
 	/// set nessary settings on host for particular vm network adapter
 	/// used in psbm only for now
-	static void updateAdapter(SmartPtr<CVmConfiguration> pVmConfig,
-		CVmGenericNetworkAdapter *pAdapter, bool bEnable);
+	static void updateAdapter(const CVmGenericNetworkAdapter& pAdapter, bool bEnable);
 #endif
 
 	/// set nessary settings on host for vm networking

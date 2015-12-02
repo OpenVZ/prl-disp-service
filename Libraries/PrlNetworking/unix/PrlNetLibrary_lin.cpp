@@ -552,28 +552,18 @@ static PRL_RESULT run_prg(const char *name, const QStringList &lstArgs)
 
 bool PrlNet::updateArp(const QString &ip, const QString &src_hwaddr, const QString &iface)
 {
+	Q_UNUSED(src_hwaddr);
 	QStringList lstArgs;
 
 	lstArgs += "-U";
-
+	lstArgs += "-q";
 	lstArgs += "-w1";
 	lstArgs += "-c1";
-
-	if (!src_hwaddr.isEmpty()) {
-		lstArgs += "-S";
-		lstArgs += src_hwaddr;
-		lstArgs += "-s";
-		lstArgs += src_hwaddr;
-
-	}
-	lstArgs += "-e";
-	lstArgs += ip;
-	lstArgs += "-i";
-	lstArgs += ip;
-
+	lstArgs += "-I";
 	lstArgs += iface;
+	lstArgs += ip;
 
-	return run_prg("/usr/sbin/prl_arpsend", lstArgs);
+	return run_prg("arping", lstArgs);
 }
 
 

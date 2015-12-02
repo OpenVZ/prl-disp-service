@@ -38,6 +38,7 @@
 #include "Libraries/HostUtils/HostUtils.h"
 #include <Libraries/PrlNetworking/netconfig.h>
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
+#include <boost/bind.hpp>
 
 
 void CDspVmNetworkHelper::getUsedHostMacAddresses(QSet< QString >& hostMacs)
@@ -364,6 +365,47 @@ PRL_RESULT Dao::attachExisting(CVirtualNetwork model_,
 
 	u.start();
 	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Routing
+
+void Routing::configure(const CVmConfiguration& config_, bool enable_)
+{
+	foreach(const CVmGenericNetworkAdapter* a, config_.getVmHardwareList()->m_lstNetworkAdapters)
+	{
+		if (NULL == a || a->getEmulatedType() != PNA_ROUTED)
+			continue;
+
+		execute(*a, enable_);
+	}
+}
+
+void Routing::reconfigure(const CVmConfiguration& old_, const CVmConfiguration& new_)
+{
+	QList<CVmGenericNetworkAdapter*> o = old_.getVmHardwareList()->m_lstNetworkAdapters;
+	QList<CVmGenericNetworkAdapter*> n = new_.getVmHardwareList()->m_lstNetworkAdapters;
+
+	QList<CVmGenericNetworkAdapter*>::iterator d = std::partition(o.begin(), o.end(), 
+			boost::bind(&Routing::find, _1, boost::cref(n)));
+
+	std::for_each(d, o.end(), boost::bind(&Routing::execute, this, _1, false));
+
+	QList<CVmGenericNetworkAdapter*>::iterator e = std::partition(n.begin(), n.end(),
+			boost::bind(&Routing::find, _1, boost::cref(o)));
+
+	std::for_each(e, n.end(), boost::bind(&Routing::execute, this, _1, true));
+}
+
+bool Routing::find(const CVmGenericNetworkAdapter* adapter_, const QList<CVmGenericNetworkAdapter*>& search_)
+{
+	QList<CVmGenericNetworkAdapter*>::const_iterator it
+		= std::find_if(search_.constBegin(), search_.constEnd(),
+			boost::bind(&CVmGenericNetworkAdapter::getHostInterfaceName, _1)
+				== adapter_->getHostInterfaceName());
+
+	return it != search_.constEnd() && (*it)->getEmulatedType() == PNA_ROUTED
+			&& (*it)->getNetAddresses() == adapter_->getNetAddresses();
 }
 
 } // namespace Network

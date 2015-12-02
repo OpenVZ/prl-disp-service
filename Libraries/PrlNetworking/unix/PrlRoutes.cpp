@@ -35,6 +35,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/sysctl.h>
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <net/if_arp.h>
@@ -246,28 +247,49 @@ bool PrlNet::SetArpToDevice(const QString &ip, const QString &devName, bool add)
 
 bool PrlNet::SetArpToNodeDevices(const QString &ip, const QString &srcMac, bool add, bool annonce)
 {
-	EthAdaptersList adaptersList;
-	PRL_RESULT nRetCode = makeBindableAdapterList(adaptersList, true, true);
-	if ( PRL_FAILED(nRetCode) ) {
-		WRITE_TRACE(DBG_FATAL, "Failed to make list of eth adapters");
+	QString old;
+
+	QFile f("/proc/sys/net/ipv4/ip_nonlocal_bind");
+	if (!f.open(QIODevice::ReadWrite | QIODevice::Unbuffered))
+	{
+		WRITE_TRACE(DBG_FATAL, "Failed to enable nonlocal bind. Cannot configure arp for ip %s",
+			qPrintable(ip));
 		return false;
 	}
+	QTextStream(&f) >> old << 1;
 
-	for (int i = 0; i < adaptersList.size() ; i++)
+	QStringList names = makePhysicalAdapterList();
+
+	foreach(const QString& name, names)
 	{
-		EthernetAdapter &adapter = adaptersList[i];
-		if (adapter._bParallelsAdapter)
-			continue;
+		QString adapter = getBridgeName(name);
+		if (adapter.isEmpty())
+			adapter = name;
 
-		bool rc = SetArpToDevice(ip, adapter._systemName, add);
+		bool rc = SetArpToDevice(ip, adapter, add);
 
 		if (!rc) {
-			WRITE_TRACE(DBG_FATAL, "failed to set arp for device %s",
-				adapter._systemName.toUtf8().constData());
+			WRITE_TRACE(DBG_FATAL, "Failed to %s arp for device %s",
+				add ? "set" : "remove", qPrintable(adapter));
+			QTextStream(&f) << old;
 			return false;
 		}
-		if (annonce)
-			PrlNet::updateArp(ip, srcMac, adapter._systemName);
+		else
+		{
+			WRITE_TRACE(DBG_INFO, "Arp on device '%s' for ip %s is %s",
+				qPrintable(adapter), qPrintable(ip),
+				add ? "configured" : "disabled");
+		}
+
+
+		if (annonce && add) {
+			WRITE_TRACE(DBG_INFO, "Arp on device '%s' for ip %s is annonced",
+				qPrintable(adapter), qPrintable(ip));
+			PrlNet::updateArp(ip, srcMac, adapter);
+		}
 	}
+
+	// Return old value
+	QTextStream(&f) << old;
 	return true;
 }
