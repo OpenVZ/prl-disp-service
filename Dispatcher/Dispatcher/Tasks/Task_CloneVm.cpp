@@ -905,6 +905,27 @@ PRL_RESULT Dress::importBootcamps()
 */
 }
 
+void Dress::undoLibvirtDomain()
+{
+#ifdef _LIBVIRT_
+	Libvirt::Kit.vms().at(getNewVmUuid()).undefine();
+#endif // _LIBVIRT_
+}
+
+PRL_RESULT Dress::addLibvirtDomain()
+{
+#ifdef _LIBVIRT_
+	Libvirt::Result r(Libvirt::Kit.vms().define(*m_config));
+	if (r.isSucceed())
+		return PRL_ERR_SUCCESS;
+
+	return Failure(getTask())(r.error().convertToEvent());
+
+#else // _LIBVIRT_
+	return PRL_ERR_SUCCESS;
+#endif // _LIBVIRT_
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Builder
 
@@ -981,15 +1002,7 @@ PRL_RESULT Builder::saveConfig(const QString& name_, const QString& uuid_)
 
 	PRL_RESULT e = m_private->addFile(m_config);
 	if (PRL_SUCCEEDED(e))
-	{
-#ifdef _LIBVIRT_
-		Libvirt::Result r(Libvirt::Kit.vms().define(*m_config));
-		if (r.isSucceed())
-			return PRL_ERR_SUCCESS;
-
-		return f(r.error().convertToEvent());
-#endif // _LIBVIRT_
-	}
+		return PRL_ERR_SUCCESS;
 
 	QString p = m_private->getPath(VMDIR_DEFAULT_VM_CONFIG_FILE);
 	WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher unable to save configuration of the VM %s to file %s. Reason: %ld: %s",
