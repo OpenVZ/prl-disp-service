@@ -61,16 +61,17 @@ struct RemoteDisplay
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
 
+namespace Index
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct BootIndex
+// struct Boot
 
 template <PRL_DEVICE_TYPE D>
-struct BootIndex
+struct Boot
 {
 	typedef QList<CVmStartupOptions::CVmBootDevice*> bootList_type;
 
-	BootIndex(const bootList_type& bootList_)
-	: m_bootList(bootList_)
+	explicit Boot(const bootList_type& bootList_): m_bootList(bootList_)
 	{
 	}
 
@@ -92,29 +93,54 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct DeviceIndex
+// struct Pool
+
+struct Pool
+{
+	typedef QVector<quint32> population_type;
+
+	explicit Pool(const population_type& initial_);
+
+	quint32 getAvailable();
+
+private:
+	population_type m_population;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Device
 
 template <class T, PRL_DEVICE_TYPE D>
-struct DeviceIndex
+struct Device
 {
-	DeviceIndex(const QList<T*>& devices_, const QList<CVmStartupOptions::CVmBootDevice*>& bootList_)
+	typedef QList<T*> list_type;
+	typedef typename list_type::iterator iterator_type;
+	typedef Boot<D> boot_type;
+	typedef typename boot_type::bootList_type bootList_type;
+
+	Device(const list_type& devices_, const bootList_type& bootList_)
 	: m_devices(devices_), m_bootList(bootList_)
 	{
 	}
 
-	void operator()(QList<T*>& newDevices_)
+	void operator()(list_type& newDevices_)
 	{
-		m_indexes.clear();
-		std::transform(m_devices.begin(), m_devices.end(), std::back_inserter(m_indexes),
+		QVector<quint32> a;
+		std::transform(m_devices.begin(), m_devices.end(), std::back_inserter(a),
 			boost::bind(&T::getIndex, _1));
-		qSort(m_indexes);
 
-		BootIndex<D> boot(m_bootList);
+		Pool p(a);
+		boot_type boot(m_bootList);
 		foreach(T* h, newDevices_)
 		{
-			unsigned index = findIndex(h);
-			boot.change(h->getIndex(), index);
-			h->setIndex(index);
+			quint32 o = h->getIndex();
+			iterator_type it = findDevice(m_devices.begin(), m_devices.end(), h);
+			if (m_devices.end() == it)
+				h->setIndex(p.getAvailable());
+			else
+				h->setIndex((*it)->getIndex());
+
+			boot.change(o, h->getIndex());
 		}
 		std::sort(newDevices_.begin(), newDevices_.end(), boost::bind(&T::getIndex, _1) <
 				boost::bind(&T::getIndex, _2));
@@ -122,64 +148,48 @@ struct DeviceIndex
 	}
 
 private:
-	typename QList<T*>::iterator findDevice
-		(typename QList<T*>::iterator begin_, typename QList<T*>::iterator end_, const T* device_);
-	unsigned findIndex(const T* device_)
-	{
-		typename QList<T*>::iterator it = findDevice(m_devices.begin(), m_devices.end(), device_);
+	iterator_type findDevice(iterator_type begin_, iterator_type end_, const T* device_);
 
-		if (it != m_devices.end())
-			return (*it)->getIndex();
-
-		return getAvaliableIndex();
-	}
-	unsigned getAvaliableIndex()
-	{
-		unsigned index = 0;
-
-		if (!m_indexes.isEmpty() || m_indexes.first() != 0)
-		{
-			QVector<unsigned>::const_iterator ii =
-				std::adjacent_find(m_indexes.constBegin(), m_indexes.constEnd(),
-					boost::lambda::_1 + 1 < boost::lambda::_2);
-
-			if (ii != m_indexes.constEnd())
-				index = *ii + 1;
-			else
-				index = m_indexes.last() + 1;
-		}
-
-		m_indexes.insert(index, index);
-		return index;
-	}
-
-	QList<T*> m_devices;
-	QList<CVmStartupOptions::CVmBootDevice*> m_bootList;
-	QVector<unsigned> m_indexes;
+	list_type m_devices;
+	bootList_type m_bootList;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Indexes
+// struct Patch
 
-struct Indexes
+struct Patch
 {
 	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
+
+} // namespace Index
+
+///////////////////////////////////////////////////////////////////////////////
+// struct OsInfo
 
 struct OsInfo
 {
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct RuntimeOptions
+
 struct RuntimeOptions
 {
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct GlobalNetwork
+
 struct GlobalNetwork
 {
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
 
 struct Cpu
 {
@@ -210,7 +220,7 @@ struct Reviser<N, void>
 
 typedef boost::mpl::vector<RemoteDisplay> revise_types;
 typedef boost::mpl::vector<OsInfo, RuntimeOptions, GlobalNetwork,
-		Indexes, Cpu> untranslatable_types;
+		Index::Patch, Cpu> untranslatable_types;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Repairer
