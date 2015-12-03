@@ -61,93 +61,142 @@ struct RemoteDisplay
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct DeviceIndex
-
-template <class T, PRL_DEVICE_TYPE D>
-struct DeviceIndex
+namespace Index
 {
-	DeviceIndex(const CVmConfiguration& config_)
-	: m_disks(config_.getVmHardwareList()->m_lstHardDisks)
+///////////////////////////////////////////////////////////////////////////////
+// struct Boot
+
+template <PRL_DEVICE_TYPE D>
+struct Boot
+{
+	typedef QList<CVmStartupOptions::CVmBootDevice*> bootList_type;
+
+	explicit Boot(const bootList_type& bootList_): m_bootList(bootList_)
 	{
-		m_indexes.resize(m_disks.length());
-		std::transform(m_disks.begin(), m_disks.end(), m_indexes.begin(),
-			boost::bind(&T::getIndex, _1));
-		qSort(m_indexes);
 	}
 
-	unsigned findIndex(const T* disk_);
-	unsigned getAvaliableIndex()
+	void change(unsigned old_, unsigned new_)
 	{
-		unsigned index = 0;
+		bootList_type::iterator b = std::find_if(m_bootList.begin(), m_bootList.end(),
+			boost::bind(&CVmStartupOptions::CVmBootDevice::getIndex, _1) == old_
+			&& boost::bind(&CVmStartupOptions::CVmBootDevice::getType, _1) == D);
 
-		if (!m_indexes.isEmpty() || m_indexes.first() != 0)
+		if (b != m_bootList.end())
 		{
-			QVector<unsigned>::const_iterator ii =
-				std::adjacent_find(m_indexes.constBegin(), m_indexes.constEnd(),
-					boost::lambda::_1 + 1 < boost::lambda::_2);
-
-			if (ii != m_indexes.constEnd())
-				index = *ii + 1;
-			else
-				index = m_indexes.last() + 1;
+			(*b)->setIndex(new_);
+			m_bootList.erase(b);
 		}
-
-		m_indexes.insert(index, index);
-		return index;
 	}
-
-	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_)
-	{
-		typedef QList<CVmStartupOptions::CVmBootDevice*> bootList_type;
-
-		QList<T*>& newList = new_.getVmHardwareList()->m_lstHardDisks;
-		bootList_type bootListCopy = 
-			new_.getVmSettings()->getVmStartupOptions()->m_lstBootDeviceList;
-
-		DeviceIndex<T, D> di(old_);
-		foreach(T* h, newList)
-		{
-			unsigned index = di.findIndex(h);
-			bootList_type::iterator b = std::find_if(bootListCopy.begin(), bootListCopy.end(),
-				 boost::bind(&CVmStartupOptions::CVmBootDevice::getIndex, _1)
-					== h->getIndex() &&
-				 boost::bind(&CVmStartupOptions::CVmBootDevice::getType, _1)
-					== D);
-
-			if (b != bootListCopy.end())
-			{
-				(*b)->setIndex(index);
-				bootListCopy.erase(b);
-			}
-
-			h->setIndex(index);
-		}
-		std::sort(newList.begin(), newList.end(), boost::bind(&T::getIndex, _1) <
-				boost::bind(&T::getIndex, _2));
-	};
 
 private:
-	QList<T*> m_disks;
-	QVector<unsigned> m_indexes;
+	bootList_type m_bootList;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Pool
+
+struct Pool
+{
+	typedef QVector<quint32> population_type;
+
+	explicit Pool(const population_type& initial_);
+
+	quint32 getAvailable();
+
+private:
+	population_type m_population;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Device
+
+template <class T, PRL_DEVICE_TYPE D>
+struct Device
+{
+	typedef QList<T*> list_type;
+	typedef typename list_type::iterator iterator_type;
+	typedef Boot<D> boot_type;
+	typedef typename boot_type::bootList_type bootList_type;
+
+	Device(const list_type& devices_, const bootList_type& bootList_)
+	: m_devices(devices_), m_bootList(bootList_)
+	{
+	}
+
+	void operator()(list_type& newDevices_)
+	{
+		QVector<quint32> a;
+		std::transform(m_devices.begin(), m_devices.end(), std::back_inserter(a),
+			boost::bind(&T::getIndex, _1));
+
+		Pool p(a);
+		boot_type boot(m_bootList);
+		foreach(T* h, newDevices_)
+		{
+			quint32 o = h->getIndex();
+			iterator_type it = findDevice(m_devices.begin(), m_devices.end(), h);
+			if (m_devices.end() == it)
+				h->setIndex(p.getAvailable());
+			else
+				h->setIndex((*it)->getIndex());
+
+			boot.change(o, h->getIndex());
+		}
+		std::sort(newDevices_.begin(), newDevices_.end(), boost::bind(&T::getIndex, _1) <
+				boost::bind(&T::getIndex, _2));
+		m_devices = newDevices_;
+	}
+
+private:
+	iterator_type findDevice(iterator_type begin_, iterator_type end_, const T* device_);
+
+	list_type m_devices;
+	bootList_type m_bootList;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Patch
+
+struct Patch
+{
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
+};
+
+} // namespace Index
+
+///////////////////////////////////////////////////////////////////////////////
+// struct OsInfo
 
 struct OsInfo
 {
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct RuntimeOptions
+
 struct RuntimeOptions
 {
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct GlobalNetwork
 
 struct GlobalNetwork
 {
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
+
 struct Cpu
+{
+	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+};
+
+struct NetworkDevices
 {
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
@@ -176,7 +225,7 @@ struct Reviser<N, void>
 
 typedef boost::mpl::vector<RemoteDisplay> revise_types;
 typedef boost::mpl::vector<OsInfo, RuntimeOptions, GlobalNetwork,
-		DeviceIndex<CVmHardDisk, PDE_HARD_DISK>, Cpu> untranslatable_types;
+		Index::Patch, Cpu, NetworkDevices> untranslatable_types;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Repairer

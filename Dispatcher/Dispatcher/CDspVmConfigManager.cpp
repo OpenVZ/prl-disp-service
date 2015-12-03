@@ -58,22 +58,91 @@ void RemoteDisplay::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 		(new_.getVmSettings()->getVmRemoteDisplay()->getPortNumber());
 }
 
+namespace Index
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct DeviceIndex
+// struct Device
 
 template<>
-unsigned DeviceIndex<CVmHardDisk, PDE_HARD_DISK>::findIndex(const CVmHardDisk* disk_)
+QList<CVmHardDisk*>::iterator
+Device<CVmHardDisk, PDE_HARD_DISK>::findDevice
+	(QList<CVmHardDisk*>::iterator begin_, QList<CVmHardDisk*>::iterator end_,
+	 	const CVmHardDisk* disk_)
 {
-	QList<CVmHardDisk*>::iterator it = std::find_if
-		(m_disks.begin(), m_disks.end(),
+	return std::find_if(begin_, end_,
 		 boost::bind(&CVmHardDisk::getSystemName, _1) ==
 			disk_->getSystemName());
-
-	if (it != m_disks.end())
-		return (*it)->getIndex();
-
-	return getAvaliableIndex();
 }
+
+template<>
+QList<CVmOpticalDisk*>::iterator
+Device<CVmOpticalDisk, PDE_OPTICAL_DISK>::findDevice
+	(QList<CVmOpticalDisk*>::iterator begin_, QList<CVmOpticalDisk*>::iterator end_,
+	 	const CVmOpticalDisk* cdrom_)
+{
+	return std::find_if(begin_, end_,
+		 boost::bind(&CVmOpticalDisk::getSystemName, _1) ==
+			cdrom_->getSystemName());
+}
+
+template<>
+QList<CVmGenericNetworkAdapter*>::iterator
+Device<CVmGenericNetworkAdapter, PDE_GENERIC_NETWORK_ADAPTER>::findDevice
+	(QList<CVmGenericNetworkAdapter*>::iterator begin_, QList<CVmGenericNetworkAdapter*>::iterator end_,
+		const CVmGenericNetworkAdapter* adapter_)
+{
+	return std::find_if(begin_, end_,
+		 boost::bind(&CVmGenericNetworkAdapter::getHostInterfaceName, _1) ==
+			adapter_->getHostInterfaceName());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Pool
+
+Pool::Pool(const population_type& initial_): m_population(initial_)
+{
+	qSort(m_population);
+}
+
+quint32 Pool::getAvailable()
+{
+	quint32 output = 0;
+	if (!m_population.isEmpty() && m_population.first() != 0)
+	{
+		population_type::const_iterator ii =
+			std::adjacent_find(m_population.constBegin(), m_population.constEnd(),
+				boost::lambda::_1 + 1 < boost::lambda::_2);
+
+		if (ii != m_population.constEnd())
+			output = *ii + 1;
+		else
+			output = m_population.last() + 1;
+	}
+
+	m_population.insert(output, output);
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Patch
+
+void Patch::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	QList<CVmStartupOptions::CVmBootDevice*> b = new_.getVmSettings()
+		->getVmStartupOptions()->m_lstBootDeviceList;
+
+	Device<CVmHardDisk, PDE_HARD_DISK>
+		(old_.getVmHardwareList()->m_lstHardDisks, b)
+			(new_.getVmHardwareList()->m_lstHardDisks);
+	Device<CVmOpticalDisk, PDE_OPTICAL_DISK>
+		(old_.getVmHardwareList()->m_lstOpticalDisks, b)
+			(new_.getVmHardwareList()->m_lstOpticalDisks);
+	Device<CVmGenericNetworkAdapter, PDE_GENERIC_NETWORK_ADAPTER>
+		(old_.getVmHardwareList()->m_lstNetworkAdapters, b)
+			(new_.getVmHardwareList()->m_lstNetworkAdapters);
+}
+
+} // namespace Index
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct OsInfo
@@ -111,6 +180,31 @@ void Cpu::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 {
 	old_.getVmHardwareList()->setCpu
 		(new CVmCpu(new_.getVmHardwareList()->getCpu()));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct NetworkDevices
+
+void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	QList<CVmGenericNetworkAdapter*>& l = new_.getVmHardwareList()->m_lstNetworkAdapters;
+	QList<CVmGenericNetworkAdapter*>& o = old_.getVmHardwareList()->m_lstNetworkAdapters;
+
+	foreach(CVmGenericNetworkAdapter* a, l)
+	{
+		QList<CVmGenericNetworkAdapter*>::iterator it = std::find_if(o.begin(), o.end(),
+			 boost::bind(&CVmGenericNetworkAdapter::getIndex, _1)
+			 	== a->getIndex());
+
+		if (it == o.end())
+			continue;
+
+		a->setAutoApply((*it)->isAutoApply());
+		a->setDefaultGateway((*it)->getDefaultGateway());
+		a->setDefaultGatewayIPv6((*it)->getDefaultGatewayIPv6());
+		a->setConfigureWithDhcp((*it)->isConfigureWithDhcp());
+		a->setConfigureWithDhcpIPv6((*it)->isConfigureWithDhcpIPv6());
+	}
 }
 
 namespace Access
