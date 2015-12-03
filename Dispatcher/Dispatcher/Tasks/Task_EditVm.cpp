@@ -2967,6 +2967,15 @@ bool Action::execute(CDspTaskFailure& feedback_)
 	return m_next.isNull() || m_next->execute(feedback_);
 }
 
+Action& Action::getTail()
+{
+	Action* a = this;
+	while (!a->m_next.isNull())
+		a = a->m_next.data();
+
+	return *a;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Request
 
@@ -3004,8 +3013,18 @@ Action* Apply::operator()(const Request& input_) const
 	if (b)
 		return NULL;
 
-	return f.craft(boost::bind(&vm::Unit::setConfig, _1,
-			boost::cref(input_.getFinal())));
+	QString x = input_.getStart().getVmIdentification()->getVmName();
+	QString y = input_.getFinal().getVmIdentification()->getVmName();
+	if (x == y)
+	{
+		return f.craft(boost::bind(&vm::Unit::setConfig, _1,
+				boost::cref(input_.getFinal())));
+	}
+	Action* output = f.craft(boost::bind(&vm::Unit::rename, _1, y));
+	output->setNext(f.craft(boost::bind(&vm::Unit::setConfig, _1,
+				boost::cref(input_.getFinal()))));
+
+	return output;
 }
 
 Libvirt::Result Apply::define(vm::Unit agent_, const CVmConfiguration& config_)
