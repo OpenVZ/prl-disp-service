@@ -96,6 +96,12 @@ Result Unit::reset()
 	return do_(m_domain.data(), boost::bind(&virDomainReset, _1, 0));
 }
 
+Result Unit::rename(const QString& to_)
+{
+	return do_(m_domain.data(), boost::bind(&virDomainRename, _1,
+		qPrintable(to_), 0));
+}
+
 Result Unit::resume(const QString& sav_)
 {
 	return do_(getLink().data(), boost::bind

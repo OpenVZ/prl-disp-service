@@ -55,6 +55,7 @@ struct Action
 	{
 		m_next.reset(value_);
 	}
+	Action& getTail();
 
 private:
 	QScopedPointer<Action> m_next;
@@ -172,7 +173,7 @@ struct Visitor
 		if (NULL == a)
 			return;
 
-		a->setNext(m_result.take());
+		a->getTail().setNext(m_result.take());
 		m_result.reset(a);
 	}
 

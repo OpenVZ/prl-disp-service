@@ -317,6 +317,7 @@ struct Unit
 	Result reset();
 	Result pause();
 	Result unpause();
+	Result rename(const QString& to_);
 	Result resume(const QString& sav_);
 	Result suspend(const QString& sav_);
 	Result undefine();
