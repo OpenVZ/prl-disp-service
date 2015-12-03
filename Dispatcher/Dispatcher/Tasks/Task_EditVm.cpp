@@ -3392,7 +3392,7 @@ QStringList Address::operator()(const Routed& mode_)
 		output << "--ip" << mode_.getMac() << "remove";
 	}
 	else
-		output << "--ip" << mode_.getMac() << a;
+		output << "--ip" << mode_.getMac() << a.join(" ");
 
 	if (!g.isEmpty())
 		output << "--gateway" << mode_.getMac() << g;
@@ -3431,7 +3431,7 @@ QStringList Address::operator()(const Bridge& mode_)
 		g = d.isEmpty() ? "removev6 " : d + " ";
 	}
 	if (!a.isEmpty())
-		output << "--ip" << mode_.getMac() << a;
+		output << "--ip" << mode_.getMac() << a.join(" ");
 
 	if (g.isEmpty())
 	{
