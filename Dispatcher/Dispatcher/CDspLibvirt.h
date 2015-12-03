@@ -46,48 +46,16 @@
 #include <boost/optional.hpp>
 #include <Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h>
 #include <Libraries/PrlCommonUtilsBase/SysError.h>
+#include "XmlModel/Messaging/CVmEvent.h"
 
 class CSavedStateTree;
 
 namespace Libvirt
 {
+#include "Libraries/PrlCommonUtilsBase/ErrorSimple.h" // for 'struct Simple'
 
 namespace Error
 {
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Simple
-
-struct Simple
-{
-	Simple(PRL_RESULT result_, const QString& str_ = QString())
-		: m_data(std::make_pair(result_, str_))
-	{
-	}
-
-	CVmEvent convertToEvent(const QString &paramName_ = EVT_PARAM_DETAIL_DESCRIPTION) const
-	{
-		CVmEvent e;
-		e.setEventCode(m_data.first);
-		e.addEventParameter(new CVmEventParameter(PVE::String, m_data.second, paramName_));
-		return e;
-	}
-
-	PRL_RESULT code() const
-	{
-		return m_data.first;
-	}
-
-protected:
-	QString& details()
-	{
-		return m_data.second;
-	}
-
-private:
-	std::pair<PRL_RESULT, QString> m_data;
-};
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Detailed
 
