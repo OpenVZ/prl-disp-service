@@ -41,6 +41,7 @@
 #include "Libraries/Std/PrlAssert.h"
 #include "Libraries/HostUtils/HostUtils.h"
 #include "Interfaces/ParallelsDomModel.h"
+#include "Libraries/PrlCommonUtilsBase/StringUtils.h"
 
 #include "Dispatcher/Dispatcher/Cache/CacheImpl.h"
 
@@ -60,6 +61,67 @@ void RemoteDisplay::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 
 namespace Index
 {
+
+namespace Match
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Image
+
+struct Image
+{
+	explicit Image(const QString& image_) : m_image(image_)
+	{
+	}
+
+	template<class T>
+	bool operator()(const T* device_) const
+	{
+		 return device_->getSystemName() == m_image;
+	}
+
+private:
+	QString m_image;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Index
+
+struct Index
+{
+	explicit Index(QString target_)
+	{
+		// remove 'sd/fd' prefix
+		m_index = Parallels::fromBase26(target_.remove(0, 2));
+	}
+
+	template<class T>
+	bool operator()(const T* device_) const
+	{
+		 return device_->getIndex() == m_index;
+	}
+
+private:
+	uint m_index;
+};
+
+template<class T>
+typename QList<T*>::iterator choose(typename QList<T*>::iterator begin_,
+		typename QList<T*>::iterator end_, const T& device_)
+{
+	if (!device_.getSystemName().isEmpty())
+		return std::find_if(begin_, end_, Image(device_.getSystemName()));
+	// If image path is not set, then this means that the
+	// device was originally disconnected.
+	// Try matching by target device name, which we expect to
+	// be in the form: <prefix><base26-encoded device index>.
+	if (!device_.getTargetDeviceName().isEmpty())
+		return std::find_if(begin_, end_, Index(device_.getTargetDeviceName()));
+	return end_;
+}
+
+} // namespace Match
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Device
 
@@ -69,9 +131,7 @@ Device<CVmHardDisk, PDE_HARD_DISK>::findDevice
 	(QList<CVmHardDisk*>::iterator begin_, QList<CVmHardDisk*>::iterator end_,
 	 	const CVmHardDisk* disk_)
 {
-	return std::find_if(begin_, end_,
-		 boost::bind(&CVmHardDisk::getSystemName, _1) ==
-			disk_->getSystemName());
+	return std::find_if(begin_, end_, Match::Image(disk_->getSystemName()));
 }
 
 template<>
@@ -80,9 +140,16 @@ Device<CVmOpticalDisk, PDE_OPTICAL_DISK>::findDevice
 	(QList<CVmOpticalDisk*>::iterator begin_, QList<CVmOpticalDisk*>::iterator end_,
 	 	const CVmOpticalDisk* cdrom_)
 {
-	return std::find_if(begin_, end_,
-		 boost::bind(&CVmOpticalDisk::getSystemName, _1) ==
-			cdrom_->getSystemName());
+	return Match::choose(begin_, end_, *cdrom_);
+}
+
+template<>
+QList<CVmFloppyDisk*>::iterator
+Device<CVmFloppyDisk, PDE_FLOPPY_DISK>::findDevice
+	(QList<CVmFloppyDisk*>::iterator begin_, QList<CVmFloppyDisk*>::iterator end_,
+		const CVmFloppyDisk* floppy_)
+{
+	return Match::choose(begin_, end_, *floppy_);
 }
 
 template<>
@@ -137,12 +204,70 @@ void Patch::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 	Device<CVmOpticalDisk, PDE_OPTICAL_DISK>
 		(old_.getVmHardwareList()->m_lstOpticalDisks, b)
 			(new_.getVmHardwareList()->m_lstOpticalDisks);
+	Device<CVmFloppyDisk, PDE_FLOPPY_DISK>
+		(old_.getVmHardwareList()->m_lstFloppyDisks, b)
+			(new_.getVmHardwareList()->m_lstFloppyDisks);
 	Device<CVmGenericNetworkAdapter, PDE_GENERIC_NETWORK_ADAPTER>
 		(old_.getVmHardwareList()->m_lstNetworkAdapters, b)
 			(new_.getVmHardwareList()->m_lstNetworkAdapters);
 }
 
 } // namespace Index
+
+namespace State
+{
+
+template <class T>
+void updateDisconnected(QList<T*>& new_, const QList<T*>& old_)
+{
+	foreach(T *d, new_)
+	{
+		typename QList<T*>::const_iterator i = std::find_if(old_.begin(), old_.end(),
+			boost::bind(&T::getIndex, _1) == d->getIndex());
+		if (i == old_.end())
+			continue;
+		if ((*i)->getConnected() == PVE::DeviceDisconnected)
+		{
+			d->setSystemName((*i)->getSystemName());
+			d->setUserFriendlyName((*i)->getUserFriendlyName());
+		}
+	}
+}
+
+template <class T>
+void updateDisabled(QList<T*>& new_, const QList<T*>& old_)
+{
+	// disabled devices are not present in the list after "Reverse"
+	// transformation - copy them from the original list
+	foreach(const T *d, old_)
+	{
+		if (d->getEnabled() != PVE::DeviceDisabled)
+			continue;
+		if (std::find_if(new_.begin(), new_.end(),
+			boost::bind(&T::getIndex, _1) == d->getIndex()) == new_.end())
+		{
+			new_ << new T(*d);
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Patch
+
+void Patch::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	CVmHardware *o = new_.getVmHardwareList();
+	CVmHardware *n = old_.getVmHardwareList();
+
+	// XXX: HDDs could not be disconnected
+	updateDisabled(o->m_lstHardDisks, n->m_lstHardDisks);
+	updateDisconnected(o->m_lstOpticalDisks, n->m_lstOpticalDisks);
+	updateDisabled(o->m_lstOpticalDisks, n->m_lstOpticalDisks);
+	updateDisconnected(o->m_lstFloppyDisks, n->m_lstFloppyDisks);
+	updateDisabled(o->m_lstFloppyDisks, n->m_lstFloppyDisks);
+}
+
+} // namespace State
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct OsInfo

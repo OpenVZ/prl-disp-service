@@ -80,6 +80,7 @@ PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	d->setItemId(m_hardware->m_lstFloppyDisks.size());
 	d->setIndex(m_hardware->m_lstFloppyDisks.size());
 	m_hardware->addFloppyDisk(d);
+	d->setTargetDeviceName(disk_.getTarget().getDev());
 	return PRL_ERR_SUCCESS;
 }
 
@@ -157,6 +158,7 @@ PRL_RESULT Cdrom::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 		m_clip->getBootSlot(disk_.getBoot().get())
 			.set(d->getDeviceType(), d->getIndex());
 	}
+	d->setTargetDeviceName(disk_.getTarget().getDev());
 	return PRL_ERR_SUCCESS;
 }
 

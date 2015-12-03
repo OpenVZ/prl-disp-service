@@ -103,6 +103,12 @@ QString formatMountInfo(
 		const QString &mountPath, const QString &filesystem,
 		quint64 totalSpace, quint64 freeSpace);
 
+/** Convert number to base26 ('a' - 'z') representation */
+QString toBase26(uint value_);
+
+/** Convert base26 ('a' - 'z') representation to number */
+uint fromBase26(const QString& value_);
+
 }
 
 #endif

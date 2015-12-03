@@ -164,6 +164,18 @@ struct Patch
 
 } // namespace Index
 
+namespace State
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Patch
+
+struct Patch
+{
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
+};
+
+} // namespace State
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct OsInfo
 
@@ -225,7 +237,7 @@ struct Reviser<N, void>
 
 typedef boost::mpl::vector<RemoteDisplay> revise_types;
 typedef boost::mpl::vector<OsInfo, RuntimeOptions, GlobalNetwork,
-		Index::Patch, Cpu, NetworkDevices> untranslatable_types;
+		Index::Patch, Cpu, NetworkDevices, State::Patch> untranslatable_types;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Repairer
