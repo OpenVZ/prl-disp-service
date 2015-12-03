@@ -1336,10 +1336,12 @@ void Task_VzManager::finalizeTask()
 	PRL_RESULT res = getLastErrorCode();
 	// Send response
 	if ( PRL_FAILED( res ) ) {
-		if (res == PRL_ERR_VZ_OPERATION_FAILED) {
+		if (res == PRL_ERR_VZ_OPERATION_FAILED ||
+				res == PRL_ERR_VZCTL_OPERATION_FAILED)
+		{
 			getLastError()->addEventParameter(
 				new CVmEventParameter(PVE::String, get_op_helper()->get_error_msg(),
-					EVT_PARAM_MESSAGE_PARAM_0));
+					EVT_PARAM_DETAIL_DESCRIPTION));
 			getLastError()->addEventParameter(
 				new CVmEventParameter(PVE::UnsignedInt,
 					QString::number(get_op_helper()->get_rc()),
