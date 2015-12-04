@@ -648,12 +648,12 @@ Result Runtime::setCpuLimit(quint32 limit_, quint32 period_)
 	qint32 s(0);
 	qint32 m(0);
 
-	if (do_(&p, boost::bind(&virTypedParamsAddUInt, _1,
+	if (do_(&p, boost::bind(&virTypedParamsAddULLong, _1,
 					&s, &m, VIR_DOMAIN_SCHEDULER_VCPU_PERIOD, period_)).isFailed())
 		return Result(Error::Detailed(PRL_ERR_SET_CPULIMIT));
 
 	qint32 l = (limit_ == 0? -1 : period_ * limit_ / 100);
-	if (do_(&p, boost::bind(&virTypedParamsAddInt, _1,
+	if (do_(&p, boost::bind(&virTypedParamsAddLLong, _1,
 					&s, &m, VIR_DOMAIN_SCHEDULER_VCPU_QUOTA, l)).isFailed())
 		return Result(Error::Detailed(PRL_ERR_SET_CPULIMIT));
 
@@ -671,7 +671,7 @@ Result Runtime::setCpuUnits(quint32 units_)
 	qint32 s(0);
 	qint32 m(0);
 
-	if (do_(&p, boost::bind(&virTypedParamsAddUInt, _1,
+	if (do_(&p, boost::bind(&virTypedParamsAddULLong, _1,
 					&s, &m, VIR_DOMAIN_SCHEDULER_CPU_SHARES, units_)).isFailed())
 		return Result(Error::Detailed(PRL_ERR_SET_CPUUNITS));
 
