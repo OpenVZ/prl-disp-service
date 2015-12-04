@@ -432,13 +432,8 @@ PRL_RESULT Task_ConvertDisks::convertDisks()
 		QString qsCmd = QString("\"%1\" %2 %3 \"%4\" %5")
 			.arg(m_qsDTName,
 				 qsConvMode, QString("--hdd "),
-				 QFileInfo(pHdd->getSystemName()).isDir()
-				 ? pHdd->getSystemName()
-				 : QFileInfo(pHdd->getSystemName()).canonicalPath(),
+				 pHdd->getSystemName(),
 				 qsConvFlags);
-
-		if ( !CDspService::instance()->isServerMode() )
-			qsCmd += " --tr-err"; // translate errors: see bug #482607
 
 		WRITE_TRACE(DBG_WARNING, "Convert disks: start process '%s' ...",
 					QSTR2UTF8(qsCmd));
