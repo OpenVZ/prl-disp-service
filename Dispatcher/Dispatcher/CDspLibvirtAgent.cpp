@@ -414,19 +414,19 @@ Guest::execute(const QString& cmd, bool isHmp)
 }
 
 Prl::Expected<Exec::Future, Error::Simple>
-Guest::startProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn)
+Guest::startProgram(const Exec::Request& req)
 {
 	Exec::Exec e(m_domain);
-	Prl::Expected<int, Error::Simple> r = e.runCommand(path, args, stdIn);
+	Prl::Expected<int, Error::Simple> r = e.runCommand(req);
 	if (r.isFailed())
 		return r.error();
 	return Exec::Future(m_domain, r.value());
 }
 
 Prl::Expected<Exec::Result, Error::Simple>
-Guest::runProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn)
+Guest::runProgram(const Exec::Request& req)
 {
-	Prl::Expected<Exec::Future, Error::Simple> f = startProgram(path, args, stdIn);
+	Prl::Expected<Exec::Future, Error::Simple> f = startProgram(req);
 	if (f.isFailed())
 		return f.error();
 	Result r = f.value().wait();
@@ -486,19 +486,34 @@ Exec::Exec::getCommandStatus(int pid)
 }
 
 Prl::Expected<int, Error::Simple>
-Exec::Exec::runCommand(const QString& path, const QList<QString>& args, const QByteArray& stdIn)
+Exec::Exec::runCommand(const Libvirt::Tools::Agent::Vm::Exec::Request& req)
+{
+	Prl::Expected<QString, Error::Simple> r = 
+		executeInAgent(req.getJson());
+	if (r.isFailed())
+		return r.error();
+
+	std::istringstream is(r.value().toUtf8().data());
+	boost::property_tree::ptree result;
+	boost::property_tree::json_parser::read_json(is, result);
+
+	return result.get<int>("return.pid");
+}
+
+QString Exec::Request::getJson() const
 {
 	boost::property_tree::ptree cmd, argv, params;
 
-	params.put("path", QSTR2UTF8(path));
+	params.put("path", QSTR2UTF8(m_path));
 	params.put("capture-output", "capture-output-value"); // replace placeholder later
+	params.put("execute-in-shell", "execute-in-shell-value"); // replace placeholder later
 
-	if (stdIn.size() > 0) {
-		params.put("input-data", stdIn.toBase64().data());
+	if (m_stdin.size() > 0) {
+		params.put("input-data", m_stdin.toBase64().data());
 	}
 
-	if (args.size() > 0) {
-		foreach (const QString a, args) {
+	if (m_args.size() > 0) {
+		foreach (const QString& a, m_args) {
 			boost::property_tree::ptree e;
 			e.put_value(a.toStdString());
 			argv.push_back(std::make_pair("", e));
@@ -515,17 +530,9 @@ Exec::Exec::runCommand(const QString& path, const QList<QString>& args, const QB
 	// boost json has no int varant, so...
 	std::string s = ss.str();
 	boost::replace_all<std::string>(s, "\"capture-output-value\"", "true");
+	boost::replace_all<std::string>(s, "\"execute-in-shell-value\"", m_runInShell ? "true" : "false");
 
-	Prl::Expected<QString, Error::Simple> r = 
-		executeInAgent(QString::fromUtf8(s.c_str()));
-	if (r.isFailed())
-		return r.error();
-
-	std::istringstream is(r.value().toUtf8().data());
-	boost::property_tree::ptree result;
-	boost::property_tree::json_parser::read_json(is, result);
-
-	return result.get<int>("return.pid");
+	return QString::fromStdString(s);
 }
 
 Prl::Expected<QString, Error::Simple>

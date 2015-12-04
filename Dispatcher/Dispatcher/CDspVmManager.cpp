@@ -979,7 +979,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmGuestGetNetworkSettings> >::run()
 {
 	Prl::Expected<Libvirt::Tools::Agent::Vm::Exec::Result,Libvirt::Error::Simple> e =
 		Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest().runProgram(
-			"prl_nettool", QList<QString>(), QByteArray());
+			Libvirt::Tools::Agent::Vm::Exec::Request("prl_nettool", QList<QString>(), QByteArray()));
 	if (e.isFailed())
 	{
 		WRITE_TRACE(DBG_FATAL, "GetNetworkSettings for VM '%s' is failed: %s",
