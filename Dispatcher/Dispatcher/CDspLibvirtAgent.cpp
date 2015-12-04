@@ -695,6 +695,21 @@ Result Runtime::setCpuCount(quint32 units_)
 	return do_(m_domain.data(), boost::bind(&virDomainSetVcpus, _1, units_));
 }
 
+Result Runtime::setMemory(quint32 memsize_)
+{
+	return do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
+			memsize_<<10,
+			VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE));
+}
+
+Result Runtime::addMemoryBySlots(quint32 memdelta_)
+{
+	Transponster::Vm::Reverse::DimmDevice y(0, memdelta_);
+	return do_(m_domain.data(), boost::bind(&virDomainAttachDeviceFlags, _1,
+			y.getResult().toUtf8().data(),
+			VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE));
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct List
 
