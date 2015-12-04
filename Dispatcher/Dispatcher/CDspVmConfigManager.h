@@ -136,9 +136,15 @@ struct Device
 			quint32 o = h->getIndex();
 			iterator_type it = findDevice(m_devices.begin(), m_devices.end(), h);
 			if (m_devices.end() == it)
+			{
 				h->setIndex(p.getAvailable());
+			}
 			else
+			{
 				h->setIndex((*it)->getIndex());
+				// We shouldn't find the same device twice
+				m_devices.erase(it);
+			}
 
 			boot.change(o, h->getIndex());
 		}
