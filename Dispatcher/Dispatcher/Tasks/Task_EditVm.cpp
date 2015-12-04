@@ -40,7 +40,6 @@
 #include "Libraries/PrlCommonUtils/CFirewallHelper.h"
 #include "Libraries/PrlCommonUtilsBase/NetworkUtils.h"
 #include "Libraries/StatesUtils/StatesHelper.h"
-//#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 #include "Libraries/HostUtils/HostUtils.h"
 #include "Libraries/Std/PrlTime.h"
 #include "XmlModel/ParallelsObjects/CXmlModelHelper.h"
