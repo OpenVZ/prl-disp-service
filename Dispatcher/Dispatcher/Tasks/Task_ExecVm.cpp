@@ -45,6 +45,11 @@
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #include "Libraries/IOService/src/IOCommunication/Socket/Socket_p.h"
 
+enum
+{
+	GUEST_EXEC_MAX_IO_SIZE = 16*1024*1024
+};
+
 static int set_nonblock(int fd)
 {
 	int oldfl;
@@ -173,6 +178,10 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 			}
 		}
 	}
+
+	if (PRL_FAILED(m_task->getLastErrorCode()))
+		return m_task->getLastErrorCode();
+
 	Prl::Expected<Vm::Future,Libvirt::Error::Simple> f = Libvirt::Kit.vms()
 			.at(m_task->getVmUuid()).getGuest().startProgram(
 				cmd->GetProgramName(),
@@ -351,6 +360,13 @@ void Ct::closeStdin(Task_ExecVm* task)
 
 PRL_RESULT Vm::processStdinData(const char * data, size_t size)
 {
+	// Current implementation of "exec" is limited because
+	// QGA is managed with json commands and input data must be
+	// arrgegated in a buffer. Rework task - #PSBM-40805
+	// This synthetic limit prevents segmentation fault
+	if (m_stdindata.size() + size > GUEST_EXEC_MAX_IO_SIZE)
+		return PRL_ERR_EXCEED_MEMORY_LIMIT;
+
 	m_stdindata.append(data, size);
 	return PRL_ERR_SUCCESS;
 }
@@ -395,11 +411,13 @@ void Task_ExecVm::cancelOperation(SmartPtr<CDspClient> pUserSession, const Smart
 	setLastErrorCode(PRL_ERR_OPERATION_WAS_CANCELED);
 }
 
-void Task_ExecVm::processStdin(const SmartPtr<IOPackage>& p)
+PRL_RESULT Task_ExecVm::processStdin(const SmartPtr<IOPackage>& p)
 {
 	PRL_RESULT e = boost::apply_visitor(Exec::Stdin(p, *this), m_mode);
+
 	if (PRL_FAILED(e))
 		setLastErrorCode(e);
+	return e;
 }
 
 PRL_RESULT Task_ExecVm::sendEvent(int type)
@@ -590,7 +608,12 @@ void Task_ResponseProcessor::waitForStart()
 
 void Task_ResponseProcessor::slotProcessStdin(const SmartPtr<IOPackage>& p)
 {
-	m_pExec->processStdin(p);
+	PRL_RESULT e = m_pExec->processStdin(p);
+	if (PRL_SUCCEEDED(e))
+		return;
+
+	m_pExec->wakeUpStage();
+	QThread::exit(e);
 }
 
 void Task_ResponseProcessor::slotProcessFin()
@@ -636,5 +659,6 @@ PRL_RESULT Task_ResponseProcessor::prepareTask()
 
 PRL_RESULT Task_ResponseProcessor::run_body()
 {
-	return QThread::exec();
+	setLastErrorCode(QThread::exec());
+	return getLastErrorCode();
 }

@@ -174,7 +174,7 @@ public:
 	virtual QString getVmUuid() { return m_sVmUuid; }
 
 	PRL_RESULT sendEvent(int type);
-	void processStdin(const SmartPtr<IOPackage>& p);
+	PRL_RESULT processStdin(const SmartPtr<IOPackage>& p);
 	const QString &getSessionUuid() const  { return m_sSessionUuid; }
 	const QString &getGuestSessionUuid() const  { return m_sGuestSessionUuid; }
 	PRL_RESULT sendToClient(int type, const char *data, int size);
