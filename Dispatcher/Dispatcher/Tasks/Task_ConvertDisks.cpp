@@ -339,8 +339,6 @@ PRL_RESULT Task_ConvertDisks::convertDisks()
 {
 	PRL_UINT32 nFlags = ( PCVD_TO_PLAIN_DISK
 						| PCVD_TO_EXPANDING_DISK
-						| PCVD_TO_SPLIT_DISK
-						| PCVD_TO_NON_SPLIT_DISK
 						| PCVD_MERGE_ALL_SNAPSHOTS);
 
 	if ( ! (m_nFlags & nFlags)
@@ -353,8 +351,6 @@ PRL_RESULT Task_ConvertDisks::convertDisks()
 
 	if ( (m_nFlags & (PCVD_TO_PLAIN_DISK | PCVD_TO_EXPANDING_DISK))
 			== (PCVD_TO_PLAIN_DISK | PCVD_TO_EXPANDING_DISK)
-		|| (m_nFlags & (PCVD_TO_SPLIT_DISK | PCVD_TO_NON_SPLIT_DISK))
-				== (PCVD_TO_SPLIT_DISK | PCVD_TO_NON_SPLIT_DISK)
 		)
 	{
 		return PRL_ERR_CONV_HD_CONFLICT;
@@ -374,11 +370,6 @@ PRL_RESULT Task_ConvertDisks::convertDisks()
 			qsConvFlags += " --plain";
 		else if ((m_nFlags & PCVD_TO_EXPANDING_DISK) != 0)
 			qsConvFlags += " --expanding";
-
-		if ((m_nFlags & PCVD_TO_SPLIT_DISK) != 0)
-			qsConvFlags += " --split";
-		else if ((m_nFlags & PCVD_TO_NON_SPLIT_DISK) != 0)
-			qsConvFlags += " --merge";
 	}
 
 	// Refresh disks configuration (from DiskDescriptor.xml)
@@ -419,16 +410,9 @@ PRL_RESULT Task_ConvertDisks::convertDisks()
 			nFlags |= PCVD_TO_PLAIN_DISK;
 		bool bNeedChangeDiskType = (m_nFlags & (nFlags | PCVD_MERGE_ALL_SNAPSHOTS)) != 0;
 
-		nFlags = 0;
-		if (pHdd->isSplitted())
-			nFlags |= PCVD_TO_NON_SPLIT_DISK;
-		else
-			nFlags |= PCVD_TO_SPLIT_DISK;
-		bool bNeedChangeSplitted = (m_nFlags & (nFlags | PCVD_MERGE_ALL_SNAPSHOTS)) != 0;
-
 		WRITE_TRACE( DBG_INFO, "Disk %s: flags %#x", QSTR2UTF8( QDir(pHdd->getSystemName()).dirName() ), nFlags );
 
-		if (!bNeedChangeDiskType && !bNeedChangeSplitted)
+		if (!bNeedChangeDiskType)
 			continue;
 
 		lstHardDisks += pHdd;
@@ -511,11 +495,6 @@ PRL_RESULT Task_ConvertDisks::convertDisks()
 			pHdd->setDiskType(PHD_PLAIN_HARD_DISK);
 		if ((m_nFlags & PCVD_TO_EXPANDING_DISK) != 0)
 			pHdd->setDiskType(PHD_EXPANDING_HARD_DISK);
-
-		if ((m_nFlags & PCVD_TO_SPLIT_DISK) != 0)
-			pHdd->setSplitted(true);
-		if ((m_nFlags & PCVD_TO_NON_SPLIT_DISK) != 0)
-			pHdd->setSplitted(false);
 
 		m_bVmConfigWasChanged = true;
 
