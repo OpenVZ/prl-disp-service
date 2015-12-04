@@ -389,7 +389,7 @@ Result Guest::setUserPasswd(const QString& user_, const QString& passwd_)
 {
 	return do_(m_domain.data(), boost::bind
 		(&virDomainSetUserPassword, _1, user_.toUtf8().constData(),
-			passwd_.toUtf8().constData(), 0));
+			passwd_.toUtf8().constData(), VIR_DOMAIN_CREATE_USER));
 }
 
 Result Guest::checkGuestAgent()
