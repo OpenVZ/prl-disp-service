@@ -154,27 +154,42 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Request
+
+struct Request {
+	Request (const QString& path, const QList<QString>& args, const QByteArray& stdIn) 
+		: m_path(path), m_args(args), m_stdin(stdIn), m_runInShell(false)
+	{
+	}
+	void setRunInShell(bool val)
+	{
+		m_runInShell = val;
+	}
+	QString getJson() const;
+private:
+	QString m_path;
+	QList<QString> m_args;
+	QByteArray m_stdin;
+	bool m_runInShell;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Exec
 
 struct Exec {
 	explicit Exec (const  QSharedPointer<virDomain>& domain_)
-		: m_runInShell(false), m_domain(domain_)
+		: m_domain(domain_)
 	{
 	}
 	Prl::Expected<int, Error::Simple>
-		runCommand(const QString& path, const QList<QString>& args, const QByteArray& stdIn);
+		runCommand(const Request& r);
 
 	Prl::Expected<boost::optional<Result>, Error::Simple>
 		getCommandStatus(int pid);
 
 	Prl::Expected<QString, Error::Simple>
 		executeInAgent(const QString& cmd);
-	void setRunInShell(bool val)
-	{
-		m_runInShell = val;
-	}
 private:
-	bool m_runInShell;
 	QSharedPointer<virDomain> m_domain;
 };
 
@@ -204,12 +219,8 @@ struct Guest
 		dumpState(const QString& path_);
 	Result setUserPasswd(const QString& user, const QString& passwd);
 	Result checkGuestAgent();
-	Prl::Expected<Exec::Future, Error::Simple>
-		startProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn,
-			bool executeInShell = false);
-	Prl::Expected<Exec::Result, Error::Simple>
-		runProgram(const QString& path, const QList<QString>& args, const QByteArray& stdIn,
-			bool executeInShell = false);
+	Prl::Expected<Exec::Future, Error::Simple> startProgram(const Exec::Request& r);
+	Prl::Expected<Exec::Result, Error::Simple> runProgram(const Exec::Request& r);
 	Prl::Expected<QString, Error::Simple>
 		execute(const QString& cmd, bool isHmp = true);
 

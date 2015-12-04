@@ -3468,7 +3468,7 @@ QStringList Address::operator()(const Bridge& mode_)
 
 Libvirt::Result Action::operator()(Libvirt::Tools::Agent::Vm::Guest agent_)
 {
-	return agent_.runProgram("prl_nettool", m_args, QByteArray());
+	return agent_.runProgram(Libvirt::Tools::Agent::Vm::Exec::Request("prl_nettool", m_args, QByteArray()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
