@@ -780,7 +780,7 @@ void List::add(quint32 os_)
 {
 	Libvirt::Domain::Xml::Panic p;
 
-	if (IS_WINDOWS(os_) && os_ >= PVS_GUEST_VER_WIN_2008)
+	if (IS_WINDOWS(os_) && os_ >= PVS_GUEST_VER_WIN_2012)
 	{
 		p.setModel(Libvirt::Domain::Xml::EModel9Hyperv);
 	}
