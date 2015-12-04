@@ -109,21 +109,6 @@ EntryList CVmMigrateHelper::FillRemotePathsAbsolute(QList<QFileInfo> & list)
 	return r;
 }
 
-PRL_RESULT CVmMigrateHelper::GetEntryListsExternal(const QStringList & paths, EntryList & dirList, EntryList & fileList)
-{
-	foreach (const QString & path, paths) {
-		QList<QFileInfo> dl, fl;
-
-		PRL_RESULT rc = GetEntryLists(path, dl, fl);
-		if (PRL_FAILED(rc))
-			return rc;
-		dirList.append(FillRemotePathsAbsolute(dl));
-		fileList.append(FillRemotePathsAbsolute(fl));
-	}
-
-	return PRL_ERR_SUCCESS;
-}
-
 PRL_RESULT CVmMigrateHelper::GetEntryListsVmHome(const QString & home, EntryList & dirList, EntryList & fileList)
 {
 	QList<QFileInfo> dl, fl;
@@ -167,4 +152,95 @@ bool CVmMigrateHelper::isInsideSharedVmPrivate(const QString& path_)
 			return true;
 	}
 	return false;
+}
+
+PRL_RESULT CVmMigrateHelper::buildExternalTmpFiles(const QList<CVmHardDisk*> &disks,
+						const QString &home,
+						QStringList &tmpFiles)
+{
+	QSet<QString> dirs;
+
+	// first build list of uniq directories to check
+	foreach (const CVmHardDisk* disk, disks)
+	{
+		if (NULL == disk)
+			continue;
+		QFileInfo img(disk->getSystemName());
+		// disk is in a vm bundle
+		if (!img.isAbsolute() || img.absoluteFilePath().startsWith(home))
+			continue;
+
+		dirs.insert(img.dir().absolutePath());
+	}
+
+	// second actually create tmp files
+	foreach (const QString &dir, dirs)
+	{
+		QString tmpFile;
+		PRL_RESULT r = createSharedFile(dir, tmpFile);
+		if (PRL_FAILED(r)) {
+			foreach (const QString &tmpFile, tmpFiles)
+				QFile::remove(tmpFile);
+			return r;
+		}
+		// absolute path is passed for external disks check file
+		tmpFiles.append(tmpFile);
+	}
+
+	return PRL_ERR_SUCCESS;
+}
+
+void CVmMigrateHelper::buildNonSharedDisks(const QStringList &checkFiles,
+			const QList<CVmHardDisk*> &disks,
+			QStringList &nonSharedDisks)
+{
+	QStringList nonSharedDirs;
+
+	// first check out for non shared files
+	foreach (const QString & checkFile, checkFiles)
+	{
+		QFileInfo i(checkFile);
+		if (i.exists())
+			continue;
+		nonSharedDirs << i.dir().absolutePath();
+	}
+
+	// second find all external disks that are in non shared dirs
+	foreach (const CVmHardDisk* disk, disks)
+	{
+		if (NULL == disk)
+			continue;
+		QFileInfo i(disk->getSystemName());
+		// disk is in a vm bundle
+		if (!i.isAbsolute())
+			continue;
+		if (!nonSharedDirs.contains(i.dir().absolutePath()))
+			continue;
+		// we use independent dir separators in protocol
+		nonSharedDisks.append(QDir::fromNativeSeparators(i.absoluteFilePath()));
+		WRITE_TRACE(DBG_INFO, "External disk %s is on private media.",
+			    QSTR2UTF8(i.absoluteFilePath()));
+	}
+}
+
+PRL_RESULT CVmMigrateHelper::createSharedFile(const QString &dir, QString &tmpFile)
+{
+	QTemporaryFile f(
+		QString("%1/%2.XXXXXX")
+			.arg(QDir::fromNativeSeparators(dir))
+			.arg(Uuid::createUuid().toString())
+		);
+
+	if (!f.open())
+	{
+		WRITE_TRACE(DBG_FATAL,
+			    "Failed to create/open temparary file %s for shared storage check",
+			    QSTR2UTF8(f.fileName()));
+		return PRL_ERR_OPERATION_FAILED;
+	}
+
+	f.setAutoRemove(false);
+	tmpFile = f.fileName();
+
+	return PRL_ERR_SUCCESS;
 }

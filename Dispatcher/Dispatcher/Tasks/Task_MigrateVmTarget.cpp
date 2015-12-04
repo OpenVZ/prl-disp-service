@@ -488,7 +488,7 @@ m_nConfigPermissions(0)
 
 	m_sSrcHostInfo = pCheckCmd->GetSourceHostHardwareInfo();
 	if (m_nVersion >= MIGRATE_DISP_PROTO_V4)
-		m_lstSharedFileNamesExt = pCheckCmd->GetSharedFileNamesExtra();
+		m_lstCheckFilesExt = pCheckCmd->GetSharedFileNamesExtra();
 	if (m_nVersion >= MIGRATE_DISP_PROTO_V3)
 		m_nPrevVmState = pCheckCmd->GetVmPrevState();
 	if (pCheckCmd->GetTargetVmHomePath().isEmpty())
@@ -609,22 +609,16 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 		checkTargetCpuCompatibility();
 	}
 
-	foreach (const QString & checkFile, m_lstSharedFileNamesExt) {
-		QFileInfo fi(checkFile);
-		if (!fi.exists()) {
-			// we use independent dir separators in protocol
-			m_lstNonSharedDisks.append(QDir::fromNativeSeparators(fi.absolutePath()));
-			WRITE_TRACE(DBG_FATAL, "External disk %s is on private media.",
-				    QSTR2UTF8(fi.absolutePath()));
-		}
-	}
+	CVmMigrateHelper::buildNonSharedDisks(m_lstCheckFilesExt,
+			m_pVmConfig->getVmHardwareList()->m_lstHardDisks,
+			m_lstNonSharedDisks);
 
 	// check that external disk paths are not exist
 	foreach (const QString & disk, m_lstNonSharedDisks) {
-		if (!QDir(disk).exists())
+		if (!QFileInfo(disk).exists())
 			continue;
 		WRITE_TRACE(DBG_FATAL,
-			"The directory for external disk '%s' already exists.", QSTR2UTF8(disk));
+			"External disk file '%s' already exists.", QSTR2UTF8(disk));
 		nRetCode = CDspTaskFailure(*this)
 				(PRL_ERR_VM_MIGRATE_EXT_DISK_DIR_ALREADY_EXISTS_ON_TARGET,
 					disk);
@@ -705,22 +699,6 @@ PRL_RESULT Task_MigrateVmTarget::reactStart(const SmartPtr<IOPackage> &package)
 					__FUNCTION__, QSTR2UTF8(m_sTargetVmHomePath));
 			}
 		}
-	}
-
-	// create directories for external disks
-	foreach (const QString & disk, m_lstNonSharedDisks) {
-		WRITE_TRACE(DBG_FATAL, "Creating disk '%s'", QSTR2UTF8(disk));
-		// first create try to create parent directories
-		// then create disk dir itself, so if it is created meanwhile by
-		// someone else we get an error
-		if (CFileHelper::WriteDirectory(QFileInfo(disk).absolutePath(), &getClient()->getAuthHelper()) &&
-			CFileHelper::CreateDirectoryPath(disk, &getClient()->getAuthHelper()))
-			continue;
-
-		WRITE_TRACE(DBG_FATAL, "Cannot create \"%s\" directory",
-				QSTR2UTF8(disk));
-		return CDspTaskFailure(*this)
-			(PRL_ERR_VM_MIGRATE_CANNOT_CREATE_DIRECTORY, disk);
 	}
 
 	CVzHelper vz;
@@ -919,7 +897,7 @@ void Task_MigrateVmTarget::finalizeTask()
 			if ( !(m_nReservedFlags & PVM_DONT_COPY_VM) )
 				CFileHelper::ClearAndDeleteDir(m_sTargetVmHomePath);
 			foreach (const QString & disk, m_lstNonSharedDisks)
-				CFileHelper::ClearAndDeleteDir(disk);
+				CFileHelper::RemoveEntry(disk, &getClient()->getAuthHelper());
 
 			// Unregister VM dir item
 			CDspService::instance()->getVmDirHelper().deleteVmDirectoryItem(m_sVmDirUuid, m_sVmUuid);
