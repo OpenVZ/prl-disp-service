@@ -337,7 +337,7 @@ void Task_DeleteVm::finalizeTask()
 PRL_RESULT Task_DeleteVm::run_body()
 {
 	PRL_RESULT ret = getLastErrorCode();
-	if (PRL_SUCCEEDED(ret))
+	if (PRL_SUCCEEDED(ret) && !m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
 	{
 #ifdef _LIBVIRT_
 		Libvirt::Result r(Libvirt::Kit.vms().at(m_pVmConfig->getVmIdentification()->getVmUuid())
