@@ -28,6 +28,7 @@
 #include "CDspVmNetworkHelper.h"
 #include "Tasks/Task_CreateProblemReport.h"
 #include "Tasks/Task_BackgroundJob.h"
+#include "Tasks/Task_ManagePrlNetService.h"
 #include <Libraries/PrlUuid/PrlUuid.h>
 #include <Libraries/PrlNetworking/netconfig.h>
 
@@ -659,8 +660,10 @@ namespace Model
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
-Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_):
-	m_uuid(uuid_), m_service(CDspService::instance()), m_user(user_)
+Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
+		const QSharedPointer<Network::Routing>& routing_):
+	m_uuid(uuid_), m_service(CDspService::instance()), m_user(user_),
+	m_state(VMS_UNKNOWN), m_formerState(VMS_UNKNOWN), m_routing(routing_) 
 {
 }
 
@@ -675,12 +678,14 @@ void Vm::setName(const QString& value_)
 	m_home = QFileInfo(QDir(h), VMDIR_DEFAULT_VM_CONFIG_FILE);
 }
 
-void Vm::updateState(VIRTUAL_MACHINE_STATE from_, VIRTUAL_MACHINE_STATE to_)
+void Vm::updateState(VIRTUAL_MACHINE_STATE value_)
 {
+	m_formerState = m_state;
+	m_state = value_;
 	CDspLockedPointer<CDspVmStateSender> s = m_service->getVmStateSender();
 	if (s.isValid())
 	{
-		s->onVmStateChanged(from_, to_, m_uuid,
+		s->onVmStateChanged(m_formerState, m_state, m_uuid,
 			m_user->getVmDirectoryUuid(), false);
 	}
 }
@@ -717,7 +722,11 @@ void Vm::updateConfig(CVmConfiguration value_)
 	{
 		::Vm::Config::Repairer< ::Vm::Config::untranslatable_types>
 			::type::do_(value_, y.get());
+		
+		if (m_state == VMS_RUNNING)	
+			m_routing->reconfigure(y.get(), value_);
 	}
+
 	m_service->getVmConfigManager().saveConfig(SmartPtr<CVmConfiguration>
 		(&value_, SmartPtrPolicy::DoNotReleasePointee),
 		m_home.absoluteFilePath(), m_user, true, false);
@@ -737,16 +746,13 @@ boost::optional<CVmConfiguration> Vm::getConfig() const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Domain
 
-Domain::Domain(const Vm& vm_): m_vm(vm_), m_pid(), m_state(VMS_UNKNOWN),
-	m_formerState(VMS_UNKNOWN)
+Domain::Domain(const Vm& vm_): m_vm(vm_), m_pid()
 {
 }
 
 void Domain::setState(VIRTUAL_MACHINE_STATE value_)
 {
-	m_formerState = m_state;
-	m_state = value_;
-	m_vm.updateState(m_formerState, m_state);
+	m_vm.updateState(value_);
 }
 
 void Domain::setConfig(CVmConfiguration& value_)
@@ -777,7 +783,8 @@ void Domain::setNetworkUsage()
 ///////////////////////////////////////////////////////////////////////////////
 // struct System
 
-System::System(): m_configGuard(&CDspService::instance()->getDispConfigGuard())
+System::System(): m_configGuard(&CDspService::instance()->getDispConfigGuard()),
+	m_routing(new Network::Routing())
 {
 }
 
@@ -810,7 +817,7 @@ QSharedPointer<Domain> System::add(const QString& uuid_)
 	if (!u.isValid())
 		return QSharedPointer<Domain>();
 
-	QSharedPointer<Domain> x(new Domain(Vm(uuid_, u)));
+	QSharedPointer<Domain> x(new Domain(Vm(uuid_, u, m_routing)));
 	return m_domainMap[uuid_] = x;
 }
 
@@ -888,11 +895,7 @@ State::State(const QSharedPointer<Model::System>& system_): m_system(system_)
 
 void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_)
 {
-	Q_UNUSED(oldState_);
 	Q_UNUSED(dirUuid_);
-
-	if (VMS_RUNNING != newState_)
-		return;
 
 	QSharedPointer<Model::Domain> d = m_system->find(vmUuid_);
 	if (d.isNull())
@@ -902,6 +905,12 @@ void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_
 	if (!y)
 		return;
 
+	if (VMS_RUNNING == oldState_ && VMS_RUNNING != newState_)
+		m_system->getRouting()->down(y.get());
+
+	if (VMS_RUNNING != newState_)
+		return;
+
 	CVmConfiguration runtime;
 	Tools::Agent::Vm::Unit v = Kit.vms().at(vmUuid_);
 	if (v.getConfig(runtime, true).isFailed())
@@ -909,6 +918,9 @@ void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_
 
 	Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(y.get(), runtime);
 	d->setConfig(y.get());
+
+	if (VMS_RUNNING != oldState_)
+		m_system->getRouting()->up(y.get());
 }
 
 void State::tuneTraffic(unsigned oldState_, unsigned newState_,

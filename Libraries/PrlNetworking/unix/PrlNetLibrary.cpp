@@ -34,6 +34,8 @@
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #endif
 
+#include <linux/sockios.h>
+
 using namespace PrlNet_Private;
 
 #define PARALLELS_NAT_IS_RUNNING "ps -A 2>&1 | grep prl_naptd >/dev/null"
@@ -472,4 +474,43 @@ PRL_RESULT PrlNet_Private::execDaemon( const QString &path, const QString & arg0
 		return PRL_NET_SYSTEM_ERROR;
 	}
 	return PRL_ERR_SUCCESS;
+}
+
+QString PrlNet::getBridgeName(const QString& iface)
+{
+	QString brPath = QFile::symLinkTarget
+		(QString("/sys/class/net/%1/brport/bridge").arg(iface));
+
+	return QFileInfo(brPath).fileName();
+}
+
+// remove interface from its bridge
+bool PrlNet::releaseInterface(const QString& iface)
+{
+	QString br = getBridgeName(iface);
+
+	if (br.isEmpty())
+		return true;	
+
+	struct ifreq ifr;
+
+	int ifindex = if_nametoindex(iface.toAscii().data());
+	if (ifindex == 0)
+		return false;
+
+	int sock = ::socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock < 0)
+		return false;
+
+	memset(&ifr, 0, sizeof(ifr));
+	strncpy(ifr.ifr_name, br.toAscii().data(), IFNAMSIZ);
+	ifr.ifr_ifindex = ifindex;
+	if (::ioctl(sock, SIOCBRDELIF, &ifr) < 0)
+	{
+		::close(sock);
+		return false;
+	}
+
+	::close(sock);
+	return true;
 }

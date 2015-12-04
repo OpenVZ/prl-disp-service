@@ -36,6 +36,7 @@
 #include <QSet>
 #include <QString>
 #include "CDspLibvirt.h"
+#include "Tasks/Task_ManagePrlNetService.h"
 #include "Libraries/Std/SmartPtr.h"
 #include "XmlModel/VmConfig/CVmGenericNetworkAdapter.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
@@ -96,6 +97,58 @@ private:
 
 	Libvirt::Tools::Agent::Network::List m_networks;
 	Libvirt::Tools::Agent::Interface::List m_interfaces;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Paver
+
+struct Paver: QRunnable
+{
+	Paver(const CVmGenericNetworkAdapter& adapter_, bool enable_): m_adapter(adapter_), m_enable(enable_)
+	{
+	}
+
+	void run()
+	{
+		Task_ManagePrlNetService::updateAdapter(m_adapter, m_enable);
+	}
+
+private:
+	CVmGenericNetworkAdapter m_adapter;
+	bool m_enable;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Routing
+
+struct Routing
+{
+	Routing()
+	{
+		m_thread.setMaxThreadCount(1);
+	}
+
+	void up(const CVmConfiguration& config_)
+	{
+		configure(config_, true);
+	}
+	void down(const CVmConfiguration& config_)
+	{
+		configure(config_, false);
+	}
+	void configure(const CVmConfiguration& config_, bool enable_);
+	void reconfigure(const CVmConfiguration& old_, const CVmConfiguration& new_);
+
+private:
+	static bool find(const CVmGenericNetworkAdapter* adapter_, const QList<CVmGenericNetworkAdapter*>& search_);
+	void execute(const CVmGenericNetworkAdapter& adapter_, bool enable_)
+	{
+		QRunnable* q = new Paver(adapter_, enable_);
+		q->setAutoDelete(true);
+		m_thread.start(q);
+	}
+
+	QThreadPool m_thread;
 };
 
 } // namespace Network

@@ -1138,11 +1138,9 @@ SmartPtr<CDispNetworkPreferences> Task_ManagePrlNetService::convertNetworkConfig
 	return pOldConfig;
 }
 
-void Task_ManagePrlNetService::updateAdapter(SmartPtr<CVmConfiguration> pVmConfig,
-		CVmGenericNetworkAdapter *pAdapter, bool bEnable)
+void Task_ManagePrlNetService::updateAdapter(const CVmGenericNetworkAdapter& pAdapter, bool bEnable)
 {
-	Q_UNUSED(pVmConfig);
-	QString vnic_name = pAdapter->getHostInterfaceName();
+	QString vnic_name = pAdapter.getHostInterfaceName();
 
 #if 0
 	if (CVzHelper::is_vz_running() && bEnable) {
@@ -1150,10 +1148,17 @@ void Task_ManagePrlNetService::updateAdapter(SmartPtr<CVmConfiguration> pVmConfi
 		getVzVNetHelper().DetachVmdev(vnic_name);
 	}
 #endif
-	if (pAdapter->getEmulatedType() == PNA_ROUTED)
+	if (pAdapter.getEmulatedType() == PNA_ROUTED)
 	{
 		if (bEnable)
 		{
+			if (!PrlNet::releaseInterface(vnic_name))
+			{
+				WRITE_TRACE(DBG_FATAL, "Unable to remove interface '%s' from its bridge",
+					qPrintable(vnic_name));
+				return;
+			}
+
 			if (!PrlNet::setIfFlags(vnic_name.toAscii(), IFF_UP, 0))
 			{
 				WRITE_TRACE(DBG_FATAL, "Error enabling adapter '%s': setIfFlags()",
@@ -1165,7 +1170,7 @@ void Task_ManagePrlNetService::updateAdapter(SmartPtr<CVmConfiguration> pVmConfi
 			PrlNet::setAdapterIpAddress(vnic_name, DEFAULT_HOSTROUTED_GATEWAY6);
 		}
 
-		QStringList ips = pAdapter->getNetAddresses();
+		QStringList ips = pAdapter.getNetAddresses();
 		if (ips.size() == 0)
 			return;
 
@@ -1176,19 +1181,16 @@ void Task_ManagePrlNetService::updateAdapter(SmartPtr<CVmConfiguration> pVmConfi
 			if (!NetworkUtils::ParseIpMask(ip_mask, ip))
 				continue;
 
-			WRITE_TRACE(DBG_DEBUG, "Set route on node for IP '%s'", ip.toUtf8().constData());
-			bool rc = PrlNet::SetRouteToDevice(ip, vnic_name, bEnable);
-			if (!rc)
-				WRITE_TRACE(DBG_FATAL, "Failed to set route to %s device %s",
+			if (!PrlNet::SetRouteToDevice(ip, vnic_name, bEnable) && bEnable)
+			{
+				WRITE_TRACE(DBG_FATAL, "Failed to set route to %s on device %s",
 					QSTR2UTF8(ip), QSTR2UTF8(vnic_name));
+			}
 
-			WRITE_TRACE(DBG_DEBUG, "Set arp for ip '%s'", ip.toUtf8().constData());
-			rc = PrlNet::SetArpToNodeDevices(ip, QString(), bEnable, false);
-			if (!rc)
-				WRITE_TRACE(DBG_FATAL, "Failed to set arp %s", QSTR2UTF8(ip) );
+			PrlNet::SetArpToNodeDevices(ip, QString(), bEnable, bEnable);
 		}
 	}
-	else if (pAdapter->getEmulatedType() != PNA_DIRECT_ASSIGN)
+	else if (pAdapter.getEmulatedType() != PNA_DIRECT_ASSIGN)
 	{
 		if (!bEnable)
 			return;
@@ -1211,7 +1213,6 @@ void Task_ManagePrlNetService::updateVmNetworking(SmartPtr<CVmConfiguration> pVm
 	Q_UNUSED( pVmConfig );
 	Q_UNUSED( bEnable );
 
-#if 0
 #ifdef _LIN_
 	if (!pVmConfig)
 		return;
@@ -1224,9 +1225,8 @@ void Task_ManagePrlNetService::updateVmNetworking(SmartPtr<CVmConfiguration> pVm
 		if (!adapter)
 			continue;
 
-		updateAdapter(pVmConfig, adapter, bEnable);
+		updateAdapter(*adapter, bEnable);
 	}
-#endif
 #endif
 }
 

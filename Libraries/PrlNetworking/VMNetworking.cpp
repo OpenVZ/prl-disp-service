@@ -263,4 +263,15 @@ PRL_NET_MODE PrlNet::getMode()
 	return PRL_NET_MODE_VNIC;
 }
 
-
+QStringList PrlNet::makePhysicalAdapterList()
+{
+	QStringList names;
+	QList<QNetworkInterface> l =  QNetworkInterface::allInterfaces();
+	foreach(const QNetworkInterface& i, l)
+	{
+		if ((QNetworkInterface::IsUp & i.flags())
+				&& QDir(QString("/sys/class/net/%1/device").arg(i.name())).exists())
+			names << i.name();
+	}
+	return names;
+}

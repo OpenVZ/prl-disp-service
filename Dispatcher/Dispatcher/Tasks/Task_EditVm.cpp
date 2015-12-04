@@ -2615,9 +2615,9 @@ void Task_EditVm::updateNetworkSettings(
 	}
 
 	foreach(CVmGenericNetworkAdapter* pAdapter, lstDrop)
-		Task_ManagePrlNetService::updateAdapter(pNewVmConfig, pAdapter, false);
+		Task_ManagePrlNetService::updateAdapter(*pAdapter, false);
 	foreach(CVmGenericNetworkAdapter* pAdapter, lstAdd)
-		Task_ManagePrlNetService::updateAdapter(pOldVmConfig, pAdapter, true);
+		Task_ManagePrlNetService::updateAdapter(*pAdapter, true);
 #endif
 }
 
