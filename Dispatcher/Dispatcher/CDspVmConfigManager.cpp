@@ -332,6 +332,15 @@ void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 	}
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct MemoryOptions
+
+void MemoryOptions::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+{
+	old_.getVmHardwareList()->setMemory(
+		(new CVmMemory(new_.getVmHardwareList()->getMemory())));
+}
+
 namespace Access
 {
 ///////////////////////////////////////////////////////////////////////////////
