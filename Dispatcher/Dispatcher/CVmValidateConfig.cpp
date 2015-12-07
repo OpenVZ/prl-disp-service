@@ -1885,58 +1885,9 @@ void CVmValidateConfig::CheckParallelPort()
 	}
 
 	QList<CVmParallelPort* > lstParallelPorts = m_pVmConfig->getVmHardwareList()->m_lstParallelPorts;
-	for(int i = 0; i < lstParallelPorts.size(); i++)
-	{
-		CVmParallelPort* pParallelPort = lstParallelPorts[i];
-		if (   !pParallelPort
-			|| pParallelPort->getEnabled() != PVE::DeviceEnabled
-			|| pParallelPort->getConnected() != PVE::DeviceConnected)
-			continue;
+	if (!lstParallelPorts.isEmpty())
+		m_lstResults += PRL_ERR_UNSUPPORTED_DEVICE_TYPE;
 
-		QSet<QString > setIds = E_SET << pParallelPort->getFullItemId()
-			<< pParallelPort->getEnabled_id() << pParallelPort->getConnected_id()
-			<< pParallelPort->getSystemName_id();
-
-		QString qsSysName = pParallelPort->getSystemName();
-		if( qsSysName.isEmpty() )
-		{
-			m_lstResults += PRL_ERR_VMCONF_PARALLEL_PORT_SYS_NAME_IS_EMPTY;
-			m_mapParameters.insert(m_lstResults.size(),
-				QStringList()<<QString::number(pParallelPort->getIndex() + 1));
-			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pParallelPort->getIndex(), pParallelPort->getItemId()));
-			ADD_FID(setIds);
-			continue;
-		}
-
-		setIds << pParallelPort->getEmulatedType_id();
-
-		if (   IsUrlFormatSysName(qsSysName)
-				 && pParallelPort->getEmulatedType() == PVE::ParallelOutputFile)
-		{
-			m_lstResults += PRL_ERR_VMCONF_PARALLEL_PORT_URL_FORMAT_SYS_NAME;
-			m_mapParameters.insert(m_lstResults.size(), QStringList()
-				<< qsSysName << QString::number(pParallelPort->getIndex() + 1));
-			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pParallelPort->getIndex(), pParallelPort->getItemId()));
-			ADD_FID(setIds);
-		}
-		else if (   HasSysNameInvalidSymbol(qsSysName)
-				 && pParallelPort->getEmulatedType() == PVE::ParallelOutputFile)
-		{
-			m_lstResults += PRL_ERR_VMCONF_PARALLEL_PORT_SYS_NAME_HAS_INVALID_SYMBOL;
-			m_mapParameters.insert(m_lstResults.size(), QStringList() << GetFileNameFromInvalidPath(qsSysName));
-			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pParallelPort->getIndex(), pParallelPort->getItemId()));
-			ADD_FID(setIds);
-		}
-		else if( pParallelPort->getEmulatedType() == PVE::ParallelOutputFile
-				&& !QFile::exists(qsSysName)
-				&& !pParallelPort->isRemote()
-				&& !CFileHelper::isRemotePath(qsSysName))
-		{
-			m_lstResults += PRL_ERR_VMCONF_PARALLEL_PORT_IMAGE_IS_NOT_EXIST;
-			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pParallelPort->getIndex(), pParallelPort->getItemId()));
-			ADD_FID((E_SET << pParallelPort->getRemote_id()) + setIds);
-		}
-	}
 }
 
 void CVmValidateConfig::CheckMassStorageDevices(PRL_MASS_STORAGE_INTERFACE_TYPE type)
