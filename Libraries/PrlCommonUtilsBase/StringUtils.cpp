@@ -248,4 +248,26 @@ QString formatMountInfo(
 					  .arg("mountpoint", -27).arg(mountPath);
 }
 
+
+QString toBase26(uint value_)
+{
+	// convert digital index to string
+	// 0 -> "a", 1 -> "b", .., 25 -> 'z', 26 -> "ba"
+	QString e('a' + value_ % 26);
+	while ((value_ /= 26) > 0)
+		e.prepend('a' + value_ % 26);
+	return e;
+}
+
+uint fromBase26(const QString& value_)
+{
+	uint y = 0, z = 1, i = value_.size();
+	while (i--)
+	{
+		y += (value_[i].toAscii() - 'a') * z;
+		z *= 26;
+	}
+	return y;
+}
+
 }

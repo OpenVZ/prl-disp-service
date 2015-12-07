@@ -35,6 +35,7 @@
 #include "domain_type.h"
 #include <QDomDocument>
 #include <Libraries/PrlCommonUtilsBase/NetworkUtils.h>
+#include <Libraries/PrlCommonUtilsBase/StringUtils.h>
 #include <XmlModel/VtInfo/VtInfo.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
 
@@ -147,17 +148,8 @@ struct Model
 
 	QString getTargetName() const
 	{
-		int i = m_dataSource->getIndex();
-		// convert digital index to string
-		// 1 -> "a", 2 -> "b", .., 26 -> "ba"
-
-		// 26 is the alphabet size
-		QString e('a' + i % 26);
-
-		while ((i /= 26) > 0)
-			e.prepend('a' + i % 26);
-
-		return QString(Flavor<T>::getTarget()) + e;
+		return QString(Flavor<T>::getTarget())
+			+ Parallels::toBase26(m_dataSource->getIndex());
 	}
 	QString getImageFile() const
 	{
@@ -289,11 +281,6 @@ void Ordinary<T>::setFlags()
 {
 	// boot
 	m_result.setBoot(m_boot);
-	// connected
-	if (Flavor<T>::image == getModel().getEmulatedType() &&
-		!getModel().isConnected() && !getModel().getImageFile().isEmpty())
-		m_result.setSerial(QString(getModel().getImageFile().toUtf8().toHex()));
-
 	// readonly
 	m_result.setReadonly(Flavor<T>::readonly);
 	// snapshot

@@ -241,16 +241,7 @@ struct Clustered
 		}
 		Source::Unit<T> v;
 		v.setDevice(getDevice());
-		if (!boost::apply_visitor(v, disk_.getDiskSource()))
-			return false;
-		if (PVE::DeviceDisconnected == getDevice().getConnected() &&
-			disk_.getSerial())
-		{
-			QByteArray a = QByteArray::fromHex(disk_.getSerial().get().toUtf8());
-			getDevice().setSystemName(QString(a));
-			getDevice().setUserFriendlyName(QString(a));
-		}
-		return true;
+		return boost::apply_visitor(v, disk_.getDiskSource());
 	}
 	T* getResult()
 	{

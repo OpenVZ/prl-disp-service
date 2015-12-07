@@ -382,6 +382,8 @@ void List::add(const CVmHardDisk* hdd_, const CVmRunTimeOptions* runtime_)
 {
 	if (hdd_ == NULL)
 		return;
+	if (hdd_->getEnabled() != PVE::DeviceEnabled)
+		return;
 	Builder::Hdd b(*hdd_, m_boot(*hdd_));
 	if (NULL != runtime_)
 	{
@@ -397,12 +399,16 @@ void List::add(const CVmOpticalDisk* cdrom_)
 		return;
 	if (cdrom_->getEmulatedType() == Flavor<CVmOpticalDisk>::real)
 		return;
+	if (cdrom_->getEnabled() != PVE::DeviceEnabled)
+		return;
 	build(Builder::Ordinary<CVmOpticalDisk>(*cdrom_, m_boot(*cdrom_)));
 }
 
 void List::add(const CVmFloppyDisk* floppy_)
 {
 	if (floppy_ == NULL)
+		return;
+	if (floppy_->getEnabled() != PVE::DeviceEnabled)
 		return;
 	build(Builder::Ordinary<CVmFloppyDisk>(*floppy_, m_boot(*floppy_)));
 }
@@ -1026,6 +1032,9 @@ PRL_RESULT Vm::setDevices()
 		getVmStartupOptions()->getBootDeviceList()), b);
 	foreach (const CVmHardDisk* d, h->m_lstHardDisks)
 	{
+		// "disconnected" flag is not supported for HDDs
+		if (d->getConnected() != PVE::DeviceConnected)
+			return PRL_ERR_DISK_INVALID_PARAMETERS;
 		t.add(d, s->getVmRuntimeOptions());
 	}
 	foreach (const CVmFloppyDisk* d, h->m_lstFloppyDisks)
