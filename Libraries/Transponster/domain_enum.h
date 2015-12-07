@@ -814,10 +814,10 @@ enum EModel5
 	EModel5Virtio
 };
 
-enum EChoice1010
+enum EChoice1018
 {
-	EChoice1010DevRandom,
-	EChoice1010DevHwrng
+	EChoice1018DevRandom,
+	EChoice1018DevHwrng
 };
 
 enum EModel6
@@ -827,8 +827,13 @@ enum EModel6
 
 enum EModel7
 {
-	EModel7I6300esb,
-	EModel7Ib700
+	EModel7Dimm
+};
+
+enum EModel8
+{
+	EModel8I6300esb,
+	EModel8Ib700
 };
 
 enum EAction
@@ -841,18 +846,18 @@ enum EAction
 	EActionDump
 };
 
-enum EModel8
-{
-	EModel8Virtio,
-	EModel8Xen,
-	EModel8None
-};
-
 enum EModel9
 {
-	EModel9Isa,
-	EModel9Pseries,
-	EModel9Hyperv
+	EModel9Virtio,
+	EModel9Xen,
+	EModel9None
+};
+
+enum EModel10
+{
+	EModel10Isa,
+	EModel10Pseries,
+	EModel10Hyperv
 };
 
 

@@ -97,7 +97,7 @@ namespace Device
 {
 
 struct List;
-typedef QList<Libvirt::Domain::Xml::VChoice932 > deviceList_type;
+typedef QList<Libvirt::Domain::Xml::VChoice934 > deviceList_type;
 
 namespace Clustered
 {

@@ -1025,11 +1025,11 @@ Enum<Domain::Xml::EModel5>::data_type Enum<Domain::Xml::EModel5>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EChoice1010>::data_type Enum<Domain::Xml::EChoice1010>::getData()
+Enum<Domain::Xml::EChoice1018>::data_type Enum<Domain::Xml::EChoice1018>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EChoice1010DevRandom, "/dev/random"))
-			(data_type::value_type(Domain::Xml::EChoice1010DevHwrng, "/dev/hwrng"));
+			(data_type::value_type(Domain::Xml::EChoice1018DevRandom, "/dev/random"))
+			(data_type::value_type(Domain::Xml::EChoice1018DevHwrng, "/dev/hwrng"));
 }
 
 template<>
@@ -1043,8 +1043,15 @@ template<>
 Enum<Domain::Xml::EModel7>::data_type Enum<Domain::Xml::EModel7>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EModel7I6300esb, "i6300esb"))
-			(data_type::value_type(Domain::Xml::EModel7Ib700, "ib700"));
+			(data_type::value_type(Domain::Xml::EModel7Dimm, "dimm"));
+}
+
+template<>
+Enum<Domain::Xml::EModel8>::data_type Enum<Domain::Xml::EModel8>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EModel8I6300esb, "i6300esb"))
+			(data_type::value_type(Domain::Xml::EModel8Ib700, "ib700"));
 }
 
 template<>
@@ -1060,21 +1067,21 @@ Enum<Domain::Xml::EAction>::data_type Enum<Domain::Xml::EAction>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EModel8>::data_type Enum<Domain::Xml::EModel8>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EModel8Virtio, "virtio"))
-			(data_type::value_type(Domain::Xml::EModel8Xen, "xen"))
-			(data_type::value_type(Domain::Xml::EModel8None, "none"));
-}
-
-template<>
 Enum<Domain::Xml::EModel9>::data_type Enum<Domain::Xml::EModel9>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EModel9Isa, "isa"))
-			(data_type::value_type(Domain::Xml::EModel9Pseries, "pseries"))
-			(data_type::value_type(Domain::Xml::EModel9Hyperv, "hyperv"));
+			(data_type::value_type(Domain::Xml::EModel9Virtio, "virtio"))
+			(data_type::value_type(Domain::Xml::EModel9Xen, "xen"))
+			(data_type::value_type(Domain::Xml::EModel9None, "none"));
+}
+
+template<>
+Enum<Domain::Xml::EModel10>::data_type Enum<Domain::Xml::EModel10>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EModel10Isa, "isa"))
+			(data_type::value_type(Domain::Xml::EModel10Pseries, "pseries"))
+			(data_type::value_type(Domain::Xml::EModel10Hyperv, "hyperv"));
 }
 
 } // namespace Libvirt
