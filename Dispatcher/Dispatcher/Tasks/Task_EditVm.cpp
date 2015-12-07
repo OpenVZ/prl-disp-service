@@ -3506,6 +3506,14 @@ Libvirt::Result Limit::operator()(vm::Runtime agent_) const
 		.getQemuKvm()->getVCpuInfo()->getDefaultPeriod());
 }
 
+namespace
+{
+quint32 ceilDiv(quint32 lhs_, quint32 rhs_)
+{
+	return (lhs_ + rhs_ - 1) / rhs_;
+}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
@@ -3513,22 +3521,20 @@ Vm::Action* Factory::operator()(const Request& input_) const
 {
 	Action* output = NULL;
 	Forge f(input_);
-	quint32 o = input_.getStart().getVmHardwareList()->getCpu()->getCpuUnits();
-	quint32 n = input_.getFinal().getVmHardwareList()->getCpu()->getCpuUnits();
-	if (o != n)
-		output = f.craftRuntime(boost::bind(&vm::Runtime::setCpuUnits, _1, n));
+	CVmCpu* oldCpu(input_.getStart().getVmHardwareList()->getCpu());
+	CVmCpu* newCpu(input_.getFinal().getVmHardwareList()->getCpu());
+	if (oldCpu->getCpuUnits() != newCpu->getCpuUnits())
+		output = f.craftRuntime(boost::bind(&vm::Runtime::setCpuUnits, _1, newCpu->getCpuUnits()));
 
-	o = input_.getStart().getVmHardwareList()->getCpu()->getCpuLimit();
-	n = input_.getFinal().getVmHardwareList()->getCpu()->getCpuLimit();
-	if (o != n) {
-		Action* a(f.craftRuntime(Limit(n)));
+	if (oldCpu->getNumber() != newCpu->getNumber()) {
+		Action* a(f.craftRuntime(boost::bind(&vm::Runtime::setCpuCount, _1, newCpu->getNumber())));
 		a->setNext(output);
 		output = a;
 	}
-	o = input_.getStart().getVmHardwareList()->getCpu()->getNumber();
-	n = input_.getFinal().getVmHardwareList()->getCpu()->getNumber();
-	if (o != n) {
-		Action* a(f.craftRuntime(boost::bind(&vm::Runtime::setCpuCount, _1, n)));
+	quint32 x = ceilDiv(oldCpu->getCpuLimit(), oldCpu->getNumber());
+	quint32 y = ceilDiv(newCpu->getCpuLimit(), newCpu->getNumber());
+	if (x != y) {
+		Action* a(f.craftRuntime(Limit(y)));
 		a->setNext(output);
 		output = a;
 	}
