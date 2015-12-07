@@ -859,7 +859,7 @@ PRL_RESULT Cpu::setLimit()
 	if (!m_tune)
 		return PRL_ERR_UNINITIALIZED;
 
-	m_tune->setQuota(m_vt->getDefaultPeriod() * l / 100);
+	m_tune->setQuota(m_vt->getDefaultPeriod() * l / (100 * m_input.getNumber()));
 	return PRL_ERR_SUCCESS;
 }
 
