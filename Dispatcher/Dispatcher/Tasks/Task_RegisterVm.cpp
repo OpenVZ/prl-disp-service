@@ -46,6 +46,7 @@
 #include "CProtoSerializer.h"
 #include "CDspClientManager.h"
 #include "Libraries/PrlCommonUtilsBase/SysError.h"
+#include "Libraries/PrlCommonUtilsBase/StringUtils.h"
 #include "Libraries/Std/PrlAssert.h"
 #include "Libraries/HostUtils/HostUtils.h"
 #include "Libraries/StatesUtils/StatesHelper.h"
@@ -2006,6 +2007,8 @@ PRL_RESULT	Task_RegisterVm::createHardDisks()
 		CVmHardDisk *pHardDisk = *it_hdd;
 		// LOG_MESSAGE( DBG_FATAL,"########## Current disk [%s]", pHardDisk->getUserFriendlyName().toUtf8().data());
 
+		if (pHardDisk->getSerialNumber().isEmpty())
+			pHardDisk->setSerialNumber(Parallels::generateDiskSerialNumber());
 		// FIXME: Validate HardDisk full path
 		QString strFullPath;
 		if ( doRegisterOnly() )

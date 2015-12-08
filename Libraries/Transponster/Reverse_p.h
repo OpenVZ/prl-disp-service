@@ -368,6 +368,7 @@ struct Hdd: Ordinary<CVmHardDisk>
 
 	void setIoLimit(const CVmIoLimit* global_);
 	void setIopsLimit(const CVmRunTimeOptions& runtime_);
+	void setSerial(const QString& serial_);
 
 private:
 	const CVmHardDisk& m_hdd;

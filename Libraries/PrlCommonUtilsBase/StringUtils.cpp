@@ -28,6 +28,7 @@
 
 #include "StringUtils.h"
 #include "Interfaces/ParallelsQt.h"
+#include "Libraries/PrlUuid/Uuid.h"
 
 #include <QMap>
 
@@ -268,6 +269,15 @@ uint fromBase26(const QString& value_)
 		z *= 26;
 	}
 	return y;
+}
+
+QString generateDiskSerialNumber()
+{
+	Uuid u = Uuid::createUuid();
+	QString s = u.toStringWithoutBrackets().remove("-");
+	// ATA, SCSI and virtio interfaces support SN up to 20 characters
+	s.truncate(20);
+	return s;
 }
 
 }

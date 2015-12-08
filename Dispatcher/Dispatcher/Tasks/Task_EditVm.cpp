@@ -39,6 +39,7 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/PrlCommonUtils/CFirewallHelper.h"
 #include "Libraries/PrlCommonUtilsBase/NetworkUtils.h"
+#include "Libraries/PrlCommonUtilsBase/StringUtils.h"
 #include "Libraries/StatesUtils/StatesHelper.h"
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 #include "Libraries/HostUtils/HostUtils.h"
@@ -1831,6 +1832,13 @@ PRL_RESULT Task_EditVm::editVm()
 							{
 								if ( CXmlModelHelper::IsElemInList( pNewDevice, *pOldLstDevs ) )//Old device - ignore checks
 									continue;
+								if (nType == PDE_HARD_DISK)
+								{
+									CVmHardDisk *d = dynamic_cast<CVmHardDisk*>(pNewDevice);
+									PRL_ASSERT(d);
+									if (d && d->getSerialNumber().isEmpty())
+										d->setSerialNumber(Parallels::generateDiskSerialNumber());
+								}
 
 								if ( PVE::DeviceDisconnected == pNewDevice->getConnected() )//Added disconnected device - ok
 									continue;
