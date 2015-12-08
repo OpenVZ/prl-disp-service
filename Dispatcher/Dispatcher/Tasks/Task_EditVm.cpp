@@ -2533,8 +2533,10 @@ PRL_RESULT Task_EditVm::editVm()
 	}
 
 	// Try to apply the new VM config if the VM is running
-	if (PRL_SUCCEEDED(ret))
+	if (PRL_SUCCEEDED(ret)) {
 		applyVmConfig( getClient(), pVmConfigNew, pVmConfigOld, getRequestPackage() );
+		ret = getLastErrorCode(); 
+	}
 
 	return ret;
 }
