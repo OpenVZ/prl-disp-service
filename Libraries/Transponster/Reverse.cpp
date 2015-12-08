@@ -368,6 +368,11 @@ void Hdd::setIopsLimit(const CVmRunTimeOptions& runtime_)
 	getResult().setIotune(t);
 }
 
+void Hdd::setSerial(const QString& serial_)
+{
+	getResult().setSerial(serial_);
+}
+
 } // namespace Builder
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -390,6 +395,8 @@ void List::add(const CVmHardDisk* hdd_, const CVmRunTimeOptions* runtime_)
 		b.setIoLimit(runtime_->getIoLimit());
 		b.setIopsLimit(*runtime_);
 	}
+	if (!hdd_->getSerialNumber().isEmpty())
+		b.setSerial(hdd_->getSerialNumber());
 	build(b);
 }
 

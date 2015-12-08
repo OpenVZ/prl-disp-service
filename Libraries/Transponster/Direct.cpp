@@ -130,6 +130,8 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 		boost::apply_visitor(v, (*t).getChoice1049());
 	}
 	d->setTargetDeviceName(disk_.getTarget().getDev());
+	if (disk_.getSerial())
+		d->setSerialNumber(disk_.getSerial().get());
 	return PRL_ERR_SUCCESS;
 }
 
