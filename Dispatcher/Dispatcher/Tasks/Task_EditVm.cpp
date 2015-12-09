@@ -1141,14 +1141,21 @@ PRL_RESULT Task_EditVm::mergeSampleConfig(
 	// VIDEO
 	pTmpConfig->getVmHardwareList()->getVideo()->fromString(
 			pSampleConfig->getVmHardwareList()->getVideo()->toString());
-	// IO Limit
+	// IOPS limit
 	pTmpConfig->getVmSettings()->getVmRuntimeOptions()->setIopsLimit(
 			pSampleConfig->getVmSettings()->getVmRuntimeOptions()->getIopsLimit());
-	// IOPS limit
-	if (pTmpConfig->getVmSettings()->getVmRuntimeOptions()->getIoLimit() &&
-		pSampleConfig->getVmSettings()->getVmRuntimeOptions()->getIoLimit())
-		pTmpConfig->getVmSettings()->getVmRuntimeOptions()->getIoLimit()->fromString(
-				pSampleConfig->getVmSettings()->getVmRuntimeOptions()->getIoLimit()->toString());
+	// IO Limit
+	CVmIoLimit* l = pSampleConfig->getVmSettings()->getVmRuntimeOptions()->getIoLimit();
+
+	if (l != NULL)
+	{
+		pTmpConfig->getVmSettings()->getVmRuntimeOptions()->setIoLimit(new CVmIoLimit(l));
+		foreach(CVmHardDisk *h, pTmpConfig->getVmHardwareList()->m_lstHardDisks)
+		{
+			h->setIoLimit(new CVmIoLimit(l));
+			h->setIopsLimit(pTmpConfig->getVmSettings()->getVmRuntimeOptions()->getIopsLimit());
+		}
+	}
 
 	rc = pConfigNew->mergeDocuments(pTmpConfig.getImpl(), pConfigOld.getImpl());
 	if (PRL_FAILED(rc))
