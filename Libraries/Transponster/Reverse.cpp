@@ -64,8 +64,12 @@ bool Resources::getVCpu(Libvirt::Domain::Xml::VCpu& dst_)
 	CVmCpu* u = h->getCpu();
 	if (NULL == u)
 		return false;
+	
+	if(0 == u->getNumber())
+		return false;
 
 	Libvirt::Domain::Xml::Cpu954 c;
+	
 	c.setMode(Libvirt::Domain::Xml::EModeHostPassthrough);
 
 #if (LIBVIR_VERSION_NUMBER >= 1002013)
@@ -74,6 +78,24 @@ bool Resources::getVCpu(Libvirt::Domain::Xml::VCpu& dst_)
 		disableFeature(l, QString("vmx"));
 	c.setFeatureList(l);
 #endif
+
+	CVmMemory *m = h->getMemory();
+	if (m->isEnableHotplug()) {
+
+		QList<Libvirt::Domain::Xml::Cell > cells;
+		Libvirt::Domain::Xml::Cell cell;
+		boost::optional<unsigned int> id(0); 
+		cell.setId(id);
+
+		QString mask = "0";
+		for (unsigned int i=1; i<u->getNumber(); i++)
+			mask += "," + QString::number(i);
+
+		cell.setCpus(mask);
+		cell.setMemory(m->getMaxNumaRamSize()<<10);
+		cells.append(cell);
+		c.setNuma(cells);
+	}
 
 	mpl::at_c<Libvirt::Domain::Xml::VCpu::types, 2>::type v;
 	v.setValue(c);
@@ -175,7 +197,7 @@ void Resources::setMemory(const Libvirt::Domain::Xml::Memory& src_)
 	if (NULL == h)
 		return;
 
-	CVmMemory* m = new CVmMemory();
+	CVmMemory* m = new CVmMemory(h->getMemory());
 	m->setRamSize(src_.getScaledInteger().getOwnValue() >> 10);
 	h->setMemory(m);
 }
@@ -193,6 +215,64 @@ bool Resources::getMemory(Libvirt::Domain::Xml::Memory& dst_)
 	Libvirt::Domain::Xml::ScaledInteger v;
 	v.setOwnValue(m->getRamSize() << 10);
 	dst_.setScaledInteger(v);
+	return true;
+}
+
+void Resources::setMaxMemory(const Libvirt::Domain::Xml::MaxMemory& src_)
+{
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return;
+
+	CVmMemory* m = new CVmMemory(h->getMemory());
+	m->setMaxRamSize(src_.getScaledInteger().getOwnValue() >> 10);
+	m->setMaxSlots(src_.getSlots());
+	h->setMemory(m);
+}
+
+bool Resources::getMaxMemory(Libvirt::Domain::Xml::MaxMemory& dst_)
+{
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return false;
+
+	CVmMemory* m = h->getMemory();
+	if (NULL == m)
+		return false;
+
+	if (!m->isEnableHotplug())
+		return false;
+
+	Libvirt::Domain::Xml::ScaledInteger v;
+	v.setOwnValue(m->getMaxRamSize() << 10);
+	dst_.setScaledInteger(v);
+	if (m->getMaxSlots())
+		dst_.setSlots(m->getMaxSlots());
+	return true;
+}
+
+void Resources::setCurrentMemory(const Libvirt::Domain::Xml::ScaledInteger& src_)
+{
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return;
+
+	CVmMemory* m = new CVmMemory(h->getMemory());
+	m->setRamSize(src_.getOwnValue() >> 10);
+	h->setMemory(m);
+}
+
+bool Resources::getCurrentMemory(Libvirt::Domain::Xml::ScaledInteger& dst_)
+{
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return false;
+
+	CVmMemory* m = h->getMemory();
+	if (NULL == m)
+		return false;
+
+	dst_.setOwnValue(m->getRamSize() << 10);
 	return true;
 }
 
@@ -1108,6 +1188,14 @@ PRL_RESULT Vm::setResources(const VtInfo& vt_)
 	if (u.getMemory(m))
 		m_result->setMemory(m);
 
+	Libvirt::Domain::Xml::ScaledInteger cur_m;
+	if (u.getCurrentMemory(cur_m))
+		m_result->setCurrentMemory(cur_m);
+
+	Libvirt::Domain::Xml::MaxMemory max_m;
+	if (u.getMaxMemory(max_m))
+		m_result->setMaxMemory(max_m);
+
 	Libvirt::Domain::Xml::VCpu c;
 	if (u.getVCpu(c))
 		m_result->setCpu(c);
@@ -1168,6 +1256,25 @@ void Vm::setFeatures()
 		f.setHyperv(hv);
 	}
 	m_result->setFeatures(f);
+}
+
+DimmDevice::DimmDevice(unsigned nodeid_, unsigned size_)
+{
+	m_result.setModel(Libvirt::Domain::Xml::EModel7Dimm);
+
+	Libvirt::Domain::Xml::Target4 target;
+	Libvirt::Domain::Xml::ScaledInteger v;
+	v.setOwnValue(size_ << 10);
+	target.setSize(v);
+	target.setNode(nodeid_);
+	m_result.setTarget(target);
+}
+
+QString DimmDevice::getResult() const
+{
+	QDomDocument x;
+	m_result.save(x);
+	return x.toString();
 }
 
 } // namespace Reverse
@@ -1583,5 +1690,6 @@ void Reverse::setMemory()
 }
 
 } // namespace Snapshot
+
 } // namespace Transponster
 

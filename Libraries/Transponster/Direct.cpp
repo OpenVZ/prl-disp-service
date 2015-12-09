@@ -63,6 +63,18 @@ void Cpu::operator()(const mpl::at_c<Libvirt::Domain::Xml::VCpu::types, 2>::type
 			break;
 		}
 	}
+
+	if (cpu_.getValue().getNuma()) {
+
+		qint32 maxNumaRam = 0;
+		foreach (const Libvirt::Domain::Xml::Cell& cell,
+			 cpu_.getValue().getNuma().get())
+		{
+			maxNumaRam += cell.getMemory()>>10;
+		}
+		if (maxNumaRam)
+			m_hardware->getMemory()->setMaxNumaRamSize(maxNumaRam);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -743,6 +755,11 @@ PRL_RESULT Vm::setResources(const VtInfo& vt_)
 
 	Resources r(*m_result);
 	r.setMemory(m_input->getMemory());
+	if (m_input->getCurrentMemory())
+		r.setCurrentMemory(m_input->getCurrentMemory().get());
+
+	if (m_input->getMaxMemory())
+		r.setMaxMemory(m_input->getMaxMemory().get());
 	if (m_input->getVcpu())
 		r.setCpu(*m_input, vt_);
 	if (m_input->getCpu())

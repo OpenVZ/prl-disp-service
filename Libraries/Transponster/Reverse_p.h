@@ -645,6 +645,10 @@ struct Resources
 	bool getClock(Libvirt::Domain::Xml::Clock& dst_);
 	void setMemory(const Libvirt::Domain::Xml::Memory& src_);
 	bool getMemory(Libvirt::Domain::Xml::Memory& dst_);
+	void setMaxMemory(const Libvirt::Domain::Xml::MaxMemory& src_);
+	bool getMaxMemory(Libvirt::Domain::Xml::MaxMemory& dst_);
+	void setCurrentMemory(const Libvirt::Domain::Xml::ScaledInteger& src_);
+	bool getCurrentMemory(Libvirt::Domain::Xml::ScaledInteger& dst_);
 	void setChipset(const Libvirt::Domain::Xml::Sysinfo& src_);
 
 private:

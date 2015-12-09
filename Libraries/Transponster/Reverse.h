@@ -116,6 +116,19 @@ private:
 	boost::optional<Libvirt::Domain::Xml::Domain> m_result;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Reverse
+
+struct DimmDevice
+{
+	DimmDevice(unsigned nodeid_, unsigned size_);
+
+	QString getResult() const;
+
+private:
+	Libvirt::Domain::Xml::Memory2 m_result;
+};
+
 } // namespace Reverse
 } // namespace Vm
 
@@ -197,6 +210,7 @@ private:
 };
 
 } // namespace Snapshot
+
 } // namespace Transponster
 
 #endif // __REVERSE_H__

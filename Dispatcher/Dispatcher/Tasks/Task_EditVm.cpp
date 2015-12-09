@@ -41,7 +41,6 @@
 #include "Libraries/PrlCommonUtilsBase/NetworkUtils.h"
 #include "Libraries/PrlCommonUtilsBase/StringUtils.h"
 #include "Libraries/StatesUtils/StatesHelper.h"
-//#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 #include "Libraries/HostUtils/HostUtils.h"
 #include "Libraries/Std/PrlTime.h"
 #include "XmlModel/ParallelsObjects/CXmlModelHelper.h"
@@ -1573,6 +1572,46 @@ PRL_RESULT Task_EditVm::editVm()
 			throw PRL_ERR_VM_EDIT_UNABLE_CONVERT_TO_TEMPLATE;
 		}
 
+		CVmMemory *old_mem = pVmConfigOld->getVmHardwareList()->getMemory();
+		CVmMemory *new_mem = pVmConfigNew->getVmHardwareList()->getMemory();
+		unsigned old_mem_sz = old_mem->getRamSize();
+		unsigned new_mem_sz = new_mem->getRamSize();
+
+		if (nState != VMS_STOPPED && (old_mem->isEnableHotplug() != new_mem->isEnableHotplug()))
+		{
+			WRITE_TRACE(DBG_FATAL, "Current state of VM %s doesn't allow to change hotplug. VM should be stopped.",
+				qPrintable(vm_uuid));
+			throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
+		}
+
+		if (!old_mem->isEnableHotplug() && (new_mem_sz != old_mem_sz))
+		{
+			WRITE_TRACE(DBG_FATAL, "Memory can't be changed for VM %s. Hotplug is off.",
+				qPrintable(vm_uuid));
+			throw PRL_ERR_OPERATION_FAILED;
+		}
+
+		if (old_mem_sz > new_mem_sz )
+		{
+			if (nState != VMS_STOPPED && (old_mem_sz > old_mem->getMaxNumaRamSize()))
+			{
+				WRITE_TRACE(DBG_FATAL, "Memory can't be decreased for VM %s. VM should be stopped for such a change.",
+					qPrintable(vm_uuid));
+				throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
+			}
+		}
+
+		if (new_mem_sz > old_mem->getMaxRamSize())
+		{
+			if (nState != VMS_STOPPED)
+			{
+				WRITE_TRACE(DBG_FATAL, "Can't set more memory than maxmemory fo VM %s. VM should be stopped for such a change.",
+					qPrintable(vm_uuid));
+				throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
+			}
+			new_mem->setMaxRamSize(new_mem_sz);
+		}
+		
 		// bug #121857
 		PRL_UNDO_DISKS_MODE nOldUndoDisksMode
 				= pVmConfigOld->getVmSettings()->getVmRuntimeOptions()->getUndoDisksMode();
@@ -2542,8 +2581,10 @@ PRL_RESULT Task_EditVm::editVm()
 	}
 
 	// Try to apply the new VM config if the VM is running
-	if (PRL_SUCCEEDED(ret))
+	if (PRL_SUCCEEDED(ret)) {
 		applyVmConfig( getClient(), pVmConfigNew, pVmConfigOld, getRequestPackage() );
+		ret = getLastErrorCode(); 
+	}
 
 	return ret;
 }
@@ -3079,25 +3120,42 @@ Action* Cdrom::operator()(const Request& input_) const
 
 Vm::Action* Memory::operator()(const Request& input_) const
 {
+	Action* output = NULL;
+	Forge f(input_);
 	CVmMemory* o = input_.getStart().getVmHardwareList()->getMemory();
 	CVmMemory* n = input_.getFinal().getVmHardwareList()->getMemory();
+	
 	if (NULL == n)
 		return NULL;
 
-	unsigned a = 0, b = n->getRamSize();
+	unsigned old_mem = 0, new_mem = n->getRamSize();
 	if (NULL != o)
-		a = o->getRamSize();
-	if (a == b)
-		return NULL;
-	if (a < b)
-	{
-		if (!n->isEnableHotplug())
-			return NULL;
-	}
+		old_mem = o->getRamSize();
+
+	// We don't care if new and old values are equal
+	// and we'll call libvirt anyway
+
+	if (old_mem > new_mem)
+		output = f.craftRuntime(boost::bind(&vm::Runtime::setMemory, _1, new_mem));
 	else
 	{
+		if (new_mem <= o->getMaxNumaRamSize())
+			output = f.craftRuntime(boost::bind(&vm::Runtime::setMemory, _1, new_mem));
+		else
+		{
+			Action* a1(f.craftRuntime(boost::bind
+				(&vm::Runtime::setMemory, _1, o->getMaxNumaRamSize())));
+			a1->setNext(output);
+			output = a1;
+
+			Action* a2(f.craftRuntime(boost::bind
+				(&vm::Runtime::addMemoryBySlots, _1, new_mem - o->getMaxNumaRamSize())));
+			a2->setNext(output);
+			output = a2;
+		}
 	}
-	return NULL;
+
+	return output;
 }
 
 namespace

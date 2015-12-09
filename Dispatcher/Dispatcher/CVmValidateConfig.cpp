@@ -44,7 +44,6 @@
 #include "CVmValidateConfig_p.h"
 #include "CDspService.h"
 #include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
-//#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/PrlCommonUtilsBase/OsInfo.h"
 #include "Libraries/PrlCommonUtilsBase/CHardDiskHelper.h"

@@ -266,6 +266,8 @@ struct Runtime
 	Result setCpuLimit(quint32 limit_, quint32 period_);
 	Result setCpuUnits(quint32 units_);
 	Result setCpuCount(quint32 count_);
+	Result setMemory(quint32 memsize_);
+	Result addMemoryBySlots(quint32 memdelta_);
 
 private:
 	Result setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_);

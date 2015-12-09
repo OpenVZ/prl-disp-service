@@ -219,6 +219,12 @@ struct NetworkDevices
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
 
+struct MemoryOptions
+{
+	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+};
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reviser
 
@@ -243,7 +249,7 @@ struct Reviser<N, void>
 
 typedef boost::mpl::vector<RemoteDisplay> revise_types;
 typedef boost::mpl::vector<OsInfo, RuntimeOptions, GlobalNetwork,
-		Index::Patch, Cpu, NetworkDevices, State::Patch> untranslatable_types;
+		Index::Patch, Cpu, NetworkDevices, State::Patch, MemoryOptions> untranslatable_types;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Repairer
