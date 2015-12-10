@@ -3455,7 +3455,7 @@ QStringList Address::operator()(const Bridge& mode_)
 	{
 		a << m_v6;
 		QString d = m_device->getDefaultGatewayIPv6();
-		g = d.isEmpty() ? "removev6 " : d + " ";
+		g += d.isEmpty() ? "removev6 " : d + " ";
 	}
 	if (!a.isEmpty())
 		output << "--ip" << mode_.getMac() << a.join(" ");
