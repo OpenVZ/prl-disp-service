@@ -94,7 +94,6 @@
 
 #include "XmlModel/ProblemReport/CProblemReport.h"
 #include "XmlModel/Messaging/CVmBinaryEventParameter.h"
-#include "XmlModel/Updater/CUpdaterConfig.h"
 #include "XmlModel/GuestOsInformation/CVmGuestOsInformation.h"
 
 #include "Libraries/Logging/Logging.h"

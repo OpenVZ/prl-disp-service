@@ -53,8 +53,6 @@ class QByteArray;
 #define PR_PACKED_REP_MONITOR_DATA					"MonitorData.txt"
 #define PR_PACKED_REP_PERFORMANCE_COUNTERS			"PerformanceCounters.txt"
 #define PR_PACKED_REP_GUEST_OS						"GuestOs.xml"
-#define PR_PACKED_REP_KEYBOARD_MOUSE_PROFILES		"KeyboardMouseProfiles.xml"
-#define PR_PACKED_REP_UPDATER_VM_INFO				"UpdaterVmInfo.xml"
 #define PR_PACKED_REP_VM_DIRECTORY					"VmDirectory.xml"
 #define PR_PACKED_REP_CLIENT_INFO					"ClientInfo.xml"
 #define PR_PACKED_REP_INSTALLED_SOFTWARE			"InstalledSoftware.txt"
@@ -143,8 +141,6 @@ public:
 
 	virtual void setClientInfo(ClientInfo* pClientInfo);
 
-	virtual void setKeyboardMouseProfiles( KeyboardMouseProfiles * pProfiles );
-
 	virtual void setHostStatistic(QString value = QString());
 
 	virtual void setHostInfo(QString value = QString());
@@ -170,8 +166,6 @@ public:
 	virtual void setVmConfig(QString value = QString());
 
 	virtual void setVmDomain(QString value = QString());
-
-	virtual void setVmUpdaterInfo(QString value = QString());
 
 	virtual void setGuestOs(QString value = QString());
 
@@ -202,8 +196,6 @@ public:
 	bool isValid() const;
 
 	virtual ClientInfo* getClientInfo() const;
-
-	virtual KeyboardMouseProfiles* getKeyboardMouseProfiles() const;
 
 private:
 	static QString getPathToSave( packedReportSide side, const QString & strBaseName = QString() );

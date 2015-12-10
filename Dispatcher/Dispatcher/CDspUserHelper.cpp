@@ -1121,11 +1121,6 @@ void CDspUserHelper::userProfileCommit (
 
 		}
 
-		// #PDFM-24244
-		// Appliances section is read-only for users
-		pUserProfileChecker->getApplianceConfigs()->fromString(
-			pCurrentUserProfile->getApplianceConfigs()->toString() );
-
 		// save to qsettings proxy pass cache
 		// only for local host user!
 		if ( pUser->isLocal() )

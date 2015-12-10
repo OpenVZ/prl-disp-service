@@ -721,25 +721,6 @@ CDispLicense::CDispLicense(const QString&amp; key, const QString&amp; user, cons
 					</xs:sequence>
 				</xs:complexType>
 			</xs:element>
-			<xs:element name="ApplianceConfigs">
-				<xs:annotation>
-					<xs:documentation>class=CDispApplianceConfigs;single_fixed=on;</xs:documentation>
-				</xs:annotation>
-				<xs:complexType>
-					<xs:sequence>
-						<xs:element name="ParallelsAppliance" minOccurs="0" maxOccurs="unbounded">
-							<xs:annotation>
-								<xs:documentation>class=CAppliance;extern=XmlModel/Appliance/CAppliance.h;list=ApplianceConfigs;</xs:documentation>
-							</xs:annotation>
-							<xs:complexType>
-								<xs:sequence>
-									<xs:element name="external" type="xs:string"/>
-								</xs:sequence>
-							</xs:complexType>
-						</xs:element>
-					</xs:sequence>
-				</xs:complexType>
-			</xs:element>
 		</xs:sequence>
 	</xs:complexType>
 	<xs:complexType name="PciPreferencesType">
