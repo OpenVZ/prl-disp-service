@@ -203,7 +203,7 @@ PRL_RESULT Task_MountVm::MountVm()
 
 	Libvirt::Result result = m_registry->mount(
 			m_pVmConfig, getClient()->getVmDirectoryUuid(),
-			m_sMountPoint, (bool)m_nFlags & PMVD_READ_ONLY);
+			m_sMountPoint, (bool)(m_nFlags & PMVD_READ_ONLY));
 
 	if (result.isFailed()) {
 		return CDspTaskFailure(*this)
