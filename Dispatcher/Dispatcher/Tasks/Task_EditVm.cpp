@@ -2544,6 +2544,18 @@ PRL_RESULT Task_EditVm::editVm()
 
 		ret = code;
 
+		switch (code)
+		{
+		case PRL_ERR_DISP_VM_IS_NOT_STOPPED:
+			getLastError()->addEventParameter(
+				new CVmEventParameter(PVE::String,
+				pVmConfigOld->getVmIdentification()->getVmName(),
+				EVT_PARAM_MESSAGE_PARAM_0)
+				);
+		break;
+		default:;
+		}
+
 
 		// NOTE:  DO NOT unregister begin edit mark BECAUSE client doesn't send BeginEdit again if commit fails
 		// CDspService::instance()->getVmDirHelper()
