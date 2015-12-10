@@ -3475,7 +3475,10 @@ QStringList Address::operator()(const Routed& mode_)
 	if (!m_v6.isEmpty())
 	{
 		a << m_v6;
-		boost::tie(g, r) = mode_.getIp6Defaults();
+		QString g6, r6;
+		boost::tie(g6, r6) = mode_.getIp6Defaults();
+		g += g6;
+		r += r6;
 	}
 	if (a.isEmpty())
 	{
@@ -3520,7 +3523,7 @@ QStringList Address::operator()(const Bridge& mode_)
 	{
 		a << m_v6;
 		QString d = m_device->getDefaultGatewayIPv6();
-		g = d.isEmpty() ? "removev6 " : d + " ";
+		g += d.isEmpty() ? "removev6 " : d + " ";
 	}
 	if (!a.isEmpty())
 		output << "--ip" << mode_.getMac() << a.join(" ");
