@@ -122,8 +122,6 @@ struct Clustered: boost::static_visitor<bool>
 			getDevice().setSystemName(v->getFile().get());
 			getDevice().setUserFriendlyName(v->getFile().get());
 		}
-		else
-			getDevice().setConnected(PVE::DeviceDisconnected);
 
 		return true;
 	}
