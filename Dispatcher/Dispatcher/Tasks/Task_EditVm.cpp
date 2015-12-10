@@ -1588,14 +1588,14 @@ PRL_RESULT Task_EditVm::editVm()
 		{
 			WRITE_TRACE(DBG_FATAL, "Current state of VM %s doesn't allow to change hotplug. VM should be stopped.",
 				qPrintable(vm_uuid));
-			throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
+			throw PRL_ERR_DISP_VM_IS_NOT_STOPPED;
 		}
 
-		if (!old_mem->isEnableHotplug() && (new_mem_sz != old_mem_sz))
+		if (nState != VMS_STOPPED && !old_mem->isEnableHotplug() && (new_mem_sz != old_mem_sz))
 		{
 			WRITE_TRACE(DBG_FATAL, "Memory can't be changed for VM %s. Hotplug is off.",
 				qPrintable(vm_uuid));
-			throw PRL_ERR_OPERATION_FAILED;
+			throw PRL_ERR_DISP_VM_IS_NOT_STOPPED;
 		}
 
 		if (old_mem_sz > new_mem_sz )
@@ -1604,7 +1604,7 @@ PRL_RESULT Task_EditVm::editVm()
 			{
 				WRITE_TRACE(DBG_FATAL, "Memory can't be decreased for VM %s. VM should be stopped for such a change.",
 					qPrintable(vm_uuid));
-				throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
+				throw PRL_ERR_DISP_VM_IS_NOT_STOPPED;
 			}
 		}
 
@@ -1614,7 +1614,7 @@ PRL_RESULT Task_EditVm::editVm()
 			{
 				WRITE_TRACE(DBG_FATAL, "Can't set more memory than maxmemory fo VM %s. VM should be stopped for such a change.",
 					qPrintable(vm_uuid));
-				throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
+				throw PRL_ERR_DISP_VM_IS_NOT_STOPPED;
 			}
 			new_mem->setMaxRamSize(new_mem_sz);
 		}
