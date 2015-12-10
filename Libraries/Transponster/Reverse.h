@@ -94,6 +94,24 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Interface
+
+struct Interface
+{
+	explicit Interface(const CVmGenericNetworkAdapter& input_): m_input(input_)
+	{
+	}
+
+	PRL_RESULT operator()();
+
+	QString getResult();
+
+private:
+	CVmGenericNetworkAdapter m_input;
+	boost::optional<Libvirt::Domain::Xml::VInterface> m_result;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
 struct Vm

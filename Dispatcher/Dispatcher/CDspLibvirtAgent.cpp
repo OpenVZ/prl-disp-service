@@ -649,6 +649,18 @@ Result Runtime::changeMedia(const CVmOpticalDisk& device_)
 					VIR_DOMAIN_DEVICE_MODIFY_FORCE));
 }
 
+Result Runtime::changeAdapter(const CVmGenericNetworkAdapter& adapter_)
+{
+	Transponster::Vm::Reverse::Interface u(adapter_);
+	u();
+	QByteArray b = u.getResult().toUtf8();
+	return do_(m_domain.data(), boost::bind(&virDomainUpdateDeviceFlags, _1,
+		b.data(), VIR_DOMAIN_AFFECT_CURRENT |
+					VIR_DOMAIN_AFFECT_LIVE |
+					VIR_DOMAIN_AFFECT_CONFIG |
+					VIR_DOMAIN_DEVICE_MODIFY_FORCE));
+}
+
 Result Runtime::setCpuLimit(quint32 limit_, quint32 period_)
 {
 	virTypedParameterPtr p(NULL);

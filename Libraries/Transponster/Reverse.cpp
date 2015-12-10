@@ -998,6 +998,50 @@ QString Cdrom::getResult()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Adapter
+
+PRL_RESULT Interface::operator()()
+{
+	m_result = boost::none;
+
+	switch (m_input.getEmulatedType())
+	{
+	case PNA_BRIDGED_ETHERNET:
+		if (m_input.getVirtualNetworkID().isEmpty())
+			m_result = Device::Network<0>()(m_input);
+		else
+			m_result = Device::Network<3>()(m_input);
+		break;
+	case PNA_DIRECT_ASSIGN:
+		m_result = Device::Network<4>()(m_input);
+		break;
+	case PNA_ROUTED:
+		{
+			CVmGenericNetworkAdapter routed(m_input);
+			routed.setSystemName(QString("host-routed"));
+			m_result = Device::Network<0>()(routed);
+		}
+		break;
+	default:
+		return PRL_ERR_UNIMPLEMENTED;
+	}
+
+	return PRL_ERR_SUCCESS;
+}
+
+QString Interface::getResult()
+{
+	if (!m_result)
+		return QString();
+	mpl::at_c<Extract<Libvirt::Domain::Xml::VChoice934Impl>::type, 4>::type e;
+	e.setValue(*m_result);
+	m_result = boost::none;
+	QDomDocument x;
+	e.produce(x);
+	return x.toString();
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Reverse
 
 Vm::Vm(const CVmConfiguration& input_): m_input(input_)

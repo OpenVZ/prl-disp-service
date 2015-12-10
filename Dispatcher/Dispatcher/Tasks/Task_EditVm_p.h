@@ -88,6 +88,23 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Reconnect
+
+struct Reconnect: Action
+{
+	Reconnect(const CVmGenericNetworkAdapter& adapter_)
+	: m_adapter(adapter_.getHostInterfaceName()), m_network(adapter_.getVirtualNetworkID())
+	{
+	}
+
+	bool execute(CDspTaskFailure& feedback_);
+
+private:
+	QString m_adapter;
+	QString m_network;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Request
 
 struct Request
@@ -247,6 +264,14 @@ namespace Runtime
 // struct Cdrom
 
 struct Cdrom
+{
+	Action* operator()(const Request& input_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Adapter
+
+struct Adapter
 {
 	Action* operator()(const Request& input_) const;
 };
@@ -466,7 +491,7 @@ struct Factory
 ///////////////////////////////////////////////////////////////////////////////
 // struct Driver
 
-typedef boost::mpl::vector<Cdrom, Memory, Disk, Blkiotune,
+typedef boost::mpl::vector<Cdrom, Adapter, Memory, Disk, Blkiotune,
 		Network::Factory, Cpu::Factory> probeList_type;
 
 struct Driver: Gear<Driver, probeList_type>
