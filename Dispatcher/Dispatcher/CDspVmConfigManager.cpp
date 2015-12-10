@@ -230,6 +230,7 @@ void updateDisconnected(QList<T*>& new_, const QList<T*>& old_)
 		{
 			d->setSystemName((*i)->getSystemName());
 			d->setUserFriendlyName((*i)->getUserFriendlyName());
+			d->setConnected(PVE::DeviceDisconnected);
 		}
 	}
 }
