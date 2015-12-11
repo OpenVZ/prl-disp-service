@@ -484,14 +484,11 @@ QString PrlNet::getBridgeName(const QString& iface)
 	return QFileInfo(brPath).fileName();
 }
 
-// remove interface from its bridge
-bool PrlNet::releaseInterface(const QString& iface)
+namespace
 {
-	QString br = getBridgeName(iface);
 
-	if (br.isEmpty())
-		return true;	
-
+bool setupBridge(const QString& bridge, const QString& iface, int command)
+{
 	struct ifreq ifr;
 
 	int ifindex = if_nametoindex(iface.toAscii().data());
@@ -503,9 +500,9 @@ bool PrlNet::releaseInterface(const QString& iface)
 		return false;
 
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, br.toAscii().data(), IFNAMSIZ);
+	strncpy(ifr.ifr_name, bridge.toAscii().data(), IFNAMSIZ);
 	ifr.ifr_ifindex = ifindex;
-	if (::ioctl(sock, SIOCBRDELIF, &ifr) < 0)
+	if (::ioctl(sock, command, &ifr) < 0)
 	{
 		::close(sock);
 		return false;
@@ -513,4 +510,27 @@ bool PrlNet::releaseInterface(const QString& iface)
 
 	::close(sock);
 	return true;
+}
+
+} // namespace
+
+// remove interface from its bridge
+bool PrlNet::releaseInterface(const QString& iface)
+{
+	QString br = getBridgeName(iface);
+
+	if (br.isEmpty())
+		return true;
+
+	return setupBridge(br, iface, SIOCBRDELIF);
+}
+
+bool PrlNet::connectInterface(const QString& iface, const QString& bridge)
+{
+	QString br = getBridgeName(iface);
+
+	if (br == bridge)
+		return true;
+
+	return setupBridge(bridge, iface, SIOCBRADDIF);
 }

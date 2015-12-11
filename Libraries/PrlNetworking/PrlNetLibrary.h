@@ -349,6 +349,7 @@ QString getBridgeName(const QString& iface);
 
 // remove interface from its bridge
 bool releaseInterface(const QString& iface);
+bool connectInterface(const QString& iface, const QString& bridge);
 
 QStringList makePhysicalAdapterList();
 }

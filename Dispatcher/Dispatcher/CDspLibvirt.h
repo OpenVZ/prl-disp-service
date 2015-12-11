@@ -262,6 +262,7 @@ struct Runtime
 	Result setIoLimit(const CVmHardDisk& disk_, quint32 limit_);
 	Result setIopsLimit(const CVmHardDisk& disk_, quint32 limit_);
 	Result changeMedia(const CVmOpticalDisk& device_);
+	Result changeAdapter(const CVmGenericNetworkAdapter& device_);
 	Result setIoPriority(quint32 ioprio_);
 	Result setCpuLimit(quint32 limit_, quint32 period_);
 	Result setCpuUnits(quint32 units_);

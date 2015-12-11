@@ -3045,6 +3045,48 @@ Action& Action::getTail()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Reconnect
+
+bool Reconnect::execute(CDspTaskFailure& feedback_)
+{
+	Libvirt::Tools::Agent::Network::Unit u;
+	Libvirt::Result r = Libvirt::Kit.networks().find(m_network, &u);
+
+	if (r.isFailed())
+	{
+		feedback_(r.error().convertToEvent());
+		return true;
+	}
+
+	// find network
+	CVirtualNetwork n;
+	r = u.getConfig(n);
+	if (r.isFailed())
+	{
+		feedback_(r.error().convertToEvent());
+		return true;
+	}
+
+	// need network's bridge name CParallelsAdapter::getName()
+	CParallelsAdapter* a;
+	if (NULL == n.getHostOnlyNetwork()
+		|| (a = n.getHostOnlyNetwork()->getParallelsAdapter()) == NULL)
+	{
+		feedback_(PRL_NET_VIRTUAL_NETWORK_NOT_FOUND);
+		return true;
+	}
+
+	// connect iface to bridge
+	if (!PrlNet::connectInterface(m_adapter, a->getName()))
+	{
+		feedback_(PRL_ERR_SET_NETWORK_SETTINGS_FAILED);
+		return true;
+	}
+
+	return Action::execute(feedback_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Request
 
 Request::Request(Task_EditVm& task_, const config_type& start_, const config_type& final_)
@@ -3125,6 +3167,42 @@ Action* Cdrom::operator()(const Request& input_) const
 			a = f.craftRuntime(boost::bind(&vm::Runtime::changeMedia, _1, *d));
 		else if (x->getConnected() != d->getConnected())
 			a = f.craftRuntime(boost::bind(&vm::Runtime::changeMedia, _1, *d));
+		else
+			continue;
+
+		a->setNext(output);
+		output = a;
+	}
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Adapter
+
+Action* Adapter::operator()(const Request& input_) const
+{
+	Forge f(input_);
+	Action* output = NULL;
+	QList<CVmGenericNetworkAdapter*> o = input_.getStart().getVmHardwareList()->m_lstNetworkAdapters;
+	foreach (CVmGenericNetworkAdapter* d, input_.getFinal().getVmHardwareList()->m_lstNetworkAdapters)
+	{
+		CVmGenericNetworkAdapter* x = CXmlModelHelper::IsElemInList(d, o);
+		if (NULL == x)
+			continue;
+
+		// works without any action because post-configuration deletes iface from bridge
+		if (d->getEmulatedType() == PNA_ROUTED)
+			continue;
+
+		Action* a;
+		// Libvirt doesn't allow to change the emulation type in runtime
+		if (x->getEmulatedType() == d->getEmulatedType()
+				// need to update if network changed
+				&& x->getVirtualNetworkID() != d->getVirtualNetworkID())
+			a = f.craftRuntime(boost::bind(&vm::Runtime::changeAdapter, _1, *d));
+		// but we can attach 'routed' interface to network's bridge without libvirt
+		else if (x->getEmulatedType() == PNA_ROUTED && d->getEmulatedType() == PNA_BRIDGED_ETHERNET)
+			a = new Reconnect(*d);
 		else
 			continue;
 
