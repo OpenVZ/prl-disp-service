@@ -123,6 +123,8 @@ PRL_RESULT Task_MoveVm::prepareTask()
 		goto exit;
 	}
 
+	m_pVmConfig->setRelativePath();
+
 	sNewVmBundle = QString("%1/%2%3").arg(m_sNewVmHome).
 		arg(m_pVmConfig->getVmIdentification()->getVmName()).arg(VMDIR_DEFAULT_BUNDLE_SUFFIX);
 
@@ -311,6 +313,20 @@ PRL_RESULT Task_MoveVm::run_body()
 	// remove old bundle
 	CFileHelper::ClearAndDeleteDir(m_sOldVmBundle);
 
+#ifdef _LIBVIRT_
+	if (!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+	{
+		Libvirt::Result r = Libvirt::Kit.vms().at(getVmUuid()).setConfig(*m_pVmConfig);
+
+		if (r.isFailed())
+		{
+			getLastError()->fromString(r.error().convertToEvent().toString());
+			nRetCode = PRL_ERR_OPERATION_FAILED;
+			goto exit;
+		}
+	}
+#endif // _LIBVIRT_
+
 	return PRL_ERR_SUCCESS;
 exit:
 	setLastErrorCode(nRetCode);
@@ -441,6 +457,7 @@ PRL_RESULT Task_MoveVm::setVmHome(const QString& path)
 		return PRL_ERR_OPERATION_FAILED;
 	}
 
+	m_pVmConfig->getVmIdentification()->setHomePath(path);
 	pVmDirItem->setVmHome(path);
 
 	res = CDspService::instance()->getVmDirManager().updateVmDirItem(pVmDirItem);
