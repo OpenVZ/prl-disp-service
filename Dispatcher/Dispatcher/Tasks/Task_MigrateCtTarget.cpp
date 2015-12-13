@@ -422,6 +422,7 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 		   pNewConfig == pConfig and apply_env_config() will not update config file */
 		CDspService::instance()->getVzHelper()->getVzlibHelper().
 			update_ctid_map(m_sCtUuid, m_cVmConfig.getVmIdentification()->getCtId());
+		get_op_helper().update_env_uuid(pNewConfig, pConfig);
 		get_op_helper().apply_env_config(pNewConfig, pConfig, 0);
 	}
 

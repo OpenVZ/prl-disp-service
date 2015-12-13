@@ -471,6 +471,8 @@ public:
 
 	CVzOperationHelper &get_op_helper() { return *this; }
 
+	int update_env_uuid(const SmartPtr<CVmConfiguration> &pConfig,
+			const SmartPtr<CVmConfiguration> &pOldConfig);
 	int apply_env_config(SmartPtr<CVmConfiguration> &pConfig,
 			SmartPtr<CVmConfiguration> &pOldConfig, unsigned int nFlags = 0);
 #ifdef _WIN_

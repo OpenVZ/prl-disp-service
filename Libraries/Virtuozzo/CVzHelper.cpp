@@ -2286,6 +2286,51 @@ static int create_env_config(const QString &uuid, SmartPtr<CVmConfiguration> &pC
 	return PRL_ERR_SUCCESS;
 }
 
+int CVzOperationHelper::update_env_uuid(const SmartPtr<CVmConfiguration> &pConfig,
+	const SmartPtr<CVmConfiguration> &pOldConfig)
+{
+	QString uuid = pConfig->getVmIdentification()->getVmUuid();
+	QString olduuid = pOldConfig->getVmIdentification()->getVmUuid();
+	if (uuid == olduuid)
+		return PRL_ERR_SUCCESS;
+
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	int ret;
+	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
+	if (h == NULL) {
+		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
+			QSTR2UTF8(ctid), vzctl2_get_last_error());
+		return PRL_ERR_OPERATION_FAILED;
+	}
+
+	VzctlParamWrap param(vzctl2_alloc_env_param());
+	if (param == NULL) {
+		WRITE_TRACE(DBG_FATAL, "vzctl2_alloc_env_param");
+		return PRL_ERR_OPERATION_FAILED;
+	}
+
+	WRITE_TRACE(DBG_FATAL, "Update uuid for Container %s, new uuid %s",
+		QSTR2UTF8(ctid), QSTR2UTF8(uuid));
+
+	remove_brackets_from_uuid(uuid);
+	if (vzctl2_env_set_uuid(param, QSTR2UTF8(uuid))) {
+		WRITE_TRACE(DBG_FATAL, "vzctl2_env_set_uuid");
+		return PRL_ERR_OPERATION_FAILED;
+	}
+
+	ret = vzctl2_apply_param(h, param, VZCTL_SAVE);
+	if (ret) {
+		WRITE_TRACE(DBG_FATAL, "vzctl2_apply_param failed: %s [%d]",
+			vzctl2_get_last_error(), ret);
+		return PRL_ERR_OPERATION_FAILED;
+	}
+
+	return PRL_ERR_SUCCESS;
+}
+
 int CVzOperationHelper::apply_env_config(SmartPtr<CVmConfiguration> &pConfig,
 		SmartPtr<CVmConfiguration> &pOldConfig, unsigned int nFlags)
 {
