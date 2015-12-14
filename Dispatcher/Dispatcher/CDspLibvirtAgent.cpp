@@ -709,17 +709,50 @@ Result Runtime::setCpuCount(quint32 units_)
 
 Result Runtime::setMemory(quint32 memsize_)
 {
-	return do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
-			memsize_<<10,
-			VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE));
-}
+	Result r;
+	unsigned newMemSize = memsize_<<10;
+	unsigned oldMemSize = 0;
+	unsigned maxNumaSize = 0;
+	virDomainInfo info;
 
-Result Runtime::addMemoryBySlots(quint32 memdelta_)
-{
-	Transponster::Vm::Reverse::DimmDevice y(0, memdelta_);
-	return do_(m_domain.data(), boost::bind(&virDomainAttachDeviceFlags, _1,
-			y.getResult().toUtf8().data(),
-			VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE));
+	r = do_(m_domain.data(), boost::bind(&virDomainGetInfo, _1, &info));
+	if (r.isFailed())
+		return r;
+	oldMemSize = info.memory;
+	maxNumaSize = info.maxMem;
+
+	if (oldMemSize > newMemSize)
+	{
+		if (oldMemSize > maxNumaSize)
+			return Result(Error::Detailed(PRL_ERR_FAILURE));
+
+		r = do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
+			newMemSize,
+			VIR_DOMAIN_AFFECT_LIVE));
+	}
+	else
+	{
+		if (newMemSize <= maxNumaSize)
+		{
+			r = do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
+				newMemSize,
+				VIR_DOMAIN_AFFECT_LIVE));
+		}
+		else
+		{
+			r = do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
+				maxNumaSize,
+				VIR_DOMAIN_AFFECT_LIVE));
+			if (r.isFailed())
+				return r;
+
+			Transponster::Vm::Reverse::DimmDevice y(0, newMemSize - maxNumaSize);
+			r = do_(m_domain.data(), boost::bind(&virDomainAttachDeviceFlags, _1,
+				y.getResult().toUtf8().data(),
+				VIR_DOMAIN_AFFECT_LIVE));
+		}
+	}
+	return r;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
