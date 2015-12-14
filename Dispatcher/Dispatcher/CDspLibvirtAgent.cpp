@@ -398,6 +398,21 @@ Result Guest::checkGuestAgent()
 }
 
 Prl::Expected<QString, Error::Simple>
+Guest::getGuestAgentVersion()
+{
+	Prl::Expected<QString, Error::Simple> r =
+		Exec::Exec(m_domain).executeInAgent(QString("{\"execute\":\"guest-info\"}"));
+	if (r.isFailed())
+		return r.error();
+
+	std::istringstream is(r.value().toUtf8().data());
+	boost::property_tree::ptree result;
+	boost::property_tree::json_parser::read_json(is, result);
+
+	return QString::fromStdString(result.get<std::string>("return.version"));
+}
+
+Prl::Expected<QString, Error::Simple>
 Guest::execute(const QString& cmd, bool isHmp)
 {
 	char* s = NULL;

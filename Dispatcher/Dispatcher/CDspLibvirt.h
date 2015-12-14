@@ -219,6 +219,7 @@ struct Guest
 		dumpState(const QString& path_);
 	Result setUserPasswd(const QString& user, const QString& passwd);
 	Result checkGuestAgent();
+	Prl::Expected<QString, Error::Simple> getGuestAgentVersion();
 	Prl::Expected<Exec::Future, Error::Simple> startProgram(const Exec::Request& r);
 	Prl::Expected<Exec::Result, Error::Simple> runProgram(const Exec::Request& r);
 	Prl::Expected<QString, Error::Simple>

@@ -78,8 +78,9 @@ PRL_RESULT Task_ChangeSID::prepareTask()
 		      m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsVersion() >= PVS_GUEST_VER_WIN_XP))
 			throw PRL_ERR_CHANGESID_NOT_SUPPORTED;
 
-		if (CDspVm::getVmToolsState( getVmUuid(), getClient()->getVmDirectoryUuid() ) == PTS_NOT_INSTALLED)
-			throw PRL_ERR_CHANGESID_GUEST_TOOLS_NOT_AVAILABLE;
+		// Tools state not available offline - will check it after vm start
+		//if (CDspVm::getVmToolsState( getVmUuid(), getClient()->getVmDirectoryUuid() ) == PTS_NOT_INSTALLED)
+		//	throw PRL_ERR_CHANGESID_GUEST_TOOLS_NOT_AVAILABLE;
 
 		ret = PRL_ERR_SUCCESS;
 	}
@@ -130,6 +131,9 @@ PRL_RESULT Task_ChangeSID::run_body()
 
 	SmartPtr<CDspVm> pVm;
 	SmartPtr<CDspClient> pFakeSession(new CDspClient(Uuid::createUuid(), "fake-user" ));
+
+	Libvirt::Tools::Agent::Vm::Unit u = Libvirt::Kit.vms().at(getVmUuid());
+
 	try
 	{
 		if (!pFakeSession->getAuthHelper().AuthUserBySelfProcessOwner())
@@ -183,23 +187,33 @@ PRL_RESULT Task_ChangeSID::run_body()
 		if (PRL_FAILED(ret))
 			throw ret;
 
-		jobProgressEvent(1);
-		ret = start_vm(pFakeSession, pVm);
-		if (PRL_FAILED(ret))
-			throw ret;
-		bVmStarted = true;
+		VIRTUAL_MACHINE_STATE state = VMS_UNKNOWN;
+		
+		Libvirt::Result e = u.getState(state);
+		if (e.isFailed())
+			throw e.error().code();
 
-		ret = change_sid(pVm);
+		if (state != VMS_RUNNING) {
+			jobProgressEvent(1);
+			e = u.start();
+			if (e.isFailed())
+				throw e.error().code();
+			bVmStarted = true;
+		}
+
+		ret = change_sid(u);
 		if (PRL_FAILED(ret))
 			throw ret;
 
-		jobProgressEvent(90);
-		ret = stop_vm(pFakeSession, pVm, true);
-		if (PRL_FAILED(ret))
-			throw ret;
+		if (bVmStarted) {
+			jobProgressEvent(90);
+			e = u.shutdown();
+			if (e.isFailed())
+				throw e.error().code();
+			bVmStarted = false;
+		}
 
 		jobProgressEvent(100);
-		bVmStarted = false;
 
 		ret = PRL_ERR_SUCCESS;
 	}
@@ -216,7 +230,7 @@ PRL_RESULT Task_ChangeSID::run_body()
 		WRITE_TRACE(DBG_FATAL, "%s: error: %s", __FILE__, PRL_RESULT_TO_STRING( PRL_ERR_REVERT_IMPERSONATE_FAILED ) );
 
 	if (bVmStarted)
-		stop_vm(pFakeSession, pVm, m_bStandAlone ? true : (ret == PRL_ERR_SUCCESS));
+		!m_bStandAlone && ret != PRL_ERR_SUCCESS ? u.kill() : u.shutdown();
 
 	if (bVmLocked)
 		CDspService::instance()->getVmDirHelper().unlockVm(getVmUuid(), pFakeSession, getRequestPackage());
@@ -268,108 +282,43 @@ PRL_RESULT Task_ChangeSID::save_config(SmartPtr<CVmConfiguration> &pVmConfig)
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Task_ChangeSID::start_vm(SmartPtr<CDspClient> &pFakeSession, SmartPtr<CDspVm> &pVm)
+PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Tools::Agent::Vm::Unit& u)
 {
-	PRL_RESULT ret;
-
-	bool bVmInstanceCreated = false;
-	pVm = CDspVm::CreateInstance(
-			getVmUuid(),
-			pFakeSession->getVmDirectoryUuid(),
-			ret, bVmInstanceCreated, pFakeSession, PVE::DspCmdVmStart );
-
-	if (pVm.getImpl() == NULL)
-	{
-		WRITE_TRACE(DBG_FATAL, "Can't create instance of Vm '%s' "
-				"which belongs to '%s' VM dir by error %#x",
-				QSTR2UTF8(getVmUuid()),
-				QSTR2UTF8(pFakeSession->getVmDirectoryUuid()),
-				ret);
-
-		return ret;
-	}
-
-	// Start VM
-	CProtoCommandPtr pCmd = CProtoSerializer::CreateProtoBasicVmCommand(PVE::DspCmdVmStart, pVm->getVmUuid());
-	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspCmdVmStart, pCmd);
-	if (!pVm->start(pFakeSession, pPackage))
-	{
-		if (bVmInstanceCreated)
-			CDspVm::UnregisterVmObject(pVm);
-		WRITE_TRACE(DBG_FATAL, "Vm start failed");
-		return PRL_ERR_CHANGESID_VM_START_FAILED;
-	}
-
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Task_ChangeSID::stop_vm(SmartPtr<CDspClient> &pFakeSession, SmartPtr<CDspVm> &pVm, bool bGraceful)
-{
-	if (!pVm.isValid())
-	{
-		pVm = CDspVm::GetVmInstanceByUuid(getVmUuid(), pFakeSession->getVmDirectoryUuid());
-		if (!pVm.isValid())
-			return PRL_ERR_SUCCESS;
-	}
-	PRL_UINT32 nStopMode = (bGraceful ? PSM_SHUTDOWN : PSM_KILL) | (m_bStandAlone ? PSF_NOFORCE : 0);
-	CProtoCommandPtr pCmd = CProtoSerializer::CreateProtoVmCommandStop(getVmUuid(), nStopMode, PSF_FORCE);
-	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspCmdVmStop, pCmd);
-
-	pVm->stop(pFakeSession, pPackage, nStopMode, true);
-
-	// Hack to get STOPPED state
-	pVm = SmartPtr<CDspVm>();
-	for (unsigned int i = 0; i < WAITTOOLS_TIMEOUT / WAITINTERVAL; i++)
-	{
-		if (operationIsCancelled())
-			return PRL_ERR_OPERATION_WAS_CANCELED;
-
-		VIRTUAL_MACHINE_STATE state = CDspVm::getVmState(getVmUuid(), pFakeSession->getVmDirectoryUuid());
-		if (state == VMS_STOPPED)
-			break;
-		HostUtils::Sleep(WAITINTERVAL);
-	}
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Task_ChangeSID::change_sid(SmartPtr<CDspVm> &pVm)
-{
-	int vmToolsState = PTS_UNKNOWN;
 	bool bStarted = false;
 	unsigned int i;
 
-	WRITE_TRACE(DBG_FATAL, "Wait for tools...");
+	WRITE_TRACE(DBG_DEBUG, "Wait for tools...");
 	jobProgressEvent(5);
 	for (i = 0; i < WAITTOOLS_TIMEOUT / WAITINTERVAL; i++)
 	{
-		HostUtils::Sleep(WAITINTERVAL);
 		if (operationIsCancelled())
 			return PRL_ERR_OPERATION_WAS_CANCELED;
 
-		vmToolsState = CDspVm::getVmToolsState( pVm->getVmIdent() );
-		if (vmToolsState == PTS_INSTALLED || vmToolsState == PTS_OUTDATED)
-		{
-			WRITE_TRACE(DBG_WARNING, "Tools started");
-			break;
-		}
-
 		// handle Vm start failure
-		VIRTUAL_MACHINE_STATE state = pVm->getVmState();
-		if (state == VMS_RUNNING || state == VMS_STARTING)
-		{
+		VIRTUAL_MACHINE_STATE state = VMS_UNKNOWN;
+		u.getState(state);
+		if (state == VMS_RUNNING || state == VMS_STARTING) {
 			bStarted = true;
-		}
-		else if (bStarted && state == VMS_STOPPING)
-		{
+		} else if (bStarted && state == VMS_STOPPING) {
 			WRITE_TRACE(DBG_FATAL, "Vm start failed, state changed to stopped");
 			return PRL_ERR_CHANGESID_VM_START_FAILED;
 		}
+
+		if (state == VMS_RUNNING) {
+			Libvirt::Result e = u.getGuest().checkGuestAgent();
+			if (e.isSucceed()) {
+				WRITE_TRACE(DBG_DEBUG, "Tools ready");
+				break;
+			}
+		}
+
+		HostUtils::Sleep(WAITINTERVAL);
 	}
 
 	jobProgressEvent(50);
 	for (; i < WAITTOOLS_TIMEOUT / WAITINTERVAL; i++)
 	{
-		PRL_RESULT ret = run_changeSID_cmd(pVm);
+		PRL_RESULT ret = run_changeSID_cmd(u);
 		if (PRL_SUCCEEDED(ret) ||
 				ret != PRL_ERR_CHANGESID_NOT_AVAILABLE)
 			return ret;
@@ -380,67 +329,28 @@ PRL_RESULT Task_ChangeSID::change_sid(SmartPtr<CDspVm> &pVm)
 	return PRL_ERR_CHANGESID_GUEST_TOOLS_NOT_AVAILABLE;
 }
 
-PRL_RESULT Task_ChangeSID::run_changeSID_cmd(SmartPtr<CDspVm> &pVm)
+PRL_RESULT Task_ChangeSID::run_changeSID_cmd(Libvirt::Tools::Agent::Vm::Unit& u)
 {
-	CProtoCommandPtr pCmd = CProtoSerializer::CreateBasicVmGuestProtoCommand(PVE::DspCmdVmGuestChangeSID,
-			getVmUuid(), QString());
-	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspCmdVmGuestChangeSID, pCmd);
+	Prl::Expected<Libvirt::Tools::Agent::Vm::Exec::Result,Libvirt::Error::Simple> e =
+		u.getGuest().runProgram(Libvirt::Tools::Agent::Vm::Exec::Request("prl_newsid.exe",  
+			QList<QString>(), QByteArray()));
 
+	QString uuid;
+	u.getUuid(uuid);
 
-	/* run prl_newsid aplication in the the VM and get result */
-	IOSendJob::Handle hJob = pVm->sendPackageToVm(pPackage);
-	if (!hJob.isValid())
+	if (e.isFailed())
 	{
-		WRITE_TRACE(DBG_FATAL, "sendPackageToVm with commnad PVE::DspCmdVmGuestChangeSID failed");
+		WRITE_TRACE(DBG_FATAL, "Cannot run prl_newsid for VM '%s': %s",
+				qPrintable(uuid), PRL_RESULT_TO_STRING(e.error().code()));
 		return PRL_ERR_CHANGESID_FAILED;
 	}
-	CDspService::instance()->getIOServer().waitForSend(hJob);
-	/* change SID response loop */
-	for (unsigned int i = 0; i < CHANGESID_TIMEOUT / WAITINTERVAL; i++)
-	{
-		if (operationIsCancelled())
-			return PRL_ERR_OPERATION_WAS_CANCELED;
 
-
-		IOSendJob::Result nResult = CDspService::instance()->getIOServer().waitForResponse(hJob, WAITINTERVAL);
-		if (nResult == IOSendJob::Timeout)
-			continue;
-
-		if (nResult == IOSendJob::Success)
-		{
-			IOSendJob::Response resp = CDspService::instance()->getIOServer().takeResponse(hJob);
-			if (resp.responseResult != IOSendJob::Success)
-			{
-				WRITE_TRACE(DBG_FATAL, "TakeResponse failed: IOSendJob::Response=%d",
-							resp.responseResult);
-				return PRL_ERR_CHANGESID_FAILED;
-			}
-
-			SmartPtr<IOPackage> respPkg = resp.responsePackages[0];
-			if (!respPkg.isValid())
-			{
-				WRITE_TRACE(DBG_FATAL, "response package in sot valid");
-				return PRL_ERR_CHANGESID_FAILED;
-			}
-			CVmEvent responseEvent(UTF8_2QSTR(respPkg->buffers[0].getImpl()));
-			if (responseEvent.getEventCode() != PRL_ERR_SUCCESS)
-			{
-				WRITE_TRACE(DBG_FATAL, "DspCmdVmGuestChangeSID: received response code=%d",
-					responseEvent.getEventCode());
-				if (responseEvent.getEventCode() == PRL_ERR_CHANGESID_NOT_AVAILABLE)
-					return PRL_ERR_CHANGESID_NOT_AVAILABLE;
-				else
-					return PRL_ERR_CHANGESID_FAILED;
-			}
-			return PRL_ERR_SUCCESS;
-		}
-		else
-		{
-			WRITE_TRACE(DBG_FATAL, "failed to waitForResponse nResult=%d", nResult);
-			return PRL_ERR_CHANGESID_FAILED;
-		}
+	if (e.value().exitcode != 0) {
+		WRITE_TRACE(DBG_FATAL, "prl_nettool return error %d for VM '%s' message '%s'",
+				e.value().exitcode, qPrintable(uuid), qPrintable(e.value().stdErr));
+		return PRL_ERR_CHANGESID_FAILED;
 	}
 
-	return PRL_ERR_CHANGESID_FAILED;
+	return PRL_ERR_SUCCESS;
 }
 
