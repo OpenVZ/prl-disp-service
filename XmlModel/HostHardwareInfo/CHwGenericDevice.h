@@ -34,7 +34,7 @@
 #include "ParallelsDomModel.h"
 #include "ParallelsNamespace.h"
 
-#include "XmlModel/ParallelsObjects/CBaseNode.h"
+#include "../ParallelsObjects/CBaseNode.h"
 
 
 /**

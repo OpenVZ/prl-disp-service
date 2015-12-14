@@ -336,7 +336,7 @@ public:
 			</xs:element>
 			<xs:element name="CpuPoolInfo" type="CpuPoolInfoType">
 				<xs:annotation>
-					<xs:documentation>class=CCpuPoolInfo;extern=XmlModel/CpuFeatures/CCpuPoolInfo.h;single_fixed=on;</xs:documentation>
+					<xs:documentation>class=CCpuPoolInfo;extern=../CpuFeatures/CCpuPoolInfo.h;single_fixed=on;</xs:documentation>
 				</xs:annotation>
 				<xs:complexType/>
 			</xs:element>
@@ -871,7 +871,7 @@ CDispLicense::CDispLicense(const QString&amp; key, const QString&amp; user, cons
 	</xs:complexType>
 	<xs:complexType name="ServerIdentificationType">
 		<xs:annotation>
-			<xs:documentation>class=CVmServerIdentification;extern=XmlModel/VmDirectory/CVmServerIdentification.h;</xs:documentation>
+			<xs:documentation>class=CVmServerIdentification;extern=../VmDirectory/CVmServerIdentification.h;</xs:documentation>
 		</xs:annotation>
 		<xs:sequence>
 			<xs:element ref="ServerUuid"/>

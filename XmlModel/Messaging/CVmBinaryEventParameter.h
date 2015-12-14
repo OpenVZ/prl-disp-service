@@ -29,7 +29,7 @@
 #ifndef CVmBinaryEventParameter_H
 #define CVmBinaryEventParameter_H
 
-#include "XmlModel/Messaging/CVmEventParameter.h"
+#include "../Messaging/CVmEventParameter.h"
 #include <QByteArray>
 #include <QBuffer>
 #include <QDataStream>

@@ -2478,7 +2478,7 @@ CVmIoLimit::CVmIoLimit(const PRL_IOLIMIT_TYPE&amp; type, const PRL_UINT32&amp; v
 					<xs:sequence>
 						<xs:element name="ParallelsEvent">
 							<xs:annotation>
-								<xs:documentation>single_fixed=on;class=CVmEvent;extern=XmlModel/Messaging/CVmEvent.h;list=VmInfo</xs:documentation>
+								<xs:documentation>single_fixed=on;class=CVmEvent;extern=../Messaging/CVmEvent.h;list=VmInfo</xs:documentation>
 							</xs:annotation>
 							<xs:complexType>
 								<xs:sequence>

@@ -26,7 +26,7 @@
 
 
 #include "Interfaces/ParallelsSdk.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include "../VmConfig/CVmConfiguration.h"
 
 namespace CXmlModelHelper
 {

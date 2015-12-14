@@ -203,7 +203,7 @@ void CProblemReport::appendTemplateSystemLog(const QString &amp;, const QString 
 				</xs:element>
 				<xs:element name="License" minOccurs="0">
 					<xs:annotation>
-						<xs:documentation>class=CDispLicense;extern=XmlModel/DispConfig/CDispLicense.h;</xs:documentation>
+						<xs:documentation>class=CDispLicense;extern=../DispConfig/CDispLicense.h;</xs:documentation>
 					</xs:annotation>
 					<xs:complexType>
 						<xs:sequence>
