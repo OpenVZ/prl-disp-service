@@ -1010,7 +1010,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmGuestSetUserPasswd> >::run()
 		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
 
 	Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest()
-			.setUserPasswd(x->GetUserLoginName(), x->GetUserPassword());
+			.setUserPasswd(x->GetUserLoginName(), x->GetUserPassword(), x->GetCommandFlags() & PSPF_PASSWD_CRYPTED);
 
 	if (e.isFailed())
 	{

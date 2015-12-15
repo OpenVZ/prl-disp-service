@@ -217,7 +217,7 @@ struct Guest
 		dumpMemory(const QString& path);
 	Prl::Expected<Command::Future, Error::Simple>
 		dumpState(const QString& path_);
-	Result setUserPasswd(const QString& user, const QString& passwd);
+	Result setUserPasswd(const QString& user_, const QString& passwd_, bool crypted_);
 	Result checkAgent();
 	Prl::Expected<QString, Error::Simple> getAgentVersion();
 	Prl::Expected<Exec::Future, Error::Simple> startProgram(const Exec::Request& r);

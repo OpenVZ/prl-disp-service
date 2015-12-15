@@ -385,11 +385,13 @@ Guest::dumpState(const QString& path_)
 	return Command::Future(m_domain, std::string("finish-migrate"));
 }
 
-Result Guest::setUserPasswd(const QString& user_, const QString& passwd_)
+Result Guest::setUserPasswd(const QString& user_, const QString& passwd_, bool crypted_)
 {
+	unsigned int f = (crypted_) ? VIR_DOMAIN_CREATE_USER | VIR_DOMAIN_PASSWORD_ENCRYPTED :
+					VIR_DOMAIN_CREATE_USER;
 	return do_(m_domain.data(), boost::bind
 		(&virDomainSetUserPassword, _1, user_.toUtf8().constData(),
-			passwd_.toUtf8().constData(), VIR_DOMAIN_CREATE_USER));
+			passwd_.toUtf8().constData(), f));
 }
 
 Result Guest::checkAgent()
