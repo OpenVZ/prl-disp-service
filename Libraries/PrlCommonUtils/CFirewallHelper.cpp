@@ -31,6 +31,7 @@
 #include <QHostAddress>
 #include <QTemporaryFile>
 #include "Libraries/PrlNetworking/netconfig.h"
+#include "Libraries/Logging/Logging.h"
 
 #include "CFirewallHelper.h"
 #include "NetworkUtils.h"

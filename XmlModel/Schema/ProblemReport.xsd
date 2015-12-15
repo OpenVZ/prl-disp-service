@@ -203,7 +203,7 @@ void CProblemReport::appendTemplateSystemLog(const QString &amp;, const QString 
 				</xs:element>
 				<xs:element name="License" minOccurs="0">
 					<xs:annotation>
-						<xs:documentation>class=CDispLicense;extern=XmlModel/DispConfig/CDispLicense.h;</xs:documentation>
+						<xs:documentation>class=CDispLicense;extern=../DispConfig/CDispLicense.h;</xs:documentation>
 					</xs:annotation>
 					<xs:complexType>
 						<xs:sequence>
@@ -396,27 +396,6 @@ void CRepScreenShots::appendScreenshot(CRepScreenShot * pScr)
 							</xs:element>
 							<xs:element name="NameInArchive" type="xs:string" minOccurs="0"/>
 							<xs:element name="Snapshots" type="xs:anyType" minOccurs="0"/>
-						</xs:sequence>
-					</xs:complexType>
-				</xs:element>
-				<xs:element name="KeyboardMouseProfiles" minOccurs="0">
-					<xs:annotation>
-						<xs:documentation/>
-						<xs:documentation>virtual=on</xs:documentation>
-					</xs:annotation>
-					<xs:complexType>
-						<xs:sequence>
-							<xs:element name="KeyboardMouseProfile" minOccurs="0" maxOccurs="unbounded">
-								<xs:annotation>
-									<xs:documentation>class=ParallelsKeyboardMouse;extern=XmlModel/KeyboardMouse/ParallelsKeyboardMouse.h;</xs:documentation>
-								</xs:annotation>
-								<xs:complexType>
-									<xs:sequence>
-										<xs:element name="external" type="xs:string"/>
-									</xs:sequence>
-								</xs:complexType>
-							</xs:element>
-							<xs:element name="NameInArchive" type="xs:string" minOccurs="0"/>
 						</xs:sequence>
 					</xs:complexType>
 				</xs:element>

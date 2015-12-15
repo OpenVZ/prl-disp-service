@@ -34,10 +34,9 @@
 
 #include "ParallelsDomModel.h"
 #include "ParallelsNamespace.h"
-#include "Libraries/PrlDataSerializer/CPrlDataSerializer.h"
 #include <prlsdk/PrlIOStructs.h>
-#include "XmlModel/VmDataStatistic/CVmDataStatistic.h"
-#include "XmlModel/GuestOsInformation/CVmGuestOsInformation.h"
+#include "../VmDataStatistic/CVmDataStatistic.h"
+#include "../GuestOsInformation/CVmGuestOsInformation.h"
 
 /** Base statistics element class */
 class CBaseStatisticsElement

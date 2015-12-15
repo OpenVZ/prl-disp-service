@@ -336,7 +336,7 @@ public:
 			</xs:element>
 			<xs:element name="CpuPoolInfo" type="CpuPoolInfoType">
 				<xs:annotation>
-					<xs:documentation>class=CCpuPoolInfo;extern=XmlModel/CpuFeatures/CCpuPoolInfo.h;single_fixed=on;</xs:documentation>
+					<xs:documentation>class=CCpuPoolInfo;extern=../CpuFeatures/CCpuPoolInfo.h;single_fixed=on;</xs:documentation>
 				</xs:annotation>
 				<xs:complexType/>
 			</xs:element>
@@ -721,25 +721,6 @@ CDispLicense::CDispLicense(const QString&amp; key, const QString&amp; user, cons
 					</xs:sequence>
 				</xs:complexType>
 			</xs:element>
-			<xs:element name="ApplianceConfigs">
-				<xs:annotation>
-					<xs:documentation>class=CDispApplianceConfigs;single_fixed=on;</xs:documentation>
-				</xs:annotation>
-				<xs:complexType>
-					<xs:sequence>
-						<xs:element name="ParallelsAppliance" minOccurs="0" maxOccurs="unbounded">
-							<xs:annotation>
-								<xs:documentation>class=CAppliance;extern=XmlModel/Appliance/CAppliance.h;list=ApplianceConfigs;</xs:documentation>
-							</xs:annotation>
-							<xs:complexType>
-								<xs:sequence>
-									<xs:element name="external" type="xs:string"/>
-								</xs:sequence>
-							</xs:complexType>
-						</xs:element>
-					</xs:sequence>
-				</xs:complexType>
-			</xs:element>
 		</xs:sequence>
 	</xs:complexType>
 	<xs:complexType name="PciPreferencesType">
@@ -890,7 +871,7 @@ CDispLicense::CDispLicense(const QString&amp; key, const QString&amp; user, cons
 	</xs:complexType>
 	<xs:complexType name="ServerIdentificationType">
 		<xs:annotation>
-			<xs:documentation>class=CVmServerIdentification;extern=XmlModel/VmDirectory/CVmServerIdentification.h;</xs:documentation>
+			<xs:documentation>class=CVmServerIdentification;extern=../VmDirectory/CVmServerIdentification.h;</xs:documentation>
 		</xs:annotation>
 		<xs:sequence>
 			<xs:element ref="ServerUuid"/>
@@ -1169,11 +1150,11 @@ void CDispUsersPreferences::removeUser(CDispUser* item)
 			</xs:element>
 			<xs:element name="VmTimeoutOnShutdown" type="xs:integer" default="120" minOccurs="0"/>
 			<xs:element name="AllowVmForceShutdown" type="xs:boolean" default="true" minOccurs="0"/>
-			<xs:element name="VmUptimeSyncTimeoutInMinutes" type="xs:integer" default="(ParallelsDirs::getAppExecuteMode() == PAM_SERVER ? 15 : 0 )" minOccurs="0"/>
+			<xs:element name="VmUptimeSyncTimeoutInMinutes" type="xs:integer" default="15" minOccurs="0"/>
 			<xs:element name="AllowUseNetworkShares" type="xs:boolean" minOccurs="0"/>
 			<xs:element name="SwapPathForVMOnNetworkShares" type="xs:string" minOccurs="0"/>
 			<xs:element name="ClusterModeEnabled" type="xs:boolean" default="false" minOccurs="0"/>
-			<xs:element name="VmConfigWatcherEnabled" type="xs:boolean" default="(ParallelsDirs::getAppExecuteMode() == PAM_SERVER ? false: true)" minOccurs="0"/>
+			<xs:element name="VmConfigWatcherEnabled" type="xs:boolean" default="false" minOccurs="0"/>
 			<xs:element name="Limits" type="LimitsType">
 				<xs:annotation>
 					<xs:documentation>single_fixed=on;</xs:documentation>

@@ -39,8 +39,6 @@
 #include <prlsdk/PrlEnums.h>
 #include <prlsdk/PrlErrors.h>
 #include "Libraries/PrlUuid/Uuid.h"
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
 #include "Libraries/PrlDataSerializer/CPrlOpaqueTypeDataSerializer.h"
 #include "Libraries/PrlDataSerializer/CPrlStringDataSerializer.h"
 // For compatibility

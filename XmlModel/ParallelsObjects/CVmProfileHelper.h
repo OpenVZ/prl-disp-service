@@ -30,8 +30,8 @@
 
 #include <prlsdk/PrlEnums.h>
 #include <prlsdk/PrlErrorsValues.h>
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
+#include "../VmConfig/CVmConfiguration.h"
+#include "../HostHardwareInfo/CHostHardwareInfo.h"
 
 
 namespace CVmProfileHelper

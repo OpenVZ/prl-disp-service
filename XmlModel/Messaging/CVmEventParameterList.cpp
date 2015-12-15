@@ -28,6 +28,7 @@
 
 #include "CVmEventParameterList.h"
 #include "Interfaces/ParallelsDomModel.h"
+#include "Libraries/PrlDataSerializer/CPrlStringDataSerializer.h"
 
 
 CVmEventParameterList::CVmEventParameterList()

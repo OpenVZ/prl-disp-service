@@ -33,6 +33,7 @@
 #include "CVmBinaryEventParameter.h"
 
 #include "Libraries/Logging/Logging.h"
+#include "Libraries/PrlDataSerializer/CPrlStringDataSerializer.h"
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"

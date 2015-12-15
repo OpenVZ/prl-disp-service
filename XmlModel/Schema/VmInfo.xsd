@@ -8,7 +8,7 @@
 			<xs:sequence>
 				<xs:element name="GuestOsInformation">
 					<xs:annotation>
-						<xs:documentation>single_fixed=on;class=CVmGuestOsInformation;extern=XmlModel/GuestOsInformation/CVmGuestOsInformation.h;</xs:documentation>
+						<xs:documentation>single_fixed=on;class=CVmGuestOsInformation;extern=../GuestOsInformation/CVmGuestOsInformation.h;</xs:documentation>
 					</xs:annotation>
 					<xs:complexType>
 						<xs:sequence>

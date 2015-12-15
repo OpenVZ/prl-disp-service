@@ -34,6 +34,7 @@
 #include "Libraries/Logging/Logging.h"
 #include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
 
 using namespace IOService;
 using namespace Parallels;

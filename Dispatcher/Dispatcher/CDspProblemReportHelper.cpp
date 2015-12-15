@@ -51,7 +51,6 @@
 #include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
 #include "XmlModel/Messaging/CVmBinaryEventParameter.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/Updater/CUpdaterConfig.h"
 #include "XmlModel/GuestOsInformation/CVmGuestOsInformation.h"
 
 #include "Libraries/ProblemReportUtils/CPackedProblemReport.h"
@@ -497,16 +496,6 @@ void CDspProblemReportHelper::FillCommonReportData( CProblemReport & cReport, bo
 	//////////////////////////////////////////////////////////////////////////
 	// set installed software list
 	cReport.setInstalledSoftware( CInstalledSoftwareCollector::getInstalledSoftwareListSync() );
-
-	//////////////////////////////////////////////////////////////////////////
-	// try to load updater config file to xml
-	QString strDispConfigDir = ParallelsDirs::getDispatcherConfigDir();
-	QFile _vm_config_file(strDispConfigDir+"/"+UPDATER_CONFIG_FILE_NAME);
-	CUpdaterConfig UpdaterConfig(&_vm_config_file);
-	if (UpdaterConfig.m_uiRcInit == PRL_ERR_SUCCESS)
-	{
-		cReport.setVmUpdaterInfo( UpdaterConfig.toString() );
-	}
 }
 
 void CDspProblemReportHelper::FillTimeZoneData( CProblemReport & cReport )

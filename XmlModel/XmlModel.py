@@ -184,13 +184,10 @@ def main():
         force = True
 
     schemas = (
-        ('ClientPreferences', 'ClientPreferences', '', 'pmobile'),
         ('DispConfig', 'DispConfig', '--merge --properties', 'pmobile'),
         ('HostHardwareInfo', 'HostHardwareInfo', '', ''),
         ('FileSystemInfo', 'HostHardwareInfo', '', ''),
         ('ProblemReport', 'ProblemReport', '', 'pmobile'),
-        ('UpdaterConfig', 'Updater', '', ''),
-        ('Updates', 'Updater', '', ''),
         ('VmConfig', 'VmConfig', '--signals --merge  --properties', 'pmobile'),
         ('VmDirectories', 'VmDirectory', '--merge --properties', 'pmobile'),
         ('VmEvent', 'Messaging', '--merge  --properties', 'pmobile'),
@@ -198,14 +195,9 @@ def main():
         ('UserInformation', 'UserInformation', '', 'pmobile'),
         ('Licenses', 'Licenses', '', ''),
         ('NetworkConfig', 'NetworkConfig', '--merge', ''),
-        ('KeyboardMouse', 'KeyboardMouse', '', 'pmobile'),
-        ('XKeyMaps', 'XKeyMaps', '', ''),
         ('BackupTree', 'BackupTree', '', ''),
         ('DiskImageInfo', 'DiskImageInfo', '', ''),
-        ('Appliance', 'Appliance', '--signals --merge --properties', 'pmobile'),
         ('Reports', 'Reports', '', 'pmobile'),
-        ('AppLists', 'AppLists', '', ''),
-        ('IscsiStorage', 'IscsiStorage', '', ''),
         ('CtTemplate', 'CtTemplate', '', ''),
         ('DiskDescriptor', 'DiskDescriptor', '', ''),
         ('VmInfo', 'VmInfo', '', 'pmobile'),

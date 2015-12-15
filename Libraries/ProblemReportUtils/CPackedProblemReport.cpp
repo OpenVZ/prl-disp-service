@@ -789,9 +789,6 @@ QStringList CPackedProblemReport::createReportFilesList()
 	lstFiles += getArchivePathFromTopLevelObject( getAdvancedVmInfo(),
 					getAdvancedVmInfo() ? getAdvancedVmInfo()->getNameInArchive() : "" );
 
-	lstFiles += getArchivePathFromTopLevelObject( getKeyboardMouseProfiles(),
-					getKeyboardMouseProfiles() ? getKeyboardMouseProfiles()->getNameInArchive() : "" );
-
 	lstFiles += getElementPathFromArchive( getHostStatistic() );
 	lstFiles += getElementPathFromArchive( getHostInfo() );
 	lstFiles += getElementPathFromArchive( getMoreHostInfo() );
@@ -805,7 +802,6 @@ QStringList CPackedProblemReport::createReportFilesList()
 	lstFiles += getElementPathFromArchive( getMonitorData() );
 	lstFiles += getElementPathFromArchive( getNetConfig() );
 	lstFiles += getElementPathFromArchive( getAppConfig() );
-	lstFiles += getElementPathFromArchive( getVmUpdaterInfo() );
 	lstFiles += getElementPathFromArchive( getGuestOs() );
 	lstFiles += getElementPathFromArchive( getVmDirectory() );
 	lstFiles += getElementPathFromArchive( getInstalledSoftware() );
@@ -972,13 +968,6 @@ SmartPtr<CProblemReport> CPackedProblemReport::convertToProblemReportOldFormat()
 		pPR->setClientInfo( pClientInfo );
 	}
 
-	if ( pPR->getKeyboardMouseProfiles() )
-	{
-		KeyboardMouseProfiles * pProfiles = new KeyboardMouseProfiles;
-		pProfiles->fromString( getValue( pPR->getKeyboardMouseProfiles()->getNameInArchive() ) );
-		pPR->setKeyboardMouseProfiles( pProfiles );
-	}
-
 	pPR->setHostStatistic( getValue( pPR->getHostStatistic() ) );
 	pPR->setHostInfo( getValue( pPR->getHostInfo() ) );
 	pPR->setMoreHostInfo( getValue( pPR->getMoreHostInfo() ) );
@@ -992,7 +981,6 @@ SmartPtr<CProblemReport> CPackedProblemReport::convertToProblemReportOldFormat()
 	pPR->setPerformanceCounters( getValue( pPR->getPerformanceCounters() ) );
 	pPR->setVmConfig( getValue( pPR->getVmConfig() ) );
 	pPR->setVmDomain(getValue(pPR->getVmDomain()));
-	pPR->setVmUpdaterInfo( getValue( pPR->getVmUpdaterInfo() ) );
 	pPR->setGuestOs( getValue( pPR->getGuestOs() ) );
 	pPR->setVmDirectory( getValue( pPR->getVmDirectory() ) );
 	pPR->setFilesMd5InProductBundle( getValue( pPR->getFilesMd5InProductBundle() ) );
@@ -1099,19 +1087,6 @@ void CPackedProblemReport::setAdvancedVmInfo(CRepAdvancedVmInfo* pAdvancedVmInfo
 	setValuePointerWithCaller( pAdvancedVmInfo, PR_PACKED_REP_ADVANCED_VM_INFO, setAdvancedVmInfo );
 }
 
-KeyboardMouseProfiles* CPackedProblemReport::getKeyboardMouseProfiles() const
-{
-	if( !m_lstKeyboardMouseProfiles.isEmpty() )
-		return m_lstKeyboardMouseProfiles[0];
-	else
-		return NULL;
-}
-
-void CPackedProblemReport::setKeyboardMouseProfiles( KeyboardMouseProfiles * pProfiles )
-{
-	setValuePointerWithCaller( pProfiles, PR_PACKED_REP_KEYBOARD_MOUSE_PROFILES, setKeyboardMouseProfiles );
-}
-
 ClientInfo* CPackedProblemReport::getClientInfo() const
 {
 	if( !m_lstClientInfo.isEmpty() )
@@ -1197,11 +1172,6 @@ void CPackedProblemReport::setVmDomain(QString value)
 	setValueWithCaller(value, PR_PACKED_REP_CURRENT_VM_DOMAIN, setVmDomain);
 }
 
-void CPackedProblemReport::setVmUpdaterInfo(QString value)
-{
-	setValueWithCaller( value, PR_PACKED_REP_UPDATER_VM_INFO, setVmUpdaterInfo );
-}
-
 void CPackedProblemReport::setGuestOs(QString value)
 {
 	setValueWithCaller( value, PR_PACKED_REP_GUEST_OS, setGuestOs );
@@ -1240,12 +1210,6 @@ int CPackedProblemReport::fromBaseReport( const QString & strBaseReport )
 	strValue = CProblemReport::getClientInfo()->toString();
 	setValue( strValue, PR_PACKED_REP_CLIENT_INFO );
 
-	if( CProblemReport::getKeyboardMouseProfiles() )
-	{
-		strValue = CProblemReport::getKeyboardMouseProfiles()->toString();
-		setValue( strValue, PR_PACKED_REP_KEYBOARD_MOUSE_PROFILES );
-	}
-
 	setHostStatistic( CProblemReport::getHostStatistic() );
 
 	setHostInfo( CProblemReport::getHostInfo() );
@@ -1271,8 +1235,6 @@ int CPackedProblemReport::fromBaseReport( const QString & strBaseReport )
 	setVmConfig( CProblemReport::getVmConfig() );
 
 	setVmDomain( CProblemReport::getVmDomain() );
-
-	setVmUpdaterInfo( CProblemReport::getVmUpdaterInfo() );
 
 	setGuestOs( CProblemReport::getGuestOs() );
 
