@@ -31,6 +31,7 @@
 
 #include "CDspVm.h"
 #include "CDspTaskHelper.h"
+#include "CDspLibvirt.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 
 class Task_ChangeSID : public CDspTaskHelper
@@ -53,10 +54,8 @@ protected:
 private:
 	void jobProgressEvent(unsigned int progress);
 	PRL_RESULT save_config(SmartPtr<CVmConfiguration> &pVmConfig);
-	PRL_RESULT start_vm(SmartPtr<CDspClient> &pFakeSession, SmartPtr<CDspVm> &pVm);
-	PRL_RESULT stop_vm(SmartPtr<CDspClient> &pFakeSession, SmartPtr<CDspVm> &pVm, bool bGraceful);
-	PRL_RESULT change_sid(SmartPtr<CDspVm> &pVm);
-	PRL_RESULT run_changeSID_cmd(SmartPtr<CDspVm> &pVm);
+	PRL_RESULT change_sid(Libvirt::Tools::Agent::Vm::Unit& u);
+	PRL_RESULT run_changeSID_cmd(Libvirt::Tools::Agent::Vm::Unit& u);
 
 private:
 	SmartPtr<CVmConfiguration> m_pVmConfig;

@@ -1035,8 +1035,8 @@ void Body<Tag::Libvirt<PVE::DspCmdVmLoginInGuest> >::run()
 	if (NULL == x)
 		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
 
-	Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest()
-			.checkGuestAgent();
+	Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid())
+		.getGuest().checkAgent();
 
 	if (e.isFailed())
 		return m_context.reply(e);
