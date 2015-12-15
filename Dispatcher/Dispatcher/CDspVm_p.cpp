@@ -31,8 +31,6 @@
 
 #include "CDspVm_p.h"
 #include "CVmValidateConfig.h"
-#include "CDspLibvirt.h"
-#include <Libraries/PrlCommonUtilsBase/SysError.h>
 #include <Libraries/PrlCommonUtilsBase/Common.h>
 #include <Libraries/HostUtils/HostUtils.h>
 #include "Tasks/Task_PrepareForHibernate.h"
@@ -66,19 +64,83 @@ bool readVmToolsStateString(QString &toolsVersionStr, const CVmIdent &vmIdent)
 
 	toolsVersionStr.clear();
 
-	Prl::Expected<QString, Libvirt::Error::Simple> r =
-        	Libvirt::Kit.vms().at(vmIdent.first).getGuest().getAgentVersion();
+	const CVmHardware *const pVmHardware =
+		pVmConfig->getVmHardwareList();
 
-	if (r.isFailed()) {
-		toolsVersionStr = pVmConfig->getVmSettings()->getVmTools()->getVersion();
-		return !toolsVersionStr.isEmpty();
-	} else {
-		toolsVersionStr = r.value();
-		pVmConfig->getVmSettings()->getVmTools()->setVersion(toolsVersionStr);
-
-		WRITE_TRACE(DBG_DEBUG, "Tools version %s",  qPrintable(toolsVersionStr));
-		return true;
+	if (0 == pVmHardware)
+	{
+		WRITE_TRACE(DBG_FATAL, "Error: VM hardware configuration is 0");
+		return false;
 	}
+
+	// Iterate through the collection of Hard disk drives
+	for (int i = 0; pVmHardware->m_lstHardDisks.size() > i; ++i)
+	{
+// VirtualDisk commented out by request from CP team
+//		const CVmHardDisk *const pDevice = pVmHardware->m_lstHardDisks.at(i);
+//
+//		if (0 == pDevice) continue;
+//
+//		const int iStack = pDevice->getStackIndex();
+//
+//		IDisk *iDisk = 0;
+//
+//		// Check disk settings
+//		switch (pDevice->getInterfaceType())
+//		{
+//		case PMS_IDE_DEVICE:
+//			if (iStack < 0 || iStack >= MAX_IDE_COUNT)
+//			{
+//				WRITE_TRACE(DBG_FATAL, "Error: invalid iStack=%i for "
+//					"IDE device #%i", iStack, i);
+//				continue;
+//			}
+//			break;
+//
+//		case PMS_SCSI_DEVICE:
+//		case PMS_SATA_DEVICE:
+//			break;
+//
+//		default:
+//			{
+//				WRITE_TRACE(DBG_FATAL, "Error: invalid interface type for iStack= %i "
+//					"device #%i", iStack, i);
+//				continue;
+//			}
+//		}
+//
+//		iDisk = IDisk::OpenDisk(pDevice->getSystemName(),
+//			PRL_DISK_FAKE_OPEN | PRL_DISK_NO_ERROR_CHECKING | PRL_DISK_READ);
+//
+//		if (0 == iDisk)
+//		{
+//			WRITE_TRACE(DBG_FATAL, "Error: failed to open disk image %s",
+//				qPrintable(pDevice->getSystemName()));
+//			continue;
+//		}
+//
+//		QString toolsVersion;
+//
+//		PRL_RESULT readResult = iDisk->GetUserParameter(DISK_TOOLS_VERSION_KEY,
+//			toolsVersion);
+//
+//		iDisk->Release();
+//
+//		if (PRL_FAILED(readResult)) continue;
+//		if (toolsVersion.isEmpty()) continue;
+//		if (DISK_TOOLS_NO_TOOLS_VAL == toolsVersion) continue;
+//
+//		LOG_MESSAGE(DBG_DEBUG, "Tools version found is %s",
+//			qPrintable(toolsVersion));
+//
+//		toolsVersionStr = toolsVersion;
+//
+//		return true;
+	}
+
+	LOG_MESSAGE(DBG_DEBUG, "Looks like Parallels Tools not installed");
+
+	return false;
 }
 
 PVE::VmBinaryMode getWinVmBinaryMode(PVE::VmBinaryMode vmBinaryMode, const CVmIdent& vmIdent )
