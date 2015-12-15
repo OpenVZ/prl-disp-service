@@ -2986,7 +2986,7 @@ bool CVmCommonOptions::operator==( const CVmCommonOptions&amp; cVmCommonOptions)
 							</xs:annotation>
 							<xs:complexType>
 								<xs:sequence>
-									<xs:element name="Enabled" type="xs:boolean" default="(ParallelsDirs::getAppExecuteMode() == PAM_SERVER ? false : true)"/>
+									<xs:element name="Enabled" type="xs:boolean" default="false"/>
 									<xs:element name="SyncInterval" type="xs:integer" default="60">
 										<xs:annotation>
 											<xs:documentation/>
@@ -3034,11 +3034,10 @@ bool CVmCommonOptions::operator==( const CVmCommonOptions&amp; cVmCommonOptions)
 						<xs:element name="SharedVolumes" block="restriction">
 							<xs:annotation>
 								<xs:documentation>single_fixed=on;class=CVmSharedVolumes;</xs:documentation>
-								<xs:documentation>include="Libraries/PrlCommonUtilsBase/ParallelsDirs.h";</xs:documentation>
 							</xs:annotation>
 							<xs:complexType>
 								<xs:sequence>
-									<xs:element name="Enabled" type="xs:boolean" default="(ParallelsDirs::getAppExecuteMode() == PAM_SERVER ? false : true)"/>
+									<xs:element name="Enabled" type="xs:boolean" default="false"/>
 									<xs:element name="UseExternalDisks" type="xs:boolean" default="true" minOccurs="0"/>
 									<xs:element name="UseDVDs" type="xs:boolean" default="true" minOccurs="0"/>
 									<xs:element name="UseConnectedServers" type="xs:boolean" default="true" minOccurs="0"/>
@@ -3147,7 +3146,7 @@ bool CVmCommonOptions::operator==( const CVmCommonOptions&amp; cVmCommonOptions)
 				</xs:annotation>
 				<xs:complexType>
 					<xs:sequence>
-						<xs:element name="Enabled" type="xs:boolean" default="(ParallelsDirs::getAppExecuteMode() == PAM_SERVER ? false : true)"/>
+						<xs:element name="Enabled" type="xs:boolean" default="false"/>
 						<xs:element name="Period" type="xs:integer" default="24*60*60">
 							<xs:annotation>
 								<xs:documentation>In seconds</xs:documentation>

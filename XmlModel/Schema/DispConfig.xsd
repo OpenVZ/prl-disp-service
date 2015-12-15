@@ -1150,11 +1150,11 @@ void CDispUsersPreferences::removeUser(CDispUser* item)
 			</xs:element>
 			<xs:element name="VmTimeoutOnShutdown" type="xs:integer" default="120" minOccurs="0"/>
 			<xs:element name="AllowVmForceShutdown" type="xs:boolean" default="true" minOccurs="0"/>
-			<xs:element name="VmUptimeSyncTimeoutInMinutes" type="xs:integer" default="(ParallelsDirs::getAppExecuteMode() == PAM_SERVER ? 15 : 0 )" minOccurs="0"/>
+			<xs:element name="VmUptimeSyncTimeoutInMinutes" type="xs:integer" default="15" minOccurs="0"/>
 			<xs:element name="AllowUseNetworkShares" type="xs:boolean" minOccurs="0"/>
 			<xs:element name="SwapPathForVMOnNetworkShares" type="xs:string" minOccurs="0"/>
 			<xs:element name="ClusterModeEnabled" type="xs:boolean" default="false" minOccurs="0"/>
-			<xs:element name="VmConfigWatcherEnabled" type="xs:boolean" default="(ParallelsDirs::getAppExecuteMode() == PAM_SERVER ? false: true)" minOccurs="0"/>
+			<xs:element name="VmConfigWatcherEnabled" type="xs:boolean" default="false" minOccurs="0"/>
 			<xs:element name="Limits" type="LimitsType">
 				<xs:annotation>
 					<xs:documentation>single_fixed=on;</xs:documentation>
