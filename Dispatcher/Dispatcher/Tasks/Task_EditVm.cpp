@@ -1608,16 +1608,21 @@ PRL_RESULT Task_EditVm::editVm()
 			}
 		}
 
-		if (new_mem_sz > old_mem->getMaxRamSize())
+		if (nState != VMS_STOPPED && new_mem_sz > old_mem->getMaxRamSize())
 		{
-			if (nState != VMS_STOPPED)
-			{
-				WRITE_TRACE(DBG_FATAL, "Can't set more memory than maxmemory fo VM %s. VM should be stopped for such a change.",
-					qPrintable(vm_uuid));
-				throw PRL_ERR_DISP_VM_IS_NOT_STOPPED;
-			}
-			new_mem->setMaxRamSize(new_mem_sz);
+			WRITE_TRACE(DBG_FATAL, "Can't set more memory than maxmemory fo VM %s. VM should be stopped for such a change.",
+				qPrintable(vm_uuid));
+			throw PRL_ERR_DISP_VM_IS_NOT_STOPPED;
 		}
+
+		// We round up max memory and max numa memory to corresponding defaults.
+		// We add at least XML_DEFAULT_MAXNUMARAM_SIZE to be hot-plugged by balloon.
+		new_mem->setMaxNumaRamSize(
+				(new_mem_sz + 2*XML_DEFAULT_MAXNUMARAM_SIZE - 1)/
+				XML_DEFAULT_MAXNUMARAM_SIZE
+				*XML_DEFAULT_MAXNUMARAM_SIZE);
+		// And twice as much as max NUMA memory to be added by slots.
+		new_mem->setMaxRamSize(new_mem->getMaxNumaRamSize()*2);
 		
 		// bug #121857
 		PRL_UNDO_DISKS_MODE nOldUndoDisksMode
@@ -3217,7 +3222,6 @@ Action* Adapter::operator()(const Request& input_) const
 
 Vm::Action* Memory::operator()(const Request& input_) const
 {
-	Action* output = NULL;
 	Forge f(input_);
 	CVmMemory* o = input_.getStart().getVmHardwareList()->getMemory();
 	CVmMemory* n = input_.getFinal().getVmHardwareList()->getMemory();
@@ -3225,34 +3229,14 @@ Vm::Action* Memory::operator()(const Request& input_) const
 	if (NULL == n)
 		return NULL;
 
-	unsigned old_mem = 0, new_mem = n->getRamSize();
-	if (NULL != o)
-		old_mem = o->getRamSize();
+       unsigned old_mem = 0, new_mem = n->getRamSize();
+       if (NULL != o)
+               old_mem = o->getRamSize();
 
-	// We don't care if new and old values are equal
-	// and we'll call libvirt anyway
+	if(old_mem == new_mem)
+		return NULL;
 
-	if (old_mem > new_mem)
-		output = f.craftRuntime(boost::bind(&vm::Runtime::setMemory, _1, new_mem));
-	else
-	{
-		if (new_mem <= o->getMaxNumaRamSize())
-			output = f.craftRuntime(boost::bind(&vm::Runtime::setMemory, _1, new_mem));
-		else
-		{
-			Action* a1(f.craftRuntime(boost::bind
-				(&vm::Runtime::setMemory, _1, o->getMaxNumaRamSize())));
-			a1->setNext(output);
-			output = a1;
-
-			Action* a2(f.craftRuntime(boost::bind
-				(&vm::Runtime::addMemoryBySlots, _1, new_mem - o->getMaxNumaRamSize())));
-			a2->setNext(output);
-			output = a2;
-		}
-	}
-
-	return output;
+	return f.craftRuntime(boost::bind(&vm::Runtime::setMemory, _1, n->getRamSize()));
 }
 
 namespace
