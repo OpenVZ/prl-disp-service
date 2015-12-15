@@ -392,13 +392,13 @@ Result Guest::setUserPasswd(const QString& user_, const QString& passwd_)
 			passwd_.toUtf8().constData(), VIR_DOMAIN_CREATE_USER));
 }
 
-Result Guest::checkGuestAgent()
+Result Guest::checkAgent()
 {
        return Exec::Exec(m_domain).executeInAgent(QString("{\"execute\":\"guest-ping\"}"));
 }
 
 Prl::Expected<QString, Error::Simple>
-Guest::getGuestAgentVersion()
+Guest::getAgentVersion()
 {
 	Prl::Expected<QString, Error::Simple> r =
 		Exec::Exec(m_domain).executeInAgent(QString("{\"execute\":\"guest-info\"}"));

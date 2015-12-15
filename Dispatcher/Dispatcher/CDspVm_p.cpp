@@ -67,7 +67,7 @@ bool readVmToolsStateString(QString &toolsVersionStr, const CVmIdent &vmIdent)
 	toolsVersionStr.clear();
 
 	Prl::Expected<QString, Libvirt::Error::Simple> r =
-        	Libvirt::Kit.vms().at(vmIdent.first).getGuest().getGuestAgentVersion();
+        	Libvirt::Kit.vms().at(vmIdent.first).getGuest().getAgentVersion();
 
 	if (r.isFailed()) {
 		toolsVersionStr = pVmConfig->getVmSettings()->getVmTools()->getVersion();
@@ -75,11 +75,10 @@ bool readVmToolsStateString(QString &toolsVersionStr, const CVmIdent &vmIdent)
 	} else {
 		toolsVersionStr = r.value();
 		pVmConfig->getVmSettings()->getVmTools()->setVersion(toolsVersionStr);
+
+		WRITE_TRACE(DBG_DEBUG, "Tools version %s",  qPrintable(toolsVersionStr));
+		return true;
 	}
-
-	WRITE_TRACE(DBG_DEBUG, "Tools version %s",  qPrintable(toolsVersionStr));
-
-	return true;
 }
 
 PVE::VmBinaryMode getWinVmBinaryMode(PVE::VmBinaryMode vmBinaryMode, const CVmIdent& vmIdent )

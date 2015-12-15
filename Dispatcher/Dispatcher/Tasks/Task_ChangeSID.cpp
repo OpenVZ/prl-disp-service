@@ -281,7 +281,6 @@ PRL_RESULT Task_ChangeSID::save_config(SmartPtr<CVmConfiguration> &pVmConfig)
 PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Tools::Agent::Vm::Unit& u)
 
 {
-	bool bStarted = false;
 	unsigned int i;
 
 	WRITE_TRACE(DBG_DEBUG, "Wait for tools...");
@@ -294,20 +293,16 @@ PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Tools::Agent::Vm::Unit& u)
 		// handle Vm start failure
 		VIRTUAL_MACHINE_STATE state = VMS_UNKNOWN;
 		u.getState(state);
-		if (state == VMS_RUNNING || state == VMS_STARTING) {
-			bStarted = true;
-		} else if (bStarted && state == VMS_STOPPING) {
+		if (state != VMS_RUNNING) {
 			WRITE_TRACE(DBG_FATAL, "Vm start failed, state changed to stopped");
 			return PRL_ERR_CHANGESID_VM_START_FAILED;
 		}
 
-		if (state == VMS_RUNNING) {
-			Prl::Expected<QString, Libvirt::Error::Simple> e =
-				u.getGuest().getGuestAgentVersion();
-			if (e.isSucceed()) {
-				WRITE_TRACE(DBG_DEBUG, "Tools ready");
-				break;
-			}
+		Prl::Expected<QString, Libvirt::Error::Simple> e =
+			u.getGuest().getAgentVersion();
+		if (e.isSucceed()) {
+			WRITE_TRACE(DBG_DEBUG, "Tools ready");
+			break;
 		}
 
 		HostUtils::Sleep(WAITINTERVAL);
@@ -325,9 +320,12 @@ PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Tools::Agent::Vm::Unit& u)
 
 PRL_RESULT Task_ChangeSID::run_changeSID_cmd(Libvirt::Tools::Agent::Vm::Unit& u)
 {
-	Prl::Expected<Libvirt::Tools::Agent::Vm::Exec::Result,Libvirt::Error::Simple> e =
-		u.getGuest().runProgram(Libvirt::Tools::Agent::Vm::Exec::Request("prl_newsid.exe",  
-			QList<QString>(), QByteArray()));
+	Prl::Expected
+		<Libvirt::Tools::Agent::Vm::Exec::Result,
+			Libvirt::Error::Simple> e =
+		u.getGuest().runProgram(
+			Libvirt::Tools::Agent::Vm::Exec::Request("prl_newsid.exe",  
+				QList<QString>(), QByteArray()));
 
 	QString uuid;
 	u.getUuid(uuid);

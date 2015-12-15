@@ -218,8 +218,8 @@ struct Guest
 	Prl::Expected<Command::Future, Error::Simple>
 		dumpState(const QString& path_);
 	Result setUserPasswd(const QString& user, const QString& passwd);
-	Result checkGuestAgent();
-	Prl::Expected<QString, Error::Simple> getGuestAgentVersion();
+	Result checkAgent();
+	Prl::Expected<QString, Error::Simple> getAgentVersion();
 	Prl::Expected<Exec::Future, Error::Simple> startProgram(const Exec::Request& r);
 	Prl::Expected<Exec::Result, Error::Simple> runProgram(const Exec::Request& r);
 	Prl::Expected<QString, Error::Simple>
