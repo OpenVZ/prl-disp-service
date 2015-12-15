@@ -335,7 +335,7 @@ PRL_RESULT Task_ChangeSID::run_changeSID_cmd(Libvirt::Tools::Agent::Vm::Unit& u)
 	}
 
 	if (e.value().exitcode != 0) {
-		QString err = QString("prl_nettool return error %1 for VM '%2' message '%3'")
+		QString err = QString("prl_newsid return error %1 for VM '%2' message '%3'")
 				.arg(e.value().exitcode)
 				.arg(uuid)
 				.arg(QString::fromUtf8(e.value().stdErr));
