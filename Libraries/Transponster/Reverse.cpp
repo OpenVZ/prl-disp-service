@@ -1308,7 +1308,7 @@ DimmDevice::DimmDevice(unsigned nodeid_, unsigned size_)
 
 	Libvirt::Domain::Xml::Target4 target;
 	Libvirt::Domain::Xml::ScaledInteger v;
-	v.setOwnValue(size_ << 10);
+	v.setOwnValue(size_);
 	target.setSize(v);
 	target.setNode(nodeid_);
 	m_result.setTarget(target);
