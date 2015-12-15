@@ -78,10 +78,6 @@ PRL_RESULT Task_ChangeSID::prepareTask()
 		      m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsVersion() >= PVS_GUEST_VER_WIN_XP))
 			throw PRL_ERR_CHANGESID_NOT_SUPPORTED;
 
-		// Tools state not available offline - will check it after vm start
-		//if (CDspVm::getVmToolsState( getVmUuid(), getClient()->getVmDirectoryUuid() ) == PTS_NOT_INSTALLED)
-		//	throw PRL_ERR_CHANGESID_GUEST_TOOLS_NOT_AVAILABLE;
-
 		ret = PRL_ERR_SUCCESS;
 	}
 	catch (PRL_RESULT code)
@@ -193,8 +189,8 @@ PRL_RESULT Task_ChangeSID::run_body()
 		if (e.isFailed())
 			throw e.error().code();
 
+		jobProgressEvent(1);
 		if (state != VMS_RUNNING) {
-			jobProgressEvent(1);
 			e = u.start();
 			if (e.isFailed())
 				throw e.error().code();
@@ -230,7 +226,7 @@ PRL_RESULT Task_ChangeSID::run_body()
 		WRITE_TRACE(DBG_FATAL, "%s: error: %s", __FILE__, PRL_RESULT_TO_STRING( PRL_ERR_REVERT_IMPERSONATE_FAILED ) );
 
 	if (bVmStarted)
-		!m_bStandAlone && ret != PRL_ERR_SUCCESS ? u.kill() : u.shutdown();
+		!m_bStandAlone && PRL_FAILED(ret) ? u.kill() : u.shutdown();
 
 	if (bVmLocked)
 		CDspService::instance()->getVmDirHelper().unlockVm(getVmUuid(), pFakeSession, getRequestPackage());
@@ -283,6 +279,7 @@ PRL_RESULT Task_ChangeSID::save_config(SmartPtr<CVmConfiguration> &pVmConfig)
 }
 
 PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Tools::Agent::Vm::Unit& u)
+
 {
 	bool bStarted = false;
 	unsigned int i;
@@ -305,7 +302,8 @@ PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Tools::Agent::Vm::Unit& u)
 		}
 
 		if (state == VMS_RUNNING) {
-			Libvirt::Result e = u.getGuest().checkGuestAgent();
+			Prl::Expected<QString, Libvirt::Error::Simple> e =
+				u.getGuest().getGuestAgentVersion();
 			if (e.isSucceed()) {
 				WRITE_TRACE(DBG_DEBUG, "Tools ready");
 				break;
@@ -316,15 +314,11 @@ PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Tools::Agent::Vm::Unit& u)
 	}
 
 	jobProgressEvent(50);
-	for (; i < WAITTOOLS_TIMEOUT / WAITINTERVAL; i++)
-	{
-		PRL_RESULT ret = run_changeSID_cmd(u);
-		if (PRL_SUCCEEDED(ret) ||
-				ret != PRL_ERR_CHANGESID_NOT_AVAILABLE)
-			return ret;
 
-		HostUtils::Sleep(WAITINTERVAL);
-	}
+	PRL_RESULT ret = run_changeSID_cmd(u);
+	if (PRL_SUCCEEDED(ret) ||
+			ret != PRL_ERR_CHANGESID_NOT_AVAILABLE)
+		return ret;
 
 	return PRL_ERR_CHANGESID_GUEST_TOOLS_NOT_AVAILABLE;
 }
@@ -338,17 +332,19 @@ PRL_RESULT Task_ChangeSID::run_changeSID_cmd(Libvirt::Tools::Agent::Vm::Unit& u)
 	QString uuid;
 	u.getUuid(uuid);
 
-	if (e.isFailed())
-	{
-		WRITE_TRACE(DBG_FATAL, "Cannot run prl_newsid for VM '%s': %s",
-				qPrintable(uuid), PRL_RESULT_TO_STRING(e.error().code()));
-		return PRL_ERR_CHANGESID_FAILED;
+	if (e.isFailed()) {
+		return CDspTaskFailure(*this)(e.error().convertToEvent());
 	}
 
 	if (e.value().exitcode != 0) {
-		WRITE_TRACE(DBG_FATAL, "prl_nettool return error %d for VM '%s' message '%s'",
-				e.value().exitcode, qPrintable(uuid), qPrintable(e.value().stdErr));
-		return PRL_ERR_CHANGESID_FAILED;
+		QString err = QString("prl_nettool return error %1 for VM '%2' message '%3'")
+				.arg(e.value().exitcode)
+				.arg(uuid)
+				.arg(QString::fromUtf8(e.value().stdErr));
+
+		WRITE_TRACE(DBG_FATAL, qPrintable(err));
+
+		return CDspTaskFailure(*this)(PRL_ERR_CHANGESID_FAILED, err);
 	}
 
 	return PRL_ERR_SUCCESS;
