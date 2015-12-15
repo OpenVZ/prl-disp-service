@@ -34,7 +34,6 @@
 
 #include "ParallelsDomModel.h"
 #include "ParallelsNamespace.h"
-#include "Libraries/PrlDataSerializer/CPrlDataSerializer.h"
 #include <prlsdk/PrlIOStructs.h>
 #include "../VmDataStatistic/CVmDataStatistic.h"
 #include "../GuestOsInformation/CVmGuestOsInformation.h"

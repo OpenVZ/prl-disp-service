@@ -41,6 +41,7 @@
 #include "Libraries/Std/PrlAssert.h"
 #include "Libraries/HostUtils/HostUtils.h"
 #include "Libraries/PrlCommonUtilsBase/CSimpleFileHelper.h"
+#include "Libraries/PrlUuid/Uuid.h"
 
 
 //////////////

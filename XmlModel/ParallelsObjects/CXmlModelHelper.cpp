@@ -27,6 +27,7 @@
 
 #include "Interfaces/ParallelsSdk.h"
 #include "../VmConfig/CVmConfiguration.h"
+#include "Libraries/Logging/Logging.h"
 
 namespace CXmlModelHelper
 {

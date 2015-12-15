@@ -34,6 +34,7 @@
 #ifndef __CDspVmSnapshotInfrastructure_H_
 #define __CDspVmSnapshotInfrastructure_H_
 
+#include "Libraries/Logging/Logging.h"
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
 //#include "Libraries/VirtualDisk/DiskStates.h"  // VirtualDisk commented out by request from CP team
 

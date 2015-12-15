@@ -39,6 +39,7 @@
 #include <QMutexLocker>
 #include <QFile>
 #include <Interfaces/ParallelsNamespace.h>
+#include <Libraries/Logging/Logging.h>
 #include <Libraries/PrlCommonUtilsBase/ParallelsDirs.h>
 #include "CDspVmInfoDatabase.h"
 

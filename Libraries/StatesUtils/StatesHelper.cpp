@@ -33,6 +33,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
+#include "Libraries/Logging/Logging.h"
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 #include "SaReShared.h"
 

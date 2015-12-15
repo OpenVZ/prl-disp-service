@@ -34,6 +34,7 @@
 #include "CDspDispConfigGuard.h"
 #include "Libraries/PrlCommonUtilsBase/SysError.h"
 #include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
+#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"

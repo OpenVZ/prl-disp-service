@@ -44,6 +44,7 @@
 #include <XmlModel/NetworkConfig/CVirtualNetwork.h>
 #include <XmlModel/HostHardwareInfo/CHwNetAdapter.h>
 #include <boost/optional.hpp>
+#include <Libraries/Logging/Logging.h>
 #include <Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h>
 #include <Libraries/PrlCommonUtilsBase/SysError.h>
 #include "XmlModel/Messaging/CVmEvent.h"

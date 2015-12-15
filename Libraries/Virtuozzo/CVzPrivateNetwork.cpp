@@ -24,6 +24,7 @@
 
 #include "CVzPrivateNetwork.h"
 #include "Libraries/PrlCommonUtilsBase/NetworkUtils.h"
+#include "Libraries/Logging/Logging.h"
 
 #define PRIV_NETS_FILE "/proc/vz/privnet/sparse"
 #define PRIV_NETS_FILE6 "/proc/vz/privnet/sparse6"
