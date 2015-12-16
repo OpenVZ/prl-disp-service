@@ -3169,9 +3169,15 @@ Action* Cdrom::operator()(const Request& input_) const
 
 		Action* a = NULL;
 		if (x->getSystemName() != d->getSystemName())
-			a = f.craftRuntime(boost::bind(&vm::Runtime::changeMedia, _1, *d));
+		{
+			a = f.craftRuntime(boost::bind
+				(&vm::Runtime::update<CVmOpticalDisk>, _1, *d));
+		}
 		else if (x->getConnected() != d->getConnected())
-			a = f.craftRuntime(boost::bind(&vm::Runtime::changeMedia, _1, *d));
+		{
+			a = f.craftRuntime(boost::bind
+				(&vm::Runtime::update<CVmOpticalDisk>, _1, *d));
+		}
 		else
 			continue;
 
@@ -3191,12 +3197,12 @@ Action* Adapter::operator()(const Request& input_) const
 	QList<CVmGenericNetworkAdapter*> o = input_.getStart().getVmHardwareList()->m_lstNetworkAdapters;
 	foreach (CVmGenericNetworkAdapter* d, input_.getFinal().getVmHardwareList()->m_lstNetworkAdapters)
 	{
-		CVmGenericNetworkAdapter* x = CXmlModelHelper::IsElemInList(d, o);
-		if (NULL == x)
-			continue;
-
 		// works without any action because post-configuration deletes iface from bridge
 		if (d->getEmulatedType() == PNA_ROUTED)
+			continue;
+
+		CVmGenericNetworkAdapter* x = CXmlModelHelper::IsElemInList(d, o);
+		if (NULL == x)
 			continue;
 
 		Action* a;
@@ -3204,7 +3210,10 @@ Action* Adapter::operator()(const Request& input_) const
 		if (x->getEmulatedType() == d->getEmulatedType()
 				// need to update if network changed
 				&& x->getVirtualNetworkID() != d->getVirtualNetworkID())
-			a = f.craftRuntime(boost::bind(&vm::Runtime::changeAdapter, _1, *d));
+		{
+			a = f.craftRuntime(boost::bind(&vm::Runtime::update
+				<CVmGenericNetworkAdapter>, _1, *d));
+		}
 		// but we can attach 'routed' interface to network's bridge without libvirt
 		else if (x->getEmulatedType() == PNA_ROUTED && d->getEmulatedType() == PNA_BRIDGED_ETHERNET)
 			a = new Reconnect(*d);
@@ -3453,7 +3462,7 @@ QStringList Vm::calculate(const general_type& general_, const Dao& devices_)
 
 Dao::Dao(const list_type& dataSource_): m_dataSource(dataSource_)
 {
-	foreach(CVmGenericNetworkAdapter *a, m_dataSource)
+	foreach (device_type* a, m_dataSource)
 	{
 		if (a->isAutoApply() && a->getEnabled() == PVE::DeviceEnabled &&
 				a->getConnected() == PVE::DeviceConnected)
@@ -3463,7 +3472,7 @@ Dao::Dao(const list_type& dataSource_): m_dataSource(dataSource_)
 
 device_type* Dao::findDefaultGwIp4Bridge() const
 {
-	foreach (CVmGenericNetworkAdapter* a, m_eligible)
+	foreach (device_type* a, m_eligible)
 	{
 		if (a->getEmulatedType() == PNA_ROUTED)
 			continue;
@@ -3475,7 +3484,7 @@ device_type* Dao::findDefaultGwIp4Bridge() const
 
 device_type* Dao::findDefaultGwIp6Bridge() const
 {
-	foreach (CVmGenericNetworkAdapter* a, m_eligible)
+	foreach (device_type* a, m_eligible)
 	{
 		if (a->getEmulatedType() == PNA_ROUTED)
 			continue;
@@ -3487,7 +3496,7 @@ device_type* Dao::findDefaultGwIp6Bridge() const
 
 device_type* Dao::find(const QString& name_, quint32 index_) const
 {
-	foreach(CVmGenericNetworkAdapter* a, m_dataSource)
+	foreach(device_type* a, m_dataSource)
 	{
 		if (!name_.isEmpty() && name_ == a->getSystemName())
 			return a;
@@ -3692,6 +3701,40 @@ Vm::Action* Factory::operator()(const Request& input_) const
 }
 
 } // namespace Cpu
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Serial
+
+Action* Serial::operator()(const Request& input_) const
+{
+	Forge f(input_);
+	Action* output = NULL;
+	QList<CVmSerialPort*> o = input_.getStart().getVmHardwareList()->m_lstSerialPorts;
+	QList<CVmSerialPort*> n = input_.getFinal().getVmHardwareList()->m_lstSerialPorts;
+	foreach (CVmSerialPort* d, n)
+	{
+		CVmSerialPort* x = CXmlModelHelper::IsElemInList(d, o);
+		if (NULL == x)
+		{
+			Action* a = f.craftRuntime(boost::bind(&vm::Runtime::plug
+				<CVmSerialPort>, _1, *d));
+			a->setNext(output);
+			output = a;
+		}
+	}
+	foreach (CVmSerialPort* d, o)
+	{
+		CVmSerialPort* x = CXmlModelHelper::IsElemInList(d, n);
+		if (NULL == x)
+		{
+			Action* a = f.craftRuntime(boost::bind(&vm::Runtime::unplug
+				<CVmSerialPort>, _1, *d));
+			a->setNext(output);
+			output = a;
+		}
+	}
+	return output;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Driver

@@ -710,20 +710,10 @@ void List::add(const CVmSerialPort* port_)
 	if (NULL == port_)
 		return;
 
-	if (PVE::SerialOutputFile != port_->getEmulatedType())
-		return;
-
-	Libvirt::Domain::Xml::Source15 a;
-	a.setPath(port_->getUserFriendlyName());
-	if (a.getPath().get().isEmpty())
-		return;
-
-	Libvirt::Domain::Xml::QemucdevSrcDef b;
-	b.setSourceList(QList<Libvirt::Domain::Xml::Source15 >() << a);
-	Libvirt::Domain::Xml::Qemucdev p;
-	p.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceFile);
-	p.setQemucdevSrcDef(b);
-	add<12>(p);
+	Prl::Expected<Libvirt::Domain::Xml::Qemucdev, ::Error::Simple> p =
+		Vm::Reverse::Device<CVmSerialPort>::getLibvirtXml(*port_);
+	if (p.isSucceed())
+		add<12>(p.value());
 }
 
 void List::add(const CVmSoundDevice* sound_)
@@ -783,26 +773,10 @@ void List::add(const CVmGenericNetworkAdapter* network_)
 	if (NULL == network_)
 		return;
 
-	switch (network_->getEmulatedType())
-	{
-	case PNA_BRIDGED_ETHERNET:
-		if (network_->getVirtualNetworkID().isEmpty())
-			return add<4>(Network<0>()(*network_));
-		else
-			return add<4>(Network<3>()(*network_));
-
-	case PNA_DIRECT_ASSIGN:
-		return add<4>(Network<4>()(*network_));
-
-	case PNA_ROUTED:
-		{
-			CVmGenericNetworkAdapter routed(*network_);
-			routed.setSystemName(QString("host-routed"));
-			return add<4>(Network<0>()(routed));
-		}
-	default:
-		return;
-	}
+	Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple> a =
+		Vm::Reverse::Device<CVmGenericNetworkAdapter>::getLibvirtXml(*network_);
+	if (!a.isFailed())
+		add<4>(a.value());
 }
 
 void List::add(const Libvirt::Domain::Xml::Disk& disk_)
@@ -967,82 +941,122 @@ PRL_RESULT Cpu::setNumber()
 	return PRL_ERR_SUCCESS;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
-// struct Cdrom
+// struct Device
 
-PRL_RESULT Cdrom::operator()()
+QString Device<Dimm>::getPlugXml(const Dimm& model_)
 {
-	m_result = boost::none;
-	typedef Device::Clustered::Builder::Ordinary<CVmOpticalDisk> builder_type;
-	builder_type b(m_input);
+	Libvirt::Domain::Xml::Memory2 d;
+	d.setModel(Libvirt::Domain::Xml::EModel7Dimm);
+
+	Libvirt::Domain::Xml::Target4 t;
+	Libvirt::Domain::Xml::ScaledInteger v;
+	v.setOwnValue(model_.getSize());
+	t.setSize(v);
+	t.setNode(model_.getNodeId());
+	d.setTarget(t);
+	QDomDocument x;
+	d.save(x);
+	return x.toString();
+}
+
+QString	Device<CVmOpticalDisk>::getUpdateXml(const CVmOpticalDisk& model_)
+{
+	typedef Transponster::Device::Clustered::Builder::Ordinary<CVmOpticalDisk>
+		builder_type;
+	builder_type b(model_);
 	b.setDisk();
 	b.setFlags();
 	b.setSource();
 	b.setTarget();
 	b.setBackingChain();
-	m_result = static_cast<const builder_type&>(b).getResult();
-
-	return PRL_ERR_SUCCESS;
-}
-
-QString Cdrom::getResult()
-{
-	if (!m_result)
-		return QString();
-
 	QDomDocument x;
-	m_result->save(x);
-	m_result = boost::none;
+	static_cast<const builder_type&>(b).getResult().save(x);
+
 	return x.toString();
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Adapter
-
-PRL_RESULT Interface::operator()()
+Prl::Expected<QString, ::Error::Simple>
+	Device<CVmSerialPort>::getPlugXml(const CVmSerialPort& model_)
 {
-	m_result = boost::none;
+	Prl::Expected<Libvirt::Domain::Xml::Qemucdev, ::Error::Simple> p =
+		getLibvirtXml(model_);
+	if (p.isFailed())
+		return p.error();
 
-	switch (m_input.getEmulatedType())
-	{
-	case PNA_BRIDGED_ETHERNET:
-		if (m_input.getVirtualNetworkID().isEmpty())
-			m_result = Device::Network<0>()(m_input);
-		else
-			m_result = Device::Network<3>()(m_input);
-		break;
-	case PNA_DIRECT_ASSIGN:
-		m_result = Device::Network<4>()(m_input);
-		break;
-	case PNA_ROUTED:
-		{
-			CVmGenericNetworkAdapter routed(m_input);
-			routed.setSystemName(QString("host-routed"));
-			m_result = Device::Network<0>()(routed);
-		}
-		break;
-	default:
-		return PRL_ERR_UNIMPLEMENTED;
-	}
+	QDomDocument x;
+	if (!p.value().save(x))
+		return ::Error::Simple(PRL_ERR_INVALID_ARG);
 
-	return PRL_ERR_SUCCESS;
+	return x.toString();
 }
 
-QString Interface::getResult()
+Prl::Expected<Libvirt::Domain::Xml::Qemucdev, ::Error::Simple>
+	Device<CVmSerialPort>::getLibvirtXml(const CVmSerialPort& model_)
 {
-	if (!m_result)
-		return QString();
+	if (PVE::SerialOutputFile != model_.getEmulatedType())
+		return ::Error::Simple(PRL_ERR_UNIMPLEMENTED);
+
+	Libvirt::Domain::Xml::Source15 a;
+	a.setPath(model_.getUserFriendlyName());
+	if (a.getPath().get().isEmpty())
+		return ::Error::Simple(PRL_ERR_INVALID_ARG);
+
+	Libvirt::Domain::Xml::QemucdevSrcDef b;
+	b.setSourceList(QList<Libvirt::Domain::Xml::Source15 >() << a);
+	Libvirt::Domain::Xml::Qemucdev output;
+	output.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceFile);
+	output.setQemucdevSrcDef(b);
+
+	return output;
+}
+
+Prl::Expected<QString, ::Error::Simple>
+	Device<CVmGenericNetworkAdapter>::getPlugXml(const CVmGenericNetworkAdapter& model_)
+{
+	Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple> a = 
+		getLibvirtXml(model_);
+	if (a.isFailed())
+		return a.error();
+
 	mpl::at_c<Extract<Libvirt::Domain::Xml::VChoice934Impl>::type, 4>::type e;
-	e.setValue(*m_result);
-	m_result = boost::none;
+	e.setValue(a.value());
 	QDomDocument x;
 	e.produce(x);
 	return x.toString();
 }
 
+Prl::Expected<QString, ::Error::Simple>
+	Device<CVmGenericNetworkAdapter>::getUpdateXml(const CVmGenericNetworkAdapter& model_)
+{
+	return getPlugXml(model_);
+}
+
+Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
+	Device<CVmGenericNetworkAdapter>::getLibvirtXml(const CVmGenericNetworkAdapter& model_)
+{
+	switch (model_.getEmulatedType())
+	{
+	case PNA_BRIDGED_ETHERNET:
+		if (model_.getVirtualNetworkID().isEmpty())
+			return Transponster::Device::Network<0>()(model_);
+		else
+			return Transponster::Device::Network<3>()(model_);
+	case PNA_DIRECT_ASSIGN:
+		return Transponster::Device::Network<4>()(model_);
+	case PNA_ROUTED:
+	{
+		CVmGenericNetworkAdapter routed(model_);
+		routed.setSystemName(QString("host-routed"));
+		return Transponster::Device::Network<0>()(routed);
+	}
+	default:
+		return ::Error::Simple(PRL_ERR_UNIMPLEMENTED);
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
-// struct Reverse
+// struct Vm
 
 Vm::Vm(const CVmConfiguration& input_): m_input(input_)
 {
@@ -1158,8 +1172,8 @@ PRL_RESULT Vm::setDevices()
 	if (NULL == o)
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
-	Device::List b;
-	Device::Clustered::List t(Boot::Reverse(s->
+	Transponster::Device::List b;
+	Transponster::Device::Clustered::List t(Boot::Reverse(s->
 		getVmStartupOptions()->getBootDeviceList()), b);
 	foreach (const CVmHardDisk* d, h->m_lstHardDisks)
 	{
@@ -1198,7 +1212,7 @@ PRL_RESULT Vm::setDevices()
 		b.add(d);
 	}
 
-	Device::Usb::List u(s->getUsbController());
+	Transponster::Device::Usb::List u(s->getUsbController());
 	foreach (const CVmUsbDevice* d, h->m_lstUsbDevices)
 	{
 		u.add(d);
@@ -1210,7 +1224,7 @@ PRL_RESULT Vm::setDevices()
 	n << t.getAttachment().getControllers() << u.getDevices();
 	x.setChoice934List(n);
 
-	Device::Panic::List p;
+	Transponster::Device::Panic::List p;
 	p.add(o->getOsVersion());
 	x.setPanicList(p.getResult());
 
@@ -1300,25 +1314,6 @@ void Vm::setFeatures()
 		f.setHyperv(hv);
 	}
 	m_result->setFeatures(f);
-}
-
-DimmDevice::DimmDevice(unsigned nodeid_, unsigned size_)
-{
-	m_result.setModel(Libvirt::Domain::Xml::EModel7Dimm);
-
-	Libvirt::Domain::Xml::Target4 target;
-	Libvirt::Domain::Xml::ScaledInteger v;
-	v.setOwnValue(size_);
-	target.setSize(v);
-	target.setNode(nodeid_);
-	m_result.setTarget(target);
-}
-
-QString DimmDevice::getResult() const
-{
-	QDomDocument x;
-	m_result.save(x);
-	return x.toString();
 }
 
 } // namespace Reverse

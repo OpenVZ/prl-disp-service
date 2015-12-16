@@ -237,7 +237,7 @@ namespace Command
 
 struct Future
 {
-	explicit Future(const QSharedPointer<virDomain>& domain_,
+	Future(const QSharedPointer<virDomain>& domain_,
 		const std::string& status_ = std::string())
 	: m_guest(domain_), m_status(status_)
 	{
@@ -251,6 +251,25 @@ private:
 };
 
 } // namespace Command
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hotplug
+
+struct Hotplug
+{
+	explicit Hotplug(const QSharedPointer<virDomain>& domain_):
+		m_domain(domain_)
+	{
+	}
+
+	Result attach(const QString& device_);
+	Result detach(const QString& device_);
+	Result update(const QString& device_);
+
+private:
+	QSharedPointer<virDomain> m_domain;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Runtime
 
@@ -263,8 +282,6 @@ struct Runtime
 
 	Result setIoLimit(const CVmHardDisk& disk_, quint32 limit_);
 	Result setIopsLimit(const CVmHardDisk& disk_, quint32 limit_);
-	Result changeMedia(const CVmOpticalDisk& device_);
-	Result changeAdapter(const CVmGenericNetworkAdapter& device_);
 	Result setIoPriority(quint32 ioprio_);
 	Result setCpuLimit(quint32 limit_, quint32 period_);
 	Result setCpuUnits(quint32 units_);
@@ -272,8 +289,43 @@ struct Runtime
 	Result setMemory(quint32 memsize_);
 	Result addMemoryBySlots(quint32 memdelta_);
 
+	template<class T>
+	Result plug(const T& device_)
+	{
+		Prl::Expected<QString, ::Error::Simple> x =
+			Transponster::Vm::Reverse::Device<T>
+				::getPlugXml(device_);
+		if (x.isFailed())
+			return x.error();
+
+		return Hotplug(m_domain).attach(x.value());
+	}
+	template<class T>
+	Result unplug(const T& device_)
+	{
+		Prl::Expected<QString, ::Error::Simple> x =
+			Transponster::Vm::Reverse::Device<T>
+				::getPlugXml(device_);
+		if (x.isFailed())
+			return x.error();
+
+		return Hotplug(m_domain).detach(x.value());
+	}
+	template<class T>
+	Result update(const T& device_)
+	{
+		Prl::Expected<QString, ::Error::Simple> x =
+			Transponster::Vm::Reverse::Device<T>
+				::getUpdateXml(device_);
+		if (x.isFailed())
+			return x.error();
+
+		return Hotplug(m_domain).update(x.value());
+	}
+
 private:
 	Result setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_);
+
 	QSharedPointer<virDomain> m_domain;
 };
 

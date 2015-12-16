@@ -27,7 +27,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <Libraries/Transponster/Direct.h>
-#include <Libraries/Transponster/Reverse.h>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <Libraries/PrlNetworking/netconfig.h>
@@ -607,6 +606,32 @@ Exec::Future::wait(int timeout)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Hotplug
+
+Result Hotplug::attach(const QString& device_)
+{
+	return do_(m_domain.data(), boost::bind(virDomainAttachDeviceFlags, _1,
+			qPrintable(device_), VIR_DOMAIN_AFFECT_CURRENT |
+			VIR_DOMAIN_AFFECT_LIVE));
+}
+
+Result Hotplug::detach(const QString& device_)
+{
+	return do_(m_domain.data(), boost::bind(virDomainDetachDeviceFlags, _1,
+			qPrintable(device_), VIR_DOMAIN_AFFECT_CURRENT |
+			VIR_DOMAIN_AFFECT_LIVE));
+}
+
+Result Hotplug::update(const QString& device_)
+{
+	return do_(m_domain.data(), boost::bind(virDomainUpdateDeviceFlags, _1,
+			qPrintable(device_),
+			VIR_DOMAIN_AFFECT_CURRENT |
+			VIR_DOMAIN_AFFECT_LIVE |
+			VIR_DOMAIN_DEVICE_MODIFY_FORCE));
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Runtime
 
 Result Runtime::setIoLimit(const CVmHardDisk& disk_, quint32 limit_)
@@ -652,30 +677,6 @@ Result Runtime::setIoPriority(quint32 ioprio_)
 							VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE)));
 	virTypedParamsFree(p, s);
 	return r;
-}
-
-Result Runtime::changeMedia(const CVmOpticalDisk& device_)
-{
-	Transponster::Vm::Reverse::Cdrom u(device_);
-	u();
-	QByteArray b = u.getResult().toUtf8();
-	return do_(m_domain.data(), boost::bind(&virDomainUpdateDeviceFlags, _1,
-		b.data(), VIR_DOMAIN_AFFECT_CURRENT |
-					VIR_DOMAIN_AFFECT_LIVE |
-					VIR_DOMAIN_AFFECT_CONFIG |
-					VIR_DOMAIN_DEVICE_MODIFY_FORCE));
-}
-
-Result Runtime::changeAdapter(const CVmGenericNetworkAdapter& adapter_)
-{
-	Transponster::Vm::Reverse::Interface u(adapter_);
-	u();
-	QByteArray b = u.getResult().toUtf8();
-	return do_(m_domain.data(), boost::bind(&virDomainUpdateDeviceFlags, _1,
-		b.data(), VIR_DOMAIN_AFFECT_CURRENT |
-					VIR_DOMAIN_AFFECT_LIVE |
-					VIR_DOMAIN_AFFECT_CONFIG |
-					VIR_DOMAIN_DEVICE_MODIFY_FORCE));
 }
 
 Result Runtime::setCpuLimit(quint32 limit_, quint32 period_)
@@ -726,50 +727,36 @@ Result Runtime::setCpuCount(quint32 units_)
 
 Result Runtime::setMemory(quint32 memsize_)
 {
-	Result r;
-	unsigned newMemSize = memsize_<<10;
-	unsigned oldMemSize = 0;
-	unsigned maxNumaSize = 0;
 	virDomainInfo info;
-
-	r = do_(m_domain.data(), boost::bind(&virDomainGetInfo, _1, &info));
+	Result r = do_(m_domain.data(), boost::bind(&virDomainGetInfo, _1, &info));
 	if (r.isFailed())
 		return r;
-	oldMemSize = info.memory;
-	maxNumaSize = info.maxMem;
 
+	unsigned newMemSize = memsize_<<10;
+	unsigned oldMemSize = info.memory;
+	unsigned maxNumaSize = info.maxMem;
 	if (oldMemSize > newMemSize)
 	{
 		if (oldMemSize > maxNumaSize)
-			return Result(Error::Detailed(PRL_ERR_FAILURE));
+			return Error::Simple(PRL_ERR_FAILURE);
 
-		r = do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
+		return do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
 			newMemSize,
 			VIR_DOMAIN_AFFECT_LIVE));
 	}
-	else
+	if (newMemSize <= maxNumaSize)
 	{
-		if (newMemSize <= maxNumaSize)
-		{
-			r = do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
-				newMemSize,
-				VIR_DOMAIN_AFFECT_LIVE));
-		}
-		else
-		{
-			r = do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
-				maxNumaSize,
-				VIR_DOMAIN_AFFECT_LIVE));
-			if (r.isFailed())
-				return r;
-
-			Transponster::Vm::Reverse::DimmDevice y(0, newMemSize - maxNumaSize);
-			r = do_(m_domain.data(), boost::bind(&virDomainAttachDeviceFlags, _1,
-				y.getResult().toUtf8().data(),
-				VIR_DOMAIN_AFFECT_LIVE));
-		}
+		return do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
+			newMemSize,
+			VIR_DOMAIN_AFFECT_LIVE));
 	}
-	return r;
+	r = do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
+		maxNumaSize,
+		VIR_DOMAIN_AFFECT_LIVE));
+	if (r.isFailed())
+		return r;
+
+	return plug(Transponster::Vm::Reverse::Dimm(0, newMemSize - maxNumaSize));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

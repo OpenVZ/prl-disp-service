@@ -798,7 +798,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmDevConnect> >::run()
 
 	CVmOpticalDisk y;
 	StringToElement<CVmOpticalDisk* >(&y, x->GetDeviceConfig());
-	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).getRuntime().changeMedia(y));
+	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).getRuntime().update(y));
 }
 
 template<>
@@ -823,7 +823,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmInstallTools> >::run()
 			d->setEmulatedType(PVE::CdRomImage);
 			d->setRemote(false);
 			return m_context.reply(Libvirt::Kit.vms().at(
-				m_context.getVmUuid()).getRuntime().changeMedia(*d));
+				m_context.getVmUuid()).getRuntime().update(*d));
 		}
 	}
 
