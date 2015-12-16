@@ -187,7 +187,7 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 		cmd->GetProgramArguments(),
 		variant_.getStdin());
 	request.setRunInShell(m_task->getRequestFlags() & PRPM_RUN_PROGRAM_IN_SHELL);
-	Prl::Expected<Vm::Future,Libvirt::Error::Simple> f = Libvirt::Kit.vms()
+	Prl::Expected<Vm::Future, Error::Simple> f = Libvirt::Kit.vms()
 			.at(m_task->getVmUuid()).getGuest().startProgram(request);
 
 	if (f.isFailed())

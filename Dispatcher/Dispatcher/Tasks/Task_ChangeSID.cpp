@@ -298,7 +298,7 @@ PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Tools::Agent::Vm::Unit& u)
 			return PRL_ERR_CHANGESID_VM_START_FAILED;
 		}
 
-		Prl::Expected<QString, Libvirt::Error::Simple> e =
+		Prl::Expected<QString, Error::Simple> e =
 			u.getGuest().getAgentVersion();
 		if (e.isSucceed()) {
 			WRITE_TRACE(DBG_DEBUG, "Tools ready");
@@ -321,8 +321,7 @@ PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Tools::Agent::Vm::Unit& u)
 PRL_RESULT Task_ChangeSID::run_changeSID_cmd(Libvirt::Tools::Agent::Vm::Unit& u)
 {
 	Prl::Expected
-		<Libvirt::Tools::Agent::Vm::Exec::Result,
-			Libvirt::Error::Simple> e =
+		<Libvirt::Tools::Agent::Vm::Exec::Result, Error::Simple> e =
 		u.getGuest().runProgram(
 			Libvirt::Tools::Agent::Vm::Exec::Request("prl_newsid.exe",  
 				QList<QString>(), QByteArray()));

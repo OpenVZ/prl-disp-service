@@ -37,45 +37,32 @@
 #include <QWeakPointer>
 #include <prlsdk/PrlTypes.h>
 #include <libvirt/libvirt.h>
+#include <boost/optional.hpp>
 #include <libvirt/virterror.h>
 #include <libvirt/libvirt-qemu.h>
 #include <XmlModel/VtInfo/VtInfo.h>
+#include <Libraries/Logging/Logging.h>
+#include <Libraries/Transponster/Reverse.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
+#include <Libraries/PrlCommonUtilsBase/SysError.h>
 #include <XmlModel/NetworkConfig/CVirtualNetwork.h>
 #include <XmlModel/HostHardwareInfo/CHwNetAdapter.h>
-#include <boost/optional.hpp>
-#include <Libraries/Logging/Logging.h>
+#include <Libraries/PrlCommonUtilsBase/ErrorSimple.h>
 #include <Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h>
-#include <Libraries/PrlCommonUtilsBase/SysError.h>
-#include "XmlModel/Messaging/CVmEvent.h"
 
 class CSavedStateTree;
 
 namespace Libvirt
 {
-#include "Libraries/PrlCommonUtilsBase/ErrorSimple.h" // for 'struct Simple'
-
-namespace Error
-{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Detailed
+// struct Failure
 
-struct Detailed : Simple
+struct Failure: ::Error::Simple
 {
-	Detailed(PRL_RESULT result_)
-		: Simple(result_)
-	{
-		#if (LIBVIR_VERSION_NUMBER > 1000004)
-		const char* m = virGetLastErrorMessage();
-		WRITE_TRACE(DBG_FATAL, "libvirt error %s", m ? : "unknown");
-		details() = m;
-		#endif
-	}
+	Failure(PRL_RESULT result_);
 };
 
-} // namespace Error
-
-typedef Prl::Expected<void, Error::Simple> Result;
+typedef Prl::Expected<void, ::Error::Simple> Result;
 
 namespace Tools
 {
@@ -182,13 +169,13 @@ struct Exec {
 		: m_domain(domain_)
 	{
 	}
-	Prl::Expected<int, Error::Simple>
+	Prl::Expected<int, ::Error::Simple>
 		runCommand(const Request& r);
 
-	Prl::Expected<boost::optional<Result>, Error::Simple>
+	Prl::Expected<boost::optional<Result>, ::Error::Simple>
 		getCommandStatus(int pid);
 
-	Prl::Expected<QString, Error::Simple>
+	Prl::Expected<QString, ::Error::Simple>
 		executeInAgent(const QString& cmd);
 private:
 	QSharedPointer<virDomain> m_domain;
@@ -214,9 +201,9 @@ struct Guest
 
 	Result traceEvents(bool enable_); 
 	Result dumpScreen(const QString& path);
-	Prl::Expected<QString, Error::Simple>
+	Prl::Expected<QString, ::Error::Simple>
 		dumpMemory(const QString& path);
-	Prl::Expected<Command::Future, Error::Simple>
+	Prl::Expected<Command::Future, ::Error::Simple>
 		dumpState(const QString& path_);
 	Result setUserPasswd(const QString& user_, const QString& passwd_, bool crypted_);
 	Result checkAgent();
@@ -366,11 +353,11 @@ struct List
 		Unit* dst_ = NULL);
 
 private:
-	Prl::Expected<Unit, Error::Simple>
+	Prl::Expected<Unit, ::Error::Simple>
 		define(const QString& uuid_, const QString& description_, quint32 flags_);
 
 	static Result translate
-		(const Prl::Expected<Unit, Error::Simple>& result_, Unit* dst_);
+		(const Prl::Expected<Unit, ::Error::Simple>& result_, Unit* dst_);
 
 	QSharedPointer<virDomain> m_domain;
 };
@@ -539,7 +526,7 @@ struct Host
 	{
 	}
 
-	Prl::Expected<VtInfo, Error::Simple> getVt() const;
+	Prl::Expected<VtInfo, ::Error::Simple> getVt() const;
 
 private:
 	QSharedPointer<virConnect> m_link;

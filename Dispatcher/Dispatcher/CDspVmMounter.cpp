@@ -488,19 +488,19 @@ Libvirt::Result CDspVmMountRegistry::mount(
 	if (PRL_FAILED(lockResult)) {
 		WRITE_TRACE(DBG_FATAL, "[%s] registerExclusiveVmOperation failed. Reason: %#x (%s)",
 			__FUNCTION__, lockResult, PRL_RESULT_TO_STRING(lockResult));
-		return Libvirt::Error::Simple(PRL_ERR_VM_MOUNT, "VM is already mounted");
+		return Error::Simple(PRL_ERR_VM_MOUNT, "VM is already mounted");
 	}
 
-	Libvirt::Error::Simple err(PRL_ERR_SUCCESS);
+	Error::Simple err(PRL_ERR_SUCCESS);
 	do {
 		Prl::Expected<SmartPtr<CDspVmMount>, PRL_RESULT> res = mountVm(
 				pVmConfig, dirUuid, mountPoint, readOnly);
 		if (res.isFailed()) {
-			err = Libvirt::Error::Simple(PRL_ERR_VM_MOUNT);
+			err = Error::Simple(PRL_ERR_VM_MOUNT);
 			break;
 		}
 		if (!startTracking(uuid, res.value())) {
-			err = Libvirt::Error::Simple(PRL_ERR_VM_MOUNT, "Mount died unexpectedly");
+			err = Error::Simple(PRL_ERR_VM_MOUNT, "Mount died unexpectedly");
 			break;
 		}
 		return Libvirt::Result();
@@ -515,13 +515,13 @@ Libvirt::Result CDspVmMountRegistry::umount(const QString &uuid)
 	SmartPtr<CDspVmMount> mount = m_storage.beginPop(uuid);
 	if (!mount) {
 		WRITE_TRACE(DBG_FATAL, "VM is not mounted");
-		return Libvirt::Error::Simple(PRL_ERR_VM_UNMOUNT, "VM is not mounted");
+		return Error::Simple(PRL_ERR_VM_UNMOUNT, "VM is not mounted");
 	}
 
 	PRL_RESULT res = mount->umount();
 	if (PRL_FAILED(res)) {
 		m_storage.rollbackPop(uuid);
-		return Libvirt::Error::Simple(PRL_ERR_VM_UNMOUNT);
+		return Error::Simple(PRL_ERR_VM_UNMOUNT);
 	}
 
 	stopTracking(uuid, mount);

@@ -3657,7 +3657,7 @@ namespace Cpu
 
 Libvirt::Result Limit::operator()(vm::Runtime agent_) const
 {
-	Prl::Expected<VtInfo, Libvirt::Error::Simple> v = Libvirt::Kit.host().getVt();
+	Prl::Expected<VtInfo, Error::Simple> v = Libvirt::Kit.host().getVt();
 	if (v.isFailed())
 		return v.error();
 

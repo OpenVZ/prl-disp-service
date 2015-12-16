@@ -857,7 +857,7 @@ void CDspProblemReportHelper::FillVmProblemReportData
 	QFile::remove(screenImage + ".png");
 
 	QString stateFile = tmpFileName + ".state";
-	Prl::Expected<Libvirt::Tools::Agent::Vm::Command::Future, Libvirt::Error::Simple> e = 
+	Prl::Expected<Libvirt::Tools::Agent::Vm::Command::Future, Error::Simple> e = 
 		u.getGuest().dumpState(stateFile);
 
 	if (e.isSucceed())
