@@ -1829,7 +1829,7 @@ PRL_RESULT Task_CloneVm::CheckWhetherChangeSidOpPossible
 	if (!u.canChangeSid())
 		return PRL_ERR_CHANGESID_NOT_SUPPORTED;
 
-	if (CDspVm::getVmToolsState( u.getUuid(), sVmDirUuid ) == PTS_NOT_INSTALLED)
+	if (CDspVm::getVmToolsState(u.getUuid(), sVmDirUuid) == PTS_NOT_INSTALLED)
 		return PRL_ERR_CHANGESID_GUEST_TOOLS_NOT_AVAILABLE;
 	return PRL_ERR_SUCCESS;
 }

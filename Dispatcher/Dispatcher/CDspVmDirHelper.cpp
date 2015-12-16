@@ -1440,16 +1440,26 @@ bool CDspVmDirHelper::sendVmToolsInfo(const IOSender::Handle& sender,
 	}
 
 	// Get tools state
-	QString toolsStateString = CDspVm::getVmToolsStateString( vm_uuid, pUserSession->getVmDirectoryUuid() );;
+	QString toolsStateVersion;
+	PRL_VM_TOOLS_STATE toolsState = CDspVm::getVmToolsState( vm_uuid, pUserSession->getVmDirectoryUuid(),
+							         &toolsStateVersion );
 
 	////////////////////////////////////////////////////////////////////////
 	// prepare response
 	////////////////////////////////////////////////////////////////////////
 
+	CVmEvent rev;
+	rev.addEventParameter( new CVmEventParameter(PVE::Integer
+				, QString::number((int)toolsState)
+				, EVT_PARAM_VM_TOOLS_STATE ));
+	rev.addEventParameter( new CVmEventParameter(PVE::String
+				, toolsStateVersion
+				, EVT_PARAM_VM_TOOLS_VERSION ));
+
 	CProtoCommandPtr pCmd = CProtoSerializer::CreateDspWsResponseCommand( pkg, PRL_ERR_SUCCESS );
 	CProtoCommandDspWsResponse
 		*pResponseCmd = CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>( pCmd );
-	pResponseCmd->SetVmEvent( toolsStateString );
+	pResponseCmd->SetVmEvent( rev.toString() );
 
 	SmartPtr<IOPackage> responsePkg = DispatcherPackage::createInstance( PVE::DspWsResponse, pCmd, pkg );
 	CDspService::instance()->getIOServer().sendPackage( sender, responsePkg );

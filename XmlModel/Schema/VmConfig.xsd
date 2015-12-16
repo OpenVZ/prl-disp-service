@@ -2784,6 +2784,7 @@ bool CVmCommonOptions::operator==( const CVmCommonOptions&amp; cVmCommonOptions)
 				</xs:annotation>
 				<xs:complexType>
 					<xs:sequence>
+						<xs:element name="AgentVersion" type="xs:string" minOccurs="0"/>
 						<xs:element name="IsolatedVm" type="xs:boolean" minOccurs="0"/>
 						<xs:element name="NonAdminToolsUpgrade" type="xs:boolean" default="true" minOccurs="0"/>
 						<xs:element name="LockGuestOnSuspend" type="xs:boolean" minOccurs="0"/>

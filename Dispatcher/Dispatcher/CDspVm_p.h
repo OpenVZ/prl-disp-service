@@ -132,9 +132,6 @@ struct Details: noncopyable
 	/** VM power state **/
 	CDspVm::VmPowerState m_nVmPowerState;
 
-	/** VM tools state string representation */
-	QString m_sVmToolsState;
-
 	/** VM connection object handle */
 	IOSender::Handle m_VmConnectionHandle;
 
@@ -232,8 +229,6 @@ struct Details: noncopyable
 
 	Details(const CVmIdent& id_, const SmartPtr<CDspClient>& client_,
 		PVE::IDispatcherCommands command_, VIRTUAL_MACHINE_STATE state_);
-
-	static QString getVmToolsStateStringOffline(const CVmIdent& );
 
 	CVmEvent authorize(SmartPtr<CDspClient> client_, PVE::IDispatcherCommands request_) const;
 };
