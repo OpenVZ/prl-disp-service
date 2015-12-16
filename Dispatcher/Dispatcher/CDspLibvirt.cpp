@@ -661,7 +661,7 @@ namespace Model
 // struct Vm
 
 Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
-		const QSharedPointer<Network::Routing>& routing_):
+		const QSharedPointer< ::Network::Routing>& routing_):
 	m_uuid(uuid_), m_service(CDspService::instance()), m_user(user_),
 	m_state(VMS_UNKNOWN), m_formerState(VMS_UNKNOWN), m_routing(routing_) 
 {
@@ -784,7 +784,7 @@ void Domain::setNetworkUsage()
 // struct System
 
 System::System(): m_configGuard(&CDspService::instance()->getDispConfigGuard()),
-	m_routing(new Network::Routing())
+	m_routing(new ::Network::Routing())
 {
 }
 

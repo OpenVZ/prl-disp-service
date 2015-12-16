@@ -133,12 +133,12 @@ Libvirt::Result Unit::operator()()
 {
 	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
 	if (!s.isValid())
-		return Libvirt::Result(Libvirt::Error::Simple(PRL_ERR_UNEXPECTED));
+		return Error::Simple(PRL_ERR_UNEXPECTED);
 
 	Handler h(m_uuid, m_loop);
 	if (!h.connect(s.getPtr(), SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
 		SLOT(react(unsigned, unsigned, QString, QString)), Qt::QueuedConnection))
-		return Libvirt::Result(Libvirt::Error::Simple(PRL_ERR_UNEXPECTED));
+		return Error::Simple(PRL_ERR_UNEXPECTED);
 
 	s.unlock();
 	startTimer(0);
@@ -146,7 +146,7 @@ Libvirt::Result Unit::operator()()
 	PRL_RESULT e = m_loop.exec();
 	h.killTimer(t);
 	if (PRL_FAILED(e) && e != PRL_ERR_TIMEOUT)
-		return Libvirt::Result(Libvirt::Error::Simple(e));
+		return Error::Simple(e);
 
 	return Libvirt::Kit.vms().at(m_uuid).kill();
 }
@@ -798,7 +798,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmDevConnect> >::run()
 
 	CVmOpticalDisk y;
 	StringToElement<CVmOpticalDisk* >(&y, x->GetDeviceConfig());
-	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).getRuntime().changeMedia(y));
+	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).getRuntime().update(y));
 }
 
 template<>
@@ -823,7 +823,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmInstallTools> >::run()
 			d->setEmulatedType(PVE::CdRomImage);
 			d->setRemote(false);
 			return m_context.reply(Libvirt::Kit.vms().at(
-				m_context.getVmUuid()).getRuntime().changeMedia(*d));
+				m_context.getVmUuid()).getRuntime().update(*d));
 		}
 	}
 
@@ -977,7 +977,7 @@ CHostHardwareInfo parsePrlNetToolOut(const QString &data)
 template<>
 void Body<Tag::Libvirt<PVE::DspCmdVmGuestGetNetworkSettings> >::run()
 {
-	Prl::Expected<Libvirt::Tools::Agent::Vm::Exec::Result,Libvirt::Error::Simple> e =
+	Prl::Expected<Libvirt::Tools::Agent::Vm::Exec::Result, Error::Simple> e =
 		Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest().runProgram(
 			Libvirt::Tools::Agent::Vm::Exec::Request("prl_nettool", QList<QString>(), QByteArray()));
 	if (e.isFailed())
@@ -1093,7 +1093,7 @@ PRL_RESULT Internal::dumpMemory(Context& context_, CProtoVmInternalCommand& comm
 	}
 	
 	QString fullpath = QDir(fpath).absoluteFilePath(fname);
-	Prl::Expected<QString, Libvirt::Error::Simple> res;
+	Prl::Expected<QString, Error::Simple> res;
 #ifdef _LIBVIRT_
 	res = Libvirt::Kit.vms().at(context_.getVmUuid()).getGuest()
 		.dumpMemory(fullpath);

@@ -27,7 +27,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <Libraries/Transponster/Direct.h>
-#include <Libraries/Transponster/Reverse.h>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <Libraries/PrlNetworking/netconfig.h>
@@ -35,6 +34,18 @@
 namespace Libvirt
 {
 Tools::Agent::Hub Kit;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Failure
+
+Failure::Failure(PRL_RESULT result_): Error::Simple(result_)
+{
+#if (LIBVIR_VERSION_NUMBER > 1000004)
+	const char* m = virGetLastErrorMessage();
+	WRITE_TRACE(DBG_FATAL, "libvirt error %s", m ? : "unknown");
+	details() = m;
+#endif
+}
 
 namespace Tools
 {
@@ -50,7 +61,7 @@ static Result do_(T* handle_, U action_)
 	if (0 == action_(handle_))
 		return Result();
 
-	return Result(Error::Detailed(PRL_ERR_FAILURE));
+	return Failure(PRL_ERR_FAILURE);
 }
 
 namespace Vm
@@ -78,7 +89,7 @@ Result Unit::start()
 {
 	int s = VIR_DOMAIN_NOSTATE;
 	if (-1 == virDomainGetState(m_domain.data(), &s, NULL, 0))
-		return Result(Error::Detailed(PRL_ERR_VM_GET_STATUS_FAILED));
+		return Failure(PRL_ERR_VM_GET_STATUS_FAILED);
 
 	if (s == VIR_DOMAIN_CRASHED)
 		kill();
@@ -135,7 +146,7 @@ Result Unit::getState(VIRTUAL_MACHINE_STATE& dst_) const
 {
 	int s = VIR_DOMAIN_NOSTATE;
 	if (-1 == virDomainGetState(m_domain.data(), &s, NULL, 0))
-		return Result(Error::Detailed(PRL_ERR_VM_GET_STATUS_FAILED));
+		return Failure(PRL_ERR_VM_GET_STATUS_FAILED);
 
 	switch (s)
 	{
@@ -241,7 +252,7 @@ Result Unit::getUuid(QString& dst_) const
 {
 	char u[VIR_UUID_STRING_BUFLEN] = {};
 	if (virDomainGetUUIDString(m_domain.data(), u))
-		return Result(Error::Detailed(PRL_ERR_FAILURE));
+		return Failure(PRL_ERR_FAILURE);
 
 	PrlUuid x(u);
 	dst_ = x.toString(PrlUuid::WithBrackets).c_str();
@@ -266,11 +277,11 @@ Result Performance::getCpu(quint64& nanoseconds_) const
 {
 	int n = virDomainGetCPUStats(m_domain.data(), NULL, 0, -1, 1, 0);
 	if (0 >= n)
-		return Result(Error::Detailed(PRL_ERR_FAILURE));
+		return Failure(PRL_ERR_FAILURE);
 
 	QVector<virTypedParameter> q(n);
 	if (0 > virDomainGetCPUStats(m_domain.data(), q.data(), n, -1, 1, 0))
-		return Result(Error::Detailed(PRL_ERR_FAILURE));
+		return Failure(PRL_ERR_FAILURE);
 
 	nanoseconds_ = 0;
 #if (LIBVIR_VERSION_NUMBER > 1000001)
@@ -289,7 +300,7 @@ Result Performance::getMemory() const
 	virDomainMemoryStatStruct x[7];
 	int n = virDomainMemoryStats(m_domain.data(), x, 7, 0);
 	if (0 >= n)
-		return Result(Error::Detailed(PRL_ERR_FAILURE));
+		return Failure(PRL_ERR_FAILURE);
 
 	return Result();
 }
@@ -370,7 +381,7 @@ Guest::dumpState(const QString& path_)
 	int s = VIR_DOMAIN_NOSTATE;
 
 	if (-1 == virDomainGetState(m_domain.data(), &s, NULL, 0))
-		return Error::Detailed(PRL_ERR_VM_GET_STATUS_FAILED);
+		return Failure(PRL_ERR_VM_GET_STATUS_FAILED);
 
 	// Cannot get state for stopped VM.
 	if (s == VIR_DOMAIN_SHUTDOWN || s == VIR_DOMAIN_SHUTOFF)
@@ -423,7 +434,7 @@ Guest::execute(const QString& cmd, bool isHmp)
 			&s,
 			isHmp ? VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP : 0))
 	{
-		return Error::Detailed(PRL_ERR_FAILURE);
+		return Failure(PRL_ERR_FAILURE);
 	}
 	QString reply(s);
 	free(s);
@@ -558,7 +569,7 @@ Exec::Exec::executeInAgent(const QString& cmd)
 	char* s = virDomainQemuAgentCommand(m_domain.data(),
 			cmd.toUtf8().constData(), -1, 0);
 	if (s == NULL)
-		return Error::Detailed(PRL_ERR_FAILURE);
+		return Failure(PRL_ERR_FAILURE);
 
 	QString reply = QString::fromUtf8(s);
 	free(s);
@@ -607,6 +618,32 @@ Exec::Future::wait(int timeout)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Hotplug
+
+Result Hotplug::attach(const QString& device_)
+{
+	return do_(m_domain.data(), boost::bind(virDomainAttachDeviceFlags, _1,
+			qPrintable(device_), VIR_DOMAIN_AFFECT_CURRENT |
+			VIR_DOMAIN_AFFECT_LIVE));
+}
+
+Result Hotplug::detach(const QString& device_)
+{
+	return do_(m_domain.data(), boost::bind(virDomainDetachDeviceFlags, _1,
+			qPrintable(device_), VIR_DOMAIN_AFFECT_CURRENT |
+			VIR_DOMAIN_AFFECT_LIVE));
+}
+
+Result Hotplug::update(const QString& device_)
+{
+	return do_(m_domain.data(), boost::bind(virDomainUpdateDeviceFlags, _1,
+			qPrintable(device_),
+			VIR_DOMAIN_AFFECT_CURRENT |
+			VIR_DOMAIN_AFFECT_LIVE |
+			VIR_DOMAIN_DEVICE_MODIFY_FORCE));
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Runtime
 
 Result Runtime::setIoLimit(const CVmHardDisk& disk_, quint32 limit_)
@@ -627,7 +664,7 @@ Result Runtime::setBlockIoTune(const CVmHardDisk& disk_, const char* param_, qui
 
 	if (do_(&p, boost::bind(&virTypedParamsAddULLong, _1,
 					&s, &m, param_, limit_)).isFailed())
-		return Result(Error::Detailed(PRL_ERR_SET_IOLIMIT));
+		return Failure(PRL_ERR_SET_IOLIMIT);
 
 	Result r = do_(m_domain.data(), boost::bind(&virDomainSetBlockIoTune, _1,
 							QSTR2UTF8(disk_.getTargetDeviceName()),
@@ -645,37 +682,13 @@ Result Runtime::setIoPriority(quint32 ioprio_)
 
 	if (do_(&p, boost::bind(&virTypedParamsAddUInt, _1,
 					&s, &m, VIR_DOMAIN_BLKIO_WEIGHT, ioprio_)).isFailed())
-		return Result(Error::Detailed(PRL_ERR_SET_IOPRIO));
+		return Failure(PRL_ERR_SET_IOPRIO);
 
 	Result r(do_(m_domain.data(), boost::bind(&virDomainSetBlkioParameters, _1,
 							p, s, VIR_DOMAIN_AFFECT_CURRENT |
 							VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE)));
 	virTypedParamsFree(p, s);
 	return r;
-}
-
-Result Runtime::changeMedia(const CVmOpticalDisk& device_)
-{
-	Transponster::Vm::Reverse::Cdrom u(device_);
-	u();
-	QByteArray b = u.getResult().toUtf8();
-	return do_(m_domain.data(), boost::bind(&virDomainUpdateDeviceFlags, _1,
-		b.data(), VIR_DOMAIN_AFFECT_CURRENT |
-					VIR_DOMAIN_AFFECT_LIVE |
-					VIR_DOMAIN_AFFECT_CONFIG |
-					VIR_DOMAIN_DEVICE_MODIFY_FORCE));
-}
-
-Result Runtime::changeAdapter(const CVmGenericNetworkAdapter& adapter_)
-{
-	Transponster::Vm::Reverse::Interface u(adapter_);
-	u();
-	QByteArray b = u.getResult().toUtf8();
-	return do_(m_domain.data(), boost::bind(&virDomainUpdateDeviceFlags, _1,
-		b.data(), VIR_DOMAIN_AFFECT_CURRENT |
-					VIR_DOMAIN_AFFECT_LIVE |
-					VIR_DOMAIN_AFFECT_CONFIG |
-					VIR_DOMAIN_DEVICE_MODIFY_FORCE));
 }
 
 Result Runtime::setCpuLimit(quint32 limit_, quint32 period_)
@@ -686,12 +699,12 @@ Result Runtime::setCpuLimit(quint32 limit_, quint32 period_)
 
 	if (do_(&p, boost::bind(&virTypedParamsAddULLong, _1,
 					&s, &m, VIR_DOMAIN_SCHEDULER_VCPU_PERIOD, period_)).isFailed())
-		return Result(Error::Detailed(PRL_ERR_SET_CPULIMIT));
+		return Failure(PRL_ERR_SET_CPULIMIT);
 
 	qint32 l = (limit_ == 0? -1 : period_ * limit_ / 100);
 	if (do_(&p, boost::bind(&virTypedParamsAddLLong, _1,
 					&s, &m, VIR_DOMAIN_SCHEDULER_VCPU_QUOTA, l)).isFailed())
-		return Result(Error::Detailed(PRL_ERR_SET_CPULIMIT));
+		return Failure(PRL_ERR_SET_CPULIMIT);
 
 	Result r(do_(m_domain.data(), boost::bind(&virDomainSetSchedulerParametersFlags, _1,
 							p, s, VIR_DOMAIN_AFFECT_CURRENT |
@@ -709,7 +722,7 @@ Result Runtime::setCpuUnits(quint32 units_)
 
 	if (do_(&p, boost::bind(&virTypedParamsAddULLong, _1,
 					&s, &m, VIR_DOMAIN_SCHEDULER_CPU_SHARES, units_)).isFailed())
-		return Result(Error::Detailed(PRL_ERR_SET_CPUUNITS));
+		return Failure(PRL_ERR_SET_CPUUNITS);
 
 	Result r(do_(m_domain.data(), boost::bind(&virDomainSetSchedulerParametersFlags, _1,
 							p, s, VIR_DOMAIN_AFFECT_CURRENT |
@@ -726,50 +739,36 @@ Result Runtime::setCpuCount(quint32 units_)
 
 Result Runtime::setMemory(quint32 memsize_)
 {
-	Result r;
-	unsigned newMemSize = memsize_<<10;
-	unsigned oldMemSize = 0;
-	unsigned maxNumaSize = 0;
 	virDomainInfo info;
-
-	r = do_(m_domain.data(), boost::bind(&virDomainGetInfo, _1, &info));
+	Result r = do_(m_domain.data(), boost::bind(&virDomainGetInfo, _1, &info));
 	if (r.isFailed())
 		return r;
-	oldMemSize = info.memory;
-	maxNumaSize = info.maxMem;
 
+	unsigned newMemSize = memsize_<<10;
+	unsigned oldMemSize = info.memory;
+	unsigned maxNumaSize = info.maxMem;
 	if (oldMemSize > newMemSize)
 	{
 		if (oldMemSize > maxNumaSize)
-			return Result(Error::Detailed(PRL_ERR_FAILURE));
+			return Error::Simple(PRL_ERR_FAILURE);
 
-		r = do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
+		return do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
 			newMemSize,
 			VIR_DOMAIN_AFFECT_LIVE));
 	}
-	else
+	if (newMemSize <= maxNumaSize)
 	{
-		if (newMemSize <= maxNumaSize)
-		{
-			r = do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
-				newMemSize,
-				VIR_DOMAIN_AFFECT_LIVE));
-		}
-		else
-		{
-			r = do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
-				maxNumaSize,
-				VIR_DOMAIN_AFFECT_LIVE));
-			if (r.isFailed())
-				return r;
-
-			Transponster::Vm::Reverse::DimmDevice y(0, newMemSize - maxNumaSize);
-			r = do_(m_domain.data(), boost::bind(&virDomainAttachDeviceFlags, _1,
-				y.getResult().toUtf8().data(),
-				VIR_DOMAIN_AFFECT_LIVE));
-		}
+		return do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
+			newMemSize,
+			VIR_DOMAIN_AFFECT_LIVE));
 	}
-	return r;
+	r = do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
+		maxNumaSize,
+		VIR_DOMAIN_AFFECT_LIVE));
+	if (r.isFailed())
+		return r;
+
+	return plug(Transponster::Vm::Reverse::Dimm(0, newMemSize - maxNumaSize));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -805,7 +804,7 @@ Result List::define(const CVmConfiguration& config_, Unit* dst_)
 
 	virDomainPtr d = virDomainDefineXML(m_link.data(), u.getResult().toUtf8().data());
 	if (NULL == d)
-		return Error::Detailed(PRL_ERR_VM_NOT_CREATED);
+		return Failure(PRL_ERR_VM_NOT_CREATED);
 
 	Unit m(d);
 	if (NULL != dst_)
@@ -823,7 +822,7 @@ Result List::all(QList<Unit>& dst_)
 	int z = virConnectListAllDomains(m_link.data(), &a,
 					VIR_CONNECT_LIST_DOMAINS_PERSISTENT);
 	if (-1 == z)
-		return Result(Error::Detailed(PRL_ERR_FAILURE));
+		return Failure(PRL_ERR_FAILURE);
 
 	for (int i = 0; i < z; ++i)
 		dst_ << Unit(a[i]);
@@ -845,11 +844,11 @@ Result Unit::getUuid(QString& dst_) const
 {
 	const char* n = virDomainSnapshotGetName(m_snapshot.data());
 	if (NULL == n)
-		return Result(Error::Detailed(PRL_ERR_INVALID_HANDLE));
+		return Failure(PRL_ERR_INVALID_HANDLE);
 
 	QString x = n;
 	if (!PrlUuid::isUuid(x.toStdString()))
-		return Result(Error::Detailed(PRL_ERR_INVALID_HANDLE));
+		return Failure(PRL_ERR_INVALID_HANDLE);
 
 	dst_ = x;
 	return Result();
@@ -859,11 +858,11 @@ Result Unit::getState(CSavedStateTree& dst_) const
 {
 	char* x = virDomainSnapshotGetXMLDesc(m_snapshot.data(), VIR_DOMAIN_XML_SECURE);
 	if (NULL == x)
-		return Result(Error::Detailed(PRL_ERR_INVALID_HANDLE));
+		return Failure(PRL_ERR_INVALID_HANDLE);
 
 	Transponster::Snapshot::Direct y(x);
 	if (PRL_FAILED(Transponster::Director::snapshot(y)))
-		return Result(Error::Detailed(PRL_ERR_PARSE_VM_DIR_CONFIG));
+		return Failure(PRL_ERR_PARSE_VM_DIR_CONFIG);
 
 	dst_ = y.getResult();
 	dst_.SetCurrent(1 == virDomainSnapshotIsCurrent(m_snapshot.data(), 0));
@@ -906,7 +905,7 @@ Result List::all(QList<Unit>& dst_) const
 	virDomainSnapshotPtr* a = NULL;
 	int n = virDomainListAllSnapshots(m_domain.data(), &a, 0);
 	if (0 > n)
-		return Result(Error::Detailed(PRL_ERR_INVALID_HANDLE));
+		return Failure(PRL_ERR_INVALID_HANDLE);
 
 	for (int i = 0; i < n; ++i)
 	{
@@ -945,7 +944,7 @@ Prl::Expected<Unit, Error::Simple>
 	virDomainSnapshotPtr p = virDomainSnapshotCreateXML(m_domain.data(),
 					y.getResult().toUtf8().data(), flags_);
 	if (NULL == p)
-		return Error::Detailed(PRL_ERR_FAILURE);
+		return Failure(PRL_ERR_FAILURE);
 
 	return Unit(p);
 }
@@ -1003,17 +1002,17 @@ Result Unit::undefine()
 Result Unit::getConfig(CVirtualNetwork& dst_) const
 {
 	if (m_network.isNull())
-		return Result(Error::Detailed(PRL_ERR_UNINITIALIZED));
+		return Failure(PRL_ERR_UNINITIALIZED);
 
 	char* x = virNetworkGetXMLDesc(m_network.data(),
 			VIR_NETWORK_XML_INACTIVE);
 	if (NULL == x)
-		return Result(Error::Detailed(PRL_ERR_VM_GET_CONFIG_FAILED));
+		return Failure(PRL_ERR_VM_GET_CONFIG_FAILED);
 
 	WRITE_TRACE(DBG_FATAL, "xml:\n%s", x);
 	Transponster::Network::Direct u(x, 0 < virNetworkIsActive(m_network.data()));
 	if (PRL_FAILED(Transponster::Director::network(u)))
-		return Result(Error::Detailed(PRL_ERR_PARSE_VM_DIR_CONFIG));
+		return Failure(PRL_ERR_PARSE_VM_DIR_CONFIG);
 
 	dst_ = u.getResult();
 	CVZVirtualNetwork* z = dst_.getVZVirtualNetwork();
@@ -1063,7 +1062,7 @@ Result List::all(QList<Unit>& dst_) const
 	int z = virConnectListAllNetworks(m_link.data(), &a,
 					VIR_CONNECT_LIST_NETWORKS_PERSISTENT);
 	if (-1 == z)
-		return Result(Error::Detailed(PRL_ERR_FAILURE));
+		return Failure(PRL_ERR_FAILURE);
 
 	for (int i = 0; i < z; ++i)
 	{
@@ -1084,11 +1083,11 @@ Result List::find(const QString& name_, Unit* dst_) const
 	virNetworkPtr n = virNetworkLookupByName(m_link.data(),
 			name_.toUtf8().data());
 	if (NULL == n)
-		return Result(Error::Detailed(PRL_ERR_FILE_NOT_FOUND));
+		return Failure(PRL_ERR_FILE_NOT_FOUND);
 
 	Unit u(n);
 	if (1 != virNetworkIsPersistent(n))
-		return Result(Error::Detailed(PRL_ERR_FILE_NOT_FOUND));
+		return Failure(PRL_ERR_FILE_NOT_FOUND);
 
 	CVirtualNetwork x;
 	if (u.getConfig(x).isFailed())
@@ -1112,13 +1111,13 @@ Result List::define(const CVirtualNetwork& config_, Unit* dst_)
 	WRITE_TRACE(DBG_FATAL, "xml:\n%s", u.getResult().toUtf8().data());
 	virNetworkPtr n = virNetworkDefineXML(m_link.data(), u.getResult().toUtf8().data());
 	if (NULL == n)
-		return Result(Error::Detailed(PRL_ERR_VM_NOT_CREATED));
+		return Failure(PRL_ERR_VM_NOT_CREATED);
 
 	Unit m(n);
 	if (0 != virNetworkSetAutostart(n, 1))
 	{
 		m.undefine();
-		return Result(Error::Detailed(PRL_ERR_FAILURE));
+		return Failure(PRL_ERR_FAILURE);
 	}
 	if (NULL != dst_)
 		*dst_ = m;
@@ -1175,7 +1174,7 @@ Result List::all(QList<Bridge>& dst_) const
 	virInterfacePtr* a = NULL;
 	int z = virConnectListAllInterfaces(m_link.data(), &a, 0);
 	if (-1 == z)
-		return Result(Error::Detailed(PRL_ERR_FAILURE));
+		return Failure(PRL_ERR_FAILURE);
 
 	for (int i = 0; i < z; ++i)
 	{
@@ -1344,11 +1343,11 @@ Prl::Expected<VtInfo, Error::Simple> Host::getVt() const
 	CVCpuInfo* i = v.getQemuKvm()->getVCpuInfo();
 	qint32 x = virConnectGetMaxVcpus(m_link.data(), "kvm");
 	if (-1 == x)
-		return Error::Detailed(PRL_ERR_VM_UNABLE_GET_GUEST_CPU);
+		return Failure(PRL_ERR_VM_UNABLE_GET_GUEST_CPU);
 
 	virNodeInfo h;
 	if (do_(m_link.data(), boost::bind(&virNodeGetInfo, _1, &h)).isFailed())
-		return Error::Detailed(PRL_ERR_CANT_INIT_REAL_CPUS_INFO);
+		return Failure(PRL_ERR_CANT_INIT_REAL_CPUS_INFO);
 
 	i->setMaxVCpu(std::min<quint32>(x, h.cpus));
 	i->setDefaultPeriod(100000);

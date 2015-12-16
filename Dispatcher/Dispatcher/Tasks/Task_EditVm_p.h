@@ -489,9 +489,17 @@ struct Factory
 } // namespace Cpu
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Serial
+
+struct Serial
+{
+	Action* operator()(const Request& input_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Driver
 
-typedef boost::mpl::vector<Cdrom, Adapter, Memory, Disk, Blkiotune,
+typedef boost::mpl::vector<Cdrom, Adapter, Memory, Serial, Disk, Blkiotune,
 		Network::Factory, Cpu::Factory> probeList_type;
 
 struct Driver: Gear<Driver, probeList_type>

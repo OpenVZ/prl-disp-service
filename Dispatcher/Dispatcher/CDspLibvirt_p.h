@@ -215,7 +215,7 @@ namespace Model
 struct Vm
 {
 	Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
-			const QSharedPointer<Network::Routing>& routing);
+			const QSharedPointer< ::Network::Routing>& routing);
 
 	const QString& getUuid() const
 	{
@@ -239,7 +239,7 @@ private:
 	SmartPtr<CDspClient> m_user;
 	VIRTUAL_MACHINE_STATE m_state;
 	VIRTUAL_MACHINE_STATE m_formerState;
-	QSharedPointer<Network::Routing> m_routing;
+	QSharedPointer< ::Network::Routing> m_routing;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -279,7 +279,7 @@ struct System
 	void remove(const QString& uuid_);
 	QSharedPointer<Domain> add(const QString& uuid_);
 	QSharedPointer<Domain> find(const QString& uuid_) const;
-	const QSharedPointer<Network::Routing>& getRouting() const
+	const QSharedPointer< ::Network::Routing>& getRouting() const
 	{
 		return m_routing;
 	}
@@ -289,7 +289,7 @@ private:
 
 	domainMap_type m_domainMap;
 	CDspDispConfigGuard* m_configGuard;
-	QSharedPointer<Network::Routing> m_routing;
+	QSharedPointer< ::Network::Routing> m_routing;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -38,8 +38,10 @@
 #include "snapshot_type.h"
 #include <XmlModel/VtInfo/VtInfo.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
+#include <Libraries/PrlCommonUtilsBase/SysError.h>
 #include <XmlModel/NetworkConfig/CVirtualNetwork.h>
 #include <XmlModel/HostHardwareInfo/CHwNetAdapter.h>
+#include <Libraries/PrlCommonUtilsBase/ErrorSimple.h>
 
 namespace Transponster
 {
@@ -76,41 +78,66 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Cdrom
-
-struct Cdrom
+// struct Dimm
+ 
+struct Dimm
 {
-	explicit Cdrom(const CVmOpticalDisk& input_): m_input(input_)
+	Dimm(quint32 nodeId_, quint32 size_): m_size(size_), m_nodeId(nodeId_)
+ 	{
+ 	}
+ 
+	quint32 getSize() const
 	{
+		return m_size;
 	}
-
-	PRL_RESULT operator()();
-
-	QString getResult();
-
+	quint32 getNodeId() const
+	{
+		return m_nodeId;
+	}
+ 
 private:
-	CVmOpticalDisk m_input;
-	boost::optional<Libvirt::Domain::Xml::Disk> m_result;
+	const quint32 m_size;
+	const quint32 m_nodeId;
 };
-
+ 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Interface
+// struct Device
 
-struct Interface
+template<class T>
+struct Device;
+
+template<>
+struct Device<Dimm>
 {
-	explicit Interface(const CVmGenericNetworkAdapter& input_): m_input(input_)
-	{
-	}
-
-	PRL_RESULT operator()();
-
-	QString getResult();
-
-private:
-	CVmGenericNetworkAdapter m_input;
-	boost::optional<Libvirt::Domain::Xml::VInterface> m_result;
+	static QString getPlugXml(const Dimm& model_);
 };
 
+template<>
+struct Device<CVmOpticalDisk>
+{
+	static QString getUpdateXml(const CVmOpticalDisk& model_);
+};
+
+template<>
+struct Device<CVmSerialPort>
+{
+	static Prl::Expected<QString, ::Error::Simple>
+		getPlugXml(const CVmSerialPort& model_);
+	static Prl::Expected<Libvirt::Domain::Xml::Qemucdev, ::Error::Simple>
+		getLibvirtXml(const CVmSerialPort& model_);
+};
+
+template<>
+struct Device<CVmGenericNetworkAdapter>
+{
+	static Prl::Expected<QString, ::Error::Simple>
+		getPlugXml(const CVmGenericNetworkAdapter& model_);
+	static Prl::Expected<QString, ::Error::Simple>
+		getUpdateXml(const CVmGenericNetworkAdapter& model_);
+	static Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
+		getLibvirtXml(const CVmGenericNetworkAdapter& model_);
+};
+ 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
@@ -132,19 +159,6 @@ private:
 
 	CVmConfiguration m_input;
 	boost::optional<Libvirt::Domain::Xml::Domain> m_result;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Reverse
-
-struct DimmDevice
-{
-	DimmDevice(unsigned nodeid_, unsigned size_);
-
-	QString getResult() const;
-
-private:
-	Libvirt::Domain::Xml::Memory2 m_result;
 };
 
 } // namespace Reverse
