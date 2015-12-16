@@ -41,6 +41,7 @@
 #include "XmlModel/VmConfig/CVmSoundInputs.h"
 #include "XmlModel/VmConfig/CVmSoundOutputs.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include "Libraries/Logging/Logging.h"
 
 
 CVmConfigurationTest::CVmConfigurationTest()

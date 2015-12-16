@@ -1,8 +1,0 @@
-TARGET = test_updater_config
-PROJ_PATH = $$PWD
-include(../../../Build/qmake/build_target.pri)
-
-include($$SRC_LEVEL/XmlModel/XmlModel.pri)
-include($$LIBS_LEVEL/Logging/Logging.pri)
-include($$LIBS_LEVEL/Std/Std.pri)
-include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
