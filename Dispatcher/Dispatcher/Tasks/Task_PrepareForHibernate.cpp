@@ -137,15 +137,7 @@ PRL_RESULT Task_PrepareForHibernate::prepareForHostSuspend( bool bAllowCancelHos
 				if ( pVm->getVmState() != VMS_RUNNING && pVm->getVmState() != VMS_PAUSED )
 					throw PRL_ERR_PREPARE_FOR_HIBERNATE_VM_WRONG_STATE;
 
-				CVmEvent evt;
-				if ( PRL_FAILED(evt.fromString(pVm->getVmToolsStateString())) )
-					throw PRL_ERR_UNEXPECTED;
-
-				CVmEventParameter* pParam = evt.getEventParameter( EVT_PARAM_VM_TOOLS_STATE );
-				if ( ! pParam )
-					throw PRL_ERR_UNEXPECTED;
-
-				PRL_VM_TOOLS_STATE nToolsState = (PRL_VM_TOOLS_STATE )pParam->getParamValue().toInt();
+				PRL_VM_TOOLS_STATE nToolsState = CDspVm::getVmToolsState( *it );
 				if ( nToolsState != PTS_INSTALLED && nToolsState != PTS_OUTDATED )
 					throw PRL_ERR_PREPARE_FOR_HIBERNATE_VM_WITHOUT_TOOLS;
 			}

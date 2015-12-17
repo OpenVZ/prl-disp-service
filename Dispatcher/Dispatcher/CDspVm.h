@@ -432,11 +432,6 @@ public:
 	VIRTUAL_MACHINE_STATE getVmState() const;
 
 	/**
-	* Returns VM tools state
-	*/
-	QString getVmToolsStateString() const;
-
-	/**
 	 * Returns pointer to start VM request operation package
 	 */
 	SmartPtr<IOPackage> getStartVmRequestPackage() const;
@@ -599,27 +594,17 @@ public://Convenient global methods
 	* Returns state of VM tools
 	* @param VM UUID
 	* @param parent VM dir UUID
-	* @return actual VM state
+	* @return actual VM state and version
 	*/
-	static QString getVmToolsStateString( const QString &sVmUuid, const QString &sVmDirUuid );
-
+	static PRL_VM_TOOLS_STATE getVmToolsState( const QString &sVmUuid, const QString &sVmDirUuid,
+						   QString *sVersion = NULL );
 	/**
 	 * Method which was provided for convenience. Let's to get VM tool state as is
 	 * (not wrapped into CVmEvent string representation) by VM identity
 	 * @param VM identity
-	 * @return VM tools state
+	 * @return VM tools state and version
 	 */
-	static PRL_VM_TOOLS_STATE getVmToolsState( const CVmIdent &_vm_ident  );
-
-	/**
-	 * Method which was provided for convenience. Let's to get VM tool state as is
-	 * (not wrapped into CVmEvent string representation) by VM UUID and VM
-	 * directory UUID
-	 * @param VM UUID
-	 * @param VM directory UUID
-	 * @return VM tools state
-	 */
-	static PRL_VM_TOOLS_STATE getVmToolsState( const QString &sVmUuid, const QString &sVmDirUuid );
+	static PRL_VM_TOOLS_STATE getVmToolsState( const CVmIdent &_vm_ident, QString *sVersion = NULL );
 
 	/**
 	 * Returns remote display state of specified VM
@@ -777,12 +762,6 @@ private:
 	 * @param setting VM power state value
 	 */
 	void changeVmState(VIRTUAL_MACHINE_STATE nVmState, VmPowerState powerState = vpsNormal);
-
-	/**
-	 * Applying new VM tools state
-	 * @param setting VM tools state value
-	 */
-	void changeVmToolsState(const QString &sVmToolsState);
 
 	/**
 	* Send deferred stop response in destructor of CDspVm

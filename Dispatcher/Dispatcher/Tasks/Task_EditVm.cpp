@@ -845,6 +845,21 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 		// finish EVT_PARAM_NETWORK_ADAPTER_TYPE
 		//////////////////////////////////////////////////////////////////////////
 
+		//////////////////////////////////////////////////////////////////////////
+		// EVT_PARAM_VM_TOOLS_VERSION
+		//////////////////////////////////////////////////////////////////////////
+		if( CVmEventParameter* pParam = evtFromVm.getEventParameter( EVT_PARAM_VM_TOOLS_VERSION ) )
+		{
+			const QString v = pParam->getParamValue();
+			if (v != pVmConfig->getVmSettings()->getVmTools()->getAgentVersion()) {
+				pVmConfig->getVmSettings()->getVmTools()->setAgentVersion(v);
+				flgConfigChanged = true;
+			}
+		}
+		//////////////////////////////////////////////////////////////////////////
+		// Finish EVT_PARAM_VM_TOOLS_VERSION
+		//////////////////////////////////////////////////////////////////////////
+
 		if( ! flgConfigChanged )
 		{
 			if( flgNoChangeAllowed )

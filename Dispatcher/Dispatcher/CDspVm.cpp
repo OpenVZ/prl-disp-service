@@ -880,35 +880,57 @@ VIRTUAL_MACHINE_STATE CDspVm::getVmStateUnsync() const
 	return (d().m_nVmState);
 }
 
-PRL_VM_TOOLS_STATE CDspVm::getVmToolsState( const CVmIdent &_vm_ident  )
+PRL_VM_TOOLS_STATE CDspVm::getVmToolsState( const CVmIdent &_vm_ident, QString *pVersion )
 {
-	return getVmToolsState( _vm_ident.first, _vm_ident.second );
+	return getVmToolsState( _vm_ident.first, _vm_ident.second, pVersion );
 }
 
-PRL_VM_TOOLS_STATE CDspVm::getVmToolsState( const QString &sVmUuid, const QString &sVmDirUuid )
+PRL_VM_TOOLS_STATE CDspVm::getVmToolsState(
+	const QString &sVmUuid, const QString &sVmDirUuid, QString *pVersion )
 {
-	QString sToolsState= getVmToolsStateString( sVmUuid, sVmDirUuid );
-	CVmEvent e(sToolsState);
-	CVmEventParameter* pParam = e.getEventParameter(EVT_PARAM_VM_TOOLS_STATE);
-	PRL_VM_TOOLS_STATE vmToolsState = PTS_UNKNOWN;
-	if (pParam)
-		vmToolsState = (PRL_VM_TOOLS_STATE)pParam->getParamValue().toInt();
-	return (vmToolsState);
-}
+	PRL_RESULT nRetCode;
+	SmartPtr<CVmConfiguration> pVmConfig =
+		DspVm::vdh().getVmConfigByUuid(sVmDirUuid, sVmUuid, nRetCode);
+	CVmTools* toolsCfg = pVmConfig->getVmSettings()->getVmTools();
 
-QString CDspVm::getVmToolsStateString( const QString& sVmUuid, const QString &sVmDirUuid )
-{
-	SmartPtr<CDspVm> pVm = GetRoInstanceByUuid(sVmUuid, sVmDirUuid);
-	if (pVm)
-		return (pVm->getVmToolsStateString());
+	if (!pVmConfig) {
+		WRITE_TRACE(DBG_FATAL, "Couldn't to find VM configuration "\
+				"for '%s' VM UUID which belongs to '%s' VM dir",\
+				qPrintable(sVmUuid), qPrintable(sVmDirUuid));
+		return PTS_UNKNOWN;
+	}
 
-	return DspVm::Details::getVmToolsStateStringOffline(MakeVmIdent(sVmUuid, sVmDirUuid));
-}
+	QString sVersion = toolsCfg->getAgentVersion();
+	PRL_VM_TOOLS_STATE state = sVersion.isEmpty() ? PTS_NOT_INSTALLED : PTS_POSSIBLY_INSTALLED;
 
-QString CDspVm::getVmToolsStateString() const
-{
-	QReadLocker _lock(&d().m_rwLock);
-	return (d().m_sVmToolsState);
+	Libvirt::Tools::Agent::Vm::Unit u = Libvirt::Kit.vms().at(sVmUuid);
+	VIRTUAL_MACHINE_STATE vms = VMS_UNKNOWN;
+	u.getState(vms);
+
+	if (vms == VMS_RUNNING) {
+		Prl::Expected<QString, Libvirt::Error::Simple> r =
+			u.getGuest().getAgentVersion();
+		if (r.isSucceed()) {
+			sVersion = r.value();
+			state = sVersion.isEmpty() ? PTS_NOT_INSTALLED : PTS_INSTALLED;
+
+			if (sVersion != toolsCfg->getAgentVersion()) {
+				WRITE_TRACE(DBG_INFO, "Updating tools version %s for VM '%s'",
+						qPrintable(sVersion), qPrintable(sVmUuid));
+				SmartPtr<CDspClient> session = CDspClient::makeServiceUser();
+				CVmEvent evt;
+				evt.addEventParameter(new CVmEventParameter(
+							PVE::String, sVersion, EVT_PARAM_VM_TOOLS_VERSION));
+				CDspService::instance()->getVmDirHelper()
+					.atomicEditVmConfigByVm(CVmIdent(sVmUuid, sVmDirUuid), evt, session);
+			}
+		}
+	}
+
+	if (pVersion)
+		*pVersion = sVersion;
+
+	return state;
 }
 
 QString CDspVm::getVmName() const
@@ -2393,21 +2415,6 @@ void CDspVm::changeVmState(VIRTUAL_MACHINE_STATE nVmNewState, CDspVm::VmPowerSta
 	}
 }
 
-void CDspVm::changeVmToolsState(const QString &sVmToolsState)
-{
-	QWriteLocker _lock(&d().m_rwLock);
-	d().m_sVmToolsState = sVmToolsState;
-	_lock.unlock();
-	//https://bugzilla.sw.ru/show_bug.cgi?id=440056
-	CVmEvent e(sVmToolsState);
-	CVmEventParameter* pParam = e.getEventParameter(EVT_PARAM_VM_TOOLS_STATE);
-	if (pParam)
-	{
-		unsigned int nVmToolsState = (PRL_VM_TOOLS_STATE)pParam->getParamValue().toUInt();
-		WRITE_TRACE( DBG_FATAL, "VM tools changed state on %u %.8X", nVmToolsState, nVmToolsState );
-	}
-}
-
 static bool doStorePackageBeforeSendToVm( const SmartPtr<IOPackage> &p )
 {
 	PRL_ASSERT( p );
@@ -2733,10 +2740,6 @@ void CDspVm::changeVmState(const SmartPtr<IOPackage> &p, bool& outNeedRoute  )
 					applyVMNetworkSettings(VMS_RUNNING);
 					changeVmState(VMS_RUNNING);
 				}
-				break;
-			/* Change internal VM tools state */
-			case PET_DSP_EVT_VM_TOOLS_STATE_CHANGED:
-				changeVmToolsState(_evt.toString());
 				break;
 			/* Compacting states */
 			case PET_DSP_EVT_VM_COMPACT_PROCESSING:
