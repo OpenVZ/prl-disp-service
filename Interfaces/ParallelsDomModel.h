@@ -2034,6 +2034,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 #define EVT_PARAM_VMCFG_TIMESHIFT						"vmcfg_time_shift"
 #define EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE	"vmcfg_vm_device_config_with_new_state"
+#define EVT_PARAM_VMCFG_NEW_DEVICE_CONFIG				"vmcfg_vm_new_device_config"
 #define EVT_PARAM_VMCFG_TOOLS_SHARED_FOLDERS			"vmcfg_tools_shared_folders"
 #define EVT_PARAM_VMCFG_TOOLS_SHARED_PROFILES			"vmcfg_tools_shared_profiles"
 #define EVT_PARAM_VMCFG_TOOLS_COHERENCE					"vmcfg_tools_coherence"

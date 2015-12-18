@@ -35,6 +35,7 @@
 #include "CDspLibvirt.h"
 #include <boost/bind.hpp>
 #include "CDspTaskHelper.h"
+#include "CDspVmGuestPersonality.h"
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/for_each.hpp>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
@@ -292,70 +293,53 @@ private:
 
 } // namespace Create
 
-typedef boost::mpl::vector<Create::Nvram, Apply> probeList_type;
-typedef Gear<Factory<probeList_type>, probeList_type> driver_type;
-
-namespace Runtime
+namespace Personalize
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct NotApplied
+// struct Apply
 
-struct NotApplied: Action
+struct Apply: Vm::Action
 {
-	explicit NotApplied(const Request& input_): m_vmUuid(input_.getObject().first),
-			m_session(input_.getTask().getClient())
+	Apply(const CVmConfiguration& vm_, const QStringList& nettool_)
+		: m_configurator(vm_), m_nettool(nettool_)
 	{
 	}
 
 	bool execute(CDspTaskFailure& feedback_);
 
 private:
-	QString m_vmUuid;
-	SmartPtr<CDspClient> m_session;
+	::Personalize::Configurator m_configurator;
+	QStringList m_nettool;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Cdrom
+// struct Action
 
-struct Cdrom
+struct Prepare: Vm::Action
 {
-	Action* operator()(const Request& input_) const;
-};
+	Prepare(const QString& vmHome_)
+		: m_vmHome(vmHome_)
+	{
+	}
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Adapter
+	bool execute(CDspTaskFailure& feedback_);
 
-struct Adapter
-{
-	Action* operator()(const Request& input_) const;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Memory
-
-struct Memory
-{
-	Action* operator()(const Request& input_) const;
+private:
+	QString m_vmHome;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
-struct Disk
+struct Factory
 {
 	Action* operator()(const Request& input_) const;
-
-private:
-	bool isDiskIoUntunable(const CVmHardDisk* disk_) const;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Blkiotune
+} // namespace Personalize
 
-struct Blkiotune
-{
-	Vm::Action* operator()(const Request& input_) const;
-};
+typedef boost::mpl::vector<Create::Nvram, Apply, Personalize::Factory> probeList_type;
+typedef Gear<Factory<probeList_type>, probeList_type> driver_type;
 
 namespace Network
 {
@@ -489,6 +473,73 @@ private:
 };
 
 } // namespace Difference
+
+} // namespace Network
+
+namespace Runtime
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct NotApplied
+
+struct NotApplied: Action
+{
+	explicit NotApplied(const Request& input_): m_vmUuid(input_.getObject().first),
+			m_session(input_.getTask().getClient())
+	{
+	}
+
+	bool execute(CDspTaskFailure& feedback_);
+
+private:
+	QString m_vmUuid;
+	SmartPtr<CDspClient> m_session;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Cdrom
+
+struct Cdrom
+{
+	Action* operator()(const Request& input_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Adapter
+
+struct Adapter
+{
+	Action* operator()(const Request& input_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Memory
+
+struct Memory
+{
+	Action* operator()(const Request& input_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+struct Disk
+{
+	Action* operator()(const Request& input_) const;
+
+private:
+	bool isDiskIoUntunable(const CVmHardDisk* disk_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Blkiotune
+
+struct Blkiotune
+{
+	Vm::Action* operator()(const Request& input_) const;
+};
+
+namespace Network
+{
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Action

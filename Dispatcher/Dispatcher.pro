@@ -54,6 +54,7 @@ HEADERS += \
 	CDspVmManager.h \
 	CDspVmManager_p.h \
 	CDspVmMounter.h \
+	CDspVmGuestPersonality.h \
 	CDspVmNetworkHelper.h \
 	CDspDispConnectionsManager.h \
 	CFileHelperDepPart.h \
@@ -163,6 +164,7 @@ SOURCES += \
 	CDspVmDirHelper.cpp \
 	CDspVmManager.cpp \
 	CDspVmMounter.cpp \
+	CDspVmGuestPersonality.cpp \
 	CDspVmNetworkHelper.cpp \
 	CDspDispConnectionsManager.cpp \
 	CFileHelperDepPart.cpp \

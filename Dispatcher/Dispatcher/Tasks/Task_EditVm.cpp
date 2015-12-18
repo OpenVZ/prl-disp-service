@@ -396,6 +396,34 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 		//////////////////////////////////////////////////////////////////////////
 
 		//////////////////////////////////////////////////////////////////////////
+		// EVT_PARAM_VMCFG_NEW_DEVICE_CONFIG
+		//////////////////////////////////////////////////////////////////////////
+		if (CVmEventParameter* pParam = evtFromVm.getEventParameter(EVT_PARAM_VMCFG_NEW_DEVICE_CONFIG))
+		{
+			CVmDevice* newDevice(CVmDevice::getDeviceInstanceFromString(pParam->getParamValue()));
+
+			if (!newDevice)
+			{
+				WRITE_TRACE(DBG_FATAL, "Failed to parse EVT_PARAM_VMCFG_NEW_DEVICE_CONFIG %s",
+						QSTR2UTF8(pParam->getParamValue()));
+			}
+			else if (newDevice->getDeviceType() < PDE_MAX)
+			{
+				QList<void* >* l = (QList<void* >* )pVmConfig->getVmHardwareList()->m_aDeviceLists[newDevice->getDeviceType()];
+				if (l)
+				{
+					l->push_back(newDevice);
+					flgConfigChanged = true;
+					newDevice = NULL;
+				}
+			}
+			delete newDevice;
+		}
+		//////////////////////////////////////////////////////////////////////////
+		// Finish EVT_PARAM_VMCFG_NEW_DEVICE_CONFIG
+		//////////////////////////////////////////////////////////////////////////
+
+		//////////////////////////////////////////////////////////////////////////
 		// EVT_PARAM_VMCFG_TOOLS_SHARED_FOLDERS
 		//////////////////////////////////////////////////////////////////////////
 		if( CVmEventParameter* pParam = evtFromVm.getEventParameter( EVT_PARAM_VMCFG_TOOLS_SHARED_FOLDERS ) )
@@ -3237,198 +3265,9 @@ bool Action<CVmStartupBios>::execute(CDspTaskFailure& feedback_)
 
 } // namespace Create
 
-namespace Runtime
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct NotApplied
-
-bool NotApplied::execute(CDspTaskFailure& feedback_)
-{
-	CVmEvent e(PET_DSP_EVT_VM_CONFIG_APPLIED, m_vmUuid, PIE_VIRTUAL_MACHINE);
-	e.setEventCode(PRL_ERR_VM_APPLY_CONFIG_NEEDS_REBOOT);
-	e.addEventParameter(new CVmEventParameter(PVE::String, m_vmUuid, EVT_PARAM_VM_UUID));
-	e.addEventParameter(new CVmEventParameter(PVE::UnsignedInt,
-				QString::number((qint32)PRL_ERR_VM_APPLY_CONFIG_NEEDS_REBOOT),
-				EVT_PARAM_OP_RC));
-
-	m_session->sendPackage(DispatcherPackage::createInstance(PVE::DspVmEvent, e.toString()));
-
-	return Action::execute(feedback_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Cdrom
-
-Action* Cdrom::operator()(const Request& input_) const
-{
-	Forge f(input_);
-	Action* output = NULL;
-	QList<CVmOpticalDisk* > o = input_.getStart().getVmHardwareList()->m_lstOpticalDisks;
-	foreach (CVmOpticalDisk* d, input_.getFinal().getVmHardwareList()->m_lstOpticalDisks)
-	{
-		CVmOpticalDisk* x = CXmlModelHelper::IsElemInList(d, o);
-		if (NULL == x)
-			continue;
-
-		if (PVE::CdRomImage != d->getEmulatedType() ||
-			d->getEmulatedType() != x->getEmulatedType())
-			continue;
-
-		Action* a = NULL;
-		if (x->getSystemName() != d->getSystemName())
-		{
-			a = f.craftRuntime(boost::bind
-				(&vm::Runtime::update<CVmOpticalDisk>, _1, *d));
-		}
-		else if (x->getConnected() != d->getConnected())
-		{
-			a = f.craftRuntime(boost::bind
-				(&vm::Runtime::update<CVmOpticalDisk>, _1, *d));
-		}
-		else
-			continue;
-
-		a->setNext(output);
-		output = a;
-	}
-	return output;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Adapter
-
-Action* Adapter::operator()(const Request& input_) const
-{
-	Forge f(input_);
-	Action* output = NULL;
-	QList<CVmGenericNetworkAdapter*> o = input_.getStart().getVmHardwareList()->m_lstNetworkAdapters;
-	foreach (CVmGenericNetworkAdapter* d, input_.getFinal().getVmHardwareList()->m_lstNetworkAdapters)
-	{
-		// works without any action because post-configuration deletes iface from bridge
-		if (d->getEmulatedType() == PNA_ROUTED)
-			continue;
-
-		CVmGenericNetworkAdapter* x = CXmlModelHelper::IsElemInList(d, o);
-		if (NULL == x)
-			continue;
-
-		Action* a;
-		// Libvirt doesn't allow to change the emulation type in runtime
-		if (x->getEmulatedType() == d->getEmulatedType()
-				// need to update if network changed
-				&& x->getVirtualNetworkID() != d->getVirtualNetworkID())
-		{
-			a = f.craftRuntime(boost::bind(&vm::Runtime::update
-				<CVmGenericNetworkAdapter>, _1, *d));
-		}
-		// but we can attach 'routed' interface to network's bridge without libvirt
-		else if (x->getEmulatedType() == PNA_ROUTED && d->getEmulatedType() == PNA_BRIDGED_ETHERNET)
-			a = new Reconnect(*d);
-		else
-			continue;
-
-		a->setNext(output);
-		output = a;
-	}
-	return output;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Memory
-
-Vm::Action* Memory::operator()(const Request& input_) const
-{
-	Forge f(input_);
-	CVmMemory* o = input_.getStart().getVmHardwareList()->getMemory();
-	CVmMemory* n = input_.getFinal().getVmHardwareList()->getMemory();
-	
-	if (NULL == n)
-		return NULL;
-
-       unsigned old_mem = 0, new_mem = n->getRamSize();
-       if (NULL != o)
-               old_mem = o->getRamSize();
-
-	if(old_mem == new_mem)
-		return NULL;
-
-	return f.craftRuntime(boost::bind(&vm::Runtime::setMemory, _1, n->getRamSize()));
-}
-
-namespace
-{
-bool isHardDisksSystemPathEqual(const CVmHardDisk* lhs_, const CVmHardDisk* rhs_)
-{
-	return CFileHelper::IsPathsEqual(lhs_->getSystemName(), rhs_->getSystemName());
-}
-
-} // namespace
-
-/////////////////////////////////////////////////////////////////////////////
-// struct Disk
-
-Vm::Action* Disk::operator()(const Request& input_) const
-{
-	Forge f(input_);
-	Action* output = NULL;
-	QList<CVmHardDisk* > o = input_.getStart().getVmHardwareList()->m_lstHardDisks;
-	foreach (CVmHardDisk* d, input_.getFinal().getVmHardwareList()->m_lstHardDisks)
-	{
-		// If disk was disconnected or disabled, its config is absent in libvirt cfg
-		// All runtime parameters will be applied automatically with new device cfg
-		if (isDiskIoUntunable(d))
-			continue;
-
-		CVmHardDisk* x = CXmlModelHelper::IsElemInList(d, o);
-		if (NULL == x || isDiskIoUntunable(x))
-			continue;
-
-		CVmIoLimit* l(d->getIoLimit());
-		if (l != NULL) {
-			CVmIoLimit* p(x->getIoLimit());
-			if (p == NULL || l->getIoLimitValue() != p->getIoLimitValue())
-			{
-				Action* a(f.craftRuntime(boost::bind
-					(&vm::Runtime::setIoLimit, _1, d, l->getIoLimitValue())));
-				a->setNext(output);
-				output = a;
-			}
-		}
-
-		if (d->getIopsLimit() != x->getIopsLimit()) {
-			Action* a(f.craftRuntime(boost::bind
-				(&vm::Runtime::setIopsLimit, _1, d, d->getIopsLimit())));
-			a->setNext(output);
-			output = a;
-		}
-	}
-	return output;
-}
-
-bool Disk::isDiskIoUntunable(const CVmHardDisk* disk_) const
-{
-	bool r = false;
-	r = (disk_->getEmulatedType() != PVE::HardDiskImage);
-	r |= (disk_->getEnabled() == PVE::DeviceDisabled);
-	r |= (disk_->getConnected() == PVE::DeviceDisconnected);
-	return r;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Blkiotune
-
-Vm::Action* Blkiotune::operator()(const Request& input_) const
-{
-	quint32 o(input_.getStart().getVmSettings()->getVmRuntimeOptions()->getIoPriority());
-	quint32 n(input_.getFinal().getVmSettings()->getVmRuntimeOptions()->getIoPriority());
-	if (o == n)
-		return NULL;
-
-	return Forge(input_).craftRuntime(boost::bind(&vm::Runtime::setIoPriority, _1, n));
-}
-
 namespace Network
 {
+
 namespace Difference
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -3712,7 +3551,7 @@ QStringList Address::operator()(const Bridge& mode_)
 		g += d.isEmpty() ? "removev6 " : d + " ";
 	}
 	if (!a.isEmpty())
-		output << "--ip" << mode_.getMac() << a.join(" ");
+		output << "--ip" << mode_.getMac() << QString("'") + a.join(" ") + QString("'");
 
 	if (g.isEmpty())
 	{
@@ -3724,6 +3563,266 @@ QStringList Address::operator()(const Bridge& mode_)
 
 	return output;
 }
+
+} // namespace Network
+
+namespace Personalize
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Apply
+
+bool Apply::execute(CDspTaskFailure& feedback_)
+{
+	if (!m_configurator.setNettool(m_nettool)) {
+		feedback_(PRL_ERR_OPERATION_FAILED);
+		return false;
+	}
+
+	return Vm::Action::execute(feedback_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Prepare
+
+bool Prepare::execute(CDspTaskFailure& feedback_)
+{
+	QString p(QFileInfo(CFileHelper::GetFileRoot(m_vmHome), VM_PERSONALITY_DIR).filePath());
+	CAuthHelper a;
+	if (CFileHelper::DirectoryExists(p, &a))
+		return Vm::Action::execute(feedback_);
+
+	if (!CFileHelper::WriteDirectory(p, &a))
+	{
+		WRITE_TRACE(DBG_FATAL, "Unable to write directory %s", QSTR2UTF8(p));
+		feedback_(PRL_ERR_DISK_DIR_CREATE_ERROR);
+		return false;
+	}
+
+	return Vm::Action::execute(feedback_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+Action* Factory::operator()(const Request& input_) const
+{
+	Action* output = NULL;
+	const Network::general_type* a = input_.getStart().getVmSettings()->getGlobalNetwork();
+	const Network::general_type* b = input_.getFinal().getVmSettings()->getGlobalNetwork();
+	Network::Dao x(input_.getStart().getVmHardwareList()->m_lstNetworkAdapters);
+	Network::Dao y(input_.getFinal().getVmHardwareList()->m_lstNetworkAdapters);
+
+	QStringList d = Network::Difference::Vm(*b, y).calculate(*a, x);
+	if (d.isEmpty()) 
+		return NULL;
+
+	d.insert(0, "set");
+	d.insert(0, "prl_nettool");
+
+	Action* action = new Apply(input_.getFinal(), d);
+	action->setNext(output);
+	output = action;
+
+	action = new Prepare(input_.getFinal().getVmIdentification()->getHomePath());
+	action->setNext(output);
+	output = action;
+
+	return output;
+}
+} // namespace Personalize
+
+namespace Runtime
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct NotApplied
+
+bool NotApplied::execute(CDspTaskFailure& feedback_)
+{
+	CVmEvent e(PET_DSP_EVT_VM_CONFIG_APPLIED, m_vmUuid, PIE_VIRTUAL_MACHINE);
+	e.setEventCode(PRL_ERR_VM_APPLY_CONFIG_NEEDS_REBOOT);
+	e.addEventParameter(new CVmEventParameter(PVE::String, m_vmUuid, EVT_PARAM_VM_UUID));
+	e.addEventParameter(new CVmEventParameter(PVE::UnsignedInt,
+				QString::number((qint32)PRL_ERR_VM_APPLY_CONFIG_NEEDS_REBOOT),
+				EVT_PARAM_OP_RC));
+
+	m_session->sendPackage(DispatcherPackage::createInstance(PVE::DspVmEvent, e.toString()));
+
+	return Action::execute(feedback_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Cdrom
+
+Action* Cdrom::operator()(const Request& input_) const
+{
+	Forge f(input_);
+	Action* output = NULL;
+	QList<CVmOpticalDisk* > o = input_.getStart().getVmHardwareList()->m_lstOpticalDisks;
+	foreach (CVmOpticalDisk* d, input_.getFinal().getVmHardwareList()->m_lstOpticalDisks)
+	{
+		CVmOpticalDisk* x = CXmlModelHelper::IsElemInList(d, o);
+		if (NULL == x)
+			continue;
+
+		if (PVE::CdRomImage != d->getEmulatedType() ||
+			d->getEmulatedType() != x->getEmulatedType())
+			continue;
+
+		Action* a = NULL;
+		if (x->getSystemName() != d->getSystemName())
+		{
+			a = f.craftRuntime(boost::bind
+				(&vm::Runtime::update<CVmOpticalDisk>, _1, *d));
+		}
+		else if (x->getConnected() != d->getConnected())
+		{
+			a = f.craftRuntime(boost::bind
+				(&vm::Runtime::update<CVmOpticalDisk>, _1, *d));
+		}
+		else
+			continue;
+
+		a->setNext(output);
+		output = a;
+	}
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Adapter
+
+Action* Adapter::operator()(const Request& input_) const
+{
+	Forge f(input_);
+	Action* output = NULL;
+	QList<CVmGenericNetworkAdapter*> o = input_.getStart().getVmHardwareList()->m_lstNetworkAdapters;
+	foreach (CVmGenericNetworkAdapter* d, input_.getFinal().getVmHardwareList()->m_lstNetworkAdapters)
+	{
+		// works without any action because post-configuration deletes iface from bridge
+		if (d->getEmulatedType() == PNA_ROUTED)
+			continue;
+
+		CVmGenericNetworkAdapter* x = CXmlModelHelper::IsElemInList(d, o);
+		if (NULL == x)
+			continue;
+
+		Action* a;
+		// Libvirt doesn't allow to change the emulation type in runtime
+		if (x->getEmulatedType() == d->getEmulatedType()
+				// need to update if network changed
+				&& x->getVirtualNetworkID() != d->getVirtualNetworkID())
+		{
+			a = f.craftRuntime(boost::bind(&vm::Runtime::update
+				<CVmGenericNetworkAdapter>, _1, *d));
+		}
+		// but we can attach 'routed' interface to network's bridge without libvirt
+		else if (x->getEmulatedType() == PNA_ROUTED && d->getEmulatedType() == PNA_BRIDGED_ETHERNET)
+			a = new Reconnect(*d);
+		else
+			continue;
+
+		a->setNext(output);
+		output = a;
+	}
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Memory
+
+Vm::Action* Memory::operator()(const Request& input_) const
+{
+	Forge f(input_);
+	CVmMemory* o = input_.getStart().getVmHardwareList()->getMemory();
+	CVmMemory* n = input_.getFinal().getVmHardwareList()->getMemory();
+
+	if (NULL == n)
+		return NULL;
+
+       unsigned old_mem = 0, new_mem = n->getRamSize();
+       if (NULL != o)
+               old_mem = o->getRamSize();
+
+	if(old_mem == new_mem)
+		return NULL;
+
+	return f.craftRuntime(boost::bind(&vm::Runtime::setMemory, _1, n->getRamSize()));
+}
+
+namespace
+{
+bool isHardDisksSystemPathEqual(const CVmHardDisk* lhs_, const CVmHardDisk* rhs_)
+{
+	return CFileHelper::IsPathsEqual(lhs_->getSystemName(), rhs_->getSystemName());
+}
+
+} // namespace
+
+/////////////////////////////////////////////////////////////////////////////
+// struct Disk
+
+Vm::Action* Disk::operator()(const Request& input_) const
+{
+	Forge f(input_);
+	Action* output = NULL;
+	QList<CVmHardDisk* > o = input_.getStart().getVmHardwareList()->m_lstHardDisks;
+	foreach (CVmHardDisk* d, input_.getFinal().getVmHardwareList()->m_lstHardDisks)
+	{
+		// If disk was disconnected or disabled, its config is absent in libvirt cfg
+		// All runtime parameters will be applied automatically with new device cfg
+		if (isDiskIoUntunable(d))
+			continue;
+
+		CVmHardDisk* x = CXmlModelHelper::IsElemInList(d, o);
+		if (NULL == x || isDiskIoUntunable(x))
+			continue;
+
+		CVmIoLimit* l(d->getIoLimit());
+		if (l != NULL) {
+			CVmIoLimit* p(x->getIoLimit());
+			if (p == NULL || l->getIoLimitValue() != p->getIoLimitValue())
+			{
+				Action* a(f.craftRuntime(boost::bind
+					(&vm::Runtime::setIoLimit, _1, d, l->getIoLimitValue())));
+				a->setNext(output);
+				output = a;
+			}
+		}
+
+		if (d->getIopsLimit() != x->getIopsLimit()) {
+			Action* a(f.craftRuntime(boost::bind
+				(&vm::Runtime::setIopsLimit, _1, d, d->getIopsLimit())));
+			a->setNext(output);
+			output = a;
+		}
+	}
+	return output;
+}
+
+bool Disk::isDiskIoUntunable(const CVmHardDisk* disk_) const
+{
+	bool r = false;
+	r = (disk_->getEmulatedType() != PVE::HardDiskImage);
+	r |= (disk_->getEnabled() == PVE::DeviceDisabled);
+	r |= (disk_->getConnected() == PVE::DeviceDisconnected);
+	return r;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Blkiotune
+
+Vm::Action* Blkiotune::operator()(const Request& input_) const
+{
+	quint32 o(input_.getStart().getVmSettings()->getVmRuntimeOptions()->getIoPriority());
+	quint32 n(input_.getFinal().getVmSettings()->getVmRuntimeOptions()->getIoPriority());
+	if (o == n)
+		return NULL;
+
+	return Forge(input_).craftRuntime(boost::bind(&vm::Runtime::setIoPriority, _1, n));
+}
+
+namespace Network
+{
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Action
@@ -3738,12 +3837,12 @@ Libvirt::Result Action::operator()(Libvirt::Tools::Agent::Vm::Guest agent_)
 
 Vm::Action* Factory::operator()(const Request& input_) const
 {
-	const general_type* a = input_.getStart().getVmSettings()->getGlobalNetwork();
-	const general_type* b = input_.getFinal().getVmSettings()->getGlobalNetwork();
-	Dao x(input_.getStart().getVmHardwareList()->m_lstNetworkAdapters);
-	Dao y(input_.getFinal().getVmHardwareList()->m_lstNetworkAdapters);
+	const Vm::Network::general_type* a = input_.getStart().getVmSettings()->getGlobalNetwork();
+	const Vm::Network::general_type* b = input_.getFinal().getVmSettings()->getGlobalNetwork();
+	Vm::Network::Dao x(input_.getStart().getVmHardwareList()->m_lstNetworkAdapters);
+	Vm::Network::Dao y(input_.getFinal().getVmHardwareList()->m_lstNetworkAdapters);
 
-	QStringList d = Difference::Vm(*b, y).calculate(*a, x);
+	QStringList d = Vm::Network::Difference::Vm(*b, y).calculate(*a, x);
 	if (d.isEmpty())
 		return NULL;
 

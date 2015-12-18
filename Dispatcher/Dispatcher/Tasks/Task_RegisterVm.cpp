@@ -1574,6 +1574,15 @@ PRL_RESULT Task_RegisterVm::run_body()
 		// save VM configuration
 		// NOTE: It need as SYSTEM user ( after revertToSelf ) because saveVmConfig() sets permissions.
 		////////////////////////////////////////////////////////////////////////////
+
+		if (!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+		{
+			QString s(QFileInfo(CFileHelper::GetFileRoot(m_pVmInfo->vmXmlPath), VM_PERSONALITY_DIR).filePath());
+			if (!CFileHelper::WriteDirectory(s, &getClient()->getAuthHelper()))
+				throw CDspTaskFailure(*this)(PRL_ERR_DISK_DIR_CREATE_ERROR, s);
+			m_lstCreatedDirs.append(s);
+		}
+
 		ret = saveVmConfig( );
 		if( PRL_FAILED( ret ) )
 			throw ret;

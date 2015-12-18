@@ -61,6 +61,10 @@
 #define VM_INFO_FILE_NAME						"VmInfo.pvi"
 #define VM_INFO_FILE_SUFFIX						".pvi"
 
+#define VM_CLOUD_CONFIG_ISO						"cloud-config.iso"
+#define VM_PERSONALITY_DIR						".personality"
+#define VM_USER_CLOUD_CONFIG					VM_PERSONALITY_DIR"/user"
+#define VM_DISP_CLOUD_CONFIG					VM_PERSONALITY_DIR"/disp"
 #define PRL_SOUND_DEFAULT_DEVICE_NAME			"Default"
 #define PRL_SOUND_NULL_DEVICE_NAME				"None"
 #define PRL_PRINTER_DEFAULT_DEVICE_NAME			"Default printer"
