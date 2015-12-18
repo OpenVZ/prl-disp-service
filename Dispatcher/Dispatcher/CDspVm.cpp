@@ -908,7 +908,7 @@ PRL_VM_TOOLS_STATE CDspVm::getVmToolsState(
 	u.getState(vms);
 
 	if (vms == VMS_RUNNING) {
-		Prl::Expected<QString, Libvirt::Error::Simple> r =
+		Prl::Expected<QString, Error::Simple> r =
 			u.getGuest().getAgentVersion();
 		if (r.isSucceed()) {
 			sVersion = r.value();
