@@ -127,6 +127,11 @@ struct Request
 		return *m_final;
 	}
 
+	Task_EditVm& getTask() const
+	{
+		return *m_task;
+	}
+
 private:
 	CVmIdent m_object;
 	Task_EditVm* m_task;
@@ -260,6 +265,23 @@ typedef Gear<Factory<probeList_type>, probeList_type> driver_type;
 
 namespace Runtime
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct NotApplied
+
+struct NotApplied: Action
+{
+	explicit NotApplied(const Request& input_): m_vmUuid(input_.getObject().first),
+			m_session(input_.getTask().getClient())
+	{
+	}
+
+	bool execute(CDspTaskFailure& feedback_);
+
+private:
+	QString m_vmUuid;
+	SmartPtr<CDspClient> m_session;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Cdrom
 

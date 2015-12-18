@@ -3165,6 +3165,23 @@ Libvirt::Result Apply::define(vm::Unit agent_, const CVmConfiguration& config_)
 namespace Runtime
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct NotApplied
+
+bool NotApplied::execute(CDspTaskFailure& feedback_)
+{
+	CVmEvent e(PET_DSP_EVT_VM_CONFIG_APPLIED, m_vmUuid, PIE_VIRTUAL_MACHINE);
+	e.setEventCode(PRL_ERR_VM_APPLY_CONFIG_NEEDS_REBOOT);
+	e.addEventParameter(new CVmEventParameter(PVE::String, m_vmUuid, EVT_PARAM_VM_UUID));
+	e.addEventParameter(new CVmEventParameter(PVE::UnsignedInt,
+				QString::number((qint32)PRL_ERR_VM_APPLY_CONFIG_NEEDS_REBOOT),
+				EVT_PARAM_OP_RC));
+
+	m_session->sendPackage(DispatcherPackage::createInstance(PVE::DspVmEvent, e.toString()));
+
+	return Action::execute(feedback_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Cdrom
 
 Action* Cdrom::operator()(const Request& input_) const
@@ -3700,8 +3717,13 @@ Vm::Action* Factory::operator()(const Request& input_) const
 	if (oldCpu->getCpuUnits() != newCpu->getCpuUnits())
 		output = f.craftRuntime(boost::bind(&vm::Runtime::setCpuUnits, _1, newCpu->getCpuUnits()));
 
-	if (oldCpu->getNumber() != newCpu->getNumber()) {
+	if (oldCpu->getNumber() < newCpu->getNumber()) {
 		Action* a(f.craftRuntime(boost::bind(&vm::Runtime::setCpuCount, _1, newCpu->getNumber())));
+		a->setNext(output);
+		output = a;
+	} else if (oldCpu->getNumber() > newCpu->getNumber()) {
+		// unplug is not supported
+		Action* a = new Edit::Vm::Runtime::NotApplied(input_);
 		a->setNext(output);
 		output = a;
 	}
