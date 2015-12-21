@@ -76,7 +76,6 @@ private slots:
 	void testPatchMechViaPropertyCall();
 	void testAssignOperator();
 	void testTransformationDevicesPathsInsideVmBundle();
-	void testTransformationDevicesPathsOnShadowVm();
 	void testTransformationDevicesPathsOnExtDir();
 
 private slots:

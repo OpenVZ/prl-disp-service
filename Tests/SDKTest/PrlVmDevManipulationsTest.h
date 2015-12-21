@@ -340,20 +340,10 @@ private slots:
 	void testFirewallRuleRemoteNetAddressOnWrongParams();
 	void testCopyImage();
 	void testCopyImageOnWrongParams();
-	void testShadowVmSupportOnTransformPathDevices();
 	void testHardDiskGetStorageURL();
 	void testHardDiskSetStorageURL();
 
 private:
-
-	void shadowVmSupport_Prepare();
-	void shadowVmSupport_CheckRelativeDevPaths();
-	void shadowVmSupport_CheckAbsoluteDevPaths();
-	void shadowVmSupport_CheckAbsoluteDevPaths_NativeVm();
-	void shadowVmSupport_CheckRelativeDevPaths_ShadowVm();
-	void shadowVmSupport_CheckAbsoluteDevPaths_ShadowVm();
-	void shadowVmSupport_CheckAbsoluteDevPaths_ExtDir();
-
 	SdkHandleWrap m_ServerHandle;
 	SdkHandleWrap m_VmHandle;
 	QList<SdkHandleWrap> m_VmDevHandles;
