@@ -117,6 +117,7 @@ private:
 	PRL_RESULT	createSerialPorts( );
 	PRL_RESULT	createParallelPorts( );
 	PRL_RESULT	createHardDisks( );
+	PRL_RESULT	createNVRAM();
 
 	void rollback();
 	void deleteCreatedConfigItems();

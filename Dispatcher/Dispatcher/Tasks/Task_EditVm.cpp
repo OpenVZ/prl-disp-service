@@ -1997,6 +1997,24 @@ PRL_RESULT Task_EditVm::editVm()
 			qsNewDirName = CFileHelper::GetFileRoot( qsOldDirName ) +
 				"/" + newVmName + (newVmName.endsWith(VMDIR_DEFAULT_BUNDLE_SUFFIX) ? "" : VMDIR_DEFAULT_BUNDLE_SUFFIX);
 
+			// If EFI boot is enabled we need to have NVRAM full path.
+			// New configuration may not have NVRAM path then old path is used.
+			// Default name is used if old NVRAM path is empty.
+			CVmStartupBios* bios = pVmConfigNew->getVmSettings()->getVmStartupOptions()->getBios();
+			if (bios->isEfiEnabled() && bios->getNVRAM().isEmpty())
+			{
+				QString nvram = pVmConfigOld->getVmSettings()
+					->getVmStartupOptions()->getBios()
+					->getNVRAM();
+
+				if (nvram.isEmpty())
+					nvram = QDir(qsNewDirName).absoluteFilePath(PRL_VM_NVRAM_FILE_NAME);
+				else if (QFileInfo(nvram).isRelative())
+					nvram = QDir(qsOldDirName).absoluteFilePath(nvram);
+
+				bios->setNVRAM(nvram);
+			}
+
 			if ( newVmName != oldVmName  && qsOldDirNameTmp == oldVmName && qsNewDirName != qsOldDirName)
 			{
 
@@ -2403,6 +2421,7 @@ PRL_RESULT Task_EditVm::editVm()
 				getClient(),
 				true,
 				true);
+
 #ifdef _LIBVIRT_
 			pVmConfigNew->getVmIdentification()->setHomePath(strVmHome);
 			Edit::Vm::driver_type(*this)(pVmConfigOld, pVmConfigNew);
@@ -2914,6 +2933,11 @@ namespace {
 		return (sCorrectedPath);
 	}
 
+	void CorrectEfiPath(CVmStartupBios& bios_, const QString& oldHome_, const QString& newHome_)
+	{
+		bios_.setNVRAM(BuildDevicePath(bios_.getNVRAM(), oldHome_, newHome_));
+	}
+
 	/**
 	* Corrects device paths in view of VM name was changed
 	* @param pointer to device object
@@ -2970,8 +2994,9 @@ namespace {
 			CorrectDevicePaths(*pSerialPort, sOldVmHomePath, sNewVmHomePath);
 		foreach(CVmParallelPort *pParallelPort, pVmConfig->getVmHardwareList()->m_lstParallelPorts)
 			CorrectDevicePaths(*pParallelPort, sOldVmHomePath, sNewVmHomePath);
+		CorrectEfiPath(*(pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()),
+				sOldVmHomePath, sNewVmHomePath);
 	}
-
 
 } // namespace
 
@@ -3161,6 +3186,52 @@ Libvirt::Result Apply::define(vm::Unit agent_, const CVmConfiguration& config_)
 {
 	return agent_.up().define(config_);
 }
+
+namespace Create
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Nvram
+
+Vm::Action* Nvram::operator()(const Request& input_) const
+{
+	CVmStartupBios* n = input_.getFinal().getVmSettings()->getVmStartupOptions()->getBios();
+
+	if (n == NULL || !n->isEfiEnabled())
+		return NULL;
+
+	CVmStartupBios* o = input_.getStart().getVmSettings()->getVmStartupOptions()->getBios();
+
+	if (o->isEfiEnabled() && o->getNVRAM() == n->getNVRAM())
+		return NULL;
+
+	return new Action<CVmStartupBios>(*n, input_.getFinal());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Action
+
+template <>
+bool Action<CVmStartupBios>::execute(CDspTaskFailure& feedback_)
+{
+	QString file = m_data.getNVRAM();
+
+	if (QFileInfo(file).isRelative())
+		file = QDir(m_path).absoluteFilePath(file);
+
+	if (QFile::exists(file))
+		return Vm::Action::execute(feedback_);
+
+	if (!QFile::copy("/usr/share/OVMF/OVMF_VARS.fd", file))
+	{
+		WRITE_TRACE(DBG_FATAL, "Unable to create NVRAM image with '%s'", qPrintable(file));
+		feedback_(PRL_ERR_NVRAM_FILE_COPY);
+		return true;
+	}
+
+	return Vm::Action::execute(feedback_);
+}
+
+} // namespace Create
 
 namespace Runtime
 {

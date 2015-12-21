@@ -1894,6 +1894,10 @@ void CVmConfiguration::setAbsolutePath()
 	CVmHardware* pHwList = getVmHardwareList();
 	if (pHwList)
 		pHwList-&gt;RevertDevicesPathToAbsolute(getConfigDirectory());
+
+	CVmStartupBios* bios = getVmSettings()-&gt;getVmStartupOptions()-&gt;getBios();
+	if (!bios->getNVRAM().isEmpty() &amp;&amp; QFileInfo(bios-&gt;getNVRAM()).isRelative())
+		bios->setNVRAM(QDir(getConfigDirectory()).absoluteFilePath(bios-&gt;getNVRAM()));
 }
 </xs:documentation>
 			<xs:documentation source="setRelativePath">header_fragment:
@@ -1905,6 +1909,10 @@ void CVmConfiguration::setRelativePath()
 	CVmHardware* pHwList = getVmHardwareList();
 	if (pHwList)
 		pHwList-&gt;SetDevicesPathToRelative( getConfigDirectory(), getExternalConfigInfo()-&gt;getType() != PEVT_NATIVE_VM );
+
+	CVmStartupBios* bios = getVmSettings()-&gt;getVmStartupOptions()-&gt;getBios();
+	if (!QFileInfo(bios-&gt;getNVRAM()).isRelative())
+		bios->setNVRAM(QDir(getConfigDirectory()).relativeFilePath(bios-&gt;getNVRAM()));
 }
 </xs:documentation>
 			<xs:documentation source="loadFromFile">header_fragment:    int loadFromFile(QFile* config_file,bool BNeedLoadAbsolutePath = true);
@@ -3693,6 +3701,7 @@ public:
 						<xs:element name="EfiEnabled" type="xs:boolean" minOccurs="0"/>
 					</xs:sequence>
 				</xs:complexType>
+				<xs:element name="NVRAM" type="xs:string" minOccurs="0"/>
 			</xs:element>
 			<xs:element name="ExternalDeviceSystemName" type="xs:string" minOccurs="0"/>
 		</xs:sequence>

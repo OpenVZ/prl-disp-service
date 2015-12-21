@@ -705,16 +705,9 @@ PRL_RESULT Vm::setSettings()
 	}
 
 	//EFI boot support
-	const Libvirt::Domain::Xml::Loader* l
-		= boost::get<mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type>
-			(m_input->getOs()).getValue().getLoader().get_ptr();
-	if (l && l->getType() &&
-		l->getType().get() == Libvirt::Domain::Xml::EType2Pflash)
-	{
-		s->getVmStartupOptions()
-			->getBios()
-			->setEfiEnabled(true);
-	}
+	Libvirt::Domain::Xml::VOs v = m_input->getOs();
+	CVmStartupBios* b = s->getVmStartupOptions()->getBios();
+	boost::apply_visitor(Visitor::Startup::Bios(*b), v);
 
 	CVmUsbController* u(new CVmUsbController());
 	u->setUhcEnabled(false);

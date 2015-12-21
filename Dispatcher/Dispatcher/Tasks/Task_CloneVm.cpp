@@ -372,13 +372,25 @@ PRL_RESULT Content::copyFloppyDisks(CVmHardware& hardware_)
 	return commit(PDE_FLOPPY_DISK, r);
 }
 
-PRL_RESULT Content::copyInternals()
+PRL_RESULT Content::copyNvram(CVmStartupBios& bios_)
 {
-	m_failure.code(PRL_ERR_NVRAM_FILE_COPY);
-	PRL_RESULT e = copyFile(PRL_VM_NVRAM_FILE_NAME);
+	QString o = bios_.getNVRAM();
+	if (o.isEmpty())
+		return PRL_ERR_SUCCESS;
+
+	QString n = m_sink.getPath(PRL_VM_NVRAM_FILE_NAME);
+	bios_.setNVRAM(n);
+
+	PRL_RESULT e = addExternalFile(o, n);
 	if (PRL_FAILED(e))
 		return e;
 
+	m_failure.code(PRL_ERR_NVRAM_FILE_COPY);
+	return commit(PDE_HARD_DISK, m_failure);
+}
+
+PRL_RESULT Content::copyInternals()
+{
 	m_failure.code(PRL_ERR_COPY_VM_INFO_FILE);
 	return copyFile(VM_INFO_FILE_NAME);
 }
@@ -1040,6 +1052,9 @@ PRL_RESULT Builder::copyContent(const Source::Total& source_, Snapshot* snapshot
 		goto quit;
 	if (PRL_FAILED(output = x.copyInternals()))
 		goto quit;
+	if (PRL_FAILED(output = x.copyNvram
+			(*(m_config->getVmSettings()->getVmStartupOptions()->getBios()))))
+		goto quit;
 
 	if (NULL == snapshot_)
 	{
@@ -1254,6 +1269,12 @@ template<>
 QString Device<CVmFloppyDisk>::getSource(const CVmFloppyDisk& config_)
 {
 	return Floppy::getLocation(config_);
+}
+
+template<>
+QString Device<CVmStartupBios>::getSource(const CVmStartupBios& config_)
+{
+	return config_.getNVRAM();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

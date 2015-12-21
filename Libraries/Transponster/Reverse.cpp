@@ -1091,7 +1091,8 @@ PRL_RESULT Vm::setBlank()
 	mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
 
 	//EFI boot support
-	if (m_input.getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled())
+	CVmStartupBios* b = m_input.getVmSettings()->getVmStartupOptions()->getBios();
+	if (b != NULL && b->isEfiEnabled())
 	{
 		Libvirt::Domain::Xml::Loader l;
 		l.setReadonly(Libvirt::Domain::Xml::EReadonlyYes);
@@ -1102,6 +1103,15 @@ PRL_RESULT Vm::setBlank()
 
 		Libvirt::Domain::Xml::Os2 os;
 		os.setLoader(l);
+
+		QString x = b->getNVRAM();
+		if (!x.isEmpty())
+		{
+			Libvirt::Domain::Xml::Nvram n;
+			n.setOwnValue(x);
+			os.setNvram(n);
+		}
+
 		vos.setValue(os);
 	}
 

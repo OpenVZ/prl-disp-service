@@ -770,6 +770,38 @@ private:
 
 } // namespace Bridge
 
+namespace Startup
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Bios
+
+struct Bios: boost::static_visitor<void>
+{
+	explicit Bios(CVmStartupBios& bios_): m_bios(&bios_)
+	{
+	}
+
+	template<class T>
+	void operator()(const T&) const
+	{
+	}
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type& os_) const
+	{
+		const Libvirt::Domain::Xml::Loader* l = os_.getValue().getLoader().get_ptr();
+		if (l && l->getType() && l->getType().get() == Libvirt::Domain::Xml::EType2Pflash)
+			m_bios->setEfiEnabled(true);
+
+		const Libvirt::Domain::Xml::Nvram* n = os_.getValue().getNvram().get_ptr();
+		if (n && n->getOwnValue())
+			m_bios->setNVRAM(n->getOwnValue().get());
+	}
+
+private:
+	CVmStartupBios* m_bios;
+};
+
+}
+
 } // namespace Visitor
 } // namespace Transponster
 
