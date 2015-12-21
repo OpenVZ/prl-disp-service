@@ -66,6 +66,7 @@
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_ChangeSID.h"
 #include "Tasks/Task_ExecVm.h"
+#include "Tasks/Task_EditVm.h"
 
 #ifdef _WIN_
 	#include <process.h>
@@ -798,7 +799,18 @@ void Body<Tag::Libvirt<PVE::DspCmdVmDevConnect> >::run()
 
 	CVmOpticalDisk y;
 	StringToElement<CVmOpticalDisk* >(&y, x->GetDeviceConfig());
-	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).getRuntime().update(y));
+	Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid())
+		.getRuntime().update(y);
+	if (e.isFailed())
+		return m_context.reply(e);
+
+	CVmEvent v;
+	v.addEventParameter(new CVmEventParameter(PVE::String,
+		x->GetDeviceConfig(), EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
+	
+	Task_EditVm::atomicEditVmConfigByVm(m_context.getDirectoryUuid(),
+		m_context.getVmUuid(), v, m_context.getSession());
+	m_context.reply(e);
 }
 
 template<>
