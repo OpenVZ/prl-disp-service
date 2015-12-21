@@ -61,6 +61,14 @@ struct RemoteDisplay
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Nvram
+
+struct Nvram
+{
+	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+};
+
 namespace Index
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -247,7 +255,7 @@ struct Reviser<N, void>
 	}
 };
 
-typedef boost::mpl::vector<RemoteDisplay> revise_types;
+typedef boost::mpl::vector<RemoteDisplay, Nvram> revise_types;
 typedef boost::mpl::vector<OsInfo, RuntimeOptions, GlobalNetwork,
 		Index::Patch, Cpu, NetworkDevices, State::Patch, MemoryOptions> untranslatable_types;
 

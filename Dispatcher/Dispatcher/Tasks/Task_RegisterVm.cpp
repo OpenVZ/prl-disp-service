@@ -39,6 +39,7 @@
 #include "Task_RegisterVm.h"
 #include "Task_CommonHeaders.h"
 #include "Task_EditVm.h"
+#include "Task_EditVm_p.h"
 #include "Task_ManagePrlNetService.h"
 #ifdef _LIBVIRT_
 #include "CDspLibvirt.h"
@@ -1668,6 +1669,10 @@ PRL_RESULT	Task_RegisterVm::createConfigItems( )
 		ret = createHardDisks();
 		if ( PRL_FAILED(ret) )
 			throw ret;
+
+		ret = createNVRAM();
+		if ( PRL_FAILED(ret) )
+			throw ret;
 	}
 	catch ( PRL_RESULT code )
 	{
@@ -2157,6 +2162,21 @@ PRL_RESULT	Task_RegisterVm::createHardDisks()
 		}
 	}
 	return ret;
+}
+
+PRL_RESULT Task_RegisterVm::createNVRAM()
+{
+	CVmStartupBios* b = m_pVmConfig->getVmSettings()->getVmStartupOptions()->getBios();
+
+	if (!b->isEfiEnabled())
+		return PRL_ERR_SUCCESS;
+
+	if (b->getNVRAM().isEmpty())
+		b->setNVRAM(ConvertToFullPath(PRL_VM_NVRAM_FILE_NAME));
+
+	CDspTaskFailure f(*this);
+	Edit::Vm::Create::Action<CVmStartupBios>(*b, *m_pVmConfig).execute(f);
+	return getLastErrorCode();
 }
 
 /**

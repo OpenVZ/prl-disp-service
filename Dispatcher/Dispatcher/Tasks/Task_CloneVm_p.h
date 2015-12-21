@@ -578,6 +578,7 @@ struct Content: private Copy::Batch
 		return m_journal;
 	}
 	PRL_RESULT copyInternals();
+	PRL_RESULT copyNvram(CVmStartupBios& bios_);
 	PRL_RESULT copyHardDisks(CVmHardware& hardware_);
 	PRL_RESULT copySnapshots();
 	PRL_RESULT linkHardDisks(Snapshot& snapshot_, CVmHardware& hardware_);

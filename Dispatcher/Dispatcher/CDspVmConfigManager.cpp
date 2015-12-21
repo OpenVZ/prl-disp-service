@@ -59,6 +59,15 @@ void RemoteDisplay::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 		(new_.getVmSettings()->getVmRemoteDisplay()->getPortNumber());
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Nvram
+
+void Nvram::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+{
+	old_.getVmSettings()->getVmStartupOptions()->getBios()->setNVRAM
+		(new_.getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM());
+}
+
 namespace Index
 {
 

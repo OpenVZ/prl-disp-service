@@ -260,7 +260,37 @@ private:
 					const CVmConfiguration& config_);
 };
 
-typedef boost::mpl::vector<Apply> probeList_type;
+namespace Create
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Nvram
+
+struct Nvram
+{
+	Vm::Action* operator()(const Request& input_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Action
+
+template <class T>
+struct Action: Vm::Action
+{
+	Action(const T& data_, const CVmConfiguration& config_)
+	: m_data(data_), m_path(QFileInfo(config_.getVmIdentification()->getHomePath()).absolutePath())
+	{
+	}
+
+	bool execute(CDspTaskFailure& feedback_);
+
+private:
+	T m_data;
+	QString m_path;
+};
+
+} // namespace Create
+
+typedef boost::mpl::vector<Create::Nvram, Apply> probeList_type;
 typedef Gear<Factory<probeList_type>, probeList_type> driver_type;
 
 namespace Runtime
