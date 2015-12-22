@@ -2245,12 +2245,15 @@ PRL_RESULT Task_EditVm::editVm()
 
 						if ( ((PVCF_DESTROY_HDD_BUNDLE|PVCF_DESTROY_HDD_BUNDLE_FORCE) & getRequestFlags()) )
 						{
+							CAuthHelper* a = &getClient()->getAuthHelper();
 							WRITE_TRACE(DBG_FATAL, "Destroying HDD image '%s'", QSTR2UTF8(strDiskBundlePath));
-							CFileHelper::ClearAndDeleteDir( strDiskBundlePath );
+							CFileHelper::RemoveEntry(strDiskBundlePath, a);
 							Bundle b = Bundle::createFromPath(qsOldDirName);
 							if (b.isComponent(strDiskBundlePath))
+							{
 								CFileHelper::RemoveEntry(b.buildPath(b.getLocation(strDiskBundlePath)),
-										&getClient()->getAuthHelper());
+										a);
+							}
 						}
 					}
 
