@@ -2030,6 +2030,7 @@ void CDspVmDirHelper::cloneVm(const IOSender::Handle& sender,
 
 	QString strVmNewRootPath = pVmCmd->GetVmHomePath();
 	QString strVmNewName = pVmCmd->GetVmName();
+	QString sNewVmUuid = pVmCmd->GetNewVmUuid();
 	unsigned int nFlags = pVmCmd->GetCommandFlags();
 
 	PRL_RESULT ret = PRL_ERR_SUCCESS;
@@ -2052,6 +2053,7 @@ void CDspVmDirHelper::cloneVm(const IOSender::Handle& sender,
 			, pkg
 			, pVmConfig
 			, strVmNewName
+			, sNewVmUuid
 			, strVmNewRootPath
 			, nFlags));
 }//CDspVmDirHelper::cloneVm
