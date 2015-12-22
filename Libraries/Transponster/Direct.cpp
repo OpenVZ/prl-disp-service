@@ -398,8 +398,18 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice935::
 	if (NULL == h)
 		return PRL_ERR_UNEXPECTED;
 
-	if (Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceFile != serial_.getValue().getType())
+	PVE::SerialPortEmulatedType t;
+	switch (serial_.getValue().getType())
+	{
+	case Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceFile:
+		t = PVE::SerialOutputFile;
+		break;
+	case Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceUnix:
+		t = PVE::SerialSocket;
+		break;
+	default:
 		return PRL_ERR_SUCCESS;
+	}
 
 	if (serial_.getValue().getQemucdevSrcDef().getSourceList().isEmpty())
 		return PRL_ERR_SUCCESS;
@@ -411,7 +421,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice935::
 	p->setIndex(h->m_lstSerialPorts.size());
 	p->setItemId(h->m_lstSerialPorts.size());
 	p->setEnabled(true);
-	p->setEmulatedType(PVE::SerialOutputFile);
+	p->setEmulatedType(t);
 	p->setUserFriendlyName(serial_.getValue().getQemucdevSrcDef()
 		.getSourceList().front().getPath().get());
 	p->setSystemName(p->getUserFriendlyName());
