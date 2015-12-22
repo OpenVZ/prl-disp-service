@@ -1752,7 +1752,7 @@ struct SystemAverage {
 
 	static value_type extract(source_type &c)
 	{
-		return c.system / getHostCpus() ?: 1;
+		return c.system / (getHostCpus() ?: 1);
 	}
 };
 
@@ -1771,7 +1771,7 @@ struct UserAverage {
 
 	static value_type extract(source_type &c)
 	{
-		return c.user / getHostCpus() ?: 1;
+		return c.user / (getHostCpus() ?: 1);
 	}
 };
 
