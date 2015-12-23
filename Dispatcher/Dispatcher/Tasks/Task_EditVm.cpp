@@ -1915,7 +1915,8 @@ PRL_RESULT Task_EditVm::editVm()
 									PRL_ASSERT(pClusteredDev);
 									if ( pClusteredDev )
 									{
-										if ( PMS_SATA_DEVICE == pClusteredDev->getInterfaceType() )//SATA devices can be added either on running VM or stopped
+										// VIRTIO devices can be added either on running VM or stopped
+										if (PMS_VIRTIO_BLOCK_DEVICE == pClusteredDev->getInterfaceType())
 											continue;
 									}
 								}
@@ -3378,17 +3379,13 @@ Vm::Action* Disk::operator()(const Request& input_) const
 		if (isDiskIoUntunable(d))
 			continue;
 
-		QList<CVmHardDisk *>::const_iterator x =
-			std::find_if(o.begin(), o.end(), boost::bind(isHardDisksSystemPathEqual, _1, d));
-		if (x == o.end())
-			continue;
-
-		if (isDiskIoUntunable(*x))
+		CVmHardDisk* x = CXmlModelHelper::IsElemInList(d, o);
+		if (NULL == x || isDiskIoUntunable(x))
 			continue;
 
 		CVmIoLimit* l(d->getIoLimit());
 		if (l != NULL) {
-			CVmIoLimit* p((*x)->getIoLimit());
+			CVmIoLimit* p(x->getIoLimit());
 			if (p == NULL || l->getIoLimitValue() != p->getIoLimitValue())
 			{
 				Action* a(f.craftRuntime(boost::bind
@@ -3398,7 +3395,7 @@ Vm::Action* Disk::operator()(const Request& input_) const
 			}
 		}
 
-		if (d->getIopsLimit() != (*x)->getIopsLimit()) {
+		if (d->getIopsLimit() != x->getIopsLimit()) {
 			Action* a(f.craftRuntime(boost::bind
 				(&vm::Runtime::setIopsLimit, _1, d, d->getIopsLimit())));
 			a->setNext(output);
@@ -3814,35 +3811,68 @@ Vm::Action* Factory::operator()(const Request& input_) const
 } // namespace Cpu
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Serial
+// struct Hotplug
 
-Action* Serial::operator()(const Request& input_) const
+template<>
+QList<CVmHardDisk* > Hotplug<CVmHardDisk>::getList(const CVmHardware* hardware_)
+{
+	QList<CVmHardDisk* > output = hardware_->m_lstHardDisks;
+	QList<CVmHardDisk* >::iterator p = std::partition
+				(output.begin(), output.end(),
+				boost::bind(&CVmHardDisk::getEmulatedType, _1) ==
+				PVE::HardDiskImage);
+	output.erase(p, output.end());
+	return output;
+}
+
+template<>
+QList<CVmSerialPort* > Hotplug<CVmSerialPort>::getList(const CVmHardware* hardware_)
+{
+	return hardware_->m_lstSerialPorts;
+}
+
+template<class T>
+Action* Hotplug<T>::operator()(const Request& input_) const
 {
 	Forge f(input_);
 	Action* output = NULL;
-	QList<CVmSerialPort*> o = input_.getStart().getVmHardwareList()->m_lstSerialPorts;
-	QList<CVmSerialPort*> n = input_.getFinal().getVmHardwareList()->m_lstSerialPorts;
-	foreach (CVmSerialPort* d, n)
+	QList<T* > o = getList(input_.getStart().getVmHardwareList());
+	QList<T* > n = getList(input_.getFinal().getVmHardwareList());
+	foreach (T* d, getDifference(n, o))
 	{
-		CVmSerialPort* x = CXmlModelHelper::IsElemInList(d, o);
-		if (NULL == x)
-		{
-			Action* a = f.craftRuntime(boost::bind(&vm::Runtime::plug
-				<CVmSerialPort>, _1, *d));
-			a->setNext(output);
-			output = a;
-		}
+		Action* a = f.craftRuntime(boost::bind(
+			&Libvirt::Tools::Agent::Vm::Runtime::plug<T>,
+			_1, *d));
+		a->setNext(output);
+		output = a;
 	}
-	foreach (CVmSerialPort* d, o)
+	foreach (T* d, getDifference(o, n))
 	{
-		CVmSerialPort* x = CXmlModelHelper::IsElemInList(d, n);
+		Action* a = f.craftRuntime(boost::bind(
+			&Libvirt::Tools::Agent::Vm::Runtime::unplug<T>,
+			_1, *d));
+		a->setNext(output);
+		output = a;
+	}
+	return output;
+}
+
+template<class T>
+QList<T* > Hotplug<T>::getDifference(const QList<T* >& first_,
+				const QList<T* >& second_)
+{
+	QList<T* > output;
+	foreach (T* d, first_)
+	{
+		T* x = CXmlModelHelper::IsElemInList(d, second_);
 		if (NULL == x)
 		{
-			Action* a = f.craftRuntime(boost::bind(&vm::Runtime::unplug
-				<CVmSerialPort>, _1, *d));
-			a->setNext(output);
-			output = a;
+			if (PVE::DeviceEnabled == d->getEnabled())
+				output << d;
 		}
+		else if (PVE::DeviceEnabled == d->getEnabled() &&
+			d->getEnabled() != x->getEnabled())
+			output << d;
 	}
 	return output;
 }

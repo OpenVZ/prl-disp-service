@@ -960,6 +960,26 @@ QString Device<Dimm>::getPlugXml(const Dimm& model_)
 	return x.toString();
 }
 
+QString Device<CVmHardDisk>::getPlugXml(const CVmHardDisk& model_)
+{
+	typedef Transponster::Device::Clustered::Builder::Hdd
+		builder_type;
+	builder_type b(model_);
+	b.setDisk();
+	b.setFlags();
+	b.setSource();
+	b.setTarget();
+	b.setBackingChain();
+	QString s = model_.getSerialNumber();
+	if (!s.isEmpty())
+		b.setSerial(s);
+
+	QDomDocument x;
+	static_cast<const builder_type&>(b).getResult().save(x);
+
+	return x.toString();
+}
+
 QString	Device<CVmOpticalDisk>::getUpdateXml(const CVmOpticalDisk& model_)
 {
 	typedef Transponster::Device::Clustered::Builder::Ordinary<CVmOpticalDisk>
