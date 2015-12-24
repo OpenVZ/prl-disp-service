@@ -477,6 +477,30 @@ QString ParallelsDirs::getParallelsDirName()
 	return QString(g_strParallelsDirName);
 }
 
+// get full path to VM CloudInit iso
+QString ParallelsDirs::getVmCloudConfigIsoPath(const QString& vmHomeDir_)
+{
+	return QFileInfo(QFileInfo(vmHomeDir_).dir().path(), VM_CLOUD_CONFIG_ISO).absoluteFilePath();
+}
+
+QString ParallelsDirs::getVmUserCloudConfigPath(const QString& vmHomeDir_)
+{
+	return QFileInfo(QFileInfo(vmHomeDir_).dir().path(), VM_USER_CLOUD_CONFIG).absoluteFilePath();
+}
+
+QString ParallelsDirs::getVmDispCloudConfigPath(const QString& vmHomeDir_)
+{
+	return QFileInfo(QFileInfo(vmHomeDir_).dir().path(), VM_DISP_CLOUD_CONFIG).absoluteFilePath();
+}
+
+QString ParallelsDirs::getVmTemplateCloudConfigPath(quint32 os_)
+{
+	if (IS_WINDOWS(os_))
+		return "/usr/share/virtuozzo/vz-win-user-config";
+	else
+		return "/usr/share/virtuozzo/vz-lin-user-config";
+}
+
 // get base path to Parallels Tools .iso image
 QString ParallelsDirs::getToolsBaseImagePath(PRL_APPLICATION_MODE mode)
 {

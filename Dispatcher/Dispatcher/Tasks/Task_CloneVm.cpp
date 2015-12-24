@@ -48,6 +48,7 @@
 #include "CDspVm.h"
 #include "CDspVmNetworkHelper.h"
 #include "CDspLibvirt.h"
+#include "CDspVmStateSender.h"
 #include "Libraries/Std/noncopyable.h"
 #include "Libraries/PrlCommonUtilsBase/SysError.h"
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
@@ -1645,6 +1646,7 @@ void Task_CloneVm::finalizeTask()
 
 		CDspService::instance()->getClientManager().sendPackageToVmClients( p,
 			getClient()->getVmDirectoryUuid(), m_pVmInfo->vmUuid );
+		CDspService::instance()->getVmStateSender()->onVmConfigChanged(getClient()->getVmDirectoryUuid(), m_newVmUuid);	
 	}
 	// delete temporary registration
 	if (m_pVmInfo && m_flgLockRegistred)

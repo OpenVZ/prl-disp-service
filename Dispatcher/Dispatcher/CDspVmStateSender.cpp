@@ -50,6 +50,7 @@
 #include "CDspCommon.h"
 #include "CDspService.h"
 #include "CDspClientManager.h"
+#include "CDspVmGuestPersonality.h"
 
 #include "XmlModel/Messaging/CVmEvent.h"
 #include "XmlModel/Messaging/CVmEventParameter.h"
@@ -78,6 +79,7 @@ CDspVmStateSender::CDspVmStateSender()
 		, Qt::QueuedConnection
 		);
 	PRL_ASSERT(bConnected);
+
 	Q_UNUSED(bConnected);
 }
 
@@ -115,6 +117,11 @@ void CDspVmStateSender::onVmAdditionStateChanged( VIRTUAL_MACHINE_ADDITION_STATE
 	emit signalSendVmAdditionStateChanged( nVmAdditionState, vmUuid, dirUuid );
 }
 
+void CDspVmStateSender::onVmConfigChanged(QString vmDirUuid_, QString vmUuid_)
+{
+	emit signalSendVmConfigChanged(vmDirUuid_, vmUuid_);
+}
+
 CDspVmStateSenderThread::CDspVmStateSenderThread()
 :	m_mtx( QMutex::Recursive), m_pVmStateSender()
 {
@@ -132,6 +139,13 @@ void CDspVmStateSenderThread::run()
 {
 	CDspVmStateSender x;
 	m_pVmStateSender = &x;
+	CDspVmGuestPersonality y;
+
+	bool b = QObject::connect(&x,
+			SIGNAL(signalSendVmConfigChanged(QString, QString)),
+			&y,
+			SLOT(slotVmConfigChanged(QString, QString)), Qt::DirectConnection);
+	PRL_ASSERT(b);
 
 	COMMON_TRY
 	{

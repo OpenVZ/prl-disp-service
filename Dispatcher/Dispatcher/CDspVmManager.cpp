@@ -41,6 +41,7 @@
 #include "CDspProblemReportHelper.h"
 #include "CDspVmInfoDatabase.h"
 #include "CDspVmStateSender.h"
+#include "CDspVmGuestPersonality.h"
 #include "Libraries/PrlCommonUtilsBase/CommandLine.h"
 #include "Libraries/PrlCommonUtils/CVmQuestionHelper.h"
 #include "Libraries/NonQtUtils/CQuestionHelper.h"
@@ -1021,15 +1022,28 @@ void Body<Tag::Libvirt<PVE::DspCmdVmGuestSetUserPasswd> >::run()
 	if (NULL == x)
 		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
 
-	Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest()
-			.setUserPasswd(x->GetUserLoginName(), x->GetUserPassword(), x->GetCommandFlags() & PSPF_PASSWD_CRYPTED);
+	VIRTUAL_MACHINE_STATE s = CDspVm::getVmState(m_context.getVmUuid(), m_context.getDirectoryUuid());
+	if (s == VMS_STOPPED) {
+		SmartPtr<CVmConfiguration> cfg = Details::Assistant(m_context).getConfig();
+		if (!cfg.isValid()) {
+			WRITE_TRACE(DBG_FATAL, "Bad configuration for %s", QSTR2UTF8(m_context.getVmUuid()));
+			m_context.reply(PRL_ERR_OPERATION_FAILED);
+			return;
+		}
 
-	if (e.isFailed())
-	{
-		WRITE_TRACE(DBG_FATAL, "Set user password for VM '%s' is failed: %s",
-			qPrintable(m_context.getVmUuid()), PRL_RESULT_TO_STRING(e.error().code()));
+		bool b(::Personalize::Configurator(*cfg).setUserPassword(x->GetUserLoginName(),
+				x->GetUserPassword(), x->GetCommandFlags() & PSPF_PASSWD_CRYPTED));
+		m_context.reply(b? PRL_ERR_SUCCESS: PRL_ERR_OPERATION_FAILED);
+	} else {
+		Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest()
+				.setUserPasswd(x->GetUserLoginName(), x->GetUserPassword(), x->GetCommandFlags() & PSPF_PASSWD_CRYPTED);
+		if (e.isFailed())
+		{
+			WRITE_TRACE(DBG_FATAL, "Set user password for VM '%s' is failed: %s",
+				qPrintable(m_context.getVmUuid()), PRL_RESULT_TO_STRING(e.error().code()));
+		}
+		m_context.reply(e);
 	}
-	m_context.reply(e);
 }
 
 template<>

@@ -114,6 +114,12 @@ public:
 	// get Parallels application directory
 	static QString getParallelsDirName();
 
+	// get VM cloud-init iso path
+	static QString getVmCloudConfigIsoPath(const QString& vmHomeDir_);
+	static QString getVmDispCloudConfigPath(const QString& vmHomeDir_);
+	static QString getVmUserCloudConfigPath(const QString& vmHomeDir_);
+	static QString getVmTemplateCloudConfigPath(quint32 os_);
+
 	// get base path to Parallels Tools .iso image
 	static QString getToolsBaseImagePath(PRL_APPLICATION_MODE mode);
 	// get full path to .iso with Parallels Tools for the given guest OS

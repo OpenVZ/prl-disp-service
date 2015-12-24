@@ -55,6 +55,7 @@
 #include "CDspClientManager.h"
 #include "CDspSync.h"
 #include "CDspVm.h"
+#include "CDspVmStateSender.h"
 
 #include "XmlModel/DispConfig/CDispUser.h"
 #include "XmlModel/DispConfig/CDispWorkspacePreferences.h"
@@ -1696,6 +1697,7 @@ void CDspVmDirHelper::sendVmConfigChangedEvent(const QString& vmDirUuid, const Q
 	SmartPtr<IOPackage> p = DispatcherPackage::createInstance( PVE::DspVmEvent, event, pRequest );
 	CDspService::instance()->getClientManager()
 		.sendPackageToVmClients( p, vmDirUuid, vmUuid);
+	CDspService::instance()->getVmStateSender()->onVmConfigChanged(vmDirUuid, vmUuid);
 }
 
 //
