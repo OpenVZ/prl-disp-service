@@ -27,6 +27,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <Libraries/Transponster/Direct.h>
+#include <Libraries/Transponster/Reverse.h>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <Libraries/PrlNetworking/netconfig.h>
@@ -770,6 +771,51 @@ Result Runtime::setMemory(quint32 memsize_)
 
 	return plug(Transponster::Vm::Reverse::Dimm(0, newMemSize - maxNumaSize));
 }
+
+template<class T>
+Result Runtime::plug(const T& device_)
+{
+	Prl::Expected<QString, ::Error::Simple> x =
+		Transponster::Vm::Reverse::Device<T>
+			::getPlugXml(device_);
+	if (x.isFailed())
+		return x.error();
+
+	return Hotplug(m_domain).attach(x.value());
+}
+template Result Runtime::plug<CVmHardDisk>(const CVmHardDisk& device_);
+template Result Runtime::plug<CVmSerialPort>(const CVmSerialPort& device_);
+template Result Runtime::plug<Transponster::Vm::Reverse::Dimm>
+	(const Transponster::Vm::Reverse::Dimm& device_);
+
+template<class T>
+Result Runtime::unplug(const T& device_)
+{
+	Prl::Expected<QString, ::Error::Simple> x =
+		Transponster::Vm::Reverse::Device<T>
+			::getPlugXml(device_);
+	if (x.isFailed())
+		return x.error();
+
+	return Hotplug(m_domain).detach(x.value());
+}
+template Result Runtime::unplug<CVmHardDisk>(const CVmHardDisk& device_);
+template Result Runtime::unplug<CVmSerialPort>(const CVmSerialPort& device_);
+
+template<class T>
+Result Runtime::update(const T& device_)
+{
+	Prl::Expected<QString, ::Error::Simple> x =
+		Transponster::Vm::Reverse::Device<T>
+			::getUpdateXml(device_);
+	if (x.isFailed())
+		return x.error();
+
+	return Hotplug(m_domain).update(x.value());
+}
+template Result Runtime::update<CVmOpticalDisk>(const CVmOpticalDisk& device_);
+template Result Runtime::update<CVmGenericNetworkAdapter>
+	(const CVmGenericNetworkAdapter& device_);
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct List

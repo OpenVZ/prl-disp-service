@@ -33,10 +33,12 @@
 #define __TASK_EDITVM_P_H__
 
 #include "CDspLibvirt.h"
+#include <boost/bind.hpp>
 #include "CDspTaskHelper.h"
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/for_each.hpp>
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <XmlModel/VmConfig/CVmConfiguration.h>
+#include <XmlModel/ParallelsObjects/CXmlModelHelper.h>
 
 class Task_EditVm;
 namespace Edit
@@ -541,18 +543,25 @@ struct Factory
 } // namespace Cpu
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Serial
+// struct Hotplug
 
-struct Serial
+template<class T>
+struct Hotplug
 {
 	Action* operator()(const Request& input_) const;
+
+private:
+	static QList<T* > getList(const CVmHardware* hardware_);
+	static QList<T* > getDifference(const QList<T* >& first_,
+					const QList<T* >& second_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Driver
 
-typedef boost::mpl::vector<Cdrom, Adapter, Memory, Serial, Disk, Blkiotune,
-		Network::Factory, Cpu::Factory> probeList_type;
+typedef boost::mpl::vector<Cdrom, Adapter, Memory, Hotplug<CVmSerialPort>,
+		Hotplug<CVmHardDisk>, Disk, Blkiotune, Network::Factory,
+		Cpu::Factory> probeList_type;
 
 struct Driver: Gear<Driver, probeList_type>
 {

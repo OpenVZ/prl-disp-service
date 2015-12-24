@@ -42,7 +42,6 @@
 #include <libvirt/libvirt-qemu.h>
 #include <XmlModel/VtInfo/VtInfo.h>
 #include <Libraries/Logging/Logging.h>
-#include <Libraries/Transponster/Reverse.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
 #include <Libraries/PrlCommonUtilsBase/SysError.h>
 #include <XmlModel/NetworkConfig/CVirtualNetwork.h>
@@ -277,38 +276,11 @@ struct Runtime
 	Result addMemoryBySlots(quint32 memdelta_);
 
 	template<class T>
-	Result plug(const T& device_)
-	{
-		Prl::Expected<QString, ::Error::Simple> x =
-			Transponster::Vm::Reverse::Device<T>
-				::getPlugXml(device_);
-		if (x.isFailed())
-			return x.error();
-
-		return Hotplug(m_domain).attach(x.value());
-	}
+	Result plug(const T& device_);
 	template<class T>
-	Result unplug(const T& device_)
-	{
-		Prl::Expected<QString, ::Error::Simple> x =
-			Transponster::Vm::Reverse::Device<T>
-				::getPlugXml(device_);
-		if (x.isFailed())
-			return x.error();
-
-		return Hotplug(m_domain).detach(x.value());
-	}
+	Result unplug(const T& device_);
 	template<class T>
-	Result update(const T& device_)
-	{
-		Prl::Expected<QString, ::Error::Simple> x =
-			Transponster::Vm::Reverse::Device<T>
-				::getUpdateXml(device_);
-		if (x.isFailed())
-			return x.error();
-
-		return Hotplug(m_domain).update(x.value());
-	}
+	Result update(const T& device_);
 
 private:
 	Result setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_);
