@@ -1790,7 +1790,7 @@ void CProtoSerializerTest::testDspCmdDirVmCreateCommandIsValidFailedOnVmHomePath
 void CProtoSerializerTest::testCreateDspCmdDirVmCloneCommand()
 {
 	VM_CLONE_CMD_PARAMS_DECLARE
-	CProtoCommandPtr pCmd = CProtoSerializer::CreateVmCloneProtoCommand(sVmUuid, sVmName, sVmHomePath, nCloneFlags);
+	CProtoCommandPtr pCmd = CProtoSerializer::CreateVmCloneProtoCommand(sVmUuid, sVmName, QString(), sVmHomePath, nCloneFlags);
 	SmartPtr<CVmEvent> pEvent = pCmd->GetCommand();
 	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_BASIC_VM_CMD_VM_UUID, PVE::String, sVmUuid)
 	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_VM_CREATE_CMD_VM_HOME_PATH, PVE::String, sVmHomePath)
