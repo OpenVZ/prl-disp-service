@@ -1395,6 +1395,7 @@ Task_CloneVm::Task_CloneVm ( SmartPtr<CDspClient>& user,
                              const SmartPtr<IOPackage>& p,
                              SmartPtr<CVmConfiguration> pVmConfig,
                              const QString& strVmNewName,
+                             const QString& strVmNewUuid,
                              const QString & strNewVmRootDir,
 			     unsigned int nFlags) :
 
@@ -1453,6 +1454,13 @@ Task_CloneVm::Task_CloneVm ( SmartPtr<CDspClient>& user,
 
 				break;
 			}
+		}
+
+		if (!strVmNewUuid.isEmpty())
+		{
+			WRITE_TRACE(DBG_WARNING, "Clone Vm custom uuid %s" ,
+					QSTR2UTF8(strVmNewUuid));
+			m_newVmUuid = strVmNewUuid;
 		}
 
 		if (newVmRootDir.endsWith('/') || newVmRootDir.endsWith('\\'))

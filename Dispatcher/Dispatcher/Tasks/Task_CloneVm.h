@@ -60,6 +60,7 @@ public:
 				  const SmartPtr<IOPackage>&,
 				  SmartPtr<CVmConfiguration> pVmConfig,
 				  const QString& strVmNewName,
+				  const QString& sVmNewUuid,
 				  const QString & strVmNewPathName,
 				  unsigned int nFlags);
 
