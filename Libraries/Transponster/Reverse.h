@@ -143,28 +143,50 @@ struct Device<CVmGenericNetworkAdapter>
 	static Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
 		getLibvirtXml(const CVmGenericNetworkAdapter& model_);
 };
- 
-///////////////////////////////////////////////////////////////////////////////
-// struct Vm
 
-struct Vm
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+struct Builder
 {
-	explicit Vm(const CVmConfiguration& input_);
+	explicit Builder(const CVmConfiguration& input_);
 
 	PRL_RESULT setBlank();
-	PRL_RESULT setIdentification();
 	PRL_RESULT setSettings();
 	PRL_RESULT setDevices();
 	PRL_RESULT setResources(const VtInfo& vt_);
 
 	QString getResult();
 
+protected:
+	CVmConfiguration m_input;
+	QScopedPointer<Libvirt::Domain::Xml::Domain> m_result;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+struct Vm: Builder
+{
+	explicit Vm(const CVmConfiguration& input_);
+
+	PRL_RESULT setBlank();
+	PRL_RESULT setIdentification();
+	PRL_RESULT setDevices();
+
 private:
 	void setCommandline();
 	void setFeatures();
+};
 
-	CVmConfiguration m_input;
-	boost::optional<Libvirt::Domain::Xml::Domain> m_result;
+///////////////////////////////////////////////////////////////////////////////
+// struct Mixer
+
+struct Mixer: Builder
+{
+	Mixer(const CVmConfiguration& input_, char* xml_);
+
+	PRL_RESULT setIdentification();
 };
 
 } // namespace Reverse
