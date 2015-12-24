@@ -803,6 +803,24 @@ private:
 }
 
 } // namespace Visitor
+
+template<class T>
+void shape(char* xml_, QScopedPointer<T>& dst_)
+{
+	if (NULL == xml_)
+		return;
+
+	QByteArray b(xml_);
+	free(xml_);
+	QDomDocument x;
+	if (!x.setContent(b, true))
+		return;
+
+	QScopedPointer<T> g(new T());
+	if (g->load(x.documentElement()))
+		dst_.reset(g.take());
+}
+
 } // namespace Transponster
 
 #endif // __DIRECT_P_H__

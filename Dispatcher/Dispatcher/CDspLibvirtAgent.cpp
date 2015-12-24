@@ -226,7 +226,24 @@ Result Unit::getConfig(QString& dst_, bool runtime_) const
 
 Result Unit::setConfig(const CVmConfiguration& value_)
 {
-	return List(getLink()).define(value_, this);
+	QSharedPointer<virConnect> link_ = getLink();
+	if (link_.isNull())
+		return Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
+
+	Prl::Expected<VtInfo, Error::Simple> i = Host(link_).getVt();
+	if (i.isFailed())
+		return i.error();
+
+	Transponster::Vm::Reverse::Mixer u(value_, getConfig());
+	if (PRL_FAILED(Transponster::Director::domain(u, i.value())))
+		return Error::Simple(PRL_ERR_BAD_VM_DIR_CONFIG_FILE_SPECIFIED);
+
+	virDomainPtr d = virDomainDefineXML(link_.data(), u.getResult().toUtf8().data());
+	if (NULL == d)
+		return Failure(PRL_ERR_VM_APPLY_CONFIG_FAILED);
+
+	m_domain = QSharedPointer<virDomain>(d, &virDomainFree);
+	return Result();
 }
 
 Result Unit::completeConfig(CVmConfiguration& config_)

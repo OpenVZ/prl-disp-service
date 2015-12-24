@@ -1056,9 +1056,9 @@ Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Vm
+// struct Builder
 
-Vm::Vm(const CVmConfiguration& input_): m_input(input_)
+Builder::Builder(const CVmConfiguration& input_): m_input(input_)
 {
 	QString x;
 	CVmHardware* h;
@@ -1080,14 +1080,17 @@ bad:
 	m_input.setVmType(PVT_CT);
 }
 
-PRL_RESULT Vm::setBlank()
+PRL_RESULT Builder::setBlank()
 {
-	m_result = boost::none;
+	if (m_result.isNull())
+		return PRL_ERR_READ_XML_CONTENT;
+
+	 if (Libvirt::Domain::Xml::ETypeKvm != m_result->getType())
+		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
+
 	if (PVT_VM != m_input.getVmType())
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
-	m_result = Libvirt::Domain::Xml::Domain();
-	m_result->setType(Libvirt::Domain::Xml::ETypeKvm);
 	mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
 
 	//EFI boot support
@@ -1116,33 +1119,12 @@ PRL_RESULT Vm::setBlank()
 	}
 
 	m_result->setOs(vos);
-	m_result->setOnCrash(Libvirt::Domain::Xml::ECrashOptionsPreserve);
-	setFeatures();
-	setCommandline();
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Vm::setIdentification()
+PRL_RESULT Builder::setSettings()
 {
-	if (!m_result)
-		return PRL_ERR_UNINITIALIZED;
-
-	CVmIdentification* i = m_input.getVmIdentification();
-	if (NULL == i)
-		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
-		
-	mpl::at_c<Libvirt::Domain::Xml::VUUID::types, 1>::type u;
-	u.setValue(::Uuid(i->getVmUuid()).toStringWithoutBrackets());
-	Libvirt::Domain::Xml::Ids x;
-	x.setUuid(Libvirt::Domain::Xml::VUUID(u));
-	x.setName(i->getVmName());
-	m_result->setIds(x);
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Vm::setSettings()
-{
-	if (!m_result)
+	if (m_result.isNull())
 		return PRL_ERR_UNINITIALIZED;
 
 	CVmSettings* s = m_input.getVmSettings();
@@ -1167,9 +1149,9 @@ PRL_RESULT Vm::setSettings()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Vm::setDevices()
+PRL_RESULT Builder::setDevices()
 {
-	if (!m_result)
+	if (m_result.isNull())
 		return PRL_ERR_UNINITIALIZED;
 
 	CVmHardware* h = m_input.getVmHardwareList();
@@ -1177,9 +1159,6 @@ PRL_RESULT Vm::setDevices()
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 	CVmSettings* s = m_input.getVmSettings();
 	if (NULL == s)
-		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
-	CVmCommonOptions* o = s->getVmCommonOptions();
-	if (NULL == o)
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
 	Transponster::Device::List b;
@@ -1234,17 +1213,13 @@ PRL_RESULT Vm::setDevices()
 	n << t.getAttachment().getControllers() << u.getDevices();
 	x.setChoice934List(n);
 
-	Transponster::Device::Panic::List p;
-	p.add(o->getOsVersion());
-	x.setPanicList(p.getResult());
-
 	m_result->setDevices(x);
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Vm::setResources(const VtInfo& vt_)
+PRL_RESULT Builder::setResources(const VtInfo& vt_)
 {
-	if (!m_result)
+	if (m_result.isNull())
 		return PRL_ERR_UNINITIALIZED;
 
 	CVmHardware* h = m_input.getVmHardwareList();
@@ -1272,19 +1247,87 @@ PRL_RESULT Vm::setResources(const VtInfo& vt_)
 	if (u.getClock(t))
 		m_result->setClock(t);
 
-	u.getCpu(vt_, m_result.get());
+	u.getCpu(vt_, *m_result);
 	return PRL_ERR_SUCCESS;
 }
 
-QString Vm::getResult()
+QString Builder::getResult()
 {
-	if (!m_result)
+	if (m_result.isNull())
 		return QString();
 
 	QDomDocument x;
 	m_result->save(x);
-	m_result = boost::none;
+	m_result.reset();
 	return x.toString();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+Vm::Vm(const CVmConfiguration& input_): Builder(input_)
+{
+	if (PVT_VM != m_input.getVmType())
+		return;
+
+	m_result.reset(new Libvirt::Domain::Xml::Domain());
+	m_result->setType(Libvirt::Domain::Xml::ETypeKvm);
+}
+
+PRL_RESULT Vm::setBlank()
+{
+	PRL_RESULT r = Builder::setBlank();
+	if (PRL_FAILED(r))
+		return r;
+
+	m_result->setOnCrash(Libvirt::Domain::Xml::ECrashOptionsPreserve);
+	setFeatures();
+	setCommandline();
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Vm::setIdentification()
+{
+	if (!m_result)
+		return PRL_ERR_UNINITIALIZED;
+
+	CVmIdentification* i = m_input.getVmIdentification();
+	if (NULL == i)
+		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
+
+	mpl::at_c<Libvirt::Domain::Xml::VUUID::types, 1>::type u;
+	u.setValue(::Uuid(i->getVmUuid()).toStringWithoutBrackets());
+	Libvirt::Domain::Xml::Ids x;
+	x.setUuid(Libvirt::Domain::Xml::VUUID(u));
+	x.setName(i->getVmName());
+	m_result->setIds(x);
+
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Vm::setDevices()
+{
+	CVmSettings* s = m_input.getVmSettings();
+	if (NULL == s)
+		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
+	CVmCommonOptions* o = s->getVmCommonOptions();
+	if (NULL == o)
+		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
+
+	PRL_RESULT r = Builder::setDevices();
+	if (PRL_FAILED(r))
+		return r;
+
+	Libvirt::Domain::Xml::Devices x;
+	if (m_result->getDevices())
+		x = m_result->getDevices().get();
+
+	Transponster::Device::Panic::List p;
+	p.add(o->getOsVersion());
+	x.setPanicList(p.getResult());
+
+	m_result->setDevices(x);
+	return PRL_ERR_SUCCESS;
 }
 
 void Vm::setCommandline()
@@ -1324,6 +1367,19 @@ void Vm::setFeatures()
 		f.setHyperv(hv);
 	}
 	m_result->setFeatures(f);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mixer
+
+Mixer::Mixer(const CVmConfiguration& input_, char* xml_): Builder(input_)
+{
+	shape(xml_, m_result);
+}
+
+PRL_RESULT Mixer::setIdentification()
+{
+	return PRL_ERR_SUCCESS;
 }
 
 } // namespace Reverse

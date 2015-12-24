@@ -551,27 +551,6 @@ void Usb::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice587::types, 2>
 } // namespace Controller
 } // namespace Visitor
 
-namespace
-{
-template<class T>
-void shape(char* xml_, QScopedPointer<T>& dst_)
-{
-	if (NULL == xml_)
-		return;
-
-	QByteArray b(xml_);
-	free(xml_);
-	QDomDocument x;
-	if (!x.setContent(b, true))
-		return;
-
-	QScopedPointer<T> g(new T());
-	if (g->load(x.documentElement()))
-		dst_.reset(g.take());
-}
-
-} // namespace
-
 namespace Vm
 {
 namespace Direct
