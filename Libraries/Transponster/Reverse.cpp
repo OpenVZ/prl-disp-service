@@ -677,17 +677,13 @@ List::List()
 	add<13>(c);
 }
 
-Libvirt::Domain::Xml::Devices List::getResult() const
+QString List::getEmulator() const
 {
-	Libvirt::Domain::Xml::Devices output;
 	if (QFile::exists("/usr/bin/qemu-kvm"))
-		output.setEmulator(QString("/usr/bin/qemu-kvm"));
+		return "/usr/bin/qemu-kvm";
 	else if (QFile::exists("/usr/libexec/qemu-kvm"))
-		output.setEmulator(QString("/usr/libexec/qemu-kvm"));
-
-	output.setChoice935List(deviceList_type() << m_deviceList);
-
-	return output;
+		return "/usr/libexec/qemu-kvm";
+	return "";
 }
 
 
@@ -1228,10 +1224,15 @@ PRL_RESULT Builder::setDevices()
 	}
 	u.addMouse();
 
-	Libvirt::Domain::Xml::Devices x = b.getResult();
-	QList<Libvirt::Domain::Xml::VChoice935> n(x.getChoice935List());
-	n << t.getAttachment().getControllers() << u.getDevices();
-	x.setChoice935List(n);
+	Libvirt::Domain::Xml::Devices x;
+	if (m_result->getDevices())
+		x = m_result->getDevices().get();
+
+	x.setEmulator(b.getEmulator());
+	x.setChoice935List(Transponster::Device::deviceList_type()
+			<< b.getDeviceList()
+			<< t.getAttachment().getControllers()
+			<< u.getDevices());
 
 	m_result->setDevices(x);
 	return PRL_ERR_SUCCESS;
