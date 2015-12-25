@@ -788,6 +788,23 @@ void Body<Tag::Libvirt<PVE::DspCmdVmSuspend> >::run()
 }
 
 template<>
+void Body<Tag::Libvirt<PVE::DspCmdVmDropSuspendedState> >::run()
+{
+	SmartPtr<CVmConfiguration> c = Details::Assistant(m_context).getConfig();
+	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
+	if (!c.isValid() || !s.isValid())
+		return m_context.reply(PRL_ERR_OPERATION_FAILED);
+
+	CStatesHelper h(c->getVmIdentification()->getHomePath());
+	if (!h.dropStateFiles())
+		return m_context.reply(PRL_ERR_UNABLE_DROP_SUSPENDED_STATE);
+
+	s->onVmStateChanged(VMS_SUSPENDED, VMS_STOPPED, m_context.getVmUuid(),
+		m_context.getDirectoryUuid(), false);
+	m_context.reply(PRL_ERR_SUCCESS);
+}
+
+template<>
 void Body<Tag::Libvirt<PVE::DspCmdVmDevConnect> >::run()
 {
 	CProtoVmDeviceCommand* x = CProtoSerializer::CastToProtoCommand
@@ -1186,6 +1203,7 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmReset] = map(Tag::Libvirt<PVE::DspCmdVmReset>());
 	m_map[PVE::DspCmdVmPause] = map(Tag::Libvirt<PVE::DspCmdVmPause>());
 	m_map[PVE::DspCmdVmSuspend] = map(Tag::Libvirt<PVE::DspCmdVmSuspend>());
+	m_map[PVE::DspCmdVmDropSuspendedState] = map(Tag::Libvirt<PVE::DspCmdVmDropSuspendedState>());
 	m_map[PVE::DspCmdVmDevConnect] = map(Tag::Libvirt<PVE::DspCmdVmDevConnect>());
 	m_map[PVE::DspCmdVmDevDisconnect] = map(Tag::Libvirt<PVE::DspCmdVmDevConnect>());
 	m_map[PVE::DspCmdVmInitiateDevStateNotifications] = map(Tag::General<PVE::DspCmdVmInitiateDevStateNotifications>());

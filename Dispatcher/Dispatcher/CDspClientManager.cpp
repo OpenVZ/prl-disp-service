@@ -931,12 +931,6 @@ void CDspClientManager::handleToDispatcherPackage (
 		return (void)CDspService::instance()->getTaskManager()
 			.schedule(new Task_CreateProblemReport( client, p ));
 		//////////////////////////////////////////////////////////////////////////
-	case PVE::DspCmdVmDropSuspendedState:
-		{
-			CDspService::instance()->getVmDirHelper().dropSuspendedState(h, client, p);
-			return;
-		}
-		//////////////////////////////////////////////////////////////////////////
 	case PVE::DspCmdVmSectionValidateConfig:
 		{
 			CDspService::instance()->getVmDirHelper().validateSectionVmConfig(client, p);
