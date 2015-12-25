@@ -1021,6 +1021,7 @@ Prl::Expected<Libvirt::Domain::Xml::Qemucdev, ::Error::Simple>
 	a.setPath(model_.getUserFriendlyName());
 	if (a.getPath().get().isEmpty())
 		return ::Error::Simple(PRL_ERR_INVALID_ARG);
+	a.setAppend(Libvirt::Domain::Xml::EVirOnOffOn);
 
 	Libvirt::Domain::Xml::QemucdevSrcDef b;
 	b.setSourceList(QList<Libvirt::Domain::Xml::Source15 >() << a);
