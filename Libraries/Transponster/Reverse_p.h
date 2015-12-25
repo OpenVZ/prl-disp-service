@@ -503,7 +503,11 @@ struct List
 {
 	explicit List();
 
-	Libvirt::Domain::Xml::Devices getResult() const;
+	const deviceList_type& getDeviceList() const
+	{
+		return m_deviceList;
+	}
+	QString getEmulator() const;
 	void add(const CVmRemoteDisplay* vnc_);
 	void add(const Libvirt::Domain::Xml::Disk& disk_);
 	void add(const CVmParallelPort* port_);
