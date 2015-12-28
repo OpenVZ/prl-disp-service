@@ -39,10 +39,10 @@
 #include "CDspVmManager.h"
 #include "CProtoSerializer.h"
 #include "Tasks/Task_BackgroundJob.h"
-#include <Libraries/Std/PrlAssert.h>
+#include <prlcommon/Std/PrlAssert.h>
 #include <Libraries/HostInfo/CHostInfo.h>
-#include <Libraries/Logging/Logging.h>
-#include <Libraries/PrlCommonUtilsBase/EnumToString.h>
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlCommonUtilsBase/EnumToString.h>
 #include <prlsdk/PrlEnums.h>
 #include <Libraries/PowerWatcher/PowerWatcher.h>
 

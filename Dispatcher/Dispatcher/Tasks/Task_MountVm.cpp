@@ -27,10 +27,10 @@
 ///
 /////////////////////////////////////////////////////////////////////////////////
 
-#include <Libraries/Std/PrlAssert.h>
+#include <prlcommon/Std/PrlAssert.h>
 #include <Libraries/ProtoSerializer/CProtoSerializer.h>
 #include <Libraries/PrlCommonUtils/CFileHelper.h>
-#include <Libraries/PrlUuid/Uuid.h>
+#include <prlcommon/PrlUuid/Uuid.h>
 
 #include "Task_MountVm.h"
 #include "Task_CommonHeaders.h"

@@ -5,9 +5,6 @@ QTCONFIG = core network xml
 
 INCLUDEPATH *= $$PWD
 
-include($$LIBS_LEVEL/Logging/Logging.pri)
-include($$LIBS_LEVEL/Std/Std.pri)
-include($$LIBS_LEVEL/PrlCommonUtilsBase/PrlCommonUtilsBase.pri)
 include($$LIBS_LEVEL/NonQtUtils/PrlNonQtUtils.pri)
 
 include($$LIBS_LEVEL/CAuth/CAuth.pri)

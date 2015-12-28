@@ -49,7 +49,7 @@
 
 #include "ParallelsDomModel.h"
 #include "ParallelsNamespace.h"
-#include "Libraries/IOService/src/IOCommunication/IOProtocol.h"
+#include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 #include "CDspClient.h"
 #include "CDspHostSettingsHelper.h"
 #include "XmlModel/DispConfig/CDispUser.h"

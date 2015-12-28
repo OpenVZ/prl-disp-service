@@ -24,7 +24,7 @@
 #define __CVZTEMPLATEHELPER_H__
 
 #include <prlsdk/PrlTypes.h>
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include "XmlModel/CtTemplate/CtTemplate.h"
 
 class CVzTemplateHelper {

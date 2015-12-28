@@ -37,7 +37,7 @@
 #include "../prlnet.h"
 
 #include "Interfaces/ParallelsPlatform.h"
-#include <Libraries/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 
 
 using namespace PrlNet;

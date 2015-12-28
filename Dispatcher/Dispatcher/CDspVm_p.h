@@ -41,10 +41,10 @@
 #include "CDspService.h"
 #include "CDspStarter.h"
 #include "CDspVNCStarter.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include "CDspVmDirManager.h"
-#include "Libraries/Std/noncopyable.h"
-#include "Libraries/IOService/src/IOCommunication/IOClient.h"
+#include <prlcommon/Std/noncopyable.h>
+#include <prlcommon/IOService/IOCommunication/IOClient.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "CDspDispConnection.h"
 #include "CDspVmSuspendHelper.h"

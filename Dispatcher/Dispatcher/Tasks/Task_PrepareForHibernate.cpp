@@ -33,8 +33,8 @@
 
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 #include "CDspService.h"
-#include "Libraries/Std/PrlTime.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlTime.h>
+#include <prlcommon/Std/PrlAssert.h>
 
 
 using namespace Parallels;

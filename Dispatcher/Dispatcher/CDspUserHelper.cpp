@@ -47,8 +47,8 @@
 
 #include "ParallelsQt.h"
 
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "CProtoSerializer.h"
 #include "CProtoCommands.h"
 #include "CDspService.h"
@@ -62,9 +62,9 @@
 
 #include "Tasks/Task_SetConfirmationMode.h"
 
-#include "Libraries/IOService/src/IOCommunication/IOSSLInterface.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/IOService/IOCommunication/IOSSLInterface.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/Logging/Logging.h>
 #include "XmlModel/Messaging/CVmEventParameter.h"
 #include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
 #include "XmlModel/HostHardwareInfo/CHwOsVersion.h"
@@ -72,9 +72,9 @@
 #include "XmlModel/DispConfig/CDispUserSettings.h"
 #include "XmlModel/Messaging/CVmBinaryEventParameter.h"
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 #include "Build/Current.ver"
-#include "Libraries/PrlCommonUtilsBase/CGuestOsesHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CGuestOsesHelper.h>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"

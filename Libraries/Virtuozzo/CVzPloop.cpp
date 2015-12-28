@@ -35,7 +35,7 @@
 #include <QMutex>
 #include <QProcess>
 #include <prlsdk/PrlErrors.h>
-#include <Libraries/Logging/Logging.h>
+#include <prlcommon/Logging/Logging.h>
 #include <dlfcn.h>
 #include <Interfaces/ParallelsQt.h>
 #include <Interfaces/ParallelsNamespace.h>

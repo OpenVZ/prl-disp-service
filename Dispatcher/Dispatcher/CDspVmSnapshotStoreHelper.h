@@ -44,8 +44,8 @@
 
 #include "CDspClient.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "Libraries/IOService/src/IOCommunication/IOServer.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/IOService/IOCommunication/IOServer.h>
+#include <prlcommon/Std/SmartPtr.h>
 #include "XmlModel/VmDirectory/CVmDirectory.h"
 #include "Libraries/StatesStore/SavedStateStore.h"
 

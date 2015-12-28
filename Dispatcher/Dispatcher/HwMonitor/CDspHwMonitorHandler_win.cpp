@@ -34,10 +34,10 @@
 #endif
 
 #include "CDspHwMonitorHandler.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include <Devices/Usb/UsbDescriptors.h>
 #include <System/Usb/Drivers/Win/prl_usb_mng/prl_usb_mng_ioctl.h>
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 #include <iphlpapi.h>
 
 static CDspHwMonitorHandler *g_pHwMonitorHandler = NULL;

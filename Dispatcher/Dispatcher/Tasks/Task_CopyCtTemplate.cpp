@@ -36,11 +36,11 @@
 #include "Interfaces/ParallelsQt.h"
 #include "Interfaces/ParallelsNamespace.h"
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #include "Task_CopyCtTemplate.h"
 #include "CDspService.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 //#include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/DispToDispProtocols/CCtTemplateProto.h"
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"

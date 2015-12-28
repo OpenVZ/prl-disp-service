@@ -31,7 +31,7 @@
 
 #include "CSystemStatisticsTest.h"
 #include "XmlModel/HostHardwareInfo/CSystemStatistics.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #ifndef _WIN_
 #       ifndef ULLONG_MAX

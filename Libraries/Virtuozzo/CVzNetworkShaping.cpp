@@ -27,7 +27,7 @@
 
 #include <stdlib.h>
 #include "CVzNetworkShaping.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #define NETWORK_SHAPING_CONF	"/etc/vz/vz.conf"
 #define NETWORK_CLASSES_CONF	"/etc/vz/conf/networks_classes"

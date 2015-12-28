@@ -47,7 +47,7 @@
 #include <QThread>
 #include "CVmIdent.h"
 #include "CDspSync.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include <prlsdk/PrlEnums.h>
 
 class CDspVmStateSenderThread;

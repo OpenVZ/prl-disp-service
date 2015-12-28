@@ -41,7 +41,7 @@
 #pragma message("ATTENTION: Forced CDspStatCollector_win.cpp compatibility with Windows 7+ SDK headers.")
 
 #include "CDspStatCollector.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include <windows.h>
 #include <psapi.h>
 #include <aclapi.h>

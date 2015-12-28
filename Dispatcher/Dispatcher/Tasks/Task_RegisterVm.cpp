@@ -46,10 +46,10 @@
 #endif // _LIBVIRT_
 #include "CProtoSerializer.h"
 #include "CDspClientManager.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
-#include "Libraries/PrlCommonUtilsBase/StringUtils.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/StatesUtils/StatesHelper.h"
 #include "CVmValidateConfig.h"
 #include "CDspBugPatcherLogic.h"

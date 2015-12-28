@@ -30,7 +30,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CDspHandlerRegistrator.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 /*****************************************************************************/
 
 CDspHandlerRegistrator* CDspHandlerRegistrator::s_handlerRegistrator = 0;

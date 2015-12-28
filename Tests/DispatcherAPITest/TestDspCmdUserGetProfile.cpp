@@ -45,7 +45,7 @@
 #include "XmlModel/DispConfig/CDispatcherConfig.h"
 #include "XmlModel/DispConfig/CDispUsersPreferences.h"
 #include "XmlModel/DispConfig/CDispUser.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
 
 #include "Tests/CommonTestsUtils.h"

@@ -31,11 +31,11 @@
 #include "PrlNetLibrary.h"
 #include <Interfaces/ParallelsQt.h>
 #include <Interfaces/ParallelsNamespace.h>
-#include <Libraries/PrlCommonUtilsBase/ParallelsDirs.h>
-#include <Libraries/PrlUuid/Uuid.h>
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlUuid/Uuid.h>
 #include <XmlModel/DispConfig/CDispatcherConfig.h>
 //#include <XmlModel/DispConfig/CDispDhcpPreferences.h>
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include <memory>
 #include <cassert>
 
@@ -55,9 +55,9 @@
 #include "unix/MacConfigureAdapter.h"
 #endif
 
-#include "Libraries/PrlCommonUtilsBase/Common.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/PrlCommonUtilsBase/CommandLine.h"
+#include <prlcommon/PrlCommonUtilsBase/Common.h>
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
 
 static void inline MODULE_STORE_SYSTEM_ERROR()
 {

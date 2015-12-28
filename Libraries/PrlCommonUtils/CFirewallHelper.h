@@ -31,7 +31,7 @@
 #ifndef FIREWALL_HELPER_H
 #define FIREWALL_HELPER_H
 
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 
 

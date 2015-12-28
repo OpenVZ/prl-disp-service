@@ -41,7 +41,7 @@ class CDspClient;
 class PerfCountersOut;
 
 
-#include "Libraries/IOService/src/IOCommunication/IOProtocol.h"
+#include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 #include "ParallelsNamespace.h"
 
 using namespace IOService;

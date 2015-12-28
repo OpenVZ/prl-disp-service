@@ -38,8 +38,8 @@
 #include "Stat/CDspStatCollectingThread.h"
 
 #include "Libraries/ProblemReportUtils/CProblemReportPostWrap.h"
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/Std/PrlAssert.h>
 
 
 void Task_CreateProblemReport::onSendingCompleted(PRL_RESULT result, QStringList params)

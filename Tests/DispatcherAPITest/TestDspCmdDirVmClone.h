@@ -39,7 +39,7 @@
 
 #include "TestDispatcherBase.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 
 class TestDspCmdDirVmClone : public TestDispatcherBase
 {

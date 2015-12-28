@@ -34,7 +34,7 @@
 #ifndef CDspDispConfigGuard_H
 #define CDspDispConfigGuard_H
 
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include "XmlModel/DispConfig/CDispatcherConfig.h"
 
 #include "CDspSync.h"

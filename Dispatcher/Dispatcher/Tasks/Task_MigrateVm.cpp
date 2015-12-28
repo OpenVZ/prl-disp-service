@@ -36,9 +36,9 @@
 #include "Interfaces/ParallelsQt.h"
 #include "Interfaces/ParallelsNamespace.h"
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Libraries/StatesStore/SavedStateTree.h"
-#include "Libraries/Std/PrlTime.h"
+#include <prlcommon/Std/PrlTime.h>
 
 #include "CDspVmDirHelper.h"
 #include "Task_CreateSnapshot.h"
@@ -47,7 +47,7 @@
 #include "Task_ChangeSID.h"
 #include "CDspService.h"
 #include "CDspBugPatcherLogic.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
 #ifdef _LIN_

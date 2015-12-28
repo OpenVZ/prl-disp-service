@@ -30,7 +30,7 @@
 
 #include "PrlNetLibrary.h"
 
-#include <Libraries/Logging/Logging.h>
+#include <prlcommon/Logging/Logging.h>
 
 #include <errno.h>
 #include <unistd.h>

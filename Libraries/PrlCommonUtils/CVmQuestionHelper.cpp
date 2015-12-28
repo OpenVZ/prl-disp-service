@@ -31,10 +31,10 @@
 
 #include "CVmQuestionHelper.h"
 #include "Libraries/NonQtUtils/CQuestionHelper.h"
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 
 using namespace IOService;
 using namespace Parallels;

@@ -38,14 +38,14 @@
 #include <QTextStream>
 #include <QImage>
 
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/PrlUuid/Uuid.h>
 #include "XmlModel/Messaging/CVmEvent.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "XmlModel/VmConfig/CVmGuestSharing.h"
 #include "XmlModel/VmConfig/CVmHostSharing.h"
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/Std/SmartPtr.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/Std/SmartPtr.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/DiskImage/DiskImage.h"
 #include "XmlModel/Messaging/CVmEventParameter.h"
 #include "XmlModel/HostHardwareInfo/CSystemStatistics.h"

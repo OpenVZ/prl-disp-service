@@ -37,8 +37,8 @@
 #include <errno.h>
 #endif
 
-#include "Libraries/Std/SmartPtr.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
+#include <prlcommon/Std/SmartPtr.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlsdk/PrlEnums.h>
 #include "XmlModel/NetworkConfig/CNetworkClassesConfig.h"
 #include "XmlModel/NetworkConfig/CNetworkShapingConfig.h"

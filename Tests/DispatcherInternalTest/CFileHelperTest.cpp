@@ -43,7 +43,7 @@
 
 #include <QDir>
 
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/PrlUuid/Uuid.h>
 #include "Interfaces/ParallelsQt.h"
 
 #ifndef _WIN_
@@ -53,12 +53,12 @@
 #	include <sys/stat.h>
 #endif
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/Std/SmartPtr.h>
 
 #include "Tests/CommonTestsUtils.h"
 

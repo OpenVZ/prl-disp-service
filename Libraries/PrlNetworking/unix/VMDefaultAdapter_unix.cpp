@@ -39,7 +39,7 @@
 #include <net/route.h>
 #include <linux/types.h>
 #include <list>
-#include <Libraries/PrlCommonUtilsBase/netutils.h>
+#include <prlcommon/PrlCommonUtilsBase/netutils.h>
 
 #elif defined(_MAC_)
 #include <net/if.h>
@@ -61,7 +61,7 @@
 #include <cassert>
 #include <memory>
 #include <boost/bind.hpp>
-#include <Libraries/Logging/Logging.h>
+#include <prlcommon/Logging/Logging.h>
 #include <Interfaces/ParallelsQt.h>
 
 #ifdef _DEBUG

@@ -30,8 +30,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CQuestionHelper.h"
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 #include <cstdio>
 #include <string>
 #include <algorithm>

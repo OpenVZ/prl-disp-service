@@ -39,8 +39,8 @@
 
 
 #include "ParallelsNamespace.h"
-#include "Libraries/Std/SmartPtr.h"
-#include "Libraries/IOService/src/IOCommunication/IOProtocol.h"
+#include <prlcommon/Std/SmartPtr.h>
+#include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 #include "XmlModel/Messaging/CVmEvent.h"
 
 class CDspClient;

@@ -45,10 +45,10 @@
 
 #include "ParallelsDomModel.h"
 #include "ParallelsNamespace.h"
-#include "Libraries/IOService/src/IOCommunication/IOProtocol.h"
+#include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 #include "CDspClient.h"
 #include "CDspTaskHelper.h"
-#include "Libraries/PrlCommonUtilsBase/StringUtils.h"
+#include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 
 
 /**

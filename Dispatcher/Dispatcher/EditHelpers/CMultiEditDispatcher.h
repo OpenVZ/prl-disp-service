@@ -40,7 +40,7 @@
 #include <QHash>
 #include <QMutex>
 
-#include "Libraries/IOService/src/IOCommunication/IOServer.h"
+#include <prlcommon/IOService/IOCommunication/IOServer.h>
 #include <prlsdk/PrlErrors.h>
 #include <prlsdk/PrlTypes.h>
 

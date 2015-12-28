@@ -29,10 +29,10 @@
 #ifdef _DEBUG
 #define LOGGING_ON
 #endif
-#include <Libraries/Logging/Logging.h>
+#include <prlcommon/Logging/Logging.h>
 
 #include <Libraries/Etrace/Etrace.h>
-#include <Libraries/Std/PrlTime.h>
+#include <prlcommon/Std/PrlTime.h>
 
 #ifndef _WIN_
 #include <sys/socket.h>

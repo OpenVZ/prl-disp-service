@@ -35,11 +35,11 @@
 
 #include "Interfaces/ParallelsQt.h"
 
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlUuid/Uuid.h>
 
 #include "PrlQSettings.h"
-#include "ParallelsDirs.h"
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 
 bool PrlQSettings::backupAndRemoveQSettingsIfItsNotValid( QSettings& qSettings )
 {

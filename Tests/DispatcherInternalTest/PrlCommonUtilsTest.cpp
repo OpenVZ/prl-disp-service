@@ -32,7 +32,7 @@
 
 
 #include "PrlCommonUtilsTest.h"
-#include "Libraries/PrlCommonUtilsBase/StringUtils.h"
+#include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 
 using namespace Parallels;
 

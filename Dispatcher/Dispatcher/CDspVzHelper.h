@@ -33,7 +33,7 @@
 #include "CDspClient.h"
 #include "XmlModel/VmDirectory/CVmDirectory.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include "CDspTaskHelper.h"
 #include "XmlModel/HostHardwareInfo/CSystemStatistics.h"
 #include "Dispatcher/Dispatcher/CDspDispConnection.h"

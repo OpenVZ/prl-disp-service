@@ -30,8 +30,8 @@
 #include <string.h>
 #include <errno.h>
 
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlUuid/Uuid.h>
 #include <QMutex>
 
 #define UUID_MAP_FILE	"/etc/parallels/uuid.map"

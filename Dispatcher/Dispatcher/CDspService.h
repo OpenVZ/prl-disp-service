@@ -38,7 +38,7 @@
 #include <QList>
 
 #include "ParallelsNamespace.h"
-#include "Libraries/PrlCommonUtilsBase/CommandLine.h"
+#include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
 #include "CDspDispConfigGuard.h"
 #include "CDspTaskManager.h"
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
@@ -67,12 +67,12 @@
 #include "HwMonitor/CDspHwMonitorThread.h"
 #include "HwMonitor/CDspSystemEventsMonitor.h"
 
-#include "Libraries/IOService/src/IOCommunication/IOServer.h"
-#include "Libraries/IOService/src/IOCommunication/IOServerPool.h"
-#include "Libraries/IOService/src/IOCommunication/IORoutingTableHelper.h"
+#include <prlcommon/IOService/IOCommunication/IOServer.h>
+#include <prlcommon/IOService/IOCommunication/IOServerPool.h>
+#include <prlcommon/IOService/IOCommunication/IORoutingTableHelper.h>
 #include "Libraries/PrlNetworking/IpStatistics.h"
 #include "Libraries/HostInfo/CHostInfo.h"
-#include "Libraries/PrlCommonUtilsBase/CFeaturesMatrix.h"
+#include <prlcommon/PrlCommonUtilsBase/CFeaturesMatrix.h>
 
 #include "XmlModel/VmDirectory/CVmDirectories.h"
 #include "XmlModel/NetworkConfig/CParallelsNetworkConfig.h"

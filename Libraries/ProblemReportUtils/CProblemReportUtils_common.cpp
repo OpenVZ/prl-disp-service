@@ -37,15 +37,15 @@
 
 #include "CProblemReportUtils_common.h"
 #include "Interfaces/ParallelsNamespace.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 #include "Build/Current.ver"
 #include "Build/Current-locale.ver"
 #include "ProblemReportLocalCertificates.h"
 #include "CPackedProblemReport.h"
 
 #include "CInstalledSoftwareCollector.h"
-#include "Libraries/HostUtils/HostUtils.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
+#include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 
 #ifdef _WIN_
 #include "Libraries/WmiWrap/WmiWrap.h"

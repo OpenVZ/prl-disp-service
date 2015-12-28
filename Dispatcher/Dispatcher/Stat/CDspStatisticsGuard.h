@@ -36,7 +36,7 @@
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include <QMutex>
 #include <QList>
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 
 class CDspVm;
 

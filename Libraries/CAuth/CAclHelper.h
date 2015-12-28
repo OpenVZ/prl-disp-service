@@ -36,7 +36,7 @@
 #include <QList>
 #include <QString>
 
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include "Libraries/CAuth/CAuth.h"
 
 namespace Parallels {

@@ -42,7 +42,7 @@
 #include <sys/types.h>
 #include <grp.h>
 #include <QByteArray>
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Libraries/Virtuozzo/CVzHelper.h"
 
 namespace

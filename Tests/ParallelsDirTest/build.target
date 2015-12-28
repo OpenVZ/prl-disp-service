@@ -1,2 +1,0 @@
-NON_SUBDIRS = yes
-include(ParallelsDirTest.pro)

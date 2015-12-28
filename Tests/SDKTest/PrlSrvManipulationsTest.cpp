@@ -51,13 +51,13 @@
 #include "XmlModel/CtTemplate/CtTemplate.h"
 #include "XmlModel/UserInformation/UserInfo.h"
 
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/Std/SmartPtr.h"
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/Std/SmartPtr.h>
+#include <prlcommon/PrlUuid/Uuid.h>
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/PrlCommonUtilsBase/StringUtils.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/TgzExtracter/TgzExtracterLib.h"
 
 #include "XmlModel/Messaging/CVmEvent.h"
@@ -71,7 +71,7 @@
 #include "Libraries/ProblemReportUtils/CProblemReportUtils.h"
 #include "Libraries/ProblemReportUtils/CPackedProblemReport.h"
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
-#include "Libraries/IOService/src/IOCommunication/IOProtocol.h"
+#include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 
 #include "Interfaces/ParallelsNamespaceTests.h"
 #include "Interfaces/ApiDevNums.h"

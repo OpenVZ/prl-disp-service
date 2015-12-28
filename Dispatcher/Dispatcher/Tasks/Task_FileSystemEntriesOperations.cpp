@@ -41,8 +41,8 @@
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
 
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 
 Task_FileSystemEntriesOperations::Task_FileSystemEntriesOperations (
     SmartPtr<CDspClient>& user,

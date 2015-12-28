@@ -27,14 +27,14 @@
 #include "CDspVmDirManager.h"
 
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/HostUtils/HostUtils.h>
 
 #include "Interfaces/ParallelsQt.h"
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 CDspAccessManager::VmAccessRights::VmAccessRights( unsigned int mode )
 :m_mode( mode )

@@ -22,7 +22,7 @@
  */
 
 #include "Interfaces/ParallelsQt.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "SaReShared.h"
 #include "sarefile.h"
 

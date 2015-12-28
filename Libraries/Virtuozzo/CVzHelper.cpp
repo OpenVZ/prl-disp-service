@@ -44,20 +44,19 @@
 #include <QThread>
 #include <QString>
 #include <QByteArray>
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlsdk/PrlOses.h>
 #include <prlsdk/PrlIOStructs.h>
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/PrlUuid/Uuid.h>
 #include "UuidMap.h"
 #include "CVzHelper.h"
 #include "CVzNetworkShaping.h"
-#include "StringUtils.h"
 #include "Libraries/HostInfo/CHostInfo.h"
 #include "Interfaces/ParallelsNamespace.h"
 #include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
-#include "Libraries/HostUtils/HostUtils.h"
-#include "Libraries/PrlCommonUtilsBase/StringUtils.h"
+#include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 
 #include <vzctl/libvzctl.h>
 #include <vzctl/vzctl_param.h>

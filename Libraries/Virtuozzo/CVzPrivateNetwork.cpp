@@ -23,8 +23,8 @@
 #include <QHostAddress>
 
 #include "CVzPrivateNetwork.h"
-#include "Libraries/PrlCommonUtilsBase/NetworkUtils.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
+#include <prlcommon/Logging/Logging.h>
 
 #define PRIV_NETS_FILE "/proc/vz/privnet/sparse"
 #define PRIV_NETS_FILE6 "/proc/vz/privnet/sparse6"

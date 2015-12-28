@@ -45,13 +45,13 @@
 #include "XmlModel/VmConfig/CVmSoundOutputs.h"
 #include "XmlModel/ParallelsObjects/CVmProfileHelper.h"
 
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/Std/PrlAssert.h>
 
 #include "Libraries/HostInfo/CHostInfo.h"
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/PrlCommonUtilsBase/CHardDiskHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CHardDiskHelper.h>
 
 #include "Interfaces/ParallelsSdkPrivate.h"
 

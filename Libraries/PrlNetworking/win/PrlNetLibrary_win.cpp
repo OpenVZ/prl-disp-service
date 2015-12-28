@@ -35,10 +35,10 @@
 #include "Libraries/PrlNetEnum/prl_net_enum.h"
 #include "System/Network/services/ParallelsNetDaemon.h" // for WIN32_PARALLELS_NETSERVICE_NAME and WIN32_SERVICE_FILE_NAME
 #include "ServiceControl.h"
-#include <Libraries/Logging/Logging.h>
-#include <Libraries/Std/scoped_array.h>
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/Std/scoped_array.h>
 #include <Libraries/PrlNetworking/netconfig.h>
-#include <Libraries/Std/scoped_mem.h>
+#include <prlcommon/Std/scoped_mem.h>
 #include "WinNetworkHelpers.h"
 #include "../PrlNetInternal.h"
 

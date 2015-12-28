@@ -24,8 +24,8 @@
 
 #include <QString>
 #include <prlsdk/PrlOses.h>
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/PrlUuid/libuuid_unix/uuid.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlUuid/libuuid_unix/uuid.h>
 #include "CVzHelper.h"
 #include "CVzTemplateHelper.h"
 #include "PrlLibvzttWrap.h"

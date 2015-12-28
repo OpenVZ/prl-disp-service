@@ -57,18 +57,18 @@
 #include "Libraries/PrlNetworking/netconfig.h"
 //#include "Libraries/DiskImage/DiskImage.h"  // DiskImage commented out by request from CP team
 //#include "Libraries/DiskImage/PartitionTable.h"  // DiskImage commented out by request from CP team
-#include "Libraries/HostUtils/EFI_GPT_Types.h"
-#include "Libraries/HostUtils/HostUtils.h"
-#include "Libraries/PrlCommonUtilsBase/OsInfo.h"
+#include <prlcommon/HostUtils/EFI_GPT_Types.h>
+#include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/PrlCommonUtilsBase/OsInfo.h>
 #include "Libraries/PrlNetworking/IpStatistics.h"
-#include "Libraries/PrlCommonUtilsBase/EnumToString.h"
+#include <prlcommon/PrlCommonUtilsBase/EnumToString.h>
 //#include "Libraries/PortAudioWrap/PortAudioWrap.h"  // PortAudioWrap commented out by request from CP team
 #include "Libraries/PowerWatcher/PowerWatcher.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 
 // Atomaticaly generated header needed only for CreateUsbFriendlyName
 #include "UsbFriendlyNames.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"

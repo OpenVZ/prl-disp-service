@@ -35,7 +35,7 @@
 #include "Task_ConfigureGenericPci.h"
 #include "CVmValidateConfig.h"
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 using namespace Parallels;
 

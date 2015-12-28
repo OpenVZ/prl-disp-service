@@ -42,7 +42,7 @@
 #include "CFileHelperDepPart.h"
 #include "CDspHaClusterHelper.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 using namespace Parallels;
 

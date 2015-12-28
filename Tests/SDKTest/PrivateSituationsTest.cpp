@@ -33,8 +33,8 @@
 #include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
 #include "Interfaces/ParallelsSdkPrivate.h"
 #include "PrivateSituationsTest.h"
-#include "Libraries/PrlUuid/Uuid.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/PrlUuid/Uuid.h>
+#include <prlcommon/Logging/Logging.h>
 #include "Tests/CommonTestsUtils.h"
 #include <set>
 #include "XmlModel/Messaging/CVmEvent.h"

@@ -34,7 +34,7 @@
 #include "../win/ethlist.h"
 
 #include "Interfaces/ParallelsPlatform.h"
-#include <Libraries/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 
 #include <net/if.h>
 #include <net/if_dl.h>

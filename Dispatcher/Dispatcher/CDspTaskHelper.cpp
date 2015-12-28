@@ -40,15 +40,15 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 #include "CDspTaskHelper.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "CProtoSerializer.h"
 #include "CProtoCommands.h"
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 #include "ParallelsQt.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 
 #include "CDspService.h"
 #include "CDspVm.h"

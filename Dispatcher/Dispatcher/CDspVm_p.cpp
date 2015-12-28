@@ -31,10 +31,10 @@
 
 #include "CDspVm_p.h"
 #include "CVmValidateConfig.h"
-#include <Libraries/PrlCommonUtilsBase/Common.h>
-#include <Libraries/HostUtils/HostUtils.h>
+#include <prlcommon/PrlCommonUtilsBase/Common.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "Tasks/Task_PrepareForHibernate.h"
-#include <Libraries/PrlCommonUtilsBase/OsInfo.h>
+#include <prlcommon/PrlCommonUtilsBase/OsInfo.h>
 //#include <Libraries/VirtualDisk/VirtualDisk.h>  // VirtualDisk commented out by request from CP team
 #include "Tasks/Task_CommitUnfinishedDiskOp.h"
 #include <Libraries/PrlCommonUtils/CFirewallHelper.h>

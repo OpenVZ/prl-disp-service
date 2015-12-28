@@ -45,10 +45,10 @@
 #define PERF_COUNTERS_TIMEOUT	200		// msec
 #define PERF_COUNTERS_TICKS		10		// 2 sec
 
-#include "Libraries/Std/SmartPtr.h"
-#include "Libraries/IOService/src/IOCommunication/IOProtocol.h"
-#include "Libraries/PrlUuid/Uuid.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/SmartPtr.h>
+#include <prlcommon/IOService/IOCommunication/IOProtocol.h>
+#include <prlcommon/PrlUuid/Uuid.h>
+#include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/PerfCount/PerfLib/PerfCountersOut.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 

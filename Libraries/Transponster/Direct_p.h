@@ -36,7 +36,7 @@
 #include <QFile>
 #include <QDomDocument>
 #include <boost/function.hpp>
-#include <Libraries/PrlUuid/Uuid.h>
+#include <prlcommon/PrlUuid/Uuid.h>
 #include <Libraries/PrlNetworking/PrlNetLibrary.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
 

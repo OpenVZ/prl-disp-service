@@ -36,7 +36,7 @@
 #include <QReadWriteLock>
 #include "CDspHandlerRegistrator.h"
 
-#include "Libraries/IOService/src/IOCommunication/IOProtocol.h"
+#include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 
 using namespace IOService;
 

@@ -38,9 +38,9 @@
 #include "Interfaces/ParallelsNamespace.h"
 #include <prlsdk/PrlEnums.h>
 #include <prlsdk/PrlErrors.h>
-#include "Libraries/PrlUuid/Uuid.h"
-#include "Libraries/PrlDataSerializer/CPrlOpaqueTypeDataSerializer.h"
-#include "Libraries/PrlDataSerializer/CPrlStringDataSerializer.h"
+#include <prlcommon/PrlUuid/Uuid.h>
+#include <prlcommon/PrlDataSerializer/CPrlOpaqueTypeDataSerializer.h>
+#include <prlcommon/PrlDataSerializer/CPrlStringDataSerializer.h>
 // For compatibility
 	#include <vector>
 //////

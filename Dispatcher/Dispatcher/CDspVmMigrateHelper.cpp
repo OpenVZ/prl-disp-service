@@ -43,8 +43,8 @@
 #include "Tasks/Mixin_CreateVmSupport.h"
 
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Interfaces/ParallelsNamespace.h"
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"

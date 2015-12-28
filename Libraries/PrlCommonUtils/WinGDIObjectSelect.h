@@ -5,7 +5,7 @@
 #pragma once
 
 #include <windows.h>
-#include <Libraries/Std/noncopyable.h>
+#include <prlcommon/Std/noncopyable.h>
 
 class WinGDIObjectSelect: private noncopyable
 {

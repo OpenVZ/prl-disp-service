@@ -77,13 +77,13 @@
 
 #include "CDspVzHelper.h"
 #include "CDspVmNetworkHelper.h"
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/Std/PrlAssert.h>
 #include <Libraries/PrlNetworking/netconfig.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/HostUtils/HostUtils.h"
-#include "Libraries/Std/PrlTime.h"
+#include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/Std/PrlTime.h>
 
 #ifdef _LIN_
 #include "Libraries/Virtuozzo/CCpuHelper.h"
@@ -848,20 +848,7 @@ void CDspShellHelper::sendNetServiceStatus (
 	SmartPtr<CDspClient>& pUser,
 	const SmartPtr<IOPackage>& p )
 {
-	PRL_SERVICE_STATUS_ENUM nStatus;
-	PRL_RESULT ret = Task_ManagePrlNetService::getNetServiceStatus( &nStatus );
-
-	CProtoCommandPtr pResponse = CProtoSerializer::CreateDspWsResponseCommand( p, ret );
-
-	CProtoCommandDspWsResponse* pNetStatus =
-		CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>(pResponse);
-	QString sStatus = QString::number( (unsigned int)nStatus );
-	pNetStatus->SetNetServiceStatus( sStatus );
-
-	SmartPtr<IOPackage> response =
-		DispatcherPackage::createInstance( PVE::DspWsResponse, pResponse, p );
-
-	pUser->sendPackage( response );
+	pUser->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED);
 }
 
 void CDspShellHelper::attachToLostTask(

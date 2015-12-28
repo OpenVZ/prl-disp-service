@@ -39,8 +39,8 @@
 #include "XmlModel/VmConfig/CVmHardware.h"
 #include "CXmlModelHelperTest.h"
 #include "XmlModel/ParallelsObjects/CXmlModelHelper.h"
-#include "Libraries/PrlUuid/Uuid.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/PrlUuid/Uuid.h>
+#include <prlcommon/Std/SmartPtr.h>
 #include "Tests/CommonTestsUtils.h"
 
 #define FILL_HDD_PROPS(hdd)\

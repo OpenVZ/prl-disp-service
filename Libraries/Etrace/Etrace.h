@@ -26,7 +26,7 @@
 
 #ifdef __cplusplus
 
-#include "Libraries/Std/Etrace.h"
+#include <prlcommon/Std/Etrace.h>
 
 #include <QString>
 #include <QFile>

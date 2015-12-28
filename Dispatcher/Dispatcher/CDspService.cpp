@@ -40,9 +40,9 @@
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
-#include "Libraries/IOService/src/IOCommunication/IOSSLInterface.h"
+#include <prlcommon/IOService/IOCommunication/IOSSLInterface.h>
 #include "CDspHandlerRegistrator.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 #include "Libraries/PrlCommonUtils/PrlQSettings.h"
 #include "Libraries/ProblemReportUtils/CPackedProblemReport.h"
 #include "CDspStarter.h"
@@ -61,12 +61,12 @@
 #include "XmlModel/DispConfig/CDispNetAdapter.h"
 #include "XmlModel/DispConfig/CDispDhcpPreferences.h"
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 #include <Libraries/PrlNetworking/netconfig.h>
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/Std/PrlTime.h"
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/Std/PrlTime.h>
 #include "Libraries/Virtuozzo/CVzPrivateNetwork.h"
 #include "EditHelpers/CMultiEditMergeVmConfig.h"
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
@@ -967,8 +967,6 @@ void CDspService::start ()
 		m_serviceStartTimeMonotonic = PrlGetTickCount64();
 		printTimeStamp();
 
-		//Registering signal handler on SIGCHILD under UNIX based systems
-		::registerZombiWatcher();
 		m_pUserHelper = SmartPtr<CDspUserHelper>(new CDspUserHelper);
 		m_pTaskManager = SmartPtr<CDspTaskManager>(new CDspTaskManager);
 		m_pVmConfigWatcher = SmartPtr<CDspVmConfigurationChangesWatcher>(new CDspVmConfigurationChangesWatcher());
@@ -2975,16 +2973,6 @@ bool CDspService::initNetworkConfig( bool bNotifyNetworkService )
 
 	PrlNet::InitConfigLibrary(getNetworkConfig().getPtr());
 
-	// It would be cool to check whether configuration for desktop
-	// contains default networks, but it is too complex task.
-	// In case he made something usefull in configuration by hands, we don't
-	// forcibly override settings with default values,
-	// but rather let's user do "Restore Defaults" action if something is wrong in configuration.
-
-	if (bNotifyNetworkService)
-	{
-		PrlNet::notifyPrlNetService( ParallelsDirs::getParallelsApplicationDir() );
-	}
 	WRITE_TRACE( DBG_FATAL, "initNetworkConfig() completed.");
 
 	return true;

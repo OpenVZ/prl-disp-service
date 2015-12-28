@@ -31,7 +31,7 @@
 #include "Task_SyncVmsUptime.h"
 #include "CDspService.h"
 #include "CDspVmManager.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 #include "CDspVzHelper.h"
 

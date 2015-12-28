@@ -30,7 +30,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CDspHwMonitorThread.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "CDspHwMonitorNotifier.h"
 #include "CDspCommon.h"
 #include <prlsdk/PrlErrors.h>
@@ -38,7 +38,7 @@
 #include "CDspService.h"
 #include "CDspHwMonitorHandler.h"
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 #include <Interfaces/Debug.h>
 

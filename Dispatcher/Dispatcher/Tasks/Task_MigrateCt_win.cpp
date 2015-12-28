@@ -36,9 +36,9 @@
 #include "Interfaces/ParallelsQt.h"
 #include "Interfaces/ParallelsNamespace.h"
 
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/Std/PrlTime.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/Std/PrlTime.h>
+#include <prlcommon/Std/PrlAssert.h>
 
 #include "CDspService.h"
 #include "CDspVzHelper.h"

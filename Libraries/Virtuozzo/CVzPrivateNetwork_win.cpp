@@ -25,7 +25,7 @@
 
 #include "CVzHelper.h"
 #include "CVzPrivateNetwork.h"
-#include "Libraries/PrlCommonUtilsBase/NetworkUtils.h"
+#include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
 
 #include "vzcapi/h/vzcapi.h"
 #include "vzcapi/h/vpsconfig.h"

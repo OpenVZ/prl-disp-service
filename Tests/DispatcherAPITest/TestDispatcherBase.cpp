@@ -48,7 +48,7 @@
 #include "XmlModel/VmDirectory/CVmDirectories.h"
 #include "XmlModel/DispConfig/CDispatcherConfig.h"
 
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 
 
 #include "Tests/CommonTestsUtils.h"

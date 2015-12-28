@@ -27,7 +27,7 @@
 #include <libtar.h>
 #include <zlib.h>
 #include "Interfaces/ParallelsTypes.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -63,8 +63,8 @@
 #include "CPackedProblemReport.h"
 
 #include "CProblemReportUtils.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
-#include "Libraries/PrlCommonUtilsBase/CSimpleFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/CSimpleFileHelper.h>
 
 #ifndef PRL_REPORT_READ_FILE_BUFFER_SIZE
 #define PRL_REPORT_READ_FILE_BUFFER_SIZE 1024*1024

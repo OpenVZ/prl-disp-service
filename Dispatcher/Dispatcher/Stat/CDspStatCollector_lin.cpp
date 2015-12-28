@@ -30,7 +30,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CDspStatCollector.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"

@@ -35,7 +35,7 @@
 
 #include "Interfaces/ParallelsDispToDispProto.h"
 
-#include "Libraries/IOService/src/IOCommunication/IOProtocol.h"
+#include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 

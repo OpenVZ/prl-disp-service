@@ -29,13 +29,13 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <cassert>
-#include <Libraries/Std/scoped_array.h>
-#include <Libraries/Std/scoped_mem.h>
+#include <prlcommon/Std/scoped_array.h>
+#include <prlcommon/Std/scoped_mem.h>
 
 #include "WinNetworkHelpers.h"
 #include "../IpStatistics.h"
 
-#include <Libraries/Logging/Logging.h>
+#include <prlcommon/Logging/Logging.h>
 
 #include <Winsock2.h>
 

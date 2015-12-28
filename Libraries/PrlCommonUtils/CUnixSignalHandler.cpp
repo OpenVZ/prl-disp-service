@@ -43,7 +43,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 class CUnixSignalHandlerPrivate : public QObject
 {

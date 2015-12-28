@@ -37,9 +37,9 @@
 
 #include "CMultiEditMergeVmConfig.h"
 #include "CDspService.h"
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 
 #include "CDspTestConfig.h"
 #include "Build/Current-locale.ver"

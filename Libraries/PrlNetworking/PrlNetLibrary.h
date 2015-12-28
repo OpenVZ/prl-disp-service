@@ -50,7 +50,7 @@
 #include <XmlModel/NetworkConfig/CHostOnlyNetwork.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
 #include <XmlModel/VmConfig/CVmGenericNetworkAdapter.h>
-#include <Libraries/Std/SmartPtr.h>
+#include <prlcommon/Std/SmartPtr.h>
 #include "PrlNetworkingConstants.h"
 
 class CParallelsNetworkConfig;

@@ -34,8 +34,8 @@
 
 #include "domain_type.h"
 #include <QDomDocument>
-#include <Libraries/PrlCommonUtilsBase/NetworkUtils.h>
-#include <Libraries/PrlCommonUtilsBase/StringUtils.h>
+#include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
+#include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 #include <XmlModel/VtInfo/VtInfo.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
 

@@ -25,8 +25,8 @@
 #include <QDirIterator>
 
 #include <Libraries/Encryption/Encryption.h>
-#include <Libraries/HostUtils/HostUtils.h>
-#include <Libraries/PrlUuid/Uuid.h>
+#include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/PrlUuid/Uuid.h>
 
 #include "Parser.h"
 

@@ -32,7 +32,7 @@
 
 #include "CVmMigrationProtoTest.h"
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/PrlUuid/Uuid.h>
 #include <prlsdk/PrlEnums.h>
 #include "XmlModel/Messaging/CVmEvent.h"
 #include "XmlModel/Messaging/CVmEventParameterList.h"

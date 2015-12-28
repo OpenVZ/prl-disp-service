@@ -57,18 +57,18 @@
 
 #include <Interfaces/ParallelsPlatform.h>
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 //#include "Libraries/DiskImage/PartitionTable.h"  // DiskImage commented out by request from CP team
 #include "Libraries/VtdSetup/VtdSetup.h"
 
-#include "Libraries/HostUtils/SetupApiUtils_win.h"
-#include "Libraries/HostUtils/CfgmgrUtils_win.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/HostUtils/SetupApiUtils_win.h>
+#include <prlcommon/HostUtils/CfgmgrUtils_win.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 // getenv() wrapper
-#include "Libraries/PrlCommonUtilsBase/Common.h"
+#include <prlcommon/PrlCommonUtilsBase/Common.h>
 
 // --- Windows specific ---
 #include <InitGuid.h>

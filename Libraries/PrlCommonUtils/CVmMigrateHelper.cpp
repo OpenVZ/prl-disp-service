@@ -23,7 +23,7 @@
 
 #include "CFileHelper.h"
 #include "CVmMigrateHelper.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Interfaces/ParallelsNamespace.h"
 #include "Interfaces/ParallelsQt.h"
 

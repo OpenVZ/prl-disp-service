@@ -34,7 +34,7 @@
 
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include <prlsdk/PrlErrors.h>
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include "Dispatcher/Dispatcher/Cache/Cache.h"
 #include <QReadWriteLock>
 #include <QHash>

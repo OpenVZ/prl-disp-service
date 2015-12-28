@@ -37,10 +37,10 @@
 #include <QString>
 #include "CDspLibvirt.h"
 #include "Tasks/Task_ManagePrlNetService.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include "XmlModel/VmConfig/CVmGenericNetworkAdapter.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/HostUtils/HostUtils.h>
 
 enum HostMacUpdateFlags {
 	HMU_NONE = 0,

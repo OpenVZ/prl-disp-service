@@ -31,7 +31,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CFeaturesMatrixTest.h"
-#include "Libraries/PrlCommonUtilsBase/CFeaturesMatrix.h"
+#include <prlcommon/PrlCommonUtilsBase/CFeaturesMatrix.h>
 #include "XmlModel/Messaging/CVmBinaryEventParameter.h"
 
 void CFeaturesMatrixTest::testInitialize()

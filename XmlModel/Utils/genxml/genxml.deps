@@ -26,8 +26,5 @@ TARGET = genxml
 PROJ_PATH = $$PWD
 include(../../../../Sources/Build/qmake/build_target.pri)
 
-include($$LIBS_LEVEL/PrlDataSerializer/PrlDataSerializer.pri)
 include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
-include($$LIBS_LEVEL/Logging/Logging.pri)
-include($$LIBS_LEVEL/Std/Std.pri)
 include($$SRC_LEVEL/XmlModel/XmlModel.pri)

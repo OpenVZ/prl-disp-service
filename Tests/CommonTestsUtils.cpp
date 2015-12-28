@@ -41,11 +41,11 @@
 #include "ParallelsQt.h"
 #include "ParallelsDomModel.h"
 #include "CommonTestsUtils.h"
-#include "Libraries/PrlCommonUtilsBase/CommandLine.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/Logging/Logging.h>
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 #ifdef _WIN_
 	#define strdup _strdup

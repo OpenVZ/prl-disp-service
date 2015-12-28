@@ -31,7 +31,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CGuestOsesHelperTest.h"
-#include "Libraries/PrlCommonUtilsBase/CGuestOsesHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CGuestOsesHelper.h>
 
 void CGuestOsesHelperTest::testOsesMatrix()
 {

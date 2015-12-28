@@ -34,7 +34,7 @@
 
 #include <QReadWriteLock>
 
-#include "Libraries/IOService/src/IOCommunication/IOServer.h"
+#include <prlcommon/IOService/IOCommunication/IOServer.h>
 
 using namespace IOService;
 

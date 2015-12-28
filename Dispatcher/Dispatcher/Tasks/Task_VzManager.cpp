@@ -27,7 +27,7 @@
 ///
 /////////////////////////////////////////////////////////////////////////////////
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 #include "Libraries/PrlCommonUtils/CFirewallHelper.h"
 #include "CDspProblemReportHelper.h"

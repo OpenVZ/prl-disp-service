@@ -30,7 +30,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CHostHardwareInfoTest.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #include <QDomDocument>
 

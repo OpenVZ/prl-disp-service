@@ -34,7 +34,7 @@
 // #define FORCE_LOGGING_ON
 // #define FORCE_LOGGING_LEVEL   DBG_DEBUG
 
-#include <Libraries/Logging/Logging.h>
+#include <prlcommon/Logging/Logging.h>
 
 #include "CDspService.h"
 #include "CDspVmInfoDatabase.h"

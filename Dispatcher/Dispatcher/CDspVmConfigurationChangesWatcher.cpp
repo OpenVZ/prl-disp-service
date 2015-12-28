@@ -41,9 +41,9 @@
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 #include <QFile>
 #include <QMutexLocker>
-#include "Libraries/Std/noncopyable.h"
+#include <prlcommon/Std/noncopyable.h>
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 #ifdef _WIN_
 	#include <process.h>

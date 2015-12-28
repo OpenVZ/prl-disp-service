@@ -36,9 +36,9 @@
 #include <QPair>
 #include <QList>
 
-#include "Libraries/Std/SmartPtr.h"
-#include "Libraries/IOService/src/IOCommunication/IOClient.h"
-#include "Libraries/IOService/src/IOCommunication/IOServer.h"
+#include <prlcommon/Std/SmartPtr.h>
+#include <prlcommon/IOService/IOCommunication/IOClient.h>
+#include <prlcommon/IOService/IOCommunication/IOServer.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 

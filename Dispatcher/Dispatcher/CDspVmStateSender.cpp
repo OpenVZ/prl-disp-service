@@ -42,10 +42,10 @@
 
 #define FORCE_LOGGING_PREFIX "DspVmStateSender"
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #include "CDspVmStateSender.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 #include "ParallelsQt.h"
 #include "CDspCommon.h"
 #include "CDspService.h"
@@ -60,7 +60,7 @@
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
 
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 
 CDspVmStateSender::CDspVmStateSender()
 {

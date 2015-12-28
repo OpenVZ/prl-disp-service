@@ -43,11 +43,11 @@
 #include "CProtoSerializer.h"
 
 #include "Tasks/Task_CloneVm.h"
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/Std/PrlTime.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/Std/PrlTime.h>
 //#include "Libraries/AbstractFile/CommonFile.h"  // AbstractFile commented out by request from CP team
-#include "Libraries/HostUtils/HostUtils.h"
-#include "Libraries/PrlCommonUtilsBase/CSimpleFileHelper.h"
+#include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/PrlCommonUtilsBase/CSimpleFileHelper.h>
 
 #ifdef _LIN_
 # include <sys/types.h>

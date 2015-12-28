@@ -35,7 +35,7 @@
 #include <Interfaces/ParallelsTypes.h>
 #include <Interfaces/ParallelsQt.h>
 #include <Libraries/PrlCommonUtils/PrlQSettings.h>
-#include <Libraries/Std/PrlAssert.h>
+#include <prlcommon/Std/PrlAssert.h>
 
 #include <QCoreApplication>
 #include <QFile>

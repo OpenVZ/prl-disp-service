@@ -63,10 +63,6 @@ public:
 
 	PVE::IDispatcherCommands	getCmdNumber();
 
-	/** Gets Parallels Network Service status */
-	static PRL_RESULT getNetServiceStatus( PRL_SERVICE_STATUS_ENUM_PTR );
-
-
 	/// convert CParallelsNetworkConfig to CDispNetworkPreferences
 	static SmartPtr<CDispNetworkPreferences> convertNetworkConfig( SmartPtr<CParallelsNetworkConfig> pNetworkConfig );
 

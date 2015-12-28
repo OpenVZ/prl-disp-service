@@ -41,13 +41,13 @@
 #include <libvirt/virterror.h>
 #include <libvirt/libvirt-qemu.h>
 #include <XmlModel/VtInfo/VtInfo.h>
-#include <Libraries/Logging/Logging.h>
+#include <prlcommon/Logging/Logging.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
-#include <Libraries/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <XmlModel/NetworkConfig/CVirtualNetwork.h>
 #include <XmlModel/HostHardwareInfo/CHwNetAdapter.h>
-#include <Libraries/PrlCommonUtilsBase/ErrorSimple.h>
-#include <Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h>
+#include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 
 class CSavedStateTree;
 

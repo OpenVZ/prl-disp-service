@@ -39,7 +39,7 @@
 #include <set>
 #include <cassert>
 
-#include <Libraries/Logging/Logging.h>
+#include <prlcommon/Logging/Logging.h>
 
 #include <errno.h>
 #include <unistd.h>
@@ -49,13 +49,9 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 
-// #include "System/Network/services/ParallelsNetDaemon.h"
-
-#include <Libraries/Std/ProcessWatcher.h>
-#include <Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 #include <Libraries/PrlNetworking/netconfig.h>
 
-// #include <System/Network/drivers/lin/pvsvnic/prl_vnic.h>
 // Maximum adapters count in system
 #define PRLVNIC_MAX_ADAPTER_NUM 16
 

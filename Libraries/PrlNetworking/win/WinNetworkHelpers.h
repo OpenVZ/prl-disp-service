@@ -29,7 +29,7 @@
 #include <winsock2.h>
 #include <WS2tcpip.h>
 #include <IpHlpApi.h>
-#include <Libraries/Std/SmartPtr.h>
+#include <prlcommon/Std/SmartPtr.h>
 
 namespace PrlNetInternal
 {

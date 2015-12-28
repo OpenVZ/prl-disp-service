@@ -33,7 +33,7 @@
 #include "SimpleServerWrapper.h"
 #include "Tests/CommonTestsUtils.h"
 #include <prlsdk/PrlApi.h>
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 
 #include <QFile>

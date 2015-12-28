@@ -31,10 +31,10 @@
 #include <QHostAddress>
 #include <QTemporaryFile>
 #include "Libraries/PrlNetworking/netconfig.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #include "CFirewallHelper.h"
-#include "NetworkUtils.h"
+#include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
 
 
 #define IP_TABLES						"/sbin/iptables"

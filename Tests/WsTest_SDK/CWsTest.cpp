@@ -36,7 +36,7 @@
 #include <QFile>
 #include <QDateTime>
 #include <QTextStream>
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/PrlUuid/Uuid.h>
 #include <QInputDialog>
 #include <QSettings>
 
@@ -51,7 +51,7 @@
 #include "CProblemReport.h"
 #include "RemoteFileDialog.h"
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #ifndef _WIN_
 	#define _vsnprintf vsnprintf

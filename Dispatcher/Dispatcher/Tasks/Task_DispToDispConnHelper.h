@@ -35,7 +35,7 @@
 #include <QString>
 
 #include "CDspClient.h"
-#include "Libraries/IOService/src/IOCommunication/IOClient.h"
+#include <prlcommon/IOService/IOCommunication/IOClient.h>
 #include "Libraries/VmFileList/CVmFileListCopy.h"
 #include "Dispatcher/Dispatcher/CDspDispConnection.h"
 

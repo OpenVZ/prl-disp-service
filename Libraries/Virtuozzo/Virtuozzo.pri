@@ -7,7 +7,6 @@ DEFINES *= _CT_
 
 include($$SRC_LEVEL/XmlModel/XmlModel.pri)
 # include($$LIBS_LEVEL/PrlNetworking/PrlNetworking.pri)
-include($$LIBS_LEVEL/Std/Std.pri)
 include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
 
 linux-*: {

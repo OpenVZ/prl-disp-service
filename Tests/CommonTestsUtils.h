@@ -44,8 +44,8 @@
 #include <QList>
 #include <QString>
 #include <QtTest/QtTest>
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 #include <prlsdk/helpers/SdkWrap/SdkHandleWrap.h>
 
 #define PRL_JOB_WAIT_TIMEOUT 18000

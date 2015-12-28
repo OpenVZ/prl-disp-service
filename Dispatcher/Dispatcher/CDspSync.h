@@ -24,7 +24,7 @@
 #ifndef H__CDspSync__H
 #define H__CDspSync__H
 
-#include "Libraries/Std/LockedPtr.h"
+#include <prlcommon/Std/LockedPtr.h>
 
 #define CDspLockedPointer LockedPtr
 

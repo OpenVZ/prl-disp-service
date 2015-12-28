@@ -34,7 +34,7 @@
 
 #include <QObject>
 #include <prlsdk/PrlTypes.h>
-#include <Libraries/Std/SmartPtr.h>
+#include <prlcommon/Std/SmartPtr.h>
 
 class CDspClient;
 namespace IOService { class IOPackage; }

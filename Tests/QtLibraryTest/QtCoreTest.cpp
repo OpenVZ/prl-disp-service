@@ -44,8 +44,8 @@
 
 #include "Interfaces/ParallelsQt.h"
 
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/Std/PrlAssert.h>
 
 
 namespace

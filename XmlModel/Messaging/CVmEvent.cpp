@@ -26,14 +26,14 @@
 
 
 #include <QTextStream>
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/PrlUuid/Uuid.h>
 #include "CVmEvent.h"
 #include "CVmEventParameter.h"
 #include "CVmEventParameterList.h"
 #include "CVmBinaryEventParameter.h"
 
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/PrlDataSerializer/CPrlStringDataSerializer.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlDataSerializer/CPrlStringDataSerializer.h>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"

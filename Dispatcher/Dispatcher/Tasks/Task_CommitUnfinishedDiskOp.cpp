@@ -43,9 +43,9 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "CDspAccessManager.h"
 #include "CDspVmSnapshotInfrastructure.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/StatesUtils/StatesHelper.h"
 
 using namespace Parallels;

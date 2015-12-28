@@ -34,7 +34,7 @@
 #include "XmlModel/Messaging/CVmEvent.h"
 #include "XmlModel/Messaging/CVmEventParameterList.h"
 #include "XmlModel/Messaging/CResult.h"
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/PrlUuid/Uuid.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
 #include "XmlModel/HostHardwareInfo/CHwFileSystemInfo.h"

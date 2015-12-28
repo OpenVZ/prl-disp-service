@@ -41,13 +41,13 @@
 #include "SDK/Handles/PveControl.h"
 #include "XmlModel/VmDirectory/CVmDirectory.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
 #include "Tests/CommonTestsUtils.h"
 
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 
 TestDspCmdDirGetVmList::TestDspCmdDirGetVmList()
 {

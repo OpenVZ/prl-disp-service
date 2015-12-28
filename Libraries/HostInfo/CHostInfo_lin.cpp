@@ -67,8 +67,8 @@
 #include <dlfcn.h>
 
 #include "Libraries/Virtuozzo/CVzHelper.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/Std/PrlAssert.h>
 
 /* base proc/dev filesystems path */
 #define PROC_BASE "/proc/"

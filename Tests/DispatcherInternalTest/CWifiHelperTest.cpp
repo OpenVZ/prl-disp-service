@@ -32,11 +32,11 @@
 
 #include "CWifiHelperTest.h"
 
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/PrlUuid/Uuid.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/WifiHelper/CWifiStoreHelper.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Interfaces/ParallelsQt.h"
 
 #include <QDir>

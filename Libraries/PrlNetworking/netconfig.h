@@ -35,8 +35,8 @@
 #include <XmlModel/VmConfig/CVmGenericNetworkAdapter.h>
 #include <XmlModel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <Libraries/PrlNetworking/PrlNetLibrary.h>
-#include <Libraries/Std/SmartPtr.h>
-#include <Libraries/PrlCommonUtilsBase/netutils.h>
+#include <prlcommon/Std/SmartPtr.h>
+#include <prlcommon/PrlCommonUtilsBase/netutils.h>
 #include <QtAlgorithms>
 
 #ifndef ETH_ADDRESS_LEN

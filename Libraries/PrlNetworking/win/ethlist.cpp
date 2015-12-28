@@ -38,7 +38,7 @@
 #include <QtAlgorithms>
 #include <QString>
 #include <prlsdk/PrlEnums.h>
-#include <Libraries/Logging/Logging.h>
+#include <prlcommon/Logging/Logging.h>
 #include <memory>
 
 EthIface::EthIface( const QString &name,

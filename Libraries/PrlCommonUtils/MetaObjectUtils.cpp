@@ -39,7 +39,7 @@
 #include <QtCore/QStringList>
 #include <QtCore/QMetaObject>
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Interfaces/Qt4Compatibility.h"
 
 QString MetaObjectUtils::methodNameFromSignature ( const QString& signature )

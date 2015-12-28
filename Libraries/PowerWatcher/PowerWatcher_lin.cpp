@@ -34,13 +34,13 @@
 // NOTE: log level > DBG_INFO can produce large logs
 // NOTE: please don't remove defines below,
 //   just (un)comment or edit they as needed
-#include "Libraries/Logging/LoggingConfig.h"
+#include <prlcommon/Logging/LoggingConfig.h>
 // #define FORCE_LOGGING_ON
 // #define LOGGING_ON
 // DBG_FATAL, DBG_WARNING, DBG_INFO, DBG_DEBUG, DBG_TRACE
 // #define FORCE_LOGGING_LEVEL		DBG_TRACE
 // #define FORCE_LOGGING_PREFIX	"[]"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 /////////////////////////////////////////////////////////////////////////////
 
