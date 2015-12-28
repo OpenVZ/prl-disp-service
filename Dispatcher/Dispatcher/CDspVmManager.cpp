@@ -1007,9 +1007,18 @@ CHostHardwareInfo parsePrlNetToolOut(const QString &data)
 template<>
 void Body<Tag::Libvirt<PVE::DspCmdVmGuestGetNetworkSettings> >::run()
 {
+	PRL_RESULT x = PRL_ERR_UNINITIALIZED;
+	SmartPtr<CVmConfiguration> c = CDspService::instance()->getVmDirHelper().
+		getVmConfigByUuid(m_context.getSession(), m_context.getVmUuid(), x);
+	if (PRL_FAILED(x))
+		return m_context.reply(x);
+	bool isWin = 
+		c->getVmSettings()->getVmCommonOptions()->getOsType() == PVS_GUEST_TYPE_WINDOWS;
+	Libvirt::Tools::Agent::Vm::Exec::Request request(
+		isWin ? "%programfiles%\\Qemu-ga\\prl_nettool.exe" : "prl_nettool", QList<QString>(), QByteArray());
+	request.setRunInShell(isWin);
 	Prl::Expected<Libvirt::Tools::Agent::Vm::Exec::Result, Error::Simple> e =
-		Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest().runProgram(
-			Libvirt::Tools::Agent::Vm::Exec::Request("prl_nettool", QList<QString>(), QByteArray()));
+		Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest().runProgram(request);
 	if (e.isFailed())
 	{
 		WRITE_TRACE(DBG_FATAL, "GetNetworkSettings for VM '%s' is failed: %s",

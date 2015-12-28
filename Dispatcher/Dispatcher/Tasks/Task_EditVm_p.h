@@ -542,21 +542,6 @@ namespace Network
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Action
-
-struct Action
-{
-	explicit Action(const QStringList& args_): m_args(args_)
-	{
-	}
-
-	Libvirt::Result operator()(Libvirt::Tools::Agent::Vm::Guest agent_);
-
-private:
-	QStringList m_args;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
 struct Factory

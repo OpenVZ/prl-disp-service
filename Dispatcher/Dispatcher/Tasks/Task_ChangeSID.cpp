@@ -320,11 +320,12 @@ PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Tools::Agent::Vm::Unit& u)
 
 PRL_RESULT Task_ChangeSID::run_changeSID_cmd(Libvirt::Tools::Agent::Vm::Unit& u)
 {
+	Libvirt::Tools::Agent::Vm::Exec::Request request("%programfiles%\\prl_newsid.exe",  
+		QList<QString>(), QByteArray());
+	request.setRunInShell(true);
 	Prl::Expected
 		<Libvirt::Tools::Agent::Vm::Exec::Result, Error::Simple> e =
-		u.getGuest().runProgram(
-			Libvirt::Tools::Agent::Vm::Exec::Request("prl_newsid.exe",  
-				QList<QString>(), QByteArray()));
+			u.getGuest().runProgram(request);
 
 	QString uuid;
 	u.getUuid(uuid);
