@@ -241,7 +241,7 @@ bool Resources::getMaxMemory(Libvirt::Domain::Xml::MaxMemory& dst_)
 		return false;
 
 	if (!m->isEnableHotplug())
-		return false;
+		return true;
 
 	Libvirt::Domain::Xml::ScaledInteger v;
 	v.setOwnValue(m->getMaxRamSize() << 10);
