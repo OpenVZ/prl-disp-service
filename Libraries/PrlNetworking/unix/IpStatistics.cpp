@@ -46,7 +46,7 @@
 
 #include <arpa/inet.h>
 
-#include <Libraries/Logging/Logging.h>
+#include <prlcommon/Logging/Logging.h>
 
 PRL_RESULT PrlNet::getIfaceStatistics( PrlNet::IfStatList& ifStatList )
 {

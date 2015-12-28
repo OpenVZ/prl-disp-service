@@ -4,8 +4,6 @@ include(../../Build/qmake/build_target.pri)
 
 include($$LIBS_LEVEL/CAuth/CAuth.pri)
 include($$SRC_LEVEL/XmlModel/XmlModel.pri)
-include($$LIBS_LEVEL/PrlDataSerializer/PrlDataSerializer.pri)
 include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
-include($$LIBS_LEVEL/Logging/Logging.pri)
 win32: include($$LIBS_LEVEL/WifiHelper/WifiHelper.pri)
 include($$LIBS_LEVEL/ProblemReportUtils/ProblemReportUtils.pri)

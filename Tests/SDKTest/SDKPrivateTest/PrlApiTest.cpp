@@ -33,7 +33,7 @@
 #include "SDK/Handles/Disp/PrlHandleServerJob.h"
 #include "Tests/CommonTestsUtils.h"
 
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/PrlUuid/Uuid.h>
 #include "Interfaces/ParallelsDomModel.h"
 
 PrlApiTest::PrlApiTest()

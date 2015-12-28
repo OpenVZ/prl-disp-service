@@ -56,8 +56,8 @@
 
 inline void notrace(int, const char *, ...){}
 
-#include "Libraries/Logging/LoggingConfig.h"
-#include "Libraries/Std/AtomicOps.h"
+#include <prlcommon/Logging/LoggingConfig.h>
+#include <prlcommon/Std/AtomicOps.h>
 
 #ifndef WRITE_TRACE
 inline void WRITE_TRACE(int, const char *format, ...)

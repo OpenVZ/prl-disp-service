@@ -39,6 +39,8 @@ linux-*: SOURCES+= $$SRC_LEVEL/Dispatcher/Dispatcher/Stat/CDspSystemInfo_lin.cpp
 macx:	SOURCES	+= $$SRC_LEVEL/Dispatcher/Dispatcher/Stat/CDspSystemInfo_mac.cpp
 
 
+LIBS += -lprlcommon
+
 win32 {
 	HEADERS += CWifiHelperTest.h
 	SOURCES += CWifiHelperTest.cpp

@@ -24,7 +24,7 @@
 #include "Direct.h"
 #include "Direct_p.h"
 #include "Reverse_p.h"
-#include <Libraries/HostUtils/HostUtils.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 
 namespace Transponster
 {

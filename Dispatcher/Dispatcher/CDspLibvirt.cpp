@@ -29,7 +29,7 @@
 #include "Tasks/Task_CreateProblemReport.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_ManagePrlNetService.h"
-#include <Libraries/PrlUuid/PrlUuid.h>
+#include <prlcommon/PrlUuid/PrlUuid.h>
 #include <Libraries/PrlNetworking/netconfig.h>
 
 #include <sys/socket.h>

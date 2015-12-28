@@ -30,7 +30,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #define FORCE_LOGGING_LEVEL DBG_DEBUG
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #include "CDspSystemEventsMonitor.h"
 
@@ -41,9 +41,9 @@
 #include "CDspService.h"
 #include "CDspCommon.h"
 
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
+#include <prlcommon/Std/SmartPtr.h>
 #include "Tasks/Task_PrepareForHibernate.h"
 
 #include <windows.h>

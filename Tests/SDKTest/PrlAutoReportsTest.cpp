@@ -38,7 +38,7 @@
 // #define FORCE_LOGGING_ON
 // #define FORCE_LOGGING_LEVEL DBG_DEBUG
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #include "PrlAutoReportsTest.h"
 #include "SimpleServerWrapper.h"
@@ -51,7 +51,7 @@
 #include "XmlModel/DispConfig/CDispUser.h"
 
 #include "Libraries/ProblemReportUtils/CPackedProblemReport.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 
 #define CHECKS_TO_SKIP( _dumpLocation )\
 {	\

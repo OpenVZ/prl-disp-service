@@ -28,14 +28,14 @@
 #include "PrlNetLibrary.h"
 #include "ethlist.h"
 
-#include <Libraries/Std/scoped_array.h>
-#include <Libraries/Std/scoped_mem.h>
+#include <prlcommon/Std/scoped_array.h>
+#include <prlcommon/Std/scoped_mem.h>
 
 #include <cassert>
 #include <memory>
 #include <iostream>
 
-#include <Libraries/Logging/Logging.h>
+#include <prlcommon/Logging/Logging.h>
 
 #include <QHostAddress>
 

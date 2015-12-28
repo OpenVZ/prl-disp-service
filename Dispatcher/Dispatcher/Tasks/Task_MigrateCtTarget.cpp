@@ -36,15 +36,15 @@
 #include "Interfaces/ParallelsQt.h"
 #include "Interfaces/ParallelsNamespace.h"
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Libraries/StatesStore/SavedStateTree.h"
-#include "Libraries/Std/PrlTime.h"
+#include <prlcommon/Std/PrlTime.h>
 
 #include "CDspVmDirHelper.h"
 #include "Task_MigrateCtTarget.h"
 #include "Task_CloneVm.h"
 #include "CDspService.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
 #include "CDspVzHelper.h"
 #include "Tasks/Task_VzManager.h"

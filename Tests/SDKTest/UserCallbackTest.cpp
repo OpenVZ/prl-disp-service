@@ -29,7 +29,7 @@
 /// Schaffhausen, Switzerland.
 ///
 /////////////////////////////////////////////////////////////////////////////
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #include "UserCallbackTest.h"
 #include "Tests/CommonTestsUtils.h"

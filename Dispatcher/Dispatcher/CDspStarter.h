@@ -37,7 +37,7 @@
 #include <QProcess>
 
 #include "CDspClient.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "Interfaces/ParallelsNamespace.h"
 

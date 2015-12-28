@@ -39,7 +39,7 @@
 #define CMultiEditMergeHelper_H
 
 #include "CMultiEditDispatcher.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 #include "Interfaces/ParallelsQt.h"
 
 //////////////////////////////////////////////////////////////////////////

@@ -33,12 +33,11 @@
 #include <QMap>
 
 #include <Interfaces/ParallelsNamespace.h>
-#include <Libraries/PrlCommonUtilsBase/ParallelsDirs.h>
-#include <Libraries/Logging/Logging.h>
-#include <Libraries/Std/PrlAssert.h>
-#include <Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h>
-#include <Libraries/PrlCommonUtilsBase/NetworkUtils.h>
-#include <Libraries/Std/HackParam.h>
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
+#include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
 
 #include <prlsdk/PrlEnums.h>
 
@@ -1494,29 +1493,8 @@ bool PrlNet::isTapEnabled()
 }
 
 
-static SYSTEM_FLAGS_STATE s_sf;
-
 void PrlNet::InitConfigLibrary(const CParallelsNetworkConfig *pNetworkConfig)
 {
-	PrlNet::initSystemFlags(pNetworkConfig->getSystemFlags());
 	PrlNet::setIPv6Enabled(pNetworkConfig->isIPv6Enabled());
-
-	s_is_tap_enabled = !!PrlNet::SfGetUINT32("devices.net.tap", 0);
 }
 
-// Initialize system-flags for Networking
-void PrlNet::initSystemFlags(const QString &systemFlags)
-{
-	SfInitLocal(&s_sf, QSTR2UTF8(systemFlags), systemFlags.length());
-}
-
-// Obtain system-flag from network-configuration
-UINT32 PrlNet::SfGetUINT32(const char *flag, UINT32 defaultValue)
-{
-	return ::SfGetUINT32Local(&s_sf, flag, defaultValue);
-}
-
-UINT64 PrlNet::SfGetUINT64(const char *flag, UINT64 defaultValue)
-{
-	return ::SfGetUINT64Local(&s_sf, flag, defaultValue);
-}

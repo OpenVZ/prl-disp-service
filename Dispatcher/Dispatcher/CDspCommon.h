@@ -41,7 +41,7 @@
 #ifndef H__CDspCommon__H
 #define  H__CDspCommon__H
 
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 
 
 //////////////////////////////////////////////////////////////////////////

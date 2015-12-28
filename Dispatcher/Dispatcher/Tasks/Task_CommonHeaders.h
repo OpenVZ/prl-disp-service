@@ -59,8 +59,8 @@
 #include "CDspVmDirHelper.h"
 #include "Interfaces/ParallelsQt.h"
 #include "CDspSync.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 
 #include <errno.h>
 #include <QDir>
@@ -70,6 +70,6 @@
 #       include <sys/stat.h>
 #endif
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #endif

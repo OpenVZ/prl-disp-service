@@ -46,19 +46,19 @@
 #include "CDspVmManager.h"
 #include "Task_ManagePrlNetService.h"
 #include "Task_BackgroundJob.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Interfaces/ParallelsQt.h"
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 #include <Libraries/PrlNetworking/netconfig.h>
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
-#include "Libraries/PrlCommonUtilsBase/NetworkUtils.h"
+#include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
 #include "Libraries/Virtuozzo/CVzPrivateNetwork.h"
 #include "Dispatcher/Dispatcher/CDspService.h"
 #include "Dispatcher/Dispatcher/CDspVmNetworkHelper.h"
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 #include "CDspVzHelper.h"
 #ifdef _LIN_
@@ -142,19 +142,6 @@ PRL_RESULT Task_ManagePrlNetService::run_body()
 	{
 		switch ( m_nCmd )
 		{
-		case PVE::DspCmdNetPrlNetworkServiceStart:
-			// Issueing start for the already started PrlNetService will cause its restart
-			ret = PrlNet::startPrlNetService ( ParallelsDirs::getParallelsApplicationDir(), PrlNet::SrvAction::Start );
-			break;
-
-		case PVE::DspCmdNetPrlNetworkServiceRestart:
-			ret = restartPrlNetService();
-			break;
-
-		case PVE::DspCmdNetPrlNetworkServiceStop:
-			ret = PrlNet::startPrlNetService ( ParallelsDirs::getParallelsApplicationDir(), PrlNet::SrvAction::Stop );
-			break;
-
 		case PVE::DspCmdNetPrlNetworkServiceRestoreDefaults:
 			ret = cmdNetPrlNetworkServiceRestoreDefaults();
 			break;
@@ -247,28 +234,6 @@ PRL_RESULT Task_ManagePrlNetService::run_body()
 
 	return ret;
 }
-
-/**
- * @brief Sends Parallels Net service status.
- */
-PRL_RESULT Task_ManagePrlNetService::getNetServiceStatus (
-    PRL_SERVICE_STATUS_ENUM_PTR pnStatus )
-{
-		PRL_RESULT ret = PRL_ERR_FIXME;
-
-		if ( !pnStatus )
-			return ret;
-
-		*pnStatus = PSS_UNKNOWN;
-
-		PrlNet::SrvStatus::Status currStatus;
-		ret = PrlNet::getPrlNetServiceStatus( &currStatus );
-		if ( PRL_SUCCEEDED(ret) )
-			*pnStatus = ( PRL_SERVICE_STATUS_ENUM )currStatus;
-
-		return ret;
-}
-
 
 PRL_RESULT Task_ManagePrlNetService::cmdNetPrlNetworkServiceRestoreDefaults()
 {
@@ -386,8 +351,6 @@ PRL_RESULT Task_ManagePrlNetService::cmdNetPrlNetworkServiceRestoreDefaults()
 	// Detach VMs from deleted networks
 	foreach(QString sNetworkId, RemovedNetworksIDs)
 		updateVmNetworkSettings(QString(), sNetworkId);
-
-	restartPrlNetService();
 
 	return PRL_ERR_SUCCESS;
 #endif
@@ -982,9 +945,6 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateVirtualNetwork(
 	if (isVirtualNetworkChanged(pNewVirtualNetwork, pOldVirtualNetwork))
 		updateVmNetworkSettings(pNewVirtualNetwork->getNetworkID(), pOldVirtualNetwork->getNetworkID());
 
-	// Delete old adapter if required.
-	restartPrlNetService();
-
 	if (!bIpAddressChangeFailed)
 		return PRL_ERR_SUCCESS;
 	else
@@ -993,12 +953,6 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateVirtualNetwork(
 
 	return PRL_ERR_UNIMPLEMENTED;
 }
-
-PRL_RESULT Task_ManagePrlNetService::restartPrlNetService( )
-{
-	return PrlNet::notifyPrlNetService( ParallelsDirs::getParallelsApplicationDir() );
-}
-
 
 // type: 0 for tcp, 1 for udp
 static void FillPortForwards(CDispPortForwarding *dst, QList<CPortForwardEntry* > &src, int forwardType)
@@ -1317,12 +1271,6 @@ void Task_ManagePrlNetService::addVmIPAddress(SmartPtr<CVmConfiguration> pVmConf
 
 	if (is_changed)
 		PrlNet::WriteNetworkConfig(*pNetworkConfig.getPtr());
-
-	pNetworkConfig.unlock();
-	if (is_changed)
-		PrlNet::notifyPrlNetService( ParallelsDirs::getParallelsApplicationDir() );
-
-	return;
 }
 
 void Task_ManagePrlNetService::removeVmIPAddress(SmartPtr<CVmConfiguration> pVmConfig)
@@ -1385,12 +1333,6 @@ void Task_ManagePrlNetService::removeVmIPAddress(SmartPtr<CVmConfiguration> pVmC
 
 	if (is_changed)
 		PrlNet::WriteNetworkConfig(*pNetworkConfig.getPtr());
-
-	pNetworkConfig.unlock();
-	if (is_changed)
-		PrlNet::notifyPrlNetService( ParallelsDirs::getParallelsApplicationDir() );
-
-	return;
 }
 
 

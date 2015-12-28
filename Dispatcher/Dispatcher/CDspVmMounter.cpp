@@ -28,9 +28,9 @@
 /// Schaffhausen, Switzerland.
 ///
 /////////////////////////////////////////////////////////////////////////////////
-#include <Libraries/Std/PrlAssert.h>
-#include <Libraries/PrlCommonUtilsBase/StringUtils.h>
-#include <Libraries/HostUtils/HostUtils.h>
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 #include <QSet>
 #include <guestfs.h>
 

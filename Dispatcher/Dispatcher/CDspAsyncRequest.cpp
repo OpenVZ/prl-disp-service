@@ -33,8 +33,8 @@
 #include "CDspAsyncRequest.h"
 #include "CDspClient.h"
 
-#include <Libraries/Std/PrlAssert.h>
-#include <Libraries/IOService/src/IOCommunication/IOProtocol.h>
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 
 #include <QElapsedTimer>
 

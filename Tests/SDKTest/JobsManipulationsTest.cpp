@@ -38,7 +38,7 @@
 #include "XmlModel/Messaging/CVmEventParameter.h"
 #include "XmlModel/DispConfig/CDispCommonPreferences.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #define MAGIC_NUM 0x15a70bcd
 

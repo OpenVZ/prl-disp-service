@@ -23,8 +23,8 @@
 
 #include <windows.h>
 
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlUuid/Uuid.h>
 #include <QMutex>
 
 int update_uuidmap(Uuid_t uuid, unsigned int id, bool del)

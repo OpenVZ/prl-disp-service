@@ -31,7 +31,7 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 #include "CDspService.h"
 #include "CDspVmAutoTaskManagerBase.h"
 

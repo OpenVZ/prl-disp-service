@@ -34,8 +34,6 @@
 #include "CDspStarter.h"
 #include "CDspService.h"
 
-#include <Libraries/Std/ProcessWatcher.h>
-
 #ifdef _WIN_
 #include <windows.h>
 #include <psapi.h>
@@ -56,8 +54,8 @@
 
 #include <QFile>
 
-#include <Libraries/PrlCommonUtilsBase/ParallelsDirs.h>
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/Logging/Logging.h>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
@@ -75,16 +73,6 @@
 #ifdef PSBM_MAC
 #define PSBM_MAC_HW_DETECT "scripts/psbm-mac-hw-detect.py"
 #endif
-
-/**
- * Process functions
- */
-void registerZombiWatcher()
-{
-#ifndef _WIN_
-	Prl::InitEndProcessWatcher();
-#endif
-}
 
 // Terminates proceess by pid. OS-independent variant
 void terminateProcessByPid ( Q_PID pid )

@@ -34,13 +34,13 @@
 
 #include "CVmFileListCopy.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include "Interfaces/ParallelsNamespace.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/Std/PrlTime.h"
-#include "Libraries/HostUtils/HostUtils.h"
-#include "Libraries/Std/AtomicOps.h"
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/Std/PrlTime.h>
+#include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/Std/AtomicOps.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 
 #define MIGRATION_PROTO_VER 0x1
 

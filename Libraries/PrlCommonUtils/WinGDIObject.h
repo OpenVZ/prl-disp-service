@@ -24,7 +24,7 @@
 #pragma once
 
 #include <windows.h>
-#include <Libraries/Std/noncopyable.h>
+#include <prlcommon/Std/noncopyable.h>
 
 template <typename T>
 class WinGDIObject: private noncopyable

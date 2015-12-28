@@ -34,7 +34,7 @@
 
 #include <new>
 #include <string.h>
-#include <Libraries/Logging/Logging.h>
+#include <prlcommon/Logging/Logging.h>
 #include "prlnet.h"
 #include "prlnet_drv.h"
 

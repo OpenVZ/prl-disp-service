@@ -31,7 +31,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 #include "CMultiEditMergeDispConfig.h"
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 
 
 #define DISPATCHER_CONFIG_EDIT_ID	QString("dispatcher configuration")

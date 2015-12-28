@@ -40,7 +40,7 @@
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
-#include "Libraries/IOService/src/IOCommunication/IOClient.h"
+#include <prlcommon/IOService/IOCommunication/IOClient.h>
 #include "CDspDispConnection.h"
 #include "CDspVm.h"
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"

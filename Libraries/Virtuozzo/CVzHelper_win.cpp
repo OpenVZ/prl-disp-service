@@ -25,10 +25,10 @@
 #include <ws2tcpip.h>
 #include <Windows.h>
 #include <QString>
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 #include <prlsdk/PrlOses.h>
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/PrlUuid/Uuid.h>
 #include "UuidMap.h"
 #include "CVzHelper.h"
 #include "PrlIOStructs.h"

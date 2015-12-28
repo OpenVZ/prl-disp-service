@@ -25,7 +25,7 @@
 #include "CDspHandlerRegistrator.h"
 #include "CDspRouter.h"
 #include "ParallelsNamespace.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 DSP_ROUTE_TABLE_BEGIN
 

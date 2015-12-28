@@ -26,7 +26,7 @@
 #include "Reverse_p.h"
 #include "Direct_p.h"
 #include <prlsdk/PrlOses.h>
-#include <Libraries/HostUtils/HostUtils.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 
 namespace Transponster
 {

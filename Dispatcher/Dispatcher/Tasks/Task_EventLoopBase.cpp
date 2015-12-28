@@ -28,7 +28,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <QMetaObject>
-#include <Libraries/Std/PrlAssert.h>
+#include <prlcommon/Std/PrlAssert.h>
 #include "Task_EventLoopBase.h"
 
 

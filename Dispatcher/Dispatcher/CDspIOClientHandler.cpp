@@ -35,8 +35,8 @@
 #include "CDspVmManager.h"
 #include "CDspClientManager.h"
 
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 
 #include <prlsdk/PrlIOStructs.h>
 

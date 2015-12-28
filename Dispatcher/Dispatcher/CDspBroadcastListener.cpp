@@ -52,7 +52,7 @@
 #include "Libraries/HostInfo/CHostInfo.h"
 #include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
 #include "XmlModel/HostHardwareInfo/CHwOsVersion.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 #include "Build/Current.ver"
 

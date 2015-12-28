@@ -51,7 +51,7 @@
 #include "Libraries/Virtuozzo/CCpuHelper.h"
 #endif
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 #include <prlsdk/PrlErrors.h>
 
@@ -197,13 +197,6 @@ PRL_RESULT Task_UpdateCommonPrefs::run_body()
 		ret = saveCommonPrefs();
 		if (PRL_FAILED(ret))
 			throw ret;
-
-		// Handle NATD notification after configuration file update.
-		// It will be read inside
-		if ( m_pNewCommonPrefs->getDebug()->isVerboseLogWasChanged() )
-		{
-			PrlNet::notifyPrlNetService( ParallelsDirs::getParallelsApplicationDir() );
-		}
 
 		ret = PRL_ERR_SUCCESS;
 	}

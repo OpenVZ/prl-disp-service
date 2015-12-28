@@ -63,9 +63,9 @@
 #include "Interfaces/ParallelsTypes.h"
 #include "Interfaces/ParallelsQt.h"
 
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
-#include <Libraries/HostUtils/HostUtils.h>
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 
 #include "CFileHelper.h"
 #include <QDir>
@@ -74,15 +74,15 @@
 #include <QCryptographicHash>
 #include "Libraries/CAuth/CAuth.h"
 #include "CAuthHelper.h"
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/Std/PrlAssert.h>
 #include <prlsdk/PrlEnums.h>
 
-#include "CSimpleFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CSimpleFileHelper.h>
 
 #ifdef _LIN_
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #endif
 
 // By adding this interface we enable allocations tracing in the module

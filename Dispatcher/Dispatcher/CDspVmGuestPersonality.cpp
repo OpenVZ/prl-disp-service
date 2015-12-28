@@ -34,8 +34,8 @@
 #include "CDspService.h"
 #include "Tasks/Task_EditVm.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 
 namespace Personalize
 {

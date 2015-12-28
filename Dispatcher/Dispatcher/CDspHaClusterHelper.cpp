@@ -29,10 +29,10 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 #include "CDspService.h"
-#include "Libraries/PrlCommonUtilsBase/Common.h"
+#include <prlcommon/PrlCommonUtilsBase/Common.h>
 #include <prlsdk/PrlCommandsFlags.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "CDspHaClusterHelper.h"
 
 #define HAMAN_BIN "/usr/sbin/shaman"

@@ -49,7 +49,7 @@
 #endif
 
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
-#include "Libraries/PrlCommonUtilsBase/CSimpleFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CSimpleFileHelper.h>
 
 #define MAX_BUFFER_LENGTH	10*512*1024
 class CAuthHelper;

@@ -35,7 +35,7 @@
 #include "CDspRouter.h"
 #include "CDspVm.h"
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 
 #include "CDspVzHelper.h"

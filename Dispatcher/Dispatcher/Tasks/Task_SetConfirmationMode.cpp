@@ -33,7 +33,7 @@
 #include "Task_SetConfirmationMode.h"
 #include "Task_CommonHeaders.h"
 #include "CProtoSerializer.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 //#include "Interfaces/ParallelsNamespace.h"
 #include "Interfaces/ParallelsSdkPrivate.h"
 #include "Build/Current.ver"

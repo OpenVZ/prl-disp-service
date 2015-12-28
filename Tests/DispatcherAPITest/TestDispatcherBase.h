@@ -42,7 +42,7 @@
 
 #include "XmlModel/VmDirectory/CVmDirectory.h"
 #include "XmlModel/DispConfig/CDispUser.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 
 class CPveControl;
 

@@ -11,7 +11,6 @@ HEADERS += PrlNetLibrary.h PrlNetworkingConstants.h IpStatistics.h \
 	    PrlNetInternal.h netconfig.h
 
 SOURCES += VMNetworking.cpp netconfig.cpp
-SOURCES += $$LIBS_LEVEL/Std/HackParam.cpp
 
 linux-* {
 	HEADERS += unix/ethlist.h

@@ -32,7 +32,7 @@
 #include "CVmEventTest.h"
 
 #include <QDomDocument>
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/PrlUuid/Uuid.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "XmlModel/Messaging/CVmEventParameter.h"
 #include "Tests/CommonTestsUtils.h"

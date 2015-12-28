@@ -32,7 +32,7 @@
 #include "CDspHwMonitorHandler.h"
 #include <CDspService.h>
 #include <Libraries/HostInfo/CHostInfo.h>
-#include <Libraries/Logging/Logging.h>
+#include <prlcommon/Logging/Logging.h>
 //#include "Devices/Usb/UsbSysfs.h"  // Devices/Usb commented out by request from CP team
 #include <sys/stat.h>
 #include <fcntl.h>

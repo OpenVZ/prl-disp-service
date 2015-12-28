@@ -52,12 +52,12 @@
 #include "CDspVm.h"
 #include "CDspVmMounter.h"
 
-#include "Libraries/IOService/src/IOCommunication/IOServer.h"
+#include <prlcommon/IOService/IOCommunication/IOServer.h>
 
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 
 #include "XmlModel/VmDirectory/CVmDirectory.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 
 #include "CDspSync.h"
 #include "XmlModel/ProblemReport/CProblemReport.h"

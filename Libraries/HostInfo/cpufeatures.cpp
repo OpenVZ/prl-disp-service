@@ -29,10 +29,10 @@
 #include "cpufeatures.h"
 
 #include "Interfaces/ParallelsPlatform.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Interfaces/Config.h"
 
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/HostUtils/HostUtils.h>
 #define CpuId(uEax, uEbx, uEcx, uEdx) HostUtils::GetCpuid(uEax, uEcx, uEdx, uEbx)
 
 #ifdef _WIN_

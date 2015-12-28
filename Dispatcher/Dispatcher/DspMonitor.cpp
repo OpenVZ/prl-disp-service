@@ -45,7 +45,7 @@
 #include "XmlModel/Messaging/CVmEvent.h"
 #include "XmlModel/Messaging/CVmEventParameter.h"
 #include "XmlModel/VmDirectory/CVmDirectoryItem.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "CDspTaskHelper.h"
 #include "CDspUserHelper.h"
 #include "XmlModel/DispConfig/CDispUser.h"
@@ -55,10 +55,10 @@
 #include "CDspVm.h"
 #include "CProtoCommands.h"
 #include "CProtoSerializer.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/Std/PrlTime.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/Std/PrlTime.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 
 using namespace Parallels;
 

@@ -32,7 +32,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // includes
 #include <windows.h>
-#include <Libraries/Std/ParallelsErrors.h>
+#include <prlcommon/Std/ParallelsErrors.h>
 #include "wstr2utf8.h"
 
 

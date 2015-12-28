@@ -34,7 +34,7 @@
 
 #include <QMutex>
 #include <QString>
-#include <Libraries/Std/SmartPtr.h>
+#include <prlcommon/Std/SmartPtr.h>
 #include <XmlModel/VmInfo/CVmInfo.h>
 
 class CHwGenericDevice;

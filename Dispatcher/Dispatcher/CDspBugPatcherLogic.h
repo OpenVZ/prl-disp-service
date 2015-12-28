@@ -34,7 +34,7 @@
 
 #include <QList>
 #include <QMap>
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include "Libraries/HostInfo/CHostInfo.h"
 #include "CDspSync.h"
 #include "CVmIdent.h"

@@ -3,9 +3,6 @@ PROJ_FILE = $$PWD/CAuth.pro
 QTCONFIG = core
 !include(../../Build/qmake/staticlib.pri): error(include error)
 
-include($$LIBS_LEVEL/Std/Std.pri)
-include($$LIBS_LEVEL/PrlCommonUtilsBase/PrlCommonUtilsBase.pri)
-
 linux-*: LIBS += -lpam
 win32 {
 	# not sure that we need DEFINES here

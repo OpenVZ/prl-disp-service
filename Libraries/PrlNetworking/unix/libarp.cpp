@@ -40,7 +40,7 @@
 #include <strings.h>
 #include <stdio.h>
 #include <errno.h>
-#include <Libraries/Logging/Logging.h>
+#include <prlcommon/Logging/Logging.h>
 
 #define  werror(fmt, args...)   WRITE_TRACE(DBG_FATAL, fmt, ##args)
 

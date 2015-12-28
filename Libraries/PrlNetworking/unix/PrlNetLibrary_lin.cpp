@@ -36,8 +36,7 @@
 #include <unistd.h>
 #include <net/route.h>
 #include "unix/libarp.h"
-#include <Libraries/PrlCommonUtilsBase/NetworkUtils.h>
-#include <Libraries/Std/BitOps.h>
+#include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
 
 #include <cassert>
 #include <iostream>
@@ -125,50 +124,6 @@ void PrlNet_Private::unconfigurePrlAdapter(int adapterIndex)
 // Install/Uninstall adapters section
 //
 
-// Loads prl_netbridge module
-int PrlNet::loadPrlNetbridgeKext( const QString &qPrlDriversDir )
-{
-	std::string prlDriversDir = qPrlDriversDir.toStdString();
-
-	// stop prl_dhcpd
-	if( Prl::ExecuteProcess(PARALLELS_DHCP30_STARTED) == 0 )
-	{
-	    Prl::ExecuteProcess(PARALLELS_KILL_DHCP30);
-	    ::sleep(1);
-	}
-	// unload 4.0 driver
-	Prl::ExecuteProcess("/sbin/rmmod prl_netbridge > /dev/null 2>&1");
-	// unload 3.0 driver
-	// Prl::ExecuteProcess("/sbin/rmmod vm-bridge > /dev/null 2>&1");
-	// create a /dev entry
-	Prl::ExecuteProcess("mknod /dev/prl_netbridge c 4 0");
-
-	// load driver and return result
-	std::string cmd = PARALLELS_MOD_LOAD_CMD;
-	cmd += " ";
-	cmd += prlDriversDir;
-	cmd += "/";
-	cmd += PARALLELS_MOD_KEXT_PVSNET_NAME;
-
-	return Prl::ExecuteProcess( cmd.c_str() );
-}
-
-// loads prl_vnic
-int PrlNet::loadPrlAdaptersKext( const QString &qPrlDriversDir )
-{
-	std::string prlDriversDir = qPrlDriversDir.toStdString();
-
-	// form load string
-	std::string cmd = PARALLELS_MOD_LOAD_CMD;
-	cmd += " ";
-	cmd += prlDriversDir;
-	cmd += "/";
-	cmd += PARALLELS_MOD_KEXT_NAME;
-
-	return Prl::ExecuteProcess(cmd.c_str());
-}
-
-
 bool PrlNet::isWIFIAdapter(const EthernetAdapter& ethAdapter)
 {
 	// always false for Linux.
@@ -204,44 +159,6 @@ PRL_RESULT PrlNet::renamePrlAdapter(
 }
 
 
-PRL_RESULT PrlNet::startPrlNetService( const QString &parallelsDir, PrlNet::SrvAction::Action action )
-{
-	QString cmd;
-	QString arg0;
-	PrlNet_Private::getPrlNatdNames(parallelsDir, cmd, arg0);
-
-	if( action == PrlNet::SrvAction::Start )
-	{
-		//always start with readconf to reread configuration if daemon is already started
-		return PrlNet_Private::execDaemon( cmd, arg0, "readconf" );
-	}
-	else if( action == PrlNet::SrvAction::Stop )
-	{
-		PRL_RESULT prlResult = execDaemon( cmd, arg0, "stop" );
-		if( PRL_SUCCEEDED(prlResult) )
-		{
-			int i = 0;
-			for( i = 0; i<40; i++ )
-			{
-				if( !PrlNet_Private::isNatdRunning() )
-					break;
-				::usleep( 100*1000 ); // sleep for 100 msecs
-			}
-
-			// it is strange, if no iteration was done..
-			if( i == 0 )
-				::usleep( 500*1000 ); // sleep for 500 msecs
-		}
-		return prlResult;
-	}
-	else
-	{
-		WRITE_TRACE(DBG_FATAL, "[startPrlNetService] Unknown control code %d", (int)action );
-		return PRL_ERR_FAILURE;
-	}
-}
-
-
 static int open_ctrl_sock(int af)
 {
 	int skfd = socket(af, SOCK_DGRAM, 0);
@@ -252,15 +169,6 @@ static int open_ctrl_sock(int af)
 		return -1;
 	}
 	return skfd;
-}
-
-
-PRL_RESULT PrlNet::notifyPrlNetService(const QString &parallelsDir)
-{
-	QString cmd;
-	QString arg0;
-	getPrlNatdNames( parallelsDir, cmd, arg0 );
-	return execDaemon( cmd, arg0, "readconf" );
 }
 
 
@@ -354,6 +262,12 @@ static PRL_RESULT setAdapterIpAddress(const QString& adapterName,
 
 	return setIPv4Address(adapterName.toAscii(), ipAddress.toIPv4Address(),
 			netMask.toIPv4Address());
+}
+
+// Set a bit of a bitmap
+static __inline void BMAP_SET(void* bmap, unsigned int bit)
+{
+	((unsigned int*)bmap)[bit >> 5] |= (1 << (bit & 31));
 }
 
 PRL_RESULT PrlNet::setAdapterIpAddress(const QString& adapterName,

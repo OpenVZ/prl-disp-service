@@ -54,8 +54,8 @@
 #include "ParallelsNamespace.h"
 #include "XmlModel/VmDirectory/CVmDirectory.h"
 #include "XmlModel/Messaging/CVmEvent.h"
-#include "Libraries/PrlUuid/Uuid.h"
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
+#include <prlcommon/PrlUuid/Uuid.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 
 class CVmConfiguration;
 

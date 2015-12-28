@@ -37,10 +37,10 @@
 #include "CVmValidateConfig.h"
 #include "Task_CreateImage.h"
 #include "Task_CommonHeaders.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "Build/Current.ver"
 
 // By adding this interface we enable allocations tracing in the module

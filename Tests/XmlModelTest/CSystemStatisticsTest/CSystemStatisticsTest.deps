@@ -3,5 +3,3 @@ PROJ_PATH = $$PWD
 include(../../../Build/qmake/build_target.pri)
 
 include($$SRC_LEVEL/XmlModel/XmlModel.pri)
-include($$LIBS_LEVEL/Logging/Logging.pri)
-include($$LIBS_LEVEL/PrlDataSerializer/PrlDataSerializer.pri)

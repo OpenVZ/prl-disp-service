@@ -45,10 +45,10 @@
 #include "SDK/Handles/PveControl.h"
 #include "XmlModel/VmDirectory/CVmDirectory.h"
 #include "XmlModel/HostHardwareInfo/CHwFileSystemInfo.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/PrlUuid/Uuid.h>
 
 #include "Tests/CommonTestsUtils.h"
 

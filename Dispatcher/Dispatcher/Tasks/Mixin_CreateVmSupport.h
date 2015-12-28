@@ -38,7 +38,7 @@
 #ifndef __Mixin_CreateVmSupport_H_
 #define __Mixin_CreateVmSupport_H_
 
-//#include "Libraries/Std/SmartPtr.h"
+//#include <prlcommon/Std/SmartPtr.h>
 //#include "SDK/Include/PrlErrors.h"
 #include "CDspTaskHelper.h"
 

@@ -44,7 +44,7 @@
 #ifdef _LIN_
 #include "Tasks/Task_ExecVm.h"
 #endif
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 
 #include "Dispatcher/Dispatcher/Cache/CacheImpl.h"

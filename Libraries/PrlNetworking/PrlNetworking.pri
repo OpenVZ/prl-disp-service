@@ -6,8 +6,6 @@ QTCONFIG = xml core network
 include($$SRC_LEVEL/XmlModel/XmlModel.pri)
 linux-*: include($$LIBS_LEVEL/Virtuozzo/Virtuozzo.pri)
 linux-*: LIBS += -lnetlink
-include($$LIBS_LEVEL/PrlCommonUtilsBase/PrlCommonUtilsBase.pri)
-include($$LIBS_LEVEL/Std/Std.pri)
 
 INCLUDEPATH += $$SRC_LEVEL/System/Network/drivers/common
 linux-*:	INCLUDEPATH += $$SRC_LEVEL/System/Network/drivers/lin/pvsnet

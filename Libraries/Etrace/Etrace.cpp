@@ -22,11 +22,11 @@
  */
 
 #include "Libraries/Etrace/Etrace.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "Interfaces/ParallelsQt.h"
-#include "Libraries/Std/PrlTime.h"
+#include <prlcommon/Std/PrlTime.h>
 
-#include "Libraries/Std/AtomicOps.h"
+#include <prlcommon/Std/AtomicOps.h>
 
 #include <QTextStream>
 #include <QDateTime>

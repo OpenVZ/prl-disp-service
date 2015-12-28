@@ -28,7 +28,7 @@
 #include "XmlModel/HostHardwareInfo/CHwCpu.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "XmlModel/CpuFeatures/CCpuPool.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 
 class CCpuHelper {
 public:

@@ -30,8 +30,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CDspStatCollectingThread.h"
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/Std/PrlAssert.h>
 #include "XmlModel/Messaging/CVmEvent.h"
 #include "XmlModel/Messaging/CVmBinaryEventParameter.h"
 #include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
@@ -43,9 +43,9 @@
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 #include <prlsdk/PrlPerfCounters.h>
 #include <prlsdk/PrlIOStructs.h>
-#include "Libraries/HostUtils/HostUtils.h"
-#include "Libraries/Std/PrlTime.h"
-#include "Libraries/Std/BitOps.h"
+#include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/Std/PrlTime.h>
+#include <prlcommon/Std/BitOps.h>
 
 #include <QDateTime>
 #include <QRegExp>

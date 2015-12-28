@@ -32,7 +32,7 @@
 #include "CDspRouter.h"
 #include "Interfaces/ParallelsNamespace.h"
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 /*****************************************************************************/
 

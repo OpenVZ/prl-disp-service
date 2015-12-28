@@ -31,8 +31,8 @@
 #include "Interfaces/ParallelsQt.h"
 
 #include "CDspTestConfig.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/Logging/Logging.h>
 
 #include <QFile>
 #include <QTextStream>

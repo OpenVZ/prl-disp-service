@@ -57,14 +57,14 @@
 #include "Libraries/ProblemReportUtils/CInstalledSoftwareCollector.h"
 #include "Libraries/ProblemReportUtils/CProblemReportUtils.h"
 #include "Libraries/ProblemReportUtils/CProblemReportPostWrap.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/HostUtils/HostUtils.h"
-#include "Libraries/PrlCommonUtilsBase/CSimpleFileHelper.h"
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/PrlCommonUtilsBase/CSimpleFileHelper.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirsDefs.h"
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirsDefs.h>
 
 #ifdef _WIN_
-#include "Libraries/PrlCommonUtilsBase/countof.h"
+#include <prlcommon/PrlCommonUtilsBase/countof.h>
 #include "Libraries/WinDbgUtils/EventLog.h"
 #include "Libraries/WinDbgUtils/MiniDump.h"
 #include <list>

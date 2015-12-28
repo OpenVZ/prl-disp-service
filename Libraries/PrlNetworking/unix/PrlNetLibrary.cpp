@@ -47,12 +47,6 @@ void PrlNet_Private::MODULE_STORE_SYSTEM_ERROR()
 }
 
 
-bool PrlNet_Private::isNatdRunning()
-{
-	return (Prl::ExecuteProcess(PARALLELS_NAT_IS_RUNNING) == 0);
-}
-
-
 int	PrlNet::getMaximumAdapterIndex()
 {
 	return PARALLELS_MAXIMUM_ADAPTER_INDEX;
@@ -232,17 +226,6 @@ PRL_RESULT PrlNet::enablePrlAdapter( int adapterIndex, bool bEnable )
 }
 
 
-PRL_RESULT PrlNet::getPrlNetServiceStatus(PrlNet::SrvStatus::Status *pStatus)
-{
-	if( PrlNet_Private::isNatdRunning() )
-		*pStatus = PrlNet::SrvStatus::Started;
-	else
-		*pStatus = PrlNet::SrvStatus::Stopped;
-
-	return PRL_ERR_SUCCESS;
-}
-
-
 unsigned long PrlNet::getSysError()
 {
 	return (unsigned long)s_LastSystemError;
@@ -298,8 +281,7 @@ void	PrlNet::getDefaultDhcpParams(
 
 PRL_RESULT PrlNet::stopNetworking(const QString &parallelsDir)
 {
-	PrlNet::startPrlNetService( parallelsDir, PrlNet::SrvAction::Stop );
-
+	Q_UNUSED(parallelsDir);
 #if !defined(EXTERNALLY_AVAILABLE_BUILD)
 	// read system-flags
 	CParallelsNetworkConfig networkConfig;
@@ -375,6 +357,7 @@ PRL_RESULT PrlNet::startNetworking( const QString &parallelsDir, const QString &
 	// Load and process configuration.
 	//
 	Q_UNUSED(prlDriversDir);
+	Q_UNUSED(parallelsDir);
 	CParallelsNetworkConfig networkConfig;
 	bool bConfigurationRestored = false;
 	PRL_RESULT prlResult = InitNetworkConfig(networkConfig, bConfigurationRestored);
@@ -423,13 +406,6 @@ PRL_RESULT PrlNet::startNetworking( const QString &parallelsDir, const QString &
 		}
 	}
 
-	prlResult = PrlNet::startPrlNetService( parallelsDir, PrlNet::SrvAction::Start );
-	if( !PRL_SUCCEEDED(prlResult) )
-	{
-		WRITE_TRACE(DBG_FATAL, "[PrlNet] Failed to start Parallels DHCP/NAT daemon! Error 0x%08x", prlResult);
-		return prlResult;
-	}
-
 	return PRL_ERR_SUCCESS;
 }
 
@@ -441,40 +417,6 @@ void PrlNet_Private::getPrlNatdNames( const QString &parallelsDir, QString &cmd,
 	cmd = "\"" + parallelsDir + "/" + arg0 + "\"";
 }
 
-
-PRL_RESULT PrlNet_Private::execDaemon( const QString &path, const QString & arg0, const char *arg1)
-{
-	QString cmd = path + " " + arg1;
-	int status = Prl::ExecuteProcess( cmd.toUtf8() );
-	if( status == -1 )
-	{
-		MODULE_STORE_SYSTEM_ERROR();
-		WRITE_TRACE(DBG_FATAL, "[startPrlNetService] Failed to execute %s",
-			    arg0.toUtf8().constData());
-
-		return PRL_NET_SYSTEM_ERROR;
-	}
-
-	int rv = WEXITSTATUS(status);
-	if( rv != 0 )
-	{
-		errno = rv;
-		MODULE_STORE_SYSTEM_ERROR();
-
-		WRITE_TRACE(DBG_FATAL, "[startPrlNetService] child process returned %d", rv );
-
-		if( rv == EPERM )
-		{
-			return PRL_ERR_ACCESS_DENIED;
-		}
-		else if( rv == ENOENT )
-		{
-			return PRL_ERR_FILE_NOT_FOUND;
-		}
-		return PRL_NET_SYSTEM_ERROR;
-	}
-	return PRL_ERR_SUCCESS;
-}
 
 QString PrlNet::getBridgeName(const QString& iface)
 {

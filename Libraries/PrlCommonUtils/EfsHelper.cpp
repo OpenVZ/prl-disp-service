@@ -35,9 +35,9 @@
 
 #include "CFileHelper.cpp"
 
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/PrlCommonUtilsBase/Common.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/PrlCommonUtilsBase/Common.h>
 #include "Interfaces/ParallelsQt.h"
 
 #define EFS_MAX_KEY_LENGTH 255

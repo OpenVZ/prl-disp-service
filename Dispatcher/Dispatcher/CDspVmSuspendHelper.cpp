@@ -38,10 +38,10 @@
 #include "XmlModel/DispConfig/CDispatcherConfig.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Libraries/StatesUtils/StatesHelper.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "Interfaces/Debug.h"
 
 #include "CDspService.h"

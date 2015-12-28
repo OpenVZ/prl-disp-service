@@ -32,7 +32,7 @@
 
 // #define FORCE_LOGGING_ON
 // #define FORCE_LOGGING_LEVEL		DBG_DEBUG
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #include "CDspClient.h"
 #include "CDspService.h"
@@ -40,8 +40,8 @@
 
 #include "CProtoSerializer.h"
 #include "XmlModel/Messaging/CVmEventParameter.h"
-#include "Libraries/Std/PrlTime.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlTime.h>
+#include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 
 using namespace Parallels;

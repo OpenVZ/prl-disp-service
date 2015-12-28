@@ -21,7 +21,7 @@
  * Schaffhausen, Switzerland.
  */
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Interfaces/ParallelsPlatform.h"
 #include "sarefile.h"
 #include "Build/Current.ver"

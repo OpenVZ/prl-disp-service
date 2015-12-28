@@ -38,7 +38,7 @@
 #include <QMap>
 #include "CDspStatCollector.h"
 #include "CDspClient.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include "CDspVm.h"
 
 namespace Stat

@@ -42,13 +42,13 @@
 #include "CDspVmInfoDatabase.h"
 #include "CDspVmStateSender.h"
 #include "CDspVmGuestPersonality.h"
-#include "Libraries/PrlCommonUtilsBase/CommandLine.h"
+#include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
 #include "Libraries/PrlCommonUtils/CVmQuestionHelper.h"
 #include "Libraries/NonQtUtils/CQuestionHelper.h"
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/ProblemReportUtils/CProblemReportUtils.h"
 #include "Libraries/ProblemReportUtils/CPackedProblemReport.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"

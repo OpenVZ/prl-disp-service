@@ -24,7 +24,7 @@
 #include <QCoreApplication>
 
 #include <Libraries/PrlNetworking/prl_offmgmt.h>
-#include <Libraries/Std/PrlAssert.h>
+#include <prlcommon/Std/PrlAssert.h>
 #include <sys/socket.h>
 
 using namespace om;

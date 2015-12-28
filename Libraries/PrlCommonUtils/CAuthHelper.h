@@ -34,8 +34,8 @@
 #include <QString>
 
 #include "Libraries/CAuth/CAuth.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/Std/SmartPtr.h>
 
 /**
  * @brief

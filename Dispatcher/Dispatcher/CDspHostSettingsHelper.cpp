@@ -24,7 +24,7 @@
 #include "CDspService.h"
 #include "CDspHostSettingsHelper.h"
 
-#include <Libraries/Logging/Logging.h>
+#include <prlcommon/Logging/Logging.h>
 
 CredentialsList CDspHostSettingsHelper::getHTTPProxyCredentials(const QString& host, quint16 port)
 {

@@ -34,7 +34,7 @@
 #include <QFileInfo>
 
 #include "CProblemReportUtilsTest.h"
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/PrlUuid/Uuid.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/ProblemReportUtils/CProblemReportUtils.h"
 

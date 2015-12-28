@@ -34,7 +34,7 @@
 
 #include <prlsdk/Parallels.h>
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Tests/CommonTestsUtils.h"
 
 #include "PrlHandleSmartPtrTest.h"

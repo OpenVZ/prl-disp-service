@@ -35,7 +35,7 @@
 #include "CDspVmManager.h"
 #include "CDspClientManager.h"
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 #include <prlsdk/PrlIOStructs.h>
 

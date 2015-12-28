@@ -37,10 +37,10 @@
 
 #include "Tasks/Mixin_CreateVmSupport.h"
 #include "CDspVmDirManager.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 #include "CDspService.h"
 
 #include <QProcess>

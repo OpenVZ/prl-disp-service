@@ -32,18 +32,18 @@
 #include <poll.h>
 
 //#define FORCE_LOGGING_ON
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #include "CDspService.h"
 #include "CDspIOCtClientHandler.h"
 #include "Task_ExecVm.h"
 #include <prlsdk/PrlCommandsFlags.h>
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 #include "Libraries/PrlCommonUtils/CFirewallHelper.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "Libraries/Virtuozzo/CVzHelper.h"
-#include "Libraries/IOService/src/IOCommunication/Socket/Socket_p.h"
+#include <prlcommon/IOService/IOCommunication/Socket/Socket_p.h>
 
 enum
 {

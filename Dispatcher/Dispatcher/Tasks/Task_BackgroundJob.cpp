@@ -33,16 +33,16 @@
 // #define FORCE_LOGGING_ON
 // #define FORCE_LOGGING_LEVEL		DBG_DEBUG
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 
 #include "Task_BackgroundJob.h"
 #include "Task_CommonHeaders.h"
 #include "Task_ManagePrlNetService.h"
 #include "CProtoSerializer.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/HostUtils/HostUtils.h"
-#include "Libraries/Std/PrlTime.h"
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/Std/PrlTime.h>
 #include "CDspVmManager.h"
 #include "CDspTestConfig.h"
 
@@ -51,9 +51,9 @@
 #include <Interfaces/ParallelsTypes.h>
 #include <Libraries/PrlNetworking/netconfig.h>
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
-#include "Libraries/PrlCommonUtilsBase/NetworkUtils.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirsDefs.h"
+#include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirsDefs.h>
 
 #include "CDspVzHelper.h"
 

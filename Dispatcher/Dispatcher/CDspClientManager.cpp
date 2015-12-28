@@ -42,8 +42,8 @@
 #include "Tasks/Task_BackgroundJob.h"
 #include "CDspVmManager.h"
 #include "CDspRequestsToVmHandler.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/PrlCommonUtilsBase/CommandConvHelper.h"
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/PrlCommonUtilsBase/CommandConvHelper.h>
 
 #include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
 #include "XmlModel/VmConfig/CVmConfiguration.h"

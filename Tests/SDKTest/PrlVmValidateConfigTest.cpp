@@ -35,7 +35,7 @@
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "XmlModel/HostHardwareInfo/CHwGenericPciDevice.h"
 #include "Libraries/DiskImage/DiskImage.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "Interfaces/Config.h"
 #include "Interfaces/ApiDevNums.h"
 

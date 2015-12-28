@@ -32,7 +32,7 @@
 #pragma once
 
 #include <prlsdk/PrlErrors.h>
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include <QReadWriteLock>
 #include <QHash>
 #include <QDateTime>

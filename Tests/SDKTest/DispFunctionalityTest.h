@@ -38,7 +38,7 @@
 #define H_DispFunctionalityTest_H
 
 #include <QObject>
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
 #include "Tests/PrlPluginExample/PluginUuid.h"
 #include "Tests/PrlPluginExample2/PluginUuid.h"

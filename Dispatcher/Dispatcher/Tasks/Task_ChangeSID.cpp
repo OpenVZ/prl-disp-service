@@ -31,7 +31,7 @@
 
 #include "CProtoSerializer.h"
 #include "CDspClientManager.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/HostUtils/HostUtils.h>
 
 using namespace Parallels;
 

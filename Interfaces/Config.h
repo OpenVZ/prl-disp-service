@@ -36,7 +36,7 @@
 #define __CONFIG_H__
 
 // Logging configuration is placed in the separated file
-#include "Libraries/Logging/LoggingConfig.h"
+#include <prlcommon/Logging/LoggingConfig.h>
 
 // Maximum guest physical memory size (in megabytes)
 #define VM_MAX_MEM				(128 * 1024)

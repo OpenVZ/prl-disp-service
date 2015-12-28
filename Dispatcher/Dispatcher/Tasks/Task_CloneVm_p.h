@@ -38,9 +38,9 @@
 #include "CDspService.h"
 #include "CDspTaskHelper.h"
 #include "CDspVmNetworkHelper.h"
-#include "Libraries/Std/noncopyable.h"
+#include <prlcommon/Std/noncopyable.h>
 #include "Tasks/Mixin_CreateVmSupport.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 //#include "Libraries/VirtualDisk/DiskStatesManager.h"
 

@@ -28,7 +28,7 @@
 #include <QSet>
 #include <memory>
 
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/HostUtils/HostUtils.h>
 
 namespace
 {

@@ -27,11 +27,11 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 
 #include "Interfaces/ParallelsQt.h"
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 #include "CDspVzHelper.h"
 
 

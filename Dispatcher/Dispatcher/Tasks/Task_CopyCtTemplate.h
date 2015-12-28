@@ -37,7 +37,7 @@
 #include "CDspClient.h"
 //#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
-#include "Libraries/IOService/src/IOCommunication/IOClient.h"
+#include <prlcommon/IOService/IOCommunication/IOClient.h>
 #include "Task_VzMigrate.h"
 
 class Task_CopyCtTemplateSource : public Task_VzMigrate

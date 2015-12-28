@@ -35,7 +35,7 @@
 #include "CDspService.h"
 #include "Tasks/Task_ManagePrlNetService.h"
 
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/HostUtils/HostUtils.h>
 #include <Libraries/PrlNetworking/netconfig.h>
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 #include <boost/bind.hpp>

@@ -36,11 +36,11 @@
 #include "Interfaces/ParallelsQt.h"
 #include "Interfaces/ParallelsNamespace.h"
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #include "Task_DispToDispConnHelper.h"
 #include "CDspService.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 Task_DispToDispConnHelper::Task_DispToDispConnHelper(CVmEvent *pEvent)
 :m_pEvent(pEvent)

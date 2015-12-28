@@ -42,13 +42,13 @@
 #include "Tests/CommonTestsUtils.h"
 
 #include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "Libraries/PrlUuid/Uuid.h"
-#include "Libraries/Std/SmartPtr.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/PrlUuid/Uuid.h>
+#include <prlcommon/Std/SmartPtr.h>
+#include <prlcommon/Std/PrlAssert.h>
 #include "XmlModel/Messaging/CVmEvent.h"
-#include "Libraries/HostUtils/HostUtils.h"
-#include "Libraries/Std/PrlTime.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/Std/PrlTime.h>
+#include <prlcommon/Std/SmartPtr.h>
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/NonQtUtils/CQuestionHelper.h"

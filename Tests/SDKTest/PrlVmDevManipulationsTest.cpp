@@ -35,7 +35,7 @@
 #include "XmlModel/VmConfig/CVmSoundInputs.h"
 #include "XmlModel/VmConfig/CVmSoundOutputs.h"
 #include "XmlModel/VmConfig/CVmHardDisk.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Interfaces/ApiDevNums.h"
 

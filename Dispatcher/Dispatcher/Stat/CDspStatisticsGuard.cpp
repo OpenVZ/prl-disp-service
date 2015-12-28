@@ -30,9 +30,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CDspStatisticsGuard.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "CDspSystemInfo.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"

@@ -34,7 +34,7 @@
 #include "SimpleServerWrapper.h"
 #include "Tests/CommonTestsUtils.h"
 #include "Interfaces/ParallelsQt.h"
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/PrlUuid/Uuid.h>
 
 #include <QFile>
 #include <QDir>

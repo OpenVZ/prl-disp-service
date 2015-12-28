@@ -38,10 +38,10 @@
 #include "CDspService.h"
 #include "XmlModel/VmConfig/CVmHardDisk.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "Interfaces/ParallelsDomModel.h"
-#include "Libraries/PrlCommonUtilsBase/StringUtils.h"
+#include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 
 #include "Dispatcher/Dispatcher/Cache/CacheImpl.h"
 

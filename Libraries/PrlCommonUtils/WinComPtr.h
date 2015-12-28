@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include <Libraries/Std/noncopyable.h>
+#include <prlcommon/Std/noncopyable.h>
 
 template <class T>
 class WinComPtr

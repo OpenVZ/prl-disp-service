@@ -39,8 +39,8 @@
 #include <QSocketNotifier>
 #include <boost/optional.hpp>
 #include <boost/noncopyable.hpp>
-#include <Libraries/Std/SmartPtr.h>
-#include <Libraries/Std/noncopyable.h>
+#include <prlcommon/Std/SmartPtr.h>
+#include <prlcommon/Std/noncopyable.h>
 #include <boost/ptr_container/ptr_map.hpp>
 
 class CDspService;

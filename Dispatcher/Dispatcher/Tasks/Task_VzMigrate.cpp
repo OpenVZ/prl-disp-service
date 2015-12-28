@@ -52,14 +52,14 @@
 #include "Interfaces/ParallelsQt.h"
 #include "Interfaces/ParallelsNamespace.h"
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #include "Dispatcher/Dispatcher/Tasks/Task_DispToDispConnHelper.h"
 
 #include "Task_VzMigrate.h"
 #include "CDspService.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/Std/noncopyable.h"
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/Std/noncopyable.h>
 
 
 /*

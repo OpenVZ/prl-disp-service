@@ -41,10 +41,10 @@
 #include <QFile>
 #include <QFileInfo>
 #include "Libraries/CAuth/CAuth.h"
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/HostUtils/HostUtils.h"
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 
 #ifdef _WIN_
 #   include <windows.h>
@@ -61,7 +61,7 @@
 #  include <errno.h>
 #endif
 
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"

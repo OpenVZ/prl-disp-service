@@ -39,11 +39,11 @@
 #include "Mixin_CreateHddSupport.h"
 #include "Task_CommonHeaders.h"
 
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 // #include "Libraries/PrlCommonUtils/CDvdHelper.h"
-#include "Libraries/PrlCommonUtilsBase/CHardDiskHelper.h"
-#include "Libraries/PrlCommonUtilsBase/CGuestOsesHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CHardDiskHelper.h>
+#include <prlcommon/PrlCommonUtilsBase/CGuestOsesHelper.h>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"

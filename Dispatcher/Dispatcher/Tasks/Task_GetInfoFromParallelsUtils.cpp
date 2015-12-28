@@ -36,7 +36,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "Task_GetInfoFromParallelsUtils.h"
 
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 #include "Libraries/StatesUtils/StatesHelper.h"
 //#include "Libraries/DiskImage/DiskImage.h"  // DiskImage commented out by request from CP team

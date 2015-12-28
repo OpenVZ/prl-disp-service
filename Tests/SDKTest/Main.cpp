@@ -35,7 +35,7 @@
 
 #include "Main.h"
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Tests/CommonTestsUtils.h"
 
 #include "HandlesManipulationsTest.h"
@@ -62,7 +62,7 @@
 #include "PrlUsbDevicesHotPlugTest.h"
 
 #include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
-#include "Libraries/HostUtils/PrlMiscellaneous.h"
+#include <prlcommon/HostUtils/PrlMiscellaneous.h>
 
 #ifdef _LIN_
 #include "Libraries/Virtuozzo/CVzHelper.h"

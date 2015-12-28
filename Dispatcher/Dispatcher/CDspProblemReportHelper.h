@@ -33,9 +33,9 @@
 #define __CDsp_ProblemReportHelper_H_
 
 #include "Libraries/ProblemReportUtils/CProblemReportUtils.h"
-#include "Libraries/Std/SmartPtr.h"
-#include "Libraries/IOService/src/IOCommunication/IOServer.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
+#include <prlcommon/Std/SmartPtr.h>
+#include <prlcommon/IOService/IOCommunication/IOServer.h>
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 #include "CDspClient.h"
 #include "CDspVm.h"
 

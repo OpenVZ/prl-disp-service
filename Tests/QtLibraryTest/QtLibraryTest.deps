@@ -2,7 +2,5 @@ TARGET = test_external_qtlib
 PROJ_PATH = $$PWD
 include(../../Build/qmake/build_target.pri)
 
-include($$LIBS_LEVEL/PrlDataSerializer/PrlDataSerializer.pri)
 include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
-include($$LIBS_LEVEL/Logging/Logging.pri)
 include($$SRC_LEVEL/XmlModel/XmlModel.pri)

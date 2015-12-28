@@ -2,19 +2,16 @@ TARGET = prl_disp_service
 PROJ_PATH = $$PWD
 include(../Build/qmake/build_target.pri)
 
-LIBS += -lqtservice -lguestfs
+LIBS += -lqtservice -lguestfs -lprlcommon
 
-include($$LIBS_LEVEL/IOService/IOService.pri)
 include($$LIBS_LEVEL/HostInfo/CHostInfo.pri)
 include($$LIBS_LEVEL/ProtoSerializer/ProtoSerializer.pri)
 include($$LIBS_LEVEL/DispToDispProtocols/DispToDispProtocols.pri)
 include($$LIBS_LEVEL/PrlNetworking/PrlNetworking.pri)
 include($$SRC_LEVEL/XmlModel/XmlModel.pri)
-include($$LIBS_LEVEL/PrlDataSerializer/PrlDataSerializer.pri)
 include($$LIBS_LEVEL/ProblemReportUtils/ProblemReportUtils.pri)
 include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
 include($$LIBS_LEVEL/CAuth/CAuth.pri)
-include($$LIBS_LEVEL/Logging/Logging.pri)
 include($$LIBS_LEVEL/VmFileList/VmFileList.pri)
 include($$LIBS_LEVEL/Virtuozzo/Virtuozzo.pri)
 include($$LIBS_LEVEL/StatesUtils/StatesUtils.pri)

@@ -40,7 +40,7 @@
 
 #include "Tests/CommonTestsUtils.h"
 
-#include "Libraries/PrlUuid/Uuid.h"
+#include <prlcommon/PrlUuid/Uuid.h>
 #include "SDK/Handles/PveControl.h"
 #include "XmlModel/Messaging/CVmEvent.h"
 #include "XmlModel/Messaging/CVmEventParameter.h"

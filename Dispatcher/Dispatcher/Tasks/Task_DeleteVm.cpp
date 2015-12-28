@@ -44,12 +44,12 @@
 #include "Task_CommonHeaders.h"
 
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/HostUtils/HostUtils.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/StatesUtils/StatesHelper.h"
 using namespace Parallels;
 

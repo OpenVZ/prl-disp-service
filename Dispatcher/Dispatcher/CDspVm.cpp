@@ -45,7 +45,7 @@
 #include "CDspVmDirHelper.h"
 
 #include "Libraries/StatesUtils/StatesHelper.h"
-#include "Libraries/PrlCommonUtilsBase/ParallelsDirs.h"
+#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 #include "Build/Current.ver"
 
 #include "CDspVmStateSender.h"
@@ -68,21 +68,21 @@
 #include "CVmValidateConfig.h"
 
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
-#include "Libraries/Std/PrlAssert.h"
-#include "Libraries/PrlCommonUtilsBase/Common.h"
+#include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/PrlCommonUtilsBase/Common.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
 
 //#include "Vm/CVmMigrateFilesCopyingStubs.h"
 
-#include "Libraries/PrlCommonUtilsBase/CommandLine.h"
-#include "Libraries/PrlCommonUtilsBase/OsInfo.h"
+#include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
+#include <prlcommon/PrlCommonUtilsBase/OsInfo.h>
 #include "Libraries/PrlCommonUtils/CFirewallHelper.h"
 #include "Interfaces/ParallelsDomModel.h"
-#include "Libraries/PrlCommonUtilsBase/PrlStringifyConsts.h"
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 
-#include "Libraries/HostUtils/HostUtils.h"
-#include "Libraries/Std/PrlTime.h"
+#include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/Std/PrlTime.h>
 
 #include <Libraries/PowerWatcher/PowerWatcher.h>
 
@@ -103,7 +103,7 @@
 using namespace DspVm;
 using namespace Parallels;
 
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"

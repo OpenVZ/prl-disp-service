@@ -42,15 +42,15 @@
 #include "CProtoSerializer.h"
 #include "CDspClientManager.h"
 #include "CFileHelperDepPart.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 #include "Tasks/Task_ChangeSID.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "CDspVm.h"
 #include "CDspVmNetworkHelper.h"
 #include "CDspLibvirt.h"
 #include "CDspVmStateSender.h"
-#include "Libraries/Std/noncopyable.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
+#include <prlcommon/Std/noncopyable.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 
 using namespace Parallels;

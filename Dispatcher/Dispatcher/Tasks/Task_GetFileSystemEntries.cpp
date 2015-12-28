@@ -39,7 +39,7 @@
 #include "Task_CommonHeaders.h"
 
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
-#include "Libraries/Std/PrlAssert.h"
+#include <prlcommon/Std/PrlAssert.h>
 //#include "CProtoCommands.h"
 
 using namespace Parallels;

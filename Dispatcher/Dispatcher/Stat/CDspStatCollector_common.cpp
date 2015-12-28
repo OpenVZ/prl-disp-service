@@ -31,7 +31,7 @@
 
 #include "CDspStatCollector.h"
 #include "Libraries/PrlNetworking/IpStatistics.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "CDspHandlerRegistrator.h"
 #include "CDspClientManager.h"
 #include "CDspService.h"

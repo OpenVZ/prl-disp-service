@@ -34,7 +34,7 @@
 
 #include "Interfaces/ParallelsTypes.h"
 #include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "SDK/Wrappers/SdkWrap/SdkWrap.h"
 
 #define CHECK_ASYNC_OP_FAILED(operation, expectedErrCode)\

@@ -24,7 +24,7 @@
 #include <QString>
 #include <Windows.h>
 #include <prlsdk/PrlOses.h>
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "CVzHelper.h"
 #include "CVzTemplateHelper.h"
 

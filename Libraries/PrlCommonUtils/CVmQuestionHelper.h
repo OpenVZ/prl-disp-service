@@ -35,9 +35,9 @@
 #ifndef VM_QUESTION_HELPER_H
 #define VM_QUESTION_HELPER_H
 
-#include "Libraries/IOService/src/IOCommunication/IOProtocol.h"
+#include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 
 class CVmQuestionHelper
 {

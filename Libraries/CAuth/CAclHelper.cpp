@@ -33,7 +33,7 @@
 #include "CAclHelper.h"
 
 #include "Interfaces/ParallelsQt.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 namespace Parallels {
 

@@ -36,13 +36,13 @@
 #include <grp.h>
 #include <string.h>
 #include <stdio.h>
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 
 #include <QFile>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 
 // pam support
 #ifdef _LIN_
@@ -53,9 +53,9 @@
 #include <QString>
 #include "CAuth.h"
 #include "CAclHelper.h"
-#include "Libraries/Logging/Logging.h"
-#include "Libraries/HostUtils/HostUtils.h"
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 
 using namespace Parallels;
 

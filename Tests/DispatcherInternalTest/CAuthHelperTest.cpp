@@ -38,10 +38,10 @@
 #include "Interfaces/ParallelsQt.h"
 #include "CAuthHelperTest.h"
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
-#include "Libraries/Logging/Logging.h"
+#include <prlcommon/Logging/Logging.h>
 #include "Tests/CommonTestsUtils.h"
 
-#include "Libraries/PrlCommonUtilsBase/SysError.h"
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 
 #ifdef _WIN_
 #include <windows.h>

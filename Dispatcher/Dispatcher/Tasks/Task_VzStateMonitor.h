@@ -29,7 +29,7 @@
 #ifndef __Task_VzStateMonitor_H_
 
 #include "CDspClient.h"
-#include "Libraries/Std/SmartPtr.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include "CDspTaskHelper.h"
 #include "Libraries/Virtuozzo/CVzHelper.h"
 

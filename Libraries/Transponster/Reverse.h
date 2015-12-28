@@ -38,10 +38,10 @@
 #include "snapshot_type.h"
 #include <XmlModel/VtInfo/VtInfo.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>
-#include <Libraries/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <XmlModel/NetworkConfig/CVirtualNetwork.h>
 #include <XmlModel/HostHardwareInfo/CHwNetAdapter.h>
-#include <Libraries/PrlCommonUtilsBase/ErrorSimple.h>
+#include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 
 namespace Transponster
 {

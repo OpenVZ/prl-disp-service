@@ -35,8 +35,8 @@
 
 #include "Interfaces/ParallelsTypes.h"
 
-#include "Libraries/Std/SpinLock.h"
-#include "Libraries/Std/AtomicOps.h"
+#include <prlcommon/Std/SpinLock.h>
+#include <prlcommon/Std/AtomicOps.h>
 
 #include <limits.h>
 #include <string.h>
