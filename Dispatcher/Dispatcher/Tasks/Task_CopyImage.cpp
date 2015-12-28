@@ -81,19 +81,7 @@ PRL_RESULT Task_CopyImage::prepareTask()
 			m_qsTargetPath = QString("%1/%2").arg(qsTargetPath, fi.fileName());
 		}
 		else
-		{
-// DiskImage commented out by request from CP team
-//			if (qsNewImage.endsWith(IMAGE_DUMMY_FILE_EXTENSION))
-//			{
-//				m_qsTargetPath = QString("%1/%2")
-//					.arg(qsTargetPath, qsNewImage);
-//			}
-//			else
-//			{
-//				m_qsTargetPath = QString("%1/%2%3")
-//					.arg(qsTargetPath, qsNewImage, QString(IMAGE_DUMMY_FILE_EXTENSION));
-//			}
-		}
+			m_qsTargetPath = QDir(qsTargetPath).absoluteFilePath(qsNewImage);
 
 		// Check access
 
@@ -146,14 +134,13 @@ PRL_RESULT Task_CopyImage::run_body()
 
 	try
 	{
-		ret = CFileHelperDepPart::CopyDirectoryWithNotifications(
+		ret = CFileHelperDepPart::CopyFileWithNotifications(
 				m_qsSourcePath,
 				m_qsTargetPath,
 				&getClient()->getAuthHelper(),
 				this,
 				m_vmHardDisk.getDeviceType(),
-				m_vmHardDisk.getIndex(),
-				true );
+				m_vmHardDisk.getIndex());
 		if (PRL_FAILED(ret))
 			throw ret;
 
@@ -178,7 +165,7 @@ void Task_CopyImage::finalizeTask()
 		&& QFileInfo(m_qsTargetPath).exists()
 		&& PRL_FAILED( getLastErrorCode() ))
 	{
-		CFileHelper::ClearAndDeleteDir(m_qsTargetPath);
+		CFileHelper::RemoveEntry(m_qsTargetPath, &getClient()->getAuthHelper());
 	}
 
 	if (m_bExclusiveOpWasReg)
