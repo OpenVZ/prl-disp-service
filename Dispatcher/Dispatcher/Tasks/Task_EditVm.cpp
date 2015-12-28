@@ -3824,15 +3824,6 @@ Vm::Action* Blkiotune::operator()(const Request& input_) const
 namespace Network
 {
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Action
-
-Libvirt::Result Action::operator()(Libvirt::Tools::Agent::Vm::Guest agent_)
-{
-	return agent_.runProgram(Libvirt::Tools::Agent::Vm::Exec::Request("prl_nettool", m_args, QByteArray()));
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
 Vm::Action* Factory::operator()(const Request& input_) const
@@ -3847,7 +3838,12 @@ Vm::Action* Factory::operator()(const Request& input_) const
 		return NULL;
 
 	d.insert(0, "set");
-	return Forge(input_).craftGuest(Action(d));
+
+	bool isWin = input_.getStart().getVmSettings()->getVmCommonOptions()->getOsType() == PVS_GUEST_TYPE_WINDOWS;
+	Libvirt::Tools::Agent::Vm::Exec::Request request(
+		isWin ? "%programfiles%\\Qemu-ga\\prl_nettool.exe" : "prl_nettool", d, QByteArray());
+	request.setRunInShell(isWin);
+	return Forge(input_).craftGuest(boost::bind(&Libvirt::Tools::Agent::Vm::Guest::runProgram, _1, request));
 }
 
 } // namespace Network
