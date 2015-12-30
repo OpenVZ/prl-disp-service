@@ -50,7 +50,7 @@ bool Configurator::setNettool(const QStringList& args_) const
 		<< QString("--input=") + disp
 		<< QString("--output=") + disp
 		<< "nettool-command"
-		<< QString("\"") + args_.join(" ") + "\"";
+		<< QString("\"") + "'" + args_.join("' '") + "'" + "\"";
 	if (!execute(c))
 		return false;
 

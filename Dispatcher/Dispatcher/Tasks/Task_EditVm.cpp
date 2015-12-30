@@ -3551,7 +3551,7 @@ QStringList Address::operator()(const Bridge& mode_)
 		g += d.isEmpty() ? "removev6 " : d + " ";
 	}
 	if (!a.isEmpty())
-		output << "--ip" << mode_.getMac() << QString("'") + a.join(" ") + QString("'");
+		output << "--ip" << mode_.getMac() << a.join(" ");
 
 	if (g.isEmpty())
 	{
