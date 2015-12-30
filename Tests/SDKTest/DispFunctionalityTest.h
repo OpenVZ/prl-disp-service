@@ -118,18 +118,9 @@ private slots:
 	void testStoreValueByKey_InstalledSoftwareId();
 	void testStoreValueByKey_InstalledSoftwareIdOnWrongParams();
 
-	// PrlVm_UpdateToolsSection testsuite
-	void testAtomicEdit_EVT_PARAM_VMCFG_TOOLS_NATIVE_LOOK();
-
-
 // FIXME	// PrlVm_UpdateToolsSection testsuite
 
 	void testAtomicEdit_EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE();
-
-	void testAtomicEdit_EVT_PARAM_VMCFG_TOOLS_COHERENCE();
-	void testAtomicEdit_EVT_PARAM_VMCFG_TOOLS_SHARED_FOLDERS();
-	void testAtomicEdit_EVT_PARAM_VMCFG_TOOLS_SHARED_PROFILES();
-	void testAtomicEdit_EVT_PARAM_VMCFG_TOOLS_SHARED_APPLICATIONS();
 
 	void testRemoteDisplayPasswordLength();
 
