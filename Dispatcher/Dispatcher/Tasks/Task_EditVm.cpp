@@ -201,6 +201,7 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 	try
 	{
 		bool flgConfigChanged = false;
+		bool flgApplyConfig = false; // if true - propagate the change to libvirt
 		bool flgNoChangeAllowed = false;
 
 		//////////////////////////////////////////////////////////////////////////
@@ -342,6 +343,7 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 				{
 					l->push_back(newDevice);
 					flgConfigChanged = true;
+					flgApplyConfig = true;
 					newDevice = NULL;
 				}
 			}
@@ -629,6 +631,14 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 			throw res;
 		}
 
+#ifdef _LIBVIRT_
+		if (flgApplyConfig)
+		{
+			Task_EditVm task(pUserSession,
+				IOPackage::createInstance(IOSender::UnknownType, 0));
+			(Edit::Vm::driver_type(task))(pVmConfigOld, pVmConfig);
+		}
+#endif // _LIBVIRT_
 		CXmlModelHelper::printConfigDiff(*pVmConfig, *pVmConfigOld, DBG_WARNING, "VmCfgAtomicEditDiff");
 
 		CDspService::instance()->getVmDirHelper()
