@@ -33,6 +33,7 @@ import imp
 import string
 import os.path
 # import uuid
+import subprocess
 
 
 sources_root = '../../../'
@@ -56,6 +57,15 @@ max_wait_timeout = 3600*1000
 
 vm_type_str = {prlsdkapi.consts.PVT_CT: "CT", prlsdkapi.consts.PVT_VM:"VM"}
 
+def create_default_cache(server):
+        p = subprocess.Popen(". /etc/vz/vz.conf ; vzpkg list -O -q $DEF_OSTEMPLATE", \
+                shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (tname, err) = p.communicate()
+        if p.returncode != 0:
+                return
+        tname = tname.strip()
+        os.system("vzpkg create cache " + tname)
+        
 # ---------------------------------------------------------
 # Test response of vm requestes
 # ---------------------------------------------------------
@@ -69,6 +79,10 @@ def test(vm_type):
         server = prlsdkapi.Server()
         job = server.login_local()
         job.wait( max_wait_timeout )
+
+        # 0. Create cache in advance in order to avoid timeouts later during actual test
+        if vm_type == prlsdkapi.consts.PVT_CT:
+                create_default_cache(server)
 
         # 1. Create VM
         vm = server.create_vm()
