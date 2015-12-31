@@ -64,18 +64,7 @@ def create_default_cache(server):
         if p.returncode != 0:
                 return
         tname = tname.strip()
-
-        result = server.get_ct_template_list(0).wait()
-        n = result.get_params_count()
-        found = False
-        for i in range(n):
-                t = result.get_param_by_index(i)
-                if t.get_name() == tname:
-                        found = True
-                        break
-
-        if found and t.is_cached() == False:
-                os.system("vzpkg create cache " + tname)
+        os.system("vzpkg create cache " + tname)
         
 # ---------------------------------------------------------
 # Test response of vm requestes
