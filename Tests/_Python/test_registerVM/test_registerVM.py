@@ -58,7 +58,7 @@ max_wait_timeout = 3600*1000
 vm_type_str = {prlsdkapi.consts.PVT_CT: "CT", prlsdkapi.consts.PVT_VM:"VM"}
 
 def create_default_cache(server):
-        p = subprocess.Popen(". /etc/vz/vz.conf ; vzpkg list -O -q $DEF_OSTEMPLATE", \
+        p = subprocess.Popen(". /etc/vz/vz.conf ; echo $DEF_OSTEMPLATE", \
                 shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (tname, err) = p.communicate()
         if p.returncode != 0:
