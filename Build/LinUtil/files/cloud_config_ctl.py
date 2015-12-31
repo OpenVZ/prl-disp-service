@@ -33,21 +33,42 @@ import os
 import tempfile
 import shutil
 import ast
+import uuid
 
-output_file = input_file = "user-config"
+output_file = input_file = "user-data"
 iso_dir = ""
 
-def report_error(message):
-    sys.stderr.write("Error: " + message + "\n")
+def cleanup():
     if iso_dir:
         shutil.rmtree(iso_dir)
+ 
+def report_error(message):
+    sys.stderr.write("Error: " + message + "\n")
+    cleanup()
     sys.exit(1)
 
 # Writes result to specified path in cloud-init format
 def save_result(result, path):
-    f = open(output_file, "w+")
+    f = open(path, "w+")
     f.write("#cloud-config\n")
     f.write(yaml.dump(result, width=4096))
+
+# Creates ISO image in NoCloud datasource format
+# Requirements:
+#  * /meta-data file with instance id
+#  * /user-data file with YAML-formatted settings
+#  * LABEL=cidata
+#
+def create_iso(path, data, src):
+    shutil.copy(data, os.path.join(src, "user-data"))
+
+    m = open(os.path.join(src, "meta-data"), "w+")
+    m.write("instance-id: " + str(uuid.uuid1()) + "\n")
+    m.close()
+
+    if os.system("/usr/bin/genisoimage -output " + path +
+            " -volid cidata -joliet -rock " + src + "*") != 0:
+        report_error("genisoimage failed")
 
 # Handles user settings translation
 # e.g.
@@ -159,6 +180,9 @@ def handle_nettool_commands(args, data):
     if not args.command:
         return
 
+    # remove excessive quoting
+    cmd = args.command.strip("\"'").split("' '")
+
     if not data:
         data = {}
 
@@ -172,14 +196,14 @@ def handle_nettool_commands(args, data):
                 l = ast.literal_eval(str(j))
                 if os.path.basename(l[0].split(' ', 1)[0]).startswith("prl_nettool"):
                     prl_nettool_found = True
-                    data[key][n] = args.command
+                    data[key][n] = cmd
                     break
             except:
                 continue
         if not prl_nettool_found:
-            data[key].insert(0, args.command)
+            data[key].insert(0, cmd)
     if not found:
-        data["runcmd"] = [args.command]
+        data["runcmd"] = [cmd]
 
     save_result(data, output_file)
 
@@ -239,7 +263,7 @@ user_subparser.set_defaults(func=handle_users)
 create_cmd_parser(sp, "run-command", "Manage run commands list", handle_run_commands)
 create_cmd_parser(sp, "boot-command", "Manage boot commands list", handle_boot_commands)
 nettool_subparser = sp.add_parser("nettool-command", help="Manage prl-nettool commands list")
-nettool_subparser.add_argument("command", default=[], metavar="", help="Command to be processed", nargs="*")
+nettool_subparser.add_argument("command", type=str, default="", metavar='CMD', help="Command to be processed")
 nettool_subparser.set_defaults(func=handle_nettool_commands)
 
 merge_subparser = sp.add_parser("merge", help="merge arbitrary cloud-init file")
@@ -279,12 +303,7 @@ args.func(args, blocks)
 if args.output_iso:
     if not iso_dir:
         iso_dir = os.path.join(tempfile.mkdtemp(), "")
-        shutil.copy(output_file, iso_dir)
+    create_iso(args.output_iso, output_file, iso_dir)
 
-    if os.system("/usr/bin/genisoimage -output " + args.output_iso +
-            " -volid cidata -joliet -rock " + iso_dir + "*") != 0:
-        report_error("genisoimage failed")
-
-if iso_dir:
-    shutil.rmtree(iso_dir)
+cleanup()
 
