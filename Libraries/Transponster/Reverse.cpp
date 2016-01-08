@@ -1010,10 +1010,22 @@ Prl::Expected<QString, ::Error::Simple>
 Prl::Expected<Libvirt::Domain::Xml::Qemucdev, ::Error::Simple>
 	Device<CVmSerialPort>::getLibvirtXml(const CVmSerialPort& model_)
 {
-	if (PVE::SerialOutputFile != model_.getEmulatedType())
-		return ::Error::Simple(PRL_ERR_UNIMPLEMENTED);
-
+	Libvirt::Domain::Xml::Qemucdev output;
 	Libvirt::Domain::Xml::Source15 a;
+
+	switch (model_.getEmulatedType())
+	{
+	case PVE::SerialOutputFile:
+		output.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceFile);
+		break;
+	case PVE::SerialSocket:
+		output.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceUnix);
+		a.setMode(QString("bind"));
+		break;
+	default:
+		return ::Error::Simple(PRL_ERR_UNIMPLEMENTED);
+	}
+
 	a.setPath(model_.getUserFriendlyName());
 	if (a.getPath().get().isEmpty())
 		return ::Error::Simple(PRL_ERR_INVALID_ARG);
@@ -1021,8 +1033,6 @@ Prl::Expected<Libvirt::Domain::Xml::Qemucdev, ::Error::Simple>
 
 	Libvirt::Domain::Xml::QemucdevSrcDef b;
 	b.setSourceList(QList<Libvirt::Domain::Xml::Source15 >() << a);
-	Libvirt::Domain::Xml::Qemucdev output;
-	output.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceFile);
 	output.setQemucdevSrcDef(b);
 
 	return output;

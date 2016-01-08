@@ -712,76 +712,6 @@ void CVmConfigurationTest::testTransformationDevicesPathsInsideVmBundle()
 
 	QFile cf(qsConfFile);
 
-	for(int i = 0; i < 2; i++)
-	{
-		QVERIFY( ! cfg.saveToFile(&cf, true, false) );
-
-// Check relative devices paths without transformation
-
-		QVERIFY( ! cfg.loadFromFile(&cf, false) );
-
-		foreach(QString qsDevTag, s_lstDevTags)
-		{
-			QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].SystemName").toString(),
-															  qsDevTag + ".img");
-			QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].UserFriendlyName").toString(),
-															  qsDevTag + ".img");
-		}
-
-// Check absolute devices paths with transformation
-
-		QVERIFY( ! cfg.loadFromFile(&cf, true) );
-
-		foreach(QString qsDevTag, s_lstDevTags)
-		{
-			QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].SystemName").toString(),
-															  qsVmDir + "/" + qsDevTag + ".img");
-			QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].UserFriendlyName").toString(),
-															  qsVmDir + "/" + qsDevTag + ".img");
-		}
-
-		QVERIFY( ! cfg.saveToFile(&cf, true, true) );
-
-// Check relative devices paths after transformation
-
-		QVERIFY( ! cfg.loadFromFile(&cf, false) );
-
-		foreach(QString qsDevTag, s_lstDevTags)
-		{
-			QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].SystemName").toString(),
-															  qsDevTag + ".img");
-			QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].UserFriendlyName").toString(),
-															  qsDevTag + ".img");
-		}
-
-		cfg.getExternalConfigInfo()->setType(PEVT_VMWARE);
-	}
-}
-
-void CVmConfigurationTest::testTransformationDevicesPathsOnShadowVm()
-{
-	m_qsTestPath = QDir::tempPath() + "/" + Uuid::createUuid().toString();
-	QString qsShadowVmDir = m_qsTestPath;
-	QString qsVmDir = qsShadowVmDir + "/" + Uuid::createUuid().toString();
-
-	QVERIFY(QDir().mkpath(qsVmDir));
-	QString qsConfFile = qsVmDir + "/"VMDIR_DEFAULT_VM_CONFIG_FILE;
-
-	CVmConfiguration cfg;
-	cfg.getExternalConfigInfo()->setType(PEVT_VMWARE);
-
-	foreach(QString qsDevTag, s_lstDevTags)
-	{
-		QCOMPARE(cfg.getVmHardwareList()->addListItem(qsDevTag), 0);
-		QVERIFY(cfg.getVmHardwareList()->setPropertyValue(qsDevTag + "[0].EmulatedType",
-						IS_DEV_PORT(qsDevTag) ? PDT_USE_OUTPUT_FILE : PDT_USE_IMAGE_FILE));
-		QVERIFY(cfg.getVmHardwareList()->setPropertyValue(qsDevTag + "[0].SystemName",
-														  "../a/b/c/" + qsDevTag + ".img"));
-		QVERIFY(cfg.getVmHardwareList()->setPropertyValue(qsDevTag + "[0].UserFriendlyName",
-														  "../a/b/c/" + qsDevTag + ".img"));
-	}
-
-	QFile cf(qsConfFile);
 	QVERIFY( ! cfg.saveToFile(&cf, true, false) );
 
 // Check relative devices paths without transformation
@@ -791,9 +721,9 @@ void CVmConfigurationTest::testTransformationDevicesPathsOnShadowVm()
 	foreach(QString qsDevTag, s_lstDevTags)
 	{
 		QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].SystemName").toString(),
-														  "../a/b/c/" + qsDevTag + ".img");
+														  qsDevTag + ".img");
 		QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].UserFriendlyName").toString(),
-														  "../a/b/c/" + qsDevTag + ".img");
+														  qsDevTag + ".img");
 	}
 
 // Check absolute devices paths with transformation
@@ -803,9 +733,9 @@ void CVmConfigurationTest::testTransformationDevicesPathsOnShadowVm()
 	foreach(QString qsDevTag, s_lstDevTags)
 	{
 		QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].SystemName").toString(),
-														  qsShadowVmDir + "/a/b/c/" + qsDevTag + ".img");
+														  qsVmDir + "/" + qsDevTag + ".img");
 		QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].UserFriendlyName").toString(),
-														  qsShadowVmDir + "/a/b/c/" + qsDevTag + ".img");
+														  qsVmDir + "/" + qsDevTag + ".img");
 	}
 
 	QVERIFY( ! cfg.saveToFile(&cf, true, true) );
@@ -817,9 +747,9 @@ void CVmConfigurationTest::testTransformationDevicesPathsOnShadowVm()
 	foreach(QString qsDevTag, s_lstDevTags)
 	{
 		QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].SystemName").toString(),
-														  "../a/b/c/" + qsDevTag + ".img");
+														  qsDevTag + ".img");
 		QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].UserFriendlyName").toString(),
-														  "../a/b/c/" + qsDevTag + ".img");
+														  qsDevTag + ".img");
 	}
 }
 
@@ -849,31 +779,6 @@ void CVmConfigurationTest::testTransformationDevicesPathsOnExtDir()
 	QVERIFY( ! cfg.saveToFile(&cf, true, true) );
 
 // Check absolute devices paths after transformation
-
-	QVERIFY( ! cfg.loadFromFile(&cf, false) );
-
-	foreach(QString qsDevTag, s_lstDevTags)
-	{
-		QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].SystemName").toString(),
-														  qsExtDir + "/" + qsDevTag + ".img");
-		QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].UserFriendlyName").toString(),
-														  qsExtDir + "/" + qsDevTag + ".img");
-	}
-
-	QVERIFY( ! cfg.loadFromFile(&cf, true) );
-
-	foreach(QString qsDevTag, s_lstDevTags)
-	{
-		QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].SystemName").toString(),
-														  qsExtDir + "/" + qsDevTag + ".img");
-		QCOMPARE(cfg.getVmHardwareList()->getPropertyValue(qsDevTag + "[0].UserFriendlyName").toString(),
-														  qsExtDir + "/" + qsDevTag + ".img");
-	}
-
-// Check absolute devices paths after transformation for shadow VM
-
-	cfg.getExternalConfigInfo()->setType(PEVT_VMWARE);
-	QVERIFY( ! cfg.saveToFile(&cf, true, true) );
 
 	QVERIFY( ! cfg.loadFromFile(&cf, false) );
 
