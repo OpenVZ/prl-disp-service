@@ -50,6 +50,14 @@ IOSendJob::Handle CDspDispConnection::sendPackage ( const SmartPtr<IOPackage> &p
 	return (CDspService::instance()->getIOServer().sendPackage(m_clientHandle, p));
 }
 
+PRL_RESULT CDspDispConnection::sendPackageResult(const SmartPtr<IOPackage> &p) const
+{
+	IOSendJob::Handle job;
+
+	job = CDspService::instance()->getIOServer().sendPackage(m_clientHandle, p);
+	return job.isValid() ? PRL_ERR_SUCCESS : PRL_ERR_OPERATION_FAILED;
+}
+
 IOSendJob::Handle CDspDispConnection::sendSimpleResponse ( const SmartPtr<IOPackage> &pRequestPkg,
 				PRL_RESULT nRetCode ) const
 {

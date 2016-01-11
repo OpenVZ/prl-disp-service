@@ -57,18 +57,352 @@
 #include "Task_BackgroundJob.h"
 #include "CDspService.h"
 #include "Libraries/PrlCommonUtils/CVmMigrateHelper.h"
+#include "Task_MigrateVmTarget_p.h"
+
+
+namespace Migrate
+{
+namespace Vm
+{
+QString demangle(const char* name_)
+{
+	const char* x = name_;
+	int status = -1; 
+	char* y = abi::__cxa_demangle(x, NULL, NULL, &status);
+	if (0 != status)
+		return x;
+
+	QString output = y;
+	free(y);
+	return output;
+}
+
+namespace Pump
+{
+namespace Pull
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Writing
+
+PRL_RESULT Writing::operator()(QIODevice& sink_)
+{
+	const qint64 w = sink_.write(
+			m_package->buffers[0].getImpl() + m_sent,
+			getRemaining());
+
+	if (w == -1)
+	{
+		WRITE_TRACE(DBG_FATAL, "write error: %s",
+			qPrintable(sink_.errorString()));
+		return PRL_ERR_FAILURE;
+	}
+	return PRL_ERR_SUCCESS;
+}
+
+void Writing::setup(const SmartPtr<IOPackage>& value_)
+{
+	m_sent = 0;
+	m_package = value_;
+}
+
+qint64 Writing::getVolume() const
+{
+	return m_package.isValid() ? m_package->buffersSize() : 0;
+}
+
+} // namespace Pull
+
+namespace Push
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Packer
+
+SmartPtr<IOPackage> Packer::operator()()
+{
+	SmartPtr<IOPackage> output = IOPackage::createInstance(TunnelChunk_type::s_command, 1);
+	if (output.isValid())
+		output->fillBuffer(0, IOPackage::RawEncoding, NULL, 0);
+
+	return output;
+}
+
+SmartPtr<IOPackage> Packer::operator()(QIODevice& source_)
+{
+	SmartPtr<IOPackage> output = (*this)();
+	if (!output.isValid())
+		return output;
+
+	QByteArray b(source_.bytesAvailable(), 0);
+	qint64 z = source_.read(b.data(), b.size());
+	if (-1 == z)
+	{
+		output.reset();
+		WRITE_TRACE(DBG_FATAL, "read error: %s",
+			qPrintable(source_.errorString()));
+	}
+	else
+		output->fillBuffer(0, IOPackage::RawEncoding, b.data(), z);
+
+	return output;
+}
+
+} // namespace Push
+} // namespace Pump
+
+namespace Target
+{
+namespace Content
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+template <typename Event, typename FSM>
+void Frontend::on_entry(const Event& event_, FSM& fsm_)
+{
+	Vm::Frontend<Frontend>::on_entry(event_, fsm_);
+	std::pair<CVmFileListCopySender*, CVmFileListCopyTarget*> pair = m_task->createCopier();
+	m_sender.reset(pair.first);
+	m_copier.reset(pair.second);
+}
+
+template <typename Event, typename FSM>
+void Frontend::on_exit(const Event& event_, FSM& fsm_)
+{
+	Vm::Frontend<Frontend>::on_exit(event_, fsm_);
+	// order is significant
+	m_copier.reset();
+	m_sender.reset();
+}
+
+void Frontend::copy(const CopyCommand_type& event_)
+{
+	bool f = false;
+	PRL_RESULT e = m_copier->handlePackage(event_.getPackage(), &f);
+	if (!f)
+		return;
+	if (PRL_FAILED(e))
+	{
+		static_cast<boost::msm::back::state_machine<Frontend> &>(*this)
+			.process_event(Flop::Event(e));
+	}
+	else
+	{
+		static_cast<boost::msm::back::state_machine<Frontend> &>(*this)
+			.process_event(Good());
+	}
+}
+
+} // namespace Content
+
+namespace Tunnel
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+void Connector::reactConnected()
+{
+	handle(Connected());
+}
+
+void Connector::reactDisconnected()
+{
+	handle(Disconnected());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct IO
+
+IO::IO(CDspDispConnection& io_): m_io(&io_)
+{
+	bool x;
+	x = this->connect(
+		m_io,
+		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
+		SLOT(reactReceived(IOSender::Handle, const SmartPtr<IOPackage>)));
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+	x = this->connect(
+		&CDspService::instance()->getIOServer(),
+		SIGNAL(onClientDisconnected(IOSender::Handle)),
+		SLOT(reactDisconnected(IOSender::Handle)));
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+	x = this->connect(
+		&CDspService::instance()->getIOServer(),
+		SIGNAL(onAfterSend(IOServerInterface*, IOSender::Handle,
+			    IOSendJob::Result, const SmartPtr<IOPackage>)),
+		SLOT(reactSend(IOServerInterface*, IOSender::Handle,
+			    IOSendJob::Result, const SmartPtr<IOPackage>))
+		);
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+}
+
+IO::~IO()
+{
+	m_io->disconnect(SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
+		this, SLOT(reactReceived(IOSender::Handle, const SmartPtr<IOPackage>)));
+	CDspService::instance()->getIOServer().disconnect(
+		SIGNAL(onClientDisconnected(IOSender::Handle)),
+		this, SLOT(reactDisconnected(IOSender::Handle)));
+	CDspService::instance()->getIOServer().disconnect(
+		SIGNAL(onAfterSend(IOServerInterface*, IOSender::Handle,
+			    IOSendJob::Result, const SmartPtr<IOPackage>)), this,
+		SLOT(reactSend(IOServerInterface*, IOSender::Handle,
+			    IOSendJob::Result, const SmartPtr<IOPackage>))
+		);
+}
+
+IOSendJob::Handle IO::sendPackage(const SmartPtr<IOPackage>& package_)
+{
+	return m_io->sendPackage(package_);
+}
+
+void IO::reactReceived(IOSender::Handle handle_, const SmartPtr<IOPackage>& package_)
+{
+	if (handle_ == m_io->GetConnectionHandle())
+		emit onReceived(package_);
+}
+
+void IO::reactDisconnected(IOSender::Handle handle_)
+{
+	if (handle_ == m_io->GetConnectionHandle())
+		emit disconnected();
+}
+
+void IO::reactSend(IOServerInterface*, IOSender::Handle handle_,
+	    IOSendJob::Result, const SmartPtr<IOPackage>)
+{
+	if (handle_ == m_io->GetConnectionHandle())
+		emit onSent();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+template <typename Event, typename FSM>
+void Frontend::on_entry(const Event& event_, FSM& fsm_)
+{
+	bool x;
+	Vm::Frontend<Frontend>::on_entry(event_, fsm_);
+	m_socket = QSharedPointer<QLocalSocket>(new QLocalSocket(), &QObject::deleteLater);
+	x = getConnector()->connect(m_socket.data(), SIGNAL(connected()),
+		SLOT(reactConnected()));
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+	x = getConnector()->connect(m_socket.data(), SIGNAL(disconnected()),
+		SLOT(reactDisconnected()));
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+	m_socket->connectToServer("/var/run/libvirt/libvirt-sock");
+}
+
+template <typename Event, typename FSM>
+void Frontend::on_exit(const Event& event_, FSM& fsm_)
+{
+	Vm::Frontend<Frontend>::on_exit(event_, fsm_);
+	m_socket->disconnect(SIGNAL(connected()), getConnector(),
+			SLOT(reactConnected()));
+	m_socket->disconnect(SIGNAL(disconnected()),
+			getConnector(), SLOT(reactDisconnected()));
+	m_socket.clear();
+}
+
+void Frontend::connect(const Connected& )
+{
+	getConnector()->handle(Pump::Launch_type(m_service, m_socket.data()));
+}
+
+void Frontend::disconnect(const msmf::none& )
+{
+	m_socket->disconnectFromServer();
+}
+
+} // namespace Tunnel
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+void Connector::cancel()
+{
+	handle(Flop::Event(PRL_ERR_OPERATION_WAS_CANCELED));
+}
+
+void Connector::disconnected()
+{
+	handle(Flop::Event(PRL_ERR_FAILURE));
+}
+
+void Connector::react(const SmartPtr<IOPackage>& package_)
+{
+	if (IS_FILE_COPY_PACKAGE(package_->header.type))
+	{
+		handle(CopyCommand_type(package_));
+		return;
+	}
+	switch (package_->header.type)
+	{
+	case VmMigrateStartCmd:
+		handle(StartCommand_type(package_));
+		break;
+	case VmMigrateTunnelChunk:
+		handle(Pump::TunnelChunk_type(package_));
+		break;
+	default:
+		WRITE_TRACE(DBG_FATAL, "Unexpected package type: %d.", package_->header.type);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+template <typename Event, typename FSM>
+void Frontend::on_entry(const Event& event_, FSM& fsm_)
+{
+	bool x;
+	Vm::Frontend<Frontend>::on_entry(event_, fsm_);
+	x = getConnector()->connect(m_task, SIGNAL(cancel()), SLOT(cancel()));
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+	x = getConnector()->connect(m_io,
+			SIGNAL(onReceived(const SmartPtr<IOPackage>&)),
+			SLOT(react(const SmartPtr<IOPackage>&)));
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+	x = getConnector()->connect(m_io, SIGNAL(disconnected()), SLOT(disconnected()));
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+}
+
+template <typename Event, typename FSM>
+void Frontend::on_exit(const Event& event_, FSM& fsm_)
+{
+	Vm::Frontend<Frontend>::on_exit(event_, fsm_);
+	m_task->disconnect(SIGNAL(cancel()), getConnector(), SLOT(cancel()));
+	m_io->disconnect(SIGNAL(onReceived(const SmartPtr<IOPackage>&)),
+			getConnector(), SLOT(react(const SmartPtr<IOPackage>&)));
+	m_io->disconnect(SIGNAL(disconnected()), getConnector(), SLOT(disconnected()));
+}
+
+void Frontend::setResult(const Flop::Event& value_)
+{
+	if (value_.isFailed())
+		boost::apply_visitor(Flop::Visitor(*m_task), value_.error());
+}
+
+} // namespace Target
+} // namespace Vm
+} // namespace Migrate
 
 #define VM_MIGRATE_START_CMD_WAIT_TIMEOUT 600 * 1000
 
 Task_MigrateVmTarget::Task_MigrateVmTarget(
-		const QObject *parent,
 		const SmartPtr<CDspDispConnection> &pDispConnection,
 		CDispToDispCommandPtr pCmd,
 		const SmartPtr<IOPackage> &p)
 :CDspTaskHelper(pDispConnection->getUserSession(), p),
 Task_DispToDispConnHelper(getLastError()),
-m_pParent(parent),
-m_pCheckDispConnection(pDispConnection),
+m_dispConnection(pDispConnection),
 m_pCheckPackage(p),
 m_cDstHostInfo(CDspService::instance()->getHostInfo()->data()),
 m_nFlags(0),
@@ -96,35 +430,16 @@ m_nConfigPermissions(0)
 	if (m_nVersion >= MIGRATE_DISP_PROTO_V3)
 		m_nPrevVmState = pCheckCmd->GetVmPrevState();
 	if (pCheckCmd->GetTargetVmHomePath().isEmpty())
-		m_sVmDirPath = m_pCheckDispConnection->getUserSession()->getUserDefaultVmDirPath();
+		m_sVmDirPath = m_dispConnection->getUserSession()->getUserDefaultVmDirPath();
 	else
 		m_sVmDirPath = pCheckCmd->GetTargetVmHomePath();
 	/* initialize all vars from pCheckCmd - after exit from constructor package buffer will invalid */
 
-	if (m_nVersion >= MIGRATE_DISP_PROTO_V3)
-	{
-		/* in m_nVersion < MIGRATE_DISP_PROTO_V3 dispatcher make disconnect after
-		   prereq reply receiving, than vm_app make connect to target dispatche before start req sending
-		   but target disp reattache this connection to new vn_app, so in old protocol target disp
-		   have not any connection diring migration.
-		   Since V3 source dispatcher close connection on finalizeTask() only, so
-		   we can process disconnect from here
-		   https://jira.sw.ru/browse/PSBM-6571
-		*/
-		bool bConnected = QObject::connect(
-			&CDspService::instance()->getIOServer(),
-			SIGNAL(onClientDisconnected(IOSender::Handle)),
-			SLOT(clientDisconnected(IOSender::Handle)),
-			Qt::DirectConnection);
-		PRL_ASSERT(bConnected);
-	}
-
+	moveToThread(this);
 }
 
 Task_MigrateVmTarget::~Task_MigrateVmTarget()
 {
-	// #439777 protect handler from destroying object
-	m_waiter.waitUnlockAndFinalize();
 }
 
 /* process VmMigrateCheckPreconditionsCommand */
@@ -282,102 +597,37 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 			checkRequiresDiskSpace();
 		}
 	}
+
+
+	if (operationIsCancelled()) {
+		nRetCode = PRL_ERR_OPERATION_WAS_CANCELED;
+		goto exit;
+	}
+
 exit:
 	setLastErrorCode(nRetCode);
 	return nRetCode;
 }
 
-PRL_RESULT Task_MigrateVmTarget::run_body()
+PRL_RESULT Task_MigrateVmTarget::reactStart(const SmartPtr<IOPackage> &package)
 {
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	bool bConnected;
-	QTimer *pTimer;
-	CDispToDispCommandPtr pReply;
-	SmartPtr<IOPackage> pPackage;
-	IOSendJob::Handle hJob;
 
-	if (operationIsCancelled()) {
-		nRetCode = PRL_ERR_OPERATION_WAS_CANCELED;
-		goto exit;
-	}
-
-	bConnected = QObject::connect(m_pParent,
-		SIGNAL(onPackageReceived(
-			const SmartPtr<CDspDispConnection> &,
-			const QString &,
-			const SmartPtr<IOPackage> &)),
-		SLOT(handleStartPackage(
-			const SmartPtr<CDspDispConnection> &,
-			const QString &,
-			const SmartPtr<IOPackage> &)),
-		Qt::DirectConnection);
-	PRL_ASSERT(bConnected);
-
-	/* and send reply on Precond Check command */
-	if (m_nVersion < MIGRATE_DISP_PROTO_V2)
+	if (package->header.type != VmMigrateStartCmd)
 	{
-		/* for proto v1 send DispToDispResponseCmd */
-		if (m_lstCheckPrecondsErrors.size())
-		{
-			pReply = CDispToDispProtoSerializer::CreateDispToDispResponseCommand(
-					PRL_ERR_VM_MIGRATE_CHECKING_PRECONDITIONS_FAILED,
-					m_pCheckPackage,
-					m_lstCheckPrecondsErrors
-				);
-			hJob = m_pCheckDispConnection->sendResponse(pReply, m_pCheckPackage);
-		}
-		else
-		{
-			//Drop checking step on success execution
-			hJob = m_pCheckDispConnection->sendSimpleResponse(m_pCheckPackage, PRL_ERR_SUCCESS);
-		}
-	}
-	else
-	{
-		/* for protocol v.2 and later will send VmMigrateCheckPreconditionsReply */
-		pReply = CDispToDispProtoSerializer::CreateVmMigrateCheckPreconditionsReply(
-				m_lstCheckPrecondsErrors, m_lstNonSharedDisks, m_nFlags);
-		SmartPtr<IOPackage> pPackage =
-			DispatcherPackage::createInstance(
-				pReply->GetCommandId(), pReply->GetCommand()->toString(), m_pCheckPackage);
-		hJob = m_pCheckDispConnection->sendPackage(pPackage);
-	}
-	if (!hJob.isValid()) {
-		nRetCode = PRL_ERR_OPERATION_FAILED;
-		goto exit;
+		WRITE_TRACE(DBG_FATAL, "unexpected package type: %d", package->header.type);
+		return PRL_ERR_OPERATION_FAILED;
 	}
 
-	/* set timer */
-	pTimer = new QTimer();
-	pTimer->setSingleShot(true);
-	bConnected = QObject::connect(pTimer, SIGNAL(timeout()), SLOT(handleStartCommandTimeout()), Qt::DirectConnection);
-	pTimer->start(VM_MIGRATE_START_CMD_WAIT_TIMEOUT);
+	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(package);
+	CVmMigrateStartCommand *cmd =
+		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmMigrateStartCommand>(pCmd);
 
-	/* will wait StartMigration command */
-	nRetCode = exec();
-	pTimer->stop();
-	if (bConnected)
-		QObject::disconnect(pTimer, SIGNAL(timeout()), this, SLOT(handleStartCommandTimeout()));
-	delete pTimer;
-
-	QObject::disconnect(m_pParent,
-		SIGNAL(onPackageReceived(
-			const SmartPtr<CDspDispConnection> &,
-			const QString &,
-			const SmartPtr<IOPackage> &)),
-		this,
-		SLOT(handleStartPackage(
-			const SmartPtr<CDspDispConnection> &,
-			const QString &,
-			const SmartPtr<IOPackage> &)));
-
-	if (PRL_FAILED(nRetCode))
-		goto exit;
-
-	if (operationIsCancelled()) {
-		nRetCode = PRL_ERR_OPERATION_WAS_CANCELED;
-		goto exit;
-	}
+	m_nMigrationFlags = cmd->GetMigrationFlags();
+	m_nReservedFlags = cmd->GetReservedFlags();
+	m_sSnapshotUuid = cmd->GetSnapshotUuid();
+	m_nBundlePermissions = cmd->GetBundlePermissions();
+	m_nConfigPermissions = cmd->GetConfigPermissions();
 
 	if ( !(m_nReservedFlags & PVM_DONT_COPY_VM) ) {
 		/* to create Vm bundle */
@@ -428,27 +678,8 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 	} else {
 		nRetCode = migrateStoppedVm();
 	}
-	if (m_nVersion >= MIGRATE_DISP_PROTO_V3)
-	{
-		/* migration completed and connection state is indifferent for us
-		   https://jira.sw.ru/browse/PSBM-8925 */
-		QObject::disconnect(
-			&CDspService::instance()->getIOServer(),
-			SIGNAL(onClientDisconnected(IOSender::Handle)),
-			this,
-			SLOT(clientDisconnected(IOSender::Handle)));
-	}
-	if (PRL_FAILED(nRetCode))
-		goto exit;
 
-	// update config for shared storage
-	if ((m_nReservedFlags & PVM_DONT_COPY_VM) && !(PVMT_CLONE_MODE & getRequestFlags()))
-		saveVmConfig();
-
-	/* and set logged user by owner to all VM's files */
-	Mixin_CreateVmSupport().setDefaultVmPermissions(getClient(), m_sVmConfigPath, true);
 exit:
-	setLastErrorCode(nRetCode);
 	return nRetCode;
 }
 
@@ -492,6 +723,13 @@ void Task_MigrateVmTarget::finalizeTask()
 	if (PRL_SUCCEEDED(getLastErrorCode()))
 	{
 		PRL_ASSERT(m_pVm);
+
+		// update config for shared storage
+		if ((m_nReservedFlags & PVM_DONT_COPY_VM) && !(PVMT_CLONE_MODE & getRequestFlags()))
+			saveVmConfig();
+
+		/* and set logged user by owner to all VM's files */
+		Mixin_CreateVmSupport().setDefaultVmPermissions(getClient(), m_sVmConfigPath, true);
 
 		if (m_sSnapshotUuid.size())
 			DeleteSnapshot();
@@ -570,7 +808,7 @@ void Task_MigrateVmTarget::finalizeTask()
 		if (m_nVersion >= MIGRATE_DISP_PROTO_V3) {
 			/* notify source task about target task finish,
 			   will send reply to check precondition request. https://jira.sw.ru/browse/PSBM-9596 */
-			m_pCheckDispConnection->sendSimpleResponse(m_pCheckPackage, PRL_ERR_SUCCESS);
+			m_dispConnection->sendSimpleResponse(m_pCheckPackage, PRL_ERR_SUCCESS);
 		}
 		/* migration initiator wait event from original Vm uuid */
 		CVmEvent cEvent(PET_DSP_EVT_VM_MIGRATE_FINISHED, m_sOriginVmUuid, PIE_DISPATCHER);
@@ -585,9 +823,6 @@ void Task_MigrateVmTarget::finalizeTask()
 		QList< SmartPtr<CDspClient> > clientList =
 			CDspService::instance()->getClientManager().
 				getSessionListByVm(m_sVmDirUuid, m_sVmUuid).values();
-
-		if (operationIsCancelled())
-			setLastErrorCode(PRL_ERR_OPERATION_WAS_CANCELED);
 
 		unregisterHaClusterResource();
 
@@ -638,10 +873,7 @@ void Task_MigrateVmTarget::finalizeTask()
 		pPackage = DispatcherPackage::createInstance(PVE::DspVmEvent, cEvent.toString());
 		CDspService::instance()->getClientManager().sendPackageToClientList(pPackage, clientList);
 
-		if (m_pStartDispConnection.isValid())
-			hJob = m_pStartDispConnection->sendResponseError(getLastError(), getRequestPackage());
-		else
-			hJob = m_pCheckDispConnection->sendResponseError(getLastError(), getRequestPackage());
+		hJob = m_dispConnection->sendResponseError(getLastError(), getRequestPackage());
 		CDspService::instance()->getIOServer().waitForSend(hJob, m_nTimeout);
 	}
 }
@@ -673,30 +905,6 @@ PRL_RESULT Task_MigrateVmTarget::migrateStoppedVm()
 	if ( PRL_FAILED( nRetCode ) )
 		return nRetCode;
 
-	m_pSender = SmartPtr<CVmFileListCopySender>(new CVmFileListCopySenderServer(
-			CDspService::instance()->getIOServer(),
-			m_pStartDispConnection->GetConnectionHandle()));
-	/* CVmFileListCopyTarget will use Vm uuid in progress messages for clients, so will use original Vm uuid */
-	m_pVmMigrateTarget = SmartPtr<CVmFileListCopyTarget>(
-		new CVmFileListCopyTarget(m_pSender.getImpl(), m_sOriginVmUuid, m_sTargetVmHomePath, NULL, m_nTimeout));
-/*
-TODO - send START CANCEL FINISH events from this task
-	m_pVmMigrateTarget->SetCancelNotifySender((m_nReservedFlags & PVM_DONT_COPY_VM)?
-						  NotifyClientWithCancelShared:
-						  NotifyClientWithCancel);
-	m_pVmMigrateTarget->SetFinishNotifySender((m_nReservedFlags & PVM_DONT_COPY_VM)?
-						  NotifyClientWithFinishShared:
-						  NotifyClientWithFinish);
-*/
-
-	// Connect to handle traffic report package
-	bool bConnected = QObject::connect(
-		m_pStartDispConnection.getImpl(),
-		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
-		SLOT(handlePackage(IOSender::Handle, const SmartPtr<IOPackage>)),
-		Qt::DirectConnection );
-	PRL_ASSERT(bConnected);
-
 	UINT64 uMemSize = m_pVmConfig->getVmHardwareList()->getMemory()->getRamSize()*1024*1024 +
 	           m_pVmConfig->getVmHardwareList()->getVideo()->getMemorySize()*1024*1024;
 
@@ -714,16 +922,8 @@ TODO - send START CANCEL FINISH events from this task
 		pReply = CDispToDispProtoSerializer::CreateVmMigrateReply(sMemFilePath);
 	pPackage = DispatcherPackage::createInstance(
 		pReply->GetCommandId(), pReply->GetCommand()->toString(), m_pStartPackage);
-	m_pStartDispConnection->sendPackage(pPackage);
 
-	nRetCode = QThread::exec();
-
-	QObject::disconnect(
-		m_pStartDispConnection.getImpl(),
-		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
-		this,
-		SLOT(handlePackage(IOSender::Handle, const SmartPtr<IOPackage>)));
-
+	nRetCode = m_dispConnection->sendPackageResult(pPackage);
 	if (PRL_FAILED(nRetCode))
 		return nRetCode;
 
@@ -766,7 +966,7 @@ PRL_RESULT Task_MigrateVmTarget::migrateRunningVm()
 
 	/* for handshake with vm_app. ! before startMigratedVm() */
 	m_pVm->setMigrateVmRequestPackage(pPackage);
-	m_pVm->setMigrateVmConnection(m_pStartDispConnection);
+	m_pVm->setMigrateVmConnection(m_dispConnection);
 
 	nRetCode = CDspService::instance()->getAccessManager().checkAccess(
 				getClient(), PVE::DspCmdCtlMigrateTarget, m_sVmUuid);
@@ -794,7 +994,6 @@ PRL_RESULT Task_MigrateVmTarget::migrateRunningVm()
 		goto cleanup;
 	}
 	m_nSteps |= MIGRATE_VM_APP_STARTED;
-	/* m_pStartDispConnection is not valid */
 	nRetCode = exec();
 
 cleanup:
@@ -835,128 +1034,12 @@ void Task_MigrateVmTarget::handleVmMigrateEvent(const QString &sVmUuid, const Sm
 	}
 }
 
-void Task_MigrateVmTarget::handlePackage(IOSender::Handle h, const SmartPtr<IOPackage> p)
-{
-	PRL_RESULT nRetCode;
-	bool bExit;
-	PRL_ASSERT(m_pVmMigrateTarget.getImpl());
-
-	// #439777 to protect call handler for destroying object
-	WaiterTillHandlerUsingObject::AutoUnlock lock( m_waiter );
-	if( !lock.isLocked() )
-		return;
-
-	if (h != m_pStartDispConnection->GetConnectionHandle())
-		return;
-
-	if (IS_FILE_COPY_PACKAGE(p->header.type)) {
-		nRetCode = m_pVmMigrateTarget->handlePackage(p, &bExit);
-		if (bExit)
-			QThread::exit(nRetCode);
-	} else if (p->header.type == VmMigrateCancelCmd) {
-		WRITE_TRACE(DBG_DEBUG, "Migration was cancelled");
-		QThread::exit(PRL_ERR_OPERATION_WAS_CANCELED);
-	} else {
-		WRITE_TRACE(DBG_FATAL, "Invalid package type %d, ignored", p->header.type);
-	}
-}
-
-void Task_MigrateVmTarget::clientDisconnected(IOSender::Handle h)
-{
-	// #439777 to protect call handler for destroying object
-	WaiterTillHandlerUsingObject::AutoUnlock lock( m_waiter );
-	if( !lock.isLocked() )
-		return;
-
-	if (m_nSteps & MIGRATE_VM_APP_STARTED)
-	{
-		if (m_pVm->getVmConnectionHandle() != h)
-			return;
-	}
-	else if (h != m_hConnHandle)
-		return;
-
-	WRITE_TRACE(DBG_FATAL, "%s", __FUNCTION__);
-	SmartPtr<CDspClient> nullClient;
-	cancelOperation(nullClient, getRequestPackage());
-}
-
-void Task_MigrateVmTarget::handleStartPackage(
-		const SmartPtr<CDspDispConnection> &pDispConnection,
-		const QString &sVmUuid,
-		const SmartPtr<IOPackage> &p)
-{
-// ??? LOCK
-	// #439777 to protect call handler for destroying object
-	WaiterTillHandlerUsingObject::AutoUnlock lock( m_waiter );
-	if( !lock.isLocked() )
-		return;
-
-	if (operationIsCancelled())
-		return;
-
-	/* this function will handle StartMigrateCommand with _original_ Vm uuid */
-	if (m_sOriginVmUuid != sVmUuid)
-		return;
-
-	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(p);
-	if ( !pCmd->IsValid() )
-	{
-		WRITE_TRACE(DBG_FATAL, "Wrong start migration package was received: [%s]",
-			p->buffers[0].getImpl());
-		QThread::exit(PRL_ERR_FAILURE);
-	}
-
-	CVmMigrateStartCommand *pStartCmd =
-		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmMigrateStartCommand>(pCmd);
-	if ( NULL == pStartCmd )
-	{
-		WRITE_TRACE(DBG_FATAL, "Wrong start migration package was received: [%s]",
-			p->buffers[0].getImpl());
-		QThread::exit(PRL_ERR_FAILURE);
-	}
-	m_nMigrationFlags = pStartCmd->GetMigrationFlags();
-	m_nReservedFlags = pStartCmd->GetReservedFlags();
-	m_sSnapshotUuid = pStartCmd->GetSnapshotUuid();
-	if (m_nVersion < MIGRATE_DISP_PROTO_V3) {
-		m_nPrevVmState = pStartCmd->GetVmPrevState();
-	} else {
-		m_nBundlePermissions = pStartCmd->GetBundlePermissions();
-		m_nConfigPermissions = pStartCmd->GetConfigPermissions();
-	}
-
-/* TODO : compare m_nFlags  and m_nReservedFlags */
-
-	/* reassign task to new connection and package and return to main thread */
-	SmartPtr<CDspClient> pClient = pDispConnection->getUserSession();
-	reassignTask( pClient, p );
-	m_pStartDispConnection = pDispConnection;
-	/* attn: do not use getRequestPackage() after this - reassignTask() changed type of new package */
-	m_pStartPackage = IOPackage::duplicateInstance(p);
-
-	QThread::exit(0);
-}
-
 // cancel command
 void Task_MigrateVmTarget::cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& p)
 {
 	WRITE_TRACE(DBG_FATAL, "%s", __FUNCTION__);
 	CancelOperationSupport::cancelOperation(pUser, p);
-	if (m_pVmMigrateTarget.isValid())
-		m_pVmMigrateTarget->cancelOperation();
-
-	QThread::exit(PRL_ERR_OPERATION_WAS_CANCELED);
-}
-
-void Task_MigrateVmTarget::handleStartCommandTimeout()
-{
-	// #439777 to protect call handler for destroying object
-	WaiterTillHandlerUsingObject::AutoUnlock lock( m_waiter );
-	if( !lock.isLocked() )
-		return;
-
-	WRITE_TRACE( DBG_DEBUG, "StartMigrateCommand timeout" );
-	QThread::exit(PRL_ERR_TIMEOUT);
+	emit cancel();
 }
 
 void Task_MigrateVmTarget::checkTargetCpusNumber()
@@ -1350,4 +1433,58 @@ void Task_MigrateVmTarget::unregisterHaClusterResource()
 		// resource was added
 		CDspService::instance()->getHaClusterHelper()->removeClusterResource(m_sVmName, false);
 	}
+}
+
+PRL_RESULT Task_MigrateVmTarget::preconditionsReply()
+{
+	PRL_RESULT r;
+	CDispToDispCommandPtr cmd = CDispToDispProtoSerializer::CreateVmMigrateCheckPreconditionsReply(
+			m_lstCheckPrecondsErrors, m_lstNonSharedDisks, m_nFlags);
+	SmartPtr<IOPackage> package = DispatcherPackage::createInstance(
+			cmd->GetCommandId(), cmd->GetCommand()->toString(), m_pCheckPackage);
+	r = m_dispConnection->sendPackageResult(package);
+	setLastErrorCode(r);
+	return r;
+}
+
+PRL_RESULT Task_MigrateVmTarget::run_body()
+{
+	namespace mvt = Migrate::Vm::Target;
+	typedef boost::msm::back::state_machine<mvt::Frontend>
+		backend_type;
+
+	mvt::Tunnel::IO io(*m_dispConnection);
+	backend_type machine(boost::msm::back::states_
+		<< Migrate::Vm::Finished(*this)
+		<< backend_type::Starting(boost::bind(&Task_MigrateVmTarget::reactStart, this, _1),
+			VM_MIGRATE_START_CMD_WAIT_TIMEOUT)
+		<< backend_type::Copying(boost::ref(*this))
+		<< backend_type::Tunneling(boost::ref(io)),
+		boost::ref(*this), boost::ref(io)
+		);
+	(Migrate::Vm::Walker<backend_type>(machine))();
+
+	machine.start();
+	if (PRL_SUCCEEDED(preconditionsReply()))
+		exec();
+
+	machine.stop();
+
+	return getLastErrorCode();
+}
+
+std::pair<CVmFileListCopySender*, CVmFileListCopyTarget*> Task_MigrateVmTarget::createCopier()
+{
+	CVmFileListCopySender* sender = new CVmFileListCopySenderServer(
+			CDspService::instance()->getIOServer(),
+			m_dispConnection->GetConnectionHandle());
+
+	/* CVmFileListCopyTarget will use Vm uuid in progress messages for clients, so will use original Vm uuid */
+	CVmFileListCopyTarget* copier = new CVmFileListCopyTarget(
+			sender,
+			m_sOriginVmUuid,
+			m_sTargetVmHomePath,
+			NULL, m_nTimeout);
+
+	return std::make_pair(sender, copier);
 }

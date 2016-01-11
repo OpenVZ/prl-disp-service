@@ -122,39 +122,9 @@ void CDspVmMigrateHelper::checkPreconditions(
 	}
 #endif
 	else
-		task_helper = new Task_MigrateVmTarget((QObject *)this, pDispConnection, pCmd, p);
+		task_helper = new Task_MigrateVmTarget(pDispConnection, pCmd, p);
 
 	CDspService::instance()->getTaskManager().schedule(task_helper);
-}
-
-void CDspVmMigrateHelper::startMigration(SmartPtr<CDspDispConnection> pDispConnection, const SmartPtr<IOPackage> &p)
-{
-	PRL_ASSERT( pDispConnection.getImpl() );
-	PRL_ASSERT( p.getImpl() );
-
-	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(p);
-	if ( ! pCmd->IsValid() )
-	{
-		pDispConnection->sendSimpleResponse( p, PRL_ERR_FAILURE );
-		WRITE_TRACE(DBG_FATAL, "Wrong start migration package was received: [%s]",\
-			p->buffers[0].getImpl());
-		return;
-	}
-
-	CVmMigrateStartCommand *pStartCommand =
-		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmMigrateStartCommand>(pCmd);
-
-	SmartPtr<CVmConfiguration> pVmConfig(new CVmConfiguration(pStartCommand->GetVmConfig()));
-	if (PRL_FAILED(pVmConfig->m_uiRcInit))
-	{
-		pDispConnection->sendSimpleResponse( p, PRL_ERR_PARSE_VM_CONFIG );
-		WRITE_TRACE(DBG_FATAL, "Wrong VM configuration was received: [%s]",\
-			QSTR2UTF8(pStartCommand->GetVmConfig()));
-		return;
-	}
-
-	emit onPackageReceived(pDispConnection, pVmConfig->getVmIdentification()->getVmUuid(), p);
-	return;
 }
 
 void CDspVmMigrateHelper::cancelMigration(
