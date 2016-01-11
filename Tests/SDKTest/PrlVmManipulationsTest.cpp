@@ -64,7 +64,7 @@
 #include "Libraries/StatesStore/SavedStateTree.h"
 #include "Libraries/PrlNetworking/netconfig.h"
 
-#include "Interfaces/ParallelsSdkPrivate.h"
+#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
 #ifdef _MAC_
 #include "Libraries/TimeMachineHelper/CTimeMachineHelper.h"
 #endif

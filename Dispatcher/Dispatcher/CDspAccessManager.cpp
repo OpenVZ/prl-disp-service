@@ -29,7 +29,7 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/HostUtils/HostUtils.h>
 
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"

@@ -37,7 +37,7 @@
 #include "Libraries/DiskImage/DiskImage.h"
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Interfaces/Config.h"
-#include "Interfaces/ApiDevNums.h"
+#include <prlcommon/Interfaces/ApiDevNums.h>
 
 
 #define READ_VM_CONFIG_INTO_BUF(vm_config_path)\

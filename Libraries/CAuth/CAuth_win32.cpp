@@ -51,7 +51,7 @@
 #include <QFileInfoList>
 #include <QDir>
 
-#include "ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include "CAuth.h"
 #include "aclApi.h"
 #include "AccCtrl.h"

@@ -38,7 +38,7 @@
 #include <QMap>
 #include <QtAlgorithms>
 
-#include "Interfaces/ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlsdk/PrlEventsValues.h>
 #include <prlsdk/PrlEnums.h>
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"

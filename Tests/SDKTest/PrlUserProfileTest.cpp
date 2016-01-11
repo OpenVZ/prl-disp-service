@@ -30,7 +30,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "PrlUserProfileTest.h"
-#include <Interfaces/ParallelsLogging.h>
+#include <prlcommon/Interfaces/ParallelsLogging.h>
 
 #include "XmlModel/DispConfig/CDispUser.h"
 

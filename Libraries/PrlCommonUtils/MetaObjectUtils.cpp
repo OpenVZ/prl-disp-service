@@ -40,7 +40,7 @@
 #include <QtCore/QMetaObject>
 
 #include <prlcommon/Logging/Logging.h>
-#include "Interfaces/Qt4Compatibility.h"
+#include <prlcommon/Interfaces/Qt4Compatibility.h>
 
 QString MetaObjectUtils::methodNameFromSignature ( const QString& signature )
 {

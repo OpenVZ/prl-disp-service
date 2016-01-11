@@ -42,7 +42,7 @@
 
 #include "CHostInfo.h"
 
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include <stack>
 #include <QMutexLocker>
@@ -72,7 +72,7 @@
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
-#include "Interfaces/ApiDevNums.h"
+#include <prlcommon/Interfaces/ApiDevNums.h>
 #include "Interfaces/Config.h"
 
 #include "Build/Current.ver"

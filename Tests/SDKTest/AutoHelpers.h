@@ -59,7 +59,7 @@
 #include "XmlModel/DispConfig/CDispCommonPreferences.h"
 
 #include <prlsdk/PrlApiDeprecated.h>
-#include "Interfaces/ParallelsSdkPrivate.h"
+#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
 
 
 class AutoDirRemover;

@@ -46,9 +46,9 @@
 #include <QList>
 #include <map>
 
-#include "ParallelsNamespace.h"
-#include "ParallelsTypes.h"
-#include "ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/ParallelsTypes.h>
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include <prlsdk/PrlOses.h>
 

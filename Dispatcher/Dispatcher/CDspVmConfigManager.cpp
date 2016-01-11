@@ -40,7 +40,7 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/HostUtils/HostUtils.h>
-#include "Interfaces/ParallelsDomModel.h"
+#include <prlcommon/Interfaces/ParallelsDomModel.h>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 
 #include "Dispatcher/Dispatcher/Cache/CacheImpl.h"

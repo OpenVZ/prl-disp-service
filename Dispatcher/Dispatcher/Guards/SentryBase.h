@@ -38,7 +38,7 @@
 #define HH_SentryBase_HH
 
 
-#include "ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 #include "XmlModel/Messaging/CVmEvent.h"

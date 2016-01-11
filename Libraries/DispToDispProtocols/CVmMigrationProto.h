@@ -40,7 +40,7 @@
 namespace Parallels
 {
 
-#include <packed.h>
+#include <prlcommon/Interfaces/packed.h>
 struct CVmMigrateMemPage {
 	UINT nPageNo;
 	char sPage[PAGE_SIZE];
@@ -52,7 +52,7 @@ typedef struct
 	PRL_UINT32 nsect;
 	PRL_GUID disk_id;
 } CVmMigrateDiskBlock_t;
-#include <unpacked.h>
+#include <prlcommon/Interfaces/unpacked.h>
 
 class CVmMigrateProto : public CDispToDispCommand
 {

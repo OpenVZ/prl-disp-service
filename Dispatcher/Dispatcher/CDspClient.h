@@ -37,7 +37,7 @@
 #include <QHash>
 
 #include "CVmIdent.h"
-#include "ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
 #include "XmlModel/DispConfig/CDispUser.h"
 #include "XmlModel/UserInformation/SessionInfo.h"

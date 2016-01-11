@@ -47,7 +47,7 @@
 #include "Task_ManagePrlNetService.h"
 #include "Task_BackgroundJob.h"
 #include <prlcommon/Logging/Logging.h>
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <prlcommon/HostUtils/HostUtils.h>

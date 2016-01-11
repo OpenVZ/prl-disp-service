@@ -21,7 +21,7 @@
  * Schaffhausen, Switzerland.
  */
 
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlcommon/Logging/Logging.h>
 #include "SaReShared.h"
 #include "sarefile.h"

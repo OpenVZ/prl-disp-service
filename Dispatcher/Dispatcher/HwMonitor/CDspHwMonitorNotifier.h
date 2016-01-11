@@ -35,7 +35,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <Interfaces/Config.h>
+#include "Interfaces/Config.h"
 #include <prlsdk/PrlEnums.h>
 #include "CDspSync.h"
 #include <QMutex>

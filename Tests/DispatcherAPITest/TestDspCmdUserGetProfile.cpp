@@ -39,7 +39,7 @@
 
 #include <QtTest>
 
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include "SDK/Handles/PveControl.h"
 #include "XmlModel/DispConfig/CDispatcherConfig.h"

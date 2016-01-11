@@ -33,7 +33,7 @@
 #define SAVEDSTATE_H
 
 #include <QString>
-#include <Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 //#include <Libraries/VirtualDisk/DiskStates.h>  // VirtualDisk commented out by request from CP team
 
 /**

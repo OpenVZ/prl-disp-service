@@ -38,7 +38,7 @@
 
 #include "CDspService.h"
 #include "CDspVmInfoDatabase.h"
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include "XmlModel/VmInfo/CVmInfo.h"
 #include "CDspVmSnapshotInfrastructure.h"
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team

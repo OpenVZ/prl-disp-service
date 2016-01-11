@@ -32,7 +32,7 @@
 #ifndef __PREF_COUNTER_HOST_H__
 #define __PREF_COUNTER_HOST_H__
 
-#include "Interfaces/ParallelsTypes.h"
+#include <prlcommon/Interfaces/ParallelsTypes.h>
 #include <stdio.h>
 
 enum {

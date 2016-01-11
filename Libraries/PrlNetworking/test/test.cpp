@@ -23,7 +23,7 @@
 
 #include <QCoreApplication>
 #include <QDir>
-//#include <Interfaces/ParallelsDirs.h>
+//#include <prlcommon/Interfaces/ParallelsDirs.h>
 
 #include <iostream>
 
@@ -33,7 +33,7 @@
 
 #include "../win/ethlist.h"
 
-#include "Interfaces/ParallelsPlatform.h"
+#include <prlcommon/Interfaces/ParallelsPlatform.h>
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 
 #include <net/if.h>

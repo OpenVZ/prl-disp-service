@@ -35,7 +35,7 @@
 ///		None.
 ///
 /////////////////////////////////////////////////////////////////////////////
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include "CAuthHelperTest.h"
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
 #include <prlcommon/Logging/Logging.h>

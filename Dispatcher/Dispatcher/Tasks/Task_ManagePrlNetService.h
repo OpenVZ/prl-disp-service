@@ -44,7 +44,7 @@
 #include "XmlModel/NetworkConfig/CParallelsNetworkConfig.h"
 #include "XmlModel/VmConfig/CVmGenericNetworkAdapter.h"
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
-#include "Interfaces/ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include "Dispatcher/Dispatcher/CDspVzHelper.h"
 
 class CDispNetworkPreferences;

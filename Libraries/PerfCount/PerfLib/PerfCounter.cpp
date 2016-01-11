@@ -61,7 +61,7 @@ static const int SHM_FILENAME_SIZE = PERFCOUNT_STORAGE_WIDTH - sizeof(STORAGE_MA
 
 #define CREATER_PID_UNDEFINED() ((unsigned int)-1)
 
-#include <Interfaces/packed.h>
+#include <prlcommon/Interfaces/packed.h>
 typedef struct _storage_mem_t {
 
         char          mark[sizeof(STORAGE_MARK)] ;   // mark to identify that memory initialized
@@ -84,7 +84,7 @@ typedef struct _storage_mem_t {
 		char          align_to_page[PAGE_SIZE - STORAGE_MEM_HEADER_SIZE];
         char          counters_storage[sizeof(counters_storage_t)] ;  // real counter storage memory returned for use
 } storage_mem_t;
-#include <Interfaces/unpacked.h>
+#include <prlcommon/Interfaces/unpacked.h>
 typedef storage_mem_t * storage_mem_ptr ;
 
 

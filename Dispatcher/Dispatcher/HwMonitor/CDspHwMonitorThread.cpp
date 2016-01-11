@@ -34,13 +34,13 @@
 #include "CDspHwMonitorNotifier.h"
 #include "CDspCommon.h"
 #include <prlsdk/PrlErrors.h>
-#include <Interfaces/Config.h>
+#include "Interfaces/Config.h"
 #include "CDspService.h"
 #include "CDspHwMonitorHandler.h"
 
 #include <prlcommon/Std/PrlAssert.h>
 
-#include <Interfaces/Debug.h>
+#include "Interfaces/Debug.h"
 
 #define CHECK_HW_INTERVAL_IN_MSEC  (5 * 60 * 1000)
 

@@ -34,8 +34,8 @@
 #include "Task_CommonHeaders.h"
 #include "CProtoSerializer.h"
 #include <prlcommon/Std/PrlAssert.h>
-//#include "Interfaces/ParallelsNamespace.h"
-#include "Interfaces/ParallelsSdkPrivate.h"
+//#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
 #include "Build/Current.ver"
 
 #define FLAG_CONTAINS_IN_BITMASK( flag, bitmask )  ( (flag & bitmask) == flag )

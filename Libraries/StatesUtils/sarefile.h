@@ -24,7 +24,7 @@
 #ifndef __SAREFILE_H__
 #define __SAREFILE_H__
 
-#include "Interfaces/ParallelsTypes.h"
+#include <prlcommon/Interfaces/ParallelsTypes.h>
 
 /**
  *  * Version of sav file. It must be increment to 1, if we added new suspend data.
@@ -147,7 +147,7 @@ typedef	enum _SARE_FI_TYPES{
 
 }SARE_FI_TYPES;
 
-#include <Interfaces/packed.h>
+#include <prlcommon/Interfaces/packed.h>
 
 typedef struct _STransportHeader
 {
@@ -192,7 +192,7 @@ typedef struct _SARE_FILE_ITEM
 
 }SARE_FILE_ITEM, *PSARE_FILE_ITEM;
 
-#include <Interfaces/unpacked.h>
+#include <prlcommon/Interfaces/unpacked.h>
 
 typedef struct _SARE_CUSTOM_ACTIVITY{
 	PSARE_REC pRec;

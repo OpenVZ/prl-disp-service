@@ -39,7 +39,7 @@
 #include "Tests/AclTestsUtils.h"
 
 #include <prlcommon/PrlUuid/Uuid.h>
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
 

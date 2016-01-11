@@ -33,7 +33,7 @@
 #include <QDir>
 #include <QMutableListIterator>
 
-#include "ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "CDspService.h"
 #include "CDspRouter.h"
@@ -81,7 +81,7 @@
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
 #include "Interfaces/Config.h"
-#include "Interfaces/ApiDevNums.h"
+#include <prlcommon/Interfaces/ApiDevNums.h>
 
 #include "Build/Current.ver"
 

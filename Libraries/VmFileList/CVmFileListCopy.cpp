@@ -35,7 +35,7 @@
 #include "CVmFileListCopy.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
-#include "Interfaces/ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/Std/PrlTime.h>
 #include <prlcommon/HostUtils/HostUtils.h>

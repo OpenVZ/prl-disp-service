@@ -37,8 +37,8 @@
 #ifndef CommonTestsUtils_H
 #define CommonTestsUtils_H
 
-#include "Interfaces/ParallelsNamespace.h"
-#include "Interfaces/ParallelsNamespaceTests.h"
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/ParallelsNamespaceTests.h>
 #include <prlsdk/PrlEnums.h>
 
 #include <QList>

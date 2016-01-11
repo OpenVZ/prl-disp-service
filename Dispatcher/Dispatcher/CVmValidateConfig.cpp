@@ -57,7 +57,7 @@
 #include "StringUtils.h"
 #include "XmlModel/ParallelsObjects/CXmlModelHelper.h"
 #include "Interfaces/Config.h"
-#include "Interfaces/ApiDevNums.h"
+#include <prlcommon/Interfaces/ApiDevNums.h>
 #include <boost/mpl/quote.hpp>
 #include <boost/mpl/for_each.hpp>
 #define SCSI_HOST_INDEX 7

@@ -32,8 +32,8 @@
 #include <QList>
 #include <QDomDocument>
 
-#include "ParallelsDomModel.h"
-#include "ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsDomModel.h>
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlsdk/PrlIOStructs.h>
 #include "../VmDataStatistic/CVmDataStatistic.h"
 #include "../GuestOsInformation/CVmGuestOsInformation.h"

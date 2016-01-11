@@ -32,7 +32,7 @@
 
 #include "NonInitializedSdkTest.h"
 
-#include "Interfaces/ParallelsTypes.h"
+#include <prlcommon/Interfaces/ParallelsTypes.h>
 #include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
 #include <prlcommon/Logging/Logging.h>
 #include "SDK/Wrappers/SdkWrap/SdkWrap.h"

@@ -46,7 +46,7 @@
 
 #include "CDspVmStateSender.h"
 #include <prlcommon/Std/PrlAssert.h>
-#include "ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include "CDspCommon.h"
 #include "CDspService.h"
 #include "CDspClientManager.h"
@@ -54,7 +54,7 @@
 
 #include "XmlModel/Messaging/CVmEvent.h"
 #include "XmlModel/Messaging/CVmEventParameter.h"
-#include "Interfaces/ParallelsDomModel.h"
+#include <prlcommon/Interfaces/ParallelsDomModel.h>
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 
 // By adding this interface we enable allocations tracing in the module

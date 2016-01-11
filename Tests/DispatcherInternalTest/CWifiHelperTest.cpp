@@ -37,7 +37,7 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/WifiHelper/CWifiStoreHelper.h"
 #include <prlcommon/Logging/Logging.h>
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include <QDir>
 

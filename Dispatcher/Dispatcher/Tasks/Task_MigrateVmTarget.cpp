@@ -33,8 +33,8 @@
 //#define FORCE_LOGGING_LEVEL DBG_DEBUG
 
 #include "Interfaces/Debug.h"
-#include "Interfaces/ParallelsQt.h"
-#include "Interfaces/ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 
 #include <prlcommon/Logging/Logging.h>
 #include "Libraries/StatesStore/SavedStateTree.h"

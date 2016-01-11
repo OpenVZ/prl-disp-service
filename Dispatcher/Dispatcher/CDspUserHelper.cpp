@@ -45,7 +45,7 @@
 #include <QImage>
 #include <QImageWriter>
 
-#include "ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 #include <prlcommon/HostUtils/HostUtils.h>
@@ -79,7 +79,7 @@
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
 
-#include "Interfaces/ParallelsSdkPrivate.h"
+#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
 
 #define LOGIN_LOCAL_TIMEOUT_SEC 10
 

@@ -44,7 +44,7 @@
 #include <QDir>
 
 #include <prlcommon/PrlUuid/Uuid.h>
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #ifndef _WIN_
 #	include <unistd.h>

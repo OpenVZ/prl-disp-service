@@ -78,7 +78,7 @@
 #include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
 #include <prlcommon/PrlCommonUtilsBase/OsInfo.h>
 #include "Libraries/PrlCommonUtils/CFirewallHelper.h"
-#include "Interfaces/ParallelsDomModel.h"
+#include <prlcommon/Interfaces/ParallelsDomModel.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 
 #include <prlcommon/HostUtils/HostUtils.h>

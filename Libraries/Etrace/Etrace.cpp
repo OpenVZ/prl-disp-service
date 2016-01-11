@@ -23,7 +23,7 @@
 
 #include "Libraries/Etrace/Etrace.h"
 #include <prlcommon/HostUtils/HostUtils.h>
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlcommon/Std/PrlTime.h>
 
 #include <prlcommon/Std/AtomicOps.h>

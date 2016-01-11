@@ -50,8 +50,8 @@
 #include "CDspClient.h"
 #include  "CDspSync.h"
 
-#include "ParallelsDomModel.h"
-#include "ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsDomModel.h>
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include "XmlModel/VmDirectory/CVmDirectory.h"
 #include "XmlModel/Messaging/CVmEvent.h"
 #include <prlcommon/PrlUuid/Uuid.h>

@@ -62,7 +62,7 @@
 #include <memory>
 #include <boost/bind.hpp>
 #include <prlcommon/Logging/Logging.h>
-#include <Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #ifdef _DEBUG
 #include <iostream>

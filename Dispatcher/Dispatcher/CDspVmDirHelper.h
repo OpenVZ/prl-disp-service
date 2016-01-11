@@ -45,8 +45,8 @@
 
 #include <QMutex>
 
-#include "ParallelsDomModel.h"
-#include "ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsDomModel.h>
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 
 #include "CDspClient.h"
 #include "CDspVm.h"

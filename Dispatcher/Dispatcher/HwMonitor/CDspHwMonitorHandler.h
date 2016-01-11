@@ -37,9 +37,8 @@
 #include <QObject>
 #include <QThread>
 #include <QMutex>
-#include <Interfaces/Config.h>
+#include "Interfaces/Config.h"
 #include <prlsdk/PrlEnums.h>
-#include <Interfaces/ParallelsPlatform.h>
 
 #ifdef _WIN_
 #include <windows.h>

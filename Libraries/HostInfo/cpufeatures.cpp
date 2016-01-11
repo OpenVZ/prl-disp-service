@@ -23,12 +23,11 @@
 /// Schaffhausen, Switzerland.
 ///
 
-#include "Interfaces/ParallelsTypes.h"
-#include "Interfaces/ParallelsCompiler.h"
+#include <prlcommon/Interfaces/ParallelsTypes.h>
+#include <prlcommon/Interfaces/ParallelsCompiler.h>
 
 #include "cpufeatures.h"
 
-#include "Interfaces/ParallelsPlatform.h"
 #include <prlcommon/Logging/Logging.h>
 #include "Interfaces/Config.h"
 

@@ -31,7 +31,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #include "PrlIPPrivateNetworkTest.h"
 #include "Tests/CommonTestsUtils.h"
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include "XmlModel/NetworkConfig/CPrivateNetwork.h"
 #include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
 

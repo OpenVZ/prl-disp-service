@@ -33,7 +33,7 @@
 #ifndef __PLATFORM_SPEC_H__
 #define __PLATFORM_SPEC_H__
 
-#include "Interfaces/ParallelsTypes.h"
+#include <prlcommon/Interfaces/ParallelsTypes.h>
 
 #ifdef _LIN_
 #elif  defined(_MAC_)

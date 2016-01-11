@@ -55,7 +55,7 @@
 #include "XmlModel/HostHardwareInfo/CHwMemorySettings.h"
 #include "Config.h"
 
-#include <Interfaces/ParallelsPlatform.h>
+#include <prlcommon/Interfaces/ParallelsPlatform.h>
 
 #include <prlcommon/Logging/Logging.h>
 //#include "Libraries/DiskImage/PartitionTable.h"  // DiskImage commented out by request from CP team

@@ -53,7 +53,7 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/PrlCommonUtilsBase/CHardDiskHelper.h>
 
-#include "Interfaces/ParallelsSdkPrivate.h"
+#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
 
 #include "Tasks/Mixin_CreateHddSupport.h"
 #include "Tasks/Task_ManagePrlNetService.h"

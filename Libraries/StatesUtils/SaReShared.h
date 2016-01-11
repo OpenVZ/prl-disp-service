@@ -30,9 +30,9 @@
 #endif
 #include <QFile>
 #include <QString>
-#include "Interfaces/ParallelsTypes.h"
+#include <prlcommon/Interfaces/ParallelsTypes.h>
 
-#include <Interfaces/packed.h>
+#include <prlcommon/Interfaces/packed.h>
 
 //
 // Shared *.sav files header containing general public description
@@ -94,7 +94,7 @@ typedef struct _SARE_FILE_HDR_OPTION{
 
 }SARE_FILE_HDR_OPTION, *PSARE_FILE_HDR_OPTION;
 
-#include <Interfaces/unpacked.h>
+#include <prlcommon/Interfaces/unpacked.h>
 
 class	CSRFile
 {

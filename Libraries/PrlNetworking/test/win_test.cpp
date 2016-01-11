@@ -25,7 +25,7 @@
 #include <QDir>
 #include <windows.h>
 
-//#include <Interfaces/ParallelsDirs.h>
+//#include <prlcommon/Interfaces/ParallelsDirs.h>
 
 #include <iostream>
 
@@ -36,7 +36,7 @@
 #include "../win/ethlist.h"
 #include "../prlnet.h"
 
-#include "Interfaces/ParallelsPlatform.h"
+#include <prlcommon/Interfaces/ParallelsPlatform.h>
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 
 

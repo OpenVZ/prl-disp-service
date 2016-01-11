@@ -42,7 +42,7 @@ class PerfCountersOut;
 
 
 #include <prlcommon/IOService/IOCommunication/IOProtocol.h>
-#include "ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 
 using namespace IOService;
 

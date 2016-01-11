@@ -39,7 +39,7 @@
 #include "CDspClient.h"
 #include <prlcommon/Std/SmartPtr.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "Interfaces/ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 
 /**
  * Terminates proceess by pid. OS-independent variant

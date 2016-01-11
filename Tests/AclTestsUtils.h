@@ -35,7 +35,7 @@
 #define AclTestsUtils_H
 
 #include "Libraries/CAuth/CAclHelper.h"
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 using namespace Parallels;
 
 #define ALLOW true
