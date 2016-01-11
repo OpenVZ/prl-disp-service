@@ -320,7 +320,7 @@ PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Tools::Agent::Vm::Unit& u)
 
 PRL_RESULT Task_ChangeSID::run_changeSID_cmd(Libvirt::Tools::Agent::Vm::Unit& u)
 {
-	Libvirt::Tools::Agent::Vm::Exec::Request request("%programfiles%\\prl_newsid.exe",  
+	Libvirt::Tools::Agent::Vm::Exec::Request request("%programfiles%\\Qemu-ga\\prl_newsid.exe",  
 		QList<QString>(), QByteArray());
 	request.setRunInShell(true);
 	Prl::Expected
