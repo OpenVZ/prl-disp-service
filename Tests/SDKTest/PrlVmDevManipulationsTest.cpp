@@ -37,7 +37,7 @@
 #include "XmlModel/VmConfig/CVmHardDisk.h"
 #include <prlcommon/Logging/Logging.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Interfaces/ApiDevNums.h"
+#include <prlcommon/Interfaces/ApiDevNums.h>
 
 #include <QFile>
 #include <QTextStream>

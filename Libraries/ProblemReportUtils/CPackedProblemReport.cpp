@@ -26,7 +26,7 @@
 
 #include <libtar.h>
 #include <zlib.h>
-#include "Interfaces/ParallelsTypes.h"
+#include <prlcommon/Interfaces/ParallelsTypes.h>
 #include <prlcommon/Std/PrlAssert.h>
 
 #include <stdio.h>

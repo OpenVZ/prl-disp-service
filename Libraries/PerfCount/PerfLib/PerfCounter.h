@@ -33,7 +33,7 @@
 #ifndef __PREF_COUNTER_H__
 #define __PREF_COUNTER_H__
 
-#include "Interfaces/ParallelsTypes.h"
+#include <prlcommon/Interfaces/ParallelsTypes.h>
 
 #include <prlcommon/Std/SpinLock.h>
 #include <prlcommon/Std/AtomicOps.h>
@@ -104,7 +104,7 @@ enum perf_errors {
     ERR_NO_ERROR = 0
 } ;
 
-#include <Interfaces/packed.h>
+#include <prlcommon/Interfaces/packed.h>
 
 /*
   Performance counter enumeration proc result values
@@ -179,7 +179,7 @@ typedef struct {
         counters_storage_t *storage ;
 } storage_descriptor_t ;
 
-#include <Interfaces/unpacked.h>
+#include <prlcommon/Interfaces/unpacked.h>
 
 
 /*

@@ -36,7 +36,7 @@
 
 #include "CProblemReportPostWrap.h"
 
-#include <Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlsdk/PrlErrors.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/ProblemReportUtils/CProblemReportUtils.h"

@@ -26,7 +26,7 @@
 #include "CDspService.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"

@@ -38,7 +38,7 @@
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 
 
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include "CDspVmSnapshotStoreHelper.h"
 
 #include "CDspService.h"

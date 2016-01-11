@@ -73,9 +73,9 @@
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 #include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 
-#include "Interfaces/ParallelsNamespaceTests.h"
-#include "Interfaces/ApiDevNums.h"
-#include "Interfaces/ParallelsSdkPrivate.h"
+#include <prlcommon/Interfaces/ParallelsNamespaceTests.h>
+#include <prlcommon/Interfaces/ApiDevNums.h>
+#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
 
 using namespace Parallels;
 

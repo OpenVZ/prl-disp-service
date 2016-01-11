@@ -38,8 +38,8 @@
 #include <QDateTime>
 
 #include "Build/Current.ver"
-#include "ParallelsQt.h"
-#include "ParallelsDomModel.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/ParallelsDomModel.h>
 #include "CommonTestsUtils.h"
 #include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>

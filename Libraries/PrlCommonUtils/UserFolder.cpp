@@ -41,7 +41,7 @@
 #elif defined _LIN_
 #endif
 
-#include <Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlcommon/Logging/Logging.h>
 #include <Libraries/PrlCommonUtils/UserFolder.h>
 

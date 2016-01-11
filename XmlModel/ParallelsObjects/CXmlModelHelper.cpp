@@ -25,7 +25,7 @@
  */
 
 
-#include "Interfaces/ParallelsSdk.h"
+#include <prlcommon/Interfaces/ParallelsSdk.h>
 #include "../VmConfig/CVmConfiguration.h"
 #include <prlcommon/Logging/Logging.h>
 

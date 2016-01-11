@@ -60,8 +60,8 @@
 #include "WinJunctions.h"
 #endif
 
-#include "Interfaces/ParallelsTypes.h"
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsTypes.h>
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>

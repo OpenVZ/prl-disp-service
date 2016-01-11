@@ -37,7 +37,7 @@
 #include "TestDispatcherBase.h"
 #include <QtTest/QtTest>
 
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include "SDK/Handles/PveControl.h"
 #include "XmlModel/Messaging/CVmEvent.h"

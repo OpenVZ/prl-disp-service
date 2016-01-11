@@ -38,7 +38,7 @@
 //#include <Libraries/VirtualDisk/VirtualDisk.h>  // VirtualDisk commented out by request from CP team
 #include "Tasks/Task_CommitUnfinishedDiskOp.h"
 #include <Libraries/PrlCommonUtils/CFirewallHelper.h>
-#include "Interfaces/ApiDevNums.h"
+#include <prlcommon/Interfaces/ApiDevNums.h>
 #ifdef _LIN_
 #include "Libraries/Virtuozzo/CCpuHelper.h"
 #endif

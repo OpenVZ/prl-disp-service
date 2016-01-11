@@ -45,7 +45,7 @@
 #include "CProtoCommands.h"
 
 #include <prlcommon/Std/PrlAssert.h>
-#include "ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/Std/SmartPtr.h>

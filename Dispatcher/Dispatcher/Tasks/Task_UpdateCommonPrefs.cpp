@@ -55,7 +55,7 @@
 
 #include <prlsdk/PrlErrors.h>
 
-#include "Interfaces/ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 
 #include <QUrl>
 

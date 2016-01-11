@@ -44,7 +44,7 @@
 #include <QObject>
 #include <memory>
 
-#include "Interfaces/ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include "XmlModel/VmConfig/CVmRemoteDisplay.h"
 
 #include <memory>

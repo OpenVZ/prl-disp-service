@@ -31,7 +31,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #include "PrlNetworkShapingTest.h"
 #include "Tests/CommonTestsUtils.h"
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include "XmlModel/NetworkConfig/CNetworkClass.h"
 #include "XmlModel/NetworkConfig/CNetworkShaping.h"
 #include "Tests/CommonTestsUtils.h"

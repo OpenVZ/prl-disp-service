@@ -41,8 +41,8 @@
 #include <QtGui/QtGui>
 #include <QtNetwork/QtNetwork>
 
-#include <Interfaces/ParallelsNamespace.h>
-#include <Interfaces/ParallelsDomModel.h>
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/ParallelsDomModel.h>
 #include <prlsdk/PrlEnums.h>
 #include <prlsdk/PrlErrorsValues.h>
 #include <SDK/Wrappers/SdkWrap/SdkHandleWrap.h>

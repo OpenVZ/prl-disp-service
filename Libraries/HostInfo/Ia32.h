@@ -33,9 +33,9 @@
 #define __IA32_H__
 
 // We need some standard types definitions here
-#include "Interfaces/ParallelsTypes.h"
+#include <prlcommon/Interfaces/ParallelsTypes.h>
 
-#include <Interfaces/packed.h>
+#include <prlcommon/Interfaces/packed.h>
 
 // Avoid of names problems because linux kernel have the same names inside
 #if defined(_LIN_) && defined(_KERNEL_)
@@ -2567,12 +2567,12 @@ typedef union _ioapic_regsel_
 	} PACKED Fields;
 	UINT Raw;
 } PACKED IOAPIC_REGSEL;
-#include <Interfaces/unpacked.h>
+#include <prlcommon/Interfaces/unpacked.h>
 
 #include "Ia32e.h"
 
-#include <Interfaces/packed.h>
-#include <Interfaces/unpacked.h>
+#include <prlcommon/Interfaces/packed.h>
+#include <prlcommon/Interfaces/unpacked.h>
 
 /**
  *	MSI Address format

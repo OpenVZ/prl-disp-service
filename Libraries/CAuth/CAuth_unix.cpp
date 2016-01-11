@@ -26,7 +26,7 @@
  * CAuth class. (Unix realization)
  */
 
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>

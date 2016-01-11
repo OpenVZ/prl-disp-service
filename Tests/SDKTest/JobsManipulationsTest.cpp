@@ -32,8 +32,8 @@
 
 #include "JobsManipulationsTest.h"
 #include "Tests/CommonTestsUtils.h"
-#include "Interfaces/ParallelsDomModel.h"
-#include "Interfaces/ParallelsTypes.h"
+#include <prlcommon/Interfaces/ParallelsDomModel.h>
+#include <prlcommon/Interfaces/ParallelsTypes.h>
 #include "XmlModel/Messaging/CVmEvent.h"
 #include "XmlModel/Messaging/CVmEventParameter.h"
 #include "XmlModel/DispConfig/CDispCommonPreferences.h"

@@ -91,7 +91,7 @@
 
 #include <prlsdk/PrlApiDeprecated.h>
 
-#include "Interfaces/ParallelsSdk.h"
+#include <prlcommon/Interfaces/ParallelsSdk.h>
 
 #include <QMap>
 #include <QMutex>

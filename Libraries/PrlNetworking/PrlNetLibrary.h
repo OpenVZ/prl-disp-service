@@ -45,7 +45,7 @@
 #include <QList>
 #include <QHostAddress>
 
-#include <Interfaces/ParallelsTypes.h>
+#include <prlcommon/Interfaces/ParallelsTypes.h>
 #include <prlsdk/PrlErrors.h>
 #include <XmlModel/NetworkConfig/CHostOnlyNetwork.h>
 #include <XmlModel/VmConfig/CVmConfiguration.h>

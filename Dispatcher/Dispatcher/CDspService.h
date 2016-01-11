@@ -37,7 +37,7 @@
 #include <qtservice.h>
 #include <QList>
 
-#include "ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
 #include "CDspDispConfigGuard.h"
 #include "CDspTaskManager.h"

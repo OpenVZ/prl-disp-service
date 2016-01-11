@@ -33,7 +33,7 @@
 #ifndef ParallelsDispToDispProto_H
 #define ParallelsDispToDispProto_H
 
-#include "Interfaces/ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 
 namespace Parallels
 {

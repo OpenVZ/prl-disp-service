@@ -40,8 +40,8 @@
 #include <QCoreApplication>
 #include <QStringList>
 
-#include "Interfaces/ParallelsQt.h"
-#include "Interfaces/ParallelsSdkPrivate.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
 #include "CDspVNCStarter.h"
 #include "CDspService.h"
 #include <prlcommon/Logging/Logging.h>

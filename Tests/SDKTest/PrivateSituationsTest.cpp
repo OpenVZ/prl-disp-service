@@ -31,7 +31,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
-#include "Interfaces/ParallelsSdkPrivate.h"
+#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
 #include "PrivateSituationsTest.h"
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <prlcommon/Logging/Logging.h>

@@ -40,7 +40,7 @@
 
 #include "CMultiEditDispatcher.h"
 #include <prlcommon/Std/PrlAssert.h>
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 //////////////////////////////////////////////////////////////////////////
 // We create new class to work through template to prevent move CMultiEditDispatcher implementation to .h file

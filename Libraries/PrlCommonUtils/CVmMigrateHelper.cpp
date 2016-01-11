@@ -24,8 +24,8 @@
 #include "CFileHelper.h"
 #include "CVmMigrateHelper.h"
 #include <prlcommon/Logging/Logging.h>
-#include "Interfaces/ParallelsNamespace.h"
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include <QDir>
 

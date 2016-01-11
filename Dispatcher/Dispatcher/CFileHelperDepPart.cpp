@@ -32,8 +32,7 @@
 
 #include "CFileHelperDepPart.h"
 
-#include "ParallelsPlatform.h"
-#include "ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include "CDspTaskHelper.h"
 #include "CDspAccessManager.h"

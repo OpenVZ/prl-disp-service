@@ -47,8 +47,8 @@
 #include <QMutex>
 #include <QHash>
 
-#include "ParallelsDomModel.h"
-#include "ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsDomModel.h>
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 #include "CDspClient.h"
 #include "CDspHostSettingsHelper.h"

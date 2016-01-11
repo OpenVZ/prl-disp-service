@@ -26,7 +26,7 @@
 #include <string.h>
 #include "Libraries/WifiHelper/CWifiHelper.h"
 #include "Libraries/WifiHelper/CWifiStoreHelper.h"
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 using namespace Parallels;
 

@@ -37,8 +37,8 @@
 #include <prlsdk/PrlErrors.h>
 #include <prlcommon/Logging/Logging.h>
 #include <dlfcn.h>
-#include <Interfaces/ParallelsQt.h>
-#include <Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 
 #include "CVzPloop.h"
 

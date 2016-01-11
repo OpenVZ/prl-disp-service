@@ -48,7 +48,7 @@
 
 #include <QStringList>
 #include <QHostAddress>
-#include <Interfaces/ParallelsTypes.h>
+#include <prlcommon/Interfaces/ParallelsTypes.h>
 #include <Libraries/PrlNetworking/netconfig.h>
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 #include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>

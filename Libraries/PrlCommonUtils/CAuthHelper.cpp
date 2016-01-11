@@ -33,7 +33,7 @@
     #define FORCE_UNICODE
 #endif
 
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include "CAuthHelper.h"
 #include "CFileHelper.h"

@@ -43,8 +43,8 @@
 #ifndef __CDspShellHelper_H_
 #define __CDspShellHelper_H_
 
-#include "ParallelsDomModel.h"
-#include "ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsDomModel.h>
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 #include "CDspClient.h"
 #include "CDspTaskHelper.h"

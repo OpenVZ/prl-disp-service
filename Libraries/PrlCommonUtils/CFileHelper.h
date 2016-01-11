@@ -41,8 +41,8 @@
 #include <QDateTime>
 #include <QStringList>
 
-#include "ParallelsDomModel.h"
-#include "ParallelsNamespace.h"
+#include <prlcommon/Interfaces/ParallelsDomModel.h>
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 
 #ifndef _WIN_
 #include <sys/stat.h>

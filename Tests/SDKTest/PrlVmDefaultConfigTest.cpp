@@ -32,8 +32,8 @@
 #include "PrlVmDefaultConfigTest.h"
 #include "Tests/CommonTestsUtils.h"
 
-#include "Interfaces/ParallelsSdkPrivate.h"
-#include "Interfaces/ApiDevNums.h"
+#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
+#include <prlcommon/Interfaces/ApiDevNums.h>
 #include "XmlModel/VmConfig/CVmConfiguration.h"
 #include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
 

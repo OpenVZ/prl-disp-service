@@ -28,7 +28,7 @@
 /// Schaffhausen, Switzerland.
 ///
 ///////////////////////////////////////////////////////////////////////////////
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include "CDspTestConfig.h"
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>

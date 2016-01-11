@@ -45,7 +45,7 @@
 #include <QMutexLocker>
 #include <QMultiHash>
 #include <QProcess>
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 #include "CDspVmDirHelper.h"
 
 #include "CDspCommon.h"

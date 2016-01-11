@@ -32,7 +32,7 @@
 #ifndef __IA32E_H__
 #define __IA32E_H__
 
-#include <Interfaces/packed.h>
+#include <prlcommon/Interfaces/packed.h>
 
 
 /**
@@ -423,7 +423,7 @@ typedef union _EFER_MSR
 // maximum of supported features in SIMD state
 #define XFEATURE_SUPPORTED	(XFEATURE_X87_MMX | XFEATURE_SSE | XFEATURE_AVX)
 
-#include <Interfaces/unpacked.h>
+#include <prlcommon/Interfaces/unpacked.h>
 
 
 #endif//__IA32E_H__

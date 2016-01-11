@@ -32,7 +32,7 @@
 
 #include <QMap>
 
-#include <Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Std/PrlAssert.h>

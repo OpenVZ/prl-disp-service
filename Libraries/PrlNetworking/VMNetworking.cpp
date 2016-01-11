@@ -29,8 +29,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include <Build/Current.ver>
 #include "PrlNetLibrary.h"
-#include <Interfaces/ParallelsQt.h>
-#include <Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <XmlModel/DispConfig/CDispatcherConfig.h>

@@ -33,7 +33,7 @@
 #include <QtCore/QLocale>
 
 #include "StringUtils.h"
-#include "Interfaces/ParallelsQt.h"
+#include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include <QMap>
 
