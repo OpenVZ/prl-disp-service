@@ -961,6 +961,7 @@ QString Device<CVmHardDisk>::getPlugXml(const CVmHardDisk& model_)
 	typedef Transponster::Device::Clustered::Builder::Hdd
 		builder_type;
 	builder_type b(model_);
+	b.setDriver();
 	b.setDisk();
 	b.setFlags();
 	b.setSource();
