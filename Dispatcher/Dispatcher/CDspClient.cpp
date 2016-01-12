@@ -39,7 +39,7 @@
 #include "CDspUserHelper.h"
 
 #include "CProtoSerializer.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
 #include <prlcommon/Std/PrlTime.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"

@@ -55,7 +55,7 @@
 #endif
 #include "Libraries/StatesUtils/StatesHelper.h"
 #include "Libraries/PrlCommonUtils/CVmMigrateHelper.h"
-#include "XmlModel/Messaging/CVmEventParameterList.cpp"
+#include <prlxmlmodel/Messaging/CVmEventParameterList.h>
 
 
 /*

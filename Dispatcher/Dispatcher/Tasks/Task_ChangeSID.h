@@ -32,7 +32,7 @@
 #include "CDspVm.h"
 #include "CDspTaskHelper.h"
 #include "CDspLibvirt.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 class Task_ChangeSID : public CDspTaskHelper
 {

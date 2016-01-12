@@ -31,8 +31,8 @@
 /////////////////////////////////////////////////////////////////////////////
 #include "PrlHandleVmDeviceTest.h"
 #include "SDK/Handles/Vm/PrlHandleVmDevice.h"
-#include "XmlModel/VmConfig/CVmFloppyDisk.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmFloppyDisk.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "Tests/CommonTestsUtils.h"
 
 PrlHandleVmDeviceTest::PrlHandleVmDeviceTest()

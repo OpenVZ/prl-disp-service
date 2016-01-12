@@ -41,7 +41,7 @@
 #include <prlcommon/Std/noncopyable.h>
 #include "Tasks/Mixin_CreateVmSupport.h"
 #include <prlcommon/HostUtils/HostUtils.h>
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 //#include "Libraries/VirtualDisk/DiskStatesManager.h"
 
 class CDspVm;

@@ -60,11 +60,11 @@
 #include "Tasks/Task_CloneVm.h"
 #include "Tasks/Task_MoveVm.h"
 
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
 #include "CVmValidateConfig.h"
 
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"

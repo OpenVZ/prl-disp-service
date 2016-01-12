@@ -38,7 +38,7 @@
 
 #include "CDspClient.h"
 #include <prlcommon/Std/SmartPtr.h>
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 
 /**

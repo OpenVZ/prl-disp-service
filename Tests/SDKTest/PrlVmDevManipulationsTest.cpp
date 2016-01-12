@@ -31,10 +31,10 @@
 ///Cfg////////////////////////////////////////////////////////////////////////
 
 #include "PrlVmDevManipulationsTest.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/VmConfig/CVmSoundInputs.h"
-#include "XmlModel/VmConfig/CVmSoundOutputs.h"
-#include "XmlModel/VmConfig/CVmHardDisk.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/VmConfig/CVmSoundInputs.h>
+#include <prlxmlmodel/VmConfig/CVmSoundOutputs.h>
+#include <prlxmlmodel/VmConfig/CVmHardDisk.h>
 #include <prlcommon/Logging/Logging.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/Interfaces/ApiDevNums.h>

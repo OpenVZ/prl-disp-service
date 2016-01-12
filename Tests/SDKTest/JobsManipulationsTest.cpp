@@ -34,10 +34,10 @@
 #include "Tests/CommonTestsUtils.h"
 #include <prlcommon/Interfaces/ParallelsDomModel.h>
 #include <prlcommon/Interfaces/ParallelsTypes.h>
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
-#include "XmlModel/DispConfig/CDispCommonPreferences.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlxmlmodel/DispConfig/CDispCommonPreferences.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/Logging/Logging.h>
 
 #define MAGIC_NUM 0x15a70bcd

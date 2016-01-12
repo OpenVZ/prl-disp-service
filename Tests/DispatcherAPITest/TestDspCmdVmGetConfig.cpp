@@ -40,8 +40,8 @@
 #include <QtTest>
 
 #include "SDK/Handles/PveControl.h"
-#include "XmlModel/VmDirectory/CVmDirectory.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmDirectory/CVmDirectory.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/Logging/Logging.h>
 
 #include "Libraries/PrlCommonUtils/CFileHelper.h"

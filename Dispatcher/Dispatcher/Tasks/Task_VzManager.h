@@ -33,7 +33,7 @@
 #include "CDspService.h"
 #include "CDspVzHelper.h"
 #include "CDspTaskHelper.h"
-#include "XmlModel/VmDirectory/CVmDirectory.h"
+#include <prlxmlmodel/VmDirectory/CVmDirectory.h>
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
 #include "Libraries/Virtuozzo/CVzHelper.h"
 

@@ -51,9 +51,9 @@
 #include <QtNetwork/QHttpRequestHeader>
 
 #include "CInstalledSoftwareCollector.h"
-#include "XmlModel/DispConfig/CDispatcherConfig.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
+#include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 #include "CPackedProblemReport.h"
 #include <prlcommon/PrlCommonUtilsBase/CSimpleFileHelper.h>

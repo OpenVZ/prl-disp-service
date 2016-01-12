@@ -33,8 +33,8 @@
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 #include <prlcommon/PrlUuid/Uuid.h>
-#include <XmlModel/DispConfig/CDispatcherConfig.h>
-//#include <XmlModel/DispConfig/CDispDhcpPreferences.h>
+#include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
+//#include <prlxmlmodel/DispConfig/CDispDhcpPreferences.h>
 #include <prlcommon/Logging/Logging.h>
 #include <memory>
 #include <cassert>

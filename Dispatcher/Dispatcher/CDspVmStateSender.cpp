@@ -52,8 +52,8 @@
 #include "CDspClientManager.h"
 #include "CDspVmGuestPersonality.h"
 
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
 #include <prlcommon/Interfaces/ParallelsDomModel.h>
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 

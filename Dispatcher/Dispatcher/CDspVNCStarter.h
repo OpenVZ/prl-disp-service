@@ -45,7 +45,7 @@
 #include <memory>
 
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
-#include "XmlModel/VmConfig/CVmRemoteDisplay.h"
+#include <prlxmlmodel/VmConfig/CVmRemoteDisplay.h>
 
 #include <memory>
 

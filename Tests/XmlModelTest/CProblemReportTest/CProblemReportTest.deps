@@ -1,6 +1,0 @@
-TARGET = test_problem_report
-PROJ_PATH = $$PWD
-include(../../../Build/qmake/build_target.pri)
-
-include($$SRC_LEVEL/XmlModel/XmlModel.pri)
-include($$LIBS_LEVEL/HostInfo/CHostInfo.pri)

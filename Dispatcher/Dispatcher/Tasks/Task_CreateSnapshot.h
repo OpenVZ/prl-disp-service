@@ -40,7 +40,7 @@
 
 #include "CDspVm.h"
 #include "CDspTaskHelper.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 //#include "Libraries/VirtualDisk/DiskStatesManager.h"  // VirtualDisk commented out by request from CP team
 
 class Task_CreateSnapshot : public CDspTaskHelper

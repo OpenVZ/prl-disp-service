@@ -52,8 +52,8 @@
 
 #include <prlcommon/Interfaces/ParallelsDomModel.h>
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
-#include "XmlModel/VmDirectory/CVmDirectory.h"
-#include "XmlModel/Messaging/CVmEvent.h"
+#include <prlxmlmodel/VmDirectory/CVmDirectory.h>
+#include <prlxmlmodel/Messaging/CVmEvent.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 

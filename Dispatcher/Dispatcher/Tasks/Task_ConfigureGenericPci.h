@@ -37,7 +37,7 @@
 
 #include "CDspTaskHelper.h"
 #include "CDspClient.h"
-#include "XmlModel/HostHardwareInfo/GenericPciDevices.h"
+#include <prlxmlmodel/HostHardwareInfo/GenericPciDevices.h>
 
 
 class GenericPciDevices;

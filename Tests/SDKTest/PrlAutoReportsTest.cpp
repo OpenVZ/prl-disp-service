@@ -48,7 +48,7 @@
 #include "AutoHelpers.h"
 
 #include <prlsdk/PrlApiDeprecated.h>
-#include "XmlModel/DispConfig/CDispUser.h"
+#include <prlxmlmodel/DispConfig/CDispUser.h>
 
 #include "Libraries/ProblemReportUtils/CPackedProblemReport.h"
 #include <prlcommon/Std/SmartPtr.h>

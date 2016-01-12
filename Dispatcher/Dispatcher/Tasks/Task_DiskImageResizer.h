@@ -31,7 +31,7 @@
 
 #include "CDspVm.h"
 #include "CDspTaskHelper.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 enum {
 	TASK_SKIP_LOCK		= 0x1,

@@ -32,7 +32,7 @@
 #ifndef __Task_VmDataStatistic_H__
 #define __Task_VmDataStatistic_H__
 
-#include "XmlModel/HostHardwareInfo/CSystemStatistics.h"
+#include <prlxmlmodel/HostHardwareInfo/CSystemStatistics.h>
 #include "CDspTaskHelper.h"
 
 class Task_VmDataStatistic : public CDspTaskHelper

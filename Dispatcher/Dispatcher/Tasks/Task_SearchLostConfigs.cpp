@@ -37,7 +37,7 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <QDir>
 
-#include "XmlModel/Messaging/CVmEventParameter.h"
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
 
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 // ConfigConverter commented out by request from CP team

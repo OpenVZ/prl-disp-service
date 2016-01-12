@@ -24,7 +24,7 @@
 #ifndef H__CDspAccessManager__H
 #define H__CDspAccessManager__H
 
-#include "XmlModel/VmDirectory/CVmDirectories.h"
+#include <prlxmlmodel/VmDirectory/CVmDirectories.h>
 #include "CDspClient.h"
 
 // ACCESS_MODE

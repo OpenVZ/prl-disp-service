@@ -32,7 +32,7 @@
 #ifndef _VM_VALIDATE_CONFIG_P_H_
 #define _VM_VALIDATE_CONFIG_P_H_
 
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 #include <QSet>
 #include <QMap>

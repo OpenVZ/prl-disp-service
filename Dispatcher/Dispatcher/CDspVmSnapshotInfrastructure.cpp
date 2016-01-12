@@ -39,7 +39,7 @@
 #include "CDspService.h"
 #include "CDspVmInfoDatabase.h"
 #include <prlcommon/Interfaces/ParallelsQt.h>
-#include "XmlModel/VmInfo/CVmInfo.h"
+#include <prlxmlmodel/VmInfo/CVmInfo.h>
 #include "CDspVmSnapshotInfrastructure.h"
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 #include "Libraries/PrlCommonUtils/CFileHelper.h"

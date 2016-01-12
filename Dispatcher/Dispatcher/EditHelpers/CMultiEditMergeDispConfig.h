@@ -34,7 +34,7 @@
 #define CMultiEditMergeDispConfig_H
 
 #include "CMultiEditMergeHelper.h"
-#include "XmlModel/DispConfig/CDispatcherConfig.h"
+#include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
 
 
 class CMultiEditMergeDispConfig: public CMultiEditMergeHelper<CDispatcherConfig >

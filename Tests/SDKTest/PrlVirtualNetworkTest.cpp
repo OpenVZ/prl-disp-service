@@ -32,8 +32,8 @@
 #include "PrlVirtualNetworkTest.h"
 #include "Tests/CommonTestsUtils.h"
 #include <prlcommon/Interfaces/ParallelsQt.h>
-#include "XmlModel/NetworkConfig/CVirtualNetwork.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
+#include <prlxmlmodel/NetworkConfig/CVirtualNetwork.h>
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 
 
 void PrlVirtualNetworkTest::init()

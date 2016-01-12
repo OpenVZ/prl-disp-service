@@ -32,8 +32,8 @@
 #ifndef _DSP_STATISTICS_GUARDIAN_H_
 #define _DSP_STATISTICS_GUARDIAN_H_
 
-#include "XmlModel/HostHardwareInfo/CSystemStatistics.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/HostHardwareInfo/CSystemStatistics.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <QMutex>
 #include <QList>
 #include <prlcommon/Std/SmartPtr.h>

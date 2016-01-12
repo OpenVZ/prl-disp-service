@@ -43,8 +43,8 @@
 #include "Libraries/StatesUtils/StatesHelper.h"
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>
-#include "XmlModel/ParallelsObjects/CXmlModelHelper.h"
-#include "XmlModel/ParallelsObjects/CVmProfileHelper.h"
+#include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
+#include <prlxmlmodel/ParallelsObjects/CVmProfileHelper.h>
 #ifdef _LIBVIRT_
 #include "CDspLibvirt.h"
 #endif // _LIBVIRT_

@@ -36,8 +36,8 @@
 #include <QDomDocument>
 #include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
-#include <XmlModel/VtInfo/VtInfo.h>
-#include <XmlModel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/VtInfo/VtInfo.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 namespace Transponster
 {

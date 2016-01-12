@@ -40,22 +40,22 @@
 
 //#include "Libraries/DiskImage/DiskImage.h"  // DiskImage commented out by request from CP team
 #include <prlsdk/PrlDisk.h>
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
 #include "CDspTaskHelper.h"
-#include "XmlModel/HostHardwareInfo/CHwFileSystemInfo.h"
+#include <prlxmlmodel/HostHardwareInfo/CHwFileSystemInfo.h>
 #include "CDspClient.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "CDspService.h"
-#include "XmlModel/VmConfig/CVmHardware.h"
+#include <prlxmlmodel/VmConfig/CVmHardware.h>
 #include "CDspVmDirHelper.h"
 #include "CDspUserHelper.h"
-#include "XmlModel/DispConfig/CDispatcherConfig.h"
+#include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "FloppyHeader.h"
 #include "CConfigSearcher.h"
-#include "XmlModel/VmDirectory/CVmDirectory.h"
-#include "XmlModel/VmDirectory/CVmDirectoryItem.h"
+#include <prlxmlmodel/VmDirectory/CVmDirectory.h>
+#include <prlxmlmodel/VmDirectory/CVmDirectoryItem.h>
 #include "CDspVmDirHelper.h"
 #include <prlcommon/Interfaces/ParallelsQt.h>
 #include "CDspSync.h"

@@ -40,13 +40,13 @@
 #include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include "SDK/Handles/PveControl.h"
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
-#include "XmlModel/DispConfig/CDispUser.h"
-#include "XmlModel/DispConfig/CDispUserWorkspace.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlxmlmodel/DispConfig/CDispUser.h>
+#include <prlxmlmodel/DispConfig/CDispUserWorkspace.h>
 
-#include "XmlModel/VmDirectory/CVmDirectories.h"
-#include "XmlModel/DispConfig/CDispatcherConfig.h"
+#include <prlxmlmodel/VmDirectory/CVmDirectories.h>
+#include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
 
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 

@@ -25,7 +25,7 @@
 
 #include <prlsdk/PrlTypes.h>
 #include <prlcommon/Std/SmartPtr.h>
-#include "XmlModel/CtTemplate/CtTemplate.h"
+#include <prlxmlmodel/CtTemplate/CtTemplate.h>
 
 class CVzTemplateHelper {
 

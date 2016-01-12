@@ -39,8 +39,8 @@
 #include "CVmIdent.h"
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
-#include "XmlModel/DispConfig/CDispUser.h"
-#include "XmlModel/UserInformation/SessionInfo.h"
+#include <prlxmlmodel/DispConfig/CDispUser.h>
+#include <prlxmlmodel/UserInformation/SessionInfo.h>
 #include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 #include <prlcommon/IOService/IOCommunication/IOSendJob.h>
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"

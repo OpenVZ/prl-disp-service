@@ -35,8 +35,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#include "XmlModel/DispConfig/CDispatcherConfig.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 #include <prlcommon/Logging/Logging.h>
 #include "Libraries/StatesUtils/StatesHelper.h"

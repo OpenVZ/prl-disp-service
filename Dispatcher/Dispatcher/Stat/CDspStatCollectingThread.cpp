@@ -32,9 +32,9 @@
 #include "CDspStatCollectingThread.h"
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Std/PrlAssert.h>
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmBinaryEventParameter.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmBinaryEventParameter.h>
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include "CDspClient.h"
 #include "CDspVm.h"
 #include "CDspService.h"

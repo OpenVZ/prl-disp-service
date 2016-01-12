@@ -32,8 +32,8 @@
 #include "PrlIPPrivateNetworkTest.h"
 #include "Tests/CommonTestsUtils.h"
 #include <prlcommon/Interfaces/ParallelsQt.h>
-#include "XmlModel/NetworkConfig/CPrivateNetwork.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
+#include <prlxmlmodel/NetworkConfig/CPrivateNetwork.h>
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 
 #ifdef _LIN_
 #include "Libraries/Virtuozzo/CVzHelper.h"

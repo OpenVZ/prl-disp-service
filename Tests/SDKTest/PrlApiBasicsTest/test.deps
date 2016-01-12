@@ -2,6 +2,5 @@ TARGET = test_sdk_PrlApiBasicsTest
 PROJ_PATH = $$PWD
 include(../../../Build/qmake/build_target.pri)
 
-include($$SRC_LEVEL/XmlModel/XmlModel.pri)
 include($$LIBS_LEVEL/Logging/Logging.pri)
 include($$SRC_LEVEL/SDK/Handles/SDK.pri)

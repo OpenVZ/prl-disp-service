@@ -32,7 +32,7 @@
 #define FIREWALL_HELPER_H
 
 #include <prlcommon/Std/SmartPtr.h>
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 
 class CFirewallHelper

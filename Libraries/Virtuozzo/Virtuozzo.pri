@@ -5,7 +5,6 @@ QTCONFIG = core network xml
 
 DEFINES *= _CT_
 
-include($$SRC_LEVEL/XmlModel/XmlModel.pri)
 # include($$LIBS_LEVEL/PrlNetworking/PrlNetworking.pri)
 include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
 

@@ -1,5 +1,0 @@
-TARGET = test_vm_directories
-PROJ_PATH = $$PWD
-include(../../../Build/qmake/build_target.pri)
-
-include($$SRC_LEVEL/XmlModel/XmlModel.pri)

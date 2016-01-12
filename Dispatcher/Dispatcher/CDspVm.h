@@ -42,10 +42,10 @@
 #include <prlcommon/Std/SmartPtr.h>
 #include "CDspVmDirManager.h"
 #include <prlcommon/IOService/IOCommunication/IOClient.h>
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "CDspDispConnection.h"
 #include "CDspVmSuspendHelper.h"
-#include "XmlModel/DispConfig/CDispCpuPreferences.h"
+#include <prlxmlmodel/DispConfig/CDispCpuPreferences.h>
 
 #include "Libraries/PerfCount/PerfLib/PerfCounter.h"
 

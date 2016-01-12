@@ -57,7 +57,7 @@
 
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 
-#include "XmlModel/DispConfig/CDispWorkspacePreferences.h"
+#include <prlxmlmodel/DispConfig/CDispWorkspacePreferences.h>
 #include "CDspCommon.h"
 
 #include "Tasks/Task_SetConfirmationMode.h"
@@ -65,12 +65,12 @@
 #include <prlcommon/IOService/IOCommunication/IOSSLInterface.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Logging/Logging.h>
-#include "XmlModel/Messaging/CVmEventParameter.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
-#include "XmlModel/HostHardwareInfo/CHwOsVersion.h"
-#include "XmlModel/UserInformation/ParallelsUserInformation.h"
-#include "XmlModel/DispConfig/CDispUserSettings.h"
-#include "XmlModel/Messaging/CVmBinaryEventParameter.h"
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwOsVersion.h>
+#include <prlxmlmodel/UserInformation/ParallelsUserInformation.h>
+#include <prlxmlmodel/DispConfig/CDispUserSettings.h>
+#include <prlxmlmodel/Messaging/CVmBinaryEventParameter.h>
 
 #include <prlcommon/Std/PrlAssert.h>
 #include "Build/Current.ver"

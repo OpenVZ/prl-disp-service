@@ -35,7 +35,7 @@
 #include <QMutex>
 #include <QString>
 #include <prlcommon/Std/SmartPtr.h>
-#include <XmlModel/VmInfo/CVmInfo.h>
+#include <prlxmlmodel/VmInfo/CVmInfo.h>
 
 class CHwGenericDevice;
 class CDspClient;

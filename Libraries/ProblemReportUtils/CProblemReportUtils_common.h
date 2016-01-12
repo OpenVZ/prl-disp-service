@@ -31,7 +31,7 @@
 #include <QString>
 #include <QSet>
 #include <prlsdk/PrlEnums.h>
-#include "XmlModel/ProblemReport/CProblemReport.h"
+#include <prlxmlmodel/ProblemReport/CProblemReport.h>
 
 
 namespace BinDumpPatterns {

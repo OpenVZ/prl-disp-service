@@ -103,10 +103,10 @@
 #include <QStringList>
 #include <QString>
 #include "CHostInfo.h"
-#include <XmlModel/HostHardwareInfo/CHostHardwareInfo.h>
-#include <XmlModel/HostHardwareInfo/CHwGenericPciDevice.h>
-#include <XmlModel/HostHardwareInfo/CHwHardDisk.h>
-#include <XmlModel/HostHardwareInfo/CHwMemorySettings.h>
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwGenericPciDevice.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwHardDisk.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwMemorySettings.h>
 #include "Config.h"
 
 // By adding this interface we enable allocations tracing in the module

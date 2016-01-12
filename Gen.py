@@ -80,7 +80,3 @@ fd.write('#define VER_COPYRIGHT_YEAR %d\n' % time.localtime().tm_year)
 fd.write('#define VER_COPYRIGHT_YEAR %d\n' % time.localtime().tm_year)
 fd.close()
 
-
-xmlmodel_py = os.path.join(file_path, 'XmlModel', 'XmlModel.py')
-subprocess.check_call(['python', xmlmodel_py, '--force', '--qmake="qmake"'])
-

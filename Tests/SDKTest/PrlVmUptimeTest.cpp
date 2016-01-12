@@ -35,7 +35,7 @@
 #include "Tests/CommonTestsUtils.h"
 #include "SimpleServerWrapper.h"
 #include <prlcommon/Interfaces/ParallelsDomModel.h>
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 
 #include <QDir>

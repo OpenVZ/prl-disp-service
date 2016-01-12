@@ -35,7 +35,7 @@
 #define CDspDispConfigGuard_H
 
 #include <prlcommon/Std/SmartPtr.h>
-#include "XmlModel/DispConfig/CDispatcherConfig.h"
+#include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
 
 #include "CDspSync.h"
 #include "EditHelpers/CMultiEditMergeDispConfig.h"

@@ -25,7 +25,7 @@
 #define H__CDspVmDirManager__H
 
 #include "CDspSync.h"
-#include "XmlModel/VmDirectory/CVmDirectories.h"
+#include <prlxmlmodel/VmDirectory/CVmDirectories.h>
 #include "CDspClient.h"
 #include <prlsdk/PrlEnums.h>
 #include <boost/iterator/iterator_facade.hpp>

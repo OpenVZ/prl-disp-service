@@ -23,8 +23,8 @@
 #ifndef _CVZPRIVATENETWORK_H_
 #define _CVZPRIVATENETWORK_H_
 
-#include "XmlModel/NetworkConfig/CPrivateNetworks.h"
-#include "XmlModel/Messaging/CVmEvent.h"
+#include <prlxmlmodel/NetworkConfig/CPrivateNetworks.h>
+#include <prlxmlmodel/Messaging/CVmEvent.h>
 
 class CVzPrivateNetwork
 {

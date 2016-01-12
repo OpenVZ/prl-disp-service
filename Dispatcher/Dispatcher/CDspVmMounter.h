@@ -46,7 +46,7 @@ typedef struct guestfs_h guestfs_h;
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 
-#include <XmlModel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "CVmIdent.h"
 #include "CDspLibvirt.h"
 

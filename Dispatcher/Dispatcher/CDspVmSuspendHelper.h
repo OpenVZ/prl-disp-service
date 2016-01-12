@@ -38,7 +38,7 @@
 #define __CDspVmSuspendHelper_H_
 
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/Std/SmartPtr.h>
 
 

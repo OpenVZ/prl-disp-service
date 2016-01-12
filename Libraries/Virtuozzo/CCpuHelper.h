@@ -24,10 +24,10 @@
 #ifndef __CCPUHELPER_H__
 #define __CCPUHELPER_H__
 
-#include "XmlModel/DispConfig/CDispCpuPreferences.h"
-#include "XmlModel/HostHardwareInfo/CHwCpu.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/CpuFeatures/CCpuPool.h"
+#include <prlxmlmodel/DispConfig/CDispCpuPreferences.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwCpu.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/CpuFeatures/CCpuPool.h>
 #include <prlcommon/Std/SmartPtr.h>
 
 class CCpuHelper {

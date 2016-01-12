@@ -3,7 +3,6 @@ PROJ_FILE = $$PWD/PrlNetworking.pro
 QTCONFIG = xml core network
 !include(../../Build/qmake/staticlib.pri): error(include error)
 
-include($$SRC_LEVEL/XmlModel/XmlModel.pri)
 linux-*: include($$LIBS_LEVEL/Virtuozzo/Virtuozzo.pri)
 linux-*: LIBS += -lnetlink
 

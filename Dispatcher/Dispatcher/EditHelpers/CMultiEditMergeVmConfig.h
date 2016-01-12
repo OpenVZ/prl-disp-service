@@ -20,7 +20,7 @@
 #define CMultiEditMergeVmConfig_H
 
 #include "CMultiEditMergeHelper.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 class CMultiEditMergeVmConfig: public CMultiEditMergeHelper<CVmConfiguration>
 {

@@ -57,16 +57,16 @@
 #include "CDspVm.h"
 #include "CDspVmStateSender.h"
 
-#include "XmlModel/DispConfig/CDispUser.h"
-#include "XmlModel/DispConfig/CDispWorkspacePreferences.h"
-#include "XmlModel/DispConfig/CDispatcherConfig.h"
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
-#include "XmlModel/HostHardwareInfo/CHwFileSystemInfo.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/VmDirectory/CVmDirectoryItem.h"
-#include "XmlModel/VmConfig/CVmHardware.h"
+#include <prlxmlmodel/DispConfig/CDispUser.h>
+#include <prlxmlmodel/DispConfig/CDispWorkspacePreferences.h>
+#include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwFileSystemInfo.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/VmDirectory/CVmDirectoryItem.h>
+#include <prlxmlmodel/VmConfig/CVmHardware.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "CVmValidateConfig.h"
 #include "CDspBugPatcherLogic.h"
@@ -93,9 +93,9 @@
 #include "Tasks/Task_MountVm.h"
 #endif
 
-#include "XmlModel/ProblemReport/CProblemReport.h"
-#include "XmlModel/Messaging/CVmBinaryEventParameter.h"
-#include "XmlModel/GuestOsInformation/CVmGuestOsInformation.h"
+#include <prlxmlmodel/ProblemReport/CProblemReport.h>
+#include <prlxmlmodel/Messaging/CVmBinaryEventParameter.h>
+#include <prlxmlmodel/GuestOsInformation/CVmGuestOsInformation.h>
 
 #include <prlcommon/Logging/Logging.h>
 #include "Libraries/StatesUtils/StatesHelper.h"

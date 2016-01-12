@@ -33,7 +33,7 @@
 #define __Task_CopyImage_H__
 
 
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "CDspTaskHelper.h"
 
 

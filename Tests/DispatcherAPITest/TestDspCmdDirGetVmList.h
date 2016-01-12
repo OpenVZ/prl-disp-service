@@ -40,7 +40,7 @@
 #include "TestDispatcherBase.h"
 #include <QList>
 #include <QDomDocument>
-#include "XmlModel/Messaging/CResult.h"
+#include <prlxmlmodel/Messaging/CResult.h>
 
 class TestDspCmdDirGetVmList:
    public TestDispatcherBase

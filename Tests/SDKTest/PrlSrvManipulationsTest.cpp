@@ -40,16 +40,16 @@
 #include "Tests/SDKTest/AutoHelpers.h"
 #include "TestCallbackCommon.h"
 
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
-#include "XmlModel/HostHardwareInfo/CSystemStatistics.h"
-#include "XmlModel/HostHardwareInfo/CHwFileSystemInfo.h"
-#include "XmlModel/DispConfig/CDispUser.h"
-#include "XmlModel/DispConfig/CDispCommonPreferences.h"
-#include "XmlModel/DispConfig/CDispNetAdapter.h"
-#include "XmlModel/DispConfig/CDispDhcpPreferences.h"
-#include "XmlModel/Appliance/CAppliance.h"
-#include "XmlModel/CtTemplate/CtTemplate.h"
-#include "XmlModel/UserInformation/UserInfo.h"
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/HostHardwareInfo/CSystemStatistics.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwFileSystemInfo.h>
+#include <prlxmlmodel/DispConfig/CDispUser.h>
+#include <prlxmlmodel/DispConfig/CDispCommonPreferences.h>
+#include <prlxmlmodel/DispConfig/CDispNetAdapter.h>
+#include <prlxmlmodel/DispConfig/CDispDhcpPreferences.h>
+#include <prlxmlmodel/Appliance/CAppliance.h>
+#include <prlxmlmodel/CtTemplate/CtTemplate.h>
+#include <prlxmlmodel/UserInformation/UserInfo.h>
 
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Std/SmartPtr.h>
@@ -60,11 +60,11 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/TgzExtracter/TgzExtracterLib.h"
 
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/VmDirectory/CVmDirectories.h"
-#include "XmlModel/ProblemReport/CProblemReport.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/VmDirectory/CVmDirectories.h>
+#include <prlxmlmodel/ProblemReport/CProblemReport.h>
 
 #include "Libraries/ConfigConverter/ConfigFile.h"
 #include "Libraries/ConfigConverter/ConfigConsts.h"

@@ -31,18 +31,18 @@
 
 #include "CProtoSerializerTest.h"
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameterList.h"
-#include "XmlModel/Messaging/CResult.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameterList.h>
+#include <prlxmlmodel/Messaging/CResult.h>
 #include <prlcommon/PrlUuid/Uuid.h>
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
-#include "XmlModel/HostHardwareInfo/CHwFileSystemInfo.h"
-#include "XmlModel/DispConfig/CDispUser.h"
-#include "XmlModel/DispConfig/CDispCommonPreferences.h"
-#include "XmlModel/HostHardwareInfo/CSystemStatistics.h"
-#include "XmlModel/UserInformation/ParallelsUserInformation.h"
-#include "XmlModel/NetworkConfig/CParallelsNetworkConfig.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwFileSystemInfo.h>
+#include <prlxmlmodel/DispConfig/CDispUser.h>
+#include <prlxmlmodel/DispConfig/CDispCommonPreferences.h>
+#include <prlxmlmodel/HostHardwareInfo/CSystemStatistics.h>
+#include <prlxmlmodel/UserInformation/ParallelsUserInformation.h>
+#include <prlxmlmodel/NetworkConfig/CParallelsNetworkConfig.h>
 #include "Tests/CommonTestsUtils.h"
 
 using namespace Parallels;
