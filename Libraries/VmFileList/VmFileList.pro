@@ -1,5 +1,6 @@
 TEMPLATE = lib
 CONFIG += staticlib
+QTCONFIG = xml
 
 include(VmFileList.pri)
 

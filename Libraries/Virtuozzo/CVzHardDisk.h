@@ -31,7 +31,7 @@
 #ifndef CVZHARDDISK_H
 #define CVZHARDDISK_H
 
-#include "XmlModel/VmConfig/CVmHardDisk.h"
+#include <prlxmlmodel/VmConfig/CVmHardDisk.h>
 
 class CVzHardDisk : public CVmHardDisk
 {

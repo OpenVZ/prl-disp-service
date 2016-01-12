@@ -40,7 +40,7 @@
 
 #include "Dispatcher/Dispatcher/CDspTaskHelper.h"
 //#include "CDspTaskHelper.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 typedef enum _PRL_VM_DELETE_FLAGS
 {

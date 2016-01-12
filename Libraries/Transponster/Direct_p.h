@@ -38,7 +38,7 @@
 #include <boost/function.hpp>
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <Libraries/PrlNetworking/PrlNetLibrary.h>
-#include <XmlModel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 namespace Transponster
 {

@@ -45,13 +45,13 @@
 #include <QMutex>
 
 #include "CDspBroadcastListener.h"
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
-#include "XmlModel/DispConfig/CDispWorkspacePreferences.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlxmlmodel/DispConfig/CDispWorkspacePreferences.h>
 #include "CDspService.h"
 #include "Libraries/HostInfo/CHostInfo.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
-#include "XmlModel/HostHardwareInfo/CHwOsVersion.h"
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwOsVersion.h>
 #include <prlcommon/Std/PrlAssert.h>
 
 #include "Build/Current.ver"

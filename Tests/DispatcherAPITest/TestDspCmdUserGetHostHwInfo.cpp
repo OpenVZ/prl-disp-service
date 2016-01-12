@@ -39,9 +39,9 @@
 #include <QtTest/QtTest>
 
 #include "SDK/Handles/PveControl.h"
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 
 #include "Tests/CommonTestsUtils.h"
 

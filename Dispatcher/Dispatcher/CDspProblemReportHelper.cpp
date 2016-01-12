@@ -48,10 +48,10 @@
 #include "CDspVmInfoDatabase.h"
 #include "CDspShellHelper.h"
 
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
-#include "XmlModel/Messaging/CVmBinaryEventParameter.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/GuestOsInformation/CVmGuestOsInformation.h"
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/Messaging/CVmBinaryEventParameter.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/GuestOsInformation/CVmGuestOsInformation.h>
 
 #include "Libraries/ProblemReportUtils/CPackedProblemReport.h"
 #include "Libraries/ProblemReportUtils/CInstalledSoftwareCollector.h"

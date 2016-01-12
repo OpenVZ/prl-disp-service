@@ -39,20 +39,20 @@
 #include <QImage>
 
 #include <prlcommon/PrlUuid/Uuid.h>
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/VmConfig/CVmGuestSharing.h"
-#include "XmlModel/VmConfig/CVmHostSharing.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/VmConfig/CVmGuestSharing.h>
+#include <prlxmlmodel/VmConfig/CVmHostSharing.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/DiskImage/DiskImage.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
-#include "XmlModel/HostHardwareInfo/CSystemStatistics.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
-#include "XmlModel/NetworkConfig/CVirtualNetwork.h"
-#include "XmlModel/NetworkConfig/CParallelsNetworkConfig.h"
-#include "XmlModel/VmDataStatistic/CVmDataStatistic.h"
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlxmlmodel/HostHardwareInfo/CSystemStatistics.h>
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/NetworkConfig/CVirtualNetwork.h>
+#include <prlxmlmodel/NetworkConfig/CParallelsNetworkConfig.h>
+#include <prlxmlmodel/VmDataStatistic/CVmDataStatistic.h>
 
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"

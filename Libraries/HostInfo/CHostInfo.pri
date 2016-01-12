@@ -5,7 +5,6 @@ QTCONFIG = network core xml
 
 win32: LIBS *= -lwinspool
 
-include($$SRC_LEVEL/XmlModel/XmlModel.pri)
 unix: {
 	LIBS *= -ldl
 }

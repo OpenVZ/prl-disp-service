@@ -45,8 +45,8 @@
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/PrlCommonUtilsBase/CommandConvHelper.h>
 
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "CDspVzHelper.h"
 
 using namespace Parallels;

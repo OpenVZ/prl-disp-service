@@ -43,8 +43,8 @@
 #include <stdio.h>
 
 #include "SDK/Handles/PveControl.h"
-#include "XmlModel/VmDirectory/CVmDirectory.h"
-#include "XmlModel/HostHardwareInfo/CHwFileSystemInfo.h"
+#include <prlxmlmodel/VmDirectory/CVmDirectory.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwFileSystemInfo.h>
 #include <prlcommon/Logging/Logging.h>
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"

@@ -35,7 +35,7 @@
 #include <QString>
 
 #include "CDspClient.h"
-//#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
+//#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
 #include <prlcommon/IOService/IOCommunication/IOClient.h>
 #include "Task_VzMigrate.h"

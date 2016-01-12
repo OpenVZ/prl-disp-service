@@ -35,7 +35,7 @@
 
 #include "CDspTaskHelper.h"
 #include "CDspVmMounter.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 class Task_MountVm : public  CDspTaskHelper
 {

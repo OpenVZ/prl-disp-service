@@ -38,7 +38,7 @@
 #define H_TestDspCmdDirVmClone_H
 
 #include "TestDispatcherBase.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/Std/SmartPtr.h>
 
 class TestDspCmdDirVmClone : public TestDispatcherBase

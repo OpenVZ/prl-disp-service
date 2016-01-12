@@ -39,7 +39,7 @@
 #define __Task_FileSystemEntriesOperations_H_
 
 #include "CDspTaskHelper.h"
-#include "XmlModel/HostHardwareInfo/CHwFileSystemInfo.h"
+#include <prlxmlmodel/HostHardwareInfo/CHwFileSystemInfo.h>
 
 class Task_FileSystemEntriesOperations : public  CDspTaskHelper
 {

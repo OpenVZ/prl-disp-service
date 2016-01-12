@@ -1,6 +1,5 @@
 TEMPLATE = lib
 CONFIG += staticlib
-
 include(DispToDispProtocols.pri)
 
 HEADERS += \

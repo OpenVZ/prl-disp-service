@@ -53,7 +53,7 @@
 #include <prlsdk/PrlOses.h>
 
 //#include "Libraries/DiskImage/PartitionTable.h"  // DiskImage commented out by request from CP team
-#include "XmlModel/DispConfig/CDispUsbPreferences.h"
+#include <prlxmlmodel/DispConfig/CDispUsbPreferences.h>
 
 class CHostHardwareInfo;
 class CHwHddPartition;

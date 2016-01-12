@@ -40,8 +40,8 @@
 
 #include "CDspVm.h"
 #include "CDspTaskHelper.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/VmInfo/CVmInfo.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/VmInfo/CVmInfo.h>
 #include "CDspVmSnapshotInfrastructure.h"
 //#include "Libraries/VirtualDisk/DiskStatesManager.h"  // VirtualDisk commented out by request from CP team
 

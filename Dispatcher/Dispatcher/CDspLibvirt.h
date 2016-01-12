@@ -40,12 +40,12 @@
 #include <boost/optional.hpp>
 #include <libvirt/virterror.h>
 #include <libvirt/libvirt-qemu.h>
-#include <XmlModel/VtInfo/VtInfo.h>
+#include <prlxmlmodel/VtInfo/VtInfo.h>
 #include <prlcommon/Logging/Logging.h>
-#include <XmlModel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
-#include <XmlModel/NetworkConfig/CVirtualNetwork.h>
-#include <XmlModel/HostHardwareInfo/CHwNetAdapter.h>
+#include <prlxmlmodel/NetworkConfig/CVirtualNetwork.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwNetAdapter.h>
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 

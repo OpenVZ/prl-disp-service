@@ -40,8 +40,8 @@
 #include <qobject.h>
 #include "Tests/CMockPveEventsHandler.h"
 
-#include "XmlModel/VmDirectory/CVmDirectory.h"
-#include "XmlModel/DispConfig/CDispUser.h"
+#include <prlxmlmodel/VmDirectory/CVmDirectory.h>
+#include <prlxmlmodel/DispConfig/CDispUser.h>
 #include <prlcommon/Std/SmartPtr.h>
 
 class CPveControl;

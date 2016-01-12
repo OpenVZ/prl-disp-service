@@ -42,9 +42,9 @@
 #include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include "SDK/Handles/PveControl.h"
-#include "XmlModel/DispConfig/CDispatcherConfig.h"
-#include "XmlModel/DispConfig/CDispUsersPreferences.h"
-#include "XmlModel/DispConfig/CDispUser.h"
+#include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
+#include <prlxmlmodel/DispConfig/CDispUsersPreferences.h>
+#include <prlxmlmodel/DispConfig/CDispUser.h>
 #include <prlcommon/Logging/Logging.h>
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
 

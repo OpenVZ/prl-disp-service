@@ -36,11 +36,11 @@
 #include "domain_type.h"
 #include "network_type.h"
 #include "snapshot_type.h"
-#include <XmlModel/VtInfo/VtInfo.h>
-#include <XmlModel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/VtInfo/VtInfo.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <Libraries/StatesStore/SavedStateTree.h>
-#include <XmlModel/NetworkConfig/CVirtualNetwork.h>
-#include <XmlModel/HostHardwareInfo/CHwNetAdapter.h>
+#include <prlxmlmodel/NetworkConfig/CVirtualNetwork.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwNetAdapter.h>
 
 namespace Transponster
 {

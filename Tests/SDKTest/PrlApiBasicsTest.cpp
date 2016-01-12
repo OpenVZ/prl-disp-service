@@ -36,7 +36,7 @@
 #include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
 #include "Tests/CommonTestsUtils.h"
 #include <prlcommon/Logging/Logging.h>
-#include "XmlModel/Messaging/CVmEvent.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
 
 void PrlApiBasicsTest::testCreateStringsList()
 {

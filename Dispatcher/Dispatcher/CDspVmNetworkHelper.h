@@ -38,8 +38,8 @@
 #include "CDspLibvirt.h"
 #include "Tasks/Task_ManagePrlNetService.h"
 #include <prlcommon/Std/SmartPtr.h>
-#include "XmlModel/VmConfig/CVmGenericNetworkAdapter.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmGenericNetworkAdapter.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 
 enum HostMacUpdateFlags {

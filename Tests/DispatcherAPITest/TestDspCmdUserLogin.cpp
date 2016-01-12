@@ -41,9 +41,9 @@
 #include "Tests/CommonTestsUtils.h"
 
 #include "SDK/Handles/PveControl.h"
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
-#include "XmlModel/DispConfig/CDispUser.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlxmlmodel/DispConfig/CDispUser.h>
 
 namespace {
 	char g_sEmptyValue[] = "";

@@ -37,8 +37,8 @@
 #include <prlcommon/Logging/Logging.h>
 #include "Tests/CommonTestsUtils.h"
 #include <set>
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
 #include "Build/Current.ver"
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 

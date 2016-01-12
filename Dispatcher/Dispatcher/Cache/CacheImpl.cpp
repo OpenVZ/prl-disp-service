@@ -34,7 +34,7 @@
 #include <QWriteLocker>
 #include "CDspVmDirManager.h"
 #include "CDspService.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/HostUtils/HostUtils.h>

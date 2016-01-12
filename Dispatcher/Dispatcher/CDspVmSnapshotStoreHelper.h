@@ -43,10 +43,10 @@
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 
 #include "CDspClient.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/IOService/IOCommunication/IOServer.h>
 #include <prlcommon/Std/SmartPtr.h>
-#include "XmlModel/VmDirectory/CVmDirectory.h"
+#include <prlxmlmodel/VmDirectory/CVmDirectory.h>
 #include "Libraries/StatesStore/SavedStateStore.h"
 
 // VirtualDisk commented out by request from CP team

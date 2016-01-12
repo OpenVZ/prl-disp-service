@@ -41,9 +41,9 @@
 #include "Tests/CommonTestsUtils.h"
 
 #include "SDK/Handles/PveControl.h"
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 

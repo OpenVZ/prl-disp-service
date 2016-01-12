@@ -43,7 +43,7 @@
 #include "CVmValidateConfig.h"
 #include "CVmValidateConfig_p.h"
 #include "CDspService.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/PrlCommonUtilsBase/OsInfo.h>
 #include <prlcommon/PrlCommonUtilsBase/CHardDiskHelper.h>
@@ -55,7 +55,7 @@
 #include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
 #include "Tasks/Task_ManagePrlNetService.h"
 #include "StringUtils.h"
-#include "XmlModel/ParallelsObjects/CXmlModelHelper.h"
+#include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
 #include "Interfaces/Config.h"
 #include <prlcommon/Interfaces/ApiDevNums.h>
 #include <boost/mpl/quote.hpp>

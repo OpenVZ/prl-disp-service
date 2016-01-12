@@ -34,7 +34,7 @@
 #include "CVmMigrationProto.h"
 #include "CVmBackupProto.h"
 #include "CCtTemplateProto.h"
-#include "XmlModel/Messaging/CVmEventParameterList.h"
+#include <prlxmlmodel/Messaging/CVmEventParameterList.h>
 
 namespace Parallels
 {

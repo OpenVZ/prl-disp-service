@@ -1,6 +1,6 @@
 TEMPLATE = lib
 CONFIG += console staticlib
-QT =
+QT = xml
 
 include(PerfCounter.pri)
 

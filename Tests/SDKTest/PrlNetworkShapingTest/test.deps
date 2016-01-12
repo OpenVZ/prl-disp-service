@@ -2,6 +2,5 @@ TARGET = test_sdk_PrlNetworkShapingTest
 PROJ_PATH = $$PWD
 include(../../../Build/qmake/build_target.pri)
 
-include($$SRC_LEVEL/XmlModel/XmlModel.pri)
 include($$LIBS_LEVEL/PrlNetworking/PrlNetworking.pri)
 include($$SRC_LEVEL/SDK/Handles/SDK.pri)

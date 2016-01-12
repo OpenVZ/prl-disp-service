@@ -7,5 +7,4 @@ INCLUDEPATH += $$PWD
 INCLUDEPATH += $$EXT_LEVEL
 INCLUDEPATH += $$SRC_LEVEL/VI/Interfaces
 
-include($$SRC_LEVEL/XmlModel/XmlModel.pri)
 include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)

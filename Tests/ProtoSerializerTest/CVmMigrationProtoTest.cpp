@@ -34,8 +34,8 @@
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <prlsdk/PrlEnums.h>
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameterList.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameterList.h>
 #include "Tests/CommonTestsUtils.h"
 
 using namespace Parallels;

@@ -38,7 +38,7 @@
 #define __Task_MoveVm_H_
 
 #include "CDspTaskHelper.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 enum _PRL_VM_MOVE_STEP {
 	MOVE_VM_EXCL_OP_REGISTERED	= (1 << 0),

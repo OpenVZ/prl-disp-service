@@ -7,6 +7,5 @@ QTCONFIG = core xml network
 # variables of file that had included this one.
 #__SRC_LEVEL	=  $$PWD/../..
 
-include($$SRC_LEVEL/XmlModel/XmlModel.pri)
 
 INCLUDEPATH += $$PWD

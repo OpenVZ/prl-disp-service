@@ -31,10 +31,10 @@
 
 #include "CDspHwMonitorNotifier.h"
 #include "CDspService.h"
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include "CDspUserHelper.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
 #include "CDspClientManager.h"
 #include "CDspVmManager.h"
 #include "CProtoSerializer.h"

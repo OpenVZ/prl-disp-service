@@ -37,10 +37,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "../CDspService.h"
-#include "XmlModel/DispConfig/CDispatcherConfig.h"
-#include <XmlModel/DispConfig/CDispNetAdapter.h>
-#include "XmlModel/Messaging/CVmEventParameter.h"
-#include "XmlModel/VmConfig/CVmNetworkRates.h"
+#include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
+#include <prlxmlmodel/DispConfig/CDispNetAdapter.h>
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlxmlmodel/VmConfig/CVmNetworkRates.h>
 
 #include "CDspClientManager.h"
 #include "CDspVmManager.h"

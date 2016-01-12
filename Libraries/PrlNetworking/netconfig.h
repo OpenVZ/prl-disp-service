@@ -31,9 +31,9 @@
 #define prl_netconfig_h__
 
 #include <prlcommon/Interfaces/ParallelsTypes.h>
-#include <XmlModel/NetworkConfig/CParallelsNetworkConfig.h>
-#include <XmlModel/VmConfig/CVmGenericNetworkAdapter.h>
-#include <XmlModel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/NetworkConfig/CParallelsNetworkConfig.h>
+#include <prlxmlmodel/VmConfig/CVmGenericNetworkAdapter.h>
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <Libraries/PrlNetworking/PrlNetLibrary.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/PrlCommonUtilsBase/netutils.h>

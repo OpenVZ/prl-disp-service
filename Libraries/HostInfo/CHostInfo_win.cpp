@@ -48,11 +48,11 @@
 
 #include "CHostInfo.h"
 #include <Libraries/VmDrv/VmDrv.h>
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
-#include "XmlModel/HostHardwareInfo/CHwGenericPciDevice.h"
-#include "XmlModel/HostHardwareInfo/CHwHardDisk.h"
-#include "XmlModel/HostHardwareInfo/CHwNetAdapter.h"
-#include "XmlModel/HostHardwareInfo/CHwMemorySettings.h"
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwGenericPciDevice.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwHardDisk.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwNetAdapter.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwMemorySettings.h>
 #include "Config.h"
 
 #include <prlcommon/Interfaces/ParallelsPlatform.h>

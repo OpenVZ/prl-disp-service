@@ -41,7 +41,7 @@
 #include <QObject>
 #include <QMutex>
 
-#include "XmlModel/Messaging/CResult.h"
+#include <prlxmlmodel/Messaging/CResult.h>
 
 class CMockPveEventsHandler : public QObject {
 Q_OBJECT

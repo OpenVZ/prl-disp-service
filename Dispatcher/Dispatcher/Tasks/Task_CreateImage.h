@@ -40,7 +40,7 @@
 
 #include "CDspTaskHelper.h"
 #include "Mixin_CreateHddSupport.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/Std/SmartPtr.h>
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 //#include "Libraries/VirtualDisk/DiskConfigurator.h"  // VirtualDisk commented out by request from CP team

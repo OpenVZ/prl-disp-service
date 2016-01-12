@@ -39,7 +39,7 @@
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/IOService/IOCommunication/IOClient.h>
 #include <prlcommon/IOService/IOCommunication/IOServer.h>
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 
 using namespace IOService;

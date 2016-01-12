@@ -42,11 +42,11 @@
 
 #include "AutoHelpers.h"
 
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/Std/PrlAssert.h>
-#include "XmlModel/Messaging/CVmEvent.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>
 #include <prlcommon/Std/SmartPtr.h>
@@ -57,7 +57,7 @@
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 
 
-#include "XmlModel/DispConfig/CDispCommonPreferences.h"
+#include <prlxmlmodel/DispConfig/CDispCommonPreferences.h>
 
 #include <prlsdk/PrlApiDeprecated.h>
 #include <prlcommon/Interfaces/ParallelsSdkPrivate.h>

@@ -24,9 +24,9 @@
 #ifndef _CVZNETWORKSHAPING_H_
 #define _CVZNETWORKSHAPING_H_
 
-#include "XmlModel/NetworkConfig/CNetworkShapingConfig.h"
-#include "XmlModel/NetworkConfig/CNetworkClassesConfig.h"
-#include "XmlModel/VmConfig/CVmNetworkRates.h"
+#include <prlxmlmodel/NetworkConfig/CNetworkShapingConfig.h>
+#include <prlxmlmodel/NetworkConfig/CNetworkClassesConfig.h>
+#include <prlxmlmodel/VmConfig/CVmNetworkRates.h>
 
 class CVzNetworkShaping
 {

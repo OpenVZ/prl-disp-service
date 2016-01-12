@@ -30,7 +30,7 @@
 #include <QString>
 
 #include <prlcommon/Std/SmartPtr.h>
-#include "XmlModel/ProblemReport/CProblemReport.h"
+#include <prlxmlmodel/ProblemReport/CProblemReport.h>
 #include <prlsdk/PrlErrors.h>
 
 class QByteArray;

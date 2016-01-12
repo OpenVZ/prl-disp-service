@@ -54,13 +54,13 @@
 
 #include <prlcommon/IOService/IOCommunication/IOServer.h>
 
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
-#include "XmlModel/VmDirectory/CVmDirectory.h"
+#include <prlxmlmodel/VmDirectory/CVmDirectory.h>
 #include <prlcommon/Std/SmartPtr.h>
 
 #include "CDspSync.h"
-#include "XmlModel/ProblemReport/CProblemReport.h"
+#include <prlxmlmodel/ProblemReport/CProblemReport.h>
 
 #include "Tasks/Task_DeleteVm.h"
 

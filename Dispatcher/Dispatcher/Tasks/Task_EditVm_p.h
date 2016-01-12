@@ -38,8 +38,8 @@
 #include "CDspVmGuestPersonality.h"
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/for_each.hpp>
-#include <XmlModel/VmConfig/CVmConfiguration.h>
-#include <XmlModel/ParallelsObjects/CXmlModelHelper.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
 
 class Task_EditVm;
 namespace Edit

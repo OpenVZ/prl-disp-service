@@ -35,10 +35,10 @@
 ///
 /////////////////////////////////////////////////////////////////////////////
 
-#include "XmlModel/VmConfig/CVmHardDisk.h"
-#include "XmlModel/VmConfig/CVmHardware.h"
+#include <prlxmlmodel/VmConfig/CVmHardDisk.h>
+#include <prlxmlmodel/VmConfig/CVmHardware.h>
 #include "CXmlModelHelperTest.h"
-#include "XmlModel/ParallelsObjects/CXmlModelHelper.h"
+#include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include "Tests/CommonTestsUtils.h"

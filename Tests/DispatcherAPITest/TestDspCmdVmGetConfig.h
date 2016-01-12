@@ -40,8 +40,8 @@
 #include <QDomDocument>
 
 #include "TestDispatcherBase.h"
-#include "XmlModel/Messaging/CResult.h"
-#include "XmlModel/VmDirectory/CVmDirectoryItem.h"
+#include <prlxmlmodel/Messaging/CResult.h>
+#include <prlxmlmodel/VmDirectory/CVmDirectoryItem.h>
 
 
 class TestDspCmdVmGetConfig :

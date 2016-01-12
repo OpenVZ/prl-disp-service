@@ -41,7 +41,7 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/StatesUtils/StatesHelper.h"
 
-#include "XmlModel/DiskImageInfo/CDiskImageInfo.h"
+#include <prlxmlmodel/DiskImageInfo/CDiskImageInfo.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 
 

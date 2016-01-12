@@ -24,6 +24,7 @@
 
 TEMPLATE = lib
 CONFIG += staticlib
+QTCONFIG = xml
 
 include(ProblemReportUtils.pri)
 

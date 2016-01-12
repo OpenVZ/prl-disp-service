@@ -57,9 +57,9 @@
 #include "CDspTestConfig.h"
 
 
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
-#include "XmlModel/DispConfig/CDispNetAdapter.h"
-#include "XmlModel/DispConfig/CDispDhcpPreferences.h"
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/DispConfig/CDispNetAdapter.h>
+#include <prlxmlmodel/DispConfig/CDispDhcpPreferences.h>
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Logging/Logging.h>

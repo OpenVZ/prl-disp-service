@@ -38,12 +38,12 @@
 
 #include "CDspBugPatcherLogic.h"
 
-#include "XmlModel/DispConfig/CDispWorkspacePreferences.h"
-#include "XmlModel/VmDirectory/CVmDirectory.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/VmConfig/CVmSoundInputs.h"
-#include "XmlModel/VmConfig/CVmSoundOutputs.h"
-#include "XmlModel/ParallelsObjects/CVmProfileHelper.h"
+#include <prlxmlmodel/DispConfig/CDispWorkspacePreferences.h>
+#include <prlxmlmodel/VmDirectory/CVmDirectory.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/VmConfig/CVmSoundInputs.h>
+#include <prlxmlmodel/VmConfig/CVmSoundOutputs.h>
+#include <prlxmlmodel/ParallelsObjects/CVmProfileHelper.h>
 
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Std/PrlAssert.h>

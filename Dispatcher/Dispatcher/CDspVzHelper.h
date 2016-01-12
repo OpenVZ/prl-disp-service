@@ -31,11 +31,11 @@
 #define __CDspVzHelper_H_
 
 #include "CDspClient.h"
-#include "XmlModel/VmDirectory/CVmDirectory.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmDirectory/CVmDirectory.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include "CDspTaskHelper.h"
-#include "XmlModel/HostHardwareInfo/CSystemStatistics.h"
+#include <prlxmlmodel/HostHardwareInfo/CSystemStatistics.h>
 #include "Dispatcher/Dispatcher/CDspDispConnection.h"
 #include "Dispatcher/Dispatcher/Cache/Cache.h"
 

@@ -49,9 +49,9 @@
 #include <QMutex>
 #include <QCryptographicHash>
 
-#include "XmlModel/HostHardwareInfo/CHwNetAdapter.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/HostHardwareInfo/CHwNetAdapter.h>
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 #include "Libraries/PrlNetworking/netconfig.h"

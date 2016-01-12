@@ -34,7 +34,7 @@
 #include "Tests/CommonTestsUtils.h"
 #include <prlsdk/PrlApi.h>
 #include <prlcommon/Logging/Logging.h>
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 #include <QFile>
 #include <QTextStream>

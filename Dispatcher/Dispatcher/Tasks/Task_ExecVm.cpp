@@ -41,7 +41,7 @@
 #include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 #include "Libraries/PrlCommonUtils/CFirewallHelper.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #include <prlcommon/IOService/IOCommunication/Socket/Socket_p.h>
 

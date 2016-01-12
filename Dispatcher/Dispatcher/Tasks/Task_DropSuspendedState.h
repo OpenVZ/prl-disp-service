@@ -39,7 +39,7 @@
 #define __Task_DropSuspendedState_H_
 
 #include "Dispatcher/Dispatcher/CDspTaskHelper.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 class Task_DropSuspendedState
 	: public  CDspTaskHelper

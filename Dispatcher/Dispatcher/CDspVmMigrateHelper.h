@@ -34,9 +34,9 @@
 #define CDspVmMigrateHelper_H
 
 #include "CDspDispConnection.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
-#include "XmlModel/VmDirectory/CVmDirectory.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/VmDirectory/CVmDirectory.h>
 #include "CDspVm.h"
 
 /**

@@ -32,7 +32,7 @@
 #ifndef CDSP_VM_CONFIG_ACCESS_SYNCH_H
 #define CDSP_VM_CONFIG_ACCESS_SYNCH_H
 
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlsdk/PrlErrors.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include "Dispatcher/Dispatcher/Cache/Cache.h"

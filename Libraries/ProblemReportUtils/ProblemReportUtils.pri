@@ -27,7 +27,6 @@ PROJ_FILE = $$PWD/ProblemReportUtils.pro
 QTCONFIG = core xml network
 !include(../../Build/qmake/staticlib.pri): error(include error)
 
-include($$SRC_LEVEL/XmlModel/XmlModel.pri)
 win32: include($$LIBS_LEVEL/WmiWrap/WmiWrap.pri)
 
 LIBS += -ltar -lz

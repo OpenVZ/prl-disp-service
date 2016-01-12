@@ -32,8 +32,8 @@
 #include "PrlVmValidateConfigTest.h"
 #include "Tests/CommonTestsUtils.h"
 
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/HostHardwareInfo/CHwGenericPciDevice.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwGenericPciDevice.h>
 #include "Libraries/DiskImage/DiskImage.h"
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Interfaces/Config.h"

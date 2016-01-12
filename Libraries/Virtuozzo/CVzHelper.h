@@ -40,13 +40,13 @@
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlsdk/PrlEnums.h>
-#include "XmlModel/NetworkConfig/CNetworkClassesConfig.h"
-#include "XmlModel/NetworkConfig/CNetworkShapingConfig.h"
-#include "XmlModel/VmConfig/CVmNetworkRates.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/HostHardwareInfo/CSystemStatistics.h"
-#include "XmlModel/DiskImageInfo/CDiskImageInfo.h"
-#include "XmlModel/CtTemplate/CtTemplate.h"
+#include <prlxmlmodel/NetworkConfig/CNetworkClassesConfig.h>
+#include <prlxmlmodel/NetworkConfig/CNetworkShapingConfig.h>
+#include <prlxmlmodel/VmConfig/CVmNetworkRates.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/HostHardwareInfo/CSystemStatistics.h>
+#include <prlxmlmodel/DiskImageInfo/CDiskImageInfo.h>
+#include <prlxmlmodel/CtTemplate/CtTemplate.h>
 
 #ifndef NETLINK_VZEVENT
 #define NETLINK_VZEVENT         31

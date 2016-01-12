@@ -74,8 +74,8 @@
 #include "Libraries/HostInfo/CHostInfo.h"
 #include <prlcommon/PrlCommonUtilsBase/CFeaturesMatrix.h>
 
-#include "XmlModel/VmDirectory/CVmDirectories.h"
-#include "XmlModel/NetworkConfig/CParallelsNetworkConfig.h"
+#include <prlxmlmodel/VmDirectory/CVmDirectories.h>
+#include <prlxmlmodel/NetworkConfig/CParallelsNetworkConfig.h>
 
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"

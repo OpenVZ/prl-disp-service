@@ -38,8 +38,8 @@
 #include "CDspClient.h"
 #include "CDspDispConnection.h"
 #include "CDspVm.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include "Task_DispToDispConnHelper.h"
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
 #include <prlcommon/IOService/IOCommunication/IOClient.h>

@@ -39,7 +39,7 @@
 #define __Task_RegisterVm_H_
 
 #include "CDspTaskHelper.h"
-#include "XmlModel/VmConfig/CVmConfiguration.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "Tasks/Mixin_CreateHddSupport.h"
 #include "Tasks/Mixin_CreateVmSupport.h"
 

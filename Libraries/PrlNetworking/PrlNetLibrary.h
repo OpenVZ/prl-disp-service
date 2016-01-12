@@ -47,9 +47,9 @@
 
 #include <prlcommon/Interfaces/ParallelsTypes.h>
 #include <prlsdk/PrlErrors.h>
-#include <XmlModel/NetworkConfig/CHostOnlyNetwork.h>
-#include <XmlModel/VmConfig/CVmConfiguration.h>
-#include <XmlModel/VmConfig/CVmGenericNetworkAdapter.h>
+#include <prlxmlmodel/NetworkConfig/CHostOnlyNetwork.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/VmConfig/CVmGenericNetworkAdapter.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include "PrlNetworkingConstants.h"
 

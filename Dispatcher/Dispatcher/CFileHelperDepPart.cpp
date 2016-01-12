@@ -36,8 +36,8 @@
 
 #include "CDspTaskHelper.h"
 #include "CDspAccessManager.h"
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
 #include "CDspUserHelper.h"
 #include "CProtoSerializer.h"
 

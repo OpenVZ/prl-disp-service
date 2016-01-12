@@ -34,7 +34,7 @@
 #define __DSPVMGUESTPERSONALITY_H__
 
 #include <QObject>
-#include <XmlModel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 namespace Personalize
 {

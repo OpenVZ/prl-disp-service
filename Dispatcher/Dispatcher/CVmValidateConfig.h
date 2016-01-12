@@ -46,8 +46,8 @@
 
 #include <prlcommon/Std/SmartPtr.h>
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
-#include "XmlModel/VmConfig/CVmConfiguration.h"
-#include "XmlModel/Messaging/CVmEvent.h"
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/Messaging/CVmEvent.h>
 
 #include <QSet>
 #include <prlsdk/PrlEnums.h>

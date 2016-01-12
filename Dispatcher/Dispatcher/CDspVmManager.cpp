@@ -56,12 +56,12 @@
 #include <Libraries/PowerWatcher/PowerWatcher.h>
 #include "Libraries/PrlNetworking/netconfig.h"
 
-#include "XmlModel/Messaging/CVmEventParameter.h"
-#include "XmlModel/ProblemReport/CProblemReport.h"
-#include "XmlModel/Messaging/CVmBinaryEventParameter.h"
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlxmlmodel/ProblemReport/CProblemReport.h>
+#include <prlxmlmodel/Messaging/CVmBinaryEventParameter.h>
 #include "Libraries/HostInfo/CHostInfo.h"
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
-#include "XmlModel/HostHardwareInfo/CHwGenericDevice.h"
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwGenericDevice.h>
 
 #include "Tasks/Task_SwitchToSnapshot.h"
 #include "Tasks/Task_BackgroundJob.h"

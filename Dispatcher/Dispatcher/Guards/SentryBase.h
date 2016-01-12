@@ -41,7 +41,7 @@
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/IOService/IOCommunication/IOProtocol.h>
-#include "XmlModel/Messaging/CVmEvent.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
 
 class CDspClient;
 using namespace IOService;

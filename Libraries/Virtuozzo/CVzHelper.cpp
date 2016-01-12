@@ -54,7 +54,7 @@
 #include "CVzNetworkShaping.h"
 #include "Libraries/HostInfo/CHostInfo.h"
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
-#include "XmlModel/HostHardwareInfo/CHostHardwareInfo.h"
+#include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 

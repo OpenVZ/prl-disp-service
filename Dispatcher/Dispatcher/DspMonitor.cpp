@@ -42,13 +42,13 @@
 
 #include "DspMonitor.h"
 
-#include "XmlModel/Messaging/CVmEvent.h"
-#include "XmlModel/Messaging/CVmEventParameter.h"
-#include "XmlModel/VmDirectory/CVmDirectoryItem.h"
+#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlxmlmodel/VmDirectory/CVmDirectoryItem.h>
 #include <prlcommon/Logging/Logging.h>
 #include "CDspTaskHelper.h"
 #include "CDspUserHelper.h"
-#include "XmlModel/DispConfig/CDispUser.h"
+#include <prlxmlmodel/DispConfig/CDispUser.h>
 #include "CDspService.h"
 #include "CDspClientManager.h"
 #include "CDspVmManager.h"
