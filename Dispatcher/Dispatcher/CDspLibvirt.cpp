@@ -575,22 +575,26 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 	switch (event_)
 	{
 	case VIR_DOMAIN_EVENT_DEFINED:
-		d = v->access(domain_);
-		if (!d.isNull())
-		{
-			QRunnable* q = new Tools::Domain(domain_, d);
-			q->setAutoDelete(true);
-			QThreadPool::globalInstance()->start(q);
-		}
 		break;
 	case VIR_DOMAIN_EVENT_UNDEFINED:
 		v->remove(domain_);
-		break;
+		return 0;
 	case VIR_DOMAIN_EVENT_STARTED:
-	case VIR_DOMAIN_EVENT_RESUMED:
+		if (detail_ == VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT)
+			break;
+
 		v->setState(domain_, VMS_RUNNING);
-		break;
+		return 0;
+	case VIR_DOMAIN_EVENT_RESUMED:
+		if (detail_ == VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT)
+			break;
+
+		v->setState(domain_, VMS_RUNNING);
+		return 0;
 	case VIR_DOMAIN_EVENT_SUSPENDED:
+		if (detail_ == VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT)
+			break;
+
 		switch (detail_)
 		{
 		case VIR_DOMAIN_EVENT_SUSPENDED_PAUSED:
@@ -598,12 +602,11 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 		case VIR_DOMAIN_EVENT_SUSPENDED_IOERROR:
 		case VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG:
 		case VIR_DOMAIN_EVENT_SUSPENDED_RESTORED:
-		case VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT:
 		case VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR:
 			v->setState(domain_, VMS_PAUSED);
 			break;
 		}
-		break;
+		return 0;
 	case VIR_DOMAIN_EVENT_PMSUSPENDED:
 		switch (detail_)
 		{
@@ -614,8 +617,11 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 			v->setState(domain_, VMS_SUSPENDED);
 			break;
 		}
-		break;
+		return 0;
 	case VIR_DOMAIN_EVENT_STOPPED:
+		if (detail_ == VIR_DOMAIN_EVENT_STOPPED_FROM_SNAPSHOT)
+			break;
+
 		switch (detail_)
 		{
 		case VIR_DOMAIN_EVENT_STOPPED_SAVED:
@@ -625,10 +631,10 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 			v->setState(domain_, VMS_STOPPED);
 			break;
 		}
-		break;
+		return 0;
 	case VIR_DOMAIN_EVENT_SHUTDOWN:
 		v->setState(domain_, VMS_STOPPED);
-		break;
+		return 0;
 	case VIR_DOMAIN_EVENT_CRASHED:
 		switch (detail_)
 		{
@@ -640,8 +646,21 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 			v->setState(domain_, VMS_STOPPED);
 			break;
 		}
-		break;
+		return 0;
+
+	default:
+		return 0;
 	}
+
+	// update vm configuration and state
+	d = v->access(domain_);
+	if (!d.isNull())
+	{
+		QRunnable* q = new Tools::Domain(domain_, d);
+		q->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(q);
+	}
+
 	return 0;
 }
 
