@@ -34,19 +34,50 @@
 #include "CDspService.h"
 #include "Tasks/Task_EditVm.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 
 namespace Personalize
 {
 
+namespace
+{
+const QString cloudConfigBin = "/usr/libexec/cloud_config_ctl.py";
+const QString configIso = "cloud-config.iso";
+const QString personalityDir = ".personality";
+const QString userConfig = personalityDir + "/user";
+const QString dispConfig = personalityDir + "/disp";;
+
+QString getIsoPath(const QString& vmHomeDir_)
+{
+    return QFileInfo(CFileHelper::GetFileRoot(vmHomeDir_), configIso).absoluteFilePath();
+}
+
+QString getUserConfig(const QString& vmHomeDir_)
+{
+    return QFileInfo(CFileHelper::GetFileRoot(vmHomeDir_), userConfig).absoluteFilePath();
+}
+
+QString getDispConfig(const QString& vmHomeDir_)
+{
+    return QFileInfo(QFileInfo(vmHomeDir_).dir().path(), dispConfig).absoluteFilePath();
+}
+
+QString getTemplatePath(quint32 os_)
+{
+    if (IS_WINDOWS(os_))
+        return "/usr/share/virtuozzo/vz-win-user-config";
+    else
+        return "/usr/share/virtuozzo/vz-lin-user-config";
+}
+} // anonymous namespace
+
 bool Configurator::setNettool(const QStringList& args_) const
 {
-	QString iso(ParallelsDirs::getVmCloudConfigIsoPath(m_cfg.getVmIdentification()->getHomePath()));
-	QString disp(ParallelsDirs::getVmDispCloudConfigPath(m_cfg.getVmIdentification()->getHomePath()));
+	QString iso(getIsoPath(m_cfg.getVmIdentification()->getHomePath()));
+	QString disp(getDispConfig(m_cfg.getVmIdentification()->getHomePath()));
 	QStringList c;
 
-	c << "/usr/libexec/cloud_config_ctl.py"
+	c << cloudConfigBin
 		<< QString("--input=") + disp
 		<< QString("--output=") + disp
 		<< "nettool-command"
@@ -55,12 +86,12 @@ bool Configurator::setNettool(const QStringList& args_) const
 		return false;
 
 	c.clear();
-	c << "/usr/libexec/cloud_config_ctl.py"
+	c << cloudConfigBin
 		<< QString("--output-iso=") + iso
 		<< "merge"
 		<< disp
-		<< ParallelsDirs::getVmUserCloudConfigPath(m_cfg.getVmIdentification()->getHomePath())
-		<< ParallelsDirs::getVmTemplateCloudConfigPath(m_cfg.getVmSettings()->getVmCommonOptions()->getOsVersion());
+		<< getUserConfig(m_cfg.getVmIdentification()->getHomePath())
+		<< getTemplatePath(m_cfg.getVmSettings()->getVmCommonOptions()->getOsVersion());
 	return execute(c);
 }
 
@@ -69,9 +100,9 @@ bool Configurator::setUserPassword(const QString& user_, const QString& passwd_,
 	QString o;
 	QStringList c;
 	QString iso = CFileHelper::GetFileRoot(m_cfg.getVmIdentification()->getHomePath());
-	QString disp(ParallelsDirs::getVmDispCloudConfigPath(m_cfg.getVmIdentification()->getHomePath()));
+	QString disp(getDispConfig(m_cfg.getVmIdentification()->getHomePath()));
 	QProcess p;
-	c << "/usr/libexec/cloud_config_ctl.py"
+	c << cloudConfigBin
 		<< QString("--input=") + disp
 		<< QString("--output=") + disp
 		<< "user" << user_
@@ -83,12 +114,12 @@ bool Configurator::setUserPassword(const QString& user_, const QString& passwd_,
 		return false;
 
 	c.clear();
-	c << "/usr/libexec/cloud_config_ctl.py"
+	c << cloudConfigBin
 		<< QString("--output-iso=") + iso
 		<< "merge"
 		<< disp
-		<< ParallelsDirs::getVmUserCloudConfigPath(m_cfg.getVmIdentification()->getHomePath())
-		<< ParallelsDirs::getVmTemplateCloudConfigPath(m_cfg.getVmSettings()->getVmCommonOptions()->getOsVersion());
+		<< getUserConfig(m_cfg.getVmIdentification()->getHomePath())
+		<< getTemplatePath(m_cfg.getVmSettings()->getVmCommonOptions()->getOsVersion());
 
 	return execute(c);
 }
@@ -124,7 +155,7 @@ void CDspVmGuestPersonality::slotVmConfigChanged(QString vmDirUuid_, QString vmU
 	if (h.isEmpty())
 		return;
 
-	QString p = ParallelsDirs::getVmCloudConfigIsoPath(h);
+	QString p = Personalize::getIsoPath(h);
 	CAuthHelper r;
 	if (!CFileHelper::FileExists(p, &r))
 	{
