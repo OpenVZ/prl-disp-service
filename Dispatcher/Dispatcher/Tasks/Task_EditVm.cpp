@@ -2240,56 +2240,6 @@ PRL_RESULT Task_EditVm::editVm()
 				pVm->startVNCServer(getClient(), fakePkg, false, true);
 		} while (0);
 
-		//////////////////////////////////////////////////////////////////////////
-		// update vm dir entry
-		//////////////////////////////////////////////////////////////////////////
-		do
-		{
-			//lock
-			CDspLockedPointer< CVmDirectoryItem >
-				pVmDirItem = CDspService::instance()->getVmDirManager()
-				.getVmDirItemByUuid( getClient()->getVmDirectoryUuid(), vm_uuid );
-
-			if ( ! pVmDirItem )
-			{
-				WRITE_TRACE(DBG_FATAL, "Can't found pVmDirItem by dirUuid=%s, vmUuid = %s",
-					QSTR2UTF8( getClient()->getVmDirectoryUuid() ),
-					QSTR2UTF8( vm_uuid )
-					);
-				//Note: We should call 'break', but not 'throw' because vm config was saved.
-				break;
-			}
-
-			pVmDirItem->setTemplate(pVmConfigNew->getVmSettings()->getVmCommonOptions()->isTemplate());
-
-			// #441667 - set the same parameters for shared vm
-			CDspVmDirManager::VmDirItemsHash
-				sharedVmHash = CDspService::instance()->getVmDirManager().findVmDirItemsInCatalogue(
-				pVmDirItem->getVmUuid()
-				,pVmDirItem->getVmHome()
-				);
-			CDspVmDirManager::VmDirItemsHashIterator it(sharedVmHash);
-			while( it.hasNext() )
-			{
-				it.next();
-				CDspLockedPointer<CVmDirectoryItem> pVmDirSharedItem = it.value();
-				pVmDirSharedItem->setChangedBy( userName );
-				pVmDirSharedItem->setChangeDateTime( QDateTime::currentDateTime() );
-				pVmDirSharedItem->setVmName( pVmConfigNew->getVmIdentification()->getVmName() );
-				if ( bVmWasRenamed )
-					pVmDirSharedItem->setVmHome( strVmHome );
-				pVmDirSharedItem->getLockedOperationsList()->setLockedOperations( lstNewLockedOperations );
-				pVmDirSharedItem->getLockDown()->setEditingPasswordHash( newLockDownHash );
-			}
-
-			ret = CDspService::instance()->getVmDirManager().updateVmDirItem( pVmDirItem );
-			if ( ! PRL_SUCCEEDED( ret ) )
-			{
-				WRITE_TRACE(DBG_FATAL, "Can't update VmCatalogue by error %#x, %s", ret, PRL_RESULT_TO_STRING( ret ) );
-				break;
-			}
-		} while( 0 );
-
 		// Edit firewall
 		ret = editFirewall(pVmConfigNew, pVmConfigOld, nState, flgExclusiveFirewallChangedWasRegistered);
 		if (PRL_FAILED(ret))
@@ -3288,6 +3238,78 @@ QStringList Address::operator()(const Bridge& mode_)
 }
 
 } // namespace Network
+
+namespace Update
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Directory
+
+Vm::Action* Directory::operator()(const Request& input_) const
+{
+	return new Action(input_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Action
+
+Action::Action(const Request& input_): m_vmIdent(input_.getObject()),
+	m_vmName(input_.getFinal().getVmIdentification()->getVmName()),
+	m_isTemplate(input_.getFinal().getVmSettings()->getVmCommonOptions()->isTemplate())
+{
+	CDspLockedPointer<CDispUser> u = CDspService::instance()->getDispConfigGuard()
+		.getDispUserByUuid(input_.getTask().getClient()->getUserSettingsUuid());
+
+	if(u.isValid())
+		m_userName = u->getUserName();
+
+	if (m_vmName != input_.getStart().getVmIdentification()->getVmName())
+		m_vmHome = input_.getFinal().getVmIdentification()->getHomePath();
+}
+
+bool Action::execute(CDspTaskFailure& feedback_)
+{
+	CDspVmDirManager& dirManager = CDspService::instance()->getVmDirManager();
+	CDspLockedPointer<CVmDirectoryItem> dirItem = dirManager
+		.getVmDirItemByUuid(m_vmIdent.second, m_vmIdent.first);
+
+	if (!dirItem)
+	{
+		feedback_(PRL_ERR_VM_DIRECTORY_NOT_EXIST);
+		return false;
+	}
+
+	dirItem->setTemplate(m_isTemplate);
+
+	// #441667 - set the same parameters for shared vm
+	CDspVmDirManager::VmDirItemsHash sharedVmHash = dirManager
+		.findVmDirItemsInCatalogue(dirItem->getVmUuid(), dirItem->getVmHome());
+
+	foreach(CDspLockedPointer<CVmDirectoryItem> dirSharedItem, sharedVmHash)
+	{
+		dirSharedItem->setChangedBy(m_userName);
+		dirSharedItem->setChangeDateTime(QDateTime::currentDateTime());
+		dirSharedItem->setVmName(m_vmName);
+		if (m_vmHome)
+			dirSharedItem->setVmHome(m_vmHome.get());
+
+		/* old code
+		pVmDirSharedItem->getLockedOperationsList()->setLockedOperations(lstNewLockedOperations);
+		pVmDirSharedItem->getLockDown()->setEditingPasswordHash(newLockDownHash);
+		*/
+	}
+
+	PRL_RESULT ret = dirManager.updateVmDirItem(dirItem);
+	if (PRL_FAILED(ret))
+	{
+		WRITE_TRACE(DBG_FATAL, "Can't update VmCatalogue by error %#x, %s", ret, PRL_RESULT_TO_STRING(ret));
+		feedback_(ret);
+		return false;
+	}
+	return Vm::Action::execute(feedback_);
+}
+
+} // namespace Update
 
 namespace Personalize
 {
