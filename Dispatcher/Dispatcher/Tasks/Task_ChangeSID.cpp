@@ -31,6 +31,7 @@
 
 #include "CProtoSerializer.h"
 #include "CDspClientManager.h"
+#include "CDspVmManager_p.h"
 #include <prlcommon/HostUtils/HostUtils.h>
 
 using namespace Parallels;
@@ -203,7 +204,7 @@ PRL_RESULT Task_ChangeSID::run_body()
 
 		if (bVmStarted) {
 			jobProgressEvent(90);
-			e = u.shutdown();
+			e = Command::Vm::Shutdown::Unit(getVmUuid(), 120)();
 			if (e.isFailed())
 				throw e.error().code();
 			bVmStarted = false;
