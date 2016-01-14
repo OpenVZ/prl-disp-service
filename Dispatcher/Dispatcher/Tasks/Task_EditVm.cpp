@@ -2147,6 +2147,13 @@ PRL_RESULT Task_EditVm::editVm()
 				throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
 			}
 
+			if (state != VMS_STOPPED && bVmWasRenamed)
+			{
+				WRITE_TRACE(DBG_FATAL, "Unable to change name for running VM %s.",
+					qPrintable(vm_uuid));
+				throw PRL_ERR_VM_MUST_BE_STOPPED_BEFORE_RENAMING;
+			}
+
 			//Do not let change VM uptime through VM edit
 			//https://bugzilla.sw.ru/show_bug.cgi?id=464218
 			//XXX: seems we have here potential race with internal atomic changes
