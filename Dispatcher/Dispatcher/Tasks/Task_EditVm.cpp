@@ -3610,7 +3610,7 @@ Vm::Action* Factory::operator()(const Request& input_) const
 	w = (oldCpu->isEnableHotplug() != newCpu->isEnableHotplug());
 
 	if (oldCpu->getNumber() < newCpu->getNumber()) {
-		if (newCpu->isEnableHotplug()) {
+		if (oldCpu->isEnableHotplug() && newCpu->isEnableHotplug()) {
 			Action* a(f.craftRuntime(boost::bind(&vm::Runtime::setCpuCount, _1, newCpu->getNumber())));
 			a->setNext(output);
 			output = a;
