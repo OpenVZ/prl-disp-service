@@ -31,7 +31,10 @@
 #pragma once
 
 #include <QString>
+#include <QScopedPointer>
+#include <QSharedPointer>
 #include <libvcmmd/vcmmd.h>
+#include <boost/utility/result_of.hpp>
 
 /*
  * This is a helper class to interact with vcmmd daemon.
@@ -54,35 +57,132 @@
  *
  */
 
-enum VcmmdState
+namespace Vcmmd
 {
-	VcmmdVmActive,
-	VcmmdVmInactive,
-	VcmmdVmUnregistered
-};
+///////////////////////////////////////////////////////////////////////////////
+// struct Api
 
-class VcmmdInterface
+struct Api
 {
-public:
-	VcmmdInterface(const QString& uuid, VcmmdState state);
-	~VcmmdInterface();
+	explicit Api(const QString& uuid_);
 
-	bool init(unsigned long long limit,
-			unsigned long long guarantee);
+	bool init(quint64 limit_, quint64 guarantee_);
+	bool update(quint64 limit_, quint64 guarantee_);
+	void deinit();
+	void activate();
 	void deactivate();
-	bool update(unsigned long long limit,
-			unsigned long long guarantee);
-	void commit(VcmmdState state);
 
 private:
-	void fixupUuid();
-	void activate();
-	void deinit();
+	static bool treat(int status_, const char* name_);
+
 	QString m_uuid;
-	VcmmdState m_state;
-	bool m_cleanup;
-	int m_err;
-	char m_errmsg[80];
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Active
+
+struct Active: std::unary_function<Api, void>
+{
+	void operator()(argument_type api_)
+	{
+		api_.deactivate();
+	}
+	static void clean(argument_type api_)
+	{
+		api_.activate();
+	}
+	static void commit(argument_type api_)
+	{
+		api_.deinit();
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unregistered
+
+struct Unregistered: std::unary_function<Api, bool>
+{
+	Unregistered(quint64 limit_, quint64 guarantee_):
+		m_limit(limit_), m_guarantee(guarantee_)
+	{
+	}
+
+	result_type operator()(argument_type api_)
+	{
+		return api_.init(m_limit, m_guarantee);
+	}
+	static void clean(argument_type api_)
+	{
+		api_.deinit();
+	}
+	static void commit(argument_type api_)
+	{
+		api_.activate();
+	}
+
+private:
+	quint64 m_limit;
+	quint64 m_guarantee;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Traits
+
+template<class T, class Enabled = void>
+struct Traits;
+
+template<class T>
+struct Traits<T, typename boost::enable_if<boost::is_same<void,
+			typename boost::result_of<T(Api )>::type> >::type>
+{
+	static void bind(T flavor_, Api* api_)
+	{
+		if (NULL != api_)
+			flavor_(*api_);
+	}
+};
+
+template<class T>
+struct Traits<T, typename boost::enable_if<boost::is_same<bool,
+			typename boost::result_of<T(Api )>::type> >::type>
+{
+	static bool bind(T flavor_, Api* api_)
+	{
+		return NULL != api_ && flavor_(*api_);
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+template<class T>
+struct Frontend
+{
+	explicit Frontend(const QString& uuid_): m_api(new Api(uuid_))
+	{
+	}
+	~Frontend()
+	{
+		if (!m_api.isNull())
+			T::clean(*m_api);
+	}
+
+	void commit()
+	{
+		if (!m_api.isNull())
+		{
+			QScopedPointer<Api> a(m_api.take());
+			T::commit(*a);
+		}
+	}
+	typename boost::result_of<T(Api )>::type operator()(T flavor_)
+	{
+		return Traits<T>::bind(flavor_, m_api.data());
+	}
+
+private:
+	QScopedPointer<Api> m_api;
+};
+
+} // namespace Vcmmd
 

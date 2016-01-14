@@ -35,9 +35,10 @@
 #include "CDspLibvirt.h"
 #include <boost/bind.hpp>
 #include "CDspTaskHelper.h"
-#include "CDspVmGuestPersonality.h"
+#include "CVcmmdInterface.h"
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/for_each.hpp>
+#include "CDspVmGuestPersonality.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
 
@@ -105,6 +106,24 @@ struct Reconnect: Action
 private:
 	QString m_adapter;
 	QString m_network;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VcmmdAction
+
+struct VcmmdAction: Action
+{
+	VcmmdAction(const QString& uuid_, unsigned limit_, unsigned guarantee_):
+		m_vcmmd(uuid_), m_limit(limit_ << 20), m_guarantee(guarantee_ << 20)
+	{
+	}
+
+	bool execute(CDspTaskFailure& feedback_);
+
+private:
+	Vcmmd::Api m_vcmmd;
+	quint64 m_limit;
+	quint64 m_guarantee;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -272,8 +272,6 @@ struct Runtime
 	Result setCpuLimit(quint32 limit_, quint32 period_);
 	Result setCpuUnits(quint32 units_);
 	Result setCpuCount(quint32 count_);
-	Result setMemory(quint32 memsize_);
-	Result addMemoryBySlots(quint32 memdelta_);
 
 	template<class T>
 	Result plug(const T& device_);

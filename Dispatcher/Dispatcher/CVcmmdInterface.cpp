@@ -33,121 +33,64 @@
 #include <prlcommon/PrlUuid/Uuid.h>
 #include "CVcmmdInterface.h"
 
-VcmmdInterface::VcmmdInterface(const QString& uuid, VcmmdState state):
-m_uuid(uuid), m_state(state)
+namespace Vcmmd
 {
-	m_cleanup = true;
-	fixupUuid();
-}
+///////////////////////////////////////////////////////////////////////////////
+// struct Api
 
-VcmmdInterface::~VcmmdInterface()
+Api::Api(const QString& uuid_)
 {
-	if (!m_cleanup)
-		return;
-
-	switch (m_state)
-	{
-	case VcmmdVmActive:
-		activate();
-		break;
-	case VcmmdVmUnregistered:
-		deinit();
-		break;
-	default:;
-	}
-}
-
-void VcmmdInterface::fixupUuid()
-{
-	PrlUuid uuid(m_uuid.toUtf8().data());
+	PrlUuid uuid(uuid_.toUtf8().data());
 	m_uuid = uuid.toString(PrlUuid::WithoutBrackets).data();
 }
 
-bool VcmmdInterface::init(unsigned long long limit, unsigned long long guarantee)
+bool Api::init(quint64 limit_, quint64 guarantee_)
 {
-	m_cleanup = true;
+	struct vcmmd_ve_config config;
+	vcmmd_ve_config_init(&config);
+	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_GUARANTEE, guarantee_);
+	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_LIMIT, limit_);
 
-	if (VcmmdVmUnregistered != m_state)
+	return treat(vcmmd_register_ve(qPrintable(m_uuid), VCMMD_VE_VM, &config),
+		"vcmmd_register_ve");
+}
+
+bool Api::update(quint64 limit_, quint64 guarantee_)
+{
+	struct vcmmd_ve_config config;
+	vcmmd_ve_config_init(&config);
+	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_GUARANTEE, guarantee_);
+	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_LIMIT, limit_);
+
+	return treat(vcmmd_update_ve(qPrintable(m_uuid), &config),
+		"vcmmd_update_ve");
+}
+
+void Api::deinit()
+{
+	treat(vcmmd_unregister_ve(qPrintable(m_uuid)), "vcmmd_unregister_ve");
+}
+
+void Api::activate()
+{
+	treat(vcmmd_activate_ve(qPrintable(m_uuid)), "vcmmd_activate_ve");
+}
+
+void Api::deactivate()
+{
+	treat(vcmmd_deactivate_ve(qPrintable(m_uuid)), "vcmmd_deactivate_ve");
+}
+
+bool Api::treat(int status_, const char* name_)
+{
+	if (0 == status_)
 		return true;
 
-	struct vcmmd_ve_config config;
-	vcmmd_ve_config_init(&config);
-	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_GUARANTEE, guarantee);
-	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_LIMIT, limit);
-
-	m_err = vcmmd_register_ve(m_uuid.toUtf8().data(), VCMMD_VE_VM, &config, false);
-	if (m_err)
-	{
-		WRITE_TRACE(DBG_FATAL, "vcmmd_register_ve failed. %s",
-			vcmmd_strerror(m_err, m_errmsg, sizeof(m_errmsg)));
-		return false;
-	}
-	return true;
+	char e[255] = {};
+	WRITE_TRACE(DBG_FATAL, " failed. %s", name_,
+		vcmmd_strerror(status_, e, sizeof(e)));
+	return false;
 }
 
-void VcmmdInterface::commit(VcmmdState state)
-{
-	switch (state)
-	{
-	case VcmmdVmActive:
-		activate();
-		break;
-	case VcmmdVmUnregistered:
-		deinit();
-		break;
-	case VcmmdVmInactive:
-		deactivate();
-		break;
-	default:;
-	}
-	m_cleanup = false;
-}
-
-void VcmmdInterface::activate()
-{
-	m_err = vcmmd_activate_ve(m_uuid.toUtf8().data());
-	if (m_err)
-	{
-		WRITE_TRACE(DBG_FATAL, "vcmmd_activate_ve failed. %s",
-			vcmmd_strerror(m_err, m_errmsg, sizeof(m_errmsg)));
-	}
-}
-
-void VcmmdInterface::deactivate()
-{
-	m_err = vcmmd_deactivate_ve(m_uuid.toUtf8().data());
-	if (m_err)
-	{
-		WRITE_TRACE(DBG_FATAL, "vcmmd_deactivate_ve failed. %s",
-			vcmmd_strerror(m_err, m_errmsg, sizeof(m_errmsg)));
-	}
-}
-
-void VcmmdInterface::deinit()
-{
-	m_err = vcmmd_unregister_ve(m_uuid.toUtf8().data());
-	if (m_err)
-	{
-		WRITE_TRACE(DBG_FATAL, "vcmmd_unregister_ve failed. %s",
-			vcmmd_strerror(m_err, m_errmsg, sizeof(m_errmsg)));
-	}
-}
-
-bool VcmmdInterface::update(unsigned long long limit, unsigned long long guarantee)
-{
-	struct vcmmd_ve_config config;
-	vcmmd_ve_config_init(&config);
-	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_GUARANTEE, guarantee);
-	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_LIMIT, limit);
-
-	m_cleanup = false;
-	m_err = vcmmd_update_ve(m_uuid.toUtf8().data(), &config, false);
-	if (m_err)
-	{
-		WRITE_TRACE(DBG_FATAL, "vcmmd_update_ve failed. %s",
-			vcmmd_strerror(m_err, m_errmsg, sizeof(m_errmsg)));
-		return false;
-	}
-	return true;
-}
+} // namespace Vcmmd
 

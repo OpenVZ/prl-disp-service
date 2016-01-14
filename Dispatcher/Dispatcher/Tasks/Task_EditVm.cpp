@@ -2854,6 +2854,18 @@ bool Reconnect::execute(CDspTaskFailure& feedback_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct VcmmdAction
+
+bool VcmmdAction::execute(CDspTaskFailure& feedback_)
+{
+	if (m_vcmmd.update(m_limit, m_guarantee))
+		return Action::execute(feedback_);
+
+	feedback_(PRL_ERR_FAILURE);
+	return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Request
 
 Request::Request(Task_EditVm& task_, const config_type& start_, const config_type& final_)
@@ -3492,23 +3504,27 @@ Action* Adapter::operator()(const Request& input_) const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Memory
 
-Vm::Action* Memory::operator()(const Request& input_) const
+Action* Memory::operator()(const Request& input_) const
 {
-	Forge f(input_);
 	CVmMemory* o = input_.getStart().getVmHardwareList()->getMemory();
 	CVmMemory* n = input_.getFinal().getVmHardwareList()->getMemory();
 
 	if (NULL == n)
 		return NULL;
 
-       unsigned old_mem = 0, new_mem = n->getRamSize();
-       if (NULL != o)
-               old_mem = o->getRamSize();
+	unsigned old_mem = 0, new_mem = n->getRamSize();
+	unsigned old_balloon = 0, new_balloon = n->getMaxBalloonSize();
+	if (NULL != o)
+	{
+		old_mem = o->getRamSize();
+		old_balloon = o->getMaxBalloonSize();
+	}
 
-	if(old_mem == new_mem)
+	if(old_mem == new_mem &&
+		old_balloon == new_balloon)
 		return NULL;
 
-	return f.craftRuntime(boost::bind(&vm::Runtime::setMemory, _1, n->getRamSize()));
+	return new VcmmdAction(input_.getObject().first, new_mem, new_mem*(100-new_balloon)/100);
 }
 
 namespace
