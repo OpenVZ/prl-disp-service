@@ -1194,9 +1194,8 @@ PRL_RESULT Builder::setDevices()
 		getVmStartupOptions()->getBootDeviceList()), b);
 	foreach (const CVmHardDisk* d, h->m_lstHardDisks)
 	{
-		// "disconnected" flag is not supported for HDDs
 		if (d->getConnected() != PVE::DeviceConnected)
-			return PRL_ERR_DISK_INVALID_PARAMETERS;
+			continue;
 		t.add(d, s->getVmRuntimeOptions());
 	}
 	foreach (const CVmFloppyDisk* d, h->m_lstFloppyDisks)
