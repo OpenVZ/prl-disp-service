@@ -2177,11 +2177,7 @@ PRL_RESULT Task_EditVm::editVm()
 				true,
 				true);
 
-#ifdef _LIBVIRT_
-			pVmConfigNew->getVmIdentification()->setHomePath(strVmHome);
-			Edit::Vm::driver_type(*this)(pVmConfigOld, pVmConfigNew);
-#endif // _LIBVIRT_
-			if( !IS_OPERATION_SUCCEEDED(getLastErrorCode()) )
+			if (!IS_OPERATION_SUCCEEDED(save_rc))
 			{
 				WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher unable to save configuration "
 					"of the VM %s to file %s. Reason: %ld(%s)",
@@ -2205,6 +2201,13 @@ PRL_RESULT Task_EditVm::editVm()
 
 				throw PRL_ERR_SAVE_VM_CONFIG;
 			}
+
+#ifdef _LIBVIRT_
+			pVmConfigNew->getVmIdentification()->setHomePath(strVmHome);
+			Edit::Vm::driver_type(*this)(pVmConfigOld, pVmConfigNew);
+			if(!IS_OPERATION_SUCCEEDED(getLastErrorCode()))
+				throw getLastErrorCode();
+#endif // _LIBVIRT_
 
 			CXmlModelHelper::printConfigDiff( *pVmConfigNew, *pVmConfigOld, DBG_WARNING, "VmCfgCommitDiff" );
 
