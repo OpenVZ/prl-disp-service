@@ -80,7 +80,7 @@ struct Domain: Action
 		if (e.isFailed())
 		{
 			feedback_(e.error().convertToEvent());
-			return true;
+			return false;
 		}
 		return Action::execute(feedback_);
 	}

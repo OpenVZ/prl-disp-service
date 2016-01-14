@@ -2855,7 +2855,7 @@ bool Reconnect::execute(CDspTaskFailure& feedback_)
 	if (r.isFailed())
 	{
 		feedback_(r.error().convertToEvent());
-		return true;
+		return false;
 	}
 
 	// find network
@@ -2864,7 +2864,7 @@ bool Reconnect::execute(CDspTaskFailure& feedback_)
 	if (r.isFailed())
 	{
 		feedback_(r.error().convertToEvent());
-		return true;
+		return false;
 	}
 
 	// need network's bridge name CParallelsAdapter::getName()
@@ -2873,14 +2873,14 @@ bool Reconnect::execute(CDspTaskFailure& feedback_)
 		|| (a = n.getHostOnlyNetwork()->getParallelsAdapter()) == NULL)
 	{
 		feedback_(PRL_NET_VIRTUAL_NETWORK_NOT_FOUND);
-		return true;
+		return false;
 	}
 
 	// connect iface to bridge
 	if (!PrlNet::connectInterface(m_adapter, a->getName()))
 	{
 		feedback_(PRL_ERR_SET_NETWORK_SETTINGS_FAILED);
-		return true;
+		return false;
 	}
 
 	return Action::execute(feedback_);
@@ -2980,7 +2980,7 @@ bool Action<CVmStartupBios>::execute(CDspTaskFailure& feedback_)
 	{
 		WRITE_TRACE(DBG_FATAL, "Unable to create NVRAM image with '%s'", qPrintable(file));
 		feedback_(PRL_ERR_NVRAM_FILE_COPY);
-		return true;
+		return false;
 	}
 
 	return Vm::Action::execute(feedback_);
