@@ -3604,25 +3604,34 @@ Vm::Action* Factory::operator()(const Request& input_) const
 {
 	Action* output = NULL;
 	Forge f(input_);
+	bool w = false;
 	CVmCpu* oldCpu(input_.getStart().getVmHardwareList()->getCpu());
 	CVmCpu* newCpu(input_.getFinal().getVmHardwareList()->getCpu());
 	if (oldCpu->getCpuUnits() != newCpu->getCpuUnits())
 		output = f.craftRuntime(boost::bind(&vm::Runtime::setCpuUnits, _1, newCpu->getCpuUnits()));
 
+	w = (oldCpu->isEnableHotplug() != newCpu->isEnableHotplug());
+
 	if (oldCpu->getNumber() < newCpu->getNumber()) {
-		Action* a(f.craftRuntime(boost::bind(&vm::Runtime::setCpuCount, _1, newCpu->getNumber())));
-		a->setNext(output);
-		output = a;
+		if (newCpu->isEnableHotplug()) {
+			Action* a(f.craftRuntime(boost::bind(&vm::Runtime::setCpuCount, _1, newCpu->getNumber())));
+			a->setNext(output);
+			output = a;
+		} else
+			w = true;
 	} else if (oldCpu->getNumber() > newCpu->getNumber()) {
 		// unplug is not supported
-		Action* a = new Edit::Vm::Runtime::NotApplied(input_);
-		a->setNext(output);
-		output = a;
+		w = true;
 	}
 	quint32 x = ceilDiv(oldCpu->getCpuLimit(), oldCpu->getNumber());
 	quint32 y = ceilDiv(newCpu->getCpuLimit(), newCpu->getNumber());
 	if (x != y) {
 		Action* a(f.craftRuntime(Limit(y)));
+		a->setNext(output);
+		output = a;
+	}
+	if (w) {
+		Action* a = new Edit::Vm::Runtime::NotApplied(input_);
 		a->setNext(output);
 		output = a;
 	}

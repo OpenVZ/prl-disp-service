@@ -823,9 +823,13 @@ PRL_RESULT Task_VzManager::clone_env()
 
 	SmartPtr<CVmConfiguration> pNewConfig(new CVmConfiguration);
 
-	QString vm_uuid = pNewConfig->getVmIdentification()->getVmUuid();
+	if (!pCmd->GetNewVmUuid().isEmpty())
+		pNewConfig->getVmIdentification()->setVmUuid(pCmd->GetNewVmUuid());
 
-	CVmDirectory::TemporaryCatalogueItem vmInfo(vm_uuid, QString(), sNewName);
+	CVmDirectory::TemporaryCatalogueItem vmInfo(
+			pNewConfig->getVmIdentification()->getVmUuid(),
+			QString(),
+			sNewName);
 
 	res = checkAndLockRegisterParameters(&vmInfo);
 	if (PRL_FAILED(res))
