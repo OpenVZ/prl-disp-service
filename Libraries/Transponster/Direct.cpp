@@ -474,7 +474,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice935::
 			const Libvirt::Domain::Xml::EVirYesNo* a3 = video_.getValue().getModel()
 				.get().getAcceleration().get().getAccel3d().get_ptr();
 			v->setEnable3DAcceleration(NULL != a3 && *a3 == Libvirt::Domain::Xml::EVirYesNoYes ?
-				P3D_DISABLED : P3D_ENABLED_HIGHEST);
+				P3D_ENABLED_HIGHEST : P3D_DISABLED);
 		}
 	}
 	v->setEnabled(true);
