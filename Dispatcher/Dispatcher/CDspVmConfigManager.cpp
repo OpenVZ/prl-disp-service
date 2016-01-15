@@ -318,6 +318,27 @@ void Cpu::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct HardDisks
+
+void HardDisks::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	QList<CVmHardDisk*>& l = new_.getVmHardwareList()->m_lstHardDisks;
+	QList<CVmHardDisk*>& o = old_.getVmHardwareList()->m_lstHardDisks;
+
+	foreach(CVmHardDisk* h, l)
+	{
+		QList<CVmHardDisk*>::iterator it = std::find_if(o.begin(), o.end(),
+			boost::bind(&CVmHardDisk::getIndex, _1)
+				== h->getIndex());
+
+		if (it == o.end())
+			continue;
+
+		h->setUuid((*it)->getUuid());
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct NetworkDevices
 
 void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
