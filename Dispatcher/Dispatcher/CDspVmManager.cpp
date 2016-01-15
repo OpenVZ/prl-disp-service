@@ -812,20 +812,80 @@ void Body<Tag::Libvirt<PVE::DspCmdVmDevConnect> >::run()
 	if (NULL == x)
 		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
 
-	if (PDE_OPTICAL_DISK != x->GetDeviceType())
+	Libvirt::Result e;
+	switch (x->GetDeviceType())
+	{
+	case PDE_OPTICAL_DISK:
+		{
+			CVmOpticalDisk y;
+			StringToElement<CVmOpticalDisk* >(&y, x->GetDeviceConfig());
+			e = Libvirt::Kit.vms().at(m_context.getVmUuid())
+				.getRuntime().update(y);
+		}
+		break;
+	case PDE_HARD_DISK:
+		{
+			CVmHardDisk y;
+			StringToElement<CVmHardDisk* >(&y, x->GetDeviceConfig());
+			e = Libvirt::Kit.vms().at(m_context.getVmUuid())
+				.getRuntime().plug(y);
+		}
+		break;
+	default:
 		return m_context.reply(PRL_ERR_UNIMPLEMENTED);
+	}
 
-	CVmOpticalDisk y;
-	StringToElement<CVmOpticalDisk* >(&y, x->GetDeviceConfig());
-	Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid())
-		.getRuntime().update(y);
 	if (e.isFailed())
 		return m_context.reply(e);
 
 	CVmEvent v;
 	v.addEventParameter(new CVmEventParameter(PVE::String,
 		x->GetDeviceConfig(), EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
-	
+
+	Task_EditVm::atomicEditVmConfigByVm(m_context.getDirectoryUuid(),
+		m_context.getVmUuid(), v, m_context.getSession());
+	m_context.reply(e);
+}
+
+template<>
+void Body<Tag::Libvirt<PVE::DspCmdVmDevDisconnect> >::run()
+{
+	CProtoVmDeviceCommand* x = CProtoSerializer::CastToProtoCommand
+		<CProtoVmDeviceCommand>(m_context.getRequest());
+	if (NULL == x)
+		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
+
+	Libvirt::Result e;
+	switch (x->GetDeviceType())
+	{
+	case PDE_OPTICAL_DISK:
+		{
+			CVmOpticalDisk y;
+			StringToElement<CVmOpticalDisk* >(&y, x->GetDeviceConfig());
+			e = Libvirt::Kit.vms().at(m_context.getVmUuid())
+				.getRuntime().update(y);
+		}
+		break;
+	case PDE_HARD_DISK:
+		{
+			CVmHardDisk y;
+			StringToElement<CVmHardDisk* >(&y, x->GetDeviceConfig());
+			y.setConnected();
+			e = Libvirt::Kit.vms().at(m_context.getVmUuid())
+				.getRuntime().unplug(y);
+		}
+		break;
+	default:
+		return m_context.reply(PRL_ERR_UNIMPLEMENTED);
+	}
+
+	if (e.isFailed())
+		return m_context.reply(e);
+
+	CVmEvent v;
+	v.addEventParameter(new CVmEventParameter(PVE::String,
+		x->GetDeviceConfig(), EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
+
 	Task_EditVm::atomicEditVmConfigByVm(m_context.getDirectoryUuid(),
 		m_context.getVmUuid(), v, m_context.getSession());
 	m_context.reply(e);
@@ -1214,7 +1274,7 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmSuspend] = map(Tag::Libvirt<PVE::DspCmdVmSuspend>());
 	m_map[PVE::DspCmdVmDropSuspendedState] = map(Tag::Libvirt<PVE::DspCmdVmDropSuspendedState>());
 	m_map[PVE::DspCmdVmDevConnect] = map(Tag::Libvirt<PVE::DspCmdVmDevConnect>());
-	m_map[PVE::DspCmdVmDevDisconnect] = map(Tag::Libvirt<PVE::DspCmdVmDevConnect>());
+	m_map[PVE::DspCmdVmDevDisconnect] = map(Tag::Libvirt<PVE::DspCmdVmDevDisconnect>());
 	m_map[PVE::DspCmdVmInitiateDevStateNotifications] = map(Tag::General<PVE::DspCmdVmInitiateDevStateNotifications>());
 	m_map[PVE::DspCmdVmInstallUtility] = map(Tag::General<PVE::DspCmdVmInstallUtility>());
 	m_map[PVE::DspCmdVmInstallTools] = map(Tag::Libvirt<PVE::DspCmdVmInstallTools>());
