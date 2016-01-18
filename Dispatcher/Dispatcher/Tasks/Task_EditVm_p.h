@@ -80,7 +80,7 @@ struct Domain: Action
 		if (e.isFailed())
 		{
 			feedback_(e.error().convertToEvent());
-			return true;
+			return false;
 		}
 		return Action::execute(feedback_);
 	}
@@ -263,6 +263,36 @@ private:
 					const CVmConfiguration& config_);
 };
 
+
+namespace Update
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Directory
+
+struct Directory
+{
+	Vm::Action* operator()(const Request& input_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Action
+
+struct Action: Vm::Action
+{
+	explicit Action(const Request& input_);
+	bool execute(CDspTaskFailure& feedback_);
+
+private:
+	CVmIdent m_vmIdent;
+	QString m_vmName;
+	bool m_isTemplate;
+	QString m_userName;
+	boost::optional<QString> m_vmHome;
+};
+
+} // namespace Update
+
 namespace Create
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -338,7 +368,7 @@ struct Factory
 
 } // namespace Personalize
 
-typedef boost::mpl::vector<Create::Nvram, Apply, Personalize::Factory> probeList_type;
+typedef boost::mpl::vector<Create::Nvram, Apply, Personalize::Factory, Update::Directory> probeList_type;
 typedef Gear<Factory<probeList_type>, probeList_type> driver_type;
 
 namespace Network
