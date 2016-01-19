@@ -719,7 +719,7 @@ Result Runtime::setCpuLimit(quint32 limit_, quint32 period_)
 					&s, &m, VIR_DOMAIN_SCHEDULER_VCPU_PERIOD, period_)).isFailed())
 		return Failure(PRL_ERR_SET_CPULIMIT);
 
-	qint32 l = (limit_ == 0? -1 : period_ * limit_ / 100);
+	qint32 l = (limit_ == 0? -1 : limit_);
 	if (do_(&p, boost::bind(&virTypedParamsAddLLong, _1,
 					&s, &m, VIR_DOMAIN_SCHEDULER_VCPU_QUOTA, l)).isFailed())
 		return Failure(PRL_ERR_SET_CPULIMIT);
@@ -1414,6 +1414,7 @@ Prl::Expected<VtInfo, Error::Simple> Host::getVt() const
 
 	i->setMaxVCpu(std::min<quint32>(x, h.cpus));
 	i->setDefaultPeriod(100000);
+	i->setMhz(h.mhz);
 	return v;
 }
 
