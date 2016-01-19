@@ -915,14 +915,20 @@ PRL_RESULT Cpu::setUnits()
 
 PRL_RESULT Cpu::setLimit()
 {
-	qint32 l = m_input.getCpuLimit();
+	qint32 l = m_input.getCpuLimitValue();
 	if (0 == l)
 		return PRL_ERR_SUCCESS;
 
 	if (!m_tune)
 		return PRL_ERR_UNINITIALIZED;
 
-	m_tune->setQuota(m_vt->getDefaultPeriod() * l / (100 * m_input.getNumber()));
+	if (m_input.getCpuLimitType() == PRL_CPULIMIT_PERCENTS)
+		m_tune->setQuota(m_vt->getDefaultPeriod() * l / (100 * m_input.getNumber()));
+	else if (m_input.getCpuLimitType() == PRL_CPULIMIT_MHZ) {
+		m_tune->setQuota(m_vt->getDefaultPeriod() * l /
+				(m_vt->getMhz() * m_input.getNumber()));
+	}
+
 	return PRL_ERR_SUCCESS;
 }
 

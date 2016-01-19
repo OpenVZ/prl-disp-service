@@ -3605,26 +3605,48 @@ Vm::Action* Factory::operator()(const Request& input_) const
 
 namespace Cpu
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Limit
 
-Libvirt::Result Limit::operator()(vm::Runtime agent_) const
+namespace
+{
+quint64 ceilDiv(quint64 lhs_, quint64 rhs_)
+{
+	return (lhs_ + rhs_ - 1) / rhs_;
+}
+}
+
+namespace Limit
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Percents
+
+Libvirt::Result Percents::operator()(vm::Runtime agent_) const
 {
 	Prl::Expected<VtInfo, Error::Simple> v = Libvirt::Kit.host().getVt();
 	if (v.isFailed())
 		return v.error();
 
-	return agent_.setCpuLimit(m_value, v.value()
-		.getQemuKvm()->getVCpuInfo()->getDefaultPeriod());
+	quint32 p(v.value().getQemuKvm()->getVCpuInfo()->getDefaultPeriod());
+	return agent_.setCpuLimit(m_value * p / 100, p);
 }
 
-namespace
+///////////////////////////////////////////////////////////////////////////////
+// struct Mhz
+
+Libvirt::Result Mhz::operator()(vm::Runtime agent_) const
 {
-quint32 ceilDiv(quint32 lhs_, quint32 rhs_)
-{
-	return (lhs_ + rhs_ - 1) / rhs_;
+	Prl::Expected<VtInfo, Error::Simple> v = Libvirt::Kit.host().getVt();
+	if (v.isFailed())
+		return v.error();
+
+	/* get cpu limit*/
+	quint32 p(v.value().getQemuKvm()->getVCpuInfo()->getDefaultPeriod());
+	quint32 l = ceilDiv(static_cast<quint64>(m_value) * p,
+			v.value().getQemuKvm()->getVCpuInfo()->getMhz());
+	return agent_.setCpuLimit(l, p);
 }
-}
+
+} // namespace Limit
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
@@ -3652,19 +3674,42 @@ Vm::Action* Factory::operator()(const Request& input_) const
 		// unplug is not supported
 		w = true;
 	}
-	quint32 x = ceilDiv(oldCpu->getCpuLimit(), oldCpu->getNumber());
-	quint32 y = ceilDiv(newCpu->getCpuLimit(), newCpu->getNumber());
-	if (x != y) {
-		Action* a(f.craftRuntime(Limit(y)));
-		a->setNext(output);
-		output = a;
-	}
 	if (w) {
 		Action* a = new Edit::Vm::Runtime::NotApplied(input_);
 		a->setNext(output);
 		output = a;
 	}
+
+	Action* a(craftLimit(input_));
+	if (a) {
+		a->setNext(output);
+		output = a;
+	}
 	return output;
+}
+
+Vm::Action* Factory::craftLimit(const Request& input_) const
+{
+	CVmCpu* oldCpu(input_.getStart().getVmHardwareList()->getCpu());
+	CVmCpu* newCpu(input_.getFinal().getVmHardwareList()->getCpu());
+
+	if (oldCpu->getCpuLimitType() == newCpu->getCpuLimitType() &&
+			oldCpu->getCpuLimitValue() == newCpu->getCpuLimitValue() &&
+			oldCpu->getNumber() == newCpu->getNumber())
+		return NULL;
+
+	quint32 x = ceilDiv(oldCpu->getCpuLimitValue(), oldCpu->getNumber());
+	quint32 y = ceilDiv(newCpu->getCpuLimitValue(), newCpu->getNumber());
+	if (x == y && oldCpu->getCpuLimitType() == newCpu->getCpuLimitType())
+		return NULL;
+
+	Forge f(input_);
+	if (newCpu->getCpuLimitType() == PRL_CPULIMIT_MHZ)
+		return f.craftRuntime(Limit::Mhz(y));
+	else if (newCpu->getCpuLimitType() == PRL_CPULIMIT_PERCENTS)
+		return f.craftRuntime(Limit::Percents(y));
+
+	return NULL;
 }
 
 } // namespace Cpu

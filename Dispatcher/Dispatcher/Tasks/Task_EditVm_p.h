@@ -583,12 +583,15 @@ struct Factory
 
 namespace Cpu
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Limit
 
-struct Limit
+namespace Limit
 {
-	explicit Limit(quint32 value_): m_value(value_)
+///////////////////////////////////////////////////////////////////////////////
+// struct Percents
+
+struct Percents
+{
+	explicit Percents(quint32 value_): m_value(value_)
 	{
 	}
 
@@ -599,11 +602,32 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Mhz
+
+struct Mhz
+{
+	explicit Mhz(quint32 value_): m_value(value_)
+	{
+	}
+
+	Libvirt::Result operator()(Libvirt::Tools::Agent::Vm::Runtime agent_) const;
+
+private:
+	quint32 m_value;
+};
+
+
+} // namespace Limit
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
 struct Factory
 {
 	Action* operator()(const Request& input_) const;
+
+private:
+	Action* craftLimit(const Request& input_) const;
 };
 
 } // namespace Cpu
