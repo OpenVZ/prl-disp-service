@@ -146,10 +146,12 @@ struct Device
 			if (m_devices.end() == it)
 			{
 				h->setIndex(p.getAvailable());
+				h->setItemId(p.getAvailable());
 			}
 			else
 			{
 				h->setIndex((*it)->getIndex());
+				h->setItemId((*it)->getItemId());
 				// We shouldn't find the same device twice
 				m_devices.erase(it);
 			}

@@ -3771,12 +3771,17 @@ QList<T* > Hotplug<T>::getDifference(const QList<T* >& first_,
 		T* x = CXmlModelHelper::IsElemInList(d, second_);
 		if (NULL == x)
 		{
-			if (PVE::DeviceEnabled == d->getEnabled())
+			if (PVE::DeviceEnabled == d->getEnabled() &&
+				PVE::DeviceConnected == d->getConnected())
 				output << d;
 		}
 		else if (PVE::DeviceEnabled == d->getEnabled() &&
-			d->getEnabled() != x->getEnabled())
+			PVE::DeviceConnected == d->getConnected() &&
+			(d->getEnabled() != x->getEnabled() ||
+			d->getConnected() != x->getConnected()))
+		{
 			output << d;
+		}
 	}
 	return output;
 }
