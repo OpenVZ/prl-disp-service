@@ -345,6 +345,20 @@ void HardDisks::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 
 		h->setUuid((*it)->getUuid());
 	}
+	foreach(CVmHardDisk* h, o)
+	{
+		if (h->getConnected() == PVE::DeviceConnected)
+			continue;
+
+		QList<CVmHardDisk*>::iterator it = std::find_if(l.begin(), l.end(),
+				boost::bind(&CVmHardDisk::getIndex, _1)
+					== h->getIndex());
+
+		if (it != l.end())
+			continue;
+
+		new_.getVmHardwareList()->addHardDisk(new CVmHardDisk(*h));
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
