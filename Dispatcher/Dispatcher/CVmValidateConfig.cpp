@@ -1918,6 +1918,7 @@ void CVmValidateConfig::CheckMassStorageDevices(PRL_MASS_STORAGE_INTERFACE_TYPE 
 	{
 		CVmHardDisk* pHardDisk = lstHardDisks[i];
 		if (pHardDisk && pHardDisk->getEnabled() == PVE::DeviceEnabled
+			&& pHardDisk->getConnected() == PVE::DeviceConnected
 			&& pHardDisk->getInterfaceType() == type)
 		{
 			set_ids << pHardDisk->getFullItemId();
