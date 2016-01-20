@@ -2301,6 +2301,7 @@ PRL_RESULT Task_EditVm::editVm()
 		switch (code)
 		{
 		case PRL_ERR_DISP_VM_IS_NOT_STOPPED:
+		case PRL_ERR_VM_MUST_BE_STOPPED_BEFORE_RENAMING:
 			getLastError()->addEventParameter(
 				new CVmEventParameter(PVE::String,
 				pVmConfigOld->getVmIdentification()->getVmName(),
