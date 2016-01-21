@@ -48,6 +48,30 @@ Failure::Failure(PRL_RESULT result_): Error::Simple(result_)
 #endif
 }
 
+namespace Agent
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Failure
+
+Failure::Failure(PRL_RESULT result_): Error::Simple(result_), m_virErrorCode(0)
+{
+#if (LIBVIR_VERSION_NUMBER > 1000004)
+	const char* m = virGetLastErrorMessage();
+	WRITE_TRACE(DBG_FATAL, "libvirt error %s", m ? : "unknown");
+	details() = m;
+#endif
+	virErrorPtr err = virGetLastError();
+	if (err)
+		m_virErrorCode = err->code;
+}
+
+bool Failure::isTransient() const
+{
+	return m_virErrorCode == VIR_ERR_AGENT_UNRESPONSIVE;
+}
+
+}
+
 namespace Tools
 {
 namespace Agent
@@ -484,7 +508,7 @@ Guest::runProgram(const Exec::Request& req)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Exec
 
-Prl::Expected<boost::optional<Exec::Result>, Error::Simple>
+Prl::Expected<boost::optional<Exec::Result>, Libvirt::Agent::Failure>
 Exec::Exec::getCommandStatus(int pid)
 {
 	boost::property_tree::ptree cmd, params;
@@ -501,7 +525,7 @@ Exec::Exec::getCommandStatus(int pid)
 	std::string s = ss.str();
 	boost::replace_all<std::string>(s, "\"pid-value\"", boost::lexical_cast<std::string>(pid));
 
-	Prl::Expected<QString, Error::Simple> r =
+	Prl::Expected<QString, Libvirt::Agent::Failure> r =
 		executeInAgent(QString::fromUtf8(s.c_str()));
 	if (r.isFailed())
 		return r.error();
@@ -531,10 +555,10 @@ Exec::Exec::getCommandStatus(int pid)
 	return boost::optional<Result>();
 }
 
-Prl::Expected<int, Error::Simple>
+Prl::Expected<int, Libvirt::Agent::Failure>
 Exec::Exec::runCommand(const Libvirt::Tools::Agent::Vm::Exec::Request& req)
 {
-	Prl::Expected<QString, Error::Simple> r = 
+	Prl::Expected<QString, Libvirt::Agent::Failure> r = 
 		executeInAgent(req.getJson());
 	if (r.isFailed())
 		return r.error();
@@ -581,13 +605,13 @@ QString Exec::Request::getJson() const
 	return QString::fromStdString(s);
 }
 
-Prl::Expected<QString, Error::Simple>
+Prl::Expected<QString, Libvirt::Agent::Failure>
 Exec::Exec::executeInAgent(const QString& cmd)
 {
 	char* s = virDomainQemuAgentCommand(m_domain.data(),
-			cmd.toUtf8().constData(), -1, 0);
+			cmd.toUtf8().constData(), 30, 0);
 	if (s == NULL)
-		return Failure(PRL_ERR_FAILURE);
+		return Libvirt::Agent::Failure(PRL_ERR_FAILURE);
 
 	QString reply = QString::fromUtf8(s);
 	free(s);
@@ -615,17 +639,20 @@ Exec::Future::wait(int timeout)
 	if (m_status)
 		return Libvirt::Result();
 
-	Prl::Expected<boost::optional<Result>, Error::Simple> st;
+	Prl::Expected<boost::optional<Result>, Libvirt::Agent::Failure> st;
 	Waiter waiter;
 	int msecs, total = 0;
 	for (int i=0; ; i++) {
 		Exec e(m_domain);
 		st = e.getCommandStatus(m_pid);
-		if (st.isFailed())
-			return st.error();
-		if (st.value()) {
-			m_status = st.value();
-			return Libvirt::Result();
+		if (st.isFailed()) {
+			if (!st.error().isTransient())
+				return st.error();
+		} else {
+			if (st.value()) {
+				m_status = st.value();
+				return Libvirt::Result();
+			}
 		}
 		msecs = calculateTimeout(i);
 		waiter.wait(msecs);
