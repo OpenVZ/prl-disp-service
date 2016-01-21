@@ -61,6 +61,22 @@ struct Failure: ::Error::Simple
 	Failure(PRL_RESULT result_);
 };
 
+namespace Agent
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Failure
+//
+struct Failure: ::Error::Simple
+{
+	Failure(PRL_RESULT result_);
+	bool isTransient() const;
+	int virErrorCode() const { return m_virErrorCode; }
+private:
+	int m_virErrorCode;
+};
+
+} // namespace Agent
+
 typedef Prl::Expected<void, ::Error::Simple> Result;
 
 namespace Tools
@@ -168,13 +184,13 @@ struct Exec {
 		: m_domain(domain_)
 	{
 	}
-	Prl::Expected<int, ::Error::Simple>
+	Prl::Expected<int, Libvirt::Agent::Failure>
 		runCommand(const Request& r);
 
-	Prl::Expected<boost::optional<Result>, ::Error::Simple>
+	Prl::Expected<boost::optional<Result>, Libvirt::Agent::Failure>
 		getCommandStatus(int pid);
 
-	Prl::Expected<QString, ::Error::Simple>
+	Prl::Expected<QString, Libvirt::Agent::Failure>
 		executeInAgent(const QString& cmd);
 private:
 	QSharedPointer<virDomain> m_domain;
