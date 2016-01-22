@@ -65,6 +65,7 @@ public:
 	 * @return handle to the sent job
 	 */
 	IOSendJob::Handle sendPackage ( const SmartPtr<IOPackage> &p) const;
+	PRL_RESULT sendPackageResult(const SmartPtr<IOPackage> &p) const;
 
 	/**
 	 * Sends simple response (without additional parameters) to dispatcher client

@@ -55,6 +55,22 @@ enum _PRL_VM_MIGRATE_STEP {
 	MIGRATE_VM_STATE_CHANGED	= (1 << 5),
 };
 
+namespace Migrate
+{
+namespace Vm
+{
+namespace Source
+{
+namespace Content
+{
+struct Copier;
+
+} // namespace Content
+} // namespace Source
+} // namespace Vm
+} // namespace Migrate
+
+
 class Task_MigrateVmSource : public CDspTaskHelper, public Task_DispToDispConnHelper
 {
 	Q_OBJECT
@@ -67,6 +83,8 @@ public:
 	~Task_MigrateVmSource();
 	virtual QString  getVmUuid() {return m_sVmUuid;}
 
+	Migrate::Vm::Source::Content::Copier* createCopier();
+
 protected:
 	virtual PRL_RESULT prepareTask();
 	virtual PRL_RESULT run_body();
@@ -78,11 +96,19 @@ private:
 	void DisconnectExternalImageDevice(CVmDevice* pDevice);
 	PRL_RESULT CheckVmDevices();
 	PRL_RESULT CheckVmMigrationPreconditions();
-	PRL_RESULT SendStartRequest();
 	PRL_RESULT migrateRunningVm();
 	PRL_RESULT migrateStoppedVm();
 	PRL_RESULT fixConfigSav(const QString &sMemFilePath, QList<QPair<QFileInfo, QString> > &list);
 	void releaseLocks();
+
+	PRL_RESULT prepareStart();
+
+	PRL_RESULT reactCheckReply(const SmartPtr<IOPackage>& package);
+	PRL_RESULT reactStartReply(const SmartPtr<IOPackage>& package);
+	PRL_RESULT reactPeerFinished(const SmartPtr<IOPackage>& package);
+
+signals:
+	void cancel();
 
 private:
 	QString m_sVmUuid;
@@ -120,13 +146,8 @@ private:
 	quint32 m_nSteps;
 
 	/* VM size */
-	quint64 m_nTotalSize;
-	/* smart pointer to object for data sending. pVmCopySource will use it */
-	SmartPtr<CVmFileListCopySender> m_pSender;
-	/** Pointer to the VM files copying maintainer */
-	SmartPtr<CVmFileListCopySource> m_pVmCopySource;
-
-	IOSendJob::Handle m_hCheckReqJob;
+	QList<QPair<QFileInfo, QString> > m_dList;
+	QList<QPair<QFileInfo, QString> > m_fList;
 
 	PVE::IDispatcherCommands m_nRegisterCmd;
 };
