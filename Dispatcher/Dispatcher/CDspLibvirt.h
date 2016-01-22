@@ -79,7 +79,7 @@ private:
 
 typedef Prl::Expected<void, ::Error::Simple> Result;
 
-namespace Tools
+namespace Instrument
 {
 namespace Agent
 {
@@ -549,9 +549,9 @@ private:
 };
 
 } // namespace Agent
-} // namespace Tools
+} // namespace Instrument
 
-extern Tools::Agent::Hub Kit;
+extern Instrument::Agent::Hub Kit;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Host

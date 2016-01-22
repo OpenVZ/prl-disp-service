@@ -903,7 +903,7 @@ PRL_VM_TOOLS_STATE CDspVm::getVmToolsState(
 	QString sVersion = toolsCfg->getAgentVersion();
 	PRL_VM_TOOLS_STATE state = sVersion.isEmpty() ? PTS_NOT_INSTALLED : PTS_POSSIBLY_INSTALLED;
 
-	Libvirt::Tools::Agent::Vm::Unit u = Libvirt::Kit.vms().at(sVmUuid);
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(sVmUuid);
 	VIRTUAL_MACHINE_STATE vms = VMS_UNKNOWN;
 	u.getState(vms);
 

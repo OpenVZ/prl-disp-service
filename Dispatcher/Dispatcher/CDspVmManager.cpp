@@ -746,7 +746,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStart> >::run()
 	if (!c.isValid())
 		return;
 
-	Libvirt::Tools::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_context.getVmUuid());
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_context.getVmUuid());
 	VIRTUAL_MACHINE_STATE state = VMS_UNKNOWN;
 	Libvirt::Result e = u.getState(state);
 	if (e.isFailed())
@@ -1043,7 +1043,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmDeleteSnapshot> >::run()
 	if (NULL == x)
 		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
 
-	Libvirt::Tools::Agent::Vm::Snapshot::Unit s = Libvirt::Kit.vms()
+	Libvirt::Instrument::Agent::Vm::Snapshot::Unit s = Libvirt::Kit.vms()
 		.at(x->GetVmUuid()).getSnapshot().at(x->GetSnapshotUuid());
 	if (x->GetChild())
 		m_context.reply(s.undefineRecursive());
@@ -1119,10 +1119,10 @@ void Body<Tag::Libvirt<PVE::DspCmdVmGuestGetNetworkSettings> >::run()
 		return m_context.reply(x);
 	bool isWin = 
 		c->getVmSettings()->getVmCommonOptions()->getOsType() == PVS_GUEST_TYPE_WINDOWS;
-	Libvirt::Tools::Agent::Vm::Exec::Request request(
+	Libvirt::Instrument::Agent::Vm::Exec::Request request(
 		isWin ? "%programfiles%\\Qemu-ga\\prl_nettool.exe" : "prl_nettool", QList<QString>(), QByteArray());
 	request.setRunInShell(isWin);
-	Prl::Expected<Libvirt::Tools::Agent::Vm::Exec::Result, Error::Simple> e =
+	Prl::Expected<Libvirt::Instrument::Agent::Vm::Exec::Result, Error::Simple> e =
 		Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest().runProgram(request);
 	if (e.isFailed())
 	{

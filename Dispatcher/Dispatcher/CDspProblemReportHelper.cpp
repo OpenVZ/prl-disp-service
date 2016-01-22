@@ -135,7 +135,7 @@ struct Trace
 	}
 
 private:
-	Libvirt::Tools::Agent::Vm::Guest m_guest;
+	Libvirt::Instrument::Agent::Vm::Guest m_guest;
 };
 
 class CVzConfig
@@ -831,7 +831,7 @@ void CDspProblemReportHelper::FillVmProblemReportData
 	cReport.setVmConfig( vmConfig.toString() );
 
 	// Append domain description
-	Libvirt::Tools::Agent::Vm::Unit u = Libvirt::Kit.vms().at(strVmUuid);
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(strVmUuid);
 	QString strDomainDesc;
 	u.getConfig(strDomainDesc);
 	cReport.setVmDomain(strDomainDesc);
@@ -857,7 +857,7 @@ void CDspProblemReportHelper::FillVmProblemReportData
 	QFile::remove(screenImage + ".png");
 
 	QString stateFile = tmpFileName + ".state";
-	Prl::Expected<Libvirt::Tools::Agent::Vm::Command::Future, Error::Simple> e = 
+	Prl::Expected<Libvirt::Instrument::Agent::Vm::Command::Future, Error::Simple> e = 
 		u.getGuest().dumpState(stateFile);
 
 	if (e.isSucceed())

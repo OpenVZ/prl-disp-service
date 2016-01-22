@@ -83,7 +83,7 @@ namespace Network
 
 struct Dao
 {
-	explicit Dao(Libvirt::Tools::Agent::Hub& libvirt_);
+	explicit Dao(Libvirt::Instrument::Agent::Hub& libvirt_);
 
 	PRL_RESULT list(QList<CVirtualNetwork>& dst_);
 	PRL_RESULT create(const CVirtualNetwork& model_);
@@ -95,8 +95,8 @@ private:
 	PRL_RESULT define(CVirtualNetwork network_);
 	PRL_RESULT craftBridge(CVirtualNetwork& network_);
 
-	Libvirt::Tools::Agent::Network::List m_networks;
-	Libvirt::Tools::Agent::Interface::List m_interfaces;
+	Libvirt::Instrument::Agent::Network::List m_networks;
+	Libvirt::Instrument::Agent::Interface::List m_interfaces;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -39,7 +39,7 @@
 
 namespace Libvirt
 {
-namespace Tools
+namespace Instrument
 {
 ///////////////////////////////////////////////////////////////////////////////
 // struct Domain
@@ -248,7 +248,7 @@ void Accounting::operator()(const QString& device_)
 }
 
 } // namespace Traffic
-} // namespace Tools
+} // namespace Instrument
 
 namespace Callback
 {
@@ -544,7 +544,7 @@ int deviceConnect(virConnectPtr , virDomainPtr domain_, const char *device_,
 	if (!d.isNull())
 	{
 		CVmConfiguration c = d->getConfig();
-		Tools::Traffic::Accounting(c.getVmIdentification()->getVmUuid())(device_);
+		Instrument::Traffic::Accounting(c.getVmIdentification()->getVmUuid())(device_);
 	}
 */
 	return 0;
@@ -656,7 +656,7 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 	d = v->access(domain_);
 	if (!d.isNull())
 	{
-		QRunnable* q = new Tools::Domain(domain_, d);
+		QRunnable* q = new Instrument::Domain(domain_, d);
 		q->setAutoDelete(true);
 		QThreadPool::globalInstance()->start(q);
 	}
@@ -856,7 +856,7 @@ QString Coarse::getUuid(virDomainPtr domain_)
 {
 	QString output;
 	virDomainRef(domain_);
-	Tools::Agent::Vm::Unit(domain_).getUuid(output);
+	Instrument::Agent::Vm::Unit(domain_).getUuid(output);
 	return output;
 }
 
@@ -931,7 +931,7 @@ void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_
 		return;
 
 	CVmConfiguration runtime;
-	Tools::Agent::Vm::Unit v = Kit.vms().at(vmUuid_);
+	Instrument::Agent::Vm::Unit v = Kit.vms().at(vmUuid_);
 	if (v.getConfig(runtime, true).isFailed())
 		return;
 
@@ -956,7 +956,7 @@ void State::tuneTraffic(unsigned oldState_, unsigned newState_,
 	boost::optional<CVmConfiguration> c = d->getVm().getConfig();
 	if (!c)
 		return;
-	Tools::Traffic::Accounting x(vmUuid_);
+	Instrument::Traffic::Accounting x(vmUuid_);
 	foreach (CVmGenericNetworkAdapter *a, c->getVmHardwareList()->m_lstNetworkAdapters)
 	{
 		x(QSTR2UTF8(a->getHostInterfaceName()));
@@ -1063,7 +1063,7 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::deviceDisconnect),
 							new Model::Coarse(m_view),
 							&Callback::Plain::delete_<Model::Coarse>);
-	QRunnable* q = new Tools::Breeding::Subject(m_libvirtd, m_view);
+	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, m_view);
 	q->setAutoDelete(true);
 	QThreadPool::globalInstance()->start(q);
 }
@@ -1074,7 +1074,7 @@ void Domains::getPerformance()
 	if (x.isNull())
 		return;
 
-	QRunnable* q = new Tools::Performance(x, m_view);
+	QRunnable* q = new Instrument::Performance(x, m_view);
 	q->setAutoDelete(true);
 	QThreadPool::globalInstance()->start(q);
 }
