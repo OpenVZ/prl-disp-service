@@ -1381,13 +1381,6 @@ PRL_RESULT Task_EditVm::editVm()
 			throw PRL_ERR_DISP_VM_IS_NOT_STOPPED;
 		}
 
-		if (new_mem->getMaxBalloonSize()>=100)
-		{
-			WRITE_TRACE(DBG_FATAL, "Can't set balloon size more than 100%% for VM %s.",
-				qPrintable(vm_uuid));
-			throw PRL_ERR_FAILURE;
-		}
-
 		// We round up max memory and max numa memory to corresponding defaults.
 		// We add at least XML_DEFAULT_MAXNUMARAM_SIZE to be hot-plugged by balloon.
 		new_mem->setMaxNumaRamSize(
