@@ -2789,7 +2789,7 @@ namespace Edit
 {
 namespace Vm
 {
-namespace vm = Libvirt::Tools::Agent::Vm;
+namespace vm = Libvirt::Instrument::Agent::Vm;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Action
@@ -2817,7 +2817,7 @@ Action& Action::getTail()
 
 bool Reconnect::execute(CDspTaskFailure& feedback_)
 {
-	Libvirt::Tools::Agent::Network::Unit u;
+	Libvirt::Instrument::Agent::Network::Unit u;
 	Libvirt::Result r = Libvirt::Kit.networks().find(m_network, &u);
 
 	if (r.isFailed())
@@ -3619,10 +3619,10 @@ Vm::Action* Factory::operator()(const Request& input_) const
 	d.insert(0, "set");
 
 	bool isWin = input_.getStart().getVmSettings()->getVmCommonOptions()->getOsType() == PVS_GUEST_TYPE_WINDOWS;
-	Libvirt::Tools::Agent::Vm::Exec::Request request(
+	Libvirt::Instrument::Agent::Vm::Exec::Request request(
 		isWin ? "%programfiles%\\Qemu-ga\\prl_nettool.exe" : "prl_nettool", d, QByteArray());
 	request.setRunInShell(isWin);
-	return Forge(input_).craftGuest(boost::bind(&Libvirt::Tools::Agent::Vm::Guest::runProgram, _1, request));
+	return Forge(input_).craftGuest(boost::bind(&Libvirt::Instrument::Agent::Vm::Guest::runProgram, _1, request));
 }
 
 } // namespace Network
@@ -3769,7 +3769,7 @@ Action* Hotplug<T>::operator()(const Request& input_) const
 	foreach (T* d, getDifference(n, o))
 	{
 		Action* a = f.craftRuntime(boost::bind(
-			&Libvirt::Tools::Agent::Vm::Runtime::plug<T>,
+			&Libvirt::Instrument::Agent::Vm::Runtime::plug<T>,
 			_1, *d));
 		a->setNext(output);
 		output = a;
@@ -3777,7 +3777,7 @@ Action* Hotplug<T>::operator()(const Request& input_) const
 	foreach (T* d, getDifference(o, n))
 	{
 		Action* a = f.craftRuntime(boost::bind(
-			&Libvirt::Tools::Agent::Vm::Runtime::unplug<T>,
+			&Libvirt::Instrument::Agent::Vm::Runtime::unplug<T>,
 			_1, *d));
 		a->setNext(output);
 		output = a;

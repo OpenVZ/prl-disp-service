@@ -201,14 +201,14 @@ namespace Network
 ///////////////////////////////////////////////////////////////////////////////
 // struct Dao
 
-Dao::Dao(Libvirt::Tools::Agent::Hub& libvirt_):
+Dao::Dao(Libvirt::Instrument::Agent::Hub& libvirt_):
 	m_networks(libvirt_.networks()), m_interfaces(libvirt_.interfaces())
 {
 }
 
 PRL_RESULT Dao::list(QList<CVirtualNetwork>& dst_)
 {
-	QList<Libvirt::Tools::Agent::Network::Unit> a;
+	QList<Libvirt::Instrument::Agent::Network::Unit> a;
 	Libvirt::Result e = m_networks.all(a);
 	if (e.isFailed())
 	{
@@ -216,7 +216,7 @@ PRL_RESULT Dao::list(QList<CVirtualNetwork>& dst_)
 		return PRL_ERR_UNEXPECTED;
 	}
 	QStringList x;
-	foreach(Libvirt::Tools::Agent::Network::Unit n, a)
+	foreach(Libvirt::Instrument::Agent::Network::Unit n, a)
 	{
 		CVirtualNetwork y;
 		e = n.getConfig(y);
@@ -241,7 +241,7 @@ PRL_RESULT Dao::define(CVirtualNetwork model_)
 	if (PRL_FAILED(e))
 		return e;
 
-	Libvirt::Tools::Agent::Network::Unit u;
+	Libvirt::Instrument::Agent::Network::Unit u;
 	Libvirt::Result z = m_networks.define(model_, &u);
 	if (z.isFailed())
 		return z.error().code();
@@ -265,7 +265,7 @@ PRL_RESULT Dao::create(const CVirtualNetwork& model_)
 PRL_RESULT Dao::remove(const CVirtualNetwork& model_)
 {
 	QString x = model_.getNetworkID();
-	Libvirt::Tools::Agent::Network::Unit u;
+	Libvirt::Instrument::Agent::Network::Unit u;
 	if (m_networks.find(x, &u).isFailed())
 	{
 		WRITE_TRACE(DBG_FATAL, "The network ID '%s' does not exist !",
@@ -281,7 +281,7 @@ PRL_RESULT Dao::update(const CVirtualNetwork& model_)
 {
 	CVirtualNetwork w;
 	QString x = model_.getNetworkID();
-	Libvirt::Tools::Agent::Network::Unit u = m_networks.at(model_.getUuid());
+	Libvirt::Instrument::Agent::Network::Unit u = m_networks.at(model_.getUuid());
 	if (u.getConfig(w).isFailed())
 	{
 		WRITE_TRACE(DBG_FATAL, "The network ID '%s' was not found by uuid!", QSTR2UTF8(x));
@@ -324,7 +324,7 @@ PRL_RESULT Dao::craftBridge(CVirtualNetwork& network_)
 	if (PRL_FAILED(e))
 		return e;
 
-	Libvirt::Tools::Agent::Interface::Bridge b;
+	Libvirt::Instrument::Agent::Interface::Bridge b;
 	Libvirt::Result r = m_interfaces.find(m, b);
 	e = (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
 	if (PRL_ERR_NETWORK_ADAPTER_NOT_FOUND == e)
@@ -358,7 +358,7 @@ PRL_RESULT Dao::attachExisting(CVirtualNetwork model_,
 	CVZVirtualNetwork* z = new CVZVirtualNetwork();
 	z->setBridgeName(bridge_);
 	model_.setVZVirtualNetwork(z);
-	Libvirt::Tools::Agent::Network::Unit u;
+	Libvirt::Instrument::Agent::Network::Unit u;
 	Libvirt::Result e = m_networks.define(model_, &u);
 	if (e.isFailed())
 		return e.error().code();

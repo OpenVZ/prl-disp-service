@@ -34,7 +34,7 @@
 
 namespace Libvirt
 {
-Tools::Agent::Hub Kit;
+Instrument::Agent::Hub Kit;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Failure
@@ -72,7 +72,7 @@ bool Failure::isTransient() const
 
 }
 
-namespace Tools
+namespace Instrument
 {
 namespace Agent
 {
@@ -556,7 +556,7 @@ Exec::Exec::getCommandStatus(int pid)
 }
 
 Prl::Expected<int, Libvirt::Agent::Failure>
-Exec::Exec::runCommand(const Libvirt::Tools::Agent::Vm::Exec::Request& req)
+Exec::Exec::runCommand(const Libvirt::Instrument::Agent::Vm::Exec::Request& req)
 {
 	Prl::Expected<QString, Libvirt::Agent::Failure> r = 
 		executeInAgent(req.getJson());
@@ -1074,7 +1074,7 @@ Result Unit::getConfig(CVirtualNetwork& dst_) const
 	CVZVirtualNetwork* z = dst_.getVZVirtualNetwork();
 	if (NULL != z)
 	{
-		Libvirt::Tools::Agent::Interface::Bridge b;
+		Libvirt::Instrument::Agent::Interface::Bridge b;
 		Libvirt::Result e = Libvirt::Kit.interfaces().find(z->getBridgeName(), b);
 		dst_.getHostOnlyNetwork()->
 			getParallelsAdapter()->setName(z->getBridgeName());
@@ -1412,5 +1412,5 @@ Prl::Expected<VtInfo, Error::Simple> Host::getVt() const
 }
 
 } // namespace Agent
-} // namespace Tools
+} // namespace Instrument
 } // namespace Libvirt

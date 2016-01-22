@@ -76,7 +76,7 @@ namespace
 
 struct View
 {
-	typedef QList<Libvirt::Tools::Agent::Vm::Snapshot::Unit> model_type;
+	typedef QList<Libvirt::Instrument::Agent::Vm::Snapshot::Unit> model_type;
 
 	bool operator()();
 	void setModel(const model_type& value_);

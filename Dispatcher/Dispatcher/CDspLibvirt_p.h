@@ -388,7 +388,7 @@ private:
 
 } // namespace Monitor
 
-namespace Tools
+namespace Instrument
 {
 ///////////////////////////////////////////////////////////////////////////////
 // struct Domain
@@ -490,7 +490,7 @@ private:
 };
 
 } // namespace Traffic
-} // namespace Tools
+} // namespace Instrument
 } // namespace Libvirt
 
 #endif // __CDSPLIBVIRT_P_H__

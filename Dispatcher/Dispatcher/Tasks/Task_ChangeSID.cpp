@@ -129,7 +129,7 @@ PRL_RESULT Task_ChangeSID::run_body()
 	SmartPtr<CDspVm> pVm;
 	SmartPtr<CDspClient> pFakeSession(new CDspClient(Uuid::createUuid(), "fake-user" ));
 
-	Libvirt::Tools::Agent::Vm::Unit u = Libvirt::Kit.vms().at(getVmUuid());
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(getVmUuid());
 
 	try
 	{
@@ -279,7 +279,7 @@ PRL_RESULT Task_ChangeSID::save_config(SmartPtr<CVmConfiguration> &pVmConfig)
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Tools::Agent::Vm::Unit& u)
+PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Instrument::Agent::Vm::Unit& u)
 
 {
 	unsigned int i;
@@ -319,13 +319,13 @@ PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Tools::Agent::Vm::Unit& u)
 	return PRL_ERR_CHANGESID_GUEST_TOOLS_NOT_AVAILABLE;
 }
 
-PRL_RESULT Task_ChangeSID::run_changeSID_cmd(Libvirt::Tools::Agent::Vm::Unit& u)
+PRL_RESULT Task_ChangeSID::run_changeSID_cmd(Libvirt::Instrument::Agent::Vm::Unit& u)
 {
-	Libvirt::Tools::Agent::Vm::Exec::Request request("%programfiles%\\Qemu-ga\\prl_newsid.exe",  
+	Libvirt::Instrument::Agent::Vm::Exec::Request request("%programfiles%\\Qemu-ga\\prl_newsid.exe",  
 		QList<QString>(), QByteArray());
 	request.setRunInShell(true);
 	Prl::Expected
-		<Libvirt::Tools::Agent::Vm::Exec::Result, Error::Simple> e =
+		<Libvirt::Instrument::Agent::Vm::Exec::Result, Error::Simple> e =
 			u.getGuest().runProgram(request);
 
 	QString uuid;

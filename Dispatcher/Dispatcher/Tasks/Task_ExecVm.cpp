@@ -138,7 +138,7 @@ PRL_RESULT Run::operator()(Exec::Ct& variant_) const
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Run::processVmResult(const Libvirt::Tools::Agent::Vm::Exec::Result& s) const
+PRL_RESULT Run::processVmResult(const Libvirt::Instrument::Agent::Vm::Exec::Result& s) const
 {
 	int flags = m_task->getRequestFlags();
 
@@ -182,7 +182,7 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 	if (PRL_FAILED(m_task->getLastErrorCode()))
 		return m_task->getLastErrorCode();
 
-	Libvirt::Tools::Agent::Vm::Exec::Request request(
+	Libvirt::Instrument::Agent::Vm::Exec::Request request(
 		cmd->GetProgramName(),
 		cmd->GetProgramArguments(),
 		variant_.getStdin());

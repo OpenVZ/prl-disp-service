@@ -123,11 +123,11 @@ private:
 
 struct Vm
 {
-	typedef Libvirt::Tools::Agent::Vm::Exec::Future
+	typedef Libvirt::Instrument::Agent::Vm::Exec::Future
 		Future;
-	typedef boost::optional<Libvirt::Tools::Agent::Vm::Exec::Result>
+	typedef boost::optional<Libvirt::Instrument::Agent::Vm::Exec::Result>
 		Result;
-	typedef Libvirt::Tools::Agent::Vm::Guest
+	typedef Libvirt::Instrument::Agent::Vm::Guest
 		Guest;
 
 	void closeStdin(Task_ExecVm*);
@@ -152,7 +152,7 @@ struct Run: boost::static_visitor<PRL_RESULT>
 
 	PRL_RESULT operator()(Exec::Ct& variant_) const;
 	PRL_RESULT operator()(Exec::Vm& variant_) const;
-	PRL_RESULT processVmResult(const Libvirt::Tools::Agent::Vm::Exec::Result& s) const;
+	PRL_RESULT processVmResult(const Libvirt::Instrument::Agent::Vm::Exec::Result& s) const;
 
 private:
 	Task_ExecVm* m_task;

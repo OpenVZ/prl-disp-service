@@ -176,24 +176,24 @@ struct Forge
 	template<class T>
 	Action* craft(const T& decorated_) const
 	{
-		return new Domain<T, Libvirt::Tools::Agent::Vm::Unit>
+		return new Domain<T, Libvirt::Instrument::Agent::Vm::Unit>
 			(getUnit(), decorated_);
 	}
 	template<class T>
 	Action* craftGuest(const T& decorated_) const
 	{
-		return new Domain<T, Libvirt::Tools::Agent::Vm::Guest>
+		return new Domain<T, Libvirt::Instrument::Agent::Vm::Guest>
 			(getUnit().getGuest(), decorated_);
 	}
 	template<class T>
 	Action* craftRuntime(const T& decorated_) const
 	{
-		return new Domain<T, Libvirt::Tools::Agent::Vm::Runtime>
+		return new Domain<T, Libvirt::Instrument::Agent::Vm::Runtime>
 			(getUnit().getRuntime(), decorated_);
 	}
 
 private:
-	Libvirt::Tools::Agent::Vm::Unit getUnit() const
+	Libvirt::Instrument::Agent::Vm::Unit getUnit() const
 	{
 		return Libvirt::Kit.vms().at(m_vm);
 	}
@@ -278,7 +278,7 @@ struct Apply
 	Action* operator()(const Request& input_) const;
 
 private:
-	static Libvirt::Result define(Libvirt::Tools::Agent::Vm::Unit agent_,
+	static Libvirt::Result define(Libvirt::Instrument::Agent::Vm::Unit agent_,
 					const CVmConfiguration& config_);
 };
 
@@ -614,7 +614,7 @@ struct Percents
 	{
 	}
 
-	Libvirt::Result operator()(Libvirt::Tools::Agent::Vm::Runtime agent_) const;
+	Libvirt::Result operator()(Libvirt::Instrument::Agent::Vm::Runtime agent_) const;
 
 private:
 	quint32 m_value;
@@ -629,7 +629,7 @@ struct Mhz
 	{
 	}
 
-	Libvirt::Result operator()(Libvirt::Tools::Agent::Vm::Runtime agent_) const;
+	Libvirt::Result operator()(Libvirt::Instrument::Agent::Vm::Runtime agent_) const;
 
 private:
 	quint32 m_value;
