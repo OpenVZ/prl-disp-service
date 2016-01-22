@@ -769,9 +769,9 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStart> >::run()
 	}
 	else
 	{
-		unsigned balloon = c->getVmHardwareList()->getMemory()->getMaxBalloonSize();
-		unsigned long long ramsize = c->getVmHardwareList()->getMemory()->getRamSize();
-		unsigned long long guarantee = ramsize*(100 - balloon)/100;
+		unsigned ramsize = c->getVmHardwareList()->getMemory()->getRamSize();
+		quint64 guarantee =
+			::Vm::Config::MemGuarantee(*c->getVmHardwareList()->getMemory())(ramsize);
 
 		Vcmmd::Frontend<Vcmmd::Unregistered> v(m_context.getVmUuid());
 		if (!v(Vcmmd::Unregistered(ramsize<<20, guarantee<<20)))

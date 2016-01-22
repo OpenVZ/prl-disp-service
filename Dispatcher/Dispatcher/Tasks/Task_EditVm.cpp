@@ -3514,18 +3514,18 @@ Action* Memory::operator()(const Request& input_) const
 		return NULL;
 
 	unsigned old_mem = 0, new_mem = n->getRamSize();
-	unsigned old_balloon = 0, new_balloon = n->getMaxBalloonSize();
+	quint64 old_guarantee = 0, new_guarantee = ::Vm::Config::MemGuarantee(*n)(new_mem);
 	if (NULL != o)
 	{
 		old_mem = o->getRamSize();
-		old_balloon = o->getMaxBalloonSize();
+		old_guarantee = ::Vm::Config::MemGuarantee(*o)(old_mem);
 	}
 
 	if(old_mem == new_mem &&
-		old_balloon == new_balloon)
+		old_guarantee == new_guarantee)
 		return NULL;
 
-	return new VcmmdAction(input_.getObject().first, new_mem, new_mem*(100-new_balloon)/100);
+	return new VcmmdAction(input_.getObject().first, new_mem, new_guarantee);
 }
 
 namespace
