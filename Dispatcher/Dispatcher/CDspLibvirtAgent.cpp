@@ -782,40 +782,6 @@ Result Runtime::setCpuCount(quint32 units_)
 	return do_(m_domain.data(), boost::bind(&virDomainSetVcpus, _1, units_));
 }
 
-Result Runtime::setMemory(quint32 memsize_)
-{
-	virDomainInfo info;
-	Result r = do_(m_domain.data(), boost::bind(&virDomainGetInfo, _1, &info));
-	if (r.isFailed())
-		return r;
-
-	unsigned newMemSize = memsize_<<10;
-	unsigned oldMemSize = info.memory;
-	unsigned maxNumaSize = info.maxMem;
-	if (oldMemSize > newMemSize)
-	{
-		if (oldMemSize > maxNumaSize)
-			return Error::Simple(PRL_ERR_FAILURE);
-
-		return do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
-			newMemSize,
-			VIR_DOMAIN_AFFECT_LIVE));
-	}
-	if (newMemSize <= maxNumaSize)
-	{
-		return do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
-			newMemSize,
-			VIR_DOMAIN_AFFECT_LIVE));
-	}
-	r = do_(m_domain.data(), boost::bind(&virDomainSetMemoryFlags, _1,
-		maxNumaSize,
-		VIR_DOMAIN_AFFECT_LIVE));
-	if (r.isFailed())
-		return r;
-
-	return plug(Transponster::Vm::Reverse::Dimm(0, newMemSize - maxNumaSize));
-}
-
 template<class T>
 Result Runtime::plug(const T& device_)
 {

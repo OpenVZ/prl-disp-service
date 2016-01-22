@@ -68,6 +68,7 @@
 #include "Tasks/Task_ChangeSID.h"
 #include "Tasks/Task_ExecVm.h"
 #include "Tasks/Task_EditVm.h"
+#include "CVcmmdInterface.h"
 
 #ifdef _WIN_
 	#include <process.h>
@@ -719,16 +720,23 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStop> >::run()
 	if (NULL == x)
 		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
 
+	Libvirt::Result e;
+	Vcmmd::Frontend<Vcmmd::Active> v(m_context.getVmUuid());
+	v(Vcmmd::Active());
+
 	switch (x->GetStopMode())
 	{
 	case PSM_ACPI:
 	case PSM_SHUTDOWN:
-		return m_context.reply(Vm::Shutdown::Unit
-			(m_context.getVmUuid(), 120)());
+		e = Vm::Shutdown::Unit(m_context.getVmUuid(), 120)();
+		break;
 	default:
-		return m_context.reply(Libvirt::Kit.vms()
-			.at(m_context.getVmUuid()).kill());
+		e = Libvirt::Kit.vms().at(m_context.getVmUuid()).kill();
 	}
+	if (e.isSucceed())
+		v.commit();
+
+	return m_context.reply(e);
 }
 
 template<>
@@ -738,21 +746,47 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStart> >::run()
 	if (!c.isValid())
 		return;
 
-	Libvirt::Result e;
 	Libvirt::Tools::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_context.getVmUuid());
+	VIRTUAL_MACHINE_STATE state = VMS_UNKNOWN;
+	Libvirt::Result e = u.getState(state);
+	if (e.isFailed())
+		return m_context.reply(e);
+
 	CStatesHelper h(c->getVmIdentification()->getHomePath());
-	if (h.savFileExists())
+	if (VMS_PAUSED == state)
 	{
-		e = u.resume(h.getSavFileName());
+		if (!h.savFileExists())
+			e = u.unpause();
+		else
+		{
+			e = u.resume(h.getSavFileName());
+			if (e.isSucceed())
+				h.dropStateFiles();
+		}
+
 		if (e.isSucceed())
-			h.dropStateFiles();
+			Vcmmd::Api(m_context.getVmUuid()).activate();
 	}
 	else
 	{
-		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
-		e = u.getState(s);
+		unsigned balloon = c->getVmHardwareList()->getMemory()->getMaxBalloonSize();
+		unsigned long long ramsize = c->getVmHardwareList()->getMemory()->getRamSize();
+		unsigned long long guarantee = ramsize*(100 - balloon)/100;
+
+		Vcmmd::Frontend<Vcmmd::Unregistered> v(m_context.getVmUuid());
+		if (!v(Vcmmd::Unregistered(ramsize<<20, guarantee<<20)))
+			return m_context.reply(PRL_ERR_FAILURE);
+
+		if (!h.savFileExists())
+			e = u.start();
+		else
+		{
+			e = u.resume(h.getSavFileName());
+			if (e.isSucceed())
+				h.dropStateFiles();
+		}
 		if (e.isSucceed())
-			e = VMS_PAUSED == s ? u.unpause() : u.start();
+			v.commit();
 	}
 	return m_context.reply(e);
 }
@@ -760,7 +794,11 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStart> >::run()
 template<>
 void Body<Tag::Libvirt<PVE::DspCmdVmPause> >::run()
 {
-	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).pause());
+	Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid()).pause();
+	if (e.isSucceed())
+		Vcmmd::Api(m_context.getVmUuid()).deactivate();
+
+	m_context.reply(e);
 }
 
 template<>
@@ -781,9 +819,16 @@ void Body<Tag::Libvirt<PVE::DspCmdVmSuspend> >::run()
 	SmartPtr<CVmConfiguration> c = Details::Assistant(m_context).getConfig();
 	if (c.isValid())
 	{
+		Vcmmd::Frontend<Vcmmd::Active> v(m_context.getVmUuid());
+		v(Vcmmd::Active());
+
 		CStatesHelper h(c->getVmIdentification()->getHomePath());
-		m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid())
-			.suspend(h.getSavFileName()));
+		Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid())
+                        .suspend(h.getSavFileName());
+		if (e.isSucceed())
+			v.commit();
+
+		m_context.reply(e);
 	}
 }
 
