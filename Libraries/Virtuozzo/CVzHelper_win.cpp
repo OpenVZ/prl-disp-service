@@ -2581,8 +2581,9 @@ int CVzOperationHelper::create_env(const QString &dst, SmartPtr<CVmConfiguration
 	return ret;
 }
 
-int CVzOperationHelper::clone_env(const QString &uuid, const QString &sNewHome,
-				  const QString &sNewName, PRL_UINT32 nFlags, SmartPtr<CVmConfiguration> &pNewConfig)
+int CVzOperationHelper::clone_env(const SmartPtr<CVmConfiguration> &pConfig,
+		const QString &sNewHome, const QString &sNewName, PRL_UINT32 nFlags,
+		SmartPtr<CVmConfiguration> &pNewConfig)
 {
 	unsigned int srcid, dstid;
 	QStringList args;
@@ -2604,7 +2605,7 @@ int CVzOperationHelper::clone_env(const QString &uuid, const QString &sNewHome,
 		return PRL_ERR_OPERATION_FAILED;
 	}
 
-	srcid = CVzHelper::get_envid_by_uuid(uuid);
+	srcid = CVzHelper::get_envid_by_uuid(pConfig->getVmIdentification()->getVmUuid());
 
 	VzCmd<VZC_CLONE_VPS_COMMAND> pCmd(VZC_CMD_CLONE_VPS);
 	if (pCmd == NULL)
