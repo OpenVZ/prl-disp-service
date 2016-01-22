@@ -667,12 +667,12 @@ Libvirt::Domain::Xml::VAddress Attachment::craftScsi(const boost::optional<Libvi
 ///////////////////////////////////////////////////////////////////////////////
 // struct List
 
-List::List()
+void List::addGuestChannel(const QString &path_)
 {
 	Libvirt::Domain::Xml::Channel1 c;
 	c.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceUnix);
 	mpl::at_c<Libvirt::Domain::Xml::VChoice847::types, 1>::type x;
-	x.setValue(QString("org.qemu.guest_agent.0"));
+	x.setValue(path_);
 	c.setChoice847(x);
 	add<13>(c);
 }
@@ -1240,6 +1240,9 @@ PRL_RESULT Builder::setDevices()
 		u.add(d);
 	}
 	u.addMouse();
+
+	b.addGuestChannel("org.qemu.guest_agent.0");
+	b.addGuestChannel("org.qemu.guest_agent.1");
 
 	Libvirt::Domain::Xml::Devices x;
 	if (m_result->getDevices())

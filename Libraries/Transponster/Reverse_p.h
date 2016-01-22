@@ -508,6 +508,7 @@ struct List
 		return m_deviceList;
 	}
 	QString getEmulator() const;
+	void addGuestChannel(const QString & path_);
 	void add(const CVmRemoteDisplay* vnc_);
 	void add(const Libvirt::Domain::Xml::Disk& disk_);
 	void add(const CVmParallelPort* port_);
