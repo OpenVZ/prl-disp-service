@@ -501,8 +501,6 @@ private:
 
 struct List
 {
-	explicit List();
-
 	const deviceList_type& getDeviceList() const
 	{
 		return m_deviceList;
