@@ -721,9 +721,6 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStop> >::run()
 		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
 
 	Libvirt::Result e;
-	Vcmmd::Frontend<Vcmmd::Active> v(m_context.getVmUuid());
-	v(Vcmmd::Active());
-
 	switch (x->GetStopMode())
 	{
 	case PSM_ACPI:
@@ -733,8 +730,6 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStop> >::run()
 	default:
 		e = Libvirt::Kit.vms().at(m_context.getVmUuid()).kill();
 	}
-	if (e.isSucceed())
-		v.commit();
 
 	return m_context.reply(e);
 }
@@ -830,16 +825,9 @@ void Body<Tag::Libvirt<PVE::DspCmdVmSuspend> >::run()
 	SmartPtr<CVmConfiguration> c = Details::Assistant(m_context).getConfig();
 	if (c.isValid())
 	{
-		Vcmmd::Frontend<Vcmmd::Active> v(m_context.getVmUuid());
-		v(Vcmmd::Active());
-
 		CStatesHelper h(c->getVmIdentification()->getHomePath());
-		Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid())
-                        .suspend(h.getSavFileName());
-		if (e.isSucceed())
-			v.commit();
-
-		m_context.reply(e);
+		m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid())
+                        .suspend(h.getSavFileName()));
 	}
 }
 
