@@ -23,6 +23,7 @@
 
 #include "CDspService.h"
 #include "CDspLibvirt_p.h"
+#include "CVcmmdInterface.h"
 #include <QtCore/qmetatype.h>
 #include "CDspVmStateSender.h"
 #include "CDspVmNetworkHelper.h"
@@ -915,6 +916,9 @@ State::State(const QSharedPointer<Model::System>& system_): m_system(system_)
 		this->connect(s.getPtr(),
 			SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
 			SLOT(tuneTraffic(unsigned, unsigned, QString, QString)));
+		this->connect(s.getPtr(),
+			SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
+			SLOT(updateVcmmd(unsigned, unsigned, QString, QString)));
 	}
 }
 
@@ -946,6 +950,24 @@ void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_
 
 	if (VMS_RUNNING != oldState_)
 		m_system->getRouting()->up(y.get());
+}
+
+void State::updateVcmmd(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_)
+{
+	Q_UNUSED(dirUuid_);
+	Q_UNUSED(oldState_);
+
+	switch (newState_)
+	{
+	case VMS_STOPPED:
+	case VMS_SUSPENDED:
+		{
+			Vcmmd::Frontend<Vcmmd::Active> v(vmUuid_);
+			v(Vcmmd::Active());
+			v.commit();
+		}
+		break;
+	}
 }
 
 void State::tuneTraffic(unsigned oldState_, unsigned newState_,
