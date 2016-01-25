@@ -31,6 +31,7 @@
 #include "Tasks/Task_ManagePrlNetService.h"
 #include <prlcommon/PrlUuid/PrlUuid.h>
 #include <Libraries/PrlNetworking/netconfig.h>
+#include <Libraries/StatesUtils/StatesHelper.h>
 
 #include <sys/socket.h>
 #include <linux/if.h>
@@ -700,7 +701,11 @@ void Vm::setName(const QString& value_)
 void Vm::updateState(VIRTUAL_MACHINE_STATE value_)
 {
 	m_formerState = m_state;
-	m_state = value_;
+
+	boost::optional<CVmConfiguration> c = value_ == VMS_STOPPED ? getConfig() : boost::none;
+	m_state = c && CStatesHelper(c->getVmIdentification()->getHomePath()).savFileExists() ?
+		VMS_SUSPENDED : value_;
+
 	CDspLockedPointer<CDspVmStateSender> s = m_service->getVmStateSender();
 	if (s.isValid())
 	{
