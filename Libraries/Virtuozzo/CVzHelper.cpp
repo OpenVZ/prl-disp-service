@@ -2598,11 +2598,14 @@ int CVzOperationHelper::create_env(const QString &dst, SmartPtr<CVmConfiguration
 	return 0;
 }
 
-int CVzOperationHelper::clone_env(const QString &uuid, const QString &sNewHome,
-		const QString &sNewName, PRL_UINT32 nFlags, SmartPtr<CVmConfiguration> &pNewConfig)
+int CVzOperationHelper::clone_env(const SmartPtr<CVmConfiguration> &pConfig,
+		const QString &sNewHome, const QString &sNewName, PRL_UINT32 nFlags,
+		SmartPtr<CVmConfiguration> &pNewConfig)
 {
 	Q_UNUSED(nFlags);
 	QStringList args;
+
+	QString uuid = pConfig->getVmIdentification()->getVmUuid();
 
 	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
 	if (ctid.isEmpty())
@@ -2626,6 +2629,11 @@ int CVzOperationHelper::clone_env(const QString &uuid, const QString &sNewHome,
 	QString dst_uuid = pNewConfig->getVmIdentification()->getVmUuid();
 	args += "--new-uuid";
 	args += remove_brackets_from_uuid(dst_uuid);
+
+	// Avoid CT template locking because
+	// several Clone tasks can be started simultaneously from the same template.
+	if (pConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+		args += "--skiplock";
 
 	PRL_RESULT res = run_prg("/usr/sbin/vzmlocal", args);
 	if (PRL_FAILED(res))
