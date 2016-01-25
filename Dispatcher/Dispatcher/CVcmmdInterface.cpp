@@ -51,8 +51,14 @@ bool Api::init(quint64 limit_, quint64 guarantee_)
 	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_GUARANTEE, guarantee_);
 	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_LIMIT, limit_);
 
-	return treat(vcmmd_register_ve(qPrintable(m_uuid), VCMMD_VE_VM, &config),
-		"vcmmd_register_ve");
+	int r = vcmmd_register_ve(qPrintable(m_uuid), VCMMD_VE_VM, &config);
+
+	if (VCMMD_ERROR_VE_NAME_ALREADY_IN_USE != r)
+		return treat(r, "vcmmd_register_ve");
+
+	return treat(vcmmd_unregister_ve(qPrintable(m_uuid)), "vcmmd_unregister_ve") &&
+		treat(vcmmd_register_ve(qPrintable(m_uuid), VCMMD_VE_VM, &config),
+			"vcmmd_register_ve");
 }
 
 bool Api::update(quint64 limit_, quint64 guarantee_)
@@ -87,7 +93,7 @@ bool Api::treat(int status_, const char* name_)
 		return true;
 
 	char e[255] = {};
-	WRITE_TRACE(DBG_FATAL, " failed. %s", name_,
+	WRITE_TRACE(DBG_FATAL, " failed. %s: %s", name_,
 		vcmmd_strerror(status_, e, sizeof(e)));
 	return false;
 }
