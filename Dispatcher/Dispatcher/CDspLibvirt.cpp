@@ -640,6 +640,7 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 		{
 		case VIR_DOMAIN_EVENT_CRASHED_PANICKED:
 			WRITE_TRACE(DBG_FATAL, "VM \"%s\" got guest panic.", virDomainGetName(domain_));
+			v->setState(domain_, VMS_PAUSED);
 			v->sendProblemReport(domain_);
 			break;
 		default:

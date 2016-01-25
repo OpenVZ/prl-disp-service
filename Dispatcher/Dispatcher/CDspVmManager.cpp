@@ -810,7 +810,18 @@ void Body<Tag::Libvirt<PVE::DspCmdVmRestartGuest> >::run()
 template<>
 void Body<Tag::Libvirt<PVE::DspCmdVmReset> >::run()
 {
-	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).reset());
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_context.getVmUuid());
+	VIRTUAL_MACHINE_STATE state = VMS_UNKNOWN;
+	Libvirt::Result e = u.getState(state);
+	if (e.isFailed())
+		return m_context.reply(e);
+
+	e = Libvirt::Kit.vms().at(m_context.getVmUuid()).reset();
+
+	if (e.isSucceed() && VMS_PAUSED == state)
+		e = Libvirt::Kit.vms().at(m_context.getVmUuid()).unpause();
+
+	m_context.reply(e);
 }
 
 template<>
