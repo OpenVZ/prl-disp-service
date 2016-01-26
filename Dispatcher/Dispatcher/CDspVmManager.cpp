@@ -956,8 +956,13 @@ void Body<Tag::Libvirt<PVE::DspCmdVmInstallTools> >::run()
 			d->setConnected(PVE::DeviceConnected);
 			d->setEmulatedType(PVE::CdRomImage);
 			d->setRemote(false);
-			return m_context.reply(Libvirt::Kit.vms().at(
-				m_context.getVmUuid()).getRuntime().update(*d));
+
+			VIRTUAL_MACHINE_STATE s = CDspVm::getVmState(m_context.getVmUuid(),
+					m_context.getDirectoryUuid());
+			if (s != VMS_STOPPED)
+				return m_context.reply(Libvirt::Kit.vms().at(
+							m_context.getVmUuid()).getRuntime().update(*d));
+			return m_context.reply(PRL_ERR_SUCCESS);
 		}
 	}
 
