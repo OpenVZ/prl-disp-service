@@ -99,7 +99,7 @@ bool Configurator::setUserPassword(const QString& user_, const QString& passwd_,
 {
 	QString o;
 	QStringList c;
-	QString iso = CFileHelper::GetFileRoot(m_cfg.getVmIdentification()->getHomePath());
+	QString iso(getIsoPath(m_cfg.getVmIdentification()->getHomePath()));
 	QString disp(getDispConfig(m_cfg.getVmIdentification()->getHomePath()));
 	QProcess p;
 	c << cloudConfigBin
