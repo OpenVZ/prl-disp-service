@@ -1651,7 +1651,9 @@ Value accumulateTraffic(Value *klass)
 
 quint32 getVcpuNum(const QString &uuid)
 {
-	SmartPtr<CVmConfiguration> c = CVzHelper::get_env_config(uuid);
+	SmartPtr<CVmConfiguration> c = CDspService::instance()->getVzHelper()->getCtConfig(
+			CDspClient::makeServiceUser(), uuid);
+
 	if (!c.isValid())
 		return 0;
 
