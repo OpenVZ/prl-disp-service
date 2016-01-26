@@ -1301,6 +1301,17 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 		CVmMemory *pMem = pConfig->getVmHardwareList()->getMemory();
 		if (vzctl2_env_get_ramsize(env_param, &ul) == 0)
 			pMem->setRamSize(ul);
+
+		struct vzctl_mem_guarantee g;
+		if (vzctl2_env_get_memguarantee(env_param, &g) == 0) {
+			pMem->setMemGuaranteeType(
+				g.type == VZCTL_MEM_GUARANTEE_AUTO ?
+					PRL_MEMGUARANTEE_AUTO :
+					PRL_MEMGUARANTEE_PERCENTS
+				);
+			pMem->setMemGuarantee(g.value);
+		}
+
 		/* Video memory is not used for Ct */
 		pConfig->getVmHardwareList()->getVideo()->setMemorySize(0);
 		// VE_ROOT
@@ -1780,10 +1791,23 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 	if (olddesc != desc)
 		 vzctl2_env_set_description(new_param, QSTR2UTF8(desc));
 
-	unsigned int oldramsize = pOldConfig->getVmHardwareList()->getMemory()->getRamSize();
-	unsigned int ramsize = pConfig->getVmHardwareList()->getMemory()->getRamSize();
-	if (oldramsize != ramsize && ramsize != 0)
-		vzctl2_env_set_ramsize(new_param, ramsize);
+	const CVmMemory *old_mem = pOldConfig->getVmHardwareList()->getMemory();
+	const CVmMemory *mem = pConfig->getVmHardwareList()->getMemory();
+	if (old_mem->getRamSize() != mem->getRamSize() &&
+			mem->getRamSize() != 0)
+		vzctl2_env_set_ramsize(new_param, mem->getRamSize());
+
+	if (old_mem->getMemGuaranteeType() != mem->getMemGuaranteeType() ||
+			old_mem->getMemGuarantee() != mem->getMemGuarantee())
+	{
+		struct vzctl_mem_guarantee g = vzctl_mem_guarantee();
+
+		g.type = mem->getMemGuaranteeType() == PRL_MEMGUARANTEE_AUTO ?
+				VZCTL_MEM_GUARANTEE_AUTO : VZCTL_MEM_GUARANTEE_PCT,
+		g.value = mem->getMemGuarantee();
+
+		vzctl2_env_set_memguarantee(new_param, &g);
+	}
 
 	// UB resoureces
 	CCtResource *pResOld = pOldConfig->getCtSettings()->getResource(PCR_SWAPPAGES);
