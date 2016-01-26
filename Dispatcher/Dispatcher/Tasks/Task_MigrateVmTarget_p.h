@@ -3,6 +3,8 @@
 /// @file Task_MigrateVmTarget_p.h
 //
 /// Private part of a target side of Vm migration.
+/// UML state chart: https://src.openvz.org/projects/OVZ/repos/prl-disp-service
+/// /Docs/Diagrams/Vm/Migration/diagram.vsd
 ///
 /// @author nshirokovskiy@
 ///
