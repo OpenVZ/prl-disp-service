@@ -63,7 +63,7 @@ struct MemGuarantee
 	{
 	}
 
-	quint64 operator()(quint32 ramsize_);
+	quint64 operator()(quint64 ramsize_);
 
 private:
 	PRL_MEMGUARANTEE_TYPE m_type;
