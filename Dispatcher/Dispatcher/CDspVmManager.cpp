@@ -764,7 +764,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStart> >::run()
 	}
 	else
 	{
-		unsigned ramsize = c->getVmHardwareList()->getMemory()->getRamSize();
+		quint64 ramsize = c->getVmHardwareList()->getMemory()->getRamSize();
 		quint64 guarantee =
 			::Vm::Config::MemGuarantee(*c->getVmHardwareList()->getMemory())(ramsize);
 

@@ -55,7 +55,7 @@ enum Defaults {DEFAULT_MEMGUARANTEE_PERCENTS = 40};
 ///////////////////////////////////////////////////////////////////////////////
 // struct MemGuarantee
 
-quint64 MemGuarantee::operator()(quint32 ramsize_)
+quint64 MemGuarantee::operator()(quint64 ramsize_)
 {
 	switch(m_type)
 	{
