@@ -864,14 +864,11 @@ void CDspProblemReportHelper::FillVmProblemReportData
 		e.value().wait(10000);
 
 	// It doesn't matter if wait failed or migration failed, we need to try unpause VM.
-	if (isRunning && CDspVm::getVmState(strVmUuid, strDirUuid) == VMS_PAUSED)
+	VIRTUAL_MACHINE_STATE currentState;
+	if ((isRunning && u.getState(currentState).isFailed()) ||
+		(currentState == VMS_PAUSED && u.unpause().isFailed()))
 	{
-		Libvirt::Result r = u.unpause();
-		if (r.isFailed())
-		{
-			WRITE_TRACE(DBG_FATAL, "Problem report got error. VM %s may be paused",
-				qPrintable(strVmUuid));
-		}
+		WRITE_TRACE(DBG_FATAL, "Problem report got error. VM %s may be paused", qPrintable(strVmUuid));
 	}
 
 	// Try to add file even after error
