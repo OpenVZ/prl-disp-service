@@ -1367,6 +1367,10 @@ PRL_RESULT Vm::setDevices()
 	p.add(o->getOsVersion());
 	x.setPanicList(p.getResult());
 
+	Libvirt::Domain::Xml::Memballoon m;
+	m.setAutodeflate(Libvirt::Domain::Xml::EVirOnOffOn);
+	x.setMemballoon(m);
+
 	m_result->setDevices(x);
 	return PRL_ERR_SUCCESS;
 }
