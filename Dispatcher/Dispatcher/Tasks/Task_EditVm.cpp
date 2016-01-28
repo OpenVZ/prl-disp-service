@@ -3065,15 +3065,20 @@ QStringList Device::calculate(const general_type& general_, const Dao& devices_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
-Vm::Vm(const general_type& general_, const Dao& devices_): m_device(general_, devices_)
+Vm::Vm(const CVmConfiguration& cfg_)
+	: m_device(cfg_.getVmSettings()->getGlobalNetwork(),
+		Network::Dao(cfg_.getVmHardwareList()->m_lstNetworkAdapters))
 {
-	if (!general_.isAutoApplyIpOnly())
-	{
-		m_searchDomain = SearchDomain(general_, devices_);
-		QString h = general_.getHostName();
-		if (!h.isEmpty())
-			m_hostname = h;
-	}
+	const Network::general_type* a = cfg_.getVmSettings()->getGlobalNetwork();
+	Network::Dao x(cfg_.getVmHardwareList()->m_lstNetworkAdapters);
+
+	if (a->isAutoApplyIpOnly())
+		return;
+
+	m_searchDomain = SearchDomain(*a, x);
+	QString h = a->getHostName();
+	if (!h.isEmpty())
+		m_hostname = h;
 }
 
 QStringList Vm::calculate(const general_type& general_, const Dao& devices_)
@@ -3091,6 +3096,22 @@ QStringList Vm::calculate(const general_type& general_, const Dao& devices_)
 			a << "--hostname" << m_hostname.get();
 	}
 	return a << m_device.calculate(general_, devices_);
+}
+
+QStringList Vm::calculate(const CVmConfiguration& start_, unsigned int osType_)
+{
+	const Network::general_type* a = start_.getVmSettings()->getGlobalNetwork();
+	Network::Dao x(start_.getVmHardwareList()->m_lstNetworkAdapters);
+
+	QStringList d = calculate(*a, x);
+	if (!d.isEmpty()) {
+		d.insert(0, "set");
+
+		QString u((osType_ == PVS_GUEST_TYPE_WINDOWS) ?
+				"%programfiles%\\Qemu-ga\\prl_nettool.exe" : "prl_nettool");
+		d.insert(0, u);
+	}
+	return d;
 }
 
 } // namespace Difference
@@ -3375,17 +3396,14 @@ bool Prepare::execute(CDspTaskFailure& feedback_)
 Action* Factory::operator()(const Request& input_) const
 {
 	Action* output = NULL;
-	const Network::general_type* a = input_.getStart().getVmSettings()->getGlobalNetwork();
-	const Network::general_type* b = input_.getFinal().getVmSettings()->getGlobalNetwork();
-	Network::Dao x(input_.getStart().getVmHardwareList()->m_lstNetworkAdapters);
-	Network::Dao y(input_.getFinal().getVmHardwareList()->m_lstNetworkAdapters);
-
-	QStringList d = Network::Difference::Vm(*b, y).calculate(*a, x);
+	// this is offline configration case, which means that no settings will
+	// be applied till VM start. Thus we have to accummulate them, generating
+	// full network configuration each time.
+	Network::Difference::Vm v(input_.getFinal());
+	QStringList d = v.calculate(CVmConfiguration(),
+		input_.getFinal().getVmSettings()->getVmCommonOptions()->getOsType());
 	if (d.isEmpty()) 
 		return NULL;
-
-	d.insert(0, "set");
-	d.insert(0, "prl_nettool");
 
 	Action* action = new Apply(input_.getFinal(), d);
 	action->setNext(output);
@@ -3600,21 +3618,15 @@ namespace Network
 
 Vm::Action* Factory::operator()(const Request& input_) const
 {
-	const Vm::Network::general_type* a = input_.getStart().getVmSettings()->getGlobalNetwork();
-	const Vm::Network::general_type* b = input_.getFinal().getVmSettings()->getGlobalNetwork();
-	Vm::Network::Dao x(input_.getStart().getVmHardwareList()->m_lstNetworkAdapters);
-	Vm::Network::Dao y(input_.getFinal().getVmHardwareList()->m_lstNetworkAdapters);
-
-	QStringList d = Vm::Network::Difference::Vm(*b, y).calculate(*a, x);
+	Vm::Network::Difference::Vm v(input_.getFinal());
+	unsigned int t = input_.getFinal().getVmSettings()->getVmCommonOptions()->getOsType();
+	QStringList d = v.calculate(input_.getStart(), t);
 	if (d.isEmpty())
 		return NULL;
 
-	d.insert(0, "set");
-
-	bool isWin = input_.getStart().getVmSettings()->getVmCommonOptions()->getOsType() == PVS_GUEST_TYPE_WINDOWS;
-	Libvirt::Instrument::Agent::Vm::Exec::Request request(
-		isWin ? "%programfiles%\\Qemu-ga\\prl_nettool.exe" : "prl_nettool", d, QByteArray());
-	request.setRunInShell(isWin);
+	QString c = d.takeFirst();
+	Libvirt::Instrument::Agent::Vm::Exec::Request request(c, d, QByteArray());
+	request.setRunInShell(t == PVS_GUEST_TYPE_WINDOWS);
 	return Forge(input_).craftGuest(boost::bind(&Libvirt::Instrument::Agent::Vm::Guest::runProgram, _1, request));
 }
 
