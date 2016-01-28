@@ -511,9 +511,10 @@ private:
 
 struct Vm
 {
-	Vm(const general_type& general_, const Dao& devices_);
+	explicit Vm(const CVmConfiguration& cfg_);
 
 	QStringList calculate(const general_type& general_, const Dao& devices_);
+	QStringList calculate(const CVmConfiguration& start_, unsigned int osType_);
 
 private:
 	Device m_device;
