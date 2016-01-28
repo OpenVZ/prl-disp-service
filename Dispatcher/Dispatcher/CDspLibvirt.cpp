@@ -34,11 +34,6 @@
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <Libraries/StatesUtils/StatesHelper.h>
 
-#include <sys/socket.h>
-#include <linux/if.h>
-#include <sys/ioctl.h>
-#include <linux/if_tun.h>
-
 namespace Libvirt
 {
 namespace Instrument
@@ -59,8 +54,9 @@ void Domain::run()
 		m_view->setConfig(c);	
 
 	VIRTUAL_MACHINE_STATE s;
-	if (m_agent.getState(s).isSucceed())
-		m_view->setState(s);
+	if (m_agent.getState(s).isSucceed()
+		&& !QMetaObject::invokeMethod(m_view.data(), "setState", Q_ARG(VIRTUAL_MACHINE_STATE, s)))
+		WRITE_TRACE(DBG_FATAL, "Unable to invoke VM 'setState' method");
 }
 
 namespace Breeding
@@ -218,38 +214,6 @@ void Performance::pull(Agent::Vm::Unit agent_)
 //	virDomainInterfaceStats();
 }
 */
-
-namespace Traffic
-{
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Accounting
-
-Accounting::Accounting(const QString& uuid_)
-	: m_id(Uuid::toVzid(uuid_)), m_control("/dev/net/tun")
-{
-}
-
-void Accounting::operator()(const QString& device_)
-{
-	if (!m_control.isOpen() && !m_control.open(QIODevice::ReadWrite))
-	{
-		WRITE_TRACE(DBG_FATAL, "failed to open %s: %s",
-			QSTR2UTF8(m_control.fileName()),
-			QSTR2UTF8(m_control.errorString()));
-		return;
-	}
-	struct ifreq x;
-	qstrncpy(x.ifr_name, QSTR2UTF8(device_), sizeof(x.ifr_name));
-	x.ifr_acctid = m_id;
-	if (::ioctl(m_control.handle(), TUNSETACCTID, &x) == -1)
-	{
-		WRITE_TRACE(DBG_FATAL, "ioctl(TUNSETACCTID, %s, %u) failed: %m",
-			x.ifr_name, x.ifr_acctid);
-	}
-}
-
-} // namespace Traffic
 } // namespace Instrument
 
 namespace Callback
@@ -577,6 +541,8 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 	switch (event_)
 	{
 	case VIR_DOMAIN_EVENT_DEFINED:
+		if (detail_ == VIR_DOMAIN_EVENT_DEFINED_FROM_SNAPSHOT)
+			v->prepareToSwitch(domain_);
 		break;
 	case VIR_DOMAIN_EVENT_UNDEFINED:
 		v->remove(domain_);
@@ -684,61 +650,32 @@ namespace Model
 
 Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 		const QSharedPointer< ::Network::Routing>& routing_):
-	m_uuid(uuid_), m_service(CDspService::instance()), m_user(user_),
-	m_state(VMS_UNKNOWN), m_formerState(VMS_UNKNOWN), m_routing(routing_) 
+	::Vm::State::Machine(uuid_, user_, routing_), m_routing(routing_)
 {
 }
-
-void Vm::setName(const QString& value_)
-{
-	// NB. there is no home in a libvirt VM config. it is still required
-	// by different activities. now we put it into the default VM folder
-	// from a user profile. later this behaviour would be re-designed.
-	m_name = value_;
-	QString h = QDir(m_user->getUserDefaultVmDirPath())
-		.absoluteFilePath(QString(m_name).append(VMDIR_DEFAULT_BUNDLE_SUFFIX));
-	m_home = QFileInfo(QDir(h), VMDIR_DEFAULT_VM_CONFIG_FILE);
-}
-
 void Vm::updateState(VIRTUAL_MACHINE_STATE value_)
 {
-	m_formerState = m_state;
-
-	boost::optional<CVmConfiguration> c = value_ == VMS_STOPPED ? getConfig() : boost::none;
-	m_state = c && CStatesHelper(c->getVmIdentification()->getHomePath()).savFileExists() ?
-		VMS_SUSPENDED : value_;
-
-	CDspLockedPointer<CDspVmStateSender> s = m_service->getVmStateSender();
-	if (s.isValid())
+	switch(value_)
 	{
-		s->onVmStateChanged(m_formerState, m_state, m_uuid,
-			m_user->getVmDirectoryUuid(), false);
-	}
-}
-
-void Vm::updateDirectory(PRL_VM_TYPE type_)
-{
-	typedef CVmDirectory::TemporaryCatalogueItem item_type;
-
-	CDspVmDirManager& m = m_service->getVmDirManager();
-	QScopedPointer<item_type> t(new item_type(m_uuid, m_home.absolutePath(), m_name));
-	PRL_RESULT e = m.checkAndLockNotExistsExclusiveVmParameters
-				(QStringList(), t.data());
-	if (PRL_FAILED(e))
+	case VMS_RUNNING:
+		process_event(::Vm::State::Event<VMS_RUNNING>());
+		break;
+	case VMS_STOPPED:
+		process_event(::Vm::State::Event<VMS_STOPPED>());
+		break;
+	case VMS_PAUSED:
+		process_event(::Vm::State::Event<VMS_PAUSED>());
+		break;
+	case VMS_MOUNTED:
+		process_event(::Vm::State::Event<VMS_MOUNTED>());
+		break;
+	case VMS_SUSPENDED:
+		process_event(::Vm::State::Event<VMS_SUSPENDED>());
+		break;
+	default:
+		process_event(::Vm::State::Event<VMS_UNKNOWN>());
 		return;
-
-	QScopedPointer<CVmDirectoryItem> x(new CVmDirectoryItem());
-	x->setVmUuid(m_uuid);
-	x->setVmName(m_name);
-	x->setVmHome(getHome());
-	x->setVmType(type_);
-	x->setValid(PVE::VmValid);
-	x->setRegistered(PVE::VmRegistered);
-	e = m_service->getVmDirHelper().insertVmDirectoryItem(m_user->getVmDirectoryUuid(), x.data());
-	if (PRL_SUCCEEDED(e))
-		x.take();
-
-	m.unlockExclusiveVmParameters(t.data());
+	}
 }
 
 void Vm::updateConfig(CVmConfiguration value_)
@@ -749,24 +686,11 @@ void Vm::updateConfig(CVmConfiguration value_)
 		::Vm::Config::Repairer< ::Vm::Config::untranslatable_types>
 			::type::do_(value_, y.get());
 		
-		if (m_state == VMS_RUNNING)	
+		if (is_flag_active< ::Vm::State::Running>())
 			m_routing->reconfigure(y.get(), value_);
 	}
 
-	m_service->getVmConfigManager().saveConfig(SmartPtr<CVmConfiguration>
-		(&value_, SmartPtrPolicy::DoNotReleasePointee),
-		m_home.absoluteFilePath(), m_user, true, false);
-}
-
-boost::optional<CVmConfiguration> Vm::getConfig() const
-{
-	PRL_RESULT e = PRL_ERR_SUCCESS;
-	SmartPtr<CVmConfiguration> x = CDspService::instance()->getVmDirHelper()
-		.getVmConfigByUuid(m_user, m_uuid, e);
-	if (PRL_FAILED(e) || !x.isValid())
-		return boost::none;
-
-	return *x;
+	::Vm::State::Machine::setConfig(value_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -788,6 +712,11 @@ void Domain::setConfig(CVmConfiguration& value_)
 	m_vm.updateDirectory(value_.getVmType());
 	Kit.vms().at(m_vm.getUuid()).completeConfig(value_);
 	m_vm.updateConfig(value_);
+}
+
+void Domain::prepareToSwitch()
+{
+	m_vm.process_event(::Vm::State::Switch());
 }
 
 void Domain::setCpuUsage()
@@ -844,6 +773,7 @@ QSharedPointer<Domain> System::add(const QString& uuid_)
 		return QSharedPointer<Domain>();
 
 	QSharedPointer<Domain> x(new Domain(Vm(uuid_, u, m_routing)));
+	x->moveToThread(this->thread());
 	return m_domainMap[uuid_] = x;
 }
 
@@ -870,8 +800,15 @@ QString Coarse::getUuid(virDomainPtr domain_)
 void Coarse::setState(virDomainPtr domain_, VIRTUAL_MACHINE_STATE value_)
 {
 	QSharedPointer<Domain> d = m_fine->find(getUuid(domain_));
-	if (!d.isNull())
-		d->setState(value_);
+	if (!d.isNull() && !QMetaObject::invokeMethod(d.data(), "setState", Q_ARG(VIRTUAL_MACHINE_STATE, value_)))
+		WRITE_TRACE(DBG_FATAL, "Unable to invoke VM 'setState' method");
+}
+
+void Coarse::prepareToSwitch(virDomainPtr domain_)
+{
+	QSharedPointer<Domain> d = m_fine->find(getUuid(domain_));
+	if (!d.isNull() && !QMetaObject::invokeMethod(d.data(), "prepareToSwitch"))
+		WRITE_TRACE(DBG_FATAL, "Unable to invoke VM 'setState' method");
 }
 
 void Coarse::remove(virDomainPtr domain_)
@@ -913,18 +850,15 @@ State::State(const QSharedPointer<Model::System>& system_): m_system(system_)
 		this->connect(s.getPtr(),
 			SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
 			SLOT(updateConfig(unsigned, unsigned, QString, QString)));
-		this->connect(s.getPtr(),
-			SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
-			SLOT(tuneTraffic(unsigned, unsigned, QString, QString)));
-		this->connect(s.getPtr(),
-			SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
-			SLOT(updateVcmmd(unsigned, unsigned, QString, QString)));
 	}
 }
 
 void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_)
 {
 	Q_UNUSED(dirUuid_);
+
+	if (VMS_RUNNING != newState_ || oldState_ == newState_)
+		return;
 
 	QSharedPointer<Model::Domain> d = m_system->find(vmUuid_);
 	if (d.isNull())
@@ -934,12 +868,6 @@ void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_
 	if (!y)
 		return;
 
-	if (VMS_RUNNING == oldState_ && VMS_RUNNING != newState_)
-		m_system->getRouting()->down(y.get());
-
-	if (VMS_RUNNING != newState_)
-		return;
-
 	CVmConfiguration runtime;
 	Instrument::Agent::Vm::Unit v = Kit.vms().at(vmUuid_);
 	if (v.getConfig(runtime, true).isFailed())
@@ -947,49 +875,6 @@ void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_
 
 	Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(y.get(), runtime);
 	d->setConfig(y.get());
-
-	if (VMS_RUNNING != oldState_)
-		m_system->getRouting()->up(y.get());
-}
-
-void State::updateVcmmd(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_)
-{
-	Q_UNUSED(dirUuid_);
-	Q_UNUSED(oldState_);
-
-	switch (newState_)
-	{
-	case VMS_STOPPED:
-	case VMS_SUSPENDED:
-		{
-			Vcmmd::Frontend<Vcmmd::Active> v(vmUuid_);
-			v(Vcmmd::Active());
-			v.commit();
-		}
-		break;
-	}
-}
-
-void State::tuneTraffic(unsigned oldState_, unsigned newState_,
-	QString vmUuid_, QString dirUuid_)
-{
-	Q_UNUSED(oldState_);
-	Q_UNUSED(dirUuid_);
-
-	if (newState_ != VMS_RUNNING)
-		return;
-	QSharedPointer<Model::Domain> d = m_system->find(vmUuid_);
-	if (d.isNull())
-		return;
-	boost::optional<CVmConfiguration> c = d->getVm().getConfig();
-	if (!c)
-		return;
-	Instrument::Traffic::Accounting x(vmUuid_);
-	foreach (CVmGenericNetworkAdapter *a, c->getVmHardwareList()->m_lstNetworkAdapters)
-	{
-		x(QSTR2UTF8(a->getHostInterfaceName()));
-	}
-	Task_NetworkShapingManagement::setNetworkRate(*c);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

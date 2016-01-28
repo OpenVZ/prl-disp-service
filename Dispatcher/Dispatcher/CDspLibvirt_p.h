@@ -34,6 +34,7 @@
 
 #include <QTimer>
 #include "CDspClient.h"
+#include "CDspVmStateMachine.h"
 #include "CDspLibvirt.h"
 #include "CDspVmNetworkHelper.h"
 #include <QSocketNotifier>
@@ -212,40 +213,21 @@ namespace Model
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
-struct Vm
+struct Vm: ::Vm::State::Machine
 {
 	Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 			const QSharedPointer< ::Network::Routing>& routing);
-
-	const QString& getUuid() const
-	{
-		return m_uuid;
-	}
-	QString getHome() const
-	{
-		return m_home.absoluteFilePath();
-	}
-	void setName(const QString& value_);
 	void updateState(VIRTUAL_MACHINE_STATE value_);
-	void updateDirectory(PRL_VM_TYPE type_);
 	void updateConfig(CVmConfiguration value_);
-	boost::optional<CVmConfiguration> getConfig() const;
 
 private:
-	QString m_name;
-	QString m_uuid;
-	QFileInfo m_home;
-	CDspService* m_service;
-	SmartPtr<CDspClient> m_user;
-	VIRTUAL_MACHINE_STATE m_state;
-	VIRTUAL_MACHINE_STATE m_formerState;
 	QSharedPointer< ::Network::Routing> m_routing;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Domain
 
-struct Domain
+struct Domain: QObject
 {
 	explicit Domain(const Vm& vm_);
 
@@ -257,7 +239,9 @@ struct Domain
 	{
 		m_pid = value_;
 	}
-	void setState(VIRTUAL_MACHINE_STATE value_);
+	Q_INVOKABLE void setState(VIRTUAL_MACHINE_STATE value_);
+	Q_INVOKABLE void prepareToSwitch();
+
 	void setConfig(CVmConfiguration& value_);
 	void setCpuUsage();
 	void setDiskUsage();
@@ -265,6 +249,8 @@ struct Domain
 	void setNetworkUsage();
 
 private:
+	Q_OBJECT
+
 	Vm m_vm;
 	quint32 m_pid;
 };
@@ -272,7 +258,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct System
 
-struct System
+struct System: QObject
 {
 	System();
 
@@ -285,6 +271,8 @@ struct System
 	}
 
 private:
+	Q_OBJECT
+
 	typedef QHash<QString, QSharedPointer<Domain> > domainMap_type;
 
 	domainMap_type m_domainMap;
@@ -302,6 +290,7 @@ struct Coarse
 	}
 
 	void setState(virDomainPtr domain_, VIRTUAL_MACHINE_STATE value_);
+	void prepareToSwitch(virDomainPtr domain_);
 	void remove(virDomainPtr domain_);
 	void sendProblemReport(virDomainPtr domain_);
 	QSharedPointer<Domain> access(virDomainPtr domain_);
@@ -327,9 +316,6 @@ struct State: QObject
 
 public slots:
 	void updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_);
-	void updateVcmmd(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_);
-	void tuneTraffic(unsigned oldState_, unsigned newState_,
-		QString vmUuid_, QString dirUuid_);
 
 private:
 	Q_OBJECT
@@ -475,22 +461,6 @@ private:
 	QSharedPointer<Model::System> m_view;
 };
 
-namespace Traffic
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Accounting
-
-struct Accounting
-{
-	Accounting(const QString& uuid_);
-	void operator()(const QString& device_);
-
-private:
-	quint32 m_id;
-	QFile m_control;
-};
-
-} // namespace Traffic
 } // namespace Instrument
 } // namespace Libvirt
 

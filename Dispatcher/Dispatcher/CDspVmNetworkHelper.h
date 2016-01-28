@@ -42,6 +42,26 @@
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 
+namespace Network
+{
+namespace Traffic
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Accounting
+
+struct Accounting
+{
+	explicit Accounting(const QString& uuid_);
+	void operator()(const QString& device_);
+
+private:
+	quint32 m_id;
+	QFile m_control;
+};
+
+} // namespace Traffic
+} // namespace Network
+
 enum HostMacUpdateFlags {
 	HMU_NONE = 0,
 	HMU_CHECK_NONEMPTY = (1 << 0),
