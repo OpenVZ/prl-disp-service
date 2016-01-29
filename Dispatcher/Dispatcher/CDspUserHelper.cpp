@@ -81,7 +81,7 @@
 
 #include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
 
-#define LOGIN_LOCAL_TIMEOUT_SEC 10
+#define LOGIN_LOCAL_TIMEOUT_SEC 30
 
 using namespace Parallels;
 
