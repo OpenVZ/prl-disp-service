@@ -303,6 +303,7 @@ contains(DEFINES, _CT_) {
 libvirt {
 	HEADERS += \
 		CDspLibvirt.h \
+		CDspLibvirtExec.h \
 		CDspLibvirt_p.h
 
 	SOURCES += \

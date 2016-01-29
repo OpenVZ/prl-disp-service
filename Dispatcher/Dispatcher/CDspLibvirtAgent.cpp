@@ -22,6 +22,7 @@
  */
 
 #include "CDspLibvirt.h"
+#include "CDspLibvirtExec.h"
 #include "CDspService.h"
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
@@ -312,6 +313,16 @@ Runtime Unit::getRuntime() const
 	return Runtime(m_domain);
 }
 
+Result Unit::addAsyncExec(Exec::AsyncExecDevice& device_)
+{
+	QString u;
+	Result r = getUuid(u);
+	if (r.isFailed())
+		return r;
+	if (Kit.addAsyncExec(u, m_domain, device_))
+		return Failure(PRL_ERR_FAILURE);
+	return Result();
+}
 ///////////////////////////////////////////////////////////////////////////////
 // struct Performance
 
@@ -578,8 +589,16 @@ QString Exec::Request::getJson() const
 	params.put("capture-output", "capture-output-value"); // replace placeholder later
 	params.put("execute-in-shell", "execute-in-shell-value"); // replace placeholder later
 
-	if (m_stdin.size() > 0) {
-		params.put("input-data", m_stdin.toBase64().data());
+	if (m_channels.size() > 0) {
+		QPair<int, int> c;
+		foreach (c, m_channels) {
+			if (c.first == 0)
+				params.put("cid-in", "cid-in-value");
+			else if (c.first == 1)
+				params.put("cid-out", "cid-out-value");
+			else if (c.first == 2)
+				params.put("cid-err", "cid-err-value");
+		}
 	}
 
 	if (m_args.size() > 0) {
@@ -601,6 +620,20 @@ QString Exec::Request::getJson() const
 	std::string s = ss.str();
 	boost::replace_all<std::string>(s, "\"capture-output-value\"", "true");
 	boost::replace_all<std::string>(s, "\"execute-in-shell-value\"", m_runInShell ? "true" : "false");
+	if (m_channels.size() > 0) {
+		QPair<int, int> c;
+		foreach (c, m_channels) {
+			std::string k;
+			if (c.first == 0)
+				k = "\"cid-in-value\"";
+			else if (c.first == 1)
+				k = "\"cid-out-value\"";
+			else if (c.first == 2)
+				k = "\"cid-err-value\"";
+			boost::replace_all<std::string>(s, k,  QString::number(c.second).toStdString());
+		}
+	}
+
 
 	return QString::fromStdString(s);
 }
@@ -661,6 +694,278 @@ Exec::Future::wait(int timeout)
 			return Error::Simple(PRL_ERR_TIMEOUT);
 	}
 }
+
+namespace Exec
+{
+
+#define AUX_MAGIC_NUMBER 0x4B58B9CA
+
+typedef struct AuxMessageHeader
+{
+    uint32_t            magic;
+    uint32_t            cid;
+    uint32_t            length;
+} AuxMessageHeader;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct ExecMessage
+
+ExecMessage::ExecMessage(const QByteArray &d_, const int client_) :
+	m_size(d_.size()), m_client(client_)
+{
+	AuxMessageHeader h;
+	h.magic = AUX_MAGIC_NUMBER;
+	h.cid = m_client;
+	h.length = m_size;
+
+	m_data = QByteArray((const char *)&h, sizeof(AuxMessageHeader));
+	m_data.append(d_);
+}
+
+QByteArray ExecMessage::getData()
+{
+	QMutexLocker l(&m_lock);
+	if (m_data.size() < (int)sizeof(AuxMessageHeader))
+		return QByteArray();
+
+	return m_data.mid(sizeof(AuxMessageHeader), m_size);
+}
+
+void ExecMessage::processData()
+{
+	if (!m_size && m_data.size() >= (int)sizeof(AuxMessageHeader)) {
+		AuxMessageHeader *h = (AuxMessageHeader *)m_data.constData();
+		if (h->magic == AUX_MAGIC_NUMBER) {
+			m_size = h->length;
+			m_client = h->cid;
+			// EOF case
+			if (m_size == 0) {
+				emit Eof();
+				return;
+			}
+		} else {
+			// trash in the channel, skip till valid header
+			unsigned int p = AUX_MAGIC_NUMBER;
+			QByteArray x((const char *)&p, (int)sizeof(unsigned int));
+			int y = m_data.indexOf(x);
+			if (y == -1)
+				m_data.clear();
+			else {
+				QByteArray d(m_data.mid(y));
+				m_data.swap(d);
+				return processData();
+			}
+		}
+	}
+
+	if (m_data.size() >= m_size + (int)sizeof(AuxMessageHeader))
+		emit DataReady();
+}
+
+void ExecMessage::appendData(const QByteArray &d_)
+{
+	QMutexLocker l(&m_lock);
+	m_data.append(d_);
+	l.unlock();
+	processData();
+}
+
+void ExecMessage::resetData()
+{
+	QMutexLocker l(&m_lock);
+	m_data = m_data.right(m_data.size() - m_size - sizeof(AuxMessageHeader));
+	m_size = 0;
+	m_client = 0;
+	l.unlock();
+	processData();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct AsyncExecDevice
+
+AsyncExecDevice::~AsyncExecDevice()
+{
+	close();
+	if (m_channel) {
+		m_channel->removeIoChannel(m_client);
+	}
+}
+
+bool AsyncExecDevice::open(QIODevice::OpenMode mode_)
+{
+	QMutexLocker l(&m_lock);
+	if (!m_channel ||
+		(!m_channel->isOpen() && !m_channel->open()))
+		return false;
+
+	return QIODevice::open(mode_);
+}
+
+void AsyncExecDevice::close()
+{
+	QMutexLocker l(&m_lock);
+	if (isWritable() && m_channel && m_channel->isOpen()) {
+		// write EOF
+		m_channel->writeMessage(ExecMessage(QByteArray(), m_client));
+	}
+	m_finished = true;
+	if (!m_data.size())
+		QIODevice::close();
+}
+
+void AsyncExecDevice::bindChannel(const QSharedPointer<AuxChannel> & aux_)
+{
+	QMutexLocker l(&m_lock);
+	m_channel =  aux_;
+}
+
+qint64 AsyncExecDevice::bytesAvailable() const
+{
+	return m_data.size() + QIODevice::bytesAvailable();
+}
+
+void AsyncExecDevice::appendData(const QByteArray &d_)
+{
+	QMutexLocker l(&m_lock);
+	m_data.append(d_);
+	emit readyRead();
+}
+
+qint64 AsyncExecDevice::readData(char *data_, qint64 maxSize_)
+{
+	QMutexLocker l(&m_lock);
+	quint64 c = (maxSize_ > m_data.size()) ? m_data.size() : maxSize_;
+	::memcpy(data_, m_data.constData(), c);
+	m_data.remove(0, c);
+	if (m_finished) {
+		// delayed close, really close when all data is read
+		l.unlock();
+		close();
+	}
+	return c;
+}
+
+qint64 AsyncExecDevice::writeData(const char *data_, qint64 len_)
+{
+	QMutexLocker l(&m_lock);
+	if (!m_channel)
+		return -1;
+
+	QByteArray s = QByteArray(data_, len_);
+	ExecMessage m(s, m_client);
+	m_channel->writeMessage(m);
+	return len_;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct AuxChannel
+
+void AuxChannel::reactEvent(virStreamPtr st_, int events_, void *opaque_)
+{
+	Q_UNUSED(st_);
+	AuxChannel* c = (AuxChannel *)opaque_;
+	c->processEvent(events_);
+}
+
+void AuxChannel::processEvent(int events_)
+{
+	if (events_ & (VIR_STREAM_EVENT_HANGUP | VIR_STREAM_EVENT_ERROR)) {
+		virStreamAbort(m_stream);
+		virStreamFree(m_stream);
+		m_stream = NULL;
+		return;
+	}
+	if (events_ & VIR_STREAM_EVENT_READABLE) {
+		char buf[1024];
+		int got = 0;
+		do {
+			got = virStreamRecv(m_stream, buf, 1024);
+			if (got > 0)
+				m_readMsg.appendData(QByteArray(buf, got));
+			else if (got == 0)
+				virStreamFinish(m_stream);
+		} while (got == sizeof(buf));
+	}
+}
+
+int AuxChannel::addIoChannel(AsyncExecDevice &d_)
+{
+	m_ioChannels.insert(++m_ioChannelCounter, &d_);
+	d_.setClient(m_ioChannelCounter);
+	return 0;
+}
+
+void AuxChannel::removeIoChannel(int id_)
+{
+	m_ioChannels.remove(id_);
+}
+
+bool AuxChannel::isOpen()
+{
+	return (m_stream != NULL);
+}
+
+bool AuxChannel::open()
+{
+	if (isOpen())
+		return true;
+
+	m_stream = virStreamNew(m_link.data(), VIR_STREAM_NONBLOCK);
+	if (!m_stream)
+		return false;
+
+	int ret = virDomainOpenChannel(m_domain.data(), "org.qemu.guest_agent.1", m_stream, 0);
+	if (ret) {
+		virStreamFree(m_stream);
+		m_stream = NULL;
+		return false;
+	}
+
+	virStreamEventAddCallback(m_stream,
+		VIR_STREAM_EVENT_HANGUP | VIR_STREAM_EVENT_ERROR | VIR_STREAM_EVENT_READABLE,
+		&reactEvent, this, NULL);
+	return true;
+}
+
+void AuxChannel::readMessage()
+{
+	AsyncExecDevice *d = m_ioChannels.value(m_readMsg.getClient());
+	if (!d) {
+		WRITE_TRACE(DBG_FATAL, "Unknown channel id (%d), dropping message",
+				m_readMsg.getClient());
+		m_readMsg.resetData();
+		return;
+	}
+
+	QByteArray b = m_readMsg.getData();
+	if (b.size())
+		d->appendData(b);
+	else
+		d->close(); // eof
+	m_readMsg.resetData();
+}
+
+int AuxChannel::writeMessage(const ExecMessage &msg_)
+{
+	QByteArray d(msg_.getRawData());
+	int sent = virStreamSend(m_stream, d.constData(), d.size());
+	if (sent < 0) {
+		virStreamAbort(m_stream);
+		virStreamFree(m_stream);
+		m_stream = NULL;
+		return -1;
+	}
+	return sent;
+}
+
+AuxChannel::~AuxChannel()
+{
+	virStreamFinish(m_stream);
+	virStreamFree(m_stream);
+	virDomainFree(m_domain.data());
+}
+
+}; //namespace Exec
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hotplug
@@ -1409,6 +1714,21 @@ Prl::Expected<VtInfo, Error::Simple> Host::getVt() const
 	i->setDefaultPeriod(100000);
 	i->setMhz(h.mhz);
 	return v;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hub
+
+int Hub::addAsyncExec(const QString & uuid_, QSharedPointer<virDomain> domain_,
+			Vm::Exec::AsyncExecDevice& device_)
+{
+	if (!m_execs.contains(uuid_))
+		m_execs.insert(uuid_, QSharedPointer<Vm::Exec::AuxChannel>(
+				new Vm::Exec::AuxChannel(domain_, m_link)));
+
+	QSharedPointer<Vm::Exec::AuxChannel> c = m_execs.value(uuid_);
+	device_.bindChannel(c);
+	return c->addIoChannel(device_);
 }
 
 } // namespace Agent

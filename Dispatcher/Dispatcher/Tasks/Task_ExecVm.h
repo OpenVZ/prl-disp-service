@@ -35,6 +35,7 @@
 #include "CDspTaskHelper.h"
 #include <prlxmlmodel/VmDirectory/CVmDirectory.h>
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
+#include "CDspLibvirtExec.h"
 
 #include <boost/variant.hpp>
 
@@ -129,16 +130,23 @@ struct Vm
 		Result;
 	typedef Libvirt::Instrument::Agent::Vm::Guest
 		Guest;
+	typedef Libvirt::Instrument::Agent::Vm::Exec::AsyncExecDevice
+		AuxDevice;
+	typedef QList< QPair<int, int> > Channels;
 
-	void closeStdin(Task_ExecVm*);
-	PRL_RESULT processStdinData(const char * data, size_t size);
-	const QByteArray& getStdin() const
+	Vm() : m_stdin(), m_stdout(), m_stderr() {}
+	Vm(const Vm& v_) : m_stdin(), m_stdout(), m_stderr()
 	{
-		return m_stdindata;
+		Q_UNUSED(v_);
 	}
 
+	void closeStdin(Task_ExecVm*);
+	PRL_RESULT prepareStd(Task_ExecVm* task_, Channels &cls_);
+	PRL_RESULT processStdinData(const char * data, size_t size);
+	PRL_RESULT processStd(Task_ExecVm* task_);
+
 private:
-	QByteArray m_stdindata;
+	AuxDevice m_stdin, m_stdout, m_stderr;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
