@@ -75,11 +75,8 @@ struct Stash {
 	void commit();
 
 private:
-	QStringList getEntries() const;
-
 	const QString m_vmUuid;
-	const QString m_snapshot;
-	const QString m_name;
+	QDir m_dir;
 	QStringList m_files;
 };
 	

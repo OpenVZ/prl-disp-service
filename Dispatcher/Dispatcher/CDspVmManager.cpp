@@ -1058,6 +1058,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmSwitchToSnapshot> >::run()
 		WRITE_TRACE(DBG_FATAL, "Unable to save restored cfg %s", QSTR2UTF8(home));
 		return m_context.reply(err);
 	}
+	CStatesHelper(home).dropStateFile();
 	QStringList f(CStatesHelper(home).getSavFileName());
 	s.restore(f);
 	Libvirt::Result e = Libvirt::Kit.vms().at(x->GetVmUuid()).getSnapshot().at(x->GetSnapshotUuid()).revert();

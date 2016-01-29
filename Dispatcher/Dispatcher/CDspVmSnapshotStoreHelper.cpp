@@ -138,28 +138,14 @@ namespace Libvirt
 {
 namespace Snapshot
 {
-namespace
-{
-
-QString joinPath(const QStringList& entries)
-{
-	return entries.join(QString(QDir::separator()));
-}
-
-bool checkDir(const QStringList& entries_)
-{
-	return QDir(joinPath(entries_)).exists();
-}
-
-} // anonymous namespace
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Stash
 
 Stash::Stash(const SmartPtr<CVmConfiguration>& cfg_, const QString& snapshot_)
 	: m_vmUuid(cfg_->getVmIdentification()->getVmUuid()),
-		m_snapshot(snapshot_),
-		m_name(cfg_->getVmIdentification()->getVmName())
+		m_dir((QStringList() << "/var/lib/libvirt/qemu/snapshot"
+			<< cfg_->getVmIdentification()->getVmName()
+			<< snapshot_).join(QDir::separator()))
 {
 }
 
@@ -170,65 +156,55 @@ Stash::~Stash()
 		CFileHelper::RemoveEntry(f, &h);
 }
 
-QStringList Stash::getEntries() const
-{
-	return QStringList() << "/var/lib/libvirt/qemu/snapshot" << m_name << m_snapshot;
-}
-
 bool Stash::add(const QStringList& files_)
 {
-	QStringList e(getEntries());
-	if (!checkDir(e)) {
-		WRITE_TRACE(DBG_FATAL, "Create directory %s", QSTR2UTF8(joinPath(e)));
-		QDir d(joinPath(e));
-		if (!d.mkpath(".")) {
-			WRITE_TRACE(DBG_FATAL, "Unable to create directory %s", QSTR2UTF8(d.absolutePath()));
-			return false;
-		}
+	if (!m_dir.exists() && !m_dir.mkpath("."))
+	{
+		WRITE_TRACE(DBG_FATAL, "Unable to create directory %s", QSTR2UTF8(m_dir.absolutePath()));
+		return false;
 	}
-	foreach (const QString& f, files_) {
-		e.push_back(QFileInfo(f).fileName());
-		if (!QFile::copy(f, joinPath(e)))
+	foreach (const QString& f, files_)
+	{
+		if (!QFile::copy(f, m_dir.absoluteFilePath(QFileInfo(f).fileName())))
 			return false;
-		e.pop_back();
 	}
 	m_files.append(files_);
-	m_files.push_back(joinPath(e));
+	m_files.push_back(m_dir.absolutePath());
 	return true;
 }
 
 bool Stash::restore(const QStringList& files_)
 {
-	QStringList e(getEntries());
-	if (!checkDir(e)) {
-		WRITE_TRACE(DBG_FATAL, "Directory %s is absent", QSTR2UTF8(joinPath(e)));
+	if (!m_dir.exists())
+	{
+		WRITE_TRACE(DBG_FATAL, "Directory %s is absent", QSTR2UTF8(m_dir.absolutePath()));
 		return false;
 	}
-	foreach (const QString& f, files_) {
-		e.push_back(QFileInfo(f).fileName());
-		if (!QFile(joinPath(e)).exists())
+	foreach (const QString& f, files_)
+	{
+		QString name = QFileInfo(f).fileName();
+		if (!m_dir.exists(name))
 			continue;
-		if (!QFile::copy(joinPath(e), f))
+		if (!QFile::copy(m_dir.absoluteFilePath(name), f))
 			return false;
 		m_files.push_back(f);
-		e.pop_back();
 	}
 	return true;
 }
 
 SmartPtr<CVmConfiguration> Stash::restoreConfig(const QString& file_)
 {
-	QStringList e(getEntries());
-	e << QFileInfo(file_).fileName();
-	if (!QFile(joinPath(e)).exists()) {
-		WRITE_TRACE(DBG_FATAL, "File %s is absent!", QSTR2UTF8(joinPath(e)));
+	QString name = QFileInfo(file_).fileName();
+	QString path = m_dir.absoluteFilePath(name);
+	if (!m_dir.exists(name)) {
+		WRITE_TRACE(DBG_FATAL, "Config file is absent: %s!", QSTR2UTF8(path));
 		return SmartPtr<CVmConfiguration>();
 	}
 	SmartPtr<CVmConfiguration> pVmConfig(new CVmConfiguration());
 
-	QFile f(joinPath(e));
+	QFile f(path);
 	if (PRL_FAILED(pVmConfig->loadFromFile(&f))) {
-		WRITE_TRACE(DBG_FATAL, "Unable to load config from file %s", QSTR2UTF8(joinPath(e)));
+		WRITE_TRACE(DBG_FATAL, "Unable to load config from %s", QSTR2UTF8(path));
 		return SmartPtr<CVmConfiguration>();
 	}
 	m_files.push_back(file_);
