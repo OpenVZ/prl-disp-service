@@ -113,7 +113,7 @@ private:
 
 struct VcmmdAction: Action
 {
-	VcmmdAction(const QString& uuid_, unsigned limit_, unsigned guarantee_):
+	VcmmdAction(const QString& uuid_, quint64 limit_, quint64 guarantee_):
 		m_vcmmd(uuid_), m_limit(limit_ << 20), m_guarantee(guarantee_ << 20)
 	{
 	}
@@ -511,9 +511,10 @@ private:
 
 struct Vm
 {
-	Vm(const general_type& general_, const Dao& devices_);
+	explicit Vm(const CVmConfiguration& cfg_);
 
 	QStringList calculate(const general_type& general_, const Dao& devices_);
+	QStringList calculate(const CVmConfiguration& start_, unsigned int osType_);
 
 private:
 	Device m_device;

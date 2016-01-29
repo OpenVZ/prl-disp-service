@@ -60,13 +60,13 @@ class Task_MigrateVmTarget : public CDspTaskHelper, public Task_DispToDispConnHe
 
 public:
 	Task_MigrateVmTarget(
-		const QObject *,
 		const SmartPtr<CDspDispConnection> &,
 		const CDispToDispCommandPtr,
 		const SmartPtr<IOPackage> &);
 	~Task_MigrateVmTarget();
 	virtual QString  getVmUuid() {return m_sOriginVmUuid;}
 
+	std::pair<CVmFileListCopySender*, CVmFileListCopyTarget*> createCopier();
 protected:
 	virtual PRL_RESULT prepareTask();
 	virtual PRL_RESULT run_body();
@@ -101,12 +101,9 @@ private:
 	PRL_RESULT registerHaClusterResource();
 	void unregisterHaClusterResource();
 private:
-	WaiterTillHandlerUsingObject m_waiter;
 
-	const QObject *m_pParent;
 	/* from old servers Check & Start commands send from differents connections */
-	SmartPtr<CDspDispConnection> m_pCheckDispConnection;
-	SmartPtr<CDspDispConnection> m_pStartDispConnection;
+	SmartPtr<CDspDispConnection> m_dispConnection;
 	SmartPtr<IOPackage> m_pCheckPackage;
 	SmartPtr<IOPackage> m_pStartPackage;
 	SmartPtr<CVmConfiguration> m_pVmConfig;
@@ -141,20 +138,15 @@ private:
 	PRL_UINT64 m_nRequiresDiskSpace;
 	QString m_sHaClusterId;
 
-	/* smart pointer to object for data receiving. m_pVmMigrateTarget will use it */
-	SmartPtr<CVmFileListCopySender> m_pSender;
-	/* Pointer to migrate VM target object */
-	SmartPtr<CVmFileListCopyTarget> m_pVmMigrateTarget;
-
 	SmartPtr<CVmDirectory::TemporaryCatalogueItem> m_pVmInfo;
+
+	PRL_RESULT reactStart(const SmartPtr<IOPackage> &package);
+	PRL_RESULT preconditionsReply();
+
+signals:
+	void cancel();
+
 private slots:
-	void clientDisconnected(IOSender::Handle h);
-	void handleStartPackage(
-			const SmartPtr<CDspDispConnection> &,
-			const QString &,
-			const SmartPtr<IOPackage> &);
-	void handleStartCommandTimeout();
-	void handlePackage(IOSender::Handle h, const SmartPtr<IOPackage> p);
 	void handleVmMigrateEvent(const QString &sVmUuid, const SmartPtr<IOPackage> &p);
 };
 

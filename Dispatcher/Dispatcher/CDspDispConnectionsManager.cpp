@@ -42,6 +42,20 @@
 
 using namespace Parallels;
 
+namespace {
+
+bool is_migrate_protocol_package(int header_type)
+{
+	return header_type > VmMigrateRangeStart && header_type < VmMigrateRangeEnd;
+}
+
+bool is_migrate_package(int header_type)
+{
+	return is_migrate_protocol_package(header_type) || IS_FILE_COPY_PACKAGE(header_type);
+}
+
+}; // namespace
+
 REGISTER_HANDLER( IOService::IOSender::Dispatcher,
 				  "DispToDispHandler",
 				  CDspDispConnectionsManager);
@@ -168,12 +182,6 @@ void CDspDispConnectionsManager::handleToDispatcherPackage ( const IOSender::Han
 		}
 		break;
 
-		case VmMigrateStartCmd:
-		{
-			CDspService::instance()->getVmMigrateHelper().startMigration(pDispConnection, p);
-		}
-		break;
-
 		case VmBackupCreateCmd:
 		case VmBackupCreateLocalCmd:
 		case VmBackupRestoreCmd:
@@ -184,10 +192,12 @@ void CDspDispConnectionsManager::handleToDispatcherPackage ( const IOSender::Han
 
 		default:
 		{
-			if (IS_FILE_COPY_PACKAGE(p->header.type) || IS_ABACKUP_PROXY_PACKAGE(p->header.type) ||
-					(p->header.type == CtMigrateCmd))
+			if (IS_FILE_COPY_PACKAGE(p->header.type) ||
+				IS_ABACKUP_PROXY_PACKAGE(p->header.type) ||
+				is_migrate_package(p->header.type) ||
+				(p->header.type == CtMigrateCmd))
 			{
-				/* retransmit this package to backup task */
+				/* retransmit package to task */
 				pDispConnection->handlePackage(p);
 				break;
 			}

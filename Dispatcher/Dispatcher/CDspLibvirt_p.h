@@ -327,6 +327,7 @@ struct State: QObject
 
 public slots:
 	void updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_);
+	void updateVcmmd(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_);
 	void tuneTraffic(unsigned oldState_, unsigned newState_,
 		QString vmUuid_, QString dirUuid_);
 

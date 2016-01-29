@@ -50,6 +50,25 @@ namespace Vm
 {
 namespace Config
 {
+enum Defaults {DEFAULT_MEMGUARANTEE_PERCENTS = 40};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct MemGuarantee
+
+quint64 MemGuarantee::operator()(quint64 ramsize_)
+{
+	switch(m_type)
+	{
+	case PRL_MEMGUARANTEE_AUTO:
+		// ceil(ramsize * xx%)
+		return (ramsize_ * DEFAULT_MEMGUARANTEE_PERCENTS + 99) / 100;
+	case PRL_MEMGUARANTEE_PERCENTS:
+		// ceil(ramsize * xx%)
+		return (ramsize_ * m_guarantee + 99) / 100;
+	}
+	return 0;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct RemoteDisplay
 

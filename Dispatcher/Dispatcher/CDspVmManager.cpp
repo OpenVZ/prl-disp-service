@@ -148,10 +148,15 @@ Libvirt::Result Unit::operator()()
 	int t = h.startTimer(1000 * m_timeout);
 	PRL_RESULT e = m_loop.exec();
 	h.killTimer(t);
-	if (PRL_FAILED(e) && e != PRL_ERR_TIMEOUT)
+
+	if (PRL_SUCCEEDED(e))
+		return Libvirt::Result();
+
+	VIRTUAL_MACHINE_STATE state;
+	if (Libvirt::Kit.vms().at(m_uuid).getState(state).isFailed())
 		return Error::Simple(e);
 
-	return Libvirt::Kit.vms().at(m_uuid).kill();
+	return state != VMS_STOPPED ? Libvirt::Kit.vms().at(m_uuid).kill() : Libvirt::Result();
 }
 
 } // namespace Shutdown
@@ -721,9 +726,6 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStop> >::run()
 		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
 
 	Libvirt::Result e;
-	Vcmmd::Frontend<Vcmmd::Active> v(m_context.getVmUuid());
-	v(Vcmmd::Active());
-
 	switch (x->GetStopMode())
 	{
 	case PSM_ACPI:
@@ -733,8 +735,6 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStop> >::run()
 	default:
 		e = Libvirt::Kit.vms().at(m_context.getVmUuid()).kill();
 	}
-	if (e.isSucceed())
-		v.commit();
 
 	return m_context.reply(e);
 }
@@ -769,9 +769,9 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStart> >::run()
 	}
 	else
 	{
-		unsigned balloon = c->getVmHardwareList()->getMemory()->getMaxBalloonSize();
-		unsigned long long ramsize = c->getVmHardwareList()->getMemory()->getRamSize();
-		unsigned long long guarantee = ramsize*(100 - balloon)/100;
+		quint64 ramsize = c->getVmHardwareList()->getMemory()->getRamSize();
+		quint64 guarantee =
+			::Vm::Config::MemGuarantee(*c->getVmHardwareList()->getMemory())(ramsize);
 
 		Vcmmd::Frontend<Vcmmd::Unregistered> v(m_context.getVmUuid());
 		if (!v(Vcmmd::Unregistered(ramsize<<20, guarantee<<20)))
@@ -810,7 +810,18 @@ void Body<Tag::Libvirt<PVE::DspCmdVmRestartGuest> >::run()
 template<>
 void Body<Tag::Libvirt<PVE::DspCmdVmReset> >::run()
 {
-	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).reset());
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_context.getVmUuid());
+	VIRTUAL_MACHINE_STATE state = VMS_UNKNOWN;
+	Libvirt::Result e = u.getState(state);
+	if (e.isFailed())
+		return m_context.reply(e);
+
+	e = Libvirt::Kit.vms().at(m_context.getVmUuid()).reset();
+
+	if (e.isSucceed() && VMS_PAUSED == state)
+		e = Libvirt::Kit.vms().at(m_context.getVmUuid()).unpause();
+
+	m_context.reply(e);
 }
 
 template<>
@@ -819,16 +830,9 @@ void Body<Tag::Libvirt<PVE::DspCmdVmSuspend> >::run()
 	SmartPtr<CVmConfiguration> c = Details::Assistant(m_context).getConfig();
 	if (c.isValid())
 	{
-		Vcmmd::Frontend<Vcmmd::Active> v(m_context.getVmUuid());
-		v(Vcmmd::Active());
-
 		CStatesHelper h(c->getVmIdentification()->getHomePath());
-		Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid())
-                        .suspend(h.getSavFileName());
-		if (e.isSucceed())
-			v.commit();
-
-		m_context.reply(e);
+		m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid())
+                        .suspend(h.getSavFileName()));
 	}
 }
 
@@ -957,8 +961,13 @@ void Body<Tag::Libvirt<PVE::DspCmdVmInstallTools> >::run()
 			d->setConnected(PVE::DeviceConnected);
 			d->setEmulatedType(PVE::CdRomImage);
 			d->setRemote(false);
-			return m_context.reply(Libvirt::Kit.vms().at(
-				m_context.getVmUuid()).getRuntime().update(*d));
+
+			VIRTUAL_MACHINE_STATE s = CDspVm::getVmState(m_context.getVmUuid(),
+					m_context.getDirectoryUuid());
+			if (s != VMS_STOPPED)
+				return m_context.reply(Libvirt::Kit.vms().at(
+							m_context.getVmUuid()).getRuntime().update(*d));
+			return m_context.reply(PRL_ERR_SUCCESS);
 		}
 	}
 
@@ -973,6 +982,11 @@ void Body<Tag::Libvirt<PVE::DspCmdVmCreateSnapshot> >::run()
 	if (NULL == x)
 		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
 
+	SmartPtr<CVmConfiguration> cfg(Details::Assistant(m_context).getConfig());
+	if (!cfg.isValid())
+		return;
+	Libvirt::Snapshot::Stash s(cfg, x->GetSnapshotUuid());
+
 	Libvirt::Result e;
 	if (PCSF_BACKUP & x->GetCommandFlags())
 	{
@@ -985,11 +999,21 @@ void Body<Tag::Libvirt<PVE::DspCmdVmCreateSnapshot> >::run()
 	}
 	else
 	{
-		e = Libvirt::Kit.vms().at(x->GetVmUuid()).getSnapshot()
-			.define(x->GetSnapshotUuid(), x->GetDescription());
+		QStringList f(cfg->getVmIdentification()->getHomePath());
+		CStatesHelper h(cfg->getVmIdentification()->getHomePath());
+		if (h.savFileExists())
+			f << h.getSavFileName();
+		if (!s.add(f)) {
+			WRITE_TRACE(DBG_FATAL, "Unable to save extra snapshot data for VM %s",
+					QSTR2UTF8(x->GetVmUuid()));
+			return m_context.reply(PRL_ERR_FAILURE);
+		}
+
+		e = Libvirt::Kit.vms().at(x->GetVmUuid()).getSnapshot().define(x->GetSnapshotUuid(), x->GetDescription());
 	}
 	if (e.isFailed())
 		return m_context.reply(e);
+	s.commit();
 
 	CDspClientManager& m = CDspService::instance()->getClientManager();
 	SmartPtr<IOPackage> a, b = m_context.getPackage();
@@ -1021,18 +1045,38 @@ void Body<Tag::Libvirt<PVE::DspCmdVmSwitchToSnapshot> >::run()
 	if (NULL == x)
 		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
 
-	Libvirt::Result e = Libvirt::Kit.vms().at(x->GetVmUuid()).getSnapshot()
-		.at(x->GetSnapshotUuid()).revert();
+	SmartPtr<CVmConfiguration> cfg(Details::Assistant(m_context).getConfig());
+	if (!cfg.isValid())
+		return;
+	QString home(cfg->getVmIdentification()->getHomePath());
+
+	Libvirt::Snapshot::Stash s(cfg, x->GetSnapshotUuid());
+	SmartPtr<CVmConfiguration> c(s.restoreConfig(home));
+	if (!c.isValid()) {
+		WRITE_TRACE(DBG_FATAL, "Unable to restore %s", QSTR2UTF8(home));
+		return m_context.reply(PRL_ERR_FAILURE);
+	}
+
+	PRL_RESULT err(CDspService::instance()->getVmConfigManager().saveConfig(
+			c, home, m_context.getSession(), true, true));
+	if (PRL_FAILED(err)) {
+		WRITE_TRACE(DBG_FATAL, "Unable to save restored cfg %s", QSTR2UTF8(home));
+		return m_context.reply(err);
+	}
+	CStatesHelper(home).dropStateFiles();
+	QStringList f(CStatesHelper(home).getSavFileName());
+	s.restore(f);
+	Libvirt::Result e = Libvirt::Kit.vms().at(x->GetVmUuid()).getSnapshot().at(x->GetSnapshotUuid()).revert();
 	m_context.reply(e);
 	if (e.isFailed())
 		return;
+	s.commit();
 
 	// swapping finished
 	SmartPtr<IOPackage> a, b = m_context.getPackage();
 	a = DispatcherPackage::createInstance(PVE::DspVmEvent, CVmEvent
 		(PET_DSP_EVT_VM_MEMORY_SWAPPING_FINISHED, x->GetVmUuid(), PIE_VIRTUAL_MACHINE), b);
-	CDspService::instance()->getClientManager()
-		.sendPackageToVmClients(a, m_context.getDirectoryUuid(), x->GetVmUuid());
+	CDspService::instance()->getClientManager().sendPackageToVmClients(a, m_context.getDirectoryUuid(), x->GetVmUuid());
 }
 
 template<>
@@ -1049,6 +1093,14 @@ void Body<Tag::Libvirt<PVE::DspCmdVmDeleteSnapshot> >::run()
 		m_context.reply(s.undefineRecursive());
 	else
 		m_context.reply(s.undefine());
+
+	SmartPtr<CVmConfiguration> cfg(Details::Assistant(m_context).getConfig());
+	if (!cfg.isValid()) {
+		WRITE_TRACE(DBG_FATAL, "Unable to find config for VM %s", QSTR2UTF8(x->GetVmUuid()));
+		return;
+	}
+	Libvirt::Snapshot::Stash z(cfg, x->GetSnapshotUuid());
+	/* TODO should clean child snapshot data too */
 }
 
 CHostHardwareInfo parsePrlNetToolOut(const QString &data)
@@ -1158,7 +1210,6 @@ void Body<Tag::Libvirt<PVE::DspCmdVmGuestSetUserPasswd> >::run()
 		SmartPtr<CVmConfiguration> cfg = Details::Assistant(m_context).getConfig();
 		if (!cfg.isValid()) {
 			WRITE_TRACE(DBG_FATAL, "Bad configuration for %s", QSTR2UTF8(m_context.getVmUuid()));
-			m_context.reply(PRL_ERR_OPERATION_FAILED);
 			return;
 		}
 

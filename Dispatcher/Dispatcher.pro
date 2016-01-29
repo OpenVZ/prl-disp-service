@@ -123,12 +123,15 @@ HEADERS += \
 	Tasks/Task_SyncVmsUptime.h \
 	Tasks/Task_MigrateVm.h \
 	Tasks/Task_MigrateVmTarget.h \
+	Tasks/Task_MigrateVmTarget_p.h \
 	Tasks/Task_DispToDispConnHelper.h \
 	Tasks/Task_ConvertDisks.h \
 	Tasks/Task_EditVm.h \
 	Tasks/Task_EditVm_p.h \
 	Tasks/Task_VmDataStatistic.h \
 	Tasks/Task_EventLoopBase.h \
+	Tasks/Task_MigrateVm_p.h \
+	Tasks/Task_MigrateVmSource_p.h \
 	\
 	HwMonitor/CDspHwMonitorNotifier.h \
 	HwMonitor/CDspHwMonitorHandler.h \

@@ -821,6 +821,13 @@ PRL_RESULT Task_VzManager::clone_env()
 	if (PRL_FAILED(res))
 		return res;
 
+	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+	if (!pConfig)
+	{
+		WRITE_TRACE(DBG_FATAL, "Unable to find CT by uuid %s", QSTR2UTF8(sUuid));
+		return PRL_ERR_VM_GET_CONFIG_FAILED;
+	}
+
 	SmartPtr<CVmConfiguration> pNewConfig(new CVmConfiguration);
 
 	if (!pCmd->GetNewVmUuid().isEmpty())
@@ -835,7 +842,7 @@ PRL_RESULT Task_VzManager::clone_env()
 	if (PRL_FAILED(res))
 		return res;
 
-	res = get_op_helper()->clone_env(sUuid, sNewHome, sNewName, nFlags, pNewConfig);
+	res = get_op_helper()->clone_env(pConfig, sNewHome, sNewName, nFlags, pNewConfig);
 	if (PRL_SUCCEEDED(res)) {
 		res = getVzHelper()->insertVmDirectoryItem(pNewConfig);
 		if (PRL_FAILED(res))

@@ -134,6 +134,91 @@ void View::setModel(const model_type& value_)
 
 } // namespace
 
+namespace Libvirt
+{
+namespace Snapshot
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Stash
+
+Stash::Stash(const SmartPtr<CVmConfiguration>& cfg_, const QString& snapshot_)
+	: m_vmUuid(cfg_->getVmIdentification()->getVmUuid()),
+		m_dir((QStringList() << "/var/lib/libvirt/qemu/snapshot"
+			<< cfg_->getVmIdentification()->getVmName()
+			<< snapshot_).join(QDir::separator()))
+{
+}
+
+Stash::~Stash()
+{
+	CAuthHelper h;
+	foreach (const QString& f, m_files)
+		CFileHelper::RemoveEntry(f, &h);
+}
+
+bool Stash::add(const QStringList& files_)
+{
+	if (!m_dir.exists() && !m_dir.mkpath("."))
+	{
+		WRITE_TRACE(DBG_FATAL, "Unable to create directory %s", QSTR2UTF8(m_dir.absolutePath()));
+		return false;
+	}
+	foreach (const QString& f, files_)
+	{
+		if (!QFile::copy(f, m_dir.absoluteFilePath(QFileInfo(f).fileName())))
+			return false;
+	}
+	m_files.append(files_);
+	m_files.push_back(m_dir.absolutePath());
+	return true;
+}
+
+bool Stash::restore(const QStringList& files_)
+{
+	if (!m_dir.exists())
+	{
+		WRITE_TRACE(DBG_FATAL, "Directory %s is absent", QSTR2UTF8(m_dir.absolutePath()));
+		return false;
+	}
+	foreach (const QString& f, files_)
+	{
+		QString name = QFileInfo(f).fileName();
+		if (!m_dir.exists(name))
+			continue;
+		if (!QFile::copy(m_dir.absoluteFilePath(name), f))
+			return false;
+		m_files.push_back(f);
+	}
+	return true;
+}
+
+SmartPtr<CVmConfiguration> Stash::restoreConfig(const QString& file_)
+{
+	QString name = QFileInfo(file_).fileName();
+	QString path = m_dir.absoluteFilePath(name);
+	if (!m_dir.exists(name)) {
+		WRITE_TRACE(DBG_FATAL, "Config file is absent: %s!", QSTR2UTF8(path));
+		return SmartPtr<CVmConfiguration>();
+	}
+	SmartPtr<CVmConfiguration> pVmConfig(new CVmConfiguration());
+
+	QFile f(path);
+	if (PRL_FAILED(pVmConfig->loadFromFile(&f))) {
+		WRITE_TRACE(DBG_FATAL, "Unable to load config from %s", QSTR2UTF8(path));
+		return SmartPtr<CVmConfiguration>();
+	}
+	m_files.push_back(file_);
+	return pVmConfig;
+}
+
+void Stash::commit()
+{
+	m_files.clear();
+}
+
+} // namespace Snapshot
+} // namespace Libvirt
+
 // constructor
 CDspVmSnapshotStoreHelper::CDspVmSnapshotStoreHelper( )
 {
@@ -177,6 +262,7 @@ CDspVmSnapshotStoreHelper::~CDspVmSnapshotStoreHelper()
 //  dispatcher internal requests
 //
 /////////////////////////////////////
+
 
 /**
 * @brief Create new snapshot record in snapshots tree.

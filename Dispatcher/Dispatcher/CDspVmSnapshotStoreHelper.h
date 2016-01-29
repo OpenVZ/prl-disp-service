@@ -58,6 +58,31 @@ enum {
 	SNAP_BACKUP_MODE= 0x2,
 };
 
+namespace Libvirt
+{
+namespace Snapshot
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Stash
+
+struct Stash {
+	Stash(const SmartPtr<CVmConfiguration>& cfg_, const QString& snapshot_);
+	~Stash();
+
+	bool add(const QStringList& file_);
+	bool restore(const QStringList& file_);
+	SmartPtr<CVmConfiguration> restoreConfig(const QString& file_);
+	void commit();
+
+private:
+	const QString m_vmUuid;
+	QDir m_dir;
+	QStringList m_files;
+};
+	
+} // namespace Snapshot
+} // namespace Libvirt
+
 /**
 * @brief This class implements snapshot three managing logic
 * @author Ilya@

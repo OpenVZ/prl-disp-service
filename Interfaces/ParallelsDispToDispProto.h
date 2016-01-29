@@ -63,6 +63,7 @@ enum IDispToDispCommands
 	FileCopyError	  		= FileCopyRangeStart + 10,
 	FileCopyRangeEnd		= PVE::DispToDispRangeStart + 499,
 
+	VmMigrateRangeStart		= PVE::DispToDispRangeStart + 500,
 	VmMigrateCheckPreconditionsCmd	= PVE::DispToDispRangeStart + 501,
 	VmMigrateStartCmd		= PVE::DispToDispRangeStart + 502,
 	VmMigrateCancelCmd		= PVE::DispToDispRangeStart + 503,
@@ -72,6 +73,8 @@ enum IDispToDispCommands
 	VmMigrateFinishCmd		= PVE::DispToDispRangeStart + 507,
 	VmMigrateDiskBlockCmd		= PVE::DispToDispRangeStart + 508,
 	VmMigrateVideoMemViewCmd	= PVE::DispToDispRangeStart + 509,
+	VmMigrateTunnelChunk		= PVE::DispToDispRangeStart + 510,
+	VmMigrateRangeEnd		= PVE::DispToDispRangeStart + 599,
 
 	/* Backup proto commands */
 	VmBackupGetTreeCmd		= PVE::DispToDispRangeStart + 601,

@@ -54,6 +54,23 @@ namespace Vm
 namespace Config
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct MemGuarantee
+
+struct MemGuarantee
+{
+	explicit MemGuarantee(const CVmMemory& memory_)
+	: m_type(memory_.getMemGuaranteeType()), m_guarantee(memory_.getMemGuarantee())
+	{
+	}
+
+	quint64 operator()(quint64 ramsize_);
+
+private:
+	PRL_MEMGUARANTEE_TYPE m_type;
+	quint32 m_guarantee;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct RemoteDisplay
 
 struct RemoteDisplay
