@@ -368,14 +368,8 @@ PRL_RESULT Dao::craftBridge(CVirtualNetwork& network_)
 	e = (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
 	if (PRL_ERR_NETWORK_ADAPTER_NOT_FOUND == e)
 	{
-		r = m_interfaces.define(m, b);
-
-		if (r.isFailed())
-			return r.error().code();
-
-		QProcess::execute("ifdown", QStringList() << m.getDeviceName());
-		QProcess::execute("ifup", QStringList() << b.getName());
-		QProcess::execute("ifup", QStringList() << m.getDeviceName());
+		WRITE_TRACE(DBG_FATAL, "Bridge not found for %s", QSTR2UTF8(m.getDeviceName()));
+		return e;
 	}
 	else if (PRL_FAILED(e))
 		return e;
