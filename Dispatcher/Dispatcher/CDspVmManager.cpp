@@ -148,10 +148,15 @@ Libvirt::Result Unit::operator()()
 	int t = h.startTimer(1000 * m_timeout);
 	PRL_RESULT e = m_loop.exec();
 	h.killTimer(t);
-	if (PRL_FAILED(e) && e != PRL_ERR_TIMEOUT)
+
+	if (PRL_SUCCEEDED(e))
+		return Libvirt::Result();
+
+	VIRTUAL_MACHINE_STATE state;
+	if (Libvirt::Kit.vms().at(m_uuid).getState(state).isFailed())
 		return Error::Simple(e);
 
-	return Libvirt::Kit.vms().at(m_uuid).kill();
+	return state != VMS_STOPPED ? Libvirt::Kit.vms().at(m_uuid).kill() : Libvirt::Result();
 }
 
 } // namespace Shutdown
