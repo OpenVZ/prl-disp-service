@@ -204,7 +204,7 @@ SmartPtr<CVmConfiguration> Stash::restoreConfig(const QString& file_)
 	SmartPtr<CVmConfiguration> pVmConfig(new CVmConfiguration());
 
 	QFile f(path);
-	if (PRL_FAILED(pVmConfig->loadFromFile(&f))) {
+	if (PRL_FAILED(pVmConfig->loadFromFile(&f, false))) {
 		WRITE_TRACE(DBG_FATAL, "Unable to load config from %s", QSTR2UTF8(path));
 		return SmartPtr<CVmConfiguration>();
 	}
