@@ -165,10 +165,11 @@ bool Stash::add(const QStringList& files_)
 	}
 	foreach (const QString& f, files_)
 	{
-		if (!QFile::copy(f, m_dir.absoluteFilePath(QFileInfo(f).fileName())))
+		QString path = m_dir.absoluteFilePath(QFileInfo(f).fileName());
+		if (!QFile::copy(f, path))
 			return false;
+		m_files.append(path);
 	}
-	m_files.append(files_);
 	m_files.push_back(m_dir.absolutePath());
 	return true;
 }
