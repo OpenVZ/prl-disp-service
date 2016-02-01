@@ -157,41 +157,6 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct ExecMessage - a container for data chunk to/from guest program
-
-struct ExecMessage : QObject {
-	ExecMessage() : m_size(0), m_client(0) {}
-	ExecMessage(const QByteArray &d_, const int client_);
-
-	QByteArray getData();
-	const QByteArray & getRawData() const
-	{
-		return m_data;
-	}
-
-	void appendData(const QByteArray &d_);
-	void resetData();
-
-	int getClient()
-	{
-		return m_client;
-	}
-
-signals:
-	void DataReady();
-	void Eof();
-
-private:
-	Q_OBJECT
-	void processData();
-
-	QByteArray m_data;
-	QMutex m_lock;
-	int m_size;
-	int m_client;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct AsyncExecDevice - subclass of QIODevice representing asynchronous
 // communications with a program running in guest over aux channel
 
@@ -233,17 +198,26 @@ private:
 // struct AuxChannel - wrapper over libvirt's Stream interface over aux channel
 // for communication with guest's programs
 
-struct AuxChannel : QObject {
+struct AuxChannel {
+
+	typedef struct AuxMessageHeader
+	{
+		uint32_t            magic;
+		uint32_t            cid;
+		uint32_t            length;
+	} AuxMessageHeader;
+
 	AuxChannel(QSharedPointer<virDomain>& domain_, QWeakPointer<virConnect>& link_)
 		: m_domain(domain_), m_link(link_), m_stream(NULL)
-		, m_ioChannelCounter(0)
+		, m_read(0), m_ioChannelCounter(0)
 	{
-		QObject::connect(&m_readMsg, SIGNAL(DataReady()),
-				SLOT(readMessage()), Qt::DirectConnection);
-		QObject::connect(&m_readMsg, SIGNAL(Eof()),
-				SLOT(readMessage()), Qt::DirectConnection);
 	}
 	~AuxChannel();
+
+	void setLink(QSharedPointer<virConnect> value_)
+	{
+		m_link = value_.toWeakRef();
+	}
 
 	bool open();
 	bool isOpen();
@@ -254,17 +228,19 @@ struct AuxChannel : QObject {
 	int addIoChannel(AsyncExecDevice &d_);
 	void removeIoChannel(int id_);
 
-	int writeMessage(const ExecMessage & msg_);
-
-public slots:
-	void readMessage();
+	int writeMessage(const QByteArray& data_, int client_);
 
 private:
-	Q_OBJECT
+	void readMessage(const QByteArray& data_);
+	void skipTrash(const QByteArray& data_);
+	void restartRead();
+
+	QMutex m_lock;
 	QSharedPointer<virDomain> m_domain;
 	QWeakPointer<virConnect> m_link;
 	virStreamPtr m_stream;
-	ExecMessage m_readMsg;
+	AuxMessageHeader m_readHdr;
+	uint32_t m_read;
 	int m_ioChannelCounter;
 	QMap<int, AsyncExecDevice *> m_ioChannels;
 };

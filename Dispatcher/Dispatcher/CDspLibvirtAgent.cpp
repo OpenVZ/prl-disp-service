@@ -698,88 +698,6 @@ Exec::Future::wait(int timeout)
 namespace Exec
 {
 
-#define AUX_MAGIC_NUMBER 0x4B58B9CA
-
-typedef struct AuxMessageHeader
-{
-    uint32_t            magic;
-    uint32_t            cid;
-    uint32_t            length;
-} AuxMessageHeader;
-
-///////////////////////////////////////////////////////////////////////////////
-// struct ExecMessage
-
-ExecMessage::ExecMessage(const QByteArray &d_, const int client_) :
-	m_size(d_.size()), m_client(client_)
-{
-	AuxMessageHeader h;
-	h.magic = AUX_MAGIC_NUMBER;
-	h.cid = m_client;
-	h.length = m_size;
-
-	m_data = QByteArray((const char *)&h, sizeof(AuxMessageHeader));
-	m_data.append(d_);
-}
-
-QByteArray ExecMessage::getData()
-{
-	QMutexLocker l(&m_lock);
-	if (m_data.size() < (int)sizeof(AuxMessageHeader))
-		return QByteArray();
-
-	return m_data.mid(sizeof(AuxMessageHeader), m_size);
-}
-
-void ExecMessage::processData()
-{
-	if (!m_size && m_data.size() >= (int)sizeof(AuxMessageHeader)) {
-		AuxMessageHeader *h = (AuxMessageHeader *)m_data.constData();
-		if (h->magic == AUX_MAGIC_NUMBER) {
-			m_size = h->length;
-			m_client = h->cid;
-			// EOF case
-			if (m_size == 0) {
-				emit Eof();
-				return;
-			}
-		} else {
-			// trash in the channel, skip till valid header
-			unsigned int p = AUX_MAGIC_NUMBER;
-			QByteArray x((const char *)&p, (int)sizeof(unsigned int));
-			int y = m_data.indexOf(x);
-			if (y == -1)
-				m_data.clear();
-			else {
-				QByteArray d(m_data.mid(y));
-				m_data.swap(d);
-				return processData();
-			}
-		}
-	}
-
-	if (m_data.size() >= m_size + (int)sizeof(AuxMessageHeader))
-		emit DataReady();
-}
-
-void ExecMessage::appendData(const QByteArray &d_)
-{
-	QMutexLocker l(&m_lock);
-	m_data.append(d_);
-	l.unlock();
-	processData();
-}
-
-void ExecMessage::resetData()
-{
-	QMutexLocker l(&m_lock);
-	m_data = m_data.right(m_data.size() - m_size - sizeof(AuxMessageHeader));
-	m_size = 0;
-	m_client = 0;
-	l.unlock();
-	processData();
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct AsyncExecDevice
 
@@ -806,7 +724,7 @@ void AsyncExecDevice::close()
 	QMutexLocker l(&m_lock);
 	if (isWritable() && m_channel && m_channel->isOpen()) {
 		// write EOF
-		m_channel->writeMessage(ExecMessage(QByteArray(), m_client));
+		m_channel->writeMessage(QByteArray(), m_client);
 	}
 	m_finished = true;
 	if (!m_data.size())
@@ -852,13 +770,56 @@ qint64 AsyncExecDevice::writeData(const char *data_, qint64 len_)
 		return -1;
 
 	QByteArray s = QByteArray(data_, len_);
-	ExecMessage m(s, m_client);
-	m_channel->writeMessage(m);
+	m_channel->writeMessage(s, m_client);
 	return len_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct AuxChannel
+
+#define AUX_MAGIC_NUMBER 0x4B58B9CA
+
+void AuxChannel::readMessage(const QByteArray& data_)
+{
+	if (m_read < (int)sizeof(AuxMessageHeader)) {
+		if (!data_.size())
+			return;
+
+		// fill in header first
+		int l = qMin((uint32_t)data_.size(), (uint32_t)sizeof(AuxMessageHeader) - m_read);
+		memcpy((char *)&m_readHdr + m_read, data_.constData(), l);
+		m_read += l;
+		return readMessage(data_.mid(l));
+	}
+
+	if (m_readHdr.magic != AUX_MAGIC_NUMBER) {
+		// trash in the channel, skip till valid header
+		return skipTrash(data_);
+	}
+
+	AsyncExecDevice *d = m_ioChannels.value(m_readHdr.cid);
+	if (!d) {
+		WRITE_TRACE(DBG_FATAL, "Unknown channel id (%d), dropping header",
+				m_readHdr.cid);
+		restartRead();
+		return readMessage(data_);
+	}
+
+	if (!m_readHdr.length) {
+		d->close(); // eof
+		restartRead();
+		return readMessage(data_);
+	}
+
+	int l = qMin((uint32_t)data_.size(), m_readHdr.length -
+				m_read + (uint32_t)sizeof(AuxMessageHeader));
+	d->appendData(data_.left(l));
+	m_read += l;
+	if (m_read == m_readHdr.length + (uint32_t)sizeof(AuxMessageHeader))
+		restartRead();
+	if (l < data_.size())
+		readMessage(data_.mid(l));
+}
 
 void AuxChannel::reactEvent(virStreamPtr st_, int events_, void *opaque_)
 {
@@ -869,6 +830,7 @@ void AuxChannel::reactEvent(virStreamPtr st_, int events_, void *opaque_)
 
 void AuxChannel::processEvent(int events_)
 {
+	QMutexLocker l(&m_lock);
 	if (events_ & (VIR_STREAM_EVENT_HANGUP | VIR_STREAM_EVENT_ERROR)) {
 		virStreamAbort(m_stream);
 		virStreamFree(m_stream);
@@ -881,15 +843,21 @@ void AuxChannel::processEvent(int events_)
 		do {
 			got = virStreamRecv(m_stream, buf, 1024);
 			if (got > 0)
-				m_readMsg.appendData(QByteArray(buf, got));
+				readMessage(QByteArray(buf, got));
 			else if (got == 0)
 				virStreamFinish(m_stream);
 		} while (got == sizeof(buf));
 	}
 }
 
+void AuxChannel::restartRead()
+{
+	m_read = 0;
+}
+
 int AuxChannel::addIoChannel(AsyncExecDevice &d_)
 {
+	QMutexLocker l(&m_lock);
 	m_ioChannels.insert(++m_ioChannelCounter, &d_);
 	d_.setClient(m_ioChannelCounter);
 	return 0;
@@ -897,11 +865,15 @@ int AuxChannel::addIoChannel(AsyncExecDevice &d_)
 
 void AuxChannel::removeIoChannel(int id_)
 {
+	QMutexLocker l(&m_lock);
 	m_ioChannels.remove(id_);
+	if ((int)m_readHdr.cid == id_)
+		restartRead();
 }
 
 bool AuxChannel::isOpen()
 {
+	QMutexLocker l(&m_lock);
 	return (m_stream != NULL);
 }
 
@@ -910,6 +882,7 @@ bool AuxChannel::open()
 	if (isOpen())
 		return true;
 
+	QMutexLocker l(&m_lock);
 	m_stream = virStreamNew(m_link.data(), VIR_STREAM_NONBLOCK);
 	if (!m_stream)
 		return false;
@@ -927,27 +900,36 @@ bool AuxChannel::open()
 	return true;
 }
 
-void AuxChannel::readMessage()
+void AuxChannel::skipTrash(const QByteArray& data_)
 {
-	AsyncExecDevice *d = m_ioChannels.value(m_readMsg.getClient());
-	if (!d) {
-		WRITE_TRACE(DBG_FATAL, "Unknown channel id (%d), dropping message",
-				m_readMsg.getClient());
-		m_readMsg.resetData();
-		return;
-	}
+	unsigned int p = AUX_MAGIC_NUMBER;
+	QByteArray x((const char *)&p, (int)sizeof(unsigned int));
+	QByteArray d((char *)&m_readHdr, (int)sizeof(AuxMessageHeader));
+	d.append(data_);
 
-	QByteArray b = m_readMsg.getData();
-	if (b.size())
-		d->appendData(b);
-	else
-		d->close(); // eof
-	m_readMsg.resetData();
+	int y = d.indexOf(x);
+	if (y == -1) {
+		// as magic is multibyte, preserve data which 1-byte off
+		// comparing to its length.
+		m_read = (int)sizeof(AuxMessageHeader) - 1;
+		::memcpy((char *)&m_readHdr, d.right(m_read).constData(), m_read);
+	} else {
+		restartRead();
+		readMessage(d.mid(y));
+	}
 }
 
-int AuxChannel::writeMessage(const ExecMessage &msg_)
+int AuxChannel::writeMessage(const QByteArray& data_, int client_)
 {
-	QByteArray d(msg_.getRawData());
+	AuxMessageHeader h;
+	h.magic = AUX_MAGIC_NUMBER;
+	h.cid = client_;
+	h.length = data_.size();
+
+	QByteArray d((const char *)&h, sizeof(AuxMessageHeader));
+	d.append(data_);
+
+	QMutexLocker l(&m_lock);
 	int sent = virStreamSend(m_stream, d.constData(), d.size());
 	if (sent < 0) {
 		virStreamAbort(m_stream);
@@ -960,6 +942,7 @@ int AuxChannel::writeMessage(const ExecMessage &msg_)
 
 AuxChannel::~AuxChannel()
 {
+	QMutexLocker l(&m_lock);
 	virStreamFinish(m_stream);
 	virStreamFree(m_stream);
 	virDomainFree(m_domain.data());
