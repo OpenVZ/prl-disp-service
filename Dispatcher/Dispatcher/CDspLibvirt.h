@@ -453,10 +453,9 @@ struct Hub
 	{
 		return Interface::List(m_link.toStrongRef());
 	}
-	void setLink(QSharedPointer<virConnect> value_)
-	{
-		m_link = value_.toWeakRef();
-	}
+
+	void setLink(QSharedPointer<virConnect> value_);
+
 	Host host()
 	{
 		return Host(m_link);

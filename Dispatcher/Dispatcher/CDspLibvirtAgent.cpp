@@ -1719,6 +1719,13 @@ Prl::Expected<VtInfo, Error::Simple> Host::getVt() const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hub
 
+void Hub::setLink(QSharedPointer<virConnect> value_)
+{
+	m_link = value_.toWeakRef();
+	foreach(QSharedPointer<Vm::Exec::AuxChannel> c, m_execs)
+		c->setLink(value_);
+}
+
 int Hub::addAsyncExec(const QString & uuid_, QSharedPointer<virDomain> domain_,
 			Vm::Exec::AsyncExecDevice& device_)
 {
