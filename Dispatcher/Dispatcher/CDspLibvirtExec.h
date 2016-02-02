@@ -118,7 +118,7 @@ private:
 // struct Request
 
 struct Request {
-	Request (const QString& path, const QList<QString>& args)
+	Request(const QString& path, const QList<QString>& args)
 		: m_path(path), m_args(args), m_runInShell(false)
 	{
 	}
@@ -143,7 +143,7 @@ private:
 // struct Exec
 
 struct Exec {
-	explicit Exec (const  QSharedPointer<virDomain>& domain_)
+	explicit Exec(const  QSharedPointer<virDomain>& domain_)
 		: m_domain(domain_)
 	{
 	}
@@ -167,11 +167,11 @@ private:
 struct AuxChannel;
 
 struct AsyncExecDevice: QIODevice {
-	AsyncExecDevice(QSharedPointer<AuxChannel> aux_)
+	explicit AsyncExecDevice(QSharedPointer<AuxChannel> aux_)
 		: m_client(0), m_finished(false), m_channel(aux_) {}
 	~AsyncExecDevice();
 
-	int getClient()
+	int getClient() const
 	{
 		return m_client;
 	}
@@ -180,7 +180,7 @@ struct AsyncExecDevice: QIODevice {
 		m_client = client_;
 	}
 
-	void appendData(const QByteArray &d_);
+	void appendData(const QByteArray &data_);
 
 	// QIODevice interface
 	virtual bool open(QIODevice::OpenMode mode_);
@@ -205,9 +205,9 @@ struct AuxChannel {
 
 	typedef struct AuxMessageHeader
 	{
-		uint32_t            magic;
-		uint32_t            cid;
-		uint32_t            length;
+		quint32 magic;
+		quint32 cid;
+		quint32 length;
 	} AuxMessageHeader;
 
 	AuxChannel(QSharedPointer<virDomain>& domain_, QWeakPointer<virConnect>& link_)
@@ -228,7 +228,7 @@ struct AuxChannel {
 	static void reactEvent(virStreamPtr st_, int events_, void *opaque_);
 	void processEvent(int events_);
 
-	int addIoChannel(AsyncExecDevice& d_);
+	int addIoChannel(AsyncExecDevice& device_);
 	void removeIoChannel(int id_);
 
 	int writeMessage(const QByteArray& data_, int client_);
@@ -243,7 +243,7 @@ private:
 	QWeakPointer<virConnect> m_link;
 	virStreamPtr m_stream;
 	AuxMessageHeader m_readHdr;
-	uint32_t m_read;
+	quint32 m_read;
 	int m_ioChannelCounter;
 	QMap<int, AsyncExecDevice *> m_ioChannels;
 };

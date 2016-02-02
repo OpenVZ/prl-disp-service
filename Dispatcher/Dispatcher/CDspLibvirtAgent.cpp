@@ -732,10 +732,10 @@ qint64 AsyncExecDevice::bytesAvailable() const
 	return m_data.size() + QIODevice::bytesAvailable();
 }
 
-void AsyncExecDevice::appendData(const QByteArray &d_)
+void AsyncExecDevice::appendData(const QByteArray &data_)
 {
 	QMutexLocker l(&m_lock);
-	m_data.append(d_);
+	m_data.append(data_);
 	emit readyRead();
 }
 
@@ -763,7 +763,9 @@ qint64 AsyncExecDevice::writeData(const char *data_, qint64 len_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct AuxChannel
 
-#define AUX_MAGIC_NUMBER 0x4B58B9CA
+enum {
+	AUX_MAGIC_NUMBER = 0x4B58B9CA
+};
 
 void AuxChannel::readMessage(const QByteArray& data_)
 {
@@ -827,7 +829,7 @@ void AuxChannel::processEvent(int events_)
 		char buf[1024];
 		int got = 0;
 		do {
-			got = virStreamRecv(m_stream, buf, 1024);
+			got = virStreamRecv(m_stream, buf, sizeof(buf));
 			if (got > 0)
 				readMessage(QByteArray(buf, got));
 			else if (got == 0)
@@ -841,11 +843,11 @@ void AuxChannel::restartRead()
 	m_read = 0;
 }
 
-int AuxChannel::addIoChannel(AsyncExecDevice& d_)
+int AuxChannel::addIoChannel(AsyncExecDevice& device_)
 {
 	QMutexLocker l(&m_lock);
-	m_ioChannels.insert(++m_ioChannelCounter, &d_);
-	d_.setClient(m_ioChannelCounter);
+	m_ioChannels.insert(++m_ioChannelCounter, &device_);
+	device_.setClient(m_ioChannelCounter);
 	return 0;
 }
 
