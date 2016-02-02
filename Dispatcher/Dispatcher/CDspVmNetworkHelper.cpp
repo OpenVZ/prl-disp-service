@@ -40,6 +40,45 @@
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 #include <boost/bind.hpp>
 
+#include <sys/socket.h>
+#include <linux/if.h>
+#include <sys/ioctl.h>
+#include <linux/if_tun.h>
+
+namespace Network
+{
+namespace Traffic
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Accounting
+
+Accounting::Accounting(const QString& uuid_)
+	: m_id(Uuid::toVzid(uuid_)), m_control("/dev/net/tun")
+{
+}
+
+void Accounting::operator()(const QString& device_)
+{
+	if (!m_control.isOpen() && !m_control.open(QIODevice::ReadWrite))
+	{
+		WRITE_TRACE(DBG_FATAL, "failed to open %s: %s",
+			QSTR2UTF8(m_control.fileName()),
+			QSTR2UTF8(m_control.errorString()));
+		return;
+	}
+	struct ifreq x;
+	qstrncpy(x.ifr_name, QSTR2UTF8(device_), sizeof(x.ifr_name));
+	x.ifr_acctid = m_id;
+	if (::ioctl(m_control.handle(), TUNSETACCTID, &x) == -1)
+	{
+		WRITE_TRACE(DBG_FATAL, "ioctl(TUNSETACCTID, %s, %u) failed: %m",
+			x.ifr_name, x.ifr_acctid);
+	}
+}
+
+} // namespace Traffic
+} // namespace Network;
 
 void CDspVmNetworkHelper::getUsedHostMacAddresses(QSet< QString >& hostMacs)
 {

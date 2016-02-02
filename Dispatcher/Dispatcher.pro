@@ -66,6 +66,7 @@ HEADERS += \
 	CDspVmMigrateHelper.h \
 	CDspVmConfigurationChangesWatcher.h \
 	CDspVmConfigManager.h \
+	CDspVmStateMachine.h \
 	CDspVmAutoTaskManagerBase.h \
 	CDspVmStateSender.h \
 	CDspTestConfig.h \
@@ -180,6 +181,7 @@ SOURCES += \
 	CDspVmMigrateHelper.cpp\
 	CDspVmConfigurationChangesWatcher.cpp \
 	CDspVmConfigManager.cpp \
+	CDspVmStateMachine.cpp \
 	CDspVmAutoTaskManagerBase.cpp \
 	CDspVmStateSender.cpp \
 	CDspTestConfig.cpp \

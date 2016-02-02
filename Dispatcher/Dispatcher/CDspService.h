@@ -82,6 +82,8 @@
 
 #include <Libraries/Etrace/Etrace.h>
 
+Q_DECLARE_METATYPE(VIRTUAL_MACHINE_STATE)
+
 using namespace IOService;
 using Parallels::CProtoCommand;
 using Parallels::CProtoCommandPtr;

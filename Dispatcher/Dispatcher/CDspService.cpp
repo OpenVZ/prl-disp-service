@@ -516,6 +516,7 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 	qRegisterMetaType<SmartPtr<NATStatistic> >("SmartPtr<NATStatistic>");
 	qRegisterMetaType<SmartPtr<CDspClient> >("SmartPtr<CDspClient>");
 	qRegisterMetaType<SmartPtr<IOPackage> >("SmartPtr<IOPackage>");
+	qRegisterMetaType<VIRTUAL_MACHINE_STATE >("VIRTUAL_MACHINE_STATE");
 #ifdef ETRACE
 	CEtraceStatic::get_instance()->init(true);
 #endif
