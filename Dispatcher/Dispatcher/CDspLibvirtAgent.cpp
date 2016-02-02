@@ -867,10 +867,10 @@ bool AuxChannel::isOpen()
 
 bool AuxChannel::open()
 {
-	if (isOpen())
+	QMutexLocker l(&m_lock);
+	if (m_stream)
 		return true;
 
-	QMutexLocker l(&m_lock);
 	m_stream = virStreamNew(m_link.data(), VIR_STREAM_NONBLOCK);
 	if (!m_stream)
 		return false;
@@ -930,7 +930,6 @@ int AuxChannel::writeMessage(const QByteArray& data_, int client_)
 
 AuxChannel::~AuxChannel()
 {
-	QMutexLocker l(&m_lock);
 	virStreamFinish(m_stream);
 	virStreamFree(m_stream);
 	virDomainFree(m_domain.data());
@@ -1693,8 +1692,7 @@ Prl::Expected<VtInfo, Error::Simple> Host::getVt() const
 void Hub::setLink(QSharedPointer<virConnect> value_)
 {
 	m_link = value_.toWeakRef();
-	foreach(QSharedPointer<Vm::Exec::AuxChannel> c, m_execs)
-		c->setLink(value_);
+	m_execs.clear();
 }
 
 Vm::Exec::AsyncExecDevice * Hub::addAsyncExec(const QString & uuid_,

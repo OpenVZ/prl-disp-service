@@ -217,11 +217,6 @@ struct AuxChannel {
 	}
 	~AuxChannel();
 
-	void setLink(QSharedPointer<virConnect> value_)
-	{
-		m_link = value_.toWeakRef();
-	}
-
 	bool open();
 	bool isOpen();
 
