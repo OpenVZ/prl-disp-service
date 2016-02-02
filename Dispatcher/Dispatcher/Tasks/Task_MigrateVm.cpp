@@ -134,56 +134,28 @@ void Frontend::on_exit(const Event& event_, FSM& fsm_)
 namespace Libvirt
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Connector
-
-void Connector::finished(int code_, QProcess::ExitStatus status_)
-{
-	if (status_ == QProcess::NormalExit && code_ == 0)
-		handle(Frontend::Good());
-	else
-		handle(Flop::Event(PRL_ERR_FAILURE));
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
 void Frontend::start(const QSharedPointer<QTcpServer>& event_)
 {
-	m_process = QSharedPointer<QProcess>(new QProcess());
-	bool x = getConnector()->connect(m_process.data(),
-			SIGNAL(finished(int, QProcess::ExitStatus)),
-			SLOT(finished(int, QProcess::ExitStatus)));
-	if (!x)
+	QStringList a;
+
+	a << "migrate";
+	a << m_vmname;
+	a << QString("qemu+tcp://localhost:%1/system").arg(event_->serverPort());
+	a << "--persistent";
+	a << "--change-protection";
+	switch (m_hint)
 	{
-		getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
-		WRITE_TRACE(DBG_FATAL, "can't connect");
-		return;
+	case VMS_PAUSED:
+	case VMS_RUNNING:
+		a << "--live";
+		a << "--compressed";
+		break;
+	default:
+		a << "--offline";
 	}
-	QStringList args;
-
-	args << "migrate";
-	args << m_vmname;
-	args << QString("qemu+tcp://localhost:%1/system").arg(event_->serverPort());
-	args << "--offline";
-	args << "--persistent";
-
-	m_process->start("virsh", args);
-}
-
-template <typename Event, typename FSM>
-void Frontend::on_exit(const Event& event_, FSM& fsm_)
-{
-	Vm::Frontend<Frontend>::on_exit(event_, fsm_);
-	if (!m_process.isNull())
-	{
-		m_process->disconnect(SIGNAL(finished(int, QProcess::ExitStatus)),
-				getConnector(), SLOT(finished(int, QProcess::ExitStatus)));
-		m_process->terminate();
-		// probably should not block on success migration
-		// as libvirt process is finished
-		m_process->waitForFinished();
-		m_process.clear();
-	}
+	getConnector()->launch("virsh", a);
 }
 
 } // namespace Libvirt
@@ -214,17 +186,20 @@ IO::IO(IOClient& io_): m_io(&io_)
 		SLOT(reactSend(IOClientInterface*, IOSendJob::Result, const SmartPtr<IOPackage>)));
 	if (!x)
 		WRITE_TRACE(DBG_FATAL, "can't connect");
+	x = this->connect(m_io, SIGNAL(onStateChanged(IOSender::State)),
+		SLOT(reactChange(IOSender::State)));
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
 }
 
 IO::~IO()
 {
-	QObject::disconnect(
-		m_io, SIGNAL(onPackageReceived(const SmartPtr<IOPackage>)),
+	m_io->disconnect(SIGNAL(onPackageReceived(const SmartPtr<IOPackage>)),
 		this, SLOT(reactReceived(const SmartPtr<IOPackage>)));
-	QObject::disconnect(m_io,
-		SIGNAL(onAfterSend(IOClientInterface*, IOSendJob::Result, const SmartPtr<IOPackage>)),
-		this,
-		SLOT(reactSend(IOClientInterface*, IOSendJob::Result, const SmartPtr<IOPackage>)));
+	m_io->disconnect(SIGNAL(onAfterSend(IOClientInterface*, IOSendJob::Result, const SmartPtr<IOPackage>)),
+		this, SLOT(reactSend(IOClientInterface*, IOSendJob::Result, const SmartPtr<IOPackage>)));
+	m_io->disconnect(SIGNAL(onStateChanged(IOSender::State)),
+		this, SLOT(reactChange(IOSender::State)));
 }
 
 IOSendJob::Handle IO::sendPackage(const SmartPtr<IOPackage> &package)
@@ -240,6 +215,12 @@ void IO::reactReceived(const SmartPtr<IOPackage>& package)
 void IO::reactSend(IOClientInterface*, IOSendJob::Result, const SmartPtr<IOPackage>)
 {
 	emit onSent();
+}
+
+void IO::reactChange(IOSender::State value_)
+{
+	if (IOSender::Disconnected == value_)
+		emit disconnected();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -327,6 +308,9 @@ void Connector::react(const SmartPtr<IOPackage>& package_)
 	case VmMigrateTunnelChunk:
 		handle(Pump::TunnelChunk_type(package_));
 		break;
+	case VmMigrateFinishCmd:
+		handle(Pump::FinishCommand_type(package_));
+		break;
 	default:
 		WRITE_TRACE(DBG_FATAL, "Unexpected package type: %d.", package_->header.type);
 	}
@@ -348,6 +332,10 @@ void Frontend::on_entry(const Event& event_, FSM& fsm_)
 			SLOT(react(const SmartPtr<IOPackage>&)));
 	if (!x)
 		WRITE_TRACE(DBG_FATAL, "can't connect");
+	x = getConnector()->connect(m_io, SIGNAL(disconnected()),
+			SLOT(cancel()));
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
 }
 
 template <typename Event, typename FSM>
@@ -357,6 +345,15 @@ void Frontend::on_exit(const Event& event_, FSM& fsm_)
 	m_task->disconnect(SIGNAL(cancel()), getConnector(), SLOT(cancel()));
 	m_io->disconnect(SIGNAL(onReceived(const SmartPtr<IOPackage>&)),
 			getConnector(), SLOT(react(const SmartPtr<IOPackage>&)));
+	m_io->disconnect(SIGNAL(disconnected()), getConnector(), SLOT(cancel()));
+}
+
+void Frontend::setResult(const msmf::none&)
+{
+	if (PVMT_CLONE_MODE & m_task->getFlags())
+		return;
+
+	::Libvirt::Kit.vms().at(m_task->getVmUuid()).kill();
 }
 
 void Frontend::setResult(const Flop::Event& value_)
@@ -600,13 +597,7 @@ PRL_RESULT Task_MigrateVmSource::prepareStart()
 		CDspService::instance()->getVmConfigWatcher().unregisterVmToWatch(m_sVmConfigPath);
 		m_nSteps |= MIGRATE_UNREGISTER_VM_WATCH;
 	}
-
-	if ((m_nPrevVmState == VMS_RUNNING) || (m_nPrevVmState == VMS_PAUSED)) {
-		nRetCode = migrateRunningVm();
-	} else {
-		nRetCode = migrateStoppedVm();
-	}
-
+	nRetCode = migrateStoppedVm();
 exit:
 	setLastErrorCode(nRetCode);
 	return nRetCode;
@@ -980,43 +971,38 @@ PRL_RESULT Task_MigrateVmSource::fixConfigSav(const QString &sMemFilePath, QList
 
 PRL_RESULT Task_MigrateVmSource::migrateStoppedVm()
 {
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-
-#if _LIN_
 	CVzHelper vz;
 	if (vz.set_vziolimit("VZ_TOOLS"))
 		WRITE_TRACE(DBG_FATAL, "Warning: Ignore IO limit parameters");
-#endif
 
-	if ( !(m_nReservedFlags & PVM_DONT_COPY_VM) ) {
-		/* get full directories and files lists for migration */
-		if (PRL_FAILED(nRetCode = CVmMigrateHelper::GetEntryListsVmHome(m_sVmHomePath, m_dList, m_fList)))
+	if ((m_nPrevVmState != VMS_RUNNING) && (m_nPrevVmState != VMS_PAUSED))
+	{
+		PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
+		if ( !(m_nReservedFlags & PVM_DONT_COPY_VM) ) {
+			/* get full directories and files lists for migration */
+			if (PRL_FAILED(nRetCode = CVmMigrateHelper::GetEntryListsVmHome(m_sVmHomePath, m_dList, m_fList)))
+				return nRetCode;
+		}
+
+		if (PRL_FAILED(nRetCode = CVmMigrateHelper::GetEntryListsExternal(m_lstNonSharedDisks, m_dList, m_fList)))
 			return nRetCode;
 	}
 
-	if (PRL_FAILED(nRetCode = CVmMigrateHelper::GetEntryListsExternal(m_lstNonSharedDisks, m_dList, m_fList)))
-		return nRetCode;
-
-	CDispToDispCommandPtr pCmd;
-	QFileInfo vmBundle(m_sVmHomePath);
-	QFileInfo vmConfig(m_sVmConfigPath);
-
-	CDispToDispCommandPtr pMigrateStartCmd = CDispToDispProtoSerializer::CreateVmMigrateStartCommand(
+	CDispToDispCommandPtr a = CDispToDispProtoSerializer::CreateVmMigrateStartCommand(
 				m_pVmConfig->toString(),
 				QString(), // we can't get runtime config here - do it on VM level
 				m_sTargetServerVmHomePath,
 				m_sSnapshotUuid,
-				vmBundle.permissions(),
-				vmConfig.permissions(),
+				QFileInfo(m_sVmHomePath).permissions(),
+				QFileInfo(m_sVmConfigPath).permissions(),
 				m_nMigrationFlags,
 				m_nReservedFlags,
 				m_nPrevVmState);
 
-	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(
-			pMigrateStartCmd->GetCommandId(),
-			pMigrateStartCmd->GetCommand()->toString());
+	SmartPtr<IOPackage> b = DispatcherPackage::createInstance
+			(a->GetCommandId(), a->GetCommand()->toString());
 
-	return SendPkg(pPackage);
+	return SendPkg(b);
 }
 
 PRL_RESULT Task_MigrateVmSource::reactStartReply(const SmartPtr<IOPackage>& package)
@@ -1235,6 +1221,7 @@ PRL_RESULT Task_MigrateVmSource::run_body()
 {
 	namespace mvs = Migrate::Vm::Source;
 	typedef boost::msm::back::state_machine<mvs::Frontend> backend_type;
+	typedef mvs::Frontend::join_type::initial_state join_type;
 
 	const quint32 timeout = (quint32)
 		CDspService::instance()->getDispConfigGuard().getDispToDispPrefs()->getSendReceiveTimeout() * 1000;
@@ -1246,9 +1233,12 @@ PRL_RESULT Task_MigrateVmSource::run_body()
 
 	mvs::Tunnel::IO io(*m_pIoClient);
 	mvs::Workflow::moveStep_type m(boost::msm::back::states_
-		<< mvs::Workflow::moving_type::backend1_type(boost::ref(io))
-		<< mvs::Workflow::moving_type::backend2_type(m_pVmConfig->getVmIdentification()->getVmName()));
-	mvs::Frontend::workflow_type w(boost::msm::back::states_
+		<< boost::mpl::at_c<mvs::Workflow::moving_type::initial_state, 0>::type
+			(boost::ref(io))
+		<< boost::mpl::at_c<mvs::Workflow::moving_type::initial_state, 1>::type
+			(m_pVmConfig->getVmIdentification()->getVmName(), m_nPrevVmState));
+
+	boost::mpl::at_c<join_type, 0>::type w(boost::msm::back::states_
 		<< mvs::Workflow::checkStep_type(boost::bind
 			(&Task_MigrateVmSource::reactCheckReply, this, _1), timeout)
 		<< mvs::Workflow::startStep_type(boost::bind
@@ -1257,9 +1247,10 @@ PRL_RESULT Task_MigrateVmSource::run_body()
 		<< m);
 	backend_type machine(boost::msm::back::states_
 		<< mvs::Frontend::initial_state(boost::msm::back::states_
-			<< mvs::Frontend::finishing_type(boost::bind
-				(&Task_MigrateVmSource::reactPeerFinished, this, _1),
-				finishing_timeout)
+			<< boost::mpl::at_c<join_type, 1>::type(finishing_timeout)
+			<< boost::mpl::at_c<join_type, 2>::type(
+				boost::bind(&Task_MigrateVmSource::confirmFinish, this, _1),
+				~0)
 			<< w)
 		<< Migrate::Vm::Finished(*this),
 		boost::ref(*this), boost::ref(io));
@@ -1271,11 +1262,6 @@ PRL_RESULT Task_MigrateVmSource::run_body()
 
 	machine.stop();
 	return getLastErrorCode();
-}
-
-PRL_RESULT Task_MigrateVmSource::reactPeerFinished(const SmartPtr<IOPackage>&)
-{
-	return PRL_ERR_SUCCESS;
 }
 
 /*
@@ -1422,3 +1408,15 @@ PRL_RESULT Task_MigrateVmSource::reactCheckReply(const SmartPtr<IOPackage>& pack
 
 	return prepareStart();
 }
+
+PRL_RESULT Task_MigrateVmSource::confirmFinish(const SmartPtr<IOPackage>& package_)
+{
+	Q_UNUSED(package_);
+	SmartPtr<IOPackage> p = IOPackage::createInstance
+		(Migrate::Vm::Pump::FinishCommand_type::s_command, 1);
+	if (!p.isValid())
+		return PRL_ERR_FAILURE;
+
+	return SendPkg(p);
+}
+

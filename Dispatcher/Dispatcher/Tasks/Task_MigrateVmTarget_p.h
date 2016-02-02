@@ -99,6 +99,80 @@ private:
 
 } // namespace Content
 
+namespace Start
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Preparing
+
+struct Preparing: Trace<Preparing>
+{
+	typedef QList<CVmHardDisk> volume_type;
+
+	void setVolume(const volume_type& value_)
+	{
+		m_volume = value_;
+	}
+
+	template <typename Event, typename FSM>
+	void on_entry(const Event& event_, FSM& fsm_)
+	{
+		Trace<Preparing>::on_entry(event_, fsm_);
+		if (m_volume.isEmpty())
+			fsm_.process_event(boost::mpl::true_());
+		else
+			fsm_.process_event(m_volume.takeFirst());
+	}
+
+private:
+	volume_type m_volume;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+struct Frontend: Vm::Libvirt::Frontend_<Frontend, Machine_type>
+{
+	typedef Pipeline::Frontend<Machine_type, StartCommand_type> pipeline_type;
+	typedef boost::msm::back::state_machine<pipeline_type> Accepting;
+	typedef Accepting initial_state;
+
+	Frontend(Task_MigrateVmTarget& task_): m_task(&task_)
+	{
+	}
+	Frontend()
+	{
+	}
+
+	void create(const CVmHardDisk& event_);
+
+	struct Action
+	{
+		void operator()(const msmf::none&, Frontend& fsm_,
+				Accepting&, Preparing& target_);
+		void operator()(const boost::mpl::true_&, Frontend& fsm_,
+				Preparing&, Success&);
+	};
+
+	struct transition_table : boost::mpl::vector<
+		msmf::Row<Accepting
+			::exit_pt<Flop::State>,Flop::Event,      Flop::State>,
+		msmf::Row<Accepting
+			::exit_pt<Success>,    msmf::none,       Preparing,           Action>,
+		a_row<Preparing,               CVmHardDisk,      Vm::Libvirt::Running,&Frontend::create>,
+		msmf::Row<Preparing,           boost::mpl::true_,Success,             Action>,
+		_row<Preparing,                Flop::Event,      Flop::State>,
+		_row<Vm::Libvirt::Running,     boost::mpl::true_,Preparing>,
+		_row<Vm::Libvirt::Running,     Flop::Event,	 Flop::State>
+	>
+	{
+	};
+
+private:
+	Task_MigrateVmTarget *m_task;
+};
+
+} // namespace Start
+
 namespace Tunnel
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -189,13 +263,20 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 
 	void disconnect(const msmf::none&);
 
+	void disconnect(const Disconnected&);
+
+        bool isConnected(const msmf::none&);
+
 	struct transition_table : boost::mpl::vector<
-		a_row<initial_state,		Connected,	Vm::Tunnel::Ready,&Frontend::connect>,
-		msmf::Row<Vm::Tunnel::Ready,	Pump::Launch_type,Pumping>,
-		a_row<Pumping::exit_pt<Success>,msmf::none,	Disconnecting,	&Frontend::disconnect>,
-		msmf::Row<Pumping,		Disconnected,	msmf::none,	Flop::Action>,
-		msmf::Row<Disconnecting,	Disconnected,	Success>,
-		msmf::Row<Pumping::exit_pt<Flop::State>,Flop::Event,Flop::State>
+		a_row<initial_state,               Connected,        Vm::Tunnel::Ready,
+			&Frontend::connect>,
+		_row<Vm::Tunnel::Ready,            Pump::Launch_type,Pumping>,
+		a_irow<Pumping,                    Disconnected,     &Frontend::disconnect>,
+		_row<Pumping::exit_pt<Flop::State>,Flop::Event,      Flop::State>,
+		_row<Pumping::exit_pt<Success>,    msmf::none,       Success>,
+		row<Pumping::exit_pt<Success>,     msmf::none,       Disconnecting,
+			&Frontend::disconnect, &Frontend::isConnected>,
+		_row<Disconnecting,                Disconnected,     Success>
 	>
 	{
 	};
@@ -228,10 +309,11 @@ private:
 
 struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 {
-	typedef Pipeline::Frontend<Machine_type, StartCommand_type> starting_type;
-	typedef boost::msm::back::state_machine<starting_type> Starting;
+        typedef Pipeline::Frontend<Machine_type, Pump::FinishCommand_type> synch_type;
+	typedef boost::msm::back::state_machine<Start::Frontend> Starting;
 	typedef boost::msm::back::state_machine<Content::Frontend> Copying;
 	typedef boost::msm::back::state_machine<Tunnel::Frontend> Tunneling;
+        typedef boost::msm::back::state_machine<synch_type> Synching;
 	typedef Starting initial_state;
 
 	Frontend(Task_MigrateVmTarget& task_, Tunnel::IO& io_):
@@ -248,21 +330,25 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	template <typename Event, typename FSM>
 	void on_exit(const Event&, FSM&);
 
+	void synch(const msmf::none&);
 	void setResult(const Flop::Event& value_);
 
 	struct transition_table : boost::mpl::vector<
 		// wire error exits to FINISHED immediately
-		a_row<Starting::exit_pt<Flop::State>,	Flop::Event,Finished, &Frontend::setResult>,
-		a_row<Copying::exit_pt<Flop::State>,	Flop::Event,Finished, &Frontend::setResult>,
-		a_row<Tunneling::exit_pt<Flop::State>,	Flop::Event,Finished, &Frontend::setResult>,
+		a_row<Starting::exit_pt<Flop::State>,  Flop::Event,Finished, &Frontend::setResult>,
+		a_row<Copying::exit_pt<Flop::State>,   Flop::Event,Finished, &Frontend::setResult>,
+		a_row<Tunneling::exit_pt<Flop::State>, Flop::Event,Finished, &Frontend::setResult>,
+		a_row<Synching::exit_pt<Flop::State>,  Flop::Event,Finished, &Frontend::setResult>,
 		// wire success exits sequentially up to FINISHED
-		msmf::Row<Starting::exit_pt<Success>,	msmf::none,Copying>,
-		msmf::Row<Copying::exit_pt<Success>,	msmf::none,Tunneling>,
-		msmf::Row<Tunneling::exit_pt<Success>,	msmf::none,Finished>,
+		msmf::Row<Starting::exit_pt<Success>,  msmf::none,Copying>,
+		msmf::Row<Copying::exit_pt<Success>,   msmf::none,Tunneling>,
+		a_row<Tunneling::exit_pt<Success>,     msmf::none,Synching,  &Frontend::synch>,
+		msmf::Row<Synching::exit_pt<Success>,  msmf::none,Finished>,
 		// handle asyncronous termination
-		a_row<Starting,	Flop::Event, Finished,	&Frontend::setResult>,
-		a_row<Copying,	Flop::Event, Finished,	&Frontend::setResult>,
-		a_row<Tunneling,Flop::Event, Finished,	&Frontend::setResult>
+		a_row<Starting,                        Flop::Event, Finished, &Frontend::setResult>,
+		a_row<Copying,                         Flop::Event, Finished, &Frontend::setResult>,
+		a_row<Synching,                        Flop::Event, Finished, &Frontend::setResult>,
+		a_row<Tunneling,                       Flop::Event, Finished, &Frontend::setResult>
 	>
 	{
 	};

@@ -100,12 +100,14 @@ struct Trace: boost::msm::front::state<>
 	template <typename Event, typename FSM>
 	void on_entry(const Event&, FSM&)
 	{
-		WRITE_TRACE(DBG_FATAL, "enter %s state", qPrintable(demangle()));
+		WRITE_TRACE(DBG_FATAL, "enter %s state\nevent %s\n",
+			qPrintable(demangle()), qPrintable(Trace<Event>::demangle()));
 	}
 	template <typename Event, typename FSM>
 	void on_exit(const Event&, FSM&)
 	{
-		WRITE_TRACE(DBG_FATAL, "leave %s state", qPrintable(demangle()));
+		WRITE_TRACE(DBG_FATAL, "leave %s state\nevent %s\n",
+			qPrintable(demangle()), qPrintable(Trace<Event>::demangle()));
 	}
 	static QString demangle()
 	{
@@ -122,12 +124,14 @@ struct Frontend: msmf::state_machine_def<T>
 	template <typename Event, typename FSM>
 	void on_entry(const Event&, FSM&)
 	{
-		WRITE_TRACE(DBG_FATAL, "enter %s state", qPrintable(Trace<T>::demangle()));
+		WRITE_TRACE(DBG_FATAL, "enter %s state\nevent %s\n",
+			qPrintable(Trace<T>::demangle()), qPrintable(Trace<Event>::demangle()));
 	}
 	template <typename Event, typename FSM>
 	void on_exit(const Event&, FSM&)
 	{
-		WRITE_TRACE(DBG_FATAL, "leave %s state", qPrintable(Trace<T>::demangle()));
+		WRITE_TRACE(DBG_FATAL, "leave %s state\nevent %s\n",
+			qPrintable(Trace<T>::demangle()), qPrintable(Trace<Event>::demangle()));
 	}
 	template <class FSM, class Event>
 	void no_transition(const Event& , FSM&, int state_)
@@ -219,10 +223,12 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Join
 
-template <typename SM1_, typename SM2_>
-struct Join: Vm::Frontend<Join<SM1_, SM2_> >
+template<class T>
+struct Join: Vm::Frontend<Join<T> >
 {
-	struct Joined { };
+	struct Joined
+	{
+	};
 	struct Good: Trace<Good>
 	{
 		template<typename Event, typename FSM>
@@ -230,19 +236,15 @@ struct Join: Vm::Frontend<Join<SM1_, SM2_> >
 		{
 			Trace<Good>::on_entry(event_, fsm_);
 			++fsm_.m_count;
-			if (fsm_.m_count == 2)
+			if (fsm_.m_count == boost::mpl::size<T>::value)
 				fsm_.process_event(Joined());
 		}
 	};
-
-	typedef boost::msm::back::state_machine<SM1_> backend1_type;
-	typedef boost::msm::back::state_machine<SM2_> backend2_type;
-	typedef typename backend1_type::template exit_pt<Flop::State> error1_type;
-	typedef typename backend2_type::template exit_pt<Flop::State> error2_type;
-	typedef typename backend1_type::template exit_pt<Success> success1_type;
-	typedef typename backend2_type::template exit_pt<Success> success2_type;
-	typedef boost::mpl::vector<backend1_type, backend2_type> initial_state;
-
+	template<class U, class V>
+	struct Exit
+	{
+		typedef typename U::template exit_pt<V> type;
+	};
 	template <typename Event, typename FSM>
 	void on_entry(const Event& event_, FSM& fsm_)
 	{
@@ -250,13 +252,44 @@ struct Join: Vm::Frontend<Join<SM1_, SM2_> >
 		m_count = 0;
 	}
 
-	struct transition_table : boost::mpl::vector<
-		msmf::Row<success1_type,msmf::none,	Good>,
-		msmf::Row<success2_type,msmf::none,	Good>,
-		msmf::Row<error1_type,	Flop::Event,	Flop::State>,
-		msmf::Row<error2_type,	Flop::Event,	Flop::State>,
-		msmf::Row<Good,		Joined,		Success>
-	>
+	typedef typename boost::mpl::transform
+		<
+			T,
+			boost::msm::back::state_machine<boost::mpl::_1>
+		>::type initial_state;
+
+	typedef boost::mpl::vector<msmf::Row<Good, Joined, Success> > seed_type;
+	typedef typename boost::mpl::transform
+		<
+			typename boost::mpl::transform
+			<
+				initial_state,
+				Exit<boost::mpl::_1, Flop::State>
+			>::type,
+			msmf::Row<boost::mpl::_1, Flop::Event, Flop::State>
+		>::type flop_type;
+	typedef typename boost::mpl::transform
+		<
+			typename boost::mpl::transform
+			<
+				initial_state,
+				Exit<boost::mpl::_1, Success>
+			>::type,
+			msmf::Row<boost::mpl::_1, msmf::none, Good>
+		>::type good_type;
+
+	struct transition_table: boost::mpl::copy
+		<
+			flop_type,
+			typename boost::mpl::back_inserter
+			<
+				typename boost::mpl::copy
+				<
+					good_type,
+					boost::mpl::back_inserter<seed_type>
+				>::type
+			>
+		>::type
 	{
 	};
 
@@ -298,9 +331,7 @@ protected:
 template<class T>
 class Mixin
 {
-	typedef typename boost::mpl::if_<
-		boost::is_base_of<Base<T>, T>,
-		T, typename T::Connector>::type connector_type;
+	typedef T connector_type;
 	typedef typename connector_type::top_type top_type;
 
 public:
@@ -396,6 +427,9 @@ struct Frontend: Vm::Frontend<Frontend<T, U> >, Vm::Connector::Mixin<Connector<T
 	typedef Waiting initial_state;
 	typedef msmf::state_machine_def<Frontend> def_type;
 
+	explicit Frontend(quint32 timeout_): m_timeout(timeout_)
+	{
+	}
 	Frontend(const callback_type& callback_, quint32 timeout_):
 		m_timeout(timeout_), m_callback(callback_)
 	{
@@ -424,8 +458,11 @@ struct Frontend: Vm::Frontend<Frontend<T, U> >, Vm::Connector::Mixin<Connector<T
 		m_timer.clear();
 	}
 
-	void respond(const U& event_)
+	void handle(const U& event_)
 	{
+		if (m_callback.empty())
+			return;
+
 		const PRL_RESULT e = m_callback(event_.getPackage());
 		if (PRL_FAILED(e))
 			this->getConnector()->handle(Flop::Event(e));
@@ -433,7 +470,7 @@ struct Frontend: Vm::Frontend<Frontend<T, U> >, Vm::Connector::Mixin<Connector<T
 
 	struct transition_table : boost::mpl::vector<
 		typename def_type::template
-		a_row<Waiting,		U,		Success,	&Frontend::respond>,
+		a_row<Waiting,		U,		Success,	&Frontend::handle>,
 		msmf::Row<Waiting,	Flop::Event,	Flop::State>
 	>
 	{
@@ -478,6 +515,10 @@ template<Parallels::IDispToDispCommands X>
 const Parallels::IDispToDispCommands Event<X>::s_command = X;
 
 typedef Event<Parallels::VmMigrateTunnelChunk> TunnelChunk_type;
+// NB. target side needs a handshake on finish because it doesn't know if the
+// overall process fails. thus it waits for a finish reply from the source to
+// complete with ok or for cancel to clean up and fail.
+typedef Event<Parallels::VmMigrateFinishCmd> FinishCommand_type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reading
@@ -1003,6 +1044,100 @@ struct Ready: Trace<Ready>
 };
 
 } // namespace Tunnel
+
+namespace Libvirt
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Running
+
+struct Running: Trace<Running>
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Slot
+
+struct Slot: QObject
+{
+protected slots:
+	virtual void reactFinished(int, QProcess::ExitStatus) = 0;
+
+private:
+	Q_OBJECT
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Driver
+
+template<class T>
+struct Driver: Slot, Vm::Connector::Base<T>
+{
+	void cancel();
+	void launch(const QString& program_, const QStringList& arguments_);
+
+protected:
+	void reactFinished(int code_, QProcess::ExitStatus status_);
+
+private:
+	QSharedPointer<QProcess> m_process;
+};
+
+template<class T>
+void Driver<T>::cancel()
+{
+	if (!m_process.isNull())
+	{
+		m_process->disconnect(SIGNAL(finished(int, QProcess::ExitStatus)),
+				this, SLOT(reactFinished(int, QProcess::ExitStatus)));
+		m_process->terminate();
+		// probably should not block on success migration
+		// as the process is finished
+		m_process->waitForFinished();
+		m_process.clear();
+	}
+}
+
+template<class T>
+void Driver<T>::launch(const QString& program_, const QStringList& arguments_)
+{
+	m_process = QSharedPointer<QProcess>(new QProcess());
+	bool x = this->connect(m_process.data(),
+			SIGNAL(finished(int, QProcess::ExitStatus)),
+			SLOT(reactFinished(int, QProcess::ExitStatus)));
+	if (x)
+		m_process->start(program_, arguments_);
+	else
+	{
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+		this->handle(Flop::Event(PRL_ERR_FAILURE));
+	}
+}
+
+template<class T>
+void Driver<T>::reactFinished(int code_, QProcess::ExitStatus status_)
+{
+	WRITE_TRACE(DBG_FATAL, "process stderr\n%s", m_process->readAllStandardError().data());
+	if (status_ == QProcess::NormalExit && code_ == 0)
+		this->handle(boost::mpl::true_());
+	else
+		this->handle(Flop::Event(PRL_ERR_FAILURE));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend_
+
+template<class T, class U>
+struct Frontend_: Vm::Frontend<T>, Vm::Connector::Mixin<Driver<U> >
+{
+	template <typename Event, typename FSM>
+	void on_exit(const Event& event_, FSM& fsm_)
+	{
+		Vm::Frontend<T>::on_exit(event_, fsm_);
+		this->getConnector()->cancel();
+	}
+};
+
+} // namespace Libvirt
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Walker

@@ -66,7 +66,10 @@ public:
 	~Task_MigrateVmTarget();
 	virtual QString  getVmUuid() {return m_sOriginVmUuid;}
 
+	PRL_RESULT sendStartConfirmation();
+	QList<CVmHardDisk> getImagesToCreate();
 	std::pair<CVmFileListCopySender*, CVmFileListCopyTarget*> createCopier();
+
 protected:
 	virtual PRL_RESULT prepareTask();
 	virtual PRL_RESULT run_body();
@@ -94,12 +97,9 @@ private:
 	void DeleteSnapshot();
 	void changeSID();
 	PRL_RESULT adjustStartVmCommand(SmartPtr<IOPackage> &pPackage);
-
-	PRL_RESULT migrateStoppedVm();
-	PRL_RESULT migrateRunningVm();
-
 	PRL_RESULT registerHaClusterResource();
 	void unregisterHaClusterResource();
+
 private:
 
 	/* from old servers Check & Start commands send from differents connections */

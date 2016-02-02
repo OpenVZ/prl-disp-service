@@ -194,6 +194,41 @@ void Frontend::copy(const CopyCommand_type& event_)
 
 } // namespace Content
 
+namespace Start
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend::Action
+
+void Frontend::Action::operator()(const msmf::none&, Frontend& fsm_,
+		Accepting&, Preparing& target_)
+{
+	target_.setVolume(fsm_.m_task->getImagesToCreate());
+}
+
+void Frontend::Action::operator()(const boost::mpl::true_&, Frontend& fsm_,
+		Preparing&, Success&)
+{
+	PRL_RESULT e = fsm_.m_task->sendStartConfirmation();
+	if (PRL_FAILED(e))
+		fsm_.getConnector()->handle(Flop::Event(e));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+void Frontend::create(const CVmHardDisk& event_)
+{
+	QStringList a;
+	a << "create" << "-f" << "qcow2";
+	a << "-o" << "lazy_refcounts=on";
+	a << event_.getSystemName();
+	a << QString::number(event_.getSize()).append("M");
+
+	getConnector()->launch("qemu-img", a);
+}
+
+} // namespace Start
+
 namespace Tunnel
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -301,10 +336,7 @@ template <typename Event, typename FSM>
 void Frontend::on_exit(const Event& event_, FSM& fsm_)
 {
 	Vm::Frontend<Frontend>::on_exit(event_, fsm_);
-	m_socket->disconnect(SIGNAL(connected()), getConnector(),
-			SLOT(reactConnected()));
-	m_socket->disconnect(SIGNAL(disconnected()),
-			getConnector(), SLOT(reactDisconnected()));
+	disconnect(Disconnected());
 	m_socket.clear();
 }
 
@@ -316,6 +348,20 @@ void Frontend::connect(const Connected& )
 void Frontend::disconnect(const msmf::none& )
 {
 	m_socket->disconnectFromServer();
+}
+
+void Frontend::disconnect(const Disconnected&)
+{
+	m_socket->disconnect(SIGNAL(connected()), getConnector(),
+			SLOT(reactConnected()));
+	m_socket->disconnect(SIGNAL(disconnected()),
+			getConnector(), SLOT(reactDisconnected()));
+	disconnect(msmf::none());
+}
+
+bool Frontend::isConnected(const msmf::none& )
+{
+	return !m_socket.isNull() && m_socket->state() == QLocalSocket::ConnectedState;
 }
 
 } // namespace Tunnel
@@ -347,6 +393,12 @@ void Connector::react(const SmartPtr<IOPackage>& package_)
 		break;
 	case VmMigrateTunnelChunk:
 		handle(Pump::TunnelChunk_type(package_));
+		break;
+	case VmMigrateFinishCmd:
+		handle(Pump::FinishCommand_type(package_));
+		break;
+	case VmMigrateCancelCmd:
+		cancel();
 		break;
 	default:
 		WRITE_TRACE(DBG_FATAL, "Unexpected package type: %d.", package_->header.type);
@@ -382,6 +434,16 @@ void Frontend::on_exit(const Event& event_, FSM& fsm_)
 	m_io->disconnect(SIGNAL(onReceived(const SmartPtr<IOPackage>&)),
 			getConnector(), SLOT(react(const SmartPtr<IOPackage>&)));
 	m_io->disconnect(SIGNAL(disconnected()), getConnector(), SLOT(disconnected()));
+}
+
+void Frontend::synch(const msmf::none&)
+{
+	SmartPtr<IOPackage> p = IOPackage::createInstance(Pump::FinishCommand_type::s_command, 1);
+	if (!p.isValid())
+		return getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
+
+	if (!m_io->sendPackage(p).isValid())
+		return getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
 }
 
 void Frontend::setResult(const Flop::Event& value_)
@@ -561,12 +623,11 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 	foreach (const QString & disk, m_lstNonSharedDisks) {
 		if (!QDir(disk).exists())
 			continue;
-		nRetCode = PRL_ERR_VM_MIGRATE_EXT_DISK_DIR_ALREADY_EXISTS_ON_TARGET;
 		WRITE_TRACE(DBG_FATAL,
 			"The directory for external disk '%s' already exists.", QSTR2UTF8(disk));
-		getLastError()->setEventCode(PRL_ERR_VM_MIGRATE_EXT_DISK_DIR_ALREADY_EXISTS_ON_TARGET);
-		getLastError()->addEventParameter(new CVmEventParameter(PVE::String, disk,
-			EVT_PARAM_MESSAGE_PARAM_0));
+		nRetCode = CDspTaskFailure(*this)
+				(PRL_ERR_VM_MIGRATE_EXT_DISK_DIR_ALREADY_EXISTS_ON_TARGET,
+					disk);
 		goto exit;
 	}
 
@@ -611,17 +672,15 @@ exit:
 
 PRL_RESULT Task_MigrateVmTarget::reactStart(const SmartPtr<IOPackage> &package)
 {
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-
 	if (package->header.type != VmMigrateStartCmd)
 	{
 		WRITE_TRACE(DBG_FATAL, "unexpected package type: %d", package->header.type);
 		return PRL_ERR_OPERATION_FAILED;
 	}
 
-	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(package);
+	CDispToDispCommandPtr a = CDispToDispProtoSerializer::ParseCommand(package);
 	CVmMigrateStartCommand *cmd =
-		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmMigrateStartCommand>(pCmd);
+		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmMigrateStartCommand>(a);
 
 	m_nMigrationFlags = cmd->GetMigrationFlags();
 	m_nReservedFlags = cmd->GetReservedFlags();
@@ -632,14 +691,10 @@ PRL_RESULT Task_MigrateVmTarget::reactStart(const SmartPtr<IOPackage> &package)
 	if ( !(m_nReservedFlags & PVM_DONT_COPY_VM) ) {
 		/* to create Vm bundle */
 		if (!CFileHelper::WriteDirectory(m_sTargetVmHomePath, &getClient()->getAuthHelper())) {
-			nRetCode = PRL_ERR_BACKUP_CANNOT_CREATE_DIRECTORY;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(
-				new CVmEventParameter(PVE::String, m_sTargetVmHomePath, EVT_PARAM_MESSAGE_PARAM_0));
-			WRITE_TRACE(DBG_FATAL, "[%s] Cannot create \"%s\" directory",
-					__FUNCTION__, QSTR2UTF8(m_sTargetVmHomePath));
-			goto exit;
+			WRITE_TRACE(DBG_FATAL, "Cannot create \"%s\" directory", QSTR2UTF8(m_sTargetVmHomePath));
+			return CDspTaskFailure(*this)
+				(PRL_ERR_VM_MIGRATE_CANNOT_CREATE_DIRECTORY,
+					m_sTargetVmHomePath);
 		}
 		/* set original permissions to Vm bundle (https://jira.sw.ru/browse/PSBM-8269) */
 		if (m_nBundlePermissions) {
@@ -654,8 +709,7 @@ PRL_RESULT Task_MigrateVmTarget::reactStart(const SmartPtr<IOPackage> &package)
 
 	// create directories for external disks
 	foreach (const QString & disk, m_lstNonSharedDisks) {
-		WRITE_TRACE(DBG_FATAL, "[%s] Creating disk '%s'",
-					__FUNCTION__, QSTR2UTF8(disk));
+		WRITE_TRACE(DBG_FATAL, "Creating disk '%s'", QSTR2UTF8(disk));
 		// first create try to create parent directories
 		// then create disk dir itself, so if it is created meanwhile by
 		// someone else we get an error
@@ -663,24 +717,33 @@ PRL_RESULT Task_MigrateVmTarget::reactStart(const SmartPtr<IOPackage> &package)
 			CFileHelper::CreateDirectoryPath(disk, &getClient()->getAuthHelper()))
 			continue;
 
-		nRetCode = PRL_ERR_VM_MIGRATE_CANNOT_CREATE_DIRECTORY;
-		getLastError()->setEventCode(nRetCode);
-		getLastError()->addEventParameter(
-			new CVmEventParameter(PVE::String, disk, EVT_PARAM_MESSAGE_PARAM_0));
-		WRITE_TRACE(DBG_FATAL, "[%s] Cannot create \"%s\" directory",
-				__FUNCTION__, QSTR2UTF8(disk));
-		goto exit;
+		WRITE_TRACE(DBG_FATAL, "Cannot create \"%s\" directory",
+				QSTR2UTF8(disk));
+		return CDspTaskFailure(*this)
+			(PRL_ERR_VM_MIGRATE_CANNOT_CREATE_DIRECTORY, disk);
 	}
 
+	CVzHelper vz;
+	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	m_nSteps |= MIGRATE_STARTED;
-	if ((m_nPrevVmState == VMS_RUNNING) || (m_nPrevVmState == VMS_PAUSED)) {
-		nRetCode = migrateRunningVm();
-	} else {
-		nRetCode = migrateStoppedVm();
-	}
+	if (vz.set_vziolimit("VZ_TOOLS"))
+		WRITE_TRACE(DBG_FATAL, "Warning: Ignore IO limit parameters");
 
-exit:
-	return nRetCode;
+	if (!(m_nReservedFlags & PVM_DONT_COPY_VM))
+	{
+		if (PRL_FAILED(nRetCode = saveVmConfig()))
+			return nRetCode;
+	}
+	/* will register resource on HA cluster just before
+	   register CT on node : better to have a broken resource than
+	   losing a valid */
+	if (PRL_FAILED(nRetCode = registerHaClusterResource()))
+		return nRetCode;
+
+	if (PRL_FAILED(nRetCode = registerVmBeforeMigration()))
+		return nRetCode;
+
+	return PRL_ERR_SUCCESS;
 }
 
 void Task_MigrateVmTarget::changeSID()
@@ -878,132 +941,43 @@ void Task_MigrateVmTarget::finalizeTask()
 	}
 }
 
-PRL_RESULT Task_MigrateVmTarget::migrateStoppedVm()
+PRL_RESULT Task_MigrateVmTarget::sendStartConfirmation()
 {
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	CDispToDispCommandPtr pReply;
-	SmartPtr<IOPackage> pPackage;
-
-#if _LIN_
-	CVzHelper vz;
-	if (vz.set_vziolimit("VZ_TOOLS"))
-		WRITE_TRACE(DBG_FATAL, "Warning: Ignore IO limit parameters");
-#endif
-
-	if (!(m_nReservedFlags & PVM_DONT_COPY_VM))
-		if (PRL_FAILED(nRetCode = saveVmConfig()))
-			return nRetCode;
-
-	/* will register resource on HA cluster just before
-	   register CT on node : better to have a broken resource than
-	   losing a valid */
-	nRetCode = registerHaClusterResource();
-	if ( PRL_FAILED( nRetCode ) )
-		return nRetCode;
-
-	nRetCode = registerVmBeforeMigration();
-	if ( PRL_FAILED( nRetCode ) )
-		return nRetCode;
-
-	UINT64 uMemSize = m_pVmConfig->getVmHardwareList()->getMemory()->getRamSize()*1024*1024 +
-	           m_pVmConfig->getVmHardwareList()->getVideo()->getMemorySize()*1024*1024;
-
-	QString sMemFilePath = ParallelsDirs::getVmMemoryFileLocation(
-		m_sVmUuid,
-		m_sTargetVmHomePath,
-		m_pVmConfig->getVmSettings()->getVmCommonOptions()->getSwapDir(),
-		CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->getSwapPathForVMOnNetworkShares(),
-		false,
-		uMemSize);
-	if (sMemFilePath == m_sTargetVmHomePath)
-		// set empty string for default path
-		pReply = CDispToDispProtoSerializer::CreateVmMigrateReply(QString());
+	QString p;
+	if ((m_nPrevVmState == VMS_RUNNING) || (m_nPrevVmState == VMS_PAUSED))
+	{}
 	else
-		pReply = CDispToDispProtoSerializer::CreateVmMigrateReply(sMemFilePath);
-	pPackage = DispatcherPackage::createInstance(
-		pReply->GetCommandId(), pReply->GetCommand()->toString(), m_pStartPackage);
+	{
+		quint64 m = m_pVmConfig->getVmHardwareList()->getMemory()->getRamSize();
+		quint64 v = m_pVmConfig->getVmHardwareList()->getVideo()->getMemorySize();
+		p = ParallelsDirs::getVmMemoryFileLocation(
+			m_sVmUuid, m_sTargetVmHomePath,
+			m_pVmConfig->getVmSettings()->getVmCommonOptions()->getSwapDir(),
+			CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->getSwapPathForVMOnNetworkShares(),
+			false, (m << 20) + (v << 20));
+	}
+	CDispToDispCommandPtr a = CDispToDispProtoSerializer::CreateVmMigrateReply(p);;
+	SmartPtr<IOPackage> b = DispatcherPackage::createInstance(
+		a->GetCommandId(), a->GetCommand()->toString(), m_pStartPackage);
 
-	nRetCode = m_dispConnection->sendPackageResult(pPackage);
-	if (PRL_FAILED(nRetCode))
-		return nRetCode;
-
-	return PRL_ERR_SUCCESS;
+	return m_dispConnection->sendPackageResult(b);
 }
 
-PRL_RESULT Task_MigrateVmTarget::migrateRunningVm()
+QList<CVmHardDisk> Task_MigrateVmTarget::getImagesToCreate()
 {
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	SmartPtr<IOPackage> pPackage;
-
-	if (!(m_nReservedFlags & PVM_DONT_COPY_VM))
-		if (PRL_FAILED(nRetCode = saveVmConfig()))
-			return nRetCode;
-
-	/* will register resource on HA cluster just before
-	   register CT on node : better to have a broken resource than
-	   losing a valid */
-	nRetCode = registerHaClusterResource();
-	if ( PRL_FAILED( nRetCode ) )
-		return nRetCode;
-
-	nRetCode = registerVmBeforeMigration();
-	if ( PRL_FAILED( nRetCode ) )
-		return nRetCode;
-
-	nRetCode = adjustStartVmCommand(pPackage);
-	if (PRL_FAILED(nRetCode))
-		return nRetCode;
-
-	/* set signal handler before Vm start - to avoid race */
-	if (!QObject::connect(CDspService::instance(),
-		SIGNAL(onVmMigrateEventReceived(const QString &, const SmartPtr<IOPackage> &)),
-		SLOT(handleVmMigrateEvent(const QString &, const SmartPtr<IOPackage> &)),
-		Qt::DirectConnection))
+	QList<CVmHardDisk> output;
+	if ((m_nPrevVmState == VMS_RUNNING) || (m_nPrevVmState == VMS_PAUSED))
 	{
-		WRITE_TRACE(DBG_FATAL, "QObject::connect() failed");
-		return PRL_ERR_OPERATION_FAILED;
-	}
-
-	/* for handshake with vm_app. ! before startMigratedVm() */
-	m_pVm->setMigrateVmRequestPackage(pPackage);
-	m_pVm->setMigrateVmConnection(m_dispConnection);
-
-	nRetCode = CDspService::instance()->getAccessManager().checkAccess(
-				getClient(), PVE::DspCmdCtlMigrateTarget, m_sVmUuid);
-	if (PRL_FAILED(nRetCode))
-	{
-		if ((nRetCode == PRL_ERR_ACCESS_TO_VM_DENIED) && (m_nReservedFlags & PVM_DONT_COPY_VM))
+		CVmHardware h(m_pVmConfig->getVmHardwareList());
+		h.RevertDevicesPathToAbsolute(m_sTargetVmHomePath);
+		foreach (const CVmHardDisk* d, h.m_lstHardDisks)
 		{
-			/* user has not permissions to start shared Vm */
-			nRetCode = PRL_ERR_VM_MIGRATE_ACCESS_TO_VM_DENIED;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-				PVE::String, getClient()->getAuthHelper().getUserName(), EVT_PARAM_MESSAGE_PARAM_0));
-			WRITE_TRACE(DBG_FATAL,
-				"User %s has not enough permissions in shared Vm bundle %s to start online migration",
-				QSTR2UTF8(getClient()->getAuthHelper().getUserName()), QSTR2UTF8(m_sTargetVmHomePath));
+			if (PVE::HardDiskImage == d->getEmulatedType() &&
+				d->getConnected() == PVE::DeviceConnected)
+				output << *d;
 		}
-		goto cleanup;
 	}
-
-	if (!m_pVm->startMigratedVm(getClient(), pPackage))
-	{
-		WRITE_TRACE(DBG_FATAL, "Vm %s start failed", QSTR2UTF8(m_sVmUuid));
-		nRetCode = PRL_ERR_VM_START_FAILED;
-		goto cleanup;
-	}
-	m_nSteps |= MIGRATE_VM_APP_STARTED;
-	nRetCode = exec();
-
-cleanup:
-	QObject::disconnect(CDspService::instance(),
-		SIGNAL(onVmMigrateEventReceived(const QString &, const SmartPtr<IOPackage> &)),
-		this,
-		SLOT(handleVmMigrateEvent(const QString &, const SmartPtr<IOPackage> &)));
-
-	return nRetCode;
-
+	return output;
 }
 
 void Task_MigrateVmTarget::handleVmMigrateEvent(const QString &sVmUuid, const SmartPtr<IOPackage> &p)
@@ -1453,13 +1427,20 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 	typedef boost::msm::back::state_machine<mvt::Frontend>
 		backend_type;
 
+	const quint32 t = (quint32)
+		CDspService::instance()->getDispConfigGuard().getDispToDispPrefs()->getSendReceiveTimeout() * 1000;
+
 	mvt::Tunnel::IO io(*m_dispConnection);
 	backend_type machine(boost::msm::back::states_
 		<< Migrate::Vm::Finished(*this)
-		<< backend_type::Starting(boost::bind(&Task_MigrateVmTarget::reactStart, this, _1),
-			VM_MIGRATE_START_CMD_WAIT_TIMEOUT)
+		<< backend_type::Starting(boost::msm::back::states_
+			<< backend_type::Starting::Accepting(
+				boost::bind(&Task_MigrateVmTarget::reactStart, this, _1),
+	                        VM_MIGRATE_START_CMD_WAIT_TIMEOUT),
+			boost::ref(*this))
 		<< backend_type::Copying(boost::ref(*this))
-		<< backend_type::Tunneling(boost::ref(io)),
+		<< backend_type::Tunneling(boost::ref(io))
+		<< backend_type::Synching(t),
 		boost::ref(*this), boost::ref(io)
 		);
 	(Migrate::Vm::Walker<backend_type>(machine))();
