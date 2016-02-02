@@ -2898,6 +2898,7 @@ void CDspVmDirHelper::appendAdvancedParamsToVmConfig(
 		pOutVmConfig->getVmIdentification()->setHomePath( pVmDirItem->getVmHome() );
 		pOutVmConfig->getVmIdentification()->setModifierName( pVmDirItem->getChangedBy() );
 		pOutVmConfig->getVmIdentification()->setLastModifDate( pVmDirItem->getChangeDateTime() );
+		pOutVmConfig->getVmIdentification()->setCtId(QString::number(Uuid::toVzid(vmUuid)));
 
 		Q_UNUSED(bSynchronizeFileColor);
 
