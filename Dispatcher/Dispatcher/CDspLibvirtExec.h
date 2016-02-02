@@ -76,6 +76,7 @@ public:
 		QTimer::singleShot(msecs, this, SLOT(stop()));
 		m_loop.exec();
 	}
+
 private:
 	Q_OBJECT
 	QEventLoop m_loop;
@@ -104,6 +105,7 @@ struct Future {
 	{
 		return m_status;
 	}
+
 private:
 	int calculateTimeout(int i) const;
 
@@ -129,6 +131,7 @@ struct Request {
 		m_channels = chs;
 	}
 	QString getJson() const;
+
 private:
 	QString m_path;
 	QList<QString> m_args;
@@ -152,6 +155,7 @@ struct Exec {
 
 	Prl::Expected<QString, Libvirt::Agent::Failure>
 		executeInAgent(const QString& cmd);
+
 private:
 	QSharedPointer<virDomain> m_domain;
 };
