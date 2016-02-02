@@ -933,7 +933,7 @@ Unit Unit::getParent() const
 Result Unit::revert()
 {
 	return do_(m_snapshot.data(), boost::bind
-		(&virDomainRevertToSnapshot, _1, 0));
+		(&virDomainRevertToSnapshot, _1, VIR_DOMAIN_SNAPSHOT_REVERT_FORCE));
 }
 
 Result Unit::undefine()
