@@ -362,48 +362,59 @@ void Ct::closeStdin(Task_ExecVm* task)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
+Vm::~Vm()
+{
+	if (m_stdin)
+		delete m_stdin;
+	if (m_stdout)
+		delete m_stdout;
+	if (m_stderr)
+		delete m_stderr;
+}
+
 PRL_RESULT Vm::prepareStd(Task_ExecVm* task_, Vm::Channels& cls_)
 {
 	namespace vm = Libvirt::Instrument::Agent::Vm;
 
 	Libvirt::Result e;
 	vm::Unit u = Libvirt::Kit.vms().at(task_->getVmUuid());
-	if ((e = u.addAsyncExec(m_stdout)).isFailed()
-		|| (e = u.addAsyncExec(m_stderr)).isFailed()) {
+	if ((m_stdout = u.addAsyncExec()) == NULL
+		|| (m_stderr = u.addAsyncExec()) == NULL) {
 		WRITE_TRACE(DBG_FATAL, "Failed to initialize exec stdout/stderr channel!");
-		return e.error().code();
+		return PRL_ERR_FAILURE;
 	}
 
 	if (task_->getRequestFlags() & PFD_STDIN) {
-		if ((e = u.addAsyncExec(m_stdin)).isFailed()) {
+		if ((m_stdin = u.addAsyncExec()) == NULL) {
 			WRITE_TRACE(DBG_FATAL, "Failed to initialize exec stdin channel!");
-			return e.error().code();
+			return PRL_ERR_FAILURE;
 		}
-		m_stdin.open(QIODevice::WriteOnly);
+		m_stdin->open(QIODevice::WriteOnly);
 	}
 
-	if (!m_stdout.open(QIODevice::ReadOnly)
-		|| !m_stderr.open(QIODevice::ReadOnly)) {
+	if (!m_stdout->open(QIODevice::ReadOnly)
+		|| !m_stderr->open(QIODevice::ReadOnly)) {
 		WRITE_TRACE(DBG_FATAL, "Failed to open exec stdout/stderr channel!");
 		return PRL_ERR_VM_EXEC_GUEST_TOOL_NOT_AVAILABLE;
 	}
 
-	cls_ << qMakePair(1, m_stdout.getClient()) << qMakePair(2, m_stderr.getClient());
+	cls_ << qMakePair(1, m_stdout->getClient()) << qMakePair(2, m_stderr->getClient());
 	if (task_->getRequestFlags() & PFD_STDIN)
-		cls_ << qMakePair(0, m_stdin.getClient());
+		cls_ << qMakePair(0, m_stdin->getClient());
 	return PRL_ERR_SUCCESS;
 }
 
 PRL_RESULT Vm::processStd(Task_ExecVm* task_)
 {
-	while (!task_->operationIsCancelled() && (m_stdout.isOpen() || m_stderr.isOpen())) {
+	while (!task_->operationIsCancelled()
+		&& (m_stdout->isOpen() || m_stderr->isOpen())) {
 		if (PRL_FAILED(task_->getLastErrorCode()))
 			return task_->getLastErrorCode();
 
-		QByteArray a = m_stdout.readAll();
+		QByteArray a = m_stdout->readAll();
 		if (a.size())
 			task_->sendToClient(PET_IO_STDOUT_PORTION, a.constData(), a.size());
-		a = m_stderr.readAll();
+		a = m_stderr->readAll();
 		if (a.size())
 			task_->sendToClient(PET_IO_STDERR_PORTION, a.constData(), a.size());
 	}
@@ -413,13 +424,13 @@ PRL_RESULT Vm::processStd(Task_ExecVm* task_)
 
 PRL_RESULT Vm::processStdinData(const char * data, size_t size)
 {
-	m_stdin.write(data, size);
+	m_stdin->write(data, size);
 	return PRL_ERR_SUCCESS;
 }
 
 void Vm::closeStdin(Task_ExecVm* task)
 {
-	m_stdin.close();
+	m_stdin->close();
 	task->wakeUpStage();
 }
 

@@ -306,7 +306,7 @@ struct Unit
 		return Snapshot::List(m_domain);
 	}
 	Runtime getRuntime() const;
-	Result addAsyncExec(Exec::AsyncExecDevice& device_);
+	Exec::AsyncExecDevice* addAsyncExec();
 
 private:
 	char* getConfig(bool runtime_ = false) const;
@@ -460,8 +460,8 @@ struct Hub
 	{
 		return Host(m_link);
 	}
-	int addAsyncExec(const QString & uuid_, QSharedPointer<virDomain> domain_,
-			Vm::Exec::AsyncExecDevice& device_);
+	Vm::Exec::AsyncExecDevice* addAsyncExec(const QString & uuid_,
+		QSharedPointer<virDomain> domain_);
 
 private:
 	QWeakPointer<virConnect> m_link;

@@ -134,11 +134,12 @@ struct Vm
 		AuxDevice;
 	typedef QList< QPair<int, int> > Channels;
 
-	Vm() : m_stdin(), m_stdout(), m_stderr() {}
-	Vm(const Vm& v_) : m_stdin(), m_stdout(), m_stderr()
+	Vm() : m_stdin(NULL), m_stdout(NULL), m_stderr(NULL) {}
+	Vm(const Vm& v_) : m_stdin(NULL), m_stdout(NULL), m_stderr(NULL)
 	{
 		Q_UNUSED(v_);
 	}
+	~Vm();
 
 	void closeStdin(Task_ExecVm*);
 	PRL_RESULT prepareStd(Task_ExecVm* task_, Channels &cls_);
@@ -146,7 +147,7 @@ struct Vm
 	PRL_RESULT processStd(Task_ExecVm* task_);
 
 private:
-	AuxDevice m_stdin, m_stdout, m_stderr;
+	AuxDevice* m_stdin, *m_stdout, *m_stderr;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
