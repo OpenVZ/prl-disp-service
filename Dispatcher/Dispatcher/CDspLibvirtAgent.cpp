@@ -313,15 +313,6 @@ Runtime Unit::getRuntime() const
 	return Runtime(m_domain);
 }
 
-Exec::AsyncExecDevice* Unit::addAsyncExec()
-{
-	QString u;
-	Result r = getUuid(u);
-	if (r.isFailed())
-		return NULL;
-	virDomainRef(m_domain.data());
-	return Kit.addAsyncExec(u, m_domain);
-}
 ///////////////////////////////////////////////////////////////////////////////
 // struct Performance
 
@@ -515,6 +506,11 @@ Guest::runProgram(const Exec::Request& req)
 	return f.value().getResult().get();
 }
 
+Exec::AsyncExecDevice* Guest::addAsyncExec()
+{
+	virDomainRef(m_domain.data());
+	return Kit.addAsyncExec(m_domain);
+}
 ///////////////////////////////////////////////////////////////////////////////
 // struct Exec
 
@@ -700,6 +696,12 @@ namespace Exec
 ///////////////////////////////////////////////////////////////////////////////
 // struct AsyncExecDevice
 
+AsyncExecDevice::AsyncExecDevice(QSharedPointer<AuxChannel> aux_)
+	: m_client(0), m_finished(false), m_channel(aux_)
+{
+	m_channel->addIoChannel(*this);
+}
+
 AsyncExecDevice::~AsyncExecDevice()
 {
 	close();
@@ -709,6 +711,7 @@ AsyncExecDevice::~AsyncExecDevice()
 bool AsyncExecDevice::open(QIODevice::OpenMode mode_)
 {
 	QMutexLocker l(&m_lock);
+	m_finished = false;
 	if (!m_channel->isOpen() && !m_channel->open())
 		return false;
 
@@ -722,13 +725,18 @@ void AsyncExecDevice::close()
 		// write EOF
 		m_channel->writeMessage(QByteArray(), m_client);
 	}
-	m_finished = true;
-	if (!m_data.size())
-		QIODevice::close();
+	QIODevice::close();
 }
 
-qint64 AsyncExecDevice::bytesAvailable() const
+bool AsyncExecDevice::atEnd()
 {
+	QMutexLocker l(&m_lock);
+	return (m_finished && m_data.isEmpty());
+}
+
+qint64 AsyncExecDevice::bytesAvailable()
+{
+	QMutexLocker l(&m_lock);
 	return m_data.size() + QIODevice::bytesAvailable();
 }
 
@@ -745,11 +753,6 @@ qint64 AsyncExecDevice::readData(char *data_, qint64 maxSize_)
 	quint64 c = (maxSize_ > m_data.size()) ? m_data.size() : maxSize_;
 	::memcpy(data_, m_data.constData(), c);
 	m_data.remove(0, c);
-	if (m_finished) {
-		// delayed close, really close when all data is read
-		l.unlock();
-		close();
-	}
 	return c;
 }
 
@@ -794,7 +797,7 @@ void AuxChannel::readMessage(const QByteArray& data_)
 	}
 
 	if (!m_readHdr.length) {
-		d->close(); // eof
+		d->setEof(); // eof
 		restartRead();
 		return readMessage(data_);
 	}
@@ -843,12 +846,11 @@ void AuxChannel::restartRead()
 	m_read = 0;
 }
 
-int AuxChannel::addIoChannel(AsyncExecDevice& device_)
+void AuxChannel::addIoChannel(AsyncExecDevice& device_)
 {
 	QMutexLocker l(&m_lock);
 	m_ioChannels.insert(++m_ioChannelCounter, &device_);
 	device_.setClient(m_ioChannelCounter);
-	return 0;
 }
 
 void AuxChannel::removeIoChannel(int id_)
@@ -1695,18 +1697,17 @@ void Hub::setLink(QSharedPointer<virConnect> value_)
 	m_execs.clear();
 }
 
-Vm::Exec::AsyncExecDevice * Hub::addAsyncExec(const QString & uuid_,
-	QSharedPointer<virDomain> domain_)
+Vm::Exec::AsyncExecDevice * Hub::addAsyncExec(QSharedPointer<virDomain> domain_)
 {
-	if (!m_execs.contains(uuid_))
-		m_execs.insert(uuid_, QSharedPointer<Vm::Exec::AuxChannel>(
+	QString u;
+	if (Vm::Unit(domain_.data()).getUuid(u).isFailed())
+		return NULL;
+	if (!m_execs.contains(u)) {
+		m_execs.insert(u, QSharedPointer<Vm::Exec::AuxChannel>(
 				new Vm::Exec::AuxChannel(domain_, m_link)));
+	}
 
-	QSharedPointer<Vm::Exec::AuxChannel> c = m_execs.value(uuid_);
-	Vm::Exec::AsyncExecDevice *d = new Vm::Exec::AsyncExecDevice(c);
-	if (d)
-		c->addIoChannel(*d);
-	return d;
+	return new Vm::Exec::AsyncExecDevice(m_execs.value(u));
 }
 
 } // namespace Agent

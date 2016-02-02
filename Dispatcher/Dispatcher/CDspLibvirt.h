@@ -144,6 +144,7 @@ struct Guest
 	Prl::Expected<Exec::Result, Error::Simple> runProgram(const Exec::Request& r);
 	Prl::Expected<QString, Error::Simple>
 		execute(const QString& cmd, bool isHmp = true);
+	Exec::AsyncExecDevice* addAsyncExec();
 
 private:
 	QSharedPointer<virDomain> m_domain;
@@ -306,7 +307,6 @@ struct Unit
 		return Snapshot::List(m_domain);
 	}
 	Runtime getRuntime() const;
-	Exec::AsyncExecDevice* addAsyncExec();
 
 private:
 	char* getConfig(bool runtime_ = false) const;
@@ -460,8 +460,7 @@ struct Hub
 	{
 		return Host(m_link);
 	}
-	Vm::Exec::AsyncExecDevice* addAsyncExec(const QString & uuid_,
-		QSharedPointer<virDomain> domain_);
+	Vm::Exec::AsyncExecDevice* addAsyncExec(QSharedPointer<virDomain> domain_);
 
 private:
 	QWeakPointer<virConnect> m_link;

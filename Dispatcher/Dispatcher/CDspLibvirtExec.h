@@ -167,8 +167,7 @@ private:
 struct AuxChannel;
 
 struct AsyncExecDevice: QIODevice {
-	explicit AsyncExecDevice(QSharedPointer<AuxChannel> aux_)
-		: m_client(0), m_finished(false), m_channel(aux_) {}
+	explicit AsyncExecDevice(QSharedPointer<AuxChannel> aux_);
 	~AsyncExecDevice();
 
 	int getClient() const
@@ -179,13 +178,18 @@ struct AsyncExecDevice: QIODevice {
 	{
 		m_client = client_;
 	}
+	void setEof()
+	{
+		m_finished = true;
+	}
 
 	void appendData(const QByteArray &data_);
 
 	// QIODevice interface
 	virtual bool open(QIODevice::OpenMode mode_);
 	virtual void close();
-	virtual qint64 bytesAvailable() const;
+	virtual bool atEnd();
+	virtual qint64 bytesAvailable();
 	virtual qint64 readData(char *data_, qint64 maxSize_);
 	virtual qint64 writeData(const char *data_, qint64 len_);
 
@@ -223,7 +227,7 @@ struct AuxChannel {
 	static void reactEvent(virStreamPtr st_, int events_, void *opaque_);
 	void processEvent(int events_);
 
-	int addIoChannel(AsyncExecDevice& device_);
+	void addIoChannel(AsyncExecDevice& device_);
 	void removeIoChannel(int id_);
 
 	int writeMessage(const QByteArray& data_, int client_);

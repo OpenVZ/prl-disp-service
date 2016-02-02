@@ -362,30 +362,20 @@ void Ct::closeStdin(Task_ExecVm* task)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
-Vm::~Vm()
-{
-	if (m_stdin)
-		delete m_stdin;
-	if (m_stdout)
-		delete m_stdout;
-	if (m_stderr)
-		delete m_stderr;
-}
-
 PRL_RESULT Vm::prepareStd(Task_ExecVm* task_, Vm::Channels& cls_)
 {
 	namespace vm = Libvirt::Instrument::Agent::Vm;
 
 	Libvirt::Result e;
-	vm::Unit u = Libvirt::Kit.vms().at(task_->getVmUuid());
-	if ((m_stdout = u.addAsyncExec()) == NULL
-		|| (m_stderr = u.addAsyncExec()) == NULL) {
+	vm::Guest u = Libvirt::Kit.vms().at(task_->getVmUuid()).getGuest();
+	if ((m_stdout = QSharedPointer<AuxDevice>(u.addAsyncExec())) == NULL
+		|| (m_stderr = QSharedPointer<AuxDevice>(u.addAsyncExec())) == NULL) {
 		WRITE_TRACE(DBG_FATAL, "Failed to initialize exec stdout/stderr channel!");
 		return PRL_ERR_FAILURE;
 	}
 
 	if (task_->getRequestFlags() & PFD_STDIN) {
-		if ((m_stdin = u.addAsyncExec()) == NULL) {
+		if ((m_stdin = QSharedPointer<AuxDevice>(u.addAsyncExec())) == NULL) {
 			WRITE_TRACE(DBG_FATAL, "Failed to initialize exec stdin channel!");
 			return PRL_ERR_FAILURE;
 		}
@@ -407,7 +397,7 @@ PRL_RESULT Vm::prepareStd(Task_ExecVm* task_, Vm::Channels& cls_)
 PRL_RESULT Vm::processStd(Task_ExecVm* task_)
 {
 	while (!task_->operationIsCancelled()
-		&& (m_stdout->isOpen() || m_stderr->isOpen())) {
+		&& (!m_stdout->atEnd() || !m_stderr->atEnd())) {
 		if (PRL_FAILED(task_->getLastErrorCode()))
 			return task_->getLastErrorCode();
 
@@ -418,6 +408,8 @@ PRL_RESULT Vm::processStd(Task_ExecVm* task_)
 		if (a.size())
 			task_->sendToClient(PET_IO_STDERR_PORTION, a.constData(), a.size());
 	}
+	m_stdout->close();
+	m_stderr->close();
 
 	return PRL_ERR_SUCCESS;
 }
