@@ -31,6 +31,7 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <Libraries/PrlNetworking/netconfig.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 
 namespace Libvirt
 {
@@ -608,8 +609,29 @@ QString Exec::Request::getJson() const
 Prl::Expected<QString, Libvirt::Agent::Failure>
 Exec::Exec::executeInAgent(const QString& cmd)
 {
-	char* s = virDomainQemuAgentCommand(m_domain.data(),
-			cmd.toUtf8().constData(), 30, 0);
+	char *s;
+	
+	/*
+	 * Retry unsynced guest agent error.
+	 * This error was returned when agent did not response in time
+	 * for previous command and host-guest virtio serial
+	 * contains data from previous operation.
+	 * Usually the second or third command consumes unexpected data
+	 * and the agent becomes in sync and successfully completes
+	 * next command.
+	 * Requires patched libvirt (with VIR_ERR_AGENT_UNSYNCED err code).
+	 */
+	for (int i = 0; i < 30; ++i) {
+		s = virDomainQemuAgentCommand(m_domain.data(),
+				cmd.toUtf8().constData(), 30, 0);
+		if (s != NULL)
+			break;
+		if (Libvirt::Agent::Failure(PRL_ERR_FAILURE).virErrorCode() !=
+				VIR_ERR_AGENT_UNSYNCED)
+			break;
+		HostUtils::Sleep(1000);
+	}
+
 	if (s == NULL)
 		return Libvirt::Agent::Failure(PRL_ERR_FAILURE);
 
