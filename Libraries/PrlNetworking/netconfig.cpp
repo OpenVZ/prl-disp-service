@@ -292,8 +292,73 @@ void PrlNet::FillDefaultNetworks(CVirtualNetworks *pNetworks)
 	}
 	PrlNet::FillDefaultVirtualNetworkParams(pHostOnlyNetwork, index, isSharedEnabled());
 
-	// Require creation of bridged network from user.
-	WRITE_TRACE(DBG_INFO, "FillDefaultNet: Not creating bridged network");
+	PRL_APPLICATION_MODE appMode = ParallelsDirs::getAppExecuteMode();
+
+	// Nothing to do for now for non-server mode since
+	// vnets are supported only in server
+	if (appMode != PAM_SERVER)
+		return;
+
+	// Add default-bridged for server-mode.
+	// Note: default-bridged is calculated only once.
+	// This is not a "default-adapter", but an adapter that is default
+	// at the moment of calling of this function.
+
+	// The things are too complicated if user have already done something with
+	// virtual networks and adapter which is default now is already
+	// present in some virtual network. It is too dificult and error-prone
+	// to delete the network and other stuff.
+	// Just don't do anything if default adapter is already present
+	// in some vnet.
+	EthAdaptersList ethList;
+	PRL_RESULT prlResult = PrlNet::makeBindableAdapterList(ethList, true);
+	if (PRL_FAILED(prlResult)) {
+		WRITE_TRACE(DBG_FATAL, "FillDefaultNet: Failed to create list of host network adapters: 0x%08x",
+					prlResult);
+		return;
+	}
+
+	EthAdaptersList::iterator itAdapter;
+	prlResult = PrlNet::getDefaultBridgedAdapter(ethList, itAdapter);
+	if (PRL_FAILED(prlResult))
+		prlResult = PrlNet::getFirstAdapter(ethList, itAdapter);
+	if (PRL_FAILED(prlResult)) {
+		WRITE_TRACE(DBG_FATAL, "FillDefaultNet: Failed to determine default adapter: 0x%08x",
+					prlResult);
+		return;
+	}
+
+	QString mac = ethAddressToString(itAdapter->_macAddr);
+	CVirtualNetwork* pNet;
+	pNet = GetNetworkByBoundCardMacAndVLANTag(pNetworks, mac, itAdapter->_vlanTag);
+	if (pNet && pNet->getNetworkID() == PRLNET_SRV_DEFAULT_BRIDGED_ID)
+		return; // it's already ok
+
+	// it is not an error (see comment above about dificulties),
+	// but we should log this event
+	if (pNet) {
+		WRITE_TRACE(DBG_FATAL,
+					"FillDefaultNet: Failed to create %s "
+					"because net '%s' is already using interface %s",
+					PRLNET_SRV_DEFAULT_BRIDGED_ID,
+					QSTR2UTF8(pNet->getNetworkID()),
+					QSTR2UTF8(itAdapter->_systemName));
+		return;
+	}
+
+	// At this point we know that thart default adapter is not used by anyone
+	// Just remove existing default-server network and add it again.
+	pNet = PrlNet::GetVirtualNetworkByID(pNetworks, PRLNET_SRV_DEFAULT_BRIDGED_ID);
+	if (!pNet)
+		pNet = new CVirtualNetwork;
+
+	pNet->setEnabled(true);
+	pNet->setNetworkID(PRLNET_SRV_DEFAULT_BRIDGED_ID);
+	pNet->setNetworkType(PVN_BRIDGED_ETHERNET);
+	pNet->setDescription(PRLNET_SRV_DEFAULT_BRIDGED_DESCRIPTION);
+	pNet->setBoundCardMac(mac);
+	pNet->setVLANTag(itAdapter->_vlanTag);
+	pNetworks->m_lstVirtualNetwork.append(pNet);
 }
 
 

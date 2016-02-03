@@ -1134,18 +1134,9 @@ void Task_RegisterVm::PatchNetworkAdapters()
 
 			case PNA_BRIDGED_ETHERNET:
 				if ( pBridgedNet )
-				{
-					WRITE_TRACE(DBG_INFO, "Auto-select bridged networkID: %s",
-					            QSTR2UTF8(pBridgedNet->getNetworkID()));
 					pNetAdapter->setVirtualNetworkID( pBridgedNet->getNetworkID() );
-				}
 				else
-				{
-					WRITE_TRACE(DBG_FATAL, "No bridged network available");
-					// Set invalid adapter name to prevent from connecting.
-					pNetAdapter->setSystemName("");
 					pNetAdapter->setConnected( PVE::DeviceDisconnected );
-				}
 			break;
 
 			default: continue;
