@@ -47,6 +47,7 @@
 #include <prlxmlmodel/ParallelsObjects/CVmProfileHelper.h>
 #ifdef _LIBVIRT_
 #include "CDspLibvirt.h"
+#include "CDspLibvirtExec.h"
 #endif // _LIBVIRT_
 #include "Tasks/Task_ManagePrlNetService.h"
 #include "Tasks/Task_BackgroundJob.h"
@@ -3621,7 +3622,7 @@ Vm::Action* Factory::operator()(const Request& input_) const
 		return NULL;
 
 	QString c = d.takeFirst();
-	Libvirt::Instrument::Agent::Vm::Exec::Request request(c, d, QByteArray());
+	Libvirt::Instrument::Agent::Vm::Exec::Request request(c, d);
 	request.setRunInShell(t == PVS_GUEST_TYPE_WINDOWS);
 	return Forge(input_).craftGuest(boost::bind(&Libvirt::Instrument::Agent::Vm::Guest::runProgram, _1, request));
 }

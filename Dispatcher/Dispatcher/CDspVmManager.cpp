@@ -42,6 +42,7 @@
 #include "CDspVmInfoDatabase.h"
 #include "CDspVmStateSender.h"
 #include "CDspVmGuestPersonality.h"
+#include "CDspLibvirtExec.h"
 #include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
 #include "Libraries/PrlCommonUtils/CVmQuestionHelper.h"
 #include "Libraries/NonQtUtils/CQuestionHelper.h"
@@ -1172,7 +1173,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmGuestGetNetworkSettings> >::run()
 	bool isWin = 
 		c->getVmSettings()->getVmCommonOptions()->getOsType() == PVS_GUEST_TYPE_WINDOWS;
 	Libvirt::Instrument::Agent::Vm::Exec::Request request(
-		isWin ? "%programfiles%\\Qemu-ga\\prl_nettool.exe" : "prl_nettool", QList<QString>(), QByteArray());
+		isWin ? "%programfiles%\\Qemu-ga\\prl_nettool.exe" : "prl_nettool", QList<QString>());
 	request.setRunInShell(isWin);
 	Prl::Expected<Libvirt::Instrument::Agent::Vm::Exec::Result, Error::Simple> e =
 		Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest().runProgram(request);

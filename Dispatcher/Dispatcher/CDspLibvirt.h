@@ -104,106 +104,25 @@ private:
 	QSharedPointer<virDomain> m_domain;
 };
 
-namespace Exec
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Waiter
-
-struct Waiter : QObject {
-private slots:
-	void stop()
-	{
-		m_loop.exit(0);
-	}
-public:
-	void wait(int msecs)
-	{
-		QTimer::singleShot(msecs, this, SLOT(stop()));
-		m_loop.exec();
-	}
-private:
-	Q_OBJECT
-	QEventLoop m_loop;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Result
-
-struct Result {
-	int exitcode;
-	bool signaled;
-	QByteArray stdOut;
-	QByteArray stdErr;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Future
-
-struct Future {
-	Future(const QSharedPointer<virDomain>& domain_, int pid_): m_domain(domain_), m_pid(pid_)
-	{
-	}
-	::Libvirt::Result wait(int timeout = 0);
-	boost::optional<Result> getResult()
-	{
-		return m_status;
-	}
-private:
-	int calculateTimeout(int i) const;
-
-	QSharedPointer<virDomain> m_domain;
-	int m_pid;
-	boost::optional<Result> m_status;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Request
-
-struct Request {
-	Request (const QString& path, const QList<QString>& args, const QByteArray& stdIn) 
-		: m_path(path), m_args(args), m_stdin(stdIn), m_runInShell(false)
-	{
-	}
-	void setRunInShell(bool val)
-	{
-		m_runInShell = val;
-	}
-	QString getJson() const;
-private:
-	QString m_path;
-	QList<QString> m_args;
-	QByteArray m_stdin;
-	bool m_runInShell;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Exec
-
-struct Exec {
-	explicit Exec (const  QSharedPointer<virDomain>& domain_)
-		: m_domain(domain_)
-	{
-	}
-	Prl::Expected<int, Libvirt::Agent::Failure>
-		runCommand(const Request& r);
-
-	Prl::Expected<boost::optional<Result>, Libvirt::Agent::Failure>
-		getCommandStatus(int pid);
-
-	Prl::Expected<QString, Libvirt::Agent::Failure>
-		executeInAgent(const QString& cmd);
-private:
-	QSharedPointer<virDomain> m_domain;
-};
-
-}; //namespace Exec
-
 namespace Command
 {
 
 struct Future;
 
-} //namespace Command
+} // namespace Command
+
+namespace Exec
+{
+
+struct Future;
+struct Result;
+struct Request;
+struct Device;
+struct ReadDevice;
+struct WriteDevice;
+struct AuxChannel;
+
+} // namespace Exec
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Guest
@@ -227,6 +146,7 @@ struct Guest
 	Prl::Expected<Exec::Result, Error::Simple> runProgram(const Exec::Request& r);
 	Prl::Expected<QString, Error::Simple>
 		execute(const QString& cmd, bool isHmp = true);
+	QSharedPointer<Exec::AuxChannel> addAsyncExec();
 
 private:
 	QSharedPointer<virDomain> m_domain;
@@ -535,17 +455,19 @@ struct Hub
 	{
 		return Interface::List(m_link.toStrongRef());
 	}
-	void setLink(QSharedPointer<virConnect> value_)
-	{
-		m_link = value_.toWeakRef();
-	}
+
+	void setLink(QSharedPointer<virConnect> value_);
+
 	Host host()
 	{
 		return Host(m_link);
 	}
+	QSharedPointer<Vm::Exec::AuxChannel> addAsyncExec(
+		QSharedPointer<virDomain> domain_);
 
 private:
 	QWeakPointer<virConnect> m_link;
+	QMap<QString, QSharedPointer<Vm::Exec::AuxChannel> > m_execs;
 };
 
 } // namespace Agent

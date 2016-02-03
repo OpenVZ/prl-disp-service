@@ -32,6 +32,7 @@
 #include "CProtoSerializer.h"
 #include "CDspClientManager.h"
 #include "CDspVmManager_p.h"
+#include "CDspLibvirtExec.h"
 #include <prlcommon/HostUtils/HostUtils.h>
 
 using namespace Parallels;
@@ -322,7 +323,7 @@ PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Instrument::Agent::Vm::Unit& u)
 PRL_RESULT Task_ChangeSID::run_changeSID_cmd(Libvirt::Instrument::Agent::Vm::Unit& u)
 {
 	Libvirt::Instrument::Agent::Vm::Exec::Request request("%programfiles%\\Qemu-ga\\prl_newsid.exe",  
-		QList<QString>(), QByteArray());
+		QList<QString>());
 	request.setRunInShell(true);
 	Prl::Expected
 		<Libvirt::Instrument::Agent::Vm::Exec::Result, Error::Simple> e =

@@ -35,6 +35,7 @@
 #include "CDspTaskHelper.h"
 #include <prlxmlmodel/VmDirectory/CVmDirectory.h>
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
+#include "CDspLibvirtExec.h"
 
 #include <boost/variant.hpp>
 
@@ -121,24 +122,23 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
+namespace vm = Libvirt::Instrument::Agent::Vm;
+
 struct Vm
 {
 	typedef Libvirt::Instrument::Agent::Vm::Exec::Future
 		Future;
 	typedef boost::optional<Libvirt::Instrument::Agent::Vm::Exec::Result>
 		Result;
-	typedef Libvirt::Instrument::Agent::Vm::Guest
-		Guest;
 
 	void closeStdin(Task_ExecVm*);
+	PRL_RESULT prepare(Task_ExecVm& task_, vm::Exec::Request& request_);
 	PRL_RESULT processStdinData(const char * data, size_t size);
-	const QByteArray& getStdin() const
-	{
-		return m_stdindata;
-	}
+	PRL_RESULT processStd(Task_ExecVm& task_);
 
 private:
-	QByteArray m_stdindata;
+	QSharedPointer<vm::Exec::ReadDevice> m_stdout, m_stderr;
+	QSharedPointer<vm::Exec::WriteDevice> m_stdin;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
