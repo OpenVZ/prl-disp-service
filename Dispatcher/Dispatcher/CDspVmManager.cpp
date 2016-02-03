@@ -775,7 +775,7 @@ void Body<Tag::Libvirt<PVE::DspCmdVmStart> >::run()
 
 		Vcmmd::Frontend<Vcmmd::Unregistered> v(m_context.getVmUuid());
 		if (!v(Vcmmd::Unregistered(ramsize<<20, guarantee<<20)))
-			return m_context.reply(PRL_ERR_FAILURE);
+			return m_context.reply(PRL_ERR_UNABLE_APPLY_MEMORY_GUARANTEE);
 
 		if (!h.savFileExists())
 			e = u.start();

@@ -2855,7 +2855,7 @@ bool VcmmdAction::execute(CDspTaskFailure& feedback_)
 	if (m_vcmmd.update(m_limit, m_guarantee))
 		return Action::execute(feedback_);
 
-	feedback_(PRL_ERR_FAILURE);
+	feedback_(PRL_ERR_UNABLE_APPLY_MEMORY_GUARANTEE);
 	return false;
 }
 

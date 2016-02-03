@@ -115,10 +115,6 @@ struct Unregistered: std::unary_function<Api, bool>
 	{
 		api_.deinit();
 	}
-	static void commit(argument_type api_)
-	{
-		api_.activate();
-	}
 
 private:
 	quint64 m_limit;
@@ -183,6 +179,9 @@ struct Frontend
 private:
 	QScopedPointer<Api> m_api;
 };
+
+template <>
+void Frontend<Unregistered>::commit();
 
 } // namespace Vcmmd
 

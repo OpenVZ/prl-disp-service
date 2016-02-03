@@ -98,5 +98,14 @@ bool Api::treat(int status_, const char* name_)
 	return false;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+template <>
+void Frontend<Unregistered>::commit()
+{
+	m_api.reset();
+}
+
 } // namespace Vcmmd
 
