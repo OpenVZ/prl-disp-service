@@ -74,26 +74,29 @@ bool Api::update(quint64 limit_, quint64 guarantee_)
 
 void Api::deinit()
 {
-	treat(vcmmd_unregister_ve(qPrintable(m_uuid)), "vcmmd_unregister_ve");
+	int r = vcmmd_unregister_ve(qPrintable(m_uuid));
+	treat(r, "vcmmd_unregister_ve", r == VCMMD_ERROR_VE_NOT_REGISTERED ? DBG_WARNING : DBG_FATAL);
 }
 
 void Api::activate()
 {
-	treat(vcmmd_activate_ve(qPrintable(m_uuid)), "vcmmd_activate_ve");
+	int r = vcmmd_activate_ve(qPrintable(m_uuid));
+	treat(r, "vcmmd_activate_ve", r == VCMMD_ERROR_VE_ALREADY_ACTIVE ? DBG_WARNING : DBG_FATAL);
 }
 
 void Api::deactivate()
 {
-	treat(vcmmd_deactivate_ve(qPrintable(m_uuid)), "vcmmd_deactivate_ve");
+	int r = vcmmd_deactivate_ve(qPrintable(m_uuid));
+	treat(r, "vcmmd_deactivate_ve", r == VCMMD_ERROR_VE_NOT_ACTIVE ? DBG_WARNING : DBG_FATAL);
 }
 
-bool Api::treat(int status_, const char* name_)
+bool Api::treat(int status_, const char* name_, int level_)
 {
 	if (0 == status_)
 		return true;
 
 	char e[255] = {};
-	WRITE_TRACE(DBG_FATAL, " failed. %s: %s", name_,
+	WRITE_TRACE(level_, " failed. %s: %s", name_,
 		vcmmd_strerror(status_, e, sizeof(e)));
 	return false;
 }
