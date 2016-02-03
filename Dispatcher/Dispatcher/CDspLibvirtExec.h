@@ -161,14 +161,18 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct AsyncExecDevice - subclass of QIODevice representing asynchronous
-// communications with a program running in guest over aux channel
+// struct Device - subclass of QIODevice representing pipe end of a program
+// running inside guest. Data is transferred via aux channel.
 
 struct AuxChannel;
 
-struct AsyncExecDevice: QIODevice {
-	explicit AsyncExecDevice(QSharedPointer<AuxChannel> aux_);
-	~AsyncExecDevice();
+struct Device: QIODevice {
+	explicit Device(QSharedPointer<AuxChannel> aux_)
+		: m_client(0), m_channel(aux_) { }
+	~Device()
+	{
+		close();
+	}
 
 	int getClient() const
 	{
@@ -178,6 +182,24 @@ struct AsyncExecDevice: QIODevice {
 	{
 		m_client = client_;
 	}
+
+	// QIODevice interface
+	virtual bool open(QIODevice::OpenMode mode_);
+	virtual void close();
+
+protected:
+	int m_client;
+	QSharedPointer<AuxChannel> m_channel;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct ReadDevice - subclass of QIODevice representing read-only pipe end of
+// a program running inside guest. Data is transferred via aux channel.
+
+struct ReadDevice: Device {
+	explicit ReadDevice(QSharedPointer<AuxChannel> aux_)
+		: Device(aux_), m_finished(false) { }
+
 	void setEof()
 	{
 		m_finished = true;
@@ -194,11 +216,24 @@ struct AsyncExecDevice: QIODevice {
 	virtual qint64 writeData(const char *data_, qint64 len_);
 
 private:
-	int m_client;
 	QMutex m_lock;
 	bool m_finished;
-	QSharedPointer<AuxChannel> m_channel;
 	QByteArray m_data;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct WriteDevice - subclass of QIODevice representing write-only pipe end of
+// a program running inside guest. Data is transferred via aux channel.
+
+struct WriteDevice: Device {
+	explicit WriteDevice(QSharedPointer<AuxChannel> aux_)
+		: Device(aux_) { }
+
+	// QIODevice interface
+	virtual bool open(QIODevice::OpenMode mode_);
+	virtual void close();
+	virtual qint64 readData(char *data_, qint64 maxSize_);
+	virtual qint64 writeData(const char *data_, qint64 len_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -227,7 +262,7 @@ struct AuxChannel {
 	static void reactEvent(virStreamPtr st_, int events_, void *opaque_);
 	void processEvent(int events_);
 
-	void addIoChannel(AsyncExecDevice& device_);
+	void addIoChannel(Device& device_);
 	void removeIoChannel(int id_);
 
 	int writeMessage(const QByteArray& data_, int client_);
@@ -244,7 +279,7 @@ private:
 	AuxMessageHeader m_readHdr;
 	quint32 m_read;
 	int m_ioChannelCounter;
-	QMap<int, AsyncExecDevice *> m_ioChannels;
+	QMap<int, Device *> m_ioChannels;
 };
 
 } //namespace Exec

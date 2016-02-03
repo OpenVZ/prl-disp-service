@@ -117,7 +117,9 @@ namespace Exec
 struct Future;
 struct Result;
 struct Request;
-struct AsyncExecDevice;
+struct Device;
+struct ReadDevice;
+struct WriteDevice;
 struct AuxChannel;
 
 } // namespace Exec
@@ -144,7 +146,7 @@ struct Guest
 	Prl::Expected<Exec::Result, Error::Simple> runProgram(const Exec::Request& r);
 	Prl::Expected<QString, Error::Simple>
 		execute(const QString& cmd, bool isHmp = true);
-	Exec::AsyncExecDevice* addAsyncExec();
+	QSharedPointer<Exec::AuxChannel> addAsyncExec();
 
 private:
 	QSharedPointer<virDomain> m_domain;
@@ -460,7 +462,8 @@ struct Hub
 	{
 		return Host(m_link);
 	}
-	Vm::Exec::AsyncExecDevice* addAsyncExec(QSharedPointer<virDomain> domain_);
+	QSharedPointer<Vm::Exec::AuxChannel> addAsyncExec(
+		QSharedPointer<virDomain> domain_);
 
 private:
 	QWeakPointer<virConnect> m_link;

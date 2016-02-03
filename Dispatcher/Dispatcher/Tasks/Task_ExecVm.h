@@ -122,31 +122,23 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
+namespace vm = Libvirt::Instrument::Agent::Vm;
+
 struct Vm
 {
 	typedef Libvirt::Instrument::Agent::Vm::Exec::Future
 		Future;
 	typedef boost::optional<Libvirt::Instrument::Agent::Vm::Exec::Result>
 		Result;
-	typedef Libvirt::Instrument::Agent::Vm::Guest
-		Guest;
-	typedef Libvirt::Instrument::Agent::Vm::Exec::AsyncExecDevice
-		AuxDevice;
-	typedef QList< QPair<int, int> > Channels;
-
-	Vm() : m_stdin(NULL), m_stdout(NULL), m_stderr(NULL) {}
-	Vm(const Vm& v_) : m_stdin(NULL), m_stdout(NULL), m_stderr(NULL)
-	{
-		Q_UNUSED(v_);
-	}
 
 	void closeStdin(Task_ExecVm*);
-	PRL_RESULT prepareStd(Task_ExecVm* task_, Channels &cls_);
+	PRL_RESULT prepare(Task_ExecVm& task_, vm::Exec::Request& request_);
 	PRL_RESULT processStdinData(const char * data, size_t size);
-	PRL_RESULT processStd(Task_ExecVm* task_);
+	PRL_RESULT processStd(Task_ExecVm& task_);
 
 private:
-	QSharedPointer<AuxDevice> m_stdin, m_stdout, m_stderr;
+	QSharedPointer<vm::Exec::ReadDevice> m_stdout, m_stderr;
+	QSharedPointer<vm::Exec::WriteDevice> m_stdin;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
