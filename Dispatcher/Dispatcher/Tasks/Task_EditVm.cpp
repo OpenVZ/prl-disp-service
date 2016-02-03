@@ -3177,13 +3177,9 @@ Routed::Routed(const QString& mac_, const device_type* defaultGwIp4Bridge_,
 
 std::pair<QString, QString> Routed::getIp4Defaults() const
 {
-	QString d = DEFAULT_HOSTROUTED_GATEWAY, r;
-	if (NULL != m_defaultGwIp4Bridge)
-	{
-		r = d + " ";
-		d = "";
-	}
-	return std::make_pair(d.isEmpty() ? "remove " : d + " ", r);
+	QString r = QString(DEFAULT_HOSTROUTED_GATEWAY).remove(QRegExp("/.*$")) + " ";
+	QString d = NULL == m_defaultGwIp4Bridge ? DEFAULT_HOSTROUTED_GATEWAY : "remove";
+	return std::make_pair(d + " ", r);
 }
 
 std::pair<QString, QString> Routed::getIp6Defaults() const
