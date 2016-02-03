@@ -170,8 +170,8 @@ Result Unit::undefine()
 
 Result Unit::getState(VIRTUAL_MACHINE_STATE& dst_) const
 {
-	int s = VIR_DOMAIN_NOSTATE;
-	if (-1 == virDomainGetState(m_domain.data(), &s, NULL, 0))
+	int s = VIR_DOMAIN_NOSTATE, r;
+	if (-1 == virDomainGetState(m_domain.data(), &s, &r, 0))
 		return Failure(PRL_ERR_VM_GET_STATUS_FAILED);
 
 	switch (s)
@@ -184,6 +184,11 @@ Result Unit::getState(VIRTUAL_MACHINE_STATE& dst_) const
 		dst_ = VMS_PAUSED;
 		break;
 	case VIR_DOMAIN_CRASHED:
+		if (r == VIR_DOMAIN_CRASHED_PANICKED)
+		{
+			dst_ = VMS_PAUSED;
+			break;
+		}
 	case VIR_DOMAIN_SHUTDOWN:
 	case VIR_DOMAIN_SHUTOFF:
 		dst_ = VMS_STOPPED;
