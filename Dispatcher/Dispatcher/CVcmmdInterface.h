@@ -73,7 +73,7 @@ struct Api
 	void deactivate();
 
 private:
-	static bool treat(int status_, const char* name_);
+	static bool treat(int status_, const char* name_, int level_ = DBG_FATAL);
 
 	QString m_uuid;
 };
