@@ -1015,7 +1015,7 @@ Prl::Expected<Unit, Error::Simple>
 	if (PRL_FAILED(f))
 		return Error::Simple(f);
 
-	if (VMS_RUNNING == s)
+	if (VMS_RUNNING == s || VMS_PAUSED == s)
 		y.setMemory();
 
 	WRITE_TRACE(DBG_FATAL, "xml:\n%s", y.getResult().toUtf8().data());
