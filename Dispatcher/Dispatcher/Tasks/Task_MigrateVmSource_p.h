@@ -147,59 +147,34 @@ private:
 namespace Libvirt
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Running
-
-struct Running: Trace<Running>
-{
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Connector
-
-struct Connector: QObject, Vm::Connector::Base<Machine_type>
-{
-public slots:
-	void finished(int code, QProcess::ExitStatus status);
-
-private:
-	Q_OBJECT
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
+struct Frontend: Vm::Libvirt::Frontend_<Frontend, Machine_type>
 {
-	typedef Running initial_state;
+	typedef Vm::Libvirt::Running initial_state;
 
-	struct Good
-	{
-	};
-
-	explicit Frontend(const QString& vmname) : m_vmname(vmname)
+	Frontend(const QString& vmname_, VIRTUAL_MACHINE_STATE hint_):
+		m_vmname(vmname_), m_hint(hint_)
 	{
 	}
 
-	Frontend()
+	Frontend(): m_hint(VMS_UNKNOWN)
 	{
 	}
-
-	template <typename Event, typename FSM>
-	void on_exit(const Event&, FSM&);
 
 	void start(const QSharedPointer<QTcpServer>& event_);
 
-	struct transition_table : boost::mpl::vector<
+	struct transition_table: boost::mpl::vector<
 		a_row<initial_state,	QSharedPointer<QTcpServer>,initial_state,&Frontend::start>,
 		_row<initial_state,	Flop::Event,		Flop::State>,
-		_row<initial_state,	Good,			Success>
+		_row<initial_state,	boost::mpl::true_,	Success>
 	>
 	{
 	};
 
 private:
 	QString m_vmname;
-	QSharedPointer<QProcess> m_process;
+	VIRTUAL_MACHINE_STATE m_hint;
 };
 
 } // namespace Libvirt
@@ -236,10 +211,15 @@ public:
 
 	IOSendJob::Handle sendPackage(const SmartPtr<IOPackage>& package_);
 
+signals:
+	void disconnected();
+
 private slots:
 	void reactReceived(const SmartPtr<IOPackage>& package);
 
 	void reactSend(IOClientInterface*, IOSendJob::Result, const SmartPtr<IOPackage>);
+
+	void reactChange(IOSender::State value_);
 
 private:
 	Q_OBJECT
@@ -313,7 +293,7 @@ struct Workflow: Vm::Frontend<Workflow>
 {
 	typedef Pipeline::Frontend<Machine_type, CheckReply> checking_type;
 	typedef Pipeline::Frontend<Machine_type, StartReply> starting_type;
-	typedef Join<Tunnel::Frontend, Libvirt::Frontend> moving_type;
+	typedef Join<boost::mpl::vector<Tunnel::Frontend, Libvirt::Frontend> > moving_type;
 
 	typedef boost::msm::back::state_machine<checking_type> checkStep_type;
 	typedef boost::msm::back::state_machine<starting_type> startStep_type;
@@ -344,11 +324,11 @@ struct Workflow: Vm::Frontend<Workflow>
 
 struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 {
-	typedef Join<Workflow, Pipeline::Frontend<Machine_type, PeerFinished> >
+	typedef Join<boost::mpl::vector<
+			Workflow,
+			Pipeline::Frontend<Machine_type, PeerFinished>,
+			Pipeline::Frontend<Machine_type, Pump::FinishCommand_type> > >
 		join_type;
-	typedef boost::msm::back::state_machine<Workflow> workflow_type;
-	typedef boost::msm::back::state_machine<Pipeline::Frontend
-		<Machine_type, PeerFinished> > finishing_type;
 	typedef boost::msm::back::state_machine<join_type> initial_state;
 
 	Frontend(Task_MigrateVmSource &task, Tunnel::IO& io_): m_io(&io_), m_task(&task)
@@ -364,13 +344,14 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	template <typename Event, typename FSM>
 	void on_exit(const Event&, FSM&);
 
+	void setResult(const msmf::none&);
 	void setResult(const Flop::Event& value_);
 
 	struct transition_table : boost::mpl::vector<
 		// wire error exits to FINISHED immediately
 		a_row<initial_state::exit_pt<Flop::State>, Flop::Event, Finished, &Frontend::setResult>,
 		// wire success exits sequentially up to FINISHED
-		_row<initial_state::exit_pt<Success>,	msmf::none,	Finished>
+		a_row<initial_state::exit_pt<Success>,	msmf::none,	Finished, &Frontend::setResult>
 	>
 	{
 	};

@@ -84,6 +84,10 @@ public:
 	virtual QString  getVmUuid() {return m_sVmUuid;}
 
 	Migrate::Vm::Source::Content::Copier* createCopier();
+	quint32 getFlags() const
+	{
+		return m_nMigrationFlags;
+	}
 
 protected:
 	virtual PRL_RESULT prepareTask();
@@ -102,10 +106,9 @@ private:
 	void releaseLocks();
 
 	PRL_RESULT prepareStart();
-
-	PRL_RESULT reactCheckReply(const SmartPtr<IOPackage>& package);
-	PRL_RESULT reactStartReply(const SmartPtr<IOPackage>& package);
-	PRL_RESULT reactPeerFinished(const SmartPtr<IOPackage>& package);
+	PRL_RESULT confirmFinish(const SmartPtr<IOPackage>& package_);
+	PRL_RESULT reactCheckReply(const SmartPtr<IOPackage>& package_);
+	PRL_RESULT reactStartReply(const SmartPtr<IOPackage>& package_);
 
 signals:
 	void cancel();
