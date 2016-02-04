@@ -87,7 +87,7 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		template <class Event, class Fsm>
 		void on_entry(Event const&, Fsm& fsm_)
 		{
-			WRITE_TRACE(DBG_INFO, "VM '%s' changed state to %x", qPrintable(fsm_.m_name), N);
+			WRITE_TRACE(DBG_INFO, "VM '%s' changed state to %s", qPrintable(fsm_.m_name), PRL_VM_STATE_TO_STRING(N));
 		}
 	};
 
@@ -311,18 +311,33 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	//      +-----------+----------------------+-----------+--------+
 	> {};
 
-	template <class Event>
-	void no_transition(const Event&, Frontend&, int state_)
+	template <class Event, class FSM>
+	void no_transition(const Event&, FSM& fms_, int state_)
 	{
-		typedef typename boost::msm::back::recursive_get_transition_table<Frontend>::type recursive_stt;
+		typedef typename boost::msm::back::recursive_get_transition_table<FSM>::type recursive_stt;
 		typedef typename boost::msm::back::generate_state_set<recursive_stt>::type all_states;
 		std::string n;
-		boost::mpl::for_each<all_states,boost::msm::wrap<boost::mpl::_1> >
+		boost::mpl::for_each<all_states,boost::msm::wrap<boost::mpl::placeholders::_1> >
 			(boost::msm::back::get_state_name<recursive_stt>(n, state_));
 
-		WRITE_TRACE(DBG_FATAL, "no transition from state '%s':%d on event '%s'\n",
-			qPrintable(demangle(n.c_str())), state_,
-			qPrintable(demangle(typeid(Event).name())));
+		WRITE_TRACE(DBG_FATAL, "VM '%s': no transition from state '%s' on event 'Event<%s>'\n",
+			qPrintable(fms_.m_name),
+			qPrintable(demangle(n.c_str())),
+			PRL_VM_STATE_TO_STRING(Event::value));
+	}
+
+	template <class FSM>
+	void no_transition(const Switch&, FSM& fms_, int state_)
+	{
+		typedef typename boost::msm::back::recursive_get_transition_table<FSM>::type recursive_stt;
+		typedef typename boost::msm::back::generate_state_set<recursive_stt>::type all_states;
+		std::string n;
+		boost::mpl::for_each<all_states,boost::msm::wrap<boost::mpl::placeholders::_1> >
+			(boost::msm::back::get_state_name<recursive_stt>(n, state_));
+
+		WRITE_TRACE(DBG_FATAL, "VM '%s': unable to prepare for snapshot-switch from state '%s'",
+			qPrintable(fms_.m_name),
+			qPrintable(demangle(n.c_str())));
 	}
 
 	const QString& getUuid() const
