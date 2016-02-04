@@ -1029,6 +1029,9 @@ Prl::Expected<Libvirt::Domain::Xml::Qemucdev, ::Error::Simple>
 		output.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceUnix);
 		a.setMode(QString("bind"));
 		break;
+	case PVE::RealSerialPort:
+		output.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceDev);
+		break;
 	default:
 		return ::Error::Simple(PRL_ERR_UNIMPLEMENTED);
 	}

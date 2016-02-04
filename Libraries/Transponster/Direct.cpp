@@ -407,6 +407,9 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice936::
 	case Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceUnix:
 		t = PVE::SerialSocket;
 		break;
+	case Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceDev:
+		t = PVE::RealSerialPort;
+		break;
 	default:
 		return PRL_ERR_SUCCESS;
 	}
