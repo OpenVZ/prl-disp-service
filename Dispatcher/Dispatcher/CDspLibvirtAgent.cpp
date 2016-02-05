@@ -206,6 +206,21 @@ char* Unit::getConfig(bool runtime_) const
 		| (runtime_ ? 0 : VIR_DOMAIN_XML_INACTIVE));
 }
 
+Exec::AuxChannel* Unit::getChannel(const QString& path_) const
+{
+	virStreamPtr stream = virStreamNew(getLink().data(), VIR_STREAM_NONBLOCK);
+	if (!stream)
+		return NULL;
+
+	int ret = virDomainOpenChannel(m_domain.data(), QSTR2UTF8(path_), stream, 0);
+	if (ret) {
+		virStreamFree(stream);
+		return NULL;
+	}
+
+	return new Exec::AuxChannel(stream);
+}
+
 QSharedPointer<virConnect> Unit::getLink() const
 {
 	QSharedPointer<virConnect> output;
@@ -312,6 +327,11 @@ List Unit::up() const
 {
 	QSharedPointer<virConnect> x = getLink();
 	return x.isNull() ? Kit.vms() : List(x);
+}
+
+Guest Unit::getGuest() const
+{
+	return Guest(m_domain);
 }
 
 Runtime Unit::getRuntime() const
@@ -510,12 +530,6 @@ Guest::runProgram(const Exec::Request& req)
 	if (r.isFailed())
 		return r.error();
 	return f.value().getResult().get();
-}
-
-QSharedPointer<Exec::AuxChannel> Guest::addAsyncExec()
-{
-	virDomainRef(m_domain.data());
-	return Kit.addAsyncExec(m_domain);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -727,7 +741,7 @@ namespace Exec
 bool Device::open(QIODevice::OpenMode mode_)
 {
 	m_channel->addIoChannel(*this);
-	if (!m_channel->isOpen() && !m_channel->open()) {
+	if (!m_channel->isOpen()) {
 		m_channel->removeIoChannel(m_client);
 		return false;
 	}
@@ -834,6 +848,14 @@ enum {
 	AUX_MAGIC_NUMBER = 0x4B58B9CA
 };
 
+AuxChannel::AuxChannel(virStreamPtr& stream_)
+	: m_stream(stream_), m_read(0), m_ioChannelCounter(0)
+{
+	virStreamEventAddCallback(m_stream,
+		VIR_STREAM_EVENT_HANGUP | VIR_STREAM_EVENT_ERROR | VIR_STREAM_EVENT_READABLE,
+		&reactEvent, this, NULL);
+}
+
 void AuxChannel::readMessage(const QByteArray& data_)
 {
 	if (m_read < (int)sizeof(AuxMessageHeader)) {
@@ -887,9 +909,7 @@ void AuxChannel::processEvent(int events_)
 {
 	QMutexLocker l(&m_lock);
 	if (events_ & (VIR_STREAM_EVENT_HANGUP | VIR_STREAM_EVENT_ERROR)) {
-		virStreamAbort(m_stream);
-		virStreamFree(m_stream);
-		m_stream = NULL;
+		close();
 		return;
 	}
 	if (events_ & VIR_STREAM_EVENT_READABLE) {
@@ -899,8 +919,8 @@ void AuxChannel::processEvent(int events_)
 			got = virStreamRecv(m_stream, buf, sizeof(buf));
 			if (got > 0)
 				readMessage(QByteArray(buf, got));
-			else if (got == 0)
-				virStreamFinish(m_stream);
+			else if (got == 0 || got == -1)
+				close();
 		} while (got == sizeof(buf));
 	}
 }
@@ -927,31 +947,15 @@ void AuxChannel::removeIoChannel(int id_)
 
 bool AuxChannel::isOpen()
 {
-	QMutexLocker l(&m_lock);
 	return (m_stream != NULL);
 }
 
-bool AuxChannel::open()
+void AuxChannel::close()
 {
-	QMutexLocker l(&m_lock);
-	if (m_stream)
-		return true;
-
-	m_stream = virStreamNew(m_link.data(), VIR_STREAM_NONBLOCK);
-	if (!m_stream)
-		return false;
-
-	int ret = virDomainOpenChannel(m_domain.data(), "org.qemu.guest_agent.1", m_stream, 0);
-	if (ret) {
-		virStreamFree(m_stream);
-		m_stream = NULL;
-		return false;
-	}
-
-	virStreamEventAddCallback(m_stream,
-		VIR_STREAM_EVENT_HANGUP | VIR_STREAM_EVENT_ERROR | VIR_STREAM_EVENT_READABLE,
-		&reactEvent, this, NULL);
-	return true;
+	virStreamEventRemoveCallback(m_stream);
+	virStreamFinish(m_stream);
+	virStreamFree(m_stream);
+	m_stream = NULL;
 }
 
 void AuxChannel::skipTrash(const QByteArray& data_)
@@ -986,9 +990,7 @@ int AuxChannel::writeMessage(const QByteArray& data_, int client_)
 	QMutexLocker l(&m_lock);
 	int sent = virStreamSend(m_stream, d.constData(), d.size());
 	if (sent < 0) {
-		virStreamAbort(m_stream);
-		virStreamFree(m_stream);
-		m_stream = NULL;
+		close();
 		return -1;
 	}
 	return sent;
@@ -996,9 +998,7 @@ int AuxChannel::writeMessage(const QByteArray& data_, int client_)
 
 AuxChannel::~AuxChannel()
 {
-	virStreamFinish(m_stream);
-	virStreamFree(m_stream);
-	virDomainFree(m_domain.data());
+	close();
 }
 
 }; //namespace Exec
@@ -1761,17 +1761,23 @@ void Hub::setLink(QSharedPointer<virConnect> value_)
 	m_execs.clear();
 }
 
-QSharedPointer<Vm::Exec::AuxChannel> Hub::addAsyncExec(QSharedPointer<virDomain> domain_)
+QSharedPointer<Vm::Exec::AuxChannel> Hub::addAsyncExec(const Vm::Unit &unit_)
 {
 	QString u;
-	if (Vm::Unit(domain_.data()).getUuid(u).isFailed())
-		return QSharedPointer<Vm::Exec::AuxChannel>();
-	if (!m_execs.contains(u)) {
-		m_execs.insert(u, QSharedPointer<Vm::Exec::AuxChannel>(
-				new Vm::Exec::AuxChannel(domain_, m_link)));
+	if (unit_.getUuid(u).isFailed())
+		return QSharedPointer<Vm::Exec::AuxChannel>(NULL);
+	if (m_execs.contains(u)) {
+		QSharedPointer<Vm::Exec::AuxChannel> c = m_execs.value(u).toStrongRef();
+		if (c)
+			return c;
+		m_execs.remove(u);
 	}
 
-	return m_execs.value(u);
+	QSharedPointer<Vm::Exec::AuxChannel> p(
+			unit_.getChannel(QString("org.qemu.guest_agent.1")));
+	if (p)
+		m_execs.insert(u, p.toWeakRef());
+	return p;
 }
 
 } // namespace Agent

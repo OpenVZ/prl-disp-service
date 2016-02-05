@@ -99,6 +99,7 @@
 #endif
 
 #include "CDspVzHelper.h"
+#include "CDspLibvirtExec.h"
 
 using namespace DspVm;
 using namespace Parallels;

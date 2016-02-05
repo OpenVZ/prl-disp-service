@@ -104,76 +104,6 @@ private:
 	QSharedPointer<virDomain> m_domain;
 };
 
-namespace Command
-{
-
-struct Future;
-
-} // namespace Command
-
-namespace Exec
-{
-
-struct Future;
-struct Result;
-struct Request;
-struct Device;
-struct ReadDevice;
-struct WriteDevice;
-struct AuxChannel;
-
-} // namespace Exec
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Guest
-
-struct Guest
-{
-	explicit Guest(const  QSharedPointer<virDomain>& domain_): m_domain(domain_)
-	{
-	}
-
-	Result traceEvents(bool enable_); 
-	Result dumpScreen(const QString& path);
-	Prl::Expected<QString, ::Error::Simple>
-		dumpMemory(const QString& path);
-	Prl::Expected<Command::Future, ::Error::Simple>
-		dumpState(const QString& path_);
-	Result setUserPasswd(const QString& user_, const QString& passwd_, bool crypted_);
-	Result checkAgent();
-	Prl::Expected<QString, Error::Simple> getAgentVersion();
-	Prl::Expected<Exec::Future, Error::Simple> startProgram(const Exec::Request& r);
-	Prl::Expected<Exec::Result, Error::Simple> runProgram(const Exec::Request& r);
-	Prl::Expected<QString, Error::Simple>
-		execute(const QString& cmd, bool isHmp = true);
-	QSharedPointer<Exec::AuxChannel> addAsyncExec();
-
-private:
-	QSharedPointer<virDomain> m_domain;
-};
-
-namespace Command
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Future
-
-struct Future
-{
-	Future(const QSharedPointer<virDomain>& domain_,
-		const std::string& status_ = std::string())
-	: m_guest(domain_), m_status(status_)
-	{
-	}
-
-	Result wait(int timeout_);
-
-private:
-	Guest m_guest;
-	std::string m_status;
-};
-
-} // namespace Command
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hotplug
 
@@ -270,10 +200,18 @@ private:
 
 } // namespace Snapshot
 
+namespace Exec
+{
+
+struct AuxChannel;
+
+} // namespace Exec
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
 struct List;
+struct Guest;
 struct Unit
 {
 	explicit Unit(virDomainPtr domain_ = NULL);
@@ -300,15 +238,13 @@ struct Unit
 	{
 		return Performance(m_domain);
 	}
-	Guest getGuest() const
-	{
-		return Guest(m_domain);
-	}
+	Guest getGuest() const;
 	Snapshot::List getSnapshot() const
 	{
 		return Snapshot::List(m_domain);
 	}
 	Runtime getRuntime() const;
+	Exec::AuxChannel* getChannel(const QString& path_) const;
 
 private:
 	char* getConfig(bool runtime_ = false) const;
@@ -462,12 +398,11 @@ struct Hub
 	{
 		return Host(m_link);
 	}
-	QSharedPointer<Vm::Exec::AuxChannel> addAsyncExec(
-		QSharedPointer<virDomain> domain_);
+	QSharedPointer<Vm::Exec::AuxChannel> addAsyncExec(const Vm::Unit& unit_);
 
 private:
 	QWeakPointer<virConnect> m_link;
-	QMap<QString, QSharedPointer<Vm::Exec::AuxChannel> > m_execs;
+	QMap<QString, QWeakPointer<Vm::Exec::AuxChannel> > m_execs;
 };
 
 } // namespace Agent

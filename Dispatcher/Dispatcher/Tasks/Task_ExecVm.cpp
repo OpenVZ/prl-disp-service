@@ -360,8 +360,8 @@ void Ct::closeStdin(Task_ExecVm* task)
 
 PRL_RESULT Vm::prepare(Task_ExecVm& task_, vm::Exec::Request& request_)
 {
-	vm::Guest g = Libvirt::Kit.vms().at(task_.getVmUuid()).getGuest();
-	QSharedPointer<vm::Exec::AuxChannel> c(g.addAsyncExec());
+	vm::Unit u = Libvirt::Kit.vms().at(task_.getVmUuid());
+	QSharedPointer<vm::Exec::AuxChannel> c(Libvirt::Kit.addAsyncExec(u));
 
 	m_stdout = QSharedPointer<vm::Exec::ReadDevice>(new vm::Exec::ReadDevice(c));
 	m_stderr = QSharedPointer<vm::Exec::ReadDevice>(new vm::Exec::ReadDevice(c));
