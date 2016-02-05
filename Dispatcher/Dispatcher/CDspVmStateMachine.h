@@ -262,7 +262,7 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
 	msmf::Row<Stopped,    Event<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesDown, Runtime, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >,
 
 	msmf::Row<Stopped,    Event<VMS_MOUNTED>,    Mounted,    Notification >,
 
