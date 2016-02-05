@@ -840,44 +840,6 @@ QSharedPointer<Domain> Coarse::access(virDomainPtr domain_)
 namespace Monitor
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct State
-
-State::State(const QSharedPointer<Model::System>& system_): m_system(system_)
-{
-	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
-	if (s.isValid())
-	{
-		this->connect(s.getPtr(),
-			SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
-			SLOT(updateConfig(unsigned, unsigned, QString, QString)));
-	}
-}
-
-void State::updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_)
-{
-	Q_UNUSED(dirUuid_);
-
-	if (VMS_RUNNING != newState_ || oldState_ == newState_)
-		return;
-
-	QSharedPointer<Model::Domain> d = m_system->find(vmUuid_);
-	if (d.isNull())
-		return;
-
-	boost::optional<CVmConfiguration> y = d->getVm().getConfig();
-	if (!y)
-		return;
-
-	CVmConfiguration runtime;
-	Instrument::Agent::Vm::Unit v = Kit.vms().at(vmUuid_);
-	if (v.getConfig(runtime, true).isFailed())
-		return;
-
-	Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(y.get(), runtime);
-	d->setConfig(y.get());
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Link
 
 Link::Link(int timeout_)
@@ -933,7 +895,7 @@ void Link::disconnect(virConnectPtr libvirtd_, int reason_, void* opaque_)
 
 Domains::Domains(int timeout_): m_eventState(-1), m_eventReboot(-1),
 	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
-	m_view(new Model::System()), m_stateWatcher(m_view)
+	m_view(new Model::System())
 {
 	m_timer.stop();
 	m_timer.setInterval(timeout_);

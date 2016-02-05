@@ -310,19 +310,6 @@ enum
 	DEFAULT_TIMEOUT = 1000
 };
 
-struct State: QObject
-{
-	explicit State(const QSharedPointer<Model::System>& system_);
-
-public slots:
-	void updateConfig(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_);
-
-private:
-	Q_OBJECT
-
-	QSharedPointer<Model::System> m_system;
-};
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Link
 
@@ -370,7 +357,6 @@ private:
 	int m_eventDeviceDisconnect;
 	QWeakPointer<virConnect> m_libvirtd;
 	QSharedPointer<Model::System> m_view;
-	State m_stateWatcher;
 };
 
 } // namespace Monitor

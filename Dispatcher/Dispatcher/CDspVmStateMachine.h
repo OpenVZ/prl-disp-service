@@ -217,6 +217,27 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		}
 	};
 
+	// Action
+	struct Runtime
+	{
+		template<class Event, class FromState, class ToState>
+		void operator()(const Event&, Frontend& fsm_, FromState&, ToState&)
+		{
+			boost::optional<CVmConfiguration> y = fsm_.getConfig();
+			if (!y)
+				return;
+
+			CVmConfiguration runtime;
+			Libvirt::Instrument::Agent::Vm::Unit v = Libvirt::Kit.vms().at(fsm_.getUuid());
+			if (v.getConfig(runtime, true).isFailed())
+				return;
+
+			WRITE_TRACE(DBG_INFO, "updating config from runtime for VM '%s'", qPrintable(fsm_.m_name));
+			Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(y.get(), runtime);
+			fsm_.setConfig(y.get());
+		}
+	};
+
 	struct transition_table : boost::mpl::vector<
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
@@ -235,13 +256,13 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Notification> > >,
 
 	msmf::Row<Unknown,    Event<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
 	msmf::Row<Stopped,    Event<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesDown, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesDown, Runtime, Notification> > >,
 
 	msmf::Row<Stopped,    Event<VMS_MOUNTED>,    Mounted,    Notification >,
 
@@ -254,7 +275,7 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Notification> > >,
 
 	msmf::Row<Suspended,  Event<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
@@ -304,10 +325,10 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Notification> > >,
 
 	msmf::Row<Reverting,  Event<VMS_PAUSED>,     Paused,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Runtime, Notification> > >,
 
 	msmf::Row<Reverting,  Event<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Notification> > >
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >
 	//      +-----------+----------------------+-----------+--------+
 	> {};
 
