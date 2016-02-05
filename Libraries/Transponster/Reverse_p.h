@@ -158,10 +158,27 @@ struct Model
 	{
 	}
 
+	const char* getTarget() const
+	{
+		switch (m_dataSource->getInterfaceType())
+		{
+		case PMS_IDE_DEVICE:
+			return "hd";
+		case PMS_SCSI_DEVICE:
+			return "sd";
+		case PMS_SATA_DEVICE:
+			return "sd";
+		case PMS_VIRTIO_BLOCK_DEVICE:
+			return "vd";
+		default:
+			return "xx";
+		}
+	}
+
 	QString getTargetName() const
 	{
-		return QString(Flavor<T>::getTarget())
-			+ Parallels::toBase26(m_dataSource->getIndex());
+		return getTarget()
+			+ Parallels::toBase26(m_dataSource->getStackIndex());
 	}
 	QString getImageFile() const
 	{
