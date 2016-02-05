@@ -289,15 +289,15 @@ struct Essence<PVE::DspCmdVmDevConnect>:
 			CVmOpticalDisk y;
 			StringToElement<CVmOpticalDisk* >(&y, getCommand()->GetDeviceConfig());
 			output = getAgent().getRuntime().update(y);
-		}
 			break;
+		}
 		case PDE_HARD_DISK:
 		{
 			CVmHardDisk y;
 			StringToElement<CVmHardDisk* >(&y, getCommand()->GetDeviceConfig());
 			output = getAgent().getRuntime().plug(y);
-		}
 			break;
+		}
 		default:
 			output = Error::Simple(PRL_ERR_UNIMPLEMENTED);
 		}
@@ -747,7 +747,13 @@ namespace Timeout
 template<>
 void Reactor<PVE::DspCmdVmStop>::react()
 {
-	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).kill());
+	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_context.getVmUuid());
+	Libvirt::Result e = u.getState(s);
+	if (e.isSucceed() && s != VMS_STOPPED)
+		e = u.kill();
+
+	m_context.reply(e);
 }
 
 template<>
