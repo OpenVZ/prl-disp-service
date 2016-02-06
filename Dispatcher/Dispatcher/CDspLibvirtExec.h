@@ -240,7 +240,7 @@ struct WriteDevice: Device {
 // struct AuxChannel - wrapper over libvirt's Stream interface over aux channel
 // for communication with guest's programs
 
-struct AuxChannel {
+struct AuxChannel : QObject {
 
 	typedef struct AuxMessageHeader
 	{
@@ -249,15 +249,11 @@ struct AuxChannel {
 		quint32 length;
 	} AuxMessageHeader;
 
-	AuxChannel(QSharedPointer<virDomain>& domain_, QWeakPointer<virConnect>& link_)
-		: m_domain(domain_), m_link(link_), m_stream(NULL)
-		, m_read(0), m_ioChannelCounter(0)
-	{
-	}
+	explicit AuxChannel(virStreamPtr& stream_);
 	~AuxChannel();
 
-	bool open();
 	bool isOpen();
+	void close();
 
 	static void reactEvent(virStreamPtr st_, int events_, void *opaque_);
 	void processEvent(int events_);
@@ -268,13 +264,12 @@ struct AuxChannel {
 	int writeMessage(const QByteArray& data_, int client_);
 
 private:
+	Q_OBJECT
 	void readMessage(const QByteArray& data_);
 	void skipTrash(const QByteArray& data_);
 	void restartRead();
 
 	QMutex m_lock;
-	QSharedPointer<virDomain> m_domain;
-	QWeakPointer<virConnect> m_link;
 	virStreamPtr m_stream;
 	AuxMessageHeader m_readHdr;
 	quint32 m_read;
@@ -283,6 +278,63 @@ private:
 };
 
 } //namespace Exec
+
+namespace Command
+{
+
+struct Future;
+
+} // namespace Command
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Guest
+
+struct Unit;
+struct Guest
+{
+	explicit Guest(const QSharedPointer<virDomain>& domain_): m_domain(domain_)
+	{
+	}
+
+	Result traceEvents(bool enable_); 
+	Result dumpScreen(const QString& path);
+	Prl::Expected<QString, ::Error::Simple>
+		dumpMemory(const QString& path);
+	Prl::Expected<Command::Future, ::Error::Simple>
+		dumpState(const QString& path_);
+	Result setUserPasswd(const QString& user_, const QString& passwd_, bool crypted_);
+	Result checkAgent();
+	Prl::Expected<QString, Error::Simple> getAgentVersion();
+	Prl::Expected<Exec::Future, Error::Simple> startProgram(const Exec::Request& r);
+	Prl::Expected<Exec::Result, Error::Simple> runProgram(const Exec::Request& r);
+	Prl::Expected<QString, Error::Simple>
+		execute(const QString& cmd, bool isHmp = true);
+
+private:
+	QSharedPointer<virDomain> m_domain;
+};
+
+namespace Command
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Future
+
+struct Future
+{
+	Future(const QSharedPointer<virDomain>& domain_,
+		const std::string& status_ = std::string())
+	: m_guest(domain_), m_status(status_)
+	{
+	}
+
+	Result wait(int timeout_);
+
+private:
+	Guest m_guest;
+	std::string m_status;
+};
+
+} // namespace Command
 
 } //namespace Vm
 } //namespace Agent

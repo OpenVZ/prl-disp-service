@@ -74,6 +74,7 @@
 
 
 #include "CDspVzHelper.h"
+#include "CDspLibvirtExec.h"
 
 #ifndef EXTERNALLY_AVAILABLE_BUILD
 
