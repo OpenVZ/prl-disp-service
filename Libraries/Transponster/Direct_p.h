@@ -256,7 +256,8 @@ private:
 
 struct Floppy: private Clustered<CVmFloppyDisk>
 {
-	explicit Floppy(CVmHardware& hardware_): m_hardware(&hardware_)
+	Floppy(CVmHardware& hardware_, Clip& clip_):
+		m_hardware(&hardware_), m_clip(&clip_)
 	{
 	}
 
@@ -264,6 +265,7 @@ struct Floppy: private Clustered<CVmFloppyDisk>
 
 private:
 	CVmHardware* m_hardware;
+	Clip* m_clip;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

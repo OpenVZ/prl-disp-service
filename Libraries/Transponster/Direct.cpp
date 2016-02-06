@@ -92,6 +92,11 @@ PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	d->setItemId(m_hardware->m_lstFloppyDisks.size());
 	d->setIndex(m_hardware->m_lstFloppyDisks.size());
 	m_hardware->addFloppyDisk(d);
+	if (disk_.getBoot())
+	{
+		m_clip->getBootSlot(disk_.getBoot().get())
+			.set(d->getDeviceType(), d->getIndex());
+	}
 	d->setTargetDeviceName(disk_.getTarget().getDev());
 	return PRL_ERR_SUCCESS;
 }
@@ -454,7 +459,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice936::
 		case Libvirt::Domain::Xml::EDeviceCdrom:
 			return Cdrom(*h, *m_clip)(disk_.getValue());
 		case Libvirt::Domain::Xml::EDeviceFloppy:
-			return Floppy(*h)(disk_.getValue());
+			return Floppy(*h, *m_clip)(disk_.getValue());
 		}
 	}
 	return PRL_ERR_UNIMPLEMENTED;
