@@ -32,60 +32,520 @@
 #ifndef __CDSPVMMANAGER_P_H__
 #define __CDSPVMMANAGER_P_H__
 
+#include "CDspClient.h"
 #include "CDspLibvirt.h"
+#include <boost/mpl/copy.hpp>
+#include <boost/mpl/fold.hpp>
+#include <boost/mpl/pair.hpp>
+#include <boost/mpl/vector.hpp>
+#include <boost/mpl/inserter.hpp>
+#include <prlcommon/Std/SmartPtr.h>
+#include <Libraries/ProtoSerializer/CProtoSerializer.h>
+
 
 namespace Command
 {
-namespace Vm
+///////////////////////////////////////////////////////////////////////////////
+// struct Context
+
+struct Context
 {
-namespace Shutdown
+	Context(const SmartPtr<CDspClient>& session_, const SmartPtr<IOPackage>& package_);
+
+	const CVmIdent& getIdent() const
+	{
+		return m_ident;
+	}
+	const QString& getVmUuid() const
+	{
+		return m_ident.first;
+	}
+	const QString& getDirectoryUuid() const
+	{
+		return m_ident.second;
+	}
+	const SmartPtr<CDspClient>& getSession() const
+	{
+		return m_session;
+	}
+	const SmartPtr<IOPackage>& getPackage() const
+	{
+		return m_package;
+	}
+	const CProtoCommandPtr& getRequest() const
+	{
+		return m_request;
+	}
+	PVE::IDispatcherCommands getCommand() const
+	{
+		return m_request->GetCommandId();
+	}
+	void reply(int code_) const
+	{
+		m_session->sendSimpleResponse(m_package, code_);
+	}
+	void reply(const CVmEvent& error_) const;
+	void reply(const Libvirt::Result& result_) const;
+
+private:
+	SmartPtr<CDspClient> m_session;
+	SmartPtr<IOPackage> m_package;
+	CProtoCommandPtr m_request;
+	CVmIdent m_ident;
+};
+
+namespace Tag
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Handler
+// struct Simple
 
-struct Handler: QObject
+template<PVE::IDispatcherCommands X>
+struct Simple
 {
-	Handler(const QString& uuid_, QEventLoop& loop_): m_uuid(uuid_), m_loop(&loop_)
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct General
+
+template<PVE::IDispatcherCommands X>
+struct General
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct CreateDspVm
+
+template<PVE::IDispatcherCommands X>
+struct CreateDspVm: General<X>
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct GuestSession
+
+struct GuestSession
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Special
+
+template<PVE::IDispatcherCommands X>
+struct Special
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Libvirt
+
+template<PVE::IDispatcherCommands X>
+struct Libvirt
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct ForK
+
+template<class T>
+struct Fork
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+template<class T, class U>
+struct State
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Timeout
+
+template<PVE::IDispatcherCommands X, class T>
+struct Timeout
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Reply
+
+template<class T>
+struct Reply
+{
+};
+
+} // namespace Tag
+
+namespace Need
+{
+///////////////////////////////////////////////////////////////////////////////
+// class Agent
+
+class Agent
+{
+	typedef Libvirt::Instrument::Agent::Vm::Unit value_type;
+
+public:
+	static Libvirt::Result meetRequirements(const ::Command::Context& context_, Agent& dst_);
+
+protected:
+	value_type getAgent() const
+	{
+		return m_agent;
+	}
+
+private:
+	value_type m_agent;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class Config
+
+class Config
+{
+	typedef SmartPtr<CVmConfiguration> value_type;
+
+public:
+	static Libvirt::Result meetRequirements(const ::Command::Context& context_, Config& dst_);
+
+protected:
+	const value_type& getConfig() const
+	{
+		return m_config;
+	}
+
+private:
+	value_type m_config;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class Context
+
+class Context
+{
+	typedef Command::Context value_type;
+
+public:
+	static Libvirt::Result meetRequirements(const ::Command::Context& context_, Context& dst_);
+
+protected:
+	void sendEvent(PRL_EVENT_TYPE type_, PRL_EVENT_ISSUER_TYPE issuer_) const;
+	void respond(const QString& parameter_, PRL_RESULT code_ = PRL_ERR_SUCCESS) const;
+	const value_type& getContext() const
+	{
+		return m_context.get();
+	}
+
+private:
+	boost::optional<value_type> m_context;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class Command
+
+template<class T>
+class Command
+{
+	typedef T* value_type;
+
+public:
+	void setCommand(value_type value_)
+	{
+		m_command = value_;
+	}
+
+protected:
+	value_type getCommand() const
+	{
+		return m_command;
+	}
+
+private:
+	value_type m_command;
+};
+
+} // namespace Need
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Essence
+
+template<PVE::IDispatcherCommands X>
+struct Essence;
+
+namespace Vm
+{
+namespace Prepare
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Step
+
+template<class U, class V>
+struct Step
+{
+	template<class W>
+	static Libvirt::Result do_(const Context& context_, W& launcher_)
+	{
+		Libvirt::Result e = U::meetRequirements(context_, launcher_);
+		if (e.isFailed())
+			return e;
+
+		return V::do_(context_, launcher_);
+	}
+};
+template<class U>
+struct Step<U, void>
+{
+	template<class V>
+	static Libvirt::Result do_(const Context& context_, V& launcher_)
+	{
+		return U::meetRequirements(context_, launcher_);
+	};
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Command
+
+template<class T>
+class Command
+{
+	typedef char arrayOfOne_type[1];
+	typedef char arrayOfTwo_type[2];
+
+	template<typename U>
+	static arrayOfOne_type& func(Need::Command<U>* );
+
+	static arrayOfTwo_type& func(...);
+
+public:
+	typedef Command type;
+	enum
+	{
+		value = sizeof(func((T* )0)) == sizeof(arrayOfOne_type)
+	};
+
+	template<class U>
+	static Libvirt::Result meetRequirements(const Context& context_, Need::Command<U>& dst_)
+	{
+		U* x = Parallels::CProtoSerializer::CastToProtoCommand<U>
+			(context_.getRequest());
+		if (NULL == x)
+			return Error::Simple(PRL_ERR_UNRECOGNIZED_REQUEST);
+
+		dst_.setCommand(x);
+		return Libvirt::Result();
+	};
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mixture
+
+template<class T>
+struct Mixture
+{
+	typedef typename boost::mpl::vector
+		<
+			boost::mpl::pair<boost::is_base_of<Need::Agent, T>, Need::Agent>,
+			boost::mpl::pair<boost::is_base_of<Need::Config, T>, Need::Config>,
+			boost::mpl::pair<boost::is_base_of<Need::Context, T>, Need::Context>,
+			boost::mpl::pair<Command<T>, Command<T> >
+		>::type ore_type;
+
+	typedef typename boost::mpl::copy
+		<
+			ore_type,
+			boost::mpl::inserter
+			<
+				boost::mpl::vector<>,
+				boost::mpl::if_<boost::mpl::first<boost::mpl::_2>,
+					boost::mpl::push_back<boost::mpl::_1, boost::mpl::second<boost::mpl::_2> >,
+					boost::mpl::_1>
+			>
+		>::type type;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Policy
+
+template<class T, class U = void>
+struct Policy
+{
+	static Libvirt::Result do_(T launcher_, const Context& context_)
+	{
+		Libvirt::Result e = boost::mpl::fold
+					<
+						typename Mixture<T>::type,
+						void,
+						Step<boost::mpl::_2, boost::mpl::_1>
+					>::type::do_(context_, launcher_);
+		if (e.isFailed())
+			return e;
+
+		return launcher_();
+	};
+};
+
+template<class T>
+struct Policy<T, typename boost::enable_if<boost::mpl::empty<typename Mixture<T>::type> >::type>
+{
+	static Libvirt::Result do_(T launcher_, const Context& context_)
+	{
+		Q_UNUSED(context_);
+		return launcher_();
+	}
+};
+
+} // namespace Prepare
+
+namespace Fork
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Reactor
+
+struct Reactor: QObject
+{
+public slots:
+	virtual void react() = 0;
+
+private:
+	Q_OBJECT
+};
+
+namespace State
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Detector
+
+struct Detector: QObject
+{
+	Detector(const QString& uuid_, VIRTUAL_MACHINE_STATE state_):
+		m_uuid(uuid_), m_state(state_)
 	{
 	}
 
 public slots:
 	void react(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_);
 
-protected:
-	void timerEvent(QTimerEvent* event_);
+signals:
+	void detected();
 
 private:
 	Q_OBJECT
 
-	QString m_uuid;
-	QEventLoop* m_loop;
+	const QString m_uuid;
+	const VIRTUAL_MACHINE_STATE m_state;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Unit
+// struct Reactor
 
-struct Unit: QObject
+template<class T>
+struct Reactor: Fork::Reactor
 {
-	Unit(const QString& uuid_, quint32 timeout_):
-		m_uuid(uuid_), m_timeout(timeout_)
+	explicit Reactor(const Context& context_): m_context(context_)
 	{
 	}
 
-	Libvirt::Result operator()();
-
-protected:
-	void timerEvent(QTimerEvent* event_);
+	void react()
+	{
+		m_context.reply(PRL_ERR_SUCCESS);
+	}
 
 private:
-	Q_OBJECT
-
-	QEventLoop m_loop;
-	const QString m_uuid;
-	const quint32 m_timeout;
+	Context m_context;
 };
 
-} // namespace Shutdown
+///////////////////////////////////////////////////////////////////////////////
+// struct Strict
+
+template<VIRTUAL_MACHINE_STATE S>
+struct Strict
+{
+	static Detector* craft(const Context& context_)
+	{
+		return new Detector(context_.getVmUuid(), S);
+	}
+};
+
+} // namespace State
+
+namespace Timeout
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Reactor
+
+template<PVE::IDispatcherCommands X>
+struct Reactor: Fork::Reactor
+{
+	explicit Reactor(const Context& context_): m_context(context_)
+	{
+	}
+
+	void react();
+	quint32 getInterval() const;
+
+private:
+	Context m_context;
+};
+
+} // namespace Timeout
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Visitor
+
+struct Visitor
+{
+	Visitor(QEventLoop& loop_, const Context& context_, QObjectCleanupHandler& tracker_):
+		m_context(context_), m_loop(&loop_), m_tracker(&tracker_)
+	{
+	}
+
+	template<class T>
+	Libvirt::Result operator()(T launcher_);
+
+	template<class T>
+	Libvirt::Result operator()(Tag::Reply<T> launcher_);
+
+	template<class T, class U>
+	Libvirt::Result operator()(Tag::State<T, U>);
+
+	template<PVE::IDispatcherCommands X, class T>
+	Libvirt::Result operator()(Tag::Timeout<X, T>);
+
+private:
+	template<class T, class U>
+	Libvirt::Result launch(Tag::State<T, U> launcher_)
+	{
+		return (*this)(launcher_);
+	}
+	template<class T>
+	Libvirt::Result launch(T launcher_);
+
+	Context m_context;
+	QEventLoop* m_loop;
+	QObjectCleanupHandler* m_tracker;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Slip
+
+template<class T>
+struct Slip: Reactor
+{
+	Slip(QEventLoop& loop_, const Context& context_):
+		m_context(context_), m_loop(&loop_)
+	{
+	}
+
+	void react();
+
+private:
+	Context m_context;
+	QEventLoop* m_loop;
+	QObjectCleanupHandler m_tracker;
+};
+
+} // namespace Fork
 } // namespace Vm
 } // namespace Command
 

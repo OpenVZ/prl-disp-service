@@ -42,7 +42,6 @@
 #include "CDspVmInfoDatabase.h"
 #include "CDspVmStateSender.h"
 #include "CDspVmGuestPersonality.h"
-#include "CDspLibvirtExec.h"
 #include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
 #include "Libraries/PrlCommonUtils/CVmQuestionHelper.h"
 #include "Libraries/NonQtUtils/CQuestionHelper.h"
@@ -99,128 +98,8 @@ static void SendEchoEventToVm( SmartPtr<CDspVm> &pVm, const CVmEvent& evt )
 
 namespace Command
 {
-namespace Vm
-{
-namespace Shutdown
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Handler
-
-void Handler::react(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_)
-{
-	Q_UNUSED(oldState_);
-	Q_UNUSED(dirUuid_);
-	if (VMS_STOPPED != newState_)
-		return;
-	if (vmUuid_ == m_uuid)
-		m_loop->exit(PRL_ERR_SUCCESS);
-}
-
-void Handler::timerEvent(QTimerEvent* event_)
-{
-	killTimer(event_->timerId());
-	m_loop->exit(PRL_ERR_TIMEOUT);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Unit
-
-void Unit::timerEvent(QTimerEvent* event_)
-{
-	killTimer(event_->timerId());
-	Libvirt::Result e = Libvirt::Kit.vms().at(m_uuid).shutdown();
-	if (e.isFailed())
-		m_loop.exit(e.error().code());
-}
-
-Libvirt::Result Unit::operator()()
-{
-	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
-	if (!s.isValid())
-		return Error::Simple(PRL_ERR_UNEXPECTED);
-
-	Handler h(m_uuid, m_loop);
-	if (!h.connect(s.getPtr(), SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
-		SLOT(react(unsigned, unsigned, QString, QString)), Qt::QueuedConnection))
-		return Error::Simple(PRL_ERR_UNEXPECTED);
-
-	s.unlock();
-	startTimer(0);
-	int t = h.startTimer(1000 * m_timeout);
-	PRL_RESULT e = m_loop.exec();
-	h.killTimer(t);
-
-	if (PRL_SUCCEEDED(e))
-		return Libvirt::Result();
-
-	VIRTUAL_MACHINE_STATE state;
-	if (Libvirt::Kit.vms().at(m_uuid).getState(state).isFailed())
-		return Error::Simple(e);
-
-	return state != VMS_STOPPED ? Libvirt::Kit.vms().at(m_uuid).kill() : Libvirt::Result();
-}
-
-} // namespace Shutdown
-} // namespace Vm
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Context
-
-struct Context
-{
-	Context(const SmartPtr<CDspClient>& session_, const SmartPtr<IOPackage>& package_);
-
-	const CVmIdent& getIdent() const
-	{
-		return m_ident;
-	}
-	const QString& getVmUuid() const
-	{
-		return m_ident.first;
-	}
-	const QString& getDirectoryUuid() const
-	{
-		return m_ident.second;
-	}
-	const SmartPtr<CDspClient>& getSession() const
-	{
-		return m_session;
-	}
-	const SmartPtr<IOPackage>& getPackage() const
-	{
-		return m_package;
-	}
-	const CProtoCommandPtr& getRequest() const
-	{
-		return m_request;
-	}
-	PVE::IDispatcherCommands getCommand() const
-	{
-		return m_request->GetCommandId();
-	}
-	void reply(int code_) const
-	{
-		m_session->sendSimpleResponse(m_package, code_);
-	}
-	void reply(const Libvirt::Result& result_)
-	{
-		if (result_.isFailed())
-			m_session->sendResponseError(result_.error().convertToEvent(), m_package);
-		else
-			reply(PRL_ERR_SUCCESS);
-	}
-
-	void reply(const CVmEvent& error_) const
-	{
-		m_session->sendResponseError(&error_, m_package);
-	}
-
-private:
-	SmartPtr<CDspClient> m_session;
-	SmartPtr<IOPackage> m_package;
-	CProtoCommandPtr m_request;
-	CVmIdent m_ident;
-};
 
 Context::Context(const SmartPtr<CDspClient>& session_, const SmartPtr<IOPackage>& package_):
 	m_session(session_), m_package(package_)
@@ -232,56 +111,766 @@ Context::Context(const SmartPtr<CDspClient>& session_, const SmartPtr<IOPackage>
 	m_ident = MakeVmIdent(m_request->GetVmUuid(), m_session->getVmDirectoryUuid());
 }
 
-namespace Tag
+void Context::reply(const CVmEvent& error_) const
+{
+	m_session->sendResponseError(&error_, m_package);
+}
+
+void Context::reply(const Libvirt::Result& result_) const
+{
+	if (result_.isFailed())
+		m_session->sendResponseError(result_.error().convertToEvent(), m_package);
+	else
+		reply(PRL_ERR_SUCCESS);
+}
+
+namespace Need
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Simple
+// class Agent
 
+Libvirt::Result Agent::meetRequirements(const ::Command::Context& context_, Agent& dst_)
+{
+	dst_.m_agent = Libvirt::Kit.vms().at(context_.getVmUuid());
+	return Libvirt::Result();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// class Config
+
+Libvirt::Result Config::meetRequirements(const ::Command::Context& context_, Config& dst_)
+{
+	PRL_RESULT e = PRL_ERR_SUCCESS;
+	value_type c = CDspService::instance()->getVmDirHelper()
+		.getVmConfigByUuid(context_.getSession(), context_.getVmUuid(),
+			e, NULL);
+	if (!c.isValid())
+	{
+		WRITE_TRACE(DBG_FATAL, "handleFromDispatcherPackage: cannot get VM config: error %s !",
+					PRL_RESULT_TO_STRING(e));
+		return Error::Simple(e);
+	}
+	dst_.m_config = c;
+	return Libvirt::Result();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Context
+
+Libvirt::Result Context::meetRequirements(const ::Command::Context& context_, Context& dst_)
+{
+	dst_.m_context = context_;
+	return Libvirt::Result();
+}
+
+void Context::respond(const QString& parameter_, PRL_RESULT code_) const
+{
+	CProtoCommandPtr r = CProtoSerializer::CreateDspWsResponseCommand
+		(m_context.get().getPackage(), code_);
+	CProtoCommandDspWsResponse* d = CProtoSerializer::CastToProtoCommand
+		<CProtoCommandDspWsResponse>(r);
+	d->AddStandardParam(parameter_);
+	m_context.get().getSession()->sendResponse(r, m_context.get().getPackage());
+}
+
+void Context::sendEvent(PRL_EVENT_TYPE type_, PRL_EVENT_ISSUER_TYPE issuer_) const
+{
+	CDspClientManager& m = CDspService::instance()->getClientManager();
+	SmartPtr<IOPackage> a = DispatcherPackage::createInstance
+		(PVE::DspVmEvent, CVmEvent(type_, m_context.get().getVmUuid(), issuer_),
+		m_context.get().getPackage());
+	m.sendPackageToVmClients(a, m_context.get().getDirectoryUuid(),
+		m_context.get().getVmUuid());
+}
+
+} // namespace Need
+
+#ifdef _LIBVIRT_
+template<>
+struct Essence<PVE::DspCmdVmStop>: Need::Agent, Need::Command<CProtoVmCommandStop>
+{
+	Libvirt::Result operator()()
+	{
+		switch (getCommand()->GetStopMode())
+		{
+		case PSM_ACPI:
+		case PSM_SHUTDOWN:
+			return getAgent().shutdown();
+		default:
+			return getAgent().kill();
+		}
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmPause>: Need::Agent, Need::Context
+{
+	Libvirt::Result operator()()
+	{
+		Libvirt::Result output = getAgent().pause();
+		if (output.isFailed())
+			return output;
+
+		Vcmmd::Api(getContext().getVmUuid()).deactivate();
+		return output;
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmRestartGuest>: Need::Agent
+{
+	Libvirt::Result operator()()
+	{
+		return getAgent().reboot();
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmReset>: Need::Agent
+{
+	Libvirt::Result operator()()
+	{
+		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+		Libvirt::Result output = getAgent().getState(s);
+		if (output.isFailed())
+			return output;
+
+		output = getAgent().reset();
+		if (output.isFailed())
+			return output;
+
+		if (VMS_PAUSED == s)
+			output = getAgent().unpause();
+
+		return output;
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmSuspend>: Need::Agent, Need::Config
+{
+	Libvirt::Result operator()()
+	{
+		CStatesHelper h(getConfig()->getVmIdentification()->getHomePath());
+		return getAgent().suspend(h.getSavFileName());
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmDropSuspendedState>: Need::Config, Need::Context
+{
+	Libvirt::Result operator()()
+	{
+		CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
+		if (!s.isValid())
+			return Error::Simple(PRL_ERR_OPERATION_FAILED);
+
+		CStatesHelper h(getConfig()->getVmIdentification()->getHomePath());
+		if (!h.dropStateFiles())
+			return Error::Simple(PRL_ERR_UNABLE_DROP_SUSPENDED_STATE);
+
+		s->onVmStateChanged(VMS_SUSPENDED, VMS_STOPPED, getContext().getVmUuid(),
+			getContext().getDirectoryUuid(), false);
+		return Libvirt::Result();
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmDevConnect>:
+	Need::Agent, Need::Command<CProtoVmDeviceCommand>, Need::Context
+{
+	Libvirt::Result operator()()
+	{
+		Libvirt::Result output;
+		switch (getCommand()->GetDeviceType())
+		{
+		case PDE_OPTICAL_DISK:
+		{
+			CVmOpticalDisk y;
+			StringToElement<CVmOpticalDisk* >(&y, getCommand()->GetDeviceConfig());
+			output = getAgent().getRuntime().update(y);
+			break;
+		}
+		case PDE_HARD_DISK:
+		{
+			CVmHardDisk y;
+			StringToElement<CVmHardDisk* >(&y, getCommand()->GetDeviceConfig());
+			output = getAgent().getRuntime().plug(y);
+			break;
+		}
+		default:
+			output = Error::Simple(PRL_ERR_UNIMPLEMENTED);
+		}
+		if (output.isSucceed())
+		{
+			CVmEvent v;
+			v.addEventParameter(new CVmEventParameter(PVE::String,
+				getCommand()->GetDeviceConfig(),
+				EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
+
+			Task_EditVm::atomicEditVmConfigByVm(getContext().getDirectoryUuid(),
+				getContext().getVmUuid(), v, getContext().getSession());
+		}
+		return output;
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmDevDisconnect>:
+	Need::Agent, Need::Command<CProtoVmDeviceCommand>, Need::Context
+{
+	Libvirt::Result operator()()
+	{
+		Libvirt::Result output;
+		switch (getCommand()->GetDeviceType())
+		{
+		case PDE_OPTICAL_DISK:
+		{
+			CVmOpticalDisk y;
+			StringToElement<CVmOpticalDisk* >(&y, getCommand()->GetDeviceConfig());
+			output = getAgent().getRuntime().update(y);
+		}
+			break;
+		case PDE_HARD_DISK:
+		{
+			CVmHardDisk y;
+			StringToElement<CVmHardDisk* >(&y, getCommand()->GetDeviceConfig());
+			output = getAgent().getRuntime().unplug(y);
+		}
+			break;
+		default:
+			output = Error::Simple(PRL_ERR_UNIMPLEMENTED);
+		}
+		if (output.isSucceed())
+		{
+			CVmEvent v;
+			v.addEventParameter(new CVmEventParameter(PVE::String,
+				getCommand()->GetDeviceConfig(),
+				EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
+
+			Task_EditVm::atomicEditVmConfigByVm(getContext().getDirectoryUuid(),
+				getContext().getVmUuid(), v, getContext().getSession());
+		}
+		return output;
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmInstallTools>: Need::Agent, Need::Config
+{
+	Libvirt::Result operator()()
+	{
+		QString x = ParallelsDirs::getToolsImage(ParallelsDirs::getAppExecuteMode(),
+				getConfig()->getVmSettings()->getVmCommonOptions()->getOsVersion());
+		if (x.isEmpty())
+			return Error::Simple(PRL_ERR_TOOLS_UNSUPPORTED_GUEST);
+
+		foreach(CVmOpticalDisk *d, getConfig()->getVmHardwareList()->m_lstOpticalDisks)
+		{
+			if (!d->getEnabled())
+				continue;
+
+			d->setSystemName(x);
+			d->setUserFriendlyName(x);
+			d->setConnected(PVE::DeviceConnected);
+			d->setEmulatedType(PVE::CdRomImage);
+			d->setRemote(false);
+			VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+			Libvirt::Result e = getAgent().getState(s);
+			if (e.isFailed())
+				return e;
+			if (VMS_STOPPED != s)
+				e = getAgent().getRuntime().update(*d);
+
+			return e;
+		}
+		return Error::Simple(PRL_ERR_NO_CD_DRIVE_AVAILABLE);
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmGuestSetUserPasswd>: Need::Agent, Need::Config,
+	Need::Command<CProtoVmGuestSetUserPasswdCommand>, Need::Context
+{
+	Libvirt::Result operator()()
+	{
+		VIRTUAL_MACHINE_STATE s = CDspVm::getVmState(getContext().getVmUuid(),
+						getContext().getDirectoryUuid());
+		if (s == VMS_STOPPED)
+		{
+			if (!::Personalize::Configurator(*getConfig()).setUserPassword(
+					getCommand()->GetUserLoginName(),
+					getCommand()->GetUserPassword(),
+					getCommand()->GetCommandFlags() & PSPF_PASSWD_CRYPTED))
+				return Error::Simple(PRL_ERR_OPERATION_FAILED);
+		}
+		else
+		{
+			Libvirt::Result e = getAgent().getGuest().setUserPasswd(
+						getCommand()->GetUserLoginName(),
+						getCommand()->GetUserPassword(),
+						getCommand()->GetCommandFlags() & PSPF_PASSWD_CRYPTED);
+			if (e.isFailed())
+			{
+				WRITE_TRACE(DBG_FATAL, "Set user password for VM '%s' is failed: %s",
+					qPrintable(getContext().getVmUuid()),
+					PRL_RESULT_TO_STRING(e.error().code()));
+				return e;
+			}
+		}
+		return Libvirt::Result();
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmLoginInGuest>: Need::Agent, Need::Context,
+	Need::Command<CProtoVmLoginInGuestCommand>
+{
+	Libvirt::Result operator()()
+	{
+		Libvirt::Result output = getAgent().getGuest().checkAgent();
+		if (output.isSucceed())
+			respond(Uuid::createUuid().toString());
+
+		return output;
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmCreateSnapshot>: Need::Agent, Need::Context,
+	Need::Command<CProtoCreateSnapshotCommand>, Need::Config
+{
+	Libvirt::Result operator()()
+	{
+		Libvirt::Result e;
+		Libvirt::Snapshot::Stash s(getConfig(), getCommand()->GetSnapshotUuid());
+		if (PCSF_BACKUP & getCommand()->GetCommandFlags())
+		{
+// NB. external user doesn't work with backup snapshots. this code is
+// here for demostration purposes only. resurect it when backup management
+// will be implemented.
+//		e = Libvirt::Kit.vms().at(x->GetVmUuid())
+//			.getSnapshot()
+//			.defineConsistent("{704718e1-2314-44C8-9087-d78ed36b0f4e}");
+		}
+		else
+		{
+			QString b = getConfig()->getVmIdentification()->getHomePath();
+			QStringList f(b);
+			CStatesHelper h(b);
+			if (h.savFileExists())
+				f << h.getSavFileName();
+
+			if (s.add(f))
+			{
+				e = getAgent().getSnapshot().define(
+					getCommand()->GetSnapshotUuid(),
+					getCommand()->GetDescription());
+			}
+			else
+			{
+				WRITE_TRACE(DBG_FATAL, "Unable to save extra snapshot data for VM %s",
+					qPrintable(getContext().getVmUuid()));
+				e = Error::Simple(PRL_ERR_FAILURE);
+			}
+		}
+		if (e.isFailed())
+			return e;
+
+		s.commit();
+		// tree changed
+		sendEvent(PET_DSP_EVT_VM_SNAPSHOTS_TREE_CHANGED, PIE_DISPATCHER);
+		// snapshooted
+		sendEvent(PET_DSP_EVT_VM_SNAPSHOTED, PIE_DISPATCHER);
+		// reply
+		respond(getCommand()->GetSnapshotUuid());
+		// swapping finished
+		sendEvent(PET_DSP_EVT_VM_MEMORY_SWAPPING_FINISHED, PIE_VIRTUAL_MACHINE);
+
+		return Libvirt::Result();
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmSwitchToSnapshot>: Need::Agent, Need::Context,
+	Need::Command<CProtoSwitchToSnapshotCommand>, Need::Config
+{
+	Libvirt::Result operator()()
+	{
+		Libvirt::Snapshot::Stash s(getConfig(), getCommand()->GetSnapshotUuid());
+		Libvirt::Result output = revertBundle(s);
+		if (output.isFailed())
+			return output;
+
+		output = getAgent().getSnapshot()
+			.at(getCommand()->GetSnapshotUuid()).revert();
+		if (output.isSucceed())
+		{
+			s.commit();
+			getContext().reply(output);
+			sendEvent(PET_DSP_EVT_VM_MEMORY_SWAPPING_FINISHED,
+				PIE_VIRTUAL_MACHINE);
+		}
+		return output;
+	}
+
+private:
+	Libvirt::Result revertBundle(Libvirt::Snapshot::Stash& stash_)
+	{
+		QString h(getConfig()->getVmIdentification()->getHomePath());
+		SmartPtr<CVmConfiguration> c(stash_.restoreConfig(h));
+		if (!c.isValid())
+		{
+			WRITE_TRACE(DBG_FATAL, "Unable to restore %s", qPrintable(h));
+			return Error::Simple(PRL_ERR_FAILURE);
+		}
+		PRL_RESULT e = CDspService::instance()->getVmConfigManager().saveConfig(
+			c, h, getContext().getSession(), true, true);
+		if (PRL_FAILED(e))
+		{
+			WRITE_TRACE(DBG_FATAL, "Unable to save restored cfg %s", qPrintable(h));
+			return Error::Simple(e);
+		}
+	        CStatesHelper x(h);
+		x.dropStateFiles();
+		stash_.restore(QStringList(x.getSavFileName()));
+
+		return Libvirt::Result();
+	}
+};
+
+CHostHardwareInfo parsePrlNetToolOut(const QString &data)
+{
+	CHostHardwareInfo h;
+	QMap<QString, QStringList> m;
+	foreach(QString s, data.split("\n"))
+	{
+		s.remove('\r');
+		if (s.isEmpty())
+			continue;
+
+		QStringList params = s.split(";", QString::SkipEmptyParts);
+		if (params.size() < 2)
+			continue;
+		m.insert(params.takeFirst(), params);
+	}
+
+	h.getNetworkSettings()->getGlobalNetwork()->setSearchDomains(
+		m.take("SEARCHDOMAIN").takeFirst().split(" ", QString::SkipEmptyParts));
+
+	QMap<QString, QMap<QString, QStringList> > n;
+	for(QMap<QString, QStringList>::iterator i = m.begin(); i != m.end(); ++i)
+	{
+		QString mac = i.value().takeFirst();
+		if (!n.contains(mac))
+			n.insert(mac, QMap<QString, QStringList>());
+		n.find(mac).value().insert(i.key(), i.value());
+	}
+
+	for(QMap<QString, QMap<QString, QStringList> >::iterator j = n.begin(); j != n.end(); ++j)
+	{
+		CHwNetAdapter  *a = new CHwNetAdapter;
+		a->setMacAddress(j.key());
+
+		QMap<QString, QStringList> x(j.value());
+		if (!x.value("DNS").isEmpty())
+			a->setDnsIPAddresses(x.value("DNS").first().split(" ", QString::SkipEmptyParts));
+		if (!x.value("DHCP").isEmpty())
+			a->setConfigureWithDhcp(x.value("DHCP").first() == "TRUE");
+		if (!x.value("DHCPV6").isEmpty())
+			a->setConfigureWithDhcpIPv6(x.value("DHCPV6").first() == "TRUE");
+		if (!x.value("IP").isEmpty())
+			a->setNetAddresses(x.value("IP").first().split(" ", QString::SkipEmptyParts));
+		if (!x.value("GATEWAY").isEmpty())
+		{
+			foreach(QString ip, x.value("GATEWAY").first().split(" ", QString::SkipEmptyParts))
+			{
+				if (QHostAddress(ip).protocol() == QAbstractSocket::IPv6Protocol)
+					a->setDefaultGatewayIPv6(ip);
+				else
+					a->setDefaultGateway(ip);
+			}
+		}
+		h.m_lstNetworkAdapters.append(a);
+	}
+
+	return h;
+}
+
+template<>
+struct Essence<PVE::DspCmdVmGuestGetNetworkSettings>: Need::Agent, Need::Config,
+	Need::Context
+{
+	Libvirt::Result operator()()
+	{
+		namespace vm = Libvirt::Instrument::Agent::Vm;
+		Prl::Expected<vm::Exec::Result, Error::Simple> e = getAgent()
+						.getGuest().runProgram(getRequest());
+		if (e.isFailed())
+		{
+			WRITE_TRACE(DBG_FATAL, "GetNetworkSettings for VM '%s' is failed: %s",
+				qPrintable(getContext().getVmUuid()),
+				PRL_RESULT_TO_STRING(e.error().code()));
+			return e.error();
+		}
+		else if (e.value().stdOut.isEmpty())
+		{
+			WRITE_TRACE(DBG_FATAL, "prl_nettool return empty response");
+			return Error::Simple(PRL_ERR_GUEST_PROGRAM_EXECUTION_FAILED);
+		}
+		respond(parsePrlNetToolOut(QString(e.value().stdOut)).toString(),
+			e.value().exitcode);
+
+		return Libvirt::Result();
+	}
+
+private:
+	Libvirt::Instrument::Agent::Vm::Exec::Request getRequest() const
+	{
+		namespace vm = Libvirt::Instrument::Agent::Vm;
+		if (getConfig()->getVmSettings()->getVmCommonOptions()->getOsType()
+			!= PVS_GUEST_TYPE_WINDOWS)
+			return vm::Exec::Request("prl_nettool", QList<QString>());
+
+		vm::Exec::Request output("%programfiles%\\Qemu-ga\\prl_nettool.exe",
+				QList<QString>());
+		output.setRunInShell(true);
+		return output;
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmDeleteSnapshot>: Need::Agent,
+	Need::Command<CProtoDeleteSnapshotCommand>, Need::Config
+{
+	Libvirt::Result operator()()
+	{
+		Libvirt::Result output = do_();
+		if (output.isSucceed())
+		{
+			// TODO should clean child snapshot data too
+			Libvirt::Snapshot::Stash z(getConfig(),
+				getCommand()->GetSnapshotUuid());
+			Q_UNUSED(z);
+		}
+		return output;
+	}
+
+private:
+	Libvirt::Result do_()
+	{
+		if (getCommand()->GetChild())
+		{
+			return getAgent().getSnapshot()
+				.at(getCommand()->GetSnapshotUuid())
+				.undefineRecursive();
+		}
+		return getAgent().getSnapshot()
+			.at(getCommand()->GetSnapshotUuid())
+			.undefine();
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmGuestLogout>
+{
+	Libvirt::Result operator()()
+	{
+		return Libvirt::Result();
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmStart>: Need::Agent, Need::Config, Need::Context
+{
+	Libvirt::Result operator()()
+	{
+		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+		Libvirt::Result e = getAgent().getState(s);
+		if (e.isFailed())
+			return e;
+
+		CStatesHelper h(getConfig()->getVmIdentification()->getHomePath());
+		if (VMS_PAUSED == s)
+		{
+			e = h.savFileExists() ? getAgent().resume(h.getSavFileName()) :
+				getAgent().unpause();
+			if (e.isFailed())
+				return e;
+
+			Vcmmd::Api(getContext().getVmUuid()).activate();
+		}
+		else
+		{
+			CVmMemory* m = getConfig()->getVmHardwareList()->getMemory();
+			quint64 z = m->getRamSize();
+			quint64 g = ::Vm::Config::MemGuarantee(*m)(z);
+			Vcmmd::Frontend<Vcmmd::Unregistered> v(getContext().getVmUuid());
+			if (!v(Vcmmd::Unregistered(z << 20, g << 20)))
+				return Error::Simple(PRL_ERR_FAILURE);
+
+			e = h.savFileExists() ? getAgent().resume(h.getSavFileName()) :
+				getAgent().start();
+			if (e.isFailed())
+				return e;
+			
+			v.commit();
+		}
+		if (h.savFileExists())
+			h.dropStateFiles();
+
+		return Libvirt::Result();
+	}
+};
+
+#else // _LIBVIRT_
 template<PVE::IDispatcherCommands X>
-struct Simple
+struct Essence
 {
+	Libvirt::Result operator()()
+	{
+		return Error::Simple(PRL_ERR_UNIMPLEMENTED);
+	}
 };
+
+#endif // _LIBVIRT_
+
+namespace Vm
+{
+namespace Fork
+{
+namespace Timeout
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Reactor
+
+template<>
+void Reactor<PVE::DspCmdVmStop>::react()
+{
+	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_context.getVmUuid());
+	Libvirt::Result e = u.getState(s);
+	if (e.isSucceed() && s != VMS_STOPPED)
+		e = u.kill();
+
+	m_context.reply(e);
+}
+
+template<>
+quint32 Reactor<PVE::DspCmdVmStop>::getInterval() const
+{
+	return 120;
+}
+
+} // namespace Timeout
+
+namespace State
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Detector
+
+void Detector::react(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_)
+{
+	Q_UNUSED(dirUuid_);
+	Q_UNUSED(oldState_);
+	if (newState_ == m_state && m_uuid == vmUuid_)
+	{
+		sender()->disconnect(this);
+		emit detected();
+	}
+}
+
+} // namespace State
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct General
+// struct Slip
 
-template<PVE::IDispatcherCommands X>
-struct General
+template<class T>
+void Slip<T>::react()
 {
-};
+	Visitor v(*m_loop, m_context, m_tracker);
+	Libvirt::Result e = v(T());
+	if (e.isSucceed())
+		return;
+
+	m_context.reply(e);
+	m_loop->exit(e.error().code());
+}
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct CreateDspVm
+// struct Visitor
 
-template<PVE::IDispatcherCommands X>
-struct CreateDspVm: General<X>
+template<PVE::IDispatcherCommands X, class T>
+Libvirt::Result Visitor::operator()(Tag::Timeout<X, T>)
 {
-};
+	QScopedPointer<QTimer> t(new QTimer());
+	QScopedPointer<Timeout::Reactor<X> > r(new Timeout::Reactor<X>(m_context));
+	if (!r->connect(t.data(), SIGNAL(timeout()), SLOT(react()), Qt::QueuedConnection))
+		return Error::Simple(PRL_ERR_FAILURE);
 
-///////////////////////////////////////////////////////////////////////////////
-// struct GuestSession
+	if (!m_loop->connect(t.data(), SIGNAL(timeout()), SLOT(quit()), Qt::QueuedConnection))
+		return Error::Simple(PRL_ERR_FAILURE);
 
-struct GuestSession
+	t->setInterval(r->getInterval() * 1000);
+	t->setSingleShot(true);
+	m_tracker->add(r.take());
+	m_tracker->add(t.data());
+	t.take()->start();
+	return launch(T());
+}
+
+template<class T, class U>
+Libvirt::Result Visitor::operator()(Tag::State<T, U>)
 {
-};
+	QScopedPointer<State::Detector> a(U::craft(m_context));
+	QScopedPointer<Fork::Reactor> b(new State::Reactor<T>(m_context));
+	if (!b->connect(a.data(), SIGNAL(detected()), SLOT(react()), Qt::DirectConnection))
+		return Error::Simple(PRL_ERR_FAILURE);
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Special
+	if (!m_loop->connect(a.data(), SIGNAL(detected()), SLOT(quit()), Qt::DirectConnection))
+		return Error::Simple(PRL_ERR_FAILURE);
 
-template<PVE::IDispatcherCommands X>
-struct Special
+	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
+	if (!s.isValid())
+		return Error::Simple(PRL_ERR_FAILURE);
+
+	// NB. one needs to take some extra measures to handle cases when
+	// required event doesn't fire. for instance, abort waiting by timeout
+	// or wait for another state simultaneously.
+	if (!a->connect(s.getPtr(),
+		SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
+		SLOT(react(unsigned, unsigned, QString, QString)), Qt::QueuedConnection))
+		return Error::Simple(PRL_ERR_FAILURE);
+
+	s.unlock();
+	m_tracker->add(a.take());
+	m_tracker->add(b.take());
+	return launch(T());
+}
+
+template<class T>
+Libvirt::Result Visitor::operator()(Tag::Reply<T> launcher_)
 {
-};
+	Q_UNUSED(launcher_);
+	m_context.reply((*this)(T()));
+	return Libvirt::Result();
+}
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Libvirt
-
-template<PVE::IDispatcherCommands X>
-struct Libvirt
+template<class T>
+Libvirt::Result Visitor::operator()(T launcher_)
 {
-};
+	m_loop->quit();
+	return launch(launcher_);
+}
 
-} // namespace Tag
+template<class T>
+Libvirt::Result Visitor::launch(T launcher_)
+{
+	return Prepare::Policy<T>::do_(launcher_, m_context);
+}
+
+} // namespace Fork
+} // namespace Vm
 
 namespace Details
 {
@@ -313,7 +902,7 @@ SmartPtr<CVmConfiguration> Assistant::getConfig() const
 			e, &v);
 	if (!output.isValid())
 	{
-		WRITE_TRACE(DBG_FATAL, "handleFromDispatcherPackage: cannot get VM config: error %s !",
+		WRITE_TRACE(DBG_FATAL, "cannot get VM config: error %s !",
 					PRL_RESULT_TO_STRING(e));
 		m_context->reply(v);
 	}
@@ -694,13 +1283,32 @@ void Body<Tag::Special<PVE::DspCmdVmAuthWithGuestSecurityDb> >::run(Context& con
 			context_.getPackage(), context_.getRequest()));
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Body<Tag::Libvirt<X> >
-
-template<PVE::IDispatcherCommands X>
-struct Body<Tag::Libvirt<X> >: QRunnable
+template<>
+void Body<Tag::Special<PVE::DspCmdVmGuestRunProgram> >::run(Context& context_)
 {
-	void run();
+	CDspService::instance()->getTaskManager().schedule(
+			new Task_ExecVm(context_.getSession(), context_.getPackage(), Exec::Vm()));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Body<Tag::Fork<T> >
+
+template<class T>
+struct Body<Tag::Fork<T> >: QRunnable
+{
+	void run()
+	{
+		QTimer t;
+		QEventLoop x;
+		Vm::Fork::Slip<T> y(x, m_context);
+		if (!y.connect(&t, SIGNAL(timeout()), SLOT(react()), Qt::QueuedConnection))
+			return m_context.reply(PRL_ERR_FAILURE);
+
+		t.setInterval(0);
+		t.setSingleShot(true);
+		t.start();
+		x.exec();
+	}
 
 	static void run(Context& context_)
 	{
@@ -716,563 +1324,6 @@ private:
 
 	Context m_context;
 };
-
-#ifdef _LIBVIRT_
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmStop> >::run()
-{
-	CProtoVmCommandStop* x = CProtoSerializer::CastToProtoCommand
-		<CProtoVmCommandStop>(m_context.getRequest());
-	if (NULL == x)
-		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
-
-	Libvirt::Result e;
-	switch (x->GetStopMode())
-	{
-	case PSM_ACPI:
-	case PSM_SHUTDOWN:
-		e = Vm::Shutdown::Unit(m_context.getVmUuid(), 120)();
-		break;
-	default:
-		e = Libvirt::Kit.vms().at(m_context.getVmUuid()).kill();
-	}
-
-	return m_context.reply(e);
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmStart> >::run()
-{
-	SmartPtr<CVmConfiguration> c = Details::Assistant(m_context).getConfig();
-	if (!c.isValid())
-		return;
-
-	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_context.getVmUuid());
-	VIRTUAL_MACHINE_STATE state = VMS_UNKNOWN;
-	Libvirt::Result e = u.getState(state);
-	if (e.isFailed())
-		return m_context.reply(e);
-
-	CStatesHelper h(c->getVmIdentification()->getHomePath());
-	if (VMS_PAUSED == state)
-	{
-		if (!h.savFileExists())
-			e = u.unpause();
-		else
-		{
-			e = u.resume(h.getSavFileName());
-			if (e.isSucceed())
-				h.dropStateFiles();
-		}
-
-		if (e.isSucceed())
-			Vcmmd::Api(m_context.getVmUuid()).activate();
-	}
-	else
-	{
-		quint64 ramsize = c->getVmHardwareList()->getMemory()->getRamSize();
-		quint64 guarantee =
-			::Vm::Config::MemGuarantee(*c->getVmHardwareList()->getMemory())(ramsize);
-
-		Vcmmd::Frontend<Vcmmd::Unregistered> v(m_context.getVmUuid());
-		if (!v(Vcmmd::Unregistered(ramsize<<20, guarantee<<20)))
-			return m_context.reply(PRL_ERR_UNABLE_APPLY_MEMORY_GUARANTEE);
-
-		if (!h.savFileExists())
-			e = u.start();
-		else
-		{
-			e = u.resume(h.getSavFileName());
-			if (e.isSucceed())
-				h.dropStateFiles();
-		}
-		if (e.isSucceed())
-			v.commit();
-	}
-	return m_context.reply(e);
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmPause> >::run()
-{
-	Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid()).pause();
-	if (e.isSucceed())
-		Vcmmd::Api(m_context.getVmUuid()).deactivate();
-
-	m_context.reply(e);
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmRestartGuest> >::run()
-{
-	m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid()).reboot());
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmReset> >::run()
-{
-	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_context.getVmUuid());
-	VIRTUAL_MACHINE_STATE state = VMS_UNKNOWN;
-	Libvirt::Result e = u.getState(state);
-	if (e.isFailed())
-		return m_context.reply(e);
-
-	e = Libvirt::Kit.vms().at(m_context.getVmUuid()).reset();
-
-	if (e.isSucceed() && VMS_PAUSED == state)
-		e = Libvirt::Kit.vms().at(m_context.getVmUuid()).unpause();
-
-	m_context.reply(e);
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmSuspend> >::run()
-{
-	SmartPtr<CVmConfiguration> c = Details::Assistant(m_context).getConfig();
-	if (c.isValid())
-	{
-		CStatesHelper h(c->getVmIdentification()->getHomePath());
-		m_context.reply(Libvirt::Kit.vms().at(m_context.getVmUuid())
-                        .suspend(h.getSavFileName()));
-	}
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmDropSuspendedState> >::run()
-{
-	SmartPtr<CVmConfiguration> c = Details::Assistant(m_context).getConfig();
-	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
-	if (!c.isValid() || !s.isValid())
-		return m_context.reply(PRL_ERR_OPERATION_FAILED);
-
-	CStatesHelper h(c->getVmIdentification()->getHomePath());
-	if (!h.dropStateFiles())
-		return m_context.reply(PRL_ERR_UNABLE_DROP_SUSPENDED_STATE);
-
-	s->onVmStateChanged(VMS_SUSPENDED, VMS_STOPPED, m_context.getVmUuid(),
-		m_context.getDirectoryUuid(), false);
-	m_context.reply(PRL_ERR_SUCCESS);
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmDevConnect> >::run()
-{
-	CProtoVmDeviceCommand* x = CProtoSerializer::CastToProtoCommand
-		<CProtoVmDeviceCommand>(m_context.getRequest());
-	if (NULL == x)
-		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
-
-	Libvirt::Result e;
-	switch (x->GetDeviceType())
-	{
-	case PDE_OPTICAL_DISK:
-		{
-			CVmOpticalDisk y;
-			StringToElement<CVmOpticalDisk* >(&y, x->GetDeviceConfig());
-			e = Libvirt::Kit.vms().at(m_context.getVmUuid())
-				.getRuntime().update(y);
-		}
-		break;
-	case PDE_HARD_DISK:
-		{
-			CVmHardDisk y;
-			StringToElement<CVmHardDisk* >(&y, x->GetDeviceConfig());
-			e = Libvirt::Kit.vms().at(m_context.getVmUuid())
-				.getRuntime().plug(y);
-		}
-		break;
-	default:
-		return m_context.reply(PRL_ERR_UNIMPLEMENTED);
-	}
-
-	if (e.isFailed())
-		return m_context.reply(e);
-
-	CVmEvent v;
-	v.addEventParameter(new CVmEventParameter(PVE::String,
-		x->GetDeviceConfig(), EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
-
-	Task_EditVm::atomicEditVmConfigByVm(m_context.getDirectoryUuid(),
-		m_context.getVmUuid(), v, m_context.getSession());
-	m_context.reply(e);
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmDevDisconnect> >::run()
-{
-	CProtoVmDeviceCommand* x = CProtoSerializer::CastToProtoCommand
-		<CProtoVmDeviceCommand>(m_context.getRequest());
-	if (NULL == x)
-		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
-
-	Libvirt::Result e;
-	switch (x->GetDeviceType())
-	{
-	case PDE_OPTICAL_DISK:
-		{
-			CVmOpticalDisk y;
-			StringToElement<CVmOpticalDisk* >(&y, x->GetDeviceConfig());
-			e = Libvirt::Kit.vms().at(m_context.getVmUuid())
-				.getRuntime().update(y);
-		}
-		break;
-	case PDE_HARD_DISK:
-		{
-			CVmHardDisk y;
-			StringToElement<CVmHardDisk* >(&y, x->GetDeviceConfig());
-			y.setConnected();
-			e = Libvirt::Kit.vms().at(m_context.getVmUuid())
-				.getRuntime().unplug(y);
-		}
-		break;
-	default:
-		return m_context.reply(PRL_ERR_UNIMPLEMENTED);
-	}
-
-	if (e.isFailed())
-		return m_context.reply(e);
-
-	CVmEvent v;
-	v.addEventParameter(new CVmEventParameter(PVE::String,
-		x->GetDeviceConfig(), EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
-
-	Task_EditVm::atomicEditVmConfigByVm(m_context.getDirectoryUuid(),
-		m_context.getVmUuid(), v, m_context.getSession());
-	m_context.reply(e);
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmInstallTools> >::run()
-{
-	SmartPtr<CVmConfiguration> c = Details::Assistant(m_context).getConfig();
-	if (!c.isValid())
-		return;
-
-	QString x = ParallelsDirs::getToolsImage(ParallelsDirs::getAppExecuteMode(),
-			c->getVmSettings()->getVmCommonOptions()->getOsVersion());
-	if (x.isEmpty())
-		return m_context.reply(PRL_ERR_TOOLS_UNSUPPORTED_GUEST);
-
-	foreach(CVmOpticalDisk *d, c->getVmHardwareList()->m_lstOpticalDisks)
-	{
-		if (d->getEnabled())
-		{
-			d->setSystemName(x);
-			d->setUserFriendlyName(x);
-			d->setConnected(PVE::DeviceConnected);
-			d->setEmulatedType(PVE::CdRomImage);
-			d->setRemote(false);
-
-			VIRTUAL_MACHINE_STATE s = CDspVm::getVmState(m_context.getVmUuid(),
-					m_context.getDirectoryUuid());
-			if (s != VMS_STOPPED)
-				return m_context.reply(Libvirt::Kit.vms().at(
-							m_context.getVmUuid()).getRuntime().update(*d));
-			return m_context.reply(PRL_ERR_SUCCESS);
-		}
-	}
-
-	return m_context.reply(PRL_ERR_NO_CD_DRIVE_AVAILABLE);
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmCreateSnapshot> >::run()
-{
-	CProtoCreateSnapshotCommand* x = CProtoSerializer::CastToProtoCommand
-		<CProtoCreateSnapshotCommand>(m_context.getRequest());
-	if (NULL == x)
-		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
-
-	SmartPtr<CVmConfiguration> cfg(Details::Assistant(m_context).getConfig());
-	if (!cfg.isValid())
-		return;
-	Libvirt::Snapshot::Stash s(cfg, x->GetSnapshotUuid());
-
-	Libvirt::Result e;
-	if (PCSF_BACKUP & x->GetCommandFlags())
-	{
-// NB. external user doesn't work with backup snapshots. this code is
-// here for demostration purposes only. resurect it when backup management
-// will be implemented.
-//		e = Libvirt::Kit.vms().at(x->GetVmUuid())
-//			.getSnapshot()
-//			.defineConsistent("{704718e1-2314-44C8-9087-d78ed36b0f4e}");
-	}
-	else
-	{
-		QStringList f(cfg->getVmIdentification()->getHomePath());
-		CStatesHelper h(cfg->getVmIdentification()->getHomePath());
-		if (h.savFileExists())
-			f << h.getSavFileName();
-		if (!s.add(f)) {
-			WRITE_TRACE(DBG_FATAL, "Unable to save extra snapshot data for VM %s",
-					QSTR2UTF8(x->GetVmUuid()));
-			return m_context.reply(PRL_ERR_FAILURE);
-		}
-
-		e = Libvirt::Kit.vms().at(x->GetVmUuid()).getSnapshot().define(x->GetSnapshotUuid(), x->GetDescription());
-	}
-	if (e.isFailed())
-		return m_context.reply(e);
-	s.commit();
-
-	CDspClientManager& m = CDspService::instance()->getClientManager();
-	SmartPtr<IOPackage> a, b = m_context.getPackage();
-	// tree changed
-	a = DispatcherPackage::createInstance(PVE::DspVmEvent, CVmEvent
-		(PET_DSP_EVT_VM_SNAPSHOTS_TREE_CHANGED, x->GetVmUuid(), PIE_DISPATCHER), b);
-	m.sendPackageToVmClients(a, m_context.getDirectoryUuid(), x->GetVmUuid());
-	// snapshooted
-	a = DispatcherPackage::createInstance(PVE::DspVmEvent, CVmEvent
-		(PET_DSP_EVT_VM_SNAPSHOTED, x->GetVmUuid(), PIE_DISPATCHER), b);
-	m.sendPackageToVmClients(a, m_context.getDirectoryUuid(), x->GetVmUuid());
-	// reply
-	CProtoCommandPtr r = CProtoSerializer::CreateDspWsResponseCommand(b, PRL_ERR_SUCCESS);
-	CProtoCommandDspWsResponse* d = CProtoSerializer::CastToProtoCommand
-		<CProtoCommandDspWsResponse>(r);
-	d->AddStandardParam(x->GetSnapshotUuid());
-	m_context.getSession()->sendResponse(r, b);
-	// swapping finished
-	a = DispatcherPackage::createInstance(PVE::DspVmEvent, CVmEvent
-		(PET_DSP_EVT_VM_MEMORY_SWAPPING_FINISHED, x->GetVmUuid(), PIE_VIRTUAL_MACHINE), b);
-	m.sendPackageToVmClients(a, m_context.getDirectoryUuid(), x->GetVmUuid());
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmSwitchToSnapshot> >::run()
-{
-	CProtoSwitchToSnapshotCommand* x = CProtoSerializer::CastToProtoCommand
-		<CProtoSwitchToSnapshotCommand>(m_context.getRequest());
-	if (NULL == x)
-		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
-
-	SmartPtr<CVmConfiguration> cfg(Details::Assistant(m_context).getConfig());
-	if (!cfg.isValid())
-		return;
-	QString home(cfg->getVmIdentification()->getHomePath());
-
-	Libvirt::Snapshot::Stash s(cfg, x->GetSnapshotUuid());
-	SmartPtr<CVmConfiguration> c(s.restoreConfig(home));
-	if (!c.isValid()) {
-		WRITE_TRACE(DBG_FATAL, "Unable to restore %s", QSTR2UTF8(home));
-		return m_context.reply(PRL_ERR_FAILURE);
-	}
-
-	PRL_RESULT err(CDspService::instance()->getVmConfigManager().saveConfig(
-			c, home, m_context.getSession(), true, true));
-	if (PRL_FAILED(err)) {
-		WRITE_TRACE(DBG_FATAL, "Unable to save restored cfg %s", QSTR2UTF8(home));
-		return m_context.reply(err);
-	}
-	CStatesHelper(home).dropStateFiles();
-	QStringList f(CStatesHelper(home).getSavFileName());
-	s.restore(f);
-	Libvirt::Result e = Libvirt::Kit.vms().at(x->GetVmUuid()).getSnapshot().at(x->GetSnapshotUuid()).revert();
-	m_context.reply(e);
-	if (e.isFailed())
-		return;
-	s.commit();
-
-	// swapping finished
-	SmartPtr<IOPackage> a, b = m_context.getPackage();
-	a = DispatcherPackage::createInstance(PVE::DspVmEvent, CVmEvent
-		(PET_DSP_EVT_VM_MEMORY_SWAPPING_FINISHED, x->GetVmUuid(), PIE_VIRTUAL_MACHINE), b);
-	CDspService::instance()->getClientManager().sendPackageToVmClients(a, m_context.getDirectoryUuid(), x->GetVmUuid());
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmDeleteSnapshot> >::run()
-{
-	CProtoDeleteSnapshotCommand* x = CProtoSerializer::CastToProtoCommand
-		<CProtoDeleteSnapshotCommand>(m_context.getRequest());
-	if (NULL == x)
-		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
-
-	Libvirt::Instrument::Agent::Vm::Snapshot::Unit s = Libvirt::Kit.vms()
-		.at(x->GetVmUuid()).getSnapshot().at(x->GetSnapshotUuid());
-	if (x->GetChild())
-		m_context.reply(s.undefineRecursive());
-	else
-		m_context.reply(s.undefine());
-
-	SmartPtr<CVmConfiguration> cfg(Details::Assistant(m_context).getConfig());
-	if (!cfg.isValid()) {
-		WRITE_TRACE(DBG_FATAL, "Unable to find config for VM %s", QSTR2UTF8(x->GetVmUuid()));
-		return;
-	}
-	Libvirt::Snapshot::Stash z(cfg, x->GetSnapshotUuid());
-	/* TODO should clean child snapshot data too */
-}
-
-CHostHardwareInfo parsePrlNetToolOut(const QString &data)
-{
-	CHostHardwareInfo h;
-	QMap<QString, QStringList> m;
-	foreach(QString s, data.split("\n"))
-	{
-		s.remove('\r');
-		if (s.isEmpty())
-			continue;
-
-		QStringList params = s.split(";", QString::SkipEmptyParts);
-		if (params.size() < 2)
-			continue;
-		m.insert(params.takeFirst(), params);
-	}
-
-	h.getNetworkSettings()->getGlobalNetwork()->setSearchDomains(
-		m.take("SEARCHDOMAIN").takeFirst().split(" ", QString::SkipEmptyParts));
-
-	QMap<QString, QMap<QString, QStringList> > n;
-	for(QMap<QString, QStringList>::iterator i = m.begin(); i != m.end(); ++i)
-	{
-		QString mac = i.value().takeFirst();
-		if (!n.contains(mac))
-			n.insert(mac, QMap<QString, QStringList>());
-		n.find(mac).value().insert(i.key(), i.value());
-	}
-
-	for(QMap<QString, QMap<QString, QStringList> >::iterator j = n.begin(); j != n.end(); ++j)
-	{
-		CHwNetAdapter  *a = new CHwNetAdapter;
-		a->setMacAddress(j.key());
-
-		QMap<QString, QStringList> x(j.value());
-		if (!x.value("DNS").isEmpty())
-			a->setDnsIPAddresses(x.value("DNS").first().split(" ", QString::SkipEmptyParts));
-		if (!x.value("DHCP").isEmpty())
-			a->setConfigureWithDhcp(x.value("DHCP").first() == "TRUE");
-		if (!x.value("DHCPV6").isEmpty())
-			a->setConfigureWithDhcpIPv6(x.value("DHCPV6").first() == "TRUE");
-		if (!x.value("IP").isEmpty())
-			a->setNetAddresses(x.value("IP").first().split(" ", QString::SkipEmptyParts));
-		if (!x.value("GATEWAY").isEmpty())
-		{
-			foreach(QString ip, x.value("GATEWAY").first().split(" ", QString::SkipEmptyParts))
-			{
-				if (QHostAddress(ip).protocol() == QAbstractSocket::IPv6Protocol)
-					a->setDefaultGatewayIPv6(ip);
-				else
-					a->setDefaultGateway(ip);
-			}
-		}
-		h.m_lstNetworkAdapters.append(a);
-	}
-
-	return h;
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmGuestGetNetworkSettings> >::run()
-{
-	PRL_RESULT x = PRL_ERR_UNINITIALIZED;
-	SmartPtr<CVmConfiguration> c = CDspService::instance()->getVmDirHelper().
-		getVmConfigByUuid(m_context.getSession(), m_context.getVmUuid(), x);
-	if (PRL_FAILED(x))
-		return m_context.reply(x);
-	bool isWin = 
-		c->getVmSettings()->getVmCommonOptions()->getOsType() == PVS_GUEST_TYPE_WINDOWS;
-	Libvirt::Instrument::Agent::Vm::Exec::Request request(
-		isWin ? "%programfiles%\\Qemu-ga\\prl_nettool.exe" : "prl_nettool", QList<QString>());
-	request.setRunInShell(isWin);
-	Prl::Expected<Libvirt::Instrument::Agent::Vm::Exec::Result, Error::Simple> e =
-		Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest().runProgram(request);
-	if (e.isFailed())
-	{
-		WRITE_TRACE(DBG_FATAL, "GetNetworkSettings for VM '%s' is failed: %s",
-			qPrintable(m_context.getVmUuid()), PRL_RESULT_TO_STRING(e.error().code()));
-		return m_context.reply(e.error());
-	}
-	else if (e.value().stdOut.isEmpty())
-	{
-		WRITE_TRACE(DBG_FATAL, "prl_nettool return empty response");
-		return m_context.reply(PRL_ERR_GUEST_PROGRAM_EXECUTION_FAILED);
-	}
-
-	SmartPtr<IOPackage> b = m_context.getPackage();
-	CProtoCommandPtr r = CProtoSerializer::CreateDspWsResponseCommand(b, e.value().exitcode);
-	CProtoCommandDspWsResponse* d = CProtoSerializer::CastToProtoCommand
-		<CProtoCommandDspWsResponse>(r);
-
-	d->AddStandardParam(parsePrlNetToolOut(QString(e.value().stdOut)).toString());
-	m_context.getSession()->sendResponse(r, b);
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmGuestSetUserPasswd> >::run()
-{
-	CProtoVmGuestSetUserPasswdCommand *x = CProtoSerializer::CastToProtoCommand
-		<CProtoVmGuestSetUserPasswdCommand>(m_context.getRequest());
-	if (NULL == x)
-		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
-
-	VIRTUAL_MACHINE_STATE s = CDspVm::getVmState(m_context.getVmUuid(), m_context.getDirectoryUuid());
-	if (s == VMS_STOPPED) {
-		SmartPtr<CVmConfiguration> cfg = Details::Assistant(m_context).getConfig();
-		if (!cfg.isValid()) {
-			WRITE_TRACE(DBG_FATAL, "Bad configuration for %s", QSTR2UTF8(m_context.getVmUuid()));
-			return;
-		}
-
-		bool b(::Personalize::Configurator(*cfg).setUserPassword(x->GetUserLoginName(),
-				x->GetUserPassword(), x->GetCommandFlags() & PSPF_PASSWD_CRYPTED));
-		m_context.reply(b? PRL_ERR_SUCCESS: PRL_ERR_OPERATION_FAILED);
-	} else {
-		Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid()).getGuest()
-				.setUserPasswd(x->GetUserLoginName(), x->GetUserPassword(), x->GetCommandFlags() & PSPF_PASSWD_CRYPTED);
-		if (e.isFailed())
-		{
-			WRITE_TRACE(DBG_FATAL, "Set user password for VM '%s' is failed: %s",
-				qPrintable(m_context.getVmUuid()), PRL_RESULT_TO_STRING(e.error().code()));
-		}
-		m_context.reply(e);
-	}
-}
-
-template<>
-void Body<Tag::Special<PVE::DspCmdVmGuestRunProgram> >::run(Context& context_)
-{
-	CDspService::instance()->getTaskManager().schedule(
-			new Task_ExecVm(context_.getSession(), context_.getPackage(), Exec::Vm()));
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmLoginInGuest> >::run()
-{
-	CProtoVmLoginInGuestCommand* x = CProtoSerializer::CastToProtoCommand
-		<CProtoVmLoginInGuestCommand>(m_context.getRequest());
-	if (NULL == x)
-		return m_context.reply(PRL_ERR_UNRECOGNIZED_REQUEST);
-
-	Libvirt::Result e = Libvirt::Kit.vms().at(m_context.getVmUuid())
-		.getGuest().checkAgent();
-
-	if (e.isFailed())
-		return m_context.reply(e);
-
-	SmartPtr<IOPackage> b = m_context.getPackage();
-	// reply
-	CProtoCommandPtr r = CProtoSerializer::CreateDspWsResponseCommand(b, PRL_ERR_SUCCESS);
-	CProtoCommandDspWsResponse* d = CProtoSerializer::CastToProtoCommand
-		<CProtoCommandDspWsResponse>(r);
-	d->AddStandardParam(Uuid::createUuid().toString());
-	m_context.getSession()->sendResponse(r, b);
-}
-
-template<>
-void Body<Tag::Libvirt<PVE::DspCmdVmGuestLogout> >::run()
-{
-        m_context.reply(PRL_ERR_SUCCESS);
-}
-
-#else // _LIBVIRT_
-template<PVE::IDispatcherCommands X>
-void Body<Tag::Libvirt<X> >::run()
-{
-	m_context.reply(PRL_ERR_UNIMPLEMENTED);
-}
-
-#endif // _LIBVIRT_
 
 } // namespace Details
 
@@ -1358,34 +1409,37 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmChangeSid] = map(Tag::Special<PVE::DspCmdVmChangeSid>());
 	m_map[PVE::DspCmdVmResetUptime] = map(Tag::Special<PVE::DspCmdVmResetUptime>());
 	m_map[PVE::DspCmdVmAuthWithGuestSecurityDb] = map(Tag::Special<PVE::DspCmdVmAuthWithGuestSecurityDb>());
-	m_map[PVE::DspCmdVmStart] = map(Tag::Libvirt<PVE::DspCmdVmStart>());
-	m_map[PVE::DspCmdVmStartEx] = map(Tag::Libvirt<PVE::DspCmdVmStart>());
-	m_map[PVE::DspCmdVmCreateSnapshot] = map(Tag::Libvirt<PVE::DspCmdVmCreateSnapshot>());
-	m_map[PVE::DspCmdVmSwitchToSnapshot] = map(Tag::Libvirt<PVE::DspCmdVmSwitchToSnapshot>());
-	m_map[PVE::DspCmdVmDeleteSnapshot] = map(Tag::Libvirt<PVE::DspCmdVmDeleteSnapshot>());
+	m_map[PVE::DspCmdVmStart] = map(Tag::Fork<Tag::State<Essence<PVE::DspCmdVmStart>,
+		Vm::Fork::State::Strict<VMS_RUNNING> > >());
+	m_map[PVE::DspCmdVmStartEx] = map(Tag::Fork<Tag::State<Essence<PVE::DspCmdVmStart>,
+		Vm::Fork::State::Strict<VMS_RUNNING> > >());
+	m_map[PVE::DspCmdVmCreateSnapshot] = map(Tag::Fork<Essence<PVE::DspCmdVmCreateSnapshot> >());
+	m_map[PVE::DspCmdVmSwitchToSnapshot] = map(Tag::Fork<Essence<PVE::DspCmdVmSwitchToSnapshot> >());
+	m_map[PVE::DspCmdVmDeleteSnapshot] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDeleteSnapshot> > >());
 	m_map[PVE::DspCmdVmAnswer] = map(Tag::Simple<PVE::DspCmdVmAnswer>());
 	m_map[PVE::DspCmdVmStartVNCServer] = map(Tag::Simple<PVE::DspCmdVmStartVNCServer>());
 	m_map[PVE::DspCmdVmStopVNCServer] = map(Tag::Simple<PVE::DspCmdVmStopVNCServer>());
-	m_map[PVE::DspCmdVmReset] = map(Tag::Libvirt<PVE::DspCmdVmReset>());
-	m_map[PVE::DspCmdVmPause] = map(Tag::Libvirt<PVE::DspCmdVmPause>());
-	m_map[PVE::DspCmdVmSuspend] = map(Tag::Libvirt<PVE::DspCmdVmSuspend>());
-	m_map[PVE::DspCmdVmDropSuspendedState] = map(Tag::Libvirt<PVE::DspCmdVmDropSuspendedState>());
-	m_map[PVE::DspCmdVmDevConnect] = map(Tag::Libvirt<PVE::DspCmdVmDevConnect>());
-	m_map[PVE::DspCmdVmDevDisconnect] = map(Tag::Libvirt<PVE::DspCmdVmDevDisconnect>());
+	m_map[PVE::DspCmdVmReset] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmReset> > >());
+	m_map[PVE::DspCmdVmPause] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmPause> > >());
+	m_map[PVE::DspCmdVmSuspend] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmSuspend> > >());
+	m_map[PVE::DspCmdVmDropSuspendedState] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDropSuspendedState> > >());
+	m_map[PVE::DspCmdVmDevConnect] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDevConnect> > >());
+	m_map[PVE::DspCmdVmDevDisconnect] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDevDisconnect> > >());
 	m_map[PVE::DspCmdVmInitiateDevStateNotifications] = map(Tag::General<PVE::DspCmdVmInitiateDevStateNotifications>());
 	m_map[PVE::DspCmdVmInstallUtility] = map(Tag::General<PVE::DspCmdVmInstallUtility>());
-	m_map[PVE::DspCmdVmInstallTools] = map(Tag::Libvirt<PVE::DspCmdVmInstallTools>());
+	m_map[PVE::DspCmdVmInstallTools] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmInstallTools> > >());
 	m_map[PVE::DspCmdVmUpdateToolsSection] = map(Tag::General<PVE::DspCmdVmUpdateToolsSection>());
 	m_map[PVE::DspCmdVmRunCompressor] = map(Tag::General<PVE::DspCmdVmRunCompressor>());
 	m_map[PVE::DspCmdVmCancelCompressor] = map(Tag::General<PVE::DspCmdVmCancelCompressor>());
 	m_map[PVE::DspCmdVmMigrateCancel] = map(Tag::General<PVE::DspCmdVmMigrateCancel>());
-	m_map[PVE::DspCmdVmRestartGuest] = map(Tag::Libvirt<PVE::DspCmdVmRestartGuest>());
-	m_map[PVE::DspCmdVmStop] = map(Tag::Libvirt<PVE::DspCmdVmStop>());
-	m_map[PVE::DspCmdVmLoginInGuest] = map(Tag::Libvirt<PVE::DspCmdVmLoginInGuest>());
-	m_map[PVE::DspCmdVmGuestLogout] = map(Tag::Libvirt<PVE::DspCmdVmGuestLogout>());
+	m_map[PVE::DspCmdVmRestartGuest] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmRestartGuest> > >());
+	m_map[PVE::DspCmdVmStop] = map(Tag::Fork<Tag::Timeout<PVE::DspCmdVmStop,
+		Tag::State<Essence<PVE::DspCmdVmStop>, Vm::Fork::State::Strict<VMS_STOPPED> > > >());
+	m_map[PVE::DspCmdVmLoginInGuest] = map(Tag::Fork<Essence<PVE::DspCmdVmLoginInGuest> >());
+	m_map[PVE::DspCmdVmGuestLogout] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmGuestLogout> > >());
 	m_map[PVE::DspCmdVmGuestRunProgram] = map(Tag::Special<PVE::DspCmdVmGuestRunProgram>());
-	m_map[PVE::DspCmdVmGuestGetNetworkSettings] = map(Tag::Libvirt<PVE::DspCmdVmGuestGetNetworkSettings>());
-	m_map[PVE::DspCmdVmGuestSetUserPasswd] = map(Tag::Libvirt<PVE::DspCmdVmGuestSetUserPasswd>());
+	m_map[PVE::DspCmdVmGuestGetNetworkSettings] = map(Tag::Fork<Essence<PVE::DspCmdVmGuestGetNetworkSettings> >());
+	m_map[PVE::DspCmdVmGuestSetUserPasswd] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmGuestSetUserPasswd> > >());
 	m_map[PVE::DspCmdVmGuestChangeSID] = map(Tag::GuestSession());
 
 	m_internal[QString("dbgdump")] = Internal::dumpMemory;
