@@ -292,6 +292,12 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 
 	a->setNetAddresses(Ips()(bridge_.getValue().getIpList()));
 
+	if (bridge_.getValue().getBoot())
+	{
+		m_clip->getBootSlot(bridge_.getValue().getBoot().get())
+			.set(a->getDeviceType(), a->getIndex());
+	}
+
 	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
 }
@@ -319,6 +325,12 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	}
 
 	a->setNetAddresses(Ips()(network_.getValue().getIpList()));
+
+	if (network_.getValue().getBoot())
+	{
+		m_clip->getBootSlot(network_.getValue().getBoot().get())
+			.set(a->getDeviceType(), a->getIndex());
+	}
 
 	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
@@ -348,6 +360,12 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 
 	a->setNetAddresses(Ips()(direct_.getValue().getIpList()));
 
+	if (direct_.getValue().getBoot())
+	{
+		m_clip->getBootSlot(direct_.getValue().getBoot().get())
+			.set(a->getDeviceType(), a->getIndex());
+	}
+
 	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
 }
@@ -361,7 +379,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice936::
 	if (NULL == h)
 		return PRL_ERR_UNEXPECTED;
 
-	return boost::apply_visitor(Network(*h), interface_.getValue());
+	return boost::apply_visitor(Network(*h, *m_clip), interface_.getValue());
 }
 
 PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice936::types, 6>::type& sound_) const
