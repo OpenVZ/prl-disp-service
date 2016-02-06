@@ -848,7 +848,7 @@ enum {
 	AUX_MAGIC_NUMBER = 0x4B58B9CA
 };
 
-AuxChannel::AuxChannel(virStreamPtr& stream_)
+AuxChannel::AuxChannel(virStreamPtr stream_)
 	: m_stream(stream_), m_read(0), m_ioChannelCounter(0)
 {
 	virStreamEventAddCallback(m_stream,

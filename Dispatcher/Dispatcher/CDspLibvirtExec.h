@@ -249,7 +249,7 @@ struct AuxChannel : QObject {
 		quint32 length;
 	} AuxMessageHeader;
 
-	explicit AuxChannel(virStreamPtr& stream_);
+	explicit AuxChannel(virStreamPtr stream_);
 	~AuxChannel();
 
 	bool isOpen();
