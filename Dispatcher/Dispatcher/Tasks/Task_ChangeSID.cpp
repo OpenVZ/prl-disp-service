@@ -206,8 +206,8 @@ PRL_RESULT Task_ChangeSID::run_body()
 		if (bVmStarted) {
 			jobProgressEvent(90);
 			// TODO graceful shutdown
-			// was e = Command::Vm::Shutdown::Unit(getVmUuid(), 120)();
-			e = u.kill();
+			e = Command::Vm::Gear<Command::Vm::Shutdown::schema_type>
+				::run(getVmUuid());
 			if (e.isFailed())
 				throw e.error().code();
 			bVmStarted = false;
