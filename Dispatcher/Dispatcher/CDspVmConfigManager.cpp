@@ -115,36 +115,50 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Index
 
+template<class T>
 struct Index
 {
-	explicit Index(QString target_)
+	explicit Index(const T& device_):
+		m_index(Parallels::fromBase26(device_.getTargetDeviceName().remove(0, 2))),
+		m_iface(device_.getInterfaceType())
 	{
-		// remove 'sd/fd' prefix
-		m_index = Parallels::fromBase26(target_.remove(0, 2));
 	}
 
-	template<class T>
 	bool operator()(const T* device_) const
 	{
-		 return device_->getIndex() == m_index;
+		 return device_->getStackIndex() == m_index
+			&& m_iface == device_->getInterfaceType();
 	}
 
 private:
 	uint m_index;
+	uint m_iface;
 };
+
+template <>
+Index<CVmFloppyDisk>::Index(const CVmFloppyDisk& device_):
+	m_index(Parallels::fromBase26(device_.getTargetDeviceName().remove(0, 2)))
+{
+}
+
+template <>
+bool Index<CVmFloppyDisk>::operator()(const CVmFloppyDisk* device_) const
+{
+	return device_->getIndex() == m_index;
+}
 
 template<class T>
 typename QList<T*>::iterator choose(typename QList<T*>::iterator begin_,
 		typename QList<T*>::iterator end_, const T& device_)
 {
-	if (!device_.getSystemName().isEmpty())
-		return std::find_if(begin_, end_, Image(device_.getSystemName()));
+	//if (!device_.getSystemName().isEmpty())
+	//	return std::find_if(begin_, end_, Image(device_.getSystemName()));
 	// If image path is not set, then this means that the
 	// device was originally disconnected.
 	// Try matching by target device name, which we expect to
 	// be in the form: <prefix><base26-encoded device index>.
 	if (!device_.getTargetDeviceName().isEmpty())
-		return std::find_if(begin_, end_, Index(device_.getTargetDeviceName()));
+		return std::find_if(begin_, end_, Index<T>(device_));
 	return end_;
 }
 
@@ -202,7 +216,8 @@ Pool::Pool(const population_type& initial_): m_population(initial_)
 quint32 Pool::getAvailable()
 {
 	quint32 output = 0;
-	if (!m_population.isEmpty() && m_population.first() != 0)
+
+	if (!m_population.isEmpty() && m_population.first() == 0)
 	{
 		population_type::const_iterator ii =
 			std::adjacent_find(m_population.constBegin(), m_population.constEnd(),
@@ -214,7 +229,8 @@ quint32 Pool::getAvailable()
 			output = m_population.last() + 1;
 	}
 
-	m_population.insert(output, output);
+	m_population.push_back(output);
+	qSort(m_population);
 	return output;
 }
 
