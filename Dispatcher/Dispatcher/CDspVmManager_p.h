@@ -162,7 +162,7 @@ struct State
 ///////////////////////////////////////////////////////////////////////////////
 // struct Timeout
 
-template<PVE::IDispatcherCommands X, class T>
+template<class T, class U>
 struct Timeout
 {
 };
@@ -172,6 +172,24 @@ struct Timeout
 
 template<class T>
 struct Reply
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct IsAsync
+
+template<class T>
+struct IsAsync: boost::mpl::false_
+{
+};
+
+template<class T, class U>
+struct IsAsync<Tag::State<T, U> >: boost::mpl::true_
+{
+};
+
+template<class T, class U>
+struct IsAsync<Tag::Timeout<T, U> >: boost::mpl::true_
 {
 };
 
@@ -275,6 +293,16 @@ struct Essence;
 
 namespace Vm
 {
+namespace Fork
+{
+struct Reactor;
+
+namespace State
+{
+struct Detector;
+} // namespace State
+} // namespace Fork
+
 namespace Prepare
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -395,6 +423,26 @@ struct Policy<T, typename boost::enable_if<boost::mpl::empty<typename Mixture<T>
 	}
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Extra
+
+struct Extra
+{
+	Extra(QEventLoop& loop_, QObjectCleanupHandler& tracker_):
+		m_loop(&loop_), m_tracker(&tracker_)
+	{
+	}
+
+	Libvirt::Result operator()(quint32 timeout_, Fork::Reactor* reactor_);
+
+	Libvirt::Result operator()
+		(Fork::State::Detector* detector_, Fork::Reactor* reactor_);
+
+private:
+	QEventLoop* m_loop;
+	QObjectCleanupHandler* m_tracker;
+};
+
 } // namespace Prepare
 
 namespace Fork
@@ -409,6 +457,21 @@ public slots:
 
 private:
 	Q_OBJECT
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Gear
+
+struct Gear
+{
+	explicit Gear(QEventLoop& loop_): m_loop(&loop_)
+	{
+	}
+
+	Libvirt::Result operator()(Reactor& reactor_);
+
+private:
+	QEventLoop* m_loop;
 };
 
 namespace State
@@ -463,7 +526,11 @@ struct Strict
 {
 	static Detector* craft(const Context& context_)
 	{
-		return new Detector(context_.getVmUuid(), S);
+		return craft(context_.getVmUuid());
+	}
+	static Detector* craft(const QString& uuid_)
+	{
+		return new Detector(uuid_, S);
 	}
 };
 
@@ -496,34 +563,32 @@ private:
 struct Visitor
 {
 	Visitor(QEventLoop& loop_, const Context& context_, QObjectCleanupHandler& tracker_):
-		m_context(context_), m_loop(&loop_), m_tracker(&tracker_)
+		m_context(context_), m_loop(&loop_), m_setup(loop_, tracker_)
 	{
 	}
 
 	template<class T>
-	Libvirt::Result operator()(T launcher_);
+	Libvirt::Result operator()
+		(T launcher_, boost::mpl::true_ = boost::mpl::true_());
+
+	template<class T>
+	Libvirt::Result operator()(T launcher_, boost::mpl::false_);
 
 	template<class T>
 	Libvirt::Result operator()(Tag::Reply<T> launcher_);
 
 	template<class T, class U>
-	Libvirt::Result operator()(Tag::State<T, U>);
+	Libvirt::Result operator()
+		(Tag::State<T, U>, boost::mpl::true_ = boost::mpl::true_());
 
-	template<PVE::IDispatcherCommands X, class T>
-	Libvirt::Result operator()(Tag::Timeout<X, T>);
+	template<class T, PVE::IDispatcherCommands X>
+	Libvirt::Result operator()
+		(Tag::Timeout<T, Tag::Libvirt<X> >, boost::mpl::true_ = boost::mpl::true_());
 
 private:
-	template<class T, class U>
-	Libvirt::Result launch(Tag::State<T, U> launcher_)
-	{
-		return (*this)(launcher_);
-	}
-	template<class T>
-	Libvirt::Result launch(T launcher_);
-
 	Context m_context;
 	QEventLoop* m_loop;
-	QObjectCleanupHandler* m_tracker;
+	Prepare::Extra m_setup;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -546,6 +611,145 @@ private:
 };
 
 } // namespace Fork
+
+namespace Async
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Launcher
+
+template<class T>
+struct Launcher
+{
+	Launcher(const Prepare::Extra& setup_, const T& load_, Libvirt::Result& sink_):
+		m_load(load_), m_setup(setup_), m_sink(&sink_)
+	{
+	}
+
+	template<class U>
+	void operator()(U launcher_, boost::mpl::false_)
+	{
+		*m_sink = launcher_(m_load);
+	}
+
+	template<class U, class V>
+	void operator()(Tag::State<U, V>, boost::mpl::true_ = boost::mpl::true_())
+	{
+		*m_sink = m_setup(V::craft(m_load), NULL);
+		if (m_sink->isSucceed())
+			this->operator()(U(), Tag::IsAsync<U>());
+	}
+
+	template<class U, class V>
+	void operator()(Tag::Timeout<U, V>, boost::mpl::true_ = boost::mpl::true_())
+	{
+		*m_sink = m_setup(V::getTimeout(), V::craft(m_load, *m_sink));
+		if (m_sink->isSucceed())
+			this->operator()(U(), Tag::IsAsync<U>());
+	}
+
+private:
+	T m_load;
+	Prepare::Extra m_setup;
+	Libvirt::Result* m_sink;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Gear
+
+template<class T, class U>
+struct Gear: Fork::Reactor
+{
+	Gear(const U& load_, QEventLoop& loop_):
+		m_load(load_), m_loop(&loop_)
+	{
+	}
+
+	void react()
+	{
+		Prepare::Extra x(*m_loop, m_tracker);
+		Launcher<U>(x, m_load, m_result)(T());
+		if (m_result.isFailed())
+			m_loop->quit();
+	}
+	const Libvirt::Result& getResult() const
+	{
+		return m_result;
+	}
+
+private:
+	U m_load;
+	QEventLoop* m_loop;
+	Libvirt::Result m_result;
+	QObjectCleanupHandler m_tracker;
+};
+
+} // namespace Async
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Gear
+
+template<class T, class Enabled = void>
+struct Gear
+{
+        template<class U>
+        static Libvirt::Result run(const U& load_)
+        {
+                return T()(load_);
+        }
+};
+
+template<class T>
+struct Gear<T, typename boost::enable_if<Tag::IsAsync<T> >::type>
+{
+        template<class U>
+        static Libvirt::Result run(const U& load_)
+        {
+                QEventLoop x;
+                Async::Gear<T, U> g(load_, x);
+                Libvirt::Result e = Fork::Gear(x)(g);
+                if (e.isFailed())
+                        return e;
+
+                return g.getResult();
+        }
+};
+
+namespace Shutdown
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Launcher
+
+struct Launcher
+{
+	Libvirt::Result operator()(const QString& uuid_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Fallback
+
+struct Fallback: Fork::Reactor
+{
+	Fallback(const QString& uuid_, Libvirt::Result& sink_):
+		m_uuid(uuid_), m_sink(&sink_)
+	{
+	}
+
+	void react();
+	static quint32 getTimeout();
+	static Fallback* craft(const QString& uuid_, Libvirt::Result& sink_)
+	{
+		return new Fallback(uuid_, sink_);
+	}
+
+private:
+	QString m_uuid;
+	Libvirt::Result* m_sink;
+};
+
+typedef Tag::Timeout<Tag::State<Launcher, Fork::State::Strict<VMS_STOPPED> >, Fallback>
+	schema_type;
+
+} // namespace Shutdown
 } // namespace Vm
 } // namespace Command
 

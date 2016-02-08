@@ -747,19 +747,16 @@ namespace Timeout
 template<>
 void Reactor<PVE::DspCmdVmStop>::react()
 {
-	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
-	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_context.getVmUuid());
-	Libvirt::Result e = u.getState(s);
-	if (e.isSucceed() && s != VMS_STOPPED)
-		e = u.kill();
-
+	Libvirt::Result e;
+	Shutdown::Fallback f(m_context.getVmUuid(), e);
+	f.react();
 	m_context.reply(e);
 }
 
 template<>
 quint32 Reactor<PVE::DspCmdVmStop>::getInterval() const
 {
-	return 120;
+	return Shutdown::Fallback::getTimeout();
 }
 
 } // namespace Timeout
@@ -800,31 +797,103 @@ void Slip<T>::react()
 ///////////////////////////////////////////////////////////////////////////////
 // struct Visitor
 
-template<PVE::IDispatcherCommands X, class T>
-Libvirt::Result Visitor::operator()(Tag::Timeout<X, T>)
+template<class T, PVE::IDispatcherCommands X>
+Libvirt::Result Visitor::operator()(Tag::Timeout<T, Tag::Libvirt<X> >, boost::mpl::true_)
 {
+	Timeout::Reactor<X>* r = new Timeout::Reactor<X>(m_context);
+	Libvirt::Result e = m_setup(r->getInterval(), r);
+	if (e.isFailed())
+		return e;
+
+	return (*this)(T(), Tag::IsAsync<T>());
+}
+
+template<class T, class U>
+Libvirt::Result Visitor::operator()(Tag::State<T, U>, boost::mpl::true_)
+{
+	Libvirt::Result e = m_setup
+		(U::craft(m_context), new State::Reactor<T>(m_context));
+	if (e.isFailed())
+		return e;
+
+	return (*this)(T(), Tag::IsAsync<T>());
+}
+
+template<class T>
+Libvirt::Result Visitor::operator()(Tag::Reply<T> launcher_)
+{
+	Q_UNUSED(launcher_);
+	m_context.reply((*this)(T()));
+	return Libvirt::Result();
+}
+
+template<class T>
+Libvirt::Result Visitor::operator()(T launcher_, boost::mpl::true_)
+{
+	m_loop->quit();
+	return (*this)(launcher_, boost::mpl::false_());
+}
+
+template<class T>
+Libvirt::Result Visitor::operator()(T launcher_, boost::mpl::false_)
+{
+	return Prepare::Policy<T>::do_(launcher_, m_context);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Gear
+
+Libvirt::Result Gear::operator()(Reactor& reactor_)
+{
+	QTimer t;
+	if (!reactor_.connect(&t, SIGNAL(timeout()), SLOT(react()), Qt::QueuedConnection))
+		return Error::Simple(PRL_ERR_FAILURE);
+
+	t.setInterval(0);
+	t.setSingleShot(true);
+	t.start();
+	m_loop->exec();
+	return Libvirt::Result();
+}
+
+} // namespace Fork
+
+namespace Prepare
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Extra
+
+Libvirt::Result Extra::operator()(quint32 timeout_, Fork::Reactor* reactor_)
+{
+	if (NULL == reactor_)
+		return Error::Simple(PRL_ERR_INVALID_ARG);
+
 	QScopedPointer<QTimer> t(new QTimer());
-	QScopedPointer<Timeout::Reactor<X> > r(new Timeout::Reactor<X>(m_context));
+	QScopedPointer<Fork::Reactor> r(reactor_);
 	if (!r->connect(t.data(), SIGNAL(timeout()), SLOT(react()), Qt::QueuedConnection))
 		return Error::Simple(PRL_ERR_FAILURE);
 
 	if (!m_loop->connect(t.data(), SIGNAL(timeout()), SLOT(quit()), Qt::QueuedConnection))
 		return Error::Simple(PRL_ERR_FAILURE);
 
-	t->setInterval(r->getInterval() * 1000);
+	t->setInterval(timeout_ * 1000);
 	t->setSingleShot(true);
 	m_tracker->add(r.take());
 	m_tracker->add(t.data());
 	t.take()->start();
-	return launch(T());
+
+	return Libvirt::Result();
 }
 
-template<class T, class U>
-Libvirt::Result Visitor::operator()(Tag::State<T, U>)
+Libvirt::Result Extra::operator()
+	(Fork::State::Detector* detector_, Fork::Reactor* reactor_)
 {
-	QScopedPointer<State::Detector> a(U::craft(m_context));
-	QScopedPointer<Fork::Reactor> b(new State::Reactor<T>(m_context));
-	if (!b->connect(a.data(), SIGNAL(detected()), SLOT(react()), Qt::DirectConnection))
+	if (NULL == detector_)
+		return Error::Simple(PRL_ERR_INVALID_ARG);
+
+	QScopedPointer<Fork::State::Detector> a(detector_);
+	QScopedPointer<Fork::Reactor> b(reactor_);
+	if (!b.isNull() && !b->connect(a.data(), SIGNAL(detected()), SLOT(react()), Qt::DirectConnection))
 		return Error::Simple(PRL_ERR_FAILURE);
 
 	if (!m_loop->connect(a.data(), SIGNAL(detected()), SLOT(quit()), Qt::DirectConnection))
@@ -845,31 +914,40 @@ Libvirt::Result Visitor::operator()(Tag::State<T, U>)
 	s.unlock();
 	m_tracker->add(a.take());
 	m_tracker->add(b.take());
-	return launch(T());
-}
 
-template<class T>
-Libvirt::Result Visitor::operator()(Tag::Reply<T> launcher_)
-{
-	Q_UNUSED(launcher_);
-	m_context.reply((*this)(T()));
 	return Libvirt::Result();
 }
 
-template<class T>
-Libvirt::Result Visitor::operator()(T launcher_)
+} // namespace Prepare
+
+namespace Shutdown
 {
-	m_loop->quit();
-	return launch(launcher_);
+///////////////////////////////////////////////////////////////////////////////
+// struct Launcher
+
+Libvirt::Result Launcher::operator()(const QString& uuid_)
+{
+	return Libvirt::Kit.vms().at(uuid_).shutdown();
 }
 
-template<class T>
-Libvirt::Result Visitor::launch(T launcher_)
+///////////////////////////////////////////////////////////////////////////////
+// struct Fallback
+
+void Fallback::react()
 {
-	return Prepare::Policy<T>::do_(launcher_, m_context);
+	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_uuid);
+	*m_sink = u.getState(s);
+	if (m_sink->isSucceed() && s != VMS_STOPPED)
+		*m_sink = u.kill();
 }
 
-} // namespace Fork
+quint32 Fallback::getTimeout()
+{
+	return 120;
+}
+
+} // namespace Shutdown
 } // namespace Vm
 
 namespace Details
@@ -1298,16 +1376,11 @@ struct Body<Tag::Fork<T> >: QRunnable
 {
 	void run()
 	{
-		QTimer t;
 		QEventLoop x;
 		Vm::Fork::Slip<T> y(x, m_context);
-		if (!y.connect(&t, SIGNAL(timeout()), SLOT(react()), Qt::QueuedConnection))
-			return m_context.reply(PRL_ERR_FAILURE);
-
-		t.setInterval(0);
-		t.setSingleShot(true);
-		t.start();
-		x.exec();
+		Libvirt::Result	e = Vm::Fork::Gear(x)(y);
+		if (e.isFailed())
+			m_context.reply(e);
 	}
 
 	static void run(Context& context_)
@@ -1421,8 +1494,8 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmStopVNCServer] = map(Tag::Simple<PVE::DspCmdVmStopVNCServer>());
 	m_map[PVE::DspCmdVmReset] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmReset> > >());
 	m_map[PVE::DspCmdVmPause] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmPause> > >());
-	m_map[PVE::DspCmdVmSuspend] = map(Tag::Fork<Tag::Reply<
-			Tag::State<Essence<PVE::DspCmdVmSuspend>, Vm::Fork::State::Strict<VMS_SUSPENDED> > > >());
+	m_map[PVE::DspCmdVmSuspend] = map(Tag::Fork<Tag::State<Essence<PVE::DspCmdVmSuspend>,
+		Vm::Fork::State::Strict<VMS_SUSPENDED> > >());
 	m_map[PVE::DspCmdVmDropSuspendedState] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDropSuspendedState> > >());
 	m_map[PVE::DspCmdVmDevConnect] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDevConnect> > >());
 	m_map[PVE::DspCmdVmDevDisconnect] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDevDisconnect> > >());
@@ -1434,8 +1507,8 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmCancelCompressor] = map(Tag::General<PVE::DspCmdVmCancelCompressor>());
 	m_map[PVE::DspCmdVmMigrateCancel] = map(Tag::General<PVE::DspCmdVmMigrateCancel>());
 	m_map[PVE::DspCmdVmRestartGuest] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmRestartGuest> > >());
-	m_map[PVE::DspCmdVmStop] = map(Tag::Fork<Tag::Timeout<PVE::DspCmdVmStop,
-		Tag::State<Essence<PVE::DspCmdVmStop>, Vm::Fork::State::Strict<VMS_STOPPED> > > >());
+	m_map[PVE::DspCmdVmStop] = map(Tag::Fork<Tag::Timeout<Tag::State<Essence<PVE::DspCmdVmStop>,
+		Vm::Fork::State::Strict<VMS_STOPPED> >, Tag::Libvirt<PVE::DspCmdVmStop> > >());
 	m_map[PVE::DspCmdVmLoginInGuest] = map(Tag::Fork<Essence<PVE::DspCmdVmLoginInGuest> >());
 	m_map[PVE::DspCmdVmGuestLogout] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmGuestLogout> > >());
 	m_map[PVE::DspCmdVmGuestRunProgram] = map(Tag::Special<PVE::DspCmdVmGuestRunProgram>());
