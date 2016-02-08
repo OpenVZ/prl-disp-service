@@ -162,8 +162,9 @@ struct Device
 			iterator_type it = findDevice(m_devices.begin(), m_devices.end(), h);
 			if (m_devices.end() == it)
 			{
-				h->setIndex(p.getAvailable());
-				h->setItemId(p.getAvailable());
+				qint32 i = p.getAvailable();
+				h->setIndex(i);
+				h->setItemId(i);
 			}
 			else
 			{
