@@ -502,10 +502,9 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reactor
 
-template<class T>
 struct Reactor: Fork::Reactor
 {
-	explicit Reactor(const Context& context_): m_context(context_)
+	explicit Reactor(const ::Command::Context& context_): m_context(context_)
 	{
 	}
 
@@ -515,7 +514,7 @@ struct Reactor: Fork::Reactor
 	}
 
 private:
-	Context m_context;
+	::Command::Context m_context;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -524,16 +523,74 @@ private:
 template<VIRTUAL_MACHINE_STATE S>
 struct Strict
 {
-	static Detector* craft(const Context& context_)
+	static Detector* craftDetector(const Context& context_)
 	{
-		return craft(context_.getVmUuid());
+		return craftDetector(context_.getVmUuid());
 	}
-	static Detector* craft(const QString& uuid_)
+	static Detector* craftDetector(const QString& uuid_)
 	{
 		return new Detector(uuid_, S);
 	}
+	static Fork::Reactor* craftReactor(const Context& context_)
+	{
+		return new Reactor(context_);
+	}
 };
 
+namespace Snapshot
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Adapter
+
+struct Adapter: Need::Context
+{
+	Libvirt::Result operator()()
+	{
+		getContext().reply(PRL_ERR_SUCCESS);
+		sendEvent(PET_DSP_EVT_VM_MEMORY_SWAPPING_FINISHED, PIE_VIRTUAL_MACHINE);
+		return Libvirt::Result();
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Reactor
+
+struct Reactor: Fork::Reactor
+{
+	explicit Reactor(const ::Command::Context& context_): m_context(context_)
+	{
+	}
+
+	void react()
+	{
+		Prepare::Policy<Adapter>::do_(Adapter(), m_context);
+	}
+
+private:
+	::Command::Context m_context;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct FromSnapshot
+
+struct Switch: Need::Agent, Need::Config, Need::Context, Need::Command<Parallels::CProtoSwitchToSnapshotCommand>
+{
+	Switch(VIRTUAL_MACHINE_STATE& state_): m_state(&state_)
+	{
+	}
+
+	static Detector* craftDetector(const ::Command::Context& context_);
+	static Fork::Reactor* craftReactor(const ::Command::Context& context_)
+	{
+		return new Reactor(context_);
+	}
+	Libvirt::Result operator()();
+
+private:
+	VIRTUAL_MACHINE_STATE* m_state;
+};
+
+} // namespace Snapshot
 } // namespace State
 
 namespace Timeout
@@ -634,7 +691,7 @@ struct Launcher
 	template<class U, class V>
 	void operator()(Tag::State<U, V>, boost::mpl::true_ = boost::mpl::true_())
 	{
-		*m_sink = m_setup(V::craft(m_load), NULL);
+		*m_sink = m_setup(V::craftDetector(m_load), NULL);
 		if (m_sink->isSucceed())
 			this->operator()(U(), Tag::IsAsync<U>());
 	}
