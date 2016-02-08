@@ -366,7 +366,7 @@ PRL_RESULT Dao::craftBridge(CVirtualNetwork& network_)
 	Libvirt::Instrument::Agent::Interface::Bridge b;
 	Libvirt::Result r = m_interfaces.find(m, b);
 	e = (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
-	if (PRL_ERR_NETWORK_ADAPTER_NOT_FOUND == e)
+	if (PRL_ERR_BRIDGE_NOT_FOUND_FOR_NETWORK_ADAPTER == e)
 	{
 		WRITE_TRACE(DBG_FATAL, "Bridge not found for %s", QSTR2UTF8(m.getDeviceName()));
 		return e;
