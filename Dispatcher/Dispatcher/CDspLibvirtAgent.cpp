@@ -1642,7 +1642,7 @@ Result List::find(const CHwNetAdapter& eth_, Bridge& dst_) const
 			return Result();
 		}
 	}
-	return Error::Simple(PRL_ERR_NETWORK_ADAPTER_NOT_FOUND);
+	return Error::Simple(PRL_ERR_BRIDGE_NOT_FOUND_FOR_NETWORK_ADAPTER);
 }
 
 Result List::find(const QString& mac_, unsigned short vlan_, CHwNetAdapter& dst_) const
