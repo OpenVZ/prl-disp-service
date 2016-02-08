@@ -505,12 +505,8 @@ struct Essence<PVE::DspCmdVmSwitchToSnapshot>: Need::Agent, Need::Context,
 		output = getAgent().getSnapshot()
 			.at(getCommand()->GetSnapshotUuid()).revert();
 		if (output.isSucceed())
-		{
 			s.commit();
-			getContext().reply(output);
-			sendEvent(PET_DSP_EVT_VM_MEMORY_SWAPPING_FINISHED,
-				PIE_VIRTUAL_MACHINE);
-		}
+
 		return output;
 	}
 
@@ -777,6 +773,48 @@ void Detector::react(unsigned oldState_, unsigned newState_, QString vmUuid_, QS
 	}
 }
 
+namespace Snapshot
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Switch
+
+Detector* Switch::craftDetector(const ::Command::Context& context_)
+{
+	VIRTUAL_MACHINE_STATE s;
+	if (Prepare::Policy<Switch>::do_(Switch(s), context_).isFailed())
+		return NULL;
+
+	return new Detector(context_.getVmUuid(), s);
+}
+
+Libvirt::Result Switch::operator()()
+{
+	CSavedStateTree t;
+	if (getAgent().getSnapshot()
+		.at(getCommand()->GetSnapshotUuid()).getState(t).isFailed())
+		return Error::Simple(PRL_ERR_FAILURE);
+
+	switch(t.GetVmState())
+	{
+		case PVE::SnapshotedVmPoweredOff:
+		case PVE::SnapshotedVmSuspended:
+			{
+				Libvirt::Snapshot::Stash s(getConfig(), getCommand()->GetSnapshotUuid());
+				CStatesHelper x(getConfig()->getVmIdentification()->getHomePath());
+				*m_state = s.hasFile(x.getSavFileName()) ? VMS_SUSPENDED : VMS_STOPPED;
+			}
+			break;
+		case PVE::SnapshotedVmRunning:
+			*m_state = VMS_RUNNING;
+			break;
+		case PVE::SnapshotedVmPaused:
+			*m_state = VMS_PAUSED;
+			break;
+	}
+	return Libvirt::Result();
+}
+
+} // namespace Snapshot
 } // namespace State
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -812,7 +850,7 @@ template<class T, class U>
 Libvirt::Result Visitor::operator()(Tag::State<T, U>, boost::mpl::true_)
 {
 	Libvirt::Result e = m_setup
-		(U::craft(m_context), new State::Reactor<T>(m_context));
+		(U::craftDetector(m_context), U::craftReactor(m_context));
 	if (e.isFailed())
 		return e;
 
@@ -1487,7 +1525,8 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmStartEx] = map(Tag::Fork<Tag::State<Essence<PVE::DspCmdVmStart>,
 		Vm::Fork::State::Strict<VMS_RUNNING> > >());
 	m_map[PVE::DspCmdVmCreateSnapshot] = map(Tag::Fork<Essence<PVE::DspCmdVmCreateSnapshot> >());
-	m_map[PVE::DspCmdVmSwitchToSnapshot] = map(Tag::Fork<Essence<PVE::DspCmdVmSwitchToSnapshot> >());
+	m_map[PVE::DspCmdVmSwitchToSnapshot] = map(Tag::Fork<
+		Tag::State<Essence<PVE::DspCmdVmSwitchToSnapshot>, Vm::Fork::State::Snapshot::Switch> >());
 	m_map[PVE::DspCmdVmDeleteSnapshot] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDeleteSnapshot> > >());
 	m_map[PVE::DspCmdVmAnswer] = map(Tag::Simple<PVE::DspCmdVmAnswer>());
 	m_map[PVE::DspCmdVmStartVNCServer] = map(Tag::Simple<PVE::DspCmdVmStartVNCServer>());

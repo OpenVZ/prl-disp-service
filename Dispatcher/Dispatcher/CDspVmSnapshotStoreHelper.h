@@ -72,6 +72,10 @@ struct Stash {
 	bool add(const QStringList& file_);
 	bool restore(const QStringList& file_);
 	SmartPtr<CVmConfiguration> restoreConfig(const QString& file_);
+	bool hasFile(const QString file_)
+	{
+		return m_dir.exists(file_);
+	}
 	void commit();
 
 private:
