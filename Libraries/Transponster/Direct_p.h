@@ -78,16 +78,11 @@ struct Clip
 	}
 
 	Boot::Slot getBootSlot(Libvirt::Domain::Xml::PPositiveInteger::value_type order_);
-	size_t getBusSlot(PRL_MASS_STORAGE_INTERFACE_TYPE bus_)
-	{
-		return m_busIndexMap[bus_]++;
-	}
 
 	boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> getControllerModel(const Libvirt::Domain::Xml::Disk& disk_) const;
 
 private:
 	QList<CVmStartupOptions::CVmBootDevice*>* m_bootList;
-	std::map<PRL_MASS_STORAGE_INTERFACE_TYPE, size_t> m_busIndexMap;
 	const controllerList_type *m_controllerList;
 };
 

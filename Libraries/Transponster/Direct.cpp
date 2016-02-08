@@ -124,7 +124,8 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 
 	d->setItemId(m_hardware->m_lstHardDisks.size());
 	d->setIndex(m_hardware->m_lstHardDisks.size());
-	d->setStackIndex(m_clip->getBusSlot(d->getInterfaceType()));
+	QString dev = disk_.getTarget().getDev();
+	d->setStackIndex(Parallels::fromBase26(dev.remove(0, 2)));
 	boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> m = m_clip->getControllerModel(disk_);
 	if (m)
 		d->setSubType(m.get());
@@ -162,7 +163,8 @@ PRL_RESULT Cdrom::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 
 	d->setItemId(m_hardware->m_lstOpticalDisks.size());
 	d->setIndex(m_hardware->m_lstOpticalDisks.size());
-	d->setStackIndex(m_clip->getBusSlot(d->getInterfaceType()));
+	QString dev = disk_.getTarget().getDev();
+	d->setStackIndex(Parallels::fromBase26(dev.remove(0, 2)));
 	boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> m = m_clip->getControllerModel(disk_);
 	if (m)
 		d->setSubType(m.get());
