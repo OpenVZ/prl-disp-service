@@ -561,7 +561,10 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 		return 0;
 	case VIR_DOMAIN_EVENT_SUSPENDED:
 		if (detail_ == VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT)
+		{
+			v->prepareToSwitch(domain_);
 			break;
+		}
 
 		switch (detail_)
 		{
