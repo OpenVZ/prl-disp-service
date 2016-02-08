@@ -140,8 +140,6 @@ struct Device<CVmGenericNetworkAdapter>
 		getPlugXml(const CVmGenericNetworkAdapter& model_);
 	static Prl::Expected<QString, ::Error::Simple>
 		getUpdateXml(const CVmGenericNetworkAdapter& model_);
-	static Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
-		getLibvirtXml(const CVmGenericNetworkAdapter& model_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

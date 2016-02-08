@@ -36,6 +36,8 @@
 #include <QDomDocument>
 #include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 #include <prlxmlmodel/VtInfo/VtInfo.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
@@ -53,6 +55,8 @@ struct Extract<Libvirt::Choice<T> >
 	typedef typename T::type type;
 };
 
+namespace Device
+{
 namespace Boot
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -76,6 +80,7 @@ private:
 };
 
 } // namespace Boot
+} // namespace Device
 
 namespace Network
 {
@@ -111,6 +116,7 @@ namespace Device
 
 struct List;
 typedef QList<Libvirt::Domain::Xml::VChoice936 > deviceList_type;
+typedef Boot::Reverse::order_type boot_type;
 
 namespace Clustered
 {
@@ -255,7 +261,6 @@ namespace Builder
 template<class T>
 struct Ordinary
 {
-	typedef Boot::Reverse::order_type boot_type;
 	typedef Libvirt::Domain::Xml::Disk result_type;
 
 	Ordinary(const T& dataSource_, const boot_type& boot_ = boot_type()):
@@ -427,13 +432,16 @@ struct Ips
 	}
 };
 
+namespace Network
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Network
+// struct Adapter
 
 template<int N>
-struct Network
+struct Adapter
 {
-	Libvirt::Domain::Xml::VInterface operator()(const CVmGenericNetworkAdapter& network_);
+	Libvirt::Domain::Xml::VInterface operator()(
+		const CVmGenericNetworkAdapter& network_, const boot_type& boot_);
 
 private:
 	typedef typename mpl::at_c<Libvirt::Domain::Xml::VInterface::types, N>::type
@@ -442,6 +450,12 @@ private:
 	static typename Libvirt::Details::Value::Grab<access_type>::type
 		prepare(const CVmGenericNetworkAdapter& network_);
 };
+
+Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
+	build(const CVmGenericNetworkAdapter& network_,
+	const boot_type& boot_ = boot_type());
+
+} // namespace Network
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Address
@@ -526,11 +540,11 @@ struct List
 	void addGuestChannel(const QString & path_);
 	void add(const CVmRemoteDisplay* vnc_);
 	void add(const Libvirt::Domain::Xml::Disk& disk_);
+	void add(const Libvirt::Domain::Xml::VInterface& adapter_);
 	void add(const CVmParallelPort* port_);
 	void add(const CVmSerialPort* port_);
 	void add(const CVmSoundDevice* sound_);
 	void add(const CVmVideo* video_);
-	void add(const CVmGenericNetworkAdapter* network_);
 
 private:
 	template<int N, class T>
@@ -544,7 +558,7 @@ private:
 	deviceList_type m_deviceList;
 };
 
-namespace Clustered
+namespace Boot
 {
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -552,20 +566,21 @@ namespace Clustered
 
 struct List
 {
-	explicit List(const Boot::Reverse& boot_, Device::List& list_);
+	List(const CVmSettings& settings_, Device::List& list_);
 
 	const Attachment& getAttachment() const;
 
 	void add(const CVmHardDisk* hdd_, const CVmRunTimeOptions* runtime_);
 	void add(const CVmOpticalDisk* cdrom_);
 	void add(const CVmFloppyDisk* floppy_);
+	void add(const CVmGenericNetworkAdapter* network_);
 
 private:
 	template<class T>
 	void build(T builder_);
 
 private:
-	Boot::Reverse m_boot;
+	Reverse m_boot;
 	Device::List& m_deviceList;
 	Attachment m_attachment;
 };
@@ -598,7 +613,7 @@ void List::build(T builder_)
 	m_deviceList.add(d);
 }
 
-} // namespace Clustered
+} // namespace Boot
 
 namespace Usb
 {
