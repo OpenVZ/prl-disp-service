@@ -202,7 +202,8 @@ Pool::Pool(const population_type& initial_): m_population(initial_)
 quint32 Pool::getAvailable()
 {
 	quint32 output = 0;
-	if (!m_population.isEmpty() && m_population.first() != 0)
+
+	if (!m_population.isEmpty() && m_population.first() == 0)
 	{
 		population_type::const_iterator ii =
 			std::adjacent_find(m_population.constBegin(), m_population.constEnd(),
@@ -214,7 +215,8 @@ quint32 Pool::getAvailable()
 			output = m_population.last() + 1;
 	}
 
-	m_population.insert(output, output);
+	m_population.push_back(output);
+	qSort(m_population);
 	return output;
 }
 
