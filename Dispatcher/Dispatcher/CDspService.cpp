@@ -85,6 +85,7 @@
 
 #include "Build/Current.ver"
 
+#include <systemd/sd-daemon.h>
 
 #ifndef _WIN_
  #include <signal.h>
@@ -243,6 +244,7 @@ void CDspPid::detach()
 
 bool CMainDspService::g_bSkipVmVersionCheck = false;
 bool CMainDspService::g_bLaunchdMode = false;
+CMainDspService *CMainDspService::g_instance = NULL;
 
 /*****************************************************************************/
 
@@ -260,7 +262,7 @@ bool CDspService::isServerModePSBM()
 
 CMainDspService* CMainDspService::instance ()
 {
-	return dynamic_cast<CMainDspService*>(QtService<QCoreApplication>::instance());
+	return g_instance;
 }
 
 static void setup_rlimit()
@@ -282,14 +284,15 @@ static void setup_rlimit()
 
 }
 
-CMainDspService::CMainDspService ( int argc, char** argv ) :
-	QtService<QCoreApplication>(argc, argv, DISPATCHER_SERVICE_COMMON_NAME)
+CMainDspService::CMainDspService ( int argc, char** argv )
 {
+	Q_ASSERT(!g_instance);
+	g_instance = this;
+
+	m_application.reset(new QCoreApplication(argc, argv));
+
 	initializeInternalParameters(argc,argv);
 
-	// Set service variables
-	setServiceDescription(ParallelsDirs::getServiceAppName());
-	setServiceFlags(QtServiceBase::Default);
 	srand( (unsigned)PrlGetTickCount() );
 
 	// #PDFM-36906 Fix to prevent dispatcher crash on QT-side when pipe(2) returns EMFILE / ENFILE errno.
@@ -330,6 +333,15 @@ CDspService* CMainDspService::serviceInstance ()
 	return m_service.data();
 }
 
+int CMainDspService::exec()
+{
+	::umask(027);
+	// Run start() asynchroniously
+	QTimer::singleShot(0, this, SLOT(onStart()));
+	// Run event loop
+	return QCoreApplication::exec();
+}
+
 void CMainDspService::start ()
 {
 	// First of all we need to reset logging file on Dispatcher startup
@@ -356,13 +368,15 @@ void CMainDspService::start ()
 	{
 		if (!m_pid->attach())
 			goto Error;
-		m_pid->connect(application(), SIGNAL(aboutToQuit()), SLOT(detach()));
+		m_pid->connect(m_application.data(), SIGNAL(aboutToQuit()), SLOT(detach()));
 	}
 	m_service.reset(new CDspService());
 	m_service->start();
+	sd_notify(0, "READY=1");
 	return;
 
 Error:
+	sd_notifyf(0, "ERRNO=%d", EINVAL);
 	QCoreApplication::exit(-1);
 }
 
