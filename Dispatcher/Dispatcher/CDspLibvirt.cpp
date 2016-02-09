@@ -23,7 +23,6 @@
 
 #include "CDspService.h"
 #include "CDspLibvirt_p.h"
-#include "CVcmmdInterface.h"
 #include <QtCore/qmetatype.h>
 #include "CDspVmStateSender.h"
 #include "CDspVmNetworkHelper.h"

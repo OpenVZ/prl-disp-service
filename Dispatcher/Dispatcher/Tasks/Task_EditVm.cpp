@@ -1351,17 +1351,8 @@ PRL_RESULT Task_EditVm::editVm()
 			throw PRL_ERR_VM_EDIT_UNABLE_CONVERT_TO_TEMPLATE;
 		}
 
-		CVmMemory *old_mem = pVmConfigOld->getVmHardwareList()->getMemory();
 		CVmMemory *new_mem = pVmConfigNew->getVmHardwareList()->getMemory();
-		unsigned old_mem_sz = old_mem->getRamSize();
 		unsigned new_mem_sz = new_mem->getRamSize();
-
-		if (nState != VMS_STOPPED && (old_mem->isEnableHotplug() != new_mem->isEnableHotplug()))
-		{
-			WRITE_TRACE(DBG_FATAL, "Current state of VM %s doesn't allow to change hotplug. VM should be stopped.",
-				qPrintable(vm_uuid));
-			throw PRL_ERR_DISP_VM_IS_NOT_STOPPED;
-		}
 
 		if (new_mem->isEnableHotplug() && new_mem_sz < 1024)
 		{
@@ -1370,29 +1361,6 @@ PRL_RESULT Task_EditVm::editVm()
 			throw PRL_ERR_VMCONF_NEED_MORE_MEMORY_TO_ENABLE_HOTPLUG;
 		}
 
-		if (nState != VMS_STOPPED && !old_mem->isEnableHotplug() && (new_mem_sz != old_mem_sz))
-		{
-			WRITE_TRACE(DBG_FATAL, "Memory can't be changed for VM %s. Hotplug is off.",
-				qPrintable(vm_uuid));
-			throw PRL_ERR_DISP_VM_IS_NOT_STOPPED;
-		}
-
-		if (old_mem_sz > new_mem_sz )
-		{
-			if (nState != VMS_STOPPED && (old_mem_sz > old_mem->getMaxNumaRamSize()))
-			{
-				WRITE_TRACE(DBG_FATAL, "Memory can't be decreased for VM %s. VM should be stopped for such a change.",
-					qPrintable(vm_uuid));
-				throw PRL_ERR_DISP_VM_IS_NOT_STOPPED;
-			}
-		}
-
-		if (nState != VMS_STOPPED && new_mem_sz > old_mem->getMaxRamSize())
-		{
-			WRITE_TRACE(DBG_FATAL, "Can't set more memory than maxmemory fo VM %s. VM should be stopped for such a change.",
-				qPrintable(vm_uuid));
-			throw PRL_ERR_DISP_VM_IS_NOT_STOPPED;
-		}
 
 		// We round up max memory and max numa memory to corresponding defaults.
 		// We add at least XML_DEFAULT_MAXNUMARAM_SIZE to be hot-plugged by balloon.
@@ -2368,7 +2336,8 @@ PRL_RESULT Task_EditVm::editVm()
 	}
 
 	// Try to apply the new VM config if the VM is running
-	if (PRL_SUCCEEDED(ret)) {
+	if (PRL_SUCCEEDED(ret))
+	{
 		applyVmConfig( getClient(), pVmConfigNew, pVmConfigOld, getRequestPackage() );
 		ret = getLastErrorCode(); 
 	}
@@ -2867,11 +2836,13 @@ bool Reconnect::execute(CDspTaskFailure& feedback_)
 
 bool VcmmdAction::execute(CDspTaskFailure& feedback_)
 {
-	if (m_vcmmd.update(m_limit, m_guarantee))
-		return Action::execute(feedback_);
-
-	feedback_(PRL_ERR_UNABLE_APPLY_MEMORY_GUARANTEE);
-	return false;
+	PRL_RESULT e = m_vcmmd.update(m_limit, m_guarantee);
+	if (PRL_FAILED(e))
+	{
+		feedback_(e);
+		return false;
+	}
+	return Action::execute(feedback_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3529,25 +3500,28 @@ Action* Adapter::operator()(const Request& input_) const
 
 Action* Memory::operator()(const Request& input_) const
 {
-	CVmMemory* o = input_.getStart().getVmHardwareList()->getMemory();
 	CVmMemory* n = input_.getFinal().getVmHardwareList()->getMemory();
-
 	if (NULL == n)
 		return NULL;
 
-	unsigned old_mem = 0, new_mem = n->getRamSize();
-	quint64 old_guarantee = 0, new_guarantee = ::Vm::Config::MemGuarantee(*n)(new_mem);
-	if (NULL != o)
+	Vcmmd::Api a(input_.getObject().first);
+	// Although vcmmd.update would succeed if we provide the same values
+	// we still want to read configuration first, to get vcmmd status
+	Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> x =
+		a.getConfig();
+	if (x.isFailed())
 	{
-		old_mem = o->getRamSize();
-		old_guarantee = ::Vm::Config::MemGuarantee(*o)(old_mem);
+		WRITE_TRACE(DBG_FATAL, "Can't get current vcmmd configuration. Skipping runtime update.");
+		return new Flop(x.error());
 	}
-
-	if(old_mem == new_mem &&
-		old_guarantee == new_guarantee)
+	quint64 l = n->getRamSize();
+	quint64 g = ::Vm::Config::MemGuarantee(*n)(l) << 20;
+	l = l << 20;
+	// No use in updating configuration if it doesn't differ from current
+	if (l == x.value().first && x.value().second == g)
 		return NULL;
 
-	return new VcmmdAction(input_.getObject().first, new_mem, new_guarantee);
+	return new VcmmdAction(a, l, g);
 }
 
 namespace

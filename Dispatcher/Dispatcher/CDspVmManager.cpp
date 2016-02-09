@@ -716,8 +716,9 @@ struct Essence<PVE::DspCmdVmStart>: Need::Agent, Need::Config, Need::Context
 			quint64 z = m->getRamSize();
 			quint64 g = ::Vm::Config::MemGuarantee(*m)(z);
 			Vcmmd::Frontend<Vcmmd::Unregistered> v(getContext().getVmUuid());
-			if (!v(Vcmmd::Unregistered(z << 20, g << 20)))
-				return Error::Simple(PRL_ERR_UNABLE_APPLY_MEMORY_GUARANTEE);
+			PRL_RESULT err = v(Vcmmd::Unregistered(z << 20, g << 20));
+			if (PRL_FAILED(err))
+				return Error::Simple(err);
 
 			e = h.savFileExists() ? getAgent().resume(h.getSavFileName()) :
 				getAgent().start();
