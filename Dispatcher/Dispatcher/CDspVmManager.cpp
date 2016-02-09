@@ -335,6 +335,7 @@ struct Essence<PVE::DspCmdVmDevDisconnect>:
 		{
 			CVmHardDisk y;
 			StringToElement<CVmHardDisk* >(&y, getCommand()->GetDeviceConfig());
+			y.setConnected(PVE::DeviceConnected);
 			output = getAgent().getRuntime().unplug(y);
 		}
 			break;
