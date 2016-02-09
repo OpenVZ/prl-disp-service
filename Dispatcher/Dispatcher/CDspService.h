@@ -582,8 +582,10 @@ private:
 };
 
 // Dispatcher service class
-class CMainDspService : public QtService<QCoreApplication>
+class CMainDspService : public QObject
 {
+	Q_OBJECT
+
 	friend class CDspService; //to create pidfile
 	friend void sigterm_handler(int signum); // to access to stop()
 public:
@@ -593,6 +595,9 @@ public:
 	~CMainDspService();
 
 	CDspService* serviceInstance ();
+
+	// Custom execution routine
+	int exec();
 
 	// Overridden start service routine
 	void start ();
@@ -618,6 +623,13 @@ public:
 	static bool isLaunchdMode()
 		{ return g_bLaunchdMode; }
 
+public slots:
+	/* For async execution. */
+	void onStart()
+	{
+		start();
+	}
+
 private:
 	QScopedPointer<CDspService>  m_service;
 
@@ -625,6 +637,9 @@ private:
 	QScopedPointer<CDspPid> m_pid;
 	static bool g_bSkipVmVersionCheck;
 	static bool g_bLaunchdMode;
+	QScopedPointer<QCoreApplication> m_application;
+
+	static CMainDspService *g_instance;
 
 private:
 	 void initializeInternalParameters ( int argc, char **argv );

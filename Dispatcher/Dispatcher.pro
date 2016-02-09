@@ -262,6 +262,8 @@ linux-* {
 		Tasks/Task_MountVm.cpp \
 		\
 		HwMonitor/CDspHwMonitorHandler_lin.cpp
+
+	LIBS += -lsystemd
 }
 
 contains(DEFINES, _CT_) {
