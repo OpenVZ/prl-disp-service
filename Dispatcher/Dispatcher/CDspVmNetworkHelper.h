@@ -106,14 +106,14 @@ struct Dao
 	explicit Dao(Libvirt::Instrument::Agent::Hub& libvirt_);
 
 	PRL_RESULT list(QList<CVirtualNetwork>& dst_);
-	PRL_RESULT create(const CVirtualNetwork& model_);
+	Libvirt::Result create(const CVirtualNetwork& model_);
 	PRL_RESULT remove(const CVirtualNetwork& model_);
-	PRL_RESULT update(const CVirtualNetwork& model_);
-	PRL_RESULT attachExisting(CVirtualNetwork model_, const QString& bridge_);
+	Libvirt::Result update(const CVirtualNetwork& model_);
+	Libvirt::Result attachExisting(CVirtualNetwork model_, const QString& bridge_);
 
 private:
-	PRL_RESULT define(CVirtualNetwork network_);
-	PRL_RESULT craftBridge(CVirtualNetwork& network_);
+	Libvirt::Result define(CVirtualNetwork network_);
+	Libvirt::Result craftBridge(CVirtualNetwork& network_);
 
 	Libvirt::Instrument::Agent::Network::List m_networks;
 	Libvirt::Instrument::Agent::Interface::List m_interfaces;

@@ -495,19 +495,25 @@ PRL_RESULT Task_ManagePrlNetService::cmdAddVirtualNetwork()
 
 	CVirtualNetwork k;
 	k.fromString(sVirtNet);
+	Libvirt::Result r;
 	if (getRequestFlags() & PRL_USE_VNET_NAME_FOR_BRIDGE_NAME)
-		e = Network::Dao(Libvirt::Kit).attachExisting(k, k.getNetworkID());
+		r = Network::Dao(Libvirt::Kit).attachExisting(k, k.getNetworkID());
 	else
-		e = Network::Dao(Libvirt::Kit).create(k);
+		r = Network::Dao(Libvirt::Kit).create(k);
 
-	if (PRL_FAILED(e))
+	if (r.isFailed())
 	{
-		getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String,
-				k.getNetworkID(),
-				EVT_PARAM_MESSAGE_PARAM_0));
-		return e;
+		if (r.error().code() == PRL_ERR_BRIDGE_NOT_FOUND_FOR_NETWORK_ADAPTER)
+		{
+			return CDspTaskFailure(*this)(r.error().convertToEvent(
+										  EVT_PARAM_MESSAGE_PARAM_0));
+		}
+		else
+		{
+			return CDspTaskFailure(*this)(r.error().code(), k.getNetworkID());
+		}
 	}
+
 	return PRL_ERR_SUCCESS;
 }
 
@@ -526,13 +532,14 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateVirtualNetwork()
 		WRITE_TRACE(DBG_FATAL, "Virtual network parsing error!");
 		return PRL_ERR_INVALID_ARG;
 	}
-	if (PRL_FAILED(e = Network::Dao(Libvirt::Kit).update(VirtualNetwork)))
+	Libvirt::Result r;
+	if ((r = Network::Dao(Libvirt::Kit).update(VirtualNetwork)).isFailed())
 	{
 		getLastError()->addEventParameter(
 				new CVmEventParameter(PVE::String,
 				VirtualNetwork.getNetworkID(),
 				EVT_PARAM_MESSAGE_PARAM_0));
-		return e;
+		return r.error().code();
 	}
 	return PRL_ERR_SUCCESS;
 }

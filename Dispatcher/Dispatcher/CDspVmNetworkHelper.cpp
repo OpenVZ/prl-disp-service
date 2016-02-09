@@ -269,34 +269,37 @@ PRL_RESULT Dao::list(QList<CVirtualNetwork>& dst_)
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Dao::define(CVirtualNetwork model_)
+Libvirt::Result Dao::define(CVirtualNetwork model_)
 {
-	PRL_RESULT e;
+	Libvirt::Result z;
 	if (PVN_HOST_ONLY == model_.getNetworkType())
-		e = PrlNet::ValidateHostOnlyNetworkParams(&model_);
+	{
+		PRL_RESULT e = PrlNet::ValidateHostOnlyNetworkParams(&model_);
+		if (PRL_FAILED(e))
+			z = Error::Simple(e);
+	}
 	else
-		e = craftBridge(model_);
+		z = craftBridge(model_);
 
-	if (PRL_FAILED(e))
-		return e;
+	if (z.isFailed())
+		return z;
 
 	Libvirt::Instrument::Agent::Network::Unit u;
-	Libvirt::Result z = m_networks.define(model_, &u);
-	if (z.isFailed())
-		return z.error().code();
+	if ((z = m_networks.define(model_, &u)).isFailed())
+		return z;
 
 	u.stop();
 	u.start();
-	return PRL_ERR_SUCCESS;
+	return Libvirt::Result();
 }
 
-PRL_RESULT Dao::create(const CVirtualNetwork& model_)
+Libvirt::Result Dao::create(const CVirtualNetwork& model_)
 {
 	QString x = model_.getNetworkID();
 	if (m_networks.find(x).isSucceed())
 	{
 		WRITE_TRACE(DBG_FATAL, "Duplicated new network ID '%s' !", QSTR2UTF8(x));
-		return PRL_NET_DUPLICATE_VIRTUAL_NETWORK_ID;
+		return Error::Simple(PRL_NET_DUPLICATE_VIRTUAL_NETWORK_ID);
 	}
 	return define(model_);
 }
@@ -316,7 +319,7 @@ PRL_RESULT Dao::remove(const CVirtualNetwork& model_)
 	return (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
 }
 
-PRL_RESULT Dao::update(const CVirtualNetwork& model_)
+Libvirt::Result Dao::update(const CVirtualNetwork& model_)
 {
 	CVirtualNetwork w;
 	QString x = model_.getNetworkID();
@@ -324,69 +327,68 @@ PRL_RESULT Dao::update(const CVirtualNetwork& model_)
 	if (u.getConfig(w).isFailed())
 	{
 		WRITE_TRACE(DBG_FATAL, "The network ID '%s' was not found by uuid!", QSTR2UTF8(x));
-		return PRL_NET_VIRTUAL_NETWORK_NOT_FOUND;
+		return Error::Simple(PRL_NET_VIRTUAL_NETWORK_NOT_FOUND);
 	}
 	if (w.getNetworkID() != x)
 	{
 		WRITE_TRACE(DBG_FATAL, "Cannot change the network ID '%s' !", QSTR2UTF8(x));
-		return PRL_NET_DUPLICATE_VIRTUAL_NETWORK_ID;
+		return Error::Simple(PRL_NET_DUPLICATE_VIRTUAL_NETWORK_ID);
 	}
 	return define(model_);
 }
 
-PRL_RESULT Dao::craftBridge(CVirtualNetwork& network_)
+Libvirt::Result Dao::craftBridge(CVirtualNetwork& network_)
 {
 	if (PVN_HOST_ONLY == network_.getNetworkType())
-		return PRL_ERR_INVALID_PARAM;
+		return Error::Simple(PRL_ERR_INVALID_PARAM);
 
-	PRL_RESULT e;
+	Libvirt::Result r;
 	CHwNetAdapter m;
 	if (network_.isBridgedToDefaultAdapter())
 	{
 		PrlNet::EthAdaptersList a;
 		PrlNet::EthAdaptersList::Iterator p;
-		e = PrlNet::getDefaultBridgedAdapter(a, p);
+		PRL_RESULT e = PrlNet::getDefaultBridgedAdapter(a, p);
 		if (a.end() != p)
 		{
 			m.setDeviceName(p->_name);
 			m.setMacAddress(PrlNet::ethAddressToString(p->_macAddr));
 		}
 		else if (PRL_SUCCEEDED(e))
-			e = PRL_ERR_FILE_NOT_FOUND;
+			r = Error::Simple(PRL_ERR_FILE_NOT_FOUND);
 	}
 	else
 	{
-		Libvirt::Result r = m_interfaces.find(network_.getBoundCardMac(), network_.getVLANTag(), m);
-		e = (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
+		r = m_interfaces.find(network_.getBoundCardMac(), network_.getVLANTag(), m);
 	}
 
-	if (PRL_FAILED(e))
-		return e;
+	if (r.isFailed())
+		return r;
 
 	Libvirt::Instrument::Agent::Interface::Bridge b;
-	Libvirt::Result r = m_interfaces.find(m, b);
-	e = (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
-	if (PRL_ERR_BRIDGE_NOT_FOUND_FOR_NETWORK_ADAPTER == e)
+	if ((r = m_interfaces.find(m, b)).isFailed())
 	{
-		WRITE_TRACE(DBG_FATAL, "Bridge not found for %s", QSTR2UTF8(m.getDeviceName()));
-		return e;
+		if (r.error().code() == PRL_ERR_BRIDGE_NOT_FOUND_FOR_NETWORK_ADAPTER)
+		{
+			WRITE_TRACE(DBG_FATAL, "Bridge not found for %s", QSTR2UTF8(m.getDeviceName()));
+			return Error::Simple(r.error().code(), m.getDeviceName());
+		}
+		return r;
 	}
-	else if (PRL_FAILED(e))
-		return e;
 	else
 		b.start();
 	CVZVirtualNetwork* z = new CVZVirtualNetwork();
 	z->setBridgeName(b.getName());
 	z->setMasterInterface(m.getDeviceName());
 	network_.setVZVirtualNetwork(z);
-	return PRL_ERR_SUCCESS;
+	return Libvirt::Result();
 }
 
-PRL_RESULT Dao::attachExisting(CVirtualNetwork model_,
+Libvirt::Result Dao::attachExisting(CVirtualNetwork model_,
 	const QString& bridge_)
 {
 	if (PVN_HOST_ONLY == model_.getNetworkType())
-		return PRL_ERR_INVALID_ARG;
+		return Error::Simple(PRL_ERR_INVALID_ARG);
 
 	CVZVirtualNetwork* z = new CVZVirtualNetwork();
 	z->setBridgeName(bridge_);
@@ -394,10 +396,10 @@ PRL_RESULT Dao::attachExisting(CVirtualNetwork model_,
 	Libvirt::Instrument::Agent::Network::Unit u;
 	Libvirt::Result e = m_networks.define(model_, &u);
 	if (e.isFailed())
-		return e.error().code();
+		return e;
 
 	u.start();
-	return PRL_ERR_SUCCESS;
+	return Libvirt::Result();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
