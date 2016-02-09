@@ -622,7 +622,8 @@ namespace Usb
 // struct List
 struct List
 {
-	List(const CVmUsbController* settings_) : m_settings(settings_), m_controller(0)
+	explicit List(const CVmUsbController* settings_):
+		m_settings(settings_), m_controller(0)
 	{
 	}
 
