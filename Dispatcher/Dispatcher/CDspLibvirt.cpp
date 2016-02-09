@@ -604,7 +604,6 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 		}
 		return 0;
 	case VIR_DOMAIN_EVENT_SHUTDOWN:
-		v->setState(domain_, VMS_STOPPED);
 		return 0;
 	case VIR_DOMAIN_EVENT_CRASHED:
 		switch (detail_)
