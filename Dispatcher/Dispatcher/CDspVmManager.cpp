@@ -687,6 +687,9 @@ struct Essence<PVE::DspCmdVmStart>: Need::Agent, Need::Config, Need::Context
 		if (e.isFailed())
 			return e;
 
+		if (VMS_RUNNING == s)
+			return Error::Simple(PRL_ERR_FAILURE, "VM is already running");
+
 		CStatesHelper h(getConfig()->getVmIdentification()->getHomePath());
 		if (VMS_PAUSED == s)
 		{
@@ -704,7 +707,7 @@ struct Essence<PVE::DspCmdVmStart>: Need::Agent, Need::Config, Need::Context
 			quint64 g = ::Vm::Config::MemGuarantee(*m)(z);
 			Vcmmd::Frontend<Vcmmd::Unregistered> v(getContext().getVmUuid());
 			if (!v(Vcmmd::Unregistered(z << 20, g << 20)))
-				return Error::Simple(PRL_ERR_FAILURE);
+				return Error::Simple(PRL_ERR_UNABLE_APPLY_MEMORY_GUARANTEE);
 
 			e = h.savFileExists() ? getAgent().resume(h.getSavFileName()) :
 				getAgent().start();
