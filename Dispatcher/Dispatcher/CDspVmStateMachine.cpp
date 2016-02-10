@@ -86,7 +86,7 @@ void Frontend::setConfig(CVmConfiguration& value_)
 {
 	m_service->getVmConfigManager().saveConfig(SmartPtr<CVmConfiguration>
 		(&value_, SmartPtrPolicy::DoNotReleasePointee),
-		getHome(), m_user, true, false);
+		getHome(), m_user, true, true);
 }
 
 boost::optional<CVmConfiguration> Frontend::getConfig() const
