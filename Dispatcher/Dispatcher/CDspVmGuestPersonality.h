@@ -43,19 +43,18 @@ namespace Personalize
 
 struct Configurator
 {
-	Configurator(const CVmConfiguration& cfg_)
-		: m_cfg(cfg_)
-	{
-	}
+	Configurator(const CVmConfiguration& cfg_);
 
 	bool setNettool(const QStringList& args_) const;
 	bool setUserPassword(const QString& user_, const QString& passwd_, bool encrypted_) const;
 
 private:
 	bool execute(const QStringList& args_) const;
+	bool merge() const;
 
 private:
-	const CVmConfiguration& m_cfg;
+	const QString m_vmHome;
+	const quint32 m_osVersion;
 };
 
 } // namespace Personalize

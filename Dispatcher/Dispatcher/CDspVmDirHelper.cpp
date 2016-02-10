@@ -1315,9 +1315,8 @@ PRL_RESULT CDspVmDirHelper::fillVmInfo(
 	SmartPtr<CVmConfiguration> c = getVmConfigByUuid(pUserSession, vm_uuid, err);
 	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(vm_uuid);
 
-	VIRTUAL_MACHINE_STATE s;
-	bool bIsVncServerStarted = u.getState(s).isSucceed()
-		&& s == VMS_RUNNING
+	VIRTUAL_MACHINE_STATE s(CDspVm::getVmState( vm_uuid, pUserSession->getVmDirectoryUuid()));
+	bool bIsVncServerStarted = s == VMS_RUNNING
 		&& PRL_SUCCEEDED(err)
 		&& c->getVmSettings()->getVmRemoteDisplay()->getMode()
 			!= PRD_DISABLED;
