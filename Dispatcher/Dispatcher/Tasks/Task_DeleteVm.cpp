@@ -163,20 +163,22 @@ PRL_RESULT Task_DeleteVm::prepareTask()
 		}
 
 	// TODO fix lock managment and remove this state check
-	VIRTUAL_MACHINE_STATE s;
-	Libvirt::Result r = Libvirt::Kit.vms().at(getVmUuid()).getState(s);
-	if (r.isFailed())
+	if (!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
 	{
-		CDspTaskFailure(*this)(r.error().convertToEvent());
-		return r.error().code();
-	}
+		VIRTUAL_MACHINE_STATE s;
+		Libvirt::Result r = Libvirt::Kit.vms().at(getVmUuid()).getState(s);
+		if (r.isFailed())
+		{
+			CDspTaskFailure(*this)(r.error().convertToEvent());
+			return r.error().code();
+		}
 
-	if (s != VMS_STOPPED && s != VMS_SUSPENDED)
-	{
-		CDspTaskFailure(*this)(PRL_ERR_DISP_VM_IS_NOT_STOPPED, getVmUuid());
-		return PRL_ERR_DISP_VM_IS_NOT_STOPPED;
+		if (s != VMS_STOPPED && s != VMS_SUSPENDED)
+		{
+			CDspTaskFailure(*this)(PRL_ERR_DISP_VM_IS_NOT_STOPPED, getVmUuid());
+			return PRL_ERR_DISP_VM_IS_NOT_STOPPED;
+		}
 	}
-
 	if (!(m_flags & PVD_SKIP_VM_OPERATION_LOCK))
 	{
 		ret = CDspService::instance()->getVmDirHelper().registerExclusiveVmOperation(
