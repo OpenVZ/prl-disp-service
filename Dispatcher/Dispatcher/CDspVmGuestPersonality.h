@@ -67,7 +67,7 @@ public slots:
 	void slotVmConfigChanged(QString, QString);
 
 private:
-	QString prepareNewCdrom(const QString& image_, quint32 index_) const;
+	QString prepareNewCdrom(const CVmHardware& hardware_, const QString& image_) const;
 	QString getHomeDir(const QString& dirUuid_, const QString& vmUuid_) const;
 };
 

@@ -173,21 +173,14 @@ void CDspVmGuestPersonality::slotVmConfigChanged(QString vmDirUuid_, QString vmU
 		return;
 	}
 
-	quint32 i(0);
-	foreach(CVmOpticalDisk* d, vm->getVmHardwareList()->m_lstOpticalDisks)
-	{
-		if (d->getEmulatedType() == PVE::CdRomImage &&
-				d->getSystemName() == p &&
-				d->getUserFriendlyName() == p)
-			return;
+	QString cdrom = prepareNewCdrom(*(vm->getVmHardwareList()), p);
 
-		if (i < d->getIndex())
-			i = d->getIndex();
-	}
+	if (cdrom.isEmpty())
+		return;
 
 	CVmEvent e;
 	e.addEventParameter(new CVmEventParameter(PVE::String,
-				prepareNewCdrom(p, i), EVT_PARAM_VMCFG_NEW_DEVICE_CONFIG));
+				cdrom, EVT_PARAM_VMCFG_NEW_DEVICE_CONFIG));
 	Task_EditVm::atomicEditVmConfigByVm(vmDirUuid_, vmUuid_,
 			e, CDspClient::makeServiceUser(vmDirUuid_));
 }
@@ -204,14 +197,38 @@ QString CDspVmGuestPersonality::getHomeDir(const QString& dirUuid_, const QStrin
 	return p->getVmHome();
 }
 
-QString CDspVmGuestPersonality::prepareNewCdrom(const QString& image_, quint32 index_) const
+QString CDspVmGuestPersonality::prepareNewCdrom(const CVmHardware& hardware_, const QString& image_) const
 {
 	CVmOpticalDisk d;
+
+	quint32 i(0);
+	quint32 s(0);
+	foreach(const CVmOpticalDisk* c, hardware_.m_lstOpticalDisks)
+	{
+		if (c->getEmulatedType() == PVE::CdRomImage &&
+				c->getSystemName() == image_ &&
+				c->getUserFriendlyName() == image_)
+			return "";
+
+		if (i < c->getIndex())
+			i = c->getIndex();
+		if (c->getInterfaceType() == d.getInterfaceType() &&
+			s < c->getStackIndex())
+			s = c->getStackIndex();
+	}
+	foreach(const CVmHardDisk* h, hardware_.m_lstHardDisks)
+	{
+		if (h->getInterfaceType() == d.getInterfaceType() &&
+			s < h->getStackIndex())
+			s = h->getStackIndex();
+	}
+
 	d.setEnabled(PVE::DeviceEnabled);
 	d.setConnected(PVE::DeviceConnected);
 	d.setEmulatedType(PVE::CdRomImage);
 	d.setSystemName(image_);
 	d.setUserFriendlyName(image_);
-	d.setIndex(index_ + 1);
+	d.setIndex(i + 1);
+	d.setStackIndex(s + 1);
 	return d.toString();
 }
