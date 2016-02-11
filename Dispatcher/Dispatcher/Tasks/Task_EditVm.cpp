@@ -1358,6 +1358,13 @@ PRL_RESULT Task_EditVm::editVm()
 			throw PRL_ERR_DISP_VM_IS_NOT_STOPPED;
 		}
 
+		if (new_mem->isEnableHotplug() && new_mem_sz < 1024)
+		{
+			WRITE_TRACE(DBG_FATAL, "VM %s must have at least 1GB of RAM for memory hot-plugging support to be enabled.",
+				qPrintable(vm_uuid));
+			throw PRL_ERR_VMCONF_NEED_MORE_MEMORY_TO_ENABLE_HOTPLUG;
+		}
+
 		if (nState != VMS_STOPPED && !old_mem->isEnableHotplug() && (new_mem_sz != old_mem_sz))
 		{
 			WRITE_TRACE(DBG_FATAL, "Memory can't be changed for VM %s. Hotplug is off.",
