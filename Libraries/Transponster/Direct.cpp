@@ -467,19 +467,18 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice936::
 		return PRL_ERR_UNEXPECTED;
 
 	CVmVideo* v = new CVmVideo();
+	v->setEnable3DAcceleration(P3D_DISABLED);
 	if (video_.getValue().getModel())
 	{
-		if (video_.getValue().getModel().get().getVram())
+		const Libvirt::Domain::Xml::Model1 &model = video_.getValue().getModel().get();
+		if (model.getVram())
 		{
-			v->setMemorySize(video_.getValue().getModel()
-				.get().getVram().get() >> 10);
+			v->setMemorySize(model.getVram().get() >> 10);
 		}
-		if (video_.getValue().getModel().get().getAcceleration())
+		if (model.getAcceleration() && model.getAcceleration().get().getAccel3d() &&
+			model.getAcceleration().get().getAccel3d().get() == Libvirt::Domain::Xml::EVirYesNoYes)
 		{
-			const Libvirt::Domain::Xml::EVirYesNo* a3 = video_.getValue().getModel()
-				.get().getAcceleration().get().getAccel3d().get_ptr();
-			v->setEnable3DAcceleration(NULL != a3 && *a3 == Libvirt::Domain::Xml::EVirYesNoYes ?
-				P3D_ENABLED_HIGHEST : P3D_DISABLED);
+			v->setEnable3DAcceleration(P3D_ENABLED_HIGHEST);
 		}
 	}
 	v->setEnabled(true);
