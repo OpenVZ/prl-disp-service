@@ -366,28 +366,6 @@ void Frontend::setResult(const Flop::Event& value_)
 } // namespace Vm
 } // namespace Migrate
 
-static PRL_RESULT CreateSharedFile(const QString &dir, QString &tmpFile)
-{
-	QTemporaryFile f(
-		QString("%1/%2.XXXXXX")
-			.arg(QDir::fromNativeSeparators(dir))
-			.arg(Uuid::createUuid().toString())
-		);
-
-	if (!f.open())
-	{
-		WRITE_TRACE(DBG_FATAL,
-			    "Failed to create/open temparary file %s for shared storage check",
-			    QSTR2UTF8(f.fileName()));
-		return PRL_ERR_OPERATION_FAILED;
-	}
-
-	f.setAutoRemove(false);
-	tmpFile = f.fileName();
-
-	return PRL_ERR_SUCCESS;
-}
-
 /*
 end of shared code from Vm/CVmMigrateTask.cpp
 */
@@ -983,9 +961,16 @@ PRL_RESULT Task_MigrateVmSource::migrateStoppedVm()
 			if (PRL_FAILED(nRetCode = CVmMigrateHelper::GetEntryListsVmHome(m_sVmHomePath, m_dList, m_fList)))
 				return nRetCode;
 		}
+		// first find set of parent dirs of non shared disks
+		QSet<QString> dirs;
+		foreach (const QString disk, m_lstNonSharedDisks)
+			dirs.insert(QFileInfo(disk).dir().absolutePath());
 
-		if (PRL_FAILED(nRetCode = CVmMigrateHelper::GetEntryListsExternal(m_lstNonSharedDisks, m_dList, m_fList)))
-			return nRetCode;
+		foreach (const QString &dir, dirs)
+			m_dList << qMakePair(QFileInfo(dir), dir);
+
+		foreach (const QString &disk, m_lstNonSharedDisks)
+			m_fList << qMakePair(QFileInfo(disk), disk);
 	}
 
 	CDispToDispCommandPtr a = CDispToDispProtoSerializer::CreateVmMigrateStartCommand(
@@ -1294,26 +1279,19 @@ PRL_RESULT Task_MigrateVmSource::CheckVmMigrationPreconditions()
 	// and destination
 	QStringList extCheckFiles;
 	QString tmpFile, homeCheckFile;
-	if (PRL_FAILED(nRetCode = CreateSharedFile(m_sVmHomePath, tmpFile)))
+	if (PRL_FAILED(nRetCode = CVmMigrateHelper::createSharedFile(m_sVmHomePath, tmpFile)))
 		return nRetCode;
 	// relative path for home checkfile
 	homeCheckFile = QFileInfo(tmpFile).fileName();
 	m_lstAllCheckFiles.append(tmpFile);
 
-	// Create temporary file in each external disk directory for the same
-	// purpose
-	foreach(const CVmHardDisk* disk, m_pVmConfig->getVmHardwareList()->m_lstHardDisks) {
-		if (NULL == disk)
-			continue;
-		QFileInfo img(disk->getSystemName());
-		if (img.isAbsolute() && !img.absoluteFilePath().startsWith(m_sVmHomePath)) {
-			if (PRL_FAILED(nRetCode = CreateSharedFile(img.absoluteFilePath(), tmpFile)))
-				return nRetCode;
-			// absolute path is passed for external disks check file
-			extCheckFiles.append(tmpFile);
-			m_lstAllCheckFiles.append(tmpFile);
-		}
-	}
+	if (PRL_FAILED(nRetCode = CVmMigrateHelper::buildExternalTmpFiles(
+					m_pVmConfig->getVmHardwareList()->m_lstHardDisks,
+					m_sVmHomePath,
+					extCheckFiles)))
+		return nRetCode;
+	m_lstAllCheckFiles << extCheckFiles;
+
 	QString sHaClusterId;
 	// try to get HA cluster ID for shared migration
 	nRetCode = CDspService::instance()->getHaClusterHelper()->getHaClusterID(sHaClusterId);

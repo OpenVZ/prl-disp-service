@@ -975,19 +975,6 @@ PRL_RESULT CVmFileListCopyTarget::RecvDirRequest(const SmartPtr<IOPackage> &p)
 			QSTR2UTF8(path));
 
 	dir->setPath(path);
-	if (dir->exists()) {
-		WRITE_TRACE(DBG_FATAL, "Directory already exists: [%s]", QSTR2UTF8(path));
-
-		m_Event.setEventCode(PRL_ERR_FILECOPY_DIR_EXIST);
-		m_Event.addEventParameter(new CVmEventParameter(
-			PVE::String,
-			path,
-			EVT_PARAM_MESSAGE_PARAM_0));
-		SendError(p);
-
-		NotifyFileCopyWasCanceled();
-		return PRL_ERR_FILECOPY_DIR_EXIST;
-	}
 
 	if (!dir->mkpath(path)) {
 		WRITE_TRACE(DBG_FATAL, "Can't create directory: [%s]", QSTR2UTF8(path));

@@ -120,7 +120,7 @@ private:
 
 	QString m_sStorageInfo;
 	QString m_sSharedFileName;
-	QStringList m_lstSharedFileNamesExt;
+	QStringList m_lstCheckFilesExt;
 	QStringList m_lstNonSharedDisks;
 	quint32 m_nMigrationFlags;
 	quint32 m_nReservedFlags;

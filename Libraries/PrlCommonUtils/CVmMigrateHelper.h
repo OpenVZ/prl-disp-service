@@ -26,6 +26,7 @@
 #include <QPair>
 #include <QFileInfo>
 #include <prlsdk/PrlTypes.h>
+#include <prlxmlmodel/VmConfig/CVmHardDisk.h>
 
 #ifndef VMMIGRATEHELPER_H
 #define VMMIGRATEHELPER_H
@@ -34,12 +35,20 @@ struct CVmMigrateHelper {
 
 	typedef QList<QPair<QFileInfo, QString> > EntryList;
 
-	static PRL_RESULT GetEntryListsExternal(const QStringList & paths, EntryList & dirList, EntryList & fileList);
 	static PRL_RESULT GetEntryListsVmHome(const QString & homeDir, EntryList & dirList, EntryList & fileList);
 
 	static EntryList FillRemotePathsAbsolute(QList<QFileInfo> & list);
 	static EntryList FillRemotePathsRelative(const QString & parent, QList<QFileInfo> & list);
 	static bool isInsideSharedVmPrivate(const QString& path_);
+
+	static PRL_RESULT createSharedFile(const QString &dir, QString &tmpFile);
+	static PRL_RESULT buildExternalTmpFiles(const QList<CVmHardDisk*> &disks,
+						const QString &home,
+						QStringList &tmpFiles);
+
+	static void buildNonSharedDisks(const QStringList &checkFiles,
+					const QList<CVmHardDisk*> &disks,
+					QStringList &nonSharedDisks);
 };
 
 #endif // VMMIGRATEHELPER_H
