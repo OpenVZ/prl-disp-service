@@ -188,7 +188,7 @@ PRL_RESULT Task_MoveVm::prepareTask()
 				EVT_PARAM_MESSAGE_PARAM_0 ) );
 		getLastError()->addEventParameter( new CVmEventParameter (
 				PVE::String,
-				VMS_SUSPENDED == vmState ? "VMS_SUSPENDED" : "VMS_SUSPENDING_SYNC",
+				PRL_VM_STATE_TO_STRING(vmState),
 				EVT_PARAM_MESSAGE_PARAM_1 ) );
 		nRetCode = PRL_ERR_DISP_VM_COMMAND_CANT_BE_EXECUTED;
 		goto exit;
