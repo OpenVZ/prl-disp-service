@@ -275,16 +275,16 @@ void Task_SwitchToSnapshot::finalizeTask()
 
 				// there is no need to commit unfinished ops here
 				// because the prepareTask has already done it.
-				if( !pVm->startSnapshotedVm( getClient(), p ) )
-				{
+//				if( !pVm->startSnapshotedVm( getClient(), p ) )
+//				{
 					// TODO: to investigate:
 					// Why we unregister in anycase  notwithstanding to bNew flag ?
 					// It may be because nNew is always false
 					// ( when we start this task from VmManager by DspCmdVmSwitchToSnapshot command )
 
-					CDspVm::UnregisterVmObject(pVm);
-					throw PRL_ERR_VM_RESTORE_STATE_FAILED;
-				}
+//					CDspVm::UnregisterVmObject(pVm);
+//					throw PRL_ERR_VM_RESTORE_STATE_FAILED;
+//				}
 				m_bVmStartedByTask = true;
 
 				// Wait while VM starting and reverting to snapshot

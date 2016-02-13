@@ -274,64 +274,6 @@ void Task_CreateSnapshot::finalizeTask()
 	}
 	setLastErrorCode(ret);
 
-	if ( PRL_SUCCEEDED(getLastErrorCode())
-		&& m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->getUndoDisksModeEx() != PUD_DISABLE_UNDO_DISKS
-	)
-	do
-	{
-		if( m_nFlags & PCSF_BACKUP )
-			break;
-
-		SmartPtr<CDspVm> pVm = CDspVm::GetVmInstanceByUuid( getVmUuid(), getClient()->getVmDirectoryUuid() );
-		PRL_ASSERT(pVm);
-		if( !pVm )
-		{
-			setLastErrorCode(PRL_ERR_FAILURE);
-			break;
-		}
-
-		CProtoCommandPtr pRequest
-			= CProtoSerializer::CreateProtoBasicVmCommand(PVE::DspCmdVmStart, pVm->getVmUuid());
-
-		SmartPtr<IOPackage> pPackage
-			= DispatcherPackage::duplicateInstance(getRequestPackage(), pRequest->GetCommand()->toString());
-		pPackage->header.type = pRequest->GetCommandId();
-
-		if( pVm->startVmAfterCreatingUndoDisks(getClient(), pPackage) )
-			break;
-
-		WRITE_TRACE(DBG_FATAL, "Unable to start VM after create undo disks" );
-
-		setLastErrorCode(PRL_ERR_VM_START_FAILED);
-
-		{
-			// FIXME: #267152: network shares support for windows
-			CAuthHelperImpersonateWrapper _impersonate( &getClient()->getAuthHelper() );
-
-			PRL_RESULT retDelete = DeleteDiskSnapshot();
-			if( PRL_FAILED(retDelete) )
-				break;
-		}
-
-		CDspLockedPointer<CVmDirectoryItem> pVmDirItem
-					= CDspService::instance()->getVmDirManager().getVmDirItemByUuid(
-										getClient()->getVmDirectoryUuid(), getVmUuid() );
-		/**
-		* Set access rights to hard disks folders
-		*/
-		ret = CDspVmSnapshotStoreHelper::setDefaultAccessRightsToAllHdd( m_pVmConfig
-			, getClient()
-			, pVmDirItem.getPtr()
-			, true /* break by error */
-			);
-		if( PRL_FAILED(ret) )
-		{
-			WRITE_TRACE( DBG_WARNING, "Error %s occured on rollback create snapshot"
-				, PRL_RESULT_TO_STRING(ret) );
-		}
-
-	} while(0);
-
 	if (m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->getUndoDisksModeEx() == PUD_DISABLE_UNDO_DISKS
 				|| PRL_FAILED(getLastErrorCode())
 		)

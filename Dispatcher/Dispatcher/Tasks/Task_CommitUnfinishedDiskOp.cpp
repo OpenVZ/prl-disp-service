@@ -330,11 +330,11 @@ void Task_CommitUnfinishedDiskOp::finalizeTask()
 					= DispatcherPackage::duplicateInstance(getRequestPackage(), pRequest->GetCommand()->toString());
 				pPackage->header.type = pRequest->GetCommandId();
 
-				if( ! pVm->startVmAfterCommitUnfunishedDiskOp(getClient(), pPackage) )
-				{
-					WRITE_TRACE(DBG_FATAL, "Unable to start VM after commit unfinished disk operation");
-					throw (PRL_ERR_VM_START_FAILED);
-				}
+//				if( ! pVm->startVmAfterCommitUnfunishedDiskOp(getClient(), pPackage) )
+//				{
+//					WRITE_TRACE(DBG_FATAL, "Unable to start VM after commit unfinished disk operation");
+//					throw (PRL_ERR_VM_START_FAILED);
+//				}
 			}
 		}
 

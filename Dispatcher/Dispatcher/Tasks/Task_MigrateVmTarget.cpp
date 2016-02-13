@@ -878,7 +878,7 @@ void Task_MigrateVmTarget::finalizeTask()
 				CProtoCommandPtr pCmd =
 					CProtoSerializer::CreateProtoVmCommandStop(m_sVmUuid, PSM_KILL, 0);
 				pPackage = DispatcherPackage::createInstance( PVE::DspCmdVmStop, pCmd );
-				m_pVm->stop(getClient(), pPackage, PSM_KILL, true);
+	//			m_pVm->stop(getClient(), pPackage, PSM_KILL, true);
 				// Wait until VM stopped
 				while (m_pVm->isConnected())
 				{
