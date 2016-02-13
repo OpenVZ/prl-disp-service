@@ -302,7 +302,10 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 
 					// 2. update device
 					if( ! pCurrDevice->fromString( pChangedDevice->toString() ) )
+					{
 						flgConfigChanged = true;
+						flgApplyConfig = true;
+					}
 					else
 					{
 						WRITE_TRACE(DBG_FATAL, "Unable to update device vm=%s sysname=%s"

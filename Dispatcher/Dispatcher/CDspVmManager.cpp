@@ -357,7 +357,7 @@ struct Essence<PVE::DspCmdVmDevDisconnect>:
 };
 
 template<>
-struct Essence<PVE::DspCmdVmInstallTools>: Need::Agent, Need::Config
+struct Essence<PVE::DspCmdVmInstallTools>: Need::Agent, Need::Config, Need::Context
 {
 	Libvirt::Result operator()()
 	{
@@ -382,7 +382,16 @@ struct Essence<PVE::DspCmdVmInstallTools>: Need::Agent, Need::Config
 				return e;
 			if (VMS_STOPPED != s)
 				e = getAgent().getRuntime().update(*d);
+			else
+			{
+				CVmEvent v;
+				v.addEventParameter(new CVmEventParameter(PVE::String,
+							d->toString(),
+							EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
 
+				Task_EditVm::atomicEditVmConfigByVm(getContext().getDirectoryUuid(),
+						getContext().getVmUuid(), v, getContext().getSession());
+			}
 			return e;
 		}
 		return Error::Simple(PRL_ERR_NO_CD_DRIVE_AVAILABLE);
