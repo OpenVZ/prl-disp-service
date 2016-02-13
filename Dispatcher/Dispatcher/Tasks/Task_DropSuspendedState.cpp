@@ -101,11 +101,6 @@ PRL_RESULT Task_DropSuspendedState::prepareTask()
             throw PRL_ERR_PARSE_VM_CONFIG;
         }
 
-		//https://bugzilla.sw.ru/show_bug.cgi?id=441619
-		//In any case stop VM suspend at first
-		const SmartPtr<IOPackage> p = DispatcherPackage::createInstance( PVE::DspCmdVmSuspendCancel );
-		CDspVm::cancelSuspend( getClient(), p, m_pVmConfig->getVmIdentification()->getVmUuid(), this );
-
 		ret = CDspService::instance()->getVmDirHelper().registerExclusiveVmOperation(
 			m_pVmConfig->getVmIdentification()->getVmUuid(),
 			getClient()->getVmDirectoryUuid(),

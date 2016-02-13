@@ -390,18 +390,6 @@ PRL_RESULT CDspVm::initialize(const CVmIdent& id_, const SmartPtr<CDspClient>& c
 	}
 	d().m_bVmCmdWasExclusiveRegistered = true;
 
-	{
-		CDspLockedPointer<CVmDirectoryItem> pDirItem
-			= vdm().getVmDirItemByUuid( getVmDirUuid(), getVmUuid() );
-		if ( pDirItem )
-		{
-			d().m_sVmName = pDirItem->getVmName();
-			d().m_strVmHome = pDirItem->getVmHome();
-			if( ! turnOffSpotlight( CFileHelper::GetFileRoot( d().m_strVmHome ) ) )
-				WRITE_TRACE(DBG_FATAL, "turnOffSpotlight() failed for vm = %s", QSTR2UTF8( getVmName() ) );
-		}
-	}
-
 	d().m_bSafeMode = isSafeMode();
 
 	return PRL_ERR_SUCCESS;
@@ -503,8 +491,6 @@ const DspVm::Details& CDspVm::d() const
 void CDspVm::d(const SmartPtr<DspVm::Details>& details_)
 {
 	m_pDetails = details_;
-	if (details_.isValid())
-		d().m_nUndoDisksMode = getUndoDisksMode();
 }
 
 void CDspVm::d(DspVm::Details* details_)
@@ -602,17 +588,6 @@ void CDspVm::cleanupObject()
 	disconnnectRemoteDevicesAndSaveConfig( );
 	updateVmUptime();
 
-	QString vmHome;
-	{
-		CDspLockedPointer<CVmDirectoryItem> pDirItem
-			= CDspService::instance()->getVmDirManager().getVmDirItemByUuid( getVmDirUuid(), getVmUuid() );
-		if ( pDirItem )
-		{
-			vmHome = pDirItem->getVmHome();
-			if( ! turnOnSpotlight( CFileHelper::GetFileRoot( pDirItem->getVmHome() ) ) )
-				WRITE_TRACE(DBG_FATAL, "turnOnSpotlight() failed for vm = %s", QSTR2UTF8( getVmName() ) );
-		}
-	}
 	changeUsbState((PRL_EVENT_TYPE)PET_DSP_EVT_VM_STOPPED);
 
 	// Send to all VM client new VM state
@@ -774,31 +749,6 @@ VIRTUAL_MACHINE_STATE CDspVm::getVmState( const QString& sVmUuid, const QString 
 VIRTUAL_MACHINE_STATE CDspVm::getVmState( const CVmIdent& vmIdent )
 {
 	return getVmState(vmIdent.first, vmIdent.second);
-}
-
-void CDspVm::cancelSuspend( SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p, const QString &sVmUuid, CancelOperationSupport *pInitiator )
-{
-	PRL_ASSERT( pUser.getImpl() );
-	QString sVmDirUuid = pUser->getVmDirectoryUuid();
-	bool bWaitCompletion = false;
-	{
-		SmartPtr<CDspVm> pVm = GetVmInstanceByUuid(sVmUuid, sVmDirUuid);
-		if ( pVm && pVm->getVmState() == VMS_SUSPENDING_SYNC )
-			if ( pVm->cancelSuspend( pUser, p ) )
-				bWaitCompletion = true;
-	}
-
-	if ( bWaitCompletion )
-	{
-		WRITE_TRACE( DBG_FATAL, "Began waiting to VM suspend cancel for uuid '%s'", QSTR2UTF8(sVmUuid) );
-		while ( VMS_SUSPENDING_SYNC == CDspVm::getVmState( sVmUuid, sVmDirUuid ) )
-		{
-			HostUtils::Sleep(1000);
-			if ( pInitiator->operationIsCancelled() )//Task was cancelled - terminate operation
-				break;
-		}
-		WRITE_TRACE( DBG_FATAL, "VM suspend cancel wait was completed for uuid '%s'", QSTR2UTF8(sVmUuid) );
-	}
 }
 
 VIRTUAL_MACHINE_ADDITION_STATE CDspVm::getVmAdditionState( const QString & sVmUuid,
@@ -2260,18 +2210,6 @@ void CDspVm::SetSnapshotRequestParams(const SmartPtr<IOPackage> &pRequest, VIRTU
 	d().m_sSnapshotTaskUuid = sSnapshotTaskUuid;
 }
 
-bool CDspVm::turnOffSpotlight( const QString& vmDirPath )
-{
-	Q_UNUSED( vmDirPath );
-	return true;
-}
-
-bool CDspVm::turnOnSpotlight( const QString& vmDirPath )
-{
-	Q_UNUSED( vmDirPath );
-	return true;
-}
-
 void CDspVm::changeUsbState( PRL_EVENT_TYPE nEventType )
 {
 	switch ( nEventType )
@@ -2299,20 +2237,6 @@ void CDspVm::changeUsbState( PRL_EVENT_TYPE nEventType )
 		default:
 			break;
 	}
-}
-
-PRL_UNDO_DISKS_MODE CDspVm::getUndoDisksMode()
-{
-	if (CDspService::isServerModePSBM())
-		return PUD_DISABLE_UNDO_DISKS;
-
-	PRL_RESULT nRetCode = PRL_ERR_UNINITIALIZED;
-	SmartPtr<CVmConfiguration> pVmConfig = getVmConfig(SmartPtr<CDspClient>(0), nRetCode);
-	if ( pVmConfig && PRL_SUCCEEDED(nRetCode) )
-	{
-		return pVmConfig->getVmSettings()->getVmRuntimeOptions()->getUndoDisksModeEx();
-	}
-	return PUD_DISABLE_UNDO_DISKS;
 }
 
 bool CDspVm::isUndoDisksMode() const
@@ -2786,49 +2710,6 @@ void CDspVm::unregisterGuestSession( const SmartPtr<CDspClient> &pUser, const QS
 			d().m_GuestSessions.find( pUser->getClientHandle() );
 	if ( _user_sessions != d().m_GuestSessions.end() )
 		_user_sessions.value().remove( sVmSessionUuid );
-}
-
-bool CDspVm::cancelSuspend( SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p )
-{
-	PRL_ASSERT( pUser.getImpl() );
-	PRL_ASSERT( p.getImpl() );
-
-	PRL_RESULT ret = checkUserAccessRightsAndSendResponseOnError( pUser, p, PVE::DspCmdVmSuspendCancel );
-	if( PRL_FAILED( ret ) )
-		return false;
-
-	QWriteLocker _wLock( &d().m_rwLock );
-	VIRTUAL_MACHINE_STATE state = getVmStateUnsync();
-	switch( state )
-	{
-		// case VMS_STOPPED     : ;
-		// case VMS_SUSPENDED   : ;
-		case VMS_SUSPENDING_SYNC   : ;
-			_wLock.unlock();
-			sendPackageToVm( p );
-			return true;
-		break;
-		// case VMS_STARTING    : ;
-		// case VMS_RESUMING: ;
-		// case VMS_RESTORING   : ;
-		// case VMS_RUNNING     : ;
-		// case VMS_PAUSED      : ;
-		// case VMS_SUSPENDING  : ;
-		// case VMS_STOPPING    : ;
-		// case VMS_COMPACTING  : ;
-		// case VMS_SNAPSHOTING : ;
-		// case VMS_RESETTING	 : ;
-		// case VMS_CONTINUING	 : ;
-		// case VMS_PAUSING	 : ;
-		//case VMS_MIGRATING: ;
-		// case VMS_DELETING_STATE: ;
-	default:
-		{
-			_wLock.unlock();
-			SEND_ERROR_BY_CANT_EXECUTED_VM_COMMAND( p, state );
-		}//default
-	}//switch
-	return false;
 }
 
 /**

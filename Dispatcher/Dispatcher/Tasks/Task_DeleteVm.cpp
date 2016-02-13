@@ -138,13 +138,7 @@ PRL_RESULT Task_DeleteVm::prepareTask()
         }
 
 		//https://bugzilla.sw.ru/show_bug.cgi?id=441619
-		if ( !doUnregisterOnly() )
-		{
-			//In any case stop VM suspend at first
-			const SmartPtr<IOPackage> p = DispatcherPackage::createInstance( PVE::DspCmdVmSuspendCancel );
-			CDspVm::cancelSuspend( getClient(), p, m_pVmConfig->getVmIdentification()->getVmUuid(), this );
-		}
-		else
+		if ( doUnregisterOnly() )
 		{
 			//In unregister VM case we should to wait until suspending sync state completed
 			QString sVmUuid = m_pVmConfig->getVmIdentification()->getVmUuid();
