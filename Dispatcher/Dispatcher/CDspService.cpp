@@ -1697,7 +1697,7 @@ void CDspService::precacheVmConfigs()
 				if (pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
 					continue;
 
-				CDspVmDirHelper::UpdateHardDiskInformation(pVmConfig->getVmHardwareList()->m_lstHardDisks, pFakeUserSession);
+				CDspVmDirHelper::UpdateHardDiskInformation(pVmConfig);
 			}
 		}
 }

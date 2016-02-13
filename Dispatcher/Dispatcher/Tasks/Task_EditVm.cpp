@@ -774,8 +774,7 @@ void Task_EditVm::beginEditVm(const IOSender::Handle& sender,
 		CProtoCommandDspWsResponse *pResponseCmd =
 			CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>( pCmd );
 
-		CDspService::instance()->getVmDirHelper()
-			.UpdateHardDiskInformation(pVmConfig->getVmHardwareList()->m_lstHardDisks, pUserSession);
+		CDspService::instance()->getVmDirHelper().UpdateHardDiskInformation(pVmConfig);
 
 		CDspService::instance()->getVmDirHelper().getMultiEditDispatcher()->lock();
 		CDspService::instance()->getVmDirHelper()

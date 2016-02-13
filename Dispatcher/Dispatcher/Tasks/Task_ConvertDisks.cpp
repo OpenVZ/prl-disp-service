@@ -375,7 +375,7 @@ PRL_RESULT Task_ConvertDisks::convertDisks()
 	// Refresh disks configuration (from DiskDescriptor.xml)
 
 	QList<CVmHardDisk* > lstExistingHardDisks = m_pVmConfig->getVmHardwareList()->m_lstHardDisks;
-	CDspVmDirHelper::UpdateHardDiskInformation( lstExistingHardDisks, getClient() );
+	CDspVmDirHelper::UpdateHardDiskInformation(m_pVmConfig);
 
 	// Check disks configuration
 

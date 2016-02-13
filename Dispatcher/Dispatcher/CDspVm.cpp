@@ -3667,7 +3667,7 @@ void CDspVm::fixConfigBeforeStartVm( const CHostHardwareInfo & hostInfo, SmartPt
 	QString strDevId, strDevName;
 
 	PRL_ASSERT( pUser );
-	CDspService::instance()->getVmDirHelper().UpdateHardDiskInformation( pHardware->m_lstHardDisks, pUser );
+	CDspService::instance()->getVmDirHelper().UpdateHardDiskInformation(pConfig);
 
 	bool bForceDisconnect = false;
 

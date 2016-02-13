@@ -557,7 +557,7 @@ private:
 
 	// update hard disk information
 public:
-	static PRL_RESULT UpdateHardDiskInformation(QList<CVmHardDisk*>& lstHdd, SmartPtr<CDspClient> pUserSession);
+	static PRL_RESULT UpdateHardDiskInformation(SmartPtr<CVmConfiguration> &pConfig);
 
 	static void sendVmConfigChangedEvent(const CVmIdent& vmIdent
 		, const SmartPtr<IOPackage> &pRequest = SmartPtr<IOPackage>(0));
