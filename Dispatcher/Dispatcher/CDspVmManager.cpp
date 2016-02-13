@@ -1136,42 +1136,6 @@ struct General
 };
 
 template<>
-void General<Tag::General<PVE::DspCmdVmInternal> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	vm_->InternalCmd(context_.getSession(), context_.getPackage());
-}
-
-template<>
-void General<Tag::General<PVE::DspCmdVmReset> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	vm_->reset(context_.getSession(), context_.getPackage());
-}
-
-template<>
-void General<Tag::General<PVE::DspCmdVmPause> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	vm_->pause(context_.getSession(), context_.getPackage());
-}
-
-template<>
-void General<Tag::General<PVE::DspCmdVmSuspend> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	vm_->suspend(context_.getSession(), context_.getPackage());
-}
-
-template<>
-void General<Tag::General<PVE::DspCmdVmDevConnect> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	vm_->connectDevice(context_.getSession(), context_.getPackage());
-}
-
-template<>
-void General<Tag::General<PVE::DspCmdVmDevDisconnect> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	vm_->disconnectDevice(context_.getSession(), context_.getPackage());
-}
-
-template<>
 void General<Tag::Simple<PVE::DspCmdVmAnswer> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
 {
 	vm_->sendAnswerToVm(context_.getSession(), context_.getPackage());
@@ -1181,36 +1145,6 @@ template<>
 void General<Tag::General<PVE::DspCmdVmInitiateDevStateNotifications> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
 {
 	vm_->InitiateDevStateNotifications(context_.getSession(), context_.getPackage());
-}
-
-template<>
-void General<Tag::General<PVE::DspCmdVmInstallUtility> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	vm_->installUtility(context_.getSession(), context_.getPackage());
-}
-
-template<>
-void General<Tag::General<PVE::DspCmdVmInstallTools> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	vm_->installTools(context_.getSession(), context_.getPackage());
-}
-
-template<>
-void General<Tag::General<PVE::DspCmdVmUpdateToolsSection> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	vm_->updateToolsSection(context_.getSession(), context_.getPackage());
-}
-
-template<>
-void General<Tag::General<PVE::DspCmdVmRunCompressor> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	vm_->runCompressor(context_.getSession(), context_.getPackage());
-}
-
-template<>
-void General<Tag::General<PVE::DspCmdVmCancelCompressor> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	vm_->cancelCompressor(context_.getSession(), context_.getPackage());
 }
 
 template<>
@@ -1233,20 +1167,6 @@ void General<Tag::General<PVE::DspCmdVmMigrateCancel> >::do_(const Context& cont
 }
 
 template<>
-void General<Tag::General<PVE::DspCmdVmRestartGuest> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	vm_->restartGuest(context_.getSession(), context_.getPackage());
-}
-
-template<>
-void General<Tag::General<PVE::DspCmdVmStop> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	CProtoVmCommandStop* x = CProtoSerializer::CastToProtoCommand
-		<CProtoVmCommandStop>(context_.getRequest());
-	vm_->stop(context_.getSession(), context_.getPackage(), x->GetStopMode());
-}
-
-template<>
 void General<Tag::GuestSession >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
 {
 	vm_->processGuestOsSessionCmd(context_.getSession(),
@@ -1258,24 +1178,6 @@ struct General<Tag::CreateDspVm<X> >
 {
 	static bool do_(const Context& context_, SmartPtr<CDspVm> vm_);
 };
-
-template<>
-bool General<Tag::CreateDspVm<PVE::DspCmdVmCreateSnapshot> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	return vm_->createSnapshot(context_.getSession(), context_.getPackage());
-}
-
-template<>
-bool General<Tag::CreateDspVm<PVE::DspCmdVmSwitchToSnapshot> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	return vm_->switchToSnapshot(context_.getSession(), context_.getPackage());
-}
-
-template<>
-bool General<Tag::CreateDspVm<PVE::DspCmdVmDeleteSnapshot> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	return vm_->deleteSnapshot(context_.getSession(), context_.getPackage());
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Proxy
@@ -1552,11 +1454,7 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmDevConnect] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDevConnect> > >());
 	m_map[PVE::DspCmdVmDevDisconnect] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDevDisconnect> > >());
 	m_map[PVE::DspCmdVmInitiateDevStateNotifications] = map(Tag::General<PVE::DspCmdVmInitiateDevStateNotifications>());
-	m_map[PVE::DspCmdVmInstallUtility] = map(Tag::General<PVE::DspCmdVmInstallUtility>());
 	m_map[PVE::DspCmdVmInstallTools] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmInstallTools> > >());
-	m_map[PVE::DspCmdVmUpdateToolsSection] = map(Tag::General<PVE::DspCmdVmUpdateToolsSection>());
-	m_map[PVE::DspCmdVmRunCompressor] = map(Tag::General<PVE::DspCmdVmRunCompressor>());
-	m_map[PVE::DspCmdVmCancelCompressor] = map(Tag::General<PVE::DspCmdVmCancelCompressor>());
 	m_map[PVE::DspCmdVmMigrateCancel] = map(Tag::General<PVE::DspCmdVmMigrateCancel>());
 	m_map[PVE::DspCmdVmRestartGuest] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmRestartGuest> > >());
 	m_map[PVE::DspCmdVmStop] = map(Tag::Fork<Tag::Timeout<Tag::State<Essence<PVE::DspCmdVmStop>,
@@ -1919,88 +1817,6 @@ void CDspVmManager::handleToDispatcherPackage ( const IOSender::Handle& h,
 												const SmartPtr<IOPackage> &p )
 {
  	LOG_MESSAGE(DBG_DEBUG, "CDspVmManager::handleToDispatcherPackage() received package [%s]", p->buffers[0].getImpl());
-	if (p->header.type == PVE::DspVmAuth
-		|| p->header.type == PVE::DspVmRestoreState)
-	{
-		QReadLocker locker( &m_rwLock );
-		bool bVmExists = m_vms.contains(h);
-		locker.unlock();
-		if (!bVmExists)
-		{
-			CVmEvent authPkg(UTF8_2QSTR(p->buffers[0].getImpl()));
-			QString sVmUuid = authPkg.getEventIssuerId();
-			CVmEventParameter *pVmDirUuidParam = authPkg.getEventParameter(EVT_PARAM_VM_DIR_UUID);
-			if (!pVmDirUuidParam)
-			{
-				WRITE_TRACE(DBG_FATAL, "Wrong VM authorization command format [%s]", authPkg.toString().toUtf8().constData());
-				CDspService::instance()->getIOServer().disconnectClient(h);
-				return;
-			}
-
-			SmartPtr<CDspVm> pVm = CDspVm::GetVmInstanceByUuid(sVmUuid, pVmDirUuidParam->getParamValue());
-			if (pVm.isValid())
-			{
-				if (p->header.type == PVE::DspVmAuth)
-				{
-					QWriteLocker _lock(&m_rwLock);
-					m_vms[h] = pVm;
-					_lock.unlock();
-					pVm->handshakeWithVmProcess(h);
-				}
-				else
-				{
-					CVmEventParameter *pVmProductVerParam =
-						authPkg.getEventParameter(EVT_PARAM_PRL_SERVER_INFO_PRODUCT_VERSION);
-					PRL_ASSERT(pVmProductVerParam);
-					if ( ! pVmProductVerParam )
-					{
-						WRITE_TRACE(DBG_FATAL, "Wrong VM state restoration command format [%s]",
-							authPkg.toString().toUtf8().constData());
-						CDspService::instance()->getIOServer().disconnectClient(h);
-						return;
-					}
-
-					CVmEventParameter *pVmStateParam = authPkg.getEventParameter(EVT_PARAM_VMINFO_VM_STATE);
-					PRL_ASSERT(pVmStateParam);
-					if ( ! pVmStateParam )
-					{
-						WRITE_TRACE(DBG_FATAL, "Wrong VM state restoration command format [%s]",
-							authPkg.toString().toUtf8().constData());
-						CDspService::instance()->getIOServer().disconnectClient(h);
-						return;
-					}
-
-					CVmEventParameter *pVmProcessIdParam = authPkg.getEventParameter(EVT_PARAM_VMINFO_VM_PROCESS_ID);
-					PRL_ASSERT(pVmProcessIdParam);
-					if ( ! pVmProcessIdParam )
-					{
-						WRITE_TRACE(DBG_FATAL, "Wrong VM state restoration command format [%s]",
-							authPkg.toString().toUtf8().constData());
-						CDspService::instance()->getIOServer().disconnectClient(h);
-						return;
-					}
-
-					pVm->setRestoredVmProductVersion(pVmProductVerParam->getParamValue());
-#ifndef _WIN_
-					pVm->restoreVmProcess((VIRTUAL_MACHINE_STATE )pVmStateParam->getParamValue().toInt(),
-											(Q_PID )pVmProcessIdParam->getParamValue().toULongLong());
-#endif
-					QWriteLocker _lock(&m_rwLock);
-					m_vms[h] = pVm;
-					_lock.unlock();
-
-					pVm->handshakeWithVmProcess(h);
-				}
-			}
-			else
-			{
-				WRITE_TRACE(DBG_FATAL, "Non known VM with UUID '%s' tried to authorize on dispatcher", sVmUuid.toUtf8().constData());
-				CDspService::instance()->getIOServer().disconnectClient(h);
-			}
-		}
-
-		return;
-	}
 
 	QReadLocker locker( &m_rwLock );
 	bool bVmExists = m_vms.contains(h);
@@ -2827,8 +2643,9 @@ void CDspVmManager::changeLogLevelForActiveVMs( SmartPtr<CDspClient> pUser, bool
 	QList< SmartPtr<CDspVm> > lstVms = m_vms.values();
 	locker.unlock();
 
-	foreach( SmartPtr<CDspVm> pVm, lstVms )
-		pVm->changeLogLevel( pUser, pkg );
+	Q_UNUSED(pUser);
+//	foreach( SmartPtr<CDspVm> pVm, lstVms )
+//		pVm->changeLogLevel( pUser, pkg );
 }
 
 QList< SmartPtr<CDspVm> > CDspVmManager::getVmsByClient (

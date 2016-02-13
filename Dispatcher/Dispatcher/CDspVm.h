@@ -108,10 +108,6 @@ struct Storage;
 namespace Start
 {
 struct Demand;
-namespace Monitor
-{
-struct Routine;
-} // namespace Monitor
 } // namespace Start
 } // namespace DspVm
 
@@ -120,7 +116,6 @@ struct Routine;
  */
 class CDspVm
 {
-	friend struct DspVm::Start::Monitor::Routine;
 public:
 	enum VmPowerState { vpsNormal=0, vpsPausedByHostSleep=1, vpsPausedByVmFrozen=2 };
 	static const char* VmPowerStateToString( VmPowerState st );
@@ -183,36 +178,11 @@ public:
 	PRL_UINT64 getVmProcessUptimeInSecs() const;
 
 	/**
-	 * Handshakes with newly connected VM process
-	 * @param VM connection object handle
-	 */
-	void handshakeWithVmProcess(const IOSender::Handle &h);
-
-    /**
-     * Processes command of start VM
-     * @param pointer to the user session object that initialized request
-	 * @param pointer to request package object
-     */
-	bool start( SmartPtr<CDspClient> pUser,
-				const SmartPtr<IOPackage> &p,
-				PRL_VM_START_MODE nStartMode = PSM_VM_START);
-
-	/**
      * Processes command of restart VM guest OS
      * @param pointer to the user session object that initialized request
 	 * @param pointer to request package object
      */
 	void restartGuest(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
-    /**
-     * Processes command of stop VM
-     * @param pointer to the user session object that initialized request
-	 * @param pointer to request package object
-	 * @param isAcpi indicates if this is a shut down operation with ACPI or general stop command
-	 * @param actionByDispatcher indicates if action caused by user
-     */
-	void stop(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p,
-             PRL_UINT32 nStopMode, bool actionByDispatcher = false) ;
 
     /**
      * Processes command of start VNC server
@@ -246,39 +216,12 @@ public:
      */
 	PRL_RESULT sendProblemReport(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
 
-    /**
-     * Processes command of reset VM
-     * @param pointer to the user session object that initialized request
-	 * @param pointer to request package object
-     */
-	void reset(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
-    /**
-     * Processes command of pause VM
-     * @param pointer to the user session object that initialized request
-	 * @param pointer to request package object
-     */
-	void pause(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
-	/* Suspend failure flags	*/
+	/* Suspend failure flags        */
 	typedef enum SuspendMode {
-		SM_STOP_ON_FAILURE	= 0,
-		SM_SUSPEND_ON_FAILURE	= 1,
+		SM_STOP_ON_FAILURE      = 0,
+		SM_SUSPEND_ON_FAILURE   = 1,
 	} SuspendMode;
 
-    /**
-     * Processes command of suspend VM
-     * @param pointer to the user session object that initialized request
-	 * @param pointer to request package object
-	 * @param actionByDispatcher indicates if action caused by user
-	 * @param allowSendQuestion indicates that suspend calls not from main user thread
-	 *		( and allow to send question without hangs main user thread )
-	 * @param nMode
-     */
-	void suspend(SmartPtr<CDspClient> pUser
-			,const SmartPtr<IOPackage> &p
-			,bool actionByDispatcher = false
-			,SuspendMode nMode = SM_STOP_ON_FAILURE);
 	/**
 	* Processes command of create snapshot
 	* @param pointer to the user session object that initialized request
@@ -311,55 +254,6 @@ public:
 	bool deleteSnapshot(
 		SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p,
 		CVmEvent* evt = NULL, bool bWaitResult = false);
-
-	/**
-	* Processes command of start snapshoted vm
-	* @param pointer to the user session object that initialized request
-	* @param pointer to request package object
-	*/
-	bool startSnapshotedVm(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
-	/**
-	* Processes command of start migrated vm
-	* @param pointer to the user session object that initialized request
-	* @param pointer to request package object
-	*/
-	bool startMigratedVm(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
-	/**
-	* Processes command of Install Utility
-	* @param pointer to the user session object that initialized request
-	* @param pointer to request package object
-	*/
-	void installUtility(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
-	/**
-	* Processes command of Install Tools
-	* @param pointer to the user session object that initialized request
-	* @param pointer to request package object
-	*/
-	void installTools(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
-	/**
-	* Processes command of Update Tools Section
-	* @param pointer to the user session object that initialized request
-	* @param pointer to request package object
-	*/
-	void updateToolsSection(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
-	/**
-	* Processes command of Run Compressor
-	* @param pointer to the user session object that initialized request
-	* @param pointer to request package object
-	*/
-	void runCompressor(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
-	/**
-	* Processes command of Cancel Compressor
-	* @param pointer to the user session object that initialized request
-	* @param pointer to request package object
-	*/
-	void cancelCompressor(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
 
 	/**
 	* Initiates sending notifications about devices states by VM

@@ -887,7 +887,7 @@ finish:
 	/* stop Vm */
 	pCmd = CProtoSerializer::CreateProtoVmCommandStop(m_sVmUuid, PSM_KILL, 0);
 	p = DispatcherPackage::createInstance( PVE::DspCmdVmStop, pCmd );
-	m_pVm->stop(getClient(), p, PSM_KILL, true);
+//	m_pVm->stop(getClient(), p, PSM_KILL, true);
 	//Wait until VM stopped
 	while (m_pVm->isConnected())
 		QThread::msleep(1000);

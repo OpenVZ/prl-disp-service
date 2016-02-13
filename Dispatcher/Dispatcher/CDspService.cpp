@@ -1473,10 +1473,6 @@ bool CDspService::init()
 
 		autoStartCt();
 
-		PRL_APPLICATION_MODE mode = ParallelsDirs::getAppExecuteMode();
-		if( mode == PAM_SERVER )
-			reconnectToRunningVms();
-
 		m_bFirstInitPhaseCompleted = true;
 	}
 	catch ( ... )
@@ -1992,51 +1988,6 @@ bool CDspService::checkVmPermissions()
 	return true;
 }
 
-void CDspService::reconnectToRunningVms()
-{
-	QSet<CVmIdent> setRunVms =
-		QSet<CVmIdent>::fromList(CDspService::instance()->getVmDirManager().getAllVmIdList());
-
-	setRunVms = getVmsWithAliveProcess(setRunVms);
-
-	QList<CVmIdent> lstRunVms = setRunVms.toList();
-	foreach(CVmIdent vmIdent, lstRunVms)
-	{
-		PRL_RESULT outCreateError = PRL_ERR_FAILURE;
-		bool bNew = false;
-
-		SmartPtr<CDspClient> pUser( new CDspClient(IOSender::Handle()) );
-		pUser->getAuthHelper().AuthUserBySelfProcessOwner();
-		pUser->setVmDirectoryUuid(vmIdent.second);
-
-		SmartPtr<CDspVm> pVm = CDspVm::CreateInstance(
-					vmIdent.first,
-					vmIdent.second,
-					outCreateError,
-					bNew,
-					pUser,
-					PVE::DspCmdVmStart );
-		if ( ! pVm )
-		{
-			WRITE_TRACE(DBG_FATAL, "Restore VM state: Can't create instance of Vm '%s' "
-				"which belongs to '%s' VM dir"
-				"by error %s"
-				, QSTR2UTF8( vmIdent.first )
-				, QSTR2UTF8( vmIdent.second )
-				, PRL_RESULT_TO_STRING(outCreateError)
-				);
-
-			PRL_ASSERT( PRL_FAILED( outCreateError ) );
-			continue;
-		}
-
-		pVm->restoreVmProcess(VMS_RECONNECTING, 0, pUser);
-
-		//Starting VM process monitoring object
-		using namespace DspVm::Start::Monitor;
-		Task<Standard>::schedule(Standard(vmIdent));
-	}
-}
 bool CDspService::isFirstInitPhaseCompleted() const
 {
 	return m_bFirstInitPhaseCompleted;

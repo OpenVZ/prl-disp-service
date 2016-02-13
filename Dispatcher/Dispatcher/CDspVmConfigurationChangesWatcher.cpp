@@ -702,7 +702,7 @@ void Processor::stopInvalidVms( const Data& data )
 				WRITE_TRACE( DBG_FATAL, "Stopping VM '%s' due path '%s' not exists"
 					, QSTR2UTF8(itTmp.value().first)
 					, QSTR2UTF8(itTmp.key()) );
-				pVm->stop(pStopUser, p, PSM_KILL, true);
+		//		pVm->stop(pStopUser, p, PSM_KILL, true);
 			}
 		}
 	}
