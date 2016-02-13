@@ -113,7 +113,7 @@ void CDspVmMigrateHelper::checkPreconditions(
 	CDspTaskHelper *task_helper;
 	if (pCheckCmd->GetReservedFlags() & PVM_CT_MIGRATE)
 #ifdef _CT_
-		task_helper = new Task_MigrateCtTarget((QObject *)this, pDispConnection, pCmd, p);
+		task_helper = new Task_MigrateCtTarget(pDispConnection, pCmd, p);
 #else
 	{
 		WRITE_TRACE(DBG_FATAL, "Linux containers are not implemented");
