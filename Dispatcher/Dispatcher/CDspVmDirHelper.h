@@ -191,10 +191,6 @@ public:
 		return atomicEditVmConfigByVm( vmIdent.second, vmIdent.first, evtFromVm, pUserSession );
 	}
 
-	void dropSuspendedState( const IOSender::Handle& sender,
-		SmartPtr<CDspClient> pUserSession,
-		const SmartPtr<IOPackage>& );
-
 	// search lost configs
 	void searchLostConfigs (SmartPtr<CDspClient> pUserSession, const SmartPtr<IOPackage>& );
 

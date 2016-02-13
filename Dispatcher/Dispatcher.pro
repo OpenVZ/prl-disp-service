@@ -102,7 +102,6 @@ HEADERS += \
 	Tasks/Task_CreateImage.h \
 	Tasks/Task_CopyImage.h \
 	Tasks/Task_DeleteVm.h \
-	Tasks/Task_DropSuspendedState.h \
 	Tasks/Task_FileSystemEntriesOperations.h \
 	Tasks/Task_GetFileSystemEntries.h \
 	Tasks/Task_GetInfoFromParallelsUtils.h \
@@ -213,7 +212,6 @@ SOURCES += \
 	Tasks/Task_CreateImage.cpp \
 	Tasks/Task_CopyImage.cpp \
 	Tasks/Task_DeleteVm.cpp \
-	Tasks/Task_DropSuspendedState.cpp \
 	Tasks/Task_FileSystemEntriesOperations.cpp \
 	Tasks/Task_GetFileSystemEntries.cpp \
 	Tasks/Task_GetInfoFromParallelsUtils.cpp \

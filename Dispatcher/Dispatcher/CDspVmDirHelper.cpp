@@ -77,7 +77,6 @@
 #include "Tasks/Task_CloneVm.h"
 #include "Tasks/Task_MoveVm.h"
 #include "Tasks/Task_DeleteVm.h"
-#include "Tasks/Task_DropSuspendedState.h"
 #include "Tasks/Task_CreateImage.h"
 #include "Tasks/Task_SearchLostConfigs.h"
 #include "Tasks/Task_GetInfoFromParallelsUtils.h"
@@ -3148,57 +3147,6 @@ QList<QString> CDspVmDirHelper::getTasksUnderExclusiveOperation( const CVmIdent 
 void CDspVmDirHelper::cleanupSessionVmLocks( const IOSender::Handle &hSession )
 {
 	m_exclusiveVmOperations.cleanupSessionVmLocks( hSession );
-}
-
-//
-// Drop suspended VM state
-//
-void CDspVmDirHelper::dropSuspendedState(
-	const IOSender::Handle& sender,
-	SmartPtr<CDspClient> pUserSession,
-	const SmartPtr<IOPackage> &pkg)
-{
-
-	////////////////////////////////////////////////////////////////////////
-	// retrieve user parameters from request data
-	////////////////////////////////////////////////////////////////////////
-
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( pkg );
-	if ( ! cmd->IsValid() )
-	{
-		pUserSession->sendSimpleResponse( pkg, PRL_ERR_FAILURE );
-		return;
-	}
-
-	QString vm_uuid = cmd->GetVmUuid();
-
-	// AccessCheck
-	PRL_RESULT rc = PRL_ERR_FAILURE;
-	bool bSetNotValid = false;
-	CVmEvent evt;
-	rc = CDspService::instance()->getAccessManager()
-		.checkAccess( pUserSession, PVE::DspCmdVmDropSuspendedState, vm_uuid, &bSetNotValid, &evt );
-	if ( ! PRL_SUCCEEDED(rc) )
-	{
-		sendNotValidState(pUserSession, rc, vm_uuid, bSetNotValid);
-		pUserSession->sendResponseError( evt, pkg );
-		return;
-	}
-
-	PRL_RESULT err = PRL_ERR_SUCCESS;
-	SmartPtr<CVmConfiguration> pVmConfig = getVmConfigByUuid ( pUserSession, vm_uuid, err );
-
-	if ( ! pVmConfig )
-	{
-		PRL_ASSERT ( PRL_FAILED( err ) );
-		if( !PRL_FAILED( err ) )
-			err = PRL_ERR_FAILURE;
-
-		CDspService::instance()->sendSimpleResponseToClient( sender, pkg, err );
-		return;
-	}
-	CDspService::instance()->getTaskManager()
-		.schedule(new Task_DropSuspendedState( pUserSession, pkg, pVmConfig->toString()));
 }
 
 QStringList CDspVmDirHelper::getListOfLastCrashedLogs(
