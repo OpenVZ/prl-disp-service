@@ -79,12 +79,10 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 #else
 
 Task_MigrateCtTarget::Task_MigrateCtTarget(
-		const QObject *parent,
 		const SmartPtr<CDspDispConnection> &pDispConnection,
 		CDispToDispCommandPtr pCmd,
 		const SmartPtr<IOPackage> &p)
 :Task_VzMigrate(pDispConnection->getUserSession(), p),
-m_pParent(parent),
 m_pDispConnection(pDispConnection),
 m_nFlags(0)
 {
@@ -315,15 +313,13 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 	}
 
 	/* set signal handler before reply - to avoid race */
-	bConnected = QObject::connect(m_pParent,
+	bConnected = this->connect(m_pDispConnection.getImpl(),
 		SIGNAL(onPackageReceived(
-			const SmartPtr<CDspDispConnection> &,
-			const QString &,
-			const SmartPtr<IOPackage> &)),
+			IOSender::Handle,
+			const SmartPtr<IOPackage>)),
 		SLOT(handlePackage(
-			const SmartPtr<CDspDispConnection> &,
-			const QString &,
-			const SmartPtr<IOPackage> &)),
+			IOSender::Handle,
+			const SmartPtr<IOPackage>&)),
 		Qt::DirectConnection);
 	PRL_ASSERT(bConnected);
 
@@ -346,16 +342,13 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 	pTimer->stop();
 	delete pTimer;
 
-	QObject::disconnect(m_pParent,
+	m_pDispConnection->disconnect(
 		SIGNAL(onPackageReceived(
-			const SmartPtr<CDspDispConnection> &,
-			const QString &,
-			const SmartPtr<IOPackage> &)),
-		this,
+			IOSender::Handle,
+			const SmartPtr<IOPackage>)), this,
 		SLOT(handlePackage(
-			const SmartPtr<CDspDispConnection> &,
-			const QString &,
-			const SmartPtr<IOPackage> &)));
+			IOSender::Handle,
+			const SmartPtr<IOPackage>&)));
 
 	if (PRL_FAILED(nRetCode))
 		goto exit;
@@ -493,42 +486,53 @@ void Task_MigrateCtTarget::clientDisconnected(IOSender::Handle h)
 }
 
 void Task_MigrateCtTarget::handlePackage(
-		const SmartPtr<CDspDispConnection> &pDispConnection,
-		const QString &sCtUuid,
-		const SmartPtr<IOPackage> &p)
+		IOSender::Handle handle_,
+		const SmartPtr<IOPackage>& package_)
 {
-	// #439777 to protect call handler for destroying object
-	WaiterTillHandlerUsingObject::AutoUnlock lock( m_waiter );
-	if( !lock.isLocked() )
+	if (handle_ != m_pDispConnection->GetConnectionHandle())
+		return;
+	if (VmMigrateStartCmd != package_->header.type)
 		return;
 
-	Q_UNUSED(pDispConnection);
+	CDispToDispCommandPtr d = CDispToDispProtoSerializer::ParseCommand(package_);
+	if (!d->IsValid())
+	{
+		WRITE_TRACE(DBG_FATAL, "Invalid start migration package is received: [%s]",\
+			package_->buffers[0].getImpl());
+		return QThread::exit(PRL_ERR_FAILURE);
+	}
+	CVmMigrateStartCommand* s =
+		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmMigrateStartCommand>(d);
+	if (!s->IsValid())
+	{
+		WRITE_TRACE(DBG_FATAL, "Invalid start migration package is received: [%s]",\
+			package_->buffers[0].getImpl());
+		return QThread::exit(PRL_ERR_FAILURE);
+	}
+	CVmConfiguration c(s->GetVmConfig());
+	if (PRL_FAILED(c.m_uiRcInit))
+	{
+		m_pDispConnection->sendSimpleResponse(package_, PRL_ERR_PARSE_VM_CONFIG);
+		WRITE_TRACE(DBG_FATAL, "Invalid VM configuration was received: [%s]",\
+			QSTR2UTF8(s->GetVmConfig()));
+		return QThread::exit(PRL_ERR_FAILURE);
+	}
+
+	// #439777 to protect call handler for destroying object
+	WaiterTillHandlerUsingObject::AutoUnlock lock(m_waiter);
+	if(!lock.isLocked())
+		return;
+
 	if (operationIsCancelled())
 		return;
 
-	if (m_sSrcCtUuid != sCtUuid)
+	if (m_sSrcCtUuid != c.getVmIdentification()->getVmUuid())
 		return;
 
-	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(p);
-	if ( !pCmd->IsValid() )
-	{
-		WRITE_TRACE(DBG_FATAL, "Wrong start migration package was received: [%s]",
-			p->buffers[0].getImpl());
-		QThread::exit(PRL_ERR_FAILURE);
-	}
-
-	CVmMigrateStartCommand *pStartCmd =
-		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmMigrateStartCommand>(pCmd);
-	if ( NULL == pStartCmd )
-	{
-		WRITE_TRACE(DBG_FATAL, "Wrong start migration package was received: [%s]",
-			p->buffers[0].getImpl());
-		QThread::exit(PRL_ERR_FAILURE);
-	}
-	m_nMigrationFlags = pStartCmd->GetMigrationFlags();
-	m_nReservedFlags = pStartCmd->GetReservedFlags();
-	m_pStartPackage	= IOPackage::duplicateInstance(p);
-	QThread::exit(0);
+	m_nMigrationFlags = s->GetMigrationFlags();
+	m_nReservedFlags = s->GetReservedFlags();
+	m_pStartPackage	= IOPackage::duplicateInstance(package_);
+	QThread::exit(PRL_ERR_SUCCESS);
 }
 
 // cancel command

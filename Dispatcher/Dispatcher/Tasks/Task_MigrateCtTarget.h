@@ -80,7 +80,6 @@ class Task_MigrateCtTarget : public Task_VzMigrate
 
 public:
 	Task_MigrateCtTarget(
-		const QObject *,
 		const SmartPtr<CDspDispConnection> &,
 		const CDispToDispCommandPtr,
 		const SmartPtr<IOPackage> &);
@@ -112,7 +111,6 @@ private:
 
 	WaiterTillHandlerUsingObject m_waiter;
 
-	const QObject *m_pParent;
 	SmartPtr<CDspDispConnection> m_pDispConnection;
 	SmartPtr<IOPackage> m_pStartPackage;
 	CVmConfiguration m_cVmConfig;
@@ -132,10 +130,8 @@ private:
 
 private slots:
 	void clientDisconnected(IOSender::Handle h);
-	void handlePackage(
-			const SmartPtr<CDspDispConnection> &,
-			const QString &,
-			const SmartPtr<IOPackage> &);
+	void handlePackage(IOSender::Handle handle_,
+			const SmartPtr<IOPackage>& package_);
 	void handleStartCommandTimeout();
 
 };
