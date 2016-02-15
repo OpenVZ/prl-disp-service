@@ -374,15 +374,6 @@ public:
 	void processGuestOsSessionCmd(SmartPtr<CDspClient> pUser,
 									const CProtoCommandPtr &pCmd, const SmartPtr<IOPackage> &p);
 	/**
-     * Lets to cancel VM suspending sync phase
-	 * see https://bugzilla.sw.ru/show_bug.cgi?id=441619 for more details
-     * @param pointer to the user session object that initialized request
-     * @param pointer to request package object
-	 * @return sign whether operation was performed successfully
-    */
-	bool cancelSuspend( SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p );
-
-	/**
      * Lets to change VM process log level in runtime
 	 * see https://bugzilla.sw.ru/show_bug.cgi?id=439457 for more details
      * @param pointer to the user session object that initialized request
@@ -514,21 +505,6 @@ public://Convenient global methods
 	 * @param handle to disconnected user session
 	 */
 	static void globalCleanupGuestOsSessions( const IOSender::Handle &h );
-
-	/**
-	 * Cancels suspending sync phase for specified VM
-	 * see https://bugzilla.sw.ru/show_bug.cgi?id=441619 for more details
-	 * @param pointer to the user session object
-	 * @param pointer to the initial request package
-	 * @param VM UUID
-	 * @param pointer to initiate object task to process task cancel
-	 * @return actual VM state
-	 */
-	static void cancelSuspend(
-		SmartPtr<CDspClient> pUser,
-		const SmartPtr<IOPackage> &p,
-		const QString &sVmUuid,
-		CancelOperationSupport *pInitiator );
 
 	void GetSnapshotRequestParams(SmartPtr<IOPackage> &pRequest,
 		VIRTUAL_MACHINE_STATE &vmState,
@@ -688,10 +664,6 @@ private:
 	 */
 	PRL_RESULT checkUserAccessRightsOnGuestConsoleCmd( SmartPtr<CDspClient> pUser, const CProtoCommandPtr &pCmd );
 
-	template<class T>
-	bool startVmProcess(DspVm::Start::Demand demand_, T monitor_);
-	bool startVmProcess(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
 	/**
 	* Returns VM state without m_rwLock lock
 	*   NOTE: m_rwLock MUST be locked before this call !
@@ -699,23 +671,10 @@ private:
 	VIRTUAL_MACHINE_STATE getVmStateUnsync() const;
 
 	/**
-	*  Turn On /Turn Off  Spotlight on MacOSX for vm folder
-	*  https://bugzilla.sw.ru/show_bug.cgi?id=113144
-	**/
-	bool turnOnSpotlight( const QString& vmDirPath );
-	bool turnOffSpotlight( const QString& vmDirPath );
-
-	/**
 	* Change USB state (auto connect logic) by VM state event
 	* @param VM state value
 	*/
 	void changeUsbState( PRL_EVENT_TYPE nEventType );
-
-	/**
-	 * Get undo disks mode
-	 * @return undo disks mode enumaration
-	 */
-	PRL_UNDO_DISKS_MODE getUndoDisksMode();
 
 	/**
 	 * Set safe mode
