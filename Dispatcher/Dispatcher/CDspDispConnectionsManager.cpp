@@ -56,14 +56,12 @@ bool is_migrate_package(int header_type)
 
 }; // namespace
 
-REGISTER_HANDLER( IOService::IOSender::Dispatcher,
-				  "DispToDispHandler",
-				  CDspDispConnectionsManager);
-
 /*****************************************************************************/
 
-CDspDispConnectionsManager::CDspDispConnectionsManager ( IOSender::Type type, const char* name ) :
-	CDspHandler(type, name)
+CDspDispConnectionsManager::CDspDispConnectionsManager
+	(CDspService& service_, const Backup::Task::Launcher& backup_):
+	CDspHandler(IOService::IOSender::Dispatcher, "DispToDispHandler"),
+	m_service(&service_), m_backup(backup_)
 {
 }
 
@@ -104,7 +102,7 @@ void CDspDispConnectionsManager::handleToDispatcherPackage ( const IOSender::Han
 			PRL_RESULT ret;
 			do {
 
-				if (CDspService::instance()->isServerStopping())
+				if (m_service->isServerStopping())
 				{
 					WRITE_TRACE(DBG_FATAL, "Dispatcher shutdown is in progress!");
 					ret = PRL_ERR_DISP_SHUTDOWN_IN_PROCESS;
@@ -138,7 +136,7 @@ void CDspDispConnectionsManager::handleToDispatcherPackage ( const IOSender::Han
 				m_rwLock.unlock();
 				ret = PRL_ERR_SUCCESS;
 			} while(0);
-			CDspService::instance()->sendSimpleResponseToDispClient( h, p, ret);
+			m_service->sendSimpleResponseToDispClient(h, p, ret);
 			return;
 		}
 	}
@@ -153,7 +151,7 @@ void CDspDispConnectionsManager::handleToDispatcherPackage ( const IOSender::Han
 		m_rwLock.unlock();
 
 		// Send error
-		CDspService::instance()->sendSimpleResponseToDispClient( h, p, PRL_ERR_USER_OPERATION_NOT_AUTHORISED );
+		m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_USER_OPERATION_NOT_AUTHORISED);
 		return;
 	}
 
@@ -164,32 +162,31 @@ void CDspDispConnectionsManager::handleToDispatcherPackage ( const IOSender::Han
 	m_rwLock.unlock();
 
 #ifdef _CT_
-	if (CDspService::instance()->getVzHelper()->handleToDispatcherPackage(pDispConnection, p))
+	if (m_service->getVzHelper()->handleToDispatcherPackage(pDispConnection, p))
 		return;
 #endif
 
 	switch (p->header.type)
 	{
 		case DispToDispLogoffCmd:
-		{
 			ProcessDispConnectionLogoff(pDispConnection, p);
-		}
-		break;
-
+			break;
 		case VmMigrateCheckPreconditionsCmd:
-		{
-			CDspService::instance()->getVmMigrateHelper().checkPreconditions(pDispConnection, p);
-		}
-		break;
-
+			m_service->getVmMigrateHelper().checkPreconditions(pDispConnection, p);
+			break;
 		case VmBackupCreateCmd:
 		case VmBackupCreateLocalCmd:
-		case VmBackupRestoreCmd:
-		case VmBackupGetTreeCmd:
-		case VmBackupRemoveCmd:
-			CDspService::instance()->sendSimpleResponseToDispClient( h, p, PRL_ERR_UNIMPLEMENTED);
+			m_backup.startCreateVmBackupTargetTask(pDispConnection, p);
 			break;
-
+		case VmBackupRestoreCmd:
+			m_backup.startRestoreVmBackupSourceTask(pDispConnection, p);
+			break;
+		case VmBackupGetTreeCmd:
+			m_backup.startGetBackupTreeTargetTask(pDispConnection, p);
+			break;
+		case VmBackupRemoveCmd:
+			m_backup.startRemoveVmBackupTargetTask(pDispConnection, p);
+			break;
 		default:
 		{
 			if (IS_FILE_COPY_PACKAGE(p->header.type) ||
@@ -201,7 +198,7 @@ void CDspDispConnectionsManager::handleToDispatcherPackage ( const IOSender::Han
 				pDispConnection->handlePackage(p);
 				break;
 			}
-			CDspService::instance()->sendSimpleResponseToDispClient( h, p, PRL_ERR_UNRECOGNIZED_REQUEST);
+			m_service->sendSimpleResponseToDispClient( h, p, PRL_ERR_UNRECOGNIZED_REQUEST);
 			break;
 		}
 	}
@@ -215,7 +212,7 @@ SmartPtr<CDspDispConnection> CDspDispConnectionsManager::AuthorizeDispatcherConn
 	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(p);
 	if ( ! pCmd->IsValid() )
 	{
-		CDspService::instance()->sendSimpleResponseToDispClient( h, p, PRL_ERR_FAILURE );
+		m_service->sendSimpleResponseToDispClient( h, p, PRL_ERR_FAILURE );
 		WRITE_TRACE(DBG_FATAL, "Wrong authorization package was received: [%s]",\
 			p->buffers[0].getImpl());
 		return SmartPtr<CDspDispConnection>(NULL);
@@ -226,14 +223,14 @@ SmartPtr<CDspDispConnection> CDspDispConnectionsManager::AuthorizeDispatcherConn
 	if (pAuthorizeCommand->NeedAuthBySessionUuid())
 	{
 		 pUserSession =
-			CDspService::instance()->getClientManager().getUserSession(pAuthorizeCommand->GetUserSessionUuid());
+			m_service->getClientManager().getUserSession(pAuthorizeCommand->GetUserSessionUuid());
 		if (! pUserSession.isValid())
 			WRITE_TRACE(DBG_FATAL, "Dispatcher session wasn't authorized with '%s' session UUID",\
 				qPrintable(pAuthorizeCommand->GetUserSessionUuid()));
 
 	}else {
 		//if session uuid is not defined, athorize via login & password (without session uuid)
-		pUserSession = CDspService::instance()->getUserHelper().processDispacherLogin( h, p );
+		pUserSession = m_service->getUserHelper().processDispacherLogin(h, p);
 
 		if (!pUserSession.isValid())
 			WRITE_TRACE(DBG_FATAL, "Dispatcher session wasn't authorized for user '%s'",\
@@ -242,7 +239,7 @@ SmartPtr<CDspDispConnection> CDspDispConnectionsManager::AuthorizeDispatcherConn
 
 	if (! pUserSession.isValid() )
 	{
-		CDspService::instance()->sendSimpleResponseToDispClient( h, p, PRL_ERR_DISP2DISP_WRONG_USER_SESSION_UUID );
+		m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_DISP2DISP_WRONG_USER_SESSION_UUID);
 		return SmartPtr<CDspDispConnection>(NULL);
 	}
 
@@ -263,7 +260,7 @@ void CDspDispConnectionsManager::ProcessDispConnectionLogoff(
 )
 {
 	IOSendJob::Handle hJob = pDispConnection->sendSimpleResponse( p, PRL_ERR_SUCCESS );
-	CDspService::instance()->getIOServer().waitForSend(hJob);
+	m_service->getIOServer().waitForSend(hJob);
 	DeleteDispConnection(pDispConnection->GetConnectionHandle());
 }
 
@@ -276,7 +273,7 @@ void CDspDispConnectionsManager::handleDetachClient (
 
 	if ( ! m_dispconns.contains(h) ) {
 		WRITE_TRACE(DBG_FATAL, "Client '%s' is not authed! Close connection!", qPrintable(h));
-		CDspService::instance()->getIOServer().disconnectClient( h );
+		m_service->getIOServer().disconnectClient(h);
 		return;
 	}
 	// #455781 under read access (QReadLocker) we should call only const methods
@@ -291,7 +288,7 @@ void CDspDispConnectionsManager::handleDetachClient (
 	{
 		WRITE_TRACE(DBG_FATAL, "Couldn't to map dispatcher connection object '%s' with VM process maintainer",\
 			qPrintable(h));
-		CDspService::instance()->getIOServer().disconnectClient( h );
+		m_service->getIOServer().disconnectClient(h);
 		return;
 	}
 
@@ -299,11 +296,9 @@ void CDspDispConnectionsManager::handleDetachClient (
 
 	// Send detached client
 	IOSendJob::Handle job =
-		CDspService::instance()->getIOServer().sendDetachedClient( vmHandle,
-														   detachedClient );
-	CDspService::instance()->getIOServer().waitForSend( job );
-	IOSendJob::Result res =
-		CDspService::instance()->getIOServer().getSendResult( job );
+		m_service->getIOServer().sendDetachedClient(vmHandle, detachedClient);
+	m_service->getIOServer().waitForSend(job);
+	IOSendJob::Result res = m_service->getIOServer().getSendResult(job);
 	if ( res != IOSendJob::Success ) {
 		WRITE_TRACE(DBG_FATAL, "Detach client send to Vm failed!");
 		pDispConnection->sendSimpleResponse(

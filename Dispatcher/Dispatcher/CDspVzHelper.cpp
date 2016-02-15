@@ -99,8 +99,9 @@ void CDspVzHelper::CConfigCache::remove(const QString &sHome)
 }
 
 /**************** CDspVzHelper ************************/
-CDspVzHelper::CDspVzHelper() : m_totalRunningCtMemory(-1LL),
-	m_totalRunningCtMemoryMtx(QMutex::Recursive)
+CDspVzHelper::CDspVzHelper(CDspService& service_, const Backup::Task::Launcher& backup_):
+	m_totalRunningCtMemory(-1LL), m_totalRunningCtMemoryMtx(QMutex::Recursive),
+	m_service(&service_), m_backup(backup_)
 {
 }
 
@@ -117,7 +118,7 @@ void CDspVzHelper::initVzStateMonitor()
                 DispatcherPackage::createInstance( PVE::DspCmdCtlDispatherFakeCommand );
 
 #ifdef _CT_
-	CDspService::instance()->getTaskManager().schedule(new Task_VzStateMonitor( pUser, p ));
+	m_service->getTaskManager().schedule(new Task_VzStateMonitor( pUser, p ));
 #endif
 }
 
@@ -146,8 +147,8 @@ PRL_RESULT CDspVzHelper::insertVmDirectoryItem(SmartPtr<CVmConfiguration> &pConf
 	//
 	// insert new item in user's VM Directory
 	//
-	PRL_RESULT res = CDspService::instance()->getVmDirHelper().insertVmDirectoryItem(
-				CDspService::instance()->getVmDirManager().getVzDirectoryUuid(), pItem);
+	PRL_RESULT res = m_service->getVmDirHelper().insertVmDirectoryItem(
+				m_service->getVmDirManager().getVzDirectoryUuid(), pItem);
 	if (PRL_FAILED(res))
 	{
 		delete pItem;
@@ -304,7 +305,7 @@ SmartPtr<CVmConfiguration> CDspVzHelper::getCtConfig(
 	QString sHome;
 	{
 		CDspLockedPointer<CVmDirectoryItem> pDir =
-			CDspService::instance()->getVmDirHelper().getVmDirectoryItemByUuid(
+			m_service->getVmDirHelper().getVmDirectoryItemByUuid(
 					CDspVmDirManager::getVzDirectoryUuid(),
 					sUuid);
 		if (!pDir)
@@ -319,7 +320,7 @@ PRL_RESULT CDspVzHelper::getCtConfigList(SmartPtr<CDspClient> pUserSession,
 		quint32 nFlags,
 		QList<SmartPtr<CVmConfiguration> > &lstConfig)
 {
-	CDspLockedPointer<CVmDirectory>	pDir = CDspService::instance()->getVmDirManager()
+	CDspLockedPointer<CVmDirectory>	pDir = m_service->getVmDirManager()
 							.getVzDirectory();
 
 	if ( !pDir)
@@ -329,7 +330,7 @@ PRL_RESULT CDspVzHelper::getCtConfigList(SmartPtr<CDspClient> pUserSession,
 	}
 	if (checkAccess(pUserSession))
 	{
-		QString sServerUuid = CDspService::instance()->getDispConfigGuard().getDispConfig()
+		QString sServerUuid = m_service->getDispConfigGuard().getDispConfig()
 				->getVmServerIdentification()->getServerUuid();
 		foreach( CVmDirectoryItem* pDirItem, pDir->m_lstVmDirectoryItems )
 		{
@@ -473,7 +474,7 @@ void CDspVzHelper::sendCtInfo(const IOSender::Handle& sender,
 	pResponseCmd->SetVmEvent( evt.toString() );
 
 	SmartPtr<IOPackage> responsePkg = DispatcherPackage::createInstance( PVE::DspWsResponse, pCmd, pkg );
-	CDspService::instance()->getIOServer().sendPackage( sender, responsePkg );
+	m_service->getIOServer().sendPackage( sender, responsePkg );
 
 	return;
 }
@@ -512,7 +513,7 @@ void CDspVzHelper::sendCtConfigSample(const IOSender::Handle& sender,
 	pResponseCmd->SetVmConfig( pConfig->toString() );
 
 	SmartPtr<IOPackage> responsePkg = DispatcherPackage::createInstance( PVE::DspWsResponse, pCmd, pkg );
-	CDspService::instance()->getIOServer().sendPackage( sender, responsePkg );
+	m_service->getIOServer().sendPackage( sender, responsePkg );
 
 	return;
 }
@@ -553,7 +554,7 @@ bool CDspVzHelper::sendCtConfigByUuid(const IOSender::Handle& sender,
 	pResponseCmd->SetVmConfig( pConfig->toString() );
 
 	SmartPtr<IOPackage> responsePkg = DispatcherPackage::createInstance( PVE::DspWsResponse, pCmd, pkg );
-	CDspService::instance()->getIOServer().sendPackage( sender, responsePkg );
+	m_service->getIOServer().sendPackage( sender, responsePkg );
 
 	return true;
 }
@@ -658,7 +659,7 @@ void CDspVzHelper::copyCtTemplate(SmartPtr<CDspClient> pUser, const SmartPtr<IOP
 		pUser->sendSimpleResponse( p, PRL_ERR_UNRECOGNIZED_REQUEST);
 		return;
 	}
-	CDspService::instance()->getTaskManager().schedule(new Task_CopyCtTemplateSource(pUser, cmd, p));
+	m_service->getTaskManager().schedule(new Task_CopyCtTemplateSource(pUser, cmd, p));
 #endif
 }
 
@@ -678,7 +679,7 @@ void CDspVzHelper::registerGuestSession(const IOSender::Handle& sender,
 	pResponseCmd->AddStandardParam(Uuid::createUuid().toString());
 
 	SmartPtr<IOPackage> responsePkg = DispatcherPackage::createInstance( PVE::DspWsResponse, pCmd, p );
-	CDspService::instance()->getIOServer().sendPackage( sender, responsePkg );
+	m_service->getIOServer().sendPackage( sender, responsePkg );
 }
 
 void CDspVzHelper::guestRunProgram(const IOSender::Handle& sender,
@@ -703,10 +704,10 @@ void CDspVzHelper::guestRunProgram(const IOSender::Handle& sender,
 		pUser->sendResponseError( &evt, p );
 		return;
 	}
-	CDspService::instance()->getTaskManager().schedule(new Task_ExecVm(pUser, p, Exec::Ct()));
+	m_service->getTaskManager().schedule(new Task_ExecVm(pUser, p, Exec::Ct()));
 #else
 	Q_UNUSED(pUser);
-	CDspService::instance()->sendSimpleResponseToClient(sender, p, PRL_ERR_UNIMPLEMENTED);
+	m_service->sendSimpleResponseToClient(sender, p, PRL_ERR_UNIMPLEMENTED);
 #endif
 }
 
@@ -761,7 +762,7 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 		cfg.fromString(pCmd->GetFirstStrParam());
 
 		vm_uuid = cfg.getVmIdentification()->getVmUuid();
-		bOk = CDspService::instance()->getVmDirManager().getVmTypeByUuid(vm_uuid, nType);
+		bOk = m_service->getVmDirManager().getVmTypeByUuid(vm_uuid, nType);
 	}
 	else if (p->header.type == PVE::DspCmdDirRegVm)
 	{
@@ -779,7 +780,7 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 		if (vm_uuid.isEmpty())
 			LOG_MESSAGE(DBG_INFO, "=> empty vmuuid for %s",
 					PVE::DispatcherCommandToString(p->header.type));
-		bOk = CDspService::instance()->getVmDirManager().getVmTypeByUuid(vm_uuid, nType);
+		bOk = m_service->getVmDirManager().getVmTypeByUuid(vm_uuid, nType);
 	}
 
 	if (!(bOk && nType == PVT_CT))
@@ -792,7 +793,7 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 
 	if (!checkAccess(pUserSession))
 	{
-		CDspService::instance()->
+		m_service->
 			sendSimpleResponseToClient( h, p, PRL_ERR_ACCESS_DENIED);
 		return true;
 	}
@@ -832,7 +833,7 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 		case PVE::DspCmdVmRestartGuest:
 		case PVE::DspCmdVmGetPackedProblemReport:
 		case PVE::DspCmdVmGetProblemReport:
-			CDspService::instance()->getTaskManager().schedule(new Task_VzManager( pUserSession, p));
+			m_service->getTaskManager().schedule(new Task_VzManager( pUserSession, p));
 			break;
 		case PVE::DspCmdVmGuestRunProgram:
 			guestRunProgram(h, pUserSession, p);
@@ -892,23 +893,34 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 			break;
 		case PVE::DspCmdDirVmMigrate:
 #ifdef _CT_
-			CDspService::instance()->getTaskManager()
+			m_service->getTaskManager()
 				.schedule(new Task_MigrateCtSource(pUserSession, pCmd, p));
 #endif
 			break;
 		case PVE::DspCmdVmMigrateCancel:
-			CDspService::instance()->getVmMigrateHelper()
+			m_service->getVmMigrateHelper()
 				.cancelMigration(pUserSession, p, pCmd->GetVmUuid());
 			break;
 		case PVE::DspCmdCreateVmBackup:
+			m_backup.startCreateCtBackupSourceTask(pUserSession, p);
+			break;
+		case PVE::DspCmdBeginVmBackup:
+			m_backup.launchBeginCtBackup(pUserSession, p);
+			break;
+		case PVE::DspCmdEndVmBackup:
+			m_backup.launchEndVeBackup(pUserSession, p);
+			break;
 		case PVE::DspCmdRestoreVmBackup:
+			m_backup.startRestoreVmBackupTargetTask(pUserSession, p);
+			break;
 		case PVE::DspCmdRemoveVmBackup:
+			m_backup.startRemoveVmBackupSourceTask(pUserSession, p);
+			break;
 		case PVE::DspCmdGetBackupTree:
-			CDspService::instance()->
-				sendSimpleResponseToClient( h, p, PRL_ERR_UNIMPLEMENTED);
+			m_backup.startGetBackupTreeSourceTask(pUserSession, p);
 			break;
 		case PVE::DspCmdVmGuestGetNetworkSettings:
-			CDspService::instance()->getTaskManager().schedule(new Task_VzManager( pUserSession, p));
+			m_service->getTaskManager().schedule(new Task_VzManager( pUserSession, p));
 			break;
 		case PVE::DspCmdVmReset:
 		case PVE::DspCmdVmPause:
@@ -916,11 +928,11 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 		case PVE::DspCmdDirLockVm:
 		case PVE::DspCmdDirUnlockVm:
 		case PVE::DspCmdDirVerifyVmConfig:
-			CDspService::instance()->
+			m_service->
 				sendSimpleResponseToClient( h, p, PRL_ERR_UNIMPLEMENTED);
 			break;
 		case PVE::DspCmdUserCancelOperation:
-			CDspService::instance()->getShellServiceHelper().cancelOperation(pUserSession, p);
+			m_service->getShellServiceHelper().cancelOperation(pUserSession, p);
 			break;
 		// Unsupported actions
 		case PVE::DspCmdDirCopyImage:
@@ -956,7 +968,7 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 		case PVE::DspCmdVmInternal:
 		case PVE::DspCmdVmConvertDisks:
 		case PVE::DspCmdDirRestoreVm:
-			CDspService::instance()->
+			m_service->
 				sendSimpleResponseToClient( h, p, PRL_ERR_ACTION_NOT_SUPPORTED_FOR_CT);
 			break;
 		// Not handled (processed by other component)
@@ -983,7 +995,7 @@ bool CDspVzHelper::handleToDispatcherPackage(
 		WRITE_TRACE(DBG_FATAL, "Invalid command %d", p->header.type);
 		return false;
 	}
-	CDspService::instance()->getTaskManager()
+	m_service->getTaskManager()
 		.schedule(new Task_CopyCtTemplateTarget(pDispConnection, pCmd, p));
 #endif
 	return true;
@@ -1087,7 +1099,7 @@ void CDspVzHelper::initTotalRunningCtMemory()
 	QMutexLocker locker(&m_totalRunningCtMemoryMtx);
 	m_totalRunningCtMemory = 0;
 
-	CDspLockedPointer<CVmDirectory>	pDir = CDspService::instance()->getVmDirManager().getVzDirectory();
+	CDspLockedPointer<CVmDirectory>	pDir = m_service->getVmDirManager().getVzDirectory();
 	if (!pDir) {
 		WRITE_TRACE(DBG_FATAL, "Virtuozzo Directory not found, skip Ct processing");
 		return;
@@ -1129,8 +1141,8 @@ void CDspVzHelper::syncCtsUptime()
 {
 	typedef QPair<QString, QString> tuple_type;
 	QList<tuple_type> a;
-	QString u = CDspService::instance()->getVmDirManager().getVzDirectoryUuid();
-	CDspVmDirManager& m = CDspService::instance()->getVmDirManager();
+	QString u = m_service->getVmDirManager().getVzDirectoryUuid();
+	CDspVmDirManager& m = m_service->getVmDirManager();
 	{
 		CDspLockedPointer<CVmDirectory> d = m.getVmDirectory(u);
 		if (!d.isValid())

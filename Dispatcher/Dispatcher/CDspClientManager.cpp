@@ -44,26 +44,19 @@
 #include "CDspRequestsToVmHandler.h"
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/PrlCommonUtilsBase/CommandConvHelper.h>
-
+#include "CDspService.h"
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "CDspVzHelper.h"
 
 using namespace Parallels;
 
-REGISTER_HANDLER( IOService::IOSender::Client,
-		"ClientHandler",
-		CDspClientManager );
-
 /*****************************************************************************/
 
-CDspClientManager::CDspClientManager ( IOSender::Type type, const char* name ):
-	CDspHandler(type, name),
-	dsp_commands(NULL), dsp_error_commands(NULL)
-{
-}
-
-CDspClientManager::~CDspClientManager ()
+CDspClientManager::CDspClientManager(CDspService& service_, const Backup::Task::Launcher& backup_):
+	CDspHandler(IOService::IOSender::Client, "ClientHandler"),
+	dsp_commands(NULL), dsp_error_commands(NULL), m_service(&service_),
+	m_backup(backup_)
 {
 }
 
@@ -85,14 +78,14 @@ void CDspClientManager::init ()
 	 * $PERF$ "mgmt.commands"
 	 * Total count of management commands, recieved by Dispatcher
 	 *****************************************************************************************/
-    create_counter(CDspService::instance()->getBasePerfStorage(),
+    create_counter(m_service->getBasePerfStorage(),
 		PERF_COUNT_TYPE_INC "mgmt.commands", &dsp_commands) ;
 
 	/*****************************************************************************************
 	 * $PERF$ "mgmt.error_commands"
 	 * Total count of failed management commands, recieved by Dispatcher
 	 *****************************************************************************************/
-    create_counter(CDspService::instance()->getBasePerfStorage(),
+    create_counter(m_service->getBasePerfStorage(),
 		PERF_COUNT_TYPE_INC "mgmt.error_commands", &dsp_error_commands) ;
 }
 
@@ -106,7 +99,7 @@ SmartPtr<CDspClient> CDspClientManager::getUserSession (
 void CDspClientManager::deleteUserSession (
 		const IOSender::Handle& h)
 {
-	CDspService::instance()->getIOServer().disconnectClient( h );
+	m_service->getIOServer().disconnectClient(h);
 }
 
 
@@ -127,17 +120,17 @@ void CDspClientManager::handleClientDisconnected ( const IOSender::Handle& h  )
 
 #ifdef SENTILLION_VTHERE_PLAYER
 	if ( pUser.isValid() )
-		CDspService::instance()->getVmManager().shutdownVmsByClient( pUser, false );
+		m_service->getVmManager().shutdownVmsByClient(pUser, false);
 #endif
 
-	if ( !CDspService::instance()->isServerStopping() )//https://bugzilla.sw.ru/show_bug.cgi?id=444674
+	if (!m_service->isServerStopping())//https://bugzilla.sw.ru/show_bug.cgi?id=444674
 	{
 		if (pUser.isValid())
 		{
 			CDspStatCollectingThread::ClientDisconnected(pUser) ;
 
 			QList< SmartPtr<CDspTaskHelper> >
-				lstTasks = CDspService::instance()->getTaskManager().getTaskListBySession( h );
+				lstTasks = m_service->getTaskManager().getTaskListBySession(h);
 			foreach( SmartPtr<CDspTaskHelper> pTask, lstTasks )
 			{
 				PRL_ASSERT(pTask);
@@ -153,9 +146,9 @@ void CDspClientManager::handleClientDisconnected ( const IOSender::Handle& h  )
 			}
 		}
 
-			CDspService::instance()->getVmManager().checkToSendDefaultAnswer();
-			CDspVm::globalCleanupGuestOsSessions( h );
-			CDspService::instance()->getVmDirHelper().cleanupSessionVmLocks(h);
+		m_service->getVmManager().checkToSendDefaultAnswer();
+		CDspVm::globalCleanupGuestOsSessions( h );
+		m_service->getVmDirHelper().cleanupSessionVmLocks(h);
 	}
 }
 
@@ -197,10 +190,10 @@ QHash< IOSender::Handle, SmartPtr<CDspClient> > CDspClientManager::getSessionLis
 	else
 	{
 		CDspLockedPointer<CVmDirectoryItem>
-			pVmDirItem = CDspService::instance()->getVmDirManager().getVmDirItemByUuid(vmIdent);
+			pVmDirItem = m_service->getVmDirManager().getVmDirItemByUuid(vmIdent);
 		if( !pVmDirItem )
 			return lst;
-		dirList = CDspService::instance()->getVmDirManager().findVmDirItemsInCatalogue(
+		dirList = m_service->getVmDirManager().findVmDirItemsInCatalogue(
 			pVmDirItem->getVmUuid()
 			,pVmDirItem->getVmHome()
 			).keys();
@@ -214,7 +207,7 @@ QHash< IOSender::Handle, SmartPtr<CDspClient> > CDspClientManager::getSessionLis
 QHash< IOSender::Handle, SmartPtr<CDspClient> > CDspClientManager::getSessionListByVm(
 		const QString& vmDirUuid, const QString& vmUuid, int accessRights) const
 {
-	bool bAllClients = vmDirUuid == CDspService::instance()->
+	bool bAllClients = vmDirUuid == m_service->
 				getVmDirManager().getVzDirectoryUuid();
 
 	QHash< IOSender::Handle, SmartPtr<CDspClient> > sessions =
@@ -222,7 +215,7 @@ QHash< IOSender::Handle, SmartPtr<CDspClient> > CDspClientManager::getSessionLis
 					getSessionsListSnapshot( vmDirUuid );
 
 	CDspLockedPointer<CVmDirectoryItem>
-		pLockedVmDirItem = CDspService::instance()->getVmDirManager().getVmDirItemByUuid( vmDirUuid, vmUuid );
+		pLockedVmDirItem = m_service->getVmDirManager().getVmDirItemByUuid(vmDirUuid, vmUuid);
 
 	if ( !pLockedVmDirItem )
 	{
@@ -238,7 +231,7 @@ QHash< IOSender::Handle, SmartPtr<CDspClient> > CDspClientManager::getSessionLis
 	while( it.hasNext() )
 	{
 		SmartPtr<CDspClient> pClient = it.next().value();
-		CDspAccessManager::VmAccessRights vmAccess = CDspService::instance()->getAccessManager()
+		CDspAccessManager::VmAccessRights vmAccess = m_service->getAccessManager()
 			.getAccessRightsToVm( pClient, pLockedVmDirItem.getPtr() );
 
 		// #8179
@@ -291,13 +284,13 @@ void CDspClientManager::handleToDispatcherPackage (
 
 	do
 	{
-		if( CDspService::instance()->isFirstInitPhaseCompleted() )
+		if(m_service->isFirstInitPhaseCompleted())
 			break;
 
-		if ( !CDspService::instance()->waitForInitCompletion() )
+		if (!m_service->waitForInitCompletion())
 		{
 			WRITE_TRACE(DBG_FATAL, "Timeout is over ! Service initialization was not done !" );
-			CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_TIMEOUT);
+			m_service->sendSimpleResponseToClient( h, p, PRL_ERR_TIMEOUT);
 			return;
 		}
 		break;
@@ -310,11 +303,11 @@ void CDspClientManager::handleToDispatcherPackage (
 		if( !pClient )
 		{
 			WRITE_TRACE(DBG_FATAL, "Client %s not found.", QSTR2UTF8(h) );
-			CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_FAILURE);
+			m_service->sendSimpleResponseToClient(h, p, PRL_ERR_FAILURE);
 			return;
 		}
 
-		CDspService::instance()->getTaskManager().schedule(new Task_PendentClientRequest( pClient, p ));
+		m_service->getTaskManager().schedule(new Task_PendentClientRequest( pClient, p ));
 		return;
 
 	}while(0);
@@ -325,10 +318,10 @@ void CDspClientManager::handleToDispatcherPackage (
 	{
 		case PVE::DspCmdUserLogin:
 		{
-			if (CDspService::instance()->isServerStopping())
+			if (m_service->isServerStopping())
 			{
 				WRITE_TRACE(DBG_FATAL, "Dispatcher shutdown is in progress!");
-				CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_DISP_SHUTDOWN_IN_PROCESS);
+				m_service->sendSimpleResponseToClient( h, p, PRL_ERR_DISP_SHUTDOWN_IN_PROCESS);
 				return;
 			}
 
@@ -337,29 +330,29 @@ void CDspClientManager::handleToDispatcherPackage (
 			m_rwLock.unlock();
 
 			if ( cliExists )
-				CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_USER_IS_ALREADY_LOGGED );
+				m_service->sendSimpleResponseToClient(h, p, PRL_ERR_USER_IS_ALREADY_LOGGED);
 			else
 			{
 				if (!CaptureLogonClient(h))
 				{
 					WRITE_TRACE(DBG_FATAL, "Client logon actions reached up limit!");
-					CDspService::instance()->
+					m_service->
 						sendSimpleResponseToClient( h, p, PRL_ERR_DISP_LOGON_ACTIONS_REACHED_UP_LIMIT);
 					return;
 				}
 
 				bool bWasPreAuthorized = false;
 				SmartPtr<CDspClient> pClient =
-					CDspService::instance()->getUserHelper().processUserLogin( h, p, bWasPreAuthorized );
+					m_service->getUserHelper().processUserLogin(h, p, bWasPreAuthorized);
 				if ( pClient )
 				{
 					m_rwLock.lockForWrite();
 					if (m_clients.isEmpty()
  						/* Check to prevent lock HwInfo mutex before dispatcher init completed */
-						 && CDspService::instance()->isFirstInitPhaseCompleted()
+						 && m_service->isFirstInitPhaseCompleted()
 					)
 					{
-						CDspService::instance()->getHwMonitorThread().forceCheckHwChanges();
+						m_service->getHwMonitorThread().forceCheckHwChanges();
 					}
 					m_clients[h] = pClient;
 					//Erase client from pre authorized queue if any
@@ -367,10 +360,10 @@ void CDspClientManager::handleToDispatcherPackage (
 					m_rwLock.unlock();
 
 					// Register user for change permissions monitoring
-					CDspService::instance()->getVmConfigWatcher().addUserToMonitoringPermChanges( h );
+					m_service->getVmConfigWatcher().addUserToMonitoringPermChanges( h );
 
-					SmartPtr<IOPackage> response = CDspService::instance()->getUserHelper()
-						.makeLoginResponsePacket( pClient, p);
+					SmartPtr<IOPackage> response = m_service->getUserHelper()
+						.makeLoginResponsePacket(pClient, p);
 					pClient->sendPackage( response );
 					WRITE_TRACE(DBG_FATAL, "Session with uuid[ %s ] was started.", QSTR2UTF8( h ) );
 
@@ -381,8 +374,7 @@ void CDspClientManager::handleToDispatcherPackage (
 					m_rwLock.lockForWrite();
 					m_preAuthorizedSessions.insert(h);
 					m_rwLock.unlock();
-					CDspService::instance()->
-						sendSimpleResponseToClient( h, p, PRL_ERR_SUCCESS);
+					m_service->sendSimpleResponseToClient(h, p, PRL_ERR_SUCCESS);
 				}
 				else
 				{
@@ -403,18 +395,18 @@ void CDspClientManager::handleToDispatcherPackage (
 				m_rwLock.unlock();
 
 				if ( cliExists )
-					CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_USER_IS_ALREADY_LOGGED );
+					m_service->sendSimpleResponseToClient(h, p, PRL_ERR_USER_IS_ALREADY_LOGGED);
 				else
 				{
 					if (!CaptureLogonClient(h))
 					{
 						WRITE_TRACE(DBG_FATAL, "Client logon actions reached up limit!");
-						CDspService::instance()->
+						m_service->
 							sendSimpleResponseToClient( h, p, PRL_ERR_DISP_LOGON_ACTIONS_REACHED_UP_LIMIT);
 						return;
 					}
 
-					CDspService::instance()->getUserHelper().processUserLoginLocal( h, p );
+					m_service->getUserHelper().processUserLoginLocal( h, p );
 
 					ReleaseLogonClient(h);
 				}
@@ -423,10 +415,10 @@ void CDspClientManager::handleToDispatcherPackage (
 			break;
 		case PVE::DspCmdUserLoginLocalStage2:
 			{
-				if (CDspService::instance()->isServerStopping())
+				if (m_service->isServerStopping())
 				{
 					WRITE_TRACE(DBG_FATAL, "Dispatcher shutdown is in progress!");
-					CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_DISP_SHUTDOWN_IN_PROCESS);
+					m_service->sendSimpleResponseToClient(h, p, PRL_ERR_DISP_SHUTDOWN_IN_PROCESS);
 					return;
 				}
 
@@ -435,40 +427,40 @@ void CDspClientManager::handleToDispatcherPackage (
 				m_rwLock.unlock();
 
 				if ( cliExists )
-					CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_USER_IS_ALREADY_LOGGED );
+					m_service->sendSimpleResponseToClient(h, p, PRL_ERR_USER_IS_ALREADY_LOGGED);
 				else
 				{
 					if (!CaptureLogonClient(h))
 					{
 						WRITE_TRACE(DBG_FATAL, "Client logon actions reached up limit!");
-						CDspService::instance()->
-							sendSimpleResponseToClient( h, p, PRL_ERR_DISP_LOGON_ACTIONS_REACHED_UP_LIMIT);
+						m_service->
+							sendSimpleResponseToClient(h, p, PRL_ERR_DISP_LOGON_ACTIONS_REACHED_UP_LIMIT);
 						return;
 					}
 
 					SmartPtr<CDspClient> client =
-						CDspService::instance()->getUserHelper().processUserLoginLocalStage2( h, p );
+						m_service->getUserHelper().processUserLoginLocalStage2(h, p);
 					if ( client )
 					{
 						m_rwLock.lockForWrite();
 						if (m_clients.isEmpty()
  						/* Check to prevent lock HwInfo mutex before dispatcher init completed */
-						 && CDspService::instance()->isFirstInitPhaseCompleted()
+						 && m_service->isFirstInitPhaseCompleted()
 						)
 						{
-							CDspService::instance()->getHwMonitorThread().forceCheckHwChanges();
+							m_service->getHwMonitorThread().forceCheckHwChanges();
 						}
 						m_clients[h] = client;
 						m_rwLock.unlock();
 
 						// Register user for change permissions monitoring
-						CDspService::instance()->getVmConfigWatcher().addUserToMonitoringPermChanges( h );
+						m_service->getVmConfigWatcher().addUserToMonitoringPermChanges(h);
 
 						// bug#9058
-						// CDspService::instance->getVmDirHelper().recoverMixedVmPermission( client );
+						// m_service->getVmDirHelper().recoverMixedVmPermission( client );
 
-						SmartPtr<IOPackage> response = CDspService::instance()->getUserHelper()
-							.makeLoginResponsePacket( client, p);
+						SmartPtr<IOPackage> response = m_service->getUserHelper()
+							.makeLoginResponsePacket(client, p);
 						client->sendPackage( response );
 
 						WRITE_TRACE(DBG_FATAL, "Session with uuid[ %s ] was started.", QSTR2UTF8( h ) );
@@ -499,12 +491,12 @@ void CDspClientManager::handleToDispatcherPackage (
 
 		if ( inPreAuthorizedHash && PVE::DspCmdAllHostUsers == p->header.type )
 		{
-			CDspService::instance()->getUserHelper().sendAllHostUsers( h, p );
+			m_service->getUserHelper().sendAllHostUsers(h, p);
 		}
 		else
 		{
 			// Send error
-			CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_USER_OPERATION_NOT_AUTHORISED );
+			m_service->sendSimpleResponseToClient( h, p, PRL_ERR_USER_OPERATION_NOT_AUTHORISED );
 		}
 		return;
 	}
@@ -516,7 +508,7 @@ void CDspClientManager::handleToDispatcherPackage (
 	m_rwLock.unlock();
 
 #ifdef _CT_
-	if (CDspService::instance()->getVzHelper()->handlePackage(h, client, p))
+	if (m_service->getVzHelper()->handlePackage(h, client, p))
 		return;
 #endif
 
@@ -544,226 +536,152 @@ void CDspClientManager::handleToDispatcherPackage (
 	// Do next checks ...
 	switch( p->header.type )
 	{
-		///////////////////////////////////////////////
-	case PVE::DspCmdUserLogoff: {
-		CDspService::instance()->getUserHelper().processUserLogoff( client, p );
-		return;
-								}
-								///////////////////////////////////////////////
+	///////////////////////////////////////////////
+	case PVE::DspCmdUserLogoff:
+		return (void)m_service->getUserHelper().processUserLogoff(client, p);
+	///////////////////////////////////////////////
 	case PVE::DspCmdUserGetHostHwInfo:
-		return (void)CDspService::instance()->getTaskManager()
-			.schedule(new Task_SendHostHardwareInfo( client, p ));
-									   ///////////////////////////////////////////////
-	case PVE::DspCmdUserGetProfile: {
-		CDspService::instance()->getUserHelper().sendUserProfile( h, client, p );
-		return;
-									}
-									///////////////////////////////////////////////
-	case PVE::DspCmdUserInfoList: {
-		CDspService::instance()->getUserHelper().sendUserInfoList( h, client, p );
-		return;
-								  }
-								  ///////////////////////////////////////////////
-	case PVE::DspCmdGetVirtualNetworkList: {
-		CDspService::instance()->getShellServiceHelper().sendVirtualNetworkList( client, p );
-		return;
-		}
-	case PVE::DspCmdGetNetworkClassesConfig: {
-		CDspService::instance()->getShellServiceHelper().sendNetworkClassesConfig( client, p );
-		return;
-		}
-
-	case PVE::DspCmdGetNetworkShapingConfig: {
-		CDspService::instance()->getShellServiceHelper().sendNetworkShapingConfig( client, p );
-		return;
-		}
-	case PVE::DspCmdGetIPPrivateNetworksList: {
-		CDspService::instance()->getShellServiceHelper().sendIPPrivateNetworksList( client, p );
-		return;
-		}
-								  ///////////////////////////////////////////////
-	case PVE::DspCmdUserInfo: {
-		CDspService::instance()->getUserHelper().sendUserInfo( h, client, p );
-		return;
-							  }
-							  ///////////////////////////////////////////////
-	case PVE::DspCmdUserProfileBeginEdit: {
-		CDspService::instance()->getUserHelper().userProfileBeginEdit( h, client, p );
-		return;
-										  }
-										  ///////////////////////////////////////////////
-	case PVE::DspCmdUserProfileCommit: {
-		CDspService::instance()->getUserHelper().userProfileCommit( h, client, p );
-		return;
-									   }
-									   ///////////////////////////////////////////////
-	case PVE::DspCmdGetHostCommonInfo: {
-		CDspService::instance()->getShellServiceHelper().sendHostCommonInfo( client, p );
-		return;
-									   }
-									   ///////////////////////////////////////////////
+		return (void)m_service->getTaskManager()
+			.schedule(new Task_SendHostHardwareInfo(client, p));
+	///////////////////////////////////////////////
+	case PVE::DspCmdUserGetProfile:
+		return (void)m_service->getUserHelper().sendUserProfile(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdUserInfoList:
+		return (void)m_service->getUserHelper().sendUserInfoList(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdGetVirtualNetworkList:
+		return (void)m_service->getShellServiceHelper().sendVirtualNetworkList(client, p);
+	case PVE::DspCmdGetNetworkClassesConfig:
+		return (void)m_service->getShellServiceHelper().sendNetworkClassesConfig(client, p);
+	case PVE::DspCmdGetNetworkShapingConfig:
+		return (void)m_service->getShellServiceHelper().sendNetworkShapingConfig(client, p);
+	case PVE::DspCmdGetIPPrivateNetworksList:
+		return (void)m_service->getShellServiceHelper().sendIPPrivateNetworksList(client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdUserInfo:
+		return (void)m_service->getUserHelper().sendUserInfo(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdUserProfileBeginEdit:
+		return (void)m_service->getUserHelper().userProfileBeginEdit(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdUserProfileCommit:
+		return (void)m_service->getUserHelper().userProfileCommit(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdGetHostCommonInfo:
+		return (void)m_service->getShellServiceHelper().sendHostCommonInfo(client, p);
+	///////////////////////////////////////////////
 	case PVE::DspCmdUserUpdateLicense:
-	case PVE::DspCmdUserGetLicenseInfo: {
-		CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_UNIMPLEMENTED );
-		return;
-										}
-									   ///////////////////////////////////////////////
-	case PVE::DspCmdDirGetVmList: {
-		CDspService::instance()->getVmDirHelper().sendVmList( h, client, p );
-		return;
-								  }
-								  ///////////////////////////////////////////////
-	case PVE::DspCmdGetVmConfigById: {
-		CDspService::instance()->getVmDirHelper().findVm( h, client, p );
-		return;
-								  }
-								  ///////////////////////////////////////////////
-	case PVE::DspCmdVmGetConfig: {
-		CDspService::instance()->getVmDirHelper().sendVmConfig( h, client, p);
-		return;
-								 }
-								 ///////////////////////////////////////////////
-	case PVE::DspCmdGetVmInfo: {
-		CDspService::instance()->getVmDirHelper().sendVmInfo( h, client, p);
-		return;
-							   }
-							   ///////////////////////////////////////////////
-	case PVE::DspCmdGetVmToolsInfo: {
-		CDspService::instance()->getVmDirHelper().sendVmToolsInfo( h, client, p);
-		return;
-									}
-									///////////////////////////////////////////////
-	case PVE::DspCmdGetVmVirtDevInfo: {
+	case PVE::DspCmdUserGetLicenseInfo:
+		return (void)m_service->sendSimpleResponseToClient(h, p, PRL_ERR_UNIMPLEMENTED);
+	///////////////////////////////////////////////
+	case PVE::DspCmdDirGetVmList:
+		return (void)m_service->getVmDirHelper().sendVmList(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdGetVmConfigById:
+		return (void)m_service->getVmDirHelper().findVm(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdVmGetConfig:
+		return (void)m_service->getVmDirHelper().sendVmConfig(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdGetVmInfo:
+		return (void)m_service->getVmDirHelper().sendVmInfo(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdGetVmToolsInfo:
+		return (void)m_service->getVmDirHelper().sendVmToolsInfo(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdGetVmVirtDevInfo:
 		// deprecated call, older PMC accepts this failure silently
-		CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_UNIMPLEMENTED );
-		return;
-									}
-									///////////////////////////////////////////////
-	case PVE::DspCmdDirVmCreate: {
-		CDspService::instance()->getVmDirHelper().createNewVm( h, client, p);
-		return;
-								 }
-								 ///////////////////////////////////////////////
-	case PVE::DspCmdDirRegVm: {
-		CDspService::instance()->getVmDirHelper().registerVm( client, p);
-		return;
-							  }
-							  ///////////////////////////////////////////////
+		return (void)m_service->sendSimpleResponseToClient(h, p, PRL_ERR_UNIMPLEMENTED);
+	///////////////////////////////////////////////
+	case PVE::DspCmdDirVmCreate:
+		return (void)m_service->getVmDirHelper().createNewVm(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdDirRegVm:
+		return (void)m_service->getVmDirHelper().registerVm(client, p);
+	///////////////////////////////////////////////
 	case PVE::DspCmdDirReg3rdPartyVm: {
 		CVmEvent evt;
 		evt.setEventCode( PRL_ERR_UNIMPLEMENTED );
 		client->sendResponseError( evt, p );
 		return;
-							  }
-							  ///////////////////////////////////////////////
-	case PVE::DspCmdDirRestoreVm: {
-		CDspService::instance()->getVmDirHelper().restoreVm( client, p);
-		return;
-							  }
-							  ///////////////////////////////////////////////
-	case PVE::DspCmdDirVmClone: {
-		CDspService::instance()->getVmDirHelper().cloneVm( h, client, p);
-		return;
-								}
-								///////////////////////////////////////////////
-	case PVE::DspCmdDirVmMigrate: {
-		CDspService::instance()->getVmDirHelper().migrateVm( h, client, p);
-		return;
-								  }
-								  ///////////////////////////////////////////////
+	}
+	///////////////////////////////////////////////
+	case PVE::DspCmdDirRestoreVm:
+		return (void)m_service->getVmDirHelper().restoreVm(client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdDirVmClone:
+		return (void)m_service->getVmDirHelper().cloneVm(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdDirVmMigrate:
+		return (void)m_service->getVmDirHelper().migrateVm(h, client, p);
+	///////////////////////////////////////////////
 	case PVE::DspCmdCreateVmBackup:
+		return (void)m_backup.startCreateVmBackupSourceTask(client, p);
+	case PVE::DspCmdBeginVmBackup:
+		return (void)m_backup.launchBeginVmBackup(client, p);
+	case PVE::DspCmdEndVmBackup:
+		return (void)m_backup.launchEndVeBackup(client, p);
 	case PVE::DspCmdRestoreVmBackup:
+		return (void)m_backup.startRestoreVmBackupTargetTask(client, p);
 	case PVE::DspCmdGetBackupTree:
+		return (void)m_backup.startGetBackupTreeSourceTask(client, p);
 	case PVE::DspCmdRemoveVmBackup:
-		client->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED );
-		return;
-
-	case PVE::DspCmdDirVmDelete: {
-		CDspService::instance()->getVmDirHelper().deleteVm( h, client, p);
-		return;
-								 }
-								 ///////////////////////////////////////////////
-	case PVE::DspCmdDirUnregVm: {
-		CDspService::instance()->getVmDirHelper().unregVm( h, client, p);
-		return;
-								}
-								///////////////////////////////////////////////
-	case PVE::DspCmdDirCreateImage: {
-		CDspService::instance()->getVmDirHelper().createNewImage( h, client, p);
-		return;
-									}
-									///////////////////////////////////////////////
-	case PVE::DspCmdDirCopyImage: {
-		CDspService::instance()->getVmDirHelper().copyImage( client, p);
-		return;
-									}
-									///////////////////////////////////////////////
-	case PVE::DspCmdDirVmEditBegin: {
-		CDspService::instance()->getVmDirHelper().beginEditVm( h, client, p);
-		return;
-									}
-									///////////////////////////////////////////////
-	case PVE::DspCmdDirVmEditCommit: {
-		CDspService::instance()->getVmDirHelper().editVm( h, client, p);
-		return;
-									 }
-									 ///////////////////////////////////////////////
-	case PVE::DspCmdStartSearchConfig: {
-		CDspService::instance()->getVmDirHelper().searchLostConfigs( client, p);
-		return;
-									   }
-									 ///////////////////////////////////////////////
-	case PVE::DspCmdVmLock: {
-		CDspService::instance()->getVmDirHelper().lockVm( client, p);
-		return;
-									   }
-									 ///////////////////////////////////////////////
-	case PVE::DspCmdVmUnlock: {
-		CDspService::instance()->getVmDirHelper().unlockVm( client, p);
-		return;
-									   }
-									 ///////////////////////////////////////////////
+		return (void)m_backup.startRemoveVmBackupSourceTask(client, p);
+	case PVE::DspCmdDirVmDelete:
+		return (void)m_service->getVmDirHelper().deleteVm(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdDirUnregVm:
+		return (void)m_service->getVmDirHelper().unregVm(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdDirCreateImage:
+		return (void)m_service->getVmDirHelper().createNewImage(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdDirCopyImage:
+		return (void)m_service->getVmDirHelper().copyImage(client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdDirVmEditBegin:
+		return (void)m_service->getVmDirHelper().beginEditVm(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdDirVmEditCommit:
+		return (void)m_service->getVmDirHelper().editVm(h, client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdStartSearchConfig:
+		return (void)m_service->getVmDirHelper().searchLostConfigs(client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdVmLock:
+		return (void)m_service->getVmDirHelper().lockVm(client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdVmUnlock:
+		return (void)m_service->getVmDirHelper().unlockVm(client, p);
+	///////////////////////////////////////////////
 	case PVE::DspCmdVmResizeDisk:
-		{
-		CDspService::instance()->getVmDirHelper().resizeDiskImage( client, p);
-		return;
-		}
+		return (void)m_service->getVmDirHelper().resizeDiskImage(client, p);
 	case PVE::DspCmdConvertOldHdd:
-		client->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED);
-		return;
-
+		return (void)client->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED);
 	case PVE::DspCmdUpdateDeviceInfo:
-		{
-			CDspService::instance()->getVmDirHelper().UpdateDeviceInfo( h,client, p);
-			return;
-		}
+		return (void)m_service->getVmDirHelper().UpdateDeviceInfo(h,client, p);
 	case PVE::DspCmdVmCreateUnattendedFloppy:
 	case PVE::DspCmdCreateUnattendedCd:
-		client->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED);
-		return;
-
-	case PVE::DspCmdVmUpdateSecurity: {
-		CDspService::instance()->getVmDirHelper().updateVmSecurityInfo( client, p );
-		return;
-									  }
-									  ///////////////////////////////////////////////
+		return (void)client->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED);
+	case PVE::DspCmdVmUpdateSecurity:
+		return (void)m_service->getVmDirHelper().updateVmSecurityInfo(client, p);
+	///////////////////////////////////////////////
 	case PVE::DspCmdSubscribeToHostStatistics: {
 		CDspStatCollectingThread::SubscribeToHostStatistics(client);
 		client->sendSimpleResponse(p, PRL_ERR_SUCCESS);
 		return;
-											   }
-											   ///////////////////////////////////////////////
+	}
+	///////////////////////////////////////////////
 	case PVE::DspCmdUnsubscribeFromHostStatistics: {
 		CDspStatCollectingThread::UnsubscribeFromHostStatistics(client);
 		client->sendSimpleResponse(p, PRL_ERR_SUCCESS);
 		return;
-												   }
-												   ///////////////////////////////////////////////
-	case PVE::DspCmdGetHostStatistics: {
-		CDspService::instance()->getShellServiceHelper().sendHostStatistics( client, p );
-		return;
-									   }
-									   ///////////////////////////////////////////////
+	}
+	///////////////////////////////////////////////
+	case PVE::DspCmdGetHostStatistics:
+		return (void)m_service->getShellServiceHelper().sendHostStatistics( client, p );
+	///////////////////////////////////////////////
 	case PVE::DspCmdVmSubscribeToGuestStatistics: {
 		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmSubscribeToGuestStatistics,
 			UTF8_2QSTR(p->buffers[0].getImpl()));
@@ -776,8 +694,8 @@ void CDspClientManager::handleToDispatcherPackage (
 		rc = CDspStatCollectingThread::SubscribeToVmGuestStatistics(pCmd->GetVmUuid(), client);
 		client->sendSimpleResponse(p, rc);
 		return;
-												  }
-												  ///////////////////////////////////////////////
+	}
+	///////////////////////////////////////////////
 	case PVE::DspCmdVmUnsubscribeFromGuestStatistics: {
 		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmUnsubscribeFromGuestStatistics,
 			UTF8_2QSTR(p->buffers[0].getImpl()));
@@ -790,28 +708,20 @@ void CDspClientManager::handleToDispatcherPackage (
 		rc = CDspStatCollectingThread::UnsubscribeFromVmGuestStatistics(pCmd->GetVmUuid(), client);
 		client->sendSimpleResponse(p, rc);
 		return;
-													  }
-													  ///////////////////////////////////////////////
-	case PVE::DspCmdVmGetStatistics: {
-		CDspService::instance()->getShellServiceHelper().sendGuestStatistics( client, p );
-		return;
-									 }
-									 ///////////////////////////////////////////////
-	case PVE::DspCmdPerfomanceStatistics: {
-		CDspStatCollectingThread::ProcessPerfStatsCommand(client, p) ;
-		return;
-										  }
-										  ///////////////////////////////////////////////
-	case PVE::DspCmdHostCommonInfoBeginEdit: {
-		CDspService::instance()->getShellServiceHelper().hostCommonInfoBeginEdit( client, p );
-		return;
-											 }
-											 ///////////////////////////////////////////////
-	case PVE::DspCmdHostCommonInfoCommit: {
-		CDspService::instance()->getShellServiceHelper().hostCommonInfoCommit( client, p );
-		return;
-										  }
-										  ///////////////////////////////////////////////
+	}
+	///////////////////////////////////////////////
+	case PVE::DspCmdVmGetStatistics:
+		return (void)m_service->getShellServiceHelper().sendGuestStatistics(client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdPerfomanceStatistics:
+		return (void)CDspStatCollectingThread::ProcessPerfStatsCommand(client, p) ;
+	///////////////////////////////////////////////
+	case PVE::DspCmdHostCommonInfoBeginEdit:
+		return (void)m_service->getShellServiceHelper().hostCommonInfoBeginEdit(client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdHostCommonInfoCommit:
+		return (void)m_service->getShellServiceHelper().hostCommonInfoCommit(client, p);
+	///////////////////////////////////////////////
 	case PVE::DspCmdNetPrlNetworkServiceStart:
 	case PVE::DspCmdNetPrlNetworkServiceStop:
 	case PVE::DspCmdNetPrlNetworkServiceRestart:
@@ -828,86 +738,55 @@ void CDspClientManager::handleToDispatcherPackage (
 	case PVE::DspCmdAddIPPrivateNetwork:
 	case PVE::DspCmdUpdateIPPrivateNetwork:
 	case PVE::DspCmdRemoveIPPrivateNetwork:
-		CDspService::instance()->getShellServiceHelper().managePrlNetService( client, p );
-		return;
-	case PVE::DspCmdGetNetServiceStatus: {
-		CDspService::instance()->getShellServiceHelper().sendNetServiceStatus( client, p );
-		return;
-										 }
-	case PVE::DspCmdUserCancelOperation: {
-		CDspService::instance()->getShellServiceHelper().cancelOperation( client, p );
-		return;
-										 }
+		return (void)m_service->getShellServiceHelper().managePrlNetService(client, p);
+	case PVE::DspCmdGetNetServiceStatus:
+		return (void)m_service->getShellServiceHelper().sendNetServiceStatus(client, p);
+	case PVE::DspCmdUserCancelOperation:
+		return (void)m_service->getShellServiceHelper().cancelOperation(client, p);
 
-										 ///////////////////////////////////////////////
-										 /// Fs commands
-										 ///////////////////////////////////////////////
-	case PVE::DspCmdFsGetDiskList: {
-		CDspService::instance()->getShellServiceHelper().sendDiskEntries( client, p );
-		return;
-								   }
-								   ///////////////////////////////////////////////
-	case PVE::DspCmdFsGetDirectoryEntries: {
-		CDspService::instance()->getShellServiceHelper().sendDirectoryEntries( client, p );
-		return;
-										   }
-										   ///////////////////////////////////////////////
-	case PVE::DspCmdFsCreateDirectory: {
-		CDspService::instance()->getShellServiceHelper().createDirectoryEntry( client, p );
-		return;
-									   }
-									   ///////////////////////////////////////////////
-	case PVE::DspCmdFsRenameEntry: {
-		CDspService::instance()->getShellServiceHelper().renameFsEntry( client, p );
-		return;
-								   }
-								   ///////////////////////////////////////////////
-	case PVE::DspCmdFsRemoveEntry: {
-		CDspService::instance()->getShellServiceHelper().removeFsEntry( client, p );
-		return;
-								   }
-								   ///////////////////////////////////////////////
-	case PVE::DspCmdFsCanCreateFile: {
-		CDspService::instance()->getShellServiceHelper().canCreateFile( client, p );
-		return;
-									 }
-									 ///////////////////////////////////////////////
-	case PVE::DspCmdFsGenerateEntryName: {
-		CDspService::instance()->getShellServiceHelper().generateFsEntryName( client, p );
-		return;
-										 }
-	case PVE::DspCmdAttachToLostTask: {
-		CDspService::instance()->getShellServiceHelper().attachToLostTask( client, p );
-		return;
-									  }
-									  ///////////////////////////////////////////////
-									  //// SMC commands
-									  ///////////////////////////////////////////////
-	case PVE::DspCmdSMCGetDispatcherRTInfo: {
-		CDspService::instance()->getDispMonitor().GetDispRTInfo(client, p);
-		return;
-											}
-											///////////////////////////////////////////////
-	case PVE::DspCmdSMCGetCommandHistoryByVm: {
-		client->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED );
-		return;
-											  }
-											  ///////////////////////////////////////////////
-	case PVE::DspCmdSMCGetCommandHistoryByUser:	{
-		client->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED );
-		return;
-												}
-												///////////////////////////////////////////////
-	case PVE::DspCmdSMCDisconnectUser: {
-		CDspService::instance()->getDispMonitor().ForceDisconnectUser(client, p);
-		return;
-									   }
-									   ///////////////////////////////////////////////
-	case PVE::DspCmdSMCDisconnectAllUsers: {
-		CDspService::instance()->getDispMonitor().ForceDisconnectAllUsers(client, p);
-		return;
-										   }
-										   ///////////////////////////////////////////////
+	///////////////////////////////////////////////
+	/// Fs commands
+	///////////////////////////////////////////////
+	case PVE::DspCmdFsGetDiskList:
+		return (void)m_service->getShellServiceHelper().sendDiskEntries(client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdFsGetDirectoryEntries:
+		return (void)m_service->getShellServiceHelper().sendDirectoryEntries(client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdFsCreateDirectory:
+		return (void)m_service->getShellServiceHelper().createDirectoryEntry(client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdFsRenameEntry:
+		return (void)m_service->getShellServiceHelper().renameFsEntry(client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdFsRemoveEntry:
+		return (void)m_service->getShellServiceHelper().removeFsEntry(client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdFsCanCreateFile:
+		return (void)m_service->getShellServiceHelper().canCreateFile(client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdFsGenerateEntryName:
+		return (void)m_service->getShellServiceHelper().generateFsEntryName(client, p);
+	case PVE::DspCmdAttachToLostTask:
+		return (void)m_service->getShellServiceHelper().attachToLostTask(client, p);
+	///////////////////////////////////////////////
+	//// SMC commands
+	///////////////////////////////////////////////
+	case PVE::DspCmdSMCGetDispatcherRTInfo:
+		return (void)m_service->getDispMonitor().GetDispRTInfo(client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdSMCGetCommandHistoryByVm:
+		return (void)client->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED);
+	///////////////////////////////////////////////
+	case PVE::DspCmdSMCGetCommandHistoryByUser:
+		return (void)client->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED);
+	///////////////////////////////////////////////
+	case PVE::DspCmdSMCDisconnectUser:
+		return (void)m_service->getDispMonitor().ForceDisconnectUser(client, p);
+	///////////////////////////////////////////////
+	case PVE::DspCmdSMCDisconnectAllUsers:
+		return (void)m_service->getDispMonitor().ForceDisconnectAllUsers(client, p);
+	///////////////////////////////////////////////
 	case PVE::DspCmdSMCCancelUserCommand: {
 		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand( PVE::DspCmdSMCCancelUserCommand, UTF8_2QSTR(p->buffers[0].getImpl()) );
 		if ( ! pCmd->IsValid() )
@@ -916,123 +795,73 @@ void CDspClientManager::handleToDispatcherPackage (
 			return;
 		}
 		QString taskUuid = pCmd->GetFirstStrParam();
-		CDspService::instance()->getDispMonitor().ForceCancelCommandOfUser(client, p, taskUuid);
-		return;
-										  }
-										  ///////////////////////////////////////////////
-	case PVE::DspCmdSMCShutdownDispatcher: {
-		CDspService::instance()->getDispMonitor().ShutdownDispatcher(client, p);
-		return;
-										   }
-										   //////////////////////////////////////////////////////////////////////////
+		return (void)m_service->getDispMonitor().ForceCancelCommandOfUser(client, p, taskUuid);
+	}
+	///////////////////////////////////////////////
+	case PVE::DspCmdSMCShutdownDispatcher:
+		return (void)m_service->getDispMonitor().ShutdownDispatcher(client, p);
+	///////////////////////////////////////////////
 	case PVE::DspCmdVmGetProblemReport:
 	case PVE::DspCmdVmGetPackedProblemReport:
 	case PVE::DspCmdSendProblemReport:
-		return (void)CDspService::instance()->getTaskManager()
+		return (void)m_service->getTaskManager()
 			.schedule(new Task_CreateProblemReport( client, p ));
-		//////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////
 	case PVE::DspCmdVmSectionValidateConfig:
-		{
-			CDspService::instance()->getVmDirHelper().validateSectionVmConfig(client, p);
-			return;
-		}
-		//////////////////////////////////////////////////////////////////////////
+		return (void)m_service->getVmDirHelper().validateSectionVmConfig(client, p);
+	///////////////////////////////////////////////
 	case PVE::DspCmdVmGetSuspendedScreen:
-		{
-			CDspService::instance()->getVmDirHelper().getSuspendedVmScreen(client, p);
-			return;
-		}
-		//////////////////////////////////////////////////////////////////////////
+		return (void)m_service->getVmDirHelper().getSuspendedVmScreen(client, p);
+	///////////////////////////////////////////////
 	case PVE::DspCmdVmGetSnapshotsTree:
-		return (void)CDspService::instance()->getTaskManager()
-			.schedule(new Task_SendSnapshotTree( client, p ));
-		//////////////////////////////////////////////////////////////////////////
+		return (void)m_service->getTaskManager()
+			.schedule(new Task_SendSnapshotTree(client, p));
+	///////////////////////////////////////////////
 	case PVE::DspCmdVmUpdateSnapshotData:
-		{
-			CDspService::instance()->getVmSnapshotStoreHelper().updateSnapshotData(client, p);
-			return;
-		}
-		//////////////////////////////////////////////////////////////////////////
+		return (void)m_service->getVmSnapshotStoreHelper().updateSnapshotData(client, p);
+	///////////////////////////////////////////////
 	case PVE::DspCmdConfigureGenericPci:
-		{
-			CDspService::instance()->getShellServiceHelper().configureGenericPci(client, p);
-			return;
-		}
+		return (void)m_service->getShellServiceHelper().configureGenericPci(client, p);
 	case PVE::DspCmdPrepareForHibernate:
-		{
-			CDspService::instance()->getShellServiceHelper().beforeHostSuspend(client, p);
-			return;
-		}
+		return (void)m_service->getShellServiceHelper().beforeHostSuspend(client, p);
 	case PVE::DspCmdAfterHostResume:
-		{
-			CDspService::instance()->getShellServiceHelper().afterHostResume(client, p);
-			return;
-		}
-		//////////////////////////////////////////////////////////////////////////
+		return (void)m_service->getShellServiceHelper().afterHostResume(client, p);
+	///////////////////////////////////////////////
 	case PVE::DspCmdSetNonInteractiveSession:
-		{
-			CDspService::instance()->getUserHelper().setNonInteractiveSession(client, p);
-			return;
-		}
+		return (void)m_service->getUserHelper().setNonInteractiveSession(client, p);
 	case PVE::DspCmdSetSessionConfirmationMode:
-		{
-			CDspService::instance()->getUserHelper().changeSessionConfirmationMode(client, p);
-			return;
-		}
+		return (void)m_service->getUserHelper().changeSessionConfirmationMode(client, p);
 	case PVE::DspCmdStorageSetValue:
-		{
-			CDspService::instance()->getShellServiceHelper().changeServerInternalValue(client, p);
-			return;
-		}
+		return (void)m_service->getShellServiceHelper().changeServerInternalValue(client, p);
 	case PVE::DspCmdUpdateUsbAssocList:
-		{
-			CDspService::instance()->getShellServiceHelper().updateUsbAssociationsList( client, p );
-			return;
-		}
+		return (void)m_service->getShellServiceHelper().updateUsbAssociationsList(client, p);
 	case PVE::DspCmdStartClusterService:
 	case PVE::DspCmdStopClusterService:
-		{
-			client->sendSimpleResponse( p, PRL_ERR_UNIMPLEMENTED);
-			return;
-		}
+		return (void)client->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED);
 	case PVE::DspCmdVmConvertDisks:
-		{
-			CDspService::instance()->getVmDirHelper().startConvertDisks( client, p );
-			return;
-		}
+		return (void)m_service->getVmDirHelper().startConvertDisks(client, p);
 	case PVE::DspCmdVmMount:
-		{
-			CDspService::instance()->getVmDirHelper().mountVm( client, p );
-			return;
-		}
+		return (void)m_service->getVmDirHelper().mountVm(client, p);
 	case PVE::DspCmdVmUmount:
-		{
-			CDspService::instance()->getVmDirHelper().umountVm( client, p );
-			return;
-		}
+		return (void)m_service->getVmDirHelper().umountVm(client, p);
 	case PVE::DspCmdGetDiskFreeSpace:
-		{
-			CDspService::instance()->getShellServiceHelper().sendDiskFreeSpace( client, p );
-			return;
-		}
-	case PVE::DspCmdDirVmMove: {
-		CDspService::instance()->getVmDirHelper().moveVm(client, p);
-		return;
-		}
+		return (void)m_service->getShellServiceHelper().sendDiskFreeSpace(client, p);
+	case PVE::DspCmdDirVmMove:
+		return (void)m_service->getVmDirHelper().moveVm(client, p);
 	case PVE::DspCmdGetCPUPoolsList:
-		return CDspService::instance()->getShellServiceHelper().sendCPUPoolsList( client, p );
+		return m_service->getShellServiceHelper().sendCPUPoolsList(client, p);
 	case PVE::DspCmdMoveToCPUPool:
-		return CDspService::instance()->getShellServiceHelper().moveToCPUPool( client, p );
+		return m_service->getShellServiceHelper().moveToCPUPool(client, p);
 	case PVE::DspCmdRecalculateCPUPool:
-		return CDspService::instance()->getShellServiceHelper().recalculateCPUPool( client, p );
+		return m_service->getShellServiceHelper().recalculateCPUPool(client, p);
 	} //switch( p->header.type )
 	///////////////////////////////////////////////
 
 	if (!CDspRouter::instance().routePackage(this, h, p))
 	{
 		// Send error
-		CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_UNIMPLEMENTED );
-		PERF_COUNT_ATOMIC_INC( dsp_error_commands ) ;
+		m_service->sendSimpleResponseToClient(h, p, PRL_ERR_UNIMPLEMENTED);
+		PERF_COUNT_ATOMIC_INC(dsp_error_commands);
 		return;
 	}
 }
@@ -1052,7 +881,7 @@ void CDspClientManager::handleFromDispatcherPackage (
 	const IOSender::Handle &hReceiver,
 	const SmartPtr<IOPackage> &p )
 {
-	CDspService::instance()->getIOServer().sendPackage(hReceiver, p);
+	m_service->getIOServer().sendPackage(hReceiver, p);
 }
 
 void CDspClientManager::handleClientStateChanged ( const IOSender::Handle&,
@@ -1090,7 +919,7 @@ void CDspClientManager::sendQuestionToClient(SmartPtr<CDspClient> pClient)
 	if ( pClient && pClient->isNonInteractive() )
 		return;
 
-	QList< SmartPtr<IOPackage> > lstQuestions = CDspService::instance()->getVmManager().getVmQuestions(pClient);
+	QList< SmartPtr<IOPackage> > lstQuestions = m_service->getVmManager().getVmQuestions(pClient);
 	if (lstQuestions.isEmpty())
 	{
 		// Ok, no more questions
@@ -1104,7 +933,7 @@ void CDspClientManager::sendQuestionToClient(SmartPtr<CDspClient> pClient)
 		CVmEvent eventQuestion(UTF8_2QSTR(pQuestionPacket->buffers[0].getImpl()));
 
 		// Check permissions
-		CDspAccessManager::VmAccessRights accessRights = CDspService::instance()->getAccessManager()
+		CDspAccessManager::VmAccessRights accessRights = m_service->getAccessManager()
 			.getAccessRightsToVm(pClient, eventQuestion.getEventIssuerId());
 
 		if ( !(accessRights.canRead() && accessRights.canExecute()) )
@@ -1136,7 +965,7 @@ QList< IOSendJob::Handle > CDspClientManager::sendPackageToClientList(
 
 bool CDspClientManager::CaptureLogonClient(const IOSender::Handle& h)
 {
-	unsigned int nLimit = CDspService::instance()->getDispConfigGuard()
+	unsigned int nLimit = m_service->getDispConfigGuard()
 		.getDispWorkSpacePrefs()->getLimits()->getMaxLogonActions();
 
 	QWriteLocker locker( &m_rwLock );

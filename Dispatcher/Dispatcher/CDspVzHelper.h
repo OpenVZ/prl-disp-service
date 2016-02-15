@@ -31,6 +31,7 @@
 #define __CDspVzHelper_H_
 
 #include "CDspClient.h"
+#include "CDspBackupHelper.h"
 #include <prlxmlmodel/VmDirectory/CVmDirectory.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/Std/SmartPtr.h>
@@ -44,6 +45,7 @@
 #include "Libraries/Virtuozzo/CVzTemplateHelper.h"
 #endif
 
+class CDspService;
 class CDspVNCStarter;
 
 class CDspVzHelper
@@ -52,7 +54,7 @@ class CDspVzHelper
 public:
 	typedef SmartPtr<CDspVNCStarter> vncServer_type;
 
-	CDspVzHelper();
+	CDspVzHelper(CDspService& service_, const Backup::Task::Launcher& backup_);
 	~CDspVzHelper();
 
 public:
@@ -189,6 +191,8 @@ private:
 	// total memory size of all currently running CTs in megabytes
 	long long m_totalRunningCtMemory;
 	QMutex m_totalRunningCtMemoryMtx;
+	CDspService* m_service;
+	Backup::Task::Launcher m_backup;
 #endif
 };
 

@@ -44,6 +44,8 @@
 #include <boost/mpl/fold.hpp>
 #include <boost/bind.hpp>
 #include <boost/lambda/lambda.hpp>
+#include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 
 class CDspClient;
 class CVmConfiguration;
@@ -405,6 +407,34 @@ public:
 	 */
 	SmartPtr<QWriteLocker> lockOnWrite();
 	SmartPtr<QReadLocker> lockOnRead();
+
+	template <typename T>
+	PRL_RESULT modifyConfig(const QString& path,
+				SmartPtr<CDspClient> user,
+				T modifier,
+				bool loadAbsolutePath,
+				bool loadDirectlyFromDisk,
+				bool saveRelativePath,
+				bool replace)
+	{
+		SmartPtr<CVmConfiguration> conf(new CVmConfiguration());
+		PRL_RESULT res = loadConfig(conf, path, user, loadAbsolutePath, loadDirectlyFromDisk);
+		if (PRL_FAILED(res))
+		{
+			WRITE_TRACE(DBG_FATAL, "Can't parse VM config file '%s': %s",
+				QSTR2UTF8(path), PRL_RESULT_TO_STRING(res));
+			return res;
+		}
+		if (!modifier(conf))
+			return PRL_ERR_SUCCESS;
+		res = saveConfig(conf, path, user, replace, saveRelativePath);
+		if (PRL_FAILED(res))
+		{
+			WRITE_TRACE(DBG_FATAL, "Can't save VM config to '%s': %s",
+				QSTR2UTF8(path), PRL_RESULT_TO_STRING(res));
+		}
+		return res;
+	}
 
 	/* Vm DiskDescriptor.xml config cache */
 	class CHardDiskConfigCache

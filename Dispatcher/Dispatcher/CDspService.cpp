@@ -55,7 +55,7 @@
 
 #include "CDspCommon.h"
 #include "CDspTestConfig.h"
-
+#include "CDspDispConnectionsManager.h"
 
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlxmlmodel/DispConfig/CDispNetAdapter.h>
@@ -518,13 +518,13 @@ m_bRebootHost(false),
 m_hostInfoMutex( QMutex::Recursive ),
 m_bWaitForInitCompletion( false ),
 m_bFirstInitPhaseCompleted( false ),
-m_pClientManagerHandler( CDspHandlerRegistrator::instance().findHandler( IOSender::Client ) ),
 m_pVmManagerHandler( CDspHandlerRegistrator::instance().findHandler( IOSender::Vm ) ),
 m_pIoHandler( CDspHandlerRegistrator::instance().findHandler( IOSender::IOClient ) ),
 m_pIoCtHandler( CDspHandlerRegistrator::instance().findHandler( IOSender::IOCtClient ) ),
 m_pHwMonitorThread( new CDspHwMonitorThread ),
 m_pSystemEventsMonitor( new CDspSystemEventsMonitor ),
 m_pHaClusterHelper( new CDspHaClusterHelper ),
+m_pTaskManager(new CDspTaskManager()),
 m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 {
 	qRegisterMetaType<SmartPtr<NATStatistic> >("SmartPtr<NATStatistic>");
@@ -538,23 +538,24 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 	m_pReconnectTimer = new QTimer(this);
 	m_pReconnectTimer->setSingleShot(true);
 
-#ifdef _CT_
-	m_pVzHelper = SmartPtr<CDspVzHelper>(new CDspVzHelper);
-#endif
+	Backup::Task::Launcher b(m_pTaskManager, m_backup);
 	m_AppSettings.init(QCoreApplication::applicationName());
+	m_clientManager.reset(new CDspClientManager(*this, b));
+	m_dispConnectionsManager.reset(new CDspDispConnectionsManager(*this, b));
+#ifdef _CT_
+	m_pVzHelper = SmartPtr<CDspVzHelper>(new CDspVzHelper(*this, b));
+#endif
 
 	// initialize storage with NULL, it will be created on demand
 	m_base_perfstorage.storage = NULL ;
 
 	m_strServerUuidFromCorruptedDispConfig.clear();
-	PRL_ASSERT( m_pClientManagerHandler && dynamic_cast<CDspClientManager*>( m_pClientManagerHandler.getImpl()) );
 	PRL_ASSERT( m_pVmManagerHandler && dynamic_cast<CDspVmManager*>( m_pVmManagerHandler.getImpl()) );
 	PRL_ASSERT( m_pIoCtHandler&& dynamic_cast<CDspIOCtClientHandler *>( m_pIoCtHandler.getImpl()) );
 
-bool bConnected;
 
 	// Handle stop from main thread
-	bConnected = QObject::connect( this,
+	bool bConnected = QObject::connect( this,
 		SIGNAL(onDoStopFromMainThread()),
 		SLOT(stopFromMainThread()),
 		Qt::QueuedConnection );
@@ -724,14 +725,10 @@ CDspAccessManager& CDspService::getAccessManager ()
 	return m_vmAccessManager;
 }
 
-CDspClientManager&	CDspService::getClientManager ()
+CDspClientManager& CDspService::getClientManager()
 {
-	PRL_ASSERT( m_pClientManagerHandler );
-
-	CDspClientManager* pCliManager = dynamic_cast<CDspClientManager*>( m_pClientManagerHandler.getImpl() );
-	PRL_ASSERT( pCliManager );
-
-	return *pCliManager;
+	PRL_ASSERT(!m_clientManager.isNull());
+	return *m_clientManager;
 }
 
 CDspVmManager&	CDspService::getVmManager ()
@@ -983,7 +980,6 @@ void CDspService::start ()
 		printTimeStamp();
 
 		m_pUserHelper = SmartPtr<CDspUserHelper>(new CDspUserHelper);
-		m_pTaskManager = SmartPtr<CDspTaskManager>(new CDspTaskManager);
 		m_pVmConfigWatcher = SmartPtr<CDspVmConfigurationChangesWatcher>(new CDspVmConfigurationChangesWatcher());
 		m_pVmStateSenderThread = SmartPtr<CDspVmStateSenderThread>( new CDspVmStateSenderThread );
 		bool bConnected;
@@ -1522,6 +1518,18 @@ void CDspService::initFeaturesList()
 bool CDspService::initIOServer()
 {
 	PRL_ASSERT( ! m_ioServerPool );
+	if (!CDspHandlerRegistrator::instance().registerHandler(SmartPtr<CDspHandler>
+		(m_clientManager.data(), SmartPtrPolicy::DoNotReleasePointee)))
+	{
+		WRITE_TRACE(DBG_FATAL, "client manager registration failed!");
+		return false;
+	}
+	if (!CDspHandlerRegistrator::instance().registerHandler(SmartPtr<CDspHandler>
+		(m_dispConnectionsManager.data(), SmartPtrPolicy::DoNotReleasePointee)))
+	{
+		WRITE_TRACE(DBG_FATAL, "disp-disp connections manager registration failed!");
+		return false;
+	}
 	quint32 listenPort = getDispConfigGuard().getDispWorkSpacePrefs()->getDispatcherPort();
 	PRL_SECURITY_LEVEL
 		securityLevel = getDispConfigGuard().getDispWorkSpacePrefs()->getMinimalSecurityLevel();
