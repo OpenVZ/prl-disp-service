@@ -93,9 +93,19 @@ class CloudBaseInit(OpenStackConfigDrive):
     def prepare_script(self, commands):
         s = "rem cmd\n\n"
         for command in commands:
-            # windows cmd supports only double quotes
-            s += str(" ".join(command)).replace("'", "\"") + "\n"
+            if type(command) is str:
+                s += command + "\n"
+            else:
+                # windows cmd supports only double quotes
+                s += str(" ".join(command)).replace("'", "\"") + "\n"
         return s
+
+    def prepare_password_command(self, name, credentials):
+        if credentials.get("is_encrypted", False):
+            return ""
+        s = "net user \"{}\" \"{}\"".format(name, credentials["password"])
+        r = "{} || {} \\\\add".format(s, s)
+        return r
 
     def write_meta_data(self):
         meta_data = os.path.join(self.tmp_dir, self.meta_data_path);
@@ -114,6 +124,13 @@ class CloudBaseInit(OpenStackConfigDrive):
             s.append(data["nettoolcmd"])
         user_data = os.path.join(self.tmp_dir, self.user_data_path);
         prepare_dir(user_data)
+        if "users" in data:
+            for name, credentials in data["users"].iteritems():
+                x = self.prepare_password_command(name, credentials)
+                if not x:
+                    continue
+                s.append(x)
+
         with io.open(user_data, "w", newline="\r\n") as f:
             f.write(self.prepare_script(s).decode("unicode-escape"))
             f.write(u"\r\n")
