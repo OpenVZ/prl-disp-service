@@ -2678,7 +2678,9 @@ namespace {
 
 		if ( bIsRealHdd
 			|| vmDevice.getEmulatedType() == PDT_USE_IMAGE_FILE
-			|| vmDevice.getEmulatedType() == PDT_USE_OUTPUT_FILE)
+			|| vmDevice.getEmulatedType() == PDT_USE_OUTPUT_FILE
+			|| (vmDevice.getEmulatedType() == PVE::SerialSocket &&
+				vmDevice.getDeviceType() == PDE_SERIAL_PORT))
 		{
 			if( !bIsRealHdd )
 				vmDevice.setUserFriendlyName(BuildDevicePath(vmDevice.getUserFriendlyName(),
