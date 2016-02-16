@@ -99,6 +99,7 @@ private:
 	PRL_RESULT adjustStartVmCommand(SmartPtr<IOPackage> &pPackage);
 	PRL_RESULT registerHaClusterResource();
 	void unregisterHaClusterResource();
+	bool isSharedDisk(const QString& name) const;
 
 private:
 

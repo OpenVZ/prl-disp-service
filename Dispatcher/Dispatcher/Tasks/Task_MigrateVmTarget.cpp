@@ -941,6 +941,12 @@ PRL_RESULT Task_MigrateVmTarget::sendStartConfirmation()
 	return m_dispConnection->sendPackageResult(b);
 }
 
+bool Task_MigrateVmTarget::isSharedDisk(const QString& name) const
+{
+	return m_lstNonSharedDisks.contains(name) || ((m_nReservedFlags & PVM_DONT_COPY_VM) &&
+		 name.startsWith(m_sTargetVmHomePath + QDir::separator()));
+}
+
 QList<CVmHardDisk> Task_MigrateVmTarget::getImagesToCreate()
 {
 	QList<CVmHardDisk> output;
@@ -950,9 +956,18 @@ QList<CVmHardDisk> Task_MigrateVmTarget::getImagesToCreate()
 		h.RevertDevicesPathToAbsolute(m_sTargetVmHomePath);
 		foreach (const CVmHardDisk* d, h.m_lstHardDisks)
 		{
-			if (PVE::HardDiskImage == d->getEmulatedType() &&
-				d->getConnected() == PVE::DeviceConnected)
+			if (PVE::HardDiskImage != d->getEmulatedType() ||
+				d->getConnected() != PVE::DeviceConnected)
+				continue;
+
+			QString name = d->getSystemName();
+			if  (!isSharedDisk(name))
+			{
+				WRITE_TRACE(DBG_INFO, "non shared disk %s", qPrintable(name));
 				output << *d;
+			}
+			else
+				WRITE_TRACE(DBG_INFO, "shared disk %s", qPrintable((name)));
 		}
 	}
 	return output;
