@@ -418,6 +418,8 @@ void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 		a->setDefaultGatewayIPv6((*it)->getDefaultGatewayIPv6());
 		a->setConfigureWithDhcp((*it)->isConfigureWithDhcp());
 		a->setConfigureWithDhcpIPv6((*it)->isConfigureWithDhcpIPv6());
+		a->setDnsIPAddresses((*it)->getDnsIPAddresses());
+		a->setSearchDomains((*it)->getSearchDomains());
 	}
 }
 
