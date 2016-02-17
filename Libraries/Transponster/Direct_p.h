@@ -112,11 +112,8 @@ struct Clustered: boost::static_visitor<bool>
 			return false;
 
 		getDevice().setEmulatedType(I);
-		if (v->getFile())
-		{
-			getDevice().setSystemName(v->getFile().get());
-			getDevice().setUserFriendlyName(v->getFile().get());
-		}
+		getDevice().setSystemName(v->getFile());
+		getDevice().setUserFriendlyName(v->getFile());
 
 		return true;
 	}
@@ -127,11 +124,9 @@ struct Clustered: boost::static_visitor<bool>
 			return false;
 
 		getDevice().setEmulatedType(R);
-		if (v->getDev())
-		{
-			getDevice().setSystemName(v->getDev().get());
-			getDevice().setUserFriendlyName(v->getDev().get());
-		}
+		getDevice().setSystemName(v->getDev());
+		getDevice().setUserFriendlyName(v->getDev());
+
 		return true;
 	}
 	void setDevice(T& value_)
