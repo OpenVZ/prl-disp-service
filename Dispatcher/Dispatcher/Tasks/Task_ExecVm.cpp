@@ -423,7 +423,9 @@ PRL_RESULT Vm::processStdinData(const char * data, size_t size)
 	if (!m_stdin)
 		return PRL_ERR_FAILURE;
 
-	m_stdin->write(data, size);
+	if (m_stdin->write(data, size) < 0)
+		return PRL_ERR_VM_GUEST_SESSION_EXPIRED;
+
 	return PRL_ERR_SUCCESS;
 }
 
