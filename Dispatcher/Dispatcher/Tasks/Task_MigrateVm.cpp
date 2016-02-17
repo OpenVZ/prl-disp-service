@@ -1242,8 +1242,11 @@ PRL_RESULT Task_MigrateVmSource::run_body()
 	(Migrate::Vm::Walker<backend_type>(machine))();
 
 	machine.start();
-	if (PRL_SUCCEEDED(CheckVmMigrationPreconditions()))
+	PRL_RESULT r = CheckVmMigrationPreconditions();
+	if (PRL_SUCCEEDED(r))
 		exec();
+	else
+		CDspTaskFailure(*this)(r);
 
 	machine.stop();
 	return getLastErrorCode();
