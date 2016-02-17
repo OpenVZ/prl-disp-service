@@ -63,6 +63,7 @@
 
 #include "CDspVzHelper.h"
 #include "CDspHaClusterHelper.h"
+#include "CDspVmStateSender.h"
 
 Task_EditVm::Task_EditVm(const SmartPtr<CDspClient>& pClient,
 						 const SmartPtr<IOPackage>& p)
@@ -671,6 +672,8 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 	CDspService::instance()->getVmDirHelper()
 		.unregisterExclusiveVmOperation( vmUuid, vmDirUuid, PVE::DspCmdDirVmEditCommit, pUserSession );
 
+	if (retValue)
+		CDspService::instance()->getVmStateSender()->onVmConfigChanged(vmDirUuid, vmUuid);
 	return retValue;
 }
 
