@@ -2268,7 +2268,10 @@ bool CDspVmDirHelper::UpdateDeviceInfo (const IOSender::Handle& sender,
 		lpcHard->setVersion( PVE::HardDiskInvalidVersion );
 	}
 	else
-		res	= CDspVmDirHelper::UpdateHardDiskInformation( lstDisks, pUser );
+	{
+		// Leave it for compatibility, anyway this API is deprecated.
+		res = PRL_ERR_UNIMPLEMENTED;
+	}
 
 	// create response command
 	if (PRL_FAILED(res))
@@ -3030,7 +3033,7 @@ void CDspVmDirHelper::fillOuterConfigParams(
 	// #9246
 	loadSecureData( pOutVmConfig );
 
-	UpdateHardDiskInformation( pOutVmConfig->getVmHardwareList()->m_lstHardDisks, pUserSession );
+	UpdateHardDiskInformation(pOutVmConfig);
 }
 
 void CDspVmDirHelper::restartNetworkShaping(
@@ -3057,24 +3060,14 @@ void CDspVmDirHelper::restartNetworkShaping(
 #endif
 }
 
-PRL_RESULT CDspVmDirHelper::UpdateHardDiskInformation(QList<CVmHardDisk*>& lstHdd, SmartPtr<CDspClient> pUserSession)
+PRL_RESULT CDspVmDirHelper::UpdateHardDiskInformation(SmartPtr<CVmConfiguration> &pConfig)
 {
-	static QMutex *s_DiskOperationsMutex = new QMutex(QMutex::Recursive);
-	QMutexLocker _lock( s_DiskOperationsMutex );
-	PRL_RESULT result = PRL_ERR_SUCCESS;
-	for (int i = 0 ; i < lstHdd.size() ; i++)
-	{
-		if(lstHdd[i]->getEmulatedType() == PVE::HardDiskImage)
-		{
-			PRL_RESULT
-				res = Task_GetInfoFromParallelsUtils::GetDiskImageInformation(lstHdd[i]->getSystemName(),*(lstHdd[i]), pUserSession);
-			if( PRL_SUCCEEDED(result) && PRL_FAILED(res) )
-				result = res; // set first time error only.
-			if ( PRL_FAILED(res) )
-				WRITE_TRACE(DBG_DEBUG, "Failed to update hard disk '%s' info with error %.8X '%s'", QSTR2UTF8(lstHdd[i]->getSystemName()), res, PRL_RESULT_TO_STRING(res));
-		}
-	}
-	return result;
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(
+			pConfig->getVmIdentification()->getVmUuid());
+	Libvirt::Result r = u.completeConfig(*pConfig);
+	if (r.isFailed())
+		return r.error().code();
+	return PRL_ERR_SUCCESS;
 }
 
 PRL_RESULT CDspVmDirHelper::registerExclusiveVmOperation( const QString& vmUuid,

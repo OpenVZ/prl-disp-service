@@ -63,6 +63,7 @@
 
 #include "CDspVzHelper.h"
 #include "CDspHaClusterHelper.h"
+#include "CDspVmStateSender.h"
 
 Task_EditVm::Task_EditVm(const SmartPtr<CDspClient>& pClient,
 						 const SmartPtr<IOPackage>& p)
@@ -671,6 +672,8 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 	CDspService::instance()->getVmDirHelper()
 		.unregisterExclusiveVmOperation( vmUuid, vmDirUuid, PVE::DspCmdDirVmEditCommit, pUserSession );
 
+	if (retValue)
+		CDspService::instance()->getVmStateSender()->onVmConfigChanged(vmDirUuid, vmUuid);
 	return retValue;
 }
 
@@ -777,8 +780,7 @@ void Task_EditVm::beginEditVm(const IOSender::Handle& sender,
 		CProtoCommandDspWsResponse *pResponseCmd =
 			CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>( pCmd );
 
-		CDspService::instance()->getVmDirHelper()
-			.UpdateHardDiskInformation(pVmConfig->getVmHardwareList()->m_lstHardDisks, pUserSession);
+		CDspService::instance()->getVmDirHelper().UpdateHardDiskInformation(pVmConfig);
 
 		CDspService::instance()->getVmDirHelper().getMultiEditDispatcher()->lock();
 		CDspService::instance()->getVmDirHelper()
@@ -2679,7 +2681,9 @@ namespace {
 
 		if ( bIsRealHdd
 			|| vmDevice.getEmulatedType() == PDT_USE_IMAGE_FILE
-			|| vmDevice.getEmulatedType() == PDT_USE_OUTPUT_FILE)
+			|| vmDevice.getEmulatedType() == PDT_USE_OUTPUT_FILE
+			|| (vmDevice.getEmulatedType() == PVE::SerialSocket &&
+				vmDevice.getDeviceType() == PDE_SERIAL_PORT))
 		{
 			if( !bIsRealHdd )
 				vmDevice.setUserFriendlyName(BuildDevicePath(vmDevice.getUserFriendlyName(),

@@ -47,10 +47,10 @@ struct Configurator
 
 	bool setNettool(const QStringList& args_) const;
 	bool setUserPassword(const QString& user_, const QString& passwd_, bool encrypted_) const;
+	bool merge() const;
 
 private:
 	bool execute(const QStringList& args_) const;
-	bool merge() const;
 
 private:
 	const QString m_vmHome;

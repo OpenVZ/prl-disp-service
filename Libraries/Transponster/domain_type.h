@@ -3467,11 +3467,11 @@ namespace Xml
 {
 struct Source
 {
-	const boost::optional<PAbsFilePath::value_type >& getFile() const
+	const PAbsFilePath::value_type& getFile() const
 	{
 		return m_file;
 	}
-	void setFile(const boost::optional<PAbsFilePath::value_type >& value_)
+	void setFile(const PAbsFilePath::value_type& value_)
 	{
 		m_file = value_;
 	}
@@ -3496,7 +3496,7 @@ struct Source
 	bool save(QDomDocument& ) const;
 
 private:
-	boost::optional<PAbsFilePath::value_type > m_file;
+	PAbsFilePath::value_type m_file;
 	boost::optional<EStartupPolicy > m_startupPolicy;
 	boost::optional<Seclabel > m_seclabel;
 };
@@ -3513,11 +3513,11 @@ namespace Xml
 {
 struct Source1
 {
-	const boost::optional<PAbsFilePath::value_type >& getDev() const
+	const PAbsFilePath::value_type& getDev() const
 	{
 		return m_dev;
 	}
-	void setDev(const boost::optional<PAbsFilePath::value_type >& value_)
+	void setDev(const PAbsFilePath::value_type& value_)
 	{
 		m_dev = value_;
 	}
@@ -3542,7 +3542,7 @@ struct Source1
 	bool save(QDomDocument& ) const;
 
 private:
-	boost::optional<PAbsFilePath::value_type > m_dev;
+	PAbsFilePath::value_type m_dev;
 	boost::optional<EStartupPolicy > m_startupPolicy;
 	boost::optional<Seclabel > m_seclabel;
 };
@@ -12959,7 +12959,7 @@ struct Traits<Domain::Xml::Seclabel>
 template<>
 struct Traits<Domain::Xml::Source>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<479> > >, Optional<Attribute<Domain::Xml::EStartupPolicy, Name::Strict<447> > >, Optional<Element<Domain::Xml::Seclabel, Name::Strict<214> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<479> >, Optional<Attribute<Domain::Xml::EStartupPolicy, Name::Strict<447> > >, Optional<Element<Domain::Xml::Seclabel, Name::Strict<214> > > > > marshal_type;
 
 	static int parse(Domain::Xml::Source& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Source& , QDomElement& );
@@ -12971,7 +12971,7 @@ struct Traits<Domain::Xml::Source>
 template<>
 struct Traits<Domain::Xml::Source1>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<421> > >, Optional<Attribute<Domain::Xml::EStartupPolicy, Name::Strict<447> > >, Optional<Element<Domain::Xml::Seclabel, Name::Strict<214> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<421> >, Optional<Attribute<Domain::Xml::EStartupPolicy, Name::Strict<447> > >, Optional<Element<Domain::Xml::Seclabel, Name::Strict<214> > > > > marshal_type;
 
 	static int parse(Domain::Xml::Source1& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Source1& , QDomElement& );

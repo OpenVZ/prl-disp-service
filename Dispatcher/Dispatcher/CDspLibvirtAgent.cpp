@@ -191,6 +191,9 @@ Result Unit::getState(VIRTUAL_MACHINE_STATE& dst_) const
 			break;
 		}
 	case VIR_DOMAIN_SHUTDOWN:
+		// is being shutdown, but not yet stopped
+		dst_ = VMS_RUNNING;
+		break;
 	case VIR_DOMAIN_SHUTOFF:
 		dst_ = VMS_STOPPED;
 		break;

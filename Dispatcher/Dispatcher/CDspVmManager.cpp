@@ -388,6 +388,7 @@ struct Essence<PVE::DspCmdVmInstallTools>: Need::Agent, Need::Config, Need::Cont
 				v.addEventParameter(new CVmEventParameter(PVE::String,
 							d->toString(),
 							EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
+				::Personalize::Configurator(*getConfig()).merge();
 
 				Task_EditVm::atomicEditVmConfigByVm(getContext().getDirectoryUuid(),
 						getContext().getVmUuid(), v, getContext().getSession());

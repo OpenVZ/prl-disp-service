@@ -701,8 +701,7 @@ SmartPtr<CVmConfiguration> Task_DeleteSnapshot::getSavedVmConfigBySnapshotUuid(c
 		// Load absolutes pathes for device images from current config
 		pVmConfig->getVmHardwareList()->RevertDevicesPathToAbsolute(m_pVmConfig->getConfigDirectory());
 		// sync VmConfig representation with start command #PSBM-20611
-		CDspService::instance()->getVmDirHelper().UpdateHardDiskInformation(
-				pVmConfig->getVmHardwareList()->m_lstHardDisks, getClient() );
+		CDspService::instance()->getVmDirHelper().UpdateHardDiskInformation(pVmConfig);
 	}
 	return pVmConfig;
 }

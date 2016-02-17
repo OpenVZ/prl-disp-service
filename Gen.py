@@ -23,11 +23,15 @@ fd.close()
 
 noct = False
 
-if not os.path.exists( '/usr/include/vzctl/libvzctl.h' ):
+incPath = '/usr/include'
+if os.environ.has_key("LOCAL_DEPS_INCLUDE"):
+    incPath = os.environ["LOCAL_DEPS_INCLUDE"]
+
+if not os.path.exists( incPath + '/vzctl/libvzctl.h' ):
 	print 'Warning: libvzctl-devel packages is not installed'
 	noct = True
 
-if not os.path.exists( '/usr/include/ploop/libploop.h' ):
+if not os.path.exists( incPath + '/ploop/libploop.h' ):
 	print 'Warning: ploop-devel packages is not installed'
 	noct = True
 
