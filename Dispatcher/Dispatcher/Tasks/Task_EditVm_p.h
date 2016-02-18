@@ -66,6 +66,24 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Flop
+
+struct Flop: Action
+{
+	explicit Flop(PRL_RESULT code_): m_code(code_)
+	{
+	}
+
+	bool execute(CDspTaskFailure& feedback_)
+	{
+		return PRL_SUCCEEDED(feedback_(m_code));
+	}
+
+private:
+	PRL_RESULT m_code;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Domain
 
 template<class T, class U>
@@ -113,8 +131,8 @@ private:
 
 struct VcmmdAction: Action
 {
-	VcmmdAction(const QString& uuid_, quint64 limit_, quint64 guarantee_):
-		m_vcmmd(uuid_), m_limit(limit_ << 20), m_guarantee(guarantee_ << 20)
+	VcmmdAction(const Vcmmd::Api& vcmmd_, quint64 limit_, quint64 guarantee_):
+		m_vcmmd(vcmmd_), m_limit(limit_), m_guarantee(guarantee_)
 	{
 	}
 
@@ -669,9 +687,9 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Driver
 
-typedef boost::mpl::vector<Cdrom, Adapter, Memory, Hotplug<CVmSerialPort>,
+typedef boost::mpl::vector<Cdrom, Adapter, Hotplug<CVmSerialPort>,
 		Hotplug<CVmHardDisk>, Disk, Blkiotune, Network::Factory,
-		Cpu::Factory> probeList_type;
+		Memory, Cpu::Factory> probeList_type;
 
 struct Driver: Gear<Driver, probeList_type>
 {

@@ -35,6 +35,8 @@
 #include <QSharedPointer>
 #include <libvcmmd/vcmmd.h>
 #include <boost/utility/result_of.hpp>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlsdk/PrlErrors.h>
 
 /*
  * This is a helper class to interact with vcmmd daemon.
@@ -66,14 +68,15 @@ struct Api
 {
 	explicit Api(const QString& uuid_);
 
-	bool init(quint64 limit_, quint64 guarantee_);
-	bool update(quint64 limit_, quint64 guarantee_);
+	PRL_RESULT init(quint64 limit_, quint64 guarantee_);
+	PRL_RESULT update(quint64 limit_, quint64 guarantee_);
+	Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> getConfig() const;
 	void deinit();
 	void activate();
 	void deactivate();
 
 private:
-	static bool treat(int status_, const char* name_, int level_ = DBG_FATAL);
+	static PRL_RESULT treat(int status_, const char* name_, int level_ = DBG_FATAL);
 
 	QString m_uuid;
 };
@@ -100,7 +103,7 @@ struct Active: std::unary_function<Api, void>
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unregistered
 
-struct Unregistered: std::unary_function<Api, bool>
+struct Unregistered: std::unary_function<Api, PRL_RESULT>
 {
 	Unregistered(quint64 limit_, quint64 guarantee_):
 		m_limit(limit_), m_guarantee(guarantee_)
@@ -139,12 +142,12 @@ struct Traits<T, typename boost::enable_if<boost::is_same<void,
 };
 
 template<class T>
-struct Traits<T, typename boost::enable_if<boost::is_same<bool,
+struct Traits<T, typename boost::enable_if<boost::is_same<PRL_RESULT,
 			typename boost::result_of<T(Api )>::type> >::type>
 {
-	static bool bind(T flavor_, Api* api_)
+	static PRL_RESULT bind(T flavor_, Api* api_)
 	{
-		return NULL != api_ && flavor_(*api_);
+		return flavor_(*api_);
 	}
 };
 

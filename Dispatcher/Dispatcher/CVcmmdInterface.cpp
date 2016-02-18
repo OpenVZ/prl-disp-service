@@ -44,7 +44,7 @@ Api::Api(const QString& uuid_)
 	m_uuid = uuid.toString(PrlUuid::WithoutBrackets).data();
 }
 
-bool Api::init(quint64 limit_, quint64 guarantee_)
+PRL_RESULT Api::init(quint64 limit_, quint64 guarantee_)
 {
 	struct vcmmd_ve_config config;
 	vcmmd_ve_config_init(&config);
@@ -56,12 +56,15 @@ bool Api::init(quint64 limit_, quint64 guarantee_)
 	if (VCMMD_ERROR_VE_NAME_ALREADY_IN_USE != r)
 		return treat(r, "vcmmd_register_ve");
 
-	return treat(vcmmd_unregister_ve(qPrintable(m_uuid)), "vcmmd_unregister_ve") &&
-		treat(vcmmd_register_ve(qPrintable(m_uuid), VCMMD_VE_VM, &config),
-			"vcmmd_register_ve");
+	r = vcmmd_unregister_ve(qPrintable(m_uuid));
+	if (r)
+		return treat(r, "vcmmd_unregister_ve");
+
+	r = vcmmd_register_ve(qPrintable(m_uuid), VCMMD_VE_VM, &config);
+	return treat(r, "vcmmd_register_ve");
 }
 
-bool Api::update(quint64 limit_, quint64 guarantee_)
+PRL_RESULT Api::update(quint64 limit_, quint64 guarantee_)
 {
 	struct vcmmd_ve_config config;
 	vcmmd_ve_config_init(&config);
@@ -70,6 +73,21 @@ bool Api::update(quint64 limit_, quint64 guarantee_)
 
 	return treat(vcmmd_update_ve(qPrintable(m_uuid), &config),
 		"vcmmd_update_ve");
+}
+
+Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> Api::getConfig() const
+{
+	struct vcmmd_ve_config config;
+	PRL_RESULT e = treat(vcmmd_get_ve_config(qPrintable(m_uuid), &config),
+		"vcmmd_get_ve_config");
+	if (PRL_FAILED(e))
+		return e;
+
+	std::pair<quint64, quint64> output;
+	vcmmd_ve_config_extract(&config, VCMMD_VE_CONFIG_LIMIT, (uint64_t*)&output.first);
+	vcmmd_ve_config_extract(&config, VCMMD_VE_CONFIG_GUARANTEE, (uint64_t*)&output.second);
+
+	return output;
 }
 
 void Api::deinit()
@@ -90,15 +108,24 @@ void Api::deactivate()
 	treat(r, "vcmmd_deactivate_ve", r == VCMMD_ERROR_VE_NOT_ACTIVE ? DBG_WARNING : DBG_FATAL);
 }
 
-bool Api::treat(int status_, const char* name_, int level_)
+PRL_RESULT Api::treat(int status_, const char* name_, int level_)
 {
 	if (0 == status_)
-		return true;
+		return PRL_ERR_SUCCESS;
 
 	char e[255] = {};
 	WRITE_TRACE(level_, " failed. %s: %s", name_,
 		vcmmd_strerror(status_, e, sizeof(e)));
-	return false;
+
+	switch (status_)
+	{
+	case VCMMD_ERROR_CONNECTION_FAILED:
+		return PRL_ERR_VCMMD_NO_CONNECTION;
+	case VCMMD_ERROR_NO_SPACE:
+		return PRL_ERR_UNABLE_APPLY_MEMORY_GUARANTEE;
+	default:
+		return PRL_ERR_FAILURE;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
