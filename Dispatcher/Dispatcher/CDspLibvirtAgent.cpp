@@ -686,19 +686,21 @@ Exec::Exec::executeInAgent(const QString& cmd)
 	 * next command.
 	 * Requires patched libvirt (with VIR_ERR_AGENT_UNSYNCED err code).
 	 */
-	for (int i = 0; i < 30; ++i) {
+	for (int i = 0; ; ++i) {
 		s = virDomainQemuAgentCommand(m_domain.data(),
 				cmd.toUtf8().constData(), 30, 0);
 		if (s != NULL)
 			break;
-		if (Libvirt::Agent::Failure(PRL_ERR_FAILURE).virErrorCode() !=
-				VIR_ERR_AGENT_UNSYNCED)
+
+		Libvirt::Agent::Failure r(PRL_ERR_FAILURE);
+		if (r.virErrorCode() != VIR_ERR_AGENT_UNSYNCED)
 			break;
+
+		if (i == 30)
+			return r;
+
 		HostUtils::Sleep(1000);
 	}
-
-	if (s == NULL)
-		return Libvirt::Agent::Failure(PRL_ERR_FAILURE);
 
 	QString reply = QString::fromUtf8(s);
 	free(s);
