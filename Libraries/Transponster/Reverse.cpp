@@ -392,6 +392,13 @@ namespace Builder
 ///////////////////////////////////////////////////////////////////////////////
 // struct Ordinary
 
+template <>
+void Ordinary<CVmOpticalDisk>::setSource()
+{
+	if (getModel().isConnected() && !getModel().getImageFile().isEmpty())
+		m_result.setDiskSource(getSource());
+}
+
 template<>
 void Ordinary<CVmHardDisk>::setSource()
 {
