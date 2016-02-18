@@ -34,6 +34,8 @@
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 
+Q_GLOBAL_STATIC(QMutex, getBoostJsonLock);
+
 namespace Libvirt
 {
 Instrument::Agent::Hub Kit;
@@ -411,6 +413,9 @@ Result Future::wait(int timeout_)
 		QString state = res.value();
 
 		std::istringstream is(state.toUtf8().data());
+
+		// read_json is not thread safe
+		QMutexLocker locker(getBoostJsonLock());
 		boost::property_tree::json_parser::read_json(is, r);
 		std::string status = r.get<std::string>("return.status", std::string("none"));
 
@@ -491,6 +496,9 @@ Guest::getAgentVersion()
 		return r.error();
 
 	std::istringstream is(r.value().toUtf8().data());
+
+	// read_json is not thread safe
+	QMutexLocker locker(getBoostJsonLock());
 	boost::property_tree::ptree result;
 	boost::property_tree::json_parser::read_json(is, result);
 
@@ -561,6 +569,9 @@ Exec::Exec::getCommandStatus(int pid)
 		return r.error();
 
 	std::istringstream is(r.value().toUtf8().data());
+
+	// read_json is not thread safe
+	QMutexLocker locker(getBoostJsonLock());
 	boost::property_tree::ptree result;
 	boost::property_tree::json_parser::read_json(is, result);
 
@@ -594,6 +605,9 @@ Exec::Exec::runCommand(const Libvirt::Instrument::Agent::Vm::Exec::Request& req)
 		return r.error();
 
 	std::istringstream is(r.value().toUtf8().data());
+
+	// read_json is not thread safe
+	QMutexLocker locker(getBoostJsonLock());
 	boost::property_tree::ptree result;
 	boost::property_tree::json_parser::read_json(is, result);
 
