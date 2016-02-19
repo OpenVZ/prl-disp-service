@@ -468,11 +468,16 @@ void Hdd::setSerial(const QString& serial_)
 
 } // namespace Builder
 
+} // namespace Clustered
+
+namespace Boot
+{
 ///////////////////////////////////////////////////////////////////////////////
 // struct List
 
-List::List(const Boot::Reverse& boot_, Device::List& list_)
-	: m_boot(boot_), m_deviceList(list_)
+List::List(const CVmSettings& settings_, Device::List& list_):
+	m_boot(settings_.getVmStartupOptions()->getBootDeviceList()),
+	m_deviceList(list_)
 {
 }
 
@@ -482,7 +487,7 @@ void List::add(const CVmHardDisk* hdd_, const CVmRunTimeOptions* runtime_)
 		return;
 	if (hdd_->getEnabled() != PVE::DeviceEnabled)
 		return;
-	Builder::Hdd b(*hdd_, m_boot(*hdd_));
+	Clustered::Builder::Hdd b(*hdd_, m_boot(*hdd_));
 	if (NULL != runtime_)
 	{
 		b.setIoLimit(runtime_->getIoLimit());
@@ -497,11 +502,11 @@ void List::add(const CVmOpticalDisk* cdrom_)
 {
 	if (cdrom_ == NULL)
 		return;
-	if (cdrom_->getEmulatedType() == Flavor<CVmOpticalDisk>::real)
+	if (cdrom_->getEmulatedType() == Clustered::Flavor<CVmOpticalDisk>::real)
 		return;
 	if (cdrom_->getEnabled() != PVE::DeviceEnabled)
 		return;
-	build(Builder::Ordinary<CVmOpticalDisk>(*cdrom_, m_boot(*cdrom_)));
+	build(Clustered::Builder::Ordinary<CVmOpticalDisk>(*cdrom_, m_boot(*cdrom_)));
 }
 
 void List::add(const CVmFloppyDisk* floppy_)
@@ -510,7 +515,19 @@ void List::add(const CVmFloppyDisk* floppy_)
 		return;
 	if (floppy_->getEnabled() != PVE::DeviceEnabled)
 		return;
-	build(Builder::Ordinary<CVmFloppyDisk>(*floppy_, m_boot(*floppy_)));
+	build(Clustered::Builder::Ordinary<CVmFloppyDisk>(*floppy_, m_boot(*floppy_)));
+}
+
+void List::add(const CVmGenericNetworkAdapter* network_)
+{
+	if (network_ == NULL)
+		return;
+
+	Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple> a =
+		Network::build(*network_, m_boot(*network_));
+
+	if (a.isSucceed())
+		m_deviceList.add(a.value());
 }
 
 const Attachment& List::getAttachment() const
@@ -518,7 +535,7 @@ const Attachment& List::getAttachment() const
 	return m_attachment;
 }
 
-} // namespace Clustered
+} //namespace Boot
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Ips
@@ -557,12 +574,14 @@ QString generateAdapterType(PRL_VM_NET_ADAPTER_TYPE type_)
 
 } // namespace
 
+namespace Network
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Network
+// struct Adapter
 
 template<int N>
-Libvirt::Domain::Xml::VInterface Network<N>::operator()
-	(const CVmGenericNetworkAdapter& network_)
+Libvirt::Domain::Xml::VInterface Adapter<N>::operator()
+	(const CVmGenericNetworkAdapter& network_, const boot_type& boot_)
 {
 	typename Libvirt::Details::Value::Grab<access_type>::type i = prepare(network_);
 
@@ -571,13 +590,15 @@ Libvirt::Domain::Xml::VInterface Network<N>::operator()
 	if (!m.isEmpty())
 		i.setMac(m);
 
+	i.setBoot(boot_);
+
 	access_type output;
 	output.setValue(i);
 	return output;
 }
 
 template<>
-Libvirt::Domain::Xml::Interface617 Network<0>::prepare(const CVmGenericNetworkAdapter& network_)
+Libvirt::Domain::Xml::Interface617 Adapter<0>::prepare(const CVmGenericNetworkAdapter& network_)
 {
 	Libvirt::Domain::Xml::Interface617 output;
 	output.setIpList(Ips()(network_.getNetAddresses()));
@@ -590,7 +611,7 @@ Libvirt::Domain::Xml::Interface617 Network<0>::prepare(const CVmGenericNetworkAd
 }
 
 template<>
-Libvirt::Domain::Xml::Interface625 Network<3>::prepare(const CVmGenericNetworkAdapter& network_)
+Libvirt::Domain::Xml::Interface625 Adapter<3>::prepare(const CVmGenericNetworkAdapter& network_)
 {
 	Libvirt::Domain::Xml::Interface625 output;
 	Libvirt::Domain::Xml::Source8 s;
@@ -603,7 +624,7 @@ Libvirt::Domain::Xml::Interface625 Network<3>::prepare(const CVmGenericNetworkAd
 }
 
 template<>
-Libvirt::Domain::Xml::Interface627 Network<4>::prepare(const CVmGenericNetworkAdapter& network_)
+Libvirt::Domain::Xml::Interface627 Adapter<4>::prepare(const CVmGenericNetworkAdapter& network_)
 {
 	Libvirt::Domain::Xml::Interface627 output;
 	Libvirt::Domain::Xml::Source9 s;
@@ -614,6 +635,31 @@ Libvirt::Domain::Xml::Interface627 Network<4>::prepare(const CVmGenericNetworkAd
 	output.setSource(s);
 	return output;
 }
+
+Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
+	build(const CVmGenericNetworkAdapter& network_, const boot_type& boot_)
+{
+	switch (network_.getEmulatedType())
+	{
+	case PNA_BRIDGED_ETHERNET:
+		if (network_.getVirtualNetworkID().isEmpty())
+			return Adapter<0>()(network_, boot_);
+
+		return Adapter<3>()(network_, boot_);
+	case PNA_DIRECT_ASSIGN:
+		return Adapter<4>()(network_, boot_);
+	case PNA_ROUTED:
+	{
+		CVmGenericNetworkAdapter routed(network_);
+		routed.setSystemName(QString("host-routed"));
+		return Adapter<0>()(routed, boot_);
+	}
+	default:
+		return ::Error::Simple(PRL_ERR_UNIMPLEMENTED);
+	}
+}
+
+} // namespace Network
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Attachment
@@ -777,20 +823,14 @@ void List::add(const CVmVideo* video_)
 	add<9>(v);
 }
 
-void List::add(const CVmGenericNetworkAdapter* network_)
-{
-	if (NULL == network_)
-		return;
-
-	Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple> a =
-		Vm::Reverse::Device<CVmGenericNetworkAdapter>::getLibvirtXml(*network_);
-	if (!a.isFailed())
-		add<4>(a.value());
-}
-
 void List::add(const Libvirt::Domain::Xml::Disk& disk_)
 {
 	add<0>(disk_);
+}
+
+void List::add(const Libvirt::Domain::Xml::VInterface& adapter_)
+{
+	add<4>(adapter_);
 }
 
 namespace Usb
@@ -1065,7 +1105,7 @@ Prl::Expected<QString, ::Error::Simple>
 	Device<CVmGenericNetworkAdapter>::getPlugXml(const CVmGenericNetworkAdapter& model_)
 {
 	Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple> a = 
-		getLibvirtXml(model_);
+		Transponster::Device::Network::build(model_);
 	if (a.isFailed())
 		return a.error();
 
@@ -1080,29 +1120,6 @@ Prl::Expected<QString, ::Error::Simple>
 	Device<CVmGenericNetworkAdapter>::getUpdateXml(const CVmGenericNetworkAdapter& model_)
 {
 	return getPlugXml(model_);
-}
-
-Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
-	Device<CVmGenericNetworkAdapter>::getLibvirtXml(const CVmGenericNetworkAdapter& model_)
-{
-	switch (model_.getEmulatedType())
-	{
-	case PNA_BRIDGED_ETHERNET:
-		if (model_.getVirtualNetworkID().isEmpty())
-			return Transponster::Device::Network<0>()(model_);
-		else
-			return Transponster::Device::Network<3>()(model_);
-	case PNA_DIRECT_ASSIGN:
-		return Transponster::Device::Network<4>()(model_);
-	case PNA_ROUTED:
-	{
-		CVmGenericNetworkAdapter routed(model_);
-		routed.setSystemName(QString("host-routed"));
-		return Transponster::Device::Network<0>()(routed);
-	}
-	default:
-		return ::Error::Simple(PRL_ERR_UNIMPLEMENTED);
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1212,8 +1229,7 @@ PRL_RESULT Builder::setDevices()
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
 	Transponster::Device::List b;
-	Transponster::Device::Clustered::List t(Boot::Reverse(s->
-		getVmStartupOptions()->getBootDeviceList()), b);
+	Transponster::Device::Boot::List t(*s, b);
 	foreach (const CVmHardDisk* d, h->m_lstHardDisks)
 	{
 		if (d->getConnected() != PVE::DeviceConnected)
@@ -1243,7 +1259,7 @@ PRL_RESULT Builder::setDevices()
 //	}
 	foreach (const CVmGenericNetworkAdapter* d, h->m_lstNetworkAdapters)
 	{
-		b.add(d);
+		t.add(d);
 	}
 	foreach (const CVmSoundDevice* d, h->m_lstSoundDevices)
 	{
@@ -1727,6 +1743,8 @@ QString Reverse::getResult() const
 } // namespace Bridge
 } // namespace Interface
 
+namespace Device
+{
 namespace Boot
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -1759,6 +1777,7 @@ Reverse::order_type Reverse::operator()(const CVmDevice& device_) const
 }
 
 } // namespace Boot
+} // namespace Device
 
 namespace Snapshot
 {

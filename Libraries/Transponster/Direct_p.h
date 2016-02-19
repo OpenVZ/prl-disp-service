@@ -251,7 +251,8 @@ private:
 
 struct Floppy: private Clustered<CVmFloppyDisk>
 {
-	explicit Floppy(CVmHardware& hardware_): m_hardware(&hardware_)
+	Floppy(CVmHardware& hardware_, Clip& clip_):
+		m_hardware(&hardware_), m_clip(&clip_)
 	{
 	}
 
@@ -259,6 +260,7 @@ struct Floppy: private Clustered<CVmFloppyDisk>
 
 private:
 	CVmHardware* m_hardware;
+	Clip* m_clip;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -349,7 +351,8 @@ struct Ips
 
 struct Network: boost::static_visitor<PRL_RESULT>
 {
-	explicit Network(CVmHardware& hardware_): m_hardware(&hardware_)
+	Network(CVmHardware& hardware_, Clip& clip_):
+		m_hardware(&hardware_), m_clip(&clip_)
 	{
 	}
 
@@ -366,6 +369,7 @@ struct Network: boost::static_visitor<PRL_RESULT>
 
 private:
 	CVmHardware* m_hardware;
+	Clip* m_clip;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

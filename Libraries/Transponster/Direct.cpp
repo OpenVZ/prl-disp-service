@@ -92,6 +92,11 @@ PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	d->setItemId(m_hardware->m_lstFloppyDisks.size());
 	d->setIndex(m_hardware->m_lstFloppyDisks.size());
 	m_hardware->addFloppyDisk(d);
+	if (disk_.getBoot())
+	{
+		m_clip->getBootSlot(disk_.getBoot().get())
+			.set(d->getDeviceType(), d->getIndex());
+	}
 	d->setTargetDeviceName(disk_.getTarget().getDev());
 	return PRL_ERR_SUCCESS;
 }
@@ -289,6 +294,12 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 
 	a->setNetAddresses(Ips()(bridge_.getValue().getIpList()));
 
+	if (bridge_.getValue().getBoot())
+	{
+		m_clip->getBootSlot(bridge_.getValue().getBoot().get())
+			.set(a->getDeviceType(), a->getIndex());
+	}
+
 	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
 }
@@ -316,6 +327,12 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	}
 
 	a->setNetAddresses(Ips()(network_.getValue().getIpList()));
+
+	if (network_.getValue().getBoot())
+	{
+		m_clip->getBootSlot(network_.getValue().getBoot().get())
+			.set(a->getDeviceType(), a->getIndex());
+	}
 
 	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
@@ -345,6 +362,12 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 
 	a->setNetAddresses(Ips()(direct_.getValue().getIpList()));
 
+	if (direct_.getValue().getBoot())
+	{
+		m_clip->getBootSlot(direct_.getValue().getBoot().get())
+			.set(a->getDeviceType(), a->getIndex());
+	}
+
 	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
 }
@@ -358,7 +381,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice936::
 	if (NULL == h)
 		return PRL_ERR_UNEXPECTED;
 
-	return boost::apply_visitor(Network(*h), interface_.getValue());
+	return boost::apply_visitor(Network(*h, *m_clip), interface_.getValue());
 }
 
 PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice936::types, 6>::type& sound_) const
@@ -456,7 +479,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice936::
 		case Libvirt::Domain::Xml::EDeviceCdrom:
 			return Cdrom(*h, *m_clip)(disk_.getValue());
 		case Libvirt::Domain::Xml::EDeviceFloppy:
-			return Floppy(*h)(disk_.getValue());
+			return Floppy(*h, *m_clip)(disk_.getValue());
 		}
 	}
 	return PRL_ERR_UNIMPLEMENTED;
