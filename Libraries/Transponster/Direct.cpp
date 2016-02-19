@@ -153,7 +153,9 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 
 PRL_RESULT Cdrom::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 {
-	Clustered<CVmOpticalDisk>::operator()(disk_);
+	if (!Clustered<CVmOpticalDisk>::operator()(disk_))
+		getDevice().setEmulatedType(PVE::CdRomImage);
+
 	getDevice().setPassthrough(disk_.getTransient() ?
 		PVE::PassthroughEnabled : PVE::PassthroughDisabled);
 
