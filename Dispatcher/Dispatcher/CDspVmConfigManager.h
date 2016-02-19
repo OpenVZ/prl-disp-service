@@ -55,6 +55,9 @@ namespace Vm
 {
 namespace Config
 {
+
+QString getVmHomeDirName(const QString& uuid_);
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct MemGuarantee
 

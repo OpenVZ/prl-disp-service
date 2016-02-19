@@ -125,8 +125,8 @@ PRL_RESULT Task_MoveVm::prepareTask()
 
 	m_pVmConfig->setRelativePath();
 
-	sNewVmBundle = QString("%1/%2%3").arg(m_sNewVmHome).
-		arg(m_pVmConfig->getVmIdentification()->getVmName()).arg(VMDIR_DEFAULT_BUNDLE_SUFFIX);
+	sNewVmBundle = QString("%1/%2").arg(m_sNewVmHome).
+		arg(Vm::Config::getVmHomeDirName(m_pVmConfig->getVmIdentification()->getVmUuid()));
 
 	pParams->addEventParameter(
 		new CVmEventParameter( PVE::String, m_sVmUuid, EVT_PARAM_DISP_TASK_VM_UUID ) );

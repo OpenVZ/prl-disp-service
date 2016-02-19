@@ -83,7 +83,12 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		//Check if VM is already exist and fill name and path
 		boost::optional<CVmConfiguration> y = getConfig();
 		if (!y)
+		{
+			QString h = QDir(m_user->getUserDefaultVmDirPath())
+				.absoluteFilePath(Vm::Config::getVmHomeDirName(m_uuid));
+			m_home = QFileInfo(QDir(h), VMDIR_DEFAULT_VM_CONFIG_FILE);
 			return;
+		}
 
 		m_name = y->getVmIdentification()->getVmName();
 		m_home = QFileInfo(y->getVmIdentification()->getHomePath());
