@@ -122,6 +122,10 @@ struct Request {
 		: m_path(path), m_args(args), m_runInShell(false)
 	{
 	}
+	void setEnvironment(const QList<QString>& env)
+	{
+		m_env = env;
+	}
 	void setRunInShell(bool val)
 	{
 		m_runInShell = val;
@@ -135,6 +139,7 @@ struct Request {
 private:
 	QString m_path;
 	QList<QString> m_args;
+	QList<QString> m_env;
 	QList< QPair<int, int> > m_channels;
 	bool m_runInShell;
 };
