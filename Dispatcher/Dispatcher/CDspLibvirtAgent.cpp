@@ -616,7 +616,7 @@ Exec::Exec::runCommand(const Libvirt::Instrument::Agent::Vm::Exec::Request& req)
 
 QString Exec::Request::getJson() const
 {
-	boost::property_tree::ptree cmd, argv, params;
+	boost::property_tree::ptree cmd, argv, env, params;
 
 	params.put("path", QSTR2UTF8(m_path));
 	params.put("capture-output", "capture-output-value"); // replace placeholder later
@@ -632,6 +632,15 @@ QString Exec::Request::getJson() const
 			else if (c.first == 2)
 				params.put("cid-err", "cid-err-value");
 		}
+	}
+
+	if (m_env.size() > 0) {
+		foreach (const QString& a, m_env) {
+			boost::property_tree::ptree e;
+			e.put_value(a.toStdString());
+			env.push_back(std::make_pair("", e));
+		}
+		params.add_child("env", env);
 	}
 
 	if (m_args.size() > 0) {
