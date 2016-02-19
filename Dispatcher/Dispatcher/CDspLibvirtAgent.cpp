@@ -416,7 +416,11 @@ Result Future::wait(int timeout_)
 
 		// read_json is not thread safe
 		QMutexLocker locker(getBoostJsonLock());
-		boost::property_tree::json_parser::read_json(is, r);
+		try {
+			boost::property_tree::json_parser::read_json(is, r);
+		} catch (const boost::property_tree::json_parser::json_parser_error&) {
+			return Error::Simple(PRL_ERR_FAILURE);
+		}
 		std::string status = r.get<std::string>("return.status", std::string("none"));
 
 		// Is state changed?
@@ -500,7 +504,11 @@ Guest::getAgentVersion()
 	// read_json is not thread safe
 	QMutexLocker locker(getBoostJsonLock());
 	boost::property_tree::ptree result;
-	boost::property_tree::json_parser::read_json(is, result);
+	try {
+		boost::property_tree::json_parser::read_json(is, result);
+	} catch (const boost::property_tree::json_parser::json_parser_error&) {
+		return Error::Simple(PRL_ERR_FAILURE);
+	}
 
 	return QString::fromStdString(result.get<std::string>("return.version"));
 }
@@ -573,7 +581,11 @@ Exec::Exec::getCommandStatus(int pid)
 	// read_json is not thread safe
 	QMutexLocker locker(getBoostJsonLock());
 	boost::property_tree::ptree result;
-	boost::property_tree::json_parser::read_json(is, result);
+	try {
+		boost::property_tree::json_parser::read_json(is, result);
+	} catch (const boost::property_tree::json_parser::json_parser_error&) {
+		return Libvirt::Agent::Failure(PRL_ERR_FAILURE);
+	}
 
 	bool exited = result.get<bool>("return.exited");
 	if (exited) {
@@ -604,12 +616,17 @@ Exec::Exec::runCommand(const Libvirt::Instrument::Agent::Vm::Exec::Request& req)
 	if (r.isFailed())
 		return r.error();
 
-	std::istringstream is(r.value().toUtf8().data());
+	const char * s = r.value().toUtf8().data();
+	std::istringstream is(s);
 
 	// read_json is not thread safe
 	QMutexLocker locker(getBoostJsonLock());
 	boost::property_tree::ptree result;
-	boost::property_tree::json_parser::read_json(is, result);
+	try {
+		boost::property_tree::json_parser::read_json(is, result);
+	} catch (const boost::property_tree::json_parser::json_parser_error&) {
+		return Libvirt::Agent::Failure(PRL_ERR_FAILURE);
+	}
 
 	return result.get<int>("return.pid");
 }
