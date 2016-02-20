@@ -122,6 +122,11 @@ void CDspVmStateSender::onVmConfigChanged(QString vmDirUuid_, QString vmUuid_)
 	emit signalSendVmConfigChanged(vmDirUuid_, vmUuid_);
 }
 
+void CDspVmStateSender::onVmPersonalityChanged(QString vmDirUuid_, QString vmUuid_)
+{
+	emit signalSendVmPersonalityChanged(vmDirUuid_, vmUuid_);
+}
+
 CDspVmStateSenderThread::CDspVmStateSenderThread()
 :	m_mtx( QMutex::Recursive), m_pVmStateSender()
 {
@@ -142,9 +147,9 @@ void CDspVmStateSenderThread::run()
 	CDspVmGuestPersonality y;
 
 	bool b = QObject::connect(&x,
-			SIGNAL(signalSendVmConfigChanged(QString, QString)),
+			SIGNAL(signalSendVmPersonalityChanged(QString, QString)),
 			&y,
-			SLOT(slotVmConfigChanged(QString, QString)), Qt::DirectConnection);
+			SLOT(slotVmPersonalityChanged(QString, QString)), Qt::DirectConnection);
 	PRL_ASSERT(b);
 
 	COMMON_TRY

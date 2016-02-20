@@ -29,6 +29,7 @@
 #include "Tasks/Task_CreateProblemReport.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_ManagePrlNetService.h"
+#include "Tasks/Task_EditVm.h"
 #include <prlcommon/PrlUuid/PrlUuid.h>
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <Libraries/StatesUtils/StatesHelper.h>
@@ -531,6 +532,15 @@ int deviceDisconnect(virConnectPtr , virDomainPtr domain_, const char* device_,
 	return 0;
 }
 
+int trayChange(virConnectPtr , virDomainPtr domain_,
+		const char* device_, int reason_, void* opaque_)
+{
+	Model::Coarse* v = (Model::Coarse* )opaque_;
+	if (reason_ == 0) // Tray opened
+		v->disconnectCd(domain_, device_);
+	return 0;
+}
+
 int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
                 int detail_, void* opaque_)
 {
@@ -836,6 +846,29 @@ QSharedPointer<Domain> Coarse::access(virDomainPtr domain_)
 	return output;
 }
 
+void Coarse::disconnectCd(virDomainPtr domain_, const QString& alias_)
+{
+	PRL_RESULT res;
+	QString vmUuid(getUuid(domain_));
+	QString vmDir = CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->getDefaultVmDirectory();
+
+	SmartPtr<CVmConfiguration> vm = CDspService::instance()->getVmDirHelper()
+		.getVmConfigByUuid(vmDir, vmUuid, res);
+
+	QList<CVmOpticalDisk* >::iterator last(vm->getVmHardwareList()->m_lstOpticalDisks.end());
+	QList<CVmOpticalDisk* >::iterator it(
+			std::find_if(vm->getVmHardwareList()->m_lstOpticalDisks.begin(), last,
+				boost::bind(&CVmOpticalDisk::getAlias, _1) == boost::cref(alias_)));
+	if (it == last)
+		return;
+	(*it)->setConnected(PVE::DeviceDisconnected);
+	CVmEvent e;
+	e.addEventParameter(new CVmEventParameter(PVE::String,
+				(*it)->toString(), EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
+	Task_EditVm::atomicEditVmConfigByVm(vmDir, vmUuid,
+			e, CDspClient::makeServiceUser(vmDir));
+}
+
 } // namespace Model
 
 namespace Monitor
@@ -896,7 +929,7 @@ void Link::disconnect(virConnectPtr libvirtd_, int reason_, void* opaque_)
 
 Domains::Domains(int timeout_): m_eventState(-1), m_eventReboot(-1),
 	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
-	m_view(new Model::System())
+	m_eventTrayChange(-1), m_view(new Model::System())
 {
 	m_timer.stop();
 	m_timer.setInterval(timeout_);
@@ -939,6 +972,12 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::deviceDisconnect),
 							new Model::Coarse(m_view),
 							&Callback::Plain::delete_<Model::Coarse>);
+	m_eventTrayChange = virConnectDomainEventRegisterAny(libvirtd_.data(),
+							NULL,
+							VIR_DOMAIN_EVENT_ID_TRAY_CHANGE,
+							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::trayChange),
+							new Model::Coarse(m_view),
+							&Callback::Plain::delete_<Model::Coarse>);
 	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, m_view);
 	q->setAutoDelete(true);
 	QThreadPool::globalInstance()->start(q);
@@ -971,6 +1010,8 @@ void Domains::setDisconnected()
 	m_eventDeviceConnect = -1;
 	virConnectDomainEventDeregisterAny(x.data(), m_eventDeviceDisconnect);
 	m_eventDeviceDisconnect = -1;
+	virConnectDomainEventDeregisterAny(x.data(), m_eventTrayChange);
+	m_eventTrayChange = -1;
 	m_libvirtd.clear();
 }
 
