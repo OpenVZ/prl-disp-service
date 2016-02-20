@@ -365,6 +365,10 @@ PRL_RESULT Vm::prepare(Task_ExecVm& task_, vm::Exec::Request& request_)
 	vm::Unit u = Libvirt::Kit.vms().at(task_.getVmUuid());
 	QSharedPointer<vm::Exec::AuxChannel> c(Libvirt::Kit.addAsyncExec(u));
 
+	if (c == NULL) {
+		return PRL_ERR_FAILURE;
+	}
+
 	m_stdout = QSharedPointer<vm::Exec::ReadDevice>(new vm::Exec::ReadDevice(c));
 	m_stderr = QSharedPointer<vm::Exec::ReadDevice>(new vm::Exec::ReadDevice(c));
 	if (m_stdout == NULL || m_stderr == NULL) {
