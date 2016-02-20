@@ -105,21 +105,24 @@ struct Clustered: boost::static_visitor<bool>
 	{
 		return false;
 	}
-	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 0>::type& source_) const
+	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type& source_) const
 	{
-		const Libvirt::Domain::Xml::Source* v = source_.getValue().get_ptr();
+		const Libvirt::Domain::Xml::Source4* v = source_.getValue().get_ptr();
 		if (NULL == v)
 			return false;
 
+		if (!v->getFile())
+			return false;
+
 		getDevice().setEmulatedType(I);
-		getDevice().setSystemName(v->getFile());
-		getDevice().setUserFriendlyName(v->getFile());
+		getDevice().setSystemName(v->getFile().get());
+		getDevice().setUserFriendlyName(v->getFile().get());
 
 		return true;
 	}
-	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 1>::type& source_) const
+	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 0>::type& source_) const
 	{
-		const Libvirt::Domain::Xml::Source1* v = source_.getValue().get_ptr();
+		const Libvirt::Domain::Xml::Source* v = source_.getValue().get_ptr();
 		if (NULL == v)
 			return false;
 
@@ -165,7 +168,7 @@ struct Unit<CVmHardDisk>: Clustered<CVmHardDisk, PVE::HardDiskImage, PVE::RealHa
 {
 	using Clustered<CVmHardDisk, PVE::HardDiskImage, PVE::RealHardDisk>::operator();
 
-	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type& source_) const;
+	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 3>::type& source_) const;
 };
 
 } // namespace Source

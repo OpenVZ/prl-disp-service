@@ -1324,11 +1324,11 @@
 
   <define name="diskSource">
     <choice>
-      <ref name="diskSourceFile"/>
       <ref name="diskSourceBlock"/>
       <ref name="diskSourceDir"/>
       <ref name="diskSourceNetwork"/>
       <ref name="diskSourceVolume"/>
+      <ref name="diskSourceFile"/>
     </choice>
   </define>
 
@@ -1341,9 +1341,11 @@
     <interleave>
       <optional>
         <element name="source">
-          <attribute name="file">
-            <ref name="absFilePath"/>
-          </attribute>
+          <optional>
+            <attribute name="file">
+              <ref name="absFilePath"/>
+            </attribute>
+          </optional>
           <optional>
             <ref name="storageStartupPolicy"/>
           </optional>
