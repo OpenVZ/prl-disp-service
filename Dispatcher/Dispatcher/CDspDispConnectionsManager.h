@@ -34,6 +34,9 @@
 
 #include "CDspHandlerRegistrator.h"
 #include "CDspDispConnection.h"
+#include "CDspBackupHelper.h"
+
+class CDspService;
 
 /**
  * Manager of connections from another dispatchers to this one
@@ -46,7 +49,7 @@ public:
 	 * @param maintaining connections type
 	 * @param name of handler that identifies it from others
 	 */
-	CDspDispConnectionsManager ( IOSender::Type nHandlerType, const char *sHandlerName );
+	CDspDispConnectionsManager(CDspService& service_, const Backup::Task::Launcher& backup_);
 	/**
 	 * Class destructor
 	 */
@@ -106,6 +109,9 @@ private:
 	mutable QReadWriteLock m_rwLock;
 	/** VMs connections hash */
 	QHash< IOSender::Handle, SmartPtr<CDspDispConnection> > m_dispconns;
+
+	CDspService* m_service;
+	Backup::Task::Launcher m_backup;
 };
 
 #endif //CDspDispConnectionsManager_H

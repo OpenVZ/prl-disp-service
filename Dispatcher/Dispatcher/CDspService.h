@@ -59,6 +59,7 @@
 #include "CDspIOCtClientHandler.h"
 #include "CDspHaClusterHelper.h"
 #include "CDspSettingsWrap.h"
+#include "CDspBackupHelper.h"
 #ifdef _LIBVIRT_
 #include "CDspLibvirt.h"
 #endif // _LIBVIRT_
@@ -102,6 +103,7 @@ class ConnectionsStatisticsManager;
 class CEtraceStatic;
 #endif
 class CDspAsyncRequest;
+class CDspDispConnectionsManager;
 
 class CDspService : public QObject
 {
@@ -470,9 +472,7 @@ private:
 	storage_descriptor_t       m_base_perfstorage ;
 
 	SmartPtr<IOServerInterface> m_ioListeningServer;
-#ifndef _WIN_
 	SmartPtr<IOServerInterface> m_ioLocalUnixListeningServer;
-#endif
 	SmartPtr<IOServerInterface> m_ioAnyAddrServer;
 	SmartPtr<IOServerPool> m_ioServerPool;
 
@@ -500,10 +500,11 @@ private:
 	CDspVmDirManager	m_vmDirManager;		// should be defined before m_taskManager ( bug #6042 )
 	CDspDispConfigGuard m_dispConfigGuard;  // should be defined before m_taskManager ( bug #6042 )
 
-	SmartPtr<CDspHandler> m_pClientManagerHandler;
 	SmartPtr<CDspHandler> m_pVmManagerHandler;
 	SmartPtr<CDspHandler> m_pIoHandler;
 	SmartPtr<CDspHandler> m_pIoCtHandler;
+	QScopedPointer<CDspClientManager> m_clientManager;
+	QScopedPointer<CDspDispConnectionsManager> m_dispConnectionsManager;
 
 	/** Broadcast messages processing service */
 	SmartPtr<CDspBroadcastListener> m_pBroadcastMsgsProcessingService;
@@ -544,8 +545,6 @@ private:
 	/** Dispatcher start time in msecs (monotonic clock time) */
 	quint64 m_serviceStartTimeMonotonic;
 
-private: //for complex objects only
-
 	//////////////////////////////////////////////////////////////////////////
 	// Complex objects should be last in  definition list:
 	// Reason:  Complex objects should be destroyed BEFORE their dependencies
@@ -562,6 +561,7 @@ private: //for complex objects only
 #ifdef _LIBVIRT_
 	QScopedPointer<Libvirt::Host> m_hypervisor;
 #endif // _LIBVIRT_
+	Backup::Activity::Service m_backup;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

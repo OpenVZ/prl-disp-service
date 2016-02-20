@@ -70,6 +70,7 @@ HEADERS += \
 	CDspVmAutoTaskManagerBase.h \
 	CDspVmStateSender.h \
 	CDspTestConfig.h \
+	CDspBackupHelper.h \
 	CDspBugPatcherLogic.h \
 	CDspProblemReportHelper.h \
 	CDspVmInfoDatabase.h \
@@ -78,6 +79,8 @@ HEADERS += \
 	CDspHaClusterHelper.h \
 	CDspVm_p.h \
 	CDspVmSnapshotInfrastructure.h \
+	CDspVmBackupInfrastructure_p.h \
+	CDspVmBackupInfrastructure.h \
 	CDspSettingsWrap.h \
 	CDspAsyncRequest.h \
 	CVcmmdInterface.h \
@@ -116,6 +119,12 @@ HEADERS += \
 	Tasks/Task_ConfigureGenericPci.h \
 	Tasks/Task_PrepareForHibernate.h \
 	Tasks/Task_CommitUnfinishedDiskOp.h \
+	Tasks/Task_CreateVmBackup.h \
+	Tasks/Task_RestoreVmBackup.h \
+	Tasks/Task_RestoreVmBackup_p.h \
+	Tasks/Task_GetBackupTree.h \
+	Tasks/Task_RemoveVmBackup.h \
+	Tasks/Task_BackupHelper.h \
 	Tasks/Task_DiskImageResizer.h \
 	Tasks/Task_SetConfirmationMode.h \
 	Tasks/Task_ChangeSID.h \
@@ -184,6 +193,7 @@ SOURCES += \
 	CDspVmAutoTaskManagerBase.cpp \
 	CDspVmStateSender.cpp \
 	CDspTestConfig.cpp \
+	CDspBackupHelper.cpp \
 	CDspBugPatcherLogic.cpp \
 	CDspProblemReportHelper.cpp \
 	CDspVmInfoDatabase.cpp \
@@ -192,6 +202,7 @@ SOURCES += \
 	CDspHaClusterHelper.cpp \
 	CDspVm_p.cpp \
 	CDspVmSnapshotInfrastructure.cpp \
+	CDspVmBackupInfrastructure.cpp \
 	CDspSettingsWrap.cpp \
 	CDspAsyncRequest.cpp \
 	CVcmmdInterface.cpp \
@@ -226,6 +237,11 @@ SOURCES += \
 	Tasks/Task_ConfigureGenericPci.cpp \
 	Tasks/Task_PrepareForHibernate.cpp \
 	Tasks/Task_CommitUnfinishedDiskOp.cpp \
+	Tasks/Task_CreateVmBackup.cpp \
+	Tasks/Task_RestoreVmBackup.cpp \
+	Tasks/Task_RemoveVmBackup.cpp \
+	Tasks/Task_GetBackupTree.cpp \
+	Tasks/Task_BackupHelper.cpp \
 	Tasks/Task_DiskImageResizer.cpp \
 	Tasks/Task_SetConfirmationMode.cpp \
 	Tasks/Task_ChangeSID.cpp \
@@ -251,12 +267,17 @@ linux-* {
 		$$SRC_LEVEL/VI/Sources/Explorer/Includes
 
 	HEADERS += \
+		CDspBackupDevice.h \
+		Tasks/Task_AttachVmBackup_p.h \
+		Tasks/Task_AttachVmBackup.h \
 		Tasks/Task_MountVm.h
 
 	SOURCES += \
+		CDspBackupDevice.cpp \
 		Stat/CDspStatCollector_lin.cpp\
 		Stat/CDspSystemInfo_lin.cpp \
 		\
+		Tasks/Task_AttachVmBackup.cpp \
 		Tasks/Task_MountVm.cpp \
 		\
 		HwMonitor/CDspHwMonitorHandler_lin.cpp

@@ -40,16 +40,18 @@
 #include "CDspClient.h"
 #include "CDspUserHelper.h"
 #include "DspLogicGuard.h"
+#include "CDspBackupHelper.h"
 #include "CDspVmDirManager.h"
 #include "CDspAccessManager.h"
 
 #include "Libraries/PerfCount/PerfLib/PerfCounter.h"
 
+class CDspService;
+
 class CDspClientManager : public CDspHandler
 {
 public:
-	CDspClientManager ( IOSender::Type, const char* );
-	virtual ~CDspClientManager ();
+	CDspClientManager(CDspService& service_, const Backup::Task::Launcher& backup_);
 
 	/**
 	 * Do initialization after service starting.
@@ -207,8 +209,11 @@ private:
 	handle_set	m_setLogonClients;
 	handle_set  m_preAuthorizedSessions;
 
-    counter_t * dsp_commands ;
-    counter_t * dsp_error_commands ;
+	counter_t * dsp_commands ;
+	counter_t * dsp_error_commands ;
+
+	CDspService* m_service;
+	Backup::Task::Launcher m_backup;
 };
 
 #endif //CDSPCLIENTMANAGER_H
