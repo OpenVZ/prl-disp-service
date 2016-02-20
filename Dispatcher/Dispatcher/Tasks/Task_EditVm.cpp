@@ -66,6 +66,31 @@
 #include "CDspHaClusterHelper.h"
 #include "CDspVmStateSender.h"
 
+namespace
+{
+template<class T, class U> T ceilDiv(T lhs_, U rhs_)
+{
+	return (lhs_ + rhs_ - 1) / rhs_;
+}
+
+// RAM, GiB     <16       <32        <64   ...
+// factor        1         2          4
+// maxNuma     RAM+4     RAM+8      RAM+16
+// maxTotal  maxNuma+64 maxNuma+64 maxNuma+64
+
+unsigned getMaxNumaRamMb(unsigned ram)
+{
+	unsigned factor = ceilDiv(ram/1024, 16);
+	return (ram + 4*factor*1024)/1024*1024;
+}
+
+unsigned getMaxTotalRamMb(unsigned ram)
+{
+	return getMaxNumaRamMb(ram) + 64*1024;
+}
+}
+
+
 Task_EditVm::Task_EditVm(const SmartPtr<CDspClient>& pClient,
 						 const SmartPtr<IOPackage>& p)
 : CDspTaskHelper(pClient, p)
@@ -1361,15 +1386,8 @@ PRL_RESULT Task_EditVm::editVm()
 			throw PRL_ERR_VMCONF_NEED_MORE_MEMORY_TO_ENABLE_HOTPLUG;
 		}
 
-
-		// We round up max memory and max numa memory to corresponding defaults.
-		// We add at least XML_DEFAULT_MAXNUMARAM_SIZE to be hot-plugged by balloon.
-		new_mem->setMaxNumaRamSize(
-				(new_mem_sz + 2*XML_DEFAULT_MAXNUMARAM_SIZE - 1)/
-				XML_DEFAULT_MAXNUMARAM_SIZE
-				*XML_DEFAULT_MAXNUMARAM_SIZE);
-		// And twice as much as max NUMA memory to be added by slots.
-		new_mem->setMaxRamSize(new_mem->getMaxNumaRamSize()*2);
+		new_mem->setMaxNumaRamSize(getMaxNumaRamMb(new_mem_sz));
+		new_mem->setMaxRamSize(getMaxTotalRamMb(new_mem_sz));
 
 		// bug #121857
 		PRL_UNDO_DISKS_MODE nOldUndoDisksMode
@@ -3637,14 +3655,6 @@ Vm::Action* Factory::operator()(const Request& input_) const
 
 namespace Cpu
 {
-
-namespace
-{
-quint64 ceilDiv(quint64 lhs_, quint64 rhs_)
-{
-	return (lhs_ + rhs_ - 1) / rhs_;
-}
-}
 
 namespace Limit
 {
