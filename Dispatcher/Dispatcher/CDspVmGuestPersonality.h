@@ -38,6 +38,8 @@
 
 namespace Personalize
 {
+QString getCdLabel();
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Configurator
 
@@ -48,6 +50,7 @@ struct Configurator
 	bool setNettool(const QStringList& args_) const;
 	bool setUserPassword(const QString& user_, const QString& passwd_, bool encrypted_) const;
 	bool merge() const;
+	bool clean() const;
 
 private:
 	bool execute(const QStringList& args_) const;
@@ -64,10 +67,11 @@ class CDspVmGuestPersonality: public QObject
 	Q_OBJECT
 
 public slots:
-	void slotVmConfigChanged(QString, QString);
+	void slotVmPersonalityChanged(QString, QString);
 
 private:
 	QString prepareNewCdrom(const CVmHardware& hardware_, const QString& image_) const;
+	QString attachCdrom() const;
 	QString getHomeDir(const QString& dirUuid_, const QString& vmUuid_) const;
 };
 

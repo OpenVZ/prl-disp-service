@@ -366,36 +366,43 @@ struct Essence<PVE::DspCmdVmInstallTools>: Need::Agent, Need::Config, Need::Cont
 		if (x.isEmpty())
 			return Error::Simple(PRL_ERR_TOOLS_UNSUPPORTED_GUEST);
 
-		foreach(CVmOpticalDisk *d, getConfig()->getVmHardwareList()->m_lstOpticalDisks)
-		{
-			if (!d->getEnabled())
-				continue;
+		CVmOpticalDisk empty;
+		CVmOpticalDisk* cd(NULL);
+		QList<CVmOpticalDisk* >::iterator last(getConfig()->getVmHardwareList()->m_lstOpticalDisks.end());
+		QList<CVmOpticalDisk* >::iterator it(
+				std::find_if(getConfig()->getVmHardwareList()->m_lstOpticalDisks.begin(),
+					last, boost::bind(&CVmOpticalDisk::getEnabled, _1)));
+		const char* event(EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE);
+		if (it == last) {
+			cd = &empty;
+			event = EVT_PARAM_VMCFG_NEW_DEVICE_CONFIG;
+		} else
+			cd = *it;
 
-			d->setSystemName(x);
-			d->setUserFriendlyName(x);
-			d->setConnected(PVE::DeviceConnected);
-			d->setEmulatedType(PVE::CdRomImage);
-			d->setRemote(false);
-			VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
-			Libvirt::Result e = getAgent().getState(s);
-			if (e.isFailed())
-				return e;
-			if (VMS_STOPPED != s)
-				e = getAgent().getRuntime().update(*d);
-			else
-			{
-				CVmEvent v;
-				v.addEventParameter(new CVmEventParameter(PVE::String,
-							d->toString(),
-							EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
-				::Personalize::Configurator(*getConfig()).merge();
-
-				Task_EditVm::atomicEditVmConfigByVm(getContext().getDirectoryUuid(),
-						getContext().getVmUuid(), v, getContext().getSession());
-			}
+		cd->setSystemName(x);
+		cd->setUserFriendlyName(x);
+		cd->setConnected(PVE::DeviceConnected);
+		cd->setEmulatedType(PVE::CdRomImage);
+		cd->setRemote(false);
+		cd->setEnabled(PVE::DeviceEnabled);
+		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+		Libvirt::Result e = getAgent().getState(s);
+		if (e.isFailed())
 			return e;
-		}
-		return Error::Simple(PRL_ERR_NO_CD_DRIVE_AVAILABLE);
+		if (VMS_STOPPED != s)
+			return getAgent().getRuntime().update(*cd);
+
+		CVmEvent v;
+		v.addEventParameter(new CVmEventParameter(PVE::String,
+							cd->toString(), event));
+
+		Task_EditVm::atomicEditVmConfigByVm(getContext().getDirectoryUuid(),
+			getContext().getVmUuid(), v, getContext().getSession());
+
+		::Personalize::Configurator(*getConfig()).merge();
+		CDspService::instance()->getVmStateSender()->onVmPersonalityChanged(
+			getContext().getDirectoryUuid(), getContext().getVmUuid());
+		return e;
 	}
 };
 
@@ -414,6 +421,14 @@ struct Essence<PVE::DspCmdVmGuestSetUserPasswd>: Need::Agent, Need::Config,
 					getCommand()->GetUserPassword(),
 					getCommand()->GetCommandFlags() & PSPF_PASSWD_CRYPTED))
 				return Error::Simple(PRL_ERR_OPERATION_FAILED);
+			CVmEvent v;
+			v.addEventParameter(new CVmEventParameter(PVE::String,
+						"", EVT_PARAM_VMCFG_NEW_DEVICE_CONFIG));
+
+			CDspService::instance()->getVmStateSender()->onVmPersonalityChanged(
+					getContext().getDirectoryUuid(), getContext().getVmUuid());
+			Task_EditVm::atomicEditVmConfigByVm(getContext().getDirectoryUuid(),
+					getContext().getVmUuid(), v, getContext().getSession());
 		}
 		else
 		{

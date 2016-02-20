@@ -66,6 +66,7 @@ public:
 
 	void onVmAdditionStateChanged( VIRTUAL_MACHINE_ADDITION_STATE nVmAdditionState, QString vmUuid, QString dirUuid );
 	void onVmConfigChanged(QString vmDirUuid_, QString vmUuid_);
+	void onVmPersonalityChanged(QString vmDirUuid_, QString vmUuid_);
 
 signals:
 	void signalVmStateChanged( unsigned int nVmOldState, unsigned int nVmNewState,
@@ -73,6 +74,7 @@ signals:
 	void signalSendVmStateChanged( unsigned int nVmState, QString vmUuid, QString dirUuid, bool notifyVm );
 	void signalSendVmAdditionStateChanged( unsigned int nVmAdditionState, QString vmUuid, QString dirUuid );
 	void signalSendVmConfigChanged(QString, QString);
+	void signalSendVmPersonalityChanged(QString, QString);
 
 public slots:
 	void slotSendVmStateChanged( unsigned int nVmState, QString vmUuid, QString dirUuid, bool notifyVm );

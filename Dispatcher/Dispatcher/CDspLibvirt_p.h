@@ -296,6 +296,7 @@ struct Coarse
 	QSharedPointer<Domain> access(virDomainPtr domain_);
 
 	static QString getUuid(virDomainPtr domain_);
+	void disconnectCd(virDomainPtr domain_, const QString& alias_);
 
 private:
 	QSharedPointer<System> m_fine;
@@ -355,6 +356,7 @@ private:
 	int m_eventWakeUp;
 	int m_eventDeviceConnect;
 	int m_eventDeviceDisconnect;
+	int m_eventTrayChange;
 	QWeakPointer<virConnect> m_libvirtd;
 	QSharedPointer<Model::System> m_view;
 };
