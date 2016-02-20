@@ -35,9 +35,9 @@ namespace Source
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
-bool Unit<CVmHardDisk>::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type& source_) const
+bool Unit<CVmHardDisk>::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 3>::type& source_) const
 {
-	const Libvirt::Domain::Xml::Source4* v = source_.getValue().get_ptr();
+	const Libvirt::Domain::Xml::Source3* v = source_.getValue().get_ptr();
 	if (NULL == v)
 		return false;
 
