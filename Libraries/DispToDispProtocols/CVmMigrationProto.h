@@ -239,6 +239,8 @@ public:
 	bool IsValid();
 	QStringList GetCheckPreconditionsResult();
 	QStringList GetNonSharedDisks();
+	QString GetConfig();
+	void SetConfig(const QString& config);
 };
 
 /**

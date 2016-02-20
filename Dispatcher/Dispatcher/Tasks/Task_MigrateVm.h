@@ -76,6 +76,8 @@ class Task_MigrateVmSource : public CDspTaskHelper, public Task_DispToDispConnHe
 	Q_OBJECT
 
 public:
+	typedef QList<QPair<QFileInfo, QString> > itemList_type;
+
 	Task_MigrateVmSource(
 		const SmartPtr<CDspClient> &,
 		const CProtoCommandPtr,
@@ -83,11 +85,21 @@ public:
 	~Task_MigrateVmSource();
 	virtual QString  getVmUuid() {return m_sVmUuid;}
 
-	Migrate::Vm::Source::Content::Copier* createCopier();
 	quint32 getFlags() const
 	{
 		return m_nMigrationFlags;
 	}
+	const CVmConfiguration *getTargetConfig() const
+	{
+		return m_targetConfig.data();
+	}
+	VIRTUAL_MACHINE_STATE getOldState() const
+	{
+		return m_nPrevVmState;
+	}
+	PRL_RESULT confirmFinish();
+	QList<CVmHardDisk* > getVmUnsharedDisks() const;
+	Migrate::Vm::Source::Content::Copier* createCopier();
 
 protected:
 	virtual PRL_RESULT prepareTask();
@@ -106,7 +118,6 @@ private:
 	void releaseLocks();
 
 	PRL_RESULT prepareStart();
-	PRL_RESULT confirmFinish(const SmartPtr<IOPackage>& package_);
 	PRL_RESULT reactCheckReply(const SmartPtr<IOPackage>& package_);
 	PRL_RESULT reactStartReply(const SmartPtr<IOPackage>& package_);
 
@@ -145,12 +156,13 @@ private:
 	QString m_sVmHomePath;
 	QStringList m_lstAllCheckFiles;
 	QStringList m_lstNonSharedDisks;
+	QScopedPointer<CVmConfiguration> m_targetConfig;
 
 	quint32 m_nSteps;
 
 	/* VM size */
-	QList<QPair<QFileInfo, QString> > m_dList;
-	QList<QPair<QFileInfo, QString> > m_fList;
+	itemList_type m_dList;
+	itemList_type m_fList;
 
 	PVE::IDispatcherCommands m_nRegisterCmd;
 };

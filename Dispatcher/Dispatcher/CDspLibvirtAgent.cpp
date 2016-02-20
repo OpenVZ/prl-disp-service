@@ -22,6 +22,7 @@
  */
 
 #include "CDspLibvirt.h"
+#include "CDspLibvirt_p.h"
 #include "CDspLibvirtExec.h"
 #include "CDspService.h"
 #include <boost/bind.hpp>
@@ -95,6 +96,72 @@ static Result do_(T* handle_, U action_)
 
 namespace Vm
 {
+namespace Migration
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Task
+
+Result Task::doOnline(const CVmConfiguration& config_, const QList<CVmHardDisk*>& disks_)
+{
+
+	unsigned int f = VIR_MIGRATE_PERSIST_DEST |
+				VIR_MIGRATE_CHANGE_PROTECTION |
+				VIR_MIGRATE_LIVE |
+				VIR_MIGRATE_COMPRESSED;
+	if (!disks_.isEmpty())
+		f |= VIR_MIGRATE_NON_SHARED_DISK;
+
+	Parameters::Builder b;
+	Online d(Config(m_domain, m_link, 0), config_, disks_);
+	Result e = d(b);
+	if (e.isFailed())
+		return e;
+
+	return doInternal(b, f);
+}
+
+Result Task::doOffline(const CVmConfiguration& config_)
+{
+	const unsigned int f = VIR_MIGRATE_PERSIST_DEST |
+				VIR_MIGRATE_CHANGE_PROTECTION |
+				VIR_MIGRATE_OFFLINE;
+	Parameters::Builder b;
+	Offline d(Config(m_domain, m_link, 0), config_);
+	Result e = d(b);
+	if (e.isFailed())
+		return e;
+
+	return doInternal(b, f);
+}
+
+Result Task::doInternal(Parameters::Builder& parameters_, unsigned int flags_)
+{
+	// shared to use cleanup callback only
+	QSharedPointer<virConnect> c(virConnectOpen(QSTR2UTF8(m_uri)),
+			virConnectClose);
+	if (c.isNull())
+		return Failure(PRL_ERR_FAILURE);
+
+	if (NULL == m_domain.data())
+		return Result(Error::Simple(PRL_ERR_UNINITIALIZED));
+
+	Parameters::Result_type p = parameters_.extract();
+	virDomainPtr d = virDomainMigrate3(m_domain.data(), c.data(),
+				p.first.data(), p.second, flags_);
+	if (NULL == d)
+		return Failure(PRL_ERR_FAILURE);
+
+	virDomainFree(d);
+	return Result();
+}
+
+Result Task::cancel()
+{
+	return do_(m_domain.data(), boost::bind(&virDomainAbortJob, _1));
+}
+
+} // namespace Migration
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
@@ -205,12 +272,6 @@ Result Unit::getState(VIRTUAL_MACHINE_STATE& dst_) const
 	return Result();
 }
 
-char* Unit::getConfig(bool runtime_) const
-{
-	return virDomainGetXMLDesc(m_domain.data(), VIR_DOMAIN_XML_SECURE
-		| (runtime_ ? 0 : VIR_DOMAIN_XML_INACTIVE));
-}
-
 Exec::AuxChannel* Unit::getChannel(const QString& path_) const
 {
 	virStreamPtr stream = virStreamNew(getLink().data(), VIR_STREAM_NONBLOCK);
@@ -239,40 +300,17 @@ QSharedPointer<virConnect> Unit::getLink() const
 
 Result Unit::getConfig(CVmConfiguration& dst_, bool runtime_) const
 {
-	Prl::Expected<VtInfo, Error::Simple> i = Host(getLink()).getVt();
-	if (i.isFailed())
-		return i.error();
-
-	char* x = getConfig(runtime_);
-	if (NULL == x)
-		return Error::Simple(PRL_ERR_VM_GET_CONFIG_FAILED);
-
-//	WRITE_TRACE(DBG_FATAL, "xml:\n%s", x);
-	Transponster::Vm::Direct::Vm u(x);
-	if (PRL_FAILED(Transponster::Director::domain(u, i.value())))
-		return Error::Simple(PRL_ERR_PARSE_VM_CONFIG);
-
-	CVmConfiguration* output = u.getResult();
-	if (NULL == output)
-		return Error::Simple(PRL_ERR_FAILURE);
-
-	output->getVmIdentification()
-		->setServerUuid(CDspService::instance()
-                        ->getDispConfigGuard().getDispConfig()
-                        ->getVmServerIdentification()->getServerUuid());
-	dst_ = *output;
-	delete output;
-	return Result();
+	Config config(m_domain, getLink(), runtime_ ? 0 : VIR_DOMAIN_XML_INACTIVE);
+	return config.convert(dst_);
 }
 
 Result Unit::getConfig(QString& dst_, bool runtime_) const
 {
-	char* x = getConfig(runtime_);
-	if (NULL == x)
-		return Result(Error::Simple(PRL_ERR_VM_GET_CONFIG_FAILED));
-
-	dst_ = x;
-	free(x);
+	Config config(m_domain, getLink(), runtime_ ? 0 : VIR_DOMAIN_XML_INACTIVE);
+	Prl::Expected<QString, Error::Simple> s = config.read();
+	if (s.isFailed())
+		return s.error();
+	dst_ = s.value();
 	return Result();
 }
 
@@ -282,15 +320,12 @@ Result Unit::setConfig(const CVmConfiguration& value_)
 	if (link_.isNull())
 		return Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
 
-	Prl::Expected<VtInfo, Error::Simple> i = Host(link_).getVt();
-	if (i.isFailed())
-		return i.error();
+	Config config(m_domain, link_, 0);
+	Prl::Expected<QString, Error::Simple> x = config.mixup(value_);
+	if (x.isFailed())
+		return x.error();
 
-	Transponster::Vm::Reverse::Mixer u(value_, getConfig());
-	if (PRL_FAILED(Transponster::Director::domain(u, i.value())))
-		return Error::Simple(PRL_ERR_BAD_VM_DIR_CONFIG_FILE_SPECIFIED);
-
-	virDomainPtr d = virDomainDefineXML(link_.data(), u.getResult().toUtf8().data());
+	virDomainPtr d = virDomainDefineXML(link_.data(), x.value().toUtf8().data());
 	if (NULL == d)
 		return Failure(PRL_ERR_VM_APPLY_CONFIG_FAILED);
 
@@ -315,6 +350,11 @@ Result Unit::completeConfig(CVmConfiguration& config_)
 		}
 	}
 	return Result();
+}
+
+Migration::Task Unit::migrate(const QString &uri_)
+{
+	return Migration::Task(m_domain, getLink(), uri_);
 }
 
 Result Unit::getUuid(QString& dst_) const

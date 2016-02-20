@@ -653,6 +653,8 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 		}
 	}
 
+	m_pVmConfig->getVmHardwareList()->RevertDevicesPathToAbsolute(m_sTargetVmHomePath);
+	m_pVmConfig->getVmIdentification()->setVmName(m_sVmName);
 
 	if (operationIsCancelled()) {
 		nRetCode = PRL_ERR_OPERATION_WAS_CANCELED;
@@ -1405,8 +1407,10 @@ void Task_MigrateVmTarget::unregisterHaClusterResource()
 PRL_RESULT Task_MigrateVmTarget::preconditionsReply()
 {
 	PRL_RESULT r;
-	CDispToDispCommandPtr cmd = CDispToDispProtoSerializer::CreateVmMigrateCheckPreconditionsReply(
-			m_lstCheckPrecondsErrors, m_lstNonSharedDisks, m_nFlags);
+	QScopedPointer<CVmMigrateCheckPreconditionsReply> cmd(
+			new CVmMigrateCheckPreconditionsReply(
+				m_lstCheckPrecondsErrors, m_lstNonSharedDisks, m_nFlags));
+	cmd->SetConfig(m_pVmConfig->toString());
 	SmartPtr<IOPackage> package = DispatcherPackage::createInstance(
 			cmd->GetCommandId(), cmd->GetCommand()->toString(), m_pCheckPackage);
 	r = m_dispConnection->sendPackageResult(package);
