@@ -408,9 +408,9 @@ void Ordinary<CVmHardDisk>::setSource()
 
 	if (PVE::BootCampHardDisk == getModel().getEmulatedType())
 	{
-		Libvirt::Domain::Xml::Source4 s;
+		Libvirt::Domain::Xml::Source3 s;
 		s.setVolume(getModel().getRealDeviceName());
-		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type x;
+		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 3>::type x;
 		x.setValue(s);
 		return m_result.setDiskSource(x);
 

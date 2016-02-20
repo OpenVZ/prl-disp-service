@@ -350,20 +350,20 @@ Libvirt::Domain::Xml::VDiskSource Ordinary<T>::getSource() const
 	{
 	case Flavor<T>::image:
 	{
-		Libvirt::Domain::Xml::Source s;
+		Libvirt::Domain::Xml::Source4 s;
 		QString f = getModel().getImageFile();
 		if (!f.isEmpty() && getModel().isConnected())
 			s.setFile(f);
 		s.setStartupPolicy(Libvirt::Domain::Xml::EStartupPolicyOptional);
-		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 0>::type x;
+		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type x;
 		x.setValue(s);
 		return x;
 	}
 	case Flavor<T>::real:
 	{
-		Libvirt::Domain::Xml::Source1 s;
+		Libvirt::Domain::Xml::Source s;
 		s.setDev(getModel().getRealDeviceName());
-		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 1>::type x;
+		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 0>::type x;
 		x.setValue(s);
 		return x;
 	}
