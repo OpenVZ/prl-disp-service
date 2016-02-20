@@ -83,6 +83,12 @@ namespace Instrument
 {
 namespace Agent
 {
+namespace Parameters
+{
+struct Builder;
+
+} // namespace Parameters
+
 namespace Vm
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -207,6 +213,34 @@ struct AuxChannel;
 
 } // namespace Exec
 
+namespace Migration
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Task
+
+struct Task
+{
+	Task(QSharedPointer<virDomain> domain_,
+		QSharedPointer<virConnect> link_,
+		const QString& uri_)
+		: m_domain(domain_), m_link(link_), m_uri(uri_)
+	{
+	}
+
+	Result doOnline(const CVmConfiguration &config_, const QList<CVmHardDisk*>& disks_);
+	Result doOffline(const CVmConfiguration &config_);
+	Result cancel();
+
+private:
+	Result doInternal(Parameters::Builder& parameters_, unsigned int flags_);
+
+	QSharedPointer<virDomain> m_domain;
+	QSharedPointer<virConnect> m_link;
+	QString m_uri;
+};
+
+} // namespace Migration
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
@@ -233,6 +267,9 @@ struct Unit
 	Result getConfig(QString& dst_, bool runtime_ = false) const;
 	Result setConfig(const CVmConfiguration& value_);
 	Result completeConfig(CVmConfiguration& config_);
+
+	Migration::Task migrate(const QString& uri_);
+
 	List up() const;
 	Performance getPerformance() const
 	{
@@ -247,7 +284,6 @@ struct Unit
 	Exec::AuxChannel* getChannel(const QString& path_) const;
 
 private:
-	char* getConfig(bool runtime_ = false) const;
 	QSharedPointer<virConnect> getLink() const;
 
 	QSharedPointer<virDomain> m_domain;

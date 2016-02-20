@@ -148,13 +148,6 @@ struct Frontend: msmf::state_machine_def<T>
 	}
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Copying
-
-struct Copying: Trace<Copying>
-{
-};
-
 namespace Flop
 {
 typedef boost::variant<PRL_RESULT, SmartPtr<CVmEvent> > unexpected_type;

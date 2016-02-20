@@ -60,7 +60,9 @@ namespace Content
 
 struct Frontend: Vm::Frontend<Frontend>
 {
-	typedef Copying initial_state;
+	typedef struct Copying: Trace<Copying>
+	{
+	} initial_state;
 
 	struct Good
 	{

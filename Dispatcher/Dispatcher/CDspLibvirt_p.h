@@ -383,6 +383,96 @@ private:
 	QSharedPointer<Model::Domain> m_view;
 };
 
+namespace Agent
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Config
+
+struct Config
+{
+	Config(QSharedPointer<virDomain> domain_,
+		QSharedPointer<virConnect> link_,
+		unsigned int flags_);
+
+	Prl::Expected<QString, Error::Simple> read() const;
+
+	Result convert(CVmConfiguration& dst_) const;
+	Prl::Expected<QString, Error::Simple> mixup(const CVmConfiguration& value_) const;
+
+private:
+	char* read_() const;
+
+	QSharedPointer<virDomain> m_domain;
+	QSharedPointer<virConnect> m_link;
+	unsigned int m_flags;
+};
+
+namespace Parameters
+{
+typedef QPair<QSharedPointer<virTypedParameter>, qint32> Result_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+// reuseable, you can add many cycles of "add, add, ..., extract"
+struct Builder: noncopyable
+{
+	Builder();
+	~Builder();
+
+	bool add(const char *key_, const QString& value_);
+	Result_type extract();
+
+private:
+	virTypedParameterPtr m_pointer;
+	qint32 m_size;
+	qint32 m_capacity;
+};
+
+} // namespace Parameters
+
+namespace Vm
+{
+namespace Migration
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Offline
+
+struct Offline
+{
+	Offline(const Config& agent_, const CVmConfiguration& config_):
+		m_agent(agent_), m_config(&config_)
+	{
+	}
+
+	Result operator()(Parameters::Builder& builder_);
+
+private:
+	Config m_agent;
+	const CVmConfiguration* m_config;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Online
+
+struct Online: private Offline
+{
+	Online(const Config& agent_, const CVmConfiguration& config_,
+		const QList<CVmHardDisk* >& disks_):
+		Offline(agent_, config_), m_disks(disks_)
+	{
+	}
+
+	Result operator()(Parameters::Builder& builder_);
+
+private:
+	QList<CVmHardDisk* > m_disks;
+};
+
+} // namespace Migration
+} // namespace Vm
+} // namespace Agent
+
 namespace Breeding
 {
 ///////////////////////////////////////////////////////////////////////////////

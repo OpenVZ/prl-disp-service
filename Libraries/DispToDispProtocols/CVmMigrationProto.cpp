@@ -209,6 +209,16 @@ QStringList CVmMigrateCheckPreconditionsReply::GetNonSharedDisks()
 	return (GetStringListParamValue(EVT_PARAM_MIGRATE_CHECK_PRECONDITIONS_NON_SHARED));
 }
 
+QString CVmMigrateCheckPreconditionsReply::GetConfig()
+{
+	return GetStringParamValue("migrate_check_preconditions_config");
+}
+
+void CVmMigrateCheckPreconditionsReply::SetConfig(const QString& config)
+{
+	SetStringParamValue(config, "migrate_check_preconditions_config");
+}
+
 //**********************************************Start migration command implementation*********************************
 
 CVmMigrateStartCommand::CVmMigrateStartCommand(

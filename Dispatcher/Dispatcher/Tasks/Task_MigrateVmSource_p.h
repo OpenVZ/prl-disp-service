@@ -40,6 +40,7 @@
 #include <boost/msm/back/state_machine.hpp>
 #include <boost/msm/front/state_machine_def.hpp>
 #include <Libraries/VmFileList/CVmFileListCopy.h>
+#include "CDspLibvirt.h"
 
 class Task_MigrateVmSource;
 
@@ -55,14 +56,67 @@ typedef Pump::Event<Parallels::VmMigrateCheckPreconditionsReply> CheckReply;
 typedef Pump::Event<Parallels::VmMigrateReply> StartReply;
 typedef Pump::Event<Parallels::DispToDispResponseCmd> PeerFinished;
 
+namespace Shadow
+{
+typedef Vm::Libvirt::Running runningState_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+struct Connector: QObject, Vm::Connector::Base<Machine_type>
+{
+public slots:
+	void finished();
+
+private:
+	Q_OBJECT
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Table
+
+template<class T>
+struct Table
+{
+	typedef typename boost::mpl::push_back
+		<
+			typename boost::mpl::push_back
+			<
+				T,
+				msmf::Row<runningState_type, Flop::Event, Flop::State>
+			>::type,
+			msmf::Row<runningState_type, boost::mpl::true_, Success>
+		>::type type;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+template<class T, class U>
+struct Frontend: Vm::Frontend<U>, Vm::Connector::Mixin<Shadow::Connector>
+{
+	template<typename Event, typename FSM>
+	void on_exit(const Event& event_, FSM& fsm_);
+
+protected:
+	void launch(T* task_);
+
+private:
+	QSharedPointer<T> m_task;
+	QSharedPointer<QFutureWatcher<Flop::Event> > m_watcher;
+};
+
+} // namespace Shadow
+
 namespace Content
 {
+typedef QList<QPair<QFileInfo, QString> > itemList_type;
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Copier
 
 struct Copier
 {
-	typedef QList<QPair<QFileInfo, QString> > itemList_type;
 	typedef SmartPtr<CVmFileListCopySender> sender_type;
 	typedef SmartPtr<CVmFileListCopySource> copier_type;
 
@@ -82,6 +136,23 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Task
+
+struct Task
+{
+	Task(Task_MigrateVmSource& task_, const itemList_type& folders_,
+		const itemList_type &files_);
+
+	Flop::Event run();
+	void cancel();
+
+private:
+	const itemList_type* m_files;
+	const itemList_type* m_folders;
+	QScopedPointer<Copier> m_copier;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Flag
 
 struct Flag
@@ -89,57 +160,33 @@ struct Flag
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Connector
-
-struct Connector: QObject, Vm::Connector::Base<Machine_type>
-{
-public slots:
-	void finished();
-
-private:
-	Q_OBJECT
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
+struct Frontend: Shadow::Frontend<Task, Frontend>
 {
-	typedef Copying initial_state;
 	typedef boost::mpl::vector1<Flag> flag_list;
+	typedef Shadow::runningState_type initial_state;
 
-	struct Good
-	{
-	};
-
-	Frontend(Task_MigrateVmSource& task_, const Copier::itemList_type& folderList_,
-		const Copier::itemList_type& fileList_): m_task(&task_), m_fileList(&fileList_),
-		m_folderList(&folderList_)
+	explicit Frontend(const boost::function0<Task* >& factory_): m_factory(factory_)
 	{
 	}
 	Frontend()
 	{
 	}
 
-	template <typename Event, typename FSM>
-	void on_entry(const Event&, FSM&);
+	template<typename Event, typename FSM>
+	void on_entry(const Event& event_, FSM& fsm_)
+	{
+		Vm::Frontend<Frontend>::on_entry(event_, fsm_);
+		launch(m_factory());
+	}
 
-	template <typename Event, typename FSM>
-	void on_exit(const Event&, FSM&);
-
-	struct transition_table : boost::mpl::vector<
-		_row<Copying,	Flop::Event,	Flop::State>,
-		_row<Copying,	Good,		Success>
-	>
+	struct transition_table: Shadow::Table<boost::mpl::vector<> >::type
 	{
 	};
 
 private:
-	Task_MigrateVmSource *m_task;
-	QSharedPointer<Copier> m_copier;
-	const Copier::itemList_type* m_fileList;
-	const Copier::itemList_type* m_folderList;
-	QSharedPointer<QFutureWatcher<Flop::Event> > m_watcher;
+	boost::function0<Task* > m_factory;
 };
 
 } // namespace Content
@@ -147,34 +194,58 @@ private:
 namespace Libvirt
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Frontend
+// struct Task
 
-struct Frontend: Vm::Libvirt::Frontend_<Frontend, Machine_type>
+struct Task
 {
-	typedef Vm::Libvirt::Running initial_state;
+	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Task agent_type;
 
-	Frontend(const QString& vmname_, VIRTUAL_MACHINE_STATE hint_):
-		m_vmname(vmname_), m_hint(hint_)
+	Task(const agent_type& agent_, Task_MigrateVmSource& task_):
+		m_agent(agent_), m_task(&task_)
 	{
 	}
 
-	Frontend(): m_hint(VMS_UNKNOWN)
+	Flop::Event run();
+	void cancel();
+
+private:
+	agent_type m_agent;
+	Task_MigrateVmSource *m_task;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+struct Frontend: Shadow::Frontend<Task, Frontend>
+{
+	typedef Vm::Tunnel::Ready initial_state;
+
+	explicit Frontend(Task_MigrateVmSource& task_): m_task(&task_)
+	{
+	}
+	Frontend(): m_task()
 	{
 	}
 
 	void start(const QSharedPointer<QTcpServer>& event_);
 
-	struct transition_table: boost::mpl::vector<
-		a_row<initial_state,	QSharedPointer<QTcpServer>,initial_state,&Frontend::start>,
-		_row<initial_state,	Flop::Event,		Flop::State>,
-		_row<initial_state,	boost::mpl::true_,	Success>
-	>
+	typedef boost::mpl::vector
+		<
+			a_row
+			<
+				initial_state,
+				QSharedPointer<QTcpServer>,
+				Shadow::runningState_type,
+				&Frontend::start
+			>
+		> grub_type;
+
+	struct transition_table: Shadow::Table<grub_type>::type
 	{
 	};
 
 private:
-	QString m_vmname;
-	VIRTUAL_MACHINE_STATE m_hint;
+	Task_MigrateVmSource* m_task;
 };
 
 } // namespace Libvirt
@@ -234,9 +305,7 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 {
 	typedef Pump::Frontend<Machine_type, boost::mpl::true_> pump_type;
 	typedef boost::msm::back::state_machine<pump_type> Pumping;
-	typedef struct Idle: Trace<Idle>
-	{
-	} initial_state; 
+	typedef Vm::Tunnel::Prime initial_state;
 
 	explicit Frontend(IO& service_) : m_service(&service_)
 	{
@@ -254,12 +323,11 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	void accept(const Accepted&);
 
 	struct transition_table : boost::mpl::vector<
-		msmf::Row<initial_state,			Flop::Event,		Flop::State>,
-		msmf::Row<initial_state,			msmf::none,		Vm::Tunnel::Prime>,
-		a_row<Vm::Tunnel::Prime,			Accepted,		Vm::Tunnel::Ready,	&Frontend::accept>,
-		msmf::Row<Vm::Tunnel::Ready,			Pump::Launch_type,	Pumping>,
-		msmf::Row<Pumping::exit_pt<Success>,		msmf::none,		Success>,
-		msmf::Row<Pumping::exit_pt<Flop::State>,	Flop::Event,		Flop::State>
+		msmf::Row<initial_state,                 Flop::Event,       Flop::State>,
+		a_row<initial_state,                     Accepted,          Vm::Tunnel::Ready, &Frontend::accept>,
+		msmf::Row<Vm::Tunnel::Ready,             Pump::Launch_type, Pumping>,
+		msmf::Row<Pumping::exit_pt<Success>,     msmf::none,        Success>,
+		msmf::Row<Pumping::exit_pt<Flop::State>, Flop::Event,       Flop::State>
 	>
 	{
 	};
@@ -324,12 +392,13 @@ struct Workflow: Vm::Frontend<Workflow>
 
 struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 {
+	typedef Pipeline::Frontend<Machine_type, PeerFinished> peerQuit_type;
 	typedef Join<boost::mpl::vector<
 			Workflow,
-			Pipeline::Frontend<Machine_type, PeerFinished>,
 			Pipeline::Frontend<Machine_type, Pump::FinishCommand_type> > >
 		join_type;
 	typedef boost::msm::back::state_machine<join_type> initial_state;
+	typedef boost::msm::back::state_machine<peerQuit_type> peerQuit_state;
 
 	Frontend(Task_MigrateVmSource &task, Tunnel::IO& io_): m_io(&io_), m_task(&task)
 	{
@@ -344,14 +413,17 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	template <typename Event, typename FSM>
 	void on_exit(const Event&, FSM&);
 
+	void pokePeer(const msmf::none&);
 	void setResult(const msmf::none&);
 	void setResult(const Flop::Event& value_);
 
 	struct transition_table : boost::mpl::vector<
 		// wire error exits to FINISHED immediately
-		a_row<initial_state::exit_pt<Flop::State>, Flop::Event, Finished, &Frontend::setResult>,
+		a_row<initial_state::exit_pt<Flop::State>, Flop::Event,Finished,      &Frontend::setResult>,
+		a_row<peerQuit_state::exit_pt<Flop::State>,Flop::Event,Finished,      &Frontend::setResult>,
 		// wire success exits sequentially up to FINISHED
-		a_row<initial_state::exit_pt<Success>,	msmf::none,	Finished, &Frontend::setResult>
+		a_row<initial_state::exit_pt<Success>,     msmf::none, peerQuit_state,&Frontend::pokePeer>,
+		a_row<peerQuit_state::exit_pt<Success>,    msmf::none, Finished,      &Frontend::setResult>
 	>
 	{
 	};

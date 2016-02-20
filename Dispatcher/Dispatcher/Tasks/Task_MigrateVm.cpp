@@ -58,6 +58,7 @@
 #include "Libraries/PrlCommonUtils/CVmMigrateHelper.h"
 #include <prlxmlmodel/Messaging/CVmEventParameterList.h>
 #include "Task_MigrateVmSource_p.h"
+#include <boost/functional/factory.hpp>
 
 namespace Migrate
 {
@@ -65,6 +66,59 @@ namespace Vm
 {
 namespace Source
 {
+namespace Shadow
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+void Connector::finished()
+{
+	Flop::Event r = static_cast<QFutureWatcher<Flop::Event>* >(sender())->result();
+	if (r.isFailed())
+		handle(r);
+	else
+		handle(boost::mpl::true_());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+template<class T, class U>
+template<typename Event, typename FSM>
+void Frontend<T, U>::on_exit(const Event& event_, FSM& fsm_)
+{
+	Vm::Frontend<U>::on_exit(event_, fsm_);
+	if (m_task.isNull())
+		return;
+
+	m_watcher->disconnect(SIGNAL(finished()), this->getConnector(), SLOT(finished()));
+	m_task->cancel();
+	m_watcher->waitForFinished();
+	m_watcher.clear();
+	m_task.clear();
+}
+
+template<class T, class U>
+void Frontend<T, U>::launch(T* task_)
+{
+	m_task = QSharedPointer<T>(task_);
+	if (m_task.isNull())
+	{
+		WRITE_TRACE(DBG_FATAL, "task is NULL");
+		return this->getConnector()->handle(Flop::Event(PRL_ERR_INVALID_ARG));
+	}
+	m_watcher = QSharedPointer<QFutureWatcher<Flop::Event> >(new QFutureWatcher<Flop::Event>());
+	bool x = this->getConnector()->connect(m_watcher.data(), SIGNAL(finished()), SLOT(finished()));
+	if (!x)
+	{
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+		return this->getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
+	}
+	m_watcher->setFuture(QtConcurrent::run(boost::bind(&T::run, m_task.data())));
+}
+
+} // namespace Shadow
+
 namespace Content
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -90,43 +144,25 @@ void Copier::cancel()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Connector
+// struct Task
 
-void Connector::finished()
+Task::Task(Task_MigrateVmSource& task_, const itemList_type& folders_,
+	const itemList_type &files_): m_files(&files_), m_folders(&folders_),
+	m_copier(task_.createCopier())
 {
-	Flop::Event r = static_cast<QFutureWatcher<Flop::Event>* >(sender())->result();
-	if (r.isFailed())
-		handle(r);
-	else
-		handle(Frontend::Good());
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Frontend
-
-template <typename Event, typename FSM>
-void Frontend::on_entry(const Event& event_, FSM& fsm_)
+Flop::Event Task::run()
 {
-	Vm::Frontend<Frontend>::on_entry(event_, fsm_);
-	m_copier = QSharedPointer<Copier>(m_task->createCopier());
-	m_watcher = QSharedPointer<QFutureWatcher<Flop::Event> >(new QFutureWatcher<Flop::Event>());
-	bool x = getConnector()->connect(m_watcher.data(), SIGNAL(finished()), SLOT(finished()));
-	if (!x)
-		WRITE_TRACE(DBG_FATAL, "can't connect");
-	m_watcher->setFuture(QtConcurrent::run(m_copier.data(), &Copier::execute,
-		boost::cref(*m_folderList), boost::cref(*m_fileList)));
+	if (m_copier.isNull())
+		return Flop::Event(PRL_ERR_UNINITIALIZED);
+
+	return m_copier->execute(*m_folders, *m_files);
 }
-
-template <typename Event, typename FSM>
-void Frontend::on_exit(const Event& event_, FSM& fsm_)
+void Task::cancel()
 {
-	Vm::Frontend<Frontend>::on_exit(event_, fsm_);
-	m_watcher->disconnect(SIGNAL(finished()),
-			getConnector(), SLOT(finished()));
-	m_copier->cancel();
-	m_watcher->waitForFinished();
-	m_watcher.clear();
-	m_copier.clear();
+	if (!m_copier.isNull())
+		m_copier->cancel();
 }
 
 } // namespace Content
@@ -134,28 +170,46 @@ void Frontend::on_exit(const Event& event_, FSM& fsm_)
 namespace Libvirt
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Task
+
+Flop::Event Task::run()
+{
+	const CVmConfiguration* x = m_task->getTargetConfig();
+	if (NULL == x)
+		return Flop::Event(PRL_ERR_NO_DATA);
+
+	::Libvirt::Result r;
+	switch (m_task->getOldState())
+	{
+	case VMS_PAUSED:
+	case VMS_RUNNING:
+		r = m_agent.doOnline(*x, m_task->getVmUnsharedDisks());
+		break;
+	default:
+		r = m_agent.doOffline(*x);
+		break;
+	}
+
+	if (r.isSucceed())
+		return Flop::Event();
+
+	return Flop::Event(SmartPtr<CVmEvent>(new CVmEvent(r.error().convertToEvent())));
+}
+
+void Task::cancel()
+{
+	m_agent.cancel();
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
 void Frontend::start(const QSharedPointer<QTcpServer>& event_)
 {
-	QStringList a;
-
-	a << "migrate";
-	a << m_vmname;
-	a << QString("qemu+tcp://localhost:%1/system").arg(event_->serverPort());
-	a << "--persistent";
-	a << "--change-protection";
-	switch (m_hint)
-	{
-	case VMS_PAUSED:
-	case VMS_RUNNING:
-		a << "--live";
-		a << "--compressed";
-		break;
-	default:
-		a << "--offline";
-	}
-	getConnector()->launch("virsh", a);
+	const QString u = QString("qemu+tcp://localhost:%1/system")
+		.arg(event_->serverPort());
+	Task::agent_type a = ::Libvirt::Kit.vms().at(m_task->getVmUuid()).migrate(u);
+	launch(new Task(a, *m_task));
 }
 
 } // namespace Libvirt
@@ -212,8 +266,9 @@ void IO::reactReceived(const SmartPtr<IOPackage>& package)
 	emit onReceived(package);
 }
 
-void IO::reactSend(IOClientInterface*, IOSendJob::Result, const SmartPtr<IOPackage>)
+void IO::reactSend(IOClientInterface*, IOSendJob::Result, const SmartPtr<IOPackage> package_)
 {
+	Q_UNUSED(package_);
 	emit onSent();
 }
 
@@ -346,6 +401,11 @@ void Frontend::on_exit(const Event& event_, FSM& fsm_)
 	m_io->disconnect(SIGNAL(onReceived(const SmartPtr<IOPackage>&)),
 			getConnector(), SLOT(react(const SmartPtr<IOPackage>&)));
 	m_io->disconnect(SIGNAL(disconnected()), getConnector(), SLOT(cancel()));
+}
+
+void Frontend::pokePeer(const msmf::none&)
+{
+	m_task->confirmFinish();
 }
 
 void Frontend::setResult(const msmf::none&)
@@ -1221,22 +1281,21 @@ PRL_RESULT Task_MigrateVmSource::run_body()
 		<< boost::mpl::at_c<mvs::Workflow::moving_type::initial_state, 0>::type
 			(boost::ref(io))
 		<< boost::mpl::at_c<mvs::Workflow::moving_type::initial_state, 1>::type
-			(m_pVmConfig->getVmIdentification()->getVmName(), m_nPrevVmState));
+			(boost::ref(*this)));
+	mvs::Workflow::copyStep_type c(boost::bind(boost::factory<mvs::Content::Task* >(),
+		boost::ref(*this), boost::cref(m_dList), boost::cref(m_fList)));
 
 	boost::mpl::at_c<join_type, 0>::type w(boost::msm::back::states_
 		<< mvs::Workflow::checkStep_type(boost::bind
 			(&Task_MigrateVmSource::reactCheckReply, this, _1), timeout)
 		<< mvs::Workflow::startStep_type(boost::bind
 			(&Task_MigrateVmSource::reactStartReply, this, _1), timeout)
-		<< mvs::Workflow::copyStep_type(boost::ref(*this), boost::cref(m_dList), boost::cref(m_fList))
-		<< m);
+		<< c << m);
 	backend_type machine(boost::msm::back::states_
 		<< mvs::Frontend::initial_state(boost::msm::back::states_
-			<< boost::mpl::at_c<join_type, 1>::type(finishing_timeout)
-			<< boost::mpl::at_c<join_type, 2>::type(
-				boost::bind(&Task_MigrateVmSource::confirmFinish, this, _1),
-				~0)
+			<< boost::mpl::at_c<join_type, 1>::type(~0)
 			<< w)
+		<< mvs::Frontend::peerQuit_state(finishing_timeout)
 		<< Migrate::Vm::Finished(*this),
 		boost::ref(*this), boost::ref(io));
 	(Migrate::Vm::Walker<backend_type>(machine))();
@@ -1343,6 +1402,13 @@ PRL_RESULT Task_MigrateVmSource::reactCheckReply(const SmartPtr<IOPackage>& pack
 	QStringList lstErrors = pResponseCmd->GetCheckPreconditionsResult();
 	m_nRemoteVersion = pResponseCmd->GetVersion();
 	m_nReservedFlags = pResponseCmd->GetCommandFlags();
+	m_targetConfig.reset(new CVmConfiguration(pResponseCmd->GetConfig()));
+	if (PRL_FAILED(m_targetConfig->m_uiRcInit))
+	{
+		WRITE_TRACE(DBG_FATAL, "Error on parsing updated config:\n%s",
+				QSTR2UTF8(pResponseCmd->GetConfig()));
+		return PRL_ERR_PARSE_VM_CONFIG;
+	}
 	if (m_nRemoteVersion >= MIGRATE_DISP_PROTO_V4)
 		m_lstNonSharedDisks = pResponseCmd->GetNonSharedDisks();
 
@@ -1390,14 +1456,36 @@ PRL_RESULT Task_MigrateVmSource::reactCheckReply(const SmartPtr<IOPackage>& pack
 	return prepareStart();
 }
 
-PRL_RESULT Task_MigrateVmSource::confirmFinish(const SmartPtr<IOPackage>& package_)
+PRL_RESULT Task_MigrateVmSource::confirmFinish()
 {
-	Q_UNUSED(package_);
 	SmartPtr<IOPackage> p = IOPackage::createInstance
 		(Migrate::Vm::Pump::FinishCommand_type::s_command, 1);
 	if (!p.isValid())
 		return PRL_ERR_FAILURE;
 
 	return SendPkg(p);
+}
+
+QList<CVmHardDisk* > Task_MigrateVmSource::getVmUnsharedDisks() const
+{
+	QList<CVmHardDisk* > output;
+	foreach (CVmHardDisk* d, m_pVmConfig->getVmHardwareList()->m_lstHardDisks)
+	{
+		if (m_lstNonSharedDisks.contains(d->getSystemName()))
+			output << d;
+	}
+	if (0 == (m_nReservedFlags & PVM_DONT_COPY_VM))
+	{
+		foreach (CVmHardDisk* d, m_pVmConfig->getVmHardwareList()->m_lstHardDisks)
+		{
+			if (!d->getEnabled() ||
+				d->getEmulatedType() != PVE::HardDiskImage)
+				continue;
+
+			if (!QFileInfo(d->getSystemName()).isAbsolute())
+				output << d;
+		}
+	}
+	return output;
 }
 
