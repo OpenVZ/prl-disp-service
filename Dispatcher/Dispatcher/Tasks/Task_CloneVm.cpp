@@ -1646,7 +1646,8 @@ void Task_CloneVm::finalizeTask()
 
 		CDspService::instance()->getClientManager().sendPackageToVmClients( p,
 			getClient()->getVmDirectoryUuid(), m_pVmInfo->vmUuid );
-		CDspService::instance()->getVmStateSender()->onVmConfigChanged(getClient()->getVmDirectoryUuid(), m_newVmUuid);	
+		CDspService::instance()->getVmStateSender()->onVmPersonalityChanged(
+			getClient()->getVmDirectoryUuid(), m_pVmInfo->vmUuid);
 	}
 	// delete temporary registration
 	if (m_pVmInfo && m_flgLockRegistred)
