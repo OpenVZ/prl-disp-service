@@ -976,26 +976,6 @@ namespace Memory
 namespace Flavor
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Reclaimable
-
-struct Reclaimable {
-
-	typedef const ProcPerfStoragesContainer source_type;
-	typedef quint64 value_type;
-
-	static const char *getName()
-	{
-		return PRL_WS_RECLAIMABLE_PTRN;
-	}
-
-	static quint32 extract(source_type &c)
-	{
-		// pages to bytes
-		return GetPerfCounter(c, "kernel.ws.reclaimable") << 12;
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Used
 
 struct Used {
@@ -1087,7 +1067,6 @@ struct MemoryConversion {
 	}
 };
 
-typedef SingleCounter<Flavor::Reclaimable, MemoryConversion> Reclaimable;
 typedef SingleCounter<Flavor::Used, MemoryConversion> Used;
 typedef SingleCounter<Flavor::Cached, MemoryConversion> Cached;
 typedef SingleCounter<Flavor::Total, MemoryConversion> Total;
@@ -2357,7 +2336,6 @@ void Collector::collectVmOnline(CDspVm &vm, const CVmConfiguration &config)
 	collect(GuestTimeDelta(t));
 	collect(HostTimeDelta(t));
 
-	collect(Memory::Reclaimable(ct));
 	collect(Memory::Used(ct));
 	collect(Memory::Cached(ct));
 	collect(Memory::Total(ct));
@@ -3252,7 +3230,6 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 		nVmUptime = pVm->getVmProcessUptimeInSecs();
 
 		CDspStatCollector::GetProcsStatInfo(pProcsStatInfo, pVm->getVmProcessId());
-		usage = Vm::Counter::Memory::Reclaimable(*ct.getPtr()).getValue();
 
 		using namespace Vm::Counter;
 		typedef QPair<Meter, Meter> VmMeter;
