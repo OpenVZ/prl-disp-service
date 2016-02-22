@@ -720,7 +720,7 @@ Exec::Exec::executeInAgent(const QString& cmd)
 
 		Libvirt::Agent::Failure r(PRL_ERR_FAILURE);
 		if (r.virErrorCode() != VIR_ERR_AGENT_UNSYNCED)
-			break;
+			return r;
 
 		if (i == 30)
 			return r;
