@@ -502,37 +502,90 @@ struct Essence<PVE::DspCmdVmCreateSnapshot>: Need::Agent, Need::Context,
 	}
 };
 
-template<>
-struct Essence<PVE::DspCmdVmSwitchToSnapshot>: Need::Agent, Need::Context,
-	Need::Command<CProtoSwitchToSnapshotCommand>, Need::Config
+namespace Snapshot
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// class Vcmmd
+
+template <class T>
+struct Vcmmd: Need::Agent, Need::Context, Need::Config, Need::Command<CProtoSwitchToSnapshotCommand>
+{
+	Libvirt::Result operator()()
+	{
+		CSavedStateTree t;
+		Libvirt::Result output = getAgent().getSnapshot()
+			.at(getCommand()->GetSnapshotUuid()).getState(t);
+		if (output.isFailed())
+			return output;
+
+		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+		Libvirt::Result e = getAgent().getState(s);
+		if (e.isFailed())
+			return e;
+
+		::Vcmmd::Frontend< ::Vcmmd::Unregistered> v(getContext().getVmUuid());
+
+		switch(t.GetVmState())
+		{
+		case PVE::SnapshotedVmRunning:
+		case PVE::SnapshotedVmPaused:
+		{
+			if (s == VMS_RUNNING || s == VMS_PAUSED)
+			{
+				e = Vm::Gear<Tag::State<Vm::Shutdown::Killer, Vm::Fork::State::Strict<VMS_STOPPED> > >::
+					run(getContext().getVmUuid());
+
+				if (e.isFailed())
+					return e;
+			}
+
+			quint64 ramsize = getConfig()->
+				getVmHardwareList()->getMemory()->getRamSize();
+			quint64 guarantee = ::Vm::Config::MemGuarantee(getConfig()->
+				getVmHardwareList()->getMemory())(ramsize);
+
+			if (PRL_SUCCEEDED(v(::Vcmmd::Unregistered(ramsize<<20, guarantee<<20))))
+				break;
+
+			return Error::Simple(PRL_ERR_UNABLE_APPLY_MEMORY_GUARANTEE);
+		}
+		case PVE::SnapshotedVmPoweredOff:
+		case PVE::SnapshotedVmSuspended:
+			// no action and no rollback needed;
+			v.commit();
+			break;
+		}
+
+		output = Vm::Prepare::Policy<T>::do_(T(), getContext());
+
+		if (output.isSucceed())
+			v.commit();
+
+		return output;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class Revert
+
+template <class T>
+struct Revert: Need::Context, Need::Config, Need::Command<CProtoSwitchToSnapshotCommand>
 {
 	Libvirt::Result operator()()
 	{
 		Libvirt::Snapshot::Stash s(getConfig(), getCommand()->GetSnapshotUuid());
-		Libvirt::Result output = revertBundle(s);
-		if (output.isFailed())
-			return output;
-
-		output = getAgent().getSnapshot()
-			.at(getCommand()->GetSnapshotUuid()).revert();
-		if (output.isSucceed())
-			s.commit();
-
-		return output;
-	}
-
-private:
-	Libvirt::Result revertBundle(Libvirt::Snapshot::Stash& stash_)
-	{
 		QString h(getConfig()->getVmIdentification()->getHomePath());
-		SmartPtr<CVmConfiguration> c(stash_.restoreConfig(h));
+		SmartPtr<CVmConfiguration> c = s.restoreConfig(h);
 		if (!c.isValid())
 		{
 			WRITE_TRACE(DBG_FATAL, "Unable to restore %s", qPrintable(h));
 			return Error::Simple(PRL_ERR_FAILURE);
 		}
+
 		PRL_RESULT e = CDspService::instance()->getVmConfigManager().saveConfig(
 			c, h, getContext().getSession(), true, true);
+
 		if (PRL_FAILED(e))
 		{
 			WRITE_TRACE(DBG_FATAL, "Unable to save restored cfg %s", qPrintable(h));
@@ -540,11 +593,29 @@ private:
 		}
 	        CStatesHelper x(h);
 		x.dropStateFiles();
-		stash_.restore(QStringList(x.getSavFileName()));
+		s.restore(QStringList(x.getSavFileName()));
 
-		return Libvirt::Result();
+		Libvirt::Result output = Vm::Prepare::Policy<T>::do_(T(), getContext());
+
+		if (output.isSucceed())
+			s.commit();
+
+		return output;
 	}
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// class Switch
+
+struct Switch: Need::Agent, Need::Command<CProtoSwitchToSnapshotCommand>
+{
+	Libvirt::Result operator()()
+	{
+		return getAgent().getSnapshot().at(getCommand()->GetSnapshotUuid()).revert();
+	}
+};
+
+} // namespace Snapshot
 
 CHostHardwareInfo parsePrlNetToolOut(const QString &data)
 {
@@ -981,6 +1052,14 @@ namespace Shutdown
 Libvirt::Result Launcher::operator()(const QString& uuid_)
 {
 	return Libvirt::Kit.vms().at(uuid_).shutdown();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Killer
+
+Libvirt::Result Killer::operator()(const QString& uuid_)
+{
+	return Libvirt::Kit.vms().at(uuid_).kill();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1443,7 +1522,7 @@ Dispatcher::Dispatcher()
 		Vm::Fork::State::Strict<VMS_RUNNING> > >());
 	m_map[PVE::DspCmdVmCreateSnapshot] = map(Tag::Fork<Essence<PVE::DspCmdVmCreateSnapshot> >());
 	m_map[PVE::DspCmdVmSwitchToSnapshot] = map(Tag::Fork<
-		Tag::State<Essence<PVE::DspCmdVmSwitchToSnapshot>, Vm::Fork::State::Snapshot::Switch> >());
+		Tag::State<Snapshot::Revert<Snapshot::Vcmmd<Snapshot::Switch> >, Vm::Fork::State::Snapshot::Switch> >());
 	m_map[PVE::DspCmdVmDeleteSnapshot] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDeleteSnapshot> > >());
 	m_map[PVE::DspCmdVmAnswer] = map(Tag::Simple<PVE::DspCmdVmAnswer>());
 	m_map[PVE::DspCmdVmStartVNCServer] = map(Tag::Simple<PVE::DspCmdVmStartVNCServer>());
