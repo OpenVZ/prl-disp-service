@@ -34,7 +34,6 @@
 
 #include <QCoreApplication>
 #include <QAtomicInt>
-#include <qtservice.h>
 #include <QList>
 
 #include <prlcommon/Interfaces/ParallelsNamespace.h>

@@ -1,5 +1,5 @@
 CONFIG += qtestlib
-QT = network core xml gui
+QT = network core xml
 
 include(SDKPrivateTest.deps)
 

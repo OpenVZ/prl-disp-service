@@ -5,7 +5,8 @@ contains(USE_PRECOMPILED_HEADERS, 1) {
 	win32:PRECOMPILED_HEADER = Precomp.h
 }
 
-QT += network core xml gui
+QT += network core xml
+QT -= gui
 
 linux-g++* {
 	system(g++ -dumpversion | (echo 4.8 && cat) | sort -V | head -n1 | grep -F 4.8) {

@@ -183,12 +183,6 @@ private:
 		const QString &strVmDirUuid,
 		const QString &strVmUuid);
 
-	// decrypt encrypted snapshots and replace its as base64
-	QString getSnapshotTreeWithBase64Images( SmartPtr<CDspClient> pUser
-		, const SmartPtr<CVmConfiguration> pVmConfig
-		, quint32 nFlags
-		, CSavedStateStore& snapTree/*[ IN/OUT]*/ );
-
 	PRL_RESULT removeHddFromVmConfig(SmartPtr<CDspClient> pUser,
 			const QString &sVmHome, const QString &sSnapUuid,
 			const QString &sHddSystemName);

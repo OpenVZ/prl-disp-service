@@ -42,8 +42,6 @@
 
 #include <QDir>
 #include <QTimer>
-#include <QImage>
-#include <QImageWriter>
 
 #include <prlcommon/Interfaces/ParallelsQt.h>
 
@@ -1388,68 +1386,11 @@ SmartPtr<IOPackage> CDspUserHelper::makeLoginResponsePacket(
 	return responsePkg;
 }
 
-static QByteArray GetImageData(const QByteArray& baData)
-{
-	QImage img = QImage::fromData(baData);
-	QImage resImage = img.scaled(DEFAULT_MOBILE_ICON_WIDTH,
-								 DEFAULT_MOBILE_ICON_HEIGHT,
-								 Qt::KeepAspectRatio,
-								 Qt::SmoothTransformation);
-
-	QBuffer buf;
-	QImageWriter iw(&buf, "png");
-	iw.write(resImage);
-
-	return buf.data();
-}
-
 void CDspUserHelper::sendAllHostUsers (const IOSender::Handle& h,
 									   const SmartPtr<IOPackage>& p)
 {
-#ifdef _LIN_
 	CDspService::instance()->sendSimpleResponseToClient(h, p, PRL_ERR_UNIMPLEMENTED);
 	return;
-#endif
-
-	QStringList lstUserInfo;
-
-	QList<HostUser> lstUsers = HostUtils::GetAllHostUsers();
-
-	for(int i = 0; i < lstUsers.size(); ++i)
-	{
-		lstUsers[i].m_baIcon = GetImageData(lstUsers[i].m_baIcon);
-
-		CVmEvent evt;
-		evt.addEventParameter( new CVmEventParameter(PVE::String,
-													 lstUsers[i].m_qsSysName,
-													 EVT_PARAM_HOST_USER_SYS_NAME) );
-		evt.addEventParameter( new CVmEventParameter(PVE::String,
-													 lstUsers[i].m_qsFriendlyName,
-													 EVT_PARAM_HOST_USER_FRIENDLY_NAME) );
-		evt.addEventParameter( new CVmEventParameter(PVE::String,
-													 QString("#icon%1").arg(i),
-													 EVT_PARAM_HOST_USER_ICON) );
-		lstUserInfo += evt.toString();
-	}
-
-	WRITE_TRACE(DBG_FATAL, "The number of all host users = %d", lstUserInfo.size());
-
-	CProtoCommandPtr pCmd = CProtoSerializer::CreateDspWsResponseCommand( p, PRL_ERR_SUCCESS );
-	CProtoCommandDspWsResponse
-		*pResponseCmd = CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>( pCmd );
-
-	pResponseCmd->SetParamsList( lstUserInfo );
-
-	QString qsEvent = pResponseCmd->GetCommand()->toString();
-	for(int i = 0; i < lstUsers.size(); ++i)
-	{
-		qsEvent.replace(QString("#icon%1").arg(i), lstUsers[i].m_baIcon.toBase64());
-	}
-
-	SmartPtr<IOPackage> pResponsePkg =
-		DispatcherPackage::createInstance( PVE::DspWsResponse, qsEvent, p );
-
-	CDspService::instance()->getIOServer().sendPackage(h, pResponsePkg);
 }
 
 // save to dispatcher qsettings password cached paroxy data

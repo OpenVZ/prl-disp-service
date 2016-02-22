@@ -1,5 +1,5 @@
 CONFIG += qtestlib
-QT += core xml gui network
+QT += core xml network
 
 include(SDKTest.deps)
 
