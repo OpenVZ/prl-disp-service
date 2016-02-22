@@ -42,6 +42,11 @@
 namespace Personalize
 {
 
+QString getCdLabel()
+{
+	return "cloud-init-disk";
+}
+
 namespace
 {
 const QString cloudConfigBin = "/usr/libexec/cloud_config_ctl.py";
@@ -140,9 +145,17 @@ bool Configurator::merge() const
 	return execute(c);
 }
 
+bool Configurator::clean() const
+{
+	CAuthHelper a;
+	if (!CFileHelper::FileExists(getIsoPath(m_vmHome), &a))
+		return true;
+	return QFile::remove(getIsoPath(m_vmHome));
+}
+
 } // namespace Personalize
 
-void CDspVmGuestPersonality::slotVmConfigChanged(QString vmDirUuid_, QString vmUuid_)
+void CDspVmGuestPersonality::slotVmPersonalityChanged(QString vmDirUuid_, QString vmUuid_)
 {
 	PRL_RESULT res;
 	SmartPtr<CVmConfiguration> vm = CDspService::instance()->getVmDirHelper()
@@ -158,7 +171,7 @@ void CDspVmGuestPersonality::slotVmConfigChanged(QString vmDirUuid_, QString vmU
 		WRITE_TRACE(DBG_FATAL, "Unable to get %s state", QSTR2UTF8(vmUuid_));
 		return;
 	}
-	if (s == VMS_RUNNING || s == VMS_PAUSED)
+	if (s != VMS_STOPPED)
 		return;
 
 	QString h(getHomeDir(vmDirUuid_, vmUuid_));
@@ -168,12 +181,9 @@ void CDspVmGuestPersonality::slotVmConfigChanged(QString vmDirUuid_, QString vmU
 	QString p = Personalize::getIsoPath(h);
 	CAuthHelper r;
 	if (!CFileHelper::FileExists(p, &r))
-	{
-		WRITE_TRACE(DBG_FATAL, "Image %p does not exist", QSTR2UTF8(p));
 		return;
-	}
 
-	QString cdrom = prepareNewCdrom(*(vm->getVmHardwareList()), p);
+	QString cdrom(prepareNewCdrom(*(vm->getVmHardwareList()), p));
 
 	if (cdrom.isEmpty())
 		return;
@@ -230,5 +240,6 @@ QString CDspVmGuestPersonality::prepareNewCdrom(const CVmHardware& hardware_, co
 	d.setUserFriendlyName(image_);
 	d.setIndex(i + 1);
 	d.setStackIndex(s + 1);
+	d.setDescription(::Personalize::getCdLabel());
 	return d.toString();
 }

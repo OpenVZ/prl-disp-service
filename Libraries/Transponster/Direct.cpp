@@ -182,6 +182,9 @@ PRL_RESULT Cdrom::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 			.set(d->getDeviceType(), d->getIndex());
 	}
 	d->setTargetDeviceName(disk_.getTarget().getDev());
+	boost::optional<QString> alias(disk_.getAlias());
+	if (alias)
+		d->setAlias(*alias);
 	return PRL_ERR_SUCCESS;
 }
 

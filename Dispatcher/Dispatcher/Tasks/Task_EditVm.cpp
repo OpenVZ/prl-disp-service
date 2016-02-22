@@ -57,6 +57,7 @@
 #include "CDspService.h"
 #include "CVmValidateConfig.h"
 #include "CDspVmNetworkHelper.h"
+#include "CDspVmGuestPersonality.h"
 #include <algorithm>
 #include <boost/bind.hpp>
 #include "EditHelpers/CMultiEditMergeVmConfig.h"
@@ -672,8 +673,6 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 	CDspService::instance()->getVmDirHelper()
 		.unregisterExclusiveVmOperation( vmUuid, vmDirUuid, PVE::DspCmdDirVmEditCommit, pUserSession );
 
-	if (retValue)
-		CDspService::instance()->getVmStateSender()->onVmConfigChanged(vmDirUuid, vmUuid);
 	return retValue;
 }
 
@@ -1177,6 +1176,7 @@ PRL_RESULT Task_EditVm::editVm()
 	PRL_RESULT ret = PRL_ERR_SUCCESS;
 	bool bNeedVNCStart = false;
 	bool bNeedVNCStop = false;
+	bool cloudCdRemoved = false;
 
 	QString qsOldDirName;
 	QString qsNewDirName;
@@ -1370,7 +1370,7 @@ PRL_RESULT Task_EditVm::editVm()
 				*XML_DEFAULT_MAXNUMARAM_SIZE);
 		// And twice as much as max NUMA memory to be added by slots.
 		new_mem->setMaxRamSize(new_mem->getMaxNumaRamSize()*2);
-		
+
 		// bug #121857
 		PRL_UNDO_DISKS_MODE nOldUndoDisksMode
 				= pVmConfigOld->getVmSettings()->getVmRuntimeOptions()->getUndoDisksMode();
@@ -1410,7 +1410,7 @@ PRL_RESULT Task_EditVm::editVm()
 					new_adapter->setHostInterfaceName(HostUtils::generateHostInterfaceName(new_adapter->getMacAddress()));
 					continue;
 				}
-				
+
 				if (old_adapter->getMacAddress() != new_adapter->getMacAddress())
 				{
 					new_adapter->setHostMacAddress();
@@ -1570,6 +1570,14 @@ PRL_RESULT Task_EditVm::editVm()
 											// connected USB printer can be removed from either running VM or stopped
 											if ( PRN_USB_DEVICE == pPrinter->getPrinterInterfaceType() )
 												continue;
+										}
+									}
+
+									if (PDE_OPTICAL_DISK == nType)
+									{
+										if (pOldDevice->getDescription() == ::Personalize::getCdLabel()) {
+											::Personalize::Configurator(*pVmConfigNew).clean();
+											cloudCdRemoved = true;
 										}
 									}
 								}
@@ -2339,7 +2347,11 @@ PRL_RESULT Task_EditVm::editVm()
 	if (PRL_SUCCEEDED(ret))
 	{
 		applyVmConfig( getClient(), pVmConfigNew, pVmConfigOld, getRequestPackage() );
-		ret = getLastErrorCode(); 
+		ret = getLastErrorCode();
+		if (!cloudCdRemoved) {
+			CDspService::instance()->getVmStateSender()->onVmPersonalityChanged(
+				getClient()->getVmDirectoryUuid(), vm_uuid);
+		}
 	}
 
 	return ret;
@@ -3382,9 +3394,15 @@ Action* Factory::operator()(const Request& input_) const
 	// be applied till VM start. Thus we have to accummulate them, generating
 	// full network configuration each time.
 	Network::Difference::Vm v(input_.getFinal());
-	QStringList d = v.calculate(CVmConfiguration(),
+
+	QStringList d(v.calculate(input_.getStart(),
+		input_.getFinal().getVmSettings()->getVmCommonOptions()->getOsType()));
+	if (d.isEmpty())
+		return NULL;
+
+	d = v.calculate(CVmConfiguration(),
 		input_.getFinal().getVmSettings()->getVmCommonOptions()->getOsType());
-	if (d.isEmpty()) 
+	if (d.isEmpty())
 		return NULL;
 
 	Action* action = new Apply(input_.getFinal(), d);
