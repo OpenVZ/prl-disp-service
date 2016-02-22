@@ -506,6 +506,8 @@ void List::add(const CVmOpticalDisk* cdrom_)
 		return;
 	if (cdrom_->getEnabled() != PVE::DeviceEnabled)
 		return;
+	if (cdrom_->getConnected() != PVE::DeviceConnected)
+		return;
 	build(Clustered::Builder::Ordinary<CVmOpticalDisk>(*cdrom_, m_boot(*cdrom_)));
 }
 

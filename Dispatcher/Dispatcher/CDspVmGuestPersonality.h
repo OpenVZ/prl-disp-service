@@ -70,8 +70,8 @@ public slots:
 	void slotVmPersonalityChanged(QString, QString);
 
 private:
+	QString tryToConnect(const CVmHardware& hardware_, const QString& image_) const;
 	QString prepareNewCdrom(const CVmHardware& hardware_, const QString& image_) const;
-	QString attachCdrom() const;
 	QString getHomeDir(const QString& dirUuid_, const QString& vmUuid_) const;
 };
 
