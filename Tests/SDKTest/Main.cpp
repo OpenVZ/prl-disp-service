@@ -135,30 +135,15 @@ int main(int argc, char *argv[])
 {
 	TestConfig::readTestParameters();
 	int ret = 0;
-	if (PrlMiscellaneous::PrlIsInteractiveSession())
-	{
-		QApplication a(argc, argv);
+	QCoreApplication a(argc, argv);
 
-		TestsExecuter _tests_executer(argc, argv);
-		QTimer::singleShot(0, &_tests_executer, SLOT(PushTestsExecution()));
-		ret = a.exec();
-		//Proper way of deiniting SDK in case of reusing QCoreApplication to do it
-		//after exit from exec() of main event loop
-		//see https://bugzilla.sw.ru/show_bug.cgi?id=448820 for more information
-		DeinitSdk();
-	}
-	else
-	{
-		QCoreApplication a(argc, argv);
-
-		TestsExecuter _tests_executer(argc, argv);
-		QTimer::singleShot(0, &_tests_executer, SLOT(PushTestsExecution()));
-		ret = a.exec();
-		//Proper way of deiniting SDK in case of reusing QCoreApplication to do it
-		//after exit from exec() of main event loop
-		//see https://bugzilla.sw.ru/show_bug.cgi?id=448820 for more information
-		DeinitSdk();
-	}
+	TestsExecuter _tests_executer(argc, argv);
+	QTimer::singleShot(0, &_tests_executer, SLOT(PushTestsExecution()));
+	ret = a.exec();
+	//Proper way of deiniting SDK in case of reusing QCoreApplication to do it
+	//after exit from exec() of main event loop
+	//see https://bugzilla.sw.ru/show_bug.cgi?id=448820 for more information
+	DeinitSdk();
 	return (ret);
 }
 

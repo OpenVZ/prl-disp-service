@@ -30,8 +30,6 @@
 ///
 /////////////////////////////////////////////////////////////////////////////
 
-#include <QImage>
-
 #include "PrlApiBasicsTest.h"
 #include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
 #include "Tests/CommonTestsUtils.h"
