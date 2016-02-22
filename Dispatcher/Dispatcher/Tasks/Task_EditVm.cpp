@@ -3535,7 +3535,7 @@ Action* Memory::operator()(const Request& input_) const
 	if (x.isFailed())
 	{
 		WRITE_TRACE(DBG_FATAL, "Can't get current vcmmd configuration. Skipping runtime update.");
-		return new Flop(x.error());
+		return NULL;
 	}
 	quint64 l = n->getRamSize();
 	quint64 g = ::Vm::Config::MemGuarantee(*n)(l) << 20;
