@@ -183,12 +183,18 @@ void CDspVmGuestPersonality::slotVmPersonalityChanged(QString vmDirUuid_, QStrin
 	if (!CFileHelper::FileExists(p, &r))
 		return;
 
-	QString cdrom(prepareNewCdrom(*(vm->getVmHardwareList()), p));
-
-	if (cdrom.isEmpty())
-		return;
-
 	CVmEvent e;
+	QString cdrom(tryToConnect(*(vm->getVmHardwareList()), p));
+	if (!cdrom.isEmpty()) {
+		e.addEventParameter(new CVmEventParameter(PVE::String,
+					cdrom, EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
+		Task_EditVm::atomicEditVmConfigByVm(vmDirUuid_, vmUuid_,
+				e, CDspClient::makeServiceUser(vmDirUuid_));
+		return;
+	}
+
+	cdrom = prepareNewCdrom(*(vm->getVmHardwareList()), p);
+
 	e.addEventParameter(new CVmEventParameter(PVE::String,
 				cdrom, EVT_PARAM_VMCFG_NEW_DEVICE_CONFIG));
 	Task_EditVm::atomicEditVmConfigByVm(vmDirUuid_, vmUuid_,
@@ -207,6 +213,21 @@ QString CDspVmGuestPersonality::getHomeDir(const QString& dirUuid_, const QStrin
 	return p->getVmHome();
 }
 
+QString CDspVmGuestPersonality::tryToConnect(const CVmHardware& hardware_, const QString& image_) const
+{
+	foreach(const CVmOpticalDisk* c, hardware_.m_lstOpticalDisks)
+	{
+		if (!(c->getEmulatedType() == PVE::CdRomImage &&
+				c->getSystemName() == image_ &&
+				c->getUserFriendlyName() == image_))
+			continue;
+		CVmOpticalDisk d(*c);
+		d.setConnected(PVE::DeviceConnected);
+		return d.toString();
+	}
+	return "";
+}
+
 QString CDspVmGuestPersonality::prepareNewCdrom(const CVmHardware& hardware_, const QString& image_) const
 {
 	CVmOpticalDisk d;
@@ -215,11 +236,6 @@ QString CDspVmGuestPersonality::prepareNewCdrom(const CVmHardware& hardware_, co
 	quint32 s(0);
 	foreach(const CVmOpticalDisk* c, hardware_.m_lstOpticalDisks)
 	{
-		if (c->getEmulatedType() == PVE::CdRomImage &&
-				c->getSystemName() == image_ &&
-				c->getUserFriendlyName() == image_)
-			return "";
-
 		if (i < c->getIndex())
 			i = c->getIndex();
 		if (c->getInterfaceType() == d.getInterfaceType() &&

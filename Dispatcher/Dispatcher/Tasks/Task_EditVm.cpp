@@ -1558,6 +1558,14 @@ PRL_RESULT Task_EditVm::editVm()
 								CVmDevice *pNewDevice = CXmlModelHelper::IsElemInList( pOldDevice, *pNewLstDevs );
 								if ( ! pNewDevice )//Device was removed
 								{
+									if (PDE_OPTICAL_DISK == nType)
+									{
+										if (pOldDevice->getDescription() == ::Personalize::getCdLabel()) {
+											::Personalize::Configurator(*pVmConfigNew).clean();
+											cloudCdRemoved = true;
+										}
+									}
+
 									if ( PVE::DeviceDisconnected == pOldDevice->getConnected() )//OK to remove disconnected device either for running VM or stopped
 										continue;
 
@@ -1572,14 +1580,6 @@ PRL_RESULT Task_EditVm::editVm()
 												continue;
 										}
 									}
-
-									if (PDE_OPTICAL_DISK == nType)
-									{
-										if (pOldDevice->getDescription() == ::Personalize::getCdLabel()) {
-											::Personalize::Configurator(*pVmConfigNew).clean();
-											cloudCdRemoved = true;
-										}
-									}
 								}
 								else
 								{
@@ -1588,6 +1588,11 @@ PRL_RESULT Task_EditVm::editVm()
 
 									if ( CXmlModelHelper::JustConnectedPropWasChanged( pOldDevice, pNewDevice ) )
 									{
+										if (PDE_OPTICAL_DISK == nType &&
+												pNewDevice->getDescription() == ::Personalize::getCdLabel() &&
+												pNewDevice->getConnected() == PVE::DeviceDisconnected) {
+												cloudCdRemoved = true;
+										}
 										if ( PDE_HARD_DISK != nType )
 										//OK to change connected state for all devices without additional checkings except hard disks
 											continue;
