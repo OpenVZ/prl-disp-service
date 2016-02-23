@@ -247,7 +247,7 @@ Result Unit::getConfig(CVmConfiguration& dst_, bool runtime_) const
 	if (NULL == x)
 		return Error::Simple(PRL_ERR_VM_GET_CONFIG_FAILED);
 
-//	WRITE_TRACE(DBG_FATAL, "xml:\n%s", x);
+//	WRITE_TRACE(DBG_DEBUG, "xml:\n%s", x);
 	Transponster::Vm::Direct::Vm u(x);
 	if (PRL_FAILED(Transponster::Director::domain(u, i.value())))
 		return Error::Simple(PRL_ERR_PARSE_VM_CONFIG);
@@ -1244,7 +1244,9 @@ Result List::define(const CVmConfiguration& config_, Unit* dst_)
 	if (PRL_FAILED(Transponster::Director::domain(u, i.value())))
 		return Error::Simple(PRL_ERR_BAD_VM_DIR_CONFIG_FILE_SPECIFIED);
 
-	virDomainPtr d = virDomainDefineXML(m_link.data(), u.getResult().toUtf8().data());
+	QString x = u.getResult();
+	WRITE_TRACE(DBG_DEBUG, "xml:\n%s", x.toUtf8().data());
+	virDomainPtr d = virDomainDefineXML(m_link.data(), x.toUtf8().data());
 	if (NULL == d)
 		return Failure(PRL_ERR_VM_NOT_CREATED);
 
@@ -1382,7 +1384,7 @@ Prl::Expected<Unit, Error::Simple>
 	if (VMS_RUNNING == s || VMS_PAUSED == s)
 		y.setMemory();
 
-	WRITE_TRACE(DBG_FATAL, "xml:\n%s", y.getResult().toUtf8().data());
+	WRITE_TRACE(DBG_DEBUG, "xml:\n%s", y.getResult().toUtf8().data());
 	virDomainSnapshotPtr p = virDomainSnapshotCreateXML(m_domain.data(),
 					y.getResult().toUtf8().data(), flags_);
 	if (NULL == p)
@@ -1451,7 +1453,7 @@ Result Unit::getConfig(CVirtualNetwork& dst_) const
 	if (NULL == x)
 		return Failure(PRL_ERR_VM_GET_CONFIG_FAILED);
 
-	WRITE_TRACE(DBG_FATAL, "xml:\n%s", x);
+	WRITE_TRACE(DBG_DEBUG, "xml:\n%s", x);
 	Transponster::Network::Direct u(x, 0 < virNetworkIsActive(m_network.data()));
 	if (PRL_FAILED(Transponster::Director::network(u)))
 		return Failure(PRL_ERR_PARSE_VM_DIR_CONFIG);
@@ -1550,7 +1552,7 @@ Result List::define(const CVirtualNetwork& config_, Unit* dst_)
 	if (PRL_FAILED(Transponster::Director::network(u)))
 		return Result(Error::Simple(PRL_ERR_BAD_VM_DIR_CONFIG_FILE_SPECIFIED));
 
-	WRITE_TRACE(DBG_FATAL, "xml:\n%s", u.getResult().toUtf8().data());
+	WRITE_TRACE(DBG_DEBUG, "xml:\n%s", u.getResult().toUtf8().data());
 	virNetworkPtr n = virNetworkDefineXML(m_link.data(), u.getResult().toUtf8().data());
 	if (NULL == n)
 		return Failure(PRL_ERR_VM_NOT_CREATED);
