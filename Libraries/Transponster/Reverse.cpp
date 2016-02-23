@@ -815,6 +815,7 @@ void List::add(const CVmVideo* video_)
 	if (P3D_DISABLED != video_->getEnable3DAcceleration())
 	{
 		Libvirt::Domain::Xml::Acceleration a;
+		a.setAccel2d(Libvirt::Domain::Xml::EVirYesNoNo);
 		a.setAccel3d(Libvirt::Domain::Xml::EVirYesNoYes);
 		m.setAcceleration(a);
 	}
