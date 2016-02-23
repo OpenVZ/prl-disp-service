@@ -3198,20 +3198,20 @@ Routed::Routed(const QString& mac_, const device_type* defaultGwIp4Bridge_,
 
 std::pair<QString, QString> Routed::getIp4Defaults() const
 {
-	QString r = QString(DEFAULT_HOSTROUTED_GATEWAY).remove(QRegExp("/.*$")) + " ";
-	QString d = NULL == m_defaultGwIp4Bridge ? DEFAULT_HOSTROUTED_GATEWAY : "remove";
-	return std::make_pair(d + " ", r);
+	QString x = QString(DEFAULT_HOSTROUTED_GATEWAY).remove(QRegExp("/.*$")) + " ";
+	if (NULL != m_defaultGwIp4Bridge)
+		return std::make_pair("remove ", x);
+
+	return std::make_pair(x, "");
 }
 
 std::pair<QString, QString> Routed::getIp6Defaults() const
 {
-	QString d = DEFAULT_HOSTROUTED_GATEWAY6, r;
+	QString x = QString(DEFAULT_HOSTROUTED_GATEWAY6).remove(QRegExp("/.*$")) + " ";
 	if (NULL != m_defaultGwIp6Bridge)
-	{
-		r = d + " ";
-		d = "";
-	}
-	return std::make_pair(d.isEmpty() ? "removev6 " : d + " ", r);
+		return std::make_pair("removev6 ", x);
+
+	return std::make_pair(x, "");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
