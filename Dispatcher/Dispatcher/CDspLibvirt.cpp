@@ -33,6 +33,9 @@
 #include <prlcommon/PrlUuid/PrlUuid.h>
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <Libraries/StatesUtils/StatesHelper.h>
+#include <Libraries/Transponster/Direct.h>
+#include <Libraries/Transponster/Reverse.h>
+#include <Libraries/Transponster/Reverse_p.h>
 
 namespace Libvirt
 {
@@ -58,6 +61,155 @@ void Domain::run()
 		&& !QMetaObject::invokeMethod(m_view.data(), "setState", Q_ARG(VIRTUAL_MACHINE_STATE, s)))
 		WRITE_TRACE(DBG_FATAL, "Unable to invoke VM 'setState' method");
 }
+
+namespace Agent
+{
+namespace Parameters
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+Builder::Builder() : m_pointer(NULL), m_size(0), m_capacity(0)
+{
+}
+
+Builder::~Builder()
+{
+	virTypedParamsFree(m_pointer, m_size);
+}
+
+bool Builder::add(const char *key_, const QString& value_)
+{
+	return virTypedParamsAddString(&m_pointer, &m_size, &m_capacity, key_, QSTR2UTF8(value_)) == 0;
+}
+
+Result_type Builder::extract()
+{
+	Result_type r(QSharedPointer<virTypedParameter>(m_pointer, boost::bind(virTypedParamsFree, _1, m_size)),
+		m_size);
+	m_pointer = NULL;
+	m_capacity = 0;
+	m_size = 0;
+	return r;
+}
+
+} // namespace Parameters
+
+namespace Vm
+{
+namespace Migration
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Offline
+
+Result Offline::operator()(Parameters::Builder& builder_)
+{
+	const QString n = m_config->getVmIdentification()->getVmName();
+	if (!builder_.add(VIR_MIGRATE_PARAM_DEST_NAME, n))
+		return Failure(PRL_ERR_FAILURE);
+
+	Prl::Expected<QString, Error::Simple> x = m_agent.mixup(*m_config);
+	if (x.isFailed())
+		return x.error();
+
+	if (!builder_.add(VIR_MIGRATE_PARAM_DEST_XML, x.value()))
+		return Failure(PRL_ERR_FAILURE);
+
+	return Result();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Online
+
+Result Online::operator()(Parameters::Builder& builder_)
+{
+	Result e = Offline::operator()(builder_);
+	if (e.isFailed())
+		return e;
+
+	foreach (CVmHardDisk* d, m_disks)
+	{
+		QString t = Transponster::Device::Clustered::Model
+			<CVmHardDisk>(*d).getTargetName();
+		if (!builder_.add(VIR_MIGRATE_PARAM_MIGRATE_DISKS, t))
+			return Failure(PRL_ERR_FAILURE);
+	}
+
+	return Result();
+}
+
+
+} // namespace Migration
+} // namespace Vm
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Config
+
+Config::Config(QSharedPointer<virDomain> domain_,
+		QSharedPointer<virConnect> link_,
+		unsigned int flags_) :
+	m_domain(domain_), m_link(link_), m_flags(flags_)
+{
+}
+
+char* Config::read_() const
+{
+	return virDomainGetXMLDesc(m_domain.data(), m_flags | VIR_DOMAIN_XML_SECURE);
+}
+
+Prl::Expected<QString, Error::Simple> Config::read() const
+{
+	char* x = read_();
+	if (NULL == x)
+		return Error::Simple(PRL_ERR_VM_GET_CONFIG_FAILED);
+
+	QString s = x;
+	free(x);
+	return s;
+}
+
+Result Config::convert(CVmConfiguration& dst_) const
+{
+	Prl::Expected<VtInfo, Error::Simple> i = Host(m_link).getVt();
+	if (i.isFailed())
+		return i.error();
+
+	char* x = read_();
+	if (NULL == x)
+		return Error::Simple(PRL_ERR_VM_GET_CONFIG_FAILED);
+
+//	WRITE_TRACE(DBG_FATAL, "xml:\n%s", x);
+	Transponster::Vm::Direct::Vm u(x);
+	if (PRL_FAILED(Transponster::Director::domain(u, i.value())))
+		return Error::Simple(PRL_ERR_PARSE_VM_CONFIG);
+
+	CVmConfiguration* output = u.getResult();
+	if (NULL == output)
+		return Error::Simple(PRL_ERR_FAILURE);
+
+	output->getVmIdentification()
+		->setServerUuid(CDspService::instance()
+                        ->getDispConfigGuard().getDispConfig()
+                        ->getVmServerIdentification()->getServerUuid());
+	dst_ = *output;
+	delete output;
+	return Result();
+}
+
+Prl::Expected<QString, Error::Simple> Config::mixup(const CVmConfiguration& value_) const
+{
+	Prl::Expected<VtInfo, Error::Simple> i = Host(m_link).getVt();
+	if (i.isFailed())
+		return i.error();
+
+	Transponster::Vm::Reverse::Mixer u(value_, read_());
+	if (PRL_FAILED(Transponster::Director::domain(u, i.value())))
+		return Error::Simple(PRL_ERR_BAD_VM_DIR_CONFIG_FILE_SPECIFIED);
+
+	return u.getResult();
+}
+
+} // namespace Agent
 
 namespace Breeding
 {
