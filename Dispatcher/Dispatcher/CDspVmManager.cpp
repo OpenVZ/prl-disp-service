@@ -371,7 +371,14 @@ struct Essence<PVE::DspCmdVmInstallTools>: Need::Agent, Need::Config, Need::Cont
 		QList<CVmOpticalDisk* >::iterator last(getConfig()->getVmHardwareList()->m_lstOpticalDisks.end());
 		QList<CVmOpticalDisk* >::iterator it(
 				std::find_if(getConfig()->getVmHardwareList()->m_lstOpticalDisks.begin(),
-					last, boost::bind(&CVmOpticalDisk::getEnabled, _1)));
+					last, boost::bind(
+						std::logical_and<bool>(),
+						(boost::bind(&CVmOpticalDisk::getSystemName, _1) == x),
+						boost::bind(&CVmOpticalDisk::getEnabled, _1))));
+		if (it == last) {
+			it = std::find_if(getConfig()->getVmHardwareList()->m_lstOpticalDisks.begin(),
+						last, boost::bind(&CVmOpticalDisk::getEnabled, _1));
+		}
 		const char* event(EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE);
 		if (it == last) {
 			cd = &empty;
@@ -385,10 +392,8 @@ struct Essence<PVE::DspCmdVmInstallTools>: Need::Agent, Need::Config, Need::Cont
 		cd->setEmulatedType(PVE::CdRomImage);
 		cd->setRemote(false);
 		cd->setEnabled(PVE::DeviceEnabled);
-		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
-		Libvirt::Result e = getAgent().getState(s);
-		if (e.isFailed())
-			return e;
+		VIRTUAL_MACHINE_STATE s = CDspVm::getVmState(getContext().getVmUuid(),
+						getContext().getDirectoryUuid());
 		if (VMS_STOPPED != s)
 			return getAgent().getRuntime().update(*cd);
 
@@ -402,7 +407,7 @@ struct Essence<PVE::DspCmdVmInstallTools>: Need::Agent, Need::Config, Need::Cont
 		::Personalize::Configurator(*getConfig()).merge();
 		CDspService::instance()->getVmStateSender()->onVmPersonalityChanged(
 			getContext().getDirectoryUuid(), getContext().getVmUuid());
-		return e;
+		return Libvirt::Result();
 	}
 };
 
