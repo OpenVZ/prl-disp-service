@@ -1,0 +1,28 @@
+default: all
+
+all: Dispatcher/Makefile
+	$(MAKE) -C Dispatcher \
+		ENABLE_LOCAL_DEPS=$$ENABLE_LOCAL_DEPS \
+		LOCAL_DEPS_INCLUDE=$$LOCAL_DEPS_INCLUDE \
+		LOCAL_DEPS_LIBS=$$LOCAL_DEPS_LIBS
+
+Dispatcher/Makefile: Dispatcher/Dispatcher.pro Build/Build.pri Build/Current-gen.ver
+	cd Dispatcher && \
+		ENABLE_LOCAL_DEPS=$$ENABLE_LOCAL_DEPS \
+		LOCAL_DEPS_INCLUDE=$$LOCAL_DEPS_INCLUDE \
+		LOCAL_DEPS_LIBS=$$LOCAL_DEPS_LIBS \
+		qmake-qt4 \
+		ENABLE_LOCAL_DEPS=$$ENABLE_LOCAL_DEPS \
+		LOCAL_DEPS_INCLUDE=$$LOCAL_DEPS_INCLUDE \
+		LOCAL_DEPS_LIBS=$$LOCAL_DEPS_LIBS \
+
+Build/Current-gen.ver: Build/Build.pri
+
+Build/Build.pri: Makefile.version Build/Build.cfg
+	./Gen.py
+
+clean:
+	$(MAKE) -C Dispatcher clean
+
+distclean:
+	$(MAKE) -C Dispatcher distclean
