@@ -2371,7 +2371,7 @@ PRL_RESULT Task_EditVm::editVm()
 	{
 		applyVmConfig( getClient(), pVmConfigNew, pVmConfigOld, getRequestPackage() );
 		ret = getLastErrorCode();
-		if (!cloudCdRemoved) {
+		if (!cloudCdRemoved && CDspVm::getVmState( vm_uuid, getClient()->getVmDirectoryUuid()) == VMS_STOPPED) {
 			CDspService::instance()->getVmStateSender()->onVmPersonalityChanged(
 				getClient()->getVmDirectoryUuid(), vm_uuid);
 		}
