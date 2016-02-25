@@ -395,8 +395,7 @@ namespace Builder
 template <>
 void Ordinary<CVmOpticalDisk>::setSource()
 {
-	if (getModel().isConnected() && !getModel().getImageFile().isEmpty())
-		m_result.setDiskSource(getSource());
+	m_result.setDiskSource(getSource());
 }
 
 template<>
