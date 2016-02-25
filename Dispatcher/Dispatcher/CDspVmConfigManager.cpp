@@ -305,8 +305,9 @@ void Patch::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 	CVmHardware *o = new_.getVmHardwareList();
 	CVmHardware *n = old_.getVmHardwareList();
 
-	// XXX: HDDs and CDs could not be disconnected
+	// XXX: HDDs could not be disconnected
 	updateDisabled(o->m_lstHardDisks, n->m_lstHardDisks);
+	updateDisconnected(o->m_lstOpticalDisks, n->m_lstOpticalDisks);
 	updateDisabled(o->m_lstOpticalDisks, n->m_lstOpticalDisks);
 	updateDisconnected(o->m_lstFloppyDisks, n->m_lstFloppyDisks);
 	updateDisabled(o->m_lstFloppyDisks, n->m_lstFloppyDisks);
@@ -393,41 +394,6 @@ void HardDisks::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 			continue;
 
 		new_.getVmHardwareList()->addHardDisk(new CVmHardDisk(*h));
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct OpticalDisks
-
-void OpticalDisks::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
-{
-	QList<CVmOpticalDisk*>& l = new_.getVmHardwareList()->m_lstOpticalDisks;
-	QList<CVmOpticalDisk*>& o = old_.getVmHardwareList()->m_lstOpticalDisks;
-
-	foreach(CVmOpticalDisk* h, l)
-	{
-		QList<CVmOpticalDisk*>::iterator it = std::find_if(o.begin(), o.end(),
-			boost::bind(&CVmOpticalDisk::getIndex, _1)
-				== h->getIndex());
-
-		if (it == o.end())
-			continue;
-
-		h->setDescription((*it)->getDescription());
-	}
-	foreach(CVmOpticalDisk* h, o)
-	{
-		if (h->getConnected() == PVE::DeviceConnected)
-			continue;
-
-		QList<CVmOpticalDisk*>::iterator it = std::find_if(l.begin(), l.end(),
-				boost::bind(&CVmOpticalDisk::getIndex, _1)
-					== h->getIndex());
-
-		if (it != l.end())
-			continue;
-
-		new_.getVmHardwareList()->addOpticalDisk(new CVmOpticalDisk(*h));
 	}
 }
 
