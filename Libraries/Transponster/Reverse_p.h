@@ -353,8 +353,10 @@ Libvirt::Domain::Xml::VDiskSource Ordinary<T>::getSource() const
 		Libvirt::Domain::Xml::Source4 s;
 		QString f = getModel().getImageFile();
 		if (!f.isEmpty() && getModel().isConnected())
+		{
 			s.setFile(f);
-		s.setStartupPolicy(Libvirt::Domain::Xml::EStartupPolicyOptional);
+			s.setStartupPolicy(Libvirt::Domain::Xml::EStartupPolicyOptional);
+		}
 		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type x;
 		x.setValue(s);
 		return x;
