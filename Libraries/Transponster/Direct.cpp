@@ -82,8 +82,12 @@ void Cpu::operator()(const mpl::at_c<Libvirt::Domain::Xml::VCpu::types, 2>::type
 
 PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 {
-	if (!Clustered<CVmFloppyDisk>::operator()(disk_))
-		return PRL_ERR_UNIMPLEMENTED;
+	if (!Clustered<CVmFloppyDisk>::operator()(disk_)) {
+		// source field can be empty or absent for
+		// disconnected floppies so we force emulated
+		// type to disk image type
+		getDevice().setEmulatedType(PVE::FloppyDiskImage);
+	}
 
 	CVmFloppyDisk* d = getResult();
 	if (NULL == d)
