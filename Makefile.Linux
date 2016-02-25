@@ -10,16 +10,10 @@ LINDIR = Build/LinUtil/files
 default: all
 
 all: Dispatcher/Makefile
-	$(MAKE) -C Dispatcher \
-		ENABLE_LOCAL_DEPS=$$ENABLE_LOCAL_DEPS \
-		LOCAL_DEPS_INCLUDE=$$LOCAL_DEPS_INCLUDE \
-		LOCAL_DEPS_LIBS=$$LOCAL_DEPS_LIBS
+	$(MAKE) -C Dispatcher
 
 Dispatcher/Makefile: Dispatcher/Dispatcher.pro Build/Build.pri Build/Current-gen.ver
 	cd Dispatcher && \
-		ENABLE_LOCAL_DEPS=$$ENABLE_LOCAL_DEPS \
-		LOCAL_DEPS_INCLUDE=$$LOCAL_DEPS_INCLUDE \
-		LOCAL_DEPS_LIBS=$$LOCAL_DEPS_LIBS \
 		qmake-qt4 \
 		ENABLE_LOCAL_DEPS=$$ENABLE_LOCAL_DEPS \
 		LOCAL_DEPS_INCLUDE=$$LOCAL_DEPS_INCLUDE \
