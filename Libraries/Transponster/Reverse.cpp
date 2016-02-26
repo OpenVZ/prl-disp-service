@@ -27,6 +27,7 @@
 #include "Direct_p.h"
 #include <prlsdk/PrlOses.h>
 #include <prlcommon/HostUtils/HostUtils.h>
+#include <QUrl>
 
 namespace Transponster
 {
@@ -1067,35 +1068,84 @@ Prl::Expected<QString, ::Error::Simple>
 	return x.toString();
 }
 
+namespace
+{
+
+QString getMode(PRL_SERIAL_PORT_SOCKET_OPERATION_MODE mode_)
+{
+	return mode_ == PSP_SERIAL_SOCKET_SERVER ?
+		"bind" : "connect";
+}
+
+} // namespace
+
 Prl::Expected<Libvirt::Domain::Xml::Qemucdev, ::Error::Simple>
 	Device<CVmSerialPort>::getLibvirtXml(const CVmSerialPort& model_)
 {
 	Libvirt::Domain::Xml::Qemucdev output;
 	Libvirt::Domain::Xml::Source15 a;
 
+	QString p(model_.getUserFriendlyName());
+	if (p.isEmpty())
+		return ::Error::Simple(PRL_ERR_INVALID_ARG);
+
+	QList<Libvirt::Domain::Xml::Source15> l;
+	Libvirt::Domain::Xml::QemucdevSrcDef b;
 	switch (model_.getEmulatedType())
 	{
 	case PVE::SerialOutputFile:
 		output.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceFile);
-		break;
-	case PVE::SerialSocket:
-		output.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceUnix);
-		a.setMode(QString("bind"));
+		a.setPath(p);
+		a.setAppend(Libvirt::Domain::Xml::EVirOnOffOn);
+		l << a;
 		break;
 	case PVE::RealSerialPort:
 		output.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceDev);
+		a.setPath(p);
+		a.setAppend(Libvirt::Domain::Xml::EVirOnOffOn);
+		l << a;
+		break;
+	case PVE::SerialSocket:
+		output.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceUnix);
+		a.setPath(p);
+		a.setAppend(Libvirt::Domain::Xml::EVirOnOffOn);
+		a.setMode(getMode(model_.getSocketMode()));
+		l << a;
+		break;
+	case PVE::SerialTCP:
+		output.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceTcp);
+		a.setMode(getMode(model_.getSocketMode()));
+		{
+			QUrl u(QString("tcp://%1").arg(p));
+			a.setHost(u.host());
+			a.setService(QString::number(u.port()));
+			Libvirt::Domain::Xml::Protocol r;
+			r.setType(Libvirt::Domain::Xml::EType13Raw);
+			b.setProtocol(r);
+		}
+		l << a;
+		break;
+	case PVE::SerialUDP:
+		output.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceUdp);
+		{
+			QUrl u(QString("udp://%1").arg(p));
+			a.setHost(u.host());
+			a.setService(QString::number(u.port()));
+			Libvirt::Domain::Xml::Protocol r;
+			r.setType(Libvirt::Domain::Xml::EType13Raw);
+			b.setProtocol(r);
+		}
+		// need sources in both modes
+		a.setMode(getMode(PSP_SERIAL_SOCKET_SERVER));
+		l << a;
+		a.setMode(getMode(PSP_SERIAL_SOCKET_CLIENT));
+		l << a;
 		break;
 	default:
 		return ::Error::Simple(PRL_ERR_UNIMPLEMENTED);
 	}
 
-	a.setPath(model_.getUserFriendlyName());
-	if (a.getPath().get().isEmpty())
-		return ::Error::Simple(PRL_ERR_INVALID_ARG);
-	a.setAppend(Libvirt::Domain::Xml::EVirOnOffOn);
-
-	Libvirt::Domain::Xml::QemucdevSrcDef b;
-	b.setSourceList(QList<Libvirt::Domain::Xml::Source15 >() << a);
+	b.setSourceList(l);
 	output.setQemucdevSrcDef(b);
 
 	return output;
