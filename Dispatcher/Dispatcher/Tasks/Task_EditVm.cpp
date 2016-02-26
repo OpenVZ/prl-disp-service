@@ -3087,7 +3087,7 @@ QStringList Device::calculate(const general_type& general_, const Dao& devices_)
 // struct Vm
 
 Vm::Vm(const CVmConfiguration& cfg_)
-	: m_device(cfg_.getVmSettings()->getGlobalNetwork(),
+	: m_device(*cfg_.getVmSettings()->getGlobalNetwork(),
 		Network::Dao(cfg_.getVmHardwareList()->m_lstNetworkAdapters))
 {
 	const Network::general_type* a = cfg_.getVmSettings()->getGlobalNetwork();
