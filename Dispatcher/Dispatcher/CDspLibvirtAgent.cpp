@@ -320,7 +320,7 @@ Result Unit::setConfig(const CVmConfiguration& value_)
 	if (link_.isNull())
 		return Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
 
-	Config config(m_domain, link_, 0);
+	Config config(m_domain, link_, VIR_DOMAIN_XML_INACTIVE);
 	Prl::Expected<QString, Error::Simple> x = config.mixup(value_);
 	if (x.isFailed())
 		return x.error();
