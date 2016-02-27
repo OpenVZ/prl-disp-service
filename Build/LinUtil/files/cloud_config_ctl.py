@@ -104,7 +104,7 @@ class CloudBaseInit(OpenStackConfigDrive):
         if credentials.get("is_encrypted", False):
             return ""
         s = "net user \"{}\" \"{}\"".format(name, credentials["password"])
-        r = "{} || {} \\\\add".format(s, s)
+        r = "{} || {} /add".format(s, s)
         return r
 
     def write_meta_data(self):
