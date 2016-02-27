@@ -50,7 +50,7 @@ enum PRL_NET_MODE
 	PRL_NET_MODE_VME = 1,
 };
 
-#define DEFAULT_HOSTROUTED_GATEWAY	"169.255.30.1/16"
+#define DEFAULT_HOSTROUTED_GATEWAY	"169.254.0.1/16"
 #define DEFAULT_HOSTROUTED_GATEWAY6	"fe80::ffff:1:1/64"
 
 #endif //PrlNetworkingConstants_h__
