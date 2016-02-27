@@ -320,6 +320,14 @@ void Patch::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 
 void OsInfo::do_(CVmConfiguration& old_, const CVmConfiguration& new_) 
 {
+	// DEBUG LOGS FOR #PSBM-44712
+	if (new_.getVmSettings() != NULL && new_.getVmSettings()->getVmCommonOptions() != NULL)
+		WRITE_TRACE(DBG_DEBUG, "#PSBM-44712 OsType: %d, OsVersion: %d",
+			new_.getVmSettings()->getVmCommonOptions()->getOsType(),
+			new_.getVmSettings()->getVmCommonOptions()->getOsVersion());
+	else
+		WRITE_TRACE(DBG_DEBUG, "#PSBM-44712 NO OS INFO");
+
 	old_.getVmSettings()->getVmCommonOptions()->setOsType
 		(new_.getVmSettings()->getVmCommonOptions()->getOsType());
 	old_.getVmSettings()->getVmCommonOptions()->setOsVersion

@@ -1091,6 +1091,15 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 		//Patch network adapters with empty virtual network IDs fields
 		if ( CDspService::isServerMode() )
 			PatchNetworkAdapters();
+
+		// DEBUG LOGS FOR #PSBM-44712
+		if (m_pVmConfig->getVmSettings() != NULL && m_pVmConfig->getVmSettings()->getVmCommonOptions() != NULL)
+			WRITE_TRACE(DBG_DEBUG, "#PSBM-44712 OsType: %d, OsVersion: %d",
+				m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsType(),
+				m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsVersion());
+		else
+			WRITE_TRACE(DBG_DEBUG, "#PSBM-44712 NO OS INFO");
+
 		ret = PRL_ERR_SUCCESS;
 	}
 	catch (PRL_RESULT code)
