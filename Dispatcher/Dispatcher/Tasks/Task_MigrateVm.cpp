@@ -1395,8 +1395,6 @@ PRL_RESULT Task_MigrateVmSource::reactCheckReply(const SmartPtr<IOPackage>& pack
 			UTF8_2QSTR(package->buffers[0].getImpl())
 		);
 
-	PRL_RESULT nRetCode;
-
 	CVmMigrateCheckPreconditionsReply *pResponseCmd =
 		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmMigrateCheckPreconditionsReply>(pCmd);
 	QStringList lstErrors = pResponseCmd->GetCheckPreconditionsResult();
@@ -1428,7 +1426,6 @@ PRL_RESULT Task_MigrateVmSource::reactCheckReply(const SmartPtr<IOPackage>& pack
 				QString ha;
 				CDspService::instance()->getHaClusterHelper()->getHaClusterID(ha);
 				m_nReservedFlags |= ((!ha.isEmpty()) * PVM_HA_MOVE_VM);
-				nRetCode = PRL_ERR_SUCCESS;
 				continue;
 			}
 
@@ -1438,7 +1435,7 @@ PRL_RESULT Task_MigrateVmSource::reactCheckReply(const SmartPtr<IOPackage>& pack
 					(m_nMigrationFlags & PVM_DONT_RESUME_VM))
 				{
 					// error with CPUs incompatibility
-					nRetCode = PRL_ERR_SUCCESS;//so ignore it
+					//so ignore it
 					// If another error will be encountered in this loop, it will be added
 					// to m_lstCheckPrecondsErrors and checked below...
 					continue;
@@ -1447,11 +1444,8 @@ PRL_RESULT Task_MigrateVmSource::reactCheckReply(const SmartPtr<IOPackage>& pack
 			m_lstCheckPrecondsErrors.append(sError);
 		} // foreach
 		if (m_lstCheckPrecondsErrors.size())
-			nRetCode = PRL_ERR_VM_MIGRATE_CHECKING_PRECONDITIONS_FAILED;
+			return PRL_ERR_VM_MIGRATE_CHECKING_PRECONDITIONS_FAILED;
 	}
-
-	if (PRL_FAILED(nRetCode))
-		return nRetCode;
 
 	return prepareStart();
 }
