@@ -3589,13 +3589,16 @@ Vm::Action* Disk::operator()(const Request& input_) const
 		if (isDiskIoUntunable(d))
 			continue;
 
-		CVmHardDisk* x = CXmlModelHelper::IsElemInList(d, o);
-		if (NULL == x || isDiskIoUntunable(x))
+               QList<CVmHardDisk *>::const_iterator x =
+                       std::find_if(o.begin(), o.end(), boost::bind(isHardDisksSystemPathEqual, _1, d));
+               if (x == o.end())
+                       continue;
+		if (isDiskIoUntunable(*x))
 			continue;
 
 		CVmIoLimit* l(d->getIoLimit());
 		if (l != NULL) {
-			CVmIoLimit* p(x->getIoLimit());
+			CVmIoLimit* p((*x)->getIoLimit());
 			if (p == NULL || l->getIoLimitValue() != p->getIoLimitValue())
 			{
 				Action* a(f.craftRuntime(boost::bind
@@ -3605,7 +3608,7 @@ Vm::Action* Disk::operator()(const Request& input_) const
 			}
 		}
 
-		if (d->getIopsLimit() != x->getIopsLimit()) {
+		if (d->getIopsLimit() != (*x)->getIopsLimit()) {
 			Action* a(f.craftRuntime(boost::bind
 				(&vm::Runtime::setIopsLimit, _1, d, d->getIopsLimit())));
 			a->setNext(output);
@@ -3808,6 +3811,8 @@ Action* Hotplug<T>::operator()(const Request& input_) const
 	return output;
 }
 
+
+
 template<class T>
 QList<T* > Hotplug<T>::getDifference(const QList<T* >& first_,
 				const QList<T* >& second_)
@@ -3833,6 +3838,31 @@ QList<T* > Hotplug<T>::getDifference(const QList<T* >& first_,
 	return output;
 }
 
+template<>
+QList<CVmHardDisk* > Hotplug<CVmHardDisk>::getDifference(const QList<CVmHardDisk* >& first_,
+				const QList<CVmHardDisk* >& second_)
+{
+	QList<CVmHardDisk* > output;
+	foreach (CVmHardDisk* d, first_)
+	{
+		QList<CVmHardDisk *>::const_iterator x =
+			std::find_if(second_.begin(), second_.end(), boost::bind(isHardDisksSystemPathEqual, _1, d));
+		if (x == first_.end())
+		{
+			if (PVE::DeviceEnabled == d->getEnabled() &&
+				PVE::DeviceConnected == d->getConnected())
+				output << d;
+		}
+		else if (PVE::DeviceEnabled == d->getEnabled() &&
+			PVE::DeviceConnected == d->getConnected() &&
+			(d->getEnabled() != (*x)->getEnabled() ||
+			d->getConnected() != (*x)->getConnected()))
+		{
+			output << d;
+		}
+	}
+	return output;
+}
 ///////////////////////////////////////////////////////////////////////////////
 // struct Driver
 
