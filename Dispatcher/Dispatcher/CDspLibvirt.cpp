@@ -203,8 +203,9 @@ Prl::Expected<QString, Error::Simple> Config::mixup(const CVmConfiguration& valu
 		return i.error();
 
 	Transponster::Vm::Reverse::Mixer u(value_, read_());
-	if (PRL_FAILED(Transponster::Director::domain(u, i.value())))
-		return Error::Simple(PRL_ERR_BAD_VM_DIR_CONFIG_FILE_SPECIFIED);
+	PRL_RESULT res = Transponster::Director::domain(u, i.value());
+	if (PRL_FAILED(res))
+		return Error::Simple(res);
 
 	return u.getResult();
 }
