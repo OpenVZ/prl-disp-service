@@ -595,7 +595,7 @@ QList<CVmHardDisk* > Dao::getEnabled() const
 	QList<CVmHardDisk* > output;
 	foreach(CVmHardDisk* d, getStore())
 	{
-		Details::Finding f(d);
+		Details::Finding f(*d);
 		if (f.isKindOf() && f.isEnabled())
 			output << d;
 	}
@@ -607,7 +607,7 @@ QList<CVmHardDisk* > Dao::getDisabled() const
 	QList<CVmHardDisk* > output;
 	foreach(CVmHardDisk* d, getStore())
 	{
-		Details::Finding f(d);
+		Details::Finding f(*d);
 		if (f.isKindOf() && !f.isEnabled())
 			output << d;
 	}
