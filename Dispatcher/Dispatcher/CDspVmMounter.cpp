@@ -466,13 +466,12 @@ QList<QString> CDspVmMountStorage::getKeys() const
 CDspVmMountRegistry::CDspVmMountRegistry()
 {
 	m_handler.moveToThread(&m_handlerThread);
-	bool ret = QObject::connect(
+	PRL_ASSERT(QObject::connect(
 			&m_handler,
 			SIGNAL(removeMount(const QString&)),
 			this,
 			SLOT(umountForce(const QString&)),
-			Qt::DirectConnection);
-	Q_ASSERT(ret);
+			Qt::DirectConnection));
 	m_handlerThread.start();
 }
 
@@ -544,21 +543,19 @@ void CDspVmMountRegistry::umountForce(const QString &uuid)
 bool CDspVmMountRegistry::startTracking(
 		const QString &uuid, const SmartPtr<CDspVmMount> &mount)
 {
-	bool ret = QObject::connect(
+	PRL_ASSERT(QObject::connect(
 				mount.get(),
 				SIGNAL(mountFinished(const QString&)),
 				&m_handler,
 				SLOT(onMountFinished(const QString&)),
-				Qt::QueuedConnection);
-	Q_ASSERT(ret);
+				Qt::QueuedConnection));
 
 	if (!m_storage.insert(uuid, mount)) {
-		ret = QObject::disconnect(
+		PRL_ASSERT(QObject::disconnect(
 				mount.get(),
 				SIGNAL(mountFinished(const QString&)),
 				&m_handler,
-				SLOT(onMountFinished(const QString&)));
-		Q_ASSERT(ret);
+				SLOT(onMountFinished(const QString&))));
 		return false;
 	}
 	updateState(mount->getVmIdent(), VMS_STOPPED, VMS_MOUNTED);
@@ -571,12 +568,11 @@ bool CDspVmMountRegistry::stopTracking(
 	if (!m_storage.commitPop(uuid))
 		return false;
 
-	bool ret = QObject::disconnect(
+	PRL_ASSERT(QObject::disconnect(
 			mount.get(),
 			SIGNAL(mountFinished(const QString&)),
 			&m_handler,
-			SLOT(onMountFinished(const QString&)));
-	Q_ASSERT(ret);
+			SLOT(onMountFinished(const QString&))));
 
 	updateState(mount->getVmIdent(), VMS_MOUNTED, VMS_STOPPED);
 	return true;
@@ -596,11 +592,10 @@ CDspVmMountRegistry::~CDspVmMountRegistry()
 	WRITE_TRACE(DBG_FATAL, "CDspVmMountRegistry destroyed");
 	m_handlerThread.quit();
 	m_handlerThread.wait();
-	bool ret = QObject::disconnect(
+	PRL_ASSERT(QObject::disconnect(
 			&m_handler,
 			SIGNAL(removeMount(const QString&)),
 			this,
-			SLOT(umountForce(const QString&)));
-	Q_ASSERT(ret);
+			SLOT(umountForce(const QString&))));
 }
 
