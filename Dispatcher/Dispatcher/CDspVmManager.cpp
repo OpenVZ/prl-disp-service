@@ -562,7 +562,7 @@ struct Vcmmd: Need::Agent, Need::Context, Need::Config, Need::Command<CProtoSwit
 
 			quint64 ramsize = getConfig()->
 				getVmHardwareList()->getMemory()->getRamSize();
-			quint64 guarantee = ::Vm::Config::MemGuarantee(getConfig()->
+			quint64 guarantee = ::Vm::Config::MemGuarantee(*getConfig()->
 				getVmHardwareList()->getMemory())(ramsize);
 
 			if (PRL_SUCCEEDED(v(::Vcmmd::Unregistered(ramsize<<20, guarantee<<20))))
