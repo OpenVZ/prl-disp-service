@@ -860,6 +860,15 @@ void Vm::updateConfig(CVmConfiguration value_)
 		if (is_flag_active< ::Vm::State::Running>())
 			m_routing->reconfigure(y.get(), value_);
 	}
+	else
+		WRITE_TRACE(DBG_DEBUG, "New VM registred directly from libvirt");
+
+	if (value_.getVmIdentification()->getHomePath().isEmpty())
+		value_.getVmIdentification()->setHomePath(getHome());
+	else
+		setHome(value_.getVmIdentification()->getHomePath());
+
+	updateDirectory(value_.getVmType());
 
 	::Vm::State::Machine::setConfig(value_);
 }
@@ -879,8 +888,6 @@ void Domain::setState(VIRTUAL_MACHINE_STATE value_)
 void Domain::setConfig(CVmConfiguration& value_)
 {
 	m_vm.setName(value_.getVmIdentification()->getVmName());
-	value_.getVmIdentification()->setHomePath(m_vm.getHome());
-	m_vm.updateDirectory(value_.getVmType());
 	Kit.vms().at(m_vm.getUuid()).completeConfig(value_);
 	m_vm.updateConfig(value_);
 }
