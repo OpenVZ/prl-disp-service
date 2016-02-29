@@ -52,13 +52,21 @@ Domain::Domain(virDomainPtr model_, QSharedPointer<Model::Domain> view_):
 
 void Domain::run()
 {
+	VIRTUAL_MACHINE_STATE s;
+	Result r = m_agent.getState(s);
+
 	CVmConfiguration c;
 	if (m_agent.getConfig(c).isSucceed())
-		m_view->setConfig(c);	
+	{
+		CVmConfiguration runtime;
+		if (r.isSucceed() && (s == VMS_RUNNING || s == VMS_PAUSED)
+				&& m_agent.getConfig(runtime, true).isSucceed())
+			Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(c, runtime);
 
-	VIRTUAL_MACHINE_STATE s;
-	if (m_agent.getState(s).isSucceed()
-		&& !QMetaObject::invokeMethod(m_view.data(), "setState", Q_ARG(VIRTUAL_MACHINE_STATE, s)))
+		m_view->setConfig(c);
+	}
+
+	if (r.isSucceed() && !QMetaObject::invokeMethod(m_view.data(), "setState", Q_ARG(VIRTUAL_MACHINE_STATE, s)))
 		WRITE_TRACE(DBG_FATAL, "Unable to invoke VM 'setState' method");
 }
 
