@@ -230,7 +230,10 @@ struct Frontend: msmf::state_machine_def<Frontend>
 			CVmConfiguration runtime;
 			Libvirt::Instrument::Agent::Vm::Unit v = Libvirt::Kit.vms().at(fsm_.getUuid());
 			if (v.getConfig(runtime, true).isFailed())
+			{
+				WRITE_TRACE(DBG_INFO, "failed to read runtime config from for VM '%s'", qPrintable(fsm_.m_name));
 				return;
+			}
 
 			WRITE_TRACE(DBG_INFO, "updating config from runtime for VM '%s'", qPrintable(fsm_.m_name));
 			Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(y.get(), runtime);
