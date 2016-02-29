@@ -3589,10 +3589,10 @@ Vm::Action* Disk::operator()(const Request& input_) const
 		if (isDiskIoUntunable(d))
 			continue;
 
-               QList<CVmHardDisk *>::const_iterator x =
-                       std::find_if(o.begin(), o.end(), boost::bind(isHardDisksSystemPathEqual, _1, d));
-               if (x == o.end())
-                       continue;
+		QList<CVmHardDisk *>::const_iterator x =
+			std::find_if(o.begin(), o.end(), boost::bind(isHardDisksSystemPathEqual, _1, d));
+		if (x == o.end())
+			continue;
 		if (isDiskIoUntunable(*x))
 			continue;
 
@@ -3847,7 +3847,7 @@ QList<CVmHardDisk* > Hotplug<CVmHardDisk>::getDifference(const QList<CVmHardDisk
 	{
 		QList<CVmHardDisk *>::const_iterator x =
 			std::find_if(second_.begin(), second_.end(), boost::bind(isHardDisksSystemPathEqual, _1, d));
-		if (x == first_.end())
+		if (x == second_.end())
 		{
 			if (PVE::DeviceEnabled == d->getEnabled() &&
 				PVE::DeviceConnected == d->getConnected())
