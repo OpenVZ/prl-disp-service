@@ -33,8 +33,7 @@
 #ifndef CDispToDispCommonProto_H
 #define CDispToDispCommonProto_H
 
-#include "Interfaces/ParallelsDispToDispProto.h"
-
+#include <prlcommon/Interfaces/ParallelsDispToDispProto.h>
 #include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"

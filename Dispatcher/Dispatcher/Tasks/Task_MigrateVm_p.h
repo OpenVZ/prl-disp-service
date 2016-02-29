@@ -46,7 +46,7 @@
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlxmlmodel/Messaging/CVmEvent.h>
-#include <Interfaces/ParallelsDispToDispProto.h>
+#include <prlcommon/Interfaces/ParallelsDispToDispProto.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/IOService/IOCommunication/IOSendJob.h>
 #include <prlcommon/IOService/IOCommunication/IOProtocol.h>

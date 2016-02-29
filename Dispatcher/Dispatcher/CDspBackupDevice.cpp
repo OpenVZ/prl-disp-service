@@ -35,7 +35,7 @@
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "prlxmlmodel/VmConfig/CVmConfiguration.h"
 #include "prlxmlmodel/ParallelsObjects/CXmlModelHelper.h"
-#include "Interfaces/ParallelsDispToDispProto.h"
+#include <prlcommon/Interfaces/ParallelsDispToDispProto.h>
 #include "Libraries/Buse/Buse.h"
 
 using namespace Parallels;
