@@ -861,7 +861,7 @@ void Vm::updateConfig(CVmConfiguration value_)
 			m_routing->reconfigure(y.get(), value_);
 	}
 	else
-		WRITE_TRACE(DBG_DEBUG, "New VM registred directly from libvirt");
+		WRITE_TRACE(DBG_DEBUG, "New VM registered directly from libvirt");
 
 	if (value_.getVmIdentification()->getHomePath().isEmpty())
 		value_.getVmIdentification()->setHomePath(getHome());

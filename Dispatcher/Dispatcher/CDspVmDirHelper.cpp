@@ -2961,14 +2961,13 @@ void CDspVmDirHelper::appendAdvancedParamsToVmConfig(
 
 /**
 * reset additional parameters in VM configuration
-* (VM home, last change date, last modification date - never store in VM configuration itself!)
+* (last change date, last modification date - never store in VM configuration itself!)
 */
 void CDspVmDirHelper::resetAdvancedParamsFromVmConfig( SmartPtr<CVmConfiguration> pOutVmConfig )
 {
 	if ( ! pOutVmConfig )
 		return;
 
-	pOutVmConfig->getVmIdentification()->setHomePath( "" );
 	pOutVmConfig->getVmIdentification()->setModifierName( "" );
 	pOutVmConfig->getVmIdentification()->setLastModifDate(
 		QDateTime::fromString( XML_DEFAULT_DATE_TIME, XML_DATETIME_FORMAT ) );
