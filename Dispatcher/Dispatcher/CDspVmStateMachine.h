@@ -372,6 +372,10 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	{
 		return m_home.absoluteFilePath();
 	}
+	void setHome(const QString& path_)
+	{
+		m_home = QFileInfo(path_);
+	}
 
 	void setName(const QString& value_);
 	void updateDirectory(PRL_VM_TYPE type_);

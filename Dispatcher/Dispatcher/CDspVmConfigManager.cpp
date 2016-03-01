@@ -366,6 +366,8 @@ void Cpu::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 
 void Identification::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
+	new_.getVmIdentification()->setHomePath
+		(old_.getVmIdentification()->getHomePath());
 	new_.getVmIdentification()->setVmUptimeStartDateTime
 		(old_.getVmIdentification()->getVmUptimeStartDateTime());
 }
