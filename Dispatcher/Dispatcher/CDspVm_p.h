@@ -324,23 +324,6 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Setup
-
-struct Setup
-{
-	Setup(Demand& demand_, Details& vm_);
-
-	bool check();
-	bool prepare();
-	SmartPtr<CDspClient> getUser() const;
-	SmartPtr<CVmConfiguration> getConfig() const;
-private:
-	Details* m_vm;
-	Demand* m_demand;
-	SmartPtr<CVmConfiguration> m_config;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Process
 
 struct Process

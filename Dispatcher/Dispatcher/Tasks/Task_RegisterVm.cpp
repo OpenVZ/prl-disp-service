@@ -1722,7 +1722,6 @@ PRL_RESULT Task_RegisterVm::saveVmConfig( )
 				getVmServerIdentification()->getServerUuid()
 		);
 		m_pVmConfig->getVmIdentification()->setHomePath(m_pVmInfo->vmXmlPath);
-		CDspService::instance()->getVmDirHelper().resetSecureParamsFromVmConfig(m_pVmConfig);
 		ret = CDspService::instance()->getVmConfigManager()
 				.saveConfig(m_pVmConfig, m_pVmInfo->vmXmlPath, getClient(), true, true);
 
@@ -2432,42 +2431,6 @@ PRL_RESULT Task_RegisterVm::tryToRestoreVmConfig( const QString& sPathToVmDir )
 			EVT_PARAM_MESSAGE_PARAM_1 ) );
 
 		return PRL_ERR_VM_CONFIG_DOESNT_EXIST;
-	}
-
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Task_RegisterVm::checkStartUpVmSettings()
-{
-	CDspLockedPointer<CDispUser> dispUser = CDspService::instance()->getDispConfigGuard()
-		.getDispUserByUuid( getClient()->getUserSettingsUuid() );
-	bool bAdmin = ( getClient()->getAuthHelper().isLocalAdministrator()
-					|| (dispUser && dispUser->getUserAccess()->isLocalAdministrator()) );
-
-	PRL_VM_START_LOGIN_MODE nStartLoginMode
-		= m_pVmConfig->getVmSettings()->getVmStartupOptions()->getVmStartLoginMode();
-	switch(nStartLoginMode)
-	{
-	case PLM_ROOT_ACCOUNT:
-		if ( ! bAdmin )
-			return PRL_ERR_ONLY_ADMIN_CAN_SET_PARAMETER_STARTLOGINMODE_ROOT;
-		break;
-
-	case PLM_USER_ACCOUNT:
-	{
-		QString qsUser = m_pVmConfig->getVmSettings()->getVmStartupOptions()->getVmStartAsUser();
-		if (qsUser.isEmpty())
-			return PRL_ERR_START_VM_BY_NOT_DEFINED_USER;
-
-		CAuthHelper auth(qsUser);
-		if ( ! auth.AuthUser(
-			m_pVmConfig->getVmSettings()->getVmStartupOptions()->getVmStartAsPassword()) )
-			return PRL_ERR_START_VM_BY_NOT_AUTH_USER;
-	}
-
-	case PLM_START_ACCOUNT:
-	default:
-		break;
 	}
 
 	return PRL_ERR_SUCCESS;

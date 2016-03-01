@@ -3019,10 +3019,6 @@ PRL_RESULT CDspVm::runActionScript(PRL_VM_ACTION nAction, const SmartPtr<CDspVm>
 		return PRL_ERR_INCONSISTENCY_VM_CONFIG;
 	}
 
-	ret = CDspService::instance()->getVmDirHelper().getVmStartUser(vmConfig, pRunUser);
-	if (PRL_FAILED(ret))
-		return ret;
-
 	QString sUserName = pRunUser->getAuthHelper().getUserName();
 	CDspService::instance()->getTaskManager().schedule(new Task_RunVmAction(pUser, p, pVm, nAction, sUserName))
 		.wait(bWaitForResult);
