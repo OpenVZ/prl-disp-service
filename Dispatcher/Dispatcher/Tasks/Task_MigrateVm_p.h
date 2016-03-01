@@ -1098,9 +1098,18 @@ void Driver<T>::launch(const QString& program_, const QStringList& arguments_)
 			SIGNAL(finished(int, QProcess::ExitStatus)),
 			SLOT(reactFinished(int, QProcess::ExitStatus)));
 	if (x)
+	{
 		m_process->start(program_, arguments_);
+		if (!m_process->waitForStarted())
+		{
+			WRITE_TRACE(DBG_FATAL, "failed to start programm '%s'", qPrintable(program_));
+			m_process.clear();
+			this->handle(Flop::Event(PRL_ERR_FAILURE));
+		}
+	}
 	else
 	{
+		m_process.clear();
 		WRITE_TRACE(DBG_FATAL, "can't connect");
 		this->handle(Flop::Event(PRL_ERR_FAILURE));
 	}
