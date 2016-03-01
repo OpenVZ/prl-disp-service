@@ -831,11 +831,6 @@ void Task_MigrateVmTarget::finalizeTask()
 			 * the disk) and with unlocked VM */
 			 changeSID();
 		} else {
-			/* lock running Vm (https://jira.sw.ru/browse/PSBM-7682) */
-			/* will do it via initial Vm creation command
-			   (https://jira.sw.ru/browse/PSBM-8222) */
-			m_pVm->replaceInitDspCmd(PVE::DspCmdVmStart, getClient());
-
 			if (m_nPrevVmState == VMS_RUNNING &&
 				(m_pVmConfig->getVmSettings()->getVmRemoteDisplay()->getMode() != PRD_DISABLED))
 			{
@@ -846,6 +841,15 @@ void Task_MigrateVmTarget::finalizeTask()
 			}
 			m_pVm->setMigrateVmRequestPackage(SmartPtr<IOPackage>());
 			m_pVm->setMigrateVmConnection(SmartPtr<CDspDispConnection>());
+
+			/* lock running Vm (https://jira.sw.ru/browse/PSBM-7682) */
+			/* will do it via initial Vm creation command
+			   (https://jira.sw.ru/browse/PSBM-8222) */
+
+			// Vm locks are broken and not used but will be returned later
+			//m_pVm->replaceInitDspCmd(PVE::DspCmdVmStart, getClient());
+			CDspVm::UnregisterVmObject(m_pVm);
+			m_pVm = SmartPtr<CDspVm>(0);
 		}
 
 		if (m_nVersion >= MIGRATE_DISP_PROTO_V3) {
