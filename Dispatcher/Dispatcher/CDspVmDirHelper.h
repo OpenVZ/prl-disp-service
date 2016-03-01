@@ -427,17 +427,6 @@ public:
 
 	static QStringList getListOfLastCrashedLogs(const QStringList& listOfCrashDirs );
 
-	/** #9246 */
-	bool loadSecureData( SmartPtr<CVmConfiguration> vmConfig );
-
-	/** #9246 */
-	PRL_RESULT getVmStartUser(SmartPtr<CVmConfiguration> vmConfig,
-								SmartPtr<CDspClient> &pRunUser,
-								bool bAutoStart = false);
-
-	/** #9246 */
-	void resetSecureParamsFromVmConfig( SmartPtr<CVmConfiguration> vmConfig );
-
 	/** bug #9058 **/
 	void recoverMixedVmPermission( SmartPtr<CDspClient> pOwnerSession );
 
@@ -501,13 +490,6 @@ public:
 				const QString& sServerUuid, CVmDirectoryItem* pDirItem);
 
 private:
-	/** #9246 */
-	PRL_RESULT saveSecureData( SmartPtr<CDspClient> pUserSession
-		, SmartPtr<CVmConfiguration> vmConfig, CVmEvent& errorEvent );
-
-	/** #9246 */
-	void removeSecureData( const QString& vm_uuid );
-
 	bool sendVmConfigByUuid ( const IOSender::Handle& sender,
 		SmartPtr<CDspClient> pUserSession,
 		const SmartPtr<IOPackage>&,

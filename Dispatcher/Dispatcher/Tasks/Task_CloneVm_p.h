@@ -873,7 +873,6 @@ struct Flavor<T, typename EnableIf<IsSame<T, Vm::General>::value ||
 		prepare(output);
 		// reset additional parameters in VM configuration
 		CDspService::instance()->getVmDirHelper().resetAdvancedParamsFromVmConfig(output);
-		CDspService::instance()->getVmDirHelper().resetSecureParamsFromVmConfig(output);
 		return output;
 	}
 

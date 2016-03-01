@@ -207,8 +207,6 @@ private:
 
 	void PatchNetworkAdapters();
 
-	PRL_RESULT checkStartUpVmSettings();
-
 private:
 	QString m_vmRootDir; // using to CreateVm Only
 	QString m_strPathToVmDirToRegister; // use to Register VM  Only

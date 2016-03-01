@@ -789,9 +789,6 @@ void Task_EditVm::beginEditVm(const IOSender::Handle& sender,
 		CDspService::instance()->getVmDirHelper()
 			.appendAdvancedParamsToVmConfig( pUserSession, pVmConfig, true );
 
-		//Add secure data see https://bugzilla.sw.ru/show_bug.cgi?id=425147
-		CDspService::instance()->getVmDirHelper().loadSecureData( pVmConfig );
-
 		// clear suspend flag for disks
 		CDspService::instance()->getVmDirHelper().getMultiEditDispatcher()->lock();
 		CStatesHelper::SetSuspendParameterForAllDisks(pVmConfig.getImpl(),0);
@@ -1712,21 +1709,17 @@ PRL_RESULT Task_EditVm::editVm()
 					}
 				}
 
-				// #9246
-				CDspService::instance()->getVmDirHelper().loadSecureData( pVmConfigOld );
 				PRL_VM_START_LOGIN_MODE newLoginMode =
 					pVmConfigNew->getVmSettings()->getVmStartupOptions()->getVmStartLoginMode();
 				PRL_VM_START_LOGIN_MODE oldLoginMode =
 					pVmConfigOld->getVmSettings()->getVmStartupOptions()->getVmStartLoginMode();
 
-				if ( ! getClient()->getAuthHelper().isLocalAdministrator()
-					&& ( (newLoginMode == PLM_ROOT_ACCOUNT) && (newLoginMode != oldLoginMode) ) )
+				if ((newLoginMode != PLM_START_ACCOUNT) && (newLoginMode != oldLoginMode))
 				{
-					WRITE_TRACE(DBG_FATAL, ">>> PLM_ROOT_ACCOUNT");
-					throw PRL_ERR_ONLY_ADMIN_CAN_SET_PARAMETER_STARTLOGINMODE_ROOT;
+					WRITE_TRACE(DBG_FATAL, "An attempt to use Start-As-User feature!");
+					throw PRL_ERR_UNIMPLEMENTED;
 				}
 
-				CDspService::instance()->getVmDirHelper().resetSecureParamsFromVmConfig( pVmConfigOld );
 			}
 
 			//////////////////////////////////////////////////////////////////////////
@@ -2045,17 +2038,6 @@ PRL_RESULT Task_EditVm::editVm()
 				.resetAdvancedParamsFromVmConfig( pVmConfigNew );
 
 			resetNetworkAddressesFromVmConfig( pVmConfigNew, pVmConfigOld );
-
-			// #9246
-			PRL_RESULT ret = PRL_ERR_SUCCESS;
-/*
-			ret = CDspService::instance()->getVmDirHelper()
-					.saveSecureData( getClient(), pVmConfigNew, *getLastError() );
-			if ( PRL_FAILED( ret ) )
-				throw ret;
-*/
-			CDspService::instance()->getVmDirHelper()
-				.resetSecureParamsFromVmConfig ( pVmConfigNew );
 
 			//Fill server UUID field because it information needing at VM check
 			//access procedure
