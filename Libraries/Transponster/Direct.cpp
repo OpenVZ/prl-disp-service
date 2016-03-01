@@ -432,36 +432,63 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice936::
 	if (NULL == h)
 		return PRL_ERR_UNEXPECTED;
 
+	if (serial_.getValue().getQemucdevSrcDef().getSourceList().isEmpty())
+		return PRL_ERR_SUCCESS;
+
+	Libvirt::Domain::Xml::Source15 s = serial_.getValue().getQemucdevSrcDef().getSourceList().front();
+
+	QString n;
 	PVE::SerialPortEmulatedType t;
 	switch (serial_.getValue().getType())
 	{
 	case Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceFile:
 		t = PVE::SerialOutputFile;
+		if (!s.getPath())
+			return PRL_ERR_SUCCESS;
+		n = s.getPath().get();
 		break;
 	case Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceUnix:
 		t = PVE::SerialSocket;
+		if (!s.getPath())
+			return PRL_ERR_SUCCESS;
+		n = s.getPath().get();
 		break;
 	case Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceDev:
 		t = PVE::RealSerialPort;
+		if (!s.getPath())
+			return PRL_ERR_SUCCESS;
+		n = s.getPath().get();
+		break;
+	case Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceUdp:
+		t = PVE::SerialUDP;
+		if (!s.getHost() || !s.getService())
+			return PRL_ERR_SUCCESS;
+		n = QString("%1:%2").arg(s.getHost().get(), s.getService().get());
+		break;
+	case Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceTcp:
+		t = PVE::SerialTCP;
+		if (!s.getHost() || !s.getService())
+			return PRL_ERR_SUCCESS;
+		n = QString("%1:%2").arg(s.getHost().get(), s.getService().get());
 		break;
 	default:
 		return PRL_ERR_SUCCESS;
 	}
-
-	if (serial_.getValue().getQemucdevSrcDef().getSourceList().isEmpty())
-		return PRL_ERR_SUCCESS;
-
-	if (!serial_.getValue().getQemucdevSrcDef().getSourceList().front().getPath())
-		return PRL_ERR_SUCCESS;
 
 	CVmSerialPort* p = new CVmSerialPort();
 	p->setIndex(h->m_lstSerialPorts.size());
 	p->setItemId(h->m_lstSerialPorts.size());
 	p->setEnabled(true);
 	p->setEmulatedType(t);
-	p->setUserFriendlyName(serial_.getValue().getQemucdevSrcDef()
-		.getSourceList().front().getPath().get());
+	p->setUserFriendlyName(n);
 	p->setSystemName(p->getUserFriendlyName());
+
+	if (s.getMode())
+	{
+		p->setSocketMode(s.getMode().get() == QString("connect") ?
+			PSP_SERIAL_SOCKET_CLIENT : PSP_SERIAL_SOCKET_SERVER);
+	}
+
 	h->addSerialPort(p);
 	return PRL_ERR_SUCCESS;
 }
