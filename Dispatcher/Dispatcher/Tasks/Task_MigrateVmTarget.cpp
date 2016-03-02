@@ -831,14 +831,6 @@ void Task_MigrateVmTarget::finalizeTask()
 			 * the disk) and with unlocked VM */
 			 changeSID();
 		} else {
-			if (m_nPrevVmState == VMS_RUNNING &&
-				(m_pVmConfig->getVmSettings()->getVmRemoteDisplay()->getMode() != PRD_DISABLED))
-			{
-				/* migration skip VNC start on Vm resuming (#476822) so will
-				   to start VNC right after migration unregister */
-				pPackage = IOPackage::createInstance( IOSender::UnknownType, 0 );
-				m_pVm->startVNCServer(getClient(), pPackage, false, true);
-			}
 			m_pVm->setMigrateVmRequestPackage(SmartPtr<IOPackage>());
 			m_pVm->setMigrateVmConnection(SmartPtr<CDspDispConnection>());
 
