@@ -1013,14 +1013,15 @@ PRL_RESULT Task_MigrateVmSource::migrateStoppedVm()
 	if (vz.set_vziolimit("VZ_TOOLS"))
 		WRITE_TRACE(DBG_FATAL, "Warning: Ignore IO limit parameters");
 
+	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
+	if ( !(m_nReservedFlags & PVM_DONT_COPY_VM) ) {
+		/* get full directories and files lists for migration */
+		if (PRL_FAILED(nRetCode = CVmMigrateHelper::GetEntryListsVmHome(m_sVmHomePath, m_dList, m_fList)))
+			return nRetCode;
+	}
+
 	if ((m_nPrevVmState != VMS_RUNNING) && (m_nPrevVmState != VMS_PAUSED))
 	{
-		PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-		if ( !(m_nReservedFlags & PVM_DONT_COPY_VM) ) {
-			/* get full directories and files lists for migration */
-			if (PRL_FAILED(nRetCode = CVmMigrateHelper::GetEntryListsVmHome(m_sVmHomePath, m_dList, m_fList)))
-				return nRetCode;
-		}
 		// first find set of parent dirs of non shared disks
 		QSet<QString> dirs;
 		foreach (const QString disk, m_lstNonSharedDisks)
@@ -1031,6 +1032,14 @@ PRL_RESULT Task_MigrateVmSource::migrateStoppedVm()
 
 		foreach (const QString &disk, m_lstNonSharedDisks)
 			m_fList << qMakePair(QFileInfo(disk), disk);
+	}
+	else
+	{
+		// For online migration we don't need to copy hard disk images
+		foreach (const CVmHardDisk* d, m_pVmConfig->getVmHardwareList()->m_lstHardDisks)
+		{
+			m_fList.removeOne(qMakePair(QFileInfo(m_sVmHomePath, d->getSystemName()), d->getSystemName()));
+		}
 	}
 
 	CDispToDispCommandPtr a = CDispToDispProtoSerializer::CreateVmMigrateStartCommand(
