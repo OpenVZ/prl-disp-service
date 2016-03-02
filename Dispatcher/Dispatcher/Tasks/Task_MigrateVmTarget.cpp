@@ -942,8 +942,8 @@ PRL_RESULT Task_MigrateVmTarget::sendStartConfirmation()
 
 bool Task_MigrateVmTarget::isSharedDisk(const QString& name) const
 {
-	return m_lstNonSharedDisks.contains(name) || ((m_nReservedFlags & PVM_DONT_COPY_VM) &&
-		 name.startsWith(m_sTargetVmHomePath + QDir::separator()));
+	return name.startsWith(m_sTargetVmHomePath + QDir::separator()) ? m_nReservedFlags & PVM_DONT_COPY_VM
+		: !m_lstNonSharedDisks.contains(name);
 }
 
 QList<CVmHardDisk> Task_MigrateVmTarget::getImagesToCreate()
