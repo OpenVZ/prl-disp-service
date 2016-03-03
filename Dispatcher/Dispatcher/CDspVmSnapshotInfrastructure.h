@@ -254,47 +254,6 @@ private:
 
 } // namespace Revert
 
-namespace CommitUnfinished
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Command
-
-struct Command
-{
-	static PVE::IDispatcherCommands name()
-	{
-		return PVE::DspCmdCtlVmCommitDiskUnfinished;
-	}
-	static SmartPtr<IOPackage> request(const QString& vm_,
-				const DiskState& state_,
-				const SmartPtr<IOPackage>& parent_ = SmartPtr<IOPackage>());
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Diagnostic
-
-struct Diagnostic
-{
-	explicit Diagnostic(SmartPtr<CVmConfiguration> config_);
-
-	const QSet<QString>& getSnapshots() const
-	{
-		return m_snapshots;
-	}
-	const QList<CVmHardDisk* >& getDevices() const
-	{
-		return m_devices;
-	}
-private:
-	void inspect(CVmHardDisk& device_);
-
-	QSet<QString> m_snapshots;
-	QList<CVmHardDisk* > m_devices;
-	SmartPtr<CVmConfiguration> m_config;
-};
-
-} // namespace CommitUnfinished
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
@@ -308,11 +267,8 @@ struct Unit
 
 	PRL_RESULT create();
 	PRL_RESULT destroy(const Command::Destroy& command_);
-	PRL_RESULT commitUnfinished();
 	PRL_RESULT revert(Revert::Note& note_, const Revert::Command& command_);
 private:
-	PRL_RESULT commitUnfinished(SmartPtr<CVmConfiguration>& config_, const DiskState& st_);
-
 	// wait() returns PRL_ERR_SUCCESS only when valid answer was received from VM.
 	// In the other cases it returns error.
 	template<class T>

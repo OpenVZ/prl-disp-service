@@ -1271,7 +1271,7 @@ PRL_RESULT Task_MigrateVmTarget::saveVmConfig()
 
 void Task_MigrateVmTarget::DeleteSnapshot()
 {
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
+/*	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 
 	nRetCode = m_pVm->replaceInitDspCmd(PVE::DspCmdVmDeleteSnapshot, getClient());
 	if ( PRL_FAILED(nRetCode) ) {
@@ -1289,7 +1289,7 @@ void Task_MigrateVmTarget::DeleteSnapshot()
 	} else if (PRL_FAILED(evt.getEventCode())) {
 		WRITE_TRACE(DBG_FATAL, "[%s] Error occurred while snapshot deleting with code [%#x][%s]",
 			__FUNCTION__, evt.getEventCode(), PRL_RESULT_TO_STRING(evt.getEventCode()));
-	}
+	} */
 }
 
 PRL_RESULT Task_MigrateVmTarget::adjustStartVmCommand(SmartPtr<IOPackage> &pPackage)

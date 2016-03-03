@@ -52,7 +52,6 @@
 
 #include "Tasks/Task_CreateSnapshot.h"
 #include "Tasks/Task_SwitchToSnapshot.h"
-#include "Tasks/Task_DeleteSnapshot.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_ManagePrlNetService.h"
 #include "Tasks/Task_EditVm.h"
@@ -1425,69 +1424,6 @@ bool CDspVm::switchToSnapshot(
 	return true;
 }
 
-bool CDspVm::deleteSnapshot(
-	SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p,
-	CVmEvent* evt, bool bWaitResult)
-{
-	PRL_RESULT ret = checkUserAccessRightsAndSendResponseOnError( pUser, p, PVE::DspCmdVmDeleteSnapshot );
-	if( PRL_FAILED( ret ) )
-		return false;
-
-	if ( d().m_nUndoDisksMode != PUD_DISABLE_UNDO_DISKS)
-	{
-		if (isSafeMode())
-		{
-			WRITE_TRACE(DBG_FATAL, "Cannot delete snapshot in safe mode!");
-			pUser->sendSimpleResponse(p, PRL_ERR_VM_SNAPSHOT_IN_SAFE_MODE);
-		}
-		else
-		{
-			WRITE_TRACE(DBG_FATAL, "Cannot delete snapshot in undo disks mode!");
-			pUser->sendSimpleResponse(p, PRL_ERR_VM_SNAPSHOT_IN_UNDO_DISKS_MODE);
-		}
-		return false;
-	}
-
-	QWriteLocker _wLock( &d().m_rwLock );
-	VIRTUAL_MACHINE_STATE state = getVmStateUnsync();
-	switch( state )
-	{
-	case VMS_PAUSED      : ;
-	case VMS_RUNNING     : ;
-		if( !isContinueSnapshotCmdFromPausedStateAllowed( d().m_nVmPowerState, pUser, p, evt, bWaitResult ) )
-			return false; // error was send/filled
-
-	case VMS_STOPPED     : ;
-		// case VMS_STARTING    : ;
-		//case VMS_RESUMING: ;
-		// case VMS_RESTORING   : ;
-		// case VMS_SUSPENDING  : ;
-		// case VMS_STOPPING    : ;
-		// case VMS_COMPACTING  : ;
-	case VMS_SUSPENDED   : ;
-		// case VMS_SUSPENDING_SYNC   : ;
-		// case VMS_SNAPSHOTING : ;
-		// case VMS_RESETTING	 : ;
-		// case VMS_PAUSING	 : ;
-		// case VMS_CONTINUING	 : ;
-		changeVmState(VMS_DELETING_STATE);
-		break;
-	default:
-		{
-			if ( !bWaitResult )
-				SEND_ERROR_BY_CANT_EXECUTED_VM_COMMAND( p, state );
-			return false;
-		}//default
-	}//switch
-	_wLock.unlock();
-
-	CDspTaskHelper *task_helper = new Task_DeleteSnapshot( pUser, p, state );
-	SetSnapshotRequestParams(p, state, pUser, task_helper->getJobUuid());
-	CDspService::instance()->getTaskManager().schedule(task_helper)
-		.wait(bWaitResult).getResult(evt);
-	return true;
-}
-
 void CDspVm::InitiateDevStateNotifications(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p)
 {
 	CHECK_WHETHER_VM_STARTED;
@@ -2246,59 +2182,6 @@ bool CDspVm::isNoUndoDisksQuestion() const
 void CDspVm::disableNoUndoDisksQuestion()
 {
 	d().m_bNoUndoDisksQuestion = false;
-}
-
-bool CDspVm::startUndoDisksRevertOrCommitTask()
-{
-	PRL_ASSERT(d().m_nUndoDisksMode != PUD_DISABLE_UNDO_DISKS);
-	PRL_ASSERT(d().m_pUndoDisksUser.isValid());
-	PRL_ASSERT(d().m_pUndoDisksPkg.isValid());
-
-	if (d().m_nUndoDisksMode == PUD_DISABLE_UNDO_DISKS
-		|| !d().m_pUndoDisksUser.isValid()
-		|| !d().m_pUndoDisksPkg.isValid())
-	{
-		disableNoUndoDisksQuestion();
-		return false;
-	}
-
-	// Check on invalid VM
-	PRL_RESULT nRetCode = PRL_ERR_UNINITIALIZED;
-	SmartPtr<CVmConfiguration> pVmConfig = getVmConfig(SmartPtr<CDspClient>(0), nRetCode);
-	if (   PRL_ERR_PARSE_VM_CONFIG == nRetCode
-		|| ( pVmConfig && PRL_SUCCEEDED(nRetCode) && PRL_FAILED(pVmConfig->getValidRc()) )
-		)
-	{
-		disableNoUndoDisksQuestion();
-
-		PRL_RESULT nRes = isSafeMode() ? PRL_ERR_CANNOT_PROCESSING_SAFE_MODE_FOR_INVALID_VM
-									   : PRL_ERR_CANNOT_PROCESSING_UNDO_DISKS_FOR_INVALID_VM;
-
-		CVmEvent event1( PET_DSP_EVT_VM_MESSAGE, getVmUuid(), PIE_DISPATCHER, nRes );
-		SmartPtr<IOPackage> p = DispatcherPackage::createInstance( PVE::DspVmEvent, event1 );
-		CDspService::instance()->getClientManager().sendPackageToVmClients( p, getVmDirUuid(), getVmUuid());
-
-		CVmEvent event2( PET_DSP_EVT_VM_STOPPED, getVmUuid(), PIE_DISPATCHER );
-		p = DispatcherPackage::createInstance( PVE::DspVmEvent, event2 );
-
-		changeVmState(p);
-
-		return false;
-	}
-
-	// Delete shapshot package for undo disks mode
-	CProtoCommandPtr pRequest = CProtoSerializer::CreateDeleteSnapshotProtoCommand(
-									getVmUuid(),
-									QString(UNDO_DISKS_UUID),
-									true);
-	SmartPtr<IOPackage> pPackage
-				= DispatcherPackage::duplicateInstance(d().m_pUndoDisksPkg, pRequest->GetCommand()->toString());
-	pPackage->header.type = PVE::DspCmdVmDeleteSnapshot;
-
-	// Start delete snapshot task
-	changeVmState( VMS_DELETING_STATE );
-	CDspService::instance()->getTaskManager().schedule(new Task_DeleteSnapshot( d().m_pUndoDisksUser, pPackage, VMS_STOPPED ));
-	return true;
 }
 
 void CDspVm::setSafeMode(bool bSafeMode, SmartPtr<CDspClient> pUserSession)

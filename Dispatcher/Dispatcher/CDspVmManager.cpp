@@ -1860,19 +1860,7 @@ void CDspVmManager::handleClientDisconnected ( const IOSender::Handle& h )
 		}
 	}
 
-	if (pVm->isUndoDisksMode() && pVm->getVmState() != VMS_SUSPENDING_SYNC)
-	{
-		bool bRes = pVm->startUndoDisksRevertOrCommitTask();
-		if (!bRes)
-		{
-			CDspVm::UnregisterVmObject(pVm);
-		}
-		return;
-	}
-	else
-	{
-		CDspVm::UnregisterVmObject(pVm);
-	}
+	CDspVm::UnregisterVmObject(pVm);
 	if (pVm.isValid())
 	{
 

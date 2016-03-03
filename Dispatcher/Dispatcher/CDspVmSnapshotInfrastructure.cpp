@@ -41,11 +41,8 @@
 #include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlxmlmodel/VmInfo/CVmInfo.h>
 #include "CDspVmSnapshotInfrastructure.h"
-//#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
-
-#include "Tasks/Task_CommitUnfinishedDiskOp.h"
 
 namespace Snapshot
 {
@@ -304,82 +301,13 @@ static inline PRL_RESULT log(PRL_RESULT result_)
 	return result_;
 }
 
-PRL_RESULT Unit::commitUnfinished(SmartPtr<CVmConfiguration>& config_, const DiskState& st_)
-{
-	SmartPtr<IOPackage> y = CommitUnfinished::Command::request(
-			m_vm->getVmUuid(), st_, m_task->getRequestPackage());
-
-	WRITE_TRACE(DBG_FATAL, "Send command %s to vm_app, diskState: %s"
-		, PVE::DispatcherCommandToString(y->header.type)
-		, QSTR2UTF8(st_.toString())
-	);
-
-	Answer::Unit< PRL_ERR_VM_DELETE_STATE_FAILED > a;
-	PRL_RESULT e = log(wait(m_vm->sendPackageToVm(y) , a));
-	if (PRL_FAILED(e))
-		return e;
-
-	e = a.result();
-	if (PRL_FAILED(e))
-		return e;
-
-	if (st_.isDeleteOp())
-	{
-		Task_CommitUnfinishedDiskOp::removeHalfDeletedSnapshots(config_
-			, QSet<QString>() << st_.snapshot());
-		CDspVmSnapshotStoreHelper::notifyVmClientsTreeChanged(
-			m_task->getRequestPackage(), m_vm->getVmIdent());
-	}
-	WRITE_TRACE(DBG_FATAL, "Snapshot state was successfully processed.");
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Unit::commitUnfinished()
-{
-	if (NULL == m_vm.getImpl())
-		return PRL_ERR_FAILURE;
-
-	PRL_RESULT e;
-	SmartPtr<CVmConfiguration> pVmConfig = m_vm->getVmConfig(m_task->getClient(), e);
-	if (!pVmConfig)
-	{
-		WRITE_TRACE(DBG_FATAL, "Unable to get vm configuration");
-		return PRL_ERR_FAILURE;
-	}
-
-	// get list of uuids of broken disks states
-	QList<DiskState>
-		lst = Snapshot::getUnfinishedOps(pVmConfig);
-
-	foreach (const  DiskState&  st, lst)
-	{
-		PRL_RESULT e = commitUnfinished(pVmConfig, st);
-		if (PRL_SUCCEEDED(e))
-			continue;
-
-		PRL_RESULT ret = PRL_ERR_DELETE_UNFINISHED_STATE_FAILED;
-		WRITE_TRACE(DBG_FATAL, "Commit unfinished state for snapId %s failed with error %s. It is converted to %s."
-			, QSTR2UTF8(st.snapshot())
-			, PRL_RESULT_TO_STRING(e)
-			, PRL_RESULT_TO_STRING(ret)
-		);
-		return ret;
-	}
-
-	return PRL_ERR_SUCCESS;
-}
-
 PRL_RESULT Unit::create()
 {
-	PRL_RESULT e = commitUnfinished();
-	if (PRL_FAILED(e))
-		return e;
-
 	Answer::Unit<PRL_ERR_VM_CREATE_SNAPSHOT_FAILED> a;
 	SmartPtr<IOPackage> x = Parallels::DispatcherPackage::createInstance(
 				PVE::DspCmdVmCreateSnapshot,
 				UTF8_2QSTR(m_task->getRequestPackage()->buffers[0].getImpl()));
-	e = log(wait(m_vm->sendPackageToVmEx(log(x), m_state), a));
+	PRL_RESULT e = log(wait(m_vm->sendPackageToVmEx(log(x), m_state), a));
 	if (PRL_FAILED(e))
 		return e;
 	if (NULL == a.command())
@@ -390,12 +318,8 @@ PRL_RESULT Unit::create()
 
 PRL_RESULT Unit::destroy(const Command::Destroy& command_)
 {
-	PRL_RESULT e = commitUnfinished();
-	if (PRL_FAILED(e))
-		return e;
-
 	SmartPtr<IOPackage> y;
-	e = command_(y);
+	PRL_RESULT e = command_(y);
 	if (PRL_FAILED(e))
 		return e;
 
@@ -411,16 +335,12 @@ PRL_RESULT Unit::destroy(const Command::Destroy& command_)
 
 PRL_RESULT Unit::revert(Revert::Note& note_, const Revert::Command& command_)
 {
-	PRL_RESULT e = commitUnfinished();
-	if (PRL_FAILED(e))
-		return e;
-
 	SmartPtr<IOPackage> x = command_.do_();
 	if (NULL == x.getImpl())
 		return PRL_ERR_FAILURE;
 
 	Revert::Answer a(note_);
-	e = log(wait(m_vm->sendPackageToVmEx(log(x), m_state), a));
+	PRL_RESULT e = log(wait(m_vm->sendPackageToVmEx(log(x), m_state), a));
 	if (PRL_FAILED(e) ||  a.command() == NULL)
 		return e;
 
@@ -458,48 +378,5 @@ SmartPtr<IOPackage> Miner::operator()() const
 }
 
 } // namespace Answer
-
-namespace CommitUnfinished
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Command
-SmartPtr<IOPackage> Command::request(const QString& vm_,
-				const DiskState& st_,
-				const SmartPtr<IOPackage>& parent_)
-{
-	CProtoCommandPtr c = CProtoSerializer::CreateVmCommitDiskUnfinished
-					(vm_, st_.disk(), st_.snapshot());
-	return Parallels::DispatcherPackage::createInstance(c->GetCommandId(),
-					c->GetCommand()->toString(), parent_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Diagnostic
-
-void Diagnostic::inspect(CVmHardDisk& device_)
-{
-	if (PVE::HardDiskImage != device_.getEmulatedType() || !device_.getEnabled())
-		return;
-
-	DiskState st(device_.getSystemName());
-	if (st.isUnfinished())
-		m_devices.push_back(&device_);
-	if (st.isDeleteOp())
-			m_snapshots.insert(st.snapshot());
-}
-
-Diagnostic::Diagnostic(SmartPtr<CVmConfiguration> config_): m_config(config_)
-{
-	if (!m_config.isValid())
-		return;
-
-	CVmHardware* h = m_config->getVmHardwareList();
-	if (NULL == h)
-		return;
-	foreach (CVmHardDisk* d, h->m_lstHardDisks)
-		inspect(*d);
-}
-
-} // namespace CommitUnfinished
 } // namespace Snapshot
 
