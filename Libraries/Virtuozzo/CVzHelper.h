@@ -31,11 +31,9 @@
 #include <QThread>
 #include <prlsdk/PrlIOStructs.h>
 
-#ifdef _LIN_
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
-#endif
 
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
@@ -53,11 +51,7 @@
 #endif
 
 #define VZ_CT_CONFIG_FILE			"ve.conf"
-#ifdef _WIN_
-#define VZ_CT_XML_CONFIG_FILE			"ve.xml"
-#else
 #define VZ_CT_XML_CONFIG_FILE			".ve.xml"
-#endif
 
 typedef void (*state_event_handler_fn)(void *obj, const QString &, int);
 typedef void (*notify_event_handler_fn)(void *obj, PRL_EVENT_TYPE type,
@@ -192,50 +186,6 @@ public:
 	static QString getVzPrivateDir(void);
 
 	static QString get_cpu_mask(const SmartPtr<CVmConfiguration> &pVmConfig, bool bOvercommit);
-#ifdef _WIN_
-	static QString getVzRootDir(void);
-	static QString getVzTemplateDir(void);
-	static QString getVzInstallDir(void);
-
-	static int add_privnet(unsigned int id, QList<QString> &ips);
-	static int remove_privnet(unsigned int id);
-	static int enable_privnet(bool enabled);
-
-	static int getTemplateInfo(
-		const QString &name,
-		SmartPtr<CtTemplate> *ctTemplate = NULL,/* XmlModel template info */
-		QString *installPath = NULL,		/* path to vzwin installed dir */
-		QString *archivePath = NULL,		/* path to vzwin efd archive */
-		bool *isInstalled = NULL,		/* installed dir is present */
-		bool *isArchived = NULL			/* efd archive is present */
-		);
-
-	static QString getCtPrivatePath(unsigned int ctid);
-	static QString getCtConfPath(unsigned int ctid);
-
-	static int install_templates_env(QString env_uuid, QStringList &lstVzTmpl);
-	static int remove_templates_env(QString env_uuid, QStringList &lstVzTmpl);
-
-	static int get_templates(QList<SmartPtr<CtTemplate> > &lstVzTmpl);
-	static int install_template(QString sName, QString sOsTmplName);
-	static int remove_template(QString sName, QString sOsTmplName);
-	static int is_ostemplate_exists(const QString &sOsTemplate);
-	static int convert_os_ver(const QString& osname, const QString& osver);
-	static int set_rate(ULONG envId, const CVmNetworkRates &lstRate);
-	static int lock_env(unsigned int id, int state, int substate, void ** opaque);
-	static int unlock_env(unsigned int id, void ** opaque);
-
-	/* CT migration support */
-	static int src_start_migrate_env(unsigned int id, void ** opaque);
-	static int src_complete_migrate_env(unsigned int id, void ** opaque, bool fDelete);
-	static int dst_start_migrate_env(unsigned int * id, void ** opaque);
-	static int dst_complete_migrate_env(const QString& uuid, unsigned int id, unsigned int origin_id,
-					    void ** opaque);
-
-	static int store_config_env(unsigned int id); // copy conf to private
-	static int restore_config_env(unsigned int id); // copy private to conf
-
-#else
 	// public
 	static void release_cpu_mask(const QString &uuid);
 	// private
@@ -248,7 +198,6 @@ public:
 
 	static QMutex s_mtxNodemask;
 	static CNumaNode s_numanodes;
-#endif
 
 	static PRL_STAT_NET_TRAFFIC *get_net_stat(const QString &uuid);
 	static int update_network_classes_config(const CNetworkClassesConfig &conf);
@@ -313,7 +262,7 @@ public:
 		return QString();
 	}
 
-	static const QString get_uuid_by_ctid(const QString &ctid) 
+	static const QString get_uuid_by_ctid(const QString &ctid)
 	{
 		QMutexLocker lock(&s_mtxEnvUuidMap);
 
@@ -373,7 +322,6 @@ public:
 };
 
 class CProgressHepler : public QThread {
-#ifdef _LIN_
 public:
 	CProgressHepler(notify_event_handler_fn fn, void *obj) :
 		m_fd(-1),
@@ -406,17 +354,9 @@ private:
 	QString m_sUuid;
 	notify_event_handler_fn m_notify;
 	void *m_notify_obj;
-#else
-public:
-	CProgressHepler(notify_event_handler_fn, void *) {}
-#endif
 };
 
-#if _LIN_
 typedef struct vzctl_snap_holder vzctl_snap_holder_t;
-#else
-typedef void vzctl_snap_holder_t;
-#endif
 
 class CVzOperationHelper
 {
@@ -475,15 +415,6 @@ public:
 			const SmartPtr<CVmConfiguration> &pOldConfig);
 	int apply_env_config(SmartPtr<CVmConfiguration> &pConfig,
 			SmartPtr<CVmConfiguration> &pOldConfig, unsigned int nFlags = 0);
-#ifdef _WIN_
-	static PRL_RESULT run_prg(const char *name, const QStringList &lstArgs,
-				  CVmEvent *pEvent = NULL);
-	// real method: just apply diff between old and new config
-	int apply_env_config_internal(SmartPtr<CVmConfiguration> &pConfig,
-			SmartPtr<CVmConfiguration> &pOldConfig,
-			unsigned int nFlags);
-#endif
-#ifdef _LIN_
 	int del_env_disk(const QString &uuid, const CVmHardDisk &disk, unsigned int flags);
 	int create_env_snapshot(const QString &uuid, const QString &snap_uuid,
 			const QString &name, const QString &desc);
@@ -503,12 +434,9 @@ public:
 	int merge_snapshot(const QString &uuid, const QString &snapsot_guid);
 	int remove_disks_from_env_config(SmartPtr<CVmConfiguration> &pConfig,
 		SmartPtr<CVmConfiguration> &pOldConfig, const QString &sNewConfName);
-#endif
 private:
 	CVzOperationCleaner &get_cleaner() { return m_cleaner; }
-#ifdef _LIN_
 	PRL_RESULT run_prg(const char *name, const QStringList &lstArgs, bool quiet = false);
-#endif
 
 	bool process_progress_evt() { return m_process_progress_evt; }
 
@@ -542,7 +470,6 @@ public:
 	static void * m_obj;
 };
 
-#ifdef _LIN_
 class CVzExecHelper
 {
 public:
@@ -568,29 +495,4 @@ private:
 	int m_retcode;
 
 };
-#endif
-
-#ifdef _WIN_
-enum {
-	VZCTL_ENV_NONE,
-	VZCTL_ENV_STARTED,
-	VZCTL_ENV_STOPPED,
-	VZCTL_ENV_DELETED,
-	VZCTL_ENV_CREATED,
-	VZCTL_ENV_REGISTERED,
-	VZCTL_ENV_UNREGISTERED,
-	VZCTL_ENV_SUSPENDED,
-};
-
-enum {
-	VZ_REG_FORCE            = 0x01, /* force reg: skip owner check */
-	VZ_REG_SKIP_OWNER       = 0x02, /* Skip .owner update on register */
-	VZ_REG_SKIP_CLUSTER     = 0x04, /* Skip .cluster_service_name
-					   update on register */
-	VZ_REG_RENEW            = 0x08, /* renew registration */
-	VZ_UNREG_PRESERVE       = 0x10, /* remove only VEID.conf preserve all
-					   data under VE_PRIVATE */
-};
-#endif
-
 #endif /*__CVZHELPER_H__ */
