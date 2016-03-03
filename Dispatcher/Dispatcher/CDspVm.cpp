@@ -55,7 +55,6 @@
 #include "Tasks/Task_DeleteSnapshot.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_ManagePrlNetService.h"
-#include "Tasks/Task_CommitUnfinishedDiskOp.h"
 #include "Tasks/Task_EditVm.h"
 #include "Tasks/Task_CloneVm.h"
 #include "Tasks/Task_MoveVm.h"
@@ -1979,11 +1978,6 @@ void CDspVm::changeVmState(const SmartPtr<IOPackage> &p, bool& outNeedRoute  )
 				case VMS_RESUMING:
 				{
 					applyVMNetworkSettings(VMS_RUNNING);
-					PRL_RESULT e = PRL_ERR_UNINITIALIZED;
-					if (!Snapshot::getUnfinishedOps(getVmConfig(getVmRunner(), e))
-						.isEmpty())
-						Task_CommitUnfinishedDiskOp::pushVmCommit(*this);
-
 					changeVmState(VMS_RUNNING);
 					break;
 				}
