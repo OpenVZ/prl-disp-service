@@ -720,7 +720,10 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 	case VIR_DOMAIN_EVENT_STARTED:
 		if (detail_ == VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT)
 			break;
-
+		// This event means that live migration is started, but VM has
+		// not been defined yet. Ignore it.
+		if (detail_ == VIR_DOMAIN_EVENT_STARTED_MIGRATED)
+			return 0;
 		v->setState(domain_, VMS_RUNNING);
 		return 0;
 	case VIR_DOMAIN_EVENT_RESUMED:
@@ -825,6 +828,7 @@ Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 	::Vm::State::Machine(uuid_, user_, routing_), m_routing(routing_)
 {
 }
+
 void Vm::updateState(VIRTUAL_MACHINE_STATE value_)
 {
 	switch(value_)
