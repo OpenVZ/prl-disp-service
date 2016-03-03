@@ -830,7 +830,7 @@ void CDspClientManager::handleToDispatcherPackage (
 	case PVE::DspCmdSetNonInteractiveSession:
 		return (void)m_service->getUserHelper().setNonInteractiveSession(client, p);
 	case PVE::DspCmdSetSessionConfirmationMode:
-		return (void)m_service->getUserHelper().changeSessionConfirmationMode(client, p);
+		return (void)client->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED);
 	case PVE::DspCmdStorageSetValue:
 		return (void)m_service->getShellServiceHelper().changeServerInternalValue(client, p);
 	case PVE::DspCmdUpdateUsbAssocList:

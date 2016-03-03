@@ -125,7 +125,6 @@ HEADERS += \
 	Tasks/Task_RemoveVmBackup.h \
 	Tasks/Task_BackupHelper.h \
 	Tasks/Task_DiskImageResizer.h \
-	Tasks/Task_SetConfirmationMode.h \
 	Tasks/Task_ChangeSID.h \
 	Tasks/Task_CreateProblemReport.h \
 	Tasks/Task_SyncVmsUptime.h \
@@ -240,7 +239,6 @@ SOURCES += \
 	Tasks/Task_GetBackupTree.cpp \
 	Tasks/Task_BackupHelper.cpp \
 	Tasks/Task_DiskImageResizer.cpp \
-	Tasks/Task_SetConfirmationMode.cpp \
 	Tasks/Task_ChangeSID.cpp \
 	Tasks/Task_CreateProblemReport.cpp \
 	Tasks/Task_SyncVmsUptime.cpp \
