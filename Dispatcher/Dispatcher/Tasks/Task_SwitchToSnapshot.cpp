@@ -52,7 +52,6 @@
 #include "Libraries/PrlCommonUtils/CFirewallHelper.h"
 
 
-#include "Tasks/Task_CommitUnfinishedDiskOp.h"
 #ifdef _LIN_
 #include "Libraries/Virtuozzo/CCpuHelper.h"
 #endif //_LIN_
@@ -203,17 +202,6 @@ PRL_RESULT Task_SwitchToSnapshot::prepareTask()
 		{
 			WRITE_TRACE(DBG_FATAL, ">>> User hasn't rights to access this VM %#x,%s", error, PRL_RESULT_TO_STRING( error ) );
 			throw error;
-		}
-
-		//////////////////////////////////////////////////////////////////////////
-		// check hard disk for unfinished operations
-		//////////////////////////////////////////////////////////////////////////
-
-		if ( m_initialVmState == VMS_STOPPED || m_initialVmState == VMS_SUSPENDED )
-		{
-			ret = Task_CommitUnfinishedDiskOp::commitDiskOpSync(getClient(), getRequestPackage());
-			if (PRL_FAILED(ret))
-				throw (ret);
 		}
 
 		ret = PRL_ERR_SUCCESS;

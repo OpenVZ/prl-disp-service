@@ -42,7 +42,6 @@
 #include "CDspClientManager.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "CDspAccessManager.h"
-#include "Tasks/Task_CommitUnfinishedDiskOp.h"
 #include "CDspVmSnapshotInfrastructure.h"
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Std/PrlAssert.h>
@@ -167,17 +166,6 @@ PRL_RESULT Task_CreateSnapshot::prepareTask()
 		if ( isBootCampUsed()
 			&& m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->getUndoDisksModeEx() == PUD_DISABLE_UNDO_DISKS )
 			throw PRL_ERR_VMCONF_BOOTCAMP_HARD_SNAPSHOTS_NOT_ALLOW;
-
-		////////////////////////////////////////////////////////////////////////
-		// check hard disk for unfinished operations
-		////////////////////////////////////////////////////////////////////////
-
-		if ( m_initialVmState == VMS_STOPPED || m_initialVmState == VMS_SUSPENDED )
-		{
-			ret = Task_CommitUnfinishedDiskOp::commitDiskOpSync(getClient(), getRequestPackage());
-			if (PRL_FAILED(ret))
-				throw (ret);
-		}
 
 		ret = PRL_ERR_SUCCESS;
 	}

@@ -45,7 +45,6 @@
 #include "Libraries/StatesStore/SavedStateStore.h"
 #include "Libraries/StatesUtils/StatesHelper.h"
 #include "CDspVmSnapshotInfrastructure.h"
-#include "Tasks/Task_CommitUnfinishedDiskOp.h"
 
 using namespace Parallels;
 
@@ -186,27 +185,6 @@ PRL_RESULT Task_DeleteSnapshot::prepareTask()
 			m_sVmConfigPath = pVmDirItem->getVmHome();
 		}
 
-		//////////////////////////////////////////////////////////////////////////
-		// check hard disk for unfinished operations
-		//////////////////////////////////////////////////////////////////////////
-		if ( m_initialVmState == VMS_STOPPED || m_initialVmState == VMS_SUSPENDED )
-		{
-			ret = Task_CommitUnfinishedDiskOp::commitDiskOpSync(getClient(), getRequestPackage());
-			if (PRL_FAILED(ret))
-				throw (ret);
-		}
-		else do
-		{
-			if (!pVm)
-				break;
-
-			CVmEvent e;
-			CDspTaskFuture<CDspTaskHelper> f = Task_CommitUnfinishedDiskOp::pushVmCommit( *pVm );
-			f.wait().getResult(&e);
-			if (PRL_FAILED(ret = e.getEventCode()))
-				throw ret;
-		}while(0);
-
 		ret = PRL_ERR_SUCCESS;
 	}
 	catch(PRL_RESULT code)
@@ -219,14 +197,6 @@ PRL_RESULT Task_DeleteSnapshot::prepareTask()
 	setLastErrorCode(ret);
 
 	return ret;
-}
-
-bool Task_DeleteSnapshot::isSnapshotDeletedByCommitUnfinished()
-{
-	// m_bSnapLock is result of CDspVmSnapshotStoreHelper::lockSnapshotList() - it checks that snapshot exists
-	PRL_ASSERT(m_bSnapLock);
-
-	return m_bSnapLock && !CDspVmSnapshotStoreHelper::doesSnapshotExist( getVmIdent(), m_SnapshotUuid );
 }
 
 void Task_DeleteSnapshot::finalizeTask()
@@ -365,17 +335,6 @@ PRL_RESULT Task_DeleteSnapshot::run_body()
 	bool flgImpersonated = false;
 	try
 	{
-		if ( isSnapshotDeletedByCommitUnfinished() )
-		{
-			WRITE_TRACE( DBG_FATAL, "Target snapshot was successfully removed by commit unfinished operation.");
-			if( !m_flgChild || !m_bChildrenExist)
-				throw PRL_ERR_SUCCESS;
-
-			// #PDFM-47252 Return error according #PDFM-47252
-			WRITE_TRACE( DBG_FATAL, "Unable to delete children for already removed snapshot.");
-			throw PRL_ERR_STATE_NO_STATE;
-		}
-
 		PRL_UNDO_DISKS_MODE nUndoDisksMode
 					= m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->getUndoDisksModeEx();
 
