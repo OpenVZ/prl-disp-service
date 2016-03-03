@@ -51,7 +51,6 @@
 #include "CDspVmStateSender.h"
 
 #include "Tasks/Task_CreateSnapshot.h"
-#include "Tasks/Task_SwitchToSnapshot.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_ManagePrlNetService.h"
 #include "Tasks/Task_EditVm.h"
@@ -1331,60 +1330,6 @@ bool CDspVm::createSnapshot(
 	return true;
 }
 
-bool CDspVm::switchToSnapshot(
-		SmartPtr<CDspClient> pUser,
-		const SmartPtr<IOPackage> &p,
-		CVmEvent* evt,
-		bool bWaitResult)
-{
-	PRL_RESULT ret = checkUserAccessRightsAndSendResponseOnError( pUser, p, PVE::DspCmdVmSwitchToSnapshot );
-	if( PRL_FAILED( ret ) )
-		return false;
-
-	QWriteLocker _wLock( &d().m_rwLock );
-	VIRTUAL_MACHINE_STATE state = getVmStateUnsync();
-	switch( state )
-	{
-	case VMS_PAUSED      : ;
-	case VMS_RUNNING     : ;
-		if( !isContinueSnapshotCmdFromPausedStateAllowed( d().m_nVmPowerState, pUser, p, evt, bWaitResult ) )
-			return false; // error was send/filled
-
-	case VMS_STOPPED     : ;
-		// case VMS_STARTING    : ;
-		//case VMS_RESUMING: ;
-		// case VMS_RESTORING   : ;
-		// case VMS_SUSPENDING  : ;
-		// case VMS_STOPPING    : ;
-		// case VMS_COMPACTING  : ;
-	case VMS_SUSPENDED   : ;
-		// case VMS_SUSPENDING_SYNC   : ;
-		// case VMS_SNAPSHOTING : ;
-		// case VMS_RESETTING	 : ;
-		// case VMS_PAUSING	 : ;
-		// case VMS_CONTINUING	 : ;
-		changeVmState(VMS_RESTORING);
-		break;
-	default:
-		{
-			if ( !bWaitResult )
-				SEND_ERROR_BY_CANT_EXECUTED_VM_COMMAND( p, state );
-			return false;
-		}//default
-	}//switch
-	_wLock.unlock();
-
-	// Prepare and start long running task helper
-
-	CDspTaskHelper
-		*task_helper = new Task_SwitchToSnapshot( pUser, p, state );
-
-	SetSnapshotRequestParams(p, state, pUser, task_helper->getJobUuid());
-	CDspService::instance()->getTaskManager().schedule(task_helper)
-		.wait(bWaitResult).getResult(evt);
-	return true;
-}
-
 void CDspVm::InitiateDevStateNotifications(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p)
 {
 	CHECK_WHETHER_VM_STARTED;
@@ -1895,23 +1840,6 @@ void CDspVm::changeVmState(const SmartPtr<IOPackage> &p, bool& outNeedRoute  )
 				/* for Task_MigrateVmSource */
 				changeVmState(VMS_MIGRATING);
 				break;
-			/* Snapshot states */
-			case PET_DSP_EVT_VM_RESTORED:
-			{
-				CVmEventParameter *pTaskUuid = _evt.getEventParameter(EVT_PARAM_DISP_TASK_UUID);
-				if (pTaskUuid)
-				{
-					SmartPtr< CDspTaskHelper > pTask = CDspService::instance()->getTaskManager()
-						.findTaskByUuid( pTaskUuid->getParamValue() );
-					if (pTask)
-					{
-						Task_SwitchToSnapshot* pTaskSwitch = reinterpret_cast<Task_SwitchToSnapshot*>(pTask.getImpl());
-						pTaskSwitch->handleVmEvents(p);
-					}
-				}
-			}
-			break;
-
 			case PET_DSP_EVT_VM_ABOUT_TO_START_DEINIT:
 			{
 				QWriteLocker lock( &d().m_rwLock );

@@ -63,7 +63,6 @@
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlxmlmodel/HostHardwareInfo/CHwGenericDevice.h>
 
-#include "Tasks/Task_SwitchToSnapshot.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_ChangeSID.h"
 #include "Tasks/Task_ExecVm.h"

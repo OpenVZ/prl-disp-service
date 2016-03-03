@@ -81,7 +81,6 @@
 #include "Tasks/Task_SearchLostConfigs.h"
 #include "Tasks/Task_GetInfoFromParallelsUtils.h"
 #include "Tasks/Task_CreateSnapshot.h"
-#include "Tasks/Task_SwitchToSnapshot.h"
 #include "Tasks/Task_ManagePrlNetService.h"
 #include "Tasks/Task_DiskImageResizer.h"
 #include "Tasks/Task_MigrateVm.h"

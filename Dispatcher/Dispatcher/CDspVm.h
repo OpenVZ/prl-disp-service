@@ -234,17 +234,6 @@ public:
 		CVmEvent* evt = NULL, bool bWaitResult = false);
 
 	/**
-	* Processes command of switch to snapshot
-	* @param pointer to the user session object that initialized request
-	* @param pointer to request package object
-	*/
-	bool switchToSnapshot(
-		SmartPtr<CDspClient> pUser,
-		const SmartPtr<IOPackage> &p,
-		CVmEvent* evt = NULL,
-		bool bWaitResult = false);
-
-	/**
 	* Initiates sending notifications about devices states by VM
 	* @param pointer to the user session object that initialized request
 	* @param pointer to request package object
