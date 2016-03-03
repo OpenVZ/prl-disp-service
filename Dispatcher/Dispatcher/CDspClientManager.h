@@ -181,14 +181,6 @@ public:
 	QList< IOSendJob::Handle > sendPackageToAllClients( const SmartPtr<IOPackage>& p );
 
 	/**
-	* Send to the client VM question
-	* @param pQuestionPacket Packet with question
-	* @param pClient Client
-	* @return boolean Question packet was sent
-	*/
-	void sendQuestionToClient(SmartPtr<CDspClient> pClient);
-
-	/**
 	 * Check if client is preauthorized. That means, the client is successfully
 	 * connected (and established trusted channel in case of secure login), but
 	 * not provided credentials for authorization. Only host users list request
