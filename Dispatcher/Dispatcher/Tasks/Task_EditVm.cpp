@@ -3523,6 +3523,7 @@ Action* Adapter::operator()(const Request& input_) const
 
 Action* Memory::operator()(const Request& input_) const
 {
+	CVmMemory* o = input_.getStart().getVmHardwareList()->getMemory();
 	CVmMemory* n = input_.getFinal().getVmHardwareList()->getMemory();
 	if (NULL == n)
 		return NULL;
@@ -3535,7 +3536,13 @@ Action* Memory::operator()(const Request& input_) const
 	if (x.isFailed())
 	{
 		WRITE_TRACE(DBG_FATAL, "Can't get current vcmmd configuration. Skipping runtime update.");
-		return NULL;
+
+		// Report an error only if we detect that RAM size change is requested.
+		// Otherwise we would swear on vcmmd status if something unrelated to memory is changed
+		if (o == NULL || n->getRamSize() == o->getRamSize())
+			return NULL;
+		else
+			return new Flop(x.error());
 	}
 	quint64 l = n->getRamSize();
 	quint64 g = ::Vm::Config::MemGuarantee(*n)(l) << 20;
