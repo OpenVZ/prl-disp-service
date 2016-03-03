@@ -163,8 +163,7 @@ PRL_RESULT Task_CreateSnapshot::prepareTask()
 			throw error;
 		}
 
-		if ( isBootCampUsed()
-			&& m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->getUndoDisksModeEx() == PUD_DISABLE_UNDO_DISKS )
+		if (isBootCampUsed())
 			throw PRL_ERR_VMCONF_BOOTCAMP_HARD_SNAPSHOTS_NOT_ALLOW;
 
 		ret = PRL_ERR_SUCCESS;
@@ -244,11 +243,9 @@ void Task_CreateSnapshot::finalizeTask()
 				throw ret;
 		}
 
-		if ( m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->getUndoDisksModeEx() == PUD_DISABLE_UNDO_DISKS )
-		{
-			// Generate "snapshots tree changed" event
-			notifyVmUsers( PET_DSP_EVT_VM_SNAPSHOTS_TREE_CHANGED );
-		}
+		// Generate "snapshots tree changed" event
+		notifyVmUsers( PET_DSP_EVT_VM_SNAPSHOTS_TREE_CHANGED );
+
 		// Notify all user: snapshot created
 		notifyVmUsers( PET_DSP_EVT_VM_SNAPSHOTED );
 
@@ -262,9 +259,6 @@ void Task_CreateSnapshot::finalizeTask()
 	}
 	setLastErrorCode(ret);
 
-	if (m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->getUndoDisksModeEx() == PUD_DISABLE_UNDO_DISKS
-				|| PRL_FAILED(getLastErrorCode())
-		)
 	{
 		{//need to destroy pVm before send reply
 		 //destroy is long operation #PSBM-9509
@@ -345,65 +339,7 @@ PRL_RESULT Task_CreateSnapshot::run_body()
 			waitTask();
 
 			if( !IS_OPERATION_SUCCEEDED( getHddErrorCode() ) )
-			{
-				if ( m_nFlags & PCSF_BACKUP )
-					throw getHddErrorCode();
-
-				if ( m_pVmConfig->getVmSettings()->getVmRuntimeOptions()
-							->getUndoDisksModeEx() != PUD_DISABLE_UNDO_DISKS)
-				{
-					// Try re-create snapshot in unexpected situation
-					// May be dispatcher or VM was crashed
-
-					m_hddErrCode = PRL_ERR_SUCCESS;
-
-					ret = DeleteDiskSnapshot();
-					if( PRL_FAILED( ret ) )
-						throw ret;
-
-					/**
-					* Set access rights to hard disks folders
-					*/
-					{
-						CDspLockedPointer<CVmDirectoryItem> pVmDirItem
-							= CDspService::instance()->getVmDirManager().getVmDirItemByUuid(
-								getClient()->getVmDirectoryUuid(), getVmUuid() );
-
-
-						// #462940 move from impersonate to correct set permissions
-						if( ! getActualClient()->getAuthHelper().RevertToSelf() )
-							throw PRL_ERR_REVERT_IMPERSONATE_FAILED;
-						flgImpersonated = false;
-
-						ret = CDspVmSnapshotStoreHelper::setDefaultAccessRightsToAllHdd( m_pVmConfig
-							, getClient()
-							, pVmDirItem.getPtr()
-							, true /* break by error */
-							);
-
-						if( PRL_FAILED(ret) )
-							throw ret;
-
-						// #462940 back to impersonate again
-						if( ! getClient()->getAuthHelper().Impersonate() )
-							throw PRL_ERR_IMPERSONATE_FAILED;
-						flgImpersonated = true;
-					}
-
-					/**
-					* Create disk snapshot again
-					*/
-					if ( !CreateDiskSnapshot() )
-						throw PRL_ERR_VM_CREATE_SNAPSHOT_FAILED;
-
-					waitTask();
-
-					if( !IS_OPERATION_SUCCEEDED( getHddErrorCode() ) )
-						throw getHddErrorCode();
-				}
-				else
-					throw getHddErrorCode();
-			}
+				throw getHddErrorCode();
 
 			CStatesHelper::SaveNVRAM(CFileHelper::GetFileRoot(sVmConfigPath), m_SnapshotUuid);
 		}
@@ -418,16 +354,13 @@ PRL_RESULT Task_CreateSnapshot::run_body()
 				throw (ret);
 		}
 
-		if (m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->getUndoDisksModeEx() == PUD_DISABLE_UNDO_DISKS)
-		{
-			/**
-			 * Save Snapshots.xml file
-			 */
-			CDspService::instance()->getVmSnapshotStoreHelper().createSnapshot(getClient(),
+		/**
+		 * Save Snapshots.xml file
+		 */
+		CDspService::instance()->getVmSnapshotStoreHelper().createSnapshot(getClient(),
 				getRequestPackage(),
 				m_initialVmState,
 				(m_nFlags & PCSF_BACKUP) ? SNAP_BACKUP_MODE : 0);
-		}
 
 		// Terminates the impersonation of a user, return to Dispatcher access rights
 		if( ! getActualClient()->getAuthHelper().RevertToSelf() ) // Don't throw because this thread already finished.

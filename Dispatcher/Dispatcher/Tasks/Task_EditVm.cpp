@@ -385,29 +385,6 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 		//////////////////////////////////////////////////////////////////////////
 
 		//////////////////////////////////////////////////////////////////////////
-		// EVT_PARAM_VMCFG_SAFE_MODE
-		//////////////////////////////////////////////////////////////////////////
-		if( CVmEventParameter* pParam = evtFromVm.getEventParameter( EVT_PARAM_VMCFG_SAFE_MODE ) )
-		{
-			bool flgOk = true;
-			bool bSafeMode = (bool )pParam->getParamValue().toUInt( &flgOk );
-			if (flgOk)
-			{
-				pVmConfig->getVmSettings()->getVmRuntimeOptions()->setSafeMode(bSafeMode);
-				flgConfigChanged = true;
-			}
-			else
-			{
-				WRITE_TRACE(DBG_FATAL, "Failed to convert EVT_PARAM_VMCFG_SAFE_MODE for vm %s"
-					, QSTR2UTF8( vmUuid )
-					);
-			}
-		}
-		//////////////////////////////////////////////////////////////////////////
-		// Finish EVT_PARAM_VMCFG_SAFE_MODE
-		//////////////////////////////////////////////////////////////////////////
-
-		//////////////////////////////////////////////////////////////////////////
 		// EVT_PARAM_VMCFG_SERVER_UUID
 		//////////////////////////////////////////////////////////////////////////
 		if( CVmEventParameter* pParam = evtFromVm.getEventParameter( EVT_PARAM_VMCFG_SERVER_UUID ) )
@@ -1386,23 +1363,14 @@ PRL_RESULT Task_EditVm::editVm()
 		new_mem->setMaxNumaRamSize(getMaxNumaRamMb(new_mem_sz));
 		new_mem->setMaxRamSize(getMaxTotalRamMb(new_mem_sz));
 
-		// bug #121857
 		PRL_UNDO_DISKS_MODE nOldUndoDisksMode
 				= pVmConfigOld->getVmSettings()->getVmRuntimeOptions()->getUndoDisksMode();
 		PRL_UNDO_DISKS_MODE nNewUndoDisksMode
 				= pVmConfigNew->getVmSettings()->getVmRuntimeOptions()->getUndoDisksMode();
 		if (   nOldUndoDisksMode == PUD_DISABLE_UNDO_DISKS
-			&& nOldUndoDisksMode != nNewUndoDisksMode
-			&& nState != VMS_STOPPED)
+			&& nOldUndoDisksMode != nNewUndoDisksMode)
 		{
-			throw PRL_ERR_VM_EDIT_UNABLE_SWITCH_ON_UNDO_DISKS_MODE;
-		}
-		// bug #130680
-		if (   nNewUndoDisksMode == PUD_DISABLE_UNDO_DISKS
-			&& nOldUndoDisksMode != nNewUndoDisksMode
-			&& nState != VMS_STOPPED)
-		{
-			throw PRL_ERR_VM_EDIT_UNABLE_SWITCH_OFF_UNDO_DISKS_MODE;
+			throw PRL_ERR_UNIMPLEMENTED;
 		}
 
 		//IP is changed?

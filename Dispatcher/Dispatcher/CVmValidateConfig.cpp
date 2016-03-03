@@ -299,34 +299,9 @@ QList<PRL_RESULT > CVmValidateConfig::CheckVmConfig(PRL_VM_CONFIG_SECTIONS nSect
 			);
 	}
 
-	postValidationErrorsProcessing();
-
 	leaveErrorsOnlyForChanges();
 
 	return m_lstResults;
-}
-
-void CVmValidateConfig::postValidationErrorsProcessing()
-{
-	// NOTE: Add here extra conditions in order to ignore some errors
-
-	for(int i = 0; i < m_lstResults.size(); ++i)
-	{
-		if (CDspService::isServerModePSBM())
-		{
-			switch(m_lstResults[i])
-			{
-				case PRL_ERR_VMCONF_REAL_HARD_UNDO_DISKS_NOT_ALLOW:
-				case PRL_ERR_VMCONF_BOOTCAMP_HARD_UNDO_DISKS_NOT_ALLOW:
-				case PRL_ERR_VMCONF_INCOMPAT_HARD_UNDO_DISKS_NOT_ALLOW:
-				case PRL_ERR_VMCONF_REAL_HARD_SAFE_MODE_NOT_ALLOW:
-				case PRL_ERR_VMCONF_BOOTCAMP_SAFE_MODE_NOT_ALLOW:
-				case PRL_ERR_VMCONF_INCOMPAT_SAFE_MODE_NOT_ALLOW:
-				case PRL_ERR_VMCONF_NO_HD_IMAGES_IN_UNDO_DISKS_MODE:
-					m_lstResults[i] = PRL_ERR_SUCCESS;
-			}
-		}
-	}
 }
 
 void CVmValidateConfig::leaveErrorsOnlyForChanges()
@@ -367,13 +342,6 @@ bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
 		case PRL_ERR_VMCONF_VIDEO_MEMORY_OUT_OF_RANGE:
 		case PRL_ERR_VMCONF_INVALID_DEVICE_MAIN_INDEX:
 		case PRL_ERR_VMCONF_DESKTOP_MODE_REMOTE_DEVICES:
-		case PRL_ERR_VMCONF_REAL_HARD_UNDO_DISKS_NOT_ALLOW:
-		case PRL_ERR_VMCONF_BOOTCAMP_HARD_UNDO_DISKS_NOT_ALLOW:
-		case PRL_ERR_VMCONF_INCOMPAT_HARD_UNDO_DISKS_NOT_ALLOW:
-		case PRL_ERR_VMCONF_REAL_HARD_SAFE_MODE_NOT_ALLOW:
-		case PRL_ERR_VMCONF_BOOTCAMP_SAFE_MODE_NOT_ALLOW:
-		case PRL_ERR_VMCONF_INCOMPAT_SAFE_MODE_NOT_ALLOW:
-		case PRL_ERR_VMCONF_NO_HD_IMAGES_IN_UNDO_DISKS_MODE:
 		case PRL_ERR_VMCONF_BOOTCAMP_HARD_DISK_SMART_GUARD_NOT_ALLOW:
 		case PRL_ERR_VMCONF_INCOMPAT_HARD_DISK_SMART_GUARD_NOT_ALLOW:
 		case PRL_ERR_VMCONF_VIDEO_NOT_ENABLED:
@@ -742,101 +710,7 @@ void CVmValidateConfig::CheckGeneralParameters()
 	ADD_FID(E_SET << m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsType_id() << qsOsVer_id);
 
 	if (m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->getUndoDisksModeEx() != PUD_DISABLE_UNDO_DISKS)
-	{
-		QString qsUDM_id = m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->getUndoDisksMode_id();
-		QString qsSM_id = m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->getSafeMode_id();
-
-		bool bSafeMode = m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->isSafeMode();
-
-		QSet<QString > setHD_ids;
-		bool bNoHardDisks = true;
-		QList<CVmHardDisk* > lstHardDisks = m_pVmConfig->getVmHardwareList()->m_lstHardDisks;
-		for(int i = 0; i < lstHardDisks.size(); i++)
-		{
-			CVmHardDisk* pHardDisk = lstHardDisks[i];
-			if ( ! pHardDisk )
-				continue;
-
-			if ( pHardDisk->getEnabled() != PVE::DeviceEnabled
-				|| pHardDisk->getConnected() != PVE::DeviceConnected)
-			{
-				setHD_ids << pHardDisk->getFullItemId()
-					<< pHardDisk->getEnabled_id() << pHardDisk->getConnected_id();
-				continue;
-			}
-
-			QSet<QString > setIds = E_SET << qsUDM_id << qsSM_id << pHardDisk->getFullItemId()
-				<< pHardDisk->getEnabled_id() << pHardDisk->getConnected_id() << pHardDisk->getEmulatedType_id();
-
-			bNoHardDisks = false;
-			if (pHardDisk->getEmulatedType() == PVE::RealHardDisk)
-			{
-				m_lstResults += bSafeMode ? PRL_ERR_VMCONF_REAL_HARD_SAFE_MODE_NOT_ALLOW
-										  : PRL_ERR_VMCONF_REAL_HARD_UNDO_DISKS_NOT_ALLOW;
-				m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
-				ADD_FID(setIds);
-			}
-			else if ( ! (nOsVersion >= PVS_GUEST_VER_WIN_2K && nOsVersion <= PVS_GUEST_VER_WIN_LAST) )
-				continue;
-
-// VirtualDisk commented out by request from CP team
-//			PRL_RESULT prlResult = PRL_ERR_SUCCESS;
-//			IDisk* pDisk = IDisk::OpenDisk(pHardDisk->getSystemName(),
-//											PRL_DISK_NO_ERROR_CHECKING | PRL_DISK_READ | PRL_DISK_FAKE_OPEN,
-//											&prlResult);
-//			if ( ! pDisk || PRL_FAILED(prlResult))
-//				continue;
-//
-//			QString qsCompatLevel;
-//			prlResult = pDisk->GetUserParameter(QString(COMPAT_LEVEL_PARAM_NAME), qsCompatLevel);
-//			if (PRL_SUCCEEDED(prlResult))
-//			{
-//				if (qsCompatLevel != COMPAT_LEVEL_PARAM_VAL_LEVEL2)
-//				{
-//					m_lstResults += bSafeMode ? PRL_ERR_VMCONF_INCOMPAT_SAFE_MODE_NOT_ALLOW
-//											  : PRL_ERR_VMCONF_INCOMPAT_HARD_UNDO_DISKS_NOT_ALLOW;
-//					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
-//					ADD_FID((E_SET << qsOsVer_id << pHardDisk->getSystemName_id()) + setIds);
-//				}
-//			}
-//			else
-//			{
-//				PARALLELS_DISK_PARAMETERS params;
-//				prlResult = pDisk->GetParameters(params);
-//				if (PRL_SUCCEEDED(prlResult) && params.m_BlockSize == 63)
-//				{
-//					m_lstResults += bSafeMode ? PRL_ERR_VMCONF_INCOMPAT_SAFE_MODE_NOT_ALLOW
-//											  : PRL_ERR_VMCONF_INCOMPAT_HARD_UNDO_DISKS_NOT_ALLOW;
-//					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
-//					ADD_FID((E_SET << qsOsVer_id << pHardDisk->getSystemName_id()) + setIds);
-//				}
-//			}
-//
-//			pDisk->Close();
-//			pDisk->Release();
-//			pDisk = NULL;
-		}
-
-		if (bNoHardDisks)
-		{
-			m_lstResults += bSafeMode ? PRL_ERR_VMCONF_NO_HD_IMAGES_IN_SAFE_MODE
-									  : PRL_ERR_VMCONF_NO_HD_IMAGES_IN_UNDO_DISKS_MODE;
-			if (m_pVmConfigOld.isValid())
-			{
-				QList<CVmHardDisk* > lstHardDisks = m_pVmConfigOld->getVmHardwareList()->m_lstHardDisks;
-				for(int i = 0; i < lstHardDisks.size(); i++)
-				{
-					CVmHardDisk* pHardDisk = lstHardDisks[i];
-					if ( ! pHardDisk )
-						continue;
-
-					if ( ! setHD_ids.contains(pHardDisk->getFullItemId()) )
-						setHD_ids << pHardDisk->getFullItemId();
-				}
-			}
-			ADD_FID(setHD_ids);
-		}
-	}
+		m_lstResults += PRL_ERR_UNIMPLEMENTED;
 
 	if ( ! m_pVmConfig->getVmHardwareList()->getVideo()->isEnabled() )
 	{

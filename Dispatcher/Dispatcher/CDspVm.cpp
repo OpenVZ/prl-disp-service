@@ -388,8 +388,6 @@ PRL_RESULT CDspVm::initialize(const CVmIdent& id_, const SmartPtr<CDspClient>& c
 	}
 	d().m_bVmCmdWasExclusiveRegistered = true;
 
-	d().m_bSafeMode = isSafeMode();
-
 	return PRL_ERR_SUCCESS;
 }
 
@@ -553,12 +551,6 @@ void CDspVm::cleanupObject()
 	SmartPtr<CVmConfiguration> pVmConfig = getVmConfig(SmartPtr<CDspClient>(0), nRetCode);
 
 	wakeupApplyConfigWaiters();
-
-	VIRTUAL_MACHINE_STATE state = getVmState();
-	if ( (state == VMS_STOPPING || state == VMS_STOPPED)
-		&& d().m_pUndoDisksUser.isValid()
-	)
-		setSafeMode(false, d().m_pUndoDisksUser);
 
 	//remove static IPs from DHCP server
 	Task_ManagePrlNetService::removeVmIPAddress(pVmConfig);
@@ -1280,22 +1272,6 @@ bool CDspVm::createSnapshot(
 		return false;
 	}
 
-	if ( d().m_nUndoDisksMode != PUD_DISABLE_UNDO_DISKS)
-	{
-		bool bSafeMode = isSafeMode();
-		WRITE_TRACE(DBG_FATAL, "Cannot create snapshot in %s mode!",
-			bSafeMode ? "safe" : "undo disks" );
-		if ( bSafeMode )
-			ret = PRL_ERR_VM_SNAPSHOT_IN_SAFE_MODE;
-		else
-			ret = PRL_ERR_VM_SNAPSHOT_IN_UNDO_DISKS_MODE;
-		if (evt)
-			evt->setEventCode( ret );
-		else
-			pUser->sendSimpleResponse( p, ret );
-		return false;
-	}
-
 	QWriteLocker _wLock( &d().m_rwLock );
 	VIRTUAL_MACHINE_STATE state = getVmStateUnsync();
 	switch( state )
@@ -1364,21 +1340,6 @@ bool CDspVm::switchToSnapshot(
 	PRL_RESULT ret = checkUserAccessRightsAndSendResponseOnError( pUser, p, PVE::DspCmdVmSwitchToSnapshot );
 	if( PRL_FAILED( ret ) )
 		return false;
-
-	if ( d().m_nUndoDisksMode != PUD_DISABLE_UNDO_DISKS)
-	{
-		if (isSafeMode())
-		{
-			WRITE_TRACE(DBG_FATAL, "Cannot switch to snapshot in safe mode!");
-			pUser->sendSimpleResponse(p, PRL_ERR_VM_SNAPSHOT_IN_SAFE_MODE);
-		}
-		else
-		{
-			WRITE_TRACE(DBG_FATAL, "Cannot switch to snapshot in undo disks mode!");
-			pUser->sendSimpleResponse(p, PRL_ERR_VM_SNAPSHOT_IN_UNDO_DISKS_MODE);
-		}
-		return false;
-	}
 
 	QWriteLocker _wLock( &d().m_rwLock );
 	VIRTUAL_MACHINE_STATE state = getVmStateUnsync();
@@ -2081,13 +2042,6 @@ void CDspVm::changeVmState(const SmartPtr<IOPackage> &p, bool& outNeedRoute  )
 			processResponseForGuestOsSessionsCmds( p );
 		else //PRL_FAILED()
 		{
-			// #271042
-			if( (cmd == PVE::DspCmdVmStart || cmd == PVE::DspCmdVmStartEx)
-				&& isUndoDisksMode())
-			{
-				d().m_bNoUndoDisksQuestion = true;
-			}
-
 			// #9875
 			if( cmd == PVE::DspCmdVmSuspend && d().m_suspendByDispatcher )
 			{
@@ -2167,88 +2121,6 @@ void CDspVm::changeUsbState( PRL_EVENT_TYPE nEventType )
 		default:
 			break;
 	}
-}
-
-bool CDspVm::isUndoDisksMode() const
-{
-	return d().m_nUndoDisksMode != PUD_DISABLE_UNDO_DISKS;
-}
-
-bool CDspVm::isNoUndoDisksQuestion() const
-{
-	return d().m_bNoUndoDisksQuestion;
-}
-
-void CDspVm::disableNoUndoDisksQuestion()
-{
-	d().m_bNoUndoDisksQuestion = false;
-}
-
-void CDspVm::setSafeMode(bool bSafeMode, SmartPtr<CDspClient> pUserSession)
-{
-	PRL_RESULT nRetCode = PRL_ERR_UNINITIALIZED;
-	SmartPtr<CVmConfiguration> pVmConfig = getVmConfig(pUserSession, nRetCode);
-	if ( !pVmConfig || PRL_FAILED(nRetCode) )
-	{
-		return;
-	}
-
-	CVmRunTimeOptions* pRuntime = pVmConfig->getVmSettings()->getVmRuntimeOptions();
-	if ( bSafeMode == pRuntime->isSafeMode() )
-	{
-		return;
-	}
-
-	// Switch on/off safe mode
-	pRuntime->setSafeMode(bSafeMode);
-	d().m_bSafeMode = bSafeMode;
-
-	if (bSafeMode)
-	{
-		CVmValidateConfig vc(pVmConfig);
-
-		vc.CheckVmConfig(PVC_GENERAL_PARAMETERS, pUserSession);
-
-		if ( vc.HasError(PRL_ERR_VMCONF_NO_HD_IMAGES_IN_SAFE_MODE) )
-		{
-			CVmEvent event( PET_DSP_EVT_VM_MESSAGE, getVmUuid(), PIE_DISPATCHER,
-								PRL_ERR_VMCONF_NO_HD_IMAGES_IN_SAFE_MODE );
-			SmartPtr<IOPackage> p = DispatcherPackage::createInstance( PVE::DspVmEvent, event );
-			CDspService::instance()->getClientManager().sendPackageToVmClients( p, getVmDirUuid(), getVmUuid());
-
-			pRuntime->setSafeMode(false);
-
-			return;
-		}
-	}
-
-	// Save config
-	CVmEvent _evt;
-	_evt.addEventParameter(new CVmEventParameter(PVE::String,
-												 QString::number((int )pRuntime->isSafeMode()),
-												 EVT_PARAM_VMCFG_SAFE_MODE ));
-
-	if (CDspService::instance()->getVmDirHelper()
-				.atomicEditVmConfigByVm( getVmDirUuid(), getVmUuid(), _evt, pUserSession ))
-	{
-			CVmEvent event( PET_DSP_EVT_VM_CONFIG_CHANGED, getVmUuid(), PIE_DISPATCHER );
-			SmartPtr<IOPackage> p = DispatcherPackage::createInstance( PVE::DspVmEvent, event );
-			CDspService::instance()->getClientManager().sendPackageToVmClients( p, getVmDirUuid(), getVmUuid());
-	}
-}
-
-bool CDspVm::isSafeMode() const
-{
-	if (CDspService::isServerModePSBM())
-		return false;
-
-	PRL_RESULT nRetCode = PRL_ERR_UNINITIALIZED;
-	SmartPtr<CVmConfiguration> pVmConfig = getVmConfig(SmartPtr<CDspClient>(0), nRetCode);
-	if ( !pVmConfig || PRL_FAILED(nRetCode) )
-	{
-		return d().m_bSafeMode;
-	}
-	return pVmConfig->getVmSettings()->getVmRuntimeOptions()->isSafeMode();
 }
 
 namespace {
