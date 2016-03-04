@@ -146,7 +146,6 @@ void CDspClientManager::handleClientDisconnected ( const IOSender::Handle& h  )
 			}
 		}
 
-		m_service->getVmManager().checkToSendDefaultAnswer();
 		CDspVm::globalCleanupGuestOsSessions( h );
 		m_service->getVmDirHelper().cleanupSessionVmLocks(h);
 	}
@@ -366,8 +365,6 @@ void CDspClientManager::handleToDispatcherPackage (
 						.makeLoginResponsePacket(pClient, p);
 					pClient->sendPackage( response );
 					WRITE_TRACE(DBG_FATAL, "Session with uuid[ %s ] was started.", QSTR2UTF8( h ) );
-
-					sendQuestionToClient(pClient);
 				}
 				else if ( bWasPreAuthorized )
 				{
@@ -464,8 +461,6 @@ void CDspClientManager::handleToDispatcherPackage (
 						client->sendPackage( response );
 
 						WRITE_TRACE(DBG_FATAL, "Session with uuid[ %s ] was started.", QSTR2UTF8( h ) );
-
-						sendQuestionToClient(client);
 					}
 					else
 					{
@@ -830,7 +825,7 @@ void CDspClientManager::handleToDispatcherPackage (
 	case PVE::DspCmdSetNonInteractiveSession:
 		return (void)m_service->getUserHelper().setNonInteractiveSession(client, p);
 	case PVE::DspCmdSetSessionConfirmationMode:
-		return (void)m_service->getUserHelper().changeSessionConfirmationMode(client, p);
+		return (void)client->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED);
 	case PVE::DspCmdStorageSetValue:
 		return (void)m_service->getShellServiceHelper().changeServerInternalValue(client, p);
 	case PVE::DspCmdUpdateUsbAssocList:
@@ -910,42 +905,6 @@ QList< IOSendJob::Handle > CDspClientManager::sendPackageToAllClients( const Sma
 {
 	QList< SmartPtr<CDspClient> > sessions = getSessionsListSnapshot().values();
 	return sendPackageToClientList( p, sessions );
-}
-
-void CDspClientManager::sendQuestionToClient(SmartPtr<CDspClient> pClient)
-{
-	//Skip questions for non interactive clients
-	//https://jira.sw.ru/browse/PSBM-9110
-	if ( pClient && pClient->isNonInteractive() )
-		return;
-
-	QList< SmartPtr<IOPackage> > lstQuestions = m_service->getVmManager().getVmQuestions(pClient);
-	if (lstQuestions.isEmpty())
-	{
-		// Ok, no more questions
-		return;
-	}
-
-	for(int i = 0; i < lstQuestions.size(); i++)
-	{
-		SmartPtr<IOPackage> pQuestionPacket = lstQuestions[i];
-
-		CVmEvent eventQuestion(UTF8_2QSTR(pQuestionPacket->buffers[0].getImpl()));
-
-		// Check permissions
-		CDspAccessManager::VmAccessRights accessRights = m_service->getAccessManager()
-			.getAccessRightsToVm(pClient, eventQuestion.getEventIssuerId());
-
-		if ( !(accessRights.canRead() && accessRights.canExecute()) )
-		{
-			continue;
-		}
-
-		// Send question packet to the client
-		WRITE_TRACE(DBG_FATAL, "Sending question %.8X '%s' to the user session '%s'", eventQuestion.getEventCode(),\
-						PRL_RESULT_TO_STRING(eventQuestion.getEventCode()), QSTR2UTF8(pClient->getUserHostAddress()));
-		pClient->sendPackage(pQuestionPacket);
-	}
 }
 
 QList< IOSendJob::Handle > CDspClientManager::sendPackageToClientList(

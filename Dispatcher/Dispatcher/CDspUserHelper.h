@@ -170,10 +170,6 @@ public:
 	void sendAllHostUsers ( const IOSender::Handle&,
 							const SmartPtr<IOPackage>& );
 
-	// #436109 ConfirmationMode operation for user session to enable confirm for some operation
-	void changeSessionConfirmationMode( SmartPtr<CDspClient>&,
-		const SmartPtr<IOPackage>& );
-
 	// search from qsettings proxy user passwords
 	bool searchCachedProxyPassword(/*IN*/ const QString & strProxyName,
 							/*OUT*/CredentialsList& creds );

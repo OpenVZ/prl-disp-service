@@ -49,15 +49,10 @@ private slots:
 	void testValidateConfigGeneralParametersOnInvalidSymbolInVmName();
 	void testValidateConfigGeneralParametersOnValidOs();
 	void testValidateConfigGeneralParametersOnInvalidOsType();
-	void testValidateConfigGeneralParametersOnInvalidRealAndBootCampUndoDisks();
-	void testValidateConfigGeneralParametersOnInvalidIncompatUndoDisks();
-	void testValidateConfigGeneralParametersOnUndoDisksAndNoHardDisksImages();
 	void testValidateConfigGeneralParametersOnNoSmartGuardWithBootCamp();
 	void testValidateConfigGeneralParametersOnNoSmartGuardWithIncompatDisks();
 	void testValidateConfigGeneralParametersOnVideoNotEnabled();
-	void testValidateConfigGeneralParametersOnNoAutoCompressWithUndoDisks();
 	void testValidateConfigGeneralParametersOnNoAutoCompressWithSmartGuard();
-	void testValidateConfigGeneralParametersOnNoSmartGuardWithUndoDisks();
 	void testValidateConfigBootOptionOnValid();
 	void testValidateConfigBootOptionOnInvalidType();
 	void testValidateConfigBootOptionOnDuplicateDevice();

@@ -58,8 +58,6 @@
 #include <prlxmlmodel/DispConfig/CDispWorkspacePreferences.h>
 #include "CDspCommon.h"
 
-#include "Tasks/Task_SetConfirmationMode.h"
-
 #include <prlcommon/IOService/IOCommunication/IOSSLInterface.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Logging/Logging.h>
@@ -1511,14 +1509,5 @@ bool CDspUserHelper::searchUserDefinedProxySettings(  const QString & /*strUrl*/
 	}
 	return false;
 }
-
-void CDspUserHelper::changeSessionConfirmationMode(
-					SmartPtr<CDspClient>& pSession,
-					const SmartPtr<IOPackage>& p)
-{
-	CDspService::instance()->getTaskManager()
-		.schedule(new Task_SetConfirmationMode( pSession, p ));
-}
-
 
 /*****************************************************************************/

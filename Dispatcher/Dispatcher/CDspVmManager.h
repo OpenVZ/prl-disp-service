@@ -52,18 +52,6 @@ public:
 	virtual void init ();
 
 	/**
-	 * Hanle new client connection.
-	 * @param h client handle
-	 */
-	virtual void handleClientConnected ( const IOSender::Handle& h );
-
-	/**
-	 * Hanle client disconnection.
-	 * @param h client handle
-	 */
-	virtual void handleClientDisconnected ( const IOSender::Handle& h );
-
-	/**
 	 * Hanle package from the remote client.
 	 * @param h client handle
 	 * @param p package from client
@@ -97,60 +85,9 @@ public:
 								 const IOSender::Handle& directReceiverHandler,
 								 const SmartPtr<IOPackage>& p );
 
-	/**
-	 * Hanle client state change.
-	 * @param h client handle
-	 * @param st new server state
-	 */
-	virtual void handleClientStateChanged ( const IOSender::Handle& h,
-											IOSender::State st );
-
-   	/**
-	 * Handle client detach.
-	 * @param h client handle
-	 * @param dc detached client state.
-	 */
-	virtual void handleDetachClient ( const IOSender::Handle& h,
-									  const IOCommunication::DetachedClient& );
-
-	/**
-	* Handle event from client .
-	* @param p package from handler parse
-	* @param NeedToRoute - flag is need process it self or route
-	*/
-	virtual void handleVmEvent( SmartPtr<CDspVm> pVm,
-						const SmartPtr<IOPackage>& p,
-						bool & bNeedToRoute);
-
-	/**
-	* Handle event from client in binary mode.
-	* @param p package from handler parse
-	* @param NeedToRoute - flag is need process it self or route
-	*/
-	virtual void handleVmBinaryEvent( SmartPtr<CDspVm> pVm,
-		const SmartPtr<IOPackage>& p,
-		bool & bNeedToRoute);
-
-	/**
-	* Handle event from client .
-	* @param p package from handler parse
-	* @param NeedToRoute - flag is need process it self or route
-	*/
-	void handleVmProblemReportEvent( SmartPtr<CDspVm> pVm,
-						const SmartPtr<IOPackage>& p,
-						bool & bNeedToRoute,
-						const SmartPtr<CVmEvent> &pEvent);
-
 	virtual void handleWsResponse( SmartPtr<CDspVm> pVm,
 		const SmartPtr<IOPackage>& p,
 		bool & bNeedToRoute);
-
-	/**
-	* Sends package to all running VMs
-	* @param pointer to sending package object
-	* @return list of send jobs.
-	*/
-	QList< IOSendJob::Handle > sendPackageToAllVMs( const SmartPtr<IOPackage>& p );
 
 	/**
 	* Returns all running vms.
@@ -164,12 +101,6 @@ public:
 
 	/** Returns sign whether some running VMs present */
 	bool hasAnyRunningVms() const;
-
-	/** Get VM question */
-	QList< SmartPtr<IOPackage> > getVmQuestions(const SmartPtr<CDspClient>& pClient) const;
-
-	/** Send all VM default answers if they no one client with Read + Execute permissions */
-	void checkToSendDefaultAnswer() const;
 
 	/**
 	 * Sending to the active VMs processes command on change log level
@@ -199,21 +130,6 @@ private:
 											   const SmartPtr<IOPackage> &pPackage);
 
 	QString getVmIdByHandle(const IOSender::Handle& h) const;
-	/** Send default answer to VM */
-	void sendDefaultAnswerToVm(SmartPtr<CDspVm>& pVm, const SmartPtr<IOPackage>& pQuestionPacket) const;
-
-	/** Send VM event to the users */
-	void sendPackageFromVmToSessions( SmartPtr<CDspVm> pVm, const SmartPtr<IOPackage> &p,
-				  QList< SmartPtr<CDspClient> > lstClients,
-				  bool bSkipNonInteractive = false );
-
-	/** Send VM event to the users which have at least read access */
-	void sendPackageFromVmToPermittedUsers( SmartPtr<CDspVm> pVm,
-										  const SmartPtr<IOPackage> &p,
-										  int accessRights = CDspAccessManager::VmAccessRights::arCanRead);
-
-	/** Update USB device state by event from VM */
-	void updateUsbDeviceState( const SmartPtr<CDspVm> &pVm, const CVmEvent &_evt );
 
 	/** Check non-interactive sessions */
 	bool haveNonInteractiveSessionsWithRequestToVm(	const SmartPtr<CDspVm>& pVm,

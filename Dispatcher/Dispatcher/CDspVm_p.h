@@ -180,17 +180,6 @@ struct Details: noncopyable
 	QMutex	m_mtxPerfStoragesContainer;
 	ProcPerfStoragesContainer m_perfstorage_container;
 
-	/** Undo disks mode */
-	PRL_UNDO_DISKS_MODE	m_nUndoDisksMode;
-	/** Safe mode */
-	bool m_bSafeMode;
-	/** Package for undo disks mode */
-	SmartPtr<IOPackage> m_pUndoDisksPkg;
-	/** User for undo disks mode */
-	SmartPtr<CDspClient> m_pUndoDisksUser;
-	/** Do not show question if VM was not started actually */
-	bool m_bNoUndoDisksQuestion;
-
 	typedef QString RequestPackageUuid;
 	typedef QHash< RequestPackageUuid, RequestInfo > RequestResponseHash;
 	RequestResponseHash m_hashRequestResponse;

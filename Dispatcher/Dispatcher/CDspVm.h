@@ -234,17 +234,6 @@ public:
 		CVmEvent* evt = NULL, bool bWaitResult = false);
 
 	/**
-	* Processes command of switch to snapshot
-	* @param pointer to the user session object that initialized request
-	* @param pointer to request package object
-	*/
-	bool switchToSnapshot(
-		SmartPtr<CDspClient> pUser,
-		const SmartPtr<IOPackage> &p,
-		CVmEvent* evt = NULL,
-		bool bWaitResult = false);
-
-	/**
 	* Initiates sending notifications about devices states by VM
 	* @param pointer to the user session object that initialized request
 	* @param pointer to request package object
@@ -500,13 +489,6 @@ public://Convenient global methods
 		SmartPtr<CDspClient> &pUser,
 		QString &sSnapshotTaskUuid);
 
-	bool startVmAfterCreatingUndoDisks(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-	bool startVmAfterCommitUnfunishedDiskOp(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-	bool isUndoDisksMode() const;
-	bool isSafeMode() const;
-	bool isNoUndoDisksQuestion() const;
-	void disableNoUndoDisksQuestion();
-
 	bool hasUnansweredRequestForSession( const QString& qsSessionId ) const;
 
 	/**
@@ -663,11 +645,6 @@ private:
 	* @param VM state value
 	*/
 	void changeUsbState( PRL_EVENT_TYPE nEventType );
-
-	/**
-	 * Set safe mode
-	 */
-	void setSafeMode(bool bSafeMode, SmartPtr<CDspClient> pUserSession);
 
 	void SetSnapshotRequestParams(const SmartPtr<IOPackage> &pRequest,
 		VIRTUAL_MACHINE_STATE vmState,

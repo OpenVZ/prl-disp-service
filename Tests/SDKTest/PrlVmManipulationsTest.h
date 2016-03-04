@@ -241,9 +241,6 @@ private slots:
 	void testIsVmDisableSpeaker();
 	void testSetVmDisableSpeakerSign();
 	void testIsVmDisableSpeakerOnWrongParams();
-	void testGetUndoDisksMode();
-	void testSetUndoDisksMode();
-	void testUndoDisksModeOnWrongParams();
 	void testGetVmForegroundPriority();
 	void testSetVmForegroundPriority();
 	void testGetVmBackgroundPriority();
@@ -401,9 +398,6 @@ private slots:
 	void testSpecifyAbsolutePathAtHardDiskSettings();
 	void testRenameVmCheckInternalDiskImagePathValid();
 	void testVmStartExOnWrongParams();
-	void testUnableCreateSnapshotWithUndoDisks();
-	void testUnableSwitchToSnapshotWithUndoDisks();
-	void testUnableDeleteSnapshotWithUndoDisks();
 	void testDenyToCreateVmWithAlreadyExistsVmName();
 	void testCreateVmWithAlreadyExistsVmNameCheckHardImagePath();
 	void testVmRestartOnWrongParams();
@@ -445,8 +439,6 @@ private slots:
 	void testRestoreVmOnWrongParams();
 	void testGetConfigValidity();
 	void testGetConfigValidityOnWrongParams();
-	void testStartVmAfterUndoDisksApply();
-	void testStartVmAfterUndoDisksDiscard();
 	void testStartVncServerOnNotStartedVm();
 	void testStartVncServerOnNotEnoughUserRights();
 	void testStartVncServerOnNotEnoughUserRights2();
@@ -524,7 +516,6 @@ private slots:
 	void testAutoCompressIntervalOnWrongParams();
 	void testFreeDiskSpaceRatio();
 	void testFreeDiskSpaceRatioOnWrongParams();
-	void testStartAndStopVmInSafeModeForNonInteractiveSession();
 	void testChangeSid();
 	void testChangeSid2();
 	void testChangeSidOnWrongParams();

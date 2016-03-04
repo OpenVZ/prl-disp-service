@@ -203,13 +203,6 @@ void CDspHwMonitorNotifier::onDeviceChange(PRL_DEVICE_TYPE dev_type, QString dev
 	bool bClientsWereNotified = false;
 	switch( dev_type )
 	{
-	case PDE_SOUND_DEVICE:
-	case PDE_MIXER_DEVICE:
-		//
-		// Simply forward notification to VM now
-		//
-		notifyVMs(pHostInfo, dev_type, dev_name, event_code, "");
-		break;
 	case PDE_USB_DEVICE:
 	case PDE_HARD_DISK:
 		// NOTE: HDD may have USB alias, process USB changes for both USB and HDD
@@ -544,7 +537,8 @@ void CDspHwMonitorNotifier::notifyVMs( const SmartPtr< CHostHardwareInfo >& pHos
 		, changeFlags, sDevConfig );
 	SmartPtr<IOPackage> p =	DispatcherPackage::createInstance( PVE::DspEvtHwChanged, event_string );
 
-	CDspService::instance()->getVmManager().sendPackageToAllVMs(p);
+//	FIXME Not implemented yet
+//	CDspService::instance()->getVmManager().sendPackageToAllVMs(p);
 }
 
 bool isAutoconnectBlacklisted(USHORT vid, USHORT pid)
