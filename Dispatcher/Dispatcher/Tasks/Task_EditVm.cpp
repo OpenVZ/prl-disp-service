@@ -3616,7 +3616,6 @@ namespace Cpu
 
 namespace Limit
 {
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Percents
 
@@ -3627,7 +3626,7 @@ Libvirt::Result Percents::operator()(vm::Runtime agent_) const
 		return v.error();
 
 	quint32 p(v.value().getQemuKvm()->getVCpuInfo()->getDefaultPeriod());
-	return agent_.setCpuLimit(m_value * p / 100, p);
+	return m_setter(agent_, m_value * p / 100, p);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3643,7 +3642,7 @@ Libvirt::Result Mhz::operator()(vm::Runtime agent_) const
 	quint32 p(v.value().getQemuKvm()->getVCpuInfo()->getDefaultPeriod());
 	quint32 l = ceilDiv(static_cast<quint64>(m_value) * p,
 			v.value().getQemuKvm()->getVCpuInfo()->getMhz());
-	return agent_.setCpuLimit(l, p);
+	return m_setter(agent_, l, p);
 }
 
 } // namespace Limit
@@ -3698,16 +3697,27 @@ Vm::Action* Factory::craftLimit(const Request& input_) const
 			oldCpu->getNumber() == newCpu->getNumber())
 		return NULL;
 
-	quint32 x = ceilDiv(oldCpu->getCpuLimitValue(), oldCpu->getNumber());
-	quint32 y = ceilDiv(newCpu->getCpuLimitValue(), newCpu->getNumber());
-	if (x == y && oldCpu->getCpuLimitType() == newCpu->getCpuLimitType())
+	quint32 type(CDspService::instance()->getDispConfigGuard().getDispConfig()
+			->getDispatcherSettings()->getCommonPreferences()
+			->getWorkspacePreferences()->getVmGuestCpuLimitType());
+
+	quint32 o(oldCpu->getCpuLimitValue());
+	quint32 n(newCpu->getCpuLimitValue());
+	Limit::setter_type s(boost::bind(&vm::Runtime::setGlobalCpuLimit, _1, _2, _3));
+	if (PRL_VM_CPULIMIT_GUEST == type) {
+		o = ceilDiv(o, oldCpu->getNumber());
+		n = ceilDiv(n, newCpu->getNumber());
+		s = boost::bind(&vm::Runtime::setPerCpuLimit, _1, _2, _3);
+	}
+
+	if (o == n && oldCpu->getCpuLimitType() == newCpu->getCpuLimitType())
 		return NULL;
 
 	Forge f(input_);
 	if (newCpu->getCpuLimitType() == PRL_CPULIMIT_MHZ)
-		return f.craftRuntime(Limit::Mhz(y));
+		return f.craftRuntime(Limit::Mhz(n, s));
 	else if (newCpu->getCpuLimitType() == PRL_CPULIMIT_PERCENTS)
-		return f.craftRuntime(Limit::Percents(y));
+		return f.craftRuntime(Limit::Percents(n, s));
 
 	return NULL;
 }

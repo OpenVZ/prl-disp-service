@@ -38,6 +38,7 @@
 #include "CVcmmdInterface.h"
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/for_each.hpp>
+#include <boost/function.hpp>
 #include "CDspVmGuestPersonality.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
@@ -624,12 +625,16 @@ namespace Cpu
 
 namespace Limit
 {
+
+typedef boost::function<Libvirt::Result (Libvirt::Instrument::Agent::Vm::Runtime, quint64, quint64)> setter_type;
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Percents
 
 struct Percents
 {
-	explicit Percents(quint32 value_): m_value(value_)
+	explicit Percents(quint32 value_, setter_type setter_)
+		: m_value(value_), m_setter(setter_)
 	{
 	}
 
@@ -637,6 +642,7 @@ struct Percents
 
 private:
 	quint32 m_value;
+	setter_type m_setter;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -644,7 +650,8 @@ private:
 
 struct Mhz
 {
-	explicit Mhz(quint32 value_): m_value(value_)
+	explicit Mhz(quint32 value_, setter_type setter_)
+		: m_value(value_), m_setter(setter_)
 	{
 	}
 
@@ -652,8 +659,8 @@ struct Mhz
 
 private:
 	quint32 m_value;
+	setter_type m_setter;
 };
-
 
 } // namespace Limit
 

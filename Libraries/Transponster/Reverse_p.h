@@ -115,7 +115,7 @@ namespace Device
 {
 
 struct List;
-typedef QList<Libvirt::Domain::Xml::VChoice936 > deviceList_type;
+typedef QList<Libvirt::Domain::Xml::VChoice938 > deviceList_type;
 typedef Boot::Reverse::order_type boot_type;
 
 namespace Clustered
@@ -521,7 +521,7 @@ private:
 		SCSI_TARGETS = 256
 	};
 
-	void craftController(const Libvirt::Domain::Xml::VChoice587& bus_, quint16 index_);
+	void craftController(const Libvirt::Domain::Xml::VChoice589& bus_, quint16 index_);
 
 	quint16 m_ide;
 	quint16 m_sata;

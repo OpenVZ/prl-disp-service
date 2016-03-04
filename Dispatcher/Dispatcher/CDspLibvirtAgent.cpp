@@ -1162,26 +1162,38 @@ Result Runtime::setIoPriority(quint32 ioprio_)
 	return r;
 }
 
-Result Runtime::setCpuLimit(quint32 limit_, quint32 period_)
+Result Runtime::setPerCpuLimit(quint32 limit_, quint32 period_)
 {
-	virTypedParameterPtr p(NULL);
-	qint32 s(0);
-	qint32 m(0);
+	return setCpuLimit(0, limit_, period_);
+}
 
-	if (do_(&p, boost::bind(&virTypedParamsAddULLong, _1,
-					&s, &m, VIR_DOMAIN_SCHEDULER_VCPU_PERIOD, period_)).isFailed())
+Result Runtime::setGlobalCpuLimit(quint32 limit_, quint32 period_)
+{
+	return setCpuLimit(limit_, 0, period_);
+}
+
+Result Runtime::setCpuLimit(quint32 globalLimit_, quint32 limit_,
+		quint32 period_)
+{
+	Parameters::Builder b;
+
+	if (!b.add(VIR_DOMAIN_SCHEDULER_GLOBAL_PERIOD, static_cast<quint64>(period_)))
+		return Failure(PRL_ERR_SET_CPULIMIT);
+	if (!b.add(VIR_DOMAIN_SCHEDULER_VCPU_PERIOD, static_cast<quint64>(period_)))
 		return Failure(PRL_ERR_SET_CPULIMIT);
 
-	qint32 l = (limit_ == 0? -1 : limit_);
-	if (do_(&p, boost::bind(&virTypedParamsAddLLong, _1,
-					&s, &m, VIR_DOMAIN_SCHEDULER_VCPU_QUOTA, l)).isFailed())
+	qint64 l(globalLimit_ == 0? static_cast<qint64>(-1) : globalLimit_);
+	if (!b.add(VIR_DOMAIN_SCHEDULER_GLOBAL_QUOTA, l))
 		return Failure(PRL_ERR_SET_CPULIMIT);
 
+	l = (limit_ == 0? static_cast<qint64>(-1) : limit_);
+	if (!b.add(VIR_DOMAIN_SCHEDULER_VCPU_QUOTA, l))
+		return Failure(PRL_ERR_SET_CPULIMIT);
+
+	Parameters::Result_type p(b.extract());
 	Result r(do_(m_domain.data(), boost::bind(&virDomainSetSchedulerParametersFlags, _1,
-							p, s, VIR_DOMAIN_AFFECT_CURRENT |
+							p.first.data(), p.second, VIR_DOMAIN_AFFECT_CURRENT |
 							VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE)));
-
-	virTypedParamsFree(p, s);
 	return r;
 }
 
@@ -1836,6 +1848,12 @@ Prl::Expected<VtInfo, Error::Simple> Host::getVt() const
 	i->setMaxVCpu(std::min<quint32>(x, h.cpus));
 	i->setDefaultPeriod(100000);
 	i->setMhz(h.mhz);
+
+	v.setGlobalCpuLimit(PRL_VM_CPULIMIT_FULL == CDspService::instance()
+			->getDispConfigGuard().getDispConfig()
+			->getDispatcherSettings()->getCommonPreferences()
+			->getWorkspacePreferences()->getVmGuestCpuLimitType());
+
 	return v;
 }
 

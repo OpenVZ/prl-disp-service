@@ -91,6 +91,16 @@ bool Builder::add(const char *key_, const QString& value_)
 	return virTypedParamsAddString(&m_pointer, &m_size, &m_capacity, key_, QSTR2UTF8(value_)) == 0;
 }
 
+bool Builder::add(const char *key_, quint64 value_)
+{
+	return virTypedParamsAddULLong(&m_pointer, &m_size, &m_capacity, key_, value_) == 0;
+}
+
+bool Builder::add(const char *key_, qint64 value_)
+{
+	return virTypedParamsAddLLong(&m_pointer, &m_size, &m_capacity, key_, value_) == 0;
+}
+
 Result_type Builder::extract()
 {
 	Result_type r(QSharedPointer<virTypedParameter>(m_pointer, boost::bind(virTypedParamsFree, _1, m_size)),

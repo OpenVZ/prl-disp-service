@@ -776,6 +776,16 @@
           </element>
         </optional>
         <optional>
+          <element name="global_period">
+            <ref name="cpuperiod"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="global_quota">
+            <ref name="cpuquota"/>
+          </element>
+        </optional>
+        <optional>
           <element name="period">
             <ref name="cpuperiod"/>
           </element>

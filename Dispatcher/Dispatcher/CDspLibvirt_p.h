@@ -421,6 +421,8 @@ struct Builder: noncopyable
 	~Builder();
 
 	bool add(const char *key_, const QString& value_);
+	bool add(const char *key_, quint64 value_);
+	bool add(const char *key_, qint64 value_);
 	Result_type extract();
 
 private:
