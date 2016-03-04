@@ -79,7 +79,15 @@ struct Frontend: msmf::state_machine_def<Frontend>
 			const QSharedPointer< ::Network::Routing>& routing_):
 		m_uuid(uuid_), m_service(CDspService::instance()), m_user(user_),
 		m_routing(routing_)
-	{}
+	{
+		//Check if VM is already exist and fill name and path
+		boost::optional<CVmConfiguration> y = getConfig();
+		if (!y)
+			return;
+
+		m_name = y->getVmIdentification()->getVmName();
+		m_home = QFileInfo(y->getVmIdentification()->getHomePath());
+	}
 
 	template <VIRTUAL_MACHINE_STATE N>
 	struct State: public msmf::state<>, boost::mpl::integral_c<VIRTUAL_MACHINE_STATE, N>
