@@ -223,17 +223,6 @@ public:
 	} SuspendMode;
 
 	/**
-	* Processes command of create snapshot
-	* @param pointer to the user session object that initialized request
-	* @param pointer to request package object
-	* @param if it is true we wait finishing thread and return task result
-	* @param task result
-	*/
-	bool createSnapshot(
-		SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p,
-		CVmEvent* evt = NULL, bool bWaitResult = false);
-
-	/**
 	* Initiates sending notifications about devices states by VM
 	* @param pointer to the user session object that initialized request
 	* @param pointer to request package object

@@ -258,7 +258,7 @@ PRL_RESULT Snapshot::take(const Source::Total& source_)
 	if (PRL_FAILED(output))
 		return m_failure(output);
 
-	QString u = Uuid::createUuid().toString();
+/*	QString u = Uuid::createUuid().toString();
 	CProtoCommandPtr pRequest = CProtoSerializer::CreateCreateSnapshotProtoCommand(
 			source_.getConfig().getUuid(), QString("Snapshot for a linked clone"),
 			QString(), u, QString(), QString(), PCSF_DISK_ONLY);
@@ -271,7 +271,7 @@ PRL_RESULT Snapshot::take(const Source::Total& source_)
 			output, PRL_RESULT_TO_STRING(output));
 	}
 	else
-		m_uuid = u;
+		m_uuid = u; */
 
 	if (bNewVmInstance)
 		CDspVm::UnregisterVmObject(pVm);

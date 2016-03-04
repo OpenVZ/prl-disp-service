@@ -43,7 +43,6 @@
 #include "Libraries/StatesStore/SavedStateTree.h"
 #include "prlcommon/Std/PrlTime.h"
 
-#include "Task_CreateSnapshot.h"
 #include "Task_CreateVmBackup.h"
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "CDspService.h"
