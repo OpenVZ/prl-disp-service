@@ -729,7 +729,12 @@ PRL_RESULT Object::thaw(Task::Workbench& task_)
 
 PRL_RESULT Object::begin(const QString& path_, const QString& map_, Task::Reporter& reporter_)
 {
-	CVmEvent v;
+	Q_UNUSED(path_);
+	Q_UNUSED(map_);
+	Q_UNUSED(reporter_);
+	return PRL_ERR_SUCCESS;
+/*	Create "backup" snapshot */
+/*	CVmEvent v;
 	QString u = m_vm->getVmUuid();
 	CProtoCommandPtr r = CProtoSerializer::CreateCreateSnapshotProtoCommand(
 				u, QString("Snapshot for backup"), QString(),
@@ -749,7 +754,7 @@ PRL_RESULT Object::begin(const QString& path_, const QString& map_, Task::Report
 		output = reporter_.fail(PRL_ERR_BACKUP_CREATE_SNAPSHOT_FAILED,
 				Task::Comment(PRL_RESULT_TO_STRING(output)));
 	}
-	return output;
+	return output; */
 }
 
 PRL_RESULT Object::disband(quint32 flags_)

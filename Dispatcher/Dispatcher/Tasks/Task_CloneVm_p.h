@@ -1034,9 +1034,7 @@ struct SnapshotAware
 		//In linked clone case skip verification due non significant disk space required
 		//See https://bugzilla.sw.ru/show_bug.cgi?id=473298 for more details
 		//FIXME: in any case it would be better to calculate necessary disk space except
-		//virtual hard disks size. Actually procedure of check available disk space
-		//should be the same as at Task_CreateSnapshot but it's fake on the moment and
-		//should be fixed at first.
+		//virtual hard disks size.
 		source_.setSpace(NULL);
 		source_.setSnapshot(new Snapshot(task_));
 		return Small<T, Sink::Vm::Linked>::do_(task_, source_, sink_);

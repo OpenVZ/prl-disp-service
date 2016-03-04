@@ -42,7 +42,6 @@
 
 #include "CDspVmDirHelper.h"
 #include "CDspVmStateSender.h"
-#include "Task_CreateSnapshot.h"
 #include "Task_MigrateVm.h"
 #include "Task_CloneVm.h"
 #include "Task_ChangeSID.h"

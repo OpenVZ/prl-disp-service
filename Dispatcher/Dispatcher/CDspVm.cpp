@@ -50,7 +50,6 @@
 
 #include "CDspVmStateSender.h"
 
-#include "Tasks/Task_CreateSnapshot.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_ManagePrlNetService.h"
 #include "Tasks/Task_EditVm.h"
@@ -1255,79 +1254,6 @@ void CDspVm::InternalCmd(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &
 	_wLock.unlock();
 
 	sendPackageToVmEx(p, state);
-}
-
-bool CDspVm::createSnapshot(
-	SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p,
-	CVmEvent* evt , bool bWaitResult)
-{
-	PRL_RESULT ret = checkUserAccessRights( pUser, PVE::DspCmdVmCreateSnapshot );
-	if( PRL_FAILED( ret ) )
-	{
-		if (evt)
-			evt->setEventCode( ret );
-		else
-			pUser->sendSimpleResponse( p, ret );
-		return false;
-	}
-
-	QWriteLocker _wLock( &d().m_rwLock );
-	VIRTUAL_MACHINE_STATE state = getVmStateUnsync();
-	switch( state )
-	{
-	case VMS_PAUSED      : ;
-	case VMS_RUNNING     : ;
-		if( !isContinueSnapshotCmdFromPausedStateAllowed( d().m_nVmPowerState, pUser, p, evt, bWaitResult ) )
-			return false; // error was send/filled
-
-	case VMS_STOPPED     : ;
-		// case VMS_STARTING    : ;
-		//case VMS_RESUMING: ;
-		// case VMS_RESTORING   : ;
-		// case VMS_SUSPENDING  : ;
-		// case VMS_STOPPING    : ;
-		// case VMS_COMPACTING  : ;
-	case VMS_SUSPENDED   : ;
-		// case VMS_SUSPENDING_SYNC   : ;
-		// case VMS_SNAPSHOTING : ;
-		// case VMS_RESETTING	 : ;
-		// case VMS_PAUSING	 : ;
-		// case VMS_CONTINUING	 : ;
-		changeVmState(VMS_SNAPSHOTING);
-		break;
-	default:
-		{
-			if ( !bWaitResult )
-				SEND_ERROR_BY_CANT_EXECUTED_VM_COMMAND( p, state )
-			else if (evt)
-			{
-				WRITE_TRACE(DBG_FATAL, "Error: can't execute %s command,"
-						" vm state is forbidden! (state = %#x)",
-						PVE::DispatcherCommandToString( p->header.type ),
-						state );
-
-				evt->setEventCode( PRL_ERR_DISP_VM_COMMAND_CANT_BE_EXECUTED );
-				evt->addEventParameter( new CVmEventParameter ( PVE::String,
-							getVmName(),
-							EVT_PARAM_MESSAGE_PARAM_0 ) );
-				evt->addEventParameter( new CVmEventParameter ( PVE::String,
-							PRL_VM_STATE_TO_STRING( state ),
-							EVT_PARAM_MESSAGE_PARAM_1 ) );
-			}
-			return false;
-		}//default
-	}//switch
-	_wLock.unlock();
-
-	// Prepare and start long running task helper
-
-	CDspTaskHelper
-		*task_helper = new Task_CreateSnapshot( pUser, p, state );
-
-	SetSnapshotRequestParams(p, state, pUser, task_helper->getJobUuid());
-	CDspService::instance()->getTaskManager().schedule(task_helper)
-		.wait(bWaitResult).getResult(evt);
-	return true;
 }
 
 void CDspVm::InitiateDevStateNotifications(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p)
