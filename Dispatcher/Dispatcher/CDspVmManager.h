@@ -52,14 +52,6 @@ public:
 	virtual void init ();
 
 	/**
-	 * Hanle package from the remote client.
-	 * @param h client handle
-	 * @param p package from client
-	 */
-	virtual void handleToDispatcherPackage ( const IOSender::Handle&,
-											 const SmartPtr<IOPackage>& p );
-
-	/**
 	 * Hanle package from other handler which should be sent by this handler.
 	 * @param receiverHandler handler, which receives this package
 	 * @param clientHandler transport client handler
@@ -69,25 +61,6 @@ public:
 								 const SmartPtr<CDspHandler>& receiverHandler,
 								 const IOSender::Handle& clientHandler,
 								 const SmartPtr<IOPackage>& pPackage );
-
-	/**
-	 * Handle package from other handler which should be sent by this handler
-	 * to direct receiver.
-	 * @param receiverHandler handler, which receives this package
-	 * @param clientHandler transport client handler
-	 * @param directReceiverHandler transport client handler, to which
-	 *                              this package should be directly send.
-	 * @param p package from handler to send
-	 */
-	virtual void handleFromDispatcherPackage (
-								 const SmartPtr<CDspHandler>& receiverHandler,
-								 const IOSender::Handle& clientHandler,
-								 const IOSender::Handle& directReceiverHandler,
-								 const SmartPtr<IOPackage>& p );
-
-	virtual void handleWsResponse( SmartPtr<CDspVm> pVm,
-		const SmartPtr<IOPackage>& p,
-		bool & bNeedToRoute);
 
 	/**
 	* Returns all running vms.
@@ -130,10 +103,6 @@ private:
 											   const SmartPtr<IOPackage> &pPackage);
 
 	QString getVmIdByHandle(const IOSender::Handle& h) const;
-
-	/** Check non-interactive sessions */
-	bool haveNonInteractiveSessionsWithRequestToVm(	const SmartPtr<CDspVm>& pVm,
-													const QList< SmartPtr<CDspClient> >& lstSessions) const;
 
 	/** Check interactive sessions */
 	bool haveInteractiveSessions( const QList< SmartPtr<CDspClient> >& lstSessions) const;

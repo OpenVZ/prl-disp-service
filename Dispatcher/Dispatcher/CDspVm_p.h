@@ -180,15 +180,7 @@ struct Details: noncopyable
 	QMutex	m_mtxPerfStoragesContainer;
 	ProcPerfStoragesContainer m_perfstorage_container;
 
-	typedef QString RequestPackageUuid;
-	typedef QHash< RequestPackageUuid, RequestInfo > RequestResponseHash;
-	RequestResponseHash m_hashRequestResponse;
-
 	VIRTUAL_MACHINE_STATE m_stateBeforeHandshake;
-
-	// Guest OS sessions list
-	QMutex m_GuestSessionsMtx;
-	QMap<IOSender::Handle, QSet<QString> > m_GuestSessions;
 
 	//Storing handle on connection initializes request of VM operation
 	IOSender::Handle m_hLockOwner;
@@ -205,9 +197,6 @@ struct Details: noncopyable
 	QString	m_strVmHome;
 
 	bool m_bStoreRunningStateDisabled;
-
-	// Restored VM product version
-	QString m_qsRestoredVmProductVersion;
 
 	QMutex m_applyConfigMutex;
 	QWaitCondition m_applyConfigCondition;

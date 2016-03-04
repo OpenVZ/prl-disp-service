@@ -145,7 +145,6 @@ void CDspClientManager::handleClientDisconnected ( const IOSender::Handle& h  )
 			}
 		}
 
-		CDspVm::globalCleanupGuestOsSessions( h );
 		m_service->getVmDirHelper().cleanupSessionVmLocks(h);
 	}
 }

@@ -589,7 +589,7 @@ Task_BackgroundJob(pUser, pRequestPkg),
 
 PRL_RESULT Task_AutoconnectUsbDevice::ConcreteDoBackgroundJob()
 {
-	m_pVm->connectDevice( getClient(), getRequestPackage() );
+//	m_pVm->connectDevice( getClient(), getRequestPackage() );
 	return (PRL_ERR_SUCCESS);
 }
 

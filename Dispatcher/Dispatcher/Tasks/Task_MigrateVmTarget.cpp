@@ -879,12 +879,12 @@ void Task_MigrateVmTarget::finalizeTask()
 				pPackage = DispatcherPackage::createInstance( PVE::DspCmdVmStop, pCmd );
 	//			m_pVm->stop(getClient(), pPackage, PSM_KILL, true);
 				// Wait until VM stopped
-				while (m_pVm->isConnected())
+				/* while (m_pVm->isConnected())
 				{
 					if (operationIsCancelled() && CDspService::instance()->isServerStopping())
 						break;
 					QThread::msleep(1000);
-				}
+				} */
 			}
 			if (m_pVm.getImpl()) {
 				CDspVm::UnregisterVmObject(m_pVm);

@@ -278,7 +278,7 @@ void Farmer::timerEvent(QTimerEvent* event_)
 		SmartPtr<CDspVm> v = CDspVm::GetVmInstanceByUuid(m_ident);
 		if (!v.isValid())
 			return;
-		m_vm = v->getVmConnectionHandle();
+//		m_vm = v->getVmConnectionHandle();
 		if (IOSender::InvalidHandle == m_vm)
 			return;
 		this->connect(&p,
@@ -291,9 +291,9 @@ void Farmer::timerEvent(QTimerEvent* event_)
 			SIGNAL(onClientDisconnected(IOSender::Handle)),
 			SLOT(disconnect(IOSender::Handle)));
 
-		m_pending = v->sendPackageToVm(m_request);
-		if (!m_pending.isValid())
-			return reset();
+//		m_pending = v->sendPackageToVm(m_request);
+//		if (!m_pending.isValid())
+//			return reset();
 	} while(false);
 	m_timer = startTimer(m_period);
 }

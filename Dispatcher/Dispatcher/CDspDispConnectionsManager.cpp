@@ -264,48 +264,4 @@ void CDspDispConnectionsManager::ProcessDispConnectionLogoff(
 	DeleteDispConnection(pDispConnection->GetConnectionHandle());
 }
 
-void CDspDispConnectionsManager::handleDetachClient (
-    const IOSender::Handle& h,
-	const IOCommunication::DetachedClient& detachedClient )
-{
-	// Lock
-	QReadLocker locker( &m_rwLock );
-
-	if ( ! m_dispconns.contains(h) ) {
-		WRITE_TRACE(DBG_FATAL, "Client '%s' is not authed! Close connection!", qPrintable(h));
-		m_service->getIOServer().disconnectClient(h);
-		return;
-	}
-	// #455781 under read access (QReadLocker) we should call only const methods
-	// to prevent app crash after simultaneously call QT_CONT::detach_helper().
-	SmartPtr<CDspDispConnection> pDispConnection = m_dispconns.value(h);
-	locker.unlock();
-
-	SmartPtr<CDspVm> pVm =
-		CDspVm::GetVmInstanceByDispConnectionHandle(pDispConnection->GetConnectionHandle());
-
-	if (!pVm.getImpl())
-	{
-		WRITE_TRACE(DBG_FATAL, "Couldn't to map dispatcher connection object '%s' with VM process maintainer",\
-			qPrintable(h));
-		m_service->getIOServer().disconnectClient(h);
-		return;
-	}
-
-	IOSender::Handle vmHandle = pVm->getVmConnectionHandle();
-
-	// Send detached client
-	IOSendJob::Handle job =
-		m_service->getIOServer().sendDetachedClient(vmHandle, detachedClient);
-	m_service->getIOServer().waitForSend(job);
-	IOSendJob::Result res = m_service->getIOServer().getSendResult(job);
-	if ( res != IOSendJob::Success ) {
-		WRITE_TRACE(DBG_FATAL, "Detach client send to Vm failed!");
-		pDispConnection->sendSimpleResponse(
-			pVm->getMigrateVmRequestPackage(),
-			PRL_ERR_VM_MIGRATE_COULDNT_DETACH_TARGET_CONNECTION
-		);
-	}
-}
-
 /*****************************************************************************/

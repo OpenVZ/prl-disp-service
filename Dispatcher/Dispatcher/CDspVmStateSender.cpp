@@ -165,7 +165,7 @@ void CDspVmStateSender::slotSendVmStateChanged(
 	unsigned int nVmState,
 	QString vmUuid,
 	QString dirUuid,
-	bool notifyVm )
+	bool)
 {
 	WRITE_TRACE( DBG_DEBUG, "%s: state = %s, vm_uuid=%s"
 		, __FUNCTION__
@@ -193,16 +193,6 @@ void CDspVmStateSender::slotSendVmStateChanged(
 			dirUuid,
 			vmUuid
 			);
-	if (!notifyVm)
-		return;
-
-	SmartPtr<CDspVm> pVm = CDspVm::GetVmInstanceByUuid(vmUuid, dirUuid);
-	if (pVm.isValid())
-	{
-		// Send VM its own state
-		pUpdateVmStatePkg = DispatcherPackage::createInstance( PVE::DspVmStateInfo, event );
-		pVm->sendPackageToVm(pUpdateVmStatePkg);
-	}
 }
 
 void CDspVmStateSender::slotSendVmAdditionStateChanged( unsigned int nVmAdditionState,
