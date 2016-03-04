@@ -62,7 +62,6 @@ HEADERS += \
 	CVmValidateConfig.h \
 	DspLogicGuard.h \
 	DspMonitor.h \
-	CDspRequestsToVmHandler.h \
 	CDspVmSnapshotStoreHelper.h \
 	CDspVmMigrateHelper.h \
 	CDspVmConfigurationChangesWatcher.h \
@@ -180,7 +179,6 @@ SOURCES += \
 	CVmValidateConfig.cpp \
 	DspLogicGuard.cpp \
 	DspMonitor.cpp \
-	CDspRequestsToVmHandler.cpp \
 	CDspVmSnapshotStoreHelper.cpp \
 	CDspVmMigrateHelper.cpp\
 	CDspVmConfigurationChangesWatcher.cpp \

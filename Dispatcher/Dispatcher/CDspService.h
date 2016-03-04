@@ -49,7 +49,6 @@
 #include "CDspAccessManager.h"
 #include "CDspSync.h"
 #include "DspMonitor.h"
-#include "CDspRequestsToVmHandler.h"
 #include "CDspVmMigrateHelper.h"
 #include "CDspVmConfigurationChangesWatcher.h"
 #include "CDspVmConfigManager.h"
@@ -159,9 +158,6 @@ public:
 
 	/** Returns task manager */
 	CDspTaskManager& getTaskManager ();
-
-	/** Returns request to vm manager */
-	CDspRequestsToVmHandler& getRequestToVmHandler ();
 
 	/** Returns config vm watcher */
 	CDspVmConfigurationChangesWatcher & getVmConfigWatcher ();
@@ -523,7 +519,6 @@ private:
 	CDspShellHelper m_shellHelper;
 	CDspVmDirHelper m_vmDirHelper;
 	CDspVmSnapshotStoreHelper m_vmSnapshotStoreHelper;
-	CDspRequestsToVmHandler m_requestToVmManager;
 
 	SmartPtr<CDspVmConfigurationChangesWatcher> m_pVmConfigWatcher;
 

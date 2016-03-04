@@ -1170,10 +1170,11 @@ SmartPtr<CPackedProblemReport> CDspProblemReportHelper::getProblemReportObj(
 				, PRL_RESULT_TO_STRING( res ) );
 		}
 
+/*		FIXME enable back when new perfCounters platform will be ready
 		QString qsPerfCountersInfo = CDspService::instance()
 			->getRequestToVmHandler().getPerfCountersInfo(Uuid::toString(p->header.uuid));
 
-		pReport->setPerformanceCounters( qsPerfCountersInfo );
+		pReport->setPerformanceCounters( qsPerfCountersInfo ); */
 
 		CDspProblemReportHelper::FillProblemReportData( *pReport.getImpl(), pUser, pUser->getVmDirectoryUuid() );
 		// set report type
