@@ -143,6 +143,14 @@ Libvirt::Result Config::meetRequirements(const ::Command::Context& context_, Con
 					PRL_RESULT_TO_STRING(e));
 		return Error::Simple(e);
 	}
+
+	QString vmHome = c->getVmIdentification()->getHomePath();
+	if (vmHome.isEmpty())
+	{
+		WRITE_TRACE(DBG_FATAL, "meetRequirements: cannot get VM home path!");
+		return Error::Simple(PRL_ERR_BAD_VM_DIR_CONFIG_FILE_SPECIFIED);
+	}
+
 	dst_.m_config = c;
 	return Libvirt::Result();
 }
