@@ -245,17 +245,6 @@ public:
 		bool bWaitResult = false);
 
 	/**
-	* Processes command of delete snapshot
-	* @param pointer to the user session object that initialized request
-	* @param pointer to request package object
-	* @param if it is true we wait finishing thread and return task result
-	* @param task result
-	*/
-	bool deleteSnapshot(
-		SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p,
-		CVmEvent* evt = NULL, bool bWaitResult = false);
-
-	/**
 	* Initiates sending notifications about devices states by VM
 	* @param pointer to the user session object that initialized request
 	* @param pointer to request package object
@@ -517,7 +506,6 @@ public://Convenient global methods
 	bool isSafeMode() const;
 	bool isNoUndoDisksQuestion() const;
 	void disableNoUndoDisksQuestion();
-	bool startUndoDisksRevertOrCommitTask();
 
 	bool hasUnansweredRequestForSession( const QString& qsSessionId ) const;
 

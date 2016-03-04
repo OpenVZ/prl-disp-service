@@ -754,7 +754,11 @@ PRL_RESULT Object::begin(const QString& path_, const QString& map_, Task::Report
 
 PRL_RESULT Object::disband(quint32 flags_)
 {
-	CProtoCommandPtr r =
+	Q_UNUSED(flags_);
+	return PRL_ERR_SUCCESS;
+
+/*	Delete "backup" snapshot */
+/*	CProtoCommandPtr r =
 		CProtoSerializer::CreateDeleteSnapshotProtoCommand(m_vm->getVmUuid(),
 			QString(), false, PDSF_BACKUP | flags_);
 	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspCmdVmDeleteSnapshot, r);
@@ -772,7 +776,7 @@ PRL_RESULT Object::disband(quint32 flags_)
 		WRITE_TRACE(DBG_FATAL, "Error occurred while snapshot deleting with code [%#x][%s]",
 			output, PRL_RESULT_TO_STRING(output));
 	}
-	return output;
+	return output; */
 }
 
 PRL_RESULT Object::commit(const QString& uuid_)
