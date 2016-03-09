@@ -1,0 +1,62 @@
+DATADIR ?= /usr/share
+LIBEXECDIR ?= /usr/libexec
+SBINDIR ?= /usr/sbin
+SYSCONFDIR ?= /etc
+UNITDIR ?= /usr/lib/systemd/system
+
+DBGDIR = z-Build/Debug
+LINDIR = Build/LinUtil/files
+
+default: all
+
+all: Dispatcher/Makefile
+	$(MAKE) -C Dispatcher
+
+Dispatcher/Makefile: Dispatcher/Dispatcher.pro Build/Build.pri Build/Current-gen.ver
+	cd Dispatcher && \
+		qmake-qt4 \
+		ENABLE_LOCAL_DEPS=$$ENABLE_LOCAL_DEPS \
+		LOCAL_DEPS_INCLUDE=$$LOCAL_DEPS_INCLUDE \
+		LOCAL_DEPS_LIBS=$$LOCAL_DEPS_LIBS \
+
+Build/Current-gen.ver: Build/Build.pri
+
+Build/Build.pri: Makefile.version Build/Build.cfg
+	./Gen.py
+
+install: all
+	mkdir -p $(DESTDIR)$(DATADIR)/prl-disp-service
+	mkdir -p $(DESTDIR)$(LIBEXECDIR)
+	mkdir -p $(DESTDIR)$(SBINDIR)
+	mkdir -p $(DESTDIR)$(SYSCONFDIR)/logrotate.d
+	mkdir -p $(DESTDIR)$(SYSCONFDIR)/modprobe.d
+	mkdir -p $(DESTDIR)$(SYSCONFDIR)/pam.d
+	mkdir -p $(DESTDIR)$(SYSCONFDIR)/prelink.conf.d
+	mkdir -p $(DESTDIR)$(SYSCONFDIR)/sysconfig
+	mkdir -p $(DESTDIR)$(SYSCONFDIR)/sysctl.d
+	mkdir -p $(DESTDIR)$(SYSCONFDIR)/udev/makedev.d
+	mkdir -p $(DESTDIR)$(SYSCONFDIR)/udev/rules.d
+	mkdir -p $(DESTDIR)$(SYSCONFDIR)/udev/permissions.d
+	mkdir -p $(DESTDIR)$(UNITDIR)
+	install -m 755 $(LINDIR)/cloud_config_ctl.py $(DESTDIR)$(LIBEXECDIR)/cloud_config_ctl.py
+	install -m 755 $(LINDIR)/create_bridges.py $(DESTDIR)$(LIBEXECDIR)/create_bridges.py
+	install -m 644 $(LINDIR)/parallels.logrotate $(DESTDIR)$(SYSCONFDIR)/logrotate.d/parallels
+	install -m 644 $(LINDIR)/blacklist-parallels.conf $(DESTDIR)$(SYSCONFDIR)/modprobe.d/blacklist-parallels.conf
+	install -m 644 $(LINDIR)/prl_disp_service.pam $(DESTDIR)$(SYSCONFDIR)/pam.d/prl_disp_service
+	install -m 644 $(LINDIR)/prl_prelink.conf $(DESTDIR)$(SYSCONFDIR)/prelink.conf.d/prl_prelink.conf
+	install -m 755 $(LINDIR)/rc.sysinit.parallels $(DESTDIR)$(SYSCONFDIR)/rc.sysinit.parallels
+	install -m 644 $(LINDIR)/prl-disp $(DESTDIR)$(SYSCONFDIR)/sysconfig/prl-disp
+	install -m 644 $(LINDIR)/99-prl-disp.conf $(DESTDIR)$(SYSCONFDIR)/sysctl.d/99-prl-disp.conf
+	install -m 644 $(LINDIR)/udev-parallels.node $(DESTDIR)$(SYSCONFDIR)/udev/makedev.d/55-parallels.node
+	install -m 644 $(LINDIR)/55-parallels.permissions $(DESTDIR)$(SYSCONFDIR)/udev/permissions.d/55-parallels.permissions
+	install -m 644 $(LINDIR)/udev-parallels.rules $(DESTDIR)$(SYSCONFDIR)/udev/rules.d/55-parallels.rules
+	install -m 644 $(LINDIR)/prl-disp.service $(DESTDIR)$(UNITDIR)/prl-disp.service
+	install -m 644 $(DBGDIR)/tests/prl-disp-unittests.zip $(DESTDIR)$(DATADIR)/prl-disp-service/prl-disp-unittests.zip
+	install -m 644 $(DBGDIR)/tests/pythontests.zip $(DESTDIR)$(DATADIR)/prl-disp-service/pythontests.zip
+	install -m 755 $(DBGDIR)/prl_disp_service $(DESTDIR)$(SBINDIR)/prl_disp_service
+
+clean:
+	$(MAKE) -C Dispatcher clean
+
+distclean:
+	$(MAKE) -C Dispatcher distclean
