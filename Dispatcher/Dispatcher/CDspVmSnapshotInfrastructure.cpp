@@ -303,7 +303,7 @@ static inline PRL_RESULT log(PRL_RESULT result_)
 
 PRL_RESULT Unit::create()
 {
-	Answer::Unit<PRL_ERR_VM_CREATE_SNAPSHOT_FAILED> a;
+/*	Answer::Unit<PRL_ERR_VM_CREATE_SNAPSHOT_FAILED> a;
 	SmartPtr<IOPackage> x = Parallels::DispatcherPackage::createInstance(
 				PVE::DspCmdVmCreateSnapshot,
 				UTF8_2QSTR(m_task->getRequestPackage()->buffers[0].getImpl()));
@@ -313,7 +313,8 @@ PRL_RESULT Unit::create()
 	if (NULL == a.command())
 		return a.fail();
 
-	return a.command()->GetRetCode();
+	return a.command()->GetRetCode(); */
+	return PRL_ERR_UNIMPLEMENTED;
 }
 
 PRL_RESULT Unit::destroy(const Command::Destroy& command_)
@@ -323,14 +324,15 @@ PRL_RESULT Unit::destroy(const Command::Destroy& command_)
 	if (PRL_FAILED(e))
 		return e;
 
-	Answer::Unit<PRL_ERR_VM_DELETE_STATE_FAILED> a;
+/*	Answer::Unit<PRL_ERR_VM_DELETE_STATE_FAILED> a;
 	e = log(wait(m_vm->sendPackageToVmEx(log(y), m_state), a));
 	if (PRL_FAILED(e))
 		return e;
 	if (NULL == a.command())
 		return a.fail();
 
-	return a.command()->GetRetCode();
+	return a.command()->GetRetCode();*/
+	return PRL_ERR_UNIMPLEMENTED;
 }
 
 PRL_RESULT Unit::revert(Revert::Note& note_, const Revert::Command& command_)
@@ -339,12 +341,14 @@ PRL_RESULT Unit::revert(Revert::Note& note_, const Revert::Command& command_)
 	if (NULL == x.getImpl())
 		return PRL_ERR_FAILURE;
 
-	Revert::Answer a(note_);
+	Q_UNUSED(note_);
+/*	Revert::Answer a(note_);
 	PRL_RESULT e = log(wait(m_vm->sendPackageToVmEx(log(x), m_state), a));
 	if (PRL_FAILED(e) ||  a.command() == NULL)
 		return e;
 
-	return a.command()->GetRetCode();
+	return a.command()->GetRetCode(); */
+	return PRL_ERR_UNIMPLEMENTED;
 }
 
 namespace Answer

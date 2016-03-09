@@ -41,7 +41,6 @@
 #include "Tasks/Task_CreateProblemReport.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "CDspVmManager.h"
-#include "CDspRequestsToVmHandler.h"
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/PrlCommonUtilsBase/CommandConvHelper.h>
 #include "CDspService.h"
@@ -146,7 +145,6 @@ void CDspClientManager::handleClientDisconnected ( const IOSender::Handle& h  )
 			}
 		}
 
-		CDspVm::globalCleanupGuestOsSessions( h );
 		m_service->getVmDirHelper().cleanupSessionVmLocks(h);
 	}
 }

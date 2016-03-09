@@ -585,7 +585,6 @@ void CDspVm::cleanupObject()
 	else
 		changeVmState(VMS_STOPPED);
 
-	processDeferredResponses();
 	if ( !d().m_bFinishedByDispatcher )
 		storeRunningState(false);
 #ifndef _WIN_
@@ -606,63 +605,9 @@ void CDspVm::cleanupObject()
 #endif
 }
 
-void CDspVm::processDeferredResponses()
-{
-	QWriteLocker lock( &d().m_rwLock);
-
-	DspVm::Details::RequestResponseHash::iterator stopIt = d().m_hashRequestResponse.begin();
-	for( ; stopIt!= d().m_hashRequestResponse.end(); stopIt++ )
-	{
-		RequestInfo& info = *stopIt;
-
-		PRL_ASSERT(info.pkgRequest);
-		const PVE::IDispatcherCommands
-			cmd = info.pkgRequest
-				? (PVE::IDispatcherCommands)info.pkgRequest->header.type
-				: PVE::DspIllegalCommand;
-
-		SmartPtr<IOPackage> pResponse;
-		if(info.pkgResponse)
-			pResponse = info.pkgResponse;
-		else
-		{
-			// Workaround for https://bugzilla.sw.ru/show_bug.cgi?id=111010
-			WRITE_TRACE( DBG_FATAL, "Making fake response to avoid client waiting.");
-
-			CProtoCommandPtr pResponseCommand =
-				CProtoSerializer::CreateDspWsResponseCommand( info.pkgRequest, PRL_ERR_SUCCESS );
-			pResponse =
-				DispatcherPackage::createInstance( PVE::DspWsResponse, pResponseCommand, info.pkgRequest );
-		}
-
-		if (info.isActionByDispatcher)
-			d().m_bFinishedByDispatcher = true;
-
-		WRITE_TRACE( DBG_WARNING, "Send deferred response of command %s(%d) to client"
-			, PVE::DispatcherCommandToString(cmd)
-			, cmd);
-
-		CDspHandler *pVmHandler = &CDspService::instance()->getVmManager();
-		if( !CDspRouter::instance().routePackage( pVmHandler, getVmConnectionHandle(), pResponse ) )
-			WRITE_TRACE( DBG_DEBUG, "Unable to route response package" );
-	}//for
-	d().m_hashRequestResponse.clear();
-}
-
-
 const CVmIdent& CDspVm::ident() const
 {
 	return d().m_VmIdent;
-}
-
-SmartPtr<IOPackage> CDspVm::getStartVmRequestPackage() const
-{
-	return (d().m_pStartVmPkg);
-}
-
-IOSendJob::Handle CDspVm::getStartVmJob() const
-{
-	return d().m_hStartVmJob;
 }
 
 void CDspVm::setMigrateVmRequestPackage(const SmartPtr<IOPackage> &p)
@@ -701,16 +646,6 @@ void CDspVm::cancelStopVNCServerOp()
 {
 	d().m_vncStarter.Terminate();
 };
-
-void CDspVm::setRestoredVmProductVersion(const QString& qsVer)
-{
-	d().m_qsRestoredVmProductVersion = qsVer;
-}
-
-QString CDspVm::getRestoredVmProductVersion() const
-{
-	return d().m_qsRestoredVmProductVersion;
-}
 
 void CDspVm::disableStoreRunningState(bool bDisable)
 {
@@ -927,18 +862,6 @@ PRL_UINT64 CDspVm::getVmProcessUptimeInSecs() const
 	return ( getVmUptimeInSecsInternal( getStartTimestamp() ) );
 }
 
-/** VM connection object handle */
-IOSender::Handle CDspVm::getVmConnectionHandle() const
-{
-	return d().m_VmConnectionHandle;
-}
-
-bool CDspVm::isConnected() const
-{
-	QReadLocker g(&d().m_rwLock);
-	return getVmProcessId() && io().clientState(getVmConnectionHandle()) == IOSender::Connected;
-}
-
 PRL_RESULT CDspVm::checkUserAccessRights(
 		SmartPtr<CDspClient> pUserSession,
 		PVE::IDispatcherCommands cmd)
@@ -1137,22 +1060,6 @@ void CDspVm::startVNCServer (SmartPtr<CDspClient> pUser,
 	{
 		WRITE_TRACE(DBG_FATAL, "Start VNC server failed with error code: %.8X '%s'", nRetCode, PRL_RESULT_TO_STRING( nRetCode ) );
 
-		// #129342
-		if( bIsRequestFromVm )
-		{
-			CVmEvent event( PET_DSP_EVT_VM_MESSAGE
-				, getVmUuid()
-				, PIE_DISPATCHER
-				, PRL_WARN_FAILED_TO_START_VNC_SERVER );
-
-			SmartPtr<IOPackage> pWarn = DispatcherPackage::createInstance(
-				PVE::DspVmEvent, event, getStartVmRequestPackage() );
-
-			SmartPtr<CDspClient> pVmRunner = getVmRunner();
-			if( pVmRunner )
-				pVmRunner->sendPackage( pWarn );
-		}
-
 		if ( pkg )
 			CDspService::instance()->sendSimpleResponseToClient( pUser->getClientHandle(), pkg, nRetCode );
 	}
@@ -1199,179 +1106,6 @@ void CDspVm::stopVNCServer ( SmartPtr<CDspClient> pUser, const SmartPtr<IOPackag
 		WRITE_TRACE(DBG_FATAL, "Failed to stop VNC server with error code: %.8X '%s'", nRetCode, PRL_RESULT_TO_STRING( nRetCode ) );
 
 	CDspService::instance()->sendSimpleResponseToClient( pUser->getClientHandle(), p, nRetCode );
-}
-
-PRL_RESULT CDspVm::sendProblemReport(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p)
-{
-	if (!isConnected())
-		return PRL_ERR_VM_PROCESS_IS_NOT_STARTED;
-
-	PRL_RESULT ret = checkUserAccessRights( pUser, PVE::DspCmdVmGetProblemReport );
-
-	IOSendJob::Handle handle;
-	QString strValid;
-
-	if( PRL_FAILED( ret ) )
-	{
-		bool bForceSend = ( ret == PRL_ERR_VM_CONFIG_DOESNT_EXIST ) && ( getVmState() == VMS_RUNNING );
-		if ( !bForceSend )
-		{
-			WRITE_TRACE(DBG_FATAL, "Unable to send problem report package to VM by error %s"
-				, PRL_RESULT_TO_STRING(ret) );
-			return PRL_ERR_FAILURE;
-		}
-	}
-
-	handle = sendPackageToVm(p);
-	strValid = handle.isValid()?"Valid":"Invalid";
-	WRITE_TRACE(DBG_FATAL, "%s Problem report Package was posted to VM", QSTR2UTF8( strValid ) );
-	// if handle is invalid - request was posted by timeout later!
-	return PRL_ERR_SUCCESS;
-}
-
-void CDspVm::InternalCmd(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p)
-{
-	CHECK_WHETHER_VM_STARTED;
-	CHECK_USER_ACCESS_RIGHTS(pUser, PVE::DspCmdVmInternal, p);
-
-	QWriteLocker _wLock( &d().m_rwLock );
-	VIRTUAL_MACHINE_STATE state = getVmStateUnsync();
-	switch( state )
-	{
-	case VMS_RUNNING     : ;
-	case VMS_PAUSED      : ;
-	case VMS_CONTINUING	 : ;
-	case VMS_PAUSING	 : ;
-	case VMS_RESETTING   : ;
-	case VMS_STOPPING    : ;
-			break;
-	default:
-		{
-			SEND_ERROR_BY_CANT_EXECUTED_VM_COMMAND( p, state );
-			return;
-		}//default
-	}//switch
-	_wLock.unlock();
-
-	sendPackageToVmEx(p, state);
-}
-
-void CDspVm::InitiateDevStateNotifications(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p)
-{
-	CHECK_WHETHER_VM_STARTED;
-	CHECK_USER_ACCESS_RIGHTS(pUser, PVE::DspCmdVmInitiateDevStateNotifications, p);
-
-	sendPackageToVm(p);
-}
-
-void CDspVm::connectDevice(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p)
-{
-	CHECK_WHETHER_VM_STARTED;
-	CHECK_USER_ACCESS_RIGHTS(pUser, PVE::DspCmdVmDevConnect, p);
-
-	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmDevConnect,
-		UTF8_2QSTR(p->buffers[0].getImpl()));
-
-	SmartPtr<IOPackage> pPackageToSend = p;
-	if (pCmd->IsValid())
-	{
-		CProtoVmDeviceCommand *pDeviceCmd = CProtoSerializer::CastToProtoCommand<CProtoVmDeviceCommand>(pCmd);
-		if (pDeviceCmd)
-		{
-			switch( pDeviceCmd -> GetDeviceType() )
-			{
-				case PDE_USB_DEVICE:
-					{
-						CVmUsbDevice	vmUsbDevice;
-						// Deserialize device configuration object
-						StringToElement<CVmUsbDevice*>(&vmUsbDevice, pDeviceCmd->GetDeviceConfig());
-
-						CDspService::instance()->getHwMonitorThread().setUsbDeviceManualConnected(
-									vmUsbDevice.getSystemName(),
-									true );
-					}
-					break;
-				case PDE_OPTICAL_DISK:
-					{
-						CHostHardwareInfo hostInfo;
-						{
-							CDspLockedPointer<CDspHostInfo> lockedHostInfo =
-								CDspService::instance()->getHostInfo();
-							hostInfo.fromString( lockedHostInfo->data()->toString() );
-						}
-
-						SmartPtr<IOPackage> pFixedPackage =
-							getConnectionFixedPackageForDvd( hostInfo, p, pDeviceCmd, PVE::DspCmdVmDevConnect );
-						if ( pFixedPackage.isValid() )
-							pPackageToSend = pFixedPackage;
-					}
-					break;
-				default:
-					break;
-			}
-		}
-	}
-	sendPackageToVm( pPackageToSend );
-}
-
-void CDspVm::disconnectDevice(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p)
-{
-	CHECK_WHETHER_VM_STARTED;
-	CHECK_USER_ACCESS_RIGHTS(pUser, PVE::DspCmdVmDevDisconnect, p);
-
-	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmDevDisconnect,
-		UTF8_2QSTR(p->buffers[0].getImpl()));
-
-	SmartPtr<IOPackage> pPackageToSend = p;
-	if (pCmd->IsValid())
-	{
-		CProtoVmDeviceCommand *pDeviceCmd = CProtoSerializer::CastToProtoCommand<CProtoVmDeviceCommand>(pCmd);
-		if (pDeviceCmd)
-		{
-			switch( pDeviceCmd -> GetDeviceType() )
-			{
-			case PDE_USB_DEVICE:
-				{
-					CVmUsbDevice	vmUsbDevice;
-					// Deserialize device configuration object
-					StringToElement<CVmUsbDevice*>(&vmUsbDevice, pDeviceCmd->GetDeviceConfig());
-
-					CDspService::instance()->getHwMonitorThread().setUsbDeviceManualConnected(
-								vmUsbDevice.getSystemName(),
-								false );
-				}
-				break;
-			case PDE_OPTICAL_DISK:
-				{
-					CHostHardwareInfo hostInfo;
-					{
-						CDspLockedPointer<CDspHostInfo> lockedHostInfo =
-							CDspService::instance()->getHostInfo();
-						hostInfo.fromString( lockedHostInfo->data()->toString() );
-					}
-
-					SmartPtr<IOPackage> pFixedPackage =
-						getConnectionFixedPackageForDvd( hostInfo, p, pDeviceCmd, PVE::DspCmdVmDevDisconnect );
-					if ( pFixedPackage.isValid() )
-						pPackageToSend = pFixedPackage;
-
-				}
-				break;
-			default:
-				break;
-			}
-		}
-	}
-	sendPackageToVm( pPackageToSend );
-}
-
-void CDspVm::sendAnswerToVm(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p)
-{
-	CHECK_WHETHER_VM_STARTED;
-	CHECK_USER_ACCESS_RIGHTS(pUser, PVE::DspCmdVmAnswer, p);
-
-	sendPackageToVm(p);
-	pUser->sendSimpleResponse(p, PRL_ERR_SUCCESS);
 }
 
 void CDspVm::changeVmState(VIRTUAL_MACHINE_STATE nVmNewState, CDspVm::VmPowerState nVmPowerState )
@@ -1431,68 +1165,6 @@ void CDspVm::changeVmState(VIRTUAL_MACHINE_STATE nVmNewState, CDspVm::VmPowerSta
 				);
 		}
 	}
-}
-
-static bool doStorePackageBeforeSendToVm( const SmartPtr<IOPackage> &p )
-{
-	PRL_ASSERT( p );
-	PVE::IDispatcherCommands cmd = (PVE::IDispatcherCommands)p->header.type;
-
-	// Skip events and internal command between dispatcher and vm
-	// because they never return response( + they never used by user )
-	// It causes next things:
-	//	1. stored packages  eats lot of memory until vm destroyed
-	//	2. event flood happens when on vm object  destroy - #PDFM-30692
-	//	3. also this event flood may be cause to lose stop/suspend responses
-	//		 ( IOService send-buffer overflowed - #PDFM-30616)
-
-
-	// Skip events and internal command 'DspEvtHwChanged' / 'DspVmEvent'
-	if( cmd > PVE::DspVmToClientCommandRangeStart && cmd < PVE::DspVmToClientCommandRangeEnd )
-		return false;
-	// Skip internal dispatcher commands like 'DspCmdCtlApplyVmConfig'
-	if( cmd > PVE::DspCtlCommandRangeStart && cmd < PVE::DspCtlCommandRangeEnd )
-		return false;
-
-	return true;
-}
-
-IOSendJob::Handle CDspVm::sendPackageToVmEx(const SmartPtr<IOPackage> &p
-	, VIRTUAL_MACHINE_STATE nPrevVmState
-	, bool bEnableDeferredResponse /*=false*/
-	, bool bFinishedByDispatcher /*=false*/
-	)
-{
-	PRL_ASSERT( p );
-	PRL_ASSERT( !bFinishedByDispatcher || p->header.type == PVE::DspCmdVmStop ||
-		p->header.type == PVE::DspCmdVmSuspend );
-
-	if ( Uuid::toUuid( p->header.uuid ).isNull() )
-		Uuid::createUuid( p->header.uuid );
-
-
-	if( doStorePackageBeforeSendToVm(p) )
-	{
-		QWriteLocker lock( &d().m_rwLock);
-
-		DspVm::Details::RequestResponseHash::iterator
-			it = d().m_hashRequestResponse.find( Uuid::toString(p->header.uuid) );
-		if( d().m_hashRequestResponse.end() == it )
-			it = d().m_hashRequestResponse.insert(
-			Uuid::toString(p->header.uuid), RequestInfo(p, bFinishedByDispatcher) );
-		it.value().nPrevVmState = nPrevVmState;
-
-		if( bEnableDeferredResponse )
-			it.value().isDeferred = true;
-	}
-
-	return (CDspService::instance()->getIOServer().sendPackage(d().m_VmConnectionHandle, p));
-}
-
-
-IOSendJob::Handle CDspVm::sendPackageToVm(const SmartPtr<IOPackage> &p)
-{
-	return sendPackageToVmEx(p, VMS_UNKNOWN, false);
 }
 
 void CDspVm::changeVmState(const SmartPtr<IOPackage> &p )
@@ -1556,7 +1228,7 @@ void CDspVm::applyVMNetworkSettings(VIRTUAL_MACHINE_STATE nNewState)
 		.schedule(new Task_ApplyVMNetworking(pUser, p, pVmConfig, (nNewState == VMS_PAUSED)));
 }
 
-void CDspVm::changeVmState(const SmartPtr<IOPackage> &p, bool& outNeedRoute  )
+void CDspVm::changeVmState(const SmartPtr<IOPackage> &p, bool&)
 {
 	if (p->header.type == PVE::DspVmEvent)
 	{
@@ -1779,153 +1451,6 @@ void CDspVm::changeVmState(const SmartPtr<IOPackage> &p, bool& outNeedRoute  )
 			default: break;
 		}
 	}
-	else if (p->header.type == PVE::DspWsResponse)
-	{
-		QString requestUuid = Uuid::toString( p->header.parentUuid  );
-		CVmEvent _evt(UTF8_2QSTR(p->buffers[0].getImpl()));
-
-		SmartPtr<IOPackage> pkgRequest(0);
-		VIRTUAL_MACHINE_STATE nPrevVmState = VMS_UNKNOWN;
-		PVE::IDispatcherCommands cmd = PVE::DspIllegalCommand;
-
-		QWriteLocker lock( &d().m_rwLock);
-
-		DspVm::Details::RequestResponseHash::iterator
-			it = d().m_hashRequestResponse.find( requestUuid );
-
-		if( d().m_hashRequestResponse.end() != it )
-			cmd = (PVE::IDispatcherCommands)it.value().pkgRequest->header.type;
-
-		WRITE_TRACE(DBG_FATAL, "Received response %s (%#x) for %s(%d) request from vm %s (name='%s')"
-			, PRL_RESULT_TO_STRING( _evt.getEventCode() )
-			, _evt.getEventCode()
-			, PVE::DispatcherCommandToString( cmd )
-			, cmd
-			, QSTR2UTF8( getVmUuid() )
-			, QSTR2UTF8( getVmName() )
-			);
-		WRITE_TRACE( DBG_DEBUG, "requestId=%s", QSTR2UTF8(requestUuid) );
-
-		if( d().m_hashRequestResponse.end() == it )
-			WRITE_TRACE( DBG_DEBUG, "Received response for unknown request. requestId=%s", QSTR2UTF8(requestUuid) );
-		else
-		{
-			bool needEraseIt = true;
-			outNeedRoute = PVE::DspCmdDirVmMigrate != cmd;
-
-			RequestInfo& info = it.value();
-			pkgRequest = info.pkgRequest;
-			if( PRL_SUCCEEDED(_evt.getEventCode()) )
-			{
-				//////////////////////////////////////////////////////////////////////////
-				//
-				//  set deferred response
-				//
-				//////////////////////////////////////////////////////////////////////////
-				if( info.isDeferred )
-				{
-					WRITE_TRACE( DBG_WARNING, "Catching successfully 'stop' response to deferred send." );
-					outNeedRoute = false;
-					info.pkgResponse = p;
-
-					needEraseIt = false;
-				}
-				if (info.isActionByDispatcher)
-					d().m_bFinishedByDispatcher = true;
-			}
-			else // ! PRL_SUCCEEDED(_evt.getEventCode())
-			{
-				if( info.nPrevVmState != VMS_UNKNOWN )
-					nPrevVmState = info.nPrevVmState;
-			}
-
-			// cleanup hash after receive response
-			if(needEraseIt)
-				d().m_hashRequestResponse.erase(it);
-
-		}// if( m_hashRequestResponse.end()!=it
-		lock.unlock();
-
-		WRITE_TRACE(DBG_DEBUG, "VM %s State %s, cmd %s, refs %d ",
-						QSTR2UTF8( getVmName() ),
-						PRL_VM_STATE_TO_STRING( getVmStateUnsync() ) ,
-						PVE::DispatcherCommandToString( cmd ),
-						d().m_pSuspendMounter.countRefs()	);
-		if (cmd == PVE::DspCmdVmStart)
-		{
-			//destroy suspend helper
-			d().m_pSuspendMounter = SmartPtr<CDspVmSuspendMounter>();
-		}
-
-		//////////////////////////////////////////////////////////////////////////
-		//
-		// rollback vm state to previous state
-		// (to exclude DspCmdDirVmMigrate command: CDspVmMigrateProcessesCleaner task will do it)
-		//
-		//////////////////////////////////////////////////////////////////////////
-		if( PRL_FAILED( _evt.getEventCode() ) && (nPrevVmState != VMS_UNKNOWN) && (cmd != PVE::DspCmdDirVmMigrate))
-		{
-			WRITE_TRACE(DBG_FATAL, "Command %s(%d) was failed. Rollback VM to previous state %s(%#x)"
-				"VmUuid=%s (name=%s)"
-				, PVE::DispatcherCommandToString( cmd )
-				, cmd
-				, PRL_VM_STATE_TO_STRING( nPrevVmState)
-				, nPrevVmState
-				, QSTR2UTF8( getVmUuid() )
-				, QSTR2UTF8( getVmName() )
-				);
-			if( VMS_STOPPED == nPrevVmState )
-				nPrevVmState = VMS_STOPPING;
-			else if( VMS_SUSPENDED == nPrevVmState )
-				//See https://bugzilla.sw.ru/show_bug.cgi?id=466300
-				//when resume failed we have two possible scenarios:
-				// * VM restarting
-				// * VM process finalize it work and VM became again suspended
-				//for both situations state RESETTING will be proper way than SUSPENDING
-				nPrevVmState = VMS_RESETTING;
-
-			changeVmState( nPrevVmState );
-		}
-
-		//////////////////////////////////////////////////////////////////////////
-		//
-		// process failed responses
-		//
-		//////////////////////////////////////////////////////////////////////////
-		if( PRL_SUCCEEDED( _evt.getEventCode() ) )
-			processResponseForGuestOsSessionsCmds( p );
-		else //PRL_FAILED()
-		{
-			// #9875
-			if( cmd == PVE::DspCmdVmSuspend && d().m_suspendByDispatcher )
-			{
-				SmartPtr<CDspClient> pUser( new CDspClient(IOSender::Handle()) );
-				pUser->getAuthHelper().AuthUserBySelfProcessOwner();
-				pUser->setVmDirectoryUuid(getVmDirUuid());
-
-				switch (d().m_suspendMode)
-				{
-				case SM_SUSPEND_ON_FAILURE:
-					WRITE_TRACE(DBG_FATAL, "TRY TO SUSPEND");
-//					suspend(pUser,
-//							DispatcherPackage::createInstance( PVE::DspCmdVmSuspend ),
-//							true,
-//							SM_STOP_ON_FAILURE);
-					break;
-				case SM_STOP_ON_FAILURE:
-				{
-					WRITE_TRACE(DBG_FATAL, "TRY TO STOP");
-					CProtoCommandPtr pCmd =
-						CProtoSerializer::CreateProtoVmCommandStop(getVmUuid(), PSM_KILL, 0);
-					const SmartPtr<IOPackage> _p =
-						DispatcherPackage::createInstance( PVE::DspCmdVmStop, pCmd );
-//					stop(pUser, _p, PSM_KILL, true);
-					break;
-				}
-				}
-			}// if( cmd == PVE::DspCmdVmSuspend
-		}
-	}// else if (p->header.type == PVE::DspWsResponse)
 }
 
 void CDspVm::GetSnapshotRequestParams(SmartPtr<IOPackage> &pRequest, VIRTUAL_MACHINE_STATE &vmState,
@@ -1975,162 +1500,6 @@ void CDspVm::changeUsbState( PRL_EVENT_TYPE nEventType )
 		default:
 			break;
 	}
-}
-
-namespace {
-/**
- * Simple helper that let to determine whether opening user session
- * related to special modes or not
- * @param pointer to the command
- */
-bool IsSpecialSessionMode( const CProtoCommandPtr &pCmd )
-{
-	CProtoVmLoginInGuestCommand *pLoginInGuestCmd =
-		CProtoSerializer::CastToProtoCommand<CProtoVmLoginInGuestCommand>( pCmd );
-	if ( pLoginInGuestCmd )
-		return ( PRL_PRIVILEGED_GUEST_OS_SESSION == pLoginInGuestCmd->GetUserLoginName() ||
-				PRL_CURRENT_GUEST_OS_SESSION == pLoginInGuestCmd->GetUserLoginName() );
-
-	return (false);
-}
-
-}
-
-PRL_RESULT CDspVm::checkUserAccessRightsOnGuestConsoleCmd( SmartPtr<CDspClient> pUser, const CProtoCommandPtr &pCmd )
-{
-	if ( PVE::DspCmdVmLoginInGuest == pCmd->GetCommandId() )
-	{
-		//At first collect necessary info about user session access to VM
-		bool bIsOwnerOfVm = false, bIsEnoughAccessRights = false, bIsHostAdministrator = false;
-		{
-			CDspLockedPointer<CVmDirectoryItem>	pVmDirItem =
-				CDspService::instance()->getVmDirManager().getVmDirItemByUuid( getVmDirUuid(), getVmUuid() );
-			PRL_ASSERT( pVmDirItem.getPtr() );
-			bIsOwnerOfVm = CDspService::instance()->getAccessManager().isOwnerOfVm( pUser, pVmDirItem.getPtr() );
-			bIsHostAdministrator = pUser->getAuthHelper().isLocalAdministrator();
-			PRL_SEC_AM _rights =
-				CDspService::instance()->getAccessManager().getAccessRightsToVm( pUser, pVmDirItem.getPtr() ).getVmAccessRights();
-			bIsEnoughAccessRights = ( _rights & CDspAccessManager::VmAccessRights::arCanRead ) &&
-									( _rights & CDspAccessManager::VmAccessRights::arCanWrite ) &&
-									( _rights & CDspAccessManager::VmAccessRights::arCanExecute );
-		}
-
-		//Now lets check whether creating session belongs to the special guest OS
-		//sessions modes
-		if (  IsSpecialSessionMode( pCmd ) && !bIsOwnerOfVm && !bIsHostAdministrator && !bIsEnoughAccessRights )
-		{
-			WRITE_TRACE(DBG_FATAL, "User '%s' do not have enough rights to create special mode of guest OS session"\
-						 " in VM with UUID '%s' name '%s'", QSTR2UTF8( pUser->getAuthHelper().getUserFullName() ),\
-						 QSTR2UTF8( getVmUuid() ), QSTR2UTF8( getVmName() ) );
-			return ( PRL_ERR_ONLY_ADMIN_OR_VM_OWNER_CAN_OPEN_THIS_SESSION );
-		}
-		else if (  PVE::DspCmdVmLoginInGuest == pCmd->GetCommandId() && !bIsEnoughAccessRights )
-		{
-			WRITE_TRACE(DBG_FATAL, "User '%s' do not have enough rights to create custom guest OS session"\
-						 " in VM with UUID '%s' name '%s'", QSTR2UTF8( pUser->getAuthHelper().getUserFullName() ),\
-						 QSTR2UTF8( getVmUuid() ), QSTR2UTF8( getVmName() ) );
-			return ( PRL_ERR_ACCESS_DENIED );
-		}
-	}
-	else
-	{
-		CProtoBasicVmGuestCommand *pVmGuestCmd =
-			CProtoSerializer::CastToProtoCommand<CProtoBasicVmGuestCommand>( pCmd );
-		if ( pVmGuestCmd )
-		{
-			if ( !isGuestOsSessionExists( pUser, pVmGuestCmd->GetVmSessionUuid() ) )
-			//Guest session not present for specified user session
-				return ( PRL_ERR_VM_GUEST_SESSION_EXPIRED );
-
-			bool bNeedAdminConfirmation =
-				( CDspService::instance()->getVmDirManager()
-					.getVmDirCatalogue()->getCommonLockedOperations()
-						->getLockedOperations().contains(PAR_VM_CHANGE_GUEST_OS_PASSWORD_ACCESS)
-				||
-				  CDspService::instance()->getVmDirManager()
-					.getVmDirItemByUuid(getVmDirUuid(), getVmUuid())->getLockedOperationsList()
-						->getLockedOperations().contains(PAR_VM_CHANGE_GUEST_OS_PASSWORD_ACCESS)
-				);
-
-			if (   PVE::DspCmdVmGuestSetUserPasswd == pCmd->GetCommandId()
-				&& ! pUser->isAdminAuthWasPassed()
-				&& bNeedAdminConfirmation
-				 )
-				return PRL_ERR_ADMIN_CONFIRMATION_IS_REQUIRED_FOR_VM_OPERATION;
-		}
-		else
-		{
-			WRITE_TRACE(DBG_FATAL, "Wrong command received for guest OS functionality: [%s]",\
-				QSTR2UTF8( pCmd->GetCommand()->toString() ) );
-			return (PRL_ERR_UNRECOGNIZED_REQUEST);
-		}
-	}
-
-	return ( PRL_ERR_SUCCESS );
-}
-
-void CDspVm::processGuestOsSessionCmd(SmartPtr<CDspClient> pUser,
-									const CProtoCommandPtr &pCmd, const SmartPtr<IOPackage> &p)
-{
-	PRL_ASSERT( pUser.getImpl() );
-	PRL_ASSERT( pCmd.getImpl() );
-	PRL_ASSERT( p.getImpl() );
-
-	PRL_RESULT rc = checkUserAccessRightsOnGuestConsoleCmd( pUser, pCmd );
-	if ( PRL_FAILED( rc ) )
-	{
-		pUser->sendSimpleResponse( p, rc );
-		return;
-	}
-
-	QWriteLocker _wLock( &d().m_rwLock );
-	VIRTUAL_MACHINE_STATE state = getVmStateUnsync();
-	switch( state )
-	{
-		// case VMS_STOPPED     : ;
-		// case VMS_SUSPENDED   : ;
-		// case VMS_SUSPENDING_SYNC   : ;
-		// case VMS_STARTING    : ;
-		// case VMS_RESUMING: ;
-		// case VMS_RESTORING   : ;
-		case VMS_RUNNING     : ;
-			if( vpsPausedByVmFrozen == d().m_nVmPowerState )
-			{
-				PRL_ASSERT( ! CDspService::isServerMode() );
-
-				SEND_ERROR_BY_VM_FROZEN_STATE( p );
-				return;
-			}
-
-		// Accepting guest OSes commands just in running VM state
-			_wLock.unlock();
-			if ( PVE::DspCmdVmLoginInGuest == pCmd->GetCommandId() )
-				registerNewGuestSession( pUser, p );
-			else if ( PVE::DspCmdVmGuestLogout == pCmd->GetCommandId() )
-			{
-				CProtoBasicVmGuestCommand *pVmGuestCmd =
-					CProtoSerializer::CastToProtoCommand<CProtoBasicVmGuestCommand>( pCmd );
-				PRL_ASSERT( pVmGuestCmd );
-				unregisterGuestSession( pUser, pVmGuestCmd->GetVmSessionUuid() );
-			}
-			sendPackageToVm( p );
-		break;
-		// case VMS_PAUSED      : ;
-		// case VMS_SUSPENDING  : ;
-		// case VMS_STOPPING    : ;
-		// case VMS_COMPACTING  : ;
-		// case VMS_SNAPSHOTING : ;
-		// case VMS_RESETTING	 : ;
-		// case VMS_CONTINUING	 : ;
-		// case VMS_PAUSING	 : ;
-		// case VMS_MIGRATING: ;
-		// case VMS_DELETING_STATE: ;
-	default:
-		{
-			_wLock.unlock();
-			SEND_ERROR_BY_CANT_EXECUTED_VM_COMMAND( p, state );
-		}//default
-	}//switch
 }
 
 PRL_RESULT CDspVm::checkDiskSpaceToStartVm( CVmEvent& outNoSpaceErrorParams )
@@ -2220,99 +1589,6 @@ PRL_RESULT CDspVm::checkDiskSpaceToStartVm( CVmEvent& outNoSpaceErrorParams )
 		EVT_PARAM_MESSAGE_PARAM_1 ) );
 
 	return outErr;
-}
-
-void CDspVm::registerNewGuestSession( SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p )
-{
-	PRL_ASSERT( pUser.getImpl() );
-	PRL_ASSERT( p.getImpl() );
-	QMutexLocker _lock( &d().m_GuestSessionsMtx );
-	PRL_ASSERT( !d().m_GuestSessions[ pUser->getClientHandle() ].contains( Uuid::toString( p->header.uuid ) ) );
-	d().m_GuestSessions[ pUser->getClientHandle() ].insert( Uuid::toString( p->header.uuid ) );
-}
-
-void CDspVm::checkWhetherResponseOnOpenGuestOsSessionCmd( const CProtoCommandPtr &pCmd, const SmartPtr<IOPackage> &p )
-{
-	QString sParentPackageId = Uuid::toString( p->header.parentUuid );
-	CProtoCommandDspWsResponse *pResponseCmd = CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>( pCmd );
-	PRL_ASSERT( pResponseCmd );
-	quint32 nInstances = 0;
-	QMutexLocker _lock( &d().m_GuestSessionsMtx );
-	QMap<IOSender::Handle, QSet<QString> >::iterator _user = d().m_GuestSessions.begin();
-	for ( ; _user != d().m_GuestSessions.end(); ++_user )
-	{
-		if ( _user.value().contains( sParentPackageId ) )
-		{
-			nInstances++;
-			_user.value().remove( sParentPackageId );
-			if ( PRL_ERR_SUCCESS == pResponseCmd->GetRetCode() )
-			{
-				PRL_ASSERT( pResponseCmd->GetStandardParamsCount() == 1 );
-				QString sGuestSessionId = pResponseCmd->GetStandardParam( 0 );
-				PRL_ASSERT( !_user.value().contains( sGuestSessionId ) );
-				_user.value().insert( sGuestSessionId );
-			}
-		}
-	}
-	PRL_ASSERT( nInstances <= 1 );
-}
-
-void CDspVm::globalCleanupGuestOsSessions( const IOSender::Handle &h )
-{
-	QReadLocker _lock(g_pVmsMapLock);
-	DspVm::Storage::snapshot_type s = g_pStorage->snapshot();
-	_lock.unlock();
-	foreach (SmartPtr<CDspVm> pVm, s)
-		pVm->cleanupGuestOsSessions( h );
-}
-
-void CDspVm::cleanupGuestOsSessions( const IOSender::Handle &h )
-{
-	QMutexLocker _lock(&d().m_GuestSessionsMtx);
-	QMap<IOSender::Handle, QSet<QString> >::iterator _user_sessions = d().m_GuestSessions.find( h );
-	if ( _user_sessions != d().m_GuestSessions.end() )
-	{
-		foreach( QString sVmSessionUuid, _user_sessions.value() )
-		{
-			CProtoCommandPtr pCmd =
-				CProtoSerializer::CreateBasicVmGuestProtoCommand( PVE::DspCmdVmGuestLogout,
-					getVmUuid(), sVmSessionUuid, 0 );
-			SmartPtr<IOPackage> p =
-				DispatcherPackage::createInstance( PVE::DspCmdVmGuestLogout, pCmd->GetCommand()->toString() );
-			sendPackageToVm( p );
-		}
-		d().m_GuestSessions.erase( _user_sessions );
-	}
-}
-
-void CDspVm::processResponseForGuestOsSessionsCmds( const SmartPtr<IOPackage> &p )
-{
-	PRL_ASSERT( p.getImpl() );
-	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand( p );
-	PRL_ASSERT( PVE::DspWsResponse == pCmd->GetCommandId() );
-	checkWhetherResponseOnOpenGuestOsSessionCmd( pCmd, p );
-}
-
-bool CDspVm::isGuestOsSessionExists( const SmartPtr<CDspClient> &pUser, const QString &sVmSessionUuid )
-{
-	PRL_ASSERT( pUser.getImpl() );
-	QMutexLocker _lock(&d().m_GuestSessionsMtx);
-	QMap<IOSender::Handle, QSet<QString> >::const_iterator _user_sessions =
-		d().m_GuestSessions.find( pUser->getClientHandle() );
-	if ( _user_sessions != d().m_GuestSessions.end() )
-		return ( _user_sessions.value().contains( sVmSessionUuid ) );
-
-	return ( false );
-}
-
-void CDspVm::unregisterGuestSession( const SmartPtr<CDspClient> &pUser, const QString &sVmSessionUuid )
-{
-	PRL_ASSERT( pUser.getImpl() );
-	QMutexLocker _lock(&d().m_GuestSessionsMtx);
-	QMap<IOSender::Handle, QSet<QString> >::iterator _user_sessions =
-			d().m_GuestSessions.find( pUser->getClientHandle() );
-	if ( _user_sessions != d().m_GuestSessions.end() )
-		_user_sessions.value().remove( sVmSessionUuid );
 }
 
 /**
@@ -2434,23 +1710,6 @@ SmartPtr<IOPackage> CDspVm::getConnectionFixedPackageForDvd( const CHostHardware
 	return SmartPtr<IOPackage>();
 }
 
-bool CDspVm::hasUnansweredRequestForSession( const QString& qsSessionId ) const
-{
-	QReadLocker lock( &d().m_rwLock);
-
-	DspVm::Details::RequestResponseHash::const_iterator it;
-	for(it = d().m_hashRequestResponse.begin(); it != d().m_hashRequestResponse.end(); ++it)
-	{
-		RequestInfo reqInfo = it.value();
-		PRL_ASSERT(reqInfo.pkgRequest.isValid());
-		if (   qsSessionId == Uuid::toString(reqInfo.pkgRequest->header.senderUuid)
-			&& ! reqInfo.pkgResponse.isValid())
-			return true;
-	}
-
-	return false;
-}
-
 SmartPtr<CVmConfiguration> CDspVm::getVmConfig( SmartPtr<CDspClient> pUser, PRL_RESULT &nOutError) const
 {
 	if ( !pUser.isValid() )
@@ -2552,44 +1811,6 @@ void CDspVm::storeFastRebootState(bool bFastReboot,
 	CVmEvent event( PET_DSP_EVT_VM_CONFIG_CHANGED, getVmUuid(), PIE_DISPATCHER );
 	SmartPtr<IOPackage> p = DispatcherPackage::createInstance( PVE::DspVmEvent, event );
 	CDspService::instance()->getClientManager().sendPackageToVmClients( p, getVmDirUuid(), getVmUuid());
-}
-
-void CDspVm::restoreVmProcess(VIRTUAL_MACHINE_STATE state,
-							  Q_PID VmProcessId,
-							  SmartPtr<CDspClient> pUser)
-{
-	PVE::IDispatcherCommands cmd = PVE::DspCmdVmStart;
-	if (state == VMS_MIGRATING)
-		cmd = PVE::DspCmdDirVmMigrate;
-	if (state == VMS_COMPACTING)
-		cmd = PVE::DspCmdVmStartEx;
-
-	d().m_nInitDispatcherCommand = cmd;
-
-	CProtoCommandPtr pStartRequest = CProtoSerializer::CreateProtoBasicVmCommand( cmd, getVmUuid() );
-	d().m_pStartVmPkg = DispatcherPackage::createInstance(
-		PVE::DspVmRestoreState, pStartRequest->GetCommand()->toString() );
-
-	if (pUser.isValid())
-		d().m_pVmRunner = pUser;
-
-	if (state == VMS_RECONNECTING)
-	{
-		changeVmState(state);
-		return;
-	}
-
-	d().m_VmProcessId = VmProcessId;
-	d().m_bVmIsChild = false;
-
-	QWriteLocker _lock(&d().m_rwLock);
-	d().m_nVmStartTicksCount = PrlGetTickCount64();
-	d().m_nVmProcStartTicksCount = PrlGetTickCount64();
-	_lock.unlock();//To prevent deadlocks with further actions
-
-	storeRunningState(true);
-
-	changeVmState(state);
 }
 
 void CDspVm::wakeupApplyConfigWaiters()

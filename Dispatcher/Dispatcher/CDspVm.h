@@ -177,13 +177,6 @@ public:
 	 */
 	PRL_UINT64 getVmProcessUptimeInSecs() const;
 
-	/**
-     * Processes command of restart VM guest OS
-     * @param pointer to the user session object that initialized request
-	 * @param pointer to request package object
-     */
-	void restartGuest(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
     /**
      * Processes command of start VNC server
 	 * @param pointer to the user session object (can be NULL in case when
@@ -209,76 +202,11 @@ public:
 	 */
 	void cancelStopVNCServerOp();
 
-    /**
-     * Processes command of get VM problem report
-     * @param pointer to the user session object that initialized request
-	 * @param pointer to request package object
-     */
-	PRL_RESULT sendProblemReport(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
 	/* Suspend failure flags        */
 	typedef enum SuspendMode {
 		SM_STOP_ON_FAILURE      = 0,
 		SM_SUSPEND_ON_FAILURE   = 1,
 	} SuspendMode;
-
-	/**
-	* Initiates sending notifications about devices states by VM
-	* @param pointer to the user session object that initialized request
-	* @param pointer to request package object
-	*/
-	void InitiateDevStateNotifications(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
-   /**
-     * Processes command of connect VM device
-     * @param pointer to the user session object that initialized request
-	 * @param pointer to request package object
-     */
-	void connectDevice(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
-    /**
-     * Processes command of disconnect VM device
-     * @param pointer to the user session object that initialized request
-	 * @param pointer to request package object
-     */
-	void disconnectDevice(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
-    /**
-     * Processes command of send answer to VM
-     * @param pointer to the user session object that initialized request
-	 * @param pointer to request package object
-     */
-	void sendAnswerToVm(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
-	/**
-	* Processes command of run internal VM command
-	* @param pointer to the user session object that initialized request
-	* @param pointer to request package object
-	*/
-	void InternalCmd(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-
-	/**
-	 * Sends specified package to VM
-	 * @param pointer to the sending to VM package
-	 * @return handle to performed job
-	 */
-	IOSendJob::Handle sendPackageToVm(const SmartPtr<IOPackage> &p);
-
-	/**
-	* Sends specified package to VM  and provide rollback mech to state machine
-	* @param pointer to the sending to VM package
-	* @param vmState to rollback when operation fails.
-	* @param bEnableDeferredResponse - to defer send response to client till destructor called
-	*	( don't route response package immediately after recieve)
-	* @param bFinishedByDispatcher - means that it is dispatcher shutdown
-	*	and we don't need to change running state.
-	* @return handle to performed job
-	* @ note SHOULD BE USED for command, that calls changeVmState() before sends package to VM.
-	*/
-	IOSendJob::Handle sendPackageToVmEx(const SmartPtr<IOPackage> &p
-		, VIRTUAL_MACHINE_STATE nPrevVmState
-		, bool bEnableDeferredResponse = false
-		, bool bFinishedByDispatcher = false );
 
 	/**
 	 * Changes VM internal state by processing specified VM event package
@@ -292,14 +220,6 @@ public:
 	 */
 	VIRTUAL_MACHINE_STATE getVmState() const;
 
-	/**
-	 * Returns pointer to start VM request operation package
-	 */
-	SmartPtr<IOPackage> getStartVmRequestPackage() const;
-	/**
-	 * Returns job result object after starting VM process
-	 */
-	IOSendJob::Handle getStartVmJob() const;
 	/**
 	 * Set pointer to migrate VM request operation package
 	 */
@@ -327,27 +247,10 @@ public:
 	 */
 	const SmartPtr<IOPackage>& getQuestionPacket() const;
 
-	/** VM connection object handle */
-	IOSender::Handle getVmConnectionHandle() const;
-
 	/** return true when handshake was called ( without any result of handshake ) */
 	bool handshakeWasCalled() const;
 
 	CDspLockedPointer<ProcPerfStoragesContainer> PerfStoragesContainer() ;
-	/**
-	 * Processes command related to the guest OS sessions functionality.
-	 *
-	 */
-	void processGuestOsSessionCmd(SmartPtr<CDspClient> pUser,
-									const CProtoCommandPtr &pCmd, const SmartPtr<IOPackage> &p);
-	/**
-     * Lets to change VM process log level in runtime
-	 * see https://bugzilla.sw.ru/show_bug.cgi?id=439457 for more details
-     * @param pointer to the user session object that initialized request
-     * @param pointer to request package object
-	 * @return sign whether operation was performed successfully
-    */
-	void changeLogLevel( SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p );
 
 	/**
 	 * Resets uptime for VM process
@@ -466,19 +369,10 @@ public://Convenient global methods
 	 */
 	static bool IsVmRemoteDisplayRunning( const QString &sVmUuid, const QString &sVmDirUuid );
 
-	/**
-	 * Globally (for all VM processes instances) cleanups guest OS sessions which
-	 * belong to disconnected user session handle
-	 * @param handle to disconnected user session
-	 */
-	static void globalCleanupGuestOsSessions( const IOSender::Handle &h );
-
 	void GetSnapshotRequestParams(SmartPtr<IOPackage> &pRequest,
 		VIRTUAL_MACHINE_STATE &vmState,
 		SmartPtr<CDspClient> &pUser,
 		QString &sSnapshotTaskUuid);
-
-	bool hasUnansweredRequestForSession( const QString& qsSessionId ) const;
 
 	/**
 	 * Replaces initial object command
@@ -498,19 +392,6 @@ public://Convenient global methods
 	 * @return pointer to VM configuration object
 	 */
 	SmartPtr<CVmConfiguration> getVmConfig( SmartPtr<CDspClient> pUser, PRL_RESULT &nOutError) const;
-
-	/**
-	 * Restore VM process
-	 */
-	void restoreVmProcess(	VIRTUAL_MACHINE_STATE state,
-							Q_PID VmProcessId = 0,
-							SmartPtr<CDspClient> pUser = SmartPtr<CDspClient>());
-
-	/**
-	 * Restored VM product version
-	 */
-	void setRestoredVmProductVersion(const QString& qsVer);
-	QString getRestoredVmProductVersion() const;
 
 	/**
 	 * VM migration helper - generates start VM migration request package
@@ -540,8 +421,6 @@ public://Convenient global methods
 	QString prepareFastReboot(bool suspend);
 
 	PRL_UINT32 getVNCPort();
-
-	bool isConnected() const;
 
 	/**
 	* fix vm configuration parameters before start vm
@@ -593,12 +472,6 @@ private:
 	void changeVmState(VIRTUAL_MACHINE_STATE nVmState, VmPowerState powerState = vpsNormal);
 
 	/**
-	* Send deferred stop response in destructor of CDspVm
-	* https://bugzilla.sw.ru/show_bug.cgi?id=267057
-	*/
-	void processDeferredResponses();
-
-	/**
 	* Check user permissions to execute command.
 	* @param pUserSession
 	* @param cmd
@@ -615,13 +488,6 @@ private:
 	PRL_RESULT checkUserAccessRightsAndSendResponseOnError(SmartPtr<CDspClient> pUserSession,
 			const SmartPtr<IOPackage> &p,
 			PVE::IDispatcherCommands cmd);
-	/**
-	 * Additional helper on checking access rights to the guest OS sessions commands
-	 * @param pointer to the user session object
-	 * @param pointer to the processing guest OS session command
-	 * @return PRL_ERR_SUCCESS if command accepted to specified user session and negative error otherwise
-	 */
-	PRL_RESULT checkUserAccessRightsOnGuestConsoleCmd( SmartPtr<CDspClient> pUser, const CProtoCommandPtr &pCmd );
 
 	/**
 	* Returns VM state without m_rwLock lock
@@ -650,45 +516,6 @@ private:
 	*		for PRL_ERR_NOT_ENOUGH_DISK_SPACE_TO_START_VM message
 	*/
 	PRL_RESULT checkDiskSpaceToStartVm( CVmEvent& outNoSpaceErrorParams );
-
-// Guest OS sessions list manipulations helpers set
-	/**
-	 * Registries new guest session entry at guest sessions list
-	 * @param pointer to the user session object that creating guest OS session (can't be NULL)
-	 * @param pointer to initiate package with command on guest OS session creation (can't be NULL)
-	 */
-	void registerNewGuestSession(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
-	/**
-	 * Checks whether specified response package relative to open guest OS session request
-	 * (DspCmdVmLoginInGuest command) and replaces storing at guest OS sessions list request
-	 * package UUID with correspond guest OS session UUID.
-	 * @param pointer to the response command object
-	 * @param pointer to the response package object
-	 */
-	void checkWhetherResponseOnOpenGuestOsSessionCmd( const CProtoCommandPtr &pCmd, const SmartPtr<IOPackage> &p );
-	/**
-	 * Cleanups guest OS sessions which were opened by specified user session connection handle
-	 * @param handle to the user session connection
-	 */
-	void cleanupGuestOsSessions( const IOSender::Handle &h );
-	/**
-	 * Processes received response package from VM process on guest OS sessions routines.
-	 * @param pointer to the response package object
-	 */
-	void processResponseForGuestOsSessionsCmds( const SmartPtr<IOPackage> &p );
-	/**
-	 * Checks whether requested guest OS session exists for specified user session
-	 * @param pointer to the user session object requesting guest OS session
-	 * @param guest OS session UUID
-	 * @return sign whether reuqested guest OS session available
-	 */
-	bool isGuestOsSessionExists( const SmartPtr<CDspClient> &pUser, const QString &sVmSessionUuid );
-	/**
-	 * Unregistries specified guest OS session from active user guest OS sessions list
-	 * @param pointer to the user session object which own guest OS session
-	 * @param guest OS session UUID
-	 */
-	void unregisterGuestSession( const SmartPtr<CDspClient> &pUser, const QString &sVmSessionUuid );
 
 	/**
 	* fix vm configuration parameters before start vm

@@ -185,8 +185,8 @@ PRL_RESULT Task_PrepareForHibernate::prepareForHostSuspend( bool bAllowCancelHos
 
 			SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance( cmdNo, pCmd );
 
-			IOSendJob::Handle hJob = pVm->sendPackageToVm( pPackage );
-			mapJobs.insert( *it, JobInfo(hJob, cmdNo) );
+		//	IOSendJob::Handle hJob = pVm->sendPackageToVm( pPackage );
+		//	mapJobs.insert( *it, JobInfo(hJob, cmdNo) );
 		}
 
 // Wait for responses
@@ -302,8 +302,8 @@ PRL_RESULT Task_PrepareForHibernate::prepareForHostSuspend( bool bAllowCancelHos
 							false);
 
 						SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance( cmdStop, pCmd );
-						job_it.value().hJob = pVm->sendPackageToVm( pPackage );
-						job_it.value().cmd = cmdStop;
+				//		job_it.value().hJob = pVm->sendPackageToVm( pPackage );
+				//		job_it.value().cmd = cmdStop;
 					}
 					else
 						job_it = mapJobs.erase(job_it);

@@ -139,7 +139,7 @@ Libvirt::Result Config::meetRequirements(const ::Command::Context& context_, Con
 			e, NULL);
 	if (!c.isValid())
 	{
-		WRITE_TRACE(DBG_FATAL, "handleFromDispatcherPackage: cannot get VM config: error %s !",
+		WRITE_TRACE(DBG_FATAL, "Cannot get VM config: error %s !",
 					PRL_RESULT_TO_STRING(e));
 		return Error::Simple(e);
 	}
@@ -1116,9 +1116,7 @@ struct Assistant
 
 	bool canAccessVm() const;
 	SmartPtr<CDspVm> createVm() const;
-	void answerPendingQuestion(CDspVm& vm_) const;
 	SmartPtr<CVmConfiguration> getConfig() const;
-	static void sendDefaultAnswer(CDspVm& vm_, IOPackage& question_);
 
 private:
 	const Context* m_context;
@@ -1162,52 +1160,6 @@ SmartPtr<CDspVm> Assistant::createVm() const
 	return output;
 }
 
-void Assistant::answerPendingQuestion(CDspVm& vm_) const
-{
-	// bug #423415
-	SmartPtr<IOPackage> q = vm_.getQuestionPacket();
-	if (q.isValid() && m_context->getSession()->isNonInteractive())
-	{
-		WRITE_TRACE(DBG_FATAL, "VM uuid=%s has question and default answer will send to VM in order to unfreeze VM!",
-					QSTR2UTF8(vm_.getVmUuid()));
-
-		sendDefaultAnswer(vm_, *q);
-	}
-}
-
-void Assistant::sendDefaultAnswer(CDspVm& vm_, IOService::IOPackage& question_)
-{
-	QString n = vm_.getVmName();
-	QString u = vm_.getVmUuid();
-	PRL_RESULT q = CVmEvent(UTF8_2QSTR(question_.buffers[0].getImpl())).getEventCode();
-	WRITE_TRACE(DBG_FATAL, "Sending default answer on question %.8X '%s' to VM '%s' '%s'",\
-				q, PRL_RESULT_TO_STRING(q), QSTR2UTF8(n), QSTR2UTF8(u));
-
-	PRL_RESULT e = PRL_ERR_UNINITIALIZED;
-	SmartPtr<CVmConfiguration> c = CDspService::instance()->getVmDirHelper().
-					  getVmConfigByUuid(vm_.getVmIdent(), e);
-
-	SmartPtr<IOPackage> p(&question_, SmartPtrPolicy::DoNotReleasePointee);
-	SmartPtr<IOPackage> a = CVmQuestionHelper::getDefaultAnswerToVm(c.getImpl(), p);
-	// Send answer to VM
-	if (a.isValid())
-	{
-		vm_.sendPackageToVm(a);
-		CVmEvent r( UTF8_2QSTR(a->buffers[0].getImpl()) );
-		CVmEventParameter *p = r.getEventParameter( EVT_PARAM_MESSAGE_CHOICE_0 );
-		e = NULL == p ? PRL_ERR_UNINITIALIZED : p->getParamValue().toInt();
-		WRITE_TRACE(DBG_FATAL, "To VM '%s' '%s' was sent default answer %.8X '%s' on quesiton %.8X '%s'.",\
-					QSTR2UTF8(n), QSTR2UTF8(u), e, PRL_RESULT_TO_STRING(e),
-					q, PRL_RESULT_TO_STRING(q));
-	}
-	else
-	{
-		PRL_ASSERT(!!0);
-		WRITE_TRACE(DBG_FATAL, "Can't send default answer on question %.8X '%s' to VM '%s' '%s'",\
-					q, PRL_RESULT_TO_STRING(q), QSTR2UTF8(n), QSTR2UTF8(u));
-	}
-}
-
 bool Assistant::canAccessVm() const
 {
 	const SmartPtr<CDspClient>& u = m_context->getSession();
@@ -1238,15 +1190,9 @@ struct General
 };
 
 template<>
-void General<Tag::Simple<PVE::DspCmdVmAnswer> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
+void General<Tag::General<PVE::DspCmdVmInitiateDevStateNotifications> >::do_(const Context&, SmartPtr<CDspVm>)
 {
-	vm_->sendAnswerToVm(context_.getSession(), context_.getPackage());
-}
-
-template<>
-void General<Tag::General<PVE::DspCmdVmInitiateDevStateNotifications> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	vm_->InitiateDevStateNotifications(context_.getSession(), context_.getPackage());
+//	vm_->InitiateDevStateNotifications(context_.getSession(), context_.getPackage());
 }
 
 template<>
@@ -1268,13 +1214,6 @@ void General<Tag::General<PVE::DspCmdVmMigrateCancel> >::do_(const Context& cont
 		.cancelMigration(context_.getSession(), context_.getPackage(), vm_);
 }
 
-template<>
-void General<Tag::GuestSession >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	vm_->processGuestOsSessionCmd(context_.getSession(),
-		context_.getRequest(), context_.getPackage());
-}
-
 template<PVE::IDispatcherCommands X>
 struct General<Tag::CreateDspVm<X> >
 {
@@ -1289,7 +1228,6 @@ struct Proxy
 {
 	static void do_(Context& context_, SmartPtr<CDspVm> vm_)
 	{
-		Assistant(context_).answerPendingQuestion(*vm_);
 		General<T>::do_(context_, vm_);
 	}
 };
@@ -1328,7 +1266,6 @@ struct Execute<Tag::CreateDspVm<X> >
 {
 	static bool do_(Context& context_, SmartPtr<CDspVm> vm_)
 	{
-		Assistant(context_).answerPendingQuestion(*vm_);
 		return General<Tag::CreateDspVm<X> >::do_(context_, vm_);
 	}
 	static void do_(Context& context_, const CVmConfiguration& config_)
@@ -1545,7 +1482,6 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmSwitchToSnapshot] = map(Tag::Fork<
 		Tag::State<Snapshot::Revert<Snapshot::Vcmmd<Snapshot::Switch> >, Vm::Fork::State::Snapshot::Switch> >());
 	m_map[PVE::DspCmdVmDeleteSnapshot] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDeleteSnapshot> > >());
-	m_map[PVE::DspCmdVmAnswer] = map(Tag::Simple<PVE::DspCmdVmAnswer>());
 	m_map[PVE::DspCmdVmStartVNCServer] = map(Tag::Simple<PVE::DspCmdVmStartVNCServer>());
 	m_map[PVE::DspCmdVmStopVNCServer] = map(Tag::Simple<PVE::DspCmdVmStopVNCServer>());
 	m_map[PVE::DspCmdVmReset] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmReset> > >());
@@ -1566,7 +1502,6 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmGuestRunProgram] = map(Tag::Special<PVE::DspCmdVmGuestRunProgram>());
 	m_map[PVE::DspCmdVmGuestGetNetworkSettings] = map(Tag::Fork<Essence<PVE::DspCmdVmGuestGetNetworkSettings> >());
 	m_map[PVE::DspCmdVmGuestSetUserPasswd] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmGuestSetUserPasswd> > >());
-	m_map[PVE::DspCmdVmGuestChangeSID] = map(Tag::GuestSession());
 
 	m_internal[QString("dbgdump")] = Internal::dumpMemory;
 }
@@ -1646,74 +1581,6 @@ QString CDspVmManager::getVmIdByHandle(const IOSender::Handle& h) const
 	return m_vms.value(h)->getVmUuid();
 }
 
-void CDspVmManager::handleToDispatcherPackage ( const IOSender::Handle& h,
-												const SmartPtr<IOPackage> &p )
-{
- 	LOG_MESSAGE(DBG_DEBUG, "CDspVmManager::handleToDispatcherPackage() received package [%s]", p->buffers[0].getImpl());
-
-	QReadLocker locker( &m_rwLock );
-	bool bVmExists = m_vms.contains(h);
-
-	// Check authorization
-	if ( ! bVmExists ) {
-		locker.unlock();
-
-		// Non authorized
-		WRITE_TRACE(DBG_FATAL, "Non authorized VM sender with handle '%s' tried to send dispatcher a package", h.toUtf8().constData());
-		CDspService::instance()->getIOServer().disconnectClient(h);
-		return;
-	}
-
-	SmartPtr<CDspVm> pVm = m_vms.value(h);
-	locker.unlock();
-
-	bool bNeedRoute = true;
-	SmartPtr<CDspClient> r;
-	switch (p->header.type)
-	{
-	case PVE::DspVmEventStartVNCServer:
-	case PVE::DspVmEventStopVNCServer:
-	case PVE::DspVmDevConnect:
-	case PVE::DspVmDevDisconnect:
-		r = pVm->getVmRunner();
-		if (!r.isValid())
-		{
-			WRITE_TRACE(DBG_FATAL,"Couldn't process command %d '%s' "
-				"because the CDspVm object is still incomplete"
-				,p->header.type
-				,PVE::DispatcherCommandToString(p->header.type));
-			return;
-		}
-		break;
-	default:
-		pVm->changeVmState(p, bNeedRoute);
-		if( !bNeedRoute )
-			WRITE_TRACE(DBG_WARNING, "Note! Route for this package was disabled.");
-	}
-	switch (p->header.type)
-	{
-	case PVE::DspVmEventStartVNCServer:
-		return pVm->startVNCServer(r, p, true, true);
-	case PVE::DspVmEventStopVNCServer:
-		return pVm->stopVNCServer(r, p, true, true);
-	case PVE::DspVmDevConnect:
-		return pVm->connectDevice(r, p);
-	case PVE::DspVmDevDisconnect:
-		return pVm->disconnectDevice(r, p);
-	case PVE::DspWsResponse:
-		handleWsResponse( pVm, p, bNeedRoute );
-		break;
-	default:
-		break;
-	}
-	if(bNeedRoute && !CDspRouter::instance().routePackage(this, h, p))
-	{
-		WRITE_TRACE(DBG_FATAL,"Couldn't to route package with code %d '%s'"
-			, p->header.type
-			, PVE::DispatcherCommandToString(p->header.type));
-	}
-}
-
 void CDspVmManager::handleFromDispatcherPackage (
     const SmartPtr<CDspHandler> &pHandler,
 	const IOSender::Handle& h,
@@ -1767,108 +1634,6 @@ void CDspVmManager::handleFromDispatcherPackageInternal (
 		const SmartPtr<IOPackage> &pPackage)
 {
 	Command::getDispatcher()->do_(pUser, pPackage);
-}
-
-void CDspVmManager::handleFromDispatcherPackage (
-    const SmartPtr<CDspHandler>&,
-	const IOSender::Handle& hSender,
-	const IOSender::Handle& hReceiver,
-	const SmartPtr<IOPackage> &p )
-{
-	//TODO: CDspVmManager::handleFromDispatcherPackage
-	WRITE_TRACE(DBG_FATAL, "Processing command '%s' %d",
-				PVE::DispatcherCommandToString(p->header.type),
-				p->header.type);
-
-	QReadLocker locker( &m_rwLock );
-	if ( ! m_vms.contains(hReceiver) )
-		return;
-	SmartPtr<CDspVm> pVm = m_vms.value(hReceiver);
-	locker.unlock();
-
-	if (!pVm || !p.isValid())
-	{
-		return;
-	}
-
-	if (p->header.type == PVE::DspCmdVmAnswer && pVm->getQuestionPacket().isValid())
-	{
-		SmartPtr<IOPackage> pQuestionPacket = pVm->getQuestionPacket();
-
-		if (Uuid::toString(p->header.parentUuid) == Uuid::toString(pQuestionPacket->header.uuid))
-		{
-			// Prepare notification
-
-			CVmEvent eventQuestion(UTF8_2QSTR(pQuestionPacket->buffers[0].getImpl()));
-			CVmEvent eventAnswer(UTF8_2QSTR(p->buffers[0].getImpl()));
-			CVmEventParameter *pParamAnswer = eventAnswer.getEventParameter( EVT_PARAM_MESSAGE_CHOICE_0 );
-			if (pParamAnswer)
-			{
-				PRL_RESULT nAnswer = pParamAnswer->getParamValue().toInt();
-				WRITE_TRACE(DBG_FATAL, "Sending answer %.8X '%s' on question %.8X '%s' to VM '%s' '%s' from user session '%s'",
-							nAnswer, PRL_RESULT_TO_STRING(nAnswer),
-							eventQuestion.getEventCode(), PRL_RESULT_TO_STRING(eventQuestion.getEventCode()),
-							QSTR2UTF8(pVm->getVmName()), QSTR2UTF8(pVm->getVmUuid()),
-							QSTR2UTF8(hSender));
-			}
-			else
-				WRITE_TRACE(DBG_FATAL, "Answer package on question %.8X '%s' received from user session '%s' doesn't contain answer choice!!!",\
-								eventQuestion.getEventCode(), PRL_RESULT_TO_STRING(eventQuestion.getEventCode()),\
-								QSTR2UTF8(hSender));
-
-			CVmEvent eventNotification;
-
-			eventNotification.setEventType(PET_DSP_EVT_ANSWER_TO_VM_WAS_DONE);
-			eventNotification.setEventCode(eventQuestion.getEventCode());
-			eventNotification.setEventIssuerType(PIE_DISPATCHER);
-			eventNotification.setEventIssuerId(eventQuestion.getEventIssuerId());	// VM uuid
-
-			SmartPtr<IOService::IOPackage> pNotification
-				= DispatcherPackage::createInstance(PVE::DspVmEvent, eventNotification);
-
-			// Get clients with Read + Execute permissions
-
-			QHash< IOSender::Handle, SmartPtr<CDspClient> > hashClients
-				= CDspService::instance()->getClientManager()
-					.getSessionListByVm(pVm->getVmDirUuid(), pVm->getVmUuid(),
-					(CDspAccessManager::VmAccessRights::arCanRead | CDspAccessManager::VmAccessRights::arCanExecute));
-
-			// Send notification to clients
-
-			hashClients.remove(hSender);
-			QList< SmartPtr<CDspClient> > lstClients = hashClients.values();
-			CDspService::instance()->getClientManager().sendPackageToClientList(pNotification, lstClients);
-
-			// Delete answered question
-			pVm->setQuestionPacket(SmartPtr<IOPackage>());
-
-			//Potentially here can incoming just answers on VMs questions. So just forward it to VM
-			CDspService::instance()->getIOServer().sendPackage(hReceiver, p);
-		}
-	}
-}
-
-void CDspVmManager::handleWsResponse( SmartPtr<CDspVm> pVm,
-							  const SmartPtr<IOPackage>& p,
-							  bool & bNeedToRoute)
-{
-	PRL_ASSERT( pVm );
-	if( !pVm )
-		return;
-
-	SmartPtr<IOPackage> newPackage = p;
-
-	if( bNeedToRoute && !CDspRouter::instance().routePackage( this, pVm->getVmConnectionHandle() , newPackage ))
-	{
-		WRITE_TRACE(DBG_FATAL, "Couldn't to route package with code %d '%s'"
-			, newPackage->header.type
-			, PVE::DispatcherCommandToString(newPackage->header.type)
-			);
-	}
-	else if( bNeedToRoute )
-		WRITE_TRACE(DBG_FATAL, "Response package was successfully routed to client" );
-
-	bNeedToRoute = false;
 }
 
 bool CDspVmManager::hasAnyRunningVms() const
@@ -1937,18 +1702,6 @@ bool CDspVmManager::haveInteractiveSessions(const QList< SmartPtr<CDspClient> >&
 	foreach( SmartPtr<CDspClient> pSession, lstSessions )
 	{
 		if ( ! pSession->isNonInteractive() )
-			return true;
-	}
-	return false;
-}
-
-bool CDspVmManager::haveNonInteractiveSessionsWithRequestToVm(const SmartPtr<CDspVm>& pVm,
-															  const QList< SmartPtr<CDspClient> >& lstSessions) const
-{
-	foreach( SmartPtr<CDspClient> pSession, lstSessions )
-	{
-		if (   pSession->isNonInteractive()
-			&& pVm->hasUnansweredRequestForSession(pSession->getClientHandle()))
 			return true;
 	}
 	return false;

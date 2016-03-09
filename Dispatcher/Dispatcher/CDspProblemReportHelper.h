@@ -92,7 +92,7 @@ public:
 	**/
 	static void waitWhileKernelDataWillBeSaved( const QString & strMonitoringFile );
 
-    // collect and send problem report for vm, if vm running - request handles CDspRequestsToVmHandler object
+    // collect and send problem report for vm
 	static bool getProblemReport (SmartPtr<CDspClient> pUser,
 			const SmartPtr<IOPackage>&p,
 			bool bSendByTimeout = false );

@@ -669,11 +669,6 @@ CDspTaskManager& CDspService::getTaskManager ()
 	return *m_pTaskManager.getImpl();
 }
 
-CDspRequestsToVmHandler& CDspService::getRequestToVmHandler ()
-{
-	return m_requestToVmManager;
-}
-
 CDspVmConfigManager & CDspService::getVmConfigManager()
 {
 	return m_configManager;

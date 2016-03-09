@@ -112,7 +112,6 @@ private:
 	void DisconnectExternalImageDevice(CVmDevice* pDevice);
 	PRL_RESULT CheckVmDevices();
 	PRL_RESULT CheckVmMigrationPreconditions();
-	PRL_RESULT migrateRunningVm();
 	PRL_RESULT migrateStoppedVm();
 	PRL_RESULT fixConfigSav(const QString &sMemFilePath, QList<QPair<QFileInfo, QString> > &list);
 	void releaseLocks();

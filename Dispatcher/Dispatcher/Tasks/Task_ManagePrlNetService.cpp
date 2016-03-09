@@ -749,7 +749,7 @@ PRL_RESULT Task_ManagePrlNetService::updateVmNetwork(
 	SmartPtr<IOPackage> pPkg = DispatcherPackage::createInstance( PVE::DspEvtNetworkPrefChanged, pCmd );
 	// set sender to packet!
 	pPkg->makeForwardRequest( getRequestPackage() );
-	pVm->sendPackageToVm( pPkg );
+//	pVm->sendPackageToVm( pPkg );
 
 	return 0;
 }
