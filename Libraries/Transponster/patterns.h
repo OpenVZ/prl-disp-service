@@ -446,7 +446,7 @@ struct Visitor
 	template<class U>
 	void operator()(U )
 	{
-		Fragment<U> u;
+		Fragment<U> u = Fragment<U>();
 		if (m_consumer->do_(u))
 			m_access->setValue(u);
 	}
@@ -469,7 +469,7 @@ struct Producer: boost::static_visitor<int>
 	template<class U>
 	int operator()(const Access<U>& access_) const
 	{
-		Fragment<U> f;
+		Fragment<U> f = Fragment<U>();
 		f.setValue(access_.getValue());
 		return f.produce(*m_dom);
 	}
@@ -538,7 +538,7 @@ private:
 public:
 	int consume(QStack<QDomElement>& stack_)
 	{
-		Fragment<T> f;
+		Fragment<T> f = Fragment<T>();
 		this->setValue(boost::none);
 		int output = f.consume(stack_);
 		if (0 > output)
@@ -553,7 +553,7 @@ public:
 		if (!this->getValue())
 			return 0;
 
-		Fragment<T> f;
+		Fragment<T> f = Fragment<T>();
 		f.setValue(release(Test<wild_type>()));
 		return f.produce(dst_);
 	}
@@ -574,7 +574,7 @@ struct Body<Element<Empty, T> >: Access<bool>
 {
 	int consume(QStack<QDomElement>& stack_)
 	{
-		Element<Empty, T> e;
+		Element<Empty, T> e = Element<Empty, T>();
 		this->setValue(false);
 		int output = e.consume(stack_);
 		if (0 < output)
@@ -589,7 +589,7 @@ struct Body<Element<Empty, T> >: Access<bool>
 		if (!this->getValue())
 			return 0;
 
-		Element<Empty, T> e;
+		Element<Empty, T> e = Element<Empty, T>();
 		return e.produce(dst_);
 	}
 };
@@ -734,12 +734,12 @@ struct Fragment: Pattern
 {
 	int consume(QStack<QDomElement>& stack_)
 	{
-		T x;
+		T x = T();
 		return Traits<T>::parse(x, stack_);
 	}
 	int produce(QDomElement& dst_) const
 	{
-		T x;
+		T x = T();
 		return Traits<T>::generate(x, dst_);
 	}
 };
@@ -750,7 +750,7 @@ struct Fragment<T, typename boost::enable_if<has_value_type<Access<T> > >::type>
 {
 	int consume(QStack<QDomElement>& stack_)
 	{
-		T x;
+		T x = T();
 		int output = Traits<T>::parse(x, stack_);
 		if (0 <= output)
 			Details::Value::Envelope::collapse(x, *this);
@@ -759,7 +759,7 @@ struct Fragment<T, typename boost::enable_if<has_value_type<Access<T> > >::type>
 	}
 	int produce(QDomElement& dst_) const
 	{
-		T x;
+		T x = T();
 		Details::Value::Envelope::expand(*this, x);
 		return Traits<T>::generate(x, dst_);
 	}
@@ -842,7 +842,7 @@ struct ZeroOrMore: Access<Details::Value::Identity<QList<typename Value<T>::type
 		list_type v;
 		while (true)
 		{
-			Fragment<T> x;
+			Fragment<T> x = Fragment<T>();
 			int y = x.consume(stack_);
 			if (0 >= y)
 				break;
@@ -858,7 +858,7 @@ struct ZeroOrMore: Access<Details::Value::Identity<QList<typename Value<T>::type
 		int output = 0;
 		foreach (typename list_type::const_reference v, this->getValue())
 		{
-			Fragment<T> x;
+			Fragment<T> x = Fragment<T>();
 			x.setValue(v);
 			int s = x.produce(dst_);
 			if (0 > s)
