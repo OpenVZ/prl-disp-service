@@ -141,7 +141,8 @@ struct Runtime
 	Result setIoLimit(const CVmHardDisk& disk_, quint32 limit_);
 	Result setIopsLimit(const CVmHardDisk& disk_, quint32 limit_);
 	Result setIoPriority(quint32 ioprio_);
-	Result setCpuLimit(quint32 limit_, quint32 period_);
+	Result setPerCpuLimit(quint32 limit_, quint32 period_);
+	Result setGlobalCpuLimit(quint32 limit_, quint32 period_);
 	Result setCpuUnits(quint32 units_);
 	Result setCpuCount(quint32 count_);
 
@@ -153,6 +154,7 @@ struct Runtime
 	Result update(const T& device_);
 
 private:
+	Result setCpuLimit(quint32 globalLimit_, quint32 limit_, quint32 period_);
 	Result setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_);
 
 	QSharedPointer<virDomain> m_domain;

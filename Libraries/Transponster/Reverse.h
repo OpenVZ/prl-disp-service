@@ -72,7 +72,7 @@ struct Cpu
 
 private:
 	CVmCpu m_input;
-	CVCpuInfo* m_vt;
+	VtInfo m_vt;
 	boost::optional<Libvirt::Domain::Xml::Vcpu> m_vcpu;
 	boost::optional<Libvirt::Domain::Xml::Cputune> m_tune;
 };
