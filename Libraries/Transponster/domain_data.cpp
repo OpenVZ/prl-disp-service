@@ -417,7 +417,7 @@ bool Validatable<Domain::Xml::PDirPath>::validate(const Domain::Xml::PDirPath::v
 
 bool Validatable<Domain::Xml::PAbsFilePath>::validate(const Domain::Xml::PAbsFilePath::value_type& value_)
 {
-	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%,]+");
+	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%,:]+");
 	if (!q.exactMatch(value_))
 		return false;
 

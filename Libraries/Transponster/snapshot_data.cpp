@@ -417,7 +417,7 @@ bool Validatable<Snapshot::Xml::PDirPath>::validate(const Snapshot::Xml::PDirPat
 
 bool Validatable<Snapshot::Xml::PAbsFilePath>::validate(const Snapshot::Xml::PAbsFilePath::value_type& value_)
 {
-	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%,]+");
+	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%,:]+");
 	if (!q.exactMatch(value_))
 		return false;
 
