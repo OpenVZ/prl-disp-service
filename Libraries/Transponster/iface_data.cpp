@@ -417,7 +417,7 @@ bool Validatable<Iface::Xml::PDirPath>::validate(const Iface::Xml::PDirPath::val
 
 bool Validatable<Iface::Xml::PAbsFilePath>::validate(const Iface::Xml::PAbsFilePath::value_type& value_)
 {
-	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%,]+");
+	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%,:]+");
 	if (!q.exactMatch(value_))
 		return false;
 

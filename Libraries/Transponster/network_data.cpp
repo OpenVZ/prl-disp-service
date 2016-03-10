@@ -417,7 +417,7 @@ bool Validatable<Network::Xml::PDirPath>::validate(const Network::Xml::PDirPath:
 
 bool Validatable<Network::Xml::PAbsFilePath>::validate(const Network::Xml::PAbsFilePath::value_type& value_)
 {
-	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%,]+");
+	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%,:]+");
 	if (!q.exactMatch(value_))
 		return false;
 
