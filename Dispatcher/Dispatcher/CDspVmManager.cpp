@@ -595,24 +595,43 @@ struct Revert: Need::Context, Need::Config, Need::Command<CProtoSwitchToSnapshot
 {
 	Libvirt::Result operator()()
 	{
-		Libvirt::Snapshot::Stash s(getConfig(), getCommand()->GetSnapshotUuid());
 		QString h(getConfig()->getVmIdentification()->getHomePath());
-		SmartPtr<CVmConfiguration> c = s.restoreConfig(h);
+		QString b(h + ".tmp");
+		QFile::remove(b);
+		if (!QFile::copy(h, b)) {
+			WRITE_TRACE(DBG_FATAL, "Unable to save original config %s", qPrintable(h));
+			return Error::Simple(PRL_ERR_FAILURE);
+		}
+		Libvirt::Result r(restore(h));
+		if (r.isFailed()) {
+			if (!QFile::rename(b, h))
+				WRITE_TRACE(DBG_FATAL, "Unable to restore original config from %s", qPrintable(b));
+		} else
+			QFile::remove(b);
+
+		return r;
+	}
+
+private:
+	Libvirt::Result restore(const QString& home_)
+	{
+		Libvirt::Snapshot::Stash s(getConfig(), getCommand()->GetSnapshotUuid());
+		SmartPtr<CVmConfiguration> c(s.restoreConfig(home_));
 		if (!c.isValid())
 		{
-			WRITE_TRACE(DBG_FATAL, "Unable to restore %s", qPrintable(h));
+			WRITE_TRACE(DBG_FATAL, "Unable to restore %s", qPrintable(home_));
 			return Error::Simple(PRL_ERR_FAILURE);
 		}
 
 		PRL_RESULT e = CDspService::instance()->getVmConfigManager().saveConfig(
-			c, h, getContext().getSession(), true, true);
+			c, home_, getContext().getSession(), true, true);
 
 		if (PRL_FAILED(e))
 		{
-			WRITE_TRACE(DBG_FATAL, "Unable to save restored cfg %s", qPrintable(h));
+			WRITE_TRACE(DBG_FATAL, "Unable to save restored cfg %s", qPrintable(home_));
 			return Error::Simple(e);
 		}
-	        CStatesHelper x(h);
+		CStatesHelper x(home_);
 		x.dropStateFiles();
 		s.restore(QStringList(x.getSavFileName()));
 
