@@ -135,7 +135,6 @@ private:
 	quint32 m_nSteps;
 	quint32 m_nBundlePermissions;
 	quint32 m_nConfigPermissions;
-	SmartPtr<CDspVm> m_pVm;
 	PRL_UINT64 m_nRequiresDiskSpace;
 	QString m_sHaClusterId;
 
