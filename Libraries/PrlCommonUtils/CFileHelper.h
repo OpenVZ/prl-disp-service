@@ -155,9 +155,6 @@ public:
     // Renames of moves file or directory
     static bool RenameEntry(QString oldName, QString newName, CAuthHelper *pAuthHelper);
 
-	 // Copy file or directory
-	 static bool CopyDirectory(const QString& strSourceDir, const QString& strTargetDir, CAuthHelper *pAuthHelper);
-
     // Removes entry
     static bool RemoveEntry(QString target, CAuthHelper *pAuthHelper);
 

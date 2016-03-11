@@ -149,9 +149,7 @@ Stash::Stash(const SmartPtr<CVmConfiguration>& cfg_, const QString& snapshot_)
 
 Stash::~Stash()
 {
-	CAuthHelper h;
-	foreach (const QString& f, m_files)
-		CFileHelper::RemoveEntry(f, &h);
+	CFileHelper::DeleteFilesFromList(m_files);
 }
 
 bool Stash::add(const QStringList& files_)
