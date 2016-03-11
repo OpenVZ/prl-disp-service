@@ -137,6 +137,9 @@ Result Offline::operator()(Parameters::Builder& builder_)
 	if (!builder_.add(VIR_MIGRATE_PARAM_DEST_XML, x.value()))
 		return Failure(PRL_ERR_FAILURE);
 
+	if (!builder_.add(VIR_MIGRATE_PARAM_PERSIST_XML, x.value()))
+		return Failure(PRL_ERR_FAILURE);
+
 	return Result();
 }
 
