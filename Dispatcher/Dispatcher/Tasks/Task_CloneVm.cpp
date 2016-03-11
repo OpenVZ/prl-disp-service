@@ -1130,12 +1130,7 @@ void Flavor::update(CVmHardDisk& device_, const QString& name_)
 QString Flavor::getExternal(const CVmHardDisk& device_, const QString& bundle_)
 {
 	QFileInfo x(getLocation(device_));
-	QString b = bundle_;
-	if (PVE::HardDiskImage == device_.getEmulatedType() &&
-		device_.getInterfaceType() != PMS_UNKNOWN_DEVICE)
-		b.append(VMDIR_DEFAULT_BUNDLE_SUFFIX);
-
-	QFileInfo y(x.absoluteDir(), b);
+	QFileInfo y(x.absoluteDir(), bundle_);
 	QFileInfo z(QDir(y.absoluteFilePath()), x.fileName());
 	return z.absoluteFilePath();
 }
@@ -1467,10 +1462,9 @@ Task_CloneVm::Task_CloneVm ( SmartPtr<CDspClient>& user,
 		if (newVmRootDir.endsWith('/') || newVmRootDir.endsWith('\\'))
 			newVmRootDir.chop(1);
 
-		m_newVmXmlPath=QString("%1/%2%3/%4")
+		m_newVmXmlPath=QString("%1/%2/%3")
 			.arg(newVmRootDir)
-			.arg(m_newVmName)
-			.arg( m_newVmName.endsWith(VMDIR_DEFAULT_BUNDLE_SUFFIX) ? "" : VMDIR_DEFAULT_BUNDLE_SUFFIX )
+			.arg(Vm::Config::getVmHomeDirName(m_newVmUuid))
 			.arg(VMDIR_DEFAULT_VM_CONFIG_FILE);
 
 	} while(0);

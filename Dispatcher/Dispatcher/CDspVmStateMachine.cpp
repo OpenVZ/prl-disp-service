@@ -48,19 +48,7 @@ QString demangle(const char* name_)
 
 void Frontend::setName(const QString& value_)
 {
-	// NB. there is no home in a libvirt VM config. It is still required
-	// by different activities. If VM wasn't register before first 'defined'
-	// event we put it into the default VM folder from a user profile.
-	// later this behaviour would be re-designed.
 	m_name = value_;
-
-	// m_home it empty if VM has not been registered via prlsdk but using libvirt.
-	if (m_home.filePath().isEmpty())
-	{
-		QString h = QDir(m_user->getUserDefaultVmDirPath())
-			.absoluteFilePath(QString(m_name).append(VMDIR_DEFAULT_BUNDLE_SUFFIX));
-		m_home = QFileInfo(QDir(h), VMDIR_DEFAULT_VM_CONFIG_FILE);
-	}
 }
 
 void Frontend::updateDirectory(PRL_VM_TYPE type_)

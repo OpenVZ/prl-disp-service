@@ -52,6 +52,11 @@ namespace Config
 {
 enum Defaults {DEFAULT_MEMGUARANTEE_PERCENTS = 40};
 
+QString getVmHomeDirName(const QString& uuid_)
+{
+	return Uuid(uuid_).toStringWithoutBrackets();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct MemGuarantee
 

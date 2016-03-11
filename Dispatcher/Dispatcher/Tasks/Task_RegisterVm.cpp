@@ -107,7 +107,6 @@ Task_RegisterVm::Task_RegisterVm (
 	m_mtxWaitCreateImage(QMutex::Recursive),
 	m_lpcCreateImageCurrentTask( NULL ),
 	m_bVmRegisterNameWasEmpty(false),
-	m_bAllowConvertToBundle(true),
 	m_nFlags(nFlags),
 	m_nInternalParamsAsMasks(0)
 {
@@ -140,7 +139,6 @@ Task_RegisterVm::Task_RegisterVm (
 	m_mtxWaitCreateImage(QMutex::Recursive),
 	m_lpcCreateImageCurrentTask( NULL ),
 	m_bVmRegisterNameWasEmpty(false),
-	m_bAllowConvertToBundle(true),
 	m_nFlags(nFlags),
 	m_strApplianceId(strApplianceId),
 	m_nInternalParamsAsMasks(nInternalParamsAsMask),
@@ -273,10 +271,7 @@ void Task_RegisterVm::createMACAddress(SmartPtr<CVmConfiguration> config,
 	}
 }
 
-QString Task_RegisterVm::getUniqueVmName(const QString& sVmNamePattern,
-										 const QString& vmDirUuid,
-										 const QString& sVmRootPath,
-										 const QString& sVmExcludePath)
+QString Task_RegisterVm::getUniqueVmName(const QString& sVmNamePattern, const QString& vmDirUuid)
 {
 	CDspLockedPointer<CVmDirectory> pVmDir =
 					CDspService::instance()->getVmDirManager().getVmDirectory(vmDirUuid);
@@ -290,67 +285,8 @@ QString Task_RegisterVm::getUniqueVmName(const QString& sVmNamePattern,
 	{
 		CVmDirectoryItem* pVmDirItem = lstVmDirItems[i];
 		lstVmNames += pVmDirItem->getVmName();
-
-		QFileInfo fi1(pVmDirItem->getVmHome());
-		QFileInfo fi2(fi1.path());
-		QString sVmHomeAsVmName = fi2.fileName();
-
-		if (!lstVmNames.contains(sVmHomeAsVmName))
-			lstVmNames += sVmHomeAsVmName;
-		if (sVmHomeAsVmName.endsWith(VMDIR_DEFAULT_BUNDLE_SUFFIX))
-			sVmHomeAsVmName.resize(sVmHomeAsVmName.lastIndexOf(VMDIR_DEFAULT_BUNDLE_SUFFIX));
-		if (!lstVmNames.contains(sVmHomeAsVmName))
-			lstVmNames += sVmHomeAsVmName;
-
 	}
 
-	if (!sVmRootPath.isEmpty())
-	{
-		QDir cDir(sVmRootPath);
-		QFileInfoList cFileList = cDir.entryInfoList();
-		QString path;
-		for(int i = 0; i < cFileList.size(); i++ )
-		{
-			// #431558 compare paths by spec way to prevent errors with symlinks, unexisting files, ...
-			if( !sVmExcludePath.isEmpty()
-				&& CFileHelper::IsPathsEqual( sVmExcludePath, cFileList.at(i).absoluteFilePath() )
-				)
-			{
-				continue;
-			}
-			path = cFileList.at(i).fileName();
-			if (!lstVmNames.contains(path))
-				lstVmNames += path;
-			if (path.endsWith(VMDIR_DEFAULT_BUNDLE_SUFFIX))
-				path.resize(path.lastIndexOf(VMDIR_DEFAULT_BUNDLE_SUFFIX));
-			if (!lstVmNames.contains(path))
-				lstVmNames += path;
-		}
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// search in TemporaryCatalogue
-	//////////////////////////////////////////////////////////////////////////
-	QString sVmExcludePathNoPvm = sVmExcludePath;
-	if (sVmExcludePathNoPvm.endsWith(VMDIR_DEFAULT_BUNDLE_SUFFIX))
-		sVmExcludePathNoPvm.resize(sVmExcludePathNoPvm.lastIndexOf(VMDIR_DEFAULT_BUNDLE_SUFFIX));
-
-	QListIterator<CVmDirectory::TemporaryCatalogueItem> tmpIt( *pVmDir->getTemporaryCatalogue() );
-	while ( tmpIt.hasNext() )
-	{
-		const CVmDirectory::TemporaryCatalogueItem&
-			item = tmpIt.next();
-		// only name check!
-		QString sVmDirPath = QFileInfo(item.vmXmlPath).path();
-		if (sVmDirPath.endsWith(VMDIR_DEFAULT_BUNDLE_SUFFIX))
-			sVmDirPath.resize(sVmDirPath.lastIndexOf(VMDIR_DEFAULT_BUNDLE_SUFFIX));
-		if (sVmExcludePathNoPvm.isEmpty()
-			// # 431558 compare paths by spec way to prevent errors with symlinks, unexisting files, ...
-			|| ! CFileHelper::IsPathsEqual(sVmExcludePathNoPvm, sVmDirPath) )
-		{
-			lstVmNames += item.vmName;
-		}
-	}
 	lstVmNames += sVmNamePattern + " ()";	// exclude name without index
 
 	QString sVmName = Parallels::GenerateFilename(lstVmNames, sVmNamePattern,
@@ -653,42 +589,6 @@ void Task_RegisterVm::checkVMOnOtherServerUuid( bool *pbServerUuidWasChanged /* 
 	m_pVmConfig->getVmIdentification()->setLastServerUuid();
 }
 
-bool Task_RegisterVm::isAllowToConvertToBundle(const QString &sPath)
-{
-	bool bAllowConvertToBundle = !sPath.endsWith(VMDIR_DEFAULT_BUNDLE_SUFFIX);
-
-	if (bAllowConvertToBundle)
-	{
-		// bug 120064
-		QStringList excludeDirs;
-		excludeDirs << "/Users"
-					<< "/Users/$USERNAME"
-					<< "/Users/Shared"
-					<< "/Users/$USERNAME/Desktop"
-					<< "/Users/$USERNAME/Documents"
-					<< "/Users/$USERNAME/Downloads"
-					<< "/Users/$USERNAME/Library"
-					<< "/Users/$USERNAME/Movies"
-					<< "/Users/$USERNAME/Music"
-					<< "/Users/$USERNAME/Pictures"
-					<< "/Users/$USERNAME/Public"
-					<< "/Users/$USERNAME/Sites"
-					<< "/Applications"
-					<< "/Developer"
-					<< "/Library"
-					<< "/System"
-					<< "/Users/Shared/Parallels"
-					<< "/Users/$USERNAME/Documents/Parallels";
-		QString username = getClient()->getUserName();
-		if ( username.indexOf("@") > 0 )
-			username.resize(username.indexOf("@"));
-		excludeDirs.replaceInStrings( "$USERNAME", username, Qt::CaseSensitive );
-			if ( excludeDirs.contains(sPath) )
-				bAllowConvertToBundle = false;
-	}
-	return bAllowConvertToBundle;
-}
-
 PRL_RESULT Task_RegisterVm::prepareTask()
 {
 	PRL_RESULT ret = PRL_ERR_SUCCESS;
@@ -878,12 +778,8 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 
 		if ( doRegisterOnly() )
 		{
-			m_bAllowConvertToBundle = isAllowToConvertToBundle(sNewVmDirectoryPath);
-
-			vm_xml_path = QString( "%1%2/%3" )
+			vm_xml_path = QString( "%1/%2" )
 				.arg( sNewVmDirectoryPath )
-				.arg( m_bAllowConvertToBundle
-						? VMDIR_DEFAULT_BUNDLE_SUFFIX : "" )
 				.arg( VMDIR_DEFAULT_VM_CONFIG_FILE );
 
 			vm_root_dir = QFileInfo(sNewVmDirectoryPath).path();
@@ -892,10 +788,9 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 		}
 		else
 		{
-			vm_xml_path = QString( "%1/%2%3/%4" )
+			vm_xml_path = QString( "%1/%2/%3" )
 				.arg( m_vmRootDir )
-				.arg( vm_name )
-				.arg( vm_name.endsWith(VMDIR_DEFAULT_BUNDLE_SUFFIX) ? "" : VMDIR_DEFAULT_BUNDLE_SUFFIX )
+				.arg(Vm::Config::getVmHomeDirName(vm_uuid))
 				.arg( VMDIR_DEFAULT_VM_CONFIG_FILE );
 
 			vm_root_dir = m_vmRootDir;
@@ -941,12 +836,10 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 			}
 
 			QString qsVmDirName = QFileInfo(sNewVmDirectoryPath).fileName();
-			if (qsVmDirName.endsWith(VMDIR_DEFAULT_BUNDLE_SUFFIX))
-				qsVmDirName.resize(qsVmDirName.lastIndexOf(VMDIR_DEFAULT_BUNDLE_SUFFIX));
-			bool bVmNameAndVmDirAreDifferent = (qsVmDirName != m_pVmInfo->vmName);
+			bool bVmUuidAndVmDirAreDifferent = qsVmDirName !=
+				Vm::Config::getVmHomeDirName(m_pVmInfo->vmUuid);
 
-			QString qsGenVmDirName = getUniqueVmName(qsVmDirName, getClient()->getVmDirectoryUuid(),
-													vm_root_dir, sNewVmDirectoryPath);
+			QString qsGenVmDirName = getUniqueVmName(qsVmDirName, getClient()->getVmDirectoryUuid());
 			if( qsGenVmDirName != qsVmDirName
 				&& (PRL_SUCCEEDED(lockResult) || lockErrorsList.contains(PRL_ERR_VM_ALREADY_REGISTERED_VM_NAME) )
 				)
@@ -977,32 +870,26 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 				if(lockErrorsList.count()>0)
 				{
 					//change vm name to resolve conflict on register vm
-					qsVmDirName = getUniqueVmName(qsVmDirName, getClient()->getVmDirectoryUuid(),
-												vm_root_dir, sNewVmDirectoryPath);
-					m_pVmInfo->vmName = getUniqueVmName(m_pVmInfo->vmName, getClient()->getVmDirectoryUuid(),
-												vm_root_dir);
+					qsVmDirName = getUniqueVmName(qsVmDirName, getClient()->getVmDirectoryUuid());
+					m_pVmInfo->vmName = getUniqueVmName(m_pVmInfo->vmName, getClient()->getVmDirectoryUuid());
 					m_pVmConfig->getVmIdentification()->setVmName( m_pVmInfo->vmName );
 
 					if (   PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH == lockResult
 						|| PRL_ERR_VM_DIR_CONFIG_ALREADY_EXISTS == lockResult)
 					{
-						if (   bVmNameAndVmDirAreDifferent
+						if (bVmUuidAndVmDirAreDifferent
 							|| PRL_ERR_VM_DIR_CONFIG_ALREADY_EXISTS == lockResult)
 						{
-							m_pVmInfo->vmXmlPath = QString( "%1/%2%3/%4" )
+							m_pVmInfo->vmXmlPath = QString( "%1/%2/%3" )
 								.arg( vm_root_dir )
 								.arg( qsVmDirName )
-								.arg( qsVmDirName.endsWith(VMDIR_DEFAULT_BUNDLE_SUFFIX)
-										? "" : VMDIR_DEFAULT_BUNDLE_SUFFIX )
 								.arg( VMDIR_DEFAULT_VM_CONFIG_FILE );
 						}
 						else
 						{
-							m_pVmInfo->vmXmlPath = QString( "%1/%2%3/%4" )
+							m_pVmInfo->vmXmlPath = QString( "%1/%2/%3" )
 								.arg( vm_root_dir )
-								.arg( m_pVmInfo->vmName )
-								.arg( m_pVmInfo->vmName.endsWith(VMDIR_DEFAULT_BUNDLE_SUFFIX)
-										? "" : VMDIR_DEFAULT_BUNDLE_SUFFIX )
+								.arg(Vm::Config::getVmHomeDirName(m_pVmInfo->vmUuid))
 								.arg( VMDIR_DEFAULT_VM_CONFIG_FILE );
 						}
 						m_pVmConfig->getVmIdentification()->setHomePath(m_pVmInfo->vmXmlPath);

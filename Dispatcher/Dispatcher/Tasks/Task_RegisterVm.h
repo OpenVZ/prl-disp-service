@@ -87,10 +87,7 @@ public:
 	virtual void reassignTask( SmartPtr<CDspClient>& pNewClient,
 								const SmartPtr<IOPackage>& pNewPackage );
 
-	static QString getUniqueVmName( const QString& sVmNamePattern,
-									const QString& vmDirUuid,
-									const QString& sVmRootPath = QString(),
-									const QString& sVmExcludePath = QString());
+	static QString getUniqueVmName( const QString& sVmNamePattern, const QString& vmDirUuid);
 
 	PRL_VM_COLOR getUniqueVmColor( const QString& vmDirUuid );
 
@@ -226,8 +223,6 @@ private:
 	// flag to detect empty name from register operation
 	bool	m_bVmRegisterNameWasEmpty;
 
-	bool isAllowToConvertToBundle(const QString &sPath);
-	bool m_bAllowConvertToBundle;
 	QString m_strRenamedVmHome; // use to rollback  Register VM  Only + bug 119951
 
 	int m_nFlags;

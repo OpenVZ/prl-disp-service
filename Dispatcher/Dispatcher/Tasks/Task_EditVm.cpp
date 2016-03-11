@@ -1438,6 +1438,7 @@ PRL_RESULT Task_EditVm::editVm()
 
 		QString oldVmName;
 		QString strVmHome;
+		QString vmHomePath;
 		{
 			//
 			// NOTE:	TO EXCLUDE DEADLOCK m_pVmConfigEdit mutex
@@ -1487,6 +1488,10 @@ PRL_RESULT Task_EditVm::editVm()
 					.getVmDirItemByUuid( getClient()->getVmDirectoryUuid(), vm_uuid );
 				if ( ! pVmDirItem )
 					throw PRL_ERR_VM_UUID_NOT_FOUND;
+
+				// Since we use uuid in VM directory name EditVM is unable to change VmHome
+				vmHomePath = CFileHelper::GetFileRoot(pVmDirItem->getVmHome());
+
 				strVmHome = pVmDirItem->getVmHome();
 
 				oldVmName = pVmConfigOld->getVmIdentification()->getVmName();
@@ -1690,6 +1695,25 @@ PRL_RESULT Task_EditVm::editVm()
 
 			}
 
+			// If EFI boot is enabled we need to have NVRAM full path.
+			// New configuration may not have NVRAM path then old path is used.
+			// Default name is used if old NVRAM path is empty.
+			CVmStartupBios* bios = pVmConfigNew->getVmSettings()->getVmStartupOptions()->getBios();
+			if (bios->isEfiEnabled() && bios->getNVRAM().isEmpty())
+			{
+				QString nvram = pVmConfigOld->getVmSettings()
+					->getVmStartupOptions()->getBios()
+					->getNVRAM();
+
+				if (nvram.isEmpty())
+					nvram = QDir(vmHomePath).absoluteFilePath(PRL_VM_NVRAM_FILE_NAME);
+				else if (QFileInfo(nvram).isRelative())
+					nvram = QDir(vmHomePath).absoluteFilePath(nvram);
+
+				bios->setNVRAM(nvram);
+			}
+
+
 			//////////////////////////////////////////////////////////////////////////
 			// if VM was renamed then it needs to rename VM home directory
 			// if old VM home directory is the same old VM name
@@ -1714,51 +1738,16 @@ PRL_RESULT Task_EditVm::editVm()
 				flgExclusiveRenameOperationWasRegistered = true;
 			}
 
-			QString qsOldDirNameTmp = CFileHelper::GetFileName(qsOldDirName);
-			// #119396
-			if ( qsOldDirNameTmp != oldVmName && qsOldDirNameTmp.endsWith(VMDIR_DEFAULT_BUNDLE_SUFFIX) )
-				qsOldDirNameTmp.resize( qsOldDirNameTmp.size() - QString(VMDIR_DEFAULT_BUNDLE_SUFFIX).size() );
-
-			qsNewDirName = CFileHelper::GetFileRoot( qsOldDirName ) +
-				"/" + newVmName + (newVmName.endsWith(VMDIR_DEFAULT_BUNDLE_SUFFIX) ? "" : VMDIR_DEFAULT_BUNDLE_SUFFIX);
-
-			// If EFI boot is enabled we need to have NVRAM full path.
-			// New configuration may not have NVRAM path then old path is used.
-			// Default name is used if old NVRAM path is empty.
-			CVmStartupBios* bios = pVmConfigNew->getVmSettings()->getVmStartupOptions()->getBios();
-			if (bios->isEfiEnabled() && bios->getNVRAM().isEmpty())
-			{
-				QString nvram = pVmConfigOld->getVmSettings()
-					->getVmStartupOptions()->getBios()
-					->getNVRAM();
-
-				if (nvram.isEmpty())
-					nvram = QDir(qsNewDirName).absoluteFilePath(PRL_VM_NVRAM_FILE_NAME);
-				else if (QFileInfo(nvram).isRelative())
-					nvram = QDir(qsOldDirName).absoluteFilePath(nvram);
-
-				bios->setNVRAM(nvram);
-			}
-
-			if ( newVmName != oldVmName  && qsOldDirNameTmp == oldVmName && qsNewDirName != qsOldDirName)
+			if (newVmName != oldVmName)
 			{
 
 				// If directory placed in root of one of windows drives, like "C:/Windows 2003",
 				// GetFileRoot() returns path with additional symbol "/", we need normalize path
 				qsOldDirName.replace("//", "/");
-				qsNewDirName.replace("//", "/");
-
-				QString newVmHome = strVmHome.replace( qsOldDirName, qsNewDirName );
-
-				WRITE_TRACE( DBG_FATAL, "After vm rename .pvm bundles will be changed from '%s' to '%s'. "
-					"Pathes should be changed: from '%s' to '%s'"
-					, QSTR2UTF8( CFileHelper::GetFileName(qsOldDirName) )
-					, QSTR2UTF8( CFileHelper::GetFileName(qsNewDirName) )
-					, QSTR2UTF8(qsOldDirName), QSTR2UTF8(qsNewDirName) );
 
 				//lock to protect using new name on cloneVm/createVm/ another editVm operations
 				SmartPtr<CVmDirectory::TemporaryCatalogueItem>
-					pVmInfo( new CVmDirectory::TemporaryCatalogueItem( "" , newVmHome, newVmName) );
+					pVmInfo( new CVmDirectory::TemporaryCatalogueItem( "" , "", newVmName) );
 
 				PRL_RESULT lockResult = CDspService::instance()->getVmDirManager()
 					.checkAndLockNotExistsExclusiveVmParameters(
@@ -1806,89 +1795,7 @@ PRL_RESULT Task_EditVm::editVm()
 					throw lockResult;
 				}
 
-				try
-				{
-					//to fix bug #6460 http://bugzilla.parallels.com/show_bug.cgi?id=6460
-					if( CFileHelper::DirectoryExists( qsNewDirName, &getClient()->getAuthHelper() )
-						|| CFileHelper::FileExists( qsNewDirName, &getClient()->getAuthHelper() )
-						)
-					{
-						WRITE_TRACE(DBG_FATAL,
-							"CDspVmDirHelper::editVm() : Can't rename vm [%s] to [%s]: "
-							" file or directory [%s] is already exists."
-							, QSTR2UTF8(qsOldDirName)
-							, QSTR2UTF8(qsNewDirName)
-							,QSTR2UTF8(qsNewDirName)
-							);
-
-						getLastError()->setEventType( PET_DSP_EVT_ERROR_MESSAGE );
-						getLastError()->addEventParameter(
-							new CVmEventParameter( PVE::String, pVmInfo->vmName,
-							EVT_PARAM_MESSAGE_PARAM_0));
-						getLastError()->addEventParameter(
-							new CVmEventParameter( PVE::String, qsNewDirName,
-							EVT_PARAM_MESSAGE_PARAM_1));
-
-						throw PRL_ERR_FILE_OR_DIR_ALREADY_EXISTS;
-					}
-
-					if (getRequestFlags() & PVCF_RENAME_EXT_DISKS) {
-						foreach(CVmHardDisk *pHardDisk, pVmConfigNew->getVmHardwareList()->m_lstHardDisks)
-						{
-							if (pHardDisk->getEmulatedType() != PVE::HardDiskImage)
-								continue;
-							if (pHardDisk->getSystemName().startsWith(qsOldDirName))
-								continue;
-
-							diskRenamer.addDisk(pHardDisk->getSystemName());
-						}
-						ret = diskRenamer.rename(
-								Bundle::createFromPath(qsOldDirName),
-								Bundle::createFromPath(qsNewDirName),
-								*getLastError());
-						if (PRL_FAILED(ret))
-							throw ret;
-					}
-
-					// bug #115996 - config watcher updates this entry throught CVmDirManager::UpdateVmDirItem
-					if ( !CFileHelper::RenameEntry(qsOldDirName, qsNewDirName, &getClient()->getAuthHelper()) )
-					{
-						WRITE_TRACE(DBG_FATAL,
-							"CDspVmDirHelper::editVm() : Cannot rename [%s] to [%s]",
-							QSTR2UTF8(qsOldDirName), QSTR2UTF8(qsNewDirName) );
-						throw PRL_ERR_ACCESS_DENIED;
-					}
-					else
-					{
-						bVmWasRenamed = true;
-
-						CDspLockedPointer< CVmDirectoryItem >
-							pVmDirItem = CDspService::instance()->getVmDirManager()
-							.getVmDirItemByUuid( getClient()->getVmDirectoryUuid(), vm_uuid );
-						if ( ! pVmDirItem )
-							throw PRL_ERR_VM_UUID_NOT_FOUND;
-
-						strVmHome = newVmHome;
-						CorrectDevicePathsInVmConfigCommon(pVmConfigNew.get(), qsOldDirName, qsNewDirName);
-						if (getRequestFlags() & PVCF_RENAME_EXT_DISKS)
-							foreach(CVmHardDisk *pHardDisk, pVmConfigNew->getVmHardwareList()->m_lstHardDisks)
-								CorrectHddPaths(*pHardDisk, qsOldDirName, qsNewDirName);
-						else
-							foreach(CVmHardDisk *pHardDisk, pVmConfigNew->getVmHardwareList()->m_lstHardDisks)
-								CorrectDevicePaths(*pHardDisk, qsOldDirName, qsNewDirName);
-
-					}
-
-					CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(
-						pVmInfo.getImpl() );
-				}
-				catch ( PRL_RESULT err )
-				{
-					CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(
-						pVmInfo.getImpl() );
-					throw err;
-				}
-
+				CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(pVmInfo.getImpl());
 			}
 
 
@@ -2131,7 +2038,7 @@ PRL_RESULT Task_EditVm::editVm()
 			// handle VM only on shared FS - nfs, gfs, gfs2, pcs
 			if (CDspService::isServerModePSBM() && CFileHelper::isSharedFS(strVmHome) )
 			{
-				ret = UpdateClusterResourceVm(pVmConfigOld, pVmConfigNew, qsNewDirName, bVmWasRenamed);
+				ret = UpdateClusterResourceVm(pVmConfigOld, pVmConfigNew, vmHomePath, bVmWasRenamed);
 				if (PRL_FAILED(ret))
 					throw ret;
 			}
@@ -2234,22 +2141,6 @@ PRL_RESULT Task_EditVm::editVm()
 	}
 	catch (PRL_RESULT code)
 	{
-
-		if ( bVmWasRenamed )
-		{
-			// If VM was renamed it needs rollback renaming it
-			// bug #115996 - config watcher updates this entry throught CVmDirManager::UpdateVmDirItem
-			if ( !CFileHelper::RenameEntry(qsNewDirName, qsOldDirName, &getClient()->getAuthHelper()) )
-			{
-				WRITE_TRACE(DBG_FATAL,
-					"CDspVmDirHelper::editVm() : Cannot rollback renaming [%s] to [%s]",
-					QSTR2UTF8(qsOldDirName), QSTR2UTF8(qsNewDirName) );
-			}
-		}
-
-		if (getRequestFlags() & PVCF_RENAME_EXT_DISKS)
-			diskRenamer.rollback();
-
 		getLastError()->setEventCode( code );
 		WRITE_TRACE(DBG_FATAL, "Error occurred while modification VM configuration with code [%#x (%s)]"
 			, code

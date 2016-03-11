@@ -373,7 +373,7 @@ struct Flavor
 {
 	static QString getExternal(const CVmHardDisk& device_, const Facade& work_)
 	{
-		return getExternal(device_, work_.getNewVmName());
+		return getExternal(device_, Vm::Config::getVmHomeDirName(work_.getNewVmUuid()));
 	}
 	static QString getExternal(const CVmHardDisk& device_, const QString& name_);
 	static QString getLocation(const CVmHardDisk& device_);
