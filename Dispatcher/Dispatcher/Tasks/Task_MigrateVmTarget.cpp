@@ -45,6 +45,7 @@
 #include "Task_RegisterVm.h"
 #include "Task_CloneVm.h"
 #include "Task_ChangeSID.h"
+#include "CDspVmStateSender.h"
 #include "CDspService.h"
 #include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
@@ -766,8 +767,6 @@ void Task_MigrateVmTarget::finalizeTask()
 
 	if (PRL_SUCCEEDED(getLastErrorCode()))
 	{
-		PRL_ASSERT(m_pVm);
-
 		// update config for shared storage
 		if ((m_nReservedFlags & PVM_DONT_COPY_VM) && !(PVMT_CLONE_MODE & getRequestFlags()))
 			saveVmConfig();
@@ -810,40 +809,11 @@ void Task_MigrateVmTarget::finalizeTask()
 		CVmEvent cStateEvent(evtType, m_sVmUuid, PIE_DISPATCHER);
 		SmartPtr<IOPackage> pUpdateVmStatePkg =
 			DispatcherPackage::createInstance( PVE::DspVmEvent, cStateEvent.toString());
-		m_pVm->changeVmState(pUpdateVmStatePkg);
 		CDspService::instance()->getClientManager().
 			sendPackageToVmClients(pUpdateVmStatePkg, m_sVmDirUuid, m_sVmUuid);
 
-		if (m_nPrevVmState == VMS_STOPPED || m_nPrevVmState == VMS_SUSPENDED) {
-			/*
-			 * The operation is registered in m_pVm's constructor and will be
-			 * unregistered as a part of m_pVm's destructor. Doing it here
-			 * produces error message.
-			 * See https://jira.sw.ru/browse/PSBM-13523.
-			 */
-			CDspVm::UnregisterVmObject(m_pVm);
-			// to call ~CDspVm (and unregisterExclusineOperation()) before sendResponce()
-			// https://jira.sw.ru/browse/PSBM-15151
-			m_pVm->disableStoreRunningState(true);
-			m_pVm = SmartPtr<CDspVm>(0);
-
-			/* This task should be run with destroyed m_pVm
-			 * (for correct guest tools state retrieval from
-			 * the disk) and with unlocked VM */
+		if (m_nPrevVmState == VMS_STOPPED || m_nPrevVmState == VMS_SUSPENDED)
 			 changeSID();
-		} else {
-			m_pVm->setMigrateVmRequestPackage(SmartPtr<IOPackage>());
-			m_pVm->setMigrateVmConnection(SmartPtr<CDspDispConnection>());
-
-			/* lock running Vm (https://jira.sw.ru/browse/PSBM-7682) */
-			/* will do it via initial Vm creation command
-			   (https://jira.sw.ru/browse/PSBM-8222) */
-
-			// Vm locks are broken and not used but will be returned later
-			//m_pVm->replaceInitDspCmd(PVE::DspCmdVmStart, getClient());
-			CDspVm::UnregisterVmObject(m_pVm);
-			m_pVm = SmartPtr<CDspVm>(0);
-		}
 
 		if (m_nVersion >= MIGRATE_DISP_PROTO_V3) {
 			/* notify source task about target task finish,
@@ -870,27 +840,6 @@ void Task_MigrateVmTarget::finalizeTask()
 		   we can remove 'already existed Vm' */
 		if (m_nSteps & MIGRATE_STARTED)
 		{
-
-			if (m_nSteps & MIGRATE_VM_APP_STARTED && m_pVm.getImpl())
-			{
-				/* stop Vm */
-				CProtoCommandPtr pCmd =
-					CProtoSerializer::CreateProtoVmCommandStop(m_sVmUuid, PSM_KILL, 0);
-				pPackage = DispatcherPackage::createInstance( PVE::DspCmdVmStop, pCmd );
-	//			m_pVm->stop(getClient(), pPackage, PSM_KILL, true);
-				// Wait until VM stopped
-				/* while (m_pVm->isConnected())
-				{
-					if (operationIsCancelled() && CDspService::instance()->isServerStopping())
-						break;
-					QThread::msleep(1000);
-				} */
-			}
-			if (m_pVm.getImpl()) {
-				CDspVm::UnregisterVmObject(m_pVm);
-				m_pVm = SmartPtr<CDspVm>(0);
-			}
-
 			if (!CDspService::instance()->isServerStopping())
 				CDspService::instance()->getVmConfigWatcher().unregisterVmToWatch(m_sTargetVmHomePath);
 			if ( !(m_nReservedFlags & PVM_DONT_COPY_VM) )
@@ -1133,7 +1082,6 @@ PRL_RESULT Task_MigrateVmTarget::registerVmBeforeMigration()
 {
 	PRL_RESULT nRetCode;
 	CVmDirectoryItem *pVmDirItem = new CVmDirectoryItem;
-	bool bNewVmInstance = false;
 
 	pVmDirItem->setVmUuid(m_sVmUuid);
 	pVmDirItem->setRegistered(PVE::VmRegistered);
@@ -1169,22 +1117,6 @@ PRL_RESULT Task_MigrateVmTarget::registerVmBeforeMigration()
 		return PRL_ERR_VM_MIGRATE_REGISTER_VM_FAILED;
 	}
 
-	m_pVm = CDspVm::CreateInstance(m_sVmUuid, getClient()->getVmDirectoryUuid(),
-				nRetCode, bNewVmInstance, getClient(), PVE::DspCmdDirVmMigrate);
-	if (PRL_FAILED(nRetCode)) {
-		WRITE_TRACE(DBG_FATAL, "[%s] Error occurred while CDspVm::CreateInstance() with code [%#x][%s]",
-			__FUNCTION__, nRetCode, PRL_RESULT_TO_STRING(nRetCode));
-		return nRetCode;
-	}
-	if (!m_pVm.getImpl()) {
-		WRITE_TRACE(DBG_FATAL, "[%s] Unknown CDspVm::CreateInstance() error", __FUNCTION__);
-		return PRL_ERR_OPERATION_FAILED;
-	}
-	if (!bNewVmInstance) {
-		WRITE_TRACE(DBG_FATAL, "Migrate: New CDspVm instance already exists!");
-		return PRL_ERR_OPERATION_FAILED;
-	}
-
 	/* Notify clients that new VM appeared */
 	CVmEvent event(PET_DSP_EVT_VM_ADDED, m_sVmUuid, PIE_DISPATCHER );
 	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, event);
@@ -1195,9 +1127,9 @@ PRL_RESULT Task_MigrateVmTarget::registerVmBeforeMigration()
 		new CVmEvent(PET_DSP_EVT_VM_MIGRATE_STARTED, m_sOriginVmUuid, PIE_DISPATCHER));
 	pEvent->addEventParameter(new CVmEventParameter(PVE::Boolean, "false", EVT_PARAM_MIGRATE_IS_SOURCE));
 	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspVmEvent, pEvent->toString());
-	/* change Vm state to VMS_MIGRATING */
-	m_pVm->changeVmState(pPackage);
 	/* and notify clients about VM migration start event */
+	CDspService::instance()->getVmStateSender()->
+		onVmStateChanged(VMS_STOPPED, VMS_MIGRATING, m_sVmUuid, m_sVmDirUuid, false);
 	CDspService::instance()->getClientManager().sendPackageToVmClients(pPackage, m_sVmDirUuid, m_sOriginVmUuid);
 
 	return PRL_ERR_SUCCESS;
