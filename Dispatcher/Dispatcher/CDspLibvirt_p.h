@@ -223,14 +223,16 @@ struct Domain: QObject
 	Q_INVOKABLE void setState(VIRTUAL_MACHINE_STATE value_);
 	Q_INVOKABLE void prepareToSwitch();
 
+	boost::optional<CVmConfiguration> getConfig();
 	void setConfig(CVmConfiguration& value_);
 	void setCpuUsage();
 	void setDiskUsage();
 	void setMemoryUsage(const Instrument::Agent::Vm::Stat::Memory& src_);
-	void setNetworkUsage();
+	void setInterfaceUsage(const Instrument::Agent::Vm::Stat::Interface& iface_);
 
 private:
 	Q_OBJECT
+
 
 	quint32 m_pid;
 	Registry::Access m_access;

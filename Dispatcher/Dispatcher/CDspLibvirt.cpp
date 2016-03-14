@@ -369,6 +369,21 @@ void Performance::run()
 		Agent::Vm::Stat::Memory d;
 		if (p.getMemory(d).isSucceed())
 			v->setMemoryUsage(d);
+
+		boost::optional<CVmConfiguration> x = v->getConfig();
+		if (x)
+		{
+			foreach(const CVmGenericNetworkAdapter* a, x->getVmHardwareList()->m_lstNetworkAdapters)
+			{
+				if (a->getEnabled() != PVE::DeviceEnabled ||
+					a->getConnected() != PVE::DeviceConnected)
+					continue;
+
+				Agent::Vm::Stat::Interface s(a);
+				p.getInterface(s);
+				v->setInterfaceUsage(s);
+			}
+		}
 	}
 }
 
@@ -861,6 +876,11 @@ Domain::Domain(const Registry::Access& access_): m_pid(), m_access(access_)
 {
 }
 
+boost::optional<CVmConfiguration> Domain::getConfig()
+{
+	return m_access.getConfig();
+}
+
 void Domain::setState(VIRTUAL_MACHINE_STATE value_)
 {
 	m_access.updateState(value_);
@@ -898,8 +918,27 @@ void Domain::setMemoryUsage(const Instrument::Agent::Vm::Stat::Memory& src_)
 		s->write("mem.guest_used", src_.available);
 }
 
-void Domain::setNetworkUsage()
+namespace
 {
+
+void addAndWrite(Stat::Storage& storage_, const QString& name_, quint64 value_)
+{
+	storage_.addAbsolute(name_);
+	storage_.write(name_, value_);
+}
+
+} // namespace
+
+void Domain::setInterfaceUsage(const Instrument::Agent::Vm::Stat::Interface& iface_)
+{
+	QSharedPointer<Stat::Storage> s = m_access.getStorage();
+	if (s.isNull())
+		return;
+
+	addAndWrite(*s, QString("net.nic%1.bytes_in").arg(iface_.index), iface_.bytesIn);
+	addAndWrite(*s, QString("net.nic%1.bytes_out").arg(iface_.index), iface_.bytesOut);
+	addAndWrite(*s, QString("net.nic%1.pkts_in").arg(iface_.index), iface_.packetsIn);
+	addAndWrite(*s, QString("net.nic%1.pkts_out").arg(iface_.index), iface_.packetsOut);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

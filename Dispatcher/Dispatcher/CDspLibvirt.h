@@ -121,6 +121,27 @@ struct Memory
 	quint64 majorFault;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Interface
+
+struct Interface
+{
+	explicit Interface(const CVmGenericNetworkAdapter& adapter_):
+		name(adapter_.getHostInterfaceName()), index(adapter_.getIndex()),
+		bytesIn(0), packetsIn(0), bytesOut(0), packetsOut(0)
+	{
+	}
+
+	QString name;
+	unsigned index;
+	quint64 bytesIn;
+	quint64 packetsIn;
+	quint64 bytesOut;
+	quint64 packetsOut;
+};
+
+typedef QList<Interface> Network;
+
 } // namespace Stat
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -128,8 +149,7 @@ struct Memory
 
 struct Performance
 {
-	explicit Performance(const QSharedPointer<virDomain>& domain_):
-		m_domain(domain_)
+	explicit Performance(const QSharedPointer<virDomain>& domain_): m_domain(domain_)
 	{
 	}
 
@@ -138,7 +158,7 @@ struct Performance
 	Result getCpu(quint64& nanoseconds_) const;
 	Result getDisk() const;
 	Result getMemory(Stat::Memory& dst_) const;
-	Result getNetwork() const;
+	Result getInterface(Stat::Interface& dst_) const;
 
 private:
 	QSharedPointer<virDomain> m_domain;
