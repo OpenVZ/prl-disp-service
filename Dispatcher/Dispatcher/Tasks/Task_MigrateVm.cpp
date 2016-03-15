@@ -201,6 +201,43 @@ void Task::cancel()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Progress
+
+void Progress::timerEvent(QTimerEvent* event_)
+{
+	if (NULL != event_)
+		killTimer(event_->timerId());
+
+	Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> p =
+		m_agent.getProgress();
+	if (p.isFailed())
+		WRITE_TRACE(DBG_WARNING, "Can't read migration progress");
+	else
+	{
+		quint16 x = 0;
+		if (0 == p.value().first)
+		{
+			// not started
+			x = 0;
+		}
+		else if (0 == p.value().second)
+			x = 100;
+		else
+		{
+			x = 100 - (100 * p.value().second + p.value().first - 1) /
+				p.value().first;
+			x = std::min<quint16>(99, x);
+		}
+		if (m_last != x)
+			m_reporter(m_last = x);
+
+		if (100 == x)
+			return;
+	}
+	startTimer(100);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
 void Frontend::start(const QSharedPointer<QTcpServer>& event_)
@@ -208,7 +245,24 @@ void Frontend::start(const QSharedPointer<QTcpServer>& event_)
 	const QString u = QString("qemu+tcp://localhost:%1/system")
 		.arg(event_->serverPort());
 	Task::agent_type a = ::Libvirt::Kit.vms().at(m_task->getVmUuid()).migrate(u);
+	switch (m_task->getOldState())
+	{
+	case VMS_PAUSED:
+	case VMS_RUNNING:
+		m_progress = QSharedPointer<Progress>(new Progress(a, m_reporter));
+		m_progress->startTimer(0);
+		break;
+	default:
+		break;
+	}
 	launch(new Task(a, *m_task));
+}
+
+template<typename Event, typename FSM>
+void Frontend::on_exit(const Event& event_, FSM& fsm_)
+{
+	Shadow::Frontend<Task, Frontend>::on_exit(event_, fsm_);
+	m_progress.clear();
 }
 
 } // namespace Libvirt
@@ -1189,7 +1243,9 @@ PRL_RESULT Task_MigrateVmSource::run_body()
 		<< boost::mpl::at_c<mvs::Workflow::moving_type::initial_state, 0>::type
 			(boost::ref(io))
 		<< boost::mpl::at_c<mvs::Workflow::moving_type::initial_state, 1>::type
-			(boost::ref(*this)));
+			(boost::ref(*this), boost::bind(&NotifyClientsWithProgress,
+				getRequestPackage(), boost::cref(m_sVmDirUuid),
+				boost::cref(m_sVmUuid), _1)));
 	mvs::Workflow::copyStep_type c(boost::bind(boost::factory<mvs::Content::Task* >(),
 		boost::ref(*this), boost::cref(m_dList), boost::cref(m_fList)));
 
