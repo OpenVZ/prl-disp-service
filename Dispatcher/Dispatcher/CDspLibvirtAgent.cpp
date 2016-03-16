@@ -107,13 +107,19 @@ Result Task::doOnline(const CVmConfiguration& config_, const QList<CVmHardDisk*>
 	unsigned int f = VIR_MIGRATE_PERSIST_DEST |
 				VIR_MIGRATE_CHANGE_PROTECTION |
 				VIR_MIGRATE_LIVE |
-				VIR_MIGRATE_COMPRESSED;
+				VIR_MIGRATE_COMPRESSED |
+				VIR_MIGRATE_AUTO_CONVERGE;
 	if (!disks_.isEmpty())
 		f |= VIR_MIGRATE_NON_SHARED_DISK;
 
 	Parameters::Builder b;
 	Online d(Config(m_domain, m_link, 0), config_, disks_);
 	Result e = d(b);
+	if (e.isFailed())
+		return e;
+
+	// 3000ms is approximation of live downtime requirements in PCS6
+	e = do_(m_domain.data(), boost::bind(&virDomainMigrateSetMaxDowntime, _1, 3000, 0));
 	if (e.isFailed())
 		return e;
 
