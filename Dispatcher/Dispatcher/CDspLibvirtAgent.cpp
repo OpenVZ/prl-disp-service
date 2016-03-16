@@ -160,6 +160,17 @@ Result Task::cancel()
 	return do_(m_domain.data(), boost::bind(&virDomainAbortJob, _1));
 }
 
+Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple>
+Task::getProgress()
+{
+	virDomainJobInfo j;
+	Result x = do_(m_domain.data(), boost::bind(&virDomainGetJobInfo, _1, &j));
+	if (x.isFailed())
+		return x.error();
+
+	return std::make_pair(j.dataTotal, j.dataRemaining);
+}
+
 } // namespace Migration
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -214,19 +214,47 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Progress
+
+struct Progress: QObject
+{
+	typedef Task::agent_type agent_type;
+	typedef boost::function1<void, int> reporter_type;
+	
+	Progress(const agent_type& agent_, const reporter_type& reporter_):
+		m_last(~0), m_agent(agent_), m_reporter(reporter_)
+	{
+	}
+
+protected:
+	void timerEvent(QTimerEvent* event_);
+
+private:
+	Q_OBJECT
+
+	quint16 m_last;
+	agent_type m_agent;
+	reporter_type m_reporter;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
 struct Frontend: Shadow::Frontend<Task, Frontend>
 {
 	typedef Vm::Tunnel::Ready initial_state;
+	typedef Progress::reporter_type reporter_type;
 
-	explicit Frontend(Task_MigrateVmSource& task_): m_task(&task_)
+	Frontend(Task_MigrateVmSource& task_, const reporter_type& reporter_):
+		m_reporter(reporter_), m_task(&task_)
 	{
 	}
 	Frontend(): m_task()
 	{
 	}
 
+	template<typename Event, typename FSM>
+	void on_exit(const Event& event_, FSM& fsm_);
 	void start(const QSharedPointer<QTcpServer>& event_);
 
 	typedef boost::mpl::vector
@@ -245,7 +273,9 @@ struct Frontend: Shadow::Frontend<Task, Frontend>
 	};
 
 private:
+	reporter_type m_reporter;
 	Task_MigrateVmSource* m_task;
+	QSharedPointer<Progress> m_progress;
 };
 
 } // namespace Libvirt

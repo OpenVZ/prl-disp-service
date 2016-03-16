@@ -232,6 +232,8 @@ struct Task
 	Result doOnline(const CVmConfiguration &config_, const QList<CVmHardDisk*>& disks_);
 	Result doOffline(const CVmConfiguration &config_);
 	Result cancel();
+	Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple>
+		getProgress();
 
 private:
 	Result doInternal(Parameters::Builder& parameters_, unsigned int flags_);
