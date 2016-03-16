@@ -1007,11 +1007,7 @@ PRL_RESULT Cpu::setNumber()
 	if (!m_vcpu)
 		return PRL_ERR_UNINITIALIZED;
 
-	CVCpuInfo* v(m_vt.getQemuKvm()->getVCpuInfo());
-	if (!v)
-		return PRL_ERR_UNINITIALIZED;
-
-	m_vcpu->setOwnValue(m_input.isEnableHotplug()? v->getMaxVCpu(): m_input.getNumber());
+	m_vcpu->setOwnValue(m_input.isEnableHotplug() ? 32 : m_input.getNumber());
 	m_vcpu->setCurrent(m_input.getNumber());
 
 	return PRL_ERR_SUCCESS;
