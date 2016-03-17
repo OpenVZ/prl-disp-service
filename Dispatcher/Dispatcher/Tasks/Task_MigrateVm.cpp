@@ -808,7 +808,7 @@ void Task_MigrateVmSource::finalizeTask()
 			PRL_RESULT wcode = PRL_ERR_SUCCESS;
 			foreach (const QString &disk, m_lstNonSharedDisks) {
 				WRITE_TRACE(DBG_INFO, "Deleting external disk '%s'", QSTR2UTF8(disk));
-				if (!CFileHelper::ClearAndDeleteDir(disk))
+				if (!CFileHelper::RemoveEntry(disk, &getClient()->getAuthHelper()))
 					wcode = PRL_ERR_NOT_ALL_FILES_WAS_DELETED;
 			}
 			if (wcode != PRL_ERR_SUCCESS) {
