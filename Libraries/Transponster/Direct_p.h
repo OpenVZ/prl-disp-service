@@ -797,8 +797,37 @@ private:
 	CVmStartupBios* m_bios;
 };
 
-}
+} // namespace Startup
 
+namespace Fixup
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Device
+
+struct Device: boost::static_visitor<PRL_RESULT>
+{
+	Device(const CVmHardware& hardware_, QList<Libvirt::Domain::Xml::VChoice938>& list_)
+		: m_hardware(hardware_), m_list(&list_)
+	{
+	}
+
+	template <typename T>
+	void setDiskSource(Libvirt::Domain::Xml::Disk& disk_, const QList<T*> list_, uint index_);
+	template<class T>
+	PRL_RESULT operator()(const T& device_) const
+	{
+		*m_list << device_;
+		return PRL_ERR_SUCCESS;
+	}
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice938::types, 0>::type& disk_);
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice938::types, 12>::type& serial_);
+
+private:
+	CVmHardware m_hardware;
+	QList<Libvirt::Domain::Xml::VChoice938>* m_list;
+};
+
+} // namespace Fixup
 } // namespace Visitor
 
 template<class T>

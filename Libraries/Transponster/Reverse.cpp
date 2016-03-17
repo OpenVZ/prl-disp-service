@@ -296,80 +296,12 @@ namespace Clustered
 ///////////////////////////////////////////////////////////////////////////////
 // struct Flavor
 
-const Flavor<CVmHardDisk>::emulated_type Flavor<CVmHardDisk>::real = PVE::RealHardDisk;
-const Flavor<CVmHardDisk>::emulated_type Flavor<CVmHardDisk>::image = PVE::HardDiskImage;
 const Libvirt::Domain::Xml::EDevice Flavor<CVmHardDisk>::kind = Libvirt::Domain::Xml::EDeviceDisk;
 const boost::none_t Flavor<CVmHardDisk>::snapshot = boost::none;
 
-template<>
-struct Flavor<CVmOpticalDisk>
-{
-	typedef PVE::CdromEmulatedType emulated_type;
-
-	static const Libvirt::Domain::Xml::EDevice kind;
-	static const emulated_type real;
-	static const emulated_type image;
-	static const bool readonly = true;
-	static const Libvirt::Domain::Xml::ESnapshot snapshot;
-
-	static const char* getTarget()
-	{
-		return "sd";
-	}
-	static mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type
-		getDriverFormat()
-	{
-		mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type output;
-		output.setValue(Libvirt::Domain::Xml::EStorageFormatRaw);
-		return output;
-	}
-	static boost::optional<Libvirt::Domain::Xml::ETray> getTray(emulated_type type_)
-	{
-		if (real == type_)
-			return Libvirt::Domain::Xml::ETrayOpen;
-		if (image == type_)
-			return Libvirt::Domain::Xml::ETrayClosed;
-
-		return boost::optional<Libvirt::Domain::Xml::ETray>(); 
-	}
-};
-const Flavor<CVmOpticalDisk>::emulated_type Flavor<CVmOpticalDisk>::real = PVE::RealCdRom;
-const Flavor<CVmOpticalDisk>::emulated_type Flavor<CVmOpticalDisk>::image = PVE::CdRomImage;
 const Libvirt::Domain::Xml::EDevice Flavor<CVmOpticalDisk>::kind = Libvirt::Domain::Xml::EDeviceCdrom;
 const Libvirt::Domain::Xml::ESnapshot Flavor<CVmOpticalDisk>::snapshot = Libvirt::Domain::Xml::ESnapshotNo;
 
-template<>
-struct Flavor<CVmFloppyDisk>
-{
-	typedef PVE::FloppyEmulatedType emulated_type;
-
-	static const Libvirt::Domain::Xml::EDevice kind;
-	static const emulated_type real;
-	static const emulated_type image;
-	static const bool readonly = true;
-	static const Libvirt::Domain::Xml::ESnapshot snapshot;
-
-	static const char* getTarget()
-	{
-		return "fd";
-	}
-	static mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type
-		getDriverFormat()
-	{
-		mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type output;
-		output.setValue(Libvirt::Domain::Xml::EStorageFormatRaw);
-		return output;
-	}
-	static boost::optional<Libvirt::Domain::Xml::ETray> getTray(emulated_type type_)
-	{
-		if (real == type_)
-			return Libvirt::Domain::Xml::ETrayOpen;
-
-		return boost::optional<Libvirt::Domain::Xml::ETray>(); 
-	}
-};
-const Flavor<CVmFloppyDisk>::emulated_type Flavor<CVmFloppyDisk>::real = PVE::RealFloppyDisk;
-const Flavor<CVmFloppyDisk>::emulated_type Flavor<CVmFloppyDisk>::image = PVE::FloppyDiskImage;
 const Libvirt::Domain::Xml::EDevice Flavor<CVmFloppyDisk>::kind = Libvirt::Domain::Xml::EDeviceFloppy;
 const Libvirt::Domain::Xml::ESnapshot Flavor<CVmFloppyDisk>::snapshot = Libvirt::Domain::Xml::ESnapshotNo;
 
@@ -1526,6 +1458,41 @@ Mixer::Mixer(const CVmConfiguration& input_, char* xml_): Builder(input_)
 
 PRL_RESULT Mixer::setIdentification()
 {
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Fixer
+
+Fixer::Fixer(const CVmConfiguration& input_, char* xml_): Builder(input_)
+{
+	shape(xml_, m_result);
+}
+
+PRL_RESULT Fixer::setDevices()
+{
+	if (m_result.isNull())
+		return PRL_ERR_READ_XML_CONTENT;
+
+	const Libvirt::Domain::Xml::Devices* d = m_result->getDevices().get_ptr();
+	if (NULL == d)
+		return PRL_ERR_UNINITIALIZED;
+
+	Transponster::Device::List a;
+	foreach(const CVmSerialPort* s, m_input.getVmHardwareList()->m_lstSerialPorts)
+		a.add(s);
+
+	QList<Libvirt::Domain::Xml::VChoice938> l = a.getDeviceList();
+
+	Visitor::Fixup::Device v(m_input.getVmHardwareList(), l);
+	foreach (const Libvirt::Domain::Xml::VChoice938& e, d->getChoice938List())
+	{
+		boost::apply_visitor(v, e);
+	}
+
+	Libvirt::Domain::Xml::Devices devices = *d;
+	devices.setChoice938List(l);
+	m_result->setDevices(devices);
 	return PRL_ERR_SUCCESS;
 }
 

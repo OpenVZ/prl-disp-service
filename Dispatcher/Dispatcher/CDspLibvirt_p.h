@@ -398,6 +398,7 @@ struct Config
 
 	Result convert(CVmConfiguration& dst_) const;
 	Prl::Expected<QString, Error::Simple> mixup(const CVmConfiguration& value_) const;
+	Prl::Expected<QString, Error::Simple> fixup(const CVmConfiguration& value_) const;
 
 private:
 	char* read_() const;

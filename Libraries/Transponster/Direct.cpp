@@ -622,6 +622,97 @@ void Usb::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice589::types, 2>
 }
 
 } // namespace Controller
+
+namespace Fixup
+{
+namespace
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Traits
+
+template <typename T>
+struct Traits
+{
+	static bool examine(const T* item_, uint index_)
+	{
+		return check(item_, index_);
+	}
+	static bool check(const T* item_, uint index_)
+	{
+		return item_->getEnabled() == PVE::DeviceEnabled &&
+			item_->getStackIndex() == index_;
+	}
+};
+
+template<>
+bool Traits<CVmHardDisk>::examine(const CVmHardDisk* item_, uint index_)
+{
+	return item_->getConnected() == PVE::DeviceConnected && check(item_, index_);
+}
+
+} // namespace
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Device
+
+template <typename T>
+void Device::setDiskSource(Libvirt::Domain::Xml::Disk& disk_, const QList<T*> list_, uint index_)
+{
+	typename QList<T*>::const_iterator item = std::find_if(list_.constBegin(), list_.constEnd(),
+		boost::bind(&Traits<T>::examine, _1, index_));
+
+	if (item == list_.constEnd())
+		return;
+
+	Transponster::Device::Clustered::Builder::Ordinary<T> b(*item);
+	b.setSource();
+	disk_.setDiskSource(static_cast<const Transponster::Device::Clustered::Builder::Ordinary<T>& >(b)
+		.getResult().getDiskSource());
+}
+
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice938::types, 12>::type&)
+{
+	//drop all serial devices
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice938::types, 0>::type& disk_)
+{
+	if (0 != disk_.getValue().getDisk().which())
+		return PRL_ERR_SUCCESS;
+
+	Libvirt::Domain::Xml::Disk disk = disk_.getValue();
+
+	const Libvirt::Domain::Xml::EDevice* e = boost::get<mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type>
+		(disk.getDisk()).getValue().get_ptr();
+	if (NULL != e)
+	{
+		QString dev = disk.getTarget().getDev();
+		if (dev.isEmpty())
+			return PRL_ERR_FAILURE;
+
+		uint i = Parallels::fromBase26(dev.remove(0, 2));
+
+		switch (*e)
+		{
+		case Libvirt::Domain::Xml::EDeviceDisk:
+			setDiskSource(disk, m_hardware.m_lstHardDisks, i);
+			break;
+		case Libvirt::Domain::Xml::EDeviceCdrom:
+			setDiskSource(disk, m_hardware.m_lstOpticalDisks, i);
+			break;
+		case Libvirt::Domain::Xml::EDeviceFloppy:
+			setDiskSource(disk, m_hardware.m_lstFloppyDisks, i);
+			break;
+		}
+	}
+	mpl::at_c<Libvirt::Domain::Xml::VChoice938::types, 0>::type y;
+	y.setValue(disk);
+	*m_list << Libvirt::Domain::Xml::VChoice938(y);
+	return PRL_ERR_SUCCESS;
+}
+
+} // namespace Fixup
 } // namespace Visitor
 
 namespace Vm

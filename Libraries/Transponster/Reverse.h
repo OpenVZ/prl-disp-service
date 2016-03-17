@@ -187,6 +187,32 @@ struct Mixer: Builder
 	PRL_RESULT setIdentification();
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Fixer
+
+struct Fixer: Builder
+{
+	Fixer(const CVmConfiguration& input_, char* xml_);
+
+	PRL_RESULT setBlank()
+	{
+		return PRL_ERR_SUCCESS;
+	}
+	PRL_RESULT setIdentification()
+	{
+		return PRL_ERR_SUCCESS;
+	}
+	PRL_RESULT setSettings()
+	{
+		return PRL_ERR_SUCCESS;
+	}
+	PRL_RESULT setResources(const VtInfo&)
+	{
+		return PRL_ERR_SUCCESS;
+	}
+	PRL_RESULT setDevices();
+};
+
 } // namespace Reverse
 } // namespace Vm
 

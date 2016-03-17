@@ -126,9 +126,12 @@ Result Offline::operator()(Parameters::Builder& builder_)
 	if (!builder_.add(VIR_MIGRATE_PARAM_DEST_NAME, n))
 		return Failure(PRL_ERR_FAILURE);
 
-	Prl::Expected<QString, Error::Simple> x = m_agent.mixup(*m_config);
+	Prl::Expected<QString, Error::Simple> x = m_agent.fixup(*m_config);
 	if (x.isFailed())
+	{
+		WRITE_TRACE(DBG_DEBUG, "VM configuration fixup failed");
 		return x.error();
+	}
 
 	if (!builder_.add(VIR_MIGRATE_PARAM_DEST_XML, x.value()))
 		return Failure(PRL_ERR_FAILURE);
@@ -221,6 +224,20 @@ Prl::Expected<QString, Error::Simple> Config::mixup(const CVmConfiguration& valu
 		return i.error();
 
 	Transponster::Vm::Reverse::Mixer u(value_, read_());
+	PRL_RESULT res = Transponster::Director::domain(u, i.value());
+	if (PRL_FAILED(res))
+		return Error::Simple(res);
+
+	return u.getResult();
+}
+
+Prl::Expected<QString, Error::Simple> Config::fixup(const CVmConfiguration& value_) const
+{
+	Prl::Expected<VtInfo, Error::Simple> i = Host(m_link).getVt();
+	if (i.isFailed())
+		return i.error();
+
+	Transponster::Vm::Reverse::Fixer u(value_, read_());
 	PRL_RESULT res = Transponster::Director::domain(u, i.value());
 	if (PRL_FAILED(res))
 		return Error::Simple(res);
