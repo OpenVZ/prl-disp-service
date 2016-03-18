@@ -49,35 +49,6 @@ bool Unit<CVmHardDisk>::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSo
 } // namespace Source
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Cpu
-
-void Cpu::operator()(const mpl::at_c<Libvirt::Domain::Xml::VCpu::types, 2>::type& cpu_) const
-{
-	foreach (const Libvirt::Domain::Xml::Feature& f,
-		cpu_.getValue().getFeatureList())
-	{
-		if (f.getName().compare(QString("vmx"), Qt::CaseInsensitive))
-		{
-			if (f.getPolicy() == Libvirt::Domain::Xml::EPolicyDisable)
-				m_hardware->getCpu()->setVirtualizedHV(false);
-			break;
-		}
-	}
-
-	if (cpu_.getValue().getNuma()) {
-
-		qint32 maxNumaRam = 0;
-		foreach (const Libvirt::Domain::Xml::Cell& cell,
-			 cpu_.getValue().getNuma().get())
-		{
-			maxNumaRam += cell.getMemory()>>10;
-		}
-		if (maxNumaRam)
-			m_hardware->getMemory()->setMaxNumaRamSize(maxNumaRam);
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Floppy
 
 PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
@@ -108,12 +79,12 @@ PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Iotune
 
-void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1057::types, 0>::type& iopsLimit_) const
+void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1054::types, 0>::type& iopsLimit_) const
 {
 	m_disk->setIopsLimit(iopsLimit_.getValue());
 }
 
-void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1053::types, 0>::type& ioLimit_) const
+void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1050::types, 0>::type& ioLimit_) const
 {
 	m_disk->setIoLimit(new CVmIoLimit(PRL_IOLIMIT_BS, ioLimit_.getValue()));
 }
@@ -148,8 +119,8 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	if (t)
 	{
 		Iotune v(d);
-		boost::apply_visitor(v, (*t).getChoice1057());
-		boost::apply_visitor(v, (*t).getChoice1053());
+		boost::apply_visitor(v, (*t).getChoice1054());
+		boost::apply_visitor(v, (*t).getChoice1050());
 	}
 	d->setTargetDeviceName(disk_.getTarget().getDev());
 	if (disk_.getSerial())
@@ -899,7 +870,7 @@ PRL_RESULT Vm::setResources(const VtInfo& vt_)
 	if (m_input->getVcpu())
 		r.setCpu(*m_input, vt_);
 	if (m_input->getCpu())
-		r.setVCpu(m_input->getCpu().get());
+		r.setCpu(m_input->getCpu().get());
 	if (m_input->getClock())
 		r.setClock(m_input->getClock().get());
 	if (m_input->getSysinfo())
@@ -1004,7 +975,7 @@ PRL_RESULT Direct::setHostOnly()
 		if (a)
 			boost::apply_visitor(Visitor::Address::Ip(*h), a.get());
 
-		boost::optional<Libvirt::Network::Xml::VChoice1178> m = p.getChoice1178();
+		boost::optional<Libvirt::Network::Xml::VChoice1175> m = p.getChoice1175();
 		if (m)
 			boost::apply_visitor(Visitor::Address::Mask(*h), m.get());
 
@@ -1115,8 +1086,8 @@ PRL_RESULT Direct::setMaster()
 	if (m_input.isNull())
 		return PRL_ERR_READ_XML_CONTENT;
  
-	foreach (const Libvirt::Iface::Xml::VChoice1242& a,
-		m_input->getBridge().getChoice1242List())
+	foreach (const Libvirt::Iface::Xml::VChoice1239& a,
+		m_input->getBridge().getChoice1239List())
 	{
 		if (boost::apply_visitor(Visitor::Bridge::Master(m_master), a))
 			return PRL_ERR_SUCCESS;

@@ -34,13 +34,31 @@ namespace Transponster
 ///////////////////////////////////////////////////////////////////////////////
 // struct Resources
 
-void Resources::setVCpu(const Libvirt::Domain::Xml::VCpu& src_)
+void Resources::setCpu(const Libvirt::Domain::Xml::Cpu& src_)
 {
 	CVmHardware* h = getHardware();
 	if (NULL == h)
 		return;
 
-	boost::apply_visitor(Visitor::Cpu(*h), src_);
+	foreach (const Libvirt::Domain::Xml::Feature& f, src_.getFeatureList())
+	{
+		if (f.getName().compare(QString("vmx"), Qt::CaseInsensitive))
+		{
+			if (f.getPolicy() == Libvirt::Domain::Xml::EPolicyDisable)
+				h->getCpu()->setVirtualizedHV(false);
+			break;
+		}
+	}
+
+	if (src_.getNuma())
+	{
+		qint32 maxNumaRam = 0;
+		foreach (const Libvirt::Domain::Xml::Cell& cell, src_.getNuma().get())
+			maxNumaRam += cell.getMemory()>>10;
+
+		if (maxNumaRam)
+			h->getMemory()->setMaxNumaRamSize(maxNumaRam);
+	}
 }
 
 namespace
@@ -56,7 +74,7 @@ void disableFeature(QList<Libvirt::Domain::Xml::Feature>& features_, const QStri
 
 } // namespace
 
-bool Resources::getVCpu(Libvirt::Domain::Xml::VCpu& dst_)
+bool Resources::getCpu(Libvirt::Domain::Xml::Cpu& dst_)
 {
 	CVmHardware* h = getHardware();
 	if (NULL == h)
@@ -69,15 +87,13 @@ bool Resources::getVCpu(Libvirt::Domain::Xml::VCpu& dst_)
 	if(0 == u->getNumber())
 		return false;
 
-	Libvirt::Domain::Xml::Cpu958 c;
-	
-	c.setMode(Libvirt::Domain::Xml::EModeHostPassthrough);
+	dst_.setMode(Libvirt::Domain::Xml::EModeHostPassthrough);
 
 #if (LIBVIR_VERSION_NUMBER >= 1002013)
 	QList<Libvirt::Domain::Xml::Feature> l;
 	if (!u->isVirtualizedHV())
 		disableFeature(l, QString("vmx"));
-	c.setFeatureList(l);
+	dst_.setFeatureList(l);
 #endif
 
 	CVmMemory *m = h->getMemory();
@@ -95,12 +111,8 @@ bool Resources::getVCpu(Libvirt::Domain::Xml::VCpu& dst_)
 		cell.setCpus(mask);
 		cell.setMemory(m->getMaxNumaRamSize()<<10);
 		cells.append(cell);
-		c.setNuma(cells);
+		dst_.setNuma(cells);
 	}
-
-	mpl::at_c<Libvirt::Domain::Xml::VCpu::types, 2>::type v;
-	v.setValue(c);
-	dst_ = Libvirt::Domain::Xml::VCpu(v);
 
 	return true;
 }
@@ -366,9 +378,9 @@ void Hdd::setIoLimit(const CVmIoLimit* global_)
 
 	if (p != 0)
 	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice1053::types, 0>::type y;
+		mpl::at_c<Libvirt::Domain::Xml::VChoice1050::types, 0>::type y;
 		y.setValue(p);
-		t.setChoice1053(Libvirt::Domain::Xml::VChoice1053(y));
+		t.setChoice1050(Libvirt::Domain::Xml::VChoice1050(y));
 	}
 
 	getResult().setIotune(t);
@@ -385,9 +397,9 @@ void Hdd::setIopsLimit(const CVmRunTimeOptions& runtime_)
 
 	if (p != 0)
 	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice1057::types, 0>::type y;
+		mpl::at_c<Libvirt::Domain::Xml::VChoice1054::types, 0>::type y;
 		y.setValue(p);
-		t.setChoice1057(Libvirt::Domain::Xml::VChoice1057(y));
+		t.setChoice1054(Libvirt::Domain::Xml::VChoice1054(y));
 	}
 
 	getResult().setIotune(t);
@@ -1314,8 +1326,8 @@ PRL_RESULT Builder::setResources(const VtInfo& vt_)
 	if (u.getMaxMemory(max_m))
 		m_result->setMaxMemory(max_m);
 
-	Libvirt::Domain::Xml::VCpu c;
-	if (u.getVCpu(c))
+	Libvirt::Domain::Xml::Cpu c;
+	if (u.getCpu(c))
 		m_result->setCpu(c);
 
 	Libvirt::Domain::Xml::Clock t;
@@ -1680,9 +1692,9 @@ Libvirt::Network::Xml::Ip craft(const CDHCPServer& src_,
 	output.setAddress(Libvirt::Network::Xml::VIpAddr(a));
 	typename mpl::at_c<Libvirt::Network::Xml::VIpPrefix::types, T::index>::type p;
 	p.setValue(T::getMask(mask_));
-	mpl::at_c<Libvirt::Network::Xml::VChoice1178::types, 1>::type m;
+	mpl::at_c<Libvirt::Network::Xml::VChoice1175::types, 1>::type m;
 	m.setValue(p);
-	output.setChoice1178(Libvirt::Network::Xml::VChoice1178(m));
+	output.setChoice1175(Libvirt::Network::Xml::VChoice1175(m));
 
 	return output;
 }
@@ -1731,10 +1743,10 @@ PRL_RESULT Reverse::setMaster()
 	Libvirt::Iface::Xml::BasicEthernetContent e;
 	e.setMac(m_master.getMacAddress());
 	e.setName(m_master.getDeviceName());
-	mpl::at_c<Libvirt::Iface::Xml::VChoice1242::types, 0>::type v;
+	mpl::at_c<Libvirt::Iface::Xml::VChoice1239::types, 0>::type v;
 	v.setValue(e);
 	Libvirt::Iface::Xml::Bridge b = m_result.getBridge();
-	b.setChoice1242List(QList<Libvirt::Iface::Xml::VChoice1242>() << v);
+	b.setChoice1239List(QList<Libvirt::Iface::Xml::VChoice1239>() << v);
 	m_result.setBridge(b);
 	return PRL_ERR_SUCCESS;
 }
@@ -1745,7 +1757,7 @@ PRL_RESULT Reverse::setBridge()
 	b.setDelay(2.0);
 	b.setStp(Libvirt::Iface::Xml::EVirOnOffOff);
 	m_result.setBridge(b);
-	Libvirt::Iface::Xml::InterfaceAddressing1272 h;
+	Libvirt::Iface::Xml::InterfaceAddressing1269 h;
 	if (!m_master.isConfigureWithDhcp())
 	{
 		if (!m_master.isConfigureWithDhcpIPv6())
@@ -1755,9 +1767,9 @@ PRL_RESULT Reverse::setBridge()
 		p.setDhcp(Libvirt::Iface::Xml::Dhcp());
 		h.setProtocol2(p);
 	}
-	mpl::at_c<Libvirt::Iface::Xml::VChoice1278::types, 0>::type a;
+	mpl::at_c<Libvirt::Iface::Xml::VChoice1275::types, 0>::type a;
 	a.setValue(Libvirt::Iface::Xml::Dhcp());
-	h.setProtocol(Libvirt::Iface::Xml::VChoice1278(a));
+	h.setProtocol(Libvirt::Iface::Xml::VChoice1275(a));
 	mpl::at_c<Libvirt::Iface::Xml::VInterfaceAddressing::types, 0>::type v;
 	v.setValue(h);
 	m_result.setInterfaceAddressing(v);
@@ -1832,7 +1844,7 @@ QList<Libvirt::Snapshot::Xml::Disk> getAbsentee(const QList<T* >& list_)
 		mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 		a.setValue(Device::Clustered::Model<T>(*d).getTargetName());
 		mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 0>::type b;
-		b.setValue(Libvirt::Snapshot::Xml::Disk1740());
+		b.setValue(Libvirt::Snapshot::Xml::Disk1731());
 		Libvirt::Snapshot::Xml::Disk x;
 		x.setName(Libvirt::Snapshot::Xml::VName(a));
 		x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
@@ -1880,7 +1892,7 @@ PRL_RESULT Reverse::setInstructions()
 		mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 		a.setValue(Device::Clustered::Model<CVmHardDisk>(*d).getTargetName());
 		mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 1>::type b;
-		b.setValue(Libvirt::Snapshot::Xml::Disk1741());
+		b.setValue(Libvirt::Snapshot::Xml::Disk1732());
 		Libvirt::Snapshot::Xml::Disk x;
 		x.setName(Libvirt::Snapshot::Xml::VName(a));
 		x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
