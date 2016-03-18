@@ -57,8 +57,8 @@
 #define PRL_ABACKUP_SERVER "prl_backup_server"
 #endif
 #ifdef _LIN_
-#define PRL_ABACKUP_CLIENT "/usr/sbin/prl_backup_client"
-#define PRL_ABACKUP_SERVER "/usr/sbin/prl_backup_server"
+#define PRL_ABACKUP_CLIENT "/usr/libexec/prl_backup_client"
+#define PRL_ABACKUP_SERVER "/usr/libexec/prl_backup_server"
 #endif
 
 #define PRL_CT_BACKUP_TIB_FILE_NAME "private.tib"
