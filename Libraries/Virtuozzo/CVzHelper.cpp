@@ -3265,10 +3265,13 @@ int CVzOperationHelper::alloc_snapshot_holder()
 }
 
 int CVzOperationHelper::create_tsnapshot(const QString &uuid,
-		const QString &snap_guid, const char *component_name,
-		const char *snap_dir)
+		const QString &snap_guid, const QString &cbt_uuid,
+		const char *component_name, const char *snap_dir)
 {
 	int ret;
+
+	if (!cbt_uuid.isEmpty())
+		return PRL_ERR_UNIMPLEMENTED;
 
 	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
 	if (ctid.isEmpty())

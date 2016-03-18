@@ -962,12 +962,7 @@ PRL_RESULT Sketch::open(const QString& uuid_, const QString& tmp_)
 		return PRL_ERR_DOUBLE_INIT;
 
 	QString c = QString(s_component).append(".").append(uuid_);
-/*
 	if (0 != m_core.create_tsnapshot(m_ct, uuid_, m_map, QSTR2UTF8(c),
-		tmp_.isEmpty() ? NULL : QSTR2UTF8(tmp_)))
-*/
-	Q_UNUSED(uuid_);
-	if (0 != m_core.create_tsnapshot(m_ct, m_map, QSTR2UTF8(c),
 		tmp_.isEmpty() ? NULL : QSTR2UTF8(tmp_)))
 		return PRL_ERR_BACKUP_CREATE_SNAPSHOT_FAILED;
 

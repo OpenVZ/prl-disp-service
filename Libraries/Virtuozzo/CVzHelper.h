@@ -426,7 +426,8 @@ public:
 	void release_snapshot_holder();
 	int alloc_snapshot_holder();
 	int create_tsnapshot(const QString &guid, const QString &snap_guid,
-			const char *component_name, const char *snap_dir);
+			const QString &cbt_uuid, const char *component_name,
+			const char *snap_dir);
 	int delete_tsnapshot(const QString &uuid, const QString &snapsot_guid);
 	int umount_snapshot(const QString &dev);
 	int mount_disk_snapshot(const QString &path, const QString &snap_guid,
