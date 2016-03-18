@@ -794,12 +794,12 @@ QString Private::getCopyPath(const QString& full_) const
 PRL_RESULT Private::addFile(SmartPtr<CVmConfiguration> config_)
 {
 	QString p = getPath(VMDIR_DEFAULT_VM_CONFIG_FILE);
+	config_->getVmIdentification()->setHomePath(p);
 	PRL_RESULT e = CDspService::instance()->getVmConfigManager().saveConfig(
 				config_, p, getClient(), true, true);
 	if (PRL_FAILED(e))
 		return e;
 
-	config_->getVmIdentification()->setHomePath(p);
 	////////////////////////////////////////////////////////////////////////////
 	// Set default permissions to vm files
 	// NOTE: It need as SYSTEM user ( after revertToSelf )
