@@ -52,7 +52,6 @@
 
 #include <prlsdk/PrlOses.h>
 
-//#include "Libraries/DiskImage/PartitionTable.h"  // DiskImage commented out by request from CP team
 #include <prlxmlmodel/DispConfig/CDispUsbPreferences.h>
 
 class CHostHardwareInfo;
@@ -430,11 +429,6 @@ private:
 	// List of authentic names for usb devices
 	CUsbAuthenticNameList m_UsbAuthenticList;
 
-// DiskImage commented out by request from CP team
-//	// Convert to HardwareInfo
-//	static PRL_RESULT ConvertToHardwareInfo(QList<CHwHddPartition*>& pHddParts,
-//											const CPartition::InfoMap& Parts,
-//											const QString& hddName);
 	// Dump list of partitions
 	static void DumpParts(int iLevel, QList<CHwHddPartition*>& lst);
 

@@ -58,7 +58,6 @@
 #include <prlcommon/Interfaces/ParallelsPlatform.h>
 
 #include <prlcommon/Logging/Logging.h>
-//#include "Libraries/DiskImage/PartitionTable.h"  // DiskImage commented out by request from CP team
 #include "Libraries/VtdSetup/VtdSetup.h"
 
 #include <prlcommon/HostUtils/SetupApiUtils_win.h>
