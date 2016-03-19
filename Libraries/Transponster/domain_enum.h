@@ -49,23 +49,11 @@ enum EType
 	ETypeBhyve
 };
 
-enum EMemAccess
-{
-	EMemAccessShared,
-	EMemAccessPrivate
-};
-
 enum EMode
 {
 	EModeCustom,
 	EModeHostModel,
 	EModeHostPassthrough
-};
-
-enum EFallback
-{
-	EFallbackAllow,
-	EFallbackForbid
 };
 
 enum EMatch
@@ -75,6 +63,12 @@ enum EMatch
 	EMatchStrict
 };
 
+enum EFallback
+{
+	EFallbackAllow,
+	EFallbackForbid
+};
+
 enum EPolicy
 {
 	EPolicyForce,
@@ -82,6 +76,12 @@ enum EPolicy
 	EPolicyOptional,
 	EPolicyDisable,
 	EPolicyForbid
+};
+
+enum EMemAccess
+{
+	EMemAccessShared,
+	EMemAccessPrivate
 };
 
 enum ESysinfoBiosName
@@ -814,10 +814,10 @@ enum EModel5
 	EModel5Virtio
 };
 
-enum EChoice1022
+enum EChoice1019
 {
-	EChoice1022DevRandom,
-	EChoice1022DevHwrng
+	EChoice1019DevRandom,
+	EChoice1019DevHwrng
 };
 
 enum EModel6

@@ -132,8 +132,8 @@ struct Flavor<CVmHardDisk>
 	typedef PVE::HardDiskEmulatedType emulated_type;
 
 	static const Libvirt::Domain::Xml::EDevice kind;
-	static const emulated_type real;
-	static const emulated_type image;
+	static const emulated_type real = PVE::RealHardDisk;
+	static const emulated_type image = PVE::HardDiskImage;
 	static const bool readonly = false;
 	static const boost::none_t snapshot;
 
@@ -153,6 +153,71 @@ struct Flavor<CVmHardDisk>
 		return boost::optional<Libvirt::Domain::Xml::ETray>();
 	}
 };
+
+template<>
+struct Flavor<CVmOpticalDisk>
+{
+	typedef PVE::CdromEmulatedType emulated_type;
+
+	static const Libvirt::Domain::Xml::EDevice kind;
+	static const emulated_type real = PVE::RealCdRom;
+	static const emulated_type image = PVE::CdRomImage;
+	static const bool readonly = true;
+	static const Libvirt::Domain::Xml::ESnapshot snapshot;
+
+	static const char* getTarget()
+	{
+		return "sd";
+	}
+	static mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type
+		getDriverFormat()
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type output;
+		output.setValue(Libvirt::Domain::Xml::EStorageFormatRaw);
+		return output;
+	}
+	static boost::optional<Libvirt::Domain::Xml::ETray> getTray(emulated_type type_)
+	{
+		if (real == type_)
+			return Libvirt::Domain::Xml::ETrayOpen;
+		if (image == type_)
+			return Libvirt::Domain::Xml::ETrayClosed;
+
+		return boost::optional<Libvirt::Domain::Xml::ETray>();
+	}
+};
+
+template<>
+struct Flavor<CVmFloppyDisk>
+{
+	typedef PVE::FloppyEmulatedType emulated_type;
+
+	static const Libvirt::Domain::Xml::EDevice kind;
+	static const emulated_type real = PVE::RealFloppyDisk;
+	static const emulated_type image = PVE::FloppyDiskImage;
+	static const bool readonly = true;
+	static const Libvirt::Domain::Xml::ESnapshot snapshot;
+
+	static const char* getTarget()
+	{
+		return "fd";
+	}
+	static mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type
+		getDriverFormat()
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type output;
+		output.setValue(Libvirt::Domain::Xml::EStorageFormatRaw);
+		return output;
+	}
+	static boost::optional<Libvirt::Domain::Xml::ETray> getTray(emulated_type type_)
+	{
+		if (real == type_)
+			return Libvirt::Domain::Xml::ETrayOpen;
+
+		return boost::optional<Libvirt::Domain::Xml::ETray>();
+	}
+};
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Model
@@ -687,8 +752,8 @@ struct Resources
 	{
 	}
 
-	void setVCpu(const Libvirt::Domain::Xml::VCpu& src_);
-	bool getVCpu(Libvirt::Domain::Xml::VCpu& dst_);
+	void setCpu(const Libvirt::Domain::Xml::Cpu& src_);
+	bool getCpu(Libvirt::Domain::Xml::Cpu& dst_);
 	void setCpu(const Libvirt::Domain::Xml::Domain& vm_, const VtInfo& vt_);
 	bool getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Domain& dst_);
 	void setClock(const Libvirt::Domain::Xml::Clock& src_);

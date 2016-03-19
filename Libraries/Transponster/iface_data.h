@@ -132,13 +132,13 @@ struct Traits<Iface::Xml::POctalMode>
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1202
+// struct PData1199
 
 namespace Iface
 {
 namespace Xml
 {
-struct PData1202
+struct PData1199
 {
 	typedef QString value_type;
 };
@@ -147,20 +147,20 @@ struct PData1202
 } // namespace Iface
 
 template<>
-struct Validatable<Iface::Xml::PData1202>: mpl::true_
+struct Validatable<Iface::Xml::PData1199>: mpl::true_
 {
-	static bool validate(const Iface::Xml::PData1202::value_type& value_);
+	static bool validate(const Iface::Xml::PData1199::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1204
+// struct PData1201
 
 namespace Iface
 {
 namespace Xml
 {
-struct PData1204
+struct PData1201
 {
 	typedef qint32 value_type;
 };
@@ -169,29 +169,29 @@ struct PData1204
 } // namespace Iface
 
 template<>
-struct Traits<Iface::Xml::PData1204>
+struct Traits<Iface::Xml::PData1201>
 {
-	static bool parse(const QString& src_, Iface::Xml::PData1204::value_type& dst_);
+	static bool parse(const QString& src_, Iface::Xml::PData1201::value_type& dst_);
 
-	static QString generate(Iface::Xml::PData1204::value_type src_);
+	static QString generate(Iface::Xml::PData1201::value_type src_);
 
 };
 
 template<>
-struct Validatable<Iface::Xml::PData1204>: mpl::true_
+struct Validatable<Iface::Xml::PData1201>: mpl::true_
 {
-	static bool validate(Iface::Xml::PData1204::value_type value_);
+	static bool validate(Iface::Xml::PData1201::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1206
+// struct PData1203
 
 namespace Iface
 {
 namespace Xml
 {
-struct PData1206
+struct PData1203
 {
 	typedef QString value_type;
 };
@@ -200,20 +200,20 @@ struct PData1206
 } // namespace Iface
 
 template<>
-struct Validatable<Iface::Xml::PData1206>: mpl::true_
+struct Validatable<Iface::Xml::PData1203>: mpl::true_
 {
-	static bool validate(const Iface::Xml::PData1206::value_type& value_);
+	static bool validate(const Iface::Xml::PData1203::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1208
+// struct PData1205
 
 namespace Iface
 {
 namespace Xml
 {
-struct PData1208
+struct PData1205
 {
 	typedef qint32 value_type;
 };
@@ -222,29 +222,29 @@ struct PData1208
 } // namespace Iface
 
 template<>
-struct Traits<Iface::Xml::PData1208>
+struct Traits<Iface::Xml::PData1205>
 {
-	static bool parse(const QString& src_, Iface::Xml::PData1208::value_type& dst_);
+	static bool parse(const QString& src_, Iface::Xml::PData1205::value_type& dst_);
 
-	static QString generate(Iface::Xml::PData1208::value_type src_);
+	static QString generate(Iface::Xml::PData1205::value_type src_);
 
 };
 
 template<>
-struct Validatable<Iface::Xml::PData1208>: mpl::true_
+struct Validatable<Iface::Xml::PData1205>: mpl::true_
 {
-	static bool validate(Iface::Xml::PData1208::value_type value_);
+	static bool validate(Iface::Xml::PData1205::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1210
+// struct PData1207
 
 namespace Iface
 {
 namespace Xml
 {
-struct PData1210
+struct PData1207
 {
 	typedef QString value_type;
 };
@@ -253,20 +253,20 @@ struct PData1210
 } // namespace Iface
 
 template<>
-struct Validatable<Iface::Xml::PData1210>: mpl::true_
+struct Validatable<Iface::Xml::PData1207>: mpl::true_
 {
-	static bool validate(const Iface::Xml::PData1210::value_type& value_);
+	static bool validate(const Iface::Xml::PData1207::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1212
+// struct PData1209
 
 namespace Iface
 {
 namespace Xml
 {
-struct PData1212
+struct PData1209
 {
 	typedef QString value_type;
 };
@@ -275,9 +275,9 @@ struct PData1212
 } // namespace Iface
 
 template<>
-struct Validatable<Iface::Xml::PData1212>: mpl::true_
+struct Validatable<Iface::Xml::PData1209>: mpl::true_
 {
-	static bool validate(const Iface::Xml::PData1212::value_type& value_);
+	static bool validate(const Iface::Xml::PData1209::value_type& value_);
 
 };
 

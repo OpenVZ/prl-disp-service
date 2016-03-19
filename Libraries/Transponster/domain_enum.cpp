@@ -48,28 +48,12 @@ Enum<Domain::Xml::EType>::data_type Enum<Domain::Xml::EType>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EMemAccess>::data_type Enum<Domain::Xml::EMemAccess>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EMemAccessShared, "shared"))
-			(data_type::value_type(Domain::Xml::EMemAccessPrivate, "private"));
-}
-
-template<>
 Enum<Domain::Xml::EMode>::data_type Enum<Domain::Xml::EMode>::getData()
 {
 	return ba::list_of<data_type::relation>
 			(data_type::value_type(Domain::Xml::EModeCustom, "custom"))
 			(data_type::value_type(Domain::Xml::EModeHostModel, "host-model"))
 			(data_type::value_type(Domain::Xml::EModeHostPassthrough, "host-passthrough"));
-}
-
-template<>
-Enum<Domain::Xml::EFallback>::data_type Enum<Domain::Xml::EFallback>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EFallbackAllow, "allow"))
-			(data_type::value_type(Domain::Xml::EFallbackForbid, "forbid"));
 }
 
 template<>
@@ -82,6 +66,14 @@ Enum<Domain::Xml::EMatch>::data_type Enum<Domain::Xml::EMatch>::getData()
 }
 
 template<>
+Enum<Domain::Xml::EFallback>::data_type Enum<Domain::Xml::EFallback>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EFallbackAllow, "allow"))
+			(data_type::value_type(Domain::Xml::EFallbackForbid, "forbid"));
+}
+
+template<>
 Enum<Domain::Xml::EPolicy>::data_type Enum<Domain::Xml::EPolicy>::getData()
 {
 	return ba::list_of<data_type::relation>
@@ -90,6 +82,14 @@ Enum<Domain::Xml::EPolicy>::data_type Enum<Domain::Xml::EPolicy>::getData()
 			(data_type::value_type(Domain::Xml::EPolicyOptional, "optional"))
 			(data_type::value_type(Domain::Xml::EPolicyDisable, "disable"))
 			(data_type::value_type(Domain::Xml::EPolicyForbid, "forbid"));
+}
+
+template<>
+Enum<Domain::Xml::EMemAccess>::data_type Enum<Domain::Xml::EMemAccess>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EMemAccessShared, "shared"))
+			(data_type::value_type(Domain::Xml::EMemAccessPrivate, "private"));
 }
 
 template<>
@@ -1025,11 +1025,11 @@ Enum<Domain::Xml::EModel5>::data_type Enum<Domain::Xml::EModel5>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EChoice1022>::data_type Enum<Domain::Xml::EChoice1022>::getData()
+Enum<Domain::Xml::EChoice1019>::data_type Enum<Domain::Xml::EChoice1019>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EChoice1022DevRandom, "/dev/random"))
-			(data_type::value_type(Domain::Xml::EChoice1022DevHwrng, "/dev/hwrng"));
+			(data_type::value_type(Domain::Xml::EChoice1019DevRandom, "/dev/random"))
+			(data_type::value_type(Domain::Xml::EChoice1019DevHwrng, "/dev/hwrng"));
 }
 
 template<>
