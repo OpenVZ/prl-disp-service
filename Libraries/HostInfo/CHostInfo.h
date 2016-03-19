@@ -52,7 +52,6 @@
 
 #include <prlsdk/PrlOses.h>
 
-//#include "Libraries/DiskImage/PartitionTable.h"  // DiskImage commented out by request from CP team
 #include <prlxmlmodel/DispConfig/CDispUsbPreferences.h>
 
 class CHostHardwareInfo;
@@ -278,13 +277,6 @@ public:
 	/* Create friendly name for usb device */
 	static QString CreateUsbFriendlyName( UINT uClassID, UINT uVendorID, UINT uProductID );
 
-	// used to decode sound system name
-	static bool ParseSoundSystemName(bool is_input, const QString& sys_name,
-									int* id, bool* is_default, bool* is_null);
-
-	static QString GetDefaultSoundInputSystemName();
-	static QString GetDefaultSoundOutputSystemName();
-
 #ifdef _WIN_
 	// Search for rasterizer path
 	static bool GetRasterizerPath(QString& rastExec);
@@ -358,10 +350,6 @@ private:
 
 		Old.clear();
 	};
-
-// PortAudioWrap commented out by request from CP team
-//    /* build lists of sound devices, both: palyback and capture*/
-//	void GetSoundLists();
 
 #ifdef _WIN_
 	// Search for rasterizer
@@ -441,11 +429,6 @@ private:
 	// List of authentic names for usb devices
 	CUsbAuthenticNameList m_UsbAuthenticList;
 
-// DiskImage commented out by request from CP team
-//	// Convert to HardwareInfo
-//	static PRL_RESULT ConvertToHardwareInfo(QList<CHwHddPartition*>& pHddParts,
-//											const CPartition::InfoMap& Parts,
-//											const QString& hddName);
 	// Dump list of partitions
 	static void DumpParts(int iLevel, QList<CHwHddPartition*>& lst);
 
