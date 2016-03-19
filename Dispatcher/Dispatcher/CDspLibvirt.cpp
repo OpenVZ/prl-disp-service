@@ -729,25 +729,27 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 		return 0;
 	case VIR_DOMAIN_EVENT_STARTED:
 		if (detail_ == VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT)
-			break;
+			// state updated on defined from snapshot
+			return 0;
+
 		// This event means that live migration is started, but VM has
 		// not been defined yet. Ignore it.
 		if (detail_ == VIR_DOMAIN_EVENT_STARTED_MIGRATED)
 			return 0;
+
 		v->setState(domain_, VMS_RUNNING);
 		return 0;
 	case VIR_DOMAIN_EVENT_RESUMED:
 		if (detail_ == VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT)
-			break;
+			// state updated on defined from snapshot
+			return 0;
 
 		v->setState(domain_, VMS_RUNNING);
 		return 0;
 	case VIR_DOMAIN_EVENT_SUSPENDED:
 		if (detail_ == VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT)
-		{
-			v->prepareToSwitch(domain_);
-			break;
-		}
+			// state updated on defined from snapshot
+			return 0;
 
 		switch (detail_)
 		{
@@ -774,7 +776,8 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 		return 0;
 	case VIR_DOMAIN_EVENT_STOPPED:
 		if (detail_ == VIR_DOMAIN_EVENT_STOPPED_FROM_SNAPSHOT)
-			break;
+			// state updated on defined from snapshot
+			return 0;
 
 		switch (detail_)
 		{
