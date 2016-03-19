@@ -449,6 +449,15 @@ void MemoryOptions::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 		(new CVmMemory(new_.getVmHardwareList()->getMemory())));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct HighAvailability
+
+void HighAvailability::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	new_.getVmSettings()->setHighAvailability(
+		new CVmHighAvailability(old_.getVmSettings()->getHighAvailability()));
+}
+
 namespace Access
 {
 ///////////////////////////////////////////////////////////////////////////////
