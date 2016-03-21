@@ -39,16 +39,17 @@
 #include "CDspVm.h"
 #include "CDspService.h"
 #include "CDspCommon.h"
-#include "CDspVmStateSender.h"
+#include "CDspRegistry.h"
+#include "CDspStatStorage.h"
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 #include <prlsdk/PrlPerfCounters.h>
 #include <prlsdk/PrlIOStructs.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>
 #include <prlcommon/Std/BitOps.h>
-
 #include <QDateTime>
 #include <QRegExp>
+#include <QWeakPointer>
 #include <numeric>
 
 // By adding this interface we enable allocations tracing in the module
@@ -70,8 +71,8 @@
 
 using namespace Parallels;
 
-namespace {
-
+namespace
+{
 ///////////////////////////////////////////////////////////////////////////////
 // struct DAO
 
@@ -111,8 +112,8 @@ namespace Stat
 {
 namespace Collecting
 {
-
-namespace Ct {
+namespace Ct
+{
 
 static DAO<QList< ::Ct::Statistics::Filesystem> > s_dao;
 
@@ -120,18 +121,18 @@ static DAO<QList< ::Ct::Statistics::Filesystem> > s_dao;
 // struct Farmer
 
 Farmer::Farmer(const CVmIdent& ident_):
-	m_timer(startTimer(0)), m_period(STAT_COLLECTING_TIMEOUT), m_ident(ident_)
+	m_timer(startTimer(0)), m_ident(ident_)
 {
-	qint64 p = CDspService::instance()->getDispConfigGuard()
+	qint64 c = CDspService::instance()->getDispConfigGuard()
 		.getDispWorkSpacePrefs()->getVmGuestCollectPeriod() * 1000;
-	m_period = qMax(p, qint64(m_period));
+	m_period = qMax(c, qint64(STAT_COLLECTING_TIMEOUT));
 }
 
 void Farmer::reset()
 {
 	if (m_watcher)
 	{
-		m_watcher->disconnect(this, SLOT(finish()));
+		m_watcher->disconnect(this, SLOT(reset()));
 		m_watcher->waitForFinished();
 		m_watcher.reset();
 	}
@@ -154,170 +155,48 @@ void Farmer::handle(unsigned state_, QString uuid_, QString dir_, bool flag_)
 	m_timer = VMS_RUNNING == state_ ? startTimer(0) : 0;
 }
 
-void Farmer::collect()
-{
-	const QString& u = m_ident.first;
-	QList< ::Ct::Statistics::Filesystem> f;
-	CVzHelper::get_env_fstat(u, f);
-	s_dao.set(u, f);
-}
-
-void Farmer::finish()
-{
-	reset();
-}
-
 void Farmer::timerEvent(QTimerEvent *event_)
 {
 	killTimer(event_->timerId());
+
 	if (!m_watcher)
 	{
 		m_watcher.reset(new QFutureWatcher<void>);
-		this->connect(m_watcher.data(), SIGNAL(finished()), SLOT(finish()));
+		this->connect(m_watcher.data(), SIGNAL(finished()), SLOT(reset()));
 		m_watcher->setFuture(QtConcurrent::run(this, &Farmer::collect));
 	}
+
 	m_timer = startTimer(m_period);
+}
+
+void Farmer::collect()
+{
+	QList< ::Ct::Statistics::Filesystem> f;
+	CVzHelper::get_env_fstat(m_ident.first, f);
+	s_dao.set(m_ident.first, f);
 }
 
 } // namespace Ct
 
-namespace Vm {
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Farmer
-
-Farmer::Farmer(const CVmIdent& ident_):
-	m_timer(startTimer(0)), m_period(STAT_COLLECTING_TIMEOUT), m_ident(ident_)
-{
-	SmartPtr<Parallels::CProtoCommand> c(new Parallels::CProtoBasicVmGuestCommand(
-						PVE::DspCmdCtlVmCollectGuestUsage,
-						m_ident.first, QString()));
-	m_request = Parallels::DispatcherPackage::createInstance(
-						c->GetCommandId(),
-						c->GetCommand()->toString(),
-						SmartPtr<IOPackage>());
-	qint64 p = CDspService::instance()->getDispConfigGuard()
-			.getDispWorkSpacePrefs()->getVmGuestCollectPeriod() * 1000;
-	m_period = qMax(p, qint64(m_period));
-}
-
-void Farmer::reset()
-{
-	m_vm = IOSender::InvalidHandle;
-	m_pending = IOSendJob::Handle();
-	IOServerPool& p = CDspService::instance()->getIOServer();
-	p.disconnect(this, SLOT(disconnect(IOSender::Handle)));
-	p.disconnect(this, SLOT(finish(IOSender::Handle, IOSendJob::Handle,
-					const SmartPtr<IOPackage>)));
-}
-
-void Farmer::finish(IOSender::Handle handle_, IOSendJob::Handle job_,
-			const SmartPtr<IOPackage> package_)
-{
-	Q_UNUSED(handle_);
-	if (job_ != m_pending)
-		return;
-
-	reset();
-	CVmEvent v(UTF8_2QSTR(package_->buffers[0].getImpl()));
-	if (PRL_SUCCEEDED(v.getEventCode()))
-	{
-		// say something.
-	}
-}
-
-void Farmer::disconnect(IOSender::Handle handle_)
-{
-	if (IOSender::InvalidHandle == handle_ || handle_ != m_vm)
-		return;
-
-	reset();
-	if (0 != m_timer)
-	{
-		killTimer(m_timer);
-		m_timer = 0;
-	}
-}
-
-void Farmer::handle(unsigned state_, QString uuid_, QString dir_, bool flag_)
-{
-	Q_UNUSED(flag_);
-	if (uuid_ != m_ident.first || m_ident.second != dir_)
-		return;
-
-	if (VMS_RUNNING != state_)
-		reset();
-	else if (m_pending.isValid())
-		return;
-
-	if (0 != m_timer)
-		killTimer(m_timer);
-
-	m_timer = VMS_RUNNING == state_ ? startTimer(0) : 0;
-}
-
-void Farmer::timerEvent(QTimerEvent* event_)
-{
-	killTimer(event_->timerId());
-	m_timer = 0;
-	IOServerPool& p = CDspService::instance()->getIOServer();
-	if (m_pending.isValid())
-	{
-		IOSendJob::Result r = p.getSendResult(m_pending);
-		if (IOSendJob::SendPended != r && r != IOSendJob::Success)
-			reset();
-	}
-	do
-	{
-		if (m_pending.isValid())
-			break;
-
-		PRL_VM_TOOLS_STATE s = CDspVm::getVmToolsState(m_ident);
-		if (PTS_INSTALLED != s)
-			break;
-		SmartPtr<CDspVm> v = CDspVm::GetVmInstanceByUuid(m_ident);
-		if (!v.isValid())
-			return;
-//		m_vm = v->getVmConnectionHandle();
-		if (IOSender::InvalidHandle == m_vm)
-			return;
-		this->connect(&p,
-			SIGNAL(onResponsePackageReceived(IOSender::Handle,
-							IOSendJob::Handle,
-							const SmartPtr<IOPackage>)),
-			SLOT(finish(IOSender::Handle, IOSendJob::Handle,
-				const SmartPtr<IOPackage>)));
-		this->connect(&p,
-			SIGNAL(onClientDisconnected(IOSender::Handle)),
-			SLOT(disconnect(IOSender::Handle)));
-
-//		m_pending = v->sendPackageToVm(m_request);
-//		if (!m_pending.isValid())
-//			return reset();
-	} while(false);
-	m_timer = startTimer(m_period);
-}
-
-} // namespace Vm
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Mapper
 
-void Mapper::abort(const CVmIdent& ident_)
+void Mapper::abort(CVmIdent ident_)
 {
 	QString k = QString(ident_.first).append(ident_.second);
 	QObject* f = findChild<QObject* >(k);
 	if (NULL == f)
 		return;
+
 	f->setParent(NULL);
 	f->deleteLater();
-	typedef CDspLockedPointer<CDspVmStateSender> sender_type;
+
 	sender_type s = CDspService::instance()->getVmStateSender();
 	if (s.isValid())
 		s->disconnect(f, SLOT(handle(unsigned, QString, QString, bool)));
 }
 
-void Mapper::begin(const CVmIdent& ident_)
+void Mapper::begin(CVmIdent ident_)
 {
 	QString k = QString(ident_.first).append(ident_.second);
 	QObject* f = findChild<QObject* >(k);
@@ -325,13 +204,14 @@ void Mapper::begin(const CVmIdent& ident_)
 		return;
 
 	PRL_VM_TYPE t = PVT_VM;
-	if (CDspService::instance()->getVmDirManager().getVmTypeByUuid(ident_.first, t))
-		f = new Ct::Farmer(ident_);
-	else
-		f = new Vm::Farmer(ident_);
+	CDspService::instance()->getVmDirManager().getVmTypeByUuid(ident_.first, t);
+	if (t == PVT_VM)
+		return;
+
+	f = new Ct::Farmer(ident_);
 	f->setObjectName(k);
 	f->setParent(this);
-	typedef CDspLockedPointer<CDspVmStateSender> sender_type;
+
 	sender_type s = CDspService::instance()->getVmStateSender();
 	if (s.isValid())
 	{
@@ -375,25 +255,13 @@ private:
 	SmartPtr<CDspClient> m_user;
 };
 
-int getCounterValueCallback(counters_storage_t *, counter_t *counter, void *data)
+quint64 GetPerfCounter(const QWeakPointer<Stat::Storage> storage_, const QString& name_)
 {
-	QPair<QString, quint64> *d = (QPair<QString, quint64>*)data;
+	QSharedPointer<Stat::Storage> s = storage_.toStrongRef();
+	if (s.isNull())
+		return 0;
 
-	// skip prefix (@I or @A)
-	const char *n = counter->name + sizeof(PERF_COUNT_TYPE_INC) - 1;
-	if (d->first == n) {
-		d->second = PERF_COUNT_ATOMIC_GET(counter);
-		return ENUM_BREAK;
-	}
-
-	return ENUM_CONTINUE;
-}
-
-quint64 GetPerfCounter(const ProcPerfStoragesContainer &c, const QString &name)
-{
-	QPair<QString, quint64> d = qMakePair(name, 0ULL);
-	c.enum_counters(getCounterValueCallback, (void*)&d);
-	return d.second;
+	return s->read(name_);
 }
 
 SmartPtr<IOPackage> create_binary_package(CVmEvent &event)
@@ -827,27 +695,26 @@ namespace Counter
 ///////////////////////////////////////////////////////////////////////////////
 // struct VCpu
 
-struct VCpu {
-
-	explicit VCpu(const ProcPerfStoragesContainer &storage);
+struct VCpu
+{
+	explicit VCpu(QWeakPointer<Stat::Storage> storage);
 
 	quint64 getValue(quint32 index) const;
 	void recordTime(Meter &m, quint64 v) const;
 	void recordTsc(Meter &m, const CVmConfiguration *config) const;
 
 private:
-	const ProcPerfStoragesContainer *m_storage;
+	QWeakPointer<Stat::Storage> m_storage;
 };
 
-VCpu::VCpu(const ProcPerfStoragesContainer &storage)
-	: m_storage(&storage)
+VCpu::VCpu(QWeakPointer<Stat::Storage> storage): m_storage(storage)
 {
 }
 
 quint64 VCpu::getValue(quint32 index) const
 {
-	return GetPerfCounter(*m_storage,
-			multiCounterName("kernel.activity.vcpu", index, "tsc_guest"));
+	return GetPerfCounter(m_storage,
+		multiCounterName("kernel.activity.vcpu", index, "tsc_guest"));
 }
 
 void VCpu::recordTime(Meter &m, quint64 v) const
@@ -978,9 +845,9 @@ namespace Flavor
 ///////////////////////////////////////////////////////////////////////////////
 // struct Used
 
-struct Used {
-
-	typedef const ProcPerfStoragesContainer source_type;
+struct Used
+{
+	typedef const QWeakPointer<Stat::Storage> source_type;
 	typedef quint64 value_type;
 
 	static const char *getName()
@@ -998,9 +865,9 @@ struct Used {
 ///////////////////////////////////////////////////////////////////////////////
 // struct Cached
 
-struct Cached {
-
-	typedef const ProcPerfStoragesContainer source_type;
+struct Cached
+{
+	typedef const QWeakPointer<Stat::Storage> source_type;
 	typedef quint64 value_type;
 
 	static const char *getName()
@@ -1018,9 +885,9 @@ struct Cached {
 ///////////////////////////////////////////////////////////////////////////////
 // struct Total
 
-struct Total {
-
-	typedef const ProcPerfStoragesContainer source_type;
+struct Total
+{
+	typedef const QWeakPointer<Stat::Storage> source_type;
 	typedef quint64 value_type;
 
 	static const char *getName()
@@ -1038,9 +905,9 @@ struct Total {
 ///////////////////////////////////////////////////////////////////////////////
 // struct BalloonActual
 
-struct BalloonActual {
-
-	typedef const ProcPerfStoragesContainer source_type;
+struct BalloonActual
+{
+	typedef const QWeakPointer<Stat::Storage> source_type;
 	typedef quint64 value_type;
 
 	static const char *getName()
@@ -1080,9 +947,9 @@ namespace Flavor
 ///////////////////////////////////////////////////////////////////////////////
 // struct SwapIn
 
-struct SwapIn {
-
-	typedef const ProcPerfStoragesContainer source_type;
+struct SwapIn
+{
+	typedef const QWeakPointer<Stat::Storage> source_type;
 	typedef quint64 value_type;
 
 	static const char *getName()
@@ -1099,9 +966,9 @@ struct SwapIn {
 ///////////////////////////////////////////////////////////////////////////////
 // struct SwapOut
 
-struct SwapOut {
-
-	typedef const ProcPerfStoragesContainer source_type;
+struct SwapOut
+{
+	typedef const QWeakPointer<Stat::Storage> source_type;
 	typedef quint64 value_type;
 
 	static const char *getName()
@@ -1118,9 +985,9 @@ struct SwapOut {
 ///////////////////////////////////////////////////////////////////////////////
 // struct MinorFault
 
-struct MinorFault {
-
-	typedef const ProcPerfStoragesContainer source_type;
+struct MinorFault
+{
+	typedef const QWeakPointer<Stat::Storage> source_type;
 	typedef quint64 value_type;
 
 	static const char *getName()
@@ -1137,9 +1004,9 @@ struct MinorFault {
 ///////////////////////////////////////////////////////////////////////////////
 // struct MajorFault
 
-struct MajorFault {
-
-	typedef const ProcPerfStoragesContainer source_type;
+struct MajorFault
+{
+	typedef const QWeakPointer<Stat::Storage> source_type;
 	typedef quint64 value_type;
 
 	static const char *getName()
@@ -1181,10 +1048,10 @@ struct Traits
 // struct VmCounter
 
 template <typename Name>
-struct VmCounter {
-
-	VmCounter(const ProcPerfStoragesContainer &storage, const Name &name)
-		: m_storage(&storage), m_name(name)
+struct VmCounter
+{
+	VmCounter(QWeakPointer<Stat::Storage> storage, const Name &name)
+		: m_storage(storage), m_name(name)
 	{
 	}
 
@@ -1195,7 +1062,7 @@ struct VmCounter {
 
 	quint64 getValue() const
 	{
-		return GetPerfCounter(*m_storage, Traits<Name>::getInternal(m_name));
+		return GetPerfCounter(m_storage, Traits<Name>::getInternal(m_name));
 	}
 
 	CVmEventParameter *getParam() const
@@ -1205,12 +1072,12 @@ struct VmCounter {
 
 private:
 
-	const ProcPerfStoragesContainer *m_storage;
+	QWeakPointer<Stat::Storage> m_storage;
 	const Name m_name;
 };
 
 template <typename Name>
-VmCounter<Name> makeVmCounter(const ProcPerfStoragesContainer &storage, const Name &name)
+VmCounter<Name> makeVmCounter(QWeakPointer<Stat::Storage> storage, const Name &name)
 {
 	return VmCounter<Name>(storage, name);
 }
@@ -1408,11 +1275,11 @@ CVmEventParameter *ClassfulOffline::getParam() const
 ///////////////////////////////////////////////////////////////////////////////
 // struct ClassfulOnline
 
-struct ClassfulOnline {
-
-	ClassfulOnline(const QString &uuid, const ProcPerfStoragesContainer& storage,
+struct ClassfulOnline
+{
+	ClassfulOnline(const QString &uuid, QWeakPointer<Stat::Storage> storage,
 			const QList<CVmGenericNetworkAdapter*>& nics)
-		: m_uuid(uuid), m_storage(&storage), m_nics(&nics)
+		: m_uuid(uuid), m_storage(storage), m_nics(&nics)
 	{
 	}
 
@@ -1426,7 +1293,7 @@ struct ClassfulOnline {
 private:
 
 	const QString m_uuid;
-	const ProcPerfStoragesContainer* m_storage;
+	QWeakPointer<Stat::Storage> m_storage;
 	const QList<CVmGenericNetworkAdapter*>* m_nics;
 };
 
@@ -1439,12 +1306,13 @@ CVmEventParameter *ClassfulOnline::getParam() const
 	PRL_STAT_NET_TRAFFIC stat;
 	// Copy data to only 1 network class
 	stat = PRL_STAT_NET_TRAFFIC();
-	foreach (const CVmGenericNetworkAdapter* nic, *m_nics) {
+	foreach (const CVmGenericNetworkAdapter* nic, *m_nics)
+	{
 		quint32 i = nic->getIndex();
-		stat.incoming[1] += GetPerfCounter(*m_storage, Name<PacketsIn>(i)());
-		stat.outgoing[1] += GetPerfCounter(*m_storage, Name<PacketsOut>(i)());
-		stat.incoming_pkt[1] += GetPerfCounter(*m_storage, Name<BytesIn>(i)());
-		stat.outgoing_pkt[1] += GetPerfCounter(*m_storage, Name<BytesOut>(i)());
+		stat.incoming[1] += GetPerfCounter(m_storage, Name<PacketsIn>(i)());
+		stat.outgoing[1] += GetPerfCounter(m_storage, Name<PacketsOut>(i)());
+		stat.incoming_pkt[1] += GetPerfCounter(m_storage, Name<BytesIn>(i)());
+		stat.outgoing_pkt[1] += GetPerfCounter(m_storage, Name<BytesOut>(i)());
 	}
 
 	return Conversion::Network::convert(stat);
@@ -1494,7 +1362,7 @@ int Find::operator()(const counter_t& counter_)
 
 struct Unit
 {
-	Unit(const ProcPerfStoragesContainer& storage_, unsigned index_)
+	Unit(QWeakPointer<Stat::Storage> storage_, unsigned index_)
 		: m_storage(storage_), m_name(index_)
 	{
 	}
@@ -1517,15 +1385,18 @@ private:
 		return (*static_cast<Find*>(context_))(*counter_);
 	}
 
-	const ProcPerfStoragesContainer& m_storage;
+	QWeakPointer<Stat::Storage> m_storage;
 	nf::Name<nf::Device> m_name;
 };
 
 QString Unit::getValue() const
 {
-	Find f(nf::Traits<nf::Name<nf::Device> >::getInternal(m_name) + ".");
-	m_storage.enum_counters(find, &f);
-	return f.getResult();
+	return QString();
+
+	// FIXME: Write me! #PSBM-43138
+	// Find f(nf::Traits<nf::Name<nf::Device> >::getInternal(m_name) + ".");
+	// m_storage.enum_counters(find, &f);
+	// return f.getResult();
 }
 
 } // namespace Device
@@ -1537,7 +1408,7 @@ namespace Disk {
 
 struct Index
 {
-	Index(const ProcPerfStoragesContainer& storage_,
+	Index(QWeakPointer<Stat::Storage> storage_,
 		const CVmConfiguration& config_,
 		unsigned index_, unsigned diskIndex_)
 	: m_storage(storage_), m_config(config_), m_name(index_, diskIndex_)
@@ -1557,15 +1428,16 @@ struct Index
 	quint64 getValue() const;
 
 private:
-
-	const ProcPerfStoragesContainer& m_storage;
+	QWeakPointer<Stat::Storage> m_storage;
 	const CVmConfiguration& m_config;
 	nf::Disk::Name m_name;
 };
 
 quint64 Index::getValue() const
 {
-	quint64 p = GetPerfCounter(m_storage, nf::Traits<nf::Disk::Name>::getInternal(m_name));
+	quint64 p = GetPerfCounter(m_storage,
+		nf::Traits<nf::Disk::Name>::getInternal(m_name));
+
 	PRL_MASS_STORAGE_INTERFACE_TYPE i = PMS_UNKNOWN_DEVICE;
 	if (p < PIM_SCSI_MASK_OFFSET) {
 		i = PMS_IDE_DEVICE;
@@ -2239,8 +2111,7 @@ struct Collector {
 
 	void collectCt(const QString &uuid,
 			const Ct::Statistics::Aggregate &a);
-	void collectVmOnline(CDspVm &vm, const CVmConfiguration &config);
-	void collectVmOffline(const QString &uuid);
+	void collectVm(const QString &uuid, const CVmConfiguration &config);
 
 private:
 
@@ -2271,117 +2142,118 @@ Collector::Collector(QString filter, CVmEvent &event) :
 void Collector::collectCt(const QString &uuid,
 		const Ct::Statistics::Aggregate &a)
 {
-	using namespace Ct::Counter;
+	namespace ctc = Ct::Counter;
 
 	DAO<Meter> dao;
 	Meter t = dao.get(uuid);
-	Cpu(a.cpu).record(t);
+	ctc::Cpu(a.cpu).record(t);
 	dao.set(uuid, t);
 
-	collect(GuestUsage(t));
-	collect(GuestTimeDelta(t));
-	collect(HostTimeDelta(t));
-	collect(Disk::Read(a.disk));
-	collect(Disk::Write(a.disk));
-	collect(Network::Classful(a.net));
-	collect(Network::ReceivedSize(a.net));
-	collect(Network::TransmittedSize(a.net));
-	collect(Network::ReceivedPackets(a.net));
-	collect(Network::TransmittedPackets(a.net));
+	collect(ctc::GuestUsage(t));
+	collect(ctc::GuestTimeDelta(t));
+	collect(ctc::HostTimeDelta(t));
+	collect(ctc::Disk::Read(a.disk));
+	collect(ctc::Disk::Write(a.disk));
+	collect(ctc::Network::Classful(a.net));
+	collect(ctc::Network::ReceivedSize(a.net));
+	collect(ctc::Network::TransmittedSize(a.net));
+	collect(ctc::Network::ReceivedPackets(a.net));
+	collect(ctc::Network::TransmittedPackets(a.net));
 
 	Ct::Statistics::Memory *m = a.memory.get();
 	if (m != NULL) {
-		collect(Memory::Used(*m));
-		collect(Memory::Cached(*m));
-		collect(Memory::Total(*m));
-		collect(SwapIn(*m));
-		collect(SwapOut(*m));
+		collect(ctc::Memory::Used(*m));
+		collect(ctc::Memory::Cached(*m));
+		collect(ctc::Memory::Total(*m));
+		collect(ctc::SwapIn(*m));
+		collect(ctc::SwapOut(*m));
 	}
 
-	quint32 vcpunum = getVcpuNum(uuid);
+	quint32 vcpunum = ctc::getVcpuNum(uuid);
 	for (quint32 i = 0; i < vcpunum; ++i)
-		collect(VCpuTime(a.cpu, i, vcpunum));
+		collect(ctc::VCpuTime(a.cpu, i, vcpunum));
 
 	const QList< ::Ct::Statistics::Filesystem>& f = Stat::Collecting::Ct::s_dao.get(uuid);
 	for (int i = 0; i < f.size(); ++i)
 	{
 		const Ct::Statistics::Filesystem& fs = f.at(i);
-		collect(Filesystem::Total(i, fs));
-		collect(Filesystem::Free(i, fs));
-		collect(Filesystem::Device(i, fs));
-		collect(Filesystem::Index(i, fs));
+		collect(ctc::Filesystem::Total(i, fs));
+		collect(ctc::Filesystem::Free(i, fs));
+		collect(ctc::Filesystem::Device(i, fs));
+		collect(ctc::Filesystem::Index(i, fs));
 	}
 }
 
-void Collector::collectVmOnline(CDspVm &vm, const CVmConfiguration &config)
+void Collector::collectVm(const QString &uuid, const CVmConfiguration &config)
 {
-	using namespace Vm::Counter;
+	namespace vmc = Vm::Counter;
 
-	CVmIdent id = vm.getVmIdent();
-	const QString &uuid = id.first;
-	CDspLockedPointer<ProcPerfStoragesContainer> pct = vm.PerfStoragesContainer();
-	const ProcPerfStoragesContainer &ct = *pct;
+	QWeakPointer<Stat::Storage> p = CDspStatCollectingThread::getStorage(uuid);
 
 	typedef QPair<Meter, Meter> VmMeter;
 	DAO<VmMeter> d;
 	VmMeter m = d.get(uuid);
 	Meter &t = m.first;
-	VCpu(ct).recordTsc(t, &config);
+	vmc::VCpu(p).recordTsc(t, &config);
 	d.set(uuid, m);
 
 	for (quint32 i = 0; i < config.getVmHardwareList()->getCpu()->getNumber(); ++i)
-		collect(VCpuTime(VCpu(ct), i));
+		collect(vmc::VCpuTime(vmc::VCpu(p), i));
 
-	collect(GuestUsage(t));
-	collect(GuestTimeDelta(t));
-	collect(HostTimeDelta(t));
+	collect(vmc::GuestUsage(t));
+	collect(vmc::GuestTimeDelta(t));
+	collect(vmc::HostTimeDelta(t));
 
-	collect(Memory::Used(ct));
-	collect(Memory::Cached(ct));
-	collect(Memory::Total(ct));
-	collect(Memory::BalloonActual(ct));
-	collect(SwapIn(ct));
-	collect(SwapOut(ct));
-	collect(MinorFault(ct));
-	collect(MajorFault(ct));
+	collect(vmc::Memory::Used(p));
+	collect(vmc::Memory::Cached(p));
+	collect(vmc::Memory::Total(p));
+	collect(vmc::Memory::BalloonActual(p));
+	collect(vmc::SwapIn(p));
+	collect(vmc::SwapOut(p));
+	collect(vmc::MinorFault(p));
+	collect(vmc::MajorFault(p));
 
-	foreach (const CVmHardDisk* d, config.getVmHardwareList()->m_lstHardDisks) {
+	foreach (const CVmHardDisk* d, config.getVmHardwareList()->m_lstHardDisks)
+	{
 		PRL_MASS_STORAGE_INTERFACE_TYPE t = d->getInterfaceType();
 		quint32 i = d->getStackIndex();
-		collect(makeVmCounter(ct, Hdd::Name<Hdd::ReadRequests>(t, i)));
-		collect(makeVmCounter(ct, Hdd::Name<Hdd::WriteRequests>(t, i)));
-		collect(makeVmCounter(ct, Hdd::Name<Hdd::ReadTotal>(t, i)));
-		collect(makeVmCounter(ct, Hdd::Name<Hdd::WriteTotal>(t, i)));
+		collect(vmc::makeVmCounter(p,
+			vmc::Hdd::Name<vmc::Hdd::ReadRequests>(t, i)));
+		collect(vmc::makeVmCounter(p,
+			vmc::Hdd::Name<vmc::Hdd::WriteRequests>(t, i)));
+		collect(vmc::makeVmCounter(p,
+			vmc::Hdd::Name<vmc::Hdd::ReadTotal>(t, i)));
+		collect(vmc::makeVmCounter(p,
+			vmc::Hdd::Name<vmc::Hdd::WriteTotal>(t, i)));
 	}
 
 	const QList<CVmGenericNetworkAdapter*> &nics =
 		config.getVmHardwareList()->m_lstNetworkAdapters;
-	collect(Network::ClassfulOnline(uuid, ct, nics));
-	foreach (const CVmGenericNetworkAdapter* nic, nics) {
+	collect(vmc::Network::ClassfulOnline(uuid, p, nics));
+	foreach (const CVmGenericNetworkAdapter* nic, nics)
+	{
 		quint32 i = nic->getIndex();
-		collect(makeVmCounter(ct, Network::Name<Network::PacketsIn>(i)));
-		collect(makeVmCounter(ct, Network::Name<Network::PacketsOut>(i)));
-		collect(makeVmCounter(ct, Network::Name<Network::BytesIn>(i)));
-		collect(makeVmCounter(ct, Network::Name<Network::BytesOut>(i)));
+		collect(vmc::makeVmCounter(p,
+			vmc::Network::Name<vmc::Network::PacketsIn>(i)));
+		collect(vmc::makeVmCounter(p,
+			vmc::Network::Name<vmc::Network::PacketsOut>(i)));
+		collect(vmc::makeVmCounter(p,
+			vmc::Network::Name<vmc::Network::BytesIn>(i)));
+		collect(vmc::makeVmCounter(p,
+			vmc::Network::Name<vmc::Network::BytesOut>(i)));
 	}
 
 	namespace nf = Names::Filesystem;
-	quint64 fsCount = GetPerfCounter(ct, "fs.count");
-	for (unsigned i = 0; i < fsCount; ++i) {
-		collect(makeVmCounter(ct, nf::Name<nf::Total>(i)));
-		collect(makeVmCounter(ct, nf::Name<nf::Free>(i)));
-		collect(Filesystem::Device::Unit(ct, i));
-		quint64 diskCount = GetPerfCounter(ct,
-			QSTR2UTF8(nf::Name<nf::Disk::Count>(i)()));
+	quint64 fsCount = GetPerfCounter(p, "fs.count");
+	for (unsigned i = 0; i < fsCount; ++i)
+	{
+		collect(vmc::makeVmCounter(p, nf::Name<nf::Total>(i)));
+		collect(vmc::makeVmCounter(p, nf::Name<nf::Free>(i)));
+		collect(vmc::Filesystem::Device::Unit(p, i));
+		quint64 diskCount = GetPerfCounter(p, QSTR2UTF8(nf::Name<nf::Disk::Count>(i)()));
 		for (unsigned j = 0; j < diskCount; ++j)
-			collect(Filesystem::Disk::Index(ct, config, i, j));
+			collect(vmc::Filesystem::Disk::Index(p, config, i, j));
 	}
-}
-
-void Collector::collectVmOffline(const QString &uuid)
-{
-	using namespace Vm::Counter;
-	collect(Network::ClassfulOffline(uuid));
 }
 
 template <typename Counter>
@@ -2399,39 +2271,37 @@ void Collector::collect(const Counter &c)
 }
 
 
-bool GetPerformanceStatisticsCt(const CVmIdent &id, Collector &c)
+Libvirt::Result GetPerformanceStatisticsCt(const CVmIdent &id, Collector &c)
 {
 	const QString &uuid = id.first;
 	SmartPtr<Ct::Statistics::Aggregate> a(CVzHelper::get_env_stat(uuid));
 	if (!a.isValid())
-		return false;
+		return Libvirt::Result(Error::Simple(PRL_ERR_DISP_VM_IS_NOT_STARTED));
 
 	c.collectCt(uuid, *a);
-	return true;
+	return Libvirt::Result();
 }
 
-bool GetPerformanceStatisticsVm(const CVmIdent &id, Collector &c)
+Libvirt::Result GetPerformanceStatisticsVm(const CVmIdent &id, Collector &c)
 {
-	SmartPtr<CDspVm> vm = CDspVm::GetVmInstanceByUuid(id);
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(id.first);
 
-	if (vm.isValid())
-	{
-		PRL_RESULT rc;
-		SmartPtr<CVmConfiguration> config = vm->getVmConfig(SmartPtr<CDspClient>(), rc);
-		if (!config.isValid())
-			return false;
+	VIRTUAL_MACHINE_STATE s;
+	Libvirt::Result r = u.getState(s);
+	if (r.isFailed())
+		return r;
 
-		c.collectVmOnline(*vm, *config);
-	}
-	else
-	{
-		if (CDspService::instance()->isServerModePSBM())
-			return false;
+	if (VMS_RUNNING != s)
+		return Libvirt::Result(Error::Simple(PRL_ERR_DISP_VM_IS_NOT_STARTED));
 
-		c.collectVmOffline(id.first);
-	}
+	CVmConfiguration v;
+	r = u.getConfig(v, true);
+	if (r.isFailed())
+		return r;
 
-	return true;
+	c.collectVm(id.first, v);
+
+	return Libvirt::Result();
 }
 
 } // namespace
@@ -2439,7 +2309,7 @@ bool GetPerformanceStatisticsVm(const CVmIdent &id, Collector &c)
 #endif // _CT_
 
 QSet<SmartPtr<CDspClient> > *CDspStatCollectingThread::g_pHostStatisticsSubscribers =
-    new QSet<SmartPtr<CDspClient> >;
+	new QSet<SmartPtr<CDspClient> >;
 QMutex *CDspStatCollectingThread::g_pSubscribersMutex = new QMutex(QMutex::Recursive);
 CDspStatCollectingThread::VmStatisticsSubscribersMap *CDspStatCollectingThread::g_pVmsGuestStatisticsSubscribers =
 	new CDspStatCollectingThread::VmStatisticsSubscribersMap;
@@ -2457,11 +2327,12 @@ quint64 CDspStatCollectingThread::g_uSuccessivelyCyclesCounter = 0;
 QMutex *CDspStatCollectingThread::s_instanceMutex = new QMutex();
 CDspStatCollectingThread* CDspStatCollectingThread::s_instance = NULL;
 
-CDspStatCollectingThread::CDspStatCollectingThread()
-:	m_bFinalizeWorkNow(false),
+CDspStatCollectingThread::CDspStatCollectingThread(Registry::Public& registry_):
+	m_bFinalizeWorkNow(false),
 	m_pStatCollector(new CDspStatCollector),
 	m_nDeltaMs(STAT_COLLECTING_TIMEOUT),
-	m_timer()
+	m_timer(),
+	m_registry(registry_)
 {
 }
 
@@ -2563,8 +2434,8 @@ void CDspStatCollectingThread::timerEvent(QTimerEvent* event_)
 void CDspStatCollectingThread::run()
 {
 	Stat::Collecting::Mapper m;
-	m.connect(this, SIGNAL(abort(const CVmIdent&)), SLOT(abort(const CVmIdent&)));
-	m.connect(this, SIGNAL(begin(const CVmIdent&)), SLOT(begin(const CVmIdent&)));
+	m.connect(this, SIGNAL(abort(CVmIdent)), SLOT(abort(CVmIdent)));
+	m.connect(this, SIGNAL(begin(CVmIdent)), SLOT(begin(CVmIdent)));
 	m_last = QDateTime::currentDateTime();
 	{
 		QMutexLocker g(g_pSubscribersMutex);
@@ -2657,6 +2528,14 @@ void CDspStatCollectingThread::CleanupSubscribersLists()
 	g_pVmsGuestStatisticsSubscribers->clear();
 }
 
+QWeakPointer<Stat::Storage> CDspStatCollectingThread::getStorage(const QString& uuid_)
+{
+	if (NULL == s_instance)
+		return QWeakPointer<Stat::Storage>();
+
+	return s_instance->m_registry.find(uuid_).getStorage();
+}
+
 //static
 void CDspStatCollectingThread::NotifyHostStatisticsSubscribers()
 {
@@ -2702,14 +2581,14 @@ void CDspStatCollectingThread::NotifyHostStatisticsSubscribers()
 
 static PRL_RESULT checkAccessRight(const SmartPtr<CDspClient> &pUser,
                                    PVE::IDispatcherCommands dsp_cmd,
-                                   const QString &sVmUuid, bool send_invalid_result = true)
+                                   const QString &sVmUuid)
 {
     PRL_ASSERT(!sVmUuid.isEmpty()) ;
 
     PRL_RESULT rc = PRL_ERR_FAILURE;
     bool bSetNotValid = false;
     rc = CDspService::instance()->getAccessManager().checkAccess(pUser, dsp_cmd, sVmUuid, &bSetNotValid);
-    if ( ! PRL_SUCCEEDED(rc) && send_invalid_result)
+    if (PRL_FAILED(rc))
         CDspVmDirHelper::sendNotValidState(pUser, rc, sVmUuid, bSetNotValid) ;
     return rc;
 }
@@ -2959,7 +2838,7 @@ void CDspStatCollectingThread::SendPerfStatsRequest(const SmartPtr<CDspClient> &
 PRL_RESULT CDspStatCollectingThread::SubscribeToPerfStats(const SmartPtr<CDspClient> &pUser,
 		const QString &sFilter, const QString &sVmUuid)
 {
-	CVmIdent vm_ident ;
+	CVmIdent vm_ident;
 	PRL_VM_TYPE nType = PVT_VM;
 
 #ifdef _CT_
@@ -3043,24 +2922,22 @@ SmartPtr<CVmEvent> CDspStatCollectingThread::GetPerformanceStatistics(const CVmI
 	SmartPtr<CVmEvent> e(new CVmEvent(PET_DSP_EVT_VM_PERFSTATS, id.first, PIE_VIRTUAL_MACHINE));
 	Collector c(filter, *e);
 
-	bool r;
+	Libvirt::Result r;
 	if (isContainer(id.first))
 		r = GetPerformanceStatisticsCt(id, c);
 	else
 		r = GetPerformanceStatisticsVm(id, c);
 
-	if (r)
+	if (r.isFailed())
 	{
-		e->setEventCode(PRL_ERR_SUCCESS);
-	}
-	else
-	{
-		e->setEventCode(PRL_ERR_DISP_VM_IS_NOT_STARTED);
+		e->setEventCode(r.error().code());
 		e->addEventParameter(new CVmEventParameter(
 					PVE::String,
 					CDspService::instance()->getVmDirManager().getVmNameByUuid(id),
 					EVT_PARAM_MESSAGE_PARAM_0));
 	}
+	else
+		e->setEventCode(PRL_ERR_SUCCESS);
 
 	LOG_MESSAGE(DBG_DEBUG, "PerfStats: prm_count: %d", e->m_lstEventParameters.size());
 
@@ -3158,7 +3035,8 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 #ifdef _CT_
 	if (isContainer(sVmUuid))
 	{
-		using namespace Ct::Counter;
+		namespace ctc = Ct::Counter;
+
 		SmartPtr< ::Ct::Statistics::Aggregate> a(CVzHelper::get_env_stat(sVmUuid));
 		if (!a.isValid())
 			return SmartPtr<CSystemStatistics>();
@@ -3173,19 +3051,19 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 
 		QScopedPointer<CCpuStatistics> cpu(new CCpuStatistics());
 		const Ct::Statistics::Cpu &c = a->cpu;
-		cpu->setTotalTime(Uptime(c).getValue());
-		cpu->setUserTime(UserAverage(c).getValue());
-		cpu->setSystemTime(SystemAverage(c).getValue());
-		cpu->setPercentsUsage(GuestUsage(t).getValue());
+		cpu->setTotalTime(ctc::Uptime(c).getValue());
+		cpu->setUserTime(ctc::UserAverage(c).getValue());
+		cpu->setSystemTime(ctc::SystemAverage(c).getValue());
+		cpu->setPercentsUsage(ctc::GuestUsage(t).getValue());
 		output->m_lstCpusStatistics.append(cpu.take());
-		output->getUptimeStatistics()->setOsUptime(Uptime(c).getValue());
+		output->getUptimeStatistics()->setOsUptime(ctc::Uptime(c).getValue());
 
 		using ::Ct::Counter::accumulateTraffic;
 		const PRL_STAT_NET_TRAFFIC& n = a->net;
-		net->setInDataSize(Network::ReceivedSize(n).getValue());
-		net->setOutDataSize(Network::TransmittedSize(n).getValue());
-		net->setInPkgsCount(Network::ReceivedPackets(n).getValue());
-		net->setOutPkgsCount(Network::TransmittedPackets(n).getValue());
+		net->setInDataSize(ctc::Network::ReceivedSize(n).getValue());
+		net->setOutDataSize(ctc::Network::TransmittedSize(n).getValue());
+		net->setInPkgsCount(ctc::Network::ReceivedPackets(n).getValue());
+		net->setOutPkgsCount(ctc::Network::TransmittedPackets(n).getValue());
 		*output->getNetClassStatistics() = n;
 		output->m_lstNetIfacesStatistics.append(net.take());
 
@@ -3193,14 +3071,14 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 		Ct::Statistics::Memory m;
 		if (a->memory.isValid())
 			m = *a->memory;
-		memory->setTotalSize(Memory::Total(m).getValue());
-		memory->setUsageSize(Memory::Used(m).getValue());
-		memory->setFreeSize(Memory::Free(m).getValue());
-		memory->setRealSize(Memory::Real(m).getValue());
+		memory->setTotalSize(ctc::Memory::Total(m).getValue());
+		memory->setUsageSize(ctc::Memory::Used(m).getValue());
+		memory->setFreeSize(ctc::Memory::Free(m).getValue());
+		memory->setRealSize(ctc::Memory::Real(m).getValue());
 
 		const Ct::Statistics::Disk &d = a->disk;
-		disk->setReadBytesTotal(Disk::Read(d).getValue());
-		disk->setWriteBytesTotal(Disk::Write(d).getValue());
+		disk->setReadBytesTotal(ctc::Disk::Read(d).getValue());
+		disk->setWriteBytesTotal(ctc::Disk::Write(d).getValue());
 		output->m_lstDisksStatistics.append(disk.take());
 
 		return output;
@@ -3214,9 +3092,10 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 	quint64 nTotalVmRamSize = 0;
 	quint64 usage = 0;
 	quint32 tsc = 0, time = 0;
+	QWeakPointer<Stat::Storage> p = getStorage(sVmUuid);
+
 	if (pVm.isValid())
 	{
-		CDspLockedPointer<ProcPerfStoragesContainer> ct = pVm->PerfStoragesContainer();
 		PRL_RESULT rc;
 		SmartPtr<CVmConfiguration> pVmConfig = pVm->getVmConfig(SmartPtr<CDspClient>(), rc);
 
@@ -3235,8 +3114,8 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 		typedef QPair<Meter, Meter> VmMeter;
 		DAO<VmMeter> d;
 		VmMeter m = d.get(sVmUuid);
-		VCpu(*ct).recordTsc(m.first, pVmConfig.get());
-		VCpu(*ct).recordTime(m.second, !pProcsStatInfo->m_lstProcsStatInfo.isEmpty()?
+		VCpu(p).recordTsc(m.first, pVmConfig.get());
+		VCpu(p).recordTime(m.second, !pProcsStatInfo->m_lstProcsStatInfo.isEmpty()?
 				pProcsStatInfo->m_lstProcsStatInfo.front()->m_nTotalTime : 0);
 		d.set(sVmUuid, m);
 		tsc = m.first.report().getPercent();
@@ -3298,14 +3177,16 @@ void CDspStatCollectingThread::stop()
 	}
 }
 
-void CDspStatCollectingThread::start()
+void CDspStatCollectingThread::start(Registry::Public& registry_)
 {
 	QMutexLocker g(s_instanceMutex);
 	if (NULL != s_instance)
 		return;
 
 	qRegisterMetaType<QTimerEvent*>("QTimerEvent*");
-	s_instance = new CDspStatCollectingThread();
+	qRegisterMetaType<CVmIdent>("CVmIdent");
+
+	s_instance = new CDspStatCollectingThread(registry_);
 	s_instance->moveToThread(s_instance);
 	s_instance->QThread::start(QThread::LowPriority);
 }

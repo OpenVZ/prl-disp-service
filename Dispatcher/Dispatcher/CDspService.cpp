@@ -1022,7 +1022,7 @@ void CDspService::start ()
 				getVmConfigWatcher().update();
 			}
 
-			CDspStatCollectingThread::start();
+			CDspStatCollectingThread::start(*m_registry);
 			m_pHwMonitorThread->start( QThread::NormalPriority ); //QThread::LowPriority );
 
 		m_pSystemEventsMonitor->startMonitor();
