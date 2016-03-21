@@ -226,6 +226,8 @@ struct Progress: QObject
 	{
 	}
 
+	void report(quint16 value_);
+
 protected:
 	void timerEvent(QTimerEvent* event_);
 
@@ -255,6 +257,8 @@ struct Frontend: Shadow::Frontend<Task, Frontend>
 
 	template<typename Event, typename FSM>
 	void on_exit(const Event& event_, FSM& fsm_);
+	template<typename FSM>
+	void on_exit(const boost::mpl::true_& event_, FSM& fsm_);
 	void start(const QSharedPointer<QTcpServer>& event_);
 
 	typedef boost::mpl::vector

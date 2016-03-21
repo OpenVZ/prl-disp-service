@@ -203,6 +203,12 @@ void Task::cancel()
 ///////////////////////////////////////////////////////////////////////////////
 // struct Progress
 
+void Progress::report(quint16 value_)
+{
+	if (m_last != value_)
+		m_reporter(m_last = value_);
+}
+
 void Progress::timerEvent(QTimerEvent* event_)
 {
 	if (NULL != event_)
@@ -228,9 +234,7 @@ void Progress::timerEvent(QTimerEvent* event_)
 				p.value().first;
 			x = std::min<quint16>(99, x);
 		}
-		if (m_last != x)
-			m_reporter(m_last = x);
-
+		report(x);
 		if (100 == x)
 			return;
 	}
@@ -263,6 +267,17 @@ void Frontend::on_exit(const Event& event_, FSM& fsm_)
 {
 	Shadow::Frontend<Task, Frontend>::on_exit(event_, fsm_);
 	m_progress.clear();
+}
+
+template<typename FSM>
+void Frontend::on_exit(const boost::mpl::true_& event_, FSM& fsm_)
+{
+	Shadow::Frontend<Task, Frontend>::on_exit(event_, fsm_);
+	if (!m_progress.isNull())
+	{
+		m_progress->report(100);
+		m_progress.clear();
+	}
 }
 
 } // namespace Libvirt
