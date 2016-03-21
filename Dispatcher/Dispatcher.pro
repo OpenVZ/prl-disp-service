@@ -92,6 +92,7 @@ HEADERS += \
 	\
 	Stat/CDspStatCollectingThread.h \
 	Stat/CDspStatCollector.h \
+	Stat/CDspStatStorage.h \
 	Stat/CDspStatisticsGuard.h \
 	Stat/CDspSystemInfo.h \
 	\
@@ -192,7 +193,7 @@ SOURCES += \
 	CDspProblemReportHelper.cpp \
 	CDspVmInfoDatabase.cpp \
 	CDspVmSuspendHelper.cpp \
-    CDspHostSettingsHelper.cpp \
+	CDspHostSettingsHelper.cpp \
 	CDspHaClusterHelper.cpp \
 	CDspVm_p.cpp \
 	CDspVmSnapshotInfrastructure.cpp \
@@ -207,6 +208,7 @@ SOURCES += \
 	\
 	Stat/CDspStatCollectingThread.cpp \
 	Stat/CDspStatCollector_common.cpp \
+	Stat/CDspStatStorage.cpp \
 	Stat/CDspStatisticsGuard.cpp \
 	\
 	Tasks/Task_AutoStart.cpp \
