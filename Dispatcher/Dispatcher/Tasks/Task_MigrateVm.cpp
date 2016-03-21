@@ -203,6 +203,12 @@ void Task::cancel()
 ///////////////////////////////////////////////////////////////////////////////
 // struct Progress
 
+Progress::~Progress()
+{
+	if (100 > m_last)
+		m_reporter(100);
+}
+
 void Progress::timerEvent(QTimerEvent* event_)
 {
 	if (NULL != event_)

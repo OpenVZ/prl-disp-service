@@ -225,6 +225,7 @@ struct Progress: QObject
 		m_last(~0), m_agent(agent_), m_reporter(reporter_)
 	{
 	}
+	~Progress();
 
 protected:
 	void timerEvent(QTimerEvent* event_);
