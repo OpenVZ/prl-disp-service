@@ -39,17 +39,23 @@
 #include "CDspStatCollector.h"
 #include "CDspClient.h"
 #include <prlcommon/Std/SmartPtr.h>
+#include "CDspVmStateSender.h"
 #include "CDspVm.h"
+
+namespace Registry
+{
+struct Public;
+} // namespace Registry
 
 namespace Stat
 {
 struct Perf;
+struct Storage;
 
 namespace Collecting
 {
-
-namespace Ct {
-
+namespace Ct
+{
 ///////////////////////////////////////////////////////////////////////////////
 // struct Farmer
 
@@ -60,14 +66,13 @@ public:
 	explicit Farmer(const CVmIdent& ident_);
 
 public slots:
-	void finish();
+	void reset();
 	void handle(unsigned state_, QString uuid_, QString dir_, bool flag_);
 
 protected:
 	void timerEvent(QTimerEvent* event_);
 
 private:
-	void reset();
 	void collect();
 
 	int m_timer;
@@ -76,40 +81,7 @@ private:
 	QScopedPointer<QFutureWatcher<void> > m_watcher;
 };
 
-} // namespace Ct
-
-namespace Vm {
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Farmer
-
-class Farmer: public QObject
-{
-	Q_OBJECT
-public:
-	explicit Farmer(const CVmIdent& ident_);
-
-public slots:
-	void disconnect(IOSender::Handle handle_);
-	void handle(unsigned state_, QString uuid_, QString dir_, bool flag_);
-	void finish(IOSender::Handle handle_, IOSendJob::Handle job_,
-			const SmartPtr<IOPackage> package_);
-
-protected:
-	void timerEvent(QTimerEvent* event_);
-
-private:
-	void reset();
-
-	int m_timer;
-	quint64 m_period;
-	CVmIdent m_ident;
-	IOSender::Handle m_vm;
-	IOSendJob::Handle m_pending;
-	SmartPtr<IOPackage> m_request;
-};
-
-} // namespace Vm
+} //namespace Ct
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Mapper
@@ -117,10 +89,12 @@ private:
 class Mapper: public QObject
 {
 	Q_OBJECT
-public:
+
+	typedef CDspLockedPointer<CDspVmStateSender> sender_type;
+
 public slots:
-	void abort(const CVmIdent& ident_);
-	void begin(const CVmIdent& ident_);
+	void abort(CVmIdent ident_);
+	void begin(CVmIdent ident_);
 };
 
 } // namespace Collecting
@@ -138,7 +112,7 @@ public:
 			VmStatisticsSubscribersMap;
 
 	static void stop();
-	static void start();
+	static void start(Registry::Public& registry_);
 
 public://Subscribers list maintaining calls
 
@@ -192,6 +166,8 @@ public://Subscribers list maintaining calls
 	 * Cleanups host statistics subscribers list
 	 */
 	static void CleanupSubscribersLists();
+
+	static QWeakPointer<Stat::Storage> getStorage(const QString& uuid_);
 
 protected:
 	/** Overridden method of thread working body */
@@ -261,8 +237,8 @@ private://Static data members
 public://Custom counters callbacks sets
 
 signals:
-	void abort(const CVmIdent& ident_);
-	void begin(const CVmIdent& ident_);
+	void abort(CVmIdent ident_);
+	void begin(CVmIdent ident_);
 
 private:
 
@@ -295,11 +271,12 @@ private:
 		const QString& statAsString );
 	static void schedule();
 
-	/** Class default constructor */
-	CDspStatCollectingThread();
+	explicit CDspStatCollectingThread(Registry::Public& registry_);
 
 	int m_timer;
 	QDateTime m_last;
+
+	Registry::Public& m_registry;
 };
 
 #endif//_DSP_STAT_COLLECTING_THREAD_H_

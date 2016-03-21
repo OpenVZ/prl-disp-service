@@ -34,9 +34,8 @@
 
 #include <QTimer>
 #include "CDspClient.h"
-#include "CDspVmStateMachine.h"
 #include "CDspLibvirt.h"
-#include "CDspVmNetworkHelper.h"
+#include "CDspRegistry.h"
 #include <QSocketNotifier>
 #include <boost/optional.hpp>
 #include <boost/noncopyable.hpp>
@@ -211,30 +210,12 @@ private:
 namespace Model
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Vm
-
-struct Vm: ::Vm::State::Machine
-{
-	Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
-			const QSharedPointer< ::Network::Routing>& routing);
-	void updateState(VIRTUAL_MACHINE_STATE value_);
-	void updateConfig(CVmConfiguration value_);
-
-private:
-	QSharedPointer< ::Network::Routing> m_routing;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Domain
 
 struct Domain: QObject
 {
-	explicit Domain(const Vm& vm_);
+	explicit Domain(const Registry::Access& access_);
 
-	const Vm& getVm() const
-	{
-		return m_vm;
-	}
 	void setPid(quint32 value_)
 	{
 		m_pid = value_;
@@ -245,14 +226,14 @@ struct Domain: QObject
 	void setConfig(CVmConfiguration& value_);
 	void setCpuUsage();
 	void setDiskUsage();
-	void setMemoryUsage();
+	void setMemoryUsage(const Instrument::Agent::Vm::Stat::Memory& src_);
 	void setNetworkUsage();
 
 private:
 	Q_OBJECT
 
-	Vm m_vm;
 	quint32 m_pid;
+	Registry::Access m_access;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -260,24 +241,19 @@ private:
 
 struct System: QObject
 {
-	System();
+	explicit System(Registry::Actual& registry_);
 
 	void remove(const QString& uuid_);
 	QSharedPointer<Domain> add(const QString& uuid_);
-	QSharedPointer<Domain> find(const QString& uuid_) const;
-	const QSharedPointer< ::Network::Routing>& getRouting() const
-	{
-		return m_routing;
-	}
+	QSharedPointer<Domain> find(const QString& uuid_);
 
 private:
 	Q_OBJECT
 
-	typedef QHash<QString, QSharedPointer<Domain> > domainMap_type;
+	Registry::Actual& m_registry;
 
+	typedef QHash<QString, QSharedPointer<Domain> > domainMap_type;
 	domainMap_type m_domainMap;
-	CDspDispConfigGuard* m_configGuard;
-	QSharedPointer< ::Network::Routing> m_routing;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -340,7 +316,8 @@ private:
 
 struct Domains: QObject
 {
-	explicit Domains(int timeout_ = DEFAULT_TIMEOUT);
+	explicit Domains(Registry::Actual& registry_,
+		int timeout_ = DEFAULT_TIMEOUT);
 
 public slots:
 	void getPerformance();

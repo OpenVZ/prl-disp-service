@@ -339,23 +339,6 @@ SmartPtr<CDspVm> CDspVm::GetVmInstanceByUuid(const QString &sVmUuid, const QStri
 	return GetVmInstanceByUuid(MakeVmIdent(sVmUuid, sVmDirUuid)) ;
 }
 
-CDspLockedPointer<ProcPerfStoragesContainer> CDspVm::PerfStoragesContainer()
-{
-	quint32 pid = getVmProcessIdAsUint(); // to prevent potential deadlock
-
-	QMutexLocker lock( &d().m_mtxPerfStoragesContainer );
-	if(  d().m_perfstorage_container.IsEmpty() )
-	{
-		// We have not necessary to check to race when PerfStoragesContainer() was called before start vm process
-		// (snapshot operations for example)
-		// if pid == 0 m_perfstorage_container still empty and will initalized on next valid call.
-		if ( pid > 0 )
-			d().m_perfstorage_container.Refresh( pid );
-	}
-	return CDspLockedPointer<ProcPerfStoragesContainer>
-		( &d().m_mtxPerfStoragesContainer, &d().m_perfstorage_container );
-}
-
 PRL_RESULT CDspVm::initialize(const CVmIdent& id_, const SmartPtr<CDspClient>& client_,
 			PVE::IDispatcherCommands command_, VIRTUAL_MACHINE_STATE state_,
 			const QString &sTaskId)

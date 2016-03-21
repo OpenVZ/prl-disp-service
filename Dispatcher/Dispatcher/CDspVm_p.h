@@ -177,9 +177,6 @@ struct Details: noncopyable
 	/* UUID of snapshot, created for migration */
 	QString m_sSnapshotUuid;
 
-	QMutex	m_mtxPerfStoragesContainer;
-	ProcPerfStoragesContainer m_perfstorage_container;
-
 	VIRTUAL_MACHINE_STATE m_stateBeforeHandshake;
 
 	//Storing handle on connection initializes request of VM operation
