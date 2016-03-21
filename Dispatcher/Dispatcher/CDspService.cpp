@@ -52,6 +52,7 @@
 #include "CDspBugPatcherLogic.h"
 #include "CDspProblemReportHelper.h"
 #include "CDspAsyncRequest.h"
+#include "CDspRegistry.h"
 
 #include "CDspCommon.h"
 #include "CDspTestConfig.h"
@@ -525,7 +526,8 @@ m_pHwMonitorThread( new CDspHwMonitorThread ),
 m_pSystemEventsMonitor( new CDspSystemEventsMonitor ),
 m_pHaClusterHelper( new CDspHaClusterHelper ),
 m_pTaskManager(new CDspTaskManager()),
-m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
+m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() ),
+m_registry( new Registry::Actual() )
 {
 	qRegisterMetaType<SmartPtr<NATStatistic> >("SmartPtr<NATStatistic>");
 	qRegisterMetaType<SmartPtr<CDspClient> >("SmartPtr<CDspClient>");
@@ -1668,7 +1670,7 @@ void CDspService::initHypervisor()
 	if (!m_hypervisor.isNull())
 		return;
 
-	m_hypervisor.reset(new Libvirt::Host());
+	m_hypervisor.reset(new Libvirt::Host(*m_registry));
 	m_hypervisor->moveToThread(m_hypervisor.data());
 	m_hypervisor->QThread::start();
 #endif // _LIBVIRT_

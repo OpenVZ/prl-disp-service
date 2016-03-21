@@ -26,6 +26,7 @@
 #include <QtCore/qmetatype.h>
 #include "CDspVmStateSender.h"
 #include "CDspVmNetworkHelper.h"
+#include "Stat/CDspStatStorage.h"
 #include "Tasks/Task_CreateProblemReport.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_ManagePrlNetService.h"
@@ -834,97 +835,25 @@ void error(void* opaque_, virErrorPtr value_)
 namespace Model
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Vm
-
-Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
-		const QSharedPointer< ::Network::Routing>& routing_):
-	::Vm::State::Machine(uuid_, user_, routing_),
-	m_storage(new Stat::Storage(uuid_)), m_routing(routing_)
-{
-	// Metadata
-	// PERF_COUNT_TYPE_ABS - represents some absolute value,
-	//                       like current CPU usage
-	// PERF_COUNT_TYPE_INC - some value that constantly grows,
-	//                       like I/O bytes count
-
-	// Current balloon value (in kB).
-	m_storage->add(PERF_COUNT_TYPE_ABS, "mem.guest_total");
-
-	// The amount of memory used by the system (in kB).
-	m_storage->add(PERF_COUNT_TYPE_ABS, "mem.guest_used")
-}
-
-void Vm::updateState(VIRTUAL_MACHINE_STATE value_)
-{
-	switch(value_)
-	{
-	case VMS_RUNNING:
-		process_event(::Vm::State::Event<VMS_RUNNING>());
-		break;
-	case VMS_STOPPED:
-		process_event(::Vm::State::Event<VMS_STOPPED>());
-		break;
-	case VMS_PAUSED:
-		process_event(::Vm::State::Event<VMS_PAUSED>());
-		break;
-	case VMS_MOUNTED:
-		process_event(::Vm::State::Event<VMS_MOUNTED>());
-		break;
-	case VMS_SUSPENDED:
-		process_event(::Vm::State::Event<VMS_SUSPENDED>());
-		break;
-	default:
-		process_event(::Vm::State::Event<VMS_UNKNOWN>());
-		return;
-	}
-}
-
-void Vm::updateConfig(CVmConfiguration value_)
-{
-	boost::optional<CVmConfiguration> y = getConfig();
-	if (y)
-	{
-		::Vm::Config::Repairer< ::Vm::Config::untranslatable_types>
-			::type::do_(value_, y.get());
-		
-		if (is_flag_active< ::Vm::State::Running>())
-			m_routing->reconfigure(y.get(), value_);
-	}
-	else
-		WRITE_TRACE(DBG_DEBUG, "New VM registered directly from libvirt");
-
-	if (value_.getVmIdentification()->getHomePath().isEmpty())
-		value_.getVmIdentification()->setHomePath(getHome());
-	else
-		setHome(value_.getVmIdentification()->getHomePath());
-
-	updateDirectory(value_.getVmType());
-
-	::Vm::State::Machine::setConfig(value_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Domain
 
-Domain::Domain(const Vm& vm_): m_vm(vm_), m_pid()
+Domain::Domain(const Registry::Access& access_): m_pid(), m_access(access_)
 {
 }
 
 void Domain::setState(VIRTUAL_MACHINE_STATE value_)
 {
-	m_vm.updateState(value_);
+	m_access.updateState(value_);
 }
 
 void Domain::setConfig(CVmConfiguration& value_)
 {
-	m_vm.setName(value_.getVmIdentification()->getVmName());
-	Kit.vms().at(m_vm.getUuid()).completeConfig(value_);
-	m_vm.updateConfig(value_);
+	m_access.updateConfig(value_);
 }
 
 void Domain::prepareToSwitch()
 {
-	m_vm.process_event(::Vm::State::Switch());
+	m_access.prepareToSwitch();
 }
 
 void Domain::setCpuUsage()
@@ -937,7 +866,7 @@ void Domain::setDiskUsage()
 
 void Domain::setMemoryUsage(const Instrument::Agent::Vm::Stat::Memory& src_)
 {
-	QSharedPointer<Stat::Storage> s = m_vm.getStorage().toStrongRef();
+	QSharedPointer<Stat::Storage> s = m_access.getStorage();
 	if (s.isNull())
 		return;
 
@@ -956,8 +885,7 @@ void Domain::setNetworkUsage()
 ///////////////////////////////////////////////////////////////////////////////
 // struct System
 
-System::System(): m_configGuard(&CDspService::instance()->getDispConfigGuard()),
-	m_routing(new ::Network::Routing())
+System::System(Registry::Actual& registry_): m_registry(registry_)
 {
 }
 
@@ -968,7 +896,9 @@ void System::remove(const QString& uuid_)
 		return;
 
 	p.value()->setState(VMS_UNKNOWN);
+
 	m_domainMap.erase(p);
+	m_registry.remove(uuid_);
 }
 
 QSharedPointer<Domain> System::add(const QString& uuid_)
@@ -976,30 +906,16 @@ QSharedPointer<Domain> System::add(const QString& uuid_)
 	if (uuid_.isEmpty() || m_domainMap.contains(uuid_))
 		return QSharedPointer<Domain>();
 
-	SmartPtr<CDspClient> u;
-	QString d = m_configGuard->getDispWorkSpacePrefs()->getDefaultVmDirectory();
-	foreach (CDispUser* s, m_configGuard->getDispUserPreferences()->m_lstDispUsers)
-	{
-		if (d == s->getUserWorkspace()->getVmDirectory())
-		{
-			u = CDspClient::makeServiceUser(d);
-			u->setUserSettings(s->getUserId(), s->getUserName());
-			break;
-		}
-	}
-	if (!u.isValid())
+	Prl::Expected<Registry::Access, Error::Simple> a = m_registry.add(uuid_);
+	if (a.isFailed())
 		return QSharedPointer<Domain>();
 
-	qint64 c = m_configGuard->getDispWorkSpacePrefs()->getVmGuestCollectPeriod();
-	qint64 p = qMax(c, qint64(Monitor::DEFAULT_TIMEOUT / 1000));
-	Kit.vms().at(uuid_).getPerformance().setMemoryStatsPeriod(p);
-
-	QSharedPointer<Domain> x(new Domain(Vm(uuid_, u, m_routing)));
+	QSharedPointer<Domain> x(new Domain(a.value()));
 	x->moveToThread(this->thread());
 	return m_domainMap[uuid_] = x;
 }
 
-QSharedPointer<Domain> System::find(const QString& uuid_) const
+QSharedPointer<Domain> System::find(const QString& uuid_)
 {
 	domainMap_type::const_iterator p = m_domainMap.find(uuid_);
 	if (m_domainMap.end() == p)
@@ -1138,9 +1054,10 @@ void Link::disconnect(virConnectPtr libvirtd_, int reason_, void* opaque_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Domains
 
-Domains::Domains(int timeout_): m_eventState(-1), m_eventReboot(-1),
+Domains::Domains(Registry::Actual& registry_, int timeout_):
+	m_eventState(-1), m_eventReboot(-1),
 	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
-	m_eventTrayChange(-1), m_view(new Model::System())
+	m_eventTrayChange(-1), m_view(new Model::System(registry_))
 {
 	m_timer.stop();
 	m_timer.setInterval(timeout_);
@@ -1234,7 +1151,7 @@ void Domains::setDisconnected()
 void Host::run()
 {
 	Monitor::Link a;
-	Monitor::Domains b;
+	Monitor::Domains b(m_registry);
 	b.connect(&a, SIGNAL(disconnected()), SLOT(setDisconnected()));
 	b.connect(&a, SIGNAL(connected(QSharedPointer<virConnect>)),
 		SLOT(setConnected(QSharedPointer<virConnect>)));

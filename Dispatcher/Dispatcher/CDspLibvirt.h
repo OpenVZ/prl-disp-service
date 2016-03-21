@@ -51,6 +51,11 @@
 
 class CSavedStateTree;
 
+namespace Registry
+{
+struct Actual;
+} // namespace Registry
+
 namespace Libvirt
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -484,11 +489,18 @@ extern Instrument::Agent::Hub Kit;
 
 struct Host: QThread
 {
+	explicit Host(Registry::Actual& registry_):
+		QThread(), m_registry(registry_)
+	{
+	}
+
 protected:
-        void run();
+	void run();
 
 private:
-        Q_OBJECT
+	Q_OBJECT
+
+	Registry::Actual& m_registry;
 };
 
 } // namespace Libvirt

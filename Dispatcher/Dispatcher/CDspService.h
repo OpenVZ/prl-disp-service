@@ -103,6 +103,11 @@ class CEtraceStatic;
 class CDspAsyncRequest;
 class CDspDispConnectionsManager;
 
+namespace Registry
+{
+struct Actual;
+} // namespace Registry
+
 class CDspService : public QObject
 {
 	Q_OBJECT
@@ -434,6 +439,7 @@ public:
 
 	quint64 getServiceStartTime() const;
 	quint64 getServiceStartTimeMonotonic() const;
+
 private:
 
 	void wakeAllInitCompletedWaiters( bool bCompleted );
@@ -555,6 +561,7 @@ private:
 #ifdef _LIBVIRT_
 	QScopedPointer<Libvirt::Host> m_hypervisor;
 #endif // _LIBVIRT_
+	QScopedPointer<Registry::Actual> m_registry;
 	Backup::Activity::Service m_backup;
 };
 
