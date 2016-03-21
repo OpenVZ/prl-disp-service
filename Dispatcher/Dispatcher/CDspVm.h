@@ -250,8 +250,6 @@ public:
 	/** return true when handshake was called ( without any result of handshake ) */
 	bool handshakeWasCalled() const;
 
-	CDspLockedPointer<ProcPerfStoragesContainer> PerfStoragesContainer() ;
-
 	/**
 	 * Resets uptime for VM process
 	 */
