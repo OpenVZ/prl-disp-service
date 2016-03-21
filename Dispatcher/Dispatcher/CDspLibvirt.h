@@ -91,6 +91,33 @@ struct Builder;
 
 namespace Vm
 {
+namespace Stat
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Memory
+
+struct Memory
+{
+	Memory(): baloonActual(0), rss(0), available(0), unused(0),
+		swapIn(0), swapOut(0), minorFault(0), majorFault(0)
+	{
+	}
+
+	quint64 baloonActual;
+	quint64 rss;
+
+	quint64 available;
+	quint64 unused;
+
+	quint64 swapIn;
+	quint64 swapOut;
+
+	quint64 minorFault;
+	quint64 majorFault;
+};
+
+} // namespace Stat
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Performance
 
@@ -101,9 +128,11 @@ struct Performance
 	{
 	}
 
+	Result setMemoryStatsPeriod(qint64 seconds_);
+
 	Result getCpu(quint64& nanoseconds_) const;
 	Result getDisk() const;
-	Result getMemory() const;
+	Result getMemory(Stat::Memory& dst_) const;
 	Result getNetwork() const;
 
 private:

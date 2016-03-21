@@ -404,6 +404,12 @@ Runtime Unit::getRuntime() const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Performance
 
+Result Performance::setMemoryStatsPeriod(qint64 seconds_)
+{
+	return do_(m_domain.data(), boost::bind(&virDomainSetMemoryStatsPeriod, _1,
+		seconds_, VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE));
+}
+
 Result Performance::getCpu(quint64& nanoseconds_) const
 {
 	int n = virDomainGetCPUStats(m_domain.data(), NULL, 0, -1, 1, 0);
@@ -426,12 +432,45 @@ Result Performance::getDisk() const
 	return Result();
 }
 
-Result Performance::getMemory() const
+Result Performance::getMemory(Stat::Memory& dst_) const
 {
-	virDomainMemoryStatStruct x[7];
-	int n = virDomainMemoryStats(m_domain.data(), x, 7, 0);
+	unsigned s = VIR_DOMAIN_MEMORY_STAT_NR - 1;
+	virDomainMemoryStatStruct x[s];
+
+	int n = virDomainMemoryStats(m_domain.data(), x, s, 0);
 	if (0 >= n)
 		return Failure(PRL_ERR_FAILURE);
+
+	for (int i = 0; i < n; ++i)
+	{
+		switch (x[i].tag)
+		{
+			case VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON:
+				dst_.baloonActual = x[i].val;
+				break;
+			case VIR_DOMAIN_MEMORY_STAT_AVAILABLE:
+				dst_.available = x[i].val;
+				break;
+			case VIR_DOMAIN_MEMORY_STAT_UNUSED:
+				dst_.unused = x[i].val;
+				break;
+			case VIR_DOMAIN_MEMORY_STAT_SWAP_IN:
+				dst_.swapIn = x[i].val;
+				break;
+			case VIR_DOMAIN_MEMORY_STAT_SWAP_OUT:
+				dst_.swapOut = x[i].val;
+				break;
+			case VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT:
+				dst_.minorFault = x[i].val;
+				break;
+			case VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT:
+				dst_.majorFault = x[i].val;
+				break;
+			case VIR_DOMAIN_MEMORY_STAT_RSS:
+				dst_.rss = x[i].val;
+				break;
+		}
+	}
 
 	return Result();
 }

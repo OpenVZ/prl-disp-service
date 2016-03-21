@@ -37,6 +37,7 @@
 #include "CDspVmStateMachine.h"
 #include "CDspLibvirt.h"
 #include "CDspVmNetworkHelper.h"
+#include "Stat/CDspStatStorage.h"
 #include <QSocketNotifier>
 #include <boost/optional.hpp>
 #include <boost/noncopyable.hpp>
@@ -216,11 +217,16 @@ namespace Model
 struct Vm: ::Vm::State::Machine
 {
 	Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
-			const QSharedPointer< ::Network::Routing>& routing);
+			const QSharedPointer< ::Network::Routing>& routing_);
 	void updateState(VIRTUAL_MACHINE_STATE value_);
 	void updateConfig(CVmConfiguration value_);
+	QWeakPointer<Stat::Storage> getStorage()
+	{
+		return m_storage.toWeakRef();
+	}
 
 private:
+	QSharedPointer<Stat::Storage> m_storage;
 	QSharedPointer< ::Network::Routing> m_routing;
 };
 
@@ -245,7 +251,7 @@ struct Domain: QObject
 	void setConfig(CVmConfiguration& value_);
 	void setCpuUsage();
 	void setDiskUsage();
-	void setMemoryUsage();
+	void setMemoryUsage(const Instrument::Agent::Vm::Stat::Memory& src_);
 	void setNetworkUsage();
 
 private:

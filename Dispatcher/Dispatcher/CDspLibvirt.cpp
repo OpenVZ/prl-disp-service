@@ -338,16 +338,19 @@ void Performance::run()
 		if (v.isNull())
 			continue;
 
-		Agent::Vm::Performance p = m.getPerformance();
 		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
 		m.getState(s);
-		if (VMS_RUNNING == s)
-		{
-			quint64 u;
-			p.getCpu(u);
-			p.getMemory();
-		}
-			
+		if (VMS_RUNNING != s)
+			continue;
+
+		Agent::Vm::Performance p = m.getPerformance();
+
+		quint64 c;
+		p.getCpu(c);
+
+		Agent::Vm::Stat::Memory d;
+		if (p.getMemory(d).isSucceed())
+			v->setMemoryUsage(d);
 	}
 }
 
@@ -835,8 +838,20 @@ namespace Model
 
 Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 		const QSharedPointer< ::Network::Routing>& routing_):
-	::Vm::State::Machine(uuid_, user_, routing_), m_routing(routing_)
+	::Vm::State::Machine(uuid_, user_, routing_),
+	m_storage(new Stat::Storage(uuid_)), m_routing(routing_)
 {
+	// Metadata
+	// PERF_COUNT_TYPE_ABS - represents some absolute value,
+	//                       like current CPU usage
+	// PERF_COUNT_TYPE_INC - some value that constantly grows,
+	//                       like I/O bytes count
+
+	// Current balloon value (in kB).
+	m_storage->add(PERF_COUNT_TYPE_ABS, "mem.guest_total");
+
+	// The amount of memory used by the system (in kB).
+	m_storage->add(PERF_COUNT_TYPE_ABS, "mem.guest_used")
 }
 
 void Vm::updateState(VIRTUAL_MACHINE_STATE value_)
@@ -920,8 +935,18 @@ void Domain::setDiskUsage()
 {
 }
 
-void Domain::setMemoryUsage()
+void Domain::setMemoryUsage(const Instrument::Agent::Vm::Stat::Memory& src_)
 {
+	QSharedPointer<Stat::Storage> s = m_vm.getStorage().toStrongRef();
+	if (s.isNull())
+		return;
+
+	s->write("mem.guest_total", src_.available);
+
+	if (src_.unused < src_.available)
+		s->write("mem.guest_used", src_.available - src_.unused);
+	else
+		s->write("mem.guest_used", src_.available);
 }
 
 void Domain::setNetworkUsage()
@@ -964,6 +989,10 @@ QSharedPointer<Domain> System::add(const QString& uuid_)
 	}
 	if (!u.isValid())
 		return QSharedPointer<Domain>();
+
+	qint64 c = m_configGuard->getDispWorkSpacePrefs()->getVmGuestCollectPeriod();
+	qint64 p = qMax(c, qint64(Monitor::DEFAULT_TIMEOUT / 1000));
+	Kit.vms().at(uuid_).getPerformance().setMemoryStatsPeriod(p);
 
 	QSharedPointer<Domain> x(new Domain(Vm(uuid_, u, m_routing)));
 	x->moveToThread(this->thread());
