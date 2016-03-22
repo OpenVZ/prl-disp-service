@@ -150,7 +150,6 @@ private:
 	PRL_RESULT restoreNewCt(const QString &sDefaultCtFolder);
 	PRL_RESULT restoreCtToTargetPath(
 			const QString &sCtName,
-			quint32 nEnvId,
 			bool bIsRealMountPoint,
 			std::auto_ptr<Restore::Assembly>& dst_);
 #endif

@@ -2290,8 +2290,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	QString sCtName;
 	SmartPtr<CVmConfiguration> pNewConfig;
-	bool bIsNameIsId;
-	int lockfd;
 
 	/* ID, name, private : use values of existing CT, ignore m_sTargetVmHomePath & m_sTargetVmName from command
 	   and values from backuped CT config */
@@ -2302,14 +2300,14 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 		return PRL_ERR_BAD_PARAMETERS;
 	}
 
-	quint32 nEnvId = pConfig->getVmIdentification()->getCtId().toUInt();
+	QString ctId = pConfig->getVmIdentification()->getCtId();
 	/* attn : this function restore real name or ct id */
 	sCtName = pConfig->getVmIdentification()->getVmName();
 	m_sTargetVmHomePath = pConfig->getVmIdentification()->getHomePath();
 	/* check */
-	if ((0 == nEnvId) || sCtName.isEmpty() || m_sTargetVmHomePath.isEmpty()) {
-		WRITE_TRACE(DBG_FATAL, "[%s] nEnvId = %d, sCtName = '%s', m_sTargetVmHomePath = '%s'",
-				__FUNCTION__, nEnvId, QSTR2UTF8(sCtName),
+	if (ctId.isEmpty() || sCtName.isEmpty() || m_sTargetVmHomePath.isEmpty()) {
+		WRITE_TRACE(DBG_FATAL, "[%s] ctId = %s, sCtName = '%s', m_sTargetVmHomePath = '%s'",
+				__FUNCTION__, QSTR2UTF8(ctId), QSTR2UTF8(sCtName),
 				QSTR2UTF8(m_sTargetVmHomePath));
 		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
 	}
@@ -2321,11 +2319,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 	}
 
 	CVzHelper& VzHelper = CDspService::instance()->getVzHelper()->getVzlibHelper();
-	lockfd = VzHelper.lock_env(nEnvId, "Restoring");
-	if (lockfd < 0) {
-		WRITE_TRACE(DBG_FATAL, "vzctl_env_lock() failed, rc = %d", lockfd);
-		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
-	}
 
 	/* check existing Ct state */
 	VIRTUAL_MACHINE_STATE state;
@@ -2333,7 +2326,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 	if (PRL_FAILED(nRetCode)) {
 		WRITE_TRACE(DBG_FATAL, "get_env_status() failer. Reason: %#x (%s)",
 				nRetCode, PRL_RESULT_TO_STRING(nRetCode));
-		VzHelper.unlock_env(nEnvId, lockfd);
 		return nRetCode;
 	}
 
@@ -2344,7 +2336,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 		pEvent->addEventParameter(new CVmEventParameter(PVE::String, sCtName, EVT_PARAM_MESSAGE_PARAM_0));
 		WRITE_TRACE(DBG_FATAL, "[%s] VM %s already exists and is running, suspended or mounted",
 				__FUNCTION__, QSTR2UTF8(m_sVmUuid));
-		VzHelper.unlock_env(nEnvId, lockfd);
 		return nRetCode;
 	}
 	/* will restore over existing home - to create temporary directory */
@@ -2358,34 +2349,21 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 			QSTR2UTF8(m_current_vm_uptime_start_date.toString(XML_DATETIME_FORMAT)));
 
 	std::auto_ptr<Restore::Assembly> x;
-	if (PRL_FAILED(nRetCode = restoreCtToTargetPath(sCtName, nEnvId, false, x))) {
-		VzHelper.unlock_env(nEnvId, lockfd);
+	if (PRL_FAILED(nRetCode = restoreCtToTargetPath(sCtName, false, x))) {
 		return nRetCode;
 	}
 
 	/* replace original private */
 	nRetCode = x->do_();
-	VzHelper.unlock_env(nEnvId, lockfd);
-	if (PRL_FAILED(nRetCode))
-		goto cleanup_0;
 
-	/* and reregister to set nEnvId & m_sTargetVmHomePath in restored config */
-	nRetCode = m_VzOpHelper.register_env(m_sTargetVmHomePath, QString::number(nEnvId),
+	/* and reregister to set ctId & m_sTargetVmHomePath in restored config */
+	nRetCode = m_VzOpHelper.register_env(m_sTargetVmHomePath, ctId,
+			pConfig->getVmIdentification()->getVmUuid(),
 			PRCF_FORCE | PRVF_IGNORE_HA_CLUSTER, pNewConfig);
 	if (PRL_FAILED(nRetCode)) {
 		WRITE_TRACE(DBG_FATAL, "register_env() exited with error %#x, %s",
 					nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
 		goto cleanup_1;
-	}
-	/* and rewrote name in restored config */
-	sCtName.toUInt(&bIsNameIsId);
-	if (!bIsNameIsId) {
-		nRetCode = m_VzOpHelper.set_env_name(QString::number(nEnvId), sCtName);
-		if (PRL_FAILED(nRetCode)) {
-			WRITE_TRACE(DBG_FATAL, "set_env_name() exited with error %#x, %s",
-				nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
-			goto cleanup_1;
-		}
 	}
 
 	/* restore uptime */
@@ -2400,7 +2378,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 cleanup_1:
 	x->revert();
 
-cleanup_0:
 	CFileHelper::ClearAndDeleteDir(m_sTargetPath);
 
 	return nRetCode;
@@ -2409,164 +2386,130 @@ cleanup_0:
 PRL_RESULT Task_RestoreVmBackupTarget::restoreNewCt(const QString &sDefaultCtFolder)
 {
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
+	QString ctId;
 	QString sCtName;
-	quint32 nEnvId = 0;
 	VIRTUAL_MACHINE_STATE nState;
-	bool bIsTargetNameCtId = false;
-	SmartPtr<CVmDirectory::TemporaryCatalogueItem> pCtInfo;
 	SmartPtr<CVmConfiguration> pConfig;
+	bool registered = false;
 
-	/* ID, name, private : if there are not specified in command, use values from backuped CT config */
-	if (!m_sTargetVmName.isEmpty()) {
-		/* 'target name field' defined in command.
-		   If it's a numeric value, it's new id of container,
-		   otherwise it's new name of container */
-		nEnvId = m_sTargetVmName.toUInt(&bIsTargetNameCtId);
-		if (!bIsTargetNameCtId)
-			sCtName = m_sTargetVmName;
-
+	ctId = m_pVmConfig->getVmIdentification()->getCtId();
+	if (ctId.isEmpty()) {
+		ctId = CVzHelper::build_ctid_from_uuid(
+				Uuid::createUuid().toString());
 	}
 
-	if (nEnvId == 0)
-		nEnvId = m_pVmConfig->getVmIdentification()->getCtId().toUInt();
-	if (sCtName.isEmpty()) {
-		bIsTargetNameCtId = false;
+	if (m_sTargetVmName.isEmpty())
 		sCtName = m_pVmConfig->getVmIdentification()->getVmName();
-		if (!sCtName.isEmpty())
-			sCtName.toUInt(&bIsTargetNameCtId);
+	else
+		sCtName = m_sTargetVmName;
+
+	if (m_sTargetVmHomePath.isEmpty())
+		m_sTargetVmHomePath = QString("%1/%2").arg(sDefaultCtFolder).arg(ctId);
+	/* will restore to target directory */
+	m_sTargetPath = m_sTargetVmHomePath;
+
+	if (m_nFlags & PBT_RESTORE_TO_COPY)
+	{
+		QString n = sCtName.isEmpty() ? ctId : sCtName;
+		m_pVmConfig = ::Backup::Perspective(m_pVmConfig).clone(m_sVmUuid, n);
+		if (!m_pVmConfig.isValid())
+			return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
+		m_pVmConfig->getVmIdentification()->setCtId(ctId);
+		m_pVmConfig->getVmIdentification()->setHomePath(m_sTargetPath);
 	}
+
 	/* check env id */
-	CVzHelper & VzHelper = CDspService::instance()->getVzHelper()->getVzlibHelper();
-	nRetCode = VzHelper.get_env_status(QString::number(nEnvId), nState);
+	nRetCode = CVzHelper::get_env_status_by_ctid(ctId, nState);
 	if (PRL_FAILED(nRetCode)) {
 		WRITE_TRACE(DBG_FATAL, "CVzTemplateHelper::get_env_status() failed. Reason: %#x (%s)",
 			nRetCode, PRL_RESULT_TO_STRING(nRetCode));
 		return nRetCode;
 	}
 	if (nState != VMS_UNKNOWN) {
-		/* CT with such id already exist */
-		if (sCtName.isEmpty())
-			sCtName = QString("%1.restored").arg(nEnvId);
-		if (!bIsTargetNameCtId) {
-			/* new Vm name defined - will autogenerate new CT id */
-//			CVzHelper::lock_envid(&nEnvId, QString());
-			m_nSteps |= BACKUP_LOCKED_CTID;
-		} else {
-			/* failure */
-			nRetCode = PRL_ERR_BACKUP_CT_ID_ALREADY_EXIST;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-				PVE::UnsignedInt, QString::number(nEnvId), EVT_PARAM_MESSAGE_PARAM_0));
-			WRITE_TRACE(DBG_FATAL, "[%s] Container with ID %d already exist",
-				__FUNCTION__, nEnvId);
-			return nRetCode;
-		}
-	} else {
-		/* TODO : check & lock CT ID */
-;
+		/* failure */
+		nRetCode = PRL_ERR_BACKUP_CT_ID_ALREADY_EXIST;
+		CVmEvent *pEvent = getLastError();
+		pEvent->setEventCode(nRetCode);
+		pEvent->addEventParameter(new CVmEventParameter(
+					PVE::String, ctId, EVT_PARAM_MESSAGE_PARAM_0));
+		WRITE_TRACE(DBG_FATAL, "Container with ID %s already exist",
+				QSTR2UTF8(ctId));
+		return nRetCode;
 	}
 
-	if (m_sTargetVmHomePath.isEmpty()) {
-		m_sTargetVmHomePath = QString("%1/%2").arg(sDefaultCtFolder).arg(nEnvId);
-	}
-	/* will restore to target directory */
-	m_sTargetPath = m_sTargetVmHomePath;
-
-	/* last check */
-	if ((nEnvId == 0) || m_sTargetPath.isEmpty() || m_sTargetVmHomePath.isEmpty()) {
-		WRITE_TRACE(DBG_FATAL, "nEnvId = %d, m_sTargetPath = '%s', m_sTargetVmHomePath = '%s'",
-				nEnvId, QSTR2UTF8(m_sTargetPath), QSTR2UTF8(m_sTargetVmHomePath));
-		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
-	}
-	if (m_nFlags & PBT_RESTORE_TO_COPY)
-	{
-		QString n = sCtName.isEmpty() ? QString::number(nEnvId) : sCtName;
-		m_pVmConfig = ::Backup::Perspective(m_pVmConfig).clone(m_sVmUuid, n);
-		if (!m_pVmConfig.isValid())
-			return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
-		m_pVmConfig->getVmIdentification()->setCtId(QString::number(nEnvId));
-		m_pVmConfig->getVmIdentification()->setHomePath(m_sTargetPath);
-	}
-	std::auto_ptr<Restore::Assembly> x;
 	/* lock register uuid, private & name */
-	pCtInfo = SmartPtr<CVmDirectory::TemporaryCatalogueItem>(new CVmDirectory::TemporaryCatalogueItem(
-						m_sVmUuid, m_sTargetPath, sCtName));
+	SmartPtr<CVmDirectory::TemporaryCatalogueItem>pCtInfo =
+		SmartPtr<CVmDirectory::TemporaryCatalogueItem>(
+			new CVmDirectory::TemporaryCatalogueItem(
+				m_sVmUuid, m_sTargetPath, sCtName));
 	nRetCode = lockExclusiveVmParameters(pCtInfo);
 	if (PRL_FAILED(nRetCode))
-		goto cleanup_0;
+		return nRetCode;
 
-	if (PRL_FAILED(nRetCode = restoreCtToTargetPath(sCtName, nEnvId, true, x)))
-		goto cleanup_1;
+	std::auto_ptr<Restore::Assembly> x;
+	do {
+		if (PRL_FAILED(nRetCode = restoreCtToTargetPath(sCtName, true, x)))
+			break;
 
-	if (PRL_FAILED(nRetCode = x->do_()))
-		goto cleanup_1;
+		if (PRL_FAILED(nRetCode = x->do_()))
+			break;
 
-	/* register and set CT at VZ layer */
-	nRetCode = m_VzOpHelper.register_env(m_sTargetPath, QString::number(nEnvId),
-			PRCF_FORCE, pConfig);
-	if (PRL_FAILED(nRetCode)) {
-		WRITE_TRACE(DBG_FATAL, "register_env() exited with error %#x, %s",
-			nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
-		goto cleanup_2;
-	}
-
-	VzHelper.update_ctid_map(m_sVmUuid, QString::number(nEnvId));
-	if (m_nFlags & PBT_RESTORE_TO_COPY) {
-		nRetCode = m_VzOpHelper.apply_env_config(m_pVmConfig, pConfig, 0);
+		nRetCode = m_VzOpHelper.register_env(m_sTargetPath, ctId,
+				m_pVmConfig->getVmIdentification()->getVmUuid(),
+				PRCF_FORCE, pConfig);
 		if (PRL_FAILED(nRetCode)) {
-		       WRITE_TRACE(DBG_FATAL, "apply_env_config() exited with error %#x, %s",
-			       nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
-		       goto cleanup_3;
+			WRITE_TRACE(DBG_FATAL, "register_env() exited with error %#x, %s",
+					nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
+			break;
 		}
-		pConfig = m_pVmConfig;
-	}
-	if (!sCtName.isEmpty() && !bIsTargetNameCtId) {
-		nRetCode = m_VzOpHelper.set_env_name(QString::number(nEnvId), sCtName);
-		if (PRL_FAILED(nRetCode)) {
-			WRITE_TRACE(DBG_FATAL, "set_env_name() exited with error %#x, %s",
-				nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
-			goto cleanup_3;
-		}
-	}
-	if (sCtName.size())
-		pConfig->getVmIdentification()->setVmName(sCtName);
-	nRetCode = CDspService::instance()->getVzHelper()->insertVmDirectoryItem(pConfig);
-	if (PRL_FAILED(nRetCode)) {
-		WRITE_TRACE(DBG_FATAL, "Can't insert vm to VmDirectory by error %#x, %s",
-			nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
-		goto cleanup_3;
-	}
+		registered = true;
 
-	/* reset uptime */
-	nRetCode = VzHelper.reset_env_uptime(m_sVmUuid);
-	if (PRL_FAILED(nRetCode))
-		WRITE_TRACE(DBG_FATAL, "Reset uptime failed with error %#x, %s",
+		CVzHelper::update_ctid_map(m_sVmUuid, ctId);
+		if (m_nFlags & PBT_RESTORE_TO_COPY) {
+			nRetCode = m_VzOpHelper.apply_env_config(m_pVmConfig, pConfig, 0);
+			if (PRL_FAILED(nRetCode)) {
+				WRITE_TRACE(DBG_FATAL, "apply_env_config() exited with error %#x, %s",
+						nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
+				break;
+			}
+			pConfig = m_pVmConfig;
+		}
+		if (!sCtName.isEmpty()) {
+			nRetCode = m_VzOpHelper.set_env_name(m_sVmUuid, sCtName);
+			if (PRL_FAILED(nRetCode)) {
+				WRITE_TRACE(DBG_FATAL, "set_env_name() exited with error %#x, %s",
+						nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
+				break;
+			}
+			pConfig->getVmIdentification()->setVmName(sCtName);
+		}
+
+		nRetCode = CDspService::instance()->getVzHelper()->insertVmDirectoryItem(pConfig);
+		if (PRL_FAILED(nRetCode)) {
+			WRITE_TRACE(DBG_FATAL, "Can't insert vm to VmDirectory by error %#x, %s",
+					nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
+			break;
+		}
+
+		if (PRL_FAILED(CVzHelper::reset_env_uptime(m_sVmUuid))) {
+			WRITE_TRACE(DBG_FATAL, "Reset uptime failed with error %#x, %s",
 				nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
+		}
+	} while (0);
+
+	if (PRL_FAILED(nRetCode)) {
+		x->revert();
+		if (registered)
+			m_VzOpHelper.unregister_env(m_sVmUuid, PRCF_FORCE | PRCF_UNREG_PRESERVE);
+	}
 
 	CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(pCtInfo.getImpl());
-	return PRL_ERR_SUCCESS;
 
-cleanup_3:
-	m_VzOpHelper.unregister_env(m_sVmUuid, PRCF_FORCE | PRCF_UNREG_PRESERVE);
-
-cleanup_2:
-	x->revert();
-
-cleanup_1:
-	CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(pCtInfo.getImpl());
-
-cleanup_0:
-/*
-	if (m_nSteps & BACKUP_LOCKED_CTID)
-		CVzHelper::unlock_envid(nEnvId);
-*/
 	return nRetCode;
 }
 
 PRL_RESULT Task_RestoreVmBackupTarget::restoreCtToTargetPath(
 			const QString &sCtName,
-			quint32 nEnvId,
 			bool bIsRealMountPoint,
 			std::auto_ptr<Restore::Assembly>& dst_)
 {
@@ -2595,26 +2538,10 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtToTargetPath(
 	}
 	else if (m_nInternalFlags & PVM_CT_VZFS_BACKUP)
 	{
-		Restore::Target::Vzfs::Reference r(nEnvId, m_sVmUuid, m_sTargetPath, m_sBackupUuid);
-		if (Restore::Target::Vzfs::Flavor::Blended::needConvertToPloop(
-			getClient(), m_sVmUuid, m_sTargetPath))
-		{
-			dst_.reset(t(Restore::Target::Vzfs::Flavor::Blended(p, r, m_pVmConfig),
-				m_sTargetVmHomePath));
-		}
-		else
-		{
-			dst_.reset(t(Restore::Target::Vzfs::Flavor::Pure(p, r),
-				m_sTargetVmHomePath));
-		}
+		return PRL_ERR_UNIMPLEMENTED;
 	}
 	else
 #endif // _LIN_
-	if (m_nInternalFlags & PVM_CT_VZWIN_BACKUP)
-	{
-		if (PRL_SUCCEEDED(output = getFiles(bIsRealMountPoint)))
-			dst_.reset(t(Restore::Target::Vzwin(m_sTargetPath, p, nEnvId), m_sTargetVmHomePath));
-	}
 	if (PRL_SUCCEEDED(output))
 		output = t.getResult();
 	if (PRL_FAILED(output))
