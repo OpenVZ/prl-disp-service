@@ -81,10 +81,10 @@ Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 	//                       like I/O bytes count
 
 	// Current balloon value (in kB).
-	m_storage->add(PERF_COUNT_TYPE_ABS, "mem.guest_total");
+	m_storage->addAbsolute("mem.guest_total");
 
 	// The amount of memory used by the system (in kB).
-	m_storage->add(PERF_COUNT_TYPE_ABS, "mem.guest_used");
+	m_storage->addAbsolute("mem.guest_used");
 }
 
 void Vm::prepareToSwitch()

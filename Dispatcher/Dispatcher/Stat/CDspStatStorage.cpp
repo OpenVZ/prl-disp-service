@@ -39,39 +39,52 @@ namespace Stat
 ///////////////////////////////////////////////////////////////////////////////
 // struct Storage
 
-Storage::Storage(const QString& id_):
-	m_vessel(new CounterStorageT(QSTR2UTF8(id_)))
+Storage::Storage(const QString& id_)
 {
+	Q_UNUSED(id_);
 }
 
-void Storage::add(const QString& type_, const QString& name_)
+void Storage::addAbsolute(const QString& name_)
 {
 	QWriteLocker l(&m_rwLock);
 
-	if (m_counters.contains(name_))
+	if (m_absolute.contains(name_) || m_incremental.contains(name_))
 		return;
 
-	m_counters.insert(name_, m_vessel->add_counter(QSTR2UTF8(type_ + name_)));
+	m_absolute.insert(name_, 0);
+}
+
+void Storage::addIncremental(const QString& name_)
+{
+	QWriteLocker l(&m_rwLock);
+
+	if (m_incremental.contains(name_) || m_absolute.contains(name_))
+		return;
+
+	m_incremental.insert(name_, 0);
 }
 
 quint64 Storage::read(const QString& name_)
 {
 	QReadLocker l(&m_rwLock);
 
-	if (!m_counters.contains(name_))
-		return 0;
+	if (m_absolute.contains(name_))
+		return m_absolute.value(name_);
 
-	return PERF_COUNT_GET(m_counters.value(name_));
+	if (m_incremental.contains(name_))
+		return m_incremental.value(name_);
+
+	return 0;
 }
 
 void Storage::write(const QString& name_, quint64 value_)
 {
 	QWriteLocker l(&m_rwLock);
 
-	if (!m_counters.contains(name_))
-		return;
-
-	PERF_COUNT_SET(m_counters.value(name_), value_);
+	if (m_absolute.contains(name_))
+		m_absolute[name_] = value_;
+	else if (m_incremental.contains(name_))
+		m_incremental[name_] = value_;
 }
 
 } // namespace Stat

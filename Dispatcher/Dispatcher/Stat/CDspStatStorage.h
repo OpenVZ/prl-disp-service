@@ -32,11 +32,9 @@
 #ifndef __CDSPSTATSTORAGE_H__
 #define __CDSPSTATSTORAGE_H__
 
-#include <QMap>
+#include <QHash>
 #include <QString>
 #include <QReadWriteLock>
-#include <boost/utility.hpp>
-#include "Libraries/PerfCount/PerfLib/PerfCounter.h"
 
 namespace Stat
 {
@@ -47,16 +45,20 @@ struct Storage: boost::noncopyable
 {
 	explicit Storage(const QString& id_);
 
-	void add(const QString& type_, const QString& name_);
+	void addAbsolute(const QString& name_);
+
+	void addIncremental(const QString& name_);
 
 	quint64 read(const QString& name_);
 
 	void write(const QString& name_, quint64 value_);
 
 private:
+	typedef QHash<QString, quint64> hash_type;
+
 	QReadWriteLock m_rwLock;
-	CounterStorageT* m_vessel;
-	QMap<QString, counter_ptr> m_counters;
+	hash_type m_absolute;
+	hash_type m_incremental;
 };
 
 } // namespace Stat
