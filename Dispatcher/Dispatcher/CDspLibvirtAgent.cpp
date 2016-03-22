@@ -475,8 +475,19 @@ Result Performance::getMemory(Stat::Memory& dst_) const
 	return Result();
 }
 
-Result Performance::getNetwork() const
+Result Performance::getInterface(Stat::Interface& dst_) const
 {
+	virDomainInterfaceStatsStruct x;
+	int n = virDomainInterfaceStats(m_domain.data(), qPrintable(dst_.name), &x, sizeof(x));
+	if (0 > n)
+		return Failure(PRL_ERR_FAILURE);
+
+	// -1 means the counter is unsupported
+	dst_.bytesIn = x.rx_bytes >= 0 ? x.rx_bytes : 0;
+	dst_.packetsIn = x.rx_packets >= 0 ? x.rx_packets : 0;
+	dst_.bytesOut = x.tx_bytes >= 0 ? x.tx_bytes : 0;
+	dst_.packetsOut = x.tx_packets >= 0 ? x.tx_packets : 0;
+
 	return Result();
 }
 

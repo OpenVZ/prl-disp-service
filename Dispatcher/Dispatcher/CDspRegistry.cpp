@@ -163,6 +163,15 @@ void Vm::setStatsPeriod(quint64 seconds_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Access
 
+boost::optional<CVmConfiguration> Access::getConfig()
+{
+	QSharedPointer<Vm> x = m_vm.toStrongRef();
+	if (x.isNull())
+		return boost::none;
+
+	return x->getConfig();
+}
+
 void Access::prepareToSwitch()
 {
 	QSharedPointer<Vm> x = m_vm.toStrongRef();

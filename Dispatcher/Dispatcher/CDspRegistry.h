@@ -69,6 +69,8 @@ struct Access
 	{
 	}
 
+	boost::optional<CVmConfiguration> getConfig();
+
 	void prepareToSwitch();
 
 	void updateState(VIRTUAL_MACHINE_STATE value_);
