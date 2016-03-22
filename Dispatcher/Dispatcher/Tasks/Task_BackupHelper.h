@@ -111,7 +111,6 @@ private:
 
 enum _PRL_BACKUP_STEP {
 	BACKUP_REGISTER_EX_OP	= (1 << 0),
-	BACKUP_LOCKED_CTID	= (1 << 1),
 };
 
 ///////////////////////////////////////////////////////////////////////////////

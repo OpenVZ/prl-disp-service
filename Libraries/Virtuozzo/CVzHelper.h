@@ -224,8 +224,8 @@ public:
 	static int get_env_status(const QString &uuid, VIRTUAL_MACHINE_STATE &nState);
 	static Ct::Statistics::Aggregate* get_env_stat(const QString& uuid_);
 	static int get_env_fstat(const QString &uuid, QList<Ct::Statistics::Filesystem>& fs);
-	int set_env_uptime(const QString &uuid, const quint64 uptime, const QDateTime & date);
-	int reset_env_uptime(const QString &uuid);
+	static int set_env_uptime(const QString &uuid, const quint64 uptime, const QDateTime & date);
+	static int reset_env_uptime(const QString &uuid);
 	static int sync_env_uptime(const QString& uuid_);
 	int set_vziolimit(const char *name);
 
@@ -387,7 +387,8 @@ public:
 	int resume_env(const QString &uuid, PRL_UINT32 flags);
 	int delete_env(const QString &uuid);
 	int delete_env(unsigned int id);
-	int register_env(const QString &sPath, const QString &sUuid,
+	int register_env(const QString &sPath, const QString &ctId,
+			const QString &sUuid,
 			PRL_UINT32 nFlags, SmartPtr<CVmConfiguration> &pConfig);
 	int unregister_env(const QString &sUuid, int flags);
 	int set_env_userpasswd(const QString &uuid, const QString &user,

@@ -703,7 +703,7 @@ PRL_RESULT Task_VzManager::register_env()
 	if (PRL_FAILED(res))
 		return res;
 
-	res = get_op_helper()->register_env(sPath, sUuid, cmd->GetCommandFlags(), pConfig);
+	res = get_op_helper()->register_env(sPath, QString(), sUuid, cmd->GetCommandFlags(), pConfig);
 	if (PRL_SUCCEEDED(res)) {
 		res = getVzHelper()->insertVmDirectoryItem(pConfig);
 		if (PRL_FAILED(res))
