@@ -91,49 +91,50 @@ class CloudBaseInit(OpenStackConfigDrive):
         OpenStackConfigDrive.__del__(self)
 
     def prepare_script(self, commands):
-        s = "rem cmd\n\n"
+        # codepage should be fixed to correctly use unicode
+        s = u"rem cmd\r\n\r\nchcp 65001\r\n\r\n"
         for command in commands:
-            if type(command) is str:
-                s += command + "\n"
+            if type(command) is unicode:
+                s += command + u"\r\n"
             else:
                 # windows cmd supports only double quotes
-                s += str(" ".join(command)).replace("'", "\"") + "\n"
+                s += unicode(u" ".join(command)).replace(u"'", u"\"") + u"\r\n"
         return s
 
     def prepare_password_command(self, name, credentials):
-        if credentials.get("is_encrypted", False):
-            return ""
-        s = "net user \"{}\" \"{}\"".format(name, credentials["password"])
-        r = "{} || {} /add".format(s, s)
+        if credentials.get(u"is_encrypted", False):
+            return u""
+        s = u"net user \"{}\" \"{}\"".format(name, credentials[u"password"])
+        r = u"{} || {} /add".format(s, s)
         return r
 
     def write_meta_data(self):
         meta_data = os.path.join(self.tmp_dir, self.meta_data_path);
         prepare_dir(meta_data)
-        with io.open(meta_data, "w", newline="\r\n") as f:
-            d = {"instance-id": str(uuid.uuid1())}
-            f.write(json.dumps(d, meta_data, sort_keys=True,
-                    indent=2, separators=(',', ': ')).decode("unicode-escape"))
+        with io.open(meta_data, "w", newline=u"\r\n") as f:
+            d = {u"instance-id": str(uuid.uuid1()).encode("unicode-escape")}
+            f.write(json.dumps(d, meta_data, ensure_ascii=False, sort_keys=True,
+                    indent=2, separators=(u',', u': ')))
             f.write(u"\r\n")
 
     def write_user_data(self, data):
         s = []
-        s.extend(data.get("runcmd", []))
-        s.extend(data.get("bootcmd", []))
-        if "nettoolcmd" in data:
-            s.append(data["nettoolcmd"])
+        s.extend(data.get(u"runcmd", []))
+        s.extend(data.get(u"bootcmd", []))
+        if u"nettoolcmd" in data:
+            s.append(data[u"nettoolcmd"])
         user_data = os.path.join(self.tmp_dir, self.user_data_path);
         prepare_dir(user_data)
-        if "users" in data:
-            for name, credentials in data["users"].iteritems():
+        if u"users" in data:
+            for name, credentials in data[u"users"].iteritems():
                 x = self.prepare_password_command(name, credentials)
                 if not x:
                     continue
                 s.append(x)
 
-        with io.open(user_data, "w", newline="\r\n") as f:
-            f.write(self.prepare_script(s).decode("unicode-escape"))
-            f.write(u"\r\n")
+        with open(user_data, 'w') as f:
+            f.write(self.prepare_script(s).encode("utf-8"))
+            f.write(u"\r\n".encode("utf-8"))
 
 class CloudInit(OpenStackConfigDrive):
     def __init__(self, iso):
@@ -146,37 +147,38 @@ class CloudInit(OpenStackConfigDrive):
         meta_data = os.path.join(self.tmp_dir, self.meta_data_path);
         prepare_dir(meta_data)
         with open(meta_data, "w") as f:
-            d = {"instance-id": str(uuid.uuid1()), "uuid": str(uuid.uuid1())}
-            json.dump(d, f, sort_keys=True,
-                    indent=2, separators=(',', ': '))
+            d = {u"instance-id": str(uuid.uuid1()).decode("unicode-escape"),
+                    u"uuid": str(uuid.uuid1()).decode("unicode-escape")}
+            json.dump(d, f, sort_keys=True, ensure_ascii=False,
+                    indent=2, separators=(u",", u": "))
             f.write("\n")
 
     def write_user_data(self, data):
         user_data = os.path.join(self.tmp_dir, self.user_data_path)
         prepare_dir(user_data)
         with open(user_data, "w") as f:
-            d = {"runcmd": data.get("runcmd", []),
-                 "bootcmd": data.get("bootcmd", [])}
-            if "nettoolcmd" in data:
-                d["runcmd"].extend(data["nettoolcmd"])
-            if "users" in data:
-                d["users"] = []
-                for name, credentials in data["users"].iteritems():
-                    u = {"name": name}
+            d = {u"runcmd": data.get(u"runcmd", []),
+                 u"bootcmd": data.get(u"bootcmd", [])}
+            if u"nettoolcmd" in data:
+                d[u"runcmd"].extend(data[u"nettoolcmd"])
+            if u"users" in data:
+                d[u"users"] = []
+                for name, credentials in data[u"users"].iteritems():
+                    u = {u"name": name}
                     if "password" in credentials:
-                        p = credentials["password"]
-                        enc = credentials.get("is_encrypted", True)
-                        u["passwd" if enc else "plain_text_passwd"] = p
-                    if "ssh_keys" in credentials:
-                        u["ssh-authorized-keys"] = credentials["ssh_keys"]
+                        p = credentials[u"password"]
+                        enc = credentials.get(u"is_encrypted", True)
+                        u[enc and u"passwd" or u"plain_text_passwd"] = p
+                    if u"ssh_keys" in credentials:
+                        u[u"ssh-authorized-keys"] = credentials["ssh_keys"]
                     # lockpasswd adds ability to use this password immediately
-                    u["lock-passwd"] = False
-                    d["users"].append(u)
-            if "write_files" in data:
-                d["write_files"] = data["write_files"]
-            f.write("#cloud-config\n")
-            f.write(yaml.safe_dump(d, width=4096))
-            f.write("\n")
+                    u[u"lock-passwd"] = False
+                    d[u"users"].append(u)
+            if u"write_files" in data:
+                d[u"write_files"] = data[u"write_files"]
+            f.write(u"#cloud-config\n")
+            f.write(yaml.safe_dump(d, width=4096, allow_unicode=True))
+            f.write(u"\n")
 
 #
 # Stores and restores our data
@@ -194,17 +196,17 @@ class Datastore:
         return self.data
 
     def assign_user(self, name, password=None, is_encrypted=None, ssh_keys=None):
-        if not "users" in self.data:
-            self.data["users"] = {name: {}}
+        if not u"users" in self.data:
+            self.data[u"users"] = {name: {}}
 
-        if not name in self.data["users"]:
-            self.data["users"][name] = {}
+        if not name in self.data[u"users"]:
+            self.data[u"users"][name] = {}
         if password is not None:
-            self.data["users"][name]["password"] = password
+            self.data[u"users"][name][u"password"] = password
         if is_encrypted is not None:
-            self.data["users"][name]["is_encrypted"] = is_encrypted
+            self.data[u"users"][name][u"is_encrypted"] = is_encrypted
         if ssh_keys is not None:
-            self.data["users"][name]["ssh_keys"] = ssh_keys
+            self.data[u"users"][name][u"ssh_keys"] = ssh_keys
 
     def add_command(self, tag, command):
         if tag in self.data:
@@ -213,21 +215,22 @@ class Datastore:
             self.data[tag] = [command]
 
     def add_run_command(self, command):
-        self.add_command("runcmd", command)
+        self.add_command(u"runcmd", command)
 
     def add_boot_command(self, command):
-        self.add_command("bootcmd", command)
+        self.add_command(u"bootcmd", command)
 
     def assign_nettool_command(self, command):
-        self.data["nettoolcmd"] = command
+        self.data[u"nettoolcmd"] = command
 
     def dump(self):
         if not self.data:
             return
         prepare_dir(self.datasource)
         with open(self.datasource, "w") as f:
-            json.dump(self.data, f, sort_keys=True,
-                      indent=2, separators=(',', ': '))
+            s = json.dumps(self.data, f, ensure_ascii=False, sort_keys=True,
+                    indent=2, separators=(u',', u': '))
+            f.write(s.encode("utf-8"))
 
     def merge(self, files):
         def append_without_duplicates(input, data):
@@ -255,7 +258,7 @@ class Datastore:
                 for key, value in blocks.iteritems():
                     # nettoolcmd cannot be merged,
                     # should only appear in input file
-                    if key == "nettoolcmd":
+                    if key == u"nettoolcmd":
                         continue
                     if key in data:
                         data[key] = append_without_duplicates(value, data[key])
@@ -302,15 +305,17 @@ def create_cmd_parser(sp, tag, desc, handler):
     s.set_defaults(func=handler)
 
 def main():
+    def unicode_convert(s):
+        return unicode(s, "utf8")
     p = argparse.ArgumentParser(prog="Cloud-init config maker", description="Add VM personalization info")
-    p.add_argument("--format", type=str, action="store", help="Specifies format of output to use (cloudbase-init or cloud-init)")
-    p.add_argument("--datastore", type=str, action="store", help="Specifies output settings file")
-    p.add_argument("--output-iso", type=str, action="store", help="Specifies output iso image")
+    p.add_argument("--format", type=unicode_convert, action="store", help="Specifies format of output to use (cloudbase-init or cloud-init)")
+    p.add_argument("--datastore", type=unicode_convert, action="store", help="Specifies output settings file")
+    p.add_argument("--output-iso", type=unicode_convert, action="store", help="Specifies output iso image")
     sp = p.add_subparsers(help="help for subcommand")
 
     user_subparser = sp.add_parser("user", help="Adds or modifies user-information")
-    user_subparser.add_argument("name", type=str, action="store", help="Specifies user name")
-    user_subparser.add_argument("--password", type=str, action="store", help="Specifies user password")
+    user_subparser.add_argument("name", type=unicode_convert, action="store", help="Specifies user name")
+    user_subparser.add_argument("--password", type=unicode_convert, action="store", help="Specifies user password")
     user_subparser.add_argument("--not-encrypted", action="store_true",
             default=False, help="Set this option if you use plain text password")
     user_subparser.add_argument("--ssh-keys", default=[], metavar="", help="Specifies SSH keys for user", nargs="*")
@@ -327,7 +332,7 @@ def main():
     args = p.parse_args()
 
     args.storage = Datastore(args.datastore)
-    if args.format == "cloudbase-init":
+    if args.format == u"cloudbase-init":
         args.handler = CloudBaseInit(args.output_iso)
     else:
         args.handler = CloudInit(args.output_iso)
