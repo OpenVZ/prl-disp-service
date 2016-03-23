@@ -76,23 +76,7 @@ struct Running
 struct Frontend: msmf::state_machine_def<Frontend>
 {
 	Frontend(const QString& uuid_, const SmartPtr<CDspClient>& user_,
-			const QSharedPointer< ::Network::Routing>& routing_):
-		m_uuid(uuid_), m_service(CDspService::instance()), m_user(user_),
-		m_routing(routing_)
-	{
-		//Check if VM is already exist and fill name and path
-		boost::optional<CVmConfiguration> y = getConfig();
-		if (!y)
-		{
-			QString h = QDir(m_user->getUserDefaultVmDirPath())
-				.absoluteFilePath(Vm::Config::getVmHomeDirName(m_uuid));
-			m_home = QFileInfo(QDir(h), VMDIR_DEFAULT_VM_CONFIG_FILE);
-			return;
-		}
-
-		m_name = y->getVmIdentification()->getVmName();
-		m_home = QFileInfo(y->getVmIdentification()->getHomePath());
-	}
+			const QSharedPointer< ::Network::Routing>& routing_);
 
 	template <VIRTUAL_MACHINE_STATE N>
 	struct State: public msmf::state<>, boost::mpl::integral_c<VIRTUAL_MACHINE_STATE, N>
@@ -377,23 +361,33 @@ struct Frontend: msmf::state_machine_def<Frontend>
 			qPrintable(demangle(n.c_str())));
 	}
 
+	const QString& getName() const
+	{
+		return m_name;
+	}
 	const QString& getUuid() const
 	{
 		return m_uuid;
 	}
-	QString getHome() const
-	{
-		return m_home.absoluteFilePath();
-	}
+	const QString getHome() const;
 	void setHome(const QString& path_)
 	{
 		m_home = QFileInfo(path_);
 	}
 
 	void setName(const QString& value_);
-	void updateDirectory(PRL_VM_TYPE type_);
 	void setConfig(CVmConfiguration& value_);
 	boost::optional<CVmConfiguration> getConfig() const;
+
+protected:
+	CDspClient& getUser() const
+	{
+		return *m_user;
+	}
+	CDspService& getService() const
+	{
+		return *m_service;
+	}
 
 private:
 	QString m_uuid;
@@ -401,7 +395,7 @@ private:
 	SmartPtr<CDspClient> m_user;
 	QSharedPointer< ::Network::Routing> m_routing;
 	QString m_name;
-	QFileInfo m_home;
+	boost::optional<QFileInfo> m_home;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

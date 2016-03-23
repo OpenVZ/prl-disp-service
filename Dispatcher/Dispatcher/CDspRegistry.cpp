@@ -63,7 +63,14 @@ struct Vm: ::Vm::State::Machine
 		return m_storage.toWeakRef();
 	}
 
+	const QString getDirectory() const
+	{
+		return getUser().getVmDirectoryUuid();
+	}
+
 private:
+	void updateDirectory(PRL_VM_TYPE type_);
+
 	QMutex m_mutex;
 	QSharedPointer<Stat::Storage> m_storage;
 	QSharedPointer<Network::Routing> m_routing;
@@ -126,10 +133,6 @@ void Vm::updateConfig(CVmConfiguration value_)
 	QMutexLocker l(&m_mutex);
 
 	setName(value_.getVmIdentification()->getVmName());
-#ifdef _LIBVIRT_
-	Libvirt::Kit.vms().at(getUuid()).completeConfig(value_);
-#endif // _LIBVIRT_
-
 	boost::optional<CVmConfiguration> y = getConfig();
 	if (y)
 	{
@@ -142,14 +145,43 @@ void Vm::updateConfig(CVmConfiguration value_)
 	else
 		WRITE_TRACE(DBG_DEBUG, "New VM registered directly from libvirt");
 
-	if (value_.getVmIdentification()->getHomePath().isEmpty())
-		value_.getVmIdentification()->setHomePath(getHome());
-	else
+	if (!value_.getVmIdentification()->getHomePath().isEmpty())
 		setHome(value_.getVmIdentification()->getHomePath());
 
-	updateDirectory(value_.getVmType());
-
+	if (getHome().isEmpty())
+	{
+		QString h = QDir(getUser().getUserDefaultVmDirPath())
+			.absoluteFilePath(::Vm::Config::getVmHomeDirName(getUuid()));
+		setHome(QDir(h).absoluteFilePath(VMDIR_DEFAULT_VM_CONFIG_FILE));
+		updateDirectory(value_.getVmType());
+	}
+	value_.getVmIdentification()->setHomePath(getHome());
 	::Vm::State::Machine::setConfig(value_);
+}
+
+void Vm::updateDirectory(PRL_VM_TYPE type_)
+{
+	typedef CVmDirectory::TemporaryCatalogueItem item_type;
+
+	CDspVmDirManager& m = getService().getVmDirManager();
+	QScopedPointer<item_type> t(new item_type(getUuid(), getHome(), getName()));
+	PRL_RESULT e = m.checkAndLockNotExistsExclusiveVmParameters
+				(QStringList(), t.data());
+	if (PRL_FAILED(e))
+		return;
+
+	QScopedPointer<CVmDirectoryItem> x(new CVmDirectoryItem());
+	x->setVmUuid(getUuid());
+	x->setVmName(getName());
+	x->setVmHome(getHome());
+	x->setVmType(type_);
+	x->setValid(PVE::VmValid);
+	x->setRegistered(PVE::VmRegistered);
+	e = getService().getVmDirHelper().insertVmDirectoryItem(getDirectory(), x.data());
+	if (PRL_SUCCEEDED(e))
+		x.take();
+
+	m.unlockExclusiveVmParameters(t.data());
 }
 
 void Vm::setStatsPeriod(quint64 seconds_)
@@ -190,7 +222,7 @@ void Access::updateState(VIRTUAL_MACHINE_STATE value_)
 	x->updateState(value_);
 }
 
-void Access::updateConfig(CVmConfiguration& value_)
+void Access::updateConfig(const CVmConfiguration& value_)
 {
 	QSharedPointer<Vm> x = m_vm.toStrongRef();
 	if (x.isNull())
@@ -213,60 +245,127 @@ QWeakPointer<Stat::Storage> Access::getStorage()
 
 Access Public::find(const QString& uuid_)
 {
-	QReadLocker l(&m_rwLock);
+	QReadLocker g(&m_rwLock);
 
-	vmMap_type::const_iterator p = m_vmMap.find(uuid_);
-	if (m_vmMap.end() == p)
-		return Access(QWeakPointer<Vm>());
+	vmMap_type::const_iterator p = m_definedMap.find(uuid_);
+	if (m_definedMap.end() == p)
+		return Access(uuid_, QWeakPointer<Vm>());
 
-	return Access(p.value().toWeakRef());
+	return Access(uuid_, p.value().toWeakRef());
+}
+
+PRL_RESULT Public::declare(const CVmIdent& ident_, const QString& home_)
+{
+	const QString& u = ident_.first;
+	QWriteLocker g(&m_rwLock);
+	if (m_definedMap.contains(u))
+	{
+		// defined implies declared
+		return PRL_ERR_VM_ALREADY_REGISTERED_VM_UUID;
+	}
+	if (m_undeclaredMap.contains(u))
+	{
+		m_definedMap.insert(u, m_undeclaredMap.take(u));
+		return PRL_ERR_SUCCESS;
+	}
+	if (m_bookingMap.contains(u))
+		return PRL_ERR_DOUBLE_INIT;
+
+	m_bookingMap.insert(u, booking_type(ident_, home_));
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Public::undeclare(const QString& uuid_)
+{
+	QWriteLocker g(&m_rwLock);
+	vmMap_type::mapped_type m = m_definedMap.take(uuid_);
+	if (m.isNull())
+	{
+		// what should we do if a booking is pending for the uuid?
+		// should we drop it as well?
+		// definetly should not move to undeclared if yes
+		return PRL_ERR_FILE_NOT_FOUND;
+	}
+	// NB. there are no pending bookings here
+	m_undeclaredMap.insert(uuid_, m);
+	return PRL_ERR_SUCCESS;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Actual
 
-Actual::Actual(): Public(), m_routing(new Network::Routing())
+Actual::Actual(CDspService& service_):
+	m_service(&service_), m_routing(new Network::Routing())
 {
 }
 
-Prl::Expected<Access, Error::Simple> Actual::add(const QString& uuid_)
+Prl::Expected<QSharedPointer<Vm>, Error::Simple>
+Actual::craft(const QString& uuid_, const QString& directory_)
 {
-	QWriteLocker l(&m_rwLock);
-
-	CDspDispConfigGuard* c = &CDspService::instance()->getDispConfigGuard();
-
 	SmartPtr<CDspClient> u;
-	QString d = c->getDispWorkSpacePrefs()->getDefaultVmDirectory();
-	foreach (CDispUser* s, c->getDispUserPreferences()->m_lstDispUsers)
+	CDspDispConfigGuard& c = m_service->getDispConfigGuard();
+	foreach (CDispUser* s, c.getDispUserPreferences()->m_lstDispUsers)
 	{
-		if (d == s->getUserWorkspace()->getVmDirectory())
+		if (directory_ == s->getUserWorkspace()->getVmDirectory())
 		{
-			u = CDspClient::makeServiceUser(d);
+			u = CDspClient::makeServiceUser(directory_);
 			u->setUserSettings(s->getUserId(), s->getUserName());
 			break;
 		}
 	}
-
 	if (!u.isValid())
 		return Error::Simple(PRL_ERR_FAILURE);
 
-	QSharedPointer<Vm> v(new Vm(uuid_, u, m_routing));
-	m_vmMap[uuid_] = QSharedPointer<Vm>(v);
-
-	v->setStatsPeriod(c->getDispWorkSpacePrefs()->getVmGuestCollectPeriod());
-
-	return Access(v.toWeakRef());
+	Vm* v = new Vm(uuid_, u, m_routing);
+	v->setStatsPeriod(c.getDispWorkSpacePrefs()->getVmGuestCollectPeriod());
+	return QSharedPointer<Vm>(v);
 }
 
-void Actual::remove(const QString& uuid_)
+Prl::Expected<Access, Error::Simple> Actual::define(const QString& uuid_)
 {
 	QWriteLocker l(&m_rwLock);
+	if (m_definedMap.contains(uuid_) || m_undeclaredMap.contains(uuid_))
+		return Error::Simple(PRL_ERR_VM_ALREADY_REGISTERED_VM_UUID);
 
-	vmMap_type::iterator p = m_vmMap.find(uuid_);
-	if (m_vmMap.end() == p)
+	if (m_bookingMap.contains(uuid_))
+	{
+		booking_type b = m_bookingMap.take(uuid_);
+		Prl::Expected<QSharedPointer<Vm>, Error::Simple> m =
+			craft(uuid_, b.first.second);
+		if (m.isFailed())
+			return m.error();
+
+		QSharedPointer<Vm> v = m.value();
+		v->setHome(b.second);
+		m_definedMap[uuid_] = v;
+		return Access(uuid_, v.toWeakRef());
+	}
+	CDspDispConfigGuard& c = m_service->getDispConfigGuard();
+	Prl::Expected<QSharedPointer<Vm>, Error::Simple> m =
+		craft(uuid_, c.getDispWorkSpacePrefs()->getDefaultVmDirectory());
+	if (m.isFailed())
+		return m.error();
+
+	m_definedMap[uuid_] = m.value();
+	return Access(uuid_, m.value().toWeakRef());
+}
+
+void Actual::undefine(const QString& uuid_)
+{
+	QWriteLocker l(&m_rwLock);
+	QSharedPointer<Vm> m = m_definedMap.take(uuid_);
+	if (m.isNull())
+	{
+		m_undeclaredMap.remove(uuid_);
 		return;
-
-	m_vmMap.erase(p);
+	}
+	PRL_RESULT e = m_service->getVmDirHelper()
+		.deleteVmDirectoryItem(m->getDirectory(), uuid_);
+	if (PRL_FAILED(e))
+	{
+		WRITE_TRACE(DBG_DEBUG, "Unregistering of a VM from the directory failed: %s",
+			PRL_RESULT_TO_STRING(e));
+	}
 }
 
 } // namespace Registry

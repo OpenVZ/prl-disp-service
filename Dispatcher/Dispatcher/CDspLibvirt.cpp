@@ -889,8 +889,9 @@ void Domain::setState(VIRTUAL_MACHINE_STATE value_)
 	m_access.updateState(value_);
 }
 
-void Domain::setConfig(CVmConfiguration& value_)
+void Domain::setConfig(CVmConfiguration value_)
 {
+	Libvirt::Kit.vms().at(m_access.getUuid()).completeConfig(value_);
 	m_access.updateConfig(value_);
 }
 
@@ -960,7 +961,7 @@ void System::remove(const QString& uuid_)
 	p.value()->setState(VMS_UNKNOWN);
 
 	m_domainMap.erase(p);
-	m_registry.remove(uuid_);
+	m_registry.undefine(uuid_);
 }
 
 QSharedPointer<Domain> System::add(const QString& uuid_)
@@ -968,7 +969,7 @@ QSharedPointer<Domain> System::add(const QString& uuid_)
 	if (uuid_.isEmpty() || m_domainMap.contains(uuid_))
 		return QSharedPointer<Domain>();
 
-	Prl::Expected<Registry::Access, Error::Simple> a = m_registry.add(uuid_);
+	Prl::Expected<Registry::Access, Error::Simple> a = m_registry.define(uuid_);
 	if (a.isFailed())
 		return QSharedPointer<Domain>();
 

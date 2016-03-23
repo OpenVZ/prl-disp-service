@@ -224,7 +224,7 @@ struct Domain: QObject
 	Q_INVOKABLE void prepareToSwitch();
 
 	boost::optional<CVmConfiguration> getConfig();
-	void setConfig(CVmConfiguration& value_);
+	void setConfig(CVmConfiguration value_);
 	void setCpuUsage();
 	void setDiskUsage();
 	void setMemoryUsage(const Instrument::Agent::Vm::Stat::Memory& src_);
