@@ -34,6 +34,7 @@
 
 #include <QHash>
 #include <QString>
+#include <CVmIdent.h>
 #include <QSharedPointer>
 #include <QReadWriteLock>
 #include <prlsdk/PrlEnums.h>
@@ -44,6 +45,7 @@
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 
 class CDspClient;
+class CDspService;
 
 namespace Stat
 {
@@ -65,8 +67,14 @@ struct Actual;
 
 struct Access
 {
-	explicit Access(QWeakPointer<Vm> vm_): m_vm(vm_)
+	Access(const QString& uuid_, QWeakPointer<Vm> vm_):
+		m_uuid(uuid_), m_vm(vm_)
 	{
+	}
+
+	const QString& getUuid() const
+	{
+		return m_uuid;
 	}
 
 	boost::optional<CVmConfiguration> getConfig();
@@ -75,11 +83,12 @@ struct Access
 
 	void updateState(VIRTUAL_MACHINE_STATE value_);
 
-	void updateConfig(CVmConfiguration& value_);
+	void updateConfig(const CVmConfiguration& value_);
 
 	QWeakPointer<Stat::Storage> getStorage();
 
 private:
+	QString m_uuid;
 	QWeakPointer<Vm> m_vm;
 };
 
@@ -90,11 +99,18 @@ struct Public
 {
 	Access find(const QString& uuid_);
 
+	PRL_RESULT declare(const CVmIdent& ident_, const QString& home_);
+
+	PRL_RESULT undeclare(const QString& uuid_);
+
 protected:
+	typedef QPair<CVmIdent, QString> booking_type;
 	typedef QHash<QString, QSharedPointer<Vm> > vmMap_type;
 
 	QReadWriteLock m_rwLock;
-	vmMap_type m_vmMap;
+	vmMap_type m_definedMap;
+	vmMap_type m_undeclaredMap;
+	QHash<QString, booking_type> m_bookingMap;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -102,13 +118,17 @@ protected:
 
 struct Actual: Public
 {
-	Actual();
+	explicit Actual(CDspService& service_);
 
-	Prl::Expected<Access, Error::Simple> add(const QString& uuid_);
+	Prl::Expected<Access, Error::Simple> define(const QString& uuid_);
 
-	void remove(const QString& uuid_);
+	void undefine(const QString& uuid_);
 
 private:
+	Prl::Expected<QSharedPointer<Vm>, Error::Simple>
+		craft(const QString& uuid_, const QString& directory_);
+
+	CDspService* m_service;
 	QSharedPointer<Network::Routing> m_routing;
 };
 

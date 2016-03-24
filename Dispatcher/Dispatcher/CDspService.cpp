@@ -526,8 +526,7 @@ m_pHwMonitorThread( new CDspHwMonitorThread ),
 m_pSystemEventsMonitor( new CDspSystemEventsMonitor ),
 m_pHaClusterHelper( new CDspHaClusterHelper ),
 m_pTaskManager(new CDspTaskManager()),
-m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() ),
-m_registry( new Registry::Actual() )
+m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 {
 	qRegisterMetaType<SmartPtr<NATStatistic> >("SmartPtr<NATStatistic>");
 	qRegisterMetaType<SmartPtr<CDspClient> >("SmartPtr<CDspClient>");
@@ -537,6 +536,7 @@ m_registry( new Registry::Actual() )
 	CEtraceStatic::get_instance()->init(true);
 #endif
 
+	m_registry.reset(new Registry::Actual(*this));
 	m_pReconnectTimer = new QTimer(this);
 	m_pReconnectTimer->setSingleShot(true);
 

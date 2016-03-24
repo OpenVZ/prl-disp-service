@@ -46,39 +46,36 @@ QString demangle(const char* name_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
+Frontend::Frontend(const QString& uuid_, const SmartPtr<CDspClient>& user_,
+		const QSharedPointer< ::Network::Routing>& routing_):
+	m_uuid(uuid_), m_service(CDspService::instance()), m_user(user_),
+	m_routing(routing_)
+{
+	//Check if VM is already exist and fill name and path
+	boost::optional<CVmConfiguration> y = getConfig();
+	if (y)
+	{
+		m_name = y->getVmIdentification()->getVmName();
+		m_home = QFileInfo(y->getVmIdentification()->getHomePath());
+	}
+}
+
+const QString Frontend::getHome() const
+{
+	if (m_home)
+		return m_home->absoluteFilePath();
+
+	return QString();
+}
+
 void Frontend::setName(const QString& value_)
 {
 	m_name = value_;
 }
 
-void Frontend::updateDirectory(PRL_VM_TYPE type_)
-{
-	typedef CVmDirectory::TemporaryCatalogueItem item_type;
-
-	CDspVmDirManager& m = m_service->getVmDirManager();
-	QScopedPointer<item_type> t(new item_type(getUuid(), getHome(), m_name));
-	PRL_RESULT e = m.checkAndLockNotExistsExclusiveVmParameters
-				(QStringList(), t.data());
-	if (PRL_FAILED(e))
-		return;
-
-	QScopedPointer<CVmDirectoryItem> x(new CVmDirectoryItem());
-	x->setVmUuid(getUuid());
-	x->setVmName(m_name);
-	x->setVmHome(getHome());
-	x->setVmType(type_);
-	x->setValid(PVE::VmValid);
-	x->setRegistered(PVE::VmRegistered);
-	e = m_service->getVmDirHelper().insertVmDirectoryItem(m_user->getVmDirectoryUuid(), x.data());
-	if (PRL_SUCCEEDED(e))
-		x.take();
-
-	m.unlockExclusiveVmParameters(t.data());
-}
-
 void Frontend::setConfig(CVmConfiguration& value_)
 {
-	m_service->getVmConfigManager().saveConfig(SmartPtr<CVmConfiguration>
+	getService().getVmConfigManager().saveConfig(SmartPtr<CVmConfiguration>
 		(&value_, SmartPtrPolicy::DoNotReleasePointee),
 		getHome(), m_user, true, true);
 }
@@ -86,7 +83,7 @@ void Frontend::setConfig(CVmConfiguration& value_)
 boost::optional<CVmConfiguration> Frontend::getConfig() const
 {
 	PRL_RESULT e = PRL_ERR_SUCCESS;
-	SmartPtr<CVmConfiguration> x = CDspService::instance()->getVmDirHelper()
+	SmartPtr<CVmConfiguration> x = getService().getVmDirHelper()
 		.getVmConfigByUuid(m_user, getUuid(), e);
 	if (PRL_FAILED(e) || !x.isValid())
 		return boost::none;
