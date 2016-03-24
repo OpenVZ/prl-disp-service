@@ -358,6 +358,7 @@ bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
 		case PRL_ERR_VMCONF_MAIN_MEMORY_MQ_INVALID_RANGE:
 		case PRL_ERR_VMCONF_MAIN_MEMORY_MQ_MIN_LESS_VMM_OVERHEAD_VALUE:
 		case PRL_ERR_VMCONF_MAIN_MEMORY_MQ_MIN_OUT_OF_RANGE:
+		case PRL_ERR_VMCONF_EFI_UNSUPPORTED_GUEST:
 		case PRL_ERR_REMOTE_DISPLAY_WRONG_PORT_NUMBER:
 		case PRL_ERR_UNSUPPORTED_DEVICE_TYPE:
 		{
@@ -852,6 +853,13 @@ void CVmValidateConfig::CheckBootOption()
 		}
 
 		mapIndexes.insert(nType, nIndex);
+	}
+
+	if (m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsType() == PVS_GUEST_TYPE_WINDOWS
+		&& m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsVersion() < PVS_GUEST_VER_WIN_WINDOWS8
+		&& m_pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled())
+	{
+		m_lstResults += PRL_ERR_VMCONF_EFI_UNSUPPORTED_GUEST;
 	}
 }
 
