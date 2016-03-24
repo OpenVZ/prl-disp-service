@@ -1721,10 +1721,12 @@ void Task_RestoreVmBackupSource::clientDisconnected(IOSender::Handle h)
 
 ********************************************************************************/
 Task_RestoreVmBackupTarget::Task_RestoreVmBackupTarget(
+		Registry::Public& registry_,
 		SmartPtr<CDspClient> &client,
 		CProtoCommandPtr cmd,
 		const SmartPtr<IOPackage> &p)
 :Task_BackupHelper(client, p),
+m_registry(registry_),
 m_bVmExist(false),
 m_nCurrentVmUptime(0)
 {
@@ -2756,7 +2758,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::registerVm()
 	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspCmdDirRegVm, pRequest);
 
 	/* do not call checkAndLockNotExistsExclusiveVmParameters */
-	CDspService::instance()->getTaskManager().schedule(new Task_RegisterVm(
+	CDspService::instance()->getTaskManager().schedule(new Task_RegisterVm(m_registry,
 		client, pPackage, m_sTargetVmHomePath, PACF_NON_INTERACTIVE_MODE,
 			QString(), QString(), REG_SKIP_VM_PARAMS_LOCK)).wait().getResult(&evt);
 

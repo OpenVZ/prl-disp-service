@@ -537,10 +537,11 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 #endif
 
 	m_registry.reset(new Registry::Actual(*this));
+	m_vmDirHelper.reset(new CDspVmDirHelper(*m_registry));
 	m_pReconnectTimer = new QTimer(this);
 	m_pReconnectTimer->setSingleShot(true);
 
-	Backup::Task::Launcher b(m_pTaskManager, m_backup);
+	Backup::Task::Launcher b(*m_registry, m_pTaskManager, m_backup);
 	m_AppSettings.init(QCoreApplication::applicationName());
 	m_clientManager.reset(new CDspClientManager(*this, b));
 	m_dispConnectionsManager.reset(new CDspDispConnectionsManager(*this, b));
@@ -750,7 +751,7 @@ CDspIOCtClientHandler& CDspService::getIoCtClientManager ()
 
 CDspVmDirHelper& CDspService::getVmDirHelper ()
 {
-	return m_vmDirHelper;
+	return *m_vmDirHelper;
 }
 
 CDspVmSnapshotStoreHelper& CDspService::getVmSnapshotStoreHelper ()

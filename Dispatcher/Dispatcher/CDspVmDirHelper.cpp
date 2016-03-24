@@ -692,7 +692,7 @@ PRL_RESULT CDspVmDirHelper::ExclusiveVmOperations::getFailureCode( PVE::IDispatc
 }
 
 // constructor
-CDspVmDirHelper::CDspVmDirHelper( )
+CDspVmDirHelper::CDspVmDirHelper(Registry::Public& registry_): m_registry(registry_)
 {
 	m_pVmConfigEdit= new CMultiEditMergeVmConfig();
 	m_vmMountRegistry = SmartPtr<CDspVmMountRegistry>(new CDspVmMountRegistry);
@@ -1491,8 +1491,8 @@ void CDspVmDirHelper::createNewVm(const IOSender::Handle& sender,
 	bool bForceQuestionsSign = pVmCmd->GetForceQuestionsSign();
 
 	// Prepare and start long running task helper
-	CDspService::instance()->getTaskManager()
-		.schedule(new Task_RegisterVm( pUserSession, pkg, vm_config,  vm_rootDir, bForceQuestionsSign ));
+	CDspService::instance()->getTaskManager().schedule
+		(new Task_RegisterVm(m_registry, pUserSession, pkg, vm_config,  vm_rootDir, bForceQuestionsSign));
 }
 
 namespace {
@@ -1569,14 +1569,8 @@ void CDspVmDirHelper::registerVm( SmartPtr<CDspClient> pUserSession, const Smart
 	QFile::remove(sCheckFilePath);
 
 	// Prepare and start long running task helper
-	CDspService::instance()->getTaskManager()
-		.schedule(new Task_RegisterVm(
-				pUserSession
-				, pkg
-				, pathToVmDir
-				, nFlags
-				, sCustomVmUuid
-				));
+	CDspService::instance()->getTaskManager().schedule
+		(new Task_RegisterVm(m_registry, pUserSession, pkg, pathToVmDir, nFlags, sCustomVmUuid));
 }
 
 void CDspVmDirHelper::restoreVm( SmartPtr<CDspClient> pUserSession, const SmartPtr<IOPackage>& pkg )

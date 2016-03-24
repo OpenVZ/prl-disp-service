@@ -53,6 +53,7 @@
 #include "Libraries/StatesUtils/StatesHelper.h"
 #include "CVmValidateConfig.h"
 #include "CDspBugPatcherLogic.h"
+#include "CDspVmManager_p.h"
 
 #include <Libraries/PrlNetworking/netconfig.h>
 
@@ -93,8 +94,9 @@ bool HddCallbackToRegisterVmTask(int iDone, int iTotal, void *pUserData)
 /**
  *  Task Create New VM
  */
-Task_RegisterVm::Task_RegisterVm (
-    SmartPtr<CDspClient>& client,
+Task_RegisterVm::Task_RegisterVm(
+	Registry::Public& registry_,
+	SmartPtr<CDspClient>& client,
 	const SmartPtr<IOPackage>& p,
 	const  QString& vm_config,
 	const  QString& vm_rootDir,
@@ -108,7 +110,8 @@ Task_RegisterVm::Task_RegisterVm (
 	m_lpcCreateImageCurrentTask( NULL ),
 	m_bVmRegisterNameWasEmpty(false),
 	m_nFlags(nFlags),
-	m_nInternalParamsAsMasks(0)
+	m_nInternalParamsAsMasks(0),
+	m_registry(registry_)
 {
 	m_flgRegisterOnly = false;
 	m_bForceRegisterOnSharedStorage = false;
@@ -124,7 +127,8 @@ Task_RegisterVm::Task_RegisterVm (
  *  Task Register Vm
  */
 Task_RegisterVm::Task_RegisterVm (
-    SmartPtr<CDspClient>& client,
+	Registry::Public& registry_,
+	SmartPtr<CDspClient>& client,
 	const SmartPtr<IOPackage>& p,
 	const QString& strPathToVmDirToRegister,
 	int nFlags,
@@ -142,7 +146,8 @@ Task_RegisterVm::Task_RegisterVm (
 	m_nFlags(nFlags),
 	m_strApplianceId(strApplianceId),
 	m_nInternalParamsAsMasks(nInternalParamsAsMask),
-	m_sCustomVmUuid(strCustomVmUuid)
+	m_sCustomVmUuid(strCustomVmUuid),
+	m_registry(registry_)
 {
 	m_flgRegisterOnly = true;
 	if (!strPathToVmDirToRegister.isEmpty())
@@ -1615,7 +1620,11 @@ PRL_RESULT Task_RegisterVm::saveVmConfig( )
 		if (IS_OPERATION_SUCCEEDED(ret))
 		{
 #ifdef _LIBVIRT_
-			Libvirt::Result r(Libvirt::Kit.vms().define(*m_pVmConfig));
+			m_registry.declare(CVmIdent(getVmUuid(), getClient()->getVmDirectoryUuid()),
+				m_pVmInfo->vmXmlPath);
+			Libvirt::Result r (Command::Vm::Gear<Command::Tag::State
+				<Command::Vm::Registrator, Command::Vm::Fork::State::Strict<VMS_STOPPED> > >::
+					run(*m_pVmConfig));
 			ret = (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
 #endif // _LIBVIRT_
 			break;

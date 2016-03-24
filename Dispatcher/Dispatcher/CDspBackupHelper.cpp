@@ -141,7 +141,8 @@ void Launcher::startRestoreVmBackupTargetTask(
 		SmartPtr<CDspClient> pUserSession,
 		const SmartPtr<IOPackage>& pkg) const
 {
-	launch(pUserSession, boost::bind(boost::factory<Task_RestoreVmBackupTarget* >(), _1, _2, _3), pkg);
+	launch(pUserSession, boost::bind(boost::factory<Task_RestoreVmBackupTarget* >(),
+		boost::ref(m_registry), _1, _2, _3), pkg);
 }
 
 void Launcher::startCreateVmBackupTargetTask(

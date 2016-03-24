@@ -82,13 +82,16 @@ void Frontend::setConfig(CVmConfiguration& value_)
 
 boost::optional<CVmConfiguration> Frontend::getConfig() const
 {
-	PRL_RESULT e = PRL_ERR_SUCCESS;
-	SmartPtr<CVmConfiguration> x = getService().getVmDirHelper()
-		.getVmConfigByUuid(m_user, getUuid(), e);
-	if (PRL_FAILED(e) || !x.isValid())
-		return boost::none;
+	SmartPtr<CVmConfiguration> x(new CVmConfiguration());
 
-	return *x;
+	PRL_RESULT r = getHome().isEmpty() ? PRL_ERR_FAILURE :
+		// got it from CDspVmDirHelper::getVmConfigForDirectoryItem
+		CDspService::instance()->getVmConfigManager().loadConfig(
+			x, getHome(), SmartPtr<CDspClient>(0), true, false);
+
+	if (PRL_SUCCEEDED(r))
+		return *x;
+	return boost::none;
 }
 
 } // namespace State

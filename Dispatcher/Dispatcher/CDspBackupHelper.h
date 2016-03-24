@@ -33,6 +33,7 @@
 #ifndef CDspBackupHelper_H
 #define CDspBackupHelper_H
 
+#include "CDspRegistry.h"
 #include "CDspDispConnection.h"
 #include "CDspVmBackupInfrastructure.h"
 
@@ -47,8 +48,9 @@ namespace Task
 
 struct Launcher
 {
-	Launcher(const SmartPtr<CDspTaskManager>& taskManager_, Activity::Service& service_):
-		m_service(&service_), m_taskManager(taskManager_)
+	Launcher(Registry::Public& registry_,
+		const SmartPtr<CDspTaskManager>& taskManager_, Activity::Service& service_):
+		m_registry(registry_), m_service(&service_), m_taskManager(taskManager_)
 	{
 	}
 
@@ -132,6 +134,7 @@ struct Launcher
 		const SmartPtr<IOPackage>& request_) const;
 
 private:
+	Registry::Public& m_registry;
 	template<class T, class U>
 	void launch(SmartPtr<T>& actor_, U factory_,
 		const SmartPtr<IOPackage>& package_) const;

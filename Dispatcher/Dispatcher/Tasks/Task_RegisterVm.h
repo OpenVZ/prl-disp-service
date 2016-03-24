@@ -39,6 +39,7 @@
 #define __Task_RegisterVm_H_
 
 #include "CDspTaskHelper.h"
+#include "CDspRegistry.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "Tasks/Mixin_CreateHddSupport.h"
 #include "Tasks/Mixin_CreateVmSupport.h"
@@ -60,20 +61,22 @@ class Task_RegisterVm
 public:
 
 	// constructor to create VM
-	Task_RegisterVm ( SmartPtr<CDspClient>&,
-					  const SmartPtr<IOPackage>&,
-					  const  QString& vm_config,
-					  const  QString& vm_rootDir,
-					  int nFlags);
+	Task_RegisterVm(Registry::Public&,
+			SmartPtr<CDspClient>&,
+			const SmartPtr<IOPackage>&,
+			const  QString& vm_config,
+			const  QString& vm_rootDir,
+			int nFlags);
 
 	// constructor to register VM
-	Task_RegisterVm ( SmartPtr<CDspClient>&,
-					  const SmartPtr<IOPackage>&,
-					  const QString& strPathToVmDirToRegister,
-					  int nFlags,
-					  const QString& strCustomVmUuid = QString(),
-					  const QString& strApplianceId = QString(),
-					  unsigned int nInternalParamsAsMask = 0);
+	Task_RegisterVm(Registry::Public&,
+			SmartPtr<CDspClient>&,
+			const SmartPtr<IOPackage>&,
+			const QString& strPathToVmDirToRegister,
+			int nFlags,
+			const QString& strCustomVmUuid = QString(),
+			const QString& strApplianceId = QString(),
+			unsigned int nInternalParamsAsMask = 0);
 
 	virtual ~Task_RegisterVm ();
 
@@ -231,6 +234,7 @@ private:
 	QString m_sCustomVmUuid;
 
 	bool m_bForceRegisterOnSharedStorage;
+	Registry::Public& m_registry;
 };
 
 #endif //__Task_RegisterVm_H_
