@@ -36,6 +36,7 @@
 #include <QDateTime>
 #include <memory>
 #include "CDspTaskHelper.h"
+#include "CDspRegistry.h"
 #include "CDspClient.h"
 #include "prlxmlmodel/VmConfig/CVmConfiguration.h"
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
@@ -122,6 +123,7 @@ class Task_RestoreVmBackupTarget : public Task_BackupHelper
 
 public:
 	Task_RestoreVmBackupTarget(
+		Registry::Public&,
 		SmartPtr<CDspClient> &,
 		CProtoCommandPtr,
 		const SmartPtr<IOPackage> &);
@@ -156,6 +158,7 @@ private:
 	PRL_RESULT lockExclusiveVmParameters(SmartPtr<CVmDirectory::TemporaryCatalogueItem> pInfo);
 
 private:
+	Registry::Public& m_registry;
 	SmartPtr<CVmConfiguration> m_pVmConfig;
 	QString m_sOriginVmUuid;
 	QString m_sBackupId;

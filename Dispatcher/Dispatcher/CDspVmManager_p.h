@@ -527,6 +527,10 @@ struct Strict
 	{
 		return craftDetector(context_.getVmUuid());
 	}
+	static Detector* craftDetector(const CVmConfiguration& config_)
+	{
+		return craftDetector(config_.getVmIdentification()->getVmUuid());
+	}
 	static Detector* craftDetector(const QString& uuid_)
 	{
 		return new Detector(uuid_, S);
@@ -769,6 +773,14 @@ struct Gear<T, typename boost::enable_if<Tag::IsAsync<T> >::type>
 
                 return g.getResult();
         }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Registrator
+
+struct Registrator
+{
+	Libvirt::Result operator()(const CVmConfiguration& uuid_);
 };
 
 namespace Shutdown

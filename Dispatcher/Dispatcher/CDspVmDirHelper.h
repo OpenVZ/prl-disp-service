@@ -48,6 +48,7 @@
 #include <prlcommon/Interfaces/ParallelsDomModel.h>
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 
+#include "CDspRegistry.h"
 #include "CDspClient.h"
 #include "CDspVm.h"
 #include "CDspVmMounter.h"
@@ -78,7 +79,7 @@ class CDspVmDirHelper
 	friend class CDspVm;
 public:
 	// constructor
-	CDspVmDirHelper ();
+	CDspVmDirHelper(Registry::Public& registry_);
 
 	// destructor
 	~CDspVmDirHelper();
@@ -674,7 +675,7 @@ private:
 	static QList<QString> getVmDirUuidByVmUuid( const QString& vm_uuid );
 
 private:
-
+	Registry::Public& m_registry;
 	CMultiEditMergeVmConfig* m_pVmConfigEdit;
 	ExclusiveVmOperations	m_exclusiveVmOperations;
 	SmartPtr<CDspVmMountRegistry> m_vmMountRegistry;

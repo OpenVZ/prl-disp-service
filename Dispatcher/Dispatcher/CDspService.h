@@ -523,7 +523,7 @@ private:
 	// Helpers
 	SmartPtr<CDspUserHelper> m_pUserHelper;
 	CDspShellHelper m_shellHelper;
-	CDspVmDirHelper m_vmDirHelper;
+	QScopedPointer<CDspVmDirHelper> m_vmDirHelper;
 	CDspVmSnapshotStoreHelper m_vmSnapshotStoreHelper;
 
 	SmartPtr<CDspVmConfigurationChangesWatcher> m_pVmConfigWatcher;

@@ -113,14 +113,12 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		template<class Event, class FromState>
 		bool operator()(const Event&, Frontend& fsm_, FromState&, Stopped&)
 		{
-			boost::optional<CVmConfiguration> y = fsm_.getConfig();
-			return y && !CStatesHelper(y->getVmIdentification()->getHomePath()).savFileExists();
+			return !CStatesHelper(fsm_.getHome()).savFileExists();
 		}
 		template<class Event, class FromState>
 		bool operator()(const Event&, Frontend& fsm_, FromState&, Suspended&)
 		{
-			boost::optional<CVmConfiguration> y = fsm_.getConfig();
-			return y && CStatesHelper(y->getVmIdentification()->getHomePath()).savFileExists();
+			return CStatesHelper(fsm_.getHome()).savFileExists();
 		}
 	};
 

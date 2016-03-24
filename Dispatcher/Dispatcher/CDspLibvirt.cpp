@@ -67,6 +67,8 @@ void Domain::run()
 		m_view->setConfig(c);
 	}
 
+	if (r.isFailed())
+		WRITE_TRACE(DBG_FATAL, "Unable to update state on define");
 	if (r.isSucceed() && !QMetaObject::invokeMethod(m_view.data(), "setState", Q_ARG(VIRTUAL_MACHINE_STATE, s)))
 		WRITE_TRACE(DBG_FATAL, "Unable to invoke VM 'setState' method");
 }
