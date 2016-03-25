@@ -657,6 +657,13 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 	}
 
 	m_pVmConfig->getVmHardwareList()->RevertDevicesPathToAbsolute(m_sTargetVmHomePath);
+	if (m_pVmConfig->getVmSettings()->getVmStartupOptions() != NULL)
+	{
+		CVmStartupBios* b = m_pVmConfig->getVmSettings()->getVmStartupOptions()->getBios();
+		if (b != NULL && !b->getNVRAM().isEmpty() && QDir::isRelativePath(b->getNVRAM()))
+			b->setNVRAM(QDir(m_sTargetVmHomePath).absoluteFilePath(b->getNVRAM()));
+	}
+
 	m_pVmConfig->getVmIdentification()->setVmName(m_sVmName);
 
 	if (operationIsCancelled()) {

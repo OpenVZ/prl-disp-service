@@ -194,10 +194,7 @@ struct Fixer: Builder
 {
 	Fixer(const CVmConfiguration& input_, char* xml_);
 
-	PRL_RESULT setBlank()
-	{
-		return PRL_ERR_SUCCESS;
-	}
+	PRL_RESULT setBlank();
 	PRL_RESULT setIdentification()
 	{
 		return PRL_ERR_SUCCESS;
