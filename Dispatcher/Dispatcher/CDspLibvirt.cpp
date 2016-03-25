@@ -21,6 +21,7 @@
  * Schaffhausen, Switzerland.
  */
 
+#include <QHostAddress>
 #include "CDspService.h"
 #include "CDspLibvirt_p.h"
 #include <QtCore/qmetatype.h>
@@ -140,6 +141,11 @@ bool Builder::add(const char *key_, qint64 value_)
 	return virTypedParamsAddLLong(&m_pointer, &m_size, &m_capacity, key_, value_) == 0;
 }
 
+bool Builder::add(const char *key_, qint32 value_)
+{
+	return virTypedParamsAddInt(&m_pointer, &m_size, &m_capacity, key_, value_) == 0;
+}
+
 Result_type Builder::extract()
 {
 	Result_type r(QSharedPointer<virTypedParameter>(m_pointer, boost::bind(virTypedParamsFree, _1, m_size)),
@@ -190,14 +196,27 @@ Result Online::operator()(Parameters::Builder& builder_)
 	if (e.isFailed())
 		return e;
 
-	foreach (CVmHardDisk* d, m_disks)
+	if (!builder_.add(VIR_MIGRATE_PARAM_URI,
+		QString("tcp://%1:%2")
+		.arg(QHostAddress(QHostAddress::LocalHost).toString())
+		.arg(m_qemuStatePort)))
+		return Failure(PRL_ERR_FAILURE);
+
+	if (m_nbd)
 	{
-		QString t = Transponster::Device::Clustered::Model
-			<CVmHardDisk>(*d).getTargetName();
-		if (!builder_.add(VIR_MIGRATE_PARAM_MIGRATE_DISKS, t))
+		foreach (CVmHardDisk* d, m_nbd.get().first)
+		{
+			QString t = Transponster::Device::Clustered::Model
+				<CVmHardDisk>(*d).getTargetName();
+			if (!builder_.add(VIR_MIGRATE_PARAM_MIGRATE_DISKS, t))
+				return Failure(PRL_ERR_FAILURE);
+		}
+		if (!builder_.add(VIR_MIGRATE_PARAM_DISKS_PORT, m_nbd.get().second))
+			return Failure(PRL_ERR_FAILURE);
+		if (!builder_.add(VIR_MIGRATE_PARAM_LISTEN_ADDRESS,
+			QHostAddress(QHostAddress::LocalHost).toString()))
 			return Failure(PRL_ERR_FAILURE);
 	}
-
 	return Result();
 }
 

@@ -85,31 +85,88 @@ namespace Pull
 ///////////////////////////////////////////////////////////////////////////////
 // struct Writing
 
-PRL_RESULT Writing::operator()(QIODevice& sink_)
+Prl::Expected<void, Flop::Event> Writing::operator()()
 {
-	const qint64 w = sink_.write(
-			m_package->buffers[0].getImpl() + m_sent,
+	const qint64 w = m_device->write(
+			m_load->buffers[0].getImpl() + m_sent,
 			getRemaining());
 
 	if (w == -1)
 	{
 		WRITE_TRACE(DBG_FATAL, "write error: %s",
-			qPrintable(sink_.errorString()));
-		return PRL_ERR_FAILURE;
+			qPrintable(m_device->errorString()));
+		return Flop::Event(PRL_ERR_FAILURE);
 	}
-	return PRL_ERR_SUCCESS;
-}
-
-void Writing::setup(const SmartPtr<IOPackage>& value_)
-{
-	m_sent = 0;
-	m_package = value_;
+	return Prl::Expected<void, Flop::Event>();
 }
 
 qint64 Writing::getVolume() const
 {
-	return m_package.isValid() ? m_package->buffersSize() : 0;
+	return m_load.isValid() ? m_load->buffersSize() : 0;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Queue
+
+target_type Queue::dequeue()
+{
+	if (isEmpty())
+		return state_type(Reading());
+	if (isEof())
+		return state_type(Success());
+
+	return state_type(Writing(Vm::Pump::Queue::dequeue(), *m_device));
+}
+
+namespace Visitor
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Receipt
+
+target_type Receipt::operator()
+	(const boost::mpl::at_c<state_type::types, 0>::type& value_) const
+{
+	Q_UNUSED(value_);
+	return m_queue->dequeue();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Accounting
+
+target_type Accounting::operator()
+	(boost::mpl::at_c<state_type::types, 1>::type value_) const
+{
+	value_.account(m_amount);
+	if (0 < value_.getRemaining())
+		return state_type(value_);
+
+	return m_queue->dequeue();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Dispatch
+
+target_type Dispatch::operator()
+	(const boost::mpl::at_c<state_type::types, 0>::type& value_) const
+{
+	return state_type(value_);
+}
+
+target_type Dispatch::operator()
+	(boost::mpl::at_c<state_type::types, 1>::type value_) const
+{
+	Prl::Expected<void, Flop::Event> x = value_();
+	return x.isFailed() ? target_type(x.error()) : target_type(state_type(value_));
+}
+
+target_type Dispatch::operator()
+	(const boost::mpl::at_c<state_type::types, 2>::type& value_) const
+{
+	m_callback();
+	return state_type(value_);
+}
+
+} // namespace Visitor
 
 } // namespace Pull
 
@@ -120,7 +177,7 @@ namespace Push
 
 SmartPtr<IOPackage> Packer::operator()()
 {
-	SmartPtr<IOPackage> output = IOPackage::createInstance(TunnelChunk_type::s_command, 1);
+	SmartPtr<IOPackage> output = IOPackage::createInstance(m_name, 1);
 	if (output.isValid())
 		output->fillBuffer(0, IOPackage::RawEncoding, NULL, 0);
 
@@ -146,6 +203,102 @@ SmartPtr<IOPackage> Packer::operator()(QIODevice& source_)
 
 	return output;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Queue
+
+Prl::Expected<void, Flop::Event> Queue::enqueueEof()
+{
+	return enqueue(m_packer());
+}
+
+Prl::Expected<void, Flop::Event> Queue::enqueueData()
+{
+	return enqueue(m_packer(*m_device));
+}
+
+target_type Queue::dequeue()
+{
+	if (isEmpty())
+		return state_type(Reading());
+
+	bool x = isEof();
+	IOSendJob::Handle j = m_service->sendPackage(Vm::Pump::Queue::dequeue());
+	if (!j.isValid())
+		return Flop::Event(PRL_ERR_FAILURE);
+	if (x)
+		return state_type(Closing());
+
+	return state_type(Sending());
+}
+
+Prl::Expected<void, Flop::Event> Queue::enqueue(const SmartPtr<IOPackage>& package_)
+{
+	if (package_.isValid())
+	{
+		Vm::Pump::Queue::enqueue(package_);
+		return Prl::Expected<void, Flop::Event>();
+	}
+	return Flop::Event(PRL_ERR_FAILURE);
+}
+
+namespace Visitor
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Eof
+
+target_type Eof::operator()
+	(const boost::mpl::at_c<state_type::types, 0>::type& value_) const
+{
+	Q_UNUSED(value_);
+	Prl::Expected<void, Flop::Event> x = m_queue->enqueueEof();
+	return x.isFailed() ? x.error() : m_queue->dequeue();
+}
+
+target_type Eof::operator()
+	(const boost::mpl::at_c<state_type::types, 1>::type& value_) const
+{
+	Prl::Expected<void, Flop::Event> x = m_queue->enqueueEof();
+	return x.isFailed() ? target_type(x.error()) : target_type(state_type(value_));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Sent
+
+target_type Sent::operator()
+	(const boost::mpl::at_c<state_type::types, 1>::type& value_) const
+{
+	Q_UNUSED(value_);
+	return m_queue->dequeue();
+}
+
+target_type Sent::operator()
+	(const boost::mpl::at_c<state_type::types, 2>::type& value_) const
+{
+	m_callback();
+	Q_UNUSED(value_);
+	return state_type(Success());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ready
+
+target_type Ready::operator()
+	(const boost::mpl::at_c<state_type::types, 0>::type& value_) const
+{
+	Q_UNUSED(value_);
+	Prl::Expected<void, Flop::Event> x = m_queue->enqueueData();
+	return x.isFailed() ? x.error() : m_queue->dequeue();
+}
+
+target_type Ready::operator()
+	(const boost::mpl::at_c<state_type::types, 1>::type& value_) const
+{
+	Prl::Expected<void, Flop::Event> x = m_queue->enqueueData();
+	return x.isFailed() ? target_type(x.error()) : target_type(state_type(value_));
+}
+
+} // namespace Visitor
 
 } // namespace Push
 } // namespace Pump
@@ -232,18 +385,31 @@ void Frontend::create(const CVmHardDisk& event_)
 
 namespace Tunnel
 {
+namespace Connector
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Connector
+// struct Basic
 
-void Connector::reactConnected()
+void Basic::reactConnected()
 {
-	handle(Connected());
+	handle(Vm::Pump::Launch_type(m_service, (QIODevice* )sender()));
 }
 
-void Connector::reactDisconnected()
+void Basic::reactDisconnected()
 {
-	handle(Disconnected());
+	handle(boost::phoenix::val((QIODevice* )sender()));
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Tcp
+
+void Tcp::reactError(QAbstractSocket::SocketError value_)
+{
+	Q_UNUSED(value_);
+	handle(Flop::Event(PRL_ERR_FILE_READ_ERROR));
+}
+
+} // namespace Connector
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct IO
@@ -254,7 +420,8 @@ IO::IO(CDspDispConnection& io_): m_io(&io_)
 	x = this->connect(
 		m_io,
 		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
-		SLOT(reactReceived(IOSender::Handle, const SmartPtr<IOPackage>)));
+		SLOT(reactReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
+		Qt::QueuedConnection);
 	if (!x)
 		WRITE_TRACE(DBG_FATAL, "can't connect");
 	x = this->connect(
@@ -268,8 +435,8 @@ IO::IO(CDspDispConnection& io_): m_io(&io_)
 		SIGNAL(onAfterSend(IOServerInterface*, IOSender::Handle,
 			    IOSendJob::Result, const SmartPtr<IOPackage>)),
 		SLOT(reactSend(IOServerInterface*, IOSender::Handle,
-			    IOSendJob::Result, const SmartPtr<IOPackage>))
-		);
+			    IOSendJob::Result, const SmartPtr<IOPackage>)),
+		Qt::QueuedConnection);
 	if (!x)
 		WRITE_TRACE(DBG_FATAL, "can't connect");
 }
@@ -307,62 +474,119 @@ void IO::reactDisconnected(IOSender::Handle handle_)
 }
 
 void IO::reactSend(IOServerInterface*, IOSender::Handle handle_,
-	    IOSendJob::Result, const SmartPtr<IOPackage>)
+	    IOSendJob::Result, const SmartPtr<IOPackage> package_)
 {
 	if (handle_ == m_io->GetConnectionHandle())
-		emit onSent();
+		emit onSent(package_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Frontend
+// struct Socket<QLocalSocket>
 
-template <typename Event, typename FSM>
-void Frontend::on_entry(const Event& event_, FSM& fsm_)
+bool Socket<QLocalSocket>::isConnected(const type& socket_)
+{
+	return socket_.state() == QLocalSocket::ConnectedState;
+}
+
+void Socket<QLocalSocket>::disconnect(type& socket_)
+{
+	socket_.disconnectFromServer();
+}
+
+QSharedPointer<QLocalSocket> Socket<QLocalSocket>::craft(connector_type& connector_)
 {
 	bool x;
-	Vm::Frontend<Frontend>::on_entry(event_, fsm_);
-	m_socket = QSharedPointer<QLocalSocket>(new QLocalSocket(), &QObject::deleteLater);
-	x = getConnector()->connect(m_socket.data(), SIGNAL(connected()),
-		SLOT(reactConnected()));
+	QSharedPointer<type> output = QSharedPointer<type>
+		(new QLocalSocket(), &QObject::deleteLater);
+	x = connector_.connect(output.data(), SIGNAL(connected()),
+		SLOT(reactConnected()), Qt::QueuedConnection);
 	if (!x)
 		WRITE_TRACE(DBG_FATAL, "can't connect");
-	x = getConnector()->connect(m_socket.data(), SIGNAL(disconnected()),
-		SLOT(reactDisconnected()));
+	x = connector_.connect(output.data(), SIGNAL(disconnected()),
+		SLOT(reactDisconnected()), Qt::QueuedConnection);
 	if (!x)
 		WRITE_TRACE(DBG_FATAL, "can't connect");
-	m_socket->connectToServer("/var/run/libvirt/libvirt-sock");
+
+	return output;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Socket<QTcpSocket>
+
+bool Socket<QTcpSocket>::isConnected(const type& socket_)
+{
+	return socket_.state() == QAbstractSocket::ConnectedState;
+}
+
+void Socket<QTcpSocket>::disconnect(type& socket_)
+{
+	socket_.disconnectFromHost();
+}
+
+QSharedPointer<QTcpSocket> Socket<QTcpSocket>::craft(connector_type& connector_)
+{
+	bool x;
+	QSharedPointer<type> output = QSharedPointer<type>
+		(new QTcpSocket(), &QObject::deleteLater);
+	x = connector_.connect(output.data(), SIGNAL(connected()),
+		SLOT(reactConnected()), Qt::QueuedConnection);
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+	x = connector_.connect(output.data(), SIGNAL(disconnected()),
+		SLOT(reactDisconnected()), Qt::QueuedConnection);
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+	x = connector_.connect(output.data(), SIGNAL(error(QAbstractSocket::SocketError)),
+		SLOT(reactError(QAbstractSocket::SocketError)), Qt::QueuedConnection);
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Haul
+
+template<class T, class U, Parallels::IDispToDispCommands X>
+template <typename FSM>
+void Haul<T, U, X>::on_entry(ioEvent_type const& event_, FSM& fsm_)
+{
+	def_type::on_entry(event_, fsm_);
+	this->getConnector()->setService(&event_());
+	m_socket = Socket<T>::craft(*this->getConnector());
+}
+
+template<class T, class U, Parallels::IDispToDispCommands X>
 template <typename Event, typename FSM>
-void Frontend::on_exit(const Event& event_, FSM& fsm_)
+void Haul<T, U, X>::on_exit(const Event& event_, FSM& fsm_)
 {
-	Vm::Frontend<Frontend>::on_exit(event_, fsm_);
-	disconnect(Disconnected());
+	def_type::on_exit(event_, fsm_);
+	disconnect_();
 	m_socket.clear();
+	this->getConnector()->setService(NULL);
 }
 
-void Frontend::connect(const Connected& )
+///////////////////////////////////////////////////////////////////////////////
+// struct Qemu
+
+template<Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
+void Qemu<X, Y>::connect(const launch_type& event_)
 {
-	getConnector()->handle(Pump::Launch_type(m_service, m_socket.data()));
+	quint32 z;
+	SmartPtr<char> b;
+	IOPackage::EncodingType t;
+	event_.getPackage()->getBuffer(0, t, b, z);
+	this->getSocket()->connectToHost(QHostAddress::LocalHost, *(quint16*)b.getImpl());
 }
 
-void Frontend::disconnect(const msmf::none& )
-{
-	m_socket->disconnectFromServer();
-}
+///////////////////////////////////////////////////////////////////////////////
+// struct Libvirt
 
-void Frontend::disconnect(const Disconnected&)
+template <typename FSM>
+void Libvirt::on_entry(ioEvent_type const& event_, FSM& fsm_)
 {
-	m_socket->disconnect(SIGNAL(connected()), getConnector(),
-			SLOT(reactConnected()));
-	m_socket->disconnect(SIGNAL(disconnected()),
-			getConnector(), SLOT(reactDisconnected()));
-	disconnect(msmf::none());
-}
-
-bool Frontend::isConnected(const msmf::none& )
-{
-	return !m_socket.isNull() && m_socket->state() == QLocalSocket::ConnectedState;
+	def_type::on_entry(event_, fsm_);
+	getSocket()->connectToServer("/var/run/libvirt/libvirt-sock");
 }
 
 } // namespace Tunnel
@@ -383,24 +607,27 @@ void Connector::disconnected()
 void Connector::react(const SmartPtr<IOPackage>& package_)
 {
 	if (IS_FILE_COPY_PACKAGE(package_->header.type))
-	{
-		handle(CopyCommand_type(package_));
-		return;
-	}
+		return handle(CopyCommand_type(package_));
+
+	WRITE_TRACE(DBG_FATAL, "react package %d.", package_->header.type);
 	switch (package_->header.type)
 	{
 	case VmMigrateStartCmd:
-		handle(StartCommand_type(package_));
-		break;
-	case VmMigrateTunnelChunk:
-		handle(Pump::TunnelChunk_type(package_));
-		break;
+		return handle(StartCommand_type(package_));
+	case VmMigrateLibvirtTunnelChunk:
+		return handle(Vm::Tunnel::libvirtChunk_type(package_));
+	case VmMigrateConnectQemuStateCmd:
+		return handle(Vm::Pump::Event<VmMigrateConnectQemuStateCmd>(package_));
+	case VmMigrateQemuStateTunnelChunk:
+		return handle(Vm::Pump::Event<VmMigrateQemuStateTunnelChunk>(package_));
+	case VmMigrateConnectQemuDiskCmd:
+		return handle(Vm::Pump::Event<VmMigrateConnectQemuDiskCmd>(package_));
+	case VmMigrateQemuDiskTunnelChunk:
+		return handle(Vm::Pump::Event<VmMigrateQemuDiskTunnelChunk>(package_));
 	case VmMigrateFinishCmd:
-		handle(Pump::FinishCommand_type(package_));
-		break;
+		return handle(Vm::Pump::FinishCommand_type(package_));
 	case VmMigrateCancelCmd:
-		cancel();
-		break;
+		return cancel();
 	default:
 		WRITE_TRACE(DBG_FATAL, "Unexpected package type: %d.", package_->header.type);
 	}
@@ -414,7 +641,8 @@ void Frontend::on_entry(const Event& event_, FSM& fsm_)
 {
 	bool x;
 	Vm::Frontend<Frontend>::on_entry(event_, fsm_);
-	x = getConnector()->connect(m_task, SIGNAL(cancel()), SLOT(cancel()));
+	x = getConnector()->connect(m_task, SIGNAL(cancel()), SLOT(cancel()),
+		Qt::QueuedConnection);
 	if (!x)
 		WRITE_TRACE(DBG_FATAL, "can't connect");
 	x = getConnector()->connect(m_io,
@@ -422,7 +650,8 @@ void Frontend::on_entry(const Event& event_, FSM& fsm_)
 			SLOT(react(const SmartPtr<IOPackage>&)));
 	if (!x)
 		WRITE_TRACE(DBG_FATAL, "can't connect");
-	x = getConnector()->connect(m_io, SIGNAL(disconnected()), SLOT(disconnected()));
+	x = getConnector()->connect(m_io, SIGNAL(disconnected()), SLOT(disconnected()),
+		Qt::QueuedConnection);
 	if (!x)
 		WRITE_TRACE(DBG_FATAL, "can't connect");
 }
@@ -439,7 +668,7 @@ void Frontend::on_exit(const Event& event_, FSM& fsm_)
 
 void Frontend::synch(const msmf::none&)
 {
-	SmartPtr<IOPackage> p = IOPackage::createInstance(Pump::FinishCommand_type::s_command, 1);
+	SmartPtr<IOPackage> p = IOPackage::createInstance(Vm::Pump::FinishCommand_type::s_command, 1);
 	if (!p.isValid())
 		return getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
 

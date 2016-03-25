@@ -102,7 +102,8 @@ namespace Migration
 ///////////////////////////////////////////////////////////////////////////////
 // struct Task
 
-Result Task::doOnline(const CVmConfiguration& config_, const QList<CVmHardDisk*>& disks_)
+Result Task::doOnline(const CVmConfiguration& config_, quint16 qemuStatePort_,
+		const boost::optional<nbd_type>& nbd_)
 {
 
 	unsigned int f = VIR_MIGRATE_PERSIST_DEST |
@@ -110,11 +111,13 @@ Result Task::doOnline(const CVmConfiguration& config_, const QList<CVmHardDisk*>
 				VIR_MIGRATE_LIVE |
 				VIR_MIGRATE_COMPRESSED |
 				VIR_MIGRATE_AUTO_CONVERGE;
-	if (!disks_.isEmpty())
-		f |= VIR_MIGRATE_NON_SHARED_DISK;
-
 	Parameters::Builder b;
-	Online d(Config(m_domain, m_link, 0), config_, disks_);
+	Online d(Config(m_domain, m_link, 0), config_, qemuStatePort_);
+	if (nbd_)
+	{
+		d.setNbd(nbd_.get());
+		f |= VIR_MIGRATE_NON_SHARED_DISK;
+	}
 	Result e = d(b);
 	if (e.isFailed())
 		return e;
