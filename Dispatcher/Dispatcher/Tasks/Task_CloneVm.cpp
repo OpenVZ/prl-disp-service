@@ -939,6 +939,16 @@ PRL_RESULT Dress::addLibvirtDomain()
 #endif // _LIBVIRT_
 }
 
+PRL_RESULT Dress::declareVm()
+{
+	WRITE_TRACE(DBG_DEBUG, "declare VM UUID: %s, Dir UUID: %s, Config: %s",
+		qPrintable(getNewVmUuid()),
+		qPrintable(getClient()->getVmDirectoryUuid()),
+		qPrintable(m_path));
+	return getTask().getRegistry().declare(CVmIdent(getNewVmUuid(),
+			getClient()->getVmDirectoryUuid()), m_path);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Builder
 
@@ -1387,15 +1397,16 @@ PRL_RESULT Floppy::operator()(CVmFloppyDisk& device_, const QString& target_)
 } // namespace Copy
 } // namespace Clone
 
-Task_CloneVm::Task_CloneVm ( SmartPtr<CDspClient>& user,
-                             const SmartPtr<IOPackage>& p,
-                             SmartPtr<CVmConfiguration> pVmConfig,
-                             const QString& strVmNewName,
-                             const QString& strVmNewUuid,
-                             const QString & strNewVmRootDir,
-			     unsigned int nFlags) :
-
+Task_CloneVm::Task_CloneVm(Registry::Public& registry_,
+		SmartPtr<CDspClient>& user,
+		const SmartPtr<IOPackage>& p,
+		SmartPtr<CVmConfiguration> pVmConfig,
+		const QString& strVmNewName,
+		const QString& strVmNewUuid,
+		const QString & strNewVmRootDir,
+		unsigned int nFlags) :
 	CDspTaskHelper( user, p ),
+	m_registry(registry_),
 	m_pOldVmConfig( pVmConfig ),
 	m_newVmUuid( Uuid::createUuid() ),
 	m_newVmName(CFileHelper::ReplaceNonValidPathSymbols(strVmNewName)),

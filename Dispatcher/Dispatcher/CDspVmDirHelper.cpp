@@ -2040,14 +2040,9 @@ void CDspVmDirHelper::cloneVm(const IOSender::Handle& sender,
 	}
 
 	// Prepare and start long running task helper
-	CDspService::instance()->getTaskManager()
-		.schedule(new Task_CloneVm( pUserSession
-			, pkg
-			, pVmConfig
-			, strVmNewName
-			, sNewVmUuid
-			, strVmNewRootPath
-			, nFlags));
+	CDspService::instance()->getTaskManager().schedule
+		(new Task_CloneVm(m_registry, pUserSession, pkg, pVmConfig, strVmNewName,
+			sNewVmUuid, strVmNewRootPath, nFlags));
 }//CDspVmDirHelper::cloneVm
 
 void CDspVmDirHelper::migrateVm ( const IOSender::Handle&,

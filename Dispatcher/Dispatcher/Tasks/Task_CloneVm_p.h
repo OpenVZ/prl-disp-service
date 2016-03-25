@@ -731,6 +731,12 @@ struct Dress: private Facade
 	PRL_RESULT changeSid();
 	PRL_RESULT importBootcamps();
 	PRL_RESULT addLibvirtDomain();
+	PRL_RESULT declareVm();
+	void undeclareVm()
+	{
+		//TODO
+	}
+
 private:
 	static CDspService& s();
 
@@ -906,6 +912,8 @@ private:
 	stepList_type getSteps() const
 	{
 		stepList_type output;
+		output.push_back(step_type(&Dress::declareVm,
+					&Dress::undeclareVm));
 		output.push_back(step_type(&Dress::addLibvirtDomain,
 					&Dress::undoLibvirtDomain));
 		output.push_back(step_type(&Dress::addClusterResource,
