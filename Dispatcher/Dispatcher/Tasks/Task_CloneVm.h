@@ -39,6 +39,7 @@
 #define __Task_CloneVm_H_
 
 #include "CDspTaskHelper.h"
+#include "CDspRegistry.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "Tasks/Mixin_CreateVmSupport.h"
 #include <prlsdk/PrlDisk.h>
@@ -56,13 +57,14 @@ class Task_CloneVm: public  CDspTaskHelper
 {
    Q_OBJECT
 public:
-	Task_CloneVm ( SmartPtr<CDspClient>&,
-				  const SmartPtr<IOPackage>&,
-				  SmartPtr<CVmConfiguration> pVmConfig,
-				  const QString& strVmNewName,
-				  const QString& sVmNewUuid,
-				  const QString & strVmNewPathName,
-				  unsigned int nFlags);
+	Task_CloneVm(Registry::Public& registry_,
+		SmartPtr<CDspClient>&,
+		const SmartPtr<IOPackage>&,
+		SmartPtr<CVmConfiguration> pVmConfig,
+		const QString& strVmNewName,
+		const QString& sVmNewUuid,
+		const QString & strVmNewPathName,
+		unsigned int nFlags);
 
 	~Task_CloneVm();
 
@@ -93,6 +95,11 @@ public:
 	}
 	QString getNewVmHome() const;
 	PRL_RESULT track(CDspTaskHelper* task_);
+	Registry::Public& getRegistry()
+	{
+		return m_registry;
+	}
+
 public:
 	/**
 	 * HDD clone state processing callback
@@ -145,6 +152,7 @@ private:
 	template<class T>
 	PRL_RESULT do_(T tag_, Clone::Source::Total& source_);
 private:
+	Registry::Public& m_registry;
 	SmartPtr<CVmConfiguration> m_pOldVmConfig;
 
 	QString	m_newVmUuid;
