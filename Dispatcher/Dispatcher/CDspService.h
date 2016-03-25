@@ -518,7 +518,7 @@ private:
 	QString		m_strServerUuidFromCorruptedDispConfig;
 
 	//VM migration helper object
-	CDspVmMigrateHelper m_VmMigrateHelper;
+	QScopedPointer<CDspVmMigrateHelper> m_vmMigrateHelper;
 
 	// Helpers
 	SmartPtr<CDspUserHelper> m_pUserHelper;

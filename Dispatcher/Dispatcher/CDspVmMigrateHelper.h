@@ -34,6 +34,7 @@
 #define CDspVmMigrateHelper_H
 
 #include "CDspDispConnection.h"
+#include "CDspRegistry.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlxmlmodel/VmDirectory/CVmDirectory.h>
@@ -46,6 +47,9 @@ class CDspVmMigrateHelper
 {
 
 public:
+	CDspVmMigrateHelper(Registry::Public& registry_): m_registry(registry_)
+	{
+	}
 	/**
 	 * Checks preconditions before VM migrate action
 	 * @param pointer to dispatcher connection object which requested check preconditions action
@@ -70,6 +74,8 @@ public:
 
 private:
 	SmartPtr<CDspTaskHelper> findTask(QString sVmUuid);
+
+	Registry::Public& m_registry;
 };
 
 #endif //CDspVmMigrateHelper_H
