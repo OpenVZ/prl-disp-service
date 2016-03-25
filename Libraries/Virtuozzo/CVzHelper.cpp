@@ -2495,16 +2495,18 @@ int CVzOperationHelper::register_env(const QString &sPath,
 	QFileInfo fi(sPath);
 	ctid_t buf;
 
-	if (sCtId.isEmpty()) {
-		if (vzctl2_parse_ctid(QSTR2UTF8(fi.fileName()), buf) == 0) {
-			/* get ctid from VE_PRIVATE/$CTID */
-			ctid = buf;
-		} else {
-
-			/* use uuid as CTID */
-			ctid = sUuid;
-			remove_brackets_from_uuid(ctid);
-		}
+	if (!sCtId.isEmpty()) {
+		ctid = sCtId;
+		remove_brackets_from_uuid(ctid);
+	} else if (sUuid.isEmpty() &&
+			vzctl2_parse_ctid(QSTR2UTF8(fi.fileName()), buf) == 0)
+	{
+		/* get ctid from VE_PRIVATE/$CTID */
+		ctid = buf;
+	} else {
+		/* use uuid as CTID */
+		ctid = sUuid;
+		remove_brackets_from_uuid(ctid);
 	}
 
 	WRITE_TRACE(DBG_FATAL, "Register Container ctid=%s path=%s, uuid=%s",
