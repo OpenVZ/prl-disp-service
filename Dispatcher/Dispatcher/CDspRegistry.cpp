@@ -284,6 +284,9 @@ PRL_RESULT Public::undeclare(const QString& uuid_)
 		// what should we do if a booking is pending for the uuid?
 		// should we drop it as well?
 		// definetly should not move to undeclared if yes
+		if (0 < m_bookingMap.remove(uuid_))
+			return PRL_ERR_SUCCESS;
+
 		return PRL_ERR_FILE_NOT_FOUND;
 	}
 	// NB. there are no pending bookings here
@@ -366,6 +369,27 @@ void Actual::undefine(const QString& uuid_)
 		WRITE_TRACE(DBG_DEBUG, "Unregistering of a VM from the directory failed: %s",
 			PRL_RESULT_TO_STRING(e));
 	}
+}
+
+void Actual::reset()
+{
+	{
+		QWriteLocker g(&m_rwLock);
+		m_definedMap.clear();
+// XXX. do we need to drop VM that are undeclared???
+//		m_undeclaredMap.clear();
+	}
+	::Vm::Directory::Dao::Locked d(m_service->getVmDirManager());
+	foreach (const ::Vm::Directory::Item::List::value_type& i, d.getItemList())
+	{
+		declare(MakeVmIdent(i.second->getVmUuid(), i.first), i.second->getVmHome());
+	}
+}
+
+QStringList Actual::snapshot()
+{
+	QReadLocker g(&m_rwLock);
+	return QStringList() << m_definedMap.keys() << m_undeclaredMap.keys();
 }
 
 } // namespace Registry

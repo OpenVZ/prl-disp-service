@@ -51,13 +51,6 @@ Frontend::Frontend(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 	m_uuid(uuid_), m_service(CDspService::instance()), m_user(user_),
 	m_routing(routing_)
 {
-	//Check if VM is already exist and fill name and path
-	boost::optional<CVmConfiguration> y = getConfig();
-	if (y)
-	{
-		m_name = y->getVmIdentification()->getVmName();
-		m_home = QFileInfo(y->getVmIdentification()->getHomePath());
-	}
 }
 
 const QString Frontend::getHome() const

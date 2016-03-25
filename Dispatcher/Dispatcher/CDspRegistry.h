@@ -124,6 +124,10 @@ struct Actual: Public
 
 	void undefine(const QString& uuid_);
 
+	void reset();
+
+	QStringList snapshot();
+
 private:
 	Prl::Expected<QSharedPointer<Vm>, Error::Simple>
 		craft(const QString& uuid_, const QString& directory_);

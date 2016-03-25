@@ -260,6 +260,8 @@ namespace Breeding
 
 void Vm::operator()(Agent::Hub& hub_)
 {
+	QStringList s = m_registry->snapshot();
+	m_registry->reset();
 	QList<Agent::Vm::Unit> a;
 	hub_.vms().all(a);
 	foreach (Agent::Vm::Unit m, a)
@@ -271,7 +273,15 @@ void Vm::operator()(Agent::Hub& hub_)
 			v = m_view->find(u);
 
 		if (!v.isNull())
+		{
+			s.removeOne(u);
 			Domain(m, v).run();
+		}
+	}
+	foreach (const QString& u, s)
+	{
+		m_registry->define(u);
+		m_registry->undefine(u);
 	}
 }
 
@@ -332,8 +342,9 @@ void Network::operator()(Agent::Hub& hub_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Subject
 
-Subject::Subject(QSharedPointer<virConnect> libvirtd_, QSharedPointer<Model::System> view_):
-	m_vm(view_), m_network(ParallelsDirs::getNetworkConfigFilePath())
+Subject::Subject(QSharedPointer<virConnect> libvirtd_, QSharedPointer<Model::System> view_,
+	Registry::Actual& registry_):
+	m_vm(view_, registry_), m_network(ParallelsDirs::getNetworkConfigFilePath())
 {
 	m_hub.setLink(libvirtd_);
 }
@@ -1122,7 +1133,8 @@ void Link::disconnect(virConnectPtr libvirtd_, int reason_, void* opaque_)
 Domains::Domains(Registry::Actual& registry_, int timeout_):
 	m_eventState(-1), m_eventReboot(-1),
 	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
-	m_eventTrayChange(-1), m_view(new Model::System(registry_))
+	m_eventTrayChange(-1), m_registry(&registry_),
+	m_view(new Model::System(registry_))
 {
 	m_timer.stop();
 	m_timer.setInterval(timeout_);
@@ -1171,7 +1183,7 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::trayChange),
 							new Model::Coarse(m_view),
 							&Callback::Plain::delete_<Model::Coarse>);
-	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, m_view);
+	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, m_view, *m_registry);
 	q->setAutoDelete(true);
 	QThreadPool::globalInstance()->start(q);
 }
