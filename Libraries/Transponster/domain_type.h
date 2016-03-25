@@ -1014,6 +1014,14 @@ struct Nvram
 	{
 		m_template = value_;
 	}
+	const boost::optional<EFormat >& getFormat() const
+	{
+		return m_format;
+	}
+	void setFormat(const boost::optional<EFormat >& value_)
+	{
+		m_format = value_;
+	}
 	const boost::optional<PAbsFilePath::value_type >& getOwnValue() const
 	{
 		return m_ownValue;
@@ -1028,6 +1036,7 @@ struct Nvram
 
 private:
 	boost::optional<PAbsFilePath::value_type > m_template;
+	boost::optional<EFormat > m_format;
 	boost::optional<PAbsFilePath::value_type > m_ownValue;
 };
 
@@ -4219,11 +4228,11 @@ struct Encryption
 {
 	Encryption();
 
-	EFormat getFormat() const
+	EFormat1 getFormat() const
 	{
 		return m_format;
 	}
-	void setFormat(EFormat value_)
+	void setFormat(EFormat1 value_)
 	{
 		m_format = value_;
 	}
@@ -4240,7 +4249,7 @@ struct Encryption
 	bool save(QDomDocument& ) const;
 
 private:
-	EFormat m_format;
+	EFormat1 m_format;
 	QList<Secret1 > m_secretList;
 };
 
@@ -12312,7 +12321,7 @@ struct Traits<Domain::Xml::Loader>
 template<>
 struct Traits<Domain::Xml::Nvram>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<263> > >, Optional<Text<Domain::Xml::PAbsFilePath > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<263> > >, Optional<Attribute<Domain::Xml::EFormat, Name::Strict<134> > >, Optional<Text<Domain::Xml::PAbsFilePath > > > > marshal_type;
 
 	static int parse(Domain::Xml::Nvram& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Nvram& , QDomElement& );
@@ -13056,7 +13065,7 @@ struct Traits<Domain::Xml::Secret1>
 template<>
 struct Traits<Domain::Xml::Encryption>
 {
-	typedef Ordered<mpl::vector<Attribute<Domain::Xml::EFormat, Name::Strict<134> >, ZeroOrMore<Element<Domain::Xml::Secret1, Name::Strict<137> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Domain::Xml::EFormat1, Name::Strict<134> >, ZeroOrMore<Element<Domain::Xml::Secret1, Name::Strict<137> > > > > marshal_type;
 
 	static int parse(Domain::Xml::Encryption& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Encryption& , QDomElement& );

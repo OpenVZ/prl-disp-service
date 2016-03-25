@@ -214,6 +214,14 @@ Enum<Domain::Xml::EType2>::data_type Enum<Domain::Xml::EType2>::getData()
 }
 
 template<>
+Enum<Domain::Xml::EFormat>::data_type Enum<Domain::Xml::EFormat>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EFormatRaw, "raw"))
+			(data_type::value_type(Domain::Xml::EFormatQcow2, "qcow2"));
+}
+
+template<>
 Enum<Domain::Xml::EDev>::data_type Enum<Domain::Xml::EDev>::getData()
 {
 	return ba::list_of<data_type::relation>
@@ -613,11 +621,11 @@ Enum<Domain::Xml::ETray>::data_type Enum<Domain::Xml::ETray>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EFormat>::data_type Enum<Domain::Xml::EFormat>::getData()
+Enum<Domain::Xml::EFormat1>::data_type Enum<Domain::Xml::EFormat1>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EFormatDefault, "default"))
-			(data_type::value_type(Domain::Xml::EFormatQcow, "qcow"));
+			(data_type::value_type(Domain::Xml::EFormat1Default, "default"))
+			(data_type::value_type(Domain::Xml::EFormat1Qcow, "qcow"));
 }
 
 template<>

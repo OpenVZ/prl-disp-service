@@ -177,6 +177,12 @@ enum EType2
 	EType2Pflash
 };
 
+enum EFormat
+{
+	EFormatRaw,
+	EFormatQcow2
+};
+
 enum EDev
 {
 	EDevHd,
@@ -490,10 +496,10 @@ enum ETray
 	ETrayClosed
 };
 
-enum EFormat
+enum EFormat1
 {
-	EFormatDefault,
-	EFormatQcow
+	EFormat1Default,
+	EFormat1Qcow
 };
 
 enum EType5

@@ -1185,7 +1185,8 @@ int Traits<Domain::Xml::Nvram>::parse(Domain::Xml::Nvram& dst_, QStack<QDomEleme
 	if (0 <= output)
 	{
 		dst_.setTemplate(m.get<0>().getValue());
-		dst_.setOwnValue(m.get<1>().getValue());
+		dst_.setFormat(m.get<1>().getValue());
+		dst_.setOwnValue(m.get<2>().getValue());
 	}
 	return output;
 }
@@ -1195,7 +1196,9 @@ int Traits<Domain::Xml::Nvram>::generate(const Domain::Xml::Nvram& src_, QDomEle
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getTemplate(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getOwnValue(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getFormat(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getOwnValue(), m.get<2>()))
 		return -1;
 
 	return m.produce(dst_);
