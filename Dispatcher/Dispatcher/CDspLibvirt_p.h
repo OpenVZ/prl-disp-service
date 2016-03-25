@@ -252,10 +252,9 @@ struct System: QObject
 private:
 	Q_OBJECT
 
-	Registry::Actual& m_registry;
-
 	typedef QHash<QString, QSharedPointer<Domain> > domainMap_type;
 	domainMap_type m_domainMap;
+	Registry::Actual& m_registry;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -336,6 +335,7 @@ private:
 	int m_eventDeviceConnect;
 	int m_eventDeviceDisconnect;
 	int m_eventTrayChange;
+	Registry::Actual* m_registry;
 	QWeakPointer<virConnect> m_libvirtd;
 	QSharedPointer<Model::System> m_view;
 };
@@ -462,13 +462,15 @@ namespace Breeding
 
 struct Vm
 {
-	explicit Vm(const QSharedPointer<Model::System>& view_): m_view(view_)
+	Vm(const QSharedPointer<Model::System>& view_, Registry::Actual& registry_):
+		m_registry(&registry_), m_view(view_)
 	{
 	}
 
 	void operator()(Agent::Hub& hub_);
 
 private:
+	Registry::Actual* m_registry;
 	QSharedPointer<Model::System> m_view;
 };
 
@@ -490,7 +492,8 @@ private:
 
 struct Subject: QRunnable
 {
-	Subject(QSharedPointer<virConnect> , QSharedPointer<Model::System> );
+	Subject(QSharedPointer<virConnect> , QSharedPointer<Model::System> ,
+		Registry::Actual& );
 
 	void run();
 
