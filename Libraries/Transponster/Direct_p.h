@@ -808,6 +808,37 @@ private:
 	QList<Libvirt::Domain::Xml::VChoice938>* m_list;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Os
+
+struct Os: boost::static_visitor<Libvirt::Domain::Xml::VOs>
+{
+	explicit Os(const QString& nvram_): m_nvram(nvram_)
+	{
+	}
+
+	template<class T>
+	Libvirt::Domain::Xml::VOs operator()(const T& os_) const
+	{
+		return Libvirt::Domain::Xml::VOs(os_);
+	}
+	Libvirt::Domain::Xml::VOs operator()(const mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type& os_) const
+	{
+		Libvirt::Domain::Xml::Os2 os = os_.getValue();
+		Libvirt::Domain::Xml::Nvram n;
+		if (os.getNvram())
+			n = os.getNvram().get();
+		n.setOwnValue(m_nvram);
+		os.setNvram(n);
+		mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
+		vos.setValue(os);
+		return vos;
+	}
+
+private:
+	QString m_nvram;
+};
+
 } // namespace Fixup
 } // namespace Visitor
 

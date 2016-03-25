@@ -538,6 +538,7 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 
 	m_registry.reset(new Registry::Actual(*this));
 	m_vmDirHelper.reset(new CDspVmDirHelper(*m_registry));
+	m_vmMigrateHelper.reset(new CDspVmMigrateHelper(*m_registry));
 	m_pReconnectTimer = new QTimer(this);
 	m_pReconnectTimer->setSingleShot(true);
 
@@ -771,7 +772,7 @@ CDspMonitor& CDspService::getDispMonitor ()
 
 CDspVmMigrateHelper& CDspService::getVmMigrateHelper ()
 {
-	return m_VmMigrateHelper;
+	return *m_vmMigrateHelper;
 }
 
 #ifdef _CT_

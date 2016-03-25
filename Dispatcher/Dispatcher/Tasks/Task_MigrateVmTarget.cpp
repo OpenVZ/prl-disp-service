@@ -459,12 +459,13 @@ void Frontend::setResult(const Flop::Event& value_)
 
 #define VM_MIGRATE_START_CMD_WAIT_TIMEOUT 600 * 1000
 
-Task_MigrateVmTarget::Task_MigrateVmTarget(
+Task_MigrateVmTarget::Task_MigrateVmTarget(Registry::Public& registry_,
 		const SmartPtr<CDspDispConnection> &pDispConnection,
 		CDispToDispCommandPtr pCmd,
 		const SmartPtr<IOPackage> &p)
 :CDspTaskHelper(pDispConnection->getUserSession(), p),
 Task_DispToDispConnHelper(getLastError()),
+m_registry(registry_),
 m_dispConnection(pDispConnection),
 m_pCheckPackage(p),
 m_cDstHostInfo(CDspService::instance()->getHostInfo()->data()),
@@ -656,6 +657,13 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 	}
 
 	m_pVmConfig->getVmHardwareList()->RevertDevicesPathToAbsolute(m_sTargetVmHomePath);
+	if (m_pVmConfig->getVmSettings()->getVmStartupOptions() != NULL)
+	{
+		CVmStartupBios* b = m_pVmConfig->getVmSettings()->getVmStartupOptions()->getBios();
+		if (b != NULL && !b->getNVRAM().isEmpty() && QDir::isRelativePath(b->getNVRAM()))
+			b->setNVRAM(QDir(m_sTargetVmHomePath).absoluteFilePath(b->getNVRAM()));
+	}
+
 	m_pVmConfig->getVmIdentification()->setVmName(m_sVmName);
 
 	if (operationIsCancelled()) {
@@ -723,6 +731,11 @@ PRL_RESULT Task_MigrateVmTarget::reactStart(const SmartPtr<IOPackage> &package)
 		return nRetCode;
 
 	if (PRL_FAILED(nRetCode = registerVmBeforeMigration()))
+		return nRetCode;
+
+	WRITE_TRACE(DBG_DEBUG, "declare VM UUID:%s, Dir UUID:%s, Config:%s",
+		qPrintable(m_sVmUuid), qPrintable(m_sVmDirUuid), qPrintable(m_sVmConfigPath));
+	if (PRL_FAILED(nRetCode = m_registry.declare(CVmIdent(m_sVmUuid, m_sVmDirUuid), m_sVmConfigPath)))
 		return nRetCode;
 
 	return PRL_ERR_SUCCESS;

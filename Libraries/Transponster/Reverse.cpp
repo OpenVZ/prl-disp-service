@@ -1477,6 +1477,20 @@ Fixer::Fixer(const CVmConfiguration& input_, char* xml_): Builder(input_)
 	shape(xml_, m_result);
 }
 
+PRL_RESULT Fixer::setBlank()
+{
+	if (m_result.isNull())
+		return PRL_ERR_READ_XML_CONTENT;
+
+	CVmStartupBios* b = m_input.getVmSettings()->getVmStartupOptions()->getBios();
+	if (b == NULL || b->getNVRAM().isEmpty())
+		return PRL_ERR_SUCCESS;
+
+	m_result->setOs(boost::apply_visitor
+		(Visitor::Fixup::Os(b->getNVRAM()), m_result->getOs()));
+	return PRL_ERR_SUCCESS;
+}
+
 PRL_RESULT Fixer::setDevices()
 {
 	if (m_result.isNull())

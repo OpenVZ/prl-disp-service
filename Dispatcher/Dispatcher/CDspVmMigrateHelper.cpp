@@ -122,7 +122,7 @@ void CDspVmMigrateHelper::checkPreconditions(
 	}
 #endif
 	else
-		task_helper = new Task_MigrateVmTarget(pDispConnection, pCmd, p);
+		task_helper = new Task_MigrateVmTarget(m_registry, pDispConnection, pCmd, p);
 
 	CDspService::instance()->getTaskManager().schedule(task_helper);
 }

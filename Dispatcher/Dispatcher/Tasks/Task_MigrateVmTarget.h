@@ -35,6 +35,7 @@
 #include <QString>
 
 #include "CDspTaskHelper.h"
+#include "CDspRegistry.h"
 #include "Task_DispToDispConnHelper.h"
 #include "CDspClient.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
@@ -59,7 +60,7 @@ class Task_MigrateVmTarget : public CDspTaskHelper, public Task_DispToDispConnHe
 	Q_OBJECT
 
 public:
-	Task_MigrateVmTarget(
+	Task_MigrateVmTarget(Registry::Public&,
 		const SmartPtr<CDspDispConnection> &,
 		const CDispToDispCommandPtr,
 		const SmartPtr<IOPackage> &);
@@ -102,7 +103,7 @@ private:
 	bool isSharedDisk(const QString& name) const;
 
 private:
-
+	Registry::Public& m_registry;
 	/* from old servers Check & Start commands send from differents connections */
 	SmartPtr<CDspDispConnection> m_dispConnection;
 	SmartPtr<IOPackage> m_pCheckPackage;
