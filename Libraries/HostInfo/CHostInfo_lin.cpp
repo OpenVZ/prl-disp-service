@@ -325,6 +325,19 @@ static inline bool IsUdevActive()
 	return QDir(UDEV_HDD_BASE).exists();
 }
 
+static inline bool isCdrom(const QString& dev_)
+{
+	char InquiryBuffer[36];
+
+	if (InquirySCSIDevice(dev_, (PRL_UINT8_PTR)InquiryBuffer, sizeof(InquiryBuffer)) < 0)
+	{
+		WRITE_TRACE(DBG_INFO, "Unable to find out device type %s", QSTR2UTF8(dev_));
+		return false;
+	}
+
+	return (InquiryBuffer[0]&0x1F) == TYPE_ROM;
+}
+
 /*
  * Build HDD list based on udev disk list by id.
  */
@@ -341,6 +354,9 @@ void CDspHostInfo::GetHddUdevList(QList<CHwHardDisk*>& List)
 	{
 		QString File = QString(UDEV_HDD_BASE "/%1").arg(*it);
 		QFileInfo Info(File);
+
+		if (isCdrom(Info.canonicalFilePath()))
+			continue;
 
 		QString FriendlyName = GetHDDFriendly(Info.canonicalFilePath());
 
