@@ -818,8 +818,6 @@ struct Essence<PVE::DspCmdVmStart>: Need::Agent, Need::Config, Need::Context
 				getAgent().unpause();
 			if (e.isFailed())
 				return e;
-
-			Vcmmd::Api(getContext().getVmUuid()).activate();
 		}
 		else
 		{
@@ -865,6 +863,18 @@ namespace Timeout
 {
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reactor
+
+template<>
+void Reactor<PVE::DspCmdVmStart>::react()
+{
+	m_context.reply(PRL_ERR_TIMEOUT);
+}
+
+template<>
+quint32 Reactor<PVE::DspCmdVmStart>::getInterval() const
+{
+	return 120;
+}
 
 template<>
 void Reactor<PVE::DspCmdVmStop>::react()
@@ -1501,10 +1511,10 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmChangeSid] = map(Tag::Special<PVE::DspCmdVmChangeSid>());
 	m_map[PVE::DspCmdVmResetUptime] = map(Tag::Special<PVE::DspCmdVmResetUptime>());
 	m_map[PVE::DspCmdVmAuthWithGuestSecurityDb] = map(Tag::Special<PVE::DspCmdVmAuthWithGuestSecurityDb>());
-	m_map[PVE::DspCmdVmStart] = map(Tag::Fork<Tag::State<Essence<PVE::DspCmdVmStart>,
-		Vm::Fork::State::Strict<VMS_RUNNING> > >());
-	m_map[PVE::DspCmdVmStartEx] = map(Tag::Fork<Tag::State<Essence<PVE::DspCmdVmStart>,
-		Vm::Fork::State::Strict<VMS_RUNNING> > >());
+	m_map[PVE::DspCmdVmStart] = map(Tag::Fork<Tag::Timeout<Tag::State<Essence<PVE::DspCmdVmStart>,
+		Vm::Fork::State::Strict<VMS_RUNNING> >, Tag::Libvirt<PVE::DspCmdVmStart> > >());
+	m_map[PVE::DspCmdVmStartEx] = map(Tag::Fork<Tag::Timeout<Tag::State<Essence<PVE::DspCmdVmStart>,
+		Vm::Fork::State::Strict<VMS_RUNNING> >, Tag::Libvirt<PVE::DspCmdVmStart> > >());
 	m_map[PVE::DspCmdVmCreateSnapshot] = map(Tag::Fork<Essence<PVE::DspCmdVmCreateSnapshot> >());
 	m_map[PVE::DspCmdVmSwitchToSnapshot] = map(Tag::Fork<
 		Tag::State<Snapshot::Revert<Snapshot::Vcmmd<Snapshot::Switch> >, Vm::Fork::State::Snapshot::Switch> >());
