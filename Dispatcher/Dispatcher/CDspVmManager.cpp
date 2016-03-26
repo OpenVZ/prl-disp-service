@@ -818,8 +818,6 @@ struct Essence<PVE::DspCmdVmStart>: Need::Agent, Need::Config, Need::Context
 				getAgent().unpause();
 			if (e.isFailed())
 				return e;
-
-			Vcmmd::Api(getContext().getVmUuid()).activate();
 		}
 		else
 		{
