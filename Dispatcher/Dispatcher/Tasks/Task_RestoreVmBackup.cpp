@@ -1509,6 +1509,18 @@ PRL_RESULT Task_RestoreVmBackupSource::sendStartReply(const SmartPtr<CVmConfigur
 		WRITE_TRACE(DBG_FATAL, "Unable to get backup OriginalSize %x", code);
 		nOriginalSize = 0;
 	}
+
+	bool ok;
+	// e.g. 6.10.24168.1187340 or 7.0.200
+	int major = ve_->getAppVersion().split(".")[0].toInt(&ok);
+	if (!ok)
+	{
+		WRITE_TRACE(DBG_FATAL, "Invalid AppVersion: %s",
+					qPrintable(ve_->getAppVersion()));
+		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
+	}
+
+	quint32 protoVersion = major < 7 ? BACKUP_PROTO_V3 : BACKUP_PROTO_VERSION;
 	CDispToDispCommandPtr pReply = CDispToDispProtoSerializer::CreateVmBackupRestoreFirstReply(
 			m_sVmUuid,
 			m_sVmName,
@@ -1518,7 +1530,8 @@ PRL_RESULT Task_RestoreVmBackupSource::sendStartReply(const SmartPtr<CVmConfigur
 			m_sBackupRootPath,
 			nOriginalSize,
 			nBundlePermissions,
-			m_nInternalFlags);
+			m_nInternalFlags,
+			protoVersion);
 	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(
 			pReply->GetCommandId(),
 			pReply->GetCommand()->toString(),
