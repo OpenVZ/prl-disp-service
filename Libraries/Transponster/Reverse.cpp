@@ -87,7 +87,7 @@ bool Resources::getCpu(Libvirt::Domain::Xml::Cpu& dst_)
 	if(0 == u->getNumber())
 		return false;
 
-	dst_.setMode(Libvirt::Domain::Xml::EModeHostPassthrough);
+	dst_.setMode(Libvirt::Domain::Xml::EModeHostModel);
 
 #if (LIBVIR_VERSION_NUMBER >= 1002013)
 	QList<Libvirt::Domain::Xml::Feature> l;
