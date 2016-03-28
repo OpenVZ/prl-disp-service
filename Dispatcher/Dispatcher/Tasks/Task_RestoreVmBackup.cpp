@@ -1239,6 +1239,46 @@ PRL_RESULT Flavor::restore(const Assistant& assist_)
 #endif // _LIN_
 #endif // _CT_
 } // namespace Target
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Converter
+
+void Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
+{
+	CVmHardware *pVmHardware;
+	if ((pVmHardware = cfg->getVmHardwareList()) == NULL) {
+		WRITE_TRACE(DBG_FATAL, "[%s] Can not get Vm hardware list", __FUNCTION__);
+		return;
+	}
+
+	foreach(CVmOpticalDisk* pDevice, pVmHardware->m_lstOpticalDisks) {
+		if (NULL == pDevice)
+			continue;
+		if (pDevice->getEmulatedType() != PVE::CdRomImage)
+			continue;
+		// Switch Cdrom devices to IDE since SATA is unsupported
+		if (pDevice->getInterfaceType() == PMS_SATA_DEVICE)
+			pDevice->setInterfaceType(PMS_IDE_DEVICE);
+	}
+
+	// pcs6 SCSI and SATA disks are not supported in vz7.
+	// Convert to virtio-block until SCSI support will be added.
+	foreach(CVmHardDisk *pDevice, pVmHardware->m_lstHardDisks) {
+		if (NULL == pDevice)
+			continue;
+		if (pDevice->getEmulatedType() != PVE::HardDiskImage)
+			continue;
+		if (pDevice->getInterfaceType() != PMS_SCSI_DEVICE &&
+			pDevice->getInterfaceType() != PMS_SATA_DEVICE)
+			continue;
+		pDevice->setInterfaceType(PMS_VIRTIO_BLOCK_DEVICE);
+	}
+
+	// Parallel ports are not supported anymore
+	pVmHardware->m_lstParallelPortOlds.clear();
+	pVmHardware->m_lstParallelPorts.clear();
+}
+
 } // namespace Restore
 
 static void NotifyClientsWithProgress(
@@ -2212,6 +2252,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 	/* to check device images in new home directory (#460845) */
 	if (PRL_FAILED(nRetCode = fixHardWareList()))
 		return nRetCode;
+	if (m_converter.get() != NULL)
+		m_converter->convertHardware(m_pVmConfig);
 
 	dst_.reset(u.assemble(m_sTargetVmHomePath));
 	return NULL == dst_.get() ? PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR : PRL_ERR_SUCCESS;
@@ -2665,6 +2707,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::sendStartRequest()
 	if (PRL_FAILED(nRetCode = m_pVmConfig->fromString(pFirstReply->GetVmConfig())))
 		return nRetCode;
 	m_nRemoteVersion = pFirstReply->GetVersion();
+	if (m_nRemoteVersion <= BACKUP_PROTO_V3)
+		m_converter.reset(new Restore::Converter());
 	m_sVmUuid = pFirstReply->GetVmUuid();
 	m_sBackupUuid = pFirstReply->GetBackupUuid();
 	m_nBackupNumber = pFirstReply->GetBackupNumber();
@@ -2726,12 +2770,13 @@ PRL_RESULT Task_RestoreVmBackupTarget::fixHardWareList()
 		pDevice->setConnected(PVE::DeviceDisconnected);
 	}
 
-	foreach(CVmOpticalDisk* pDevice, pVmHardware->m_lstOpticalDisks){
+	foreach(CVmOpticalDisk* pDevice, pVmHardware->m_lstOpticalDisks) {
 		if (NULL == pDevice)
+			continue;
+		if (pDevice->getEmulatedType() != PVE::CdRomImage)
 			continue;
 		if ((pDevice->getEnabled() == PVE::DeviceDisabled) ||
 				(PVE::DeviceDisconnected == pDevice->getConnected()))
-		if (pDevice->getEmulatedType() != PVE::CdRomImage)
 			continue;
 		fileInfo.setFile(dir, pDevice->getSystemName());
 		if (fileInfo.exists())

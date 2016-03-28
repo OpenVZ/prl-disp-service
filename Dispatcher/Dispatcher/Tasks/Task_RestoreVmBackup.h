@@ -49,6 +49,7 @@
 namespace Restore
 {
 struct Move;
+struct Converter;
 ///////////////////////////////////////////////////////////////////////////////
 // struct Assembly
 
@@ -188,6 +189,7 @@ private:
  	QString m_sVzCacheTmpDir;
  
 	WaiterTillHandlerUsingObject m_waiter;
+	std::auto_ptr<Restore::Converter> m_converter;
 
 private slots:
 	void handlePackage(const SmartPtr<IOPackage> p);
