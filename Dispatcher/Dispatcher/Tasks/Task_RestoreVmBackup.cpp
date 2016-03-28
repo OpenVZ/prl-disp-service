@@ -39,6 +39,7 @@
 #include "prlcommon/Interfaces/ParallelsNamespace.h"
 #include "Task_RestoreVmBackup_p.h"
 #include "prlcommon/Logging/Logging.h"
+#include "prlcommon/PrlUuid/Uuid.h"
 #include "Libraries/StatesStore/SavedStateTree.h"
 
 #include "Task_RestoreVmBackup.h"
@@ -51,10 +52,42 @@
 #include "prlcommon/HostUtils/HostUtils.h"
 #include "prlxmlmodel/BackupTree/VmItem.h"
 #include "Libraries/Virtuozzo/CVzHelper.h"
+#include "Libraries/PrlNetworking/netconfig.h"
 #include "CDspBackupDevice.h"
 #ifdef _CT_
 #include "vzctl/libvzctl.h"
 #endif
+
+namespace
+{
+
+enum {V2V_RUN_TIMEOUT = 60 * 60 * 1000};
+
+const char VIRT_V2V[] = "/usr/bin/virt-v2v";
+
+QString getHostOnlyBridge()
+{
+	Libvirt::Instrument::Agent::Network::Unit u;
+	// Get Host-Only network.
+	Libvirt::Result r = Libvirt::Kit.networks().find(
+			PrlNet::GetDefaultVirtualNetworkID(0, false), &u);
+	if (r.isFailed())
+		return QString();
+
+	CVirtualNetwork n;
+	r = u.getConfig(n);
+	if (r.isFailed())
+		return QString();
+
+	CParallelsAdapter* a;
+	if (NULL == n.getHostOnlyNetwork() ||
+		(a = n.getHostOnlyNetwork()->getParallelsAdapter()) == NULL)
+		return QString();
+
+	return a->getName();
+}
+
+} // namespace
 
 namespace Restore
 {
@@ -1279,6 +1312,48 @@ void Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	pVmHardware->m_lstParallelPorts.clear();
 }
 
+PRL_RESULT Converter::convertVm(const QString &vmUuid) const
+{
+	// Get windows driver ISO.
+	QString winDriver = ParallelsDirs::getToolsImage(PAM_SERVER, PVS_GUEST_VER_WIN_2K);
+	if (!QFile(winDriver).exists())
+	{
+		WRITE_TRACE(DBG_WARNING, "Windows drivers image does not exist: %s\n"
+								 "Restoring Windows will fail.",
+								 qPrintable(winDriver));
+	}
+	::setenv("VIRTIO_WIN", qPrintable(winDriver), 1);
+	WRITE_TRACE(DBG_DEBUG, "setenv: %s=%s", "VIRTIO_WIN", qPrintable(winDriver));
+	// If default bridge is not 'virbr0', virt-v2v fails.
+	// So we try to find actual bridge name.
+	QString bridge = getHostOnlyBridge();
+	if (!bridge.isEmpty())
+	{
+		::setenv("LIBGUESTFS_BACKEND_SETTINGS",
+				 qPrintable(QString("network_bridge=%1").arg(bridge)), 1);
+		WRITE_TRACE(DBG_DEBUG, "setenv: %s=%s",
+					"LIBGUESTFS_BACKEND_SETTINGS",
+					qPrintable(QString("network_bridge=%1").arg(bridge)));
+	}
+
+	QStringList cmdline = QStringList()
+		<< VIRT_V2V
+		<< "-i" << "libvirt"
+		<< "--in-place" << ::Uuid(vmUuid).toStringWithoutBrackets();
+
+	QProcess process;
+	QString out;
+	if (!HostUtils::RunCmdLineUtility(cmdline.join(" "), out, V2V_RUN_TIMEOUT, &process))
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot convert VM to vz7 format: virt-v2v failed:\n%s",
+					process.readAllStandardError().constData());
+		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
+	}
+	WRITE_TRACE(DBG_DEBUG, "virt-v2v output:\n%s", qPrintable(out));
+
+	return PRL_ERR_SUCCESS;
+}
+
 } // namespace Restore
 
 static void NotifyClientsWithProgress(
@@ -2068,15 +2143,18 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	CDspVmNetworkHelper::updateHostMacAddresses(m_pVmConfig, NULL, HMU_NONE);
 	// save config : Task_RegisterVm read config from file system
 	if (PRL_FAILED(nRetCode = saveVmConfig()))
-                goto cleanup_0;
-	if (PRL_SUCCEEDED(nRetCode = a->do_()))
+		goto cleanup_0;
+	if (PRL_FAILED(nRetCode = a->do_()))
+		goto cleanup_0;
+	if (m_converter.get() != NULL &&
+		PRL_FAILED(nRetCode = m_converter->convertVm(m_sVmUuid)))
+		goto cleanup_0;
 	{
 		CDspLockedPointer<CVmDirectoryItem> pVmDirItem
 			= CDspService::instance()->getVmDirManager().getVmDirItemByUuid(
 				getClient()->getVmDirectoryUuid(), m_sVmUuid);
 		if ( pVmDirItem )
 			pVmDirItem->setTemplate( m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate() );
-		return PRL_ERR_SUCCESS;
 	}
 cleanup_0:
 	return nRetCode;
@@ -2131,8 +2209,16 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewVm()
 		if (PRL_FAILED(nRetCode = a->do_()))
 			break;
 		if (PRL_FAILED(nRetCode = registerVm()))
+		{
 			a->revert();
-
+			break;
+		}
+		if (m_converter.get() != NULL &&
+			PRL_FAILED(nRetCode = m_converter->convertVm(m_sVmUuid)))
+		{
+			unregisterVm();
+			a->revert();
+		}
 	} while(false);
 	CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(pVmInfo.getImpl());
 	return nRetCode;
@@ -2802,6 +2888,33 @@ PRL_RESULT Task_RestoreVmBackupTarget::saveVmConfig()
 		return nRetCode;
 	}
 	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Task_RestoreVmBackupTarget::unregisterVm()
+{
+	SmartPtr<CDspClient> client = getClient();
+	CVmEvent evt;
+
+	CProtoCommandPtr pRequest =
+		CProtoSerializer::CreateProtoBasicVmCommand(
+			PVE::DspCmdDirUnregVm, m_sVmUuid);
+	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspCmdDirUnregVm, pRequest);
+
+	/* do not call checkAndLockNotExistsExclusiveVmParameters */
+	CDspService::instance()->getTaskManager().schedule(new Task_DeleteVm(
+		client, pPackage, m_pVmConfig->toString(),
+		PVD_UNREGISTER_ONLY)).wait().getResult(&evt);
+
+	// wait finishing thread and return task result
+	if (PRL_FAILED(evt.getEventCode())) {
+		WRITE_TRACE(DBG_FATAL,
+			"Error occurred while unregister Vm %s with code [%#x][%s]",
+			qPrintable(m_sVmUuid),
+			evt.getEventCode(),
+			PRL_RESULT_TO_STRING(evt.getEventCode()));
+	}
+
+	return evt.getEventCode();
 }
 
 PRL_RESULT Task_RestoreVmBackupTarget::registerVm()

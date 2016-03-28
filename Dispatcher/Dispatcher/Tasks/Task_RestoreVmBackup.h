@@ -139,6 +139,7 @@ private:
 	PRL_RESULT sendStartRequest();
 	PRL_RESULT saveVmConfig();
 	PRL_RESULT registerVm();
+	PRL_RESULT unregisterVm();
 	virtual void cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& pkg);
 	PRL_RESULT fixHardWareList();
 
