@@ -456,6 +456,8 @@ void HighAvailability::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
 	new_.getVmSettings()->setHighAvailability(
 		new CVmHighAvailability(old_.getVmSettings()->getHighAvailability()));
+	new_.getVmSettings()->setClusterOptions(
+		new ClusterOptions(old_.getVmSettings()->getClusterOptions()));
 }
 
 namespace Access
