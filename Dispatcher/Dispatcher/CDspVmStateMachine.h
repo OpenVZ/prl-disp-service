@@ -213,10 +213,41 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	};
 
 	// Action
+	struct Cluster
+	{
+		template<class Event, class FromState, class ToState>
+		void operator()(const Event&, Frontend& fsm_, FromState& from_, ToState& to_)
+		{
+			boost::optional<CVmConfiguration> y = fsm_.getConfig();
+			if (!y)
+				return;
+			operator()(*y, from_, to_);
+			fsm_.setConfig(y.get());
+		}
+
+		template<class FromState, class ToState>
+		void operator()(CVmConfiguration& config_, FromState&, ToState&)
+		{
+			bool f = boost::is_same<FromState, Running>::value;
+			bool t = boost::is_same<ToState, Running>::value;
+			// ignore transitions where Running doesn't present on neither side
+			if (!f && !t)
+				return;
+			CVmSettings *s = config_.getVmSettings();
+			if (s)
+			{
+				ClusterOptions *o = s->getClusterOptions();
+				if (o)
+					o->setRunning(!f && t);
+			}
+		}
+	};
+
+	// Action
 	struct Runtime
 	{
 		template<class Event, class FromState, class ToState>
-		void operator()(const Event&, Frontend& fsm_, FromState&, ToState&)
+		void operator()(const Event&, Frontend& fsm_, FromState& from_, ToState& to_)
 		{
 			boost::optional<CVmConfiguration> y = fsm_.getConfig();
 			if (!y)
@@ -232,6 +263,8 @@ struct Frontend: msmf::state_machine_def<Frontend>
 
 			WRITE_TRACE(DBG_INFO, "updating config from runtime for VM '%s'", qPrintable(fsm_.m_name));
 			Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(y.get(), runtime);
+			// this is needed solely to avoid doing setConfig() twice
+			Cluster()(*y, from_, to_);
 			fsm_.setConfig(y.get());
 		}
 	};
@@ -279,13 +312,13 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
 	msmf::Row<Running,    Event<VMS_STOPPED>,    Stopped,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Cluster, Notification> > >,
 
 	msmf::Row<Running,    Event<VMS_SUSPENDED>,  Suspended,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Cluster, Notification> > >,
 
 	msmf::Row<Running,    Event<VMS_PAUSED>,     Paused,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Cluster, Notification> > >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
@@ -297,7 +330,7 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Notification> > >,
 
 	msmf::Row<Paused,     Event<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, Cluster, Notification> > >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
