@@ -2183,10 +2183,12 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewVm()
 	/* ! only after sendStartRequest() - to get m_pVmConfig */
 	if (m_sTargetVmHomePath.isEmpty())
 	{
-		m_sTargetVmHomePath = QFileInfo(QDir(getClient()->getUserDefaultVmDirPath()),
-					m_pVmConfig->getVmIdentification()
-						->getVmName().append(VMDIR_DEFAULT_BUNDLE_SUFFIX))
-						.absoluteFilePath();
+		m_sTargetVmHomePath = QFileInfo(
+				QString("%1/%2")
+				.arg(getClient()->getUserDefaultVmDirPath())
+				.arg(Vm::Config::getVmHomeDirName(
+					m_pVmConfig->getVmIdentification()->getVmUuid())))
+				.absoluteFilePath();
 	}
 	m_sTargetPath = m_sTargetVmHomePath;
 
@@ -2340,6 +2342,12 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 		return nRetCode;
 	if (m_converter.get() != NULL)
 		m_converter->convertHardware(m_pVmConfig);
+
+	if (m_pVmConfig->getVmIdentification()->getHomePath().isEmpty())
+	{
+		m_pVmConfig->getVmIdentification()->setHomePath(
+				QString("%1/" VMDIR_DEFAULT_VM_CONFIG_FILE).arg(m_sTargetVmHomePath));
+	}
 
 	dst_.reset(u.assemble(m_sTargetVmHomePath));
 	return NULL == dst_.get() ? PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR : PRL_ERR_SUCCESS;
