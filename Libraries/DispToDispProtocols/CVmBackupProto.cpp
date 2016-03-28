@@ -35,16 +35,22 @@ namespace Parallels {
 CVmBackupProto::CVmBackupProto(
 	Parallels::IDispToDispCommands nCmdIdentifier,
 	quint32 nFlags,
-	quint32 nInternalFlags)
+	quint32 nInternalFlags,
+	quint32 nVersion)
 : CDispToDispCommand(nCmdIdentifier, false, nFlags)
 {
-	SetUnsignedIntParamValue(BACKUP_PROTO_VERSION, EVT_PARAM_BACKUP_PROTO_VERSION);
+	SetUnsignedIntParamValue(nVersion, EVT_PARAM_BACKUP_PROTO_VERSION);
 	SetUnsignedIntParamValue(nInternalFlags, EVT_PARAM_BACKUP_CMD_INTERNAL_FLAGS);
 }
 
 quint32 CVmBackupProto::GetVersion()
 {
 	return (GetUnsignedIntParamValue(EVT_PARAM_BACKUP_PROTO_VERSION));
+}
+
+void CVmBackupProto::setVersion(quint32 version)
+{
+	SetUnsignedIntParamValue(version, EVT_PARAM_BACKUP_PROTO_VERSION);
 }
 
 quint32 CVmBackupProto::GetInternalFlags()
@@ -61,8 +67,9 @@ CVmBackupCommand::CVmBackupCommand(
 	Parallels::IDispToDispCommands nCmdIdentifier,
 	const QString &sVmUuid,
 	quint32 nFlags,
-	quint32 nInternalFlags)
-:CVmBackupProto(nCmdIdentifier, nFlags, nInternalFlags)
+	quint32 nInternalFlags,
+	quint32 nVersion)
+:CVmBackupProto(nCmdIdentifier, nFlags, nInternalFlags, nVersion)
 {
 	SetStringParamValue(sVmUuid, EVT_PARAM_BACKUP_CMD_VM_UUID);
 }
@@ -295,9 +302,10 @@ CVmBackupRestoreFirstReply::CVmBackupRestoreFirstReply(
 	const QString &sBackupRootPath,
 	quint64 nOriginalSize,
 	quint32 nBundlePermissions,
-	quint32 nInternalFlags
+	quint32 nInternalFlags,
+	quint32 nVersion
 )
-:CVmBackupCommand(VmBackupRestoreFirstReply, sVmUuid, 0, nInternalFlags)
+:CVmBackupCommand(VmBackupRestoreFirstReply, sVmUuid, 0, nInternalFlags, nVersion)
 {
 	SetStringParamValue(sVmName, EVT_PARAM_BACKUP_CMD_VM_NAME);
 	SetStringParamValue(sVmConfiguration, EVT_PARAM_BACKUP_CMD_VM_CONFIG);

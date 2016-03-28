@@ -356,7 +356,8 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupRestoreFirstRepl
 			const QString &sBackupRootPath,
 			quint64 nOriginalSize,
 			quint32 nBundlePermissions,
-			quint32 nInternalFlags)
+			quint32 nInternalFlags,
+			quint32 nVersion)
 {
 	return CDispToDispCommandPtr(new CVmBackupRestoreFirstReply(
 			sVmUuid,
@@ -367,7 +368,8 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupRestoreFirstRepl
 			sBackupRootPath,
 			nOriginalSize,
 			nBundlePermissions,
-			nInternalFlags));
+			nInternalFlags,
+			nVersion));
 }
 
 CDispToDispCommandPtr CDispToDispProtoSerializer::CreateGetBackupTreeCommand(const QString &sVmUuid, quint32 nFlags)

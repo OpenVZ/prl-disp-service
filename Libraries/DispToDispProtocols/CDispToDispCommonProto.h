@@ -279,7 +279,8 @@ class CDispToDispProtoSerializer
 		const QString &sBackupRootPath,
 		quint64 nOriginalSize,
 		quint32 nBundlePermissions,
-		quint32 nInternalFlags
+		quint32 nInternalFlags,
+		quint32 nVersion = BACKUP_PROTO_VERSION
 	);
 
 	/**

@@ -55,10 +55,12 @@ public:
 	CVmBackupProto(
 		Parallels::IDispToDispCommands nCmdIdentifier,
 		quint32 nFlags = 0,
-		quint32 nInternalFlags = 0);
+		quint32 nInternalFlags = 0,
+		quint32 nVersion = BACKUP_PROTO_VERSION);
 	~CVmBackupProto() {}
 	/* Returns backup protocol version */
 	quint32 GetVersion();
+	void setVersion(quint32 version);
 	quint32 GetInternalFlags();
 	virtual bool IsValid();
 };
@@ -73,7 +75,8 @@ public:
 		Parallels::IDispToDispCommands nCmdIdentifier,
 		const QString &sVmUuid,
 		quint32 nFlags,
-		quint32 nInternalFlags = 0);
+		quint32 nInternalFlags = 0,
+		quint32 nVersion = BACKUP_PROTO_VERSION);
 	~CVmBackupCommand() {}
 	/** Returns flags */
 	quint32 GetFlags();
@@ -247,7 +250,8 @@ public:
 		const QString &sBackupRootPath,
 		quint64 nOriginalSize,
 		quint32 nBundlePermissions,
-		quint32 nInternalFlags
+		quint32 nInternalFlags,
+		quint32 nVersion = BACKUP_PROTO_VERSION
 	);
 	/** Overridden method that let to determine whether protocol command valid */
 	bool IsValid();
