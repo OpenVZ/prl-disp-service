@@ -68,7 +68,7 @@ struct Api
 {
 	explicit Api(const QString& uuid_);
 
-	PRL_RESULT init(quint64 limit_, quint64 guarantee_);
+	PRL_RESULT init(quint64 limit_, quint64 guarantee_, quint64 vram_);
 	PRL_RESULT update(quint64 limit_, quint64 guarantee_);
 	Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> getConfig() const;
 	void deinit();
@@ -105,14 +105,14 @@ struct Active: std::unary_function<Api, void>
 
 struct Unregistered: std::unary_function<Api, PRL_RESULT>
 {
-	Unregistered(quint64 limit_, quint64 guarantee_):
-		m_limit(limit_), m_guarantee(guarantee_)
+	Unregistered(quint64 limit_, quint64 guarantee_, quint64 vram_):
+		m_limit(limit_), m_guarantee(guarantee_), m_vram(vram_)
 	{
 	}
 
 	result_type operator()(argument_type api_)
 	{
-		return api_.init(m_limit, m_guarantee);
+		return api_.init(m_limit, m_guarantee, m_vram);
 	}
 	static void clean(argument_type api_)
 	{
@@ -122,6 +122,7 @@ struct Unregistered: std::unary_function<Api, PRL_RESULT>
 private:
 	quint64 m_limit;
 	quint64 m_guarantee;
+	quint64 m_vram;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -44,12 +44,13 @@ Api::Api(const QString& uuid_)
 	m_uuid = uuid.toString(PrlUuid::WithoutBrackets).data();
 }
 
-PRL_RESULT Api::init(quint64 limit_, quint64 guarantee_)
+PRL_RESULT Api::init(quint64 limit_, quint64 guarantee_, quint64 vram_)
 {
 	struct vcmmd_ve_config config;
 	vcmmd_ve_config_init(&config);
 	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_GUARANTEE, guarantee_);
 	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_LIMIT, limit_);
+	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_VRAM, vram_);
 
 	int r = vcmmd_register_ve(qPrintable(m_uuid), VCMMD_VE_VM, &config, 0);
 
