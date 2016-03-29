@@ -51,7 +51,7 @@ PRL_RESULT Api::init(quint64 limit_, quint64 guarantee_)
 	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_GUARANTEE, guarantee_);
 	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_LIMIT, limit_);
 
-	int r = vcmmd_register_ve(qPrintable(m_uuid), VCMMD_VE_VM, &config);
+	int r = vcmmd_register_ve(qPrintable(m_uuid), VCMMD_VE_VM, &config, 0);
 
 	if (VCMMD_ERROR_VE_NAME_ALREADY_IN_USE != r)
 		return treat(r, "vcmmd_register_ve");
@@ -60,7 +60,7 @@ PRL_RESULT Api::init(quint64 limit_, quint64 guarantee_)
 	if (r)
 		return treat(r, "vcmmd_unregister_ve");
 
-	r = vcmmd_register_ve(qPrintable(m_uuid), VCMMD_VE_VM, &config);
+	r = vcmmd_register_ve(qPrintable(m_uuid), VCMMD_VE_VM, &config, 0);
 	return treat(r, "vcmmd_register_ve");
 }
 
@@ -71,7 +71,7 @@ PRL_RESULT Api::update(quint64 limit_, quint64 guarantee_)
 	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_GUARANTEE, guarantee_);
 	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_LIMIT, limit_);
 
-	return treat(vcmmd_update_ve(qPrintable(m_uuid), &config),
+	return treat(vcmmd_update_ve(qPrintable(m_uuid), &config, 0),
 		"vcmmd_update_ve");
 }
 
@@ -98,7 +98,7 @@ void Api::deinit()
 
 void Api::activate()
 {
-	int r = vcmmd_activate_ve(qPrintable(m_uuid));
+	int r = vcmmd_activate_ve(qPrintable(m_uuid), 0);
 	treat(r, "vcmmd_activate_ve", r == VCMMD_ERROR_VE_ALREADY_ACTIVE ? DBG_WARNING : DBG_FATAL);
 }
 
@@ -121,7 +121,7 @@ PRL_RESULT Api::treat(int status_, const char* name_, int level_)
 	{
 	case VCMMD_ERROR_CONNECTION_FAILED:
 		return PRL_ERR_VCMMD_NO_CONNECTION;
-	case VCMMD_ERROR_NO_SPACE:
+	case VCMMD_ERROR_UNABLE_APPLY_VE_GUARANTEE:
 		return PRL_ERR_UNABLE_APPLY_MEMORY_GUARANTEE;
 	default:
 		return PRL_ERR_FAILURE;
