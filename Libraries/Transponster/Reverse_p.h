@@ -501,6 +501,23 @@ struct Ips
 
 namespace Network
 {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct View
+
+struct View
+{
+	explicit View(const CVmGenericNetworkAdapter &network_):
+		m_network(network_)
+	{
+	}
+
+	QString getAdapterType() const;
+
+private:
+	CVmGenericNetworkAdapter m_network;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Adapter
 

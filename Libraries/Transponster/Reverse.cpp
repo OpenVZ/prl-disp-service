@@ -83,7 +83,7 @@ bool Resources::getCpu(Libvirt::Domain::Xml::Cpu& dst_)
 	CVmCpu* u = h->getCpu();
 	if (NULL == u)
 		return false;
-	
+
 	if(0 == u->getNumber())
 		return false;
 
@@ -101,7 +101,7 @@ bool Resources::getCpu(Libvirt::Domain::Xml::Cpu& dst_)
 
 		QList<Libvirt::Domain::Xml::Cell > cells;
 		Libvirt::Domain::Xml::Cell cell;
-		boost::optional<unsigned int> id(0); 
+		boost::optional<unsigned int> id(0);
 		cell.setId(id);
 
 		QString mask = "0";
@@ -502,11 +502,15 @@ QList<Libvirt::Domain::Xml::Ip> Ips::operator()(const QList<QString>& ips_)
 	return ips;
 }
 
-namespace
+namespace Network
 {
-QString generateAdapterType(PRL_VM_NET_ADAPTER_TYPE type_)
+
+///////////////////////////////////////////////////////////////////////////////
+// struct View
+
+QString View::getAdapterType() const
 {
-	switch (type_) {
+	switch (m_network.getAdapterType()) {
 	case PNT_RTL:
 		return QString("ne2k_pci");
 	case PNT_E1000:
@@ -516,10 +520,6 @@ QString generateAdapterType(PRL_VM_NET_ADAPTER_TYPE type_)
 	}
 }
 
-} // namespace
-
-namespace Network
-{
 ///////////////////////////////////////////////////////////////////////////////
 // struct Adapter
 
@@ -546,7 +546,7 @@ Libvirt::Domain::Xml::Interface619 Adapter<0>::prepare(const CVmGenericNetworkAd
 {
 	Libvirt::Domain::Xml::Interface619 output;
 	output.setIpList(Ips()(network_.getNetAddresses()));
-	output.setModel(generateAdapterType(network_.getAdapterType()));
+	output.setModel(View(network_).getAdapterType());
 	Libvirt::Domain::Xml::Source6 s;
 	s.setBridge(network_.getSystemName());
 	output.setSource(s);
@@ -562,7 +562,7 @@ Libvirt::Domain::Xml::Interface627 Adapter<3>::prepare(const CVmGenericNetworkAd
 	s.setNetwork(network_.getVirtualNetworkID());
 	output.setIpList(Ips()(network_.getNetAddresses()));
 	output.setTarget(network_.getHostInterfaceName());
-	output.setModel(generateAdapterType(network_.getAdapterType()));
+	output.setModel(View(network_).getAdapterType());
 	output.setSource(s);
 	return output;
 }
@@ -574,7 +574,7 @@ Libvirt::Domain::Xml::Interface629 Adapter<4>::prepare(const CVmGenericNetworkAd
 	Libvirt::Domain::Xml::Source9 s;
 	s.setDev(network_.getSystemName());
 	output.setIpList(Ips()(network_.getNetAddresses()));
-	output.setModel(generateAdapterType(network_.getAdapterType()));
+	output.setModel(View(network_).getAdapterType());
 	output.setTarget(network_.getHostInterfaceName());
 	output.setSource(s);
 	return output;
@@ -1114,7 +1114,7 @@ Prl::Expected<Libvirt::Domain::Xml::Qemucdev, ::Error::Simple>
 Prl::Expected<QString, ::Error::Simple>
 	Device<CVmGenericNetworkAdapter>::getPlugXml(const CVmGenericNetworkAdapter& model_)
 {
-	Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple> a = 
+	Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple> a =
 		Transponster::Device::Network::build(model_);
 	if (a.isFailed())
 		return a.error();
@@ -1773,7 +1773,7 @@ PRL_RESULT Reverse::setBridge()
 	{
 		if (!m_master.isConfigureWithDhcpIPv6())
 			return PRL_ERR_SUCCESS;
-			
+
 		Libvirt::Iface::Xml::Protocol p;
 		p.setDhcp(Libvirt::Iface::Xml::Dhcp());
 		h.setProtocol2(p);

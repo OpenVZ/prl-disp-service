@@ -200,20 +200,6 @@ PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Network
-
-PRL_VM_NET_ADAPTER_TYPE Network::parseAdapterType(const QString& type)
-{
-	if (type == "ne2k_pci")
-		return PNT_RTL;
-	else if (type == "e1000")
-		return PNT_E1000;
-	else if (type == "virtio")
-		return PNT_VIRTIO;
-	return PNT_UNDEFINED;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Ips
 
 QList<QString> Ips::operator()(const QList<Libvirt::Domain::Xml::Ip>& ips_)
@@ -231,7 +217,21 @@ QList<QString> Ips::operator()(const QList<Libvirt::Domain::Xml::Ip>& ips_)
 				? res.arg("255.255.255.0") : res.arg(64));
 	}
 	return ips;
-}	
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Network
+
+PRL_VM_NET_ADAPTER_TYPE Network::parseAdapterType(const QString& type)
+{
+	if (type == "ne2k_pci")
+		return PNT_RTL;
+	else if (type == "e1000")
+		return PNT_E1000;
+	else if (type == "virtio")
+		return PNT_VIRTIO;
+	return PNT_UNDEFINED;
+}
 
 PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 0>::type& bridge_) const
 {
