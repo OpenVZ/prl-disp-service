@@ -6705,13 +6705,13 @@ struct FilterrefNodeAttributes
 	{
 		m_filter = value_;
 	}
-	const boost::optional<Parameter >& getParameter() const
+	const QList<Parameter >& getParameterList() const
 	{
-		return m_parameter;
+		return m_parameterList;
 	}
-	void setParameter(const boost::optional<Parameter >& value_)
+	void setParameterList(const QList<Parameter >& value_)
 	{
-		m_parameter = value_;
+		m_parameterList = value_;
 	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
@@ -6719,7 +6719,7 @@ struct FilterrefNodeAttributes
 
 private:
 	PFilter::value_type m_filter;
-	boost::optional<Parameter > m_parameter;
+	QList<Parameter > m_parameterList;
 };
 
 } // namespace Xml
@@ -13857,7 +13857,7 @@ struct Traits<Domain::Xml::Parameter>
 template<>
 struct Traits<Domain::Xml::FilterrefNodeAttributes>
 {
-	typedef Ordered<mpl::vector<Attribute<Domain::Xml::PFilter, Name::Strict<726> >, Optional<Element<Domain::Xml::Parameter, Name::Strict<1030> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Domain::Xml::PFilter, Name::Strict<726> >, ZeroOrMore<Element<Domain::Xml::Parameter, Name::Strict<1030> > > > > marshal_type;
 
 	static int parse(Domain::Xml::FilterrefNodeAttributes& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::FilterrefNodeAttributes& , QDomElement& );

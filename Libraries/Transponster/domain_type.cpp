@@ -7553,7 +7553,7 @@ int Traits<Domain::Xml::FilterrefNodeAttributes>::parse(Domain::Xml::FilterrefNo
 	if (0 <= output)
 	{
 		dst_.setFilter(m.get<0>().getValue());
-		dst_.setParameter(m.get<1>().getValue());
+		dst_.setParameterList(m.get<1>().getValue());
 	}
 	return output;
 }
@@ -7563,7 +7563,7 @@ int Traits<Domain::Xml::FilterrefNodeAttributes>::generate(const Domain::Xml::Fi
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getFilter(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getParameter(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getParameterList(), m.get<1>()))
 		return -1;
 
 	return m.produce(dst_);
