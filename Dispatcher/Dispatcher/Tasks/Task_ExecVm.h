@@ -131,14 +131,25 @@ struct Vm
 	typedef boost::optional<Libvirt::Instrument::Agent::Vm::Exec::Result>
 		Result;
 
+	Vm() : m_exec(NULL) { }
 	void closeStdin(Task_ExecVm*);
 	PRL_RESULT prepare(Task_ExecVm& task_, vm::Exec::Request& request_);
 	PRL_RESULT processStdinData(const char * data, size_t size);
 	PRL_RESULT processStd(Task_ExecVm& task_);
+	void cancel()
+	{
+		if (m_exec)
+			m_exec->cancel();
+	}
+	void setExecer(Future & f)
+	{
+		m_exec = &f;
+	}
 
 private:
 	QSharedPointer<vm::Exec::ReadDevice> m_stdout, m_stderr;
 	QSharedPointer<vm::Exec::WriteDevice> m_stdin;
+	Future* m_exec;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -156,6 +167,15 @@ struct Run: boost::static_visitor<PRL_RESULT>
 
 private:
 	Task_ExecVm* m_task;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Cancel
+
+struct Cancel: boost::static_visitor<void>
+{
+	void operator()(Exec::Ct& variant_) const;
+	void operator()(Exec::Vm& variant_) const;
 };
 
 typedef boost::variant<Exec::Vm, Exec::Ct> Mode;

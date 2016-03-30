@@ -884,6 +884,18 @@ Exec::Future::wait(int timeout)
 	}
 }
 
+void Exec::Future::cancel()
+{
+	if (m_status)
+		return;
+
+	if (m_pid) {
+		WRITE_TRACE(DBG_FATAL, "Trying to cancel the guest process %d", m_pid);
+		// TODO
+		// Exec(m_domain).sendCancelCommand(m_pid);
+	}
+}
+
 namespace Exec
 {
 
