@@ -351,6 +351,7 @@ struct Network: boost::static_visitor<PRL_RESULT>
 
 private:
 	static PRL_VM_NET_ADAPTER_TYPE parseAdapterType(const QString& type);
+	static CNetPktFilter* buildFilter(const Libvirt::Domain::Xml::FilterrefNodeAttributes &filterref);
 
 	CVmHardware* m_hardware;
 	Clip* m_clip;

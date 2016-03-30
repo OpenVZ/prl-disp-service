@@ -513,8 +513,12 @@ struct View
 	}
 
 	QString getAdapterType() const;
+	QString getMac() const;
+	boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> getFilterref() const;
 
 private:
+	QString getFilterName() const;
+
 	CVmGenericNetworkAdapter m_network;
 };
 

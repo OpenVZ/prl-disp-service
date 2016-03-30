@@ -1,0 +1,4 @@
+<filter name='no-ip-spoofing-no-mac-spoofing' chain='root'>
+   <filterref filter='no-ip-spoofing'/>
+   <filterref filter='no-mac-spoofing'/>
+</filter>

@@ -1,0 +1,4 @@
+<filter name='no-ip-spoofing-no-promisc' chain='root'>
+   <filterref filter='no-ip-spoofing'/>
+   <filterref filter='no-promisc'/>
+</filter>

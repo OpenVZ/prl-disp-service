@@ -520,6 +520,58 @@ QString View::getAdapterType() const
 	}
 }
 
+QString View::getMac() const
+{
+	return m_network.getMacAddress().replace(
+			QRegExp("([^:]{2})(?!:|$)"), "\\1:");
+}
+
+QString View::getFilterName() const
+{
+	CNetPktFilter *filter = m_network.getPktFilter();
+	QStringList filters;
+
+	if (filter->isPreventIpSpoof())
+		filters << "no-ip-spoofing";
+	if (filter->isPreventMacSpoof())
+		filters << "no-mac-spoofing";
+	if (filter->isPreventPromisc())
+		filters << "no-promisc";
+
+	return filters.join("-");
+}
+
+boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterref() const
+{
+	QString filter = getFilterName();
+	if (filter.isEmpty())
+		return boost::none;
+
+	Libvirt::Domain::Xml::FilterrefNodeAttributes filterref;
+	filterref.setFilter(filter);
+
+	QList<Libvirt::Domain::Xml::Parameter> params;
+	Libvirt::Domain::Xml::Parameter p;
+	if (!getMac().isEmpty())
+	{
+		p.setName("MAC");
+		p.setValue(getMac());
+		params << p;
+	}
+
+	QStringList ipv4 = NetworkUtils::ParseIps(m_network.getNetAddresses()).first;
+	foreach(const QString& e, ipv4)
+	{
+		// IPv4 only, for now
+		p.setName("IP");
+		p.setValue(e.split('/').first());
+		params << p;
+	}
+
+	filterref.setParameterList(params);
+	return filterref;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Adapter
 
@@ -530,10 +582,12 @@ Libvirt::Domain::Xml::VInterface Adapter<N>::operator()
 	typename Libvirt::Details::Value::Grab<access_type>::type i = prepare(network_);
 
 	i.setAlias(network_.getSystemName());
-	QString m = network_.getMacAddress().replace(QRegExp("([^:]{2})(?!:|$)"), "\\1:");
+	View view(network_);
+	QString m = view.getMac();
 	if (!m.isEmpty())
 		i.setMac(m);
 
+	i.setFilterref(view.getFilterref());
 	i.setBoot(boot_);
 
 	access_type output;
