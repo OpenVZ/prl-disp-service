@@ -186,6 +186,7 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 
 	if (f.isFailed())
 		return f.error().code();
+	variant_.setExecer(f.value());
 
 	if (m_task->getRequestFlags() & PFD_STDIN)
 		m_task->sendEvent(PET_IO_READY_TO_ACCEPT_STDIN_PKGS);
@@ -442,6 +443,19 @@ void Vm::closeStdin(Task_ExecVm* task)
 	task->wakeUpStage();
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Cancel
+
+void Cancel::operator()(Exec::Ct& variant_) const
+{
+	variant_.getExecer().cancel();
+}
+
+void Cancel::operator()(Exec::Vm& variant_) const
+{
+	variant_.cancel();
+}
+
 } // namespace Exec
 
 Task_ExecVm::Task_ExecVm(const SmartPtr<CDspClient>& pClient,
@@ -472,7 +486,8 @@ void Task_ExecVm::cancelOperation(SmartPtr<CDspClient> pUserSession, const Smart
 {
 	CDspTaskHelper::cancelOperation(pUserSession, p);
 
-	// TODO m_exec.cancel();
+	boost::apply_visitor(Exec::Cancel(), m_mode);
+
 	m_pResponseProcessor.abort(pUserSession, p);
 	setLastErrorCode(PRL_ERR_OPERATION_WAS_CANCELED);
 }

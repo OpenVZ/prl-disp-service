@@ -101,6 +101,7 @@ struct Future {
 	}
 
 	::Libvirt::Result wait(int timeout = 0);
+	void cancel();
 	boost::optional<Result> getResult()
 	{
 		return m_status;
