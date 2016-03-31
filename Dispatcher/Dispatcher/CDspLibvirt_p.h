@@ -270,7 +270,7 @@ struct Coarse
 	void prepareToSwitch(virDomainPtr domain_);
 	void remove(virDomainPtr domain_);
 	void sendProblemReport(virDomainPtr domain_);
-	QSharedPointer<Domain> access(virDomainPtr domain_);
+	void pullInfo(virDomainPtr domain_);
 
 	static QString getUuid(virDomainPtr domain_);
 	void disconnectCd(virDomainPtr domain_, const QString& alias_);
@@ -344,16 +344,17 @@ private:
 
 namespace Instrument
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Domain
-
-struct Domain: QRunnable
+namespace Pull
 {
-	Domain(const Agent::Vm::Unit& agent_, QSharedPointer<Model::Domain> view_):
+///////////////////////////////////////////////////////////////////////////////
+// struct Config
+
+struct Config: QRunnable
+{
+	Config(const Agent::Vm::Unit& agent_, QSharedPointer<Model::Domain> view_):
 		m_agent(agent_), m_view(view_)
 	{
 	}
-	Domain(virDomainPtr model_, QSharedPointer<Model::Domain> view_);
 
 	void run();
 
@@ -361,6 +362,25 @@ private:
 	Agent::Vm::Unit m_agent;
 	QSharedPointer<Model::Domain> m_view;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Everything
+
+struct Everything: Config
+{
+	Everything(const Agent::Vm::Unit& agent_, QSharedPointer<Model::Domain> view_):
+		Config(agent_, view_), m_agent(agent_), m_view(view_)
+	{
+	}
+
+	void run();
+
+private:
+	Agent::Vm::Unit m_agent;
+	QSharedPointer<Model::Domain> m_view;
+};
+
+} // namespace Pull
 
 namespace Agent
 {

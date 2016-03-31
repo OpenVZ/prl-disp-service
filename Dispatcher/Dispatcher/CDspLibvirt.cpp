@@ -42,19 +42,17 @@ namespace Libvirt
 {
 namespace Instrument
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Domain
-
-Domain::Domain(virDomainPtr model_, QSharedPointer<Model::Domain> view_):
-	m_agent(model_), m_view(view_)
+namespace Pull
 {
-	virDomainRef(model_);
-}
+///////////////////////////////////////////////////////////////////////////////
+// struct Config
 
-void Domain::run()
+void Config::run()
 {
 	VIRTUAL_MACHINE_STATE s;
 	Result r = m_agent.getState(s);
+	if (r.isFailed())
+		WRITE_TRACE(DBG_FATAL, "Unable to update state on define");
 
 	CVmConfiguration c;
 	if (m_agent.getConfig(c).isSucceed())
@@ -66,12 +64,22 @@ void Domain::run()
 
 		m_view->setConfig(c);
 	}
+}
 
-	if (r.isFailed())
-		WRITE_TRACE(DBG_FATAL, "Unable to update state on define");
-	if (r.isSucceed() && !QMetaObject::invokeMethod(m_view.data(), "setState", Q_ARG(VIRTUAL_MACHINE_STATE, s)))
+///////////////////////////////////////////////////////////////////////////////
+// struct Everything
+
+void Everything::run()
+{
+	Config::run();
+	VIRTUAL_MACHINE_STATE s;
+	Result r = m_agent.getState(s);
+	if (r.isSucceed() && !QMetaObject::invokeMethod
+		(m_view.data(), "setState", Q_ARG(VIRTUAL_MACHINE_STATE, s)))
 		WRITE_TRACE(DBG_FATAL, "Unable to invoke VM 'setState' method");
 }
+
+} // namespace Pull
 
 namespace Agent
 {
@@ -269,13 +277,10 @@ void Vm::operator()(Agent::Hub& hub_)
 		QString u;
 		m.getUuid(u);
 		QSharedPointer<Model::Domain> v = m_view->add(u);
-		if (v.isNull())
-			v = m_view->find(u);
-
 		if (!v.isNull())
 		{
 			s.removeOne(u);
-			Domain(m, v).run();
+			Pull::Everything(m, v).run();
 		}
 	}
 	foreach (const QString& u, s)
@@ -862,14 +867,7 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 	}
 
 	// update vm configuration and state
-	d = v->access(domain_);
-	if (!d.isNull())
-	{
-		QRunnable* q = new Instrument::Domain(domain_, d);
-		q->setAutoDelete(true);
-		QThreadPool::globalInstance()->start(q);
-	}
-
+	v->pullInfo(domain_);
 	return 0;
 }
 
@@ -1039,14 +1037,26 @@ void Coarse::sendProblemReport(virDomainPtr domain_)
 	CDspService::instance()->getTaskManager().schedule(new Task_CreateProblemReport(c, p));
 }
 
-QSharedPointer<Domain> Coarse::access(virDomainPtr domain_)
+void Coarse::pullInfo(virDomainPtr domain_)
 {
+	QRunnable* q = NULL;
+	virDomainRef(domain_);
 	QString u = getUuid(domain_);
-	QSharedPointer<Domain> output = m_fine->find(u);
-	if (output.isNull())
-		output = m_fine->add(u);
-
-	return output;
+	Instrument::Agent::Vm::Unit a(domain_);
+	QSharedPointer<Domain> d = m_fine->find(u);
+	if (!d.isNull())
+		q = new Instrument::Pull::Config(a, d);
+	else
+	{
+		d = m_fine->add(u);
+		if (!d.isNull())
+			q = new Instrument::Pull::Everything(a, d);
+	}
+	if (NULL != q)
+	{
+		q->setAutoDelete(true);
+		QThreadPool::globalInstance()->start(q);
+	}
 }
 
 void Coarse::disconnectCd(virDomainPtr domain_, const QString& alias_)
@@ -1133,8 +1143,7 @@ void Link::disconnect(virConnectPtr libvirtd_, int reason_, void* opaque_)
 Domains::Domains(Registry::Actual& registry_, int timeout_):
 	m_eventState(-1), m_eventReboot(-1),
 	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
-	m_eventTrayChange(-1), m_registry(&registry_),
-	m_view(new Model::System(registry_))
+	m_eventTrayChange(-1), m_registry(&registry_)
 {
 	m_timer.stop();
 	m_timer.setInterval(timeout_);
@@ -1144,6 +1153,7 @@ Domains::Domains(Registry::Actual& registry_, int timeout_):
 
 void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 {
+	m_view = QSharedPointer<Model::System>(new Model::System(*m_registry));
 	m_libvirtd = libvirtd_.toWeakRef();
 	Kit.setLink(libvirtd_);
 	m_timer.start();
@@ -1218,6 +1228,7 @@ void Domains::setDisconnected()
 	virConnectDomainEventDeregisterAny(x.data(), m_eventTrayChange);
 	m_eventTrayChange = -1;
 	m_libvirtd.clear();
+	m_view.clear();
 }
 
 } // namespace Monitor
