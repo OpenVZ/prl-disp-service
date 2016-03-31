@@ -120,6 +120,27 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Mediator
+
+struct Mediator: QObject
+{
+	Q_OBJECT
+
+public:
+	Mediator(Task_ExecVm& task_, QEventLoop *loop_, int type_)
+		: m_task(&task_), m_loop(loop_), m_iotype(type_) {}
+
+public slots:
+	void slotSendData();
+	void slotEof();
+
+private:
+	Task_ExecVm* m_task;
+	QEventLoop *m_loop;
+	int m_iotype;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
 namespace vm = Libvirt::Instrument::Agent::Vm;
