@@ -407,18 +407,20 @@ PRL_RESULT Vm::processStd(Task_ExecVm& task_)
 	if (m_stdout == NULL || m_stderr == NULL)
 		return PRL_ERR_SUCCESS;
 
-	while (!task_.operationIsCancelled()
-		&& (!m_stdout->atEnd() || !m_stderr->atEnd())) {
-		if (PRL_FAILED(task_.getLastErrorCode()))
-			return task_.getLastErrorCode();
+	QEventLoop l;
+	Mediator m(task_, &l, PET_IO_STDOUT_PORTION);
+	QObject::connect(m_stdout.data(), SIGNAL(readyRead()), &m, SLOT(slotSendData()),
+			Qt::QueuedConnection);
+	QObject::connect(m_stdout.data(), SIGNAL(readChannelFinished()), &m, SLOT(slotEof()),
+			Qt::QueuedConnection);
 
-		QByteArray a = m_stdout->readAll();
-		if (a.size())
-			task_.sendToClient(PET_IO_STDOUT_PORTION, a.constData(), a.size());
-		a = m_stderr->readAll();
-		if (a.size())
-			task_.sendToClient(PET_IO_STDERR_PORTION, a.constData(), a.size());
-	}
+	Mediator n(task_, &l, PET_IO_STDERR_PORTION);
+	QObject::connect(m_stderr.data(), SIGNAL(readyRead()), &n, SLOT(slotSendData()),
+			Qt::QueuedConnection);
+	QObject::connect(m_stderr.data(), SIGNAL(readChannelFinished()), &n, SLOT(slotEof()),
+			Qt::QueuedConnection);
+	while (!task_.operationIsCancelled() && (!m_stdout->atEnd() || !m_stderr->atEnd()))
+		l.exec();
 	m_stdout->close();
 	m_stderr->close();
 
@@ -441,6 +443,25 @@ void Vm::closeStdin(Task_ExecVm* task)
 	if (m_stdin)
 		m_stdin->close();
 	task->wakeUpStage();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mediator
+
+void Mediator::slotSendData()
+{
+	vm::Exec::ReadDevice *d = (vm::Exec::ReadDevice *)QObject::sender();
+
+	QByteArray a = d->readAll();
+	if (a.size())
+		m_task->sendToClient(m_iotype, a.constData(), a.size());
+	if (m_task->operationIsCancelled() || d->atEnd())
+		m_loop->quit();
+}
+
+void Mediator::slotEof()
+{
+	slotSendData();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

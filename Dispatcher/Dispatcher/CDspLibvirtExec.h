@@ -206,11 +206,7 @@ struct ReadDevice: Device {
 	explicit ReadDevice(QSharedPointer<AuxChannel> aux_)
 		: Device(aux_), m_finished(false) { }
 
-	void setEof()
-	{
-		m_finished = true;
-	}
-
+	void setEof();
 	void appendData(const QByteArray &data_);
 
 	// QIODevice interface

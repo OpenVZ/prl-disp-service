@@ -937,6 +937,12 @@ void ReadDevice::close()
 	Device::close();
 }
 
+void ReadDevice::setEof()
+{
+	m_finished = true;
+	emit readChannelFinished();
+}
+
 bool ReadDevice::atEnd()
 {
 	QMutexLocker l(&m_lock);
