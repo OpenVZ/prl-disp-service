@@ -3359,12 +3359,12 @@ Action* Adapter::operator()(const Request& input_) const
 
 		Action* a;
 		// Libvirt doesn't allow to change the emulation type in runtime
-		if (x->getEmulatedType() == d->getEmulatedType()
-				// need to update if network changed
-				&& x->getVirtualNetworkID() != d->getVirtualNetworkID())
+		if (x->getEmulatedType() == d->getEmulatedType())
 		{
+			CVmGenericNetworkAdapter copy = PrlNet::fixMacFilter(
+					*d, input_.getFinal().getVmHardwareList()->m_lstNetworkAdapters);
 			a = f.craftRuntime(boost::bind(&vm::Runtime::update
-				<CVmGenericNetworkAdapter>, _1, *d));
+				<CVmGenericNetworkAdapter>, _1, copy));
 		}
 		// but we can attach 'routed' interface to network's bridge without libvirt
 		else if (x->getEmulatedType() == PNA_ROUTED && d->getEmulatedType() == PNA_BRIDGED_ETHERNET)

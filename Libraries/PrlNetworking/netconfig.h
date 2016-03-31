@@ -140,6 +140,10 @@ CVmGenericNetworkAdapter *GetAdapterByIndex(
 	const QList<CVmGenericNetworkAdapter* > &m_lstNetworkAdapters,
 	unsigned int adapterIndex);
 
+CVmGenericNetworkAdapter fixMacFilter(
+		const CVmGenericNetworkAdapter &adapter,
+		const QList<CVmGenericNetworkAdapter*> &adapters);
+
 // Get Virtual Network by adapter
 // Warning! This function is rather helper in non-standard situations.
 // Use with care.

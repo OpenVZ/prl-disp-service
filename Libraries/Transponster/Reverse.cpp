@@ -28,6 +28,7 @@
 #include <prlsdk/PrlOses.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <QUrl>
+#include <Libraries/PrlNetworking/netconfig.h>
 
 namespace Transponster
 {
@@ -520,10 +521,15 @@ QString View::getAdapterType() const
 	}
 }
 
+QString normalizeMac(const QString &mac_)
+{
+	QString normalized(mac_);
+	return normalized.replace(QRegExp("([^:]{2})(?!:|$)"), "\\1:");
+}
+
 QString View::getMac() const
 {
-	return m_network.getMacAddress().replace(
-			QRegExp("([^:]{2})(?!:|$)"), "\\1:");
+	return normalizeMac(m_network.getMacAddress());
 }
 
 QString View::getFilterName() const
@@ -552,7 +558,17 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterre
 
 	QList<Libvirt::Domain::Xml::Parameter> params;
 	Libvirt::Domain::Xml::Parameter p;
-	if (!getMac().isEmpty())
+	foreach(const CNetPktFilter *filter, m_network.m_lstPktFilter)
+	{
+		QString mac = normalizeMac(filter->getMacAddress());
+		if (mac.isEmpty())
+			continue;
+
+		p.setName("MAC");
+		p.setValue(mac);
+		params << p;
+	}
+	if (params.isEmpty())
 	{
 		p.setName("MAC");
 		p.setValue(getMac());
@@ -1324,7 +1340,8 @@ PRL_RESULT Builder::setDevices()
 //	}
 	foreach (const CVmGenericNetworkAdapter* d, h->m_lstNetworkAdapters)
 	{
-		t.add(d);
+		CVmGenericNetworkAdapter copy = PrlNet::fixMacFilter(*d, h->m_lstNetworkAdapters);
+		t.add(&copy);
 	}
 	foreach (const CVmSoundDevice* d, h->m_lstSoundDevices)
 	{
