@@ -2811,7 +2811,8 @@ bool Action<CVmStartupBios>::execute(CDspTaskFailure& feedback_)
 	if (QFile::exists(file))
 		return Vm::Action::execute(feedback_);
 
-	if (!QFile::copy("/usr/share/OVMF/OVMF_VARS.fd", file))
+	if (0 != QProcess::execute("qemu-img", QStringList() << "convert"
+		<< "-O" << "qcow2" << "/usr/share/OVMF/OVMF_VARS.fd" << file))
 	{
 		WRITE_TRACE(DBG_FATAL, "Unable to create NVRAM image with '%s'", qPrintable(file));
 		feedback_(PRL_ERR_NVRAM_FILE_COPY);

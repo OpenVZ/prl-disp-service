@@ -1189,6 +1189,7 @@ PRL_RESULT Builder::setBlank()
 		{
 			Libvirt::Domain::Xml::Nvram n;
 			n.setOwnValue(x);
+			n.setFormat(Libvirt::Domain::Xml::EFormatQcow2);
 			os.setNvram(n);
 		}
 
