@@ -347,6 +347,24 @@ namespace Instrument
 namespace Pull
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+struct State
+{
+	State();
+
+	void read(Agent::Vm::Unit agent_);
+	void apply(const QSharedPointer<Model::Domain>& domain_);
+	VIRTUAL_MACHINE_STATE getValue() const
+	{
+		return m_value;
+	}
+
+private:
+	VIRTUAL_MACHINE_STATE m_value;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Config
 
 struct Config: QRunnable
@@ -354,6 +372,7 @@ struct Config: QRunnable
 	Config(const Agent::Vm::Unit& agent_, QSharedPointer<Model::Domain> view_):
 		m_agent(agent_), m_view(view_)
 	{
+		setAutoDelete(true);
 	}
 
 	void run();
@@ -369,6 +388,23 @@ private:
 struct Everything: Config
 {
 	Everything(const Agent::Vm::Unit& agent_, QSharedPointer<Model::Domain> view_):
+		Config(agent_, view_), m_agent(agent_), m_view(view_)
+	{
+	}
+
+	void run();
+
+private:
+	Agent::Vm::Unit m_agent;
+	QSharedPointer<Model::Domain> m_view;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Switch
+
+struct Switch: Config
+{
+	Switch(const Agent::Vm::Unit& agent_, QSharedPointer<Model::Domain> view_):
 		Config(agent_, view_), m_agent(agent_), m_view(view_)
 	{
 	}
