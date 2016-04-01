@@ -200,20 +200,6 @@ PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Network
-
-PRL_VM_NET_ADAPTER_TYPE Network::parseAdapterType(const QString& type)
-{
-	if (type == "ne2k_pci")
-		return PNT_RTL;
-	else if (type == "e1000")
-		return PNT_E1000;
-	else if (type == "virtio")
-		return PNT_VIRTIO;
-	return PNT_UNDEFINED;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Ips
 
 QList<QString> Ips::operator()(const QList<Libvirt::Domain::Xml::Ip>& ips_)
@@ -231,7 +217,32 @@ QList<QString> Ips::operator()(const QList<Libvirt::Domain::Xml::Ip>& ips_)
 				? res.arg("255.255.255.0") : res.arg(64));
 	}
 	return ips;
-}	
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Network
+
+PRL_VM_NET_ADAPTER_TYPE Network::parseAdapterType(const QString& type)
+{
+	if (type == "ne2k_pci")
+		return PNT_RTL;
+	else if (type == "e1000")
+		return PNT_E1000;
+	else if (type == "virtio")
+		return PNT_VIRTIO;
+	return PNT_UNDEFINED;
+}
+
+CNetPktFilter* Network::buildFilter(
+		const Libvirt::Domain::Xml::FilterrefNodeAttributes& filterref)
+{
+	QString filter = filterref.getFilter();
+	CNetPktFilter* f = new CNetPktFilter();
+	f->setPreventIpSpoof(filter.contains("no-ip-spoofing"));
+	f->setPreventMacSpoof(filter.contains("no-mac-spoofing"));
+	f->setPreventPromisc(filter.contains("no-promisc"));
+	return f;
+}
 
 PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 0>::type& bridge_) const
 {
@@ -266,8 +277,7 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	}
 	if (bridge_.getValue().getFilterref())
 	{
-		CNetPktFilter* f = new CNetPktFilter();
-		a->setPktFilter(f);
+		a->setPktFilter(buildFilter(*bridge_.getValue().getFilterref()));
 	}
 
 	a->setNetAddresses(Ips()(bridge_.getValue().getIpList()));
@@ -303,6 +313,10 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	{
 		a->setHostInterfaceName(network_.getValue().getTarget().get());
 	}
+	if (network_.getValue().getFilterref())
+	{
+		a->setPktFilter(buildFilter(*network_.getValue().getFilterref()));
+	}
 
 	a->setNetAddresses(Ips()(network_.getValue().getIpList()));
 
@@ -336,6 +350,10 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	if (direct_.getValue().getTarget())
 	{
 		a->setHostInterfaceName(direct_.getValue().getTarget().get());
+	}
+	if (direct_.getValue().getFilterref())
+	{
+		a->setPktFilter(buildFilter(*direct_.getValue().getFilterref()));
 	}
 
 	a->setNetAddresses(Ips()(direct_.getValue().getIpList()));

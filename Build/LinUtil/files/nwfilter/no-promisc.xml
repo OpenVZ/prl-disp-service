@@ -1,0 +1,16 @@
+<filter name='no-promisc' chain='root' priority='-750'>
+  <!-- allow broadcast -->
+  <rule direction='in' action='return'>
+    <mac dstmacaddr='ff:ff:ff:ff:ff:ff'/>
+  </rule>
+
+  <!-- allow packets to iface mac -->
+  <rule direction='in' action='return'>
+    <mac dstmacaddr='$MAC'/>
+  </rule>
+
+  <!-- drop everything else -->
+  <rule direction='in' action='drop'>
+    <mac/>
+  </rule>
+</filter>

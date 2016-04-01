@@ -501,6 +501,27 @@ struct Ips
 
 namespace Network
 {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct View
+
+struct View
+{
+	explicit View(const CVmGenericNetworkAdapter &network_):
+		m_network(network_)
+	{
+	}
+
+	QString getAdapterType() const;
+	QString getMac() const;
+	boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> getFilterref() const;
+
+private:
+	QString getFilterName() const;
+
+	CVmGenericNetworkAdapter m_network;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Adapter
 
