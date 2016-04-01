@@ -975,7 +975,7 @@ PRL_RESULT Direct::setHostOnly()
 		if (a)
 			boost::apply_visitor(Visitor::Address::Ip(*h), a.get());
 
-		boost::optional<Libvirt::Network::Xml::VChoice1178> m = p.getChoice1178();
+		boost::optional<Libvirt::Network::Xml::VChoice1182> m = p.getChoice1182();
 		if (m)
 			boost::apply_visitor(Visitor::Address::Mask(*h), m.get());
 
@@ -1086,8 +1086,8 @@ PRL_RESULT Direct::setMaster()
 	if (m_input.isNull())
 		return PRL_ERR_READ_XML_CONTENT;
  
-	foreach (const Libvirt::Iface::Xml::VChoice1242& a,
-		m_input->getBridge().getChoice1242List())
+	foreach (const Libvirt::Iface::Xml::VChoice1246& a,
+		m_input->getBridge().getChoice1246List())
 	{
 		if (boost::apply_visitor(Visitor::Bridge::Master(m_master), a))
 			return PRL_ERR_SUCCESS;
