@@ -261,8 +261,8 @@ struct Iotune: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1054::types, 0>::type& iopsLimit_) const;
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1050::types, 0>::type& ioLimit_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1057::types, 0>::type& iopsLimit_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1053::types, 0>::type& ioLimit_) const;
 
 private:
 	CVmHardDisk* m_disk;
@@ -452,17 +452,17 @@ struct Addressing: boost::static_visitor<void>
 		consume(group_.getValue().getProtocol());
 		consume(group_.getValue().getProtocol2());
 	}
-	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1275::types, 0>::type& ) const
+	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1278::types, 0>::type& ) const
 	{
 		m_sink->setConfigureWithDhcp(true);
 	}
-	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1275::types, 1>::type& ) const
+	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1278::types, 1>::type& ) const
 	{
 		m_sink->setConfigureWithDhcp(false);
 	}
 
 private:
-	void consume(const boost::optional<Libvirt::Iface::Xml::VChoice1275 >& ipv4_) const
+	void consume(const boost::optional<Libvirt::Iface::Xml::VChoice1278 >& ipv4_) const
 	{
 		if (ipv4_)
 			boost::apply_visitor(*this, ipv4_.get());
@@ -627,11 +627,11 @@ struct Mask: boost::static_visitor<void>
 	void operator()(const T& ) const
 	{
 	}
-	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice1175::types, 0>::type& addr_) const
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice1178::types, 0>::type& addr_) const
 	{
 		m_result->setIPNetMask(QHostAddress(addr_.getValue()));
 	}
-	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice1175::types, 1>::type& prefix_) const
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice1178::types, 1>::type& prefix_) const
 	{
 		boost::apply_visitor(*this, prefix_.getValue());
 	}
@@ -721,7 +721,7 @@ struct Master: boost::static_visitor<bool>
 	{
 		return false;
 	}
-	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1239::types, 0>::type& ethernet_) const
+	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1242::types, 0>::type& ethernet_) const
 	{
 		m_result->setDeviceName(ethernet_.getValue().getName());
 		if (ethernet_.getValue().getMac())
@@ -731,7 +731,7 @@ struct Master: boost::static_visitor<bool>
 		}
 		return true;
 	}
-	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1239::types, 1>::type& vlan_) const
+	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1242::types, 1>::type& vlan_) const
 	{
 		Libvirt::Iface::Xml::VlanInterfaceCommon c = vlan_.getValue().getVlanInterfaceCommon();
 		if (c.getName())

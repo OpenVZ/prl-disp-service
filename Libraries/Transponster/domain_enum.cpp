@@ -1033,11 +1033,11 @@ Enum<Domain::Xml::EModel5>::data_type Enum<Domain::Xml::EModel5>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EChoice1019>::data_type Enum<Domain::Xml::EChoice1019>::getData()
+Enum<Domain::Xml::EChoice1022>::data_type Enum<Domain::Xml::EChoice1022>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EChoice1019DevRandom, "/dev/random"))
-			(data_type::value_type(Domain::Xml::EChoice1019DevHwrng, "/dev/hwrng"));
+			(data_type::value_type(Domain::Xml::EChoice1022DevRandom, "/dev/random"))
+			(data_type::value_type(Domain::Xml::EChoice1022DevHwrng, "/dev/hwrng"));
 }
 
 template<>

@@ -3991,6 +3991,27 @@
           <optional>
             <ref name="capabilities"/>
           </optional>
+          <optional>
+            <ref name="pmu"/>
+          </optional>
+          <optional>
+            <element name="vmport">
+              <optional>
+                <attribute name="state">
+                  <ref name="virOnOff"/>
+                </attribute>
+              </optional>
+            </element>
+          </optional>
+          <optional>
+            <element name="gic">
+              <optional>
+                <attribute name="version">
+                  <ref name="positiveInteger"/>
+                </attribute>
+              </optional>
+            </element>
+          </optional>
         </interleave>
       </element>
     </optional>
@@ -4814,6 +4835,14 @@
           </element>
         </optional>
       </interleave>
+    </element>
+  </define>
+
+  <define name="pmu">
+    <element name="pmu">
+      <optional>
+        <ref name="featurestate"/>
+      </optional>
     </element>
   </define>
 
