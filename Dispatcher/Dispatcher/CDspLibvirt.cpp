@@ -45,20 +45,38 @@ namespace Instrument
 namespace Pull
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+State::State(): m_value(VMS_UNKNOWN)
+{
+}
+
+void State::read(Agent::Vm::Unit agent_)
+{
+	m_value = VMS_UNKNOWN;
+	if (agent_.getState(m_value).isFailed())
+		WRITE_TRACE(DBG_FATAL, "Unable to get VM state");
+}
+
+void State::apply(const QSharedPointer<Model::Domain>& domain_)
+{
+	if (VMS_UNKNOWN != m_value && !QMetaObject::invokeMethod
+		(domain_.data(), "setState", Q_ARG(VIRTUAL_MACHINE_STATE, m_value)))
+		WRITE_TRACE(DBG_FATAL, "Unable to invoke VM 'setState' member");
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Config
 
 void Config::run()
 {
-	VIRTUAL_MACHINE_STATE s;
-	Result r = m_agent.getState(s);
-	if (r.isFailed())
-		WRITE_TRACE(DBG_FATAL, "Unable to update state on define");
-
+	State s;
+	s.read(m_agent);
 	CVmConfiguration c;
 	if (m_agent.getConfig(c).isSucceed())
 	{
 		CVmConfiguration runtime;
-		if (r.isSucceed() && (s == VMS_RUNNING || s == VMS_PAUSED)
+		if ((s.getValue() == VMS_RUNNING || s.getValue() == VMS_PAUSED)
 				&& m_agent.getConfig(runtime, true).isSucceed())
 			Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(c, runtime);
 
@@ -72,11 +90,21 @@ void Config::run()
 void Everything::run()
 {
 	Config::run();
-	VIRTUAL_MACHINE_STATE s;
-	Result r = m_agent.getState(s);
-	if (r.isSucceed() && !QMetaObject::invokeMethod
-		(m_view.data(), "setState", Q_ARG(VIRTUAL_MACHINE_STATE, s)))
-		WRITE_TRACE(DBG_FATAL, "Unable to invoke VM 'setState' method");
+	State s;
+	s.read(m_agent);
+	s.apply(m_view);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Switch
+
+void Switch::run()
+{
+	Config::run();
+	State s;
+	s.read(m_agent);
+	if (VMS_STOPPED == s.getValue())
+		s.apply(m_view);
 }
 
 } // namespace Pull
@@ -779,7 +807,10 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 	{
 	case VIR_DOMAIN_EVENT_DEFINED:
 		if (detail_ == VIR_DOMAIN_EVENT_DEFINED_FROM_SNAPSHOT)
+		{
 			v->prepareToSwitch(domain_);
+			return 0;
+		}
 		break;
 	case VIR_DOMAIN_EVENT_UNDEFINED:
 		v->remove(domain_);
@@ -1019,7 +1050,15 @@ void Coarse::setState(virDomainPtr domain_, VIRTUAL_MACHINE_STATE value_)
 void Coarse::prepareToSwitch(virDomainPtr domain_)
 {
 	QSharedPointer<Domain> d = m_fine->find(getUuid(domain_));
-	if (!d.isNull() && !QMetaObject::invokeMethod(d.data(), "prepareToSwitch"))
+	if (d.isNull())
+		return;
+	if (QMetaObject::invokeMethod(d.data(), "prepareToSwitch"))
+	{
+		virDomainRef(domain_);
+		QThreadPool::globalInstance()->start
+			(new Instrument::Pull::Switch(Instrument::Agent::Vm::Unit(domain_), d));
+	}
+	else
 		WRITE_TRACE(DBG_FATAL, "Unable to invoke VM 'setState' method");
 }
 
@@ -1053,10 +1092,7 @@ void Coarse::pullInfo(virDomainPtr domain_)
 			q = new Instrument::Pull::Everything(a, d);
 	}
 	if (NULL != q)
-	{
-		q->setAutoDelete(true);
 		QThreadPool::globalInstance()->start(q);
-	}
 }
 
 void Coarse::disconnectCd(virDomainPtr domain_, const QString& alias_)
