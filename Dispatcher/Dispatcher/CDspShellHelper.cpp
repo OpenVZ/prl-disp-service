@@ -97,6 +97,8 @@
 #include <QMutex>
 
 #include <typeinfo>
+#include <algorithm>
+#include <boost/bind.hpp>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
@@ -903,6 +905,17 @@ void CDspShellHelper::sendVirtualNetworkList(SmartPtr<CDspClient>& pUser,
 	PRL_RESULT e = Network::Dao(Libvirt::Kit).list(a);
 	if (PRL_FAILED(e))
 		return (void)pUser->sendSimpleResponse(p, e);
+
+	// Default bridged network is first.
+	CVirtualNetwork *bridged = PrlNet::GetBridgedNetwork(
+			CDspService::instance()->getNetworkConfig().getPtr());
+	if (bridged != NULL)
+	{
+		QList<CVirtualNetwork>::iterator it = std::find_if(a.begin(), a.end(),
+				boost::bind(&CVirtualNetwork::getNetworkID, _1) == bridged->getNetworkID());
+		if (it != a.end())
+			std::iter_swap(it, a.begin());
+	}
 
 	QStringList x;
 	foreach(const CVirtualNetwork& y, a)
