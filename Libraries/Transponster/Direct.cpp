@@ -79,12 +79,12 @@ PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Iotune
 
-void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1054::types, 0>::type& iopsLimit_) const
+void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1057::types, 0>::type& iopsLimit_) const
 {
 	m_disk->setIopsLimit(iopsLimit_.getValue());
 }
 
-void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1050::types, 0>::type& ioLimit_) const
+void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1053::types, 0>::type& ioLimit_) const
 {
 	m_disk->setIoLimit(new CVmIoLimit(PRL_IOLIMIT_BS, ioLimit_.getValue()));
 }
@@ -119,8 +119,8 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	if (t)
 	{
 		Iotune v(d);
-		boost::apply_visitor(v, (*t).getChoice1054());
-		boost::apply_visitor(v, (*t).getChoice1050());
+		boost::apply_visitor(v, (*t).getChoice1057());
+		boost::apply_visitor(v, (*t).getChoice1053());
 	}
 	d->setTargetDeviceName(disk_.getTarget().getDev());
 	if (disk_.getSerial())
@@ -975,7 +975,7 @@ PRL_RESULT Direct::setHostOnly()
 		if (a)
 			boost::apply_visitor(Visitor::Address::Ip(*h), a.get());
 
-		boost::optional<Libvirt::Network::Xml::VChoice1175> m = p.getChoice1175();
+		boost::optional<Libvirt::Network::Xml::VChoice1182> m = p.getChoice1182();
 		if (m)
 			boost::apply_visitor(Visitor::Address::Mask(*h), m.get());
 
@@ -1086,8 +1086,8 @@ PRL_RESULT Direct::setMaster()
 	if (m_input.isNull())
 		return PRL_ERR_READ_XML_CONTENT;
  
-	foreach (const Libvirt::Iface::Xml::VChoice1239& a,
-		m_input->getBridge().getChoice1239List())
+	foreach (const Libvirt::Iface::Xml::VChoice1246& a,
+		m_input->getBridge().getChoice1246List())
 	{
 		if (boost::apply_visitor(Visitor::Bridge::Master(m_master), a))
 			return PRL_ERR_SUCCESS;

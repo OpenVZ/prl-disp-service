@@ -3991,6 +3991,27 @@
           <optional>
             <ref name="capabilities"/>
           </optional>
+          <optional>
+            <ref name="pmu"/>
+          </optional>
+          <optional>
+            <element name="vmport">
+              <optional>
+                <attribute name="state">
+                  <ref name="virOnOff"/>
+                </attribute>
+              </optional>
+            </element>
+          </optional>
+          <optional>
+            <element name="gic">
+              <optional>
+                <attribute name="version">
+                  <ref name="positiveInteger"/>
+                </attribute>
+              </optional>
+            </element>
+          </optional>
         </interleave>
       </element>
     </optional>
@@ -4606,6 +4627,43 @@
             </optional>
           </element>
         </optional>
+        <optional>
+          <element name="vpindex">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="runtime">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="synic">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="stimer">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="reset">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="vendor_id">
+            <ref name="featurestate"/>
+            <optional>
+              <attribute name="value">
+                <data type="string">
+                  <param name='pattern'>[^,]{0,12}</param>
+                </data>
+              </attribute>
+            </optional>
+          </element>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -4814,6 +4872,14 @@
           </element>
         </optional>
       </interleave>
+    </element>
+  </define>
+
+  <define name="pmu">
+    <element name="pmu">
+      <optional>
+        <ref name="featurestate"/>
+      </optional>
     </element>
   </define>
 
