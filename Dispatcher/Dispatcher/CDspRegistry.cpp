@@ -81,17 +81,14 @@ Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 	::Vm::State::Machine(uuid_, user_, routing_),
 	m_storage(new Stat::Storage(uuid_)), m_routing(routing_)
 {
-	// Metadata
-	// PERF_COUNT_TYPE_ABS - represents some absolute value,
-	//                       like current CPU usage
-	// PERF_COUNT_TYPE_INC - some value that constantly grows,
-	//                       like I/O bytes count
-
 	// Current balloon value (in kB).
 	m_storage->addAbsolute("mem.guest_total");
 
 	// The amount of memory used by the system (in kB).
 	m_storage->addAbsolute("mem.guest_used");
+
+	// Sum of cpu times of all vcpu used by VE (in msec)
+	m_storage->addAbsolute("cpu_time");
 }
 
 void Vm::prepareToSwitch()

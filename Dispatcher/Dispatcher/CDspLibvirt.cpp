@@ -413,7 +413,8 @@ void Performance::run()
 		Agent::Vm::Performance p = m.getPerformance();
 
 		quint64 c;
-		p.getCpu(c);
+		if (p.getCpu(c).isSucceed())
+			v->setCpuTime(c);
 
 		Agent::Vm::Stat::Memory d;
 		if (p.getMemory(d).isSucceed())
@@ -942,8 +943,14 @@ void Domain::prepareToSwitch()
 	m_access.prepareToSwitch();
 }
 
-void Domain::setCpuUsage()
+void Domain::setCpuTime(quint64 nanoseconds_)
 {
+	QSharedPointer<Stat::Storage> s = m_access.getStorage();
+	if (s.isNull())
+		return;
+
+	s->write("cpu_time", nanoseconds_ / 1000);
+
 }
 
 void Domain::setDiskUsage()
