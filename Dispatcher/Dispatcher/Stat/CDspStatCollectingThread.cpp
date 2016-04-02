@@ -701,7 +701,7 @@ struct VCpu
 
 	quint64 getValue(quint32 index) const;
 	void recordTime(Meter &m, quint64 v) const;
-	void recordTsc(Meter &m, const CVmConfiguration *config) const;
+	void recordMsec(Meter &m) const;
 
 private:
 	QWeakPointer<Stat::Storage> m_storage;
@@ -723,20 +723,11 @@ void VCpu::recordTime(Meter &m, quint64 v) const
 	m.record(t, v);
 }
 
-void VCpu::recordTsc(Meter &m, const CVmConfiguration *config) const
+void VCpu::recordMsec(Meter &m) const
 {
-	quint64 v = 0;
-	const quint32 k = getHostCpus();
-	if (k > 0 && config != NULL) {
-		quint32 n = config->getVmHardwareList()->getCpu()->getNumber();
-		for (quint32 i = 0; i < n; ++i)
-			v += getValue(i);
-		v /= k;
-	}
-
-	m.record(HostUtils::GetTsc(), v);
+	m.record(PrlGetTimeMonotonic(), GetPerfCounter(m_storage, "cpu_time") /
+			(getHostCpus() ?: 1));
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct VCpuTime
@@ -2194,7 +2185,7 @@ void Collector::collectVm(const QString &uuid, const CVmConfiguration &config)
 	DAO<VmMeter> d;
 	VmMeter m = d.get(uuid);
 	Meter &t = m.first;
-	vmc::VCpu(p).recordTsc(t, &config);
+	vmc::VCpu(p).recordMsec(t);
 	d.set(uuid, m);
 
 	for (quint32 i = 0; i < config.getVmHardwareList()->getCpu()->getNumber(); ++i)
@@ -3091,7 +3082,7 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 	PRL_UINT64 nVmUptime = 0;
 	quint64 nTotalVmRamSize = 0;
 	quint64 usage = 0;
-	quint32 tsc = 0, time = 0;
+	quint32 msec = 0, time = 0;
 	QWeakPointer<Stat::Storage> p = getStorage(sVmUuid);
 
 	if (pVm.isValid())
@@ -3114,11 +3105,11 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 		typedef QPair<Meter, Meter> VmMeter;
 		DAO<VmMeter> d;
 		VmMeter m = d.get(sVmUuid);
-		VCpu(p).recordTsc(m.first, pVmConfig.get());
+		VCpu(p).recordMsec(m.first);
 		VCpu(p).recordTime(m.second, !pProcsStatInfo->m_lstProcsStatInfo.isEmpty()?
 				pProcsStatInfo->m_lstProcsStatInfo.front()->m_nTotalTime : 0);
 		d.set(sVmUuid, m);
-		tsc = m.first.report().getPercent();
+		msec = m.first.report().getPercent();
 		time = m.second.report().getPercent();
 	}
 
@@ -3126,7 +3117,7 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 
 	// Virtual cpu usage
 	pVmStat->m_lstCpusStatistics.append(new CCpuStatistics);
-	pVmStat->m_lstCpusStatistics.last()->setPercentsUsage(tsc);
+	pVmStat->m_lstCpusStatistics.last()->setPercentsUsage(msec);
 	// Host cpu usage
 	pVmStat->m_lstCpusStatistics.append(new CCpuStatistics);
 	pVmStat->m_lstCpusStatistics.last()->setPercentsUsage(time);
