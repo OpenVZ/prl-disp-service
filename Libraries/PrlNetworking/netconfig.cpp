@@ -784,6 +784,25 @@ CVmGenericNetworkAdapter *PrlNet::GetAdapterByIndex(const QList<CVmGenericNetwor
 	return NULL;
 }
 
+CVmGenericNetworkAdapter PrlNet::fixMacFilter(
+		const CVmGenericNetworkAdapter &adapter,
+		const QList<CVmGenericNetworkAdapter*> &adapters)
+{
+	QStringList macs;
+	foreach(const CVmGenericNetworkAdapter* d, adapters)
+	{
+		macs << d->getMacAddress();
+	}
+
+	CVmGenericNetworkAdapter copy(adapter);
+	foreach(const QString &mac, macs)
+	{
+		CNetPktFilter *filter = new CNetPktFilter(adapter.getPktFilter());
+		filter->setMacAddress(mac);
+		copy.m_lstPktFilter << filter;
+	}
+	return copy;
+}
 
 CVirtualNetwork *PrlNet::GetNetworkByParallelsAdapter(
 	CVirtualNetworks *pNetworks,

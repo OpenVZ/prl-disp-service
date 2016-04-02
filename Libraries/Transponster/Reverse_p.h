@@ -518,6 +518,7 @@ struct View
 
 private:
 	QString getFilterName() const;
+	static QString normalizeMac(const QString &mac_);
 
 	CVmGenericNetworkAdapter m_network;
 };
