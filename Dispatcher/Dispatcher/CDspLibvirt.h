@@ -142,6 +142,9 @@ struct Interface
 
 typedef QList<Interface> Network;
 
+typedef QPair<unsigned, quint64> VCpu_type;
+typedef QList<VCpu_type> VCpuList_type;
+
 } // namespace Stat
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -156,6 +159,8 @@ struct Performance
 	Result setMemoryStatsPeriod(qint64 seconds_);
 
 	Result getCpu(quint64& nanoseconds_) const;
+	Prl::Expected<Stat::VCpuList_type, Error::Simple>
+		getVCpuList() const;
 	Result getDisk() const;
 	Result getMemory(Stat::Memory& dst_) const;
 	Result getInterface(Stat::Interface& dst_) const;

@@ -427,6 +427,25 @@ Result Performance::getCpu(quint64& nanoseconds_) const
 	return Result();
 }
 
+Prl::Expected<Stat::VCpuList_type, Error::Simple>
+Performance::getVCpuList() const
+{
+	int n = virDomainGetVcpusFlags(m_domain.data(), VIR_DOMAIN_VCPU_CURRENT);
+	if (0 >= n)
+		return Failure(PRL_ERR_FAILURE);
+
+	QVector<virVcpuInfo> c(n);
+	if (0 > virDomainGetVcpus(m_domain.data(), c.data(), n, NULL, 0))
+		return Failure(PRL_ERR_FAILURE);
+
+	Stat::VCpuList_type r;
+	foreach (const virVcpuInfo& i, c)
+	{
+		r.append(Stat::VCpu_type(i.number, i.cpuTime));
+	}
+	return r;
+}
+
 Result Performance::getDisk() const
 {
 	return Result();

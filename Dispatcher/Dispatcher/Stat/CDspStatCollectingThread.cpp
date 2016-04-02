@@ -714,7 +714,7 @@ VCpu::VCpu(QWeakPointer<Stat::Storage> storage): m_storage(storage)
 quint64 VCpu::getValue(quint32 index) const
 {
 	return GetPerfCounter(m_storage,
-		multiCounterName("kernel.activity.vcpu", index, "tsc_guest"));
+		multiCounterName("guest.vcpu", index, "time"));
 }
 
 void VCpu::recordTime(Meter &m, quint64 v) const
@@ -746,11 +746,6 @@ struct VCpuTime {
 
 	quint64 getValue() const
 	{
-		/* typedef unsigned int uint128_t __attribute__((mode(TI))); */
-
-		// FIXME commented as getTscHz is not provided
-		// convert from TSC to nanosec
-		/* quint64 ns = ((uint128_t) m_vcpu->getValue(m_index)) * 1000000000ULL / CDspHostInfo::GetTscHz(); */
 		return m_vcpu->getValue(m_index);
 	}
 

@@ -434,6 +434,11 @@ void Performance::run()
 				v->setInterfaceUsage(s);
 			}
 		}
+
+		Prl::Expected<Agent::Vm::Stat::VCpuList_type, Error::Simple>
+			vc = p.getVCpuList();
+		if (vc.isSucceed())
+			v->setVCpuTime(vc.value());
 	}
 }
 
@@ -992,6 +997,18 @@ void Domain::setInterfaceUsage(const Instrument::Agent::Vm::Stat::Interface& ifa
 	addAndWrite(*s, QString("net.nic%1.bytes_out").arg(iface_.index), iface_.bytesOut);
 	addAndWrite(*s, QString("net.nic%1.pkts_in").arg(iface_.index), iface_.packetsIn);
 	addAndWrite(*s, QString("net.nic%1.pkts_out").arg(iface_.index), iface_.packetsOut);
+}
+
+void Domain::setVCpuTime(const Instrument::Agent::Vm::Stat::VCpuList_type& src_)
+{
+	QSharedPointer<Stat::Storage> s = m_access.getStorage();
+	if (s.isNull())
+		return;
+
+	foreach (const Instrument::Agent::Vm::Stat::VCpu_type& c, src_)
+	{
+		addAndWrite(*s, QString("guest.vcpu%1.time").arg(c.first), c.second);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
