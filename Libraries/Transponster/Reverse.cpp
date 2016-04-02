@@ -521,7 +521,7 @@ QString View::getAdapterType() const
 	}
 }
 
-QString normalizeMac(const QString &mac_)
+QString View::normalizeMac(const QString &mac_)
 {
 	QString normalized(mac_);
 	return normalized.replace(QRegExp("([^:]{2})(?!:|$)"), "\\1:");
