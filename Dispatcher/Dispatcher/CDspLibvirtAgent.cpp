@@ -978,6 +978,7 @@ void ReadDevice::appendData(const QByteArray &data_)
 {
 	QMutexLocker l(&m_lock);
 	m_data.append(data_);
+	l.unlock();
 	emit readyRead();
 }
 
