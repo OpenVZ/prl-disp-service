@@ -170,7 +170,9 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 	CProtoVmGuestRunProgramCommand* cmd = CProtoSerializer::CastToProtoCommand<CProtoVmGuestRunProgramCommand>(d);
 
 	vm::Exec::Request r(cmd->GetProgramName(), cmd->GetProgramArguments());
-	PRL_RESULT ret = variant_.prepare(*m_task, r);
+	QEventLoop l;
+	Join j(&l);
+	PRL_RESULT ret = variant_.prepare(*m_task, r, j);
 	if (PRL_FAILED(ret))
 		return ret;
 
@@ -191,7 +193,7 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 	if (m_task->getRequestFlags() & PFD_STDIN)
 		m_task->sendEvent(PET_IO_READY_TO_ACCEPT_STDIN_PKGS);
 
-	variant_.processStd(*m_task);
+	variant_.processStd(l);
 
 	Libvirt::Result e = f.value().wait();
 	if (e.isFailed())
@@ -361,7 +363,7 @@ void Ct::closeStdin(Task_ExecVm* task)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
-PRL_RESULT Vm::prepare(Task_ExecVm& task_, vm::Exec::Request& request_)
+PRL_RESULT Vm::prepare(Task_ExecVm& task_, vm::Exec::Request& request_, Join& join_)
 {
 	vm::Unit u = Libvirt::Kit.vms().at(task_.getVmUuid());
 	QSharedPointer<vm::Exec::AuxChannel> c(Libvirt::Kit.addAsyncExec(u));
@@ -376,6 +378,9 @@ PRL_RESULT Vm::prepare(Task_ExecVm& task_, vm::Exec::Request& request_)
 		WRITE_TRACE(DBG_FATAL, "Failed to initialize exec stdout/stderr channel!");
 		return PRL_ERR_FAILURE;
 	}
+
+	join_.add(new Mediator(task_, m_stdout.data(), PET_IO_STDOUT_PORTION));
+	join_.add(new Mediator(task_, m_stderr.data(), PET_IO_STDOUT_PORTION));
 
 	if (task_.getRequestFlags() & PFD_STDIN) {
 		m_stdin = QSharedPointer<vm::Exec::WriteDevice>(new vm::Exec::WriteDevice(c));
@@ -402,25 +407,12 @@ PRL_RESULT Vm::prepare(Task_ExecVm& task_, vm::Exec::Request& request_)
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Vm::processStd(Task_ExecVm& task_)
+PRL_RESULT Vm::processStd(QEventLoop& loop_)
 {
 	if (m_stdout == NULL || m_stderr == NULL)
 		return PRL_ERR_SUCCESS;
 
-	QEventLoop l;
-	Mediator m(task_, &l, PET_IO_STDOUT_PORTION);
-	QObject::connect(m_stdout.data(), SIGNAL(readyRead()), &m, SLOT(slotSendData()),
-			Qt::QueuedConnection);
-	QObject::connect(m_stdout.data(), SIGNAL(readChannelFinished()), &m, SLOT(slotEof()),
-			Qt::QueuedConnection);
-
-	Mediator n(task_, &l, PET_IO_STDERR_PORTION);
-	QObject::connect(m_stderr.data(), SIGNAL(readyRead()), &n, SLOT(slotSendData()),
-			Qt::QueuedConnection);
-	QObject::connect(m_stderr.data(), SIGNAL(readChannelFinished()), &n, SLOT(slotEof()),
-			Qt::QueuedConnection);
-	while (!task_.operationIsCancelled() && (!m_stdout->atEnd() || !m_stderr->atEnd()))
-		l.exec();
+	loop_.exec();
 	m_stdout->close();
 	m_stderr->close();
 
@@ -446,17 +438,40 @@ void Vm::closeStdin(Task_ExecVm* task)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Join
+
+void Join::add(QObject *object_)
+{
+	bool x = QObject::connect(object_, SIGNAL(finished()), this, SLOT(slotFinished()),
+		Qt::DirectConnection);
+	Q_ASSERT(x);
+	m_objects.append(QSharedPointer<QObject>(object_));
+}
+
+void Join::slotFinished(void)
+{
+	foreach(QSharedPointer<QObject> p, m_objects) {
+		if (p.data() == QObject::sender()) {
+			m_objects.removeAll(p);
+			break;
+		}
+	}
+	if (m_objects.isEmpty())
+		m_loop->quit();
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Mediator
 
 void Mediator::slotSendData()
 {
-	vm::Exec::ReadDevice *d = (vm::Exec::ReadDevice *)QObject::sender();
+	vm::Exec::ReadDevice *d = (vm::Exec::ReadDevice *)m_object;
 
 	QByteArray a = d->readAll();
 	if (a.size())
 		m_task->sendToClient(m_iotype, a.constData(), a.size());
 	if (m_task->operationIsCancelled() || d->atEnd())
-		m_loop->quit();
+		emit finished();
 }
 
 void Mediator::slotEof()

@@ -120,24 +120,50 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Mediator
+// struct Join - exits loop when all added objects finished their job
+
+struct Join: QObject
+{
+	explicit Join(QEventLoop *loop_) : m_loop(loop_) {}
+	void add(QObject *object_);
+
+public slots:
+	void slotFinished();
+
+private:
+	Q_OBJECT
+	QList<QSharedPointer<QObject> > m_objects;
+	QEventLoop *m_loop;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mediator - mediator between devices and Task_ExecVm. Forwards data to client.
 
 struct Mediator: QObject
 {
-	Q_OBJECT
+	Mediator(Task_ExecVm& task_, QObject *object_, int type_)
+		: m_task(&task_), m_iotype(type_), m_object(object_)
+	{
+		bool x = QObject::connect(object_, SIGNAL(readyRead()), this, SLOT(slotSendData()),
+				Qt::QueuedConnection);
+		Q_ASSERT(x);
+		x = QObject::connect(object_, SIGNAL(readChannelFinished()), this, SLOT(slotEof()),
+				Qt::QueuedConnection);
+		Q_ASSERT(x);
+	}
 
-public:
-	Mediator(Task_ExecVm& task_, QEventLoop *loop_, int type_)
-		: m_task(&task_), m_loop(loop_), m_iotype(type_) {}
+signals:
+	void finished();
 
 public slots:
 	void slotSendData();
 	void slotEof();
 
 private:
+	Q_OBJECT
 	Task_ExecVm* m_task;
-	QEventLoop *m_loop;
 	int m_iotype;
+	QObject *m_object;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -154,9 +180,9 @@ struct Vm
 
 	Vm() : m_exec(NULL) { }
 	void closeStdin(Task_ExecVm*);
-	PRL_RESULT prepare(Task_ExecVm& task_, vm::Exec::Request& request_);
+	PRL_RESULT prepare(Task_ExecVm& task_, vm::Exec::Request& request_, Join& join_);
 	PRL_RESULT processStdinData(const char * data, size_t size);
-	PRL_RESULT processStd(Task_ExecVm& task_);
+	PRL_RESULT processStd(QEventLoop& loop_);
 	void cancel()
 	{
 		if (m_exec)
