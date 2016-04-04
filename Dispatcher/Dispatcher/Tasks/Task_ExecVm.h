@@ -146,10 +146,10 @@ struct Mediator: QObject
 	{
 		bool x = QObject::connect(object_, SIGNAL(readyRead()), this, SLOT(slotSendData()),
 				Qt::QueuedConnection);
-		Q_ASSERT(x);
+		PRL_ASSERT(x);
 		x = QObject::connect(object_, SIGNAL(readChannelFinished()), this, SLOT(slotEof()),
 				Qt::QueuedConnection);
-		Q_ASSERT(x);
+		PRL_ASSERT(x);
 	}
 
 signals:

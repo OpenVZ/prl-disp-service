@@ -444,7 +444,7 @@ void Join::add(QObject *object_)
 {
 	bool x = QObject::connect(object_, SIGNAL(finished()), this, SLOT(slotFinished()),
 		Qt::DirectConnection);
-	Q_ASSERT(x);
+	PRL_ASSERT(x);
 	m_objects.append(QSharedPointer<QObject>(object_));
 }
 
