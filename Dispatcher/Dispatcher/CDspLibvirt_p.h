@@ -525,8 +525,9 @@ struct Vm
 	}
 
 	void operator()(Agent::Hub& hub_);
-
 private:
+	bool validate(const QString& uuid_);
+
 	Registry::Actual* m_registry;
 	QSharedPointer<Model::System> m_view;
 };

@@ -389,4 +389,9 @@ QStringList Actual::snapshot()
 	return QStringList() << m_definedMap.keys() << m_undeclaredMap.keys();
 }
 
+QString Actual::getServerUuid() const
+{
+	return m_service->getDispConfigGuard().getServerUuid();
+}
+
 } // namespace Registry
