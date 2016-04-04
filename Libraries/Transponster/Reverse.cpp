@@ -527,6 +527,11 @@ QString View::normalizeMac(const QString &mac_)
 	return normalized.replace(QRegExp("([^:]{2})(?!:|$)"), "\\1:");
 }
 
+QStringList View::getIpv4() const
+{
+	return NetworkUtils::ParseIps(m_network.getNetAddresses()).first;
+}
+
 QString View::getMac() const
 {
 	return normalizeMac(m_network.getMacAddress());
@@ -537,7 +542,11 @@ QString View::getFilterName() const
 	CNetPktFilter *filter = m_network.getPktFilter();
 	QStringList filters;
 
-	if (filter->isPreventIpSpoof())
+	if (filter->isPreventIpSpoof() &&
+		// For enforced static IPs only
+		m_network.isAutoApply() &&
+		!m_network.isConfigureWithDhcp() &&
+		!getIpv4().isEmpty())
 		filters << "no-ip-spoofing";
 	if (filter->isPreventMacSpoof())
 		filters << "no-mac-spoofing";
@@ -575,8 +584,7 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterre
 		params << p;
 	}
 
-	QStringList ipv4 = NetworkUtils::ParseIps(m_network.getNetAddresses()).first;
-	foreach(const QString& e, ipv4)
+	foreach(const QString& e, getIpv4())
 	{
 		// IPv4 only, for now
 		p.setName("IP");

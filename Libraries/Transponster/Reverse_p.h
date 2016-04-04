@@ -519,6 +519,7 @@ struct View
 private:
 	QString getFilterName() const;
 	static QString normalizeMac(const QString &mac_);
+	QStringList getIpv4() const;
 
 	CVmGenericNetworkAdapter m_network;
 };
