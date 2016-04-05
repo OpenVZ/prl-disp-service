@@ -25,6 +25,7 @@
 #include "CDspLibvirt_p.h"
 #include "CDspLibvirtExec.h"
 #include "CDspService.h"
+#include "Stat/CDspStatStorage.h"
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -446,9 +447,30 @@ Performance::getVCpuList() const
 	return r;
 }
 
-Result Performance::getDisk() const
+Prl::Expected<Stat::CounterList_type, Error::Simple>
+Performance::getDisk(const CVmHardDisk& disk_) const
 {
-	return Result();
+	virDomainBlockStatsStruct s;
+	if (0 > virDomainBlockStats(m_domain.data(), qPrintable(disk_.getTargetDeviceName()), &s, sizeof(s)))
+		return Failure(PRL_ERR_FAILURE);
+
+	Stat::CounterList_type r;
+
+	// -1 means the counter is unsupported
+	r.append(Stat::Counter_type(
+		::Stat::Name::Hdd::getWriteRequests(disk_),
+		s.wr_req >= 0 ? s.wr_req : 0));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Hdd::getWriteTotal(disk_),
+		s.wr_bytes >= 0 ? s.wr_bytes : 0));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Hdd::getReadRequests(disk_),
+		s.rd_req >= 0 ? s.rd_req : 0));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Hdd::getReadTotal(disk_),
+		s.rd_bytes >= 0 ? s.rd_bytes : 0));
+
+	return r;
 }
 
 Result Performance::getMemory(Stat::Memory& dst_) const

@@ -145,6 +145,9 @@ typedef QList<Interface> Network;
 typedef QPair<unsigned, quint64> VCpu_type;
 typedef QList<VCpu_type> VCpuList_type;
 
+typedef QPair<QString, quint64> Counter_type;
+typedef QList<Counter_type> CounterList_type;
+
 } // namespace Stat
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -161,7 +164,8 @@ struct Performance
 	Result getCpu(quint64& nanoseconds_) const;
 	Prl::Expected<Stat::VCpuList_type, Error::Simple>
 		getVCpuList() const;
-	Result getDisk() const;
+	Prl::Expected<Stat::CounterList_type, Error::Simple>
+		getDisk(const CVmHardDisk& disk_) const;
 	Result getMemory(Stat::Memory& dst_) const;
 	Result getInterface(Stat::Interface& dst_) const;
 

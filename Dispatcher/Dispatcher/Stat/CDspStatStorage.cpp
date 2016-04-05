@@ -87,4 +87,56 @@ void Storage::write(const QString& name_, quint64 value_)
 		m_incremental[name_] = value_;
 }
 
+namespace Name
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hdd
+
+QString Hdd::getReadRequests(const CVmHardDisk& disk_)
+{
+	return generate(disk_, "read_requests");
+}
+
+QString Hdd::getWriteRequests(const CVmHardDisk& disk_)
+{
+	return generate(disk_, "write_requests");
+}
+
+QString Hdd::getReadTotal(const CVmHardDisk& disk_)
+{
+	return generate(disk_, "read_total");
+}
+
+QString Hdd::getWriteTotal(const CVmHardDisk& disk_)
+{
+	return generate(disk_, "write_total");
+}
+
+QString Hdd::generate(const CVmHardDisk& disk_, const QString& stat_)
+{
+	return QString("devices.%1%2.%3").
+		arg(convert(disk_.getInterfaceType())).
+		arg(disk_.getStackIndex()).
+		arg(stat_);
+}
+
+QString Hdd::convert(PRL_MASS_STORAGE_INTERFACE_TYPE diskType_)
+{
+	switch (diskType_)
+	{
+	case PMS_IDE_DEVICE:
+		return "ide";
+	case PMS_SCSI_DEVICE:
+		return "scsi";
+	case PMS_SATA_DEVICE:
+		return "sata";
+	case PMS_VIRTIO_BLOCK_DEVICE:
+		return "virtio";
+	default:
+		return "unknown";
+	}
+}
+
+} // namespace Name
 } // namespace Stat

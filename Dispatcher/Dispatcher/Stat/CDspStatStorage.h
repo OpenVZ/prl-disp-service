@@ -35,6 +35,7 @@
 #include <QHash>
 #include <QString>
 #include <QReadWriteLock>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 namespace Stat
 {
@@ -61,6 +62,29 @@ private:
 	hash_type m_incremental;
 };
 
+namespace Name
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hdd
+
+struct Hdd
+{
+	static QString getReadRequests(const CVmHardDisk& disk_);
+
+	static QString getWriteRequests(const CVmHardDisk& disk_);
+
+	static QString getReadTotal(const CVmHardDisk& disk_);
+
+	static QString getWriteTotal(const CVmHardDisk& disk_);
+
+private:
+	static QString generate(const CVmHardDisk& disk_, const QString& stat_);
+
+	static QString convert(PRL_MASS_STORAGE_INTERFACE_TYPE diskType_);
+};
+
+} // namespace Name
 } // namespace Stat
 
 #endif // __CDSPSTATSTORAGE_H__

@@ -433,6 +433,18 @@ void Performance::run()
 				p.getInterface(s);
 				v->setInterfaceUsage(s);
 			}
+
+			foreach (const CVmHardDisk* d, x->getVmHardwareList()->m_lstHardDisks)
+			{
+				if (d->getEnabled() != PVE::DeviceEnabled ||
+					d->getConnected() != PVE::DeviceConnected)
+					continue;
+
+				Prl::Expected<Agent::Vm::Stat::CounterList_type, Error::Simple>
+					s = p.getDisk(d);
+				if (s.isSucceed())
+					v->setCounters(s.value());
+			}
 		}
 
 		Prl::Expected<Agent::Vm::Stat::VCpuList_type, Error::Simple>
@@ -958,10 +970,6 @@ void Domain::setCpuTime(quint64 nanoseconds_)
 
 }
 
-void Domain::setDiskUsage()
-{
-}
-
 void Domain::setMemoryUsage(const Instrument::Agent::Vm::Stat::Memory& src_)
 {
 	QSharedPointer<Stat::Storage> s = m_access.getStorage();
@@ -1008,6 +1016,18 @@ void Domain::setVCpuTime(const Instrument::Agent::Vm::Stat::VCpuList_type& src_)
 	foreach (const Instrument::Agent::Vm::Stat::VCpu_type& c, src_)
 	{
 		addAndWrite(*s, QString("guest.vcpu%1.time").arg(c.first), c.second);
+	}
+}
+
+void Domain::setCounters(const Instrument::Agent::Vm::Stat::CounterList_type& src_)
+{
+	QSharedPointer<Stat::Storage> s = m_access.getStorage();
+	if (s.isNull())
+		return;
+
+	foreach (const Instrument::Agent::Vm::Stat::Counter_type& c, src_)
+	{
+		addAndWrite(*s, c.first, c.second);
 	}
 }
 

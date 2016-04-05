@@ -474,6 +474,20 @@ struct Traits
 	}
 };
 
+template<>
+struct Traits<QString>
+{
+	static QString getExternal(const QString& t_)
+	{
+		return t_;
+	}
+
+	static QString getInternal(const QString& t_)
+	{
+		return t_;
+	}
+};
+
 namespace Filesystem {
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1014,23 +1028,6 @@ typedef SingleCounter<Flavor::MinorFault, Conversion::Uint64> MinorFault;
 typedef SingleCounter<Flavor::MajorFault, Conversion::Uint64> MajorFault;
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Traits
-
-template<class T>
-struct Traits
-{
-	static QString getExternal(const T& t_)
-	{
-		return t_();
-	}
-
-	static QString getInternal(const T& t_)
-	{
-		return t_();
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct VmCounter
 
 template <typename Name>
@@ -1048,7 +1045,7 @@ struct VmCounter
 
 	quint64 getValue() const
 	{
-		return GetPerfCounter(m_storage, Traits<Name>::getInternal(m_name));
+		return GetPerfCounter(m_storage, Names::Traits<Name>::getInternal(m_name));
 	}
 
 	CVmEventParameter *getParam() const
@@ -1067,100 +1064,6 @@ VmCounter<Name> makeVmCounter(QWeakPointer<Stat::Storage> storage, const Name &n
 {
 	return VmCounter<Name>(storage, name);
 }
-
-namespace Hdd
-{
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Name
-
-template <typename Leaf>
-struct Name {
-
-	Name(PRL_MASS_STORAGE_INTERFACE_TYPE type, quint32 index)
-		: m_type(convert(type)), m_index(index)
-	{
-	}
-
-	QString operator()() const;
-
-private:
-	static const char *convert(PRL_MASS_STORAGE_INTERFACE_TYPE t);
-
-	const char * const m_type;
-	const quint32 m_index;
-};
-
-template <typename Leaf>
-QString Name<Leaf>::operator()() const
-{
-	return QString("devices.%1%2.%3").
-		arg(m_type).
-		arg(m_index).
-		arg(Leaf::getName());
-}
-
-template <typename Leaf>
-const char *Name<Leaf>::convert(PRL_MASS_STORAGE_INTERFACE_TYPE t)
-{
-	switch (t)
-	{
-	case PMS_IDE_DEVICE:
-		return "ide";
-	case PMS_SCSI_DEVICE:
-		return "scsi";
-	case PMS_SATA_DEVICE:
-		return "sata";
-	default:
-		return "unknown";
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct ReadRequests
-
-struct ReadRequests {
-
-	static const char *getName()
-	{
-		return "read_requests";
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct WriteRequests
-
-struct WriteRequests {
-
-	static const char* getName()
-	{
-		return "write_requests";
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct ReadTotal
-
-struct ReadTotal {
-
-	static const char* getName()
-	{
-		return "read_total";
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct WriteTotal
-
-struct WriteTotal {
-
-	static const char* getName()
-	{
-		return "write_total";
-	}
-};
-
-} // namespace Hdd
 
 namespace Network {
 
@@ -2201,16 +2104,14 @@ void Collector::collectVm(const QString &uuid, const CVmConfiguration &config)
 
 	foreach (const CVmHardDisk* d, config.getVmHardwareList()->m_lstHardDisks)
 	{
-		PRL_MASS_STORAGE_INTERFACE_TYPE t = d->getInterfaceType();
-		quint32 i = d->getStackIndex();
 		collect(vmc::makeVmCounter(p,
-			vmc::Hdd::Name<vmc::Hdd::ReadRequests>(t, i)));
+			Stat::Name::Hdd::getReadRequests(*d)));
 		collect(vmc::makeVmCounter(p,
-			vmc::Hdd::Name<vmc::Hdd::WriteRequests>(t, i)));
+			Stat::Name::Hdd::getWriteRequests(*d)));
 		collect(vmc::makeVmCounter(p,
-			vmc::Hdd::Name<vmc::Hdd::ReadTotal>(t, i)));
+			Stat::Name::Hdd::getReadTotal(*d)));
 		collect(vmc::makeVmCounter(p,
-			vmc::Hdd::Name<vmc::Hdd::WriteTotal>(t, i)));
+			Stat::Name::Hdd::getWriteTotal(*d)));
 	}
 
 	const QList<CVmGenericNetworkAdapter*> &nics =
