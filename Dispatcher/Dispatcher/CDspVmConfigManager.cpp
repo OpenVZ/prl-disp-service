@@ -437,6 +437,12 @@ void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 		a->setDnsIPAddresses((*it)->getDnsIPAddresses());
 		a->setSearchDomains((*it)->getSearchDomains());
 		a->setHostMacAddress((*it)->getHostMacAddress());
+		// If spoofing protection is disabled, check our config.
+		if (!a->getPktFilter()->isPreventIpSpoof())
+		{
+			a->getPktFilter()->setPreventIpSpoof(
+					(*it)->getPktFilter()->isPreventIpSpoof());
+		}
 	}
 }
 
