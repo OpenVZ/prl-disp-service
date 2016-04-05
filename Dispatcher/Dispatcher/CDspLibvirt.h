@@ -218,6 +218,8 @@ struct List
 		Unit* dst_ = NULL);
 	Result defineConsistent(const QString& uuid_, const QString& description_,
 		Unit* dst_ = NULL);
+	Result createExternal(const QString& uuid_, const QList<CVmHardDisk*>& disks_);
+	Result mergeDisk(const CVmHardDisk& disks_, quint32 timeout = 120);
 
 private:
 	Prl::Expected<Unit, ::Error::Simple>

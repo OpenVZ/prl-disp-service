@@ -132,6 +132,7 @@ template<>
 struct Device<CVmHardDisk>
 {
 	static QString getPlugXml(const CVmHardDisk& model_);
+	static QString getTargetName(const CVmHardDisk& model_);
 };
 
 template<>
@@ -291,6 +292,23 @@ private:
 
 namespace Snapshot
 {
+struct Internal
+{
+};
+struct External
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Traits
+
+template <typename T>
+struct Traits
+{
+	static Libvirt::Snapshot::Xml::Disk generateDisk
+		(const CVmHardDisk& disk_, const QString& uuid_);
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reverse
 
@@ -302,10 +320,26 @@ struct Reverse
 	PRL_RESULT setIdentity();
 	PRL_RESULT setInstructions();
 	void setMemory();
-
 	QString getResult() const;
 
+	template <typename T>
+	void setHardDisks(const QList<CVmHardDisk*>& disks_)
+	{
+		QList<Libvirt::Snapshot::Xml::Disk> l =	m_result.getDisks() ?
+			m_result.getDisks().get() : QList<Libvirt::Snapshot::Xml::Disk>();
+
+		foreach (const CVmHardDisk* d, disks_)
+		{
+			if (!d->getEnabled() || d->getEmulatedType() != PVE::HardDiskImage)
+				continue;
+
+			l << Traits<T>::generateDisk(*d, m_uuid);
+		}
+		m_result.setDisks(l);
+	}
+
 private:
+	Libvirt::Snapshot::Xml::VDisk generateExternalSource(const QString& path_);
 	QString m_uuid;
 	QString m_description;
 	CVmHardware m_hardware;
