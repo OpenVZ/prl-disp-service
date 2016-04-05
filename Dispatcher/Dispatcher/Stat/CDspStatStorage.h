@@ -35,6 +35,7 @@
 #include <QHash>
 #include <QString>
 #include <QReadWriteLock>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 namespace Stat
 {
@@ -61,6 +62,84 @@ private:
 	hash_type m_incremental;
 };
 
+namespace Name
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
+
+struct Cpu
+{
+	static QString getName();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VCpu
+
+struct VCpu
+{
+	static QString getName(unsigned index_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Memory
+
+struct Memory
+{
+	static QString getUsed();
+
+	static QString getCached();
+
+	static QString getTotal();
+
+	static QString getBalloonActual();
+
+	static QString getSwapIn();
+
+	static QString getSwapOut();
+
+	static QString getMinorFault();
+
+	static QString getMajorFault();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Interface
+
+struct Interface
+{
+	static QString getBytesIn(const CVmGenericNetworkAdapter& iface_);
+
+	static QString getPacketsIn(const CVmGenericNetworkAdapter& iface_);
+
+	static QString getBytesOut(const CVmGenericNetworkAdapter& iface_);
+
+	static QString getPacketsOut(const CVmGenericNetworkAdapter& iface_);
+
+private:
+	static QString generate(const CVmGenericNetworkAdapter& iface_, const QString& stat_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hdd
+
+struct Hdd
+{
+	static QString getReadRequests(const CVmHardDisk& disk_);
+
+	static QString getWriteRequests(const CVmHardDisk& disk_);
+
+	static QString getReadTotal(const CVmHardDisk& disk_);
+
+	static QString getWriteTotal(const CVmHardDisk& disk_);
+
+private:
+	static QString generate(const CVmHardDisk& disk_, const QString& stat_);
+
+	static QString convert(PRL_MASS_STORAGE_INTERFACE_TYPE diskType_);
+};
+
+} // namespace Name
 } // namespace Stat
 
 #endif // __CDSPSTATSTORAGE_H__

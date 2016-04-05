@@ -87,4 +87,145 @@ void Storage::write(const QString& name_, quint64 value_)
 		m_incremental[name_] = value_;
 }
 
+namespace Name
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
+
+QString Cpu::getName()
+{
+	return "cpu_time";
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VCpu
+
+QString VCpu::getName(unsigned index_)
+{
+	return QString("guest.vcpu%1.time").arg(index_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Memory
+
+QString Memory::getUsed()
+{
+	return "mem.guest_used";
+}
+
+QString Memory::getCached()
+{
+	return "mem.guest_cached";
+}
+
+QString Memory::getTotal()
+{
+	return "mem.guest_total";
+}
+
+QString Memory::getBalloonActual()
+{
+	return "kernel.ws.balloon_size";
+}
+
+QString Memory::getSwapIn()
+{
+	return "mem.guest_swap_in";
+}
+
+QString Memory::getSwapOut()
+{
+	return "mem.guest_swap_out";
+}
+
+QString Memory::getMinorFault()
+{
+	return "mem.guest_minor_fault";
+}
+
+QString Memory::getMajorFault()
+{
+	return "mem.guest_major_fault";
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Interface
+
+QString Interface::getBytesIn(const CVmGenericNetworkAdapter& iface_)
+{
+	return generate(iface_, "bytes_in");
+}
+
+QString Interface::getPacketsIn(const CVmGenericNetworkAdapter& iface_)
+{
+	return generate(iface_, "pkts_in");
+}
+
+QString Interface::getBytesOut(const CVmGenericNetworkAdapter& iface_)
+{
+	return generate(iface_, "bytes_out");
+}
+
+QString Interface::getPacketsOut(const CVmGenericNetworkAdapter& iface_)
+{
+	return generate(iface_, "pkts_out");
+}
+
+QString Interface::generate(const CVmGenericNetworkAdapter& iface_, const QString& stat_)
+{
+	return QString("net.nic%1.%2").
+		arg(iface_.getIndex()).
+		arg(stat_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hdd
+
+QString Hdd::getReadRequests(const CVmHardDisk& disk_)
+{
+	return generate(disk_, "read_requests");
+}
+
+QString Hdd::getWriteRequests(const CVmHardDisk& disk_)
+{
+	return generate(disk_, "write_requests");
+}
+
+QString Hdd::getReadTotal(const CVmHardDisk& disk_)
+{
+	return generate(disk_, "read_total");
+}
+
+QString Hdd::getWriteTotal(const CVmHardDisk& disk_)
+{
+	return generate(disk_, "write_total");
+}
+
+QString Hdd::generate(const CVmHardDisk& disk_, const QString& stat_)
+{
+	return QString("devices.%1%2.%3").
+		arg(convert(disk_.getInterfaceType())).
+		arg(disk_.getStackIndex()).
+		arg(stat_);
+}
+
+QString Hdd::convert(PRL_MASS_STORAGE_INTERFACE_TYPE diskType_)
+{
+	switch (diskType_)
+	{
+	case PMS_IDE_DEVICE:
+		return "ide";
+	case PMS_SCSI_DEVICE:
+		return "scsi";
+	case PMS_SATA_DEVICE:
+		return "sata";
+	case PMS_VIRTIO_BLOCK_DEVICE:
+		return "virtio";
+	default:
+		return "unknown";
+	}
+}
+
+} // namespace Name
 } // namespace Stat

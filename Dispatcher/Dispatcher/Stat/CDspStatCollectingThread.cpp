@@ -474,6 +474,20 @@ struct Traits
 	}
 };
 
+template<>
+struct Traits<QString>
+{
+	static QString getExternal(const QString& t_)
+	{
+		return t_;
+	}
+
+	static QString getInternal(const QString& t_)
+	{
+		return t_;
+	}
+};
+
 namespace Filesystem {
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -713,8 +727,7 @@ VCpu::VCpu(QWeakPointer<Stat::Storage> storage): m_storage(storage)
 
 quint64 VCpu::getValue(quint32 index) const
 {
-	return GetPerfCounter(m_storage,
-		multiCounterName("guest.vcpu", index, "time"));
+	return GetPerfCounter(m_storage, Stat::Name::VCpu::getName(index));
 }
 
 void VCpu::recordTime(Meter &m, quint64 v) const
@@ -725,7 +738,8 @@ void VCpu::recordTime(Meter &m, quint64 v) const
 
 void VCpu::recordMsec(Meter &m) const
 {
-	m.record(PrlGetTimeMonotonic(), GetPerfCounter(m_storage, "cpu_time") /
+	m.record(PrlGetTimeMonotonic(),
+			GetPerfCounter(m_storage, Stat::Name::Cpu::getName()) /
 			(getHostCpus() ?: 1));
 }
 
@@ -741,7 +755,7 @@ struct VCpuTime {
 
 	QString getName() const
 	{
-		return multiCounterName("guest.vcpu", m_index, "time");
+		return Stat::Name::VCpu::getName(m_index);
 	}
 
 	quint64 getValue() const
@@ -844,7 +858,7 @@ struct Used
 	static value_type extract(source_type &c)
 	{
 		// kb to bytes
-		return GetPerfCounter(c, "mem.guest_used") << 10;
+		return GetPerfCounter(c, Stat::Name::Memory::getUsed()) << 10;
 	}
 };
 
@@ -864,7 +878,7 @@ struct Cached
 	static value_type extract(source_type &c)
 	{
 		// kb to bytes
-		return GetPerfCounter(c, "mem.guest_cached") << 10;
+		return GetPerfCounter(c, Stat::Name::Memory::getCached()) << 10;
 	}
 };
 
@@ -884,7 +898,7 @@ struct Total
 	static value_type extract(source_type &c)
 	{
 		// kb to bytes
-		return GetPerfCounter(c, "mem.guest_total") << 10;
+		return GetPerfCounter(c, Stat::Name::Memory::getTotal()) << 10;
 	}
 };
 
@@ -904,7 +918,7 @@ struct BalloonActual
 	static value_type extract(source_type &c)
 	{
 		// pages to bytes
-		return GetPerfCounter(c, "kernel.ws.balloon_size") << 12;
+		return GetPerfCounter(c, Stat::Name::Memory::getBalloonActual()) << 12;
 	}
 };
 } // namespace Flavor
@@ -945,7 +959,8 @@ struct SwapIn
 
 	static value_type extract(source_type &c)
 	{
-		return GetPerfCounter(c, "mem.guest_swap_in");
+		// kb to pages
+		return GetPerfCounter(c, Stat::Name::Memory::getSwapIn()) >> 2;
 	}
 };
 
@@ -964,7 +979,8 @@ struct SwapOut
 
 	static value_type extract(source_type &c)
 	{
-		return GetPerfCounter(c, "mem.guest_swap_out");
+		// kb to pages
+		return GetPerfCounter(c, Stat::Name::Memory::getSwapOut()) >> 2;
 	}
 };
 
@@ -983,7 +999,7 @@ struct MinorFault
 
 	static value_type extract(source_type &c)
 	{
-		return GetPerfCounter(c, "mem.guest_minor_fault");
+		return GetPerfCounter(c, Stat::Name::Memory::getMinorFault());
 	}
 };
 
@@ -1002,7 +1018,7 @@ struct MajorFault
 
 	static value_type extract(source_type &c)
 	{
-		return GetPerfCounter(c, "mem.guest_major_fault");
+		return GetPerfCounter(c, Stat::Name::Memory::getMajorFault());
 	}
 };
 
@@ -1012,23 +1028,6 @@ typedef SingleCounter<Flavor::SwapIn, Conversion::Uint64> SwapIn;
 typedef SingleCounter<Flavor::SwapOut, Conversion::Uint64> SwapOut;
 typedef SingleCounter<Flavor::MinorFault, Conversion::Uint64> MinorFault;
 typedef SingleCounter<Flavor::MajorFault, Conversion::Uint64> MajorFault;
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Traits
-
-template<class T>
-struct Traits
-{
-	static QString getExternal(const T& t_)
-	{
-		return t_();
-	}
-
-	static QString getInternal(const T& t_)
-	{
-		return t_();
-	}
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct VmCounter
@@ -1048,7 +1047,7 @@ struct VmCounter
 
 	quint64 getValue() const
 	{
-		return GetPerfCounter(m_storage, Traits<Name>::getInternal(m_name));
+		return GetPerfCounter(m_storage, Names::Traits<Name>::getInternal(m_name));
 	}
 
 	CVmEventParameter *getParam() const
@@ -1068,166 +1067,7 @@ VmCounter<Name> makeVmCounter(QWeakPointer<Stat::Storage> storage, const Name &n
 	return VmCounter<Name>(storage, name);
 }
 
-namespace Hdd
-{
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Name
-
-template <typename Leaf>
-struct Name {
-
-	Name(PRL_MASS_STORAGE_INTERFACE_TYPE type, quint32 index)
-		: m_type(convert(type)), m_index(index)
-	{
-	}
-
-	QString operator()() const;
-
-private:
-	static const char *convert(PRL_MASS_STORAGE_INTERFACE_TYPE t);
-
-	const char * const m_type;
-	const quint32 m_index;
-};
-
-template <typename Leaf>
-QString Name<Leaf>::operator()() const
-{
-	return QString("devices.%1%2.%3").
-		arg(m_type).
-		arg(m_index).
-		arg(Leaf::getName());
-}
-
-template <typename Leaf>
-const char *Name<Leaf>::convert(PRL_MASS_STORAGE_INTERFACE_TYPE t)
-{
-	switch (t)
-	{
-	case PMS_IDE_DEVICE:
-		return "ide";
-	case PMS_SCSI_DEVICE:
-		return "scsi";
-	case PMS_SATA_DEVICE:
-		return "sata";
-	default:
-		return "unknown";
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct ReadRequests
-
-struct ReadRequests {
-
-	static const char *getName()
-	{
-		return "read_requests";
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct WriteRequests
-
-struct WriteRequests {
-
-	static const char* getName()
-	{
-		return "write_requests";
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct ReadTotal
-
-struct ReadTotal {
-
-	static const char* getName()
-	{
-		return "read_total";
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct WriteTotal
-
-struct WriteTotal {
-
-	static const char* getName()
-	{
-		return "write_total";
-	}
-};
-
-} // namespace Hdd
-
 namespace Network {
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Name
-
-template <typename Leaf>
-struct Name {
-
-	explicit Name(quint32 index)
-		: m_index(index)
-	{
-	}
-
-	QString operator()() const
-	{
-		return multiCounterName("net.nic", m_index, Leaf::getName());
-	}
-
-private:
-
-	quint32 m_index;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PacketsIn
-
-struct PacketsIn {
-
-	static const char* getName()
-	{
-		return "pkts_in";
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PacketsOut
-
-struct PacketsOut {
-
-	static const char* getName()
-	{
-		return "pkts_out";
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct BytesIn
-
-struct BytesIn {
-
-	static const char* getName()
-	{
-		return "bytes_in";
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct BytesOut
-
-struct BytesOut {
-
-	static const char* getName()
-	{
-		return "bytes_out";
-	}
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct ClassfulOffline
@@ -1294,11 +1134,10 @@ CVmEventParameter *ClassfulOnline::getParam() const
 	stat = PRL_STAT_NET_TRAFFIC();
 	foreach (const CVmGenericNetworkAdapter* nic, *m_nics)
 	{
-		quint32 i = nic->getIndex();
-		stat.incoming[1] += GetPerfCounter(m_storage, Name<PacketsIn>(i)());
-		stat.outgoing[1] += GetPerfCounter(m_storage, Name<PacketsOut>(i)());
-		stat.incoming_pkt[1] += GetPerfCounter(m_storage, Name<BytesIn>(i)());
-		stat.outgoing_pkt[1] += GetPerfCounter(m_storage, Name<BytesOut>(i)());
+		stat.incoming[1] += GetPerfCounter(m_storage, Stat::Name::Interface::getPacketsIn(*nic));
+		stat.outgoing[1] += GetPerfCounter(m_storage, Stat::Name::Interface::getPacketsOut(*nic));
+		stat.incoming_pkt[1] += GetPerfCounter(m_storage, Stat::Name::Interface::getBytesIn(*nic));
+		stat.outgoing_pkt[1] += GetPerfCounter(m_storage, Stat::Name::Interface::getBytesOut(*nic));
 	}
 
 	return Conversion::Network::convert(stat);
@@ -2201,16 +2040,14 @@ void Collector::collectVm(const QString &uuid, const CVmConfiguration &config)
 
 	foreach (const CVmHardDisk* d, config.getVmHardwareList()->m_lstHardDisks)
 	{
-		PRL_MASS_STORAGE_INTERFACE_TYPE t = d->getInterfaceType();
-		quint32 i = d->getStackIndex();
 		collect(vmc::makeVmCounter(p,
-			vmc::Hdd::Name<vmc::Hdd::ReadRequests>(t, i)));
+			Stat::Name::Hdd::getReadRequests(*d)));
 		collect(vmc::makeVmCounter(p,
-			vmc::Hdd::Name<vmc::Hdd::WriteRequests>(t, i)));
+			Stat::Name::Hdd::getWriteRequests(*d)));
 		collect(vmc::makeVmCounter(p,
-			vmc::Hdd::Name<vmc::Hdd::ReadTotal>(t, i)));
+			Stat::Name::Hdd::getReadTotal(*d)));
 		collect(vmc::makeVmCounter(p,
-			vmc::Hdd::Name<vmc::Hdd::WriteTotal>(t, i)));
+			Stat::Name::Hdd::getWriteTotal(*d)));
 	}
 
 	const QList<CVmGenericNetworkAdapter*> &nics =
@@ -2218,15 +2055,14 @@ void Collector::collectVm(const QString &uuid, const CVmConfiguration &config)
 	collect(vmc::Network::ClassfulOnline(uuid, p, nics));
 	foreach (const CVmGenericNetworkAdapter* nic, nics)
 	{
-		quint32 i = nic->getIndex();
 		collect(vmc::makeVmCounter(p,
-			vmc::Network::Name<vmc::Network::PacketsIn>(i)));
+			Stat::Name::Interface::getPacketsIn(*nic)));
 		collect(vmc::makeVmCounter(p,
-			vmc::Network::Name<vmc::Network::PacketsOut>(i)));
+			Stat::Name::Interface::getPacketsOut(*nic)));
 		collect(vmc::makeVmCounter(p,
-			vmc::Network::Name<vmc::Network::BytesIn>(i)));
+			Stat::Name::Interface::getBytesIn(*nic)));
 		collect(vmc::makeVmCounter(p,
-			vmc::Network::Name<vmc::Network::BytesOut>(i)));
+			Stat::Name::Interface::getBytesOut(*nic)));
 	}
 
 	namespace nf = Names::Filesystem;

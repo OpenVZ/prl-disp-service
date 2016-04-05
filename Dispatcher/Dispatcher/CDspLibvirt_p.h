@@ -225,11 +225,8 @@ struct Domain: QObject
 
 	boost::optional<CVmConfiguration> getConfig();
 	void setConfig(CVmConfiguration value_);
-	void setCpuTime(quint64 nanoseconds_);
-	void setVCpuTime(const Instrument::Agent::Vm::Stat::VCpuList_type& src_);
-	void setDiskUsage();
-	void setMemoryUsage(const Instrument::Agent::Vm::Stat::Memory& src_);
-	void setInterfaceUsage(const Instrument::Agent::Vm::Stat::Interface& iface_);
+
+	void setCounters(const Instrument::Agent::Vm::Stat::CounterList_type& src_);
 
 private:
 	Q_OBJECT

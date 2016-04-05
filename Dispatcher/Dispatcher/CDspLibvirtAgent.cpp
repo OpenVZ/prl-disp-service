@@ -25,6 +25,7 @@
 #include "CDspLibvirt_p.h"
 #include "CDspLibvirtExec.h"
 #include "CDspService.h"
+#include "Stat/CDspStatStorage.h"
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -410,7 +411,8 @@ Result Performance::setMemoryStatsPeriod(qint64 seconds_)
 		seconds_, VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE));
 }
 
-Result Performance::getCpu(quint64& nanoseconds_) const
+Prl::Expected<Stat::CounterList_type, Error::Simple>
+Performance::getCpu() const
 {
 	int n = virDomainGetCPUStats(m_domain.data(), NULL, 0, -1, 1, 0);
 	if (0 >= n)
@@ -420,14 +422,18 @@ Result Performance::getCpu(quint64& nanoseconds_) const
 	if (0 > virDomainGetCPUStats(m_domain.data(), q.data(), n, -1, 1, 0))
 		return Failure(PRL_ERR_FAILURE);
 
-	nanoseconds_ = 0;
-#if (LIBVIR_VERSION_NUMBER > 1000001)
-	virTypedParamsGetULLong(q.data(), n, "cpu_time", &nanoseconds_);
-#endif
-	return Result();
+	quint64 s = 0;
+ #if (LIBVIR_VERSION_NUMBER > 1000001)
+	virTypedParamsGetULLong(q.data(), n, "cpu_time", &s);
+ #endif
+	Stat::CounterList_type r;
+
+	r.append(Stat::Counter_type(::Stat::Name::Cpu::getName(), s / 1000));
+
+	return r;
 }
 
-Prl::Expected<Stat::VCpuList_type, Error::Simple>
+Prl::Expected<Stat::CounterList_type, Error::Simple>
 Performance::getVCpuList() const
 {
 	int n = virDomainGetVcpusFlags(m_domain.data(), VIR_DOMAIN_VCPU_CURRENT);
@@ -438,20 +444,42 @@ Performance::getVCpuList() const
 	if (0 > virDomainGetVcpus(m_domain.data(), c.data(), n, NULL, 0))
 		return Failure(PRL_ERR_FAILURE);
 
-	Stat::VCpuList_type r;
+	Stat::CounterList_type r;
 	foreach (const virVcpuInfo& i, c)
 	{
-		r.append(Stat::VCpu_type(i.number, i.cpuTime));
+		r.append(Stat::Counter_type(::Stat::Name::VCpu::getName(i.number), i.cpuTime));
 	}
 	return r;
 }
 
-Result Performance::getDisk() const
+Prl::Expected<Stat::CounterList_type, Error::Simple>
+Performance::getDisk(const CVmHardDisk& disk_) const
 {
-	return Result();
+	virDomainBlockStatsStruct s;
+	if (0 > virDomainBlockStats(m_domain.data(), qPrintable(disk_.getTargetDeviceName()), &s, sizeof(s)))
+		return Failure(PRL_ERR_FAILURE);
+
+	Stat::CounterList_type r;
+
+	// -1 means the counter is unsupported
+	r.append(Stat::Counter_type(
+		::Stat::Name::Hdd::getWriteRequests(disk_),
+		s.wr_req >= 0 ? s.wr_req : 0));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Hdd::getWriteTotal(disk_),
+		s.wr_bytes >= 0 ? s.wr_bytes : 0));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Hdd::getReadRequests(disk_),
+		s.rd_req >= 0 ? s.rd_req : 0));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Hdd::getReadTotal(disk_),
+		s.rd_bytes >= 0 ? s.rd_bytes : 0));
+
+	return r;
 }
 
-Result Performance::getMemory(Stat::Memory& dst_) const
+Prl::Expected<Stat::CounterList_type, Error::Simple>
+Performance::getMemory() const
 {
 	unsigned s = VIR_DOMAIN_MEMORY_STAT_NR - 1;
 	virDomainMemoryStatStruct x[s];
@@ -460,54 +488,63 @@ Result Performance::getMemory(Stat::Memory& dst_) const
 	if (0 >= n)
 		return Failure(PRL_ERR_FAILURE);
 
+	QHash<int, quint64> v;
 	for (int i = 0; i < n; ++i)
-	{
-		switch (x[i].tag)
-		{
-			case VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON:
-				dst_.baloonActual = x[i].val;
-				break;
-			case VIR_DOMAIN_MEMORY_STAT_AVAILABLE:
-				dst_.available = x[i].val;
-				break;
-			case VIR_DOMAIN_MEMORY_STAT_UNUSED:
-				dst_.unused = x[i].val;
-				break;
-			case VIR_DOMAIN_MEMORY_STAT_SWAP_IN:
-				dst_.swapIn = x[i].val;
-				break;
-			case VIR_DOMAIN_MEMORY_STAT_SWAP_OUT:
-				dst_.swapOut = x[i].val;
-				break;
-			case VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT:
-				dst_.minorFault = x[i].val;
-				break;
-			case VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT:
-				dst_.majorFault = x[i].val;
-				break;
-			case VIR_DOMAIN_MEMORY_STAT_RSS:
-				dst_.rss = x[i].val;
-				break;
-		}
-	}
+		v[x[i].tag] = x[i].val;
 
-	return Result();
+	Stat::CounterList_type r;
+
+	quint64 u = v[VIR_DOMAIN_MEMORY_STAT_RSS];
+	if (v.contains(VIR_DOMAIN_MEMORY_STAT_UNUSED))
+		u = v.value(VIR_DOMAIN_MEMORY_STAT_AVAILABLE) -
+			v.value(VIR_DOMAIN_MEMORY_STAT_UNUSED);
+
+	r.append(Stat::Counter_type(
+		::Stat::Name::Memory::getUsed(), u));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Memory::getTotal(),
+		v.value(VIR_DOMAIN_MEMORY_STAT_AVAILABLE)));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Memory::getSwapIn(),
+		v.value(VIR_DOMAIN_MEMORY_STAT_SWAP_IN)));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Memory::getSwapOut(),
+		v.value(VIR_DOMAIN_MEMORY_STAT_SWAP_OUT)));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Memory::getMinorFault(),
+		v.value(VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT)));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Memory::getMajorFault(),
+		v.value(VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT)));
+
+	return r;
 }
 
-Result Performance::getInterface(Stat::Interface& dst_) const
+Prl::Expected<Stat::CounterList_type, Error::Simple>
+Performance::getInterface(const CVmGenericNetworkAdapter& iface_) const
 {
 	virDomainInterfaceStatsStruct x;
-	int n = virDomainInterfaceStats(m_domain.data(), qPrintable(dst_.name), &x, sizeof(x));
+	int n = virDomainInterfaceStats(m_domain.data(), qPrintable(iface_.getHostInterfaceName()), &x, sizeof(x));
 	if (0 > n)
 		return Failure(PRL_ERR_FAILURE);
 
-	// -1 means the counter is unsupported
-	dst_.bytesIn = x.rx_bytes >= 0 ? x.rx_bytes : 0;
-	dst_.packetsIn = x.rx_packets >= 0 ? x.rx_packets : 0;
-	dst_.bytesOut = x.tx_bytes >= 0 ? x.tx_bytes : 0;
-	dst_.packetsOut = x.tx_packets >= 0 ? x.tx_packets : 0;
+	Stat::CounterList_type r;
 
-	return Result();
+	// -1 means the counter is unsupported
+	r.append(Stat::Counter_type(
+		::Stat::Name::Interface::getBytesIn(iface_),
+		x.rx_bytes >= 0 ? x.rx_bytes : 0));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Interface::getPacketsIn(iface_),
+		x.rx_packets >= 0 ? x.rx_packets : 0));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Interface::getBytesOut(iface_),
+		x.tx_bytes >= 0 ? x.tx_bytes : 0));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Interface::getPacketsOut(iface_),
+		x.tx_packets >= 0 ? x.tx_packets : 0));
+
+	return r;
 }
 
 namespace Command
