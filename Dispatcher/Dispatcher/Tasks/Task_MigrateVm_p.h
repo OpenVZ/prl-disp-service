@@ -445,20 +445,28 @@ struct Frontend: Vm::Frontend<Frontend<T, U> >, Vm::Connector::Mixin<Connector<T
 		m_timer.clear();
 	}
 
-	void handle(const U& event_)
+	struct Action
 	{
-		if (m_callback.empty())
-			return;
+		template <typename FSM>
+		void operator()(const U& event_, FSM& fsm_, Waiting& , Waiting&)
+		{
+			PRL_RESULT e;
+			if (fsm_.m_callback.empty() ||
+				PRL_SUCCEEDED(e = fsm_.m_callback(event_.getPackage())))
+			{
+				fsm_.process_event(boost::mpl::true_());
+				return;
+			}
 
-		const PRL_RESULT e = m_callback(event_.getPackage());
-		if (PRL_FAILED(e))
-			this->getConnector()->handle(Flop::Event(e));
-	}
+			fsm_.process_event(Flop::Event(e));
+			fsm_.getConnector()->handle(Flop::Event(e));
+		}
+	};
 
 	struct transition_table : boost::mpl::vector<
-		typename def_type::template
-		a_row<Waiting,		U,		Success,	&Frontend::handle>,
-		msmf::Row<Waiting,	Flop::Event,	Flop::State>
+		msmf::Row<Waiting,	U,			Waiting,	Action>,
+		msmf::Row<Waiting,	boost::mpl::true_, 	Success>,
+		msmf::Row<Waiting,	Flop::Event,		Flop::State>
 	>
 	{
 	};
