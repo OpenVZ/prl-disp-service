@@ -107,6 +107,49 @@ QString VCpu::getName(unsigned index_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Memory
+
+QString Memory::getUsed()
+{
+	return "mem.guest_used";
+}
+
+QString Memory::getCached()
+{
+	return "mem.guest_cached";
+}
+
+QString Memory::getTotal()
+{
+	return "mem.guest_total";
+}
+
+QString Memory::getBalloonActual()
+{
+	return "kernel.ws.balloon_size";
+}
+
+QString Memory::getSwapIn()
+{
+	return "mem.guest_swap_in";
+}
+
+QString Memory::getSwapOut()
+{
+	return "mem.guest_swap_out";
+}
+
+QString Memory::getMinorFault()
+{
+	return "mem.guest_minor_fault";
+}
+
+QString Memory::getMajorFault()
+{
+	return "mem.guest_major_fault";
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Interface
 
 QString Interface::getBytesIn(const CVmGenericNetworkAdapter& iface_)

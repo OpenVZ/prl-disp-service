@@ -478,7 +478,8 @@ Performance::getDisk(const CVmHardDisk& disk_) const
 	return r;
 }
 
-Result Performance::getMemory(Stat::Memory& dst_) const
+Prl::Expected<Stat::CounterList_type, Error::Simple>
+Performance::getMemory() const
 {
 	unsigned s = VIR_DOMAIN_MEMORY_STAT_NR - 1;
 	virDomainMemoryStatStruct x[s];
@@ -487,38 +488,36 @@ Result Performance::getMemory(Stat::Memory& dst_) const
 	if (0 >= n)
 		return Failure(PRL_ERR_FAILURE);
 
+	QHash<int, quint64> v;
 	for (int i = 0; i < n; ++i)
-	{
-		switch (x[i].tag)
-		{
-			case VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON:
-				dst_.baloonActual = x[i].val;
-				break;
-			case VIR_DOMAIN_MEMORY_STAT_AVAILABLE:
-				dst_.available = x[i].val;
-				break;
-			case VIR_DOMAIN_MEMORY_STAT_UNUSED:
-				dst_.unused = x[i].val;
-				break;
-			case VIR_DOMAIN_MEMORY_STAT_SWAP_IN:
-				dst_.swapIn = x[i].val;
-				break;
-			case VIR_DOMAIN_MEMORY_STAT_SWAP_OUT:
-				dst_.swapOut = x[i].val;
-				break;
-			case VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT:
-				dst_.minorFault = x[i].val;
-				break;
-			case VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT:
-				dst_.majorFault = x[i].val;
-				break;
-			case VIR_DOMAIN_MEMORY_STAT_RSS:
-				dst_.rss = x[i].val;
-				break;
-		}
-	}
+		v[x[i].tag] = x[i].val;
 
-	return Result();
+	Stat::CounterList_type r;
+
+	quint64 u = v[VIR_DOMAIN_MEMORY_STAT_RSS];
+	if (v.contains(VIR_DOMAIN_MEMORY_STAT_UNUSED))
+		u = v.value(VIR_DOMAIN_MEMORY_STAT_AVAILABLE) -
+			v.value(VIR_DOMAIN_MEMORY_STAT_UNUSED);
+
+	r.append(Stat::Counter_type(
+		::Stat::Name::Memory::getUsed(), u));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Memory::getTotal(),
+		v.value(VIR_DOMAIN_MEMORY_STAT_AVAILABLE)));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Memory::getSwapIn(),
+		v.value(VIR_DOMAIN_MEMORY_STAT_SWAP_IN)));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Memory::getSwapOut(),
+		v.value(VIR_DOMAIN_MEMORY_STAT_SWAP_OUT)));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Memory::getMinorFault(),
+		v.value(VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT)));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Memory::getMajorFault(),
+		v.value(VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT)));
+
+	return r;
 }
 
 Prl::Expected<Stat::CounterList_type, Error::Simple>

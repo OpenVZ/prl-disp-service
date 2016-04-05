@@ -82,6 +82,28 @@ struct VCpu
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Memory
+
+struct Memory
+{
+	static QString getUsed();
+
+	static QString getCached();
+
+	static QString getTotal();
+
+	static QString getBalloonActual();
+
+	static QString getSwapIn();
+
+	static QString getSwapOut();
+
+	static QString getMinorFault();
+
+	static QString getMajorFault();
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Interface
 
 struct Interface

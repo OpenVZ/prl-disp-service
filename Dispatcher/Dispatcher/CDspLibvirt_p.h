@@ -225,7 +225,6 @@ struct Domain: QObject
 
 	boost::optional<CVmConfiguration> getConfig();
 	void setConfig(CVmConfiguration value_);
-	void setMemoryUsage(const Instrument::Agent::Vm::Stat::Memory& src_);
 
 	void setCounters(const Instrument::Agent::Vm::Stat::CounterList_type& src_);
 

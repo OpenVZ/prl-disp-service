@@ -858,7 +858,7 @@ struct Used
 	static value_type extract(source_type &c)
 	{
 		// kb to bytes
-		return GetPerfCounter(c, "mem.guest_used") << 10;
+		return GetPerfCounter(c, Stat::Name::Memory::getUsed()) << 10;
 	}
 };
 
@@ -878,7 +878,7 @@ struct Cached
 	static value_type extract(source_type &c)
 	{
 		// kb to bytes
-		return GetPerfCounter(c, "mem.guest_cached") << 10;
+		return GetPerfCounter(c, Stat::Name::Memory::getCached()) << 10;
 	}
 };
 
@@ -898,7 +898,7 @@ struct Total
 	static value_type extract(source_type &c)
 	{
 		// kb to bytes
-		return GetPerfCounter(c, "mem.guest_total") << 10;
+		return GetPerfCounter(c, Stat::Name::Memory::getTotal()) << 10;
 	}
 };
 
@@ -918,7 +918,7 @@ struct BalloonActual
 	static value_type extract(source_type &c)
 	{
 		// pages to bytes
-		return GetPerfCounter(c, "kernel.ws.balloon_size") << 12;
+		return GetPerfCounter(c, Stat::Name::Memory::getBalloonActual()) << 12;
 	}
 };
 } // namespace Flavor
@@ -959,7 +959,8 @@ struct SwapIn
 
 	static value_type extract(source_type &c)
 	{
-		return GetPerfCounter(c, "mem.guest_swap_in");
+		// kb to pages
+		return GetPerfCounter(c, Stat::Name::Memory::getSwapIn()) >> 2;
 	}
 };
 
@@ -978,7 +979,8 @@ struct SwapOut
 
 	static value_type extract(source_type &c)
 	{
-		return GetPerfCounter(c, "mem.guest_swap_out");
+		// kb to pages
+		return GetPerfCounter(c, Stat::Name::Memory::getSwapOut()) >> 2;
 	}
 };
 
@@ -997,7 +999,7 @@ struct MinorFault
 
 	static value_type extract(source_type &c)
 	{
-		return GetPerfCounter(c, "mem.guest_minor_fault");
+		return GetPerfCounter(c, Stat::Name::Memory::getMinorFault());
 	}
 };
 
@@ -1016,7 +1018,7 @@ struct MajorFault
 
 	static value_type extract(source_type &c)
 	{
-		return GetPerfCounter(c, "mem.guest_major_fault");
+		return GetPerfCounter(c, Stat::Name::Memory::getMajorFault());
 	}
 };
 

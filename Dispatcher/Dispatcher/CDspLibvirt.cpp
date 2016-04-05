@@ -417,9 +417,10 @@ void Performance::run()
 		if (c.isSucceed())
 			v->setCounters(c.value());
 
-		Agent::Vm::Stat::Memory d;
-		if (p.getMemory(d).isSucceed())
-			v->setMemoryUsage(d);
+		Prl::Expected<Agent::Vm::Stat::CounterList_type, Error::Simple>
+			d = p.getMemory();
+		if (d.isSucceed())
+			v->setCounters(d.value());
 
 		boost::optional<CVmConfiguration> x = v->getConfig();
 		if (x)
@@ -960,20 +961,6 @@ void Domain::setConfig(CVmConfiguration value_)
 void Domain::prepareToSwitch()
 {
 	m_access.prepareToSwitch();
-}
-
-void Domain::setMemoryUsage(const Instrument::Agent::Vm::Stat::Memory& src_)
-{
-	QSharedPointer<Stat::Storage> s = m_access.getStorage();
-	if (s.isNull())
-		return;
-
-	s->write("mem.guest_total", src_.available);
-
-	if (src_.unused < src_.available)
-		s->write("mem.guest_used", src_.available - src_.unused);
-	else
-		s->write("mem.guest_used", src_.available);
 }
 
 namespace
