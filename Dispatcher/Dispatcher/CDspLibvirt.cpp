@@ -1127,6 +1127,10 @@ void Coarse::disconnectCd(virDomainPtr domain_, const QString& alias_)
 
 	SmartPtr<CVmConfiguration> vm = CDspService::instance()->getVmDirHelper()
 		.getVmConfigByUuid(vmDir, vmUuid, res);
+	if (!vm) {
+		WRITE_TRACE(DBG_WARNING, "Unable to disconnect cdrom %s for VM %s", QSTR2UTF8(alias_), QSTR2UTF8(vmUuid));
+		return;
+	}
 
 	QList<CVmOpticalDisk* >::iterator last(vm->getVmHardwareList()->m_lstOpticalDisks.end());
 	QList<CVmOpticalDisk* >::iterator it(
