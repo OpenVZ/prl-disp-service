@@ -32,6 +32,8 @@
 #ifndef __REVERSE_H__
 #define __REVERSE_H__
 
+#include <boost/function.hpp>
+
 #include "iface_type.h"
 #include "domain_type.h"
 #include "network_type.h"
@@ -292,21 +294,30 @@ private:
 
 namespace Snapshot
 {
-struct Internal
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Internal
+
+struct Internal: std::unary_function<const CVmHardDisk&, boost::optional<Libvirt::Snapshot::Xml::Disk> >
 {
-};
-struct External
-{
+	boost::optional<Libvirt::Snapshot::Xml::Disk> operator()(const CVmHardDisk& disk_) const;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Traits
+// struct External
 
-template <typename T>
-struct Traits
+struct External: std::unary_function<const CVmHardDisk&, boost::optional<Libvirt::Snapshot::Xml::Disk> >
 {
-	static Libvirt::Snapshot::Xml::Disk generateDisk
-		(const CVmHardDisk& disk_, const QString& uuid_);
+
+	External(QStringList disks_, QString snapshot_): m_disks(disks_), m_snapshot(snapshot_)
+	{
+	}
+
+	boost::optional<Libvirt::Snapshot::Xml::Disk> operator()(const CVmHardDisk& disk_) const;
+
+private:
+	QStringList m_disks;
+	QString m_snapshot;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -314,36 +325,27 @@ struct Traits
 
 struct Reverse
 {
+	typedef boost::function1<boost::optional<Libvirt::Snapshot::Xml::Disk>, const CVmHardDisk&> policy_type;
+
 	Reverse(const QString& uuid_, const QString& description_,
 		const CVmConfiguration& input_);
 
 	PRL_RESULT setIdentity();
 	PRL_RESULT setInstructions();
 	void setMemory();
-	QString getResult() const;
-
-	template <typename T>
-	void setHardDisks(const QList<CVmHardDisk*>& disks_)
+	void setPolicy(policy_type policy_)
 	{
-		QList<Libvirt::Snapshot::Xml::Disk> l =	m_result.getDisks() ?
-			m_result.getDisks().get() : QList<Libvirt::Snapshot::Xml::Disk>();
-
-		foreach (const CVmHardDisk* d, disks_)
-		{
-			if (!d->getEnabled() || d->getEmulatedType() != PVE::HardDiskImage)
-				continue;
-
-			l << Traits<T>::generateDisk(*d, m_uuid);
-		}
-		m_result.setDisks(l);
+		m_policy = policy_;
 	}
 
+	QString getResult() const;
+
 private:
-	Libvirt::Snapshot::Xml::VDisk generateExternalSource(const QString& path_);
 	QString m_uuid;
 	QString m_description;
 	CVmHardware m_hardware;
 	Libvirt::Snapshot::Xml::Domainsnapshot m_result;
+	policy_type m_policy;
 };
 
 } // namespace Snapshot

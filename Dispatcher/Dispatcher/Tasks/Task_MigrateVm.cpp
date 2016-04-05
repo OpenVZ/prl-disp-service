@@ -168,6 +168,216 @@ void Task::cancel()
 
 namespace Libvirt
 {
+namespace Trick
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+const char Unit::suffix[] = "pstorage-source";
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Decorator
+
+::Libvirt::Result Decorator::execute()
+{
+	::Libvirt::Result r = do_();
+
+	if (r.isFailed())
+		return r;
+
+	if (m_next.isNull() || (r = m_next->execute()).isSucceed())
+		cleanup();
+	else
+		rollback();
+
+	return r;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct File
+
+::Libvirt::Result File::do_()
+{
+	if (m_path.isEmpty())
+		return ::Libvirt::Result();
+
+	QString patchedFile = disguise(m_path);
+
+	WRITE_TRACE(DBG_DEBUG, "hook file %s", qPrintable(m_path));
+	if (QFileInfo(patchedFile).exists())
+	{
+		return Error::Simple(PRL_ERR_FAILURE, QString("unable to migrate %1: already exists").arg(m_path));
+	}
+
+	if (!QFile::rename(m_path, patchedFile))
+	{
+		WRITE_TRACE(DBG_DEBUG, "unable to rename %s", qPrintable(m_path));
+		return Error::Simple(PRL_ERR_FAILURE, QString("unable to migrate %1: failed to rename").arg(m_path));
+	}
+
+	if (!QFile::copy(patchedFile, m_path))
+	{
+		WRITE_TRACE(DBG_DEBUG, "unable to copy %s", qPrintable(m_path));
+		return Error::Simple(PRL_ERR_FAILURE, QString("unable to migrate %1: failed to copy").arg(m_path));
+	}
+
+	return ::Libvirt::Result();
+}
+
+void File::cleanup()
+{
+	if (m_path.isEmpty())
+		return;
+
+	QFile::remove(disguise(m_path));
+}
+
+void File::rollback()
+{
+	if (m_path.isEmpty())
+		return;
+
+	QFile::remove(m_path);
+	QFile::rename(disguise(m_path), m_path);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Disks
+
+::Libvirt::Result Disks::do_()
+{
+	if (m_disks.isEmpty())
+		return ::Libvirt::Result();
+
+	WRITE_TRACE(DBG_DEBUG, "creating external snapshot");
+	return m_agent.createExternal(suffix, m_disks);
+}
+
+void Disks::cleanup()
+{
+	foreach (const CVmHardDisk* d, m_disks)
+		QFile::remove(disguise(d->getSystemName()));
+}
+
+void Disks::rollback()
+{
+	QList<CVmHardDisk> disks;
+
+	foreach (CVmHardDisk d, m_disks)
+	{
+		d.setSystemName(disguise(d.getSystemName()));
+
+		disks << d;
+	}
+
+	::Libvirt::Instrument::Agent::Vm::Snapshot::Merge m(m_agent, disks);
+	WRITE_TRACE(DBG_DEBUG, "start merge and wait");
+	m.start()->wait();
+	WRITE_TRACE(DBG_DEBUG, "finish merge");
+	m.stop();
+	WRITE_TRACE(DBG_DEBUG, "merge finished");
+}
+
+namespace
+{
+
+template <typename T>
+void getOnlyPcsFsObjects(QList<T*>& dst_, const QList<T*>& src_)
+{
+	foreach (T* d, src_)
+	{
+		if (d->getEnabled() == PVE::DeviceEnabled &&
+			d->getConnected() == PVE::DeviceConnected &&
+			pcs_fs(qPrintable(d->getSystemName())))
+		{
+			WRITE_TRACE(DBG_DEBUG, "%s migrates on pstorage",
+					qPrintable(d->getSystemName()));
+			dst_ << d;
+		}
+	}
+}
+
+void removeUnshared(QList<CVmHardDisk*> disks_, const QList<CVmHardDisk*>& unshared_)
+{
+	QMutableListIterator<CVmHardDisk*> i(disks_);
+	while (i.hasNext())
+	{
+		if (unshared_.contains(i.next()))
+			i.remove();
+	}
+}
+
+} // namespace
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+Unit* Factory::operator()(const agent_type& agent_, const CVmConfiguration& target_)
+{
+	if (!m_ports)
+	{
+		WRITE_TRACE(DBG_DEBUG, "we use offline migration");
+		return new Migration(boost::bind(&agent_type::doOffline, agent_, target_));
+	}
+
+	Unit* work = NULL;
+	const CVmConfiguration* config = m_task->getVmConfig();
+
+	if (NULL == config)
+		return NULL;
+
+	QList<CVmHardDisk*> disks;
+	getOnlyPcsFsObjects(disks, config->getVmHardwareList()->m_lstHardDisks);
+
+	QList<CVmHardDisk*> unshared = m_task->getVmUnsharedDisks();
+
+	if (unshared.isEmpty())
+		WRITE_TRACE(DBG_DEBUG, "there is no unshared disks to migrate");
+
+	if (!disks.isEmpty())
+	{
+		WRITE_TRACE(DBG_DEBUG, "there are disks on pstorage to migrate");
+		removeUnshared(disks, unshared);
+		unshared.append(disks);
+	}
+
+	boost::optional<Task::agent_type::nbd_type> nbd;
+	if (!unshared.isEmpty())
+		nbd = qMakePair(unshared, m_ports->second);
+	else
+		WRITE_TRACE(DBG_DEBUG, "there is no disk to migrate");
+
+	work = new Migration(boost::bind(&agent_type::doOnline, agent_, target_,
+		m_ports->first, nbd));
+
+	if (!disks.isEmpty())
+	{
+		WRITE_TRACE(DBG_DEBUG, "some disks will be migrated using snapshots");
+		work = new Disks(disks, ::Libvirt::Kit.vms().at(m_task->getVmUuid()).getSnapshot(), work);
+	}
+
+	QList<CVmSerialPort*> serials;
+	getOnlyPcsFsObjects(serials, config->getVmHardwareList()->m_lstSerialPorts);
+
+	foreach(CVmSerialPort* s, serials)
+		work = new File(s->getSystemName(), work);
+
+	CVmSettings* a;
+	CVmStartupOptions* b;
+	CVmStartupBios* c;
+	QString nvram;
+	if (NULL != (a = config->getVmSettings()) &&
+			NULL != (b = a->getVmStartupOptions()) &&
+			NULL != (c = b->getBios()) &&
+			pcs_fs(qPrintable(c->getNVRAM())))
+		work = new File(c->getNVRAM(), work);
+
+	return work;
+}
+
+} // namespace Trick
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Task
 
@@ -176,7 +386,14 @@ Flop::Event Task::run()
 	if (NULL == m_config)
 		return Flop::Event(PRL_ERR_NO_DATA);
 
-	::Libvirt::Result r = m_work(m_agent, *m_config);
+	QScopedPointer<Trick::Unit> work(m_factory(m_agent, *m_config));
+	if (work.isNull())
+	{
+		WRITE_TRACE(DBG_DEBUG, "empty list of work for migration");
+		return Flop::Event(PRL_ERR_FAILURE);
+	}
+
+	::Libvirt::Result r = work->execute();
 	if (r.isSucceed())
 		return Flop::Event();
 
@@ -241,27 +458,21 @@ void Frontend::start(const serverList_type& event_)
 				.arg(QHostAddress(QHostAddress::LocalHost).toString())
 				.arg(event_.first()->serverPort());
 	Task::agent_type a = ::Libvirt::Kit.vms().at(m_task->getVmUuid()).migrate(u);
+
 	switch (m_task->getOldState())
 	{
 	case VMS_PAUSED:
 	case VMS_RUNNING:
 		break;
 	default:
-		return launch(new Task(a,
-			boost::bind(&Task::agent_type::doOffline, _1, _2),
+		return launch(new Task(a, Trick::Factory(*m_task),
 			m_task->getTargetConfig()));
 	}
 	m_progress = QSharedPointer<Progress>(new Progress(a, m_reporter));
 	m_progress->startTimer(0);
 
-	boost::optional<Task::agent_type::nbd_type> b;
-	QList<CVmHardDisk* > d = m_task->getVmUnsharedDisks();
-	if (!d.isEmpty())
-		b = qMakePair(d, event_.at(2)->serverPort());
-
-	launch(new Task(a,
-		boost::bind(&Task::agent_type::doOnline, _1, _2,
-			event_.at(1)->serverPort(), b),
+	launch(new Task(a, Trick::Factory(*m_task).setPorts(
+			qMakePair(event_.at(1)->serverPort(), event_.at(2)->serverPort())),
 		m_task->getTargetConfig()));
 }
 
@@ -1082,6 +1293,7 @@ PRL_RESULT Task_MigrateVmSource::migrateStoppedVm()
 	SmartPtr<IOPackage> b = DispatcherPackage::createInstance
 			(a->GetCommandId(), a->GetCommand()->toString());
 
+	m_pVmConfig->setAbsolutePath();
 	return SendPkg(b);
 }
 
@@ -1508,7 +1720,8 @@ QList<CVmHardDisk* > Task_MigrateVmSource::getVmUnsharedDisks() const
 				d->getEmulatedType() != PVE::HardDiskImage)
 				continue;
 
-			if (!QFileInfo(d->getSystemName()).isAbsolute())
+			if (!QFileInfo(d->getSystemName()).isAbsolute() ||
+					d->getSystemName().startsWith(m_sVmHomePath))
 				output << d;
 		}
 	}

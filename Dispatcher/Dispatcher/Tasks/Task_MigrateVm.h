@@ -93,6 +93,10 @@ public:
 	{
 		return m_targetConfig.data();
 	}
+	const CVmConfiguration* getVmConfig() const
+	{
+		return m_pVmConfig.get();
+	}
 	VIRTUAL_MACHINE_STATE getOldState() const
 	{
 		return m_nPrevVmState;

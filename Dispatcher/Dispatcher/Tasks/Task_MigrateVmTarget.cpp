@@ -39,6 +39,7 @@
 #include <prlcommon/Logging/Logging.h>
 #include "Libraries/StatesStore/SavedStateTree.h"
 #include <prlcommon/Std/PrlTime.h>
+#include <prlcommon/HostUtils/PCSUtils.h>
 
 #include "CDspVmDirHelper.h"
 #include "Task_MigrateVmTarget.h"
@@ -59,7 +60,6 @@
 #include "CDspService.h"
 #include "Libraries/PrlCommonUtils/CVmMigrateHelper.h"
 #include "Task_MigrateVmTarget_p.h"
-
 
 namespace Migrate
 {
@@ -300,6 +300,149 @@ target_type Ready::operator()
 
 namespace Target
 {
+namespace Libvirt
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Pstorage
+
+const char Pstorage::suffix[] = "pstorage-target";
+
+Pstorage::Pstorage(const QStringList& files_)
+{
+	foreach(const QString& checkFile, files_)
+	{
+		QFileInfo i(checkFile);
+		if (i.exists())
+			m_sharedDirs << i.dir().absolutePath();
+	}
+}
+
+Pstorage::~Pstorage()
+{
+	while (!m_patchedDisks.isEmpty())
+	{
+		PRL_ASSERT(!m_savedSystemNames.isEmpty());
+		m_patchedDisks.takeLast()->setSystemName(m_savedSystemNames.takeLast());
+	}
+}
+
+bool Pstorage::monkeyPatch(CVmConfiguration& config_)
+{
+	// patch enabled shared disks on pstorage
+	foreach(CVmHardDisk* d, config_.getVmHardwareList()->m_lstHardDisks)
+	{
+		if (isNotMigratable(*d) && !patch(*d))
+			return false;
+	}
+	return true;
+}
+
+bool Pstorage::patch(CVmHardDisk& disk_)
+{
+	QString path = disk_.getSystemName();
+	QString patchedPath = disguise(path);
+	if (!createBackedImage(disk_, patchedPath))
+	{
+		WRITE_TRACE(DBG_DEBUG, "unable to create backed image %s",
+			qPrintable(patchedPath));
+		return false;
+	}
+
+	disk_.setSystemName(patchedPath);
+	disk_.setUserFriendlyName(patchedPath);
+
+	WRITE_TRACE(DBG_DEBUG, "patched path %s", qPrintable(patchedPath));
+	m_savedSystemNames << path;
+	m_patchedDisks << &disk_;
+
+	return true;
+}
+
+bool Pstorage::isNotMigratable(const CVmHardDisk& disk_) const
+{
+	// check if disk has a problem with shared migration because of Pstorage
+	if (disk_.getConnected() == PVE::DeviceDisconnected
+		|| disk_.getEnabled() == PVE::DeviceDisabled)
+		return false;
+
+	return pcs_fs(qPrintable(disk_.getSystemName())) &&
+		m_sharedDirs.contains(QFileInfo(disk_.getSystemName()).dir().absolutePath());
+}
+
+bool Pstorage::createBackedImage(const CVmHardDisk& disk_, const QString& path_) const
+{
+	QStringList a;
+	a << "create" << "-f" << "qcow2";
+	a << "-o" << "lazy_refcounts=on";
+	a << "-b" << disk_.getSystemName();
+	a << "-o" << QString("backing_fmt=%1").arg("qcow2");
+	a << path_;
+	a << QString::number(disk_.getSize()).append("M");
+	return 0 == QProcess::execute("qemu-img", a);
+}
+
+QList<CVmHardDisk> Pstorage::getDisks(const CVmConfiguration& config_) const
+{
+	QList<CVmHardDisk> disks;
+	foreach(CVmHardDisk d, config_.getVmHardwareList()->m_lstHardDisks)
+	{
+		if (!isNotMigratable(d))
+			continue;
+
+		d.setSystemName(disguise(d.getSystemName()));
+		disks << d;
+	}
+	return disks;
+}
+
+void Pstorage::cleanup(const CVmConfiguration& config_) const
+{
+	foreach(CVmHardDisk* d, config_.getVmHardwareList()->m_lstHardDisks)
+	{
+		if (isNotMigratable(*d))
+			QFile::remove(disguise(d->getSystemName()));
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+void Connector::reactState(unsigned, unsigned, QString vmUuid_, QString)
+{
+	WRITE_TRACE(DBG_DEBUG, "got change state event");
+	if (m_uuid != vmUuid_)
+		return;
+
+	WRITE_TRACE(DBG_DEBUG, "handle change state event");
+	handle(Tentative::Defined());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Tentative
+
+template <typename Event, typename FSM>
+void Tentative::on_entry(const Event&, FSM&)
+{
+	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
+	bool x;
+	getConnector()->setUuid(m_uuid);
+	x = getConnector()->connect(s.getPtr(),
+		SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
+		SLOT(reactState(unsigned, unsigned, QString, QString)));
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+}
+
+template <typename Event, typename FSM>
+void Tentative::on_exit(const Event&, FSM&)
+{
+	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
+	s->disconnect(SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
+			getConnector(), SLOT(reactState(const SmartPtr<IOPackage>&)));
+	getConnector()->setUuid(QString());
+}
+
+} // namespace Libvirt
 namespace Content
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -342,6 +485,59 @@ void Frontend::copy(const CopyCommand_type& event_)
 }
 
 } // namespace Content
+
+namespace Commit
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+void Connector::reactFinished()
+{
+	handle(Perform::Done());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Perform
+
+template <typename Event, typename FSM>
+void Perform::on_entry(const Event&, FSM& fsm_)
+{
+	if (m_state != VMS_RUNNING && m_state != VMS_PAUSED)
+	{
+		fsm_.process_event(Done());
+		return;
+	}
+
+	::Libvirt::Instrument::Agent::Vm::Snapshot::List s =
+		::Libvirt::Kit.vms().at(m_config->getVmIdentification()->getVmUuid()).getSnapshot();
+
+	m_merge = QSharedPointer<merge_type>(new merge_type(s, helper_type(m_check).getDisks(*m_config)));
+
+	m_future = m_merge->start();
+
+	if (!getConnector()->connect(m_future.data(),
+			SIGNAL(finished()),
+			SLOT(reactFinished())))
+		WRITE_TRACE(DBG_FATAL, "can't connect commit future");
+}
+
+template <typename Event, typename FSM>
+void Perform::on_exit(const Event&, FSM&)
+{
+	if (!m_future.isNull())
+	{
+		m_future->disconnect(SIGNAL(finished()), getConnector(), SLOT(reactFinish()));
+		m_future.clear();
+	}
+
+	if (!m_merge.isNull())
+	{
+		m_merge->stop();
+		m_merge.clear();
+	}
+}
+
+} // namespace Commit
 
 namespace Start
 {
@@ -498,11 +694,11 @@ QSharedPointer<QLocalSocket> Socket<QLocalSocket>::craft(connector_type& connect
 	x = connector_.connect(output.data(), SIGNAL(connected()),
 		SLOT(reactConnected()), Qt::QueuedConnection);
 	if (!x)
-		WRITE_TRACE(DBG_FATAL, "can't connect");
+		WRITE_TRACE(DBG_FATAL, "can't connect local socket connect");
 	x = connector_.connect(output.data(), SIGNAL(disconnected()),
 		SLOT(reactDisconnected()), Qt::QueuedConnection);
 	if (!x)
-		WRITE_TRACE(DBG_FATAL, "can't connect");
+		WRITE_TRACE(DBG_FATAL, "can't connect local socket disconnect");
 
 	return output;
 }
@@ -528,15 +724,15 @@ QSharedPointer<QTcpSocket> Socket<QTcpSocket>::craft(connector_type& connector_)
 	x = connector_.connect(output.data(), SIGNAL(connected()),
 		SLOT(reactConnected()), Qt::QueuedConnection);
 	if (!x)
-		WRITE_TRACE(DBG_FATAL, "can't connect");
+		WRITE_TRACE(DBG_FATAL, "can't connect socket connect");
 	x = connector_.connect(output.data(), SIGNAL(disconnected()),
 		SLOT(reactDisconnected()), Qt::QueuedConnection);
 	if (!x)
-		WRITE_TRACE(DBG_FATAL, "can't connect");
+		WRITE_TRACE(DBG_FATAL, "can't connect socket disconnect");
 	x = connector_.connect(output.data(), SIGNAL(error(QAbstractSocket::SocketError)),
 		SLOT(reactError(QAbstractSocket::SocketError)), Qt::QueuedConnection);
 	if (!x)
-		WRITE_TRACE(DBG_FATAL, "can't connect");
+		WRITE_TRACE(DBG_FATAL, "can't connect socket errors");
 
 	return output;
 }
@@ -630,6 +826,23 @@ void Connector::react(const SmartPtr<IOPackage>& package_)
 	}
 }
 
+namespace Move
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+void Frontend::synch(const msmf::none&)
+{
+	SmartPtr<IOPackage> p = IOPackage::createInstance(Vm::Pump::FinishCommand_type::s_command, 1);
+	if (!p.isValid())
+		return getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
+
+	if (!m_io->sendPackage(p).isValid())
+		return getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
+}
+
+} //namespace Move
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
@@ -641,16 +854,16 @@ void Frontend::on_entry(const Event& event_, FSM& fsm_)
 	x = getConnector()->connect(m_task, SIGNAL(cancel()), SLOT(cancel()),
 		Qt::QueuedConnection);
 	if (!x)
-		WRITE_TRACE(DBG_FATAL, "can't connect");
+		WRITE_TRACE(DBG_FATAL, "can't connect cancle");
 	x = getConnector()->connect(m_io,
 			SIGNAL(onReceived(const SmartPtr<IOPackage>&)),
 			SLOT(react(const SmartPtr<IOPackage>&)));
 	if (!x)
-		WRITE_TRACE(DBG_FATAL, "can't connect");
+		WRITE_TRACE(DBG_FATAL, "can't connect react on received");
 	x = getConnector()->connect(m_io, SIGNAL(disconnected()), SLOT(disconnected()),
 		Qt::QueuedConnection);
 	if (!x)
-		WRITE_TRACE(DBG_FATAL, "can't connect");
+		WRITE_TRACE(DBG_FATAL, "can't connect disconnect");
 }
 
 template <typename Event, typename FSM>
@@ -661,16 +874,6 @@ void Frontend::on_exit(const Event& event_, FSM& fsm_)
 	m_io->disconnect(SIGNAL(onReceived(const SmartPtr<IOPackage>&)),
 			getConnector(), SLOT(react(const SmartPtr<IOPackage>&)));
 	m_io->disconnect(SIGNAL(disconnected()), getConnector(), SLOT(disconnected()));
-}
-
-void Frontend::synch(const msmf::none&)
-{
-	SmartPtr<IOPackage> p = IOPackage::createInstance(Vm::Pump::FinishCommand_type::s_command, 1);
-	if (!p.isValid())
-		return getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
-
-	if (!m_io->sendPackage(p).isValid())
-		return getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
 }
 
 void Frontend::setResult(const Flop::Event& value_)
@@ -889,6 +1092,9 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 			}
 			checkRequiresDiskSpace();
 		}
+		else
+			// add config to shared check list
+			m_lstCheckFilesExt << m_sVmConfigPath;
 	}
 
 	m_pVmConfig->getVmHardwareList()->RevertDevicesPathToAbsolute(m_sTargetVmHomePath);
@@ -1075,6 +1281,8 @@ void Task_MigrateVmTarget::finalizeTask()
 	}
 	else
 	{
+		if (m_pVmConfig.isValid() && (m_nPrevVmState == VMS_RUNNING || m_nPrevVmState == VMS_PAUSED))
+			Migrate::Vm::Target::Libvirt::Pstorage(m_lstCheckFilesExt).cleanup(*m_pVmConfig);
 		/* It is not possible to get Vm client list after deleteVmDirectoryItem(), and
 		   sendPackageToVmClients() does not work. Get list right now and will use
 		   sendPackageToClientList() call (https://jira.sw.ru/browse/PSBM-9159) */
@@ -1088,6 +1296,9 @@ void Task_MigrateVmTarget::finalizeTask()
 		   we can remove 'already existed Vm' */
 		if (m_nSteps & MIGRATE_STARTED)
 		{
+			if (PRL_FAILED(m_registry.undeclare(m_sVmUuid)))
+				WRITE_TRACE(DBG_FATAL, "Unable to undeclare VM after migration fail");
+
 			if (!CDspService::instance()->isServerStopping())
 				CDspService::instance()->getVmConfigWatcher().unregisterVmToWatch(m_sTargetVmHomePath);
 			if ( !(m_nReservedFlags & PVM_DONT_COPY_VM) )
@@ -1311,7 +1522,7 @@ PRL_RESULT Task_MigrateVmTarget::checkSharedStorage()
 		}
 		WRITE_TRACE(DBG_FATAL,
 			    "Found no %s file on target server. Storage is NOT shared.",
-			    QSTR2UTF8(sharedFileInfo.fileName()));
+			    QSTR2UTF8(sharedFileInfo.absoluteFilePath()));
 		return PRL_ERR_SUCCESS;
 	}
 
@@ -1584,10 +1795,23 @@ void Task_MigrateVmTarget::unregisterHaClusterResource()
 PRL_RESULT Task_MigrateVmTarget::preconditionsReply()
 {
 	PRL_RESULT r;
+
+	Migrate::Vm::Target::Libvirt::Pstorage p(m_lstCheckFilesExt);
+	if ((m_nPrevVmState == VMS_RUNNING || m_nPrevVmState == VMS_PAUSED) &&
+		!p.monkeyPatch(*m_pVmConfig))
+	{
+		setLastErrorCode(PRL_ERR_OPERATION_FAILED);
+		return PRL_ERR_OPERATION_FAILED;
+	}
+
 	QScopedPointer<CVmMigrateCheckPreconditionsReply> cmd(
 			new CVmMigrateCheckPreconditionsReply(
 				m_lstCheckPrecondsErrors, m_lstNonSharedDisks, m_nFlags));
 	cmd->SetConfig(m_pVmConfig->toString());
+
+	WRITE_TRACE(DBG_DEBUG, "hardware config that was recieved from the target:\n %s",
+		qPrintable(m_pVmConfig->getVmHardwareList()->toString()));
+
 	SmartPtr<IOPackage> package = DispatcherPackage::createInstance(
 			cmd->GetCommandId(), cmd->GetCommand()->toString(), m_pCheckPackage);
 	r = m_dispConnection->sendPackageResult(package);
@@ -1605,6 +1829,15 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 		CDspService::instance()->getDispConfigGuard().getDispToDispPrefs()->getSendReceiveTimeout() * 1000;
 
 	mvt::Tunnel::IO io(*m_dispConnection);
+
+	backend_type::Moving moveStep(boost::msm::back::states_
+		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 0>::type(boost::cref(m_sVmUuid))
+		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 1>::type(
+			boost::msm::back::states_
+				<< mvt::Move::Frontend::Tunneling(boost::ref(io))
+				<< mvt::Move::Frontend::Synching(t),
+			boost::ref(io)));
+
 	backend_type machine(boost::msm::back::states_
 		<< Migrate::Vm::Finished(*this)
 		<< backend_type::Starting(boost::msm::back::states_
@@ -1613,8 +1846,8 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 	                        VM_MIGRATE_START_CMD_WAIT_TIMEOUT),
 			boost::ref(*this))
 		<< backend_type::Copying(boost::ref(*this))
-		<< backend_type::Tunneling(boost::ref(io))
-		<< backend_type::Synching(t),
+		<< moveStep
+		<< backend_type::Commiting(boost::ref(*m_pVmConfig), boost::cref(m_lstCheckFilesExt), m_nPrevVmState),
 		boost::ref(*this), boost::ref(io)
 		);
 	(Migrate::Vm::Walker<backend_type>(machine))();

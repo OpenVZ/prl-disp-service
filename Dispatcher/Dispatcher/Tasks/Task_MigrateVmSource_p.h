@@ -41,6 +41,8 @@
 #include <boost/msm/back/state_machine.hpp>
 #include <boost/msm/front/state_machine_def.hpp>
 #include <Libraries/VmFileList/CVmFileListCopy.h>
+#include <prlcommon/HostUtils/PCSUtils.h>
+#include "CDspLibvirt.h"
 
 class Task_MigrateVmSource;
 
@@ -246,16 +248,139 @@ private:
 
 namespace Libvirt
 {
+namespace Trick
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+struct Unit
+{
+	virtual ~Unit()
+	{
+	}
+
+	static const char suffix[];
+	static QString disguise(const QString& word_)
+	{
+		return word_ + "." + suffix;
+	}
+
+	virtual ::Libvirt::Result execute() = 0;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Decorator
+
+struct Decorator: Unit
+{
+	Decorator(Unit* trick_)
+	{
+		m_next.reset(trick_);
+	}
+
+	::Libvirt::Result execute();
+
+private:
+	virtual ::Libvirt::Result do_() = 0;
+	virtual void rollback() = 0;
+	virtual void cleanup() = 0;
+
+	QScopedPointer<Unit> m_next;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Migration
+
+struct Migration: Unit
+{
+	explicit Migration(const boost::function0< ::Libvirt::Result>& work_): m_work(work_)
+	{
+	}
+
+	::Libvirt::Result execute()
+	{
+		return m_work();
+	}
+
+private:
+	boost::function0< ::Libvirt::Result> m_work;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct File
+
+struct File: Decorator
+{
+	File(const QString& path_, Unit* next_): Decorator(next_), m_path(path_)
+	{
+	}
+
+	::Libvirt::Result do_();
+	void rollback();
+	void cleanup();
+
+private:
+	QString m_path;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Disks
+
+struct Disks: Decorator
+{
+	typedef ::Libvirt::Instrument::Agent::Vm::Snapshot::List agent_type;
+
+	Disks(const QList<CVmHardDisk*>& disks_, const agent_type& agent_, Unit* next_):
+		Decorator(next_), m_disks(disks_), m_agent(agent_)
+	{
+	}
+
+	::Libvirt::Result do_();
+	void rollback();
+	void cleanup();
+
+private:
+	QList<CVmHardDisk*> m_disks;
+	agent_type m_agent;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+struct Factory
+{
+	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Task agent_type;
+
+	explicit Factory(Task_MigrateVmSource& task_):
+		m_task(&task_), m_ports(boost::none)
+	{
+	}
+
+	Factory& setPorts(const QPair<quint16,quint16>& ports_)
+	{
+		m_ports = ports_;
+		return *this;
+	}
+
+	Unit* operator()(const agent_type& agent, const CVmConfiguration& target_);
+
+private:
+	Task_MigrateVmSource* m_task;
+	boost::optional<QPair<quint16,quint16> > m_ports;
+};
+
+} // namespace Trick
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Task
 
 struct Task
 {
 	typedef Progress::agent_type agent_type;
-	typedef boost::function2< ::Libvirt::Result, agent_type, const CVmConfiguration&> work_type;
+	typedef Trick::Factory factory_type;
 
-	Task(const agent_type& agent_, const work_type& work_, const CVmConfiguration* config_):
-		m_work(work_), m_agent(agent_), m_config(config_)
+	Task(const agent_type& agent_, const factory_type& factory_, const CVmConfiguration* config_):
+		m_factory(factory_), m_agent(agent_), m_config(config_)
 	{
 	}
 
@@ -263,7 +388,7 @@ struct Task
 	void cancel();
 
 private:
-	work_type m_work;
+	factory_type m_factory;
 	agent_type m_agent;
 	const CVmConfiguration* m_config;
 };
