@@ -987,8 +987,16 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 	// Append VMs to the list
 	foreach(SmartPtr<CVmConfiguration> pVmConfig, _vms_configs)
 	{
-		if ((nFlags & PGVLF_GET_ONLY_VM_TEMPLATES) && !pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
-			continue;
+		if (pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+		{
+			if ((nFlags & (PGVLF_GET_ONLY_CT | PGVLF_GET_ONLY_VM)) == (PGVLF_GET_ONLY_CT | PGVLF_GET_ONLY_VM))
+				continue;
+		}
+		else
+		{
+			if (nFlags & PGVLF_GET_ONLY_VM_TEMPLATES)
+				continue;
+		}
 
 		if (nFlags & PGVLF_GET_STATE_INFO)
 		{
