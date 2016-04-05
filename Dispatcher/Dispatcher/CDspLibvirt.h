@@ -180,6 +180,60 @@ private:
 	QSharedPointer<virDomain> m_domain;
 };
 
+namespace Block
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+struct Unit
+{
+	Unit(const QSharedPointer<virDomain>& domain_, const QString& disk_, const QString& path_):
+		m_domain(domain_), m_disk(disk_), m_path(path_)
+	{
+	}
+
+	Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> getProgress() const;
+	Result abort() const;
+	Result finish() const;
+
+private:
+	QSharedPointer<virDomain> m_domain;
+	QString m_disk;
+	QString m_path;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Future
+
+struct Future: QObject
+{
+	explicit Future(const QList<Unit>& units_): m_units(units_)
+	{
+		m_timer = startTimer(0);
+	}
+
+	void wait();
+	void cancel();
+
+signals:
+	void finished();
+
+private slots:
+	void exit();
+
+private:
+	void timerEvent(QTimerEvent*);
+
+	Q_OBJECT
+
+	QList<Unit> m_units;
+	QList<Unit> m_completed;
+	int m_timer;
+	QEventLoop m_loop;
+};
+
+} // namespace Block
+
 namespace Snapshot
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -219,7 +273,7 @@ struct List
 	Result defineConsistent(const QString& uuid_, const QString& description_,
 		Unit* dst_ = NULL);
 	Result createExternal(const QString& uuid_, const QList<CVmHardDisk*>& disks_);
-	Result mergeDisk(const CVmHardDisk& disks_, quint32 timeout = 120);
+	Prl::Expected<Block::Unit, ::Error::Simple> merge(const CVmHardDisk& disk_);
 
 private:
 	Prl::Expected<Unit, ::Error::Simple>
@@ -229,6 +283,24 @@ private:
 		(const Prl::Expected<Unit, ::Error::Simple>& result_, Unit* dst_);
 
 	QSharedPointer<virDomain> m_domain;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Merge
+
+struct Merge
+{
+	Merge(const List& agent_, const QList<CVmHardDisk>& disks): m_agent(agent_), m_disks(disks), m_units()
+	{
+	}
+
+	QSharedPointer<Block::Future> start();
+	void stop();
+
+private:
+	List m_agent;
+	QList<CVmHardDisk> m_disks;
+	QList<Block::Unit> m_units;
 };
 
 } // namespace Snapshot

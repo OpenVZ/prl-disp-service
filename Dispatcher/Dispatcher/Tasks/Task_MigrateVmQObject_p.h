@@ -268,6 +268,38 @@ private:
 
 namespace Target
 {
+namespace Libvirt
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector_
+
+struct Connector_: QObject
+{
+public slots:
+	virtual void reactState(unsigned, unsigned, QString, QString) = 0;
+
+private:
+	Q_OBJECT
+};
+
+} // namespace Libvirt
+
+namespace Commit
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector_
+
+struct Connector_: QObject
+{
+public slots:
+	virtual void reactFinished() = 0;
+
+private:
+	Q_OBJECT
+};
+
+} // namespace Commit
+
 namespace Tunnel
 {
 ///////////////////////////////////////////////////////////////////////////////

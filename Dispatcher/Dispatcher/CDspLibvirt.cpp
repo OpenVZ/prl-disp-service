@@ -178,6 +178,8 @@ Result Offline::operator()(Parameters::Builder& builder_)
 		return x.error();
 	}
 
+	WRITE_TRACE(DBG_DEBUG, "migration target xml:\n%s", x.value().toUtf8().data());
+
 	if (!builder_.add(VIR_MIGRATE_PARAM_DEST_XML, x.value()))
 		return Failure(PRL_ERR_FAILURE);
 

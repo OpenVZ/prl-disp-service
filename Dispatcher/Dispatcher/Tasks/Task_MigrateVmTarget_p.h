@@ -40,8 +40,10 @@
 #include "Task_MigrateVm_p.h"
 #include <boost/msm/back/state_machine.hpp>
 #include <boost/phoenix/core/reference.hpp>
+#include <boost/mpl/pair.hpp>
 #include <boost/msm/front/state_machine_def.hpp>
 #include <Libraries/VmFileList/CVmFileListCopy.h>
+#include "CDspLibvirt.h"
 
 class Task_MigrateVmTarget;
 
@@ -55,6 +57,79 @@ struct Frontend;
 typedef boost::msm::back::state_machine<Frontend> Machine_type;
 typedef Pump::Event<Parallels::VmMigrateStartCmd> StartCommand_type;
 typedef Pump::Event<Parallels::FileCopyRangeStart> CopyCommand_type;
+
+namespace Libvirt
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Pstorage
+
+struct Pstorage
+{
+	explicit Pstorage(const QStringList& files_);
+	~Pstorage();
+
+	bool monkeyPatch(CVmConfiguration& config_);
+	QList<CVmHardDisk> getDisks(const CVmConfiguration& config_) const;
+	void cleanup(const CVmConfiguration& config_) const;
+
+private:
+	static const char suffix[];
+	static QString disguise(const QString& word_)
+	{
+		return word_ + "." + suffix;
+	}
+
+	bool isNotMigratable(const CVmHardDisk& disk_) const;
+	bool patch(CVmHardDisk& disk_);
+	bool createBackedImage(const CVmHardDisk& disk_, const QString& path_) const;
+
+	QStringList m_sharedDirs;
+	QList<CVmHardDisk*> m_patchedDisks;
+	QStringList m_savedSystemNames;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+struct Connector: Connector_, Vm::Connector::Base<Machine_type>
+{
+	void setUuid(const QString& uuid_)
+	{
+		m_uuid = uuid_;
+	}
+
+	void reactState(unsigned, unsigned, QString, QString);
+
+private:
+	QString m_uuid;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Tentative
+
+struct Tentative: Trace<Tentative>, Vm::Connector::Mixin<Connector>
+{
+	explicit Tentative(const QString& uuid_): m_uuid(uuid_)
+	{
+	}
+	Tentative(): m_uuid()
+	{
+	}
+
+	struct Defined
+	{
+	};
+
+	template <typename Event, typename FSM>
+	void on_entry(const Event&, FSM&);
+	template <typename Event, typename FSM>
+	void on_exit(const Event&, FSM&);
+
+private:
+	QString m_uuid;
+};
+
+} // namespace Libvirt
 
 namespace Content
 {
@@ -103,6 +178,54 @@ private:
 };
 
 } // namespace Content
+
+namespace Commit
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+struct Connector: Connector_, Vm::Connector::Base<Machine_type>
+{
+	void reactFinished();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Perform
+
+struct Perform: Trace<Perform>, Vm::Connector::Mixin<Connector>
+{
+	Perform(CVmConfiguration& config_, const QStringList& checkFiles_,
+			VIRTUAL_MACHINE_STATE state_):
+		m_config(&config_), m_check(checkFiles_), m_state(state_)
+	{
+	}
+	Perform(): m_config(), m_check(), m_state()
+	{
+	}
+
+	struct Done
+	{
+	};
+
+	template <typename Event, typename FSM>
+	void on_entry(const Event&, FSM&);
+
+	template <typename Event, typename FSM>
+	void on_exit(const Event&, FSM&);
+
+private:
+	typedef Migrate::Vm::Target::Libvirt::Pstorage helper_type;
+	typedef ::Libvirt::Instrument::Agent::Vm::Block::Future future_type;
+	typedef ::Libvirt::Instrument::Agent::Vm::Snapshot::Merge merge_type;
+
+	CVmConfiguration* m_config;
+	QStringList m_check;
+	QSharedPointer<future_type> m_future;
+	QSharedPointer<merge_type> m_merge;
+	VIRTUAL_MACHINE_STATE m_state;
+};
+
+} // namespace Commit
 
 namespace Start
 {
@@ -479,16 +602,56 @@ struct Connector: Connector_, Vm::Connector::Base<Machine_type>
 	void react(const SmartPtr<IOPackage>& package_);
 };
 
+namespace Move
+{
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
 struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 {
-        typedef Pipeline::Frontend<Machine_type, Vm::Pump::FinishCommand_type> synch_type;
+	typedef Pipeline::Frontend<Machine_type, Vm::Pump::FinishCommand_type> synch_type;
+	typedef boost::msm::back::state_machine<Tunnel::Frontend> Tunneling;
+	typedef boost::msm::back::state_machine<synch_type> Synching;
+	typedef Tunneling initial_state;
+
+	explicit Frontend(Tunnel::IO& io_): m_io(&io_)
+	{
+	}
+	Frontend(): m_io()
+	{
+	}
+
+	void synch(const msmf::none&);
+
+	struct transition_table : boost::mpl::vector<
+		_row<Tunneling::exit_pt<Flop::State>,  Flop::Event,    Flop::State>,
+		_row<Synching::exit_pt<Flop::State>,   Flop::Event,    Flop::State>,
+		a_row<Tunneling::exit_pt<Success>,     msmf::none,     Synching,      &Frontend::synch>,
+		msmf::Row<Synching::exit_pt<Success>,  msmf::none,     Success>
+	>
+	{
+	};
+
+private:
+	Tunnel::IO* m_io;
+};
+
+} // namespace Move
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
+{
 	typedef boost::msm::back::state_machine<Start::Frontend> Starting;
 	typedef boost::msm::back::state_machine<Content::Frontend> Copying;
-	typedef boost::msm::back::state_machine<Tunnel::Frontend> Tunneling;
-        typedef boost::msm::back::state_machine<synch_type> Synching;
+	typedef Join<boost::mpl::vector
+		<
+				boost::mpl::pair<Libvirt::Tentative, Libvirt::Tentative::Defined>,
+				Move::Frontend>
+		> moving_type;
+	typedef boost::msm::back::state_machine<moving_type> Moving;
+	typedef Commit::Perform Commiting;
 	typedef Starting initial_state;
 
 	Frontend(Task_MigrateVmTarget& task_, Tunnel::IO& io_):
@@ -505,25 +668,23 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	template <typename Event, typename FSM>
 	void on_exit(const Event&, FSM&);
 
-	void synch(const msmf::none&);
 	void setResult(const Flop::Event& value_);
 
 	struct transition_table : boost::mpl::vector<
 		// wire error exits to FINISHED immediately
 		a_row<Starting::exit_pt<Flop::State>,  Flop::Event,Finished, &Frontend::setResult>,
 		a_row<Copying::exit_pt<Flop::State>,   Flop::Event,Finished, &Frontend::setResult>,
-		a_row<Tunneling::exit_pt<Flop::State>, Flop::Event,Finished, &Frontend::setResult>,
-		a_row<Synching::exit_pt<Flop::State>,  Flop::Event,Finished, &Frontend::setResult>,
+		a_row<Moving::exit_pt<Flop::State>,    Flop::Event,Finished, &Frontend::setResult>,
 		// wire success exits sequentially up to FINISHED
 		msmf::Row<Starting::exit_pt<Success>,  msmf::none,Copying>,
-		msmf::Row<Copying::exit_pt<Success>,   msmf::none,Tunneling>,
-		a_row<Tunneling::exit_pt<Success>,     msmf::none,Synching,  &Frontend::synch>,
-		msmf::Row<Synching::exit_pt<Success>,  msmf::none,Finished>,
+		msmf::Row<Copying::exit_pt<Success>,   msmf::none,Moving>,
+		msmf::Row<Moving::exit_pt<Success>,    msmf::none,Commiting>,
+		msmf::Row<Commiting,                   Commiting::Done,Finished>,
 		// handle asyncronous termination
 		a_row<Starting,                        Flop::Event, Finished, &Frontend::setResult>,
 		a_row<Copying,                         Flop::Event, Finished, &Frontend::setResult>,
-		a_row<Synching,                        Flop::Event, Finished, &Frontend::setResult>,
-		a_row<Tunneling,                       Flop::Event, Finished, &Frontend::setResult>
+		a_row<Commiting,                       Flop::Event, Finished, &Frontend::setResult>,
+		a_row<Moving,                          Flop::Event, Finished, &Frontend::setResult>
 	>
 	{
 	};

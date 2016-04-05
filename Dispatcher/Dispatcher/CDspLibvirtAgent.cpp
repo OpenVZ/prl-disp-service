@@ -1491,6 +1491,129 @@ Result List::all(QList<Unit>& dst_)
 	return Result();
 }
 
+namespace Block
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> Unit::getProgress() const
+{
+	if (m_domain.isNull())
+		return Failure(PRL_ERR_TASK_NOT_FOUND);
+
+	WRITE_TRACE(DBG_DEBUG, "get block job info for disk %s", qPrintable(m_disk));
+
+	virDomainBlockJobInfo info;
+	int n = virDomainGetBlockJobInfo(m_domain.data(), m_disk.toUtf8().data(), &info, 0);
+
+	// -1 in case of failure, 0 when nothing found, 1 when info was found.
+	switch (n)
+	{
+	case 1:
+		return std::make_pair(info.cur, info.end);
+	case 0:
+		return Failure(PRL_ERR_TASK_NOT_FOUND);
+	case -1:
+	default:
+		return Failure(PRL_ERR_FAILURE);
+	}
+}
+
+Result Unit::abort() const
+{
+	if (0 != virDomainBlockJobAbort(m_domain.data(), m_disk.toUtf8().data(), 0))
+		return Failure(PRL_ERR_FAILURE);
+
+	return Result();
+}
+
+Result Unit::finish() const
+{
+	WRITE_TRACE(DBG_DEBUG, "tries to finish block commit");
+	if (0 != virDomainBlockJobAbort(m_domain.data(), m_disk.toUtf8().data(), VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT))
+		return Failure(PRL_ERR_FAILURE);
+
+	// VIR_DOMAIN_BLOCK_COMMIT_DELETE is not implemented for qemu so we need this
+	if (!QFile::remove(m_path))
+		WRITE_TRACE(DBG_FATAL, "unable to remove file %s", qPrintable(m_path));
+
+	return Result();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Future
+
+void Future::wait()
+{
+	if (m_timer == -1)
+		return;
+
+	if (!connect(this, SIGNAL(finished()), SLOT(exit())))
+	{
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+		return;
+	}
+	m_loop.exec();
+}
+
+void Future::cancel()
+{
+	foreach(const Unit& u, m_units)
+		u.abort();
+
+	foreach(const Unit& u, m_completed)
+		u.abort();
+
+	m_units.clear();
+	m_completed.clear();
+}
+
+void Future::exit()
+{
+	m_loop.quit();
+}
+
+void Future::timerEvent(QTimerEvent* event_)
+{
+	killTimer(event_->timerId());
+
+	QList<Unit> units;
+	foreach (const Unit& unit, m_units)
+	{
+		Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> r =	unit.getProgress();
+		if (r.isFailed())
+		{
+			WRITE_TRACE(DBG_FATAL, "unable to check job progress");
+			// jobs failed
+			continue;
+		}
+
+		WRITE_TRACE(DBG_DEBUG, "check job progress %llu, %llu", r.value().first, r.value().second);
+		if (r.value().first < r.value().second)
+		{
+			// check next time
+			units << unit;
+			continue;
+		}
+
+		WRITE_TRACE(DBG_DEBUG, "job completed");
+		m_completed << unit;
+	}
+
+	m_units = units;
+
+	if (units.isEmpty())
+	{
+		m_timer = -1;
+		emit finished();
+		return;
+	}
+
+	m_timer = startTimer(500);
+}
+
+} // namespace Block
+
 namespace Snapshot
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -1674,9 +1797,15 @@ Result List::createExternal(const QString& uuid_, const QList<CVmHardDisk*>& dis
 	if (e.isFailed())
 		return e.error();
 
+	QStringList disks;
+	std::transform(disks_.begin(), disks_.end(), std::back_inserter(disks),
+		boost::bind(&CVmHardDisk::getSerialNumber, _1));
+
 	Transponster::Snapshot::Reverse y(uuid_, "", x);
-	y.setIdentity();
-	y.setHardDisks<Transponster::Snapshot::External>(disks_);
+	y.setPolicy(boost::bind(Transponster::Snapshot::External(disks, uuid_), _1));
+	PRL_RESULT f = Transponster::Director::snapshot(y);
+	if (PRL_FAILED(f))
+		return Error::Simple(f);
 
 	WRITE_TRACE(DBG_DEBUG, "xml:\n%s", y.getResult().toUtf8().data());
 	virDomainSnapshotPtr p = virDomainSnapshotCreateXML(m_domain.data(),
@@ -1687,42 +1816,46 @@ Result List::createExternal(const QString& uuid_, const QList<CVmHardDisk*>& dis
 	return Result();
 }
 
-Result List::mergeDisk(const CVmHardDisk& disk_, quint32 timeout_)
+Prl::Expected<Block::Unit, ::Error::Simple> List::merge(const CVmHardDisk& disk_)
 {
 	quint32 flags = VIR_DOMAIN_BLOCK_COMMIT_ACTIVE;
+
 	QString target = Transponster::Vm::Reverse::Device<CVmHardDisk>::getTargetName(disk_);
+
+	WRITE_TRACE(DBG_DEBUG, "commit blocks for disk %s", qPrintable(target));
 	if (0 != virDomainBlockCommit(m_domain.data(), target.toUtf8().data(), NULL, NULL, 0, flags))
 	{
 		WRITE_TRACE(DBG_DEBUG, "failed to commit blocks for disk %s", qPrintable(target));
 		return Failure(PRL_ERR_FAILURE);
 	}
 
-	virDomainBlockJobInfo info;
-	for (quint32 i = 0; i < timeout_; i++)
+	return Block::Unit(m_domain, target, disk_.getSystemName());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Merge
+
+QSharedPointer<Block::Future> Merge::start()
+{
+	foreach (const CVmHardDisk& d, m_disks)
 	{
-		int n = virDomainGetBlockJobInfo(m_domain.data(), target.toUtf8().data(), &info, 0);
-
-		// -1 in case of failure, 0 when nothing found, 1 when info was found.
-		if (n == 1 && info.cur >= info.end)
+		Prl::Expected<Block::Unit, ::Error::Simple> r = m_agent.merge(d);
+		if (r.isSucceed())
 		{
-			WRITE_TRACE(DBG_DEBUG, "block job status %llu/%llu", info.cur, info.end);
-			break;
+			m_units << r.value();
 		}
-		else if (n == -1)
-		{
-			WRITE_TRACE(DBG_DEBUG, "failed to get block job info");
-			break;
-		}
-
-		::sleep(1);
+		else
+			WRITE_TRACE(DBG_FATAL, "unable to merge disk", qPrintable(d.getSystemName()));
 	}
 
-	// try to complete blockcommit
-	if (0 == virDomainBlockJobAbort(m_domain.data(), target.toUtf8().data(), VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT))
-		return Result();
+	return QSharedPointer<Block::Future>(new Block::Future(m_units));
+}
 
-	WRITE_TRACE(DBG_DEBUG, "failed to finalize block commit for disk %s", qPrintable(target));
-	return Failure(PRL_ERR_FAILURE);
+void Merge::stop()
+{
+	foreach(const Block::Unit& u, m_units)
+		u.finish();
+	m_units.clear();
 }
 
 } // namespace Snapshot
