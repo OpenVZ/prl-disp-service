@@ -66,6 +66,39 @@ namespace Name
 {
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
+
+struct Cpu
+{
+	static QString getName();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VCpu
+
+struct VCpu
+{
+	static QString getName(unsigned index_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Interface
+
+struct Interface
+{
+	static QString getBytesIn(const CVmGenericNetworkAdapter& iface_);
+
+	static QString getPacketsIn(const CVmGenericNetworkAdapter& iface_);
+
+	static QString getBytesOut(const CVmGenericNetworkAdapter& iface_);
+
+	static QString getPacketsOut(const CVmGenericNetworkAdapter& iface_);
+
+private:
+	static QString generate(const CVmGenericNetworkAdapter& iface_, const QString& stat_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Hdd
 
 struct Hdd

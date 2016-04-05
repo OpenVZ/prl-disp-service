@@ -91,6 +91,52 @@ namespace Name
 {
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
+
+QString Cpu::getName()
+{
+	return "cpu_time";
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VCpu
+
+QString VCpu::getName(unsigned index_)
+{
+	return QString("guest.vcpu%1.time").arg(index_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Interface
+
+QString Interface::getBytesIn(const CVmGenericNetworkAdapter& iface_)
+{
+	return generate(iface_, "bytes_in");
+}
+
+QString Interface::getPacketsIn(const CVmGenericNetworkAdapter& iface_)
+{
+	return generate(iface_, "pkts_in");
+}
+
+QString Interface::getBytesOut(const CVmGenericNetworkAdapter& iface_)
+{
+	return generate(iface_, "bytes_out");
+}
+
+QString Interface::getPacketsOut(const CVmGenericNetworkAdapter& iface_)
+{
+	return generate(iface_, "pkts_out");
+}
+
+QString Interface::generate(const CVmGenericNetworkAdapter& iface_, const QString& stat_)
+{
+	return QString("net.nic%1.%2").
+		arg(iface_.getIndex()).
+		arg(stat_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Hdd
 
 QString Hdd::getReadRequests(const CVmHardDisk& disk_)

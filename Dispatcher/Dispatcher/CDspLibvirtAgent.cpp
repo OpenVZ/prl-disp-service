@@ -411,7 +411,8 @@ Result Performance::setMemoryStatsPeriod(qint64 seconds_)
 		seconds_, VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE));
 }
 
-Result Performance::getCpu(quint64& nanoseconds_) const
+Prl::Expected<Stat::CounterList_type, Error::Simple>
+Performance::getCpu() const
 {
 	int n = virDomainGetCPUStats(m_domain.data(), NULL, 0, -1, 1, 0);
 	if (0 >= n)
@@ -421,14 +422,18 @@ Result Performance::getCpu(quint64& nanoseconds_) const
 	if (0 > virDomainGetCPUStats(m_domain.data(), q.data(), n, -1, 1, 0))
 		return Failure(PRL_ERR_FAILURE);
 
-	nanoseconds_ = 0;
-#if (LIBVIR_VERSION_NUMBER > 1000001)
-	virTypedParamsGetULLong(q.data(), n, "cpu_time", &nanoseconds_);
-#endif
-	return Result();
+	quint64 s = 0;
+ #if (LIBVIR_VERSION_NUMBER > 1000001)
+	virTypedParamsGetULLong(q.data(), n, "cpu_time", &s);
+ #endif
+	Stat::CounterList_type r;
+
+	r.append(Stat::Counter_type(::Stat::Name::Cpu::getName(), s / 1000));
+
+	return r;
 }
 
-Prl::Expected<Stat::VCpuList_type, Error::Simple>
+Prl::Expected<Stat::CounterList_type, Error::Simple>
 Performance::getVCpuList() const
 {
 	int n = virDomainGetVcpusFlags(m_domain.data(), VIR_DOMAIN_VCPU_CURRENT);
@@ -439,10 +444,10 @@ Performance::getVCpuList() const
 	if (0 > virDomainGetVcpus(m_domain.data(), c.data(), n, NULL, 0))
 		return Failure(PRL_ERR_FAILURE);
 
-	Stat::VCpuList_type r;
+	Stat::CounterList_type r;
 	foreach (const virVcpuInfo& i, c)
 	{
-		r.append(Stat::VCpu_type(i.number, i.cpuTime));
+		r.append(Stat::Counter_type(::Stat::Name::VCpu::getName(i.number), i.cpuTime));
 	}
 	return r;
 }
@@ -516,20 +521,31 @@ Result Performance::getMemory(Stat::Memory& dst_) const
 	return Result();
 }
 
-Result Performance::getInterface(Stat::Interface& dst_) const
+Prl::Expected<Stat::CounterList_type, Error::Simple>
+Performance::getInterface(const CVmGenericNetworkAdapter& iface_) const
 {
 	virDomainInterfaceStatsStruct x;
-	int n = virDomainInterfaceStats(m_domain.data(), qPrintable(dst_.name), &x, sizeof(x));
+	int n = virDomainInterfaceStats(m_domain.data(), qPrintable(iface_.getHostInterfaceName()), &x, sizeof(x));
 	if (0 > n)
 		return Failure(PRL_ERR_FAILURE);
 
-	// -1 means the counter is unsupported
-	dst_.bytesIn = x.rx_bytes >= 0 ? x.rx_bytes : 0;
-	dst_.packetsIn = x.rx_packets >= 0 ? x.rx_packets : 0;
-	dst_.bytesOut = x.tx_bytes >= 0 ? x.tx_bytes : 0;
-	dst_.packetsOut = x.tx_packets >= 0 ? x.tx_packets : 0;
+	Stat::CounterList_type r;
 
-	return Result();
+	// -1 means the counter is unsupported
+	r.append(Stat::Counter_type(
+		::Stat::Name::Interface::getBytesIn(iface_),
+		x.rx_bytes >= 0 ? x.rx_bytes : 0));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Interface::getPacketsIn(iface_),
+		x.rx_packets >= 0 ? x.rx_packets : 0));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Interface::getBytesOut(iface_),
+		x.tx_bytes >= 0 ? x.tx_bytes : 0));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Interface::getPacketsOut(iface_),
+		x.tx_packets >= 0 ? x.tx_packets : 0));
+
+	return r;
 }
 
 namespace Command

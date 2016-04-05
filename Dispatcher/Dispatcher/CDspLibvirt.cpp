@@ -412,9 +412,10 @@ void Performance::run()
 
 		Agent::Vm::Performance p = m.getPerformance();
 
-		quint64 c;
-		if (p.getCpu(c).isSucceed())
-			v->setCpuTime(c);
+		Prl::Expected<Agent::Vm::Stat::CounterList_type, Error::Simple>
+			c = p.getCpu();
+		if (c.isSucceed())
+			v->setCounters(c.value());
 
 		Agent::Vm::Stat::Memory d;
 		if (p.getMemory(d).isSucceed())
@@ -429,9 +430,10 @@ void Performance::run()
 					a->getConnected() != PVE::DeviceConnected)
 					continue;
 
-				Agent::Vm::Stat::Interface s(a);
-				p.getInterface(s);
-				v->setInterfaceUsage(s);
+				Prl::Expected<Agent::Vm::Stat::CounterList_type, Error::Simple>
+					s = p.getInterface(a);
+				if (s.isSucceed())
+					v->setCounters(s.value());
 			}
 
 			foreach (const CVmHardDisk* d, x->getVmHardwareList()->m_lstHardDisks)
@@ -447,10 +449,10 @@ void Performance::run()
 			}
 		}
 
-		Prl::Expected<Agent::Vm::Stat::VCpuList_type, Error::Simple>
+		Prl::Expected<Agent::Vm::Stat::CounterList_type, Error::Simple>
 			vc = p.getVCpuList();
 		if (vc.isSucceed())
-			v->setVCpuTime(vc.value());
+			v->setCounters(vc.value());
 	}
 }
 
@@ -960,16 +962,6 @@ void Domain::prepareToSwitch()
 	m_access.prepareToSwitch();
 }
 
-void Domain::setCpuTime(quint64 nanoseconds_)
-{
-	QSharedPointer<Stat::Storage> s = m_access.getStorage();
-	if (s.isNull())
-		return;
-
-	s->write("cpu_time", nanoseconds_ / 1000);
-
-}
-
 void Domain::setMemoryUsage(const Instrument::Agent::Vm::Stat::Memory& src_)
 {
 	QSharedPointer<Stat::Storage> s = m_access.getStorage();
@@ -994,30 +986,6 @@ void addAndWrite(Stat::Storage& storage_, const QString& name_, quint64 value_)
 }
 
 } // namespace
-
-void Domain::setInterfaceUsage(const Instrument::Agent::Vm::Stat::Interface& iface_)
-{
-	QSharedPointer<Stat::Storage> s = m_access.getStorage();
-	if (s.isNull())
-		return;
-
-	addAndWrite(*s, QString("net.nic%1.bytes_in").arg(iface_.index), iface_.bytesIn);
-	addAndWrite(*s, QString("net.nic%1.bytes_out").arg(iface_.index), iface_.bytesOut);
-	addAndWrite(*s, QString("net.nic%1.pkts_in").arg(iface_.index), iface_.packetsIn);
-	addAndWrite(*s, QString("net.nic%1.pkts_out").arg(iface_.index), iface_.packetsOut);
-}
-
-void Domain::setVCpuTime(const Instrument::Agent::Vm::Stat::VCpuList_type& src_)
-{
-	QSharedPointer<Stat::Storage> s = m_access.getStorage();
-	if (s.isNull())
-		return;
-
-	foreach (const Instrument::Agent::Vm::Stat::VCpu_type& c, src_)
-	{
-		addAndWrite(*s, QString("guest.vcpu%1.time").arg(c.first), c.second);
-	}
-}
 
 void Domain::setCounters(const Instrument::Agent::Vm::Stat::CounterList_type& src_)
 {

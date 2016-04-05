@@ -98,13 +98,14 @@ namespace Vm
 {
 namespace Stat
 {
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Memory
 
 struct Memory
 {
 	Memory(): baloonActual(0), rss(0), available(0), unused(0),
-		swapIn(0), swapOut(0), minorFault(0), majorFault(0)
+			swapIn(0), swapOut(0), minorFault(0), majorFault(0)
 	{
 	}
 
@@ -120,30 +121,6 @@ struct Memory
 	quint64 minorFault;
 	quint64 majorFault;
 };
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Interface
-
-struct Interface
-{
-	explicit Interface(const CVmGenericNetworkAdapter& adapter_):
-		name(adapter_.getHostInterfaceName()), index(adapter_.getIndex()),
-		bytesIn(0), packetsIn(0), bytesOut(0), packetsOut(0)
-	{
-	}
-
-	QString name;
-	unsigned index;
-	quint64 bytesIn;
-	quint64 packetsIn;
-	quint64 bytesOut;
-	quint64 packetsOut;
-};
-
-typedef QList<Interface> Network;
-
-typedef QPair<unsigned, quint64> VCpu_type;
-typedef QList<VCpu_type> VCpuList_type;
 
 typedef QPair<QString, quint64> Counter_type;
 typedef QList<Counter_type> CounterList_type;
@@ -161,13 +138,15 @@ struct Performance
 
 	Result setMemoryStatsPeriod(qint64 seconds_);
 
-	Result getCpu(quint64& nanoseconds_) const;
-	Prl::Expected<Stat::VCpuList_type, Error::Simple>
-		getVCpuList() const;
 	Prl::Expected<Stat::CounterList_type, Error::Simple>
-		getDisk(const CVmHardDisk& disk_) const;
+		getCpu() const;
+	Prl::Expected<Stat::CounterList_type, Error::Simple>
+ 		getVCpuList() const;
+ 	Prl::Expected<Stat::CounterList_type, Error::Simple>
+ 		getDisk(const CVmHardDisk& disk_) const;
 	Result getMemory(Stat::Memory& dst_) const;
-	Result getInterface(Stat::Interface& dst_) const;
+	Prl::Expected<Stat::CounterList_type, Error::Simple>
+		getInterface(const CVmGenericNetworkAdapter& iface_) const;
 
 private:
 	QSharedPointer<virDomain> m_domain;
