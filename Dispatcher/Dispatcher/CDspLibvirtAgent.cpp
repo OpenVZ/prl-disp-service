@@ -110,12 +110,13 @@ Result Task::doOnline(const CVmConfiguration& config_, quint16 qemuStatePort_,
 				VIR_MIGRATE_CHANGE_PROTECTION |
 				VIR_MIGRATE_LIVE |
 				VIR_MIGRATE_AUTO_CONVERGE;
+
 	Parameters::Builder b;
 	Online d(Config(m_domain, m_link, 0), config_, qemuStatePort_);
 	if (nbd_)
 	{
 		d.setNbd(nbd_.get());
-		f |= VIR_MIGRATE_NON_SHARED_DISK;
+		f |= VIR_MIGRATE_NON_SHARED_INC;
 	}
 	Result e = d(b);
 	if (e.isFailed())
@@ -1663,6 +1664,66 @@ Result List::defineConsistent(const QString& uuid_, const QString& description_,
 		VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE | VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC), dst_);
 }
 
+Result List::createExternal(const QString& uuid_, const QList<CVmHardDisk*>& disks_)
+{
+	quint32 flags = VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY | VIR_DOMAIN_SNAPSHOT_CREATE_NO_METADATA;
+	CVmConfiguration x;
+	virDomainRef(m_domain.data());
+	Vm::Unit m(m_domain.data());
+	Result e = m.getConfig(x);
+	if (e.isFailed())
+		return e.error();
+
+	Transponster::Snapshot::Reverse y(uuid_, "", x);
+	y.setIdentity();
+	y.setHardDisks<Transponster::Snapshot::External>(disks_);
+
+	WRITE_TRACE(DBG_DEBUG, "xml:\n%s", y.getResult().toUtf8().data());
+	virDomainSnapshotPtr p = virDomainSnapshotCreateXML(m_domain.data(),
+					y.getResult().toUtf8().data(), flags);
+	if (NULL == p)
+		return Failure(PRL_ERR_FAILURE);
+	virDomainSnapshotFree(p);
+	return Result();
+}
+
+Result List::mergeDisk(const CVmHardDisk& disk_, quint32 timeout_)
+{
+	quint32 flags = VIR_DOMAIN_BLOCK_COMMIT_ACTIVE;
+	QString target = Transponster::Vm::Reverse::Device<CVmHardDisk>::getTargetName(disk_);
+	if (0 != virDomainBlockCommit(m_domain.data(), target.toUtf8().data(), NULL, NULL, 0, flags))
+	{
+		WRITE_TRACE(DBG_DEBUG, "failed to commit blocks for disk %s", qPrintable(target));
+		return Failure(PRL_ERR_FAILURE);
+	}
+
+	virDomainBlockJobInfo info;
+	for (quint32 i = 0; i < timeout_; i++)
+	{
+		int n = virDomainGetBlockJobInfo(m_domain.data(), target.toUtf8().data(), &info, 0);
+
+		// -1 in case of failure, 0 when nothing found, 1 when info was found.
+		if (n == 1 && info.cur >= info.end)
+		{
+			WRITE_TRACE(DBG_DEBUG, "block job status %llu/%llu", info.cur, info.end);
+			break;
+		}
+		else if (n == -1)
+		{
+			WRITE_TRACE(DBG_DEBUG, "failed to get block job info");
+			break;
+		}
+
+		::sleep(1);
+	}
+
+	// try to complete blockcommit
+	if (0 == virDomainBlockJobAbort(m_domain.data(), target.toUtf8().data(), VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT))
+		return Result();
+
+	WRITE_TRACE(DBG_DEBUG, "failed to finalize block commit for disk %s", qPrintable(target));
+	return Failure(PRL_ERR_FAILURE);
+}
 
 } // namespace Snapshot
 } // namespace Vm
