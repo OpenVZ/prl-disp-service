@@ -92,9 +92,13 @@ private:
 
 bool View::operator()()
 {
+	m_result.ClearSavedStateTree();
+
+	if (m_input.empty())
+		return true;
+
 	CSavedState f;
 	f.SetGuid(Uuid::createUuid().toString());
-	m_result.ClearSavedStateTree();
 	m_result.CreateSnapshot(f);
 	m_result.FindCurrentSnapshot()->SetCurrent(false);
 	QStack<CSavedStateTree* > s;
