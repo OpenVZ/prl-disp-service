@@ -1235,6 +1235,7 @@ AuxChannel::~AuxChannel()
 
 Result Hotplug::attach(const QString& device_)
 {
+	WRITE_TRACE(DBG_DEBUG, "attach device: \n%s", qPrintable(device_));
 	return do_(m_domain.data(), boost::bind(virDomainAttachDeviceFlags, _1,
 			qPrintable(device_), VIR_DOMAIN_AFFECT_CURRENT |
 			VIR_DOMAIN_AFFECT_LIVE));
@@ -1242,6 +1243,7 @@ Result Hotplug::attach(const QString& device_)
 
 Result Hotplug::detach(const QString& device_)
 {
+	WRITE_TRACE(DBG_DEBUG, "detach device: \n%s", qPrintable(device_));
 	return do_(m_domain.data(), boost::bind(virDomainDetachDeviceFlags, _1,
 			qPrintable(device_), VIR_DOMAIN_AFFECT_CURRENT |
 			VIR_DOMAIN_AFFECT_LIVE));
@@ -1249,6 +1251,7 @@ Result Hotplug::detach(const QString& device_)
 
 Result Hotplug::update(const QString& device_)
 {
+	WRITE_TRACE(DBG_DEBUG, "update device: \n%s", qPrintable(device_));
 	return do_(m_domain.data(), boost::bind(virDomainUpdateDeviceFlags, _1,
 			qPrintable(device_),
 			VIR_DOMAIN_AFFECT_CURRENT |

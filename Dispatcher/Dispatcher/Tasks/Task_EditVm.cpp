@@ -3629,13 +3629,7 @@ Vm::Action* Factory::craftLimit(const Request& input_) const
 template<>
 QList<CVmHardDisk* > Hotplug<CVmHardDisk>::getList(const CVmHardware* hardware_)
 {
-	QList<CVmHardDisk* > output = hardware_->m_lstHardDisks;
-	QList<CVmHardDisk* >::iterator p = std::partition
-				(output.begin(), output.end(),
-				boost::bind(&CVmHardDisk::getEmulatedType, _1) ==
-				PVE::HardDiskImage);
-	output.erase(p, output.end());
-	return output;
+	return hardware_->m_lstHardDisks;
 }
 
 template<>
