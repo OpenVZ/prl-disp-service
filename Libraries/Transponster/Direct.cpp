@@ -234,9 +234,9 @@ PRL_VM_NET_ADAPTER_TYPE Network::parseAdapterType(const QString& type)
 }
 
 CNetPktFilter* Network::buildFilter(
-		const Libvirt::Domain::Xml::FilterrefNodeAttributes& filterref)
+		const boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes>& filterref)
 {
-	QString filter = filterref.getFilter();
+	QString filter = filterref ? filterref->getFilter() : QString();
 	CNetPktFilter* f = new CNetPktFilter();
 	f->setPreventIpSpoof(filter.contains("no-ip-spoofing"));
 	f->setPreventMacSpoof(filter.contains("no-mac-spoofing"));
@@ -275,10 +275,7 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	{
 		a->setHostInterfaceName(bridge_.getValue().getTarget().get());
 	}
-	if (bridge_.getValue().getFilterref())
-	{
-		a->setPktFilter(buildFilter(*bridge_.getValue().getFilterref()));
-	}
+	a->setPktFilter(buildFilter(bridge_.getValue().getFilterref()));
 
 	a->setNetAddresses(Ips()(bridge_.getValue().getIpList()));
 
@@ -313,10 +310,7 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	{
 		a->setHostInterfaceName(network_.getValue().getTarget().get());
 	}
-	if (network_.getValue().getFilterref())
-	{
-		a->setPktFilter(buildFilter(*network_.getValue().getFilterref()));
-	}
+	a->setPktFilter(buildFilter(network_.getValue().getFilterref()));
 
 	a->setNetAddresses(Ips()(network_.getValue().getIpList()));
 
@@ -351,10 +345,7 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	{
 		a->setHostInterfaceName(direct_.getValue().getTarget().get());
 	}
-	if (direct_.getValue().getFilterref())
-	{
-		a->setPktFilter(buildFilter(*direct_.getValue().getFilterref()));
-	}
+	a->setPktFilter(buildFilter(direct_.getValue().getFilterref()));
 
 	a->setNetAddresses(Ips()(direct_.getValue().getIpList()));
 
