@@ -3359,7 +3359,7 @@ Action* Adapter::operator()(const Request& input_) const
 
 		Action* a;
 		// Libvirt doesn't allow to change the emulation type in runtime
-		if (x->getEmulatedType() == d->getEmulatedType())
+		if (x->getEmulatedType() == d->getEmulatedType() && !(*x == *d))
 		{
 			CVmGenericNetworkAdapter copy = PrlNet::fixMacFilter(
 					*d, input_.getFinal().getVmHardwareList()->m_lstNetworkAdapters);
