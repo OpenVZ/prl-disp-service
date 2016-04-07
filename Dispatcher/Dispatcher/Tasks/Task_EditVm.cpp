@@ -3359,7 +3359,7 @@ Action* Adapter::operator()(const Request& input_) const
 
 		Action* a;
 		// Libvirt doesn't allow to change the emulation type in runtime
-		if (x->getEmulatedType() == d->getEmulatedType())
+		if (x->getEmulatedType() == d->getEmulatedType() && !(*x == *d))
 		{
 			CVmGenericNetworkAdapter copy = PrlNet::fixMacFilter(
 					*d, input_.getFinal().getVmHardwareList()->m_lstNetworkAdapters);
@@ -3629,13 +3629,7 @@ Vm::Action* Factory::craftLimit(const Request& input_) const
 template<>
 QList<CVmHardDisk* > Hotplug<CVmHardDisk>::getList(const CVmHardware* hardware_)
 {
-	QList<CVmHardDisk* > output = hardware_->m_lstHardDisks;
-	QList<CVmHardDisk* >::iterator p = std::partition
-				(output.begin(), output.end(),
-				boost::bind(&CVmHardDisk::getEmulatedType, _1) ==
-				PVE::HardDiskImage);
-	output.erase(p, output.end());
-	return output;
+	return hardware_->m_lstHardDisks;
 }
 
 template<>
