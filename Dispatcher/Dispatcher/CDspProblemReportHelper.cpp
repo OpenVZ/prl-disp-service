@@ -1062,13 +1062,10 @@ bool CDspProblemReportHelper::getProblemReport(SmartPtr<CDspClient> pUser,
         iVersion = CProblemReportUtils::packVersion;
         break;
     case PVE::DspCmdVmGetProblemReport:
-        iVersion = CProblemReportUtils::xmlBaseVersion;
-        break;
     case PVE::DspCmdSendProblemReport:
-        // for this command ::getProblemReportObj should be called instead
-        PRL_ASSERT(false);
-        iVersion = CProblemReportUtils::xmlBaseVersion;
-        break;
+        pUser->sendSimpleResponse(p, PRL_ERR_VM_GET_PROBLEM_REPORT_FAILED);
+        WRITE_TRACE(DBG_FATAL, "Requested problem report type is not supported");
+        return false;
     default:
         iVersion = CProblemReportUtils::endVersion;
         break;
