@@ -2674,7 +2674,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtToTargetPath(
 
 	Restore::AClient::Api p(m_nBackupNumber, m_sBackupRootPath);
 	Restore::Target::Ct t(a, *this, &Task_RestoreVmBackupTarget::SendPkg);
-#ifdef _LIN_
 	if (m_nInternalFlags & PVM_CT_PLOOP_BACKUP)
 	{
 		if (PRL_SUCCEEDED(output = getFiles(bIsRealMountPoint)))
@@ -2688,11 +2687,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtToTargetPath(
 		}
 	}
 	else if (m_nInternalFlags & PVM_CT_VZFS_BACKUP)
-	{
 		return PRL_ERR_UNIMPLEMENTED;
-	}
-	else
-#endif // _LIN_
+
 	if (PRL_SUCCEEDED(output))
 		output = t.getResult();
 	if (PRL_FAILED(output))
