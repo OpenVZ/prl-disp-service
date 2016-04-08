@@ -47,7 +47,6 @@
 #include "CDspVmInfoDatabase.h"
 #include <boost/foreach.hpp>
 
-#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Std/PrlAssert.h>
 
 #include <prlcommon/Logging/Logging.h>
@@ -76,6 +75,10 @@ struct View
 {
 	typedef QList<Libvirt::Instrument::Agent::Vm::Snapshot::Unit> model_type;
 
+	explicit View(SmartPtr<CVmConfiguration> config_): m_config(config_)
+	{
+	}
+
 	bool operator()();
 	void setModel(const model_type& value_);
 	const CSavedStateStore& getResult() const
@@ -86,6 +89,7 @@ struct View
 private:
 	typedef std::map<QString, model_type> tree_type;
 
+	SmartPtr<CVmConfiguration> m_config;
 	tree_type m_input;
 	CSavedStateStore m_result;
 };
@@ -115,7 +119,15 @@ bool View::operator()()
 		{
 			model_type::value_type u = c.takeFirst();
 			CSavedStateTree* x = new CSavedStateTree();
+
 			u.getState(*x);
+
+			Prl::Expected<CSavedStateTree, PRL_RESULT> snapshot =
+				Libvirt::Snapshot::Stash(m_config, x->GetGuid()).getMetadata();
+
+			if (snapshot.isSucceed())
+				x->SetName(snapshot.value().GetName());
+
 			s.push(x);
 		}
 	}
@@ -191,6 +203,37 @@ bool Stash::restore(const QStringList& files_)
 		m_files.push_back(f);
 	}
 	return true;
+}
+
+bool Stash::setMetadata(const CSavedState& state_)
+{
+	if (!m_dir.exists())
+	{
+		WRITE_TRACE(DBG_FATAL, "Directory %s is absent", QSTR2UTF8(m_dir.absolutePath()));
+		return false;
+	}
+
+	CSavedStateStore s;
+	s.CreateSnapshot(state_);
+	QString file = m_dir.filePath(metadataFile);
+	s.Save(file);
+	m_files.push_front(file);
+	return true;
+}
+
+const char Stash::metadataFile[] = "snapshot.xml";
+
+Prl::Expected<CSavedStateTree, PRL_RESULT> Stash::getMetadata() const
+{
+	if (!m_dir.exists())
+	{
+		WRITE_TRACE(DBG_FATAL, "Directory %s is absent", QSTR2UTF8(m_dir.absolutePath()));
+		return PRL_ERR_FAILURE;
+	}
+
+	CSavedStateStore s(m_dir.filePath(metadataFile));
+	CSavedStateTree* t = s.FindCurrentSnapshot();
+	return NULL == t ? CSavedStateTree() : *t;
 }
 
 SmartPtr<CVmConfiguration> Stash::restoreConfig(const QString& file_)
@@ -548,6 +591,14 @@ PRL_RESULT CDspVmSnapshotStoreHelper::sendSnapshotsTree(SmartPtr<CDspClient> pUs
 		pUser->sendSimpleResponse(pkg, PRL_ERR_FAILURE);
 		return PRL_ERR_FAILURE;
 	}
+
+	PRL_RESULT ret;
+	SmartPtr<CVmConfiguration> config = CDspService::instance()->getVmDirHelper()
+		.getVmConfigByUuid(pUser->getVmIdent(cmd->GetVmUuid()), ret);
+
+	if (!config)
+		return ret;
+
 	View::model_type x;
 	Libvirt::Result e = Libvirt::Kit.vms().at(cmd->GetVmUuid()).getSnapshot().all(x);
 	if (e.isFailed())
@@ -555,7 +606,9 @@ PRL_RESULT CDspVmSnapshotStoreHelper::sendSnapshotsTree(SmartPtr<CDspClient> pUs
 		WRITE_TRACE(DBG_FATAL, "Unable to load snapshot tree for vm %s",
 			QSTR2UTF8(cmd->GetVmUuid()));
 	}
-	View v;
+
+	View v(config);
+
 	v.setModel(x);
 	v();
 	QBuffer buffer;
