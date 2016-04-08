@@ -514,6 +514,7 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	QString sVmDirPath;
+	QString bundle;
 
 	if (CDspService::instance()->isServerStopping())
 	{
@@ -549,7 +550,9 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 	}
 
 	/*  to get target VM home directory path */
-	m_sTargetVmHomePath = QString("%1/%2").arg(m_sVmDirPath).arg(Vm::Config::getVmHomeDirName(m_sVmUuid));
+	bundle = QFileInfo(m_pVmConfig->getVmIdentification()->getHomePath()).dir().dirName();
+	m_sTargetVmHomePath = QString("%1/%2").arg(m_sVmDirPath)
+		.arg(bundle.isEmpty() ? Vm::Config::getVmHomeDirName(m_sVmUuid) : bundle);
 	m_sTargetVmHomePath = QFileInfo(m_sTargetVmHomePath).absoluteFilePath();
 	m_sVmConfigPath = QString("%1/" VMDIR_DEFAULT_VM_CONFIG_FILE).arg(m_sTargetVmHomePath);
 	m_pVmConfig->getVmIdentification()->setHomePath(m_sVmConfigPath);
