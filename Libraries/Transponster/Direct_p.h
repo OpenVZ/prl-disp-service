@@ -743,6 +743,12 @@ struct Master: boost::static_visitor<bool>
 		m_result->setVLANTag(v.getTag());
 		return true;
 	}
+	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1246::types, 2>::type& bond_) const
+	{
+		Libvirt::Iface::Xml::BondInterfaceCommon c = bond_.getValue().getBondInterfaceCommon();
+		m_result->setDeviceName(c.getName());
+		return true;
+	}
 
 private:
 	CHwNetAdapter* m_result;

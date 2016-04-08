@@ -1669,6 +1669,7 @@ Result Unit::getConfig(CVirtualNetwork& dst_) const
 		if (e.isSucceed())
 		{
 			dst_.setBoundCardMac(b.getMaster().getMacAddress());
+			dst_.setVLANTag(b.getMaster().getVLANTag());
 			z->setMasterInterface(b.getMaster().getDeviceName());
 		}
 		else if (PRL_ERR_NETWORK_ADAPTER_NOT_FOUND == e.error().code())
@@ -1846,7 +1847,7 @@ Result List::all(QList<Bridge>& dst_) const
 			h.setMacAddress(PrlNet::ethAddressToString(p->_macAddr));
 		}
 		Bridge b(a[i], h);
-		if (b.getName().startsWith("br"))
+		if (!b.getName().startsWith("virbr"))
 			dst_ << b;
 	}
 	free(a);
@@ -1855,7 +1856,7 @@ Result List::all(QList<Bridge>& dst_) const
 
 Result List::find(const QString& name_, Bridge& dst_) const
 {
-	if (!name_.startsWith("br"))
+	if (name_.startsWith("virbr"))
 		return Error::Simple(PRL_ERR_NETWORK_ADAPTER_NOT_FOUND);
 
 	QList<Bridge> a;
@@ -1883,7 +1884,8 @@ Result List::find(const CHwNetAdapter& eth_, Bridge& dst_) const
 
 	foreach (const Bridge& b, a)
 	{
-		if (b.getMaster().getMacAddress() == eth_.getMacAddress())
+		if (b.getMaster().getMacAddress() == eth_.getMacAddress() &&
+			b.getMaster().getVLANTag() == eth_.getVLANTag())
 		{
 			dst_ = b;
 			return Result();
