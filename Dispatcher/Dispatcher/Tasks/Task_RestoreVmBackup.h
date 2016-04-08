@@ -49,6 +49,7 @@
 namespace Restore
 {
 struct Move;
+struct Converter;
 ///////////////////////////////////////////////////////////////////////////////
 // struct Assembly
 
@@ -138,6 +139,7 @@ private:
 	PRL_RESULT sendStartRequest();
 	PRL_RESULT saveVmConfig();
 	PRL_RESULT registerVm();
+	PRL_RESULT unregisterVm();
 	virtual void cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& pkg);
 	PRL_RESULT fixHardWareList();
 
@@ -188,6 +190,7 @@ private:
  	QString m_sVzCacheTmpDir;
  
 	WaiterTillHandlerUsingObject m_waiter;
+	std::auto_ptr<Restore::Converter> m_converter;
 
 private slots:
 	void handlePackage(const SmartPtr<IOPackage> p);

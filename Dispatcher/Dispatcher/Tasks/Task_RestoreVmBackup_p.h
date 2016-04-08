@@ -537,6 +537,16 @@ private:
 
 } // namespace Ploop
 } // namespace Target
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Converter
+
+struct Converter
+{
+	void convertHardware(SmartPtr<CVmConfiguration> &cfg) const;
+	PRL_RESULT convertVm(const QString &vmUuid) const;
+};
+
 } // namespace Restore
 
 #endif // __Task_RestoreVmBackup_p_H_

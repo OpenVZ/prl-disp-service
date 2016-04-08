@@ -39,6 +39,7 @@
 #include "prlcommon/Interfaces/ParallelsNamespace.h"
 #include "Task_RestoreVmBackup_p.h"
 #include "prlcommon/Logging/Logging.h"
+#include "prlcommon/PrlUuid/Uuid.h"
 #include "Libraries/StatesStore/SavedStateTree.h"
 
 #include "Task_RestoreVmBackup.h"
@@ -51,10 +52,42 @@
 #include "prlcommon/HostUtils/HostUtils.h"
 #include "prlxmlmodel/BackupTree/VmItem.h"
 #include "Libraries/Virtuozzo/CVzHelper.h"
+#include "Libraries/PrlNetworking/netconfig.h"
 #include "CDspBackupDevice.h"
 #ifdef _CT_
 #include "vzctl/libvzctl.h"
 #endif
+
+namespace
+{
+
+enum {V2V_RUN_TIMEOUT = 60 * 60 * 1000};
+
+const char VIRT_V2V[] = "/usr/bin/virt-v2v";
+
+QString getHostOnlyBridge()
+{
+	Libvirt::Instrument::Agent::Network::Unit u;
+	// Get Host-Only network.
+	Libvirt::Result r = Libvirt::Kit.networks().find(
+			PrlNet::GetDefaultVirtualNetworkID(0, false), &u);
+	if (r.isFailed())
+		return QString();
+
+	CVirtualNetwork n;
+	r = u.getConfig(n);
+	if (r.isFailed())
+		return QString();
+
+	CParallelsAdapter* a;
+	if (NULL == n.getHostOnlyNetwork() ||
+		(a = n.getHostOnlyNetwork()->getParallelsAdapter()) == NULL)
+		return QString();
+
+	return a->getName();
+}
+
+} // namespace
 
 namespace Restore
 {
@@ -1239,6 +1272,88 @@ PRL_RESULT Flavor::restore(const Assistant& assist_)
 #endif // _LIN_
 #endif // _CT_
 } // namespace Target
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Converter
+
+void Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
+{
+	CVmHardware *pVmHardware;
+	if ((pVmHardware = cfg->getVmHardwareList()) == NULL) {
+		WRITE_TRACE(DBG_FATAL, "[%s] Can not get Vm hardware list", __FUNCTION__);
+		return;
+	}
+
+	foreach(CVmOpticalDisk* pDevice, pVmHardware->m_lstOpticalDisks) {
+		if (NULL == pDevice)
+			continue;
+		if (pDevice->getEmulatedType() != PVE::CdRomImage)
+			continue;
+		// Switch Cdrom devices to IDE since SATA is unsupported
+		if (pDevice->getInterfaceType() == PMS_SATA_DEVICE)
+			pDevice->setInterfaceType(PMS_IDE_DEVICE);
+	}
+
+	// pcs6 SCSI and SATA disks are not supported in vz7.
+	// Convert to virtio-block until SCSI support will be added.
+	foreach(CVmHardDisk *pDevice, pVmHardware->m_lstHardDisks) {
+		if (NULL == pDevice)
+			continue;
+		if (pDevice->getEmulatedType() != PVE::HardDiskImage)
+			continue;
+		if (pDevice->getInterfaceType() != PMS_SCSI_DEVICE &&
+			pDevice->getInterfaceType() != PMS_SATA_DEVICE)
+			continue;
+		pDevice->setInterfaceType(PMS_VIRTIO_BLOCK_DEVICE);
+	}
+
+	// Parallel ports are not supported anymore
+	pVmHardware->m_lstParallelPortOlds.clear();
+	pVmHardware->m_lstParallelPorts.clear();
+}
+
+PRL_RESULT Converter::convertVm(const QString &vmUuid) const
+{
+	// Get windows driver ISO.
+	QString winDriver = ParallelsDirs::getToolsImage(PAM_SERVER, PVS_GUEST_VER_WIN_2K);
+	if (!QFile(winDriver).exists())
+	{
+		WRITE_TRACE(DBG_WARNING, "Windows drivers image does not exist: %s\n"
+								 "Restoring Windows will fail.",
+								 qPrintable(winDriver));
+	}
+	::setenv("VIRTIO_WIN", qPrintable(winDriver), 1);
+	WRITE_TRACE(DBG_DEBUG, "setenv: %s=%s", "VIRTIO_WIN", qPrintable(winDriver));
+	// If default bridge is not 'virbr0', virt-v2v fails.
+	// So we try to find actual bridge name.
+	QString bridge = getHostOnlyBridge();
+	if (!bridge.isEmpty())
+	{
+		::setenv("LIBGUESTFS_BACKEND_SETTINGS",
+				 qPrintable(QString("network_bridge=%1").arg(bridge)), 1);
+		WRITE_TRACE(DBG_DEBUG, "setenv: %s=%s",
+					"LIBGUESTFS_BACKEND_SETTINGS",
+					qPrintable(QString("network_bridge=%1").arg(bridge)));
+	}
+
+	QStringList cmdline = QStringList()
+		<< VIRT_V2V
+		<< "-i" << "libvirt"
+		<< "--in-place" << ::Uuid(vmUuid).toStringWithoutBrackets();
+
+	QProcess process;
+	QString out;
+	if (!HostUtils::RunCmdLineUtility(cmdline.join(" "), out, V2V_RUN_TIMEOUT, &process))
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot convert VM to vz7 format: virt-v2v failed:\n%s",
+					process.readAllStandardError().constData());
+		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
+	}
+	WRITE_TRACE(DBG_DEBUG, "virt-v2v output:\n%s", qPrintable(out));
+
+	return PRL_ERR_SUCCESS;
+}
+
 } // namespace Restore
 
 static void NotifyClientsWithProgress(
@@ -1509,6 +1624,18 @@ PRL_RESULT Task_RestoreVmBackupSource::sendStartReply(const SmartPtr<CVmConfigur
 		WRITE_TRACE(DBG_FATAL, "Unable to get backup OriginalSize %x", code);
 		nOriginalSize = 0;
 	}
+
+	bool ok;
+	// e.g. 6.10.24168.1187340 or 7.0.200
+	int major = ve_->getAppVersion().split(".")[0].toInt(&ok);
+	if (!ok)
+	{
+		WRITE_TRACE(DBG_FATAL, "Invalid AppVersion: %s",
+					qPrintable(ve_->getAppVersion()));
+		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
+	}
+
+	quint32 protoVersion = major < 7 ? BACKUP_PROTO_V3 : BACKUP_PROTO_VERSION;
 	CDispToDispCommandPtr pReply = CDispToDispProtoSerializer::CreateVmBackupRestoreFirstReply(
 			m_sVmUuid,
 			m_sVmName,
@@ -1518,7 +1645,8 @@ PRL_RESULT Task_RestoreVmBackupSource::sendStartReply(const SmartPtr<CVmConfigur
 			m_sBackupRootPath,
 			nOriginalSize,
 			nBundlePermissions,
-			m_nInternalFlags);
+			m_nInternalFlags,
+			protoVersion);
 	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(
 			pReply->GetCommandId(),
 			pReply->GetCommand()->toString(),
@@ -2015,15 +2143,18 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	CDspVmNetworkHelper::updateHostMacAddresses(m_pVmConfig, NULL, HMU_NONE);
 	// save config : Task_RegisterVm read config from file system
 	if (PRL_FAILED(nRetCode = saveVmConfig()))
-                goto cleanup_0;
-	if (PRL_SUCCEEDED(nRetCode = a->do_()))
+		goto cleanup_0;
+	if (PRL_FAILED(nRetCode = a->do_()))
+		goto cleanup_0;
+	if (m_converter.get() != NULL &&
+		PRL_FAILED(nRetCode = m_converter->convertVm(m_sVmUuid)))
+		goto cleanup_0;
 	{
 		CDspLockedPointer<CVmDirectoryItem> pVmDirItem
 			= CDspService::instance()->getVmDirManager().getVmDirItemByUuid(
 				getClient()->getVmDirectoryUuid(), m_sVmUuid);
 		if ( pVmDirItem )
 			pVmDirItem->setTemplate( m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate() );
-		return PRL_ERR_SUCCESS;
 	}
 cleanup_0:
 	return nRetCode;
@@ -2052,10 +2183,12 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewVm()
 	/* ! only after sendStartRequest() - to get m_pVmConfig */
 	if (m_sTargetVmHomePath.isEmpty())
 	{
-		m_sTargetVmHomePath = QFileInfo(QDir(getClient()->getUserDefaultVmDirPath()),
-					m_pVmConfig->getVmIdentification()
-						->getVmName().append(VMDIR_DEFAULT_BUNDLE_SUFFIX))
-						.absoluteFilePath();
+		m_sTargetVmHomePath = QFileInfo(
+				QString("%1/%2")
+				.arg(getClient()->getUserDefaultVmDirPath())
+				.arg(Vm::Config::getVmHomeDirName(
+					m_pVmConfig->getVmIdentification()->getVmUuid())))
+				.absoluteFilePath();
 	}
 	m_sTargetPath = m_sTargetVmHomePath;
 
@@ -2078,8 +2211,16 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewVm()
 		if (PRL_FAILED(nRetCode = a->do_()))
 			break;
 		if (PRL_FAILED(nRetCode = registerVm()))
+		{
 			a->revert();
-
+			break;
+		}
+		if (m_converter.get() != NULL &&
+			PRL_FAILED(nRetCode = m_converter->convertVm(m_sVmUuid)))
+		{
+			unregisterVm();
+			a->revert();
+		}
 	} while(false);
 	CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(pVmInfo.getImpl());
 	return nRetCode;
@@ -2199,6 +2340,14 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 	/* to check device images in new home directory (#460845) */
 	if (PRL_FAILED(nRetCode = fixHardWareList()))
 		return nRetCode;
+	if (m_converter.get() != NULL)
+		m_converter->convertHardware(m_pVmConfig);
+
+	if (m_pVmConfig->getVmIdentification()->getHomePath().isEmpty())
+	{
+		m_pVmConfig->getVmIdentification()->setHomePath(
+				QString("%1/" VMDIR_DEFAULT_VM_CONFIG_FILE).arg(m_sTargetVmHomePath));
+	}
 
 	dst_.reset(u.assemble(m_sTargetVmHomePath));
 	return NULL == dst_.get() ? PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR : PRL_ERR_SUCCESS;
@@ -2652,6 +2801,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::sendStartRequest()
 	if (PRL_FAILED(nRetCode = m_pVmConfig->fromString(pFirstReply->GetVmConfig())))
 		return nRetCode;
 	m_nRemoteVersion = pFirstReply->GetVersion();
+	if (m_nRemoteVersion <= BACKUP_PROTO_V3)
+		m_converter.reset(new Restore::Converter());
 	m_sVmUuid = pFirstReply->GetVmUuid();
 	m_sBackupUuid = pFirstReply->GetBackupUuid();
 	m_nBackupNumber = pFirstReply->GetBackupNumber();
@@ -2713,12 +2864,13 @@ PRL_RESULT Task_RestoreVmBackupTarget::fixHardWareList()
 		pDevice->setConnected(PVE::DeviceDisconnected);
 	}
 
-	foreach(CVmOpticalDisk* pDevice, pVmHardware->m_lstOpticalDisks){
+	foreach(CVmOpticalDisk* pDevice, pVmHardware->m_lstOpticalDisks) {
 		if (NULL == pDevice)
+			continue;
+		if (pDevice->getEmulatedType() != PVE::CdRomImage)
 			continue;
 		if ((pDevice->getEnabled() == PVE::DeviceDisabled) ||
 				(PVE::DeviceDisconnected == pDevice->getConnected()))
-		if (pDevice->getEmulatedType() != PVE::CdRomImage)
 			continue;
 		fileInfo.setFile(dir, pDevice->getSystemName());
 		if (fileInfo.exists())
@@ -2744,6 +2896,33 @@ PRL_RESULT Task_RestoreVmBackupTarget::saveVmConfig()
 		return nRetCode;
 	}
 	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Task_RestoreVmBackupTarget::unregisterVm()
+{
+	SmartPtr<CDspClient> client = getClient();
+	CVmEvent evt;
+
+	CProtoCommandPtr pRequest =
+		CProtoSerializer::CreateProtoBasicVmCommand(
+			PVE::DspCmdDirUnregVm, m_sVmUuid);
+	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspCmdDirUnregVm, pRequest);
+
+	/* do not call checkAndLockNotExistsExclusiveVmParameters */
+	CDspService::instance()->getTaskManager().schedule(new Task_DeleteVm(
+		client, pPackage, m_pVmConfig->toString(),
+		PVD_UNREGISTER_ONLY)).wait().getResult(&evt);
+
+	// wait finishing thread and return task result
+	if (PRL_FAILED(evt.getEventCode())) {
+		WRITE_TRACE(DBG_FATAL,
+			"Error occurred while unregister Vm %s with code [%#x][%s]",
+			qPrintable(m_sVmUuid),
+			evt.getEventCode(),
+			PRL_RESULT_TO_STRING(evt.getEventCode()));
+	}
+
+	return evt.getEventCode();
 }
 
 PRL_RESULT Task_RestoreVmBackupTarget::registerVm()
