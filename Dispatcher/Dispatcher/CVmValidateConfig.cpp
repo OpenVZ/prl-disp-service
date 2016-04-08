@@ -47,6 +47,7 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/PrlCommonUtilsBase/OsInfo.h>
 #include <prlcommon/PrlCommonUtilsBase/CHardDiskHelper.h>
+#include <prlcommon/VirtualDisk/Qcow2Disk.h>
 #include "CDspClient.h"
 #include "CDspVzHelper.h"
 #include <prlcommon/Std/PrlAssert.h>
@@ -1349,13 +1350,12 @@ void CVmValidateConfig::CheckHardDisk()
 					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
 					ADD_FID((E_SET << qsSN_id << qsET_id << pHardDisk->getRemote_id()) + setIds);
 				}
-// VirtualDisk commented out by request from CP team
-//				else if (IDisk::IsDiskValid(qsSysName) != PRL_CHECKED_DISK_VALID)
-//				{
-//					m_lstResults += PRL_ERR_VMCONF_HARD_DISK_IMAGE_IS_NOT_VALID;
-//					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
-//					ADD_FID((E_SET << qsSN_id << qsET_id << pHardDisk->getRemote_id()) + setIds);
-//				}
+				else if (!VirtualDisk::Qcow2::isValid(qsSysName))
+				{
+					m_lstResults += PRL_ERR_VMCONF_HARD_DISK_IMAGE_IS_NOT_VALID;
+					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
+					ADD_FID((E_SET << qsSN_id << qsET_id << pHardDisk->getRemote_id()) + setIds);
+				}
 			}
 		}
 	}
