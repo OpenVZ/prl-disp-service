@@ -1847,7 +1847,7 @@ Result List::all(QList<Bridge>& dst_) const
 			h.setMacAddress(PrlNet::ethAddressToString(p->_macAddr));
 		}
 		Bridge b(a[i], h);
-		if (b.getName().startsWith("br"))
+		if (!b.getName().startsWith("virbr"))
 			dst_ << b;
 	}
 	free(a);
@@ -1856,7 +1856,7 @@ Result List::all(QList<Bridge>& dst_) const
 
 Result List::find(const QString& name_, Bridge& dst_) const
 {
-	if (!name_.startsWith("br"))
+	if (name_.startsWith("virbr"))
 		return Error::Simple(PRL_ERR_NETWORK_ADAPTER_NOT_FOUND);
 
 	QList<Bridge> a;
