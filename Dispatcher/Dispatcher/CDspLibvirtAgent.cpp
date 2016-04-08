@@ -516,6 +516,9 @@ Performance::getMemory() const
 	r.append(Stat::Counter_type(
 		::Stat::Name::Memory::getMajorFault(),
 		v.value(VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT)));
+	r.append(Stat::Counter_type(
+		::Stat::Name::Memory::getBalloonActual(),
+		v.value(VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON)));
 
 	return r;
 }

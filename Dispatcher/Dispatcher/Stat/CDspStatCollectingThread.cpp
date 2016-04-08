@@ -917,8 +917,8 @@ struct BalloonActual
 
 	static value_type extract(source_type &c)
 	{
-		// pages to bytes
-		return GetPerfCounter(c, Stat::Name::Memory::getBalloonActual()) << 12;
+		// kb to bytes
+		return GetPerfCounter(c, Stat::Name::Memory::getBalloonActual()) << 10;
 	}
 };
 } // namespace Flavor
