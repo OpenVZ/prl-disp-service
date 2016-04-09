@@ -297,9 +297,25 @@ namespace Breeding
 void Vm::operator()(Agent::Hub& hub_)
 {
 	QStringList s = m_registry->snapshot();
+	Agent::Vm::List l = hub_.vms();
+	foreach (const QString& u, s)
+	{
+		if (!validate(u))
+		{
+			// unregister VM from libvirt
+			l.at(u).undefine();
+			// at this point VM is not registered in m_view->m_domainMap
+			// thus we need to manually remove the corresponding
+			// directory item from Dispatcher
+			m_registry->undefine(u);
+			s.removeOne(u);
+		}
+	}
+
 	m_registry->reset();
+
 	QList<Agent::Vm::Unit> a;
-	hub_.vms().all(a);
+	l.all(a);
 	foreach (Agent::Vm::Unit m, a)
 	{
 		QString u;
@@ -313,9 +329,31 @@ void Vm::operator()(Agent::Hub& hub_)
 	}
 	foreach (const QString& u, s)
 	{
+		// in order to properly remove the directory item, first we need to
+		// add the VM to the registry and then remove it from there
 		m_registry->define(u);
 		m_registry->undefine(u);
 	}
+}
+
+bool Vm::validate(const QString& uuid_)
+{
+	Registry::Access a = m_registry->find(uuid_);
+	boost::optional<CVmConfiguration> c = a.getConfig();
+	if (!c)
+		return true;
+	CVmIdentification *y = c->getVmIdentification();
+	if (!y)
+		return true;
+	// Assume this node is registered in the cluster and had just crashed.
+	// shaman had relocated a VM from this node and registered it on another
+	// node in the cluster. After that, this node had been rebooted and is
+	// back online.
+	// Here is what we have on Dispatcher start:
+	// - The VM is registered both in libvirt and Dispatcher.
+	// - Server UUID of the VM differs from our server UUID.
+	// Need to unregister the VM from this node.
+	return y->getServerUuid() == m_registry->getServerUuid();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -127,6 +127,7 @@ struct Actual: Public
 	void reset();
 
 	QStringList snapshot();
+	QString getServerUuid() const;
 
 private:
 	Prl::Expected<QSharedPointer<Vm>, Error::Simple>

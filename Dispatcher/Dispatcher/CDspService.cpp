@@ -1447,7 +1447,17 @@ bool CDspService::init()
 		}
 #endif
 
+#ifdef _LIBVIRT_
+		::Vm::Directory::Dao::Locked d(getVmDirManager());
+		foreach (const ::Vm::Directory::Item::List::value_type& i, d.getItemList())
+		{
+			m_registry->declare(MakeVmIdent(i.second->getVmUuid(), i.first),
+				i.second->getVmHome());
+			m_registry->define(i.second->getVmUuid());
+		}
+#else
 		patchDirCatalogue();
+#endif // _LIBVIRT_
 
 		if( isServerMode() )
 		{
