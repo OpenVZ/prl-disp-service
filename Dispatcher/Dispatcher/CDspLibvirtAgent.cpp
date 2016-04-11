@@ -1513,6 +1513,39 @@ Result Unit::getState(CSavedStateTree& dst_) const
 	return Result();
 }
 
+QSharedPointer<virConnect> Unit::getLink() const
+{
+	virConnectPtr x = virDomainSnapshotGetConnect(m_snapshot.data());
+	if (NULL == x)
+		return QSharedPointer<virConnect>();
+
+	virConnectRef(x);
+	return QSharedPointer<virConnect>(x, &virConnectClose);
+}
+
+Result Unit::getConfig(CVmConfiguration& dst_) const
+{
+	char* x = virDomainSnapshotGetXMLDesc(m_snapshot.data(), VIR_DOMAIN_XML_SECURE);
+	if (NULL == x)
+		return Failure(PRL_ERR_INVALID_HANDLE);
+
+	Prl::Expected<VtInfo, Error::Simple> i = Host(getLink()).getVt();
+	if (i.isFailed())
+		return i.error();
+
+	Transponster::Snapshot::Vm y(x);
+	if (PRL_FAILED(Transponster::Director::domain(y, i.value())))
+		return Failure(PRL_ERR_PARSE_VM_DIR_CONFIG);
+
+	CVmConfiguration* output = y.getResult();
+	if (NULL == output)
+		return Error::Simple(PRL_ERR_FAILURE);
+
+	dst_ = *output;
+	delete output;
+	return Result();
+}
+
 Unit Unit::getParent() const
 {
 	return Unit(virDomainSnapshotGetParent(m_snapshot.data(), 0));

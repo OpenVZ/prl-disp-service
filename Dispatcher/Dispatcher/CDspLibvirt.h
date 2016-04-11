@@ -192,11 +192,14 @@ struct Unit
 	Unit getParent() const;
 	Result getUuid(QString& dst_) const;
 	Result getState(CSavedStateTree& dst_) const;
+	Result getConfig(CVmConfiguration& dst_) const;
 	Result revert();
 	Result undefine();
 	Result undefineRecursive();
 
 private:
+	QSharedPointer<virConnect> getLink() const;
+
 	QSharedPointer<virDomainSnapshot> m_snapshot;
 };
 

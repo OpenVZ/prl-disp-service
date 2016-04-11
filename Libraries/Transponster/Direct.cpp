@@ -1179,6 +1179,30 @@ PRL_RESULT Direct::setIdentity()
 	return PRL_ERR_SUCCESS;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+Vm::Vm(char* xml_)
+{
+	QScopedPointer<Libvirt::Snapshot::Xml::Domainsnapshot> snapshot;
+
+	shape(xml_, snapshot);
+
+	if (snapshot.isNull())
+		return;
+
+	if (!snapshot->getChoice1720())
+		return;
+
+	if (1 == snapshot->getChoice1720()->which())
+	{
+		const Libvirt::Domain::Xml::Domain& d =
+			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice1720::types, 1>::type>
+				(snapshot->getChoice1720().get()).getValue();
+		m_input.reset(new Libvirt::Domain::Xml::Domain(d));
+	}
+}
+
 } // namespace Snapshot
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -91,8 +91,14 @@ struct Vm
 		return m_result.take();
 	}
 
-private:
+protected:
+	Vm()
+	{
+	}
+
 	QScopedPointer<Libvirt::Domain::Xml::Domain> m_input;
+
+private:
 	QScopedPointer<CVmConfiguration> m_result;
 };
 
@@ -241,6 +247,14 @@ struct Direct
 private:
 	CSavedStateTree m_result;
 	QScopedPointer<Libvirt::Snapshot::Xml::Domainsnapshot> m_input;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+struct Vm: ::Transponster::Vm::Direct::Vm
+{
+	explicit Vm(char* xml_);
 };
 
 } // namespace Snapshot

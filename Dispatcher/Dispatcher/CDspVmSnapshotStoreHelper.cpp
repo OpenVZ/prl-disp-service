@@ -75,10 +75,6 @@ struct View
 {
 	typedef QList<Libvirt::Instrument::Agent::Vm::Snapshot::Unit> model_type;
 
-	explicit View(SmartPtr<CVmConfiguration> config_): m_config(config_)
-	{
-	}
-
 	bool operator()();
 	void setModel(const model_type& value_);
 	const CSavedStateStore& getResult() const
@@ -89,7 +85,6 @@ struct View
 private:
 	typedef std::map<QString, model_type> tree_type;
 
-	SmartPtr<CVmConfiguration> m_config;
 	tree_type m_input;
 	CSavedStateStore m_result;
 };
@@ -119,16 +114,19 @@ bool View::operator()()
 		{
 			model_type::value_type u = c.takeFirst();
 			CSavedStateTree* x = new CSavedStateTree();
-
 			u.getState(*x);
+			s.push(x);
 
-			Prl::Expected<CSavedStateTree, PRL_RESULT> snapshot =
-				Libvirt::Snapshot::Stash(m_config, x->GetGuid()).getMetadata();
+			CVmConfiguration config;
+			if (u.getConfig(config).isFailed())
+				continue;
+
+			Prl::Expected<CSavedStateTree, PRL_RESULT> snapshot = Libvirt::Snapshot::Stash
+				(SmartPtr<CVmConfiguration>(&config, SmartPtrPolicy::DoNotReleasePointee),
+				 x->GetGuid()).getMetadata();
 
 			if (snapshot.isSucceed())
 				x->SetName(snapshot.value().GetName());
-
-			s.push(x);
 		}
 	}
 	m_result.DeleteNode(f.GetGuid());
@@ -592,13 +590,6 @@ PRL_RESULT CDspVmSnapshotStoreHelper::sendSnapshotsTree(SmartPtr<CDspClient> pUs
 		return PRL_ERR_FAILURE;
 	}
 
-	PRL_RESULT ret;
-	SmartPtr<CVmConfiguration> config = CDspService::instance()->getVmDirHelper()
-		.getVmConfigByUuid(pUser->getVmIdent(cmd->GetVmUuid()), ret);
-
-	if (!config)
-		return ret;
-
 	View::model_type x;
 	Libvirt::Result e = Libvirt::Kit.vms().at(cmd->GetVmUuid()).getSnapshot().all(x);
 	if (e.isFailed())
@@ -606,9 +597,7 @@ PRL_RESULT CDspVmSnapshotStoreHelper::sendSnapshotsTree(SmartPtr<CDspClient> pUs
 		WRITE_TRACE(DBG_FATAL, "Unable to load snapshot tree for vm %s",
 			QSTR2UTF8(cmd->GetVmUuid()));
 	}
-
-	View v(config);
-
+	View v;
 	v.setModel(x);
 	v();
 	QBuffer buffer;
