@@ -2298,6 +2298,12 @@ static int create_env_config(const QString &uuid, SmartPtr<CVmConfiguration> &pC
 			if (pHdd->getEmulatedType() == PVE::RealHardDisk)
 				d.use_device = 1;
 
+			QByteArray storage_url;
+			if (!pHdd->getStorageURL().isEmpty()) {
+				storage_url = pHdd->getStorageURL().toString().toUtf8();
+				d.storage_url = storage_url.data();
+			}
+
 			if (vzctl2_env_attach_disk(h, &d)) {
 				WRITE_TRACE(DBG_FATAL, "vzctl2_env_attach_disk, failed: %s [%d]",
 					vzctl2_get_last_error(), ret);
