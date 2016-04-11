@@ -44,6 +44,7 @@ class SimpleLockFlag;
 class CMultiEditDispatcher;
 class CDispCommonPreferences;
 class CDispMemoryPreferences;
+class CDispCpuPreferences;
 
 class Task_UpdateCommonPrefs : public  CDspTaskHelper
 {
@@ -91,6 +92,8 @@ private:
 	bool isHostIdChanged() const;
 	PRL_RESULT updateHostId();
 	PRL_RESULT checkHeadlessMode();
+	PRL_RESULT updateCpuFeaturesMask(
+		const CDispCpuPreferences &oldMask, const CDispCpuPreferences &newMask);
 
 private:
 	static QMutex	s_commonPrefsMutex;

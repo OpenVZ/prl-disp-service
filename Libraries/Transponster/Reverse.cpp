@@ -29,6 +29,7 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <QUrl>
 #include <Libraries/PrlNetworking/netconfig.h>
+#include <Libraries/CpuFeatures/CCpuHelper.h>
 
 namespace Transponster
 {
@@ -41,15 +42,8 @@ void Resources::setCpu(const Libvirt::Domain::Xml::Cpu& src_)
 	if (NULL == h)
 		return;
 
-	foreach (const Libvirt::Domain::Xml::Feature& f, src_.getFeatureList())
-	{
-		if (f.getName().compare(QString("vmx"), Qt::CaseInsensitive))
-		{
-			if (f.getPolicy() == Libvirt::Domain::Xml::EPolicyDisable)
-				h->getCpu()->setVirtualizedHV(false);
-			break;
-		}
-	}
+	Vm::Reverse::CpuFeaturesMask m(*m_config);
+	m.setDisabledFeatures(src_);
 
 	if (src_.getNuma())
 	{
@@ -61,19 +55,6 @@ void Resources::setCpu(const Libvirt::Domain::Xml::Cpu& src_)
 			h->getMemory()->setMaxNumaRamSize(maxNumaRam);
 	}
 }
-
-namespace
-{
-
-void disableFeature(QList<Libvirt::Domain::Xml::Feature>& features_, const QString& name_)
-{
-	Libvirt::Domain::Xml::Feature f;
-	f.setName(name_);
-	f.setPolicy(Libvirt::Domain::Xml::EPolicyDisable);
-	features_.append(f);
-}
-
-} // namespace
 
 bool Resources::getCpu(Libvirt::Domain::Xml::Cpu& dst_)
 {
@@ -90,12 +71,8 @@ bool Resources::getCpu(Libvirt::Domain::Xml::Cpu& dst_)
 
 	dst_.setMode(Libvirt::Domain::Xml::EModeHostModel);
 
-#if (LIBVIR_VERSION_NUMBER >= 1002013)
-	QList<Libvirt::Domain::Xml::Feature> l;
-	if (!u->isVirtualizedHV())
-		disableFeature(l, QString("vmx"));
-	dst_.setFeatureList(l);
-#endif
+	Vm::Reverse::CpuFeaturesMask mask(*m_config);
+	mask.getDisabledFeatures(dst_);
 
 	CVmMemory *m = h->getMemory();
 	if (m->isEnableHotplug()) {
@@ -1033,6 +1010,43 @@ PRL_RESULT Cpu::setNumber()
 	m_vcpu->setCurrent(m_input.getNumber());
 
 	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct CpuFeaturesMask
+
+void CpuFeaturesMask::getDisabledFeatures(Libvirt::Domain::Xml::Cpu &cpu)
+{
+	QSet<QString> features = CCpuHelper::getDisabledFeatures(*m_input);
+
+	if (!m_input->getVmHardwareList()->getCpu()->isVirtualizedHV())
+		features.insert(QString("vmx"));
+
+	QList<Libvirt::Domain::Xml::Feature> l;
+	foreach(QString name, features)
+	{
+		Libvirt::Domain::Xml::Feature f;
+		f.setName(name);
+		f.setPolicy(Libvirt::Domain::Xml::EPolicyDisable);
+		l.append(f);
+	}
+
+	cpu.setFeatureList(l);
+}
+
+void CpuFeaturesMask::setDisabledFeatures(const Libvirt::Domain::Xml::Cpu &cpu)
+{
+	foreach (const Libvirt::Domain::Xml::Feature& f, cpu.getFeatureList())
+	{
+		if (f.getName().compare(QString("vmx"), Qt::CaseInsensitive))
+		{
+			if (f.getPolicy() == Libvirt::Domain::Xml::EPolicyDisable)
+				m_input->getVmHardwareList()->getCpu()->setVirtualizedHV(false);
+			break;
+		}
+	}
+
+	CCpuHelper::update(*m_input);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

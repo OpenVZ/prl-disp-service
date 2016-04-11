@@ -47,9 +47,7 @@
 #include "CDspCommon.h"
 #include "CDspVzHelper.h"
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
-#ifdef _LIN_
-#include "Libraries/Virtuozzo/CCpuHelper.h"
-#endif
+#include "Libraries/CpuFeatures/CCpuHelper.h"
 
 #include <prlcommon/Std/PrlAssert.h>
 
@@ -252,16 +250,11 @@ PRL_RESULT Task_UpdateCommonPrefs::saveCommonPrefs()
 	fixReadOnlyInUsbPrefs( pLockedDispCommonPrefs.getPtr() );
 	pLockedDispCommonPrefs->fromString( m_pNewCommonPrefs->toString() );
 
-#ifdef _LIN_
-	if (CDspService::isServerModePSBM())
-	{
-		std::auto_ptr<CDispCpuPreferences> cpuMask(CCpuHelper::get_cpu_mask());
-		if (!cpuMask.get())
-			return PRL_ERR_FAILURE;
-		pDispConfigOld->getDispatcherSettings()->
-			getCommonPreferences()->setCpuPreferences(cpuMask.release());
-	}
-#endif
+	std::auto_ptr<CDispCpuPreferences> cpuMask(CCpuHelper::get_cpu_mask());
+	if (!cpuMask.get())
+		return PRL_ERR_FAILURE;
+	pDispConfigOld->getDispatcherSettings()->
+		getCommonPreferences()->setCpuPreferences(cpuMask.release());
 
 	// MERGE
 	SmartPtr<CDispatcherConfig > pDispConfigNew(
@@ -302,6 +295,15 @@ PRL_RESULT Task_UpdateCommonPrefs::saveCommonPrefs()
 
 		return save_rc;
 	}
+
+	pLockedDispCommonPrefs.unlock();
+	pLockedDispConfig.unlock();
+
+	PRL_RESULT ret = updateCpuFeaturesMask(
+		*pDispConfigOld->getDispatcherSettings()->getCommonPreferences()->getCpuPreferences(),
+		*pDispConfigNew->getDispatcherSettings()->getCommonPreferences()->getCpuPreferences());
+	if (PRL_FAILED(ret))
+		return ret;
 
 	return PRL_ERR_SUCCESS;
 }
@@ -594,3 +596,44 @@ PRL_RESULT Task_UpdateCommonPrefs::checkHeadlessMode()
 	return PRL_ERR_SUCCESS;
 }
 
+PRL_RESULT Task_UpdateCommonPrefs::updateCpuFeaturesMask(
+	const CDispCpuPreferences &oldMask, const CDispCpuPreferences &newMask)
+{
+	if (CCpuHelper::isMasksEqual(oldMask, newMask))
+		return PRL_ERR_SUCCESS;
+
+	PRL_RESULT ret = CCpuHelper::maskUpdate(newMask);
+	if (PRL_FAILED(ret))
+		return ret;
+
+	QString mask(newMask.toString());
+
+	QMultiHash<QString, SmartPtr<CVmConfiguration> > vms =
+		CDspService::instance()->getVmDirHelper().getAllVmList();
+	foreach(QString dirUuid, vms.uniqueKeys())
+	{
+		foreach(SmartPtr<CVmConfiguration> pVmConfig, vms.values(dirUuid))
+		{
+			if(!pVmConfig)
+				continue;
+
+			CVmEvent e;
+			e.addEventParameter(new CVmEventParameter(PVE::String,
+				mask, EVT_PARAM_VMCFG_CPU_FEATURES_MASK));
+
+			QString vmUuid = pVmConfig->getVmIdentification()->getVmUuid();
+
+			if (CDspService::instance()->getVmDirHelper().atomicEditVmConfigByVm(
+				dirUuid, vmUuid, e, getClient()))
+			{
+				CVmEvent event(PET_DSP_EVT_VM_CONFIG_CHANGED, vmUuid, PIE_DISPATCHER);
+				SmartPtr<IOPackage> pkg = DispatcherPackage::createInstance(
+					PVE::DspVmEvent, event, getRequestPackage());
+				CDspService::instance()->getClientManager().sendPackageToVmClients(
+					pkg, dirUuid, vmUuid);
+			}
+		}
+	}
+
+	return PRL_ERR_SUCCESS;
+}

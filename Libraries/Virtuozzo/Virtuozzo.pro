@@ -16,7 +16,6 @@ HEADERS +=		\
 	CVzTemplateHelper.h	\
 	CVzNetworkShaping.h \
 	CVzPrivateNetwork.h \
-	CCpuHelper.h \
 	UuidMap.h
 
 SOURCES =		\
@@ -25,7 +24,6 @@ SOURCES =		\
 	CVzNetworkShaping.cpp \
 	CVzPrivateNetwork.cpp \
 	UuidMap.cpp \
-	CCpuHelper.cpp \
 	CVzPloop.cpp
 
 contains(DYN_VZLIB, TRUE) {

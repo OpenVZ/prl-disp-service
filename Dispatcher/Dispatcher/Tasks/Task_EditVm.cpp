@@ -41,6 +41,7 @@
 #include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 #include "Libraries/StatesUtils/StatesHelper.h"
+#include "Libraries/CpuFeatures/CCpuHelper.h"
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>
 #include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
@@ -609,6 +610,23 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 		}
 		//////////////////////////////////////////////////////////////////////////
 		// Finish EVT_PARAM_VM_TOOLS_VERSION
+		//////////////////////////////////////////////////////////////////////////
+
+		//////////////////////////////////////////////////////////////////////////
+		// EVT_PARAM_VMCFG_CPU_FEATURES_MASK
+		//////////////////////////////////////////////////////////////////////////
+		if( CVmEventParameter* pParam = evtFromVm.getEventParameter( EVT_PARAM_VMCFG_CPU_FEATURES_MASK ) )
+		{
+			CDispCpuPreferences cpuMask;
+			cpuMask.fromString(pParam->getParamValue());
+
+			CCpuHelper::update(*pVmConfig, cpuMask);
+
+			flgConfigChanged = true;
+			flgApplyConfig = true;
+		}
+		//////////////////////////////////////////////////////////////////////////
+		// Finish EVT_PARAM_VMCFG_CPU_FEATURES_MASK
 		//////////////////////////////////////////////////////////////////////////
 
 		if( ! flgConfigChanged )
