@@ -9,6 +9,11 @@
     <mac dstmacaddr='$MAC'/>
   </rule>
 
+  <!-- allow packets to IPv6 neighbor discovery multicast -->
+  <rule direction='in' action='return'>
+    <mac dstmacaddr='33:33:00:00:00:00' dstmacmask='ff:ff:00:00:00:00'/>
+  </rule>
+
   <!-- drop everything else -->
   <rule direction='in' action='drop'>
     <mac/>
