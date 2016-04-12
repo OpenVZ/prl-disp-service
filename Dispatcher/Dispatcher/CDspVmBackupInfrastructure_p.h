@@ -536,8 +536,7 @@ struct Object: Task::Object
 
 	PRL_RESULT getConfig(config_type& dst_) const;
 	PRL_RESULT getDirectoryItem(CVmDirectoryItem& dst_) const;
-	PRL_RESULT getSnapshot(PVE::IDispatcherCommands command_, const QString& task_,
-			QScopedPointer<Snapshot::Vm::Object>& dst_) const;
+	void getSnapshot(QScopedPointer<Snapshot::Vm::Object>& dst_) const;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -843,11 +842,10 @@ namespace Vm
 
 struct Object
 {
-	Object(const SmartPtr<CDspVm>& , bool , const actor_type& );
-	~Object();
+	Object(const QString& , const actor_type& );
 
 	PRL_RESULT begin(const QString& path_, const QString& map_, Task::Reporter& reporter_);
-	PRL_RESULT thaw(Task::Workbench& task_);
+	PRL_RESULT thaw();
 	PRL_RESULT commit(const QString& uuid_);
 	PRL_RESULT rollback();
 	PRL_RESULT freeze(Task::Workbench& task_);
@@ -855,8 +853,7 @@ struct Object
 private:
 	PRL_RESULT disband(quint32 flags_);
 
-	bool m_unregister;
-	SmartPtr<CDspVm> m_vm;
+	QString m_uuid;
 	actor_type m_actor;
 };
 

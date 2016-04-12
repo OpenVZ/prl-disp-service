@@ -36,8 +36,7 @@
 #include "CDspVmBackupInfrastructure.h"
 #include "CDspVmSnapshotInfrastructure.h"
 #include <prlxmlmodel/BackupActivity/BackupActivity.h>
-//#include <Libraries/VirtualDisk/DiskStatesManager.h>
-//#include <Libraries/VirtualDisk/PrlDiskDescriptor.h>
+#include "CDspLibvirtExec.h"
 
 namespace Backup
 {
@@ -220,28 +219,9 @@ namespace Vm
 ///////////////////////////////////////////////////////////////////////////////
 // struct Object
 
-PRL_RESULT Object::getSnapshot(PVE::IDispatcherCommands command_, const QString& task_,
-			QScopedPointer<Snapshot::Vm::Object>& dst_) const
+void Object::getSnapshot(QScopedPointer<Snapshot::Vm::Object>& dst_) const
 {
-	bool x = false;
-	PRL_RESULT output = PRL_ERR_SUCCESS;
-	SmartPtr<CDspVm> m = CDspVm::CreateInstance(
-				getIdent().first, getIdent().second,
-				output, x, getActor(), command_, task_);
-	if (PRL_FAILED(output))
-	{
-		WRITE_TRACE(DBG_FATAL, "Error occurred while CDspVm::CreateInstance() with code [%#x][%s]",
-			output, PRL_RESULT_TO_STRING(output));
-	}
-	else if (!m.isValid())
-	{
-		WRITE_TRACE(DBG_FATAL, "Unknown CDspVm::CreateInstance() error");
-		output = PRL_ERR_BACKUP_INTERNAL_ERROR;
-	}
-	else
-		dst_.reset(new Snapshot::Vm::Object(m, x, getActor()));
-
-	return output;
+	dst_.reset(new Snapshot::Vm::Object(getIdent().first, getActor()));
 }
 
 PRL_RESULT Object::getConfig(config_type& dst_) const
@@ -671,44 +651,25 @@ enum
 	FREEZE_TIMEOUT_SECONDS = 300
 };
 
-Object::Object(const SmartPtr<CDspVm>& vm_, bool unregister_, const actor_type& actor_):
-	m_unregister(unregister_), m_vm(vm_), m_actor(actor_)
+Object::Object(const QString& uuid_, const actor_type& actor_):
+	m_uuid(uuid_), m_actor(actor_)
 {
-}
-
-Object::~Object()
-{
-	if (m_unregister)
-		CDspVm::UnregisterVmObject(m_vm);
 }
 
 PRL_RESULT Object::freeze(Task::Workbench& task_)
 {
-	VIRTUAL_MACHINE_STATE s = m_vm->getVmState();
-	switch (s)
-	{
-	case VMS_PAUSED:
-		WRITE_TRACE(DBG_FATAL,
-			"Guest OS filesystem synchronization error: vm is paused");
+	VIRTUAL_MACHINE_STATE s = CDspVm::getVmState(m_uuid, m_actor->getVmDirectoryUuid());
+	if (s != VMS_RUNNING) {
+		WRITE_TRACE(DBG_FATAL, "Guest OS filesystem synchronization error: "
+			 "vm state is %s", PRL_VM_STATE_TO_STRING(s));
 		task_.getReporter().warn(PRL_WARN_BACKUP_GUEST_UNABLE_TO_SYNCHRONIZE);
 		return PRL_WARN_BACKUP_GUEST_UNABLE_TO_SYNCHRONIZE;
-	case VMS_SUSPENDED:
-		task_.getReporter().warn(PRL_WARN_BACKUP_GUEST_UNABLE_TO_SYNCHRONIZE);
-		WRITE_TRACE(DBG_FATAL,
-			"Guest OS filesystem synchronization error: vm is suspended");
-
-		return PRL_WARN_BACKUP_GUEST_UNABLE_TO_SYNCHRONIZE;
-	case VMS_RUNNING:
-		break;
-	default:
-		return PRL_ERR_UNIMPLEMENTED;
 	}
-	::Snapshot::Unit u(m_vm, task_.getDspTask(), s);
-	Q_UNUSED(u);
-	PRL_RESULT output = PRL_ERR_UNIMPLEMENTED;
-/*
-	PRL_RESULT output = u.pokeGuest(PVE::DspCmdVmGuestSuspendHardDisk, FREEZE_TIMEOUT_SECONDS);
-*/
+
+	PRL_RESULT output = PRL_ERR_SUCCESS;
+	Libvirt::Result r = Libvirt::Kit.vms().at(m_uuid).getGuest().freezeFs();
+	if (r.isFailed())
+		output = r.error().code();
 	if (PRL_FAILED(output) && output != PRL_ERR_OPERATION_WAS_CANCELED)
 	{
 		task_.getReporter().warn(PRL_WARN_BACKUP_GUEST_SYNCHRONIZATION_FAILED);
@@ -717,14 +678,12 @@ PRL_RESULT Object::freeze(Task::Workbench& task_)
 	return output;
 }
 
-PRL_RESULT Object::thaw(Task::Workbench& task_)
+PRL_RESULT Object::thaw()
 {
-	::Snapshot::Unit u(m_vm, task_.getDspTask(), m_vm->getVmState());
-	Q_UNUSED(u);
-	return PRL_ERR_UNIMPLEMENTED;
-/*
-	return u.pokeGuest(PVE::DspCmdVmGuestResumeHardDisk, FREEZE_TIMEOUT_SECONDS);
-*/
+	Libvirt::Result r = Libvirt::Kit.vms().at(m_uuid).getGuest().thawFs();
+	if (r.isFailed())
+		return r.error().code();
+	return PRL_ERR_SUCCESS;
 }
 
 PRL_RESULT Object::begin(const QString& path_, const QString& map_, Task::Reporter& reporter_)
@@ -815,7 +774,7 @@ PRL_RESULT Begin::doConsistent(Object& object_)
 	{
 	case PRL_ERR_SUCCESS:
 		e = doTrivial(object_);
-		if (PRL_ERR_OPERATION_WAS_CANCELED == object_.thaw(*m_task))
+		if (PRL_ERR_OPERATION_WAS_CANCELED == object_.thaw())
 		{
 			Rollback()(object_);
 			e = PRL_ERR_OPERATION_WAS_CANCELED;
@@ -847,11 +806,10 @@ PRL_RESULT Subject::disband(T command_)
 		return PRL_ERR_UNINITIALIZED;
 
 	QScopedPointer<Object> o;
-	PRL_RESULT output = m_vm.getSnapshot(PVE::DspCmdVmDeleteSnapshot, QString(), o);
-	if (PRL_FAILED(output))
-		return output;
+	m_vm.getSnapshot(o);
 
-	if (PRL_SUCCEEDED(output = command_(*o)))
+	PRL_RESULT output = command_(*o);
+	if (PRL_SUCCEEDED(output))
 		setUuid(QString());
 
 	if (!m_tmp.isEmpty())
@@ -885,12 +843,9 @@ PRL_RESULT Subject::create(Task::Workbench& task_)
 		return PRL_ERR_DOUBLE_INIT;
 
 	QScopedPointer<Object> o;
-	PRL_RESULT output = m_vm.getSnapshot(PVE::DspCmdVmCreateSnapshot,
-				task_.getDspTask().getJobUuid(), o);
-	if (PRL_FAILED(output))
-		return output;
+	m_vm.getSnapshot(o);
 
-	output = task_.openTmp(m_tmp);
+	PRL_RESULT output = task_.openTmp(m_tmp);
 	if (PRL_FAILED(output))
 		return output;
 
