@@ -47,7 +47,6 @@
 #include "CDspVmInfoDatabase.h"
 #include <boost/foreach.hpp>
 
-#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Std/PrlAssert.h>
 
 #include <prlcommon/Logging/Logging.h>
@@ -117,6 +116,17 @@ bool View::operator()()
 			CSavedStateTree* x = new CSavedStateTree();
 			u.getState(*x);
 			s.push(x);
+
+			CVmConfiguration config;
+			if (u.getConfig(config).isFailed())
+				continue;
+
+			Prl::Expected<CSavedStateTree, PRL_RESULT> snapshot = Libvirt::Snapshot::Stash
+				(SmartPtr<CVmConfiguration>(&config, SmartPtrPolicy::DoNotReleasePointee),
+				 x->GetGuid()).getMetadata();
+
+			if (snapshot.isSucceed())
+				x->SetName(snapshot.value().GetName());
 		}
 	}
 	m_result.DeleteNode(f.GetGuid());
@@ -191,6 +201,37 @@ bool Stash::restore(const QStringList& files_)
 		m_files.push_back(f);
 	}
 	return true;
+}
+
+bool Stash::setMetadata(const CSavedState& state_)
+{
+	if (!m_dir.exists())
+	{
+		WRITE_TRACE(DBG_FATAL, "Directory %s is absent", QSTR2UTF8(m_dir.absolutePath()));
+		return false;
+	}
+
+	CSavedStateStore s;
+	s.CreateSnapshot(state_);
+	QString file = m_dir.filePath(metadataFile);
+	s.Save(file);
+	m_files.push_front(file);
+	return true;
+}
+
+const char Stash::metadataFile[] = "snapshot.xml";
+
+Prl::Expected<CSavedStateTree, PRL_RESULT> Stash::getMetadata() const
+{
+	if (!m_dir.exists())
+	{
+		WRITE_TRACE(DBG_FATAL, "Directory %s is absent", QSTR2UTF8(m_dir.absolutePath()));
+		return PRL_ERR_FAILURE;
+	}
+
+	CSavedStateStore s(m_dir.filePath(metadataFile));
+	CSavedStateTree* t = s.FindCurrentSnapshot();
+	return NULL == t ? CSavedStateTree() : *t;
 }
 
 SmartPtr<CVmConfiguration> Stash::restoreConfig(const QString& file_)
@@ -548,6 +589,7 @@ PRL_RESULT CDspVmSnapshotStoreHelper::sendSnapshotsTree(SmartPtr<CDspClient> pUs
 		pUser->sendSimpleResponse(pkg, PRL_ERR_FAILURE);
 		return PRL_ERR_FAILURE;
 	}
+
 	View::model_type x;
 	Libvirt::Result e = Libvirt::Kit.vms().at(cmd->GetVmUuid()).getSnapshot().all(x);
 	if (e.isFailed())

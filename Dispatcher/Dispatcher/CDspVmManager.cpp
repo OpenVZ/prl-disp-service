@@ -490,10 +490,14 @@ struct Essence<PVE::DspCmdVmCreateSnapshot>: Need::Agent, Need::Context,
 			QString b = getConfig()->getVmIdentification()->getHomePath();
 			QStringList f(b);
 			CStatesHelper h(b);
+
 			if (h.savFileExists())
 				f << h.getSavFileName();
 
-			if (s.add(f))
+			CSavedState c;
+			c.SetGuid(getCommand()->GetSnapshotUuid());
+			c.SetName(getCommand()->GetName());
+			if (s.add(f) && s.setMetadata(c))
 			{
 				e = getAgent().getSnapshot().define(
 					getCommand()->GetSnapshotUuid(),

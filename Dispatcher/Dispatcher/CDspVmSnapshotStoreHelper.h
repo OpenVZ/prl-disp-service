@@ -44,6 +44,7 @@
 
 #include "CDspClient.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/IOService/IOCommunication/IOServer.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlxmlmodel/VmDirectory/CVmDirectory.h>
@@ -76,9 +77,13 @@ struct Stash {
 	{
 		return m_dir.exists(file_);
 	}
+	bool setMetadata(const CSavedState& state_);
+	Prl::Expected<CSavedStateTree, PRL_RESULT> getMetadata() const;
 	void commit();
 
 private:
+	static const char metadataFile[];
+
 	const QString m_vmUuid;
 	QDir m_dir;
 	QStringList m_files;
