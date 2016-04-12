@@ -158,6 +158,10 @@ PRL_RESULT Task_MigrateCtTarget::prepareTask()
 	else
 		m_sCtUuid = m_sCtOrigUuid;
 	m_sSrcCtUuid = m_cVmConfig.getVmIdentification()->getVmUuid();
+	if (m_nVersion < MIGRATE_DISP_PROTO_V7) {
+		m_cVmConfig.getVmIdentification()->setCtId(
+			QString::number(m_cVmConfig.getVmIdentification()->getEnvId()));
+	}
 	m_sCtOrigId = m_cVmConfig.getVmIdentification()->getCtId();
 
 	if (m_sCtNewName.isEmpty()) {
