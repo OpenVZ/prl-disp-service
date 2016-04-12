@@ -652,6 +652,18 @@ Result Guest::setUserPasswd(const QString& user_, const QString& passwd_, bool c
 			passwd_.toUtf8().constData(), f));
 }
 
+Result Guest::freezeFs()
+{
+	return do_(m_domain.data(), boost::bind
+		(&virDomainFSFreeze, _1, (const char **)NULL, 0, 0));
+}
+
+Result Guest::thawFs()
+{
+	return do_(m_domain.data(), boost::bind
+		(&virDomainFSThaw, _1, (const char **)NULL, 0, 0));
+}
+
 Result Guest::checkAgent()
 {
        return Exec::Exec(m_domain).executeInAgent(QString("{\"execute\":\"guest-ping\"}"));
