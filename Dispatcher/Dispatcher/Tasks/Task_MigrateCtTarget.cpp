@@ -151,18 +151,21 @@ PRL_RESULT Task_MigrateCtTarget::prepareTask()
 	}
 	m_sServerUuid = CDspService::instance()->getDispConfigGuard().getDispConfig()->
 			getVmServerIdentification()->getServerUuid();
-	m_sCtOrigUuid = m_cVmConfig.getVmIdentification()->getVmUuid();
-
-	if (m_nMigrationFlags & PVMT_CLONE_MODE)
-		m_sCtUuid = Uuid::createUuid().toString();
-	else
-		m_sCtUuid = m_sCtOrigUuid;
-	m_sSrcCtUuid = m_cVmConfig.getVmIdentification()->getVmUuid();
 	if (m_nVersion < MIGRATE_DISP_PROTO_V7) {
 		m_cVmConfig.getVmIdentification()->setCtId(
 			QString::number(m_cVmConfig.getVmIdentification()->getEnvId()));
 	}
 	m_sCtOrigId = m_cVmConfig.getVmIdentification()->getCtId();
+	m_sCtOrigUuid = m_cVmConfig.getVmIdentification()->getVmUuid();
+
+	if (m_nMigrationFlags & PVMT_CLONE_MODE) {
+		// need to generate new uuid, ctid and path if cloned
+		m_sCtUuid = Uuid::createUuid().toString();
+		if (Uuid::isUuid(m_sCtOrigId) && m_sCtNewId.isEmpty())
+			m_sCtNewId = m_sCtUuid;
+	} else
+		m_sCtUuid = m_sCtOrigUuid;
+	m_sSrcCtUuid = m_cVmConfig.getVmIdentification()->getVmUuid();
 
 	if (m_sCtNewName.isEmpty()) {
 		// Check name from config, treat it as CTID if it contain valid CTID,
