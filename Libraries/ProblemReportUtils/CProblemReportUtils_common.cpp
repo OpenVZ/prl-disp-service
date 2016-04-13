@@ -332,9 +332,10 @@ void addCommonLogFiles( CProblemReport & cReport )
      * First we try to read the overall system log file
      */
     
-	QString strParallelsLogPath = ParallelsDirs::getSystemLogPath();
+	QString strParallelsLogPath = GetLogFileName();
     
-	addSystemLogWithSuffix( cReport, strParallelsLogPath, "-system", 2 );
+	cReport.appendTemplateSystemLog(strParallelsLogPath,
+			QFileInfo(strParallelsLogPath).fileName(), 2);
     
 #ifndef _WIN_
     
