@@ -292,6 +292,7 @@ CMainDspService::CMainDspService ( int argc, char** argv )
 
 	m_application.reset(new QCoreApplication(argc, argv));
 
+	SetLogFileName(GetDefaultLogFilePath(), "prl-disp.log");
 	initializeInternalParameters(argc,argv);
 
 	srand( (unsigned)PrlGetTickCount() );
