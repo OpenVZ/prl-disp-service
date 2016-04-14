@@ -1284,27 +1284,28 @@ void Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 		return;
 	}
 
+	// Convert Cdrom devices to IDE since SATA is unsupported.
 	foreach(CVmOpticalDisk* pDevice, pVmHardware->m_lstOpticalDisks) {
-		if (NULL == pDevice)
-			continue;
-		if (pDevice->getEmulatedType() != PVE::CdRomImage)
-			continue;
-		// Switch Cdrom devices to IDE since SATA is unsupported
-		if (pDevice->getInterfaceType() == PMS_SATA_DEVICE)
+		if (pDevice != NULL && pDevice->getEmulatedType() == PVE::CdRomImage)
 			pDevice->setInterfaceType(PMS_IDE_DEVICE);
 	}
 
-	// pcs6 SCSI and SATA disks are not supported in vz7.
-	// Convert to virtio-block until SCSI support will be added.
+	// Convert disks to virtio-scsi
+	// There's no virtio-scsi drivers for win2003-, use virtio-block.
 	foreach(CVmHardDisk *pDevice, pVmHardware->m_lstHardDisks) {
-		if (NULL == pDevice)
+		if (NULL == pDevice || pDevice->getEmulatedType() != PVE::HardDiskImage)
 			continue;
-		if (pDevice->getEmulatedType() != PVE::HardDiskImage)
-			continue;
-		if (pDevice->getInterfaceType() != PMS_SCSI_DEVICE &&
-			pDevice->getInterfaceType() != PMS_SATA_DEVICE)
-			continue;
-		pDevice->setInterfaceType(PMS_VIRTIO_BLOCK_DEVICE);
+		bool noSCSI = cfg->getVmSettings()->getVmCommonOptions()->getOsType() ==
+				PVS_GUEST_TYPE_WINDOWS &&
+			IS_WIN_VER_BELOW(cfg->getVmSettings()->getVmCommonOptions()->getOsVersion(),
+			                 PVS_GUEST_VER_WIN_VISTA);
+		pDevice->setInterfaceType(noSCSI ? PMS_VIRTIO_BLOCK_DEVICE : PMS_SCSI_DEVICE);
+	}
+
+	// Convert network interfaces to virtio-net
+	foreach(CVmGenericNetworkAdapter *pDevice, pVmHardware->m_lstNetworkAdapters) {
+		if (pDevice != NULL)
+			pDevice->setAdapterType(PNT_VIRTIO);
 	}
 
 	// Parallel ports are not supported anymore
