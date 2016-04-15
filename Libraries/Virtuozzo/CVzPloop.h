@@ -110,7 +110,7 @@ struct Image
 	PRL_RESULT createDiskDescriptor(const QString& imagePath, unsigned long long size) const;
 	PRL_RESULT createSnapshot(const QString& path = QString()) const;
 	PRL_RESULT setActiveDeltaLimit(unsigned long long lim) const;
-	PRL_RESULT getDiskDescriptor(DiskDescriptor& dd) const;
+	PRL_RESULT getBaseDeltaFilename(QString& path) const;
 	PRL_RESULT mount(QString& dev) const;
 	PRL_RESULT umount() const;
 	PRL_RESULT getMountedDevice(QString& dev) const;
