@@ -85,9 +85,7 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>
 
-#ifdef _LIN_
-#include "Libraries/Virtuozzo/CCpuHelper.h"
-#endif /* _LIN_ */
+#include "Libraries/CpuFeatures/CCpuHelper.h"
 
 #include <prlsdk/PrlApiDeprecated.h>
 

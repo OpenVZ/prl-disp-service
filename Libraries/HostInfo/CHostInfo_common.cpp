@@ -74,10 +74,8 @@
 
 #include "Build/Current.ver"
 
-#ifdef _LIN_
 #include "cpufeatures.h"
-#include "Libraries/Virtuozzo/CCpuHelper.h"
-#endif
+#include "Libraries/CpuFeatures/CCpuHelper.h"
 
 // Supported video cards
 #define SVC_NVIDIA_QUADRO_FX_3800	"nVidia Corporation Quadro FX 3800"

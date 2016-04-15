@@ -17,6 +17,7 @@ include($$LIBS_LEVEL/StatesUtils/StatesUtils.pri)
 include($$LIBS_LEVEL/StatesStore/StatesStore.pri)
 include($$LIBS_LEVEL/PerfCount/PerfLib/PerfCounter.pri)
 include($$LIBS_LEVEL/Buse/Buse.pri)
+include($$LIBS_LEVEL/CpuFeatures/CpuFeatures.pri)
 
 include($$LIBS_LEVEL/PowerWatcher/PowerWatcher.pri)
 win32: include($$LIBS_LEVEL/BattWatcher/BattWatcher.pri)

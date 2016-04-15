@@ -33,13 +33,16 @@
 class CCpuHelper {
 public:
 	static CDispCpuPreferences *get_cpu_mask();
-	static PRL_RESULT maskUpdate(CDispCpuPreferences old_mask, CDispCpuPreferences new_mask);
+	static PRL_RESULT maskUpdate(CDispCpuPreferences new_mask);
 	static bool update(CVmConfiguration &conf);
+	static void update(CVmConfiguration &conf, CDispCpuPreferences mask);
+	static bool isMasksEqual(CDispCpuPreferences mask1, CDispCpuPreferences mask2);
 	static void fill_cpu_info(CHwCpu &cpu);
 	static CCpuPoolInfo *getPoolInfo();
 	static bool loadPoolsList(QList<CCpuPool> &list);
 	static PRL_RESULT moveToPool(const char *name);
 	static PRL_RESULT recalcPool(const char *name);
+	static QSet<QString> getDisabledFeatures(const CVmConfiguration &conf);
 
 	static bool sync();
 

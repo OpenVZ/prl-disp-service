@@ -28,6 +28,10 @@
 #include <QSet>
 #include <memory>
 
+#include <boost/variant/static_visitor.hpp>
+#include <boost/mpl/for_each.hpp>
+#include <boost/mpl/range_c.hpp>
+
 #include <prlcommon/HostUtils/HostUtils.h>
 
 namespace
@@ -542,6 +546,190 @@ private:
 	CCpuPoolInfo *m_info;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Config
+
+struct Config
+{
+	typedef CVmRunTimeOptions type;
+	typedef unsigned int (type::*getter_type)() const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Register
+
+struct Register
+{
+	typedef std::map<const char*, int> map_type;
+
+	Register(const char *features[], Config::getter_type getter) : m_get(getter)
+	{
+		for (unsigned int i = 0; features[i] != NULL; ++i)
+		{
+			if (*features[i] != 0)
+				m_features.insert(map_type::value_type(features[i], i));
+		}
+	}
+
+	void appendDisabled(const Config::type &input, QSet<QString> &features) const
+	{
+		unsigned int m = (input.*m_get)();
+
+		foreach(const map_type::value_type& v, m_features)
+		{
+			if (((1UL << v.second) & m) == 0)
+				features.insert(QString(v.first));
+		}
+	}
+
+
+private:
+	map_type m_features;
+	Config::getter_type m_get;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct IntegralToInt
+
+template<typename T>
+struct IntegralToInt
+{
+	typedef boost::mpl::int_<T::value> type;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+
+struct List
+{
+	typedef QList<Register> type;
+
+	List();
+
+	QSet<QString> getDisabled(const Config::type &input);
+
+private:
+	QList<Register> m_registers;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Visitor
+
+struct Visitor : boost::static_visitor<void>
+{
+	Visitor(List::type &list) : m_list(&list)
+	{
+	}
+
+	void operator()(boost::mpl::int_<PCFE_FEATURES>)
+	{
+		static const char *f[] = {
+			"fpu", "vme", "de", "pse", "tsc", "msr", "pae", "mce", "cx8", "apic", "", "sep",
+			"mtrr",	"pge", "mca", "cmov", "pat", "pse36", "pn", "clflush", "", "dts", "acpi",
+			"mmx", "fxsr", "sse", "sse2", "ss", "ht", "tm", "ia64", "pbe", NULL
+		};
+
+		m_list->push_back(Register(f, &Config::type::getFEATURES_MASK));
+	}
+
+	void operator()(boost::mpl::int_<PCFE_EXT_FEATURES>)
+	{
+		static const char *f[] = {
+			"pni", "pclmulqdq", "dtes64", "monitor", "ds_cpl", "vmx", "smx", "est",	"tm2",
+			"ssse3", "cid",	"",	"fma", "cx16", "xtpr", "pdcm",	"",	"pcid",	"dca", "sse4_1",
+			"sse4_2", "x2apic",	"movbe", "popcnt", "tsc_deadline_timer", "aes",	"xsave",
+			"osxsave", "avx", "f16c", "rdrand", "hypervisor", NULL
+		};
+
+		m_list->push_back(Register(f, &Config::type::getEXT_FEATURES_MASK));
+	}
+
+	void operator()(boost::mpl::int_<PCFE_EXT_00000007_EBX>)
+	{
+		static const char *f[] = {
+			"fsgsbase", "tsc_adjust", "sgx", "bmi1", "hle", "avx2",	"",	"smep",	"bmi2",
+			"erms", "invpcid", "rtm", "pqm", "depfpp", "mpx", "pqe", "avx512f", "avx512dq",
+			"rdseed", "adx", "smap", "", "", "cflushopt", "", "pt", "avx512pf",	"avx512er",
+			"avx512cd",	"sha", "avx512bw", "avx512vl", NULL
+		};
+
+		m_list->push_back(Register(f, &Config::type::getEXT_00000007_EBX_MASK));
+	}
+
+	void operator()(boost::mpl::int_<PCFE_EXT_80000001_ECX>)
+	{
+		static const char *f[] = {
+			"lahf_lm", "cmp_legacy", "svm",	"extapic", "cr8_legacy", "abm", "sse4a",
+			"misalignsse", "3dnowprefetch",	"osvw",	"ibs", "xop", "skinit",	"wdt", "", "lwp",
+			"fma4", "tce", "", "nodeid_msr", "", "tbm",	"topoext", "perfctr_core", "perfctr_nb",
+			"", "dbx", "perftsc", "perfctr_l2", NULL
+		};
+
+		m_list->push_back(Register(f, &Config::type::getEXT_80000001_ECX_MASK));
+	}
+
+	void operator()(boost::mpl::int_<PCFE_EXT_80000001_EDX>)
+	{
+		static const char *f[] = {
+			"fpu", "vme", "de",	"pse", "tsc", "msr", "pae", "mce", "cx8", "apic", "", "syscall",
+			"mtrr", "pge", "mca", "cmov", "pat", "pse36", "", "mp", "nx", "", "mmxext", "mmx",
+			"fxsr", "fxsr_opt", "pdpe1gb", "rdtscp", "", "lm", "3dnowext", "3dnow", NULL
+		};
+
+		m_list->push_back(Register(f, &Config::type::getEXT_80000001_EDX_MASK));
+	}
+
+	void operator()(boost::mpl::int_<PCFE_EXT_80000007_EDX>)
+	{
+		static const char *f[] = {
+			"ts", "fid", "vid", "ttp", "tm87", "stc", "mul100",	"hwps", "itsc",	"cpb", "efro",
+			"pfi", "pa", NULL
+		};
+
+		m_list->push_back(Register(f, &Config::type::getEXT_80000007_EDX_MASK));
+	}
+
+	void operator()(boost::mpl::int_<PCFE_EXT_80000008_EAX>)
+	{
+		static const char *f[] = {NULL};
+
+		m_list->push_back(Register(f, &Config::type::getEXT_80000008_EAX));
+	}
+
+	void operator()(boost::mpl::int_<PCFE_EXT_0000000D_EAX>)
+	{
+		static const char *f[] = {NULL};
+
+		m_list->push_back(Register(f, &Config::type::getEXT_0000000D_EAX_MASK));
+	}
+
+private:
+	List::type *m_list;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+
+List::List()
+{
+	typedef boost::mpl::range_c<int, PCFE_FEATURES, PCFE_MAX> range_type;
+
+	Visitor v(m_registers);
+	boost::mpl::for_each<range_type, IntegralToInt<boost::mpl::_1> >(boost::ref(v));
+}
+
+QSet<QString> List::getDisabled(const Config::type &input)
+{
+	QSet<QString> features;
+
+	foreach(const Register &r, m_registers)
+		r.appendDisabled(input, features);
+
+	return features;
+}
+
+Q_GLOBAL_STATIC(List, getRegisters);
+
 }// anonyomus namespace
 
 PRL_RESULT CCpuHelper::execFeaturesCmd(const QString &cmdline)
@@ -581,13 +769,9 @@ void CCpuHelper::fill_cpu_info(CHwCpu &cpu)
 		fmc.fill(0x00000000);
 }
 
-PRL_RESULT CCpuHelper::maskUpdate(CDispCpuPreferences old_mask, CDispCpuPreferences new_mask)
+PRL_RESULT CCpuHelper::maskUpdate(CDispCpuPreferences new_mask)
 {
 	FeaturesSetIn<MaskTag> fs_new = fixupValidProperty(new_mask);
-	FeaturesSetIn<MaskTag> fs_old = fixupValidProperty(old_mask);
-
-	if (fs_new == fs_old)
-		return PRL_ERR_SUCCESS;
 
 	if (!checkBinaryExists(CPUFEATURES_BINARY))
 		return PRL_ERR_CPUFEATURES_NO_BINARY;
@@ -597,20 +781,31 @@ PRL_RESULT CCpuHelper::maskUpdate(CDispCpuPreferences old_mask, CDispCpuPreferen
 
 bool CCpuHelper::update(CVmConfiguration &conf)
 {
-	CVmRunTimeOptions *r = conf.getVmSettings()->getVmRuntimeOptions();
-	// do not rewrote defined VM mask
-	if (r->isCpuFeaturesMaskValid())
-		return true;
-
 	std::auto_ptr<CDispCpuPreferences> m(CCpuHelper::get_cpu_mask());
 	if (!m.get())
 		return false;
-	FeaturesSetIn<VmFeaturesTag> fs_vm(*r);
-	FeaturesSetIn<MaskTag> fs_mask(*m);
-	fs_vm = fs_mask;
-	r->setCpuFeaturesMaskValid(true);
+
+	update(conf, *m);
 
 	return true;
+}
+
+void CCpuHelper::update(CVmConfiguration &conf, CDispCpuPreferences mask)
+{
+	CVmRunTimeOptions *r = conf.getVmSettings()->getVmRuntimeOptions();
+
+	FeaturesSetIn<VmFeaturesTag> fs_vm(*r);
+	FeaturesSetIn<MaskTag> fs_mask(mask);
+	fs_vm = fs_mask;
+	r->setCpuFeaturesMaskValid(true);
+}
+
+bool CCpuHelper::isMasksEqual(CDispCpuPreferences mask1, CDispCpuPreferences mask2)
+{
+	FeaturesSetIn<MaskTag> fs1 = fixupValidProperty(mask1);
+	FeaturesSetIn<MaskTag> fs2 = fixupValidProperty(mask2);
+
+	return (fs1 == fs2);
 }
 
 bool CCpuHelper::sync()
@@ -682,4 +877,9 @@ PRL_RESULT CCpuHelper::moveToPool(const char *name)
 PRL_RESULT CCpuHelper::recalcPool(const char *name)
 {
 	return execFeaturesCmd(QString("%1 --quiet recalc %2").arg(CPUPOOLS_BINARY).arg(name));
+}
+
+QSet<QString> CCpuHelper::getDisabledFeatures(const CVmConfiguration &conf)
+{
+	return getRegisters()->getDisabled(conf.getVmSettings()->getVmRuntimeOptions());
 }
