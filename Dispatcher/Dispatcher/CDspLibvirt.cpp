@@ -198,6 +198,11 @@ Result Online::operator()(Parameters::Builder& builder_)
 			return Failure(PRL_ERR_FAILURE);
 	}
 
+	if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "xbrzle"))
+		return Failure(PRL_ERR_FAILURE);
+	if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "mt"))
+		return Failure(PRL_ERR_FAILURE);
+
 	return Result();
 }
 
