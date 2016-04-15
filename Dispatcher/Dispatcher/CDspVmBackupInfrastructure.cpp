@@ -479,20 +479,11 @@ namespace Export
 ///////////////////////////////////////////////////////////////////////////////
 // struct Image
 
-PRL_RESULT Image::operator()(const QString& snapshot_, const Product::component_type& tib_,
+PRL_RESULT Image::operator()(const QString&, const Product::component_type& tib_,
 		const QDir& store_, QString& dst_)
 {
-	PRL_RESULT e;
-	Snapshot::Vm::Image x;
-	QString f = tib_.first.getFolder();
-	if (PRL_FAILED(e = x.open(f)))
-		return e;
-
 	QString t = store_.absoluteFilePath(tib_.second.completeBaseName());
 	CFileHelper::ClearAndDeleteDir(t);
-	if (PRL_FAILED(e = x.dropState(snapshot_, t)))
-		return e;
-
 	dst_ = t;
 	return PRL_ERR_SUCCESS;
 }
@@ -691,6 +682,7 @@ PRL_RESULT Object::begin(const QString& path_, const QString& map_, Task::Report
 	Q_UNUSED(path_);
 	Q_UNUSED(map_);
 	Q_UNUSED(reporter_);
+	/* snapshot is not used in new backup scheme */
 	return PRL_ERR_SUCCESS;
 /*	Create "backup" snapshot */
 /*	CVmEvent v;
@@ -845,23 +837,10 @@ PRL_RESULT Subject::create(Task::Workbench& task_)
 	QScopedPointer<Object> o;
 	m_vm.getSnapshot(o);
 
-	PRL_RESULT output = task_.openTmp(m_tmp);
-	if (PRL_FAILED(output))
-		return output;
-
-	Begin b(m_tmp, m_map, task_);
+	PRL_RESULT output;
 	if (m_product.getObject().canFreeze())
-		output = b.doConsistent(*o);
-	else
-		output = b.doTrivial(*o);
+		output = o->freeze(task_);
 
-	if (PRL_SUCCEEDED(output))
-		attach();
-	else if (!m_tmp.isEmpty())
-	{
-		CFileHelper::ClearAndDeleteDir(m_tmp);
-		m_tmp.clear();
-	}
 	return output;
 }
 
@@ -889,9 +868,6 @@ PRL_RESULT Subject::attach()
 
 PRL_RESULT Subject::dropState(const QDir& store_)
 {
-	if (getUuid().isEmpty() && !m_tibList.isEmpty())
-		return PRL_ERR_UNINITIALIZED;
-
 	Product::componentList_type c;
 	PRL_RESULT output = Export::Complete<Export::Image>
 				(getUuid(), Export::Image())
