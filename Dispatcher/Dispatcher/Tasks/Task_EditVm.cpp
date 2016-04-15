@@ -1727,6 +1727,9 @@ PRL_RESULT Task_EditVm::editVm()
 			// if we are trying to rename VM - VM must be stopped first.
 			if (newVmName != oldVmName)
 			{
+				if (nState != VMS_STOPPED && nState != VMS_SUSPENDED)
+					throw PRL_ERR_VM_MUST_BE_STOPPED_BEFORE_RENAMING;
+
 				WRITE_TRACE( DBG_FATAL, "Vm '%s' will be renamed to '%s'."
 					, QSTR2UTF8(oldVmName),  QSTR2UTF8(newVmName) );
 
