@@ -202,6 +202,11 @@ Result Online::operator()(Parameters::Builder& builder_)
 		.arg(m_qemuStatePort)))
 		return Failure(PRL_ERR_FAILURE);
 
+	if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "xbrzle"))
+		return Failure(PRL_ERR_FAILURE);
+	if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "mt"))
+		return Failure(PRL_ERR_FAILURE);
+
 	if (m_nbd)
 	{
 		foreach (CVmHardDisk* d, m_nbd.get().first)
