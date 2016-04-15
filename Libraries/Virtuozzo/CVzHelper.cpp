@@ -1311,6 +1311,7 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 				);
 			pMem->setMemGuarantee(g.value);
 		}
+		pMem->setEnableHotplug(true);
 
 		/* Video memory is not used for Ct */
 		pConfig->getVmHardwareList()->getVideo()->setMemorySize(0);
@@ -1376,6 +1377,8 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 
 			pCpu->setCpuLimitData(&cpulimit);
 		}
+		pCpu->setEnableHotplug(true);
+
 		// CPUUNITS
 		if (vzctl2_env_get_cpuunits(env_param, &ul) == 0)
 			pCpu->setCpuUnits(ul);
