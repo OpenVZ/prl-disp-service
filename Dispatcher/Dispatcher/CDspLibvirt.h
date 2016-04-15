@@ -245,6 +245,8 @@ namespace Migration
 
 struct Task
 {
+	typedef QPair<QList<CVmHardDisk*>, quint16> nbd_type;
+
 	Task(QSharedPointer<virDomain> domain_,
 		QSharedPointer<virConnect> link_,
 		const QString& uri_)
@@ -252,7 +254,8 @@ struct Task
 	{
 	}
 
-	Result doOnline(const CVmConfiguration &config_, const QList<CVmHardDisk*>& disks_);
+	Result doOnline(const CVmConfiguration& config_, quint16 qemuStatePort_,
+			const boost::optional<nbd_type>& ndb_);
 	Result doOffline(const CVmConfiguration &config_);
 	Result cancel();
 	Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple>

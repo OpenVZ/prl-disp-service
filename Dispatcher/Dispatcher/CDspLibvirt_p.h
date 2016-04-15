@@ -457,6 +457,7 @@ struct Builder: noncopyable
 	bool add(const char *key_, const QString& value_);
 	bool add(const char *key_, quint64 value_);
 	bool add(const char *key_, qint64 value_);
+	bool add(const char *key_, qint32 value_);
 	Result_type extract();
 
 private:
@@ -493,16 +494,22 @@ private:
 
 struct Online: private Offline
 {
-	Online(const Config& agent_, const CVmConfiguration& config_,
-		const QList<CVmHardDisk* >& disks_):
-		Offline(agent_, config_), m_disks(disks_)
+	typedef Instrument::Agent::Vm::Migration::Task::nbd_type nbd_type;
+
+	Online(const Config& agent_, const CVmConfiguration& config_, qint32 qemuStatePort_):
+		Offline(agent_, config_), m_qemuStatePort(qemuStatePort_)
 	{
 	}
 
 	Result operator()(Parameters::Builder& builder_);
+	void setNbd(const nbd_type& value_)
+	{
+		m_nbd = value_;
+	}
 
 private:
-	QList<CVmHardDisk* > m_disks;
+	qint32 m_qemuStatePort;
+	boost::optional<nbd_type> m_nbd;
 };
 
 } // namespace Migration

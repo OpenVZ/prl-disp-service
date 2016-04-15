@@ -173,22 +173,10 @@ namespace Libvirt
 
 Flop::Event Task::run()
 {
-	const CVmConfiguration* x = m_task->getTargetConfig();
-	if (NULL == x)
+	if (NULL == m_config)
 		return Flop::Event(PRL_ERR_NO_DATA);
 
-	::Libvirt::Result r;
-	switch (m_task->getOldState())
-	{
-	case VMS_PAUSED:
-	case VMS_RUNNING:
-		r = m_agent.doOnline(*x, m_task->getVmUnsharedDisks());
-		break;
-	default:
-		r = m_agent.doOffline(*x);
-		break;
-	}
-
+	::Libvirt::Result r = m_work(m_agent, *m_config);
 	if (r.isSucceed())
 		return Flop::Event();
 
@@ -244,22 +232,37 @@ void Progress::timerEvent(QTimerEvent* event_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-void Frontend::start(const QSharedPointer<QTcpServer>& event_)
+void Frontend::start(const serverList_type& event_)
 {
-	const QString u = QString("qemu+tcp://localhost:%1/system")
-		.arg(event_->serverPort());
+	if (3 > event_.size())
+		return getConnector()->handle(Flop::Event(PRL_ERR_INVALID_ARG));
+
+	const QString u = QString("qemu+tcp://%1:%2/system")
+				.arg(QHostAddress(QHostAddress::LocalHost).toString())
+				.arg(event_.first()->serverPort());
 	Task::agent_type a = ::Libvirt::Kit.vms().at(m_task->getVmUuid()).migrate(u);
 	switch (m_task->getOldState())
 	{
 	case VMS_PAUSED:
 	case VMS_RUNNING:
-		m_progress = QSharedPointer<Progress>(new Progress(a, m_reporter));
-		m_progress->startTimer(0);
 		break;
 	default:
-		break;
+		return launch(new Task(a,
+			boost::bind(&Task::agent_type::doOffline, _1, _2),
+			m_task->getTargetConfig()));
 	}
-	launch(new Task(a, *m_task));
+	m_progress = QSharedPointer<Progress>(new Progress(a, m_reporter));
+	m_progress->startTimer(0);
+
+	boost::optional<Task::agent_type::nbd_type> b;
+	QList<CVmHardDisk* > d = m_task->getVmUnsharedDisks();
+	if (!d.isEmpty())
+		b = qMakePair(d, event_.at(2)->serverPort());
+
+	launch(new Task(a,
+		boost::bind(&Task::agent_type::doOnline, _1, _2,
+			event_.at(1)->serverPort(), b),
+		m_task->getTargetConfig()));
 }
 
 template<typename Event, typename FSM>
@@ -287,9 +290,30 @@ namespace Tunnel
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
-void Connector::newConnection()
+void Connector::acceptLibvirt()
 {
-	handle(Accepted());
+	handle(Vm::Pump::Launch_type(m_service, accept_().data()));
+}
+
+void Connector::acceptQemuDisk()
+{
+	handle(Qemu::Launch<Parallels::VmMigrateConnectQemuDiskCmd>
+		(m_service, accept_().data()));
+}
+
+void Connector::acceptQemuState()
+{
+	handle(Qemu::Launch<Parallels::VmMigrateConnectQemuStateCmd>
+		(m_service, accept_().data()));
+}
+
+QSharedPointer<QTcpSocket> Connector::accept_()
+{
+	QTcpServer* s = (QTcpServer* )sender();
+	QSharedPointer<QTcpSocket> output(s->nextPendingConnection());
+	s->close();
+	handle(output);
+	return output;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -336,8 +360,7 @@ void IO::reactReceived(const SmartPtr<IOPackage>& package)
 
 void IO::reactSend(IOClientInterface*, IOSendJob::Result, const SmartPtr<IOPackage> package_)
 {
-	Q_UNUSED(package_);
-	emit onSent();
+	emit onSent(package_);
 }
 
 void IO::reactChange(IOSender::State value_)
@@ -346,51 +369,86 @@ void IO::reactChange(IOSender::State value_)
 		emit disconnected();
 }
 
+namespace Qemu
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Launch
+
+template<Parallels::IDispToDispCommands X>
+Prl::Expected<Vm::Pump::Launch_type, Flop::Event> Launch<X>::operator()() const
+{
+	SmartPtr<IOPackage> x = IOPackage::createInstance(X, 1);
+	if (!x.isValid())
+		return Flop::Event(PRL_ERR_FAILURE);
+
+	quint32 p = m_socket->localPort();
+	x->fillBuffer(0, IOPackage::RawEncoding, &p, sizeof(p));
+	IOSendJob::Handle j = m_service->sendPackage(x);
+	if (!j.isValid())
+		return Flop::Event(PRL_ERR_FAILURE);
+
+	return Vm::Pump::Launch_type(m_service, m_socket);
+}
+
+} // namespace Qemu
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-void Frontend::accept(const Accepted& )
+void Frontend::accept(const client_type& connection_)
 {
-	m_client = QSharedPointer<QTcpSocket>(m_server->nextPendingConnection());
-	m_server->close();
-	getConnector()->handle(Pump::Launch_type(m_service, m_client.data()));
+	m_clients << connection_;
+}
+
+bool Frontend::setup(const char* method_)
+{
+	bool x;
+	serverList_type::value_type s(new QTcpServer());
+	x = getConnector()->connect(s.data(), SIGNAL(newConnection()), method_);
+	if (!x)
+	{
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+		return false;
+	}
+	x = s->listen(QHostAddress::LocalHost);
+	if (!x)
+	{
+		WRITE_TRACE(DBG_FATAL, "can't listen");
+		return false;
+	}
+	m_servers << s;
+	return true;
 }
 
 template <typename Event, typename FSM>
 void Frontend::on_entry(const Event& event_, FSM& fsm_)
 {
-	m_server = QSharedPointer<QTcpServer>(new QTcpServer());
 	Vm::Frontend<Frontend>::on_entry(event_, fsm_);
-	bool x = getConnector()->connect(m_server.data(),
-			SIGNAL(newConnection()),
-			SLOT(newConnection()));
-	if (!x)
-	{
-		WRITE_TRACE(DBG_FATAL, "can't connect");
-		fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
-	}
-	else if (m_server->listen(QHostAddress::LocalHost))
-		getConnector()->handle(m_server);
-	else
-	{
-		WRITE_TRACE(DBG_FATAL, "can't listen");
-		fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
-	}
+	getConnector()->setService(m_service);
+	if (setup(SLOT(acceptLibvirt())) && setup(SLOT(acceptQemuState()))
+		&& setup(SLOT(acceptQemuDisk())))
+		return getConnector()->handle(m_servers);
+
+	fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
 }
 
 template <typename Event, typename FSM>
 void Frontend::on_exit(const Event& event_, FSM& fsm_)
 {
 	Vm::Frontend<Frontend>::on_exit(event_, fsm_);
-	m_server->disconnect(SIGNAL(newConnection()),
-			getConnector(), SLOT(newConnection()));
-
-	m_server->close();
-	if (!m_client.isNull())
-		m_client->close();
-
-	m_client.clear();
-	m_server.clear();
+	foreach (const QSharedPointer<QTcpServer>& s, m_servers)
+	{
+		s->disconnect(SIGNAL(newConnection()),
+				getConnector());
+		s->close();
+	}
+	foreach (const client_type& c, m_clients)
+	{
+		c->close();
+	}
+	m_clients.clear();
+	m_servers.clear();
+	getConnector()->setService(NULL);
 }
 
 } // namespace Tunnel
@@ -423,17 +481,17 @@ void Connector::react(const SmartPtr<IOPackage>& package_)
 		break;
 	}
 	case VmMigrateCheckPreconditionsReply:
-		handle(CheckReply(package_));
-		break;
+		return handle(CheckReply(package_));
 	case VmMigrateReply:
-		handle(StartReply(package_));
-		break;
-	case VmMigrateTunnelChunk:
-		handle(Pump::TunnelChunk_type(package_));
-		break;
+		return handle(StartReply(package_));
+	case VmMigrateLibvirtTunnelChunk:
+		return handle(Vm::Tunnel::libvirtChunk_type(package_));
+	case VmMigrateQemuDiskTunnelChunk:
+		return handle(Vm::Pump::Event<VmMigrateQemuDiskTunnelChunk>(package_));
+	case VmMigrateQemuStateTunnelChunk:
+		return handle(Vm::Pump::Event<VmMigrateQemuStateTunnelChunk>(package_));
 	case VmMigrateFinishCmd:
-		handle(Pump::FinishCommand_type(package_));
-		break;
+		return handle(Vm::Pump::FinishCommand_type(package_));
 	default:
 		WRITE_TRACE(DBG_FATAL, "Unexpected package type: %d.", package_->header.type);
 	}
