@@ -42,6 +42,7 @@
 #include <cxxabi.h>
 #include <CDspTaskHelper.h>
 #include <CDspDispConnection.h>
+#include <boost/mpl/has_xxx.hpp>
 #include <prlsdk/PrlErrorsValues.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/Logging/Logging.h>
@@ -59,13 +60,6 @@ namespace msmf = boost::msm::front;
 
 using IOService::IOPackage;
 using IOService::IOSendJob;
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Success
-
-struct Success: msmf::exit_pseudo_state<boost::msm::front::none>
-{
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Finished
@@ -116,6 +110,13 @@ struct Trace: boost::msm::front::state<>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Success
+
+struct Success: msmf::exit_pseudo_state<boost::msm::front::none>
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
 template<class T>
@@ -144,6 +145,13 @@ struct Frontend: msmf::state_machine_def<T>
 
 		WRITE_TRACE(DBG_FATAL, "no transition from state %s on event %s\n",
 			qPrintable(demangle(n.c_str())),
+			qPrintable(Trace<Event>::demangle()));
+	}
+	template <class FSM,class Event>
+	void exception_caught (Event const&,FSM&, std::exception& exception_)
+	{
+		WRITE_TRACE(DBG_FATAL, "exception %s, fsm %s, event %s\n", exception_.what(),
+			qPrintable(Trace<FSM>::demangle()),
 			qPrintable(Trace<Event>::demangle()));
 	}
 };
@@ -418,7 +426,7 @@ struct Frontend: Vm::Frontend<Frontend<T, U> >, Vm::Connector::Mixin<Connector<T
 {
 	typedef boost::function1<PRL_RESULT, const SmartPtr<IOPackage>& > callback_type;
 	typedef Waiting initial_state;
-	typedef msmf::state_machine_def<Frontend> def_type;
+	typedef Vm::Frontend<Frontend<T, U> > def_type;
 
 	explicit Frontend(quint32 timeout_): m_timeout(timeout_)
 	{
@@ -435,7 +443,7 @@ struct Frontend: Vm::Frontend<Frontend<T, U> >, Vm::Connector::Mixin<Connector<T
 	template <typename Event, typename FSM>
 	void on_entry(const Event& event_, FSM& fsm_)
 	{
-		Vm::Frontend<Frontend>::on_entry(event_, fsm_);
+		def_type::on_entry(event_, fsm_);
 		m_timer = QSharedPointer<QTimer>(new QTimer());
 		m_timer->setSingleShot(true);
 		m_timer->start(m_timeout);
@@ -445,7 +453,7 @@ struct Frontend: Vm::Frontend<Frontend<T, U> >, Vm::Connector::Mixin<Connector<T
 	template <typename Event, typename FSM>
 	void on_exit(const Event& event_, FSM& fsm_)
 	{
-		Vm::Frontend<Frontend>::on_exit(event_, fsm_);
+		def_type::on_exit(event_, fsm_);
 		m_timer->disconnect(SIGNAL(timeout()), this->getConnector());
 		m_timer->stop();
 		m_timer.clear();
@@ -507,23 +515,30 @@ private:
 template<Parallels::IDispToDispCommands X>
 const Parallels::IDispToDispCommands Event<X>::s_command = X;
 
-typedef Event<Parallels::VmMigrateTunnelChunk> TunnelChunk_type;
 // NB. target side needs a handshake on finish because it doesn't know if the
 // overall process fails. thus it waits for a finish reply from the source to
 // complete with ok or for cancel to clean up and fail.
 typedef Event<Parallels::VmMigrateFinishCmd> FinishCommand_type;
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Reading
+// struct Quit
 
-struct Reading: Trace<Reading>
+template<Parallels::IDispToDispCommands X>
+struct Quit
 {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Queueing
+// struct Reading
 
-struct Queueing: Trace<Queueing>, QQueue<SmartPtr<IOPackage> >
+struct Reading
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Queue
+
+struct Queue: QQueue<SmartPtr<IOPackage> >
 {
 	bool isEof() const
 	{
@@ -540,7 +555,7 @@ struct IO: QObject
 
 signals:
 	void onReceived(const SmartPtr<IOPackage>& package_);
-	void onSent();
+	void onSent(const SmartPtr<IOPackage>& package_);
 
 private:
 	Q_OBJECT
@@ -549,39 +564,136 @@ private:
 namespace Push
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Ready
-
-struct Ready
-{
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Eof
-
-struct Eof
-{
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Sent
-
-struct Sent
-{
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Closing
 
-struct Closing: Trace<Closing>
+struct Closing
 {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Sending
 
-struct Sending: Trace<Sending>
+struct Sending
 {
 };
+
+typedef boost::variant<Reading, Sending, Closing, Success> state_type;
+typedef Prl::Expected<state_type, Flop::Event> target_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Packer
+
+struct Packer
+{
+	explicit Packer(Parallels::IDispToDispCommands name_): m_name(name_)
+	{
+	}
+
+	SmartPtr<IOPackage> operator()();
+	SmartPtr<IOPackage> operator()(QIODevice& source_);
+
+private:
+	Parallels::IDispToDispCommands m_name;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Queue
+
+struct Queue: private Vm::Pump::Queue
+{
+	Queue(Parallels::IDispToDispCommands name_, IO& service_, QIODevice& device_):
+		m_service(&service_), m_packer(name_), m_device(&device_)
+	{
+	}
+
+	target_type dequeue();
+	Prl::Expected<void, Flop::Event> enqueueEof();
+	Prl::Expected<void, Flop::Event> enqueueData();
+
+private:
+	Prl::Expected<void, Flop::Event> enqueue(const SmartPtr<IOPackage>& package_);
+
+	IO* m_service;
+	Packer m_packer;
+	QIODevice* m_device;
+};
+
+namespace Visitor
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Eof
+
+struct Eof: boost::static_visitor<target_type>
+{
+	explicit Eof(Queue& queue_): m_queue(&queue_)
+	{
+	}
+
+	template<class T>
+	target_type operator()(const T& value_) const
+	{
+		return state_type(value_);
+	}
+	target_type operator()
+		(const boost::mpl::at_c<state_type::types, 0>::type& value_) const;
+	target_type operator()
+		(const boost::mpl::at_c<state_type::types, 1>::type& value_) const;
+
+private:
+	Queue* m_queue;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Sent
+
+struct Sent: boost::static_visitor<target_type>
+{
+	typedef boost::function0<void> callback_type;
+
+	Sent(Queue& queue_, const callback_type& callback_):
+		m_queue(&queue_), m_callback(callback_)
+	{
+	}
+
+	template<class T>
+	target_type operator()(const T& value_) const
+	{
+		return state_type(value_);
+	}
+	target_type operator()
+		(const boost::mpl::at_c<state_type::types, 1>::type& value_) const;
+	target_type operator()
+		(const boost::mpl::at_c<state_type::types, 2>::type& value_) const;
+
+private:
+	Queue* m_queue;
+	callback_type m_callback;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ready
+
+struct Ready: boost::static_visitor<target_type>
+{
+	explicit Ready(Queue& queue_): m_queue(&queue_)
+	{
+	}
+
+	template<class T>
+	target_type operator()(const T& value_) const
+	{
+		return state_type(value_);
+	}
+	target_type operator()
+		(const boost::mpl::at_c<state_type::types, 0>::type& value_) const;
+	target_type operator()
+		(const boost::mpl::at_c<state_type::types, 1>::type& value_) const;
+
+private:
+	Queue* m_queue;
+};
+
+} // namespace Visitor
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Slot
@@ -589,7 +701,7 @@ struct Sending: Trace<Sending>
 struct Slot: QObject
 {
 public slots:
-	virtual void onSent() = 0;
+	virtual void onSent(const SmartPtr<IOPackage>&) = 0;
 	virtual void readyRead() = 0;
 	virtual void readChannelFinished() = 0;
 
@@ -600,136 +712,89 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
-template<class T>
+template<class T, Parallels::IDispToDispCommands X>
 struct Connector: Vm::Connector::Base<T>, Slot
 {
-	void onSent()
+	void setQueue(Queue* value_)
 	{
-		this->handle(Sent());
+		m_queue = QSharedPointer<Queue>(value_);
+	}
+	void onSent(const SmartPtr<IOPackage>& package_)
+	{
+		if (!(package_.isValid() && package_->header.type == X))
+			return;
+
+		if (m_queue.isNull())
+			return this->handle(Flop::Event(PRL_ERR_UNINITIALIZED));
+
+		this->setState(boost::apply_visitor(Visitor::Sent(*m_queue,
+			boost::bind(&Connector::template handle<Quit<X> >, this, Quit<X>())),
+				m_state));
 	}
 
 	void readyRead()
 	{
-		this->handle(Ready());
+		if (m_queue.isNull())
+			return this->handle(Flop::Event(PRL_ERR_UNINITIALIZED));
+
+		this->setState(boost::apply_visitor(Visitor::Ready(*m_queue), m_state));
 	}
 
 	void readChannelFinished()
 	{
-		this->handle(Eof());
+		if (m_queue.isNull())
+			return this->handle(Flop::Event(PRL_ERR_UNINITIALIZED));
+
+		this->setState(boost::apply_visitor(Visitor::Eof(*m_queue), m_state));
 	}
-};
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Packer
+private:
+	void setState(const target_type& value_)
+	{
+		if (value_.isFailed())
+			this->handle(value_.error());
+		else
+			m_state = value_.value();
 
-struct Packer
-{
-	SmartPtr<IOPackage> operator()();
-	SmartPtr<IOPackage> operator()(QIODevice& source_);
+	}
+
+	state_type m_state;
+	QSharedPointer<Queue> m_queue;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Pump
 
-template<class T>
-struct Pump: Vm::Frontend<Pump<T> >, Vm::Connector::Mixin<Connector<T> >
+template<class T, Parallels::IDispToDispCommands X>
+struct Pump: Trace<Pump<T, X> >, Vm::Connector::Mixin<Connector<T, X> >
 {
-	typedef Reading initial_state;
-	struct Branch
-	{
-		bool operator()(const msmf::none&, Pump&,
-			Queueing& queue_, Reading&)
-		{
-			return queue_.isEmpty();
-		}
-		bool operator()(const msmf::none&, Pump&,
-			Queueing& queue_, Closing&)
-		{
-			return queue_.isEof();
-		}
-		bool operator()(const msmf::none&, Pump&,
-			Queueing& queue_, Sending&)
-		{
-			return !queue_.isEof();
-		}
-	};
-	struct Action
-	{
-		void operator()(const Ready&, Pump& pump_,
-				Reading&, Queueing& queue_)
-		{
-			enqueue(pump_, Packer()(*pump_.m_iodevice), queue_);
-		}
-		void operator()(const Ready&, Pump& pump_,
-				Sending&, Queueing& queue_)
-		{
-			if (enqueue(pump_, Packer()(*pump_.m_iodevice), queue_))
-			{
-				pump_.getConnector()->handle
-					(TunnelChunk_type(queue_.back()));
-			}
-		}
-		void operator()(const Eof&, Pump& pump_,
-				Reading&, Queueing& queue_)
-		{
-			enqueue(pump_, Packer()(), queue_);
-		}
-		void operator()(const Eof&, Pump& pump_,
-				Sending&, Queueing& queue_)
-		{
-			if (enqueue(pump_, Packer()(), queue_))
-			{
-				pump_.getConnector()->handle
-					(TunnelChunk_type(queue_.back()));
-			}
-		}
-		template<class U>
-		void operator()(const msmf::none&, Pump& pump_,
-				Queueing& queue_, U&)
-		{
-			IOSendJob::Handle j = pump_.m_ioservice->sendPackage(queue_.dequeue());
-			if (j.isValid())
-				return;
-
-			pump_.getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
-		}
-
-	private:
-		static bool enqueue(const Pump& pump_, const SmartPtr<IOPackage>& package_,
-				Queueing& queue_)
-		{
-			if (package_.isValid())
-				queue_.enqueue(package_);
-			else
-				pump_.getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
-
-			return package_.isValid();
-		}
-	};
-
 	Pump(): m_ioservice(), m_iodevice()
 	{
 	}
 
-	using Vm::Frontend<Pump>::on_entry;
+	using Trace<Pump>::on_entry;
 
 	template <typename FSM>
 	void on_entry(const Launch_type& event_, FSM& fsm_)
 	{
 		bool x;
-		Vm::Frontend<Pump>::on_entry(event_, fsm_);
+		Trace<Pump>::on_entry(event_, fsm_);
 		m_ioservice = event_.first;
 		m_iodevice = event_.second;
+		this->getConnector()->setQueue(new Queue(X, *m_ioservice, *m_iodevice));
 		x = this->getConnector()->connect(m_iodevice, SIGNAL(readyRead()),
-			SLOT(readyRead()));
+			SLOT(readyRead()), Qt::QueuedConnection);
 		if (!x)
 			WRITE_TRACE(DBG_FATAL, "can't connect");
 		x = this->getConnector()->connect(m_iodevice,
-			SIGNAL(readChannelFinished()), SLOT(readChannelFinished()));
+			SIGNAL(readChannelFinished()), SLOT(readChannelFinished()),
+			Qt::QueuedConnection);
 		if (!x)
 			WRITE_TRACE(DBG_FATAL, "can't connect");
-		x = this->getConnector()->connect(m_ioservice, SIGNAL(onSent()),
-			SLOT(onSent()));
+		x = this->getConnector()->connect(m_ioservice,
+			SIGNAL(onSent(const SmartPtr<IOPackage>&)),
+			SLOT(onSent(const SmartPtr<IOPackage>&)),
+			Qt::QueuedConnection);
 		if (!x)
 			WRITE_TRACE(DBG_FATAL, "can't connect");
 	}
@@ -737,35 +802,19 @@ struct Pump: Vm::Frontend<Pump<T> >, Vm::Connector::Mixin<Connector<T> >
 	template <typename Event, typename FSM>
 	void on_exit(const Event& event_, FSM& fsm_)
 	{
-		Vm::Frontend<Pump>::on_exit(event_, fsm_);
+		Trace<Pump>::on_exit(event_, fsm_);
 		m_iodevice->disconnect(SIGNAL(readyRead()), this->getConnector(),
 			SLOT(readyRead()));
 		m_iodevice->disconnect(SIGNAL(readChannelFinished()),
 			this->getConnector(), SLOT(readChannelFinished()));
-		m_ioservice->disconnect(SIGNAL(onSent()), this->getConnector(),
-			SLOT(onSent()));
+		m_ioservice->disconnect(SIGNAL(onSent(const SmartPtr<IOPackage>&)),
+			this->getConnector(),
+			SLOT(onSent(const SmartPtr<IOPackage>&)));
+
+		this->getConnector()->setQueue(NULL);
 		m_iodevice = NULL;
 		m_ioservice = NULL;
 	}
-
-	struct transition_table : boost::mpl::vector<
-		msmf::Row<Reading,	Ready,		Queueing,	Action>,
-		msmf::Row<Reading,	Eof,		Queueing,	Action>,
-		msmf::Row<Reading,	Flop::Event,	Flop::State>,
-		msmf::Row<Queueing,	msmf::none,	Sending,	Action,		Branch>,
-		msmf::Row<Queueing,	msmf::none,	Closing,	Action,		Branch>,
-		msmf::Row<Queueing,	msmf::none,	Reading,	msmf::none,	Branch>,
-		msmf::Row<Queueing,	TunnelChunk_type,Sending>,
-		msmf::Row<Queueing,	Flop::Event,	Flop::State>,
-		msmf::Row<Closing,	Flop::Event,	Flop::State>,
-		msmf::Row<Closing,	Sent,		Success>,
-		msmf::Row<Sending,	Sent,		Queueing>,
-		msmf::Row<Sending,	Flop::Event,	Flop::State>,
-		msmf::Row<Sending,	Ready,		Queueing,	Action>,
-		msmf::Row<Sending,	Eof,		Queueing,	Action>
-	>
-	{
-	};
 
 private:
 	IO* m_ioservice;
@@ -777,22 +826,120 @@ private:
 namespace Pull
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct BytesWritten
+// struct Writing
 
-struct BytesWritten
+struct Writing
 {
-	explicit BytesWritten(qint64 value_): m_value(value_)
+	Writing(const SmartPtr<IOPackage>& load_, QIODevice& device_):
+		m_sent(), m_device(&device_), m_load(load_)
 	{
 	}
 
-	qint64 getValue() const
+	Prl::Expected<void, Flop::Event> operator()();
+	qint64 getRemaining() const
 	{
-		return m_value;
+		return getVolume() - m_sent;
+	}
+	void account(qint64 value_)
+	{
+		m_sent += value_;
 	}
 
 private:
-	qint64 m_value;
+	qint64 getVolume() const;
+
+	qint64 m_sent;
+	QIODevice* m_device;
+	SmartPtr<IOPackage> m_load;
 };
+
+typedef boost::variant<Reading, Writing, Success> state_type;
+typedef Prl::Expected<state_type, Flop::Event> target_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Queue
+
+struct Queue: private Vm::Pump::Queue
+{
+	explicit Queue(QIODevice& device_): m_device(&device_)
+	{
+	}
+
+	target_type dequeue();
+	using Vm::Pump::Queue::enqueue;
+
+private:
+	QIODevice* m_device;
+};
+
+namespace Visitor
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Receipt
+
+struct Receipt: boost::static_visitor<target_type>
+{
+	explicit Receipt(Queue& queue_): m_queue(&queue_)
+	{
+	}
+
+	template<class T>
+	target_type operator()(const T& value_) const
+	{
+		return state_type(value_);
+	}
+	target_type operator()
+		(const boost::mpl::at_c<state_type::types, 0>::type& value_) const;
+
+private:
+	Queue* m_queue;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Accounting
+
+struct Accounting: boost::static_visitor<target_type>
+{
+	Accounting(qint64 amount_, Queue& queue_): m_amount(amount_), m_queue(&queue_)
+	{
+	}
+
+	template<class T>
+	target_type operator()(const T& value_) const
+	{
+		return state_type(value_);
+	}
+	target_type operator()
+		(boost::mpl::at_c<state_type::types, 1>::type value_) const;
+
+private:
+	qint64 m_amount;
+	Queue* m_queue;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Dispatch
+
+struct Dispatch: boost::static_visitor<target_type>
+{
+	typedef boost::function0<void> callback_type;
+
+	explicit Dispatch(const callback_type& callback_): m_callback(callback_)
+	{
+	}
+
+	target_type operator()
+		(const boost::mpl::at_c<state_type::types, 0>::type& value_) const;
+	target_type operator()
+		(boost::mpl::at_c<state_type::types, 1>::type value_) const;
+	target_type operator()
+		(const boost::mpl::at_c<state_type::types, 2>::type& value_) const;
+
+private:
+	callback_type m_callback;
+};
+
+} // namespace Visitor
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Slot
@@ -809,180 +956,92 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
-template<class T>
+template<class T, Parallels::IDispToDispCommands X>
 struct Connector: Vm::Connector::Base<T>, Slot
 {
+	void setQueue(Queue* value_)
+	{
+		m_queue = QSharedPointer<Queue>(value_);
+	}
+	void reactReceipt(const SmartPtr<IOPackage>& package_)
+	{
+		if (m_queue.isNull())
+			return this->handle(Flop::Event(PRL_ERR_UNINITIALIZED));
+
+		m_queue->enqueue(package_);
+		setState(boost::apply_visitor(Visitor::Receipt(*m_queue), m_state));
+	}
 	void reactBytesWritten(qint64 value_)
 	{
-		this->handle(BytesWritten(value_));
-	}
-};
+		if (m_queue.isNull())
+			return this->handle(Flop::Event(PRL_ERR_UNINITIALIZED));
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Accounting
-
-struct Accounting: Trace<Accounting>
-{
-	Accounting(): m_value()
-	{
-	}
-
-	void setValue(qint64 value_)
-	{
-		m_value = value_;
-	}
-	qint64 getValue() const
-	{
-		return m_value;
+		setState(boost::apply_visitor(Visitor::Accounting(value_, *m_queue), m_state));
 	}
 
 private:
-	qint64 m_value;
+	void setState(const target_type& value_)
+	{
+		if (value_.isFailed())
+			return this->handle(value_.error());
+
+		target_type x = boost::apply_visitor(Visitor::Dispatch
+			(boost::bind
+				(&Connector::template handle<Quit<X> >, this, Quit<X>())),
+					m_state = value_.value());
+		if (x.isFailed())
+			return this->handle(x.error());
+
+		m_state = x.value();
+	}
+
+	state_type m_state;
+	QSharedPointer<Queue> m_queue;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Writing
+// struct Pump
 
-struct Writing: Trace<Writing>
+template<class T, Parallels::IDispToDispCommands X>
+struct Pump: Trace<Pump<T, X> >, Vm::Connector::Mixin<Connector<T, X> >
 {
-	Writing(): m_sent()
-	{
-	}
-
-	PRL_RESULT operator()(QIODevice& sink_);
-	qint64 getRemaining() const
-	{
-		return getVolume() - m_sent;
-	}
-	void account(qint64 value_)
-	{
-		m_sent += value_;
-	}
-	void setup(const SmartPtr<IOPackage>& value_);
-
-private:
-	qint64 getVolume() const;
-
-	qint64 m_sent;
-	SmartPtr<IOPackage> m_package;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// Pump
-
-template<class T>
-struct Pump: Vm::Frontend<Pump<T> >, Vm::Connector::Mixin<Connector<T> >
-{
-	typedef Reading initial_state;
-
 	Pump(): m_iodevice()
 	{
 	}
 
-	using Vm::Frontend<Pump>::on_entry;
+	using Trace<Pump>::on_entry;
 
 	template <typename FSM>
 	void on_entry(const Launch_type& event_, FSM& fsm_)
 	{
-		Vm::Frontend<Pump>::on_exit(event_, fsm_);
+		Trace<Pump>::on_entry(event_, fsm_);
 		m_iodevice = event_.second;
+		this->getConnector()->setQueue(new Queue(*m_iodevice));
 		this->getConnector()->connect(m_iodevice, SIGNAL(bytesWritten(qint64)),
-			SLOT(reactBytesWritten(qint64)));
+			SLOT(reactBytesWritten(qint64)), Qt::QueuedConnection);
 	}
 
 	template <typename Event, typename FSM>
 	void on_exit(const Event& event_, FSM& fsm_)
 	{
-		Vm::Frontend<Pump>::on_exit(event_, fsm_);
+		Trace<Pump>::on_exit(event_, fsm_);
+		this->getConnector()->setQueue(NULL);
 		m_iodevice->disconnect(SIGNAL(bytesWritten(qint64)),
 			this->getConnector(), SLOT(reactBytesWritten(qint64)));
 		m_iodevice = NULL;
 	}
 
-	struct Completion
-	{
-		bool operator()(const msmf::none&, Pump&, Queueing& queue_, Success&)
-		{
-			return queue_.isEof();
-		}
-		bool operator()(const msmf::none&, Pump&,
-			Accounting& record_, Writing&)
-		{
-			return 0 < record_.getValue();
-		}
-	};
-
-	struct Branch
-	{
-		bool operator()(const msmf::none&, Pump&,
-			Queueing& queue_, Reading&)
-		{
-			return queue_.isEmpty();
-		}
-		bool operator()(const msmf::none&, Pump&,
-			Queueing& queue_, Writing&)
-		{
-			return !queue_.isEof();
-		}
-	};
-
 	struct Action
 	{
-		void operator()(const BytesWritten& event_, Pump&,
-				Writing& job_, Accounting& record_)
+		template<class M, class S, class D>
+		void operator()(const Event<X>& event_, M&, S& state_, D& )
 		{
-			job_.account(event_.getValue());
-			record_.setValue(job_.getRemaining());
-		}
-		void operator()(const msmf::none&, Pump& pump_,
-				Queueing& queue_, Writing& job_)
-		{
-			job_.setup(queue_.dequeue());
-			write(pump_, job_);
-		}
-		void operator()(const msmf::none&, Pump& pump_,
-				Accounting& , Writing& job_)
-		{
-			write(pump_, job_);
-		}
-		void operator()(const TunnelChunk_type& event_, Pump&,
-				Reading&, Queueing& queue_)
-		{
-			queue_.enqueue(event_.getPackage());
-		}
-		void operator()(const TunnelChunk_type& event_, Pump&,
-				Queueing& queue_, Writing&)
-		{
-			queue_.enqueue(event_.getPackage());
-		}
-		template<class U>
-		void operator()(const TunnelChunk_type& event_, U& fsm_,
-				Writing&, Queueing&)
-		{
-			fsm_.process_event(event_);
-		}
-	
-	private:
-		void write(Pump& pump_, Writing& job_)
-		{
-			PRL_RESULT e = job_(*pump_.m_iodevice);
-			if (PRL_FAILED(e))
-				pump_.getConnector()->handle(Flop::Event(e));
+			state_.getConnector()->reactReceipt(event_.getPackage());
 		}
 	};
 
-	struct transition_table : boost::mpl::vector<
-		msmf::Row<Reading,	TunnelChunk_type,Queueing,	Action>,
-		msmf::Row<Reading,	Flop::Event,	Flop::State>,
-		msmf::Row<Queueing,	msmf::none,	Writing,	Action,		Branch>,
-		msmf::Row<Queueing,	msmf::none,	Reading,	msmf::none,	Branch>,
-		msmf::Row<Queueing,	msmf::none,	Success,	msmf::none,	Completion>,
-		msmf::Row<Queueing,	TunnelChunk_type,Writing,	Action>,
-		msmf::Row<Writing,	BytesWritten,	Accounting,	Action>,
-		msmf::Row<Writing,	Flop::Event,	Flop::State>,
-		msmf::Row<Writing,	TunnelChunk_type,Queueing,	Action>,
-		msmf::Row<Accounting,	msmf::none,	Queueing>,
-		msmf::Row<Accounting,	msmf::none,	Writing,	Action,		Completion>
+	struct internal_transition_table: boost::mpl::vector<
+		msmf::Internal<Event<X>, Action>
 	>
 	{
 	};
@@ -992,36 +1051,12 @@ private:
 };
 
 } // namespace Pull
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Frontend
-
-template<class T, class U>
-struct Frontend: Vm::Frontend<Frontend<T, U> >
-{
-	typedef Push::Pump<T> toFrontend_type;
-	typedef Pull::Pump<T> fromFrontend_type;
-	typedef boost::msm::back::state_machine<toFrontend_type> toMachine_type;
-	typedef boost::msm::back::state_machine<fromFrontend_type> fromMachine_type;
-
-	struct transition_table : boost::mpl::vector<
-		msmf::Row<typename fromMachine_type::template exit_pt<Flop::State>,
-			Flop::Event, Flop::State>,
-		msmf::Row<typename toMachine_type::template exit_pt<Flop::State>,
-			Flop::Event, Flop::State>,
-		msmf::Row<typename boost::mpl::if_<U, toMachine_type, fromMachine_type>::type::
-			template exit_pt<Success>, msmf::none,	Success>
-	>
-	{
-	};
-
-	typedef boost::mpl::vector<fromMachine_type, toMachine_type> initial_state;
-};
-
 } // namespace Pump
 
 namespace Tunnel
 {
+typedef Pump::Event<Parallels::VmMigrateLibvirtTunnelChunk> libvirtChunk_type;
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Prime
 
@@ -1034,6 +1069,35 @@ struct Prime: Trace<Prime>
 
 struct Ready: Trace<Ready>
 {
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Essence
+
+template<class L, class Q1, class Q2, class E>
+struct Essence: Vm::Frontend<Essence<L, Q1, Q2, E> >
+{
+	struct Entry: msmf::entry_pseudo_state<0>
+	{
+	};
+	typedef boost::msm::back::state_machine<Q1> qemu1State_type;
+	typedef boost::msm::back::state_machine<Q2> qemu2State_type;
+	typedef boost::msm::back::state_machine<L> libvirtState_type;
+	typedef boost::mpl::vector<libvirtState_type, qemu1State_type, qemu2State_type> initial_state;
+
+	struct transition_table : boost::mpl::vector<
+		msmf::Row<Entry,                         E,          libvirtState_type>,
+		msmf::Row<typename libvirtState_type
+			::template exit_pt<Success>,     msmf::none, Success>,
+		msmf::Row<typename qemu1State_type
+			::template exit_pt<Flop::State>, Flop::Event,Flop::State>,
+		msmf::Row<typename qemu2State_type
+			::template exit_pt<Flop::State>, Flop::Event,Flop::State>,
+		msmf::Row<typename libvirtState_type
+			::template exit_pt<Flop::State>, Flop::Event,Flop::State>
+	>
+	{
+	};
 };
 
 } // namespace Tunnel
@@ -1141,6 +1205,8 @@ struct Frontend_: Vm::Frontend<T>, Vm::Connector::Mixin<Driver<U> >
 
 } // namespace Libvirt
 
+BOOST_MPL_HAS_XXX_TRAIT_DEF(stt);
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Walker
 
@@ -1155,17 +1221,17 @@ struct Walker
 	{
 	}
 
-	template <class StateType>
-	void operator()(boost::msm::wrap<StateType> const&)
+	template<class V>
+	typename boost::disable_if<has_stt<V> >::type
+		operator()(boost::msm::wrap<V> const&)
 	{
-		m_chain(m_fsm->template get_state<StateType*>());
+		m_chain(m_fsm->template get_state<V*>());
 	}
-
-	template <class A0, class A1, class A2, class A3, class A4>
-	void operator()(boost::msm::wrap<boost::msm::back::state_machine<A0, A1, A2, A3, A4> > const&)
+	template<class V>
+	typename boost::enable_if<has_stt<V> >::type
+		operator()(boost::msm::wrap<V> const&)
 	{
-		typedef boost::msm::back::state_machine<A0, A1, A2, A3, A4> fsm_type;
-		do_(m_fsm->template get_state<fsm_type&>());
+		do_(m_fsm->template get_state<V&>());
 	}
 	void operator()()
 	{
@@ -1179,6 +1245,7 @@ private:
 		typedef typename V::stt stt_type;
 		typedef typename boost::msm::back::generate_state_set<stt_type>::type
 			set_type;
+
 		m_chain(&fsm_);
 		boost::mpl::for_each<set_type, boost::msm::wrap<boost::mpl::_1> >
 			(Walker<V, U>(fsm_, m_chain));

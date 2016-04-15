@@ -36,6 +36,7 @@
 
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <boost/ref.hpp>
 #include "Task_MigrateVm_p.h"
 #include <boost/msm/back/state_machine.hpp>
 #include <boost/msm/front/state_machine_def.hpp>
@@ -191,6 +192,63 @@ private:
 
 } // namespace Content
 
+namespace Pump
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+template<class T, Parallels::IDispToDispCommands X>
+struct Frontend: Vm::Frontend<Frontend<T, X> >
+{
+	typedef Vm::Frontend<Frontend<T, X> > def_type;
+	typedef Vm::Pump::Push::Pump<T, X> pushState_type;
+	typedef Vm::Pump::Pull::Pump<T, X> pullState_type;
+
+	Frontend(): m_device()
+	{
+	}
+
+	template<typename Event, typename FSM>
+	void on_exit(const Event& event_, FSM& fsm_)
+	{
+		def_type::on_exit(event_, fsm_);
+		m_device = NULL;
+	}
+
+	template<typename FSM>
+	void on_exit(const Flop::Event& event_, FSM& fsm_)
+	{
+		def_type::on_exit(event_, fsm_);
+		if (NULL != m_device)
+			m_device->close();
+
+		m_device = NULL;
+	}
+
+	using def_type::on_entry;
+
+	template<typename FSM>
+	void on_entry(const Vm::Pump::Launch_type& event_, FSM& fsm_)
+	{
+		def_type::on_entry(event_, fsm_);
+		m_device = event_.second;
+	}
+
+	struct transition_table : boost::mpl::vector<
+		msmf::Row<pushState_type, Flop::Event,      Flop::State>,
+		msmf::Row<pushState_type, Vm::Pump::Quit<X>,Success>
+	>
+	{
+	};
+
+	typedef boost::mpl::vector<pushState_type, pullState_type> initial_state;
+
+private:
+	QIODevice* m_device;
+};
+
+} // namespace Pump
+
 namespace Libvirt
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -199,9 +257,10 @@ namespace Libvirt
 struct Task
 {
 	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Task agent_type;
+	typedef boost::function2< ::Libvirt::Result, agent_type, const CVmConfiguration&> work_type;
 
-	Task(const agent_type& agent_, Task_MigrateVmSource& task_):
-		m_agent(agent_), m_task(&task_)
+	Task(const agent_type& agent_, const work_type& work_, const CVmConfiguration* config_):
+		m_work(work_), m_agent(agent_), m_config(config_)
 	{
 	}
 
@@ -209,8 +268,9 @@ struct Task
 	void cancel();
 
 private:
+	work_type m_work;
 	agent_type m_agent;
-	Task_MigrateVmSource *m_task;
+	const CVmConfiguration* m_config;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -246,6 +306,7 @@ struct Frontend: Shadow::Frontend<Task, Frontend>
 {
 	typedef Vm::Tunnel::Ready initial_state;
 	typedef Progress::reporter_type reporter_type;
+	typedef QList<QSharedPointer<QTcpServer> > serverList_type;
 
 	Frontend(Task_MigrateVmSource& task_, const reporter_type& reporter_):
 		m_reporter(reporter_), m_task(&task_)
@@ -259,14 +320,14 @@ struct Frontend: Shadow::Frontend<Task, Frontend>
 	void on_exit(const Event& event_, FSM& fsm_);
 	template<typename FSM>
 	void on_exit(const boost::mpl::true_& event_, FSM& fsm_);
-	void start(const QSharedPointer<QTcpServer>& event_);
+	void start(const serverList_type& event_);
 
 	typedef boost::mpl::vector
 		<
 			a_row
 			<
 				initial_state,
-				QSharedPointer<QTcpServer>,
+				serverList_type,
 				Shadow::runningState_type,
 				&Frontend::start
 			>
@@ -287,28 +348,9 @@ private:
 namespace Tunnel
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Accepted
-
-struct Accepted
-{
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Connector
-
-struct Connector: QObject, Vm::Connector::Base<Machine_type>
-{
-public slots:
-	void newConnection();
-
-private:
-	Q_OBJECT
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct IO
 
-struct IO: Pump::IO
+struct IO: Vm::Pump::IO
 {
 public:
 	explicit IO(IOClient &io);
@@ -333,12 +375,108 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+struct Connector: QObject, Vm::Connector::Base<Machine_type>
+{
+	Connector(): m_service()
+	{
+	}
+
+	void setService(IO* value_)
+	{
+		m_service = value_;
+	}
+
+public slots:
+	void acceptLibvirt();
+
+	void acceptQemuDisk();
+
+	void acceptQemuState();
+
+private:
+	Q_OBJECT
+
+	QSharedPointer<QTcpSocket> accept_();
+
+	IO* m_service;
+};
+
+namespace Qemu
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Launch
+
+template<Parallels::IDispToDispCommands X>
+struct Launch
+{
+	Launch(Vm::Pump::Launch_type::first_type service_, QTcpSocket* socket_):
+		m_service(service_), m_socket(socket_)
+	{
+	}
+
+	Prl::Expected<Vm::Pump::Launch_type, Flop::Event> operator()() const;
+
+private:
+	Vm::Pump::Launch_type::first_type m_service;
+	QTcpSocket* m_socket;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+template<Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
+struct Frontend: Vm::Frontend<Frontend<X, Y> >
+{
+	typedef Launch<X> launch_type;
+	typedef Pump::Frontend<Machine_type, Y> pump_type;
+	typedef boost::msm::back::state_machine<pump_type> pumpState_type;
+	typedef Vm::Tunnel::Prime initial_state;
+
+	struct Action
+	{
+		template<class M, class S, class T>
+		void operator()(launch_type const& event_, M& fsm_, S&, T&)
+		{
+			Prl::Expected<Vm::Pump::Launch_type, Flop::Event> x = event_();
+			if (x.isFailed())
+				fsm_.process_event(x.error());
+			else
+				fsm_.process_event(x.value());
+		}
+	};
+	struct transition_table : boost::mpl::vector<
+		msmf::Row<initial_state,        launch_type,          Vm::Tunnel::Ready, Action>,
+		msmf::Row<initial_state,        Flop::Event,          Flop::State>,
+		msmf::Row<Vm::Tunnel::Ready,    Vm::Pump::Launch_type,pumpState_type>,
+		msmf::Row<typename pumpState_type::template
+			exit_pt<Success>,       msmf::none,           Success>,
+		msmf::Row<typename pumpState_type::template
+			exit_pt<Flop::State>,   Flop::Event,          Flop::State>
+	>
+	{
+	};
+};
+
+} // namespace Qemu
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
 struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 {
-	typedef Pump::Frontend<Machine_type, boost::mpl::true_> pump_type;
-	typedef boost::msm::back::state_machine<pump_type> Pumping;
+	typedef QSharedPointer<QTcpSocket> client_type;
+	typedef Libvirt::Frontend::serverList_type serverList_type;
+	typedef Pump::Frontend<Machine_type, Vm::Tunnel::libvirtChunk_type::s_command>
+		libvirt_type;
+	typedef Qemu::Frontend<Parallels::VmMigrateConnectQemuStateCmd, Parallels::VmMigrateQemuStateTunnelChunk>
+		qemuState_type;
+	typedef Qemu::Frontend<Parallels::VmMigrateConnectQemuDiskCmd, Parallels::VmMigrateQemuDiskTunnelChunk>
+		qemuDisk_type;
+	typedef Vm::Tunnel::Essence<libvirt_type, qemuState_type, qemuDisk_type, Vm::Pump::Launch_type>
+		essence_type;
+	typedef boost::msm::back::state_machine<essence_type> pumpingState_type;
 	typedef Vm::Tunnel::Prime initial_state;
 
 	explicit Frontend(IO& service_) : m_service(&service_)
@@ -354,22 +492,28 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	template <typename Event, typename FSM>
 	void on_exit(const Event&, FSM&);
 
-	void accept(const Accepted&);
+	void accept(const client_type& connection_);
 
 	struct transition_table : boost::mpl::vector<
-		msmf::Row<initial_state,                 Flop::Event,       Flop::State>,
-		a_row<initial_state,                     Accepted,          Vm::Tunnel::Ready, &Frontend::accept>,
-		msmf::Row<Vm::Tunnel::Ready,             Pump::Launch_type, Pumping>,
-		msmf::Row<Pumping::exit_pt<Success>,     msmf::none,        Success>,
-		msmf::Row<Pumping::exit_pt<Flop::State>, Flop::Event,       Flop::State>
+		msmf::Row<initial_state,       Flop::Event,      Flop::State>,
+		a_irow<initial_state,          client_type,      &Frontend::accept>,
+		msmf::Row<initial_state,       Vm::Pump::Launch_type,
+			pumpingState_type::entry_pt<essence_type::Entry> >,
+		a_irow<pumpingState_type,      client_type,      &Frontend::accept>,
+		msmf::Row<pumpingState_type
+			::exit_pt<Success>,    msmf::none,       Success>,
+		msmf::Row<pumpingState_type
+			::exit_pt<Flop::State>,Flop::Event,      Flop::State>
 	>
 	{
 	};
 
 private:
+	bool setup(const char* method_);
+
 	IO* m_service;
-	QSharedPointer<QTcpServer> m_server;
-	QSharedPointer<QTcpSocket> m_client;
+	serverList_type m_servers;
+	QList<QSharedPointer<QTcpSocket> > m_clients;
 };
 
 } // namespace Tunnel
@@ -429,7 +573,7 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	typedef Pipeline::Frontend<Machine_type, PeerFinished> peerQuit_type;
 	typedef Join<boost::mpl::vector<
 			Workflow,
-			Pipeline::Frontend<Machine_type, Pump::FinishCommand_type> > >
+			Pipeline::Frontend<Machine_type, Vm::Pump::FinishCommand_type> > >
 		join_type;
 	typedef boost::msm::back::state_machine<join_type> initial_state;
 	typedef boost::msm::back::state_machine<peerQuit_type> peerQuit_state;

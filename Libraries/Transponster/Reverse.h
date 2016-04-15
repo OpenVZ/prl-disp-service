@@ -78,6 +78,22 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct CpuFeaturesMask
+
+struct CpuFeaturesMask
+{
+	explicit CpuFeaturesMask(CVmConfiguration& input): m_input(&input)
+	{
+	}
+
+	void getDisabledFeatures(Libvirt::Domain::Xml::Cpu &cpu);
+	void setDisabledFeatures(const Libvirt::Domain::Xml::Cpu &cpu);
+
+private:
+	CVmConfiguration *m_input;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Dimm
  
 struct Dimm

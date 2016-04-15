@@ -89,10 +89,8 @@
 	#define getpid _getpid
 #endif
 
-#if defined(_LIN_)
 #include <sys/wait.h>
-#include "Libraries/Virtuozzo/CCpuHelper.h"
-#endif
+#include "Libraries/CpuFeatures/CCpuHelper.h"
 
 #include "CDspVzHelper.h"
 #include "CDspLibvirtExec.h"

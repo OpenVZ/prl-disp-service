@@ -37,9 +37,7 @@
 #include <prlcommon/PrlCommonUtilsBase/OsInfo.h>
 #include <Libraries/PrlCommonUtils/CFirewallHelper.h>
 #include <prlcommon/Interfaces/ApiDevNums.h>
-#ifdef _LIN_
-#include "Libraries/Virtuozzo/CCpuHelper.h"
-#endif
+#include "Libraries/CpuFeatures/CCpuHelper.h"
 
 #define DISK_TOOLS_VERSION_KEY        "GuestToolsVersion"
 #define DISK_TOOLS_NO_TOOLS_VAL       "0"

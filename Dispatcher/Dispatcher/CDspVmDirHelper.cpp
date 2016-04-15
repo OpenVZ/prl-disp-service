@@ -68,6 +68,7 @@
 #include <prlxmlmodel/VmDirectory/CVmDirectoryItem.h>
 #include <prlxmlmodel/VmConfig/CVmHardware.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include "Libraries/CpuFeatures/CCpuHelper.h"
 #include "CVmValidateConfig.h"
 #include "CDspBugPatcherLogic.h"
 
@@ -2981,6 +2982,8 @@ void CDspVmDirHelper::resetAdvancedParamsFromVmConfig( SmartPtr<CVmConfiguration
 	CVmRemoteDisplay *remDisplay = pOutVmConfig->getVmSettings()->getVmRemoteDisplay();
 	if ( remDisplay->getMode() == PRD_AUTO || remDisplay->getMode() == PRD_DISABLED )
 		remDisplay->setPortNumber(0);
+
+	CCpuHelper::update(*pOutVmConfig);
 }
 
 void CDspVmDirHelper::setNetworkRate(
