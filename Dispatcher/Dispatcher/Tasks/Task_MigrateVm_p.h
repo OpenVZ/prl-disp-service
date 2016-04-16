@@ -46,6 +46,7 @@
 #include <prlsdk/PrlErrorsValues.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/Logging/Logging.h>
+#include <boost/phoenix/core/value.hpp>
 #include <prlxmlmodel/Messaging/CVmEvent.h>
 #include <prlcommon/Interfaces/ParallelsDispToDispProto.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
@@ -826,11 +827,11 @@ private:
 namespace Pull
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Writing
+// struct Emission
 
-struct Writing
+struct Emission
 {
-	Writing(const SmartPtr<IOPackage>& load_, QIODevice& device_):
+	Emission(const SmartPtr<IOPackage>& load_, QIODevice& device_):
 		m_sent(), m_device(&device_), m_load(load_)
 	{
 	}
@@ -853,7 +854,8 @@ private:
 	SmartPtr<IOPackage> m_load;
 };
 
-typedef boost::variant<Reading, Writing, Success> state_type;
+typedef boost::phoenix::expression::value<Emission>::type writing_type;
+typedef boost::variant<Reading, Emission, Success, writing_type> state_type;
 typedef Prl::Expected<state_type, Flop::Event> target_type;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -910,7 +912,7 @@ struct Accounting: boost::static_visitor<target_type>
 		return state_type(value_);
 	}
 	target_type operator()
-		(boost::mpl::at_c<state_type::types, 1>::type value_) const;
+		(boost::mpl::at_c<state_type::types, 3>::type value_) const;
 
 private:
 	qint64 m_amount;
@@ -928,8 +930,11 @@ struct Dispatch: boost::static_visitor<target_type>
 	{
 	}
 
-	target_type operator()
-		(const boost::mpl::at_c<state_type::types, 0>::type& value_) const;
+	template<class T>
+	target_type operator()(const T& value_) const
+	{
+		return state_type(value_);
+	}
 	target_type operator()
 		(boost::mpl::at_c<state_type::types, 1>::type value_) const;
 	target_type operator()

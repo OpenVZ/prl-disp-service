@@ -38,7 +38,6 @@
 #include <QHostAddress>
 #include <QLocalSocket>
 #include "Task_MigrateVm_p.h"
-#include <boost/phoenix/core/value.hpp>
 #include <boost/msm/back/state_machine.hpp>
 #include <boost/phoenix/core/reference.hpp>
 #include <boost/msm/front/state_machine_def.hpp>

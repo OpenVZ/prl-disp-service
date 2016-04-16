@@ -83,9 +83,9 @@ namespace Pump
 namespace Pull
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Writing
+// struct Emission
 
-Prl::Expected<void, Flop::Event> Writing::operator()()
+Prl::Expected<void, Flop::Event> Emission::operator()()
 {
 	const qint64 w = m_device->write(
 			m_load->buffers[0].getImpl() + m_sent,
@@ -100,7 +100,7 @@ Prl::Expected<void, Flop::Event> Writing::operator()()
 	return Prl::Expected<void, Flop::Event>();
 }
 
-qint64 Writing::getVolume() const
+qint64 Emission::getVolume() const
 {
 	return m_load.isValid() ? m_load->buffersSize() : 0;
 }
@@ -115,7 +115,7 @@ target_type Queue::dequeue()
 	if (isEof())
 		return state_type(Success());
 
-	return state_type(Writing(Vm::Pump::Queue::dequeue(), *m_device));
+	return state_type(Emission(Vm::Pump::Queue::dequeue(), *m_device));
 }
 
 namespace Visitor
@@ -134,11 +134,12 @@ target_type Receipt::operator()
 // struct Accounting
 
 target_type Accounting::operator()
-	(boost::mpl::at_c<state_type::types, 1>::type value_) const
+	(boost::mpl::at_c<state_type::types, 3>::type value_) const
 {
-	value_.account(m_amount);
-	if (0 < value_.getRemaining())
-		return state_type(value_);
+	Emission x = value_();
+	x.account(m_amount);
+	if (0 < x.getRemaining())
+		return state_type(x);
 
 	return m_queue->dequeue();
 }
@@ -147,16 +148,11 @@ target_type Accounting::operator()
 // struct Dispatch
 
 target_type Dispatch::operator()
-	(const boost::mpl::at_c<state_type::types, 0>::type& value_) const
-{
-	return state_type(value_);
-}
-
-target_type Dispatch::operator()
 	(boost::mpl::at_c<state_type::types, 1>::type value_) const
 {
 	Prl::Expected<void, Flop::Event> x = value_();
-	return x.isFailed() ? target_type(x.error()) : target_type(state_type(value_));
+	return x.isFailed() ? target_type(x.error()) :
+		target_type(state_type(boost::phoenix::val(value_)));
 }
 
 target_type Dispatch::operator()
@@ -299,7 +295,6 @@ target_type Ready::operator()
 }
 
 } // namespace Visitor
-
 } // namespace Push
 } // namespace Pump
 
