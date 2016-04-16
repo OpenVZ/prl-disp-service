@@ -49,6 +49,7 @@
 #include "Dispatcher/Tasks/Task_VzManager.h"
 #ifdef _LIN_
 #include <sys/vfs.h>
+#include "CDspBackupDevice.h"
 #endif
 #endif
 
@@ -76,6 +77,30 @@ void startCt(const SmartPtr<CVmConfiguration>& config_)
 
 	CVzOperationHelper().start_env(u, 0);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Decorator
+
+struct Decorator
+{
+	typedef SmartPtr<CVmConfiguration> config_type;
+	typedef void (*decorated_type)(const config_type& config_);
+
+	Decorator(CDspTaskHelper& context_, decorated_type decorated_):
+		m_context(&context_), m_decorated(decorated_)
+	{
+	}
+
+	void operator()(const config_type& config_)
+	{
+		Backup::Device::Service(config_).setContext(*m_context).enable();
+		m_decorated(config_);
+	}
+
+private:
+	CDspTaskHelper* m_context;
+	decorated_type m_decorated;
+};
 
 #endif // _CT_
 } // namespace
@@ -137,7 +162,7 @@ void Task_AutoStart::startCts()
 		SmartPtr<CDspVmSuspendMounter> pSuspendMounter = CDspService::instance()->
 			getVmManager().getSuspendHelper()->prepareCtForResume();
 
-		QtConcurrent::blockingMap(resumeList, &resumeCt);
+		QtConcurrent::blockingMap(resumeList, Decorator(*this, &resumeCt));
 	}
 	else
 	{
@@ -147,7 +172,7 @@ void Task_AutoStart::startCts()
 			if (pConfig->getVmSettings()->getVmStartupOptions()->getAutoStart() != PAO_VM_START_MANUAL)
 				startList += pConfig;
 
-		QtConcurrent::blockingMap(startList, &startCt);
+		QtConcurrent::blockingMap(startList, Decorator(*this, &startCt));
 	}
 }
 

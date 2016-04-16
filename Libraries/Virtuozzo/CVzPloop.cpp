@@ -383,7 +383,7 @@ PRL_RESULT Image::setActiveDeltaLimit(unsigned long long lim) const
 	return res ? PRL_ERR_UNEXPECTED : PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Image::getDiskDescriptor(DiskDescriptor& dd) const
+PRL_RESULT Image::getBaseDeltaFilename(QString& path) const
 {
 	PRL_RESULT rc = loadPloopLibrary();
 	if (PRL_FAILED(rc))
@@ -395,20 +395,15 @@ PRL_RESULT Image::getDiskDescriptor(DiskDescriptor& dd) const
 		trace("ploop_open_dd", res);
 		return PRL_ERR_UNEXPECTED;
 	}
-
-	dd.size = di->size;
-	dd.heads = di->heads;
-	dd.cylinders = di->cylinders;
-	dd.sectors = di->sectors;
-	dd.blocksize = di->blocksize;
-	dd.mode = di->mode;
-	dd.top_guid = di->top_guid;
-	for (int i = 0; i < di->nimages; ++i)
-		dd.images.append(ImageData(di->images[i]->guid, di->images[i]->file));
-	for (int i = 0; i < di->nsnapshots; ++i)
-		dd.snapshots.append(SnapshotData(di->snapshots[i]->guid, di->snapshots[i]->parent_guid));
-
+	QByteArray buf(PATH_MAX + 1, 0);
+	res = ploop_get_base_delta_fname(di, buf.data(), buf.size() - 1);
 	ploop_close_dd(di);
+	if (res)
+	{
+		trace("ploop_get_base_delta_fname", res);
+		return PRL_ERR_UNEXPECTED;
+	}
+	path = QString::fromUtf8(buf.constData());
 	return PRL_ERR_SUCCESS;
 }
 

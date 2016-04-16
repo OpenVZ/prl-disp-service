@@ -41,6 +41,7 @@
 
 #ifdef _LIN_
 #include "vzctl/libvzctl.h"
+#include "CDspBackupDevice.h"
 #endif
 
 
@@ -262,6 +263,8 @@ PRL_RESULT Task_VzManager::start_env()
 	if (PRL_FAILED(res))
 		return res;
 
+	Backup::Device::Service(pConfig).setContext(*this).enable();
+
 	res = get_op_helper()->start_env(
 		sUuid, CDspService::instance()->getHaClusterHelper()->getStartCommandFlags(pCmd));
 	if (PRL_FAILED(res))
@@ -312,6 +315,11 @@ PRL_RESULT Task_VzManager::stop_env()
 		return res;
 
 	res = get_op_helper()->stop_env(sUuid, pCmd->GetStopMode());
+
+	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+	if (pConfig.isValid())
+		Backup::Device::Service(pConfig).disable();
+
 	return res;
 }
 
@@ -375,6 +383,11 @@ PRL_RESULT Task_VzManager::suspend_env()
 		return res;
 
 	res = get_op_helper()->suspend_env(sUuid);
+
+	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+	if (pConfig.isValid())
+		Backup::Device::Service(pConfig).disable();
+
 	return res;
 }
 
@@ -390,6 +403,11 @@ PRL_RESULT Task_VzManager::resume_env()
 	res = check_env_state(PVE::DspCmdVmResume, sUuid);
 	if (PRL_FAILED(res))
 		return res;
+
+	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+	if (!pConfig)
+		return PRL_ERR_VM_GET_CONFIG_FAILED;
+	Backup::Device::Service(pConfig).setContext(*this).enable();
 
 	return get_op_helper()->resume_env(sUuid, pCmd->GetCommandFlags());
 }
@@ -433,6 +451,8 @@ PRL_RESULT Task_VzManager::delete_env()
 	res = CDspService::instance()->getVmDirManager()
 			.lockExclusiveVmParameters(m_sVzDirUuid, &vmInfo);
 	if (PRL_SUCCEEDED(res)) {
+		Backup::Device::Service(pConfig).teardown();
+
 		res = get_op_helper()->delete_env(sUuid);
 		if (PRL_SUCCEEDED(res)) {
 			// FIXME: rollback operation
@@ -603,9 +623,22 @@ PRL_RESULT Task_VzManager::editConfig()
 			return PRL_ERR_VMCONF_REMOTE_DISPLAY_PASSWORD_TOO_LONG;
 		}
 	}
+
+	Backup::Device::Service service(pOldConfig);
+	service.setContext(*this).setVmHome(pConfig->getVmIdentification()->getHomePath());
+	Backup::Device::Details::Transition t = service.getTransition(pConfig);
+	res = t.plant();
+	if (PRL_FAILED(res))
+		return res;
+
 	res = get_op_helper()->apply_env_config(pConfig, pOldConfig, cmd->GetCommandFlags());
 	if (PRL_FAILED(res))
 		return res;
+
+	res = t.remove();
+	if (PRL_FAILED(res))
+		return res;
+
 	// Invalidate cache
 	CDspService::instance()->getVzHelper()->getConfigCache().
 		remove(pConfig->getVmIdentification()->getHomePath());
@@ -749,6 +782,8 @@ PRL_RESULT Task_VzManager::unregister_env()
 	if (PRL_SUCCEEDED(res)) {
 		res = get_op_helper()->unregister_env(uuid, 0);
 		if (PRL_SUCCEEDED(res)) {
+			Backup::Device::Service(pConfig).disable();
+
 			ret = CDspService::instance()->getVmDirHelper()
 						.deleteVmDirectoryItem(m_sVzDirUuid, uuid);
 			if (PRL_FAILED(ret) && ret != PRL_ERR_ENTRY_DOES_NOT_EXIST)
@@ -862,6 +897,7 @@ PRL_RESULT Task_VzManager::clone_env()
 	pNewConfig->getVmSettings()->getVmCommonOptions()->setTemplate(isTemplate);
 
 	Task_CloneVm::ResetNetSettings(pNewConfig);
+	Backup::Device::Dao(pNewConfig).deleteAll();
 
 	get_op_helper()->apply_env_config(pNewConfig, pOldConfig, PVCF_DESTROY_HDD_BUNDLE);
 
@@ -951,6 +987,17 @@ PRL_RESULT Task_VzManager::create_env_disk()
 	return get_op_helper()->create_disk_image(sPath, size);
 }
 
+static CVmHardDisk *find_disk_by_fname(const SmartPtr<CVmConfiguration> &pConfig,
+	const QString &sName)
+{
+	foreach(CVmHardDisk *p, pConfig->getVmHardwareList()->m_lstHardDisks) {
+		if (p->getUserFriendlyName() == sName)
+			return p;
+	}
+
+	return NULL;
+}
+
 PRL_RESULT Task_VzManager::resize_env_disk()
 {
 	PRL_RESULT res = PRL_ERR_SUCCESS;
@@ -966,6 +1013,16 @@ PRL_RESULT Task_VzManager::resize_env_disk()
 	unsigned int nNewSize = pCmd->GetSize();
 	bool infoMode = (pCmd->GetFlags() & PRIF_DISK_INFO);
 
+	SmartPtr<CVmConfiguration> x = getVzHelper()->getCtConfig(getClient(), sUuid);
+	if (!x)
+		return PRL_ERR_VM_GET_CONFIG_FAILED;
+
+	CVmHardDisk *disk = find_disk_by_fname(x, pCmd->GetDiskImage());
+	if (disk && Backup::Device::Details::Finding(*disk).isKindOf()) {
+		WRITE_TRACE(DBG_FATAL, "Resize of attached backup is prohibited");
+		return PRL_ERR_DISK_RESIZE_FAILED;
+	}
+
 	if (infoMode) {
 		CDiskImageInfo di;
 		res = get_op_helper()->get_resize_env_info(sUuid, di);
@@ -979,12 +1036,9 @@ PRL_RESULT Task_VzManager::resize_env_disk()
 	if (PRL_FAILED(res))
 		return res;
 
-	SmartPtr<CVmConfiguration> x = getVzHelper()->getCtConfig(getClient(), sUuid);
-	if (x.isValid())
-	{
-		getVzHelper()->getConfigCache()
-			.remove(x->getVmIdentification()->getHomePath());
-	}
+	getVzHelper()->getConfigCache()
+		.remove(x->getVmIdentification()->getHomePath());
+
 	return PRL_ERR_SUCCESS;
 }
 
@@ -1133,6 +1187,7 @@ PRL_RESULT Task_VzManager::switch_env_snapshot()
 	res = get_op_helper()->switch_env_snapshot(sVmUuid, pCmd->GetSnapshotUuid(),
 			pCmd->GetCommandFlags());
 	if (PRL_SUCCEEDED(res)) {
+		::Backup::Device::Service(pConfig).teardown();
 		// Invalidate cache
 		CDspService::instance()->getVzHelper()->getConfigCache().
 			remove(CDspVmDirManager::getVmHomeByUuid(MakeVmIdent(sVmUuid, m_sVzDirUuid)));
