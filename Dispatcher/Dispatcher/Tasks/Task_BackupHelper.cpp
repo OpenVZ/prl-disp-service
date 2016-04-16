@@ -297,7 +297,11 @@ SmartPtr<IOPackage> Client::pull(quint32 version_, SmartPtr<char> buffer_, qint6
 {
 	PRL_RESULT e = m_start;
 	if (PRL_ERR_UNINITIALIZED == e)
-		m_start = m_process->start(NULL, QString(PRL_ABACKUP_CLIENT), m_argv, m_timeout);
+	{
+		m_start = m_process->start(NULL, (BACKUP_PROTO_V4 > version_) ?
+			QString(PRL_ABACKUP_CLIENT) : QString(VZ_BACKUP_CLIENT),
+			m_argv, m_timeout);
+	}
 
 	if (PRL_FAILED(m_start))
 		return SmartPtr<IOPackage>();
