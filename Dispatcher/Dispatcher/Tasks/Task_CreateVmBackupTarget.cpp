@@ -32,6 +32,7 @@
 #include "prlcommon/Interfaces/ParallelsQt.h"
 #include "prlcommon/Interfaces/ParallelsNamespace.h"
 #include "prlcommon/Logging/Logging.h"
+#include "prlcommon/VirtualDisk/Qcow2Disk.h"
 
 #include "CDspService.h"
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
@@ -102,6 +103,11 @@ Task_CreateVmBackupTarget::~Task_CreateVmBackupTarget()
 {
 	// #439777 protect handler from destroying object
 	m_waiter.waitUnlockAndFinalize();
+
+	if (PRL_FAILED(getLastErrorCode())) {
+		foreach(const QString& f, m_createdTibs)
+			QFile(f).remove();
+	}
 }
 
 PRL_RESULT Task_CreateVmBackupTarget::validateBackupDir(const QString &sPath)
@@ -193,6 +199,12 @@ PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 		m_sTargetPath = QString("%1/%2").arg(getBackupRoot()).arg(m_nBackupNumber);
 	}
 	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Task_CreateVmBackupTarget::buildTibFile(const QString& path_)
+{
+	VirtualDisk::Parameters::Disk p;
+	return VirtualDisk::Qcow2::create(path_, p);
 }
 
 PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
@@ -289,6 +301,17 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 		pEvent->addEventParameter(new CVmEventParameter(PVE::String, m_sTargetPath, EVT_PARAM_MESSAGE_PARAM_0));
 		WRITE_TRACE(DBG_FATAL, "Cannot create \"%s\" directory", QSTR2UTF8(m_sTargetPath));
 		goto exit;
+	}
+
+	if (m_nRemoteVersion >= BACKUP_PROTO_V4) {
+		::Backup::Product::Model p(::Backup::Object::Model(m_pVmConfig), m_sVmHomePath);
+		p.setStore(getBackupRoot());
+		foreach (const ::Backup::Product::component_type& t, p.getVmTibs()) {
+			nRetCode = buildTibFile(t.second.absoluteFilePath());
+			if (PRL_FAILED(nRetCode))
+				goto exit;
+			m_createdTibs << t.second.absoluteFilePath();
+		}
 	}
 
 	/*
