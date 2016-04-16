@@ -145,7 +145,6 @@ private:
 	SmartPtr<CVmFileListCopySender> m_pSender;
 	/* full backup path */
 	QString m_sBackupRootPath;
-	bool m_bLocalMode;
 	QString m_sSnapshotPath;
 	Backup::Activity::Service* m_service;
 };
