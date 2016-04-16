@@ -233,6 +233,7 @@ SOURCES += \
 	Tasks/Task_PrepareForHibernate.cpp \
 	Tasks/Task_CreateVmBackup.cpp \
 	Tasks/Task_CreateVmBackupTarget.cpp \
+	Tasks/Task_CreateCtBackup.cpp \
 	Tasks/Task_RestoreVmBackup.cpp \
 	Tasks/Task_RemoveVmBackup.cpp \
 	Tasks/Task_GetBackupTree.cpp \
