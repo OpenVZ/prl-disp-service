@@ -144,6 +144,10 @@ private:
 };
 
 } // namespace Task
+
+void NotifyClientsWithProgress(const SmartPtr<IOPackage> &p, const QString &sVmDirectoryUuid,
+		const QString &sVmUuid, int nPercents);
+
 } // namespace Backup
 
 #endif //CDspBackupHelper_H

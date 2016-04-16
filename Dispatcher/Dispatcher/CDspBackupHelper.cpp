@@ -230,5 +230,24 @@ void Launcher::launch(SmartPtr<T>& actor_, U factory_, const SmartPtr<IOPackage>
 	}
 }
 } // namespace Task
+
+void NotifyClientsWithProgress(
+		const SmartPtr<IOPackage> &p,
+		const QString &sVmDirectoryUuid,
+		const QString &sVmUuid,
+		int nPercents)
+{
+	CVmEvent event(PET_DSP_EVT_BACKUP_PROGRESS_CHANGED, sVmUuid, PIE_DISPATCHER);
+
+	event.addEventParameter(new CVmEventParameter(
+		PVE::UnsignedInt,
+		QString::number(nPercents),
+		EVT_PARAM_PROGRESS_CHANGED));
+
+	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspVmEvent, event, p);
+
+	CDspService::instance()->getClientManager().sendPackageToVmClients(pPackage, sVmDirectoryUuid, sVmUuid);
+}
+
 } // namespace Backup
 
