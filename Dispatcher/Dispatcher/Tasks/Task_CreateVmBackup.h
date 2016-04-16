@@ -64,7 +64,39 @@ namespace Work
 {
 namespace Ct
 {
-struct Spec;
+
+struct Spec
+{
+	Spec(const QString& cache_, quint32 lastTib_);
+
+	const QString& getArchive() const
+	{
+		return m_archive;
+	}
+	Spec& setArchive(const QString& archive_);
+	quint32 getDeviceIndex() const
+	{
+		return m_deviceIndex;
+	}
+	Spec& setDeviceIndex(quint32 value_)
+	{
+		m_deviceIndex = value_;
+		return *this;
+	}
+	Spec& noCache();
+	QStringList getArguments() const;
+	Spec& setOutFile(const QString& value_);
+	Spec& setSandbox(const QString& value_);
+
+private:
+	quint32 m_deviceIndex;
+	QString m_archive;
+	QStringList m_cache;
+	QStringList m_lastTib;
+	QStringList m_outFile;
+	QStringList m_sandbox;
+};
+
 } // namespace Ct
 } // namespace Work
 } // namespace Backup
