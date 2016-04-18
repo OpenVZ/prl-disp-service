@@ -138,6 +138,7 @@ HEADERS += \
 	Tasks/Task_EventLoopBase.h \
 	Tasks/Task_MigrateVm_p.h \
 	Tasks/Task_MigrateVmSource_p.h \
+	Tasks/Task_MigrateVmQObject_p.h \
 	\
 	HwMonitor/CDspHwMonitorNotifier.h \
 	HwMonitor/CDspHwMonitorHandler.h \

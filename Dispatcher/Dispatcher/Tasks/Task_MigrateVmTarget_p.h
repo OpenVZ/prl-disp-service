@@ -203,6 +203,7 @@ struct Frontend: Vm::Frontend<Frontend<T, X> >
 
 namespace Tunnel
 {
+typedef boost::phoenix::expression::reference<IO>::type ioEvent_type;
 typedef boost::phoenix::expression::value<QIODevice* >::type disconnected_type;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -219,71 +220,25 @@ struct Disconnecting: Trace<Disconnecting>
 {
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct IO
-
-struct IO: Vm::Pump::IO
-{
-	explicit IO(CDspDispConnection& io_);
-	~IO();
-
-	IOSendJob::Handle sendPackage(const SmartPtr<IOPackage>& package_);
-
-signals:
-	void disconnected();
-
-private slots:
-	void reactReceived(IOSender::Handle handle_, const SmartPtr<IOPackage>& package_);
-
-	void reactDisconnected(IOSender::Handle handle);
-
-	void reactSend(IOServerInterface*, IOSender::Handle handle_,
-		    IOSendJob::Result, const SmartPtr<IOPackage>);
-
-private:
-	Q_OBJECT
-
-	CDspDispConnection *m_io;
-};
-typedef boost::phoenix::expression::reference<IO>::type ioEvent_type;
-
 namespace Connector
 {
 ///////////////////////////////////////////////////////////////////////////////
 // struct Basic
 
-struct Basic: QObject, Vm::Connector::Base<Machine_type>
+template<class T>
+struct Basic: T, Vm::Connector::Base<Machine_type>
 {
-	Basic(): m_service()
-	{
-	}
-
-	void setService(IO* value_)
-	{
-		m_service = value_;
-	}
-
-public slots:
 	void reactConnected();
 
 	void reactDisconnected();
-
-private:
-	Q_OBJECT
-
-	IO* m_service;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Tcp
 
-struct Tcp: Basic
+struct Tcp: Basic<Tcp_>
 {
-public slots:
 	void reactError(QAbstractSocket::SocketError);
-
-private:
-	Q_OBJECT
 };
 
 } // namespace Connector
@@ -317,7 +272,7 @@ template<>
 struct Socket<QLocalSocket>
 {
 	typedef QLocalSocket type;
-	typedef Connector::Basic connector_type;
+	typedef Connector::Basic<Connector::Basic_> connector_type;
 
 	static bool isConnected(const type& socket_);
 
@@ -515,17 +470,13 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
-struct Connector: QObject, Vm::Connector::Base<Machine_type>
+struct Connector: Connector_, Vm::Connector::Base<Machine_type>
 {
-public slots:
 	void cancel();
 
 	void disconnected();
 
 	void react(const SmartPtr<IOPackage>& package_);
-
-private:
-	Q_OBJECT
 };
 
 ///////////////////////////////////////////////////////////////////////////////

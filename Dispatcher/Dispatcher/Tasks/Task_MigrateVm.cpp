@@ -292,19 +292,19 @@ namespace Tunnel
 
 void Connector::acceptLibvirt()
 {
-	handle(Vm::Pump::Launch_type(m_service, accept_().data()));
+	handle(Vm::Pump::Launch_type(getService(), accept_().data()));
 }
 
 void Connector::acceptQemuDisk()
 {
 	handle(Qemu::Launch<Parallels::VmMigrateConnectQemuDiskCmd>
-		(m_service, accept_().data()));
+		(getService(), accept_().data()));
 }
 
 void Connector::acceptQemuState()
 {
 	handle(Qemu::Launch<Parallels::VmMigrateConnectQemuStateCmd>
-		(m_service, accept_().data()));
+		(getService(), accept_().data()));
 }
 
 QSharedPointer<QTcpSocket> Connector::accept_()
@@ -1300,8 +1300,7 @@ PRL_RESULT Task_MigrateVmSource::CheckVmDevices()
 PRL_RESULT Task_MigrateVmSource::run_body()
 {
 	namespace mvs = Migrate::Vm::Source;
-	typedef boost::msm::back::state_machine<mvs::Frontend> backend_type;
-	typedef mvs::Frontend::join_type::initial_state join_type;
+	typedef mvs::Machine_type backend_type;
 
 	const quint32 timeout = (quint32)
 		CDspService::instance()->getDispConfigGuard().getDispToDispPrefs()->getSendReceiveTimeout() * 1000;
@@ -1312,28 +1311,24 @@ PRL_RESULT Task_MigrateVmSource::run_body()
 	CAuthHelperImpersonateWrapper _impersonate(&getClient()->getAuthHelper());
 
 	mvs::Tunnel::IO io(*m_pIoClient);
-	mvs::Workflow::moveStep_type m(boost::msm::back::states_
-		<< boost::mpl::at_c<mvs::Workflow::moving_type::initial_state, 0>::type
+	backend_type::moveStep_type m(boost::msm::back::states_
+		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 0>::type
 			(boost::ref(io))
-		<< boost::mpl::at_c<mvs::Workflow::moving_type::initial_state, 1>::type
+		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 1>::type
 			(boost::ref(*this), boost::bind(&NotifyClientsWithProgress,
 				getRequestPackage(), boost::cref(m_sVmDirUuid),
-				boost::cref(m_sVmUuid), _1)));
-	mvs::Workflow::copyStep_type c(boost::bind(boost::factory<mvs::Content::Task* >(),
+				boost::cref(m_sVmUuid), _1))
+		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 2>::type(~0));
+	backend_type::copyStep_type c(boost::bind(boost::factory<mvs::Content::Task* >(),
 		boost::ref(*this), boost::cref(m_dList), boost::cref(m_fList)));
 
-	boost::mpl::at_c<join_type, 0>::type w(boost::msm::back::states_
-		<< mvs::Workflow::checkStep_type(boost::bind
-			(&Task_MigrateVmSource::reactCheckReply, this, _1), timeout)
-		<< mvs::Workflow::startStep_type(boost::bind
-			(&Task_MigrateVmSource::reactStartReply, this, _1), timeout)
-		<< c << m);
 	backend_type machine(boost::msm::back::states_
-		<< mvs::Frontend::initial_state(boost::msm::back::states_
-			<< boost::mpl::at_c<join_type, 1>::type(~0)
-			<< w)
-		<< mvs::Frontend::peerQuit_state(finishing_timeout)
-		<< Migrate::Vm::Finished(*this),
+		<< backend_type::checkStep_type(boost::bind
+			(&Task_MigrateVmSource::reactCheckReply, this, _1), timeout)
+		<< backend_type::startStep_type(boost::bind
+			(&Task_MigrateVmSource::reactStartReply, this, _1), timeout)
+		<< backend_type::peerQuitState_type(finishing_timeout)
+		<< c << m << Migrate::Vm::Finished(*this),
 		boost::ref(*this), boost::ref(io));
 	(Migrate::Vm::Walker<backend_type>(machine))();
 

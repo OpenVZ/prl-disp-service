@@ -41,7 +41,6 @@
 #include <boost/msm/back/state_machine.hpp>
 #include <boost/msm/front/state_machine_def.hpp>
 #include <Libraries/VmFileList/CVmFileListCopy.h>
-#include "CDspLibvirt.h"
 
 class Task_MigrateVmSource;
 
@@ -64,13 +63,9 @@ typedef Vm::Libvirt::Running runningState_type;
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
-struct Connector: QObject, Vm::Connector::Base<Machine_type>
+struct Connector: Connector_, Vm::Connector::Base<Machine_type>
 {
-public slots:
 	void finished();
-
-private:
-	Q_OBJECT
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -256,7 +251,7 @@ namespace Libvirt
 
 struct Task
 {
-	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Task agent_type;
+	typedef Progress::agent_type agent_type;
 	typedef boost::function2< ::Libvirt::Result, agent_type, const CVmConfiguration&> work_type;
 
 	Task(const agent_type& agent_, const work_type& work_, const CVmConfiguration* config_):
@@ -271,32 +266,6 @@ private:
 	work_type m_work;
 	agent_type m_agent;
 	const CVmConfiguration* m_config;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Progress
-
-struct Progress: QObject
-{
-	typedef Task::agent_type agent_type;
-	typedef boost::function1<void, int> reporter_type;
-	
-	Progress(const agent_type& agent_, const reporter_type& reporter_):
-		m_last(~0), m_agent(agent_), m_reporter(reporter_)
-	{
-	}
-
-	void report(quint16 value_);
-
-protected:
-	void timerEvent(QTimerEvent* event_);
-
-private:
-	Q_OBJECT
-
-	quint16 m_last;
-	agent_type m_agent;
-	reporter_type m_reporter;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -348,47 +317,10 @@ private:
 namespace Tunnel
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct IO
-
-struct IO: Vm::Pump::IO
-{
-public:
-	explicit IO(IOClient &io);
-	~IO();
-
-	IOSendJob::Handle sendPackage(const SmartPtr<IOPackage>& package_);
-
-signals:
-	void disconnected();
-
-private slots:
-	void reactReceived(const SmartPtr<IOPackage>& package);
-
-	void reactSend(IOClientInterface*, IOSendJob::Result, const SmartPtr<IOPackage>);
-
-	void reactChange(IOSender::State value_);
-
-private:
-	Q_OBJECT
-
-	IOClient *m_io;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
-struct Connector: QObject, Vm::Connector::Base<Machine_type>
+struct Connector: Connector_, Vm::Connector::Base<Machine_type>
 {
-	Connector(): m_service()
-	{
-	}
-
-	void setService(IO* value_)
-	{
-		m_service = value_;
-	}
-
-public slots:
 	void acceptLibvirt();
 
 	void acceptQemuDisk();
@@ -396,11 +328,7 @@ public slots:
 	void acceptQemuState();
 
 private:
-	Q_OBJECT
-
 	QSharedPointer<QTcpSocket> accept_();
-
-	IO* m_service;
 };
 
 namespace Qemu
@@ -447,13 +375,13 @@ struct Frontend: Vm::Frontend<Frontend<X, Y> >
 		}
 	};
 	struct transition_table : boost::mpl::vector<
-		msmf::Row<initial_state,        launch_type,          Vm::Tunnel::Ready, Action>,
-		msmf::Row<initial_state,        Flop::Event,          Flop::State>,
-		msmf::Row<Vm::Tunnel::Ready,    Vm::Pump::Launch_type,pumpState_type>,
+		msmf::Row<initial_state,     launch_type,          Vm::Tunnel::Ready, Action>,
+		msmf::Row<initial_state,     Flop::Event,          Flop::State>,
+		msmf::Row<Vm::Tunnel::Ready, Vm::Pump::Launch_type,pumpState_type>,
 		msmf::Row<typename pumpState_type::template
-			exit_pt<Success>,       msmf::none,           Success>,
+			exit_pt<Success>,    msmf::none,           Success>,
 		msmf::Row<typename pumpState_type::template
-			exit_pt<Flop::State>,   Flop::Event,          Flop::State>
+			exit_pt<Flop::State>,Flop::Event,          Flop::State>
 	>
 	{
 	};
@@ -521,48 +449,11 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
-struct Connector: QObject, Vm::Connector::Base<Machine_type>
+struct Connector: Connector_, Vm::Connector::Base<Machine_type>
 {
-public slots:
 	void cancel();
 
 	void react(const SmartPtr<IOPackage>& package_);
-
-private:
-	Q_OBJECT
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Workflow
-
-struct Workflow: Vm::Frontend<Workflow>
-{
-	typedef Pipeline::Frontend<Machine_type, CheckReply> checking_type;
-	typedef Pipeline::Frontend<Machine_type, StartReply> starting_type;
-	typedef Join<boost::mpl::vector<Tunnel::Frontend, Libvirt::Frontend> > moving_type;
-
-	typedef boost::msm::back::state_machine<checking_type> checkStep_type;
-	typedef boost::msm::back::state_machine<starting_type> startStep_type;
-	typedef boost::msm::back::state_machine<Content::Frontend> copyStep_type;
-	typedef boost::msm::back::state_machine<moving_type> moveStep_type;
-
-	typedef checkStep_type initial_state;
-
-	struct transition_table : boost::mpl::vector<
-		// wire error exits to FINISHED immediately
-		_row<checkStep_type::exit_pt<Flop::State>,	Flop::Event, Flop::State>,
-		_row<startStep_type::exit_pt<Flop::State>,	Flop::Event, Flop::State>,
-		_row<copyStep_type::exit_pt<Flop::State>,	Flop::Event, Flop::State>,
-		_row<moveStep_type::exit_pt<Flop::State>,	Flop::Event, Flop::State>,
-
-		// wire success exits sequentially up to FINISHED
-		_row<checkStep_type::exit_pt<Success>,	msmf::none,	startStep_type>,
-		_row<startStep_type::exit_pt<Success>,	msmf::none,	copyStep_type>,
-		_row<copyStep_type::exit_pt<Success>,	msmf::none,	moveStep_type>,
-		_row<moveStep_type::exit_pt<Success>,	msmf::none,	Success>
-	>
-	{
-	};
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -570,13 +461,20 @@ struct Workflow: Vm::Frontend<Workflow>
 
 struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 {
+	typedef Pipeline::Frontend<Machine_type, CheckReply> checking_type;
+	typedef Pipeline::Frontend<Machine_type, StartReply> starting_type;
+	typedef Pipeline::Frontend<Machine_type, Vm::Pump::FinishCommand_type> peerWait_type;
 	typedef Pipeline::Frontend<Machine_type, PeerFinished> peerQuit_type;
-	typedef Join<boost::mpl::vector<
-			Workflow,
-			Pipeline::Frontend<Machine_type, Vm::Pump::FinishCommand_type> > >
-		join_type;
-	typedef boost::msm::back::state_machine<join_type> initial_state;
-	typedef boost::msm::back::state_machine<peerQuit_type> peerQuit_state;
+	typedef Join<boost::mpl::vector<Tunnel::Frontend, Libvirt::Frontend, peerWait_type> >
+		moving_type;
+
+	typedef boost::msm::back::state_machine<checking_type> checkStep_type;
+	typedef boost::msm::back::state_machine<starting_type> startStep_type;
+	typedef boost::msm::back::state_machine<Content::Frontend> copyStep_type;
+	typedef boost::msm::back::state_machine<moving_type> moveStep_type;
+	typedef boost::msm::back::state_machine<peerQuit_type> peerQuitState_type;
+
+	typedef checkStep_type initial_state;
 
 	Frontend(Task_MigrateVmSource &task, Tunnel::IO& io_): m_io(&io_), m_task(&task)
 	{
@@ -597,11 +495,18 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 
 	struct transition_table : boost::mpl::vector<
 		// wire error exits to FINISHED immediately
-		a_row<initial_state::exit_pt<Flop::State>, Flop::Event,Finished,      &Frontend::setResult>,
-		a_row<peerQuit_state::exit_pt<Flop::State>,Flop::Event,Finished,      &Frontend::setResult>,
+		a_row<checkStep_type::exit_pt<Flop::State>,	Flop::Event, Finished, &Frontend::setResult>,
+		a_row<startStep_type::exit_pt<Flop::State>,	Flop::Event, Finished, &Frontend::setResult>,
+		a_row<copyStep_type::exit_pt<Flop::State>,	Flop::Event, Finished, &Frontend::setResult>,
+		a_row<moveStep_type::exit_pt<Flop::State>,	Flop::Event, Finished, &Frontend::setResult>,
+		a_row<peerQuitState_type::exit_pt<Flop::State>, Flop::Event, Finished, &Frontend::setResult>,
+
 		// wire success exits sequentially up to FINISHED
-		a_row<initial_state::exit_pt<Success>,     msmf::none, peerQuit_state,&Frontend::pokePeer>,
-		a_row<peerQuit_state::exit_pt<Success>,    msmf::none, Finished,      &Frontend::setResult>
+		_row<checkStep_type::exit_pt<Success>,	    msmf::none, startStep_type>,
+		_row<startStep_type::exit_pt<Success>,	    msmf::none, copyStep_type>,
+		_row<copyStep_type::exit_pt<Success>,	    msmf::none, moveStep_type>,
+		a_row<moveStep_type::exit_pt<Success>,      msmf::none, peerQuitState_type,&Frontend::pokePeer>,
+		a_row<peerQuitState_type::exit_pt<Success>, msmf::none, Finished,          &Frontend::setResult>
 	>
 	{
 	};
