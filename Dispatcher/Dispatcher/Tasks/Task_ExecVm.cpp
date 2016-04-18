@@ -380,7 +380,7 @@ PRL_RESULT Vm::prepare(Task_ExecVm& task_, vm::Exec::Request& request_, Join& jo
 	}
 
 	join_.add(new Mediator(task_, m_stdout.data(), PET_IO_STDOUT_PORTION));
-	join_.add(new Mediator(task_, m_stderr.data(), PET_IO_STDOUT_PORTION));
+	join_.add(new Mediator(task_, m_stderr.data(), PET_IO_STDERR_PORTION));
 
 	if (task_.getRequestFlags() & PFD_STDIN) {
 		m_stdin = QSharedPointer<vm::Exec::WriteDevice>(new vm::Exec::WriteDevice(c));
