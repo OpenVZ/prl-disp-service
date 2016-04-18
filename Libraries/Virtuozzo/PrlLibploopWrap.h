@@ -40,9 +40,9 @@ FUNC_DECL(int, ploop_open_dd, (struct ploop_disk_images_data **di, const char *f
 FUNC_DECL(void, ploop_close_dd, (struct ploop_disk_images_data *di))
 FUNC_DECL(int, ploop_create_snapshot, (struct ploop_disk_images_data *di, struct ploop_snapshot_param *param))
 FUNC_DECL(int, ploop_get_dev, (struct ploop_disk_images_data *di, char *out, int len))
-FUNC_DECL(int, ploop_read_disk_descr, (struct ploop_disk_images_data **di, const char *file))
 FUNC_DECL(int, ploop_create_dd, (const char *ddxml, struct ploop_create_param *param))
 FUNC_DECL(int, ploop_set_max_delta_size, (struct ploop_disk_images_data *di, unsigned long long size))
+FUNC_DECL(int, ploop_get_base_delta_fname, (struct ploop_disk_images_data *di, char *out, int len))
 
 #define LOAD_ALL_SYM() \
 LOAD_SYM(ploop_mount_image) \
@@ -54,8 +54,8 @@ LOAD_SYM(ploop_open_dd) \
 LOAD_SYM(ploop_close_dd) \
 LOAD_SYM(ploop_create_snapshot) \
 LOAD_SYM(ploop_get_dev) \
-LOAD_SYM(ploop_read_disk_descr) \
 LOAD_SYM(ploop_create_dd) \
-LOAD_SYM(ploop_set_max_delta_size)
+LOAD_SYM(ploop_set_max_delta_size) \
+LOAD_SYM(ploop_get_base_delta_fname)
 
 #endif

@@ -147,10 +147,7 @@ Ploop::Ploop(const QString& path) : m_path(path), m_ploop(path)
 QString Ploop::getImage() const
 {
 	if (m_image.isEmpty()) {
-		PloopImage::DiskDescriptor dd;
-		if (PRL_SUCCEEDED(m_ploop.getDiskDescriptor(dd))) {
-			m_image = dd.images[0].file;
-		} else {
+		if (PRL_FAILED(m_ploop.getBaseDeltaFilename(m_image))) {
 			WRITE_TRACE(DBG_FATAL, "failed to read disk descriptor from '%s'",
 				QSTR2UTF8(m_path));
 		}

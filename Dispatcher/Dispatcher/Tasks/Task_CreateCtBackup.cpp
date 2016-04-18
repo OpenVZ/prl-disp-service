@@ -325,21 +325,7 @@ PRL_RESULT Task_CreateCtBackupHelper::do_
 {
 	spec_.setSandbox(CDspService::instance()->getDispConfigGuard()
 		.getDispCommonPrefs()->getBackupSourcePreferences()->getSandbox());
-	if (m_nInternalFlags & PVM_CT_VZFS_BACKUP)
-	{
-		Backup::Work::Ct::Naked n(config_, *this);
-		return n.backup(spec_.setArchive(PRL_CT_BACKUP_TIB_FILE_NAME));
-	}
-	else if (m_nInternalFlags & PVM_CT_VZWIN_BACKUP)
-	{
-#ifdef _WIN_
-		Backup::Work::Ct::Naked n(config_, *this);
-		return Backup::Work::Ct::Windows(config_, n)(spec_);
-#else // _WIN_
-		return PRL_ERR_UNIMPLEMENTED;
-#endif // _WIN_
-	}
-	else if (NULL == m_service)
+	if (NULL == m_service)
 		return PRL_ERR_UNEXPECTED;
 
 	::Backup::Activity::Object::Model a;
@@ -408,8 +394,10 @@ PRL_RESULT Task_CreateCtBackupSource::prepareTask()
 		setService(*m_service);
 	else
 	{
-		::Backup::Device::Dao(m_pCtConfig).deleteAll();
-		setInternalFlags(getInternalFlags() | PVM_CT_VZFS_BACKUP);
+		WRITE_TRACE(DBG_FATAL, "Unsupported Container's layout (%d)",
+				m_pCtConfig->getCtSettings()->getLayout());
+		nRetCode = PRL_ERR_UNIMPLEMENTED;
+		goto exit;
 	}
 	/* check existing Ct state */
 	nRetCode = s->getVzHelper()->getVzlibHelper().get_env_status(m_sVmUuid, state);
@@ -419,37 +407,9 @@ PRL_RESULT Task_CreateCtBackupSource::prepareTask()
 		goto exit;
 	}
 
-	/* (linux only) we need mounted Container for effective backup #PSBM-7479 */
-	if ((state == VMS_SUSPENDED || state == VMS_STOPPED) &&
-		(getInternalFlags() & PVM_CT_VZFS_BACKUP)) {
-		int res = m_VzOpHelper.mount_env(m_sVmUuid);
-		if (res) {
-			WRITE_TRACE(DBG_FATAL, "Fail to create backup: Can not mount"
-				" Container '%s', err = %d", QSTR2UTF8(m_sVmUuid), res);
-			nRetCode = PRL_ERR_VM_MOUNT;
-			goto exit;
-		}
-		setInternalFlags(getInternalFlags() | PVM_CT_MOUNTED);
-	} else if (state == VMS_RUNNING)
+	if (state == VMS_RUNNING)
 		setInternalFlags(getInternalFlags() | PVM_CT_RUNNING);
 
-	if (getInternalFlags() & (PVM_CT_VZFS_BACKUP | PVM_CT_VZWIN_BACKUP))
-	{
-		nRetCode = s->getVmDirHelper().registerExclusiveVmOperation(
-			m_sVmUuid, getVzDirectory(), PVE::DspCmdCreateVmBackup, getClient(),
-			this->getJobUuid());
-		if (PRL_FAILED(nRetCode)) {
-			WRITE_TRACE(DBG_FATAL, "[%s] registerExclusiveVmOperation failed. Reason: %#x (%s)",
-					__FUNCTION__, nRetCode, PRL_RESULT_TO_STRING(nRetCode));
-			goto exit;
-		}
-		m_nSteps |= BACKUP_REGISTER_EX_OP;
-		if (operationIsCancelled()) {
-			nRetCode = PRL_ERR_OPERATION_WAS_CANCELED;
-			goto exit;
-		}
-	}
-	else
 	{
 		::Backup::Task::Director d(CDspService::instance()->getVmDirHelper(), *m_service,
 			CDspService::instance()->getDispConfigGuard());
@@ -554,17 +514,6 @@ PRL_RESULT Task_CreateCtBackupSource::run_body()
 	m_pVmCopySource->SetVmDirectoryUuid(getVzDirectory());
 	m_pVmCopySource->SetProgressNotifySender(Backup::NotifyClientsWithProgress);
 
-	if (getInternalFlags() & (PVM_CT_VZFS_BACKUP | PVM_CT_VZWIN_BACKUP))
-	{
-		if (!m_bLocalMode) {
-			nRetCode = handleCtPrivateBeforeBackup(m_sVmUuid, m_sCtHomePath, m_sBackupUuid, sVzCacheDir);
-			if (PRL_FAILED(nRetCode))
-				goto exit;
-		}
-		if (PRL_FAILED(nRetCode = fillCopyContent()))
-			goto exit;
-	}
-	else
 	{
 		::Backup::Activity::Object::Model a;
 		nRetCode = m_service->find(MakeVmIdent(m_sVmUuid, getVzDirectory()), a);
@@ -580,10 +529,6 @@ PRL_RESULT Task_CreateCtBackupSource::run_body()
 			nRetCode, PRL_RESULT_TO_STRING(nRetCode));
 		goto exit;
 	}
-#ifdef _WIN_
-	/* remove zip archive filled in fillCopyContent() */
-	QFile::remove(m_sCtHomePath + "\\" PRL_CT_BACKUP_ZIP_FILE_NAME);
-#endif
 
 	if (m_bLocalMode) {
 		nRetCode = waitForTargetFinished();
@@ -628,7 +573,6 @@ void Task_CreateCtBackupSource::finalizeTask()
 			m_sVmUuid, getVzDirectory(), PVE::DspCmdCreateVmBackup, getClient());
 	}
 
-#ifdef _LIN_ /* VZWIN can backup unmounted CT */
 	/* umount mounted Container */
 	if (getInternalFlags() & PVM_CT_MOUNTED) {
 		int res = m_VzOpHelper.umount_env(m_sVmUuid);
@@ -638,7 +582,6 @@ void Task_CreateCtBackupSource::finalizeTask()
 	}
 	foreach(const QString& path, m_tmpCopy)
 		CFileHelper::RemoveEntry(path, &getClient()->getAuthHelper());
-#endif
 	if ((getInternalFlags() & PVM_CT_PLOOP_BACKUP) && !m_sCtHomePath.isEmpty())
 		m_service->finish(MakeVmIdent(m_sVmUuid, getVzDirectory()), getClient());
 
@@ -820,50 +763,7 @@ PRL_RESULT Task_CreateCtBackupSource::fillCopyContent()
 {
 	m_DirList.clear();
 	m_FileList.clear();
-#ifdef _WIN_
-	// VZWIN conf
-	QFileInfo config1(CVzHelper::getCtConfPath(m_pCtConfig->getVmIdentification()->getEnvId()));
-	m_FileList.append(qMakePair(config1, QString(VZ_CT_CONFIG_FILE)));
-	// PSBM XML conf
-	QFileInfo config2(QString("%1/" VZ_CT_XML_CONFIG_FILE).arg(m_sCtHomePath));
-	m_FileList.append(qMakePair(config2, QString(VZ_CT_XML_CONFIG_FILE)));
 
-	// Now zip most private files to zip archive
-	QString zipPath = CVzHelper::getVzInstallDir() + "\\bin\\zip.exe";
-	QString arcPath = m_sCtHomePath + "\\" PRL_CT_BACKUP_ZIP_FILE_NAME;
-	QProcess proc;
-	QStringList args;
-
-	// exclude args copied from vza backup
-	args += "-!";
-	args += "-r";
-	args += "-S";
-	args += arcPath;
-	args += "*.*";
-	args += "-x";
-	args += "root/";
-	args += "root/*.*";
-	args += "*.efd";
-	args += VZ_CT_XML_CONFIG_FILE;
-	args += VZ_CT_CONFIG_FILE;
-
-	proc.setWorkingDirectory(m_sCtHomePath);
-	proc.start(zipPath, args);
-
-	if (!proc.waitForFinished(ZIP_WORK_TIMEOUT)) {
-		WRITE_TRACE(DBG_FATAL, "backup zip utility is not responding. Terminate it now.");
-		proc.terminate();
-		QFile::remove(arcPath);
-	} else if (proc.exitCode() != 0) {
-		WRITE_TRACE(DBG_FATAL, "backup zip utility failed code %u: %s",
-			    proc.exitCode(),
-			    proc.readAllStandardOutput().constData());
-		QFile::remove(arcPath);
-	} else {
-		QFileInfo filePrivate(arcPath);
-		m_FileList.append(qMakePair(filePrivate, filePrivate.fileName()));
-	}
-#else
 	PRL_RESULT res;
 	QString tmpPath;
 	QString confPath = QString("%1/" VZ_CT_CONFIG_FILE).arg(m_sCtHomePath);
@@ -891,11 +791,8 @@ PRL_RESULT Task_CreateCtBackupSource::fillCopyContent()
 		m_FileList.append(qMakePair(QFileInfo(tmpPath), QFileInfo(confPath).fileName()));
 	}
 
-#endif
-#ifdef _LIN_
 	if (VZCTL_LAYOUT_5 > m_pCtConfig->getCtSettings()->getLayout())
 		return PRL_ERR_SUCCESS;
-#endif
 
 	QDir home(m_sCtHomePath);
 	QFileInfoList infos;
