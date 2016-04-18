@@ -236,13 +236,13 @@ public:
 	 *              -1 locking error
 	 *              -2 CT already locked
 	 */
-	static int lock_env(unsigned int id, const char *status);
+	static int lock_env(const QString &uuid, const char *status);
 	/** Unlock Container.
 	 *
 	 * @param veid          id.
 	 * @param lckfd         lock file descriptor
 	 */
-	static void unlock_env(unsigned int id, int lockfd);
+	static void unlock_env(const QString &uuid, int lockfd);
 	static void update_ctid_map(const QString &uuid, const QString &ctid)
 	{
 		QMutexLocker lock(&s_mtxEnvUuidMap);

@@ -2478,6 +2478,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 	if (PRL_FAILED(nRetCode)) {
 		WRITE_TRACE(DBG_FATAL, "get_env_status() failer. Reason: %#x (%s)",
 				nRetCode, PRL_RESULT_TO_STRING(nRetCode));
+
 		return nRetCode;
 	}
 
@@ -2490,6 +2491,13 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 				__FUNCTION__, QSTR2UTF8(m_sVmUuid));
 		return nRetCode;
 	}
+
+	int lockfd = CVzHelper::lock_env(m_sVmUuid, "Restoring");
+	if (lockfd < 0) {
+		WRITE_TRACE(DBG_FATAL, "Can't lock Container");
+		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
+	}
+
 	/* will restore over existing home - to create temporary directory */
 	m_sTargetPath = QString("%1.%2.restore").arg(m_sTargetVmHomePath).arg(Uuid::createUuid().toString());
 
@@ -2501,36 +2509,39 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 			QSTR2UTF8(m_current_vm_uptime_start_date.toString(XML_DATETIME_FORMAT)));
 
 	std::auto_ptr<Restore::Assembly> x;
-	if (PRL_FAILED(nRetCode = restoreCtToTargetPath(sCtName, false, x))) {
-		return nRetCode;
-	}
 
-	/* replace original private */
-	nRetCode = x->do_();
+	do {
+		if (PRL_FAILED(nRetCode = restoreCtToTargetPath(sCtName, false, x)))
+			break;
+		/* replace original private */
+		nRetCode = x->do_();
 
-	/* and reregister to set ctId & m_sTargetVmHomePath in restored config */
-	nRetCode = m_VzOpHelper.register_env(m_sTargetVmHomePath, ctId,
-			pConfig->getVmIdentification()->getVmUuid(),
-			PRCF_FORCE | PRVF_IGNORE_HA_CLUSTER, pNewConfig);
-	if (PRL_FAILED(nRetCode)) {
-		WRITE_TRACE(DBG_FATAL, "register_env() exited with error %#x, %s",
+		/* and reregister to set ctId & m_sTargetVmHomePath in restored config */
+		nRetCode = m_VzOpHelper.register_env(m_sTargetVmHomePath, ctId,
+				pConfig->getVmIdentification()->getVmUuid(),
+				PRCF_FORCE | PRVF_IGNORE_HA_CLUSTER, pNewConfig);
+		if (PRL_FAILED(nRetCode)) {
+			WRITE_TRACE(DBG_FATAL, "register_env() exited with error %#x, %s",
 					nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
-		goto cleanup_1;
+			break;
+		}
+
+		/* restore uptime */
+		nRetCode = VzHelper.set_env_uptime(m_sVmUuid, m_nCurrentVmUptime,
+				m_current_vm_uptime_start_date);
+		if (PRL_FAILED(nRetCode)) {
+			WRITE_TRACE(DBG_FATAL, "Restore uptime failed with error %#x, %s",
+					nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
+			break;
+		}
+	} while(0);
+
+	if (PRL_FAILED(nRetCode) && x.get()) {
+		x->revert();
+		CFileHelper::ClearAndDeleteDir(m_sTargetPath);
 	}
 
-	/* restore uptime */
-	nRetCode = VzHelper.set_env_uptime(m_sVmUuid, m_nCurrentVmUptime,
-			m_current_vm_uptime_start_date);
-	if (PRL_FAILED(nRetCode))
-		WRITE_TRACE(DBG_FATAL, "Restore uptime failed with error %#x, %s",
-				nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
-
-	return PRL_ERR_SUCCESS;
-
-cleanup_1:
-	x->revert();
-
-	CFileHelper::ClearAndDeleteDir(m_sTargetPath);
+	CVzHelper::unlock_env(m_sVmUuid, lockfd);
 
 	return nRetCode;
 }
