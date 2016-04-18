@@ -202,7 +202,7 @@ Result Online::operator()(Parameters::Builder& builder_)
 		.arg(m_qemuStatePort)))
 		return Failure(PRL_ERR_FAILURE);
 
-	if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "xbrzle"))
+	if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "xbzrle"))
 		return Failure(PRL_ERR_FAILURE);
 	if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "mt"))
 		return Failure(PRL_ERR_FAILURE);

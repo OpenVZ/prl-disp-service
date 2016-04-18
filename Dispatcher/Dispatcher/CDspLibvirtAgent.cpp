@@ -109,7 +109,6 @@ Result Task::doOnline(const CVmConfiguration& config_, quint16 qemuStatePort_,
 	unsigned int f = VIR_MIGRATE_PERSIST_DEST |
 				VIR_MIGRATE_CHANGE_PROTECTION |
 				VIR_MIGRATE_LIVE |
-				VIR_MIGRATE_COMPRESSED |
 				VIR_MIGRATE_AUTO_CONVERGE;
 	Parameters::Builder b;
 	Online d(Config(m_domain, m_link, 0), config_, qemuStatePort_);
