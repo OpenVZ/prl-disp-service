@@ -1252,13 +1252,6 @@ void General<Tag::Simple<PVE::DspCmdVmStopVNCServer> >::do_(const Context& conte
 	vm_->stopVNCServer(context_.getSession(), context_.getPackage(), false, true);
 }
 
-template<>
-void General<Tag::General<PVE::DspCmdVmMigrateCancel> >::do_(const Context& context_, SmartPtr<CDspVm> vm_)
-{
-	CDspService::instance()->getVmMigrateHelper()
-		.cancelMigration(context_.getSession(), context_.getPackage(), vm_);
-}
-
 template<PVE::IDispatcherCommands X>
 struct General<Tag::CreateDspVm<X> >
 {
@@ -1405,6 +1398,13 @@ void Body<Tag::Special<PVE::DspCmdVmGuestRunProgram> >::run(Context& context_)
 			new Task_ExecVm(context_.getSession(), context_.getPackage(), Exec::Vm()));
 }
 
+template<>
+void Body<Tag::Special<PVE::DspCmdVmMigrateCancel> >::run(Context& context_)
+{
+	CDspService::instance()->getVmMigrateHelper()
+		.cancelMigration(context_.getSession(), context_.getPackage(), context_.getVmUuid());
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Body<Tag::Fork<T> >
 
@@ -1538,7 +1538,7 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmDevDisconnect] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDevDisconnect> > >());
 	m_map[PVE::DspCmdVmInitiateDevStateNotifications] = map(Tag::General<PVE::DspCmdVmInitiateDevStateNotifications>());
 	m_map[PVE::DspCmdVmInstallTools] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmInstallTools> > >());
-	m_map[PVE::DspCmdVmMigrateCancel] = map(Tag::General<PVE::DspCmdVmMigrateCancel>());
+	m_map[PVE::DspCmdVmMigrateCancel] = map(Tag::Special<PVE::DspCmdVmMigrateCancel>());
 	m_map[PVE::DspCmdVmRestartGuest] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmRestartGuest> > >());
 	m_map[PVE::DspCmdVmStop] = map(Tag::Fork<Tag::Timeout<Tag::State<Essence<PVE::DspCmdVmStop>,
 		Vm::Fork::State::Strict<VMS_STOPPED> >, Tag::Libvirt<PVE::DspCmdVmStop> > >());
