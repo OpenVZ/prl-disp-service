@@ -38,20 +38,17 @@
 #include <boost/msm/back/state_machine.hpp>
 #include <boost/msm/front/state_machine_def.hpp>
 
-#include <QObject>
 #include <cxxabi.h>
 #include <CDspTaskHelper.h>
 #include <CDspDispConnection.h>
 #include <boost/mpl/has_xxx.hpp>
 #include <prlsdk/PrlErrorsValues.h>
-#include <prlcommon/Std/SmartPtr.h>
+#include "Task_MigrateVmQObject_p.h"
 #include <prlcommon/Logging/Logging.h>
 #include <boost/phoenix/core/value.hpp>
 #include <prlxmlmodel/Messaging/CVmEvent.h>
-#include <prlcommon/Interfaces/ParallelsDispToDispProto.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
-#include <prlcommon/IOService/IOCommunication/IOSendJob.h>
-#include <prlcommon/IOService/IOCommunication/IOProtocol.h>
+#include <prlcommon/Interfaces/ParallelsDispToDispProto.h>
 
 namespace Migrate
 {
@@ -396,18 +393,6 @@ struct Waiting: Trace<Waiting>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Slot
-
-struct Slot: QObject
-{
-public slots:
-	virtual void timeout() = 0;
-
-private:
-	Q_OBJECT
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
 template<class T>
@@ -547,21 +532,6 @@ struct Queue: QQueue<SmartPtr<IOPackage> >
 	}
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct IO
-
-struct IO: QObject
-{
-	virtual IOSendJob::Handle sendPackage(const SmartPtr<IOPackage>&) = 0;
-
-signals:
-	void onReceived(const SmartPtr<IOPackage>& package_);
-	void onSent(const SmartPtr<IOPackage>& package_);
-
-private:
-	Q_OBJECT
-};
-
 namespace Push
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -695,20 +665,6 @@ private:
 };
 
 } // namespace Visitor
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Slot
-
-struct Slot: QObject
-{
-public slots:
-	virtual void onSent(const SmartPtr<IOPackage>&) = 0;
-	virtual void readyRead() = 0;
-	virtual void readChannelFinished() = 0;
-
-private:
-	Q_OBJECT
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
@@ -947,18 +903,6 @@ private:
 } // namespace Visitor
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Slot
-
-struct Slot: QObject
-{
-public slots:
-	virtual void reactBytesWritten(qint64 value_) = 0;
-
-private:
-	Q_OBJECT
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
 template<class T, Parallels::IDispToDispCommands X>
@@ -1114,18 +1058,6 @@ namespace Libvirt
 
 struct Running: Trace<Running>
 {
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Slot
-
-struct Slot: QObject
-{
-protected slots:
-	virtual void reactFinished(int, QProcess::ExitStatus) = 0;
-
-private:
-	Q_OBJECT
 };
 
 ///////////////////////////////////////////////////////////////////////////////

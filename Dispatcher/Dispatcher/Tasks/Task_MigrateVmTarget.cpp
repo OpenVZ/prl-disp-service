@@ -385,14 +385,16 @@ namespace Connector
 ///////////////////////////////////////////////////////////////////////////////
 // struct Basic
 
-void Basic::reactConnected()
+template<class T>
+void Basic<T>::reactConnected()
 {
-	handle(Vm::Pump::Launch_type(m_service, (QIODevice* )sender()));
+	handle(Vm::Pump::Launch_type(this->getService(), (QIODevice* )this->sender()));
 }
 
-void Basic::reactDisconnected()
+template<class T>
+void Basic<T>::reactDisconnected()
 {
-	handle(boost::phoenix::val((QIODevice* )sender()));
+	handle(boost::phoenix::val((QIODevice* )this->sender()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
