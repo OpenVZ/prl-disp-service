@@ -837,11 +837,10 @@ PRL_RESULT Subject::create(Task::Workbench& task_)
 	QScopedPointer<Object> o;
 	m_vm.getSnapshot(o);
 
-	PRL_RESULT output;
-	if (m_product.getObject().canFreeze())
-		output = o->freeze(task_);
+	if (!m_product.getObject().canFreeze())
+		return PRL_ERR_SUCCESS;
 
-	return output;
+	return o->freeze(task_);
 }
 
 PRL_RESULT Subject::attach()
