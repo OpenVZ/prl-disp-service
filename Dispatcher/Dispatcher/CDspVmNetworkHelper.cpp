@@ -301,6 +301,23 @@ Libvirt::Result Dao::create(const CVirtualNetwork& model_)
 		WRITE_TRACE(DBG_FATAL, "Duplicated new network ID '%s' !", QSTR2UTF8(x));
 		return Error::Simple(PRL_NET_DUPLICATE_VIRTUAL_NETWORK_ID);
 	}
+
+	QList<Libvirt::Instrument::Agent::Network::Unit> a;
+	Libvirt::Result r = m_networks.all(a);
+	if (r.isFailed())
+		return r;
+
+	foreach(const Libvirt::Instrument::Agent::Network::Unit &u, a)
+	{
+		CVirtualNetwork n;
+		if ((r = u.getConfig(n)).isFailed())
+			return r;
+
+		if (model_.getBoundCardMac() == n.getBoundCardMac() &&
+			model_.getVLANTag() == n.getVLANTag())
+			return Error::Simple(PRL_NET_ADAPTER_ALREADY_USED);
+	}
+
 	return define(model_);
 }
 
