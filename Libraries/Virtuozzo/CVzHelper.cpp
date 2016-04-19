@@ -2454,24 +2454,20 @@ int CVzHelper::is_vz_running()
 	return 1;
 }
 
-int CVzHelper::lock_env(unsigned int id, const char *status)
+int CVzHelper::lock_env(const QString &uuid, const char *status)
 {
-	Q_UNUSED(id)
-	Q_UNUSED(status)
-#if 0
-	return vzctl2_env_lock(id, status);
-#endif
-	return 0;
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return -1;
+
+	return vzctl2_env_lock_prvt(QSTR2UTF8(ctid), NULL, status);
 }
 
-void CVzHelper::unlock_env(unsigned int id, int lockfd)
+void CVzHelper::unlock_env(const QString &uuid, int lockfd)
 {
-	Q_UNUSED(id)
-	Q_UNUSED(lockfd)
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
 
-#if 0
-	vzctl2_env_unlock(id, lockfd);
-#endif
+	vzctl2_env_unlock_prvt(QSTR2UTF8(ctid), lockfd, NULL);
 }
 
 QString CVzHelper::parse_ctid(const QString& src)
