@@ -742,6 +742,12 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 	QString sVmDirPath;
 	QString bundle;
 
+	if (PVMT_CHANGE_SID & getRequestFlags() && !(PVMT_CLONE_MODE & getRequestFlags()))
+	{
+		WRITE_TRACE(DBG_FATAL, "Changing SID without clone is rejected!");
+		nRetCode = PRL_ERR_INVALID_ARG;
+		goto exit;
+	}
 	if (CDspService::instance()->isServerStopping())
 	{
 		WRITE_TRACE(DBG_FATAL, "Dispatcher shutdown is in progress - VM migrate rejected!");
@@ -973,7 +979,7 @@ PRL_RESULT Task_MigrateVmTarget::reactStart(const SmartPtr<IOPackage> &package)
 void Task_MigrateVmTarget::changeSID()
 {
 	// nobody requested SID change
-	if (!(PVMT_CHANGE_SID & getRequestFlags()) &&
+	if (!(PVMT_CHANGE_SID & getRequestFlags()) ||
 		!(PVMT_CLONE_MODE & getRequestFlags()))
 		return;
 
@@ -1560,10 +1566,10 @@ PRL_RESULT Task_MigrateVmTarget::registerHaClusterResource()
 // rollback resource on HA cluster
 void Task_MigrateVmTarget::unregisterHaClusterResource()
 {
-	if (!m_pVmConfig->getVmSettings()->getHighAvailability()->isEnabled())
+	if (!(m_nSteps & MIGRATE_HA_RESOURCE_REGISTERED))
 		return;
 
-	if (!(m_nSteps & MIGRATE_HA_RESOURCE_REGISTERED))
+	if (!m_pVmConfig->getVmSettings()->getHighAvailability()->isEnabled())
 		return;
 
 	if (m_nReservedFlags & PVM_HA_MOVE_VM) {
