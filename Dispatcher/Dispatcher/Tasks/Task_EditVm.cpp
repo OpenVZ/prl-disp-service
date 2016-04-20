@@ -3323,33 +3323,52 @@ bool NotApplied::execute(CDspTaskFailure& feedback_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Cdrom
+// struct ChangeableMedia
 
-Action* Cdrom::operator()(const Request& input_) const
+template<>
+QList<CVmOpticalDisk* > ChangeableMedia<CVmOpticalDisk>::getList(const CVmHardware* hardware_)
+{
+	QList<CVmOpticalDisk* > output = hardware_->m_lstOpticalDisks;
+	QList<CVmOpticalDisk* >::iterator b = std::partition(output.begin(), output.end(),
+		boost::bind(&CVmOpticalDisk::getEmulatedType, _1) == PVE::CdRomImage);
+	output.erase(b, output.end());
+
+	return output;
+}
+
+template<>
+QList<CVmFloppyDisk* > ChangeableMedia<CVmFloppyDisk>::getList(const CVmHardware* hardware_)
+{
+	QList<CVmFloppyDisk* > output = hardware_->m_lstFloppyDisks;
+	QList<CVmFloppyDisk* >::iterator b = std::partition(output.begin(), output.end(),
+		boost::bind(&CVmFloppyDisk::getEmulatedType, _1) == PVE::FloppyDiskImage);
+	output.erase(b, output.end());
+
+	return output;
+}
+
+template<class T>
+Action* ChangeableMedia<T>::operator()(const Request& input_) const
 {
 	Forge f(input_);
 	Action* output = NULL;
-	QList<CVmOpticalDisk* > o = input_.getStart().getVmHardwareList()->m_lstOpticalDisks;
-	foreach (CVmOpticalDisk* d, input_.getFinal().getVmHardwareList()->m_lstOpticalDisks)
+	QList<T* > o = getList(input_.getStart().getVmHardwareList());
+	foreach (T* d, getList(input_.getFinal().getVmHardwareList()))
 	{
-		CVmOpticalDisk* x = CXmlModelHelper::IsElemInList(d, o);
+		T* x = CXmlModelHelper::IsElemInList(d, o);
 		if (NULL == x)
-			continue;
-
-		if (PVE::CdRomImage != d->getEmulatedType() ||
-			d->getEmulatedType() != x->getEmulatedType())
 			continue;
 
 		Action* a = NULL;
 		if (x->getSystemName() != d->getSystemName())
 		{
 			a = f.craftRuntime(boost::bind
-				(&vm::Runtime::update<CVmOpticalDisk>, _1, *d));
+				(&vm::Runtime::update<T>, _1, *d));
 		}
 		else if (x->getConnected() != d->getConnected())
 		{
 			a = f.craftRuntime(boost::bind
-				(&vm::Runtime::update<CVmOpticalDisk>, _1, *d));
+				(&vm::Runtime::update<T>, _1, *d));
 		}
 		else
 			continue;
@@ -3684,8 +3703,6 @@ Action* Hotplug<T>::operator()(const Request& input_) const
 	}
 	return output;
 }
-
-
 
 template<class T>
 QList<T* > Hotplug<T>::getDifference(const QList<T* >& first_,

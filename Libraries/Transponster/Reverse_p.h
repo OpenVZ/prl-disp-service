@@ -475,6 +475,28 @@ private:
 	const CVmHardDisk& m_hdd;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Flavor
+
+template<class T>
+struct ChangeableMedia
+{
+	static QString getUpdateXml(const T& model_)
+	{
+		typedef Ordinary<T> builder_type;
+		builder_type b(model_);
+		b.setDisk();
+		b.setFlags();
+		b.setSource();
+		b.setTarget();
+		b.setBackingChain();
+		QDomDocument x;
+		static_cast<const builder_type&>(b).getResult().save(x);
+
+		return x.toString();
+	}
+};
+
 } // namespace Builder
 } // namespace Clustered
 

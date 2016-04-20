@@ -1089,20 +1089,16 @@ QString Device<CVmHardDisk>::getPlugXml(const CVmHardDisk& model_)
 	return x.toString();
 }
 
+QString Device<CVmFloppyDisk>::getUpdateXml(const CVmFloppyDisk& model_)
+{
+	return Transponster::Device::Clustered::Builder
+		::ChangeableMedia<CVmFloppyDisk>::getUpdateXml(model_);
+}
+
 QString	Device<CVmOpticalDisk>::getUpdateXml(const CVmOpticalDisk& model_)
 {
-	typedef Transponster::Device::Clustered::Builder::Ordinary<CVmOpticalDisk>
-		builder_type;
-	builder_type b(model_);
-	b.setDisk();
-	b.setFlags();
-	b.setSource();
-	b.setTarget();
-	b.setBackingChain();
-	QDomDocument x;
-	static_cast<const builder_type&>(b).getResult().save(x);
-
-	return x.toString();
+	return Transponster::Device::Clustered::Builder
+		::ChangeableMedia<CVmOpticalDisk>::getUpdateXml(model_);
 }
 
 Prl::Expected<QString, ::Error::Simple>

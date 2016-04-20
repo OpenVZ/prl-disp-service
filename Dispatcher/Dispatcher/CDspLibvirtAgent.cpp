@@ -1423,6 +1423,7 @@ Result Runtime::update(const T& device_)
 
 	return Hotplug(m_domain).update(x.value());
 }
+template Result Runtime::update<CVmFloppyDisk>(const CVmFloppyDisk& device_);
 template Result Runtime::update<CVmOpticalDisk>(const CVmOpticalDisk& device_);
 template Result Runtime::update<CVmGenericNetworkAdapter>
 	(const CVmGenericNetworkAdapter& device_);
