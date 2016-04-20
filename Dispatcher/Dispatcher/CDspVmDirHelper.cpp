@@ -854,6 +854,7 @@ SmartPtr<CVmConfiguration> CDspVmDirHelper::CreateVmConfigFromDirItem(
 	pConfig->getVmIdentification()->setVmName(pDirItem->getVmName());
 	pConfig->getVmIdentification()->setServerUuid(sServerUuid);
 	pConfig->getVmIdentification()->setHomePath(pDirItem->getVmHome());
+	pConfig->getVmIdentification()->setCtId(pDirItem->getCtId());
 	pConfig->setVmType(pDirItem->getVmType());
 	/* FIXME wrong value is possible:
 	 *   - if shared storage connected later than dispatcher started
