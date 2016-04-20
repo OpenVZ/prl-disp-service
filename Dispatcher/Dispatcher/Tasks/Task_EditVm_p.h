@@ -565,11 +565,15 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Cdrom
+// struct ChangeableMedia
 
-struct Cdrom
+template<class T>
+struct ChangeableMedia
 {
 	Action* operator()(const Request& input_) const;
+
+private:
+	static QList<T* > getList(const CVmHardware* hardware_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -694,9 +698,9 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Driver
 
-typedef boost::mpl::vector<Cdrom, Adapter, Hotplug<CVmSerialPort>,
-		Hotplug<CVmHardDisk>, Disk, Blkiotune, Network::Factory,
-		Memory, Cpu::Factory> probeList_type;
+typedef boost::mpl::vector<ChangeableMedia<CVmOpticalDisk>, ChangeableMedia<CVmFloppyDisk>,
+		Adapter, Hotplug<CVmSerialPort>, Hotplug<CVmHardDisk>, Disk,
+		Blkiotune, Network::Factory, Memory, Cpu::Factory> probeList_type;
 
 struct Driver: Gear<Driver, probeList_type>
 {
