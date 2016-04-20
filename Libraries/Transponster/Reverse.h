@@ -135,6 +135,12 @@ struct Device<CVmHardDisk>
 };
 
 template<>
+struct Device<CVmFloppyDisk>
+{
+	static QString getUpdateXml(const CVmFloppyDisk& model_);
+};
+
+template<>
 struct Device<CVmOpticalDisk>
 {
 	static QString getUpdateXml(const CVmOpticalDisk& model_);
