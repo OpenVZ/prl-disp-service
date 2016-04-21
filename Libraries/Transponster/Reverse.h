@@ -32,6 +32,8 @@
 #ifndef __REVERSE_H__
 #define __REVERSE_H__
 
+#include <boost/function.hpp>
+
 #include "iface_type.h"
 #include "domain_type.h"
 #include "network_type.h"
@@ -132,6 +134,7 @@ template<>
 struct Device<CVmHardDisk>
 {
 	static QString getPlugXml(const CVmHardDisk& model_);
+	static QString getTargetName(const CVmHardDisk& model_);
 };
 
 template<>
@@ -291,17 +294,49 @@ private:
 
 namespace Snapshot
 {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Internal
+
+struct Internal: std::unary_function<const CVmHardDisk&, boost::optional<Libvirt::Snapshot::Xml::Disk> >
+{
+	boost::optional<Libvirt::Snapshot::Xml::Disk> operator()(const CVmHardDisk& disk_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct External
+
+struct External: std::unary_function<const CVmHardDisk&, boost::optional<Libvirt::Snapshot::Xml::Disk> >
+{
+
+	External(QStringList disks_, QString snapshot_): m_disks(disks_), m_snapshot(snapshot_)
+	{
+	}
+
+	boost::optional<Libvirt::Snapshot::Xml::Disk> operator()(const CVmHardDisk& disk_) const;
+
+private:
+	QStringList m_disks;
+	QString m_snapshot;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reverse
 
 struct Reverse
 {
+	typedef boost::function1<boost::optional<Libvirt::Snapshot::Xml::Disk>, const CVmHardDisk&> policy_type;
+
 	Reverse(const QString& uuid_, const QString& description_,
 		const CVmConfiguration& input_);
 
 	PRL_RESULT setIdentity();
 	PRL_RESULT setInstructions();
 	void setMemory();
+	void setPolicy(policy_type policy_)
+	{
+		m_policy = policy_;
+	}
 
 	QString getResult() const;
 
@@ -310,6 +345,7 @@ private:
 	QString m_description;
 	CVmHardware m_hardware;
 	Libvirt::Snapshot::Xml::Domainsnapshot m_result;
+	policy_type m_policy;
 };
 
 } // namespace Snapshot

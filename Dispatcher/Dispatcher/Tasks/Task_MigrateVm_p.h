@@ -33,6 +33,9 @@
 #define __TASK_MIGRATEVM_P_H__
 
 #include <typeinfo>
+#include <boost/mpl/copy_if.hpp>
+#include <boost/mpl/pair.hpp>
+#include <boost/mpl/contains.hpp>
 #include <boost/msm/back/tools.hpp>
 #include <boost/msm/front/functor_row.hpp>
 #include <boost/msm/back/state_machine.hpp>
@@ -219,6 +222,8 @@ private:
 
 } // namespace Flop 
 
+BOOST_MPL_HAS_XXX_TRAIT_DEF(transition_table);
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Join
 
@@ -228,6 +233,7 @@ struct Join: Vm::Frontend<Join<T> >
 	struct Joined
 	{
 	};
+
 	struct Good: Trace<Good>
 	{
 		template<typename Event, typename FSM>
@@ -239,11 +245,13 @@ struct Join: Vm::Frontend<Join<T> >
 				fsm_.process_event(Joined());
 		}
 	};
+
 	template<class U, class V>
 	struct Exit
 	{
 		typedef typename U::template exit_pt<V> type;
 	};
+
 	template <typename Event, typename FSM>
 	void on_entry(const Event& event_, FSM& fsm_)
 	{
@@ -251,27 +259,77 @@ struct Join: Vm::Frontend<Join<T> >
 		m_count = 0;
 	}
 
+	typedef typename boost::mpl::copy_if
+		<
+			T,
+			has_transition_table<boost::mpl::_1>,
+			boost::mpl::back_inserter< boost::mpl::vector<> >
+		>::type frontends_type;
+
+	typedef typename boost::mpl::copy_if
+		<
+			T,
+			boost::mpl::not_<boost::mpl::contains<frontends_type, boost::mpl::_1> >,
+			boost::mpl::back_inserter< boost::mpl::vector<> >
+		>::type pairs_type;
+
+	typedef typename boost::mpl::transform
+		<
+			frontends_type,
+			boost::msm::back::state_machine<boost::mpl::_1>
+		>::type machines_type;
+
+	template<class S>
+	struct Initial
+	{
+		typedef boost::msm::back::state_machine<S> type;
+	};
+
+	template<class F, class S>
+	struct Initial<typename boost::mpl::pair<F,S> >
+	{
+		typedef F type;
+	};
+
 	typedef typename boost::mpl::transform
 		<
 			T,
-			boost::msm::back::state_machine<boost::mpl::_1>
+			Initial<boost::mpl::_1>
 		>::type initial_state;
 
 	typedef boost::mpl::vector<msmf::Row<Good, Joined, Success> > seed_type;
+
+	template<class P, class S>
+	struct Simple
+	{
+		typedef msmf::Row<typename P::first, typename P::second, S> type;
+	};
+
+	typedef typename boost::mpl::copy
+		<
+			typename boost::mpl::transform
+			<
+				pairs_type,
+				Simple<boost::mpl::_1, Good>
+			>::type,
+			boost::mpl::back_inserter<seed_type>
+		>::type sprout_type;
+
 	typedef typename boost::mpl::transform
 		<
 			typename boost::mpl::transform
 			<
-				initial_state,
+				machines_type,
 				Exit<boost::mpl::_1, Flop::State>
 			>::type,
 			msmf::Row<boost::mpl::_1, Flop::Event, Flop::State>
 		>::type flop_type;
+
 	typedef typename boost::mpl::transform
 		<
 			typename boost::mpl::transform
 			<
-				initial_state,
+				machines_type,
 				Exit<boost::mpl::_1, Success>
 			>::type,
 			msmf::Row<boost::mpl::_1, msmf::none, Good>
@@ -285,7 +343,7 @@ struct Join: Vm::Frontend<Join<T> >
 				typename boost::mpl::copy
 				<
 					good_type,
-					boost::mpl::back_inserter<seed_type>
+					boost::mpl::back_inserter<sprout_type>
 				>::type
 			>
 		>::type
@@ -445,20 +503,27 @@ struct Frontend: Vm::Frontend<Frontend<T, U> >, Vm::Connector::Mixin<Connector<T
 		m_timer.clear();
 	}
 
-	void handle(const U& event_)
+	struct Action
 	{
-		if (m_callback.empty())
-			return;
+		template <typename FSM>
+		void operator()(const U& event_, FSM& fsm_, Waiting& , Waiting&)
+		{
+			PRL_RESULT e;
+			if (fsm_.m_callback.empty() ||
+				PRL_SUCCEEDED(e = fsm_.m_callback(event_.getPackage())))
+			{
+				fsm_.process_event(boost::mpl::true_());
+				return;
+			}
 
-		const PRL_RESULT e = m_callback(event_.getPackage());
-		if (PRL_FAILED(e))
-			this->getConnector()->handle(Flop::Event(e));
-	}
+			fsm_.getConnector()->handle(Flop::Event(e));
+		}
+	};
 
 	struct transition_table : boost::mpl::vector<
-		typename def_type::template
-		a_row<Waiting,		U,		Success,	&Frontend::handle>,
-		msmf::Row<Waiting,	Flop::Event,	Flop::State>
+		msmf::Row<Waiting,	U,			Waiting,	Action>,
+		msmf::Row<Waiting,	boost::mpl::true_, 	Success>,
+		msmf::Row<Waiting,	Flop::Event,		Flop::State>
 	>
 	{
 	};

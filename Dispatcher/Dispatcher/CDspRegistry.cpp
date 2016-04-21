@@ -102,6 +102,12 @@ void Vm::updateState(VIRTUAL_MACHINE_STATE value_)
 {
 	QMutexLocker l(&m_mutex);
 
+	if (getName().isEmpty())
+	{
+		WRITE_TRACE(DBG_DEBUG, "tries to update VM state before first define, that is wrong");
+		return;
+	}
+
 	switch(value_)
 	{
 	case VMS_RUNNING:

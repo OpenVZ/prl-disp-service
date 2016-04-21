@@ -1089,13 +1089,19 @@ QString Device<CVmHardDisk>::getPlugXml(const CVmHardDisk& model_)
 	return x.toString();
 }
 
+QString Device<CVmHardDisk>::getTargetName(const CVmHardDisk& model_)
+{
+	Transponster::Device::Clustered::Builder::Hdd b(model_);
+	return b.getModel().getTargetName();
+}
+
 QString Device<CVmFloppyDisk>::getUpdateXml(const CVmFloppyDisk& model_)
 {
 	return Transponster::Device::Clustered::Builder
 		::ChangeableMedia<CVmFloppyDisk>::getUpdateXml(model_);
 }
 
-QString	Device<CVmOpticalDisk>::getUpdateXml(const CVmOpticalDisk& model_)
+QString Device<CVmOpticalDisk>::getUpdateXml(const CVmOpticalDisk& model_)
 {
 	return Transponster::Device::Clustered::Builder
 		::ChangeableMedia<CVmOpticalDisk>::getUpdateXml(model_);
@@ -1956,11 +1962,53 @@ QList<Libvirt::Snapshot::Xml::Disk> getAbsentee(const QList<T* >& list_)
 } // namespace
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Internal
+
+boost::optional<Libvirt::Snapshot::Xml::Disk> Internal::operator()(const CVmHardDisk& disk_) const
+{
+	Libvirt::Snapshot::Xml::Disk x;
+	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
+	a.setValue(Device::Clustered::Model<CVmHardDisk>(disk_).getTargetName());
+	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 1>::type b;
+	b.setValue(Libvirt::Snapshot::Xml::Disk1739());
+	x.setName(Libvirt::Snapshot::Xml::VName(a));
+	x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
+	return x;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct External
+
+boost::optional<Libvirt::Snapshot::Xml::Disk> External::operator()(const CVmHardDisk& disk_) const
+{
+	if (!m_disks.contains(disk_.getSerialNumber()))
+		return boost::none;
+
+	Libvirt::Snapshot::Xml::Disk x;
+	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
+	Libvirt::Snapshot::Xml::Source s;
+	Libvirt::Snapshot::Xml::Variant1733 o;
+	mpl::at_c<Libvirt::Snapshot::Xml::VChoice1736::types, 0>::type p;
+	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 2>::type q;
+
+	a.setValue(Device::Clustered::Model<CVmHardDisk>(disk_).getTargetName());
+	s.setFile(disk_.getSystemName() + "." + m_snapshot);
+	o.setSource(s);
+	p.setValue(o);
+	q.setValue(Libvirt::Snapshot::Xml::VChoice1736(p));
+
+	x.setName(Libvirt::Snapshot::Xml::VName(a));
+	x.setDisk(Libvirt::Snapshot::Xml::VDisk(q));
+	return x;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Reverse
 
 Reverse::Reverse(const QString& uuid_, const QString& description_,
 	const CVmConfiguration& input_): m_uuid(uuid_),
-	m_description(description_), m_hardware(input_.getVmHardwareList())
+	m_description(description_), m_hardware(input_.getVmHardwareList()),
+	m_policy(boost::bind(Internal(), _1))
 {
 	CVmIdentification* i = input_.getVmIdentification();
 	if (NULL == i)
@@ -1984,20 +2032,18 @@ PRL_RESULT Reverse::setInstructions()
 	QList<Libvirt::Snapshot::Xml::Disk> e;
 	e << getAbsentee(m_hardware.m_lstFloppyDisks);
 	e << getAbsentee(m_hardware.m_lstOpticalDisks);
+
 	foreach (const CVmHardDisk* d, m_hardware.m_lstHardDisks)
 	{
 		if (!d->getEnabled() || d->getEmulatedType() != PVE::HardDiskImage)
 			continue;
 
-		mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
-		a.setValue(Device::Clustered::Model<CVmHardDisk>(*d).getTargetName());
-		mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 1>::type b;
-		b.setValue(Libvirt::Snapshot::Xml::Disk1739());
-		Libvirt::Snapshot::Xml::Disk x;
-		x.setName(Libvirt::Snapshot::Xml::VName(a));
-		x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
-		e << x;
+		boost::optional<Libvirt::Snapshot::Xml::Disk> r = m_policy(*d);
+
+		if (r)
+			e << r.get();
 	}
+
 	m_result.setDisks(e);
 	if (!m_result.getMemory())
 	{
