@@ -1,4 +1,4 @@
-/var/log/parallels.log {
+/var/log/prl*.log {
     daily
     rotate 10
     copytruncate
