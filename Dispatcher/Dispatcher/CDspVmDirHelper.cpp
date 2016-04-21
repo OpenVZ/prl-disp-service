@@ -893,14 +893,20 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 				->getVmServerIdentification()->getServerUuid();
 
 	QList<SmartPtr<CVmConfiguration> > _vms_configs;
-	do {
+	QStringList dirUuids;
+	if (nFlags & PGVLF_GET_ONLY_VM_TEMPLATES)
+		dirUuids.append(CDspService::instance()->getVmDirManager().getTemplatesDirectoryUuid());
+	else
+		dirUuids.append(pUserSession->getVmDirectoryUuid());
+	foreach (QString dirUuid, dirUuids)
+	{
 		// Skip Vm if there is type specification in the flags
 		if ((nFlags & (PVTF_VM | PVTF_CT)) && !(nFlags & PVTF_VM))
 			break;
 		//LOCK before use
 		CDspLockedPointer<CVmDirectory>
 			pUserDirectory = CDspService::instance()->getVmDirManager()
-			.getVmDirectory( pUserSession->getVmDirectoryUuid() );
+			.getVmDirectory(dirUuid);
 
 		if ( !pUserDirectory )
 		{
@@ -971,7 +977,7 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 				_vms_configs.append(pVmConfig);
 
 		}
-	} while (0);
+	}
 
 	QStringList lstVmConfigurations;
 #ifdef _CT_
@@ -989,17 +995,6 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 	// Append VMs to the list
 	foreach(SmartPtr<CVmConfiguration> pVmConfig, _vms_configs)
 	{
-		if (pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
-		{
-			if ((nFlags & (PGVLF_GET_ONLY_CT | PGVLF_GET_ONLY_VM)) == (PGVLF_GET_ONLY_CT | PGVLF_GET_ONLY_VM))
-				continue;
-		}
-		else
-		{
-			if (nFlags & PGVLF_GET_ONLY_VM_TEMPLATES)
-				continue;
-		}
-
 		if (nFlags & PGVLF_GET_STATE_INFO)
 		{
 			CVmEvent e;
@@ -2443,6 +2438,9 @@ QList<QString> CDspVmDirHelper::getVmDirUuidByVmUuid( const QString& vm_uuid )
 	Vm::Directory::Dao::Locked x;
 	foreach (const CVmDirectory& d, x.getList())
 	{
+		if (d.getUuid() == CDspVmDirManager::getTemplatesDirectoryUuid())
+			continue;
+
 		foreach( CVmDirectoryItem* pDirItem, d.m_lstVmDirectoryItems )
 		{
 			if( pDirItem->getVmUuid() == vm_uuid )
@@ -2476,6 +2474,9 @@ CDspVmDirHelper::getAllVmList (const QString& vmDirUuid) const
 		{
 			continue;
 		}
+
+		if (d.getUuid() == CDspVmDirManager::getTemplatesDirectoryUuid())
+			continue;
 
 		QStringList lstVmConfigurations;
 		foreach( CVmDirectoryItem* pDirectoryItem, d.m_lstVmDirectoryItems )

@@ -1444,6 +1444,7 @@ bool CDspService::init()
 		if ( isServerMode() )
 		{
 			getVmDirManager().initVzDirCatalogue();
+			getVmDirManager().initTemplatesDirCatalogue();
 			getVzHelper()->initVzStateMonitor();
 		}
 #endif

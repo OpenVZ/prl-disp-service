@@ -290,6 +290,22 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Template
+
+struct Template: Action
+{
+	explicit Template(const QString& uuid_)
+	: m_uuid(uuid_)
+	{
+	}
+
+	bool execute(CDspTaskFailure& feedback_);
+
+private:
+	QString m_uuid;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Apply
 
 struct Apply
