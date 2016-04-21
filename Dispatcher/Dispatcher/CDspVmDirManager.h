@@ -362,6 +362,10 @@ public:
 	CDspLockedPointer<CVmDirectory> getVzDirectory();
 	static QString getVzDirectoryUuid();
 
+	PRL_RESULT initTemplatesDirCatalogue();
+	CDspLockedPointer<CVmDirectory> getTemplatesDirectory();
+	static QString getTemplatesDirectoryUuid();
+
 	PRL_RESULT setCatalogueFileName(const QString& value_);
 protected:
 	PRL_RESULT addNewVmDirectory( CVmDirectory* );

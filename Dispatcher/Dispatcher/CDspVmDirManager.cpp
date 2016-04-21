@@ -630,6 +630,11 @@ QString CDspVmDirManager::getVzDirectoryUuid()
 	return VZ_DIRECTORY_UUID;
 }
 
+QString CDspVmDirManager::getTemplatesDirectoryUuid()
+{
+	return "{a610e7fa-23d7-48cd-9086-b9c82021a885}";
+}
+
 /*
  * Register Containers in the fake VzDirectory
  */
@@ -684,10 +689,38 @@ PRL_RESULT CDspVmDirManager::initVzDirCatalogue()
 #endif
 }
 
+PRL_RESULT CDspVmDirManager::initTemplatesDirCatalogue()
+{
+	WRITE_TRACE(DBG_FATAL, "initTemplatesDirCatalogue");
+
+	CDspLockedPointer<CVmDirectories> catalogue(getVmDirCatalogue());
+	QList<CVmDirectory *>::iterator last(catalogue->m_lstVmDirectory.end());
+	QList<CVmDirectory *>::iterator it(std::find_if(
+				catalogue->m_lstVmDirectory.begin(), last,
+				boost::bind(&CVmDirectory::getUuid, _1) == getTemplatesDirectoryUuid()));
+	if (it == last)
+	{
+		CVmDirectory* templatesDir(new CVmDirectory(
+			getTemplatesDirectoryUuid(),
+			ParallelsDirs::getCommonDefaultVmCatalogue(),
+			"Virtuozzo VM Templates"));
+		catalogue->addVmDirectory(templatesDir);
+		return saveVmDirCatalogue();
+	}
+
+	return PRL_ERR_SUCCESS;
+}
+
 CDspLockedPointer<CVmDirectory>
 CDspVmDirManager::getVzDirectory()
 {
 	return getVmDirectory(getVzDirectoryUuid());
+}
+
+CDspLockedPointer<CVmDirectory>
+CDspVmDirManager::getTemplatesDirectory()
+{
+	return getVmDirectory(getTemplatesDirectoryUuid());
 }
 
 bool CDspVmDirManager::getVmTypeByUuid(const QString &sVmUuid, PRL_VM_TYPE &nType)

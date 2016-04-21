@@ -746,7 +746,11 @@ PRL_VM_TOOLS_STATE CDspVm::getVmToolsState(
 	PRL_RESULT nRetCode;
 	SmartPtr<CVmConfiguration> pVmConfig =
 		DspVm::vdh().getVmConfigByUuid(sVmDirUuid, sVmUuid, nRetCode);
-	CVmTools* toolsCfg = pVmConfig->getVmSettings()->getVmTools();
+
+	if (!pVmConfig) {
+		pVmConfig = DspVm::vdh().getVmConfigByUuid(
+				DspVm::vdm().getTemplatesDirectoryUuid(), sVmUuid, nRetCode);
+	}
 
 	if (!pVmConfig) {
 		WRITE_TRACE(DBG_FATAL, "Couldn't to find VM configuration "\
@@ -755,6 +759,7 @@ PRL_VM_TOOLS_STATE CDspVm::getVmToolsState(
 		return PTS_UNKNOWN;
 	}
 
+	CVmTools* toolsCfg = pVmConfig->getVmSettings()->getVmTools();
 	QString sVersion = toolsCfg->getAgentVersion();
 	PRL_VM_TOOLS_STATE state = sVersion.isEmpty() ? PTS_NOT_INSTALLED : PTS_POSSIBLY_INSTALLED;
 
