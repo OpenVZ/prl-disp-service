@@ -321,12 +321,16 @@ CDspAccessManager::checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherC
 				.getVmDirItemByUuid( pSession->getVmDirectoryUuid(), vmUuid );
 		if ( !pVmDirItem )
 		{
-			WRITE_TRACE(DBG_FATAL, "CDspAccessManager::checkAccess: "
-				"Can't found pVmDirItem by vmUuid '%s', dirUuid = '%s'"
-				,QSTR2UTF8( vmUuid )
-				,QSTR2UTF8( pSession->getVmDirectoryUuid())
-			);
-			throw PRL_ERR_VM_UUID_NOT_FOUND;
+			pVmDirItem = CDspService::instance()->getVmDirManager()
+				.getVmDirItemByUuid(CDspService::instance()->getVmDirManager().
+						getTemplatesDirectoryUuid(), vmUuid);
+			if (!pVmDirItem)
+			{
+				WRITE_TRACE(DBG_FATAL, "CDspAccessManager::checkAccess: "
+					"Can't found pVmDirItem by vmUuid '%s'"
+					, QSTR2UTF8(vmUuid));
+				throw PRL_ERR_VM_UUID_NOT_FOUND;
+			}
 		}
 
 		return checkAccess( pSession, cmd, pVmDirItem.getPtr(), bSetNotValid, pErrorInfo );

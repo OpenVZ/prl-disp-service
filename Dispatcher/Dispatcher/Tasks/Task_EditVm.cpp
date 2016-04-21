@@ -66,6 +66,7 @@
 #include "CDspVzHelper.h"
 #include "CDspHaClusterHelper.h"
 #include "CDspVmStateSender.h"
+#include "CDspVm_p.h"
 
 namespace
 {
@@ -155,10 +156,14 @@ void Task_EditVm::finalizeTask()
 			vmDirHelper.fillOuterConfigParams( getClient(), pVmConfig );
 		else
 		{
-			WRITE_TRACE( DBG_FATAL, "Can't load vm config for %s vm to make EditCommit response by err %s"
-				, QSTR2UTF8( getVmUuid() )
-				, PRL_RESULT_TO_STRING(error) );
-			pVmConfig = vmDirHelper.CreateDefaultVmConfigByRcValid( getClient(), error, getVmUuid() );
+			pVmConfig = vmDirHelper.getVmConfigByUuid(CDspService::instance()->getVmDirManager()
+					.getTemplatesDirectoryUuid(), getVmUuid(), error);
+			if (!pVmConfig) {
+				WRITE_TRACE( DBG_FATAL, "Can't load vm config for %s vm to make EditCommit response by err %s"
+					, QSTR2UTF8( getVmUuid() )
+					, PRL_RESULT_TO_STRING(error) );
+				pVmConfig = vmDirHelper.CreateDefaultVmConfigByRcValid( getClient(), error, getVmUuid() );
+			}
 		}
 		if( pVmConfig )
 		{
@@ -2761,6 +2766,41 @@ Request::Request(Task_EditVm& task_, const config_type& start_, const config_typ
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Template
+
+bool Template::execute(CDspTaskFailure& feedback_)
+{
+	QString vmDir(CDspService::instance()->getDispConfigGuard()
+			.getDispWorkSpacePrefs()->getDefaultVmDirectory());
+	QScopedPointer<CVmDirectoryItem> t;
+	{
+		CDspLockedPointer<CVmDirectoryItem> vmItem(
+				DspVm::vdh().getVmDirectoryItemByUuid(vmDir, m_uuid));
+		if (!vmItem) {
+			WRITE_TRACE(DBG_FATAL, "vmItem %s is absent", QSTR2UTF8(m_uuid));
+			return Action::execute(feedback_);
+		}
+		t.reset(new CVmDirectoryItem(*vmItem));
+	}
+	PRL_RESULT res(DspVm::vdh().deleteVmDirectoryItem(vmDir, m_uuid));
+	if (PRL_FAILED(res)) {
+		WRITE_TRACE(DBG_FATAL, "Unable to remove directory item (%s)", PRL_RESULT_TO_STRING(res));
+		return Action::execute(feedback_);
+	}
+
+	res = DspVm::vdh().insertVmDirectoryItem(
+			DspVm::vdm().getTemplatesDirectoryUuid(), t.data());
+	if (PRL_FAILED(res)) {
+		WRITE_TRACE(DBG_FATAL, "Unable to add directory item (%s)", PRL_RESULT_TO_STRING(res));
+		return Action::execute(feedback_);
+	}
+
+	t.take();
+
+	return Action::execute(feedback_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Apply
 
 Action* Apply::operator()(const Request& input_) const
@@ -2770,8 +2810,11 @@ Action* Apply::operator()(const Request& input_) const
 	bool b = input_.getFinal().getVmSettings()->getVmCommonOptions()->isTemplate();
 	if (a != b)
 	{
-		if (b)
-			return f.craft(boost::bind(&vm::Unit::undefine, _1));
+		if (b) {
+			Action *output(new Template(input_.getFinal().getVmIdentification()->getVmUuid()));
+			output->setNext(f.craft(boost::bind(&vm::Unit::undefine, _1)));
+			return output;
+		}
 
 		return f.craft(boost::bind(&define, _1, boost::cref
 			(input_.getFinal())));
