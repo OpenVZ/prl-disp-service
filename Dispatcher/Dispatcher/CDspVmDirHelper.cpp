@@ -991,7 +991,7 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 	{
 		if (pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
 		{
-			if ((nFlags & (PGVLF_GET_ONLY_CT | PGVLF_GET_ONLY_VM)) == (PGVLF_GET_ONLY_CT | PGVLF_GET_ONLY_VM))
+			if (!(nFlags & ~(PGVLF_GET_ONLY_CT | PGVLF_GET_ONLY_VM)))
 				continue;
 		}
 		else
