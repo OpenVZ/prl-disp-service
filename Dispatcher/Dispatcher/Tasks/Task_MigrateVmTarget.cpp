@@ -83,26 +83,55 @@ namespace Pump
 namespace Pull
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Emission
+// struct WateringPot
 
-Prl::Expected<void, Flop::Event> Emission::operator()()
+qint64 WateringPot::getVolume() const
 {
-	const qint64 w = m_device->write(
-			m_load->buffers[0].getImpl() + m_sent,
-			getRemaining());
+	return m_load.isValid() ? m_load->buffersSize() : 0;
+}
 
-	if (w == -1)
+Prl::Expected<qint64, Flop::Event> WateringPot::operator()()
+{
+	if (!m_load.isValid())
+		return Flop::Event(PRL_ERR_NO_DATA);
+
+	const qint64 output = m_device->write(
+			m_load->buffers[0].getImpl() + m_done,
+			getLevel());
+
+	if (output == -1)
 	{
 		WRITE_TRACE(DBG_FATAL, "write error: %s",
 			qPrintable(m_device->errorString()));
 		return Flop::Event(PRL_ERR_FAILURE);
 	}
-	return Prl::Expected<void, Flop::Event>();
+	m_done += output;
+	return output;
 }
 
-qint64 Emission::getVolume() const
+///////////////////////////////////////////////////////////////////////////////
+// struct Pouring
+
+Pouring::status_type Pouring::operator()()
 {
-	return m_load.isValid() ? m_load->buffersSize() : 0;
+	if (0 < m_portion)
+		return status_type();
+
+	Prl::Expected<qint64, Flop::Event> x = m_pot();
+	if (x.isFailed())
+		return x.error();
+
+	m_portion = x.value();
+	return status_type();
+}
+
+Pouring::status_type Pouring::account(qint64 value_)
+{
+	if (m_portion < value_)
+		return Flop::Event(PRL_ERR_INVALID_ARG);
+
+	m_portion -= value_;
+	return status_type();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -115,7 +144,7 @@ target_type Queue::dequeue()
 	if (isEof())
 		return state_type(Success());
 
-	return state_type(Emission(Vm::Pump::Queue::dequeue(), *m_device));
+	return state_type(Pouring(Vm::Pump::Queue::dequeue(), *m_device));
 }
 
 namespace Visitor
@@ -136,7 +165,7 @@ target_type Receipt::operator()
 target_type Accounting::operator()
 	(boost::mpl::at_c<state_type::types, 3>::type value_) const
 {
-	Emission x = value_();
+	Pouring x = value_();
 	x.account(m_amount);
 	if (0 < x.getRemaining())
 		return state_type(x);

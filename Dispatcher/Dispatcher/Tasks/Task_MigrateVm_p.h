@@ -848,35 +848,55 @@ private:
 namespace Pull
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Emission
+// struct WateringPot
 
-struct Emission
+struct WateringPot
 {
-	Emission(const SmartPtr<IOPackage>& load_, QIODevice& device_):
-		m_sent(), m_device(&device_), m_load(load_)
+	WateringPot(const SmartPtr<IOPackage>& load_, QIODevice& device_):
+		m_done(), m_device(&device_), m_load(load_)
 	{
 	}
 
-	Prl::Expected<void, Flop::Event> operator()();
-	qint64 getRemaining() const
+	qint64 getLevel() const
 	{
-		return getVolume() - m_sent;
+		return getVolume() - m_done;
 	}
-	void account(qint64 value_)
-	{
-		m_sent += value_;
-	}
+	Prl::Expected<qint64, Flop::Event> operator()();
 
 private:
 	qint64 getVolume() const;
 
-	qint64 m_sent;
+	qint64 m_done;
 	QIODevice* m_device;
 	SmartPtr<IOPackage> m_load;
 };
 
-typedef boost::phoenix::expression::value<Emission>::type writing_type;
-typedef boost::variant<Reading, Emission, Success, writing_type> state_type;
+///////////////////////////////////////////////////////////////////////////////
+// struct Pouring
+
+struct Pouring
+{
+	typedef Prl::Expected<void, Flop::Event> status_type;
+
+	Pouring(const SmartPtr<IOPackage>& load_, QIODevice& device_):
+		m_portion(), m_pot(load_, device_)
+	{
+	}
+
+	qint64 getRemaining() const
+	{
+		return m_pot.getLevel() + m_portion;
+	}
+	status_type operator()();
+	status_type account(qint64 value_);
+
+private:
+	qint64 m_portion;
+	WateringPot m_pot;
+};
+
+typedef boost::phoenix::expression::value<Pouring>::type writing_type;
+typedef boost::variant<Reading, Pouring, Success, writing_type> state_type;
 typedef Prl::Expected<state_type, Flop::Event> target_type;
 
 ///////////////////////////////////////////////////////////////////////////////
