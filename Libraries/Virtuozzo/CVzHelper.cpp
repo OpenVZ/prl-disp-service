@@ -1144,8 +1144,14 @@ static void conf_add_disk_entry(SmartPtr<CVmConfiguration> &pConfig,
 	pDisk->setEnabled(disk.enabled != VZCTL_PARAM_OFF);
 	pDisk->setSize(size);
 	pDisk->setInterfaceType(PMS_UNKNOWN_DEVICE);
-	pDisk->setEmulatedType(pConfig->getCtSettings()->getLayout() == VZCTL_LAYOUT_5 ?
-			PDT_USE_IMAGE_FILE : PDT_USE_FILE_SYSTEM);
+
+	if (disk.use_device) {
+		pDisk->setEmulatedType(PDT_USE_REAL_DEVICE);
+	} else {
+		pDisk->setEmulatedType(pConfig->getCtSettings()->
+			getLayout() == VZCTL_LAYOUT_5 ?
+				PDT_USE_IMAGE_FILE : PDT_USE_FILE_SYSTEM);
+	}
 	pDisk->setDiskType(PHD_EXPANDING_HARD_DISK);
 	pDisk->setUserFriendlyName(disk.path ? disk.path : "");
 	pDisk->setUuid(disk.uuid);
@@ -2738,7 +2744,8 @@ int CVzOperationHelper::create_env_disk(const QString &uuid, const CVmHardDisk &
 	}
 
 	if (!sPath.isEmpty()) {
-		args += "--image";
+		args += disk.getEmulatedType() == PVE::RealHardDisk ?
+						"--device" : "--image";
 		args += sPath;
 	}
 
