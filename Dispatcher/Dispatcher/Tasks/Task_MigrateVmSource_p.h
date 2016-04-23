@@ -209,13 +209,6 @@ struct Frontend: Vm::Frontend<Frontend<T, X> >
 	void on_exit(const Event& event_, FSM& fsm_)
 	{
 		def_type::on_exit(event_, fsm_);
-		m_device = NULL;
-	}
-
-	template<typename FSM>
-	void on_exit(const Flop::Event& event_, FSM& fsm_)
-	{
-		def_type::on_exit(event_, fsm_);
 		if (NULL != m_device)
 			m_device->close();
 
