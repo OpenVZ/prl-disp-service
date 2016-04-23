@@ -357,14 +357,28 @@ void GlobalNetwork::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 		(new CVmGlobalNetwork(new_.getVmSettings()->getGlobalNetwork())));
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Cpu
+namespace Cpu
+{
 
-void Cpu::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+///////////////////////////////////////////////////////////////////////////////
+// struct Copy
+
+void Copy::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 {
 	old_.getVmHardwareList()->setCpu
 		(new CVmCpu(new_.getVmHardwareList()->getCpu()));
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mask
+
+void Mask::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+{
+	old_.getVmHardwareList()->getCpu()->setNodeMask
+		(new_.getVmHardwareList()->getCpu()->getNodeMask());
+}
+
+} // namespace Cpu
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Identification

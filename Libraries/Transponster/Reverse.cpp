@@ -122,6 +122,7 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Domain& dst_)
 
 	dst_.setVcpu(b.getVcpu());
 	dst_.setCputune(b.getTune());
+	dst_.setNumatune(b.getNuma());
 
 	return true;
 }
@@ -937,6 +938,7 @@ Cpu::Cpu(const CVmCpu& input_, const VtInfo& vt_): m_input(input_), m_vt(vt_)
 	{
 		m_vcpu = Libvirt::Domain::Xml::Vcpu();
 		m_tune = Libvirt::Domain::Xml::Cputune();
+		m_numa = Libvirt::Domain::Xml::Numatune();
 	}
 }
 
@@ -950,6 +952,26 @@ PRL_RESULT Cpu::setMask()
 		return PRL_ERR_UNINITIALIZED;
 
 	m_vcpu->setCpuset(m);
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Cpu::setNode()
+{
+	QString m = m_input.getNodeMask();
+	if (m.isEmpty())
+		return PRL_ERR_SUCCESS;
+
+	if (!m_numa)
+		return PRL_ERR_UNINITIALIZED;
+
+	Libvirt::Domain::Xml::Memory1 d;
+	d.setMode(Libvirt::Domain::Xml::EMode3Strict);
+	mpl::at_c<Libvirt::Domain::Xml::VMemory::types, 0>::type v;
+	v.setValue(m);
+	d.setMemory(Libvirt::Domain::Xml::VMemory(v));
+
+	m_numa->setMemory(d);
+
 	return PRL_ERR_SUCCESS;
 }
 

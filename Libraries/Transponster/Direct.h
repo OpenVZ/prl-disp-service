@@ -57,6 +57,7 @@ struct Cpu
 		const VtInfo& vt_);
 
 	PRL_RESULT setMask();
+	PRL_RESULT setNode();
 	PRL_RESULT setUnits();
 	PRL_RESULT setLimit();
 	PRL_RESULT setNumber();
@@ -71,6 +72,7 @@ private:
 	boost::optional<qint32> m_period;
 	boost::optional<Libvirt::Domain::Xml::Vcpu> m_vcpu;
 	boost::optional<Libvirt::Domain::Xml::Cputune> m_tune;
+	boost::optional<Libvirt::Domain::Xml::Numatune> m_numa;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -354,6 +356,9 @@ struct Director
 			return e;
 
 		if (PRL_FAILED(e = builder_.setMask()))
+			return e;
+
+		if (PRL_FAILED(e = builder_.setNode()))
 			return e;
 
 		if (PRL_FAILED(e = builder_.setUnits()))

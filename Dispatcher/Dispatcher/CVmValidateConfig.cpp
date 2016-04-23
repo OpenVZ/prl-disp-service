@@ -1020,6 +1020,18 @@ void CVmValidateConfig::CheckCpu()
 				}
 			}
 		}
+
+		QString sNodeMask = pCpu->getNodeMask();
+		if (!sNodeMask.isEmpty())
+		{
+			char bMask[Parallels::MAX_NCPU] = {};
+
+			if (Parallels::parseNodeMask(sNodeMask, bMask, sizeof(bMask)))
+			{
+				m_lstResults += PRL_ERR_VMCONF_CPU_NODE_MASK_INVALID;
+				ADD_FID(E_SET << pCpu->getNodeMask_id());
+			}
+		}
 	}
 }
 

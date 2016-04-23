@@ -1393,6 +1393,9 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 		if (vzctl2_env_get_cpumask(env_param, buf, sizeof(buf)) == 0)
 			pCpu->setCpuMask(buf);
 
+		if (vzctl2_env_get_nodemask(env_param, buf, sizeof(buf)) == 0)
+			pCpu->setNodeMask(buf);
+
 		// DISK
 		conf_get_disk(pConfig, env_param);
 		// IP_ADDRESS
@@ -1880,6 +1883,10 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 	if (pOldConfig->getVmHardwareList()->getCpu()->getCpuMask() !=
 			pConfig->getVmHardwareList()->getCpu()->getCpuMask())
 		vzctl2_env_set_cpumask(new_param, QSTR2UTF8(pConfig->getVmHardwareList()->getCpu()->getCpuMask()));
+
+	if (pOldConfig->getVmHardwareList()->getCpu()->getNodeMask() !=
+			pConfig->getVmHardwareList()->getCpu()->getNodeMask())
+		vzctl2_env_set_nodemask(new_param, QSTR2UTF8(pConfig->getVmHardwareList()->getCpu()->getNodeMask()));
 
 	PRL_VM_AUTOSTART_OPTION oldmode = pOldConfig->getVmSettings()->getVmStartupOptions()->getAutoStart();
 	PRL_VM_AUTOSTART_OPTION mode = pConfig->getVmSettings()->getVmStartupOptions()->getAutoStart();
