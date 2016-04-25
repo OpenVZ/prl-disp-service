@@ -222,13 +222,78 @@ private:
 
 } // namespace Flop 
 
-BOOST_MPL_HAS_XXX_TRAIT_DEF(transition_table);
-
+namespace Join
+{
+namespace Function
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Join
+// struct Self
 
 template<class T>
-struct Join: Vm::Frontend<Join<T> >
+struct Self
+{
+	typedef typename T::self_type type;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Flop
+
+template<class T>
+struct Flop
+{
+	typedef typename T::flopExit_type type;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Quit
+
+template<class T>
+struct Quit
+{
+	typedef typename T::goodExit_type type;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Good
+//
+template<class T>
+struct Good
+{
+	typedef typename T::gootEvent_type type;
+};
+
+} // namespace Function
+
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+template<class T, class U>
+struct State
+{
+	typedef T self_type;
+	typedef T flopExit_type;
+	typedef T goodExit_type;
+	typedef U gootEvent_type;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Machine
+
+template<class T>
+struct Machine
+{
+	typedef msmf::none gootEvent_type;
+	typedef boost::msm::back::state_machine<T> backend_type;
+	typedef backend_type self_type;
+	typedef typename backend_type::template exit_pt<Flop::State> flopExit_type;
+	typedef typename backend_type::template exit_pt<Success> goodExit_type;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+template<class T>
+struct Frontend: Vm::Frontend<Frontend<T> >
 {
 	struct Joined
 	{
@@ -246,93 +311,40 @@ struct Join: Vm::Frontend<Join<T> >
 		}
 	};
 
-	template<class U, class V>
-	struct Exit
-	{
-		typedef typename U::template exit_pt<V> type;
-	};
-
 	template <typename Event, typename FSM>
 	void on_entry(const Event& event_, FSM& fsm_)
 	{
-		Vm::Frontend<Join>::on_entry(event_, fsm_);
+		Vm::Frontend<Frontend<T> >::on_entry(event_, fsm_);
 		m_count = 0;
 	}
 
-	typedef typename boost::mpl::copy_if
-		<
-			T,
-			has_transition_table<boost::mpl::_1>,
-			boost::mpl::back_inserter< boost::mpl::vector<> >
-		>::type frontends_type;
-
-	typedef typename boost::mpl::copy_if
-		<
-			T,
-			boost::mpl::not_<boost::mpl::contains<frontends_type, boost::mpl::_1> >,
-			boost::mpl::back_inserter< boost::mpl::vector<> >
-		>::type pairs_type;
-
-	typedef typename boost::mpl::transform
-		<
-			frontends_type,
-			boost::msm::back::state_machine<boost::mpl::_1>
-		>::type machines_type;
-
-	template<class S>
-	struct Initial
-	{
-		typedef boost::msm::back::state_machine<S> type;
-	};
-
-	template<class F, class S>
-	struct Initial<typename boost::mpl::pair<F,S> >
-	{
-		typedef F type;
-	};
-
 	typedef typename boost::mpl::transform
 		<
 			T,
-			Initial<boost::mpl::_1>
+			Function::Self<boost::mpl::_1>
 		>::type initial_state;
 
 	typedef boost::mpl::vector<msmf::Row<Good, Joined, Success> > seed_type;
-
-	template<class P, class S>
-	struct Simple
-	{
-		typedef msmf::Row<typename P::first, typename P::second, S> type;
-	};
-
-	typedef typename boost::mpl::copy
-		<
-			typename boost::mpl::transform
-			<
-				pairs_type,
-				Simple<boost::mpl::_1, Good>
-			>::type,
-			boost::mpl::back_inserter<seed_type>
-		>::type sprout_type;
-
 	typedef typename boost::mpl::transform
 		<
-			typename boost::mpl::transform
+			T,
+			msmf::Row
 			<
-				machines_type,
-				Exit<boost::mpl::_1, Flop::State>
-			>::type,
-			msmf::Row<boost::mpl::_1, Flop::Event, Flop::State>
+				Function::Flop<boost::mpl::_1>,
+				Flop::Event,
+				Flop::State
+			>
 		>::type flop_type;
 
 	typedef typename boost::mpl::transform
 		<
-			typename boost::mpl::transform
+			T,
+			msmf::Row
 			<
-				machines_type,
-				Exit<boost::mpl::_1, Success>
-			>::type,
-			msmf::Row<boost::mpl::_1, msmf::none, Good>
+				Function::Quit<boost::mpl::_1>,
+				Function::Good<boost::mpl::_1>,
+				Good
+			>
 		>::type good_type;
 
 	struct transition_table: boost::mpl::copy
@@ -343,7 +355,7 @@ struct Join: Vm::Frontend<Join<T> >
 				typename boost::mpl::copy
 				<
 					good_type,
-					boost::mpl::back_inserter<sprout_type>
+					boost::mpl::back_inserter<seed_type>
 				>::type
 			>
 		>::type
@@ -353,6 +365,8 @@ struct Join: Vm::Frontend<Join<T> >
 private:
 	int m_count;
 };
+
+} // namespace Join
 
 namespace Connector
 {

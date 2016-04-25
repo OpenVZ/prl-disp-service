@@ -583,8 +583,15 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	typedef Pipeline::Frontend<Machine_type, StartReply> starting_type;
 	typedef Pipeline::Frontend<Machine_type, Vm::Pump::FinishCommand_type> peerWait_type;
 	typedef Pipeline::Frontend<Machine_type, PeerFinished> peerQuit_type;
-	typedef Join<boost::mpl::vector<Tunnel::Frontend, Libvirt::Frontend, peerWait_type> >
-		moving_type;
+	typedef Join::Frontend
+		<
+			boost::mpl::vector
+			<
+				Join::Machine<Tunnel::Frontend>,
+				Join::Machine<Libvirt::Frontend>,
+				Join::Machine<peerWait_type>
+			>
+		> moving_type;
 
 	typedef boost::msm::back::state_machine<checking_type> checkStep_type;
 	typedef boost::msm::back::state_machine<starting_type> startStep_type;

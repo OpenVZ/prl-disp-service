@@ -645,10 +645,13 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 {
 	typedef boost::msm::back::state_machine<Start::Frontend> Starting;
 	typedef boost::msm::back::state_machine<Content::Frontend> Copying;
-	typedef Join<boost::mpl::vector
+	typedef Join::Frontend
 		<
-				boost::mpl::pair<Libvirt::Tentative, Libvirt::Tentative::Defined>,
-				Move::Frontend>
+			boost::mpl::vector
+			<
+				Join::State<Libvirt::Tentative, Libvirt::Tentative::Defined>,
+				Join::Machine<Move::Frontend>
+			>
 		> moving_type;
 	typedef boost::msm::back::state_machine<moving_type> Moving;
 	typedef Commit::Perform Commiting;
