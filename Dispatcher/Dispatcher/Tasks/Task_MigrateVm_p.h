@@ -451,20 +451,6 @@ private:
 namespace Pipeline
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Check
-
-struct Check: Trace<Check>
-{
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Waiting
-
-struct Waiting: Trace<Waiting>
-{
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
 template<class T>
@@ -477,24 +463,23 @@ struct Connector: Vm::Connector::Base<T>, Slot
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Frontend
+// struct State
 
 template<class T, class U>
-struct Frontend: Vm::Frontend<Frontend<T, U> >, Vm::Connector::Mixin<Connector<T> >
+struct State: Trace<State<T, U> >, Vm::Connector::Mixin<Connector<T> >
 {
 	typedef boost::function1<PRL_RESULT, const SmartPtr<IOPackage>& > callback_type;
-	typedef Waiting initial_state;
-	typedef Vm::Frontend<Frontend<T, U> > def_type;
+	typedef Trace<State<T, U> > def_type;
 
-	explicit Frontend(quint32 timeout_): m_timeout(timeout_)
+	explicit State(quint32 timeout_): m_timeout(timeout_)
 	{
 	}
-	Frontend(const callback_type& callback_, quint32 timeout_):
+	State(const callback_type& callback_, quint32 timeout_):
 		m_timeout(timeout_), m_callback(callback_)
 	{
 	}
 
-	Frontend(): m_timeout()
+	State(): m_timeout()
 	{
 	}
 
@@ -517,27 +502,27 @@ struct Frontend: Vm::Frontend<Frontend<T, U> >, Vm::Connector::Mixin<Connector<T
 		m_timer.clear();
 	}
 
+	struct Good
+	{
+	};
 	struct Action
 	{
 		template <typename FSM>
-		void operator()(const U& event_, FSM& fsm_, Waiting& , Waiting&)
+		void operator()(const U& event_, FSM& fsm_, State& state_, State&)
 		{
 			PRL_RESULT e;
-			if (fsm_.m_callback.empty() ||
-				PRL_SUCCEEDED(e = fsm_.m_callback(event_.getPackage())))
+			if (state_.m_callback.empty() ||
+				PRL_SUCCEEDED(e = state_.m_callback(event_.getPackage())))
 			{
-				fsm_.process_event(boost::mpl::true_());
+				fsm_.process_event(Good());
 				return;
 			}
-
-			fsm_.getConnector()->handle(Flop::Event(e));
+			state_.getConnector()->handle(Flop::Event(e));
 		}
 	};
 
-	struct transition_table : boost::mpl::vector<
-		msmf::Row<Waiting,	U,			Waiting,	Action>,
-		msmf::Row<Waiting,	boost::mpl::true_, 	Success>,
-		msmf::Row<Waiting,	Flop::Event,		Flop::State>
+	struct internal_transition_table: boost::mpl::vector<
+		msmf::Internal<U, Action>
 	>
 	{
 	};

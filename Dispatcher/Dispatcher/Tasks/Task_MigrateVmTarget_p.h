@@ -260,9 +260,8 @@ private:
 
 struct Frontend: Vm::Libvirt::Frontend_<Frontend, Machine_type>
 {
-	typedef Pipeline::Frontend<Machine_type, StartCommand_type> pipeline_type;
-	typedef boost::msm::back::state_machine<pipeline_type> Accepting;
-	typedef Accepting initial_state;
+	typedef Pipeline::State<Machine_type, StartCommand_type> acceptingState_type;
+	typedef acceptingState_type initial_state;
 
 	Frontend(Task_MigrateVmTarget& task_): m_task(&task_)
 	{
@@ -276,21 +275,19 @@ struct Frontend: Vm::Libvirt::Frontend_<Frontend, Machine_type>
 	struct Action
 	{
 		void operator()(const msmf::none&, Frontend& fsm_,
-				Accepting&, Preparing& target_);
+				acceptingState_type&, Preparing& target_);
 		void operator()(const boost::mpl::true_&, Frontend& fsm_,
 				Preparing&, Success&);
 	};
 
 	struct transition_table : boost::mpl::vector<
-		msmf::Row<Accepting
-			::exit_pt<Flop::State>,Flop::Event,      Flop::State>,
-		msmf::Row<Accepting
-			::exit_pt<Success>,    msmf::none,       Preparing,           Action>,
-		a_row<Preparing,               CVmHardDisk,      Vm::Libvirt::Running,&Frontend::create>,
-		msmf::Row<Preparing,           boost::mpl::true_,Success,             Action>,
-		_row<Preparing,                Flop::Event,      Flop::State>,
-		_row<Vm::Libvirt::Running,     boost::mpl::true_,Preparing>,
-		_row<Vm::Libvirt::Running,     Flop::Event,	 Flop::State>
+		msmf::Row<initial_state,   Flop::Event,         Flop::State>,
+		msmf::Row<initial_state,   initial_state::Good, Preparing,           Action>,
+		a_row<Preparing,           CVmHardDisk,         Vm::Libvirt::Running,&Frontend::create>,
+		msmf::Row<Preparing,       boost::mpl::true_,   Success,             Action>,
+		_row<Preparing,            Flop::Event,         Flop::State>,
+		_row<Vm::Libvirt::Running, boost::mpl::true_,   Preparing>,
+		_row<Vm::Libvirt::Running, Flop::Event,         Flop::State>
 	>
 	{
 	};
@@ -609,9 +606,8 @@ namespace Move
 
 struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 {
-	typedef Pipeline::Frontend<Machine_type, Vm::Pump::FinishCommand_type> synch_type;
 	typedef boost::msm::back::state_machine<Tunnel::Frontend> Tunneling;
-	typedef boost::msm::back::state_machine<synch_type> Synching;
+	typedef Pipeline::State<Machine_type, Vm::Pump::FinishCommand_type> synchState_type;
 	typedef Tunneling initial_state;
 
 	explicit Frontend(Tunnel::IO& io_): m_io(&io_)
@@ -624,10 +620,10 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	void synch(const msmf::none&);
 
 	struct transition_table : boost::mpl::vector<
-		_row<Tunneling::exit_pt<Flop::State>,  Flop::Event,    Flop::State>,
-		_row<Synching::exit_pt<Flop::State>,   Flop::Event,    Flop::State>,
-		a_row<Tunneling::exit_pt<Success>,     msmf::none,     Synching,      &Frontend::synch>,
-		msmf::Row<Synching::exit_pt<Success>,  msmf::none,     Success>
+		_row<Tunneling::exit_pt<Flop::State>, Flop::Event,           Flop::State>,
+		_row<synchState_type,                 Flop::Event,           Flop::State>,
+		a_row<Tunneling::exit_pt<Success>,    msmf::none,            synchState_type, &Frontend::synch>,
+		msmf::Row<synchState_type,            synchState_type::Good, Success>
 	>
 	{
 	};

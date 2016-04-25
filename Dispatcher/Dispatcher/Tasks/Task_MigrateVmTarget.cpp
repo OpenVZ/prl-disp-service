@@ -574,7 +574,7 @@ namespace Start
 // struct Frontend::Action
 
 void Frontend::Action::operator()(const msmf::none&, Frontend& fsm_,
-		Accepting&, Preparing& target_)
+		acceptingState_type&, Preparing& target_)
 {
 	target_.setVolume(fsm_.m_task->getImagesToCreate());
 }
@@ -1864,13 +1864,13 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 1>::type(
 			boost::msm::back::states_
 				<< mvt::Move::Frontend::Tunneling(boost::ref(io))
-				<< mvt::Move::Frontend::Synching(t),
+				<< mvt::Move::Frontend::synchState_type(t),
 			boost::ref(io)));
 
 	backend_type machine(boost::msm::back::states_
 		<< Migrate::Vm::Finished(*this)
 		<< backend_type::Starting(boost::msm::back::states_
-			<< backend_type::Starting::Accepting(
+			<< backend_type::Starting::acceptingState_type(
 				boost::bind(&Task_MigrateVmTarget::reactStart, this, _1),
 	                        VM_MIGRATE_START_CMD_WAIT_TIMEOUT),
 			boost::ref(*this))
