@@ -468,7 +468,9 @@ void Frontend::start(const serverList_type& event_)
 		return launch(new Task(a, Trick::Factory(*m_task),
 			m_task->getTargetConfig()));
 	}
-	m_progress = QSharedPointer<Progress>(new Progress(a, m_reporter));
+	m_progress = QSharedPointer<Progress>(new Progress(a, m_reporter),
+			&QObject::deleteLater);
+	m_progress->moveToThread(QCoreApplication::instance()->thread());
 	m_progress->startTimer(0);
 
 	launch(new Task(a, Trick::Factory(*m_task).setPorts(
