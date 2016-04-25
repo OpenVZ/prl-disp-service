@@ -1063,6 +1063,10 @@ static unsigned int Ostemplate2Dist(const char *str)
 		return PVS_GUEST_VER_LIN_CENTOS_7;
 	else if (dist.startsWith("centos"))
 		return PVS_GUEST_VER_LIN_CENTOS;
+	if (dist.startsWith("vzlinux-7"))
+		return PVS_GUEST_VER_LIN_VZLINUX_7;
+	else if (dist.startsWith("vzlinux"))
+		return PVS_GUEST_VER_LIN_VZLINUX;
 	if (dist.startsWith("opensuse"))
 		return PVS_GUEST_VER_LIN_OPENSUSE;
 	return PVS_GUEST_VER_LIN_OTHER;
