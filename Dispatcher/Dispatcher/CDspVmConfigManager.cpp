@@ -374,6 +374,8 @@ void Copy::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 
 void Mask::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 {
+	old_.getVmHardwareList()->getCpu()->setCpuMask
+		(new_.getVmHardwareList()->getCpu()->getCpuMask());
 	old_.getVmHardwareList()->getCpu()->setNodeMask
 		(new_.getVmHardwareList()->getCpu()->getNodeMask());
 }

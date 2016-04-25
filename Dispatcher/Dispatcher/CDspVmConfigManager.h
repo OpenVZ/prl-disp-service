@@ -250,6 +250,14 @@ struct Copy
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Mask
+
+struct Mask
+{
+	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+};
+
 } // namespace Cpu
 
 struct Identification
