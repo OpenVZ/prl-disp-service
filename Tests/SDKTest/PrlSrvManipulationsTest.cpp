@@ -1050,7 +1050,8 @@ void PrlSrvManipulationsTest::testDispConfigGetRecommendMinVmMem()
 	<< PVS_GUEST_VER_SOL_OTHER
 	<< PVS_GUEST_VER_SOL_11
 	<< PVS_GUEST_VER_LIN_REDHAT_7
-	<< PVS_GUEST_VER_LIN_CENTOS_7;
+	<< PVS_GUEST_VER_LIN_CENTOS_7
+	<< PVS_GUEST_VER_LIN_VZLINUX_7;
 	vvOsVersions += vOsVersions;
 	vOsVersions.clear();
 
