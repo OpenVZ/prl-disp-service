@@ -33,7 +33,7 @@
 #define HandlesManipulationsTest_H
 
 #include <QtTest/QtTest>
-#include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
+#include <prlsdk/helpers/SdkWrap/SdkHandleWrap.h>
 
 class HandlesManipulationsTest : public QObject
 {

@@ -33,7 +33,7 @@
 #define PrlSrvManipulationsTest_H
 
 #include <QtTest/QtTest>
-#include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
+#include <prlsdk/helpers/SdkWrap/SdkHandleWrap.h>
 
 class PrlSrvManipulationsTest : public QObject
 {
@@ -232,8 +232,6 @@ private slots:
 	void testSystemStatisticsGetDiskInfo();
 	void testSystemStatisticsGetProcessInfo();
 	void testGetResultAsHandleForGetLicenseInfo();
-	void testGetLicenseInfoProps();
-	void testUpdateLicense();
 	void testUpdateLicenseOnInvalidLicenseKey();
 	void testUpdateLicenseOnEmptyLicenseKey();
 	void testUpdateLicenseOnProductId();
@@ -317,13 +315,9 @@ private slots:
 	void testGetPerfStats() ;
 	void testCheckSourceVmUuidOnRegisterVmWithEmptySourceUuid();
 	void testRegisterOldVmFullPathToVmConfigSpecified();
-	void testRegisterOldVmToCheckSomeNetworkMacAddress();
 	void testGetHostHardwareInfoCheckHardDisksListSorted();
-	void testRegisterOldVmWithNonSimpleHddsDirsStructure();
 	void testRegisterOldVmWithSlashInName();
 	void testRegisterOldVmOwnedByAnotherUserButAclWithRightsAdded();
-	void testRegisterOldVmWithSlashInName2();
-	void testRegisterOldVmWithSlashInName3();
 	void testRegisterOldVmWithSlashInName4();
 	void testRegisterVmOnPathToVmHomeDirSpecifiedConfigWasBrokenButBackupPresent();
 	void testRegisterVmOnPathToVmConfigSpecifiedConfigWasBrokenButBackupPresent();
@@ -435,7 +429,6 @@ private slots:
 	void testGetPluginsListOnWrongParams();
 	void testGetDiskFreeSpace();
 	void testGetDiskFreeSpaceOnWrongParams();
-	void testConvert3rdPartyVmShouldReturnVmConfig();
 	void testAllowMultiplePMC();
 	void testAllowMultiplePMCOnWrongParams();
 	void testDispConfigGetCpuFeaturesMask();
@@ -466,7 +459,6 @@ private slots:
 private:
 
 	void SetUpAllowDirectMobile();
-	void setDefaultLicenseUserAndCompany();
 
 	SdkHandleWrap m_ServerHandle;
 	SdkHandleWrap m_JobHandle;

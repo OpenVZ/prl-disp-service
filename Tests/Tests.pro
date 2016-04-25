@@ -12,7 +12,7 @@ LEVEL = ..
 include($$LEVEL/Build/Options.pri)
 
 include($$PWD/DispatcherInternalTest/DispatcherInternalTest.deps)
-#include($$PWD/SDKTest/SDKTest.deps)
+include($$PWD/SDKTest/SDKTest.deps)
 include($$PWD/ProtoSerializerTest/ProtoSerializerTest.deps)
 #include($$PWD/DesktopControlSDKTest/DesktopControlSDKTest.deps)
 
