@@ -51,6 +51,8 @@
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/StatesUtils/StatesHelper.h"
+#include "CDspBackupDevice.h"
+
 using namespace Parallels;
 
 // By adding this interface we enable allocations tracing in the module
@@ -354,6 +356,9 @@ PRL_RESULT Task_DeleteVm::run_body()
 	}
 	if ( doUnregisterOnly() )
 	{
+		Backup::Device::Service(m_pVmConfig)
+			.setVmHome(CFileHelper::GetFileRoot(m_sVmHomePath))
+			.disable();
 		setLastErrorCode(ret);
 		return ret;
 	}
@@ -405,6 +410,9 @@ PRL_RESULT Task_DeleteVm::run_body()
 		}
 		else
 		do {
+			Backup::Device::Service(m_pVmConfig)
+				.setVmHome(CFileHelper::GetFileRoot(m_sVmHomePath))
+				.teardown();
 			// for server mode delete all files from vm directory #270686
 			// common logic for console clients such as prlctl for all modes #436939
 			//if ( CDspService::instance()->isServerMode() )
