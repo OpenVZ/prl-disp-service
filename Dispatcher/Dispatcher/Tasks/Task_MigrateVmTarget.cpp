@@ -555,7 +555,7 @@ void Perform::on_exit(const Event&, FSM&)
 {
 	if (!m_future.isNull())
 	{
-		m_future->disconnect(SIGNAL(finished()), getConnector(), SLOT(reactFinish()));
+		m_future->disconnect(SIGNAL(finished()), getConnector(), SLOT(reactFinished()));
 		m_future.clear();
 	}
 
