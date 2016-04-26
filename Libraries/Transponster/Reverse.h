@@ -59,6 +59,7 @@ struct Cpu
 	Cpu(const CVmCpu& input_, const VtInfo& vt_);
 
 	PRL_RESULT setMask();
+	PRL_RESULT setNode();
 	PRL_RESULT setUnits();
 	PRL_RESULT setLimit();
 	PRL_RESULT setNumber();
@@ -71,12 +72,17 @@ struct Cpu
 	{
 		return m_tune;
 	}
+	const boost::optional<Libvirt::Domain::Xml::Numatune>& getNuma() const
+	{
+		return m_numa;
+	}
 
 private:
 	CVmCpu m_input;
 	VtInfo m_vt;
 	boost::optional<Libvirt::Domain::Xml::Vcpu> m_vcpu;
 	boost::optional<Libvirt::Domain::Xml::Cputune> m_tune;
+	boost::optional<Libvirt::Domain::Xml::Numatune> m_numa;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

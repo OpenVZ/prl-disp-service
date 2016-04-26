@@ -693,6 +693,22 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice938::
 }
 
 } // namespace Fixup
+
+namespace Numatune
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Memory
+
+QString Memory::operator()(const mpl::at_c<Libvirt::Domain::Xml::VMemory::types, 0>::type& mask_) const
+{
+	if (mask_.getValue())
+		return mask_.getValue().get();
+
+	return "";
+}
+
+} // namespace Numatune
 } // namespace Visitor
 
 namespace Vm
@@ -704,7 +720,8 @@ namespace Direct
 
 Cpu::Cpu(const Libvirt::Domain::Xml::Domain& vm_, CVmCpu* prototype_,
 	const VtInfo& vt_): m_result(new CVmCpu(prototype_)),
-	m_vcpu(vm_.getVcpu()), m_tune(vm_.getCputune())
+	m_vcpu(vm_.getVcpu()), m_tune(vm_.getCputune()),
+	m_numa(vm_.getNumatune())
 {
 	QemuKvm* k = vt_.getQemuKvm();
 	if (NULL != k  && k->getVCpuInfo() != NULL)
@@ -721,6 +738,27 @@ PRL_RESULT Cpu::setMask()
 
 	if (m_vcpu->getCpuset())
 		m_result->setCpuMask(m_vcpu->getCpuset().get());
+
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Cpu::setNode()
+{
+	if (m_result.isNull())
+		return PRL_ERR_UNINITIALIZED;
+
+	if (!m_numa)
+		return PRL_ERR_SUCCESS;
+
+	boost::optional<Libvirt::Domain::Xml::Memory1> m = m_numa->getMemory();
+	if (!m && !m->getMode())
+		return PRL_ERR_SUCCESS;
+
+	if (m->getMode().get() == Libvirt::Domain::Xml::EMode3Strict)
+	{
+		m_result->setNodeMask(boost::apply_visitor(
+			Visitor::Numatune::Memory(), m->getMemory()));
+	}
 
 	return PRL_ERR_SUCCESS;
 }

@@ -848,6 +848,26 @@ private:
 };
 
 } // namespace Fixup
+
+namespace Numatune
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Memory
+
+struct Memory: boost::static_visitor<QString>
+{
+
+	template<class T>
+	QString operator()(const T&) const
+	{
+		return "";
+	}
+
+	QString operator()(const mpl::at_c<Libvirt::Domain::Xml::VMemory::types, 0>::type& mask_) const;
+};
+
+} // namespace Numatune
 } // namespace Visitor
 
 template<class T>
