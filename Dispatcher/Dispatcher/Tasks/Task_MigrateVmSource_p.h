@@ -579,27 +579,24 @@ struct Connector: Connector_, Vm::Connector::Base<Machine_type>
 
 struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 {
-	typedef Pipeline::Frontend<Machine_type, CheckReply> checking_type;
-	typedef Pipeline::Frontend<Machine_type, StartReply> starting_type;
-	typedef Pipeline::Frontend<Machine_type, Vm::Pump::FinishCommand_type> peerWait_type;
-	typedef Pipeline::Frontend<Machine_type, PeerFinished> peerQuit_type;
+	typedef Pipeline::State<Machine_type, CheckReply> checkState_type;
+	typedef Pipeline::State<Machine_type, StartReply> startState_type;
+	typedef Pipeline::State<Machine_type, PeerFinished> peerQuitState_type;
+	typedef Pipeline::State<Machine_type, Vm::Pump::FinishCommand_type> peerWaitState_type;
 	typedef Join::Frontend
 		<
 			boost::mpl::vector
 			<
 				Join::Machine<Tunnel::Frontend>,
 				Join::Machine<Libvirt::Frontend>,
-				Join::Machine<peerWait_type>
+				Join::State<peerWaitState_type, peerWaitState_type::Good>
 			>
 		> moving_type;
 
-	typedef boost::msm::back::state_machine<checking_type> checkStep_type;
-	typedef boost::msm::back::state_machine<starting_type> startStep_type;
-	typedef boost::msm::back::state_machine<Content::Frontend> copyStep_type;
-	typedef boost::msm::back::state_machine<moving_type> moveStep_type;
-	typedef boost::msm::back::state_machine<peerQuit_type> peerQuitState_type;
+	typedef boost::msm::back::state_machine<Content::Frontend> copyState_type;
+	typedef boost::msm::back::state_machine<moving_type> moveState_type;
 
-	typedef checkStep_type initial_state;
+	typedef checkState_type initial_state;
 
 	Frontend(Task_MigrateVmSource &task, Tunnel::IO& io_): m_io(&io_), m_task(&task)
 	{
@@ -615,23 +612,23 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	void on_exit(const Event&, FSM&);
 
 	void pokePeer(const msmf::none&);
-	void setResult(const msmf::none&);
+	void setResult(const peerQuitState_type::Good&);
 	void setResult(const Flop::Event& value_);
 
 	struct transition_table : boost::mpl::vector<
 		// wire error exits to FINISHED immediately
-		a_row<checkStep_type::exit_pt<Flop::State>,	Flop::Event, Finished, &Frontend::setResult>,
-		a_row<startStep_type::exit_pt<Flop::State>,	Flop::Event, Finished, &Frontend::setResult>,
-		a_row<copyStep_type::exit_pt<Flop::State>,	Flop::Event, Finished, &Frontend::setResult>,
-		a_row<moveStep_type::exit_pt<Flop::State>,	Flop::Event, Finished, &Frontend::setResult>,
-		a_row<peerQuitState_type::exit_pt<Flop::State>, Flop::Event, Finished, &Frontend::setResult>,
+		a_row<checkState_type,                     Flop::Event, Finished, &Frontend::setResult>,
+		a_row<startState_type,                     Flop::Event, Finished, &Frontend::setResult>,
+		a_row<copyState_type::exit_pt<Flop::State>,Flop::Event, Finished, &Frontend::setResult>,
+		a_row<moveState_type::exit_pt<Flop::State>,Flop::Event, Finished, &Frontend::setResult>,
+		a_row<peerQuitState_type,                  Flop::Event, Finished, &Frontend::setResult>,
 
 		// wire success exits sequentially up to FINISHED
-		_row<checkStep_type::exit_pt<Success>,	    msmf::none, startStep_type>,
-		_row<startStep_type::exit_pt<Success>,	    msmf::none, copyStep_type>,
-		_row<copyStep_type::exit_pt<Success>,	    msmf::none, moveStep_type>,
-		a_row<moveStep_type::exit_pt<Success>,      msmf::none, peerQuitState_type,&Frontend::pokePeer>,
-		a_row<peerQuitState_type::exit_pt<Success>, msmf::none, Finished,          &Frontend::setResult>
+		_row<checkState_type,                  checkState_type::Good,    startState_type>,
+		_row<startState_type,                  startState_type::Good,    copyState_type>,
+		_row<copyState_type::exit_pt<Success>, msmf::none,               moveState_type>,
+		a_row<moveState_type::exit_pt<Success>,msmf::none,               peerQuitState_type,&Frontend::pokePeer>,
+		a_row<peerQuitState_type,              peerQuitState_type::Good, Finished,          &Frontend::setResult>
 	>
 	{
 	};

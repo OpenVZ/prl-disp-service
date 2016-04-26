@@ -747,7 +747,7 @@ void Frontend::pokePeer(const msmf::none&)
 	m_task->confirmFinish();
 }
 
-void Frontend::setResult(const msmf::none&)
+void Frontend::setResult(const peerQuitState_type::Good&)
 {
 	if (PVMT_CLONE_MODE & m_task->getFlags())
 		return;
@@ -1525,7 +1525,7 @@ PRL_RESULT Task_MigrateVmSource::run_body()
 	CAuthHelperImpersonateWrapper _impersonate(&getClient()->getAuthHelper());
 
 	mvs::Tunnel::IO io(*m_pIoClient);
-	backend_type::moveStep_type m(boost::msm::back::states_
+	backend_type::moveState_type m(boost::msm::back::states_
 		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 0>::type
 			(boost::ref(io))
 		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 1>::type
@@ -1533,13 +1533,13 @@ PRL_RESULT Task_MigrateVmSource::run_body()
 				getRequestPackage(), boost::cref(m_sVmDirUuid),
 				boost::cref(m_sVmUuid), _1))
 		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 2>::type(~0));
-	backend_type::copyStep_type c(boost::bind(boost::factory<mvs::Content::Task* >(),
+	backend_type::copyState_type c(boost::bind(boost::factory<mvs::Content::Task* >(),
 		boost::ref(*this), boost::cref(m_dList), boost::cref(m_fList)));
 
 	backend_type machine(boost::msm::back::states_
-		<< backend_type::checkStep_type(boost::bind
+		<< backend_type::checkState_type(boost::bind
 			(&Task_MigrateVmSource::reactCheckReply, this, _1), timeout)
-		<< backend_type::startStep_type(boost::bind
+		<< backend_type::startState_type(boost::bind
 			(&Task_MigrateVmSource::reactStartReply, this, _1), timeout)
 		<< backend_type::peerQuitState_type(finishing_timeout)
 		<< c << m << Migrate::Vm::Finished(*this),
