@@ -47,7 +47,6 @@
 #include <prlxmlmodel/DispConfig/CDispCommonPreferences.h>
 #include <prlxmlmodel/DispConfig/CDispNetAdapter.h>
 #include <prlxmlmodel/DispConfig/CDispDhcpPreferences.h>
-#include <prlxmlmodel/Appliance/CAppliance.h>
 #include <prlxmlmodel/CtTemplate/CtTemplate.h>
 #include <prlxmlmodel/UserInformation/UserInfo.h>
 
@@ -58,7 +57,6 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 #include <prlcommon/HostUtils/HostUtils.h>
-#include "Libraries/TgzExtracter/TgzExtracterLib.h"
 
 #include <prlxmlmodel/Messaging/CVmEvent.h>
 #include <prlxmlmodel/Messaging/CVmEventParameter.h>
@@ -66,8 +64,6 @@
 #include <prlxmlmodel/VmDirectory/CVmDirectories.h>
 #include <prlxmlmodel/ProblemReport/CProblemReport.h>
 
-#include "Libraries/ConfigConverter/ConfigFile.h"
-#include "Libraries/ConfigConverter/ConfigConsts.h"
 #include "Libraries/ProblemReportUtils/CProblemReportUtils.h"
 #include "Libraries/ProblemReportUtils/CPackedProblemReport.h"
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
@@ -2959,14 +2955,6 @@ void PrlSrvManipulationsTest::testSystemStatisticsGetProcessInfo()
 	CHECK_STAT_PARAMETER(PRL_PROCESS_STATE_TYPE, PrlStatProc_GetState, _stat.m_lstProcessesStatistics.value(0)->getState(), _proc_stat_handle)
 }
 
-void PrlSrvManipulationsTest::setDefaultLicenseUserAndCompany()
-{
-	QString username("unit-test");
-	QString company("parallels");
-
-	SET_LICENSE_USER_AND_COMPANY(m_ServerHandle, username, company)
-}
-
 void PrlSrvManipulationsTest::testGetResultAsHandleForGetLicenseInfo()
 {
 	testLoginLocal();
@@ -2993,67 +2981,6 @@ void PrlSrvManipulationsTest::testGetResultAsHandleForGetLicenseInfo()
 		CHECK_RET_CODE_EXP(sdk_method(hLicense, sActualValue, &nBufferLength))\
 		QCOMPARE(UTF8_2QSTR(sActualValue), pParam->getParamValue());\
 	}
-
-void PrlSrvManipulationsTest::testGetLicenseInfoProps()
-{
-	SKIP_IF_EXTERNAL_BUILD
-
-	SimpleServerWrapper session(0);
-	AutoRestoreLicenseCreds restoreLicenseCreds(session);
-
-	testLoginLocal();
-	setDefaultLicenseUserAndCompany();
-	GET_LICENSE_INFO
-	PRL_VOID_PTR pBuffer = NULL;
-	CHECK_RET_CODE_EXP(PrlResult_GetParamToken(hResult, 0, &pBuffer))
-	QString sLicense = UTF8_2QSTR((const char *)pBuffer);
-	PrlBuffer_Free(pBuffer);
-	QVERIFY(sLicense.size());
-	CVmEvent e;
-	CHECK_RET_CODE_EXP(e.fromString(sLicense))
-	CVmEventParameter *pParam = NULL;
-
-	CHECK_NUMERIC_PARAM_VALUE(PRL_BOOL, EVT_PARAM_PRL_LICENSE_IS_VALID, PrlLic_IsValid)
-	CHECK_NUMERIC_PARAM_VALUE(PRL_RESULT, EVT_PARAM_PRL_LICENSE_STATUS, PrlLic_GetStatus)
-	CHECK_STRING_PARAM_VALUE(EVT_PARAM_PRL_LICENSE_KEY, PrlLic_GetLicenseKey)
-	CHECK_STRING_PARAM_VALUE(EVT_PARAM_PRL_LICENSE_USER, PrlLic_GetUserName)
-	CHECK_STRING_PARAM_VALUE(EVT_PARAM_PRL_LICENSE_COMPANY, PrlLic_GetCompanyName)
-}
-
-void PrlSrvManipulationsTest::testUpdateLicense()
-{
-	SKIP_IF_EXTERNAL_BUILD
-
-	SimpleServerWrapper session(0);
-	AutoRestoreLicenseCreds restoreLicenseCreds(session);
-
-	testLoginLocal();
-	setDefaultLicenseUserAndCompany();
-	GET_LICENSE_INFO
-	QString sLicenseKey, sOldUserName, sOldCompanyName;
-
-	PRL_EXTRACT_STRING_VALUE(sLicenseKey, hLicense, PrlLic_GetLicenseKey)
-	PRL_EXTRACT_STRING_VALUE(sOldUserName, hLicense, PrlLic_GetUserName)
-	PRL_EXTRACT_STRING_VALUE(sOldCompanyName, hLicense, PrlLic_GetCompanyName)
-
-	QString sNewUserName = sOldUserName + "_new";
-	QString sNewCompanyName = sOldCompanyName + "_new";
-
-	SET_LICENSE_USER_AND_COMPANY(m_ServerHandle, sNewUserName, sNewCompanyName)
-
-	{
-		GET_LICENSE_INFO
-		QString sNewLicenseKey, sUserName, sCompanyName;
-
-		PRL_EXTRACT_STRING_VALUE(sNewLicenseKey, hLicense, PrlLic_GetLicenseKey)
-		PRL_EXTRACT_STRING_VALUE(sUserName, hLicense, PrlLic_GetUserName)
-		PRL_EXTRACT_STRING_VALUE(sCompanyName, hLicense, PrlLic_GetCompanyName)
-
-		QVERIFY(sNewLicenseKey.contains(sLicenseKey));
-		QCOMPARE(sUserName, sNewUserName);
-		QCOMPARE(sCompanyName, sNewCompanyName);
-	}
-}
 
 #define CHECK_LICENSE\
 	{\
@@ -5347,47 +5274,6 @@ void PrlSrvManipulationsTest::testRegisterOldVmFullPathToVmConfigSpecified()
 	CHECK_HANDLE_TYPE(m_VmHandle, PHT_VIRTUAL_MACHINE)
 }
 
-void PrlSrvManipulationsTest::testRegisterOldVmToCheckSomeNetworkMacAddress()
-{
-	testLoginLocal();
-	QVERIFY(QDir().mkdir(m_sTestFsDirName1));
-	QVERIFY(QDir().mkdir(m_sTestFsDirName1ChildDir));
-	QString sVmConfigPath = m_sTestFsDirName1ChildDir + "/SDKTest_OldVm_WithNetwork.pvs";
-	QVERIFY(QFile::copy("./SDKTest_OldVm_WithNetwork.pvs", sVmConfigPath));
-
-	QString oldMAC = HostUtils::generateMacAddress().toLower() ;
-
-	ConfigFile _old_config(sVmConfigPath);
-	QVERIFY(_old_config.IsValid());
-	_old_config.setParamValue(NETWORK_SECTION, NET_MACADDR, oldMAC );
-	QVERIFY(_old_config.saveConfig());
-
-	QVERIFY( !oldMAC.isEmpty() );
-
-	SdkHandleWrap hJob(PrlSrv_RegisterVm(m_ServerHandle, sVmConfigPath.toUtf8().constData(), PRL_TRUE));
-	CHECK_JOB_RET_CODE(hJob)
-	SdkHandleWrap hResult;
-	CHECK_RET_CODE_EXP(PrlJob_GetResult(hJob, hResult.GetHandlePtr()))
-	CHECK_RET_CODE_EXP(PrlResult_GetParam(hResult, m_VmHandle.GetHandlePtr()))
-	CHECK_HANDLE_TYPE(m_VmHandle, PHT_VIRTUAL_MACHINE)
-
-	// get MacAddress
-	PRL_UINT32 netCount = 0;
-	CHECK_RET_CODE_EXP( PrlVmCfg_GetNetAdaptersCount( m_VmHandle, &netCount )  );
-	QVERIFY( netCount == 1 );
-
-	SdkHandleWrap hNet;
-	CHECK_RET_CODE_EXP( PrlVmCfg_GetNetAdapter(m_VmHandle, 0, hNet.GetHandlePtr() )  );
-
-	char buff[2048];
-	PRL_UINT32 sz=sizeof(buff);
-	CHECK_RET_CODE_EXP( PrlVmDevNet_GetMacAddress(hNet, buff, &sz) );
-
-	QString newMAC = buff;
-	// compare MACs
-	QCOMPARE( newMAC.toUpper(), oldMAC.toUpper() );
-}
-
 void PrlSrvManipulationsTest::testGetHostHardwareInfoCheckHardDisksListSorted()
 {
 	RECEIVE_SERVER_HW_INFO
@@ -5403,45 +5289,6 @@ void PrlSrvManipulationsTest::testGetHostHardwareInfoCheckHardDisksListSorted()
 		CHwHardDisk *pHardDisk = lstHardDisks.at(i);
 		QCOMPARE(sHardDiskSysName, pHardDisk->getDeviceId());
 	}
-}
-
-void PrlSrvManipulationsTest::testRegisterOldVmWithNonSimpleHddsDirsStructure()
-{
-	testLoginLocal();
-	QVERIFY(QDir().mkdir(m_sTestFsDirName1));
-	QVERIFY(QDir().mkdir(m_sTestFsDirName1ChildDir));
-	QString sVmConfigPath = m_sTestFsDirName1ChildDir + "/CConfigConverterTest_pw25.pvs";
-	QVERIFY(QFile::copy("./CConfigConverterTest_pw25.pvs", sVmConfigPath));
-
-	QString sCompositeImagePath = "disks/root/winxp.hdd";
-
-	ConfigFile _old_configuration(sVmConfigPath);
-	QVERIFY(_old_configuration.IsValid());
-	_old_configuration.setParamValue(IDE_SECTION, IDE00_IMAGE, sCompositeImagePath);
-	QVERIFY(_old_configuration.saveConfig());
-
-	SdkHandleWrap hJob(PrlSrv_RegisterVm(m_ServerHandle, sVmConfigPath.toUtf8().constData(), PRL_TRUE));
-	CHECK_JOB_RET_CODE(hJob)
-	SdkHandleWrap hResult;
-	CHECK_RET_CODE_EXP(PrlJob_GetResult(hJob, hResult.GetHandlePtr()))
-	CHECK_RET_CODE_EXP(PrlResult_GetParam(hResult, m_VmHandle.GetHandlePtr()))
-	CHECK_HANDLE_TYPE(m_VmHandle, PHT_VIRTUAL_MACHINE)
-
-	QString sVmHomePath;
-	PRL_EXTRACT_STRING_VALUE(sVmHomePath, m_VmHandle, PrlVmCfg_GetHomePath)
-
-	SdkHandleWrap hVmHardDisk;
-	CHECK_RET_CODE_EXP(PrlVmCfg_GetHardDisk(m_VmHandle, 0, hVmHardDisk.GetHandlePtr()))
-
-	QString sActualFriendlyName, sActualSystemName;
-	PRL_EXTRACT_STRING_VALUE(sActualFriendlyName, hVmHardDisk, PrlVmDev_GetFriendlyName)
-	PRL_EXTRACT_STRING_VALUE(sActualSystemName, hVmHardDisk, PrlVmDev_GetSysName)
-
-	QFileInfo _fi_expected(QFileInfo(sVmHomePath).absolutePath() + "/" + sCompositeImagePath);
-	QFileInfo _fi_actual1(sActualFriendlyName), _fi_actual2(sActualSystemName);
-
-	QCOMPARE(_fi_actual1.absoluteFilePath(), _fi_expected.absoluteFilePath());
-	QCOMPARE(_fi_actual2.absoluteFilePath(), _fi_expected.absoluteFilePath());
 }
 
 void PrlSrvManipulationsTest::testRegisterOldVmOwnedByAnotherUserButAclWithRightsAdded()
@@ -5508,80 +5355,6 @@ void PrlSrvManipulationsTest::testRegisterOldVmWithSlashInName()
 	PRL_EXTRACT_STRING_VALUE(sVmName, m_VmHandle, PrlVmCfg_GetName)
 
 	QCOMPARE(sVmName, QString("XP autostart disabled, docked apps, kis 75219"));
-}
-
-void PrlSrvManipulationsTest::testRegisterOldVmWithSlashInName2()
-{
-#ifdef _WIN_
-	QSKIP("Skipping test due ':' symbol not acceptable at file paths under Win platform", SkipAll);
-#endif
-
-	QString sTestVmName = "Windows XP (8:19)";
-	m_sTestFsDirName1 = QDir::tempPath() + '/' + sTestVmName + ".pvm";
-	if (QFile::exists(m_sTestFsDirName1))
-		CFileHelper::ClearAndDeleteDir(m_sTestFsDirName1);
-	testLoginLocal();
-	QVERIFY(QDir().mkdir(m_sTestFsDirName1));
-	QString sVmConfigPath = m_sTestFsDirName1 + "/" + sTestVmName + ".pvs";
-	QVERIFY(QFile::copy("./SDKTest_OldVmWithSlashInName.pvs", sVmConfigPath));
-
-	ConfigFile _old_config(sVmConfigPath);
-	QVERIFY(_old_config.IsValid());
-	_old_config.setParamValue(SYSTEM_SECTION, VM_NAME, sTestVmName);
-	QVERIFY(_old_config.saveConfig());
-
-	SdkHandleWrap hJob(PrlSrv_RegisterVm(m_ServerHandle, sVmConfigPath.toUtf8().constData(), PRL_TRUE));
-	CHECK_JOB_RET_CODE(hJob)
-	SdkHandleWrap hResult;
-	CHECK_RET_CODE_EXP(PrlJob_GetResult(hJob, hResult.GetHandlePtr()))
-	CHECK_RET_CODE_EXP(PrlResult_GetParam(hResult, m_VmHandle.GetHandlePtr()))
-	CHECK_HANDLE_TYPE(m_VmHandle, PHT_VIRTUAL_MACHINE)
-
-	QVERIFY(!QFile::exists(m_sTestFsDirName1));
-	QVERIFY(QFile::exists(QDir::tempPath() + '/' + CFileHelper::ReplaceNonValidPathSymbols(sTestVmName) + ".pvm"));
-	m_sTestFsDirName1 = QDir::tempPath() + '/' + CFileHelper::ReplaceNonValidPathSymbols(sTestVmName) + ".pvm";
-
-	QString sVmName;
-	PRL_EXTRACT_STRING_VALUE(sVmName, m_VmHandle, PrlVmCfg_GetName)
-
-	QCOMPARE(sVmName, CFileHelper::ReplaceNonValidPathSymbols(sTestVmName));
-}
-
-void PrlSrvManipulationsTest::testRegisterOldVmWithSlashInName3()
-{
-#ifdef _WIN_
-	QSKIP("Skipping test due ':' symbol not acceptable at file paths under Win platform", SkipAll);
-#endif
-
-	QString sTestVmName = "Windows XP (8:19)";
-	m_sTestFsDirName1 = QDir::tempPath() + '/' + sTestVmName;
-	if (QFile::exists(m_sTestFsDirName1))
-		CFileHelper::ClearAndDeleteDir(m_sTestFsDirName1);
-	testLoginLocal();
-	QVERIFY(QDir().mkdir(m_sTestFsDirName1));
-	QString sVmConfigPath = m_sTestFsDirName1 + "/" + sTestVmName + ".pvs";
-	QVERIFY(QFile::copy("./SDKTest_OldVmWithSlashInName.pvs", sVmConfigPath));
-
-	ConfigFile _old_config(sVmConfigPath);
-	QVERIFY(_old_config.IsValid());
-	_old_config.setParamValue(SYSTEM_SECTION, VM_NAME, sTestVmName);
-	QVERIFY(_old_config.saveConfig());
-
-	SdkHandleWrap hJob(PrlSrv_RegisterVm(m_ServerHandle, sVmConfigPath.toUtf8().constData(), PRL_TRUE));
-	CHECK_JOB_RET_CODE(hJob)
-	SdkHandleWrap hResult;
-	CHECK_RET_CODE_EXP(PrlJob_GetResult(hJob, hResult.GetHandlePtr()))
-	CHECK_RET_CODE_EXP(PrlResult_GetParam(hResult, m_VmHandle.GetHandlePtr()))
-	CHECK_HANDLE_TYPE(m_VmHandle, PHT_VIRTUAL_MACHINE)
-
-	QVERIFY(!QFile::exists(m_sTestFsDirName1 + ".pvm"));
-	QVERIFY(QFile::exists(QDir::tempPath() + '/' + CFileHelper::ReplaceNonValidPathSymbols(sTestVmName) + ".pvm"));
-	m_sTestFsDirName1 = QDir::tempPath() + '/' + CFileHelper::ReplaceNonValidPathSymbols(sTestVmName) + ".pvm";
-
-	QString sVmName;
-	PRL_EXTRACT_STRING_VALUE(sVmName, m_VmHandle, PrlVmCfg_GetName)
-
-	QCOMPARE(sVmName, CFileHelper::ReplaceNonValidPathSymbols(sTestVmName));
 }
 
 void PrlSrvManipulationsTest::testRegisterOldVmWithSlashInName4()
@@ -8523,56 +8296,6 @@ void PrlSrvManipulationsTest::testGetDiskFreeSpaceOnWrongParams()
 	// Wrong handle
 	CHECK_ASYNC_OP_FAILED(PrlSrv_GetDiskFreeSpace(PRL_INVALID_HANDLE, "/", 0), PRL_ERR_INVALID_ARG);
 	CHECK_ASYNC_OP_FAILED(PrlSrv_GetDiskFreeSpace(m_ServerHandle, 0, 0), PRL_ERR_INVALID_ARG)
-}
-
-void PrlSrvManipulationsTest::testConvert3rdPartyVmShouldReturnVmConfig()
-{
-	if (TestConfig::isServerMode())
-		QSKIP("Skipping test due to the interaction is not supported by the server mode", SkipAll);
-
-	const QString vmFileName("SDKTest_vm_fusion4_no_os");
-	const QString testDataArchiveName = QString("%1.tgz").arg(vmFileName);
-
-	QVERIFY(QDir().mkdir(m_sTestConvertDirName));
-	QCOMPARE( ExtractArchive( testDataArchiveName.toUtf8().constData(),
-							  m_sTestConvertDirName.toUtf8().constData(),
-							  0, 0 ), 0 );
-
-	QString srcVmDirPath = QString( "%1/%2.vmwarevm" )
-		.arg(m_sTestConvertDirName)
-		.arg(vmFileName);
-
-	QString dstVmDirPath( m_sTestConvertDirName );
-
-
-	testLoginLocal();
-
-
-	SdkHandleWrap hJob(PrlSrv_Register3rdPartyVm( m_ServerHandle,
-													srcVmDirPath.toUtf8().constData(),
-													dstVmDirPath.toUtf8().constData(),
-													0 ));
-
-	WAIT_AND_ANSWER_SERVER_QUESTION( m_ServerHandle, PRL_QUESTION_CONVERT_VM_CANT_DETECT_OS,
-									 PET_ANSWER_YES, 60 * 1000 );
-
-	CHECK_JOB_RET_CODE(hJob);
-
-	// get result
-	SdkHandleWrap hResult;
-	CHECK_RET_CODE_EXP( PrlJob_GetResult( hJob, hResult.GetHandlePtr() ) );
-
-	// Verify and get 0-th parameter as string.
-	QString strParam0;
-	PRL_EXTRACT_STRING_VALUE_BY_INDEX(strParam0, hResult, 0, PrlResult_GetParamByIndexAsString);
-
-	// varify 0-th parameter is vm config
-	CVmConfiguration cfg;
-	CHECK_RET_CODE_EXP(cfg.fromString(strParam0));
-
-	// Auto unreg/delete vm
-	CHECK_RET_CODE_EXP(PrlResult_GetParam(hResult, m_VmHandle.GetHandlePtr()));
-	CHECK_HANDLE_TYPE(m_VmHandle, PHT_VIRTUAL_MACHINE);
 }
 
 void PrlSrvManipulationsTest::testAllowMultiplePMC()

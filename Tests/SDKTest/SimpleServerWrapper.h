@@ -33,7 +33,7 @@
 #ifndef SimpleServerWrapper_H
 #define SimpleServerWrapper_H
 
-#include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
+#include <prlsdk/helpers/SdkWrap/SdkHandleWrap.h>
 #include "Tests/CommonTestsUtils.h"
 
 class SimpleServerWrapper
