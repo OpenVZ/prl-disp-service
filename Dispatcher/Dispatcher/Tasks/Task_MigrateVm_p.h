@@ -746,7 +746,7 @@ struct Connector: Vm::Connector::Base<T>, Slot
 			return;
 
 		if (m_queue.isNull())
-			return this->handle(Flop::Event(PRL_ERR_UNINITIALIZED));
+			return;
 
 		this->setState(boost::apply_visitor(Visitor::Sent(*m_queue,
 			boost::bind(&Connector::template handle<Quit<X> >, this, Quit<X>())),
@@ -756,7 +756,7 @@ struct Connector: Vm::Connector::Base<T>, Slot
 	void readyRead()
 	{
 		if (m_queue.isNull())
-			return this->handle(Flop::Event(PRL_ERR_UNINITIALIZED));
+			return;
 
 		this->setState(boost::apply_visitor(Visitor::Ready(*m_queue), m_state));
 	}
@@ -764,7 +764,7 @@ struct Connector: Vm::Connector::Base<T>, Slot
 	void readChannelFinished()
 	{
 		if (m_queue.isNull())
-			return this->handle(Flop::Event(PRL_ERR_UNINITIALIZED));
+			return;
 
 		this->setState(boost::apply_visitor(Visitor::Eof(*m_queue), m_state));
 	}
@@ -999,7 +999,7 @@ struct Connector: Vm::Connector::Base<T>, Slot
 	void reactReceipt(const SmartPtr<IOPackage>& package_)
 	{
 		if (m_queue.isNull())
-			return this->handle(Flop::Event(PRL_ERR_UNINITIALIZED));
+			return;
 
 		m_queue->enqueue(package_);
 		setState(boost::apply_visitor(Visitor::Receipt(*m_queue), m_state));
@@ -1007,7 +1007,7 @@ struct Connector: Vm::Connector::Base<T>, Slot
 	void reactBytesWritten(qint64 value_)
 	{
 		if (m_queue.isNull())
-			return this->handle(Flop::Event(PRL_ERR_UNINITIALIZED));
+			return;
 
 		setState(boost::apply_visitor(Visitor::Accounting(value_, *m_queue), m_state));
 	}
