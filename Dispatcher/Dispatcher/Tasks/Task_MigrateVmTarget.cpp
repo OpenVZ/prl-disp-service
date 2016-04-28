@@ -467,7 +467,7 @@ void Tentative::on_exit(const Event&, FSM&)
 {
 	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
 	s->disconnect(SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
-			getConnector(), SLOT(reactState(const SmartPtr<IOPackage>&)));
+			getConnector(), SLOT(reactState(unsigned, unsigned, QString, QString)));
 	getConnector()->setUuid(QString());
 }
 
