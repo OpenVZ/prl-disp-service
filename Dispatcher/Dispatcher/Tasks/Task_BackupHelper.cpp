@@ -1353,7 +1353,7 @@ PRL_RESULT BackupProcess::start(const QStringList& arg_, const QStringList& env_
 		a << "--fdout" << QString::number(out[1]);
 	}
 
-	char **pArgv = new char *[a.size()+4+2];
+	char **pArgv = new char *[a.size()+2];
 	int i;
 	for (i = 0; i < a.size(); ++i)
 		pArgv[i] = strdup(QSTR2UTF8(a.at(i)));
