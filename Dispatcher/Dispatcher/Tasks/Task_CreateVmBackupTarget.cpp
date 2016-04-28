@@ -201,10 +201,21 @@ PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Task_CreateVmBackupTarget::buildTibFile(const QString& path_)
+PRL_RESULT Task_CreateVmBackupTarget::buildTibFiles()
 {
-	VirtualDisk::Parameters::Disk p;
-	return VirtualDisk::Qcow2::create(path_, p);
+	if (m_nRemoteVersion < BACKUP_PROTO_V4)
+		return PRL_ERR_SUCCESS;
+
+	::Backup::Product::Model p(::Backup::Object::Model(m_pVmConfig), m_sVmHomePath);
+	p.setStore(getBackupRoot());
+	foreach (const ::Backup::Product::component_type& t, p.getVmTibs()) {
+		VirtualDisk::Parameters::Disk p;
+		PRL_RESULT e = VirtualDisk::Qcow2::create(t.second.absoluteFilePath(), p);
+		if (PRL_FAILED(e))
+			return e;
+		m_createdTibs << t.second.absoluteFilePath();
+	}
+	return PRL_ERR_SUCCESS;
 }
 
 PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
@@ -303,16 +314,8 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 		goto exit;
 	}
 
-	if (m_nRemoteVersion >= BACKUP_PROTO_V4) {
-		::Backup::Product::Model p(::Backup::Object::Model(m_pVmConfig), m_sVmHomePath);
-		p.setStore(getBackupRoot());
-		foreach (const ::Backup::Product::component_type& t, p.getVmTibs()) {
-			nRetCode = buildTibFile(t.second.absoluteFilePath());
-			if (PRL_FAILED(nRetCode))
-				goto exit;
-			m_createdTibs << t.second.absoluteFilePath();
-		}
-	}
+	if (PRL_FAILED(nRetCode = buildTibFiles()))
+		goto exit;
 
 	/*
 	   To lock _full_ backup, but exclusive for full backup and shared for incremental:

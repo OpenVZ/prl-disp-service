@@ -265,7 +265,7 @@ private:
 	PRL_RESULT validateBackupDir(const QString &);
 	PRL_RESULT backupHardDiskDevices();
 	PRL_RESULT backupCtPrivate();
-	PRL_RESULT buildTibFile(const QString&);
+	PRL_RESULT buildTibFiles();
 	PRL_RESULT loadTibFiles();
 	PRL_RESULT wasHddListChanged(bool *pbWasChanged);
 	PRL_RESULT guessBackupType();
