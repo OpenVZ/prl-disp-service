@@ -612,9 +612,13 @@ struct Revert: Need::Context, Need::Config, Need::Command<CProtoSwitchToSnapshot
 		if (r.isFailed()) {
 			if (!QFile::rename(b, h))
 				WRITE_TRACE(DBG_FATAL, "Unable to restore original config from %s", qPrintable(b));
-		} else
+		}
+		else
+		{
 			QFile::remove(b);
-
+			sendEvent(PET_DSP_EVT_VM_SNAPSHOTS_TREE_CHANGED, PIE_DISPATCHER);
+			sendEvent(PET_DSP_EVT_VM_RESTORED, PIE_DISPATCHER);
+		}
 		return r;
 	}
 
@@ -765,7 +769,7 @@ private:
 
 template<>
 struct Essence<PVE::DspCmdVmDeleteSnapshot>: Need::Agent,
-	Need::Command<CProtoDeleteSnapshotCommand>, Need::Config
+	Need::Command<CProtoDeleteSnapshotCommand>, Need::Config, Need::Context
 {
 	Libvirt::Result operator()()
 	{
@@ -776,6 +780,8 @@ struct Essence<PVE::DspCmdVmDeleteSnapshot>: Need::Agent,
 			Libvirt::Snapshot::Stash z(getConfig(),
 				getCommand()->GetSnapshotUuid());
 			Q_UNUSED(z);
+			sendEvent(PET_DSP_EVT_VM_STATE_DELETED, PIE_DISPATCHER);
+			sendEvent(PET_DSP_EVT_VM_SNAPSHOTS_TREE_CHANGED, PIE_DISPATCHER);
 		}
 		return output;
 	}
