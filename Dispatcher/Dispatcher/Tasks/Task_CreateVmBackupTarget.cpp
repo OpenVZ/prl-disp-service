@@ -32,6 +32,7 @@
 #include "prlcommon/Interfaces/ParallelsQt.h"
 #include "prlcommon/Interfaces/ParallelsNamespace.h"
 #include "prlcommon/Logging/Logging.h"
+#include "prlcommon/VirtualDisk/Qcow2Disk.h"
 
 #include "CDspService.h"
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
@@ -102,6 +103,11 @@ Task_CreateVmBackupTarget::~Task_CreateVmBackupTarget()
 {
 	// #439777 protect handler from destroying object
 	m_waiter.waitUnlockAndFinalize();
+
+	if (PRL_FAILED(getLastErrorCode())) {
+		foreach(const QString& f, m_createdTibs)
+			QFile(f).remove();
+	}
 }
 
 PRL_RESULT Task_CreateVmBackupTarget::validateBackupDir(const QString &sPath)
@@ -191,6 +197,23 @@ PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 	} else {
 		m_nBackupNumber = getNextPartialBackup(m_sVmUuid, m_sBackupUuid);
 		m_sTargetPath = QString("%1/%2").arg(getBackupRoot()).arg(m_nBackupNumber);
+	}
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Task_CreateVmBackupTarget::buildTibFiles()
+{
+	if (m_nRemoteVersion < BACKUP_PROTO_V4)
+		return PRL_ERR_SUCCESS;
+
+	::Backup::Product::Model p(::Backup::Object::Model(m_pVmConfig), m_sVmHomePath);
+	p.setStore(getBackupRoot());
+	foreach (const ::Backup::Product::component_type& t, p.getVmTibs()) {
+		VirtualDisk::Parameters::Disk p;
+		PRL_RESULT e = VirtualDisk::Qcow2::create(t.second.absoluteFilePath(), p);
+		if (PRL_FAILED(e))
+			return e;
+		m_createdTibs << t.second.absoluteFilePath();
 	}
 	return PRL_ERR_SUCCESS;
 }
@@ -290,6 +313,9 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 		WRITE_TRACE(DBG_FATAL, "Cannot create \"%s\" directory", QSTR2UTF8(m_sTargetPath));
 		goto exit;
 	}
+
+	if (PRL_FAILED(nRetCode = buildTibFiles()))
+		goto exit;
 
 	/*
 	   To lock _full_ backup, but exclusive for full backup and shared for incremental:
@@ -406,8 +432,9 @@ PRL_RESULT Task_CreateVmBackupTarget::run_body()
 	} else {
 		/* for QTemporaryFile file name exist after open() and before close() only */
 		args.append(m_sABackupOutFile);
+		args.prepend(QString(PRL_ABACKUP_SERVER));
 
-		if (PRL_FAILED(nRetCode = m_cABackupServer.start(this, QString(PRL_ABACKUP_SERVER), args, m_nBackupTimeout)))
+		if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, QStringList(), m_nRemoteVersion)))
 			goto exit;
 		locker.unlock();
 
@@ -675,8 +702,8 @@ PRL_RESULT Task_CreateVmBackupTarget::backupHardDiskDevices()
 
 		backupArgs << "--last-tib" << QString::number(m_nBackupNumber);
 		WRITE_TRACE(DBG_FATAL, "Start backup client: %s", QSTR2UTF8(backupArgs.join(" ")));
-		nRetCode = startABackupClient(m_sVmName, backupArgs, getLastError(),
-				m_sVmUuid, t.first.getDevice().getIndex(), true, m_nBackupTimeout);
+		nRetCode = startABackupClient(m_sVmName, backupArgs, QStringList(),
+				m_sVmUuid, t.first.getDevice().getIndex());
 		if (PRL_FAILED(nRetCode))
 			break;
 	}

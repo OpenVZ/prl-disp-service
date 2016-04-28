@@ -76,7 +76,6 @@ Task_CreateVmBackupSource::Task_CreateVmBackupSource(
 		::Backup::Activity::Service& service_)
 : Task_BackupHelper(client, p),
 m_pVmConfig(new CVmConfiguration()),
-m_bLocalMode(false),
 m_service(&service_)
 {
 	CProtoCreateVmBackupCommand *pCmd = CProtoSerializer::CastToProtoCommand<CProtoCreateVmBackupCommand>(cmd);
@@ -131,11 +130,6 @@ PRL_RESULT Task_CreateVmBackupSource::prepareTask()
 	{
 		nRetCode = PRL_ERR_OPERATION_WAS_CANCELED;
 		goto exit;
-	}
-	if (CDspService::instance()->getShellServiceHelper().isLocalAddress(m_sServerHostname))
-	{
-		WRITE_TRACE(DBG_FATAL, "Enable Backup local mode");
-		m_bLocalMode = true;
 	}
 
 exit:
@@ -192,64 +186,21 @@ PRL_RESULT Task_CreateVmBackupSource::run_body()
 		goto exit;
 	}
 
-	if (m_bLocalMode) {
-		SmartPtr<IOPackage> respPkg;
-		IOSendJob::Response pResponse;
-		bool bExited = false;
-
-		// Handle reply from target
-		while (!bExited) {
-			if (getIoClient()->waitForResponse(m_hJob) != IOSendJob::Success) {
-				WRITE_TRACE(DBG_FATAL, "Responce receiving failure");
-				nRetCode = PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
-				break;
-			}
-			pResponse = getIoClient()->takeResponse(m_hJob);
-			if (pResponse.responseResult != IOSendJob::Success) {
-				WRITE_TRACE(DBG_FATAL, "Create Vm backup failed to take response: %x",
-						pResponse.responseResult);
-				nRetCode = PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
-				break;
-			}
-
-			foreach(respPkg, pResponse.responsePackages) {
-				if (respPkg->header.type == PVE::DspVmEvent) {
-					// FIXME: handle progress
-					continue;
-				} else if (respPkg->header.type == DispToDispResponseCmd) {
-					// Task finished
-					CDispToDispCommandPtr pCmd  = CDispToDispProtoSerializer::ParseCommand(DispToDispResponseCmd,
-							UTF8_2QSTR(respPkg->buffers[0].getImpl()));
-					CDispToDispResponseCommand *pResponseCmd =
-						CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispResponseCommand>(pCmd);
-					getLastError()->fromString(pResponseCmd->GetErrorInfo()->toString());
-					nRetCode = pResponseCmd->GetRetCode();
-					bExited = true;
-					break;
-				} else {
-					WRITE_TRACE(DBG_FATAL, "Unexpected package with type %d",
-						respPkg->header.type);
-				}
-			}
-		}
+	/* part two : backup of hdd's via acronis library */
+	nRetCode = backupHardDiskDevices(a);
+	/*
+	   Now target side wait new acronis proxy commands due to acronis have not call to close connection.
+	   To fix it will send command to close connection from here.
+	   Pay attention: on success and on failure both we will wait reply from target.
+	   */
+	if (PRL_FAILED(nRetCode)) {
+		p = IOPackage::createInstance(ABackupProxyCancelCmd, 0);
+		WRITE_TRACE(DBG_FATAL, "send ABackupProxyCancelCmd command");
+		SendPkg(p);
 	} else {
-
-		/* part two : backup of hdd's via acronis library */
-		nRetCode = backupHardDiskDevices(a);
-		/*
-		   Now target side wait new acronis proxy commands due to acronis have not call to close connection.
-		   To fix it will send command to close connection from here.
-		   Pay attention: on success and on failure both we will wait reply from target.
-		 */
-		if (PRL_FAILED(nRetCode)) {
-			p = IOPackage::createInstance(ABackupProxyCancelCmd, 0);
-			WRITE_TRACE(DBG_FATAL, "send ABackupProxyCancelCmd command");
-			SendPkg(p);
-		} else {
-			p = IOPackage::createInstance(ABackupProxyFinishCmd, 0);
-			nRetCode = SendPkg(p);
-			// TODO:	nRetCode = SendReqAndWaitReply(p);
-		}
+		p = IOPackage::createInstance(ABackupProxyFinishCmd, 0);
+		nRetCode = SendPkg(p);
+		// TODO:	nRetCode = SendReqAndWaitReply(p);
 	}
 
 exit:
@@ -371,17 +322,27 @@ PRL_RESULT Task_CreateVmBackupSource::backupHardDiskDevices(const ::Backup::Acti
 		else
 			backupArgs << "create";
 
-		backupArgs << t.first.getFolder() << p.getStore().absolutePath()
-			<< t.second.absoluteFilePath()
-			<< activity_.getSnapshot().getUuid()
-			<< f->absoluteFilePath()
-			<< "--sandbox" << b;
+		if (BACKUP_PROTO_V4 <= m_nRemoteVersion)
+		{
+			backupArgs
+				<< "-n" << m_sVmName
+				<< "-t" << m_sBackupUuid
+				<< f->absoluteFilePath();
+		}
+		else
+		{
+			backupArgs << t.first.getFolder() << p.getStore().absolutePath()
+				<< t.second.absoluteFilePath()
+				<< activity_.getSnapshot().getUuid()
+				<< f->absoluteFilePath()
+				<< "--sandbox" << b;
+
+		}
 		if (m_nFlags & PBT_UNCOMPRESSED)
 			backupArgs.append("--uncompressed");
 
-		if (PRL_FAILED(nRetCode = startABackupClient(m_sVmName, backupArgs, getLastError(),
-							m_sVmUuid, t.first.getDevice().getIndex(),
-							false, m_nBackupTimeout)))
+		if (PRL_FAILED(nRetCode = startABackupClient(m_sVmName, backupArgs, QStringList(),
+					m_sVmUuid, t.first.getDevice().getIndex())))
 			break;
 	}
 	return nRetCode;
@@ -406,20 +367,7 @@ PRL_RESULT Task_CreateVmBackupSource::sendStartRequest()
 			getDispConfig()->getVmServerIdentification()->getServerUuid();
 	}
 
-	if (m_bLocalMode)
-		pBackupCmd = CDispToDispProtoSerializer::CreateVmBackupCreateLocalCommand(
-			m_sVmUuid,
-			m_sVmName,
-			QHostInfo::localHostName(),
-			sServerUuid,
-			m_sDescription,
-			m_sVmHomePath,
-			QString(),
-			m_pVmConfig->toString(),
-			m_nOriginalSize,
-			m_nFlags);
-	else
-		pBackupCmd = CDispToDispProtoSerializer::CreateVmBackupCreateCommand(
+	pBackupCmd = CDispToDispProtoSerializer::CreateVmBackupCreateCommand(
 			m_sVmUuid,
 			m_sVmName,
 			QHostInfo::localHostName(),

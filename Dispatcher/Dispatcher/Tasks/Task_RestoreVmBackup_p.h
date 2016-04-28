@@ -95,20 +95,17 @@ namespace AClient
 
 struct Unit
 {
-	Unit(Backup::AClient& impl_, quint32 timeout_, const QString& uuid_, const QString& name_):
-		m_name(name_), m_uuid(uuid_), m_timeout(timeout_), m_impl(&impl_)
+	Unit(Backup::AClient& impl_, const QString& uuid_, const QString& name_):
+		m_name(name_), m_uuid(uuid_), m_impl(&impl_)
 	{
 	}
-	Unit(Backup::AClient& impl_, quint32 timeout_, const QString& uuid_, CVmConfiguration& vm_);
+	Unit(Backup::AClient& impl_, const QString& uuid_, CVmConfiguration& vm_);
 
-	PRL_RESULT operator()(Task_BackupHelper& task_, const QStringList& argv_,
-				unsigned disk_) const;
-	PRL_RESULT operator()(Task_BackupHelper& task_, const QStringList& argv_,
-				SmartPtr<Chain> custom_) const;
+	PRL_RESULT operator()(const QStringList& argv_, unsigned disk_) const;
+	PRL_RESULT operator()(const QStringList& argv_, SmartPtr<Chain> custom_) const;
 private:
 	QString m_name;
 	QString m_uuid;
-	quint32 m_timeout;
 	Backup::AClient* m_impl;
 };
 

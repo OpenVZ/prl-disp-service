@@ -166,8 +166,6 @@ PRL_RESULT Naked::backup(const QString& path_, const QString& root_, const Spec&
 	return m_context->execute(vm(), spec_.getDeviceIndex(), a << spec_.getArguments());
 }
 
-#ifdef _LIN_
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Image
 // strategy of backing up a ploop based ct.
@@ -223,57 +221,6 @@ PRL_RESULT Image::operator()(const Spec& spec_)
 	return PRL_ERR_SUCCESS;
 }
 
-#elif defined(_WIN_) // _LIN_
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Windows
-// strategy of backing up a windows ct.
-//
-
-struct Windows
-{
-	Windows(const SmartPtr<CVmConfiguration>& ct_, const Naked& naked_);
-
-	PRL_RESULT operator()(Spec spec_);
-
-private:
-	Naked m_naked;
-	QString m_path;
-	QString m_root;
-	quint32 m_deviceIndex;
-};
-
-Windows::Windows(const SmartPtr<CVmConfiguration>& ct_, const Naked& naked_):
-	m_naked(naked_), m_deviceIndex(0)
-{
-	CVmHardware * pVmHardware = ct_->getVmHardwareList();
-	for (int i = 0; i < pVmHardware->m_lstHardDisks.size(); ++i) {
-		QFileInfo fileInfo;
-		CVzHardDisk *pHdd = dynamic_cast<CVzHardDisk*>(pVmHardware->m_lstHardDisks.at(i));
-		if (pHdd == NULL)
-			continue;
-		m_root = pHdd->getSystemUuid();
-		m_deviceIndex = pHdd->getIndex();
-		fileInfo.setFile(pHdd->getSystemName());
-		if (fileInfo.isRelative()) {
-			m_path = QString("%1/%2")
-				.arg(ct_->getVmIdentification()->getHomePath())
-				.arg(fileInfo.fileName());
-		} else {
-			m_path = fileInfo.absoluteFilePath();
-		}
-		break;
-	}
-}
-
-PRL_RESULT Windows::operator()(Spec spec_)
-{
-	return m_naked.backup(m_path, m_root,
-		spec_.noCache().setDeviceIndex(m_deviceIndex)
-			.setArchive(PRL_CT_BACKUP_TIB_FILE_NAME));
-}
-
-#endif // _LIN_
 } // namespace Ct
 #endif // _CT_
 } // namespace Work
@@ -291,9 +238,8 @@ Task_CreateCtBackupHelper::Task_CreateCtBackupHelper(const SmartPtr<CDspClient>&
 int Task_CreateCtBackupHelper::execute(const CVmIdentification& ct_, quint32 deviceIndex_,
 					const QStringList& args_)
 {
-	bool x = -1 != args_.indexOf("--local");
-	return startABackupClient(ct_.getVmName(), args_, getLastError(),
-				ct_.getVmUuid(), deviceIndex_, x, m_nBackupTimeout);
+	return startABackupClient(ct_.getVmName(), args_, QStringList(),
+				ct_.getVmUuid(), deviceIndex_);
 }
 
 bool Task_CreateCtBackupHelper::isRunning() const

@@ -145,7 +145,6 @@ private:
 	SmartPtr<CVmFileListCopySender> m_pSender;
 	/* full backup path */
 	QString m_sBackupRootPath;
-	bool m_bLocalMode;
 	QString m_sSnapshotPath;
 	Backup::Activity::Service* m_service;
 };
@@ -266,6 +265,7 @@ private:
 	PRL_RESULT validateBackupDir(const QString &);
 	PRL_RESULT backupHardDiskDevices();
 	PRL_RESULT backupCtPrivate();
+	PRL_RESULT buildTibFiles();
 	PRL_RESULT loadTibFiles();
 	PRL_RESULT wasHddListChanged(bool *pbWasChanged);
 	PRL_RESULT guessBackupType();
@@ -313,6 +313,7 @@ private:
 	QMutex m_cABackupMutex;
 	bool m_bABackupFirstPacket;
 	Backup::Activity::Service* m_service;
+	QStringList m_createdTibs;
 
 private slots:
 	void handlePackage(IOSender::Handle h, const SmartPtr<IOPackage> p);
