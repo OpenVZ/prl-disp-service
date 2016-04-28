@@ -1359,7 +1359,7 @@ PRL_RESULT BackupProcess::start(const QStringList& arg_, const QStringList& env_
 		pArgv[i] = strdup(QSTR2UTF8(a.at(i)));
 	pArgv[i] = NULL;
 
-	char **pEnv = environ;
+	char **pEnv = NULL;
 	if (!env_.isEmpty()) {
 		pEnv = new char *[env_.size()+2];
 		for (i = 0; i < env_.size(); ++i)
@@ -1402,7 +1402,7 @@ PRL_RESULT BackupProcess::start(const QStringList& arg_, const QStringList& env_
 		close(in[1]); close(out[0]);
 		fcntl(in[0], F_SETFD, ~FD_CLOEXEC);
 		fcntl(out[1], F_SETFD, ~FD_CLOEXEC);
-		execvpe(QSTR2UTF8(m_sCmd), (char* const*)pArgv, (char* const*)pEnv);
+		execvpe(QSTR2UTF8(m_sCmd), (char* const*)pArgv, (char* const*)pEnv ?: environ);
 		WRITE_TRACE(DBG_FATAL, "Can't exec cmd '%s': %s",
 					QSTR2UTF8(m_sCmd), strerror(errno));
 		_exit(-1);
@@ -1428,7 +1428,7 @@ cleanup:
 	for (i = 0; pArgv[i]; ++i)
 		free(pArgv[i]);
 	delete []pArgv;
-	if (pEnv != environ) {
+	if (pEnv != NULL) {
 		for (i = 0; pEnv[i]; ++i)
 			free(pEnv[i]);
 		delete []pEnv;
