@@ -429,8 +429,9 @@ PRL_RESULT Task_CreateVmBackupTarget::run_body()
 	} else {
 		/* for QTemporaryFile file name exist after open() and before close() only */
 		args.append(m_sABackupOutFile);
+		args.prepend(QString(PRL_ABACKUP_SERVER));
 
-		if (PRL_FAILED(nRetCode = m_cABackupServer.start(this, QString(PRL_ABACKUP_SERVER), args, m_nBackupTimeout)))
+		if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, QStringList(), m_nRemoteVersion)))
 			goto exit;
 		locker.unlock();
 
@@ -698,8 +699,8 @@ PRL_RESULT Task_CreateVmBackupTarget::backupHardDiskDevices()
 
 		backupArgs << "--last-tib" << QString::number(m_nBackupNumber);
 		WRITE_TRACE(DBG_FATAL, "Start backup client: %s", QSTR2UTF8(backupArgs.join(" ")));
-		nRetCode = startABackupClient(m_sVmName, backupArgs, getLastError(),
-				m_sVmUuid, t.first.getDevice().getIndex(), true, m_nBackupTimeout);
+		nRetCode = startABackupClient(m_sVmName, backupArgs, QStringList(),
+				m_sVmUuid, t.first.getDevice().getIndex());
 		if (PRL_FAILED(nRetCode))
 			break;
 	}

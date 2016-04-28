@@ -81,7 +81,7 @@ public:
 
 	BackupProcess();
 	virtual ~BackupProcess();
-	PRL_RESULT start(QObject *pParent, QString cmd, QStringList args, UINT32 tmo);
+	PRL_RESULT start(const QStringList& args, const QStringList& env, int version);
 	PRL_RESULT waitForFinished();
 	void kill();
 	PRL_RESULT readFromABackupClient(char *buffer, qint32 size);
@@ -222,10 +222,10 @@ struct AClient
 	virtual ~AClient()
 	{
 	}
-	virtual PRL_RESULT startABackupClient(QString , QStringList , CVmEvent* ,
-			const QString& , unsigned int , bool , UINT32 ) = 0;
-	virtual PRL_RESULT startABackupClient(QString , QStringList , CVmEvent* ,
-			UINT32 , SmartPtr<Chain> ) = 0;
+	virtual PRL_RESULT startABackupClient(const QString&, const QStringList&,
+			const QStringList&, const QString&, unsigned int) = 0;
+	virtual PRL_RESULT startABackupClient(const QString&, const QStringList&,
+			const QStringList&, SmartPtr<Chain> ) = 0;
 };
 
 } // namespace Backup
@@ -304,10 +304,11 @@ protected:
  	/* is backup directory for sBackupUuid is empty from base and partial backups */
  	bool isBackupDirEmpty(const QString &sVmUuid, const QString &sBackupUuid);
 
-	PRL_RESULT startABackupClient(QString sVmName, QStringList args, CVmEvent *pEvent,
-		const QString &sNotificationVmUuid, unsigned int nDiskIdx, bool bLocalMode, UINT32 tmo);
-	PRL_RESULT startABackupClient(QString sVmName, QStringList args, CVmEvent *pEvent,
-			UINT32 tmo, SmartPtr<Chain> custom_);
+	PRL_RESULT startABackupClient(const QString& sVmName_, const QStringList& args_,
+		const QStringList& envs_, const QString &sNotificationVmUuid,
+		unsigned int nDiskIdx);
+	PRL_RESULT startABackupClient(const QString& sVmName_, const QStringList& args_,
+		const QStringList& envs_, SmartPtr<Chain> custom_);
 	PRL_RESULT handleABackupPackage(
 			const SmartPtr<CDspDispConnection> &pDispConnection,
 			const SmartPtr<IOPackage> &pRequest,

@@ -322,17 +322,27 @@ PRL_RESULT Task_CreateVmBackupSource::backupHardDiskDevices(const ::Backup::Acti
 		else
 			backupArgs << "create";
 
-		backupArgs << t.first.getFolder() << p.getStore().absolutePath()
-			<< t.second.absoluteFilePath()
-			<< activity_.getSnapshot().getUuid()
-			<< f->absoluteFilePath()
-			<< "--sandbox" << b;
+		if (BACKUP_PROTO_V4 <= m_nRemoteVersion)
+		{
+			backupArgs
+				<< "-n" << m_sVmName
+				<< "-t" << m_sBackupUuid
+				<< f->absoluteFilePath();
+		}
+		else
+		{
+			backupArgs << t.first.getFolder() << p.getStore().absolutePath()
+				<< t.second.absoluteFilePath()
+				<< activity_.getSnapshot().getUuid()
+				<< f->absoluteFilePath()
+				<< "--sandbox" << b;
+
+		}
 		if (m_nFlags & PBT_UNCOMPRESSED)
 			backupArgs.append("--uncompressed");
 
-		if (PRL_FAILED(nRetCode = startABackupClient(m_sVmName, backupArgs, getLastError(),
-							m_sVmUuid, t.first.getDevice().getIndex(),
-							false, m_nBackupTimeout)))
+		if (PRL_FAILED(nRetCode = startABackupClient(m_sVmName, backupArgs, QStringList(),
+					m_sVmUuid, t.first.getDevice().getIndex())))
 			break;
 	}
 	return nRetCode;

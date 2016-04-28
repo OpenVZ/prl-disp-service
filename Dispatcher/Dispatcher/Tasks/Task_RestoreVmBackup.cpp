@@ -260,26 +260,21 @@ namespace AClient
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
-Unit::Unit(Backup::AClient& impl_, quint32 timeout_, const QString& uuid_,
-		CVmConfiguration& vm_):
+Unit::Unit(Backup::AClient& impl_, const QString& uuid_, CVmConfiguration& vm_):
 	m_name(vm_.getVmIdentification()->getVmName()), m_uuid(uuid_),
-	m_timeout(timeout_), m_impl(&impl_)
+	m_impl(&impl_)
 {
 }
 
-PRL_RESULT Unit::operator()(Task_BackupHelper& task_, const QStringList& argv_,
-				unsigned disk_) const
+PRL_RESULT Unit::operator()(const QStringList& argv_, unsigned disk_) const
 {
-	return m_impl->startABackupClient(m_name, argv_, task_.getLastError(),
-		m_uuid, disk_, false, m_timeout);
+	return m_impl->startABackupClient(m_name, argv_, QStringList(), m_uuid, disk_);
 }
 
 
-PRL_RESULT Unit::operator()(Task_BackupHelper& task_, const QStringList& argv_,
-				SmartPtr<Chain> custom_) const
+PRL_RESULT Unit::operator()(const QStringList& argv_, SmartPtr<Chain> custom_) const
 {
-	return m_impl->startABackupClient(m_name, argv_, task_.getLastError(),
-		m_timeout, custom_);
+	return m_impl->startABackupClient(m_name, argv_, QStringList(), custom_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -440,12 +435,12 @@ Assembly* Assistant::getAssembly() const
 
 PRL_RESULT Assistant::operator()(const QStringList& argv_, unsigned disk_) const
 {
-	return m_unit(*m_task, argv_, disk_);
+	return m_unit(argv_, disk_);
 }
 
 PRL_RESULT Assistant::operator()(const QStringList& argv_, SmartPtr<Chain> custom_) const
 {
-	return m_unit(*m_task, argv_, custom_);
+	return m_unit(argv_, custom_);
 }
 
 namespace Query
@@ -1709,7 +1704,8 @@ PRL_RESULT Task_RestoreVmBackupSource::restoreVm()
 	if (PRL_FAILED(nRetCode))
 		goto exit;
 
-	if (PRL_FAILED(nRetCode = m_cABackupServer.start(this, QString(PRL_ABACKUP_SERVER), args, m_nBackupTimeout)))
+	args << QString(PRL_ABACKUP_SERVER);
+	if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, QStringList(), m_nRemoteVersion)))
 		goto exit;
 
 	if (PRL_FAILED(nRetCode = sendFiles(job)))
@@ -1785,7 +1781,8 @@ PRL_RESULT Task_RestoreVmBackupSource::restoreCt()
 	if (PRL_FAILED(nRetCode))
 		goto exit_1;
 
-	if (PRL_FAILED(nRetCode = m_cABackupServer.start(this, QString(PRL_ABACKUP_SERVER), args, m_nBackupTimeout)))
+	args << QString(PRL_ABACKUP_SERVER);
+	if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, QStringList(), m_nRemoteVersion)))
 		goto exit_1;
 
 	if (m_nInternalFlags & (PVM_CT_PLOOP_BACKUP|PVM_CT_VZWIN_BACKUP))
@@ -2297,7 +2294,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 	PRL_RESULT nRetCode;
 	Restore::Target::Vm u(m_nBackupNumber, m_sTargetPath, m_sBackupRootPath,
 			Restore::Assistant(*this,
-				Restore::AClient::Unit(*this, m_nBackupTimeout, m_sOriginVmUuid, *m_pVmConfig)));
+				Restore::AClient::Unit(*this, m_sOriginVmUuid, *m_pVmConfig)));
 	foreach (::Backup::Archive d, z.getVmArchives(m_sTargetPath))
 	{
 		if (PRL_FAILED(nRetCode = u.add(d)))
@@ -2668,7 +2665,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtToTargetPath(
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	Restore::Assistant a(*this, Restore::AClient::Unit(*this, m_nBackupTimeout, m_sOriginVmUuid, sCtName));
+	Restore::Assistant a(*this, Restore::AClient::Unit(*this, m_sOriginVmUuid, sCtName));
 	PRL_RESULT output = a.make(m_sTargetPath, true);
 	if (PRL_FAILED(output))
 		return output;
