@@ -75,10 +75,15 @@ struct Component
 	{
 		return m_folder;
 	}
+	const QString& getImage() const
+	{
+		return m_image;
+	}
 	QString getRestoreFolder() const;
 
 private:
 	QString m_folder;
+	QString m_image;
 	QString m_objectHome;
 	const CVmHardDisk* m_device;
 };

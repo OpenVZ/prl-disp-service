@@ -134,7 +134,6 @@ private:
 	IOSendJob::Handle m_hJob;
 	QString m_sDescription;
 	QString m_sVmName;
-	QString m_sBackupUuid;
 	unsigned m_nBackupNumber;
 	QString m_sVmDirUuid;
 	QString m_sVmHomePath;
