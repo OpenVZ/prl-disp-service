@@ -367,7 +367,7 @@ Result Unit::completeConfig(CVmConfiguration& config_)
 			&b, 0) == 0)
 		{
 			d->setSize(b.capacity >> 20);
-			d->setSizeOnDisk(b.physical >> 20);
+			d->setSizeOnDisk(b.allocation >> 20);
 		}
 	}
 	return Result();
