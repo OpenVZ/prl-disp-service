@@ -1345,7 +1345,7 @@ void Task_ManagePrlNetService::removeVmIPAddress(SmartPtr<CVmConfiguration> pVmC
 
 
 QSet<QHostAddress> Task_ManagePrlNetService::checkIPAddressDuplicates(SmartPtr<CVmConfiguration> pVmConfig,
-                                        const QMultiHash< QString, SmartPtr<CVmConfiguration> > &vmTotalHash)
+                                        const QList< SmartPtr<CVmConfiguration> > &vmList)
 {
 	QSet<QHostAddress> duplicates;
 	QSet<QHostAddress> ips;
@@ -1358,30 +1358,20 @@ QSet<QHostAddress> Task_ManagePrlNetService::checkIPAddressDuplicates(SmartPtr<C
 	if (ips.isEmpty())
 		return duplicates;
 
-	foreach( QString dirUuid, vmTotalHash.keys() )
+	foreach(SmartPtr<CVmConfiguration> pConfig, vmList)
 	{
-		QList< SmartPtr<CVmConfiguration> >
-			vmList = vmTotalHash.values( dirUuid );
-		for( int idx=0; idx<vmList.size(); idx++)
-		{
-			SmartPtr<CVmConfiguration> pConfig( vmList[idx] );
-			if (!pConfig)
-				continue;
+		if (!pConfig)
+			continue;
 
-			if(pConfig->getVmIdentification()->getVmUuid()  ==
-						pVmConfig->getVmIdentification()->getVmUuid())
-				continue; //Same VM
+		if(pConfig->getVmIdentification()->getVmUuid()  ==
+					pVmConfig->getVmIdentification()->getVmUuid())
+			continue; //Same VM
 
-			QSet<QHostAddress> used;
-			extractIPAddressesFromVMConfiguration(pConfig, used);
+		QSet<QHostAddress> used;
+		extractIPAddressesFromVMConfiguration(pConfig, used);
 
-			QSet<QHostAddress>  preDuplicates = used.intersect(ips);
-			if( preDuplicates.isEmpty() )
-				continue;
-
-			duplicates += preDuplicates;
-		}//for idx
-	} //foreach( QString dirUuid
+		duplicates += used.intersect(ips);
+	}//for idx
 
 	return duplicates;
 }
@@ -1399,6 +1389,8 @@ void Task_ManagePrlNetService::extractIPAddressesFromVMConfiguration(SmartPtr<CV
 	{
 		CVmGenericNetworkAdapter* adapter(itN.next());
 		if (!adapter)
+			continue;
+		if (!adapter->isAutoApply())
 			continue;
 		foreach (QString ip_mask, adapter->getNetAddresses())
 		{

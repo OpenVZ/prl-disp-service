@@ -83,7 +83,7 @@ public:
 
 	/// get duplicates IP Addresses with other VMs
 	static QSet<QHostAddress> checkIPAddressDuplicates(SmartPtr<CVmConfiguration> pVmConfig,
-                                        const QMultiHash< QString, SmartPtr<CVmConfiguration> > &vmTotalHash);
+                                        const QList< SmartPtr<CVmConfiguration> > &vmList);
 
 	/// extract all IP addresses from VM config
 	static void extractIPAddressesFromVMConfiguration(SmartPtr<CVmConfiguration> config, QSet<QHostAddress>& IPs);

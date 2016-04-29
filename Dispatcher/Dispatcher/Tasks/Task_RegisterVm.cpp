@@ -2176,7 +2176,7 @@ void Task_RegisterVm::validateNewConfiguration(  )
 		return;
 
 
-	CVmValidateConfig vc( m_pVmConfig );
+	CVmValidateConfig vc(getClient(), m_pVmConfig);
 	CVmEvent evtResult;
 
 	if (vc.HasCriticalErrors(evtResult))

@@ -1844,10 +1844,10 @@ PRL_RESULT Task_EditVm::editVm()
 				//https://bugzilla.sw.ru/show_bug.cgi?id=267152
 				CAuthHelperImpersonateWrapper _impersonate( &getClient()->getAuthHelper() );
 
-				CVmValidateConfig vc(pVmConfigNew, pVmConfigOld);
+				CVmValidateConfig vc(getClient(), pVmConfigNew, pVmConfigOld);
 				CVmEvent evtResult;
 
-				if (vc.HasCriticalErrors(evtResult, getClient(),
+				if (vc.HasCriticalErrors(evtResult,
 							(getRequestFlags() & PVCF_DESTROY_HDD_BUNDLE_FORCE) ?
 								CVmValidateConfig::PCVAL_ALLOW_DESTROY_HDD_BUNDLE_WITH_SNAPSHOTS : 0))
 				{

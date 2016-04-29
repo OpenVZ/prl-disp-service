@@ -47,6 +47,7 @@
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "CDspVzHelper.h"
+#include "CVmValidateConfig.h"
 
 using namespace Parallels;
 
@@ -802,7 +803,7 @@ void CDspClientManager::handleToDispatcherPackage (
 			.schedule(new Task_CreateProblemReport( client, p ));
 	///////////////////////////////////////////////
 	case PVE::DspCmdVmSectionValidateConfig:
-		return (void)m_service->getVmDirHelper().validateSectionVmConfig(client, p);
+		return (void)CVmValidateConfig::validateSectionConfig(client, p);
 	///////////////////////////////////////////////
 	case PVE::DspCmdVmGetSuspendedScreen:
 		return (void)m_service->getVmDirHelper().getSuspendedVmScreen(client, p);
