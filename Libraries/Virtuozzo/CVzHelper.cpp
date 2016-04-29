@@ -104,6 +104,13 @@ public:
 	{
 		return (m_h);
 	}
+	void reset(vzctl_env_handle_ptr env_)
+	{
+		if (m_h != NULL) {
+			vzctl2_env_close(m_h);
+		}
+		m_h = env_;
+	}
 };
 
 class VzctlParamWrap
@@ -766,42 +773,90 @@ void CVzHelper::release_cpu_mask(const QString &uuid)
 	numa_release_cpu_mask(Uuid::toVzid(uuid));
 }
 
-static PRL_STAT_NET_TRAFFIC *get_netstat(const QString &uuid)
+namespace
 {
-	Q_UNUSED(uuid)
 
-	return NULL;
+namespace Network
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+struct Builder
+{
+	explicit Builder(const QString& uuid_);
+
+	bool addv4();
+
+	bool addv6();
+
+	PRL_STAT_NET_TRAFFIC* getResult();
+
+private:
+	VzctlHandleWrap m_env;
+	QScopedPointer<PRL_STAT_NET_TRAFFIC> m_result;
+
+	bool fill(bool v6_);
+};
+
+Builder::Builder(const QString& uuid_) :
+	m_result(new PRL_STAT_NET_TRAFFIC())
+{
+	int ret;
+	m_env.reset(vzctl2_env_open(
+		QSTR2UTF8(CVzHelper::get_ctid_by_uuid(uuid_)),
+		VZCTL_CONF_SKIP_PARSE, &ret));
 }
 
-static PRL_STAT_NET_TRAFFIC *get_netstat6(const QString &uuid)
+bool Builder::addv4()
 {
-	Q_UNUSED(uuid)
-
-	return NULL;
+	return fill(false);
 }
+
+bool Builder::addv6()
+{
+	return fill(true);
+}
+
+bool Builder::fill(bool v6_)
+{
+	struct vzctl_tc_netstat stat;
+	if (vzctl2_get_env_tc_netstat(m_env, &stat, v6_) != 0)
+	{
+		WRITE_TRACE_RL(120, DBG_INFO, "Unable to get Container network statistics\n");
+		return false;
+	}
+
+	for (unsigned int i = 0; i < PRL_TC_CLASS_MAX; i++)
+	{
+		m_result->incoming[i] += stat.incoming[i];
+		m_result->outgoing[i] += stat.outgoing[i];
+		m_result->incoming_pkt[i] += stat.incoming_pkt[i];
+		m_result->outgoing_pkt[i] += stat.outgoing_pkt[i];
+	}
+
+	return true;
+}
+
+PRL_STAT_NET_TRAFFIC* Builder::getResult()
+{
+	return m_result.take();
+}
+
+} // namespace Network
+} // namespace
 
 PRL_STAT_NET_TRAFFIC *CVzHelper::get_net_stat(const QString &uuid)
 {
 	if (!is_vz_running())
 		return NULL;
 
-	QScopedPointer<PRL_STAT_NET_TRAFFIC> n(get_netstat(uuid));
-	if (n.isNull())
+	Network::Builder b(uuid);
+
+	if (!b.addv4() && !b.addv6())
 		return NULL;
 
-	QScopedPointer<PRL_STAT_NET_TRAFFIC> n6(get_netstat6(uuid));
-	if (n6.isNull())
-		return n.take();
-
-	for (unsigned int i = 0;i < PRL_TC_CLASS_MAX; i++)
-	{
-		n->incoming[i] += n6->incoming[i];
-		n->outgoing[i] += n6->outgoing[i];
-		n->incoming_pkt[i] += n6->incoming_pkt[i];
-		n->outgoing_pkt[i] += n6->outgoing_pkt[i];
-	}
-
-	return n.take();
+	return b.getResult();
 }
 
 int CVzHelper::update_network_classes_config(const CNetworkClassesConfig &conf)
