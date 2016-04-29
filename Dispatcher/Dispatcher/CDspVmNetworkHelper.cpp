@@ -301,6 +301,8 @@ Libvirt::Result Dao::create(const CVirtualNetwork& model_)
 		WRITE_TRACE(DBG_FATAL, "Duplicated new network ID '%s' !", QSTR2UTF8(x));
 		return Error::Simple(PRL_NET_DUPLICATE_VIRTUAL_NETWORK_ID);
 	}
+	if (PVN_HOST_ONLY == model_.getNetworkType())
+		return define(model_);
 
 	QList<Libvirt::Instrument::Agent::Network::Unit> a;
 	Libvirt::Result r = m_networks.all(a);
