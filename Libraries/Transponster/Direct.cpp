@@ -1195,7 +1195,10 @@ PRL_RESULT Direct::setIdentity()
 	if (m_input->getDescription())
 		m_result.SetDescription(m_input->getDescription().get());
 	if (m_input->getCreationTime())
-		m_result.SetCreateTime(m_input->getCreationTime().get());
+	{
+		QDateTime d = QDateTime::fromTime_t(m_input->getCreationTime().get().toUInt());
+		m_result.SetCreateTime(d.toString("yyyy-MM-dd hh:mm:ss"));
+	}
 	if (m_input->getState())
 	{
 		switch (m_input->getState().get())
