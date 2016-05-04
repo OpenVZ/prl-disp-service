@@ -118,6 +118,7 @@ HEADERS += \
 	Tasks/Task_ConfigureGenericPci.h \
 	Tasks/Task_PrepareForHibernate.h \
 	Tasks/Task_CreateVmBackup.h \
+	Tasks/Task_CreateVmBackup_p.h \
 	Tasks/Task_RestoreVmBackup.h \
 	Tasks/Task_RestoreVmBackup_p.h \
 	Tasks/Task_GetBackupTree.h \

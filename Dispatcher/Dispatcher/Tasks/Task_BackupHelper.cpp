@@ -1330,7 +1330,7 @@ PRL_RESULT BackupProcess::start(const QStringList& arg_, const QStringList& env_
 	long flags;
 
 	QStringList a(arg_);
-	PRL_ASSERT(arg_.size() < 1);
+	PRL_ASSERT(arg_.size());
 	m_sCmd = arg_.first();
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, in) < 0) {
 		WRITE_TRACE(DBG_FATAL, "socketpair() error : %s", strerror(errno));

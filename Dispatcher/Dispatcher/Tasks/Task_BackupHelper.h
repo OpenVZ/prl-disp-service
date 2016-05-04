@@ -241,6 +241,22 @@ class Task_BackupHelper: public CDspTaskHelper, public Task_DispToDispConnHelper
 public:
 	virtual QString  getVmUuid() { return m_sVmUuid; }
 
+	quint32 getFlags() const
+	{
+		return m_nFlags;
+	}
+
+	const QString& getBackupUuid() const
+	{
+		return m_sBackupUuid;
+	}
+
+	PRL_RESULT startABackupClient(const QString& sVmName_, const QStringList& args_,
+		const QStringList& envs_, const QString &sNotificationVmUuid,
+		unsigned int nDiskIdx);
+	PRL_RESULT startABackupClient(const QString& sVmName_, const QStringList& args_,
+		const QStringList& envs_, SmartPtr<Chain> custom_);
+
 protected:
 	Task_BackupHelper(const SmartPtr<CDspClient> &client, const SmartPtr<IOPackage> &p);
 	virtual ~Task_BackupHelper();
@@ -304,11 +320,6 @@ protected:
  	/* is backup directory for sBackupUuid is empty from base and partial backups */
  	bool isBackupDirEmpty(const QString &sVmUuid, const QString &sBackupUuid);
 
-	PRL_RESULT startABackupClient(const QString& sVmName_, const QStringList& args_,
-		const QStringList& envs_, const QString &sNotificationVmUuid,
-		unsigned int nDiskIdx);
-	PRL_RESULT startABackupClient(const QString& sVmName_, const QStringList& args_,
-		const QStringList& envs_, SmartPtr<Chain> custom_);
 	PRL_RESULT handleABackupPackage(
 			const SmartPtr<CDspDispConnection> &pDispConnection,
 			const SmartPtr<IOPackage> &pRequest,
@@ -352,6 +363,7 @@ protected:
 	quint32 m_nSteps;
 	quint32 m_nBackupTimeout;
 	quint32 m_nRemoteVersion;
+	QString m_sBackupUuid;
 
 	/* list of directories for plain copy : file info and relative path from Vm home directory */
 	QList<QPair<QFileInfo, QString> > m_DirList;

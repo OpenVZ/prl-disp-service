@@ -44,6 +44,7 @@
 #include "prlcommon/Std/PrlTime.h"
 
 #include "Task_CreateVmBackup.h"
+#include "Task_CreateVmBackup_p.h"
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "CDspService.h"
 #include "prlcommon/Std/PrlAssert.h"
@@ -63,6 +64,94 @@
 #include "CDspBackupDevice.h"
 #include "vzctl/libvzctl.h"
 #endif
+
+namespace Work
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Command
+
+const QFileInfo * Command::findArchive(const ::Backup::Product::component_type& t_)
+{
+	foreach (const ::Backup::Product::component_type& c,
+			m_activity.getSnapshot().getComponents())
+	{
+		if (t_.first.getFolder() == c.first.getFolder())
+			return &c.second;
+	}
+	return NULL;
+}
+
+QStringList Command::buildArgs()
+{
+	QStringList a;
+	if (m_context->getFlags() & PBT_INCREMENTAL)
+		a << "append";
+	else
+		a << "create";
+	return a;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct ACommand
+
+QStringList ACommand::buildArgs(const ::Backup::Product::component_type& t_, const QFileInfo* f_)
+{
+	QStringList a(Command::buildArgs());
+
+	QString b = CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()
+		->getBackupSourcePreferences()->getSandbox();
+	a << t_.first.getFolder() << m_product.getStore().absolutePath()
+		<< t_.second.absoluteFilePath()
+		<< m_activity.getSnapshot().getUuid()
+		<< f_->absoluteFilePath()
+		<< "--sandbox" << b;
+
+	if (m_context->getFlags() & PBT_UNCOMPRESSED)
+		a << "--uncompressed";
+	return a;
+}
+
+PRL_RESULT ACommand::do_()
+{
+	PRL_RESULT output = PRL_ERR_SUCCESS;
+	foreach (const ::Backup::Product::component_type& t, m_product.getVmTibs())
+	{
+		const QFileInfo* f = findArchive(t);
+		QStringList args = buildArgs(t, f);
+		if (PRL_FAILED(output = m_worker(args, t.first.getDevice().getIndex())))
+			break;
+	}
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VCommand
+
+QStringList VCommand::buildArgs()
+{
+	QStringList a(Command::buildArgs());
+
+	QString n = m_product.getObject().getConfig()->getVmIdentification()->getVmName();
+	a << "-n" << n << "-p" << m_context->getBackupUuid();
+
+	foreach (const ::Backup::Product::component_type& t, m_product.getVmTibs())
+	{
+		a << "--image" << QString("%1:%2").arg(t.first.getImage())
+						.arg(t.second.absoluteFilePath());
+	}
+
+	if (m_context->getFlags() & PBT_UNCOMPRESSED)
+		a << "--uncompressed";
+	a << "--disp-mode";
+	return a;
+}
+
+PRL_RESULT VCommand::do_()
+{
+	return m_worker(buildArgs(), 0);
+}
+
+} // namespace Work
 
 /*******************************************************************************
 
@@ -294,58 +383,13 @@ PRL_RESULT Task_CreateVmBackupSource::backupHardDiskDevices(const ::Backup::Acti
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	QString b = CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()
-		->getBackupSourcePreferences()->getSandbox();
 	::Backup::Product::Model p(::Backup::Object::Model(m_pVmConfig), m_sVmHomePath);
 	p.setStore(m_sBackupRootPath);
-	foreach (const ::Backup::Product::component_type& t,
-		p.getVmTibs())
-	{
-		const QFileInfo* f = NULL;
-		nRetCode = PRL_ERR_UNEXPECTED;
-		foreach (const ::Backup::Product::component_type& c,
-				activity_.getSnapshot().getComponents())
-		{
-			if (t.first.getFolder() == c.first.getFolder())
-			{
-				f = &c.second;
-				break;
-			}
-		}
-		if (NULL == f)
-			break;
 
-		QStringList backupArgs;
-		if (m_nFlags & PBT_INCREMENTAL)
-			backupArgs << "append";
-		else
-			backupArgs << "create";
-
-		if (BACKUP_PROTO_V4 <= m_nRemoteVersion)
-		{
-			backupArgs
-				<< "-n" << m_sVmName
-				<< "-t" << m_sBackupUuid
-				<< f->absoluteFilePath();
-		}
-		else
-		{
-			backupArgs << t.first.getFolder() << p.getStore().absolutePath()
-				<< t.second.absoluteFilePath()
-				<< activity_.getSnapshot().getUuid()
-				<< f->absoluteFilePath()
-				<< "--sandbox" << b;
-
-		}
-		if (m_nFlags & PBT_UNCOMPRESSED)
-			backupArgs.append("--uncompressed");
-
-		if (PRL_FAILED(nRetCode = startABackupClient(m_sVmName, backupArgs, QStringList(),
-					m_sVmUuid, t.first.getDevice().getIndex())))
-			break;
-	}
-	return nRetCode;
+	if (BACKUP_PROTO_V4 <= m_nRemoteVersion)
+		return Work::VCommand(*this, p, activity_).do_();
+	else
+		return Work::ACommand(*this, p, activity_).do_();
 }
 
 /* send start request for remote dispatcher and wait reply from dispatcher */
