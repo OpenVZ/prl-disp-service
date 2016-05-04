@@ -150,6 +150,7 @@ private:
 	QStringList		m_strListToDelete;
 
 	QString m_sVmHomePath;
+	QString m_vmDirectoryUuid;
 };
 
 

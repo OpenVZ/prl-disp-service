@@ -213,6 +213,7 @@ private:
 
 	CVmDirectory::TemporaryCatalogueItem*	m_pVmInfo;
 	SmartPtr<CVmConfiguration>				m_pVmConfig;
+	QString m_dirUuid;
 
 	bool m_flgLockRegistred;
 	bool m_flgRegisterOnly;

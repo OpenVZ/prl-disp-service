@@ -85,13 +85,17 @@ public:
 	{
 		return m_newVmName;
 	}
-	const QString& getNewVmUuid() const
+	const CVmIdent& getNewVmIdent() const
 	{
-		return m_newVmUuid;
+		return m_newVmIdent;
 	}
 	const SmartPtr<CVmConfiguration>& getVmConfig() const
 	{
 		return m_pOldVmConfig;
+	}
+	bool isCreateTemplate() const
+	{
+		return m_bCreateTemplate;
 	}
 	QString getNewVmHome() const;
 	PRL_RESULT track(CDspTaskHelper* task_);
@@ -176,6 +180,7 @@ private:
 	bool m_bLinkedClone;
 	/** Sign whether Boot Camp partitions must be imported */
 	bool m_bImportBootCamp;
+	CVmIdent m_newVmIdent;
 };
 
 

@@ -164,13 +164,13 @@ const QString CDspClient::getVmDirectoryUuid () const
 {
 	return m_vmDirUuid;
 }
+
 const QStringList CDspClient::getVmDirectoryUuidList () const
 {
 	QStringList lst;
 	lst += m_vmDirUuid;
-	if (CDspService::isServerModePSBM())
-		lst += CDspVmDirManager::getVzDirectoryUuid();
-
+	lst += CDspVmDirManager::getVzDirectoryUuid();
+	lst += CDspVmDirManager::getTemplatesDirectoryUuid();
 	return lst;
 }
 

@@ -156,14 +156,10 @@ void Task_EditVm::finalizeTask()
 			vmDirHelper.fillOuterConfigParams( getClient(), pVmConfig );
 		else
 		{
-			pVmConfig = vmDirHelper.getVmConfigByUuid(CDspService::instance()->getVmDirManager()
-					.getTemplatesDirectoryUuid(), getVmUuid(), error);
-			if (!pVmConfig) {
-				WRITE_TRACE( DBG_FATAL, "Can't load vm config for %s vm to make EditCommit response by err %s"
-					, QSTR2UTF8( getVmUuid() )
-					, PRL_RESULT_TO_STRING(error) );
-				pVmConfig = vmDirHelper.CreateDefaultVmConfigByRcValid( getClient(), error, getVmUuid() );
-			}
+			WRITE_TRACE( DBG_FATAL, "Can't load vm config for %s vm to make EditCommit response by err %s"
+				, QSTR2UTF8( getVmUuid() )
+				, PRL_RESULT_TO_STRING(error) );
+			pVmConfig = vmDirHelper.CreateDefaultVmConfigByRcValid( getClient(), error, getVmUuid() );
 		}
 		if( pVmConfig )
 		{

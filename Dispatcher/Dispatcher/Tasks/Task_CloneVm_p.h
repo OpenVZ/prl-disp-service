@@ -110,11 +110,7 @@ struct Facade
 	}
 	SmartPtr<CDspClient> getClient() const;
 	const QString& getNewVmName() const;
-	const QString& getNewVmUuid() const;
-	const QString getDirectory() const
-	{
-		return getClient()->getVmDirectoryUuid();
-	}
+	const CVmIdent& getNewVmIdent() const;
 	const SmartPtr<CVmConfiguration>& getConfig() const;
 	SmartPtr<IOPackage> getRequest() const;
 private:
@@ -221,7 +217,7 @@ struct Private: private Toolkit
 	bool checkAccess(const CVmHardDisk& device_) const;
 	PRL_RESULT setRoot(const QString& uuid_);
 	PRL_RESULT getSpaceUsed(quint32 mode_, quint64& dst_) const;
-	using Facade::getDirectory;
+	using Facade::getNewVmIdent;
 private:
 	bool doGetPath(const QString& path_, QString& dst_) const;
 
@@ -258,7 +254,6 @@ struct Total: noncopyable, private Facade
 	}
 	PRL_RESULT checkAccess() const;
 	QList<CVmHardDisk* > copyHardDisks() const;
-	PRL_RESULT getVm(SmartPtr<CDspVm>& dst_, bool& unregister_) const;
 private:
 	PRL_RESULT checkHardwareAccess(Failure& failure_) const;
 
@@ -354,7 +349,6 @@ struct Snapshot: private Facade
 {
 	explicit Snapshot(Task_CloneVm& task_);
 
-	PRL_RESULT take(const Source::Total& source_);
 	PRL_RESULT link(const QString& source_, const QString& target_);
 private:
 	bool skip(const Source::Total& source_) const;
@@ -373,7 +367,7 @@ struct Flavor
 {
 	static QString getExternal(const CVmHardDisk& device_, const Facade& work_)
 	{
-		return getExternal(device_, Vm::Config::getVmHomeDirName(work_.getNewVmUuid()));
+		return getExternal(device_, Vm::Config::getVmHomeDirName(work_.getNewVmIdent().first));
 	}
 	static QString getExternal(const CVmHardDisk& device_, const QString& name_);
 	static QString getLocation(const CVmHardDisk& device_);

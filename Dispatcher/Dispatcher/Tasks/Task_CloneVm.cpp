@@ -46,6 +46,7 @@
 #include "Tasks/Task_ChangeSID.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "CDspVm.h"
+#include "CDspVm_p.h"
 #include "CDspVmNetworkHelper.h"
 #include "CDspLibvirt.h"
 #include "CDspVmStateSender.h"
@@ -73,9 +74,9 @@ const QString& Facade::getNewVmName() const
 	return m_task->getNewVmName();
 }
 
-const QString& Facade::getNewVmUuid() const
+const CVmIdent& Facade::getNewVmIdent() const
 {
-	return m_task->getNewVmUuid();
+	return m_task->getNewVmIdent();
 }
 
 const SmartPtr<CVmConfiguration>& Facade::getConfig() const
@@ -241,42 +242,6 @@ bool Snapshot::skip(const Source::Total& source_) const
 */
 	}
 	return true;
-}
-
-PRL_RESULT Snapshot::take(const Source::Total& source_)
-{
-	m_uuid.clear();
-	if (skip(source_))
-		return PRL_ERR_SUCCESS;
-
-	if (getTask().operationIsCancelled())
-		return m_failure(PRL_ERR_OPERATION_WAS_CANCELED);
-
-	bool bNewVmInstance = false;
-	SmartPtr<CDspVm> pVm;
-	PRL_RESULT output = source_.getVm(pVm, bNewVmInstance);
-	if (PRL_FAILED(output))
-		return m_failure(output);
-
-/*	QString u = Uuid::createUuid().toString();
-	CProtoCommandPtr pRequest = CProtoSerializer::CreateCreateSnapshotProtoCommand(
-			source_.getConfig().getUuid(), QString("Snapshot for a linked clone"),
-			QString(), u, QString(), QString(), PCSF_DISK_ONLY);
-	CVmEvent evt;
-	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspCmdVmCreateSnapshot, pRequest);
-	if (!pVm->createSnapshot(getClient(), pPackage, &evt, true) || PRL_FAILED(evt.getEventCode()))
-	{
-		output = m_failure(evt);
-		WRITE_TRACE(DBG_FATAL, "Error occurred while snapshot creating with code [%#x][%s]",
-			output, PRL_RESULT_TO_STRING(output));
-	}
-	else
-		m_uuid = u; */
-
-	if (bNewVmInstance)
-		CDspVm::UnregisterVmObject(pVm);
-
-	return output;
 }
 
 PRL_RESULT Snapshot::link(const QString& source_, const QString& target_)
@@ -516,7 +481,7 @@ PRL_RESULT Exclusive::lock(PVE::IDispatcherCommands command_)
 		return PRL_ERR_OPERATION_PENDING;
 	}
 	PRL_RESULT e = m_helper->registerExclusiveVmOperation(
-						m_uuid, getDirectory(),
+						m_uuid, getNewVmIdent().second,
 						command_, getClient(),
 						getTask().getJobUuid());
 	if (PRL_FAILED(e))
@@ -534,7 +499,7 @@ PRL_RESULT Exclusive::unlock()
 		return PRL_ERR_UNEXPECTED;
 	}
 	PRL_RESULT output = m_helper->unregisterExclusiveVmOperation(m_uuid,
-					getDirectory(),	m_command, getClient());
+					getNewVmIdent().second, m_command, getClient());
 	m_command = PVE::DspIllegalCommand;
 	return output;
 }
@@ -545,7 +510,7 @@ PRL_RESULT Exclusive::unlock()
 PRL_RESULT Private::setRoot(const QString& uuid_)
 {
 	m_root.clear();
-	CVmIdent i = getClient()->getVmIdent(uuid_);
+	CVmIdent i(CDspVmDirHelper::getVmIdentByVmUuid(uuid_, getClient()));
 	m_config = CDspVmDirManager::getVmHomeByUuid(i);
 	if (m_config.isEmpty())
 		return PRL_ERR_INVALID_ARG;
@@ -624,34 +589,6 @@ QList<CVmHardDisk* > Total::copyHardDisks() const
 	return output;
 }
 
-PRL_RESULT Total::getVm(SmartPtr<CDspVm>& dst_, bool& unregister_) const
-{
-	CDspAccessManager::VmAccessRights p = CDspService::instance()
-			->getAccessManager().getAccessRightsToVm(getClient(),
-				m_config.getUuid());
-	if (!(p.canRead() && p.canWrite() && p.canExecute()))
-	{
-		WRITE_TRACE(DBG_FATAL, "Client hasn't enough rights for linked clone");
-		return PRL_ERR_NOT_ENOUGH_RIGHTS_FOR_LINKED_CLONE;
-	}
-	unregister_ = false;
-	PRL_RESULT e = PRL_ERR_SUCCESS;
-	dst_ = CDspVm::CreateInstance(m_config.getUuid(), m_private->getDirectory(),
-			e, unregister_, getClient(), PVE::DspCmdVmCreateSnapshot);
-	if (PRL_FAILED(e))
-	{
-		WRITE_TRACE(DBG_FATAL, "Error occurred while CDspVm::CreateInstance() with code [%#x][%s]",
-			e, PRL_RESULT_TO_STRING(e));
-		return e;
-	}
-	if (!dst_.isValid())
-	{
-		WRITE_TRACE(DBG_FATAL, "Unknown CDspVm::CreateInstance() error");
-		return PRL_ERR_OPERATION_FAILED;
-	}
-	return PRL_ERR_SUCCESS;
-}
-
 PRL_RESULT Total::checkHardwareAccess(Failure& failure_) const
 {
 	foreach (CVmFloppyDisk* d, m_config.getHardware().m_lstFloppyDisks)
@@ -695,7 +632,7 @@ PRL_RESULT Total::checkAccess() const
 		return f(e);
 	}
 	f.code(PRL_ERR_DISP_VM_COMMAND_CANT_BE_EXECUTED);
-	switch (CDspVm::getVmState(m_config.getUuid(), m_private->getDirectory()))
+	switch (CDspVm::getVmState(m_config.getUuid(), m_private->getNewVmIdent().second))
 	{
 	default:
 		return checkHardwareAccess(f.code(PRL_ERR_ACCESS_TO_CLONE_VM_DEVICE_DENIED));
@@ -747,8 +684,6 @@ PRL_RESULT Work::operator()(Sink::Builder& sink_)
 		if (!m_snapshot.isNull())
 		{
 			m_source->unlock();
-			if (PRL_FAILED(output = m_snapshot->take(*m_source)))
-				return output;
 			if (PRL_FAILED(output = m_source->lock(m_lock)))
 				return output;
 		}
@@ -763,7 +698,7 @@ PRL_RESULT Work::operator()(Sink::Builder& sink_)
 		if (PRL_FAILED(output = sink_.copyContent(*m_source, m_snapshot.data())))
 			goto unlock;
 	}
-	output = sink_.saveConfig(getNewVmName(), getNewVmUuid());
+	output = sink_.saveConfig(getNewVmName(), getNewVmIdent().first);
 unlock:
 	m_source->unlock();
 	return output;
@@ -866,7 +801,7 @@ PRL_RESULT Dress::setDirectoryItem()
 	x->setRegDateTime(QDateTime::currentDateTime());
 	x->setChangedBy(u);
 	x->setChangeDateTime(QDateTime::currentDateTime());
-	PRL_RESULT output = s().getVmDirHelper().insertVmDirectoryItem(getDirectory(), x);
+	PRL_RESULT output = s().getVmDirHelper().insertVmDirectoryItem(getNewVmIdent().second, x);
 	if(PRL_FAILED(output))
 	{
 		WRITE_TRACE(DBG_FATAL, ">>> Can't insert vm into the VmDirectory with error %#x, %s",
@@ -877,8 +812,7 @@ PRL_RESULT Dress::setDirectoryItem()
 
 void Dress::undoDirectoryItem()
 {
-	PRL_RESULT e = s().getVmDirHelper().deleteVmDirectoryItem(
-				getDirectory(), getNewVmUuid());
+	PRL_RESULT e = s().getVmDirHelper().deleteVmDirectoryItem(getNewVmIdent().second, getNewVmIdent().first);
 	if (PRL_FAILED(e))
 		WRITE_TRACE(DBG_FATAL, "Can not deleted VmDirectoryItem on clonning VM failure");
 }
@@ -921,7 +855,7 @@ PRL_RESULT Dress::importBootcamps()
 void Dress::undoLibvirtDomain()
 {
 #ifdef _LIBVIRT_
-	Libvirt::Kit.vms().at(getNewVmUuid()).undefine();
+	Libvirt::Kit.vms().at(getNewVmIdent().first).undefine();
 #endif // _LIBVIRT_
 }
 
@@ -942,10 +876,10 @@ PRL_RESULT Dress::addLibvirtDomain()
 PRL_RESULT Dress::declareVm()
 {
 	WRITE_TRACE(DBG_DEBUG, "declare VM UUID: %s, Dir UUID: %s, Config: %s",
-		qPrintable(getNewVmUuid()),
+		qPrintable(getNewVmIdent().first),
 		qPrintable(getClient()->getVmDirectoryUuid()),
 		qPrintable(m_path));
-	return getTask().getRegistry().declare(CVmIdent(getNewVmUuid(),
+	return getTask().getRegistry().declare(CVmIdent(getNewVmIdent().first,
 			getClient()->getVmDirectoryUuid()), m_path);
 }
 
@@ -1479,6 +1413,10 @@ Task_CloneVm::Task_CloneVm(Registry::Public& registry_,
 			.arg(VMDIR_DEFAULT_VM_CONFIG_FILE);
 
 	} while(0);
+
+	m_newVmIdent = MakeVmIdent(m_newVmUuid, (m_bCreateTemplate
+				? DspVm::vdm().getTemplatesDirectoryUuid()
+				: user->getVmDirectoryUuid()));
 
 	//////////////////////////////////////////////////////////////////////////
 	setTaskParameters(

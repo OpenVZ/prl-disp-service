@@ -211,29 +211,25 @@ void CDspAccessManager::initAccessRights()
 }
 
 CDspAccessManager::VmAccessRights
-CDspAccessManager::getAccessRightsToVm( SmartPtr<CDspClient> pSession, const QString& vmUuid )
+CDspAccessManager::getAccessRightsToVm(SmartPtr<CDspClient> pSession_, const QString& vmUuid_)
 {
-	PRL_ASSERT( pSession );
-	if( !pSession )
-		return CDspAccessManager::VmAccessRights( CDspAccessManager::VmAccessRights::arCanNone );
+	PRL_ASSERT(pSession_);
+	if(!pSession_)
+		return CDspAccessManager::VmAccessRights(CDspAccessManager::VmAccessRights::arCanNone);
 
-	CDspLockedPointer<CVmDirectoryItem>
-		pVmDirItem = CDspService::instance()->getVmDirManager()
-		.getVmDirItemByUuid( pSession->getVmDirectoryUuid(), vmUuid );
-	if ( !pVmDirItem )
-	{
-		WRITE_TRACE(DBG_FATAL, "Can't found pVmDirItem by vmUuid '%s', dirUuid = '%s'"
-			, QSTR2UTF8( vmUuid )
-			, QSTR2UTF8( pSession->getVmDirectoryUuid() )
-			);
-		return  CDspAccessManager::VmAccessRights( CDspAccessManager::VmAccessRights::arCanNone );
-	}
+	CDspLockedPointer<CVmDirectoryItem> pVmDirItem(CDspService::instance()->getVmDirManager()
+		.getVmDirItemByUuid(CDspVmDirHelper::getVmIdentByVmUuid(vmUuid_, pSession_)));
 
-	return getAccessRightsToVm( pSession, pVmDirItem.getPtr() );
+	if (pVmDirItem)
+		return getAccessRightsToVm(pSession_, pVmDirItem.getPtr());
+
+	WRITE_TRACE(DBG_FATAL, "Can't found pVmDirItem by vmUuid '%s', dirUuid = '%s'",
+			QSTR2UTF8(vmUuid_), QSTR2UTF8(pSession_->getVmDirectoryUuid()));
+	return CDspAccessManager::VmAccessRights(CDspAccessManager::VmAccessRights::arCanNone);
 }
 
 CDspAccessManager::VmAccessRights
-CDspAccessManager::getAccessRightsToVm( SmartPtr<CDspClient> pSession, const CVmDirectoryItem* pVmDirItem )
+CDspAccessManager::getAccessRightsToVm(SmartPtr<CDspClient> pSession, const CVmDirectoryItem* pVmDirItem)
 {
 	//  As defined in specification:
 	//	http://wiki.parallels.com/index.php/Using_VM_Permissions
@@ -310,46 +306,38 @@ PRL_RESULT
 CDspAccessManager::checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherCommands cmd
 							   , const QString& vmUuid, bool *bSetNotValid, CVmEvent *pErrorInfo )
 {
-	PRL_ASSERT( pSession );
+	PRL_ASSERT(pSession);
 	try
 	{
-		if( !pSession )
+		if (!pSession)
 			throw PRL_ERR_ACCESS_TO_VM_DENIED;
 
-		CDspLockedPointer<CVmDirectoryItem>
-			pVmDirItem = CDspService::instance()->getVmDirManager()
-				.getVmDirItemByUuid( pSession->getVmDirectoryUuid(), vmUuid );
-		if ( !pVmDirItem )
-		{
-			pVmDirItem = CDspService::instance()->getVmDirManager()
-				.getVmDirItemByUuid(CDspService::instance()->getVmDirManager().
-						getTemplatesDirectoryUuid(), vmUuid);
-			if (!pVmDirItem)
-			{
-				WRITE_TRACE(DBG_FATAL, "CDspAccessManager::checkAccess: "
-					"Can't found pVmDirItem by vmUuid '%s'"
-					, QSTR2UTF8(vmUuid));
-				throw PRL_ERR_VM_UUID_NOT_FOUND;
-			}
-		}
+		CVmIdent ident(CDspVmDirHelper::getVmIdentByVmUuid(vmUuid, pSession));
+		CDspLockedPointer<CVmDirectoryItem> pVmDirItem(CDspService::instance()->getVmDirManager()
+				.getVmDirItemByUuid(ident));
+		if (pVmDirItem)
+			return checkAccess(pSession, cmd, pVmDirItem.getPtr(), bSetNotValid, pErrorInfo);
 
-		return checkAccess( pSession, cmd, pVmDirItem.getPtr(), bSetNotValid, pErrorInfo );
+		WRITE_TRACE(DBG_FATAL, "CDspAccessManager::checkAccess: "
+			"Can't found pVmDirItem by vmUuid '%s'" , QSTR2UTF8(vmUuid));
+		throw PRL_ERR_VM_UUID_NOT_FOUND;
 	}
 	catch (PRL_RESULT nErrCode)
 	{
 		if (pErrorInfo)
 			pErrorInfo->setEventCode(nErrCode);
-		return (nErrCode);
+		return nErrCode;
 	}
 }
 
 PRL_RESULT
 CDspAccessManager::checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherCommands cmd
-	, CVmDirectoryItem* pVmDirItem, bool *bSetNotValid, CVmEvent *pErrorInfo )
+	, CVmDirectoryItem* pVmDirItem, bool *bSetNotValid, CVmEvent *pErrorInfo)
 {
 	PRL_ASSERT( pSession );
 	PRL_ASSERT( pVmDirItem );
 
+	QString v(CDspVmDirHelper::getVmDirUuidByVmUuid(pVmDirItem->getVmUuid(), pSession));
 	try
 	{
 		if( !pVmDirItem || !pSession )
@@ -357,7 +345,7 @@ CDspAccessManager::checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherC
 
 		//Check whether VM is exclusively locked
 		IOSender::Handle hSession = CDspService::instance()->getVmDirHelper().
-				getVmLockerHandle( pVmDirItem->getVmUuid(), pSession->getVmDirectoryUuid() );
+				getVmLockerHandle(pVmDirItem->getVmUuid(), v);
 		if ( !hSession.isEmpty() && pSession->getClientHandle() != hSession )
 		{
 			switch ( cmd )

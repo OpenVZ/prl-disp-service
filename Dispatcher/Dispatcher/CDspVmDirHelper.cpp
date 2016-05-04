@@ -746,11 +746,8 @@ SmartPtr<CVmConfiguration> CDspVmDirHelper::CreateDefaultVmConfigByRcValid(
 	PRL_RESULT error = PRL_ERR_SUCCESS;
 	SmartPtr<CVmConfiguration> pVmConfig(0);
 
-	QString vmDirUuid = pUserSession->getVmDirectoryUuid();
-
-	CDspLockedPointer< CVmDirectoryItem >
-		pVmDirItem = CDspService::instance()->getVmDirManager()
-		.getVmDirItemByUuid( vmDirUuid, vmUuid );
+	CVmIdent ident(CDspVmDirHelper::getVmIdentByVmUuid(vmUuid, pUserSession));
+		CDspLockedPointer< CVmDirectoryItem > pVmDirItem(CDspService::instance()->getVmDirManager().getVmDirItemByUuid(ident));
 
 	switch (rc)
 	{
@@ -796,7 +793,7 @@ SmartPtr<CVmConfiguration> CDspVmDirHelper::CreateDefaultVmConfigByRcValid(
 			sVmName = fileInfo.fileName();
 
 			// Make VM name unique
-			sVmName = Task_RegisterVm::getUniqueVmName(sVmName, vmDirUuid);
+			sVmName = Task_RegisterVm::getUniqueVmName(sVmName, ident.second);
 		}
 		pVmConfig->getVmIdentification()->setVmName(sVmName);
 	}
@@ -866,6 +863,22 @@ SmartPtr<CVmConfiguration> CDspVmDirHelper::CreateVmConfigFromDirItem(
 	return pConfig;
 }
 
+CVmIdent CDspVmDirHelper::getVmIdentByVmUuid(const QString &vmUuid_, SmartPtr<CDspClient> userSession_)
+{
+	return MakeVmIdent(vmUuid_, CDspVmDirHelper::getVmDirUuidByVmUuid(vmUuid_, userSession_));
+}
+
+QString CDspVmDirHelper::getVmDirUuidByVmUuid(const QString &vmUuid_, SmartPtr<CDspClient> userSession_)
+{
+	foreach (const QString& dirUuid, userSession_->getVmDirectoryUuidList()) {
+		CDspLockedPointer<CVmDirectoryItem> p(CDspService::instance()->getVmDirManager()
+			.getVmDirItemByUuid(dirUuid, vmUuid_));
+		if (p)
+			return dirUuid;
+	}
+	return QString();
+}
+
 /**
 * @brief Sends VM list.
 * @param sender
@@ -895,7 +908,7 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 	QList<SmartPtr<CVmConfiguration> > _vms_configs;
 	QStringList dirUuids;
 	if (nFlags & PGVLF_GET_ONLY_VM_TEMPLATES)
-		dirUuids.append(CDspService::instance()->getVmDirManager().getTemplatesDirectoryUuid());
+		dirUuids.append(CDspVmDirManager::getTemplatesDirectoryUuid());
 	else
 		dirUuids.append(pUserSession->getVmDirectoryUuid());
 	foreach (QString dirUuid, dirUuids)
@@ -1061,28 +1074,14 @@ bool CDspVmDirHelper::findVm(const IOSender::Handle& sender,
 		CDspVmDirManager &dirMgr = CDspService::instance()->getVmDirManager();
 		/* Lock VM dir catalogue */
 		CDspLockedPointer<CVmDirectories> pLockedDirs = dirMgr.getVmDirCatalogue();
-		QString vmDirUuid = pUserSession->getVmDirectoryUuid();
-#ifdef _CT_
-		QString ctDirUuid = dirMgr.getVzDirectoryUuid();
-#endif
 		CVmDirectoryItem *pItem = NULL;
-
-		if ( nFlags & PGVC_SEARCH_BY_UUID )
-		{
-			pItem = dirMgr.getVmDirItemByUuid(vmDirUuid, sSearchId).getPtr();
-#ifdef _CT_
-			if ( pItem == NULL )
-				pItem = dirMgr.getVmDirItemByUuid(ctDirUuid, sSearchId).getPtr();
-#endif
-		}
-
-		if ( pItem == NULL && nFlags & PGVC_SEARCH_BY_NAME )
-		{
-			pItem = dirMgr.getVmDirItemByName(vmDirUuid, sSearchId).getPtr();
-#ifdef _CT_
-			if ( pItem == NULL )
-				pItem = dirMgr.getVmDirItemByName(ctDirUuid, sSearchId).getPtr();
-#endif
+		foreach (const QString &vmDirUuid, pUserSession->getVmDirectoryUuidList()) {
+			if (nFlags & PGVC_SEARCH_BY_UUID)
+				pItem = dirMgr.getVmDirItemByUuid(vmDirUuid, sSearchId).getPtr();
+			if (pItem == NULL && nFlags & PGVC_SEARCH_BY_NAME)
+				pItem = dirMgr.getVmDirItemByName(vmDirUuid, sSearchId).getPtr();
+			if (pItem != NULL)
+				break;
 		}
 
 		if( pItem == NULL ) {
@@ -1098,12 +1097,10 @@ bool CDspVmDirHelper::findVm(const IOSender::Handle& sender,
 	{
 		return sendVmConfigByUuid(sender, pUserSession, pkg, sVmUuid);
 	}
-#ifdef _CT_
 	else if ( nVmType == PVT_CT )
 	{
 		return CDspService::instance()->getVzHelper()->sendCtConfigByUuid(sender, pUserSession, pkg, sVmUuid);
 	}
-#endif
 	else
 	{
 		PRL_ASSERT(0);
@@ -1264,16 +1261,16 @@ PRL_RESULT CDspVmDirHelper::fillVmInfo(
 
 	PRL_RESULT rc = PRL_ERR_FAILURE;
 	bool bSetNotValid = false;
+	CVmIdent ident(CDspVmDirHelper::getVmIdentByVmUuid(vm_uuid, pUserSession));
 	{
 		// LOCK inside brackets
-		CDspLockedPointer<CVmDirectoryItem>
-			pVmDirItem =  CDspService::instance()->getVmDirManager()
-			.getVmDirItemByUuid( pUserSession->getVmDirectoryUuid(), vm_uuid );
+		CDspLockedPointer<CVmDirectoryItem> pVmDirItem(CDspService::instance()->getVmDirManager().getVmDirItemByUuid(ident));
+
 		if ( !pVmDirItem )
 			return PRL_ERR_VM_UUID_NOT_FOUND;
 
 		rc = CDspService::instance()->getAccessManager()
-			.checkAccess( pUserSession, PVE::DspCmdGetVmInfo, pVmDirItem.getPtr(), &bSetNotValid );
+			.checkAccess(pUserSession, PVE::DspCmdGetVmInfo, pVmDirItem.getPtr(), &bSetNotValid);
 
 		if( PRL_FAILED(rc) )
 		switch(rc)
@@ -1291,7 +1288,7 @@ PRL_RESULT CDspVmDirHelper::fillVmInfo(
 
 		if( !pVmSecurity )
 		{
-			pTmpVmSecurity = FillVmSecurity( pUserSession, pVmDirItem.getPtr() );
+			pTmpVmSecurity = FillVmSecurity(pUserSession, pVmDirItem.getPtr());
 			pVmSecurity = pTmpVmSecurity.getImpl();
 		}
 	}
@@ -1318,9 +1315,12 @@ PRL_RESULT CDspVmDirHelper::fillVmInfo(
 
 	PRL_RESULT err = PRL_ERR_FAILURE;
 	SmartPtr<CVmConfiguration> c = getVmConfigByUuid(pUserSession, vm_uuid, err);
-	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(vm_uuid);
+	if (c && !c->getVmSettings()->getVmCommonOptions()->isTemplate())
+		Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(vm_uuid);
 
-	VIRTUAL_MACHINE_STATE s(CDspVm::getVmState( vm_uuid, pUserSession->getVmDirectoryUuid()));
+	VIRTUAL_MACHINE_STATE s(VMS_STOPPED);
+	if (c && !c->getVmSettings()->getVmCommonOptions()->isTemplate())
+		s = CDspVm::getVmState( vm_uuid, ident.second);
 	bool bIsVncServerStarted = s == VMS_RUNNING
 		&& PRL_SUCCEEDED(err)
 		&& c->getVmSettings()->getVmRemoteDisplay()->getMode()
@@ -1331,20 +1331,15 @@ PRL_RESULT CDspVmDirHelper::fillVmInfo(
 		, EVT_PARAM_VMINFO_IS_VNC_SERVER_STARTED ));
 
 	VIRTUAL_MACHINE_ADDITION_STATE addidionalState = VMAS_NOSTATE;
-	addidionalState = CDspVm::getVmAdditionState( vm_uuid, pUserSession->getVmDirectoryUuid() );
+	if (c && !c->getVmSettings()->getVmCommonOptions()->isTemplate())
+		addidionalState = CDspVm::getVmAdditionState(vm_uuid, ident.second);
 
 	outVmEvent.addEventParameter( new CVmEventParameter(PVE::UnsignedInt
 		, QString("%1").arg(addidionalState)
 		, EVT_PARAM_VMINFO_VM_ADDITION_STATE ));
 
-
-	bool bIsVmWaitingForAnswer = false;
-	SmartPtr<CDspVm> pVm = CDspVm::GetVmInstanceByUuid( vm_uuid, pUserSession->getVmDirectoryUuid() );
-	if (pVm)
-		bIsVmWaitingForAnswer = pVm->getQuestionPacket().isValid();
-
 	outVmEvent.addEventParameter( new CVmEventParameter(PVE::UnsignedInt
-		, QString("%1").arg(bIsVmWaitingForAnswer)
+		, QString("%1").arg(false)
 		, EVT_PARAM_VMINFO_IS_VM_WAITING_FOR_ANSWER ));
 
 	return PRL_ERR_SUCCESS;
@@ -1801,7 +1796,6 @@ void CDspVmDirHelper::deleteVm(const IOSender::Handle& sender,
 	// AccessCheck
 	PRL_RESULT err = PRL_ERR_FAILURE;
 	CVmEvent _error;
-	SmartPtr<CVmConfiguration> pVmConfig;
 	bool bSetNotValid = false;
 	err = CDspService::instance()->getAccessManager().checkAccess( pUserSession, PVE::DspCmdDirVmDelete
 		, vm_uuid, &bSetNotValid, &_error );
@@ -1817,7 +1811,7 @@ void CDspVmDirHelper::deleteVm(const IOSender::Handle& sender,
 
 	QStringList strFilesToDelete = pDeleteVmCmd->GetVmDevicesList();
 
-	pVmConfig = getVmConfigByUuid ( pUserSession, vm_uuid, err, &_error );
+	SmartPtr<CVmConfiguration> pVmConfig(getVmConfigByUuid(pUserSession, vm_uuid, err, &_error));
 	if ( ! pVmConfig )
 	{
 		WRITE_TRACE(DBG_FATAL, "Failed to get configuration for '%s'", QSTR2UTF8(vm_uuid));
@@ -1826,7 +1820,7 @@ void CDspVmDirHelper::deleteVm(const IOSender::Handle& sender,
 		return;
 	}
 
-	unregOrDeleteVm( pUserSession, pkg, pVmConfig->toString(), 0, strFilesToDelete);
+	unregOrDeleteVm(pUserSession, pkg, pVmConfig->toString(), 0, strFilesToDelete);
 }
 
 //
@@ -2609,7 +2603,7 @@ bool CDspVmDirHelper::createUsersVmDirectory( SmartPtr<CDspClient> pUserSession 
 SmartPtr<CVmConfiguration>
 CDspVmDirHelper::getVmConfigByUuid(
 								   SmartPtr<CDspClient> pUserSession,
-								   const QString& vm_uuid,
+								   const QString& vmUuid,
 								   PRL_RESULT& error,
 								   CVmEvent *pErrorInfo
 								   )
@@ -2620,20 +2614,13 @@ CDspVmDirHelper::getVmConfigByUuid(
 	////////////////////////////////////////////////////////////////////////////
 
 	//LOCK before use
-	CDspLockedPointer<CVmDirectoryItem>
-		pVmDirItem = CDspService::instance()->getVmDirManager()
-		.getVmDirItemByUuid( pUserSession->getVmDirectoryUuid(), vm_uuid );
+	CDspLockedPointer<CVmDirectoryItem> pVmDirItem(CDspService::instance()
+			->getVmDirManager().getVmDirItemByUuid(CDspVmDirHelper::getVmIdentByVmUuid(vmUuid, pUserSession)));
+	if (pVmDirItem)
+		return getVmConfigForDirectoryItem(pUserSession, pVmDirItem.operator->(), error, pErrorInfo);
 
-	if( !pVmDirItem )
-	{
-		error = PRL_ERR_VM_UUID_NOT_FOUND;
-		return SmartPtr<CVmConfiguration>();
-	}
-
-	SmartPtr<CVmConfiguration>
-		pVmConfig = getVmConfigForDirectoryItem( pUserSession, pVmDirItem.operator->(), error, pErrorInfo );
-
-	return pVmConfig;
+	error = PRL_ERR_VM_UUID_NOT_FOUND;
+	return SmartPtr<CVmConfiguration>();
 }
 
 /**
@@ -2806,7 +2793,7 @@ CDspTaskFuture<Task_DeleteVm> CDspVmDirHelper::unregOrDeleteVm( SmartPtr<CDspCli
 									  const QStringList & strFilesToDelete)
 {
 	return CDspService::instance()->getTaskManager()
-		.schedule(new Task_DeleteVm( pUserSession, pkg, vm_config, flags, strFilesToDelete ));
+		.schedule(new Task_DeleteVm(pUserSession, pkg, vm_config, flags, strFilesToDelete));
 }
 
 
@@ -2877,48 +2864,43 @@ void CDspVmDirHelper::appendAdvancedParamsToVmConfig(
 	if ( ! pOutVmConfig )
 		return;
 
-	const QString& dirUuid = pUserSession->getVmDirectoryUuid();
+	CVmIdent ident(CDspVmDirHelper::getVmIdentByVmUuid(pOutVmConfig->getVmIdentification()->getVmUuid(), pUserSession));
+	CDspLockedPointer<CVmDirectoryItem> pVmDirItem(CDspService::instance()->getVmDirManager()
+			.getVmDirItemByUuid(ident));
 
-	QString vmUuid = pOutVmConfig->getVmIdentification()->getVmUuid();
-	// LOCK inside brackets
+	if (!pVmDirItem)
+		return;
+
+	pOutVmConfig->getVmIdentification()->setHomePath(pVmDirItem->getVmHome());
+	pOutVmConfig->getVmIdentification()->setModifierName(pVmDirItem->getChangedBy());
+	pOutVmConfig->getVmIdentification()->setLastModifDate(pVmDirItem->getChangeDateTime());
+	pOutVmConfig->getVmIdentification()->setCtId(QString::number(Uuid::toVzid(ident.first)));
+
+	Q_UNUSED(bSynchronizeFileColor);
+
 	{
-		CDspLockedPointer<CVmDirectoryItem>
-			pVmDirItem =  CDspService::instance()->getVmDirManager().getVmDirItemByUuid( dirUuid, vmUuid );
-
-		if ( !pVmDirItem )
-			return;
-
-		pOutVmConfig->getVmIdentification()->setHomePath( pVmDirItem->getVmHome() );
-		pOutVmConfig->getVmIdentification()->setModifierName( pVmDirItem->getChangedBy() );
-		pOutVmConfig->getVmIdentification()->setLastModifDate( pVmDirItem->getChangeDateTime() );
-		pOutVmConfig->getVmIdentification()->setCtId(QString::number(Uuid::toVzid(vmUuid)));
-
-		Q_UNUSED(bSynchronizeFileColor);
-
-		{
-			//https://bugzilla.sw.ru/show_bug.cgi?id=267152
-			CAuthHelperImpersonateWrapper _impersonate( &pUserSession->getAuthHelper() );
-			pOutVmConfig->getVmIdentification()->setVmFilesLocation(
-				CFileHelper::GetVmFilesLocationType( pVmDirItem->getVmHome() ) );
-		}
-
-		SmartPtr< CVmSecurity> pVmSecurity = FillVmSecurity( pUserSession, pVmDirItem.getPtr() );
-
-		bool bParentalControlEnabled = pOutVmConfig->getVmSecurity()->isParentalControlEnabled();
-		QString qsStamp = pOutVmConfig->getVmSecurity()->getFieldPatchedValue(PARENTAL_CONTROL_ENABLED_STR);
-		pOutVmConfig->setVmSecurity( new CVmSecurity( pVmSecurity.getImpl() ) );
-		pOutVmConfig->getVmSecurity()->setParentalControlEnabled(bParentalControlEnabled);
-		pOutVmConfig->getVmSecurity()->markPatchedField(PARENTAL_CONTROL_ENABLED_STR, qsStamp);
-
-		pOutVmConfig->getVmSettings()->getLockDown()->setHash( pVmDirItem->getLockDown()->getEditingPasswordHash() );
+		//https://bugzilla.sw.ru/show_bug.cgi?id=267152
+		CAuthHelperImpersonateWrapper _impersonate(&pUserSession->getAuthHelper());
+		pOutVmConfig->getVmIdentification()->setVmFilesLocation(
+			CFileHelper::GetVmFilesLocationType(pVmDirItem->getVmHome()));
 	}
+
+	SmartPtr< CVmSecurity> pVmSecurity = FillVmSecurity(pUserSession, pVmDirItem.getPtr());
+
+	bool bParentalControlEnabled = pOutVmConfig->getVmSecurity()->isParentalControlEnabled();
+	QString qsStamp = pOutVmConfig->getVmSecurity()->getFieldPatchedValue(PARENTAL_CONTROL_ENABLED_STR);
+	pOutVmConfig->setVmSecurity(new CVmSecurity(pVmSecurity.getImpl()));
+	pOutVmConfig->getVmSecurity()->setParentalControlEnabled(bParentalControlEnabled);
+	pOutVmConfig->getVmSecurity()->markPatchedField(PARENTAL_CONTROL_ENABLED_STR, qsStamp);
+
+	pOutVmConfig->getVmSettings()->getLockDown()->setHash(pVmDirItem->getLockDown()->getEditingPasswordHash());
 
 	// #463792 add vmInfo
 	CVmEvent vmInfo;
 	PRL_RESULT rcVmInfo
-		= fillVmInfo( pUserSession, vmUuid , pOutVmConfig->getVmSecurity(), vmInfo );
+		= fillVmInfo(pUserSession, ident.first , pOutVmConfig->getVmSecurity(), vmInfo);
 	if( PRL_FAILED(rcVmInfo) )
-		WRITE_TRACE(DBG_INFO, "fillVmInfo failed: error #%x, %s", rcVmInfo, PRL_RESULT_TO_STRING(rcVmInfo) );
+		WRITE_TRACE(DBG_FATAL, "fillVmInfo failed: error #%x, %s", rcVmInfo, PRL_RESULT_TO_STRING(rcVmInfo) );
 	else
 	{
 		pOutVmConfig->getVmSettings()->getVmRuntimeOptions()
@@ -2936,7 +2918,7 @@ void CDspVmDirHelper::appendAdvancedParamsToVmConfig(
 
 	//Update VM uptime
 	//https://bugzilla.sw.ru/show_bug.cgi?id=464218
-    SmartPtr<CDspVm> pVm = CDspVm::GetVmInstanceByUuid( vmUuid, dirUuid );
+    SmartPtr<CDspVm> pVm = CDspVm::GetVmInstanceByUuid(ident);
 	if ( pVm )
 		pOutVmConfig->getVmIdentification()->setVmUptimeInSeconds(
 			pOutVmConfig->getVmIdentification()->getVmUptimeInSeconds() +
@@ -3052,6 +3034,8 @@ void CDspVmDirHelper::restartNetworkShaping(
 
 PRL_RESULT CDspVmDirHelper::UpdateHardDiskInformation(SmartPtr<CVmConfiguration> &pConfig)
 {
+	if (pConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+		return PRL_ERR_SUCCESS;
 	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(
 			pConfig->getVmIdentification()->getVmUuid());
 	Libvirt::Result r = u.completeConfig(*pConfig);

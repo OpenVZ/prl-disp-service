@@ -137,16 +137,20 @@ PRL_RESULT Task_DeleteVm::prepareTask()
             throw PRL_ERR_PARSE_VM_CONFIG;
         }
 
+		m_vmDirectoryUuid = CDspVmDirHelper::getVmDirUuidByVmUuid(
+				m_pVmConfig->getVmIdentification()->getVmUuid(), getClient());
+		if (m_vmDirectoryUuid.isEmpty())
+			throw PRL_ERR_VM_UUID_NOT_FOUND;
+
 		//https://bugzilla.sw.ru/show_bug.cgi?id=441619
 		if ( doUnregisterOnly() )
 		{
 			//In unregister VM case we should to wait until suspending sync state completed
 			QString sVmUuid = m_pVmConfig->getVmIdentification()->getVmUuid();
-			QString sVmDirUuid = getClient()->getVmDirectoryUuid();
-			VIRTUAL_MACHINE_STATE nInitialState = CDspVm::getVmState( sVmUuid, sVmDirUuid );
+			VIRTUAL_MACHINE_STATE nInitialState = CDspVm::getVmState( sVmUuid, m_vmDirectoryUuid );
 			if ( VMS_SUSPENDING_SYNC == nInitialState )
 				WRITE_TRACE(DBG_FATAL, "Started wait for VM suspending sync phase");
-			while ( VMS_SUSPENDING_SYNC == CDspVm::getVmState( sVmUuid, sVmDirUuid ) )
+			while ( VMS_SUSPENDING_SYNC == CDspVm::getVmState( sVmUuid, m_vmDirectoryUuid ) )
 			{
 				HostUtils::Sleep(1000);
 				if ( operationIsCancelled() )//Task was cancelled - terminate operation
@@ -171,7 +175,7 @@ PRL_RESULT Task_DeleteVm::prepareTask()
 	{
 		ret = CDspService::instance()->getVmDirHelper().registerExclusiveVmOperation(
 			m_pVmConfig->getVmIdentification()->getVmUuid(),
-			getClient()->getVmDirectoryUuid(),
+			m_vmDirectoryUuid,
 			( PVE::IDispatcherCommands ) getRequestPackage()->header.type,
 			getClient() );
 		if( PRL_FAILED( ret ) )
@@ -188,7 +192,7 @@ PRL_RESULT Task_DeleteVm::prepareTask()
 
 		{
 			CDspLockedPointer<CVmDirectoryItem> pDirectoryItem =
-				CDspService::instance()->getVmDirHelper().getVmDirectoryItemByUuid( getClient(), vm_uuid);
+				CDspService::instance()->getVmDirHelper().getVmDirectoryItemByUuid( m_vmDirectoryUuid, vm_uuid);
 
 			if ( ! pDirectoryItem )
 			{
@@ -209,7 +213,7 @@ PRL_RESULT Task_DeleteVm::prepareTask()
 		//LOCK vm directory before deleting and locking.
 		CDspLockedPointer< CVmDirectory >
 			pLockedVmDir = CDspService::instance()->getVmDirManager()
-				.getVmDirectory( getClient()->getVmDirectoryUuid() );
+				.getVmDirectory(m_vmDirectoryUuid);
 
 
         /**
@@ -221,9 +225,7 @@ PRL_RESULT Task_DeleteVm::prepareTask()
         m_flgLockRegistred=false;
 
 		PRL_RESULT lockResult = CDspService::instance()->getVmDirManager()
-			.lockExistingExclusiveVmParameters(
-				getClient()->getVmDirectoryUuid(),
-				m_pVmInfo );
+			.lockExistingExclusiveVmParameters(m_vmDirectoryUuid, m_pVmInfo);
 
 		if (!PRL_SUCCEEDED(lockResult))
 		{
@@ -242,7 +244,7 @@ PRL_RESULT Task_DeleteVm::prepareTask()
 		// remove VM from VM Directory
 		//////////////////////////////////////////////////////////////////////////
 		ret = CDspService::instance()->getVmDirHelper().deleteVmDirectoryItem(
-				getClient()->getVmDirectoryUuid(), vm_uuid);
+				m_vmDirectoryUuid, vm_uuid);
 		if ( ! PRL_SUCCEEDED( ret ) )
 		{
 			WRITE_TRACE(DBG_FATAL, ">>> Can't delete vm from VmDirectory by error %#x, %s",
@@ -274,7 +276,7 @@ void Task_DeleteVm::finalizeTask()
 		: "";
 
 	if (PRL_SUCCEEDED(getLastErrorCode()))
-		CDspBugPatcherLogic::cleanVmPatchMarks(getClient()->getVmDirectoryUuid(), sVmUuid);
+		CDspBugPatcherLogic::cleanVmPatchMarks(m_vmDirectoryUuid, sVmUuid);
 
 	if( doUnregisterOnly() && !(m_flags & PVD_NOT_MODIFY_VM_CONFIG) && PRL_SUCCEEDED(getLastErrorCode()) )
 	{
@@ -318,7 +320,7 @@ void Task_DeleteVm::finalizeTask()
 	{
 		CDspService::instance()->getVmDirHelper().unregisterExclusiveVmOperation(
 			m_pVmConfig->getVmIdentification()->getVmUuid(),
-			getClient()->getVmDirectoryUuid(),
+			m_vmDirectoryUuid,
 			( PVE::IDispatcherCommands ) getRequestPackage()->header.type,
 			getClient() );
 	}
@@ -327,7 +329,7 @@ void Task_DeleteVm::finalizeTask()
 	if (m_pVmInfo && m_flgLockRegistred)
 	{
 		CDspService::instance()->getVmDirManager()
-			.unlockExclusiveVmParameters( getClient()->getVmDirectoryUuid(), m_pVmInfo );
+			.unlockExclusiveVmParameters(m_vmDirectoryUuid, m_pVmInfo);
 	}
 
 	postVmDeletedEvent();
@@ -902,7 +904,7 @@ void Task_DeleteVm::postVmDeletedEvent()
 		// 3) This code is very simpler than any other.
 		QList< SmartPtr<CDspClient> >
 			allVmDirClients = CDspService::instance()->getClientManager()
-				.getSessionsListSnapshot( getClient()->getVmDirectoryUuid() )
+				.getSessionsListSnapshot(m_vmDirectoryUuid)
 					.values();
 
 		CDspService::instance()->getClientManager()

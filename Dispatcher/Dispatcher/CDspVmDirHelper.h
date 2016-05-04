@@ -256,7 +256,7 @@ public:
 			const SmartPtr<IOPackage> &p);
 
 	// Unregister and delete VM from disk
-	CDspTaskFuture<Task_DeleteVm> unregOrDeleteVm( SmartPtr<CDspClient> pUserSession,
+	CDspTaskFuture<Task_DeleteVm> unregOrDeleteVm(SmartPtr<CDspClient> pUserSession,
 		const SmartPtr<IOPackage>& pkg,
 		const QString& vm_config,
 		PRL_UINT32 flags,
@@ -489,6 +489,9 @@ public:
 
 	static SmartPtr<CVmConfiguration> CreateVmConfigFromDirItem(
 				const QString& sServerUuid, CVmDirectoryItem* pDirItem);
+
+	static CVmIdent getVmIdentByVmUuid(const QString &vmUuid_, SmartPtr<CDspClient> userSession_);
+	static QString getVmDirUuidByVmUuid(const QString &vmUuid_, SmartPtr<CDspClient> userSession_);
 
 private:
 	bool sendVmConfigByUuid ( const IOSender::Handle& sender,
