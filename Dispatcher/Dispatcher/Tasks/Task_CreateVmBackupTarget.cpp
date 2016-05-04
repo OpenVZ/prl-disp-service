@@ -434,7 +434,8 @@ PRL_RESULT Task_CreateVmBackupTarget::run_body()
 		args.append(m_sABackupOutFile);
 		args.prepend(QString(PRL_ABACKUP_SERVER));
 
-		if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, QStringList(), m_nRemoteVersion)))
+		/* Target side - preserve old arguments processing */
+		if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, QStringList(), BACKUP_PROTO_V3)))
 			goto exit;
 		locker.unlock();
 
