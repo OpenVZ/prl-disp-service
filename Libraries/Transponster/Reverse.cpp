@@ -1565,6 +1565,11 @@ void Vm::setFeatures()
 		Libvirt::Domain::Xml::Hyperv hv;
 		hv.setRelaxed(Libvirt::Domain::Xml::EVirOnOffOn);
 		hv.setVapic(Libvirt::Domain::Xml::EVirOnOffOn);
+		hv.setVpindex(Libvirt::Domain::Xml::EVirOnOffOn);
+		hv.setStimer(Libvirt::Domain::Xml::EVirOnOffOn);
+		hv.setReset(Libvirt::Domain::Xml::EVirOnOffOn);
+		hv.setRuntime(Libvirt::Domain::Xml::EVirOnOffOn);
+		hv.setSynic(Libvirt::Domain::Xml::EVirOnOffOn);
 		Libvirt::Domain::Xml::Spinlocks s;
 		s.setState(Libvirt::Domain::Xml::EVirOnOffOn);
 		s.setRetries(8191);
