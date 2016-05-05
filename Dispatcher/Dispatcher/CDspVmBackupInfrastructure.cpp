@@ -1119,9 +1119,9 @@ namespace Product
 ///////////////////////////////////////////////////////////////////////////////
 // struct Model
 
-QString Model::getTibName(const QString& prototype_, const QStringList& met_)
+QString Model::getTibName(const QString& prototype_, const QStringList& met_) const
 {
-	QString output = QFileInfo(prototype_).fileName().append(".tib");
+	QString output = QFileInfo(prototype_).fileName().append(m_suffix);
 	while (met_.contains(output))
 		output.prepend("_");
 

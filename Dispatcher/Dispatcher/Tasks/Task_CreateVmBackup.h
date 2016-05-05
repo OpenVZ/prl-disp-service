@@ -134,7 +134,6 @@ private:
 	IOSendJob::Handle m_hJob;
 	QString m_sDescription;
 	QString m_sVmName;
-	unsigned m_nBackupNumber;
 	QString m_sVmDirUuid;
 	QString m_sVmHomePath;
 	QString m_sSourcePath;
@@ -235,7 +234,6 @@ private:
 	QString m_sDescription;
 	QString m_sCtName;
 	QString m_sBackupUuid;
-	unsigned m_nBackupNumber;
 	QString m_sCtHomePath;
 	quint64 m_nTotalSize;
 	quint64 m_nOriginalSize;
@@ -286,7 +284,6 @@ private:
 	SmartPtr<CVmConfiguration> m_pVmConfig;
 	QString m_sVmName;
 	QString m_sBackupUuid;
-	unsigned m_nBackupNumber;
 	QString m_sDescription;
 	QString m_sSourceHost;
 	QString m_sServerUuid;

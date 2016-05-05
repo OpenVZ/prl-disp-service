@@ -228,6 +228,20 @@ struct AClient
 			const QStringList&, SmartPtr<Chain> ) = 0;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Suffix
+
+struct Suffix
+{
+	Suffix(unsigned index_, quint32 flags_) :
+		m_index(index_), m_flags(flags_) {}
+	QString operator()() const;
+
+private:
+	unsigned m_index;
+	quint32 m_flags;
+};
+
 } // namespace Backup
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -249,6 +263,11 @@ public:
 	const QString& getBackupUuid() const
 	{
 		return m_sBackupUuid;
+	}
+
+	unsigned getBackupNumber() const
+	{
+		return m_nBackupNumber;
 	}
 
 	PRL_RESULT startABackupClient(const QString& sVmName_, const QStringList& args_,
@@ -364,6 +383,7 @@ protected:
 	quint32 m_nBackupTimeout;
 	quint32 m_nRemoteVersion;
 	QString m_sBackupUuid;
+	unsigned m_nBackupNumber;
 
 	/* list of directories for plain copy : file info and relative path from Vm home directory */
 	QList<QPair<QFileInfo, QString> > m_DirList;

@@ -703,6 +703,21 @@ Perspective::config_type Perspective::clone(const QString& uuid_, const QString&
 	return output;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Suffix
+//
+
+QString Suffix::operator()() const
+{
+	QString output;
+	if (m_index)
+		output.append(QString(".%1").arg(m_index));
+	output.append(".qcow2");
+	if (!(m_flags & PBT_UNCOMPRESSED))
+		output.append("c");
+	return output;
+}
+
 } // namespace Backup
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -723,6 +738,7 @@ m_nSteps(0)
 	// set backup client/server interface timeout (https://jira.sw.ru/browse/PSBM-10020)
 	m_nBackupTimeout = CDspService::instance()->getDispConfigGuard().
 			getDispCommonPrefs()->getBackupSourcePreferences()->getTimeout(); // in secs
+	m_nBackupNumber = 0;
 }
 
 Task_BackupHelper::~Task_BackupHelper()
