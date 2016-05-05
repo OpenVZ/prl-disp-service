@@ -121,7 +121,7 @@ typedef QList<component_type> componentList_type;
 struct Model
 {
 	Model(const Object::Model& object_, const QString& home_):
-		m_home(home_), m_object(object_)
+		m_home(home_), m_object(object_), m_suffix(".tib")
 	{
 	}
 
@@ -137,15 +137,21 @@ struct Model
 	{
 		return m_object;
 	}
+	void setSuffix(const QString& suffix_)
+	{
+		m_suffix = suffix_;
+	}
+
 	componentList_type getCtTibs() const;
 	componentList_type getVmTibs() const;
 
 private:
-	static QString getTibName(const QString& , const QStringList& );
+	QString getTibName(const QString& , const QStringList&) const;
 
 	QDir m_store;
 	QString m_home;
 	Object::Model m_object;
+	QString m_suffix;
 };
 
 } // namespace Product

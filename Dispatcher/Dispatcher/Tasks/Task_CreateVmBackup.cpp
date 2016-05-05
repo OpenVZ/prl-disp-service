@@ -132,7 +132,19 @@ QStringList VCommand::buildArgs()
 	QStringList a(Command::buildArgs());
 
 	QString n = m_product.getObject().getConfig()->getVmIdentification()->getVmName();
-	a << "-n" << n << "-p" << m_context->getBackupUuid();
+	a << "-n" << n;
+
+	// current and previous PITs calculation
+	unsigned i = m_context->getBackupNumber();
+	QString u = m_context->getBackupUuid();
+	if ((m_context->getFlags() & PBT_INCREMENTAL) && i) {
+		a << "-p" << QString("%1.%2").arg(u).arg(i);
+		QString s(u);
+		if (i > PRL_PARTIAL_BACKUP_START_NUMBER)
+			s += QString(".%1").arg(i - 1);
+		a << "--last-pit" << s; 
+	} else
+		a << "-p" << u;
 
 	foreach (const ::Backup::Product::component_type& t, m_product.getVmTibs())
 	{
@@ -385,10 +397,10 @@ PRL_RESULT Task_CreateVmBackupSource::backupHardDiskDevices(const ::Backup::Acti
 
 	::Backup::Product::Model p(::Backup::Object::Model(m_pVmConfig), m_sVmHomePath);
 	p.setStore(m_sBackupRootPath);
-
-	if (BACKUP_PROTO_V4 <= m_nRemoteVersion)
+	if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
+		p.setSuffix(::Backup::Suffix(getBackupNumber(), getFlags())());
 		return Work::VCommand(*this, p, activity_).do_();
-	else
+	} else
 		return Work::ACommand(*this, p, activity_).do_();
 }
 
