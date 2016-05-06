@@ -237,6 +237,7 @@ SOURCES += \
 	Tasks/Task_CreateVmBackupTarget.cpp \
 	Tasks/Task_CreateCtBackup.cpp \
 	Tasks/Task_RestoreVmBackup.cpp \
+	Tasks/Task_RestoreVmBackupTarget.cpp \
 	Tasks/Task_RemoveVmBackup.cpp \
 	Tasks/Task_GetBackupTree.cpp \
 	Tasks/Task_BackupHelper.cpp \
