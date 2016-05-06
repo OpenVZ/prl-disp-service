@@ -192,7 +192,7 @@ Result Offline::operator()(Parameters::Builder& builder_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Online
 
-Result Online::operator()(Parameters::Builder& builder_)
+Result Online::operator()(Parameters::Builder& builder_, quint32 flags_)
 {
 	Result e = Offline::operator()(builder_);
 	if (e.isFailed())
@@ -204,10 +204,13 @@ Result Online::operator()(Parameters::Builder& builder_)
 		.arg(m_qemuStatePort)))
 		return Failure(PRL_ERR_FAILURE);
 
-	if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "xbzrle"))
-		return Failure(PRL_ERR_FAILURE);
-	if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "mt"))
-		return Failure(PRL_ERR_FAILURE);
+	if (!(flags_ & PVMT_UNCOMPRESSED))
+	{
+		if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "xbzrle"))
+			return Failure(PRL_ERR_FAILURE);
+		if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "mt"))
+			return Failure(PRL_ERR_FAILURE);
+	}
 
 	if (m_nbd)
 	{

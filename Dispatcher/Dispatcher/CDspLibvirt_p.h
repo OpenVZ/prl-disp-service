@@ -501,7 +501,7 @@ struct Online: private Offline
 	{
 	}
 
-	Result operator()(Parameters::Builder& builder_);
+	Result operator()(Parameters::Builder& builder_, quint32 flags_);
 	void setNbd(const nbd_type& value_)
 	{
 		m_nbd = value_;

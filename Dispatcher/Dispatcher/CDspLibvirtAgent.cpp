@@ -118,7 +118,7 @@ Result Task::doOnline(const CVmConfiguration& config_, quint16 qemuStatePort_,
 		d.setNbd(nbd_.get());
 		f |= VIR_MIGRATE_NON_SHARED_INC;
 	}
-	Result e = d(b);
+	Result e = d(b, m_flags);
 	if (e.isFailed())
 		return e;
 

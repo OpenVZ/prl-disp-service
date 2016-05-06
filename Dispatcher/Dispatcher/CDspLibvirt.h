@@ -324,8 +324,13 @@ struct Task
 	Task(QSharedPointer<virDomain> domain_,
 		QSharedPointer<virConnect> link_,
 		const QString& uri_)
-		: m_domain(domain_), m_link(link_), m_uri(uri_)
+		: m_domain(domain_), m_link(link_), m_uri(uri_), m_flags(0)
 	{
+	}
+
+	void setFlags(quint32 flags_)
+	{
+		m_flags = flags_;
 	}
 
 	Result doOnline(const CVmConfiguration& config_, quint16 qemuStatePort_,
@@ -341,6 +346,7 @@ private:
 	QSharedPointer<virDomain> m_domain;
 	QSharedPointer<virConnect> m_link;
 	QString m_uri;
+	quint32 m_flags;
 };
 
 } // namespace Migration
