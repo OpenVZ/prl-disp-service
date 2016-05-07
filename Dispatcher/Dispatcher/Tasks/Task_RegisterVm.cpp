@@ -105,6 +105,7 @@ Task_RegisterVm::Task_RegisterVm(
 	m_vmRootDir(vm_rootDir),
 	m_pVmInfo(0),
 	m_pVmConfig( new CVmConfiguration( vm_config ) ),
+	m_dirUuid(client->getVmDirectoryUuid()),
 	m_flgLockRegistred(false),
 	m_mtxWaitCreateImage(QMutex::Recursive),
 	m_lpcCreateImageCurrentTask( NULL ),
@@ -121,6 +122,8 @@ Task_RegisterVm::Task_RegisterVm(
 		, QSTR2UTF8( m_pVmConfig->getVmIdentification()->getVmUuid() )
 		, m_vmRootDir.isEmpty()? "default path" : QSTR2UTF8( m_vmRootDir )
 	);
+	if (m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+		m_dirUuid = CDspVmDirManager::getTemplatesDirectoryUuid();
 }
 
 /**
@@ -139,6 +142,7 @@ Task_RegisterVm::Task_RegisterVm (
 	m_vmRootDir(""),
 	m_pVmInfo(0),
 	m_pVmConfig(0),
+	m_dirUuid(client->getVmDirectoryUuid()),
 	m_flgLockRegistred(false),
 	m_mtxWaitCreateImage(QMutex::Recursive),
 	m_lpcCreateImageCurrentTask( NULL ),
@@ -166,6 +170,8 @@ Task_RegisterVm::Task_RegisterVm (
 	QFile	file( vm_xml_path );
 
 	m_pVmConfig = SmartPtr<CVmConfiguration>(new CVmConfiguration( &file ));
+	if (m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+		m_dirUuid = CDspVmDirManager::getTemplatesDirectoryUuid();
 
 	//////////////////////////////////////////////////////////////////////////
 	setTaskParameters( m_strPathToVmDirToRegister );
@@ -844,7 +850,7 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 			bool bVmUuidAndVmDirAreDifferent = qsVmDirName !=
 				Vm::Config::getVmHomeDirName(m_pVmInfo->vmUuid);
 
-			QString qsGenVmDirName = getUniqueVmName(qsVmDirName, getClient()->getVmDirectoryUuid());
+			QString qsGenVmDirName = getUniqueVmName(qsVmDirName, m_dirUuid);
 			if( qsGenVmDirName != qsVmDirName
 				&& (PRL_SUCCEEDED(lockResult) || lockErrorsList.contains(PRL_ERR_VM_ALREADY_REGISTERED_VM_NAME) )
 				)
@@ -875,8 +881,8 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 				if(lockErrorsList.count()>0)
 				{
 					//change vm name to resolve conflict on register vm
-					qsVmDirName = getUniqueVmName(qsVmDirName, getClient()->getVmDirectoryUuid());
-					m_pVmInfo->vmName = getUniqueVmName(m_pVmInfo->vmName, getClient()->getVmDirectoryUuid());
+					qsVmDirName = getUniqueVmName(qsVmDirName, m_dirUuid);
+					m_pVmInfo->vmName = getUniqueVmName(m_pVmInfo->vmName, m_dirUuid);
 					m_pVmConfig->getVmIdentification()->setVmName( m_pVmInfo->vmName );
 
 					if (   PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH == lockResult
@@ -1114,7 +1120,7 @@ void Task_RegisterVm::finalizeTask()
 		// insert new item in user's VM Directory
 		//
 		PRL_RESULT insertRes = CDspService::instance()->getVmDirHelper().insertVmDirectoryItem(
-						getClient()->getVmDirectoryUuid(), pVmDirItem );
+						m_dirUuid, pVmDirItem );
 		if( ! PRL_SUCCEEDED( insertRes ) )
 		{
 			WRITE_TRACE(DBG_FATAL, ">>> Can't insert vm to VmDirectory by error %#x, %s",
@@ -1128,14 +1134,14 @@ void Task_RegisterVm::finalizeTask()
 		{
 			CDspLockedPointer<CVmDirectoryItem>
 				pAddedItem = CDspService::instance()->getVmDirManager()
-					.getVmDirItemByUuid( getClient()->getVmDirectoryUuid(), pVmDirItem->getVmUuid() );
+					.getVmDirItemByUuid(m_dirUuid, pVmDirItem->getVmUuid() );
 
 			CDspVmDirManager::VmDirItemsHash
 				sharedVmHash = CDspService::instance()->getVmDirManager()
 					.findVmDirItemsInCatalogue( pVmDirItem->getVmUuid(), pVmDirItem->getVmHome() );
 
 			// delete added vm
-			sharedVmHash.remove( getClient()->getVmDirectoryUuid() );
+			sharedVmHash.remove(m_dirUuid);
 			if( !sharedVmHash.empty() )
 			{
 				WRITE_TRACE( DBG_WARNING, "Its shared vm. We will copy shared properties." );
@@ -1233,7 +1239,7 @@ void Task_RegisterVm::finalizeTask()
 			DispatcherPackage::createInstance( PVE::DspVmEvent, event, getRequestPackage());
 
 		CDspService::instance()->getClientManager().sendPackageToVmClients( p,
-			getClient()->getVmDirectoryUuid(), m_pVmInfo->vmUuid );
+			m_dirUuid, m_pVmInfo->vmUuid );
 	}
 }
 
@@ -1616,9 +1622,10 @@ PRL_RESULT Task_RegisterVm::saveVmConfig( )
 		m_pVmConfig->getVmIdentification()->setHomePath(m_pVmInfo->vmXmlPath);
 		ret = CDspService::instance()->getVmConfigManager()
 				.saveConfig(m_pVmConfig, m_pVmInfo->vmXmlPath, getClient(), true, true);
-
 		if (IS_OPERATION_SUCCEEDED(ret))
 		{
+			if (m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+				break;
 #ifdef _LIBVIRT_
 			m_registry.declare(CVmIdent(getVmUuid(), getClient()->getVmDirectoryUuid()),
 				m_pVmInfo->vmXmlPath);
@@ -2193,7 +2200,7 @@ void Task_RegisterVm::patchNewConfiguration()
 		CDspBugPatcherLogic logic( *CDspService::instance()->getHostInfo()->data() );
 
 		if( doRegisterOnly() )
-			logic.patchOldConfig( getClient()->getVmDirectoryUuid(),
+			logic.patchOldConfig( m_dirUuid,
 								  m_pVmConfig,
 								  CDspBugPatcherLogic::pkRegisterVm );
 		else

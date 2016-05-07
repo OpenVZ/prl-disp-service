@@ -748,11 +748,6 @@ PRL_VM_TOOLS_STATE CDspVm::getVmToolsState(
 		DspVm::vdh().getVmConfigByUuid(sVmDirUuid, sVmUuid, nRetCode);
 
 	if (!pVmConfig) {
-		pVmConfig = DspVm::vdh().getVmConfigByUuid(
-				DspVm::vdm().getTemplatesDirectoryUuid(), sVmUuid, nRetCode);
-	}
-
-	if (!pVmConfig) {
 		WRITE_TRACE(DBG_FATAL, "Couldn't to find VM configuration "\
 				"for '%s' VM UUID which belongs to '%s' VM dir",\
 				qPrintable(sVmUuid), qPrintable(sVmDirUuid));
