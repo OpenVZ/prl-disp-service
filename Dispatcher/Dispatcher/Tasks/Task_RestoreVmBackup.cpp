@@ -2,7 +2,7 @@
 ///
 /// @file Task_RestoreVmBackup.cpp
 ///
-/// Source and target tasks for Vm backup restoring
+/// Source task for Vm backup restoring
 ///
 /// @author krasnov@
 ///

@@ -2,7 +2,7 @@
 ///
 /// @file Task_RestoreVmBackupTarget.cpp
 ///
-/// Target tasks for Vm backup restoring
+/// Target task for Vm backup restoring
 ///
 /// @author krasnov@
 ///
@@ -689,10 +689,6 @@ Device::Device(const QString& path_): m_path(path_)
 {
 }
 
-} // namespace Ploop
-
-namespace Ploop
-{
 ///////////////////////////////////////////////////////////////////////////////
 // struct Image
 
