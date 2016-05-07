@@ -215,6 +215,7 @@ struct Vm
 
 	bool isNoSpace(noSpace_type& dst_) const;
 	PRL_RESULT restore() const;
+	PRL_RESULT createHome();
 	PRL_RESULT add(const ::Backup::Product::component_type& component_);
 	Restore::Assembly* assemble(const QString& dst_);
 private:
