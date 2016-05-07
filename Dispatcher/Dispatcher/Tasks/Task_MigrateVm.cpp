@@ -458,6 +458,7 @@ void Frontend::start(const serverList_type& event_)
 				.arg(QHostAddress(QHostAddress::LocalHost).toString())
 				.arg(event_.first()->serverPort());
 	Task::agent_type a = ::Libvirt::Kit.vms().at(m_task->getVmUuid()).migrate(u);
+	a.setFlags(m_task->getFlags());
 
 	switch (m_task->getOldState())
 	{
