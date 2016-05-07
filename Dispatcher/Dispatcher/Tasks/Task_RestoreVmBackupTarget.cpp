@@ -511,26 +511,27 @@ Vm::~Vm()
 	std::for_each(m_auto.begin(), m_auto.end(), &CFileHelper::ClearAndDeleteDir);
 }
 
-PRL_RESULT Vm::add(const ::Backup::Archive& archive_)
+PRL_RESULT Vm::add(const ::Backup::Product::component_type& component_)
 {
-	if (0 < m_hddMap.count(archive_.getDevice().getIndex()))
+	const ::Backup::Object::Component& c = component_.first;
+	if (0 < m_hddMap.count(c.getDevice().getIndex()))
 		return PRL_ERR_SUCCESS;
 
-	QString y = archive_.getRestoreFolder();
+	QString y = c.getRestoreFolder();
 	QFileInfo f(y);
 	PRL_RESULT r = make(f.absolutePath());
 	if (PRL_FAILED(r))
 		return r;
 	Hdd d;
-	d.tib.setFile(archive_.getPath(m_backupRoot));
-	QString x = archive_.getImageFolder();
+	d.tib = component_.second;
+	QString x = c.getImage();
 	if (x != y)
 		d.final = x;
 
 	d.mountPoint = CFileHelper::GetMountPoint(f.absolutePath());
-	d.sizeOnDisk = archive_.getDevice().getSizeOnDisk() << 20;
+	d.sizeOnDisk = c.getDevice().getSizeOnDisk() << 20;
 	d.intermediate = f;
-	m_hddMap.insert(std::make_pair(archive_.getDevice().getIndex(), d));
+	m_hddMap.insert(std::make_pair(c.getDevice().getIndex(), d));
 	return PRL_ERR_SUCCESS;
 }
 
@@ -1353,15 +1354,16 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	::Backup::Perspective z(m_pVmConfig);
-	if (z.bad()) {
+	::Backup::Object::Model m(m_pVmConfig);
+	if (m.isBad())
 		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
-	}
+	::Backup::Product::Model p(m, m_sTargetPath);
+	p.setStore(m_sBackupRootPath);
 	PRL_RESULT nRetCode;
 	Restore::Target::Vm u(m_nBackupNumber, m_sTargetPath, m_sBackupRootPath,
 			Restore::Assistant(*this,
 				Restore::AClient::Unit(*this, m_sOriginVmUuid, *m_pVmConfig)));
-	foreach (::Backup::Archive d, z.getVmArchives(m_sTargetPath))
+	foreach (const ::Backup::Product::component_type& d, p.getVmTibs())
 	{
 		if (PRL_FAILED(nRetCode = u.add(d)))
 			return nRetCode;
