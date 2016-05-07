@@ -33,8 +33,9 @@
 #define __TASK_MIGRATEVM_P_H__
 
 #include <typeinfo>
-#include <boost/mpl/copy_if.hpp>
 #include <boost/mpl/pair.hpp>
+#include <boost/mpl/copy_if.hpp>
+#include <boost/tuple/tuple.hpp>
 #include <boost/mpl/contains.hpp>
 #include <boost/msm/back/tools.hpp>
 #include <boost/msm/front/functor_row.hpp>
@@ -61,6 +62,8 @@ namespace msmf = boost::msm::front;
 
 using IOService::IOPackage;
 using IOService::IOSendJob;
+
+BOOST_MPL_HAS_XXX_TRAIT_DEF(stt);
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Finished
@@ -255,11 +258,66 @@ struct Quit
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Good
-//
+
 template<class T>
 struct Good
 {
 	typedef typename T::gootEvent_type type;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Initial
+
+template<class T>
+struct Initial
+{
+	typedef typename boost::mpl::transform
+		<
+			T,
+			Self<boost::mpl::_1>
+		>::type type;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Table
+
+template<class F, class G, class S, class T>
+struct Table
+{
+	typedef typename boost::mpl::transform
+		<
+			F,
+			msmf::Row
+			<
+				Function::Flop<boost::mpl::_1>,
+				Vm::Flop::Event,
+				Vm::Flop::State
+			>
+		>::type flop_type;
+
+	typedef typename boost::mpl::transform
+		<
+			G,
+			msmf::Row
+			<
+				Function::Quit<boost::mpl::_1>,
+				Function::Good<boost::mpl::_1>,
+				T
+			>
+		>::type good_type;
+
+	typedef typename boost::mpl::copy
+		<
+			flop_type,
+			typename boost::mpl::back_inserter
+			<
+				typename boost::mpl::copy
+				<
+					good_type,
+					boost::mpl::back_inserter<S>
+				>::type
+			>
+		>::type type;
 };
 
 } // namespace Function
@@ -295,6 +353,15 @@ struct Machine
 template<class T>
 struct Frontend: Vm::Frontend<Frontend<T> >
 {
+	typedef typename Function::Initial<T>::type initial_state;
+
+	template <typename Event, typename FSM>
+	void on_entry(const Event& event_, FSM& fsm_)
+	{
+		Vm::Frontend<Frontend<T> >::on_entry(event_, fsm_);
+		m_count = 0;
+	}
+
 	struct Joined
 	{
 	};
@@ -311,53 +378,12 @@ struct Frontend: Vm::Frontend<Frontend<T> >
 		}
 	};
 
-	template <typename Event, typename FSM>
-	void on_entry(const Event& event_, FSM& fsm_)
-	{
-		Vm::Frontend<Frontend<T> >::on_entry(event_, fsm_);
-		m_count = 0;
-	}
-
-	typedef typename boost::mpl::transform
+	struct transition_table: Function::Table
 		<
 			T,
-			Function::Self<boost::mpl::_1>
-		>::type initial_state;
-
-	typedef boost::mpl::vector<msmf::Row<Good, Joined, Success> > seed_type;
-	typedef typename boost::mpl::transform
-		<
 			T,
-			msmf::Row
-			<
-				Function::Flop<boost::mpl::_1>,
-				Flop::Event,
-				Flop::State
-			>
-		>::type flop_type;
-
-	typedef typename boost::mpl::transform
-		<
-			T,
-			msmf::Row
-			<
-				Function::Quit<boost::mpl::_1>,
-				Function::Good<boost::mpl::_1>,
-				Good
-			>
-		>::type good_type;
-
-	struct transition_table: boost::mpl::copy
-		<
-			flop_type,
-			typename boost::mpl::back_inserter
-			<
-				typename boost::mpl::copy
-				<
-					good_type,
-					boost::mpl::back_inserter<seed_type>
-				>::type
-			>
+			boost::mpl::vector<msmf::Row<Good, Joined, Success> >,
+			Good
 		>::type
 	{
 	};
@@ -408,7 +434,7 @@ class Mixin
 public:
 	void initConnector(top_type& value_)
 	{
-		m_connector = QSharedPointer<connector_type>(new connector_type());
+		setConnector(new connector_type());
 		m_connector->setTop(value_);
 	}
 
@@ -419,7 +445,43 @@ protected:
 	}
 
 private:
+	template<class U>
+	typename boost::enable_if<boost::is_base_of<QObject, U> >
+	::type setConnector(U* value_)
+	{
+		m_connector = QSharedPointer<connector_type>(value_,
+			&connector_type::deleteLater);
+	}
+
+	template<class U>
+	typename boost::disable_if<boost::is_base_of<QObject, U> >
+	::type setConnector(U* value_)
+	{
+		m_connector = QSharedPointer<connector_type>(value_);
+	}
+
 	QSharedPointer<connector_type> m_connector;
+};
+
+template<class A0, class A1, class A2, class A3, class A4>
+class Mixin<boost::msm::back::state_machine<A0, A1, A2, A3, A4> >
+{
+	typedef boost::msm::back::state_machine<A0, A1, A2, A3, A4>
+		machine_type;
+public:
+	void initConnector(machine_type& value_)
+	{
+		m_machine = &value_;
+	}
+
+protected:
+	machine_type& getMachine() const
+	{
+		return *m_machine;
+	}
+
+private:
+	machine_type* m_machine;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -447,6 +509,54 @@ private:
 };
 
 } // namespace Connector
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Walker
+
+template<class T, class U = T>
+struct Walker
+{
+	explicit Walker(T& fsm_): m_fsm(&fsm_), m_chain(fsm_)
+	{
+	}
+	Walker(T& fsm_, const Connector::Initializer<U>& chain_):
+		m_fsm(&fsm_), m_chain(chain_)
+	{
+	}
+
+	template<class V>
+	typename boost::disable_if<has_stt<V> >::type
+		operator()(boost::msm::wrap<V> const&)
+	{
+		m_chain(m_fsm->template get_state<V*>());
+	}
+	template<class V>
+	typename boost::enable_if<has_stt<V> >::type
+		operator()(boost::msm::wrap<V> const&)
+	{
+		do_(m_fsm->template get_state<V&>());
+	}
+	void operator()()
+	{
+		do_(*m_fsm);
+	}
+
+private:
+	template<class V>
+	void do_(V& fsm_)
+	{
+		typedef typename V::stt stt_type;
+		typedef typename boost::msm::back::generate_state_set<stt_type>::type
+			set_type;
+
+		m_chain(&fsm_);
+		boost::mpl::for_each<set_type, boost::msm::wrap<boost::mpl::_1> >
+			(Walker<V, U>(fsm_, m_chain));
+	}
+
+	T* m_fsm;
+	Connector::Initializer<U> m_chain;
+};
 
 namespace Pipeline
 {
@@ -538,7 +648,7 @@ private:
 namespace Pump
 {
 struct IO;
-typedef QPair<IO*, QIODevice* > Launch_type;
+typedef boost::tuple<IO*, QIODevice*, boost::optional<QString> > Launch_type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Event
@@ -576,6 +686,17 @@ typedef Event<Parallels::VmMigrateFinishCmd> FinishCommand_type;
 template<Parallels::IDispToDispCommands X>
 struct Quit
 {
+	explicit Quit(const QString& ticket_): m_ticket(ticket_)
+	{
+	}
+
+	const QString& operator()() const
+	{
+		return m_ticket;
+	}
+
+private:
+	QString m_ticket;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -592,7 +713,8 @@ struct Queue: QQueue<SmartPtr<IOPackage> >
 {
 	bool isEof() const
 	{
-		return !isEmpty() && head()->buffersSize() == 0;
+		return !isEmpty() && head()->header.buffersNumber > 0 &&
+			IODATAMEMBERCONST(head().getImpl())[0].bufferSize == 0;
 	}
 };
 
@@ -624,10 +746,17 @@ struct Packer
 	{
 	}
 
+	void setSpice(const QString& value_)
+	{
+		m_spice = value_;
+	}
 	SmartPtr<IOPackage> operator()();
 	SmartPtr<IOPackage> operator()(QIODevice& source_);
+	SmartPtr<IOPackage> operator()(const QTcpSocket& source_);
+	static boost::optional<QString> getSpice(const IOPackage& package_);
 
 private:
+	boost::optional<QString> m_spice;
 	Parallels::IDispToDispCommands m_name;
 };
 
@@ -636,8 +765,8 @@ private:
 
 struct Queue: private Vm::Pump::Queue
 {
-	Queue(Parallels::IDispToDispCommands name_, IO& service_, QIODevice& device_):
-		m_service(&service_), m_packer(name_), m_device(&device_)
+	Queue(const Packer& packer_, IO& service_, QIODevice& device_):
+		m_service(&service_), m_packer(packer_), m_device(&device_)
 	{
 	}
 
@@ -742,15 +871,21 @@ struct Connector: Vm::Connector::Base<T>, Slot
 	}
 	void onSent(const SmartPtr<IOPackage>& package_)
 	{
-		if (!(package_.isValid() && package_->header.type == X))
-			return;
-
 		if (m_queue.isNull())
 			return;
 
+		if (!(package_.isValid() && package_->header.type == X))
+			return;
+
+		if (!this->objectName().isEmpty())
+		{
+			boost::optional<QString> s = Packer::getSpice(*package_);
+			if (!(s && this->objectName() == s.get()))
+				return;
+		}
 		this->setState(boost::apply_visitor(Visitor::Sent(*m_queue,
-			boost::bind(&Connector::template handle<Quit<X> >, this, Quit<X>())),
-				m_state));
+			boost::bind(&Connector::template handle<Quit<X> >, this,
+				Quit<X>(this->objectName()))), m_state));
 	}
 
 	void readyRead()
@@ -800,9 +935,15 @@ struct Pump: Trace<Pump<T, X> >, Vm::Connector::Mixin<Connector<T, X> >
 	{
 		bool x;
 		Trace<Pump>::on_entry(event_, fsm_);
-		m_ioservice = event_.first;
-		m_iodevice = event_.second;
-		this->getConnector()->setQueue(new Queue(X, *m_ioservice, *m_iodevice));
+		m_ioservice = event_.get<0>();
+		m_iodevice = event_.get<1>();
+		Packer p(X);
+		if (event_.get<2>())
+		{
+			p.setSpice(event_.get<2>().get());
+			this->getConnector()->setObjectName(event_.get<2>().get());
+		}
+		this->getConnector()->setQueue(new Queue(p, *m_ioservice, *m_iodevice));
 		x = this->getConnector()->connect(m_iodevice, SIGNAL(readyRead()),
 			SLOT(readyRead()), Qt::QueuedConnection);
 		if (!x)
@@ -832,6 +973,7 @@ struct Pump: Trace<Pump<T, X> >, Vm::Connector::Mixin<Connector<T, X> >
 			this->getConnector(),
 			SLOT(onSent(const SmartPtr<IOPackage>&)));
 
+		this->getConnector()->setObjectName(QString());
 		this->getConnector()->setQueue(NULL);
 		m_iodevice = NULL;
 		m_ioservice = NULL;
@@ -1020,8 +1162,9 @@ private:
 
 		target_type x = boost::apply_visitor(Visitor::Dispatch
 			(boost::bind
-				(&Connector::template handle<Quit<X> >, this, Quit<X>())),
-					m_state = value_.value());
+				(&Connector::template handle<Quit<X> >, this,
+					Quit<X>(this->objectName()))),
+						m_state = value_.value());
 		if (x.isFailed())
 			return this->handle(x.error());
 
@@ -1048,16 +1191,19 @@ struct Pump: Trace<Pump<T, X> >, Vm::Connector::Mixin<Connector<T, X> >
 	void on_entry(const Launch_type& event_, FSM& fsm_)
 	{
 		Trace<Pump>::on_entry(event_, fsm_);
-		m_iodevice = event_.second;
+		m_iodevice = event_.get<1>();
 		this->getConnector()->setQueue(new Queue(*m_iodevice));
 		this->getConnector()->connect(m_iodevice, SIGNAL(bytesWritten(qint64)),
 			SLOT(reactBytesWritten(qint64)), Qt::QueuedConnection);
+		if (event_.get<2>())
+			this->getConnector()->setObjectName(event_.get<2>().get());
 	}
 
 	template <typename Event, typename FSM>
 	void on_exit(const Event& event_, FSM& fsm_)
 	{
 		Trace<Pump>::on_exit(event_, fsm_);
+		this->getConnector()->setObjectName(QString());
 		this->getConnector()->setQueue(NULL);
 		m_iodevice->disconnect(SIGNAL(bytesWritten(qint64)),
 			this->getConnector(), SLOT(reactBytesWritten(qint64)));
@@ -1091,6 +1237,13 @@ namespace Tunnel
 typedef Pump::Event<Parallels::VmMigrateLibvirtTunnelChunk> libvirtChunk_type;
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Dummy
+
+struct Dummy: Trace<Dummy>
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Prime
 
 struct Prime: Trace<Prime>
@@ -1105,6 +1258,103 @@ struct Ready: Trace<Ready>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Hub
+
+template<class T,class U, Parallels::IDispToDispCommands X>
+struct Hub: Trace<T>, Vm::Connector::Mixin<typename U::machine_type>
+{
+	typedef Trace<T> def_type;
+	typedef typename U::pump_type pump_type;
+	typedef QHash<QString, pump_type> pumpMap_type;
+	typedef Vm::Tunnel::Ready initial_state;
+
+	using def_type::on_exit;
+
+	template <typename FSM>
+	void on_exit(const Flop::Event& event_, FSM& fsm_)
+	{
+		def_type::on_exit(event_, fsm_);
+		{
+			typedef typename pumpMap_type::iterator iterator_type;
+			iterator_type e = m_pumpMap.end();
+			iterator_type p = m_pumpMap.begin();
+			for (; p != e; ++p)
+			{
+				p.value().process_event(event_);
+				p.value().stop();
+			}
+		}
+		m_pumpMap.clear();
+	}
+
+	struct Good
+	{
+	};
+	struct Action
+	{
+		template<class M>
+		void operator()(Vm::Pump::Event<X> const& event_, M& fsm_, Hub& state_, Hub&)
+		{
+			pump_type* p = state_.match(Vm::Pump::Push::Packer::getSpice(*event_.getPackage()));
+			if (NULL == p)
+				fsm_.process_event(Flop::Event(PRL_ERR_INVALID_ARG));
+			else
+				p->process_event(event_);
+		}
+		template<class M>
+		void operator()(Vm::Pump::Quit<X> const& event_, M& fsm_, Hub& state_, Hub&)
+		{
+			QString k = event_();
+			pump_type* p = state_.match(k);
+			if (NULL == p)
+				return (void)fsm_.process_event(Flop::Event(PRL_ERR_INVALID_ARG));
+
+			p->process_event(event_);
+			p->stop();
+			state_.m_pumpMap.remove(k);
+			if (state_.m_pumpMap.isEmpty())
+				fsm_.process_event(Good());
+		}
+	};
+
+	struct internal_transition_table: boost::mpl::vector<
+		msmf::Internal<Vm::Pump::Quit<X>,     Action>,
+		msmf::Internal<Vm::Pump::Event<X>,    Action>
+	>
+	{
+	};
+
+protected:
+	template<class E>
+	bool start(E const& event_, const boost::optional<QString>& spice_)
+	{
+		if (!spice_)
+			return false;
+
+		pump_type& p = m_pumpMap[spice_.get()];
+		typedef typename U::machine_type machine_type;
+		(Vm::Walker<pump_type, machine_type>(p,
+			Vm::Connector::Initializer<machine_type>
+				(this->getMachine())))();
+		p.start(event_);
+
+		return true;
+	}
+	pump_type* match(const boost::optional<QString>& spice_)
+	{
+		if (!spice_)
+			return NULL;
+		if (!m_pumpMap.contains(spice_.get()))
+			return NULL;
+
+		return &m_pumpMap[spice_.get()];
+	}
+
+private:
+	pumpMap_type m_pumpMap;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Essence
 
 template<class L, class Q1, class Q2, class E>
@@ -1113,22 +1363,26 @@ struct Essence: Vm::Frontend<Essence<L, Q1, Q2, E> >
 	struct Entry: msmf::entry_pseudo_state<0>
 	{
 	};
-	typedef boost::msm::back::state_machine<Q1> qemu1State_type;
-	typedef boost::msm::back::state_machine<Q2> qemu2State_type;
-	typedef boost::msm::back::state_machine<L> libvirtState_type;
-	typedef boost::mpl::vector<libvirtState_type, qemu1State_type, qemu2State_type> initial_state;
+	typedef int no_message_queue;
+	typedef boost::mpl::vector<L, Q1, Q2> raw_type;
+	typedef typename Join::Function::Initial<raw_type>::type initial_state;
 
-	struct transition_table : boost::mpl::vector<
-		msmf::Row<Entry,                         E,          libvirtState_type>,
-		msmf::Row<typename libvirtState_type
-			::template exit_pt<Success>,     msmf::none, Success>,
-		msmf::Row<typename qemu1State_type
-			::template exit_pt<Flop::State>, Flop::Event,Flop::State>,
-		msmf::Row<typename qemu2State_type
-			::template exit_pt<Flop::State>, Flop::Event,Flop::State>,
-		msmf::Row<typename libvirtState_type
-			::template exit_pt<Flop::State>, Flop::Event,Flop::State>
-	>
+	struct transition_table: Join::Function::Table
+		<
+			raw_type,
+			typename boost::mpl::pop_front<raw_type>::type,
+			boost::mpl::vector
+			<
+				msmf::Row<Entry, E, typename boost::mpl::front<initial_state>::type>,
+				msmf::Row
+				<
+					typename Join::Function::Quit<L>::type,
+					typename Join::Function::Good<L>::type,
+					Success
+				>
+			>,
+			Dummy
+		>::type
 	{
 	};
 };
@@ -1225,56 +1479,6 @@ struct Frontend_: Vm::Frontend<T>, Vm::Connector::Mixin<Driver<U> >
 };
 
 } // namespace Libvirt
-
-BOOST_MPL_HAS_XXX_TRAIT_DEF(stt);
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Walker
-
-template<class T, class U = T>
-struct Walker
-{
-	explicit Walker(T& fsm_): m_fsm(&fsm_), m_chain(fsm_)
-	{
-	}
-	Walker(T& fsm_, const Connector::Initializer<U>& chain_):
-		m_fsm(&fsm_), m_chain(chain_)
-	{
-	}
-
-	template<class V>
-	typename boost::disable_if<has_stt<V> >::type
-		operator()(boost::msm::wrap<V> const&)
-	{
-		m_chain(m_fsm->template get_state<V*>());
-	}
-	template<class V>
-	typename boost::enable_if<has_stt<V> >::type
-		operator()(boost::msm::wrap<V> const&)
-	{
-		do_(m_fsm->template get_state<V&>());
-	}
-	void operator()()
-	{
-		do_(*m_fsm);
-	}
-
-private:
-	template<class V>
-	void do_(V& fsm_)
-	{
-		typedef typename V::stt stt_type;
-		typedef typename boost::msm::back::generate_state_set<stt_type>::type
-			set_type;
-
-		m_chain(&fsm_);
-		boost::mpl::for_each<set_type, boost::msm::wrap<boost::mpl::_1> >
-			(Walker<V, U>(fsm_, m_chain));
-	}
-
-	T* m_fsm;
-	Connector::Initializer<U> m_chain;
-};
 
 } // namespace Vm
 } // namespace Migrate
