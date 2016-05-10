@@ -437,6 +437,11 @@ PRL_RESULT Assistant::operator()(const QStringList& argv_, SmartPtr<Chain> custo
 	return m_unit(argv_, custom_);
 }
 
+PRL_RESULT Assistant::operator()(const QString& image_, const QString& archive_) const
+{
+	return m_task->sendRestoreImageRequest(image_, archive_);
+}
+
 namespace Query
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -517,7 +522,7 @@ PRL_RESULT Vm::add(const ::Backup::Product::component_type& component_)
 	if (0 < m_hddMap.count(c.getDevice().getIndex()))
 		return PRL_ERR_SUCCESS;
 
-	QString y = c.getRestoreFolder();
+	QString y = c.getRestorePath();
 	QFileInfo f(y);
 	PRL_RESULT r = make(f.absolutePath());
 	if (PRL_FAILED(r))
@@ -593,19 +598,31 @@ bool Vm::isNoSpace(noSpace_type& dst_) const
 	return false;
 }
 
-PRL_RESULT Vm::restore() const
+PRL_RESULT Vm::restoreA(const hddMap_type::const_iterator& hdd_) const
+{
+	QStringList z;
+	z << "restore" << hdd_->second.intermediate.absoluteFilePath()
+		<< m_backupRoot << hdd_->second.tib.absoluteFilePath()
+		<< QString::number(m_no);
+	return m_assist(z, hdd_->first);
+}
+
+PRL_RESULT Vm::restoreV(const hddMap_type::const_iterator& hdd_) const
+{
+	return m_assist(hdd_->second.intermediate.absoluteFilePath(),
+			hdd_->second.tib.absoluteFilePath());
+}
+
+PRL_RESULT Vm::restore(quint32 version_) const
 {
 	QStringList z;
 	hddMap_type::const_iterator p, e = m_hddMap.end();
 	for (p = m_hddMap.begin(); p != e; ++p)
 	{
-		z << "restore" << p->second.intermediate.absoluteFilePath()
-			<< m_backupRoot << p->second.tib.absoluteFilePath()
-			<< QString::number(m_no);
-		PRL_RESULT r = m_assist(z, p->first);
+		PRL_RESULT r = (BACKUP_PROTO_V4 > version_) ?
+			restoreA(p) : restoreV(p);
 		if (PRL_FAILED(r))
 			return r;
-		z.clear();
 	}
 	return PRL_ERR_SUCCESS;
 }
@@ -1364,6 +1381,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
 	::Backup::Product::Model p(m, m_sTargetPath);
 	p.setStore(m_sBackupRootPath);
+	if (BACKUP_PROTO_V4 <= m_nRemoteVersion)
+		p.setSuffix(::Backup::Suffix(m_nBackupNumber, getFlags())());
 	PRL_RESULT nRetCode;
 	Restore::Target::Vm u(m_nBackupNumber, m_sTargetPath, m_sBackupRootPath,
 			Restore::Assistant(*this,
@@ -1399,7 +1418,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 			return nRetCode;
 	}
 	// Stage TWO
-	if (PRL_FAILED(nRetCode = u.restore()))
+	if (PRL_FAILED(nRetCode = u.restore(m_nRemoteVersion)))
 		return nRetCode;
         /*
            Now target side wait new acronis proxy commands due to acronis have not call to close connection.
@@ -1891,6 +1910,37 @@ PRL_RESULT Task_RestoreVmBackupTarget::sendStartRequest()
 	m_nInternalFlags = pFirstReply->GetInternalFlags();
 
 	return nRetCode;
+}
+
+/* send request to restore image for remote dispatcher and wait reply from dispatcher */
+PRL_RESULT Task_RestoreVmBackupTarget::sendRestoreImageRequest(const QString& image_,
+		const QString& archive_)
+{
+	if (operationIsCancelled())
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	SmartPtr<IOPackage> r, p = IOPackage::createInstance(VmBackupRestoreImage, 2);
+	p->fillBuffer(0, IOPackage::RawEncoding, QSTR2UTF8(image_), image_.size()+1);
+	p->fillBuffer(1, IOPackage::RawEncoding, QSTR2UTF8(archive_), archive_.size()+1);
+	PRL_RESULT output;
+	if (PRL_FAILED(output = SendReqAndWaitReply(p, r)))
+		return output;
+
+	if (r->header.type != DispToDispResponseCmd)
+	{
+		WRITE_TRACE(DBG_FATAL, "Invalid package header:%x, expected header:%x",
+			r->header.type, DispToDispResponseCmd);
+		return PRL_ERR_BACKUP_RESTORE_INTERNAL_PROTO_ERROR;
+	}
+
+	CDispToDispResponseCommand *rc =
+		CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispResponseCommand>(
+			CDispToDispProtoSerializer::ParseCommand((Parallels::IDispToDispCommands)r->header.type,
+			UTF8_2QSTR(r->buffers[0].getImpl())));
+
+	if (PRL_FAILED(output = rc->GetRetCode()))
+		getLastError()->fromString(rc->GetErrorInfo()->toString());
+	return output;
 }
 
 void Task_RestoreVmBackupTarget::handlePackage(const SmartPtr<IOPackage> p)

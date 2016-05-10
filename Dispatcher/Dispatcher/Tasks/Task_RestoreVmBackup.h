@@ -109,13 +109,17 @@ private:
 
 private:
 	PRL_RESULT restoreVm();
+	PRL_RESULT restoreVmABackup(SmartPtr<CVmConfiguration> ve_);
+	PRL_RESULT restoreVmVBackup(SmartPtr<CVmConfiguration> ve_);
 	PRL_RESULT restoreCt();
 	PRL_RESULT sendFiles(IOSendJob::Handle& job_);
 	PRL_RESULT sendStartReply(const SmartPtr<CVmConfiguration>& ve_, IOSendJob::Handle& job_);
+	PRL_RESULT restoreImage(const QString& from_, const QString& to_);
 
 private slots:
 	void clientDisconnected(IOSender::Handle h);
 	void handleABackupPackage(IOSender::Handle h, const SmartPtr<IOPackage> p);
+	void handleVBackupPackage(IOSender::Handle h, const SmartPtr<IOPackage> p);
 };
 
 class Task_RestoreVmBackupTarget : public Task_BackupHelper
@@ -129,6 +133,8 @@ public:
 		CProtoCommandPtr,
 		const SmartPtr<IOPackage> &);
 	virtual ~Task_RestoreVmBackupTarget();
+	PRL_RESULT sendRestoreImageRequest(const QString&, const QString&);
+
 protected:
 	virtual PRL_RESULT prepareTask();
 	virtual PRL_RESULT run_body();

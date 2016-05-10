@@ -32,6 +32,7 @@
 #ifndef __Task_RestoreVmBackup_p_H_
 #define __Task_RestoreVmBackup_p_H_
 #include <memory>
+#include <boost/function.hpp>
 #include "CDspVmBackupInfrastructure_p.h"
 #include "Task_BackupHelper.h"
 #include "prlcommon/Std/noncopyable.h"
@@ -146,6 +147,7 @@ struct Assistant
 	Assembly* getAssembly() const;
 	PRL_RESULT operator()(const QStringList& argv_, unsigned disk_) const;
 	PRL_RESULT operator()(const QStringList& argv_, SmartPtr<Chain> custom_) const;
+	PRL_RESULT operator()(const QString& image_, const QString& archive_) const;
 	PRL_RESULT make(const QString& path_, bool failIfExists_) const;
 private:
 	AClient::Unit m_unit;
@@ -214,7 +216,7 @@ struct Vm
 	~Vm();
 
 	bool isNoSpace(noSpace_type& dst_) const;
-	PRL_RESULT restore() const;
+	PRL_RESULT restore(quint32 version_) const;
 	PRL_RESULT createHome();
 	PRL_RESULT add(const ::Backup::Product::component_type& component_);
 	Restore::Assembly* assemble(const QString& dst_);
@@ -231,6 +233,8 @@ private:
 
 	PRL_RESULT make(const QString& path_);
 	QStringList make(const char* command_, const Hdd& hdd_) const;
+	PRL_RESULT restoreA(const hddMap_type::const_iterator& hdd_) const;
+	PRL_RESULT restoreV(const hddMap_type::const_iterator& hdd_) const;
 
 	quint32 m_no;
 	QString m_home;
@@ -331,6 +335,45 @@ private:
 
 } // namespace Ploop
 } // namespace Target
+
+namespace Source
+{
+
+typedef boost::function0<PRL_RESULT> sendFiles_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Workerv4
+
+struct Workerv4
+{
+	typedef boost::function0<int> exec_type;
+
+	Workerv4(sendFiles_type send_, exec_type exec_) : m_escort(send_), m_exec(exec_) {}
+
+	PRL_RESULT operator()();
+
+private:
+	sendFiles_type m_escort;
+	exec_type m_exec;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Workerv3
+
+struct Workerv3
+{
+	Workerv3(sendFiles_type send_, BackupProcess *process_)
+		: m_escort(send_), m_process(process_) {}
+	~Workerv3();
+
+	PRL_RESULT operator()();
+
+private:
+	sendFiles_type m_escort;
+	BackupProcess* m_process;
+};
+
+} // namespace Source
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Converter
