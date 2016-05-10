@@ -535,6 +535,11 @@ PRL_RESULT Vm::add(const ::Backup::Product::component_type& component_)
 	return PRL_ERR_SUCCESS;
 }
 
+PRL_RESULT Vm::createHome()
+{
+	return make(m_home);
+}
+
 PRL_RESULT Vm::make(const QString& path_)
 {
 	if (m_auto.contains(path_))
@@ -1363,6 +1368,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 	Restore::Target::Vm u(m_nBackupNumber, m_sTargetPath, m_sBackupRootPath,
 			Restore::Assistant(*this,
 				Restore::AClient::Unit(*this, m_sOriginVmUuid, *m_pVmConfig)));
+	if (PRL_FAILED(nRetCode = u.createHome()))
+		return nRetCode;
 	foreach (const ::Backup::Product::component_type& d, p.getVmTibs())
 	{
 		if (PRL_FAILED(nRetCode = u.add(d)))
