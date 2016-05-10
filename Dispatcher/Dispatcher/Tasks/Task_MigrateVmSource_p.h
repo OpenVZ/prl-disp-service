@@ -221,7 +221,7 @@ struct Frontend: Vm::Frontend<Frontend<T, X> >
 	void on_entry(const Vm::Pump::Launch_type& event_, FSM& fsm_)
 	{
 		def_type::on_entry(event_, fsm_);
-		m_device = event_.second;
+		m_device = event_.get<1>();
 	}
 
 	struct transition_table : boost::mpl::vector<
@@ -457,7 +457,9 @@ namespace Qemu
 template<Parallels::IDispToDispCommands X>
 struct Launch
 {
-	Launch(Vm::Pump::Launch_type::first_type service_, QTcpSocket* socket_):
+	typedef boost::tuples::element<0, Vm::Pump::Launch_type>::type service_type;
+
+	Launch(service_type service_, QTcpSocket* socket_):
 		m_service(service_), m_socket(socket_)
 	{
 	}
@@ -465,42 +467,47 @@ struct Launch
 	Prl::Expected<Vm::Pump::Launch_type, Flop::Event> operator()() const;
 
 private:
-	Vm::Pump::Launch_type::first_type m_service;
+	service_type m_service;
 	QTcpSocket* m_socket;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Frontend
+// struct Traits
+
+template<Parallels::IDispToDispCommands X>
+struct Traits
+{
+	typedef Machine_type machine_type;
+	typedef boost::msm::back::state_machine<Pump::Frontend<machine_type, X> > pump_type;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hub
 
 template<Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
-struct Frontend: Vm::Frontend<Frontend<X, Y> >
+struct Hub: Vm::Tunnel::Hub<Hub<X, Y>, Traits<Y>, Y>
 {
-	typedef Launch<X> launch_type;
-	typedef Pump::Frontend<Machine_type, Y> pump_type;
-	typedef boost::msm::back::state_machine<pump_type> pumpState_type;
-	typedef Vm::Tunnel::Prime initial_state;
+	typedef Vm::Tunnel::Hub<Hub, Traits<Y>, Y> def_type;
 
 	struct Action
 	{
-		template<class M, class S, class T>
-		void operator()(launch_type const& event_, M& fsm_, S&, T&)
+		template<class M>
+		void operator()(Launch<X> const& event_, M& fsm_, Hub& state_, Hub&)
 		{
 			Prl::Expected<Vm::Pump::Launch_type, Flop::Event> x = event_();
 			if (x.isFailed())
-				fsm_.process_event(x.error());
-			else
-				fsm_.process_event(x.value());
+				return (void)fsm_.process_event(x.error());
+
+			if (!state_.start(x.value(), x.value().get<2>()))
+				return (void)fsm_.process_event(Flop::Event(PRL_ERR_INVALID_ARG));
 		}
 	};
-	struct transition_table : boost::mpl::vector<
-		msmf::Row<initial_state,     launch_type,          Vm::Tunnel::Ready, Action>,
-		msmf::Row<initial_state,     Flop::Event,          Flop::State>,
-		msmf::Row<Vm::Tunnel::Ready, Vm::Pump::Launch_type,pumpState_type>,
-		msmf::Row<typename pumpState_type::template
-			exit_pt<Success>,    msmf::none,           Success>,
-		msmf::Row<typename pumpState_type::template
-			exit_pt<Flop::State>,Flop::Event,          Flop::State>
-	>
+
+	struct internal_transition_table: boost::mpl::push_front
+		<
+			typename def_type::internal_transition_table,
+			msmf::Internal<Launch<X>, Action>
+		>::type
 	{
 	};
 };
@@ -516,12 +523,17 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	typedef Libvirt::Frontend::serverList_type serverList_type;
 	typedef Pump::Frontend<Machine_type, Vm::Tunnel::libvirtChunk_type::s_command>
 		libvirt_type;
-	typedef Qemu::Frontend<Parallels::VmMigrateConnectQemuStateCmd, Parallels::VmMigrateQemuStateTunnelChunk>
+	typedef Qemu::Hub<Parallels::VmMigrateConnectQemuStateCmd, Parallels::VmMigrateQemuStateTunnelChunk>
 		qemuState_type;
-	typedef Qemu::Frontend<Parallels::VmMigrateConnectQemuDiskCmd, Parallels::VmMigrateQemuDiskTunnelChunk>
+	typedef Qemu::Hub<Parallels::VmMigrateConnectQemuDiskCmd, Parallels::VmMigrateQemuDiskTunnelChunk>
 		qemuDisk_type;
-	typedef Vm::Tunnel::Essence<libvirt_type, qemuState_type, qemuDisk_type, Vm::Pump::Launch_type>
-		essence_type;
+	typedef Vm::Tunnel::Essence
+		<
+			Join::Machine<libvirt_type>,
+			Join::State<qemuState_type, qemuState_type::Good>,
+			Join::State<qemuDisk_type, qemuDisk_type::Good>,
+			Vm::Pump::Launch_type
+		> essence_type;
 	typedef boost::msm::back::state_machine<essence_type> pumpingState_type;
 	typedef Vm::Tunnel::Prime initial_state;
 

@@ -506,7 +506,12 @@ namespace Tunnel
 
 void Connector::acceptLibvirt()
 {
-	handle(Vm::Pump::Launch_type(getService(), accept_().data()));
+	QSharedPointer<QTcpSocket> s = accept_();
+	if (!s.isNull())
+	{
+		((QTcpServer* )sender())->close();
+		handle(Vm::Pump::Launch_type(getService(), s.data()));
+	}
 }
 
 void Connector::acceptQemuDisk()
@@ -524,8 +529,10 @@ void Connector::acceptQemuState()
 QSharedPointer<QTcpSocket> Connector::accept_()
 {
 	QTcpServer* s = (QTcpServer* )sender();
+	if (NULL == s)
+		return QSharedPointer<QTcpSocket>();
+
 	QSharedPointer<QTcpSocket> output(s->nextPendingConnection());
-	s->close();
 	handle(output);
 	return output;
 }
@@ -591,17 +598,16 @@ namespace Qemu
 template<Parallels::IDispToDispCommands X>
 Prl::Expected<Vm::Pump::Launch_type, Flop::Event> Launch<X>::operator()() const
 {
-	SmartPtr<IOPackage> x = IOPackage::createInstance(X, 1);
+	using Vm::Pump::Push::Packer;
+	SmartPtr<IOPackage> x = Packer(X)(*m_socket);
 	if (!x.isValid())
 		return Flop::Event(PRL_ERR_FAILURE);
 
-	quint32 p = m_socket->localPort();
-	x->fillBuffer(0, IOPackage::RawEncoding, &p, sizeof(p));
 	IOSendJob::Handle j = m_service->sendPackage(x);
 	if (!j.isValid())
 		return Flop::Event(PRL_ERR_FAILURE);
 
-	return Vm::Pump::Launch_type(m_service, m_socket);
+	return Vm::Pump::Launch_type(m_service, m_socket, Packer::getSpice(*x));
 }
 
 } // namespace Qemu

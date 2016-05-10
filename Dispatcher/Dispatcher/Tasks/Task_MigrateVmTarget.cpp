@@ -87,7 +87,12 @@ namespace Pull
 
 qint64 WateringPot::getVolume() const
 {
-	return m_load.isValid() ? m_load->buffersSize() : 0;
+	if (!m_load.isValid())
+		return 0;
+	if (0 == m_load->header.buffersNumber)
+		return 0;
+
+	return IODATAMEMBERCONST(m_load.getImpl())[0].bufferSize;
 }
 
 Prl::Expected<qint64, Flop::Event> WateringPot::operator()()
@@ -192,7 +197,6 @@ target_type Dispatch::operator()
 }
 
 } // namespace Visitor
-
 } // namespace Pull
 
 namespace Push
@@ -202,10 +206,16 @@ namespace Push
 
 SmartPtr<IOPackage> Packer::operator()()
 {
-	SmartPtr<IOPackage> output = IOPackage::createInstance(m_name, 1);
-	if (output.isValid())
-		output->fillBuffer(0, IOPackage::RawEncoding, NULL, 0);
+	SmartPtr<IOPackage> output = IOPackage::createInstance(m_name, 1 + !!m_spice);
+	if (!output.isValid())
+		return output;
 
+	output->fillBuffer(0, IOPackage::RawEncoding, NULL, 0);
+	if (m_spice)
+	{
+		QByteArray b = m_spice.get().toUtf8();
+		output->fillBuffer(1, IOPackage::RawEncoding, b.data(), b.size());
+	}
 	return output;
 }
 
@@ -227,6 +237,31 @@ SmartPtr<IOPackage> Packer::operator()(QIODevice& source_)
 		output->fillBuffer(0, IOPackage::RawEncoding, b.data(), z);
 
 	return output;
+}
+
+SmartPtr<IOPackage> Packer::operator()(const QTcpSocket& source_)
+{
+	boost::optional<QString> b = QString::number(source_.peerPort());
+	std::swap(m_spice, b);
+	SmartPtr<IOPackage> output = (*this)();
+	std::swap(m_spice, b);
+	if (output.isValid())
+	{
+		quint32 p = source_.localPort();
+		output->fillBuffer(0, IOPackage::RawEncoding, &p, sizeof(p));
+	}
+	return output;
+}
+
+boost::optional<QString> Packer::getSpice(const IOPackage& package_)
+{
+	quint32 z = 0;
+	SmartPtr<char> b;
+	IOPackage::EncodingType t;
+	if (!package_.getBuffer(1, t, b, z))
+		return boost::none;
+
+	return QString::fromAscii(b.getImpl(), z);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -610,25 +645,37 @@ namespace Connector
 ///////////////////////////////////////////////////////////////////////////////
 // struct Basic
 
-template<class T>
-void Basic<T>::reactConnected()
+template<class T, class M>
+void Basic<T, M>::reactConnected()
 {
-	handle(Vm::Pump::Launch_type(this->getService(), (QIODevice* )this->sender()));
+	boost::optional<QString> t;
+	QIODevice* d = (QIODevice* )this->sender();
+	if (!this->objectName().isEmpty())
+	{
+		t = this->objectName();
+		d->setObjectName(t.get());
+	}
+	this->handle(Vm::Pump::Launch_type(this->getService(), d, t));
 }
 
-template<class T>
-void Basic<T>::reactDisconnected()
+template<class T, class M>
+void Basic<T, M>::reactDisconnected()
 {
-	handle(boost::phoenix::val((QIODevice* )this->sender()));
+	QIODevice* d = (QIODevice* )this->sender();
+	if (NULL == d)
+		return;
+
+	this->handle(boost::phoenix::val(d));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Tcp
 
-void Tcp::reactError(QAbstractSocket::SocketError value_)
+template<class M>
+void Tcp<M>::reactError(QAbstractSocket::SocketError value_)
 {
 	Q_UNUSED(value_);
-	handle(Flop::Event(PRL_ERR_FILE_READ_ERROR));
+	this->handle(Flop::Event(PRL_ERR_FILE_READ_ERROR));
 }
 
 } // namespace Connector
@@ -745,7 +792,8 @@ void Socket<QTcpSocket>::disconnect(type& socket_)
 	socket_.disconnectFromHost();
 }
 
-QSharedPointer<QTcpSocket> Socket<QTcpSocket>::craft(connector_type& connector_)
+template<class M>
+QSharedPointer<QTcpSocket> Socket<QTcpSocket>::craft(Connector::Tcp<M>& connector_)
 {
 	bool x;
 	QSharedPointer<type> output = QSharedPointer<type>
@@ -769,18 +817,18 @@ QSharedPointer<QTcpSocket> Socket<QTcpSocket>::craft(connector_type& connector_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Haul
 
-template<class T, class U, Parallels::IDispToDispCommands X>
+template<class T, class U, Parallels::IDispToDispCommands X, class V>
 template <typename FSM>
-void Haul<T, U, X>::on_entry(ioEvent_type const& event_, FSM& fsm_)
+void Haul<T, U, X, V>::on_entry(ioEvent_type const& event_, FSM& fsm_)
 {
 	def_type::on_entry(event_, fsm_);
 	this->getConnector()->setService(&event_());
 	m_socket = Socket<T>::craft(*this->getConnector());
 }
 
-template<class T, class U, Parallels::IDispToDispCommands X>
+template<class T, class U, Parallels::IDispToDispCommands X, class V>
 template <typename Event, typename FSM>
-void Haul<T, U, X>::on_exit(const Event& event_, FSM& fsm_)
+void Haul<T, U, X, V>::on_exit(const Event& event_, FSM& fsm_)
 {
 	def_type::on_exit(event_, fsm_);
 	disconnect_();
@@ -788,29 +836,59 @@ void Haul<T, U, X>::on_exit(const Event& event_, FSM& fsm_)
 	this->getConnector()->setService(NULL);
 }
 
+namespace Qemu
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Qemu
+// struct Channel
 
-template<Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
-void Qemu<X, Y>::connect(const launch_type& event_)
+template<class T, Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
+void Channel<T, X, Y>::connect(const launch_type& event_)
 {
 	quint32 z;
 	SmartPtr<char> b;
 	IOPackage::EncodingType t;
 	event_.getPackage()->getBuffer(0, t, b, z);
+	boost::optional<QString> s = Vm::Pump::Push::Packer::getSpice(*event_.getPackage());
+	if (s)
+		this->getConnector()->setObjectName(s.get());
+
 	this->getSocket()->connectToHost(QHostAddress::LocalHost, *(quint16*)b.getImpl());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Libvirt
+// struct Hub
+
+template<Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
+template <typename FSM>
+void Hub<X, Y>::on_entry(ioEvent_type const& event_, FSM& fsm_)
+{
+	def_type::on_entry(event_, fsm_);
+	m_service = &event_();
+}
+
+template<Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
+template <typename Event, typename FSM>
+void Hub<X, Y>::on_exit(const Event& event_, FSM& fsm_)
+{
+	def_type::on_exit(event_, fsm_);
+	m_service = NULL;
+}
+
+} // namespace Qemu
+
+namespace Libvirt
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Channel
 
 template <typename FSM>
-void Libvirt::on_entry(ioEvent_type const& event_, FSM& fsm_)
+void Channel::on_entry(ioEvent_type const& event_, FSM& fsm_)
 {
 	def_type::on_entry(event_, fsm_);
 	getSocket()->connectToServer("/var/run/libvirt/libvirt-sock");
 }
 
+} // namespace Libvirt
 } // namespace Tunnel
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1851,8 +1929,7 @@ PRL_RESULT Task_MigrateVmTarget::preconditionsReply()
 PRL_RESULT Task_MigrateVmTarget::run_body()
 {
 	namespace mvt = Migrate::Vm::Target;
-	typedef boost::msm::back::state_machine<mvt::Frontend>
-		backend_type;
+	typedef boost::msm::back::state_machine<mvt::Frontend> backend_type;
 
 	const quint32 t = (quint32)
 		CDspService::instance()->getDispConfigGuard().getDispToDispPrefs()->getSendReceiveTimeout() * 1000;
