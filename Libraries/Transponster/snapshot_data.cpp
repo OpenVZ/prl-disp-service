@@ -848,7 +848,7 @@ QString Traits<Snapshot::Xml::PWriteBytesSec>::generate(Snapshot::Xml::PWriteByt
 
 bool Validatable<Snapshot::Xml::PVendor>::validate(const Snapshot::Xml::PVendor::value_type& value_)
 {
-	QRegExp q("[x20-x7E]{0,8}");
+	QRegExp q("[\\x20-\\x7E]{0,8}");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -860,7 +860,7 @@ bool Validatable<Snapshot::Xml::PVendor>::validate(const Snapshot::Xml::PVendor:
 
 bool Validatable<Snapshot::Xml::PProduct>::validate(const Snapshot::Xml::PProduct::value_type& value_)
 {
-	QRegExp q("[x20-x7E]{0,16}");
+	QRegExp q("[\\x20-\\x7E]{0,16}");
 	if (!q.exactMatch(value_))
 		return false;
 
