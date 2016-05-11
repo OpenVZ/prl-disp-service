@@ -79,7 +79,7 @@ struct Component
 	{
 		return m_image;
 	}
-	QString getRestoreFolder() const;
+	QString getRestorePath() const;
 
 private:
 	QString m_folder;

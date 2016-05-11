@@ -997,10 +997,10 @@ Component::Component(const CVmHardDisk& device_, const QString& image_, const QS
 	m_image = f.absoluteFilePath();
 }
 
-QString Component::getRestoreFolder() const
+QString Component::getRestorePath() const
 {
 	if (!m_objectHome.isEmpty())
-		return m_folder;
+		return m_image;
 
 	QString s = m_folder;
 	QFileInfo f(s);

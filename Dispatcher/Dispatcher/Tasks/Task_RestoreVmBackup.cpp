@@ -37,6 +37,7 @@
 #include "Interfaces/Debug.h"
 #include "prlcommon/Interfaces/ParallelsQt.h"
 #include "prlcommon/Interfaces/ParallelsNamespace.h"
+#include "prlcommon/HostUtils/HostUtils.h"
 #include "Task_RestoreVmBackup_p.h"
 #include "prlcommon/Logging/Logging.h"
 #include "prlcommon/PrlUuid/Uuid.h"
@@ -52,6 +53,53 @@
 #ifdef _CT_
 #include "vzctl/libvzctl.h"
 #endif
+
+namespace Restore
+{
+namespace Source
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Workerv4
+
+PRL_RESULT Workerv4::operator()()
+{
+	// send escort files
+	PRL_RESULT e = m_escort();
+	if (PRL_FAILED(e))
+		return e;
+
+	return m_exec();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Workerv3
+
+Workerv3::~Workerv3()
+{
+	if (m_process) {
+		m_process->kill();
+		m_process->waitForFinished();
+	}
+}
+
+PRL_RESULT Workerv3::operator()()
+{
+	QStringList args = QStringList() << QString(PRL_ABACKUP_SERVER);
+	PRL_RESULT e = m_process->start(args, QStringList(), BACKUP_PROTO_V3);
+	if (PRL_FAILED(e))
+		return e;
+
+	// send escort files
+	if (PRL_FAILED(e = m_escort()))
+		return e;
+
+	e = m_process->waitForFinished();
+	m_process = NULL;
+	return e;
+}
+
+} // namespace Source
+} // namespace Restore
 
 /*******************************************************************************
 
@@ -284,17 +332,6 @@ PRL_RESULT Task_RestoreVmBackupSource::sendStartReply(const SmartPtr<CVmConfigur
 		nOriginalSize = 0;
 	}
 
-	bool ok;
-	// e.g. 6.10.24168.1187340 or 7.0.200
-	int major = ve_->getAppVersion().split(".")[0].toInt(&ok);
-	if (!ok)
-	{
-		WRITE_TRACE(DBG_FATAL, "Invalid AppVersion: %s",
-					qPrintable(ve_->getAppVersion()));
-		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
-	}
-
-	quint32 protoVersion = major < 7 ? BACKUP_PROTO_V3 : BACKUP_PROTO_VERSION;
 	CDispToDispCommandPtr pReply = CDispToDispProtoSerializer::CreateVmBackupRestoreFirstReply(
 			m_sVmUuid,
 			m_sVmName,
@@ -305,7 +342,7 @@ PRL_RESULT Task_RestoreVmBackupSource::sendStartReply(const SmartPtr<CVmConfigur
 			nOriginalSize,
 			nBundlePermissions,
 			m_nInternalFlags,
-			protoVersion);
+			m_nRemoteVersion);
 	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(
 			pReply->GetCommandId(),
 			pReply->GetCommand()->toString(),
@@ -329,13 +366,13 @@ PRL_RESULT Task_RestoreVmBackupSource::restoreVm()
 {
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	PRL_RESULT code;
-	CDispToDispCommandPtr pReply;
-	SmartPtr<IOPackage> pPackage;
 	IOSendJob::Handle job;
 	QString sVmConfigPath;
 	SmartPtr<CVmConfiguration> pVmConfig;
-	QStringList args;
 	bool bConnected;
+	bool ok;
+	int major;
+	const char *h;
 
 	if (!CFileHelper::DirectoryExists(m_sBackupPath, &m_pDispConnection->getUserSession()->getAuthHelper())) {
 		nRetCode = PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
@@ -357,36 +394,42 @@ PRL_RESULT Task_RestoreVmBackupSource::restoreVm()
 			__FUNCTION__, QSTR2UTF8(sVmConfigPath), code, PRL_RESULT_TO_STRING(code));
 		goto exit;
 	}
+
+	// Check should we fall to legacy protocol because of legacy VM in backup
+	// e.g. 6.10.24168.1187340 or 7.0.200
+	major = pVmConfig->getAppVersion().split(".")[0].toInt(&ok);
+	if (!ok)
+	{
+		WRITE_TRACE(DBG_FATAL, "Invalid AppVersion: %s",
+					qPrintable(pVmConfig->getAppVersion()));
+		nRetCode = PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
+		goto exit;
+	}
+
+	m_nRemoteVersion = major < 7 ? BACKUP_PROTO_V3 : BACKUP_PROTO_VERSION;
+	h = (BACKUP_PROTO_V4 > m_nRemoteVersion) ?
+		SLOT(handleABackupPackage(IOSender::Handle, const SmartPtr<IOPackage>)) :
+		SLOT(handleVBackupPackage(IOSender::Handle, const SmartPtr<IOPackage>));
 	bConnected = QObject::connect(m_pDispConnection.getImpl(),
 		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
-		SLOT(handleABackupPackage(IOSender::Handle, const SmartPtr<IOPackage>)),
-		Qt::DirectConnection);
+		h, Qt::DirectConnection);
 	PRL_ASSERT(bConnected);
 
 	nRetCode = sendStartReply(pVmConfig, job);
 	if (PRL_FAILED(nRetCode))
 		goto exit;
 
-	args << QString(PRL_ABACKUP_SERVER);
-	if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, QStringList(), m_nRemoteVersion)))
-		goto exit;
-
-	if (PRL_FAILED(nRetCode = sendFiles(job)))
-	{
-		m_cABackupServer.kill();
-		m_cABackupServer.waitForFinished();
-	}
-	else
-	{
-		// part two : backup of hdd's via acronis library.
-		nRetCode = m_cABackupServer.waitForFinished();
-	}
-
+	nRetCode = (BACKUP_PROTO_V4 > m_nRemoteVersion) ?
+		Restore::Source::Workerv3(
+			boost::bind(&Task_RestoreVmBackupSource::sendFiles, this, job),
+			&m_cABackupServer)() :
+		Restore::Source::Workerv4(
+			boost::bind(&Task_RestoreVmBackupSource::sendFiles, this, job),
+			boost::bind(&Task_RestoreVmBackupSource::exec, this))();
 exit:
 	QObject::disconnect(m_pDispConnection.getImpl(),
 		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
-		this,
-		SLOT(handleABackupPackage(IOSender::Handle, const SmartPtr<IOPackage>)));
+		this, h);
 	setLastErrorCode(nRetCode);
 	return nRetCode;
 }
@@ -484,6 +527,71 @@ void Task_RestoreVmBackupSource::handleABackupPackage(IOSender::Handle h, const 
 
 	if (PRL_FAILED(Task_BackupHelper::handleABackupPackage(m_pDispConnection, p, m_nBackupTimeout)))
 		m_cABackupServer.kill();
+}
+
+namespace
+{
+enum {QEMU_IMG_RUN_TIMEOUT = 60 * 60 * 1000};
+
+const char QEMU_IMG[] = "/usr/bin/qemu-img";
+}
+
+
+PRL_RESULT Task_RestoreVmBackupSource::restoreImage(const QString& from_, const QString& to_)
+{
+	QStringList cmdline = QStringList() << QEMU_IMG << "convert" << "-O" << "qcow2"
+						<< from_ << to_;
+
+	QProcess process;
+	QString out;
+	if (!HostUtils::RunCmdLineUtility(cmdline.join(" "), out, QEMU_IMG_RUN_TIMEOUT, &process))
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot restore hdd %s: %s", QSTR2UTF8(to_),
+					process.readAllStandardError().constData());
+		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
+	}
+	WRITE_TRACE(DBG_DEBUG, "qemu-img output:\n%s", qPrintable(out));
+
+	return PRL_ERR_SUCCESS;
+
+}
+
+void Task_RestoreVmBackupSource::handleVBackupPackage(IOSender::Handle h, const SmartPtr<IOPackage> p)
+{
+	// #439777 to protect call handler for destroying object
+	WaiterTillHandlerUsingObject::AutoUnlock lock( m_waiter );
+	if( !lock.isLocked() )
+		return;
+
+	if (h != m_pDispConnection->GetConnectionHandle())
+		return;
+
+	if (p->header.type == ABackupProxyFinishCmd) {
+		exit(PRL_ERR_SUCCESS);
+		return;
+	}
+
+	if (p->header.type == ABackupProxyCancelCmd) {
+		exit(PRL_ERR_OPERATION_WAS_CANCELED);
+		return;
+	}
+
+	if (p->header.type != VmBackupRestoreImage)
+		return;
+
+	QString image = UTF8_2QSTR(p->buffers[0].getImpl());
+	QString archive = UTF8_2QSTR(p->buffers[1].getImpl());
+	if (image.isEmpty() || archive.isEmpty()) {
+		WRITE_TRACE(DBG_FATAL, "Invalid VmBackupRestoreImage command");
+		return;
+	}
+
+	PRL_RESULT e = restoreImage(archive, image);
+
+	// send reply to target side
+	IOSendJob::Handle j = m_pDispConnection->sendSimpleResponse(p, e);
+	if (m_ioServer.waitForSend(j, m_nTimeout) != IOSendJob::Success)
+		WRITE_TRACE(DBG_FATAL, "[%s] Package sending failure", __FUNCTION__);
 }
 
 void Task_RestoreVmBackupSource::clientDisconnected(IOSender::Handle h)
