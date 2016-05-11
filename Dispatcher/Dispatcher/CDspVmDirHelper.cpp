@@ -2865,35 +2865,38 @@ void CDspVmDirHelper::appendAdvancedParamsToVmConfig(
 		return;
 
 	CVmIdent ident(CDspVmDirHelper::getVmIdentByVmUuid(pOutVmConfig->getVmIdentification()->getVmUuid(), pUserSession));
-	CDspLockedPointer<CVmDirectoryItem> pVmDirItem(CDspService::instance()->getVmDirManager()
-			.getVmDirItemByUuid(ident));
-
-	if (!pVmDirItem)
-		return;
-
-	pOutVmConfig->getVmIdentification()->setHomePath(pVmDirItem->getVmHome());
-	pOutVmConfig->getVmIdentification()->setModifierName(pVmDirItem->getChangedBy());
-	pOutVmConfig->getVmIdentification()->setLastModifDate(pVmDirItem->getChangeDateTime());
-	pOutVmConfig->getVmIdentification()->setCtId(QString::number(Uuid::toVzid(ident.first)));
-
-	Q_UNUSED(bSynchronizeFileColor);
-
+	// LOCK inside brackets
 	{
-		//https://bugzilla.sw.ru/show_bug.cgi?id=267152
-		CAuthHelperImpersonateWrapper _impersonate(&pUserSession->getAuthHelper());
-		pOutVmConfig->getVmIdentification()->setVmFilesLocation(
-			CFileHelper::GetVmFilesLocationType(pVmDirItem->getVmHome()));
+		CDspLockedPointer<CVmDirectoryItem> pVmDirItem(CDspService::instance()->getVmDirManager()
+				.getVmDirItemByUuid(ident));
+
+		if (!pVmDirItem)
+			return;
+
+		pOutVmConfig->getVmIdentification()->setHomePath(pVmDirItem->getVmHome());
+		pOutVmConfig->getVmIdentification()->setModifierName(pVmDirItem->getChangedBy());
+		pOutVmConfig->getVmIdentification()->setLastModifDate(pVmDirItem->getChangeDateTime());
+		pOutVmConfig->getVmIdentification()->setCtId(QString::number(Uuid::toVzid(ident.first)));
+
+		Q_UNUSED(bSynchronizeFileColor);
+
+		{
+			//https://bugzilla.sw.ru/show_bug.cgi?id=267152
+			CAuthHelperImpersonateWrapper _impersonate(&pUserSession->getAuthHelper());
+			pOutVmConfig->getVmIdentification()->setVmFilesLocation(
+				CFileHelper::GetVmFilesLocationType(pVmDirItem->getVmHome()));
+		}
+
+		SmartPtr< CVmSecurity> pVmSecurity = FillVmSecurity(pUserSession, pVmDirItem.getPtr());
+
+		bool bParentalControlEnabled = pOutVmConfig->getVmSecurity()->isParentalControlEnabled();
+		QString qsStamp = pOutVmConfig->getVmSecurity()->getFieldPatchedValue(PARENTAL_CONTROL_ENABLED_STR);
+		pOutVmConfig->setVmSecurity(new CVmSecurity(pVmSecurity.getImpl()));
+		pOutVmConfig->getVmSecurity()->setParentalControlEnabled(bParentalControlEnabled);
+		pOutVmConfig->getVmSecurity()->markPatchedField(PARENTAL_CONTROL_ENABLED_STR, qsStamp);
+
+		pOutVmConfig->getVmSettings()->getLockDown()->setHash(pVmDirItem->getLockDown()->getEditingPasswordHash());
 	}
-
-	SmartPtr< CVmSecurity> pVmSecurity = FillVmSecurity(pUserSession, pVmDirItem.getPtr());
-
-	bool bParentalControlEnabled = pOutVmConfig->getVmSecurity()->isParentalControlEnabled();
-	QString qsStamp = pOutVmConfig->getVmSecurity()->getFieldPatchedValue(PARENTAL_CONTROL_ENABLED_STR);
-	pOutVmConfig->setVmSecurity(new CVmSecurity(pVmSecurity.getImpl()));
-	pOutVmConfig->getVmSecurity()->setParentalControlEnabled(bParentalControlEnabled);
-	pOutVmConfig->getVmSecurity()->markPatchedField(PARENTAL_CONTROL_ENABLED_STR, qsStamp);
-
-	pOutVmConfig->getVmSettings()->getLockDown()->setHash(pVmDirItem->getLockDown()->getEditingPasswordHash());
 
 	// #463792 add vmInfo
 	CVmEvent vmInfo;
