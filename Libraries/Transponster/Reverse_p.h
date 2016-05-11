@@ -141,6 +141,10 @@ struct Flavor<CVmHardDisk>
 	{
 		return "hd";
 	}
+	static const char* getProductTemplate()
+	{
+		return "Vz HARDDISK%1";
+	}
 	static mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 1>::type
 		getDriverFormat()
 	{
@@ -168,6 +172,10 @@ struct Flavor<CVmOpticalDisk>
 	static const char* getTarget()
 	{
 		return "sd";
+	}
+	static const char* getProductTemplate()
+	{
+		return "Vz CD-ROM%1";
 	}
 	static mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type
 		getDriverFormat()
@@ -201,6 +209,10 @@ struct Flavor<CVmFloppyDisk>
 	static const char* getTarget()
 	{
 		return "fd";
+	}
+	static const char* getProductTemplate()
+	{
+		return "Vz FLOPPY%1";
 	}
 	static mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type
 		getDriverFormat()
@@ -246,6 +258,15 @@ struct Model
 		}
 	}
 
+	boost::optional<QString> getProductName() const
+	{
+		boost::optional<Libvirt::Domain::Xml::EBus> b = getBus();
+		if (!(b && b == Libvirt::Domain::Xml::EBusScsi))
+			return boost::none;
+
+		return QString(Flavor<T>::getProductTemplate())
+			.arg(m_dataSource->getStackIndex());
+	}
 	QString getTargetName() const
 	{
 		return getTarget()
@@ -373,6 +394,13 @@ void Ordinary<T>::setDisk()
 	mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type x;
 	x.setValue(Flavor<T>::kind);
 	m_result.setDisk(Libvirt::Domain::Xml::VDisk(x));
+	if (Flavor<T>::image == getModel().getEmulatedType())
+	{
+		boost::optional<QString> p = getModel().getProductName();
+		if (p)
+			m_result.setProduct(p.get());
+	}
+
 }
 
 template<class T>

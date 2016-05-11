@@ -828,6 +828,7 @@ sub validator_($)
 			if (exists $self->{params}{pattern})
 			{
 				my $p = $self->{params}{pattern};
+				$p =~ s/(?<!\\)(x[0-9a-fA-F]{2})/\\$1/g;
 				$p =~ s/\\/\\\\/g;
 				$p =~ s/"/\\"/g;
 				$p =~ s/\n/\\n/g;
