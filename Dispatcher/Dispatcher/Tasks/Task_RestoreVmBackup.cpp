@@ -372,7 +372,7 @@ PRL_RESULT Task_RestoreVmBackupSource::restoreVm()
 	bool bConnected;
 	bool ok;
 	int major;
-	const char *h;
+	const char *h = "";
 
 	if (!CFileHelper::DirectoryExists(m_sBackupPath, &m_pDispConnection->getUserSession()->getAuthHelper())) {
 		nRetCode = PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
