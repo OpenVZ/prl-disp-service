@@ -311,16 +311,10 @@ void removeUnshared(QList<CVmHardDisk*> disks_, const QList<CVmHardDisk*>& unsha
 } // namespace
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Factory
+// struct Online
 
-Unit* Factory::operator()(const agent_type& agent_, const CVmConfiguration& target_)
+Unit* Online::operator()(const agent_type& agent_, const CVmConfiguration& target_)
 {
-	if (!m_ports)
-	{
-		WRITE_TRACE(DBG_DEBUG, "we use offline migration");
-		return new Migration(boost::bind(&agent_type::doOffline, agent_, target_));
-	}
-
 	Unit* work = NULL;
 	const CVmConfiguration* config = m_task->getVmConfig();
 
@@ -342,14 +336,20 @@ Unit* Factory::operator()(const agent_type& agent_, const CVmConfiguration& targ
 		unshared.append(disks);
 	}
 
-	boost::optional<Task::agent_type::nbd_type> nbd;
-	if (!unshared.isEmpty())
-		nbd = qMakePair(unshared, m_ports->second);
-	else
+	if (unshared.isEmpty())
 		WRITE_TRACE(DBG_DEBUG, "there is no disk to migrate");
 
-	work = new Migration(boost::bind(&agent_type::doOnline, agent_, target_,
-		m_ports->first, nbd));
+	::Libvirt::Instrument::Agent::Vm::Migration::Online o(agent_);
+	if (m_task->getFlags() & PVMT_UNCOMPRESSED)
+		o.setUncompressed();
+
+	if (m_ports)
+	{
+		o.setQemuState(m_ports->first);
+		if (!unshared.isEmpty())
+			o.setQemuDisk(m_ports->second, unshared);
+	}
+	work = new Migration(boost::bind< ::Libvirt::Result>(o, target_));
 
 	if (!disks.isEmpty())
 	{
@@ -374,6 +374,17 @@ Unit* Factory::operator()(const agent_type& agent_, const CVmConfiguration& targ
 		work = new File(c->getNVRAM(), work);
 
 	return work;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Offline
+
+Unit* Offline::operator()(const Online::agent_type& agent_, const CVmConfiguration& target_) const
+{
+	WRITE_TRACE(DBG_DEBUG, "we use offline migration");
+	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Offline offline_type;
+
+	return new Migration(boost::bind< ::Libvirt::Result>(offline_type(agent_), target_));
 }
 
 } // namespace Trick
@@ -454,29 +465,30 @@ void Frontend::start(const serverList_type& event_)
 	if (3 > event_.size())
 		return getConnector()->handle(Flop::Event(PRL_ERR_INVALID_ARG));
 
+	const CVmConfiguration* t = m_task->getTargetConfig();
 	const QString u = QString("qemu+tcp://%1:%2/system")
 				.arg(QHostAddress(QHostAddress::LocalHost).toString())
 				.arg(event_.first()->serverPort());
 	Task::agent_type a = ::Libvirt::Kit.vms().at(m_task->getVmUuid()).migrate(u);
-	a.setFlags(m_task->getFlags());
-
 	switch (m_task->getOldState())
 	{
 	case VMS_PAUSED:
 	case VMS_RUNNING:
 		break;
 	default:
-		return launch(new Task(a, Trick::Factory(*m_task),
-			m_task->getTargetConfig()));
+		return launch(new Task(a, boost::bind<Trick::Unit* >(Trick::Offline(), _1, _2),
+				m_task->getTargetConfig()));
 	}
 	m_progress = QSharedPointer<Progress>(new Progress(a, m_reporter),
 			&QObject::deleteLater);
 	m_progress->moveToThread(QCoreApplication::instance()->thread());
 	m_progress->startTimer(0);
 
-	launch(new Task(a, Trick::Factory(*m_task).setPorts(
-			qMakePair(event_.at(1)->serverPort(), event_.at(2)->serverPort())),
-		m_task->getTargetConfig()));
+	Trick::Online f(*m_task);
+	if (true)
+		f.setPorts(qMakePair(event_.at(1)->serverPort(), event_.at(2)->serverPort()));
+
+	launch(new Task(a, boost::bind<Trick::Unit* >(f, _1, _2), t));
 }
 
 template<typename Event, typename FSM>

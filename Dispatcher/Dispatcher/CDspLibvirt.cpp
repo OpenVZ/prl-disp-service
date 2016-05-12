@@ -163,9 +163,9 @@ namespace Vm
 namespace Migration
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Offline
+// struct Basic
 
-Result Offline::operator()(Parameters::Builder& builder_)
+Result Basic::operator()(Parameters::Builder& builder_)
 {
 	const QString n = m_config->getVmIdentification()->getVmName();
 	if (!builder_.add(VIR_MIGRATE_PARAM_DEST_NAME, n))
@@ -190,47 +190,56 @@ Result Offline::operator()(Parameters::Builder& builder_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Online
+// struct Compression
 
-Result Online::operator()(Parameters::Builder& builder_, quint32 flags_)
+Result Compression::operator()(Parameters::Builder& builder_)
 {
-	Result e = Offline::operator()(builder_);
-	if (e.isFailed())
-		return e;
-
-	if (!builder_.add(VIR_MIGRATE_PARAM_URI,
-		QString("tcp://%1:%2")
-		.arg(QHostAddress(QHostAddress::LocalHost).toString())
-		.arg(m_qemuStatePort)))
+	if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "xbzrle"))
+		return Failure(PRL_ERR_FAILURE);
+	if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "mt"))
 		return Failure(PRL_ERR_FAILURE);
 
-	if (!(flags_ & PVMT_UNCOMPRESSED))
-	{
-		if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "xbzrle"))
-			return Failure(PRL_ERR_FAILURE);
-		if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "mt"))
-			return Failure(PRL_ERR_FAILURE);
-	}
-
-	if (m_nbd)
-	{
-		foreach (CVmHardDisk* d, m_nbd.get().first)
-		{
-			QString t = Transponster::Device::Clustered::Model
-				<CVmHardDisk>(*d).getTargetName();
-			if (!builder_.add(VIR_MIGRATE_PARAM_MIGRATE_DISKS, t))
-				return Failure(PRL_ERR_FAILURE);
-		}
-		if (!builder_.add(VIR_MIGRATE_PARAM_DISKS_PORT, m_nbd.get().second))
-			return Failure(PRL_ERR_FAILURE);
-		if (!builder_.add(VIR_MIGRATE_PARAM_LISTEN_ADDRESS,
-			QHostAddress(QHostAddress::LocalHost).toString()))
-			return Failure(PRL_ERR_FAILURE);
-	}
 	return Result();
 }
 
+namespace Qemu
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Disk
 
+Result Disk::operator()(Parameters::Builder& builder_)
+{
+	foreach (CVmHardDisk* d, m_list)
+	{
+		QString t = Transponster::Device::Clustered::Model
+			<CVmHardDisk>(*d).getTargetName();
+		if (!builder_.add(VIR_MIGRATE_PARAM_MIGRATE_DISKS, t))
+			return Failure(PRL_ERR_FAILURE);
+	}
+	if (!builder_.add(VIR_MIGRATE_PARAM_DISKS_PORT, m_port))
+		return Failure(PRL_ERR_FAILURE);
+	if (!builder_.add(VIR_MIGRATE_PARAM_LISTEN_ADDRESS,
+		QHostAddress(QHostAddress::LocalHost).toString()))
+		return Failure(PRL_ERR_FAILURE);
+
+	return Result();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+Result State::operator()(Parameters::Builder& builder_)
+{
+	if (!builder_.add(VIR_MIGRATE_PARAM_URI,
+		QString("tcp://%1:%2")
+		.arg(QHostAddress(QHostAddress::LocalHost).toString())
+		.arg(m_port)))
+		return Failure(PRL_ERR_FAILURE);
+
+	return Result();
+}
+
+} // namespace Qemu
 } // namespace Migration
 } // namespace Vm
 
