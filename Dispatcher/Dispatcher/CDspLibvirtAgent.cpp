@@ -89,7 +89,7 @@ static Result do_(T* handle_, U action_)
 	if (NULL == handle_)
 		return Result(Error::Simple(PRL_ERR_UNINITIALIZED));
 
-	if (0 == action_(handle_))
+	if (0 <= action_(handle_))
 		return Result();
 
 	return Failure(PRL_ERR_FAILURE);

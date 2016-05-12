@@ -81,7 +81,7 @@ public:
 
 	BackupProcess();
 	virtual ~BackupProcess();
-	PRL_RESULT start(const QStringList& args, const QStringList& env, int version);
+	PRL_RESULT start(const QStringList& args, int version);
 	PRL_RESULT waitForFinished();
 	void kill();
 	PRL_RESULT readFromABackupClient(char *buffer, qint32 size);
@@ -223,9 +223,9 @@ struct AClient
 	{
 	}
 	virtual PRL_RESULT startABackupClient(const QString&, const QStringList&,
-			const QStringList&, const QString&, unsigned int) = 0;
+			const QString&, unsigned int) = 0;
 	virtual PRL_RESULT startABackupClient(const QString&, const QStringList&,
-			const QStringList&, SmartPtr<Chain> ) = 0;
+			SmartPtr<Chain> ) = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -271,10 +271,9 @@ public:
 	}
 
 	PRL_RESULT startABackupClient(const QString& sVmName_, const QStringList& args_,
-		const QStringList& envs_, const QString &sNotificationVmUuid,
-		unsigned int nDiskIdx);
+		const QString &sNotificationVmUuid, unsigned int nDiskIdx);
 	PRL_RESULT startABackupClient(const QString& sVmName_, const QStringList& args_,
-		const QStringList& envs_, SmartPtr<Chain> custom_);
+		SmartPtr<Chain> custom_);
 
 protected:
 	Task_BackupHelper(const SmartPtr<CDspClient> &client, const SmartPtr<IOPackage> &p);

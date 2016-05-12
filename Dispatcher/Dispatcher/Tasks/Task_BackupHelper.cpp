@@ -240,7 +240,7 @@ PRL_RESULT Progress::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
 
 struct Client
 {
-	Client(BackupProcess* process_, const QStringList& args_, const QStringList& envs_);
+	Client(BackupProcess* process_, const QStringList& args_);
 
 	static QString getAcronisErrorString(int code_);
 	PRL_RESULT result(bool cancelled_, const QString& vm_, CVmEvent* event_);
@@ -250,13 +250,11 @@ private:
 
 	PRL_RESULT m_start;
 	QStringList m_argv;
-	QStringList m_env;
 	std::auto_ptr<BackupProcess> m_process;
 };
 
-Client::Client(BackupProcess* process_, const QStringList& argv_, const QStringList& env_):
-	m_start(PRL_ERR_UNINITIALIZED), m_argv(argv_), m_env(env_),
-	m_process(process_)
+Client::Client(BackupProcess* process_, const QStringList& argv_):
+	m_start(PRL_ERR_UNINITIALIZED), m_argv(argv_), m_process(process_)
 {
 }
 
@@ -297,7 +295,7 @@ SmartPtr<IOPackage> Client::pull(quint32 version_, SmartPtr<char> buffer_, qint6
 {
 	PRL_RESULT e = m_start;
 	if (PRL_ERR_UNINITIALIZED == e)
-		m_start = m_process->start(m_argv, m_env, version_);
+		m_start = m_process->start(m_argv, version_);
 
 	if (PRL_FAILED(m_start))
 		return SmartPtr<IOPackage>();
@@ -1337,7 +1335,7 @@ BackupProcess::~BackupProcess()
 	m_pid = -1;
 }
 
-PRL_RESULT BackupProcess::start(const QStringList& arg_, const QStringList& env_, int version_)
+PRL_RESULT BackupProcess::start(const QStringList& arg_, int version_)
 {
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	int in[2], out[2];
@@ -1375,14 +1373,6 @@ PRL_RESULT BackupProcess::start(const QStringList& arg_, const QStringList& env_
 		pArgv[i] = strdup(QSTR2UTF8(a.at(i)));
 	pArgv[i] = NULL;
 
-	char **pEnv = NULL;
-	if (!env_.isEmpty()) {
-		pEnv = new char *[env_.size()+2];
-		for (i = 0; i < env_.size(); ++i)
-			pEnv[i] = strdup(QSTR2UTF8(env_.at(i)));
-		pEnv[i] = NULL;
-	}
-
 	if ((flags = fcntl(in[0], F_GETFL)) != -1)
 		fcntl(in[0], F_SETFL, flags | O_NONBLOCK);
 	if ((flags = fcntl(in[1], F_GETFL)) != -1)
@@ -1418,7 +1408,7 @@ PRL_RESULT BackupProcess::start(const QStringList& arg_, const QStringList& env_
 		close(in[1]); close(out[0]);
 		fcntl(in[0], F_SETFD, ~FD_CLOEXEC);
 		fcntl(out[1], F_SETFD, ~FD_CLOEXEC);
-		execvpe(QSTR2UTF8(m_sCmd), (char* const*)pArgv, (char* const*)pEnv ?: environ);
+		execvp(QSTR2UTF8(m_sCmd), (char* const*)pArgv);
 		WRITE_TRACE(DBG_FATAL, "Can't exec cmd '%s': %s",
 					QSTR2UTF8(m_sCmd), strerror(errno));
 		_exit(-1);
@@ -1444,11 +1434,6 @@ cleanup:
 	for (i = 0; pArgv[i]; ++i)
 		free(pArgv[i]);
 	delete []pArgv;
-	if (pEnv != NULL) {
-		for (i = 0; pEnv[i]; ++i)
-			free(pEnv[i]);
-		delete []pEnv;
-	}
 	return nRetCode;
 }
 
@@ -1728,7 +1713,7 @@ void Task_BackupHelper::killABackupClient()
 }
 
 PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const QStringList& args_,
-		const QStringList& envs_, SmartPtr<Chain> custom_)
+		SmartPtr<Chain> custom_)
 {
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
@@ -1751,7 +1736,7 @@ PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const 
 	a.prepend((BACKUP_PROTO_V4 > m_nRemoteVersion) ?
                         QString(PRL_ABACKUP_CLIENT) : QString(VZ_BACKUP_CLIENT));
 	a << "--timeout" << QString::number(m_nBackupTimeout);
-	Client x(m_cABackupClient = new BackupProcess, a, envs_);
+	Client x(m_cABackupClient = new BackupProcess, a);
 	while (b->no())
 	{
 		SmartPtr<IOPackage> q = x.pull(m_nRemoteVersion, m_pBuffer, m_nBufSize);
@@ -1770,7 +1755,7 @@ PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const 
 }
 
 PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const QStringList& args_,
-		const QStringList& envs_, const QString &sNotificationVmUuid, unsigned int nDiskIdx)
+		const QString &sNotificationVmUuid, unsigned int nDiskIdx)
 {
 	bool bRestore = (args_.at(0) == "restore" || args_.at(0) == "restore_ct");
 	PRL_EVENT_TYPE event_type = bRestore ? PET_DSP_EVT_RESTORE_PROGRESS_CHANGED : PET_DSP_EVT_BACKUP_PROGRESS_CHANGED;
@@ -1779,7 +1764,7 @@ PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const 
 	if (args_.indexOf("--local") == -1)
 		p->next(SmartPtr<Chain>(new Forward(m_pIoClient, m_nBackupTimeout)));
 
-	return startABackupClient(sVmName_, args_, envs_, SmartPtr<Chain>(p));
+	return startABackupClient(sVmName_, args_, SmartPtr<Chain>(p));
 }
 
 PRL_RESULT Task_BackupHelper::GetBackupTreeRequest(const QString &sVmUuid, QString &sBackupTree)

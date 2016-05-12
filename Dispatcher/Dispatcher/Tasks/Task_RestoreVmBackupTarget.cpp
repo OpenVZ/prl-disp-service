@@ -262,13 +262,13 @@ Unit::Unit(Backup::AClient& impl_, const QString& uuid_, CVmConfiguration& vm_):
 
 PRL_RESULT Unit::operator()(const QStringList& argv_, unsigned disk_) const
 {
-	return m_impl->startABackupClient(m_name, argv_, QStringList(), m_uuid, disk_);
+	return m_impl->startABackupClient(m_name, argv_, m_uuid, disk_);
 }
 
 
 PRL_RESULT Unit::operator()(const QStringList& argv_, SmartPtr<Chain> custom_) const
 {
-	return m_impl->startABackupClient(m_name, argv_, QStringList(), custom_);
+	return m_impl->startABackupClient(m_name, argv_, custom_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

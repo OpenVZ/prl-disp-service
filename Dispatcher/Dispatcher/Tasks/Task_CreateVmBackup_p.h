@@ -54,7 +54,6 @@ struct Command
 			, m_context
 			, m_product.getObject().getConfig()->getVmIdentification()->getVmName()
 			, _1
-			, QStringList()
 			, m_product.getObject().getConfig()->getVmIdentification()->getVmUuid()
 			, _2))
 	{
