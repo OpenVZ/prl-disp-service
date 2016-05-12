@@ -1038,6 +1038,7 @@ void CDspProblemReportHelper::FillProblemReportData
 				.arg(vmConfig.getVmIdentification()->getVmName()));
 	}
 	addSystemLog(cReport, QFileInfo("/var/log/libvirt/libvirtd.log"));
+	addSystemLog(cReport, QFileInfo("/var/log/vcmmd.log"));
 #endif
 	WRITE_REPORT_PROFILER_STRING( "EndOfFillProblemReport" );
 }
