@@ -238,8 +238,7 @@ Task_CreateCtBackupHelper::Task_CreateCtBackupHelper(const SmartPtr<CDspClient>&
 int Task_CreateCtBackupHelper::execute(const CVmIdentification& ct_, quint32 deviceIndex_,
 					const QStringList& args_)
 {
-	return startABackupClient(ct_.getVmName(), args_, QStringList(),
-				ct_.getVmUuid(), deviceIndex_);
+	return startABackupClient(ct_.getVmName(), args_, ct_.getVmUuid(), deviceIndex_);
 }
 
 bool Task_CreateCtBackupHelper::isRunning() const

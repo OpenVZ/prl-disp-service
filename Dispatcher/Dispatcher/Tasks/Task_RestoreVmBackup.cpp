@@ -85,7 +85,7 @@ Workerv3::~Workerv3()
 PRL_RESULT Workerv3::operator()()
 {
 	QStringList args = QStringList() << QString(PRL_ABACKUP_SERVER);
-	PRL_RESULT e = m_process->start(args, QStringList(), BACKUP_PROTO_V3);
+	PRL_RESULT e = m_process->start(args, BACKUP_PROTO_V3);
 	if (PRL_FAILED(e))
 		return e;
 
@@ -488,7 +488,7 @@ PRL_RESULT Task_RestoreVmBackupSource::restoreCt()
 		goto exit_1;
 
 	args << QString(PRL_ABACKUP_SERVER);
-	if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, QStringList(), m_nRemoteVersion)))
+	if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, m_nRemoteVersion)))
 		goto exit_1;
 
 	if (m_nInternalFlags & (PVM_CT_PLOOP_BACKUP|PVM_CT_VZWIN_BACKUP))

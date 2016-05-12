@@ -436,7 +436,7 @@ PRL_RESULT Task_CreateVmBackupTarget::run_body()
 		args.prepend(QString(PRL_ABACKUP_SERVER));
 
 		/* Target side - preserve old arguments processing */
-		if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, QStringList(), BACKUP_PROTO_V3)))
+		if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, BACKUP_PROTO_V3)))
 			goto exit;
 		locker.unlock();
 
@@ -704,8 +704,8 @@ PRL_RESULT Task_CreateVmBackupTarget::backupHardDiskDevices()
 
 		backupArgs << "--last-tib" << QString::number(m_nBackupNumber);
 		WRITE_TRACE(DBG_FATAL, "Start backup client: %s", QSTR2UTF8(backupArgs.join(" ")));
-		nRetCode = startABackupClient(m_sVmName, backupArgs, QStringList(),
-				m_sVmUuid, t.first.getDevice().getIndex());
+		nRetCode = startABackupClient(m_sVmName, backupArgs, m_sVmUuid,
+				t.first.getDevice().getIndex());
 		if (PRL_FAILED(nRetCode))
 			break;
 	}
