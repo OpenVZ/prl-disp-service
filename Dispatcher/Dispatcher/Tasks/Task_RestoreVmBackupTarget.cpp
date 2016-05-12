@@ -835,6 +835,7 @@ void Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 			IS_WIN_VER_BELOW(cfg->getVmSettings()->getVmCommonOptions()->getOsVersion(),
 			                 PVS_GUEST_VER_WIN_VISTA);
 		pDevice->setInterfaceType(noSCSI ? PMS_VIRTIO_BLOCK_DEVICE : PMS_SCSI_DEVICE);
+		pDevice->setSubType(noSCSI ? PCD_BUSLOGIC : PCD_VIRTIO_SCSI);
 	}
 
 	// Convert network interfaces to virtio-net
