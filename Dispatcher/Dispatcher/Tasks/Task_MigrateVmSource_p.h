@@ -338,18 +338,18 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Factory
+// struct Online
 
-struct Factory
+struct Online
 {
-	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Task agent_type;
+	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Agent agent_type;
 
-	explicit Factory(Task_MigrateVmSource& task_):
+	explicit Online(Task_MigrateVmSource& task_):
 		m_task(&task_), m_ports(boost::none)
 	{
 	}
 
-	Factory& setPorts(const QPair<quint16,quint16>& ports_)
+	Online& setPorts(const QPair<quint16,quint16>& ports_)
 	{
 		m_ports = ports_;
 		return *this;
@@ -362,6 +362,14 @@ private:
 	boost::optional<QPair<quint16,quint16> > m_ports;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Offline
+
+struct Offline
+{
+	Unit* operator()(const Online::agent_type& agent_, const CVmConfiguration& target_) const;
+};
+
 } // namespace Trick
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -370,7 +378,8 @@ private:
 struct Task
 {
 	typedef Progress::agent_type agent_type;
-	typedef Trick::Factory factory_type;
+	typedef boost::function2<Trick::Unit*, agent_type, const CVmConfiguration&>
+		factory_type;
 
 	Task(const agent_type& agent_, const factory_type& factory_, const CVmConfiguration* config_):
 		m_factory(factory_), m_agent(agent_), m_config(config_)

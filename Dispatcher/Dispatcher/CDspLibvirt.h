@@ -91,7 +91,6 @@ namespace Agent
 namespace Parameters
 {
 struct Builder;
-
 } // namespace Parameters
 
 namespace Vm
@@ -314,39 +313,71 @@ struct AuxChannel;
 
 namespace Migration
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Task
+struct Basic;
+struct Compression;
 
-struct Task
+namespace Qemu
 {
-	typedef QPair<QList<CVmHardDisk*>, quint16> nbd_type;
+struct Disk;
+struct State;
+} // namespace Qemu
 
-	Task(QSharedPointer<virDomain> domain_,
-		QSharedPointer<virConnect> link_,
-		const QString& uri_)
-		: m_domain(domain_), m_link(link_), m_uri(uri_), m_flags(0)
+///////////////////////////////////////////////////////////////////////////////
+// struct Agent
+
+struct Agent
+{
+	Agent(QSharedPointer<virDomain> domain_, QSharedPointer<virConnect> link_,
+		const QString& uri_):
+		m_domain(domain_), m_link(link_), m_uri(uri_)
 	{
 	}
 
-	void setFlags(quint32 flags_)
-	{
-		m_flags = flags_;
-	}
-
-	Result doOnline(const CVmConfiguration& config_, quint16 qemuStatePort_,
-			const boost::optional<nbd_type>& ndb_);
-	Result doOffline(const CVmConfiguration &config_);
 	Result cancel();
-	Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple>
-		getProgress();
+	Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> getProgress();
+
+protected:
+	Result setDowntime(quint32 value_);
+	Result migrate(const CVmConfiguration& config_, unsigned int flags_,
+		Parameters::Builder& parameters_);
 
 private:
-	Result doInternal(Parameters::Builder& parameters_, unsigned int flags_);
-
 	QSharedPointer<virDomain> m_domain;
 	QSharedPointer<virConnect> m_link;
 	QString m_uri;
-	quint32 m_flags;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Online
+
+struct Online: Agent
+{
+	explicit Online(const Agent& agent_);
+
+	void setQemuState(qint32 port_);
+	void setQemuDisk(qint32 port_, const QList<CVmHardDisk* >& list_);
+	void setUncompressed()
+	{
+		m_compression.clear();
+	}
+	Result operator()(const CVmConfiguration& config_);
+
+private:
+	QSharedPointer<Qemu::Disk> m_qemuDisk;
+	QSharedPointer<Qemu::State> m_qemuState;
+	QSharedPointer<Compression> m_compression;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Offline
+
+struct Offline: Agent
+{
+	explicit Offline(const Agent& agent_): Agent(agent_)
+	{
+	}
+
+	Result operator()(const CVmConfiguration& config_);
 };
 
 } // namespace Migration
@@ -378,7 +409,7 @@ struct Unit
 	Result setConfig(const CVmConfiguration& value_);
 	Result completeConfig(CVmConfiguration& config_);
 
-	Migration::Task migrate(const QString& uri_);
+	Migration::Agent migrate(const QString& uri_);
 
 	List up() const;
 	Performance getPerformance() const

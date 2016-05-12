@@ -163,7 +163,7 @@ namespace Libvirt
 
 struct Progress: QObject
 {
-	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Task agent_type;
+	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Agent agent_type;
 	typedef boost::function1<void, int> reporter_type;
 	
 	Progress(const agent_type& agent_, const reporter_type& reporter_):

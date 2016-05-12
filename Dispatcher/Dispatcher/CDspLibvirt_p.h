@@ -473,11 +473,11 @@ namespace Vm
 namespace Migration
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Offline
+// struct Basic
 
-struct Offline
+struct Basic
 {
-	Offline(const Config& agent_, const CVmConfiguration& config_):
+	Basic(const Config& agent_, const CVmConfiguration& config_):
 		m_agent(agent_), m_config(&config_)
 	{
 	}
@@ -490,28 +490,48 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Online
+// struct Compression
 
-struct Online: private Offline
+struct Compression
 {
-	typedef Instrument::Agent::Vm::Migration::Task::nbd_type nbd_type;
-
-	Online(const Config& agent_, const CVmConfiguration& config_, qint32 qemuStatePort_):
-		Offline(agent_, config_), m_qemuStatePort(qemuStatePort_)
-	{
-	}
-
-	Result operator()(Parameters::Builder& builder_, quint32 flags_);
-	void setNbd(const nbd_type& value_)
-	{
-		m_nbd = value_;
-	}
-
-private:
-	qint32 m_qemuStatePort;
-	boost::optional<nbd_type> m_nbd;
+	Result operator()(Parameters::Builder& builder_);
 };
 
+namespace Qemu
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Disk
+
+struct Disk
+{
+	Disk(qint32 port_, const QList<CVmHardDisk* >& list_):
+		m_port(port_), m_list(list_)
+	{
+	}
+
+	Result operator()(Parameters::Builder& builder_);
+
+private:
+	qint32 m_port;
+	QList<CVmHardDisk* > m_list;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+struct State
+{
+	explicit State(qint32 port_): m_port(port_)
+	{
+	}
+
+	Result operator()(Parameters::Builder& builder_);
+
+private:
+	qint32 m_port;
+};
+
+} // namespace Qemu
 } // namespace Migration
 } // namespace Vm
 } // namespace Agent

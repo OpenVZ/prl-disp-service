@@ -100,52 +100,36 @@ namespace Vm
 namespace Migration
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Task
+// struct Agent
 
-Result Task::doOnline(const CVmConfiguration& config_, quint16 qemuStatePort_,
-		const boost::optional<nbd_type>& nbd_)
+Result Agent::cancel()
 {
-
-	unsigned int f = VIR_MIGRATE_PERSIST_DEST |
-				VIR_MIGRATE_CHANGE_PROTECTION |
-				VIR_MIGRATE_LIVE |
-				VIR_MIGRATE_AUTO_CONVERGE;
-
-	Parameters::Builder b;
-	Online d(Config(m_domain, m_link, 0), config_, qemuStatePort_);
-	if (nbd_)
-	{
-		d.setNbd(nbd_.get());
-		f |= VIR_MIGRATE_NON_SHARED_INC;
-	}
-	Result e = d(b, m_flags);
-	if (e.isFailed())
-		return e;
-
-	// 3000ms is approximation of live downtime requirements in PCS6
-	e = do_(m_domain.data(), boost::bind(&virDomainMigrateSetMaxDowntime, _1, 3000, 0));
-	if (e.isFailed())
-		return e;
-
-	return doInternal(b, f);
+	return do_(m_domain.data(), boost::bind(&virDomainAbortJob, _1));
 }
 
-Result Task::doOffline(const CVmConfiguration& config_)
+Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple>
+Agent::getProgress()
 {
-	const unsigned int f = VIR_MIGRATE_PERSIST_DEST |
-				VIR_MIGRATE_CHANGE_PROTECTION |
-				VIR_MIGRATE_OFFLINE;
-	Parameters::Builder b;
-	Offline d(Config(m_domain, m_link, 0), config_);
-	Result e = d(b);
+	virDomainJobInfo j;
+	Result x = do_(m_domain.data(), boost::bind(&virDomainGetJobInfo, _1, &j));
+	if (x.isFailed())
+		return x.error();
+
+	return std::make_pair(j.dataTotal, j.dataRemaining);
+}
+
+Result Agent::setDowntime(quint32 value_)
+{
+	return do_(m_domain.data(), boost::bind(&virDomainMigrateSetMaxDowntime, _1, 1000*value_, 0));
+}
+
+Result Agent::migrate(const CVmConfiguration& config_, unsigned int flags_,
+	Parameters::Builder& parameters_)
+{
+	Result e = Basic(Config(m_domain, m_link, 0), config_)(parameters_);
 	if (e.isFailed())
 		return e;
 
-	return doInternal(b, f);
-}
-
-Result Task::doInternal(Parameters::Builder& parameters_, unsigned int flags_)
-{
 	// shared to use cleanup callback only
 	QSharedPointer<virConnect> c(virConnectOpen(QSTR2UTF8(m_uri)),
 			virConnectClose);
@@ -165,21 +149,68 @@ Result Task::doInternal(Parameters::Builder& parameters_, unsigned int flags_)
 	return Result();
 }
 
-Result Task::cancel()
+///////////////////////////////////////////////////////////////////////////////
+// struct Offline
+
+Result Offline::operator()(const CVmConfiguration& config_)
 {
-	return do_(m_domain.data(), boost::bind(&virDomainAbortJob, _1));
+	Parameters::Builder b;
+	return migrate(config_, VIR_MIGRATE_PERSIST_DEST |
+			VIR_MIGRATE_CHANGE_PROTECTION |
+			VIR_MIGRATE_OFFLINE, b);
 }
 
-Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple>
-Task::getProgress()
-{
-	virDomainJobInfo j;
-	Result x = do_(m_domain.data(), boost::bind(&virDomainGetJobInfo, _1, &j));
-	if (x.isFailed())
-		return x.error();
+///////////////////////////////////////////////////////////////////////////////
+// struct Online
 
-	return std::make_pair(j.dataTotal, j.dataRemaining);
+Online::Online(const Agent& agent_): Agent(agent_), m_compression(new Compression())
+{
 }
+
+void Online::setQemuState(qint32 port_)
+{
+	m_qemuState = QSharedPointer<Qemu::State>(new Qemu::State(port_));
+}
+
+void Online::setQemuDisk(qint32 port_, const QList<CVmHardDisk* >& list_)
+{
+	m_qemuDisk = QSharedPointer<Qemu::Disk>(new Qemu::Disk(port_, list_));
+}
+
+Result Online::operator()(const CVmConfiguration& config_)
+{
+	unsigned int f = VIR_MIGRATE_PERSIST_DEST |
+			VIR_MIGRATE_CHANGE_PROTECTION |
+			VIR_MIGRATE_LIVE |
+			VIR_MIGRATE_AUTO_CONVERGE;
+
+	typedef QList<boost::function1<Result, Parameters::Builder&> > directorList_type;
+	directorList_type d;
+	if (!m_qemuDisk.isNull())
+	{
+		f |= VIR_MIGRATE_NON_SHARED_INC;
+		d << boost::bind<Result>(boost::ref(*m_qemuDisk.data()), _1);
+	}
+	if (!m_qemuState.isNull())
+		d << boost::bind<Result>(boost::ref(*m_qemuState.data()), _1);
+
+	if (!m_compression.isNull())
+		d << boost::bind<Result>(boost::ref(*m_compression.data()), _1);
+
+	Parameters::Builder b;
+	foreach(directorList_type::value_type o, d)
+	{
+		Result e = o(b);
+		if (e.isFailed())
+			return e;
+	}
+	// 3s is approximation of live downtime requirements in PCS6
+	Result e = setDowntime(3);
+	if (e.isFailed())
+		return e;
+
+	return migrate(config_, f, b);
+};
 
 } // namespace Migration
 
@@ -373,9 +404,9 @@ Result Unit::completeConfig(CVmConfiguration& config_)
 	return Result();
 }
 
-Migration::Task Unit::migrate(const QString &uri_)
+Migration::Agent Unit::migrate(const QString &uri_)
 {
-	return Migration::Task(m_domain, getLink(), uri_);
+	return Migration::Agent(m_domain, getLink(), uri_);
 }
 
 Result Unit::getUuid(QString& dst_) const
