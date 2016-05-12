@@ -2443,6 +2443,10 @@ bool CDspService::createDispConfig ()
 	pMemoryPreferences->setMaxVmMemory(uiMaxMemory);
 	pMemoryPreferences->setMinVmMemory(VM_MIN_MEM);
 
+	// Setup default backup path
+	pPreferences->getBackupTargetPreferences()->setDefaultBackupDirectory(
+			ParallelsDirs::getDefaultBackupDir());
+
 	// Max reserved memory limit is calculated for maximum VMM size allowed for this
 	// platform (i.e. if platform supports both 32 and 64 bit VMMs, calculate reserved
 	// memory by using 64 bit VMM).
