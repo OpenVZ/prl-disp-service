@@ -1931,9 +1931,6 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 	namespace mvt = Migrate::Vm::Target;
 	typedef boost::msm::back::state_machine<mvt::Frontend> backend_type;
 
-	const quint32 t = (quint32)
-		CDspService::instance()->getDispConfigGuard().getDispToDispPrefs()->getSendReceiveTimeout() * 1000;
-
 	mvt::Tunnel::IO io(*m_dispConnection);
 
 	backend_type::Moving moveStep(boost::msm::back::states_
@@ -1941,7 +1938,7 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 1>::type(
 			boost::msm::back::states_
 				<< mvt::Move::Frontend::Tunneling(boost::ref(io))
-				<< mvt::Move::Frontend::synchState_type(t),
+				<< mvt::Move::Frontend::synchState_type(~0),
 			boost::ref(io)));
 
 	backend_type machine(boost::msm::back::states_
