@@ -907,10 +907,8 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 
 	QList<SmartPtr<CVmConfiguration> > _vms_configs;
 	QStringList dirUuids;
-	if (nFlags & PGVLF_GET_ONLY_VM_TEMPLATES)
-		dirUuids.append(CDspVmDirManager::getTemplatesDirectoryUuid());
-	else
-		dirUuids.append(pUserSession->getVmDirectoryUuid());
+	dirUuids.append(CDspVmDirManager::getTemplatesDirectoryUuid());
+	dirUuids.append(pUserSession->getVmDirectoryUuid());
 	foreach (QString dirUuid, dirUuids)
 	{
 		// Skip Vm if there is type specification in the flags
