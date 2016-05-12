@@ -270,6 +270,8 @@ public:
 		return m_nBackupNumber;
 	}
 
+	Chain * prepareABackupChain(const QStringList& args_, const QString &sNotificationVmUuid,
+				unsigned int nDiskIdx);
 	PRL_RESULT startABackupClient(const QString& sVmName_, const QStringList& args_,
 		const QString &sNotificationVmUuid, unsigned int nDiskIdx);
 	PRL_RESULT startABackupClient(const QString& sVmName_, const QStringList& args_,
