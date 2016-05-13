@@ -485,7 +485,9 @@ PRL_RESULT Task_CalcVmSize::getVmSize(
 		CVmIdent i(CDspVmDirHelper::getVmIdentByVmUuid(pVmCfg->getVmIdentification()->getVmUuid(), pUser));
 		CDspLockedPointer<CVmDirectoryItem> pItem(
 				CDspService::instance()->getVmDirHelper().getVmDirectoryItemByUuid(i.second, i.first));
-		strDirPath = pItem?pItem->getVmHome(): "";
+		if (!pItem)
+			return PRL_ERR_VM_UUID_NOT_FOUND;
+		strDirPath = pItem->getVmHome();
 	}
 	strDirPath	= CFileHelper::GetFileRoot(strDirPath);
 
