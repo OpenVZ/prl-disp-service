@@ -11,7 +11,6 @@ EnvironmentFile=-/etc/sysconfig/prl-disp
 PIDFile=/var/run/prl_disp_service.pid
 ExecStartPre=-/sbin/brctl addbr host-routed
 ExecStart=/usr/sbin/prl_disp_service --pidfile /var/run/prl_disp_service.pid
-ExecStartPost=-/usr/libexec/prl_disp_first_start
 KillMode=process
 Restart=on-failure
 RestartSec=5s
