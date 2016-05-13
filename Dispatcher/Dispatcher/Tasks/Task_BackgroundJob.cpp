@@ -482,10 +482,9 @@ PRL_RESULT Task_CalcVmSize::getVmSize(
 
 	QString strDirPath;
 	{
-		CDspLockedPointer<CVmDirectoryItem> pItem =
-			CDspService::instance()->getVmDirHelper().getVmDirectoryItemByUuid(
-				pUser, pVmCfg->getVmIdentification()->getVmUuid()
-			);
+		CVmIdent i(CDspVmDirHelper::getVmIdentByVmUuid(pVmCfg->getVmIdentification()->getVmUuid(), pUser));
+		CDspLockedPointer<CVmDirectoryItem> pItem(
+				CDspService::instance()->getVmDirHelper().getVmDirectoryItemByUuid(i.second, i.first));
 		strDirPath = pItem?pItem->getVmHome(): "";
 	}
 	strDirPath	= CFileHelper::GetFileRoot(strDirPath);
