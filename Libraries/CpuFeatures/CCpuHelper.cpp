@@ -625,7 +625,7 @@ struct Visitor : boost::static_visitor<void>
 	{
 		static const char *f[] = {
 			"fpu", "vme", "de", "pse", "tsc", "msr", "pae", "mce", "cx8", "apic", "", "sep",
-			"mtrr",	"pge", "mca", "cmov", "pat", "pse36", "pn", "clflush", "", "dts", "acpi",
+			"mtrr",	"pge", "mca", "cmov", "pat", "pse36", "pn", "clflush", "", "ds", "acpi",
 			"mmx", "fxsr", "sse", "sse2", "ss", "ht", "tm", "ia64", "pbe", NULL
 		};
 
@@ -635,9 +635,9 @@ struct Visitor : boost::static_visitor<void>
 	void operator()(boost::mpl::int_<PCFE_EXT_FEATURES>)
 	{
 		static const char *f[] = {
-			"pni", "pclmulqdq", "dtes64", "monitor", "ds_cpl", "vmx", "smx", "est",	"tm2",
-			"ssse3", "cid",	"",	"fma", "cx16", "xtpr", "pdcm",	"",	"pcid",	"dca", "sse4_1",
-			"sse4_2", "x2apic",	"movbe", "popcnt", "tsc_deadline_timer", "aes",	"xsave",
+			"pni", "pclmuldq", "dtes64", "monitor", "ds_cpl", "vmx", "smx", "est",	"tm2",
+			"ssse3", "cid",	"",	"fma", "cx16", "xtpr", "pdcm",	"",	"pcid",	"dca", "sse4.1",
+			"sse4.2", "x2apic",	"movbe", "popcnt", "tsc-deadline", "aes",	"xsave",
 			"osxsave", "avx", "f16c", "rdrand", "hypervisor", NULL
 		};
 
