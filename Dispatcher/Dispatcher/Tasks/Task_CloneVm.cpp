@@ -52,6 +52,7 @@
 #include "CDspVmStateSender.h"
 #include <prlcommon/Std/noncopyable.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/VirtualDisk/Qcow2Disk.h>
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 
 using namespace Parallels;
@@ -257,7 +258,9 @@ PRL_RESULT Snapshot::link(const QString& source_, const QString& target_)
 
 	m_manager->Clear();
 */
-	PRL_RESULT output = PRL_ERR_SUCCESS;
+	VirtualDisk::Parameters::Qcow2 params;
+	params.setBase(source_);
+	PRL_RESULT output = VirtualDisk::Qcow2::create(target_, params);
 	if (m_failure.getCode() != output)
 		m_failure(output);
 
@@ -1167,7 +1170,7 @@ PRL_RESULT Link::operator()(CVmHardDisk& device_, const QString& target_)
 {
 	QString s = Flavor::getLocation(device_);
 	Flavor::update(device_, target_);
-	if (!m_toolkit.folderExists(s))
+	if (!m_toolkit.fileExists(s))
 		return PRL_ERR_SUCCESS;
 
 	return m_snapshot->link(s, target_);
