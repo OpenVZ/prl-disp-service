@@ -54,6 +54,12 @@ using IOService::IOSendJob;
 using IOService::IOClientInterface;
 using IOService::IOServerInterface;
 
+namespace Flop
+{
+struct Event;
+
+} // namespace Flop
+
 namespace Pipeline
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -148,7 +154,24 @@ namespace Shadow
 struct Connector_: QObject
 {
 public slots:
-	virtual void finished() = 0;
+	virtual void reactSuccess() = 0;
+	virtual void reactFailure(const Flop::Event&) = 0;
+
+private:
+	Q_OBJECT
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Slot
+
+struct Slot: QObject
+{
+signals:
+        void failed(const Flop::Event&);
+        void completed();
+
+public slots:
+        virtual void reactFinish() = 0;
 
 private:
 	Q_OBJECT

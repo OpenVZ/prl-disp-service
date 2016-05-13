@@ -67,41 +67,47 @@ typedef Vm::Libvirt::Running runningState_type;
 
 struct Connector: Connector_, Vm::Connector::Base<Machine_type>
 {
-	void finished();
+	void reactSuccess();
+	void reactFailure(const Flop::Event& reason_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Table
+// struct Beholder
 
 template<class T>
-struct Table
+struct Beholder: Slot
 {
-	typedef typename boost::mpl::push_back
-		<
-			typename boost::mpl::push_back
-			<
-				T,
-				msmf::Row<runningState_type, Flop::Event, Flop::State>
-			>::type,
-			msmf::Row<runningState_type, boost::mpl::true_, Success>
-		>::type type;
-};
+	~Beholder();
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Frontend
-
-template<class T, class U>
-struct Frontend: Vm::Frontend<U>, Vm::Connector::Mixin<Shadow::Connector>
-{
-	template<typename Event, typename FSM>
-	void on_exit(const Event& event_, FSM& fsm_);
-
-protected:
-	void launch(T* task_);
+	void reactFinish();
+	Flop::Event operator()(T* task_);
 
 private:
 	QSharedPointer<T> m_task;
 	QSharedPointer<QFutureWatcher<Flop::Event> > m_watcher;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+template<class T, class U>
+struct State: Trace<T>, Vm::Connector::Mixin<Shadow::Connector>
+{
+	typedef Beholder<U> beholder_type;
+	typedef QSharedPointer<beholder_type> beholderPointer_type;
+
+	template<typename Event, typename FSM>
+	void on_exit(const Event& event_, FSM& fsm_)
+	{
+		Trace<T>::on_exit(event_, fsm_);
+		setBeholder(beholderPointer_type());
+	}
+
+protected:
+	void setBeholder(beholderPointer_type const& value_);
+
+private:
+	beholderPointer_type m_beholder;
 };
 
 } // namespace Shadow
@@ -158,30 +164,21 @@ struct Flag
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Frontend
+// struct State
 
-struct Frontend: Shadow::Frontend<Task, Frontend>
+struct State: Shadow::State<State, Task>
 {
 	typedef boost::mpl::vector1<Flag> flag_list;
-	typedef Shadow::runningState_type initial_state;
 
-	explicit Frontend(const boost::function0<Task* >& factory_): m_factory(factory_)
+	explicit State(const boost::function0<Task* >& factory_): m_factory(factory_)
 	{
 	}
-	Frontend()
+	State()
 	{
 	}
 
 	template<typename Event, typename FSM>
-	void on_entry(const Event& event_, FSM& fsm_)
-	{
-		Vm::Frontend<Frontend>::on_entry(event_, fsm_);
-		launch(m_factory());
-	}
-
-	struct transition_table: Shadow::Table<boost::mpl::vector<> >::type
-	{
-	};
+	void on_entry(const Event& event_, FSM& fsm_);
 
 private:
 	boost::function0<Task* > m_factory;
@@ -396,48 +393,62 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Frontend
+// struct State
 
-struct Frontend: Shadow::Frontend<Task, Frontend>
+struct State: Shadow::State<State, Task>
 {
-	typedef Vm::Tunnel::Ready initial_state;
+	typedef Shadow::State<State, Task> def_type;
 	typedef Progress::reporter_type reporter_type;
 	typedef QList<QSharedPointer<QTcpServer> > serverList_type;
 
-	Frontend(Task_MigrateVmSource& task_, const reporter_type& reporter_):
+	State(Task_MigrateVmSource& task_, const reporter_type& reporter_):
 		m_reporter(reporter_), m_task(&task_)
 	{
 	}
-	Frontend(): m_task()
+	State(): m_task()
 	{
 	}
 
 	template<typename Event, typename FSM>
 	void on_exit(const Event& event_, FSM& fsm_);
+
 	template<typename FSM>
 	void on_exit(const boost::mpl::true_& event_, FSM& fsm_);
-	void start(const serverList_type& event_);
 
-	typedef boost::mpl::vector
+	struct Action
+	{
+		template<class M>
+		void operator()(serverList_type const& event_, M& fsm_, State& state_, State&)
+		{
+			Flop::Event x = state_.start(event_);
+			if (x.isFailed())
+				fsm_.process_event(x);
+		}
+		template<class M>
+		void operator()(beholderPointer_type const& event_, M&, State& state_, State&)
+		{
+			state_.m_beholder = event_;
+			state_.setBeholder(event_);
+		}
+	};
+
+	struct internal_transition_table: boost::mpl::vector
 		<
-			a_row
-			<
-				initial_state,
-				serverList_type,
-				Shadow::runningState_type,
-				&Frontend::start
-			>
-		> grub_type;
-
-	struct transition_table: Shadow::Table<grub_type>::type
+			msmf::Internal<serverList_type, Action>,
+			msmf::Internal<beholderPointer_type, Action>
+		>
 	{
 	};
 
 private:
+	Flop::Event start(serverList_type const& serverList_);
+
 	reporter_type m_reporter;
 	Task_MigrateVmSource* m_task;
+	beholderPointer_type m_beholder;
 	QSharedPointer<Progress> m_progress;
 };
+
 
 } // namespace Libvirt
 
@@ -529,7 +540,7 @@ struct Hub: Vm::Tunnel::Hub<Hub<X, Y>, Traits<Y>, Y>
 struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 {
 	typedef QSharedPointer<QTcpSocket> client_type;
-	typedef Libvirt::Frontend::serverList_type serverList_type;
+	typedef Libvirt::State::serverList_type serverList_type;
 	typedef Pump::Frontend<Machine_type, Vm::Tunnel::libvirtChunk_type::s_command>
 		libvirt_type;
 	typedef Qemu::Hub<Parallels::VmMigrateConnectQemuStateCmd, Parallels::VmMigrateQemuStateTunnelChunk>
@@ -585,6 +596,53 @@ private:
 
 } // namespace Tunnel
 
+namespace Move
+{
+typedef Pipeline::State<Machine_type, Vm::Pump::FinishCommand_type> peerWaitState_type;
+typedef Join::Frontend
+	<
+		boost::mpl::vector
+		<
+			Join::Machine<Tunnel::Frontend>,
+			Join::State<Libvirt::State, boost::mpl::true_>,
+			Join::State<peerWaitState_type, peerWaitState_type::Good>
+		>
+	> join_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+struct Frontend: join_type
+{
+	typedef boost::mpl::at_c<initial_state, 1>::type libvirtState_type;
+
+	template <typename Event, typename FSM>
+	void on_exit(const Event& event_, FSM& fsm_)
+	{
+		join_type::on_exit(event_, fsm_);
+		m_beholder.clear();
+	}
+
+	template <typename Event, typename FSM>
+	void on_entry(const Event& event_, FSM& fsm_)
+	{
+		join_type::on_entry(event_, fsm_);
+		m_beholder = libvirtState_type::beholderPointer_type
+			(new libvirtState_type::beholder_type());
+		fsm_.process_event(m_beholder);
+/*
+		libvirtState_type& x = static_cast<boost::msm::back::state_machine<Frontend> &>(*this)
+			.template get_state<libvirtState_type& >();
+		x.setBeholder(m_beholder);
+*/
+	}
+
+private:
+	libvirtState_type::beholderPointer_type m_beholder;
+};
+
+} // namespace Move
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
@@ -603,19 +661,8 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	typedef Pipeline::State<Machine_type, CheckReply> checkState_type;
 	typedef Pipeline::State<Machine_type, StartReply> startState_type;
 	typedef Pipeline::State<Machine_type, PeerFinished> peerQuitState_type;
-	typedef Pipeline::State<Machine_type, Vm::Pump::FinishCommand_type> peerWaitState_type;
-	typedef Join::Frontend
-		<
-			boost::mpl::vector
-			<
-				Join::Machine<Tunnel::Frontend>,
-				Join::Machine<Libvirt::Frontend>,
-				Join::State<peerWaitState_type, peerWaitState_type::Good>
-			>
-		> moving_type;
-
-	typedef boost::msm::back::state_machine<Content::Frontend> copyState_type;
-	typedef boost::msm::back::state_machine<moving_type> moveState_type;
+	typedef Content::State copyState_type;
+	typedef boost::msm::back::state_machine<Move::Frontend> moveState_type;
 
 	typedef checkState_type initial_state;
 
@@ -640,14 +687,14 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 		// wire error exits to FINISHED immediately
 		a_row<checkState_type,                     Flop::Event, Finished, &Frontend::setResult>,
 		a_row<startState_type,                     Flop::Event, Finished, &Frontend::setResult>,
-		a_row<copyState_type::exit_pt<Flop::State>,Flop::Event, Finished, &Frontend::setResult>,
+		a_row<copyState_type,                      Flop::Event, Finished, &Frontend::setResult>,
 		a_row<moveState_type::exit_pt<Flop::State>,Flop::Event, Finished, &Frontend::setResult>,
 		a_row<peerQuitState_type,                  Flop::Event, Finished, &Frontend::setResult>,
 
 		// wire success exits sequentially up to FINISHED
 		_row<checkState_type,                  checkState_type::Good,    startState_type>,
 		_row<startState_type,                  startState_type::Good,    copyState_type>,
-		_row<copyState_type::exit_pt<Success>, msmf::none,               moveState_type>,
+		_row<copyState_type,                   boost::mpl::true_,        moveState_type>,
 		a_row<moveState_type::exit_pt<Success>,msmf::none,               peerQuitState_type,&Frontend::pokePeer>,
 		a_row<peerQuitState_type,              peerQuitState_type::Good, Finished,          &Frontend::setResult>
 	>

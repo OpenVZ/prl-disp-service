@@ -70,50 +70,87 @@ namespace Shadow
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
-void Connector::finished()
+void Connector::reactSuccess()
 {
-	Flop::Event r = static_cast<QFutureWatcher<Flop::Event>* >(sender())->result();
-	if (r.isFailed())
-		handle(r);
-	else
-		handle(boost::mpl::true_());
+	handle(boost::mpl::true_());
+}
+
+void Connector::reactFailure(const Flop::Event& reason_)
+{
+	handle(reason_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Frontend
+// struct Beholder
 
-template<class T, class U>
-template<typename Event, typename FSM>
-void Frontend<T, U>::on_exit(const Event& event_, FSM& fsm_)
+template<class T>
+Beholder<T>::~Beholder()
 {
-	Vm::Frontend<U>::on_exit(event_, fsm_);
 	if (m_task.isNull())
 		return;
 
-	m_watcher->disconnect(SIGNAL(finished()), this->getConnector(), SLOT(finished()));
+	m_watcher->disconnect(SIGNAL(finished()), this, SLOT(reactFinish()));
 	m_task->cancel();
 	m_watcher->waitForFinished();
-	m_watcher.clear();
-	m_task.clear();
 }
 
-template<class T, class U>
-void Frontend<T, U>::launch(T* task_)
+template<class T>
+Flop::Event Beholder<T>::operator()(T* task_)
 {
-	m_task = QSharedPointer<T>(task_);
+	QSharedPointer<T> g(task_);
+	if (!m_task.isNull())
+	{
+		WRITE_TRACE(DBG_FATAL, "task is not NULL");
+		return Flop::Event(PRL_ERR_SERVICE_BUSY);
+	}
+	m_task = g;
 	if (m_task.isNull())
 	{
 		WRITE_TRACE(DBG_FATAL, "task is NULL");
-		return this->getConnector()->handle(Flop::Event(PRL_ERR_INVALID_ARG));
+		return Flop::Event(PRL_ERR_INVALID_ARG);
 	}
 	m_watcher = QSharedPointer<QFutureWatcher<Flop::Event> >(new QFutureWatcher<Flop::Event>());
-	bool x = this->getConnector()->connect(m_watcher.data(), SIGNAL(finished()), SLOT(finished()));
+	bool x = this->connect(m_watcher.data(), SIGNAL(finished()), SLOT(reactFinish()));
 	if (!x)
 	{
 		WRITE_TRACE(DBG_FATAL, "can't connect");
-		return this->getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
+		return Flop::Event(PRL_ERR_FAILURE);
 	}
 	m_watcher->setFuture(QtConcurrent::run(boost::bind(&T::run, m_task.data())));
+	return Flop::Event();
+}
+
+template<class T>
+void Beholder<T>::reactFinish()
+{
+	m_task.clear();
+	Flop::Event r = static_cast<QFutureWatcher<Flop::Event>* >(sender())->result();
+	if (r.isFailed())
+		emit failed(r);
+	else
+		emit completed();
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+template<class T, class U>
+void State<T, U>::setBeholder(beholderPointer_type const& value_)
+{
+	if (!m_beholder.isNull())
+	{
+		m_beholder->disconnect(SIGNAL(completed()), m_beholder.data());
+		m_beholder->disconnect(SIGNAL(failed(const Flop::Event&)), m_beholder.data());
+	}
+	m_beholder = value_;
+	if (value_.isNull())
+		return;
+
+	this->getConnector()->connect(value_.data(), SIGNAL(completed()),
+		SLOT(reactSuccess()), Qt::DirectConnection);
+	this->getConnector()->connect(value_.data(), SIGNAL(failed(const Flop::Event&)),
+		SLOT(reactFailure(Flop::Event)), Qt::DirectConnection);
 }
 
 } // namespace Shadow
@@ -162,6 +199,21 @@ void Task::cancel()
 {
 	if (!m_copier.isNull())
 		m_copier->cancel();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+template<typename Event, typename FSM>
+void State::on_entry(const Event& event_, FSM& fsm_)
+{
+	Shadow::State<State, Task>::on_entry(event_, fsm_);
+
+	beholderPointer_type b = beholderPointer_type(new beholder_type());
+	this->setBeholder(b);
+	Flop::Event x = (*b)(m_factory());
+	if (x.isFailed())
+		this->getConnector()->handle(x);
 }
 
 } // namespace Content
@@ -458,17 +510,39 @@ void Progress::timerEvent(QTimerEvent* event_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Frontend
+// struct State
 
-void Frontend::start(const serverList_type& event_)
+template<typename Event, typename FSM>
+void State::on_exit(const Event& event_, FSM& fsm_)
 {
-	if (3 > event_.size())
-		return getConnector()->handle(Flop::Event(PRL_ERR_INVALID_ARG));
+	def_type::on_exit(event_, fsm_);
+	m_beholder.clear();
+	m_progress.clear();
+}
+
+template<typename FSM>
+void State::on_exit(const boost::mpl::true_& event_, FSM& fsm_)
+{
+	def_type::on_exit(event_, fsm_);
+	if (!m_progress.isNull())
+	{
+		m_progress->report(100);
+		m_progress.clear();
+	}
+	m_beholder.clear();
+}
+
+Flop::Event State::start(serverList_type const& serverList_)
+{
+	if (m_beholder.isNull())
+		return Flop::Event(PRL_ERR_UNINITIALIZED);
+	if (3 > serverList_.size())
+		return Flop::Event(PRL_ERR_INVALID_ARG);
 
 	const CVmConfiguration* t = m_task->getTargetConfig();
 	const QString u = QString("qemu+tcp://%1:%2/system")
 				.arg(QHostAddress(QHostAddress::LocalHost).toString())
-				.arg(event_.first()->serverPort());
+				.arg(serverList_.first()->serverPort());
 	Task::agent_type a = ::Libvirt::Kit.vms().at(m_task->getVmUuid()).migrate(u);
 	switch (m_task->getOldState())
 	{
@@ -476,7 +550,7 @@ void Frontend::start(const serverList_type& event_)
 	case VMS_RUNNING:
 		break;
 	default:
-		return launch(new Task(a, boost::bind<Trick::Unit* >(Trick::Offline(), _1, _2),
+		return (*m_beholder)(new Task(a, boost::bind<Trick::Unit* >(Trick::Offline(), _1, _2),
 				m_task->getTargetConfig()));
 	}
 	m_progress = QSharedPointer<Progress>(new Progress(a, m_reporter),
@@ -486,27 +560,11 @@ void Frontend::start(const serverList_type& event_)
 
 	Trick::Online f(*m_task);
 	if (true)
-		f.setPorts(qMakePair(event_.at(1)->serverPort(), event_.at(2)->serverPort()));
-
-	launch(new Task(a, boost::bind<Trick::Unit* >(f, _1, _2), t));
-}
-
-template<typename Event, typename FSM>
-void Frontend::on_exit(const Event& event_, FSM& fsm_)
-{
-	Shadow::Frontend<Task, Frontend>::on_exit(event_, fsm_);
-	m_progress.clear();
-}
-
-template<typename FSM>
-void Frontend::on_exit(const boost::mpl::true_& event_, FSM& fsm_)
-{
-	Shadow::Frontend<Task, Frontend>::on_exit(event_, fsm_);
-	if (!m_progress.isNull())
 	{
-		m_progress->report(100);
-		m_progress.clear();
+		f.setPorts(qMakePair(serverList_.at(1)->serverPort(),
+			serverList_.at(2)->serverPort()));
 	}
+	return (*m_beholder)(new Task(a, boost::bind<Trick::Unit* >(f, _1, _2), t));
 }
 
 } // namespace Libvirt
@@ -1545,13 +1603,13 @@ PRL_RESULT Task_MigrateVmSource::run_body()
 
 	mvs::Tunnel::IO io(*m_pIoClient);
 	backend_type::moveState_type m(boost::msm::back::states_
-		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 0>::type
+		<< boost::mpl::at_c<backend_type::moveState_type::initial_state, 0>::type
 			(boost::ref(io))
-		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 1>::type
+		<< boost::mpl::at_c<backend_type::moveState_type::initial_state, 1>::type
 			(boost::ref(*this), boost::bind(&NotifyClientsWithProgress,
 				getRequestPackage(), boost::cref(m_sVmDirUuid),
 				boost::cref(m_sVmUuid), _1))
-		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 2>::type(~0));
+		<< boost::mpl::at_c<backend_type::moveState_type::initial_state, 2>::type(~0));
 	backend_type::copyState_type c(boost::bind(boost::factory<mvs::Content::Task* >(),
 		boost::ref(*this), boost::cref(m_dList), boost::cref(m_fList)));
 
