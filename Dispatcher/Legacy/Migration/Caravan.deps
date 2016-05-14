@@ -1,0 +1,9 @@
+TARGET = prl_legacy_migration_app
+PROJ_PATH = $$PWD
+include(../../../Build/qmake/build_target.pri)
+
+LIBS += -lprlcommon -lprl_xml_model
+
+include($$LIBS_LEVEL/ProtoSerializer/ProtoSerializer.pri)
+include($$LIBS_LEVEL/DispToDispProtocols/DispToDispProtocols.pri)
+

@@ -52,37 +52,7 @@
 #include "prlxmlmodel/BackupTree/VmItem.h"
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #include "Libraries/PrlNetworking/netconfig.h"
-
-namespace
-{
-
-enum {V2V_RUN_TIMEOUT = 60 * 60 * 1000};
-
-const char VIRT_V2V[] = "/usr/bin/virt-v2v";
-
-QString getHostOnlyBridge()
-{
-	Libvirt::Instrument::Agent::Network::Unit u;
-	// Get Host-Only network.
-	Libvirt::Result r = Libvirt::Kit.networks().find(
-			PrlNet::GetDefaultVirtualNetworkID(0, false), &u);
-	if (r.isFailed())
-		return QString();
-
-	CVirtualNetwork n;
-	r = u.getConfig(n);
-	if (r.isFailed())
-		return QString();
-
-	CParallelsAdapter* a;
-	if (NULL == n.getHostOnlyNetwork() ||
-		(a = n.getHostOnlyNetwork()->getParallelsAdapter()) == NULL)
-		return QString();
-
-	return a->getName();
-}
-
-} // namespace
+#include "Legacy/VmConverter.h"
 
 namespace Restore
 {
@@ -808,116 +778,6 @@ PRL_RESULT Flavor::restore(const Assistant& assist_)
 #endif // _LIN_
 #endif // _CT_
 } // namespace Target
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Converter
-
-PRL_RESULT Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
-{
-	CVmHardware *pVmHardware;
-	if ((pVmHardware = cfg->getVmHardwareList()) == NULL) {
-		WRITE_TRACE(DBG_FATAL, "[%s] Can not get Vm hardware list", __FUNCTION__);
-		return PRL_ERR_SUCCESS;
-	}
-
-	// No PMU in guest with Parallels Tools causes BSOD.
-	if (pVmHardware->getCpu())
-		pVmHardware->getCpu()->setVirtualizePMU(true);
-
-	QMap<PRL_MASS_STORAGE_INTERFACE_TYPE, unsigned> ifaces;
-	// Convert Cdrom devices to IDE since SATA is unsupported.
-	foreach(CVmOpticalDisk* pDevice, pVmHardware->m_lstOpticalDisks) {
-		if (pDevice == NULL)
-			continue;
-		if (pDevice->getEmulatedType() == PVE::CdRomImage)
-			pDevice->setInterfaceType(PMS_IDE_DEVICE);
-		ifaces[pDevice->getInterfaceType()]++;
-	}
-
-	// Convert disks to virtio-scsi
-	// There's no virtio-scsi drivers for win2003-, use virtio-block.
-	foreach(CVmHardDisk *pDevice, pVmHardware->m_lstHardDisks) {
-		if (NULL == pDevice)
-			continue;
-		if (pDevice->getEmulatedType() != PVE::HardDiskImage)
-		{
-			ifaces[pDevice->getInterfaceType()]++;
-			continue;
-		}
-		bool noSCSI = cfg->getVmSettings()->getVmCommonOptions()->getOsType() ==
-				PVS_GUEST_TYPE_WINDOWS &&
-			IS_WIN_VER_BELOW(cfg->getVmSettings()->getVmCommonOptions()->getOsVersion(),
-			                 PVS_GUEST_VER_WIN_VISTA);
-		pDevice->setInterfaceType(noSCSI ? PMS_VIRTIO_BLOCK_DEVICE : PMS_SCSI_DEVICE);
-		pDevice->setSubType(noSCSI ? PCD_BUSLOGIC : PCD_VIRTIO_SCSI);
-		ifaces[pDevice->getInterfaceType()]++;
-	}
-
-	// Convert network interfaces to virtio-net
-	foreach(CVmGenericNetworkAdapter *pDevice, pVmHardware->m_lstNetworkAdapters) {
-		if (pDevice != NULL)
-			pDevice->setAdapterType(PNT_VIRTIO);
-	}
-
-	// Parallel ports are not supported anymore
-	pVmHardware->m_lstParallelPortOlds.clear();
-	pVmHardware->m_lstParallelPorts.clear();
-
-	if (ifaces[PMS_IDE_DEVICE] > PRL_MAX_IDE_DEVICES_NUM)
-	{
-		WRITE_TRACE(DBG_FATAL, "Too many %s devices after config conversion", "IDE");
-		return PRL_ERR_VMCONF_IDE_DEVICES_COUNT_OUT_OF_RANGE;
-	}
-	if (ifaces[PMS_SCSI_DEVICE] > PRL_MAX_SCSI_DEVICES_NUM)
-	{
-		WRITE_TRACE(DBG_FATAL, "Too many %s devices after config conversion", "SCSI");
-		return PRL_ERR_VMCONF_SCSI_DEVICES_COUNT_OUT_OF_RANGE;
-	}
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Converter::convertVm(const QString &vmUuid) const
-{
-	// Get windows driver ISO.
-	QString winDriver = ParallelsDirs::getToolsImage(PAM_SERVER, PVS_GUEST_VER_WIN_2K);
-	if (!QFile(winDriver).exists())
-	{
-		WRITE_TRACE(DBG_WARNING, "Windows drivers image does not exist: %s\n"
-								 "Restoring Windows will fail.",
-								 qPrintable(winDriver));
-	}
-	::setenv("VIRTIO_WIN", qPrintable(winDriver), 1);
-	WRITE_TRACE(DBG_DEBUG, "setenv: %s=%s", "VIRTIO_WIN", qPrintable(winDriver));
-	// If default bridge is not 'virbr0', virt-v2v fails.
-	// So we try to find actual bridge name.
-	QString bridge = getHostOnlyBridge();
-	if (!bridge.isEmpty())
-	{
-		::setenv("LIBGUESTFS_BACKEND_SETTINGS",
-				 qPrintable(QString("network_bridge=%1").arg(bridge)), 1);
-		WRITE_TRACE(DBG_DEBUG, "setenv: %s=%s",
-					"LIBGUESTFS_BACKEND_SETTINGS",
-					qPrintable(QString("network_bridge=%1").arg(bridge)));
-	}
-
-	QStringList cmdline = QStringList()
-		<< VIRT_V2V
-		<< "-i" << "libvirt"
-		<< "--in-place" << ::Uuid(vmUuid).toStringWithoutBrackets();
-
-	QProcess process;
-	QString out;
-	if (!HostUtils::RunCmdLineUtility(cmdline.join(" "), out, V2V_RUN_TIMEOUT, &process))
-	{
-		WRITE_TRACE(DBG_FATAL, "Cannot convert VM to vz7 format: virt-v2v failed:\n%s",
-					process.readAllStandardError().constData());
-		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
-	}
-	WRITE_TRACE(DBG_DEBUG, "virt-v2v output:\n%s", qPrintable(out));
-
-	return PRL_ERR_SUCCESS;
-}
-
 } // namespace Restore
 
 static void NotifyClientsWithProgress(
@@ -1931,7 +1791,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::sendStartRequest()
 		return nRetCode;
 	m_nRemoteVersion = pFirstReply->GetVersion();
 	if (m_nRemoteVersion <= BACKUP_PROTO_V3)
-		m_converter.reset(new Restore::Converter());
+		m_converter.reset(new Legacy::Vm::Converter());
 	m_sVmUuid = pFirstReply->GetVmUuid();
 	m_sBackupUuid = pFirstReply->GetBackupUuid();
 	m_nBackupNumber = pFirstReply->GetBackupNumber();

@@ -43,8 +43,9 @@
 /**
  * VM migration helper class implementation
  */
-class CDspVmMigrateHelper
+class CDspVmMigrateHelper: public QObject
 {
+	Q_OBJECT
 
 public:
 	CDspVmMigrateHelper(Registry::Public& registry_): m_registry(registry_)
@@ -56,6 +57,12 @@ public:
 	 * @param pointer to VM migration check preconditions request package
 	 */
 	void checkPreconditions(SmartPtr<CDspDispConnection> pDispConnection, const SmartPtr<IOPackage> &p);
+	/**
+	 * Initiates VM migrate action on target side
+	 * @param pointer to dispatcher connection object which requested start migration action
+	 * @param pointer to start VM migration request package
+	 */
+	void startMigration(SmartPtr<CDspDispConnection> pDispConnection, const SmartPtr<IOPackage> &p);
 
 	/**
 	 * Cancel Vm migration task
@@ -71,6 +78,10 @@ public:
 		const SmartPtr<CDspClient> &pSession,
 		const SmartPtr<IOPackage> &p,
 		const QString& uuid_);
+
+signals:
+	/* retransmit StartMigration command to target migration task */
+	void onPackageReceived(const SmartPtr<CDspDispConnection> &, const QString &, const SmartPtr<IOPackage> &);
 
 private:
 	SmartPtr<CDspTaskHelper> findTask(QString sVmUuid);
