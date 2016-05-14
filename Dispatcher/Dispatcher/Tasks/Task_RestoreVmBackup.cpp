@@ -229,6 +229,9 @@ PRL_RESULT Task_RestoreVmBackupSource::prepareTask()
 		m_nInternalFlags |= PVM_CT_PLOOP_BACKUP;
 	else if (cVmItem.getVmType() == PVBT_CT_VZWIN)
 		m_nInternalFlags |= PVM_CT_VZWIN_BACKUP;
+	m_nRemoteVersion = cVmItem.getVersion();
+	if (m_nRemoteVersion == 0)
+		m_nRemoteVersion = BACKUP_PROTO_V3;
 
 	/* to lock backup */
 	if (PRL_FAILED(nRetCode = lockShared(m_sBackupUuid)))
@@ -370,8 +373,6 @@ PRL_RESULT Task_RestoreVmBackupSource::restoreVm()
 	QString sVmConfigPath;
 	SmartPtr<CVmConfiguration> pVmConfig;
 	bool bConnected;
-	bool ok;
-	int major;
 	const char *h = "";
 
 	if (!CFileHelper::DirectoryExists(m_sBackupPath, &m_pDispConnection->getUserSession()->getAuthHelper())) {
@@ -395,18 +396,6 @@ PRL_RESULT Task_RestoreVmBackupSource::restoreVm()
 		goto exit;
 	}
 
-	// Check should we fall to legacy protocol because of legacy VM in backup
-	// e.g. 6.10.24168.1187340 or 7.0.200
-	major = pVmConfig->getAppVersion().split(".")[0].toInt(&ok);
-	if (!ok)
-	{
-		WRITE_TRACE(DBG_FATAL, "Invalid AppVersion: %s",
-					qPrintable(pVmConfig->getAppVersion()));
-		nRetCode = PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
-		goto exit;
-	}
-
-	m_nRemoteVersion = major < 7 ? BACKUP_PROTO_V3 : BACKUP_PROTO_VERSION;
 	h = (BACKUP_PROTO_V4 > m_nRemoteVersion) ?
 		SLOT(handleABackupPackage(IOSender::Handle, const SmartPtr<IOPackage>)) :
 		SLOT(handleVBackupPackage(IOSender::Handle, const SmartPtr<IOPackage>));
