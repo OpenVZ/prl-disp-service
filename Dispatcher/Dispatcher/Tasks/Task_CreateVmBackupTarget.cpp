@@ -210,8 +210,10 @@ PRL_RESULT Task_CreateVmBackupTarget::buildTibFiles()
 	p.setStore(getBackupRoot());
 	p.setSuffix(::Backup::Suffix(getBackupNumber(), getFlags())());
 	foreach (const ::Backup::Product::component_type& t, p.getVmTibs()) {
-		VirtualDisk::Parameters::Disk p;
-		PRL_RESULT e = VirtualDisk::Qcow2::create(t.second.absoluteFilePath(), p);
+		// Create image of size 0
+		PRL_RESULT e = VirtualDisk::Qcow2::create(
+				t.second.absoluteFilePath(),
+				VirtualDisk::qcow2PolicyList_type(1, 0));
 		if (PRL_FAILED(e))
 			return e;
 		m_createdTibs << t.second.absoluteFilePath();
