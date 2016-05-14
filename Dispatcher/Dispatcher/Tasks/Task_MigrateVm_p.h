@@ -1295,10 +1295,13 @@ struct Hub: Trace<T>, Vm::Connector::Mixin<typename U::machine_type>
 		template<class M>
 		void operator()(Vm::Pump::Event<X> const& event_, M& fsm_, Hub& state_, Hub&)
 		{
-			pump_type* p = state_.match(Vm::Pump::Push::Packer::getSpice(*event_.getPackage()));
-			if (NULL == p)
-				fsm_.process_event(Flop::Event(PRL_ERR_INVALID_ARG));
-			else
+			boost::optional<QString> s =
+				Vm::Pump::Push::Packer::getSpice(*event_.getPackage());
+			if (!s)
+				return (void)fsm_.process_event(Flop::Event(PRL_ERR_INVALID_ARG));
+
+			pump_type* p = state_.match(s);
+			if (NULL != p)
 				p->process_event(event_);
 		}
 		template<class M>
