@@ -85,6 +85,7 @@ HEADERS += \
 	CDspSettingsWrap.h \
 	CDspAsyncRequest.h \
 	CVcmmdInterface.h \
+	CDspVzLicense.h \
 	\
 	EditHelpers/CMultiEditDispatcher.h \
 	EditHelpers/CMultiEditMergeHelper.h \
@@ -205,6 +206,7 @@ SOURCES += \
 	CDspSettingsWrap.cpp \
 	CDspAsyncRequest.cpp \
 	CVcmmdInterface.cpp \
+	CDspVzLicense.cpp \
 	\
 	EditHelpers/CMultiEditDispatcher.cpp \
 	EditHelpers/CMultiEditMergeVmConfig.cpp \

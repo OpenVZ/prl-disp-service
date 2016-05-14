@@ -66,6 +66,7 @@
 #include "CProtoCommands.h"
 #include "CDspClientManager.h"
 #include "CDspVmInfoDatabase.h"
+#include "CDspVzLicense.h"
 
 #include "Tasks/Task_UpdateCommonPrefs.h"
 #include "Tasks/Task_ManagePrlNetService.h"
@@ -1472,4 +1473,21 @@ void CDspShellHelper::recalculateCPUPool(SmartPtr<CDspClient>& pUser, const Smar
 	}
 	QString poolName = cmd->GetFirstStrParam();
 	pUser->sendSimpleResponse(p, CCpuHelper::recalcPool(QSTR2UTF8(poolName)));
+}
+
+void CDspShellHelper::sendLicenseInfo(
+		SmartPtr<CDspClient>& pUser,
+		const SmartPtr<IOPackage>& p)
+{
+	CDspVzLicense lic;
+	lic.load();
+	QString sLicense = lic.getVmEvent()->toString();
+
+	CProtoCommandPtr pResponse =
+		CProtoSerializer::CreateDspWsResponseCommand(p, PRL_ERR_SUCCESS);
+	CProtoCommandDspWsResponse* pDspWsResponseCmd =
+		CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>(pResponse);
+	pDspWsResponseCmd->SetVmEvent(sLicense);
+
+	pUser->sendResponse(pResponse, p);
 }
