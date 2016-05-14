@@ -258,9 +258,9 @@ PRL_RESULT Snapshot::link(const QString& source_, const QString& target_)
 
 	m_manager->Clear();
 */
-	VirtualDisk::Parameters::Qcow2 params;
-	params.setBase(source_);
-	PRL_RESULT output = VirtualDisk::Qcow2::create(target_, params);
+	VirtualDisk::qcow2PolicyList_type policies;
+	policies.push_back(source_);
+	PRL_RESULT output = VirtualDisk::Qcow2::create(target_, policies);
 	if (m_failure.getCode() != output)
 		m_failure(output);
 
