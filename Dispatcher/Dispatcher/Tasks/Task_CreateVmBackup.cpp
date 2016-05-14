@@ -160,7 +160,52 @@ QStringList VCommand::buildArgs()
 
 PRL_RESULT VCommand::do_()
 {
-	return m_worker(buildArgs(), 0);
+	QStringList a(buildArgs());
+	SmartPtr<Chain> p(m_builder(a));
+
+	::Backup::Snapshot::Vm::Object o(m_uuid, m_context->getClient());
+	if (m_product.getObject().canFreeze()) {
+		::Backup::Task::Reporter r(*m_context, m_uuid);
+		::Backup::Task::Workbench t(*m_context, r,
+			CDspService::instance()->getDispConfigGuard());
+		if (PRL_SUCCEEDED(o.freeze(t))) {
+			Thaw* t = new Thaw(o);
+			t->moveToThread(QCoreApplication::instance()->thread());
+			t->startTimer(20 * 1000);
+			t->next(p);
+			p = SmartPtr<Chain>(t);
+		}
+	}
+	return m_worker(a, p);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Thaw
+
+Thaw::~Thaw()
+{
+	release();
+}
+
+void Thaw::release()
+{
+	QMutexLocker l(&m_lock);
+	if (m_object) {
+		m_object->thaw();
+		m_object = boost::none;
+	}
+}
+
+void Thaw::timerEvent(QTimerEvent *event_)
+{
+	killTimer(event_->timerId());
+	release();
+}
+
+PRL_RESULT Thaw::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
+{
+	release();
+	return forward(request_, dst_);
 }
 
 } // namespace Work

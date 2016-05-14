@@ -1754,7 +1754,7 @@ PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const 
 	return output;
 }
 
-PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const QStringList& args_,
+Chain * Task_BackupHelper::prepareABackupChain(const QStringList& args_,
 		const QString &sNotificationVmUuid, unsigned int nDiskIdx)
 {
 	bool bRestore = (args_.at(0) == "restore" || args_.at(0) == "restore_ct");
@@ -1763,7 +1763,13 @@ PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const 
 	Chain *p = new Progress(e, nDiskIdx, getRequestPackage());
 	if (args_.indexOf("--local") == -1)
 		p->next(SmartPtr<Chain>(new Forward(m_pIoClient, m_nBackupTimeout)));
+	return p;
+}
 
+PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const QStringList& args_,
+		const QString &sNotificationVmUuid, unsigned int nDiskIdx)
+{
+	Chain *p = prepareABackupChain(args_, sNotificationVmUuid, nDiskIdx);
 	return startABackupClient(sVmName_, args_, SmartPtr<Chain>(p));
 }
 
