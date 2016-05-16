@@ -208,15 +208,28 @@ PRL_RESULT Task_CreateVmBackupTarget::buildTibFiles()
 
 	::Backup::Product::Model p(::Backup::Object::Model(m_pVmConfig), m_sVmHomePath);
 	p.setStore(getBackupRoot());
-	p.setSuffix(::Backup::Suffix(getBackupNumber(), getFlags())());
-	foreach (const ::Backup::Product::component_type& t, p.getVmTibs()) {
-		// Create image of size 0
-		PRL_RESULT e = VirtualDisk::Qcow2::create(
-				t.second.absoluteFilePath(),
-				VirtualDisk::qcow2PolicyList_type(1, 0));
+	unsigned n = getBackupNumber();
+	p.setSuffix(::Backup::Suffix(n, getFlags())());
+	::Backup::Product::componentList_type x, l = p.getVmTibs();
+
+	// we need to set previous backup archive as qcow backing store for
+	// successful restore.
+	if (n >= PRL_PARTIAL_BACKUP_START_NUMBER) {
+		::Backup::Product::Model y(p);
+		y.setSuffix(::Backup::Suffix(n - 1, getFlags())());
+		x = y.getVmTibs();
+		PRL_ASSERT(x.size() == l.size());
+	}
+
+	for (int i = 0; i < l.size(); ++i) {
+		VirtualDisk::qcow2PolicyList_type p(1,
+			VirtualDisk::Policy::Qcow2::size_type(l.at(i).first.getDevice().getSize() << 20));
+		if (x.size())
+			p.push_back(VirtualDisk::Policy::Qcow2::base_type(x.at(i).second.absoluteFilePath()));
+		PRL_RESULT e = VirtualDisk::Qcow2::create(l.at(i).second.absoluteFilePath(), p);
 		if (PRL_FAILED(e))
 			return e;
-		m_createdTibs << t.second.absoluteFilePath();
+		m_createdTibs << l.at(i).second.absoluteFilePath();
 	}
 	return PRL_ERR_SUCCESS;
 }
