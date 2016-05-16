@@ -1491,3 +1491,32 @@ void CDspShellHelper::sendLicenseInfo(
 
 	pUser->sendResponse(pResponse, p);
 }
+
+void CDspShellHelper::updateLicense(
+		SmartPtr<CDspClient>& pUser,
+		const SmartPtr<IOPackage>& p)
+{
+	CDspVzLicense lic;
+
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(p);
+	if (!cmd->IsValid()) {
+		pUser->sendSimpleResponse(p, PRL_ERR_FAILURE);
+		return;
+	}
+
+	CProtoSerialNumCommand* updateCmd =
+		CProtoSerializer::CastToProtoCommand<CProtoSerialNumCommand>(cmd);
+
+	PRL_UINT32 nFlags = updateCmd->GetCommandFlags();
+	Prl::Expected<void, Error::Simple> r;
+
+	if (nFlags & PUPLF_KICK_TO_UDPATE_CURR_FILE_LICENSE)
+		r = lic.update();
+	else
+		r = lic.install(updateCmd->GetSerialNumber().toUtf8().constData());
+
+	if (r.isFailed())
+		pUser->sendResponseError(r.error().convertToEvent(), p);
+	else
+		pUser->sendSimpleResponse(p, PRL_ERR_SUCCESS);
+}

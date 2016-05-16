@@ -49,6 +49,8 @@
 
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 
 class CDspVzLicense
 {
@@ -59,6 +61,8 @@ public:
 
 public:
 	void load();
+	Prl::Expected<void, Error::Simple> update();
+	Prl::Expected<void, Error::Simple> install(const std::string& key);
 	bool isValid() const;
 	PRL_RESULT getStatus() const;
 	SmartPtr<CVmEvent> getVmEvent() const;
@@ -66,6 +70,7 @@ public:
 private:
 	int  parseStatus(const std::string& s) const;
 	void parseNameValue(const std::string& name, const std::string& value);
+	Prl::Expected<void, Error::Simple> run_program(const std::string& line);
 
 	PRL_RESULT m_status;
 	std::map<const nameEventType_t*, std::string> m_values;

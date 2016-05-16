@@ -38,6 +38,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <unistd.h>
+#include <errno.h>
+#include <sys/wait.h>
 #include <fstream>
 #include <string>
 #include <boost/algorithm/string.hpp>
@@ -47,10 +49,8 @@
 
 #include "CDspVzLicense.h"
 
-#include <prlxmlmodel/Messaging/CVmEvent.h>
 #include <prlxmlmodel/Messaging/CVmEventParameter.h>
 #include <prlcommon/Logging/Logging.h>
-#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/Std/PrlTime.h>
 #include <prlcommon/HostUtils/HostUtils.h>
@@ -189,4 +189,43 @@ SmartPtr<CVmEvent> CDspVzLicense::getVmEvent() const
 	}
 
 	return evt;
+}
+
+Prl::Expected<void, Error::Simple> CDspVzLicense::run_program(const std::string& cmd)
+{
+	std::string cmdline = cmd + " 2>&1 >/dev/null";
+
+	FILE *fd = popen(cmdline.c_str(), "r");
+	if (!fd) {
+		return Error::Simple(
+			PRL_ERR_UNEXPECTED, 
+			QString("Error executing %1: %2")
+				.arg(cmd.c_str())
+				.arg(strerror(errno)));
+	}
+
+	char buf[128];
+	std::string output;
+	while(fgets(buf, sizeof(buf), fd) != NULL) {
+		output += buf;
+	}
+	int s = pclose(fd);
+
+	if (WIFEXITED(s) && WEXITSTATUS(s) == 0) {
+		return Prl::Expected<void, Error::Simple>();
+	} else {
+		return Error::Simple(PRL_ERR_OPERATION_FAILED, output.c_str());
+	}
+}
+
+Prl::Expected<void, Error::Simple> CDspVzLicense::update()
+{
+	return run_program("vzlicupdate");
+}
+
+Prl::Expected<void, Error::Simple> CDspVzLicense::install(const std::string& key)
+{
+	std::string x = "vzlicload -p ";
+	x += key;
+	return run_program(x);
 }
