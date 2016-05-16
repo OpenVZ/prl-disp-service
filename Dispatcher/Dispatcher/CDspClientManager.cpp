@@ -565,8 +565,9 @@ void CDspClientManager::handleToDispatcherPackage (
 		return (void)m_service->getShellServiceHelper().sendHostCommonInfo(client, p);
 	///////////////////////////////////////////////
 	case PVE::DspCmdUserUpdateLicense:
-	case PVE::DspCmdUserGetLicenseInfo:
 		return (void)m_service->sendSimpleResponseToClient(h, p, PRL_ERR_UNIMPLEMENTED);
+	case PVE::DspCmdUserGetLicenseInfo:
+		return (void)m_service->getShellServiceHelper().sendLicenseInfo(client, p);
 	///////////////////////////////////////////////
 	case PVE::DspCmdDirGetVmList:
 		return (void)m_service->getVmDirHelper().sendVmList(h, client, p);

@@ -178,6 +178,8 @@ public:
 	void moveToCPUPool(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
 	void recalculateCPUPool(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
 
+	void sendLicenseInfo(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
+
 private:
 	PRL_RESULT checkAccessForHostCommonInfoEdit(SmartPtr<CDspClient>& pUser,
 		const SmartPtr<IOPackage>& p);
