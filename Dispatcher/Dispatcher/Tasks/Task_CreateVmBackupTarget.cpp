@@ -592,6 +592,7 @@ PRL_RESULT Task_CreateVmBackupTarget::saveMetadata()
 
 	iVm.setUuid(m_sVmUuid);
 	iVm.setName(m_sVmName);
+	iVm.setVersion(m_nRemoteVersion);
 	nRetCode = iVm.saveToFile(QString("%1/%2/" PRL_BACKUP_METADATA).arg(getBackupDirectory()).arg(m_sVmUuid));
 
 	/* create metadata in backup directory */
