@@ -1513,7 +1513,7 @@ void CDspShellHelper::updateLicense(
 	if (nFlags & PUPLF_KICK_TO_UDPATE_CURR_FILE_LICENSE)
 		r = lic.update();
 	else
-		r = lic.install(updateCmd->GetSerialNumber().toUtf8().constData());
+		r = lic.install(updateCmd->GetSerialNumber());
 
 	if (r.isFailed())
 		pUser->sendResponseError(r.error().convertToEvent(), p);

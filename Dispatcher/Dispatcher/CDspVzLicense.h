@@ -62,7 +62,7 @@ public:
 public:
 	void load();
 	Prl::Expected<void, Error::Simple> update();
-	Prl::Expected<void, Error::Simple> install(const std::string& key);
+	Prl::Expected<void, Error::Simple> install(const QString& key);
 	bool isValid() const;
 	PRL_RESULT getStatus() const;
 	SmartPtr<CVmEvent> getVmEvent() const;
@@ -70,7 +70,7 @@ public:
 private:
 	int  parseStatus(const std::string& s) const;
 	void parseNameValue(const std::string& name, const std::string& value);
-	Prl::Expected<void, Error::Simple> run_program(const std::string& line);
+	Prl::Expected<void, Error::Simple> runProgram(const QString& cmdline);
 
 	PRL_RESULT m_status;
 	std::map<const nameEventType_t*, std::string> m_values;

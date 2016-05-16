@@ -191,41 +191,26 @@ SmartPtr<CVmEvent> CDspVzLicense::getVmEvent() const
 	return evt;
 }
 
-Prl::Expected<void, Error::Simple> CDspVzLicense::run_program(const std::string& cmd)
+Prl::Expected<void, Error::Simple> CDspVzLicense::runProgram(const QString& cmdline)
 {
-	std::string cmdline = cmd + " 2>&1 >/dev/null";
+	QProcess proc;
 
-	FILE *fd = popen(cmdline.c_str(), "r");
-	if (!fd) {
-		return Error::Simple(
-			PRL_ERR_UNEXPECTED, 
-			QString("Error executing %1: %2")
-				.arg(cmd.c_str())
-				.arg(strerror(errno)));
+	DefaultExecHandler handler(proc, cmdline);
+	if (!HostUtils::RunCmdLineUtilityEx(cmdline, proc, -1)(handler).isSuccess()) {
+		return Error::Simple(PRL_ERR_OPERATION_FAILED, handler.getStderr());
 	}
 
-	char buf[128];
-	std::string output;
-	while(fgets(buf, sizeof(buf), fd) != NULL) {
-		output += buf;
-	}
-	int s = pclose(fd);
-
-	if (WIFEXITED(s) && WEXITSTATUS(s) == 0) {
-		return Prl::Expected<void, Error::Simple>();
-	} else {
-		return Error::Simple(PRL_ERR_OPERATION_FAILED, output.c_str());
-	}
+	return Prl::Expected<void, Error::Simple>();
 }
 
 Prl::Expected<void, Error::Simple> CDspVzLicense::update()
 {
-	return run_program("vzlicupdate");
+	return runProgram("vzlicupdate");
 }
 
-Prl::Expected<void, Error::Simple> CDspVzLicense::install(const std::string& key)
+Prl::Expected<void, Error::Simple> CDspVzLicense::install(const QString& key)
 {
-	std::string x = "vzlicload -p ";
+	QString x = "vzlicload -p ";
 	x += key;
-	return run_program(x);
+	return runProgram(x);
 }
