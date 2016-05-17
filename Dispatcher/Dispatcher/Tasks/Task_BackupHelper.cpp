@@ -1823,65 +1823,6 @@ QString Task_BackupHelper::getAcronisErrorString(int code_)
 	return Client::getAcronisErrorString(code_);
 }
 
-/*
-  Will backup ct private and vz cache in common backup with common root.
-  If vz cache does not exists, we will get ct private on target directory after restoring.
-  Otherwise we will get two subdirectories on target dir.
-  To find private and cache will use special empty files :
-    "private.<backup_uuid>.backup" for private (will place into private before backup)
-    "cache.<backup_uuid>.backup" for vz cache (will place into cache before backup)
-*/
-PRL_RESULT Task_BackupHelper::handleCtPrivateBeforeBackup(
-		const QString& sVmUuid,
-		const QString& sCtHomePath,
-		const QString& sBackupUuid,
-		QString& sVzCachePath)
-
-{
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	QString uuid = sVmUuid;
-	QString sTemplate;
-
-	uuid.remove(QChar('{'));
-	uuid.remove(QChar('}'));
-
-	m_filePrivate.setFileName(
-		QString("%1/private.%2" VMDIR_DEFAULT_VM_BACKUP_SUFFIX).arg(sCtHomePath).arg(sBackupUuid));
-	if (!m_filePrivate.open(QIODevice::WriteOnly)) {
-		WRITE_TRACE(DBG_FATAL, "Cannot create file \"%s\" : %s",
-			QSTR2UTF8(m_filePrivate.fileName()), QSTR2UTF8(m_filePrivate.errorString()));
-		return PRL_ERR_BACKUP_INTERNAL_ERROR;
-	}
-	m_filePrivate.close();
-
-	if (CDspService::instance()->getVzHelper()->getVzlibHelper().get_vz_config_param("TEMPLATE", sTemplate))
-		sTemplate = "/vz/template";
-	QDir dirCache(QString("%1/vc/%2").arg(sTemplate).arg(uuid));
-
-	if (!dirCache.exists())
-		return PRL_ERR_SUCCESS;
-
-	m_fileCache.setFileName(
-		QString("%1/cache.%2" VMDIR_DEFAULT_VM_BACKUP_SUFFIX).arg(dirCache.absolutePath()).arg(sBackupUuid));
-	if (!m_fileCache.open(QIODevice::WriteOnly)) {
-		WRITE_TRACE(DBG_FATAL, "Cannot create file \"%s\" : %s",
-			QSTR2UTF8(m_fileCache.fileName()), QSTR2UTF8(m_fileCache.errorString()));
-		return PRL_ERR_BACKUP_INTERNAL_ERROR;
-	}
-	m_fileCache.close();
-
-	sVzCachePath = dirCache.absolutePath();
-	return nRetCode;
-}
-
-void Task_BackupHelper::cleanupPrivateArea()
-{
-	if (m_filePrivate.exists())
-		m_filePrivate.remove();
-	if (m_fileCache.exists())
-		m_fileCache.remove();
-}
-
 PRL_RESULT Task_BackupHelper::CloneHardDiskState(const QString &sDiskImage,
 	const QString &sSnapshotUuid, const QString &sDstDirectory)
 {
