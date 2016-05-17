@@ -38,6 +38,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <unistd.h>
+#include <errno.h>
+#include <sys/wait.h>
 #include <fstream>
 #include <string>
 #include <boost/algorithm/string.hpp>
@@ -47,10 +49,8 @@
 
 #include "CDspVzLicense.h"
 
-#include <prlxmlmodel/Messaging/CVmEvent.h>
 #include <prlxmlmodel/Messaging/CVmEventParameter.h>
 #include <prlcommon/Logging/Logging.h>
-#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/Std/PrlTime.h>
 #include <prlcommon/HostUtils/HostUtils.h>
@@ -189,4 +189,28 @@ SmartPtr<CVmEvent> CDspVzLicense::getVmEvent() const
 	}
 
 	return evt;
+}
+
+Prl::Expected<void, Error::Simple> CDspVzLicense::runProgram(const QString& cmdline)
+{
+	QProcess proc;
+
+	DefaultExecHandler handler(proc, cmdline);
+	if (!HostUtils::RunCmdLineUtilityEx(cmdline, proc, -1)(handler).isSuccess()) {
+		return Error::Simple(PRL_ERR_OPERATION_FAILED, handler.getStderr());
+	}
+
+	return Prl::Expected<void, Error::Simple>();
+}
+
+Prl::Expected<void, Error::Simple> CDspVzLicense::update()
+{
+	return runProgram("vzlicupdate");
+}
+
+Prl::Expected<void, Error::Simple> CDspVzLicense::install(const QString& key)
+{
+	QString x = "vzlicload -p ";
+	x += key;
+	return runProgram(x);
 }
