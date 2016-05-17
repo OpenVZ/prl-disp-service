@@ -395,6 +395,7 @@ struct Unit
 	Result kill();
 	Result shutdown();
 	Result start();
+	Result startPaused();
 	Result reboot();
 	Result reset();
 	Result pause();
@@ -426,6 +427,7 @@ struct Unit
 
 private:
 	QSharedPointer<virConnect> getLink() const;
+	Result start_(unsigned int flags_);
 
 	QSharedPointer<virDomain> m_domain;
 };

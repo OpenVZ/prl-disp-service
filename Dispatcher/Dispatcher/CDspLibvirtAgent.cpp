@@ -233,7 +233,7 @@ Result Unit::shutdown()
 			VIR_DOMAIN_SHUTDOWN_GUEST_AGENT));
 }
 
-Result Unit::start()
+Result Unit::start_(unsigned int flags_)
 {
 	int s = VIR_DOMAIN_NOSTATE;
 	if (-1 == virDomainGetState(m_domain.data(), &s, NULL, 0))
@@ -242,7 +242,17 @@ Result Unit::start()
 	if (s == VIR_DOMAIN_CRASHED)
 		kill();
 
-	return do_(m_domain.data(), boost::bind(&virDomainCreateWithFlags, _1, VIR_DOMAIN_START_FORCE_BOOT));
+	return do_(m_domain.data(), boost::bind(&virDomainCreateWithFlags, _1, flags_));
+}
+
+Result Unit::start()
+{
+	return start_(VIR_DOMAIN_START_FORCE_BOOT);
+}
+
+Result Unit::startPaused()
+{
+	return start_(VIR_DOMAIN_START_PAUSED);
 }
 
 Result Unit::reboot()
