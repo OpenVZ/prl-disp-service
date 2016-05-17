@@ -494,8 +494,6 @@ void Task_CreateVmBackupTarget::finalizeTask()
 	}
 	m_bBackupLocked = false;
 
-	cleanupPrivateArea();
-
 	if (PRL_SUCCEEDED(getLastErrorCode())) {
 		hJob = m_pDispConnection->sendSimpleResponse(getRequestPackage(), PRL_ERR_SUCCESS);
 	} else {
@@ -730,24 +728,13 @@ PRL_RESULT Task_CreateVmBackupTarget::backupHardDiskDevices()
 
 PRL_RESULT Task_CreateVmBackupTarget::backupCtPrivate()
 {
-#ifdef _CT_
-#ifdef _LIN_
+	if (!(getInternalFlags() & PVM_CT_PLOOP_BACKUP))
+		return PRL_ERR_UNIMPLEMENTED;
+
 	::Backup::Device::Dao(m_pVmConfig).deleteAll();
-#endif
-	QString sVzCacheDir;
-	if (getInternalFlags() & PVM_CT_PLOOP_BACKUP)
-		setService(*m_service);
-	else
-	{
-		PRL_RESULT e = handleCtPrivateBeforeBackup(m_sVmUuid, m_sVmHomePath, m_sBackupUuid, sVzCacheDir);
-		if (PRL_FAILED(e))
-			return e;
-	}
-	return do_(m_pVmConfig, Backup::Work::Ct::Spec(sVzCacheDir, m_nBackupNumber)
+	setService(*m_service);
+	return do_(m_pVmConfig, Backup::Work::Ct::Spec(m_nBackupNumber)
 		.setOutFile(m_sABackupOutFile));
-#else
-	return PRL_ERR_UNIMPLEMENTED;
-#endif
 }
 
 // compare hdd lists from current VM config and from VM config of last base backup

@@ -57,17 +57,9 @@ namespace Ct
 ///////////////////////////////////////////////////////////////////////////////
 // struct Spec
 
-Spec::Spec(const QString& cache_, quint32 lastTib_): m_deviceIndex()
+Spec::Spec(quint32 lastTib_): m_deviceIndex()
 {
 	m_lastTib << "--last-tib" << QString::number(lastTib_);
-	if (!cache_.isEmpty())
-		m_cache << "--vzcache-dir" << cache_;
-}
-
-Spec& Spec::noCache()
-{
-	m_cache.clear();
-	return *this;
 }
 
 Spec& Spec::setOutFile(const QString& value_)
@@ -94,7 +86,7 @@ Spec& Spec::setArchive(const QString& archive_)
 
 QStringList Spec::getArguments() const
 {
-	return QStringList() << m_lastTib << m_cache << m_outFile << m_sandbox;
+	return QStringList() << m_lastTib << m_outFile << m_sandbox;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -432,7 +424,6 @@ PRL_RESULT Task_CreateCtBackupSource::run_body()
 #ifdef _CT_
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	SmartPtr<IOPackage> p;
-	QString sVzCacheDir;
 
 /* TODO : remote check */
 
@@ -481,7 +472,7 @@ PRL_RESULT Task_CreateCtBackupSource::run_body()
 		if (operationIsCancelled())
 			return PRL_ERR_OPERATION_WAS_CANCELED;
 
-		nRetCode = do_(m_pCtConfig, Backup::Work::Ct::Spec(sVzCacheDir, m_nBackupNumber));
+		nRetCode = do_(m_pCtConfig, Backup::Work::Ct::Spec(m_nBackupNumber));
 		/*
 		   Now target side wait new acronis proxy commands due to acronis have not call to close connection.
 		   To fix it will send command to close connection from here.
@@ -511,8 +502,6 @@ exit:
 void Task_CreateCtBackupSource::finalizeTask()
 {
 #ifdef _CT_
-	cleanupPrivateArea();
-
 	if (m_nSteps & BACKUP_REGISTER_EX_OP) {
 		CDspService::instance()->getVmDirHelper().unregisterExclusiveVmOperation(
 			m_sVmUuid, getVzDirectory(), PVE::DspCmdCreateVmBackup, getClient());

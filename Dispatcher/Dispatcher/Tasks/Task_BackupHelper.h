@@ -359,13 +359,6 @@ protected:
 	*/
 	virtual bool providedAdditionState(){return true;}
 
-	PRL_RESULT handleCtPrivateBeforeBackup(
-			const QString& sVmUuid,
-			const QString& sCtHomePath,
-			const QString& sBackupUuid,
-			QString& sVzCachePath);
-	void cleanupPrivateArea();
-
 	/* prepare new DiskDescriptor with linked clone to the original disk
 	 * except current delta */
 	PRL_RESULT CloneHardDiskState(const QString &sDiskImage,
@@ -396,8 +389,6 @@ private:
 	bool m_bKillCalled;
 	SmartPtr<char> m_pBuffer;
 	qint64 m_nBufSize;
-	QFile m_filePrivate;
-	QFile m_fileCache;
 };
 
 #endif //__Task_BackupHelper_H_

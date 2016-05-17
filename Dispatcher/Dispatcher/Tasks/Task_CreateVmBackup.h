@@ -67,7 +67,7 @@ namespace Ct
 
 struct Spec
 {
-	Spec(const QString& cache_, quint32 lastTib_);
+	explicit Spec(quint32 lastTib_);
 
 	const QString& getArchive() const
 	{
@@ -83,7 +83,6 @@ struct Spec
 		m_deviceIndex = value_;
 		return *this;
 	}
-	Spec& noCache();
 	QStringList getArguments() const;
 	Spec& setOutFile(const QString& value_);
 	Spec& setSandbox(const QString& value_);
@@ -91,7 +90,6 @@ struct Spec
 private:
 	quint32 m_deviceIndex;
 	QString m_archive;
-	QStringList m_cache;
 	QStringList m_lastTib;
 	QStringList m_outFile;
 	QStringList m_sandbox;
