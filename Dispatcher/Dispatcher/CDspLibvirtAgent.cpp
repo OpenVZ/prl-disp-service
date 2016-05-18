@@ -1039,6 +1039,7 @@ bool ReadDevice::open(QIODevice::OpenMode mode_)
 void ReadDevice::close()
 {
 	QMutexLocker l(&m_lock);
+	setEof();
 	Device::close();
 }
 
@@ -1183,7 +1184,6 @@ void AuxChannel::reactEvent(virStreamPtr st_, int events_, void *opaque_)
 
 void AuxChannel::processEvent(int events_)
 {
-	QMutexLocker l(&m_lock);
 	if (events_ & (VIR_STREAM_EVENT_HANGUP | VIR_STREAM_EVENT_ERROR)) {
 		close();
 		return;
@@ -1192,11 +1192,15 @@ void AuxChannel::processEvent(int events_)
 		char buf[1024];
 		int got = 0;
 		do {
+			QMutexLocker l(&m_lock);
 			got = virStreamRecv(m_stream, buf, sizeof(buf));
-			if (got > 0)
+			if (got > 0) {
 				readMessage(QByteArray(buf, got));
-			else if (got == 0 || got == -1)
+			} else if (got == 0 || got == -1) {
+				l.unlock();
 				close();
+				return;
+			}
 		} while (got == sizeof(buf));
 	}
 }
@@ -1228,10 +1232,16 @@ bool AuxChannel::isOpen()
 
 void AuxChannel::close()
 {
+	QMutexLocker l(&m_lock);
 	virStreamEventRemoveCallback(m_stream);
 	virStreamFinish(m_stream);
 	virStreamFree(m_stream);
 	m_stream = NULL;
+	QList<Device*> q = m_ioChannels.values();
+	l.unlock();
+	/* close devices, m_stream should be null for isOpen() to be false */
+	foreach (Device* d, q)
+		d->close();
 }
 
 void AuxChannel::skipTrash(const QByteArray& data_)
@@ -1266,6 +1276,7 @@ int AuxChannel::writeMessage(const QByteArray& data_, int client_)
 	QMutexLocker l(&m_lock);
 	int sent = virStreamSend(m_stream, d.constData(), d.size());
 	if (sent < 0) {
+		l.unlock();
 		close();
 		return -1;
 	}
