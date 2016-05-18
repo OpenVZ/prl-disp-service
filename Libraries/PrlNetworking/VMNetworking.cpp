@@ -233,11 +233,14 @@ QHostAddress PrlNet::getIPv4MaskFromPrefix(quint32 prefix4_)
 
 QHostAddress PrlNet::getIPv6MaskFromPrefix(quint32 prefix6_)
 {
-	quint8 a[16] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	quint8 a[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 	int p = 128 - prefix6_;
-	for (int i = 0; p > 0; i++, p -= 8)
+	int i = sizeof(a) / sizeof(a[0]) - 1;
+	for (; p >= 8; i--, p -= 8)
+		a[i] = 0;
+	if (p)
 		a[i] = a[i] << p;
 
 	return QHostAddress(a);
