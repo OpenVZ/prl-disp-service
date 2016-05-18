@@ -158,25 +158,66 @@ QStringList VCommand::buildArgs()
 	return a;
 }
 
+Prl::Expected<VCommand::mode_type, PRL_RESULT> VCommand::getMode()
+{
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_uuid);
+	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+	Libvirt::Result e = u.getState(s);
+	if (e.isFailed())
+		return e.error().code();
+
+	if (s == VMS_STOPPED)
+		return mode_type(Stopped(m_uuid));
+	if (m_product.getObject().canFreeze())
+		return mode_type(Frozen(m_context, m_uuid));
+
+	return mode_type(boost::blank());
+}
+
 PRL_RESULT VCommand::do_()
 {
+	Prl::Expected<mode_type, PRL_RESULT> m = getMode();
+	if (m.isFailed())
+		return m.error();
+
 	QStringList a(buildArgs());
 	SmartPtr<Chain> p(m_builder(a));
+	return boost::apply_visitor(Visitor(m_worker, p, a), m.value());
+}
 
-	::Backup::Snapshot::Vm::Object o(m_uuid, m_context->getClient());
-	if (m_product.getObject().canFreeze()) {
-		::Backup::Task::Reporter r(*m_context, m_uuid);
-		::Backup::Task::Workbench t(*m_context, r,
-			CDspService::instance()->getDispConfigGuard());
-		if (PRL_SUCCEEDED(o.freeze(t))) {
-			Thaw* t = new Thaw(o);
-			t->moveToThread(QCoreApplication::instance()->thread());
-			t->startTimer(20 * 1000);
-			t->next(p);
-			p = SmartPtr<Chain>(t);
-		}
-	}
-	return m_worker(a, p);
+///////////////////////////////////////////////////////////////////////////////
+// struct Visitor
+
+PRL_RESULT Visitor::operator()(const boost::blank&) const
+{
+	return m_worker(m_chain);
+}
+
+PRL_RESULT Visitor::operator()(Stopped& variant_) const
+{
+	return variant_.wrap(boost::bind(m_worker, m_chain));
+}
+
+PRL_RESULT Visitor::operator()(Frozen& variant_) const
+{
+	return m_worker(variant_.decorate(m_chain));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frozen
+
+SmartPtr<Chain> Frozen::decorate(SmartPtr<Chain> chain_)
+{
+	::Backup::Task::Reporter r(*m_context, m_uuid);
+	::Backup::Task::Workbench w(*m_context, r, CDspService::instance()->getDispConfigGuard());
+	if (PRL_FAILED(m_object.freeze(w)))
+		return chain_;
+
+	Thaw* t = new Thaw(m_object);
+	t->moveToThread(QCoreApplication::instance()->thread());
+	t->startTimer(20 * 1000);
+	t->next(chain_);
+	return SmartPtr<Chain>(t);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -206,6 +247,28 @@ PRL_RESULT Thaw::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
 {
 	release();
 	return forward(request_, dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Stopped
+
+template<class T>
+PRL_RESULT Stopped::wrap(const T& worker_) const
+{
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_uuid);
+	Libvirt::Result e = u.startPaused();
+	if (e.isFailed())
+		return e.error().code();
+
+	PRL_RESULT output = worker_();
+
+	u = Libvirt::Kit.vms().at(m_uuid); // refresh unit - there could be a reconnect meanwhile
+	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+	u.getState(s);
+	if (s == VMS_PAUSED) // check that vm is in an expected state
+		u.kill();
+
+	return output;
 }
 
 } // namespace Work
@@ -431,7 +494,7 @@ quint64 Task_CreateVmBackupSource::calcOriginalSize()
 			nSize += nDirSize;
 		WRITE_TRACE(DBG_DEBUG, "%s nDiskSize=%llu nDirSize=%llu",
 			QSTR2UTF8(sDiskImageDir), nDiskSize, nDirSize);
-        }
+	}
 	return nSize;
 }
 

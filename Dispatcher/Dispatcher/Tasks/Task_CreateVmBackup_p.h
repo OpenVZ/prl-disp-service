@@ -91,12 +91,44 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Stopped
+
+struct Stopped
+{
+	explicit Stopped(const QString& uuid_) : m_uuid(uuid_) {}
+
+	template<class T>
+	PRL_RESULT wrap(const T& worker_) const;
+
+private:
+	QString m_uuid;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frozen
+
+struct Frozen
+{
+	Frozen(Task_BackupHelper *context_, const QString& uuid_)
+		: m_context(context_), m_uuid(uuid_)
+		, m_object(uuid_, context_->getClient()) {}
+
+	SmartPtr<Chain> decorate(SmartPtr<Chain> chain_);
+
+private:
+	Task_BackupHelper *m_context;
+	QString m_uuid;
+	::Backup::Snapshot::Vm::Object m_object;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct VCommand
 
 struct VCommand : Command
 {
 	typedef boost::function1<Chain *, const QStringList& > builder_type;
 	typedef boost::function2<PRL_RESULT, const QStringList&, SmartPtr<Chain> > worker_type;
+	typedef boost::variant<boost::blank, Frozen, Stopped> mode_type;
 
 	VCommand(Task_BackupHelper& task_, ::Backup::Product::Model& p_,
 		const ::Backup::Activity::Object::Model& activity_)
@@ -117,10 +149,32 @@ struct VCommand : Command
 
 private:
 	QStringList buildArgs();
+	Prl::Expected<mode_type, PRL_RESULT> getMode();
 
 	QString m_uuid;
 	builder_type m_builder;
 	worker_type m_worker;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Visitor
+
+struct Visitor : boost::static_visitor<PRL_RESULT>
+{
+	typedef boost::function1<PRL_RESULT, SmartPtr<Chain> > worker_type;
+
+	Visitor(VCommand::worker_type worker_, SmartPtr<Chain> chain_,
+		const QStringList& args_)
+		: m_worker(boost::bind(worker_, args_, _1))
+		, m_chain(chain_) {}
+
+	PRL_RESULT operator()(const boost::blank&) const;
+	PRL_RESULT operator()(Stopped& variant_) const;
+	PRL_RESULT operator()(Frozen& variant_) const;
+
+private:
+	worker_type m_worker;
+	SmartPtr<Chain> m_chain;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
