@@ -1022,9 +1022,10 @@ PRL_RESULT Direct::setHostOnly()
 		if (a)
 			boost::apply_visitor(Visitor::Address::Ip(*h), a.get());
 
+		boost::optional<QString> f = p.getFamily();
 		boost::optional<Libvirt::Network::Xml::VChoice1182> m = p.getChoice1182();
-		if (m)
-			boost::apply_visitor(Visitor::Address::Mask(*h), m.get());
+		if (f && m)
+			boost::apply_visitor(Visitor::Address::Mask(*h, *f), m.get());
 
 		boost::optional<Libvirt::Network::Xml::Dhcp> d = p.getDhcp();
 		if (d)
@@ -1035,7 +1036,6 @@ PRL_RESULT Direct::setHostOnly()
 			if (l.isEmpty())
 				continue;
 
-			boost::optional<QString> f = p.getFamily();
 			if (f && QString("ipv6") == f.get())
 				h->getDHCPv6Server()->setEnabled(true);
 			else
