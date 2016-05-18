@@ -771,25 +771,19 @@ void CDspShellHelper::hostCommonInfoBeginEdit (
 	SmartPtr<CDispatcherConfig > pDispConfigPrev(
 		new CDispatcherConfig( CDspService::instance()->getDispConfigGuard().getDispConfig().getPtr() ) );
 
-#ifdef _LIN_
-	if (CDspService::isServerModePSBM())
+	std::auto_ptr<CDispCpuPreferences> cpuMask(CCpuHelper::get_cpu_mask());
+	if (NULL == cpuMask.get())
+		err = PRL_ERR_FAILURE;
+	else
 	{
-		std::auto_ptr<CDispCpuPreferences> cpuMask(CCpuHelper::get_cpu_mask());
-		if (!cpuMask.get())
-		{
-			pUser->sendSimpleResponse(p, PRL_ERR_FAILURE);
-			return;
-		}
 		pDispConfigPrev->getDispatcherSettings()->getCommonPreferences()->setCpuPreferences(cpuMask.release());
+
+		CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig()
+			->registerBeginEdit( pUser->getClientHandle(), pDispConfigPrev );
 	}
-#endif
-
-	CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig()
-		->registerBeginEdit( pUser->getClientHandle(), pDispConfigPrev );
-
 	CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig()->unlock();
 
-	pUser->sendSimpleResponse( p, PRL_ERR_SUCCESS );
+	pUser->sendSimpleResponse(p, err);
 }
 
 void CDspShellHelper::hostCommonInfoCommit (
