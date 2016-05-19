@@ -244,9 +244,11 @@ quint32 Pool::getAvailable()
 
 void Patch::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
-	QList<CVmStartupOptions::CVmBootDevice*> b = new_.getVmSettings()
-		->getVmStartupOptions()->m_lstBootDeviceList;
+	CVmStartupOptions* o = old_.getVmSettings()->getVmStartupOptions();
+	CVmStartupOptions* n = new_.getVmSettings()->getVmStartupOptions();
+	n->setAutoStart(o->getAutoStart());
 
+	QList<CVmStartupOptions::CVmBootDevice*> b = n->m_lstBootDeviceList;
 	Device<CVmHardDisk, PDE_HARD_DISK>
 		(old_.getVmHardwareList()->m_lstHardDisks, b)
 			(new_.getVmHardwareList()->m_lstHardDisks);
