@@ -437,12 +437,9 @@ PRL_RESULT Task_CreateVmBackupTarget::run_body()
 	m_sABackupOutFile = tmpFile.fileName();
 	tmpFile.close();
 
-	if (m_bLocalMode) {
+	if (m_bLocalMode && getInternalFlags() & PVM_CT_BACKUP) {
 		locker.unlock();
-		if (getInternalFlags() & PVM_CT_BACKUP)
-			nRetCode = backupCtPrivate();
-		else
-			nRetCode = backupHardDiskDevices();
+		nRetCode = backupCtPrivate();
 		if (PRL_FAILED(nRetCode))
 			goto exit;
 	} else {
@@ -672,58 +669,6 @@ void Task_CreateVmBackupTarget::clientDisconnected(IOSender::Handle h)
 	}
 	// quit event loop
 	QThread::exit(PRL_ERR_OPERATION_WAS_CANCELED);
-}
-
-PRL_RESULT Task_CreateVmBackupTarget::backupHardDiskDevices()
-{
-	::Backup::Activity::Object::Model a;
-	PRL_RESULT nRetCode = m_service->find(getClient()->getVmIdent(m_sVmUuid), a);
-	if (PRL_FAILED(nRetCode))
-		return nRetCode;
-
-	QString b = CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()
-		->getBackupSourcePreferences()->getSandbox();
-	::Backup::Product::Model p(::Backup::Object::Model(m_pVmConfig), m_sVmHomePath);
-	p.setStore(getBackupRoot());
-	foreach (const ::Backup::Product::component_type& t,
-		p.getVmTibs())
-	{
-		const QFileInfo* f = NULL;
-		nRetCode = PRL_ERR_UNEXPECTED;
-		foreach (const ::Backup::Product::component_type& c,
-				a.getSnapshot().getComponents())
-		{
-			if (t.first.getFolder() == c.first.getFolder())
-			{
-				f = &c.second;
-				break;
-			}
-		}
-		if (NULL == f)
-			break;
-
-		QStringList backupArgs;
-		if (m_nFlags & PBT_INCREMENTAL)
-			backupArgs << "append";
-		else
-			backupArgs << "create";
-
-		backupArgs << t.first.getFolder() << p.getStore().absolutePath()
-			<< t.second.absoluteFilePath() << a.getSnapshot().getUuid()
-			<< f->absoluteFilePath() << "--local"
-			<< "--disp-mode" << "--tib-out" << m_sABackupOutFile
-			<< "--sandbox" << b;
-		if (m_nFlags & PBT_UNCOMPRESSED)
-			backupArgs.append("--uncompressed");
-
-		backupArgs << "--last-tib" << QString::number(m_nBackupNumber);
-		WRITE_TRACE(DBG_FATAL, "Start backup client: %s", QSTR2UTF8(backupArgs.join(" ")));
-		nRetCode = startABackupClient(m_sVmName, backupArgs, m_sVmUuid,
-				t.first.getDevice().getIndex());
-		if (PRL_FAILED(nRetCode))
-			break;
-	}
-	return nRetCode;
 }
 
 PRL_RESULT Task_CreateVmBackupTarget::backupCtPrivate()
