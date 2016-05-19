@@ -220,10 +220,8 @@ protected:
 private:
 	PRL_RESULT waitForTargetFinished();
 #ifdef _CT_
-	PRL_RESULT fillCopyContent();
 	PRL_RESULT sendStartRequest();
 	virtual void cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& pkg);
-	PRL_RESULT makeTemporaryCopy(const QString& orig, QString& copy);
 #endif
 
 private:
@@ -242,8 +240,6 @@ private:
 #ifdef _CT_
 	CVzOperationHelper m_VzOpHelper;
 #endif
-	/** Temporary file copies that will be removed upon task completion */
-	QStringList m_tmpCopy;
 	Backup::Activity::Service* m_service;
 };
 
