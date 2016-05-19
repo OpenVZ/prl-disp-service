@@ -258,7 +258,6 @@ private:
 	quint64 getBackupSize();
 	PRL_RESULT saveMetadata();
 	PRL_RESULT validateBackupDir(const QString &);
-	PRL_RESULT backupHardDiskDevices();
 	PRL_RESULT backupCtPrivate();
 	PRL_RESULT buildTibFiles();
 	PRL_RESULT loadTibFiles();
