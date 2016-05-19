@@ -621,7 +621,8 @@ private:
 
 struct Mask: boost::static_visitor<void>
 {
-	explicit Mask(CHostOnlyNetwork& result_): m_result(&result_)
+	Mask(CHostOnlyNetwork& result_, const QString &family_):
+		m_result(&result_), m_family(family_)
 	{
 	}
 	
@@ -639,7 +640,11 @@ struct Mask: boost::static_visitor<void>
 	}
 	void operator()(const mpl::at_c<Libvirt::Network::Xml::VIpPrefix::types, 0>::type& prefix4_) const
 	{
-		m_result->setIPNetMask(PrlNet::getIPv4MaskFromPrefix(prefix4_.getValue()));
+		// Short netmask is always treated as IPv4.
+		if (m_family == "ipv6")
+			m_result->setIP6NetMask(PrlNet::getIPv6MaskFromPrefix(prefix4_.getValue()));
+		else
+			m_result->setIPNetMask(PrlNet::getIPv4MaskFromPrefix(prefix4_.getValue()));
 	}
 	void operator()(const mpl::at_c<Libvirt::Network::Xml::VIpPrefix::types, 1>::type& prefix6_) const
 	{
@@ -648,6 +653,7 @@ struct Mask: boost::static_visitor<void>
 
 private:
 	CHostOnlyNetwork* m_result;
+	QString m_family;
 };
 
 } // namespace Address
