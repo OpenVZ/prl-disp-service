@@ -514,8 +514,6 @@ void Task_CreateCtBackupSource::finalizeTask()
 			WRITE_TRACE(DBG_FATAL, "Fail to cleanup after backup: Can not umount"
 				" Container '%s', err = %d", QSTR2UTF8(m_sVmUuid), res);
 	}
-	foreach(const QString& path, m_tmpCopy)
-		CFileHelper::RemoveEntry(path, &getClient()->getAuthHelper());
 	if ((getInternalFlags() & PVM_CT_PLOOP_BACKUP) && !m_sCtHomePath.isEmpty())
 		m_service->finish(MakeVmIdent(m_sVmUuid, getVzDirectory()), getClient());
 
@@ -692,106 +690,5 @@ bool removeAttachedBackups(SmartPtr<CVmConfiguration>& conf)
 
 } // anonymous namespace
 #endif // _LIN_
-
-PRL_RESULT Task_CreateCtBackupSource::fillCopyContent()
-{
-	m_DirList.clear();
-	m_FileList.clear();
-
-	PRL_RESULT res;
-	QString tmpPath;
-	QString confPath = QString("%1/" VZ_CT_CONFIG_FILE).arg(m_sCtHomePath);
-	if (PRL_FAILED(res = makeTemporaryCopy(confPath, tmpPath)))
-		return res;
-	SmartPtr<CVmConfiguration> origCtConfig(CDspService::instance()->getVzHelper()->getCtConfig(getClient(),
-												    m_sVmUuid));
-	if (!origCtConfig.isValid()) {
-		WRITE_TRACE(DBG_FATAL, "Can not load config for uuid %s", QSTR2UTF8(m_sVmUuid));
-		return PRL_ERR_VM_UUID_NOT_FOUND;
-	}
-	if (m_VzOpHelper.remove_disks_from_env_config(m_pCtConfig, origCtConfig, tmpPath))
-		return PRL_ERR_BACKUP_INTERNAL_ERROR;
-	m_FileList.append(qMakePair(QFileInfo(tmpPath), QFileInfo(confPath).fileName()));
-
-	// PSBM XML conf
-	confPath = QString("%1/" VZ_CT_XML_CONFIG_FILE).arg(m_sCtHomePath);
-	if (QFileInfo(confPath).exists()) {
-		if (PRL_FAILED(res = makeTemporaryCopy(confPath, tmpPath)))
-			return res;
-		if (PRL_FAILED(res = CDspService::instance()->getVmConfigManager().modifyConfig(tmpPath,
-			getClient(), removeAttachedBackups, false, true, true, true)))
-			return res;
-		m_tmpCopy << tmpPath + ".backup";
-		m_FileList.append(qMakePair(QFileInfo(tmpPath), QFileInfo(confPath).fileName()));
-	}
-
-	if (VZCTL_LAYOUT_5 > m_pCtConfig->getCtSettings()->getLayout())
-		return PRL_ERR_SUCCESS;
-
-	QDir home(m_sCtHomePath);
-	QFileInfoList infos;
-	QList<QPair<QFileInfo, QString> > top;
-	infos = home.entryInfoList(QStringList("scripts"), QDir::Dirs);
-	if (!infos.isEmpty())
-		top.append(qMakePair(infos.at(0), infos.at(0).fileName()));
-
-	infos = home.entryInfoList(QStringList("templates"), QDir::Dirs | QDir::Files);
-	if (!infos.isEmpty())
-	{
-		if (!infos.at(0).isSymLink())
-			top.append(qMakePair(infos.at(0), infos.at(0).fileName()));
-		else
-		{
-			QFileInfo y(infos.at(0).symLinkTarget());
-			if (y.exists())
-				top.append(qMakePair(y, infos.at(0).fileName()));
-		}
-	}
-	QDir::Filters f = QDir::NoDotAndDotDot | QDir::Files | QDir::Dirs |
-			QDir::Hidden | QDir::NoSymLinks;
-	for (int i = 0; i < top.size(); ++i)
-	{
-		QList<QPair<QFileInfo, QString> > subtree;
-		subtree.append(top.at(i));
-		QDir top(subtree.at(0).first.absoluteFilePath());
-		for (int j = 0; j < subtree.size(); ++j)
-		{
-			infos = QDir(subtree.at(j).first.absoluteFilePath()).entryInfoList(f);
-			for (int k = 0; k < infos.size(); ++k)
-			{
-				const QFileInfo& x = infos.at(k);
-				QString r = top.dirName().append('/')
-						.append(top.relativeFilePath(x.absoluteFilePath()));
-				if (x.isDir())
-					subtree.append(qMakePair(x, r));
-				else
-					m_FileList.append(qMakePair(x, r));
-			}
-		}
-		m_DirList.append(subtree);
-	}
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Task_CreateCtBackupSource::makeTemporaryCopy(const QString& orig, QString& copy)
-{
-	QString tmp;
-	{
-		QTemporaryFile t(orig + ".XXXXXX");
-		if (!t.open()) {
-			WRITE_TRACE(DBG_FATAL, "Failed to create temporary file for %s", QSTR2UTF8(orig));
-			return PRL_ERR_BACKUP_INTERNAL_ERROR;
-		}
-		tmp = t.fileName();
-		t.close();
-	}
-	if (!QFile::copy(orig, tmp)) {
-		WRITE_TRACE(DBG_FATAL, "Failed to copy %s -> %s", QSTR2UTF8(orig), QSTR2UTF8(tmp));
-		return PRL_ERR_BACKUP_INTERNAL_ERROR;
-	}
-	m_tmpCopy << tmp;
-	copy = tmp;
-	return PRL_ERR_SUCCESS;
-}
 
 #endif // _CT_
