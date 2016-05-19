@@ -819,6 +819,10 @@ void Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 		return;
 	}
 
+	// No PMU in guest with Parallels Tools causes BSOD.
+	if (pVmHardware->getCpu())
+		pVmHardware->getCpu()->setVirtualizePMU(true);
+
 	// Convert Cdrom devices to IDE since SATA is unsupported.
 	foreach(CVmOpticalDisk* pDevice, pVmHardware->m_lstOpticalDisks) {
 		if (pDevice != NULL && pDevice->getEmulatedType() == PVE::CdRomImage)
