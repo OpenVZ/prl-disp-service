@@ -102,8 +102,19 @@ void Resources::setCpu(const Libvirt::Domain::Xml::Domain& vm_, const VtInfo& vt
 		return;
 
 	Vm::Direct::Cpu b(vm_, h->getCpu(), vt_);
-	if (PRL_SUCCEEDED(Director::cpu(b)))
-		h->setCpu(b.getResult());
+	if (PRL_FAILED(Director::cpu(b)))
+		return;
+	CVmCpu *cpu = b.getResult();
+	if (cpu != NULL)
+	{
+		cpu->setVirtualizePMU(
+				vm_.getFeatures() &&
+				vm_.getFeatures()->getPmu() &&
+				vm_.getFeatures()->getPmu()->getState() &&
+				vm_.getFeatures()->getPmu()->getState().get() ==
+					Libvirt::Domain::Xml::EVirOnOffOn);
+	}
+	h->setCpu(cpu);
 }
 
 bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Domain& dst_)
@@ -123,6 +134,20 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Domain& dst_)
 	dst_.setVcpu(b.getVcpu());
 	dst_.setCputune(b.getTune());
 	dst_.setNumatune(b.getNuma());
+
+	boost::optional<Libvirt::Domain::Xml::Features> f = dst_.getFeatures();
+	if (u->isVirtualizePMU())
+	{
+		if (!f)
+			f = Libvirt::Domain::Xml::Features();
+
+		Libvirt::Domain::Xml::Pmu pmu;
+		pmu.setState(Libvirt::Domain::Xml::EVirOnOffOn);
+		f->setPmu(pmu);
+	}
+	else if (f)
+		f->setPmu(boost::none);
+	dst_.setFeatures(f);
 
 	return true;
 }
