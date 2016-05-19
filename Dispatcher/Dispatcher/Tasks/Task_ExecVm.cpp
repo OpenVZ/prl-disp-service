@@ -171,7 +171,7 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 
 	vm::Exec::Request r(cmd->GetProgramName(), cmd->GetProgramArguments());
 	QEventLoop l;
-	Join j(&l);
+	Join j(l);
 	PRL_RESULT ret = variant_.prepare(*m_task, r, j);
 	if (PRL_FAILED(ret))
 		return ret;
@@ -183,7 +183,7 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 	r.setRunInShell(m_task->getRequestFlags() & PRPM_RUN_PROGRAM_IN_SHELL);
 	r.setEnvironment(cmd->GetProgramEnvVars());
 
-	Prl::Expected<Vm::Future, Error::Simple> f =
+	Prl::Expected<Vm::future_type, Error::Simple> f =
 		Libvirt::Kit.vms().at(m_task->getVmUuid()).getGuest().startProgram(r);
 
 	if (f.isFailed())
@@ -412,7 +412,11 @@ PRL_RESULT Vm::processStd(QEventLoop& loop_)
 	if (m_stdout == NULL || m_stderr == NULL)
 		return PRL_ERR_SUCCESS;
 
+	Poller p(loop_, *m_exec);
+	p.startTimer(10000);
+
 	loop_.exec();
+
 	m_stdout->close();
 	m_stderr->close();
 
@@ -457,7 +461,15 @@ void Join::slotFinished(void)
 		}
 	}
 	if (m_objects.isEmpty())
-		m_loop->quit();
+		m_loop.quit();
+}
+
+void Poller::timerEvent(QTimerEvent *event)
+{
+	Q_UNUSED(event);
+	Libvirt::Result r = m_exec.wait(0);
+	if (r.isFailed() && r.error().code() != PRL_ERR_TIMEOUT)
+		m_loop.quit();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

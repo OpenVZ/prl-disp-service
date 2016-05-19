@@ -73,7 +73,8 @@ Failure::Failure(PRL_RESULT result_): Error::Simple(result_), m_virErrorCode(0)
 
 bool Failure::isTransient() const
 {
-	return m_virErrorCode == VIR_ERR_AGENT_UNRESPONSIVE;
+	return m_virErrorCode == VIR_ERR_AGENT_UNRESPONSIVE ||
+	       m_virErrorCode == VIR_ERR_AGENT_UNSYNCED;
 }
 
 }
@@ -976,25 +977,27 @@ Exec::Future::wait(int timeout)
 	if (m_status)
 		return Libvirt::Result();
 
-	Prl::Expected<boost::optional<Result>, Libvirt::Agent::Failure> st;
 	Waiter waiter;
 	int msecs, total = 0;
 	for (int i=0; ; i++) {
-		Exec e(m_domain);
-		st = e.getCommandStatus(m_pid);
+		result_type st = Exec(m_domain).getCommandStatus(m_pid);
 		if (st.isFailed()) {
-			if (!st.error().isTransient())
+			if (!st.error().isTransient() ||
+			    ++m_failcnt >= MAX_TRANSIENT_FAILS)
 				return st.error();
 		} else {
+			m_failcnt = 0;
 			if (st.value()) {
 				m_status = st.value();
 				return Libvirt::Result();
 			}
 		}
+		if (timeout == 0)
+			return Error::Simple(PRL_ERR_TIMEOUT);
 		msecs = calculateTimeout(i);
 		waiter.wait(msecs);
 		total += msecs;
-		if (timeout && timeout > total)
+		if (timeout != -1 && timeout > total)
 			return Error::Simple(PRL_ERR_TIMEOUT);
 	}
 }
