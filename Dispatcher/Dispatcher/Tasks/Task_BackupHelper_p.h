@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-/// @file Task_CreateVmBackup_p.h
+/// @file Task_BackupHelper_p.h
 ///
 /// Source task for Vm backup creation
 ///
@@ -27,8 +27,8 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef __Task_CreateVmBackup_p_H_
-#define __Task_CreateVmBackup_p_H_
+#ifndef __Task_BackupHelper_p_H_
+#define __Task_BackupHelper_p_H_
 
 #include <QObject>
 #include <boost/bind.hpp>
@@ -38,56 +38,120 @@
 #include "Task_BackupHelper.h"
 #include "CDspVmBackupInfrastructure_p.h"
 
+namespace Backup
+{
 namespace Work
 {
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Command
 
 struct Command
 {
-	Command(Task_BackupHelper& task_, ::Backup::Product::Model& p_,
-		const ::Backup::Activity::Object::Model& activity_)
-		: m_context(&task_), m_product(p_), m_activity(activity_)
-	{
-	}
+	Command(Task_BackupHelper& task_, const Activity::Object::Model& activity_)
+		: m_context(&task_), m_activity(activity_) {}
 
-	const QFileInfo * findArchive(const ::Backup::Product::component_type& t_);
+	static const QFileInfo * findArchive(const Product::component_type& t_,
+		const Activity::Object::Model& a_);
 
 protected:
-	QStringList buildArgs();
-
 	Task_BackupHelper *m_context;
-	::Backup::Product::Model& m_product;
-	const ::Backup::Activity::Object::Model& m_activity;
+	const Activity::Object::Model& m_activity;
+};
+
+namespace Acronis
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+struct Builder : boost::static_visitor<QStringList>
+{
+	Builder(const QString& snapshot_, const Product::component_type& t_,
+			const QFileInfo* f_)
+		: m_snapshot(snapshot_), m_component(t_), m_file(f_) {}
+
+	QStringList operator()(Ct&) const;
+	QStringList operator()(Vm&) const;
+
+private:
+	const QString& m_snapshot;
+	Product::component_type m_component;
+	const QFileInfo *m_file;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Archives
+
+struct Archives : boost::static_visitor<Product::componentList_type>
+{
+	Archives(Product::Model& p_) : m_product(p_) {}
+
+	Product::componentList_type operator()(Ct&) const;
+	Product::componentList_type operator()(Vm&) const;
+
+private:
+	Product::Model m_product;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct ACommand
 
-struct ACommand : Command
+struct ACommand : Command, boost::static_visitor<PRL_RESULT>
 {
 	typedef boost::function2<PRL_RESULT, const QStringList&, unsigned int> worker_type;
 
-	ACommand(Task_BackupHelper& task_, ::Backup::Product::Model& p_,
-		const ::Backup::Activity::Object::Model& activity_)
-		: Command(task_, p_, activity_)
+	ACommand(Task_BackupHelper& task_, const Activity::Object::Model& activity_)
+		: Command(task_, activity_)
 		, m_worker(boost::bind(&Task_BackupHelper::startABackupClient
 			, m_context
-			, m_product.getObject().getConfig()->getVmIdentification()->getVmName()
+			, m_context->getProduct()->getObject()
+					.getConfig()->getVmIdentification()->getVmName()
 			, _1
-			, m_product.getObject().getConfig()->getVmIdentification()->getVmUuid()
+			, m_context->getProduct()->getObject()
+					.getConfig()->getVmIdentification()->getVmUuid()
 			, _2))
-
 	{
 	}
 
-	PRL_RESULT do_();
+	PRL_RESULT do_(object_type& mode_);
 
 private:
-	QStringList buildArgs(const ::Backup::Product::component_type& t_, const QFileInfo* f_);
+	QStringList buildArgs(const Product::component_type& t_, const QFileInfo* f_, object_type& o_);
 
 	worker_type m_worker;
+};
+
+} // namespace Acronis
+
+namespace Push
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+struct State : boost::static_visitor<VIRTUAL_MACHINE_STATE>
+{
+	explicit State(const QString& uuid_)
+		: m_uuid(uuid_) {}
+
+	VIRTUAL_MACHINE_STATE operator()(Ct& variant_) const;
+	VIRTUAL_MACHINE_STATE operator()(Vm& variant_) const;
+
+private:
+	QString m_uuid;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+struct Builder : boost::static_visitor<QStringList>
+{
+	Builder(const Activity::Object::Model& activity_)
+		: m_activity(activity_) {}
+
+	QStringList operator()(Ct&) const;
+	QStringList operator()(Vm&) const;
+
+private:
+	const Activity::Object::Model& m_activity;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -130,26 +194,27 @@ struct VCommand : Command
 	typedef boost::function2<PRL_RESULT, const QStringList&, SmartPtr<Chain> > worker_type;
 	typedef boost::variant<boost::blank, Frozen, Stopped> mode_type;
 
-	VCommand(Task_BackupHelper& task_, ::Backup::Product::Model& p_,
-		const ::Backup::Activity::Object::Model& activity_)
-		: Command(task_, p_, activity_)
-		, m_uuid(m_product.getObject().getConfig()->getVmIdentification()->getVmUuid())
+	VCommand(Task_BackupHelper& task_, const Activity::Object::Model& activity_)
+		: Command(task_, activity_)
+		, m_uuid(m_context->getProduct()->getObject()
+			.getConfig()->getVmIdentification()->getVmUuid())
 		, m_builder(boost::bind(&Task_BackupHelper::prepareABackupChain
 			, m_context, _1, m_uuid, 0))
 		, m_worker(boost::bind(&Task_BackupHelper::startABackupClient
 			, m_context
-			, m_product.getObject().getConfig()->getVmIdentification()->getVmName()
+			, m_context->getProduct()->getObject()
+				.getConfig()->getVmIdentification()->getVmName()
 			, _1
 			, _2))
 
 	{
 	}
 
-	PRL_RESULT do_();
+	PRL_RESULT do_(object_type& variant_);
 
 private:
-	QStringList buildArgs();
-	Prl::Expected<mode_type, PRL_RESULT> getMode();
+	QStringList buildArgs(object_type& variant_);
+	Prl::Expected<mode_type, PRL_RESULT> getMode(object_type& variant_);
 
 	QString m_uuid;
 	builder_type m_builder;
@@ -198,6 +263,8 @@ private:
 	boost::optional< ::Backup::Snapshot::Vm::Object> m_object;
 };
 
+} // namespace Push
 } // namespace Work
+} // namespace Backup
 
-#endif //__Task_CreateVmBackup_p_H_
+#endif //__Task_BackupHelper_p_H_

@@ -1033,6 +1033,9 @@ bool Model::canFreeze() const
 	if (isBad())
 		return false;
 
+	if (m_config->getVmType() == PVT_CT)
+		return false;
+	
 	//skip unsupported OSes
 	unsigned int osType = m_config->getVmSettings()->getVmCommonOptions()->getOsType();
 	unsigned int osVer = m_config->getVmSettings()->getVmCommonOptions()->getOsVersion();

@@ -41,18 +41,16 @@
 #include "prlcommon/Logging/Logging.h"
 
 #include "Task_BackupHelper.h"
+#include "Task_BackupHelper_p.h"
 #include "CDspService.h"
 #include "prlcommon/Std/PrlAssert.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-//#include "Libraries/VirtualDisk/DiskStatesManager.h"
 #include "CDspVmStateSender.h"
 //#include "VI/Sources/BackupTool/ABackup/AcronisWrap/Interface/BackupErrors.h"
-#include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 
 #include "CDspVzHelper.h"
 #include <sys/resource.h>
 #include "Libraries/Virtuozzo/CVzHelper.h"
-//#include "Libraries/Virtuozzo/PrlLibvzctlWrap.h"
 #include "prlcommon/IOService/IOCommunication/Socket/Socket_p.h"
 #include <limits.h>
 #include <sys/wait.h>
@@ -72,6 +70,337 @@
 
 // milliseconds sleep for read from subprocess
 #define SLEEP_INTERVAL	1000
+
+namespace Backup
+{
+namespace Work
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Ct
+
+Ct::Ct(Task_BackupHelper& task_) : m_context(&task_)
+{
+}
+
+QStringList Ct::buildArgs(const Product::component_type& t_, const QFileInfo* f_) const
+{
+	QStringList a;
+	a << QString((m_context->getFlags() & PBT_INCREMENTAL) ? "append_ct" : "create_ct");
+
+	// <private area> <backup path> <tib> <ct_id> <ve_root> <is_running>
+	a << f_->absoluteFilePath()
+		<< m_context->getProduct()->getStore().absolutePath()
+		<< t_.second.absoluteFilePath()
+		<< m_context->getProduct()->getObject().getConfig()->getVmIdentification()->getCtId()
+		<< m_context->getProduct()->getObject().getConfig()->getCtSettings()->getMountPath()
+		<< (m_context->isRunning() ? "1" : "0");
+
+	a << "--last-tib" << QString::number(m_context->getBackupNumber());
+	return a;
+}
+
+QStringList Ct::buildPushArgs(const Activity::Object::Model& activity_) const
+{
+	QStringList a;
+	a << QString((m_context->getFlags() & PBT_INCREMENTAL) ? "append_ct" : "create_ct");
+
+	foreach (const Product::component_type& t, m_context->getProduct()->getCtTibs())
+	{
+		const QFileInfo* f = Command::findArchive(t, activity_);
+		a << "--image" << QString("%1:%2").arg(f->absoluteFilePath())
+						.arg(t.second.absoluteFilePath());
+	}
+	return a;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+Vm::Vm(Task_BackupHelper& task_) : m_context(&task_)
+{
+}
+
+QStringList Vm::buildArgs(const QString& snapshot_,
+	const Product::component_type& t_, const QFileInfo* f_) const
+{
+	QStringList a;
+	a << QString((m_context->getFlags() & PBT_INCREMENTAL) ? "append" : "create");
+
+	a << t_.first.getFolder() << m_context->getProduct()->getStore().absolutePath()
+		<< t_.second.absoluteFilePath() << snapshot_ << f_->absoluteFilePath();
+
+	return a;
+}
+
+QStringList Vm::buildPushArgs() const
+{
+	QStringList a;
+	a << QString((m_context->getFlags() & PBT_INCREMENTAL) ? "append" : "create");
+
+	QString n = m_context->getProduct()->getObject()
+			.getConfig()->getVmIdentification()->getVmName();
+	a << "-n" << n;
+
+	foreach (const Product::component_type& t, m_context->getProduct()->getVmTibs())
+	{
+		a << "--image" << QString("%1:%2").arg(t.first.getImage())
+						.arg(t.second.absoluteFilePath());
+	}
+	return a;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Command
+
+const QFileInfo * Command::findArchive(const Product::component_type& t_,
+	const Activity::Object::Model& a_)
+{
+	foreach (const Product::component_type& c, a_.getSnapshot().getComponents())
+	{
+		if (t_.first.getFolder() == c.first.getFolder())
+			return &c.second;
+	}
+	return NULL;
+}
+
+namespace Acronis
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+QStringList Builder::operator()(Ct& variant_) const
+{
+	return variant_.buildArgs(m_component, m_file);
+}
+
+QStringList Builder::operator()(Vm& variant_) const
+{
+	return variant_.buildArgs(m_snapshot, m_component, m_file);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Archives
+
+Product::componentList_type Archives::operator()(Ct&) const
+{
+	return m_product.getCtTibs();
+}
+
+Product::componentList_type Archives::operator()(Vm&) const
+{
+	return m_product.getVmTibs();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct ACommand
+
+QStringList ACommand::buildArgs(const ::Backup::Product::component_type& t_, const QFileInfo* f_,
+		object_type& variant_)
+{
+	QStringList a(boost::apply_visitor(
+			Builder(m_activity.getSnapshot().getUuid(), t_, f_), variant_));
+
+	QString b = CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()
+		->getBackupSourcePreferences()->getSandbox();
+	a << "--sandbox" << b;
+
+	if (m_context->getFlags() & PBT_UNCOMPRESSED)
+		a << "--uncompressed";
+	return a;
+}
+
+PRL_RESULT ACommand::do_(object_type& variant_)
+{
+	PRL_RESULT output = PRL_ERR_SUCCESS;
+	foreach (const Product::component_type& t,
+		boost::apply_visitor(Archives(*(m_context->getProduct().get())), variant_))
+	{
+		const QFileInfo* f = findArchive(t, m_activity);
+		QStringList args = buildArgs(t, f, variant_);
+		if (PRL_FAILED(output = m_worker(args, t.first.getDevice().getIndex())))
+			break;
+	}
+	return output;
+}
+
+} // namespace Acronis
+
+namespace Push
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+VIRTUAL_MACHINE_STATE State::operator()(Ct&) const
+{
+	VIRTUAL_MACHINE_STATE s; 
+	PRL_RESULT res = CDspService::instance()->getVzHelper()->
+			getVzlibHelper().get_env_status(m_uuid, s);
+	if (PRL_FAILED(res))
+		return VMS_UNKNOWN;
+	return s;
+}
+
+VIRTUAL_MACHINE_STATE State::operator()(Vm&) const
+{
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_uuid);
+	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+	if (u.getState(s).isFailed())
+		return VMS_UNKNOWN;
+	return s;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+QStringList Builder::operator()(Ct& variant_) const
+{
+	return variant_.buildPushArgs(m_activity);
+}
+
+QStringList Builder::operator()(Vm& variant_) const
+{
+	return variant_.buildPushArgs();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VCommand
+
+QStringList VCommand::buildArgs(object_type& variant_)
+{
+	QStringList a(boost::apply_visitor(Builder(m_activity), variant_));
+
+	// current and previous PITs calculation
+	unsigned i = m_context->getBackupNumber();
+	QString u = m_context->getBackupUuid();
+	if ((m_context->getFlags() & PBT_INCREMENTAL) && i) {
+		a << "-p" << QString("%1.%2").arg(u).arg(i);
+		QString s(u);
+		if (i > PRL_PARTIAL_BACKUP_START_NUMBER)
+			s += QString(".%1").arg(i - 1);
+		a << "--last-pit" << s;
+	} else
+		a << "-p" << u;
+
+	if (m_context->getFlags() & PBT_UNCOMPRESSED)
+		a << "--uncompressed";
+	a << "--disp-mode";
+	return a;
+}
+
+Prl::Expected<VCommand::mode_type, PRL_RESULT> VCommand::getMode(object_type& variant_)
+{
+	VIRTUAL_MACHINE_STATE s = boost::apply_visitor(State(m_uuid), variant_);
+	if (s == VMS_UNKNOWN)
+		return PRL_ERR_VM_UUID_NOT_FOUND;
+
+	if (s == VMS_STOPPED)
+		return mode_type(Stopped(m_uuid));
+	if (m_context->getProduct()->getObject().canFreeze())
+		return mode_type(Frozen(m_context, m_uuid));
+
+	return mode_type(boost::blank());
+}
+
+PRL_RESULT VCommand::do_(object_type& variant_)
+{
+	Prl::Expected<mode_type, PRL_RESULT> m = getMode(variant_);
+	if (m.isFailed())
+		return m.error();
+
+	QStringList a(buildArgs(variant_));
+	SmartPtr<Chain> p(m_builder(a));
+	return boost::apply_visitor(Visitor(m_worker, p, a), m.value());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Visitor
+
+PRL_RESULT Visitor::operator()(const boost::blank&) const
+{
+	return m_worker(m_chain);
+}
+
+PRL_RESULT Visitor::operator()(Stopped& variant_) const
+{
+	return variant_.wrap(boost::bind(m_worker, m_chain));
+}
+
+PRL_RESULT Visitor::operator()(Frozen& variant_) const
+{
+	return m_worker(variant_.decorate(m_chain));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frozen
+
+SmartPtr<Chain> Frozen::decorate(SmartPtr<Chain> chain_)
+{
+	::Backup::Task::Reporter r(*m_context, m_uuid);
+	::Backup::Task::Workbench w(*m_context, r, CDspService::instance()->getDispConfigGuard());
+	if (PRL_FAILED(m_object.freeze(w)))
+		return chain_;
+
+	Thaw* t = new Thaw(m_object);
+	t->moveToThread(QCoreApplication::instance()->thread());
+	t->startTimer(20 * 1000);
+	t->next(chain_);
+	return SmartPtr<Chain>(t);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Thaw
+
+Thaw::~Thaw()
+{
+	release();
+}
+
+void Thaw::release()
+{
+	QMutexLocker l(&m_lock);
+	if (m_object) {
+		m_object->thaw();
+		m_object = boost::none;
+	}
+}
+
+void Thaw::timerEvent(QTimerEvent *event_)
+{
+	killTimer(event_->timerId());
+	release();
+}
+
+PRL_RESULT Thaw::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
+{
+	release();
+	return forward(request_, dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Stopped
+
+template<class T>
+PRL_RESULT Stopped::wrap(const T& worker_) const
+{
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_uuid);
+	Libvirt::Result e = u.startPaused();
+	if (e.isFailed())
+		return e.error().code();
+
+	PRL_RESULT output = worker_();
+
+	u = Libvirt::Kit.vms().at(m_uuid); // refresh unit - there could be a reconnect meanwhile
+	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+	u.getState(s);
+	if (s == VMS_PAUSED) // check that vm is in an expected state
+		u.kill();
+
+	return output;
+}
+
+} // namespace Push
+} // namespace Work
+} // namespace Backup
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Chain
@@ -724,7 +1053,11 @@ QString Suffix::operator()() const
 Task_BackupHelper::Task_BackupHelper(const SmartPtr<CDspClient> &client, const SmartPtr<IOPackage> &p)
 :CDspTaskHelper(client, p),
 Task_DispToDispConnHelper(getLastError()),
-m_nSteps(0)
+m_pVmConfig(new CVmConfiguration()),
+m_nInternalFlags(0),
+m_nSteps(0),
+m_product(NULL),
+m_service(NULL)
 {
 	/* block size + our header size */
 	m_nBufSize = IOPACKAGESIZE(1) + PRL_DISP_IO_BUFFER_SIZE;
@@ -1854,3 +2187,220 @@ PRL_RESULT Task_BackupHelper::CloneHardDiskState(const QString &sDiskImage,
 	return PRL_ERR_UNIMPLEMENTED;
 }
 
+PRL_RESULT Task_BackupHelper::copyEscort(const ::Backup::Escort::Model& escort_,
+	const QString& directory_, const QString& source_)
+{
+	CVmFileListCopySenderClient s(m_pIoClient);
+	CVmFileListCopySource c(&s, m_sVmUuid, source_, 0, getLastError(),
+			m_nTimeout);
+
+	c.SetRequest(getRequestPackage());
+	c.SetVmDirectoryUuid(directory_);
+	c.SetProgressNotifySender(Backup::NotifyClientsWithProgress);
+
+	if (operationIsCancelled())
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	return c.Copy(escort_.getFolders(), escort_.getFiles());
+}
+
+PRL_RESULT Task_BackupHelper::backupHardDiskDevices(const ::Backup::Activity::Object::Model& activity_,
+		::Backup::Work::object_type& variant_)
+{
+	if (operationIsCancelled())
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	m_product = SmartPtr< ::Backup::Product::Model>(
+		new ::Backup::Product::Model(::Backup::Object::Model(m_pVmConfig), m_sVmHomePath));
+	m_product->setStore(m_sBackupRootPath);
+	if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
+		m_product->setSuffix(::Backup::Suffix(getBackupNumber(), getFlags())());
+		return ::Backup::Work::Push::VCommand(*this, activity_).do_(variant_);
+	} else
+		return ::Backup::Work::Acronis::ACommand(*this, activity_).do_(variant_);
+}
+
+/* send start request for remote dispatcher and wait reply from dispatcher */
+PRL_RESULT Task_BackupHelper::sendStartRequest()
+{
+	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
+	CDispToDispCommandPtr pBackupCmd;
+	SmartPtr<IOPackage> pPackage;
+	SmartPtr<IOPackage> pReply;
+	quint32 nFlags;
+	QString sServerUuid;
+	QFileInfo vmBundle(m_sVmHomePath);
+
+	if (operationIsCancelled())
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	{
+		sServerUuid = CDspService::instance()->getDispConfigGuard().
+			getDispConfig()->getVmServerIdentification()->getServerUuid();
+	}
+
+	pBackupCmd = CDispToDispProtoSerializer::CreateVmBackupCreateCommand(
+			m_sVmUuid,
+			m_sVmName,
+			QHostInfo::localHostName(),
+			sServerUuid,
+			m_sDescription,
+			m_pVmConfig->toString(),
+			m_nOriginalSize,
+			(quint32)vmBundle.permissions(),
+			m_nFlags,
+			getInternalFlags());
+
+	pPackage = DispatcherPackage::createInstance(
+			pBackupCmd->GetCommandId(),
+			pBackupCmd->GetCommand()->toString());
+
+	if (PRL_FAILED(nRetCode = SendReqAndWaitReply(pPackage, pReply, m_hJob)))
+		return nRetCode;
+
+	if ((pReply->header.type != VmBackupCreateFirstReply) && (pReply->header.type != DispToDispResponseCmd)) {
+		WRITE_TRACE(DBG_FATAL, "Invalid package header:%x, expected header:%x or %x",
+			pReply->header.type, DispToDispResponseCmd, VmBackupCreateFirstReply);
+		return PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
+	}
+
+	CDispToDispCommandPtr pDspReply = CDispToDispProtoSerializer::ParseCommand(
+		(Parallels::IDispToDispCommands)pReply->header.type, UTF8_2QSTR(pReply->buffers[0].getImpl()));
+
+	if (pReply->header.type == DispToDispResponseCmd) {
+		CDispToDispResponseCommand *pResponseCmd =
+			CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispResponseCommand>(pDspReply);
+
+		nRetCode = pResponseCmd->GetRetCode();
+		if (PRL_FAILED(nRetCode)) {
+			WRITE_TRACE(DBG_FATAL, "sendStartRequest response failed: %s ",
+				PRL_RESULT_TO_STRING(nRetCode));
+			getLastError()->fromString(pResponseCmd->GetErrorInfo()->toString());
+			return nRetCode;
+		}
+		return PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
+	}
+	CVmBackupCreateFirstReply *pCreateReply =
+		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmBackupCreateFirstReply>(pDspReply);
+
+	m_nRemoteVersion = pCreateReply->GetVersion();
+	m_sBackupUuid = pCreateReply->GetBackupUuid();
+	m_nBackupNumber = pCreateReply->GetBackupNumber();
+	m_sBackupRootPath = pCreateReply->GetBackupRootPath();
+	nFlags = pCreateReply->GetFlags();
+	quint64 nFreeDiskSpace;
+
+	if (pCreateReply->GetFreeDiskSpace(nFreeDiskSpace))
+	{
+		nRetCode = checkFreeDiskSpace(m_sVmUuid, m_nOriginalSize, nFreeDiskSpace, true);
+		if (PRL_FAILED(nRetCode))
+			return nRetCode;
+	}
+
+	if ((m_nFlags & PBT_INCREMENTAL) && (nFlags & PBT_FULL)) {
+		CVmEvent event(PET_DSP_EVT_VM_MESSAGE, m_sVmUuid, PIE_DISPATCHER, PRL_WARN_BACKUP_HAS_NOT_FULL_BACKUP);
+		SmartPtr<IOPackage> pPackage =
+			DispatcherPackage::createInstance(PVE::DspVmEvent, event, getRequestPackage());
+		getClient()->sendPackage(pPackage);
+	}
+	m_nFlags = nFlags;
+
+	return PRL_ERR_SUCCESS;
+}
+
+// cancel command
+void Task_BackupHelper::cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& p)
+{
+	WRITE_TRACE(DBG_FATAL, "%s", __FUNCTION__);
+	CancelOperationSupport::cancelOperation(pUser, p);
+	killABackupClient();
+	SmartPtr<IOClient> x = getIoClient();
+	if (x.isValid())
+	{
+		x->urgentResponseWakeUp(m_hJob);
+		x->disconnectClient();
+	}
+}
+
+PRL_RESULT Task_BackupHelper::doBackup(const QString& source_, ::Backup::Work::object_type& variant_)
+{
+	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
+	SmartPtr<IOPackage> p;
+
+	::Backup::Activity::Object::Model a;
+	nRetCode = m_service->find(MakeVmIdent(m_sVmUuid, m_sVmDirUuid), a);
+	if (PRL_FAILED(nRetCode))
+		goto exit;
+
+	if (PRL_FAILED(nRetCode = sendStartRequest()))
+		goto exit;
+
+	/* part one : plain copy of config files */
+	nRetCode = copyEscort(a.getEscort(), m_sVmDirUuid, source_);
+	if (PRL_FAILED(nRetCode)) {
+		WRITE_TRACE(DBG_FATAL, "Error occurred while backup with code [%#x][%s]",
+			nRetCode, PRL_RESULT_TO_STRING(nRetCode));
+		goto exit;
+	}
+
+	if (operationIsCancelled())
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	nRetCode = backupHardDiskDevices(a, variant_);
+	/*
+	   Now target side wait new acronis proxy commands due to acronis have not call to close connection.
+	   To fix it will send command to close connection from here.
+	   Pay attention: on success and on failure both we will wait reply from target.
+	   */
+	if (PRL_FAILED(nRetCode)) {
+		p = IOPackage::createInstance(ABackupProxyCancelCmd, 0);
+		WRITE_TRACE(DBG_FATAL, "send ABackupProxyCancelCmd command");
+		SendPkg(p);
+	} else {
+		p = IOPackage::createInstance(ABackupProxyFinishCmd, 0);
+		nRetCode = SendPkg(p);
+		// TODO:	nRetCode = SendReqAndWaitReply(p);
+	}
+
+exit:
+	setLastErrorCode(nRetCode);
+	return nRetCode;
+}
+
+void Task_BackupHelper::finalizeTask()
+{
+	if (m_pVmConfig.isValid())
+		m_service->finish(MakeVmIdent(m_sVmUuid, m_sVmDirUuid), getClient());
+
+	Disconnect();
+
+	if (PRL_SUCCEEDED(getLastErrorCode())) {
+		CVmEvent event(PET_DSP_EVT_CREATE_BACKUP_FINISHED, m_sVmUuid, PIE_DISPATCHER);
+		event.addEventParameter(
+			new CVmEventParameter( PVE::String,
+					(m_nFlags&PBT_FULL) ?
+					m_sBackupUuid :
+					QString("%1.%2").arg(m_sBackupUuid).arg(m_nBackupNumber),
+					EVT_PARAM_BACKUP_CMD_BACKUP_UUID) );
+		event.addEventParameter( new CVmEventParameter( PVE::String,
+					m_sDescription,
+					EVT_PARAM_BACKUP_CMD_DESCRIPTION ) );
+		SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspVmEvent, event, getRequestPackage());
+		CDspService::instance()->getClientManager().sendPackageToVmClients(pPackage,
+				m_sVmDirUuid, m_sVmUuid);
+
+		CProtoCommandPtr pResponse =
+			CProtoSerializer::CreateDspWsResponseCommand(getRequestPackage(), PRL_ERR_SUCCESS);
+		CProtoCommandDspWsResponse *pDspWsResponseCmd =
+			CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>(pResponse);
+		pDspWsResponseCmd->AddStandardParam(m_sVmUuid);
+		pDspWsResponseCmd->AddStandardParam(
+			(m_nFlags&PBT_FULL) ? m_sBackupUuid : QString("%1.%2").arg(m_sBackupUuid).arg(m_nBackupNumber));
+		getClient()->sendResponse(pResponse, getRequestPackage());
+	} else {
+		if (operationIsCancelled())
+			setLastErrorCode(PRL_ERR_OPERATION_WAS_CANCELED);
+
+		getClient()->sendResponseError( getLastError(), getRequestPackage() );
+	}
+}

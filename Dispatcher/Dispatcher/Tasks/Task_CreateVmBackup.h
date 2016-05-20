@@ -59,44 +59,6 @@ namespace Object
 struct Model;
 } // namespace Object
 } // namespace Activity
-
-namespace Work
-{
-namespace Ct
-{
-
-struct Spec
-{
-	explicit Spec(quint32 lastTib_);
-
-	const QString& getArchive() const
-	{
-		return m_archive;
-	}
-	Spec& setArchive(const QString& archive_);
-	quint32 getDeviceIndex() const
-	{
-		return m_deviceIndex;
-	}
-	Spec& setDeviceIndex(quint32 value_)
-	{
-		m_deviceIndex = value_;
-		return *this;
-	}
-	QStringList getArguments() const;
-	Spec& setOutFile(const QString& value_);
-	Spec& setSandbox(const QString& value_);
-
-private:
-	quint32 m_deviceIndex;
-	QString m_archive;
-	QStringList m_lastTib;
-	QStringList m_outFile;
-	QStringList m_sandbox;
-};
-
-} // namespace Ct
-} // namespace Work
 } // namespace Backup
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -120,87 +82,15 @@ protected:
 	virtual void finalizeTask();
 
 private:
-	PRL_RESULT sendStartRequest();
-	virtual void cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& pkg);
-	/* to build copy of Vm home directory */
-	PRL_RESULT backupHardDiskDevices(const Backup::Activity::Object::Model& );
-
-	quint64 calcOriginalSize();
-
-private:
-	SmartPtr<CVmConfiguration> m_pVmConfig;
-	IOSendJob::Handle m_hJob;
-	QString m_sDescription;
-	QString m_sVmName;
-	QString m_sVmDirUuid;
-	QString m_sVmHomePath;
 	QString m_sSourcePath;
 	quint64 m_nTotalSize;
-	quint64 m_nOriginalSize;
-	SmartPtr<CVmFileListCopySource> m_pVmCopySource;
-	SmartPtr<CVmFileListCopySender> m_pSender;
-	/* full backup path */
-	QString m_sBackupRootPath;
 	QString m_sSnapshotPath;
-	Backup::Activity::Service* m_service;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// class Task_CreateCtBackupHelper
-
-struct Task_CreateCtBackupHelper: Task_BackupHelper
-{
-	Task_CreateCtBackupHelper(const SmartPtr<CDspClient> &,
-		const SmartPtr<IOPackage> &);
-
-	bool isRunning() const;
-	quint32 getFlags() const
-	{
-		return m_nFlags;
-	}
-	const QString& getVzDirectory() const
-	{
-		return m_vzDirectory;
-	}
-	const QString& getBackupRoot() const
-	{
-		return m_sBackupRootPath;
-	}
-	int execute(const CVmIdentification& ct_, quint32 deviceIndex_,
-			const QStringList& args_);
-
-protected:
-	PRL_RESULT prepareTask();
-	quint32 getInternalFlags() const
-	{
-		return m_nInternalFlags;
-	}
-	void setInternalFlags(quint32 internalFlags_)
-	{
-		m_nInternalFlags = internalFlags_;
-	}
-	void setBackupRoot(const QString& backupRoot_)
-	{
-		m_sBackupRootPath = backupRoot_;
-	}
-	void setService(Backup::Activity::Service& value_);
-	PRL_RESULT do_(const SmartPtr<CVmConfiguration>& config_,
-			Backup::Work::Ct::Spec spec_);
-
-private:
-	Q_OBJECT
-
-	/* full backup path */
-	QString m_vzDirectory;
-	QString m_sBackupRootPath;
-	quint32 m_nInternalFlags;
-	Backup::Activity::Service* m_service;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // class Task_CreateVmBackupSource
 
-class Task_CreateCtBackupSource : public Task_CreateCtBackupHelper
+class Task_CreateCtBackupSource : public Task_BackupHelper
 {
 	Q_OBJECT
 
@@ -219,34 +109,19 @@ protected:
 
 private:
 	PRL_RESULT waitForTargetFinished();
-#ifdef _CT_
-	PRL_RESULT sendStartRequest();
-	virtual void cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& pkg);
-#endif
 
 private:
-	SmartPtr<CVmConfiguration> m_pCtConfig;
-	IOSendJob::Handle m_hJob;
-	QString m_sDescription;
-	QString m_sCtName;
-	QString m_sBackupUuid;
-	QString m_sCtHomePath;
 	quint64 m_nTotalSize;
-	quint64 m_nOriginalSize;
-	bool m_bLocalMode;
 
-	SmartPtr<CVmFileListCopySource> m_pVmCopySource;
-	SmartPtr<CVmFileListCopySender> m_pSender;
 #ifdef _CT_
 	CVzOperationHelper m_VzOpHelper;
 #endif
-	Backup::Activity::Service* m_service;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // class Task_CreateVmBackupTarget
 
-class Task_CreateVmBackupTarget : public Task_CreateCtBackupHelper
+class Task_CreateVmBackupTarget : public Task_BackupHelper
 {
 	Q_OBJECT
 
@@ -254,7 +129,6 @@ private:
 	quint64 getBackupSize();
 	PRL_RESULT saveMetadata();
 	PRL_RESULT validateBackupDir(const QString &);
-	PRL_RESULT backupCtPrivate();
 	PRL_RESULT buildTibFiles();
 	PRL_RESULT loadTibFiles();
 	PRL_RESULT wasHddListChanged(bool *pbWasChanged);
@@ -274,13 +148,8 @@ protected:
 
 private:
 	SmartPtr<CDspDispConnection> m_pDispConnection;
-	SmartPtr<CVmConfiguration> m_pVmConfig;
-	QString m_sVmName;
-	QString m_sBackupUuid;
-	QString m_sDescription;
 	QString m_sSourceHost;
 	QString m_sServerUuid;
-	quint64 m_nOriginalSize;
 	quint64 m_nFreeDiskSpace;
 	quint32 m_nBundlePermissions;
 
@@ -292,8 +161,6 @@ private:
 	bool m_bBackupLocked;
 	QList<QString> m_lstTibFileList;
 	QString m_sABackupOutFile;
-	QString m_sVmHomePath;
-	bool m_bLocalMode;
 	bool m_bStorageRegistered;
 	SmartPtr<BackupItem> m_lastBase;
 
@@ -301,7 +168,6 @@ private:
 	WaiterTillHandlerUsingObject m_waiter;
 	QMutex m_cABackupMutex;
 	bool m_bABackupFirstPacket;
-	Backup::Activity::Service* m_service;
 	QStringList m_createdTibs;
 
 private slots:
