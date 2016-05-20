@@ -68,6 +68,7 @@
 #include "Tasks/Task_ExecVm.h"
 #include "Tasks/Task_EditVm.h"
 #include "CVcmmdInterface.h"
+#include "CDspBackupDevice.h"
 
 #ifdef _WIN_
 	#include <process.h>
@@ -842,6 +843,9 @@ struct Essence<PVE::DspCmdVmStart>: Need::Agent, Need::Config, Need::Context
 			PRL_RESULT err = v(Vcmmd::Unregistered(z << 20, g << 20, w << 20));
 			if (PRL_FAILED(err))
 				return Error::Simple(err);
+			Backup::Device::Service(getConfig())
+				.setContext(Backup::Device::Agent::Unit(getContext().getSession()))
+				.enable();
 
 			e = h.savFileExists() ? getAgent().resume(h.getSavFileName()) :
 				getAgent().start();
