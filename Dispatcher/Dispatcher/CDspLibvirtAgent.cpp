@@ -831,6 +831,26 @@ Exec::Exec::getCommandStatus(int pid)
 	return boost::optional<Result>();
 }
 
+Prl::Expected<void, Libvirt::Agent::Failure>
+Exec::Exec::terminate(int pid)
+{
+	boost::property_tree::ptree cmd, params;
+
+	params.put("pid", "pid-value"); // replace placeholder later
+
+	cmd.put("execute", "guest-exec-terminate");
+	cmd.add_child("arguments", params);
+
+	std::stringstream ss;
+	boost::property_tree::json_parser::write_json(ss, cmd, false);
+
+	// boost json has no int varant, so...
+	std::string s = ss.str();
+	boost::replace_all<std::string>(s, "\"pid-value\"", boost::lexical_cast<std::string>(pid));
+
+	return executeInAgent(QString::fromUtf8(s.c_str()));
+}
+
 Prl::Expected<int, Libvirt::Agent::Failure>
 Exec::Exec::runCommand(const Libvirt::Instrument::Agent::Vm::Exec::Request& req)
 {
@@ -1009,8 +1029,7 @@ void Exec::Future::cancel()
 
 	if (m_pid) {
 		WRITE_TRACE(DBG_FATAL, "Trying to cancel the guest process %d", m_pid);
-		// TODO
-		// Exec(m_domain).sendCancelCommand(m_pid);
+		Exec(m_domain).terminate(m_pid);
 	}
 }
 
