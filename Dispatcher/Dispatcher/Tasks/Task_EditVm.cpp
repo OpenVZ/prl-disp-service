@@ -1656,21 +1656,25 @@ PRL_RESULT Task_EditVm::editVm()
 									PRL_ASSERT(d);
 									if (d && d->getSerialNumber().isEmpty())
 										d->setSerialNumber(Parallels::generateDiskSerialNumber());
+
+									// VIRTIO devices can be added either on running VM or stopped
+									if (PMS_VIRTIO_BLOCK_DEVICE == d->getInterfaceType())
+										continue;
 								}
 
 								if ( PVE::DeviceDisconnected == pNewDevice->getConnected() )//Added disconnected device - ok
 									continue;
 
-								if ( PDE_HARD_DISK == nType || PDE_OPTICAL_DISK == nType )
+								if (PDE_OPTICAL_DISK == nType)
 								{
 									CVmClusteredDevice *pClusteredDev = dynamic_cast<CVmClusteredDevice *>( pNewDevice );
-									PRL_ASSERT(pClusteredDev);
-									if ( pClusteredDev )
+									if (NULL == pClusteredDev)
 									{
-										// VIRTIO devices can be added either on running VM or stopped
-										if (PMS_VIRTIO_BLOCK_DEVICE == pClusteredDev->getInterfaceType())
-											continue;
+										PRL_ASSERT(false);
+										continue;
 									}
+									if (VMS_STOPPED != nState)
+										throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
 								}
 
 								if ( PDE_PARALLEL_PORT == nType )
