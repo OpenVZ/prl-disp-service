@@ -124,7 +124,7 @@ private:
 
 struct Join: QObject
 {
-	explicit Join(QEventLoop *loop_) : m_loop(loop_) {}
+	explicit Join(QEventLoop& loop_) : m_loop(loop_) {}
 	void add(QObject *object_);
 
 public slots:
@@ -133,7 +133,27 @@ public slots:
 private:
 	Q_OBJECT
 	QList<QSharedPointer<QObject> > m_objects;
-	QEventLoop *m_loop;
+	QEventLoop& m_loop;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Poller - exits loop when qemu-ga keepalive future got an error
+
+struct Poller: QObject
+{
+	typedef Libvirt::Instrument::Agent::Vm::Exec::Future
+		future_type;
+
+	explicit Poller(QEventLoop& loop_, future_type& exec_)
+		: m_loop(loop_), m_exec(exec_) {}
+
+protected:
+	void timerEvent(QTimerEvent *event);
+
+private:
+	Q_OBJECT
+	QEventLoop& m_loop;
+	future_type& m_exec;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -174,9 +194,7 @@ namespace vm = Libvirt::Instrument::Agent::Vm;
 struct Vm
 {
 	typedef Libvirt::Instrument::Agent::Vm::Exec::Future
-		Future;
-	typedef boost::optional<Libvirt::Instrument::Agent::Vm::Exec::Result>
-		Result;
+		future_type;
 
 	Vm() : m_exec(NULL) { }
 	void closeStdin(Task_ExecVm*);
@@ -188,7 +206,7 @@ struct Vm
 		if (m_exec)
 			m_exec->cancel();
 	}
-	void setExecer(Future & f)
+	void setExecer(future_type& f)
 	{
 		m_exec = &f;
 	}
@@ -196,7 +214,7 @@ struct Vm
 private:
 	QSharedPointer<vm::Exec::ReadDevice> m_stdout, m_stderr;
 	QSharedPointer<vm::Exec::WriteDevice> m_stdin;
-	Future* m_exec;
+	future_type *m_exec;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
