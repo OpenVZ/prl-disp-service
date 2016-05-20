@@ -225,30 +225,33 @@ PRL_RESULT Ploop::getMountedDevice(QString& dev) const
 }
 
 VirtualDisk::VirtualDisk(const QString& path)
-	: m_path(QDir(path).filePath("__" + QFileInfo(path).fileName().remove(QRegExp("[aeiouy]"))))
+	: m_path(QDir(path).filePath("device"))
 {
 }
 
 /**
- * Create virtual disk wrapped over a block device
+ * Create a symlink to a ploop device
  *
  * @param dev - path to a block device
- * @param auth - auth helper
  * @return PRL_RESULT error code
  */
-PRL_RESULT VirtualDisk::create(const QString& dev, CAuthHelper *auth)
+PRL_RESULT VirtualDisk::create(const QString& dev)
 {
-	CVmEvent e;
-	return PRL_FAILED(Mixin_CreateHddSupport::ConfigurePhysical(m_path, dev, auth, &e))
-		? PRL_ERR_ATTACH_BACKUP_INTERNAL_ERROR : PRL_ERR_SUCCESS;
+	if (!QFile(dev).link(m_path))
+	{
+		WRITE_TRACE(DBG_FATAL, "failed to make symlink %s -> %s",
+			QSTR2UTF8(m_path), QSTR2UTF8(dev));
+		return PRL_ERR_ATTACH_BACKUP_INTERNAL_ERROR;
+	}
+	return PRL_ERR_SUCCESS;
 }
 
 /**
- * Destroy virtual disk
+ * Destroy symlink to a ploop device
  */
 void VirtualDisk::destroy()
 {
-	CFileHelper::ClearAndDeleteDir(m_path);
+	QFile::remove(m_path);
 }
 
 /**
@@ -259,20 +262,12 @@ void VirtualDisk::destroy()
  */
 PRL_RESULT VirtualDisk::getDevice(QString& path)
 {
-/*
-	PrlDiskDescriptor dd;
-	IDiskDescriptor::DiskInfo di;
-	PRL_RESULT res = dd.OpenDescriptor(m_path, PRL_DISK_READ
-		| PRL_DISK_NO_ERROR_CHECKING | PRL_DISK_FAKE_OPEN, di);
-	if (PRL_FAILED(res)) {
-		WRITE_TRACE(DBG_FATAL, "failed to open virtual disk descriptor %s: %d",
-				QSTR2UTF8(m_path), res);
-		return PRL_ERR_ATTACH_BACKUP_INTERNAL_ERROR;
+	path = QFile(m_path).symLinkTarget();
+	if (path.isEmpty())
+	{
+		WRITE_TRACE(DBG_FATAL, "failed to read symlink target from %s",
+			QSTR2UTF8(m_path));
 	}
-	path = di.m_StoragesInfo.front().m_ImageInfoList.front().m_ImageName;
-	dd.CloseDescriptor();
-*/
-	Q_UNUSED(path);
 	return PRL_ERR_SUCCESS;
 }
 
@@ -284,35 +279,8 @@ PRL_RESULT VirtualDisk::getDevice(QString& path)
  */
 PRL_RESULT VirtualDisk::setDevice(const QString& path)
 {
-/*
-	PrlDiskDescriptor dd;
-	IDiskDescriptor::DiskInfo di;
-	PRL_RESULT res = dd.OpenDescriptor(m_path, PRL_DISK_DEFAULT_FLAG
-		| PRL_DISK_XML_CHANGE, di);
-	if (PRL_FAILED(res)) {
-		WRITE_TRACE(DBG_FATAL, "failed to open virtual disk descriptor %s: %d",
-				QSTR2UTF8(m_path), res);
-		return PRL_ERR_ATTACH_BACKUP_INTERNAL_ERROR;
-	}
-	IDiskDescriptor::DiskImageInfo ii = di.m_StoragesInfo.front().m_ImageInfoList.front();
-	ii.m_ImageName = path;
-	res = dd.SetImageFileName(ii);
-	if (PRL_FAILED(res)) {
-		WRITE_TRACE(DBG_FATAL, "failed to set image path in virtual disk descriptor %s: %d",
-				QSTR2UTF8(m_path), res);
-		dd.CloseDescriptor();
-		return PRL_ERR_ATTACH_BACKUP_INTERNAL_ERROR;
-	}
-	res = dd.SaveDescriptor();
-	if (PRL_FAILED(res)) {
-		WRITE_TRACE(DBG_FATAL, "failed to save virtual disk descriptor %s: %d",
-				QSTR2UTF8(m_path), res);
-	}
-	dd.CloseDescriptor();
-*/
-	Q_UNUSED(path);
-	PRL_RESULT res = PRL_ERR_UNIMPLEMENTED;
-	return PRL_SUCCEEDED(res) ? PRL_ERR_SUCCESS : PRL_ERR_ATTACH_BACKUP_INTERNAL_ERROR;
+	destroy();
+	return create(path);
 }
 
 /**
@@ -450,7 +418,7 @@ PRL_RESULT Hdd::enable()
 	PRL_RESULT res;
 	if (PRL_FAILED(res = vd.getDevice(savedDev)))
 		return res;
-	if (QFileInfo(savedDev).exists()) {
+	if (!savedDev.isEmpty() && QFileInfo(savedDev).exists()) {
 		/* check that the existing ploop device actually sits on top of image */
 		QString dev;
 		if (PRL_FAILED(res = m_ploop->getMountedDevice(dev)))
@@ -484,13 +452,15 @@ namespace Init {
 
 Vm::Vm(const CVmHardDisk& disk, const QString& home) : m_home(home)
 {
-	QDir vd(disk.getSystemName());
-	if (!vd.exists() || !vd.cdUp()) {
-		WRITE_TRACE(DBG_FATAL, "invalid virtual disk directory '%s'", QSTR2UTF8(vd.path()));
+	QDir path = QFileInfo(disk.getSystemName()).dir();
+	if (path.isRelative())
+		path = QDir(m_home).filePath(path.path());
+	if (!path.exists()) {
+		WRITE_TRACE(DBG_FATAL, "invalid virtual disk image '%s'",
+			QSTR2UTF8(path.path()));
 		return;
 	}
-	QString path = vd.path();
-	m_path = QFileInfo(path).isAbsolute() ? path : QDir(m_home).filePath(path);
+	m_path = path.path();
 }
 
 QString Vm::getPloop() const
@@ -570,7 +540,7 @@ PRL_RESULT Common::prepareDevice()
 		m_ploop->destroy();
 		return res;
 	}
-	if (PRL_FAILED(res = VirtualDisk(m_path).create(dev, m_auth))) {
+	if (PRL_FAILED(res = VirtualDisk(m_path).create(dev))) {
 		m_ploop->umount();
 		m_ploop->destroy();
 		return res;
