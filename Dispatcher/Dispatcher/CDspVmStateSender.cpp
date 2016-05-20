@@ -127,6 +127,11 @@ void CDspVmStateSender::onVmPersonalityChanged(QString vmDirUuid_, QString vmUui
 	emit signalSendVmPersonalityChanged(vmDirUuid_, vmUuid_);
 }
 
+void CDspVmStateSender::onVmDeviceDetached(QString vmUuid_, QString device_)
+{
+	emit signalVmDeviceDetached(vmUuid_, device_);
+}
+
 CDspVmStateSenderThread::CDspVmStateSenderThread()
 :	m_mtx( QMutex::Recursive), m_pVmStateSender()
 {

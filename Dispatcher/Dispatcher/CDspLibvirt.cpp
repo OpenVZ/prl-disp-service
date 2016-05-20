@@ -27,6 +27,7 @@
 #include <QtCore/qmetatype.h>
 #include "CDspVmStateSender.h"
 #include "CDspVmNetworkHelper.h"
+#include "CDspBackupDevice.h"
 #include "Stat/CDspStatStorage.h"
 #include "Tasks/Task_CreateProblemReport.h"
 #include "Tasks/Task_BackgroundJob.h"
@@ -888,16 +889,8 @@ int deviceConnect(virConnectPtr , virDomainPtr domain_, const char *device_,
 int deviceDisconnect(virConnectPtr , virDomainPtr domain_, const char* device_,
                         void* opaque_)
 {
-	Q_UNUSED(device_);
-	Q_UNUSED(domain_);
-	Q_UNUSED(opaque_);
-/*
-        Adapter::System* b = (Adapter::System* )opaque_;
-        Adapter::Domain a = b.getDomain(*domain_);
-        SmartPtr<CVmConfiguration> x = a.getAdaptee().getConfig();
-        // update the device state
-	a.getAdaptee().setConfig(x);
-*/
+	Model::Coarse* v = (Model::Coarse* )opaque_;
+	v->disconnectDevice(domain_, device_);
 	return 0;
 }
 
@@ -1218,6 +1211,11 @@ void Coarse::disconnectCd(virDomainPtr domain_, const QString& alias_)
 				(*it)->toString(), EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
 	Task_EditVm::atomicEditVmConfigByVm(vmDir, vmUuid,
 			e, CDspClient::makeServiceUser(vmDir));
+}
+
+void Coarse::disconnectDevice(virDomainPtr domain_, const QString& alias_)
+{
+	CDspService::instance()->getVmStateSender()->onVmDeviceDetached(getUuid(domain_), alias_);
 }
 
 } // namespace Model
