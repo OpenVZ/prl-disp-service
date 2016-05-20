@@ -1641,6 +1641,12 @@ PRL_RESULT Fixer::setDevices()
 	return PRL_ERR_SUCCESS;
 }
 
+PRL_RESULT Fixer::setResources(const VtInfo&)
+{
+	m_result->setCurrentMemory(boost::none);
+	return PRL_ERR_SUCCESS;
+}
+
 } // namespace Reverse
 } // namespace Vm
 

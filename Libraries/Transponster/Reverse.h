@@ -234,10 +234,7 @@ struct Fixer: Builder
 	{
 		return PRL_ERR_SUCCESS;
 	}
-	PRL_RESULT setResources(const VtInfo&)
-	{
-		return PRL_ERR_SUCCESS;
-	}
+	PRL_RESULT setResources(const VtInfo&);
 	PRL_RESULT setDevices();
 };
 
