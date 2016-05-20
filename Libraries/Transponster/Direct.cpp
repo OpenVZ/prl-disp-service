@@ -613,21 +613,22 @@ namespace
 template <typename T>
 struct Traits
 {
-	static bool examine(const T* item_, uint index_)
+	static bool examine(const T* item_, uint index_, PRL_MASS_STORAGE_INTERFACE_TYPE type_)
 	{
-		return check(item_, index_);
+		return check(item_, index_, type_);
 	}
-	static bool check(const T* item_, uint index_)
+	static bool check(const T* item_, uint index_, PRL_MASS_STORAGE_INTERFACE_TYPE type_)
 	{
 		return item_->getEnabled() == PVE::DeviceEnabled &&
-			item_->getStackIndex() == index_;
+			item_->getStackIndex() == index_ &&
+			item_->getInterfaceType() == type_;
 	}
 };
 
 template<>
-bool Traits<CVmHardDisk>::examine(const CVmHardDisk* item_, uint index_)
+bool Traits<CVmHardDisk>::examine(const CVmHardDisk* item_, uint index_, PRL_MASS_STORAGE_INTERFACE_TYPE type_)
 {
-	return item_->getConnected() == PVE::DeviceConnected && check(item_, index_);
+	return item_->getConnected() == PVE::DeviceConnected && check(item_, index_, type_);
 }
 
 } // namespace
@@ -638,8 +639,12 @@ bool Traits<CVmHardDisk>::examine(const CVmHardDisk* item_, uint index_)
 template <typename T>
 void Device::setDiskSource(Libvirt::Domain::Xml::Disk& disk_, const QList<T*> list_, uint index_)
 {
+	Clustered<CVmHardDisk> c;
+	if (!c(disk_))
+		return;
+
 	typename QList<T*>::const_iterator item = std::find_if(list_.constBegin(), list_.constEnd(),
-		boost::bind(&Traits<T>::examine, _1, index_));
+		boost::bind(&Traits<T>::examine, _1, index_, c.getResult()->getInterfaceType()));
 
 	if (item == list_.constEnd())
 		return;
