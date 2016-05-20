@@ -28,6 +28,7 @@
 #include "CDspVmStateSender.h"
 #include "CVcmmdInterface.h"
 #include "CDspVmNetworkHelper.h"
+#include "CDspBackupDevice.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Interfaces/Debug.h"
 #include <Libraries/StatesUtils/StatesHelper.h>
@@ -269,6 +270,20 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		}
 	};
 
+	struct BackupDisable
+	{
+		template<class Event, class FromState, class ToState>
+		void operator()(const Event&, Frontend& fsm_, FromState&, ToState&)
+		{
+			boost::optional<CVmConfiguration> c = fsm_.getConfig();
+			if (!c)
+				return;
+			WRITE_TRACE(DBG_INFO, "disabling backups, attached to VM '%s'", qPrintable(fsm_.m_name));
+			SmartPtr<CVmConfiguration> x(&c.get(), SmartPtrPolicy::DoNotReleasePointee);
+			::Backup::Device::Service(x).disable();
+		}
+	};
+
 	struct transition_table : boost::mpl::vector<
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
@@ -312,10 +327,10 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
 	msmf::Row<Running,    Event<VMS_STOPPED>,    Stopped,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Cluster, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Cluster, BackupDisable, Notification> > >,
 
 	msmf::Row<Running,    Event<VMS_SUSPENDED>,  Suspended,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Cluster, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Cluster, BackupDisable, Notification> > >,
 
 	msmf::Row<Running,    Event<VMS_PAUSED>,     Paused,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Cluster, Notification> > >,
@@ -324,10 +339,10 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
 	msmf::Row<Paused,     Event<VMS_STOPPED>,    Stopped,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Notification> > >,
 
 	msmf::Row<Paused,     Event<VMS_SUSPENDED>,  Suspended,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Notification> > >,
 
 	msmf::Row<Paused,     Event<VMS_RUNNING>,    Running,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, Cluster, Notification> > >,
