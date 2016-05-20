@@ -165,6 +165,9 @@ struct Exec {
 	Prl::Expected<boost::optional<Result>, Libvirt::Agent::Failure>
 		getCommandStatus(int pid);
 
+	Prl::Expected<void, Libvirt::Agent::Failure>
+		terminate(int pid);
+
 	Prl::Expected<QString, Libvirt::Agent::Failure>
 		executeInAgent(const QString& cmd);
 
