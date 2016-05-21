@@ -290,19 +290,20 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Template
+// struct Transfer
 
-struct Template: Action
+struct Transfer: Action
 {
-	explicit Template(const QString& uuid_)
-	: m_uuid(uuid_)
+	Transfer(const CVmIdent& object_, const QString& target_):
+		m_target(target_), m_object(object_)
 	{
 	}
 
 	bool execute(CDspTaskFailure& feedback_);
 
 private:
-	QString m_uuid;
+	QString m_target;
+	CVmIdent m_object;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

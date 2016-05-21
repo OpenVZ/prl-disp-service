@@ -1261,9 +1261,10 @@ PRL_RESULT Task_EditVm::editVm()
 		CDspVmDirHelper::sendNotValidState(getClient(), rc, vm_uuid, bSetNotValid);
 		return rc;
 	}
+	CVmIdent ident(CDspVmDirHelper::getVmIdentByVmUuid(vm_uuid, getClient()));
 
 	// We cannot edit suspended or suspending VM
-	VIRTUAL_MACHINE_STATE nState = CDspVm::getVmState(vm_uuid, getClient()->getVmDirectoryUuid());
+	VIRTUAL_MACHINE_STATE nState = CDspVm::getVmState(ident);
 	if (nState == VMS_SUSPENDED || nState == VMS_SUSPENDING || nState == VMS_SUSPENDING_SYNC)
 	{
 		WRITE_TRACE(DBG_FATAL, "Cannot edit VM configuration in suspended or suspending state!");
@@ -1279,9 +1280,7 @@ PRL_RESULT Task_EditVm::editVm()
 
 	try
 	{
-		ret = CDspService::instance()->getVmDirHelper()
-			.registerExclusiveVmOperation( vm_uuid,
-			getClient()->getVmDirectoryUuid(),
+		ret = DspVm::vdh().registerExclusiveVmOperation(ident.first, ident.second,
 			( PVE::IDispatcherCommands ) getRequestPackage()->header.type,
 			getClient(),
 			this->getJobUuid());
@@ -1290,7 +1289,7 @@ PRL_RESULT Task_EditVm::editVm()
 			throw ret;
 		flgExclusiveOperationWasRegistered = true;
 
-		pVmConfigOld = CDspService::instance()->getVmDirHelper().getVmConfigByUuid(getClient(), vm_uuid, ret);
+		pVmConfigOld = DspVm::vdh().getVmConfigByUuid(getClient(), vm_uuid, ret);
 		if( ! pVmConfigOld )
 		{
 			PRL_ASSERT( PRL_FAILED( ret ) );
@@ -1463,12 +1462,11 @@ PRL_RESULT Task_EditVm::editVm()
 			// NOTE:	TO EXCLUDE DEADLOCK m_pVmConfigEdit mutex
 			//			SHOULD be locked BEFORE CDspLockedPointer<..> from getVmDirManager().getXX().
 			//
-			QMutexLocker editLock( CDspService::instance()->getVmDirHelper().getMultiEditDispatcher() );
+			QMutexLocker editLock(DspVm::vdh().getMultiEditDispatcher());
 
 			// check to change config from other user
 			PRL_RESULT nErrCode;
-			if ( CDspService::instance()->getVmDirHelper()
-					.getMultiEditDispatcher()->configWasChanged(vm_uuid, getClient()->getClientHandle(), nErrCode) )
+			if (DspVm::vdh().getMultiEditDispatcher()->configWasChanged(vm_uuid, getClient()->getClientHandle(), nErrCode))
 			{
 				if( PRL_FAILED(nErrCode) )
 					throw nErrCode;
@@ -1476,20 +1474,18 @@ PRL_RESULT Task_EditVm::editVm()
 				QDateTime dtVmUptimeStartDateTime = pVmConfigOld->getVmIdentification()->getVmUptimeStartDateTime();
 				quint64	  ullVmUptimeInSeconds = pVmConfigOld->getVmIdentification()->getVmUptimeInSeconds();
 
-				CDspService::instance()->getVmDirHelper()
-					.appendAdvancedParamsToVmConfig( getClient(), pVmConfigOld );
+				DspVm::vdh().appendAdvancedParamsToVmConfig( getClient(), pVmConfigOld );
 
 				//#464218 Do not let change VM uptime through VM edit
 				pVmConfigOld->getVmIdentification()->setVmUptimeStartDateTime( dtVmUptimeStartDateTime );
 				pVmConfigOld->getVmIdentification()->setVmUptimeInSeconds( ullVmUptimeInSeconds );
 
-				if( ! CDspService::instance()->getVmDirHelper().getMultiEditDispatcher()
-						->tryToMerge( vm_uuid, getClient()->getClientHandle(), pVmConfigNew, pVmConfigOld ) )
+				if(!DspVm::vdh().getMultiEditDispatcher()
+						->tryToMerge(vm_uuid, getClient()->getClientHandle(), pVmConfigNew, pVmConfigOld))
 					throw PRL_ERR_VM_CONFIG_WAS_CHANGED;
 
 				// cleanup params added before merge
-				CDspService::instance()->getVmDirHelper()
-					.resetAdvancedParamsFromVmConfig( pVmConfigOld ); // todo  fix setVmFilesLocation()!!!!
+				DspVm::vdh().resetAdvancedParamsFromVmConfig(pVmConfigOld); // todo  fix setVmFilesLocation()!!!!
 
 				WRITE_TRACE( DBG_FATAL, "Config changes were successfully merged. vm = %s", QSTR2UTF8( vm_uuid ) );
 			}
@@ -1502,9 +1498,8 @@ PRL_RESULT Task_EditVm::editVm()
 				//https://bugzilla.sw.ru/show_bug.cgi?id=267152
 				CAuthHelperImpersonateWrapper _impersonate( &getClient()->getAuthHelper() );
 
-				CDspLockedPointer< CVmDirectoryItem >
-					pVmDirItem = CDspService::instance()->getVmDirManager()
-					.getVmDirItemByUuid( getClient()->getVmDirectoryUuid(), vm_uuid );
+				CDspLockedPointer<CVmDirectoryItem>
+					pVmDirItem = DspVm::vdm().getVmDirItemByUuid(ident);
 				if ( ! pVmDirItem )
 					throw PRL_ERR_VM_UUID_NOT_FOUND;
 
@@ -1544,8 +1539,7 @@ PRL_RESULT Task_EditVm::editVm()
 
 						if ( (devList_old == NULL) != (devList_new == NULL) )
 						{
-							ret = CDspService::instance()->getVmDirHelper()
-									.registerExclusiveVmOperation(vm_uuid, getClient()->getVmDirectoryUuid(),
+							ret = DspVm::vdh().registerExclusiveVmOperation(ident.first, ident.second,
 								PVE::DspCmdCtlVmEditWithHardwareChanged, getClient());
 							if (PRL_FAILED(ret))
 								throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
@@ -1632,8 +1626,7 @@ PRL_RESULT Task_EditVm::editVm()
 										}
 									}
 								}
-								ret = CDspService::instance()->getVmDirHelper()
-										.registerExclusiveVmOperation(vm_uuid, getClient()->getVmDirectoryUuid(),
+								ret = DspVm::vdh().registerExclusiveVmOperation(ident.first, ident.second,
 											PVE::DspCmdCtlVmEditWithHardwareChanged, getClient());
 								if (PRL_FAILED(ret))
 									throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
@@ -1689,8 +1682,8 @@ PRL_RESULT Task_EditVm::editVm()
 									}
 								}
 
-								ret = CDspService::instance()->getVmDirHelper()
-										.registerExclusiveVmOperation(vm_uuid, getClient()->getVmDirectoryUuid(),
+								ret = DspVm::vdh().registerExclusiveVmOperation(
+									ident.first, ident.second,
 									PVE::DspCmdCtlVmEditWithHardwareChanged, getClient());
 								if (PRL_FAILED(ret))
 									throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
@@ -1756,8 +1749,7 @@ PRL_RESULT Task_EditVm::editVm()
 				WRITE_TRACE( DBG_FATAL, "Vm '%s' will be renamed to '%s'."
 					, QSTR2UTF8(oldVmName),  QSTR2UTF8(newVmName) );
 
-				ret = CDspService::instance()->getVmDirHelper()
-						.registerExclusiveVmOperation(vm_uuid, getClient()->getVmDirectoryUuid(),
+				ret = DspVm::vdh().registerExclusiveVmOperation(ident.first, ident.second,
 					PVE::DspCmdCtlVmEditWithRename, getClient());
 				if (PRL_FAILED(ret))
 					throw ret;
@@ -1775,8 +1767,7 @@ PRL_RESULT Task_EditVm::editVm()
 				SmartPtr<CVmDirectory::TemporaryCatalogueItem>
 					pVmInfo( new CVmDirectory::TemporaryCatalogueItem( "" , "", newVmName) );
 
-				PRL_RESULT lockResult = CDspService::instance()->getVmDirManager()
-					.checkAndLockNotExistsExclusiveVmParameters(
+				PRL_RESULT lockResult = DspVm::vdm().checkAndLockNotExistsExclusiveVmParameters(
 					getClient()->getVmDirectoryUuidList(),
 					pVmInfo.getImpl()
 					);
@@ -1821,7 +1812,7 @@ PRL_RESULT Task_EditVm::editVm()
 					throw lockResult;
 				}
 
-				CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(pVmInfo.getImpl());
+				DspVm::vdm().unlockExclusiveVmParameters(pVmInfo.getImpl());
 			}
 
 
@@ -1935,8 +1926,7 @@ PRL_RESULT Task_EditVm::editVm()
 			// (VM home, last change date, last modification date - never store in VM configuration itself!)
 			// They were received from customer as new config
 			//////////////////////////////////////////////////////////////////////////
-			CDspService::instance()->getVmDirHelper()
-				.resetAdvancedParamsFromVmConfig( pVmConfigNew );
+			DspVm::vdh().resetAdvancedParamsFromVmConfig( pVmConfigNew );
 
 			resetNetworkAddressesFromVmConfig( pVmConfigNew, pVmConfigOld );
 
@@ -1951,8 +1941,7 @@ PRL_RESULT Task_EditVm::editVm()
 			// cannot save remote device to connected state!
 			// #429716 #429855 #110571
 
-			VIRTUAL_MACHINE_STATE state = CDspVm::getVmState( vm_uuid, getClient()->getVmDirectoryUuid() );
-			if( state == VMS_STOPPED )
+			if(nState == VMS_STOPPED)
 			for ( int i = 0; i < PDE_MAX; i++ )
 			{
 				if ( QList<CVmDevice*>* lstDevices =
@@ -2035,14 +2024,14 @@ PRL_RESULT Task_EditVm::editVm()
 
 			} while (0);
 
-			if (state != VMS_STOPPED && (bNeedVNCStop || bNeedVNCStart))
+			if (nState != VMS_STOPPED && (bNeedVNCStop || bNeedVNCStart))
 			{
 				WRITE_TRACE(DBG_FATAL, "Unable to edit VNC preferences for running VM %s.",
 					qPrintable(vm_uuid));
 				throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
 			}
 
-			if (state != VMS_STOPPED && bVmWasRenamed)
+			if (nState != VMS_STOPPED && bVmWasRenamed)
 			{
 				WRITE_TRACE(DBG_FATAL, "Unable to change name for running VM %s.",
 					qPrintable(vm_uuid));
@@ -2115,17 +2104,14 @@ PRL_RESULT Task_EditVm::editVm()
 
 			// clear flags suspend and change for HDD images
 			// clear suspend flag for disks
-			CDspService::instance()->getVmDirHelper().getMultiEditDispatcher()->lock();
+			DspVm::vdh().getMultiEditDispatcher()->lock();
 			CStatesHelper::SetSuspendParameterForAllDisks(pVmConfigNew.getImpl(),0);
-			CDspService::instance()->getVmDirHelper().getMultiEditDispatcher()->unlock();
-			CDspService::instance()->getVmDirHelper()
-				.getMultiEditDispatcher()->registerCommit(vm_uuid, getClient()->getClientHandle());
+			DspVm::vdh().getMultiEditDispatcher()->unlock();
+			DspVm::vdh().getMultiEditDispatcher()->registerCommit(vm_uuid, getClient()->getClientHandle());
 		}
 
 		do {
-			SmartPtr< CDspVm > pVm =
-				CDspVm::GetVmInstanceByUuid( vm_uuid,
-							   getClient()->getVmDirectoryUuid() );
+			SmartPtr< CDspVm > pVm = CDspVm::GetVmInstanceByUuid(ident);
 			if ( ! pVm )
 				break;
 
@@ -2157,8 +2143,7 @@ PRL_RESULT Task_EditVm::editVm()
 		//////////////////////////////////////////////////////////////////////////
 
 		// Generate "VM changed" event
-		CDspService::instance()->getVmDirHelper()
-			.sendVmConfigChangedEvent( getClient()->getVmDirectoryUuid(), vm_uuid, getRequestPackage() );
+		DspVm::vdh().sendVmConfigChangedEvent(ident, getRequestPackage());
 
 		//////////////////////////////////////////////////////////////////////////
 		// configure Virtuozzo specific parameters
@@ -2198,39 +2183,33 @@ PRL_RESULT Task_EditVm::editVm()
 
 	// NOTE: register to vm watcher should be called before unregistration for any exclusive operations
 	//  It should be done to prevent possible races with removing vm or migrationg
-	if( flgVmWasUnregisteredInConfigWatcher )
+	if (flgVmWasUnregisteredInConfigWatcher)
 	{
 		CDspService::instance()->getVmConfigWatcher().registerVmToWatch(
-				CDspVmDirManager::getVmHomeByUuid( getClient()->getVmIdent(vm_uuid) )
-			, getClient()->getVmDirectoryUuid(), vm_uuid );
+				CDspVmDirManager::getVmHomeByUuid(ident), ident);
 	}
 
 	if (flgExclusiveHardwareChangedWasRegistered)
-		CDspService::instance()->getVmDirHelper()
-			.unregisterExclusiveVmOperation(vm_uuid, getClient()->getVmDirectoryUuid()
-		, PVE::DspCmdCtlVmEditWithHardwareChanged, getClient() );
-
+	{
+		DspVm::vdh().unregisterExclusiveVmOperation(ident.first, ident.second,
+				PVE::DspCmdCtlVmEditWithHardwareChanged, getClient());
+	}
 	if (flgExclusiveRenameOperationWasRegistered)
 	{
-		CDspService::instance()->getVmDirHelper()
-			.unregisterExclusiveVmOperation(vm_uuid
-			, getClient()->getVmDirectoryUuid()
-			, PVE::DspCmdCtlVmEditWithRename
-			, getClient());
+		DspVm::vdh().unregisterExclusiveVmOperation(ident.first, ident.second,
+				PVE::DspCmdCtlVmEditWithRename, getClient());
 	}
 
 	if (flgExclusiveFirewallChangedWasRegistered)
-		CDspService::instance()->getVmDirHelper()
-			.unregisterExclusiveVmOperation(vm_uuid, getClient()->getVmDirectoryUuid()
-		, PVE::DspCmdCtlVmEditFirewall, getClient() );
-
-	if( flgExclusiveOperationWasRegistered )
 	{
-		CDspService::instance()->getVmDirHelper()
-			.unregisterExclusiveVmOperation( vm_uuid
-			, getClient()->getVmDirectoryUuid()
-			, ( PVE::IDispatcherCommands ) getRequestPackage()->header.type
-			, getClient() );
+		DspVm::vdh().unregisterExclusiveVmOperation(ident.first, ident.second,
+				PVE::DspCmdCtlVmEditFirewall, getClient());
+	}
+	if (flgExclusiveOperationWasRegistered)
+	{
+		DspVm::vdh().unregisterExclusiveVmOperation(ident.first, ident.second,
+			(PVE::IDispatcherCommands)getRequestPackage()->header.type,
+			getClient());
 	}
 
 	// Try to apply the new VM config if the VM is running
@@ -2238,9 +2217,9 @@ PRL_RESULT Task_EditVm::editVm()
 	{
 		applyVmConfig( getClient(), pVmConfigNew, pVmConfigOld, getRequestPackage() );
 		ret = getLastErrorCode();
-		if (!cloudCdRemoved && CDspVm::getVmState( vm_uuid, getClient()->getVmDirectoryUuid()) == VMS_STOPPED) {
+		if (!cloudCdRemoved && CDspVm::getVmState(ident) == VMS_STOPPED) {
 			CDspService::instance()->getVmStateSender()->onVmPersonalityChanged(
-				getClient()->getVmDirectoryUuid(), vm_uuid);
+				ident.second, ident.first);
 		}
 	}
 
@@ -2757,39 +2736,39 @@ Request::Request(Task_EditVm& task_, const config_type& start_, const config_typ
 	if (NULL == x)
 		return;
 
-	QString d;
+	QString u = x->getVmUuid();
 	SmartPtr<CDspClient> a = task_.getClient();
 	if (a.isValid())
-		d = a->getVmDirectoryUuid();
-
-	m_object = MakeVmIdent(x->getVmUuid(), d);
+		m_object = CDspVmDirHelper::getVmIdentByVmUuid(u, a);
+	else
+		m_object = MakeVmIdent(u, QString());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Template
+// struct Transfer
 
-bool Template::execute(CDspTaskFailure& feedback_)
+bool Transfer::execute(CDspTaskFailure& feedback_)
 {
 	QString vmDir(CDspService::instance()->getDispConfigGuard()
 			.getDispWorkSpacePrefs()->getDefaultVmDirectory());
 	QScopedPointer<CVmDirectoryItem> t;
 	{
 		CDspLockedPointer<CVmDirectoryItem> vmItem(
-				DspVm::vdh().getVmDirectoryItemByUuid(vmDir, m_uuid));
+			DspVm::vdh().getVmDirectoryItemByUuid
+				(m_object.second, m_object.first));
 		if (!vmItem) {
-			WRITE_TRACE(DBG_FATAL, "vmItem %s is absent", QSTR2UTF8(m_uuid));
+			WRITE_TRACE(DBG_FATAL, "vmItem %s is absent", QSTR2UTF8(m_object.first));
 			return Action::execute(feedback_);
 		}
 		t.reset(new CVmDirectoryItem(*vmItem));
 	}
-	PRL_RESULT res(DspVm::vdh().deleteVmDirectoryItem(vmDir, m_uuid));
+	PRL_RESULT res(DspVm::vdh().deleteVmDirectoryItem(m_object.second, m_object.first));
 	if (PRL_FAILED(res)) {
 		WRITE_TRACE(DBG_FATAL, "Unable to remove directory item (%s)", PRL_RESULT_TO_STRING(res));
 		return Action::execute(feedback_);
 	}
 
-	res = DspVm::vdh().insertVmDirectoryItem(
-			DspVm::vdm().getTemplatesDirectoryUuid(), t.data());
+	res = DspVm::vdh().insertVmDirectoryItem(m_target, t.data());
 	if (PRL_FAILED(res)) {
 		WRITE_TRACE(DBG_FATAL, "Unable to add directory item (%s)", PRL_RESULT_TO_STRING(res));
 		return Action::execute(feedback_);
@@ -2810,14 +2789,22 @@ Action* Apply::operator()(const Request& input_) const
 	bool b = input_.getFinal().getVmSettings()->getVmCommonOptions()->isTemplate();
 	if (a != b)
 	{
-		if (b) {
-			Action *output(new Template(input_.getFinal().getVmIdentification()->getVmUuid()));
-			output->setNext(f.craft(boost::bind(&vm::Unit::undefine, _1)));
-			return output;
+		QString t;
+		Action* n = NULL;
+		if (b)
+		{
+			n = f.craft(boost::bind(&vm::Unit::undefine, _1));
+			t = DspVm::vdm().getTemplatesDirectoryUuid();
 		}
-
-		return f.craft(boost::bind(&define, _1, boost::cref
-			(input_.getFinal())));
+		else
+		{
+			n = f.craft(boost::bind(&define, _1, boost::cref
+				(input_.getFinal())));
+			t = input_.getTask().getClient()->getVmDirectoryUuid();
+		}
+		Action *output(new Transfer(input_.getObject(), t));
+		output->setNext(n);
+		return output;
 	}
 	if (b)
 		return NULL;
@@ -3236,7 +3223,7 @@ Action::Action(const Request& input_): m_vmIdent(input_.getObject()),
 
 bool Action::execute(CDspTaskFailure& feedback_)
 {
-	CDspVmDirManager& dirManager = CDspService::instance()->getVmDirManager();
+	CDspVmDirManager& dirManager = DspVm::vdm();
 	CDspLockedPointer<CVmDirectoryItem> dirItem = dirManager
 		.getVmDirItemByUuid(m_vmIdent.second, m_vmIdent.first);
 
