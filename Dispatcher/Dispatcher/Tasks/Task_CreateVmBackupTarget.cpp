@@ -52,14 +52,11 @@ Task_CreateVmBackupTarget::Task_CreateVmBackupTarget(
 		CDispToDispCommandPtr pCmd,
 		const SmartPtr<IOPackage> &p,
 		::Backup::Activity::Service& service_)
-:Task_CreateCtBackupHelper(pDispConnection->getUserSession(), p),
+:Task_BackupHelper(pDispConnection->getUserSession(), p),
 m_pDispConnection(pDispConnection),
-m_pVmConfig(new CVmConfiguration()),
-m_bBackupLocked(false),
-m_service(&service_)
+m_bBackupLocked(false)
 {
 	CVmBackupCreateCommand *pStartCommand;
-	m_bLocalMode = (p->header.type == VmBackupCreateLocalCmd);
 
 	pStartCommand = CDispToDispProtoSerializer::CastToDispToDispCommand<CVmBackupCreateCommand>(pCmd);
 	m_sVmUuid = pStartCommand->GetVmUuid();
@@ -75,21 +72,13 @@ m_service(&service_)
 	m_bABackupFirstPacket = true;
 	m_bStorageRegistered = false;
 	m_nRemoteVersion = pStartCommand->GetVersion();
+	m_service = &service_;
 
 	m_nBundlePermissions = 0;
-	if (m_bLocalMode) {
-		CVmBackupCreateLocalCommand *pStartLocalCommand =
-				CDispToDispProtoSerializer::CastToDispToDispCommand<CVmBackupCreateLocalCommand>(pCmd);
+	if (m_nRemoteVersion >= BACKUP_PROTO_V2)
+		m_nBundlePermissions = pStartCommand->GetBundlePermissions();
+	if (m_nRemoteVersion >= BACKUP_PROTO_V3)
 		m_pVmConfig->fromString(pStartCommand->GetVmConfig());
-		m_sVmHomePath = pStartLocalCommand->GetStorage();
-		QFileInfo vmBundle(m_sVmHomePath);
-		m_nBundlePermissions = vmBundle.permissions();
-	} else {
-		if (m_nRemoteVersion >= BACKUP_PROTO_V2)
-	 		m_nBundlePermissions = pStartCommand->GetBundlePermissions();
-		if (m_nRemoteVersion >= BACKUP_PROTO_V3)
-			m_pVmConfig->fromString(pStartCommand->GetVmConfig());
-	}
 
 	bool bConnected = QObject::connect(
 		&CDspService::instance()->getIOServer(),
@@ -236,13 +225,10 @@ PRL_RESULT Task_CreateVmBackupTarget::buildTibFiles()
 
 PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 {
-	PRL_RESULT nRetCode = Task_CreateCtBackupHelper::prepareTask();
-	if (PRL_FAILED(nRetCode))
-		goto exit;
-
 	m_lastBase = SmartPtr<BackupItem>(getLastBaseBackup(m_sVmUuid,
 						&getClient()->getAuthHelper(),
 						PRL_BACKUP_CHECK_MODE_WRITE));
+	PRL_RESULT nRetCode;
 	if (PRL_FAILED(nRetCode = guessBackupType()))
 		goto exit;
 
@@ -437,23 +423,16 @@ PRL_RESULT Task_CreateVmBackupTarget::run_body()
 	m_sABackupOutFile = tmpFile.fileName();
 	tmpFile.close();
 
-	if (m_bLocalMode && getInternalFlags() & PVM_CT_BACKUP) {
-		locker.unlock();
-		nRetCode = backupCtPrivate();
-		if (PRL_FAILED(nRetCode))
-			goto exit;
-	} else {
-		/* for QTemporaryFile file name exist after open() and before close() only */
-		args.append(m_sABackupOutFile);
-		args.prepend(QString(PRL_ABACKUP_SERVER));
+	/* for QTemporaryFile file name exist after open() and before close() only */
+	args.append(m_sABackupOutFile);
+	args.prepend(QString(PRL_ABACKUP_SERVER));
 
-		/* Target side - preserve old arguments processing */
-		if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, BACKUP_PROTO_V3)))
-			goto exit;
-		locker.unlock();
+	/* Target side - preserve old arguments processing */
+	if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, BACKUP_PROTO_V3)))
+		goto exit;
+	locker.unlock();
 
-		nRetCode = m_cABackupServer.waitForFinished();
-	}
+	nRetCode = m_cABackupServer.waitForFinished();
 	loadTibFiles();
 
 	QObject::disconnect(m_pDispConnection.getImpl(),
@@ -662,24 +641,9 @@ void Task_CreateVmBackupTarget::clientDisconnected(IOSender::Handle h)
 	if (m_pVmCopyTarget.isValid())
 		m_pVmCopyTarget->cancelOperation();
 
-	if (m_bLocalMode) {
-		killABackupClient();
-	} else {
-		m_cABackupServer.kill();
-	}
+	m_cABackupServer.kill();
 	// quit event loop
 	QThread::exit(PRL_ERR_OPERATION_WAS_CANCELED);
-}
-
-PRL_RESULT Task_CreateVmBackupTarget::backupCtPrivate()
-{
-	if (!(getInternalFlags() & PVM_CT_PLOOP_BACKUP))
-		return PRL_ERR_UNIMPLEMENTED;
-
-	::Backup::Device::Dao(m_pVmConfig).deleteAll();
-	setService(*m_service);
-	return do_(m_pVmConfig, Backup::Work::Ct::Spec(m_nBackupNumber)
-		.setOutFile(m_sABackupOutFile));
 }
 
 // compare hdd lists from current VM config and from VM config of last base backup

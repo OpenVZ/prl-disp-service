@@ -39,8 +39,11 @@
 #include "CDspClient.h"
 #include "prlcommon/IOService/IOCommunication/IOClient.h"
 #include "Libraries/VmFileList/CVmFileListCopy.h"
+#include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "prlxmlmodel/BackupTree/VmItem.h"
 #include "Dispatcher/Dispatcher/CDspDispConnection.h"
+#include "CDspVmBackupInfrastructure.h"
+#include "CDspVmBackupInfrastructure_p.h"
 
 #define GUEST_FS_SUSPEND_TIMEOUT_SEC 300  // 5 minutes
 #define GUEST_FS_SUSPEND_TIMEOUT_WAIT_MSEC 10  // 10 miliseconds
@@ -149,6 +152,8 @@ private:
 	SmartPtr<IOClient> m_client;
 };
 
+class Task_BackupHelper;
+
 namespace Backup
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -242,6 +247,41 @@ private:
 	quint32 m_flags;
 };
 
+namespace Work
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Ct
+
+struct Ct
+{
+	explicit Ct(Task_BackupHelper& task_);
+
+	QStringList buildArgs(const Product::component_type& t_,
+		const QFileInfo* f_) const;
+	QStringList buildPushArgs(const Activity::Object::Model& a_) const;
+
+private:
+	Task_BackupHelper *m_context;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+struct Vm
+{
+	explicit Vm(Task_BackupHelper& task_);
+
+	QStringList buildArgs(const QString& snapshot_, const Product::component_type& t_,
+			const QFileInfo* f_) const;
+	QStringList buildPushArgs() const;
+
+private:
+	Task_BackupHelper *m_context;
+};
+
+typedef boost::variant<Ct, Vm> object_type;
+
+} // namespace Work
 } // namespace Backup
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -260,6 +300,28 @@ public:
 		return m_nFlags;
 	}
 
+	quint32 getInternalFlags() const
+	{
+		return m_nInternalFlags;
+	}
+	void setInternalFlags(quint32 internalFlags_)
+	{
+		m_nInternalFlags = internalFlags_;
+	}
+	bool isRunning() const
+	{
+		return m_nInternalFlags & PVM_CT_RUNNING;
+	}
+
+	const QString& getBackupRoot() const
+	{
+		return m_sBackupRootPath;
+	}
+	void setBackupRoot(const QString& backupRoot_)
+	{
+		m_sBackupRootPath = backupRoot_;
+	}
+
 	const QString& getBackupUuid() const
 	{
 		return m_sBackupUuid;
@@ -268,6 +330,11 @@ public:
 	unsigned getBackupNumber() const
 	{
 		return m_nBackupNumber;
+	}
+
+	SmartPtr< ::Backup::Product::Model> getProduct() const
+	{
+		return m_product;
 	}
 
 	Chain * prepareABackupChain(const QStringList& args_, const QString &sNotificationVmUuid,
@@ -367,17 +434,38 @@ protected:
 	PRL_RESULT loadVeConfig(const QString &backupUuid, const QString &path,
 		PRL_VM_BACKUP_TYPE type, SmartPtr<CVmConfiguration>& conf);
 
+	PRL_RESULT sendStartRequest();
+	void cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& p);
+	PRL_RESULT copyEscort(const ::Backup::Escort::Model& escort_, const QString& directory_,
+		const QString& source_);
+	PRL_RESULT backupHardDiskDevices(const ::Backup::Activity::Object::Model& activity_,
+		::Backup::Work::object_type& variant_);
+	PRL_RESULT doBackup(const QString& source_, ::Backup::Work::object_type& variant_);
+	virtual void finalizeTask();
+
 protected:
+	SmartPtr<CVmConfiguration> m_pVmConfig;
+	QString m_sVmHomePath;
+	QString m_sVmName;
 	QString m_sVmUuid;
+	QString m_sVmDirUuid;
+	QString m_sDescription;
 	QString m_sServerHostname;
 	quint32 m_nServerPort;
 	QString m_sServerSessionUuid;
 	quint32 m_nFlags;
+	quint32 m_nInternalFlags;
 	quint32 m_nSteps;
 	quint32 m_nBackupTimeout;
 	quint32 m_nRemoteVersion;
 	QString m_sBackupUuid;
+	/* full backup path */
+	QString m_sBackupRootPath;
 	unsigned m_nBackupNumber;
+	quint64 m_nOriginalSize;
+	SmartPtr< ::Backup::Product::Model> m_product;
+	::Backup::Activity::Service* m_service;
+	IOSendJob::Handle m_hJob;
 
 	/* list of directories for plain copy : file info and relative path from Vm home directory */
 	QList<QPair<QFileInfo, QString> > m_DirList;
