@@ -45,13 +45,25 @@ Instrument::Agent::Hub Kit;
 ///////////////////////////////////////////////////////////////////////////////
 // struct Failure
 
-Failure::Failure(PRL_RESULT result_): Error::Simple(result_)
+Failure::Failure(PRL_RESULT result_): Error::Simple(fabricate(result_))
 {
 #if (LIBVIR_VERSION_NUMBER > 1000004)
 	const char* m = virGetLastErrorMessage();
 	WRITE_TRACE(DBG_FATAL, "libvirt error %s", m ? : "unknown");
 	details() = m;
 #endif
+}
+
+PRL_RESULT Failure::fabricate(PRL_RESULT result_)
+{
+	if (result_ != PRL_ERR_FAILURE)
+		return result_;
+
+	virErrorPtr err = virGetLastError();
+	if (err && err->code == VIR_ERR_OPERATION_INVALID)
+		result_ = PRL_ERR_INVALID_ACTION_REQUESTED;
+
+	return result_;
 }
 
 namespace Agent

@@ -64,6 +64,9 @@ namespace Libvirt
 struct Failure: ::Error::Simple
 {
 	Failure(PRL_RESULT result_);
+
+private:
+       	static PRL_RESULT fabricate(PRL_RESULT result_);
 };
 
 namespace Agent
