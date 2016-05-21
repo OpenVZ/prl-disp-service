@@ -36,11 +36,7 @@
 #include "CDspClientManager.h"
 #include "Tasks/Task_MigrateVmTarget.h"
 #include "Tasks/Legacy/MigrateVmTarget.h"
-#ifdef _WIN_
-# include "Tasks/Task_MigrateCt_win.h"
-#else
-# include "Tasks/Task_MigrateCtTarget.h"
-#endif
+#include "Tasks/Task_MigrateCtTarget.h"
 #include "Tasks/Mixin_CreateVmSupport.h"
 
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
@@ -113,15 +109,7 @@ void CDspVmMigrateHelper::checkPreconditions(
 
 	CDspTaskHelper *task_helper;
 	if (pCheckCmd->GetReservedFlags() & PVM_CT_MIGRATE)
-#ifdef _CT_
 		task_helper = new Task_MigrateCtTarget(pDispConnection, pCmd, p);
-#else
-	{
-		WRITE_TRACE(DBG_FATAL, "Linux containers are not implemented");
-		pDispConnection->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED);
-		return;
-	}
-#endif
 	else if (MIGRATE_DISP_PROTO_V7 > pCheckCmd->GetVersion())
 		task_helper = new Legacy::Task::MigrateVmTarget(m_registry, (QObject *)this, pDispConnection, pCmd, p);
 	else

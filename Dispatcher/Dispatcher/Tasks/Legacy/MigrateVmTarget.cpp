@@ -59,6 +59,7 @@
 #include "CVcmmdInterface.h"
 #include "Legacy/VmConverter.h"
 #include "CDspVmManager_p.h"
+#include "CDspVm_p.h"
 
 namespace Legacy
 {
@@ -202,28 +203,22 @@ PRL_RESULT MigrateVmTarget::prepareTask()
 		{
 		case PRL_ERR_VM_ALREADY_REGISTERED_VM_UUID:
 			WRITE_TRACE(DBG_FATAL, "UUID '%s' already registered", QSTR2UTF8(m_pVmInfo->vmUuid));
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String, m_pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
+			CDspTaskFailure(*this).setCode(nRetCode).setToken(m_pVmInfo->vmUuid);
 			break;
 
 		case PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH:
 			WRITE_TRACE(DBG_FATAL, "path '%s' already registered", QSTR2UTF8(m_pVmInfo->vmXmlPath));
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String, m_pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String, m_pVmInfo->vmXmlPath, EVT_PARAM_MESSAGE_PARAM_1));
+			CDspTaskFailure(*this).setCode(nRetCode)(m_pVmInfo->vmName, m_pVmInfo->vmXmlPath);
 			break;
 
 		case PRL_ERR_VM_ALREADY_REGISTERED_VM_NAME:
 			WRITE_TRACE(DBG_FATAL, "name '%s' already registered", QSTR2UTF8(m_pVmInfo->vmName));
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String, m_pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
+			CDspTaskFailure(*this).setCode(nRetCode)(m_pVmInfo->vmName);
 			break;
 
 		case PRL_ERR_VM_ALREADY_REGISTERED:
 			WRITE_TRACE(DBG_FATAL, "container '%s' already registered", QSTR2UTF8(m_pVmInfo->vmName));
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String, m_pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
+			CDspTaskFailure(*this).setCode(nRetCode)(m_pVmInfo->vmName);
 			break;
 
 		case PRL_ERR_VM_ALREADY_REGISTERED_UNIQUE_PARAMS:; // use default
@@ -231,12 +226,8 @@ PRL_RESULT MigrateVmTarget::prepareTask()
 		default:
 			WRITE_TRACE(DBG_FATAL, "can't register container with UUID '%s', name '%s', path '%s",
 				    QSTR2UTF8(m_pVmInfo->vmUuid), QSTR2UTF8(m_pVmInfo->vmName), QSTR2UTF8(m_pVmInfo->vmXmlPath));
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String, m_pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String, m_pVmInfo->vmXmlPath, EVT_PARAM_RETURN_PARAM_TOKEN));
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String, m_pVmInfo->vmName, EVT_PARAM_RETURN_PARAM_TOKEN));
+			CDspTaskFailure(*this).setCode(nRetCode).setToken(m_pVmInfo->vmUuid)
+				.setToken(m_pVmInfo->vmXmlPath).setToken(m_pVmInfo->vmName);
 		}
 		goto exit;
 	}
@@ -269,9 +260,7 @@ PRL_RESULT MigrateVmTarget::prepareTask()
 		nRetCode = PRL_ERR_VM_MIGRATE_EXT_DISK_DIR_ALREADY_EXISTS_ON_TARGET;
 		WRITE_TRACE(DBG_FATAL,
 			    "The directory for external disk '%s' already exists.", QSTR2UTF8(disk));
-		getLastError()->setEventCode(PRL_ERR_VM_MIGRATE_EXT_DISK_DIR_ALREADY_EXISTS_ON_TARGET);
-		getLastError()->addEventParameter(new CVmEventParameter(PVE::String, disk,
-						  EVT_PARAM_MESSAGE_PARAM_0));
+		CDspTaskFailure(*this)(nRetCode, disk);
 		goto exit;
 	}
 
@@ -281,11 +270,7 @@ PRL_RESULT MigrateVmTarget::prepareTask()
 		WRITE_TRACE(DBG_FATAL,
 			    "The virtual machine home directory '%s' already exists.",
 			    QSTR2UTF8(m_sTargetVmHomePath));
-		CVmEvent* pEvent = getLastError();
-		pEvent->setEventCode(PRL_ERR_VM_MIGRATE_VM_HOME_ALREADY_EXISTS_ON_TARGET);
-		pEvent->addEventParameter(new CVmEventParameter(PVE::String,
-					  m_sTargetVmHomePath,
-					  EVT_PARAM_MESSAGE_PARAM_0));
+		CDspTaskFailure(*this)(nRetCode, m_sTargetVmHomePath);
 		goto exit;
 	}
 	checkRequiresDiskSpace();
@@ -321,35 +306,14 @@ PRL_RESULT MigrateVmTarget::run_body()
 				      Qt::DirectConnection);
 	PRL_ASSERT(bConnected);
 
-	/* and send reply on Precond Check command */
-	if (m_nVersion < MIGRATE_DISP_PROTO_V2)
-	{
-		/* for proto v1 send DispToDispResponseCmd */
-		if (m_lstCheckPrecondsErrors.size())
-		{
-			pReply = CDispToDispProtoSerializer::CreateDispToDispResponseCommand(
-					 PRL_ERR_VM_MIGRATE_CHECKING_PRECONDITIONS_FAILED,
-					 m_pCheckPackage,
-					 m_lstCheckPrecondsErrors
-				 );
-			hJob = m_pCheckDispConnection->sendResponse(pReply, m_pCheckPackage);
-		}
-		else
-		{
-			//Drop checking step on success execution
-			hJob = m_pCheckDispConnection->sendSimpleResponse(m_pCheckPackage, PRL_ERR_SUCCESS);
-		}
-	}
-	else
-	{
-		/* for protocol v.2 and later will send VmMigrateCheckPreconditionsReply */
-		pReply = CDispToDispProtoSerializer::CreateVmMigrateCheckPreconditionsReply(
-				 m_lstCheckPrecondsErrors, m_lstNonSharedDisks, m_nFlags);
-		SmartPtr<IOPackage> pPackage =
-			DispatcherPackage::createInstance(
-				pReply->GetCommandId(), pReply->GetCommand()->toString(), m_pCheckPackage);
-		hJob = m_pCheckDispConnection->sendPackage(pPackage);
-	}
+	/* for protocol v.2 and later will send VmMigrateCheckPreconditionsReply */
+	pReply = CDispToDispProtoSerializer::CreateVmMigrateCheckPreconditionsReply(
+			 m_lstCheckPrecondsErrors, m_lstNonSharedDisks, m_nFlags);
+	pPackage =
+		DispatcherPackage::createInstance(
+			pReply->GetCommandId(), pReply->GetCommand()->toString(), m_pCheckPackage);
+	hJob = m_pCheckDispConnection->sendPackage(pPackage);
+
 	if (!hJob.isValid())
 	{
 		nRetCode = PRL_ERR_OPERATION_FAILED;
@@ -395,10 +359,7 @@ PRL_RESULT MigrateVmTarget::run_body()
 		if (!CFileHelper::WriteDirectory(m_sTargetVmHomePath, &getClient()->getAuthHelper()))
 		{
 			nRetCode = PRL_ERR_BACKUP_CANNOT_CREATE_DIRECTORY;
-			CVmEvent* pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(
-				new CVmEventParameter(PVE::String, m_sTargetVmHomePath, EVT_PARAM_MESSAGE_PARAM_0));
+			CDspTaskFailure(*this)(nRetCode, m_sTargetVmHomePath);
 			WRITE_TRACE(DBG_FATAL, "[%s] Cannot create \"%s\" directory",
 				    __FUNCTION__, QSTR2UTF8(m_sTargetVmHomePath));
 			goto exit;
@@ -429,9 +390,7 @@ PRL_RESULT MigrateVmTarget::run_body()
 			continue;
 
 		nRetCode = PRL_ERR_VM_MIGRATE_CANNOT_CREATE_DIRECTORY;
-		getLastError()->setEventCode(nRetCode);
-		getLastError()->addEventParameter(
-			new CVmEventParameter(PVE::String, disk, EVT_PARAM_MESSAGE_PARAM_0));
+		CDspTaskFailure(*this)(nRetCode, disk);
 		WRITE_TRACE(DBG_FATAL, "[%s] Cannot create \"%s\" directory",
 			    __FUNCTION__, QSTR2UTF8(disk));
 		goto exit;
@@ -696,10 +655,7 @@ PRL_RESULT MigrateVmTarget::migrateRunningVm()
 		{
 			/* user has not permissions to start shared Vm */
 			nRetCode = PRL_ERR_VM_MIGRATE_ACCESS_TO_VM_DENIED;
-			CVmEvent* pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-							  PVE::String, getClient()->getAuthHelper().getUserName(), EVT_PARAM_MESSAGE_PARAM_0));
+			CDspTaskFailure(*this)(nRetCode, getClient()->getAuthHelper().getUserName());
 			WRITE_TRACE(DBG_FATAL,
 				    "User %s has not enough permissions in shared Vm bundle %s to start online migration",
 				    QSTR2UTF8(getClient()->getAuthHelper().getUserName()), QSTR2UTF8(m_sTargetVmHomePath));
@@ -1012,15 +968,10 @@ PRL_RESULT MigrateVmTarget::registerVmBeforeMigration()
 	else
 		pVmDirItem->setTemplate(m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate());
 
-	nRetCode = CDspService::instance()->getVmDirHelper().insertVmDirectoryItem(m_sVmDirUuid, pVmDirItem);
+	nRetCode = DspVm::vdh().insertVmDirectoryItem(m_sVmDirUuid, pVmDirItem);
 	if (PRL_FAILED(nRetCode))
 	{
-		CVmEvent* pEvent = getLastError();
-		pEvent->setEventCode(PRL_ERR_VM_MIGRATE_REGISTER_VM_FAILED);
-		pEvent->addEventParameter(new CVmEventParameter(
-						  PVE::String, m_sVmName, EVT_PARAM_MESSAGE_PARAM_0));
-		pEvent->addEventParameter(new CVmEventParameter(
-						  PVE::String, PRL_RESULT_TO_STRING(nRetCode), EVT_PARAM_MESSAGE_PARAM_1));
+		CDspTaskFailure(*this).setCode(PRL_ERR_VM_MIGRATE_REGISTER_VM_FAILED)(m_sVmName, PRL_RESULT_TO_STRING(nRetCode));
 		WRITE_TRACE(DBG_FATAL,
 			    "Error occurred while register Vm %s with code [%#x][%s]",
 			    QSTR2UTF8(m_sVmUuid), nRetCode, PRL_RESULT_TO_STRING(nRetCode));
@@ -1066,8 +1017,10 @@ PRL_RESULT MigrateVmTarget::saveVmConfig()
 		if (PVMT_CLONE_MODE & getRequestFlags())
 		{
 			if (PVMT_SWITCH_TEMPLATE & getRequestFlags())
+			{
 				m_pVmConfig->getVmSettings()->getVmCommonOptions()->setTemplate(
 					!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate());
+			}
 
 			Task_CloneVm::ResetNetSettings(m_pVmConfig);
 		}
@@ -1094,13 +1047,7 @@ PRL_RESULT MigrateVmTarget::saveVmConfig()
 		WRITE_TRACE(DBG_FATAL, "Can't save VM config by error %#x, %s",
 			    nRetCode, PRL_RESULT_TO_STRING(nRetCode));
 
-		CVmEvent* pEvent = getLastError();
-		pEvent->setEventCode(PRL_ERR_SAVE_VM_CONFIG);
-		pEvent->addEventParameter(new CVmEventParameter(
-						  PVE::String, m_sVmUuid, EVT_PARAM_MESSAGE_PARAM_0));
-		pEvent->addEventParameter(new CVmEventParameter(
-						  PVE::String, m_sTargetVmHomePath, EVT_PARAM_MESSAGE_PARAM_1));
-		return PRL_ERR_SAVE_VM_CONFIG;
+		return CDspTaskFailure(*this).setCode(PRL_ERR_SAVE_VM_CONFIG)(m_sVmUuid, m_sTargetVmHomePath);
 	}
 	/* set original permissions of Vm config (https://jira.sw.ru/browse/PSBM-8333) */
 	if (m_nConfigPermissions)

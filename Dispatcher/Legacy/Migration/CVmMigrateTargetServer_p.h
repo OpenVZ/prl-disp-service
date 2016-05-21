@@ -166,7 +166,14 @@ typedef QHash<QString, CVmMigrateTargetDisk* > taskList_type;
 
 struct Igniter
 {
+	explicit Igniter(const config_type& config_): m_config(config_)
+	{
+	}
+
 	bool operator()(taskList_type& taskList_);
+
+private:
+	config_type m_config;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

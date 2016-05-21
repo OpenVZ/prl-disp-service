@@ -37,9 +37,6 @@
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
 
 typedef SmartPtr<CVmConfiguration> config_type;
-SmartPtr<CVmConfiguration> s_pVmConfig;
-
-const SmartPtr<CVmConfiguration>& GetVmConfig() {return s_pVmConfig;}
 
 namespace
 {
@@ -53,12 +50,10 @@ void cleanup_hdd_tasks(Migrate::Vm::Target::Disk::taskList_type& lstDiskObjTask)
 	lstDiskObjTask.clear();
 }
 
-void get_harddisk_images(std::list<QString>& list)
+void get_harddisk_images(const config_type& config_, std::list<QString>& list)
 {
-	const CVmConfiguration* cfg = GetVmConfig().get();
-
 	try {
-		foreach (CVmHardDisk* d, cfg->getVmHardwareList()->m_lstHardDisks)
+		foreach (CVmHardDisk* d, config_->getVmHardwareList()->m_lstHardDisks)
 		{
 			if (d->getEnabled() && d->getEmulatedType() == PVE::HardDiskImage)
 				list.push_back(d->getSystemName());
@@ -70,12 +65,13 @@ void get_harddisk_images(std::list<QString>& list)
 	}
 }
 
-PRL_RESULT InitializeHardDiskCfg(Migrate::Vm::Target::Disk::taskList_type* lstDiskTasks)
+PRL_RESULT InitializeHardDiskCfg
+	(const config_type& config_, Migrate::Vm::Target::Disk::taskList_type* lstDiskTasks)
 {
 	PRL_RESULT err = PRL_ERR_SUCCESS;
 
 	std::list<QString> lst_imagepath;
-	get_harddisk_images(lst_imagepath);
+	get_harddisk_images(config_, lst_imagepath);
 
 	/*
 	* Check for existing items otherwise one item will be reserved for
@@ -94,36 +90,30 @@ PRL_RESULT InitializeHardDiskCfg(Migrate::Vm::Target::Disk::taskList_type* lstDi
 	{
 		QFile f(QDir(p).absoluteFilePath("DiskDescriptor.xml"));
 		CDiskXML d(&f);
+		value = d.getParameters()->getUserData()->getMigrationInstanceId();
 		QDir().rename(p, p + ".description");
 		VirtualDisk::Qcow2::create(p,
 			VirtualDisk::qcow2PolicyList_type(1, d.getParameters()->getSize() * 512));
 		curr_disk.reset(new VirtualDisk::Qcow2());
-		curr_disk->open(p, PRL_DISK_WRITE);
-		if ( PRL_FAILED(err) ) {
-			WRITE_TRACE(DBG_FATAL,"[Disk migration] skiping disk [%s] err: [%#x][%s]",
-				QSTR2UTF8(p), err, PRL_RESULT_TO_STRING(err));
-			continue;
-		}
+		err = curr_disk->open(p, PRL_DISK_WRITE);
 
-		value = d.getParameters()->getUserData()->getMigrationInstanceId();
-
-		if ( PRL_FAILED(err) )
-			goto cleanup_disk;
+		if (PRL_FAILED(err))
+			break;
 
 		err = PRL_ERR_ENTRY_ALREADY_EXISTS;
 		if (lstDiskTasks->find(value) != lstDiskTasks->end())
-			goto cleanup_disk;
+			break;
 
 		CVmMigrateTargetDisk *disk_task = new (std::nothrow)CVmMigrateTargetDisk();
 		err = PRL_ERR_OUT_OF_MEMORY;
 		if (disk_task == NULL)
-			goto cleanup_disk;
+			break;
 
 		try {
 			lstDiskTasks->insert(value, disk_task);
 		} catch ( std::bad_alloc& ) {
 			delete disk_task;
-			goto cleanup_disk;
+			break;
 		}
 
 		/*
@@ -137,15 +127,9 @@ PRL_RESULT InitializeHardDiskCfg(Migrate::Vm::Target::Disk::taskList_type* lstDi
 		* sequence does not perform a lot additional actions around cache mode etc.
 		*/
 
-		err = disk_task->init(curr_disk.take());
-		if ( PRL_FAILED(err) )
-			return err;
+		if (PRL_FAILED(err = disk_task->init(curr_disk.take())))
+			break;
 	}
-
-	return PRL_ERR_SUCCESS;
-
-cleanup_disk:
-
 	return err;
 }
 
@@ -329,7 +313,6 @@ void CVmMigrateTargetServer::ProcessStartMigrationPackage(CDispToDispCommandPtr 
 		return (void)m_connection.send(DispatcherPackage::createInstance(
 			d->GetCommandId(), d->GetCommand()->toString(), p));
 	}
-	s_pVmConfig = u.getConfig();
 	WRITE_TRACE(DBG_DEBUG, "File copier will use this directory as a VM home: '%s'", qPrintable(u.getHome()));
 	m_connection.setCopier(u.getUuid(), u.getHome(),
 		d.getDispToDispPreferences()->getSendReceiveTimeout() * 1000);
@@ -558,7 +541,7 @@ bool Connection::setHandle(const QString& value_)
 
 Subject::Subject(const Object::Unit& object_, const Object::Saviour& saviour_,
 	Connection& connection_):
-	m_disk(new Disk::Igniter(), saviour_.saveDisk()),
+	m_disk(new Disk::Igniter(object_.getConfig()), saviour_.saveDisk()),
 	m_default(connection_.getCopier()), m_tracking(object_.getConfig())
 {
 	QSharedPointer<Saviour::The> s(new Saviour::The(
@@ -762,7 +745,7 @@ namespace Disk
 
 bool Igniter::operator()(taskList_type& taskList_)
 {
-	PRL_RESULT e = InitializeHardDiskCfg(&taskList_);
+	PRL_RESULT e = InitializeHardDiskCfg(m_config, &taskList_);
 	if (PRL_SUCCEEDED(e))
 		return true;
 
