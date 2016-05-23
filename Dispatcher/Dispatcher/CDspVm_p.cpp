@@ -316,7 +316,7 @@ bool TestSuite::checkConfig()
 	CAuthHelperImpersonateWrapper _impersonate(&m_demand->getActor()->getAuthHelper());
 
 	CVmEvent a;
-	CVmValidateConfig vc(m_config);
+	CVmValidateConfig vc(SmartPtr<CDspClient>(), m_config);
 	if (vc.HasCriticalErrors(a))
 	{
 		LOG_MESSAGE( DBG_INFO, "CVmValidateConfig::validate() return true\n");

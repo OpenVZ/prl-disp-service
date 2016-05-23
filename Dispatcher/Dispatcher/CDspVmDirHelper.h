@@ -155,10 +155,6 @@ public:
 		SmartPtr<CDspClient> pUserSession,
 		const SmartPtr<IOPackage>& );
 
-	// Check VM configuration
-	void validateSectionVmConfig(SmartPtr<CDspClient> pUserSession,
-		const SmartPtr<IOPackage>& );
-
 	// Delete VM
 	void deleteVm ( const IOSender::Handle& sender,
 		SmartPtr<CDspClient> pUserSession,

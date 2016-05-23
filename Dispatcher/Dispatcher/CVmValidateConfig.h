@@ -52,6 +52,8 @@
 #include <QSet>
 #include <prlsdk/PrlEnums.h>
 
+#include "CDspClient.h"
+
 class CSavedStateTree;
 class CDspClient;
 
@@ -67,15 +69,18 @@ class CVmValidateConfig
 
 public:
 
-	explicit CVmValidateConfig(const SmartPtr<CVmConfiguration>& pVmConfig,
+	explicit CVmValidateConfig(SmartPtr<CDspClient> pUser, const SmartPtr<CVmConfiguration>& pVmConfig,
 			const SmartPtr<CVmConfiguration>& pVmConfigOld = SmartPtr<CVmConfiguration>());
 
 	/**
 	 * Check VM configuration
 	 */
-	QList<PRL_RESULT > CheckVmConfig(PRL_VM_CONFIG_SECTIONS nSection,
-			SmartPtr<CDspClient> pUser);
+	QList<PRL_RESULT > CheckVmConfig(PRL_VM_CONFIG_SECTIONS nSection);
 
+	/**
+	 * Check CT configuration
+	 */
+	QList<PRL_RESULT > CheckCtConfig(PRL_VM_CONFIG_SECTIONS nSection);
 
 	typedef enum {
 	    PCVAL_ALLOW_DESTROY_HDD_BUNDLE_WITH_SNAPSHOTS = 1 << 0,
@@ -85,7 +90,6 @@ public:
 	 * Check critical errors
 	 */
 	bool HasCriticalErrors(CVmEvent& evtResult,
-			SmartPtr<CDspClient> pUser = SmartPtr<CDspClient>(),
 			PRL_UINT32 validateInternalFlags = 0);
 
 	/**
@@ -107,6 +111,12 @@ public:
 	 * Check on existing error
 	 */
 	bool HasError(PRL_RESULT nResult) const;
+
+	/** Check VE configuration
+	 *
+	 */
+	static void validateSectionConfig(SmartPtr<CDspClient> pUserSession,
+		const SmartPtr<IOPackage>& );
 
 	/**
 	 * Check invalid symbols
@@ -151,7 +161,8 @@ private:
 	void CheckFloppyDisk();
 	void CheckCdDvdRom();
 	void CheckHardDisk();
-	void CheckNetworkAdapter(SmartPtr<CDspClient> pUser);
+	void CheckNetworkAdapter();
+	void CheckIPDuplicates(const QSet<QString>& setNA_ids_);
 	void CheckSound();
 	void CheckSerialPort();
 	void CheckParallelPort();

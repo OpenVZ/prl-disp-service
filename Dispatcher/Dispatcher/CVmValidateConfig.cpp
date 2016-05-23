@@ -163,19 +163,18 @@ void Sink::operator()(const T&)
 #endif
 #define ADD_FID(set)	m_mapFullItemIds.insert(m_lstResults.size(), set)
 
-CVmValidateConfig::CVmValidateConfig(const SmartPtr<CVmConfiguration>& pVmConfig,
+CVmValidateConfig::CVmValidateConfig(SmartPtr<CDspClient> pUser,
+			const SmartPtr<CVmConfiguration>& pVmConfig,
 			const SmartPtr<CVmConfiguration>& pVmConfigOld)
-: m_pVmConfig(pVmConfig),
+: m_pClient(pUser),
+  m_pVmConfig(pVmConfig),
   m_pVmConfigOld(pVmConfigOld),
   m_bCheckOnlyChanges(false)
 {
 }
 
-QList<PRL_RESULT > CVmValidateConfig::CheckVmConfig(PRL_VM_CONFIG_SECTIONS nSection,
-													SmartPtr<CDspClient> pUser)
+QList<PRL_RESULT > CVmValidateConfig::CheckVmConfig(PRL_VM_CONFIG_SECTIONS nSection)
 {
-	m_pClient = pUser;
-
 	if ( nSection == PVC_VALIDATE_CHANGES_ONLY )
 	{
 		if ( ! getOldVmConfig() )
@@ -239,7 +238,7 @@ QList<PRL_RESULT > CVmValidateConfig::CheckVmConfig(PRL_VM_CONFIG_SECTIONS nSect
 
 	if (nSection == PVC_ALL || nSection == PVC_NETWORK_ADAPTER)
 	{
-		CheckNetworkAdapter(pUser);
+		CheckNetworkAdapter();
 	}
 
 	if (nSection == PVC_ALL || nSection == PVC_SOUND)
@@ -305,6 +304,50 @@ QList<PRL_RESULT > CVmValidateConfig::CheckVmConfig(PRL_VM_CONFIG_SECTIONS nSect
 	return m_lstResults;
 }
 
+QList<PRL_RESULT > CVmValidateConfig::CheckCtConfig(PRL_VM_CONFIG_SECTIONS nSection)
+{
+	if ( nSection == PVC_VALIDATE_CHANGES_ONLY )
+	{
+		if ( ! getOldVmConfig() )
+			return m_lstResults;
+
+		m_bCheckOnlyChanges = true;
+		nSection = PVC_ALL;
+	}
+
+	if (nSection == PVC_ALL || nSection == PVC_NETWORK_ADAPTER)
+	{
+		QList<CVmGenericNetworkAdapter* > lstNetworkAdapters = m_pVmConfig->getVmHardwareList()->m_lstNetworkAdapters;
+		if (!lstNetworkAdapters.empty())
+		{
+			QSet<QString > setNA_ids;
+			foreach(CVmGenericNetworkAdapter* na, lstNetworkAdapters)
+			{
+				if (na)
+					setNA_ids << na->getFullItemId() << na->getNetAddresses_id();
+			}
+
+			CheckIPDuplicates(setNA_ids);
+		}
+	}
+
+	// Add logging.
+	for( int idx = 0; idx < m_lstResults.size(); idx ++ )
+	{
+		if( 0 == idx )
+			WRITE_TRACE(DBG_FATAL, "check config for section %d return %d errors:", nSection, m_lstResults.size() );
+
+		WRITE_TRACE(DBG_FATAL, "\t %#x '%s'"
+			, m_lstResults.at( idx )
+			, PRL_RESULT_TO_STRING( m_lstResults.at( idx ) )
+			);
+	}
+
+	leaveErrorsOnlyForChanges();
+
+	return m_lstResults;
+}
+
 void CVmValidateConfig::leaveErrorsOnlyForChanges()
 {
 	if ( ! m_bCheckOnlyChanges )
@@ -325,10 +368,9 @@ void CVmValidateConfig::leaveErrorsOnlyForChanges()
 }
 
 bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
-										  SmartPtr<CDspClient> pUser,
 										  PRL_UINT32 validateInternalFlags)
 {
-	CheckVmConfig(PVC_ALL, pUser);
+	CheckVmConfig(PVC_ALL);
 
 	for(int i = 0; i < m_lstResults.size(); ++i)
 	{
@@ -522,6 +564,85 @@ QString CVmValidateConfig::GetParameter(PRL_RESULT nResult, int nIndex) const
 bool CVmValidateConfig::HasError(PRL_RESULT nResult) const
 {
 	return m_lstResults.contains(nResult);
+}
+
+void CVmValidateConfig::validateSectionConfig(SmartPtr<CDspClient> pUserSession, const SmartPtr<IOPackage>& pkg)
+{
+	// retrieve user parameters from request data
+
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(pkg);
+	if (!cmd || !cmd->IsValid())
+	{
+		pUserSession->sendSimpleResponse(pkg, PRL_ERR_FAILURE);
+		return;
+	}
+
+	QString vm_config = cmd->GetFirstStrParam();
+
+	// parse VM configuration XML
+
+	SmartPtr<CVmConfiguration> pVmConfig(new CVmConfiguration(vm_config));
+	if (!IS_OPERATION_SUCCEEDED(pVmConfig->m_uiRcInit))
+	{
+		PRL_RESULT code = PRL_ERR_PARSE_VM_CONFIG;
+		WRITE_TRACE(DBG_FATAL, "Error occurred while checking VM configuration with code [%#x (%s)]"
+			, code
+			, PRL_RESULT_TO_STRING( code ) );
+		pUserSession->sendSimpleResponse( pkg, code );
+		return;
+	}
+
+	// check VM configuration
+
+	CProtoCreateVmValidateConfigCommand* pVmValidateConfig =
+		CProtoSerializer::CastToProtoCommand<CProtoCreateVmValidateConfigCommand>( cmd );
+	PRL_VM_CONFIG_SECTIONS nSection = pVmValidateConfig->GetSection();
+
+	//https://bugzilla.sw.ru/show_bug.cgi?id=267152
+	CAuthHelperImpersonateWrapper _impersonate( &pUserSession->getAuthHelper() );
+
+	CVmValidateConfig vmValidateConfig(pUserSession, pVmConfig);
+
+	QList<PRL_RESULT> lstResults;
+	if (pVmConfig->getVmType() == PVT_CT)
+		lstResults = vmValidateConfig.CheckCtConfig(nSection);
+	else
+		lstResults = vmValidateConfig.CheckVmConfig(nSection);
+
+	// Send response
+
+	if (lstResults.isEmpty())
+	{
+		pUserSession->sendSimpleResponse( pkg, PRL_ERR_SUCCESS );
+		return;
+	}
+
+	QList<QString> lstErrors;
+	for (int i = 0; i < lstResults.size(); i++)
+	{
+		if (lstResults[i] == PRL_ERR_SUCCESS)
+			continue;
+
+		CVmEvent result;
+		result.setEventType(PET_DSP_EVT_ERROR_MESSAGE);
+		result.setEventCode(lstResults[i]);
+		vmValidateConfig.AddParameters(i, result);
+
+		lstErrors += result.toString();
+	}
+
+	if (lstErrors.isEmpty())
+	{
+		pUserSession->sendSimpleResponse( pkg, PRL_ERR_SUCCESS );
+		return;
+	}
+
+	CProtoCommandPtr pCmd = CProtoSerializer::CreateDspWsResponseCommand( pkg, PRL_ERR_VMCONF_VALIDATION_FAILED );
+	CProtoCommandDspWsResponse
+		*pResponseCmd = CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>( pCmd );
+	pResponseCmd->SetParamsList(lstErrors);
+
+	pUserSession->sendResponse(pCmd, pkg);
 }
 
 bool CVmValidateConfig::HasSysNameInvalidSymbol(const QString& qsSysName)
@@ -1411,10 +1532,8 @@ void CVmValidateConfig::GetAllSupportedPartitionSysNames(QStringList& lstAllPart
 	while(0);
 }
 
-void CVmValidateConfig::CheckNetworkAdapter(SmartPtr<CDspClient> pUser)
+void CVmValidateConfig::CheckNetworkAdapter()
 {
-	Q_UNUSED (pUser)
-
 	if (!m_pVmConfig || m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
 	{
 		return;
@@ -1676,10 +1795,16 @@ void CVmValidateConfig::CheckNetworkAdapter(SmartPtr<CDspClient> pUser)
 			}
 		}
 	}
-	QMultiHash< QString, SmartPtr<CVmConfiguration> >
-		vmTotalHash = CDspService::instance()->getVmDirHelper().getAllVmList();
+	CheckIPDuplicates(setNA_ids);
+}
 
-	QSet<QHostAddress> duplicates = Task_ManagePrlNetService::checkIPAddressDuplicates(m_pVmConfig, vmTotalHash);
+void CVmValidateConfig::CheckIPDuplicates(const QSet<QString>& setNA_ids_)
+{
+	QList< SmartPtr<CVmConfiguration> > allVEs;
+	CDspService::instance()->getVzHelper()->getCtConfigList(m_pClient, 0, allVEs);
+	allVEs.append(CDspService::instance()->getVmDirHelper().getAllVmList().values());
+
+	QSet<QHostAddress> duplicates = Task_ManagePrlNetService::checkIPAddressDuplicates(m_pVmConfig, allVEs);
 	if (!duplicates.isEmpty())
 	{
 		QString ips;
@@ -1690,7 +1815,7 @@ void CVmValidateConfig::CheckNetworkAdapter(SmartPtr<CDspClient> pUser)
 		}
 		m_lstResults += PRL_ERR_VMCONF_DUPLICATE_IP_ADDRESS;
 		m_mapParameters.insert(m_lstResults.size(), QStringList() << ips);
-		ADD_FID(setNA_ids);
+		ADD_FID(setNA_ids_);
 	}
 }
 

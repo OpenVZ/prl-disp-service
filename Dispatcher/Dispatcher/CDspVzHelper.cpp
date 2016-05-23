@@ -30,6 +30,8 @@
 #include "CDspVzHelper.h"
 #include "CDspService.h"
 #include "Tasks/Task_VzManager.h"
+#include "CVmValidateConfig.h"
+
 #ifdef _CT_
 #include "Tasks/Task_VzStateMonitor.h"
 # ifdef _WIN_
@@ -887,6 +889,8 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 			break;
 		// Fake PRL_ERR_SCCESS answer untill implemented
 		case PVE::DspCmdVmSectionValidateConfig:
+			CVmValidateConfig::validateSectionConfig(pUserSession, p);
+			break;
 		case PVE::DspCmdGetVmToolsInfo:
 		case PVE::DspCmdGetVmVirtDevInfo:
 			pUserSession->sendSimpleResponse( p, PRL_ERR_SUCCESS );
