@@ -42,6 +42,7 @@
 #include "Tasks/Mixin_CreateVmSupport.h"
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <boost/function.hpp>
 //#include "Libraries/VirtualDisk/DiskStatesManager.h"
 
 class CDspVm;
@@ -274,6 +275,44 @@ struct Space
 	PRL_RESULT operator()(const Total& source_, quint64& dst_) const;
 private:
 	quint32 m_mode;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Access
+
+struct Access
+{
+	typedef boost::function1<PRL_RESULT, const QString&> callback_type;
+
+	Access(const Private& private_, const callback_type& callback_)
+		: m_private(private_), m_callback(callback_)
+	{
+	}
+
+	template <typename T, int N>
+	bool check(const QList<T*>& list_)
+	{
+		foreach (T* d, list_)
+		{
+			if (d->getConnected() == PVE::DeviceDisconnected
+					|| d->getEnabled() == PVE::DeviceDisabled)
+				continue;
+
+			if (N != d->getEmulatedType())
+				continue;
+
+			if (!m_private.checkAccess(*d))
+			{
+				m_callback(d->getSystemName());
+				return false;
+			}
+		}
+		return true;
+	}
+
+private:
+	const Private& m_private;
+	callback_type m_callback;
 };
 
 } // namespace Source
