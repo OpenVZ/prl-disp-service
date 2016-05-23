@@ -255,7 +255,7 @@ struct Mount
 	{
 	}
 
-        PRL_RESULT operator()(const QString& snapshot_,
+	PRL_RESULT operator()(const QString& snapshot_,
 			const Product::component_type& tib_, const QDir& store_,
 			QString& dst_);
 
@@ -1022,6 +1022,26 @@ struct Mount: Pure<Export::Mount>
 
 private:
 	void clean();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mountv4
+
+struct Mountv4: Pure<Export::Mount>
+{
+	Mountv4(const QString& ct_, const CVzOperationHelper& core_);
+
+	PRL_RESULT commit();
+	PRL_RESULT rollback()
+	{
+		return commit();
+	}
+	PRL_RESULT export_(const Product::componentList_type& tibList_, const QDir& store_);
+
+private:
+	void clean();
+
+	QStringList m_mounts;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

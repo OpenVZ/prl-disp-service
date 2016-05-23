@@ -107,7 +107,7 @@ QStringList Ct::buildPushArgs(const Activity::Object::Model& activity_) const
 	foreach (const Product::component_type& t, m_context->getProduct()->getCtTibs())
 	{
 		const QFileInfo* f = Command::findArchive(t, activity_);
-		a << "--image" << QString("%1:%2").arg(f->absoluteFilePath())
+		a << "--image" << QString("ploop://%1::%2").arg(f->absoluteFilePath())
 						.arg(t.second.absoluteFilePath());
 	}
 	return a;
@@ -143,7 +143,7 @@ QStringList Vm::buildPushArgs() const
 
 	foreach (const Product::component_type& t, m_context->getProduct()->getVmTibs())
 	{
-		a << "--image" << QString("%1:%2").arg(t.first.getImage())
+		a << "--image" << QString("%1::%2").arg(t.first.getImage())
 						.arg(t.second.absoluteFilePath());
 	}
 	return a;
