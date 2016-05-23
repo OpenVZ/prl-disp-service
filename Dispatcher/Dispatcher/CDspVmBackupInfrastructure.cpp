@@ -1178,6 +1178,7 @@ QString Model::getTibName(const QString& prototype_, const QStringList& met_) co
 	return output;
 }
 
+// legacy method, used for BACKUP_PROTO_V3 and below
 componentList_type Model::getCtTibs() const
 {
 	componentList_type output;

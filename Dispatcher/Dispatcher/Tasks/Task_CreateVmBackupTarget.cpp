@@ -32,7 +32,6 @@
 #include "prlcommon/Interfaces/ParallelsQt.h"
 #include "prlcommon/Interfaces/ParallelsNamespace.h"
 #include "prlcommon/Logging/Logging.h"
-#include "prlcommon/VirtualDisk/Qcow2Disk.h"
 
 #include "CDspService.h"
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
@@ -41,6 +40,65 @@
 #include "vzctl/libvzctl.h"
 #endif
 #include "Task_CreateVmBackup.h"
+#include "Task_BackupHelper_p.h"
+
+namespace Backup
+{
+namespace Target
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Image
+
+PRL_RESULT Image::build(quint64 size_, const QString& base_)
+{
+	VirtualDisk::qcow2PolicyList_type p(1, VirtualDisk::Policy::Qcow2::size_type(size_));
+	if (!base_.isEmpty())
+		p.push_back(VirtualDisk::Policy::Qcow2::base_type(base_));
+	return VirtualDisk::Qcow2::create(m_path, p);
+}
+
+void Image::remove() const
+{
+	QFile(m_path).remove();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Nbd
+
+PRL_RESULT Nbd::start(const Image& image_)
+{
+	QTemporaryFile f;
+	f.setFileTemplate(QString("%1/%2.sock.XXXXXX")
+		.arg(QDir::tempPath())
+		.arg(QFileInfo(image_.getPath()).fileName()));
+	if (!f.open())
+		return PRL_ERR_BACKUP_INTERNAL_ERROR;
+	QString n(f.fileName());
+	f.setAutoRemove(false);
+	f.close();
+
+	VirtualDisk::qcow2PolicyList_type p(1, VirtualDisk::Policy::Qcow2::unix_type(n));
+	PRL_RESULT e = m_nbd.open(image_.getPath(), PRL_DISK_WRITE, p);
+	if (PRL_SUCCEEDED(e)) 
+		m_url = n;
+	return e;
+}
+
+void Nbd::stop()
+{
+	if (m_url.isEmpty())
+		return;
+	m_nbd.close();
+	QFile::remove(m_url);
+}
+
+QString Nbd::getUrl() const
+{
+	return QString("nbd+unix://%1").arg(m_url);
+}
+
+} // namespace Target
+} // namespace Backup
 
 /*******************************************************************************
 
@@ -93,9 +151,10 @@ Task_CreateVmBackupTarget::~Task_CreateVmBackupTarget()
 	// #439777 protect handler from destroying object
 	m_waiter.waitUnlockAndFinalize();
 
-	if (PRL_FAILED(getLastErrorCode())) {
-		foreach(const QString& f, m_createdTibs)
-			QFile(f).remove();
+	foreach(const archive_type& f, m_createdTibs) {
+		f.second->stop();
+		if (PRL_FAILED(getLastErrorCode()))
+			f.first.remove();
 	}
 }
 
@@ -190,7 +249,7 @@ PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Task_CreateVmBackupTarget::buildTibFiles()
+PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
 {
 	if (m_nRemoteVersion < BACKUP_PROTO_V4)
 		return PRL_ERR_SUCCESS;
@@ -199,6 +258,9 @@ PRL_RESULT Task_CreateVmBackupTarget::buildTibFiles()
 	p.setStore(getBackupRoot());
 	unsigned n = getBackupNumber();
 	p.setSuffix(::Backup::Suffix(n, getFlags())());
+	::Backup::Work::object_type o(::Backup::Work::Vm(*this));
+	if (getInternalFlags() & PVM_CT_PLOOP_BACKUP)
+		o = ::Backup::Work::Ct(*this);
 	::Backup::Product::componentList_type x, l = p.getVmTibs();
 
 	// we need to set previous backup archive as qcow backing store for
@@ -211,14 +273,16 @@ PRL_RESULT Task_CreateVmBackupTarget::buildTibFiles()
 	}
 
 	for (int i = 0; i < l.size(); ++i) {
-		VirtualDisk::qcow2PolicyList_type p(1,
-			VirtualDisk::Policy::Qcow2::size_type(l.at(i).first.getDevice().getSize() << 20));
-		if (x.size())
-			p.push_back(VirtualDisk::Policy::Qcow2::base_type(x.at(i).second.absoluteFilePath()));
-		PRL_RESULT e = VirtualDisk::Qcow2::create(l.at(i).second.absoluteFilePath(), p);
+		::Backup::Target::Image a(l.at(i).second.absoluteFilePath());
+		QString base((x.size() ? x.at(i).second.absoluteFilePath() : ""));
+		PRL_RESULT e = a.build(l.at(i).first.getDevice().getSize() << 20, base);
 		if (PRL_FAILED(e))
 			return e;
-		m_createdTibs << l.at(i).second.absoluteFilePath();
+
+		QSharedPointer< ::Backup::Target::Nbd> n(new ::Backup::Target::Nbd());
+		m_createdTibs << qMakePair(a, n);
+		if (PRL_FAILED((e = n->start(a))))
+			return e;
 	}
 	return PRL_ERR_SUCCESS;
 }
@@ -316,7 +380,7 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 		goto exit;
 	}
 
-	if (PRL_FAILED(nRetCode = buildTibFiles()))
+	if (PRL_FAILED(nRetCode = prepareImages()))
 		goto exit;
 
 	/*
@@ -366,6 +430,7 @@ PRL_RESULT Task_CreateVmBackupTarget::run_body()
 	bool bConnected;
 	QTemporaryFile tmpFile;
 	QStringList args;
+	int i = 1;
 
 	/* to lock mutex to avoid ABackup packages processing before backup server start */
 	QMutexLocker locker(&m_cABackupMutex);
@@ -380,7 +445,14 @@ PRL_RESULT Task_CreateVmBackupTarget::run_body()
 	pPackage = DispatcherPackage::createInstance(
 			pReply->GetCommandId(),
 			pReply->GetCommand()->toString(),
-			getRequestPackage());
+			getRequestPackage(), false, m_createdTibs.size() * 2 + 1);
+
+	foreach(const archive_type& a, m_createdTibs) {
+		QString path(a.first.getPath());
+		QString url(a.second->getUrl());
+		pPackage->fillBuffer(i++, IOPackage::RawEncoding, QSTR2UTF8(path), path.size()+1);
+		pPackage->fillBuffer(i++, IOPackage::RawEncoding, QSTR2UTF8(url), url.size()+1);
+	}
 
 	/* set signal handler before reply - to avoid race (#467221) */
 	bConnected = QObject::connect(m_pDispConnection.getImpl(),
