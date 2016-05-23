@@ -105,7 +105,6 @@ public:
 protected:
 	virtual PRL_RESULT prepareTask();
 	virtual PRL_RESULT run_body();
-	virtual void finalizeTask();
 
 private:
 	PRL_RESULT waitForTargetFinished();

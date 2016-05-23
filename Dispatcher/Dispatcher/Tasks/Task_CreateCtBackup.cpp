@@ -197,16 +197,3 @@ PRL_RESULT Task_CreateCtBackupSource::run_body()
 	return waitForTargetFinished();
 }
 
-/* Finalize task */
-void Task_CreateCtBackupSource::finalizeTask()
-{
-	/* umount mounted Container */
-	if (getInternalFlags() & PVM_CT_MOUNTED) {
-		int res = m_VzOpHelper.umount_env(m_sVmUuid);
-		if (res)
-			WRITE_TRACE(DBG_FATAL, "Fail to cleanup after backup: Can not umount"
-				" Container '%s', err = %d", QSTR2UTF8(m_sVmUuid), res);
-	}
-
-	Task_BackupHelper::finalizeTask();	
-}
