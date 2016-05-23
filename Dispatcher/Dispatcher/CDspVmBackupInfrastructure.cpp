@@ -955,6 +955,53 @@ PRL_RESULT Mount::begin(const QString& tmp_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Mountv4
+
+Mountv4::Mountv4(const QString& ct_, const CVzOperationHelper& core_):
+	Pure<Export::Mount>(ct_, Export::Mount(s_component, core_), core_)
+{
+}
+
+void Mountv4::clean()
+{
+	foreach(const QString& i, m_mounts)
+		PloopImage::Image(i).umount();
+}
+
+PRL_RESULT Mountv4::commit()
+{
+	clean();
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Mountv4::export_(const Product::componentList_type& tibList_, const QDir&)
+{
+	PRL_RESULT output = PRL_ERR_SUCCESS;
+	Product::componentList_type c;
+	foreach (const Product::component_type& a, tibList_) {
+		PloopImage::Image p(a.first.getFolder());
+		QString d;
+		if (PRL_FAILED(output = p.getMountedDevice(d)))
+			break;
+
+		if (d.isEmpty()) {
+			// ploop is not mounted case
+			if (PRL_FAILED(output = p.mount(d)))
+				break;
+			m_mounts << d;
+		}
+		c << qMakePair(a.first, QFileInfo(d));
+	}
+
+	if (PRL_FAILED(output)) {
+		clean();
+		setComponents(Product::componentList_type());
+	} else
+		setComponents(c);
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Bitmap
 
 Bitmap::Bitmap(const QString& ct_, const QString& uuid_, const CVzOperationHelper& core_):

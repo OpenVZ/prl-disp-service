@@ -129,9 +129,9 @@ PRL_RESULT Task_CreateCtBackupSource::prepareTask()
 	{
 		::Backup::Task::Director d(CDspService::instance()->getVmDirHelper(), *m_service,
 			CDspService::instance()->getDispConfigGuard());
-		::Backup::Activity::Ct::Builder< ::Backup::Snapshot::Ct::Flavor::Mount>
+		::Backup::Activity::Ct::Builder< ::Backup::Snapshot::Ct::Flavor::Mountv4>
 			b(::Backup::Activity::Builder(MakeVmIdent(m_sVmUuid, m_sVmDirUuid), *this),
-				::Backup::Snapshot::Ct::Flavor::Mount(m_sVmUuid, CVzOperationHelper()),
+				::Backup::Snapshot::Ct::Flavor::Mountv4(m_sVmUuid, CVzOperationHelper()),
 				s->getVzHelper());
 		if (PRL_FAILED(nRetCode = d(b)))
 			goto exit;

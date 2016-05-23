@@ -59,15 +59,9 @@ public:
 		if (PRL_FAILED(e))
 			return e;
 
-		e = s->create(task_);
-		if (PRL_FAILED(e))
-			return e;
-
 		if (task_.getDspTask().operationIsCancelled())
-		{
-			s->destroy();
 			return PRL_ERR_OPERATION_WAS_CANCELED;
-		}
+
 		e = a->start(s.take());
 		if (PRL_FAILED(e))
 			return e;
