@@ -594,32 +594,16 @@ QList<CVmHardDisk* > Total::copyHardDisks() const
 
 PRL_RESULT Total::checkHardwareAccess(Failure& failure_) const
 {
-	foreach (CVmFloppyDisk* d, m_config.getHardware().m_lstFloppyDisks)
-	{
-		if (PVE::FloppyDiskImage == d->getEmulatedType() && !m_private->checkAccess(*d))
-			return failure_(m_config.getName(), d->getSystemName());
-	}
-	foreach (CVmHardDisk* d, m_config.getHardware().m_lstHardDisks)
-	{
-		if (PVE::HardDiskImage == d->getEmulatedType() && !m_private->checkAccess(*d))
-			return failure_(m_config.getName(), d->getSystemName());
-	}
-	foreach (CVmOpticalDisk* d, m_config.getHardware().m_lstOpticalDisks)
-	{
-		if (PVE::CdRomImage == d->getEmulatedType() && !m_private->checkAccess(*d))
-			return failure_(m_config.getName(), d->getSystemName());
-	}
-	foreach (CVmSerialPort* d, m_config.getHardware().m_lstSerialPorts)
-	{
-		if (PVE::SerialOutputFile == d->getEmulatedType() && !m_private->checkAccess(*d))
-			return failure_(m_config.getName(), d->getSystemName());
-	}
-	foreach (CVmParallelPort* d, m_config.getHardware().m_lstParallelPorts)
-	{
-		if (PVE::ParallelOutputFile == d->getEmulatedType() && !m_private->checkAccess(*d))
-			return failure_(m_config.getName(), d->getSystemName());
-	}
-	return PRL_ERR_SUCCESS;
+	Access a(*m_private, boost::bind<PRL_RESULT>(boost::ref(failure_), m_config.getName(), _1));
+
+	if (a.check<CVmParallelPort, PVE::ParallelOutputFile>(m_config.getHardware().m_lstParallelPorts)
+		&& a.check<CVmFloppyDisk, PVE::FloppyDiskImage>(m_config.getHardware().m_lstFloppyDisks)
+		&& a.check<CVmHardDisk, PVE::HardDiskImage>(m_config.getHardware().m_lstHardDisks)
+		&& a.check<CVmOpticalDisk, PVE::CdRomImage>(m_config.getHardware().m_lstOpticalDisks)
+		&& a.check<CVmSerialPort, PVE::SerialOutputFile>(m_config.getHardware().m_lstSerialPorts))
+		return PRL_ERR_SUCCESS;
+
+	return failure_.getCode();
 }
 
 PRL_RESULT Total::checkAccess() const
