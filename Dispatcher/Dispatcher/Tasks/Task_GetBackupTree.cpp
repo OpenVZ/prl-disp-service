@@ -199,19 +199,19 @@ PRL_RESULT Task_GetBackupTreeTarget::addDisks(T& entry,
 	conf->setRelativePath();
 	/* XXX: empty home doesn't work here, so generate some random cookie */
 	QString home("/" + Uuid::createUuid().toString());
-	Backup::Perspective p(conf);
-	Backup::Perspective::archiveList_type archives =
-		(vm.getVmType() == PVBT_VM) ? p.getVmArchives(home) : p.getCtArchives(home);
+	Backup::Product::Model p(Backup::Object::Model(conf), home);
+	Backup::Product::componentList_type archives =
+		(vm.getVmType() == PVBT_VM) ? p.getVmTibs() : p.getCtTibs();
 
-	foreach(const Backup::Archive& a, archives) {
+	foreach(const Backup::Product::component_type& a, archives) {
 		CBackupDisk *b = new (std::nothrow) CBackupDisk;
 		if (!b)
 			return PRL_ERR_OUT_OF_MEMORY;
-		b->setName(a.getName());
-		QFileInfo fi(a.getImageFolder());
+		b->setName(a.second.fileName());
+		QFileInfo fi(a.first.getImage());
 		/* use relative paths for disks that reside in the VM home directory */
 		b->setOriginalPath(fi.dir() == home ? fi.fileName() : fi.filePath());
-		b->setSize(a.getDevice().getSize() << 20);
+		b->setSize(a.first.getDevice().getSize() << 20);
 		list->m_lstBackupDisks << b;
 	}
 	entry.setBackupDisks(list.take());

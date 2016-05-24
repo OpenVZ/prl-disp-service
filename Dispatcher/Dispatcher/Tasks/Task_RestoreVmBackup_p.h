@@ -118,13 +118,13 @@ struct Api
 {
 	Api(quint32 no_, const QString& backupRoot_);
 
-	QStringList query(const Backup::Archive& archive_) const;
+	QStringList query(const Backup::Product::component_type& archive_) const;
 	QStringList restore(const QString& home_) const
 	{
 		return restore(QFileInfo(home_));
 	}
 	QStringList restore(const QString& home_, quint32 veid_) const;
-	QStringList restore(const Backup::Archive& archive_, const QFileInfo& target_) const;
+	QStringList restore(const Backup::Product::component_type& archive_, const QFileInfo& target_) const;
 private:
 	QStringList restore(const QFileInfo& target_) const;
 	QStringList restore(const QString& archive_, const QFileInfo& target_) const;
@@ -192,7 +192,7 @@ struct Work
 	{
 		return m_api;
 	}
-	PRL_RESULT operator()(const Backup::Archive& archive_, const Assistant& assist_,
+	PRL_RESULT operator()(const Backup::Product::component_type& archive_, const Assistant& assist_,
 				quint64& dst_) const;
 private:
 	quint32 m_timeout;
@@ -305,7 +305,7 @@ private:
 
 struct Image
 {
-	Image(const Backup::Archive& archive_, const Query::Work& query_);
+	Image(const Backup::Product::component_type& archive_, const Query::Work& query_);
 	~Image();
 
 	void join(Restore::Assembly& dst_);
@@ -315,7 +315,7 @@ private:
 	QString m_final;
 	QString m_intermediate;
 	Query::Work m_query;
-	Backup::Archive m_archive;
+	Backup::Product::component_type m_archive;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -323,7 +323,7 @@ private:
 
 struct Flavor
 {
-	Flavor(const QString& home_, const Backup::Perspective::archiveList_type& ve_,
+	Flavor(const QString& home_, const Backup::Product::componentList_type& ve_,
 		const Query::Work& query_);
 
 	PRL_RESULT restore(const Assistant& assist_);
