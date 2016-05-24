@@ -72,12 +72,4 @@ Enum<Network::Xml::ENativeMode>::data_type Enum<Network::Xml::ENativeMode>::getD
 			(data_type::value_type(Network::Xml::ENativeModeUntagged, "untagged"));
 }
 
-template<>
-Enum<Network::Xml::EState>::data_type Enum<Network::Xml::EState>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Network::Xml::EStateUp, "up"))
-			(data_type::value_type(Network::Xml::EStateDown, "down"));
-}
-
 } // namespace Libvirt

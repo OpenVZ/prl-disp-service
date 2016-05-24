@@ -66,12 +66,6 @@ enum ENativeMode
 	ENativeModeUntagged
 };
 
-enum EState
-{
-	EStateUp,
-	EStateDown
-};
-
 
 } // namespace Xml
 } // namespace Network

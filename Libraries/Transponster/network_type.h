@@ -1587,14 +1587,6 @@ struct Network
 	{
 		m_vlan = value_;
 	}
-	const boost::optional<EState >& getLink() const
-	{
-		return m_link;
-	}
-	void setLink(const boost::optional<EState >& value_)
-	{
-		m_link = value_;
-	}
 	const QList<Ip >& getIpList() const
 	{
 		return m_ipList;
@@ -1629,7 +1621,6 @@ private:
 	boost::optional<Dns > m_dns;
 	boost::optional<Bandwidth > m_bandwidth;
 	boost::optional<QList<Tag > > m_vlan;
-	boost::optional<EState > m_link;
 	QList<Ip > m_ipList;
 	QList<Route > m_routeList;
 };
@@ -1991,7 +1982,7 @@ struct Traits<Network::Xml::Route>
 template<>
 struct Traits<Network::Xml::Network>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::PConnections, Name::Strict<1160> > >, Optional<Attribute<Network::Xml::EVirYesNo, Name::Strict<1161> > >, Unordered<mpl::vector<Element<Text<QString >, Name::Strict<101> >, Optional<Element<Text<Network::Xml::VUUID >, Name::Strict<139> > >, Optional<Element<Network::Xml::Bridge, Name::Strict<618> > >, Optional<Element<Attribute<Network::Xml::PUniMacAddr, Name::Strict<105> >, Name::Strict<635> > >, Optional<Element<Network::Xml::Forward, Name::Strict<1163> > >, Optional<Network::Xml::VVirtualPortProfileImpl >, ZeroOrMore<Element<Network::Xml::Portgroup, Name::Strict<627> > >, Optional<Element<Attribute<Network::Xml::PDnsName, Name::Strict<101> >, Name::Strict<1> > >, Optional<Element<Network::Xml::Dns, Name::Strict<1172> > >, Optional<Element<Network::Xml::Bandwidth, Name::Strict<181> > >, Optional<Element<Ordered<mpl::vector<Optional<Attribute<mpl::int_<129>, Name::Strict<194> > >, OneOrMore<Element<Network::Xml::Tag, Name::Strict<195> > > > >, Name::Strict<193> > >, Optional<Element<Attribute<Network::Xml::EState, Name::Strict<120> >, Name::Strict<118> > >, ZeroOrMore<Element<Network::Xml::Ip, Name::Strict<651> > >, ZeroOrMore<Element<Network::Xml::Route, Name::Strict<1165> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::PConnections, Name::Strict<1160> > >, Optional<Attribute<Network::Xml::EVirYesNo, Name::Strict<1161> > >, Unordered<mpl::vector<Element<Text<QString >, Name::Strict<101> >, Optional<Element<Text<Network::Xml::VUUID >, Name::Strict<139> > >, Optional<Element<Network::Xml::Bridge, Name::Strict<618> > >, Optional<Element<Attribute<Network::Xml::PUniMacAddr, Name::Strict<105> >, Name::Strict<635> > >, Optional<Element<Network::Xml::Forward, Name::Strict<1163> > >, Optional<Network::Xml::VVirtualPortProfileImpl >, ZeroOrMore<Element<Network::Xml::Portgroup, Name::Strict<627> > >, Optional<Element<Attribute<Network::Xml::PDnsName, Name::Strict<101> >, Name::Strict<1> > >, Optional<Element<Network::Xml::Dns, Name::Strict<1172> > >, Optional<Element<Network::Xml::Bandwidth, Name::Strict<181> > >, Optional<Element<Ordered<mpl::vector<Optional<Attribute<mpl::int_<129>, Name::Strict<194> > >, OneOrMore<Element<Network::Xml::Tag, Name::Strict<195> > > > >, Name::Strict<193> > >, ZeroOrMore<Element<Network::Xml::Ip, Name::Strict<651> > >, ZeroOrMore<Element<Network::Xml::Route, Name::Strict<1165> > > > > > > marshal_type;
 
 	static int parse(Network::Xml::Network& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Network& , QDomElement& );

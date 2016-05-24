@@ -576,6 +576,12 @@ enum EAccessmode
 	EAccessmodeSquash
 };
 
+enum EState
+{
+	EStateUp,
+	EStateDown
+};
+
 enum EName3
 {
 	EName3Kvm,

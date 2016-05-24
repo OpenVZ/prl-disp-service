@@ -608,6 +608,9 @@ Libvirt::Domain::Xml::VInterface Adapter<N>::operator()
 {
 	typename Libvirt::Details::Value::Grab<access_type>::type i = prepare(network_);
 
+	if (network_.getConnected() != PVE::DeviceConnected)
+		i.setLink(Libvirt::Domain::Xml::EStateDown);
+
 	i.setAlias(network_.getSystemName());
 	View view(network_);
 	QString m = view.getMac();
