@@ -1,3 +1,5 @@
+.*.swp
+.*.swo
 Build/Build.pri
 Build/BuildUtil.pyc
 Build/Current-gen.ver

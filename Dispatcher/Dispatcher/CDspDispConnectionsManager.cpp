@@ -36,6 +36,7 @@
 #include "CDspVm.h"
 
 #include <prlcommon/Std/PrlAssert.h>
+#include "Tasks/Legacy/MigrateVmTarget.h"
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 
 #include "CDspVzHelper.h"
@@ -174,6 +175,9 @@ void CDspDispConnectionsManager::handleToDispatcherPackage ( const IOSender::Han
 		case VmMigrateCheckPreconditionsCmd:
 			m_service->getVmMigrateHelper().checkPreconditions(pDispConnection, p);
 			break;
+		case VmMigrateStartCmd:
+			m_service->getVmMigrateHelper().startMigration(pDispConnection, p);
+			break;
 		case VmBackupCreateCmd:
 		case VmBackupCreateLocalCmd:
 			m_backup.startCreateVmBackupTargetTask(pDispConnection, p);
@@ -266,3 +270,24 @@ void CDspDispConnectionsManager::ProcessDispConnectionLogoff(
 }
 
 /*****************************************************************************/
+
+void CDspDispConnectionsManager::handleDetachClient(
+	const IOSender::Handle& h,
+	const IOCommunication::DetachedClient& detachedClient)
+{
+	// Lock
+	QReadLocker locker(&m_rwLock);
+
+	if (!m_dispconns.contains(h)) {
+		CDspService::instance()->getIOServer().disconnectClient(h);
+		return;
+	}
+	// #455781 under read access (QReadLocker) we should call only const methods
+	// to prevent app crash after simultaneously call QT_CONT::detach_helper().
+	SmartPtr<CDspDispConnection> pDispConnection = m_dispconns.value(h);
+	locker.unlock();
+
+	SmartPtr<CDspHandler> hdler = CDspHandlerRegistrator::instance().findHandler(IOSender::VmConverter);
+	hdler->handleDetachClient(h, detachedClient);
+}
+

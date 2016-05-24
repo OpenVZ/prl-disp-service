@@ -132,6 +132,9 @@ HEADERS += \
 	Tasks/Task_MigrateVm.h \
 	Tasks/Task_MigrateVmTarget.h \
 	Tasks/Task_MigrateVmTarget_p.h \
+	Tasks/Legacy/MigrateVmTarget.h \
+	Legacy/MigrationHandler.h \
+	Legacy/VmConverter.h \
 	Tasks/Task_DispToDispConnHelper.h \
 	Tasks/Task_ConvertDisks.h \
 	Tasks/Task_EditVm.h \
@@ -249,6 +252,9 @@ SOURCES += \
 	Tasks/Task_SyncVmsUptime.cpp \
 	Tasks/Task_MigrateVm.cpp \
 	Tasks/Task_MigrateVmTarget.cpp \
+	Tasks/Legacy/MigrateVmTarget.cpp \
+	Legacy/MigrationHandler.cpp \
+	Legacy/VmConverter.cpp \
 	Tasks/Task_DispToDispConnHelper.cpp \
 	Tasks/Task_ConvertDisks.cpp \
 	Tasks/Task_EditVm.cpp \

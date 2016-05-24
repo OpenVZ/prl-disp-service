@@ -67,7 +67,16 @@ public:
 	 * @param package from client
 	 */
 	virtual void handleToDispatcherPackage ( const IOSender::Handle&,
-											 const SmartPtr<IOPackage>& p );
+		 const SmartPtr<IOPackage>& p );
+
+	/**
+	 * * Handle detached dispatcher connection
+	 *  * @param handle to dispatcher connection
+	 * @param detached client info
+	 */
+	virtual void handleDetachClient(
+		const IOSender::Handle& h,
+		const IOCommunication::DetachedClient& detachedClient);
 
 private:
 	/**

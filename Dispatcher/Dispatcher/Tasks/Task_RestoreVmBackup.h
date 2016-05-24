@@ -38,6 +38,7 @@
 #include "CDspTaskHelper.h"
 #include "CDspRegistry.h"
 #include "CDspClient.h"
+#include "CDspVmConfigManager.h"
 #include "prlxmlmodel/VmConfig/CVmConfiguration.h"
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
 #include "prlcommon/IOService/IOCommunication/IOClient.h"
@@ -45,6 +46,7 @@
 #include "CDspDispConnection.h"
 #include "Task_BackupHelper.h"
 #include "CDspVzHelper.h"
+#include "Legacy/VmConverter.h"
 
 namespace Restore
 {
@@ -196,7 +198,7 @@ private:
  	QString m_sVzCacheTmpDir;
  
 	WaiterTillHandlerUsingObject m_waiter;
-	std::auto_ptr<Restore::Converter> m_converter;
+	std::auto_ptr<Legacy::Vm::Converter> m_converter;
 
 private slots:
 	void handlePackage(const SmartPtr<IOPackage> p);

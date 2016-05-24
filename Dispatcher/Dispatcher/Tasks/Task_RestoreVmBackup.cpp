@@ -542,7 +542,6 @@ PRL_RESULT Task_RestoreVmBackupSource::restoreImage(const QString& from_, const 
 	WRITE_TRACE(DBG_DEBUG, "qemu-img output:\n%s", qPrintable(out));
 
 	return PRL_ERR_SUCCESS;
-
 }
 
 void Task_RestoreVmBackupSource::handleVBackupPackage(IOSender::Handle h, const SmartPtr<IOPackage> p)

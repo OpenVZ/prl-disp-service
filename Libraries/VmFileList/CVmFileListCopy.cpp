@@ -33,7 +33,6 @@
 // #define FORCE_LOGGING_LEVEL DBG_DEBUG
 
 #include "CVmFileListCopy.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlcommon/Std/PrlAssert.h>

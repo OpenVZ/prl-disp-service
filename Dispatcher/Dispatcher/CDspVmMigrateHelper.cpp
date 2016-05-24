@@ -35,11 +35,8 @@
 #include "CDspVm.h"
 #include "CDspClientManager.h"
 #include "Tasks/Task_MigrateVmTarget.h"
-#ifdef _WIN_
-# include "Tasks/Task_MigrateCt_win.h"
-#else
-# include "Tasks/Task_MigrateCtTarget.h"
-#endif
+#include "Tasks/Legacy/MigrateVmTarget.h"
+#include "Tasks/Task_MigrateCtTarget.h"
 #include "Tasks/Mixin_CreateVmSupport.h"
 
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
@@ -112,20 +109,49 @@ void CDspVmMigrateHelper::checkPreconditions(
 
 	CDspTaskHelper *task_helper;
 	if (pCheckCmd->GetReservedFlags() & PVM_CT_MIGRATE)
-#ifdef _CT_
 		task_helper = new Task_MigrateCtTarget(pDispConnection, pCmd, p);
-#else
-	{
-		WRITE_TRACE(DBG_FATAL, "Linux containers are not implemented");
-		pDispConnection->sendSimpleResponse( p, PRL_ERR_UNIMPLEMENTED );
-		return;
-	}
-#endif
+	else if (MIGRATE_DISP_PROTO_V7 > pCheckCmd->GetVersion())
+		task_helper = new Legacy::Task::MigrateVmTarget(m_registry, (QObject *)this, pDispConnection, pCmd, p);
 	else
 		task_helper = new Task_MigrateVmTarget(m_registry, pDispConnection, pCmd, p);
 
 	CDspService::instance()->getTaskManager().schedule(task_helper);
 }
+
+void CDspVmMigrateHelper::startMigration(SmartPtr<CDspDispConnection> pDispConnection, const SmartPtr<IOPackage> &p)
+{
+	WRITE_TRACE(DBG_DEBUG, "Start migration command received");
+
+	PRL_ASSERT(pDispConnection.getImpl());
+	PRL_ASSERT(p.getImpl());
+
+	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(p);
+	if (!pCmd->IsValid())
+	{
+		pDispConnection->sendSimpleResponse(p, PRL_ERR_FAILURE);
+		WRITE_TRACE(DBG_FATAL, "Wrong start migration package was received: [%s]",\
+			p->buffers[0].getImpl());
+		return;
+	}
+
+	CVmMigrateStartCommand *pStartCommand =
+		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmMigrateStartCommand>(pCmd);
+
+	SmartPtr<CVmConfiguration> pVmConfig(new CVmConfiguration(pStartCommand->GetVmConfig()));
+	if (PRL_FAILED(pVmConfig->m_uiRcInit))
+	{
+		pDispConnection->sendSimpleResponse(p, PRL_ERR_PARSE_VM_CONFIG);
+		WRITE_TRACE(DBG_FATAL, "Wrong VM configuration was received: [%s]",\
+			QSTR2UTF8(pStartCommand->GetVmConfig()));
+		return;
+	}
+
+	if (pStartCommand->GetVersion() >= MIGRATE_DISP_PROTO_V7)
+		pDispConnection->handlePackage(p);
+	else
+		emit onPackageReceived(pDispConnection, pVmConfig->getVmIdentification()->getVmUuid(), p);
+}
+
 
 void CDspVmMigrateHelper::cancelMigration(
 		const SmartPtr<CDspClient> &pSession,
