@@ -1021,7 +1021,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	/* do not change bundle of existing Vm */
 	if (m_sTargetVmHomePath.size()) {
 		WRITE_TRACE(DBG_FATAL, "It is't possible to set target private for restore existing VM");
-		return PRL_ERR_BAD_PARAMETERS;
+		return PRL_ERR_BACKUP_RESTORE_EXISTING_SET_PRIVATE;
 	}
 
 	{
@@ -1407,7 +1407,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 	/* do not change bundle of existing Vm */
 	if (m_sTargetVmHomePath.size()) {
 		WRITE_TRACE(DBG_FATAL, "It is't possible to set target private for restore existing VM");
-		return PRL_ERR_BAD_PARAMETERS;
+		return PRL_ERR_BACKUP_RESTORE_EXISTING_SET_PRIVATE;
 	}
 
 	QString ctId = pConfig->getVmIdentification()->getCtId();
