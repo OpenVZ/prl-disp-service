@@ -283,7 +283,8 @@ namespace Monitor
 {
 enum
 {
-	DEFAULT_TIMEOUT = 1000
+	RECONNECT_TIMEOUT = 1000,
+	PERFORMANCE_TIMEOUT = 5000
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -291,7 +292,7 @@ enum
 
 struct Link: QObject
 {
-	explicit Link(int timeout_ = DEFAULT_TIMEOUT);
+	explicit Link(int timeout_ = RECONNECT_TIMEOUT);
 
 public slots:
 	void setOpen();
@@ -316,7 +317,7 @@ private:
 struct Domains: QObject
 {
 	explicit Domains(Registry::Actual& registry_,
-		int timeout_ = DEFAULT_TIMEOUT);
+		int timeout_ = PERFORMANCE_TIMEOUT);
 
 public slots:
 	void getPerformance();
