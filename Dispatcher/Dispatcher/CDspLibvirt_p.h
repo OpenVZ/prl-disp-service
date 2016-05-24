@@ -284,7 +284,7 @@ namespace Monitor
 enum
 {
 	RECONNECT_TIMEOUT = 1000,
-	PERFORMANCE_TIMEOUT = 5000
+	PERFORMANCE_TIMEOUT = 10000
 };
 
 ///////////////////////////////////////////////////////////////////////////////
