@@ -268,17 +268,18 @@ QStringList Api::restore(const QString& archive_, const QFileInfo& target_) cons
 			<< QString::number(m_no);
 }
 
-QStringList Api::query(const Backup::Archive& archive_) const
+QStringList Api::query(const Backup::Product::component_type& archive_) const
 {
 	return QStringList() << "query_archive" << ""
 			<< m_backupRoot.absolutePath()
-			<< m_backupRoot.absoluteFilePath(archive_.getName())
+			<< m_backupRoot.absoluteFilePath(archive_.second.fileName())
 			<< QString::number(m_no);
 }
 
-QStringList Api::restore(const Backup::Archive& archive_, const QFileInfo& target_) const
+QStringList Api::restore(const Backup::Product::component_type& archive_,
+		const QFileInfo& target_) const
 {
-	return restore(m_backupRoot.absoluteFilePath(archive_.getName()), target_);
+	return restore(m_backupRoot.absoluteFilePath(archive_.second.fileName()), target_);
 }
 
 } // namespace AClient
@@ -457,8 +458,8 @@ Work::Work(const AClient::Api& api_, SmartPtr<IOClient> io_, quint32 timeout_):
 {
 }
 
-PRL_RESULT Work::operator()(const Backup::Archive& archive_, const Assistant& assist_,
-			quint64& dst_) const
+PRL_RESULT Work::operator()(const Backup::Product::component_type& archive_,
+		const Assistant& assist_, quint64& dst_) const
 {
 	Handler* h = new Handler(m_io, m_timeout);
 	SmartPtr<Chain> g(h);
@@ -622,7 +623,6 @@ Restore::Assembly* Vm::assemble(const QString& dst_)
 	return output.release();
 }
 
-#ifdef _CT_
 ///////////////////////////////////////////////////////////////////////////////
 // struct Ct
 
@@ -644,7 +644,6 @@ Restore::Assembly* Ct::operator()(F flavor_, const QString& home_)
 	return output;
 }
 
-#ifdef _LIN_
 namespace Ploop
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -686,9 +685,9 @@ Device::Device(const QString& path_): m_path(path_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Image
 
-Image::Image(const Backup::Archive& archive_, const Query::Work& query_):
-	m_final(archive_.getImageFolder()), m_intermediate(archive_.getRestoreFolder()),
-	m_query(query_), m_archive(archive_)
+Image::Image(const Backup::Product::component_type& component_, const Query::Work& query_):
+	m_final(component_.first.getImage()), m_intermediate(component_.first.getRestorePath()),
+	m_query(query_), m_archive(component_)
 {
 }
 
@@ -732,7 +731,7 @@ PRL_RESULT Image::do_(const Assistant& assist_)
 		return PRL_ERR_DISK_MOUNT_FAILED;
 
 	output = assist_(m_query.getApi().restore(m_archive,
-		QFileInfo(device->getName())), m_archive.getDevice().getIndex());
+		QFileInfo(device->getName())), m_archive.first.getDevice().getIndex());
 	device->umount();
 	return output;
 }
@@ -740,10 +739,10 @@ PRL_RESULT Image::do_(const Assistant& assist_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Flavor
 
-Flavor::Flavor(const QString& home_, const Backup::Perspective::archiveList_type& ve_,
+Flavor::Flavor(const QString& home_, const Backup::Product::componentList_type& ve_,
 	const Query::Work& query_): m_home(home_)
 {
-	foreach (Backup::Archive a, ve_)
+	foreach (Backup::Product::component_type a, ve_)
 	{
 		m_imageList << Image(a, query_);
 	}
@@ -775,8 +774,6 @@ PRL_RESULT Flavor::restore(const Assistant& assist_)
 	return PRL_ERR_SUCCESS;
 }
 } // namespace Ploop
-#endif // _LIN_
-#endif // _CT_
 } // namespace Target
 } // namespace Restore
 
@@ -1338,7 +1335,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 
 PRL_RESULT Task_RestoreVmBackupTarget::restoreCt()
 {
-#ifdef _CT_
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	QString sVzDirUuid;
 	QString sDefaultCtFolder;
@@ -1361,19 +1357,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCt()
 
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
-
-#ifdef _LIN_
-	/* vzwin and ploop allow restore w/o os template */
-	/* check OS template */
-	if (!(m_nInternalFlags & PVM_CT_PLOOP_BACKUP)) {
-		QString sOsTemplate = m_pVmConfig->getCtSettings()->getOsTemplate();
-		nRetCode = CDspService::instance()->getVzHelper()->getVzTemplateHelper().is_ostemplate_exists(sOsTemplate);
-		if (PRL_FAILED(nRetCode)) {
-			WRITE_TRACE(DBG_FATAL, "[%s] OS template %s does not found", __FUNCTION__, QSTR2UTF8(sOsTemplate));
-			return nRetCode;
-		}
-	}
-#endif
 
 	{
 		CDspLockedPointer<CVmDirectory> pDir = CDspService::instance()->getVmDirManager().getVzDirectory();
@@ -1408,17 +1391,10 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCt()
 	CDspService::instance()->getVmDirHelper().unregisterExclusiveVmOperation(
 		m_sVmUuid, sVzDirUuid, PVE::DspCmdRestoreVmBackup, getClient());
 
-#ifdef _LIN_
 	sync();
-#endif
 	return nRetCode;
-#else
-	WRITE_TRACE(DBG_FATAL, "Containers does not implemented");
-	return PRL_ERR_UNIMPLEMENTED;
-#endif
 }
 
-#ifdef _CT_
 PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmConfiguration> &pConfig)
 {
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
@@ -1672,10 +1648,9 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtToTargetPath(
 		if (PRL_SUCCEEDED(output = getFiles(bIsRealMountPoint)))
 		{
 			Restore::Query::Work w(p, getIoClient(), m_nBackupTimeout);
-			Restore::Target::Ploop::Flavor f(m_sTargetPath,
-					Backup::Perspective(m_pVmConfig)
-						.getCtArchives(m_sTargetPath),
-					w);
+			Backup::Product::Model p(Backup::Object::Model(m_pVmConfig), m_sTargetPath);
+			p.setStore(m_sBackupRootPath);
+			Restore::Target::Ploop::Flavor f(m_sTargetPath, p.getCtTibs(), w);
 			dst_.reset(t(f, m_sTargetVmHomePath));
 		}
 	}
@@ -1689,7 +1664,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtToTargetPath(
 
 	return output;
 }
-#endif // _CT_
 
 PRL_RESULT Task_RestoreVmBackupTarget::lockExclusiveVmParameters(SmartPtr<CVmDirectory::TemporaryCatalogueItem> pInfo)
 {

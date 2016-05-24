@@ -157,49 +157,12 @@ class Task_BackupHelper;
 namespace Backup
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Archive
-//
-
-struct Archive
-{
-	Archive(CVmHardDisk* device_, const QString& name_,
-		const QString& image_):
-		m_device(device_), m_name(name_), m_image(image_)
-	{
-	}
-	Archive(CVmHardDisk* device_, const QString& name_,
-		const QString& image_, const QString& home_);
-
-	const QString& getName() const
-	{
-		return m_name;
-	}
-	const CVmHardDisk& getDevice() const
-	{
-		return *m_device;
-	}
-	const QString& getImageFolder() const
-	{
-		return m_image;
-	}
-	QString getPath(const QString& prefix_) const;
-	QString getRestoreFolder() const;
-	QString getSnapshotFolder(const QString& prefix_) const;
-private:
-	CVmHardDisk* m_device;
-	QString m_name;
-	QString m_home;
-	QString m_image;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Perspective
 //
 
 struct Perspective
 {
 	typedef QList<CVmHardDisk* > imageList_type;
-	typedef QList<Archive> archiveList_type;
 	typedef SmartPtr<CVmConfiguration> config_type;
 
 	explicit Perspective(const config_type& config_);
@@ -209,8 +172,6 @@ struct Perspective
 		return !m_config.isValid() || m_config->getVmHardwareList() == NULL;
 	}
 	imageList_type getImages() const;
-	archiveList_type getCtArchives(const QString& home_) const;
-	archiveList_type getVmArchives(const QString& home_) const;
 	config_type clone(const QString& uuid_, const QString& name_) const;
 private:
 	static QString getName(const QString& name_, const QStringList& met_);

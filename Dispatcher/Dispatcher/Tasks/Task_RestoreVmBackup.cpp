@@ -425,7 +425,6 @@ exit:
 
 PRL_RESULT Task_RestoreVmBackupSource::restoreCt()
 {
-#ifdef _CT_
 	int y = 0;
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	CDispToDispCommandPtr pReply;
@@ -498,10 +497,6 @@ exit_1:
 exit_0:
 	setLastErrorCode(nRetCode);
 	return nRetCode;
-#else
-	WRITE_TRACE(DBG_FATAL, "Linux containers does not implemented");
-	return PRL_ERR_UNIMPLEMENTED;
-#endif
 }
 
 void Task_RestoreVmBackupSource::handleABackupPackage(IOSender::Handle h, const SmartPtr<IOPackage> p)

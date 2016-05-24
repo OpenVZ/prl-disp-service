@@ -874,51 +874,6 @@ QString Client::getAcronisErrorString(int code_)
 namespace Backup
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Archive
-//
-
-Archive::Archive(CVmHardDisk* device_, const QString& name_,
-	const QString& image_, const QString& home_):
-	m_device(device_), m_name(name_)
-{
-	QFileInfo f(image_);
-	if (!f.isAbsolute())
-	{
-		m_home = home_;
-		f = QFileInfo(QDir(home_), f.fileName());
-	}
-	m_image = f.absoluteFilePath();
-}
-
-QString Archive::getPath(const QString& prefix_) const
-{
-	return QString("%1/%2").arg(prefix_).arg(m_name);
-}
-
-QString Archive::getRestoreFolder() const
-{
-	if (!m_home.isEmpty())
-		return m_image;
-
-	QString s = m_image;
-	QFileInfo f(s);
-	do
-	{
-		QString p = f.absolutePath();
-		f.setFile(p);
-		s = CFileHelper::GetMountPoint(p);
-	} while(!f.isRoot() && s.isEmpty());
-	s = QString("%1/%2.restore").arg(s).arg(Uuid::createUuid().toString());
-	return QFileInfo(QDir(s), f.fileName()).absoluteFilePath();
-}
-
-QString Archive::getSnapshotFolder(const QString& prefix_) const
-{
-	QString x = QFileInfo(m_name).completeBaseName();
-	return QString("%1/%2").arg(prefix_).arg(x);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Perspective
 //
 
@@ -954,55 +909,6 @@ QString Perspective::getName(const QString& name_, const QStringList& met_)
 	while (met_.contains(output))
 		output.prepend("_");
 
-	return output;
-}
-
-Perspective::archiveList_type Perspective::getCtArchives(const QString& home_) const
-{
-	archiveList_type output;
-	if (bad())
-		return output;
-
-	imageList_type g = getImages();
-	if (g.isEmpty())
-		return output;
-
-	QString n = g.front()->getUserFriendlyName();
-	QString r = n.isEmpty() ? "root.hdd" : n;
-	// NB. always name the first tib the old way to preserve compatibility
-	// for restore. now all the ploop-based ves archives are private.tib.
-	output << Archive(g.front(), PRL_CT_BACKUP_TIB_FILE_NAME, r, home_);
-	g.pop_front();
-	QStringList w;
-	foreach (CVmHardDisk* h, g)
-	{
-		w << output.last().getName();
-		// NB. igor@ said that the friendly name was always
-		// an absolute path.
-		// NB. he lied.
-		n = h->getUserFriendlyName();
-		output << Archive(h, getName(n, w), n, home_);
-	}
-	return output;
-}
-
-Perspective::archiveList_type Perspective::getVmArchives(const QString& home_) const
-{
-	archiveList_type output;
-	if (bad())
-		return output;
-
-	imageList_type g = getImages();
-	if (g.isEmpty())
-		return output;
-
-	QStringList w;
-	foreach (CVmHardDisk* h, g)
-	{
-		QString n = h->getSystemName();
-		output << Archive(h, getName(n, w), n, home_);
-		w << output.last().getName();
-	}
 	return output;
 }
 
