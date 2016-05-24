@@ -721,6 +721,14 @@ Enum<Domain::Xml::EAccessmode>::data_type Enum<Domain::Xml::EAccessmode>::getDat
 }
 
 template<>
+Enum<Domain::Xml::EState>::data_type Enum<Domain::Xml::EState>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EStateUp, "up"))
+			(data_type::value_type(Domain::Xml::EStateDown, "down"));
+}
+
+template<>
 Enum<Domain::Xml::EName3>::data_type Enum<Domain::Xml::EName3>::getData()
 {
 	return ba::list_of<data_type::relation>

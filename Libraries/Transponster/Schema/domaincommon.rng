@@ -2281,6 +2281,17 @@
   <define name="interface-options">
     <interleave>
       <optional>
+        <element name="link">
+          <attribute name="state">
+            <choice>
+              <value>up</value>
+              <value>down</value>
+            </choice>
+          </attribute>
+          <empty/>
+        </element>
+      </optional>
+      <optional>
         <element name="target">
           <attribute name="dev">
             <ref name="deviceName"/>

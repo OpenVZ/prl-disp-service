@@ -284,6 +284,9 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 		m_clip->getBootSlot(bridge_.getValue().getBoot().get())
 			.set(a->getDeviceType(), a->getIndex());
 	}
+	if (bridge_.getValue().getLink()
+			&& bridge_.getValue().getLink().get() == Libvirt::Domain::Xml::EStateDown)
+		a->setConnected(PVE::DeviceDisconnected);
 
 	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
@@ -319,6 +322,9 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 		m_clip->getBootSlot(network_.getValue().getBoot().get())
 			.set(a->getDeviceType(), a->getIndex());
 	}
+	if (network_.getValue().getLink()
+			&& network_.getValue().getLink().get() == Libvirt::Domain::Xml::EStateDown)
+		a->setConnected(PVE::DeviceDisconnected);
 
 	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
@@ -354,6 +360,9 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 		m_clip->getBootSlot(direct_.getValue().getBoot().get())
 			.set(a->getDeviceType(), a->getIndex());
 	}
+	if (direct_.getValue().getLink()
+			&& direct_.getValue().getLink().get() == Libvirt::Domain::Xml::EStateDown)
+		a->setConnected(PVE::DeviceDisconnected);
 
 	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;

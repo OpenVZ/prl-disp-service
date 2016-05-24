@@ -1873,9 +1873,8 @@ int Traits<Network::Xml::Network>::parse(Network::Xml::Network& dst_, QStack<QDo
 		dst_.setDns(m.get<2>().get<8>().getValue());
 		dst_.setBandwidth(m.get<2>().get<9>().getValue());
 		dst_.setVlan(m.get<2>().get<10>().getValue());
-		dst_.setLink(m.get<2>().get<11>().getValue());
-		dst_.setIpList(m.get<2>().get<12>().getValue());
-		dst_.setRouteList(m.get<2>().get<13>().getValue());
+		dst_.setIpList(m.get<2>().get<11>().getValue());
+		dst_.setRouteList(m.get<2>().get<12>().getValue());
 	}
 	return output;
 }
@@ -1909,11 +1908,9 @@ int Traits<Network::Xml::Network>::generate(const Network::Xml::Network& src_, Q
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<2>().get<10>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getLink(), m.get<2>().get<11>()))
+	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<2>().get<11>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<2>().get<12>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getRouteList(), m.get<2>().get<13>()))
+	if (0 > Details::Marshal::assign(src_.getRouteList(), m.get<2>().get<12>()))
 		return -1;
 
 	return m.produce(dst_);
