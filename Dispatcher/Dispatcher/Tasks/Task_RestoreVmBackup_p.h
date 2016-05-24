@@ -380,7 +380,7 @@ private:
 
 struct Converter
 {
-	void convertHardware(SmartPtr<CVmConfiguration> &cfg) const;
+	PRL_RESULT convertHardware(SmartPtr<CVmConfiguration> &cfg) const;
 	PRL_RESULT convertVm(const QString &vmUuid) const;
 };
 

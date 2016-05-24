@@ -37,6 +37,7 @@
 #include "Interfaces/Debug.h"
 #include "prlcommon/Interfaces/ParallelsQt.h"
 #include "prlcommon/Interfaces/ParallelsNamespace.h"
+#include "prlcommon/Interfaces/ApiDevNums.h"
 #include "Task_RestoreVmBackup_p.h"
 #include "prlcommon/Logging/Logging.h"
 #include "prlcommon/PrlUuid/Uuid.h"
@@ -811,35 +812,45 @@ PRL_RESULT Flavor::restore(const Assistant& assist_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Converter
 
-void Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
+PRL_RESULT Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 {
 	CVmHardware *pVmHardware;
 	if ((pVmHardware = cfg->getVmHardwareList()) == NULL) {
 		WRITE_TRACE(DBG_FATAL, "[%s] Can not get Vm hardware list", __FUNCTION__);
-		return;
+		return PRL_ERR_SUCCESS;
 	}
 
 	// No PMU in guest with Parallels Tools causes BSOD.
 	if (pVmHardware->getCpu())
 		pVmHardware->getCpu()->setVirtualizePMU(true);
 
+	QMap<PRL_MASS_STORAGE_INTERFACE_TYPE, unsigned> ifaces;
 	// Convert Cdrom devices to IDE since SATA is unsupported.
 	foreach(CVmOpticalDisk* pDevice, pVmHardware->m_lstOpticalDisks) {
-		if (pDevice != NULL && pDevice->getEmulatedType() == PVE::CdRomImage)
+		if (pDevice == NULL)
+			continue;
+		if (pDevice->getEmulatedType() == PVE::CdRomImage)
 			pDevice->setInterfaceType(PMS_IDE_DEVICE);
+		ifaces[pDevice->getInterfaceType()]++;
 	}
 
 	// Convert disks to virtio-scsi
 	// There's no virtio-scsi drivers for win2003-, use virtio-block.
 	foreach(CVmHardDisk *pDevice, pVmHardware->m_lstHardDisks) {
-		if (NULL == pDevice || pDevice->getEmulatedType() != PVE::HardDiskImage)
+		if (NULL == pDevice)
 			continue;
+		if (pDevice->getEmulatedType() != PVE::HardDiskImage)
+		{
+			ifaces[pDevice->getInterfaceType()]++;
+			continue;
+		}
 		bool noSCSI = cfg->getVmSettings()->getVmCommonOptions()->getOsType() ==
 				PVS_GUEST_TYPE_WINDOWS &&
 			IS_WIN_VER_BELOW(cfg->getVmSettings()->getVmCommonOptions()->getOsVersion(),
 			                 PVS_GUEST_VER_WIN_VISTA);
 		pDevice->setInterfaceType(noSCSI ? PMS_VIRTIO_BLOCK_DEVICE : PMS_SCSI_DEVICE);
 		pDevice->setSubType(noSCSI ? PCD_BUSLOGIC : PCD_VIRTIO_SCSI);
+		ifaces[pDevice->getInterfaceType()]++;
 	}
 
 	// Convert network interfaces to virtio-net
@@ -851,6 +862,18 @@ void Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	// Parallel ports are not supported anymore
 	pVmHardware->m_lstParallelPortOlds.clear();
 	pVmHardware->m_lstParallelPorts.clear();
+
+	if (ifaces[PMS_IDE_DEVICE] > PRL_MAX_IDE_DEVICES_NUM)
+	{
+		WRITE_TRACE(DBG_FATAL, "Too many %s devices after config conversion", "IDE");
+		return PRL_ERR_VMCONF_IDE_DEVICES_COUNT_OUT_OF_RANGE;
+	}
+	if (ifaces[PMS_SCSI_DEVICE] > PRL_MAX_SCSI_DEVICES_NUM)
+	{
+		WRITE_TRACE(DBG_FATAL, "Too many %s devices after config conversion", "SCSI");
+		return PRL_ERR_VMCONF_SCSI_DEVICES_COUNT_OUT_OF_RANGE;
+	}
+	return PRL_ERR_SUCCESS;
 }
 
 PRL_RESULT Converter::convertVm(const QString &vmUuid) const
@@ -1381,6 +1404,12 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
+	PRL_RESULT nRetCode;
+	// Check resulting config before restoring disks.
+	if (m_converter.get() != NULL &&
+		PRL_FAILED(nRetCode = m_converter->convertHardware(m_pVmConfig)))
+		return nRetCode;
+
 	::Backup::Object::Model m(m_pVmConfig);
 	if (m.isBad())
 		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
@@ -1388,7 +1417,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 	p.setStore(m_sBackupRootPath);
 	if (BACKUP_PROTO_V4 <= m_nRemoteVersion)
 		p.setSuffix(::Backup::Suffix(m_nBackupNumber, getFlags())());
-	PRL_RESULT nRetCode;
 	Restore::Target::Vm u(m_nBackupNumber, m_sTargetPath, m_sBackupRootPath,
 			Restore::Assistant(*this,
 				Restore::AClient::Unit(*this, m_sOriginVmUuid, *m_pVmConfig)));
@@ -1437,8 +1465,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 	/* to check device images in new home directory (#460845) */
 	if (PRL_FAILED(nRetCode = fixHardWareList()))
 		return nRetCode;
-	if (m_converter.get() != NULL)
-		m_converter->convertHardware(m_pVmConfig);
 
 	if (m_pVmConfig->getVmIdentification()->getHomePath().isEmpty())
 	{
