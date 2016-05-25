@@ -85,6 +85,7 @@ private:
 	void checkTargetCpuCompatibility();
 	/* compare available and requires disk spaces */
 	void checkRequiresDiskSpace();
+	void checkRemoteDisplay();
 	/**
 	 * Checks whether target VM home path resides on iscsi storage
 	 */
