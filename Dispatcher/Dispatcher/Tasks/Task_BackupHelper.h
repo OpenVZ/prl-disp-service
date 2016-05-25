@@ -395,15 +395,6 @@ protected:
 	PRL_RESULT loadVeConfig(const QString &backupUuid, const QString &path,
 		PRL_VM_BACKUP_TYPE type, SmartPtr<CVmConfiguration>& conf);
 
-	PRL_RESULT sendStartRequest();
-	void cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& p);
-	PRL_RESULT copyEscort(const ::Backup::Escort::Model& escort_, const QString& directory_,
-		const QString& source_);
-	PRL_RESULT backupHardDiskDevices(const ::Backup::Activity::Object::Model& activity_,
-		::Backup::Work::object_type& variant_);
-	PRL_RESULT doBackup(const QString& source_, ::Backup::Work::object_type& variant_);
-	virtual void finalizeTask();
-
 protected:
 	SmartPtr<CVmConfiguration> m_pVmConfig;
 	QString m_sVmHomePath;
@@ -426,7 +417,6 @@ protected:
 	quint64 m_nOriginalSize;
 	SmartPtr< ::Backup::Product::Model> m_product;
 	::Backup::Activity::Service* m_service;
-	IOSendJob::Handle m_hJob;
 
 	/* list of directories for plain copy : file info and relative path from Vm home directory */
 	QList<QPair<QFileInfo, QString> > m_DirList;
