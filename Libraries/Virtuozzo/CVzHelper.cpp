@@ -1213,8 +1213,8 @@ static void conf_add_disk_entry(SmartPtr<CVmConfiguration> &pConfig,
 	}
 	pDisk->setDiskType(PHD_EXPANDING_HARD_DISK);
 	pDisk->setUserFriendlyName(disk.path ? disk.path : "");
+	pDisk->setSystemName(pDisk->getUserFriendlyName());
 	pDisk->setUuid(disk.uuid);
-	pDisk->setSystemName(disk.uuid);
 	if (disk.mnt != NULL)
 		 pDisk->setMountPoint(disk.mnt);
 	pDisk->setAutoCompressEnabled(disk.autocompact != VZCTL_PARAM_OFF);
