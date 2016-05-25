@@ -1011,6 +1011,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	QString sVmName;
 	QString sPathToVmConfig;
 	QString sTmpPath, sVzCacheTmpPath;
+	Libvirt::Result r;
 
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
@@ -1118,6 +1119,12 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 		goto cleanup_0;
 	if (PRL_FAILED(nRetCode = a->do_()))
 		goto cleanup_0;
+	if ((r = Libvirt::Kit.vms().at(m_sVmUuid).setConfig(*m_pVmConfig)).isFailed())
+	{
+		nRetCode = r.error().code();
+		a->revert();
+		goto cleanup_0;
+	}
 	if (m_converter.get() != NULL &&
 		PRL_FAILED(nRetCode = m_converter->convertVm(m_sVmUuid)))
 		goto cleanup_0;
