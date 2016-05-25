@@ -39,6 +39,7 @@
 #include "prlxmlmodel/VmConfig/CVmConfiguration.h"
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
 #include "prlcommon/IOService/IOCommunication/IOClient.h"
+#include "prlcommon/VirtualDisk/Qcow2Disk.h"
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 #include "CDspDispConnection.h"
 #include "Task_BackupHelper.h"
@@ -117,18 +118,60 @@ private:
 #endif
 };
 
+namespace Backup
+{
+namespace Target
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Image
+
+struct Image
+{
+	explicit Image(const QString& path_) : m_path(path_) {}
+
+	PRL_RESULT build(quint64 size_, const QString& base_);
+	void remove() const;
+	QString getPath() const
+	{
+		return m_path;
+	}
+
+private:
+	QString m_path;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Nbd
+
+struct Nbd
+{
+	PRL_RESULT start(const Image& image_);
+	void stop();
+	QString getUrl() const;
+
+private:
+	QString m_url;
+	VirtualDisk::Qcow2 m_nbd;
+};
+
+} // namespace Target
+} // namespace Backup
+
 ///////////////////////////////////////////////////////////////////////////////
 // class Task_CreateVmBackupTarget
 
 class Task_CreateVmBackupTarget : public Task_BackupHelper
 {
+	typedef QPair< ::Backup::Target::Image,
+			QSharedPointer< ::Backup::Target::Nbd> > archive_type;
+
 	Q_OBJECT
 
 private:
 	quint64 getBackupSize();
 	PRL_RESULT saveMetadata();
 	PRL_RESULT validateBackupDir(const QString &);
-	PRL_RESULT buildTibFiles();
+	PRL_RESULT prepareImages();
 	PRL_RESULT loadTibFiles();
 	PRL_RESULT wasHddListChanged(bool *pbWasChanged);
 	PRL_RESULT guessBackupType();
@@ -167,7 +210,7 @@ private:
 	WaiterTillHandlerUsingObject m_waiter;
 	QMutex m_cABackupMutex;
 	bool m_bABackupFirstPacket;
-	QStringList m_createdTibs;
+	QList<archive_type> m_createdTibs;
 
 private slots:
 	void handlePackage(IOSender::Handle h, const SmartPtr<IOPackage> p);

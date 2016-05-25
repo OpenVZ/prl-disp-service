@@ -297,6 +297,10 @@ public:
 	{
 		return m_product;
 	}
+	const ::Backup::Activity::Object::componentList_type& getUrls() const
+	{
+		return m_urls;
+	}
 
 	Chain * prepareABackupChain(const QStringList& args_, const QString &sNotificationVmUuid,
 				unsigned int nDiskIdx);
@@ -438,6 +442,7 @@ private:
 	bool m_bKillCalled;
 	SmartPtr<char> m_pBuffer;
 	qint64 m_nBufSize;
+	::Backup::Activity::Object::componentList_type m_urls;
 };
 
 #endif //__Task_BackupHelper_H_
