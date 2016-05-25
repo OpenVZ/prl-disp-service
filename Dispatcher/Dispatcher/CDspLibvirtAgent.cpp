@@ -60,8 +60,30 @@ PRL_RESULT Failure::fabricate(PRL_RESULT result_)
 		return result_;
 
 	virErrorPtr err = virGetLastError();
-	if (err && err->code == VIR_ERR_OPERATION_INVALID)
-		result_ = PRL_ERR_INVALID_ACTION_REQUESTED;
+	if (NULL == err)
+		return result_;
+
+	switch(err->code)
+	{
+	case VIR_ERR_OPERATION_INVALID:
+		return PRL_ERR_INVALID_ACTION_REQUESTED;
+	case VIR_ERR_UNKNOWN_HOST:
+		return PRL_ERR_CANT_RESOLVE_HOSTNAME;
+	case VIR_ERR_OPERATION_FAILED:
+		return PRL_ERR_OPERATION_FAILED;
+	case VIR_ERR_DOM_EXIST:
+		return PRL_ERR_VM_CONFIG_ALREADY_EXISTS;
+	case VIR_ERR_OPERATION_DENIED:
+		return PRL_ERR_ACCESS_DENIED;
+	case VIR_ERR_NO_NETWORK:
+		return PRL_NET_VIRTUAL_NETWORK_NOT_FOUND;
+	case VIR_ERR_OPERATION_TIMEOUT:
+		return PRL_ERR_TIMEOUT;
+	case VIR_ERR_NO_DOMAIN_SNAPSHOT:
+		return PRL_ERR_VM_SNAPSHOT_NOT_FOUND;
+	case VIR_ERR_OPERATION_ABORTED:
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+	}
 
 	return result_;
 }
