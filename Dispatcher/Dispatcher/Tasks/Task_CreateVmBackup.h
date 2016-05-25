@@ -63,9 +63,33 @@ struct Model;
 } // namespace Backup
 
 ///////////////////////////////////////////////////////////////////////////////
+// class Task_CreateVmBackup
+
+class Task_CreateVmBackup : public Task_BackupHelper
+{
+	Q_OBJECT
+
+public:
+	Task_CreateVmBackup(const SmartPtr<CDspClient>& c_, const SmartPtr<IOPackage>& p_)
+		: Task_BackupHelper(c_, p_) {}
+
+protected:
+	PRL_RESULT sendStartRequest();
+	void cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& p);
+	PRL_RESULT copyEscort(const ::Backup::Escort::Model& escort_, const QString& directory_,
+		const QString& source_);
+	PRL_RESULT backupHardDiskDevices(const ::Backup::Activity::Object::Model& activity_,
+		::Backup::Work::object_type& variant_);
+	PRL_RESULT doBackup(const QString& source_, ::Backup::Work::object_type& variant_);
+	virtual void finalizeTask();
+
+	IOSendJob::Handle m_hJob;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // class Task_CreateVmBackupSource
 
-class Task_CreateVmBackupSource : public Task_BackupHelper
+class Task_CreateVmBackupSource : public Task_CreateVmBackup
 {
 	Q_OBJECT
 
@@ -91,7 +115,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // class Task_CreateVmBackupSource
 
-class Task_CreateCtBackupSource : public Task_BackupHelper
+class Task_CreateCtBackupSource : public Task_CreateVmBackup
 {
 	Q_OBJECT
 

@@ -44,6 +44,7 @@
 #include "prlcommon/Std/PrlTime.h"
 
 #include "Task_CreateVmBackup.h"
+#include "Task_BackupHelper_p.h"
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "CDspService.h"
 #include "prlcommon/Std/PrlAssert.h"
@@ -64,6 +65,226 @@
 #include "vzctl/libvzctl.h"
 #endif
 
+///////////////////////////////////////////////////////////////////////////////
+// class Task_CreateVmBackup
+
+PRL_RESULT Task_CreateVmBackup::copyEscort(const ::Backup::Escort::Model& escort_,
+	const QString& directory_, const QString& source_)
+{
+	CVmFileListCopySenderClient s(m_pIoClient);
+	CVmFileListCopySource c(&s, m_sVmUuid, source_, 0, getLastError(),
+			m_nTimeout);
+
+	c.SetRequest(getRequestPackage());
+	c.SetVmDirectoryUuid(directory_);
+	c.SetProgressNotifySender(Backup::NotifyClientsWithProgress);
+
+	if (operationIsCancelled())
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	return c.Copy(escort_.getFolders(), escort_.getFiles());
+}
+
+PRL_RESULT Task_CreateVmBackup::backupHardDiskDevices(const ::Backup::Activity::Object::Model& activity_,
+		::Backup::Work::object_type& variant_)
+{
+	if (operationIsCancelled())
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	m_product = SmartPtr< ::Backup::Product::Model>(
+		new ::Backup::Product::Model(::Backup::Object::Model(m_pVmConfig), m_sVmHomePath));
+	m_product->setStore(m_sBackupRootPath);
+	if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
+		m_product->setSuffix(::Backup::Suffix(getBackupNumber(), getFlags())());
+		return ::Backup::Work::Push::VCommand(*this, activity_).do_(variant_);
+	} else
+		return ::Backup::Work::Acronis::ACommand(*this, activity_).do_(variant_);
+}
+
+/* send start request for remote dispatcher and wait reply from dispatcher */
+PRL_RESULT Task_CreateVmBackup::sendStartRequest()
+{
+	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
+	CDispToDispCommandPtr pBackupCmd;
+	SmartPtr<IOPackage> pPackage;
+	SmartPtr<IOPackage> pReply;
+	quint32 nFlags;
+	QString sServerUuid;
+	QFileInfo vmBundle(m_sVmHomePath);
+
+	if (operationIsCancelled())
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	{
+		sServerUuid = CDspService::instance()->getDispConfigGuard().
+			getDispConfig()->getVmServerIdentification()->getServerUuid();
+	}
+
+	pBackupCmd = CDispToDispProtoSerializer::CreateVmBackupCreateCommand(
+			m_sVmUuid,
+			m_sVmName,
+			QHostInfo::localHostName(),
+			sServerUuid,
+			m_sDescription,
+			m_pVmConfig->toString(),
+			m_nOriginalSize,
+			(quint32)vmBundle.permissions(),
+			m_nFlags,
+			getInternalFlags());
+
+	pPackage = DispatcherPackage::createInstance(
+			pBackupCmd->GetCommandId(),
+			pBackupCmd->GetCommand()->toString());
+
+	if (PRL_FAILED(nRetCode = SendReqAndWaitReply(pPackage, pReply, m_hJob)))
+		return nRetCode;
+
+	if ((pReply->header.type != VmBackupCreateFirstReply) && (pReply->header.type != DispToDispResponseCmd)) {
+		WRITE_TRACE(DBG_FATAL, "Invalid package header:%x, expected header:%x or %x",
+			pReply->header.type, DispToDispResponseCmd, VmBackupCreateFirstReply);
+		return PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
+	}
+
+	CDispToDispCommandPtr pDspReply = CDispToDispProtoSerializer::ParseCommand(
+		(Parallels::IDispToDispCommands)pReply->header.type, UTF8_2QSTR(pReply->buffers[0].getImpl()));
+
+	if (pReply->header.type == DispToDispResponseCmd) {
+		CDispToDispResponseCommand *pResponseCmd =
+			CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispResponseCommand>(pDspReply);
+
+		nRetCode = pResponseCmd->GetRetCode();
+		if (PRL_FAILED(nRetCode)) {
+			WRITE_TRACE(DBG_FATAL, "sendStartRequest response failed: %s ",
+				PRL_RESULT_TO_STRING(nRetCode));
+			getLastError()->fromString(pResponseCmd->GetErrorInfo()->toString());
+			return nRetCode;
+		}
+		return PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
+	}
+	CVmBackupCreateFirstReply *pCreateReply =
+		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmBackupCreateFirstReply>(pDspReply);
+
+	m_nRemoteVersion = pCreateReply->GetVersion();
+	m_sBackupUuid = pCreateReply->GetBackupUuid();
+	m_nBackupNumber = pCreateReply->GetBackupNumber();
+	m_sBackupRootPath = pCreateReply->GetBackupRootPath();
+	nFlags = pCreateReply->GetFlags();
+	quint64 nFreeDiskSpace;
+
+	if (pCreateReply->GetFreeDiskSpace(nFreeDiskSpace))
+	{
+		nRetCode = checkFreeDiskSpace(m_sVmUuid, m_nOriginalSize, nFreeDiskSpace, true);
+		if (PRL_FAILED(nRetCode))
+			return nRetCode;
+	}
+
+	if ((m_nFlags & PBT_INCREMENTAL) && (nFlags & PBT_FULL)) {
+		CVmEvent event(PET_DSP_EVT_VM_MESSAGE, m_sVmUuid, PIE_DISPATCHER, PRL_WARN_BACKUP_HAS_NOT_FULL_BACKUP);
+		SmartPtr<IOPackage> pPackage =
+			DispatcherPackage::createInstance(PVE::DspVmEvent, event, getRequestPackage());
+		getClient()->sendPackage(pPackage);
+	}
+	m_nFlags = nFlags;
+
+	return PRL_ERR_SUCCESS;
+}
+
+// cancel command
+void Task_CreateVmBackup::cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& p)
+{
+	WRITE_TRACE(DBG_FATAL, "%s", __FUNCTION__);
+	CancelOperationSupport::cancelOperation(pUser, p);
+	killABackupClient();
+	SmartPtr<IOClient> x = getIoClient();
+	if (x.isValid())
+	{
+		x->urgentResponseWakeUp(m_hJob);
+		x->disconnectClient();
+	}
+}
+
+PRL_RESULT Task_CreateVmBackup::doBackup(const QString& source_, ::Backup::Work::object_type& variant_)
+{
+	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
+	SmartPtr<IOPackage> p;
+
+	::Backup::Activity::Object::Model a;
+	nRetCode = m_service->find(MakeVmIdent(m_sVmUuid, m_sVmDirUuid), a);
+	if (PRL_FAILED(nRetCode))
+		goto exit;
+
+	if (PRL_FAILED(nRetCode = sendStartRequest()))
+		goto exit;
+
+	/* part one : plain copy of config files */
+	nRetCode = copyEscort(a.getEscort(), m_sVmDirUuid, source_);
+	if (PRL_FAILED(nRetCode)) {
+		WRITE_TRACE(DBG_FATAL, "Error occurred while backup with code [%#x][%s]",
+			nRetCode, PRL_RESULT_TO_STRING(nRetCode));
+		goto exit;
+	}
+
+	if (operationIsCancelled())
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	nRetCode = backupHardDiskDevices(a, variant_);
+	/*
+	   Now target side wait new acronis proxy commands due to acronis have not call to close connection.
+	   To fix it will send command to close connection from here.
+	   Pay attention: on success and on failure both we will wait reply from target.
+	   */
+	if (PRL_FAILED(nRetCode)) {
+		p = IOPackage::createInstance(ABackupProxyCancelCmd, 0);
+		WRITE_TRACE(DBG_FATAL, "send ABackupProxyCancelCmd command");
+		SendPkg(p);
+	} else {
+		p = IOPackage::createInstance(ABackupProxyFinishCmd, 0);
+		nRetCode = SendPkg(p);
+		// TODO:	nRetCode = SendReqAndWaitReply(p);
+	}
+
+exit:
+	setLastErrorCode(nRetCode);
+	return nRetCode;
+}
+
+void Task_CreateVmBackup::finalizeTask()
+{
+	if (m_pVmConfig.isValid())
+		m_service->finish(MakeVmIdent(m_sVmUuid, m_sVmDirUuid), getClient());
+
+	Disconnect();
+
+	if (PRL_SUCCEEDED(getLastErrorCode())) {
+		CVmEvent event(PET_DSP_EVT_CREATE_BACKUP_FINISHED, m_sVmUuid, PIE_DISPATCHER);
+		event.addEventParameter(
+			new CVmEventParameter( PVE::String,
+					(m_nFlags&PBT_FULL) ?
+					m_sBackupUuid :
+					QString("%1.%2").arg(m_sBackupUuid).arg(m_nBackupNumber),
+					EVT_PARAM_BACKUP_CMD_BACKUP_UUID) );
+		event.addEventParameter( new CVmEventParameter( PVE::String,
+					m_sDescription,
+					EVT_PARAM_BACKUP_CMD_DESCRIPTION ) );
+		SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspVmEvent, event, getRequestPackage());
+		CDspService::instance()->getClientManager().sendPackageToVmClients(pPackage,
+				m_sVmDirUuid, m_sVmUuid);
+
+		CProtoCommandPtr pResponse =
+			CProtoSerializer::CreateDspWsResponseCommand(getRequestPackage(), PRL_ERR_SUCCESS);
+		CProtoCommandDspWsResponse *pDspWsResponseCmd =
+			CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>(pResponse);
+		pDspWsResponseCmd->AddStandardParam(m_sVmUuid);
+		pDspWsResponseCmd->AddStandardParam(
+			(m_nFlags&PBT_FULL) ? m_sBackupUuid : QString("%1.%2").arg(m_sBackupUuid).arg(m_nBackupNumber));
+		getClient()->sendResponse(pResponse, getRequestPackage());
+	} else {
+		if (operationIsCancelled())
+			setLastErrorCode(PRL_ERR_OPERATION_WAS_CANCELED);
+
+		getClient()->sendResponseError( getLastError(), getRequestPackage() );
+	}
+}
 /*******************************************************************************
 
  Vm Backup creation task for client
@@ -74,7 +295,7 @@ Task_CreateVmBackupSource::Task_CreateVmBackupSource(
 		const CProtoCommandPtr cmd,
 		const SmartPtr<IOPackage>& p,
 		::Backup::Activity::Service& service_)
-: Task_BackupHelper(client, p)
+: Task_CreateVmBackup(client, p)
 {
 	CProtoCreateVmBackupCommand *pCmd = CProtoSerializer::CastToProtoCommand<CProtoCreateVmBackupCommand>(cmd);
 	PRL_ASSERT(pCmd->IsValid());
@@ -152,6 +373,6 @@ void Task_CreateVmBackupSource::finalizeTask()
 	//https://bugzilla.sw.ru/show_bug.cgi?id=267152
 	CAuthHelperImpersonateWrapper _impersonate( &getClient()->getAuthHelper() );
 
-	Task_BackupHelper::finalizeTask();
+	Task_CreateVmBackup::finalizeTask();
 }
 

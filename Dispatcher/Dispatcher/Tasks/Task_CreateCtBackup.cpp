@@ -57,7 +57,7 @@ Task_CreateCtBackupSource::Task_CreateCtBackupSource(
 		const CProtoCommandPtr cmd,
 		const SmartPtr<IOPackage>& p,
 		::Backup::Activity::Service& service_)
-	: Task_BackupHelper(client, p)
+	: Task_CreateVmBackup(client, p)
 {
 	CProtoCreateVmBackupCommand *pCmd = CProtoSerializer::CastToProtoCommand<CProtoCreateVmBackupCommand>(cmd);
 	PRL_ASSERT(pCmd->IsValid());
