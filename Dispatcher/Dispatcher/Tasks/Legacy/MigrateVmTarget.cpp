@@ -273,7 +273,9 @@ PRL_RESULT MigrateVmTarget::prepareTask()
 		CDspTaskFailure(*this)(nRetCode, m_sTargetVmHomePath);
 		goto exit;
 	}
+
 	checkRequiresDiskSpace();
+	checkRemoteDisplay();
 exit:
 	setLastErrorCode(nRetCode);
 	return nRetCode;
@@ -1187,6 +1189,22 @@ void MigrateVmTarget::unregisterHaClusterResource()
 		// resource was added
 		CDspService::instance()->getHaClusterHelper()->removeClusterResource(m_sVmName, false);
 	}
+}
+
+void MigrateVmTarget::checkRemoteDisplay()
+{
+	CVmRemoteDisplay* r = m_pVmConfig->getVmSettings()->getVmRemoteDisplay();
+	if (NULL == r || r->getMode() != PRD_MANUAL || r->getPortNumber() >= PRL_VM_REMOTE_DISPAY_MIN_PORT)
+		return;
+
+	CVmEvent cEvent;
+	cEvent.setEventCode(PRL_ERR_VZ_OPERATION_FAILED);
+	cEvent.addEventParameter(new CVmEventParameter(PVE::String,
+		QString("Virtuozzo %1 doesn't support VNC port less than %2.")
+		.arg(VER_FULL_BUILD_NUMBER_STR)
+		.arg(PRL_VM_REMOTE_DISPAY_MIN_PORT),
+		EVT_PARAM_MESSAGE_PARAM_0));
+	m_lstCheckPrecondsErrors.append(cEvent.toString());
 }
 
 } // namespace Task
