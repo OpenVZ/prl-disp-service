@@ -52,6 +52,7 @@
 #include "prlxmlmodel/BackupTree/VmItem.h"
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #include "Libraries/PrlNetworking/netconfig.h"
+#include "Libraries/CpuFeatures/CCpuHelper.h"
 #include "Legacy/VmConverter.h"
 
 namespace Restore
@@ -1114,6 +1115,9 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	// TODO Should we use CDspBugPatcherLogic here?
 	// #PSBM-13394
 	CDspVmNetworkHelper::updateHostMacAddresses(m_pVmConfig, NULL, HMU_NONE);
+	// Update cpu features on pcs6 restore
+	if (m_converter.get() != NULL)
+		CCpuHelper::update(*m_pVmConfig);
 	// save config : Task_RegisterVm read config from file system
 	if (PRL_FAILED(nRetCode = saveVmConfig()))
 		goto cleanup_0;
