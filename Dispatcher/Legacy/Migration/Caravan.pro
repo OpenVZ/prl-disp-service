@@ -1,7 +1,8 @@
 TEMPLATE = app
 CONFIG += console qt warn_on thread
 
-QT += network core xml gui
+QT += network core xml
+QT -= gui
 
 include(Caravan.deps)
 
