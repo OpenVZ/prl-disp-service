@@ -343,10 +343,11 @@ void getOnlyPcsFsObjects(QList<T*>& dst_, const QList<T*>& src_)
 			d->getConnected() == PVE::DeviceConnected &&
 			pcs_fs(qPrintable(d->getSystemName())))
 		{
-			WRITE_TRACE(DBG_DEBUG, "%s migrates on pstorage",
-					qPrintable(d->getSystemName()));
+			WRITE_TRACE(DBG_DEBUG, "%s is stored on vstorage", qPrintable(d->getSystemName()));
 			dst_ << d;
 		}
+		else
+			WRITE_TRACE(DBG_DEBUG, "%s is stored NOT on vstorage", qPrintable(d->getSystemName()));
 	}
 }
 
