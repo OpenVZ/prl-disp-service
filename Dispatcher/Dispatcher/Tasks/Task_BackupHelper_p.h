@@ -58,6 +58,22 @@ protected:
 	const Activity::Object::Model& m_activity;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Loader
+
+struct Loader : boost::static_visitor<Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> >
+{
+	Loader(const QString& path_, SmartPtr<CDspClient> client_)
+		: m_path(path_), m_client(client_) {}
+
+	Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> operator()(const Ct&) const;
+	Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> operator()(const Vm&) const;
+
+private:
+	QString m_path;
+	SmartPtr<CDspClient> m_client;
+};
+
 namespace Acronis
 {
 ///////////////////////////////////////////////////////////////////////////////

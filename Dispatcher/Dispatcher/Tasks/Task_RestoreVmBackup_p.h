@@ -260,7 +260,7 @@ struct Ct
 	}
 
 	template<class F>
-	Restore::Assembly* operator()(F flavor_, const QString& home_);
+	Restore::Assembly* operator()(F flavor_, const QString& home_, quint32 version_);
 	PRL_RESULT getResult() const
 	{
 		return m_result;
@@ -309,7 +309,8 @@ struct Image
 	~Image();
 
 	void join(Restore::Assembly& dst_);
-	PRL_RESULT do_(const Assistant& assist_);
+	PRL_RESULT do_(const Assistant& assist_, quint32 version_);
+
 private:
 	QString m_auto;
 	QString m_final;
@@ -326,7 +327,7 @@ struct Flavor
 	Flavor(const QString& home_, const Backup::Product::componentList_type& ve_,
 		const Query::Work& query_);
 
-	PRL_RESULT restore(const Assistant& assist_);
+	PRL_RESULT restore(const Assistant& assist_, quint32 version_);
 	PRL_RESULT assemble(const QString& home_, Restore::Assembly& dst_);
 private:
 	QString m_home;

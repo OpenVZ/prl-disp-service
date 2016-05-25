@@ -172,6 +172,31 @@ const QFileInfo * Command::findArchive(const Product::component_type& t_,
 	return NULL;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Loader
+
+Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> Loader::operator()(const Ct&) const
+{
+	PRL_RESULT e = PRL_ERR_SUCCESS;
+	QString s = QString("%1/" VZ_CT_CONFIG_FILE).arg(m_path);
+	SmartPtr<CVmConfiguration> p = CVzHelper::get_env_config_from_file(
+				s, e, VZCTL_LAYOUT_5, true);
+	if (!p)
+		return e;
+	return p;
+}
+
+Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> Loader::operator()(const Vm&) const
+{
+	QString s = QString("%1/" VMDIR_DEFAULT_VM_CONFIG_FILE).arg(m_path);
+	SmartPtr<CVmConfiguration> p = SmartPtr<CVmConfiguration>(new CVmConfiguration());
+	PRL_RESULT code = CDspService::instance()->getVmConfigManager().loadConfig(
+				p, s, m_client, false, true);
+	if (PRL_FAILED(code))
+		return code;
+	return p;
+}
+
 namespace Acronis
 {
 ///////////////////////////////////////////////////////////////////////////////

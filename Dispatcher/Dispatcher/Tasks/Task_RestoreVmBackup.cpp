@@ -43,6 +43,7 @@
 #include "prlcommon/PrlUuid/Uuid.h"
 
 #include "Task_RestoreVmBackup.h"
+#include "Task_BackupHelper_p.h"
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "CDspService.h"
 #include "prlcommon/Std/PrlAssert.h"
@@ -269,9 +270,9 @@ PRL_RESULT Task_RestoreVmBackupSource::run_body()
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 
 	if (m_nInternalFlags & PVM_CT_BACKUP)
-		nRetCode = restoreCt();
+		nRetCode = restore(::Backup::Work::Ct(*this));
 	else
-		nRetCode = restoreVm();
+		nRetCode = restore(::Backup::Work::Vm(*this));
 
 	setLastErrorCode(nRetCode);
 	return nRetCode;
@@ -365,75 +366,13 @@ PRL_RESULT Task_RestoreVmBackupSource::sendStartReply(const SmartPtr<CVmConfigur
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Task_RestoreVmBackupSource::restoreVm()
+PRL_RESULT Task_RestoreVmBackupSource::restore(const ::Backup::Work::object_type& variant_)
 {
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	PRL_RESULT code;
+	Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> e;
 	IOSendJob::Handle job;
-	QString sVmConfigPath;
-	SmartPtr<CVmConfiguration> pVmConfig;
 	bool bConnected;
 	const char *h = "";
-
-	if (!CFileHelper::DirectoryExists(m_sBackupPath, &m_pDispConnection->getUserSession()->getAuthHelper())) {
-		nRetCode = PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
-		CVmEvent *pEvent = getLastError();
-		pEvent->setEventCode(nRetCode);
-		pEvent->addEventParameter(new CVmEventParameter(
-				PVE::String, m_sBackupUuid, EVT_PARAM_MESSAGE_PARAM_0));
-		WRITE_TRACE(DBG_FATAL, "Backup directory \"%s\" does not exist", QSTR2UTF8(m_sBackupPath));
-		goto exit;
-	}
-	/* load Vm config and send to client (as mininal, for getVmName()) */
-	sVmConfigPath = QString("%1/" VMDIR_DEFAULT_VM_CONFIG_FILE).arg(m_sBackupPath);
-	pVmConfig = SmartPtr<CVmConfiguration>(new CVmConfiguration());
-	code = CDspService::instance()->getVmConfigManager().loadConfig(
-				pVmConfig, sVmConfigPath, getClient(), false, true);
-	if (PRL_FAILED(code)) {
-		nRetCode = PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
-		WRITE_TRACE(DBG_FATAL, "[%s] Error occurred while Vm config \"%s\" loading with code [%#x][%s]",
-			__FUNCTION__, QSTR2UTF8(sVmConfigPath), code, PRL_RESULT_TO_STRING(code));
-		goto exit;
-	}
-
-	h = (BACKUP_PROTO_V4 > m_nRemoteVersion) ?
-		SLOT(handleABackupPackage(IOSender::Handle, const SmartPtr<IOPackage>)) :
-		SLOT(handleVBackupPackage(IOSender::Handle, const SmartPtr<IOPackage>));
-	bConnected = QObject::connect(m_pDispConnection.getImpl(),
-		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
-		h, Qt::DirectConnection);
-	PRL_ASSERT(bConnected);
-
-	nRetCode = sendStartReply(pVmConfig, job);
-	if (PRL_FAILED(nRetCode))
-		goto exit;
-
-	nRetCode = (BACKUP_PROTO_V4 > m_nRemoteVersion) ?
-		Restore::Source::Workerv3(
-			boost::bind(&Task_RestoreVmBackupSource::sendFiles, this, job),
-			&m_cABackupServer)() :
-		Restore::Source::Workerv4(
-			boost::bind(&Task_RestoreVmBackupSource::sendFiles, this, job),
-			boost::bind(&Task_RestoreVmBackupSource::exec, this))();
-exit:
-	QObject::disconnect(m_pDispConnection.getImpl(),
-		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
-		this, h);
-	setLastErrorCode(nRetCode);
-	return nRetCode;
-}
-
-PRL_RESULT Task_RestoreVmBackupSource::restoreCt()
-{
-	int y = 0;
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	CDispToDispCommandPtr pReply;
-	SmartPtr<IOPackage> pPackage;
-	IOSendJob::Handle job;
-	QStringList args;
-	QString sVmConfigPath;
-	SmartPtr<CVmConfiguration> pConfig;
-	bool bConnected;
 
 	if (operationIsCancelled()) {
 		nRetCode = PRL_ERR_OPERATION_WAS_CANCELED;
@@ -455,45 +394,37 @@ PRL_RESULT Task_RestoreVmBackupSource::restoreCt()
 		WRITE_TRACE(DBG_FATAL, "Backup directory \"%s\" does not exist", QSTR2UTF8(m_sBackupPath));
 		goto exit_0;
 	}
-	sVmConfigPath = QString("%1/" VZ_CT_CONFIG_FILE).arg(m_sBackupPath);
-	pConfig = CVzHelper::get_env_config_from_file(sVmConfigPath, y, 
-			(0 != (m_nInternalFlags & PVM_CT_PLOOP_BACKUP)) * VZCTL_LAYOUT_5,
-			true);
-	if (!pConfig) {
+	e = boost::apply_visitor(::Backup::Work::Loader(m_sBackupPath, getClient()), variant_);
+	if (e.isFailed()) {
 		nRetCode = PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
-		WRITE_TRACE(DBG_FATAL, "[%s] Error occurred while Ct config \"%s\" loading",
-			__FUNCTION__, QSTR2UTF8(sVmConfigPath));
+		WRITE_TRACE(DBG_FATAL, "Error occurred while VE config at \"%s\" loading with code [%#x][%s]",
+			__FUNCTION__, QSTR2UTF8(m_sBackupPath), e.error(), PRL_RESULT_TO_STRING(e.error()));
 		goto exit_0;
 	}
+
+	h = (BACKUP_PROTO_V4 > m_nRemoteVersion) ?
+		SLOT(handleABackupPackage(IOSender::Handle, const SmartPtr<IOPackage>)) :
+		SLOT(handleVBackupPackage(IOSender::Handle, const SmartPtr<IOPackage>));
 	bConnected = QObject::connect(m_pDispConnection.getImpl(),
 		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
-		SLOT(handleABackupPackage(IOSender::Handle, const SmartPtr<IOPackage>)),
-		Qt::DirectConnection);
+		h, Qt::DirectConnection);
 	PRL_ASSERT(bConnected);
 
-	nRetCode = sendStartReply(pConfig, job);
+	nRetCode = sendStartReply(e.value(), job);
 	if (PRL_FAILED(nRetCode))
 		goto exit_1;
 
-	args << QString(PRL_ABACKUP_SERVER);
-	if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, m_nRemoteVersion)))
-		goto exit_1;
-
-	if (m_nInternalFlags & (PVM_CT_PLOOP_BACKUP|PVM_CT_VZWIN_BACKUP))
-	{
-		if (PRL_FAILED(nRetCode = sendFiles(job)))
-		{
-			m_cABackupServer.kill();
-			m_cABackupServer.waitForFinished();
-			goto exit_1;
-		}
-	}
-	nRetCode = m_cABackupServer.waitForFinished();
+	nRetCode = (BACKUP_PROTO_V4 > m_nRemoteVersion) ?
+		Restore::Source::Workerv3(
+			boost::bind(&Task_RestoreVmBackupSource::sendFiles, this, job),
+			&m_cABackupServer)() :
+		Restore::Source::Workerv4(
+			boost::bind(&Task_RestoreVmBackupSource::sendFiles, this, job),
+			boost::bind(&Task_RestoreVmBackupSource::exec, this))();
 exit_1:
 	QObject::disconnect(m_pDispConnection.getImpl(),
 		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
-		this,
-		SLOT(handleABackupPackage(IOSender::Handle, const SmartPtr<IOPackage>)));
+		this, h);
 exit_0:
 	setLastErrorCode(nRetCode);
 	return nRetCode;
@@ -523,11 +454,13 @@ const char QEMU_IMG[] = "/usr/bin/qemu-img";
 
 PRL_RESULT Task_RestoreVmBackupSource::restoreImage(const QString& from_, const QString& to_)
 {
-	QStringList cmdline = QStringList() << QEMU_IMG << "convert" << "-O" << "qcow2"
+	QString format = (QFileInfo(to_).suffix().startsWith("qcow2")) ? "qcow2" : "raw";
+	QStringList cmdline = QStringList() << QEMU_IMG << "convert" << "-O" << format
 						<< from_ << to_;
 
 	QProcess process;
 	QString out;
+	WRITE_TRACE(DBG_FATAL, "Run cmd: %s", QSTR2UTF8(cmdline.join(" ")));
 	if (!HostUtils::RunCmdLineUtility(cmdline.join(" "), out, QEMU_IMG_RUN_TIMEOUT, &process))
 	{
 		WRITE_TRACE(DBG_FATAL, "Cannot restore hdd %s: %s", QSTR2UTF8(to_),

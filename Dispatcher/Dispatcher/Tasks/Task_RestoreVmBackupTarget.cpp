@@ -627,10 +627,10 @@ Restore::Assembly* Vm::assemble(const QString& dst_)
 // struct Ct
 
 template<class F>
-Restore::Assembly* Ct::operator()(F flavor_, const QString& home_)
+Restore::Assembly* Ct::operator()(F flavor_, const QString& home_, quint32 version_)
 {
 	Restore::Assembly* output = NULL;
-	if (PRL_FAILED(m_result = flavor_.restore(*m_assist)))
+	if (PRL_FAILED(m_result = flavor_.restore(*m_assist, version_)))
 	{
 		WRITE_TRACE(DBG_FATAL, "send ABackupProxyCancelCmd command");
 		send(ABackupProxyCancelCmd);
@@ -706,9 +706,8 @@ void Image::join(Restore::Assembly& dst_)
 	}
 }
 
-PRL_RESULT Image::do_(const Assistant& assist_)
+PRL_RESULT Image::do_(const Assistant& assist_, quint32 version_)
 {
-	PRL_RESULT output;
 	QString a = QFileInfo(m_intermediate).absolutePath();
 	// NB. assume that m_sTargetPath is handled by somebody outside.
 	if (m_final != m_intermediate)
@@ -719,10 +718,8 @@ PRL_RESULT Image::do_(const Assistant& assist_)
 		else if (PRL_ERR_BACKUP_RESTORE_DIRECTORY_ALREADY_EXIST != e)
 			return e;
 	}
-	quint64 s = 0;
-	if (PRL_FAILED(output = m_query(m_archive, assist_, s)))
-		return output;
 
+	quint64 s = m_archive.first.getDevice().getSize() << 20;
 	SmartPtr<Device> device(Device::make(m_intermediate, s));
 	if (!device.isValid())
 		return PRL_ERR_VM_CREATE_HDD_IMG_INVALID_CREATE;
@@ -730,8 +727,13 @@ PRL_RESULT Image::do_(const Assistant& assist_)
 	if (PRL_FAILED(device->mount()))
 		return PRL_ERR_DISK_MOUNT_FAILED;
 
-	output = assist_(m_query.getApi().restore(m_archive,
-		QFileInfo(device->getName())), m_archive.first.getDevice().getIndex());
+	PRL_RESULT output;
+	if (BACKUP_PROTO_V3 < version_)
+		output = assist_(device->getName(), m_archive.second.absoluteFilePath());
+	else {
+		output = assist_(m_query.getApi().restore(m_archive,
+			QFileInfo(device->getName())), m_archive.first.getDevice().getIndex());
+	}
 	device->umount();
 	return output;
 }
@@ -759,7 +761,7 @@ PRL_RESULT Flavor::assemble(const QString& home_, Restore::Assembly& dst_)
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Flavor::restore(const Assistant& assist_)
+PRL_RESULT Flavor::restore(const Assistant& assist_, quint32 version_)
 {
 	if (0 != CVzOperationHelper().create_env_private(m_home))
 		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
@@ -767,7 +769,7 @@ PRL_RESULT Flavor::restore(const Assistant& assist_)
 	QList<Image>::iterator p = m_imageList.begin(), e = m_imageList.end();
 	for (;p != e; ++p)
 	{
-		PRL_RESULT e = p->do_(assist_);
+		PRL_RESULT e = p->do_(assist_, version_);
 		if (PRL_FAILED(e))
 			return e;
 	}
@@ -1641,17 +1643,22 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtToTargetPath(
 	if (PRL_FAILED(output))
 		return output;
 
-	Restore::AClient::Api p(m_nBackupNumber, m_sBackupRootPath);
+	Restore::AClient::Api api(m_nBackupNumber, m_sBackupRootPath);
 	Restore::Target::Ct t(a, *this, &Task_RestoreVmBackupTarget::SendPkg);
 	if (m_nInternalFlags & PVM_CT_PLOOP_BACKUP)
 	{
 		if (PRL_SUCCEEDED(output = getFiles(bIsRealMountPoint)))
 		{
-			Restore::Query::Work w(p, getIoClient(), m_nBackupTimeout);
+			Restore::Query::Work w(api, getIoClient(), m_nBackupTimeout);
 			Backup::Product::Model p(Backup::Object::Model(m_pVmConfig), m_sTargetPath);
 			p.setStore(m_sBackupRootPath);
-			Restore::Target::Ploop::Flavor f(m_sTargetPath, p.getCtTibs(), w);
-			dst_.reset(t(f, m_sTargetVmHomePath));
+			Backup::Product::componentList_type l = p.getCtTibs();
+			if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
+				p.setSuffix(::Backup::Suffix(m_nBackupNumber, getFlags())());
+				l = p.getVmTibs();
+			}
+			Restore::Target::Ploop::Flavor f(m_sTargetPath, l, w);
+			dst_.reset(t(f, m_sTargetVmHomePath, m_nRemoteVersion));
 		}
 	}
 	else if (m_nInternalFlags & PVM_CT_VZFS_BACKUP)
@@ -1804,7 +1811,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::sendRestoreImageRequest(const QString& im
 			UTF8_2QSTR(r->buffers[0].getImpl())));
 
 	if (PRL_FAILED(output = rc->GetRetCode()))
-		getLastError()->fromString(rc->GetErrorInfo()->toString());
+		setLastErrorCode(output);
 	return output;
 }
 

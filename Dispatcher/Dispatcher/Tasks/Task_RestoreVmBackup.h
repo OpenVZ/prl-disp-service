@@ -110,10 +110,9 @@ private:
 	WaiterTillHandlerUsingObject m_waiter;
 
 private:
-	PRL_RESULT restoreVm();
+	PRL_RESULT restore(const ::Backup::Work::object_type& variant_);
 	PRL_RESULT restoreVmABackup(SmartPtr<CVmConfiguration> ve_);
 	PRL_RESULT restoreVmVBackup(SmartPtr<CVmConfiguration> ve_);
-	PRL_RESULT restoreCt();
 	PRL_RESULT sendFiles(IOSendJob::Handle& job_);
 	PRL_RESULT sendStartReply(const SmartPtr<CVmConfiguration>& ve_, IOSendJob::Handle& job_);
 	PRL_RESULT restoreImage(const QString& from_, const QString& to_);
