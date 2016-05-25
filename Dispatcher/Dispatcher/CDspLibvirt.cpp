@@ -97,6 +97,21 @@ void Everything::run()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Acquaintance
+
+void Acquaintance::run()
+{
+	Config::run();
+	boost::optional<CVmConfiguration> c = m_view->getConfig();
+	if (!c || m_agent.setConfig(c.get()).isFailed())
+		WRITE_TRACE(DBG_DEBUG, "Unable to redefine configuration for new VM");
+
+	State s;
+	s.read(m_agent);
+	s.apply(m_view);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Switch
 
 void Switch::run()
@@ -1163,9 +1178,16 @@ void Coarse::pullInfo(virDomainPtr domain_)
 		q = new Instrument::Pull::Config(a, d);
 	else
 	{
-		d = m_fine->add(u);
-		if (!d.isNull())
+		if ((d = m_fine->add(u)).isNull())
+		{
+			WRITE_TRACE(DBG_DEBUG, "Unable to add new domain to the list");
+			return;
+		}
+
+		if (d->getConfig())
 			q = new Instrument::Pull::Everything(a, d);
+		else
+			q = new Instrument::Pull::Acquaintance(a, d);
 	}
 	if (NULL != q)
 		QThreadPool::globalInstance()->start(q);

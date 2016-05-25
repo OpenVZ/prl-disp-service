@@ -399,6 +399,23 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Acquaintance
+
+struct Acquaintance: Config
+{
+	Acquaintance(const Agent::Vm::Unit& agent_, QSharedPointer<Model::Domain> view_):
+		Config(agent_, view_), m_agent(agent_), m_view(view_)
+	{
+	}
+
+	void run();
+
+private:
+	Agent::Vm::Unit m_agent;
+	QSharedPointer<Model::Domain> m_view;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Switch
 
 struct Switch: Config

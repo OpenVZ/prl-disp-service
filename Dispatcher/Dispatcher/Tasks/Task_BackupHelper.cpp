@@ -104,11 +104,20 @@ QStringList Ct::buildPushArgs(const Activity::Object::Model& activity_) const
 	QStringList a;
 	a << QString((m_context->getFlags() & PBT_INCREMENTAL) ? "append_ct" : "create_ct");
 
-	foreach (const Product::component_type& t, m_context->getProduct()->getCtTibs())
+	foreach (const Product::component_type& t, m_context->getProduct()->getVmTibs())
 	{
 		const QFileInfo* f = Command::findArchive(t, activity_);
+		QString u;
+		foreach (const Activity::Object::component_type& c, m_context->getUrls())
+		{
+			if (t.second.absoluteFilePath() == c.first.absoluteFilePath())
+			{
+				u = c.second;
+				break;
+			}
+		}
 		a << "--image" << QString("ploop://%1::%2").arg(f->absoluteFilePath())
-						.arg(t.second.absoluteFilePath());
+						.arg(u);
 	}
 	return a;
 }

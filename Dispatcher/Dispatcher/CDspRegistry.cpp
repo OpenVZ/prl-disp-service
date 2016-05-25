@@ -156,6 +156,7 @@ void Vm::updateConfig(CVmConfiguration value_)
 		QString h = QDir(getUser().getUserDefaultVmDirPath())
 			.absoluteFilePath(::Vm::Config::getVmHomeDirName(getUuid()));
 		setHome(QDir(h).absoluteFilePath(VMDIR_DEFAULT_VM_CONFIG_FILE));
+		WRITE_TRACE(DBG_DEBUG, "update VM directory item");
 		updateDirectory(value_.getVmType());
 	}
 	value_.getVmIdentification()->setHomePath(getHome());
