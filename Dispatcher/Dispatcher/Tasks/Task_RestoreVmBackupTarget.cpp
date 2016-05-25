@@ -52,6 +52,7 @@
 #include "prlxmlmodel/BackupTree/VmItem.h"
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #include "Libraries/PrlNetworking/netconfig.h"
+#include "Libraries/CpuFeatures/CCpuHelper.h"
 #include "Legacy/VmConverter.h"
 
 namespace Restore
@@ -1011,6 +1012,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	QString sVmName;
 	QString sPathToVmConfig;
 	QString sTmpPath, sVzCacheTmpPath;
+	Libvirt::Result r;
 
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
@@ -1113,11 +1115,25 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	// TODO Should we use CDspBugPatcherLogic here?
 	// #PSBM-13394
 	CDspVmNetworkHelper::updateHostMacAddresses(m_pVmConfig, NULL, HMU_NONE);
+	// Update cpu features on pcs6 restore
+	if (m_converter.get() != NULL)
+		CCpuHelper::update(*m_pVmConfig);
 	// save config : Task_RegisterVm read config from file system
 	if (PRL_FAILED(nRetCode = saveVmConfig()))
 		goto cleanup_0;
 	if (PRL_FAILED(nRetCode = a->do_()))
 		goto cleanup_0;
+	// Our config is incorrect after moving. Reload it.
+	if (PRL_FAILED(nRetCode = CDspService::instance()->getVmConfigManager().loadConfig(
+			m_pVmConfig, m_pVmConfig->getVmIdentification()->getHomePath(),
+			getClient(), true, true)))
+		goto cleanup_0;
+	if ((r = Libvirt::Kit.vms().at(m_sVmUuid).setConfig(*m_pVmConfig)).isFailed())
+	{
+		nRetCode = r.error().code();
+		a->revert();
+		goto cleanup_0;
+	}
 	if (m_converter.get() != NULL &&
 		PRL_FAILED(nRetCode = m_converter->convertVm(m_sVmUuid)))
 		goto cleanup_0;
