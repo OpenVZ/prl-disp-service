@@ -1119,6 +1119,11 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 		goto cleanup_0;
 	if (PRL_FAILED(nRetCode = a->do_()))
 		goto cleanup_0;
+	// Our config is incorrect after moving. Reload it.
+	if (PRL_FAILED(nRetCode = CDspService::instance()->getVmConfigManager().loadConfig(
+			m_pVmConfig, m_pVmConfig->getVmIdentification()->getHomePath(),
+			getClient(), true, true)))
+		goto cleanup_0;
 	if ((r = Libvirt::Kit.vms().at(m_sVmUuid).setConfig(*m_pVmConfig)).isFailed())
 	{
 		nRetCode = r.error().code();
