@@ -1104,14 +1104,15 @@ bool ReadDevice::open(QIODevice::OpenMode mode_)
 
 void ReadDevice::close()
 {
-	QMutexLocker l(&m_lock);
 	setEof();
 	Device::close();
 }
 
 void ReadDevice::setEof()
 {
+	QMutexLocker l(&m_lock);
 	m_finished = true;
+	l.unlock();
 	emit readChannelFinished();
 }
 
