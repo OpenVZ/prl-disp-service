@@ -115,8 +115,8 @@ void Cache<T>::ttlCheck()
 		QWriteLocker locker(&m_rwHashLock);
 		PRL_UINT64 t = PrlGetTickCount64() - m_ttl;
 
-		typename QHash< CacheKey, ConfigInfo >::iterator it = m_hashConfigs.begin();
-		while (it != m_hashConfigs.end()) {
+		typename QHash<CacheKey, ConfigInfo>::const_iterator it = m_hashConfigs.constBegin();
+		while (it != m_hashConfigs.constEnd()) {
 			if (it.value().lastAccess < t)
 				keys += it.key().second;
 			++it;
@@ -138,18 +138,12 @@ template<class T> SmartPtr<T> Cache<T>::getFromCache( const QString& strFileName
 
 	QReadLocker locker(&m_rwHashLock);
 
-#if _WIN_
-	if( !pUserSession )
-		return SmartPtr<T>(); // to prevent send user config to unknown user
-#endif
-
-	Q_UNUSED( pUserSession );
 	// FIXME: Need compare by QFileInfo ??
 	// FIXME2: TODO: First compare by QString(path).toLower(), second by QFileInfo
 	// FIXME3: We think NOT! All configs are unique because they have got from VmDirectory, but VmDirectory contains unique paths
 	CacheKey key = makeKey(strFileName, pUserSession);
-	typename QHash< CacheKey, ConfigInfo >::const_iterator cIt = m_hashConfigs.find(key);
-	if( cIt != m_hashConfigs.end() )
+	typename QHash<CacheKey, ConfigInfo>::const_iterator cIt = m_hashConfigs.constFind(key);
+	if(cIt != m_hashConfigs.constEnd())
 	{
 		FileTimestamp ts( strFileName );
 		if( cIt->dtChangeTime != ts )
@@ -177,40 +171,22 @@ template<class T> void Cache<T>::updateCache( const QString& path
 	if( !CDspDispConfigGuard::isConfigCacheEnabled() )
 		return;
 
-	QWriteLocker locker(&m_rwHashLock);
-
 	CacheKey key = makeKey(path, pUserSession);
-	if( key.second.isEmpty() ) // if path.isEmpty
+	if(key.second.isEmpty()) // if path.isEmpty
 		return;
 
-	bool bNeedUpdateUnknownConfig = false;
-#ifdef _WIN_
-	if( !pUserSession )
-		// NEED remove cache value to prevent store config for unknown user( on next access user reloads config )
-		bNeedUpdateUnknownConfig=true;
-#endif
-
-	if( !pConfig || bNeedUpdateUnknownConfig )
+	QWriteLocker locker(&m_rwHashLock);
+	if(pConfig.isValid())
 	{
-		m_hashConfigs.remove(key);
-		LOG_MESSAGE( DBG_FATAL, "xxx XXX: Config was removed from cache. key= %s"
-				, QSTR2UTF8(key.second+"."+key.first) );
-		if( bNeedUpdateUnknownConfig ) // need remove all paths for all users!
-		{
-			QList<CacheKey> keys = m_hashConfigs.keys();
-			foreach( CacheKey k, keys )
-				if( k.second == path)
-				{
-					m_hashConfigs.remove(k);
-					LOG_MESSAGE( DBG_FATAL, "xxx XXX: Config was removed from cache. key= %s"
-							, QSTR2UTF8(k.second+"."+k.first) );
-				}
-		}
+		m_hashConfigs.insert(key, ConfigInfo(pConfig, FileTimestamp(path)));
+		LOG_MESSAGE(DBG_FATAL, "xxx XXX: Config was updated in cache. key= %s+%s",
+			qPrintable(key.second), qPrintable(key.first));
 	}
 	else
 	{
-		m_hashConfigs.insert(key, ConfigInfo(pConfig, FileTimestamp(path)) );
-		LOG_MESSAGE( DBG_FATAL, "xxx XXX: Config was updated in cache. key= %s", QSTR2UTF8(key.second+"."+key.first) );
+		m_hashConfigs.remove(key);
+		LOG_MESSAGE(DBG_FATAL, "xxx XXX: Config was removed from cache. key= %s+%s",
+			qPrintable(key.second), qPrintable(key.first));
 	}
 }
 
