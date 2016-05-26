@@ -303,17 +303,7 @@ QStringList VCommand::buildArgs(object_type& variant_)
 {
 	QStringList a(boost::apply_visitor(Builder(m_activity), variant_));
 
-	// current and previous PITs calculation
-	unsigned i = m_context->getBackupNumber();
-	QString u = m_context->getBackupUuid();
-	if ((m_context->getFlags() & PBT_INCREMENTAL) && i) {
-		a << "-p" << QString("%1.%2").arg(u).arg(i);
-		QString s(u);
-		if (i > PRL_PARTIAL_BACKUP_START_NUMBER)
-			s += QString(".%1").arg(i - 1);
-		a << "--last-pit" << s;
-	} else
-		a << "-p" << u;
+	a << "-p" << m_context->getBackupUuid();
 
 	if (m_context->getFlags() & PBT_UNCOMPRESSED)
 		a << "--uncompressed";
