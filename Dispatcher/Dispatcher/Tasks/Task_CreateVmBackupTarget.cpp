@@ -726,7 +726,12 @@ PRL_RESULT Task_CreateVmBackupTarget::wasHddListChanged(bool *pbWasChanged)
 
 	// load hdd list from current config
 	foreach(CVmHardDisk *pHdd, ::Backup::Object::Model(m_pVmConfig).getImages()) {
-		ls0[pHdd->getSystemName()] = pHdd->getSize();
+		QString d = pHdd->getSystemName();
+		if (QFileInfo(d).isRelative()) {
+			d = QFileInfo(QDir(m_pVmConfig->getVmIdentification()->getHomePath()),
+				d).absoluteFilePath();
+		}
+		ls0[d] = pHdd->getSize();
 	}
 
 	// load hdd list from last full backup config
@@ -758,7 +763,12 @@ PRL_RESULT Task_CreateVmBackupTarget::wasHddListChanged(bool *pbWasChanged)
 		return PRL_ERR_BACKUP_INTERNAL_ERROR;
 	}
 	foreach(CVmHardDisk *pHdd, ::Backup::Object::Model(p).getImages()) {
-		ls1[pHdd->getSystemName()] = pHdd->getSize();
+		QString d = pHdd->getSystemName();
+		if (QFileInfo(d).isRelative()) {
+			d = QFileInfo(QDir(m_pVmConfig->getVmIdentification()->getHomePath()),
+				d).absoluteFilePath();
+		}
+		ls1[d] = pHdd->getSize();
 	}
 	*pbWasChanged = !(ls1.size() == ls0.size() && std::equal(ls1.begin(), ls1.end(), ls0.begin()));
 	return PRL_ERR_SUCCESS;

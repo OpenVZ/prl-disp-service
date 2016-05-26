@@ -427,12 +427,13 @@ protected:
 	/* list of files for plain copy : file info and relative path from Vm home directory */
 	QList<QPair<QFileInfo, QString> > m_FileList;
 	BackupProcess m_cABackupServer;
+	::Backup::Activity::Object::componentList_type m_urls;
+
 private:
 	BackupProcess* m_cABackupClient;
 	bool m_bKillCalled;
 	SmartPtr<char> m_pBuffer;
 	qint64 m_nBufSize;
-	::Backup::Activity::Object::componentList_type m_urls;
 };
 
 #endif //__Task_BackupHelper_H_
