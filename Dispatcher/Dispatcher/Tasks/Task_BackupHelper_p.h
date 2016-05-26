@@ -141,21 +141,6 @@ private:
 namespace Push
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct State
-
-struct State : boost::static_visitor<VIRTUAL_MACHINE_STATE>
-{
-	explicit State(const QString& uuid_)
-		: m_uuid(uuid_) {}
-
-	VIRTUAL_MACHINE_STATE operator()(Ct& variant_) const;
-	VIRTUAL_MACHINE_STATE operator()(Vm& variant_) const;
-
-private:
-	QString m_uuid;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Builder
 
 struct Builder : boost::static_visitor<QStringList>
@@ -201,6 +186,24 @@ private:
 	::Backup::Snapshot::Vm::Object m_object;
 };
 
+typedef boost::variant<boost::blank, Frozen, Stopped> mode_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mode
+
+struct Mode : boost::static_visitor<Prl::Expected<mode_type, PRL_RESULT> >
+{
+	Mode(const QString& uuid_, Task_BackupHelper *context_)
+		: m_uuid(uuid_), m_context(context_) {}
+
+	Prl::Expected<mode_type, PRL_RESULT> operator()(Ct& variant_) const;
+	Prl::Expected<mode_type, PRL_RESULT> operator()(Vm& variant_) const;
+
+private:
+	QString m_uuid;
+	Task_BackupHelper *m_context;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct VCommand
 
@@ -208,7 +211,6 @@ struct VCommand : Command
 {
 	typedef boost::function1<Chain *, const QStringList& > builder_type;
 	typedef boost::function2<PRL_RESULT, const QStringList&, SmartPtr<Chain> > worker_type;
-	typedef boost::variant<boost::blank, Frozen, Stopped> mode_type;
 
 	VCommand(Task_BackupHelper& task_, const Activity::Object::Model& activity_)
 		: Command(task_, activity_)
@@ -230,7 +232,6 @@ struct VCommand : Command
 
 private:
 	QStringList buildArgs(object_type& variant_);
-	Prl::Expected<mode_type, PRL_RESULT> getMode(object_type& variant_);
 
 	QString m_uuid;
 	builder_type m_builder;

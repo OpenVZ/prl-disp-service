@@ -262,25 +262,26 @@ PRL_RESULT ACommand::do_(object_type& variant_)
 namespace Push
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct State
+// struct Mode
 
-VIRTUAL_MACHINE_STATE State::operator()(Ct&) const
+Prl::Expected<mode_type, PRL_RESULT> Mode::operator()(Ct&) const
 {
-	VIRTUAL_MACHINE_STATE s; 
-	PRL_RESULT res = CDspService::instance()->getVzHelper()->
-			getVzlibHelper().get_env_status(m_uuid, s);
-	if (PRL_FAILED(res))
-		return VMS_UNKNOWN;
-	return s;
+	return mode_type(boost::blank());
 }
 
-VIRTUAL_MACHINE_STATE State::operator()(Vm&) const
+Prl::Expected<mode_type, PRL_RESULT> Mode::operator()(Vm&) const
 {
 	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_uuid);
 	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
 	if (u.getState(s).isFailed())
-		return VMS_UNKNOWN;
-	return s;
+		return PRL_ERR_VM_UUID_NOT_FOUND;
+
+	if (s == VMS_STOPPED)
+		return mode_type(Stopped(m_uuid));
+	if (m_context->getProduct()->getObject().canFreeze())
+		return mode_type(Frozen(m_context, m_uuid));
+
+	return mode_type(boost::blank());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -311,23 +312,10 @@ QStringList VCommand::buildArgs(object_type& variant_)
 	return a;
 }
 
-Prl::Expected<VCommand::mode_type, PRL_RESULT> VCommand::getMode(object_type& variant_)
-{
-	VIRTUAL_MACHINE_STATE s = boost::apply_visitor(State(m_uuid), variant_);
-	if (s == VMS_UNKNOWN)
-		return PRL_ERR_VM_UUID_NOT_FOUND;
-
-	if (s == VMS_STOPPED)
-		return mode_type(Stopped(m_uuid));
-	if (m_context->getProduct()->getObject().canFreeze())
-		return mode_type(Frozen(m_context, m_uuid));
-
-	return mode_type(boost::blank());
-}
-
 PRL_RESULT VCommand::do_(object_type& variant_)
 {
-	Prl::Expected<mode_type, PRL_RESULT> m = getMode(variant_);
+	Prl::Expected<mode_type, PRL_RESULT> m =
+		boost::apply_visitor(Mode(m_uuid, m_context), variant_);
 	if (m.isFailed())
 		return m.error();
 
