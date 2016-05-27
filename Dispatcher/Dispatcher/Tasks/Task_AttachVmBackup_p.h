@@ -35,6 +35,7 @@
 #include <memory>
 #include <QtCore>
 #include <QLocalServer>
+#include <boost/variant.hpp>
 
 #include "CDspClient.h"
 #include "CDspTaskHelper.h"
@@ -204,7 +205,7 @@ struct BackupInfo {
 	 * @param diskName - name of disk backup
 	 */
 	BackupInfo(const QString& id, const QString& diskName)
-		: m_id(id), m_diskName(diskName), m_pit(1)
+		: m_id(id), m_diskName(diskName), m_pit(1), m_version(0)
 	{
 	}
 
@@ -216,6 +217,11 @@ struct BackupInfo {
 	unsigned int getPit() const
 	{
 		return m_pit;
+	}
+
+	unsigned int getVersion() const
+	{
+		return m_version;
 	}
 
 	PRL_RESULT fromString(const QString& data, CVmEvent *e = NULL);
@@ -232,10 +238,14 @@ private:
 	QString m_vmUuid;
 	/** backup UUID */
 	QString m_uuid;
+	/** backup version */
+	unsigned int m_version;
 };
 
 /** Data source flavours */
 struct Flavor {
+	typedef boost::variant<Buse::Tib, Buse::Qcow> format_type;
+
 	Flavor(Buse::Entry *entry, const BackupInfo& backup);
 	PRL_RESULT attachLocal(const QString& path);
 	PRL_RESULT attachRemote(SmartPtr<IOClient> client, CDspTaskHelper *task);
@@ -247,9 +257,40 @@ private:
 	/** path to a backup file */
 	QString m_path;
 	/** base backup format handler */
-	Buse::Tib m_format;
+	format_type m_format;
 };
 
+namespace Visitor
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Local
+
+struct Local : boost::static_visitor<PRL_RESULT>
+{
+	Local(Buse::Entry& entry_, const QString& path_)
+		: m_entry(entry_), m_path(path_)
+	{
+	}
+
+	template <class T>
+	PRL_RESULT operator()(const T& format_) const;
+
+private:
+	Buse::Entry& m_entry;
+	QString m_path;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mangle
+
+struct Mangle : boost::static_visitor<void>
+{
+	template <class T>
+	void operator()(T& format_) const;
+};
+
+} // namespace Visitor
 } // namespace Source
 
 } // namespace Attach
