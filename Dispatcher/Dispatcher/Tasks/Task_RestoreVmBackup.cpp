@@ -454,7 +454,8 @@ const char QEMU_IMG[] = "/usr/bin/qemu-img";
 
 PRL_RESULT Task_RestoreVmBackupSource::restoreImage(const QString& from_, const QString& to_)
 {
-	QString format = (QFileInfo(to_).suffix().startsWith("qcow2")) ? "qcow2" : "raw";
+	QString format = (QFileInfo(to_).suffix().startsWith("qcow2") ||
+			QFileInfo(to_).suffix() == "hdd") ? "qcow2" : "raw";
 	QStringList cmdline = QStringList() << QEMU_IMG << "convert" << "-O" << format
 						<< from_ << to_;
 
