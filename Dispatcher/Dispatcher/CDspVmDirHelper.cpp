@@ -1718,22 +1718,34 @@ void CDspVmDirHelper::deleteVm(const IOSender::Handle& sender,
 	PRL_RESULT err = PRL_ERR_FAILURE;
 	CVmEvent _error;
 	bool bSetNotValid = false;
-	err = CDspService::instance()->getAccessManager().checkAccess( pUserSession, PVE::DspCmdDirVmDelete
-		, vm_uuid, &bSetNotValid, &_error );
-	if ( ! PRL_SUCCEEDED(err) )
+	SmartPtr<CVmConfiguration> pVmConfig;
+
+	err = CDspService::instance()->getAccessManager().checkAccess(pUserSession, PVE::DspCmdDirVmDelete,
+		vm_uuid, &bSetNotValid, &_error);
+	if (PRL_FAILED(err))
 	{
 		sendNotValidState(pUserSession, err, vm_uuid, bSetNotValid);
-		pUserSession->sendResponseError( _error, pkg );
-		WRITE_TRACE(DBG_FATAL, "Delete VM operation canceled due %.8X '%s' error code\
-					was	received on check access rights",
-					err, PRL_RESULT_TO_STRING(err));
+		if (err != PRL_ERR_VM_CONFIG_DOESNT_EXIST)
+		{
+			pUserSession->sendResponseError(_error, pkg);
+			WRITE_TRACE(DBG_FATAL, "Delete VM operation canceled due %.8X '%s' error code "
+			"was received on check access rights", err, PRL_RESULT_TO_STRING(err));
+			return;
+		}
+		pVmConfig = CreateDefaultVmConfigByRcValid(pUserSession, err, vm_uuid);
+		WRITE_TRACE(DBG_WARNING, "Delete VM: Configuration file for VM '%s' not found. Unregistering the VM.", QSTR2UTF8(vm_uuid));
+		CVmEvent event(PET_DSP_EVT_VM_MESSAGE, vm_uuid, PIE_DISPATCHER, PRL_WARN_DELETE_NO_CONFIG_UNREGISTER);
+		SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspVmEvent, event, pkg);
+		pUserSession->sendPackage(pPackage);
+		unregOrDeleteVm(pUserSession, pkg, pVmConfig->toString(), PVD_UNREGISTER_ONLY);
 		return;
 	}
 
 	QStringList strFilesToDelete = pDeleteVmCmd->GetVmDevicesList();
 
-	SmartPtr<CVmConfiguration> pVmConfig(getVmConfigByUuid(pUserSession, vm_uuid, err, &_error));
-	if ( ! pVmConfig )
+	pVmConfig = getVmConfigByUuid(pUserSession, vm_uuid, err, &_error);
+
+	if (!pVmConfig )
 	{
 		WRITE_TRACE(DBG_FATAL, "Failed to get configuration for '%s'", QSTR2UTF8(vm_uuid));
 		PRL_ASSERT ( PRL_FAILED( err ) );
