@@ -565,14 +565,7 @@ struct Vcmmd: Need::Agent, Need::Context, Need::Config, Need::Command<CProtoSwit
 					return e;
 			}
 
-			quint64 ramsize = getConfig()->
-				getVmHardwareList()->getMemory()->getRamSize();
-			quint64 guarantee = ::Vm::Config::MemGuarantee(*getConfig()->
-				getVmHardwareList()->getMemory())(ramsize);
-			quint64 vramsize = getConfig()->
-				getVmHardwareList()->getVideo()->getMemorySize();
-
-			if (PRL_SUCCEEDED(v(::Vcmmd::Unregistered(ramsize<<20, guarantee<<20, vramsize<<20))))
+			if (PRL_SUCCEEDED(v(::Vcmmd::Unregistered(getConfig()))))
 				break;
 
 			return Error::Simple(PRL_ERR_UNABLE_APPLY_MEMORY_GUARANTEE);
@@ -833,13 +826,8 @@ struct Essence<PVE::DspCmdVmStart>: Need::Agent, Need::Config, Need::Context
 		}
 		else
 		{
-			CVmMemory* m = getConfig()->getVmHardwareList()->getMemory();
-			quint64 z = m->getRamSize();
-			quint64 g = ::Vm::Config::MemGuarantee(*m)(z);
-			quint64 w  = getConfig()->
-				getVmHardwareList()->getVideo()->getMemorySize();
 			Vcmmd::Frontend<Vcmmd::Unregistered> v(getContext().getVmUuid());
-			PRL_RESULT err = v(Vcmmd::Unregistered(z << 20, g << 20, w << 20));
+			PRL_RESULT err = v(Vcmmd::Unregistered(getConfig()));
 			if (PRL_FAILED(err))
 				return Error::Simple(err);
 

@@ -29,6 +29,7 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <prlsdk/PrlOses.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 #include "CVcmmdInterface.h"
@@ -44,15 +45,36 @@ Api::Api(const QString& uuid_)
 	m_uuid = uuid.toString(PrlUuid::WithoutBrackets).data();
 }
 
-PRL_RESULT Api::init(quint64 limit_, quint64 guarantee_, quint64 vram_)
+PRL_RESULT Api::init(const SmartPtr<CVmConfiguration>& config_)
 {
-	struct vcmmd_ve_config config;
-	vcmmd_ve_config_init(&config);
-	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_GUARANTEE, guarantee_);
-	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_LIMIT, limit_);
-	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_VRAM, vram_);
+	if (!config_.isValid())
+		return PRL_ERR_INVALID_PARAM;
 
-	int r = vcmmd_register_ve(qPrintable(m_uuid), VCMMD_VE_VM, &config, 0);
+	CVmMemory* memory = config_->getVmHardwareList()->getMemory();
+	quint64 limit = memory->getRamSize();
+	quint64 guarantee = ::Vm::Config::MemGuarantee(*memory)(limit);
+	quint64 vram = config_->
+		getVmHardwareList()->getVideo()->getMemorySize();
+	quint64 ostype = config_->
+		getVmSettings()->getVmCommonOptions()->getOsType();
+
+	struct vcmmd_ve_config vcmmdConfig;
+	vcmmd_ve_config_init(&vcmmdConfig);
+	vcmmd_ve_config_append(&vcmmdConfig, VCMMD_VE_CONFIG_GUARANTEE, guarantee << 20);
+	vcmmd_ve_config_append(&vcmmdConfig, VCMMD_VE_CONFIG_LIMIT, limit << 20);
+	vcmmd_ve_config_append(&vcmmdConfig, VCMMD_VE_CONFIG_VRAM, vram << 20);
+
+	vcmmd_ve_type_t vmType = VCMMD_VE_VM;
+	switch(ostype){
+		case PVS_GUEST_TYPE_WINDOWS:
+			vmType = VCMMD_VE_VM_WINDOWS;
+			break;
+		case PVS_GUEST_TYPE_LINUX:
+			vmType = VCMMD_VE_VM_LINUX;
+			break;
+	}
+
+	int r = vcmmd_register_ve(qPrintable(m_uuid), vmType, &vcmmdConfig, 0);
 
 	if (VCMMD_ERROR_VE_NAME_ALREADY_IN_USE != r)
 		return treat(r, "vcmmd_register_ve");
@@ -61,7 +83,7 @@ PRL_RESULT Api::init(quint64 limit_, quint64 guarantee_, quint64 vram_)
 	if (r)
 		return treat(r, "vcmmd_unregister_ve");
 
-	r = vcmmd_register_ve(qPrintable(m_uuid), VCMMD_VE_VM, &config, 0);
+	r = vcmmd_register_ve(qPrintable(m_uuid), vmType, &vcmmdConfig, 0);
 	return treat(r, "vcmmd_register_ve");
 }
 
