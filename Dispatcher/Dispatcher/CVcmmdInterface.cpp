@@ -29,6 +29,7 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <prlsdk/PrlOses.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 #include "CVcmmdInterface.h"
@@ -44,7 +45,7 @@ Api::Api(const QString& uuid_)
 	m_uuid = uuid.toString(PrlUuid::WithoutBrackets).data();
 }
 
-PRL_RESULT Api::init(quint64 limit_, quint64 guarantee_, quint64 vram_)
+PRL_RESULT Api::init(quint64 limit_, quint64 guarantee_, quint64 vram_, quint64 ostype_)
 {
 	struct vcmmd_ve_config config;
 	vcmmd_ve_config_init(&config);
@@ -52,7 +53,18 @@ PRL_RESULT Api::init(quint64 limit_, quint64 guarantee_, quint64 vram_)
 	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_LIMIT, limit_);
 	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_VRAM, vram_);
 
-	int r = vcmmd_register_ve(qPrintable(m_uuid), VCMMD_VE_VM, &config, 0);
+	vcmmd_ve_type_t vm_type = VCMMD_VE_VM;
+        switch(ostype_)
+        {
+                case PVS_GUEST_TYPE_WINDOWS:
+			vm_type = VCMMD_VE_VM_WINDOWS;
+                        break;
+                case PVS_GUEST_TYPE_LINUX:
+			vm_type = VCMMD_VE_VM_LINUX;
+                        break;
+	}
+
+	int r = vcmmd_register_ve(qPrintable(m_uuid), vm_type, &config, 0);
 
 	if (VCMMD_ERROR_VE_NAME_ALREADY_IN_USE != r)
 		return treat(r, "vcmmd_register_ve");
@@ -61,7 +73,7 @@ PRL_RESULT Api::init(quint64 limit_, quint64 guarantee_, quint64 vram_)
 	if (r)
 		return treat(r, "vcmmd_unregister_ve");
 
-	r = vcmmd_register_ve(qPrintable(m_uuid), VCMMD_VE_VM, &config, 0);
+	r = vcmmd_register_ve(qPrintable(m_uuid), vm_type, &config, 0);
 	return treat(r, "vcmmd_register_ve");
 }
 
