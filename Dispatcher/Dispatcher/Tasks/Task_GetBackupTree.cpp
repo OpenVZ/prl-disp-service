@@ -200,8 +200,14 @@ PRL_RESULT Task_GetBackupTreeTarget::addDisks(T& entry,
 	/* XXX: empty home doesn't work here, so generate some random cookie */
 	QString home("/" + Uuid::createUuid().toString());
 	Backup::Product::Model p(Backup::Object::Model(conf), home);
-	Backup::Product::componentList_type archives =
-		(vm.getVmType() == PVBT_VM) ? p.getVmTibs() : p.getCtTibs();
+	Backup::Product::componentList_type archives;
+	if (BACKUP_PROTO_V4 <= vm.getVersion()) {
+		p.setSuffix(::Backup::Suffix(number, 0)());
+		archives = p.getVmTibs();
+	} else if (vm.getVmType() == PVBT_VM)
+		archives = p.getVmTibs();
+	else
+		archives = p.getCtTibs();
 
 	foreach(const Backup::Product::component_type& a, archives) {
 		CBackupDisk *b = new (std::nothrow) CBackupDisk;
