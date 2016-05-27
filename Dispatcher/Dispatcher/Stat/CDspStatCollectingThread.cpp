@@ -2523,18 +2523,20 @@ void CDspStatCollectingThread::NotifyVmsStatisticsSubscribers()
 	if( ! IsAvalableStatisctic() )
 		return;
 
+	SmartPtr<CSystemStatistics> y;
 	QMutableMapIterator< QPair<QString, QString>, QList<StatGetter> > it( *g_pVmStatGetters );
 	while( it.hasNext() )
 	{
 		it.next();
 
 		QString sVmStat;
-		QList<StatGetter>& lst = it.value();
-		for( int i=0; i< lst.size(); i ++ )
+		y = GetVmGuestStatistics(it.key().first, it.key().second);
+		if (y.isValid())
+			sVmStat = y->toString();
+
+		foreach (const StatGetter& g, it.value())
 		{
-			if( sVmStat.isEmpty() )
-				sVmStat = GetVmGuestStatistics( it.key().first, it.key().second )->toString();
-			SendStatisticsResponse( lst[i].pUser, lst[i].pPkg, sVmStat );
+			SendStatisticsResponse(g.pUser, g.pPkg, sVmStat);
 		}
 		it.remove();
 	}
@@ -2550,7 +2552,10 @@ void CDspStatCollectingThread::NotifyVmsStatisticsSubscribers()
 			k = p->first;
 			CVmEvent x(PET_DSP_EVT_VM_STATISTICS_UPDATED, k.first, PIE_VIRTUAL_MACHINE);
 			CVmBinaryEventParameter *b = new CVmBinaryEventParameter(EVT_PARAM_STATISTICS);
-			GetVmGuestStatistics(k.first, k.second)->Serialize(*b->getBinaryDataStream().getImpl());
+			y = GetVmGuestStatistics(k.first, k.second);
+			if (y.isValid())
+				y->Serialize(*b->getBinaryDataStream().getImpl());
+
 			x.addEventParameter(b);
 			g = create_binary_package(x);
 			if (!g.isValid())
@@ -2800,8 +2805,12 @@ void CDspStatCollectingThread::SendVmGuestStatistics(
 	if( IsAvalableStatisctic() )
 	{
 		// send response
-		QString stat = GetVmGuestStatistics( sVmUuid, pUser->getVmDirectoryUuid() )->toString();
-		SendStatisticsResponse( pUser, p, stat );
+		QString x;
+		SmartPtr<CSystemStatistics> y = GetVmGuestStatistics(sVmUuid, pUser->getVmDirectoryUuid());
+		if (y.isValid())
+			x = y->toString();
+
+		SendStatisticsResponse(pUser, p, x);
 	}
 	else
 	{
@@ -2967,7 +2976,7 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 }
 
 void CDspStatCollectingThread::SendStatisticsResponse(
-	SmartPtr<CDspClient> &pUser,
+	const SmartPtr<CDspClient> &pUser,
 	const SmartPtr<IOPackage>& p,
 	const QString& sStatAsString
 	)

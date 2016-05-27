@@ -266,7 +266,7 @@ private:
 
 	static QString GetHostStatistics();
 	static SmartPtr<CSystemStatistics> GetVmGuestStatistics( const QString &sVmUuid, const QString &sVmDirUuid );
-	static void SendStatisticsResponse(SmartPtr<CDspClient> &pUser,
+	static void SendStatisticsResponse(const SmartPtr<CDspClient> &pUser,
 		const SmartPtr<IOPackage>& p,
 		const QString& statAsString );
 	static void schedule();
