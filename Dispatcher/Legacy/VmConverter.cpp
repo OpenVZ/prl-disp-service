@@ -60,30 +60,39 @@ QString getHostOnlyBridge()
 	return a->getName();
 }
 
-} // namespace
-
-namespace Legacy
-{
-namespace Vm
-{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Converter
+// struct Helper
 
-PRL_RESULT Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
+struct Helper
 {
-	CVmHardware *pVmHardware;
-	if ((pVmHardware = cfg->getVmHardwareList()) == NULL) {
-		WRITE_TRACE(DBG_FATAL, "[%s] Can not get Vm hardware list", __FUNCTION__);
-		return PRL_ERR_SUCCESS;
+	Helper(const SmartPtr<CVmConfiguration> &cfg,
+	       CVmHardware &hardware);
+
+	PRL_RESULT do_();
+
+private:
+	CVmHardware &m_hardware;
+};
+
+{
+
+{
+
+Helper::Helper(const SmartPtr<CVmConfiguration> &cfg,
+               CVmHardware &hardware):
+	m_hardware(hardware)
+{
 	}
 
+PRL_RESULT Helper::do_()
+{
 	// No PMU in guest with Parallels Tools causes BSOD.
-	if (pVmHardware->getCpu())
-		pVmHardware->getCpu()->setVirtualizePMU(true);
+	if (m_hardware.getCpu())
+		m_hardware.getCpu()->setVirtualizePMU(true);
 
 	QMap<PRL_MASS_STORAGE_INTERFACE_TYPE, unsigned> ifaces;
 	// Convert Cdrom devices to IDE since SATA is unsupported.
-	foreach(CVmOpticalDisk* pDevice, pVmHardware->m_lstOpticalDisks) {
+	foreach(CVmOpticalDisk* pDevice, m_hardware.m_lstOpticalDisks) {
 		if (pDevice == NULL)
 			continue;
 		if (pDevice->getEmulatedType() == PVE::CdRomImage)
@@ -93,7 +102,7 @@ PRL_RESULT Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 
 	// Convert disks to virtio-scsi
 	// There's no virtio-scsi drivers for win2003-, use virtio-block.
-	foreach(CVmHardDisk *pDevice, pVmHardware->m_lstHardDisks) {
+	foreach(CVmHardDisk *pDevice, m_hardware.m_lstHardDisks) {
 		if (NULL == pDevice)
 			continue;
 		if (pDevice->getEmulatedType() != PVE::HardDiskImage)
@@ -111,7 +120,7 @@ PRL_RESULT Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	}
 
 	// Convert network interfaces to virtio-net
-	foreach(CVmGenericNetworkAdapter *pDevice, pVmHardware->m_lstNetworkAdapters) {
+	foreach(CVmGenericNetworkAdapter *pDevice, m_hardware.m_lstNetworkAdapters) {
 		if (pDevice == NULL)
 			continue;
 		pDevice->setAdapterType(PNT_VIRTIO);
@@ -119,8 +128,8 @@ PRL_RESULT Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	}
 
 	// Parallel ports are not supported anymore
-	pVmHardware->m_lstParallelPortOlds.clear();
-	pVmHardware->m_lstParallelPorts.clear();
+	m_hardware.m_lstParallelPortOlds.clear();
+	m_hardware.m_lstParallelPorts.clear();
 
 	if (ifaces[PMS_IDE_DEVICE] > PRL_MAX_IDE_DEVICES_NUM)
 	{
@@ -133,7 +142,26 @@ PRL_RESULT Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 		return PRL_ERR_VMCONF_SCSI_DEVICES_COUNT_OUT_OF_RANGE;
 	}
 	return PRL_ERR_SUCCESS;
+}
 
+} // namespace
+
+namespace Legacy
+{
+namespace Vm
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Converter
+
+PRL_RESULT Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
+{
+	CVmHardware *pVmHardware;
+	if ((pVmHardware = cfg->getVmHardwareList()) == NULL) {
+		WRITE_TRACE(DBG_FATAL, "[%s] Can not get Vm hardware list", __FUNCTION__);
+		return PRL_ERR_SUCCESS;
+	}
+
+	return Helper(cfg, *pVmHardware).do_();
 }
 
 PRL_RESULT Converter::convertVm(const QString &vmUuid) const
