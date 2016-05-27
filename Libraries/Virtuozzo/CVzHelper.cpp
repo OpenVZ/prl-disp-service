@@ -61,6 +61,8 @@
 #include <vzctl/libvzctl.h>
 #include <vzctl/vzctl_param.h>
 
+#include <boost/bind.hpp>
+
 #ifndef FAIRSCHED_SET_RATE
 	#define FAIRSCHED_SET_RATE      0
 #endif
@@ -81,6 +83,22 @@ CNumaNode CVzHelper::s_numanodes;
 QMutex CVzHelper::s_mtxNodemask(QMutex::Recursive);
 
 static void reserve_hugepages(int node, unsigned long RamMb, unsigned long *reserved);
+
+struct VzProcess: QProcess
+{
+	explicit VzProcess(int fd_): m_fd(fd_)
+	{
+	}
+	void setupChildProcess()
+	{
+		QProcess::setupChildProcess();
+		if (-1 != m_fd)
+			fcntl(m_fd, F_SETFD, ~FD_CLOEXEC);
+	}
+
+private:
+	int m_fd;
+};
 
 class VzctlHandleWrap
 {
@@ -905,13 +923,6 @@ static int vz2prl_err(int vzret)
 	return PRL_ERR_VZ_OPERATION_FAILED;
 }
 
-
-void CProgressHepler::send_progress_evt(const QString &stage, int progress)
-{
-	if (m_notify && m_notify_obj)
-		m_notify(m_notify_obj, PET_JOB_STAGE_PROGRESS_CHANGED, m_sUuid, stage, progress);
-}
-
 void CProgressHepler::process_progress_evt()
 {
 	FILE *fp;
@@ -932,7 +943,8 @@ void CProgressHepler::process_progress_evt()
 		if ((p = strrchr(stage, '\n')) != NULL)
 			*p = '\0';
 
-		send_progress_evt(QString(stage), percent);
+		if (!m_callback.empty())
+			m_callback(QString(stage), percent);
 	}
 }
 
@@ -949,7 +961,6 @@ CVzOperationHelper::~CVzOperationHelper()
 PRL_RESULT CVzOperationHelper::run_prg(const char *name, const QStringList &lstArgs, bool quiet)
 {
 	int progress_fd[2] = {-1, -1};
-	QProcess proc;
 	QString args = quiet ? "" : lstArgs.join(" ").toUtf8().constData();
 
 	if (!quiet)
@@ -964,6 +975,7 @@ PRL_RESULT CVzOperationHelper::run_prg(const char *name, const QStringList &lstA
 		m_Envs.insert(QString("VZ_PROGRESS_FD"), QString("%1").arg(progress_fd[1]));
 	}
 
+	VzProcess proc(progress_fd[1]);
 	if (m_Envs.isEmpty()) {
 		// remove LD_LIBRARY_PATH from environments of new process
 		// https://jira.sw.ru/browse/PSBM-12493
@@ -989,8 +1001,16 @@ PRL_RESULT CVzOperationHelper::run_prg(const char *name, const QStringList &lstA
 
 	if (process_progress_evt()) {
 		close(progress_fd[1]);
-		m_pProgressTask->set_param(get_uuid(), progress_fd[0]);
-		m_pProgressTask->start();
+
+		if (m_notify && m_notifyObject)
+		{
+			CProgressHepler::callback_type cb = boost::bind
+				(m_notify, m_notifyObject, PET_JOB_STAGE_PROGRESS_CHANGED, m_sUuid, _1, _2);
+
+			m_pProgressTask = SmartPtr<CProgressHepler>(new CProgressHepler(cb, progress_fd[0]));
+
+			m_pProgressTask->start();
+		}
 	}
 
 	bool bOk = proc.waitForFinished(PRL_CMD_WORK_TIMEOUT);

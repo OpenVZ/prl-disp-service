@@ -45,6 +45,7 @@
 #include <prlxmlmodel/HostHardwareInfo/CSystemStatistics.h>
 #include <prlxmlmodel/DiskImageInfo/CDiskImageInfo.h>
 #include <prlxmlmodel/CtTemplate/CtTemplate.h>
+#include <boost/function.hpp>
 
 #ifndef NETLINK_VZEVENT
 #define NETLINK_VZEVENT         31
@@ -321,17 +322,13 @@ public:
 	static void kill_process(callback_data *data);
 };
 
-class CProgressHepler : public QThread {
-public:
-	CProgressHepler(notify_event_handler_fn fn, void *obj) :
-		m_fd(-1),
-		m_notify(fn),
-		m_notify_obj(obj)
-	{}
-	void set_param(const QString &sUuid, int fd)
+struct CProgressHepler : public QThread
+{
+	typedef boost::function2<void, const QString&, int> callback_type;
+
+	CProgressHepler(const callback_type& callback_, int fd_)
+		: m_callback(callback_), m_fd(fd_)
 	{
-		m_sUuid = sUuid;
-		m_fd = fd;
 	}
 
 	virtual ~CProgressHepler()
@@ -347,13 +344,9 @@ public:
 
 private:
 	void process_progress_evt();
-	void send_progress_evt(const QString &stage, int progress);
 
-private:
+	callback_type m_callback;
 	int m_fd;
-	QString m_sUuid;
-	notify_event_handler_fn m_notify;
-	void *m_notify_obj;
 };
 
 typedef struct vzctl_snap_holder vzctl_snap_holder_t;
@@ -366,9 +359,10 @@ public:
 		m_process_progress_evt(false),
 		m_snap_holder(NULL)
 	{}
-	CVzOperationHelper(notify_event_handler_fn fn, void *obj) :
+	CVzOperationHelper(notify_event_handler_fn fn_, void *obj_) :
 		m_Rc(0),
-		m_pProgressTask(new CProgressHepler(fn, obj)),
+		m_notify(fn_),
+		m_notifyObject(obj_),
 		m_process_progress_evt(false),
 		m_snap_holder(NULL)
 	{}
@@ -446,10 +440,12 @@ private:
 	CVzOperationCleaner m_cleaner;
 	QString m_sErrorMsg;
 	unsigned int m_Rc;
+	notify_event_handler_fn m_notify;
+	void *m_notifyObject;
 	QProcessEnvironment m_Envs;
 	QString m_sUuid;
-	SmartPtr<CProgressHepler> m_pProgressTask;
 	bool m_process_progress_evt;
+	SmartPtr<CProgressHepler> m_pProgressTask;
 
 	vzctl_snap_holder_t *m_snap_holder;
 };
