@@ -934,12 +934,14 @@ void CProgressHepler::process_progress_evt()
 		WRITE_TRACE(DBG_FATAL, "fdopen failed: %m");
 		return;
 	}
-	while (fgets(buf, sizeof(buf), fp) != NULL) {
-		if (sscanf(buf, "percent=%d", &percent) != 1)
-			continue;
-		if ((stage = strstr(buf, "stage=")) == NULL)
-			continue;
-		stage += sizeof("stage");
+	while ((stage = fgets(buf, sizeof(buf), fp)) != NULL) {
+		percent = 0;
+		if (sscanf(buf, "percent=%d", &percent) == 1)
+		{
+			if ((stage = strstr(buf, "stage=")) == NULL)
+				continue;
+			stage += sizeof("stage");
+		}
 		if ((p = strrchr(stage, '\n')) != NULL)
 			*p = '\0';
 

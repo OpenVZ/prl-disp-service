@@ -325,7 +325,8 @@ PRL_RESULT Task_VzMigrate::sendDispPackage(quint16 nType, quint32 nSize)
    swap socket - for memory pages transmission
   send this sockets to vzmigrate as parameters.
 */
-PRL_RESULT Task_VzMigrate::startVzMigrate(const QString &sCmd, const QStringList &lstArgs)
+PRL_RESULT Task_VzMigrate::startVzMigrate(const QString &sCmd, const QStringList &lstArgs,
+	const CProgressHepler::callback_type& reporter_)
 {
 	QScopedPointer<Migrate::EndpointPair> out_fds(Migrate::EndpointPair::createPipe());
 	QScopedPointer<Migrate::EndpointPair> err_pipe(Migrate::EndpointPair::createPipe());
@@ -333,6 +334,10 @@ PRL_RESULT Task_VzMigrate::startVzMigrate(const QString &sCmd, const QStringList
 	QScopedPointer<Migrate::EndpointPair> data_socks(Migrate::EndpointPair::createSocketPair());
 	QScopedPointer<Migrate::EndpointPair> tmpl_data_socks(Migrate::EndpointPair::createSocketPair());
 	QScopedPointer<Migrate::EndpointPair> swap_socks(Migrate::EndpointPair::createSocketPair());
+
+	QScopedPointer<Migrate::EndpointPair> progressPipe;
+	if (!reporter_.empty())
+		progressPipe.reset(Migrate::EndpointPair::createPipe());
 
 	m_sCmd = sCmd;
 
@@ -376,7 +381,8 @@ PRL_RESULT Task_VzMigrate::startVzMigrate(const QString &sCmd, const QStringList
 				(e == data_socks->child()) ||
 				(e == tmpl_data_socks->child()) ||
 				(e == swap_socks->child()) ||
-				(e == err_pipe->child()))
+				(e == err_pipe->child()) ||
+				(e == progressPipe->child()))
 				e.release();
 		}
 
@@ -399,6 +405,12 @@ PRL_RESULT Task_VzMigrate::startVzMigrate(const QString &sCmd, const QStringList
 		swap_socks->child().release();
 		err_pipe->child().release();
 		out_fds->child().release();
+
+		if (progressPipe)
+		{
+			progressPipe->child().setCloseOnExec(false);
+			::setenv("VZ_PROGRESS_FD", QSTR2UTF8(QString::number(progressPipe->child().release())), 1);
+		}
 
 		Migrate::exec_cmd(args);
 		_exit(-1);
@@ -445,6 +457,13 @@ PRL_RESULT Task_VzMigrate::startVzMigrate(const QString &sCmd, const QStringList
 	m_nFd[PRL_CT_MIGRATE_DATA_FD]     = data_socks->parent().release();
 	m_nFd[PRL_CT_MIGRATE_TMPLDATA_FD] = tmpl_data_socks->parent().release();
 	m_nFd[PRL_CT_MIGRATE_SWAP_FD]     = swap_socks->parent().release();
+
+	if (progressPipe)
+	{
+		progressPipe->child().close();
+		m_progress.reset(new CProgressHepler(reporter_, progressPipe->parent().release()));
+		m_progress->start();
+	}
 
 	return PRL_ERR_SUCCESS;
 }

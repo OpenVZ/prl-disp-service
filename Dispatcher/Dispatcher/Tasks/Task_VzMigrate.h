@@ -41,6 +41,7 @@
 #include "CDspDispConnection.h"
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
 #include "Task_DispToDispConnHelper.h"
+#include "Libraries/Virtuozzo/CVzHelper.h"
 
 #define PRL_CT_MIGRATE_CLIENT "/usr/sbin/vzmsrc"
 #define PRL_CT_MIGRATE_SERVER "/usr/sbin/vzmdest"
@@ -96,7 +97,9 @@ public:
 	~Task_VzMigrate();
 
 protected:
-	PRL_RESULT startVzMigrate(const QString &sCmd, const QStringList &lstArgs);
+	PRL_RESULT startVzMigrate(const QString& cmd_, const QStringList& args_,
+			const CProgressHepler::callback_type& reporter_ = CProgressHepler::callback_type());
+
 	PRL_RESULT execVzMigrate(
 			SmartPtr<IOPackage> pParentPackage,
 			IOSendJobInterface *pSendJobInterface,
@@ -132,6 +135,8 @@ private:
 	Task_HandleDispPackage *m_pHandleDispPackageTask;
 	QMutex m_terminateVzMigrateMutex;
 	QMutex m_terminateHandleDispPackageTaskMutex;
+
+	QScopedPointer<CProgressHepler> m_progress;
 
 	void (Task_VzMigrate::*m_pfnTermination)(pid_t);
 private:
