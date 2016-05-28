@@ -204,7 +204,8 @@ PRL_RESULT Task_MigrateCtSource::run_body()
 		SLOT(onCheckResponse(IOSendJob::Handle, const SmartPtr<IOPackage>)),
 		Qt::DirectConnection);
 
-	if (PRL_FAILED(nRetCode = startVzMigrate(PRL_CT_MIGRATE_CLIENT, lstArgs)))
+	if (PRL_FAILED(nRetCode = startVzMigrate(PRL_CT_MIGRATE_CLIENT, lstArgs,
+			boost::bind(&Task_MigrateCtSource::reportProgress, this, _1, _2))))
 		goto exit;
 
 	pResponse = m_pIoClient->takeResponse(m_hCheckReqJob);
@@ -489,4 +490,24 @@ PRL_RESULT Task_MigrateCtSource::sendDispPackage(SmartPtr<IOPackage> &pPackage)
 		return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
 	}
 	return PRL_ERR_SUCCESS;
+}
+
+void Task_MigrateCtSource::reportProgress(const QString& stage_, int progress_)
+{
+	CVmEvent event(PET_JOB_STAGE_PROGRESS_CHANGED, m_sCtUuid, PIE_DISPATCHER);
+
+	event.addEventParameter(new CVmEventParameter(
+				PVE::UnsignedInt,
+				QString::number(progress_),
+				EVT_PARAM_PROGRESS_CHANGED));
+
+	event.addEventParameter(new CVmEventParameter(
+				PVE::String,
+				stage_,
+				EVT_PARAM_PROGRESS_STAGE));
+
+	SmartPtr<IOPackage> p =	DispatcherPackage::createInstance(PVE::DspVmEvent, event,
+			getRequestPackage());
+
+	getClient()->sendPackage(p);
 }

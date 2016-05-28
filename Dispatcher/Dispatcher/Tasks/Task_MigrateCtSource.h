@@ -70,6 +70,7 @@ private:
 	PRL_RESULT CheckVmMigrationPreconditions();
 	PRL_RESULT SendStartRequest();
 	void terminate();
+	void reportProgress(const QString& stage_, int progress_);
 
 private slots:
 	void onCheckResponse(IOSendJob::Handle, const SmartPtr<IOPackage>);
