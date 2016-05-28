@@ -113,13 +113,13 @@ struct VirtualDisk {
 		m_path = value;
 	}
 
-	PRL_RESULT create(const QString& dev, CAuthHelper *auth);
+	PRL_RESULT create(const QString& dev);
 	void destroy();
 	PRL_RESULT getDevice(QString& path);
 	PRL_RESULT setDevice(const QString& path);
 
 private:
-	/** full path to a directory with DiskDescriptor.xml */
+	/** full path to the ploop device symlink */
 	QString m_path;
 };
 

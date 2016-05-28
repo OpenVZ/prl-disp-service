@@ -241,7 +241,7 @@ PRL_RESULT Task_RestoreVmBackupSource::prepareTask()
 #ifdef _LIN_
 	/* check that the backup is not attached to some VM - otherwise we'll get
 	 * acronis 'Access Denied' error */
-	if (Backup::Device::Service::isAttached(m_sBackupUuid)) {
+	if (Backup::Device::isAttached(m_sBackupUuid)) {
 		WRITE_TRACE(DBG_FATAL, "backup '%s' is attached to VM, restore is not possible",
 			QSTR2UTF8(m_sBackupUuid));
 		nRetCode = PRL_ERR_BACKUP_RESTORE_PROHIBIT_WHEN_ATTACHED;

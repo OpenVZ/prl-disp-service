@@ -463,14 +463,137 @@ PRL_RESULT Handler::visit(const Cleanup& event_)
 	return PRL_ERR_SUCCESS;
 }
 
+namespace Deferred
+{
+
+namespace
+{
+
+Prl::Expected<CVmHardDisk, Error::Simple> getModel(const QString& uuid_, uint index_)
+{
+	CVmConfiguration c;
+	// we need device alias, which is only set in the runtime config
+	Libvirt::Result r = Libvirt::Kit.vms().at(uuid_).getConfig(c, true);
+	if (r.isFailed())
+		return r.error();
+	const QList<CVmHardDisk* >& d = c.getVmHardwareList()->m_lstHardDisks;
+	QList<CVmHardDisk* >::const_iterator it(std::find_if(d.constBegin(), d.constEnd(),
+		boost::bind(&CVmHardDisk::getIndex, _1) == index_));
+	if (it == d.end())
+	{
+		WRITE_TRACE(DBG_FATAL, "VM '%s' config doesn't contain disk with index %u",
+			qPrintable(uuid_), index_);
+		return Error::Simple(PRL_ERR_UNEXPECTED);
+	}
+	return CVmHardDisk(*it);
+}
+
+PRL_RESULT defer(Base& action_)
+{
+	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
+	if (!action_.connect(s.getPtr(), SIGNAL(signalVmDeviceDetached(QString, QString)),
+		SLOT(execute(QString, QString)), Qt::QueuedConnection))
+	{
+		WRITE_TRACE(DBG_FATAL, "connect(signalVmDeviceDetached, execute) failed");
+		return PRL_ERR_FAILURE;
+	}
+	// self-destruct in 10 minutes
+	QTimer::singleShot(600000, &action_, SLOT(deleteLater()));
+	action_.moveToThread(s->thread());
+	return PRL_ERR_SUCCESS;
+}
+
+}  // anonymous namespace
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Action
+
+template<class T>
+Action<T>::Action(const CVmHardDisk& model_, const T& event_)
+	: m_model(model_), m_event(event_)
+{
+	m_event.setModel(m_model);
+}
+
+template<class T>
+void Action<T>::execute(QString uuid_, QString deviceAlias_)
+{
+	if (uuid_ == m_event.getVmUuid()
+		&& deviceAlias_ == m_event.getModel().getAlias())
+	{
+		do_();
+		deleteLater();
+	}
+}
+
+template<>
+void Action<Disable>::do_()
+{
+	Disconnector()(m_event);
+}
+
+template<>
+void Action<Teardown>::do_()
+{
+	Disconnector u;
+	if (PRL_SUCCEEDED(u(m_event)))
+		u.getHdd()->destroy();
+}
+
+template <class T>
+PRL_RESULT Action<T>::start(const T& event_)
+{
+	Prl::Expected<CVmHardDisk, Error::Simple> d = getModel(event_.getVmUuid(),
+		event_.getModel().getIndex());
+	if (d.isFailed())
+		return d.error().code();
+
+	QScopedPointer<Action> x(new Action(d.value(), event_));
+	PRL_RESULT output = defer(*x);
+	if (PRL_SUCCEEDED(output))
+		x.take();
+	return output;
+}
+
+} // namespace Deferred
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct EditVm
 
 PRL_RESULT EditVm::visit(const Disable& event_)
 {
-	if (CDspVm::getVmState(event_.getVmUuid(), m_uuid) == VMS_RUNNING)
-		return PRL_ERR_SUCCESS;
+	if (isRunning(event_.getVmUuid()))
+		return Deferred::Action<Disable>::start(event_);
 	return m_handler.visit(event_);
+}
+
+PRL_RESULT EditVm::visit(const Teardown& event_)
+{
+	if (isRunning(event_.getVmUuid())
+		&& Details::Finding(event_.getModel()).isEnabled())
+	{
+		return Deferred::Action<Teardown>::start(event_);
+	}
+	return m_handler.visit(event_);
+}
+
+PRL_RESULT EditVm::visit(const Enable& event_)
+{
+	if (isRunning(event_.getVmUuid()))
+		return m_handler.visit(event_);
+	return PRL_ERR_SUCCESS;
+}
+
+bool EditVm::isRunning(const QString& uuid_) const
+{
+	switch (CDspVm::getVmState(uuid_, m_uuid))
+	{
+	case VMS_RUNNING:
+	case VMS_PAUSED:
+		return true;
+	default:
+		return false;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -625,19 +748,26 @@ bool Dao::deleteAll()
 	return !a.isEmpty();
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
-// struct Service
+// struct Framework
 
-Service::Service(const Dao::dataSource_type& dataSource_): m_dao(dataSource_),
-	m_home(dataSource_->getVmIdentification()->getHomePath()),
-	m_uuid(dataSource_->getVmIdentification()->getVmUuid()), m_topic(),
-	m_visitor(new Event::Handler())
+Framework::Framework(const QString& home_, const QString& uuid_)
+: m_home(home_), m_uuid(uuid_), m_topic(), m_visitor(new Event::Handler())
 {
 	PRL_VM_TYPE type = PVT_VM;
 	CDspService::instance()->getVmDirManager().getVmTypeByUuid(m_uuid, type);
 	if (type == PVT_VM)
 		m_home = CFileHelper::GetFileRoot(m_home);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Service
+
+Service::Service(const Dao::dataSource_type& dataSource_)
+	: Framework(dataSource_->getVmIdentification()->getHomePath(),
+		dataSource_->getVmIdentification()->getVmUuid()),
+	  m_dao(dataSource_)
+{
 }
 
 void Service::enable()
@@ -680,13 +810,30 @@ PRL_RESULT Service::setDifference(const Dao::dataSource_type& new_)
 	return t.remove();
 }
 
-bool Service::isAttached(const QString& backupId)
+bool isAttached(const QString& backupId)
 {
 	QStringList found;
 	PRL_RESULT res = Buse::Buse().find(backupId, found);
 	if (PRL_FAILED(res))
 		return false;
 	return !found.isEmpty();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Oneshot
+
+PRL_RESULT Oneshot::enable(const CVmHardDisk& disk_)
+{
+	if (Details::Finding(disk_).isKindOf())
+		return m_visitor->visit(Event::Enable(m_uuid, disk_));
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Oneshot::disable(const CVmHardDisk& disk_)
+{
+	if (Details::Finding(disk_).isKindOf())
+		return m_visitor->visit(Event::Disable(m_uuid, m_home, disk_));
+	return PRL_ERR_SUCCESS;
 }
 
 } // namespace Device

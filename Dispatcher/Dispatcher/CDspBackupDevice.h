@@ -41,6 +41,7 @@
 #include "CDspTaskHelper.h"
 #include <prlcommon/Std/noncopyable.h>
 #include "Tasks/Task_AttachVmBackup.h"
+#include <boost/function.hpp>
 
 namespace Backup
 {
@@ -132,6 +133,11 @@ struct Base
 	{
 		return *m_model;
 	}
+	void setModel(const CVmHardDisk& model_)
+	{
+		m_model = &model_;
+	}
+
 	virtual PRL_RESULT accept(Visitor& visitor_) = 0;
 
 private:
@@ -186,6 +192,7 @@ struct Disconnect: Base
 	{
 		return m_home;
 	}
+
 	PRL_RESULT accept(Visitor& visitor_);
 
 private:
@@ -244,7 +251,7 @@ struct Traits<Enable>
 
 struct Disconnector
 {
-	explicit Disconnector(CVmEvent* topic_): m_topic(topic_)
+	explicit Disconnector(CVmEvent* topic_ = NULL): m_topic(topic_)
 	{
 	}
 
@@ -332,27 +339,62 @@ struct EditVm : Visitor
 		return m_handler.visit(event_);
 	}
 
-	PRL_RESULT visit(const Enable& event_)
-	{
-		return m_handler.visit(event_);
-	}
-
-	PRL_RESULT visit(const Teardown& event_)
-	{
-		return m_handler.visit(event_);
-	}
-
 	PRL_RESULT visit(const Cleanup& event_)
 	{
 		return m_handler.visit(event_);
 	}
 
+	PRL_RESULT visit(const Enable& event_);
 	PRL_RESULT visit(const Disable& event_);
+	PRL_RESULT visit(const Teardown& event_);
 
 private:
+	bool isRunning(const QString& uuid_) const;
+
 	Handler m_handler;
 	QString m_uuid;
 };
+
+namespace Deferred
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Base
+
+// XXX: QObject-based class could not be a template class at the same time.
+//      To workaround this obstacle, we'll inherit our template class from
+//      a QObject-based class with pure virtual functions.
+struct Base : QObject
+{
+	virtual ~Base()
+	{
+	}
+
+public slots:
+	virtual void execute(QString uuid_, QString deviceAlias_) = 0;
+
+private:
+	Q_OBJECT
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Action
+
+template<class T>
+struct Action : Base
+{
+	Action(const CVmHardDisk& model_, const T& event_);
+	void execute(QString uuid_, QString deviceAlias_);
+	static PRL_RESULT start(const T& event_);
+
+private:
+	void do_();
+
+	CVmHardDisk m_model;
+	T m_event;
+};
+
+} // namespace Deferred
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
@@ -409,9 +451,63 @@ struct Transition;
 } // namespace Details
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Framework
+
+struct Framework
+{
+	Framework() : m_topic()
+	{
+	}
+
+	Framework(const QString& home_, const QString& uuid_);
+
+	virtual ~Framework()
+	{
+	}
+
+	void setVmHome(const QString& value_)
+	{
+		m_home = value_;
+	}
+
+	void setContext(const Agent::Unit& agent_, CVmEvent* topic_ = NULL)
+	{
+		Event::Handler *h = new Event::Handler();
+		h->setAgent(new Agent::Unit(agent_));
+		m_visitor.reset(h);
+		setTopic(topic_);
+	}
+
+	void setContext(CDspTaskHelper& context_)
+	{
+		Event::Handler *h = new Event::Handler();
+		h->setAgent(new Agent::Unit(context_));
+		m_visitor.reset(h);
+		setTopic(context_.getLastError());
+	}
+
+	void setVisitor(Event::Visitor *visitor_)
+	{
+		m_visitor.reset(visitor_);
+	}
+
+	void setTopic(CVmEvent* topic_)
+	{
+		m_topic = topic_;
+	}
+
+protected:
+
+	QString m_home;
+	QString m_uuid;
+	CVmEvent* m_topic;
+	QScopedPointer<Event::Visitor> m_visitor;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Service
 
-struct Service
+struct Service : Framework
 {
 	explicit Service(const Dao::dataSource_type& dataSource_);
 
@@ -420,47 +516,62 @@ struct Service
 	void enable();
 	Details::Transition getTransition(const Dao::dataSource_type& new_);
 	PRL_RESULT setDifference(const Dao::dataSource_type& new_);
-	static bool isAttached(const QString& backupId);
 
 	Service& setVmHome(const QString& value_)
 	{
-		m_home = value_;
+		Framework::setVmHome(value_);
 		return *this;
 	}
+
 	Service& setContext(const Agent::Unit& agent_, CVmEvent* topic_ = NULL)
 	{
-		Event::Handler *h = new Event::Handler();
-		h->setAgent(new Agent::Unit(agent_));
-		m_visitor.reset(h);
-		return setTopic(topic_);
+		Framework::setContext(agent_, topic_);
+		return *this;
 	}
+
 	Service& setContext(CDspTaskHelper& context_)
 	{
-		Event::Handler *h = new Event::Handler();
-		h->setAgent(new Agent::Unit(context_));
-		m_visitor.reset(h);
-		return setTopic(context_.getLastError());
+		Framework::setContext(context_);
+		return *this;
 	}
 
 	Service& setVisitor(Event::Visitor *visitor_)
 	{
-		m_visitor.reset(visitor_);
+		Framework::setVisitor(visitor_);
 		return *this;
 	}
 
 	Service& setTopic(CVmEvent* topic_)
 	{
-		m_topic = topic_;
+		Framework::setTopic(topic_);
 		return *this;
 	}
 
 private:
 	Dao m_dao;
-	QString m_home;
-	QString m_uuid;
-	CVmEvent* m_topic;
-	QScopedPointer<Event::Visitor> m_visitor;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Oneshot
+
+struct Oneshot : Framework
+{
+	Oneshot(const QString& home_, const QString& uuid_)
+		: Framework(home_, uuid_)
+	{
+	}
+
+	PRL_RESULT disable(const CVmHardDisk& disk_);
+	PRL_RESULT enable(const CVmHardDisk& disk_);
+
+	Oneshot& setVisitor(Event::Visitor *visitor_)
+	{
+		Framework::setVisitor(visitor_);
+		return *this;
+	}
+};
+
+bool isAttached(const QString& backupId);
 
 namespace Details
 {

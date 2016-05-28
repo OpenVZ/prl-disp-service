@@ -828,6 +828,27 @@ typedef Tag::Timeout<Tag::State<Launcher, Fork::State::Strict<VMS_STOPPED> >, Fa
 
 } // namespace Shutdown
 } // namespace Vm
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hotplug
+
+struct Hotplug
+{
+	Hotplug(Libvirt::Instrument::Agent::Vm::Runtime runtime_,
+		const CVmIdentification& ident_, const SmartPtr<CDspClient>& session_)
+		: m_runtime(runtime_), m_ident(ident_), m_session(session_)
+	{
+	}
+
+	Libvirt::Result plug(const CVmHardDisk& disk_);
+	Libvirt::Result unplug(const CVmHardDisk& disk_);
+
+private:
+	Libvirt::Instrument::Agent::Vm::Runtime m_runtime;
+	const CVmIdentification& m_ident;
+	SmartPtr<CDspClient> m_session;
+};
+
 } // namespace Command
 
 #endif // __CDSPVMMANAGER_P_H__
