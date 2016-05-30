@@ -2348,7 +2348,9 @@ Prl::Expected<VtInfo, Error::Simple> Host::getVt() const
 
 	i->setMaxVCpu(std::min<quint32>(x, h.cpus));
 	i->setDefaultPeriod(100000);
-	i->setMhz(h.mhz);
+	if (!CDspService::instance()->getHostInfo()->data()->getCpu())
+		return Failure(PRL_ERR_CANT_INIT_REAL_CPUS_INFO);
+	i->setMhz(CDspService::instance()->getHostInfo()->data()->getCpu()->getSpeed());
 
 	v.setGlobalCpuLimit(PRL_VM_CPULIMIT_FULL == CDspService::instance()
 			->getDispConfigGuard().getDispConfig()

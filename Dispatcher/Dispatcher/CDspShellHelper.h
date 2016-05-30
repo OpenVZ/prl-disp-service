@@ -175,6 +175,8 @@ public:
 	static PRL_RESULT enableHeadlessMode( bool bEnable );
 
 	void sendCPUPoolsList(SmartPtr<CDspClient>&, const SmartPtr<IOPackage>&);
+	void joinCPUPool(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
+	void leaveCPUPool(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
 	void moveToCPUPool(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
 	void recalculateCPUPool(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
 
@@ -182,6 +184,7 @@ public:
 	void updateLicense(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
 
 private:
+	PRL_RESULT refreshVmsCPUFeatures(SmartPtr<CDspClient>& user_) const;
 	PRL_RESULT checkAccessForHostCommonInfoEdit(SmartPtr<CDspClient>& pUser,
 		const SmartPtr<IOPackage>& p);
 
