@@ -488,22 +488,16 @@ void Subject::run()
 
 void Performance::run()
 {
-	QList<Agent::Vm::Unit> a;
-	m_agent.all(a);
-	foreach (Agent::Vm::Unit m, a)
+	Agent::Vm::Performance::List c = m_agent.getPerformance();
+	foreach (const Agent::Vm::Performance::Unit& p, c)
 	{
 		QString u;
-		m.getUuid(u);
+		if (p.getUuid(u).isFailed())
+			continue;
+
 		QSharedPointer<Model::Domain> v = m_view->find(u);
 		if (v.isNull())
 			continue;
-
-		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
-		m.getState(s);
-		if (VMS_RUNNING != s)
-			continue;
-
-		Agent::Vm::Performance p = m.getPerformance();
 
 		Prl::Expected<Agent::Vm::Stat::CounterList_type, Error::Simple>
 			c = p.getCpu();

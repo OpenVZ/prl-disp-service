@@ -192,7 +192,7 @@ void Vm::setStatsPeriod(quint64 seconds_)
 {
 #ifdef _LIBVIRT_
 	qint64 p = qMax(seconds_, quint64(1));
-	Libvirt::Kit.vms().at(getUuid()).getPerformance().setMemoryStatsPeriod(p);
+	Libvirt::Kit.vms().at(getUuid()).setMemoryStatsPeriod(p);
 #endif // _LIBVIRT_
 }
 
