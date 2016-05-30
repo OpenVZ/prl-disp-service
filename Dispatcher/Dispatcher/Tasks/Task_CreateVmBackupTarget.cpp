@@ -150,12 +150,6 @@ Task_CreateVmBackupTarget::~Task_CreateVmBackupTarget()
 {
 	// #439777 protect handler from destroying object
 	m_waiter.waitUnlockAndFinalize();
-
-	foreach(const archive_type& f, m_createdTibs) {
-		f.second->stop();
-		if (PRL_FAILED(getLastErrorCode()))
-			f.first.remove();
-	}
 }
 
 PRL_RESULT Task_CreateVmBackupTarget::validateBackupDir(const QString &sPath)
@@ -278,6 +272,7 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
 		PRL_RESULT e = a.build(l.at(i).first.getDevice().getSize() << 20, base);
 		if (PRL_FAILED(e))
 			return e;
+		m_lstTibFileList << l.at(i).second.fileName();
 
 		QSharedPointer< ::Backup::Target::Nbd> n(new ::Backup::Target::Nbd());
 		m_createdTibs << qMakePair(a, n);
@@ -491,21 +486,25 @@ PRL_RESULT Task_CreateVmBackupTarget::run_body()
 		nRetCode = PRL_ERR_BACKUP_INTERNAL_ERROR;
 		goto exit;
 	}
-	/* for QTemporaryFile file name exist after open() and before close() only */
-	m_sABackupOutFile = tmpFile.fileName();
-	tmpFile.close();
+	if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
+		nRetCode = exec();
+	} else {
+		/* for QTemporaryFile file name exist after open() and before close() only */
+		m_sABackupOutFile = tmpFile.fileName();
+		tmpFile.close();
 
-	/* for QTemporaryFile file name exist after open() and before close() only */
-	args.append(m_sABackupOutFile);
-	args.prepend(QString(PRL_ABACKUP_SERVER));
+		/* for QTemporaryFile file name exist after open() and before close() only */
+		args.append(m_sABackupOutFile);
+		args.prepend(QString(PRL_ABACKUP_SERVER));
 
-	/* Target side - preserve old arguments processing */
-	if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, BACKUP_PROTO_V3)))
-		goto exit;
-	locker.unlock();
+		/* Target side - preserve old arguments processing */
+		if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, BACKUP_PROTO_V3)))
+			goto exit;
+		locker.unlock();
 
-	nRetCode = m_cABackupServer.waitForFinished();
-	loadTibFiles();
+		nRetCode = m_cABackupServer.waitForFinished();
+		loadTibFiles();
+	}
 
 	QObject::disconnect(m_pDispConnection.getImpl(),
 		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
@@ -541,6 +540,9 @@ void Task_CreateVmBackupTarget::finalizeTask()
 			unlockShared(m_sBackupUuid);
 	}
 	m_bBackupLocked = false;
+
+	foreach(const archive_type& f, m_createdTibs)
+		f.second->stop();
 
 	if (PRL_SUCCEEDED(getLastErrorCode())) {
 		hJob = m_pDispConnection->sendSimpleResponse(getRequestPackage(), PRL_ERR_SUCCESS);
@@ -591,6 +593,11 @@ void Task_CreateVmBackupTarget::handlePackage(IOSender::Handle h, const SmartPtr
 		nRetCode = m_pVmCopyTarget->handlePackage(p, &bExit);
 		if (bExit)
 			exit(nRetCode);
+	} else if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
+		if (p->header.type == ABackupProxyCancelCmd)
+			exit(PRL_ERR_OPERATION_WAS_CANCELED);
+		if (p->header.type == ABackupProxyFinishCmd)
+			exit(PRL_ERR_SUCCESS);
 	} else if (IS_ABACKUP_PROXY_PACKAGE(p->header.type)) {
 		/* Do not process _first_ incoming ABackup packages before backup server start
 		   Wait m_nTimeout only because client will disconnect after this timeout */
