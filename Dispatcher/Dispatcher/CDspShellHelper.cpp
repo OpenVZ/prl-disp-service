@@ -1423,6 +1423,33 @@ PRL_RESULT CDspShellHelper::enableHeadlessMode( bool bEnable )
 	return PRL_ERR_UNIMPLEMENTED;
 }
 
+PRL_RESULT CDspShellHelper::refreshVmsCPUFeatures(SmartPtr<CDspClient>& user_) const
+{
+	PRL_RESULT retval(PRL_ERR_SUCCESS);
+	QScopedPointer<CDispCpuPreferences> m(CCpuHelper::get_cpu_mask());
+	QString mask(m->toString());
+	QMultiHash<QString, SmartPtr<CVmConfiguration> > vms(
+		CDspService::instance()->getVmDirHelper().getAllVmList());
+	foreach(QString dir, vms.uniqueKeys())
+	{
+		foreach(SmartPtr<CVmConfiguration> cfg, vms.values(dir))
+		{
+			if(!cfg)
+				continue;
+
+			CVmEvent e;
+			e.addEventParameter(new CVmEventParameter(PVE::String,
+				mask, EVT_PARAM_VMCFG_CPU_FEATURES_MASK));
+
+			PRL_RESULT r(CDspService::instance()->getVmDirHelper().atomicEditVmConfigByVm(
+				dir, cfg->getVmIdentification()->getVmUuid(), e, user_));
+			if (PRL_FAILED(r))
+				retval = r;
+		}
+	}
+	return retval;
+}
+
 void CDspShellHelper::sendCPUPoolsList(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p)
 {
 	QList<CCpuPool> pools;
@@ -1440,33 +1467,88 @@ void CDspShellHelper::sendCPUPoolsList(SmartPtr<CDspClient>& pUser, const SmartP
 	CProtoCommandDspWsResponse *pResponseCmd =
 		CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>(pResponse);
 
+	WRITE_TRACE(DBG_FATAL, "CPU pool list: %s", QSTR2UTF8(poolsStr.join(",")));
 	pResponseCmd->SetParamsList(poolsStr);
 
 	pUser->sendResponse(pResponse, p);
 }
 
+void CDspShellHelper::joinCPUPool(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p)
+{
+	CProtoCommandPtr cmd(CProtoSerializer::ParseCommand(p));
+	if (!cmd->IsValid())
+	{
+		pUser->sendSimpleResponse(p, PRL_ERR_FAILURE);
+		return;
+	}
+	PRL_RESULT r(CCpuHelper::joinPool());
+	if (PRL_FAILED(r))
+	{
+		pUser->sendSimpleResponse(p, r);
+		return;
+	}
+
+	refreshVmsCPUFeatures(pUser);
+	pUser->sendSimpleResponse(p, PRL_ERR_SUCCESS);
+}
+
+void CDspShellHelper::leaveCPUPool(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p)
+{
+	CProtoCommandPtr cmd(CProtoSerializer::ParseCommand(p));
+	if (!cmd->IsValid())
+	{
+		pUser->sendSimpleResponse(p, PRL_ERR_FAILURE);
+		return;
+	}
+	PRL_RESULT r(CCpuHelper::leavePool());
+	if (PRL_FAILED(r))
+	{
+		pUser->sendSimpleResponse(p, r);
+		return;
+	}
+
+	refreshVmsCPUFeatures(pUser);
+	pUser->sendSimpleResponse(p, PRL_ERR_SUCCESS);
+}
+
 void CDspShellHelper::moveToCPUPool(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p)
 {
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(p);
+	CProtoCommandPtr cmd(CProtoSerializer::ParseCommand(p));
 	if (!cmd->IsValid())
 	{
 		pUser->sendSimpleResponse(p, PRL_ERR_FAILURE);
 		return;
 	}
 	QString poolName = cmd->GetFirstStrParam();
-	pUser->sendSimpleResponse(p, CCpuHelper::moveToPool(QSTR2UTF8(poolName)));
+	PRL_RESULT r(CCpuHelper::moveToPool(QSTR2UTF8(poolName)));
+	if (PRL_FAILED(r))
+	{
+		pUser->sendSimpleResponse(p, r);
+		return;
+	}
+
+	refreshVmsCPUFeatures(pUser);
+	pUser->sendSimpleResponse(p, PRL_ERR_SUCCESS);
 }
 
 void CDspShellHelper::recalculateCPUPool(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p)
 {
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(p);
+	CProtoCommandPtr cmd(CProtoSerializer::ParseCommand(p));
 	if (!cmd->IsValid())
 	{
 		pUser->sendSimpleResponse(p, PRL_ERR_FAILURE);
 		return;
 	}
 	QString poolName = cmd->GetFirstStrParam();
-	pUser->sendSimpleResponse(p, CCpuHelper::recalcPool(QSTR2UTF8(poolName)));
+	PRL_RESULT r(CCpuHelper::recalcPool(QSTR2UTF8(poolName)));
+	if (PRL_FAILED(r))
+	{
+		pUser->sendSimpleResponse(p, r);
+		return;
+	}
+
+	refreshVmsCPUFeatures(pUser);
+	pUser->sendSimpleResponse(p, PRL_ERR_SUCCESS);
 }
 
 void CDspShellHelper::sendLicenseInfo(
