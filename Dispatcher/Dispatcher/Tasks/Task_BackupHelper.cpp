@@ -1659,6 +1659,7 @@ PRL_RESULT BackupProcess::start(const QStringList& arg_, int version_)
 		close(in[1]); close(out[0]);
 		fcntl(in[0], F_SETFD, ~FD_CLOEXEC);
 		fcntl(out[1], F_SETFD, ~FD_CLOEXEC);
+		WRITE_TRACE(DBG_INFO, "Run cmd: %s", QSTR2UTF8(m_sCmd));
 		execvp(QSTR2UTF8(m_sCmd), (char* const*)pArgv);
 		WRITE_TRACE(DBG_FATAL, "Can't exec cmd '%s': %s",
 					QSTR2UTF8(m_sCmd), strerror(errno));
