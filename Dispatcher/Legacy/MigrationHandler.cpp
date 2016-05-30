@@ -68,13 +68,9 @@ PRL_RESULT Convert::execute()
 
 PRL_RESULT Vcmmd::execute()
 {
-	CVmMemory* m = m_config->getVmHardwareList()->getMemory();
-	quint64 z = m->getRamSize();
-	quint64 g = ::Vm::Config::MemGuarantee(*m)(z);
-	quint64 w  = m_config->
-		getVmHardwareList()->getVideo()->getMemorySize();
 	::Vcmmd::Frontend< ::Vcmmd::Unregistered> v(m_uuid);
-	PRL_RESULT e = v(::Vcmmd::Unregistered(z << 20, g << 20, w << 20));
+	const SmartPtr<CVmConfiguration> config(new CVmConfiguration(m_config));
+	PRL_RESULT e = v(::Vcmmd::Unregistered(config));
 
 	if (PRL_FAILED(e))
 		return e;
