@@ -382,7 +382,7 @@ PRL_RESULT Task_VzMigrate::startVzMigrate(const QString &sCmd, const QStringList
 				(e == tmpl_data_socks->child()) ||
 				(e == swap_socks->child()) ||
 				(e == err_pipe->child()) ||
-				(e == progressPipe->child()))
+				(progressPipe && e == progressPipe->child()))
 				e.release();
 		}
 
