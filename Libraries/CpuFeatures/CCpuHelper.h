@@ -40,6 +40,8 @@ public:
 	static void fill_cpu_info(CHwCpu &cpu);
 	static CCpuPoolInfo *getPoolInfo();
 	static bool loadPoolsList(QList<CCpuPool> &list);
+	static PRL_RESULT joinPool();
+	static PRL_RESULT leavePool();
 	static PRL_RESULT moveToPool(const char *name);
 	static PRL_RESULT recalcPool(const char *name);
 	static QSet<QString> getDisabledFeatures(const CVmConfiguration &conf);

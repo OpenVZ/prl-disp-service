@@ -849,6 +849,10 @@ void CDspClientManager::handleToDispatcherPackage (
 		return m_service->getShellServiceHelper().moveToCPUPool(client, p);
 	case PVE::DspCmdRecalculateCPUPool:
 		return m_service->getShellServiceHelper().recalculateCPUPool(client, p);
+	case PVE::DspCmdJoinCPUPool:
+		return m_service->getShellServiceHelper().joinCPUPool(client, p);
+	case PVE::DspCmdLeaveCPUPool:
+		return m_service->getShellServiceHelper().leaveCPUPool(client, p);
 	} //switch( p->header.type )
 	///////////////////////////////////////////////
 

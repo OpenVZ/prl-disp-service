@@ -38,6 +38,7 @@ namespace
 {
 
 static const char CPUFEATURES_BINARY[] = "/usr/sbin/cpufeatures";
+/* TODO move to some hidden place */
 static const char CPUPOOLS_BINARY[] = "/usr/sbin/cpupools";
 
 struct MaskTag
@@ -867,6 +868,16 @@ bool CCpuHelper::loadPoolsList(QList<CCpuPool> &list)
 		list << pool;
 	}
 	return true;
+}
+
+PRL_RESULT CCpuHelper::joinPool()
+{
+	return execFeaturesCmd(QString("%1 --quiet join").arg(CPUPOOLS_BINARY));
+}
+
+PRL_RESULT CCpuHelper::leavePool()
+{
+	return execFeaturesCmd(QString("%1 --quiet leave").arg(CPUPOOLS_BINARY));
 }
 
 PRL_RESULT CCpuHelper::moveToPool(const char *name)
