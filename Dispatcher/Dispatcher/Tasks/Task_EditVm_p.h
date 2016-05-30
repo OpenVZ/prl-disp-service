@@ -484,7 +484,8 @@ struct Routed
 		return m_mac;
 	}
 	std::pair<QString, QString> getIp4Defaults() const;
-	std::pair<QString, QString> getIp6Defaults() const;
+	QString getIp6Gateway() const;
+	static QString getIp6DefaultGateway();
 
 private:
 	QString m_mac;
