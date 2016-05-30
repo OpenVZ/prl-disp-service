@@ -54,6 +54,7 @@
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/VirtualDisk/Qcow2Disk.h>
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include "CDspBackupDevice.h"
 
 using namespace Parallels;
 
@@ -1346,6 +1347,7 @@ Task_CloneVm::Task_CloneVm(Registry::Public& registry_,
 	do
 	{
 		PRL_ASSERT(m_pOldVmConfig);
+		Backup::Device::Dao(m_pOldVmConfig).deleteAll();
 		//https://bugzilla.sw.ru/show_bug.cgi?id=267152
 		CAuthHelperImpersonateWrapper _impersonate( &getClient()->getAuthHelper() );
 

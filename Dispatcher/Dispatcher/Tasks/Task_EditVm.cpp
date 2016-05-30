@@ -67,6 +67,7 @@
 #include "CDspHaClusterHelper.h"
 #include "CDspVmStateSender.h"
 #include "CDspVm_p.h"
+#include "CDspBackupDevice.h"
 
 namespace
 {
@@ -1869,6 +1870,18 @@ PRL_RESULT Task_EditVm::editVm()
 			//Destroy removed HDDs bundles now - all necessary checkings whether VM running and etc
 			//were done above where flgExclusiveHardwareChangedWasRegistered was set
 			{
+				Backup::Device::Event::EditVm *v = new Backup::Device::Event::EditVm(
+					new Backup::Device::Agent::Unit(*this),
+					getClient()->getVmDirectoryUuid());
+
+				ret = Backup::Device::Service(pVmConfigOld)
+					.setVmHome(qsNewDirName)
+					.setVisitor(v)
+					.setTopic(getLastError())
+					.setDifference(pVmConfigNew);
+				if (PRL_FAILED(ret))
+					throw ret;
+
 				QList<CVmHardDisk *> &lstNewHardDisks = pVmConfigNew->getVmHardwareList()->m_lstHardDisks;
 				QList<CVmHardDisk *> &lstOldHardDisks = pVmConfigOld->getVmHardwareList()->m_lstHardDisks;
 				foreach( CVmHardDisk *pOldHdd, lstOldHardDisks )

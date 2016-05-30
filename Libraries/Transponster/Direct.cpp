@@ -73,6 +73,9 @@ PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 			.set(d->getDeviceType(), d->getIndex());
 	}
 	d->setTargetDeviceName(disk_.getTarget().getDev());
+	boost::optional<QString> alias(disk_.getAlias());
+	if (alias)
+		d->setAlias(*alias);
 	return PRL_ERR_SUCCESS;
 }
 
@@ -125,6 +128,9 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	d->setTargetDeviceName(disk_.getTarget().getDev());
 	if (disk_.getSerial())
 		d->setSerialNumber(disk_.getSerial().get());
+	boost::optional<QString> alias(disk_.getAlias());
+	if (alias)
+		d->setAlias(*alias);
 	return PRL_ERR_SUCCESS;
 }
 

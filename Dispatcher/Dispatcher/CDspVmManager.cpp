@@ -68,6 +68,7 @@
 #include "Tasks/Task_ExecVm.h"
 #include "Tasks/Task_EditVm.h"
 #include "CVcmmdInterface.h"
+#include "CDspBackupDevice.h"
 
 #ifdef _WIN_
 	#include <process.h>
@@ -276,9 +277,41 @@ struct Essence<PVE::DspCmdVmDropSuspendedState>: Need::Config, Need::Context
 	}
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Hotplug
+
+Libvirt::Result Hotplug::plug(const CVmHardDisk& disk_)
+{
+	if (!Backup::Device::Details::Finding(disk_).isKindOf())
+		return m_runtime.plug(disk_);
+
+	::Backup::Device::Oneshot x(m_ident.getHomePath(), m_ident.getVmUuid());
+	x.setContext(::Backup::Device::Agent::Unit(m_session));
+	Error::Simple e(x.enable(disk_));
+	if (PRL_FAILED(e.code()))
+		return e;
+	Libvirt::Result output = m_runtime.plug(disk_);
+	if (output.isFailed())
+		x.disable(disk_);
+	return output;
+}
+
+Libvirt::Result Hotplug::unplug(const CVmHardDisk& disk_)
+{
+	if (Backup::Device::Details::Finding(disk_).isKindOf())
+	{
+		::Backup::Device::Event::EditVm *v = new ::Backup::Device::Event::EditVm(
+			new ::Backup::Device::Agent::Unit(m_session),
+			m_session->getVmDirectoryUuid());
+		::Backup::Device::Oneshot x(m_ident.getHomePath(), m_ident.getVmUuid());
+		x.setVisitor(v).disable(disk_);
+	}
+	return m_runtime.unplug(disk_);
+}
+
 template<>
 struct Essence<PVE::DspCmdVmDevConnect>:
-	Need::Agent, Need::Command<CProtoVmDeviceCommand>, Need::Context
+	Need::Agent, Need::Command<CProtoVmDeviceCommand>, Need::Context, Need::Config
 {
 	Libvirt::Result operator()()
 	{
@@ -296,7 +329,8 @@ struct Essence<PVE::DspCmdVmDevConnect>:
 		{
 			CVmHardDisk y;
 			StringToElement<CVmHardDisk* >(&y, getCommand()->GetDeviceConfig());
-			output = getAgent().getRuntime().plug(y);
+			Hotplug(getAgent().getRuntime(), *getConfig()->getVmIdentification(),
+				getContext().getSession()).plug(y);
 			break;
 		}
 		default:
@@ -318,7 +352,7 @@ struct Essence<PVE::DspCmdVmDevConnect>:
 
 template<>
 struct Essence<PVE::DspCmdVmDevDisconnect>:
-	Need::Agent, Need::Command<CProtoVmDeviceCommand>, Need::Context
+	Need::Agent, Need::Command<CProtoVmDeviceCommand>, Need::Context, Need::Config
 {
 	Libvirt::Result operator()()
 	{
@@ -337,7 +371,8 @@ struct Essence<PVE::DspCmdVmDevDisconnect>:
 			CVmHardDisk y;
 			StringToElement<CVmHardDisk* >(&y, getCommand()->GetDeviceConfig());
 			y.setConnected(PVE::DeviceConnected);
-			output = getAgent().getRuntime().unplug(y);
+			Hotplug(getAgent().getRuntime(), *getConfig()->getVmIdentification(),
+				getContext().getSession()).unplug(y);
 		}
 			break;
 		default:
@@ -565,14 +600,7 @@ struct Vcmmd: Need::Agent, Need::Context, Need::Config, Need::Command<CProtoSwit
 					return e;
 			}
 
-			quint64 ramsize = getConfig()->
-				getVmHardwareList()->getMemory()->getRamSize();
-			quint64 guarantee = ::Vm::Config::MemGuarantee(*getConfig()->
-				getVmHardwareList()->getMemory())(ramsize);
-			quint64 vramsize = getConfig()->
-				getVmHardwareList()->getVideo()->getMemorySize();
-
-			if (PRL_SUCCEEDED(v(::Vcmmd::Unregistered(ramsize<<20, guarantee<<20, vramsize<<20))))
+			if (PRL_SUCCEEDED(v(::Vcmmd::Unregistered(getConfig()))))
 				break;
 
 			return Error::Simple(PRL_ERR_UNABLE_APPLY_MEMORY_GUARANTEE);
@@ -833,15 +861,13 @@ struct Essence<PVE::DspCmdVmStart>: Need::Agent, Need::Config, Need::Context
 		}
 		else
 		{
-			CVmMemory* m = getConfig()->getVmHardwareList()->getMemory();
-			quint64 z = m->getRamSize();
-			quint64 g = ::Vm::Config::MemGuarantee(*m)(z);
-			quint64 w  = getConfig()->
-				getVmHardwareList()->getVideo()->getMemorySize();
 			Vcmmd::Frontend<Vcmmd::Unregistered> v(getContext().getVmUuid());
-			PRL_RESULT err = v(Vcmmd::Unregistered(z << 20, g << 20, w << 20));
+			PRL_RESULT err = v(Vcmmd::Unregistered(getConfig()));
 			if (PRL_FAILED(err))
 				return Error::Simple(err);
+			Backup::Device::Service(getConfig())
+				.setContext(Backup::Device::Agent::Unit(getContext().getSession()))
+				.enable();
 
 			e = h.savFileExists() ? getAgent().resume(h.getSavFileName()) :
 				getAgent().start();

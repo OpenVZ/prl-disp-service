@@ -272,6 +272,7 @@ struct Coarse
 
 	static QString getUuid(virDomainPtr domain_);
 	void disconnectCd(virDomainPtr domain_, const QString& alias_);
+	void disconnectDevice(virDomainPtr domain_, const QString& alias_);
 
 private:
 	QSharedPointer<System> m_fine;

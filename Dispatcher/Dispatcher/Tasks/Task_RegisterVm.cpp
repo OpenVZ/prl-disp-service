@@ -54,6 +54,7 @@
 #include "CVmValidateConfig.h"
 #include "CDspBugPatcherLogic.h"
 #include "CDspVmManager_p.h"
+#include "CDspBackupDevice.h"
 
 #include <Libraries/PrlNetworking/netconfig.h>
 
@@ -707,6 +708,7 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 			}
 		}
 
+		QString originalVmUuid = m_pVmConfig->getVmIdentification()->getVmUuid();
 		if (doRegisterOnly() && !m_sCustomVmUuid.isEmpty())
 		{
 			if (!Uuid::isUuid(m_sCustomVmUuid) ||
@@ -741,7 +743,11 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 		if( vm_uuid.isEmpty() || Uuid( vm_uuid ).isNull() )
 			vm_uuid = regenerateVmUuid();
 
-
+		if (!Uuid(originalVmUuid).isNull() && ((vm_uuid != originalVmUuid) || (m_nFlags & PRVF_REGENERATE_VM_UUID)))
+		{
+			::Backup::Device::Service(m_pVmConfig).teardown();
+			::Backup::Device::Dao(m_pVmConfig).deleteAll();
+		}
 		//On VM registering check whether source VM UUID field empty and fill it properly
 		if ( doRegisterOnly() &&
 				(m_pVmConfig->getVmIdentification()->getSourceVmUuid().isEmpty() ||

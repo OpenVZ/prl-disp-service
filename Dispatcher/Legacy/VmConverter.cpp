@@ -30,6 +30,8 @@
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 #include "prlcommon/Interfaces/ApiDevNums.h"
 #include <prlsdk/PrlOses.h>
+#include <boost/range/irange.hpp>
+#include <boost/range/algorithm/copy.hpp>
 
 namespace
 {
@@ -60,6 +62,142 @@ QString getHostOnlyBridge()
 	return a->getName();
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Helper
+
+struct Helper
+{
+	Helper(PRL_MASS_STORAGE_INTERFACE_TYPE hddType,
+	       PRL_CLUSTERED_DEVICE_SUBTYPE hddSubType,
+	       CVmHardware &hardware);
+
+	PRL_RESULT do_();
+
+private:
+	template <typename T> PRL_RESULT do_(T *pDevice);
+	template <typename T> bool isConverted(const T &device) const;
+
+	CVmHardware &m_hardware;
+
+	PRL_MASS_STORAGE_INTERFACE_TYPE m_hddType;
+	PRL_CLUSTERED_DEVICE_SUBTYPE m_hddSubType;
+	QMap<PRL_MASS_STORAGE_INTERFACE_TYPE, QList<unsigned> > m_filled;
+};
+
+template<> bool Helper::isConverted(const CVmHardDisk &device) const
+{
+	return device.getEmulatedType() == PVE::HardDiskImage &&
+	       device.getInterfaceType() != m_hddType;
+}
+
+template<> bool Helper::isConverted(const CVmOpticalDisk &device) const
+{
+	return device.getEmulatedType() == PVE::CdRomImage &&
+	       device.getInterfaceType() != PMS_IDE_DEVICE;
+}
+
+template<> PRL_RESULT Helper::do_(CVmCpu *pDevice)
+{
+	// No PMU in guest with Parallels Tools causes BSOD.
+	if (pDevice)
+		pDevice->setVirtualizePMU(true);
+	return PRL_ERR_SUCCESS;
+}
+
+template<> PRL_RESULT Helper::do_(CVmOpticalDisk *pDevice)
+{
+	// Convert Cdrom devices to IDE since SATA is unsupported.
+	if (pDevice == NULL || !isConverted(*pDevice))
+		return PRL_ERR_SUCCESS;
+	if (m_filled[PMS_IDE_DEVICE].isEmpty())
+	{
+		WRITE_TRACE(DBG_FATAL, "Too many IDE devices after config conversion");
+		return PRL_ERR_VMCONF_IDE_DEVICES_COUNT_OUT_OF_RANGE;
+	}
+	pDevice->setInterfaceType(PMS_IDE_DEVICE);
+	pDevice->setStackIndex(m_filled[PMS_IDE_DEVICE].takeFirst());
+	return PRL_ERR_SUCCESS;
+}
+
+template<> PRL_RESULT Helper::do_(CVmHardDisk *pDevice)
+{
+	// Convert disks to virtio-scsi
+	// There's no virtio-scsi drivers for win2003-, use virtio-block.
+	if (NULL == pDevice || !isConverted(*pDevice))
+		return PRL_ERR_SUCCESS;
+	if (m_hddType == PMS_SCSI_DEVICE)
+	{
+		if (m_filled[m_hddType].isEmpty())
+		{
+			WRITE_TRACE(DBG_FATAL, "Too many SCSI devices after config conversion");
+			return PRL_ERR_VMCONF_SCSI_DEVICES_COUNT_OUT_OF_RANGE;
+		}
+		pDevice->setStackIndex(m_filled[m_hddType].takeFirst());
+	}
+	pDevice->setInterfaceType(m_hddType);
+	pDevice->setSubType(m_hddSubType);
+	return PRL_ERR_SUCCESS;
+}
+
+template<> PRL_RESULT Helper::do_(CVmGenericNetworkAdapter *pDevice)
+{
+	if (pDevice == NULL)
+		return PRL_ERR_SUCCESS;
+	pDevice->setAdapterType(PNT_VIRTIO);
+	pDevice->setHostInterfaceName(HostUtils::generateHostInterfaceName(pDevice->getMacAddress()));
+	return PRL_ERR_SUCCESS;
+}
+
+Helper::Helper(PRL_MASS_STORAGE_INTERFACE_TYPE hddType,
+               PRL_CLUSTERED_DEVICE_SUBTYPE hddSubType,
+               CVmHardware &hardware):
+	m_hardware(hardware), m_hddType(hddType), m_hddSubType(hddSubType)
+{
+	boost::copy(boost::irange(0, (int)PRL_MAX_SCSI_DEVICES_NUM),
+	            std::back_inserter(m_filled[PMS_SCSI_DEVICE]));
+	boost::copy(boost::irange(0, (int)PRL_MAX_IDE_DEVICES_NUM),
+	            std::back_inserter(m_filled[PMS_IDE_DEVICE]));
+
+	foreach(CVmHardDisk *pDevice, m_hardware.m_lstHardDisks) {
+		if (NULL != pDevice && !isConverted(*pDevice))
+			m_filled[pDevice->getInterfaceType()].removeOne(pDevice->getStackIndex());
+	}
+
+	foreach(CVmOpticalDisk *pDevice, m_hardware.m_lstOpticalDisks) {
+		if (NULL != pDevice && !isConverted(*pDevice))
+			m_filled[pDevice->getInterfaceType()].removeOne(pDevice->getStackIndex());
+	}
+}
+
+PRL_RESULT Helper::do_()
+{
+	PRL_RESULT res;
+	if (PRL_FAILED(res = do_(m_hardware.getCpu())))
+		return res;
+
+	// Convert Cdrom devices to IDE since SATA is unsupported.
+	foreach(CVmOpticalDisk* pDevice, m_hardware.m_lstOpticalDisks) {
+		if (PRL_FAILED(res = do_(pDevice)))
+			return res;
+	}
+
+	foreach(CVmHardDisk *pDevice, m_hardware.m_lstHardDisks) {
+		if (PRL_FAILED(res = do_(pDevice)))
+			return res;
+	}
+
+	// Convert network interfaces to virtio-net
+	foreach(CVmGenericNetworkAdapter *pDevice, m_hardware.m_lstNetworkAdapters) {
+		if (PRL_FAILED(res = do_(pDevice)))
+			return res;
+	}
+
+	// Parallel ports are not supported anymore
+	m_hardware.m_lstParallelPortOlds.clear();
+	m_hardware.m_lstParallelPorts.clear();
+	return PRL_ERR_SUCCESS;
+}
+
 } // namespace
 
 namespace Legacy
@@ -77,63 +215,13 @@ PRL_RESULT Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 		return PRL_ERR_SUCCESS;
 	}
 
-	// No PMU in guest with Parallels Tools causes BSOD.
-	if (pVmHardware->getCpu())
-		pVmHardware->getCpu()->setVirtualizePMU(true);
-
-	QMap<PRL_MASS_STORAGE_INTERFACE_TYPE, unsigned> ifaces;
-	// Convert Cdrom devices to IDE since SATA is unsupported.
-	foreach(CVmOpticalDisk* pDevice, pVmHardware->m_lstOpticalDisks) {
-		if (pDevice == NULL)
-			continue;
-		if (pDevice->getEmulatedType() == PVE::CdRomImage)
-			pDevice->setInterfaceType(PMS_IDE_DEVICE);
-		ifaces[pDevice->getInterfaceType()]++;
-	}
-
-	// Convert disks to virtio-scsi
-	// There's no virtio-scsi drivers for win2003-, use virtio-block.
-	foreach(CVmHardDisk *pDevice, pVmHardware->m_lstHardDisks) {
-		if (NULL == pDevice)
-			continue;
-		if (pDevice->getEmulatedType() != PVE::HardDiskImage)
-		{
-			ifaces[pDevice->getInterfaceType()]++;
-			continue;
-		}
-		bool noSCSI = cfg->getVmSettings()->getVmCommonOptions()->getOsType() ==
+	bool noSCSI = cfg->getVmSettings()->getVmCommonOptions()->getOsType() ==
 				PVS_GUEST_TYPE_WINDOWS &&
 			IS_WIN_VER_BELOW(cfg->getVmSettings()->getVmCommonOptions()->getOsVersion(),
 			                 PVS_GUEST_VER_WIN_VISTA);
-		pDevice->setInterfaceType(noSCSI ? PMS_VIRTIO_BLOCK_DEVICE : PMS_SCSI_DEVICE);
-		pDevice->setSubType(noSCSI ? PCD_BUSLOGIC : PCD_VIRTIO_SCSI);
-		ifaces[pDevice->getInterfaceType()]++;
-	}
-
-	// Convert network interfaces to virtio-net
-	foreach(CVmGenericNetworkAdapter *pDevice, pVmHardware->m_lstNetworkAdapters) {
-		if (pDevice == NULL)
-			continue;
-		pDevice->setAdapterType(PNT_VIRTIO);
-		pDevice->setHostInterfaceName(HostUtils::generateHostInterfaceName(pDevice->getMacAddress()));
-	}
-
-	// Parallel ports are not supported anymore
-	pVmHardware->m_lstParallelPortOlds.clear();
-	pVmHardware->m_lstParallelPorts.clear();
-
-	if (ifaces[PMS_IDE_DEVICE] > PRL_MAX_IDE_DEVICES_NUM)
-	{
-		WRITE_TRACE(DBG_FATAL, "Too many %s devices after config conversion", "IDE");
-		return PRL_ERR_VMCONF_IDE_DEVICES_COUNT_OUT_OF_RANGE;
-	}
-	if (ifaces[PMS_SCSI_DEVICE] > PRL_MAX_SCSI_DEVICES_NUM)
-	{
-		WRITE_TRACE(DBG_FATAL, "Too many %s devices after config conversion", "SCSI");
-		return PRL_ERR_VMCONF_SCSI_DEVICES_COUNT_OUT_OF_RANGE;
-	}
-	return PRL_ERR_SUCCESS;
-
+	return Helper(noSCSI ? PMS_VIRTIO_BLOCK_DEVICE : PMS_SCSI_DEVICE,
+	              noSCSI ? PCD_BUSLOGIC : PCD_VIRTIO_SCSI,
+				  *pVmHardware).do_();
 }
 
 PRL_RESULT Converter::convertVm(const QString &vmUuid) const
