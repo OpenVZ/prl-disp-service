@@ -3111,13 +3111,14 @@ std::pair<QString, QString> Routed::getIp4Defaults() const
 	return std::make_pair(x, "");
 }
 
-std::pair<QString, QString> Routed::getIp6Defaults() const
+QString Routed::getIp6DefaultGateway()
 {
-	QString x = QString(DEFAULT_HOSTROUTED_GATEWAY6).remove(QRegExp("/.*$")) + " ";
-	if (NULL != m_defaultGwIp6Bridge)
-		return std::make_pair("removev6 ", x);
+	return QString(DEFAULT_HOSTROUTED_GATEWAY6).remove(QRegExp("/.*$"));
+}
 
-	return std::make_pair(x, "");
+QString Routed::getIp6Gateway() const
+{
+	return NULL != m_defaultGwIp6Bridge ? "removev6 " : getIp6DefaultGateway() + " ";
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3140,10 +3141,10 @@ QStringList Address::operator()(const Routed& mode_)
 	if (!m_v6.isEmpty())
 	{
 		a << m_v6;
-		QString g6, r6;
-		boost::tie(g6, r6) = mode_.getIp6Defaults();
-		g += g6;
-		r += r6;
+		g += mode_.getIp6Gateway();
+		// Install rules with metric lower than auto-installed
+		foreach(const QString &ip, m_v6)
+			r += QString("%1=%2m100 ").arg(ip, mode_.getIp6DefaultGateway());
 	}
 	if (a.isEmpty())
 	{
