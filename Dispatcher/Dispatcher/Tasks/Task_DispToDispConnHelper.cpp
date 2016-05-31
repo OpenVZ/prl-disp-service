@@ -206,9 +206,25 @@ PRL_RESULT Task_DispToDispConnHelper::SendReqAndWaitReply(
 }
 
 
+PRL_RESULT Task_DispToDispConnHelper::SendReqAndWaitReplyLong(
+				const SmartPtr<IOPackage> &package,
+				SmartPtr<IOPackage> &pReply, quint32 timeout)
+{
+	IOSendJob::Handle hJob;
+	return SendReqAndWaitReply(package, pReply, hJob, timeout);
+}
+
 PRL_RESULT Task_DispToDispConnHelper::SendReqAndWaitReply(
 				const SmartPtr<IOPackage> &package,
 				SmartPtr<IOPackage> &pReply, IOSendJob::Handle &hJob)
+{
+	return SendReqAndWaitReply(package, pReply, hJob, m_nTimeout);
+}
+
+PRL_RESULT Task_DispToDispConnHelper::SendReqAndWaitReply(
+				const SmartPtr<IOPackage> &package,
+				SmartPtr<IOPackage> &pReply, IOSendJob::Handle &hJob,
+				quint32 timeout)
 {
 	if (isCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
@@ -220,7 +236,19 @@ PRL_RESULT Task_DispToDispConnHelper::SendReqAndWaitReply(
 		WRITE_TRACE(DBG_FATAL, "Package sending failure");
 		return PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
 	}
-	if (m_pIoClient->waitForResponse(hJob, m_nTimeout) != IOSendJob::Success) {
+
+	int max = timeout;
+	int p = 10 * 1000; // 10 seconds
+	IOSendJob::Result e;
+	do {
+		if (isCancelled())
+			return PRL_ERR_OPERATION_WAS_CANCELED;
+
+		e = m_pIoClient->waitForResponse(hJob, qMin(max, p));
+		max -= p;
+	} while (e == IOSendJob::Timeout && max > 0);
+
+	if (e != IOSendJob::Success) {
 		WRITE_TRACE(DBG_FATAL, "Responce receiving failure");
 		return PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
 	}

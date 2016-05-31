@@ -61,8 +61,13 @@ protected:
 	PRL_RESULT SendReqAndWaitReply(const SmartPtr<IOPackage> &package);
 	PRL_RESULT SendReqAndWaitReply(const SmartPtr<IOPackage> &package,
 			SmartPtr<IOPackage> &pReply);
+	PRL_RESULT SendReqAndWaitReplyLong(const SmartPtr<IOPackage> &package,
+			SmartPtr<IOPackage> &pReply, quint32 timeout);
 	PRL_RESULT SendReqAndWaitReply(const SmartPtr<IOPackage> &package,
 			SmartPtr<IOPackage> &pReply, IOSendJob::Handle &hJob);
+	PRL_RESULT SendReqAndWaitReply(const SmartPtr<IOPackage> &package,
+			SmartPtr<IOPackage> &pReply, IOSendJob::Handle &hJob,
+			quint32 timeout);
 
 	virtual bool isCancelled() { return true; }
 	SmartPtr<IOClient> getIoClient() { return m_pIoClient; }

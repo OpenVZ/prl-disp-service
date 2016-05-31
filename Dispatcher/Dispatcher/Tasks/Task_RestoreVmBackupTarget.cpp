@@ -1812,7 +1812,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::sendRestoreImageRequest(const QString& im
 	p->fillBuffer(0, IOPackage::RawEncoding, QSTR2UTF8(image_), image_.size()+1);
 	p->fillBuffer(1, IOPackage::RawEncoding, QSTR2UTF8(archive_), archive_.size()+1);
 	PRL_RESULT output;
-	if (PRL_FAILED(output = SendReqAndWaitReply(p, r)))
+	if (PRL_FAILED(output = SendReqAndWaitReplyLong(p, r, m_nBackupTimeout * 1000)))
 		return output;
 
 	if (r->header.type != DispToDispResponseCmd)
