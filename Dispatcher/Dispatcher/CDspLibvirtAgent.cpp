@@ -481,89 +481,119 @@ Runtime Unit::getRuntime() const
 	return Runtime(m_domain);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Performance
-
-Result Performance::setMemoryStatsPeriod(qint64 seconds_)
+Result Unit::setMemoryStatsPeriod(qint64 seconds_)
 {
 	return do_(m_domain.data(), boost::bind(&virDomainSetMemoryStatsPeriod, _1,
 		seconds_, VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE));
 }
 
-Prl::Expected<Stat::CounterList_type, Error::Simple>
-Performance::getCpu() const
+namespace Performance
 {
-	int n = virDomainGetCPUStats(m_domain.data(), NULL, 0, -1, 1, 0);
-	if (0 >= n)
-		return Failure(PRL_ERR_FAILURE);
 
-	QVector<virTypedParameter> q(n);
-	if (0 > virDomainGetCPUStats(m_domain.data(), q.data(), n, -1, 1, 0))
-		return Failure(PRL_ERR_FAILURE);
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
 
+Unit::Unit(const virDomainStatsRecordPtr record_): m_record(record_)
+{
+	if (NULL == record_)
+		return;
+
+	const char* s = NULL;
+
+	unsigned nets = 0;
+	virTypedParamsGetUInt(record_->params, record_->nparams, "net.count", &nets);
+	for(unsigned i = 0; i < nets; ++i)
+	{
+		QString t = QString("net.%1.name").arg(i);
+		if (1 == virTypedParamsGetString(record_->params, record_->nparams, qPrintable(t), &s))
+			m_ifaces[QString(s)] = i;
+	}
+
+	unsigned disks = 0;
+	virTypedParamsGetUInt(record_->params, record_->nparams, "block.count", &disks);
+	for(unsigned i = 0; i < disks; ++i)
+	{
+		QString t = QString("block.%1.path").arg(i);
+		if (1 == virTypedParamsGetString(record_->params, record_->nparams, qPrintable(t), &s))
+			m_disks[QString(s)] = i;
+	}
+}
+
+Result Unit::getUuid(QString& dst_) const
+{
+	virDomainRef(m_record->dom);
+	return Vm::Unit(m_record->dom).getUuid(dst_);
+}
+
+Prl::Expected<Stat::CounterList_type, Error::Simple>
+Unit::getCpu() const
+{
 	quint64 s = 0;
- #if (LIBVIR_VERSION_NUMBER > 1000001)
-	virTypedParamsGetULLong(q.data(), n, "cpu_time", &s);
- #endif
 	Stat::CounterList_type r;
-
-	r.append(Stat::Counter_type(::Stat::Name::Cpu::getName(), s / 1000));
+	if (getValue("cpu.time", s))
+		r.append(Stat::Counter_type(::Stat::Name::Cpu::getName(), s / 1000));
 
 	return r;
 }
 
 Prl::Expected<Stat::CounterList_type, Error::Simple>
-Performance::getVCpuList() const
+Unit::getVCpuList() const
 {
-	int n = virDomainGetVcpusFlags(m_domain.data(), VIR_DOMAIN_VCPU_CURRENT);
-	if (0 >= n)
-		return Failure(PRL_ERR_FAILURE);
-
-	QVector<virVcpuInfo> c(n);
-	if (0 > virDomainGetVcpus(m_domain.data(), c.data(), n, NULL, 0))
-		return Failure(PRL_ERR_FAILURE);
-
 	Stat::CounterList_type r;
-	foreach (const virVcpuInfo& i, c)
+
+	unsigned count = 0;
+	if (1 != virTypedParamsGetUInt(m_record->params, m_record->nparams, "vcpu.current", &count))
 	{
-		r.append(Stat::Counter_type(::Stat::Name::VCpu::getName(i.number), i.cpuTime));
+		WRITE_TRACE(DBG_DEBUG, "no vcpu statistics");
+		return r;
+	}
+
+	for (unsigned i = 0; i < count; i++)
+	{
+		quint64 time;
+		if (getValue(QString("vcpu.%1.time").arg(i), time))
+			r.append(Stat::Counter_type(::Stat::Name::VCpu::getName(i), time));
 	}
 	return r;
 }
 
 Prl::Expected<Stat::CounterList_type, Error::Simple>
-Performance::getDisk(const CVmHardDisk& disk_) const
+Unit::getDisk(const CVmHardDisk& disk_) const
 {
-	virDomainBlockStatsStruct s;
-	if (0 > virDomainBlockStats(m_domain.data(), qPrintable(disk_.getTargetDeviceName()), &s, sizeof(s)))
-		return Failure(PRL_ERR_FAILURE);
-
 	Stat::CounterList_type r;
 
-	// -1 means the counter is unsupported
-	r.append(Stat::Counter_type(
-		::Stat::Name::Hdd::getWriteRequests(disk_),
-		s.wr_req >= 0 ? s.wr_req : 0));
-	r.append(Stat::Counter_type(
-		::Stat::Name::Hdd::getWriteTotal(disk_),
-		s.wr_bytes >= 0 ? s.wr_bytes : 0));
-	r.append(Stat::Counter_type(
-		::Stat::Name::Hdd::getReadRequests(disk_),
-		s.rd_req >= 0 ? s.rd_req : 0));
-	r.append(Stat::Counter_type(
-		::Stat::Name::Hdd::getReadTotal(disk_),
-		s.rd_bytes >= 0 ? s.rd_bytes : 0));
+	if (!m_disks.contains(disk_.getSystemName()))
+	{
+		WRITE_TRACE(DBG_DEBUG, "no statistics for %s", qPrintable(disk_.getSystemName()));
+		return r;
+	}
+
+	unsigned n = m_disks[disk_.getSystemName()];
+	QString block = QString("block.%1.%2").arg(n);
+
+	quint64 value = 0;
+	if (getValue(block.arg("wr.reqs"), value))
+		r.append(Stat::Counter_type(::Stat::Name::Hdd::getWriteRequests(disk_), value));
+
+	if (getValue(block.arg("wr.bytes"), value))
+		r.append(Stat::Counter_type(::Stat::Name::Hdd::getWriteTotal(disk_), value));
+
+	if (getValue(block.arg("rd.reqs"), value))
+		r.append(Stat::Counter_type(::Stat::Name::Hdd::getReadRequests(disk_), value));
+
+	if (getValue(block.arg("rd.bytes"), value))
+		r.append(Stat::Counter_type(::Stat::Name::Hdd::getReadTotal(disk_), value));
 
 	return r;
 }
 
 Prl::Expected<Stat::CounterList_type, Error::Simple>
-Performance::getMemory() const
+Unit::getMemory() const
 {
 	unsigned s = VIR_DOMAIN_MEMORY_STAT_NR - 1;
 	virDomainMemoryStatStruct x[s];
 
-	int n = virDomainMemoryStats(m_domain.data(), x, s, 0);
+	int n = virDomainMemoryStats(m_record->dom, x, s, 0);
 	if (0 >= n)
 		return Failure(PRL_ERR_FAILURE);
 
@@ -603,31 +633,41 @@ Performance::getMemory() const
 }
 
 Prl::Expected<Stat::CounterList_type, Error::Simple>
-Performance::getInterface(const CVmGenericNetworkAdapter& iface_) const
+Unit::getInterface(const CVmGenericNetworkAdapter& iface_) const
 {
-	virDomainInterfaceStatsStruct x;
-	int n = virDomainInterfaceStats(m_domain.data(), qPrintable(iface_.getHostInterfaceName()), &x, sizeof(x));
-	if (0 > n)
-		return Failure(PRL_ERR_FAILURE);
-
 	Stat::CounterList_type r;
 
-	// -1 means the counter is unsupported
-	r.append(Stat::Counter_type(
-		::Stat::Name::Interface::getBytesIn(iface_),
-		x.rx_bytes >= 0 ? x.rx_bytes : 0));
-	r.append(Stat::Counter_type(
-		::Stat::Name::Interface::getPacketsIn(iface_),
-		x.rx_packets >= 0 ? x.rx_packets : 0));
-	r.append(Stat::Counter_type(
-		::Stat::Name::Interface::getBytesOut(iface_),
-		x.tx_bytes >= 0 ? x.tx_bytes : 0));
-	r.append(Stat::Counter_type(
-		::Stat::Name::Interface::getPacketsOut(iface_),
-		x.tx_packets >= 0 ? x.tx_packets : 0));
+	if (!m_ifaces.contains(iface_.getHostInterfaceName()))
+	{
+		WRITE_TRACE(DBG_DEBUG, "no statistics for %s", qPrintable(iface_.getHostInterfaceName()));
+		return r;
+	}
+
+	unsigned n = m_ifaces[iface_.getHostInterfaceName()];
+	QString iface = QString("net.%1.%2").arg(n);
+
+	quint64 value = 0;
+	if (getValue(iface.arg("rx.bytes"), value))
+		r.append(Stat::Counter_type(::Stat::Name::Interface::getBytesIn(iface_), value));
+
+	if (getValue(iface.arg("rx.pkts"), value))
+		r.append(Stat::Counter_type(::Stat::Name::Interface::getPacketsIn(iface_), value));
+
+	if (getValue(iface.arg("tx.bytes"), value))
+		r.append(Stat::Counter_type(::Stat::Name::Interface::getBytesOut(iface_), value));
+
+	if (getValue(iface.arg("tx.pkts"), value))
+		r.append(Stat::Counter_type(::Stat::Name::Interface::getPacketsOut(iface_), value));
 
 	return r;
 }
+
+bool Unit::getValue(const QString& name_, quint64& dst_) const
+{
+	return 1 == virTypedParamsGetULLong(m_record->params, m_record->nparams, qPrintable(name_), &dst_);
+}
+
+} // namespace Performance
 
 namespace Command
 {
@@ -1598,6 +1638,29 @@ Result List::all(QList<Unit>& dst_)
 
 	free(a);
 	return Result();
+}
+
+Performance::List List::getPerformance()
+{
+	virDomainStatsRecordPtr* s = NULL;
+	int z = virConnectGetAllDomainStats(m_link.data(), 0, &s, VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE);
+
+	Performance::List c(s);
+	if (0 > z)
+	{
+		WRITE_TRACE(DBG_FATAL, "unable to get perfomance statistics for all domains (return %d)", z);
+		return c;
+	}
+
+	for (int i = 0; i < z; ++i)
+	{
+		if (s[i] == NULL)
+			continue;
+
+		c << Performance::Unit(s[i]);
+	}
+
+	return c;
 }
 
 namespace Block

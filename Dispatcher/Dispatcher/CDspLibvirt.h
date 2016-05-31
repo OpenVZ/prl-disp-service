@@ -106,31 +106,50 @@ typedef QList<Counter_type> CounterList_type;
 
 } // namespace Stat
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Performance
-
-struct Performance
+namespace Performance
 {
-	explicit Performance(const QSharedPointer<virDomain>& domain_): m_domain(domain_)
-	{
-	}
 
-	Result setMemoryStatsPeriod(qint64 seconds_);
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
 
+struct Unit
+{
+	explicit Unit(const virDomainStatsRecordPtr record_);
+
+	Result getUuid(QString& dst_) const;
 	Prl::Expected<Stat::CounterList_type, Error::Simple>
 		getCpu() const;
 	Prl::Expected<Stat::CounterList_type, Error::Simple>
- 		getVCpuList() const;
- 	Prl::Expected<Stat::CounterList_type, Error::Simple>
- 		getDisk(const CVmHardDisk& disk_) const;
+		getVCpuList() const;
+	Prl::Expected<Stat::CounterList_type, Error::Simple>
+		getDisk(const CVmHardDisk& disk_) const;
 	Prl::Expected<Stat::CounterList_type, Error::Simple>
 		getMemory() const;
 	Prl::Expected<Stat::CounterList_type, Error::Simple>
 		getInterface(const CVmGenericNetworkAdapter& iface_) const;
 
 private:
-	QSharedPointer<virDomain> m_domain;
+	bool getValue(const QString& name_, quint64& dst_) const;
+
+	const virDomainStatsRecord* m_record;
+	QHash<QString, unsigned> m_ifaces;
+	QHash<QString, unsigned> m_disks;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+
+struct List: QList<Unit>
+{
+	explicit List(virDomainStatsRecordPtr* records_): m_data(records_, &virDomainStatsRecordListFree)
+	{
+	}
+
+private:
+	QSharedPointer<virDomainStatsRecordPtr> m_data;
+};
+
+} // namespace Performance
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hotplug
@@ -412,14 +431,11 @@ struct Unit
 	Result getConfig(QString& dst_, bool runtime_ = false) const;
 	Result setConfig(const CVmConfiguration& value_);
 	Result completeConfig(CVmConfiguration& config_);
+	Result setMemoryStatsPeriod(qint64 seconds_);
 
 	Migration::Agent migrate(const QString& uri_);
 
 	List up() const;
-	Performance getPerformance() const
-	{
-		return Performance(m_domain);
-	}
 	Guest getGuest() const;
 	Snapshot::List getSnapshot() const
 	{
@@ -447,6 +463,7 @@ struct List
 	Unit at(const QString& uuid_) const;
 	Result all(QList<Unit>& dst_);
 	Result define(const CVmConfiguration& config_, Unit* dst_ = NULL);
+	Performance::List getPerformance();
 
 private:
 	QSharedPointer<virConnect> m_link;
