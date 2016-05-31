@@ -103,18 +103,11 @@ class CommonTests:
 
 
             job = server.get_license_info()
-            try:
-                job.wait( max_wait_timeout )
-                result = job.get_result()
+            job.wait( max_wait_timeout )
+            result = job.get_result()
+            lic = result.get_param()
 
-            except prlsdkapi.PrlSDKError:
-                retCode = job.get_ret_code()
-                retCode = (0x100000000L + retCode) & 0xffffffffL
-                retCodeUnimplimented = (0x100000000L + prlsdkapi.errors.PRL_ERR_UNIMPLEMENTED) & 0xffffffffL
-                if retCode == retCodeUnimplimented:
-                    return 0
-
-            return 1
+            return 0
 
         # ---------------------------------------------------------
         def Test_bugs3115_2511_CantRecreateImage( self, server ):
@@ -131,14 +124,14 @@ class CommonTests:
             # raw_input ("press any key")
 
             vm.set_uuid ( CommonTestsUtils.gen_random_guid()  )
-			vm.set_name ( "createImage_" + vm.get_uuid()[:20] )
+            vm.set_name ( "createImage_" + vm.get_uuid()[:20] )
 
             job = vm.reg('')
             job.wait( max_wait_timeout )
 
             try:
-            	job = vm.begin_edit()
-            	job.wait( max_wait_timeout )
+                job = vm.begin_edit()
+                job.wait( max_wait_timeout )
 
 
                 # ============================
@@ -167,9 +160,8 @@ class CommonTests:
                 devFdd.set_sys_name ( image_path )
                 devFdd.set_emulated_type ( prlsdkapi.consts.PDT_USE_IMAGE_FILE  )
 
-            	job = vm.commit()
-            	job.wait( max_wait_timeout )
-
+                job = vm.commit()
+                job.wait( max_wait_timeout )
 
                 dictDeviceAndRetCode = {
                     devHdd: prlsdkapi.errors.PRL_ERR_HDD_IMAGE_IS_ALREADY_EXIST,
