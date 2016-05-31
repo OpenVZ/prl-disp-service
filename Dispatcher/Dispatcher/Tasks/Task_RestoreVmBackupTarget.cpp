@@ -1636,7 +1636,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewCt(const QString &sDefaultCtFol
 	} while (0);
 
 	if (PRL_FAILED(nRetCode)) {
-		x->revert();
+		if (x.get())
+			x->revert();
 		if (registered)
 			m_VzOpHelper.unregister_env(m_sVmUuid, PRCF_FORCE | PRCF_UNREG_PRESERVE);
 	}
