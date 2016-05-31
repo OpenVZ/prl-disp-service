@@ -936,8 +936,12 @@ PRL_RESULT Vm::setResources(const VtInfo& vt_)
 		r.setMaxMemory(m_input->getMaxMemory().get());
 	if (m_input->getVcpu())
 		r.setCpu(*m_input, vt_);
+
 	if (m_input->getCpu())
 		r.setCpu(m_input->getCpu().get());
+	else
+		r.setCpu(Libvirt::Domain::Xml::Cpu());
+
 	if (m_input->getClock())
 		r.setClock(m_input->getClock().get());
 	if (m_input->getSysinfo())
