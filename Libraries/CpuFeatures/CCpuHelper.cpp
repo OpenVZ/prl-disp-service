@@ -649,9 +649,9 @@ struct Visitor : boost::static_visitor<void>
 	{
 		static const char *f[] = {
 			"fsgsbase", "tsc_adjust", "sgx", "bmi1", "hle", "avx2",	"",	"smep",	"bmi2",
-			"erms", "invpcid", "rtm", "pqm", "depfpp", "mpx", "pqe", "avx512f", "avx512dq",
-			"rdseed", "adx", "smap", "", "", "cflushopt", "", "pt", "avx512pf",	"avx512er",
-			"avx512cd",	"sha", "avx512bw", "avx512vl", NULL
+			"erms", "invpcid", "rtm", "", "", "mpx", "", "avx512f", "",
+			"rdseed", "adx", "smap", "", "", "cflushopt", "", "", "avx512pf",	"avx512er",
+			"avx512cd",	"", "", "", NULL
 		};
 
 		m_list->push_back(Register(f, &Config::type::getEXT_00000007_EBX_MASK));
@@ -682,10 +682,7 @@ struct Visitor : boost::static_visitor<void>
 
 	void operator()(boost::mpl::int_<PCFE_EXT_80000007_EDX>)
 	{
-		static const char *f[] = {
-			"ts", "fid", "vid", "ttp", "tm87", "stc", "mul100",	"hwps", "itsc",	"cpb", "efro",
-			"pfi", "pa", NULL
-		};
+		static const char *f[] = {NULL};
 
 		m_list->push_back(Register(f, &Config::type::getEXT_80000007_EDX_MASK));
 	}
