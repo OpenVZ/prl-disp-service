@@ -377,8 +377,7 @@ bool CVmMigrateTargetServer::connectToDisp()
 		return false;
 	}
 
-	CVmEvent e(PET_VM_INF_UNINITIALIZED_EVENT_CODE, "0" , PIE_VIRTUAL_MACHINE);
-	return send(DispatcherPackage::createInstance(PVE::DspVmAuth, e.toString()));
+	return send(DispatcherPackage::createInstance(PVE::DspVmAuth, QString::number(::getpid())));
 }
 
 bool CVmMigrateTargetServer::send(const SmartPtr<IOPackage>& package_)

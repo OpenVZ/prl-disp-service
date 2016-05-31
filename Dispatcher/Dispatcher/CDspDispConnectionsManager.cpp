@@ -268,26 +268,3 @@ void CDspDispConnectionsManager::ProcessDispConnectionLogoff(
 	m_service->getIOServer().waitForSend(hJob);
 	DeleteDispConnection(pDispConnection->GetConnectionHandle());
 }
-
-/*****************************************************************************/
-
-void CDspDispConnectionsManager::handleDetachClient(
-	const IOSender::Handle& h,
-	const IOCommunication::DetachedClient& detachedClient)
-{
-	// Lock
-	QReadLocker locker(&m_rwLock);
-
-	if (!m_dispconns.contains(h)) {
-		CDspService::instance()->getIOServer().disconnectClient(h);
-		return;
-	}
-	// #455781 under read access (QReadLocker) we should call only const methods
-	// to prevent app crash after simultaneously call QT_CONT::detach_helper().
-	SmartPtr<CDspDispConnection> pDispConnection = m_dispconns.value(h);
-	locker.unlock();
-
-	SmartPtr<CDspHandler> hdler = CDspHandlerRegistrator::instance().findHandler(IOSender::VmConverter);
-	hdler->handleDetachClient(h, detachedClient);
-}
-
