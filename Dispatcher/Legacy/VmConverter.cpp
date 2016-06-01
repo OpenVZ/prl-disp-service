@@ -25,6 +25,7 @@
 
 #include "VmConverter.h"
 #include "CDspLibvirt.h"
+#include "CDspVmConfigManager.h"
 #include "Libraries/PrlNetworking/netconfig.h"
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
@@ -72,6 +73,7 @@ struct Helper
 	       CVmHardware &hardware);
 
 	PRL_RESULT do_();
+	PRL_RESULT insertTools(const QString &path, CVmStartupOptions *options);
 
 private:
 	template <typename T> PRL_RESULT do_(T *pDevice);
@@ -169,6 +171,31 @@ Helper::Helper(PRL_MASS_STORAGE_INTERFACE_TYPE hddType,
 	}
 }
 
+PRL_RESULT Helper::insertTools(const QString &path, CVmStartupOptions *options)
+{
+	if (m_filled[PMS_IDE_DEVICE].isEmpty())
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot insert guest tools iso");
+		return PRL_ERR_VMCONF_IDE_DEVICES_COUNT_OUT_OF_RANGE;
+	}
+
+	QList<CVmStartupOptions::CVmBootDevice*> b = options->m_lstBootDeviceList;
+	Vm::Config::Index::Device<CVmOpticalDisk, PDE_OPTICAL_DISK> fixIndex(
+			m_hardware.m_lstOpticalDisks, b);
+	CVmOpticalDisk *d = new CVmOpticalDisk;
+	d->setEmulatedType(PVE::CdRomImage);
+	d->setSubType(PCD_BUSLOGIC);
+	d->setInterfaceType(PMS_IDE_DEVICE);
+	d->setEnabled(PVE::DeviceEnabled);
+	d->setSystemName(path);
+	d->setUserFriendlyName(path);
+	d->setStackIndex(m_filled[PMS_IDE_DEVICE].takeFirst());
+	m_hardware.m_lstOpticalDisks << d;
+	fixIndex(m_hardware.m_lstOpticalDisks);
+
+	return PRL_ERR_SUCCESS;
+}
+
 PRL_RESULT Helper::do_()
 {
 	PRL_RESULT res;
@@ -215,13 +242,19 @@ PRL_RESULT Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 		return PRL_ERR_SUCCESS;
 	}
 
+	unsigned os = cfg->getVmSettings()->getVmCommonOptions()->getOsVersion();
 	bool noSCSI = cfg->getVmSettings()->getVmCommonOptions()->getOsType() ==
 				PVS_GUEST_TYPE_WINDOWS &&
-			IS_WIN_VER_BELOW(cfg->getVmSettings()->getVmCommonOptions()->getOsVersion(),
-			                 PVS_GUEST_VER_WIN_VISTA);
-	return Helper(noSCSI ? PMS_VIRTIO_BLOCK_DEVICE : PMS_SCSI_DEVICE,
-	              noSCSI ? PCD_BUSLOGIC : PCD_VIRTIO_SCSI,
-				  *pVmHardware).do_();
+			IS_WIN_VER_BELOW(os, PVS_GUEST_VER_WIN_VISTA);
+	Helper h(noSCSI ? PMS_VIRTIO_BLOCK_DEVICE : PMS_SCSI_DEVICE,
+	         noSCSI ? PCD_BUSLOGIC : PCD_VIRTIO_SCSI,
+			 *pVmHardware);
+	PRL_RESULT res;
+	if (PRL_FAILED(res = h.do_()))
+		return res;
+
+	return h.insertTools(ParallelsDirs::getToolsImage(PAM_SERVER, os),
+	                     cfg->getVmSettings()->getVmStartupOptions());
 }
 
 PRL_RESULT Converter::convertVm(const QString &vmUuid) const
