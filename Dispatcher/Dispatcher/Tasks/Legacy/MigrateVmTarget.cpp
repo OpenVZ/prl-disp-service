@@ -274,6 +274,15 @@ PRL_RESULT MigrateVmTarget::prepareTask()
 		goto exit;
 	}
 
+	// create target directory before checkRequiresDiskSpace
+	if (!QDir(m_sVmDirPath).exists(m_sVmDirPath) &&
+		!CFileHelper::WriteDirectory(m_sVmDirPath, &getClient()->getAuthHelper()))
+	{
+		nRetCode = PRL_ERR_VM_MIGRATE_CANNOT_CREATE_DIRECTORY;
+		CDspTaskFailure(*this)(nRetCode, m_sVmDirPath);
+		goto exit;
+	}
+
 	checkRequiresDiskSpace();
 	checkRemoteDisplay();
 exit:
