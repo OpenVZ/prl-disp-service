@@ -86,12 +86,14 @@ void CVmMigrateTargetDisk::run()
 			m_result = write_data(&data);
 		else
 			break;
+
 		if (PRL_FAILED(m_result))
 		{
 			WRITE_TRACE(DBG_FATAL, "[Disk migration] Failed to write block to disk %s,\
 					address %llu, size %u",
 				qPrintable(Uuid::fromGuid(data.hdr.disk_id).toString()),
 				data.hdr.lba, data.hdr.nsect);
+			m_token.signal();
 		}
 	}
 }
