@@ -650,6 +650,7 @@ PRL_RESULT BackupInfo::fromString(const QString& data, CVmEvent *e)
 		}
 		VmItem *vm = tree.m_lstVmItem[0];
 		m_vmUuid = vm->getUuid();
+		m_version = vm->getVersion();
 
 		if (vm->m_lstBackupItem.size() != 1) {
 			WRITE_TRACE(DBG_FATAL, "GetBackupTree reply contain %d backup UUIDs",
@@ -714,7 +715,7 @@ QString BackupInfo::getDiskPath() const
 	return QString("%1/%2/%3").arg(m_vmUuid, m_uuid, m_diskName);
 }
 
-Resource::Resource() : m_port(CDspService::getDefaultListenPort())
+Resource::Resource() : m_port(CDspService::getDefaultListenPort()), m_local(true)
 {
 }
 
@@ -804,6 +805,17 @@ void Resource::setDefaultHostname() const
 	}
 }
 
+namespace {
+
+Flavor::format_type craftFormat(const BackupInfo& backup)
+{
+	if (backup.getVersion() >= BACKUP_PROTO_V4)
+		return Buse::Qcow(backup.getPit());
+	return Buse::Tib(0, backup.getPit());
+}
+
+} // anonymous namespace
+
 /**
  * Constructor with params
  *
@@ -811,7 +823,8 @@ void Resource::setDefaultHostname() const
  * @param backup - backup description
  */
 Flavor::Flavor(Buse::Entry *entry, const BackupInfo& backup)
-	: m_entry(entry), m_path(backup.getDiskPath()), m_format(0, backup.getPit())
+	: m_entry(entry), m_path(backup.getDiskPath()),
+	  m_format(craftFormat(backup))
 {
 }
 
@@ -821,15 +834,9 @@ Flavor::Flavor(Buse::Entry *entry, const BackupInfo& backup)
  * @param path - full path to the backups directory
  * @return PRL_RESULT error code
  */
-PRL_RESULT Flavor::attachLocal(const QString& path)
+PRL_RESULT Flavor::attachLocal(const QString& path_)
 {
-	PRL_RESULT res;
-	Buse::Local local(m_format, path);
-	if (PRL_FAILED(res = m_entry->setParams(local.params()))
-		|| PRL_FAILED(res = m_entry->setFormat(local.format()))
-		|| PRL_FAILED(res = m_entry->setSource(local.source(m_path))))
-		WRITE_TRACE(DBG_FATAL, "failed to initialize BUSE entry");
-	return fromBuseError(res);
+	return boost::apply_visitor(Visitor::Local(*m_entry, QFileInfo(path_, m_path).filePath()), m_format);
 }
 
 /**
@@ -855,6 +862,34 @@ PRL_RESULT Flavor::attachRemote(SmartPtr<IOClient> client, CDspTaskHelper *task)
 
 void Flavor::mangle()
 {
+	boost::apply_visitor(Visitor::Mangle(), m_format);
+}
+
+namespace Visitor
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Local
+
+template <class T>
+PRL_RESULT Local::operator()(const T& format_) const
+{
+	PRL_RESULT res;
+	if (PRL_FAILED(res = m_entry.setParams(format_.getParams()))
+		|| PRL_FAILED(res = m_entry.setFormat(format_.getFormat()))
+		|| PRL_FAILED(res = m_entry.setSource(m_path)))
+	{
+		WRITE_TRACE(DBG_FATAL, "failed to initialize BUSE entry");
+	}
+	return fromBuseError(res);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mangle
+
+template <class T>
+void Mangle::operator()(T& format_) const
+{
 	/* We need to prepend the actual disk data with at least 2 logical sectors
 	 * (512 bytes/sector), filled with zeros, to mangle the MBR and the GPT header.
 	 * Also, we need to append at least one zeroed sector to mangle the secondary
@@ -862,10 +897,11 @@ void Flavor::mangle()
 	 * (2048 sectors * 512 bytes/sector) since ploop wouldn't mount snapshots made
 	 * for an unaligned image. */
 	const unsigned int total = 2048, head = 1024;
-	m_format.setHead(head);
-	m_format.setTail(total - head);
+	format_.setHead(head);
+	format_.setTail(total - head);
 }
 
+} // namespace Visitor
 } // namespace Source
 } // namespace Attach
 

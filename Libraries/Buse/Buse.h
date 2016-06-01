@@ -148,92 +148,81 @@ private:
 };
 
 /** Interface for backup format handler */
-struct Format {
-	virtual QString format() const = 0;
-	virtual QString params() const = 0;
-	virtual QString source(const QString& path) const = 0;
+struct Format
+{
+	Format() : m_head(0), m_tail(0)
+	{
+	}
+
+	Format(uint head_, uint tail_) : m_head(head_), m_tail(tail_)
+	{
+	}
+
+	void setHead(uint head)
+	{
+		m_head = head;
+	}
+
+	void setTail(uint tail)
+	{
+		m_tail = tail;
+	}
+
+protected:
+	uint m_head;
+	uint m_tail;
 };
 
 /* The following are basic backup formats */
 
 /** Acronis tib format */
-struct Tib : public Format {
-	Tib(unsigned int idx, unsigned int pit, unsigned int head = 0, unsigned int tail = 0)
-		: m_idx(idx), m_pit(pit), m_head(head), m_tail(tail)
+struct Tib : Format
+{
+	Tib(uint idx_, uint pit_) : m_idx(idx_), m_pit(pit_)
 	{
 	}
 
-	void setHead(unsigned int head)
-	{
-		m_head = head;
-	}
-
-	void setTail(unsigned int tail)
-	{
-		m_tail = tail;
-	}
-
-	QString params() const
+	QString getParams() const
 	{
 		return QString("idx=%1 pit=%2 head=%3 tail=%4")
 			.arg(m_idx).arg(m_pit).arg(m_head).arg(m_tail);
 	}
 
-	QString format() const
+	QString getFormat() const
 	{
 		return "tib";
 	}
 
-	QString source(const QString& path) const
-	{
-		return path;
-	}
-
 private:
-	unsigned int m_idx;
-	unsigned int m_pit;
-	unsigned int m_head;
-	unsigned int m_tail;
+	uint m_idx;
+	uint m_pit;
 };
 
-/* The following are the decorators for basic format types */
-
-/** Backup residing on a locally mounted filesystem */
-struct Local : public Format {
-	/**
-	 * Constructor with parameters
-	 *
-	 * @param format - basic backup format
-	 * @param path - full path to the backups directory, e.g. /var/parallels/backups
-	 */
-	Local(Format& format, const QString& path) : m_format(format), m_path(path)
+/** QCOW-based backups, introduced in VZ7 */
+struct Qcow : Format
+{
+	Qcow(uint pit_) : m_pit(pit_)
 	{
 	}
 
-	QString format() const
+	QString getParams() const
 	{
-		return m_format.format();
+		return QString("pit=%2 head=%3 tail=%4")
+			.arg(m_pit).arg(m_head).arg(m_tail);
 	}
 
-	QString params() const
+	QString getFormat() const
 	{
-		return m_format.params();
-	}
-
-	QString source(const QString& path) const
-	{
-		return QFileInfo(m_path, m_format.source(path)).filePath();
+		return "qcow";
 	}
 
 private:
-	/** Basic backup format */
-	Format& m_format;
-	/** Full path to the backups directory */
-	QString m_path;
+	uint m_pit;
 };
 
 /** Backup located on a remote server */
-struct Remote : public Format {
+struct Remote : Format
+{
 	/**
 	 * Constructor with parameters
 	 *
@@ -279,20 +268,10 @@ struct Remote : public Format {
 		return *this;
 	}
 
-	QString format() const
+	QString getFormat() const
 	{
-		return QString("remote remote.ssl=on remote.socket=\"%1\" remote.cookie=\"%2\" %3")
-			.arg(m_socket, m_cookie, m_format.format());
-	}
-
-	QString params() const
-	{
-		return m_format.params();
-	}
-
-	QString source(const QString& path) const
-	{
-		return m_format.source(path);
+		return QString("remote remote.ssl=on remote.socket=\"%1\" remote.cookie=\"%2\"")
+			.arg(m_socket, m_cookie);
 	}
 
 private:
