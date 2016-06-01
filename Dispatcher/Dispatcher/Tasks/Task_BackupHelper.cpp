@@ -481,12 +481,11 @@ PRL_RESULT Close::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
 	// from local dispatcher
 	qint32 nReply = ABackupProxyResponse;
 	quint32 uReplySize = sizeof(nReply);
-	PRL_RESULT e = dst_.writeToABackupClient(
-				(char *)&uReplySize, sizeof(uReplySize), m_timeout);
+	PRL_RESULT e = dst_.write((char *)&uReplySize, sizeof(uReplySize));
 	if (PRL_FAILED(e))
 		return e;
 
-	return dst_.writeToABackupClient((char *)&nReply, sizeof(uReplySize), m_timeout);
+	return dst_.write((char *)&nReply, sizeof(uReplySize));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -527,11 +526,11 @@ PRL_RESULT Forward::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
 		return PRL_ERR_BACKUP_INTERNAL_ERROR;
 	}
 	// send reply to proc
-	PRL_RESULT e = dst_.writeToABackupClient((char *)&uSize, sizeof(uSize), m_timeout);
+	PRL_RESULT e = dst_.write((char *)&uSize, sizeof(uSize));
 	if (PRL_FAILED(e))
 		return e;
 
-	return dst_.writeToABackupClient(b.getImpl(), uSize, m_timeout);
+	return dst_.write(b.getImpl(), uSize);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -583,7 +582,6 @@ struct Client
 {
 	Client(BackupProcess* process_, const QStringList& args_);
 
-	static QString getAcronisErrorString(int code_);
 	PRL_RESULT result(bool cancelled_, const QString& vm_, CVmEvent* event_);
 	SmartPtr<IOPackage> pull(quint32 version_, SmartPtr<char> buffer_, qint64 cb_);
 private:
@@ -603,7 +601,7 @@ SmartPtr<IOPackage> Client::doPull(SmartPtr<char> buffer_, qint64 cb_)
 {
 	// read block size.
 	qint32 nSize = 0;
-	PRL_RESULT e = m_process->readFromABackupClient((char *)&nSize, sizeof(nSize));
+	PRL_RESULT e = m_process->read((char *)&nSize, sizeof(nSize));
 	if (PRL_FAILED(e))
 		return SmartPtr<IOPackage>();
 	// read data.
@@ -612,7 +610,7 @@ SmartPtr<IOPackage> Client::doPull(SmartPtr<char> buffer_, qint64 cb_)
 		WRITE_TRACE(DBG_FATAL, "Too small read buffer: %ld, requres: %ld", (long)cb_, (long)nSize);
 		return SmartPtr<IOPackage>();
 	}
-	e = m_process->readFromABackupClient(buffer_.getImpl(), nSize);
+	e = m_process->read(buffer_.getImpl(), nSize);
 	if (PRL_FAILED(e))
 		return SmartPtr<IOPackage>();
 
@@ -642,7 +640,7 @@ SmartPtr<IOPackage> Client::pull(quint32 version_, SmartPtr<char> buffer_, qint6
 		return SmartPtr<IOPackage>();
 	if (PRL_ERR_UNINITIALIZED == e)
 	{
-		m_process->setInFdNonBlock();
+		m_process->setReadFdBlock();
 		WRITE_TRACE(DBG_INFO, "BACKUP_PROTO client version %u", version_);
 	}
 	SmartPtr<IOPackage> output = doPull(buffer_, cb_);
@@ -661,226 +659,16 @@ PRL_RESULT Client::result(bool cancelled_, const QString& vm_, CVmEvent* event_)
 	PRL_RESULT e = m_process->waitForFinished();
 	if (PRL_ERR_BACKUP_ACRONIS_ERR == e)
 	{
-		QString sErr = getAcronisErrorString(m_process->getExitCode()), sENum;
-		if (m_argv.at(0) == "restore" || m_argv.at(0) == "restore_ct") {
-			event_->setEventCode(e = PRL_ERR_BACKUP_RESTORE_CMD_FAILED);
-			WRITE_TRACE(DBG_FATAL, "[%s] restore client failed for Vm \"%s\": retcode=%d, '%s'",
-				__FUNCTION__, QSTR2UTF8(vm_), e, QSTR2UTF8(sErr));
-		} else {
-			event_->setEventCode(e = PRL_ERR_BACKUP_BACKUP_CMD_FAILED);
-			WRITE_TRACE(DBG_FATAL, "[%s] backup client failed for Vm \"%s\": retcode=%d, '%s'",
-				__FUNCTION__, QSTR2UTF8(vm_), e, QSTR2UTF8(sErr));
-		}
-		sENum.setNum(m_process->getExitCode());
+		e = (m_argv.at(0) == "restore" || m_argv.at(0) == "restore_ct") ?
+			PRL_ERR_BACKUP_RESTORE_CMD_FAILED : PRL_ERR_BACKUP_BACKUP_CMD_FAILED;
+		event_->setEventCode(e);
 		event_->addEventParameter(new CVmEventParameter(PVE::String, vm_, EVT_PARAM_MESSAGE_PARAM_0));
-		event_->addEventParameter(new CVmEventParameter(PVE::Integer, sENum, EVT_PARAM_MESSAGE_PARAM_1));
-		event_->addEventParameter(new CVmEventParameter(PVE::String, sErr, EVT_PARAM_MESSAGE_PARAM_2));
+		event_->addEventParameter(new CVmEventParameter(PVE::Integer,
+				QString::number(m_process->exitCode()), EVT_PARAM_MESSAGE_PARAM_1));
+		event_->addEventParameter(new CVmEventParameter(PVE::String,
+				m_process->getError(), EVT_PARAM_DETAIL_DESCRIPTION));
 	}
 	return cancelled_ ? PRL_ERR_OPERATION_WAS_CANCELED : e;
-}
-
-QString Client::getAcronisErrorString(int code_)
-{
-	Q_UNUSED(code_);
-	QString str;
-/*
-	switch (code_)
-	{
-	case BCKP_OK:
-		str = "No errors";
-		break;
-	case BCKP_READ_ERROR:
-		str = "Read error";
-		break;
-	case BCKP_WRITE_ERROR:
-		str = "Write error";
-		break;
-	case BCKP_SEEK_ERROR:
-		str = "Seek error";
-		break;
-	case BCKP_OUT_OF_MEMORY:
-		str = "Out of memory";
-		break;
-	case BCKP_OPEN_ERROR:
-		str = "Open error";
-		break;
-	case BCKP_REMOVE_ERROR:
-		str = "Remove error";
-		break;
-	case BCKP_RENAME_ERROR:
-		str = "Rename error";
-		break;
-	case BCKP_CREATE_ERROR:
-		str = "Create error";
-		break;
-	case BCKP_NOT_READY:
-		str = "Is not ready";
-		break;
-	case BCKP_CORRUPTED:
-		str = "Corrupted";
-		break;
-	case BCKP_UNSUPPORTED:
-		str = "Unsupported";
-		break;
-	case BCKP_CANCELED:
-		str = "Operation canceled";
-		break;
-	case BCKP_DEVICE_BUSY:
-		str = "Device is busy";
-		break;
-	case BCKP_NOT_FOUND:
-		str = "Object not found";
-		break;
-	case BCKP_NOT_LAST_VOLUME:
-		str = "It is not a last volume";
-		break;
-	case BCKP_ALREADY_EXIST:
-		str = "Object already exist";
-		break;
-	case BCKP_ACCESS_DENIED:
-		str = "Access denied";
-		break;
-	case BCKP_NETWORK_ERROR:
-		str = "Network error";
-		break;
-	case BCKP_NETWORK_TIMEOUT:
-		str = "Timeout exceeded";
-		break;
-	case BCKP_FORMAT_DISK:
-		str = "Disk format error";
-		break;
-	case BCKP_RESTORE_ERROR:
-		str = "Restore error";
-		break;
-	case BCKP_DECRYPT_ERROR:
-		str = "Decrypt error";
-		break;
-	case BCKP_UMOUNT_ERROR:
-		str = "Umount error";
-		break;
-	case BCKP_DISK_FULL:
-		str = "No free space";
-		break;
-	case BCKP_EOF:
-		str = "Unexpected eof";
-		break;
-	case BCKP_BACKUP_ERROR:
-		str = "Backup error";
-		break;
-	case BCKP_READONLY:
-		str = "Read-only disk";
-		break;
-	case BCKP_LOCK_ERROR:
-		str = "No lock";
-		break;
-	case BCKP_NO_CONTEXT:
-		str = "No context";
-		break;
-	case BCKP_NO_CUR_DISK:
-		str = "No current disk";
-		break;
-	case BCKP_NO_BUILDER:
-		str = "No backup image builder";
-		break;
-	case BCKP_MINMAX:
-		str = "Invalid parameters for format/resize";
-		break;
-	case BCKP_PROPERTY:
-		str = "Invalid property";
-		break;
-	case BCKP_NO_CUR_PART:
-		str = "No current partition";
-		break;
-	case BCKP_RESIZE:
-		str = "Format/Resize error (after COMMIT)";
-		break;
-	case BCKP_PARAM:
-		str = "Invalid parameter";
-		break;
-	case BCKP_NO_DISK:
-		str = "No disk";
-		break;
-	case BCKP_NO_ROOM:
-		str = "No room in partition table";
-		break;
-	case BCKP_LABEL:
-		str = "Impossible to set label";
-		break;
-	case BCKP_STACK:
-		str = "Stack underflow";
-		break;
-	case BCKP_CHECK:
-		str = "Check error (after CONTEXT/COPY)";
-		break;
-	case BCKP_INTERNAL:
-		str = "Internal error";
-		break;
-	case BCKP_TYPE:
-		str = "Invalid partition type";
-		break;
-	case BCKP_NOT_FILLED:
-		str = "Context parameter is not filled yet";
-		break;
-	case BCKP_NO_CUR_COMP:
-		str = "No current computer";
-		break;
-	case BCKP_CONSISTENCY:
-		str = "Commit impossible because of inconsistency";
-		break;
-	case BCKP_USER_PROPERTY:
-		str = "Error returned from setting user property";
-		break;
-	case BCKP_WIPE:
-		str = "Wipe error";
-		break;
-	case BCKP_STRID_MORE:
-		str = "Strid valid, but more specific";
-		break;
-	case BCKP_STRID_ROUGH:
-		str = "Strid valid, but rough (unaccurate)";
-		break;
-	case BCKP_STRID_MORE_ROUGH:
-		str = "Both previous together";
-		break;
-	case BCKP_NON_TMP_OP:
-		str = "This op is not intended for tmp mode";
-		break;
-	case BCKP_SYSTEM_RESTORE:
-		str = "System restore error";
-		break;
-	case BCKP_OP_UNKNOWN:
-		str = "Split/Merge: Unknown error";
-		break;
-	case BCKP_OP_NO_MIN_SIZE:
-		str = "Split/Merge: Has no minimal free space for operation";
-		break;
-	case BCKP_OP_LOW_SIZE:
-		str = "Split/Merge: Has low free space for run operation";
-		break;
-	case BCKP_OP_ERR_SPARSE:
-		str = "Split/Merge (not usable): Error, sparse not supported now";
-		break;
-	case BCKP_OP_ERR_SYM_LINK:
-		str = "Split/Merge (not usable): Error, symbolic link not supported on this FS";
-		break;
-	case BCKP_OP_ERR_CRYPTED:
-		str = "Split/Merge: Error, can't split if present encrypted files";
-		break;
-	case BCKP_OP_PREPARE_FAIL:
-		str = "Split/Merge: Error, prepare operation fail";
-		break;
-	case BCKP_LDM_NOT_SUPPORTED:
-		str = "ldm deploy. fdisk2 computer never started";
-		break;
-	case BCKP_LDM_ERROR:
-		str = "ldm op error";
-		break;
-	default:
-		str = QString("Undefined error (%1)").arg(code_);
-		break;
-	}
-*/
-	return str;
 }
 
 namespace Backup
@@ -1568,207 +1356,98 @@ void Task_BackupHelper::unlockExclusive(const QString &sBackupUuid)
 	}
 }
 
-BackupProcess::BackupProcess()
+BackupProcess::BackupProcess() : m_isKilled(false)
 {
-	m_pid = -1;
-	m_isKilled = false;
-	m_in = -1;
-	m_out = -1;
+	for (int j = 0; j < 2 ; j++)
+		m_out[j] = -1;
 }
 
 BackupProcess::~BackupProcess()
 {
-	if (m_in != -1)
-		close(m_in);
-	if (m_out != -1)
-		close(m_out);
+	for (int j = 0; j < 2 ; j++) {
+		if (m_out[j] != -1)
+			::close(m_out[j]);
+	}
+}
 
-	m_pid = -1;
+void BackupProcess::setupChildProcess()
+{
+	QProcess::setupChildProcess(); // requires vz-built qt version
+	fcntl(m_out[1], F_SETFD, ~FD_CLOEXEC);
 }
 
 PRL_RESULT BackupProcess::start(const QStringList& arg_, int version_)
 {
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	int in[2], out[2];
-	int status;
-	pid_t pid;
-	long flags;
-
-	QStringList a(arg_);
 	PRL_ASSERT(arg_.size());
-	m_sCmd = arg_.first();
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, in) < 0) {
+	QStringList a(arg_);
+	m_sCmd = a.takeFirst();
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, m_out) < 0) {
 		WRITE_TRACE(DBG_FATAL, "socketpair() error : %s", strerror(errno));
-		return PRL_ERR_BACKUP_INTERNAL_ERROR;
-	}
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, out) < 0) {
-		WRITE_TRACE(DBG_FATAL, "socketpair() error : %s", strerror(errno));
-		close(in[0]);
-		close(in[1]);
 		return PRL_ERR_BACKUP_INTERNAL_ERROR;
 	}
 
 	if (BACKUP_PROTO_V4 > version_) {
 		// old syntax, prepend arguments by fds
-		a.insert(1, QString::number(in[0]));
-		a.insert(2, QString::number(out[1]));
+		a.insert(0, QString::number(STDIN_FILENO));
+		a.insert(1, QString::number(m_out[1]));
 	} else {
 		// new syntax, append arguments by named fd args
-		a << "--fdin" << QString::number(in[0]);
-		a << "--fdout" << QString::number(out[1]);
+		a << "--fdin" << QString::number(STDIN_FILENO);
+		a << "--fdout" << QString::number(m_out[1]);
 	}
 	WRITE_TRACE(DBG_WARNING, "Run cmd: %s", QSTR2UTF8(a.join(" ")));
 
-	char **pArgv = new char *[a.size()+2];
-	int i;
-	for (i = 0; i < a.size(); ++i)
-		pArgv[i] = strdup(QSTR2UTF8(a.at(i)));
-	pArgv[i] = NULL;
-
-	if ((flags = fcntl(in[0], F_GETFL)) != -1)
-		fcntl(in[0], F_SETFL, flags | O_NONBLOCK);
-	if ((flags = fcntl(in[1], F_GETFL)) != -1)
-		fcntl(in[1], F_SETFL, flags | O_NONBLOCK);
-	if ((flags = fcntl(out[0], F_GETFL)) != -1)
-		fcntl(out[0], F_SETFL, flags | O_NONBLOCK);
-	if ((flags = fcntl(out[1], F_GETFL)) != -1)
-		fcntl(out[1], F_SETFL, flags | O_NONBLOCK);
-	m_pid = fork();
-	if (m_pid < 0) {
-		WRITE_TRACE(DBG_FATAL, "fork() error : %s", strerror(errno));
-		close(in[0]);
-		close(in[1]);
-		close(out[0]);
-		close(out[1]);
-		nRetCode = PRL_ERR_BACKUP_INTERNAL_ERROR;
-		goto cleanup;
-	} else if (m_pid == 0) {
-		/* to close all unused descriptors */
-		int fdnum;
-		struct rlimit rlim;
-		if (getrlimit(RLIMIT_NOFILE, &rlim) == 0)
-			fdnum = (int)rlim.rlim_cur;
-		else
-			fdnum = 1024;
-		for (i = 3; i < fdnum; ++i) {
-			if (	(i == in[0]) ||
-				(i == out[1]))
-				continue;
-			close(i);
-		}
-
-		close(in[1]); close(out[0]);
-		fcntl(in[0], F_SETFD, ~FD_CLOEXEC);
-		fcntl(out[1], F_SETFD, ~FD_CLOEXEC);
-		execvp(QSTR2UTF8(m_sCmd), (char* const*)pArgv);
-		WRITE_TRACE(DBG_FATAL, "Can't exec cmd '%s': %s",
-					QSTR2UTF8(m_sCmd), strerror(errno));
-		_exit(-1);
+	for (int j = 0; j < 2 ; j++) {
+		long flags;
+		if ((flags = fcntl(m_out[j], F_GETFL)) != -1)
+			fcntl(m_out[j], F_SETFL, flags | O_NONBLOCK);
 	}
-
-	close(in[0]); close(out[1]);
-	while ((pid = waitpid(m_pid, &status, WNOHANG)) == -1)
-		if (errno != EINTR)
-			break;
-
-	if (pid < 0) {
-		WRITE_TRACE(DBG_FATAL, "waitpid() error : %s", strerror(errno));
-		close(in[1]); close(out[0]);
-		if (errno == ECHILD)
-			nRetCode = PRL_ERR_BACKUP_TOOL_CANNOT_START;
-		else
-			nRetCode = PRL_ERR_BACKUP_INTERNAL_ERROR;
-		goto cleanup;
-	}
-	m_in = out[0];
-	m_out = in[1];
-cleanup:
-	for (i = 0; pArgv[i]; ++i)
-		free(pArgv[i]);
-	delete []pArgv;
-	return nRetCode;
+	QProcess::start(m_sCmd, a);
+	if (!waitForStarted())
+		return PRL_ERR_BACKUP_TOOL_CANNOT_START;
+	::close(m_out[1]);
+	m_out[1] = -1;
+	return PRL_ERR_SUCCESS;
 }
 
 PRL_RESULT BackupProcess::waitForFinished()
 {
-	pid_t pid;
-	int status;
-
-	while ((pid = waitpid(m_pid, &status, 0)) == -1)
-		if (errno != EINTR)
-			break;
-	m_pid = -1;
-	if (pid < 0) {
-		WRITE_TRACE(DBG_FATAL, "waitpid() error : %s", strerror(errno));
+	QProcess::waitForFinished(-1);
+	if (exitStatus() == QProcess::CrashExit) {
+		WRITE_TRACE(DBG_FATAL, "%s have crashed", QSTR2UTF8(m_sCmd));
 		return PRL_ERR_BACKUP_INTERNAL_ERROR;
 	}
 
-	if (WIFEXITED(status)) {
-		if ((m_nRetCode = WEXITSTATUS(status))) {
-			WRITE_TRACE(DBG_FATAL, "%s exited with code %d", QSTR2UTF8(m_sCmd), m_nRetCode);
-			if (m_nRetCode == 0xff)
-				return PRL_ERR_BACKUP_TOOL_CANNOT_START;
-			else
-				return PRL_ERR_BACKUP_ACRONIS_ERR;
-		}
-	} else if (WIFSIGNALED(status)) {
-		WRITE_TRACE(DBG_FATAL, "%s got signal %d", QSTR2UTF8(m_sCmd), WTERMSIG(status));
-		return PRL_ERR_BACKUP_INTERNAL_ERROR;
-	} else {
-		WRITE_TRACE(DBG_FATAL, "%s exited with status %d", QSTR2UTF8(m_sCmd), status);
-		return PRL_ERR_BACKUP_INTERNAL_ERROR;
+	if ((exitCode())) {
+		m_error = readAllStandardError();
+		WRITE_TRACE(DBG_FATAL, "%s exited with code %d, error: %s", QSTR2UTF8(m_sCmd),
+			exitCode(), QSTR2UTF8(m_error));
+		return PRL_ERR_BACKUP_ACRONIS_ERR;
 	}
 	return PRL_ERR_SUCCESS;
 }
 
+QString BackupProcess::getError()
+{
+	return m_error;
+}
+
 void BackupProcess::kill()
 {
-	//#444144 copy pid to prevent race and call kill(-1, SIGKILL);
-	pid_t pid = m_pid;
-
-	if (pid != -1)
-		::kill(pid, SIGTERM);
+	QProcess::terminate();
 	m_isKilled = true;
 }
 
-PRL_RESULT BackupProcess::readFromABackupClient(char *data, qint32 size)
+PRL_RESULT BackupProcess::read(char *data, qint32 size)
 {
-	int rc;
-	size_t count;
-
-	count = 0;
-	/* read data */
-	while (1) {
-		errno = 0;
-		rc = read(m_in, data + count, size - count);
-		if (rc > 0) {
-			count += rc;
-			if (count >= (size_t)size) {
-				return PRL_ERR_SUCCESS;
-			}
-			continue;
-		} else if (rc == 0) {
-			/* end of file - pipe was close, will check client exit code */
-			WRITE_TRACE(DBG_DEBUG, "[%s] EOF", __FUNCTION__);
-			return PRL_ERR_BACKUP_INTERNAL_ERROR;
-		}
-		if (errno == EINTR) {
-			continue;
-		} else {
-			WRITE_TRACE(DBG_FATAL, "[%s] read() error : %s", __FUNCTION__, strerror(errno));
-			return PRL_ERR_BACKUP_INTERNAL_ERROR;
-		}
-	}
-
-	/* but we never should be here */
-	return PRL_ERR_BACKUP_INTERNAL_ERROR;
+	return read(data, size, 0);
 }
 
-PRL_RESULT BackupProcess::readFromABackupServer(char *data, qint32 size, UINT32 tmo)
+PRL_RESULT BackupProcess::read(char *data, qint32 size, UINT32 tmo)
 {
 	int rc;
 	size_t count;
-	SmartPtr<fd_set> fds(IOService::allocFDSet(m_in + 1));
+	SmartPtr<fd_set> fds(IOService::allocFDSet(m_out[0] + 1));
 	struct timeval tv;
 	unsigned nTimeout = tmo/TARGET_DISPATCHER_TIMEOUT_COUNTS; // in sec
 
@@ -1777,7 +1456,7 @@ PRL_RESULT BackupProcess::readFromABackupServer(char *data, qint32 size, UINT32 
 		/* read data */
 		while (1) {
 			errno = 0;
-			rc = read(m_in, data + count, size - count);
+			rc = ::read(m_out[0], data + count, size - count);
 			if (rc > 0) {
 				count += rc;
 				if (count >= (size_t)size) {
@@ -1797,16 +1476,19 @@ PRL_RESULT BackupProcess::readFromABackupServer(char *data, qint32 size, UINT32 
 			}
 		}
 
+		if (!tmo)
+			continue;
+
 		/* wait next data in socket */
 		for (int i = 1; i <= TARGET_DISPATCHER_TIMEOUT_COUNTS; i++) {
 			if (m_isKilled)
 				return PRL_ERR_OPERATION_WAS_CANCELED;
 			do {
-				::memset(fds.getImpl(), 0, FDNUM2SZ(m_in + 1));
-				FD_SET(m_in, fds.getImpl());
+				::memset(fds.getImpl(), 0, FDNUM2SZ(m_out[0] + 1));
+				FD_SET(m_out[0], fds.getImpl());
 				tv.tv_sec = nTimeout;
 				tv.tv_usec = 0;
-				rc = select(m_in + 1, fds.getImpl(), NULL, NULL, &tv);
+				rc = select(m_out[0] + 1, fds.getImpl(), NULL, NULL, &tv);
 				if (rc == 0 && i == TARGET_DISPATCHER_TIMEOUT_COUNTS) {
 					WRITE_TRACE(DBG_FATAL, "[%s] full timeout expired (%d sec)",
 						__FUNCTION__, tmo);
@@ -1819,7 +1501,7 @@ PRL_RESULT BackupProcess::readFromABackupServer(char *data, qint32 size, UINT32 
 					WRITE_TRACE(DBG_FATAL, "[%s] select() error : %s", __FUNCTION__, strerror(errno));
 					return PRL_ERR_BACKUP_INTERNAL_ERROR;
 				}
-			} while(!FD_ISSET(m_in, fds.getImpl()));
+			} while(!FD_ISSET(m_out[0], fds.getImpl()));
 			if (rc > 0)
 				break;
 		}
@@ -1829,78 +1511,28 @@ PRL_RESULT BackupProcess::readFromABackupServer(char *data, qint32 size, UINT32 
 	return PRL_ERR_BACKUP_INTERNAL_ERROR;
 }
 
-PRL_RESULT BackupProcess::writeToABackupClient(char *data, quint32 size, UINT32 tmo)
+PRL_RESULT BackupProcess::write(char *data, quint32 size)
 {
-	int rc;
-	size_t count;
-	SmartPtr<fd_set> fds(IOService::allocFDSet(m_out + 1));
-	struct timeval tv;
-	unsigned nTimeout = tmo/TARGET_DISPATCHER_TIMEOUT_COUNTS; // in sec
-
 	if (size == 0)
 		return PRL_ERR_SUCCESS;
-	count = 0;
-	while (1) {
-		while (1) {
-			errno = 0;
-			rc = write(m_out, data + count, (size_t)(size - count));
-			if (rc > 0) {
-				count += rc;
-				if (count >= size)
-					return PRL_ERR_SUCCESS;
-				continue;
-			}
-			if ((errno == EAGAIN) || (errno == EINTR)) {
-				break;
-			} else {
-				WRITE_TRACE(DBG_FATAL, "write() error : %s", strerror(errno));
-				return PRL_ERR_BACKUP_INTERNAL_ERROR;
-			}
-		}
 
-		/* wait until socket will ready */
-		for (int i = 1; i <= TARGET_DISPATCHER_TIMEOUT_COUNTS; i++) {
-			if (m_isKilled)
-				return PRL_ERR_OPERATION_WAS_CANCELED;
-			do {
-				::memset( fds.getImpl(), 0, FDNUM2SZ(m_out + 1) );
-				FD_SET(m_out, fds.getImpl());
-				tv.tv_sec = nTimeout;
-				tv.tv_usec = 0;
-				rc = select(m_out + 1, NULL, fds.getImpl(), NULL, &tv);
-				if (rc == 0 && i == TARGET_DISPATCHER_TIMEOUT_COUNTS) {
-					WRITE_TRACE(DBG_FATAL, "[%s] full timeout expired (%d sec)",
-						__FUNCTION__, tmo);
-					return PRL_ERR_BACKUP_INTERNAL_ERROR;
-				} else if (rc == 0) {
-					WRITE_TRACE(DBG_DEBUG, "[%s] partial timeout expired (%d sec)",
-						__FUNCTION__, nTimeout*i);
-					break;
-				} else if (rc <= 0) {
-					WRITE_TRACE(DBG_FATAL, "select() error : %s", strerror(errno));
-					return PRL_ERR_BACKUP_INTERNAL_ERROR;
-				}
-			} while (!FD_ISSET(m_out, fds.getImpl()));
-			if (rc > 0)
-				break;
+	quint32 count = 0;
+	while (count < size) {
+		int rc = QIODevice::write(data + count, size - count);
+		if (rc < 0) {
+			WRITE_TRACE(DBG_FATAL, "write() error : %s", QSTR2UTF8(errorString()));
+			return PRL_ERR_BACKUP_INTERNAL_ERROR;
 		}
+		count += rc;
 	}
-
-	/* but we never should be here */
-	return PRL_ERR_BACKUP_INTERNAL_ERROR;
+	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT BackupProcess::writeToABackupServer(char *data, quint32 size, UINT32 tmo)
-{
-	return writeToABackupClient(data, size, tmo);
-}
-
-void BackupProcess::setInFdNonBlock()
+void BackupProcess::setReadFdBlock()
 {
 	long flags;
-
-	if ((flags = fcntl(m_in, F_GETFL)) != -1)
-		fcntl(m_in, F_SETFL, flags & ~O_NONBLOCK);
+	if ((flags = fcntl(m_out[0], F_GETFL)) != -1)
+		fcntl(m_out[0], F_SETFL, flags & ~O_NONBLOCK);
 }
 
 PRL_RESULT Task_BackupHelper::handleABackupPackage(
@@ -1928,18 +1560,18 @@ PRL_RESULT Task_BackupHelper::handleABackupPackage(
 	else if (pRequest->header.type == ABackupProxyCancelCmd)
 		WRITE_TRACE(DBG_FATAL, "receive ABackupProxyCancelCmd command");
 	/* write request to process */
-	if (PRL_FAILED(nRetCode = m_cABackupServer.writeToABackupServer((char *)&uSize, sizeof(uSize), tmo)))
+	if (PRL_FAILED(nRetCode = m_cABackupServer.write((char *)&uSize, sizeof(uSize))))
 		return nRetCode;
-	if (PRL_FAILED(nRetCode = m_cABackupServer.writeToABackupServer(pBuffer.getImpl(), uSize, tmo)))
+	if (PRL_FAILED(nRetCode = m_cABackupServer.write(pBuffer.getImpl(), uSize)))
 		return nRetCode;
 	/* and read reply */
-	if (PRL_FAILED(nRetCode = m_cABackupServer.readFromABackupServer((char *)&nSize, sizeof(nSize), tmo)))
+	if (PRL_FAILED(nRetCode = m_cABackupServer.read((char *)&nSize, sizeof(nSize), tmo)))
 		return nRetCode;
 	if (m_nBufSize < nSize) {
 		WRITE_TRACE(DBG_FATAL, "Too small read buffer: %ld, requires: %ld", (long)m_nBufSize, (long)nSize);
 		return PRL_ERR_BACKUP_INTERNAL_ERROR;
 	}
-	if (PRL_FAILED(nRetCode = m_cABackupServer.readFromABackupServer(m_pBuffer.getImpl(), nSize, tmo)))
+	if (PRL_FAILED(nRetCode = m_cABackupServer.read(m_pBuffer.getImpl(), nSize, tmo)))
 		return nRetCode;
 
 	// send reply to client
@@ -2068,11 +1700,6 @@ PRL_RESULT Task_BackupHelper::GetBackupTreeRequest(const QString &sVmUuid, QStri
 	sBackupTree = pTreeReply->GetBackupTree();
 
 	return nRetCode;
-}
-
-QString Task_BackupHelper::getAcronisErrorString(int code_)
-{
-	return Client::getAcronisErrorString(code_);
 }
 
 PRL_RESULT Task_BackupHelper::CloneHardDiskState(const QString &sDiskImage,

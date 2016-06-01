@@ -77,7 +77,7 @@ enum BackupCheckMode {
 	PRL_BACKUP_CHECK_MODE_WRITE,
 };
 
-class BackupProcess
+class BackupProcess : public QProcess
 {
 public:
 	friend class Task_BackupHelper;
@@ -87,30 +87,23 @@ public:
 	PRL_RESULT start(const QStringList& args, int version);
 	PRL_RESULT waitForFinished();
 	void kill();
-	PRL_RESULT readFromABackupClient(char *buffer, qint32 size);
-	PRL_RESULT readFromABackupServer(char *buffer, qint32 size, UINT32 tmo);
-	PRL_RESULT writeToABackupClient(char *buffer, quint32 size, UINT32 tmo);
-	PRL_RESULT writeToABackupServer(char *buffer, quint32 size, UINT32 tmo);
+	PRL_RESULT read(char *buffer, qint32 size);
+	PRL_RESULT read(char *buffer, qint32 size, UINT32 tmo);
+	PRL_RESULT write(char *buffer, quint32 size);
 	PRL_RESULT handleABackupPackage(
 			const SmartPtr<CDspDispConnection> &pDispConnection,
 			const SmartPtr<IOPackage> &pRequest);
-	int getExitCode() { return m_nRetCode; }
-	void setInFdNonBlock();
+	void setReadFdBlock();
+	QString getError();
+
+protected:
+	void setupChildProcess();
 
 private:
 	QString m_sCmd;
-	int m_nRetCode;
-#ifdef _WIN_
-	HANDLE m_in;
-	HANDLE m_out;
-	HANDLE m_process;
+	QString m_error;
 	bool m_isKilled;
-#else
-	pid_t m_pid;
-	bool m_isKilled;
-	int m_in;
-	int m_out;
-#endif
+	int m_out[2];
 };
 
 enum _PRL_BACKUP_STEP {
@@ -377,7 +370,6 @@ protected:
 			const SmartPtr<IOPackage> &pRequest,
 			UINT32 tmo);
 	PRL_RESULT GetBackupTreeRequest(const QString &sVmUuid, QString &sBackupTree);
-	QString getAcronisErrorString(int code);
 	void killABackupClient();
 	PRL_RESULT getBackupParams(const QString &sVmUuid, const QString &sBackupUuid,
                 unsigned nBackupNumber, quint64 &nSize, quint32 &nBundlePermissions);
