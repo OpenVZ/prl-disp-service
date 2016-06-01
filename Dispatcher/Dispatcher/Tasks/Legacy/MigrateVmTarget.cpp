@@ -469,6 +469,8 @@ void MigrateVmTarget::finalizeTask()
 
 	if (PRL_SUCCEEDED(getLastErrorCode()))
 	{
+		// remove temporatry file migrated within VM home
+		QFile::remove(QDir(m_sTargetVmHomePath).absoluteFilePath(m_sSharedFileName));
 		/* to unite statistic.log and statistic.log.migrate */
 		if (m_nFlags & PVM_ISCSI_STORAGE)
 		{

@@ -19,13 +19,16 @@ HEADERS += \
 	CVmMigrateTargetServer_p.h \
 	Cancellation.h \
 	BlockingQueue.h \
-	$$SRC_LEVEL/Libraries/VmFileList/CVmFileListCopy.h
-
+	$$SRC_LEVEL/Libraries/VmFileList/CVmFileListCopy.h \
+	$$SRC_LEVEL/Libraries/PrlCommonUtils/CFileHelper.h \
+	$$SRC_LEVEL/Libraries/PrlCommonUtils/CAuthHelper.h \
 
 SOURCES += \
 	main.cpp \
 	CVmMigrateTargetDisk.cpp \
 	CVmMigrateTargetServer.cpp \
 	Cancellation.cpp \
-	$$SRC_LEVEL/Libraries/VmFileList/CVmFileListCopy.cpp
+	$$SRC_LEVEL/Libraries/VmFileList/CVmFileListCopy.cpp \
+	$$SRC_LEVEL/Libraries/PrlCommonUtils/CFileHelper.cpp \
+	$$SRC_LEVEL/Libraries/PrlCommonUtils/CAuthHelper.cpp \
 
