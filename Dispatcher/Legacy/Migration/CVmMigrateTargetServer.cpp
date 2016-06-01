@@ -35,6 +35,7 @@
 #include <prlxmlmodel/DiskDescriptor/CDiskXML.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
+#include "Libraries/PrlCommonUtils/CFileHelper.h"
 
 typedef SmartPtr<CVmConfiguration> config_type;
 
@@ -91,7 +92,7 @@ PRL_RESULT InitializeHardDiskCfg
 		QFile f(QDir(p).absoluteFilePath("DiskDescriptor.xml"));
 		CDiskXML d(&f);
 		value = d.getParameters()->getUserData()->getMigrationInstanceId();
-		QDir().rename(p, p + ".description");
+		CFileHelper::ClearAndDeleteDir(p);
 		VirtualDisk::Qcow2::create(p,
 			VirtualDisk::qcow2PolicyList_type(1, d.getParameters()->getSize() * 512));
 		curr_disk.reset(new VirtualDisk::Qcow2());

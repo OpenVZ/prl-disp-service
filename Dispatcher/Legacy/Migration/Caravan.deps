@@ -6,4 +6,5 @@ LIBS += -lprlcommon -lprl_xml_model
 
 include($$LIBS_LEVEL/ProtoSerializer/ProtoSerializer.pri)
 include($$LIBS_LEVEL/DispToDispProtocols/DispToDispProtocols.pri)
+include($$LIBS_LEVEL/CAuth/CAuth.pri)
 
