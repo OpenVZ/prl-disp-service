@@ -650,7 +650,7 @@ struct Visitor : boost::static_visitor<void>
 		static const char *f[] = {
 			"fsgsbase", "tsc_adjust", "sgx", "bmi1", "hle", "avx2",	"",	"smep",	"bmi2",
 			"erms", "invpcid", "rtm", "", "", "mpx", "", "avx512f", "",
-			"rdseed", "adx", "smap", "", "", "cflushopt", "", "", "avx512pf",	"avx512er",
+			"rdseed", "adx", "smap", "", "", "clflushopt", "", "", "avx512pf",	"avx512er",
 			"avx512cd",	"", "", "", NULL
 		};
 
