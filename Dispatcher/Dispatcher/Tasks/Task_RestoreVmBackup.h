@@ -115,7 +115,8 @@ private:
 	PRL_RESULT restoreVmVBackup(SmartPtr<CVmConfiguration> ve_);
 	PRL_RESULT sendFiles(IOSendJob::Handle& job_);
 	PRL_RESULT sendStartReply(const SmartPtr<CVmConfiguration>& ve_, IOSendJob::Handle& job_);
-	PRL_RESULT restoreImage(const QString& from_, const QString& to_);
+	static void restoreImage(const SmartPtr<IOPackage> p_,
+		SmartPtr<CDspDispConnection> connection_, quint32 timeout_);
 
 private slots:
 	void clientDisconnected(IOSender::Handle h);
