@@ -155,8 +155,9 @@ namespace Snapshot
 
 Stash::Stash(const SmartPtr<CVmConfiguration>& cfg_, const QString& snapshot_)
 	: m_vmUuid(cfg_->getVmIdentification()->getVmUuid()),
-		m_dir((QStringList() << "/var/lib/libvirt/qemu/snapshot"
-			<< cfg_->getVmIdentification()->getVmName()
+		m_dir((QStringList()
+			<< QFileInfo(cfg_->getVmIdentification()->getHomePath()).absolutePath()
+			<< "snapshots"
 			<< snapshot_).join(QDir::separator()))
 {
 }
