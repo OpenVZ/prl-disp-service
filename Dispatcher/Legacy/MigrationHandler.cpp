@@ -103,15 +103,11 @@ PRL_RESULT Registration::execute()
 
 } // namespace Step
 
-REGISTER_HANDLER(IOSender::VmConverter, "VmConverter", Handler);
-
 ////////////////////////////////////////////////////////////////////////////////
 // struct Convoy
 
 bool Convoy::appoint(const SmartPtr<CVmConfiguration>& config_)
 {
-	QMutexLocker l(&m_mutex);
-
 	if (!config_.isValid())
 		return false;
 
@@ -130,7 +126,6 @@ bool Convoy::appoint(const SmartPtr<CVmConfiguration>& config_)
 
 bool Convoy::deport()
 {
-	QMutexLocker l(&m_mutex);
 	if (CDspService::instance()->getIOServer().detachClient
 			(m_connection->GetConnectionHandle(), pid(), m_package))
 		return true;
@@ -141,8 +136,6 @@ bool Convoy::deport()
 
 void Convoy::release(const IOSender::Handle& handle_, const SmartPtr<IOPackage>& package_)
 {
-	QMutexLocker l(&m_mutex);
-
 	QScopedPointer<Step::Unit> u;
 	u.reset(new Step::Vcmmd(m_uuid, *m_config, new Step::Convert(m_uuid, new Step::Start(m_uuid))));
 	u.reset(new Step::Registration(m_uuid, *m_config, u.take()));
@@ -182,41 +175,44 @@ void Convoy::handlePackage(IOSender::Handle handle_, const SmartPtr<IOPackage> p
 ////////////////////////////////////////////////////////////////////////////////
 // struct Handler
 
-void Handler::handleClientConnected(const IOSender::Handle& handle_)
+Handler::Handler(IOServerPool& server_, const QSharedPointer<Convoy>& convoy_)
+	: m_server(&server_), m_convoy(convoy_), m_client()
 {
-	QMutexLocker l(&m_mutex);
+	if (!QObject::connect(m_server,	SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
+		SLOT(packageReceived(IOSender::Handle, const SmartPtr<IOPackage>)), Qt::QueuedConnection))
+		WRITE_TRACE(DBG_DEBUG, "unable to connect package received");
 
-	if (m_convoy.isNull())
-	{
-		WRITE_TRACE(DBG_FATAL, "Unexpected migration app connection");
-		CDspService::instance()->getIOServer().disconnectClient(handle_);
-	}
-	else
-		m_client = handle_;
+	if (!QObject::connect(m_server,
+		SIGNAL(onDetachClient(IOSender::Handle, const IOCommunication::DetachedClient)),
+		SLOT(clientDetached(IOSender::Handle, const IOCommunication::DetachedClient)), Qt::QueuedConnection))
+		WRITE_TRACE(DBG_DEBUG, "unable to connect detach client");
 }
 
-void Handler::handleToDispatcherPackage(const IOSender::Handle& handle_, const SmartPtr<IOPackage>& package_)
+void Handler::packageReceived(IOSender::Handle handle_, const SmartPtr<IOPackage> package_)
 {
-	QMutexLocker l(&m_mutex);
-
-	QSharedPointer<Convoy> convoy = m_convoy.toStrongRef();
-
-	if (convoy.isNull() ||  m_client != handle_)
-	{
-		CDspService::instance()->getIOServer().disconnectClient(handle_);
+	if (m_server->clientSenderType(handle_) != IOSender::VmConverter)
 		return;
+
+	if (m_client.isEmpty() && package_->header.type == PVE::DspVmAuth)
+	{
+		qint64 pid = QString(package_->buffers[0].getImpl()).toLongLong();
+		if (m_convoy->pid() <= 0 || m_convoy->pid() != pid)
+			return;
+
+		m_client = handle_;
 	}
 
-	if (!QMetaObject::invokeMethod(convoy.data(), "handlePackage", Qt::QueuedConnection,
-			Q_ARG(IOSender::Handle, handle_), Q_ARG(const SmartPtr<IOPackage>, package_)))
-	{
-		WRITE_TRACE(DBG_FATAL, "Unable to invoke method");
-		CDspService::instance()->getIOServer().disconnectClient(handle_);
-	}
+	if (m_client != handle_)
+		return;
+
+	m_convoy->handlePackage(handle_, package_);
 }
 
-void Handler::handleDetachClient(const IOSender::Handle&, const IOCommunication::DetachedClient& client_)
+void Handler::clientDetached(IOSender::Handle handle_, const IOCommunication::DetachedClient client_)
 {
+	if (m_convoy->getConnection() != handle_)
+		return;
+
 	IOSendJob::Handle job =	CDspService::instance()->getIOServer().sendDetachedClient(m_client, client_);
 	IOSendJob::Result res = CDspService::instance()->getIOServer().waitForSend(job);
 	if (res != IOSendJob::Success)
@@ -225,17 +221,6 @@ void Handler::handleDetachClient(const IOSender::Handle&, const IOCommunication:
 	res = CDspService::instance()->getIOServer().getSendResult(job);
 	if (res != IOSendJob::Success)
 		WRITE_TRACE(DBG_FATAL, "Failed to send detached client");
-}
-
-bool Handler::request(const QSharedPointer<Convoy>& convoy_)
-{
-	QMutexLocker l(&m_mutex);
-
-	if (!m_convoy.isNull())
-		return false;
-
-	m_convoy = convoy_;
-	return true;
 }
 
 } // namespace Migration

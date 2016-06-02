@@ -35,6 +35,7 @@
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "CDspHandlerRegistrator.h"
 #include "CDspDispConnection.h"
+#include <prlcommon/IOService/IOCommunication/IOServerPool.h>
 
 namespace Legacy
 {
@@ -143,37 +144,39 @@ struct Convoy: QProcess
 	bool appoint(const SmartPtr<CVmConfiguration>& config_);
 	bool deport();
 	void release(const IOSender::Handle& handle_, const SmartPtr<IOPackage>& package_);
+	IOSender::Handle getConnection()
+	{
+		return m_connection->GetConnectionHandle();
+	}
 
-	Q_INVOKABLE void handlePackage(IOSender::Handle, const SmartPtr<IOPackage>);
+	void handlePackage(IOSender::Handle, const SmartPtr<IOPackage>);
 
 private:
-	Q_OBJECT
-
-	QMutex m_mutex;
 	SmartPtr<CDspDispConnection> m_connection;
 	SmartPtr<IOPackage> m_package;
 	QString m_uuid;
 	SmartPtr<CVmConfiguration> m_config;
 };
 
+using namespace IOService;
+
 /////////////////////////////////////////////////////////////////////////////////
 // Handler
 
-struct Handler: CDspHandler
+struct Handler: QObject
 {
-	Handler(IOSender::Type type_, const char* name_): CDspHandler(type_, name_)
-	{
-	}
+	Handler(IOServerPool& server_, const QSharedPointer<Convoy>& convoy_);
 
-	void handleClientConnected(const IOSender::Handle& handle_);
-	void handleToDispatcherPackage(const IOSender::Handle& handle_, const SmartPtr<IOPackage>&);
-	void handleDetachClient(const IOSender::Handle&, const IOCommunication::DetachedClient& client_);
-	bool request(const QSharedPointer<Convoy>& convoy_);
+private slots:
+	void packageReceived(IOSender::Handle, const SmartPtr<IOPackage>);
+	void clientDetached(IOSender::Handle, const IOCommunication::DetachedClient);
 
 private:
-	QMutex m_mutex;
+	Q_OBJECT
+
+	IOServerPool* m_server;
+	QSharedPointer<Convoy> m_convoy;
 	IOSender::Handle m_client;
-	QWeakPointer<Convoy> m_convoy;
 };
 
 } // namespace Migration

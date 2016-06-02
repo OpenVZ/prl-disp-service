@@ -46,10 +46,4 @@ DSP_ROUTE_TABLE_BEGIN
 
  DSP_ROUTE_END
 
- DSP_ROUTE_BEGIN( IOSender::Vm )
-   DSP_ROUTE( PVE::DspVmToClientCommandRangeStart,
-			  PVE::DspVmToClientCommandRangeEnd,
-			  "VmConverter" )
- DSP_ROUTE_END
-
 DSP_ROUTE_TABLE_END

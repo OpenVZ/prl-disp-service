@@ -685,13 +685,7 @@ PRL_RESULT MigrateVmTarget::migrateRunningVm()
 	QSharedPointer<Legacy::Vm::Migration::Convoy> c
 		(new Legacy::Vm::Migration::Convoy(m_pStartDispConnection, pPackage));
 
-	SmartPtr<CDspHandler> h = CDspHandlerRegistrator::instance().findHandler(IOSender::VmConverter);
-
-	if (!dynamic_cast<Legacy::Vm::Migration::Handler*>(h.getImpl())->request(c))
-	{
-		WRITE_TRACE(DBG_FATAL, "unable to request handle connection");
-		return PRL_ERR_OPERATION_FAILED;
-	}
+	Legacy::Vm::Migration::Handler h(CDspService::instance()->getIOServer(), c);
 
 	if (!connect(c.data(), SIGNAL(finished(int, QProcess::ExitStatus)), this,
 		     SLOT(handleConversionFinished(int, QProcess::ExitStatus)), Qt::DirectConnection))
