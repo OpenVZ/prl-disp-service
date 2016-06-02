@@ -2427,6 +2427,9 @@ bool CDspService::createDispConfig ()
 	CDispCommonPreferences *pPreferences = pSettings->getCommonPreferences();
 	CDispWorkspacePreferences *pWorkspacePreferences = pPreferences->getWorkspacePreferences();
 	CDispMemoryPreferences *pMemoryPreferences = pPreferences->getMemoryPreferences();
+	CDispCpuPreferences *pCpuPreferences = pPreferences->getCpuPreferences();
+
+	pCpuPreferences->setMaxVCpu(VM_MAX_VCPU);
 
 	// Setup Workspace preferences
 	pWorkspacePreferences->setDefaultVmDirectory("");
