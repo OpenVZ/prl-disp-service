@@ -197,6 +197,45 @@ void Vm::setStatsPeriod(quint64 seconds_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Visitor
+
+Visitor::Visitor(CDspService& service_): m_service(&service_),
+	m_routing(new Network::Routing())
+{
+}
+
+Visitor::result_type Visitor::operator()(const CVmIdent& ident_) const
+{
+	SmartPtr<CDspClient> u;
+	CDspDispConfigGuard& c = m_service->getDispConfigGuard();
+	foreach (CDispUser* s, c.getDispUserPreferences()->m_lstDispUsers)
+	{
+		if (ident_.second == s->getUserWorkspace()->getVmDirectory())
+		{
+			u = CDspClient::makeServiceUser(ident_.second);
+			u->setUserSettings(s->getUserId(), s->getUserName());
+			break;
+		}
+	}
+	if (!u.isValid())
+		return Error::Simple(PRL_ERR_FAILURE);
+
+	Vm* v = new Vm(ident_.first, u, m_routing);
+	v->setStatsPeriod(c.getDispWorkSpacePrefs()->getVmGuestCollectPeriod());
+	return Public::bin_type(v);
+}
+
+Visitor::result_type Visitor::operator()
+	(const boost::mpl::at_c<Public::booking_type::types, 0>::type& variant_) const
+{
+	result_type output = (*this)(variant_.first);
+	if (output.isSucceed())
+		output.value()->setHome(variant_.second);
+
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Access
 
 boost::optional<CVmConfiguration> Access::getConfig()
@@ -275,7 +314,7 @@ PRL_RESULT Public::declare(const CVmIdent& ident_, const QString& home_)
 	if (m_bookingMap.contains(u))
 		return PRL_ERR_DOUBLE_INIT;
 
-	m_bookingMap.insert(u, booking_type(ident_, home_));
+	m_bookingMap.insert(u, declaration_type(ident_, home_));
 	return PRL_ERR_SUCCESS;
 }
 
@@ -301,55 +340,23 @@ PRL_RESULT Public::undeclare(const QString& uuid_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Actual
 
-Actual::Actual(CDspService& service_):
-	m_service(&service_), m_routing(new Network::Routing())
-{
-}
-
-Prl::Expected<QSharedPointer<Vm>, Error::Simple>
-Actual::craft(const QString& uuid_, const QString& directory_)
-{
-	SmartPtr<CDspClient> u;
-	CDspDispConfigGuard& c = m_service->getDispConfigGuard();
-	foreach (CDispUser* s, c.getDispUserPreferences()->m_lstDispUsers)
-	{
-		if (directory_ == s->getUserWorkspace()->getVmDirectory())
-		{
-			u = CDspClient::makeServiceUser(directory_);
-			u->setUserSettings(s->getUserId(), s->getUserName());
-			break;
-		}
-	}
-	if (!u.isValid())
-		return Error::Simple(PRL_ERR_FAILURE);
-
-	Vm* v = new Vm(uuid_, u, m_routing);
-	v->setStatsPeriod(c.getDispWorkSpacePrefs()->getVmGuestCollectPeriod());
-	return QSharedPointer<Vm>(v);
-}
-
 Prl::Expected<Access, Error::Simple> Actual::define(const QString& uuid_)
 {
 	QWriteLocker l(&m_rwLock);
 	if (m_definedMap.contains(uuid_) || m_undeclaredMap.contains(uuid_))
 		return Error::Simple(PRL_ERR_VM_ALREADY_REGISTERED_VM_UUID);
 
+	Visitor::result_type m;
 	if (m_bookingMap.contains(uuid_))
 	{
 		booking_type b = m_bookingMap.take(uuid_);
-		Prl::Expected<QSharedPointer<Vm>, Error::Simple> m =
-			craft(uuid_, b.first.second);
-		if (m.isFailed())
-			return m.error();
-
-		QSharedPointer<Vm> v = m.value();
-		v->setHome(b.second);
-		m_definedMap[uuid_] = v;
-		return Access(uuid_, v.toWeakRef());
+		m = boost::apply_visitor(m_conductor, b);
 	}
-	CDspDispConfigGuard& c = m_service->getDispConfigGuard();
-	Prl::Expected<QSharedPointer<Vm>, Error::Simple> m =
-		craft(uuid_, c.getDispWorkSpacePrefs()->getDefaultVmDirectory());
+	else
+	{
+		CDspDispConfigGuard& c = m_service->getDispConfigGuard();
+		m = m_conductor(MakeVmIdent(uuid_, c.getDispWorkSpacePrefs()->getDefaultVmDirectory()));
+	}
 	if (m.isFailed())
 		return m.error();
 
@@ -377,16 +384,26 @@ void Actual::undefine(const QString& uuid_)
 
 void Actual::reset()
 {
+	vmMap_type b;
 	{
 		QWriteLocker g(&m_rwLock);
-		m_definedMap.clear();
+		std::swap(b, m_definedMap);
 // XXX. do we need to drop VM that are undeclared???
 //		m_undeclaredMap.clear();
 	}
 	::Vm::Directory::Dao::Locked d(m_service->getVmDirManager());
 	foreach (const ::Vm::Directory::Item::List::value_type& i, d.getItemList())
 	{
-		declare(MakeVmIdent(i.second->getVmUuid(), i.first), i.second->getVmHome());
+		QString u = i.second->getVmUuid();
+		vmMap_type::mapped_type m = b[u];
+		if (m.isNull())
+			declare(MakeVmIdent(i.second->getVmUuid(), i.first), i.second->getVmHome());
+		else
+		{
+			m->setHome(i.second->getVmHome());
+			QWriteLocker g(&m_rwLock);
+			m_bookingMap.insert(u, m);
+		}
 	}
 }
 
