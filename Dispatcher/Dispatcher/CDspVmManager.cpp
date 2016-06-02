@@ -522,6 +522,16 @@ struct Essence<PVE::DspCmdVmCreateSnapshot>: Need::Agent, Need::Context,
 		}
 		else
 		{
+			foreach(const CVmHardDisk* h, getConfig()->getVmHardwareList()->m_lstHardDisks)
+			{
+				if (h->getEmulatedType() == PVE::RealHardDisk)
+				{
+					return Error::Simple(PRL_ERR_VM_CREATE_SNAPSHOT_FAILED,
+						QString("Cannot create a snapshot for the attached block device '%1'. "
+						"Detach the device and retry.").arg(h->getSystemName()));
+				}
+			}
+
 			QString b = getConfig()->getVmIdentification()->getHomePath();
 			QStringList f(b);
 			CStatesHelper h(b);
