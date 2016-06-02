@@ -124,7 +124,7 @@ template<class T>
 struct Index
 {
 	explicit Index(const T& device_):
-		m_index(Parallels::fromBase26(device_.getTargetDeviceName().remove(0, 2))),
+		m_index(device_.getStackIndex()),
 		m_iface(device_.getInterfaceType())
 	{
 	}
@@ -162,9 +162,8 @@ typename QList<T*>::iterator choose(typename QList<T*>::iterator begin_,
 	// device was originally disconnected.
 	// Try matching by target device name, which we expect to
 	// be in the form: <prefix><base26-encoded device index>.
-	if (!device_.getTargetDeviceName().isEmpty())
-		return std::find_if(begin_, end_, Index<T>(device_));
-	return end_;
+	// It is already decoded into (InterfaceType, StartIndex)
+	return std::find_if(begin_, end_, Index<T>(device_));
 }
 
 } // namespace Match
