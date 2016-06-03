@@ -8,6 +8,9 @@ DEFINES += BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS BOOST_MPL_LIMIT_VECTOR_SIZE=40
 HEADERS += \
 	base.h \
 	enum.h \
+	capability_data.h \
+	capability_enum.h \
+	capability_type.h \
 	domain_enum.h \
 	domain_data.h \
 	domain_type.h \
@@ -29,6 +32,9 @@ HEADERS += \
 
 SOURCES	+= \
 	text.cpp \
+	capability_data.cpp \
+	capability_enum.cpp \
+	capability_type.cpp \
 	domain_data.cpp \
 	domain_enum.cpp \
 	domain_type.cpp \

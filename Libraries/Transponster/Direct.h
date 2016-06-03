@@ -32,6 +32,7 @@
 #ifndef __DIRECT_H__
 #define __DIRECT_H__
 
+#include "capability_type.h"
 #include "iface_type.h"
 #include "domain_type.h"
 #include "network_type.h"
@@ -260,6 +261,25 @@ struct Vm: ::Transponster::Vm::Direct::Vm
 };
 
 } // namespace Snapshot
+
+namespace Capabilities
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Direct
+
+struct Direct
+{
+	explicit Direct(char* xml_);
+
+	QList<QString> getCpuFeatures() const;
+	QString getCpuModel() const;
+
+private:
+	QScopedPointer<Libvirt::Capability::Xml::Capabilities> m_input;
+};
+
+} // namespace Capabilities
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Director

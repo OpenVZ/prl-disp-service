@@ -34,6 +34,7 @@
 
 #include <boost/function.hpp>
 
+#include "capability_type.h"
 #include "iface_type.h"
 #include "domain_type.h"
 #include "network_type.h"
@@ -94,7 +95,7 @@ struct CpuFeaturesMask
 	{
 	}
 
-	void getDisabledFeatures(Libvirt::Domain::Xml::Cpu &cpu);
+	void getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &cpu);
 	void setDisabledFeatures(const Libvirt::Domain::Xml::Cpu &cpu);
 
 private:

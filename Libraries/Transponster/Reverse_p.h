@@ -826,7 +826,7 @@ struct Resources
 	}
 
 	void setCpu(const Libvirt::Domain::Xml::Cpu& src_);
-	bool getCpu(Libvirt::Domain::Xml::Cpu& dst_);
+	bool getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu& dst_);
 	void setCpu(const Libvirt::Domain::Xml::Domain& vm_, const VtInfo& vt_);
 	bool getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Domain& dst_);
 	void setClock(const Libvirt::Domain::Xml::Clock& src_);
