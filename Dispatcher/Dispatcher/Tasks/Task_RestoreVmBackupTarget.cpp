@@ -873,6 +873,12 @@ PRL_RESULT Task_RestoreVmBackupTarget::prepareTask()
 	if (PRL_FAILED(nRetCode = sendStartRequest()))
 		goto exit;
 
+	if (BACKUP_PROTO_V4 <= m_nRemoteVersion &&
+		!CDspService::instance()->getShellServiceHelper().isLocalAddress(m_sServerHostname)) {
+		WRITE_TRACE(DBG_FATAL, "Restore from the remote server is not implemented");
+		nRetCode = PRL_ERR_UNIMPLEMENTED;
+		goto exit;
+	}
 	if (m_nFlags & PBT_RESTORE_TO_COPY)
 		m_sVmUuid = Uuid::createUuid().toString();
 	else if (m_sVmUuid.isEmpty())
