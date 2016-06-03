@@ -146,7 +146,7 @@ void CDspVmMigrateHelper::startMigration(SmartPtr<CDspDispConnection> pDispConne
 		return;
 	}
 
-	if (pStartCommand->GetVersion() >= MIGRATE_DISP_PROTO_V7)
+	if (pStartCommand->GetVersion() >= MIGRATE_DISP_PROTO_V7 || pVmConfig->getVmType() == PVT_CT)
 		pDispConnection->handlePackage(p);
 	else
 		emit onPackageReceived(pDispConnection, pVmConfig->getVmIdentification()->getVmUuid(), p);
