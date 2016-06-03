@@ -1309,4 +1309,31 @@ boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> Clip::getControllerModel(const Lib
 	return m;
 }
 
+namespace Capabilities
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Direct
+
+Direct::Direct(char* xml_)
+{
+	shape(xml_, m_input);
+}
+
+QList<QString> Direct::getCpuFeatures() const
+{
+	if (!m_input->getHost().getCpu().getCpuspec())
+		return QList<QString>();
+	return m_input->getHost().getCpu().getCpuspec()->getFeatureList();
+}
+
+QString Direct::getCpuModel() const
+{
+	if (!m_input->getHost().getCpu().getCpuspec())
+		return QString();
+	return m_input->getHost().getCpu().getCpuspec()->getModel();
+}
+
+} // namespace Capabilities
+
 } // namespace Transponster

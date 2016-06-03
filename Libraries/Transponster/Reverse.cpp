@@ -56,7 +56,7 @@ void Resources::setCpu(const Libvirt::Domain::Xml::Cpu& src_)
 	}
 }
 
-bool Resources::getCpu(Libvirt::Domain::Xml::Cpu& dst_)
+bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu& dst_)
 {
 	CVmHardware* h = getHardware();
 	if (NULL == h)
@@ -69,10 +69,16 @@ bool Resources::getCpu(Libvirt::Domain::Xml::Cpu& dst_)
 	if(0 == u->getNumber())
 		return false;
 
-	dst_.setMode(Libvirt::Domain::Xml::EModeHostModel);
+	dst_.setMode(Libvirt::Domain::Xml::EModeCustom);
 
 	Vm::Reverse::CpuFeaturesMask mask(*m_config);
-	mask.getDisabledFeatures(dst_);
+	mask.getFeatures(vt_, dst_);
+
+	Libvirt::Domain::Xml::Model z;
+	if (dst_.getModel())
+		z = *dst_.getModel();
+	z.setOwnValue(vt_.getCpuModel());
+	dst_.setModel(z);
 
 	CVmMemory *m = h->getMemory();
 	if (m->isEnableHotplug()) {
@@ -1065,7 +1071,7 @@ PRL_RESULT Cpu::setNumber()
 ///////////////////////////////////////////////////////////////////////////////
 // struct CpuFeaturesMask
 
-void CpuFeaturesMask::getDisabledFeatures(Libvirt::Domain::Xml::Cpu &cpu)
+void CpuFeaturesMask::getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &cpu)
 {
 	QSet<QString> features = CCpuHelper::getDisabledFeatures(*m_input);
 
@@ -1073,6 +1079,18 @@ void CpuFeaturesMask::getDisabledFeatures(Libvirt::Domain::Xml::Cpu &cpu)
 		features.insert(QString("vmx"));
 
 	QList<Libvirt::Domain::Xml::Feature> l;
+	foreach(const QString& name, vt_.getRequiredCpuFeatures())
+	{
+		if (features.contains(name))
+			continue;
+		/* invtsc is non migratable (see libvirt cpu_map.xml) */
+		if (name == "invtsc")
+			continue;
+		Libvirt::Domain::Xml::Feature f;
+		f.setName(name);
+		f.setPolicy(Libvirt::Domain::Xml::EPolicyRequire);
+		l.append(f);
+	}
 	foreach(QString name, features)
 	{
 		Libvirt::Domain::Xml::Feature f;
@@ -1469,7 +1487,7 @@ PRL_RESULT Builder::setResources(const VtInfo& vt_)
 		m_result->setMaxMemory(max_m);
 
 	Libvirt::Domain::Xml::Cpu c;
-	if (u.getCpu(c))
+	if (u.getCpu(vt_, c))
 		m_result->setCpu(c);
 
 	Libvirt::Domain::Xml::Clock t;
