@@ -660,7 +660,7 @@ struct Visitor : boost::static_visitor<void>
 	void operator()(boost::mpl::int_<PCFE_EXT_80000001_ECX>)
 	{
 		static const char *f[] = {
-			"lahf_lm", "cmp_legacy", "svm",	"extapic", "cr8_legacy", "abm", "sse4a",
+			"lahf_lm", "cmp_legacy", "svm",	"extapic", "cr8legacy", "abm", "sse4a",
 			"misalignsse", "3dnowprefetch",	"osvw",	"ibs", "xop", "skinit",	"wdt", "", "lwp",
 			"fma4", "tce", "", "nodeid_msr", "", "tbm",	"topoext", "perfctr_core", "perfctr_nb",
 			"", "dbx", "perftsc", "perfctr_l2", NULL
