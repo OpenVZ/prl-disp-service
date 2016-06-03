@@ -40,6 +40,7 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "CDspBackupDevice.h"
 #include "CVmValidateConfig.h"
 #include "CVmValidateConfig_p.h"
 #include "CDspService.h"
@@ -328,6 +329,28 @@ QList<PRL_RESULT > CVmValidateConfig::CheckCtConfig(PRL_VM_CONFIG_SECTIONS nSect
 			}
 
 			CheckIPDuplicates(setNA_ids);
+		}
+	}
+	if (nSection == PVC_ALL || nSection == PVC_HARD_DISK)
+	{
+		foreach(const CVmHardDisk* d, m_pVmConfig->getVmHardwareList()->m_lstHardDisks)
+		{
+			QString qsSysName = d->getSystemName();
+			QSet<QString> setIds = E_SET << d->getFullItemId() << d->getEnabled_id();
+
+			if (d == NULL || d->getEnabled() != PVE::DeviceEnabled)
+				continue;
+
+			if (d->getEmulatedType() == PVE::HardDiskImage
+				&& !Backup::Device::Details::Finding(*d).isKindOf()
+				&& !QFile::exists(qsSysName))
+			{
+				m_lstResults += PRL_ERR_VMCONF_HARD_DISK_IMAGE_IS_NOT_EXIST;
+				m_mapParameters.insert(m_lstResults.size(), QStringList()
+					<< qsSysName << QString::number(d->getIndex() + 1));
+				m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(d->getIndex(), d->getItemId()));
+				ADD_FID((E_SET << d->getSystemName_id() << d->getEmulatedType_id() << d->getRemote_id()) + setIds);
+			}
 		}
 	}
 
