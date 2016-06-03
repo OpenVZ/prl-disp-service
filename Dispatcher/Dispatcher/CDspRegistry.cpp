@@ -56,8 +56,6 @@ struct Vm: ::Vm::State::Machine
 
 	void updateConfig(CVmConfiguration value_);
 
-	void setStatsPeriod(quint64 seconds_);
-
 	QWeakPointer<Stat::Storage> getStorage()
 	{
 		return m_storage.toWeakRef();
@@ -188,14 +186,6 @@ void Vm::updateDirectory(PRL_VM_TYPE type_)
 	m.unlockExclusiveVmParameters(t.data());
 }
 
-void Vm::setStatsPeriod(quint64 seconds_)
-{
-#ifdef _LIBVIRT_
-	qint64 p = qMax(seconds_, quint64(1));
-	Libvirt::Kit.vms().at(getUuid()).setMemoryStatsPeriod(p);
-#endif // _LIBVIRT_
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Visitor
 
@@ -220,9 +210,7 @@ Visitor::result_type Visitor::operator()(const CVmIdent& ident_) const
 	if (!u.isValid())
 		return Error::Simple(PRL_ERR_FAILURE);
 
-	Vm* v = new Vm(ident_.first, u, m_routing);
-	v->setStatsPeriod(c.getDispWorkSpacePrefs()->getVmGuestCollectPeriod());
-	return Public::bin_type(v);
+	return Public::bin_type(new Vm(ident_.first, u, m_routing));
 }
 
 Visitor::result_type Visitor::operator()
