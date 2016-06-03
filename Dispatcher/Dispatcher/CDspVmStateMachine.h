@@ -250,12 +250,16 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		template<class Event, class FromState, class ToState>
 		void operator()(const Event&, Frontend& fsm_, FromState& from_, ToState& to_)
 		{
+			Libvirt::Instrument::Agent::Vm::Unit v = Libvirt::Kit.vms().at(fsm_.getUuid());
+			qint64 p = qMax<qint64>(fsm_.getService().getDispConfigGuard()
+				.getDispWorkSpacePrefs()->getVmGuestCollectPeriod(), quint64(1));
+			v.setMemoryStatsPeriod(p);
+
 			boost::optional<CVmConfiguration> y = fsm_.getConfig();
 			if (!y)
 				return;
 
 			CVmConfiguration runtime;
-			Libvirt::Instrument::Agent::Vm::Unit v = Libvirt::Kit.vms().at(fsm_.getUuid());
 			if (v.getConfig(runtime, true).isFailed())
 			{
 				WRITE_TRACE(DBG_INFO, "failed to read runtime config from for VM '%s'", qPrintable(fsm_.m_name));
