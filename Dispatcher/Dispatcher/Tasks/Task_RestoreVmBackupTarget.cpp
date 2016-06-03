@@ -1142,9 +1142,13 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 		a->revert();
 		goto cleanup_0;
 	}
-	if (m_converter.get() != NULL && (PRL_FAILED(nRetCode = m_converter->convertVm(m_sVmUuid))
-			|| PRL_FAILED(nRetCode = m_converter->startVm(*m_pVmConfig))))
-		goto cleanup_0;
+	if (m_converter.get() != NULL)
+	{
+		boost::optional<Legacy::Vm::V2V> v2v = m_converter->getV2V(*m_pVmConfig);
+		if ((v2v && PRL_FAILED(nRetCode = v2v->do_()))
+			|| PRL_FAILED(nRetCode = v2v->start()))
+			goto cleanup_0;
+	}
 	{
 		CDspLockedPointer<CVmDirectoryItem> pVmDirItem
 			= CDspService::instance()->getVmDirManager().getVmDirItemByUuid(
@@ -1211,11 +1215,15 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewVm()
 			a->revert();
 			break;
 		}
-		if (m_converter.get() != NULL && (PRL_FAILED(nRetCode = m_converter->convertVm(m_sVmUuid))
-			|| PRL_FAILED(nRetCode = m_converter->startVm(*m_pVmConfig))))
+		if (m_converter.get() != NULL)
 		{
-			unregisterVm();
-			a->revert();
+			boost::optional<Legacy::Vm::V2V> v2v = m_converter->getV2V(*m_pVmConfig);
+			if ((v2v && PRL_FAILED(nRetCode = v2v->do_()))
+				|| PRL_FAILED(nRetCode = v2v->start()))
+			{
+				unregisterVm();
+				a->revert();
+			}
 		}
 	} while(false);
 	CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(pVmInfo.getImpl());
