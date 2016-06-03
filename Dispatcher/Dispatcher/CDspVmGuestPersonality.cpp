@@ -122,7 +122,7 @@ bool Configurator::execute(const QStringList& args_) const
 
 	QProcess p;
 	QString out;
-	if (!HostUtils::RunCmdLineUtility(cmd, out, -1, &p)) {
+	if (!HostUtils::RunCmdLineUtility(args_, out, -1, &p)) {
 		WRITE_TRACE(DBG_FATAL, "Cmd failed: %d", p.exitCode());
 		return false;
 	}
