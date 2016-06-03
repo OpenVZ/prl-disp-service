@@ -37,6 +37,7 @@
 #include <CVmIdent.h>
 #include <QSharedPointer>
 #include <QReadWriteLock>
+#include <boost/mpl/at.hpp>
 #include <prlsdk/PrlEnums.h>
 #include <prlxmlmodel/Messaging/CVmEvent.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
@@ -97,6 +98,10 @@ private:
 
 struct Public
 {
+	typedef QSharedPointer<Vm> bin_type;
+	typedef QPair<CVmIdent, QString> declaration_type;
+	typedef boost::variant<declaration_type, bin_type> booking_type;
+
 	Access find(const QString& uuid_);
 
 	PRL_RESULT declare(const CVmIdent& ident_, const QString& home_);
@@ -104,8 +109,7 @@ struct Public
 	PRL_RESULT undeclare(const QString& uuid_);
 
 protected:
-	typedef QPair<CVmIdent, QString> booking_type;
-	typedef QHash<QString, QSharedPointer<Vm> > vmMap_type;
+	typedef QHash<QString, bin_type> vmMap_type;
 
 	QReadWriteLock m_rwLock;
 	vmMap_type m_definedMap;
@@ -114,11 +118,36 @@ protected:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Visitor
+
+struct Visitor: boost::static_visitor<Prl::Expected<Public::bin_type, Error::Simple> >
+{
+	explicit Visitor(CDspService& service_);
+
+	result_type operator()
+		(const boost::mpl::at_c<Public::booking_type::types, 0>::type& variant_) const;
+
+	result_type operator()
+		(const boost::mpl::at_c<Public::booking_type::types, 1>::type& variant_) const
+	{
+		return variant_;
+	}
+	result_type operator()(const CVmIdent& ident_) const;
+
+private:
+	CDspService* m_service;
+	QSharedPointer<Network::Routing> m_routing;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Actual
 
 struct Actual: Public
 {
-	explicit Actual(CDspService& service_);
+	explicit Actual(CDspService& service_):
+		m_conductor(service_), m_service(&service_)
+	{
+	}
 
 	Prl::Expected<Access, Error::Simple> define(const QString& uuid_);
 
@@ -130,11 +159,8 @@ struct Actual: Public
 	QString getServerUuid() const;
 
 private:
-	Prl::Expected<QSharedPointer<Vm>, Error::Simple>
-		craft(const QString& uuid_, const QString& directory_);
-
+	Visitor m_conductor;
 	CDspService* m_service;
-	QSharedPointer<Network::Routing> m_routing;
 };
 
 } // namespace Registry
