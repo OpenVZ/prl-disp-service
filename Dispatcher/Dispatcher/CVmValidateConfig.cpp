@@ -1105,8 +1105,12 @@ void CVmValidateConfig::CheckCpu()
 		if ( ! pHostInfo )
 			return;
 
+		CDspLockedPointer<CDispCommonPreferences> pCommonPreferences =
+	                    CDspService::instance()->getDispConfigGuard().getDispCommonPrefs();
+		unsigned int max = pCommonPreferences->getCpuPreferences()->getMaxVCpu();
+
 		unsigned int nHostCpuCount = pHostInfo->getCpu()->getNumber();
-		unsigned int maxAllowedCpuCount = qMin( nHostCpuCount, (unsigned int)( PRL_MAX_CPU_COUNT ) );
+		unsigned int maxAllowedCpuCount = qMin(nHostCpuCount, max > 0 ? max : PRL_MAX_CPU_COUNT);
 		if (nCpuCount > maxAllowedCpuCount)
 		{
 			m_lstResults += PRL_ERR_VMCONF_CPU_COUNT_MORE_MAX_CPU_COUNT;
