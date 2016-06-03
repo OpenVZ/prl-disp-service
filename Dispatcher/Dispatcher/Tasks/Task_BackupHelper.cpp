@@ -1402,7 +1402,7 @@ PRL_RESULT BackupProcess::start(const QStringList& arg_, int version_)
 		if ((flags = fcntl(m_out[j], F_GETFL)) != -1)
 			fcntl(m_out[j], F_SETFL, flags | O_NONBLOCK);
 	}
-	QProcess::start(m_sCmd, a);
+	QProcess::start(m_sCmd, a, QIODevice::Unbuffered | QIODevice::ReadWrite);
 	if (!waitForStarted())
 		return PRL_ERR_BACKUP_TOOL_CANNOT_START;
 	::close(m_out[1]);
@@ -1523,6 +1523,13 @@ PRL_RESULT BackupProcess::write(char *data, quint32 size)
 			WRITE_TRACE(DBG_FATAL, "write() error : %s", QSTR2UTF8(errorString()));
 			return PRL_ERR_BACKUP_INTERNAL_ERROR;
 		}
+		do {
+			if (!waitForBytesWritten(-1)) {
+				WRITE_TRACE(DBG_FATAL, "Failed to write to backup process: %s",
+						QSTR2UTF8(QIODevice::errorString())); 
+				return PRL_ERR_BACKUP_INTERNAL_ERROR;
+			}
+		} while (bytesToWrite());
 		count += rc;
 	}
 	return PRL_ERR_SUCCESS;
