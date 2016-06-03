@@ -178,6 +178,8 @@ def create_bridges():
             continue
         elif dequote(cp.get("ONBOOT", "").lower()) != "yes":
             continue
+        elif dequote(cp.get("MASTER", "").lower()).startswith("bond"):
+            continue
         to_bridges.append(iface)
 
     to_write = []
