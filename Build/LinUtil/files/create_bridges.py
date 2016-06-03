@@ -147,6 +147,7 @@ def create_bridges():
         bridge
         loopback
         venet
+        slave eths
         already having an attached bridge
     """
     # Read interface configs.
@@ -193,6 +194,8 @@ def create_bridges():
         # Move attributes.
         for attr in interfaces[iface]:
             if attr in ["DEVICE", "HWADDR", "UUID", "BRIDGE", "TYPE"]:
+                continue
+            if attr.startswith("BOND"):
                 continue
             bridge[attr] = interfaces[iface][attr]
             if attr != "ONBOOT":
