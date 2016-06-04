@@ -607,7 +607,7 @@ void CDspShellHelper::sendHostCommonInfo (
 			return;
 		}
 
-		pCommonPrefs->setCpuPreferences(cpuMask.release());
+		pCommonPrefs->getCpuPreferences()->setFeatures(*cpuMask);
 		pCommonPrefs->setCpuPoolInfo(poolInfo.release());
 	}
 #endif
@@ -776,7 +776,8 @@ void CDspShellHelper::hostCommonInfoBeginEdit (
 		err = PRL_ERR_FAILURE;
 	else
 	{
-		pDispConfigPrev->getDispatcherSettings()->getCommonPreferences()->setCpuPreferences(cpuMask.release());
+		pDispConfigPrev->getDispatcherSettings()->getCommonPreferences()
+			->getCpuPreferences()->setFeatures(*cpuMask);
 
 		CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig()
 			->registerBeginEdit( pUser->getClientHandle(), pDispConfigPrev );

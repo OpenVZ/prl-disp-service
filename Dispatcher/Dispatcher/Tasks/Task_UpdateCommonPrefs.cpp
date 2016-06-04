@@ -254,7 +254,7 @@ PRL_RESULT Task_UpdateCommonPrefs::saveCommonPrefs()
 	if (!cpuMask.get())
 		return PRL_ERR_FAILURE;
 	pDispConfigOld->getDispatcherSettings()->
-		getCommonPreferences()->setCpuPreferences(cpuMask.release());
+		getCommonPreferences()->getCpuPreferences()->setFeatures(*cpuMask);
 
 	// MERGE
 	SmartPtr<CDispatcherConfig > pDispConfigNew(
