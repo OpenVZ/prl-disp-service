@@ -337,6 +337,7 @@ namespace Migration
 {
 struct Basic;
 struct Compression;
+struct Bandwidth;
 
 namespace Qemu
 {
@@ -382,12 +383,15 @@ struct Online: Agent
 	{
 		m_compression.clear();
 	}
+	void setBandwidth(quint64 value_);
+
 	Result operator()(const CVmConfiguration& config_);
 
 private:
 	QSharedPointer<Qemu::Disk> m_qemuDisk;
 	QSharedPointer<Qemu::State> m_qemuState;
 	QSharedPointer<Compression> m_compression;
+	QSharedPointer<Bandwidth> m_bandwidth;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

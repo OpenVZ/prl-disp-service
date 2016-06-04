@@ -212,6 +212,11 @@ void Online::setQemuDisk(qint32 port_, const QList<CVmHardDisk* >& list_)
 	m_qemuDisk = QSharedPointer<Qemu::Disk>(new Qemu::Disk(port_, list_));
 }
 
+void Online::setBandwidth(quint64 value_)
+{
+	m_bandwidth = QSharedPointer<Bandwidth>(new Bandwidth(value_));
+}
+
 Result Online::operator()(const CVmConfiguration& config_)
 {
 	unsigned int f = VIR_MIGRATE_PERSIST_DEST |
@@ -231,6 +236,9 @@ Result Online::operator()(const CVmConfiguration& config_)
 
 	if (!m_compression.isNull())
 		d << boost::bind<Result>(boost::ref(*m_compression.data()), _1);
+
+	if (!m_bandwidth.isNull())
+		d << boost::bind<Result>(boost::ref(*m_bandwidth.data()), _1);
 
 	Parameters::Builder b;
 	foreach(directorList_type::value_type o, d)
