@@ -35,6 +35,9 @@
 
 #include <QPair>
 #include <QList>
+#include <QWaitCondition>
+#include <boost/chrono/system_clocks.hpp>
+#include <boost/optional.hpp>
 
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/IOService/IOCommunication/IOClient.h>
@@ -44,6 +47,23 @@
 
 using namespace IOService;
 using namespace Parallels;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Throttle
+
+struct Throttle
+{
+	Throttle();
+
+	void set(long time);
+	void wait();
+	void cancel();
+
+private:
+	QMutex m_mutex;
+	QWaitCondition m_timer;
+	boost::optional<boost::chrono::steady_clock::time_point> m_time;
+};
 
 class WaiterTillHandlerUsingObject
 {
@@ -101,7 +121,7 @@ class CVmFileListCopySenderClient : public CVmFileListCopySender
 {
 	Q_OBJECT
 public:
-	CVmFileListCopySenderClient(const SmartPtr<IOClient> &pIoClient);
+	CVmFileListCopySenderClient(const SmartPtr<IOClient> &pIoClient, quint64 bandwidth_ = 0);
 	virtual ~CVmFileListCopySenderClient();
 
 	virtual IOSendJob::Handle sendPackage(const SmartPtr<IOPackage> p);
@@ -109,8 +129,11 @@ public:
 	virtual IOSendJob::Result waitForResponse(const IOSendJob::Handle& h, quint32 tmo);
 	virtual IOSendJob::Response takeResponse(IOSendJob::Handle& h);
 	virtual void urgentResponseWakeUp();
+
 private:
 	SmartPtr<IOClient> m_pIoClient;
+	Throttle m_throttle;
+	quint64 m_bandwidth;
 private slots:
 	void handlePackage(const SmartPtr<IOPackage> p);
 };
@@ -269,7 +292,6 @@ private:
 
 private:
 	SmartPtr<CVmFileListCopyObject> m_pCopyObject;
-
 };
 
 /**

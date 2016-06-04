@@ -102,6 +102,45 @@ namespace
 	const UINT32 g_uiMAGIC_IN_HANDLER	= 0xDEADAAA;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Throttle
+
+Throttle::Throttle()
+{
+	m_time = boost::chrono::steady_clock::now();
+}
+
+void Throttle::set(long msec_)
+{
+	QMutexLocker l(&m_mutex);
+	if (!m_time)
+		return;
+
+	m_time = boost::chrono::steady_clock::now() + boost::chrono::milliseconds(msec_);
+}
+
+void Throttle::wait()
+{
+	QMutexLocker l(&m_mutex);
+	if (!m_time)
+		return;
+
+	long ms = boost::chrono::duration_cast<boost::chrono::milliseconds>
+		(m_time.get() - boost::chrono::steady_clock::now()).count();
+
+	if (ms <= 0)
+		return;
+
+	m_timer.wait(l.mutex(), ms);
+}
+
+void Throttle::cancel()
+{
+	QMutexLocker l(&m_mutex);
+	m_time = boost::none;
+	m_timer.wakeAll();
+}
+
 WaiterTillHandlerUsingObject::WaiterTillHandlerUsingObject()
 :m_uiMagic( g_uiMAGIC_NUM )
 {
@@ -213,8 +252,9 @@ void CVmFileListCopySender::handlePackage(const SmartPtr<IOPackage> p)
 }
 
 CVmFileListCopySenderClient::CVmFileListCopySenderClient(
-	const SmartPtr<IOClient> &pIoClient)
-:m_pIoClient(pIoClient)
+		const SmartPtr<IOClient> &pIoClient, quint64 bandwidth_)
+	: m_pIoClient(pIoClient), m_bandwidth(bandwidth_)
+
 {
 	bool bConnected = QObject::connect(m_pIoClient.getImpl(),
 		SIGNAL(onPackageReceived(const SmartPtr<IOPackage>)),
@@ -233,6 +273,8 @@ CVmFileListCopySenderClient::~CVmFileListCopySenderClient()
 
 IOSendJob::Handle CVmFileListCopySenderClient::sendPackage(const SmartPtr<IOPackage> p)
 {
+	if (m_bandwidth > 0)
+		m_throttle.set(p->fullPackageSize() * 1000 / m_bandwidth);
 	return m_pIoClient->sendPackage(p);
 }
 
@@ -243,6 +285,8 @@ IOSendJob::Result CVmFileListCopySenderClient::waitForSend(const IOSendJob::Hand
 {
 	SET_SEND_JOB(h);
 	IOSendJob::Result ret = m_pIoClient->waitForSend(h, tmo);
+	if (IOSendJob::Success == ret && m_bandwidth > 0)
+		m_throttle.wait();
 	CLEAR_SEND_JOB;
 	return ret;
 }
@@ -267,6 +311,7 @@ void CVmFileListCopySenderClient::urgentResponseWakeUp()
 	m_mtxSendJob.unlock();
 	m_pIoClient->urgentResponseWakeUp(h);
 	m_pIoClient->urgentSendWakeUp(h);
+	m_throttle.cancel();
 }
 
 void CVmFileListCopySenderClient::handlePackage(const SmartPtr<IOPackage> p)
@@ -547,8 +592,8 @@ PRL_RESULT CVmFileListCopySource::Copy(
 
 void CVmFileListCopySource::cancelOperation()
 {
-	m_hSender->urgentResponseWakeUp();
 	m_bIsOperationWasCanceled = true;
+	m_hSender->urgentResponseWakeUp();
 }
 
 /* send start request for remote dispatcher */
