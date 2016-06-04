@@ -402,6 +402,11 @@ Unit* Online::operator()(const agent_type& agent_, const CVmConfiguration& targe
 		if (!unshared.isEmpty())
 			o.setQemuDisk(m_ports->second, unshared);
 	}
+
+	quint64 bw = m_task->getBandwidth();
+	if (bw > 0)
+		o.setBandwidth(bw);
+
 	work = new Migration(boost::bind< ::Libvirt::Result>(o, target_));
 
 	if (!disks.isEmpty())
@@ -1808,3 +1813,11 @@ QList<CVmHardDisk* > Task_MigrateVmSource::getVmUnsharedDisks() const
 	return output;
 }
 
+quint64 Task_MigrateVmSource::getBandwidth() const
+{
+	QString r;
+	CDspService::instance()->getVzHelper()
+		->getVzlibHelper().get_vz_config_param("VZ_TOOLS_IOLIMIT", r);
+
+	return r.toULongLong();
+}

@@ -218,6 +218,19 @@ Result Compression::operator()(Parameters::Builder& builder_)
 	return Result();
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Bandwidth
+
+Result Bandwidth::operator()(Parameters::Builder& builder_)
+{
+	// Libvirt uses MiB/s value for bandwidth
+	WRITE_TRACE(DBG_DEBUG, "Migration bandwidth set to '%llu' MiB/s", m_value / 1024 / 1024);
+	if (!builder_.add(VIR_MIGRATE_PARAM_BANDWIDTH, m_value / 1024 / 1024))
+		return Failure(PRL_ERR_FAILURE);
+
+	return Result();
+}
+
 namespace Qemu
 {
 ///////////////////////////////////////////////////////////////////////////////

@@ -104,6 +104,7 @@ public:
 	PRL_RESULT confirmFinish();
 	QList<CVmHardDisk* > getVmUnsharedDisks() const;
 	Migrate::Vm::Source::Content::Copier* createCopier();
+	quint64 getBandwidth() const;
 
 protected:
 	virtual PRL_RESULT prepareTask();

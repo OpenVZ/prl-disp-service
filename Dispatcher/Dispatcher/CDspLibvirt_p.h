@@ -516,6 +516,21 @@ struct Compression
 	Result operator()(Parameters::Builder& builder_);
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Bandwidth
+
+struct Bandwidth
+{
+	explicit Bandwidth(quint64 value_): m_value(value_)
+	{
+	}
+
+	Result operator()(Parameters::Builder& builder_);
+
+private:
+	quint64 m_value;
+};
+
 namespace Qemu
 {
 ///////////////////////////////////////////////////////////////////////////////
