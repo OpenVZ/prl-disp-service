@@ -92,7 +92,7 @@ bool Configurator::setNettool(const QStringList& args_) const
 	c << cloudConfigBin
 		<< QString("--datastore=") + getDispConfig(m_vmHome)
 		<< "nettool-command"
-		<< QString("\"") + "'" + args_.join("' '") + "'" + "\"";
+		<< QString("'") + args_.join("' '") + "'";
 	if (!execute(c))
 		return false;
 
