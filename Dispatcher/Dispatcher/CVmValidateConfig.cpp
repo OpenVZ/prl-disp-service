@@ -277,6 +277,13 @@ QList<PRL_RESULT > CVmValidateConfig::CheckVmConfig(PRL_VM_CONFIG_SECTIONS nSect
 		CheckSataDevices();
 	}
 
+	if (nSection == PVC_ALL
+		|| nSection == PVC_CD_DVD_ROM
+		|| nSection == PVC_HARD_DISK)
+	{
+		CheckVirtioBlockDevices();
+	}
+
 	if (nSection == PVC_ALL || nSection == PVC_GENERIC_PCI)
 	{
 		CheckGenericPci();
@@ -403,6 +410,10 @@ bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
 		case PRL_ERR_VMCONF_MAIN_MEMORY_MQ_MIN_OUT_OF_RANGE:
 		case PRL_ERR_VMCONF_EFI_UNSUPPORTED_GUEST:
 		case PRL_ERR_REMOTE_DISPLAY_WRONG_PORT_NUMBER:
+		case PRL_ERR_VMCONF_SCSI_DEVICES_DUPLICATE_STACK_INDEX:
+		case PRL_ERR_VMCONF_SATA_DEVICES_DUPLICATE_STACK_INDEX:
+		case PRL_ERR_VMCONF_IDE_DEVICES_DUPLICATE_STACK_INDEX:
+		case PRL_ERR_VMCONF_VIRTIO_BLOCK_DEVICES_DUPLICATE_STACK_INDEX:
 		case PRL_ERR_UNSUPPORTED_DEVICE_TYPE:
 		{
 			evtResult.setEventType(PET_DSP_EVT_ERROR_MESSAGE);
@@ -1935,6 +1946,8 @@ void CVmValidateConfig::CheckMassStorageDevices(PRL_MASS_STORAGE_INTERFACE_TYPE 
 	}
 	else if (type == PMS_SATA_DEVICE)
 		ErrorDup = PRL_ERR_VMCONF_SATA_DEVICES_DUPLICATE_STACK_INDEX;
+	else if (type == PMS_VIRTIO_BLOCK_DEVICE)
+		ErrorDup = PRL_ERR_VMCONF_VIRTIO_BLOCK_DEVICES_DUPLICATE_STACK_INDEX;
 
 	QList<CVmHardDisk* > lstHardDisks = m_pVmConfig->getVmHardwareList()->m_lstHardDisks;
 	for(i = 0; i < lstHardDisks.size(); i++)
@@ -2066,6 +2079,11 @@ void CVmValidateConfig::CheckSataDevices()
 void CVmValidateConfig::CheckScsiDevices()
 {
 	CheckMassStorageDevices(PMS_SCSI_DEVICE);
+}
+
+void CVmValidateConfig::CheckVirtioBlockDevices()
+{
+	CheckMassStorageDevices(PMS_VIRTIO_BLOCK_DEVICE);
 }
 
 namespace {
