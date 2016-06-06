@@ -533,6 +533,7 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 	qRegisterMetaType<SmartPtr<CDspClient> >("SmartPtr<CDspClient>");
 	qRegisterMetaType<SmartPtr<IOPackage> >("SmartPtr<IOPackage>");
 	qRegisterMetaType<VIRTUAL_MACHINE_STATE >("VIRTUAL_MACHINE_STATE");
+	qRegisterMetaType<SmartPtr<CDispCommonPreferences> >("SmartPtr<CDispCommonPreferences>");
 #ifdef ETRACE
 	CEtraceStatic::get_instance()->init(true);
 #endif
@@ -2994,6 +2995,13 @@ void CDspService::emitCleanupOnUserSessionDestroy( QString sessionUuid )
 {
 	if( !m_bServerStopping )
 		emit cleanupOnUserSessionDestroy(sessionUuid);
+}
+
+void CDspService::notifyConfigChanged
+	(const SmartPtr<CDispCommonPreferences>& old_, const SmartPtr<CDispCommonPreferences>& new_)
+{
+	if( !m_bServerStopping )
+		emit onConfigChanged(old_, new_);
 }
 
 void CDspService::onCleanupOnUserSessionDestroy( QString sessionUuid )
