@@ -2377,11 +2377,14 @@ void CVmValidateConfig::CheckDeviceIndexes( QSet< PRL_DEVICE_TYPE > deviceTypes,
 
 			if( CVmMassStorageDevice* pMassDev = dynamic_cast< CVmMassStorageDevice* >( pDev ) )
 			{
-				if( pMassDev->getInterfaceType() == PMS_IDE_DEVICE && PVC_SCSI_DEVICES == nSection )
+				if (pMassDev->getInterfaceType() == PMS_IDE_DEVICE &&
+					(PVC_SCSI_DEVICES == nSection || PVC_SATA_DEVICES == nSection))
 					continue;
-				if( pMassDev->getInterfaceType() == PMS_SCSI_DEVICE && PVC_IDE_DEVICES == nSection )
+				if (pMassDev->getInterfaceType() == PMS_SCSI_DEVICE &&
+					(PVC_IDE_DEVICES == nSection || PVC_SATA_DEVICES == nSection))
 					continue;
-				if( pMassDev->getInterfaceType() == PMS_SATA_DEVICE && PVC_SATA_DEVICES == nSection )
+				if (pMassDev->getInterfaceType() == PMS_SATA_DEVICE &&
+					(PVC_IDE_DEVICES == nSection || PVC_SCSI_DEVICES == nSection))
 					continue;
 			}
 
