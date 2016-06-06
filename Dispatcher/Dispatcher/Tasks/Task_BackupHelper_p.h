@@ -280,6 +280,61 @@ private:
 	boost::optional< ::Backup::Snapshot::Vm::Object> m_object;
 };
 
+namespace Bitmap
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+struct Builder : boost::static_visitor<QStringList>
+{
+	Builder(SmartPtr<CVmConfiguration> ve_, Product::componentList_type components_)
+		: m_config(ve_), m_components(components_) {}
+
+	QStringList operator()(Ct&) const;
+	QStringList operator()(Vm&) const;
+
+private:
+	SmartPtr<CVmConfiguration> m_config;
+	Product::componentList_type m_components;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Worker
+
+struct Worker : boost::static_visitor<PRL_RESULT>
+{
+	typedef boost::function0<PRL_RESULT> worker_type;
+
+	explicit Worker(worker_type worker_) : m_worker(worker_) {}
+
+	PRL_RESULT operator()(Stopped& variant_) const;
+	template<class T>
+	PRL_RESULT operator()(const T&) const;
+
+private:
+	worker_type m_worker;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Getter
+
+struct Getter
+{
+	Getter(Task_BackupHelper &task_, SmartPtr<CVmConfiguration> ve_)
+		: m_context(&task_), m_config(ve_) {}
+
+	static PRL_RESULT run(const QStringList& args_, QString& output_);
+
+	QStringList process(const QString& data_);
+	Prl::Expected<QStringList, PRL_RESULT> operator()(
+		const Activity::Object::Model& activity_, object_type& variant_);
+
+private:
+	Task_BackupHelper *m_context;
+	SmartPtr<CVmConfiguration> m_config;
+};
+
+} // namespace Bitmap
 } // namespace Push
 } // namespace Work
 } // namespace Backup

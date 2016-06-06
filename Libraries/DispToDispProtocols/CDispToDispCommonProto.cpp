@@ -276,6 +276,7 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupCreateCommand(
 	const QString &sVmConfig,
 	quint64 nOriginalSize,
 	quint32 nBundlePermissions,
+	const QStringList &lstBitmaps,
 	quint32 nFlags,
 	quint32 nInternalFlags
 )
@@ -289,6 +290,7 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupCreateCommand(
 			sVmConfig,
 			nOriginalSize,
 			nBundlePermissions,
+			lstBitmaps,
 			nFlags,
 			nInternalFlags
 		));

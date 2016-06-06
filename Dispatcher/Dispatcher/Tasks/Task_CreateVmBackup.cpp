@@ -91,8 +91,6 @@ PRL_RESULT Task_CreateVmBackup::backupHardDiskDevices(const ::Backup::Activity::
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	m_product = SmartPtr< ::Backup::Product::Model>(
-		new ::Backup::Product::Model(::Backup::Object::Model(m_pVmConfig), m_sVmHomePath));
 	m_product->setStore(m_sBackupRootPath);
 	if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
 		m_product->setSuffix(::Backup::Suffix(getBackupNumber(), getFlags())());
@@ -102,7 +100,8 @@ PRL_RESULT Task_CreateVmBackup::backupHardDiskDevices(const ::Backup::Activity::
 }
 
 /* send start request for remote dispatcher and wait reply from dispatcher */
-PRL_RESULT Task_CreateVmBackup::sendStartRequest()
+PRL_RESULT Task_CreateVmBackup::sendStartRequest(const ::Backup::Activity::Object::Model& activity_,
+		::Backup::Work::object_type& variant_)
 {
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	CDispToDispCommandPtr pBackupCmd;
@@ -120,6 +119,11 @@ PRL_RESULT Task_CreateVmBackup::sendStartRequest()
 			getDispConfig()->getVmServerIdentification()->getServerUuid();
 	}
 
+	Prl::Expected<QStringList, PRL_RESULT> e =
+		::Backup::Work::Push::Bitmap::Getter(*this, m_pVmConfig)(activity_, variant_);
+	if (e.isFailed())
+		return PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
+
 	pBackupCmd = CDispToDispProtoSerializer::CreateVmBackupCreateCommand(
 			m_sVmUuid,
 			m_sVmName,
@@ -129,6 +133,7 @@ PRL_RESULT Task_CreateVmBackup::sendStartRequest()
 			m_pVmConfig->toString(),
 			m_nOriginalSize,
 			(quint32)vmBundle.permissions(),
+			e.value(),
 			m_nFlags,
 			getInternalFlags());
 
@@ -216,12 +221,15 @@ PRL_RESULT Task_CreateVmBackup::doBackup(const QString& source_, ::Backup::Work:
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	SmartPtr<IOPackage> p;
 
+	m_product = SmartPtr< ::Backup::Product::Model>(
+		new ::Backup::Product::Model(::Backup::Object::Model(m_pVmConfig), m_sVmHomePath));
+
 	::Backup::Activity::Object::Model a;
 	nRetCode = m_service->find(MakeVmIdent(m_sVmUuid, m_sVmDirUuid), a);
 	if (PRL_FAILED(nRetCode))
 		goto exit;
 
-	if (PRL_FAILED(nRetCode = sendStartRequest()))
+	if (PRL_FAILED(nRetCode = sendStartRequest(a, variant_)))
 		goto exit;
 
 	/* part one : plain copy of config files */

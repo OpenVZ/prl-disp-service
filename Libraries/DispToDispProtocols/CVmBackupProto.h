@@ -127,6 +127,7 @@ public:
 		const QString &sVmConfig,
 		quint64 nOriginalSize,
 		quint32 nBundlePermissions,
+		const QStringList &lstBitmaps,
 		quint32 nFlags,
 		quint32 nInternalFlags
 	);
@@ -140,6 +141,7 @@ public:
 	QString GetDescription();
 	quint64 GetOriginalSize();
 	quint32 GetBundlePermissions();
+	QStringList GetBitmaps();
 };
 
 /**

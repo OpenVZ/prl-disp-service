@@ -137,6 +137,8 @@ m_bBackupLocked(false)
 		m_nBundlePermissions = pStartCommand->GetBundlePermissions();
 	if (m_nRemoteVersion >= BACKUP_PROTO_V3)
 		m_pVmConfig->fromString(pStartCommand->GetVmConfig());
+	if (m_nRemoteVersion >= BACKUP_PROTO_V4)
+		m_bitmaps = pStartCommand->GetBitmaps();
 
 	bool bConnected = QObject::connect(
 		&CDspService::instance()->getIOServer(),
@@ -227,6 +229,8 @@ PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 			WRITE_TRACE(DBG_FATAL, "HDD list was changed since last base backup,"
 						" will to create full backup instead of incremental");
 		}
+		if (BACKUP_PROTO_V4 <= m_nRemoteVersion)
+			f = !m_bitmaps.contains(m_sBackupUuid);
 	} while(false);
 	if (f) {
 		m_nFlags &= ~PBT_INCREMENTAL;
