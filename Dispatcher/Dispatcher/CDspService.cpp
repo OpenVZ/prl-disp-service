@@ -2491,10 +2491,6 @@ bool CDspService::updateDispConfig ()
 	getDispConfigGuard().getDispCommonPrefs()->getMemoryPreferences()->setMinVmMemory(
 		getHostInfo()->data()->getMemorySettings()->getMinVmMemory() );
 
-	// max VM memory
-	getDispConfigGuard().getDispCommonPrefs()->getMemoryPreferences()->setMaxVmMemory(
-		getHostInfo()->data()->getMemorySettings()->getMaxVmMemory() );
-
 	// recommended max VM memory
 	getDispConfigGuard().getDispCommonPrefs()->getMemoryPreferences()->setRecommendedMaxVmMemory(
 		getHostInfo()->data()->getMemorySettings()->getRecommendedMaxVmMemory() );
