@@ -98,14 +98,6 @@ template<> bool Helper::isConverted(const CVmOpticalDisk &device) const
 	       device.getInterfaceType() != PMS_IDE_DEVICE;
 }
 
-template<> PRL_RESULT Helper::do_(CVmCpu *pDevice)
-{
-	// No PMU in guest with Parallels Tools causes BSOD.
-	if (pDevice)
-		pDevice->setVirtualizePMU(true);
-	return PRL_ERR_SUCCESS;
-}
-
 template<> PRL_RESULT Helper::do_(CVmOpticalDisk *pDevice)
 {
 	// Convert Cdrom devices to IDE since SATA is unsupported.
@@ -199,8 +191,6 @@ PRL_RESULT Helper::insertTools(const QString &path, CVmStartupOptions *options)
 PRL_RESULT Helper::do_()
 {
 	PRL_RESULT res;
-	if (PRL_FAILED(res = do_(m_hardware.getCpu())))
-		return res;
 
 	// Convert Cdrom devices to IDE since SATA is unsupported.
 	foreach(CVmOpticalDisk* pDevice, m_hardware.m_lstOpticalDisks) {
