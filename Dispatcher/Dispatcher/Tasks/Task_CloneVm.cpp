@@ -1331,7 +1331,7 @@ Task_CloneVm::Task_CloneVm(Registry::Public& registry_,
 	m_registry(registry_),
 	m_pOldVmConfig( pVmConfig ),
 	m_newVmUuid( Uuid::createUuid() ),
-	m_newVmName(CFileHelper::ReplaceNonValidPathSymbols(strVmNewName)),
+	m_newVmName(strVmNewName),
 	m_mtxWaitExternalTask(QMutex::Recursive),
 	m_externalTask(NULL),
 	m_flgLockRegistred(false),
@@ -1350,6 +1350,12 @@ Task_CloneVm::Task_CloneVm(Registry::Public& registry_,
 		Backup::Device::Dao(m_pOldVmConfig).deleteAll();
 		//https://bugzilla.sw.ru/show_bug.cgi?id=267152
 		CAuthHelperImpersonateWrapper _impersonate( &getClient()->getAuthHelper() );
+
+		if (m_newVmName.contains(QRegExp("[" + CFileHelper::GetInvalidPathSymbols() + "]")))
+		{
+			CDspTaskFailure(*this)(PRL_ERR_VMCONF_VM_NAME_HAS_INVALID_SYMBOL, m_newVmName);
+			break;
+		}
 
 		if( ! strNewVmRootDir.isEmpty() && ! QDir::isAbsolutePath( strNewVmRootDir ) )
 		{

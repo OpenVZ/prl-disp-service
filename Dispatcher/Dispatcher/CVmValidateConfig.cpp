@@ -404,6 +404,7 @@ bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
 		case PRL_ERR_VMCONF_EFI_UNSUPPORTED_GUEST:
 		case PRL_ERR_REMOTE_DISPLAY_WRONG_PORT_NUMBER:
 		case PRL_ERR_UNSUPPORTED_DEVICE_TYPE:
+		case PRL_ERR_VMCONF_VM_NAME_HAS_INVALID_SYMBOL:
 		{
 			evtResult.setEventType(PET_DSP_EVT_ERROR_MESSAGE);
 			evtResult.setEventCode(m_lstResults[i]);
