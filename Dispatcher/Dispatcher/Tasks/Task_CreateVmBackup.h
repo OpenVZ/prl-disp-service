@@ -74,7 +74,8 @@ public:
 		: Task_BackupHelper(c_, p_) {}
 
 protected:
-	PRL_RESULT sendStartRequest();
+	PRL_RESULT sendStartRequest(const ::Backup::Activity::Object::Model& activity_,
+		::Backup::Work::object_type& variant_);
 	void cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& p);
 	PRL_RESULT copyEscort(const ::Backup::Escort::Model& escort_, const QString& directory_,
 		const QString& source_);
@@ -229,6 +230,7 @@ private:
 	QString m_sABackupOutFile;
 	bool m_bStorageRegistered;
 	SmartPtr<BackupItem> m_lastBase;
+	QStringList m_bitmaps;
 
 private:
 	WaiterTillHandlerUsingObject m_waiter;

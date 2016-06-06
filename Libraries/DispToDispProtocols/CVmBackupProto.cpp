@@ -100,6 +100,7 @@ CVmBackupCreateCommand::CVmBackupCreateCommand(
 	const QString &sVmConfig,
 	quint64 nOriginalSize,
 	quint32 nBundlePermissions,
+	const QStringList &lstBitmaps,
 	quint32 nFlags,
 	quint32 nInternalFlags
 )
@@ -112,6 +113,7 @@ CVmBackupCreateCommand::CVmBackupCreateCommand(
 	SetStringParamValue(sVmConfig, EVT_PARAM_BACKUP_CMD_VM_CONFIG);
 	SetUnsignedInt64ParamValue(nOriginalSize, EVT_PARAM_BACKUP_CMD_ORIGINAL_SIZE);
 	SetUnsignedIntParamValue(nBundlePermissions, EVT_PARAM_BACKUP_CMD_BUNDLE_PERMISSIONS);
+	SetStringListParamValue(lstBitmaps, EVT_PARAM_BACKUP_CMD_BITMAPS);
 }
 
 CVmBackupCreateCommand::CVmBackupCreateCommand(
@@ -174,6 +176,11 @@ quint64 CVmBackupCreateCommand::GetOriginalSize()
 quint32 CVmBackupCreateCommand::GetBundlePermissions()
 {
 	return (GetUnsignedInt64ParamValue(EVT_PARAM_BACKUP_CMD_BUNDLE_PERMISSIONS));
+}
+
+QStringList CVmBackupCreateCommand::GetBitmaps()
+{
+	return (GetStringListParamValue(EVT_PARAM_BACKUP_CMD_BITMAPS));
 }
 
 QString CVmBackupCreateCommand::GetVmConfig()

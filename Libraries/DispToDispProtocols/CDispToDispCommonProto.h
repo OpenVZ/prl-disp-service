@@ -224,6 +224,7 @@ class CDispToDispProtoSerializer
 		const QString &sVmConfig,
 		quint64 nOriginalSize,
 		quint32 nBundlePermissions,
+		const QStringList &lstBitmaps,
 		quint32 nFlags,
 		quint32 nInternalFlags = 0
 	);

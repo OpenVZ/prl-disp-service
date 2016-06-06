@@ -33,6 +33,10 @@
 //#define FORCE_LOGGING_LEVEL DBG_DEBUG
 
 #include <QProcess>
+#include <boost/foreach.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 #include "Task_CloneVm_p.h"
 #include "Interfaces/Debug.h"
 #include "prlcommon/Interfaces/ParallelsQt.h"
@@ -44,6 +48,7 @@
 #include "Task_BackupHelper_p.h"
 #include "CDspService.h"
 #include "prlcommon/Std/PrlAssert.h"
+#include "prlcommon/HostUtils/HostUtils.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "CDspVmStateSender.h"
 //#include "VI/Sources/BackupTool/ABackup/AcronisWrap/Interface/BackupErrors.h"
@@ -410,6 +415,113 @@ PRL_RESULT Stopped::wrap(const T& worker_) const
 	return output;
 }
 
+namespace Bitmap
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+QStringList Builder::operator()(Ct&) const
+{
+	QStringList a;
+	a << "bitmaps_ct";
+	foreach (const Product::component_type& c, m_components)
+		a << "--image" << QString("ploop://%1").arg(c.second.absoluteFilePath());
+	return a;
+}
+
+QStringList Builder::operator()(Vm&) const
+{
+	QStringList a;
+	a << "bitmaps";
+	a << "-n" << m_config->getVmIdentification()->getVmName();
+	foreach (const Product::component_type& c, m_components)
+		a << "--image" << c.first.getImage();
+	return a;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Worker 
+
+PRL_RESULT Worker::operator()(Stopped& variant_) const
+{
+	return variant_.wrap(m_worker);
+}
+
+template<class T>
+PRL_RESULT Worker::operator()(const T&) const
+{
+	return m_worker();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Getter
+
+PRL_RESULT Getter::run(const QStringList& args_, QString& output_)
+{
+	if (!HostUtils::RunCmdLineUtility(args_.join(" "), output_, 60 * 1000))
+		return PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
+	return PRL_ERR_SUCCESS;
+}
+
+QStringList Getter::process(const QString& data_)
+{
+	typedef boost::property_tree::ptree tree_type;
+
+	QStringList output;
+	std::istringstream is(data_.toUtf8().data());
+	tree_type r;
+	try {
+		boost::property_tree::json_parser::read_json(is, r);
+	} catch (const boost::property_tree::json_parser::json_parser_error&) {
+		WRITE_TRACE(DBG_FATAL, "Exception during parse of bitmap data");
+		return output;
+	}
+
+	QMap<QString, int> m;
+	BOOST_FOREACH(const tree_type::value_type& it, r) {
+		if (it.first != "image")
+			continue;
+		boost::optional<const tree_type& > b = it.second.get_child_optional("bitmaps");
+		if (!b)
+			return output;
+		BOOST_FOREACH(const tree_type::value_type& bit, (*b)) {
+			boost::optional<std::string> s = bit.second.get_value_optional<std::string>();
+			if (!s)
+				continue;
+			QString q((*s).c_str());
+			m.insert(q, m.value(q, 0) + 1);
+		}
+	}
+	qint32 count =  m_context->getProduct()->getVmTibs().size();
+	foreach(QString u, m.keys()) {
+		if (m.value(u) == count)
+			output << u;
+	}
+	return output;
+}
+
+Prl::Expected<QStringList, PRL_RESULT> Getter::operator()(
+		const Activity::Object::Model& activity_, object_type& variant_)
+{
+	QString u = m_config->getVmIdentification()->getVmUuid();
+	Prl::Expected<mode_type, PRL_RESULT> m =
+		boost::apply_visitor(Mode(u, m_context), variant_);
+	if (m.isFailed())
+		return m.error();
+
+	QStringList a = boost::apply_visitor(Builder(m_config,
+			activity_.getSnapshot().getComponents()), variant_);
+	a.prepend(VZ_BACKUP_CLIENT);
+
+	QString out;
+	PRL_RESULT e = boost::apply_visitor(Worker(
+			boost::bind(&run, a, boost::ref(out))), m.value());
+	if (PRL_FAILED(e))
+		return e;
+	return process(out);
+}
+
+} // namespace Bitmap
 } // namespace Push
 } // namespace Work
 } // namespace Backup
