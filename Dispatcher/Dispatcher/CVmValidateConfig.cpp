@@ -62,7 +62,6 @@
 #include <prlcommon/Interfaces/ApiDevNums.h>
 #include <boost/mpl/quote.hpp>
 #include <boost/mpl/for_each.hpp>
-#define SCSI_HOST_INDEX 7
 
 static const QStringList g_UrlSchemeList = QStringList()
 	<< "ftp://" << "http://" << "https://" << "smb://" << "nfs://";
@@ -1961,12 +1960,7 @@ void CVmValidateConfig::CheckMassStorageDevices(PRL_MASS_STORAGE_INTERFACE_TYPE 
 	PRL_RESULT ErrorDup = PRL_ERR_VMCONF_IDE_DEVICES_DUPLICATE_STACK_INDEX;
 
 	if (type == PMS_SCSI_DEVICE)
-	{
-		// Technically device with index 7 is present - host controller
-		nCountDevices = 1;
-		lstStackIndexes += SCSI_HOST_INDEX;
 		ErrorDup = PRL_ERR_VMCONF_SCSI_DEVICES_DUPLICATE_STACK_INDEX;
-	}
 	else if (type == PMS_SATA_DEVICE)
 		ErrorDup = PRL_ERR_VMCONF_SATA_DEVICES_DUPLICATE_STACK_INDEX;
 	else if (type == PMS_VIRTIO_BLOCK_DEVICE)
