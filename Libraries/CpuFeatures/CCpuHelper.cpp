@@ -663,7 +663,7 @@ struct Visitor : boost::static_visitor<void>
 			"lahf_lm", "cmp_legacy", "svm",	"extapic", "cr8legacy", "abm", "sse4a",
 			"misalignsse", "3dnowprefetch",	"osvw",	"ibs", "xop", "skinit",	"wdt", "", "lwp",
 			"fma4", "tce", "", "nodeid_msr", "", "tbm",	"topoext", "perfctr_core", "perfctr_nb",
-			"", "dbx", "perftsc", "perfctr_l2", NULL
+			NULL
 		};
 
 		m_list->push_back(Register(f, &Config::type::getEXT_80000001_ECX_MASK));
