@@ -43,9 +43,6 @@
 #include <prlcommon/Std/noncopyable.h>
 #include <boost/ptr_container/ptr_map.hpp>
 
-class CDspService;
-class CDspDispConfigGuard;
-
 namespace Libvirt
 {
 namespace Callback
