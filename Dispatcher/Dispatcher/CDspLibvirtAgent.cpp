@@ -494,6 +494,11 @@ Runtime Unit::getRuntime() const
 	return Runtime(m_domain);
 }
 
+Configuration Unit::getConfiguration() const
+{
+	return Configuration(m_domain);
+}
+
 Result Unit::setMemoryStatsPeriod(qint64 seconds_)
 {
 	return do_(m_domain.data(), boost::bind(&virDomainSetMemoryStatsPeriod, _1,
@@ -1440,6 +1445,43 @@ Result Hotplug::update(const QString& device_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Configuration
+
+Result Configuration::setPerCpuLimit(quint32 limit_, quint32 period_)
+{
+	return setCpuLimit(0, limit_, period_);
+}
+
+Result Configuration::setGlobalCpuLimit(quint32 limit_, quint32 period_)
+{
+	return setCpuLimit(limit_, 0, period_);
+}
+
+Result Configuration::setCpuLimit(quint32 globalLimit_, quint32 limit_,
+		quint32 period_)
+{
+	Parameters::Builder b;
+
+	if (!b.add(VIR_DOMAIN_SCHEDULER_GLOBAL_PERIOD, static_cast<quint64>(period_)))
+		return Failure(PRL_ERR_SET_CPULIMIT);
+	if (!b.add(VIR_DOMAIN_SCHEDULER_VCPU_PERIOD, static_cast<quint64>(period_)))
+		return Failure(PRL_ERR_SET_CPULIMIT);
+
+	qint64 l(globalLimit_ == 0? static_cast<qint64>(-1) : globalLimit_);
+	if (!b.add(VIR_DOMAIN_SCHEDULER_GLOBAL_QUOTA, l))
+		return Failure(PRL_ERR_SET_CPULIMIT);
+
+	l = (limit_ == 0? static_cast<qint64>(-1) : limit_);
+	if (!b.add(VIR_DOMAIN_SCHEDULER_VCPU_QUOTA, l))
+		return Failure(PRL_ERR_SET_CPULIMIT);
+
+	Parameters::Result_type p(b.extract());
+	Result r(do_(m_domain.data(), boost::bind(&virDomainSetSchedulerParametersFlags, _1,
+							p.first.data(), p.second, m_flags)));
+	return r;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Runtime
 
 Result Runtime::setIoLimit(const CVmHardDisk& disk_, quint32 limit_)
@@ -1487,40 +1529,6 @@ Result Runtime::setIoPriority(quint32 ioprio_)
 	return r;
 }
 
-Result Runtime::setPerCpuLimit(quint32 limit_, quint32 period_)
-{
-	return setCpuLimit(0, limit_, period_);
-}
-
-Result Runtime::setGlobalCpuLimit(quint32 limit_, quint32 period_)
-{
-	return setCpuLimit(limit_, 0, period_);
-}
-
-Result Runtime::setCpuLimit(quint32 globalLimit_, quint32 limit_,
-		quint32 period_)
-{
-	Parameters::Builder b;
-
-	if (!b.add(VIR_DOMAIN_SCHEDULER_GLOBAL_PERIOD, static_cast<quint64>(period_)))
-		return Failure(PRL_ERR_SET_CPULIMIT);
-	if (!b.add(VIR_DOMAIN_SCHEDULER_VCPU_PERIOD, static_cast<quint64>(period_)))
-		return Failure(PRL_ERR_SET_CPULIMIT);
-
-	qint64 l(globalLimit_ == 0? static_cast<qint64>(-1) : globalLimit_);
-	if (!b.add(VIR_DOMAIN_SCHEDULER_GLOBAL_QUOTA, l))
-		return Failure(PRL_ERR_SET_CPULIMIT);
-
-	l = (limit_ == 0? static_cast<qint64>(-1) : limit_);
-	if (!b.add(VIR_DOMAIN_SCHEDULER_VCPU_QUOTA, l))
-		return Failure(PRL_ERR_SET_CPULIMIT);
-
-	Parameters::Result_type p(b.extract());
-	Result r(do_(m_domain.data(), boost::bind(&virDomainSetSchedulerParametersFlags, _1,
-							p.first.data(), p.second, VIR_DOMAIN_AFFECT_CURRENT |
-							VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE)));
-	return r;
-}
 
 Result Runtime::setCpuUnits(quint32 units_)
 {

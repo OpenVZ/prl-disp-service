@@ -46,7 +46,6 @@
 
 #include "Dispatcher/Dispatcher/Cache/CacheImpl.h"
 
-
 namespace Vm
 {
 namespace Config

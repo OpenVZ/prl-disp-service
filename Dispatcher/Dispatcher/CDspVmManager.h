@@ -37,11 +37,12 @@
 #include "CDspVm.h"
 #include <prlsdk/PrlEnums.h>
 #include "CDspAccessManager.h"
+#include "CDspRegistry.h"
+#include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
 
 
-class CDspVmManager : public CDspHandler
+struct CDspVmManager: QObject, CDspHandler
 {
-public:
 	CDspVmManager ( IOSender::Type, const char* );
 	virtual ~CDspVmManager ();
 
@@ -50,6 +51,7 @@ public:
 	 * Do initialization after service starting.
 	 */
 	virtual void init ();
+	void setRegistry(Registry::Public&);
 
 	/**
 	 * Hanle package from other handler which should be sent by this handler.
@@ -92,6 +94,9 @@ public:
 	 */
 	CDspLockedPointer<CDspVmSuspendHelper> getSuspendHelper();
 
+private slots:
+	void onDispConfigChanged(const SmartPtr<CDispCommonPreferences>, const SmartPtr<CDispCommonPreferences>);
+
 private:
 	/**
 	 * Handle command, extension for handleFromDispatcherPackage
@@ -133,6 +138,7 @@ private:
 	bool checkFastReboot(void) const;
 private:
 
+	Registry::Public* m_registry;
 	/** VMs clients hash access synchronization object */
 	mutable QReadWriteLock m_rwLock;
 	/** VMs connections hash */
@@ -140,6 +146,8 @@ private:
 
 	QMutex	m_suspendHelperMutex;
 	CDspVmSuspendHelper m_suspendHelper;
+
+	Q_OBJECT
 };
 
 #endif //CDSPVMMANAGER_H

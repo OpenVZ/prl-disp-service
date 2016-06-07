@@ -2034,6 +2034,12 @@ PRL_RESULT Task_EditVm::editVm()
 
 			} while (0);
 
+			quint32 t(CDspService::instance()->getDispConfigGuard().getDispConfig()
+					->getDispatcherSettings()->getCommonPreferences()
+					->getWorkspacePreferences()->getVmGuestCpuLimitType());
+
+			pVmConfigNew->getVmHardwareList()->getCpu()->setGuestLimitType(t);
+
 			if (nState != VMS_STOPPED && (bNeedVNCStop || bNeedVNCStart))
 			{
 				WRITE_TRACE(DBG_FATAL, "Unable to edit VNC preferences for running VM %s.",
@@ -3600,7 +3606,7 @@ namespace Limit
 ///////////////////////////////////////////////////////////////////////////////
 // struct Percents
 
-Libvirt::Result Percents::operator()(vm::Runtime agent_) const
+Libvirt::Result Percents::operator()(const vm::Configuration& agent_) const
 {
 	Prl::Expected<VtInfo, Error::Simple> v = Libvirt::Kit.host().getVt();
 	if (v.isFailed())
@@ -3613,7 +3619,7 @@ Libvirt::Result Percents::operator()(vm::Runtime agent_) const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Mhz
 
-Libvirt::Result Mhz::operator()(vm::Runtime agent_) const
+Libvirt::Result Mhz::operator()(const vm::Configuration& agent_) const
 {
 	Prl::Expected<VtInfo, Error::Simple> v = Libvirt::Kit.host().getVt();
 	if (v.isFailed())
@@ -3624,6 +3630,26 @@ Libvirt::Result Mhz::operator()(vm::Runtime agent_) const
 	quint32 l = ceilDiv(static_cast<quint64>(m_value) * p,
 			v.value().getQemuKvm()->getVCpuInfo()->getMhz());
 	return m_setter(agent_, l, p);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Any
+
+Libvirt::Result Any::do_(const vm::Configuration& agent_) const
+{
+	quint32 n(m_cpu.getCpuLimitValue());
+	Limit::setter_type s(boost::bind(&vm::Configuration::setGlobalCpuLimit, _1, _2, _3));
+	if (PRL_VM_CPULIMIT_GUEST == m_type) {
+		n = ceilDiv(n, m_cpu.getNumber());
+		s = boost::bind(&vm::Configuration::setPerCpuLimit, _1, _2, _3);
+	}
+
+	if (m_cpu.getCpuLimitType() == PRL_CPULIMIT_MHZ)
+		return Limit::Mhz(n, s)(agent_);
+	else if (m_cpu.getCpuLimitType() == PRL_CPULIMIT_PERCENTS)
+		return Limit::Percents(n, s)(agent_);
+
+	return Error::Simple(PRL_ERR_FAILURE, "Unknown type of CPU limit");
 }
 
 } // namespace Limit
@@ -3678,29 +3704,17 @@ Vm::Action* Factory::craftLimit(const Request& input_) const
 			oldCpu->getNumber() == newCpu->getNumber())
 		return NULL;
 
-	quint32 type(CDspService::instance()->getDispConfigGuard().getDispConfig()
+
+	if (newCpu->getCpuLimitType() != PRL_CPULIMIT_MHZ
+			&& newCpu->getCpuLimitType() != PRL_CPULIMIT_PERCENTS)
+		return NULL;
+
+	quint32 t(CDspService::instance()->getDispConfigGuard().getDispConfig()
 			->getDispatcherSettings()->getCommonPreferences()
 			->getWorkspacePreferences()->getVmGuestCpuLimitType());
 
-	quint32 o(oldCpu->getCpuLimitValue());
-	quint32 n(newCpu->getCpuLimitValue());
-	Limit::setter_type s(boost::bind(&vm::Runtime::setGlobalCpuLimit, _1, _2, _3));
-	if (PRL_VM_CPULIMIT_GUEST == type) {
-		o = ceilDiv(o, oldCpu->getNumber());
-		n = ceilDiv(n, newCpu->getNumber());
-		s = boost::bind(&vm::Runtime::setPerCpuLimit, _1, _2, _3);
-	}
-
-	if (o == n && oldCpu->getCpuLimitType() == newCpu->getCpuLimitType())
-		return NULL;
-
 	Forge f(input_);
-	if (newCpu->getCpuLimitType() == PRL_CPULIMIT_MHZ)
-		return f.craftRuntime(Limit::Mhz(n, s));
-	else if (newCpu->getCpuLimitType() == PRL_CPULIMIT_PERCENTS)
-		return f.craftRuntime(Limit::Percents(n, s));
-
-	return NULL;
+	return f.craftRuntime(Limit::Any(*newCpu, t));
 }
 
 } // namespace Cpu

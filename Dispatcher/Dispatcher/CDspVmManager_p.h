@@ -859,5 +859,33 @@ private:
 
 } // namespace Command
 
+namespace Vm
+{
+namespace Config
+{
+namespace Edit
+{
+namespace Cpu
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct LimitType
+
+struct  LimitType: std::unary_function<PRL_RESULT, CVmConfiguration&>
+{
+	explicit LimitType(quint32 value_): m_value(value_)
+	{
+	}
+
+	PRL_RESULT operator()(CVmConfiguration& config_) const;
+
+private:
+	quint32 m_value;
+};
+
+} // namespace Cpu
+} // namespace Edit
+} // namespace Config
+} // namespace Vm
+
 #endif // __CDSPVMMANAGER_P_H__
 

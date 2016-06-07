@@ -1550,6 +1550,8 @@ bool CDspService::initIOServer()
 
 	CDspHandlerRegistrator::instance().doHandlersInit();
 
+	getVmManager().setRegistry(*m_registry);
+
 	// Listen should be called after doHandlersInit, because of
 	// possible reset of routing table for IO server union
 	if ( m_ioListeningServer )
@@ -3000,8 +3002,7 @@ void CDspService::emitCleanupOnUserSessionDestroy( QString sessionUuid )
 void CDspService::notifyConfigChanged
 	(const SmartPtr<CDispCommonPreferences>& old_, const SmartPtr<CDispCommonPreferences>& new_)
 {
-	if( !m_bServerStopping )
-		emit onConfigChanged(old_, new_);
+	emit onConfigChanged(old_, new_);
 }
 
 void CDspService::onCleanupOnUserSessionDestroy( QString sessionUuid )
