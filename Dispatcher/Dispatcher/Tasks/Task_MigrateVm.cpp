@@ -565,7 +565,7 @@ Flop::Event State::start(serverList_type const& serverList_)
 	m_progress->startTimer(0);
 
 	Trick::Online f(*m_task);
-	if (m_task->getFlags() & PVMT_TUNNELED)
+	if (0 == (m_task->getFlags() & PVMT_DIRECT_DATA_CONNECTION))
 	{
 		f.setPorts(qMakePair(serverList_.at(1)->serverPort(),
 			serverList_.at(2)->serverPort()));
