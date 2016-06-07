@@ -773,20 +773,6 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 
 		QString sNewVmDirectoryPath = m_strPathToVmDirToRegister;
 
-		// fix bug #4581 http://bugzilla.parallels.com/show_bug.cgi?id=4581
-		vm_name = CFileHelper::ReplaceNonValidPathSymbols(vm_name);
-		if (vm_name != m_pVmConfig->getVmIdentification()->getVmName())
-		{
-			QString sOldVmName = m_pVmConfig->getVmIdentification()->getVmName();
-			if (sNewVmDirectoryPath.lastIndexOf(sOldVmName) != -1 &&
-			//https://bugzilla.sw.ru/show_bug.cgi?id=131407 - we should check whether
-			//last index related to VM home dir name or not
-				QFileInfo(sNewVmDirectoryPath).fileName().startsWith(sOldVmName)
-			)
-				sNewVmDirectoryPath.replace(sNewVmDirectoryPath.lastIndexOf(sOldVmName),
-					sOldVmName.size(), vm_name);
-			m_pVmConfig->getVmIdentification()->setVmName(vm_name);
-		}
 		////////////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////////////

@@ -1737,9 +1737,6 @@ PRL_RESULT Task_EditVm::editVm()
 			//////////////////////////////////////////////////////////////////////////
 
 			QString newVmName = pVmConfigNew->getVmIdentification()->getVmName();
-			newVmName = CFileHelper::ReplaceNonValidPathSymbols(newVmName);
-			if (newVmName != pVmConfigNew->getVmIdentification()->getVmName())
-				pVmConfigNew->getVmIdentification()->setVmName(newVmName);
 
 			// if we are trying to rename VM - VM must be stopped first.
 			if (newVmName != oldVmName)

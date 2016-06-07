@@ -437,6 +437,7 @@ bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
 		case PRL_ERR_VMCONF_IDE_DEVICES_DUPLICATE_STACK_INDEX:
 		case PRL_ERR_VMCONF_VIRTIO_BLOCK_DEVICES_DUPLICATE_STACK_INDEX:
 		case PRL_ERR_UNSUPPORTED_DEVICE_TYPE:
+		case PRL_ERR_VMCONF_VM_NAME_HAS_INVALID_SYMBOL:
 		{
 			evtResult.setEventType(PET_DSP_EVT_ERROR_MESSAGE);
 			evtResult.setEventCode(m_lstResults[i]);
