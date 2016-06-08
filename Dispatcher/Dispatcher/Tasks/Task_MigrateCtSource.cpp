@@ -44,6 +44,7 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
 #include "CDspVzHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 
 Task_MigrateCtSource::Task_MigrateCtSource(
 		const SmartPtr<CDspClient>& client,
@@ -123,6 +124,14 @@ PRL_RESULT Task_MigrateCtSource::prepareTask()
 		/* LOCK inside brackets */
 		CDspLockedPointer<CDspHostInfo> lockedHostInfo = CDspService::instance()->getHostInfo();
 		m_cHostInfo.fromString( lockedHostInfo->data()->toString() );
+	}
+
+	if (m_nMigrationFlags & PVMT_DIRECT_DATA_CONNECTION)
+	{
+		nRetCode = PRL_ERR_UNIMPLEMENTED;
+		CDspTaskFailure(*this)
+			(Error::Simple(nRetCode, "Tunnel-less container migration is not supported").convertToEvent());
+		goto exit;
 	}
 
 	nRetCode = Connect(
