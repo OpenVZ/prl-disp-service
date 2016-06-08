@@ -207,9 +207,14 @@ void Online::setQemuState(qint32 port_)
 	m_qemuState = QSharedPointer<Qemu::State>(new Qemu::State(port_));
 }
 
-void Online::setQemuDisk(qint32 port_, const QList<CVmHardDisk* >& list_)
+void Online::setQemuDisk(const QList<CVmHardDisk* >& list_, qint32 port_)
 {
 	m_qemuDisk = QSharedPointer<Qemu::Disk>(new Qemu::Disk(port_, list_));
+}
+
+void Online::setQemuDisk(const QList<CVmHardDisk* >& list_)
+{
+	m_qemuDisk = QSharedPointer<Qemu::Disk>(new Qemu::Disk(list_));
 }
 
 void Online::setBandwidth(quint64 value_)

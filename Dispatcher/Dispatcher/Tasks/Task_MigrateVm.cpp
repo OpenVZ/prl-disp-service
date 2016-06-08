@@ -397,11 +397,11 @@ Unit* Online::operator()(const agent_type& agent_, const CVmConfiguration& targe
 		o.setUncompressed();
 
 	if (m_ports)
-	{
 		o.setQemuState(m_ports->first);
-		if (!unshared.isEmpty())
-			o.setQemuDisk(m_ports->second, unshared);
-	}
+
+	if (!unshared.isEmpty())
+		m_ports ? o.setQemuDisk(unshared, m_ports->second) : o.setQemuDisk(unshared);
+
 
 	quint64 bw = m_task->getBandwidth();
 	if (bw > 0)
