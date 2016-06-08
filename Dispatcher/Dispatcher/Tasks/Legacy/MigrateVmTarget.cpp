@@ -285,6 +285,7 @@ PRL_RESULT MigrateVmTarget::prepareTask()
 
 	checkRequiresDiskSpace();
 	checkRemoteDisplay();
+	checkEfiBoot();
 exit:
 	setLastErrorCode(nRetCode);
 	return nRetCode;
@@ -1208,6 +1209,22 @@ void MigrateVmTarget::checkRemoteDisplay()
 		QString("Virtuozzo %1 doesn't support VNC port less than %2.")
 		.arg(VER_FULL_BUILD_NUMBER_STR)
 		.arg(PRL_VM_REMOTE_DISPAY_MIN_PORT),
+		EVT_PARAM_MESSAGE_PARAM_0));
+	m_lstCheckPrecondsErrors.append(cEvent.toString());
+}
+
+void MigrateVmTarget::checkEfiBoot()
+{
+	if (!m_pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()
+		|| !m_pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled())
+		return;
+
+	CVmEvent cEvent;
+	cEvent.setEventCode(PRL_ERR_VZ_OPERATION_FAILED);
+	cEvent.addEventParameter(new CVmEventParameter(PVE::String,
+		QString("The requested VM has EFI boot enabled. "
+			"Migration of EFI bootloader to Virtuozzo %1 is not supported.")
+		.arg(VER_FULL_BUILD_NUMBER_STR),
 		EVT_PARAM_MESSAGE_PARAM_0));
 	m_lstCheckPrecondsErrors.append(cEvent.toString());
 }
