@@ -87,6 +87,11 @@ PRL_RESULT Task_CreateCtBackupSource::prepareTask()
 	VIRTUAL_MACHINE_STATE state;
 	PRL_RESULT nRetCode;
 
+	if (!QFile::exists(VZ_BACKUP_CLIENT)) {
+		nRetCode = PRL_ERR_UNIMPLEMENTED;
+		goto exit;
+	}
+
 	{
 		CDspLockedPointer<CVmDirectory> d = s->getVmDirManager().getVzDirectory();
 		if (!d.isValid())

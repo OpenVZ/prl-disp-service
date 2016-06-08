@@ -345,6 +345,12 @@ PRL_RESULT Task_CreateVmBackupSource::prepareTask()
 	::Backup::Task::Director d(CDspService::instance()->getVmDirHelper(), *m_service,
 		CDspService::instance()->getDispConfigGuard());
 	::Backup::Activity::Vm::Builder b(MakeVmIdent(m_sVmUuid, m_sVmDirUuid), *this);
+
+	if (!QFile::exists(VZ_BACKUP_CLIENT)) {
+		nRetCode = PRL_ERR_UNIMPLEMENTED;
+		goto exit;
+	}
+
 	/*
 	   connect to remote dispatcher _before_ snapshot creation:
 	   backup initiator (PMC) can exit and close all connection
