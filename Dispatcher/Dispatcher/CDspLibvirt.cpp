@@ -245,11 +245,14 @@ Result Disk::operator()(Parameters::Builder& builder_)
 		if (!builder_.add(VIR_MIGRATE_PARAM_MIGRATE_DISKS, t))
 			return Failure(PRL_ERR_FAILURE);
 	}
-	if (!builder_.add(VIR_MIGRATE_PARAM_DISKS_PORT, m_port))
-		return Failure(PRL_ERR_FAILURE);
-	if (!builder_.add(VIR_MIGRATE_PARAM_LISTEN_ADDRESS,
-		QHostAddress(QHostAddress::LocalHost).toString()))
-		return Failure(PRL_ERR_FAILURE);
+	if (m_port)
+	{
+		if (!builder_.add(VIR_MIGRATE_PARAM_DISKS_PORT, m_port.get()))
+			return Failure(PRL_ERR_FAILURE);
+		if (!builder_.add(VIR_MIGRATE_PARAM_LISTEN_ADDRESS,
+			QHostAddress(QHostAddress::LocalHost).toString()))
+			return Failure(PRL_ERR_FAILURE);
+	}
 
 	return Result();
 }

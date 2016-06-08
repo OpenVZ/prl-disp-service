@@ -539,11 +539,15 @@ struct Disk
 		m_port(port_), m_list(list_)
 	{
 	}
+	explicit Disk(const QList<CVmHardDisk* >& list_):
+		m_list(list_)
+	{
+	}
 
 	Result operator()(Parameters::Builder& builder_);
 
 private:
-	qint32 m_port;
+	boost::optional<qint32> m_port;
 	QList<CVmHardDisk* > m_list;
 };
 

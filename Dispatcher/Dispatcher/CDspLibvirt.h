@@ -378,7 +378,8 @@ struct Online: Agent
 	explicit Online(const Agent& agent_);
 
 	void setQemuState(qint32 port_);
-	void setQemuDisk(qint32 port_, const QList<CVmHardDisk* >& list_);
+	void setQemuDisk(const QList<CVmHardDisk* >& list_, qint32 port_);
+	void setQemuDisk(const QList<CVmHardDisk* >& list_);
 	void setUncompressed()
 	{
 		m_compression.clear();
