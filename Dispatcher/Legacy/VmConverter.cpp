@@ -25,6 +25,7 @@
 
 #include "VmConverter.h"
 #include "CDspLibvirt.h"
+#include "CDspVmManager_p.h"
 #include "CDspVmConfigManager.h"
 #include "Libraries/PrlNetworking/netconfig.h"
 #include <prlcommon/HostUtils/HostUtils.h>
@@ -33,6 +34,7 @@
 #include <prlsdk/PrlOses.h>
 #include <boost/range/irange.hpp>
 #include <boost/range/algorithm/copy.hpp>
+#include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 
 namespace
 {
@@ -215,6 +217,39 @@ PRL_RESULT Helper::do_()
 	return PRL_ERR_SUCCESS;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Killer
+
+struct Killer: Command::Vm::Shutdown::Fallback
+{
+	Killer(const QString& uuid_, Libvirt::Result& sink_)
+		: Command::Vm::Shutdown::Fallback(uuid_, sink_), m_sink(&sink_)
+	{
+	}
+
+	static Killer* craft(const QString& uuid_, Libvirt::Result& sink_)
+	{
+		return new Killer(uuid_, sink_);
+	}
+	static quint32 getTimeout()
+	{
+		// 15 mins;
+		return 15*60;
+	}
+	void react()
+	{
+		Command::Vm::Shutdown::Fallback::react();
+		*m_sink = Error::Simple(PRL_ERR_TIMEOUT, "VM was killed after timeout");
+	}
+
+private:
+	Libvirt::Result* m_sink;
+};
+
+typedef Command::Tag::Timeout<Command::Tag::State
+		<Command::Vm::Starter, Command::Vm::Fork::State::Strict<VMS_STOPPED> >, Killer>
+	firstStart_type;
+
 } // namespace
 
 namespace Legacy
@@ -294,6 +329,14 @@ PRL_RESULT Converter::convertVm(const QString &vmUuid) const
 			WRITE_TRACE(DBG_DEBUG, "%s", qPrintable(s));
 		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
 	}
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Converter::startVm(const QString &vmUuid) const
+{
+	Libvirt::Result e = Command::Vm::Gear<firstStart_type>::run(vmUuid);
+	if (e.isFailed())
+		return e.error().code();
 	return PRL_ERR_SUCCESS;
 }
 

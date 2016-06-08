@@ -75,6 +75,24 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 // struct Convert
 
+struct FirstStart: Unit
+{
+	FirstStart(const QString& uuid_, Unit* next_): m_uuid(uuid_)
+	{
+		m_next.reset(next_);
+	}
+
+	PRL_RESULT execute();
+
+private:
+	QString m_uuid;
+	QScopedPointer<Unit> m_next;
+
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// struct Convert
+
 struct Convert: Unit
 {
 	Convert(const QString& uuid_, Unit* next_): m_uuid(uuid_)

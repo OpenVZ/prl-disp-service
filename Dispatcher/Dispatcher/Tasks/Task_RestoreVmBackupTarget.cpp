@@ -1142,8 +1142,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 		a->revert();
 		goto cleanup_0;
 	}
-	if (m_converter.get() != NULL &&
-		PRL_FAILED(nRetCode = m_converter->convertVm(m_sVmUuid)))
+	if (m_converter.get() != NULL && (PRL_FAILED(nRetCode = m_converter->convertVm(m_sVmUuid))
+			|| PRL_FAILED(nRetCode = m_converter->startVm(m_sVmUuid))))
 		goto cleanup_0;
 	{
 		CDspLockedPointer<CVmDirectoryItem> pVmDirItem
@@ -1211,8 +1211,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewVm()
 			a->revert();
 			break;
 		}
-		if (m_converter.get() != NULL &&
-			PRL_FAILED(nRetCode = m_converter->convertVm(m_sVmUuid)))
+		if (m_converter.get() != NULL && (PRL_FAILED(nRetCode = m_converter->convertVm(m_sVmUuid))
+			|| PRL_FAILED(nRetCode = m_converter->startVm(m_sVmUuid))))
 		{
 			unregisterVm();
 			a->revert();

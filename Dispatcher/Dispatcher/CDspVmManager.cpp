@@ -1152,6 +1152,14 @@ Libvirt::Result Registrator::operator()(const CVmConfiguration& config_)
 	return Libvirt::Kit.vms().define(config_);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Starter
+
+Libvirt::Result Starter::operator()(const QString& uuid_) const
+{
+	return Libvirt::Kit.vms().at(uuid_).start();
+}
+
 namespace Shutdown
 {
 ///////////////////////////////////////////////////////////////////////////////
