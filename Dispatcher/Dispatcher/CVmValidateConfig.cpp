@@ -68,7 +68,7 @@ static const QStringList g_UrlSchemeList = QStringList()
 
 namespace Validation
 {
-typedef boost::mpl::vector<VmNameEmpty, VmNameInvalidSymbols, VmNameLength> problem_types;
+typedef boost::mpl::vector<VmNameEmpty, VmNameInvalidSymbols, VmNameLength, MemGuarateeValue> problem_types;
 
 ////////////////////////////////////////////////////////////////////////////////
 // struct Traits
@@ -103,6 +103,21 @@ boost::optional<VmNameLength> Traits<VmNameLength>::check(const CVmConfiguration
 }
 
 template <>
+boost::optional<MemGuarateeValue> Traits<MemGuarateeValue>::check(const CVmConfiguration& vm_)
+{
+	switch(vm_.getVmHardwareList()->getMemory()->getMemGuaranteeType())
+	{
+	case PRL_MEMGUARANTEE_PERCENTS:
+		if (vm_.getVmHardwareList()->getMemory()->getMemGuarantee() > 100)
+			return MemGuarateeValue();
+		// no break;
+	case PRL_MEMGUARANTEE_AUTO:
+	default:
+		return boost::none;
+	}
+}
+
+template <>
 QSet<QString> Traits<VmNameEmpty>::getIds(const CVmConfiguration& vm_)
 {
 	return QSet<QString>() << vm_.getVmIdentification()->getVmName_id();
@@ -120,6 +135,12 @@ QSet<QString> Traits<VmNameLength>::getIds(const CVmConfiguration& vm_)
 	return QSet<QString>() << vm_.getVmIdentification()->getVmName_id();
 }
 
+template <>
+QSet<QString> Traits<MemGuarateeValue>::getIds(const CVmConfiguration& vm_)
+{
+	return QSet<QString>() << vm_.getVmHardwareList()->getMemory()->getMemGuarantee_id();
+}
+
 template<>
 PRL_RESULT Traits<VmNameEmpty>::getError()
 {
@@ -131,10 +152,17 @@ PRL_RESULT Traits<VmNameInvalidSymbols>::getError()
 {
 	return PRL_ERR_VMCONF_VM_NAME_HAS_INVALID_SYMBOL;
 }
+
 template<>
 PRL_RESULT Traits<VmNameLength>::getError()
 {
 	return PRL_ERR_VMCONF_VM_NAME_IS_TOO_LONG;
+}
+
+template<>
+PRL_RESULT Traits<MemGuarateeValue>::getError()
+{
+	return PRL_ERR_INVALID_MEMORY_GUARANTEE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -438,6 +466,7 @@ bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
 		case PRL_ERR_VMCONF_VIRTIO_BLOCK_DEVICES_DUPLICATE_STACK_INDEX:
 		case PRL_ERR_UNSUPPORTED_DEVICE_TYPE:
 		case PRL_ERR_VMCONF_VM_NAME_HAS_INVALID_SYMBOL:
+		case PRL_ERR_INVALID_MEMORY_GUARANTEE:
 		{
 			evtResult.setEventType(PET_DSP_EVT_ERROR_MESSAGE);
 			evtResult.setEventCode(m_lstResults[i]);
