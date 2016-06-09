@@ -57,7 +57,7 @@ PRL_RESULT Start::execute()
 PRL_RESULT FirstStart::execute()
 {
 	PRL_RESULT e;
-	if (PRL_SUCCEEDED(e = Legacy::Vm::Converter().startVm(m_uuid)))
+	if (PRL_SUCCEEDED(e = Legacy::Vm::Converter().startVm(m_config)))
 		return m_next->execute();
 
 	return e;
@@ -151,7 +151,7 @@ void Convoy::release(const IOSender::Handle& handle_, const SmartPtr<IOPackage>&
 	QScopedPointer<Step::Unit> u;
 	u.reset(new Step::Vcmmd(m_uuid, *m_config, new Step::Start(m_uuid)));
 	// TODO: possibly we need to setup vcmmd before the first start too
-	u.reset(new Step::Convert(m_uuid, new Step::FirstStart(m_uuid, u.take())));
+	u.reset(new Step::Convert(m_uuid, new Step::FirstStart(*m_config, u.take())));
 	u.reset(new Step::Registration(m_uuid, *m_config, u.take()));
 
 	SmartPtr<IOPackage> p = IOPackage::duplicateInstance(package_);

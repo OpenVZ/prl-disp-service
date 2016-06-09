@@ -227,9 +227,9 @@ struct Killer: Command::Vm::Shutdown::Fallback
 	{
 	}
 
-	static Killer* craft(const QString& uuid_, Libvirt::Result& sink_)
+	static Killer* craft(const CVmConfiguration& config_, Libvirt::Result& sink_)
 	{
-		return new Killer(uuid_, sink_);
+		return new Killer(config_.getVmIdentification()->getVmUuid(), sink_);
 	}
 	static quint32 getTimeout()
 	{
@@ -332,9 +332,11 @@ PRL_RESULT Converter::convertVm(const QString &vmUuid) const
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Converter::startVm(const QString &vmUuid) const
+PRL_RESULT Converter::startVm(CVmConfiguration cfg) const
 {
-	Libvirt::Result e = Command::Vm::Gear<firstStart_type>::run(vmUuid);
+	foreach (CVmGenericNetworkAdapter* l, cfg.getVmHardwareList()->m_lstNetworkAdapters)
+		l->setConnected(PVE::DeviceDisconnected);
+	Libvirt::Result e = Command::Vm::Gear<firstStart_type>::run(cfg);
 	if (e.isFailed())
 		return e.error().code();
 	return PRL_ERR_SUCCESS;

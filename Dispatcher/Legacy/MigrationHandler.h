@@ -77,7 +77,7 @@ private:
 
 struct FirstStart: Unit
 {
-	FirstStart(const QString& uuid_, Unit* next_): m_uuid(uuid_)
+	FirstStart(const CVmConfiguration& config_, Unit* next_): m_config(&config_)
 	{
 		m_next.reset(next_);
 	}
@@ -85,7 +85,7 @@ struct FirstStart: Unit
 	PRL_RESULT execute();
 
 private:
-	QString m_uuid;
+	const CVmConfiguration* m_config;
 	QScopedPointer<Unit> m_next;
 
 };
@@ -113,8 +113,8 @@ private:
 
 struct Vcmmd: Unit
 {
-	Vcmmd(const QString& uuid_, const CVmConfiguration& config, Unit* next_)
-		: m_uuid(uuid_), m_config(&config)
+	Vcmmd(const QString& uuid_, const CVmConfiguration& config_, Unit* next_)
+		: m_uuid(uuid_), m_config(&config_)
 	{
 		m_next.reset(next_);
 	}
