@@ -413,6 +413,8 @@ void HardDisks::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 
 		h->setUuid((*it)->getUuid());
 		h->setStorageURL((*it)->getStorageURL());
+		if (0 == h->getSize())
+			h->setSize((*it)->getSize());
 	}
 	foreach(CVmHardDisk* h, o)
 	{
