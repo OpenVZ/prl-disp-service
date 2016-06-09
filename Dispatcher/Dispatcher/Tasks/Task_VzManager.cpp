@@ -526,7 +526,7 @@ PRL_RESULT Task_VzManager::editConfig()
 	if( !IS_OPERATION_SUCCEEDED( pConfig->m_uiRcInit ) )
 	{
 		PRL_RESULT code = PRL_ERR_PARSE_VM_CONFIG;
-		WRITE_TRACE(DBG_FATAL, "Error occurred while modification CT configuratione: %s",
+		WRITE_TRACE(DBG_FATAL, "Error occurred while modification CT configuration: %s",
 				PRL_RESULT_TO_STRING( code ) );
 		return code;
 	}
@@ -538,12 +538,14 @@ PRL_RESULT Task_VzManager::editConfig()
         QString oldname = pOldConfig->getVmIdentification()->getVmName();
         QString name = pConfig->getVmIdentification()->getVmName();
 
-	// Handle the Firewall settings change on the running CT
 	QStringList lstFullItemIds;
 	pConfig->diffDocuments(pOldConfig.getImpl(), lstFullItemIds);
-	QString qsDiff = lstFullItemIds.join(" ");
-	if (qsDiff.contains(".Firewall.") || qsDiff.contains(".MAC") ||
-			qsDiff.contains(".NetAddress")){
+
+	// Code below prohibits all other than Hdd and Network devices for Containers
+	if (!lstFullItemIds.filter(QRegExp("Hardware\\.(?!Hdd|Network|Cpu|Memory)")).isEmpty())
+		return PRL_ERR_ACTION_NOT_SUPPORTED_FOR_CT;
+	// Handle the Firewall settings change on the running CT
+	if (!lstFullItemIds.filter(QRegExp("\\.(?=Firewall\\.|MAC|NetAddress)")).isEmpty()) {
 		VIRTUAL_MACHINE_STATE nState = VMS_UNKNOWN;
 		PRL_RESULT res = getVzHelper()->getVzlibHelper().get_env_status(sUuid, nState);
 		if (nState == VMS_RUNNING) {
