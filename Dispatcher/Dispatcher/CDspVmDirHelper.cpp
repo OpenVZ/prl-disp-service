@@ -1438,8 +1438,8 @@ bool CDspVmDirHelper::sendVmToolsInfo(const IOSender::Handle& sender,
 
 	// Get tools state
 	QString toolsStateVersion;
-	PRL_VM_TOOLS_STATE toolsState = CDspVm::getVmToolsState( vm_uuid, pUserSession->getVmDirectoryUuid(),
-							         &toolsStateVersion );
+	std::pair<PRL_VM_TOOLS_STATE, QString> toolsState =
+		m_registry.find(vm_uuid).getToolsState();
 
 	////////////////////////////////////////////////////////////////////////
 	// prepare response
@@ -1447,10 +1447,10 @@ bool CDspVmDirHelper::sendVmToolsInfo(const IOSender::Handle& sender,
 
 	CVmEvent rev;
 	rev.addEventParameter( new CVmEventParameter(PVE::Integer
-				, QString::number((int)toolsState)
+				, QString::number(toolsState.first)
 				, EVT_PARAM_VM_TOOLS_STATE ));
 	rev.addEventParameter( new CVmEventParameter(PVE::String
-				, toolsStateVersion
+				, toolsState.second
 				, EVT_PARAM_VM_TOOLS_VERSION ));
 
 	CProtoCommandPtr pCmd = CProtoSerializer::CreateDspWsResponseCommand( pkg, PRL_ERR_SUCCESS );
@@ -2009,7 +2009,7 @@ void CDspVmDirHelper::migrateVm ( const IOSender::Handle&,
 	}
 
 	CDspService::instance()->getTaskManager()
-		.schedule(new Task_MigrateVmSource(pUserSession, cmd, pkg));
+		.schedule(new Task_MigrateVmSource(m_registry, pUserSession, cmd, pkg));
 }
 
 void CDspVmDirHelper::lockVm( SmartPtr<CDspClient> pUserSession, const SmartPtr<IOPackage> &p )

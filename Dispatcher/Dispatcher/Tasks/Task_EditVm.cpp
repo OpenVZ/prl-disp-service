@@ -605,7 +605,10 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 		if( CVmEventParameter* pParam = evtFromVm.getEventParameter( EVT_PARAM_VM_TOOLS_VERSION ) )
 		{
 			const QString v = pParam->getParamValue();
-			if (v != pVmConfig->getVmSettings()->getVmTools()->getAgentVersion()) {
+			const QString o = pVmConfig->getVmSettings()->getVmTools()->getAgentVersion();
+			if (v != o) {
+				WRITE_TRACE(DBG_INFO, "Updating tools version %s from %s for VM %s",
+						qPrintable(v), qPrintable(o), qPrintable(vmUuid));
 				pVmConfig->getVmSettings()->getVmTools()->setAgentVersion(v);
 				flgConfigChanged = true;
 			}

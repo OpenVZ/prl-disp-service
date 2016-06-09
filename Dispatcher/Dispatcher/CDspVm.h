@@ -344,22 +344,6 @@ public://Convenient global methods
 	static bool suspendedFilesPresent( const QString &sVmUuid, const QString &sVmDirUuid );
 
 	/**
-	* Returns state of VM tools
-	* @param VM UUID
-	* @param parent VM dir UUID
-	* @return actual VM state and version
-	*/
-	static PRL_VM_TOOLS_STATE getVmToolsState( const QString &sVmUuid, const QString &sVmDirUuid,
-						   QString *sVersion = NULL );
-	/**
-	 * Method which was provided for convenience. Let's to get VM tool state as is
-	 * (not wrapped into CVmEvent string representation) by VM identity
-	 * @param VM identity
-	 * @return VM tools state and version
-	 */
-	static PRL_VM_TOOLS_STATE getVmToolsState( const CVmIdent &_vm_ident, QString *sVersion = NULL );
-
-	/**
 	 * Returns remote display state of specified VM
 	 * @param VM UUID
 	 * @param parent VM dir UUID

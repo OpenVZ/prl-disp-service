@@ -86,6 +86,7 @@ HEADERS += \
 	CDspAsyncRequest.h \
 	CVcmmdInterface.h \
 	CDspVzLicense.h \
+	CDspVmGuest.h \
 	\
 	EditHelpers/CMultiEditDispatcher.h \
 	EditHelpers/CMultiEditMergeHelper.h \
@@ -116,7 +117,6 @@ HEADERS += \
 	Tasks/Task_UpdateCommonPrefs.h \
 	Tasks/Task_BackgroundJob.h \
 	Tasks/Task_ConfigureGenericPci.h \
-	Tasks/Task_PrepareForHibernate.h \
 	Tasks/Task_CreateVmBackup.h \
 	Tasks/Task_RestoreVmBackup.h \
 	Tasks/Task_RestoreVmBackup_p.h \
@@ -209,6 +209,7 @@ SOURCES += \
 	CDspAsyncRequest.cpp \
 	CVcmmdInterface.cpp \
 	CDspVzLicense.cpp \
+	CDspVmGuest.cpp \
 	\
 	EditHelpers/CMultiEditDispatcher.cpp \
 	EditHelpers/CMultiEditMergeVmConfig.cpp \
@@ -235,7 +236,6 @@ SOURCES += \
 	Tasks/Task_UpdateCommonPrefs.cpp \
 	Tasks/Task_BackgroundJob.cpp \
 	Tasks/Task_ConfigureGenericPci.cpp \
-	Tasks/Task_PrepareForHibernate.cpp \
 	Tasks/Task_CreateVmBackup.cpp \
 	Tasks/Task_CreateVmBackupTarget.cpp \
 	Tasks/Task_CreateCtBackup.cpp \

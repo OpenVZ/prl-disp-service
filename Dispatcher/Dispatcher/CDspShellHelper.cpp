@@ -1018,49 +1018,6 @@ void CDspShellHelper::configureGenericPci(SmartPtr<CDspClient>& pUser,
 		.schedule(new Task_ConfigureGenericPci(pUser, p));
 }
 
-void CDspShellHelper::beforeHostSuspend( SmartPtr<CDspClient>& pUser,
-										const SmartPtr<IOPackage>& p)
-{
-	CDspService::instance()->getTaskManager()
-		.schedule(new Task_PrepareForHibernate(pUser, p));
-}
-
-void CDspShellHelper::afterHostResume(
-	SmartPtr<CDspClient>& pUser,
-	const SmartPtr<IOPackage>& p)
-{
-
-	PRL_RESULT ret = PRL_ERR_SUCCESS;
-	try
-	{
-		CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( p );
-		if ( ! cmd->IsValid() )
-			throw PRL_ERR_FAILURE;
-
-		if ( !pUser->getAuthHelper().isLocalAdministrator() )
-			throw PRL_ERR_ACCESS_DENIED;
-
-		ret = afterHostResume();
-		if( PRL_FAILED(ret) )
-			throw ret;
-	}
-	catch (PRL_RESULT err)
-	{
-		ret=err;
-		WRITE_TRACE( DBG_FATAL, "Error during process command afterHostResume: %#x %s",
-			err, PRL_RESULT_TO_STRING(err)
-			);
-	}
-	pUser->sendSimpleResponse( p, ret );
-}
-
-PRL_RESULT CDspShellHelper::afterHostResume()
-{
-	//WRITE_TRACE(DBG_FATAL, "Failed to send VT-d resume ioctl");
-	//return PRL_ERR_UNABLE_SEND_REQUEST;
-	return PRL_ERR_SUCCESS;
-}
-
 static QMutex* gs_pmtxUserAuth = new QMutex;
 
 void CDspShellHelper::changeServerInternalValue(

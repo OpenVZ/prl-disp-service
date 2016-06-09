@@ -37,6 +37,7 @@
 #include "CDspTaskHelper.h"
 #include "Task_DispToDispConnHelper.h"
 #include "CDspClient.h"
+#include "CDspRegistry.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include "Libraries/ProtoSerializer/CProtoCommands.h"
@@ -79,6 +80,7 @@ public:
 	typedef QList<QPair<QFileInfo, QString> > itemList_type;
 
 	Task_MigrateVmSource(
+		Registry::Public &,
 		const SmartPtr<CDspClient> &,
 		const CProtoCommandPtr,
 		const SmartPtr<IOPackage> &);
@@ -168,6 +170,7 @@ private:
 	itemList_type m_fList;
 
 	PVE::IDispatcherCommands m_nRegisterCmd;
+	Registry::Public& m_registry;
 };
 
 #endif //__Task_MigrateVmSource_H_

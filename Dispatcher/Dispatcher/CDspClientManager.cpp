@@ -817,10 +817,6 @@ void CDspClientManager::handleToDispatcherPackage (
 	///////////////////////////////////////////////
 	case PVE::DspCmdConfigureGenericPci:
 		return (void)m_service->getShellServiceHelper().configureGenericPci(client, p);
-	case PVE::DspCmdPrepareForHibernate:
-		return (void)m_service->getShellServiceHelper().beforeHostSuspend(client, p);
-	case PVE::DspCmdAfterHostResume:
-		return (void)m_service->getShellServiceHelper().afterHostResume(client, p);
 	///////////////////////////////////////////////
 	case PVE::DspCmdSetNonInteractiveSession:
 		return (void)m_service->getUserHelper().setNonInteractiveSession(client, p);

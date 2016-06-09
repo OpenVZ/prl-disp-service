@@ -97,7 +97,7 @@ Failure::Failure(PRL_RESULT result_): Error::Simple(result_), m_virErrorCode(0)
 {
 #if (LIBVIR_VERSION_NUMBER > 1000004)
 	const char* m = virGetLastErrorMessage();
-	WRITE_TRACE(DBG_FATAL, "libvirt error %s", m ? : "unknown");
+	WRITE_TRACE(DBG_DEBUG, "libvirt error %s", m ? : "unknown");
 	details() = m;
 #endif
 	virErrorPtr err = virGetLastError();
@@ -806,11 +806,11 @@ Result Guest::checkAgent()
        return Exec::Exec(m_domain).executeInAgent(QString("{\"execute\":\"guest-ping\"}"));
 }
 
-Prl::Expected<QString, Error::Simple>
-Guest::getAgentVersion()
+Prl::Expected<QString, Libvirt::Agent::Failure>
+Guest::getAgentVersion(int retries)
 {
-	Prl::Expected<QString, Error::Simple> r =
-		Exec::Exec(m_domain).executeInAgent(QString("{\"execute\":\"guest-info\"}"));
+	Prl::Expected<QString, Libvirt::Agent::Failure> r =
+		Exec::Exec(m_domain).executeInAgent(QString("{\"execute\":\"guest-info\"}"), retries);
 	if (r.isFailed())
 		return r.error();
 
@@ -822,7 +822,7 @@ Guest::getAgentVersion()
 	try {
 		boost::property_tree::json_parser::read_json(is, result);
 	} catch (const boost::property_tree::json_parser::json_parser_error&) {
-		return Error::Simple(PRL_ERR_FAILURE);
+		return Libvirt::Agent::Failure(PRL_ERR_FAILURE);
 	}
 
 	return QString::fromStdString(result.get<std::string>("return.version"));
@@ -1033,7 +1033,7 @@ QString Exec::Request::getJson() const
 }
 
 Prl::Expected<QString, Libvirt::Agent::Failure>
-Exec::Exec::executeInAgent(const QString& cmd)
+Exec::Exec::executeInAgent(const QString& cmd, int retries)
 {
 	char *s;
 	
@@ -1047,17 +1047,17 @@ Exec::Exec::executeInAgent(const QString& cmd)
 	 * next command.
 	 * Requires patched libvirt (with VIR_ERR_AGENT_UNSYNCED err code).
 	 */
-	for (int i = 0; ; ++i) {
+	for (int i = 0; ;) {
 		s = virDomainQemuAgentCommand(m_domain.data(),
 				cmd.toUtf8().constData(), 30, 0);
 		if (s != NULL)
 			break;
 
 		Libvirt::Agent::Failure r(PRL_ERR_FAILURE);
-		if (r.virErrorCode() != VIR_ERR_AGENT_UNSYNCED)
+		if (!r.isTransient())
 			return r;
 
-		if (i == 30)
+		if (retries != Exec::INFINITE && ++i > retries)
 			return r;
 
 		HostUtils::Sleep(1000);

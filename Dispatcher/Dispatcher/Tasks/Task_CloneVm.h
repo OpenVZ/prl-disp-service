@@ -123,7 +123,8 @@ public:
 	 * @param checking VM config
 	 * @param VM directory UUID
 	 */
-	static PRL_RESULT CheckWhetherChangeSidOpPossible( const SmartPtr<CVmConfiguration> &pVmConfig, const QString &sVmDirUuid );
+	static PRL_RESULT CheckWhetherChangeSidOpPossible(const SmartPtr<CVmConfiguration> &pVmConfig,
+		Registry::Access vm_);
 	/**
 	* reset unique network settings for adapters in config
 	*/

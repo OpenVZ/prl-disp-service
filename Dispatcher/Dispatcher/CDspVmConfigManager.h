@@ -289,6 +289,11 @@ struct HighAvailability
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
 
+struct Tools
+{
+	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reviser
 
@@ -314,7 +319,7 @@ struct Reviser<N, void>
 typedef boost::mpl::vector<RemoteDisplay, Nvram, Cpu::Mask> revise_types;
 typedef boost::mpl::vector<Identification, OsInfo, RuntimeOptions, GlobalNetwork,
 		Index::Patch, Cpu::Copy, NetworkDevices, HardDisks, State::Patch,
-		MemoryOptions, HighAvailability> untranslatable_types;
+		MemoryOptions, HighAvailability, Tools> untranslatable_types;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Repairer
