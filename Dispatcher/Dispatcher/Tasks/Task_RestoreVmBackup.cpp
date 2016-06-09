@@ -464,7 +464,8 @@ void Task_RestoreVmBackupSource::restoreImage(const SmartPtr<IOPackage> p_,
 	QString format = (QFileInfo(to).suffix().startsWith("qcow2") ||
 			QFileInfo(to).suffix() == "hdd") ? "qcow2" : "raw";
 	QStringList cmdline = QStringList() << QEMU_IMG << "convert" << "-O" << format
-					<< from << to;
+			<< "-o" << "preallocation=falloc" << "-S" << "64k" << "-t" << "none"
+			<< from << to;
 
 	QProcess process;
 	QString out;
