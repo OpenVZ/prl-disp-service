@@ -41,6 +41,7 @@ struct Converter
 {
 	PRL_RESULT convertHardware(SmartPtr<CVmConfiguration> &cfg) const;
 	PRL_RESULT convertVm(const QString &vmUuid) const;
+	PRL_RESULT startVm(CVmConfiguration cfg) const;
 };
 
 } // namespace Vm

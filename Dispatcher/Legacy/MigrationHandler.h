@@ -75,6 +75,24 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 // struct Convert
 
+struct FirstStart: Unit
+{
+	FirstStart(const CVmConfiguration& config_, Unit* next_): m_config(&config_)
+	{
+		m_next.reset(next_);
+	}
+
+	PRL_RESULT execute();
+
+private:
+	const CVmConfiguration* m_config;
+	QScopedPointer<Unit> m_next;
+
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// struct Convert
+
 struct Convert: Unit
 {
 	Convert(const QString& uuid_, Unit* next_): m_uuid(uuid_)
@@ -95,8 +113,8 @@ private:
 
 struct Vcmmd: Unit
 {
-	Vcmmd(const QString& uuid_, const CVmConfiguration& config, Unit* next_)
-		: m_uuid(uuid_), m_config(&config)
+	Vcmmd(const QString& uuid_, const CVmConfiguration& config_, Unit* next_)
+		: m_uuid(uuid_), m_config(&config_)
 	{
 		m_next.reset(next_);
 	}

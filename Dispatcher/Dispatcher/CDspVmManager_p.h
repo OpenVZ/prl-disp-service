@@ -783,6 +783,14 @@ struct Registrator
 	Libvirt::Result operator()(const CVmConfiguration& uuid_);
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Starter
+
+struct Starter
+{
+	Libvirt::Result operator()(const CVmConfiguration& config_) const;
+};
+
 namespace Shutdown
 {
 ///////////////////////////////////////////////////////////////////////////////

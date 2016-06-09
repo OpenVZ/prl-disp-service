@@ -468,9 +468,12 @@ struct List
 	Unit at(const QString& uuid_) const;
 	Result all(QList<Unit>& dst_);
 	Result define(const CVmConfiguration& config_, Unit* dst_ = NULL);
+	Result start(const CVmConfiguration& config_);
 	Performance::List getPerformance();
 
 private:
+	Prl::Expected<QString, Error::Simple> getXml(const CVmConfiguration& config_);
+
 	QSharedPointer<virConnect> m_link;
 };
 

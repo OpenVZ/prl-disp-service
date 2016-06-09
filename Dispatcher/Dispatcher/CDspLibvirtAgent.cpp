@@ -1609,11 +1609,9 @@ Unit List::at(const QString& uuid_) const
 	return Unit(NULL);
 }
 
-Result List::define(const CVmConfiguration& config_, Unit* dst_)
-{
-	if (m_link.isNull())
-		return Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
 
+Prl::Expected<QString, Error::Simple> List::getXml(const CVmConfiguration& config_)
+{
 	Prl::Expected<VtInfo, Error::Simple> i = Host(m_link).getVt();
 	if (i.isFailed())
 		return i.error();
@@ -1622,7 +1620,19 @@ Result List::define(const CVmConfiguration& config_, Unit* dst_)
 	if (PRL_FAILED(Transponster::Director::domain(u, i.value())))
 		return Error::Simple(PRL_ERR_BAD_VM_DIR_CONFIG_FILE_SPECIFIED);
 
-	QString x = u.getResult();
+	return u.getResult();
+}
+
+Result List::define(const CVmConfiguration& config_, Unit* dst_)
+{
+	if (m_link.isNull())
+		return Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
+
+	Prl::Expected<QString, Result> r = getXml(config_);
+	if (r.isFailed())
+		return r.error();
+
+	QString x = r.value();
 	WRITE_TRACE(DBG_DEBUG, "xml:\n%s", x.toUtf8().data());
 	virDomainPtr d = virDomainDefineXML(m_link.data(), x.toUtf8().data());
 	if (NULL == d)
@@ -1632,6 +1642,26 @@ Result List::define(const CVmConfiguration& config_, Unit* dst_)
 	if (NULL != dst_)
 		*dst_ = m;
 
+	return Result();
+}
+
+Result List::start(const CVmConfiguration& config_)
+{
+	if (m_link.isNull())
+		return Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
+
+	Prl::Expected<QString, Result> r = getXml(config_);
+	if (r.isFailed())
+		return r.error();
+
+	QString x = r.value();
+	WRITE_TRACE(DBG_DEBUG, "temporary xml:\n%s", x.toUtf8().data());
+
+	virDomainPtr d = virDomainCreateXML(m_link.data(), x.toUtf8().data(), 0);
+	if (NULL == d)
+		return Failure(PRL_ERR_VM_NOT_CREATED);
+
+	Unit m(d);
 	return Result();
 }
 
