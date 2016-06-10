@@ -3188,8 +3188,9 @@ QStringList Address::operator()(const Bridge& mode_)
 		QString d = m_device->getDefaultGatewayIPv6();
 		g += d.isEmpty() ? "removev6 " : d + " ";
 	}
-	if (!a.isEmpty())
-		output << "--ip" << mode_.getMac() << a.join(" ");
+	if (a.isEmpty())
+		a << "remove";
+	output << "--ip" << mode_.getMac() << a.join(" ");
 
 	if (g.isEmpty())
 	{
