@@ -35,6 +35,7 @@
 #include <boost/range/irange.hpp>
 #include <boost/range/algorithm/copy.hpp>
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
+#include <boost/bind.hpp>
 
 namespace
 {
@@ -282,7 +283,29 @@ PRL_RESULT Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	                     cfg->getVmSettings()->getVmStartupOptions());
 }
 
-PRL_RESULT Converter::convertVm(const QString &vmUuid) const
+boost::optional<V2V> Converter::getV2V(const CVmConfiguration &cfg) const
+{
+	CVmHardware *pVmHardware;
+	if ((pVmHardware = cfg.getVmHardwareList()) == NULL)
+		return boost::none;
+
+	// Allow restoration of VMs w/o disks.
+	if (std::find_if(pVmHardware->m_lstHardDisks.begin(),
+	                 pVmHardware->m_lstHardDisks.end(),
+	                 boost::bind(std::not_equal_to<CVmHardDisk*>(), _1, (CVmHardDisk*)NULL) &&
+	                 boost::bind(&CVmHardDisk::getEnabled, _1) == PVE::DeviceEnabled &&
+	                 boost::bind(&CVmHardDisk::getConnected, _1) == PVE::DeviceConnected &&
+	                 !boost::bind(&QString::isEmpty, boost::bind(&CVmHardDisk::getSystemName, _1)))
+		== pVmHardware->m_lstHardDisks.end())
+		return boost::none;
+
+	return V2V(cfg.getVmIdentification()->getVmUuid());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct V2V
+
+PRL_RESULT V2V::do_() const
 {
 	// Get windows driver ISO.
 	QString winDriver = ParallelsDirs::getToolsImage(PAM_SERVER, PVS_GUEST_VER_WIN_2K);
@@ -314,7 +337,7 @@ PRL_RESULT Converter::convertVm(const QString &vmUuid) const
 	if (DBG_DEBUG >= GetLogLevel())
 		cmdline << "-v" << "-x";
 
-	cmdline << ::Uuid(vmUuid).toStringWithoutBrackets();
+	cmdline << ::Uuid(m_cfg.getVmIdentification()->getVmUuid()).toStringWithoutBrackets();
 
 	QProcess process;
 	HostUtils::RunCmdLineUtilityEx(cmdline.join(" "), process, V2V_RUN_TIMEOUT, NULL);
@@ -332,11 +355,11 @@ PRL_RESULT Converter::convertVm(const QString &vmUuid) const
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Converter::startVm(CVmConfiguration cfg) const
+PRL_RESULT V2V::start() const
 {
-	foreach (CVmGenericNetworkAdapter* l, cfg.getVmHardwareList()->m_lstNetworkAdapters)
+	foreach (CVmGenericNetworkAdapter* l, m_cfg.getVmHardwareList()->m_lstNetworkAdapters)
 		l->setConnected(PVE::DeviceDisconnected);
-	Libvirt::Result e = Command::Vm::Gear<firstStart_type>::run(cfg);
+	Libvirt::Result e = Command::Vm::Gear<firstStart_type>::run(m_cfg);
 	if (e.isFailed())
 		return e.error().code();
 	return PRL_ERR_SUCCESS;

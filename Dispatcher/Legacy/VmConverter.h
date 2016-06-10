@@ -29,19 +29,36 @@
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <boost/optional.hpp>
 
 namespace Legacy
 {
 namespace Vm
 {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct V2V
+
+struct V2V
+{
+	V2V(const CVmConfiguration &cfg): m_cfg(cfg)
+	{
+	}
+
+	PRL_RESULT do_() const;
+	PRL_RESULT start() const;
+
+private:
+	CVmConfiguration m_cfg;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Converter
 
 struct Converter
 {
 	PRL_RESULT convertHardware(SmartPtr<CVmConfiguration> &cfg) const;
-	PRL_RESULT convertVm(const QString &vmUuid) const;
-	PRL_RESULT startVm(CVmConfiguration cfg) const;
+	boost::optional<V2V> getV2V(const CVmConfiguration &cfg) const;
 };
 
 } // namespace Vm

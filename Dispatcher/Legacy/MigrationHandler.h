@@ -36,6 +36,7 @@
 #include "CDspHandlerRegistrator.h"
 #include "CDspDispConnection.h"
 #include <prlcommon/IOService/IOCommunication/IOServerPool.h>
+#include "VmConverter.h"
 
 namespace Legacy
 {
@@ -77,7 +78,7 @@ private:
 
 struct FirstStart: Unit
 {
-	FirstStart(const CVmConfiguration& config_, Unit* next_): m_config(&config_)
+	FirstStart(Legacy::Vm::V2V &v2v, Unit* next_): m_v2v(v2v)
 	{
 		m_next.reset(next_);
 	}
@@ -85,9 +86,8 @@ struct FirstStart: Unit
 	PRL_RESULT execute();
 
 private:
-	const CVmConfiguration* m_config;
+	const Legacy::Vm::V2V &m_v2v;
 	QScopedPointer<Unit> m_next;
-
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -95,7 +95,7 @@ private:
 
 struct Convert: Unit
 {
-	Convert(const QString& uuid_, Unit* next_): m_uuid(uuid_)
+	Convert(Legacy::Vm::V2V &v2v, Unit* next_): m_v2v(v2v)
 	{
 		m_next.reset(next_);
 	}
@@ -103,9 +103,8 @@ struct Convert: Unit
 	PRL_RESULT execute();
 
 private:
-	QString m_uuid;
+	const Legacy::Vm::V2V &m_v2v;
 	QScopedPointer<Unit> m_next;
-
 };
 
 ////////////////////////////////////////////////////////////////////////////////
