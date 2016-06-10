@@ -30,11 +30,13 @@
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 #include <boost/optional.hpp>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 
 namespace Legacy
 {
 namespace Vm
 {
+typedef Prl::Expected<void, SmartPtr<CVmEvent> > result_type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct V2V
@@ -57,7 +59,7 @@ private:
 
 struct Converter
 {
-	PRL_RESULT convertHardware(SmartPtr<CVmConfiguration> &cfg) const;
+	result_type convertHardware(SmartPtr<CVmConfiguration> &cfg) const;
 	boost::optional<V2V> getV2V(const CVmConfiguration &cfg) const;
 };
 
