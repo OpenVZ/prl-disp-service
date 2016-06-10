@@ -661,6 +661,7 @@ void Perf::report(P provider_)
 {
 	key_type k;
 	SmartPtr<IOPackage> g;
+	QList<key_type> broken;
 	for (const_iterator p = begin(), e = end(); p != e; ++p)
 	{
 		if (p->first != k)
@@ -670,6 +671,8 @@ void Perf::report(P provider_)
 			SmartPtr<CVmEvent> event(provider_(k.first, k.second));
 			if (event->m_lstEventParameters.isEmpty() || PRL_FAILED(event->getEventCode()))
 			{
+				if (event->getEventCode() == PRL_ERR_VM_UUID_NOT_FOUND)
+					broken << p->first;
 				// nothing to send
 				continue;
 			}
@@ -683,6 +686,9 @@ void Perf::report(P provider_)
 		if (g.isValid())
 			p->second->sendPackage(g);
 	}
+
+	foreach (const key_type& k, broken)
+		perfList_type::erase(k);
 }
 
 QList<CVmIdent> Perf::select(const mapped_type& user_) const
@@ -2750,10 +2756,15 @@ SmartPtr<CVmEvent> CDspStatCollectingThread::GetPerformanceStatistics(const CVmI
 	Collector c(filter, *e);
 
 	Libvirt::Result r;
-	if (isContainer(id.first))
-		r = GetPerformanceStatisticsCt(id, c);
+
+	PRL_VM_TYPE t = PVT_VM;
+	if (!CDspService::instance()->getVmDirManager().getVmTypeByUuid(id.first, t))
+	{
+		WRITE_TRACE(DBG_DEBUG, "uuid '%s' is not found in directories ", QSTR2UTF8(id.first));
+		r = Error::Simple(PRL_ERR_VM_UUID_NOT_FOUND);
+	}
 	else
-		r = GetPerformanceStatisticsVm(id, c);
+		r = PVT_CT == t ? GetPerformanceStatisticsCt(id, c) : GetPerformanceStatisticsVm(id, c);
 
 	if (r.isFailed())
 	{
