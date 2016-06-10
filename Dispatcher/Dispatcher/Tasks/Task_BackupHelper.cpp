@@ -310,9 +310,6 @@ QStringList VCommand::buildArgs(object_type& variant_)
 	QStringList a(boost::apply_visitor(Builder(m_activity), variant_));
 
 	a << "-p" << m_context->getBackupUuid();
-
-	if (m_context->getFlags() & PBT_UNCOMPRESSED)
-		a << "--uncompressed";
 	a << "--disp-mode";
 	return a;
 }
