@@ -149,56 +149,10 @@ exit:
 	return nRetCode;
 }
 
-PRL_RESULT Task_CreateCtBackupSource::waitForTargetFinished()
-{
-	SmartPtr<IOPackage> respPkg;
-	IOSendJob::Response pResponse;
-	bool bExited = false;
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-
-	// Handle reply from target
-	while (!bExited) {
-		if (getIoClient()->waitForResponse(m_hJob) != IOSendJob::Success) {
-			WRITE_TRACE(DBG_FATAL, "Responce receiving failure");
-			nRetCode = PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
-			break;
-		}
-		pResponse = getIoClient()->takeResponse(m_hJob);
-		if (pResponse.responseResult != IOSendJob::Success) {
-			WRITE_TRACE(DBG_FATAL, "Create Vm backup failed to take response: %x",
-					pResponse.responseResult);
-			nRetCode = PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
-			break;
-		}
-
-		foreach(respPkg, pResponse.responsePackages) {
-			if (respPkg->header.type == PVE::DspVmEvent) {
-				// FIXME: handle progress
-				continue;
-			} else if (respPkg->header.type == DispToDispResponseCmd) {
-				// Task finished
-				CDispToDispCommandPtr pCmd  = CDispToDispProtoSerializer::ParseCommand(DispToDispResponseCmd,
-						UTF8_2QSTR(respPkg->buffers[0].getImpl()));
-				CDispToDispResponseCommand *pResponseCmd =
-					CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispResponseCommand>(pCmd);
-				getLastError()->fromString(pResponseCmd->GetErrorInfo()->toString());
-				nRetCode = pResponseCmd->GetRetCode();
-				bExited = true;
-				break;
-			} else {
-				WRITE_TRACE(DBG_FATAL, "Unexpected package with type %d",
-						respPkg->header.type);
-			}
-		}
-	}
-	return nRetCode;
-}
-
 PRL_RESULT Task_CreateCtBackupSource::run_body()
 {
 	::Backup::Work::object_type o =
 		::Backup::Work::object_type(::Backup::Work::Ct(*this));
-	doBackup(m_sVmHomePath, o);
-	return waitForTargetFinished();
+	return doBackup(m_sVmHomePath, o);
 }
 
