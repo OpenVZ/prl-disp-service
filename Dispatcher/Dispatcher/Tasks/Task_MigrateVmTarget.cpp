@@ -1078,10 +1078,10 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 
 	m_pVmConfig->getVmIdentification()->setVmName(m_sVmName);
 
-	m_sOriginVmUuid = m_pVmConfig->getVmIdentification()->getVmUuid();
+	m_sVmUuid = m_sOriginVmUuid = m_pVmConfig->getVmIdentification()->getVmUuid();
 	m_sVmDirUuid = getClient()->getVmDirectoryUuid();
-	m_sVmUuid = (!(m_nReservedFlags & PVM_DONT_COPY_VM) && (PVMT_CLONE_MODE & getRequestFlags()))
-			? Uuid::createUuid().toString() : m_sOriginVmUuid;
+	if (!(m_nReservedFlags & PVM_DONT_COPY_VM) && (PVMT_CLONE_MODE & getRequestFlags()))
+		m_pVmConfig->getVmIdentification()->setVmUuid(m_sVmUuid = Uuid::createUuid().toString());
 
 	m_cSrcHostInfo.fromString(m_sSrcHostInfo);
 	if (PRL_FAILED(m_cSrcHostInfo.m_uiRcInit))

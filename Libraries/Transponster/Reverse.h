@@ -189,6 +189,8 @@ struct Builder
 	QString getResult();
 
 protected:
+	PRL_RESULT setIdentification();
+
 	CVmConfiguration m_input;
 	QScopedPointer<Libvirt::Domain::Xml::Domain> m_result;
 };
@@ -201,8 +203,8 @@ struct Vm: Builder
 	explicit Vm(const CVmConfiguration& input_);
 
 	PRL_RESULT setBlank();
-	PRL_RESULT setIdentification();
 	PRL_RESULT setDevices();
+	using Builder::setIdentification;
 
 private:
 	void setCommandline();
@@ -227,16 +229,13 @@ struct Fixer: Builder
 	Fixer(const CVmConfiguration& input_, char* xml_);
 
 	PRL_RESULT setBlank();
-	PRL_RESULT setIdentification()
-	{
-		return PRL_ERR_SUCCESS;
-	}
 	PRL_RESULT setSettings()
 	{
 		return PRL_ERR_SUCCESS;
 	}
 	PRL_RESULT setResources(const VtInfo&);
 	PRL_RESULT setDevices();
+	using Builder::setIdentification;
 };
 
 } // namespace Reverse
