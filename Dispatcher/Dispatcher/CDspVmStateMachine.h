@@ -36,6 +36,7 @@
 #include <prlcommon/Logging/Logging.h>
 #include <typeinfo>
 #include <boost/msm/back/tools.hpp>
+#include <boost/signals2/signal.hpp>
 #include <boost/msm/front/functor_row.hpp>
 #include <boost/msm/back/state_machine.hpp>
 #include <boost/msm/front/state_machine_def.hpp>
@@ -219,15 +220,12 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		template<class Event, class FromState, class ToState>
 		void operator()(const Event&, Frontend& fsm_, FromState& from_, ToState& to_)
 		{
-			boost::optional<CVmConfiguration> y = fsm_.getConfig();
-			if (!y)
-				return;
-			operator()(*y, from_, to_);
-			fsm_.setConfig(y.get());
+			fsm_.getConfigEditor()(boost::bind
+				(&configure<FromState, ToState>, _1, boost::ref(from_), boost::ref(to_)));
 		}
 
 		template<class FromState, class ToState>
-		void operator()(CVmConfiguration& config_, FromState&, ToState&)
+		static void configure(CVmConfiguration& config_, FromState&, ToState&)
 		{
 			bool f = boost::is_same<FromState, Running>::value;
 			bool t = boost::is_same<ToState, Running>::value;
@@ -255,10 +253,6 @@ struct Frontend: msmf::state_machine_def<Frontend>
 				.getDispWorkSpacePrefs()->getVmGuestCollectPeriod(), quint64(1));
 			v.setMemoryStatsPeriod(p);
 
-			boost::optional<CVmConfiguration> y = fsm_.getConfig();
-			if (!y)
-				return;
-
 			CVmConfiguration runtime;
 			if (v.getConfig(runtime, true).isFailed())
 			{
@@ -267,10 +261,12 @@ struct Frontend: msmf::state_machine_def<Frontend>
 			}
 
 			WRITE_TRACE(DBG_INFO, "updating config from runtime for VM '%s'", qPrintable(fsm_.m_name));
-			Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(y.get(), runtime);
-			// this is needed solely to avoid doing setConfig() twice
-			Cluster()(*y, from_, to_);
-			fsm_.setConfig(y.get());
+			boost::signals2::signal<void (CVmConfiguration& )> s;
+			s.connect(boost::bind(&Vm::Config::Repairer<Vm::Config::revise_types>::type::do_,
+				_1, boost::cref(runtime)));
+			s.connect(boost::bind(&Cluster::configure<FromState, ToState>, _1,
+				boost::ref(from_), boost::ref(to_)));
+			fsm_.getConfigEditor()(s);
 		}
 	};
 
@@ -426,8 +422,8 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	}
 
 	void setName(const QString& value_);
-	void setConfig(CVmConfiguration& value_);
 	boost::optional<CVmConfiguration> getConfig() const;
+	Config::Edit::Atomic getConfigEditor() const;
 
 protected:
 	CDspClient& getUser() const
