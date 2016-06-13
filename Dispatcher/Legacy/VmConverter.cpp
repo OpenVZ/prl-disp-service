@@ -299,7 +299,7 @@ boost::optional<V2V> Converter::getV2V(const CVmConfiguration &cfg) const
 		== pVmHardware->m_lstHardDisks.end())
 		return boost::none;
 
-	return V2V(cfg.getVmIdentification()->getVmUuid());
+	return V2V(cfg);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
