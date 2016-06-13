@@ -2757,14 +2757,15 @@ SmartPtr<CVmEvent> CDspStatCollectingThread::GetPerformanceStatistics(const CVmI
 
 	Libvirt::Result r;
 
-	PRL_VM_TYPE t = PVT_VM;
-	if (!CDspService::instance()->getVmDirManager().getVmTypeByUuid(id.first, t))
+	boost::optional<PRL_VM_TYPE> t;
+
+	if (t = CDspService::instance()->getVmDirManager().getVmTypeByIdent(id))
+		r = PVT_CT == t.get() ? GetPerformanceStatisticsCt(id, c) : GetPerformanceStatisticsVm(id, c);
+	else
 	{
 		WRITE_TRACE(DBG_DEBUG, "uuid '%s' is not found in directories ", QSTR2UTF8(id.first));
 		r = Error::Simple(PRL_ERR_VM_UUID_NOT_FOUND);
 	}
-	else
-		r = PVT_CT == t ? GetPerformanceStatisticsCt(id, c) : GetPerformanceStatisticsVm(id, c);
 
 	if (r.isFailed())
 	{
