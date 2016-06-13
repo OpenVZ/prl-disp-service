@@ -29,6 +29,7 @@
 #include "CDspClient.h"
 #include <prlsdk/PrlEnums.h>
 #include <boost/iterator/iterator_facade.hpp>
+#include <boost/optional.hpp>
 
 class CDspVmDirManager;
 namespace Vm
@@ -357,6 +358,7 @@ public:
 	VmDirItemsHash findVmDirItemsInCatalogue( const QString& vmUuid, const QString& vmPath );
 	PRL_RESULT updateVmDirItem ( const CDspLockedPointer<CVmDirectoryItem>& pVmDirItem );
 	bool getVmTypeByUuid(const QString &sVmUuid, PRL_VM_TYPE &nType);
+	boost::optional<PRL_VM_TYPE> getVmTypeByIdent(const CVmIdent& ident_) const;
 
 	PRL_RESULT initVzDirCatalogue();
 	CDspLockedPointer<CVmDirectory> getVzDirectory();

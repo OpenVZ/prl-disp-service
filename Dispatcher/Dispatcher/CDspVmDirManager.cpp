@@ -736,6 +736,16 @@ bool CDspVmDirManager::getVmTypeByUuid(const QString &sVmUuid, PRL_VM_TYPE &nTyp
 	return true;
 }
 
+boost::optional<PRL_VM_TYPE> CDspVmDirManager::getVmTypeByIdent(const CVmIdent& ident_) const
+{
+	CDspLockedPointer<CVmDirectoryItem> pDirItem = CDspService::instance()->
+			getVmDirHelper().getVmDirectoryItemByUuid(ident_.second, ident_.first);
+	if (!pDirItem.isValid())
+		return boost::none;
+
+	return pDirItem->getVmType();
+}
+
 PRL_RESULT CDspVmDirManager::setCatalogueFileName(const QString& value_)
 {
 	QMutexLocker g(&m_mutex);
