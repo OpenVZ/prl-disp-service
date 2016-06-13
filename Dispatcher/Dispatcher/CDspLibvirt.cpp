@@ -494,7 +494,7 @@ void Subject::run()
 {
 	m_vm(m_hub);
 	m_network(m_hub);
-	QProcess::startDetached("/usr/libexec/prl_disp_first_start");
+	QProcess::startDetached("/usr/libexec/virtuozzo_systemd");
 }
 
 } // namespace Breeding

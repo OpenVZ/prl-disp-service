@@ -1,0 +1,6 @@
+#!/bin/bash
+
+/usr/libexec/prl_disp_first_start > /dev/null 2>&1
+/usr/bin/systemctl start virtuozzo.target > /dev/null 2>&1
+
+:
