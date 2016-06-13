@@ -41,7 +41,7 @@ namespace Vm
 
 struct V2V
 {
-	V2V(const CVmConfiguration &cfg): m_cfg(cfg)
+	explicit V2V(const CVmConfiguration &cfg): m_cfg(cfg)
 	{
 	}
 
