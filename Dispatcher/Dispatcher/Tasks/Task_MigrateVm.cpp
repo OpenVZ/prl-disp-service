@@ -982,8 +982,13 @@ PRL_RESULT Task_MigrateVmSource::prepareTask()
 
 	//https://jira.sw.ru/browse/PSBM-4996
 	//Check remote clone preconditions
-	if ( PVMT_CLONE_MODE & getRequestFlags() )
+	if (PVMT_CLONE_MODE & getRequestFlags())
 	{
+		if (VMS_STOPPED != m_nPrevVmState)
+		{
+			nRetCode = PRL_ERR_VM_REQUEST_NOT_SUPPORTED;
+			goto exit;
+		}
 		//Check change SID preconditions
 		if ( PVMT_CHANGE_SID & getRequestFlags() )
 		{
@@ -1129,7 +1134,12 @@ void Task_MigrateVmSource::finalizeTask()
 		 */
 		releaseLocks();
 
-		if ( !(PVMT_CLONE_MODE & getRequestFlags()) )
+		if (PVMT_CLONE_MODE & getRequestFlags())
+		{
+			CDspService::instance()->getVmStateSender()->
+				onVmStateChanged(VMS_MIGRATING, m_nPrevVmState, m_sVmUuid, m_sVmDirUuid, false);
+		}
+		else
 		{
 			CProtoCommandPtr pRequest = CProtoSerializer::CreateVmDeleteProtoCommand(m_sVmUuid, QStringList());
 			SmartPtr<IOPackage> pDelPackage

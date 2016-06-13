@@ -1498,6 +1498,25 @@ PRL_RESULT Builder::setResources(const VtInfo& vt_)
 	return PRL_ERR_SUCCESS;
 }
 
+PRL_RESULT Builder::setIdentification()
+{
+	if (!m_result)
+		return PRL_ERR_UNINITIALIZED;
+
+	CVmIdentification* i = m_input.getVmIdentification();
+	if (NULL == i)
+		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
+
+	mpl::at_c<Libvirt::Domain::Xml::VUUID::types, 1>::type u;
+	u.setValue(::Uuid(i->getVmUuid()).toStringWithoutBrackets());
+	Libvirt::Domain::Xml::Ids x;
+	x.setUuid(Libvirt::Domain::Xml::VUUID(u));
+	x.setName(i->getVmName());
+	m_result->setIds(x);
+
+	return PRL_ERR_SUCCESS;
+}
+
 QString Builder::getResult()
 {
 	if (m_result.isNull())
@@ -1530,25 +1549,6 @@ PRL_RESULT Vm::setBlank()
 	m_result->setOnCrash(Libvirt::Domain::Xml::ECrashOptionsPreserve);
 	setFeatures();
 	setCommandline();
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Vm::setIdentification()
-{
-	if (!m_result)
-		return PRL_ERR_UNINITIALIZED;
-
-	CVmIdentification* i = m_input.getVmIdentification();
-	if (NULL == i)
-		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
-
-	mpl::at_c<Libvirt::Domain::Xml::VUUID::types, 1>::type u;
-	u.setValue(::Uuid(i->getVmUuid()).toStringWithoutBrackets());
-	Libvirt::Domain::Xml::Ids x;
-	x.setUuid(Libvirt::Domain::Xml::VUUID(u));
-	x.setName(i->getVmName());
-	m_result->setIds(x);
-
 	return PRL_ERR_SUCCESS;
 }
 
