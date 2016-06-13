@@ -253,6 +253,20 @@ PRL_RESULT Task_VzStateMonitor::prepareTask()
 
 PRL_RESULT Task_VzStateMonitor::run_body()
 {
+	// set initial states for all CTs
+	QStringList uuids;
+	{
+		CDspLockedPointer<CVmDirectory>	d = CDspService::instance()->getVmDirManager().getVzDirectory();
+		std::transform(d->m_lstVmDirectoryItems.begin(), d->m_lstVmDirectoryItems.end(),
+			std::back_inserter(uuids), boost::bind(&CVmDirectoryItem::getVmUuid, _1));
+	}
+	CVzHelper& h = CDspService::instance()->getVzHelper()->getVzlibHelper();
+	foreach(const QString& u, uuids)
+	{
+		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+		if (PRL_SUCCEEDED(h.get_env_status(u, s)) && s != VMS_UNKNOWN)
+			processChangeCtState(u, s);
+	}
 	return startMonitor();
 }
 
