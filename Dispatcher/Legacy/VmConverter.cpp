@@ -349,8 +349,8 @@ PRL_RESULT V2V::do_() const
 	{
 		WRITE_TRACE(DBG_FATAL, "Cannot convert VM to vz7 format: virt-v2v failed");
 		foreach (const QString& s, QString(process.readAllStandardError()).split("\n"))
-			WRITE_TRACE(DBG_DEBUG, "%s", qPrintable(s));
-		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
+			WRITE_TRACE(DBG_FATAL, "%s", qPrintable(s));
+		return PRL_ERR_CANT_RECONFIG_GUEST_OS;
 	}
 	return PRL_ERR_SUCCESS;
 }

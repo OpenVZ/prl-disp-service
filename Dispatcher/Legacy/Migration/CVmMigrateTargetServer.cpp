@@ -262,6 +262,13 @@ void CVmMigrateTargetServer::handlePackage(const SmartPtr<IOPackage> package_)
 		m_subject.reset();
 		QCoreApplication::exit(0);
 	}
+	else if (package_->header.type == DispToDispResponseCmd)
+	{
+		WRITE_TRACE(DBG_DEBUG, "Target's dispatcher creates the response for the source");
+		m_connection.send(IOPackage::duplicateInstance(package_));
+		m_subject.reset();
+		QCoreApplication::exit(-1);
+	}
 	else
 	{
 		WRITE_TRACE(DBG_DEBUG, "Failed to migrate Vm");

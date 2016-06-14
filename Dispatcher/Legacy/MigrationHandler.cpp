@@ -56,6 +56,7 @@ PRL_RESULT Start::execute()
 
 PRL_RESULT FirstStart::execute()
 {
+	WRITE_TRACE(DBG_DEBUG, "Start converted VM for the first time");
 	PRL_RESULT e;
 	if (PRL_SUCCEEDED(e = m_v2v.start()))
 		return m_next->execute();
@@ -156,18 +157,17 @@ void Convoy::release(const IOSender::Handle& handle_, const SmartPtr<IOPackage>&
 		u.reset(new Step::Convert(*v2v, new Step::FirstStart(*v2v, u.take())));
 	u.reset(new Step::Registration(m_uuid, *m_config, u.take()));
 
-	SmartPtr<IOPackage> p = IOPackage::duplicateInstance(package_);
+	SmartPtr<CDspClient> pUserSession;
 
-	if (PRL_FAILED(u->execute()))
+	PRL_RESULT e = PRL_ERR_SUCCESS;
+	if (PRL_FAILED(e = u->execute()))
 	{
-		WRITE_TRACE(DBG_FATAL, "Asked migration app to cancel migration because unable to start Vm");
-		CDispToDispCommandPtr c =
-			CDispToDispProtoSerializer::CreateDispToDispCommandWithoutParams(VmMigrateCancelCmd);
-		p = DispatcherPackage::createInstance(c);
+		CDispToDispCommandPtr d = CDispToDispProtoSerializer::CreateDispToDispResponseCommand(e, package_);
+		CDspDispConnection(handle_, pUserSession).sendPackageResult(DispatcherPackage::createInstance(
+			d->GetCommandId(), d->GetCommand()->toString(), package_));
 	}
 
-	SmartPtr<CDspClient> pUserSession;
-	CDspDispConnection(handle_, pUserSession).sendPackageResult(p);
+	CDspDispConnection(handle_, pUserSession).sendPackageResult(IOPackage::duplicateInstance(package_));
 }
 
 void Convoy::handlePackage(IOSender::Handle handle_, const SmartPtr<IOPackage> package_)
