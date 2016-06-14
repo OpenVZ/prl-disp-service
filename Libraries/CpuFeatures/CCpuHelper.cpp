@@ -672,9 +672,9 @@ struct Visitor : boost::static_visitor<void>
 	void operator()(boost::mpl::int_<PCFE_EXT_80000001_EDX>)
 	{
 		static const char *f[] = {
-			"fpu", "vme", "de",	"pse", "tsc", "msr", "pae", "mce", "cx8", "apic", "", "syscall",
-			"mtrr", "pge", "mca", "cmov", "pat", "pse36", "", "", "nx", "", "mmxext", "mmx",
-			"fxsr", "fxsr_opt", "pdpe1gb", "rdtscp", "", "lm", "3dnowext", "3dnow", NULL
+			"", "", "",	"", "", "", "", "", "", "", "", "syscall",
+			"", "", "", "", "", "", "", "", "nx", "", "mmxext", "",
+			"", "fxsr_opt", "pdpe1gb", "rdtscp", "", "lm", "3dnowext", "3dnow", NULL
 		};
 
 		m_list->push_back(Register(f, &Config::type::getEXT_80000001_EDX_MASK));
