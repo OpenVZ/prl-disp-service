@@ -146,7 +146,12 @@ void Vm::updateConfig(CVmConfiguration value_)
 			m_routing.data(), _1, boost::cref(value_)));
 	}
 	s.connect(boost::phoenix::placeholders::arg1 = boost::phoenix::cref(value_));
-	if (PRL_ERR_VM_UUID_NOT_FOUND == getConfigEditor()(s))
+	if (PRL_ERR_VM_UUID_NOT_FOUND != getConfigEditor()(s))
+		return;
+
+	SmartPtr<CDspClient> a(&getUser(), SmartPtrPolicy::DoNotReleasePointee);
+	SmartPtr<CVmConfiguration> b;
+	if (getHome().isEmpty())
 	{
 		WRITE_TRACE(DBG_DEBUG, "New VM registered directly from libvirt");
 		QString h = QDir(getUser().getUserDefaultVmDirPath())
@@ -156,12 +161,22 @@ void Vm::updateConfig(CVmConfiguration value_)
 		updateDirectory(value_.getVmType());
 		value_.getVmIdentification()->setHomePath(getHome());
 
-		SmartPtr<CDspClient> a(&getUser(), SmartPtrPolicy::DoNotReleasePointee);
-		SmartPtr<CVmConfiguration> b(&value_, SmartPtrPolicy::DoNotReleasePointee);
-		getService().getVmConfigManager().saveConfig(b, getHome(), a, true, true);
+		b = SmartPtr<CVmConfiguration>(&value_, SmartPtrPolicy::DoNotReleasePointee);
 	}
-	else if (!value_.getVmIdentification()->getHomePath().isEmpty())
-		setHome(value_.getVmIdentification()->getHomePath());
+	else
+	{
+		b = SmartPtr<CVmConfiguration>(new CVmConfiguration());
+		PRL_RESULT e = getService().getVmConfigManager()
+				.loadConfig(b, getHome(), a, true, false);
+		if (PRL_FAILED(e))
+		{
+			WRITE_TRACE(DBG_DEBUG, "cannot load VM config from %s: %s",
+				qPrintable(getHome()), PRL_RESULT_TO_STRING(e));
+			return;
+		}
+		s(*b);
+	}
+	getService().getVmConfigManager().saveConfig(b, getHome(), a, true, true);
 }
 
 void Vm::updateDirectory(PRL_VM_TYPE type_)
