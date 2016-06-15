@@ -520,10 +520,7 @@ void Performance::run()
 		if (c.isSucceed())
 			v->setCounters(c.value());
 
-		Prl::Expected<Agent::Vm::Stat::CounterList_type, Error::Simple>
-			d = p.getMemory();
-		if (d.isSucceed())
-			v->setCounters(d.value());
+		v->setCounters(p.getMemory());
 
 		boost::optional<CVmConfiguration> x = v->getConfig();
 		if (x)
