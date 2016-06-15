@@ -33,7 +33,7 @@ def error(mess):
     log(mess)
     sys.exit(1)
 
-class systemd_unit(object):
+class Systemd_unit(object):
     def __init__(self, uuid, onboot):
         self.uuid = uuid
         self.autostart = onboot
@@ -82,14 +82,14 @@ class systemd_unit(object):
         if self.autostart:
             os.symlink(self.unitname_f, target_dir + "/" + self.unitname)
 
-class vm_unit(systemd_unit):
+class VM_unit(Systemd_unit):
     def __init__(self, uuid, onboot):
-        super(vm_unit, self).__init__(uuid, onboot)
+        super(VM_unit, self).__init__(uuid, onboot)
         self.description = "Virtual Machine %s service" % uuid
 
-class ct_unit(systemd_unit):
+class CT_unit(Systemd_unit):
     def __init__(self, uuid, onboot):
-        super(ct_unit, self).__init__(uuid, onboot)
+        super(CT_unit, self).__init__(uuid, onboot)
         self.description = "Container %s service" % uuid
 
 
@@ -107,22 +107,17 @@ try:
     # Connect to dispatcher
     prlsdkapi.init_server_sdk()
     server = prlsdkapi.Server()
-    connect_job = server.login_local()
-    connect_job.wait(msecs = timeout)
+    server.login_local().wait(msecs = timeout)
 
     # Get VMs + CT list
     vms = server.get_vm_list_ex(prlsdkapi.consts.PVTF_VM + prlsdkapi.consts.PVTF_CT)
     for res in vms.wait(msecs = timeout):
-        if res.get_config().get_vm_type():
-            unit = ct_unit
-        else:
-            unit = vm_unit
+        unit = CT_unit if res.get_config().get_vm_type() else VM_unit
         unitslist.append(unit(res.get_config().get_uuid(),
             res.get_config().get_auto_start()))
 
     # Disconnect
-    disconnect_job = server.logoff()
-    disconnect_job.wait(msecs = timeout)
+    server.logoff().wait(msecs = timeout)
     prlsdkapi.deinit_sdk()
 except:
     pass
