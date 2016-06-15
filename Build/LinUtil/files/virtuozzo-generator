@@ -111,7 +111,7 @@ try:
     connect_job.wait(msecs = timeout)
 
     # Get VMs + CT list
-    vms = server.get_vm_list_ex(pow(2,12) + pow(2,11))
+    vms = server.get_vm_list_ex(prlsdkapi.consts.PVTF_VM + prlsdkapi.consts.PVTF_CT)
     for res in vms.wait(msecs = timeout):
         if res.get_config().get_vm_type():
             unit = ct_unit
