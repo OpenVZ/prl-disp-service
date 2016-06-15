@@ -36,6 +36,9 @@
 #include "CDspVmNetworkHelper.h"
 #include "CDspVmStateMachine.h"
 #include "Stat/CDspStatStorage.h"
+#include <boost/phoenix/operator.hpp>
+#include <boost/phoenix/core/argument.hpp>
+#include <boost/phoenix/core/reference.hpp>
 #ifdef _LIBVIRT_
 #include "CDspLibvirt.h"
 #endif // _LIBVIRT_
@@ -134,31 +137,31 @@ void Vm::updateConfig(CVmConfiguration value_)
 	QMutexLocker l(&m_mutex);
 
 	setName(value_.getVmIdentification()->getVmName());
-	boost::optional<CVmConfiguration> y = getConfig();
-	if (y)
+	boost::signals2::signal<void (CVmConfiguration& )> s;
+	s.connect(boost::bind(&::Vm::Config::Repairer< ::Vm::Config::untranslatable_types>
+				::type::do_, boost::ref(value_), _1));
+	if (is_flag_active< ::Vm::State::Running>())
 	{
-		::Vm::Config::Repairer< ::Vm::Config::untranslatable_types>
-			::type::do_(value_, y.get());
-		
-		if (is_flag_active< ::Vm::State::Running>())
-			m_routing->reconfigure(y.get(), value_);
+		s.connect(boost::bind(&Network::Routing::reconfigure,
+			m_routing.data(), _1, boost::cref(value_)));
 	}
-	else
-		WRITE_TRACE(DBG_DEBUG, "New VM registered directly from libvirt");
-
-	if (!value_.getVmIdentification()->getHomePath().isEmpty())
-		setHome(value_.getVmIdentification()->getHomePath());
-
-	if (getHome().isEmpty())
+	s.connect(boost::phoenix::placeholders::arg1 = boost::phoenix::cref(value_));
+	if (PRL_ERR_VM_UUID_NOT_FOUND == getConfigEditor()(s))
 	{
+		WRITE_TRACE(DBG_DEBUG, "New VM registered directly from libvirt");
 		QString h = QDir(getUser().getUserDefaultVmDirPath())
 			.absoluteFilePath(::Vm::Config::getVmHomeDirName(getUuid()));
 		setHome(QDir(h).absoluteFilePath(VMDIR_DEFAULT_VM_CONFIG_FILE));
 		WRITE_TRACE(DBG_DEBUG, "update VM directory item");
 		updateDirectory(value_.getVmType());
+		value_.getVmIdentification()->setHomePath(getHome());
+
+		SmartPtr<CDspClient> a(&getUser(), SmartPtrPolicy::DoNotReleasePointee);
+		SmartPtr<CVmConfiguration> b(&value_, SmartPtrPolicy::DoNotReleasePointee);
+		getService().getVmConfigManager().saveConfig(b, getHome(), a, true, true);
 	}
-	value_.getVmIdentification()->setHomePath(getHome());
-	::Vm::State::Machine::setConfig(value_);
+	else if (!value_.getVmIdentification()->getHomePath().isEmpty())
+		setHome(value_.getVmIdentification()->getHomePath());
 }
 
 void Vm::updateDirectory(PRL_VM_TYPE type_)

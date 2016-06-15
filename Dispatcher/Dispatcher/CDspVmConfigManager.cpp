@@ -37,6 +37,7 @@
 #include "CDspVmDirManager.h"
 #include "CDspService.h"
 #include <prlxmlmodel/VmConfig/CVmHardDisk.h>
+#include "EditHelpers/CMultiEditMergeVmConfig.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/HostUtils/HostUtils.h>
@@ -868,6 +869,67 @@ bool Mixed::canRestore(const Work& unit_) const
 }
 
 } // namespace Access
+
+namespace Edit
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Unlocked
+
+PRL_RESULT Unlocked::operator()(const action_type& action_)
+{
+	if (!m_actor.isValid())
+		return PRL_ERR_INVALID_ARG;
+
+	PRL_RESULT e;
+	QString d = m_actor->getVmDirectoryUuid();
+	CDspVmDirHelper& h = m_service->getVmDirHelper();
+	SmartPtr<CVmConfiguration> x = h.getVmConfigByUuid(d, m_uuid, e);
+	if (!x.isValid())
+		return PRL_FAILED(e) ? e : PRL_ERR_FILE_NOT_FOUND;
+
+	const IOSender::Handle f = QString("%1-%2").arg(d).arg(m_uuid);
+
+	CMultiEditMergeVmConfig* m = h.getMultiEditDispatcher();
+	m->registerBeginEdit(m_uuid, f, x);
+	action_type::result_type r = action_(*x);
+	if (PRL_FAILED(e))
+	{
+		m->cleanupBeginEditMark(d, f);
+		return r.error();
+	}
+	e = m_service->getVmConfigManager()
+		.saveConfig(x, x->getVmIdentification()->getHomePath(), m_actor, true, true);
+	if (PRL_FAILED(e))
+		return e;
+
+	m->registerCommit(m_uuid, f);
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// class Atomic
+
+PRL_RESULT Atomic::operator()(const action_type& action_)
+{
+	const SmartPtr<CDspClient> a = m_decorated.getActor();
+	if (!a.isValid())
+		return PRL_ERR_INVALID_ARG;
+
+	QString d = a->getVmDirectoryUuid();
+	CDspVmDirHelper& h = m_service->getVmDirHelper();
+	QMutexLocker g(h.getMultiEditDispatcher());
+	PRL_RESULT output = h.registerExclusiveVmOperation
+		(m_decorated.getUuid(), d, PVE::DspCmdDirVmEditCommit, a);
+	if (PRL_SUCCEEDED(output))
+	{
+		output = m_decorated(action_);
+		h.unregisterExclusiveVmOperation
+			(m_decorated.getUuid(), d, PVE::DspCmdDirVmEditCommit, a);
+	}
+	return output;
+}
+
+} // namespace Edit
 } // namespace Config
 } // namespace Vm
 
