@@ -1332,10 +1332,10 @@ PRL_RESULT Task_BackupHelper::parseBackupId(const QString &sBackupId, QString &s
 		sBackupDir = sBackupId.right(sBackupId.size() - nIndex - 1);
 		nBackupNumber = sBackupDir.toUInt(&ok);
 		if (!ok)
-			return PRL_ERR_BACKUP_INTERNAL_ERROR;
+			return PRL_ERR_INVALID_ARG;
 	}
 	if (!Uuid::isUuid(sBackupUuid))
-		return PRL_ERR_BACKUP_INTERNAL_ERROR;
+		return PRL_ERR_INVALID_ARG;
 	return PRL_ERR_SUCCESS;
 }
 
