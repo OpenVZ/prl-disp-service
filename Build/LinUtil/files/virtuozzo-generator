@@ -111,7 +111,6 @@ class CT_unit(Systemd_unit):
         super(CT_unit, self).__init__(uuid)
         self.description = "Container %s service" % uuid
 
-
 # Create base directories
 for dir in (started_dir, target_dir):
     try:
@@ -132,7 +131,7 @@ try:
     vms = server.get_vm_list_ex(prlsdkapi.consts.PVTF_VM + prlsdkapi.consts.PVTF_CT)
     for res in [ r for r in vms.wait(msecs = timeout)
             if not r.get_config().get_auto_start() ]:
-        unit = CT_unit if res.get_config().get_vm_type() else VM_unit
+        unit = CT_unit if res.get_config().get_vm_type() == prlsdkapi.consts.PVT_CT else VM_unit
         unitslist.append(unit(res.get_config().get_uuid()))
 
     # Disconnect
