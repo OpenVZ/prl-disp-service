@@ -117,11 +117,9 @@ try:
     # Disconnect
     server.logoff().wait(msecs = timeout)
     prlsdkapi.deinit_sdk()
-except prlsdkapi.PrlSDKError, err:
-    log.error(repr(err))
-except:
+except Exception, err:
     if not unitslist:
-        log.error("Failed to get VMs/CTs list")
+        log.error(repr(err))
 
 for unit in [ u for u in unitslist if not u.exists() ]:
     unit.install()
