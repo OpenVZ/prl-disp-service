@@ -120,7 +120,8 @@ try:
     server.logoff().wait(msecs = timeout)
     prlsdkapi.deinit_sdk()
 except:
-    pass
+    if not unitslist:
+        log.error("Failed to get VMs/CTs list")
 
 # For now - autostart only!
 for unit in [ u for u in unitslist if not u.exists() and u.autostart ]:
