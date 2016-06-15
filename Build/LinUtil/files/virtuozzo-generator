@@ -1,0 +1,132 @@
+#!/usr/bin/python
+
+import os
+import re
+import sys
+import shutil
+import errno
+import prlsdkapi
+
+# Get units dir
+try:
+    unitsdir = sys.argv[3]
+except:
+    unitsdir = "/run/systemd/generator.late"
+
+# Maximum timeout - 60 seconds
+timeout = 60 * 1000
+
+# Units list
+unitslist = []
+
+deftarget = "virtuozzo.target"
+
+started_dir = "/run/virtuozzo-generator"
+target_dir = unitsdir + "/" + deftarget + ".wants"
+
+def log(mess):
+    with open("/dev/kmsg", "w") as f:
+        f.write(mess + "\n")
+        f.close()
+
+def error(mess):
+    log(mess)
+    sys.exit(1)
+
+class systemd_unit(object):
+    def __init__(self, uuid, onboot):
+        self.uuid = uuid
+        self.autostart = onboot
+        self.description = ""
+        self.service_prefix = "vz_"
+        self.deftarget = deftarget
+        self.lock = started_dir + "/{self.nobr_uuid}"
+
+    def __str__(self):
+        return \
+"[Unit]\n" \
+"Description={self.description}\n" \
+"After={self.deftarget} prl-disp.service vz.service\n" \
+"ConditionPathExists=!{self.lock}\n" \
+"\n" \
+"[Service]\n" \
+"ExecStart=/bin/prlctl start {self.uuid}\n" \
+"ExecStartPost=/bin/touch {self.lock}\n" \
+"Type=oneshot\n" \
+"RemainAfterExit=yes\n" \
+"\n" \
+"[Install]\n" \
+"WantedBy={self.deftarget}\n".format(**locals())
+
+    @property
+    def nobr_uuid(self):
+        return re.sub("({|})", "", self.uuid)
+
+    @property
+    def unitname(self):
+        return self.service_prefix + self.nobr_uuid + ".service"
+
+    @property
+    def unitname_f(self):
+        return unitsdir + "/" + self.unitname
+
+    def exists(self):
+        return os.path.exists(self.unitname)
+
+    def install(self):
+        if self.exists():
+            return
+        with open(self.unitname_f, "w") as f:
+            f.write(str(self))
+            f.close()
+        if self.autostart:
+            os.symlink(self.unitname_f, target_dir + "/" + self.unitname)
+
+class vm_unit(systemd_unit):
+    def __init__(self, uuid, onboot):
+        super(vm_unit, self).__init__(uuid, onboot)
+        self.description = "Virtual Machine %s service" % uuid
+
+class ct_unit(systemd_unit):
+    def __init__(self, uuid, onboot):
+        super(ct_unit, self).__init__(uuid, onboot)
+        self.description = "Container %s service" % uuid
+
+
+# Create base directories
+for dir in (started_dir, target_dir):
+    try:
+        os.mkdir(dir)
+    except OSError, e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            error("Failed to create %s: %s" % (started_dir, e))
+
+try:
+    # Connect to dispatcher
+    prlsdkapi.init_server_sdk()
+    server = prlsdkapi.Server()
+    connect_job = server.login_local()
+    connect_job.wait(msecs = timeout)
+
+    # Get VMs + CT list
+    vms = server.get_vm_list_ex(pow(2,12) + pow(2,11))
+    for res in vms.wait(msecs = timeout):
+        if res.get_config().get_vm_type():
+            unit = ct_unit
+        else:
+            unit = vm_unit
+        unitslist.append(unit(res.get_config().get_uuid(),
+            res.get_config().get_auto_start()))
+
+    # Disconnect
+    disconnect_job = server.logoff()
+    disconnect_job.wait(msecs = timeout)
+    prlsdkapi.deinit_sdk()
+except:
+    pass
+
+# For now - autostart only!
+for unit in [ u for u in unitslist if not u.exists() and u.autostart ]:
+    unit.install()
