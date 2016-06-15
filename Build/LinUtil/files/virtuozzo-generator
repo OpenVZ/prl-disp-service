@@ -130,7 +130,7 @@ try:
     # Get VMs + CT list
     vms = server.get_vm_list_ex(prlsdkapi.consts.PVTF_VM + prlsdkapi.consts.PVTF_CT)
     for res in [ r for r in vms.wait(msecs = timeout)
-            if not r.get_config().get_auto_start() ]:
+            if r.get_config().get_auto_start() ]:
         unit = CT_unit if res.get_config().get_vm_type() == prlsdkapi.consts.PVT_CT else VM_unit
         unitslist.append(unit(res.get_config().get_uuid()))
 
