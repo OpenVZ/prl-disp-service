@@ -34,9 +34,8 @@ def error(mess):
     sys.exit(1)
 
 class Systemd_unit(object):
-    def __init__(self, uuid, onboot):
+    def __init__(self, uuid):
         self.uuid = uuid
-        self.autostart = onboot
         self.description = ""
         self.service_prefix = "vz_"
         self.deftarget = deftarget
@@ -79,17 +78,16 @@ class Systemd_unit(object):
         with open(self.unitname_f, "w") as f:
             f.write(str(self))
             f.close()
-        if self.autostart:
-            os.symlink(self.unitname_f, target_dir + "/" + self.unitname)
+        os.symlink(self.unitname_f, target_dir + "/" + self.unitname)
 
 class VM_unit(Systemd_unit):
-    def __init__(self, uuid, onboot):
-        super(VM_unit, self).__init__(uuid, onboot)
+    def __init__(self, uuid):
+        super(VM_unit, self).__init__(uuid)
         self.description = "Virtual Machine %s service" % uuid
 
 class CT_unit(Systemd_unit):
-    def __init__(self, uuid, onboot):
-        super(CT_unit, self).__init__(uuid, onboot)
+    def __init__(self, uuid):
+        super(CT_unit, self).__init__(uuid)
         self.description = "Container %s service" % uuid
 
 
@@ -111,10 +109,10 @@ try:
 
     # Get VMs + CT list
     vms = server.get_vm_list_ex(prlsdkapi.consts.PVTF_VM + prlsdkapi.consts.PVTF_CT)
-    for res in vms.wait(msecs = timeout):
+    for res in [ r for r in vms.wait(msecs = timeout)
+            if not r.get_config().get_auto_start() ]:
         unit = CT_unit if res.get_config().get_vm_type() else VM_unit
-        unitslist.append(unit(res.get_config().get_uuid(),
-            res.get_config().get_auto_start()))
+        unitslist.append(unit(res.get_config().get_uuid()))
 
     # Disconnect
     server.logoff().wait(msecs = timeout)
@@ -123,6 +121,5 @@ except:
     if not unitslist:
         log.error("Failed to get VMs/CTs list")
 
-# For now - autostart only!
-for unit in [ u for u in unitslist if not u.exists() and u.autostart ]:
+for unit in [ u for u in unitslist if not u.exists() ]:
     unit.install()
