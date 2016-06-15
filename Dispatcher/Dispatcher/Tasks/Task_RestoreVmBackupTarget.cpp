@@ -1145,8 +1145,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	if (m_converter.get() != NULL)
 	{
 		boost::optional<Legacy::Vm::V2V> v2v = m_converter->getV2V(*m_pVmConfig);
-		if ((v2v && PRL_FAILED(nRetCode = v2v->do_()))
-			|| PRL_FAILED(nRetCode = v2v->start()))
+		if (v2v && (PRL_FAILED(nRetCode = v2v->do_())
+		         || PRL_FAILED(nRetCode = v2v->start())))
 			goto cleanup_0;
 	}
 	{
@@ -1218,8 +1218,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewVm()
 		if (m_converter.get() != NULL)
 		{
 			boost::optional<Legacy::Vm::V2V> v2v = m_converter->getV2V(*m_pVmConfig);
-			if ((v2v && PRL_FAILED(nRetCode = v2v->do_()))
-				|| PRL_FAILED(nRetCode = v2v->start()))
+			if (v2v && (PRL_FAILED(nRetCode = v2v->do_())
+			         || PRL_FAILED(nRetCode = v2v->start())))
 			{
 				unregisterVm();
 				a->revert();

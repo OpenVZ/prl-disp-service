@@ -237,7 +237,6 @@ PRL_RESULT MigrateVmTarget::prepareTask()
 	{
 		/* skip checking for copy to template case (https://jira.sw.ru/browse/PSBM-9597) */
 		checkTargetCpusNumber();
-		checkTargetCpuCompatibility();
 	}
 
 	foreach (const QString& checkFile, m_lstSharedFileNamesExt)
@@ -889,30 +888,6 @@ void MigrateVmTarget::checkTargetCpusNumber()
 			    "Not enough CPUs : VM requires %d CPUs, target server has %d only.",
 			    m_pVmConfig->getVmHardwareList()->getCpu()->getNumber(),
 			    m_cDstHostInfo.getCpu()->getNumber());
-	}
-}
-
-void MigrateVmTarget::checkTargetCpuCompatibility()
-{
-	if (m_cSrcHostInfo.getCpu()->getModel().contains("Intel") !=
-		m_cDstHostInfo.getCpu()->getModel().contains("Intel"))
-	{
-		//Fill additional error info
-		CVmEvent cEvent;
-		cEvent.setEventCode(PRL_ERR_VM_MIGRATE_NON_COMPATIBLE_CPU_ON_TARGET);
-		//Add source host CPU model
-		cEvent.addEventParameter(new CVmEventParameter(PVE::String,
-					 m_cSrcHostInfo.getCpu()->getModel(),
-					 EVT_PARAM_MESSAGE_PARAM_0));
-		//Add target host CPU model
-		cEvent.addEventParameter(new CVmEventParameter(PVE::String,
-					 m_cDstHostInfo.getCpu()->getModel(),
-					 EVT_PARAM_MESSAGE_PARAM_1));
-		m_lstCheckPrecondsErrors.append(cEvent.toString());
-		WRITE_TRACE(DBG_FATAL,
-			    "non compatible CPUs : %s on source, %s on target",
-			    QSTR2UTF8(m_cSrcHostInfo.getCpu()->getModel()),
-			    QSTR2UTF8(m_cDstHostInfo.getCpu()->getModel()));
 	}
 }
 

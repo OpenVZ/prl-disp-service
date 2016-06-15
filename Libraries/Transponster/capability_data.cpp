@@ -590,7 +590,7 @@ bool Validatable<Capability::Xml::PIrq>::validate(const Capability::Xml::PIrq::v
 
 bool Validatable<Capability::Xml::PFeatureName>::validate(const Capability::Xml::PFeatureName::value_type& value_)
 {
-	QRegExp q("[a-zA-Z0-9\\-_]+");
+	QRegExp q("[a-zA-Z0-9\\-\\._]+");
 	if (!q.exactMatch(value_))
 		return false;
 

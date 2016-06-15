@@ -66,13 +66,6 @@ void Frontend::setName(const QString& value_)
 	m_name = value_;
 }
 
-void Frontend::setConfig(CVmConfiguration& value_)
-{
-	getService().getVmConfigManager().saveConfig(SmartPtr<CVmConfiguration>
-		(&value_, SmartPtrPolicy::DoNotReleasePointee),
-		getHome(), m_user, true, true);
-}
-
 boost::optional<CVmConfiguration> Frontend::getConfig() const
 {
 	SmartPtr<CVmConfiguration> x(new CVmConfiguration());
@@ -85,6 +78,11 @@ boost::optional<CVmConfiguration> Frontend::getConfig() const
 	if (PRL_SUCCEEDED(r))
 		return *x;
 	return boost::none;
+}
+
+Config::Edit::Atomic Frontend::getConfigEditor() const
+{
+	return Config::Edit::Atomic(m_uuid, m_user, *m_service);
 }
 
 } // namespace State

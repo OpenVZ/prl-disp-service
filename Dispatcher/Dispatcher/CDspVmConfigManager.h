@@ -43,13 +43,17 @@
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/fold.hpp>
 #include <boost/bind.hpp>
+#include <boost/function.hpp>
 #include <boost/lambda/lambda.hpp>
+#include <boost/utility/result_of.hpp>
 #include <prlcommon/Logging/Logging.h>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 
 class CDspClient;
 class CVmConfiguration;
 class CVmHardDisk;
+class CDspService;
 
 namespace Vm
 {
@@ -375,6 +379,97 @@ struct Mixed: Base
 };
 
 } // namespace Access
+
+namespace Edit
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Unlocked
+
+struct Unlocked
+{
+	typedef boost::function1<Prl::Expected<void, PRL_RESULT>, CVmConfiguration& >
+		action_type;
+
+	Unlocked(const QString& uuid_, const SmartPtr<CDspClient>& actor_,
+		CDspService& service_):
+		m_uuid(uuid_), m_service(&service_), m_actor(actor_)
+	{
+	}
+
+	PRL_RESULT operator()(const action_type& action_);
+
+	const QString& getUuid() const
+	{
+		return m_uuid;
+	}
+	const SmartPtr<CDspClient> getActor() const
+	{
+		return m_actor;
+	}
+
+private:
+	QString m_uuid;
+	CDspService* m_service;
+	SmartPtr<CDspClient> m_actor;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class Wrapper
+
+template<class T, class Enabled = void>
+struct Wrapper
+{
+	Unlocked::action_type::result_type
+		operator()(const T& action_, Unlocked::action_type::argument_type dst_) const
+	{
+		(void)action_(dst_);
+		return Unlocked::action_type::result_type();
+	}
+};
+
+template<class T>
+struct Wrapper<T, typename boost::enable_if<boost::is_same<PRL_RESULT,
+	typename boost::result_of<T(Unlocked::action_type::argument_type )>::type> >::type>
+{
+	Unlocked::action_type::result_type operator()
+		(const T& action_, Unlocked::action_type::argument_type dst_) const
+	{
+		PRL_RESULT e = action_(dst_);
+		if (PRL_FAILED(e))
+			return e;
+
+		return Unlocked::action_type::result_type();
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Atomic
+
+struct Atomic
+{
+	typedef Unlocked::action_type action_type;
+
+	Atomic(const QString& uuid_, const SmartPtr<CDspClient>& actor_,
+		CDspService& service_):
+		m_decorated(uuid_, actor_, service_), m_service(&service_)
+	{
+	}
+
+	template<class T>
+	PRL_RESULT operator()(const T& action_)
+	{
+		action_type a = boost::bind<action_type::result_type>
+			(Wrapper<T>(), boost::cref(action_), _1);
+		return (*this)(a);
+	}
+	PRL_RESULT operator()(const action_type& action_);
+
+private:
+	Unlocked m_decorated;
+	CDspService* m_service;
+};
+
+} // namespace Edit
 } // namespace Config
 } // namespace Vm
 

@@ -1,0 +1,145 @@
+#!/usr/bin/python
+
+#  Copyright (c) 2016 Parallels IP Holdings GmbH
+# 
+#  This file is part of Virtuozzo Core. Virtuozzo Core is free software;
+#  you can redistribute it and/or modify it under the terms of the GNU
+#  General Public License as published by the Free Software Foundation;
+#  either version 2 of the License, or (at your option) any later
+#  version.
+#
+#  This program is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+#  02110-1301, USA.
+#
+#  Our contact details: Parallels IP Holdings GmbH, Vordergasse 59, 8200
+#  Schaffhausen, Switzerland.
+
+import os
+import re
+import sys
+import shutil
+import errno
+import prlsdkapi
+
+# Get units dir
+try:
+    unitsdir = sys.argv[3]
+except:
+    unitsdir = "/run/systemd/generator.late"
+
+# Maximum timeout - 60 seconds
+timeout = 60 * 1000
+
+# Units list
+unitslist = []
+
+deftarget = "virtuozzo.target"
+
+started_dir = "/run/virtuozzo-generator"
+target_dir = unitsdir + "/" + deftarget + ".wants"
+
+def log(mess):
+    with open("/dev/kmsg", "w") as f:
+        f.write(mess + "\n")
+        f.close()
+
+def error(mess):
+    log(mess)
+    sys.exit(1)
+
+class Systemd_unit(object):
+    def __init__(self, uuid):
+        self.uuid = uuid
+        self.description = ""
+        self.service_prefix = "vz_"
+        self.deftarget = deftarget
+        self.lock = started_dir + "/{self.nobr_uuid}"
+
+    def __str__(self):
+        return \
+"[Unit]\n" \
+"Description={self.description}\n" \
+"After={self.deftarget} prl-disp.service vz.service\n" \
+"ConditionPathExists=!{self.lock}\n" \
+"\n" \
+"[Service]\n" \
+"ExecStart=/bin/prlctl start {self.uuid}\n" \
+"ExecStartPost=/bin/touch {self.lock}\n" \
+"Type=oneshot\n" \
+"RemainAfterExit=yes\n" \
+"\n" \
+"[Install]\n" \
+"WantedBy={self.deftarget}\n".format(**locals())
+
+    @property
+    def nobr_uuid(self):
+        return re.sub("({|})", "", self.uuid)
+
+    @property
+    def unitname(self):
+        return self.service_prefix + self.nobr_uuid + ".service"
+
+    @property
+    def unitname_f(self):
+        return unitsdir + "/" + self.unitname
+
+    def exists(self):
+        return os.path.exists(self.unitname)
+
+    def install(self):
+        if self.exists():
+            return
+        with open(self.unitname_f, "w") as f:
+            f.write(str(self))
+            f.close()
+        os.symlink(self.unitname_f, target_dir + "/" + self.unitname)
+
+class VM_unit(Systemd_unit):
+    def __init__(self, uuid):
+        super(VM_unit, self).__init__(uuid)
+        self.description = "Virtual Machine %s service" % uuid
+
+class CT_unit(Systemd_unit):
+    def __init__(self, uuid):
+        super(CT_unit, self).__init__(uuid)
+        self.description = "Container %s service" % uuid
+
+# Create base directories
+for dir in (started_dir, target_dir):
+    try:
+        os.mkdir(dir)
+    except OSError, e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            error("Failed to create %s: %s" % (started_dir, e))
+
+try:
+    # Connect to dispatcher
+    prlsdkapi.init_server_sdk()
+    server = prlsdkapi.Server()
+    server.login_local().wait(msecs = timeout)
+
+    # Get VMs + CT list
+    vms = server.get_vm_list_ex(prlsdkapi.consts.PVTF_VM + prlsdkapi.consts.PVTF_CT)
+    for res in [ r for r in vms.wait(msecs = timeout)
+            if r.get_config().get_auto_start() ]:
+        unit = CT_unit if res.get_config().get_vm_type() == prlsdkapi.consts.PVT_CT else VM_unit
+        unitslist.append(unit(res.get_config().get_uuid()))
+
+    # Disconnect
+    server.logoff().wait(msecs = timeout)
+    prlsdkapi.deinit_sdk()
+except Exception, err:
+    if not unitslist:
+        log.error(repr(err))
+
+for unit in [ u for u in unitslist if not u.exists() ]:
+    unit.install()
