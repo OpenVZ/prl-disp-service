@@ -74,7 +74,6 @@
 
 #include "CDspVmStateSender.h"
 
-#include "Tasks/Task_AutoStart.h"
 #include "Tasks/Task_UpdateCommonPrefs.h"
 #include "Tasks/Task_SyncVmsUptime.h"
 #include "Tasks/Task_BackgroundJob.h"
@@ -1478,8 +1477,6 @@ bool CDspService::init()
 
 		initHypervisor(); // before start any vm!
 
-		autoStartCt();
-
 		m_bFirstInitPhaseCompleted = true;
 	}
 	catch ( ... )
@@ -1716,20 +1713,6 @@ void CDspService::precacheVmConfigs()
 			}
 		}
 }
-
-void CDspService::autoStartCt()
-{
-	PRL_APPLICATION_MODE mode = ParallelsDirs::getAppExecuteMode();
-	if( mode != PAM_SERVER )
-		return;
-
-	SmartPtr<CDspClient> pUser( new CDspClient(IOSender::Handle()) );
-	pUser->getAuthHelper().AuthUserBySelfProcessOwner();
-
-	const SmartPtr<IOPackage> p = DispatcherPackage::createInstance( PVE::DspCmdVmStart );
-	CDspService::instance()->getTaskManager().schedule(new Task_AutoStart( pUser, p ));
-}
-
 
 void CDspService::initSyncVmUptimeTask()
 {

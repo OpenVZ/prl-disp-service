@@ -98,7 +98,6 @@ HEADERS += \
 	Stat/CDspStatisticsGuard.h \
 	Stat/CDspSystemInfo.h \
 	\
-	Tasks/Task_AutoStart.h \
 	Tasks/Mixin_CreateHddSupport.h \
 	Tasks/Mixin_CreateVmSupport.h \
 	Tasks/Task_CloneVm.h \
@@ -220,7 +219,6 @@ SOURCES += \
 	Stat/CDspStatStorage.cpp \
 	Stat/CDspStatisticsGuard.cpp \
 	\
-	Tasks/Task_AutoStart.cpp \
 	Tasks/Mixin_CreateHddSupport.cpp \
 	Tasks/Mixin_CreateVmSupport.cpp \
 	Tasks/Task_CloneVm.cpp \
