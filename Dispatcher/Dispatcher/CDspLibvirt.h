@@ -123,8 +123,7 @@ struct Unit
 		getVCpuList() const;
 	Prl::Expected<Stat::CounterList_type, Error::Simple>
 		getDisk(const CVmHardDisk& disk_) const;
-	Prl::Expected<Stat::CounterList_type, Error::Simple>
-		getMemory() const;
+	Stat::CounterList_type getMemory() const;
 	Prl::Expected<Stat::CounterList_type, Error::Simple>
 		getInterface(const CVmGenericNetworkAdapter& iface_) const;
 

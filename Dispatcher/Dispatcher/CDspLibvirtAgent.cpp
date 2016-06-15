@@ -600,49 +600,49 @@ Unit::getDisk(const CVmHardDisk& disk_) const
 	return r;
 }
 
-Prl::Expected<Stat::CounterList_type, Error::Simple>
-Unit::getMemory() const
+Stat::CounterList_type Unit::getMemory() const
 {
-	unsigned s = VIR_DOMAIN_MEMORY_STAT_NR - 1;
-	virDomainMemoryStatStruct x[s];
+	quint64 v = 0;
+	Stat::CounterList_type output;
+	if (getValue("balloon.actual", v = 0))
+	{
+		output.append(Stat::Counter_type(
+			::Stat::Name::Memory::getBalloonActual(), v));
+	}
+	if (getValue("balloon.swap_in", v = 0))
+	{
+		output.append(Stat::Counter_type(
+			::Stat::Name::Memory::getSwapIn(), v));
+	}
+	if (getValue("balloon.swap_out", v = 0))
+	{
+		output.append(Stat::Counter_type(
+			::Stat::Name::Memory::getSwapOut(), v));
+	}
+	if (getValue("balloon.minor_fault", v = 0))
+	{
+		output.append(Stat::Counter_type(
+			::Stat::Name::Memory::getMinorFault(), v));
+	}
+	if (getValue("balloon.major_fault", v = 0))
+	{
+		output.append(Stat::Counter_type(
+			::Stat::Name::Memory::getMajorFault(), v));
+	}
+	quint64 a = 0;
+	if (getValue("balloon.available", a))
+	{
+		output.append(Stat::Counter_type(
+			::Stat::Name::Memory::getTotal(), a));
+	}
+	quint64 u = 0;
+	getValue("balloon.rss", u = 0);
+	if (getValue("balloon.unused", v = 0))
+		u = a - v;
 
-	int n = virDomainMemoryStats(m_record->dom, x, s, 0);
-	if (0 >= n)
-		return Failure(PRL_ERR_FAILURE);
-
-	QHash<int, quint64> v;
-	for (int i = 0; i < n; ++i)
-		v[x[i].tag] = x[i].val;
-
-	Stat::CounterList_type r;
-
-	quint64 u = v[VIR_DOMAIN_MEMORY_STAT_RSS];
-	if (v.contains(VIR_DOMAIN_MEMORY_STAT_UNUSED))
-		u = v.value(VIR_DOMAIN_MEMORY_STAT_AVAILABLE) -
-			v.value(VIR_DOMAIN_MEMORY_STAT_UNUSED);
-
-	r.append(Stat::Counter_type(
+	output.append(Stat::Counter_type(
 		::Stat::Name::Memory::getUsed(), u));
-	r.append(Stat::Counter_type(
-		::Stat::Name::Memory::getTotal(),
-		v.value(VIR_DOMAIN_MEMORY_STAT_AVAILABLE)));
-	r.append(Stat::Counter_type(
-		::Stat::Name::Memory::getSwapIn(),
-		v.value(VIR_DOMAIN_MEMORY_STAT_SWAP_IN)));
-	r.append(Stat::Counter_type(
-		::Stat::Name::Memory::getSwapOut(),
-		v.value(VIR_DOMAIN_MEMORY_STAT_SWAP_OUT)));
-	r.append(Stat::Counter_type(
-		::Stat::Name::Memory::getMinorFault(),
-		v.value(VIR_DOMAIN_MEMORY_STAT_MINOR_FAULT)));
-	r.append(Stat::Counter_type(
-		::Stat::Name::Memory::getMajorFault(),
-		v.value(VIR_DOMAIN_MEMORY_STAT_MAJOR_FAULT)));
-	r.append(Stat::Counter_type(
-		::Stat::Name::Memory::getBalloonActual(),
-		v.value(VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON)));
-
-	return r;
+	return output;
 }
 
 Prl::Expected<Stat::CounterList_type, Error::Simple>
