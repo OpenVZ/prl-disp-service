@@ -42,6 +42,8 @@
 #include <numeric>
 
 #include <QThread>
+#include <QHostAddress>
+#include <QRegExp>
 #include <QString>
 #include <QByteArray>
 #include <prlcommon/Logging/Logging.h>
@@ -55,8 +57,10 @@
 #include "Libraries/HostInfo/CHostInfo.h"
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwNetAdapter.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
+
 
 #include <vzctl/libvzctl.h>
 #include <vzctl/vzctl_param.h>
@@ -4057,6 +4061,83 @@ int CVzOperationHelper::convert2_env(const QString &srcPath, const QString &dstP
 	args += QString::number(layout);
 
 	return run_prg(BIN_VZCTL, args);
+}
+
+namespace {
+
+void parse_ip_out(const QString &data, QList<CHwNetAdapter*> &adapters)
+{
+	CHwNetAdapter *adapter = NULL;
+	QStringList ips;
+
+/*
+  1: eth0: <NO-CARRIER,BROADCAST,MULTICAST,UP>
+      link/ether 52:54:00:a3:c7:00 brd ff:ff:ff:ff:ff:ff
+      inet 10.37.130.2/24 scope global virbr1
+      inet6 fdb2:2c26:f4e4::1/64 scope global
+ */
+	foreach(QString s, data.split("\n")) {
+		int pos = 0;
+
+		QRegExp rx("^\\d+: ");
+		if (rx.indexIn(s, pos) != -1) {
+			if (adapter)
+				 adapter->setNetAddresses(ips);
+			adapter = new CHwNetAdapter;
+			adapters.append(adapter);
+			ips.clear();
+			continue;
+		}
+
+		rx.setPattern("\\slink/\\S+ (\\S+)");
+		if (rx.indexIn(s, pos) != -1) {
+			if (adapter)
+				adapter->setMacAddress(rx.cap(1));
+			continue;
+		}
+
+		rx.setPattern("\\sinet6* (\\S+)");
+		if (rx.indexIn(s, pos) != -1) {
+			QString ip = rx.cap(1);
+			int idx = ip.indexOf('/');
+			if (idx > 0)
+				ip.resize(idx);
+
+			QHostAddress addr(ip);
+			if (addr == QHostAddress::LocalHost ||
+					addr == QHostAddress::LocalHostIPv6 ||
+					addr == QHostAddress("::2") ||
+					addr.isInSubnet(QHostAddress("fe80::"), 64))
+				continue;
+
+			ips.append(ip);
+			continue;
+		}
+	}
+	if (adapter)
+		 adapter->setNetAddresses(ips);
+}
+}
+
+int CVzOperationHelper::get_env_netinfo(const QString &uuid,
+			QList<CHwNetAdapter*> &adapters)
+{
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty()) {
+		WRITE_TRACE(DBG_FATAL, "Can not get container ID for UUID %s", QSTR2UTF8(uuid));
+		return PRL_ERR_CT_NOT_FOUND;
+	}
+
+	QString out;
+	QStringList a;
+
+	a << "/usr/sbin/ip" << "netns" << "exec" << ctid << "ip" << "a" << "l";
+	if (!HostUtils::RunCmdLineUtility(a, out))
+		return PRL_ERR_FAILURE;
+
+	parse_ip_out(out, adapters);
+
+	return PRL_ERR_SUCCESS;
 }
 
 Ct::Statistics::Aggregate *CVzHelper::get_env_stat(const QString& uuid)
