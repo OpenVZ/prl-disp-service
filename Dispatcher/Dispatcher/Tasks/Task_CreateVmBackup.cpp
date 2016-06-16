@@ -192,9 +192,9 @@ PRL_RESULT Task_CreateVmBackup::sendStartRequest(const ::Backup::Activity::Objec
 	m_nFlags = nFlags;
 
 	if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
-		for (unsigned i = 1; i < pReply->header.buffersNumber; i += 2) {
-			QFileInfo x(UTF8_2QSTR(pReply->buffers[i].getImpl()));
-			QString u(UTF8_2QSTR(pReply->buffers[i+1].getImpl()));
+		for (unsigned i = 2; i < pReply->header.buffersNumber; i += 2) {
+			QFileInfo x(UTF8_2QSTR(pReply->buffers[i-1].getImpl()));
+			QString u(UTF8_2QSTR(pReply->buffers[i].getImpl()));
 			m_urls.push_back(::Backup::Activity::Object::component_type(x, u));
 		}
 	}
