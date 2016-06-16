@@ -1944,6 +1944,7 @@ struct Collector {
 			const Ct::Statistics::Aggregate &a);
 	void collectVm(const QString &uuid, const CVmConfiguration &config);
 
+	void collectVmOffline(const QString &uuid_);
 private:
 
 	template <typename Counter>
@@ -2084,6 +2085,11 @@ void Collector::collectVm(const QString &uuid, const CVmConfiguration &config)
 	}
 }
 
+void Collector::collectVmOffline(const QString &uuid_)
+{
+	collect(Vm::Counter::Network::ClassfulOffline(uuid_));
+}
+
 template <typename Counter>
 void Collector::collect(const Counter &c)
 {
@@ -2119,6 +2125,11 @@ Libvirt::Result GetPerformanceStatisticsVm(const CVmIdent &id, Collector &c)
 	if (r.isFailed())
 		return r;
 
+	if (VMS_STOPPED == s)
+	{
+		c.collectVmOffline(id.first);
+		return Libvirt::Result();
+	}
 	if (VMS_RUNNING != s)
 		return Libvirt::Result(Error::Simple(PRL_ERR_DISP_VM_IS_NOT_STARTED));
 

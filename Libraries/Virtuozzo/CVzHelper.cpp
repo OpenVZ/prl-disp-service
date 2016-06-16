@@ -802,7 +802,7 @@ namespace Network
 
 struct Builder
 {
-	explicit Builder(const QString& uuid_);
+	explicit Builder(const QString& id_);
 
 	bool addv4();
 
@@ -817,12 +817,12 @@ private:
 	bool fill(bool v6_);
 };
 
-Builder::Builder(const QString& uuid_) :
+Builder::Builder(const QString& id_) :
 	m_result(new PRL_STAT_NET_TRAFFIC())
 {
 	int ret;
 	m_env.reset(vzctl2_env_open(
-		QSTR2UTF8(CVzHelper::get_ctid_by_uuid(uuid_)),
+		QSTR2UTF8(id_),
 		VZCTL_CONF_SKIP_PARSE, &ret));
 }
 
@@ -4073,7 +4073,7 @@ Ct::Statistics::Aggregate *CVzHelper::get_env_stat(const QString& uuid)
 
 	QScopedPointer<Aggregate> a(new Aggregate());
 
-	QScopedPointer<PRL_STAT_NET_TRAFFIC> n(get_net_stat(uuid));
+	QScopedPointer<PRL_STAT_NET_TRAFFIC> n(get_net_stat(ctid));
 	a->net = n.isNull() ? PRL_STAT_NET_TRAFFIC() : *n;
 	if (st.mask & ENV_STATUS_RUNNING) {
 		a->disk = get_env_iostat(uuid);
