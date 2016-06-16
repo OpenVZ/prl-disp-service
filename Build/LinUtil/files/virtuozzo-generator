@@ -139,7 +139,7 @@ try:
     prlsdkapi.deinit_sdk()
 except Exception, err:
     if not unitslist:
-        log.error(repr(err))
+        error(repr(err))
 
 for unit in [ u for u in unitslist if not u.exists() ]:
     unit.install()
