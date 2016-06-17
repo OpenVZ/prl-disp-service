@@ -200,7 +200,7 @@ public:
 	static QMutex s_mtxNodemask;
 	static CNumaNode s_numanodes;
 
-	static PRL_STAT_NET_TRAFFIC *get_net_stat(const QString &uuid);
+	static PRL_STAT_NET_TRAFFIC *get_net_stat(const QString &id_);
 	static int update_network_classes_config(const CNetworkClassesConfig &conf);
 	static int get_network_classes_config(CNetworkClassesConfig &conf);
 	static int update_network_shaping_config(const CNetworkShapingConfig &conf);
