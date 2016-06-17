@@ -449,6 +449,18 @@ Prl::Expected<QList<Backup::Remove::action_type>, PRL_RESULT> Task_RemoveVmBacku
 
 	parseBackupId(m_sBackupId, m_sBackupUuid, m_nBackupNumber);
 
+	bool shift = m_nFlags & PBT_KEEP_CHAIN;
+	if (shift) {
+		VmItem v;
+		if (PRL_FAILED(loadVmMetadata(m_sVmUuid, &v))) {
+			CDspTaskFailure(*this)(m_sVmUuid);
+			return PRL_ERR_BACKUP_BACKUP_NOT_FOUND;
+		}
+
+		if (v.getVersion() < BACKUP_PROTO_V4)
+			return PRL_ERR_BACKUP_UNSUPPORTED_KEEP_CHAIN;
+	}
+
 	QStringList b;
 	getBaseBackupList(m_sVmUuid, b);
 	if (!b.contains(m_sBackupUuid))
@@ -460,7 +472,6 @@ Prl::Expected<QList<Backup::Remove::action_type>, PRL_RESULT> Task_RemoveVmBacku
 	int pos = 0;
 
 	QList<unsigned> p;
-	bool shift = m_nFlags & PBT_KEEP_CHAIN;
 	if (m_nBackupNumber != PRL_BASE_BACKUP_NUMBER || shift) {
 		getPartialBackupList(m_sVmUuid, m_sBackupUuid, p);
 		if (p.isEmpty())
