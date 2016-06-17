@@ -278,6 +278,9 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
 			return e;
 		m_lstTibFileList << l.at(i).second.fileName();
 
+		if (!(getInternalFlags() & PVM_CT_PLOOP_BACKUP))
+			continue;
+
 		QSharedPointer< ::Backup::Target::Nbd> n(new ::Backup::Target::Nbd());
 		m_createdTibs << qMakePair(a, n);
 		if (PRL_FAILED((e = n->start(a))))
