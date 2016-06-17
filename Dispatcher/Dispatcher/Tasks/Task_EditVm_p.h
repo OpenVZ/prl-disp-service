@@ -207,7 +207,7 @@ struct Forge
 	template<class T>
 	Action* craftRuntime(const T& decorated_) const
 	{
-		return new Domain<T, Libvirt::Instrument::Agent::Vm::Runtime>
+		return new Domain<T, Libvirt::Instrument::Agent::Vm::Editor>
 			(getUnit().getRuntime(), decorated_);
 	}
 
@@ -648,7 +648,7 @@ namespace Cpu
 namespace Limit
 {
 
-typedef boost::function<Libvirt::Result (Libvirt::Instrument::Agent::Vm::Configuration, quint64, quint64)> setter_type;
+typedef boost::function<Libvirt::Result (Libvirt::Instrument::Agent::Vm::Editor, quint64, quint64)> setter_type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Percents
@@ -660,7 +660,7 @@ struct Percents
 	{
 	}
 
-	Libvirt::Result operator()(const Libvirt::Instrument::Agent::Vm::Configuration& agent_) const;
+	Libvirt::Result operator()(const Libvirt::Instrument::Agent::Vm::Editor& agent_) const;
 
 private:
 	quint32 m_value;
@@ -677,7 +677,7 @@ struct Mhz
 	{
 	}
 
-	Libvirt::Result operator()(const Libvirt::Instrument::Agent::Vm::Configuration& agent_) const;
+	Libvirt::Result operator()(const Libvirt::Instrument::Agent::Vm::Editor& agent_) const;
 
 private:
 	quint32 m_value;
@@ -693,11 +693,7 @@ struct Any
 	{
 	}
 
-	Libvirt::Result operator()(Libvirt::Instrument::Agent::Vm::Runtime agent_) const
-	{
-		return do_(agent_);
-	}
-	Libvirt::Result do_(const Libvirt::Instrument::Agent::Vm::Configuration& agent_) const;
+	Libvirt::Result operator()(const Libvirt::Instrument::Agent::Vm::Editor& agent_) const;
 
 private:
 	CVmCpu m_cpu;

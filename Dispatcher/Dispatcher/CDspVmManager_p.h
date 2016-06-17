@@ -842,7 +842,7 @@ typedef Tag::Timeout<Tag::State<Launcher, Fork::State::Strict<VMS_STOPPED> >, Fa
 
 struct Hotplug
 {
-	Hotplug(Libvirt::Instrument::Agent::Vm::Runtime runtime_,
+	Hotplug(Libvirt::Instrument::Agent::Vm::Editor runtime_,
 		const CVmIdentification& ident_, const SmartPtr<CDspClient>& session_)
 		: m_runtime(runtime_), m_ident(ident_), m_session(session_)
 	{
@@ -852,7 +852,7 @@ struct Hotplug
 	Libvirt::Result unplug(const CVmHardDisk& disk_);
 
 private:
-	Libvirt::Instrument::Agent::Vm::Runtime m_runtime;
+	Libvirt::Instrument::Agent::Vm::Editor m_runtime;
 	const CVmIdentification& m_ident;
 	SmartPtr<CDspClient> m_session;
 };

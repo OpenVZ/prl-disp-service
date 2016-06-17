@@ -489,14 +489,14 @@ Guest Unit::getGuest() const
 	return Guest(m_domain);
 }
 
-Runtime Unit::getRuntime() const
+Editor Unit::getRuntime() const
 {
-	return Runtime(m_domain);
+	return Editor(m_domain, VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE);
 }
 
-Configuration Unit::getConfiguration() const
+Editor Unit::getEditor() const
 {
-	return Configuration(m_domain);
+	return Editor(m_domain);
 }
 
 Result Unit::setMemoryStatsPeriod(qint64 seconds_)
@@ -1445,19 +1445,19 @@ Result Hotplug::update(const QString& device_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Configuration
+// struct Editor
 
-Result Configuration::setPerCpuLimit(quint32 limit_, quint32 period_)
+Result Editor::setPerCpuLimit(quint32 limit_, quint32 period_)
 {
 	return setCpuLimit(0, limit_, period_);
 }
 
-Result Configuration::setGlobalCpuLimit(quint32 limit_, quint32 period_)
+Result Editor::setGlobalCpuLimit(quint32 limit_, quint32 period_)
 {
 	return setCpuLimit(limit_, 0, period_);
 }
 
-Result Configuration::setCpuLimit(quint32 globalLimit_, quint32 limit_,
+Result Editor::setCpuLimit(quint32 globalLimit_, quint32 limit_,
 		quint32 period_)
 {
 	Parameters::Builder b;
@@ -1481,20 +1481,17 @@ Result Configuration::setCpuLimit(quint32 globalLimit_, quint32 limit_,
 	return r;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Runtime
-
-Result Runtime::setIoLimit(const CVmHardDisk& disk_, quint32 limit_)
+Result Editor::setIoLimit(const CVmHardDisk& disk_, quint32 limit_)
 {
 	return setBlockIoTune(disk_, VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_BYTES_SEC, limit_);
 }
 
-Result Runtime::setIopsLimit(const CVmHardDisk& disk_, quint32 limit_)
+Result Editor::setIopsLimit(const CVmHardDisk& disk_, quint32 limit_)
 {
 	return setBlockIoTune(disk_, VIR_DOMAIN_BLOCK_IOTUNE_TOTAL_IOPS_SEC, limit_);
 }
 
-Result Runtime::setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_)
+Result Editor::setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_)
 {
 	virTypedParameterPtr p = NULL;
 	qint32 s = 0;
@@ -1512,7 +1509,7 @@ Result Runtime::setBlockIoTune(const CVmHardDisk& disk_, const char* param_, qui
 	return r;
 }
 
-Result Runtime::setIoPriority(quint32 ioprio_)
+Result Editor::setIoPriority(quint32 ioprio_)
 {
 	virTypedParameterPtr p(NULL);
 	qint32 s(0);
@@ -1530,7 +1527,7 @@ Result Runtime::setIoPriority(quint32 ioprio_)
 }
 
 
-Result Runtime::setCpuUnits(quint32 units_)
+Result Editor::setCpuUnits(quint32 units_)
 {
 	virTypedParameterPtr p(NULL);
 	qint32 s(0);
@@ -1548,13 +1545,13 @@ Result Runtime::setCpuUnits(quint32 units_)
 	return r;
 }
 
-Result Runtime::setCpuCount(quint32 units_)
+Result Editor::setCpuCount(quint32 units_)
 {
 	return do_(m_domain.data(), boost::bind(&virDomainSetVcpus, _1, units_));
 }
 
 template<class T>
-Result Runtime::plug(const T& device_)
+Result Editor::plug(const T& device_)
 {
 	Prl::Expected<QString, ::Error::Simple> x =
 		Transponster::Vm::Reverse::Device<T>
@@ -1564,13 +1561,13 @@ Result Runtime::plug(const T& device_)
 
 	return Hotplug(m_domain).attach(x.value());
 }
-template Result Runtime::plug<CVmHardDisk>(const CVmHardDisk& device_);
-template Result Runtime::plug<CVmSerialPort>(const CVmSerialPort& device_);
-template Result Runtime::plug<Transponster::Vm::Reverse::Dimm>
+template Result Editor::plug<CVmHardDisk>(const CVmHardDisk& device_);
+template Result Editor::plug<CVmSerialPort>(const CVmSerialPort& device_);
+template Result Editor::plug<Transponster::Vm::Reverse::Dimm>
 	(const Transponster::Vm::Reverse::Dimm& device_);
 
 template<class T>
-Result Runtime::unplug(const T& device_)
+Result Editor::unplug(const T& device_)
 {
 	Prl::Expected<QString, ::Error::Simple> x =
 		Transponster::Vm::Reverse::Device<T>
@@ -1580,11 +1577,11 @@ Result Runtime::unplug(const T& device_)
 
 	return Hotplug(m_domain).detach(x.value());
 }
-template Result Runtime::unplug<CVmHardDisk>(const CVmHardDisk& device_);
-template Result Runtime::unplug<CVmSerialPort>(const CVmSerialPort& device_);
+template Result Editor::unplug<CVmHardDisk>(const CVmHardDisk& device_);
+template Result Editor::unplug<CVmSerialPort>(const CVmSerialPort& device_);
 
 template<class T>
-Result Runtime::update(const T& device_)
+Result Editor::update(const T& device_)
 {
 	Prl::Expected<QString, ::Error::Simple> x =
 		Transponster::Vm::Reverse::Device<T>
@@ -1594,9 +1591,9 @@ Result Runtime::update(const T& device_)
 
 	return Hotplug(m_domain).update(x.value());
 }
-template Result Runtime::update<CVmFloppyDisk>(const CVmFloppyDisk& device_);
-template Result Runtime::update<CVmOpticalDisk>(const CVmOpticalDisk& device_);
-template Result Runtime::update<CVmGenericNetworkAdapter>
+template Result Editor::update<CVmFloppyDisk>(const CVmFloppyDisk& device_);
+template Result Editor::update<CVmOpticalDisk>(const CVmOpticalDisk& device_);
+template Result Editor::update<CVmGenericNetworkAdapter>
 	(const CVmGenericNetworkAdapter& device_);
 
 ///////////////////////////////////////////////////////////////////////////////

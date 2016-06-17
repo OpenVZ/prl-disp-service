@@ -1968,7 +1968,7 @@ PRL_RESULT LimitType::operator()(CVmConfiguration& config_) const
 	else
 	{
 		WRITE_TRACE(DBG_INFO, "Update offline CPU limits for VM '%s'", qPrintable(uuid));
-		r = ::Edit::Vm::Runtime::Cpu::Limit::Any(cpu, m_value).do_(u.getConfiguration());
+		r = ::Edit::Vm::Runtime::Cpu::Limit::Any(cpu, m_value)(u.getEditor());
 	}
 
 	if (r.isFailed())

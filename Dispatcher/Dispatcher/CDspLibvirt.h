@@ -170,39 +170,18 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Configuration
+// struct Editor
 
-struct Configuration
+struct Editor
 {
-	explicit Configuration(const QSharedPointer<virDomain>& domain_,
-			quint32 flags_ = VIR_DOMAIN_AFFECT_CURRENT | VIR_DOMAIN_AFFECT_CONFIG)
+	explicit Editor(const QSharedPointer<virDomain>& domain_,
+			quint32 flags_ = VIR_DOMAIN_AFFECT_CONFIG)
 		: m_domain(domain_), m_flags(flags_)
 	{
 	}
 
 	Result setPerCpuLimit(quint32 limit_, quint32 period_);
 	Result setGlobalCpuLimit(quint32 limit_, quint32 period_);
-
-private:
-	Result setCpuLimit(quint32 globalLimit_, quint32 limit_, quint32 period_);
-
-	QSharedPointer<virDomain> m_domain;
-	quint32 m_flags;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Runtime
-
-struct Runtime: Configuration
-{
-	explicit Runtime(const QSharedPointer<virDomain>& domain_)
-		: Configuration(domain_, VIR_DOMAIN_AFFECT_CURRENT
-				| VIR_DOMAIN_AFFECT_CONFIG
-				| VIR_DOMAIN_AFFECT_LIVE),
-		m_domain(domain_)
-	{
-	}
-
 	Result setIoLimit(const CVmHardDisk& disk_, quint32 limit_);
 	Result setIopsLimit(const CVmHardDisk& disk_, quint32 limit_);
 	Result setIoPriority(quint32 ioprio_);
@@ -217,9 +196,11 @@ struct Runtime: Configuration
 	Result update(const T& device_);
 
 private:
+	Result setCpuLimit(quint32 globalLimit_, quint32 limit_, quint32 period_);
 	Result setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_);
 
 	QSharedPointer<virDomain> m_domain;
+	quint32 m_flags;
 };
 
 namespace Block
@@ -467,8 +448,8 @@ struct Unit
 	{
 		return Snapshot::List(m_domain);
 	}
-	Runtime getRuntime() const;
-	Configuration getConfiguration() const;
+	Editor getRuntime() const;
+	Editor getEditor() const;
 	Exec::AuxChannel* getChannel(const QString& path_) const;
 
 private:
