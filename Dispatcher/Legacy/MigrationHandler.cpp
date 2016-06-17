@@ -33,6 +33,8 @@
 #include "CVcmmdInterface.h"
 #include "VmConverter.h"
 #include "CDspVmManager_p.h"
+#include "Tasks/Task_EditVm.h"
+#include "Tasks/Task_EditVm_p.h"
 
 namespace Legacy
 {
@@ -114,6 +116,26 @@ PRL_RESULT Registration::execute()
 	return e;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// struct Nvram
+
+PRL_RESULT Nvram::execute()
+{
+	PRL_RESULT e = PRL_ERR_SUCCESS;
+	CVmStartupBios* b = m_config->getVmSettings()->getVmStartupOptions()->getBios();
+	QString n = b->getNVRAM();
+	if (!n.isEmpty())
+	{
+		QFile::remove(n);
+		e = Edit::Vm::Create::Action<CVmStartupBios>(*b, *m_config).execute();
+	}
+
+	if (PRL_SUCCEEDED(e))
+		e = m_next->execute();
+
+	return e;
+}
+
 } // namespace Step
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -155,7 +177,7 @@ void Convoy::release(const IOSender::Handle& handle_, const SmartPtr<IOPackage>&
 	boost::optional<Legacy::Vm::V2V> v2v = Legacy::Vm::Converter().getV2V(*m_config);
 	if (v2v)
 		u.reset(new Step::Convert(*v2v, new Step::FirstStart(*v2v, u.take())));
-	u.reset(new Step::Registration(m_uuid, *m_config, u.take()));
+	u.reset(new Step::Nvram(*m_config, new Step::Registration(m_uuid, *m_config, u.take())));
 
 	SmartPtr<CDspClient> pUserSession;
 

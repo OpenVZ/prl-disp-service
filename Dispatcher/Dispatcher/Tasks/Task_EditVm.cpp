@@ -2862,7 +2862,7 @@ Vm::Action* Nvram::operator()(const Request& input_) const
 // struct Action
 
 template <>
-bool Action<CVmStartupBios>::execute(CDspTaskFailure& feedback_)
+PRL_RESULT Action<CVmStartupBios>::execute()
 {
 	QString file = m_data.getNVRAM();
 
@@ -2870,17 +2870,28 @@ bool Action<CVmStartupBios>::execute(CDspTaskFailure& feedback_)
 		file = QDir(m_path).absoluteFilePath(file);
 
 	if (QFile::exists(file))
-		return Vm::Action::execute(feedback_);
+		return PRL_ERR_SUCCESS;
 
 	if (0 != QProcess::execute("qemu-img", QStringList() << "convert"
 		<< "-O" << "qcow2" << "/usr/share/OVMF/OVMF_VARS.fd" << file))
 	{
 		WRITE_TRACE(DBG_FATAL, "Unable to create NVRAM image with '%s'", qPrintable(file));
-		feedback_(PRL_ERR_NVRAM_FILE_COPY);
-		return false;
+		return PRL_ERR_NVRAM_FILE_COPY;
 	}
 
-	return Vm::Action::execute(feedback_);
+	return PRL_ERR_SUCCESS;
+}
+
+template <>
+bool Action<CVmStartupBios>::execute(CDspTaskFailure& feedback_)
+{
+	PRL_RESULT r = execute();
+
+	if (PRL_SUCCEEDED(r))
+		return Vm::Action::execute(feedback_);
+
+	feedback_(r);
+	return false;
 }
 
 } // namespace Create
