@@ -67,6 +67,7 @@
 #include "Tasks/Task_ChangeSID.h"
 #include "Tasks/Task_ExecVm.h"
 #include "Tasks/Task_EditVm.h"
+#include "Tasks/Task_EditVm_p.h"
 #include "CVcmmdInterface.h"
 #include "CDspBackupDevice.h"
 
@@ -1656,7 +1657,7 @@ REGISTER_HANDLER( IOService::IOSender::Vm,
 /*****************************************************************************/
 
 CDspVmManager::CDspVmManager ( IOSender::Type type, const char* name ) :
-	CDspHandler(type, name)
+	CDspHandler(type, name), m_registry(NULL)
 {
 }
 
@@ -1666,6 +1667,17 @@ CDspVmManager::~CDspVmManager ()
 
 void CDspVmManager::init ()
 {
+}
+
+void CDspVmManager::setRegistry(Registry::Public& registry)
+{
+	m_registry = &registry;
+	if (!this->connect(CDspService::instance(),
+		SIGNAL(onConfigChanged(const SmartPtr<CDispCommonPreferences>,
+				const SmartPtr<CDispCommonPreferences>)),
+		SLOT(onDispConfigChanged(const SmartPtr<CDispCommonPreferences>,
+				const SmartPtr<CDispCommonPreferences>)), Qt::DirectConnection))
+		WRITE_TRACE(DBG_FATAL, "unable to connect onDispConfigChanged(...)");
 }
 
 QString CDspVmManager::getVmIdByHandle(const IOSender::Handle& h) const
@@ -1892,5 +1904,86 @@ void CDspVmManager::changeTimezone( int tzIndex )
 {
 	Q_UNUSED( tzIndex );
 }
+
+void CDspVmManager::onDispConfigChanged
+	(const SmartPtr<CDispCommonPreferences> old_, const SmartPtr<CDispCommonPreferences> new_)
+{
+	if (NULL == m_registry)
+		return;
+
+	// This could be a factory here if there will be more than one action.
+	quint32 t = new_->getWorkspacePreferences()->getVmGuestCpuLimitType();
+	if (old_->getWorkspacePreferences()->getVmGuestCpuLimitType() == t)
+		return;
+
+	Libvirt::Instrument::Agent::Vm::List l = Libvirt::Kit.vms();
+	QList<Libvirt::Instrument::Agent::Vm::Unit> all;
+	l.all(all);
+
+	foreach (const Libvirt::Instrument::Agent::Vm::Unit& u, all)
+	{
+		QString uuid;
+		if (u.getUuid(uuid).isFailed())
+			continue;
+		Registry::Access a = m_registry->find(uuid);
+		boost::optional<Vm::Config::Edit::Atomic> e = a.getConfigEditor();
+
+		if (!e)
+			continue;
+
+		(*e)(Vm::Config::Edit::Cpu::LimitType(t));
+	}
+}
+
+namespace Vm
+{
+namespace Config
+{
+namespace Edit
+{
+namespace Cpu
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct LimitType
+
+PRL_RESULT LimitType::operator()(CVmConfiguration& config_) const
+{
+	QString uuid = config_.getVmIdentification()->getVmUuid();
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(uuid);
+	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+	if (u.getState(s).isFailed() || VMS_UNKNOWN == s)
+		return PRL_ERR_FAILURE;
+
+	CVmCpu* cpu(config_.getVmHardwareList()->getCpu());
+
+	if (NULL == cpu)
+		return PRL_ERR_INCONSISTENCY_VM_CONFIG;
+
+	Libvirt::Result r;
+	if (VMS_RUNNING == s || VMS_PAUSED == s)
+	{
+		WRITE_TRACE(DBG_INFO, "Update runtime CPU limits for VM '%s'", qPrintable(uuid));
+		r = ::Edit::Vm::Runtime::Cpu::Limit::Any(cpu, m_value)(u.getRuntime());
+	}
+	else
+	{
+		WRITE_TRACE(DBG_INFO, "Update offline CPU limits for VM '%s'", qPrintable(uuid));
+		r = ::Edit::Vm::Runtime::Cpu::Limit::Any(cpu, m_value)(u.getEditor());
+	}
+
+	if (r.isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "Failed to update CPU limits for VM '%s'", qPrintable(uuid));
+		return r.error().code();
+	}
+
+	cpu->setGuestLimitType(m_value);
+	return PRL_ERR_SUCCESS;
+}
+
+} // namespace Cpu
+} // namespace Edit
+} // namespace Config
+} // namespace Vm
 
 /*****************************************************************************/

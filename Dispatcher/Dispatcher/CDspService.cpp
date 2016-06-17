@@ -532,6 +532,7 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 	qRegisterMetaType<SmartPtr<CDspClient> >("SmartPtr<CDspClient>");
 	qRegisterMetaType<SmartPtr<IOPackage> >("SmartPtr<IOPackage>");
 	qRegisterMetaType<VIRTUAL_MACHINE_STATE >("VIRTUAL_MACHINE_STATE");
+	qRegisterMetaType<SmartPtr<CDispCommonPreferences> >("SmartPtr<CDispCommonPreferences>");
 #ifdef ETRACE
 	CEtraceStatic::get_instance()->init(true);
 #endif
@@ -1545,6 +1546,8 @@ bool CDspService::initIOServer()
 	createIOServers( listenPort, securityLevel );
 
 	CDspHandlerRegistrator::instance().doHandlersInit();
+
+	getVmManager().setRegistry(*m_registry);
 
 	// Listen should be called after doHandlersInit, because of
 	// possible reset of routing table for IO server union
@@ -2977,6 +2980,12 @@ void CDspService::emitCleanupOnUserSessionDestroy( QString sessionUuid )
 {
 	if( !m_bServerStopping )
 		emit cleanupOnUserSessionDestroy(sessionUuid);
+}
+
+void CDspService::notifyConfigChanged
+	(const SmartPtr<CDispCommonPreferences>& old_, const SmartPtr<CDispCommonPreferences>& new_)
+{
+	emit onConfigChanged(old_, new_);
 }
 
 void CDspService::onCleanupOnUserSessionDestroy( QString sessionUuid )

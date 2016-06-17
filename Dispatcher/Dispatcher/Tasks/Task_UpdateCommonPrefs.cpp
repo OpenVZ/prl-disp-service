@@ -362,6 +362,8 @@ void Task_UpdateCommonPrefs::finalizeTask()
 		p = DispatcherPackage::createInstance( PVE::DspVmEvent, event, getRequestPackage());
 
 		CDspService::instance()->getClientManager().sendPackageToAllClients( p );
+
+		CDspService::instance()->notifyConfigChanged(m_pOldCommonPrefs, m_pNewCommonPrefs);
 	}
 
 	// send response

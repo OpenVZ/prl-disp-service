@@ -842,7 +842,7 @@ typedef Tag::Timeout<Tag::State<Launcher, Fork::State::Strict<VMS_STOPPED> >, Fa
 
 struct Hotplug
 {
-	Hotplug(Libvirt::Instrument::Agent::Vm::Runtime runtime_,
+	Hotplug(Libvirt::Instrument::Agent::Vm::Editor runtime_,
 		const CVmIdentification& ident_, const SmartPtr<CDspClient>& session_)
 		: m_runtime(runtime_), m_ident(ident_), m_session(session_)
 	{
@@ -852,12 +852,40 @@ struct Hotplug
 	Libvirt::Result unplug(const CVmHardDisk& disk_);
 
 private:
-	Libvirt::Instrument::Agent::Vm::Runtime m_runtime;
+	Libvirt::Instrument::Agent::Vm::Editor m_runtime;
 	const CVmIdentification& m_ident;
 	SmartPtr<CDspClient> m_session;
 };
 
 } // namespace Command
+
+namespace Vm
+{
+namespace Config
+{
+namespace Edit
+{
+namespace Cpu
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct LimitType
+
+struct  LimitType: std::unary_function<PRL_RESULT, CVmConfiguration&>
+{
+	explicit LimitType(quint32 value_): m_value(value_)
+	{
+	}
+
+	PRL_RESULT operator()(CVmConfiguration& config_) const;
+
+private:
+	quint32 m_value;
+};
+
+} // namespace Cpu
+} // namespace Edit
+} // namespace Config
+} // namespace Vm
 
 #endif // __CDSPVMMANAGER_P_H__
 

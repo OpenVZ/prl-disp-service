@@ -207,7 +207,7 @@ struct Forge
 	template<class T>
 	Action* craftRuntime(const T& decorated_) const
 	{
-		return new Domain<T, Libvirt::Instrument::Agent::Vm::Runtime>
+		return new Domain<T, Libvirt::Instrument::Agent::Vm::Editor>
 			(getUnit().getRuntime(), decorated_);
 	}
 
@@ -649,7 +649,7 @@ namespace Cpu
 namespace Limit
 {
 
-typedef boost::function<Libvirt::Result (Libvirt::Instrument::Agent::Vm::Runtime, quint64, quint64)> setter_type;
+typedef boost::function<Libvirt::Result (Libvirt::Instrument::Agent::Vm::Editor, quint64, quint64)> setter_type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Percents
@@ -661,7 +661,7 @@ struct Percents
 	{
 	}
 
-	Libvirt::Result operator()(Libvirt::Instrument::Agent::Vm::Runtime agent_) const;
+	Libvirt::Result operator()(const Libvirt::Instrument::Agent::Vm::Editor& agent_) const;
 
 private:
 	quint32 m_value;
@@ -678,11 +678,27 @@ struct Mhz
 	{
 	}
 
-	Libvirt::Result operator()(Libvirt::Instrument::Agent::Vm::Runtime agent_) const;
+	Libvirt::Result operator()(const Libvirt::Instrument::Agent::Vm::Editor& agent_) const;
 
 private:
 	quint32 m_value;
 	setter_type m_setter;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Any
+
+struct Any
+{
+	Any(const CVmCpu& cpu, quint32 type_): m_cpu(cpu), m_type(type_)
+	{
+	}
+
+	Libvirt::Result operator()(const Libvirt::Instrument::Agent::Vm::Editor& agent_) const;
+
+private:
+	CVmCpu m_cpu;
+	quint32 m_type;
 };
 
 } // namespace Limit

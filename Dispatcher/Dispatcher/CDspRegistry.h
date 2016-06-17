@@ -39,6 +39,7 @@
 #include <QReadWriteLock>
 #include <boost/mpl/at.hpp>
 #include <prlsdk/PrlEnums.h>
+#include "CDspVmConfigManager.h"
 #include <prlxmlmodel/Messaging/CVmEvent.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/Std/SmartPtr.h>
@@ -87,6 +88,8 @@ struct Access
 	void updateConfig(const CVmConfiguration& value_);
 
 	QWeakPointer<Stat::Storage> getStorage();
+
+	boost::optional< ::Vm::Config::Edit::Atomic> getConfigEditor() const;
 
 private:
 	QString m_uuid;

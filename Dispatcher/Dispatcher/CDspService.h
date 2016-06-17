@@ -281,6 +281,8 @@ public:
 
 	void emitCleanupOnUserSessionDestroy( QString sessionUuid );
 
+	void notifyConfigChanged(const SmartPtr<CDispCommonPreferences>&, const SmartPtr<CDispCommonPreferences>&);
+
 public slots:
 
 	/**
@@ -306,12 +308,13 @@ public slots:
 	void checkAndDisableFirewall( bool );
 
 signals:
-    void onDoStopFromMainThread ();
-    void onDoNatDetectFromMainThread ();
-	void onStartOrStopListeningAnyAddr ( bool );
-	void onUpCustomListeningInterface( const QString & );
+	void onConfigChanged(const SmartPtr<CDispCommonPreferences>, const SmartPtr<CDispCommonPreferences>);
+	void onDoStopFromMainThread();
+	void onDoNatDetectFromMainThread();
+	void onStartOrStopListeningAnyAddr(bool);
+	void onUpCustomListeningInterface(const QString &);
 
-	void cleanupOnUserSessionDestroy( QString sessionUuid );
+	void cleanupOnUserSessionDestroy(QString sessionUuid);
 
 	/* retransmit Vm migration events to migration task */
 	void onVmMigrateEventReceived(const QString &, const SmartPtr<IOPackage> &);

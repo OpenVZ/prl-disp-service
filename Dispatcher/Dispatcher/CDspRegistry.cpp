@@ -289,6 +289,15 @@ QWeakPointer<Stat::Storage> Access::getStorage()
 	return x->getStorage();
 }
 
+boost::optional< ::Vm::Config::Edit::Atomic> Access::getConfigEditor() const
+{
+	QSharedPointer<Vm> x = m_vm.toStrongRef();
+	if (x.isNull())
+		return boost::none;
+
+	return x->getConfigEditor();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Public
 

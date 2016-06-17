@@ -2034,6 +2034,12 @@ PRL_RESULT Task_EditVm::editVm()
 
 			} while (0);
 
+			quint32 t(CDspService::instance()->getDispConfigGuard().getDispConfig()
+					->getDispatcherSettings()->getCommonPreferences()
+					->getWorkspacePreferences()->getVmGuestCpuLimitType());
+
+			pVmConfigNew->getVmHardwareList()->getCpu()->setGuestLimitType(t);
+
 			if (nState != VMS_STOPPED && (bNeedVNCStop || bNeedVNCStart))
 			{
 				WRITE_TRACE(DBG_FATAL, "Unable to edit VNC preferences for running VM %s.",
@@ -3416,12 +3422,12 @@ Action* ChangeableMedia<T>::operator()(const Request& input_) const
 		if (x->getSystemName() != d->getSystemName())
 		{
 			a = f.craftRuntime(boost::bind
-				(&vm::Runtime::update<T>, _1, *d));
+				(&vm::Editor::update<T>, _1, *d));
 		}
 		else if (x->getConnected() != d->getConnected())
 		{
 			a = f.craftRuntime(boost::bind
-				(&vm::Runtime::update<T>, _1, *d));
+				(&vm::Editor::update<T>, _1, *d));
 		}
 		else
 			continue;
@@ -3456,7 +3462,7 @@ Action* Adapter::operator()(const Request& input_) const
 		{
 			CVmGenericNetworkAdapter copy = PrlNet::fixMacFilter(
 					*d, input_.getFinal().getVmHardwareList()->m_lstNetworkAdapters);
-			a = f.craftRuntime(boost::bind(&vm::Runtime::update
+			a = f.craftRuntime(boost::bind(&vm::Editor::update
 				<CVmGenericNetworkAdapter>, _1, copy));
 		}
 		// but we can attach 'routed' interface to network's bridge without libvirt
@@ -3544,7 +3550,7 @@ Vm::Action* Disk::operator()(const Request& input_) const
 			if (p == NULL || l->getIoLimitValue() != p->getIoLimitValue())
 			{
 				Action* a(f.craftRuntime(boost::bind
-					(&vm::Runtime::setIoLimit, _1, d, l->getIoLimitValue())));
+					(&vm::Editor::setIoLimit, _1, d, l->getIoLimitValue())));
 				a->setNext(output);
 				output = a;
 			}
@@ -3552,7 +3558,7 @@ Vm::Action* Disk::operator()(const Request& input_) const
 
 		if (d->getIopsLimit() != (*x)->getIopsLimit()) {
 			Action* a(f.craftRuntime(boost::bind
-				(&vm::Runtime::setIopsLimit, _1, d, d->getIopsLimit())));
+				(&vm::Editor::setIopsLimit, _1, d, d->getIopsLimit())));
 			a->setNext(output);
 			output = a;
 		}
@@ -3579,7 +3585,7 @@ Vm::Action* Blkiotune::operator()(const Request& input_) const
 	if (o == n)
 		return NULL;
 
-	return Forge(input_).craftRuntime(boost::bind(&vm::Runtime::setIoPriority, _1, n));
+	return Forge(input_).craftRuntime(boost::bind(&vm::Editor::setIoPriority, _1, n));
 }
 
 namespace Network
@@ -3611,7 +3617,7 @@ namespace Limit
 ///////////////////////////////////////////////////////////////////////////////
 // struct Percents
 
-Libvirt::Result Percents::operator()(vm::Runtime agent_) const
+Libvirt::Result Percents::operator()(const vm::Editor& agent_) const
 {
 	Prl::Expected<VtInfo, Error::Simple> v = Libvirt::Kit.host().getVt();
 	if (v.isFailed())
@@ -3624,7 +3630,7 @@ Libvirt::Result Percents::operator()(vm::Runtime agent_) const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Mhz
 
-Libvirt::Result Mhz::operator()(vm::Runtime agent_) const
+Libvirt::Result Mhz::operator()(const vm::Editor& agent_) const
 {
 	Prl::Expected<VtInfo, Error::Simple> v = Libvirt::Kit.host().getVt();
 	if (v.isFailed())
@@ -3635,6 +3641,26 @@ Libvirt::Result Mhz::operator()(vm::Runtime agent_) const
 	quint32 l = ceilDiv(static_cast<quint64>(m_value) * p,
 			v.value().getQemuKvm()->getVCpuInfo()->getMhz());
 	return m_setter(agent_, l, p);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Any
+
+Libvirt::Result Any::operator()(const vm::Editor& agent_) const
+{
+	quint32 n(m_cpu.getCpuLimitValue());
+	Limit::setter_type s(boost::bind(&vm::Editor::setGlobalCpuLimit, _1, _2, _3));
+	if (PRL_VM_CPULIMIT_GUEST == m_type) {
+		n = ceilDiv(n, m_cpu.getNumber());
+		s = boost::bind(&vm::Editor::setPerCpuLimit, _1, _2, _3);
+	}
+
+	if (m_cpu.getCpuLimitType() == PRL_CPULIMIT_MHZ)
+		return Limit::Mhz(n, s)(agent_);
+	else if (m_cpu.getCpuLimitType() == PRL_CPULIMIT_PERCENTS)
+		return Limit::Percents(n, s)(agent_);
+
+	return Error::Simple(PRL_ERR_FAILURE, "Unknown type of CPU limit");
 }
 
 } // namespace Limit
@@ -3650,13 +3676,13 @@ Vm::Action* Factory::operator()(const Request& input_) const
 	CVmCpu* oldCpu(input_.getStart().getVmHardwareList()->getCpu());
 	CVmCpu* newCpu(input_.getFinal().getVmHardwareList()->getCpu());
 	if (oldCpu->getCpuUnits() != newCpu->getCpuUnits())
-		output = f.craftRuntime(boost::bind(&vm::Runtime::setCpuUnits, _1, newCpu->getCpuUnits()));
+		output = f.craftRuntime(boost::bind(&vm::Editor::setCpuUnits, _1, newCpu->getCpuUnits()));
 
 	w = (oldCpu->isEnableHotplug() != newCpu->isEnableHotplug());
 
 	if (oldCpu->getNumber() < newCpu->getNumber()) {
 		if (oldCpu->isEnableHotplug() && newCpu->isEnableHotplug()) {
-			Action* a(f.craftRuntime(boost::bind(&vm::Runtime::setCpuCount, _1, newCpu->getNumber())));
+			Action* a(f.craftRuntime(boost::bind(&vm::Editor::setCpuCount, _1, newCpu->getNumber())));
 			a->setNext(output);
 			output = a;
 		} else
@@ -3689,29 +3715,17 @@ Vm::Action* Factory::craftLimit(const Request& input_) const
 			oldCpu->getNumber() == newCpu->getNumber())
 		return NULL;
 
-	quint32 type(CDspService::instance()->getDispConfigGuard().getDispConfig()
+
+	if (newCpu->getCpuLimitType() != PRL_CPULIMIT_MHZ
+			&& newCpu->getCpuLimitType() != PRL_CPULIMIT_PERCENTS)
+		return NULL;
+
+	quint32 t(CDspService::instance()->getDispConfigGuard().getDispConfig()
 			->getDispatcherSettings()->getCommonPreferences()
 			->getWorkspacePreferences()->getVmGuestCpuLimitType());
 
-	quint32 o(oldCpu->getCpuLimitValue());
-	quint32 n(newCpu->getCpuLimitValue());
-	Limit::setter_type s(boost::bind(&vm::Runtime::setGlobalCpuLimit, _1, _2, _3));
-	if (PRL_VM_CPULIMIT_GUEST == type) {
-		o = ceilDiv(o, oldCpu->getNumber());
-		n = ceilDiv(n, newCpu->getNumber());
-		s = boost::bind(&vm::Runtime::setPerCpuLimit, _1, _2, _3);
-	}
-
-	if (o == n && oldCpu->getCpuLimitType() == newCpu->getCpuLimitType())
-		return NULL;
-
 	Forge f(input_);
-	if (newCpu->getCpuLimitType() == PRL_CPULIMIT_MHZ)
-		return f.craftRuntime(Limit::Mhz(n, s));
-	else if (newCpu->getCpuLimitType() == PRL_CPULIMIT_PERCENTS)
-		return f.craftRuntime(Limit::Percents(n, s));
-
-	return NULL;
+	return f.craftRuntime(Limit::Any(*newCpu, t));
 }
 
 } // namespace Cpu
@@ -3741,7 +3755,7 @@ Action* Hotplug<T>::operator()(const Request& input_) const
 	foreach (T* d, getDifference(n, o))
 	{
 		Action* a = f.craftRuntime(boost::bind(
-			&Libvirt::Instrument::Agent::Vm::Runtime::plug<T>,
+			&Libvirt::Instrument::Agent::Vm::Editor::plug<T>,
 			_1, *d));
 		a->setNext(output);
 		output = a;
@@ -3749,7 +3763,7 @@ Action* Hotplug<T>::operator()(const Request& input_) const
 	foreach (T* d, getDifference(o, n))
 	{
 		Action* a = f.craftRuntime(boost::bind(
-			&Libvirt::Instrument::Agent::Vm::Runtime::unplug<T>,
+			&Libvirt::Instrument::Agent::Vm::Editor::unplug<T>,
 			_1, *d));
 		a->setNext(output);
 		output = a;

@@ -169,20 +169,21 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Runtime
+// struct Editor
 
-struct Runtime
+struct Editor
 {
-	explicit Runtime(const QSharedPointer<virDomain>& domain_)
-		: m_domain(domain_)
+	explicit Editor(const QSharedPointer<virDomain>& domain_,
+			quint32 flags_ = VIR_DOMAIN_AFFECT_CONFIG)
+		: m_domain(domain_), m_flags(flags_)
 	{
 	}
 
+	Result setPerCpuLimit(quint32 limit_, quint32 period_);
+	Result setGlobalCpuLimit(quint32 limit_, quint32 period_);
 	Result setIoLimit(const CVmHardDisk& disk_, quint32 limit_);
 	Result setIopsLimit(const CVmHardDisk& disk_, quint32 limit_);
 	Result setIoPriority(quint32 ioprio_);
-	Result setPerCpuLimit(quint32 limit_, quint32 period_);
-	Result setGlobalCpuLimit(quint32 limit_, quint32 period_);
 	Result setCpuUnits(quint32 units_);
 	Result setCpuCount(quint32 count_);
 
@@ -198,6 +199,7 @@ private:
 	Result setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_);
 
 	QSharedPointer<virDomain> m_domain;
+	quint32 m_flags;
 };
 
 namespace Block
@@ -445,7 +447,8 @@ struct Unit
 	{
 		return Snapshot::List(m_domain);
 	}
-	Runtime getRuntime() const;
+	Editor getRuntime() const;
+	Editor getEditor() const;
 	Exec::AuxChannel* getChannel(const QString& path_) const;
 
 private:

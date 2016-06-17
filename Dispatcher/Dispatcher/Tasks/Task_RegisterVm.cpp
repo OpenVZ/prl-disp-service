@@ -1415,6 +1415,11 @@ PRL_RESULT Task_RegisterVm::run_body()
 		if ( ! PRL_SUCCEEDED( ret ) )
 			throw ret;
 
+		quint32 t(CDspService::instance()->getDispConfigGuard().getDispConfig()
+					->getDispatcherSettings()->getCommonPreferences()
+					->getWorkspacePreferences()->getVmGuestCpuLimitType());
+
+		m_pVmConfig->getVmHardwareList()->getCpu()->setGuestLimitType(t);
 
 		LOG_MESSAGE( DBG_FATAL,"##########  Configuration created/checked. ##########");
 
