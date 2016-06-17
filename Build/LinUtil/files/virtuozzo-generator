@@ -60,7 +60,7 @@ class Systemd_unit(object):
         self.description = ""
         self.service_prefix = "vz_"
         self.deftarget = deftarget
-        self.lock = started_dir + "/{self.nobr_uuid}"
+        self.lock = started_dir + "/" + self.nobr_uuid
 
     def __str__(self):
         return \
