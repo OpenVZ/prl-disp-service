@@ -1089,12 +1089,6 @@ PRL_RESULT MigrateVmTarget::adjustStartVmCommand(SmartPtr<IOPackage>& pPackage)
 	pVmConfig->getVmIdentification()->setHomePath(m_sVmConfigPath);
 	WRITE_TRACE(DBG_DEBUG, "set home path '%s'", qPrintable(m_sVmConfigPath));
 	pVmConfig->getVmHardwareList()->RevertDevicesPathToAbsolute(m_sTargetVmHomePath);
-	if (m_pVmConfig->getVmSettings()->getVmStartupOptions() != NULL)
-	{
-		CVmStartupBios* b = m_pVmConfig->getVmSettings()->getVmStartupOptions()->getBios();
-		if (b != NULL && !b->getNVRAM().isEmpty() && QDir::isRelativePath(b->getNVRAM()))
-			b->setNVRAM(QDir(m_sTargetVmHomePath).absoluteFilePath(b->getNVRAM()));
-	}
 
 	pEventParam = pStartCmd->GetCommand()->getEventParameter(EVT_PARAM_MIGRATE_CMD_VM_CONFIG);
 	if (pEventParam)
@@ -1191,7 +1185,8 @@ void MigrateVmTarget::checkRemoteDisplay()
 void MigrateVmTarget::checkEfiBoot()
 {
 	if (!m_pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()
-		|| !m_pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled())
+		|| !m_pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled()
+		|| m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsVersion() != PVS_GUEST_VER_WIN_2008)
 		return;
 
 	CVmEvent cEvent;

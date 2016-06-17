@@ -262,6 +262,15 @@ namespace Vm
 
 PRL_RESULT Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 {
+	CVmStartupBios* b = cfg->getVmSettings()->getVmStartupOptions()->getBios();
+	if (b->isEfiEnabled())
+	{
+		b->setNVRAM(QDir(QFileInfo(cfg->getVmIdentification()->getHomePath()).absolutePath())
+			.absoluteFilePath(PRL_VM_NVRAM_FILE_NAME));
+	}
+	else
+		b->setNVRAM(QString());
+
 	CVmHardware *pVmHardware;
 	if ((pVmHardware = cfg->getVmHardwareList()) == NULL) {
 		WRITE_TRACE(DBG_FATAL, "[%s] Can not get Vm hardware list", __FUNCTION__);

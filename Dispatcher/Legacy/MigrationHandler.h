@@ -145,6 +145,24 @@ private:
 	QScopedPointer<Unit> m_next;
 };
 
+/////////////////////////////////////////////////////////////////////////////////
+// struct Nvram
+
+struct Nvram: Unit
+{
+	Nvram(const CVmConfiguration& config, Unit* next_)
+		: m_config(&config)
+	{
+		m_next.reset(next_);
+	}
+
+	PRL_RESULT execute();
+
+private:
+	const CVmConfiguration* m_config;
+	QScopedPointer<Unit> m_next;
+};
+
 } // namespace Step
 
 /////////////////////////////////////////////////////////////////////////////////

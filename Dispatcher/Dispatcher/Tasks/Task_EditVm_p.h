@@ -370,6 +370,7 @@ struct Action: Vm::Action
 	}
 
 	bool execute(CDspTaskFailure& feedback_);
+	PRL_RESULT execute();
 
 private:
 	T m_data;
