@@ -37,6 +37,7 @@
 #include "prlcommon/Interfaces/ParallelsNamespace.h"
 
 #include "prlcommon/Logging/Logging.h"
+#include "prlcommon/HostUtils/HostUtils.h"
 #include "Libraries/StatesStore/SavedStateTree.h"
 
 #include "Task_RemoveVmBackup.h"
@@ -46,6 +47,7 @@
 #include "prlcommon/Std/PrlAssert.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "prlxmlmodel/BackupTree/BackupTree.h"
+#include "Tasks/Task_BackupHelper_p.h"
 
 /*******************************************************************************
 
@@ -87,6 +89,12 @@ PRL_RESULT Task_RemoveVmBackupSource::run_body()
 
 	if (m_sVmUuid.isEmpty())
 	{
+		if (m_sBackupId.isEmpty()) {
+			nRetCode = PRL_ERR_INVALID_ARG;
+			WRITE_TRACE(DBG_FATAL, "[%s] Invalid parameters : empty backup Uuid and Vm Uuid", __FUNCTION__);
+			goto exit;
+		}
+
 		QString sBackupTree;
 		if (PRL_FAILED(nRetCode = GetBackupTreeRequest(m_sVmUuid, sBackupTree)))
 		{
@@ -207,6 +215,212 @@ void Task_RemoveVmBackupSource::finalizeTask()
 		getClient()->sendResponseError(getLastError(), getRequestPackage());
 }
 
+namespace Backup
+{
+namespace Remove
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Item
+
+PRL_RESULT Item::load(Task_BackupHelper *context_)
+{
+	PRL_RESULT e;
+	QStringList l;
+	if (m_number < PRL_PARTIAL_BACKUP_START_NUMBER) {
+		BackupItem b;
+		if (PRL_FAILED((e = context_->loadBaseBackupMetadata(m_ve, m_uuid, &b))))
+			return e;
+		l = b.getTibFileList();
+		m_data = b;
+	} else {
+		PartialBackupItem p;
+		if (PRL_FAILED((e = context_->loadPartialBackupMetadata(m_ve, m_uuid, m_number, &p))))
+			return e;
+		l = p.getTibFileList();
+		m_data = p;
+	}
+	foreach(QString f, l)
+		m_files << QFileInfo(m_dir.absoluteDir(), f).absoluteFilePath();
+	return e;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Meta
+
+PRL_RESULT Meta::operator()(const PartialBackupItem& from_, const BackupItem& to_) const
+{
+	BackupItem b(to_);
+	b.setHost(from_.getHost());
+	b.setServerUuid(from_.getServerUuid());
+	b.setDateTime(from_.getDateTime());
+	b.setCreator(from_.getCreator());
+	b.setSize(b.getSize() + from_.getSize());
+	b.setDescription(from_.getDescription());
+	b.setOriginalSize(b.getOriginalSize() + from_.getOriginalSize());
+	b.setBundlePermissions(from_.getBundlePermissions());
+	return b.saveToFile(m_file);
+}
+
+PRL_RESULT Meta::operator()(const PartialBackupItem& from_, const PartialBackupItem& to_) const
+{
+	PartialBackupItem p(from_);
+	p.setNumber(to_.getNumber());
+	p.setId(to_.getId());
+	p.setTibFileList(to_.getTibFileList());
+	return p.saveToFile(m_file);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Remover
+
+PRL_RESULT Remover::rmdir(const QString& dir_, CDspTaskFailure fail_)
+{
+	if (!CFileHelper::ClearAndDeleteDir(dir_)) {
+		fail_(dir_);
+		WRITE_TRACE(DBG_FATAL, "Can't remove \"%s\" directory", QSTR2UTF8(dir_));
+		return PRL_ERR_BACKUP_CANNOT_REMOVE_DIRECTORY;
+	}
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Remover::unlink(const QString& file_)
+{
+	QFile f(file_);
+	if (f.remove())
+		return PRL_ERR_SUCCESS;
+	WRITE_TRACE(DBG_FATAL, "QFile(%s)::remove error: %s", QSTR2UTF8(f.fileName()),
+			QSTR2UTF8(f.errorString()));
+	return PRL_ERR_OPERATION_FAILED;
+}
+
+QList<action_type> Remover::unlinkItem(const Item& item_, const CDspTaskFailure& fail_)
+{
+	QList<action_type> a;
+	a << boost::bind(Remover::rmdir, item_.getDir(), fail_);
+	foreach(QString f, item_.getFiles())
+		a << boost::bind(Remover::unlink, f);
+	return a;
+}
+
+QList<action_type> Remover::operator()(const list_type& objects_, quint32 index_)
+{
+	if (!index_) {
+		return QList<action_type>() << boost::bind(Remover::rmdir,
+			QFileInfo(objects_.first()->getDir()).absolutePath(),
+			CDspTaskFailure(*m_context));
+	}
+
+	QList<action_type> a;
+	for (int i = index_; i < objects_.size(); i++)
+		a << unlinkItem(*objects_.at(i), CDspTaskFailure(*m_context));
+	return a;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Shifter
+
+PRL_RESULT Shifter::move(const QString& from_, const QString& to_)
+{
+	QFile f(from_);
+	if (f.rename(to_))
+		return PRL_ERR_SUCCESS;
+	WRITE_TRACE(DBG_FATAL, "QFile::rename from %s to %s failed, error: %s",
+			QSTR2UTF8(from_), QSTR2UTF8(to_), QSTR2UTF8(f.errorString()));
+	return PRL_ERR_OPERATION_FAILED;
+}
+
+PRL_RESULT Shifter::moveDir(const QString& from_, const QString& to_)
+{
+	QFileInfo f(from_), t(to_);
+	QDir b(f.dir());
+	if (b.rename(f.fileName(), t.fileName()))
+		return PRL_ERR_SUCCESS;
+	WRITE_TRACE(DBG_FATAL, "QDir::rename from %s to %s failed!",
+					QSTR2UTF8(from_), QSTR2UTF8(to_));
+	return PRL_ERR_OPERATION_FAILED;
+}
+
+QList<action_type> Shifter::moveItem(const Item& from_, const Item& to_)
+{
+	QList<action_type> a;
+	PRL_RESULT (*f)(const Meta&, item_type&, item_type&) = boost::apply_visitor<Meta, item_type, item_type>;
+	a << boost::bind(f, Meta(from_.getDir()), from_.getData(), to_.getData());
+	a << boost::bind(Shifter::moveDir, from_.getDir(), to_.getDir());
+
+	if (from_.getFiles().size() != to_.getFiles().size()) {
+		WRITE_TRACE(DBG_FATAL, "Different number of archives for backup %s and %s",
+				QSTR2UTF8(from_.getDir()), QSTR2UTF8(to_.getDir()));
+		return a << action_type();
+	}
+	for (int i = 0; i < from_.getFiles().size(); i++)
+		a << boost::bind(Shifter::move, from_.getFiles().at(i), to_.getFiles().at(i));
+	return a;
+}
+
+PRL_RESULT Shifter::rebase(const QString& file_, const QString& base_, bool safe_)
+{
+	QStringList a = QStringList() << QEMU_IMG << "rebase" << "-t" << "none";
+	if (safe_) {
+		// -u (unsafe) means simply change of base name - a caller
+		// guarantee that content of base image is not changed - and it
+		// is so indeed, because we just renamed base image and need to
+		// reflect this rename in this one.
+		a << "-u";
+	}
+	a << "-b" << base_ << file_;
+	WRITE_TRACE(DBG_FATAL, "Run cmd: %s", QSTR2UTF8(a.join(" ")));
+
+	QProcess process;
+	DefaultExecHandler h(process, a.join(" "));
+	if (!HostUtils::RunCmdLineUtilityEx(a, process,  QEMU_IMG_RUN_TIMEOUT, NULL)(h).isSuccess())
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot rebase hdd '%s' to '%s': %s", QSTR2UTF8(file_),
+				QSTR2UTF8(base_), h.getStderr().constData());
+		return PRL_ERR_BACKUP_INTERNAL_ERROR;
+	}
+	return PRL_ERR_SUCCESS;
+}
+
+QList<action_type> Shifter::rebaseItem(const Item& item_, const Item& base_, bool safe_)
+{
+	QList<action_type> a;
+	for (int i = 0; i < item_.getFiles().size(); i++) {
+		QString base = (i < base_.getFiles().size()) ? base_.getFiles().at(i) : ""; 
+		a << boost::bind(Shifter::rebase, item_.getFiles().at(i), base, safe_);
+	}
+	return a;
+}
+
+QList<action_type> Shifter::operator()(const list_type& objects_, quint32 index_)
+{
+	// Overall algorithm:
+	// 	* rebase n(next) to c(current)(to be removed) item to the p(previous) one
+	// 	* remove c(current)
+	// 	* shift n(next) to the place of c(current)
+	// 	* repeat shift for all subsequent images, with renames of their bases
+	QList<action_type> a;
+	element_type c = objects_.at(index_);
+	if (objects_.size() == (int)index_ + 1)
+		return Remover::unlinkItem(*c, CDspTaskFailure(*m_context));
+
+	element_type n = objects_.at(index_ + 1);
+	element_type p = (index_ > 0) ? objects_.at(index_ - 1) : element_type(new Item);
+	a << rebaseItem(*n, *p, false);
+	a << Remover::unlinkItem(*c, CDspTaskFailure(*m_context));
+	a << moveItem(*n, *c);
+	for (int i = index_ + 2; i < objects_.size(); i++) {
+		n = objects_.at(i);
+		c = objects_.at(i - 1);
+		element_type p = objects_.at(i - 2);
+		a << rebaseItem(*n, *p, true);
+		a << moveItem(*n, *c);
+	}
+	return a;
+}
+
+} // namespace Remove
+} // namespace Backup
+
 /*******************************************************************************
 
  Backup removing task for server
@@ -228,99 +442,94 @@ m_pDispConnection(pDispConnection)
 	m_nLocked = 0;
 }
 
+Prl::Expected<QList<Backup::Remove::action_type>, PRL_RESULT> Task_RemoveVmBackupTarget::prepare()
+{
+	if (m_sBackupId.isEmpty() && !m_sVmUuid.isEmpty())
+		return removeAllBackupsForVm();
+
+	parseBackupId(m_sBackupId, m_sBackupUuid, m_nBackupNumber);
+
+	QStringList b;
+	getBaseBackupList(m_sVmUuid, b);
+	if (!b.contains(m_sBackupUuid))
+		return PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
+
+	QString path = QString("%1/%2/%3").arg(getBackupDirectory()).arg(m_sVmUuid).arg(m_sBackupUuid);
+	Backup::Remove::list_type o;
+	o << Backup::Remove::element_type(new Backup::Remove::Item(path, m_sVmUuid, m_sBackupUuid));
+	int pos = 0;
+
+	QList<unsigned> p;
+	bool shift = m_nFlags & PBT_KEEP_CHAIN;
+	if (m_nBackupNumber != PRL_BASE_BACKUP_NUMBER || shift) {
+		getPartialBackupList(m_sVmUuid, m_sBackupUuid, p);
+		if (p.isEmpty())
+			shift = false;
+	}
+	if ((b.size() == 1) && m_nBackupNumber == PRL_BASE_BACKUP_NUMBER && !shift)
+		return removeAllBackupsForVm();
+	foreach(unsigned i, p) {
+		Backup::Remove::element_type x(
+			new Backup::Remove::Item(path, m_sVmUuid, m_sBackupUuid));
+		x->setNumber(i);
+		if (i == m_nBackupNumber)
+			pos = o.size();
+		o << x;
+	}
+
+	m_lstBackupUuid.append(m_sBackupUuid);
+
+	foreach(Backup::Remove::element_type i, o)
+		i->load(this);
+	if (shift)
+		return Backup::Remove::Shifter(*this)(o, pos);
+
+	return Backup::Remove::Remover(*this)(o, pos);
+}
+
+PRL_RESULT Task_RemoveVmBackupTarget::do_(const QList<Backup::Remove::action_type>& actions_)
+{
+	/* to lock all backups */
+	PRL_RESULT e;
+	for (m_nLocked = 0; m_nLocked < m_lstBackupUuid.size(); ++m_nLocked) {
+		if (PRL_FAILED(e = lockExclusive(m_lstBackupUuid.at(m_nLocked))))
+			return e;
+	}
+
+	foreach(Backup::Remove::action_type a, actions_) {
+		if (a.empty())
+			return PRL_ERR_BACKUP_INTERNAL_ERROR;
+	}
+	foreach(Backup::Remove::action_type a, actions_) {
+		if (PRL_FAILED((e = a())))
+			return e;
+	}
+	return PRL_ERR_SUCCESS;
+}
+
 PRL_RESULT Task_RemoveVmBackupTarget::run_body()
 {
 	//https://bugzilla.sw.ru/show_bug.cgi?id=267152
 	CAuthHelperImpersonateWrapper _impersonate( &getClient()->getAuthHelper() );
 
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	QStringList lstBackupUuid;
-	QString sVmPath;
-
-	if (m_sBackupId.isEmpty()) {
-		if (m_sVmUuid.isEmpty()) {
-			nRetCode = PRL_ERR_BACKUP_INTERNAL_ERROR;
-			WRITE_TRACE(DBG_FATAL, "[%s] Invalid parameters : empty backup Uuid and Vm Uuid", __FUNCTION__);
-			goto exit;
-		}
-		sVmPath = QString("%1/%2").arg(getBackupDirectory()).arg(m_sVmUuid);
-		/* to remove all backups of this client for this Vm */
-		if (PRL_FAILED(nRetCode = removeAllBackupsForVm(sVmPath)))
-			goto exit;
-	} else {
-		if (PRL_FAILED(parseBackupId(m_sBackupId, m_sBackupUuid, m_nBackupNumber))) {
-				nRetCode = PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
-				CVmEvent *pEvent = getLastError();
-				pEvent->setEventCode(nRetCode);
-				pEvent->addEventParameter(new CVmEventParameter(
-						PVE::String, m_sBackupUuid, EVT_PARAM_MESSAGE_PARAM_0));
-				WRITE_TRACE(DBG_FATAL, "Backup \"%s\" does not exist", QSTR2UTF8(m_sBackupId));
-				goto exit;
-		}
-		/*don't need it. we search vmUuid by backupId on Source.
-		  save it for compatibility with older servers. */
-		if (m_sVmUuid.isEmpty()) {
-			/* will find for all users */
-			if (PRL_FAILED(findVmUuidForBackupUuid(m_sBackupUuid, m_sVmUuid))) {
-				nRetCode = PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
-				CVmEvent *pEvent = getLastError();
-				pEvent->setEventCode(nRetCode);
-				pEvent->addEventParameter(new CVmEventParameter(
-						PVE::String, m_sBackupUuid, EVT_PARAM_MESSAGE_PARAM_0));
-				WRITE_TRACE(DBG_FATAL, "Backup \"%s\" does not exist", QSTR2UTF8(m_sBackupUuid));
-				goto exit;
-			}
-		}
-
-		sVmPath = QString("%1/%2").arg(getBackupDirectory()).arg(m_sVmUuid);
-		QString sBackupPath = QString("%1/%2").arg(sVmPath).arg(m_sBackupUuid);
-		if (m_nBackupNumber == PRL_BASE_BACKUP_NUMBER)
-			m_cTargetDir.setFile(sBackupPath);
-		else
-			m_cTargetDir.setFile(QString("%1/%2").arg(sBackupPath).arg(m_nBackupNumber));
-
-		if (!m_cTargetDir.exists()) {
-			nRetCode = PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-					PVE::String, m_sBackupUuid, EVT_PARAM_MESSAGE_PARAM_0));
-			WRITE_TRACE(DBG_FATAL, "Backup \"%s\" does not exist", QSTR2UTF8(m_sBackupId));
-			goto exit;
-		}
-
-		/* to check access before */
-		if (!CFileHelper::FileCanWrite(sBackupPath, &getClient()->getAuthHelper())) {
-			nRetCode = PRL_ERR_BACKUP_REMOVE_PERMISSIONS_DENIED;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-					PVE::String, m_sBackupUuid, EVT_PARAM_MESSAGE_PARAM_0));
-			WRITE_TRACE(DBG_FATAL, "User %s does not have permissions to remove the backup %s in %s",
-					QSTR2UTF8(getClient()->getAuthHelper().getUserName()),
-					QSTR2UTF8(m_sBackupUuid),
-					QSTR2UTF8(sBackupPath));
-			goto exit;
-		}
-		if (m_nBackupNumber == PRL_BASE_BACKUP_NUMBER) {
-			if (PRL_FAILED(nRetCode = removeBaseBackup()))
-				goto exit;
-		} else {
-			if (PRL_FAILED(nRetCode = removeIncrementalBackup(sBackupPath)))
-				goto exit;
-		}
-		/* remove BackupUuid directory if it is empty */
-		if (isBackupDirEmpty(m_sVmUuid, m_sBackupUuid))
-			CFileHelper::ClearAndDeleteDir(sBackupPath);
+	Prl::Expected<QList<Backup::Remove::action_type>, PRL_RESULT> e = prepare();
+	if (e.isFailed()) {
+		nRetCode = e.error();
+		goto exit;
 	}
 
-	/* and remove VmUuid directory if it is empty - check it as root */
-	getBaseBackupList(m_sVmUuid, lstBackupUuid);
-	if (lstBackupUuid.isEmpty())
-		CFileHelper::ClearAndDeleteDir(sVmPath);
+	nRetCode = do_(e.value());
+
 exit:
-	if ((nRetCode == PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND) && (m_nFlags & PBT_IGNORE_NOT_EXISTS))
-		nRetCode = PRL_ERR_SUCCESS;
+	if (nRetCode == PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND) {
+		if (m_nFlags & PBT_IGNORE_NOT_EXISTS)
+			nRetCode = PRL_ERR_SUCCESS;
+		else {
+			CDspTaskFailure(*this)(m_sBackupUuid);
+			WRITE_TRACE(DBG_FATAL, "Backup \"%s\" does not exist", QSTR2UTF8(m_sBackupUuid));
+		}
+	}
 
 	setLastErrorCode(nRetCode);
 	return nRetCode;
@@ -341,125 +550,17 @@ void Task_RemoveVmBackupTarget::finalizeTask()
 }
 
 /* to remove all backups of this client for this Vm */
-PRL_RESULT Task_RemoveVmBackupTarget::removeAllBackupsForVm(QString sVmPath)
+Prl::Expected<QList<Backup::Remove::action_type>, PRL_RESULT> Task_RemoveVmBackupTarget::removeAllBackupsForVm()
 {
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	QString sPath;
-	int i;
-
 	/* get base backup list for this user */
 	getBaseBackupList(m_sVmUuid, m_lstBackupUuid, &getClient()->getAuthHelper(), PRL_BACKUP_CHECK_MODE_WRITE);
 	if (m_lstBackupUuid.isEmpty()) {
-		nRetCode = PRL_ERR_BACKUP_BACKUP_NOT_FOUND;
-		CVmEvent *pEvent = getLastError();
-		pEvent->setEventCode(nRetCode);
-		pEvent->addEventParameter(new CVmEventParameter(PVE::String, m_sVmUuid, EVT_PARAM_MESSAGE_PARAM_0));
+		CDspTaskFailure(*this)(m_sVmUuid);
 		WRITE_TRACE(DBG_FATAL, "Could not find any backup of the Vm \"%s\"", QSTR2UTF8(m_sVmUuid));
-		return nRetCode;
+		return PRL_ERR_BACKUP_BACKUP_NOT_FOUND;
 	}
 
-	/* to lock all backups */
-	for (m_nLocked = 0; m_nLocked < m_lstBackupUuid.size(); ++m_nLocked)
-		if (PRL_FAILED(nRetCode = lockExclusive(m_lstBackupUuid.at(m_nLocked))))
-			goto exit;
-
-	for (i = 0; i < m_lstBackupUuid.size(); ++i) {
-		sPath = QString("%1/%2").arg(sVmPath).arg(m_lstBackupUuid.at(i));
-		if (!CFileHelper::ClearAndDeleteDir(sPath)) {
-			nRetCode = PRL_ERR_BACKUP_CANNOT_REMOVE_DIRECTORY;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-				PVE::String, sPath, EVT_PARAM_MESSAGE_PARAM_0));
-			WRITE_TRACE(DBG_FATAL, "Can't remove \"%s\" directory", QSTR2UTF8(sPath));
-			return nRetCode;
-		}
-	}
-exit:
-	setLastErrorCode(nRetCode);
-	return nRetCode;
-}
-
-/* to remove base backup */
-PRL_RESULT Task_RemoveVmBackupTarget::removeBaseBackup()
-{
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-
-	m_lstBackupUuid.append(m_sBackupUuid);
-
-	/* to lock all backups */
-	for (m_nLocked = 0; m_nLocked < m_lstBackupUuid.size(); ++m_nLocked)
-		if (PRL_FAILED(nRetCode = lockExclusive(m_lstBackupUuid.at(m_nLocked))))
-			goto exit;
-
-	if (!CFileHelper::ClearAndDeleteDir(m_cTargetDir.absoluteFilePath())) {
-		nRetCode = PRL_ERR_BACKUP_CANNOT_REMOVE_DIRECTORY;
-		CVmEvent *pEvent = getLastError();
-		pEvent->setEventCode(nRetCode);
-		pEvent->addEventParameter(new CVmEventParameter(
-				PVE::String, m_cTargetDir.absoluteFilePath(), EVT_PARAM_MESSAGE_PARAM_0));
-		WRITE_TRACE(DBG_FATAL, "Can't remove \"%s\" directory", QSTR2UTF8(m_cTargetDir.absoluteFilePath()));
-		goto exit;
-	}
-exit:
-	setLastErrorCode(nRetCode);
-	return nRetCode;
-}
-
-/* to remove N incremental backup : remove all >= N */
-PRL_RESULT Task_RemoveVmBackupTarget::removeIncrementalBackup(QString sBackupPath)
-{
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	QList<unsigned> lstPartialBackupNumber;
-	PartialBackupItem cPartialBackupItem;
-	int i, j;
-	QStringList lstTibFile, lstTmp;
-
-	m_lstBackupUuid.append(m_sBackupUuid);
-
-	getPartialBackupList(m_sVmUuid, m_sBackupUuid, lstPartialBackupNumber);
-	for (i = 0; i < lstPartialBackupNumber.size(); ++i) {
-		if (m_nBackupNumber > lstPartialBackupNumber.at(i))
-			continue;
-		if (PRL_SUCCEEDED(loadPartialBackupMetadata(
-				m_sVmUuid, m_sBackupUuid, lstPartialBackupNumber.at(i), &cPartialBackupItem)))
-		{
-			lstTmp = cPartialBackupItem.getTibFileList();
-			/* remove tib files for this backup */
-			for (j = 0; j < lstTmp.size(); ++j)
-				lstTibFile.append(lstTmp.at(j));
-		}
-	}
-
-	/* to lock all backups */
-	for (m_nLocked = 0; m_nLocked < m_lstBackupUuid.size(); ++m_nLocked)
-		if (PRL_FAILED(nRetCode = lockExclusive(m_lstBackupUuid.at(m_nLocked))))
-			goto exit;
-
-	for (i = 0; i < lstPartialBackupNumber.size(); ++i) {
-		if (m_nBackupNumber > lstPartialBackupNumber.at(i))
-			continue;
-		m_cTargetDir.setFile(QString("%1/%2").arg(sBackupPath).arg(lstPartialBackupNumber.at(i)));
-
-		if (!CFileHelper::ClearAndDeleteDir(m_cTargetDir.absoluteFilePath())) {
-			nRetCode = PRL_ERR_BACKUP_CANNOT_REMOVE_DIRECTORY;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-				PVE::String, m_cTargetDir.absoluteFilePath(), EVT_PARAM_MESSAGE_PARAM_0));
-			WRITE_TRACE(DBG_FATAL, "Can't remove \"%s\" directory",
-				QSTR2UTF8(m_cTargetDir.absoluteFilePath()));
-			goto exit;
-		}
-	}
-	/* now remove tib files for this backups */
-	for (j = 0; j < lstTibFile.size(); ++j) {
-		QFile file(QString("%1/%2").arg(sBackupPath).arg(lstTibFile.at(j)));
-		if (!file.remove())
-			WRITE_TRACE(DBG_FATAL, "[%s] QFile(%s)::remove error: %s",
-				__FUNCTION__, QSTR2UTF8(file.fileName()), QSTR2UTF8(file.errorString()));
-	}
-exit:
-	setLastErrorCode(nRetCode);
-	return nRetCode;
+	QFileInfo x(QString("%1/%2").arg(getBackupDirectory()).arg(m_sVmUuid));
+	return QList<Backup::Remove::action_type>() <<
+		boost::bind(Backup::Remove::Remover::rmdir, x.absoluteFilePath(), CDspTaskFailure(*this));
 }

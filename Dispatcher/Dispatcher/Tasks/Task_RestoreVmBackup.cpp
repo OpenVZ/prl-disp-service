@@ -444,13 +444,6 @@ void Task_RestoreVmBackupSource::handleABackupPackage(IOSender::Handle h, const 
 		m_cABackupServer.kill();
 }
 
-namespace
-{
-enum {QEMU_IMG_RUN_TIMEOUT = 60 * 60 * 1000};
-
-const char QEMU_IMG[] = "/usr/bin/qemu-img";
-}
-
 void Task_RestoreVmBackupSource::restoreImage(const SmartPtr<IOPackage> p_,
 		SmartPtr<CDspDispConnection> connection_, quint32 timeout_)
 {

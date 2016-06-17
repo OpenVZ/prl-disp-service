@@ -301,6 +301,14 @@ public:
 		const QString &sNotificationVmUuid, unsigned int nDiskIdx);
 	PRL_RESULT startABackupClient(const QString& sVmName_, const QStringList& args_,
 		SmartPtr<Chain> custom_);
+	/* load data from .metadata file for base backup */
+	PRL_RESULT loadBaseBackupMetadata(const QString &sVmUuid, const QString &sBackupUuid,
+			BackupItem *pBackupItem);
+
+	/* load data from .metadata file for partial backup */
+	PRL_RESULT loadPartialBackupMetadata(const QString &sVmUuid, const QString &sBackupUuid,
+			unsigned nBackupNumber, PartialBackupItem *pPartialBackupItem);
+
 
 protected:
 	Task_BackupHelper(const SmartPtr<CDspClient> &client, const SmartPtr<IOPackage> &p);
@@ -316,19 +324,6 @@ protected:
 
 	/* load data from .metadata file for Vm */
 	PRL_RESULT loadVmMetadata(const QString &sVmUuid, VmItem *pVmItem);
-
-	/* load data from .metadata file for base backup */
-	PRL_RESULT loadBaseBackupMetadata(
-			const QString &sVmUuid,
-			const QString &sBackupUuid,
-			BackupItem *pBackupItem);
-
-	/* load data from .metadata file for partial backup */
-	PRL_RESULT loadPartialBackupMetadata(
-			const QString &sVmUuid,
-			const QString &sBackupUuid,
-			unsigned nBackupNumber,
-			PartialBackupItem *pPartialBackupItem);
 
 	/* find Vm uuid for backup uuid in backup directory */
 	PRL_RESULT findVmUuidForBackupUuid(const QString &sBackupUuid, QString &sVmUuid);

@@ -339,4 +339,11 @@ private:
 } // namespace Work
 } // namespace Backup
 
+namespace
+{
+enum {QEMU_IMG_RUN_TIMEOUT = 60 * 60 * 1000};
+
+const char QEMU_IMG[] = "/usr/bin/qemu-img";
+}
+
 #endif //__Task_BackupHelper_p_H_
