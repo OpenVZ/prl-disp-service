@@ -415,7 +415,10 @@ PRL_RESULT MigrateVmTarget::run_body()
 	}
 	else
 	{
-		nRetCode = PRL_ERR_UNIMPLEMENTED;
+		nRetCode = PRL_ERR_VZ_OPERATION_FAILED;
+		CDspTaskFailure(*this)(PRL_ERR_VZ_OPERATION_FAILED, QString(
+			"Migration of stopped VMs to Virtuozzo %1 is not implemented.\n"
+			"Start the VM and try again.").arg(VER_FULL_BUILD_NUMBER_STR));
 		goto exit;
 		//nRetCode = migrateStoppedVm();
 	}
