@@ -1287,58 +1287,6 @@ void Task_MigrateVmSource::cancelOperation(SmartPtr<CDspClient> pUser, const Sma
 	CancelOperationSupport::cancelOperation(pUser, p);
 }
 
-/*
-   If local and remote memory file pathes are differ,
-   create config.sav copy and rewrite memory file path in it.
-   This copy will send to target node.
-*/
-PRL_RESULT Task_MigrateVmSource::fixConfigSav(const QString &sMemFilePath, QList<QPair<QFileInfo, QString> > &list)
-{
-	if (!m_cSavFile.exists()) {
-		WRITE_TRACE(DBG_FATAL, "File \"%s\" is not found",
-				QSTR2UTF8(m_cSavFile.absoluteFilePath()));
-		return PRL_ERR_OPERATION_FAILED;
-	}
-	m_cSavFileCopy.setFile(m_cSavFile.absoluteFilePath() + ".migrate");
-	m_sConfigSavBackup = m_cSavFileCopy.absoluteFilePath() + ".backup";
-	QFile::remove(m_cSavFileCopy.absoluteFilePath());
-	if (!QFile::copy(m_cSavFile.absoluteFilePath(), m_cSavFileCopy.absoluteFilePath())) {
-		WRITE_TRACE(DBG_FATAL, "QFile::copy(\"%s\", \"%s\") failed",
-			QSTR2UTF8(m_cSavFile.absoluteFilePath()), QSTR2UTF8(m_cSavFileCopy.absoluteFilePath()));
-		return PRL_ERR_OPERATION_FAILED;
-	}
-
-	if ((QFileInfo(sMemFilePath) != QFileInfo(m_sTargetMemFilePath))) {
-		/* rewrote config.sav with new memfile path */
-		if (!CStatesHelper::writeMemFilePath(m_cSavFileCopy.absoluteFilePath(), m_sTargetMemFilePath)) {
-			WRITE_TRACE(DBG_FATAL, "Can't save memory file path at \"%s\"",
-					QSTR2UTF8(m_cSavFileCopy.absoluteFilePath()));
-			QFile::remove(m_cSavFileCopy.absoluteFilePath());
-			return PRL_ERR_OPERATION_FAILED;
-		}
-	}
-
-	if (m_nReservedFlags & PVM_DONT_COPY_VM) {
-		/* For shared Vm replace config.sav file by new with backup copy */
-		QFile::rename(m_cSavFile.absoluteFilePath(), m_sConfigSavBackup);
-		QFile::rename(m_cSavFileCopy.absoluteFilePath(), m_cSavFile.absoluteFilePath());
-		m_nSteps |= MIGRATE_CONFIGSAV_BACKUPED;
-	} else {
-		/* and replace in list config.sav to config.sav.migrate */
-		for (int i = 0; i < list.size(); ++i) {
-			if (list.at(i).first.absoluteFilePath() == m_cSavFile.absoluteFilePath()) {
-				list[i].first = m_cSavFileCopy.absoluteFilePath();
-				return PRL_ERR_SUCCESS;
-			}
-		}
-		QDir dir(m_sVmHomePath);
-		list.append(
-			qMakePair(m_cSavFileCopy, dir.relativeFilePath(m_cSavFile.absoluteFilePath())));
-	}
-
-	return PRL_ERR_SUCCESS;
-}
-
 PRL_RESULT Task_MigrateVmSource::migrateStoppedVm()
 {
 	CVzHelper vz;
@@ -1412,39 +1360,6 @@ PRL_RESULT Task_MigrateVmSource::reactStartReply(const SmartPtr<IOPackage>& pack
 		QFileInfo cConfig(dir, VMDIR_DEFAULT_VM_CONFIG_FILE);
 		CStatesHelper cStatesHelper(cConfig.absoluteFilePath());
 		m_cSavFile.setFile(dir, cStatesHelper.getSavFileName());
-
-		if (!CStatesHelper::extractMemFileName(m_cSavFile.absoluteFilePath(), sMemFileName))
-		{
-			WRITE_TRACE(DBG_FATAL, "Can not get memory file name from \"%s\"",
-					QSTR2UTF8(m_cSavFile.absoluteFilePath()));
-			return PRL_ERR_OPERATION_FAILED;
-		}
-		/* if memfile path is absent or is empty, it's a local path */
-		CStatesHelper::extractMemFilePath(m_cSavFile.absoluteFilePath(), sMemFilePath);
-
-		/* memfile is place in Vm home and Vm home is shared == memfile is shared */
-		if (!(m_nReservedFlags & PVM_DONT_COPY_VM) || !sMemFilePath.isEmpty())
-		{
-			/* rewrite memfile path in list */
-			QString sRemoteMemFile = m_sTargetMemFilePath.isEmpty() ? sMemFileName :
-				QFileInfo(m_sTargetMemFilePath, sMemFileName).absoluteFilePath();
-			m_cLocalMemFile.setFile(
-				QDir(sMemFilePath.isEmpty() ? m_sVmHomePath : sMemFilePath), sMemFileName);
-			QList<QPair<QFileInfo, QString> >::iterator p =
-				std::find_if(m_fList.begin(), m_fList.end(),
-					boost::bind(&QFileInfo::absoluteFilePath,
-						boost::bind(&QPair<QFileInfo, QString>::first, _1)) ==
-							boost::cref(m_cLocalMemFile.absoluteFilePath()));
-			if (m_fList.end() == p)
-				m_fList.append(qMakePair(m_cLocalMemFile, sRemoteMemFile));
-			else
-				p->second = sRemoteMemFile;
-
-			PRL_RESULT nRetCode;
-			if ((QFileInfo(sMemFilePath) != QFileInfo(m_sTargetMemFilePath)))
-				if (PRL_FAILED(nRetCode = fixConfigSav(sMemFilePath, m_fList)))
-					return nRetCode;
-		}
 	}
 
 	return PRL_ERR_SUCCESS;
