@@ -95,11 +95,6 @@ private:
 	bool removeGarbageDirs(const QString & strDir);
 
 	/**
-	 * remove swap files (if they exist)
-	 */
-	void removeSwapFiles();
-
-	/**
 	* this function searches .hdd,.fdd and .iso files from vm dir
 	*/
 	bool searchParallelsImagesInsideVmHome(const QString & strDir,QStringList & strImagesList);

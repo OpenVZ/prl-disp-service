@@ -43,37 +43,6 @@ public:
 	CStatesHelper(const QString &base_file);
 
 	/**
-	* Extract string option from .sav file
-	*/
-	static bool extractStringOption(const QString &strSavFilePath, UINT uOptId, QString &strOption);
-
-	/**
-	* Extract memory file from .sav file
-	*/
-	static bool extractMemFileName(const QString &strSavFilePath, QString &strMemFileName);
-
-	/**
-	* Extract memory file path from .sav file
-	*/
-	static bool extractMemFilePath(const QString &strSavFilePath, QString &strMemFilePath);
-
-	/**
-	* Write string option into .sav file (if it is found)
-	*/
-	static bool writeStringOption(const QString &strSavFilePath, UINT uOptId, const QString &strOption);
-	static bool writeStringOptionExpand(const QString &strSavFilePath, UINT uOptId, const QString &strOption);
-
-	/**
-	* Write memory file name into .sav file
-	*/
-	static bool writeMemFileName(const QString &strSavFilePath, const QString &strMemFileName);
-
-	/**
-	* Write memory file name into .sav file
-	*/
-	static bool writeMemFilePath(const QString &strSavFilePath, const QString &strMemFileName);
-
-	/**
 	* Generate full file name for suspended VM save file
 	*/
 	QString getSavFileName();

@@ -381,8 +381,6 @@ PRL_RESULT Task_DeleteVm::run_body()
 		QStringList lstNotRemovedFiles;
 		QString strVmHomeDir = CFileHelper::GetFileRoot(m_sVmHomePath);
 
-		removeSwapFiles();
-
 		if(!m_strListToDelete.isEmpty())
 		{
 			if(!RemoveListOfFiles(m_strListToDelete,
@@ -711,35 +709,6 @@ bool Task_DeleteVm::removeGarbageDirs(const QString & strDir)
 	strDirForClear = ParallelsDirs::getSnapshotsDir(strDir);
 	bRes &= CFileHelper::ClearAndDeleteDir(strDirForClear);
 	return bRes;
-}
-
-// remove swap files such as *.mem
-void Task_DeleteVm::removeSwapFiles()
-{
-	QString qsVmHomeDir = QFileInfo(m_sVmHomePath).dir().absolutePath();
-	CStatesHelper cStatesHelper(m_sVmHomePath);
-	QFileInfo fiSavFile(qsVmHomeDir, cStatesHelper.getSavFileName());
-
-	if ( ! fiSavFile.exists() )
-		return;
-
-	QString qsMemFileName, qsMemFilePath;
-	if ( ! CStatesHelper::extractMemFileName(fiSavFile.absoluteFilePath(), qsMemFileName) )
-	{
-		WRITE_TRACE(DBG_FATAL, "Can not get memory file name from \"%s\"",
-				QSTR2UTF8(fiSavFile.absoluteFilePath()));
-		return;
-	}
-	CStatesHelper::extractMemFilePath(fiSavFile.absoluteFilePath(), qsMemFilePath);
-
-	if ( !qsMemFilePath.isEmpty() && ! CFileHelper::IsPathsEqual(qsVmHomeDir, qsMemFilePath) )
-	{
-		QDir d(qsMemFilePath);
-		if (m_pVmConfig->getVmIdentification()->getVmUuid() == d.dirName())
-			CFileHelper::ClearAndDeleteDir(qsMemFilePath);
-		else
-			QFile::remove(d.absoluteFilePath(qsMemFileName));
-	}
 }
 
 // this function searches .hdd,.fdd and .iso files from vm dir
