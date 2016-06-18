@@ -641,7 +641,7 @@ struct Compare: std::unary_function<CVmHardDisk*, bool>
 
 private:
 	const Finding& m_finding;
-	T& m_policy;
+	T m_policy;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
