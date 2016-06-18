@@ -205,7 +205,7 @@ void CDspHostInfo::GetFDDList()
 		ptr = DEV_BASE;
 		ptr += *p;
 		fd = open(QFLN2CH(ptr), O_RDONLY | O_NONBLOCK);
-		if (fd > 0)
+		if (fd >= 0)
 		{
 			memset(&fds, 0, sizeof(fds));
 			if (ioctl(fd, FDGETDRVSTAT, &fds, sizeof(fds)) != -1)
@@ -596,7 +596,7 @@ void CDspHostInfo::GetLPTList()
 		ptr.remove(0, 7);
 		ptr.insert(0, "/dev/lp");
 		fd = open(QFLN2CH(ptr), O_RDWR | O_NONBLOCK);
-		if (fd > 0)
+		if (fd >= 0)
 		{
 			ret = -1;
 
