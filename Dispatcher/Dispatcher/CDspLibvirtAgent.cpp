@@ -2065,7 +2065,7 @@ QSharedPointer<Block::Future> Merge::start()
 			m_units << r.value();
 		}
 		else
-			WRITE_TRACE(DBG_FATAL, "unable to merge disk", qPrintable(d.getSystemName()));
+			WRITE_TRACE(DBG_FATAL, "unable to merge disk '%s'", qPrintable(d.getSystemName()));
 	}
 
 	return QSharedPointer<Block::Future>(new Block::Future(m_units));
