@@ -2000,7 +2000,7 @@ void Task_RestoreVmBackupTarget::cancelOperation(SmartPtr<CDspClient> pUser, con
 {
 	WRITE_TRACE(DBG_FATAL, "%s", __FUNCTION__);
 	CancelOperationSupport::cancelOperation(pUser, p);
-	checkVmAdditionState( this );
+	checkVmAdditionState(true);
 
 	if (m_pVmCopyTarget.isValid())
 		m_pVmCopyTarget->cancelOperation();
