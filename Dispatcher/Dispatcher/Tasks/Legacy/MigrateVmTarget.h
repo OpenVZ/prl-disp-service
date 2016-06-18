@@ -83,6 +83,7 @@ private:
 	void checkRequiresDiskSpace();
 	void checkRemoteDisplay();
 	void checkEfiBoot();
+	void checkFlags();
 	/**
 	 * Checks whether target VM home path resides on iscsi storage
 	 */

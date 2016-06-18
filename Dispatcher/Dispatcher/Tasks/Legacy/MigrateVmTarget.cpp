@@ -285,6 +285,7 @@ PRL_RESULT MigrateVmTarget::prepareTask()
 	checkRequiresDiskSpace();
 	checkRemoteDisplay();
 	checkEfiBoot();
+	checkFlags();
 exit:
 	setLastErrorCode(nRetCode);
 	return nRetCode;
@@ -1195,6 +1196,22 @@ void MigrateVmTarget::checkEfiBoot()
 		QString("The requested VM has EFI boot enabled. "
 			"Migration of EFI bootloader to Virtuozzo %1 is not supported.")
 		.arg(VER_FULL_BUILD_NUMBER_STR),
+		EVT_PARAM_MESSAGE_PARAM_0));
+	m_lstCheckPrecondsErrors.append(cEvent.toString());
+}
+
+void MigrateVmTarget::checkFlags()
+{
+	if (0 == (PVMT_CLONE_MODE & getRequestFlags()))
+		return;
+
+	CVmEvent cEvent;
+	cEvent.setEventCode(PRL_ERR_VZ_OPERATION_FAILED);
+	cEvent.addEventParameter(new CVmEventParameter(PVE::String,
+		QString("Migration to Virtuozzo %1 in clone mode is not supported.\n"
+			"Try again without a clone mode option. The VM will be unregistered "
+			"at the end of the migration process.")
+		.arg(VER_FULL_BUILD_NUMBER_RELEASE_MAJOR),
 		EVT_PARAM_MESSAGE_PARAM_0));
 	m_lstCheckPrecondsErrors.append(cEvent.toString());
 }
