@@ -398,6 +398,7 @@ QList<action_type> Shifter::operator()(const list_type& objects_, quint32 index_
 	// 	* remove c(current)
 	// 	* shift n(next) to the place of c(current)
 	// 	* repeat shift for all subsequent images, with renames of their bases
+	// 	* update information about the latest incremental number
 	QList<action_type> a;
 	element_type c = objects_.at(index_);
 	if (objects_.size() == (int)index_ + 1)
@@ -415,6 +416,7 @@ QList<action_type> Shifter::operator()(const list_type& objects_, quint32 index_
 		a << rebaseItem(*n, *p, true);
 		a << moveItem(*n, *c);
 	}
+	a << boost::bind(m_updater, objects_.at(objects_.size() - 2)->getNumber());
 	return a;
 }
 
@@ -492,8 +494,11 @@ Prl::Expected<QList<Backup::Remove::action_type>, PRL_RESULT> Task_RemoveVmBacku
 
 	foreach(Backup::Remove::element_type i, o)
 		i->load(this);
-	if (shift)
-		return Backup::Remove::Shifter(*this)(o, pos);
+	if (shift) {
+		return Backup::Remove::Shifter(*this, boost::bind(
+			&Task_BackupHelper::updateLastPartialNumber, this, m_sVmUuid, m_sBackupUuid, _1))
+			(o, pos);
+	}
 
 	return Backup::Remove::Remover(*this)(o, pos);
 }

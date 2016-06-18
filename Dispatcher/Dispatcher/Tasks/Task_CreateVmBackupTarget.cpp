@@ -217,6 +217,13 @@ PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 			break;
 		}
 		m_sBackupUuid = m_lastBase->getUuid();
+		m_nBackupNumber = getNextPartialBackup(m_sVmUuid, m_sBackupUuid);
+		if ((f = (m_lastBase->getLastNumber() &&
+			m_nBackupNumber != m_lastBase->getLastNumber() + 1))) {
+			WRITE_TRACE(DBG_FATAL, "The last incremental backup of this Vm "
+				"is not found, will create a full backup instead of incremental");
+			break;
+		}
 		setBackupRoot(QString("%1/%2/%3").arg(getBackupDirectory())
 				.arg(m_sVmUuid).arg(m_sBackupUuid));
 		if (0 != (getInternalFlags() & PVM_CT_VZFS_BACKUP)) {
@@ -240,10 +247,8 @@ PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 		m_nBackupNumber = 0;
 		setBackupRoot(QString("%1/%2/%3").arg(getBackupDirectory()).arg(m_sVmUuid).arg(m_sBackupUuid));
 		m_sTargetPath = QString("%1/" PRL_BASE_BACKUP_DIRECTORY).arg(getBackupRoot());
-	} else {
-		m_nBackupNumber = getNextPartialBackup(m_sVmUuid, m_sBackupUuid);
+	} else
 		m_sTargetPath = QString("%1/%2").arg(getBackupRoot()).arg(m_nBackupNumber);
-	}
 	return PRL_ERR_SUCCESS;
 }
 
@@ -703,6 +708,8 @@ PRL_RESULT Task_CreateVmBackupTarget::saveMetadata()
 		cBackup.setOriginalSize(m_nOriginalSize);
 		cBackup.setBundlePermissions(m_nBundlePermissions);
 		nRetCode = cBackup.saveToFile(QString("%1/" PRL_BACKUP_METADATA).arg(m_sTargetPath));
+		if (PRL_SUCCEEDED(nRetCode))
+			nRetCode = updateLastPartialNumber(m_sVmUuid, m_sBackupUuid, m_nBackupNumber);
 	}
 	return nRetCode;
 }
