@@ -82,8 +82,6 @@
 
 #include <Libraries/PowerWatcher/PowerWatcher.h>
 
-#include "EditHelpers/CMultiEditDispatcher.h"
-
 #ifdef _WIN_
 	#include <process.h>
 	#define getpid _getpid
