@@ -854,10 +854,7 @@ QString Suffix::operator()() const
 	QString output;
 	if (m_index >= PRL_PARTIAL_BACKUP_START_NUMBER)
 		output.append(QString(".%1").arg(m_index));
-	output.append(".qcow2");
-	if (!(m_flags & PBT_UNCOMPRESSED))
-		output.append("c");
-	return output;
+	return output.append(".qcow2");
 }
 
 } // namespace Backup

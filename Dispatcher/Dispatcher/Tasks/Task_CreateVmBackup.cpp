@@ -93,7 +93,7 @@ PRL_RESULT Task_CreateVmBackup::backupHardDiskDevices(const ::Backup::Activity::
 
 	m_product->setStore(m_sBackupRootPath);
 	if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
-		m_product->setSuffix(::Backup::Suffix(getBackupNumber(), getFlags())());
+		m_product->setSuffix(::Backup::Suffix(getBackupNumber())());
 		return ::Backup::Work::Push::VCommand(*this, activity_).do_(variant_);
 	} else
 		return ::Backup::Work::Acronis::ACommand(*this, activity_).do_(variant_);

@@ -260,7 +260,7 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
 	::Backup::Product::Model p(::Backup::Object::Model(m_pVmConfig), m_sVmHomePath);
 	p.setStore(getBackupRoot());
 	unsigned n = getBackupNumber();
-	p.setSuffix(::Backup::Suffix(n, getFlags())());
+	p.setSuffix(::Backup::Suffix(n)());
 	::Backup::Work::object_type o(::Backup::Work::Vm(*this));
 	if (getInternalFlags() & PVM_CT_PLOOP_BACKUP)
 		o = ::Backup::Work::Ct(*this);
@@ -270,7 +270,7 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
 	// successful restore.
 	if (n >= PRL_PARTIAL_BACKUP_START_NUMBER) {
 		::Backup::Product::Model y(p);
-		y.setSuffix(::Backup::Suffix(n - 1, getFlags())());
+		y.setSuffix(::Backup::Suffix(n - 1)());
 		x = y.getVmTibs();
 		PRL_ASSERT(x.size() == l.size());
 	}
@@ -692,6 +692,7 @@ PRL_RESULT Task_CreateVmBackupTarget::saveMetadata()
 		cBackup.setTibFileList(m_lstTibFileList);
 		cBackup.setOriginalSize(m_nOriginalSize);
 		cBackup.setBundlePermissions(m_nBundlePermissions);
+		cBackup.setFlags(m_nFlags);
 		nRetCode = cBackup.saveToFile(QString("%1/" PRL_BACKUP_METADATA).arg(m_sTargetPath));
 	} else {
 		PartialBackupItem cBackup;
@@ -710,6 +711,7 @@ PRL_RESULT Task_CreateVmBackupTarget::saveMetadata()
 		cBackup.setTibFileList(m_lstTibFileList);
 		cBackup.setOriginalSize(m_nOriginalSize);
 		cBackup.setBundlePermissions(m_nBundlePermissions);
+		cBackup.setFlags(m_nFlags);
 		nRetCode = cBackup.saveToFile(QString("%1/" PRL_BACKUP_METADATA).arg(m_sTargetPath));
 		if (PRL_SUCCEEDED(nRetCode))
 			nRetCode = updateLastPartialNumber(m_sVmUuid, m_sBackupUuid, m_nBackupNumber);

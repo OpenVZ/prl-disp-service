@@ -192,13 +192,11 @@ struct AClient
 
 struct Suffix
 {
-	Suffix(unsigned index_, quint32 flags_) :
-		m_index(index_), m_flags(flags_) {}
+	explicit Suffix(unsigned index_) : m_index(index_) {}
 	QString operator()() const;
 
 private:
 	unsigned m_index;
-	quint32 m_flags;
 };
 
 namespace Work

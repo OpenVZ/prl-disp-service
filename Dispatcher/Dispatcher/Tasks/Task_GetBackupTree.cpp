@@ -202,7 +202,7 @@ PRL_RESULT Task_GetBackupTreeTarget::addDisks(T& entry,
 	Backup::Product::Model p(Backup::Object::Model(conf), home);
 	Backup::Product::componentList_type archives;
 	if (BACKUP_PROTO_V4 <= vm.getVersion()) {
-		p.setSuffix(::Backup::Suffix(number, 0)());
+		p.setSuffix(::Backup::Suffix(number)());
 		archives = p.getVmTibs();
 	} else if (vm.getVmType() == PVBT_VM)
 		archives = p.getVmTibs();
