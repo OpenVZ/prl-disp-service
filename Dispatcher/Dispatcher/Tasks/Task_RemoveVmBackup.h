@@ -145,7 +145,10 @@ private:
 
 struct Shifter
 {
-	explicit Shifter(Task_BackupHelper& context_) : m_context(&context_) {}
+	typedef boost::function1<PRL_RESULT, unsigned> updater_type;
+
+	Shifter(Task_BackupHelper& context_, updater_type updater_)
+		: m_context(&context_), m_updater(updater_) {}
 
 	static PRL_RESULT move(const QString& from_, const QString& to_);
 	static PRL_RESULT moveDir(const QString& from_, const QString& to_);
@@ -156,6 +159,7 @@ struct Shifter
 
 private:
 	Task_BackupHelper *m_context;
+	updater_type m_updater;
 };
 
 } // namespace Remove

@@ -1192,6 +1192,19 @@ BackupItem* Task_BackupHelper::getLastBaseBackup(const QString &sVmUuid,
 	return a.release();
 }
 
+PRL_RESULT Task_BackupHelper::updateLastPartialNumber(const QString &ve_,
+		const QString &uuid_, unsigned number_)
+{
+	BackupItem b;
+	QString path = QString("%1/%2/%3/" PRL_BASE_BACKUP_DIRECTORY "/" PRL_BACKUP_METADATA)
+					.arg(getBackupDirectory()).arg(ve_).arg(uuid_); 
+	PRL_RESULT e = b.loadFromFile(path);
+	if (PRL_FAILED(e))
+		return e;
+	b.setLastNumber(number_);
+	return b.saveToFile(path);
+}
+
 /* get partial backups list for vm uuid and full backup uuid */
 void Task_BackupHelper::getPartialBackupList(
 				const QString &sVmUuid,

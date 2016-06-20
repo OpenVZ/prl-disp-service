@@ -308,7 +308,8 @@ public:
 	/* load data from .metadata file for partial backup */
 	PRL_RESULT loadPartialBackupMetadata(const QString &sVmUuid, const QString &sBackupUuid,
 			unsigned nBackupNumber, PartialBackupItem *pPartialBackupItem);
-
+	/* updates an id of the last successful incremental backup */
+	PRL_RESULT updateLastPartialNumber(const QString &ve_, const QString &uuid_, unsigned number_);
 
 protected:
 	Task_BackupHelper(const SmartPtr<CDspClient> &client, const SmartPtr<IOPackage> &p);
