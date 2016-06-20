@@ -49,6 +49,9 @@
 
 #include <memory>
 
+#include <boost/optional.hpp>
+#include <stdint.h>
+
 #define WAIT_VNC_SERVER_TO_START_OR_STOP_PROCESS (30*1000)
 #define WAIT_TO_EXIT_VNC_SERVER_AFTER_START (3*1000)
 
@@ -90,7 +93,7 @@ public slots:
 private:
 	QMutex m_mutex;
 	Vnc::Starter::Unit* m_impl;
-	Vnc::Starter::Unit* m_ticket;
+	boost::optional<uintptr_t> m_ticket;
 };
 
 namespace Vnc
