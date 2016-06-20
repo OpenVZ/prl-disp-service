@@ -67,42 +67,52 @@ const char* CAuth::s_defaultPamService = "prl_disp_service";
 
 #ifdef _LIN_
 
-static int pamConvers(int num, const struct pam_message **msgs, struct pam_response **resp, void *data) {
+static int pamConvers(int num, const struct pam_message **msgs, struct pam_response **resp, void *data)
+{
+	int i = 0;
+	struct pam_response *respons = NULL;
+	char *password = (char *)data;
+	int ret = PAM_SUCCESS;
 
-    int i;
-    struct pam_response *respons = NULL;
-    char *password = (char *)data;
+	// check for invalid values
+	if (num <= 0)
+		return PAM_CONV_ERR;
 
-    // check for invalid values
-    if (num <= 0)
-        return PAM_CONV_ERR;
+	if (!(respons = (struct pam_response *)calloc(num, sizeof(struct pam_response))))
+	{
+		WRITE_TRACE(DBG_FATAL, "Can't allocate memory for PAM responses");
+		return PAM_CONV_ERR;
+	}
 
-    // Parase messages
-    for (i = 0; i < num; i++) {
-        switch (msgs[i]->msg_style) {
-        case PAM_PROMPT_ECHO_OFF:
-			//Allocate responses array just in case of known question
-			if (!respons)
-			{
-				if (!(respons = (struct pam_response *)calloc(num, sizeof(struct pam_response)))) {
-					WRITE_TRACE(DBG_FATAL, "Can't allocate memory for PAM responses");
-					return PAM_CONV_ERR;
-				}
-			}
+	// Parase messages
+	for (i = 0; i < num; i++)
+	{
+		if (msgs[i]->msg_style != PAM_PROMPT_ECHO_OFF)
+		{
+			WRITE_TRACE(DBG_FATAL, "Unknown message style: %d", msgs[i]->msg_style);
+			ret =  PAM_CONV_ERR;
+			break;
+		}
 
-            if (!(respons[i].resp = strdup(password)))
-                return PAM_CONV_ERR;
-            break;
-        default:
-            WRITE_TRACE(DBG_FATAL, "Unknown message style: %d", msgs[i]->msg_style);
-            return PAM_CONV_ERR;
-        }
-        respons[i].resp_retcode = 0;
-    }
+		if (!(respons[i].resp = strdup(password)))
+		{
+			WRITE_TRACE(DBG_FATAL, "strdup failed to clone password");
+			ret = PAM_CONV_ERR;
+			break;
+		}
+		respons[i].resp_retcode = 0;
+	}
 
-    *resp = respons;
+	if (PAM_SUCCESS != ret)
+	{
+		for (int j = 0; j < i; j++)
+			free(respons[j].resp);
+		free(respons);
+	}
+	else
+		*resp = respons;
 
-    return PAM_SUCCESS;
+	return ret;
 }
 #endif//_LIN_
 
