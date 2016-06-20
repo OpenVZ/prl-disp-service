@@ -41,7 +41,6 @@
 #include "CDspTaskHelper.h"
 
 class SimpleLockFlag;
-class CMultiEditDispatcher;
 class CDispCommonPreferences;
 class CDispMemoryPreferences;
 class CDispCpuPreferences;

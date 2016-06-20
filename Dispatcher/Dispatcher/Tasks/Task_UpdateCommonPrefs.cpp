@@ -39,7 +39,6 @@
 #include "Task_CommonHeaders.h"
 #include <Build/Current.ver>
 
-#include "EditHelpers/CMultiEditDispatcher.h"
 #include "CDspClientManager.h"
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 #include "CDspService.h"

@@ -53,7 +53,7 @@ void CDspStatCollector::GetCpusStatInfo(SmartPtr<CCpusStatInfo> pCpusStatInfo)
 {
 	FILE *stat;
 	char buf[8];
-	unsigned long long user,nice,system,idle;
+	unsigned long long user = 0, nice = 0, system = 0, idle = 0;
 
 	stat = fopen("/proc/stat", "r");
 	if(!stat) {

@@ -865,7 +865,7 @@ void CDspProblemReportHelper::FillVmProblemReportData
 		e.value().wait(10000);
 
 	// It doesn't matter if wait failed or migration failed, we need to try unpause VM.
-	VIRTUAL_MACHINE_STATE currentState;
+	VIRTUAL_MACHINE_STATE currentState = VMS_UNKNOWN;
 	if ((isRunning && u.getState(currentState).isFailed()) ||
 		(currentState == VMS_PAUSED && u.unpause().isFailed()))
 	{
