@@ -486,6 +486,15 @@ void HighAvailability::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 		new ClusterOptions(old_.getVmSettings()->getClusterOptions()));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Tools
+
+void Tools::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	new_.getVmSettings()->setVmTools(
+		new CVmTools(old_.getVmSettings()->getVmTools()));
+}
+
 namespace Access
 {
 ///////////////////////////////////////////////////////////////////////////////

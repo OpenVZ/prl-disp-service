@@ -871,6 +871,7 @@ static void NotifyClientsWithProgress(
 
 
 Task_MigrateVmSource::Task_MigrateVmSource(
+		Registry::Public& registry_,
 		const SmartPtr<CDspClient>& client,
 		const CProtoCommandPtr cmd,
 		const SmartPtr<IOPackage>& p)
@@ -879,7 +880,8 @@ Task_DispToDispConnHelper(getLastError()),
 m_nRemoteVersion(MIGRATE_DISP_PROTO_V1),
 m_pVmConfig(new CVmConfiguration()),
 m_bNewVmInstance(false),
-m_nSteps(0)
+m_nSteps(0),
+m_registry(registry_)
 {
 	CProtoVmMigrateCommand *pCmd = CProtoSerializer::CastToProtoCommand<CProtoVmMigrateCommand>(cmd);
 	PRL_ASSERT(pCmd->IsValid());
@@ -992,7 +994,8 @@ PRL_RESULT Task_MigrateVmSource::prepareTask()
 		//Check change SID preconditions
 		if ( PVMT_CHANGE_SID & getRequestFlags() )
 		{
-			nRetCode = Task_CloneVm::CheckWhetherChangeSidOpPossible( m_pVmConfig, m_sVmDirUuid );
+			nRetCode = Task_CloneVm::CheckWhetherChangeSidOpPossible(
+				m_pVmConfig, m_registry.find(m_sVmUuid));
 			if ( PRL_FAILED(nRetCode) )
 				goto exit;
 		}

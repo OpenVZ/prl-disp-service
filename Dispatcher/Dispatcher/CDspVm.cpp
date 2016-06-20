@@ -735,59 +735,6 @@ VIRTUAL_MACHINE_STATE CDspVm::getVmStateUnsync() const
 	return (d().m_nVmState);
 }
 
-PRL_VM_TOOLS_STATE CDspVm::getVmToolsState( const CVmIdent &_vm_ident, QString *pVersion )
-{
-	return getVmToolsState( _vm_ident.first, _vm_ident.second, pVersion );
-}
-
-PRL_VM_TOOLS_STATE CDspVm::getVmToolsState(
-	const QString &sVmUuid, const QString &sVmDirUuid, QString *pVersion )
-{
-	PRL_RESULT nRetCode;
-	SmartPtr<CVmConfiguration> pVmConfig =
-		DspVm::vdh().getVmConfigByUuid(sVmDirUuid, sVmUuid, nRetCode);
-
-	if (!pVmConfig) {
-		WRITE_TRACE(DBG_FATAL, "Couldn't to find VM configuration "\
-				"for '%s' VM UUID which belongs to '%s' VM dir",\
-				qPrintable(sVmUuid), qPrintable(sVmDirUuid));
-		return PTS_UNKNOWN;
-	}
-
-	CVmTools* toolsCfg = pVmConfig->getVmSettings()->getVmTools();
-	QString sVersion = toolsCfg->getAgentVersion();
-	PRL_VM_TOOLS_STATE state = sVersion.isEmpty() ? PTS_NOT_INSTALLED : PTS_POSSIBLY_INSTALLED;
-
-	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(sVmUuid);
-	VIRTUAL_MACHINE_STATE vms = VMS_UNKNOWN;
-	u.getState(vms);
-
-	if (vms == VMS_RUNNING) {
-		Prl::Expected<QString, Error::Simple> r =
-			u.getGuest().getAgentVersion();
-		if (r.isSucceed()) {
-			sVersion = r.value();
-			state = sVersion.isEmpty() ? PTS_NOT_INSTALLED : PTS_INSTALLED;
-
-			if (sVersion != toolsCfg->getAgentVersion()) {
-				WRITE_TRACE(DBG_INFO, "Updating tools version %s for VM '%s'",
-						qPrintable(sVersion), qPrintable(sVmUuid));
-				SmartPtr<CDspClient> session = CDspClient::makeServiceUser();
-				CVmEvent evt;
-				evt.addEventParameter(new CVmEventParameter(
-							PVE::String, sVersion, EVT_PARAM_VM_TOOLS_VERSION));
-				CDspService::instance()->getVmDirHelper()
-					.atomicEditVmConfigByVm(CVmIdent(sVmUuid, sVmDirUuid), evt, session);
-			}
-		}
-	}
-
-	if (pVersion)
-		*pVersion = sVersion;
-
-	return state;
-}
-
 QString CDspVm::getVmName() const
 {
 	return (d().m_sVmName);

@@ -1611,8 +1611,8 @@ PRL_RESULT Task_CloneVm::do_(T , Clone::Source::Total& source_)
 	bool s = m_bChangeSID;
 	if (s)
 	{
-		PRL_RESULT e = CheckWhetherChangeSidOpPossible(getVmConfig(),
-					getClient()->getVmDirectoryUuid());
+		PRL_RESULT e = CheckWhetherChangeSidOpPossible(
+			getVmConfig(), m_registry.find(m_newVmUuid));
 		if (PRL_FAILED(e))
 			return e;
 	}
@@ -1792,14 +1792,15 @@ void Task_CloneVm::ResetNetSettings( SmartPtr<CVmConfiguration> pVmConfig )
 	CDspVmNetworkHelper::updateHostMacAddresses(pVmConfig, NULL, HMU_CHECK_NONEMPTY);
 }
 
-PRL_RESULT Task_CloneVm::CheckWhetherChangeSidOpPossible
-	( const SmartPtr<CVmConfiguration> &pVmConfig, const QString &sVmDirUuid )
+PRL_RESULT Task_CloneVm::CheckWhetherChangeSidOpPossible(
+	const SmartPtr<CVmConfiguration> &pVmConfig, Registry::Access vm_)
 {
 	Clone::Source::Config u(pVmConfig);
 	if (!u.canChangeSid())
 		return PRL_ERR_CHANGESID_NOT_SUPPORTED;
 
-	if (CDspVm::getVmToolsState(u.getUuid(), sVmDirUuid) == PTS_NOT_INSTALLED)
+	std::pair<PRL_VM_TOOLS_STATE, QString> p = vm_.getToolsState();
+	if (p.first == PTS_NOT_INSTALLED)
 		return PRL_ERR_CHANGESID_GUEST_TOOLS_NOT_AVAILABLE;
 	return PRL_ERR_SUCCESS;
 }

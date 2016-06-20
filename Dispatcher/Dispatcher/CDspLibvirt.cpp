@@ -1019,7 +1019,7 @@ void error(void* opaque_, virErrorPtr value_)
 {
 	Q_UNUSED(value_);
 	Q_UNUSED(opaque_);
-	WRITE_TRACE(DBG_FATAL, "connection error: %s", value_->message);
+	WRITE_TRACE(DBG_DEBUG, "connection error: %s", value_->message);
 }
 
 } // namespace Plain

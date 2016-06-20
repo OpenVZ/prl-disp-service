@@ -155,6 +155,11 @@ private:
 // struct Exec
 
 struct Exec {
+	enum { 
+		RETRIES = 30,
+		INFINITE = -1
+	};
+
 	explicit Exec(const  QSharedPointer<virDomain>& domain_)
 		: m_domain(domain_)
 	{
@@ -169,7 +174,7 @@ struct Exec {
 		terminate(int pid);
 
 	Prl::Expected<QString, Libvirt::Agent::Failure>
-		executeInAgent(const QString& cmd);
+		executeInAgent(const QString& cmd, int retries = RETRIES);
 
 private:
 	QSharedPointer<virDomain> m_domain;
@@ -317,7 +322,7 @@ struct Guest
 	Result freezeFs();
 	Result thawFs();
 	Result checkAgent();
-	Prl::Expected<QString, Error::Simple> getAgentVersion();
+	Prl::Expected<QString, Libvirt::Agent::Failure> getAgentVersion(int retries = Exec::Exec::RETRIES);
 	Prl::Expected<Exec::Future, Error::Simple> startProgram(const Exec::Request& r);
 	Prl::Expected<Exec::Result, Error::Simple> runProgram(const Exec::Request& r);
 	Prl::Expected<QString, Error::Simple>

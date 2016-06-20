@@ -298,6 +298,14 @@ boost::optional< ::Vm::Config::Edit::Atomic> Access::getConfigEditor() const
 	return x->getConfigEditor();
 }
 
+std::pair<PRL_VM_TOOLS_STATE, QString> Access::getToolsState()
+{
+	QSharedPointer<Vm> x = m_vm.toStrongRef();
+	if (x.isNull())
+		return std::make_pair(PTS_NOT_INSTALLED, QString());
+	return x->getToolsState();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Public
 

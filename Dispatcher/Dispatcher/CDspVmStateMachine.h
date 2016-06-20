@@ -40,6 +40,8 @@
 #include <boost/msm/front/functor_row.hpp>
 #include <boost/msm/back/state_machine.hpp>
 #include <boost/msm/front/state_machine_def.hpp>
+#include "CDspLibvirtExec.h"
+#include "CDspVmGuest.h"
 
 namespace Vm
 {
@@ -270,6 +272,20 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		}
 	};
 
+	// Action
+	struct GuestTools
+	{
+		template<class Event, class FromState>
+		void operator()(const Event&, Frontend& fsm_, FromState&, Running&)
+		{
+			WRITE_TRACE(DBG_INFO, "action guest tools on running for VM '%s'", qPrintable(fsm_.m_name));
+
+			::Vm::Guest *p = new ::Vm::Guest(fsm_.getUuid(), fsm_.getConfigEditor());
+			fsm_.m_toolsState = p->getFuture();
+			p->startTimer(0);
+		}
+	};
+
 	struct BackupDisable
 	{
 		template<class Event, class FromState, class ToState>
@@ -302,13 +318,13 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Notification> > >,
 
 	msmf::Row<Unknown,    Event<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification, GuestTools> > >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
 	msmf::Row<Stopped,    Event<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification, GuestTools> > >,
 
 	msmf::Row<Stopped,    Event<VMS_MOUNTED>,    Mounted,    Notification >,
 
@@ -374,7 +390,7 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Runtime, Notification> > >,
 
 	msmf::Row<Reverting,  Event<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification, GuestTools> > >
 	//      +-----------+----------------------+-----------+--------+
 	> {};
 
@@ -420,6 +436,17 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	{
 		m_home = QFileInfo(path_);
 	}
+	std::pair<PRL_VM_TOOLS_STATE, QString> getToolsState()
+	{
+		if (m_toolsState.has_value())
+			return m_toolsState.get();
+		boost::optional<CVmConfiguration> c = getConfig();
+		if (!c)
+			return std::make_pair(PTS_NOT_INSTALLED, QString());
+		QString v = c->getVmSettings()->getVmTools()->getAgentVersion();
+		return std::make_pair(v.isEmpty() ?
+			PTS_NOT_INSTALLED : PTS_POSSIBLY_INSTALLED, v);
+	}
 
 	void setName(const QString& value_);
 	boost::optional<CVmConfiguration> getConfig() const;
@@ -442,6 +469,7 @@ private:
 	QSharedPointer< ::Network::Routing> m_routing;
 	QString m_name;
 	boost::optional<QFileInfo> m_home;
+	boost::future<std::pair<PRL_VM_TOOLS_STATE, QString> > m_toolsState;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
