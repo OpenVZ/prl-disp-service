@@ -1541,7 +1541,6 @@ PRL_RESULT Task_VzManager::move_env()
 PRL_RESULT Task_VzManager::send_network_settings()
 {
 	PRL_RESULT res = PRL_ERR_UNIMPLEMENTED;
-#if 0
 	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!cmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
@@ -1550,8 +1549,8 @@ PRL_RESULT Task_VzManager::send_network_settings()
 	CProtoCommandDspWsResponse *pResponseCmd = getResponseCmd();
 	SmartPtr<CHostHardwareInfo> pHostHwInfo(new CHostHardwareInfo);
 
-	res = getVzHelper()->getVzVNetHelper().GetIPAddrs(sUuid,
-				pHostHwInfo->m_lstNetworkAdapters);
+	res = get_op_helper()->get_env_netinfo(sUuid,
+			pHostHwInfo->m_lstNetworkAdapters);
 	if (PRL_FAILED(res))
 		return res;
 
@@ -1560,7 +1559,7 @@ PRL_RESULT Task_VzManager::send_network_settings()
 	SmartPtr<IOPackage> pkg =
 		DispatcherPackage::createInstance(PVE::DspWsResponse, pResponseCmd, getRequestPackage());
 	getClient()->sendPackage(pkg);
-#endif
+
 	return res;
 }
 

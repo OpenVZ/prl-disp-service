@@ -171,6 +171,7 @@ struct Aggregate
 } // namespace Statistics
 } // namespace Ct
 
+struct CHwNetAdapter;
 class CVzHelper {
 
 public:
@@ -430,6 +431,8 @@ public:
 	int merge_snapshot(const QString &uuid, const QString &snapsot_guid);
 	int remove_disks_from_env_config(SmartPtr<CVmConfiguration> &pConfig,
 		SmartPtr<CVmConfiguration> &pOldConfig, const QString &sNewConfName);
+	int get_env_netinfo(const QString &uuid, QList<CHwNetAdapter*> &adapters);
+
 private:
 	CVzOperationCleaner &get_cleaner() { return m_cleaner; }
 	PRL_RESULT run_prg(const char *name, const QStringList &lstArgs, bool quiet = false);
