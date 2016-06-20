@@ -176,6 +176,7 @@ int arp_del_by_hwaddr(const char *dev, unsigned char *hwaddr)
 
 		ret = arp_del(_ip, _dev, _hwaddr, flags);
 	}
+	fclose(fp);
 	return ret;
 }
 
