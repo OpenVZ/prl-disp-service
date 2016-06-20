@@ -688,7 +688,7 @@ PRL_RESULT Secure::start(quint16 start_, quint16 end_)
 ///////////////////////////////////////////////////////////////////////////////
 // class CDspVNCStarter
 
-CDspVNCStarter::CDspVNCStarter(): m_impl(NULL), m_ticket(NULL)
+CDspVNCStarter::CDspVNCStarter(): m_impl(NULL)
 {
 	moveToThread(QCoreApplication::instance()->thread());
 }
@@ -727,7 +727,7 @@ PRL_RESULT CDspVNCStarter::Start (
 			x.reset(new Vnc::Starter::Secure(a, b, *this));
 		}
 	}
-	m_ticket = x.get();
+	m_ticket = reinterpret_cast<uintptr_t>(x.get());
 	g.unlock();
 
 	if (PRD_AUTO == remDisplay->getMode())
@@ -739,11 +739,11 @@ PRL_RESULT CDspVNCStarter::Start (
 		return e;
 
 	g.relock();
-	if (m_ticket != x.get())
+	if (!m_ticket || m_ticket.get() != reinterpret_cast<uintptr_t>(x.get()))
 		return PRL_ERR_FAILED_TO_START_VNC_SERVER;
 
+	m_ticket.reset();
 	m_impl = x.release();
-	m_ticket = NULL;
 	return PRL_ERR_SUCCESS;
 }
 
@@ -764,7 +764,7 @@ PRL_RESULT CDspVNCStarter::Terminate ()
 
 	Vnc::Starter::Unit* x = m_impl;
 	m_impl = NULL;
-	m_ticket = NULL;
+	m_ticket.reset();
 	g.unlock();
 	delete x;
 	return PRL_ERR_SUCCESS;
@@ -785,7 +785,7 @@ void CDspVNCStarter::doOnExit()
 	m_mutex.lock();
 	Vnc::Starter::Unit* x = m_impl;
 	m_impl = NULL;
-	m_ticket = NULL;
+	m_ticket.reset();
 	m_mutex.unlock();
 	delete x;
 }
