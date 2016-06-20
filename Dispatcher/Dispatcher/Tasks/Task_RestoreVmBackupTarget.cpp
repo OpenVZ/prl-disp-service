@@ -1305,7 +1305,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 	::Backup::Product::Model p(m, m_sTargetPath);
 	p.setStore(m_sBackupRootPath);
 	if (BACKUP_PROTO_V4 <= m_nRemoteVersion)
-		p.setSuffix(::Backup::Suffix(m_nBackupNumber, getFlags())());
+		p.setSuffix(::Backup::Suffix(m_nBackupNumber)());
 	Restore::Target::Vm u(m_nBackupNumber, m_sTargetPath, m_sBackupRootPath,
 			Restore::Assistant(*this,
 				Restore::AClient::Unit(*this, m_sOriginVmUuid, *m_pVmConfig)));
@@ -1685,7 +1685,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtToTargetPath(
 			p.setStore(m_sBackupRootPath);
 			Backup::Product::componentList_type l = p.getCtTibs();
 			if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
-				p.setSuffix(::Backup::Suffix(m_nBackupNumber, getFlags())());
+				p.setSuffix(::Backup::Suffix(m_nBackupNumber)());
 				l = p.getVmTibs();
 			}
 			Restore::Target::Ploop::Flavor f(m_sTargetPath, l, w);
