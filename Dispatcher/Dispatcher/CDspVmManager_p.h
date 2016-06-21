@@ -791,6 +791,14 @@ struct Starter
 	Libvirt::Result operator()(const CVmConfiguration& config_) const;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Frankenstein
+
+struct Frankenstein
+{
+	Libvirt::Result operator()(const QString& uuid_) const;
+};
+
 namespace Shutdown
 {
 ///////////////////////////////////////////////////////////////////////////////

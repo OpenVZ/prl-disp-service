@@ -51,7 +51,7 @@
 #include "prlcommon/HostUtils/HostUtils.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "CDspVmStateSender.h"
-//#include "VI/Sources/BackupTool/ABackup/AcronisWrap/Interface/BackupErrors.h"
+#include "CDspVmManager_p.h"
 
 #include "CDspVzHelper.h"
 #include <sys/resource.h>
@@ -390,20 +390,24 @@ PRL_RESULT Thaw::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
 	return forward(request_, dst_);
 }
 
+typedef ::Command::Tag::State< ::Command::Vm::Frankenstein,
+		::Command::Vm::Fork::State::Strict<VMS_PAUSED> > startPaused_type;
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Stopped
 
 template<class T>
 PRL_RESULT Stopped::wrap(const T& worker_) const
 {
-	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_uuid);
-	Libvirt::Result e = u.startPaused();
-	if (e.isFailed())
+	Libvirt::Result e = ::Command::Vm::Gear<startPaused_type>::run(m_uuid);
+	if (e.isFailed()) {
+		WRITE_TRACE(DBG_FATAL, "Failed to start a qemu process!");
 		return e.error().code();
+	}
 
 	PRL_RESULT output = worker_();
 
-	u = Libvirt::Kit.vms().at(m_uuid); // refresh unit - there could be a reconnect meanwhile
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_uuid);
 	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
 	u.getState(s);
 	if (s == VMS_PAUSED) // check that vm is in an expected state

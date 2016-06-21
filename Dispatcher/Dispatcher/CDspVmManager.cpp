@@ -1161,6 +1161,14 @@ Libvirt::Result Starter::operator()(const CVmConfiguration& config_) const
 	return Libvirt::Kit.vms().start(config_);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Frankenstein
+
+Libvirt::Result Frankenstein::operator()(const QString& uuid_) const
+{
+	return Libvirt::Kit.vms().at(uuid_).startPaused();
+}
+
 namespace Shutdown
 {
 ///////////////////////////////////////////////////////////////////////////////
