@@ -150,6 +150,7 @@ private:
 	PRL_RESULT unregisterVm();
 	virtual void cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& pkg);
 	PRL_RESULT fixHardWareList();
+	PRL_RESULT doV2V();
 
 	PRL_RESULT restoreVm();
 	PRL_RESULT restoreCt();
@@ -202,7 +203,7 @@ private:
 
 private slots:
 	void handlePackage(const SmartPtr<IOPackage> p);
-
+	void runV2V();
 };
 
 #endif //__Task_RestoreVmBackup_H_
