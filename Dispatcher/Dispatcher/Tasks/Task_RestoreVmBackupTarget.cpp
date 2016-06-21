@@ -1123,9 +1123,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	// TODO Should we use CDspBugPatcherLogic here?
 	// #PSBM-13394
 	CDspVmNetworkHelper::updateHostMacAddresses(m_pVmConfig, NULL, HMU_NONE);
-	// Update cpu features on pcs6 restore
-	if (m_converter.get() != NULL)
-		CCpuHelper::update(*m_pVmConfig);
 	// save config : Task_RegisterVm read config from file system
 	if (PRL_FAILED(nRetCode = saveVmConfig()))
 		goto cleanup_0;
@@ -1360,6 +1357,9 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 		m_pVmConfig->getVmIdentification()->setHomePath(
 				QString("%1/" VMDIR_DEFAULT_VM_CONFIG_FILE).arg(m_sTargetVmHomePath));
 	}
+	// Update cpu features on pcs6 restore
+	if (m_converter.get() != NULL)
+		CCpuHelper::update(*m_pVmConfig);
 
 	dst_.reset(u.assemble(m_sTargetVmHomePath));
 	return NULL == dst_.get() ? PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR : PRL_ERR_SUCCESS;
