@@ -331,6 +331,7 @@ namespace Exec
 {
 
 struct AuxChannel;
+struct CidGenerator;
 
 } // namespace Exec
 
@@ -588,6 +589,8 @@ private:
 
 struct Hub
 {
+	Hub();
+
 	Vm::List vms()
 	{
 		return Vm::List(m_link.toStrongRef());
@@ -610,7 +613,9 @@ struct Hub
 	QSharedPointer<Vm::Exec::AuxChannel> addAsyncExec(const Vm::Unit& unit_);
 
 private:
+	QMutex m_mutex;
 	QWeakPointer<virConnect> m_link;
+	QSharedPointer<Vm::Exec::CidGenerator> m_cidGenerator;
 	QMap<QString, QWeakPointer<Vm::Exec::AuxChannel> > m_execs;
 };
 
