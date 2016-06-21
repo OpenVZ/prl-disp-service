@@ -42,7 +42,6 @@ HEADERS += \
 	CDspRouter.h \
 	CDspService.h \
 	CDspShellHelper.h \
-	CDspStarter.h \
 	CDspSync.h \
 	CDspTaskHelper.h \
 	CDspTaskManager.h \
@@ -168,7 +167,6 @@ SOURCES += \
 	CDspRouter.cpp \
 	CDspService.cpp \
 	CDspShellHelper.cpp \
-	CDspStarter.cpp \
 	CDspTaskHelper.cpp \
 	CDspTaskManager.cpp \
 	CDspUserHelper.cpp \

@@ -421,9 +421,6 @@ QStringList Process::getEnvironment(CDspClient& user_) const
 					QSTR2UTF8(m_ident.first), QSTR2UTF8(str));
 	}
 
-	// Appending user's environment to the vmEnvironment list
-	output += getUsersEnvironment(user_.getAuthHelper());
-
 	bool bAddXServerEnv = false;
 #ifdef _LIN_
 	bAddXServerEnv = !CDspService::isServerMode(); // to prevent vm_app crash in PSBM where XSession was closed
