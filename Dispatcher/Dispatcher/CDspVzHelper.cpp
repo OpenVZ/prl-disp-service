@@ -322,9 +322,11 @@ PRL_RESULT CDspVzHelper::getCtConfigList(SmartPtr<CDspClient> pUserSession,
 		quint32 nFlags,
 		QList<SmartPtr<CVmConfiguration> > &lstConfig)
 {
+	QString sServerUuid = m_service->getDispConfigGuard().getDispConfig()
+			->getVmServerIdentification()->getServerUuid();
+
 	CDspLockedPointer<CVmDirectory>	pDir = m_service->getVmDirManager()
 							.getVzDirectory();
-
 	if ( !pDir)
 	{
 		WRITE_TRACE(DBG_FATAL, "Virtuozzo Directory not found, skip Ct processing");
@@ -332,8 +334,6 @@ PRL_RESULT CDspVzHelper::getCtConfigList(SmartPtr<CDspClient> pUserSession,
 	}
 	if (checkAccess(pUserSession))
 	{
-		QString sServerUuid = m_service->getDispConfigGuard().getDispConfig()
-				->getVmServerIdentification()->getServerUuid();
 		foreach( CVmDirectoryItem* pDirItem, pDir->m_lstVmDirectoryItems )
 		{
 			SmartPtr<CVmConfiguration> pConfig;
