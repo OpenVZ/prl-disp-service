@@ -1447,7 +1447,8 @@ int AuxChannel::writeMessage(const QByteArray& data_, int client_)
 	if (sent < 0) {
 		l.unlock();
 		close();
-		return -1;
+		// log libvirt error
+		return Libvirt::Agent::Failure(PRL_ERR_WRITE_FAILED).code();
 	}
 	return sent;
 }
