@@ -84,14 +84,6 @@ struct CEnvCpumask {
 	void set_reserved_ram(unsigned long ram) { reserved_ram = ram; }
 };
 
-// envid : struct CEnvNodeMask
-typedef QMap<unsigned, struct CEnvCpumask> EnvCpumaskMap;
-
-struct CNumaNode {
-	NodemaskMap node;
-	EnvCpumaskMap env_cpumask;
-};
-
 namespace Ct
 {
 namespace Statistics
@@ -193,14 +185,6 @@ public:
 	// private
 	static int autocalculate_cpumask(unsigned envid, unsigned ncpu,
 			unsigned long ram, unsigned long *mask, int size);
-	static int numa_calculate_cpumask(unsigned envid, unsigned ncpu,
-			struct CNodeMask &node, struct CEnvCpumask &env_cpumask,
-			unsigned long *out, int size);
-	static void numa_release_cpu_mask(unsigned envid);
-
-	static QMutex s_mtxNodemask;
-	static CNumaNode s_numanodes;
-
 	static PRL_STAT_NET_TRAFFIC *get_net_stat(const QString &id_);
 	static int update_network_classes_config(const CNetworkClassesConfig &conf);
 	static int get_network_classes_config(CNetworkClassesConfig &conf);
@@ -392,7 +376,6 @@ public:
 	int clone_env(const SmartPtr<CVmConfiguration> &pConfig, const QString &sNewHome,
 			const QString &sNewName, PRL_UINT32 nFlags, SmartPtr<CVmConfiguration> &pNewConfig);
 	int move_env(const QString &sUuid, const QString &sNewHome, const QString &sName);
-	int convert2_env(const QString &srcPath, const QString &dstPath, unsigned int layout);
 	int set_env_name(const QString &uuid, const QString &name);
 	int set_env_name(unsigned int id, const QString &name);
 	int create_env_disk(const QString &uuid, const CVmHardDisk &disk);
