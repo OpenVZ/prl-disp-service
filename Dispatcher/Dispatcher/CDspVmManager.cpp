@@ -1077,7 +1077,9 @@ Libvirt::Result Gear::operator()(Reactor& reactor_)
 	t.setInterval(0);
 	t.setSingleShot(true);
 	t.start();
-	m_loop->exec();
+	int ret = m_loop->exec();
+	if (ret)
+		return Error::Simple(PRL_ERR_FAILURE);
 	return Libvirt::Result();
 }
 
