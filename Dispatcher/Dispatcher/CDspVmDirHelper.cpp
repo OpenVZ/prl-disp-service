@@ -273,19 +273,18 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 	QString key = makeKey( vmUuid, vmDirUuid );
 	for (bool q = false;; q = true)
 	{
-		QHash< QString, Op >::iterator
-			it = m_opHash.find( key );
-		if( m_opHash.end() == it )
+		if (!m_opHash.contains(key))
 		{
 			m_opHash.insert( key, Op( cmd, hSession, sTaskId ) );
 			return PRL_ERR_SUCCESS;
 		}
 
-		Op& op = it.value();
+		Op& op = m_opHash.find(key).value();
 		PRL_RESULT result = PRL_ERR_SUCCESS;
-		QMutableHashIterator< PVE::IDispatcherCommands, ExclusiveVmOperations::OperationData > it2( op.hashExecuted );
+		typedef QMutableHashIterator<PVE::IDispatcherCommands, ExclusiveVmOperations::OperationData>
+			iterator_type;
 
-		while( it2.hasNext() && PRL_SUCCEEDED( result ) )
+		for (iterator_type it2(op.hashExecuted); it2.hasNext() && PRL_SUCCEEDED(result);)
 		{
 			it2.next();
 			PVE::IDispatcherCommands execCmd = it2.key();
