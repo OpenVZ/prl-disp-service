@@ -37,7 +37,6 @@
 #include <QReadWriteLock>
 #include <QProcess>
 #include "CDspClient.h"
-#include "CDspStarter.h"
 #include "CDspVNCStarter.h"
 #include <prlcommon/Std/SmartPtr.h>
 #include "CDspVmDirManager.h"

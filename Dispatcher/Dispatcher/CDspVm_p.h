@@ -39,7 +39,6 @@
 #include "CDspCommon.h"
 #include "CDspClient.h"
 #include "CDspService.h"
-#include "CDspStarter.h"
 #include "CDspVNCStarter.h"
 #include <prlcommon/Std/SmartPtr.h>
 #include "CDspVmDirManager.h"

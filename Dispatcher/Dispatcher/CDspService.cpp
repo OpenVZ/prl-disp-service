@@ -45,7 +45,6 @@
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 #include "Libraries/PrlCommonUtils/PrlQSettings.h"
 #include "Libraries/ProblemReportUtils/CPackedProblemReport.h"
-#include "CDspStarter.h"
 #include "CDspVm_p.h"
 #include "CDspClientManager.h"
 #include "CDspVmManager.h"
