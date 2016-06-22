@@ -288,12 +288,33 @@ int CVzHelper::get_network_shaping_config(CNetworkShapingConfig &conf)
 	return CVzNetworkShaping::get_network_shaping_config(conf);
 }
 
-int CVzHelper::set_rate(const QString &uuid, const CVmNetworkRates &lstRate)
+int CVzOperationHelper::set_rate(const QString &uuid,
+		const CVmNetworkRates &rates)
 {
-        if (lstRate.m_lstNetworkRates.empty())
-                return PRL_ERR_SUCCESS;
+	unsigned int id = Uuid::toVzid(uuid);
 
-	return CVzNetworkShaping::set_rate(Uuid::toVzid(uuid), lstRate);
+	if (rates.m_lstNetworkRates.empty())
+		return PRL_ERR_SUCCESS;
+
+	QStringList args;
+
+	args += "setrate";
+	args += QString("%1").arg(id);
+
+	args += "--ratebound";
+	if (rates.isRateBound())
+		args += "yes";
+	else
+		args += "no";
+
+	foreach(CVmNetworkRate *rate, rates.m_lstNetworkRates) {
+		args += "--rate";
+		args += QString("*:%1:%2")
+			.arg(rate->getClassId())
+			.arg(rate->getRate());
+	}
+
+	return run_prg(BIN_VZCTL, args);
 }
 
 static int vz2prl_err(int vzret)

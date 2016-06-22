@@ -541,31 +541,3 @@ int CVzNetworkShaping::get_network_classes_config(CNetworkClassesConfig &conf)
 
 	return 0;
 }
-
-int CVzNetworkShaping::set_rate(unsigned int id, const CVmNetworkRates &rates)
-{
-	QStringList args;
-
-	args += "setrate";
-	args += QString("%1").arg(id);
-
-	args += "--ratebound";
-	if (rates.isRateBound())
-		args += "yes";
-	else
-		args += "no";
-
-	foreach(CVmNetworkRate *rate, rates.m_lstNetworkRates) {
-		QString str;
-		// FIXME: validate network class and skip if not valid
-		args += "--rate";
-		args += QString("*:%1:%2")
-				.arg(rate->getClassId())
-				.arg(rate->getRate());
-	}
-
-	PRL_RESULT res = run_prg("/usr/sbin/vzctl", args);
-
-	return res;
-}
-
