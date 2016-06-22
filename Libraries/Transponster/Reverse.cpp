@@ -1660,6 +1660,22 @@ PRL_RESULT Fixer::setBlank()
 	return PRL_ERR_SUCCESS;
 }
 
+PRL_RESULT Fixer::setIdentification()
+{
+	if (m_result.isNull())
+		return PRL_ERR_READ_XML_CONTENT;
+
+	PRL_RESULT r;
+	QString n = m_result->getIds().getName();
+	if (PRL_SUCCEEDED(r = Builder::setIdentification()))
+	{
+		Libvirt::Domain::Xml::Ids x = m_result->getIds();
+		x.setName(n);
+		m_result->setIds(x);
+	}
+	return r;
+}
+
 PRL_RESULT Fixer::setDevices()
 {
 	if (m_result.isNull())
