@@ -459,8 +459,15 @@ PRL_RESULT Worker::operator()(const T&) const
 
 PRL_RESULT Getter::run(const QStringList& args_, QString& output_)
 {
-	if (!HostUtils::RunCmdLineUtility(args_.join(" "), output_, 60 * 1000))
-		return PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
+	QProcess process;
+	DefaultExecHandler h(process, args_.join(" "));
+	WRITE_TRACE(DBG_INFO, "Run cmd: %s", QSTR2UTF8(args_.join(" ")));
+	if (!HostUtils::RunCmdLineUtilityEx(args_, process, 60 * 1000, NULL)(h).isSuccess())
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot retrieve bitmap information: %s", h.getStderr().constData());
+		return PRL_ERR_BACKUP_INTERNAL_ERROR;
+	}
+	output_ = process.readAllStandardOutput(); 
 	return PRL_ERR_SUCCESS;
 }
 
