@@ -2393,8 +2393,8 @@ void CVmValidateConfig::CommonDevicesCheck( PRL_VM_CONFIG_SECTIONS nSection )
 	case PVC_IDE_DEVICES:
 	case PVC_SCSI_DEVICES:
 	case PVC_SATA_DEVICES:
-		typesSet.insert(  PDE_HARD_DISK ); break;
-		typesSet.insert(  PDE_OPTICAL_DISK ); break;
+		typesSet.insert(PDE_HARD_DISK);
+		typesSet.insert(PDE_OPTICAL_DISK);
 		break;
 	case PVC_ALL:
 		typesSet.insert( PDE_MAX );
