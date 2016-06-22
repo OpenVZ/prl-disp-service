@@ -98,9 +98,7 @@ int Zlib::open(const char *pathname, int oflags, int mode)
 	(void)mode;
 	const char *gzoflags = 0;
 	gzFile gzf;
-#ifndef _WIN_
 	int fd;
-#endif
 
 	switch (oflags & O_ACCMODE)
 	{
@@ -116,20 +114,20 @@ int Zlib::open(const char *pathname, int oflags, int mode)
 		return -1;
 	}
 
-#ifndef _WIN_
 	fd = ::open(pathname, oflags, mode);
 	if (fd == -1)
 		return -1;
 
 	if ((oflags & O_CREAT) && fchmod(fd, mode))
+	{
+		::close(fd);
 		return -1;
+	}
 
 	gzf = ::gzdopen(fd, gzoflags);
-#else
-	gzf = ::gzopen(pathname, gzoflags);
-#endif
 	if (!gzf)
 	{
+		::close(fd);
 		errno = ENOMEM;
 		return -1;
 	}
