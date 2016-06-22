@@ -79,7 +79,7 @@ PRL_RESULT Stdin::operator()(T& mode_) const
 				QSTR2UTF8(m_task->getVmUuid()),
 				QSTR2UTF8(Uuid::toString(m_package->header.parentUuid)));
 
-		mode_.closeStdin(m_task);
+		mode_.closeStdin();
 	}
 	else if (PET_IO_STDIN_PORTION == m_package->header.type)
 	{
@@ -353,9 +353,8 @@ PRL_RESULT Ct::processStdinData(const char * data, size_t size)
 	return PRL_ERR_SUCCESS;
 }
 
-void Ct::closeStdin(Task_ExecVm* task)
+void Ct::closeStdin()
 {
-	Q_UNUSED(task);
 	close(m_stdinfd[1]);
 	m_stdinfd[1] = -1;
 }
@@ -434,11 +433,10 @@ PRL_RESULT Vm::processStdinData(const char * data, size_t size)
 	return PRL_ERR_SUCCESS;
 }
 
-void Vm::closeStdin(Task_ExecVm* task)
+void Vm::closeStdin()
 {
 	if (m_stdin)
 		m_stdin->close();
-	task->wakeUpStage();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
