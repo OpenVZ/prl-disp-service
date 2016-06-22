@@ -275,7 +275,7 @@ PRL_RESULT Task_VzMigrate::readFromVzMigrate(quint16 nFdNum)
 
 void Task_VzMigrate::readOutFromVzMigrate()
 {
-	char pBuffer[BUFSIZ];
+	char pBuffer[BUFSIZ] = {};
 	quint32 nSize = 0;
 	ssize_t rc;
 
@@ -284,11 +284,11 @@ void Task_VzMigrate::readOutFromVzMigrate()
 			return;
 
 		errno = 0;
-		rc = ::read(m_nFd[PRL_CT_MIGRATE_OUT_FD], pBuffer + nSize, (size_t)(sizeof(pBuffer) - nSize));
+		rc = ::read(m_nFd[PRL_CT_MIGRATE_OUT_FD], pBuffer + nSize, (size_t)(sizeof(pBuffer) - 1 - nSize));
 		if (rc > 0) {
 			nSize += (quint32)rc;
-			if (nSize >= sizeof(pBuffer) - 1) {
-				pBuffer[nSize] = '\0';
+			if (nSize >= sizeof(pBuffer) - 1)
+			{
 				WRITE_TRACE(DBG_INFO, "%s", pBuffer);
 				nSize = 0;
 			}
