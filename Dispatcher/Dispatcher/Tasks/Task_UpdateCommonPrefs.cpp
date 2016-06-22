@@ -302,7 +302,7 @@ PRL_RESULT Task_UpdateCommonPrefs::saveCommonPrefs()
 	CDispCpuPreferences* n(pDispConfigNew->getDispatcherSettings()->getCommonPreferences()->getCpuPreferences());
 	QStringList diff;
 	o->diff(n, diff);
-	if (diff.size() > 0) {
+	if (o->isCpuFeaturesMaskValid() && n->isCpuFeaturesMaskValid() && diff.size() > 0) {
 		PRL_RESULT ret = updateCpuFeaturesMask(*o, *n);
 		if (PRL_FAILED(ret))
 			return ret;
