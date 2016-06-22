@@ -1123,9 +1123,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	// TODO Should we use CDspBugPatcherLogic here?
 	// #PSBM-13394
 	CDspVmNetworkHelper::updateHostMacAddresses(m_pVmConfig, NULL, HMU_NONE);
-	// Update cpu features on pcs6 restore
-	if (m_converter.get() != NULL)
-		CCpuHelper::update(*m_pVmConfig);
 	// save config : Task_RegisterVm read config from file system
 	if (PRL_FAILED(nRetCode = saveVmConfig()))
 		goto cleanup_0;
@@ -1142,13 +1139,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 		a->revert();
 		goto cleanup_0;
 	}
-	if (m_converter.get() != NULL)
-	{
-		boost::optional<Legacy::Vm::V2V> v2v = m_converter->getV2V(*m_pVmConfig);
-		if (v2v && (PRL_FAILED(nRetCode = v2v->do_())
-		         || PRL_FAILED(nRetCode = v2v->start())))
-			goto cleanup_0;
-	}
+	if (m_converter.get() != NULL && PRL_FAILED(nRetCode = doV2V()))
+		goto cleanup_0;
 	{
 		CDspLockedPointer<CVmDirectoryItem> pVmDirItem
 			= CDspService::instance()->getVmDirManager().getVmDirItemByUuid(
@@ -1215,15 +1207,10 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewVm()
 			a->revert();
 			break;
 		}
-		if (m_converter.get() != NULL)
+		if (m_converter.get() != NULL && PRL_FAILED(nRetCode = doV2V()))
 		{
-			boost::optional<Legacy::Vm::V2V> v2v = m_converter->getV2V(*m_pVmConfig);
-			if (v2v && (PRL_FAILED(nRetCode = v2v->do_())
-			         || PRL_FAILED(nRetCode = v2v->start())))
-			{
-				unregisterVm();
-				a->revert();
-			}
+			unregisterVm();
+			a->revert();
 		}
 	} while(false);
 	CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(pVmInfo.getImpl());
@@ -1360,6 +1347,9 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 		m_pVmConfig->getVmIdentification()->setHomePath(
 				QString("%1/" VMDIR_DEFAULT_VM_CONFIG_FILE).arg(m_sTargetVmHomePath));
 	}
+	// Update cpu features on pcs6 restore
+	if (m_converter.get() != NULL)
+		CCpuHelper::update(*m_pVmConfig);
 
 	dst_.reset(u.assemble(m_sTargetVmHomePath));
 	return NULL == dst_.get() ? PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR : PRL_ERR_SUCCESS;
@@ -2010,3 +2000,31 @@ void Task_RestoreVmBackupTarget::cancelOperation(SmartPtr<CDspClient> pUser, con
 	QThread::exit(PRL_ERR_OPERATION_WAS_CANCELED);
 }
 
+PRL_RESULT Task_RestoreVmBackupTarget::doV2V()
+{
+	QTimer t;
+	if (!QObject::connect(&t, SIGNAL(timeout()), SLOT(runV2V()), Qt::DirectConnection))
+		return PRL_ERR_FAILURE;
+
+	t.setInterval(0);
+	t.setSingleShot(true);
+	t.start();
+	return exec();
+}
+
+void Task_RestoreVmBackupTarget::runV2V()
+{
+	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
+	boost::optional<Legacy::Vm::V2V> v2v = m_converter->getV2V(*m_pVmConfig);
+
+	do {
+		if (!v2v)
+			break;
+		if (PRL_FAILED(nRetCode = v2v->do_()))
+			break;
+		if (PRL_FAILED(nRetCode = v2v->start()))
+			break;
+	} while (0);
+
+	exit(nRetCode);
+}
