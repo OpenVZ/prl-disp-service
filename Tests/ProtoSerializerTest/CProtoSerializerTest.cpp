@@ -1025,18 +1025,6 @@ void CProtoSerializerTest::testDspCProtoVmCommandWithOneStrParam_BothParamsExist
 		CHECK_VM_CMD_WITH_ONE_STR_PARAMS_NOT_FAILED_ON_GETTING_PRESENTS_PARAMS;
 	}
 
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmAuthorise, _pkg->toString());
-		QVERIFY(pCmd->IsValid());
-		CHECK_VM_CMD_WITH_ONE_STR_PARAMS_NOT_FAILED_ON_GETTING_PRESENTS_PARAMS;
-	}
-
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmDecrypt, _pkg->toString());
-		QVERIFY(pCmd->IsValid());
-		CHECK_VM_CMD_WITH_ONE_STR_PARAMS_NOT_FAILED_ON_GETTING_PRESENTS_PARAMS;
-	}
-
 #define DO_TEST(x) \
 	{ \
 		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(x, _pkg->toString()); \
@@ -1076,18 +1064,6 @@ void CProtoSerializerTest::testDspCProtoVmCommandWithOneStrParam_VmUuidAbsent()
 
 	{
 		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmConvertDisks, _pkg->toString());
-		QVERIFY(!pCmd->IsValid());
-		CHECK_VM_CMD_WITH_ONE_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
-	}
-
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmAuthorise, _pkg->toString());
-		QVERIFY(!pCmd->IsValid());
-		CHECK_VM_CMD_WITH_ONE_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
-	}
-
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmDecrypt, _pkg->toString());
 		QVERIFY(!pCmd->IsValid());
 		CHECK_VM_CMD_WITH_ONE_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
 	}
@@ -1135,18 +1111,6 @@ void CProtoSerializerTest::testDspCProtoVmCommandWithOneStrParam_StrParamAbsent(
 		CHECK_VM_CMD_WITH_ONE_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
 	}
 
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmAuthorise, _pkg->toString());
-		QVERIFY(!pCmd->IsValid());
-		CHECK_VM_CMD_WITH_ONE_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
-	}
-
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmDecrypt, _pkg->toString());
-		QVERIFY(!pCmd->IsValid());
-		CHECK_VM_CMD_WITH_ONE_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
-	}
-
 #define DO_TEST(x) \
 	{ \
 		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(x, _pkg->toString()); \
@@ -1190,18 +1154,6 @@ void CProtoSerializerTest::testDspCProtoVmCommandWithOneStrParam_BothParamsAbsen
 		CHECK_VM_CMD_WITH_ONE_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
 	}
 
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmAuthorise, _pkg->toString());
-		QVERIFY(!pCmd->IsValid());
-		CHECK_VM_CMD_WITH_ONE_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
-	}
-
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmDecrypt, _pkg->toString());
-		QVERIFY(!pCmd->IsValid());
-		CHECK_VM_CMD_WITH_ONE_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
-	}
-
 #define DO_TEST(x) \
 	{ \
 		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(x, _pkg->toString()); \
@@ -1212,134 +1164,6 @@ void CProtoSerializerTest::testDspCProtoVmCommandWithOneStrParam_BothParamsAbsen
 	DO_TEST(PVE::DspCmdVmSetProtection);
 	DO_TEST(PVE::DspCmdVmRemoveProtection);
 #undef DO_TEST
-}
-
-#define VM_CMD_WITH_TWO_STR_PARAMS_DECLARE\
-	BASIC_VM_CMD_PARAMS_DECLARE\
-	QString sParam1 = Uuid::createUuid().toString();\
-	QString sParam2 = Uuid::createUuid().toString();
-
-#define CHECK_VM_CMD_WITH_TWO_STR_PARAMS_NOT_FAILED_ON_GETTING_PRESENTS_PARAMS \
-	CProtoVmCommandWithTwoStrParams \
-		*pVmCmd = CProtoSerializer::CastToProtoCommand<CProtoVmCommandWithTwoStrParams>(pCmd);\
-	QCOMPARE( pVmCmd->GetVmUuid(), sVmUuid ); \
-	QCOMPARE( pVmCmd->GetFirstStrParam(), sParam1 ); \
-	QCOMPARE( pVmCmd->GetSecondStrParam(), sParam2 );
-
-void CProtoSerializerTest::testCreateCProtoVmCommandWithTwoStrParams()
-{
-	VM_CMD_WITH_TWO_STR_PARAMS_DECLARE
-	CProtoCommandPtr pCmd = CProtoSerializer::CreateProtoVmCommandWithTwoStrParams(PVE::DspCmdVmChangePassword, sVmUuid, sParam1, sParam2, nFlags);
-	SmartPtr<CVmEvent> pEvent = pCmd->GetCommand();
-	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_BASIC_VM_CMD_VM_UUID, PVE::String, sVmUuid)
-	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_PROTO_FIRST_STR_PARAM, PVE::String, sParam1)
-	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_VM_CMD_SECOND_STR_PARAM, PVE::String, sParam2)
-}
-
-#define CHECK_VM_CMD_WITH_TWO_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS\
-	CHECK_BASIC_VM_CMD_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS\
-	CProtoVmCommandWithTwoStrParams \
-		*pVmCmd = CProtoSerializer::CastToProtoCommand<CProtoVmCommandWithTwoStrParams>(pCmd);\
-	pVmCmd->GetFirstStrParam();\
-	pVmCmd->GetSecondStrParam();
-
-void CProtoSerializerTest::testParseCProtoVmCommandWithTwoStrParams_AllParamsExists()
-{
-	VM_CMD_WITH_TWO_STR_PARAMS_DECLARE;
-	SmartPtr<CVmEvent> _pkg( new CVmEvent );
-	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmUuid, EVT_PARAM_BASIC_VM_CMD_VM_UUID));
-	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sParam1, EVT_PARAM_PROTO_FIRST_STR_PARAM));
-	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sParam2, EVT_PARAM_VM_CMD_SECOND_STR_PARAM));
-
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmChangePassword, _pkg->toString());
-		QVERIFY(pCmd->IsValid());
-		CHECK_VM_CMD_WITH_TWO_STR_PARAMS_NOT_FAILED_ON_GETTING_PRESENTS_PARAMS;
-	}
-
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmEncrypt, _pkg->toString());
-		QVERIFY(pCmd->IsValid());
-		CHECK_VM_CMD_WITH_TWO_STR_PARAMS_NOT_FAILED_ON_GETTING_PRESENTS_PARAMS;
-	}
-}
-
-void CProtoSerializerTest::testParseCProtoVmCommandWithTowStrParams_VmUuidAbsent()
-{
-	VM_CMD_WITH_TWO_STR_PARAMS_DECLARE;
-	SmartPtr<CVmEvent> _pkg( new CVmEvent );
-	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sParam1, EVT_PARAM_PROTO_FIRST_STR_PARAM));
-	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sParam2, EVT_PARAM_VM_CMD_SECOND_STR_PARAM));
-
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmChangePassword, _pkg->toString());
-		QVERIFY(!pCmd->IsValid());
-		CHECK_VM_CMD_WITH_TWO_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
-	}
-
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmEncrypt, _pkg->toString());
-		QVERIFY(!pCmd->IsValid());
-		CHECK_VM_CMD_WITH_TWO_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
-	}
-}
-
-void CProtoSerializerTest::testParseCProtoVmCommandWithTwoStrParams_FirstStrParamAbsent()
-{
-	VM_CMD_WITH_TWO_STR_PARAMS_DECLARE;
-	SmartPtr<CVmEvent> _pkg( new CVmEvent );
-	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmUuid, EVT_PARAM_BASIC_VM_CMD_VM_UUID));
-	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sParam2, EVT_PARAM_VM_CMD_SECOND_STR_PARAM));
-
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmChangePassword, _pkg->toString());
-		QVERIFY(!pCmd->IsValid());
-		CHECK_VM_CMD_WITH_TWO_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
-	}
-
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmEncrypt, _pkg->toString());
-		QVERIFY(!pCmd->IsValid());
-		CHECK_VM_CMD_WITH_TWO_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
-	}
-}
-
-void CProtoSerializerTest::testParseCProtoVmCommandWithTwoStrParams_SecondStrParamAbsent()
-{
-	VM_CMD_WITH_TWO_STR_PARAMS_DECLARE;
-	SmartPtr<CVmEvent> _pkg( new CVmEvent );
-	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmUuid, EVT_PARAM_BASIC_VM_CMD_VM_UUID));
-	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sParam1, EVT_PARAM_PROTO_FIRST_STR_PARAM));
-
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmChangePassword, _pkg->toString());
-		QVERIFY(!pCmd->IsValid());
-		CHECK_VM_CMD_WITH_TWO_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
-	}
-
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmEncrypt, _pkg->toString());
-		QVERIFY(!pCmd->IsValid());
-		CHECK_VM_CMD_WITH_TWO_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
-	}
-}
-
-void CProtoSerializerTest::testParseCProtoVmCommandWithTwoStrParams_AllParamsAbsent()
-{
-	VM_CMD_WITH_TWO_STR_PARAMS_DECLARE;
-	SmartPtr<CVmEvent> _pkg( new CVmEvent );
-
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmChangePassword, _pkg->toString());
-		QVERIFY(!pCmd->IsValid());
-		CHECK_VM_CMD_WITH_TWO_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
-	}
-
-	{
-		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdVmEncrypt, _pkg->toString());
-		QVERIFY(!pCmd->IsValid());
-		CHECK_VM_CMD_WITH_TWO_STR_PARAMS_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS;
-	}
 }
 
 void CProtoSerializerTest::testParseCommandForDspCmdVmPause()
@@ -1614,24 +1438,6 @@ void CProtoSerializerTest::testDspCmdVmDevConnectCommandIsValidFailedOnDeviceCon
 void CProtoSerializerTest::testParseCommandForDspCmdVmDevDisconnect()
 {
 	TEST_PARSE_VM_DEV_COMMAND(DspCmdVmDevDisconnect)
-}
-
-void CProtoSerializerTest::testCreateDspCmdVmDevHdCheckPasswordCommand()
-{
-	PROTO_VM_DEV_CMD_PARAMS_DECLARE
-	PRL_UINT32 nFlags = 0xFF;
-	CProtoCommandPtr pCmd = CProtoSerializer::CreateVmDeviceProtoCommand(PVE::DspCmdVmDevHdCheckPassword, sVmUuid, nDevType, nDevIndex, sDevConfig, nFlags);
-	SmartPtr<CVmEvent> pEvent = pCmd->GetCommand();
-	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_BASIC_VM_CMD_VM_UUID, PVE::String, sVmUuid)
-	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_VM_DEV_CMD_DEVICE_TYPE, PVE::UnsignedInt, QString("%1").arg(quint32(nDevType)))
-	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_VM_DEV_CMD_DEVICE_INDEX, PVE::UnsignedInt, QString("%1").arg(nDevIndex))
-	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_VM_DEV_CMD_DEVICE_CONFIG, PVE::String, sDevConfig)
-	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_PROTO_CMD_FLAGS, PVE::UnsignedInt, QString::number( nFlags ))
-}
-
-void CProtoSerializerTest::testParseCommandForDspCmdVmDevHdCheckPassword()
-{
-	TEST_PARSE_VM_DEV_COMMAND(DspCmdVmDevHdCheckPassword)
 }
 
 #define PROTO_DELETE_VM_CMD_PARAMS_DECLARE\

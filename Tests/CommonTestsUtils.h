@@ -85,7 +85,6 @@
 #define VM_CONFIG_TO_XML_OBJECT \
 #define VM_CONFIG_FROM_XML_OBJECT \
 #define CHECK_PARAMS_COUNT(hResult, expected_count)\
-#define CHECK_WHETHER_ENCRYPTION_DISABLED\
 #define SKIP_IF_EXTERNAL_BUILD \
 #define GET_RESULT_AFTER_ASYNC_CALL_WITH_COPY(SDK_CALL, _hConvertedResult, _hConvertedResultCopy ) \
 #define GET_RESULT_AFTER_ASYNC_CALL(SDK_CALL, _hConvertedResult ) \
@@ -405,10 +404,6 @@
 		CHECK_RET_CODE_EXP(PrlResult_GetParamsCount((hResult), &nCheckParamsCount))\
 		QCOMPARE(quint32(nCheckParamsCount), quint32(expected_count));\
 	}
-
-#define CHECK_WHETHER_ENCRYPTION_DISABLED\
-	if ( TestConfig::isServerModePSBM() )\
-		QSKIP("Skipping due encryption VM functionality is absent at PSBM", SkipAll);
 
 #define SKIP_IF_EXTERNAL_BUILD \
 	if ( TestConfig::isExternalBuild() ) \

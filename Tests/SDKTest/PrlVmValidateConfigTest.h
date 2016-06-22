@@ -100,7 +100,6 @@ private slots:
 	void testValidateConfigHardDiskOnDuplicateStackIndex();
 	void testValidateConfigHardDiskOnDuplicateSysName();
 	void testValidateConfigHardDiskOnUrlSysName();
-	void testValidateConfigHardDiskOnRealDiskInEncryptedVm();
 	void testValidateConfigNetworkAdapterOnValid();
 	void testValidateConfigNetworkAdapterOnInvalidAdapter();
 	void testValidateConfigNetworkAdapterOnDefaultSysIndex();

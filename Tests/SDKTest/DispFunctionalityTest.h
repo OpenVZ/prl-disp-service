@@ -185,67 +185,6 @@ private slots:
 	// https://bugzilla.sw.ru/show_bug.cgi?id=456470
 	void testLostVmPermissionAfterStartByAdmin();
 
-// private slots:
-	void testVmEncryption_RegisterEncryptedVm(); // FIXME: TODO
-
-	void testVmEncryption_testVmEncrypt();
-	void testVmEncryption_testVmDecrypt();
-
-	void testVmEncryption_testAlreadyEncryptVm();
-	void testVmEncryption_testAlreadyDecryptVm();
-
-	void testVmEncryption_testVmDecryptFromAnotherSession();
-	void testVmEncryption_testChangeVmPassword();
-	void testVmEncryption_testStartVm();
-	void testVmEncryption_testStartVm_WithMemFiles();
-
-	// # https://jira.sw.ru:9443/browse/PDFM-1404
-	void testVmEncryption_testCancelOnDisconnect();
-	void testVmEncryption_testNoCancelOnDisconnect_WithoutFlag();
-
-	// # https://jira.sw.ru/browse/PDFM-1515
-	void testVmEncryption_testFlag_CheckFreesizeOnly();
-
-	// TESTS checkPreconditions
-	//		https://jira.sw.ru:9443/browse/PDFM-24686
-	void testEncryption_DecryptVmWithHdd_AttachedToAnotherVm_AndChangedPwd();
-	void testEncryption_DecryptVmWithHdd_AttachedToAnotherVm_AndDecrypted();
-	void testEncryption_DecryptVmWithHdd_AttachedToAnotherVm_AndEncryptedWithPlugin2();
-	void testEncryption_EncryptVmWithHdd_AttachedToAnotherVm_AndEncrypted();
-	// END of TESTS checkPreconditions
-
-// private slots:
-	void testEncryptionPluginsEnable();
-	void testEncryptionPluginsEnable_withNotAdmin();
-	void testEncryptionPluginsEnable_authVm();
-	void testEncryptionPluginsEnable_LoadTwoPlugins();
-	void testEncryptionPluginsEnable_LoadTwoPluginsWithSameId();
-	void testEncryptionPluginsDisable();
-	void testEncryptionPluginsDisable_withNotAdmin();
-	void testEncryptionPluginsDisable_withRunningVm();
-	void testEncryptionPluginsDisable_withEncryptOperation();
-	void testEncryptionPluginsDisable_tryAuthToVm();
-	void testEncryptionPluginsDisable_testThatDefaultPluginIsEmpty();
-	void testEncryptionPluginsDisable_EncryptVmWithHdds_WithDifferentPluginsId();
-
-	void testSetDefaultEncryptPlugin_testEncryptWithTestPluginByDefault();
-	void testSetDefaultEncryptPlugin_whenPluginsAreDisabled();
-	void testSetDefaultEncryptPlugin_whenPluginNotFound();
-	void testSetDefaultEncryptPlugin_whenPluginIdHasWrongFormat();
-
-	void testEncryptionPluginsRescan();
-	void testEncryptionPluginsRescan_AddPlugin2AndRescan();
-	void testEncryptionPluginsRescan_DeletePluginAndRescan();
-	void testEncryptionPluginsRescan_withDisabled();
-	void testEncryptionPluginsRescan_withNotAdmin();
-	void testEncryptionPluginsRescan_withRunningVm();
-	void testEncryptionPluginsRescan_withEncryptOperation();
-	void testEncryptionPluginsRescan_LoadTwoPluginsWithSameId();
-	void testEncryptionPluginsRescan_EncryptVmWithHdds_WithDifferentPluginsId(); // FIXME: TODO
-
-	void testEncryptionGetPluginsList();
-	void testEncryptionGetPluginsList_SpecialGuiCase();
-
 // private:
 	// https://bugzilla.sw.ru/show_bug.cgi?id=463792
 	void testGetVmInfo();
@@ -298,13 +237,6 @@ private slots:
 	void testDontRenameExternalDisksBundlesOnVmRenameIfFlagIsNotSet();
 	void testFailOnVmRenameIfTargetExternalDiskBundleExitst();
 
-public:
-	enum CreateEncryptedFlags
-	{ cemWithoutMemFiles = 0, cemMemFromSnapshots = 1, cemMemFromSuspend = 2, cemWithPlainHdd = 4 };
-
-	// NOTE: SHOULD BE FLAGS!
-	enum EncryptionPluginType
-	{ eptDefault = 0, eptTestPlugin1 =2 , eptTestPlugin2 = 4 };
 private:
 
 	void createVm( const QString& sVmName
@@ -320,67 +252,8 @@ private:
 		, SdkHandleWrap& hSrvConfig, SdkHandleWrap& hOutHddHandle );
 	void createExtDisk(const SdkHandleWrap& hVmHandle, SdkHandleWrap& hHddHandle, const QString& sHddPath, bool& bRes);
 
-	// create encrypted vm with default parameters
-	static void createEncryptedVm( bool& bRes /*out*/,  SdkHandleWrap& hVm/*out*/
-		, const SdkHandleWrap& hServerHandle, const QString& sVmName
-		, EncryptionPluginType pluginType = eptDefault
-		, quint32 nFlags = (cemMemFromSnapshots | cemMemFromSuspend)
-		);
-	// FIXME: this function should be static
-	void createEncryptedVm( const QString& sVmName, const QString& sPassword
-		, quint32 createEncriptedFlags // from CreateEncryptedFlags
-		, bool& bRes /*out*/, SdkHandleWrap& hVm/*out*/, QString& sVmUuid /*out*/ );
-	static void createEncryptedVm( bool& bRes /*out*/
-		, const SdkHandleWrap& hServerHandle
-		, const QString& sVmName, const QString& sPassword
-		, const QString& sPluginId
-		, quint32 createEncriptedFlags // from CreateEncryptedFlags
-		, SdkHandleWrap& hVm/*out*/, QString& sVmUuid /*out*/ );
-
-	enum PluginsSwitchAction { psaEnable, psaDisable };
-	static void switchPluginsOnOrOff( bool& bRes
-		, const SdkHandleWrap& hServer, PluginsSwitchAction action, bool bRevertAlreadyState
-		, PRL_RESULT nExpectedResult = PRL_ERR_SUCCESS
-		, bool bSendTestFlags = true );
-
-	static void loadTestPlugin( bool& bRes
-		, const SdkHandleWrap& hServer
-		, quint32 pluginsMask/* from EncryptionPluginType*/
-		, bool bLoadCopyWithSameId = false );
-
-	void checkEncryptFailure( bool& bRes
-		, const SdkHandleWrap& hServer, const QString& sVmName, EncryptionPluginType pluginType
-		, PRL_RESULT nExpectedError );
-
-	// create vm, encrypt, decrypt, delete
-	static void doEncryptDecryptPair( bool& bRes
-		, const SdkHandleWrap& hServer, const QString& sVmName, EncryptionPluginType pluginType );
-
-	enum SlowAction{ saDoEncrypt, saDoDecrypt };
-	static void startSlowEncryptedOperation_andWaitFirstProgressEvent(bool& bRes
-		, const SdkHandleWrap& hServer
-		, const QString& sVmName
-		, SdkHandleWrap& hOutVmHandle
-		, SdkHandleWrap& hOutJobToCancel
-		);
-	static void startSlowEncryptedOperation_andWaitFirstProgressEvent(bool& bRes
-		, SdkHandleWrap& hVmHandle // exist vm with plain hdd
-		, SdkHandleWrap& hOutJobToCancel
-		, bool bDoEncrypt );
-
-	static void startSlowDecryptOperation_andWaitFirstProgressEvent(bool& bRes
-		, const SdkHandleWrap& hServer
-		, const QString& sVmName
-		, SdkHandleWrap& hOutVmHandle
-		, SdkHandleWrap& hOutJobToCancel
-		);
-
 	static void canUserChangeServerPrefs( bool& bRes
 		, const SdkHandleWrap& hServer, PRL_BOOL& bUserCanChangeServerPrefs );
-
-	static void setDefaultEncryptionPlugin(bool & bRes
-		, const SdkHandleWrap& hServer, const QString& sPluginId
-		, PRL_RESULT nExpectedResult = PRL_ERR_SUCCESS);
 
 	static QString GetVmUuidByHandle( const SdkHandleWrap& hVmHandle );
 
@@ -403,18 +276,8 @@ private:
 		, const QString& sHddPassword
 		);
 
-	static void createVmAndPrepareForEncrypt( bool& bRes /*out*/
-		, const SdkHandleWrap& hServerHandle
-		, const QString& sVmName
-		, quint32 createEncriptedFlags
-		, SdkHandleWrap& hVmHandle/*out*/
-		, QString& sVmUuid /*out*/ );
-
-
 	// try to determine adminstators credentials
 	bool tryToGetAdministratorCredentials( QString& outAdminLogin, QString& outAdminPassword );
-
-	static QString getPluginUuidByType( EncryptionPluginType pluginType );
 
 	static void testXMLPatchingMech_onRegistration(
 		bool& bRes, const QString& sVmName,  PRL_UINT32 osVersion, SmartPtr<ICheckPatchBase> pCheckObj );
@@ -429,22 +292,6 @@ private:
 	QList<SdkHandleWrap> m_lstVmHandles;
 
 	bool bParam;
-};
-typedef DispFunctionalityTest::EncryptionPluginType EncryptionPluginType;
-
-
-class DefaultParams
-{
-public:
-	static QString getTestPluginUuid(){ return g_sPluginExampleUuid; }
-	static QString getTestPlugin2Uuid(){ return g_sPlugin2ExampleUuid; }
-
-	static const char* getVmPassword() { return "1q2w3e"; }
-	static QString getVmPasswordStr() { return getVmPassword(); }
-	static PRL_UINT32 getEncryptionFlags()
-		{ return DispFunctionalityTest::cemMemFromSnapshots
-			| DispFunctionalityTest::cemMemFromSuspend;
-		}
 };
 
 #endif //H_DispFunctionalityTest_H

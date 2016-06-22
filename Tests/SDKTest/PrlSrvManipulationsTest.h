@@ -348,8 +348,6 @@ private slots:
 	void testBackupTargetDefaultDirectoryOnWrongParams();
 	void testBackupTimeout();
 	void testBackupTimeoutOnWrongParams();
-	void testEncryptionDefaultPluginId();
-	void testEncryptionDefaultPluginIdOnWrongParams();
 	void testBackupSourceUserLogin();
 	void testBackupSourceUserLoginOnWrongParams();
 	void testBackupSourceUserPassword();

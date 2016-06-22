@@ -309,12 +309,6 @@ private slots:
 	void testGetDisplayDeviceByType();
 	void testGetDisplayDevices();
 	void testGetDisplayDevicesOnWrongParams();
-	void testHardDiskSetPassword();
-	void testHardDiskSetEmptyPassword();
-	void testHardDiskSetPasswordOnWrongParams();
-	void testHardDiskCheckPasswordOnWrongParams();
-	void testHardDiskIsEncrypted();
-	void testHardDiskIsEncryptedOnWrongParams();
 	void testAddDefaultDeviceExOnIndexOrder();
 	void testNetIsFirewallEnabled();
 	void testNetIsFirewallEnabledOnWrongParams();

@@ -522,7 +522,6 @@ CProtoCommandPtr CProtoSerializer::ParseCommand(PVE::IDispatcherCommands nCmdIde
 		break;
 		case PVE::DspCmdVmDevConnect:
 		case PVE::DspCmdVmDevDisconnect:
-		case PVE::DspCmdVmDevHdCheckPassword:
 			pCommand = static_cast<CProtoCommand *>(new CProtoVmDeviceCommand(nCmdIdentifier));
 		break;
 
@@ -543,8 +542,6 @@ CProtoCommandPtr CProtoSerializer::ParseCommand(PVE::IDispatcherCommands nCmdIde
 		case PVE::DspCmdVmInstallUtility:
 		case PVE::DspCmdVmCompact:
 		case PVE::DspCmdVmConvertDisks:
-		case PVE::DspCmdVmAuthorise:
-		case PVE::DspCmdVmDecrypt:
 		case PVE::DspCmdVmSetProtection:
 		case PVE::DspCmdVmRemoveProtection:
 			pCommand = static_cast<CProtoCommand *>(new CProtoVmCommandWithOneStrParam(nCmdIdentifier) );
@@ -582,10 +579,6 @@ CProtoCommandPtr CProtoSerializer::ParseCommand(PVE::IDispatcherCommands nCmdIde
 			break;
 		case PVE::DspEvtNetworkPrefChanged:
 			pCommand = static_cast<CProtoCommand *>(new CProtoDspCmdNetworkPrefsChangedCommand);
-			break;
-		case PVE::DspCmdVmChangePassword:
-		case PVE::DspCmdVmEncrypt:
-			pCommand = static_cast<CProtoCommand *>( new CProtoVmCommandWithTwoStrParams( nCmdIdentifier ) );
 			break;
 		default: pCommand = static_cast<CProtoCommand *>(new CProtoCommandIllegalCommand); break;
 	}

@@ -613,19 +613,6 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 		if (PRL_FAILED( getLastErrorCode() ) )
 			throw getLastErrorCode();
 
-		//https://jira.sw.ru/browse/PSBM-5224
-		if ( doRegisterOnly() )
-		{
-			if ( m_pVmConfig->getVmSettings()->getVmEncryption()->isEnabled() &&
-				 CDspService::isServerModePSBM() )
-			{
-				WRITE_TRACE(DBG_FATAL, "Attempt to register encrypted VM '%s' '%s'",\
-							QSTR2UTF8(m_pVmConfig->getVmIdentification()->getVmName()),\
-							QSTR2UTF8(m_pVmConfig->getVmIdentification()->getVmUuid()));
-				throw PRL_ERR_UNIMPLEMENTED;
-			}
-		}
-
 		if ( !doRegisterOnly() )
 		{
 			//https://bugzilla.sw.ru/show_bug.cgi?id=267152

@@ -94,7 +94,6 @@ PRL_RESULT Task_GetInfoFromParallelsUtils::GetDiskImageInformation(
 		cHardDisk.setDiskType(pCachedHardDisk->getDiskType());
 		cHardDisk.setBlockSize(pCachedHardDisk->getBlockSize());
 		cHardDisk.setSize(pCachedHardDisk->getSize());
-		cHardDisk.setEncrypted(pCachedHardDisk->isEncrypted());
 		cHardDisk.setCompatLevel(pCachedHardDisk->getCompatLevel());
 		cHardDisk.setSizeOnDisk(pCachedHardDisk->getSizeOnDisk());
 

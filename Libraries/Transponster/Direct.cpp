@@ -100,7 +100,6 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	if (!Clustered<CVmHardDisk>::operator()(disk_))
 		return PRL_ERR_UNIMPLEMENTED;
 
-	getDevice().setEncrypted(disk_.getEncryption());
 	CVmHardDisk* d = getResult();
 	if (NULL == d)
 		return PRL_ERR_UNEXPECTED;

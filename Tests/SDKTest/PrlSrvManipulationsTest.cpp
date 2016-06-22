@@ -6314,65 +6314,6 @@ void PrlSrvManipulationsTest::testBackupTimeoutOnWrongParams()
 									PRL_ERR_INVALID_ARG);
 }
 
-void PrlSrvManipulationsTest::testEncryptionDefaultPluginId()
-{
-	COMMON_PREFS_PREFACE
-	GET_COMMON_PREFS;
-
-	COMMON_PREFS_TO_XML_OBJECT;
-	QString qsExpected = "some backup dir path";
-	common_prefs.getEncryptionPreferences()->setDefaultPluginId(qsExpected);
-	COMMON_PREFS_FROM_XML_OBJECT;
-
-	QString qsValue;
-	PRL_EXTRACT_STRING_VALUE(qsValue, hCommonPrefs,
-								PrlDispCfg_GetDefaultEncryptionPluginId);
-	QCOMPARE(qsValue, qsExpected);
-
-	qsExpected = "some another backup dir path";
-	CHECK_RET_CODE_EXP(PrlDispCfg_SetDefaultEncryptionPluginId(hCommonPrefs, QSTR2UTF8(qsExpected)))
-	PRL_EXTRACT_STRING_VALUE(qsValue, hCommonPrefs, PrlDispCfg_GetDefaultEncryptionPluginId)
-	QCOMPARE(qsValue, qsExpected);
-
-	//Check empty values accepted
-	CHECK_RET_CODE_EXP(PrlDispCfg_SetDefaultEncryptionPluginId(hCommonPrefs, ""))
-	PRL_EXTRACT_STRING_VALUE(qsValue, hCommonPrefs, PrlDispCfg_GetDefaultEncryptionPluginId)
-	QVERIFY(qsValue.isEmpty());
-
-	CHECK_RET_CODE_EXP(PrlDispCfg_SetDefaultEncryptionPluginId(hCommonPrefs, 0))
-	PRL_EXTRACT_STRING_VALUE(qsValue, hCommonPrefs, PrlDispCfg_GetDefaultEncryptionPluginId)
-	QVERIFY(qsValue.isEmpty());
-
-	COMMON_PREFS_TO_XML_OBJECT;
-	QVERIFY(common_prefs.getEncryptionPreferences()->isDefaultPluginIdWasChanged());
-}
-
-void PrlSrvManipulationsTest::testEncryptionDefaultPluginIdOnWrongParams()
-{
-	COMMON_PREFS_PREFACE
-	GET_COMMON_PREFS;
-
-	QString qsStr = "some text";
-	PRL_UINT32 nSize = 0;
-
-	// Wrong handle
-	CHECK_CONCRETE_EXPRESSION_RET_CODE(PrlDispCfg_GetDefaultEncryptionPluginId(m_ServerHandle, 0, &nSize),
-									PRL_ERR_INVALID_ARG);
-	CHECK_CONCRETE_EXPRESSION_RET_CODE(PrlDispCfg_SetDefaultEncryptionPluginId(m_ServerHandle, "some dir path"),
-									PRL_ERR_INVALID_ARG);
-	// Null pointer
-	CHECK_CONCRETE_EXPRESSION_RET_CODE(PrlDispCfg_GetDefaultEncryptionPluginId(hCommonPrefs, 0, 0),
-									PRL_ERR_INVALID_ARG);
-	// Buffer overrun
-	COMMON_PREFS_TO_XML_OBJECT;
-	common_prefs.getEncryptionPreferences()->setDefaultPluginId(qsStr);
-	COMMON_PREFS_FROM_XML_OBJECT;
-	nSize = 4;
-	CHECK_CONCRETE_EXPRESSION_RET_CODE(PrlDispCfg_GetDefaultEncryptionPluginId(hCommonPrefs,
-										(PRL_STR )QSTR2UTF8(qsStr), &nSize),
-									PRL_ERR_BUFFER_OVERRUN);
-}
-
 void PrlSrvManipulationsTest::testBackupSourceUserLogin()
 {
 	COMMON_PREFS_PREFACE

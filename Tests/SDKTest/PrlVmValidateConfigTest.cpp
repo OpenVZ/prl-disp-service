@@ -2152,39 +2152,6 @@ void PrlVmValidateConfigTest::testValidateConfigHardDiskOnUrlSysName()
 	CHECK_JOB_RET_CODE(hJob);
 }
 
-void PrlVmValidateConfigTest::testValidateConfigHardDiskOnRealDiskInEncryptedVm()
-{
-	VM_CONFIG_INIT;
-
-// 1. Encrypted VM
-	{
-		VM_CONFIG_TO_XML_OBJECT;
-		_vm_conf.getVmSettings()->getVmEncryption()->setEnabled(true);
-		VM_CONFIG_FROM_XML_OBJECT;
-	}
-
-	SdkHandleWrap hDevice;
-	CHECK_RET_CODE_EXP(PrlVmCfg_CreateVmDev(m_VmHandle, PDE_HARD_DISK, hDevice.GetHandlePtr()));
-
-	CHECK_RET_CODE_EXP(PrlVmDev_SetEnabled(hDevice, TRUE));
-	CHECK_RET_CODE_EXP(PrlVmDev_SetSysName(hDevice, "Real disk"));
-	CHECK_RET_CODE_EXP(PrlVmDev_SetIfaceType(hDevice, PMS_IDE_DEVICE));
-	CHECK_RET_CODE_EXP(PrlVmDev_SetStackIndex(hDevice, 1));
-	CHECK_RET_CODE_EXP(PrlVmDev_SetEmulatedType(hDevice, PDT_USE_REAL_DEVICE));
-////
-	CHECK_ONE_ERROR_VALIDATION(PVC_HARD_DISK, PRL_ERR_VMCONF_HARD_DISK_WRONG_TYPE_FOR_ENCRYPTRED_VM);
-
-// 2. Non-encrypted VM
-	{
-		VM_CONFIG_TO_XML_OBJECT;
-		_vm_conf.getVmSettings()->getVmEncryption()->setEnabled(false);
-		VM_CONFIG_FROM_XML_OBJECT;
-	}
-////
-	SdkHandleWrap hJob(PrlVm_ValidateConfig(m_VmHandle, PVC_HARD_DISK));
-	CHECK_JOB_RET_CODE(hJob);
-}
-
 void PrlVmValidateConfigTest::testValidateConfigNetworkAdapterOnValid()
 {
 	CHECK_RET_CODE_EXP(PrlSrv_CreateVm(m_ServerHandle, m_VmHandle.GetHandlePtr()));
