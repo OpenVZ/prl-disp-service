@@ -68,7 +68,8 @@ public:
 	}
 
 	static void setToolsVersion(CVmConfiguration& c_, const QString& v_);
-	static void configureNetwork(CVmConfiguration& c_, const QString& uuid_);
+	static void configureNetwork(CVmConfiguration& c_,
+		QScopedPointer<Libvirt::Instrument::Agent::Vm::Exec::Request>& r);
 	static Libvirt::Result runProgram(
 		Libvirt::Instrument::Agent::Vm::Guest guest_,
 		const QString& uuid_,

@@ -37,6 +37,8 @@
 #include "CDspVmGuest.h"
 #include "CDspVmNetworkHelper.h"
 
+#include <boost/signals2/signal.hpp>
+
 namespace Vm {
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -53,24 +55,17 @@ void Guest::setToolsVersion(CVmConfiguration& c_, const QString& v_)
 		c_.getVmSettings()->getVmTools()->setAgentVersion(v_);
 }
 
-void Guest::configureNetwork(CVmConfiguration& c_, const QString& uuid_)
+void Guest::configureNetwork(CVmConfiguration& c_,
+	QScopedPointer<Libvirt::Instrument::Agent::Vm::Exec::Request>& r)
 {
 	Network::Difference::Vm v(c_);
-	unsigned int type = c_.getVmSettings()->getVmCommonOptions()->getOsType();
-	QStringList d = v.calculate(CVmConfiguration(), type);
-
-	WRITE_TRACE(DBG_INFO, "vm: %s ostype: %d configureNetwork",
-		qPrintable(uuid_), type);
-
-	if (d.isEmpty())
-		return;
-
-	QString c = d.takeFirst();
-	Libvirt::Instrument::Agent::Vm::Exec::Request request(c, d);
-	request.setRunInShell(type == PVS_GUEST_TYPE_WINDOWS);
-
-	runProgram(Libvirt::Kit.vms().at(uuid_).getGuest(),
-		uuid_, request);
+	int type = c_.getVmSettings()->getVmCommonOptions()->getOsType();
+	QStringList cmd = v.calculate(CVmConfiguration(), type);
+	if (!cmd.isEmpty()) {
+		QString c = cmd.takeFirst();
+		r.reset(new Libvirt::Instrument::Agent::Vm::Exec::Request(c, cmd));
+		r->setRunInShell(type == PVS_GUEST_TYPE_WINDOWS);
+	}
 }
 
 Libvirt::Result Guest::runProgram(
@@ -85,12 +80,12 @@ Libvirt::Result Guest::runProgram(
 			qPrintable(cmdline));
 
 	Prl::Expected <Libvirt::Instrument::Agent::Vm::Exec::Result,
-	       Error::Simple> e = guest_.runProgram(request_);
+		Error::Simple> e = guest_.runProgram(request_);
 
 	if (e.isFailed()) {
 		WRITE_TRACE(DBG_FATAL, "vm: %s cannot run: %s error: 0x%08x", 
 			qPrintable(uuid_),
-				qPrintable(request_.getPath()),
+			qPrintable(request_.getPath()),
 			e.error().code());
 		return e.error();
 	} else {
@@ -122,10 +117,20 @@ void Guest::timerEvent(QTimerEvent *ev_)
 		return;
 	}
 
-	m_state.set_value(std::make_pair(PTS_INSTALLED, r.value()));
-	m_editor(boost::bind(&setToolsVersion, _1, boost::cref(r.value())));
+
+	boost::signals2::signal<void (CVmConfiguration& )> s;
+	s.connect(boost::bind(&setToolsVersion, _1, boost::cref(r.value())));
+	QScopedPointer<Libvirt::Instrument::Agent::Vm::Exec::Request> req;
 	if (m_fromKnownState)
-		m_editor(boost::bind(&configureNetwork, _1, boost::cref(m_uuid)));
+		s.connect(boost::bind(&configureNetwork, _1, boost::ref(req)));
+	m_editor(s);
+
+	m_state.set_value(std::make_pair(PTS_INSTALLED, r.value()));
+
+	if (!req.isNull()) {
+		runProgram(Libvirt::Kit.vms().at(m_uuid).getGuest(),
+				m_uuid, *req);
+	}
 
 	// tools ready, stop checking
 	deleteLater();
