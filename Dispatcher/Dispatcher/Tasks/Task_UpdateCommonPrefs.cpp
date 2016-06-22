@@ -298,11 +298,15 @@ PRL_RESULT Task_UpdateCommonPrefs::saveCommonPrefs()
 	pLockedDispCommonPrefs.unlock();
 	pLockedDispConfig.unlock();
 
-	PRL_RESULT ret = updateCpuFeaturesMask(
-		*pDispConfigOld->getDispatcherSettings()->getCommonPreferences()->getCpuPreferences(),
-		*pDispConfigNew->getDispatcherSettings()->getCommonPreferences()->getCpuPreferences());
-	if (PRL_FAILED(ret))
-		return ret;
+	CDispCpuPreferences* o(pDispConfigOld->getDispatcherSettings()->getCommonPreferences()->getCpuPreferences());
+	CDispCpuPreferences* n(pDispConfigNew->getDispatcherSettings()->getCommonPreferences()->getCpuPreferences());
+	QStringList diff;
+	o->diff(n, diff);
+	if (diff.size() > 0) {
+		PRL_RESULT ret = updateCpuFeaturesMask(*o, *n);
+		if (PRL_FAILED(ret))
+			return ret;
+	}
 
 	return PRL_ERR_SUCCESS;
 }
