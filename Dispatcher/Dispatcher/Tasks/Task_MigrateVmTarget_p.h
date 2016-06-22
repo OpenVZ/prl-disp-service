@@ -640,6 +640,7 @@ struct Shortcut
 struct Channel: Shortcut<Channel>::type
 {
 	typedef Shortcut<Channel>::type def_type;
+	typedef int activate_deferred_events;
 
 	template <typename FSM>
 	void on_entry(ioEvent_type const& event_, FSM& fsm_);
@@ -647,7 +648,8 @@ struct Channel: Shortcut<Channel>::type
 	using def_type::on_entry;
 
 	struct transition_table : boost::mpl::vector<
-		msmf::Row<initial_state,       Vm::Pump::Launch_type,pumpState_type>,
+		msmf::Row<initial_state,       Vm::Pump::Launch_type,	pumpState_type>,
+		msmf::Row<initial_state,       Vm::Tunnel::libvirtChunk_type,	msmf::none,	msmf::Defer>,
 		msmf::Row<pumpState_type,      disconnected_type,    msmf::none,   Action, Guard>,
 		msmf::Row<pumpState_type
 			::exit_pt<Flop::State>,Flop::Event,          Flop::State>,
