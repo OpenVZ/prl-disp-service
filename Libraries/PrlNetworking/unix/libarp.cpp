@@ -90,7 +90,7 @@ static int fill_arpreq(const char *ip, const char *dev, unsigned char *hwaddr, s
 	memcpy(&req->arp_pa, &sa, sizeof(req->arp_pa));
 
 	if (dev != NULL)
-		strncpy((char *) &req->arp_dev, dev, sizeof(req->arp_dev));
+		strncpy((char *) &req->arp_dev, dev, sizeof(req->arp_dev) - 1);
 
 	if (hwaddr != NULL)
 		memcpy(&req->arp_ha.sa_data, hwaddr, ETH_ALEN);

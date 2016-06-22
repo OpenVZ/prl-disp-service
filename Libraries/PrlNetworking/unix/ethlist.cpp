@@ -387,7 +387,7 @@ bool CEthIfaceListReader::makeEthIfacesList( EthIfaceList &ethList, bool bUpOnly
 		struct ifreq ifr;
 		memset( &ifr, 0, sizeof(ifr) );
 		ifr.ifr_addr.sa_family = AF_INET;
-		strncpy( ifr.ifr_name, ifName.c_str(), sizeof(ifr.ifr_name) );
+		strncpy(ifr.ifr_name, ifName.c_str(), sizeof(ifr.ifr_name) - 1);
 
 		EthIface ethIface;
 		if( !readIfaceConf(sock, &ifr, ethIface, bUpOnly, bConfigured ) )
@@ -426,7 +426,7 @@ bool PrlNet::GetVLANInfo(const char *vlan_if_name, QString &parent_name, unsigne
 	struct ifreq ifr;
 	memset( &ifr, 0, sizeof(ifr) );
 	ifr.ifr_addr.sa_family = AF_INET;
-	strncpy( ifr.ifr_name, vlan_if_name, sizeof(ifr.ifr_name) );
+	strncpy(ifr.ifr_name, vlan_if_name, sizeof(ifr.ifr_name) - 1);
 	char parent_iff[IFNAMSIZ];
 	if (!getVLANInfo(sock, &ifr, parent_iff, vlan_tag)) {
 		::close(sock);
