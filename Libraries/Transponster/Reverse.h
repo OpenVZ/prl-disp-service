@@ -229,13 +229,13 @@ struct Fixer: Builder
 	Fixer(const CVmConfiguration& input_, char* xml_);
 
 	PRL_RESULT setBlank();
+	PRL_RESULT setIdentification();
 	PRL_RESULT setSettings()
 	{
 		return PRL_ERR_SUCCESS;
 	}
 	PRL_RESULT setResources(const VtInfo&);
 	PRL_RESULT setDevices();
-	using Builder::setIdentification;
 };
 
 } // namespace Reverse
