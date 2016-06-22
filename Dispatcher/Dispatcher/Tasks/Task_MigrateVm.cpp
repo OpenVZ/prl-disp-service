@@ -994,10 +994,10 @@ PRL_RESULT Task_MigrateVmSource::prepareTask()
 		//Check change SID preconditions
 		if ( PVMT_CHANGE_SID & getRequestFlags() )
 		{
-			nRetCode = Task_CloneVm::CheckWhetherChangeSidOpPossible(
-				m_pVmConfig, m_registry.find(m_sVmUuid));
-			if ( PRL_FAILED(nRetCode) )
+			if (!Task_ChangeSID::canChangeSid(m_pVmConfig)) {
+				nRetCode = PRL_ERR_CHANGESID_NOT_SUPPORTED;
 				goto exit;
+			}
 		}
 	}
 	{

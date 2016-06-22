@@ -460,13 +460,6 @@ bool Config::hasBootcampDevice() const
 	return false;
 }
 
-bool Config::canChangeSid() const
-{
-	CVmCommonOptions* o = m_image->getVmSettings()->getVmCommonOptions();
-	return PVS_GUEST_TYPE_WINDOWS == o->getOsType() &&
-			o->getOsVersion() >= PVS_GUEST_VER_WIN_XP;
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Exclusive
 
@@ -1611,10 +1604,8 @@ PRL_RESULT Task_CloneVm::do_(T , Clone::Source::Total& source_)
 	bool s = m_bChangeSID;
 	if (s)
 	{
-		PRL_RESULT e = CheckWhetherChangeSidOpPossible(
-			getVmConfig(), m_registry.find(m_newVmUuid));
-		if (PRL_FAILED(e))
-			return e;
+		if (!Task_ChangeSID::canChangeSid(getVmConfig()))
+			return PRL_ERR_CHANGESID_NOT_SUPPORTED;
 	}
 	Clone::Source::Config x(*this);
 	if (m_bLinkedClone || x.isLinked())
@@ -1791,17 +1782,3 @@ void Task_CloneVm::ResetNetSettings( SmartPtr<CVmConfiguration> pVmConfig )
 
 	CDspVmNetworkHelper::updateHostMacAddresses(pVmConfig, NULL, HMU_CHECK_NONEMPTY);
 }
-
-PRL_RESULT Task_CloneVm::CheckWhetherChangeSidOpPossible(
-	const SmartPtr<CVmConfiguration> &pVmConfig, Registry::Access vm_)
-{
-	Clone::Source::Config u(pVmConfig);
-	if (!u.canChangeSid())
-		return PRL_ERR_CHANGESID_NOT_SUPPORTED;
-
-	std::pair<PRL_VM_TOOLS_STATE, QString> p = vm_.getToolsState();
-	if (p.first == PTS_NOT_INSTALLED)
-		return PRL_ERR_CHANGESID_GUEST_TOOLS_NOT_AVAILABLE;
-	return PRL_ERR_SUCCESS;
-}
-
