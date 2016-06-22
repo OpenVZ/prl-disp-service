@@ -64,7 +64,6 @@
 #include "Stat/CDspStatCollectingThread.h"
 
 #include "HwMonitor/CDspHwMonitorThread.h"
-#include "HwMonitor/CDspSystemEventsMonitor.h"
 
 #include <prlcommon/IOService/IOCommunication/IOServer.h>
 #include <prlcommon/IOService/IOCommunication/IOServerPool.h>
@@ -513,8 +512,6 @@ private:
 	SmartPtr<CDspBroadcastListener> m_pBroadcastMsgsProcessingService;
 	/** Host hardware changes monitoring thread */
 	SmartPtr<CDspHwMonitorThread> m_pHwMonitorThread;
-	/** System events monitor */
-	SmartPtr<CDspSystemEventsMonitor> m_pSystemEventsMonitor;
 
 	// server uuid if cannot parse current Dispatcher.xml
 	QString		m_strServerUuidFromCorruptedDispConfig;

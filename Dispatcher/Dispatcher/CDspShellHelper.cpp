@@ -72,7 +72,6 @@
 #include "Tasks/Task_ManagePrlNetService.h"
 #include "Tasks/Task_GetFileSystemEntries.h"
 #include "Tasks/Task_ConfigureGenericPci.h"
-#include "Tasks/Task_PrepareForHibernate.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_VmDataStatistic.h"
 
