@@ -124,9 +124,6 @@ public:
 		return m_configCache;
 	}
 
-	unsigned int getTotalRunningCtMemory();
-	unsigned int adjustTotalRunningCtMemory(long long delta);
-
 	static QString getVzrebootMarkFile(const SmartPtr<CVmConfiguration> &pConfig)
 	{
 		return QString("/etc/vz/vzreboot/%1").
@@ -178,7 +175,6 @@ private:
 
 	void appendAdvancedParamsToCtConfig(SmartPtr<CVmConfiguration> pOutConfig);
 
-	void initTotalRunningCtMemory();
 private:
 	CConfigCache m_configCache;
 	CVzHelper m_VzlibHelper;
@@ -188,9 +184,6 @@ private:
 	QHash<QString, vncServer_type> m_tblCtVNCServer;
 	// and mutex for this table
 	QMutex m_tblCtVNCServerMtx;
-	// total memory size of all currently running CTs in megabytes
-	long long m_totalRunningCtMemory;
-	QMutex m_totalRunningCtMemoryMtx;
 	CDspService* m_service;
 	Backup::Task::Launcher m_backup;
 #endif
