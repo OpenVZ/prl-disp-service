@@ -339,6 +339,8 @@ void CProgressHepler::process_progress_evt()
 		if (!m_callback.empty())
 			m_callback(QString(stage), percent);
 	}
+	fclose(fp);
+	m_fd = -1;
 }
 
 CVzOperationHelper::~CVzOperationHelper()
