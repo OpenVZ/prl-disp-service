@@ -187,17 +187,20 @@ bool Resources::getClock(Libvirt::Domain::Xml::Clock& dst_)
 	if (NULL == o)
 		return false;
 
-	QList<Libvirt::Domain::Xml::Timer> timers;
+	mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 3>::type v;
+
 	quint32 os = m_config->getVmSettings()->getVmCommonOptions()->getOsVersion();
 	if (IS_WINDOWS(os) && os >= PVS_GUEST_VER_WIN_2008)
-	{
-		Libvirt::Domain::Xml::Timer t;
-		mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 3>::type v;
 		v.setValue(Libvirt::Domain::Xml::EName2Hypervclock);
-		t.setTimer(Libvirt::Domain::Xml::VTimer(v));
-		t.setPresent(Libvirt::Domain::Xml::EVirYesNoYes);
-		timers.append(t);
-	}
+	else
+		v.setValue(Libvirt::Domain::Xml::EName2Kvmclock);
+
+	Libvirt::Domain::Xml::Timer t;
+	t.setTimer(Libvirt::Domain::Xml::VTimer(v));
+	t.setPresent(Libvirt::Domain::Xml::EVirYesNoYes);
+
+	QList<Libvirt::Domain::Xml::Timer> timers;
+	timers.append(t);
 	dst_.setTimerList(timers);
 
 	Libvirt::Domain::Xml::Clock376 k;
