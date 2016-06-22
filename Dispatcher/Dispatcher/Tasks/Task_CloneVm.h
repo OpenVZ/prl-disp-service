@@ -118,13 +118,7 @@ public:
 	 * continued (PRL_TRUE)
 	 */
 	static PRL_BOOL CloneStateCallback(PRL_STATES_CALLBACK_TYPE iCallbackType, PRL_INT32 iProgress, PRL_VOID_PTR pParameter);
-	/**
-	 * Common helper which checks whether change SID operation appliable for specified VM configuration.
-	 * @param checking VM config
-	 * @param VM directory UUID
-	 */
-	static PRL_RESULT CheckWhetherChangeSidOpPossible(const SmartPtr<CVmConfiguration> &pVmConfig,
-		Registry::Access vm_);
+
 	/**
 	* reset unique network settings for adapters in config
 	*/
