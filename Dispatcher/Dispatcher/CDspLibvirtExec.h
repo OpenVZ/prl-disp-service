@@ -252,6 +252,21 @@ struct WriteDevice: Device {
 	virtual qint64 writeData(const char *data_, qint64 len_);
 };
 
+struct CidGenerator
+{
+	CidGenerator(): m_last(0)
+	{
+	}
+
+	void release(int id_);
+	boost::optional<int> acquire();
+
+private:
+	QMutex m_mutex;
+	QSet<int> m_set;
+	int m_last;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct AuxChannel - wrapper over libvirt's Stream interface over aux channel
 // for communication with guest's programs
@@ -268,13 +283,18 @@ struct AuxChannel : QObject {
 	explicit AuxChannel(virStreamPtr stream_);
 	~AuxChannel();
 
+	void setGenerator(const QSharedPointer<CidGenerator>& generator_)
+	{
+		m_cidGenerator = generator_;
+	}
+
 	bool isOpen();
 	void close();
 
 	static void reactEvent(virStreamPtr st_, int events_, void *opaque_);
 	void processEvent(int events_);
 
-	void addIoChannel(Device& device_);
+	bool addIoChannel(Device& device_);
 	void removeIoChannel(int id_);
 
 	int writeMessage(const QByteArray& data_, int client_);
@@ -289,7 +309,7 @@ private:
 	virStreamPtr m_stream;
 	AuxMessageHeader m_readHdr;
 	quint32 m_read;
-	int m_ioChannelCounter;
+	QSharedPointer<CidGenerator> m_cidGenerator;
 	QMap<int, Device *> m_ioChannels;
 };
 

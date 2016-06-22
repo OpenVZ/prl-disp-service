@@ -1133,7 +1133,9 @@ namespace Exec
 
 bool Device::open(QIODevice::OpenMode mode_)
 {
-	m_channel->addIoChannel(*this);
+	if (!m_channel->addIoChannel(*this))
+		return false;
+
 	if (!m_channel->isOpen()) {
 		m_channel->removeIoChannel(m_client);
 		return false;
@@ -1244,6 +1246,31 @@ qint64 WriteDevice::writeData(const char *data_, qint64 len_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct CidGenerator
+
+void CidGenerator::release(int id_)
+{
+	QMutexLocker l(&m_mutex);
+	m_set.remove(id_);
+}
+
+boost::optional<int> CidGenerator::acquire()
+{
+	QMutexLocker l(&m_mutex);
+	int i = m_last;
+	while (++i != m_last)
+	{
+		if (!m_set.contains(i)
+			&& m_set.insert(i) != m_set.constEnd())
+			return m_last = i;
+
+		if (i == INT_MAX)
+			i = 0;
+	}
+	return boost::none;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct AuxChannel
 
 enum {
@@ -1251,7 +1278,7 @@ enum {
 };
 
 AuxChannel::AuxChannel(virStreamPtr stream_)
-	: m_stream(stream_), m_read(0), m_ioChannelCounter(0)
+	: m_stream(stream_), m_read(0)
 {
 	virStreamEventAddCallback(m_stream,
 		VIR_STREAM_EVENT_HANGUP | VIR_STREAM_EVENT_ERROR | VIR_STREAM_EVENT_READABLE,
@@ -1335,17 +1362,29 @@ void AuxChannel::restartRead()
 	m_read = 0;
 }
 
-void AuxChannel::addIoChannel(Device& device_)
+bool AuxChannel::addIoChannel(Device& device_)
 {
 	QMutexLocker l(&m_lock);
-	m_ioChannels.insert(++m_ioChannelCounter, &device_);
-	device_.setClient(m_ioChannelCounter);
+
+	if (m_cidGenerator.isNull())
+		return false;
+
+	boost::optional<int> i = m_cidGenerator->acquire();
+	if (!i)
+	{
+		WRITE_TRACE(DBG_FATAL, "too many execs in progress");
+		return false;
+	}
+	m_ioChannels.insert(i.get(), &device_);
+	device_.setClient(i.get());
+	return true;
 }
 
 void AuxChannel::removeIoChannel(int id_)
 {
 	QMutexLocker l(&m_lock);
-	m_ioChannels.remove(id_);
+	if (m_ioChannels.remove(id_) > 0)
+		m_cidGenerator->release(id_);
 	if ((int)m_readHdr.cid == id_)
 		restartRead();
 }
@@ -1363,6 +1402,11 @@ void AuxChannel::close()
 	virStreamFree(m_stream);
 	m_stream = NULL;
 	QList<Device*> q = m_ioChannels.values();
+
+	foreach (int cid, m_ioChannels.keys())
+		m_cidGenerator->release(cid);
+	m_ioChannels.clear();
+
 	l.unlock();
 	/* close devices, m_stream should be null for isOpen() to be false */
 	foreach (Device* d, q)
@@ -1403,7 +1447,8 @@ int AuxChannel::writeMessage(const QByteArray& data_, int client_)
 	if (sent < 0) {
 		l.unlock();
 		close();
-		return -1;
+		// log libvirt error
+		return Libvirt::Agent::Failure(PRL_ERR_WRITE_FAILED).code();
 	}
 	return sent;
 }
@@ -2478,6 +2523,10 @@ Prl::Expected<VtInfo, Error::Simple> Host::getVt() const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hub
 
+Hub::Hub(): m_cidGenerator(new Vm::Exec::CidGenerator())
+{
+}
+
 void Hub::setLink(QSharedPointer<virConnect> value_)
 {
 	m_link = value_.toWeakRef();
@@ -2489,7 +2538,11 @@ QSharedPointer<Vm::Exec::AuxChannel> Hub::addAsyncExec(const Vm::Unit &unit_)
 	QString u;
 	if (unit_.getUuid(u).isFailed())
 		return QSharedPointer<Vm::Exec::AuxChannel>(NULL);
-	if (m_execs.contains(u)) {
+
+	QMutexLocker l(&m_mutex);
+
+	if (m_execs.contains(u))
+	{
 		QSharedPointer<Vm::Exec::AuxChannel> c = m_execs.value(u).toStrongRef();
 		if (c)
 			return c;
@@ -2499,7 +2552,10 @@ QSharedPointer<Vm::Exec::AuxChannel> Hub::addAsyncExec(const Vm::Unit &unit_)
 	QSharedPointer<Vm::Exec::AuxChannel> p(
 			unit_.getChannel(QString("org.qemu.guest_agent.1")));
 	if (p)
+	{
+		p->setGenerator(m_cidGenerator);
 		m_execs.insert(u, p.toWeakRef());
+	}
 	return p;
 }
 
