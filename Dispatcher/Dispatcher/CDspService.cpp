@@ -522,7 +522,6 @@ m_pVmManagerHandler( CDspHandlerRegistrator::instance().findHandler( IOSender::V
 m_pIoHandler( CDspHandlerRegistrator::instance().findHandler( IOSender::IOClient ) ),
 m_pIoCtHandler( CDspHandlerRegistrator::instance().findHandler( IOSender::IOCtClient ) ),
 m_pHwMonitorThread( new CDspHwMonitorThread ),
-m_pSystemEventsMonitor( new CDspSystemEventsMonitor ),
 m_pHaClusterHelper( new CDspHaClusterHelper ),
 m_pTaskManager(new CDspTaskManager()),
 m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
@@ -1027,8 +1026,6 @@ void CDspService::start ()
 			CDspStatCollectingThread::start(*m_registry);
 			m_pHwMonitorThread->start( QThread::NormalPriority ); //QThread::LowPriority );
 
-		m_pSystemEventsMonitor->startMonitor();
-
 		m_bInitWasDone = true;
 		if(	m_bStopWasSentOnInitPhase )
 		{
@@ -1082,9 +1079,6 @@ void CDspService::stop (CDspService::StopMode stop_mode)
 
 	m_pHwMonitorThread->FinalizeThreadWork();
 	m_pHwMonitorThread->wait();
-
-	m_pSystemEventsMonitor->stopMonitor();
-	m_pSystemEventsMonitor->wait();
 
 	// Stops listening any addr
 	stopListeningAnyAddr();

@@ -146,7 +146,6 @@ HEADERS += \
 	HwMonitor/CDspHwMonitorNotifier.h \
 	HwMonitor/CDspHwMonitorHandler.h \
 	HwMonitor/CDspHwMonitorThread.h \
-	HwMonitor/CDspSystemEventsMonitor.h \
 	\
 	Guards/Server_Sentry.h \
 	\
@@ -259,7 +258,6 @@ SOURCES += \
 	\
 	HwMonitor/CDspHwMonitorNotifier.cpp \
 	HwMonitor/CDspHwMonitorThread.cpp  \
-	HwMonitor/CDspSystemEventsMonitor.cpp \
 	\
 	Guards/Server_Sentry.cpp \
 	\

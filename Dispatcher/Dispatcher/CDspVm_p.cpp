@@ -33,7 +33,6 @@
 #include "CVmValidateConfig.h"
 #include <prlcommon/PrlCommonUtilsBase/Common.h>
 #include <prlcommon/HostUtils/HostUtils.h>
-#include "Tasks/Task_PrepareForHibernate.h"
 #include <prlcommon/PrlCommonUtilsBase/OsInfo.h>
 #include <Libraries/PrlCommonUtils/CFirewallHelper.h>
 #include <prlcommon/Interfaces/ApiDevNums.h>
