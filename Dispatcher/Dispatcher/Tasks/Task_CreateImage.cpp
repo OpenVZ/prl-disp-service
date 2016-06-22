@@ -401,7 +401,7 @@ PRL_RESULT Task_CreateImage::createFdd( const CVmFloppyDisk& floppy_disk )
 
 		strFullPath = ConvertToFullPath(floppy_disk.getUserFriendlyName());
 
-		if ( (PRL_VM_DEV_EMULATION_TYPE)floppy_disk.getEmulatedType() == PDT_USE_IMAGE_FILE)
+		if (floppy_disk.getEmulatedType() == PVE::FloppyDiskImage)
 		{
 			// If we need to use existence floppy disk image
 			//				if (!floppy_disk.getToBeRemoved())
