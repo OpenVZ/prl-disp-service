@@ -379,52 +379,7 @@ private:
 
 } // namespace Create
 
-namespace Personalize
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Apply
-
-struct Apply: Vm::Action
-{
-	Apply(const CVmConfiguration& vm_, const QStringList& nettool_)
-		: m_configurator(vm_), m_nettool(nettool_)
-	{
-	}
-
-	bool execute(CDspTaskFailure& feedback_);
-
-private:
-	::Personalize::Configurator m_configurator;
-	QStringList m_nettool;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Action
-
-struct Prepare: Vm::Action
-{
-	Prepare(const QString& vmHome_)
-		: m_vmHome(vmHome_)
-	{
-	}
-
-	bool execute(CDspTaskFailure& feedback_);
-
-private:
-	QString m_vmHome;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Factory
-
-struct Factory
-{
-	Action* operator()(const Request& input_) const;
-};
-
-} // namespace Personalize
-
-typedef boost::mpl::vector<Create::Nvram, Apply, Personalize::Factory, Update::Directory> probeList_type;
+typedef boost::mpl::vector<Create::Nvram, Apply, Update::Directory> probeList_type;
 typedef Gear<Factory<probeList_type>, probeList_type> driver_type;
 
 namespace Runtime
