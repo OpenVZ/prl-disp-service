@@ -183,8 +183,6 @@ void CDspAccessManager::initAccessRights()
 	m_accessRights[PVE::DspCmdVmChangeSid]		  = PAIR( R | X		, PAR_VM_CHANGE_SID_ACCESS) ;
 	m_accessRights[PVE::DspCmdVmResetUptime]	  = PAIR( R | W | X	, PAR_VM_RESET_UPTIME_ACCESS) ;
 	m_accessRights[PVE::DspCmdGetVmToolsInfo]	  = PAIR( R		    , PAR_VM_GET_TOOLS_INFO) ;
-	m_accessRights[PVE::DspCmdVmAuthorise]	  =		PAIR( R		    , PAR_VM_AUTHORISE_ACCESS ) ;
-	m_accessRights[PVE::DspCmdVmChangePassword]	  =	PAIR( R	| W		, PAR_VM_CHANGE_PASSWORD_ACCESS ) ;
 	m_accessRights[PVE::DspCmdVmSetProtection]=		PAIR( R	| W	    , PAR_VM_SET_PROTECTION_ACCESS ) ;
 	m_accessRights[PVE::DspCmdVmRemoveProtection]=	PAIR( R	| W		, PAR_VM_REMOVE_PROTECTION_ACCESS ) ;
 

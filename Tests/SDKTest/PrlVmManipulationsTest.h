@@ -527,18 +527,6 @@ private slots:
 	void testLinkedCloneVm();
 	void testTryToLinkedCloneVmWithoutSnapshotsOnReadOnlyAccess();
 	void testVmConvertDisksOnWrongParams();
-	void testIsEncrypted();
-	void testIsEncryptedOnWrongParams();
-	void testVmAuthoriseOnWrongParams();
-	void testVmChangePasswordOnWrongParams();
-	void testVmEncryptOnWrongParams();
-	void testVmDecryptOnWrongParams();
-	void testVmAuthoriseOnValidPassword();
-	void testVmAuthoriseOnWrongPassword();
-	void testVmEncrypt();
-	void testVmDecrypt();
-	void testHardDiskCheckPassword();
-	void testAddHardDiskToEncryptedVm();
 	void testGetVmHddsSize();
 	void testGetAppTemplateList();
 	void testGetAppTemplateListOnWrongParams();

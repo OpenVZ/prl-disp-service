@@ -153,13 +153,6 @@ private slots:
 	void testDspCProtoVmCommandWithOneStrParam_StrParamAbsent();
 	void testDspCProtoVmCommandWithOneStrParam_BothParamsAbsent();
 
-	void testCreateCProtoVmCommandWithTwoStrParams();
-	void testParseCProtoVmCommandWithTwoStrParams_AllParamsExists();
-	void testParseCProtoVmCommandWithTowStrParams_VmUuidAbsent();
-	void testParseCProtoVmCommandWithTwoStrParams_FirstStrParamAbsent();
-	void testParseCProtoVmCommandWithTwoStrParams_SecondStrParamAbsent();
-	void testParseCProtoVmCommandWithTwoStrParams_AllParamsAbsent();
-
 	void testParseCommandForDspCmdVmPause();
 	void testCreateDspCmdVmAnswerCommand();
 	void testParseDspCmdVmAnswerCommand();
@@ -200,8 +193,6 @@ private slots:
 	void testDspCmdVmDevConnectCommandIsValidFailedOnDeviceIndexAbsent();
 	void testDspCmdVmDevConnectCommandIsValidFailedOnDeviceConfigAbsent();
 	void testParseCommandForDspCmdVmDevDisconnect();
-	void testCreateDspCmdVmDevHdCheckPasswordCommand();
-	void testParseCommandForDspCmdVmDevHdCheckPassword();
 	void testCreateDspCmdDirVmCreateCommand();
 	void testParseDspCmdDirVmCreateCommand();
 	void testDspCmdDirVmCreateCommandIsValidFailedOnEmptyPackage();
