@@ -44,6 +44,11 @@
 
 #include "CDspVmConfigManager.h"
 
+#ifdef _LIBVIRT_
+#include "CDspLibvirt.h"
+#include "CDspLibvirtExec.h"
+#endif // _LIBVIRT_
+
 namespace Vm
 {
 
@@ -52,8 +57,8 @@ class Guest: public QObject
 	Q_OBJECT
 
 public:
-	Guest(const QString& uuid_, const Config::Edit::Atomic& editor_) :
-		m_uuid(uuid_), m_editor(editor_)
+	Guest(const QString& uuid_, const Config::Edit::Atomic& editor_, bool f_) :
+		m_uuid(uuid_), m_editor(editor_), m_fromKnownState(f_)
 	{
 	}
 
@@ -63,6 +68,11 @@ public:
 	}
 
 	static void setToolsVersion(CVmConfiguration& c_, const QString& v_);
+	static void configureNetwork(CVmConfiguration& c_, const QString& uuid_);
+	static Libvirt::Result runProgram(
+		Libvirt::Instrument::Agent::Vm::Guest guest_,
+		const QString& uuid_,
+		const Libvirt::Instrument::Agent::Vm::Exec::Request&);
 
 protected:
 	virtual void timerEvent(QTimerEvent*);
@@ -70,6 +80,7 @@ protected:
 private:
 	const QString m_uuid;
 	Config::Edit::Atomic m_editor;
+	bool m_fromKnownState;
 
 	boost::promise<std::pair<PRL_VM_TOOLS_STATE, QString> > m_state;
 };

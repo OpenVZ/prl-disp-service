@@ -30,12 +30,12 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 #include "CDspService.h"
-#include "Tasks/Task_EditVm.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "CDspLibvirt.h"
 #include "CDspLibvirtExec.h"
 #include "CDspVmGuest.h"
+#include "CDspVmNetworkHelper.h"
 
 namespace Vm {
 
@@ -51,6 +51,57 @@ void Guest::setToolsVersion(CVmConfiguration& c_, const QString& v_)
 
 	if (o != v_)
 		c_.getVmSettings()->getVmTools()->setAgentVersion(v_);
+}
+
+void Guest::configureNetwork(CVmConfiguration& c_, const QString& uuid_)
+{
+	Network::Difference::Vm v(c_);
+	unsigned int type = c_.getVmSettings()->getVmCommonOptions()->getOsType();
+	QStringList d = v.calculate(CVmConfiguration(), type);
+
+	WRITE_TRACE(DBG_INFO, "vm: %s ostype: %d configureNetwork",
+		qPrintable(uuid_), type);
+
+	if (d.isEmpty())
+		return;
+
+	QString c = d.takeFirst();
+	Libvirt::Instrument::Agent::Vm::Exec::Request request(c, d);
+	request.setRunInShell(type == PVS_GUEST_TYPE_WINDOWS);
+
+	runProgram(Libvirt::Kit.vms().at(uuid_).getGuest(),
+		uuid_, request);
+}
+
+Libvirt::Result Guest::runProgram(
+	Libvirt::Instrument::Agent::Vm::Guest guest_,
+	const QString& uuid_,
+	const Libvirt::Instrument::Agent::Vm::Exec::Request& request_)
+{
+	QString cmdline = request_.getPath() + " " + request_.getArgs().join(" ");
+
+	WRITE_TRACE(DBG_INFO, "vm: %s running: %s",
+			qPrintable(uuid_),
+			qPrintable(cmdline));
+
+	Prl::Expected <Libvirt::Instrument::Agent::Vm::Exec::Result,
+	       Error::Simple> e = guest_.runProgram(request_);
+
+	if (e.isFailed()) {
+		WRITE_TRACE(DBG_FATAL, "vm: %s cannot run: %s error: 0x%08x", 
+			qPrintable(uuid_),
+				qPrintable(request_.getPath()),
+			e.error().code());
+		return e.error();
+	} else {
+		WRITE_TRACE(DBG_INFO, "vm: %s completed: %s exitcode: %d output: %s",
+				qPrintable(uuid_),
+				qPrintable(request_.getPath()),
+				e.value().exitcode,
+				qPrintable(QString::fromUtf8(e.value().stdOut) + "\n" +
+					   QString::fromUtf8(e.value().stdErr)));
+		return Libvirt::Result();
+	}
 }
 
 void Guest::timerEvent(QTimerEvent *ev_)
@@ -71,8 +122,10 @@ void Guest::timerEvent(QTimerEvent *ev_)
 		return;
 	}
 
-	m_editor(boost::bind(&setToolsVersion, _1, boost::cref(r.value())));
 	m_state.set_value(std::make_pair(PTS_INSTALLED, r.value()));
+	m_editor(boost::bind(&setToolsVersion, _1, boost::cref(r.value())));
+	if (m_fromKnownState)
+		m_editor(boost::bind(&configureNetwork, _1, boost::cref(m_uuid)));
 
 	// tools ready, stop checking
 	deleteLater();
