@@ -880,7 +880,9 @@ Task_DispToDispConnHelper(getLastError()),
 m_nRemoteVersion(MIGRATE_DISP_PROTO_V1),
 m_pVmConfig(new CVmConfiguration()),
 m_bNewVmInstance(false),
+m_nPrevVmState(VMS_UNKNOWN),
 m_nSteps(0),
+m_nRegisterCmd(PVE::DspIllegalCommand),
 m_registry(registry_)
 {
 	CProtoVmMigrateCommand *pCmd = CProtoSerializer::CastToProtoCommand<CProtoVmMigrateCommand>(cmd);
