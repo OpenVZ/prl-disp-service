@@ -239,6 +239,7 @@ const unsigned int CDspHostInfo::VM_MAX_MEM_32BIT = 8 * 1024;
 // Common constructor
 void CDspHostInfo::CommonConstructor()
 {
+	dmask = NULL;
 	p_HostHwInfo = NULL;
 	m_nRefreshFlags = 0;
 }
