@@ -369,11 +369,11 @@ QList<PRL_RESULT > CVmValidateConfig::CheckCtConfig(PRL_VM_CONFIG_SECTIONS nSect
 	{
 		foreach(const CVmHardDisk* d, m_pVmConfig->getVmHardwareList()->m_lstHardDisks)
 		{
-			QString qsSysName = d->getSystemName();
-			QSet<QString> setIds = E_SET << d->getFullItemId() << d->getEnabled_id();
-
 			if (d == NULL || d->getEnabled() != PVE::DeviceEnabled)
 				continue;
+
+			QString qsSysName = d->getSystemName();
+			QSet<QString> setIds = E_SET << d->getFullItemId() << d->getEnabled_id();
 
 			if (d->getEmulatedType() == PVE::HardDiskImage
 				&& !Backup::Device::Details::Finding(*d).isKindOf()
