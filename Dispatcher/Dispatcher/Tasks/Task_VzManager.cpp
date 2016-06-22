@@ -649,16 +649,6 @@ PRL_RESULT Task_VzManager::editConfig()
 	if (PRL_FAILED(res))
 		return res;
 
-	// Handle memory limit change
-	unsigned int newRamSize = pConfig->getVmHardwareList()->getMemory()->getRamSize();
-	unsigned int oldRamSize = pOldConfig->getVmHardwareList()->getMemory()->getRamSize();
-	if (newRamSize != oldRamSize) {
-		VIRTUAL_MACHINE_STATE nState = VMS_UNKNOWN;
-		PRL_RESULT res = getVzHelper()->getVzlibHelper().get_env_status(sUuid, nState);
-		if (PRL_SUCCEEDED(res) && (nState == VMS_RUNNING))
-			adjustReservedMemLimit((long long)newRamSize - oldRamSize);
-	}
-
 	QStringList lstAdd, lstDel;
 	// Handle application templates
 	QStringList newAppTemplates = pConfig->getCtSettings()->getAppTemplate();
@@ -1067,11 +1057,7 @@ PRL_RESULT Task_VzManager::process_state()
 	if (!pConfig)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
-	unsigned int ramSize = pConfig->getVmHardwareList()->getMemory()->getRamSize();
-
 	if ((m_nState == VMS_RUNNING) || (m_nState == VMS_RESUMING)) {
-		adjustReservedMemLimit((long long)ramSize);
-
 		CFirewallHelper fw(pConfig);
 		res = fw.Execute();
 
@@ -1083,7 +1069,6 @@ PRL_RESULT Task_VzManager::process_state()
 
 		/* will ignore start VNC server error */
 		stop_vnc_server(getVmUuid(), true);
-		adjustReservedMemLimit(-(long long)ramSize);
 	} else if (m_nState == VMS_UNKNOWN) {
 		/* Network configuration changed */
 		CFirewallHelper fw(pConfig);
@@ -1568,12 +1553,3 @@ PRL_RESULT Task_VzManager::send_problem_report()
 	CDspProblemReportHelper::getProblemReport( getClient(), getRequestPackage() );
 	return PRL_ERR_SUCCESS;
 }
-
-PRL_RESULT Task_VzManager::adjustReservedMemLimit(long long delta)
-{
-	CDspLockedPointer<CDispCommonPreferences> lpCommonPrefs =
-		CDspService::instance()->getDispConfigGuard().getDispCommonPrefs();
-	CDspService::instance()->getVzHelper()->adjustTotalRunningCtMemory(delta);
-	return PRL_ERR_SUCCESS;
-}
-

@@ -102,7 +102,6 @@ void CDspVzHelper::CConfigCache::remove(const QString &sHome)
 
 /**************** CDspVzHelper ************************/
 CDspVzHelper::CDspVzHelper(CDspService& service_, const Backup::Task::Launcher& backup_):
-	m_totalRunningCtMemory(-1LL), m_totalRunningCtMemoryMtx(QMutex::Recursive),
 	m_service(&service_), m_backup(backup_)
 {
 }
@@ -1096,48 +1095,6 @@ void CDspVzHelper::appendAdvancedParamsToCtConfig(SmartPtr<CVmConfiguration> pOu
 	} else if ( remDisplay->getMode() == PRD_DISABLED ) {
 		remDisplay->setPortNumber(0);
 	}
-}
-
-void CDspVzHelper::initTotalRunningCtMemory()
-{
-	QMutexLocker locker(&m_totalRunningCtMemoryMtx);
-	m_totalRunningCtMemory = 0;
-
-	CDspLockedPointer<CVmDirectory>	pDir = m_service->getVmDirManager().getVzDirectory();
-	if (!pDir) {
-		WRITE_TRACE(DBG_FATAL, "Virtuozzo Directory not found, skip Ct processing");
-		return;
-	}
-	SmartPtr<CDspClient> session = CDspClient::makeServiceUser();
-	foreach(CVmDirectoryItem *pDirItem, pDir->m_lstVmDirectoryItems)
-	{
-		SmartPtr<CVmConfiguration> pConfig = getCtConfig(session,
-			pDirItem->getVmUuid(), pDirItem->getVmHome());
-		if (!pConfig)
-			continue;
-		VIRTUAL_MACHINE_STATE nState;
-		PRL_RESULT res = getVzlibHelper().get_env_status(pDirItem->getVmUuid(), nState);
-		if (PRL_FAILED(res) || (nState != VMS_RUNNING))
-			continue;
-		m_totalRunningCtMemory += pConfig->getVmHardwareList()->getMemory()->getRamSize();
-	}
-}
-
-unsigned int CDspVzHelper::getTotalRunningCtMemory()
-{
-	QMutexLocker locker(&m_totalRunningCtMemoryMtx);
-	if (m_totalRunningCtMemory == -1LL)
-		initTotalRunningCtMemory();
-	return (m_totalRunningCtMemory > UINT_MAX) ? UINT_MAX : m_totalRunningCtMemory;
-}
-
-unsigned int CDspVzHelper::adjustTotalRunningCtMemory(long long delta)
-{
-	QMutexLocker locker(&m_totalRunningCtMemoryMtx);
-	if (m_totalRunningCtMemory == -1LL)
-		initTotalRunningCtMemory();
-	m_totalRunningCtMemory += delta;
-	return (m_totalRunningCtMemory > UINT_MAX) ? UINT_MAX : m_totalRunningCtMemory;
 }
 
 #ifdef _LIN_

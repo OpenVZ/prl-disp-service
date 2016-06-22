@@ -97,7 +97,6 @@ private:
 			const QString &sStage, int progress);
 	static void sendEvt(void *obj, PRL_EVENT_TYPE type, const QString &sUuid,
 			const QString &sStage, int data);
-	PRL_RESULT adjustReservedMemLimit(long long delta);
 	virtual PRL_RESULT prepareTask();
 	virtual PRL_RESULT run_body();
 	virtual void finalizeTask();
