@@ -1096,6 +1096,11 @@ void CpuFeaturesMask::getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &
 	}
 	foreach(QString name, features)
 	{
+		/* hypervisor feature is pure virtual, it's always absent
+		   in cpufeatures mask. VM requires it, so dispatcher should
+		   not disable it */
+		if (name == "hypervisor")
+			continue;
 		Libvirt::Domain::Xml::Feature f;
 		f.setName(name);
 		f.setPolicy(Libvirt::Domain::Xml::EPolicyDisable);
