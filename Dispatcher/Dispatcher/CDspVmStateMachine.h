@@ -449,16 +449,15 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	{
 		m_home = QFileInfo(path_);
 	}
-	std::pair<PRL_VM_TOOLS_STATE, QString> getToolsState()
+	PRL_VM_TOOLS_STATE getToolsState()
 	{
 		if (m_toolsState.has_value())
 			return m_toolsState.get();
 		boost::optional<CVmConfiguration> c = getConfig();
 		if (!c)
-			return std::make_pair(PTS_NOT_INSTALLED, QString());
+			return PTS_NOT_INSTALLED;
 		QString v = c->getVmSettings()->getVmTools()->getAgentVersion();
-		return std::make_pair(v.isEmpty() ?
-			PTS_NOT_INSTALLED : PTS_POSSIBLY_INSTALLED, v);
+		return v.isEmpty() ? PTS_NOT_INSTALLED : PTS_POSSIBLY_INSTALLED;
 	}
 
 	void setName(const QString& value_);
@@ -482,7 +481,7 @@ private:
 	QSharedPointer< ::Network::Routing> m_routing;
 	QString m_name;
 	boost::optional<QFileInfo> m_home;
-	boost::future<std::pair<PRL_VM_TOOLS_STATE, QString> > m_toolsState;
+	boost::future<PRL_VM_TOOLS_STATE> m_toolsState;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

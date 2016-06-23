@@ -95,7 +95,7 @@ public:
 	{
 	}
 
-	boost::future<std::pair<PRL_VM_TOOLS_STATE, QString> > getFuture()
+	boost::future<PRL_VM_TOOLS_STATE> getFuture()
 	{
 		return m_state.get_future();
 	}
@@ -109,7 +109,7 @@ protected:
 
 private:
 	QString m_uuid;
-	boost::promise<std::pair<PRL_VM_TOOLS_STATE, QString> > m_state;
+	boost::promise<PRL_VM_TOOLS_STATE> m_state;
 };
 
 } //namespace Guest

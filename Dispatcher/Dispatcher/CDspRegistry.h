@@ -91,7 +91,8 @@ struct Access
 
 	boost::optional< ::Vm::Config::Edit::Atomic> getConfigEditor() const;
 
-	std::pair<PRL_VM_TOOLS_STATE, QString> getToolsState();
+	PRL_VM_TOOLS_STATE getToolsState();
+
 private:
 	QString m_uuid;
 	QWeakPointer<Vm> m_vm;

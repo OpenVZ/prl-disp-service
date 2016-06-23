@@ -1436,9 +1436,16 @@ bool CDspVmDirHelper::sendVmToolsInfo(const IOSender::Handle& sender,
 	}
 
 	// Get tools state
-	QString toolsStateVersion;
-	std::pair<PRL_VM_TOOLS_STATE, QString> toolsState =
-		m_registry.find(vm_uuid).getToolsState();
+	QString toolsVersion;
+	PRL_VM_TOOLS_STATE toolsState = m_registry.find(vm_uuid).getToolsState();
+	SmartPtr<CVmConfiguration> pVmConfig =
+		getVmConfigByUuid(pUserSession, vm_uuid, err);
+	if (pVmConfig) {
+		toolsVersion = pVmConfig->getVmSettings()->getVmTools()->getAgentVersion();
+		// override tools state for templates from config
+		if (!toolsVersion.isEmpty() && toolsState == PTS_NOT_INSTALLED)
+			toolsState = PTS_POSSIBLY_INSTALLED;
+	}
 
 	////////////////////////////////////////////////////////////////////////
 	// prepare response
@@ -1446,10 +1453,10 @@ bool CDspVmDirHelper::sendVmToolsInfo(const IOSender::Handle& sender,
 
 	CVmEvent rev;
 	rev.addEventParameter( new CVmEventParameter(PVE::Integer
-				, QString::number(toolsState.first)
+				, QString::number(toolsState)
 				, EVT_PARAM_VM_TOOLS_STATE ));
 	rev.addEventParameter( new CVmEventParameter(PVE::String
-				, toolsState.second
+				, toolsVersion
 				, EVT_PARAM_VM_TOOLS_VERSION ));
 
 	CProtoCommandPtr pCmd = CProtoSerializer::CreateDspWsResponseCommand( pkg, PRL_ERR_SUCCESS );
