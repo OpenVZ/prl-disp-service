@@ -136,7 +136,7 @@ void Watcher::timerEvent(QTimerEvent *ev_)
 		return;
 	}
 
-	m_state.set_value(std::make_pair(PTS_INSTALLED, r.value()));
+	m_state.set_value(PTS_INSTALLED);
 
 	emit guestToolsStarted(r.value());
 
