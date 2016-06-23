@@ -279,9 +279,22 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		void operator()(const Event&, Frontend& fsm_, FromState&, Running&)
 		{
 			WRITE_TRACE(DBG_INFO, "action guest tools on running for VM '%s'", qPrintable(fsm_.m_name));
+			bool f = boost::is_same<FromState, Unknown>::value;
 
-			::Vm::Guest *p = new ::Vm::Guest(fsm_.getUuid(), fsm_.getConfigEditor());
+			::Vm::Guest::Actor *a = new ::Vm::Guest::Actor(fsm_.getConfigEditor());
+			::Vm::Guest::Watcher *p = new ::Vm::Guest::Watcher(fsm_.getUuid());
+
+			p->connect(p, SIGNAL(guestToolsStarted(const QString)),
+				a, SLOT(setToolsVersionSlot(const QString)));
+			p->connect(p, SIGNAL(destroyed()), a, SLOT(deleteLater()));
+			if (!f) {
+				p->connect(p, SIGNAL(guestToolsStarted(const QString)),
+					a, SLOT(configureNetworkSlot(const QString)));
+				p->connect(p, SIGNAL(destroyed()), a, SLOT(deleteLater()));
+			}
+
 			fsm_.m_toolsState = p->getFuture();
+
 			p->startTimer(0);
 		}
 	};

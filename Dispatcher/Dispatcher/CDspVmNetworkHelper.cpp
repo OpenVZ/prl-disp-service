@@ -36,6 +36,7 @@
 #include "Tasks/Task_ManagePrlNetService.h"
 
 #include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
 #include <Libraries/PrlNetworking/netconfig.h>
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 #include <boost/bind.hpp>
@@ -237,6 +238,7 @@ void CDspVmNetworkHelper::updateHostMacAddress(SmartPtr<CVmConfiguration> pVmCon
 
 namespace Network
 {
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Dao
 
@@ -462,5 +464,326 @@ bool Routing::find(const CVmGenericNetworkAdapter* adapter_, const QList<CVmGene
 			&& (*it)->getNetAddresses() == adapter_->getNetAddresses();
 }
 
-} // namespace Network
+namespace Difference
+{
 
+///////////////////////////////////////////////////////////////////////////////
+// struct SearchDomain
+
+SearchDomain::SearchDomain(const general_type& general_, const Config::Dao& devices_):
+	m_general(general_.getSearchDomains()), m_devices(devices_.getEligible())
+{
+}
+
+QStringList SearchDomain::calculate(const general_type& general_, const Config::Dao& devices_)
+{
+	// add global search domains
+	bool y = false;
+	QStringList x = m_general;
+
+	// add per adapter search domains to global list for now - due to
+	// absence of support in guest parts
+	foreach(device_type* a, m_devices)
+	{
+		device_type* o = devices_.find(a->getSystemName(), a->getIndex());
+		if (NULL == o || a->getSearchDomains() != o->getSearchDomains())
+			y = true;
+		x << a->getSearchDomains();
+	}
+
+	// set searchDomains only if something changed
+	if ((y || m_general != general_.getSearchDomains()) && !x.isEmpty())
+		return x;
+
+	return QStringList();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Device
+
+Device::Device(const general_type& general_, const Config::Dao& devices_):
+	m_devices(devices_), m_general(&general_),
+	m_defaultGwIp4Bridge(devices_.findDefaultGwIp4Bridge()),
+	m_defaultGwIp6Bridge(devices_.findDefaultGwIp6Bridge())
+{
+}
+
+bool Device::isEqual(const device_type* first_, const device_type* second_)
+{
+	if (first_ == NULL || second_ == NULL)
+		return first_ == second_;
+
+	return	first_->getConnected() == second_->getConnected() &&
+		first_->getEnabled() == second_->getEnabled() &&
+		first_->isAutoApply() == second_->isAutoApply() &&
+		first_->getEmulatedType() == second_->getEmulatedType() &&
+		PrlNet::isEqualEthAddress(first_->getMacAddress(), second_->getMacAddress()) &&
+		first_->getNetAddresses() == second_->getNetAddresses() &&
+		first_->getDefaultGateway() == second_->getDefaultGateway() &&
+		first_->getDefaultGatewayIPv6() == second_->getDefaultGatewayIPv6() &&
+		first_->isConfigureWithDhcp() == second_->isConfigureWithDhcp() &&
+		first_->isConfigureWithDhcpIPv6() == second_->isConfigureWithDhcpIPv6() &&
+		first_->getDnsIPAddresses() == second_->getDnsIPAddresses() &&
+		first_->getVirtualNetworkID() == second_->getVirtualNetworkID();
+}
+
+QStringList Device::calculate(const general_type& general_, const Config::Dao& devices_)
+{
+	QStringList output;
+	device_type* v = devices_.findDefaultGwIp4Bridge();
+	device_type* w = devices_.findDefaultGwIp6Bridge();
+	bool g = ((NULL == m_defaultGwIp4Bridge) != (v == NULL)) ||
+		((NULL == m_defaultGwIp6Bridge) != (w == NULL));
+
+	foreach(device_type* a, m_devices.getEligible())
+	{
+		device_type* o = devices_.find(a->getSystemName(), a->getIndex());
+		if (isEqual(o, a) && m_general->isAutoApplyIpOnly() == general_.isAutoApplyIpOnly() &&
+				!(a->getEmulatedType() == PNA_ROUTED && g))
+			continue;
+
+		QString m = a->getMacAddress();
+		if (!PrlNet::convertMacAddress(m))
+			continue;
+
+		// DHCP has no sense with Routed adapters
+		if (a->getEmulatedType() == PNA_ROUTED)
+			output << Address(*a)(Routed(m, m_defaultGwIp4Bridge, m_defaultGwIp6Bridge));
+		else
+			output << Address(*a)(Bridge(m));
+
+		// ipOnly autoApply skips all except ip/route/gw args
+		// currently this is just dns ips args
+		if (!m_general->isAutoApplyIpOnly() && !a->getDnsIPAddresses().isEmpty())
+		{
+			output << "--dns" << m
+				<< QStringList(a->getDnsIPAddresses()).join(" ");
+		}
+	}
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+Vm::Vm(const CVmConfiguration& cfg_)
+	: m_device(*cfg_.getVmSettings()->getGlobalNetwork(),
+		Network::Config::Dao(cfg_.getVmHardwareList()->m_lstNetworkAdapters))
+{
+	const Network::general_type* a = cfg_.getVmSettings()->getGlobalNetwork();
+	Network::Config::Dao x(cfg_.getVmHardwareList()->m_lstNetworkAdapters);
+
+	if (a->isAutoApplyIpOnly())
+		return;
+
+	m_searchDomain = SearchDomain(*a, x);
+	QString h = a->getHostName();
+	if (!h.isEmpty())
+		m_hostname = h;
+}
+
+QStringList Vm::calculate(const general_type& general_, const Config::Dao& devices_)
+{
+	QStringList a;
+	if (m_searchDomain)
+	{
+		QStringList x = m_searchDomain.get().calculate(general_, devices_);
+		if (!x.isEmpty())
+			a << "--search-domain" << x.join(" ");
+	}
+	if (m_hostname)
+	{
+		if (m_hostname.get() != general_.getHostName())
+			a << "--hostname" << m_hostname.get();
+	}
+	return a << m_device.calculate(general_, devices_);
+}
+
+QStringList Vm::calculate(const CVmConfiguration& start_, unsigned int osType_)
+{
+	const Network::general_type* a = start_.getVmSettings()->getGlobalNetwork();
+	Network::Config::Dao x(start_.getVmHardwareList()->m_lstNetworkAdapters);
+
+	QStringList d = calculate(*a, x);
+	if (!d.isEmpty()) {
+		d.insert(0, "set");
+
+		QString u((osType_ == PVS_GUEST_TYPE_WINDOWS) ?
+				"%programfiles%\\Qemu-ga\\prl_nettool.exe" : "prl_nettool");
+		d.insert(0, u);
+	}
+	return d;
+}
+
+} // namespace Difference
+
+
+namespace Config
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Dao
+
+Dao::Dao(const list_type& dataSource_): m_dataSource(dataSource_)
+{
+	foreach (device_type* a, m_dataSource)
+	{
+		if (a->isAutoApply() && a->getEnabled() == PVE::DeviceEnabled &&
+				a->getConnected() == PVE::DeviceConnected)
+			m_eligible.push_back(a);
+	}
+}
+
+device_type* Dao::findDefaultGwIp4Bridge() const
+{
+	foreach (device_type* a, m_eligible)
+	{
+		if (a->getEmulatedType() == PNA_ROUTED)
+			continue;
+		if (a->isConfigureWithDhcp() || !a->getDefaultGateway().isEmpty())
+			return a;
+	}
+	return NULL;
+}
+
+device_type* Dao::findDefaultGwIp6Bridge() const
+{
+	foreach (device_type* a, m_eligible)
+	{
+		if (a->getEmulatedType() == PNA_ROUTED)
+			continue;
+		if (a->isConfigureWithDhcpIPv6() || !a->getDefaultGatewayIPv6().isEmpty())
+			return a;
+	}
+	return NULL;
+}
+
+device_type* Dao::find(const QString& name_, quint32 index_) const
+{
+	foreach(device_type* a, m_dataSource)
+	{
+		if (!name_.isEmpty() && name_ == a->getSystemName())
+			return a;
+		if (index_ == a->getIndex())
+			return a;
+	}
+	return NULL;
+}
+
+} // namespace Config
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Routed
+
+Routed::Routed(const QString& mac_, const device_type* defaultGwIp4Bridge_,
+	const device_type* defaultGwIp6Bridge_):
+	m_mac(mac_), m_defaultGwIp4Bridge(defaultGwIp4Bridge_),
+	m_defaultGwIp6Bridge(defaultGwIp6Bridge_)
+{
+}
+
+std::pair<QString, QString> Routed::getIp4Defaults() const
+{
+	QString x = QString(DEFAULT_HOSTROUTED_GATEWAY).remove(QRegExp("/.*$")) + " ";
+	if (NULL != m_defaultGwIp4Bridge)
+		return std::make_pair("remove ", x);
+
+	return std::make_pair(x, "");
+}
+
+QString Routed::getIp6DefaultGateway()
+{
+	return QString(DEFAULT_HOSTROUTED_GATEWAY6).remove(QRegExp("/.*$"));
+}
+
+QString Routed::getIp6Gateway() const
+{
+	return NULL != m_defaultGwIp6Bridge ? "removev6 " : getIp6DefaultGateway() + " ";
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Address
+
+Address::Address(const device_type& device_): m_device(&device_)
+{
+	boost::tie(m_v4, m_v6) = NetworkUtils::ParseIps(m_device->getNetAddresses());
+}
+
+QStringList Address::operator()(const Routed& mode_)
+{
+	QString g, r;
+	QStringList output, a;
+	if (!m_v4.isEmpty())
+	{
+		a << m_v4;
+		boost::tie(g, r) = mode_.getIp4Defaults();
+	}
+	if (!m_v6.isEmpty())
+	{
+		a << m_v6;
+		g += mode_.getIp6Gateway();
+		// Install rules with metric lower than auto-installed
+		foreach(const QString &ip, m_v6)
+			r += QString("%1=%2m100 ").arg(ip, mode_.getIp6DefaultGateway());
+	}
+	if (a.isEmpty())
+	{
+		//ipv6 and ipv4 are configured to DHCP - say prl_nettool
+		// remove ips in routed network adapter #PSBM-8099
+		output << "--ip" << mode_.getMac() << "remove";
+	}
+	else
+		output << "--ip" << mode_.getMac() << a.join(" ");
+
+	if (!g.isEmpty())
+		output << "--gateway" << mode_.getMac() << g;
+
+	if (!r.isEmpty())
+		output << "--route" << mode_.getMac() << r;
+	else if (g.isEmpty())
+		output << "--route" << mode_.getMac() << "remove";
+
+	return output;
+}
+
+QStringList Address::operator()(const Bridge& mode_)
+{
+	QString g;
+	QStringList output, a;
+	if (m_device->isConfigureWithDhcp())
+		output << "--dhcp" << mode_.getMac();
+	else if (!m_v4.isEmpty())
+	{
+		a << m_v4;
+		QString d = m_device->getDefaultGateway();
+		g = d.isEmpty() ? "remove " : d + " ";
+	}
+	else if (m_v6.isEmpty() && !m_device->isConfigureWithDhcpIPv6())
+	{
+		// automatic switch to DHCP if list of IPs empty (#427177)
+		output << "--dhcp" << mode_.getMac();
+	}
+	if (m_device->isConfigureWithDhcpIPv6())
+		output << "--dhcpv6" << mode_.getMac();
+	else if (!m_v6.isEmpty())
+	{
+		a << m_v6;
+		QString d = m_device->getDefaultGatewayIPv6();
+		g += d.isEmpty() ? "removev6 " : d + " ";
+	}
+	if (a.isEmpty())
+		a << "remove";
+	output << "--ip" << mode_.getMac() << a.join(" ");
+
+	if (g.isEmpty())
+	{
+		// bridged && dhcp && dhcp6
+		output << "--route" << mode_.getMac() << "remove";
+	}
+	else
+		output << "--gateway" << mode_.getMac() << g;
+
+	return output;
+}
+
+} // namespace Network
