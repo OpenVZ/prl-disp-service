@@ -3221,7 +3221,7 @@ Vm::Action* Factory::operator()(const Request& input_) const
 	Libvirt::Instrument::Agent::Vm::Exec::Request request(c, d);
 	request.setRunInShell(t == PVS_GUEST_TYPE_WINDOWS);
 	QString uuid = input_.getFinal().getVmIdentification()->getVmUuid();
-	return Forge(input_).craftGuest(boost::bind(&::Vm::Guest::runProgram, _1, uuid, request));
+	return Forge(input_).craftGuest(boost::bind(&::Vm::Guest::Actor::runProgram, _1, uuid, request));
 }
 
 } // namespace Network

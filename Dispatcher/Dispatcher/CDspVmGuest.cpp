@@ -37,14 +37,14 @@
 #include "CDspVmGuest.h"
 #include "CDspVmNetworkHelper.h"
 
-#include <boost/signals2/signal.hpp>
-
 namespace Vm {
 
-///////////////////////////////////////////////////////////////////////////////
-//class Guest
+namespace Guest {
 
-void Guest::setToolsVersion(CVmConfiguration& c_, const QString& v_)
+///////////////////////////////////////////////////////////////////////////////
+//class Actor
+
+void Actor::setToolsVersion(CVmConfiguration& c_, const QString& v_)
 {
 	QString o = c_.getVmSettings()->getVmTools()->getAgentVersion();
 
@@ -55,7 +55,7 @@ void Guest::setToolsVersion(CVmConfiguration& c_, const QString& v_)
 		c_.getVmSettings()->getVmTools()->setAgentVersion(v_);
 }
 
-void Guest::configureNetwork(CVmConfiguration& c_,
+void Actor::configureNetwork(CVmConfiguration& c_, QString& uuid,
 	QScopedPointer<Libvirt::Instrument::Agent::Vm::Exec::Request>& r)
 {
 	Network::Difference::Vm v(c_);
@@ -65,10 +65,27 @@ void Guest::configureNetwork(CVmConfiguration& c_,
 		QString c = cmd.takeFirst();
 		r.reset(new Libvirt::Instrument::Agent::Vm::Exec::Request(c, cmd));
 		r->setRunInShell(type == PVS_GUEST_TYPE_WINDOWS);
+		uuid = c_.getVmIdentification()->getVmUuid();
 	}
 }
 
-Libvirt::Result Guest::runProgram(
+void Actor::setToolsVersionSlot(const QString v_)
+{
+	m_editor(boost::bind(&setToolsVersion, _1, boost::cref(v_)));
+}
+
+
+void Actor::configureNetworkSlot(const QString v_)
+{
+	Q_UNUSED(v_);
+	QString uuid;
+	QScopedPointer<Libvirt::Instrument::Agent::Vm::Exec::Request> req;
+	m_editor(boost::bind(&configureNetwork, _1, boost::ref(uuid), boost::ref(req)));
+	if (!req.isNull())
+		 runProgram(Libvirt::Kit.vms().at(uuid).getGuest(), uuid, *req);
+}
+
+Libvirt::Result Actor::runProgram(
 	Libvirt::Instrument::Agent::Vm::Guest guest_,
 	const QString& uuid_,
 	const Libvirt::Instrument::Agent::Vm::Exec::Request& request_)
@@ -99,13 +116,15 @@ Libvirt::Result Guest::runProgram(
 	}
 }
 
-void Guest::timerEvent(QTimerEvent *ev_)
+///////////////////////////////////////////////////////////////////////////////
+//class Watcher
+
+void Watcher::timerEvent(QTimerEvent *ev_)
 {
 	killTimer(ev_->timerId());
 
 	Prl::Expected<QString, Libvirt::Agent::Failure> r =
-		Libvirt::Kit.vms().at(m_uuid)
-		.getGuest().getAgentVersion(0);
+		Libvirt::Kit.vms().at(m_uuid).getGuest().getAgentVersion(0);
 	if (r.isFailed()) {
 		if (r.error().virErrorCode() == VIR_ERR_OPERATION_INVALID) {
 			// domain is not running
@@ -117,24 +136,15 @@ void Guest::timerEvent(QTimerEvent *ev_)
 		return;
 	}
 
-
-	boost::signals2::signal<void (CVmConfiguration& )> s;
-	s.connect(boost::bind(&setToolsVersion, _1, boost::cref(r.value())));
-	QScopedPointer<Libvirt::Instrument::Agent::Vm::Exec::Request> req;
-	if (m_fromKnownState)
-		s.connect(boost::bind(&configureNetwork, _1, boost::ref(req)));
-	m_editor(s);
-
 	m_state.set_value(std::make_pair(PTS_INSTALLED, r.value()));
 
-	if (!req.isNull()) {
-		runProgram(Libvirt::Kit.vms().at(m_uuid).getGuest(),
-				m_uuid, *req);
-	}
+	emit guestToolsStarted(r.value());
 
 	// tools ready, stop checking
 	deleteLater();
 	return;
 }
 
-} //namespace Vm
+} // namespace Guest
+
+} // namespace Vm
