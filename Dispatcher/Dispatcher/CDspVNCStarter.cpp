@@ -111,8 +111,6 @@ Server::Server(const QString& binary_, const QString& vm_, const CVmRemoteDispla
 	m_password(display_.getPassword()), m_envp(QProcessEnvironment::systemEnvironment())
 {
 	QString a = QCoreApplication::applicationDirPath();
-	if (!CDspService::instance()->isServerModePSBM())
-		m_binary = a  + "/" + m_binary;
 #if _LIN_
 	m_envp.insert("LD_LIBRARY_PATH", a);
 #else
