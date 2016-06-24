@@ -2071,7 +2071,7 @@ PRL_RESULT Task_EditVm::editVm()
 			// High Availability Cluster
 			//
 			// handle VM only on shared FS - nfs, gfs, gfs2, pcs
-			if (CDspService::isServerModePSBM() && CFileHelper::isSharedFS(strVmHome) )
+			if (CFileHelper::isSharedFS(strVmHome))
 			{
 				ret = UpdateClusterResourceVm(pVmConfigOld, pVmConfigNew, vmHomePath, bVmWasRenamed);
 				if (PRL_FAILED(ret))
@@ -2278,9 +2278,6 @@ void Task_EditVm::updateNetworkSettings(
 		Task_ManagePrlNetService::addVmIPAddress(pNewVmConfig);
 	}
 
-	if (!CDspService::isServerMode())
-		return;
-
 #ifdef _LIN_
 	QList<CVmGenericNetworkAdapter* > &lstNew = pNewVmConfig->getVmHardwareList()->m_lstNetworkAdapters;
 	QList<CVmGenericNetworkAdapter* > &lstOld = pOldVmConfig->getVmHardwareList()->m_lstNetworkAdapters;
@@ -2346,9 +2343,6 @@ PRL_RESULT Task_EditVm::configureVzParameters(SmartPtr<CVmConfiguration> pNewVmC
 					SmartPtr<CVmConfiguration> pOldVmConfig)
 {
 	bool bSet = !pOldVmConfig;
-
-	if (!CDspService::isServerModePSBM())
-		return PRL_ERR_SUCCESS;
 
 	QString sVmUuid = pNewVmConfig->getVmIdentification()->getVmUuid();
 	// Configure for running VM only
@@ -2621,9 +2615,6 @@ PRL_RESULT Task_EditVm::editFirewall(SmartPtr<CVmConfiguration> pVmConfigNew,
 									 VIRTUAL_MACHINE_STATE nState,
 									 bool& flgExclusiveFirewallChangedWasRegistered)
 {
-	if ( ! CDspService::isServerModePSBM() )
-		return PRL_ERR_SUCCESS;
-
 	QStringList lstFullItemIds;
 	pVmConfigNew->diffDocuments(pVmConfigOld.getImpl(), lstFullItemIds);
 	QString qsDiff = lstFullItemIds.join(" ");

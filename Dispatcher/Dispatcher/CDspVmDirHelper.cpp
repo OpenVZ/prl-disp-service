@@ -953,7 +953,7 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 					QSTR2UTF8(pDirectoryItem->getVmUuid()), rc, PRL_RESULT_TO_STRING(rc)
 					);
 
-				if( CDspService::isServerMode() && PRL_ERR_ACCESS_TO_VM_DENIED == rc )
+				if (PRL_ERR_ACCESS_TO_VM_DENIED == rc)
 					continue;
 
 				if (nFlags & PGVLF_GET_ONLY_IDENTITY_INFO)
@@ -1175,9 +1175,7 @@ bool CDspVmDirHelper::sendVmConfigByUuid ( const IOSender::Handle& sender,
 			, QSTR2UTF8(vm_uuid), rc, PRL_RESULT_TO_STRING(rc)
 			);
 
-		if( !CDspService::isServerMode()
-			|| ( CDspService::isServerMode() && rc != PRL_ERR_ACCESS_TO_VM_DENIED )
-		)
+		if (rc != PRL_ERR_ACCESS_TO_VM_DENIED)
 		{
 			pVmConfig = CreateDefaultVmConfigByRcValid(pUserSession, rc, vm_uuid);
 		}
@@ -1796,8 +1794,7 @@ void CDspVmDirHelper::unregVm(
 	{
 		sendNotValidState(pUserSession, err, vm_uuid, bSetNotValid);
 		bool flgDenyToUnregConfig = (
-				CDspService::isServerMode()
-				&& PRL_ERR_VM_CONFIG_DOESNT_EXIST == err
+				PRL_ERR_VM_CONFIG_DOESNT_EXIST == err
 				&& ! pUserSession->getAuthHelper().isLocalAdministrator()
 				);
 
@@ -2918,8 +2915,6 @@ void CDspVmDirHelper::setNetworkRate(
 		const SmartPtr<IOPackage> pPackage)
 {
 #ifdef _CT_
-	if (!CDspService::isServerMode())
-		return;
 	if (CVzHelper::is_vz_running() != 1 )
 		return;
 
@@ -2956,8 +2951,6 @@ void CDspVmDirHelper::restartNetworkShaping(
 		const SmartPtr<IOPackage> pPackage)
 {
 #ifdef _CT_
-	if (!CDspService::isServerMode())
-		return;
 	if (CVzHelper::is_vz_running() != 1 )
 		return;
 	// update config

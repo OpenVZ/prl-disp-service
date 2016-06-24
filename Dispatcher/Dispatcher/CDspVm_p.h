@@ -313,7 +313,7 @@ struct Process
 	QString getBinary() const;
 	QString getWorkingDir() const;
 	QStringList getArguments() const;
-	QStringList getEnvironment(CDspClient& user_) const;
+	QStringList getEnvironment() const;
 	void setMode(const CVmConfiguration& config_);
 
 	static Process* yield(const CVmIdent& ident_);

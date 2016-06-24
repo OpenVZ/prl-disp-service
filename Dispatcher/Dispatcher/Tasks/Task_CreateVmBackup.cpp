@@ -178,7 +178,7 @@ PRL_RESULT Task_CreateVmBackup::sendStartRequest(const ::Backup::Activity::Objec
 
 	if (pCreateReply->GetFreeDiskSpace(nFreeDiskSpace))
 	{
-		nRetCode = checkFreeDiskSpace(m_sVmUuid, m_nOriginalSize, nFreeDiskSpace, true);
+		nRetCode = checkFreeDiskSpace(m_nOriginalSize, nFreeDiskSpace, true);
 		if (PRL_FAILED(nRetCode))
 			return nRetCode;
 	}

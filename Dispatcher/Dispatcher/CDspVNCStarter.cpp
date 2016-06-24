@@ -715,7 +715,6 @@ PRL_RESULT CDspVNCStarter::Start (
 	PRL_RESULT e;
 	Vnc::Api::Server a(app, sID, *remDisplay);
 	std::auto_ptr<Vnc::Starter::Unit> x(new Vnc::Starter::Raw(a, *this));
-	if (CDspService::instance()->isServerModePSBM())
 	{
 		QByteArray c, k;
 		if (Vnc::Encryption(*(CDspService::instance()->getQSettings().getPtr())).state(k, c))

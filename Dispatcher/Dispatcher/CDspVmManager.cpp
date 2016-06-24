@@ -1784,9 +1784,6 @@ bool CDspVmManager::checkFastReboot(void) const
 	bool bFastReboot = false;
 
 #ifdef _LIN_
-	if (!CDspService::isServerModePSBM())
-		return false;
-
 	if (CDspService::instance()->getDispConfigGuard()
 			.getDispCommonPrefs()->getFastRebootPreferences()->isFastReboot() &&
 			QFile::exists("/sys/kernel/pram"))

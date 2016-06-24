@@ -1323,7 +1323,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 	Restore::Target::Vm::noSpace_type y;
 	if (u.isNoSpace(y))
 	{
-		nRetCode = Task_BackupHelper::checkFreeDiskSpace(m_sVmUuid, y.second, y.first, false);
+		nRetCode = Task_BackupHelper::checkFreeDiskSpace(y.second, y.first, false);
 		if (PRL_FAILED(nRetCode))
 			return nRetCode;
 	}

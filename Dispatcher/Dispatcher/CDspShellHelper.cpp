@@ -589,7 +589,6 @@ void CDspShellHelper::sendHostCommonInfo (
 			CVzHelper::getVzPrivateDir() );
 #endif
 #ifdef _LIN_
-	if (CDspService::isServerModePSBM())
 	{
 		std::auto_ptr<CDispCpuPreferences> cpuMask(CCpuHelper::get_cpu_mask());
 

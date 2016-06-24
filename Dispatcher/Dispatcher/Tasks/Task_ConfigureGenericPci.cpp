@@ -366,8 +366,7 @@ void Task_ConfigureGenericPci::finalizeTask()
 		if ( ! m_bNeedHostReboot )
 			break;
 
-		if ( CDspService::instance()->isServerMode()
-			&& ! getClient()->getAuthHelper().isLocalAdministrator() )
+		if (!getClient()->getAuthHelper().isLocalAdministrator())
 		{
 			WRITE_TRACE(DBG_FATAL, "Client has to be administrator for reboot host!");
 
@@ -379,29 +378,6 @@ void Task_ConfigureGenericPci::finalizeTask()
 			SmartPtr<IOPackage> p
 				= DispatcherPackage::createInstance( PVE::DspVmEvent, event, getRequestPackage() );
 			CDspService::instance()->getClientManager().sendPackageToAllClients(p);
-			break;
-		}
-
-		// ALL USERS (OR SERVER ADMINS) CAN DO REBOOT HOST BECAUSE
-		// DRIVER OPERATIONS HAVE THE SAME ALERT AS REBOOT AND THIS
-		// REBOOT IS A PART OF INSTALL OR REVERT DRIVER
-
-		QList<PRL_RESULT> lstChoices;
-		QList<CVmEventParameter*> lstParams;
-
-		lstChoices << PET_ANSWER_RESTART_NOW << PET_ANSWER_LATER;
-
-		PRL_RESULT nAnswer = getClient()
-			->sendQuestionToUser( PET_QUESTION_REBOOT_HOST_ON_PCI_DRIVER_INSTALL_OR_REVERT
-				, lstChoices, lstParams, getRequestPackage());
-
-		if( PET_ANSWER_RESTART_NOW == nAnswer )
-		{
-			WRITE_TRACE(DBG_FATAL, "Stop dispatcher with reboot host in process...");
-
-			// Stop dispatcher and reboot host
-			PRL_ASSERT(CMainDspService::instance());
-			CMainDspService::instance()->stopWithHostReboot();
 			break;
 		}
 

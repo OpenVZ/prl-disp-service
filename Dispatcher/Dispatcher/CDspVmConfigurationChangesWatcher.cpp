@@ -747,7 +747,6 @@ void Strategy::TimerBased::processPermissions( const Data& data, CDspVmConfigura
 
 		// only for server mode to optimize perfomance for Desktop because check permission pooling mode
 		// may be hard for CPU
-		if( CDspService::instance()->isServerMode() )
 		{
 			// send event to client if vm permissions changed for curent user
 			// this code pooling 1 time to second user permissions for windows server mode

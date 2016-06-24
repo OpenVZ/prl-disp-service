@@ -846,8 +846,7 @@ PRL_RESULT Mixed::restore(const Work& unit_, const QString& owner_)
 	switch (e)
 	{
 	case PRL_ERR_NO_VM_DIR_CONFIG_FOUND:
-		if (CDspService::instance()->isServerMode()
-			&& unit_.getAuth()->getUserFullName() != owner_)
+		if (unit_.getAuth()->getUserFullName() != owner_)
 		{
 			WRITE_TRACE(DBG_FATAL, "Restoring VM config when owner is not the same user is not implemented");
 			return PRL_ERR_UNIMPLEMENTED;

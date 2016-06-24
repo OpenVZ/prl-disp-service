@@ -1178,9 +1178,6 @@ void Task_ManagePrlNetService::updateVmNetworking(SmartPtr<CVmConfiguration> pVm
 	if (!pVmConfig)
 		return;
 
-	if (!CDspService::isServerModePSBM())
-		return;
-
 	foreach(CVmGenericNetworkAdapter *adapter, pVmConfig->getVmHardwareList()->m_lstNetworkAdapters)
 	{
 		if (!adapter)
@@ -1479,12 +1476,6 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateNetworkClassesConfig()
 #ifndef _CT_
 	return PRL_ERR_UNIMPLEMENTED;
 #else
-	if ( !CDspService::instance()->isServerMode() )
-	{
-		WRITE_TRACE(DBG_FATAL, "Skip network classes setup in non server mode");
-		return PRL_ERR_UNIMPLEMENTED;
-	}
-
 	QString sXml;
 	PRL_RESULT prlResult = getFirstStrParam(getRequestPackage(), sXml);
 	if (PRL_FAILED(prlResult))
@@ -1523,12 +1514,6 @@ PRL_RESULT Task_ManagePrlNetService::cmdRestartNetworkShaping()
 #ifndef _CT_
 	return PRL_ERR_UNIMPLEMENTED;
 #else
-	if ( !CDspService::instance()->isServerMode() )
-	{
-		WRITE_TRACE(DBG_FATAL, "Skip network shaping restart in non server mode");
-		return PRL_ERR_UNIMPLEMENTED;
-	}
-
 	{
 		CDspLockedPointer<CParallelsNetworkConfig>
 		pNetworkConfig = CDspService::instance()->getNetworkConfig();
@@ -1568,12 +1553,6 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateNetworkShapingConfig()
 #ifndef _CT_
 	return PRL_ERR_UNIMPLEMENTED;
 #else
-	if ( !CDspService::instance()->isServerMode() )
-	{
-		WRITE_TRACE(DBG_FATAL, "Skip network classes setup in non server mode");
-		return PRL_ERR_UNIMPLEMENTED;
-	}
-
 	QString sXml;
 	PRL_RESULT prlResult = getFirstStrParam(getRequestPackage(), sXml);
 	if (PRL_FAILED(prlResult))
@@ -1652,12 +1631,6 @@ PRL_RESULT Task_ManagePrlNetService::validateIPPrivateNetwork(CPrivateNetwork *p
 
 PRL_RESULT Task_ManagePrlNetService::cmdAddIPPrivateNetwork()
 {
-	if ( !CDspService::instance()->isServerMode() )
-	{
-		WRITE_TRACE(DBG_FATAL, "Skip private network setup in non server mode");
-		return PRL_ERR_UNIMPLEMENTED;
-	}
-
 	QString sPrivNet;
 	PRL_RESULT prlResult = getFirstStrParam(getRequestPackage(), sPrivNet);
 	if (PRL_FAILED(prlResult))
@@ -1732,12 +1705,6 @@ PRL_RESULT Task_ManagePrlNetService::cmdAddIPPrivateNetwork()
 
 PRL_RESULT Task_ManagePrlNetService::cmdUpdateIPPrivateNetwork()
 {
-	if ( !CDspService::instance()->isServerMode() )
-	{
-		WRITE_TRACE(DBG_FATAL, "Skip private network setup in non server mode");
-		return PRL_ERR_UNIMPLEMENTED;
-	}
-
 	QString sPrivNet;
 	PRL_RESULT prlResult = getFirstStrParam(getRequestPackage(), sPrivNet);
 	if (PRL_FAILED(prlResult))
@@ -1826,12 +1793,6 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateIPPrivateNetwork()
 
 PRL_RESULT Task_ManagePrlNetService::cmdRemoveIPPrivateNetwork()
 {
-	if ( !CDspService::instance()->isServerMode() )
-	{
-		WRITE_TRACE(DBG_FATAL, "Skip private network setup in non server mode");
-		return PRL_ERR_UNIMPLEMENTED;
-	}
-
 	QString sPrivNet;
 	PRL_RESULT prlResult = getFirstStrParam(getRequestPackage(), sPrivNet);
 	if (PRL_FAILED(prlResult))

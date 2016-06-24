@@ -367,8 +367,7 @@ protected:
 	void killABackupClient();
 	PRL_RESULT getBackupParams(const QString &sVmUuid, const QString &sBackupUuid,
                 unsigned nBackupNumber, quint64 &nSize, quint32 &nBundlePermissions);
-	PRL_RESULT checkFreeDiskSpace(const QString &sVmUuid,
-			quint64 nRequiredSize, quint64 nAvailableSize, bool bIsCreateOp);
+	PRL_RESULT checkFreeDiskSpace(quint64 nRequiredSize, quint64 nAvailableSize, bool bIsCreateOp);
 
 	virtual bool isCancelled() { return operationIsCancelled(); }
 

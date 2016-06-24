@@ -702,9 +702,6 @@ PRL_RESULT Task_RunVmAction::RunAction(
 {
 	QStringList lstEnv;
 
-	if (!CDspService::instance()->isServerMode())
-		return 0;
-
 	lstEnv += QString("%1=%2").arg("UUID").arg(sVmUuid);
 	QString sVmHome;
 	{
