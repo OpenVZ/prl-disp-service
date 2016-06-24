@@ -101,24 +101,6 @@ bool TestConfig::isExternalBuild()
 	#endif
 }
 
-bool TestConfig::isServerMode()
-{
-    if (TestConfig::g_executeMode != PAM_SERVER) {
-        WRITE_TRACE(DBG_FATAL, "Unsupported value of  TestConfig::g_executeMode." );
-        PRL_ASSERT(0);
-        throw ("error!");
-    }
-    return TRUE;
-}
-
-bool TestConfig::isServerModePSBM()
-{
-#ifdef _LIN_
-	return PAM_SERVER == TestConfig::g_executeMode;
-#endif
-	return false;
-}
-
 PRL_APPLICATION_MODE TestConfig::getApplicationMode()
 {
 	return (g_executeMode);

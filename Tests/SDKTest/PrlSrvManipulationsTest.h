@@ -331,8 +331,6 @@ private slots:
 	void testGenericPciDeviceClassOnWrongParams();
 	void testGenericPciDeviceIsPrimaryOnWrongParams();
 	void testCreateVmInSpecificNonExistsFolderNonInteractiveMode();
-	void testCreateVmInSpecificNonExistsFolderInteractiveModeFolderCreationAccepted();
-	void testCreateVmInSpecificNonExistsFolderInteractiveModeFolderCreationRejected();
 	void testPrepareForHibernateOnWrongParams();
 	void testAfterHostResumeOnWrongParams();
 	void testSendProblemReport();
@@ -398,7 +396,6 @@ private slots:
 	void testProblemReportSendOnWrongParams();
 	void testGetAssemblyAndSendProblemReport();
 	void testApplianceOnWrongParams();
-	void testUpLocalhostInterface();
 	void testGetCtTemplateList();
 	void testGetCtTemplateListOnWrongParams();
 	void testGetCtNameOnWrongParams();

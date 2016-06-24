@@ -285,11 +285,6 @@ public:
 public slots:
 
 	/**
-	 * Starts, stops any addr listening.
-	 */
-	void startOrStopListeningAnyAddr ( bool );
-
-	/**
 	 * Stops any addr listening.
 	 */
 	void stopListeningAnyAddr ();
@@ -310,7 +305,6 @@ signals:
 	void onConfigChanged(const SmartPtr<CDispCommonPreferences>, const SmartPtr<CDispCommonPreferences>);
 	void onDoStopFromMainThread();
 	void onDoNatDetectFromMainThread();
-	void onStartOrStopListeningAnyAddr(bool);
 	void onUpCustomListeningInterface(const QString &);
 
 	void cleanupOnUserSessionDestroy(QString sessionUuid);

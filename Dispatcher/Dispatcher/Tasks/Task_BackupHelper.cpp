@@ -1300,11 +1300,6 @@ PRL_RESULT Task_BackupHelper::checkFreeDiskSpace(
 		QString strSize;
 		strSize.sprintf("%.1f", (float)nRequiredSize / 1024.0 / 1024.0 / 1024.0);
 
-		if ( !getForceQuestionsSign() )//If interactive mode then send question to user
-		{
-			return PRL_ERR_OPERATION_WAS_CANCELED;
-		}
-		else
 		{
 			nRetCode = bIsCreateOp ? PRL_ERR_BACKUP_CREATE_NOT_ENOUGH_FREE_DISK_SPACE :
 					PRL_ERR_BACKUP_RESTORE_NOT_ENOUGH_FREE_DISK_SPACE;

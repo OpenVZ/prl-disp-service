@@ -375,21 +375,11 @@ bool Task_RegisterVm::isVMConfigurationHasDynamicMacAddress(SmartPtr<CVmConfigur
 	return false;
 }
 
-void Task_RegisterVm::checkWhereFromRegisteredVm( bool bServerUuidWasChanged )
+void Task_RegisterVm::checkWhereFromRegisteredVm()
 {
 	bool bUpdateMacInConfig = isApplianceRegistered();
 	bool bUpdateVmUuid = false;
 	bool bConfigHasDynamicMac = isVMConfigurationHasDynamicMacAddress(m_pVmConfig);
-
-	// send question to user
-	if (doRegisterOnly()
-		&& !getForceQuestionsSign()
-		&& bServerUuidWasChanged
-		)
-	{
-		getLastError()->setEventCode(PRL_ERR_OPERATION_WAS_CANCELED);
-		throw PRL_ERR_OPERATION_WAS_CANCELED;
-	}
 
 	if ( bUpdateMacInConfig && bConfigHasDynamicMac )
 		createMACAddress(m_pVmConfig);
@@ -505,11 +495,6 @@ void Task_RegisterVm::checkVMOnOtherServerUuid( bool *pbServerUuidWasChanged /* 
 					EVT_PARAM_MESSAGE_PARAM_0));
 				throw PRL_ERR_FORCE_REG_ON_SHARED_STORAGE_IS_NEEDED;
 			}
-		}
-		else if (!getForceQuestionsSign())
-		{
-			getLastError()->setEventCode(PRL_ERR_OPERATION_WAS_CANCELED);
-			throw PRL_ERR_OPERATION_WAS_CANCELED;
 		}
 	}
 
@@ -844,7 +829,7 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 		bool bServerUuidWasChanged = true;
 		checkVMOnOtherServerUuid( &bServerUuidWasChanged );
 		checkOperationPermission();
-		checkWhereFromRegisteredVm( bServerUuidWasChanged );
+		checkWhereFromRegisteredVm();
 		checkDynamicMACAddress( );
 		validateNewConfiguration();
 		patchNewConfiguration();
@@ -1224,13 +1209,6 @@ PRL_RESULT Task_RegisterVm::run_body()
 			}
 		} //! doRegisterOnly()
 
-		// If current VM is actually a template, ask user to continue
-		if ( m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate() && !getForceQuestionsSign() )
-		{
-			getLastError()->setEventCode( PRL_ERR_OPERATION_WAS_CANCELED );
-			throw PRL_ERR_OPERATION_WAS_CANCELED;
-		}
-
 		if (m_bForceRegisterOnSharedStorage)
 		{
 			PRL_FILE_SYSTEM_FS_TYPE fstype = HostUtils::GetFSType(m_strPathToVmDirToRegister);
@@ -1569,12 +1547,6 @@ PRL_RESULT	Task_RegisterVm::createFloppyDisks()
 					WRITE_TRACE(DBG_FATAL, "Required fdd image '%s' does not found, try to send question to user"
 						, QSTR2UTF8( strFullPath )
 						);
-
-					if( !getForceQuestionsSign() )
-					{
-						getLastError()->setEventCode( PRL_ERR_OPERATION_WAS_CANCELED );
-						return PRL_ERR_OPERATION_WAS_CANCELED;
-					}//if( !getForceQuestionsSign()
 				}
 
 				// continue in any case because this parallels image and it shouldn't created.
@@ -1594,7 +1566,7 @@ PRL_RESULT	Task_RegisterVm::createFloppyDisks()
 			SmartPtr<CDspClient> dspClient = getClient();
 			SmartPtr<IOService::IOPackage> requestPackage = getRequestPackage();
 			Task_CreateImage taskCreateImage(
-				dspClient, requestPackage, m_pVmConfig, floppyXMLstr, false, getForceQuestionsSign() );
+				dspClient, requestPackage, m_pVmConfig, floppyXMLstr, false, true);
 
 			m_lpcCreateImageCurrentTask = &taskCreateImage;
 			PRL_RESULT ret = taskCreateImage.run_body();
@@ -1835,7 +1807,7 @@ PRL_RESULT	Task_RegisterVm::createHardDisks()
 			SmartPtr<IOService::IOPackage> requestPackage = getRequestPackage();
 
 			Task_CreateImage taskCreateImage(
-				dspClient, requestPackage, m_pVmConfig, hddXMLstr, false, getForceQuestionsSign() );
+				dspClient, requestPackage, m_pVmConfig, hddXMLstr, false, true);
 
 			m_lpcCreateImageCurrentTask = &taskCreateImage;
 			ret = taskCreateImage.run_body();
@@ -2126,12 +2098,6 @@ PRL_RESULT Task_RegisterVm::tryToRestoreVmConfig( const QString& sPathToVmDir )
 
 	if ( PRL_FAILED( m_pVmConfig->m_uiRcInit ) )
 		return PRL_ERR_PARSE_VM_CONFIG;
-
-	PRL_RESULT answer = PET_ANSWER_NO;
-	if( getForceQuestionsSign() )
-		answer = PET_ANSWER_YES;
-	if (answer != PET_ANSWER_YES)
-		return PRL_ERR_OPERATION_WAS_CANCELED;
 
 	PRL_RESULT nRes = CDspService::instance()->getVmConfigManager()
 			.restoreConfig(vm_xml_path,

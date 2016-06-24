@@ -435,12 +435,6 @@ void CDspTaskHelper::setLastErrorCode(PRL_RESULT rc)
 	getLastError()->setEventCode( rc );
 }
 
-bool CDspTaskHelper::getForceQuestionsSign() const
-{
-	return ( ( m_pUser && m_pUser->isNonInteractive() ) ||
-				m_bForceQuestionsSign );
-}
-
 SmartPtr<CDspClient> CDspTaskHelper::getActualClient()
 {
 	if (m_bTaskLostByClient)

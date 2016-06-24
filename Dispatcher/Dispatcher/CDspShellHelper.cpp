@@ -71,7 +71,6 @@
 #include "Tasks/Task_UpdateCommonPrefs.h"
 #include "Tasks/Task_ManagePrlNetService.h"
 #include "Tasks/Task_GetFileSystemEntries.h"
-#include "Tasks/Task_ConfigureGenericPci.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_VmDataStatistic.h"
 
@@ -1007,13 +1006,6 @@ void CDspShellHelper::sendIPPrivateNetworksList(SmartPtr<CDspClient>& pUser, con
 	pResponseCmd->SetParamsList( lstPrivNet );
 
 	pUser->sendResponse( pResponse, p );
-}
-
-void CDspShellHelper::configureGenericPci(SmartPtr<CDspClient>& pUser,
-										  const SmartPtr<IOPackage>& p)
-{
-	CDspService::instance()->getTaskManager()
-		.schedule(new Task_ConfigureGenericPci(pUser, p));
 }
 
 static QMutex* gs_pmtxUserAuth = new QMutex;

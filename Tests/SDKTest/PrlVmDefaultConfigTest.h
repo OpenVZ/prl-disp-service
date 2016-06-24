@@ -46,13 +46,10 @@ private slots:
 	void testCheckDefaultConfigurationValues();
 	void testSetDefaultConfigCheckAllDevicesWinVista();
 	void testSetDefaultConfigForParallelPortDeviceFreeBSD();
-	void testSetDefaultConfigForSoundDeviceFreeBsd();
 	void testSetDefaultConfigForParallelPortDeviceOtherLinux();
 	void testSetDefaultConfigForUsbControllerDeviceOtherLinux();
 	void testSetDefaultConfigForSerailPortDeviceOS2();
 	void testSetDefaultConfigForSerailPortDeviceEcs();
-	void testSetDefaultConfigForSoundDeviceWinVista();
-	void testSetDefaultConfigForSoundDeviceWin311();
 	void testAddDefaultDeviceForSoundDeviceWinVista();
 	void testAddDefaultDeviceForSoundDeviceWin311();
 	void testAddDefaultDeviceForSoundDeviceMSDos622();

@@ -397,7 +397,6 @@ private slots:
 	void testCheckSourceVmUuidOnNewVmCreation();
 	void testSpecifyAbsolutePathAtHardDiskSettings();
 	void testRenameVmCheckInternalDiskImagePathValid();
-	void testVmStartExOnWrongParams();
 	void testDenyToCreateVmWithAlreadyExistsVmName();
 	void testCreateVmWithAlreadyExistsVmNameCheckHardImagePath();
 	void testVmRestartOnWrongParams();

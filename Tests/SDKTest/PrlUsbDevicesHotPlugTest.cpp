@@ -34,10 +34,6 @@
 #include "SimpleServerWrapper.h"
 #include "Tests/CommonTestsUtils.h"
 
-#define CHECK_THAT_USB_PRINTER_SUPPORTED\
-	if ( TestConfig::isServerModePSBM() )\
-		QSKIP("Skipping due usb printers is not supported at server mode", SkipAll);
-
 #define CREATE_VM(create_with_devices)\
 	SimpleServerWrapper _connection( NULL );\
 	QVERIFY(_connection.IsConnected());\
@@ -52,89 +48,6 @@
 	CHECK_RET_CODE_EXP(PrlVmCfg_SetDefaultConfig( hVm, hSrvConfig, PVS_GUEST_VER_WIN_VISTA, create_with_devices ))\
 	CHECK_RET_CODE_EXP(PrlVmCfg_SetName( hVm, QTest::currentTestFunction() ))\
 	QVERIFY(_connection.CreateTestVm( hVm ));
-
-void PrlUsbDevicesHotPlugTest::testAddPrinterOnRunningVm()
-{
-	CHECK_THAT_USB_PRINTER_SUPPORTED
-
-	CREATE_VM(PRL_TRUE)
-	CHECK_ASYNC_OP_SUCCEEDED(PrlVm_Start( hVm ))
-	{
-		stop_vm_on_exit stop_vm( hVm );
-		SdkHandleWrap hPrinter;
-
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_BeginEdit( hVm ))
-		CHECK_RET_CODE_EXP(PrlVmCfg_AddDefaultDeviceEx( hVm, hSrvConfig, PDE_PARALLEL_PORT, hPrinter.GetHandlePtr() ))
-		CHECK_HANDLE_TYPE(hPrinter, PHT_VIRTUAL_DEV_PARALLEL_PORT)
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_Commit( hVm ))
-	}
-}
-
-void PrlUsbDevicesHotPlugTest::testAddSeveralPrintersOnRunningVm()
-{
-	CHECK_THAT_USB_PRINTER_SUPPORTED
-
-	CREATE_VM(PRL_TRUE)
-	CHECK_ASYNC_OP_SUCCEEDED(PrlVm_Start( hVm ))
-	{
-		stop_vm_on_exit stop_vm( hVm );
-		SdkHandleWrap hPrinter1, hPrinter2;
-
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_BeginEdit( hVm ))
-		CHECK_RET_CODE_EXP(PrlVmCfg_AddDefaultDeviceEx( hVm, hSrvConfig, PDE_PARALLEL_PORT, hPrinter1.GetHandlePtr() ))
-		CHECK_RET_CODE_EXP(PrlVmCfg_AddDefaultDeviceEx( hVm, hSrvConfig, PDE_PARALLEL_PORT, hPrinter2.GetHandlePtr() ))
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_Commit( hVm ))
-	}
-}
-
-void PrlUsbDevicesHotPlugTest::testAddSeveralPrintersThenRemoveThemOnRunningVm()
-{
-	CHECK_THAT_USB_PRINTER_SUPPORTED
-
-	CREATE_VM(PRL_TRUE)
-	CHECK_ASYNC_OP_SUCCEEDED(PrlVm_Start( hVm ))
-	{
-		stop_vm_on_exit stop_vm( hVm );
-		SdkHandleWrap hPrinter1, hPrinter2, hPrinter3;
-
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_BeginEdit( hVm ))
-		CHECK_RET_CODE_EXP(PrlVmCfg_AddDefaultDeviceEx( hVm, hSrvConfig, PDE_PARALLEL_PORT, hPrinter1.GetHandlePtr() ))
-		CHECK_RET_CODE_EXP(PrlVmCfg_AddDefaultDeviceEx( hVm, hSrvConfig, PDE_PARALLEL_PORT, hPrinter2.GetHandlePtr() ))
-		CHECK_RET_CODE_EXP(PrlVmCfg_AddDefaultDeviceEx( hVm, hSrvConfig, PDE_PARALLEL_PORT, hPrinter3.GetHandlePtr() ))
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_Commit( hVm ))
-
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_BeginEdit( hVm ))
-		CHECK_RET_CODE_EXP(PrlVmDev_Remove( hPrinter1 ))
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_Commit( hVm ))
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_BeginEdit( hVm ))
-		CHECK_RET_CODE_EXP(PrlVmDev_Remove( hPrinter2 ))
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_Commit( hVm ))
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_BeginEdit( hVm ))
-		CHECK_RET_CODE_EXP(PrlVmDev_Remove( hPrinter3 ))
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_Commit( hVm ))
-	}
-}
-
-void PrlUsbDevicesHotPlugTest::testAddAndRemovePrintersSimultaneouslyOnRunningVm()
-{
-	CHECK_THAT_USB_PRINTER_SUPPORTED
-
-	CREATE_VM(PRL_TRUE)
-	CHECK_ASYNC_OP_SUCCEEDED(PrlVm_Start( hVm ))
-	{
-		stop_vm_on_exit stop_vm( hVm );
-		SdkHandleWrap hPrinter1, hPrinter2;
-
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_BeginEdit( hVm ))
-		CHECK_RET_CODE_EXP(PrlVmCfg_AddDefaultDeviceEx( hVm, hSrvConfig, PDE_PARALLEL_PORT, hPrinter1.GetHandlePtr() ))
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_Commit( hVm ))
-
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_BeginEdit( hVm ))
-		CHECK_RET_CODE_EXP(PrlVmCfg_AddDefaultDeviceEx( hVm, hSrvConfig, PDE_PARALLEL_PORT, hPrinter2.GetHandlePtr() ))
-		CHECK_RET_CODE_EXP(PrlVmDev_Remove( hPrinter1 ))
-		CHECK_ASYNC_OP_SUCCEEDED(PrlVm_Commit( hVm ))
-	}
-}
 
 void PrlUsbDevicesHotPlugTest::testDisconnectPrinterOnRunningVm()
 {

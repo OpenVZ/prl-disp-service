@@ -99,7 +99,7 @@ bool SimpleServerWrapper::Login(char *sUserLogin, bool bUseNonInteractiveMode)
 	PRL_UINT32 nFlags = bUseNonInteractiveMode
 		? PACF_NON_INTERACTIVE_MODE
 		: 0;
-	if (TestConfig::isServerMode() && sUserLogin)
+	if (sUserLogin)
 	{
 		hJob.reset(PrlSrv_LoginEx(m_ServerHandle, TestConfig::getRemoteHostName(),	sUserLogin,
 								TestConfig::getUserPassword(), NULL, 0, 0, PSL_HIGH_SECURITY, nFlags));

@@ -97,8 +97,7 @@ void TestsExecuter::PushTestsExecution()
 	EXECUTE_TESTS_SUITE(PrlExclusiveVmLockTest)
 	EXECUTE_TESTS_SUITE(PrlVmUptimeTest)
 #ifdef _LIN_
-	if (TestConfig::isServerMode() &&
-		CVzHelper::is_vz_running() &&
+	if (CVzHelper::is_vz_running() &&
 		0 == CVzHelper::init_lib())
 	{
 		EXECUTE_TESTS_SUITE(PrlNetworkShapingTest)

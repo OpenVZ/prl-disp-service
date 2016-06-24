@@ -107,21 +107,10 @@ void TestDspCmdDirVmDelete::cleanup() {
 }
 
 void TestDspCmdDirVmDelete::TestOnValidParams() {
-	if (!TestConfig::isServerMode())
-	{
-		CREATE_VM_DIR
-	}
-
 	CREATE_CORRECT_VM_CONFIG;
 
 	QString sVmConfigPath;
 
-	if (!TestConfig::isServerMode())
-	{
-		sVmConfigPath = QFileInfo(g_sVmDir).absoluteFilePath();
-		CALL_CMD(m_pPveControl->DspCmdDirVmCreate(_vm_conf.toString().toUtf8().data(), sVmConfigPath.toUtf8().data()), PVE::DspCmdDirVmCreate)
-	}
-	else
 	{
 		const char* emptyStr = "";
 		CALL_CMD(m_pPveControl->DspCmdDirVmCreate(_vm_conf.toString().toUtf8().data(), const_cast<char*>(emptyStr)), PVE::DspCmdDirVmCreate)
@@ -133,29 +122,16 @@ void TestDspCmdDirVmDelete::TestOnValidParams() {
 
 	_result = m_pHandler->GetResult();
 	CHECK_RET_CODE(_result.getReturnCode())
-
-	if (!TestConfig::isServerMode())
-		QVERIFY(!QFile::exists(g_sVmDir + "/" + _vm_conf.getVmIdentification()->getVmName()));
 }
 
 void TestDspCmdDirVmDelete::TestOnNonAccessVmDir() {
 #ifdef _WIN_
 	QSKIP("Skipping due unexplanable permissions issues under Vista", SkipAll);
 #endif
-	if (!TestConfig::isServerMode())
-	{
-		CREATE_VM_DIR
-	}
-
 	CREATE_CORRECT_VM_CONFIG;
 
 	QString sVmConfigPath;
 
-	if (!TestConfig::isServerMode())
-	{
-		sVmConfigPath = QFileInfo(g_sVmDir + "/vm_config.xml").absoluteFilePath();
-		CALL_CMD(m_pPveControl->DspCmdDirVmCreate(_vm_conf.toString().toUtf8().data(), sVmConfigPath.toUtf8().data()), PVE::DspCmdDirVmCreate)
-	}else
 	{
 		const char* emptyStr = "";
 		CALL_CMD(m_pPveControl->DspCmdDirVmCreate(_vm_conf.toString().toUtf8().data(), const_cast<char*>(emptyStr)), PVE::DspCmdDirVmCreate)
@@ -188,11 +164,6 @@ void TestDspCmdDirVmDelete::TestOnNonAccessVmDir() {
 	}
 	_result = m_pHandler->GetResult();
 	QVERIFY(PRL_FAILED(_result.getReturnCode()));
-	if (!TestConfig::isServerMode())
-	{
-		QVERIFY(QFile::exists(g_sVmDir));
-	}
-
 	CALL_CMD(m_pPveControl->DspCmdDirVmDelete(_vm_conf.getVmIdentification()->getVmUuid().toUtf8().data(),QStringList()), PVE::DspCmdDirVmDelete)
 
 	_result = m_pHandler->GetResult();

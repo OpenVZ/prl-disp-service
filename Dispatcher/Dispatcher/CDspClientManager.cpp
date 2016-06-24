@@ -815,9 +815,6 @@ void CDspClientManager::handleToDispatcherPackage (
 	case PVE::DspCmdVmUpdateSnapshotData:
 		return (void)m_service->getVmSnapshotStoreHelper().updateSnapshotData(client, p);
 	///////////////////////////////////////////////
-	case PVE::DspCmdConfigureGenericPci:
-		return (void)m_service->getShellServiceHelper().configureGenericPci(client, p);
-	///////////////////////////////////////////////
 	case PVE::DspCmdSetNonInteractiveSession:
 		return (void)m_service->getUserHelper().setNonInteractiveSession(client, p);
 	case PVE::DspCmdSetSessionConfirmationMode:

@@ -76,12 +76,6 @@ int main(int argc, char *argv[])
 	QCoreApplication a(argc, argv);
 	TestConfig::readTestParameters();
 
-	if (!TestConfig::isServerMode())
-	{
-		WRITE_TRACE(DBG_FATAL, "Skipping tests suite due desktop mode not supported");
-		return (0);
-	}
-
 	TestsExecuter _tests_executer(argc, argv);
 	QTimer::singleShot(0, &_tests_executer, SLOT(PushTestsExecution()));
 	return (a.exec());
