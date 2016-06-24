@@ -1419,6 +1419,9 @@ PRL_RESULT Task_EditVm::editVm()
 
 				if (old_adapter->getMacAddress() != new_adapter->getMacAddress())
 				{
+					if (VMS_STOPPED != nState)
+						throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
+
 					new_adapter->setHostMacAddress();
 
 					if (new_adapter->getHostInterfaceName() == HostUtils::generateHostInterfaceName(old_adapter->getMacAddress()))
