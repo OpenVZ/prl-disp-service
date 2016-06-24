@@ -51,6 +51,7 @@ HEADERS += \
 	CDspDispConnection.h \
 	CDspVmDirManager.h \
 	CDspVmDirHelper.h \
+	CDspVmDirHelper_p.h \
 	CDspVmManager.h \
 	CDspVmManager_p.h \
 	CDspVmMounter.h \

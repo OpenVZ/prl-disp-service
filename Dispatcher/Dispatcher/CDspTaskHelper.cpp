@@ -151,6 +151,7 @@ CDspTaskHelper::CDspTaskHelper (
 	PRL_ASSERT( m_requestPkg );
 	m_bTaskLostByClient = false;
 	setLastErrorCode(PRL_ERR_SUCCESS);
+	setObjectName(m_JobUuid);
 
 	parseFlags();
 }
