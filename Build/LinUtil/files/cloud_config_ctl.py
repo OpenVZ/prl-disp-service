@@ -32,6 +32,7 @@ import sys
 import json
 import yaml
 import uuid
+import base64
 import shutil
 import tempfile
 import argparse
@@ -153,6 +154,18 @@ class CloudInit(OpenStackConfigDrive):
                     indent=2, separators=(u",", u": "))
             f.write("\n")
 
+    def prepare_password_command(self, user, credentials):
+        if credentials.get(u"is_encrypted", True):
+            return u"echo -e \"{0}:{1} | chpasswd -e".format(user, credentials[u"password"])
+        b = base64.b64encode(credentials[u"password"].encode("unicode-escape"))
+        return u"echo -e \"{0}:$(echo '{1}'  | base64 -w 0 --decode)\" | chpasswd".format(user, b)
+
+    def useradd_command(self, user):
+        return u"/usr/sbin/useradd {0} 1>/dev/null 2>&1 || :".format(user)
+
+    def run_in_bash(self, cmd):
+        return [u"/bin/bash", u"-c", cmd]
+
     def write_user_data(self, data):
         user_data = os.path.join(self.tmp_dir, self.user_data_path)
         prepare_dir(user_data)
@@ -161,19 +174,14 @@ class CloudInit(OpenStackConfigDrive):
                  u"bootcmd": data.get(u"bootcmd", [])}
             if u"nettoolcmd" in data:
                 d[u"runcmd"].extend(data[u"nettoolcmd"])
+
             if u"users" in data:
-                d[u"users"] = []
                 for name, credentials in data[u"users"].iteritems():
-                    u = {u"name": name}
-                    if "password" in credentials:
-                        p = credentials[u"password"]
-                        enc = credentials.get(u"is_encrypted", True)
-                        u[enc and u"passwd" or u"plain_text_passwd"] = p
-                    if u"ssh_keys" in credentials:
-                        u[u"ssh-authorized-keys"] = credentials["ssh_keys"]
-                    # lockpasswd adds ability to use this password immediately
-                    u[u"lock-passwd"] = False
-                    d[u"users"].append(u)
+                    if not "password" in credentials:
+                        continue
+                    d[u"runcmd"].extend([self.run_in_bash(self.useradd_command(name)),
+                        self.run_in_bash(self.prepare_password_command(name, credentials))])
+
             if u"write_files" in data:
                 d[u"write_files"] = data[u"write_files"]
             f.write(u"#cloud-config\n")
@@ -268,13 +276,6 @@ class Datastore:
         self.dump()
 
 # Handles user settings translation
-# e.g.
-# cloud_ctl.py user john --password pass --not-encrypted --ssh-keys 'first key' 'second key'
-# will result in
-# users:
-# - name: john
-#   passwd: pass
-#   ssh-authorized-keys: ['first key', 'second key']
 def handle_users(args):
     args.storage.assign_user(args.name, args.password, not args.not_encrypted, args.ssh_keys)
     args.storage.dump()
