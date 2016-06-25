@@ -409,10 +409,6 @@ private:
 	bool setCredentialsForServers(const IOServerList & lstServers);
 	bool ensureHostIdAvailable();
 public:
-	static bool isServerMode();
-	static bool isServerModePSBM();
-
-
 	static bool isDispMajorVersionChanged();
 
 	static quint32 getDefaultListenPort();

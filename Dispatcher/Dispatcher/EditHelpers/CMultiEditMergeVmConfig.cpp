@@ -99,8 +99,7 @@ bool CMultiEditMergeVmConfig::merge(const SmartPtr<CVmConfiguration>& pPrev
 
 	dumpConfigs( dt, "before-merge", pPrev, pNew, pCurr );
 
-	int rc = pNew->mergeDocuments( pCurr.getImpl(), pPrev.getImpl(),
-		CDspService::isServerMode() ? moEnableAllOptions : moEnableFixedFields );
+	int rc = pNew->mergeDocuments(pCurr.getImpl(), pPrev.getImpl(), moEnableAllOptions);
 
 	WRITE_TRACE( DBG_INFO, "Merge was finished with result %#x %s, '%s'"
 		, rc, PRL_RESULT_TO_STRING(rc ), QSTR2UTF8(pNew->GetErrorMessage()) );

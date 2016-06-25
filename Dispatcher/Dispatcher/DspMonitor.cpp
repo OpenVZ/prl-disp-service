@@ -251,7 +251,7 @@ void CDspMonitor::ShutdownDispatcher (
 		 .getDispConfig()->getVmServerIdentification()->getServerUuid();
 
 	quint32 nFlags = pShutdownCmd->GetCommandFlags();
-	if( CDspService::isServerModePSBM() && (nFlags & PSHF_SUSPEND_VM_TO_PRAM) )
+	if (nFlags & PSHF_SUSPEND_VM_TO_PRAM)
 	{
 		/* set flag FastReboot in dispatcher config.
 		 * To be processed in CDspVmManager::shutdownVms()

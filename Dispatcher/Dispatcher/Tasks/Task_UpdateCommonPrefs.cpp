@@ -180,7 +180,7 @@ PRL_RESULT Task_UpdateCommonPrefs::run_body()
 		//Process log level
 		if ( m_pNewCommonPrefs->getDebug()->isVerboseLogWasChanged() )
 		{
-			if ( CDspService::isServerMode() && !getClient()->getAuthHelper().isLocalAdministrator() )
+			if (!getClient()->getAuthHelper().isLocalAdministrator())
 				throw PRL_ERR_ONLY_ADMIN_CAN_SET_VERBOSE_LOGGING;
 
 			bool bVerboseLogEnabled = m_pNewCommonPrefs->getDebug()->isVerboseLogEnabled();

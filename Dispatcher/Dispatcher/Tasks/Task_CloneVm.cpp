@@ -906,19 +906,6 @@ PRL_RESULT Builder::checkSpace(const Source::Total& source_, const Source::Space
 	default:
 		return f.token(source_.getPrivate().getRoot())(e);
 	}
-	// If interactive mode then send question to user
-	QList<PRL_RESULT> lstChoices;
-	lstChoices.append( PET_ANSWER_YES );
-	lstChoices.append( PET_ANSWER_NO );
-
-	QList<CVmEventParameter*> lstParams;
-	lstParams.append(new CVmEventParameter(PVE::String, source_.getConfig().getUuid(),
-					EVT_PARAM_VM_UUID));
-	e = getClient()->sendQuestionToUser(PRL_QUESTION_CAN_NOT_GET_DISK_FREE_SPACE,
-			lstChoices, lstParams, getRequest());
-	if (PET_ANSWER_YES == e)
-		return PRL_ERR_SUCCESS;
-
 	return f(PRL_ERR_OPERATION_WAS_CANCELED);
 }
 

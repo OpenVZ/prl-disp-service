@@ -161,11 +161,6 @@ private:
 	void checkWhereFromRegisteredVm( bool bServerUuidWasChanged );
 
 	/**
-	* Checks Lion VM params at creation on recovery partition
-	*/
-	void checkCreateVmFromLionRecoveryPartition();
-
-	/**
 	* Validate config for create VM.
 	* @param configuration to check.
 	* @note throw PRL_RESULT if errors

@@ -423,14 +423,6 @@ CDspAccessManager::checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherC
 				pVmConfig->getVmIdentification()->getServerUuid() )
 		do
 		{
-			// ServerUuid check was added to prevent simultaneously using VM on shared storage ONLY.
-			if ( !CDspService::isServerMode()
-				// We don't check it inServerMode in performace reasons
-				//		(To execlude a lot of fstat()  requests on PSTORAGE filesystem).
-				&& ! CFileHelper::isSharedFS( pVmDirItem->getVmHome() )
-			)
-				break;
-
 			if ( cmd == PVE::DspCmdDirUnregVm
 				|| cmd == PVE::DspCmdCtlMigrateTarget
 				|| cmd == PVE::DspCmdCtlStartMigratedVm

@@ -175,31 +175,6 @@ public:
 	 * Same as above, but ptr event
 	 */
 	IOSendJob::Handle sendResponseError ( const CVmEvent*, const SmartPtr<IOPackage> &pRequestPkg) const;
-	/**
-	 * Sends specified question to user and wait for response
-	 * @param sending question identifier
-	 * @param list of possible choices
-	 * @param list of question parameters
-	 * @return answer code
-	 */
-	PRL_RESULT sendQuestionToUser(
-		PRL_RESULT nQuestionId,
-		const QList<PRL_RESULT> &lstChoices,
-		const QList<CVmEventParameter*>& lstParams = QList<CVmEventParameter*>(),
-		const SmartPtr<IOPackage> &pRequestPkg = SmartPtr<IOPackage>( 0 ),
-		CVmEvent *pResponseEvent = NULL
-		) const;
-	/**
-	 * Sends specified question to user list and wait for response
-	 * @param user list
-	 * @param sending question identifier
-	 * @param list of possible choices
-	 * @param list of question parameters
-	 * @param correct user list when new user login or not
-	 * @return answer code
-	 */
-	static PRL_RESULT sendQuestionToUserList(const QList< SmartPtr<CDspClient > >& lstClients,
-											 SmartPtr<ClientQuestionHelper > pQuestionHelper);
 
 	/**
 	 * Returns path where user's VMs storing by default

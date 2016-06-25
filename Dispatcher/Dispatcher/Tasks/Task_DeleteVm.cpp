@@ -253,7 +253,7 @@ PRL_RESULT Task_DeleteVm::prepareTask()
 				ret, PRL_RESULT_TO_STRING( ret) );
 			throw ret;
 		}
-		if (CDspService::isServerModePSBM() && !(m_flags & PVD_SKIP_HA_CLUSTER))
+		if (!(m_flags & PVD_SKIP_HA_CLUSTER))
 			CDspService::instance()->getHaClusterHelper()->
 					removeClusterResource(m_pVmInfo->vmName);
 

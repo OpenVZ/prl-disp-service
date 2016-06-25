@@ -356,8 +356,6 @@ bool TestSuite::checkHardware()
 
 bool TestSuite::checkFirewall()
 {
-	if (!CDspService::isServerModePSBM())
-		return true;
 	if (!m_config.isValid())
 		return false;
 
@@ -406,7 +404,7 @@ void Process::setMode(const CVmConfiguration& config_)
 	m_mode = getWinVmBinaryMode(m, m_ident);
 }
 
-QStringList Process::getEnvironment(CDspClient& user_) const
+QStringList Process::getEnvironment() const
 {
 	// Get custom environment for Vm process
 	QStringList output = Prl::getenvU(PVS_VM_ENVIRONMENT_ENV)
@@ -420,19 +418,6 @@ QStringList Process::getEnvironment(CDspClient& user_) const
 					QSTR2UTF8(m_ident.first), QSTR2UTF8(str));
 	}
 
-	bool bAddXServerEnv = false;
-#ifdef _LIN_
-	bAddXServerEnv = !CDspService::isServerMode(); // to prevent vm_app crash in PSBM where XSession was closed
-#endif
-	// #PWE-5753 to increase VGA performance on Linux
-	if( bAddXServerEnv )
-	{
-		QString val;
-		QStringList env = QStringList() << "DISPLAY" << "XAUTHORITY";
-		foreach( QString key, env )
-			if(user_.getClientEnvinromentVariable(key, val) )
-				output += QString("%1=%2").arg(key).arg(val);
-	}
 	return output;
 }
 

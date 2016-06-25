@@ -533,7 +533,6 @@ void CDspVm::cleanupObject()
 	Task_ManagePrlNetService::removeVmIPAddress(pVmConfig);
 	Task_ManagePrlNetService::updateVmNetworking(pVmConfig, false);
 
-	if ( CDspService::isServerModePSBM() )
 	{
 		// Delete firewall
 		CFirewallHelper fw(pVmConfig, true);
@@ -1134,9 +1133,6 @@ void CDspVm::applyVMNetworkSettings(VIRTUAL_MACHINE_STATE nNewState)
 {
 	PRL_RESULT nRetCode = PRL_ERR_UNINITIALIZED;
 
-	if (!CDspService::isServerMode())
-		return;
-
 	SmartPtr<CVmConfiguration> pVmConfig = getVmConfig(SmartPtr<CDspClient>(0), nRetCode);
 
 	if (!pVmConfig || PRL_FAILED(nRetCode))
@@ -1254,17 +1250,6 @@ void CDspVm::changeVmState(const SmartPtr<IOPackage> &p, bool&)
 					if( evtType == PET_DSP_EVT_VM_FROZEN )
 					{
 						pst = vpsPausedByVmFrozen;
-
-						if( !CDspService::isServerMode() )
-						{ // #PDFM-31258: Frozen state must be the substate of Runnig state for PD
-							QWriteLocker _wLock( &d().m_rwLock );
-							WRITE_TRACE( DBG_FATAL, "vm power state was changed from (%d) %s to (%d) %s"
-								, d().m_nVmPowerState,  VmPowerStateToString(d().m_nVmPowerState)
-								, pst,  VmPowerStateToString(pst) );
-							d().m_nVmPowerState = pst;
-							break;
-						}
-						PRL_ASSERT( CDspService::isServerMode() );
 					}
 
 					if ( curVmState != VMS_DELETING_STATE && curVmState != VMS_SNAPSHOTING )
@@ -1273,21 +1258,10 @@ void CDspVm::changeVmState(const SmartPtr<IOPackage> &p, bool&)
 					break;
 				}
 			case PET_DSP_EVT_VM_UNFROZEN:
-				if (CDspService::isServerMode())
 				{
 					// Hack to revert to VMS_MIGRATING state
 					QReadLocker g(&d().m_rwLock);
 					nNewVmState = d().m_nPrevVmState;
-				}
-				else
-				{
-					QWriteLocker _wLock( &d().m_rwLock );
-					// #PDFM-31258: Frozen state must be the substate of Runnig state for PD
-					WRITE_TRACE( DBG_FATAL, "vm power state was changed from (%d) %s to (%d) %s"
-						, d().m_nVmPowerState,  VmPowerStateToString(d().m_nVmPowerState)
-						, vpsNormal,  VmPowerStateToString(vpsNormal) );
-					d().m_nVmPowerState = vpsNormal;
-					break;
 				}
 			case PET_DSP_EVT_VM_CONTINUED_BY_HOST_WAKEUP:
 			{
@@ -1562,7 +1536,6 @@ void CDspVm::fixConfigBeforeStartVm( const CHostHardwareInfo & hostInfo, SmartPt
 		}
 	}
 
-	if (CDspService::isServerModePSBM())
 	{
 		foreach( CVmHardDisk* pDisk, pHardware->m_lstHardDisks )
 		{
@@ -1673,7 +1646,6 @@ void CDspVm::storeRunningState(bool bRunning)
 		sVmHome = pVmDirItem->getVmHome();
 	}
 
-	if (CDspService::isServerMode())
 	{
 		// Set running state in the Vm config
 		PRL_RESULT err;
@@ -1700,7 +1672,6 @@ void CDspVm::storeRunningState(bool bRunning)
 				true,
 				true);
 	}
-	return;
 }
 
 void CDspVm::storeFastRebootState(bool bFastReboot,

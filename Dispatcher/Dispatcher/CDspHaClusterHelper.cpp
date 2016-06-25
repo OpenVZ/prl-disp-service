@@ -246,9 +246,6 @@ PRL_RESULT CDspHaClusterHelper::revokeLeases(const QString & sPath)
 	QProcess proc;
 	QStringList args;
 
-	if ( !CDspService::isServerModePSBM() )
-		return PRL_ERR_SUCCESS;
-
 	QFileInfo fi(PSTORAGE_BIN);
 	if (!fi.exists()) {
 		WRITE_TRACE(DBG_FATAL, "Failed to run %s : file not found", QSTR2UTF8(fi.filePath()));
@@ -265,10 +262,6 @@ PRL_RESULT CDspHaClusterHelper::revokeLeases(const QString & sPath)
 PRL_RESULT CDspHaClusterHelper::runHaman(const QStringList & args, QProcess & proc)
 {
 	QStringList lstArgs(args);
-
-	// checks
-	if ( !CDspService::isServerModePSBM() )
-		return PRL_ERR_SUCCESS;
 
 	QFileInfo fi(HAMAN_BIN);
 	if (!fi.exists())
@@ -307,8 +300,6 @@ PRL_RESULT CDspHaClusterHelper::getHaClusterID(QString & sHaClusterID)
 QFileInfoList CDspHaClusterHelper::getReport()
 {
 	QFileInfoList output;
-	if (!CDspService::isServerModePSBM())
-		return output;
 	QFileInfo p("/usr/bin/pstorage-make-report");
 	if (!p.exists())
 		return output;

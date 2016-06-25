@@ -643,8 +643,6 @@ PRL_RESULT CDspVmDirManager::initVzDirCatalogue()
 {
 #ifdef _CT_
 	PRL_RESULT result = PRL_ERR_SUCCESS;
-	if (!CDspService::isServerMode())
-		return PRL_ERR_SUCCESS;
 
 #define VZ_DIR_PATH CDspService::instance()->getVzHelper()->getVzlibHelper().getVzPrivateDir()
 

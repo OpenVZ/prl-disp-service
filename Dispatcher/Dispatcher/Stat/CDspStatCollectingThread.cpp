@@ -2236,7 +2236,6 @@ void CDspStatCollectingThread::timerEvent(QTimerEvent* event_)
 			ProcessRamStat();
 			ProcessDisksStat();//Required for https://bugzilla.sw.ru/show_bug.cgi?id=422617
 			//https://bugzilla.sw.ru/show_bug.cgi?id=430672
-			if ( CDspService::instance()->isServerMode() )
 			{
 				ProcessSwapStat();
 				ProcessUptimeStat();
