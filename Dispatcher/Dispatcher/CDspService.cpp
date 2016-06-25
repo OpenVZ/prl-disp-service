@@ -551,13 +551,6 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 		Qt::QueuedConnection );
 	PRL_ASSERT(bConnected);
 
-	// Handle any addr start/stop signals
-	bConnected = QObject::connect( this,
-								  SIGNAL(onStartOrStopListeningAnyAddr(bool)),
-								  SLOT(startOrStopListeningAnyAddr(bool)),
-								  Qt::BlockingQueuedConnection );
-	PRL_ASSERT(bConnected);
-
 	bConnected = QObject::connect( this,
 								  SIGNAL(onUpCustomListeningInterface(const QString &)),
 								  SLOT(upCustomListeningInterface(const QString &)),
@@ -795,19 +788,6 @@ CDspLockedPointer<CEtraceStatic> CDspService::getEtrace()
 	return CDspLockedPointer<CEtraceStatic>(&m_etraceMutex, CEtraceStatic::get_instance());
 }
 #endif
-
-
-void CDspService::startOrStopListeningAnyAddr ( bool listenAnyAddr )
-{
-	// Always run from service thread
-	if ( QThread::currentThread() !=  QObject::thread() ) {
-		emit onStartOrStopListeningAnyAddr( listenAnyAddr );
-		return;
-	}
-
-	WRITE_TRACE(DBG_FATAL, "Can't start/stop listening any addr in server mode!");
-	return;
-}
 
 void CDspService::stopListeningAnyAddr ()
 {
@@ -1427,8 +1407,6 @@ void CDspService::initFeaturesList()
 		_features.insert( PFSM_SATA_HOTPLUG_SUPPORT );
 		_features.insert( PFSM_AUTOSTART_VM_AS_OWNER );
 
-	if( ParallelsDirs::isServerModePSBM() )
-	{
 		_features.insert( PFSM_PSBM5 );
 		_features.insert( PFSM_NO_SHARED_NETWORKING );
 		_features.insert( PFSM_DISK_IO_LIMITS );
@@ -1436,7 +1414,6 @@ void CDspService::initFeaturesList()
 		_features.insert( PFSM_ROUTED_NETWORKING );
 		_features.insert( PFSM_RAM_HOTPLUG_SUPPORT );
 		_features.insert( PFSM_CPU_HOTPLUG_SUPPORT );
-	}
 
 	m_FeaturesMatrix.Initialize( _features );
 }

@@ -101,20 +101,8 @@ void TestDspCmdDirVmCreate::TestOnValidParams()
 {
 	QString sVmConfigPath;
 
-	if (!TestConfig::isServerMode())
-	{
-		CREATE_VM_DIR(QFile::Permissions(0xFFFF));
-	}
-
-
 	CREATE_CORRECT_VM_CONFIG
 
-	if (!TestConfig::isServerMode())
-	{
-		sVmConfigPath = QFileInfo(g_sVmDir).absoluteFilePath();
-		CALL_CMD(m_pPveControl->DspCmdDirVmCreate(_vm_conf.toString().toUtf8().data(), sVmConfigPath.toUtf8().data()), PVE::DspCmdDirVmCreate)
-	}
-	else
 	{
 		const char* emptyStr = "";
 		CALL_CMD(m_pPveControl->DspCmdDirVmCreate(_vm_conf.toString().toUtf8().data(), const_cast<char*>(emptyStr)), PVE::DspCmdDirVmCreate)
@@ -123,44 +111,15 @@ void TestDspCmdDirVmCreate::TestOnValidParams()
 	CHECK_RET_CODE(_result.getReturnCode())
 }
 
-void TestDspCmdDirVmCreate::TestOnNonAccessVmDir() {
-#ifdef _WIN_
-	QSKIP("Skipping due Win permissions issues", SkipSingle);
-#endif
-	if (TestConfig::isServerMode())
-	{
-		QSKIP("Skipping test due user do not manipulating VM place in product server version", SkipSingle);
-	}
-
-	CREATE_VM_DIR(QFile::WriteOwner | QFile::ReadOwner | QFile::ExeOwner);
-
-	CREATE_CORRECT_VM_CONFIG
-	QString sVmConfigPath = QFileInfo(g_sVmDir).absoluteFilePath();
-	CALL_CMD(m_pPveControl->DspCmdDirVmCreate(_vm_conf.toString().toUtf8().data(), sVmConfigPath.toUtf8().data()), PVE::DspCmdDirVmCreate)
-	CResult _result = m_pHandler->GetResult();
-	QVERIFY(PRL_FAILED(_result.getReturnCode()));
-}
-
 void TestDspCmdDirVmCreate::TestOnInvalidConfig()
 {
 	QString sVmConfigPath;
-
-	if (!TestConfig::isServerMode())
-	{
-		CREATE_VM_DIR(QFile::Permissions(0xFFFF));
-	}
 
 	QFile _file("./CVmConfigurationTest_third_party.xml");
 	QVERIFY(_file.open(QIODevice::ReadOnly));
 	QDomDocument _vm_conf;
 	QVERIFY(_vm_conf.setContent(&_file, false));
 
-	if (!TestConfig::isServerMode())
-	{
-		sVmConfigPath = QFileInfo(g_sVmDir).absoluteFilePath();
-		CALL_CMD(m_pPveControl->DspCmdDirVmCreate(_vm_conf.toString().toUtf8().data(), sVmConfigPath.toUtf8().data()), PVE::DspCmdDirVmCreate)
-	}
-	else
 	{
 		const char* emptyStr = "";
 		CALL_CMD(m_pPveControl->DspCmdDirVmCreate(_vm_conf.toString().toUtf8().data(), const_cast<char*>(emptyStr)), PVE::DspCmdDirVmCreate)
@@ -171,19 +130,8 @@ void TestDspCmdDirVmCreate::TestOnInvalidConfig()
 }
 
 void TestDspCmdDirVmCreate::TestOnEmptyConfig() {
-	if (!TestConfig::isServerMode())
-	{
-		CREATE_VM_DIR(QFile::Permissions(0xFFFF));
-	}
-
 	QString sVmConfigPath;
 
-	if (!TestConfig::isServerMode())
-	{
-		sVmConfigPath = QFileInfo(g_sVmDir + "/vm_config.xml").absoluteFilePath();
-		CALL_CMD(m_pPveControl->DspCmdDirVmCreate(QString().toUtf8().data(), sVmConfigPath.toUtf8().data()), PVE::DspCmdDirVmCreate)
-	}
-	else
 	{
 		const char* emptyStr = "";
 		CALL_CMD(m_pPveControl->DspCmdDirVmCreate(QString().toUtf8().data(), const_cast<char*>(emptyStr)), PVE::DspCmdDirVmCreate)
@@ -194,38 +142,13 @@ void TestDspCmdDirVmCreate::TestOnEmptyConfig() {
 }
 
 void TestDspCmdDirVmCreate::TestOnTooLongConfig() {
-	if (!TestConfig::isServerMode())
-	{
-		CREATE_VM_DIR(QFile::Permissions(0xFFFF));
-	}
-
 	QString sVmConfigPath;
 
-	if (!TestConfig::isServerMode())
-	{
-		sVmConfigPath = QFileInfo(g_sVmDir).absoluteFilePath();
-		CALL_CMD(m_pPveControl->DspCmdDirVmCreate(GetTooLongString(), sVmConfigPath.toUtf8().data()), PVE::DspCmdDirVmCreate)
-	}
-	else
 	{
 		const char* emptyStr = "";
 		CALL_CMD(m_pPveControl->DspCmdDirVmCreate(GetTooLongString(), const_cast<char*>(emptyStr)), PVE::DspCmdDirVmCreate)
 	}
 
-	CResult _result = m_pHandler->GetResult();
-	QVERIFY(PRL_FAILED(_result.getReturnCode()));
-}
-
-void TestDspCmdDirVmCreate::TestOnInvalidVmDir() {
-	if (TestConfig::isServerMode())
-	{
-		QSKIP("Skipping test due user do not manipulating VM place in product server version", SkipSingle );
-	}
-
-	QString sInvalidVmDir = "incorrect VM dir";
-
-	CREATE_CORRECT_VM_CONFIG
-	CALL_CMD(m_pPveControl->DspCmdDirVmCreate(_vm_conf.toString().toUtf8().data(), sInvalidVmDir.toUtf8().data()), PVE::DspCmdDirVmCreate)
 	CResult _result = m_pHandler->GetResult();
 	QVERIFY(PRL_FAILED(_result.getReturnCode()));
 }

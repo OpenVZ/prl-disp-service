@@ -145,10 +145,6 @@ public:
 	/** Sends list information of all private networks */
 	void sendIPPrivateNetworksList(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
 
-	/** Configure generic PCI devices */
-	void configureGenericPci(SmartPtr<CDspClient>&,
-							 const SmartPtr<IOPackage>&);
-
 	/** beforeHostSuspend operation for all guests with generic PCI devices */
 	void beforeHostSuspend(SmartPtr<CDspClient>&,
 						  const SmartPtr<IOPackage>&);

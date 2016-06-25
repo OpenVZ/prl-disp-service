@@ -413,7 +413,6 @@ PRL_RESULT Task_DeleteVm::run_body()
 				.teardown();
 			// for server mode delete all files from vm directory #270686
 			// common logic for console clients such as prlctl for all modes #436939
-			//if ( CDspService::instance()->isServerMode() )
 			{
 				PRL_ASSERT(QFileInfo(strVmHomeDir).isDir());
 				if ( QFileInfo(strVmHomeDir).isDir() && CFileHelper::ClearAndDeleteDir( strVmHomeDir ) )

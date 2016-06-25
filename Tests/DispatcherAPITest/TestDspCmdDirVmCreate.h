@@ -51,11 +51,9 @@ private slots:
 
 private slots:
 	void TestOnValidParams();
-	void TestOnNonAccessVmDir();
 	void TestOnInvalidConfig();
 	void TestOnEmptyConfig();
 	void TestOnTooLongConfig();
-	void TestOnInvalidVmDir();
 	void TestOnTooLongVmDir();
 
 private:

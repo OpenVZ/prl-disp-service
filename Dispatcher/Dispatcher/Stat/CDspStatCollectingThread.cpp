@@ -2853,8 +2853,6 @@ static bool GetTotalVmRamSizeFast(SmartPtr<CDspVm> &pVm, quint64 &totalRamSize)
 {
 	bool res = false;
 #ifdef _LIN_
-	if (!ParallelsDirs::isServerModePSBM())
-		return res;
 	// even if VM config caching is disabled we can still get total memory
 	// size for VM without reading config
 	char buf[256];

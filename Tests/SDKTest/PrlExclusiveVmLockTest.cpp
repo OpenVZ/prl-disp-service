@@ -133,9 +133,6 @@ void PrlExclusiveVmLockTest::testVmLockAutoUnlockingOnSessionClosed()
 
 void PrlExclusiveVmLockTest::testCheckPermissionsOnVmLockUnlockOperations()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Test doesn't make sense for non server mode", SkipAll);
-
 	SimpleServerWrapper _connection1, _connection2(TestConfig::getUserLogin2());
 	QVERIFY(_connection1.IsConnected());
 	QVERIFY(_connection2.IsConnected());

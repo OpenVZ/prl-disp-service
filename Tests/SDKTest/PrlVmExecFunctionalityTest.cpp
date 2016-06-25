@@ -48,9 +48,6 @@
 
 void PrlVmExecFunctionalityTest::testVmLoginInGuestByAdminUserOnNonOwnerAndNonHostAdministrator()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping due remote login not supporting in non server products", SkipAll);
-
 	SimpleServerWrapper _connection1(TestConfig::getUserLogin());
 	SimpleServerWrapper _connection2(TestConfig::getUserLogin2());
 
@@ -84,9 +81,6 @@ void PrlVmExecFunctionalityTest::testVmLoginInGuestByAdminUserOnNonOwnerAndNonHo
 
 void PrlVmExecFunctionalityTest::testVmLoginInGuestByCurrentActiveSessionOnNonOwnerAndNonHostAdministrator()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping due remote login not supporting in non server products", SkipAll);
-
 	SimpleServerWrapper _connection1(TestConfig::getUserLogin());
 	SimpleServerWrapper _connection2(TestConfig::getUserLogin2());
 
@@ -120,9 +114,6 @@ void PrlVmExecFunctionalityTest::testVmLoginInGuestByCurrentActiveSessionOnNonOw
 
 void PrlVmExecFunctionalityTest::testVmLoginInGuestByAdminUserOnVmOwner()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping due remote login not supporting in non server products", SkipAll);
-
 	SimpleServerWrapper _connection(TestConfig::getUserLogin());
 
 	QVERIFY(_connection.IsConnected());
@@ -140,9 +131,6 @@ void PrlVmExecFunctionalityTest::testVmLoginInGuestByAdminUserOnVmOwner()
 
 void PrlVmExecFunctionalityTest::testVmLoginInGuestByCurrentActiveSessionOnVmOwner()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping due remote login not supporting in non server products", SkipAll);
-
 	SimpleServerWrapper _connection(TestConfig::getUserLogin());
 
 	QVERIFY(_connection.IsConnected());
@@ -160,9 +148,6 @@ void PrlVmExecFunctionalityTest::testVmLoginInGuestByCurrentActiveSessionOnVmOwn
 
 void PrlVmExecFunctionalityTest::testVmLoginInGuestByAdminUserOnHostAdministrator()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping due remote login not supporting in non server products", SkipAll);
-
 	SimpleServerWrapper _connection1(TestConfig::getUserLogin());
 	SimpleServerWrapper _connection2(NULL);//Login local mode
 
@@ -196,9 +181,6 @@ void PrlVmExecFunctionalityTest::testVmLoginInGuestByAdminUserOnHostAdministrato
 
 void PrlVmExecFunctionalityTest::testVmLoginInGuestByCurrentActiveSessionOnHostAdministrator()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping due remote login not supporting in non server products", SkipAll);
-
 	SimpleServerWrapper _connection1(TestConfig::getUserLogin());
 	SimpleServerWrapper _connection2(NULL);//Login local mode
 
@@ -232,9 +214,6 @@ void PrlVmExecFunctionalityTest::testVmLoginInGuestByCurrentActiveSessionOnHostA
 
 void PrlVmExecFunctionalityTest::testVmLoginInGuestByCustomCredsOnUserWithInsufficientRights()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping due remote login not supporting in non server products", SkipAll);
-
 	SimpleServerWrapper _connection1(TestConfig::getUserLogin());
 	SimpleServerWrapper _connection2(TestConfig::getUserLogin2());
 
@@ -268,9 +247,6 @@ void PrlVmExecFunctionalityTest::testVmLoginInGuestByCustomCredsOnUserWithInsuff
 
 void PrlVmExecFunctionalityTest::testVmLoginInGuestByCustomCredsOnUserWithInsufficientRights2()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping due remote login not supporting in non server products", SkipAll);
-
 	SimpleServerWrapper _connection1(TestConfig::getUserLogin());
 	SimpleServerWrapper _connection2(TestConfig::getUserLogin2());
 
@@ -304,9 +280,6 @@ void PrlVmExecFunctionalityTest::testVmLoginInGuestByCustomCredsOnUserWithInsuff
 
 void PrlVmExecFunctionalityTest::testVmLoginInGuestByCustomCredsOnUserWithSufficientRights()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping due remote login not supporting in non server products", SkipAll);
-
 	SimpleServerWrapper _connection1(TestConfig::getUserLogin());
 	SimpleServerWrapper _connection2(TestConfig::getUserLogin2());
 
@@ -340,9 +313,6 @@ void PrlVmExecFunctionalityTest::testVmLoginInGuestByCustomCredsOnUserWithSuffic
 
 void PrlVmExecFunctionalityTest::testVmLoginInGuestByCustomCredsOnVmOwner()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping due remote login not supporting in non server products", SkipAll);
-
 	SimpleServerWrapper _connection(TestConfig::getUserLogin());
 
 	QVERIFY(_connection.IsConnected());
@@ -360,9 +330,6 @@ void PrlVmExecFunctionalityTest::testVmLoginInGuestByCustomCredsOnVmOwner()
 
 void PrlVmExecFunctionalityTest::testVmLoginInGuestByCustomCredsOnHostAdministrator()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping due remote login not supporting in non server products", SkipAll);
-
 	SimpleServerWrapper _connection1(TestConfig::getUserLogin());
 	SimpleServerWrapper _connection2(NULL);//Login local mode
 

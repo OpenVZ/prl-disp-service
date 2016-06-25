@@ -478,8 +478,6 @@ public:
    static QString getPathToDispatcherConfig();
 
 	static bool isExternalBuild();
-	static bool isServerMode();
-	static bool isServerModePSBM();
 	static void readTestParameters();
 	static PRL_APPLICATION_MODE getApplicationMode();
 	static PRL_UINT32	getSdkInitFlags();

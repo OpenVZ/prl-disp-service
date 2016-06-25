@@ -115,7 +115,6 @@ HEADERS += \
 	Tasks/Task_SearchLostConfigs.h \
 	Tasks/Task_UpdateCommonPrefs.h \
 	Tasks/Task_BackgroundJob.h \
-	Tasks/Task_ConfigureGenericPci.h \
 	Tasks/Task_CreateVmBackup.h \
 	Tasks/Task_RestoreVmBackup.h \
 	Tasks/Task_RestoreVmBackup_p.h \
@@ -232,7 +231,6 @@ SOURCES += \
 	Tasks/Task_SearchLostConfigs.cpp \
 	Tasks/Task_UpdateCommonPrefs.cpp \
 	Tasks/Task_BackgroundJob.cpp \
-	Tasks/Task_ConfigureGenericPci.cpp \
 	Tasks/Task_CreateVmBackup.cpp \
 	Tasks/Task_CreateVmBackupTarget.cpp \
 	Tasks/Task_CreateCtBackup.cpp \

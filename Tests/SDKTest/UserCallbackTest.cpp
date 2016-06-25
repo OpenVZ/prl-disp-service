@@ -238,10 +238,6 @@ void UserCallbackTest::testUserCallbackServerOnJobCancel()
 
 void UserCallbackTest::testUserCallbackServerOnVmReg()
 {
-	if (!TestConfig::isServerMode())
-	{
-		QSKIP("Skipping due need refactoring with preparation of VM root dir", SkipAll);
-	}
 	QFile _file("./TestDspCmdDirValidateVmConfig_vm_config.xml");
 	QVERIFY(_file.open(QIODevice::ReadOnly));
 	QTextStream _stream(&_file);
@@ -383,10 +379,6 @@ void UserCallbackTest::testUserCallbackServerWithNullData()
 
 void UserCallbackTest::testUserCallbackVM()
 {
-	if (!TestConfig::isServerMode())
-	{
-		QSKIP("Skipping due need refactoring with preparation of VM root dir", SkipAll);
-	}
 	QFile _file("./TestDspCmdDirValidateVmConfig_vm_config.xml");
 	QVERIFY(_file.open(QIODevice::ReadOnly));
 	QTextStream _stream(&_file);

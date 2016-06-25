@@ -898,9 +898,7 @@ PRL_RESULT Builder::checkSpace(const Source::Total& source_, const Source::Space
 		return f(PRL_ERR_FREE_DISC_SPACE_FOR_CLONE,
 				source_.getConfig().getName());
 	case PRL_ERR_GET_DISK_FREE_SPACE_FAILED:
-		if (getTask().getForceQuestionsSign())
-			return PRL_ERR_SUCCESS;
-		break;
+		return PRL_ERR_SUCCESS;
 	case PRL_ERR_INCORRECT_PATH:
 		return f(e, m_private->getRoot());
 	default:

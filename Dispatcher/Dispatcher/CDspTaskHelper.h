@@ -152,9 +152,6 @@ public:
 	/* Reassign task to new session [ task #6009 ]  */
 	virtual void	reassignTask( SmartPtr<CDspClient>& pNewClient, const SmartPtr<IOPackage>& pNewPackage );
 
-	/** Returns sign whether task questions shoud sending to client during task work */
-	bool getForceQuestionsSign() const;
-
 	/**
 	* checks is file inside vm directory
 	*/
