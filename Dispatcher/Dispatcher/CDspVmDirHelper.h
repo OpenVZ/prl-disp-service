@@ -62,7 +62,7 @@
 
 #include "CDspSync.h"
 #include <prlxmlmodel/ProblemReport/CProblemReport.h>
-
+#include "CDspVmDirHelper_p.h"
 #include "Tasks/Task_DeleteVm.h"
 
 class CMultiEditMergeVmConfig;
@@ -412,9 +412,6 @@ public:
 	/** Returns session handle which locked VM */
 	IOSender::Handle getVmLockerHandle( const QString& vmUuid, const QString& vmDirUuid ) const;
 
-	/** Returns Task uuid's which locks the Vm */
-	QList<QString> getTasksUnderExclusiveOperation( const CVmIdent &vmIdent ) const;
-
 	/**
 	 * Cleanups all exclusive VM locks that belongs to specified session
 	 * handle
@@ -618,7 +615,6 @@ private:
 		PRL_RESULT	unregisterOp( const QString& vmUuid, const QString& vmDirUuid, PVE::IDispatcherCommands cmd, const IOSender::Handle &hSession );
 		PRL_RESULT	replaceOp( const QString& vmUuid, const QString& vmDirUuid, PVE::IDispatcherCommands fromCmd, PVE::IDispatcherCommands toCmd, const IOSender::Handle &hSession );
 		IOSender::Handle getVmLockerHandle( const QString& vmUuid, const QString& vmDirUuid ) const;
-		QList<QString> getTasksUnderExclusiveOperation( const CVmIdent &vmIden ) const;
 
 		/**
 		 * Cleanups all exclusive VM locks that belongs to specified session
@@ -627,41 +623,13 @@ private:
 		 */
 		void cleanupSessionVmLocks( const IOSender::Handle &hSession );
 
-
-	private:
-		struct OperationData
-		{
-			IOSender::Handle hSession;
-			QString taskId;
-
-			OperationData(IOSender::Handle hSession_, const QString &taskId_) :
-				hSession(hSession_), taskId(taskId_)
-			{}
-		};
-
-		typedef QMultiHash< PVE::IDispatcherCommands, OperationData> ExecutedHash;
-		struct Op
-		{
-			ExecutedHash hashExecuted;
-			QSharedPointer<QWaitCondition> event;
-
-			Op( PVE::IDispatcherCommands cmd_, const IOSender::Handle &hSession, const QString &taskId_):
-				event(new QWaitCondition())
-			{
-				hashExecuted.insert( cmd_, OperationData(hSession, taskId_));
-			}
-		};
-
 	private:
 		/* @brief: return key makes from vmUuid and vmDirUuid*/
 		QString makeKey( const QString& vmUuid, const QString& vmDirUuid ) const;
 
-		/* @brief: get error code by executed cmd number */
-		PRL_RESULT getFailureCode( PVE::IDispatcherCommands executingCmd );
-
 	private:
 		mutable QMutex m_mutex;
-		QHash< QString, Op > m_opHash;
+		QHash<QString, Task::Vm::Exclusive::Gang> m_opHash;
 	};
 
 	SmartPtr<CVmConfiguration> CreateDefaultVmConfigByRcValid(
