@@ -81,7 +81,7 @@ protected:
 		const QString& source_);
 	PRL_RESULT backupHardDiskDevices(const ::Backup::Activity::Object::Model& activity_,
 		::Backup::Work::object_type& variant_);
-	PRL_RESULT waitForTargetFinished();
+	PRL_RESULT waitForTargetFinished(int cmd_, QString& error_);
 	PRL_RESULT doBackup(const QString& source_, ::Backup::Work::object_type& variant_);
 	virtual void finalizeTask();
 

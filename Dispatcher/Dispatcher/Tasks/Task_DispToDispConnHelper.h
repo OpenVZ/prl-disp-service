@@ -58,6 +58,7 @@ protected:
 			quint32 nFlags);
 	void Disconnect();
 	PRL_RESULT SendPkg(const SmartPtr<IOPackage> &package);
+	PRL_RESULT SendPkg_(const SmartPtr<IOPackage> &package);
 	PRL_RESULT SendReqAndWaitReply(const SmartPtr<IOPackage> &package);
 	PRL_RESULT SendReqAndWaitReply(const SmartPtr<IOPackage> &package,
 			SmartPtr<IOPackage> &pReply);
