@@ -307,6 +307,22 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Patch
+
+struct Patch: Action
+{
+	explicit Patch(const Request& input_);
+
+	bool execute(CDspTaskFailure& feedback_);
+
+private:
+	QString m_home;
+	QString m_name;
+	QString m_editor;
+	CVmIdent m_ident;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Apply
 
 struct Apply
@@ -317,36 +333,6 @@ private:
 	static Libvirt::Result define(Libvirt::Instrument::Agent::Vm::Unit agent_,
 					const CVmConfiguration& config_);
 };
-
-
-namespace Update
-{
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Directory
-
-struct Directory
-{
-	Vm::Action* operator()(const Request& input_) const;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Action
-
-struct Action: Vm::Action
-{
-	explicit Action(const Request& input_);
-	bool execute(CDspTaskFailure& feedback_);
-
-private:
-	CVmIdent m_vmIdent;
-	QString m_vmName;
-	bool m_isTemplate;
-	QString m_userName;
-	boost::optional<QString> m_vmHome;
-};
-
-} // namespace Update
 
 namespace Create
 {
@@ -379,7 +365,7 @@ private:
 
 } // namespace Create
 
-typedef boost::mpl::vector<Create::Nvram, Apply, Update::Directory> probeList_type;
+typedef boost::mpl::vector<Create::Nvram, Apply> probeList_type;
 typedef Gear<Factory<probeList_type>, probeList_type> driver_type;
 
 namespace Runtime
