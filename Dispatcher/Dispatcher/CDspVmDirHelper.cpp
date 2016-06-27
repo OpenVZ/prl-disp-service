@@ -384,12 +384,6 @@ PRL_RESULT Conflict::getResult() const
 		return PRL_ERR_VM_LOCKED_FOR_DISK_COMPACT;
 	case PVE::DspCmdVmConvertDisks:
 		return PRL_ERR_VM_LOCKED_FOR_DISK_CONVERT;
-	case PVE::DspCmdVmEncrypt:
-		return PRL_ERR_VM_LOCKED_FOR_ENCRYPT;
-	case PVE::DspCmdVmDecrypt:
-		return PRL_ERR_VM_LOCKED_FOR_DECRYPT;
-	case PVE::DspCmdVmChangePassword:
-		return PRL_ERR_VM_LOCKED_FOR_CHANGE_PASSWORD;
 	case PVE::DspCmdCtlVmEditFirewall:
 		return PRL_ERR_VM_LOCKED_FOR_CHANGE_FIREWALL;
 	case PVE::DspCmdDirCopyImage:
