@@ -400,10 +400,10 @@ m_pVmConfig(pVmConfig)
 
 PRL_RESULT Task_NetworkShapingManagement::getVmNetworkRates(const CVmConfiguration &config_, CVmNetworkRates &lstRates)
 {
-
-	CDspLockedPointer<CParallelsNetworkConfig> pNetCfg = CDspService::instance()->getNetworkConfig();
-	CNetworkClassesConfig *pClasses = pNetCfg-> getNetworkClassesConfig();
-	CNetworkShapingConfig *pShpCfg = pNetCfg->getNetworkShapingConfig();
+	CDspLockedPointer<CDispCommonPreferences> p = CDspService::instance()
+		->getDispConfigGuard().getDispCommonPrefs();
+	CNetworkClassesConfig *pClasses = p->getNetworkPreferences()->getNetworkClassesConfig();
+	CNetworkShapingConfig *pShpCfg = p->getNetworkPreferences()->getNetworkShapingConfig();
 
 	if (!pShpCfg->isEnabled())
 		return PRL_ERR_SUCCESS;
