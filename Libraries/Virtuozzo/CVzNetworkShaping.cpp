@@ -132,7 +132,6 @@ int CVzNetworkShaping::update_network_shaping_config(const CNetworkShapingConfig
 	bool rate_printed = false;
 	bool enable_printed = false;
 	QStringList args;
-	PRL_RESULT res;
 
 	if (realpath(NETWORK_SHAPING_CONF, r_path) == NULL)
 		snprintf(r_path, sizeof(r_path), "%s", NETWORK_SHAPING_CONF);
@@ -222,17 +221,25 @@ int CVzNetworkShaping::update_network_shaping_config(const CNetworkShapingConfig
 	}
 
 	// Apply changes
-	args += "shaperrestart";
-	res = run_prg("/usr/libexec/vz", args);
-	if (PRL_FAILED(res)) {
-		WRITE_TRACE(DBG_FATAL, "Failed to restart network shaping,"
-			" error = 0x%x", res);
+	if (PRL_FAILED(restart_shaper()))
+	{
 		rename(orig_path, r_path);
 		return -1;
 	}
 
 	unlink(orig_path);
 	return 0;
+}
+
+PRL_RESULT CVzNetworkShaping::restart_shaper()
+{
+	PRL_RESULT res = run_prg("/usr/libexec/vz", QStringList() << "shaperrestart");
+	if (PRL_FAILED(res))
+	{
+		WRITE_TRACE(DBG_FATAL, "Failed to restart network shaping,"
+			" error = 0x%x", res);
+	}
+	return res;
 }
 
 static int parse_BANDWIDTH(QList<CDeviceBandwidth> &lst, const char *str)

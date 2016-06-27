@@ -1941,6 +1941,11 @@ int CVzHelper::is_vz_running()
 	return 1;
 }
 
+PRL_RESULT CVzHelper::restart_shaper()
+{
+	return CVzNetworkShaping::restart_shaper();
+}
+
 int CVzHelper::lock_env(const QString &uuid, const char *status)
 {
 	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);

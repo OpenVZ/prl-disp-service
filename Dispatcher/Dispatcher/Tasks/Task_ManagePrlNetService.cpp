@@ -1614,10 +1614,11 @@ bool Task_ManagePrlNetService::g_restartShaping = false;
 
 PRL_RESULT Task_ManagePrlNetService::cmdRestartNetworkShaping()
 {
-	// call shaperrestart here!
+	PRL_RESULT r = CVzHelper::restart_shaper();
+	if (PRL_SUCCEEDED(r))
+		Network::Config::Watcher().updateRates();
 
-	Network::Config::Watcher().updateRates();
-	return PRL_ERR_SUCCESS;
+	return r;
 }
 
 PRL_RESULT Task_ManagePrlNetService::cmdUpdateNetworkShapingConfig()

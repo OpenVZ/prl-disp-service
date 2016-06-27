@@ -176,6 +176,7 @@ public:
 	 *		   -1 - error
 	 */
 	static int is_vz_running();
+	static PRL_RESULT restart_shaper();
 
 	static QString getVzPrivateDir(void);
 
