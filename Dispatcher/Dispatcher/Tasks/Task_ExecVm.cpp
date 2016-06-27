@@ -462,12 +462,22 @@ void Join::slotFinished(void)
 		m_loop.quit();
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Poller
+
 void Poller::timerEvent(QTimerEvent *event)
 {
 	Q_UNUSED(event);
 	Libvirt::Result r = m_exec.wait(0);
-	if (r.isFailed() && r.error().code() != PRL_ERR_TIMEOUT)
+	if (r.isFailed())
+	{
+		if (PRL_ERR_TIMEOUT != r.error().code())
+			m_loop.quit();
+	}
+	else if (m_sign)
 		m_loop.quit();
+	else
+		m_sign = m_exec.getResult();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

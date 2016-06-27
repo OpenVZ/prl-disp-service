@@ -1092,7 +1092,8 @@ Exec::Future::wait(int timeout)
 	Waiter waiter;
 	int msecs, total = 0;
 	for (int i=0; ; i++) {
-		result_type st = Exec(m_domain).getCommandStatus(m_pid);
+		Prl::Expected<boost::optional<Result>, Libvirt::Agent::Failure>
+			st = Exec(m_domain).getCommandStatus(m_pid);
 		if (st.isFailed()) {
 			if (!st.error().isTransient() ||
 			    ++m_failcnt >= MAX_TRANSIENT_FAILS)

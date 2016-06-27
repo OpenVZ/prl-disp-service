@@ -98,8 +98,7 @@ struct Result {
 struct Future {
 	enum { MAX_TRANSIENT_FAILS = 10 };
 
-	typedef Prl::Expected<boost::optional<Result>, Libvirt::Agent::Failure>
-		result_type;
+	typedef boost::optional<Result> result_type;
 	Future(const QSharedPointer<virDomain>& domain_, int pid_):
 		m_domain(domain_), m_pid(pid_), m_failcnt(0)
 	{
@@ -107,7 +106,7 @@ struct Future {
 
 	Libvirt::Result wait(int timeout = -1);
 	void cancel();
-	boost::optional<Result> getResult()
+	const result_type& getResult() const
 	{
 		return m_status;
 	}
@@ -118,7 +117,7 @@ private:
 	QSharedPointer<virDomain> m_domain;
 	int m_pid;
 	int m_failcnt;
-	boost::optional<Result> m_status;
+	result_type m_status;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

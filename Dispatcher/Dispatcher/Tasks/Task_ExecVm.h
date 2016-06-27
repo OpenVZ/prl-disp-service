@@ -152,8 +152,10 @@ protected:
 
 private:
 	Q_OBJECT
+
 	QEventLoop& m_loop;
 	future_type& m_exec;
+	future_type::result_type m_sign;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
