@@ -1365,7 +1365,6 @@ bool CDspService::init()
 #endif // _LIBVIRT_
 
 		{
-			initNetworkShapingConfiguration();
 			initPrivateNetworks();
 		}
 
@@ -1516,31 +1515,26 @@ void CDspService::initPlugins()
 		return;
 }
 
-void CDspService::initNetworkShapingConfiguration()
+void CDspService::initNetworkPreferences(CDispCommonPreferences& config_)
 {
-#ifdef _CT_
 	// Sync with Virtuozzo shaping configuration on Dispatcher start
-	CDspLockedPointer<CParallelsNetworkConfig> pNetCfg = CDspService::instance()->getNetworkConfig();
-	if ( ! pNetCfg.isValid() )
-	{
-		WRITE_TRACE(DBG_FATAL, "Network config doesn't exist!" );
-		return;
-	}
-	CNetworkClassesConfig *pClassesCfg = pNetCfg->getNetworkClassesConfig();
+	CDispNetworkPreferences* c = config_.getNetworkPreferences();
+
+	CNetworkClassesConfig *pClassesCfg = c->getNetworkClassesConfig();
 	if (CVzHelper::get_network_classes_config(*pClassesCfg))
-		return;
-
-	CNetworkShapingConfig *pShapingCfg = pNetCfg->getNetworkShapingConfig();
-	if (CVzHelper::get_network_shaping_config(*pShapingCfg))
-		return;
-
-	WRITE_TRACE(DBG_FATAL, "Init network shaping configuration");
-	PRL_RESULT prlResult = PrlNet::WriteNetworkConfig(*pNetCfg.getPtr());
-	if (PRL_FAILED(prlResult))
 	{
-		WRITE_TRACE(DBG_FATAL, "Failed to update Parallels Network Config: %x", (unsigned)prlResult);
+		WRITE_TRACE(DBG_FATAL, "Unable to update network classes configuration");
+		return;
 	}
-#endif
+
+	CNetworkShapingConfig *pShapingCfg = c->getNetworkShapingConfig();
+	if (CVzHelper::get_network_shaping_config(*pShapingCfg))
+	{
+		WRITE_TRACE(DBG_FATAL, "Unable to update network shaping configuration");
+		return;
+	}
+
+	WRITE_TRACE(DBG_DEBUG, "Network shaping xml:\n%s", qPrintable(c->toString()));
 }
 
 void CDspService::initPrivateNetworks()
@@ -2412,6 +2406,7 @@ bool CDspService::updateDispConfig ()
 	}
 
 	CDspLockedPointer<CDispCommonPreferences> pCommonPrefs = getDispConfigGuard().getDispCommonPrefs();
+	initNetworkPreferences(*pCommonPrefs);
 	CDispGenericPciDevices* pDispDevices = pCommonPrefs->getPciPreferences()->getGenericPciDevices();
 	foreach(CDispGenericPciDevice* pDispDevice, pDispDevices->m_lstGenericPciDevices)
 	{
@@ -2854,7 +2849,37 @@ void CDspService::emitCleanupOnUserSessionDestroy( QString sessionUuid )
 void CDspService::notifyConfigChanged
 	(const SmartPtr<CDispCommonPreferences>& old_, const SmartPtr<CDispCommonPreferences>& new_)
 {
+	// notify clients about changes
+	CVmEvent event(PET_DSP_EVT_COMMON_PREFS_CHANGED, QString(), PIE_DISPATCHER);
+	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, event);
+	CDspService::instance()->getClientManager().sendPackageToAllClients(p);
+
 	emit onConfigChanged(old_, new_);
+}
+
+PRL_RESULT CDspService::updateCommonPreferences(const boost::function1<void, CDispCommonPreferences&>& action_)
+{
+	CDspLockedPointer<CDispCommonPreferences> n = getDispConfigGuard().getDispCommonPrefs();
+
+	// preserve old config
+	SmartPtr<CDispCommonPreferences> o(new CDispCommonPreferences(n.getPtr()));
+
+	action_(*n);
+	WRITE_TRACE(DBG_DEBUG, "\n%s", qPrintable(n->getNetworkPreferences()->toString()));
+
+	WRITE_TRACE(DBG_INFO, "Dispacther config has been updated.");
+	QString strDispConfigFile = ParallelsDirs::getDispatcherConfigFilePath();
+	PRL_RESULT rc = getDispConfigGuard().saveConfig(strDispConfigFile);
+	if(PRL_FAILED(rc))
+	{
+		WRITE_TRACE(DBG_FATAL,
+			"Unable to write updated data to disp configuration file by error %s."
+			" It will stored in memory only !", PRL_RESULT_TO_STRING(rc));
+	}
+
+	// emit old and new
+	notifyConfigChanged(o, SmartPtr<CDispCommonPreferences>(new CDispCommonPreferences(n.getPtr())));
+	return rc;
 }
 
 void CDspService::onCleanupOnUserSessionDestroy( QString sessionUuid )
