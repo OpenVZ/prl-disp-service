@@ -119,6 +119,72 @@ private:
 } // namespace
 
 
+namespace Network
+{
+namespace Config
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Watcher
+
+void Watcher::createDetached()
+{
+	QScopedPointer<Watcher> p(new Watcher());
+	if (!p->connect(CDspService::instance(),
+		SIGNAL(onConfigChanged(const SmartPtr<CDispCommonPreferences>,
+				const SmartPtr<CDispCommonPreferences>)),
+		SLOT(updateRates(const SmartPtr<CDispCommonPreferences>,
+				const SmartPtr<CDispCommonPreferences>)), Qt::DirectConnection))
+	{
+		WRITE_TRACE(DBG_FATAL, "unable to connect onConfigChanged(...)");
+		return;
+	}
+
+	if (!p->connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), SLOT(deleteLater())))
+	{
+		WRITE_TRACE(DBG_FATAL, "unable to connect aboutToQuit()");
+		return;
+	}
+
+	// make it fly (detach)
+	p.take();
+}
+
+void Watcher::updateRates(const SmartPtr<CDispCommonPreferences> old_, const SmartPtr<CDispCommonPreferences> new_)
+{
+	QStringList l;
+	old_->getNetworkPreferences()->getNetworkShapingConfig()
+		->diff(new_->getNetworkPreferences()->getNetworkShapingConfig(), l);
+	old_->getNetworkPreferences()->getNetworkClassesConfig()
+		->diff(new_->getNetworkPreferences()->getNetworkClassesConfig(), l);
+	if (l.size() > 0)
+		updateRates();
+}
+
+void Watcher::updateRates()
+{
+	Libvirt::Instrument::Agent::Vm::List l = Libvirt::Kit.vms();
+	QList<Libvirt::Instrument::Agent::Vm::Unit> all;
+	l.all(all);
+
+	foreach (const Libvirt::Instrument::Agent::Vm::Unit& u, all)
+	{
+		VIRTUAL_MACHINE_STATE s(VMS_UNKNOWN);
+		if (u.getState(s).isFailed())
+			continue;
+
+		if (VMS_RUNNING != s && VMS_PAUSED != s)
+			continue;
+
+		CVmConfiguration c;
+		if (u.getConfig(c).isFailed())
+			continue;
+
+		Task_NetworkShapingManagement::setNetworkRate(c);
+	}
+}
+
+} // namespace Config
+} // namespace Network
 
 using namespace Parallels;
 

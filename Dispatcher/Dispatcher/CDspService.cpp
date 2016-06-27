@@ -76,6 +76,7 @@
 #include "Tasks/Task_UpdateCommonPrefs.h"
 #include "Tasks/Task_SyncVmsUptime.h"
 #include "Tasks/Task_BackgroundJob.h"
+#include "Tasks/Task_ManagePrlNetService.h"
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
@@ -1380,6 +1381,8 @@ bool CDspService::init()
 		initHypervisor(); // before start any vm!
 
 		m_bFirstInitPhaseCompleted = true;
+
+		Network::Config::Watcher::createDetached();
 	}
 	catch ( ... )
 	{
