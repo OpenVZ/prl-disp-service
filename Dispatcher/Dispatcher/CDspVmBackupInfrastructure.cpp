@@ -988,7 +988,7 @@ PRL_RESULT Mountv4::export_(const Product::componentList_type& tibList_, const Q
 			// ploop is not mounted case
 			if (PRL_FAILED(output = p.mount(d)))
 				break;
-			m_mounts << d;
+			m_mounts << a.first.getFolder();
 		}
 		c << qMakePair(a.first, QFileInfo(d));
 	}
