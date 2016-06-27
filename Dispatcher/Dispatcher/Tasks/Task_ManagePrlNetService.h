@@ -50,6 +50,32 @@
 class CDispNetworkPreferences;
 class CDispNetAdapter;
 
+namespace Network
+{
+namespace Config
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Watcher
+
+struct Watcher: QObject
+{
+	Watcher() // registry, service
+	{
+	}
+
+	static void createDetached();
+
+	void updateRates();
+
+private slots:
+	void updateRates(const SmartPtr<CDispCommonPreferences>, const SmartPtr<CDispCommonPreferences>);
+
+private:
+	Q_OBJECT
+};
+} // namespace Config
+} // namespace Network
+
 class Task_ManagePrlNetService : public  CDspTaskHelper
 {
    Q_OBJECT

@@ -119,6 +119,72 @@ private:
 } // namespace
 
 
+namespace Network
+{
+namespace Config
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Watcher
+
+void Watcher::createDetached()
+{
+	QScopedPointer<Watcher> p(new Watcher());
+	if (!p->connect(CDspService::instance(),
+		SIGNAL(onConfigChanged(const SmartPtr<CDispCommonPreferences>,
+				const SmartPtr<CDispCommonPreferences>)),
+		SLOT(updateRates(const SmartPtr<CDispCommonPreferences>,
+				const SmartPtr<CDispCommonPreferences>)), Qt::DirectConnection))
+	{
+		WRITE_TRACE(DBG_FATAL, "unable to connect onConfigChanged(...)");
+		return;
+	}
+
+	if (!p->connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), SLOT(deleteLater())))
+	{
+		WRITE_TRACE(DBG_FATAL, "unable to connect aboutToQuit()");
+		return;
+	}
+
+	// make it fly (detach)
+	p.take();
+}
+
+void Watcher::updateRates(const SmartPtr<CDispCommonPreferences> old_, const SmartPtr<CDispCommonPreferences> new_)
+{
+	QStringList l;
+	old_->getNetworkPreferences()->getNetworkShapingConfig()
+		->diff(new_->getNetworkPreferences()->getNetworkShapingConfig(), l);
+	old_->getNetworkPreferences()->getNetworkClassesConfig()
+		->diff(new_->getNetworkPreferences()->getNetworkClassesConfig(), l);
+	if (l.size() > 0)
+		updateRates();
+}
+
+void Watcher::updateRates()
+{
+	Libvirt::Instrument::Agent::Vm::List l = Libvirt::Kit.vms();
+	QList<Libvirt::Instrument::Agent::Vm::Unit> all;
+	l.all(all);
+
+	foreach (const Libvirt::Instrument::Agent::Vm::Unit& u, all)
+	{
+		VIRTUAL_MACHINE_STATE s(VMS_UNKNOWN);
+		if (u.getState(s).isFailed())
+			continue;
+
+		if (VMS_RUNNING != s && VMS_PAUSED != s)
+			continue;
+
+		CVmConfiguration c;
+		if (u.getConfig(c).isFailed())
+			continue;
+
+		Task_NetworkShapingManagement::setNetworkRate(c);
+	}
+}
+
+} // namespace Config
+} // namespace Network
 
 using namespace Parallels;
 
@@ -1548,41 +1614,10 @@ bool Task_ManagePrlNetService::g_restartShaping = false;
 
 PRL_RESULT Task_ManagePrlNetService::cmdRestartNetworkShaping()
 {
-#ifndef _CT_
-	return PRL_ERR_UNIMPLEMENTED;
-#else
-	{
-		CDspLockedPointer<CParallelsNetworkConfig>
-		pNetworkConfig = CDspService::instance()->getNetworkConfig();
-		if (!pNetworkConfig->getNetworkShapingConfig()->isEnabled())
-			return PRL_ERR_SUCCESS;
+	// call shaperrestart here!
 
-		QMutexLocker _lock(g_pRestartShapingMtx);
-		if (g_restartShaping)
-		{
-			WRITE_TRACE(DBG_FATAL, "Shaping restart in progress");
-			return PRL_ERR_SUCCESS;
-		}
-
-		g_restartShaping = true;
-	}
-
-	WRITE_TRACE(DBG_FATAL, "Restart network shaping");
-	QList< SmartPtr<CDspVm> > lstVms = CDspService::instance()->getVmManager().getAllRunningVms();
-	foreach(SmartPtr<CDspVm> pVm, lstVms)
-	{
-		PRL_RESULT nRetCode;
-		SmartPtr<CVmConfiguration> pVmCfg = CDspService::instance()->getVmDirHelper().
-						getVmConfigByUuid(pVm->getVmDirUuid(), pVm->getVmUuid(), nRetCode);
-		if (!pVmCfg || !PRL_SUCCEEDED(nRetCode))
-			continue;
-
-		Task_NetworkShapingManagement::setNetworkRate(*pVmCfg);
-	}
-	QMutexLocker _lock(g_pRestartShapingMtx);
-	g_restartShaping = false;
+	Network::Config::Watcher().updateRates();
 	return PRL_ERR_SUCCESS;
-#endif
 }
 
 PRL_RESULT Task_ManagePrlNetService::cmdUpdateNetworkShapingConfig()
