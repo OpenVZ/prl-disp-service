@@ -307,6 +307,22 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Patch
+
+struct Patch: Action
+{
+	explicit Patch(const Request& input_);
+
+	bool execute(CDspTaskFailure& feedback_);
+
+private:
+	QString m_home;
+	QString m_name;
+	QString m_editor;
+	CVmIdent m_ident;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Apply
 
 struct Apply
@@ -317,36 +333,6 @@ private:
 	static Libvirt::Result define(Libvirt::Instrument::Agent::Vm::Unit agent_,
 					const CVmConfiguration& config_);
 };
-
-
-namespace Update
-{
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Directory
-
-struct Directory
-{
-	Vm::Action* operator()(const Request& input_) const;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Action
-
-struct Action: Vm::Action
-{
-	explicit Action(const Request& input_);
-	bool execute(CDspTaskFailure& feedback_);
-
-private:
-	CVmIdent m_vmIdent;
-	QString m_vmName;
-	bool m_isTemplate;
-	QString m_userName;
-	boost::optional<QString> m_vmHome;
-};
-
-} // namespace Update
 
 namespace Create
 {
@@ -379,190 +365,8 @@ private:
 
 } // namespace Create
 
-namespace Personalize
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Apply
-
-struct Apply: Vm::Action
-{
-	Apply(const CVmConfiguration& vm_, const QStringList& nettool_)
-		: m_configurator(vm_), m_nettool(nettool_)
-	{
-	}
-
-	bool execute(CDspTaskFailure& feedback_);
-
-private:
-	::Personalize::Configurator m_configurator;
-	QStringList m_nettool;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Action
-
-struct Prepare: Vm::Action
-{
-	Prepare(const QString& vmHome_)
-		: m_vmHome(vmHome_)
-	{
-	}
-
-	bool execute(CDspTaskFailure& feedback_);
-
-private:
-	QString m_vmHome;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Factory
-
-struct Factory
-{
-	Action* operator()(const Request& input_) const;
-};
-
-} // namespace Personalize
-
-typedef boost::mpl::vector<Create::Nvram, Apply, Personalize::Factory, Update::Directory> probeList_type;
+typedef boost::mpl::vector<Create::Nvram, Apply> probeList_type;
 typedef Gear<Factory<probeList_type>, probeList_type> driver_type;
-
-namespace Network
-{
-typedef CVmGlobalNetwork general_type;
-typedef CVmGenericNetworkAdapter device_type;
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Dao
-
-struct Dao
-{
-	typedef QList<device_type* > list_type;
-
-	explicit Dao(const list_type& dataSource_);
-
-	const list_type& getEligible() const
-	{
-		return m_eligible;
-	}
-	device_type* findDefaultGwIp4Bridge() const;
-	device_type* findDefaultGwIp6Bridge() const;
-	device_type* find(const QString& name_, quint32 index_) const;
-
-private:
-	list_type m_eligible;
-	list_type m_dataSource;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Bridge
-
-struct Bridge
-{
-	explicit Bridge(const QString& mac_): m_mac(mac_)
-	{
-	}
-
-	const QString& getMac() const
-	{
-		return m_mac;
-	}
-
-private:
-	QString m_mac;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Routed
-
-struct Routed
-{
-	Routed(const QString& mac_, const device_type* defaultGwIp4Bridge_,
-		const device_type* defaultGwIp6Bridge_);
-
-	const QString& getMac() const
-	{
-		return m_mac;
-	}
-	std::pair<QString, QString> getIp4Defaults() const;
-	QString getIp6Gateway() const;
-	static QString getIp6DefaultGateway();
-
-private:
-	QString m_mac;
-	const device_type* m_defaultGwIp4Bridge;
-	const device_type* m_defaultGwIp6Bridge;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Address
-
-struct Address
-{
-	explicit Address(const device_type& device_);
-
-	QStringList operator()(const Routed& mode_);
-	QStringList operator()(const Bridge& mode_);
-
-private:
-	QStringList m_v4;
-	QStringList m_v6;
-	const device_type* m_device;
-};
-
-namespace Difference
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct SearchDomain
-
-struct SearchDomain
-{
-	SearchDomain(const general_type& general_, const Dao& devices_);
-
-	QStringList calculate(const general_type& general_, const Dao& devices_);
-
-private:
-	QStringList m_general;
-	QList<device_type* > m_devices;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Device
-
-struct Device
-{
-	Device(const general_type& general_, const Dao& devices_);
-
-	QStringList calculate(const general_type& general_, const Dao& devices_);
-
-private:
-	static bool isEqual(const device_type* first_, const device_type* second_);
-
-	Dao m_devices;
-	const general_type* m_general;
-	const device_type* m_defaultGwIp4Bridge;
-	const device_type* m_defaultGwIp6Bridge;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Vm
-
-struct Vm
-{
-	explicit Vm(const CVmConfiguration& cfg_);
-
-	QStringList calculate(const general_type& general_, const Dao& devices_);
-	QStringList calculate(const CVmConfiguration& start_, unsigned int osType_);
-
-private:
-	Device m_device;
-	boost::optional<QString> m_hostname;
-	boost::optional<SearchDomain> m_searchDomain;
-};
-
-} // namespace Difference
-
-} // namespace Network
 
 namespace Runtime
 {

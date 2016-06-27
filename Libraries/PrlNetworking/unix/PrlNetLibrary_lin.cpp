@@ -181,8 +181,7 @@ static PRL_RESULT setIPv4Address(const char *ifname, quint32 ipAddress,
 
 	struct ifreq ifr;
 	memset(&ifr, 0, sizeof(ifreq));
-	strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
-	ifr.ifr_name[IFNAMSIZ-1] = '\0';
+	strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name) - 1);
 
 	//
 	// Set up IP address

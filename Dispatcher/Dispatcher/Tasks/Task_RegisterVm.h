@@ -154,16 +154,10 @@ private:
 
 	/**
 	* Checks where from registered vm
-	* @param [in] pointer to bool flag pbServerUuidWasChanged
 	* @note throw PRL_RESULT if errors
 	* @note should be called before checkDynamicMACAddress() and after after checkVMOnOtherServerUuid()
 	*/
-	void checkWhereFromRegisteredVm( bool bServerUuidWasChanged );
-
-	/**
-	* Checks Lion VM params at creation on recovery partition
-	*/
-	void checkCreateVmFromLionRecoveryPartition();
+	void checkWhereFromRegisteredVm();
 
 	/**
 	* Validate config for create VM.

@@ -51,6 +51,7 @@ HEADERS += \
 	CDspDispConnection.h \
 	CDspVmDirManager.h \
 	CDspVmDirHelper.h \
+	CDspVmDirHelper_p.h \
 	CDspVmManager.h \
 	CDspVmManager_p.h \
 	CDspVmMounter.h \
@@ -115,7 +116,6 @@ HEADERS += \
 	Tasks/Task_SearchLostConfigs.h \
 	Tasks/Task_UpdateCommonPrefs.h \
 	Tasks/Task_BackgroundJob.h \
-	Tasks/Task_ConfigureGenericPci.h \
 	Tasks/Task_CreateVmBackup.h \
 	Tasks/Task_RestoreVmBackup.h \
 	Tasks/Task_RestoreVmBackup_p.h \
@@ -146,7 +146,6 @@ HEADERS += \
 	HwMonitor/CDspHwMonitorNotifier.h \
 	HwMonitor/CDspHwMonitorHandler.h \
 	HwMonitor/CDspHwMonitorThread.h \
-	HwMonitor/CDspSystemEventsMonitor.h \
 	\
 	Guards/Server_Sentry.h \
 	\
@@ -233,7 +232,6 @@ SOURCES += \
 	Tasks/Task_SearchLostConfigs.cpp \
 	Tasks/Task_UpdateCommonPrefs.cpp \
 	Tasks/Task_BackgroundJob.cpp \
-	Tasks/Task_ConfigureGenericPci.cpp \
 	Tasks/Task_CreateVmBackup.cpp \
 	Tasks/Task_CreateVmBackupTarget.cpp \
 	Tasks/Task_CreateCtBackup.cpp \
@@ -259,7 +257,6 @@ SOURCES += \
 	\
 	HwMonitor/CDspHwMonitorNotifier.cpp \
 	HwMonitor/CDspHwMonitorThread.cpp  \
-	HwMonitor/CDspSystemEventsMonitor.cpp \
 	\
 	Guards/Server_Sentry.cpp \
 	\

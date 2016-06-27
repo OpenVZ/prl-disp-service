@@ -312,7 +312,7 @@ void PrlVmManipulationsTest::test_login()
 	m_ServerHandle.reset();
 	m_JobHandle.reset();
 	QVERIFY(PrlSrv_Create(m_ServerHandle.GetHandlePtr()) == PRL_ERR_SUCCESS);
-	if (TestConfig::isServerMode() && !TestConfig::isCtMode())
+	if (!TestConfig::isCtMode())
 	{
 		m_JobHandle.reset(PrlSrv_Login(m_ServerHandle, TestConfig::getRemoteHostName(),
 			TestConfig::getUserLogin(), TestConfig::getUserPassword(), NULL, 0, 0, PSL_HIGH_SECURITY));
@@ -3520,10 +3520,7 @@ void PrlVmManipulationsTest::testCreateImageOnFloppyDevice()
 	testCreateVmFromConfig();
 
 	CAuthHelper _auth_helper(TestConfig::getUserLogin());
-	if (TestConfig::isServerMode())
-		QVERIFY(_auth_helper.AuthUser(TestConfig::getUserPassword()));
-	else
-		QVERIFY(_auth_helper.AuthUser(PrlGetCurrentUserId()));
+	QVERIFY(_auth_helper.AuthUser(TestConfig::getUserPassword()));
 
 	SdkHandleWrap hJob(PrlVm_RefreshConfig(m_VmHandle));
 	CHECK_JOB_RET_CODE(hJob)
@@ -4668,9 +4665,6 @@ void PrlVmManipulationsTest::testVmUpdateSecurityFailedOnAttemptToCallByNonOwner
 {
 	SKIP_TEST_IN_CT_MODE_unimp
 
-	if (!TestConfig::isServerMode())
-		QSKIP("Skip test due functionality not supported at desktop mode", SkipAll);
-
 	testCreateVmFromConfig();
 
 	SdkHandleWrap hAccessRights;
@@ -4699,9 +4693,6 @@ void PrlVmManipulationsTest::testVmUpdateSecurityFailedOnAttemptToCallByNonOwner
 void PrlVmManipulationsTest::testVmUpdateSecurityOnLocalAdministratorAccount()
 {
 	SKIP_TEST_IN_CT_MODE_unimp
-
-	if (!TestConfig::isServerMode())
-		QSKIP("Skip test due functionality not supported at desktop mode", SkipAll);
 
 	testCreateVmFromConfig();
 
@@ -5380,24 +5371,6 @@ void PrlVmManipulationsTest::testRenameVmCheckInternalDiskImagePathValid()
 	QVERIFY(sSystemName.startsWith(QFileInfo(sNewVmHomePath).absolutePath()));
 }
 
-void PrlVmManipulationsTest::testVmStartExOnWrongParams()
-{
-	if (TestConfig::isServerModePSBM())
-	{
-		QSKIP("Safe mode is not available in PSBM !", SkipAll);
-		return;
-	}
-
-	testCreateVmFromConfig();
-
-	// Wrong handle
-	PRL_VM_START_MODE nVmStartMode = PSM_VM_SAFE_START;
-	CHECK_ASYNC_OP_FAILED(PrlVm_StartEx(m_ServerHandle, nVmStartMode, 0), PRL_ERR_INVALID_ARG);
-
-	// Invalid VM start mode
-	CHECK_ASYNC_OP_FAILED(PrlVm_StartEx(m_VmHandle, 1 + (PRL_UINT32 )PSM_VM_START_LAST_ITEM , 0), PRL_ERR_INVALID_ARG);
-}
-
 #define SET_DEFAULT_VM_CONFIG(out_hVm, os_version, create_devices) \
 	{	\
 		SdkHandleWrap hVm;\
@@ -6016,9 +5989,6 @@ void PrlVmManipulationsTest::testStartVncServerOnNotEnoughUserRights()
 {
 	SKIP_TEST_IN_CT_MODE
 
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping due remote login not supporting in non server products", SkipAll);
-
 	SimpleServerWrapper _connection1(TestConfig::getUserLogin());
 	SimpleServerWrapper _connection2(TestConfig::getUserLogin2());
 
@@ -6065,9 +6035,6 @@ void PrlVmManipulationsTest::testStartVncServerOnNotEnoughUserRights()
 void PrlVmManipulationsTest::testStartVncServerOnNotEnoughUserRights2()
 {
 	SKIP_TEST_IN_CT_MODE
-
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping due remote login not supporting in non server products", SkipAll);
 
 	SimpleServerWrapper _connection1(TestConfig::getUserLogin());
 	SimpleServerWrapper _connection2(TestConfig::getUserLogin2());
@@ -6149,9 +6116,6 @@ void PrlVmManipulationsTest::testStopVncServerOnNotEnoughUserRights()
 {
 	SKIP_TEST_IN_CT_MODE
 
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping due remote login not supporting in non server products", SkipAll);
-
 	SimpleServerWrapper _connection1(TestConfig::getUserLogin());
 	SimpleServerWrapper _connection2(TestConfig::getUserLogin2());
 
@@ -6198,9 +6162,6 @@ void PrlVmManipulationsTest::testStopVncServerOnNotEnoughUserRights()
 void PrlVmManipulationsTest::testStopVncServerOnNotEnoughUserRights2()
 {
 	SKIP_TEST_IN_CT_MODE
-
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping due remote login not supporting in non server products", SkipAll);
 
 	SimpleServerWrapper _connection1(TestConfig::getUserLogin());
 	SimpleServerWrapper _connection2(TestConfig::getUserLogin2());
@@ -7294,9 +7255,6 @@ void PrlVmManipulationsTest::testTryToLinkedCloneVmWithoutSnapshotsOnReadOnlyAcc
 {
 	SKIP_TEST_IN_CT_MODE
 
-	if (!TestConfig::isServerMode())
-		QSKIP("This test doesn't make sense in non server mode", SkipAll);
-
 	SimpleServerWrapper _connection1, _connection2;
 	QVERIFY(_connection1.Login(TestConfig::getUserLogin()));
 	QVERIFY(_connection2.Login(TestConfig::getUserLogin2()));
@@ -7475,9 +7433,6 @@ void PrlVmManipulationsTest::testSetAppTemplateListOnWrongParams()
 
 void PrlVmManipulationsTest::testAutoVirtualNetworksConfigureDuringVmCreation()
 {
-	if ( ! TestConfig::isServerMode() )
-		QSKIP("Skipping test due it doesn't make sense in non server mode", SkipAll);
-
 	QFile _file( ParallelsDirs::getNetworkConfigFilePath() );
 	QVERIFY(_file.open( QIODevice::ReadOnly ));
 	CParallelsNetworkConfig _netcfg( &_file );
@@ -7528,9 +7483,6 @@ void PrlVmManipulationsTest::testAutoVirtualNetworksConfigureDuringVmCreation()
 
 void PrlVmManipulationsTest::testAutoVirtualNetworksConfigureDuringVmRegistration()
 {
-	if ( ! TestConfig::isServerMode() )
-		QSKIP("Skipping test due it doesn't make sense in non server mode", SkipAll);
-
 	QFile _file( ParallelsDirs::getNetworkConfigFilePath() );
 	QVERIFY(_file.open( QIODevice::ReadOnly ));
 	CParallelsNetworkConfig _netcfg( &_file );

@@ -153,11 +153,8 @@ void Task_DispToDispConnHelper::Disconnect()
 	SendPkg(pPackage);
 }
 
-PRL_RESULT Task_DispToDispConnHelper::SendPkg(const SmartPtr<IOPackage> &package)
+PRL_RESULT Task_DispToDispConnHelper::SendPkg_(const SmartPtr<IOPackage> &package)
 {
-	if (isCancelled())
-		return PRL_ERR_OPERATION_WAS_CANCELED;
-
 	IOSendJob::Handle job;
 
 	job = m_pIoClient->sendPackage(package);
@@ -167,6 +164,14 @@ PRL_RESULT Task_DispToDispConnHelper::SendPkg(const SmartPtr<IOPackage> &package
 	}
 
 	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Task_DispToDispConnHelper::SendPkg(const SmartPtr<IOPackage> &package)
+{
+	if (isCancelled())
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	return SendPkg_(package);
 }
 
 PRL_RESULT Task_DispToDispConnHelper::SendReqAndWaitReply(const SmartPtr<IOPackage> &package)

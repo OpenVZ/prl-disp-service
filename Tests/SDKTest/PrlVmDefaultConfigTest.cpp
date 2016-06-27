@@ -59,15 +59,8 @@ void PrlVmDefaultConfigTest::init()
 	m_JobHandle.reset();
 	m_VmHandle.reset();
 	QVERIFY(PrlSrv_Create(m_ServerHandle.GetHandlePtr()) == PRL_ERR_SUCCESS);
-	if (TestConfig::isServerMode())
-	{
 		m_JobHandle.reset(PrlSrv_Login(m_ServerHandle, TestConfig::getRemoteHostName(),
 			TestConfig::getUserLogin(), TestConfig::getUserPassword(), NULL, 0, 0, PSL_HIGH_SECURITY));
-	}
-	else
-	{
-		m_JobHandle.reset(PrlSrv_LoginLocal(m_ServerHandle, NULL, 0, PSL_HIGH_SECURITY));
-	}
 	CHECK_JOB_RET_CODE(m_JobHandle);
 	INITIALIZE_VM("./TestDspCmdDirValidateVmConfig_vm_config.xml");
 
@@ -167,9 +160,6 @@ static const struct VmDefaultCfgValues
 
 void PrlVmDefaultConfigTest::testCheckDefaultConfigurationValues()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("FIXME: test should be reworked for desktop mode", SkipAll);
-
     const VmDefaultCfgValues *base_def = def_cfg_os_param ;
     Q_ASSERT(base_def->os_type == 0xFFFF) ;
     const VmDefaultCfgValues *os_def = NULL ;
@@ -246,21 +236,6 @@ void PrlVmDefaultConfigTest::testSetDefaultConfigCheckAllDevicesWinVista()
 	PRL_EXTRACT_STRING_VALUE(sGeneratedOpticalId, hGeneratedOpticalDisk, PrlVmDev_GetSysName);
 	QCOMPARE(sGeneratedOpticalName, QString(PRL_DVD_DEFAULT_DEVICE_NAME));
 	QCOMPARE(sGeneratedOpticalId, sOrigOpticalId);
-
-	if ( ! TestConfig::isServerMode() )
-	{
-		SdkHandleWrap hOrigSoundOutput, hOrigSoundMixer, hGeneratedSoundDev;
-		CHECK_RET_CODE_EXP(PrlSrvCfg_GetSoundOutputDev(hSrvConfig, 0, hOrigSoundOutput.GetHandlePtr()))
-		CHECK_RET_CODE_EXP(PrlSrvCfg_GetSoundMixerDev(hSrvConfig, 0, hOrigSoundMixer.GetHandlePtr()))
-		CHECK_RET_CODE_EXP(PrlVmCfg_GetSoundDev(hVm, 0, hGeneratedSoundDev.GetHandlePtr()))
-		QString sOrigSoundOutput, sOrigSoundMixer, sGeneratedSoundOutput, sGeneratedSoundMixer;
-		PRL_EXTRACT_STRING_VALUE(sOrigSoundOutput, hOrigSoundOutput, PrlSrvCfgDev_GetName)
-		PRL_EXTRACT_STRING_VALUE(sOrigSoundMixer, hOrigSoundMixer, PrlSrvCfgDev_GetName)
-		PRL_EXTRACT_STRING_VALUE(sGeneratedSoundOutput, hGeneratedSoundDev, PrlVmDevSound_GetOutputDev)
-		PRL_EXTRACT_STRING_VALUE(sGeneratedSoundMixer, hGeneratedSoundDev, PrlVmDevSound_GetMixerDev)
-		QCOMPARE(sOrigSoundOutput, sGeneratedSoundOutput);
-		QCOMPARE(sOrigSoundMixer, sGeneratedSoundMixer);
-	}
 }
 
 #define SET_DEFAULT_CONFIG_AND_GET_SOUND_DEVICE(os_version, create_devices)\
@@ -314,18 +289,6 @@ void PrlVmDefaultConfigTest::testSetDefaultConfigForSerailPortDeviceEcs()
 	QVERIFY(nSerPortCount == 1 );
 }
 
-void PrlVmDefaultConfigTest::testSetDefaultConfigForSoundDeviceFreeBsd()
-{
-	if ( TestConfig::isServerMode() )
-	{
-		QSKIP("Skip test in server mode", SkipAll);
-		return;
-	}
-
-	SET_DEFAULT_CONFIG_AND_GET_SOUND_DEVICE(PVS_GUEST_VER_BSD_7X, PRL_TRUE)
-	QVERIFY(nEmulType == PDT_USE_AC97_SOUND);
-}
-
 void PrlVmDefaultConfigTest::testSetDefaultConfigForParallelPortDeviceOtherLinux()
 {
 	SET_DEFAULT_CONFIG_AND_GET_PARALLEL_PORT_DEVICE(PVS_GUEST_VER_LIN_OTHER, PRL_TRUE)
@@ -336,30 +299,6 @@ void PrlVmDefaultConfigTest::testSetDefaultConfigForUsbControllerDeviceOtherLinu
 {
 	SET_DEFAULT_CONFIG_AND_GET_USB_DEVICE(PVS_GUEST_VER_LIN_OTHER, PRL_TRUE)
 	CHECK_HANDLE_TYPE(hVmDevUsb, PHT_VIRTUAL_DEV_USB_DEVICE)
-}
-
-void PrlVmDefaultConfigTest::testSetDefaultConfigForSoundDeviceWinVista()
-{
-	if ( TestConfig::isServerMode() )
-	{
-		QSKIP("Skip test in server mode", SkipAll);
-		return;
-	}
-
-	SET_DEFAULT_CONFIG_AND_GET_SOUND_DEVICE(PVS_GUEST_VER_WIN_VISTA, PRL_TRUE)
-	QVERIFY(nEmulType == PDT_USE_AC97_SOUND);
-}
-
-void PrlVmDefaultConfigTest::testSetDefaultConfigForSoundDeviceWin311()
-{
-	if ( TestConfig::isServerMode() )
-	{
-		QSKIP("Skip test in server mode", SkipAll);
-		return;
-	}
-
-	SET_DEFAULT_CONFIG_AND_GET_SOUND_DEVICE(PVS_GUEST_VER_WIN_311, PRL_TRUE)
-	QVERIFY(nEmulType == PDT_USE_CREATIVE_SB16_SOUND);
 }
 
 #define ADD_DEFAULT_DEVICE_AND_GET_SOUND_DEVICE(os_version)\
@@ -405,16 +344,11 @@ void PrlVmDefaultConfigTest::testSetDefaultConfigCheckDefaultCpusNumber()
 	CHECK_RET_CODE_EXP(PrlSrvCfg_GetCpuCount(hSrvConfig, &nHostCpusCount))
 	PRL_UINT32 nVmCpusCount = 0;
 	CHECK_RET_CODE_EXP(PrlVmCfg_GetCpuCount(hVm, &nVmCpusCount))
-	if (TestConfig::isServerMode())
 	{
 		if (nHostCpusCount < 4)
 			QCOMPARE(quint32(nVmCpusCount), quint32(1));
 		else
 			QCOMPARE(quint32(nVmCpusCount), quint32(2));
-	}
-	else
-	{
-		QCOMPARE(quint32(nVmCpusCount), quint32(1));
 	}
 }
 
@@ -441,17 +375,11 @@ void PrlVmDefaultConfigTest::testSetDefaultConfigCheckShareMacOSXFoldersToWindow
 	PrlBuffer_Free(pBuffer);
 	CVmConfiguration _vm_config(sVmConfig);
 	QVERIFY(PRL_SUCCEEDED(_vm_config.m_uiRcInit));
-	if ( TestConfig::isServerMode() )
-		QVERIFY( ! _vm_config.getVmSettings()->getVmTools()->getVmSharing()->getHostSharing()->isEnabled() );
-	else
-		QVERIFY( _vm_config.getVmSettings()->getVmTools()->getVmSharing()->getHostSharing()->isEnabled() );
+	QVERIFY( ! _vm_config.getVmSettings()->getVmTools()->getVmSharing()->getHostSharing()->isEnabled() );
 	QVERIFY(_vm_config.getVmSettings()->getVmTools()->getVmSharing()->getHostSharing()->isShareUserHomeDir());
 	QVERIFY(!_vm_config.getVmSettings()->getVmTools()->getVmSharing()->getHostSharing()->isShareAllMacDisks());
 
-	if ( TestConfig::isServerMode() )
-		QVERIFY( ! _vm_config.getVmSettings()->getVmTools()->getVmSharing()->getGuestSharing()->isEnabled() );
-	else
-		QVERIFY( _vm_config.getVmSettings()->getVmTools()->getVmSharing()->getGuestSharing()->isEnabled() );
+	QVERIFY( ! _vm_config.getVmSettings()->getVmTools()->getVmSharing()->getGuestSharing()->isEnabled() );
 }
 
 void PrlVmDefaultConfigTest::testSetDefaultConfig_CheckSharedCameraEnabled()
@@ -507,14 +435,7 @@ void PrlVmDefaultConfigTest::testSetDefaultConfig_CheckSharedCameraDisabled()
 		SET_DEFAULT_CONFIG_WITH_SPECIFIC_HOST_RAM_SIZE(os_version, host_ram_size)\
 		PRL_UINT32 nVmRamSize = 0;\
 		CHECK_RET_CODE_EXP(PrlVmCfg_GetRamSize(hVm, &nVmRamSize))\
-		if (!TestConfig::isServerMode())\
-		{\
-			QCOMPARE(quint32(nVmRamSize), quint32(expected_ram_size1));\
-		}\
-		else\
-		{\
-			QCOMPARE(quint32(nVmRamSize), quint32(expected_ram_size2));\
-		}\
+		QCOMPARE(quint32(nVmRamSize), quint32(expected_ram_size2));\
 		PRL_UINT32 nVmVideoRamSize = 0;\
 		CHECK_RET_CODE_EXP(PrlVmCfg_GetVideoRamSize(hVm, &nVmVideoRamSize))\
 		if ((PHO_MAC == _hw_info.getOsVersion()->getOsType() || PHO_LIN == _hw_info.getOsVersion()->getOsType())\
@@ -523,10 +444,7 @@ void PrlVmDefaultConfigTest::testSetDefaultConfig_CheckSharedCameraDisabled()
 		else\
 			QCOMPARE(quint32(nVmVideoRamSize), quint32(expected_video_ram_size2));\
 		PRL_UINT32 nDefaultVideoRamSize = 0;\
-		if (TestConfig::isServerMode())\
-			CHECK_RET_CODE_EXP(PrlVmCfg_GetDefaultVideoRamSize(os_version, hSrvConfig, PRL_FALSE, &nDefaultVideoRamSize))\
-		else\
-			CHECK_RET_CODE_EXP(PrlVmCfg_GetDefaultVideoRamSize(os_version, hSrvConfig, PRL_TRUE, &nDefaultVideoRamSize))\
+		CHECK_RET_CODE_EXP(PrlVmCfg_GetDefaultVideoRamSize(os_version, hSrvConfig, PRL_FALSE, &nDefaultVideoRamSize))\
 		QCOMPARE(quint32(nDefaultVideoRamSize), quint32(nVmVideoRamSize));\
 	}
 
@@ -655,14 +573,7 @@ void PrlVmDefaultConfigTest::testSetDefaultConfigCheckDefaultRamSizeForLinOses()
 		CHECK_HANDLE_TYPE(hHardDisk, PHT_VIRTUAL_DEV_HARD_DISK)\
 		PRL_UINT32 nHddSize = 0;\
 		CHECK_RET_CODE_EXP(PrlVmDevHd_GetDiskSize(hHardDisk, &nHddSize))\
-		if (!TestConfig::isServerMode())\
-		{\
-			QCOMPARE(quint32(nHddSize), quint32(expected_hdd_size1));\
-		}\
-		else\
-		{\
-			QCOMPARE(quint32(nHddSize), quint32(expected_hdd_size2));\
-		}\
+		QCOMPARE(quint32(nHddSize), quint32(expected_hdd_size2));\
 	}
 
 void PrlVmDefaultConfigTest::testSetDefaultConfigCheckDefaultHddSizeForWinOses()
@@ -730,17 +641,10 @@ void PrlVmDefaultConfigTest::testSetDefaultConfigCheckDefaultHddSizeForLinOses()
 
 void PrlVmDefaultConfigTest::testSetDefaultConfigCheckSharedProfileEnabled()
 {
-	if ( TestConfig::isServerMode() )
 	{
 		TEST_HOST_SHARING_AND_SHARED_PROFILE_DEFAULTS(PVS_GUEST_VER_WIN_VISTA, false, false)
 		TEST_HOST_SHARING_AND_SHARED_PROFILE_DEFAULTS(PVS_GUEST_VER_LIN_REDHAT, false, false)
 		TEST_HOST_SHARING_AND_SHARED_PROFILE_DEFAULTS(PVS_GUEST_VER_MACOS_LEOPARD, false, false)
-	}
-	else
-	{
-		TEST_HOST_SHARING_AND_SHARED_PROFILE_DEFAULTS(PVS_GUEST_VER_WIN_VISTA, true, true)
-		TEST_HOST_SHARING_AND_SHARED_PROFILE_DEFAULTS(PVS_GUEST_VER_LIN_REDHAT, true, false)
-		TEST_HOST_SHARING_AND_SHARED_PROFILE_DEFAULTS(PVS_GUEST_VER_MACOS_LEOPARD, true, false)
 	}
 	TEST_HOST_SHARING_AND_SHARED_PROFILE_DEFAULTS(PVS_GUEST_VER_BSD_5X, false, false)
 	TEST_HOST_SHARING_AND_SHARED_PROFILE_DEFAULTS(PVS_GUEST_VER_OS2_ECS11, false, false)

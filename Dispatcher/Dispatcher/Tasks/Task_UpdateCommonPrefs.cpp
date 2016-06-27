@@ -180,7 +180,7 @@ PRL_RESULT Task_UpdateCommonPrefs::run_body()
 		//Process log level
 		if ( m_pNewCommonPrefs->getDebug()->isVerboseLogWasChanged() )
 		{
-			if ( CDspService::isServerMode() && !getClient()->getAuthHelper().isLocalAdministrator() )
+			if (!getClient()->getAuthHelper().isLocalAdministrator())
 				throw PRL_ERR_ONLY_ADMIN_CAN_SET_VERBOSE_LOGGING;
 
 			bool bVerboseLogEnabled = m_pNewCommonPrefs->getDebug()->isVerboseLogEnabled();
@@ -346,25 +346,12 @@ void Task_UpdateCommonPrefs::finalizeTask()
 
 	if ( PRL_SUCCEEDED( getLastErrorCode() ) )
 	{
-		/**
-		 * Notify users that common server prefs were changed
-		 */
-
-		CVmEvent event( PET_DSP_EVT_COMMON_PREFS_CHANGED,
-						QString(),
-						PIE_DISPATCHER);
-
-		SmartPtr<IOPackage> p =
-			DispatcherPackage::createInstance( PVE::DspVmEvent, event, getRequestPackage());
-
-		CDspService::instance()->getClientManager().sendPackageToAllClients( p );
-
 		//Update host info now in view of virtual network adapters list can be changed
 		CDspService::instance()->getHostInfo()->refresh();
-		event.setEventType(PET_DSP_EVT_HW_CONFIG_CHANGED);
-		p = DispatcherPackage::createInstance( PVE::DspVmEvent, event, getRequestPackage());
+		CVmEvent event(PET_DSP_EVT_HW_CONFIG_CHANGED, QString(), PIE_DISPATCHER);
+		SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, event, getRequestPackage());
 
-		CDspService::instance()->getClientManager().sendPackageToAllClients( p );
+		CDspService::instance()->getClientManager().sendPackageToAllClients(p);
 
 		CDspService::instance()->notifyConfigChanged(m_pOldCommonPrefs, m_pNewCommonPrefs);
 	}

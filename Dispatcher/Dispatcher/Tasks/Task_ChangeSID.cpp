@@ -59,6 +59,18 @@ Task_ChangeSID::~Task_ChangeSID()
 {
 }
 
+bool Task_ChangeSID::canChangeSid(const SmartPtr<CVmConfiguration>& p_)
+{
+	if (!p_.isValid())
+		return false;
+
+	CVmCommonOptions* o = p_->getVmSettings()->getVmCommonOptions();
+
+	return PVS_GUEST_TYPE_WINDOWS == o->getOsType() &&
+		o->getOsVersion() >= PVS_GUEST_VER_WIN_XP &&
+		!p_->getVmSettings()->getVmTools()->getAgentVersion().isEmpty();
+}
+
 QString Task_ChangeSID::getVmUuid()
 {
 	return m_pVmConfig ? m_pVmConfig->getVmIdentification()->getVmUuid() : QString();

@@ -148,7 +148,7 @@ bool PrlNet::setIfFlags( const char *if_name, int set_flags, int clear_flags )
 	struct ifreq ifr;
 	memset( &ifr, 0, sizeof(ifr) );
 	ifr.ifr_addr.sa_family = AF_INET;
-	strncpy( ifr.ifr_name, if_name, sizeof(ifr.ifr_name) );
+	strncpy(ifr.ifr_name, if_name, sizeof(ifr.ifr_name) - 1);
 
 	if( ::ioctl(sock, SIOCGIFFLAGS, &ifr) < 0 )
 	{
@@ -442,7 +442,7 @@ bool setupBridge(const QString& bridge, const QString& iface, int command)
 		return false;
 
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, bridge.toAscii().data(), IFNAMSIZ);
+	strncpy(ifr.ifr_name, bridge.toAscii().data(), sizeof(ifr.ifr_name) - 1);
 	ifr.ifr_ifindex = ifindex;
 	if (::ioctl(sock, command, &ifr) < 0)
 	{

@@ -990,16 +990,19 @@ PRL_RESULT Task_MigrateVmSource::prepareTask()
 	{
 		if (VMS_STOPPED != m_nPrevVmState)
 		{
-			nRetCode = PRL_ERR_VM_REQUEST_NOT_SUPPORTED;
+			nRetCode = PRL_ERR_VZ_OPERATION_FAILED;
+			CDspTaskFailure(*this)(nRetCode,
+				"Online migration in the clone mode is not supported. "
+				"Stop the VM and try again.");
 			goto exit;
 		}
 		//Check change SID preconditions
 		if ( PVMT_CHANGE_SID & getRequestFlags() )
 		{
-			nRetCode = Task_CloneVm::CheckWhetherChangeSidOpPossible(
-				m_pVmConfig, m_registry.find(m_sVmUuid));
-			if ( PRL_FAILED(nRetCode) )
+			if (!Task_ChangeSID::canChangeSid(m_pVmConfig)) {
+				nRetCode = PRL_ERR_CHANGESID_NOT_SUPPORTED;
 				goto exit;
+			}
 		}
 	}
 	{

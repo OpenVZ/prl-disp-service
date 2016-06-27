@@ -112,15 +112,8 @@ void PrlVmDevManipulationsTest::init()
 	CHECK_RET_CODE_EXP(PrlSrv_CreateVm(m_ServerHandle, m_VmHandle.GetHandlePtr()))
 	m_pDevicesBuf = NULL;
 	SdkHandleWrap hJob;
-	if (TestConfig::isServerMode())
-	{
-		hJob.reset(PrlSrv_Login(m_ServerHandle, TestConfig::getRemoteHostName(),
+	hJob.reset(PrlSrv_Login(m_ServerHandle, TestConfig::getRemoteHostName(),
 					TestConfig::getUserLogin(),	TestConfig::getUserPassword(), NULL, 0, 0, PSL_HIGH_SECURITY));
-	}
-	else
-	{
-		hJob.reset(PrlSrv_LoginLocal(m_ServerHandle, NULL, 0, PSL_HIGH_SECURITY));
-	}
 	CHECK_JOB_RET_CODE(hJob)
 
 	clearTestPaths();

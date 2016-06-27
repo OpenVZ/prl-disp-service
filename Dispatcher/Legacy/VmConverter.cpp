@@ -37,10 +37,13 @@
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 #include <boost/bind.hpp>
 
+using namespace Legacy::Vm;
+
 namespace
 {
 
 enum {V2V_RUN_TIMEOUT = 60 * 60 * 1000};
+enum {MAX_IDE = PRL_MAX_IDE_DEVICES_NUM - 1}; // 1 for tools cd
 
 const char VIRT_V2V[] = "/usr/bin/virt-v2v";
 
@@ -75,12 +78,13 @@ struct Helper
 	       PRL_CLUSTERED_DEVICE_SUBTYPE hddSubType,
 	       CVmHardware &hardware);
 
-	PRL_RESULT do_();
-	PRL_RESULT insertTools(const QString &path, CVmStartupOptions *options);
+	result_type do_();
+	result_type insertTools(const QString &path, CVmStartupOptions *options);
 
 private:
-	template <typename T> PRL_RESULT do_(T *pDevice);
+	template <typename T> result_type do_(T *pDevice);
 	template <typename T> bool isConverted(const T &device) const;
+	static result_type buildResult(PRL_RESULT code, const QString &param);
 
 	CVmHardware &m_hardware;
 
@@ -88,6 +92,15 @@ private:
 	PRL_CLUSTERED_DEVICE_SUBTYPE m_hddSubType;
 	QMap<PRL_MASS_STORAGE_INTERFACE_TYPE, QList<unsigned> > m_filled;
 };
+
+result_type Helper::buildResult(PRL_RESULT code, const QString &param)
+{
+	SmartPtr<CVmEvent> e(new CVmEvent);
+	e->setEventCode(code);
+	e->addEventParameter(new CVmEventParameter(PVE::String,
+				param, EVT_PARAM_MESSAGE_PARAM_0));
+	return e;
+}
 
 template<> bool Helper::isConverted(const CVmHardDisk &device) const
 {
@@ -101,48 +114,50 @@ template<> bool Helper::isConverted(const CVmOpticalDisk &device) const
 	       device.getInterfaceType() != PMS_IDE_DEVICE;
 }
 
-template<> PRL_RESULT Helper::do_(CVmOpticalDisk *pDevice)
+template<> result_type Helper::do_(CVmOpticalDisk *pDevice)
 {
 	// Convert Cdrom devices to IDE since SATA is unsupported.
 	if (pDevice == NULL || !isConverted(*pDevice))
-		return PRL_ERR_SUCCESS;
+		return result_type();
 	if (m_filled[PMS_IDE_DEVICE].isEmpty())
 	{
 		WRITE_TRACE(DBG_FATAL, "Too many IDE devices after config conversion");
-		return PRL_ERR_VMCONF_IDE_DEVICES_COUNT_OUT_OF_RANGE;
+		return buildResult(PRL_ERR_VMCONF_IDE_DEVICES_COUNT_OUT_OF_RANGE,
+		                   QString::number(MAX_IDE));
 	}
 	pDevice->setInterfaceType(PMS_IDE_DEVICE);
 	pDevice->setStackIndex(m_filled[PMS_IDE_DEVICE].takeFirst());
-	return PRL_ERR_SUCCESS;
+	return result_type();
 }
 
-template<> PRL_RESULT Helper::do_(CVmHardDisk *pDevice)
+template<> result_type Helper::do_(CVmHardDisk *pDevice)
 {
 	// Convert disks to virtio-scsi
 	// There's no virtio-scsi drivers for win2003-, use virtio-block.
 	if (NULL == pDevice || !isConverted(*pDevice))
-		return PRL_ERR_SUCCESS;
+		return result_type();
 	if (m_hddType == PMS_SCSI_DEVICE)
 	{
 		if (m_filled[m_hddType].isEmpty())
 		{
 			WRITE_TRACE(DBG_FATAL, "Too many SCSI devices after config conversion");
-			return PRL_ERR_VMCONF_SCSI_DEVICES_COUNT_OUT_OF_RANGE;
+			return buildResult(PRL_ERR_VMCONF_SCSI_DEVICES_COUNT_OUT_OF_RANGE,
+			                   QString::number(PRL_MAX_SCSI_DEVICES_NUM));
 		}
 		pDevice->setStackIndex(m_filled[m_hddType].takeFirst());
 	}
 	pDevice->setInterfaceType(m_hddType);
 	pDevice->setSubType(m_hddSubType);
-	return PRL_ERR_SUCCESS;
+	return result_type();
 }
 
-template<> PRL_RESULT Helper::do_(CVmGenericNetworkAdapter *pDevice)
+template<> result_type Helper::do_(CVmGenericNetworkAdapter *pDevice)
 {
 	if (pDevice == NULL)
-		return PRL_ERR_SUCCESS;
+		return result_type();
 	pDevice->setAdapterType(PNT_VIRTIO);
 	pDevice->setHostInterfaceName(HostUtils::generateHostInterfaceName(pDevice->getMacAddress()));
-	return PRL_ERR_SUCCESS;
+	return result_type();
 }
 
 Helper::Helper(PRL_MASS_STORAGE_INTERFACE_TYPE hddType,
@@ -166,12 +181,13 @@ Helper::Helper(PRL_MASS_STORAGE_INTERFACE_TYPE hddType,
 	}
 }
 
-PRL_RESULT Helper::insertTools(const QString &path, CVmStartupOptions *options)
+result_type Helper::insertTools(const QString &path, CVmStartupOptions *options)
 {
 	if (m_filled[PMS_IDE_DEVICE].isEmpty())
 	{
 		WRITE_TRACE(DBG_FATAL, "Cannot insert guest tools iso");
-		return PRL_ERR_VMCONF_IDE_DEVICES_COUNT_OUT_OF_RANGE;
+		return buildResult(PRL_ERR_VMCONF_IDE_DEVICES_COUNT_OUT_OF_RANGE,
+		                   QString::number(MAX_IDE));
 	}
 
 	QList<CVmStartupOptions::CVmBootDevice*> b = options->m_lstBootDeviceList;
@@ -188,34 +204,34 @@ PRL_RESULT Helper::insertTools(const QString &path, CVmStartupOptions *options)
 	m_hardware.m_lstOpticalDisks << d;
 	fixIndex(m_hardware.m_lstOpticalDisks);
 
-	return PRL_ERR_SUCCESS;
+	return result_type();
 }
 
-PRL_RESULT Helper::do_()
+result_type Helper::do_()
 {
-	PRL_RESULT res;
+	result_type res;
 
 	// Convert Cdrom devices to IDE since SATA is unsupported.
 	foreach(CVmOpticalDisk* pDevice, m_hardware.m_lstOpticalDisks) {
-		if (PRL_FAILED(res = do_(pDevice)))
+		if ((res = do_(pDevice)).isFailed())
 			return res;
 	}
 
 	foreach(CVmHardDisk *pDevice, m_hardware.m_lstHardDisks) {
-		if (PRL_FAILED(res = do_(pDevice)))
+		if ((res = do_(pDevice)).isFailed())
 			return res;
 	}
 
 	// Convert network interfaces to virtio-net
 	foreach(CVmGenericNetworkAdapter *pDevice, m_hardware.m_lstNetworkAdapters) {
-		if (PRL_FAILED(res = do_(pDevice)))
+		if ((res = do_(pDevice)).isFailed())
 			return res;
 	}
 
 	// Parallel ports are not supported anymore
 	m_hardware.m_lstParallelPortOlds.clear();
 	m_hardware.m_lstParallelPorts.clear();
-	return PRL_ERR_SUCCESS;
+	return result_type();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -260,7 +276,7 @@ namespace Vm
 ///////////////////////////////////////////////////////////////////////////////
 // struct Converter
 
-PRL_RESULT Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
+result_type Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 {
 	CVmStartupBios* b = cfg->getVmSettings()->getVmStartupOptions()->getBios();
 	if (b->isEfiEnabled())
@@ -274,7 +290,7 @@ PRL_RESULT Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	CVmHardware *pVmHardware;
 	if ((pVmHardware = cfg->getVmHardwareList()) == NULL) {
 		WRITE_TRACE(DBG_FATAL, "[%s] Can not get Vm hardware list", __FUNCTION__);
-		return PRL_ERR_SUCCESS;
+		return result_type();
 	}
 
 	unsigned os = cfg->getVmSettings()->getVmCommonOptions()->getOsVersion();
@@ -284,8 +300,8 @@ PRL_RESULT Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	Helper h(noSCSI ? PMS_VIRTIO_BLOCK_DEVICE : PMS_SCSI_DEVICE,
 	         noSCSI ? PCD_BUSLOGIC : PCD_VIRTIO_SCSI,
 			 *pVmHardware);
-	PRL_RESULT res;
-	if (PRL_FAILED(res = h.do_()))
+	result_type res;
+	if ((res = h.do_()).isFailed())
 		return res;
 
 	return h.insertTools(ParallelsDirs::getToolsImage(PAM_SERVER, os),

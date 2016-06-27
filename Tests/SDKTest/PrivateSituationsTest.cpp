@@ -323,15 +323,8 @@ void PrivateSituationsTest::testCallAsyncMethodFromCallback()
 	QMutexLocker _lock(&m_Mutex);
 	m_bExecutionSuccessful = false;
 	SdkHandleWrap hJob;
-	if (TestConfig::isServerMode())
-	{
-		hJob.reset(PrlSrv_Login(m_ServerHandle, TestConfig::getRemoteHostName(), TestConfig::getUserLogin(),
+	hJob.reset(PrlSrv_Login(m_ServerHandle, TestConfig::getRemoteHostName(), TestConfig::getUserLogin(),
 								TestConfig::getUserPassword(), NULL, 0, 0, PSL_HIGH_SECURITY));
-	}
-	else
-	{
-		hJob.reset(PrlSrv_LoginLocal(m_ServerHandle, NULL, 0, PSL_HIGH_SECURITY));
-	}
 	QVERIFY(m_Condition.wait(&m_Mutex, 10*PRL_JOB_WAIT_TIMEOUT));
 	QVERIFY(m_bExecutionSuccessful);
 }
@@ -340,15 +333,8 @@ void PrivateSituationsTest::testOftenCallsOfPrlJobWait()
 {
 	const size_t nTestTimeout = 100;
 	SdkHandleWrap hJob;
-	if (TestConfig::isServerMode())
-	{
-		hJob.reset(PrlSrv_Login(m_ServerHandle, TestConfig::getRemoteHostName(),	TestConfig::getUserLogin(),
+	hJob.reset(PrlSrv_Login(m_ServerHandle, TestConfig::getRemoteHostName(),	TestConfig::getUserLogin(),
 								TestConfig::getUserPassword(), NULL, 0, 0, PSL_HIGH_SECURITY));
-	}
-	else
-	{
-		hJob.reset(PrlSrv_LoginLocal(m_ServerHandle, NULL, 0, PSL_HIGH_SECURITY));
-	}
 	CHECK_JOB_RET_CODE(hJob)
 	SdkHandleWrap hVm;
 	CHECK_RET_CODE_EXP(PrlSrv_CreateVm(m_ServerHandle, hVm.GetHandlePtr()))

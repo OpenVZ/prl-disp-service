@@ -178,7 +178,7 @@ PRL_RESULT Task_CreateVmBackup::sendStartRequest(const ::Backup::Activity::Objec
 
 	if (pCreateReply->GetFreeDiskSpace(nFreeDiskSpace))
 	{
-		nRetCode = checkFreeDiskSpace(m_sVmUuid, m_nOriginalSize, nFreeDiskSpace, true);
+		nRetCode = checkFreeDiskSpace(m_nOriginalSize, nFreeDiskSpace, true);
 		if (PRL_FAILED(nRetCode))
 			return nRetCode;
 	}
@@ -216,21 +216,29 @@ void Task_CreateVmBackup::cancelOperation(SmartPtr<CDspClient> pUser, const Smar
 	}
 }
 
-PRL_RESULT Task_CreateVmBackup::waitForTargetFinished()
+PRL_RESULT Task_CreateVmBackup::waitForTargetFinished(int cmd_, QString& error_)
 {
-	SmartPtr<IOPackage> respPkg;
-	IOSendJob::Response pResponse;
-	bool bExited = false;
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
+	/*
+	   Now target side wait new acronis proxy commands due to acronis have not call to close connection.
+	   To fix it will send command to close connection from here.
+	   Pay attention: on success and on failure both we will wait reply from target.
+	*/
+	SmartPtr<IOPackage> p  = IOPackage::createInstance(cmd_, 0);
+	if (PRL_FAILED(SendPkg_(p))) {
+		WRITE_TRACE(DBG_FATAL, "Final package sending failure");
+		return PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
+	}
 
 	// Handle reply from target
+	bool bExited = false;
+	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	while (!bExited) {
 		if (getIoClient()->waitForResponse(m_hJob) != IOSendJob::Success) {
 			WRITE_TRACE(DBG_FATAL, "Responce receiving failure");
 			nRetCode = PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
 			break;
 		}
-		pResponse = getIoClient()->takeResponse(m_hJob);
+		IOSendJob::Response pResponse = getIoClient()->takeResponse(m_hJob);
 		if (pResponse.responseResult != IOSendJob::Success) {
 			WRITE_TRACE(DBG_FATAL, "Create Vm backup failed to take response: %x",
 					pResponse.responseResult);
@@ -238,7 +246,7 @@ PRL_RESULT Task_CreateVmBackup::waitForTargetFinished()
 			break;
 		}
 
-		foreach(respPkg, pResponse.responsePackages) {
+		foreach(SmartPtr<IOPackage> respPkg, pResponse.responsePackages) {
 			if (respPkg->header.type == PVE::DspVmEvent) {
 				// FIXME: handle progress
 				continue;
@@ -248,7 +256,7 @@ PRL_RESULT Task_CreateVmBackup::waitForTargetFinished()
 						UTF8_2QSTR(respPkg->buffers[0].getImpl()));
 				CDispToDispResponseCommand *pResponseCmd =
 					CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispResponseCommand>(pCmd);
-				getLastError()->fromString(pResponseCmd->GetErrorInfo()->toString());
+				error_ = pResponseCmd->GetErrorInfo()->toString();
 				nRetCode = pResponseCmd->GetRetCode();
 				bExited = true;
 				break;
@@ -264,7 +272,7 @@ PRL_RESULT Task_CreateVmBackup::waitForTargetFinished()
 PRL_RESULT Task_CreateVmBackup::doBackup(const QString& source_, ::Backup::Work::object_type& variant_)
 {
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	SmartPtr<IOPackage> p;
+	QString e;
 
 	m_product = SmartPtr< ::Backup::Product::Model>(
 		new ::Backup::Product::Model(::Backup::Object::Model(m_pVmConfig), m_sVmHomePath));
@@ -289,21 +297,13 @@ PRL_RESULT Task_CreateVmBackup::doBackup(const QString& source_, ::Backup::Work:
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
 	nRetCode = backupHardDiskDevices(a, variant_);
-	/*
-	   Now target side wait new acronis proxy commands due to acronis have not call to close connection.
-	   To fix it will send command to close connection from here.
-	   Pay attention: on success and on failure both we will wait reply from target.
-	   */
-	if (PRL_FAILED(nRetCode)) {
-		p = IOPackage::createInstance(ABackupProxyCancelCmd, 0);
-		WRITE_TRACE(DBG_FATAL, "send ABackupProxyCancelCmd command");
-		SendPkg(p);
-	} else {
-		p = IOPackage::createInstance(ABackupProxyFinishCmd, 0);
-		nRetCode = SendPkg(p);
-		// TODO:	nRetCode = SendReqAndWaitReply(p);
+	if (PRL_FAILED(nRetCode))
+		(void)waitForTargetFinished(ABackupProxyCancelCmd, e);
+	else {
+		nRetCode = waitForTargetFinished(ABackupProxyFinishCmd, e);
+		if (PRL_FAILED(nRetCode) && !e.isEmpty())
+			getLastError()->fromString(e);
 	}
-	nRetCode = waitForTargetFinished();
 
 exit:
 	setLastErrorCode(nRetCode);

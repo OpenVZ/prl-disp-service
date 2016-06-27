@@ -152,10 +152,7 @@ QString GetWindowsTemporaryDirPath()
 
 #define LOGIN_TO_SERVER\
 	{\
-		if (TestConfig::isServerMode())\
-			testLogin();\
-		else\
-			testLoginLocal();\
+		testLogin();\
 		PRL_BOOL bConnected = false;\
 		PRL_BOOL bIsConnectionLocal = false;\
 		CHECK_RET_CODE_EXP(PrlSrv_IsConnected(m_ServerHandle, &bConnected, &bIsConnectionLocal))\
@@ -242,9 +239,6 @@ void PrlSrvManipulationsTest::cleanup()
 
 void PrlSrvManipulationsTest::testLogin()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping test due functionality is not supported at desktop mode", SkipAll);
-
 	m_JobHandle.reset(PrlSrv_LoginEx(m_ServerHandle, TestConfig::getRemoteHostName(), TestConfig::getUserLogin(),
 									 TestConfig::getUserPassword(), NULL, 0, 0, PSL_HIGH_SECURITY, 0));
 	QVERIFY(m_JobHandle != PRL_INVALID_HANDLE);
@@ -583,8 +577,7 @@ void PrlSrvManipulationsTest::testEditUserProfileTryToChangeUseManagementConsole
 
 void PrlSrvManipulationsTest::testEditUserProfileTryToChangeCanChangeServerSettingsFlag()
 {
-	if ((TestConfig::isServerMode() && PrlIsUserAdministrator(TestConfig::getUserLogin(), TestConfig::getUserPassword())) ||
-			(!TestConfig::isServerMode() && PrlIsUserAdministrator()))
+	if (PrlIsUserAdministrator(TestConfig::getUserLogin(), TestConfig::getUserPassword()))
 		QSKIP("Skipping test due test user account with local administrator privileges", SkipAll);
 
 	USER_PROFILE_EDIT_PREFACE
@@ -3688,9 +3681,6 @@ void PrlSrvManipulationsTest::testUpdateNetAdapter()
 
 void PrlSrvManipulationsTest::testHomeUserFolderValid()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Test skipping due functionality not supported at desktop mode", SkipAll);
-
 	m_JobHandle.reset(PrlSrv_Login(m_ServerHandle, TestConfig::getRemoteHostName(),	TestConfig::getUserLogin(),
 								   TestConfig::getUserPassword(), NULL, 0, 0, PSL_HIGH_SECURITY));
 	CHECK_JOB_RET_CODE(m_JobHandle)
@@ -3702,9 +3692,6 @@ void PrlSrvManipulationsTest::testHomeUserFolderValid()
 
 void PrlSrvManipulationsTest::testHomeUserFolderValid2()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Test skipping due functionality not supported at desktop mode", SkipAll);
-
 	m_JobHandle.reset(PrlSrv_Login(m_ServerHandle, TestConfig::getRemoteHostName(),	TestConfig::getUserLogin2(),
 								   TestConfig::getUserPassword(), NULL, 0, 0, PSL_HIGH_SECURITY));
 	CHECK_JOB_RET_CODE(m_JobHandle)
@@ -3764,16 +3751,8 @@ void PrlSrvManipulationsTest::testMultipleRegistrationOfTheSameCallback()
 	TestCallbackData _data1, _data2;
 	CHECK_RET_CODE_EXP(PrlSrv_RegEventHandler(m_ServerHandle, TestCallback, &_data1))
 	CHECK_RET_CODE_EXP(PrlSrv_RegEventHandler(m_ServerHandle, TestCallback, &_data2))
-	if (TestConfig::isServerMode())
-	{
-		m_JobHandle.reset(PrlSrv_Login(m_ServerHandle, TestConfig::getRemoteHostName(),	TestConfig::getUserLogin(),
+	m_JobHandle.reset(PrlSrv_Login(m_ServerHandle, TestConfig::getRemoteHostName(),	TestConfig::getUserLogin(),
 									   TestConfig::getUserPassword(), NULL, 0, 0, PSL_HIGH_SECURITY));
-	}
-	else
-	{
-		m_JobHandle.reset(PrlSrv_LoginLocal(m_ServerHandle, NULL, 0, PSL_HIGH_SECURITY));
-	}
-
 	{
 		QMutexLocker _lock(&_data1.m_Mutex);
 		while (_data1.m_Condition.wait(&_data1.m_Mutex, PRL_JOB_WAIT_TIMEOUT)) ;
@@ -4037,9 +4016,6 @@ void PrlSrvManipulationsTest::testGetServerInfoOnLoginLocalRequest()
 
 void PrlSrvManipulationsTest::testGetServerInfoOnLoginRequest()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping test due functionality is not supported at desktop mode", SkipAll);
-
 	m_JobHandle.reset(PrlSrv_Login(m_ServerHandle, TestConfig::getRemoteHostName(),	TestConfig::getUserLogin(),
 								   TestConfig::getUserPassword(), NULL, 0, 0, PSL_HIGH_SECURITY));
 	TEST_SERVER_INFO(PRL_DISPATCHER_LISTEN_PORT)
@@ -5297,9 +5273,6 @@ void PrlSrvManipulationsTest::testRegisterOldVmOwnedByAnotherUserButAclWithRight
 	QSKIP("Skipping due currently we have ACL support just under Mac OS X", SkipAll);
 #endif
 
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping test due not compatible with non server mode", SkipAll);
-
 	CAuthHelper _auth_helper(TestConfig::getUserLogin2());
 	QVERIFY(_auth_helper.AuthUser(TestConfig::getUserPassword()));
 	QVERIFY(CFileHelper::WriteDirectory(m_sTestFsDirName1ChildDir, &_auth_helper));
@@ -5556,10 +5529,7 @@ void PrlSrvManipulationsTest::testGenericPciDeviceStateOnWrongParams()
 
 void PrlSrvManipulationsTest::testVmDeviceUpdateInfo()
 {
-	if (TestConfig::isServerMode())
-		testLogin();
-	else
-		testLoginLocal();
+	testLogin();
 
 	//Made small test preparations (see https://bugzilla.sw.ru/show_bug.cgi?id=439741 for more details)
 	INITIALIZE_VM("./TestDspCmdDirValidateVmConfig_vm_config.xml")
@@ -5753,68 +5723,7 @@ void PrlSrvManipulationsTest::testCreateVmInSpecificNonExistsFolderNonInteractiv
 	}\
 	QVERIFY(bQuestionFound);
 
-void PrlSrvManipulationsTest::testCreateVmInSpecificNonExistsFolderInteractiveModeFolderCreationAccepted()
-{
-	if (TestConfig::isServerMode())
-		QSKIP("Skipping test due to the interaction is not supported by the server mode", SkipAll);
 
-	testLoginLocal();
-
-	SdkHandleWrap hJob(PrlSrv_GetSrvConfig(m_ServerHandle));
-	CHECK_JOB_RET_CODE(hJob)
-	SdkHandleWrap hResult;
-	CHECK_RET_CODE_EXP(PrlJob_GetResult(hJob, hResult.GetHandlePtr()))
-	SdkHandleWrap hSrvConfig;
-	CHECK_RET_CODE_EXP(PrlResult_GetParam(hResult, hSrvConfig.GetHandlePtr()))
-
-	CHECK_RET_CODE_EXP(PrlSrv_CreateVm(m_ServerHandle, m_VmHandle.GetHandlePtr()))
-	CHECK_RET_CODE_EXP(PrlVmCfg_SetDefaultConfig(m_VmHandle, hSrvConfig, PVS_GUEST_VER_WIN_VISTA, PRL_FALSE))
-	CHECK_RET_CODE_EXP(PrlVmCfg_SetName(m_VmHandle, QSTR2UTF8(Uuid::createUuid().toString())))
-
-	SdkHandleWrap hRegVmJob(PrlVm_Reg(m_VmHandle, QSTR2UTF8(m_sTestFsDirName1), PRL_FALSE));
-
-	WAIT_QUESTION_ABOUT_CREATE_NON_EXISTENT_DIR
-
-	SdkHandleWrap hAnswer;
-	CHECK_RET_CODE_EXP(PrlEvent_CreateAnswerEvent(hQuestion, hAnswer.GetHandlePtr(), PET_ANSWER_YES))
-	hJob.reset(PrlSrv_SendAnswer(m_ServerHandle, hAnswer));
-	CHECK_JOB_RET_CODE(hJob)
-
-	CHECK_JOB_RET_CODE(hRegVmJob)
-	QFileInfo _fi(m_sTestFsDirName1);
-	QVERIFY(_fi.exists());
-	QVERIFY(_fi.isDir());
-}
-
-void PrlSrvManipulationsTest::testCreateVmInSpecificNonExistsFolderInteractiveModeFolderCreationRejected()
-{
-	if (TestConfig::isServerMode())
-		QSKIP("Skipping test due to the interaction is not supported by the server mode", SkipAll);
-
-	testLoginLocal();
-
-	SdkHandleWrap hJob(PrlSrv_GetSrvConfig(m_ServerHandle));
-	CHECK_JOB_RET_CODE(hJob)
-	SdkHandleWrap hResult;
-	CHECK_RET_CODE_EXP(PrlJob_GetResult(hJob, hResult.GetHandlePtr()))
-	SdkHandleWrap hSrvConfig;
-	CHECK_RET_CODE_EXP(PrlResult_GetParam(hResult, hSrvConfig.GetHandlePtr()))
-
-	CHECK_RET_CODE_EXP(PrlSrv_CreateVm(m_ServerHandle, m_VmHandle.GetHandlePtr()))
-	CHECK_RET_CODE_EXP(PrlVmCfg_SetDefaultConfig(m_VmHandle, hSrvConfig, PVS_GUEST_VER_WIN_VISTA, PRL_FALSE))
-	CHECK_RET_CODE_EXP(PrlVmCfg_SetName(m_VmHandle, QSTR2UTF8(Uuid::createUuid().toString())))
-
-	SdkHandleWrap hRegVmJob(PrlVm_Reg(m_VmHandle, QSTR2UTF8(m_sTestFsDirName1), PRL_FALSE));
-
-	WAIT_QUESTION_ABOUT_CREATE_NON_EXISTENT_DIR
-
-	SdkHandleWrap hAnswer;
-	CHECK_RET_CODE_EXP(PrlEvent_CreateAnswerEvent(hQuestion, hAnswer.GetHandlePtr(), PET_ANSWER_NO))
-	hJob.reset(PrlSrv_SendAnswer(m_ServerHandle, hAnswer));
-	CHECK_JOB_RET_CODE(hJob)
-
-	CHECK_ASYNC_OP_FAILED(hRegVmJob, PRL_ERR_DIRECTORY_DOES_NOT_EXIST)
-}
 
 void PrlSrvManipulationsTest::testPrepareForHibernateOnWrongParams()
 {
@@ -8105,9 +8014,6 @@ void PrlSrvManipulationsTest::testIsCtCachedOnWrongParams()
 
 void PrlSrvManipulationsTest::testLoginToNotAcceptableHost()
 {
-	if (!TestConfig::isServerMode())
-		QSKIP("Skipping test due functionality is not supported at desktop mode", SkipAll);
-
 	QTime t;
 	t.start();
 	m_JobHandle.reset(PrlSrv_Login(m_ServerHandle, "8.8.8.8", TestConfig::getUserLogin(), TestConfig::getUserPassword(), NULL, 0, PRL_JOB_WAIT_TIMEOUT, PSL_HIGH_SECURITY));
@@ -8174,10 +8080,7 @@ void PrlSrvManipulationsTest::testIsFeatureSupported()
 	testLoginLocal();
 	PRL_BOOL bIsSupported = PRL_FALSE;
 	CHECK_RET_CODE_EXP(PrlSrv_IsFeatureSupported( m_ServerHandle, PFSM_SATA_HOTPLUG_SUPPORT, &bIsSupported ))
-	if (TestConfig::isServerMode())
-		QVERIFY(PRL_TRUE == bIsSupported);
-	else
-		QVERIFY(PRL_FALSE == bIsSupported);
+	QVERIFY(PRL_TRUE == bIsSupported);
 	CHECK_RET_CODE_EXP(PrlSrv_IsFeatureSupported( m_ServerHandle, (PRL_FEATURES_MATRIX)USHRT_MAX, &bIsSupported ))
 	QVERIFY(PRL_FALSE == bIsSupported);
 }
@@ -8621,24 +8524,6 @@ void PrlSrvManipulationsTest::testCpuFeaturesSetValueOnWrongParams()
 			(PRL_INVALID_HANDLE, PCFE_FEATURES, 0xFFFFFFFF), PRL_ERR_INVALID_ARG)
 	CHECK_CONCRETE_EXPRESSION_RET_CODE(PrlCpuFeatures_SetValue
 			(hFeatures, PCFE_MAX, 0xFFFFFFFF), PRL_ERR_INVALID_ARG)
-}
-
-void PrlSrvManipulationsTest::testUpLocalhostInterface()
-{
-	if (TestConfig::isServerMode())
-	QSKIP("Doesn't make sense for server mode", SkipAll);
-
-	testLoginLocal();
-#ifndef _WIN_
-	if ( CheckRemoteListenInterface() )
-		QSKIP("Dispatcher already has listen interface", SkipAll);
-
-	CHECK_ASYNC_OP_FAILED(PrlSrv_StoreValueByKey( m_ServerHandle, PRL_KEY_TO_UP_LISTENING_INTERFACE, QSTR2UTF8(IOService::LoopbackAddr), 0  ), PRL_ERR_SUCCESS)
-
-	QVERIFY(CheckRemoteListenInterface());
-#else
-	CHECK_ASYNC_OP_FAILED(PrlSrv_StoreValueByKey( m_ServerHandle, PRL_KEY_TO_UP_LISTENING_INTERFACE, QSTR2UTF8(IOService::LoopbackAddr), 0 ), PRL_ERR_UNIMPLEMENTED)
-#endif
 }
 
 void PrlSrvManipulationsTest::testDispConfigCpuFeaturesMaskSetOldValidGetNew()

@@ -158,7 +158,7 @@ void CDspBugPatcherLogic::collectCommonPatches( quint32 nRepatchMask )
 	ADD_PATCH_TO_LIST(bug424340_Restore_AllowUseNetworkShares);
 	ADD_PATCH_TO_LIST(jira_PWE_5629_unification_domain_part_of_username);
 
-	if( (nRepatchMask & PS_before_PSBM5) && CDspService::isServerMode() )
+	if (nRepatchMask & PS_before_PSBM5)
 		ADD_PATCH_TO_LIST(PSBM_5755_enableUptimeFeature);
 
 	pSettings->endGroup();
@@ -452,8 +452,6 @@ void CDspBugPatcherLogic::patchDispatcherXml(bool & bSaveDispCfg)
 
 	if( m_lstPatches.contains( PSBM_5755_enableUptimeFeature ) )
 	{
-		PRL_ASSERT( CDspService::isServerMode() );
-
 		CDspLockedPointer<CDispWorkspacePreferences> pWorkspace =
 			CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs();
 

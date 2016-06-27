@@ -64,7 +64,6 @@
 #include "Stat/CDspStatCollectingThread.h"
 
 #include "HwMonitor/CDspHwMonitorThread.h"
-#include "HwMonitor/CDspSystemEventsMonitor.h"
 
 #include <prlcommon/IOService/IOCommunication/IOServer.h>
 #include <prlcommon/IOService/IOCommunication/IOServerPool.h>
@@ -275,20 +274,14 @@ public:
 										PermissionType perm );
 public:
 
-	void initNetworkShapingConfiguration();
-
 	void initPrivateNetworks();
 
 	void emitCleanupOnUserSessionDestroy( QString sessionUuid );
 
+	PRL_RESULT updateCommonPreferences(const boost::function1<void, CDispCommonPreferences&>& action_);
 	void notifyConfigChanged(const SmartPtr<CDispCommonPreferences>&, const SmartPtr<CDispCommonPreferences>&);
 
 public slots:
-
-	/**
-	 * Starts, stops any addr listening.
-	 */
-	void startOrStopListeningAnyAddr ( bool );
 
 	/**
 	 * Stops any addr listening.
@@ -311,7 +304,6 @@ signals:
 	void onConfigChanged(const SmartPtr<CDispCommonPreferences>, const SmartPtr<CDispCommonPreferences>);
 	void onDoStopFromMainThread();
 	void onDoNatDetectFromMainThread();
-	void onStartOrStopListeningAnyAddr(bool);
 	void onUpCustomListeningInterface(const QString &);
 
 	void cleanupOnUserSessionDestroy(QString sessionUuid);
@@ -379,6 +371,7 @@ private:
 	// reading configuration. Otherwise, networking service will be notified only if dispatcher
 	// have somehow fixed configuration.
 	bool initNetworkConfig(bool bNotifyNetworkService = false);
+	void initNetworkPreferences(CDispCommonPreferences& config_);
 
 	bool checkVmPermissions();
 	void checkRunningVms();
@@ -410,10 +403,6 @@ private:
 	bool setCredentialsForServers(const IOServerList & lstServers);
 	bool ensureHostIdAvailable();
 public:
-	static bool isServerMode();
-	static bool isServerModePSBM();
-
-
 	static bool isDispMajorVersionChanged();
 
 	static quint32 getDefaultListenPort();
@@ -513,8 +502,6 @@ private:
 	SmartPtr<CDspBroadcastListener> m_pBroadcastMsgsProcessingService;
 	/** Host hardware changes monitoring thread */
 	SmartPtr<CDspHwMonitorThread> m_pHwMonitorThread;
-	/** System events monitor */
-	SmartPtr<CDspSystemEventsMonitor> m_pSystemEventsMonitor;
 
 	// server uuid if cannot parse current Dispatcher.xml
 	QString		m_strServerUuidFromCorruptedDispConfig;

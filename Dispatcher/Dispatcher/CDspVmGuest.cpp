@@ -30,19 +30,21 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 #include "CDspService.h"
-#include "Tasks/Task_EditVm.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "CDspLibvirt.h"
 #include "CDspLibvirtExec.h"
 #include "CDspVmGuest.h"
+#include "CDspVmNetworkHelper.h"
 
 namespace Vm {
 
-///////////////////////////////////////////////////////////////////////////////
-//class Guest
+namespace Guest {
 
-void Guest::setToolsVersion(CVmConfiguration& c_, const QString& v_)
+///////////////////////////////////////////////////////////////////////////////
+//class Actor
+
+void Actor::setToolsVersion(CVmConfiguration& c_, const QString& v_)
 {
 	QString o = c_.getVmSettings()->getVmTools()->getAgentVersion();
 
@@ -53,13 +55,76 @@ void Guest::setToolsVersion(CVmConfiguration& c_, const QString& v_)
 		c_.getVmSettings()->getVmTools()->setAgentVersion(v_);
 }
 
-void Guest::timerEvent(QTimerEvent *ev_)
+void Actor::configureNetwork(CVmConfiguration& c_, QString& uuid,
+	QScopedPointer<Libvirt::Instrument::Agent::Vm::Exec::Request>& r)
+{
+	Network::Difference::Vm v(c_);
+	int type = c_.getVmSettings()->getVmCommonOptions()->getOsType();
+	QStringList cmd = v.calculate(CVmConfiguration(), type);
+	if (!cmd.isEmpty()) {
+		QString c = cmd.takeFirst();
+		r.reset(new Libvirt::Instrument::Agent::Vm::Exec::Request(c, cmd));
+		r->setRunInShell(type == PVS_GUEST_TYPE_WINDOWS);
+		uuid = c_.getVmIdentification()->getVmUuid();
+	}
+}
+
+void Actor::setToolsVersionSlot(const QString v_)
+{
+	m_editor(boost::bind(&setToolsVersion, _1, boost::cref(v_)));
+}
+
+
+void Actor::configureNetworkSlot(const QString v_)
+{
+	Q_UNUSED(v_);
+	QString uuid;
+	QScopedPointer<Libvirt::Instrument::Agent::Vm::Exec::Request> req;
+	m_editor(boost::bind(&configureNetwork, _1, boost::ref(uuid), boost::ref(req)));
+	if (!req.isNull())
+		 runProgram(Libvirt::Kit.vms().at(uuid).getGuest(), uuid, *req);
+}
+
+Libvirt::Result Actor::runProgram(
+	Libvirt::Instrument::Agent::Vm::Guest guest_,
+	const QString& uuid_,
+	const Libvirt::Instrument::Agent::Vm::Exec::Request& request_)
+{
+	QString cmdline = request_.getPath() + " " + request_.getArgs().join(" ");
+
+	WRITE_TRACE(DBG_INFO, "vm: %s running: %s",
+			qPrintable(uuid_),
+			qPrintable(cmdline));
+
+	Prl::Expected <Libvirt::Instrument::Agent::Vm::Exec::Result,
+		Error::Simple> e = guest_.runProgram(request_);
+
+	if (e.isFailed()) {
+		WRITE_TRACE(DBG_FATAL, "vm: %s cannot run: %s error: 0x%08x", 
+			qPrintable(uuid_),
+			qPrintable(request_.getPath()),
+			e.error().code());
+		return e.error();
+	} else {
+		WRITE_TRACE(DBG_INFO, "vm: %s completed: %s exitcode: %d output: %s",
+				qPrintable(uuid_),
+				qPrintable(request_.getPath()),
+				e.value().exitcode,
+				qPrintable(QString::fromUtf8(e.value().stdOut) + "\n" +
+					   QString::fromUtf8(e.value().stdErr)));
+		return Libvirt::Result();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//class Watcher
+
+void Watcher::timerEvent(QTimerEvent *ev_)
 {
 	killTimer(ev_->timerId());
 
 	Prl::Expected<QString, Libvirt::Agent::Failure> r =
-		Libvirt::Kit.vms().at(m_uuid)
-		.getGuest().getAgentVersion(0);
+		Libvirt::Kit.vms().at(m_uuid).getGuest().getAgentVersion(0);
 	if (r.isFailed()) {
 		if (r.error().virErrorCode() == VIR_ERR_OPERATION_INVALID) {
 			// domain is not running
@@ -71,12 +136,15 @@ void Guest::timerEvent(QTimerEvent *ev_)
 		return;
 	}
 
-	m_editor(boost::bind(&setToolsVersion, _1, boost::cref(r.value())));
-	m_state.set_value(std::make_pair(PTS_INSTALLED, r.value()));
+	m_state.set_value(PTS_INSTALLED);
+
+	emit guestToolsStarted(r.value());
 
 	// tools ready, stop checking
 	deleteLater();
 	return;
 }
 
-} //namespace Vm
+} // namespace Guest
+
+} // namespace Vm

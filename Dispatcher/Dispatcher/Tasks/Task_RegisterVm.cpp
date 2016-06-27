@@ -375,48 +375,11 @@ bool Task_RegisterVm::isVMConfigurationHasDynamicMacAddress(SmartPtr<CVmConfigur
 	return false;
 }
 
-void Task_RegisterVm::checkWhereFromRegisteredVm( bool bServerUuidWasChanged )
+void Task_RegisterVm::checkWhereFromRegisteredVm()
 {
 	bool bUpdateMacInConfig = isApplianceRegistered();
 	bool bUpdateVmUuid = false;
 	bool bConfigHasDynamicMac = isVMConfigurationHasDynamicMacAddress(m_pVmConfig);
-
-	// send question to user
-	if (doRegisterOnly()
-		&& !getForceQuestionsSign()
-		&& bServerUuidWasChanged
-		)
-	{
-		QList<PRL_RESULT> lstChoices;
-		lstChoices.append(PET_ANSWER_COPIED);
-		lstChoices.append(PET_ANSWER_MOVED);
-
-		QList<CVmEventParameter*> lstParams;
-		lstParams.append(new CVmEventParameter(PVE::String,
-			m_pVmConfig->getVmIdentification()->getVmUuid(),
-			EVT_PARAM_VM_UUID )
-			);
-		lstParams.append(new CVmEventParameter(PVE::String,
-			m_pVmConfig->getVmIdentification()->getVmName(),
-			EVT_PARAM_MESSAGE_PARAM_0)
-			);
-		PRL_RESULT ret = getClient()
-			->sendQuestionToUser(PET_QUESTION_VM_COPY_OR_MOVE
-					, lstChoices, lstParams, getRequestPackage() );
-		switch (ret)
-		{
-		case PET_ANSWER_COPIED:
-			bUpdateMacInConfig = true;
-			bUpdateVmUuid = true;// regenerate vm uuid if user choose copied
-			break;
-		case PET_ANSWER_MOVED:
-			bUpdateMacInConfig = false;
-			break;
-		default:
-			getLastError()->setEventCode(PRL_ERR_OPERATION_WAS_CANCELED);
-			throw PRL_ERR_OPERATION_WAS_CANCELED;
-		}
-	}
 
 	if ( bUpdateMacInConfig && bConfigHasDynamicMac )
 		createMACAddress(m_pVmConfig);
@@ -444,7 +407,6 @@ void Task_RegisterVm::checkDynamicMACAddress()
 		// 1. + store MultiHash <Mac,vmIdent>
 		//MultiHash< QString, CVmIdent > hashMacAddrToVmId;
 
-		bool bConflict = false;
 		QMultiHash< QString, SmartPtr<CVmConfiguration> >
 			vmTotalHash = CDspService::instance()->getVmDirHelper().getAllVmList();
 		foreach( QString dirUuid, vmTotalHash.keys() )
@@ -482,39 +444,8 @@ void Task_RegisterVm::checkDynamicMACAddress()
 
 				// FIXME: need  cycle to end to make all duplicates
 				duplicates += preDuplicates;
-				if (!duplicates.isEmpty())
-					bConflict = true;
 			}//for idx
 		} //foreach( QString dirUuid
-
-		// check if MAC address of VM is already used locally.
-		if (bConflict && doRegisterOnly() && !getForceQuestionsSign())
-		{
-			bool bAlwaysCreateNewMACAddress = false;
-			QList<PRL_RESULT> lstChoices;
-			lstChoices.append(PET_ANSWER_CREATE_NEW);
-			lstChoices.append(PET_ANSWER_USE_CURRENT);
-
-			QList<CVmEventParameter*> lstParams;
-			lstParams.append(new CVmEventParameter(PVE::String,
-				m_pVmConfig->getVmIdentification()->getVmUuid(),
-				EVT_PARAM_VM_UUID )
-				);
-			lstParams.append(new CVmEventParameter(PVE::String,
-				m_pVmConfig->getVmIdentification()->getVmName(),
-				EVT_PARAM_MESSAGE_PARAM_0)
-				);
-
-			PRL_RESULT nAnswer = getClient()
-				->sendQuestionToUser( PET_QUESTION_CREATE_NEW_MAC_ADDRESS, lstChoices, lstParams,getRequestPackage() );
-			if( PET_ANSWER_CREATE_NEW == nAnswer )
-			{
-				bAlwaysCreateNewMACAddress = true;
-			}
-
-			if (bAlwaysCreateNewMACAddress)
-				createMACAddress(m_pVmConfig, duplicates);
-		}
 	}
 }
 
@@ -541,7 +472,7 @@ void Task_RegisterVm::checkVMOnOtherServerUuid( bool *pbServerUuidWasChanged /* 
 	if (doRegisterOnly() && !server_id.isEmpty() && Uuid(server_id) != Uuid(local_id))
 	{
 		bool sharedFS = CFileHelper::isSharedFS(m_pVmInfo->vmXmlPath);
-		if ((CDspService::isServerModePSBM()) && sharedFS &&
+		if (sharedFS &&
 			!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
 		{
 			if (getRequestFlags() & PRCF_FORCE)
@@ -563,33 +494,6 @@ void Task_RegisterVm::checkVMOnOtherServerUuid( bool *pbServerUuidWasChanged /* 
 					m_pVmConfig->getVmIdentification()->getVmName(),
 					EVT_PARAM_MESSAGE_PARAM_0));
 				throw PRL_ERR_FORCE_REG_ON_SHARED_STORAGE_IS_NEEDED;
-			}
-		}
-		else if (!getForceQuestionsSign()
-			&& ( CDspService::instance()->isServerMode() ||
-				CFileHelper::isRemotePath( m_pVmInfo->vmXmlPath ) )
-			)
-		{
-			QList<PRL_RESULT> lstChoices;
-			lstChoices.append(PET_ANSWER_YES);
-			lstChoices.append(PET_ANSWER_NO);
-
-			QList<CVmEventParameter*> lstParams;
-			lstParams.append(new CVmEventParameter(PVE::String,
-				m_pVmConfig->getVmIdentification()->getVmUuid(),
-				EVT_PARAM_VM_UUID )
-				);
-			lstParams.append(new CVmEventParameter(PVE::String,
-				m_pVmConfig->getVmIdentification()->getVmName(),
-				EVT_PARAM_MESSAGE_PARAM_0)
-				);
-
-			PRL_RESULT nAnswer = getClient()->sendQuestionToUser(
-				PET_QUESTION_REGISTER_USED_VM, lstChoices, lstParams, getRequestPackage());
-			if( nAnswer != PET_ANSWER_YES)
-			{
-				getLastError()->setEventCode(PRL_ERR_OPERATION_WAS_CANCELED);
-				throw PRL_ERR_OPERATION_WAS_CANCELED;
 			}
 		}
 	}
@@ -624,35 +528,11 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 			if( !m_vmRootDir.isEmpty() &&
 				!CFileHelper::DirectoryExists( m_vmRootDir, &getClient()->getAuthHelper() ) )
 			{
-				PRL_RESULT nAnswer = PET_ANSWER_NO;
-				if ( !getForceQuestionsSign() )
-				{
-					QList<PRL_RESULT> lstChoices = QList<PRL_RESULT>()<<PET_ANSWER_YES<<PET_ANSWER_NO;
-					QList<CVmEventParameter *> lstParams;
-					lstParams.append(
-						new CVmEventParameter(PVE::String,
-							m_vmRootDir,
-							EVT_PARAM_MESSAGE_PARAM_0));
-					nAnswer = getClient()
-						->sendQuestionToUser( PET_QUESTION_VM_ROOT_DIRECTORY_NOT_EXISTS
-							, lstChoices, lstParams,getRequestPackage());
-				}
-				if ( PET_ANSWER_YES != nAnswer )
-				{
-					getLastError()->addEventParameter(
-						new CVmEventParameter(PVE::String,
-						m_vmRootDir,
-						EVT_PARAM_MESSAGE_PARAM_0));
-					throw PRL_ERR_DIRECTORY_DOES_NOT_EXIST;
-				}
-				else if (!CFileHelper::WriteDirectory(m_vmRootDir, &getClient()->getAuthHelper()))
-				{
-					getLastError()->addEventParameter(
-						new CVmEventParameter(PVE::String,
-						m_vmRootDir,
-						EVT_PARAM_MESSAGE_PARAM_0));
-					throw PRL_ERR_USER_NO_AUTH_TO_CREATE_ROOT_VM_DIR;
-				}
+				getLastError()->addEventParameter(
+					new CVmEventParameter(PVE::String,
+					m_vmRootDir,
+					EVT_PARAM_MESSAGE_PARAM_0));
+				throw PRL_ERR_DIRECTORY_DOES_NOT_EXIST;
 			}
 
 			if( m_vmRootDir.isEmpty() )
@@ -949,9 +829,8 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 		bool bServerUuidWasChanged = true;
 		checkVMOnOtherServerUuid( &bServerUuidWasChanged );
 		checkOperationPermission();
-		checkWhereFromRegisteredVm( bServerUuidWasChanged );
+		checkWhereFromRegisteredVm();
 		checkDynamicMACAddress( );
-		checkCreateVmFromLionRecoveryPartition();
 		validateNewConfiguration();
 		patchNewConfiguration();
 		if( m_nFlags & PRVF_REGENERATE_VM_UUID )
@@ -966,8 +845,7 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 		CStatesHelper::SetSuspendParameterForAllDisks(m_pVmConfig.getImpl(),0);
 		//https://jira.sw.ru/browse/PSBM-5293
 		//Patch network adapters with empty virtual network IDs fields
-		if ( CDspService::isServerMode() )
-			PatchNetworkAdapters();
+		PatchNetworkAdapters();
 
 		// DEBUG LOGS FOR #PSBM-44712
 		if (m_pVmConfig->getVmSettings() != NULL && m_pVmConfig->getVmSettings()->getVmCommonOptions() != NULL)
@@ -1082,7 +960,7 @@ void Task_RegisterVm::finalizeTask()
 
 		pVmDirItem->setChangeDateTime( QDateTime::currentDateTime() );
 
-		if ( 	CDspService::isServerModePSBM() &&
+		if (
 			!(getRequestFlags() & PRVF_IGNORE_HA_CLUSTER) &&
 			!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
 		{
@@ -1331,32 +1209,6 @@ PRL_RESULT Task_RegisterVm::run_body()
 			}
 		} //! doRegisterOnly()
 
-		// If current VM is actually a template, ask user to continue
-		if ( m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate() && !getForceQuestionsSign() )
-		{
-			QList<PRL_RESULT> lstChoices;
-			lstChoices.append( PET_ANSWER_YES );
-			lstChoices.append( PET_ANSWER_NO );
-
-			QList<CVmEventParameter*> lstParams;
-			lstParams.append(new CVmEventParameter(PVE::String,
-				m_pVmConfig->getVmIdentification()->getVmUuid(),
-				EVT_PARAM_VM_UUID )
-				);
-			lstParams.append( new CVmEventParameter(
-				PVE::String,
-				m_pVmConfig->getVmIdentification()->getVmName(),
-				EVT_PARAM_MESSAGE_PARAM_0 ) );
-
-			PRL_RESULT nAnswer = getClient()
-				->sendQuestionToUser( PET_QUESTION_REGISTER_VM_TEMPLATE, lstChoices, lstParams,getRequestPackage());
-			if (  nAnswer != PET_ANSWER_YES )
-			{
-				getLastError()->setEventCode( PRL_ERR_OPERATION_WAS_CANCELED );
-				throw PRL_ERR_OPERATION_WAS_CANCELED;
-			}
-		}
-
 		if (m_bForceRegisterOnSharedStorage)
 		{
 			PRL_FILE_SYSTEM_FS_TYPE fstype = HostUtils::GetFSType(m_strPathToVmDirToRegister);
@@ -1379,8 +1231,7 @@ PRL_RESULT Task_RegisterVm::run_body()
 		updateSharedWindowsApplications();
 
 		// Forcebly set performance optimization for PS
-		if( CDspService::instance()->isServerMode() )
-			m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->setOptimizePowerConsumptionMode(PVE::OptimizePerformance);
+		m_pVmConfig->getVmSettings()->getVmRuntimeOptions()->setOptimizePowerConsumptionMode(PVE::OptimizePerformance);
 
 		// FIXME validate VM configuration here
 		////////////////////////////////////////////////////////////////////////////
@@ -1489,8 +1340,6 @@ PRL_RESULT Task_RegisterVm::run_body()
 			if (doRegisterOnly())
 			{
 				bKeepOthersPermissions = ((getRequestFlags() & PRVF_KEEP_OTHERS_PERMISSIONS) != 0);
-				if ( ! bKeepOthersPermissions )
-					bKeepOthersPermissions = ( ! CDspService::isServerMode() );
 			}
 // https://jira.sw.ru/browse/PWE-3795
 // under windows we do not manipulate of ACLs, we follow the OS security policy
@@ -1698,32 +1547,6 @@ PRL_RESULT	Task_RegisterVm::createFloppyDisks()
 					WRITE_TRACE(DBG_FATAL, "Required fdd image '%s' does not found, try to send question to user"
 						, QSTR2UTF8( strFullPath )
 						);
-
-					if( !getForceQuestionsSign() )
-					{
-						QList<PRL_RESULT> lstChoices;
-						lstChoices.append( PET_ANSWER_CONTINUE );
-						lstChoices.append( PET_ANSWER_CANCEL );
-
-						QList<CVmEventParameter*> lstParams;
-						lstParams.append(new CVmEventParameter(PVE::String,
-							m_pVmConfig->getVmIdentification()->getVmUuid(),
-							EVT_PARAM_VM_UUID )
-							);
-						lstParams.append( new CVmEventParameter(
-							PVE::String,
-							m_pVmConfig->getVmIdentification()->getVmName(),
-							EVT_PARAM_MESSAGE_PARAM_0 ) );
-
-						PRL_RESULT nAnswer =  getClient()
-							->sendQuestionToUser( PET_QUESTION_CREATE_OS2_GUEST_WITHOUT_FDD_IMAGE
-								, lstChoices, lstParams, getRequestPackage());
-						if( nAnswer != PET_ANSWER_CONTINUE )
-						{
-							getLastError()->setEventCode( PRL_ERR_OPERATION_WAS_CANCELED );
-							return PRL_ERR_OPERATION_WAS_CANCELED;
-						}
-					}//if( !getForceQuestionsSign()
 				}
 
 				// continue in any case because this parallels image and it shouldn't created.
@@ -1743,7 +1566,7 @@ PRL_RESULT	Task_RegisterVm::createFloppyDisks()
 			SmartPtr<CDspClient> dspClient = getClient();
 			SmartPtr<IOService::IOPackage> requestPackage = getRequestPackage();
 			Task_CreateImage taskCreateImage(
-				dspClient, requestPackage, m_pVmConfig, floppyXMLstr, false, getForceQuestionsSign() );
+				dspClient, requestPackage, m_pVmConfig, floppyXMLstr, false, true);
 
 			m_lpcCreateImageCurrentTask = &taskCreateImage;
 			PRL_RESULT ret = taskCreateImage.run_body();
@@ -1984,7 +1807,7 @@ PRL_RESULT	Task_RegisterVm::createHardDisks()
 			SmartPtr<IOService::IOPackage> requestPackage = getRequestPackage();
 
 			Task_CreateImage taskCreateImage(
-				dspClient, requestPackage, m_pVmConfig, hddXMLstr, false, getForceQuestionsSign() );
+				dspClient, requestPackage, m_pVmConfig, hddXMLstr, false, true);
 
 			m_lpcCreateImageCurrentTask = &taskCreateImage;
 			ret = taskCreateImage.run_body();
@@ -2276,32 +2099,6 @@ PRL_RESULT Task_RegisterVm::tryToRestoreVmConfig( const QString& sPathToVmDir )
 	if ( PRL_FAILED( m_pVmConfig->m_uiRcInit ) )
 		return PRL_ERR_PARSE_VM_CONFIG;
 
-	PRL_RESULT answer = PET_ANSWER_NO;
-	if( getForceQuestionsSign() )
-		answer = PET_ANSWER_YES;
-	else
-	{
-		QList<PRL_RESULT> lstChoices;
-		lstChoices.append( PET_ANSWER_YES );
-		lstChoices.append( PET_ANSWER_CANCEL );
-
-		QList<CVmEventParameter*> lstParams;
-		lstParams.append(new CVmEventParameter(PVE::String,
-			m_pVmConfig->getVmIdentification()->getVmUuid(),
-			EVT_PARAM_VM_UUID )
-			);
-		lstParams.append( new CVmEventParameter(PVE::String,
-			m_pVmConfig->getVmIdentification()->getVmName(),
-			EVT_PARAM_MESSAGE_PARAM_0 ) );
-
-		answer = getClient()->sendQuestionToUser(
-			PET_QUESTION_RESTORE_VM_CONFIG_FROM_BACKUP,
-			lstChoices, lstParams, getRequestPackage());
-	}
-
-	if ( answer != PET_ANSWER_YES )
-		return PRL_ERR_OPERATION_WAS_CANCELED;
-
 	PRL_RESULT nRes = CDspService::instance()->getVmConfigManager()
 			.restoreConfig(vm_xml_path,
 			getClient(),
@@ -2321,28 +2118,4 @@ PRL_RESULT Task_RegisterVm::tryToRestoreVmConfig( const QString& sPathToVmDir )
 	}
 
 	return PRL_ERR_SUCCESS;
-}
-
-void Task_RegisterVm::checkCreateVmFromLionRecoveryPartition()
-{
-	if ( doRegisterOnly()
-		|| ! (getRequestFlags() & PCDIF_CREATE_FROM_LION_RECOVERY_PARTITION) )
-		return;
-
-	if ( ! getForceQuestionsSign()
-		&& m_pVmConfig->getVmHardwareList()->getMemory()->getRamSize() < 2048 )
-	{
-			QList<PRL_RESULT> lstChoices;
-			lstChoices.append(PET_ANSWER_CONTINUE);
-			lstChoices.append(PET_ANSWER_CANCEL);
-
-			QList<CVmEventParameter*> lstParams;
-			lstParams.append(new CVmEventParameter(
-				PVE::String, getVmUuid(), EVT_PARAM_VM_UUID ));
-
-			PRL_RESULT nAnswer = getClient()->sendQuestionToUser(
-				PET_QUESTION_CREATE_VM_FROM_LION_RECOVERY_PART , lstChoices, lstParams, getRequestPackage());
-			if ( nAnswer != PET_ANSWER_CONTINUE )
-				throw PRL_ERR_OPERATION_WAS_CANCELED;
-	}
 }

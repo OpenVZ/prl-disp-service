@@ -2236,7 +2236,6 @@ void CDspStatCollectingThread::timerEvent(QTimerEvent* event_)
 			ProcessRamStat();
 			ProcessDisksStat();//Required for https://bugzilla.sw.ru/show_bug.cgi?id=422617
 			//https://bugzilla.sw.ru/show_bug.cgi?id=430672
-			if ( CDspService::instance()->isServerMode() )
 			{
 				ProcessSwapStat();
 				ProcessUptimeStat();
@@ -2854,8 +2853,6 @@ static bool GetTotalVmRamSizeFast(SmartPtr<CDspVm> &pVm, quint64 &totalRamSize)
 {
 	bool res = false;
 #ifdef _LIN_
-	if (!ParallelsDirs::isServerModePSBM())
-		return res;
 	// even if VM config caching is disabled we can still get total memory
 	// size for VM without reading config
 	char buf[256];

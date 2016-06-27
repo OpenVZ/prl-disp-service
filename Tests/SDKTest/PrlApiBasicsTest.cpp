@@ -560,8 +560,7 @@ void PrlApiBasicsTest::testApiGetAppMode()
 {
 	PRL_APPLICATION_MODE nAppMode = PAM_SERVER;
 	CHECK_RET_CODE_EXP(PrlApi_GetAppMode(&nAppMode))
-	if (TestConfig::isServerMode())
-		QCOMPARE(quint32(nAppMode), quint32(PAM_SERVER));
+	QCOMPARE(quint32(nAppMode), quint32(PAM_SERVER));
 }
 
 void PrlApiBasicsTest::testApiGetAppModeOnNullPointer()

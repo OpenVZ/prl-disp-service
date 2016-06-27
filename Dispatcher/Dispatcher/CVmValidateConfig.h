@@ -171,7 +171,6 @@ private:
 	void CheckSataDevices();
 	void CheckScsiDevices();
 	void CheckVirtioBlockDevices();
-	void CheckGenericPci();
 	void CheckNetworkShapingRates();
 
 	void CommonDevicesCheck( PRL_VM_CONFIG_SECTIONS nSection );

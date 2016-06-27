@@ -44,6 +44,8 @@ public:
 			bool bStandAlone = false);
 	~Task_ChangeSID();
 
+	static bool canChangeSid(const SmartPtr<CVmConfiguration>& p_);
+
 	virtual QString getVmUuid();
 
 protected:

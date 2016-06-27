@@ -460,13 +460,6 @@ bool Config::hasBootcampDevice() const
 	return false;
 }
 
-bool Config::canChangeSid() const
-{
-	CVmCommonOptions* o = m_image->getVmSettings()->getVmCommonOptions();
-	return PVS_GUEST_TYPE_WINDOWS == o->getOsType() &&
-			o->getOsVersion() >= PVS_GUEST_VER_WIN_XP;
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Exclusive
 
@@ -905,27 +898,12 @@ PRL_RESULT Builder::checkSpace(const Source::Total& source_, const Source::Space
 		return f(PRL_ERR_FREE_DISC_SPACE_FOR_CLONE,
 				source_.getConfig().getName());
 	case PRL_ERR_GET_DISK_FREE_SPACE_FAILED:
-		if (getTask().getForceQuestionsSign())
-			return PRL_ERR_SUCCESS;
-		break;
+		return PRL_ERR_SUCCESS;
 	case PRL_ERR_INCORRECT_PATH:
 		return f(e, m_private->getRoot());
 	default:
 		return f.token(source_.getPrivate().getRoot())(e);
 	}
-	// If interactive mode then send question to user
-	QList<PRL_RESULT> lstChoices;
-	lstChoices.append( PET_ANSWER_YES );
-	lstChoices.append( PET_ANSWER_NO );
-
-	QList<CVmEventParameter*> lstParams;
-	lstParams.append(new CVmEventParameter(PVE::String, source_.getConfig().getUuid(),
-					EVT_PARAM_VM_UUID));
-	e = getClient()->sendQuestionToUser(PRL_QUESTION_CAN_NOT_GET_DISK_FREE_SPACE,
-			lstChoices, lstParams, getRequest());
-	if (PET_ANSWER_YES == e)
-		return PRL_ERR_SUCCESS;
-
 	return f(PRL_ERR_OPERATION_WAS_CANCELED);
 }
 
@@ -1611,10 +1589,8 @@ PRL_RESULT Task_CloneVm::do_(T , Clone::Source::Total& source_)
 	bool s = m_bChangeSID;
 	if (s)
 	{
-		PRL_RESULT e = CheckWhetherChangeSidOpPossible(
-			getVmConfig(), m_registry.find(m_newVmUuid));
-		if (PRL_FAILED(e))
-			return e;
+		if (!Task_ChangeSID::canChangeSid(getVmConfig()))
+			return PRL_ERR_CHANGESID_NOT_SUPPORTED;
 	}
 	Clone::Source::Config x(*this);
 	if (m_bLinkedClone || x.isLinked())
@@ -1791,17 +1767,3 @@ void Task_CloneVm::ResetNetSettings( SmartPtr<CVmConfiguration> pVmConfig )
 
 	CDspVmNetworkHelper::updateHostMacAddresses(pVmConfig, NULL, HMU_CHECK_NONEMPTY);
 }
-
-PRL_RESULT Task_CloneVm::CheckWhetherChangeSidOpPossible(
-	const SmartPtr<CVmConfiguration> &pVmConfig, Registry::Access vm_)
-{
-	Clone::Source::Config u(pVmConfig);
-	if (!u.canChangeSid())
-		return PRL_ERR_CHANGESID_NOT_SUPPORTED;
-
-	std::pair<PRL_VM_TOOLS_STATE, QString> p = vm_.getToolsState();
-	if (p.first == PTS_NOT_INSTALLED)
-		return PRL_ERR_CHANGESID_GUEST_TOOLS_NOT_AVAILABLE;
-	return PRL_ERR_SUCCESS;
-}
-

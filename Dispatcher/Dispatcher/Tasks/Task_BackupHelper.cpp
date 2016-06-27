@@ -310,6 +310,8 @@ QStringList VCommand::buildArgs(object_type& variant_)
 	QStringList a(boost::apply_visitor(Builder(m_activity), variant_));
 
 	a << "-p" << m_context->getBackupUuid();
+	if (m_context->getFlags() & PBT_UNCOMPRESSED)
+		a << "--uncompressed";
 	a << "--disp-mode";
 	return a;
 }
@@ -1281,8 +1283,8 @@ PRL_RESULT Task_BackupHelper::getBackupParams(const QString &sVmUuid, const QStr
 	return nRetCode;
 }
 
-PRL_RESULT Task_BackupHelper::checkFreeDiskSpace(const QString &sVmUuid,
-		quint64 nRequiredSize, quint64 nAvailableSize, bool bIsCreateOp)
+PRL_RESULT Task_BackupHelper::checkFreeDiskSpace(
+	quint64 nRequiredSize, quint64 nAvailableSize, bool bIsCreateOp)
 {
 	if (nRequiredSize == 0)
 	{
@@ -1298,29 +1300,6 @@ PRL_RESULT Task_BackupHelper::checkFreeDiskSpace(const QString &sVmUuid,
 		QString strSize;
 		strSize.sprintf("%.1f", (float)nRequiredSize / 1024.0 / 1024.0 / 1024.0);
 
-		if ( !getForceQuestionsSign() )//If interactive mode then send question to user
-		{
-			QList<PRL_RESULT> lstChoices;
-			lstChoices.append( PET_ANSWER_YES );
-			lstChoices.append( PET_ANSWER_NO );
-
-			QList<CVmEventParameter*> lstParams;
-			lstParams.append(new CVmEventParameter(PVE::String,
-						sVmUuid,
-						EVT_PARAM_VM_UUID )
-					);
-			lstParams.append(new CVmEventParameter(PVE::String, strSize, EVT_PARAM_MESSAGE_PARAM_0));
-			lstParams.append(new CVmEventParameter(PVE::String, strFree, EVT_PARAM_MESSAGE_PARAM_1));
-
-			PRL_RESULT nAnswer = getClient()
-				->sendQuestionToUser(bIsCreateOp ? PET_QUESTION_BACKUP_CREATE_NOT_ENOUGH_FREE_DISK_SPACE :
-								PET_QUESTION_BACKUP_RESTORE_NOT_ENOUGH_FREE_DISK_SPACE
-						, lstChoices, lstParams, getRequestPackage() );
-
-			if( nAnswer != PET_ANSWER_YES )
-				return PRL_ERR_OPERATION_WAS_CANCELED;
-		}
-		else
 		{
 			nRetCode = bIsCreateOp ? PRL_ERR_BACKUP_CREATE_NOT_ENOUGH_FREE_DISK_SPACE :
 					PRL_ERR_BACKUP_RESTORE_NOT_ENOUGH_FREE_DISK_SPACE;

@@ -92,15 +92,8 @@ void TestDspCmdDirVmClone::TestOnValidParams()
 	CResult _result = m_pHandler->GetResult();
 	CHECK_RET_CODE(_result.getReturnCode())
 
-	if (TestConfig::isServerMode())
-		CALL_CMD(m_pPveControl->DspCmdDirVmClone(_vm_conf.getVmIdentification()->getVmUuid().toUtf8().data(),
-				sNewVmName.toUtf8().data(), const_cast<char*>(emptyStr), 0), PVE::DspCmdDirVmClone)
-	else
-	{
-		QString sNewVmHomePath = QueryUserVmDirPath();
-		CALL_CMD(m_pPveControl->DspCmdDirVmClone(_vm_conf.getVmIdentification()->getVmUuid().toUtf8().data(),
-				sNewVmName.toUtf8().data(), sNewVmHomePath.toUtf8().data(), 0), PVE::DspCmdDirVmClone)
-	}
+	CALL_CMD(m_pPveControl->DspCmdDirVmClone(_vm_conf.getVmIdentification()->getVmUuid().toUtf8().data(),
+			sNewVmName.toUtf8().data(), const_cast<char*>(emptyStr), 0), PVE::DspCmdDirVmClone)
 	_result = m_pHandler->GetResult();
 	CHECK_RET_CODE(_result.getReturnCode())
 

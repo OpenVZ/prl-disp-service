@@ -182,10 +182,8 @@ void DispFunctionalityTest::test_bug117830_SaveAutoStartParams()
 {
 	test_login();
 
-	const PRL_VM_AUTOSTART_OPTION
-		AUTOSTART_TO_SET_VALUE = TestConfig::isServerMode()? PAO_VM_START_MANUAL : PAO_VM_START_ON_LOAD ;
-	const PRL_VM_AUTOSTART_OPTION
-		AUTOSTART_TO_EXPECT_VALUE = TestConfig::isServerMode()? PAO_VM_START_MANUAL : PAO_VM_START_ON_LOAD;
+	const PRL_VM_AUTOSTART_OPTION AUTOSTART_TO_SET_VALUE = PAO_VM_START_MANUAL;
+	const PRL_VM_AUTOSTART_OPTION AUTOSTART_TO_EXPECT_VALUE = PAO_VM_START_MANUAL;
 
 	SdkHandleWrap hJob;
 	SET_DEFAULT_CONFIG( m_VmHandle, PVS_GUEST_VER_WIN_VISTA, PRL_FALSE);
@@ -1701,9 +1699,6 @@ void DispFunctionalityTest::testConfigWatcher_AfterDeleteVm()
 
 void DispFunctionalityTest::testLostVmPermissionAfterStartByAdmin()
 {
-	if( !TestConfig::isServerMode() )
-		QSKIP("Skipping test due functionality is not supported at desktop mode", SkipAll);
-
 	// 	1. Login as user
 	//	2. Create Vm
 	//	3. check to start
@@ -2334,12 +2329,6 @@ void DispFunctionalityTest::testMergeVmConfig_MergeDifferentFields()
 
 void DispFunctionalityTest::testMergeVmConfig_MergeWholeSection()
 {
-	if ( ! TestConfig::isServerMode() )
-	{
-		QSKIP("Skip test due functionality not supported in non-server modes !", SkipAll);
-		return;
-	}
-
 	// test with two sessions
 
 	// 1. create Vm

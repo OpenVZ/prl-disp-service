@@ -143,10 +143,14 @@ struct Request {
 	}
 	QString getJson() const;
 
+	const QString& getPath() const { return m_path; }
+	const QStringList& getArgs() const { return m_args; }
+	const QStringList& getEnv()  const { return m_env; }
+
 private:
 	QString m_path;
-	QList<QString> m_args;
-	QList<QString> m_env;
+	QStringList m_args;
+	QStringList m_env;
 	QList< QPair<int, int> > m_channels;
 	bool m_runInShell;
 };

@@ -1281,10 +1281,11 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
 	PRL_RESULT nRetCode;
+	Legacy::Vm::result_type res;
 	// Check resulting config before restoring disks.
 	if (m_converter.get() != NULL &&
-		PRL_FAILED(nRetCode = m_converter->convertHardware(m_pVmConfig)))
-		return nRetCode;
+		(res = m_converter->convertHardware(m_pVmConfig)).isFailed())
+		return CDspTaskFailure(*this)(*res.error());
 
 	::Backup::Object::Model m(m_pVmConfig);
 	if (m.isBad())
@@ -1322,7 +1323,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 	Restore::Target::Vm::noSpace_type y;
 	if (u.isNoSpace(y))
 	{
-		nRetCode = Task_BackupHelper::checkFreeDiskSpace(m_sVmUuid, y.second, y.first, false);
+		nRetCode = Task_BackupHelper::checkFreeDiskSpace(y.second, y.first, false);
 		if (PRL_FAILED(nRetCode))
 			return nRetCode;
 	}

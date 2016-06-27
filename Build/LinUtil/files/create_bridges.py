@@ -181,6 +181,8 @@ def create_bridges():
             continue
         elif dequote(cp.get("MASTER", "").lower()).startswith("bond"):
             continue
+        elif dequote(cp.get("TEAM_MASTER", "").lower()).startswith("team"):
+            continue
         to_bridges.append(iface)
 
     to_write = []
@@ -193,7 +195,7 @@ def create_bridges():
         interfaces[iface]["BRIDGE"] = "\"%s\"" % br_name
         # Move attributes.
         for attr in interfaces[iface]:
-            if attr in ["DEVICE", "HWADDR", "UUID", "BRIDGE", "TYPE"]:
+            if attr in ["DEVICE", "HWADDR", "UUID", "BRIDGE", "TYPE", "DEVICETYPE"]:
                 continue
             if attr.startswith("BOND"):
                 continue

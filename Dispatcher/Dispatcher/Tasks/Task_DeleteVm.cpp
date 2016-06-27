@@ -253,7 +253,7 @@ PRL_RESULT Task_DeleteVm::prepareTask()
 				ret, PRL_RESULT_TO_STRING( ret) );
 			throw ret;
 		}
-		if (CDspService::isServerModePSBM() && !(m_flags & PVD_SKIP_HA_CLUSTER))
+		if (!(m_flags & PVD_SKIP_HA_CLUSTER))
 			CDspService::instance()->getHaClusterHelper()->
 					removeClusterResource(m_pVmInfo->vmName);
 
@@ -413,7 +413,6 @@ PRL_RESULT Task_DeleteVm::run_body()
 				.teardown();
 			// for server mode delete all files from vm directory #270686
 			// common logic for console clients such as prlctl for all modes #436939
-			//if ( CDspService::instance()->isServerMode() )
 			{
 				PRL_ASSERT(QFileInfo(strVmHomeDir).isDir());
 				if ( QFileInfo(strVmHomeDir).isDir() && CFileHelper::ClearAndDeleteDir( strVmHomeDir ) )

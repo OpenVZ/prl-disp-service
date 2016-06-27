@@ -643,7 +643,9 @@ PRL_RESULT MigrateVmTarget::migrateRunningVm()
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	SmartPtr<IOPackage> pPackage;
 
-	Legacy::Vm::Converter().convertHardware(m_pVmConfig);
+	Legacy::Vm::result_type res;
+	if ((res = Legacy::Vm::Converter().convertHardware(m_pVmConfig)).isFailed())
+		return CDspTaskFailure(*this)(*res.error());
 
 	if (!(m_nReservedFlags & PVM_DONT_COPY_VM) && !(m_nReservedFlags & PVM_ISCSI_STORAGE))
 		if (PRL_FAILED(nRetCode = saveVmConfig()))

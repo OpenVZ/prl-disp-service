@@ -36,48 +36,9 @@
 
 
 PRL_RESULT Server_Sentry::isCommandAllowed( SmartPtr<CDspClient>& ,
-											const SmartPtr<IOPackage>& p,
+											const SmartPtr<IOPackage>&,
 											CVmEvent& outErrParams )
 {
 	outErrParams.setEventCode(PRL_ERR_SUCCESS);
-
-	if ( CDspService::isServerMode() )
-		return outErrParams.getEventCode();
-
-	switch(p->header.type)
-	{
-	case PVE::DspCmdDirVmMigrate:
-
-	case PVE::DspCmdGetBackupTree:
-	case PVE::DspCmdCreateVmBackup:
-	case PVE::DspCmdRestoreVmBackup:
-	case PVE::DspCmdRemoveVmBackup:
-
-	case PVE::DspCmdStartClusterService:
-	case PVE::DspCmdStopClusterService:
-
-	case PVE::DspCmdUpdateNetworkClassesConfig:
-	case PVE::DspCmdGetNetworkClassesConfig:
-
-	case PVE::DspCmdUpdateNetworkShapingConfig:
-	case PVE::DspCmdGetNetworkShapingConfig:
-	case PVE::DspCmdRestartNetworkShaping:
-
-	case PVE::DspCmdGetCtTemplateList:
-	case PVE::DspCmdRemoveCtTemplate:
-	case PVE::DspCmdCopyCtTemplate:
-
-	case PVE::DspCmdAddIPPrivateNetwork:
-	case PVE::DspCmdRemoveIPPrivateNetwork:
-	case PVE::DspCmdUpdateIPPrivateNetwork:
-	case PVE::DspCmdGetIPPrivateNetworksList:
-
-		outErrParams.setEventCode(PRL_ERR_UNIMPLEMENTED);
-		break;
-
-	default:
-		;
-	}
-
 	return outErrParams.getEventCode();
 }

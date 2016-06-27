@@ -151,6 +151,7 @@ CDspTaskHelper::CDspTaskHelper (
 	PRL_ASSERT( m_requestPkg );
 	m_bTaskLostByClient = false;
 	setLastErrorCode(PRL_ERR_SUCCESS);
+	setObjectName(m_JobUuid);
 
 	parseFlags();
 }
@@ -433,12 +434,6 @@ PRL_RESULT	CDspTaskHelper::getLastErrorCode()
 void CDspTaskHelper::setLastErrorCode(PRL_RESULT rc)
 {
 	getLastError()->setEventCode( rc );
-}
-
-bool CDspTaskHelper::getForceQuestionsSign() const
-{
-	return ( ( m_pUser && m_pUser->isNonInteractive() ) ||
-				m_bForceQuestionsSign );
 }
 
 SmartPtr<CDspClient> CDspTaskHelper::getActualClient()

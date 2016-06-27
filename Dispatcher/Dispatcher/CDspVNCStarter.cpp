@@ -111,8 +111,6 @@ Server::Server(const QString& binary_, const QString& vm_, const CVmRemoteDispla
 	m_password(display_.getPassword()), m_envp(QProcessEnvironment::systemEnvironment())
 {
 	QString a = QCoreApplication::applicationDirPath();
-	if (!CDspService::instance()->isServerModePSBM())
-		m_binary = a  + "/" + m_binary;
 #if _LIN_
 	m_envp.insert("LD_LIBRARY_PATH", a);
 #else
@@ -717,7 +715,6 @@ PRL_RESULT CDspVNCStarter::Start (
 	PRL_RESULT e;
 	Vnc::Api::Server a(app, sID, *remDisplay);
 	std::auto_ptr<Vnc::Starter::Unit> x(new Vnc::Starter::Raw(a, *this));
-	if (CDspService::instance()->isServerModePSBM())
 	{
 		QByteArray c, k;
 		if (Vnc::Encryption(*(CDspService::instance()->getQSettings().getPtr())).state(k, c))

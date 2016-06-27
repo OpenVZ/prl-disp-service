@@ -279,9 +279,22 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		void operator()(const Event&, Frontend& fsm_, FromState&, Running&)
 		{
 			WRITE_TRACE(DBG_INFO, "action guest tools on running for VM '%s'", qPrintable(fsm_.m_name));
+			bool f = boost::is_same<FromState, Unknown>::value;
 
-			::Vm::Guest *p = new ::Vm::Guest(fsm_.getUuid(), fsm_.getConfigEditor());
+			::Vm::Guest::Actor *a = new ::Vm::Guest::Actor(fsm_.getConfigEditor());
+			::Vm::Guest::Watcher *p = new ::Vm::Guest::Watcher(fsm_.getUuid());
+
+			p->connect(p, SIGNAL(guestToolsStarted(const QString)),
+				a, SLOT(setToolsVersionSlot(const QString)));
+			p->connect(p, SIGNAL(destroyed()), a, SLOT(deleteLater()));
+			if (!f) {
+				p->connect(p, SIGNAL(guestToolsStarted(const QString)),
+					a, SLOT(configureNetworkSlot(const QString)));
+				p->connect(p, SIGNAL(destroyed()), a, SLOT(deleteLater()));
+			}
+
 			fsm_.m_toolsState = p->getFuture();
+
 			p->startTimer(0);
 		}
 	};
@@ -436,16 +449,15 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	{
 		m_home = QFileInfo(path_);
 	}
-	std::pair<PRL_VM_TOOLS_STATE, QString> getToolsState()
+	PRL_VM_TOOLS_STATE getToolsState()
 	{
 		if (m_toolsState.has_value())
 			return m_toolsState.get();
 		boost::optional<CVmConfiguration> c = getConfig();
 		if (!c)
-			return std::make_pair(PTS_NOT_INSTALLED, QString());
+			return PTS_NOT_INSTALLED;
 		QString v = c->getVmSettings()->getVmTools()->getAgentVersion();
-		return std::make_pair(v.isEmpty() ?
-			PTS_NOT_INSTALLED : PTS_POSSIBLY_INSTALLED, v);
+		return v.isEmpty() ? PTS_NOT_INSTALLED : PTS_POSSIBLY_INSTALLED;
 	}
 
 	void setName(const QString& value_);
@@ -469,7 +481,7 @@ private:
 	QSharedPointer< ::Network::Routing> m_routing;
 	QString m_name;
 	boost::optional<QFileInfo> m_home;
-	boost::future<std::pair<PRL_VM_TOOLS_STATE, QString> > m_toolsState;
+	boost::future<PRL_VM_TOOLS_STATE> m_toolsState;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

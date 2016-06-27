@@ -68,6 +68,7 @@
 #include "CDspVmStateSender.h"
 #include "CDspVm_p.h"
 #include "CDspBackupDevice.h"
+#include "CDspVmGuest.h"
 
 namespace
 {
@@ -1418,6 +1419,9 @@ PRL_RESULT Task_EditVm::editVm()
 
 				if (old_adapter->getMacAddress() != new_adapter->getMacAddress())
 				{
+					if (VMS_STOPPED != nState)
+						throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
+
 					new_adapter->setHostMacAddress();
 
 					if (new_adapter->getHostInterfaceName() == HostUtils::generateHostInterfaceName(old_adapter->getMacAddress()))
@@ -2070,7 +2074,7 @@ PRL_RESULT Task_EditVm::editVm()
 			// High Availability Cluster
 			//
 			// handle VM only on shared FS - nfs, gfs, gfs2, pcs
-			if (CDspService::isServerModePSBM() && CFileHelper::isSharedFS(strVmHome) )
+			if (CFileHelper::isSharedFS(strVmHome))
 			{
 				ret = UpdateClusterResourceVm(pVmConfigOld, pVmConfigNew, vmHomePath, bVmWasRenamed);
 				if (PRL_FAILED(ret))
@@ -2277,9 +2281,6 @@ void Task_EditVm::updateNetworkSettings(
 		Task_ManagePrlNetService::addVmIPAddress(pNewVmConfig);
 	}
 
-	if (!CDspService::isServerMode())
-		return;
-
 #ifdef _LIN_
 	QList<CVmGenericNetworkAdapter* > &lstNew = pNewVmConfig->getVmHardwareList()->m_lstNetworkAdapters;
 	QList<CVmGenericNetworkAdapter* > &lstOld = pOldVmConfig->getVmHardwareList()->m_lstNetworkAdapters;
@@ -2345,9 +2346,6 @@ PRL_RESULT Task_EditVm::configureVzParameters(SmartPtr<CVmConfiguration> pNewVmC
 					SmartPtr<CVmConfiguration> pOldVmConfig)
 {
 	bool bSet = !pOldVmConfig;
-
-	if (!CDspService::isServerModePSBM())
-		return PRL_ERR_SUCCESS;
 
 	QString sVmUuid = pNewVmConfig->getVmIdentification()->getVmUuid();
 	// Configure for running VM only
@@ -2620,9 +2618,6 @@ PRL_RESULT Task_EditVm::editFirewall(SmartPtr<CVmConfiguration> pVmConfigNew,
 									 VIRTUAL_MACHINE_STATE nState,
 									 bool& flgExclusiveFirewallChangedWasRegistered)
 {
-	if ( ! CDspService::isServerModePSBM() )
-		return PRL_ERR_SUCCESS;
-
 	QStringList lstFullItemIds;
 	pVmConfigNew->diffDocuments(pVmConfigOld.getImpl(), lstFullItemIds);
 	QString qsDiff = lstFullItemIds.join(" ");
@@ -2787,6 +2782,7 @@ bool Transfer::execute(CDspTaskFailure& feedback_)
 		return Action::execute(feedback_);
 	}
 
+	t->setCtId(m_target == DspVm::vdm().getTemplatesDirectoryUuid() ? m_target : QString());
 	res = DspVm::vdh().insertVmDirectoryItem(m_target, t.data());
 	if (PRL_FAILED(res)) {
 		WRITE_TRACE(DBG_FATAL, "Unable to add directory item (%s)", PRL_RESULT_TO_STRING(res));
@@ -2799,17 +2795,73 @@ bool Transfer::execute(CDspTaskFailure& feedback_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Patch
+
+Patch::Patch(const Request& input_):
+	m_home(input_.getFinal().getVmIdentification()->getHomePath()),
+	m_name(input_.getFinal().getVmIdentification()->getVmName()),
+	m_ident(input_.getObject())
+{
+	CDspLockedPointer<CDispUser> u = CDspService::instance()->getDispConfigGuard()
+		.getDispUserByUuid(input_.getTask().getClient()->getUserSettingsUuid());
+
+	if(u.isValid())
+		m_editor = u->getUserName();
+}
+
+bool Patch::execute(CDspTaskFailure& feedback_)
+{
+	CDspVmDirManager& dirManager = DspVm::vdm();
+	CDspLockedPointer<CVmDirectoryItem> dirItem = dirManager
+		.getVmDirItemByUuid(m_ident.second, m_ident.first);
+
+	if (!dirItem)
+	{
+		feedback_(PRL_ERR_VM_DIRECTORY_NOT_EXIST);
+		return false;
+	}
+
+	// #441667 - set the same parameters for shared vm
+	CDspVmDirManager::VmDirItemsHash sharedVmHash = dirManager
+		.findVmDirItemsInCatalogue(dirItem->getVmUuid(), dirItem->getVmHome());
+
+	foreach(CDspLockedPointer<CVmDirectoryItem> dirSharedItem, sharedVmHash)
+	{
+		dirSharedItem->setChangedBy(m_editor);
+		dirSharedItem->setChangeDateTime(QDateTime::currentDateTime());
+		dirSharedItem->setVmName(m_name);
+		dirSharedItem->setVmHome(m_home);
+
+		/* old code
+		pVmDirSharedItem->getLockedOperationsList()->setLockedOperations(lstNewLockedOperations);
+		pVmDirSharedItem->getLockDown()->setEditingPasswordHash(newLockDownHash);
+		*/
+	}
+	dirItem->setVmHome(m_home);
+	dirItem->setVmName(m_name);
+
+	PRL_RESULT ret = dirManager.updateVmDirItem(dirItem);
+	if (PRL_FAILED(ret))
+	{
+		WRITE_TRACE(DBG_FATAL, "Can't update VmCatalogue by error %#x, %s", ret, PRL_RESULT_TO_STRING(ret));
+		feedback_(ret);
+		return false;
+	}
+	return Vm::Action::execute(feedback_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Apply
 
 Action* Apply::operator()(const Request& input_) const
 {
 	Forge f(input_);
+	Action* n = NULL, *output = new Patch(input_);
 	bool a = input_.getStart().getVmSettings()->getVmCommonOptions()->isTemplate();
 	bool b = input_.getFinal().getVmSettings()->getVmCommonOptions()->isTemplate();
 	if (a != b)
 	{
 		QString t;
-		Action* n = NULL;
 		if (b)
 		{
 			n = f.craft(boost::bind(&vm::Unit::undefine, _1));
@@ -2821,24 +2873,26 @@ Action* Apply::operator()(const Request& input_) const
 				(input_.getFinal())));
 			t = input_.getTask().getClient()->getVmDirectoryUuid();
 		}
-		Action *output(new Transfer(input_.getObject(), t));
-		output->setNext(n);
+		Action* a = new Transfer(input_.getObject(), t);
+		a->setNext(n);
+		output->setNext(a);
 		return output;
 	}
 	if (b)
-		return NULL;
+		return output;
 
 	QString x = input_.getStart().getVmIdentification()->getVmName();
 	QString y = input_.getFinal().getVmIdentification()->getVmName();
+	n = f.craft(boost::bind(&vm::Unit::setConfig, _1,
+			boost::cref(input_.getFinal())));
+	n->setNext(output);
 	if (x == y)
+		output = n;
+	else
 	{
-		return f.craft(boost::bind(&vm::Unit::setConfig, _1,
-				boost::cref(input_.getFinal())));
+		output = f.craft(boost::bind(&vm::Unit::rename, _1, y));
+		output->setNext(n);
 	}
-	Action* output = f.craft(boost::bind(&vm::Unit::rename, _1, y));
-	output->setNext(f.craft(boost::bind(&vm::Unit::setConfig, _1,
-				boost::cref(input_.getFinal()))));
-
 	return output;
 }
 
@@ -2904,466 +2958,6 @@ bool Action<CVmStartupBios>::execute(CDspTaskFailure& feedback_)
 }
 
 } // namespace Create
-
-namespace Network
-{
-
-namespace Difference
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct SearchDomain
-
-SearchDomain::SearchDomain(const general_type& general_, const Dao& devices_):
-	m_general(general_.getSearchDomains()), m_devices(devices_.getEligible())
-{
-}
-
-QStringList SearchDomain::calculate(const general_type& general_, const Dao& devices_)
-{
-	// add global search domains
-	bool y = false;
-	QStringList x = m_general;
-
-	// add per adapter search domains to global list for now - due to
-	// absence of support in guest parts
-	foreach(device_type* a, m_devices)
-	{
-		device_type* o = devices_.find(a->getSystemName(), a->getIndex());
-		if (NULL == o || a->getSearchDomains() != o->getSearchDomains())
-			y = true;
-		x << a->getSearchDomains();
-	}
-
-	// set searchDomains only if something changed
-	if ((y || m_general != general_.getSearchDomains()) && !x.isEmpty())
-		return x;
-
-	return QStringList();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Device
-
-Device::Device(const general_type& general_, const Dao& devices_):
-	m_devices(devices_), m_general(&general_),
-	m_defaultGwIp4Bridge(devices_.findDefaultGwIp4Bridge()),
-	m_defaultGwIp6Bridge(devices_.findDefaultGwIp6Bridge())
-{
-}
-
-bool Device::isEqual(const device_type* first_, const device_type* second_)
-{
-	if (first_ == NULL || second_ == NULL)
-		return first_ == second_;
-
-	return	first_->getConnected() == second_->getConnected() &&
-		first_->getEnabled() == second_->getEnabled() &&
-		first_->isAutoApply() == second_->isAutoApply() &&
-		first_->getEmulatedType() == second_->getEmulatedType() &&
-		PrlNet::isEqualEthAddress(first_->getMacAddress(), second_->getMacAddress()) &&
-		first_->getNetAddresses() == second_->getNetAddresses() &&
-		first_->getDefaultGateway() == second_->getDefaultGateway() &&
-		first_->getDefaultGatewayIPv6() == second_->getDefaultGatewayIPv6() &&
-		first_->isConfigureWithDhcp() == second_->isConfigureWithDhcp() &&
-		first_->isConfigureWithDhcpIPv6() == second_->isConfigureWithDhcpIPv6() &&
-		first_->getDnsIPAddresses() == second_->getDnsIPAddresses() &&
-		first_->getVirtualNetworkID() == second_->getVirtualNetworkID();
-}
-
-QStringList Device::calculate(const general_type& general_, const Dao& devices_)
-{
-	QStringList output;
-	device_type* v = devices_.findDefaultGwIp4Bridge();
-	device_type* w = devices_.findDefaultGwIp6Bridge();
-	bool g = ((NULL == m_defaultGwIp4Bridge) != (v == NULL)) ||
-		((NULL == m_defaultGwIp6Bridge) != (w == NULL));
-
-	foreach(device_type* a, m_devices.getEligible())
-	{
-		device_type* o = devices_.find(a->getSystemName(), a->getIndex());
-		if (isEqual(o, a) && m_general->isAutoApplyIpOnly() == general_.isAutoApplyIpOnly() &&
-				!(a->getEmulatedType() == PNA_ROUTED && g))
-			continue;
-
-		QString m = a->getMacAddress();
-		if (!PrlNet::convertMacAddress(m))
-			continue;
-
-		// DHCP has no sense with Routed adapters
-		if (a->getEmulatedType() == PNA_ROUTED)
-			output << Address(*a)(Routed(m, m_defaultGwIp4Bridge, m_defaultGwIp6Bridge));
-		else
-			output << Address(*a)(Bridge(m));
-
-		// ipOnly autoApply skips all except ip/route/gw args
-		// currently this is just dns ips args
-		if (!m_general->isAutoApplyIpOnly() && !a->getDnsIPAddresses().isEmpty())
-		{
-			output << "--dns" << m
-				<< QStringList(a->getDnsIPAddresses()).join(" ");
-		}
-	}
-	return output;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Vm
-
-Vm::Vm(const CVmConfiguration& cfg_)
-	: m_device(*cfg_.getVmSettings()->getGlobalNetwork(),
-		Network::Dao(cfg_.getVmHardwareList()->m_lstNetworkAdapters))
-{
-	const Network::general_type* a = cfg_.getVmSettings()->getGlobalNetwork();
-	Network::Dao x(cfg_.getVmHardwareList()->m_lstNetworkAdapters);
-
-	if (a->isAutoApplyIpOnly())
-		return;
-
-	m_searchDomain = SearchDomain(*a, x);
-	QString h = a->getHostName();
-	if (!h.isEmpty())
-		m_hostname = h;
-}
-
-QStringList Vm::calculate(const general_type& general_, const Dao& devices_)
-{
-	QStringList a;
-	if (m_searchDomain)
-	{
-		QStringList x = m_searchDomain.get().calculate(general_, devices_);
-		if (!x.isEmpty())
-			a << "--search-domain" << x.join(" ");
-	}
-	if (m_hostname)
-	{
-		if (m_hostname.get() != general_.getHostName())
-			a << "--hostname" << m_hostname.get();
-	}
-	return a << m_device.calculate(general_, devices_);
-}
-
-QStringList Vm::calculate(const CVmConfiguration& start_, unsigned int osType_)
-{
-	const Network::general_type* a = start_.getVmSettings()->getGlobalNetwork();
-	Network::Dao x(start_.getVmHardwareList()->m_lstNetworkAdapters);
-
-	QStringList d = calculate(*a, x);
-	if (!d.isEmpty()) {
-		d.insert(0, "set");
-
-		QString u((osType_ == PVS_GUEST_TYPE_WINDOWS) ?
-				"%programfiles%\\Qemu-ga\\prl_nettool.exe" : "prl_nettool");
-		d.insert(0, u);
-	}
-	return d;
-}
-
-} // namespace Difference
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Dao
-
-Dao::Dao(const list_type& dataSource_): m_dataSource(dataSource_)
-{
-	foreach (device_type* a, m_dataSource)
-	{
-		if (a->isAutoApply() && a->getEnabled() == PVE::DeviceEnabled &&
-				a->getConnected() == PVE::DeviceConnected)
-			m_eligible.push_back(a);
-	}
-}
-
-device_type* Dao::findDefaultGwIp4Bridge() const
-{
-	foreach (device_type* a, m_eligible)
-	{
-		if (a->getEmulatedType() == PNA_ROUTED)
-			continue;
-		if (a->isConfigureWithDhcp() || !a->getDefaultGateway().isEmpty())
-			return a;
-	}
-	return NULL;
-}
-
-device_type* Dao::findDefaultGwIp6Bridge() const
-{
-	foreach (device_type* a, m_eligible)
-	{
-		if (a->getEmulatedType() == PNA_ROUTED)
-			continue;
-		if (a->isConfigureWithDhcpIPv6() || !a->getDefaultGatewayIPv6().isEmpty())
-			return a;
-	}
-	return NULL;
-}
-
-device_type* Dao::find(const QString& name_, quint32 index_) const
-{
-	foreach(device_type* a, m_dataSource)
-	{
-		if (!name_.isEmpty() && name_ == a->getSystemName())
-			return a;
-		if (index_ == a->getIndex())
-			return a;
-	}
-	return NULL;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Routed
-
-Routed::Routed(const QString& mac_, const device_type* defaultGwIp4Bridge_,
-	const device_type* defaultGwIp6Bridge_):
-	m_mac(mac_), m_defaultGwIp4Bridge(defaultGwIp4Bridge_),
-	m_defaultGwIp6Bridge(defaultGwIp6Bridge_)
-{
-}
-
-std::pair<QString, QString> Routed::getIp4Defaults() const
-{
-	QString x = QString(DEFAULT_HOSTROUTED_GATEWAY).remove(QRegExp("/.*$")) + " ";
-	if (NULL != m_defaultGwIp4Bridge)
-		return std::make_pair("remove ", x);
-
-	return std::make_pair(x, "");
-}
-
-QString Routed::getIp6DefaultGateway()
-{
-	return QString(DEFAULT_HOSTROUTED_GATEWAY6).remove(QRegExp("/.*$"));
-}
-
-QString Routed::getIp6Gateway() const
-{
-	return NULL != m_defaultGwIp6Bridge ? "removev6 " : getIp6DefaultGateway() + " ";
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Address
-
-Address::Address(const device_type& device_): m_device(&device_)
-{
-	boost::tie(m_v4, m_v6) = NetworkUtils::ParseIps(m_device->getNetAddresses());
-}
-
-QStringList Address::operator()(const Routed& mode_)
-{
-	QString g, r;
-	QStringList output, a;
-	if (!m_v4.isEmpty())
-	{
-		a << m_v4;
-		boost::tie(g, r) = mode_.getIp4Defaults();
-	}
-	if (!m_v6.isEmpty())
-	{
-		a << m_v6;
-		g += mode_.getIp6Gateway();
-		// Install rules with metric lower than auto-installed
-		foreach(const QString &ip, m_v6)
-			r += QString("%1=%2m100 ").arg(ip, mode_.getIp6DefaultGateway());
-	}
-	if (a.isEmpty())
-	{
-		//ipv6 and ipv4 are configured to DHCP - say prl_nettool
-		// remove ips in routed network adapter #PSBM-8099
-		output << "--ip" << mode_.getMac() << "remove";
-	}
-	else
-		output << "--ip" << mode_.getMac() << a.join(" ");
-
-	if (!g.isEmpty())
-		output << "--gateway" << mode_.getMac() << g;
-
-	if (!r.isEmpty())
-		output << "--route" << mode_.getMac() << r;
-	else if (g.isEmpty())
-		output << "--route" << mode_.getMac() << "remove";
-
-	return output;
-}
-
-QStringList Address::operator()(const Bridge& mode_)
-{
-	QString g;
-	QStringList output, a;
-	if (m_device->isConfigureWithDhcp())
-		output << "--dhcp" << mode_.getMac();
-	else if (!m_v4.isEmpty())
-	{
-		a << m_v4;
-		QString d = m_device->getDefaultGateway();
-		g = d.isEmpty() ? "remove " : d + " ";
-	}
-	else if (m_v6.isEmpty() && !m_device->isConfigureWithDhcpIPv6())
-	{
-		// automatic switch to DHCP if list of IPs empty (#427177)
-		output << "--dhcp" << mode_.getMac();
-	}
-	if (m_device->isConfigureWithDhcpIPv6())
-		output << "--dhcpv6" << mode_.getMac();
-	else if (!m_v6.isEmpty())
-	{
-		a << m_v6;
-		QString d = m_device->getDefaultGatewayIPv6();
-		g += d.isEmpty() ? "removev6 " : d + " ";
-	}
-	if (a.isEmpty())
-		a << "remove";
-	output << "--ip" << mode_.getMac() << a.join(" ");
-
-	if (g.isEmpty())
-	{
-		// bridged && dhcp && dhcp6
-		output << "--route" << mode_.getMac() << "remove";
-	}
-	else
-		output << "--gateway" << mode_.getMac() << g;
-
-	return output;
-}
-
-} // namespace Network
-
-namespace Update
-{
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Directory
-
-Vm::Action* Directory::operator()(const Request& input_) const
-{
-	return new Action(input_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Action
-
-Action::Action(const Request& input_): m_vmIdent(input_.getObject()),
-	m_vmName(input_.getFinal().getVmIdentification()->getVmName()),
-	m_isTemplate(input_.getFinal().getVmSettings()->getVmCommonOptions()->isTemplate())
-{
-	CDspLockedPointer<CDispUser> u = CDspService::instance()->getDispConfigGuard()
-		.getDispUserByUuid(input_.getTask().getClient()->getUserSettingsUuid());
-
-	if(u.isValid())
-		m_userName = u->getUserName();
-
-	if (m_vmName != input_.getStart().getVmIdentification()->getVmName())
-		m_vmHome = input_.getFinal().getVmIdentification()->getHomePath();
-}
-
-bool Action::execute(CDspTaskFailure& feedback_)
-{
-	CDspVmDirManager& dirManager = DspVm::vdm();
-	CDspLockedPointer<CVmDirectoryItem> dirItem = dirManager
-		.getVmDirItemByUuid(m_vmIdent.second, m_vmIdent.first);
-
-	if (!dirItem)
-	{
-		feedback_(PRL_ERR_VM_DIRECTORY_NOT_EXIST);
-		return false;
-	}
-
-	dirItem->setTemplate(m_isTemplate);
-
-	// #441667 - set the same parameters for shared vm
-	CDspVmDirManager::VmDirItemsHash sharedVmHash = dirManager
-		.findVmDirItemsInCatalogue(dirItem->getVmUuid(), dirItem->getVmHome());
-
-	foreach(CDspLockedPointer<CVmDirectoryItem> dirSharedItem, sharedVmHash)
-	{
-		dirSharedItem->setChangedBy(m_userName);
-		dirSharedItem->setChangeDateTime(QDateTime::currentDateTime());
-		dirSharedItem->setVmName(m_vmName);
-		if (m_vmHome)
-			dirSharedItem->setVmHome(m_vmHome.get());
-
-		/* old code
-		pVmDirSharedItem->getLockedOperationsList()->setLockedOperations(lstNewLockedOperations);
-		pVmDirSharedItem->getLockDown()->setEditingPasswordHash(newLockDownHash);
-		*/
-	}
-
-	PRL_RESULT ret = dirManager.updateVmDirItem(dirItem);
-	if (PRL_FAILED(ret))
-	{
-		WRITE_TRACE(DBG_FATAL, "Can't update VmCatalogue by error %#x, %s", ret, PRL_RESULT_TO_STRING(ret));
-		feedback_(ret);
-		return false;
-	}
-	return Vm::Action::execute(feedback_);
-}
-
-} // namespace Update
-
-namespace Personalize
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Apply
-
-bool Apply::execute(CDspTaskFailure& feedback_)
-{
-	if (!m_configurator.setNettool(m_nettool)) {
-		feedback_(PRL_ERR_OPERATION_FAILED);
-		return false;
-	}
-
-	return Vm::Action::execute(feedback_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Prepare
-
-bool Prepare::execute(CDspTaskFailure& feedback_)
-{
-	QString p(QFileInfo(CFileHelper::GetFileRoot(m_vmHome), VM_PERSONALITY_DIR).filePath());
-	CAuthHelper a;
-	if (CFileHelper::DirectoryExists(p, &a))
-		return Vm::Action::execute(feedback_);
-
-	if (!CFileHelper::WriteDirectory(p, &a))
-	{
-		WRITE_TRACE(DBG_FATAL, "Unable to write directory %s", QSTR2UTF8(p));
-		feedback_(PRL_ERR_DISK_DIR_CREATE_ERROR);
-		return false;
-	}
-
-	return Vm::Action::execute(feedback_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Factory
-
-Action* Factory::operator()(const Request& input_) const
-{
-	Action* output = NULL;
-	// this is offline configration case, which means that no settings will
-	// be applied till VM start. Thus we have to accummulate them, generating
-	// full network configuration each time.
-	Network::Difference::Vm v(input_.getFinal());
-
-	QStringList d(v.calculate(input_.getStart(),
-		input_.getFinal().getVmSettings()->getVmCommonOptions()->getOsType()));
-	if (d.isEmpty())
-		return NULL;
-
-	d = v.calculate(CVmConfiguration(),
-		input_.getFinal().getVmSettings()->getVmCommonOptions()->getOsType());
-	if (d.isEmpty())
-		return NULL;
-
-	Action* action = new Apply(input_.getFinal(), d);
-	action->setNext(output);
-	output = action;
-
-	action = new Prepare(input_.getFinal().getVmIdentification()->getHomePath());
-	action->setNext(output);
-	output = action;
-
-	return output;
-}
-} // namespace Personalize
 
 namespace Runtime
 {
@@ -3598,7 +3192,7 @@ namespace Network
 
 Vm::Action* Factory::operator()(const Request& input_) const
 {
-	Vm::Network::Difference::Vm v(input_.getFinal());
+	::Network::Difference::Vm v(input_.getFinal());
 	unsigned int t = input_.getFinal().getVmSettings()->getVmCommonOptions()->getOsType();
 	QStringList d = v.calculate(input_.getStart(), t);
 	if (d.isEmpty())
@@ -3607,7 +3201,8 @@ Vm::Action* Factory::operator()(const Request& input_) const
 	QString c = d.takeFirst();
 	Libvirt::Instrument::Agent::Vm::Exec::Request request(c, d);
 	request.setRunInShell(t == PVS_GUEST_TYPE_WINDOWS);
-	return Forge(input_).craftGuest(boost::bind(&Libvirt::Instrument::Agent::Vm::Guest::runProgram, _1, request));
+	QString uuid = input_.getFinal().getVmIdentification()->getVmUuid();
+	return Forge(input_).craftGuest(boost::bind(&::Vm::Guest::Actor::runProgram, _1, uuid, request));
 }
 
 } // namespace Network

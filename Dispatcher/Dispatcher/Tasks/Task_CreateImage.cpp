@@ -768,31 +768,8 @@ PRL_RESULT Task_CreateImage::hddStep2_CheckConditions( const CVmHardDisk& hard_d
 		quint64 nFreeSpace = 0;
 		QString sNewVmLocation = QFileInfo(strFullPath).path();
 		ret = CFileHelper::GetDiskAvailableSpace( sNewVmLocation, &nFreeSpace );
-		if ( ret == PRL_ERR_GET_DISK_FREE_SPACE_FAILED )
-		{
-			if ( !getForceQuestionsSign() )//If interactive mode then send question to user
-			{
-				QList<PRL_RESULT> lstChoices;
-				lstChoices.append( PET_ANSWER_YES );
-				lstChoices.append( PET_ANSWER_NO );
 
-				QList<CVmEventParameter*> lstParams;
-				lstParams.append(new CVmEventParameter(PVE::String,
-					m_pVmConfig->getVmIdentification()->getVmUuid(),
-					EVT_PARAM_VM_UUID )
-					);
-
-				PRL_RESULT nAnswer = getClient()
-					->sendQuestionToUser( PRL_QUESTION_CAN_NOT_GET_DISK_FREE_SPACE
-						, lstChoices, lstParams, getRequestPackage() );
-
-				if( nAnswer != PET_ANSWER_YES )
-				{
-					throw PRL_ERR_OPERATION_WAS_CANCELED;
-				}
-			}
-		}
-		else
+		if (ret != PRL_ERR_GET_DISK_FREE_SPACE_FAILED)
 		{
 			if ( PRL_FAILED(ret) )
 			{
@@ -814,27 +791,7 @@ PRL_RESULT Task_CreateImage::hddStep2_CheckConditions( const CVmHardDisk& hard_d
 					 hard_disk.getSize() : DISKSPACE_RESERVATION_MB;
 			if ( uiHddSize >= nFreeSpaceInMb )
 			{
-				if (!getForceQuestionsSign())//If interactive mode then send question to user
 				{
-					QList<PRL_RESULT> lstChoices;
-					lstChoices.append( PET_ANSWER_YES );
-					lstChoices.append( PET_ANSWER_NO );
-
-					QList<CVmEventParameter*> lstParams;
-					lstParams.append(new CVmEventParameter(PVE::String,
-						m_pVmConfig->getVmIdentification()->getVmUuid(),
-						EVT_PARAM_VM_UUID )
-						);
-
-					PRL_RESULT nAnswer = getClient()
-						->sendQuestionToUser( PET_QUESTION_FREE_SIZE_FOR_COMPRESSED_DISK
-							, lstChoices, lstParams,getRequestPackage());
-
-					if( nAnswer != PET_ANSWER_YES )
-					{
-						throw PRL_ERR_OPERATION_WAS_CANCELED;
-					}
-				} else {
 					WRITE_TRACE(DBG_FATAL, "Task_CreateImage: There is not enough disk free space! needed=%lluMb free=%lluMb",
 							uiHddSize, nFreeSpaceInMb);
 					getLastError()->addEventParameter(
@@ -844,7 +801,7 @@ PRL_RESULT Task_CreateImage::hddStep2_CheckConditions( const CVmHardDisk& hard_d
 					throw PRL_ERR_NOT_ENOUGH_DISK_FREE_SPACE;
 				}
 			}
-		}// else if ( ret == PRL_ERR_GET_DISK_FREE_SPACE_FAILED )
+		}
 	}
 	catch( PRL_RESULT err )
 	{

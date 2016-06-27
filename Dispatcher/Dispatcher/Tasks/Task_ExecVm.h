@@ -105,7 +105,7 @@ struct Ct {
 	PRL_RESULT processStd(Task_ExecVm*);
 	PRL_RESULT runCommand(
 		CProtoVmGuestRunProgramCommand* req, const QString& uuid, int flags);
-	void closeStdin(Task_ExecVm*);
+	void closeStdin();
 	PRL_RESULT processStdinData(const char * data, size_t size);
 	CVzExecHelper& getExecer()
 	{
@@ -197,7 +197,7 @@ struct Vm
 		future_type;
 
 	Vm() : m_exec(NULL) { }
-	void closeStdin(Task_ExecVm*);
+	void closeStdin();
 	PRL_RESULT prepare(Task_ExecVm& task_, vm::Exec::Request& request_, Join& join_);
 	PRL_RESULT processStdinData(const char * data, size_t size);
 	PRL_RESULT processStd(QEventLoop& loop_);

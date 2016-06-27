@@ -44,36 +44,76 @@
 
 #include "CDspVmConfigManager.h"
 
+#ifdef _LIBVIRT_
+#include "CDspLibvirt.h"
+#include "CDspLibvirtExec.h"
+#endif // _LIBVIRT_
+
 namespace Vm
 {
 
-class Guest: public QObject
+namespace Guest
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// class Actor
+
+class Actor: public QObject
 {
 	Q_OBJECT
 
 public:
-	Guest(const QString& uuid_, const Config::Edit::Atomic& editor_) :
-		m_uuid(uuid_), m_editor(editor_)
+	explicit Actor(const Config::Edit::Atomic& editor_) : m_editor(editor_)
 	{
 	}
 
-	boost::future<std::pair<PRL_VM_TOOLS_STATE, QString> > getFuture()
+	static void setToolsVersion(CVmConfiguration& c_, const QString& v_);
+	static void configureNetwork(CVmConfiguration& c_, QString& uuid,
+			QScopedPointer<Libvirt::Instrument::Agent::Vm::Exec::Request>& r);
+	static Libvirt::Result runProgram(
+		Libvirt::Instrument::Agent::Vm::Guest guest_,
+		const QString& uuid_,
+		const Libvirt::Instrument::Agent::Vm::Exec::Request&);
+
+public slots:
+	void setToolsVersionSlot(const QString v_);
+	void configureNetworkSlot(const QString v_);
+
+private:
+	Config::Edit::Atomic m_editor;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class Watcher
+
+class Watcher: public QObject
+{
+	Q_OBJECT
+
+public:
+	explicit Watcher(const QString& uuid_) : m_uuid(uuid_)
+	{
+	}
+
+	boost::future<PRL_VM_TOOLS_STATE> getFuture()
 	{
 		return m_state.get_future();
 	}
 
-	static void setToolsVersion(CVmConfiguration& c_, const QString& v_);
+signals:
+	void guestToolsStarted(const QString v_);
+	
 
 protected:
 	virtual void timerEvent(QTimerEvent*);
 
 private:
-	const QString m_uuid;
-	Config::Edit::Atomic m_editor;
-
-	boost::promise<std::pair<PRL_VM_TOOLS_STATE, QString> > m_state;
+	QString m_uuid;
+	boost::promise<PRL_VM_TOOLS_STATE> m_state;
 };
 
-}
+} //namespace Guest
+
+} //namespace Vm
 
 #endif // __DSPVMGUESTPERSONALITY_H__

@@ -120,7 +120,6 @@ using namespace Parallels;
 
 
 #define QSETTINGS_TAG_MODE_SERVER	"server"
-#define QSETTINGS_TAG_MODE_DESKTOP	"desktop"
 #define QSETTINGS_TAG_SERVER_UUID	"dispatcher_uuid"
 
 // #429897  This names should be used because paths in QSettings are based of its.
@@ -244,18 +243,6 @@ void CDspPid::detach()
 bool CMainDspService::g_bSkipVmVersionCheck = false;
 bool CMainDspService::g_bLaunchdMode = false;
 CMainDspService *CMainDspService::g_instance = NULL;
-
-/*****************************************************************************/
-
-bool CDspService::isServerMode()
-{
-	return ParallelsDirs::getAppExecuteMode() == PAM_SERVER;
-}
-
-bool CDspService::isServerModePSBM()
-{
-	return ParallelsDirs::isServerModePSBM();
-}
 
 /*****************************************************************************/
 
@@ -522,7 +509,6 @@ m_pVmManagerHandler( CDspHandlerRegistrator::instance().findHandler( IOSender::V
 m_pIoHandler( CDspHandlerRegistrator::instance().findHandler( IOSender::IOClient ) ),
 m_pIoCtHandler( CDspHandlerRegistrator::instance().findHandler( IOSender::IOCtClient ) ),
 m_pHwMonitorThread( new CDspHwMonitorThread ),
-m_pSystemEventsMonitor( new CDspSystemEventsMonitor ),
 m_pHaClusterHelper( new CDspHaClusterHelper ),
 m_pTaskManager(new CDspTaskManager()),
 m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
@@ -563,13 +549,6 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 		SIGNAL(onDoStopFromMainThread()),
 		SLOT(stopFromMainThread()),
 		Qt::QueuedConnection );
-	PRL_ASSERT(bConnected);
-
-	// Handle any addr start/stop signals
-	bConnected = QObject::connect( this,
-								  SIGNAL(onStartOrStopListeningAnyAddr(bool)),
-								  SLOT(startOrStopListeningAnyAddr(bool)),
-								  Qt::BlockingQueuedConnection );
 	PRL_ASSERT(bConnected);
 
 	bConnected = QObject::connect( this,
@@ -810,73 +789,6 @@ CDspLockedPointer<CEtraceStatic> CDspService::getEtrace()
 }
 #endif
 
-
-void CDspService::startOrStopListeningAnyAddr ( bool listenAnyAddr )
-{
-	// Always run from service thread
-	if ( QThread::currentThread() !=  QObject::thread() ) {
-		emit onStartOrStopListeningAnyAddr( listenAnyAddr );
-		return;
-	}
-
-	// Check that we are not in server mode
-	if ( isServerMode() ) {
-		WRITE_TRACE(DBG_FATAL, "Can't start/stop listening any addr in server mode!");
-		return;
-	}
-
-#ifdef _WIN_
-	// We can't start/stop listening any addr on windows platform to prevent disconnect user sessions.
-	// On unix we use unix-sockets to local sessions instead tcp loopback interface as on windows.
-	WRITE_TRACE(DBG_FATAL, "Can't start/stop listening any addr on windows platform!");
-	return;
-#endif
-
-	// Start listening any addr
-	if ( listenAnyAddr )
-	{
-		// #484389
-		// stop to prevent fail when loopback interface was already added by CDspService::upCustomListeningInterface()
-		stopListeningAnyAddr();
-
-		quint32 listenPort = getDispConfigGuard().getDispWorkSpacePrefs()->getDispatcherPort();
-		PRL_SECURITY_LEVEL
-			securityLevel = getDispConfigGuard().getDispWorkSpacePrefs()->getMinimalSecurityLevel();
-
-		SmartPtr<IOServerInterface> pServer = SmartPtr<IOServerInterface>(setup(new IOServer(
-				IORoutingTableHelper::GetServerRoutingTable(securityLevel),
-				IOSender::Dispatcher,
-				IOService::AnyAddr, listenPort )));
-
-		// Append to server pool
-		bool res = m_ioServerPool->addServer( pServer );
-		PRL_ASSERT(res);
-
-		PRL_ASSERT(!m_ioAnyAddrServer);
-		m_ioAnyAddrServer = pServer;
-
-		// Start listening
-		IOSender::State st = pServer->listen();
-
-		WRITE_TRACE(DBG_FATAL, "Any addr server on state=%d added ", st);
-		if ( st != IOSender::Connected )
-		{
-			pServer->disconnectServer();
-			PRL_ASSERT(m_ioAnyAddrServer == pServer);
-			m_ioAnyAddrServer = SmartPtr<IOServerInterface>(0);
-			m_ioServerPool->removeServer( pServer );
-		}
-		else
-		{
-			setCredentialsForServers(IOServerList() << m_ioAnyAddrServer);
-		}
-	}
-	// Stop listening any addr
-	else {
-		stopListeningAnyAddr();
-	}
-}
-
 void CDspService::stopListeningAnyAddr ()
 {
 	// Always run from service thread
@@ -1013,7 +925,6 @@ void CDspService::start ()
 #endif
 
 		//Instantiate UDP listener after files initialization in order to prevent server answers with empty data
-		if ( isServerMode() )// Up UDP interface just for server
 			m_pBroadcastMsgsProcessingService = SmartPtr<CDspBroadcastListener>(new CDspBroadcastListener);
 
 			precacheVmConfigs();
@@ -1026,8 +937,6 @@ void CDspService::start ()
 
 			CDspStatCollectingThread::start(*m_registry);
 			m_pHwMonitorThread->start( QThread::NormalPriority ); //QThread::LowPriority );
-
-		m_pSystemEventsMonitor->startMonitor();
 
 		m_bInitWasDone = true;
 		if(	m_bStopWasSentOnInitPhase )
@@ -1083,9 +992,6 @@ void CDspService::stop (CDspService::StopMode stop_mode)
 	m_pHwMonitorThread->FinalizeThreadWork();
 	m_pHwMonitorThread->wait();
 
-	m_pSystemEventsMonitor->stopMonitor();
-	m_pSystemEventsMonitor->wait();
-
 	// Stops listening any addr
 	stopListeningAnyAddr();
 
@@ -1139,7 +1045,6 @@ void CDspService::stop (CDspService::StopMode stop_mode)
 
 	m_pVmConfigWatcher->unregisterAll();
 
-	if (CDspService::isServerMode())
 	{
 #ifdef _CT_
 		// stop vnc servers for container's
@@ -1440,7 +1345,6 @@ bool CDspService::init()
 		initNetworkConfig();
 
 #ifdef _CT_
-		if ( isServerMode() )
 		{
 			getVmDirManager().initVzDirCatalogue();
 			getVmDirManager().initTemplatesDirCatalogue();
@@ -1460,9 +1364,7 @@ bool CDspService::init()
 		patchDirCatalogue();
 #endif // _LIBVIRT_
 
-		if( isServerMode() )
 		{
-			initNetworkShapingConfiguration();
 			initPrivateNetworks();
 		}
 
@@ -1501,16 +1403,9 @@ void CDspService::initFeaturesList()
 		if( getDispConfigGuard().getDispWorkSpacePrefs()->isDefaultPlainDiskAllowed() )
 			_features.insert( PFSM_DEFAULT_PLAINDISK_ALLOWED );
 		_features.insert( PFSM_NIC_CHANGE_ALLOWED );
-		if( isServerMode() )
-		{
-			_features.insert( PFSM_SATA_HOTPLUG_SUPPORT );
-			_features.insert( PFSM_AUTOSTART_VM_AS_OWNER );
-		}
-		else
-			_features.insert( PFSM_USB_PRINTER_SUPPORT );
+		_features.insert( PFSM_SATA_HOTPLUG_SUPPORT );
+		_features.insert( PFSM_AUTOSTART_VM_AS_OWNER );
 
-	if( ParallelsDirs::isServerModePSBM() )
-	{
 		_features.insert( PFSM_PSBM5 );
 		_features.insert( PFSM_NO_SHARED_NETWORKING );
 		_features.insert( PFSM_DISK_IO_LIMITS );
@@ -1518,7 +1413,6 @@ void CDspService::initFeaturesList()
 		_features.insert( PFSM_ROUTED_NETWORKING );
 		_features.insert( PFSM_RAM_HOTPLUG_SUPPORT );
 		_features.insert( PFSM_CPU_HOTPLUG_SUPPORT );
-	}
 
 	m_FeaturesMatrix.Initialize( _features );
 }
@@ -1572,11 +1466,6 @@ bool CDspService::initIOServer()
 	}
 #endif
 
-	// Start listening to any addr if enabled
-	bool anyAddr = getDispConfigGuard().getDispWorkSpacePrefs()->isListenAnyAddr();
-	if ( ! isServerMode() && anyAddr )
-		startOrStopListeningAnyAddr( anyAddr );
-
 	// Enable or disable firewall and block/unblock incoming connections,
 	// depending on "AllowMultiplePMC" option
 	bool bAllowPmcMc = getDispConfigGuard().getDispWorkSpacePrefs()->isAllowMultiplePMC();
@@ -1626,31 +1515,26 @@ void CDspService::initPlugins()
 		return;
 }
 
-void CDspService::initNetworkShapingConfiguration()
+void CDspService::initNetworkPreferences(CDispCommonPreferences& config_)
 {
-#ifdef _CT_
 	// Sync with Virtuozzo shaping configuration on Dispatcher start
-	CDspLockedPointer<CParallelsNetworkConfig> pNetCfg = CDspService::instance()->getNetworkConfig();
-	if ( ! pNetCfg.isValid() )
-	{
-		WRITE_TRACE(DBG_FATAL, "Network config doesn't exist!" );
-		return;
-	}
-	CNetworkClassesConfig *pClassesCfg = pNetCfg->getNetworkClassesConfig();
+	CDispNetworkPreferences* c = config_.getNetworkPreferences();
+
+	CNetworkClassesConfig *pClassesCfg = c->getNetworkClassesConfig();
 	if (CVzHelper::get_network_classes_config(*pClassesCfg))
-		return;
-
-	CNetworkShapingConfig *pShapingCfg = pNetCfg->getNetworkShapingConfig();
-	if (CVzHelper::get_network_shaping_config(*pShapingCfg))
-		return;
-
-	WRITE_TRACE(DBG_FATAL, "Init network shaping configuration");
-	PRL_RESULT prlResult = PrlNet::WriteNetworkConfig(*pNetCfg.getPtr());
-	if (PRL_FAILED(prlResult))
 	{
-		WRITE_TRACE(DBG_FATAL, "Failed to update Parallels Network Config: %x", (unsigned)prlResult);
+		WRITE_TRACE(DBG_FATAL, "Unable to update network classes configuration");
+		return;
 	}
-#endif
+
+	CNetworkShapingConfig *pShapingCfg = c->getNetworkShapingConfig();
+	if (CVzHelper::get_network_shaping_config(*pShapingCfg))
+	{
+		WRITE_TRACE(DBG_FATAL, "Unable to update network shaping configuration");
+		return;
+	}
+
+	WRITE_TRACE(DBG_DEBUG, "Network shaping xml:\n%s", qPrintable(c->toString()));
 }
 
 void CDspService::initPrivateNetworks()
@@ -1816,9 +1700,6 @@ void CDspService::patchDirCatalogue()
 			}
 
 #ifdef _CT_
-			if ( !isServerMode() )
-				continue;
-
 			// cleanup Vm not registered on node
 			if (sServerUuid == pVmConfig->getVmIdentification()->getServerUuid())
 				continue;
@@ -1857,7 +1738,7 @@ bool CDspService::initAllConfigs()
 			CDspLockedPointer<QSettings>
 				pSettings = CDspService::instance()->getQSettings();
 			QString key = QString( "%1/%2" )
-				.arg( isServerMode()? QSETTINGS_TAG_MODE_SERVER : QSETTINGS_TAG_MODE_DESKTOP )
+				.arg(QSETTINGS_TAG_MODE_SERVER)
 				.arg( QSETTINGS_TAG_SERVER_UUID );
 
 			QString server_id = getDispConfigGuard().getDispConfig()->getVmServerIdentification()->getServerUuid();
@@ -2393,7 +2274,7 @@ bool CDspService::createDispConfig ()
 			pSettings = CDspService::instance()->getQSettings();
 
 		QString key = QString( "%1/%2" )
-			.arg( isServerMode()? QSETTINGS_TAG_MODE_SERVER : QSETTINGS_TAG_MODE_DESKTOP )
+			.arg(QSETTINGS_TAG_MODE_SERVER)
 			.arg( QSETTINGS_TAG_SERVER_UUID );
 		if( pSettings->contains(key) && !Uuid( pSettings->value( key ).toString() ).isNull() )
 		{
@@ -2419,10 +2300,10 @@ bool CDspService::createDispConfig ()
 	// Setup Workspace preferences
 	pWorkspacePreferences->setDefaultVmDirectory("");
 	pWorkspacePreferences->setDispatcherPort( getDefaultListenPort() );
-	pWorkspacePreferences->setDistributedDirectory( CDspService::isServerMode()? false: true );
+	pWorkspacePreferences->setDistributedDirectory(false);
 	// #423517 Enable network shares both in server and workstation
 	pWorkspacePreferences->setAllowUseNetworkShares( true );
-	pWorkspacePreferences->setDefaultChangeSettings( CDspService::isServerMode()? false : true );
+	pWorkspacePreferences->setDefaultChangeSettings(false);
 
 	// Setup Memory preferences
 	unsigned int uiMemTotal = CDspHostInfo::getMemTotal();
@@ -2525,6 +2406,7 @@ bool CDspService::updateDispConfig ()
 	}
 
 	CDspLockedPointer<CDispCommonPreferences> pCommonPrefs = getDispConfigGuard().getDispCommonPrefs();
+	initNetworkPreferences(*pCommonPrefs);
 	CDispGenericPciDevices* pDispDevices = pCommonPrefs->getPciPreferences()->getGenericPciDevices();
 	foreach(CDispGenericPciDevice* pDispDevice, pDispDevices->m_lstGenericPciDevices)
 	{
@@ -2846,9 +2728,6 @@ void CDspService::createIOServers ( quint32 listenPort, PRL_SECURITY_LEVEL secur
 	bRes = m_ioServerPool->addServer( m_ioLocalUnixListeningServer );
 	PRL_ASSERT(bRes);
 #endif
-
-	// Listens to anyaddr if server mode
-	if (isServerMode())
 	{
 		m_ioListeningServer = SmartPtr<IOServerInterface>(setup(new IOServer(
 			IORoutingTableHelper::GetServerRoutingTable(securityLevel),
@@ -2857,20 +2736,6 @@ void CDspService::createIOServers ( quint32 listenPort, PRL_SECURITY_LEVEL secur
 
 		bRes = m_ioServerPool->addServer( m_ioListeningServer );
 		PRL_ASSERT(bRes);
-	}
-	else
-	{
-#ifndef _WIN_
-		m_ioListeningServer = m_ioLocalUnixListeningServer;
-		m_ioLocalUnixListeningServer = SmartPtr<IOServerInterface>( 0 );
-#else
-		m_ioListeningServer = SmartPtr<IOServerInterface>(setup(new IOServer(
-			IORoutingTableHelper::GetServerRoutingTable(securityLevel),
-			IOSender::Dispatcher,
-			IOService::LoopbackAddr, listenPort )));
-		bRes = m_ioServerPool->addServer( m_ioListeningServer );
-		PRL_ASSERT(bRes);
-#endif
 	}
 
 	bool bConnected = false;
@@ -2984,7 +2849,37 @@ void CDspService::emitCleanupOnUserSessionDestroy( QString sessionUuid )
 void CDspService::notifyConfigChanged
 	(const SmartPtr<CDispCommonPreferences>& old_, const SmartPtr<CDispCommonPreferences>& new_)
 {
+	// notify clients about changes
+	CVmEvent event(PET_DSP_EVT_COMMON_PREFS_CHANGED, QString(), PIE_DISPATCHER);
+	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, event);
+	CDspService::instance()->getClientManager().sendPackageToAllClients(p);
+
 	emit onConfigChanged(old_, new_);
+}
+
+PRL_RESULT CDspService::updateCommonPreferences(const boost::function1<void, CDispCommonPreferences&>& action_)
+{
+	CDspLockedPointer<CDispCommonPreferences> n = getDispConfigGuard().getDispCommonPrefs();
+
+	// preserve old config
+	SmartPtr<CDispCommonPreferences> o(new CDispCommonPreferences(n.getPtr()));
+
+	action_(*n);
+	WRITE_TRACE(DBG_DEBUG, "\n%s", qPrintable(n->getNetworkPreferences()->toString()));
+
+	WRITE_TRACE(DBG_INFO, "Dispacther config has been updated.");
+	QString strDispConfigFile = ParallelsDirs::getDispatcherConfigFilePath();
+	PRL_RESULT rc = getDispConfigGuard().saveConfig(strDispConfigFile);
+	if(PRL_FAILED(rc))
+	{
+		WRITE_TRACE(DBG_FATAL,
+			"Unable to write updated data to disp configuration file by error %s."
+			" It will stored in memory only !", PRL_RESULT_TO_STRING(rc));
+	}
+
+	// emit old and new
+	notifyConfigChanged(o, SmartPtr<CDispCommonPreferences>(new CDispCommonPreferences(n.getPtr())));
+	return rc;
 }
 
 void CDspService::onCleanupOnUserSessionDestroy( QString sessionUuid )

@@ -208,6 +208,259 @@ Reference::Reference()
 Q_GLOBAL_STATIC(Reference, getReference);
 } // namespace
 
+namespace Task
+{
+namespace Vm
+{
+namespace Exclusive
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+bool Unit::conflicts(const Unit& party_) const
+{
+	bool bIsExecCmdStart = (PVE::DspCmdVmStart == m_command || PVE::DspCmdVmStartEx == m_command);
+	if (party_.getCommand() != m_command)
+	{
+		if ( PVE::DspCmdVmLock == party_.getCommand() )
+			return m_session != party_.getSession() && !bIsExecCmdStart;
+
+		/* set of operations, conflicts with backup operations */
+		// TODO/FIXME: if need support more then 4 command
+		//       need to implement simple MATRIX instead this ugly if/else logic.
+
+		bool bIsCmdStart = (PVE::DspCmdVmStart == party_.getCommand() || PVE::DspCmdVmStartEx == party_.getCommand());
+		bool bVmIsLockedInCurrentSession = (PVE::DspCmdVmLock == m_command &&
+			m_session == party_.getSession());
+
+		if( (bIsExecCmdStart && PVE::DspCmdDirVmEditCommit == party_.getCommand())
+			|| (PVE::DspCmdDirVmEditCommit == m_command && bIsCmdStart)
+			|| (PVE::DspCmdDirVmEditCommit == m_command && PVE::DspCmdCtlVmEditWithRename == party_.getCommand())
+			|| (bIsExecCmdStart && PVE::DspCmdDirVmMigrate == party_.getCommand())
+			|| (bIsExecCmdStart && PVE::DspCmdDirVmMigrateClone == party_.getCommand())
+
+			|| ( ! bIsExecCmdStart && PVE::DspCmdCtlVmEditWithHardwareChanged == party_.getCommand())
+			|| (PVE::DspCmdCtlVmEditWithHardwareChanged == m_command && ! bIsCmdStart)
+
+			|| ( ! bIsExecCmdStart && PVE::DspCmdCtlVmEditFirewall == party_.getCommand())
+			|| (PVE::DspCmdCtlVmEditFirewall == m_command && ! bIsCmdStart)
+
+			|| ( ! bIsExecCmdStart && PVE::DspCmdCtlVmEditBootcampReconfigure == party_.getCommand())
+			|| (PVE::DspCmdCtlVmEditBootcampReconfigure == m_command && ! bIsCmdStart)
+			|| (bVmIsLockedInCurrentSession)
+			|| (bIsExecCmdStart && PVE::DspCmdCreateVmBackup == party_.getCommand())
+			|| (bIsExecCmdStart && PVE::DspCmdVmCompact == party_.getCommand())
+			|| (bIsExecCmdStart && PVE::DspCmdCtlUpdateShadowVm == party_.getCommand())
+			|| (bIsCmdStart && PVE::DspCmdVmCompact == m_command)
+			|| (PVE::DspCmdDirVmEditCommit == party_.getCommand() && PVE::DspCmdVmCompact == m_command)
+			)
+		{
+			return false;
+		}
+		else if ((PVE::DspCmdRestoreVmBackup == party_.getCommand()))
+		{
+			return getReference()->hasBackupConflict(m_command);
+		}
+		else if (PVE::DspCmdCreateVmBackup == m_command) {
+			if (PVE::DspCmdVmCreateSnapshot == party_.getCommand() &&
+					m_taskId == party_.getTaskId())
+			{
+				// Allow snapshot creation under CreateVmBackup task
+				return false;
+			}
+			return getReference()->hasBackupConflict(party_.getCommand());
+		}
+		else if (PVE::DspCmdRestoreVmBackup == m_command) {
+			return (getReference()->hasBackupConflict(party_.getCommand())
+				|| getReference()->isSnapshot(party_.getCommand())
+				|| bIsCmdStart);
+		}
+		else if ((PVE::DspCmdVmCreateSnapshot == party_.getCommand()) ||
+			(PVE::DspCmdVmSwitchToSnapshot == party_.getCommand()) ||
+			(PVE::DspCmdVmDeleteSnapshot == party_.getCommand()) ||
+			(PVE::DspCmdCtlVmCommitDiskUnfinished == party_.getCommand()))
+		{
+			return getReference()->hasSnapshotConflict(m_command);
+		}
+		else if (PVE::DspCmdVmResizeDisk == party_.getCommand() &&
+				PVE::DspCmdDirVmEditCommit == m_command &&
+				m_taskId == party_.getTaskId())
+			return false;
+		else if (getReference()->isClone(party_.getCommand()) && getReference()->isClone(m_command))
+			return false;
+
+		return true;
+	}
+	// accept the same operation for VM
+	switch (m_command)
+	{
+	case PVE::DspCmdDirVmClone:
+	case PVE::DspCmdDirVmEditCommit:
+	case PVE::DspCmdDirCopyImage:
+	case PVE::DspCmdDirVmMigrateClone:
+		/*
+		 * allow more then one simultaneous tasks for the same VM template migration in clone mode,
+		 * (https://jira.sw.ru/browse/PSBM-13328)
+		 */
+		return false;
+	default:
+		// cmd == execCmd
+		// reject the same operation for VM
+		return true;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Event
+
+Event::Event(QMutex& mutex_): m_mutex(&mutex_), m_event(new QWaitCondition())
+{
+}
+
+void Event::set()
+{
+	m_event->wakeOne();
+}
+
+bool Event::wait()
+{
+	return m_event->wait(m_mutex, 30000);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Conflict
+
+Conflict::Conflict(const Unit& running_, const Unit& pending_, const Event& resolved_):
+	m_pending(pending_), m_running(running_), m_resolved(resolved_)
+{
+}
+
+PRL_RESULT Conflict::getResult() const
+{
+	switch (m_running.getCommand())
+	{
+	case PVE::DspCmdDirVmClone:
+	case PVE::DspCmdDirVmCloneLinked:
+		return PRL_ERR_VM_LOCKED_FOR_CLONE;
+	case PVE::DspCmdDirVmDelete:
+		return PRL_ERR_VM_LOCKED_FOR_DELETE;
+	case PVE::DspCmdDirUnregVm:
+		return PRL_ERR_VM_LOCKED_FOR_UNREGISTER;
+	case PVE::DspCmdDirVmEditCommit:
+		return PRL_ERR_VM_LOCKED_FOR_EDIT_COMMIT;
+	case PVE::DspCmdVmStart:
+		return PRL_ERR_VM_LOCKED_FOR_EXECUTE;
+	case PVE::DspCmdVmStartEx:
+		return PRL_ERR_VM_LOCKED_FOR_EXECUTE_EX;
+	case PVE::DspCmdDirVmMigrate:
+		return PRL_ERR_VM_LOCKED_FOR_MIGRATE;
+	case PVE::DspCmdDirVmMigrateClone:
+		return PRL_ERR_VM_LOCKED_FOR_MIGRATE;
+	case PVE::DspCmdCtlVmEditWithRename:
+		return PRL_ERR_VM_LOCKED_FOR_EDIT_COMMIT_WITH_RENAME;
+	case PVE::DspCmdVmUpdateSecurity:
+		return PRL_ERR_VM_LOCKED_FOR_UPDATE_SECURITY;
+	case PVE::DspCmdCtlVmEditWithHardwareChanged:
+	case PVE::DspCmdCtlVmEditBootcampReconfigure:
+		return PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
+	case PVE::DspCmdVmCreateSnapshot:
+		return PRL_ERR_VM_LOCKED_FOR_CREATE_SNAPSHOT;
+	case PVE::DspCmdVmSwitchToSnapshot:
+		return PRL_ERR_VM_LOCKED_FOR_SWITCH_TO_SNAPSHOT;
+	case PVE::DspCmdVmDeleteSnapshot:
+	case PVE::DspCmdCtlVmCommitDiskUnfinished:
+		return PRL_ERR_VM_LOCKED_FOR_DELETE_TO_SNAPSHOT;
+	case PVE::DspCmdCreateVmBackup:
+		return PRL_ERR_VM_LOCKED_FOR_BACKUP;
+	case PVE::DspCmdCtlCreateVmBackup:
+		return PRL_ERR_VM_LOCKED_CTL_FOR_BACKUP;
+	case PVE::DspCmdRestoreVmBackup:
+		return PRL_ERR_VM_LOCKED_FOR_RESTORE_FROM_BACKUP;
+	case PVE::DspCmdVmLock:
+		return PRL_ERR_VM_IS_EXCLUSIVELY_LOCKED;
+	case PVE::DspCmdVmResizeDisk:
+		return PRL_ERR_VM_LOCKED_FOR_DISK_RESIZE;
+	case PVE::DspCmdVmCompact:
+		return PRL_ERR_VM_LOCKED_FOR_DISK_COMPACT;
+	case PVE::DspCmdVmConvertDisks:
+		return PRL_ERR_VM_LOCKED_FOR_DISK_CONVERT;
+	case PVE::DspCmdCtlVmEditFirewall:
+		return PRL_ERR_VM_LOCKED_FOR_CHANGE_FIREWALL;
+	case PVE::DspCmdDirCopyImage:
+		return PRL_ERR_VM_LOCKED_FOR_COPY_IMAGE;
+	case PVE::DspCmdDirVmMove:
+		return PRL_ERR_VM_LOCKED_FOR_MOVE;
+	default:
+		PRL_ASSERT( PRL_ERR_VM_LOCKED_FOR_INTERNAL_REASON == 0 );
+		return PRL_ERR_VM_LOCKED_FOR_INTERNAL_REASON;
+	};
+}
+
+PRL_RESULT Conflict::operator()()
+{
+	if (!m_pending.getTaskId().isEmpty() &&
+		m_pending.getTaskId() == m_running.getTaskId())
+		return getResult();
+
+	if (m_resolved.wait())
+		return PRL_ERR_SUCCESS;
+
+	return getResult();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Gang
+
+Conflict* Gang::join(const Unit& party_)
+{
+	foreach(const Unit& x, m_store)
+	{
+		if (x.conflicts(party_))
+			return new Conflict(x, party_, m_resolver);
+	}
+	m_store.insert(party_.getCommand(), party_);
+	return NULL;
+}
+
+bool Gang::eraseFirst(PVE::IDispatcherCommands command_)
+{
+	store_type::iterator p = m_store.find(command_);
+	if (m_store.end() == p)
+		return false;
+
+	m_store.erase(p);
+	m_resolver.set();
+	return true;
+}
+
+bool Gang::eraseFirst(PVE::IDispatcherCommands command_, const IOSender::Handle& session_)
+{
+	store_type::iterator p = m_store.find(command_), e;
+	for (e = m_store.end(); p != e && p.key() == command_; ++p)
+	{
+		if (session_ == p.value().getSession())
+		{
+			m_store.erase(p);
+			m_resolver.set();
+			return true;
+		}
+	}
+	return false;
+}
+
+const Unit* Gang::findFirst(PVE::IDispatcherCommands command_) const
+{
+	store_type::const_iterator p = m_store.find(command_);
+	if (m_store.end() == p)
+		return NULL;
+
+	return &p.value();
+}
+
+} // namespace Exclusive
+} // namespace Vm
+} // namespace Task
+
 using namespace Parallels;
 
 CDspVmDirHelper::ExclusiveVmOperations::ExclusiveVmOperations()
@@ -271,188 +524,26 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 
 	QMutexLocker lock( &m_mutex );
 	QString key = makeKey( vmUuid, vmDirUuid );
-	for (bool q = false;; q = true)
+	for(bool q = false;; q = true)
 	{
 		if (!m_opHash.contains(key))
 		{
-			m_opHash.insert( key, Op( cmd, hSession, sTaskId ) );
-			return PRL_ERR_SUCCESS;
+			m_opHash.insert(key, Task::Vm::Exclusive::Gang(
+						Task::Vm::Exclusive::Event(m_mutex)));
 		}
+		Task::Vm::Exclusive::Gang& g = m_opHash.find(key).value();
+		QScopedPointer<Task::Vm::Exclusive::Conflict>
+			x(g.join(Task::Vm::Exclusive::Unit(cmd, hSession, sTaskId)));
 
-		Op& op = m_opHash.find(key).value();
-		PRL_RESULT result = PRL_ERR_SUCCESS;
-		typedef QMutableHashIterator<PVE::IDispatcherCommands, ExclusiveVmOperations::OperationData>
-			iterator_type;
-
-		for (iterator_type it2(op.hashExecuted); it2.hasNext() && PRL_SUCCEEDED(result);)
-		{
-			it2.next();
-			PVE::IDispatcherCommands execCmd = it2.key();
-
-			bool bIsExecCmdStart = (PVE::DspCmdVmStart == execCmd || PVE::DspCmdVmStartEx == execCmd);
-			if( cmd != execCmd )
-			{
-				if ( PVE::DspCmdVmLock == cmd )
-				{
-					if ( it2.value().hSession != hSession && !bIsExecCmdStart )
-						result = getFailureCode(execCmd);
-					else
-						result = PRL_ERR_SUCCESS;
-				}
-				else
-				{
-					/* set of operations, conflicts with backup operations */
-					QSet<PVE::IDispatcherCommands> cBackupConflictOperations;
-					cBackupConflictOperations
-							<< PVE::DspCmdCreateVmBackup
-							<< PVE::DspCmdRestoreVmBackup
-							<< PVE::DspCmdDirVmDelete
-							<< PVE::DspCmdDirVmMigrate
-							<< PVE::DspCmdDirVmMigrateClone
-							<< PVE::DspCmdDirUnregVm
-							<< PVE::DspCmdVmCompact
-							<< PVE::DspCmdVmResizeDisk
-							<< PVE::DspCmdCtlVmEditWithRename
-							<< PVE::DspCmdVmConvertDisks
-							<< PVE::DspCmdDirVmMove;
-					QSet<PVE::IDispatcherCommands> cSnapshotOperations;
-					cSnapshotOperations
-							<< PVE::DspCmdVmCreateSnapshot
-							<< PVE::DspCmdVmDeleteSnapshot
-							<< PVE::DspCmdVmSwitchToSnapshot
-							<< PVE::DspCmdVmUpdateSnapshotData
-							<< PVE::DspCmdCtlVmCommitDiskUnfinished;
-					QSet<PVE::IDispatcherCommands> cSnapshotConflictOperations;
-					cSnapshotConflictOperations
-							<< PVE::DspCmdDirVmClone
-							<< PVE::DspCmdDirVmCloneLinked
-							<< PVE::DspCmdDirVmMigrate
-							<< PVE::DspCmdDirVmMigrateClone
-							<< PVE::DspCmdDirVmDelete
-							<< PVE::DspCmdDirUnregVm
-							<< PVE::DspCmdDirVmEditCommit
-							<< PVE::DspCmdCtlVmEditWithRename
-							<< PVE::DspCmdCtlVmEditWithHardwareChanged
-							<< PVE::DspCmdCtlVmEditFirewall
-							<< PVE::DspCmdCreateVmBackup
-							<< PVE::DspCmdRestoreVmBackup
-							<< PVE::DspCmdVmResizeDisk
-							<< PVE::DspCmdVmCompact
-							<< PVE::DspCmdVmConvertDisks
-							<< PVE::DspCmdDirCopyImage
-							<< PVE::DspCmdDirVmMove;
-
-					// TODO/FIXME: if need support more then 4 command
-					//       need to implement simple MATRIX instead this ugly if/else logic.
-
-					bool bIsCmdStart = (PVE::DspCmdVmStart == cmd || PVE::DspCmdVmStartEx == cmd);
-					bool bVmIsLockedInCurrentSession = ( PVE::DspCmdVmLock == execCmd && it2.value().hSession == hSession );
-
-					if( (bIsExecCmdStart && PVE::DspCmdDirVmEditCommit == cmd)
-						|| (PVE::DspCmdDirVmEditCommit == execCmd && bIsCmdStart)
-						|| (PVE::DspCmdDirVmEditCommit == execCmd && PVE::DspCmdCtlVmEditWithRename == cmd)
-						|| (bIsExecCmdStart && PVE::DspCmdDirVmMigrate == cmd)
-						|| (bIsExecCmdStart && PVE::DspCmdDirVmMigrateClone == cmd)
-
-						|| ( ! bIsExecCmdStart && PVE::DspCmdCtlVmEditWithHardwareChanged == cmd)
-						|| (PVE::DspCmdCtlVmEditWithHardwareChanged == execCmd && ! bIsCmdStart)
-
-						|| ( ! bIsExecCmdStart && PVE::DspCmdCtlVmEditFirewall == cmd)
-						|| (PVE::DspCmdCtlVmEditFirewall == execCmd && ! bIsCmdStart)
-
-						|| ( ! bIsExecCmdStart && PVE::DspCmdCtlVmEditBootcampReconfigure == cmd)
-						|| (PVE::DspCmdCtlVmEditBootcampReconfigure == execCmd && ! bIsCmdStart)
-						|| (bVmIsLockedInCurrentSession)
-						|| (bIsExecCmdStart && PVE::DspCmdCreateVmBackup == cmd)
-						|| (bIsExecCmdStart && PVE::DspCmdVmCompact == cmd)
-						|| (bIsCmdStart && PVE::DspCmdVmCompact == execCmd)
-						|| (PVE::DspCmdDirVmEditCommit == cmd && PVE::DspCmdVmCompact == execCmd)
-						)
-					{
-						result = PRL_ERR_SUCCESS;
-					}
-					else if ((PVE::DspCmdRestoreVmBackup == cmd)) {
-						if (getReference()->hasBackupConflict(execCmd))
-							result = getFailureCode(execCmd);
-						else
-							result = PRL_ERR_SUCCESS;
-					}
-					else if (PVE::DspCmdCreateVmBackup == execCmd) {
-						if (PVE::DspCmdVmCreateSnapshot == cmd &&
-								it2.value().taskId == sTaskId)
-							// Allow snapshot creation under CreateVmBackup task
-							result = PRL_ERR_SUCCESS;
-						else if (getReference()->hasBackupConflict(cmd))
-							result = getFailureCode(execCmd);
-						else
-							result = PRL_ERR_SUCCESS;
-					}
-					else if (PVE::DspCmdRestoreVmBackup == execCmd) {
-						if (	getReference()->hasBackupConflict(cmd)
-							|| getReference()->isSnapshot(cmd)
-							|| bIsCmdStart
-							)
-							result = getFailureCode(execCmd);
-						else
-							result = PRL_ERR_SUCCESS;
-					}
-					else if ((PVE::DspCmdVmCreateSnapshot == cmd) ||
-						(PVE::DspCmdVmSwitchToSnapshot == cmd) ||
-						(PVE::DspCmdVmDeleteSnapshot == cmd) ||
-						(PVE::DspCmdCtlVmCommitDiskUnfinished == cmd))
-					{
-						if (getReference()->hasSnapshotConflict(execCmd))
-							result = getFailureCode(execCmd);
-						else
-							result = PRL_ERR_SUCCESS;
-					}
-					else if (PVE::DspCmdVmResizeDisk == cmd &&
-							PVE::DspCmdDirVmEditCommit == execCmd &&
-							it2.value().taskId == sTaskId)
-					{
-						result = PRL_ERR_SUCCESS;
-					}
-					else if (getReference()->isClone(cmd) && getReference()->isClone(execCmd))
-						result = PRL_ERR_SUCCESS;
-					else
-					{
-						result = getFailureCode( execCmd );
-					}
-				}
-			}
-			// accept the same operation for VM
-			else if (   PVE::DspCmdDirVmClone == execCmd
-					 || PVE::DspCmdDirVmEditCommit == execCmd
-					 || PVE::DspCmdDirCopyImage == execCmd)
-			{
-				result = PRL_ERR_SUCCESS;
-			}
-			else if (PVE::DspCmdDirVmMigrateClone == execCmd)
-			{
-				/*
-				 * allow more then one simultaneous tasks for the same VM template migration in clone mode,
-				 * (https://jira.sw.ru/browse/PSBM-13328)
-				 */
-				result = PRL_ERR_SUCCESS;
-			}
-			// cmd == execCmd
-			// reject the same operation for VM
-			else
-				result = getFailureCode( execCmd );
-		}// while
-
-		//all OK - need add to executed command
-		if( PRL_SUCCEEDED( result ) )
-		{
-			op.hashExecuted.insert( cmd, OperationData(hSession, sTaskId) );
+		if (x.isNull())
 			return PRL_ERR_SUCCESS;
-		}
-		else if (q)
-			return result;
 
-		QSharedPointer<QWaitCondition> w = op.event;
-		if (!w->wait(&m_mutex, 30000))
-			return result;
+		if (q)
+			return x->getResult();
+
+		PRL_RESULT e = (*x)();
+		if (PRL_FAILED(e))
+			return e;
 	}
 }
 
@@ -471,44 +562,38 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::unregisterOp(
 
 	QMutexLocker lock( &m_mutex );
 
-	QString key = makeKey( vmUuid, vmDirUuid );
-	QHash< QString, Op >::iterator
+	QString key = makeKey(vmUuid, vmDirUuid);
+	QHash< QString, Task::Vm::Exclusive::Gang>::iterator
 		it = m_opHash.find( key );
 
-	//PRL_ASSERT( m_opHash.end() != it );
-	if( m_opHash.end() == it )
-		WRITE_TRACE(DBG_FATAL, "internal error: unsimmetric unregisterOp() for vmid+dirId=%s", QSTR2UTF8( key ) );
+	if (m_opHash.end() == it)
+	{
+		WRITE_TRACE(DBG_FATAL, "internal error: unsimmetric "
+			"unregisterOp() for vmid+dirId=%s", QSTR2UTF8( key ) );
+	}
+	else if (PVE::DspCmdVmLock == cmd)
+	{
+		if (!it.value().eraseFirst(PVE::DspCmdVmLock, hSession))
+			return (PRL_ERR_NOT_LOCK_OWNER_SESSION_TRIES_TO_UNLOCK);
+
+		goto ok;
+	}
+	else if (it.value().eraseFirst(cmd))
+		goto ok;
 	else
 	{
-		Op& op = it.value();
-		ExecutedHash::iterator cmd_it = op.hashExecuted.find( cmd );
-		if( op.hashExecuted.end() != cmd_it )
-		{
-			if ( PVE::DspCmdVmLock == cmd )
-			{
-				if ( cmd_it.value().hSession != hSession )
-					return (PRL_ERR_NOT_LOCK_OWNER_SESSION_TRIES_TO_UNLOCK);
-			}
-			op.hashExecuted.erase( cmd_it );
-			op.event->wakeOne();
-			if( op.hashExecuted.empty() )
-				m_opHash.erase( it );
-
-			return (PRL_ERR_SUCCESS);
-		}
-		else
-		{
-			WRITE_TRACE(DBG_FATAL, " internal error: for key %s, not found command %s[%#x]",
-				QSTR2UTF8( key )
-				, PVE::DispatcherCommandToString( cmd )
-				, cmd );
-		}
+		WRITE_TRACE(DBG_FATAL, " internal error: for key %s, not found command %s[%#x]",
+			QSTR2UTF8( key )
+			, PVE::DispatcherCommandToString( cmd )
+			, cmd );
 	}
+	return PVE::DspCmdVmLock == cmd ? PRL_ERR_VM_IS_NOT_LOCKED : PRL_ERR_FAILURE;
 
-	if ( PVE::DspCmdVmLock == cmd )
-		return (PRL_ERR_VM_IS_NOT_LOCKED);
-	else
-		return (PRL_ERR_FAILURE);
+ok:
+	if (it.value().isEmpty())
+		m_opHash.erase(it);
+
+	return (PRL_ERR_SUCCESS);
 }
 
 PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::replaceOp(
@@ -530,34 +615,30 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::replaceOp(
 	QMutexLocker lock( &m_mutex );
 
 	QString key = makeKey( vmUuid, vmDirUuid );
-	QHash< QString, Op >::iterator
+	QHash<QString, Task::Vm::Exclusive::Gang>::iterator
 		it = m_opHash.find( key );
 
 	if ( m_opHash.end() == it )
-		WRITE_TRACE(DBG_FATAL, "internal error: key not found for replaceOp() for vmid+dirId=%s", QSTR2UTF8( key ) );
-	else
 	{
-		Op& op = it.value();
-		ExecutedHash::iterator cmd_it = op.hashExecuted.find( fromCmd );
-		if ( op.hashExecuted.end() != cmd_it )
-		{
-			OperationData opData(hSession, cmd_it.value().taskId);
-
-			op.hashExecuted.erase( cmd_it );
-//			PRL_ASSERT(op.hashExecuted.isEmpty());
-			op.hashExecuted.insert( toCmd, opData);
-			return (PRL_ERR_SUCCESS);
-		}
-		else
-		{
-			WRITE_TRACE(DBG_FATAL, "REPLACE: internal error: for key %s, not found command %s[%#x]",
-				QSTR2UTF8( key )
-				, PVE::DispatcherCommandToString( fromCmd )
-				, fromCmd );
-		}
+		WRITE_TRACE(DBG_FATAL, "internal error: key not found for replaceOp() for vmid+dirId=%s", QSTR2UTF8( key ) );
+		return (PRL_ERR_FAILURE);
 	}
+	const Task::Vm::Exclusive::Unit* f = it.value().findFirst(fromCmd);
+	if (NULL == f)
+	{
+		WRITE_TRACE(DBG_FATAL, "REPLACE: internal error: for key %s, not found command %s[%#x]",
+			QSTR2UTF8( key )
+			, PVE::DispatcherCommandToString( fromCmd )
+			, fromCmd );
+		return (PRL_ERR_FAILURE);
+	}
+	Task::Vm::Exclusive::Unit u(toCmd, hSession, f->getTaskId());
+	it.value().eraseFirst(fromCmd);
+	QScopedPointer<Task::Vm::Exclusive::Conflict> x(it.value().join(u));
+	if (x.isNull())
+		return PRL_ERR_SUCCESS;
 
-	return (PRL_ERR_FAILURE);
+	return x->getResult();
 }
 
 IOSender::Handle CDspVmDirHelper::ExclusiveVmOperations::getVmLockerHandle( const QString& vmUuid, const QString& vmDirUuid ) const
@@ -565,58 +646,29 @@ IOSender::Handle CDspVmDirHelper::ExclusiveVmOperations::getVmLockerHandle( cons
 	QMutexLocker lock( &m_mutex );
 
 	QString key = makeKey( vmUuid, vmDirUuid );
-	QHash< QString, Op >::const_iterator it = m_opHash.find( key );
+	QHash<QString, Task::Vm::Exclusive::Gang>::const_iterator it = m_opHash.find(key);
 
 	if( m_opHash.end() != it )
 	{
-		const Op& op = it.value();
-		ExecutedHash::const_iterator cmd_it = op.hashExecuted.find( PVE::DspCmdVmLock );
-		if( op.hashExecuted.end() != cmd_it )
-			return ( cmd_it.value().hSession );
+		const Task::Vm::Exclusive::Unit* u = it.value().findFirst(PVE::DspCmdVmLock);
+		if (NULL != u)
+			return u->getSession();
 	}
 
 	return (IOSender::Handle());
 }
 
-QList<QString> CDspVmDirHelper::ExclusiveVmOperations::getTasksUnderExclusiveOperation( const CVmIdent &vmIdent ) const
-{
-	QMutexLocker lock( &m_mutex );
-
-	QString key = makeKey( vmIdent.first, vmIdent.second );
-	QHash< QString, Op >::const_iterator it = m_opHash.find( key );
-
-	QList<QString> lstTask;
-	if( m_opHash.end() != it )
-	{
-		ExecutedHash::const_iterator cmd_it = it.value().hashExecuted.begin(),
-						cmd_eit = it.value().hashExecuted.end();
-		for (; cmd_it != cmd_eit; ++cmd_it)
-		{
-			if (!cmd_it.value().taskId.isEmpty())
-				lstTask += cmd_it.value().taskId;
-		}
-	}
-
-	return lstTask;
-}
-
 void CDspVmDirHelper::ExclusiveVmOperations::cleanupSessionVmLocks( const IOSender::Handle &hSession )
 {
 	QMutexLocker lock( &m_mutex );
-	QHash< QString, Op >::iterator it = m_opHash.begin();
+	QHash<QString, Task::Vm::Exclusive::Gang>::iterator it = m_opHash.begin();
 	while ( m_opHash.end() != it )
 	{
-		Op& op = it.value();
-		ExecutedHash::iterator cmd_it = op.hashExecuted.begin();
-		while ( op.hashExecuted.end() != cmd_it )
+		while(it.value().eraseFirst(PVE::DspCmdVmLock, hSession))
 		{
-			if ( PVE::DspCmdVmLock == cmd_it.key() && cmd_it.value().hSession == hSession )
-				cmd_it = op.hashExecuted.erase( cmd_it );
-			else
-				++cmd_it;
 		}
-		if( op.hashExecuted.empty() )
-			it = m_opHash.erase( it );
+		if (it.value().isEmpty())
+			it = m_opHash.erase(it);
 		else
 			++it;
 	}
@@ -625,70 +677,6 @@ void CDspVmDirHelper::ExclusiveVmOperations::cleanupSessionVmLocks( const IOSend
 QString CDspVmDirHelper::ExclusiveVmOperations::makeKey( const QString& vmUuid, const QString& vmDirUuid ) const
 {
 	return vmUuid + vmDirUuid;
-}
-
-PRL_RESULT CDspVmDirHelper::ExclusiveVmOperations::getFailureCode( PVE::IDispatcherCommands executedCmd )
-{
-	switch( executedCmd )
-	{
-	case PVE::DspCmdDirVmClone:
-	case PVE::DspCmdDirVmCloneLinked:
-		return PRL_ERR_VM_LOCKED_FOR_CLONE;
-	case PVE::DspCmdDirVmDelete:
-		return PRL_ERR_VM_LOCKED_FOR_DELETE;
-	case PVE::DspCmdDirUnregVm:
-		return PRL_ERR_VM_LOCKED_FOR_UNREGISTER;
-	case PVE::DspCmdDirVmEditCommit:
-		return PRL_ERR_VM_LOCKED_FOR_EDIT_COMMIT;
-	case PVE::DspCmdVmStart:
-		return PRL_ERR_VM_LOCKED_FOR_EXECUTE;
-	case PVE::DspCmdVmStartEx:
-		return PRL_ERR_VM_LOCKED_FOR_EXECUTE_EX;
-	case PVE::DspCmdDirVmMigrate:
-		return PRL_ERR_VM_LOCKED_FOR_MIGRATE;
-	case PVE::DspCmdDirVmMigrateClone:
-		return PRL_ERR_VM_LOCKED_FOR_MIGRATE;
-	case PVE::DspCmdCtlVmEditWithRename:
-		return PRL_ERR_VM_LOCKED_FOR_EDIT_COMMIT_WITH_RENAME;
-	case PVE::DspCmdVmUpdateSecurity:
-		return PRL_ERR_VM_LOCKED_FOR_UPDATE_SECURITY;
-	case PVE::DspCmdCtlVmEditWithHardwareChanged:
-	case PVE::DspCmdCtlVmEditBootcampReconfigure:
-		return PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
-	case PVE::DspCmdVmCreateSnapshot:
-		return PRL_ERR_VM_LOCKED_FOR_CREATE_SNAPSHOT;
-	case PVE::DspCmdVmSwitchToSnapshot:
-		return PRL_ERR_VM_LOCKED_FOR_SWITCH_TO_SNAPSHOT;
-	case PVE::DspCmdVmDeleteSnapshot:
-	case PVE::DspCmdCtlVmCommitDiskUnfinished:
-		return PRL_ERR_VM_LOCKED_FOR_DELETE_TO_SNAPSHOT;
-	case PVE::DspCmdCreateVmBackup:
-		return PRL_ERR_VM_LOCKED_FOR_BACKUP;
-	case PVE::DspCmdCtlCreateVmBackup:
-		return PRL_ERR_VM_LOCKED_CTL_FOR_BACKUP;
-	case PVE::DspCmdRestoreVmBackup:
-		return PRL_ERR_VM_LOCKED_FOR_RESTORE_FROM_BACKUP;
-	case PVE::DspCmdVmLock:
-		return PRL_ERR_VM_IS_EXCLUSIVELY_LOCKED;
-	case PVE::DspCmdVmResizeDisk:
-		return PRL_ERR_VM_LOCKED_FOR_DISK_RESIZE;
-	case PVE::DspCmdVmCompact:
-		return PRL_ERR_VM_LOCKED_FOR_DISK_COMPACT;
-	case PVE::DspCmdVmConvertDisks:
-		return PRL_ERR_VM_LOCKED_FOR_DISK_CONVERT;
-	case PVE::DspCmdCtlVmEditFirewall:
-		return PRL_ERR_VM_LOCKED_FOR_CHANGE_FIREWALL;
-	case PVE::DspCmdDirCopyImage:
-		return PRL_ERR_VM_LOCKED_FOR_COPY_IMAGE;
-	case PVE::DspCmdDirVmMove:
-		return PRL_ERR_VM_LOCKED_FOR_MOVE;
-	case PVE::DspCmdVmMount:
-		return PRL_ERR_VM_LOCKED_FOR_INTERNAL_REASON;
-	default:
-		PRL_ASSERT( PRL_ERR_VM_LOCKED_FOR_INTERNAL_REASON == 0 );
-		return PRL_ERR_VM_LOCKED_FOR_INTERNAL_REASON;
-	};
-
 }
 
 // constructor
@@ -953,7 +941,7 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 					QSTR2UTF8(pDirectoryItem->getVmUuid()), rc, PRL_RESULT_TO_STRING(rc)
 					);
 
-				if( CDspService::isServerMode() && PRL_ERR_ACCESS_TO_VM_DENIED == rc )
+				if (PRL_ERR_ACCESS_TO_VM_DENIED == rc)
 					continue;
 
 				if (nFlags & PGVLF_GET_ONLY_IDENTITY_INFO)
@@ -1175,9 +1163,7 @@ bool CDspVmDirHelper::sendVmConfigByUuid ( const IOSender::Handle& sender,
 			, QSTR2UTF8(vm_uuid), rc, PRL_RESULT_TO_STRING(rc)
 			);
 
-		if( !CDspService::isServerMode()
-			|| ( CDspService::isServerMode() && rc != PRL_ERR_ACCESS_TO_VM_DENIED )
-		)
+		if (rc != PRL_ERR_ACCESS_TO_VM_DENIED)
 		{
 			pVmConfig = CreateDefaultVmConfigByRcValid(pUserSession, rc, vm_uuid);
 		}
@@ -1436,9 +1422,16 @@ bool CDspVmDirHelper::sendVmToolsInfo(const IOSender::Handle& sender,
 	}
 
 	// Get tools state
-	QString toolsStateVersion;
-	std::pair<PRL_VM_TOOLS_STATE, QString> toolsState =
-		m_registry.find(vm_uuid).getToolsState();
+	QString toolsVersion;
+	PRL_VM_TOOLS_STATE toolsState = m_registry.find(vm_uuid).getToolsState();
+	SmartPtr<CVmConfiguration> pVmConfig =
+		getVmConfigByUuid(pUserSession, vm_uuid, err);
+	if (pVmConfig) {
+		toolsVersion = pVmConfig->getVmSettings()->getVmTools()->getAgentVersion();
+		// override tools state for templates from config
+		if (!toolsVersion.isEmpty() && toolsState == PTS_NOT_INSTALLED)
+			toolsState = PTS_POSSIBLY_INSTALLED;
+	}
 
 	////////////////////////////////////////////////////////////////////////
 	// prepare response
@@ -1446,10 +1439,10 @@ bool CDspVmDirHelper::sendVmToolsInfo(const IOSender::Handle& sender,
 
 	CVmEvent rev;
 	rev.addEventParameter( new CVmEventParameter(PVE::Integer
-				, QString::number(toolsState.first)
+				, QString::number(toolsState)
 				, EVT_PARAM_VM_TOOLS_STATE ));
 	rev.addEventParameter( new CVmEventParameter(PVE::String
-				, toolsState.second
+				, toolsVersion
 				, EVT_PARAM_VM_TOOLS_VERSION ));
 
 	CProtoCommandPtr pCmd = CProtoSerializer::CreateDspWsResponseCommand( pkg, PRL_ERR_SUCCESS );
@@ -1789,8 +1782,7 @@ void CDspVmDirHelper::unregVm(
 	{
 		sendNotValidState(pUserSession, err, vm_uuid, bSetNotValid);
 		bool flgDenyToUnregConfig = (
-				CDspService::isServerMode()
-				&& PRL_ERR_VM_CONFIG_DOESNT_EXIST == err
+				PRL_ERR_VM_CONFIG_DOESNT_EXIST == err
 				&& ! pUserSession->getAuthHelper().isLocalAdministrator()
 				);
 
@@ -2911,8 +2903,6 @@ void CDspVmDirHelper::setNetworkRate(
 		const SmartPtr<IOPackage> pPackage)
 {
 #ifdef _CT_
-	if (!CDspService::isServerMode())
-		return;
 	if (CVzHelper::is_vz_running() != 1 )
 		return;
 
@@ -2941,30 +2931,6 @@ void CDspVmDirHelper::fillOuterConfigParams(
 	appendAdvancedParamsToVmConfig( pUserSession, pOutVmConfig, true, bFillAutogenerated );
 
 	UpdateHardDiskInformation(pOutVmConfig);
-}
-
-void CDspVmDirHelper::restartNetworkShaping(
-		bool initConfig,
-		SmartPtr<CDspClient> pUser,
-		const SmartPtr<IOPackage> pPackage)
-{
-#ifdef _CT_
-	if (!CDspService::isServerMode())
-		return;
-	if (CVzHelper::is_vz_running() != 1 )
-		return;
-	// update config
-	if (initConfig)
-		CDspService::instance()->initNetworkShapingConfiguration();
-
-	CDspService::instance()->getTaskManager()
-		.schedule(new Task_ManagePrlNetService(
-			pUser, pPackage, PVE::DspCmdRestartNetworkShaping));
-#else
-	Q_UNUSED(initConfig);
-	Q_UNUSED(pUser);
-	Q_UNUSED(pPackage);
-#endif
 }
 
 PRL_RESULT CDspVmDirHelper::UpdateHardDiskInformation(SmartPtr<CVmConfiguration> &pConfig)
@@ -3016,7 +2982,22 @@ PRL_RESULT	CDspVmDirHelper::registerExclusiveVmOperation( const QString& vmUuid,
 		const IOSender::Handle &hUserSession,
 		const QString &sTaskId )
 {
-	return m_exclusiveVmOperations.registerOp( vmUuid, vmDirUuid, cmd, hUserSession, sTaskId );
+	QString u = sTaskId;
+	do
+	{
+		if (!sTaskId.isEmpty())
+		       break;
+
+		QThread* x = QThread::currentThread();
+		if (NULL == x)
+		       break;
+
+		if (!x->inherits("CDspTaskHelper"))
+		       break;
+
+		u = x->objectName();
+	} while(false);
+	return m_exclusiveVmOperations.registerOp(vmUuid, vmDirUuid, cmd, hUserSession, u);
 }
 
 PRL_RESULT  CDspVmDirHelper::unregisterExclusiveVmOperation( const QString& vmUuid,
@@ -3039,11 +3020,6 @@ PRL_RESULT  CDspVmDirHelper::replaceExclusiveVmOperation( const QString& vmUuid,
 IOSender::Handle CDspVmDirHelper::getVmLockerHandle( const QString& vmUuid, const QString& vmDirUuid ) const
 {
 	return m_exclusiveVmOperations.getVmLockerHandle( vmUuid, vmDirUuid );
-}
-
-QList<QString> CDspVmDirHelper::getTasksUnderExclusiveOperation( const CVmIdent &vmIdent ) const
-{
-	return m_exclusiveVmOperations.getTasksUnderExclusiveOperation( vmIdent );
 }
 
 void CDspVmDirHelper::cleanupSessionVmLocks( const IOSender::Handle &hSession )
