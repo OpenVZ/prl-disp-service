@@ -190,7 +190,6 @@ public:
 	static int get_network_classes_config(CNetworkClassesConfig &conf);
 	static int update_network_shaping_config(const CNetworkShapingConfig &conf);
 	static int get_network_shaping_config(CNetworkShapingConfig &conf);
-	static int set_rate(const QString &uuid, const CVmNetworkRates &lstRate);
 
 	static SmartPtr<CVmConfiguration> get_env_config_by_ctid(const QString &ctid);
 	static SmartPtr<CVmConfiguration> get_env_config(const QString &uuid);
@@ -416,6 +415,7 @@ public:
 		SmartPtr<CVmConfiguration> &pOldConfig, const QString &sNewConfName);
 	int get_env_netinfo(const QString &uuid, QList<CHwNetAdapter*> &adapters);
 
+	int set_rate(const QString &uuid, const CVmNetworkRates &lstRate);
 private:
 	CVzOperationCleaner &get_cleaner() { return m_cleaner; }
 	PRL_RESULT run_prg(const char *name, const QStringList &lstArgs, bool quiet = false);

@@ -458,7 +458,9 @@ PRL_RESULT Task_NetworkShapingManagement::setNetworkRate(const CVmConfiguration 
 
 	if (lstRates.m_lstNetworkRates.empty())
 		return PRL_ERR_SUCCESS;
-	return CVzHelper::set_rate(config_.getVmIdentification()->getVmUuid(), lstRates);
+
+	CVzOperationHelper vz;
+	return vz.set_rate(config_.getVmIdentification()->getVmUuid(), lstRates);
 }
 
 PRL_RESULT Task_NetworkShapingManagement::ConcreteDoBackgroundJob()
