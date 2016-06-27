@@ -223,7 +223,7 @@ int CVzNetworkShaping::update_network_shaping_config(const CNetworkShapingConfig
 
 	// Apply changes
 	args += "shaperrestart";
-	res = run_prg("/etc/init.d/vz", args);
+	res = run_prg("/usr/libexec/vz", args);
 	if (PRL_FAILED(res)) {
 		WRITE_TRACE(DBG_FATAL, "Failed to restart network shaping,"
 			" error = 0x%x", res);
