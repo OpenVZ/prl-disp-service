@@ -70,6 +70,56 @@
 
 #include <memory>
 
+namespace
+{
+namespace Edit
+{
+namespace Network
+{
+////////////////////////////////////////////////////////////////////////////////
+// Shaping
+
+struct Shaping: std::unary_function<void, CDispCommonPreferences&>
+{
+	Shaping(CNetworkShapingConfig& shaping_): m_shaping(&shaping_)
+	{
+	}
+
+	void operator()(CDispCommonPreferences& config_)
+	{
+		config_.getNetworkPreferences()
+			->setNetworkShapingConfig(new CNetworkShapingConfig(m_shaping));
+	};
+
+private:
+	CNetworkShapingConfig* m_shaping;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// Classes
+
+struct Classes: std::unary_function<void, CDispCommonPreferences&>
+{
+	Classes(CNetworkClassesConfig& classes_): m_classes(&classes_)
+	{
+	}
+
+	void operator()(CDispCommonPreferences& config_)
+	{
+		config_.getNetworkPreferences()
+			->setNetworkClassesConfig(new CNetworkClassesConfig(m_classes));
+	};
+
+private:
+	CNetworkClassesConfig* m_classes;
+};
+
+} // namespace Network
+} // namespace Edit
+} // namespace
+
+
+
 using namespace Parallels;
 
 static int getPrlAdapterIdx(CVirtualNetwork* pVirtualNetwork)
@@ -1473,9 +1523,6 @@ QSet<QString> Task_ManagePrlNetService::extractRoutedIPAddressesFromVMConfigurat
 
 PRL_RESULT Task_ManagePrlNetService::cmdUpdateNetworkClassesConfig()
 {
-#ifndef _CT_
-	return PRL_ERR_UNIMPLEMENTED;
-#else
 	QString sXml;
 	PRL_RESULT prlResult = getFirstStrParam(getRequestPackage(), sXml);
 	if (PRL_FAILED(prlResult))
@@ -1493,17 +1540,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateNetworkClassesConfig()
 	if (CVzHelper::update_network_classes_config(conf))
 		return PRL_ERR_FAILURE;
 
-	CDspLockedPointer<CParallelsNetworkConfig>
-		pNetworkConfig = CDspService::instance()->getNetworkConfig();
-	pNetworkConfig->setNetworkClassesConfig(new CNetworkClassesConfig(conf));
-	prlResult = PrlNet::WriteNetworkConfig(*pNetworkConfig.getPtr());
-	if (PRL_FAILED(prlResult))
-	{
-		WRITE_TRACE(DBG_FATAL, "Failed to update Parallels Network Config: %x", (unsigned)prlResult);
-	}
-
-	return PRL_ERR_SUCCESS;
-#endif
+	return CDspService::instance()->updateCommonPreferences(Edit::Network::Classes(conf));
 }
 
 QMutex *Task_ManagePrlNetService::g_pRestartShapingMtx = new QMutex(QMutex::Recursive);
@@ -1550,9 +1587,6 @@ PRL_RESULT Task_ManagePrlNetService::cmdRestartNetworkShaping()
 
 PRL_RESULT Task_ManagePrlNetService::cmdUpdateNetworkShapingConfig()
 {
-#ifndef _CT_
-	return PRL_ERR_UNIMPLEMENTED;
-#else
 	QString sXml;
 	PRL_RESULT prlResult = getFirstStrParam(getRequestPackage(), sXml);
 	if (PRL_FAILED(prlResult))
@@ -1566,26 +1600,12 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateNetworkShapingConfig()
 		WRITE_TRACE(DBG_FATAL, "Network class parsing error!");
 		return PRL_ERR_INVALID_ARG;
 	}
+
 	// FIXME: validate shaping configuration on on network classes basis.
 	if (CVzHelper::update_network_shaping_config(conf))
 		return PRL_ERR_FAILURE;
 
-#ifdef _LIN_
-	// VZWIN shaper does not require restart
-	cmdRestartNetworkShaping();
-#endif
-
-	CDspLockedPointer<CParallelsNetworkConfig>
-		pNetworkConfig = CDspService::instance()->getNetworkConfig();
-	pNetworkConfig->setNetworkShapingConfig(new CNetworkShapingConfig(conf));
-	prlResult = PrlNet::WriteNetworkConfig(*pNetworkConfig.getPtr());
-	if (PRL_FAILED(prlResult))
-	{
-		WRITE_TRACE(DBG_FATAL, "Failed to update Parallels Network Config: %x", (unsigned)prlResult);
-	}
-
-	return PRL_ERR_SUCCESS;
-#endif
+	return CDspService::instance()->updateCommonPreferences(Edit::Network::Shaping(conf));
 }
 
 

@@ -346,25 +346,12 @@ void Task_UpdateCommonPrefs::finalizeTask()
 
 	if ( PRL_SUCCEEDED( getLastErrorCode() ) )
 	{
-		/**
-		 * Notify users that common server prefs were changed
-		 */
-
-		CVmEvent event( PET_DSP_EVT_COMMON_PREFS_CHANGED,
-						QString(),
-						PIE_DISPATCHER);
-
-		SmartPtr<IOPackage> p =
-			DispatcherPackage::createInstance( PVE::DspVmEvent, event, getRequestPackage());
-
-		CDspService::instance()->getClientManager().sendPackageToAllClients( p );
-
 		//Update host info now in view of virtual network adapters list can be changed
 		CDspService::instance()->getHostInfo()->refresh();
-		event.setEventType(PET_DSP_EVT_HW_CONFIG_CHANGED);
-		p = DispatcherPackage::createInstance( PVE::DspVmEvent, event, getRequestPackage());
+		CVmEvent event(PET_DSP_EVT_HW_CONFIG_CHANGED, QString(), PIE_DISPATCHER);
+		SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, event, getRequestPackage());
 
-		CDspService::instance()->getClientManager().sendPackageToAllClients( p );
+		CDspService::instance()->getClientManager().sendPackageToAllClients(p);
 
 		CDspService::instance()->notifyConfigChanged(m_pOldCommonPrefs, m_pNewCommonPrefs);
 	}

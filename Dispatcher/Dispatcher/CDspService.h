@@ -274,12 +274,11 @@ public:
 										PermissionType perm );
 public:
 
-	void initNetworkShapingConfiguration();
-
 	void initPrivateNetworks();
 
 	void emitCleanupOnUserSessionDestroy( QString sessionUuid );
 
+	PRL_RESULT updateCommonPreferences(const boost::function1<void, CDispCommonPreferences&>& action_);
 	void notifyConfigChanged(const SmartPtr<CDispCommonPreferences>&, const SmartPtr<CDispCommonPreferences>&);
 
 public slots:
@@ -372,6 +371,7 @@ private:
 	// reading configuration. Otherwise, networking service will be notified only if dispatcher
 	// have somehow fixed configuration.
 	bool initNetworkConfig(bool bNotifyNetworkService = false);
+	void initNetworkPreferences(CDispCommonPreferences& config_);
 
 	bool checkVmPermissions();
 	void checkRunningVms();
