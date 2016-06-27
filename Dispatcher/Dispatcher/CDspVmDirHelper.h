@@ -460,11 +460,6 @@ public:
 			const SmartPtr<IOPackage> p =
 				DispatcherPackage::createInstance( PVE::DspCmdCtlDispatherFakeCommand )
 			);
-	void restartNetworkShaping(
-			bool initConfig,
-			SmartPtr<CDspClient> pUser,
-			const SmartPtr<IOPackage> pPackage);
-
 	/**
 	* Generate "VM security changed" event for usr session
 	* @param vm dir uuid

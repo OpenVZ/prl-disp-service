@@ -2933,28 +2933,6 @@ void CDspVmDirHelper::fillOuterConfigParams(
 	UpdateHardDiskInformation(pOutVmConfig);
 }
 
-void CDspVmDirHelper::restartNetworkShaping(
-		bool initConfig,
-		SmartPtr<CDspClient> pUser,
-		const SmartPtr<IOPackage> pPackage)
-{
-#ifdef _CT_
-	if (CVzHelper::is_vz_running() != 1 )
-		return;
-	// update config
-	if (initConfig)
-		CDspService::instance()->initNetworkShapingConfiguration();
-
-	CDspService::instance()->getTaskManager()
-		.schedule(new Task_ManagePrlNetService(
-			pUser, pPackage, PVE::DspCmdRestartNetworkShaping));
-#else
-	Q_UNUSED(initConfig);
-	Q_UNUSED(pUser);
-	Q_UNUSED(pPackage);
-#endif
-}
-
 PRL_RESULT CDspVmDirHelper::UpdateHardDiskInformation(SmartPtr<CVmConfiguration> &pConfig)
 {
 	if (pConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
