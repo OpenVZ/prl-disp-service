@@ -1614,41 +1614,10 @@ bool Task_ManagePrlNetService::g_restartShaping = false;
 
 PRL_RESULT Task_ManagePrlNetService::cmdRestartNetworkShaping()
 {
-#ifndef _CT_
-	return PRL_ERR_UNIMPLEMENTED;
-#else
-	{
-		CDspLockedPointer<CParallelsNetworkConfig>
-		pNetworkConfig = CDspService::instance()->getNetworkConfig();
-		if (!pNetworkConfig->getNetworkShapingConfig()->isEnabled())
-			return PRL_ERR_SUCCESS;
+	// call shaperrestart here!
 
-		QMutexLocker _lock(g_pRestartShapingMtx);
-		if (g_restartShaping)
-		{
-			WRITE_TRACE(DBG_FATAL, "Shaping restart in progress");
-			return PRL_ERR_SUCCESS;
-		}
-
-		g_restartShaping = true;
-	}
-
-	WRITE_TRACE(DBG_FATAL, "Restart network shaping");
-	QList< SmartPtr<CDspVm> > lstVms = CDspService::instance()->getVmManager().getAllRunningVms();
-	foreach(SmartPtr<CDspVm> pVm, lstVms)
-	{
-		PRL_RESULT nRetCode;
-		SmartPtr<CVmConfiguration> pVmCfg = CDspService::instance()->getVmDirHelper().
-						getVmConfigByUuid(pVm->getVmDirUuid(), pVm->getVmUuid(), nRetCode);
-		if (!pVmCfg || !PRL_SUCCEEDED(nRetCode))
-			continue;
-
-		Task_NetworkShapingManagement::setNetworkRate(*pVmCfg);
-	}
-	QMutexLocker _lock(g_pRestartShapingMtx);
-	g_restartShaping = false;
+	Network::Config::Watcher().updateRates();
 	return PRL_ERR_SUCCESS;
-#endif
 }
 
 PRL_RESULT Task_ManagePrlNetService::cmdUpdateNetworkShapingConfig()
