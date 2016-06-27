@@ -141,15 +141,6 @@ void Task_VzStateMonitor::sendState(const QString &ctid, int state)
 	WRITE_TRACE( DBG_INFO, "vzevent: state=%d, envid=%s",
 			state, QSTR2UTF8(ctid));
 
-#ifdef _LIN_
-	// Node events
-	if (state == VZCTL_NET_SHAPING_CONFIG_CHANGED) {
-		CDspService::instance()->getVmDirHelper().restartNetworkShaping(
-						true, getClient(), getRequestPackage());
-		return;
-	}
-#endif
-
 	// Container events
 	if (state == VZCTL_ENV_CREATED ||
 			state == VZCTL_ENV_REGISTERED)
