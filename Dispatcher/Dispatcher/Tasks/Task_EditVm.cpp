@@ -2782,6 +2782,7 @@ bool Transfer::execute(CDspTaskFailure& feedback_)
 		return Action::execute(feedback_);
 	}
 
+	t->setCtId(m_target == DspVm::vdm().getTemplatesDirectoryUuid() ? m_target : QString());
 	res = DspVm::vdh().insertVmDirectoryItem(m_target, t.data());
 	if (PRL_FAILED(res)) {
 		WRITE_TRACE(DBG_FATAL, "Unable to add directory item (%s)", PRL_RESULT_TO_STRING(res));
@@ -2794,17 +2795,73 @@ bool Transfer::execute(CDspTaskFailure& feedback_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Patch
+
+Patch::Patch(const Request& input_):
+	m_home(input_.getFinal().getVmIdentification()->getHomePath()),
+	m_name(input_.getFinal().getVmIdentification()->getVmName()),
+	m_ident(input_.getObject())
+{
+	CDspLockedPointer<CDispUser> u = CDspService::instance()->getDispConfigGuard()
+		.getDispUserByUuid(input_.getTask().getClient()->getUserSettingsUuid());
+
+	if(u.isValid())
+		m_editor = u->getUserName();
+}
+
+bool Patch::execute(CDspTaskFailure& feedback_)
+{
+	CDspVmDirManager& dirManager = DspVm::vdm();
+	CDspLockedPointer<CVmDirectoryItem> dirItem = dirManager
+		.getVmDirItemByUuid(m_ident.second, m_ident.first);
+
+	if (!dirItem)
+	{
+		feedback_(PRL_ERR_VM_DIRECTORY_NOT_EXIST);
+		return false;
+	}
+
+	// #441667 - set the same parameters for shared vm
+	CDspVmDirManager::VmDirItemsHash sharedVmHash = dirManager
+		.findVmDirItemsInCatalogue(dirItem->getVmUuid(), dirItem->getVmHome());
+
+	foreach(CDspLockedPointer<CVmDirectoryItem> dirSharedItem, sharedVmHash)
+	{
+		dirSharedItem->setChangedBy(m_editor);
+		dirSharedItem->setChangeDateTime(QDateTime::currentDateTime());
+		dirSharedItem->setVmName(m_name);
+		dirSharedItem->setVmHome(m_home);
+
+		/* old code
+		pVmDirSharedItem->getLockedOperationsList()->setLockedOperations(lstNewLockedOperations);
+		pVmDirSharedItem->getLockDown()->setEditingPasswordHash(newLockDownHash);
+		*/
+	}
+	dirItem->setVmHome(m_home);
+	dirItem->setVmName(m_name);
+
+	PRL_RESULT ret = dirManager.updateVmDirItem(dirItem);
+	if (PRL_FAILED(ret))
+	{
+		WRITE_TRACE(DBG_FATAL, "Can't update VmCatalogue by error %#x, %s", ret, PRL_RESULT_TO_STRING(ret));
+		feedback_(ret);
+		return false;
+	}
+	return Vm::Action::execute(feedback_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Apply
 
 Action* Apply::operator()(const Request& input_) const
 {
 	Forge f(input_);
+	Action* n = NULL, *output = new Patch(input_);
 	bool a = input_.getStart().getVmSettings()->getVmCommonOptions()->isTemplate();
 	bool b = input_.getFinal().getVmSettings()->getVmCommonOptions()->isTemplate();
 	if (a != b)
 	{
 		QString t;
-		Action* n = NULL;
 		if (b)
 		{
 			n = f.craft(boost::bind(&vm::Unit::undefine, _1));
@@ -2816,24 +2873,26 @@ Action* Apply::operator()(const Request& input_) const
 				(input_.getFinal())));
 			t = input_.getTask().getClient()->getVmDirectoryUuid();
 		}
-		Action *output(new Transfer(input_.getObject(), t));
-		output->setNext(n);
+		Action* a = new Transfer(input_.getObject(), t);
+		a->setNext(n);
+		output->setNext(a);
 		return output;
 	}
 	if (b)
-		return NULL;
+		return output;
 
 	QString x = input_.getStart().getVmIdentification()->getVmName();
 	QString y = input_.getFinal().getVmIdentification()->getVmName();
+	n = f.craft(boost::bind(&vm::Unit::setConfig, _1,
+			boost::cref(input_.getFinal())));
+	n->setNext(output);
 	if (x == y)
+		output = n;
+	else
 	{
-		return f.craft(boost::bind(&vm::Unit::setConfig, _1,
-				boost::cref(input_.getFinal())));
+		output = f.craft(boost::bind(&vm::Unit::rename, _1, y));
+		output->setNext(n);
 	}
-	Action* output = f.craft(boost::bind(&vm::Unit::rename, _1, y));
-	output->setNext(f.craft(boost::bind(&vm::Unit::setConfig, _1,
-				boost::cref(input_.getFinal()))));
-
 	return output;
 }
 
@@ -2899,78 +2958,6 @@ bool Action<CVmStartupBios>::execute(CDspTaskFailure& feedback_)
 }
 
 } // namespace Create
-
-namespace Update
-{
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Directory
-
-Vm::Action* Directory::operator()(const Request& input_) const
-{
-	return new Action(input_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Action
-
-Action::Action(const Request& input_): m_vmIdent(input_.getObject()),
-	m_vmName(input_.getFinal().getVmIdentification()->getVmName()),
-	m_isTemplate(input_.getFinal().getVmSettings()->getVmCommonOptions()->isTemplate())
-{
-	CDspLockedPointer<CDispUser> u = CDspService::instance()->getDispConfigGuard()
-		.getDispUserByUuid(input_.getTask().getClient()->getUserSettingsUuid());
-
-	if(u.isValid())
-		m_userName = u->getUserName();
-
-	if (m_vmName != input_.getStart().getVmIdentification()->getVmName())
-		m_vmHome = input_.getFinal().getVmIdentification()->getHomePath();
-}
-
-bool Action::execute(CDspTaskFailure& feedback_)
-{
-	CDspVmDirManager& dirManager = DspVm::vdm();
-	CDspLockedPointer<CVmDirectoryItem> dirItem = dirManager
-		.getVmDirItemByUuid(m_vmIdent.second, m_vmIdent.first);
-
-	if (!dirItem)
-	{
-		feedback_(PRL_ERR_VM_DIRECTORY_NOT_EXIST);
-		return false;
-	}
-
-	dirItem->setTemplate(m_isTemplate);
-
-	// #441667 - set the same parameters for shared vm
-	CDspVmDirManager::VmDirItemsHash sharedVmHash = dirManager
-		.findVmDirItemsInCatalogue(dirItem->getVmUuid(), dirItem->getVmHome());
-
-	foreach(CDspLockedPointer<CVmDirectoryItem> dirSharedItem, sharedVmHash)
-	{
-		dirSharedItem->setChangedBy(m_userName);
-		dirSharedItem->setChangeDateTime(QDateTime::currentDateTime());
-		dirSharedItem->setVmName(m_vmName);
-		if (m_vmHome)
-			dirSharedItem->setVmHome(m_vmHome.get());
-
-		/* old code
-		pVmDirSharedItem->getLockedOperationsList()->setLockedOperations(lstNewLockedOperations);
-		pVmDirSharedItem->getLockDown()->setEditingPasswordHash(newLockDownHash);
-		*/
-	}
-
-	PRL_RESULT ret = dirManager.updateVmDirItem(dirItem);
-	if (PRL_FAILED(ret))
-	{
-		WRITE_TRACE(DBG_FATAL, "Can't update VmCatalogue by error %#x, %s", ret, PRL_RESULT_TO_STRING(ret));
-		feedback_(ret);
-		return false;
-	}
-	return Vm::Action::execute(feedback_);
-}
-
-} // namespace Update
 
 namespace Runtime
 {

@@ -417,6 +417,9 @@ void Actual::reset()
 	::Vm::Directory::Dao::Locked d(m_service->getVmDirManager());
 	foreach (const ::Vm::Directory::Item::List::value_type& i, d.getItemList())
 	{
+		if (!i.second->getCtId().isEmpty())
+			continue;
+
 		QString u = i.second->getVmUuid();
 		vmMap_type::mapped_type m = b[u];
 		if (m.isNull())
