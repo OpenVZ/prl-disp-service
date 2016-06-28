@@ -105,7 +105,8 @@ result_type Helper::buildResult(PRL_RESULT code, const QString &param)
 template<> bool Helper::isConverted(const CVmHardDisk &device) const
 {
 	return device.getEmulatedType() == PVE::HardDiskImage &&
-	       device.getInterfaceType() != m_hddType;
+	       (device.getInterfaceType() != m_hddType
+		|| device.getSubType() != m_hddSubType);
 }
 
 template<> bool Helper::isConverted(const CVmOpticalDisk &device) const
