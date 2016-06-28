@@ -46,6 +46,7 @@
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include "Dispatcher/Dispatcher/CDspVzHelper.h"
+#include "CDspRegistry.h"
 
 class CDispNetworkPreferences;
 class CDispNetAdapter;
@@ -59,11 +60,11 @@ namespace Config
 
 struct Watcher: QObject
 {
-	Watcher() // registry, service
+	Watcher(Registry::Public& registry_): m_registry(registry_)
 	{
 	}
 
-	static void createDetached();
+	static void createDetached(Registry::Public& registry_);
 
 	void updateRates();
 
@@ -72,7 +73,10 @@ private slots:
 
 private:
 	Q_OBJECT
+
+	Registry::Public& m_registry;
 };
+
 } // namespace Config
 } // namespace Network
 
@@ -80,10 +84,12 @@ class Task_ManagePrlNetService : public  CDspTaskHelper
 {
    Q_OBJECT
 public:
-	Task_ManagePrlNetService ( SmartPtr<CDspClient>&,
-			   const SmartPtr<IOPackage>& );
+	Task_ManagePrlNetService(Registry::Public& registry_,
+				SmartPtr<CDspClient>&,
+				const SmartPtr<IOPackage>&);
 
-	Task_ManagePrlNetService ( SmartPtr<CDspClient>&,
+	Task_ManagePrlNetService(Registry::Public& registry_,
+				SmartPtr<CDspClient>&,
 				const SmartPtr<IOPackage>&,
 				PVE::IDispatcherCommands nCmd);
 
@@ -184,6 +190,7 @@ private:
 	PVE::IDispatcherCommands m_nCmd;
 	static QMutex *g_pRestartShapingMtx;
 	static bool g_restartShaping;
+	Registry::Public& m_registry;
 };
 
 #endif //__Task_ManagePrlNetService_H_

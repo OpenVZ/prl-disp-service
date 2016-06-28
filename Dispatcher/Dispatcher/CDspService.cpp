@@ -524,6 +524,7 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 #endif
 
 	m_registry.reset(new Registry::Actual(*this));
+	m_shellHelper.reset(new CDspShellHelper(*m_registry));
 	m_vmDirHelper.reset(new CDspVmDirHelper(*m_registry));
 	m_vmMigrateHelper.reset(new CDspVmMigrateHelper(*m_registry));
 	m_pReconnectTimer = new QTimer(this);
@@ -742,7 +743,7 @@ CDspVmSnapshotStoreHelper& CDspService::getVmSnapshotStoreHelper ()
 
 CDspShellHelper& CDspService::getShellServiceHelper ()
 {
-	return m_shellHelper;
+	return *m_shellHelper;
 }
 
 CDspMonitor& CDspService::getDispMonitor ()
@@ -1382,7 +1383,7 @@ bool CDspService::init()
 
 		m_bFirstInitPhaseCompleted = true;
 
-		Network::Config::Watcher::createDetached();
+		Network::Config::Watcher::createDetached(*m_registry);
 	}
 	catch ( ... )
 	{
