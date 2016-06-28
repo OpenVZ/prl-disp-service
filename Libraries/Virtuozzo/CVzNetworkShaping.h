@@ -35,7 +35,7 @@ public:
 	static int get_network_shaping_config(CNetworkShapingConfig &conf);
 	static int update_network_classes_config(const CNetworkClassesConfig &conf);
 	static int get_network_classes_config(CNetworkClassesConfig &conf);
-	static int set_rate(unsigned int id, const CVmNetworkRates &lstRate);
+	static int set_rate(const QString &id, const CVmNetworkRates &lstRate);
 	static PRL_RESULT restart_shaper();
 };
 

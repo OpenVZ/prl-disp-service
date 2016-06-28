@@ -288,12 +288,21 @@ int CVzHelper::get_network_shaping_config(CNetworkShapingConfig &conf)
 	return CVzNetworkShaping::get_network_shaping_config(conf);
 }
 
-int CVzHelper::set_rate(const QString &uuid, const CVmNetworkRates &lstRate)
+int CVzHelper::set_rate(const CVmConfiguration &config,
+		const CVmNetworkRates &lstRate)
 {
         if (lstRate.m_lstNetworkRates.empty())
                 return PRL_ERR_SUCCESS;
 
-	return CVzNetworkShaping::set_rate(Uuid::toVzid(uuid), lstRate);
+	QString id;
+	const QString &uuid = config.getVmIdentification()->getVmUuid();
+	if (config.getVmType() == PVT_CT) {
+		id = CVzHelper::get_ctid_by_uuid(uuid);
+		if (id.isEmpty())
+			return PRL_ERR_CT_NOT_FOUND;
+	} else
+		id = Uuid::toVzid(uuid);
+	return CVzNetworkShaping::set_rate(id, lstRate);
 }
 
 static int vz2prl_err(int vzret)
