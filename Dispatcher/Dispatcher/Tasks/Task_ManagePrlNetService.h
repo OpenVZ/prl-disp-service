@@ -84,12 +84,10 @@ class Task_ManagePrlNetService : public  CDspTaskHelper
 {
    Q_OBJECT
 public:
-	Task_ManagePrlNetService(Registry::Public& registry_,
-				SmartPtr<CDspClient>&,
+	Task_ManagePrlNetService(SmartPtr<CDspClient>&,
 				const SmartPtr<IOPackage>&);
 
-	Task_ManagePrlNetService(Registry::Public& registry_,
-				SmartPtr<CDspClient>&,
+	Task_ManagePrlNetService(SmartPtr<CDspClient>&,
 				const SmartPtr<IOPackage>&,
 				PVE::IDispatcherCommands nCmd);
 
@@ -190,7 +188,6 @@ private:
 	PVE::IDispatcherCommands m_nCmd;
 	static QMutex *g_pRestartShapingMtx;
 	static bool g_restartShaping;
-	Registry::Public& m_registry;
 };
 
 #endif //__Task_ManagePrlNetService_H_
