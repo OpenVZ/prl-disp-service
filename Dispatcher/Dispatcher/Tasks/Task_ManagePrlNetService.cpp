@@ -181,6 +181,19 @@ void Watcher::updateRates()
 
 		Task_NetworkShapingManagement::setNetworkRate(c);
 	}
+
+	QList<SmartPtr<CVmConfiguration> > cts;
+	SmartPtr<CDspClient> user = CDspClient::makeServiceUser(
+			CDspVmDirManager::getVzDirectoryUuid()
+			);
+	CDspService::instance()->getVzHelper()->getCtConfigList(user, 0, cts);
+	foreach(SmartPtr<CVmConfiguration> c, cts)
+	{
+		VIRTUAL_MACHINE_STATE nState = VMS_UNKNOWN;
+		CVzHelper::get_env_status(c->getVmIdentification()->getVmUuid(), nState);
+		if (nState == VMS_RUNNING)
+			Task_NetworkShapingManagement::setNetworkRate(*c);
+	}
 }
 
 } // namespace Config
