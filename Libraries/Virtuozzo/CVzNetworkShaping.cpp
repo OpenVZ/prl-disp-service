@@ -549,12 +549,12 @@ int CVzNetworkShaping::get_network_classes_config(CNetworkClassesConfig &conf)
 	return 0;
 }
 
-int CVzNetworkShaping::set_rate(unsigned int id, const CVmNetworkRates &rates)
+int CVzNetworkShaping::set_rate(const QString &id, const CVmNetworkRates &rates)
 {
 	QStringList args;
 
 	args += "setrate";
-	args += QString("%1").arg(id);
+	args += id;
 
 	args += "--ratebound";
 	if (rates.isRateBound())
