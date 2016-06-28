@@ -168,7 +168,7 @@ private:
 
 struct Nbd
 {
-	PRL_RESULT start(const Image& image_);
+	PRL_RESULT start(const Image& image_, quint32 flags_);
 	void stop();
 	QString getUrl() const;
 
