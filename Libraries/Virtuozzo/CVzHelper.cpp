@@ -301,7 +301,7 @@ int CVzHelper::set_rate(const CVmConfiguration &config,
 		if (id.isEmpty())
 			return PRL_ERR_CT_NOT_FOUND;
 	} else
-		id = QString("%1").arg(Uuid::toVzid(uuid));
+		id = QString::number(Uuid::toVzid(uuid));
 
 	return CVzNetworkShaping::set_rate(id, lstRate);
 }
