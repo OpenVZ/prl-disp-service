@@ -126,9 +126,9 @@ namespace Config
 ///////////////////////////////////////////////////////////////////////////////
 // struct Watcher
 
-void Watcher::createDetached()
+void Watcher::createDetached(Registry::Public& registry_)
 {
-	QScopedPointer<Watcher> p(new Watcher());
+	QScopedPointer<Watcher> p(new Watcher(registry_));
 	if (!p->connect(CDspService::instance(),
 		SIGNAL(onConfigChanged(const SmartPtr<CDispCommonPreferences>,
 				const SmartPtr<CDispCommonPreferences>)),
@@ -175,11 +175,15 @@ void Watcher::updateRates()
 		if (VMS_RUNNING != s && VMS_PAUSED != s)
 			continue;
 
-		CVmConfiguration c;
-		if (u.getConfig(c).isFailed())
+		QString uuid;
+		if (u.getUuid(uuid).isFailed())
 			continue;
 
-		Task_NetworkShapingManagement::setNetworkRate(c);
+		boost::optional<CVmConfiguration> c = m_registry.find(uuid).getConfig();
+		if (!c)
+			continue;
+
+		Task_NetworkShapingManagement::setNetworkRate(c.get());
 	}
 
 	QList<SmartPtr<CVmConfiguration> > cts;
@@ -245,16 +249,17 @@ static int generatePrlAdapterIdx(CParallelsNetworkConfig* pNetworkConfig, bool b
  */
 
 Task_ManagePrlNetService::Task_ManagePrlNetService(
-    SmartPtr<CDspClient>& client,
-	const SmartPtr<IOPackage>& p ) :
-	CDspTaskHelper( client, p )
+	Registry::Public& registry_,
+	SmartPtr<CDspClient>& client,
+	const SmartPtr<IOPackage>& p)
+	: CDspTaskHelper(client, p), m_registry(registry_)
 {
 	m_nCmd = getCmdNumber();
 }
 
-Task_ManagePrlNetService::Task_ManagePrlNetService(
-    SmartPtr<CDspClient>& client, const SmartPtr<IOPackage>& p, PVE::IDispatcherCommands nCmd ) :
-	CDspTaskHelper( client, p ), m_nCmd(nCmd)
+Task_ManagePrlNetService::Task_ManagePrlNetService(Registry::Public& registry_,
+    SmartPtr<CDspClient>& client, const SmartPtr<IOPackage>& p, PVE::IDispatcherCommands nCmd) :
+	CDspTaskHelper( client, p ), m_nCmd(nCmd), m_registry(registry_)
 {
 }
 
@@ -1629,7 +1634,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdRestartNetworkShaping()
 {
 	PRL_RESULT r = CVzHelper::restart_shaper();
 	if (PRL_SUCCEEDED(r))
-		Network::Config::Watcher().updateRates();
+		Network::Config::Watcher(m_registry).updateRates();
 
 	return r;
 }
