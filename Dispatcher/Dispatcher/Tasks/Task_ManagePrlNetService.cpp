@@ -59,6 +59,7 @@
 #include "Dispatcher/Dispatcher/CDspVmNetworkHelper.h"
 
 #include <prlcommon/Std/PrlAssert.h>
+#include <boost/bind.hpp>
 
 #include "CDspVzHelper.h"
 #ifdef _LIN_
@@ -249,17 +250,16 @@ static int generatePrlAdapterIdx(CParallelsNetworkConfig* pNetworkConfig, bool b
  */
 
 Task_ManagePrlNetService::Task_ManagePrlNetService(
-	Registry::Public& registry_,
 	SmartPtr<CDspClient>& client,
 	const SmartPtr<IOPackage>& p)
-	: CDspTaskHelper(client, p), m_registry(registry_)
+	: CDspTaskHelper(client, p)
 {
 	m_nCmd = getCmdNumber();
 }
 
-Task_ManagePrlNetService::Task_ManagePrlNetService(Registry::Public& registry_,
-    SmartPtr<CDspClient>& client, const SmartPtr<IOPackage>& p, PVE::IDispatcherCommands nCmd) :
-	CDspTaskHelper( client, p ), m_nCmd(nCmd), m_registry(registry_)
+Task_ManagePrlNetService::Task_ManagePrlNetService(
+		SmartPtr<CDspClient>& client, const SmartPtr<IOPackage>& p, PVE::IDispatcherCommands nCmd) :
+	CDspTaskHelper(client, p), m_nCmd(nCmd)
 {
 }
 
@@ -1633,8 +1633,12 @@ bool Task_ManagePrlNetService::g_restartShaping = false;
 PRL_RESULT Task_ManagePrlNetService::cmdRestartNetworkShaping()
 {
 	PRL_RESULT r = CVzHelper::restart_shaper();
+
 	if (PRL_SUCCEEDED(r))
-		Network::Config::Watcher(m_registry).updateRates();
+	{
+		r = CDspService::instance()->updateCommonPreferences(boost::bind
+			(&CDspService::initNetworkPreferences, CDspService::instance(), _1));
+	}
 
 	return r;
 }

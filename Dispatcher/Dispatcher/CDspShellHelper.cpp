@@ -826,7 +826,7 @@ void CDspShellHelper::managePrlNetService (
 
 	// Prepare and start long running task helper
 	CDspService::instance()->getTaskManager()
-		.schedule(new Task_ManagePrlNetService(m_registry, pUser, p));
+		.schedule(new Task_ManagePrlNetService(pUser, p));
 }
 
 /**
