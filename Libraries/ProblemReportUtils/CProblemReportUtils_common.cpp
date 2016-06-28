@@ -336,7 +336,11 @@ void addCommonLogFiles( CProblemReport & cReport )
     
 	cReport.appendTemplateSystemLog(strParallelsLogPath,
 			QFileInfo(strParallelsLogPath).fileName(), 2);
-    
+
+	strParallelsLogPath = ParallelsDirs::getSystemLogPath();
+	cReport.appendTemplateSystemLog(strParallelsLogPath,
+			QFileInfo(strParallelsLogPath).fileName(), 2);
+
 #ifndef _WIN_
     
 #	ifdef _LIN_
