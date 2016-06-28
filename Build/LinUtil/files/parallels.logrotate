@@ -5,3 +5,11 @@
     notifempty
     missingok
 }
+
+/var/log/libvirt/libvirt.log {
+    daily
+    rotate 10
+    copytruncate
+    notifempty
+    missingok
+}
