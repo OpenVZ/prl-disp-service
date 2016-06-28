@@ -2873,9 +2873,8 @@ Action* Apply::operator()(const Request& input_) const
 				(input_.getFinal())));
 			t = input_.getTask().getClient()->getVmDirectoryUuid();
 		}
-		Action* a = new Transfer(input_.getObject(), t);
-		a->setNext(n);
-		output->setNext(a);
+		output->setNext(new Transfer(input_.getObject(), t));
+		output->getTail().setNext(n);
 		return output;
 	}
 	if (b)
@@ -2885,14 +2884,10 @@ Action* Apply::operator()(const Request& input_) const
 	QString y = input_.getFinal().getVmIdentification()->getVmName();
 	n = f.craft(boost::bind(&vm::Unit::setConfig, _1,
 			boost::cref(input_.getFinal())));
-	n->setNext(output);
-	if (x == y)
-		output = n;
-	else
-	{
-		output = f.craft(boost::bind(&vm::Unit::rename, _1, y));
-		output->setNext(n);
-	}
+	if (x != y)
+		output->setNext(f.craft(boost::bind(&vm::Unit::rename, _1, y)));
+
+	output->getTail().setNext(n);
 	return output;
 }
 
