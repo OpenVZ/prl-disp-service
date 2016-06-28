@@ -926,7 +926,9 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 		}
 		break;
 	case VIR_DOMAIN_EVENT_UNDEFINED:
-		v->remove(domain_);
+		if (VIR_DOMAIN_EVENT_UNDEFINED_REMOVED == detail_)
+			v->remove(domain_);
+
 		return 0;
 	case VIR_DOMAIN_EVENT_STARTED:
 		if (detail_ == VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT)
