@@ -102,11 +102,6 @@
 
 using namespace Parallels;
 
-// constructor
-CDspShellHelper::CDspShellHelper()
-{
-}
-
 // destructor
 CDspShellHelper::~CDspShellHelper()
 {
@@ -831,7 +826,7 @@ void CDspShellHelper::managePrlNetService (
 
 	// Prepare and start long running task helper
 	CDspService::instance()->getTaskManager()
-		.schedule(new Task_ManagePrlNetService( pUser, p));
+		.schedule(new Task_ManagePrlNetService(pUser, p));
 }
 
 /**

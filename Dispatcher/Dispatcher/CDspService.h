@@ -280,6 +280,7 @@ public:
 
 	PRL_RESULT updateCommonPreferences(const boost::function1<void, CDispCommonPreferences&>& action_);
 	void notifyConfigChanged(const SmartPtr<CDispCommonPreferences>&, const SmartPtr<CDispCommonPreferences>&);
+	void initNetworkPreferences(CDispCommonPreferences& config_);
 
 public slots:
 
@@ -371,7 +372,6 @@ private:
 	// reading configuration. Otherwise, networking service will be notified only if dispatcher
 	// have somehow fixed configuration.
 	bool initNetworkConfig(bool bNotifyNetworkService = false);
-	void initNetworkPreferences(CDispCommonPreferences& config_);
 
 	bool checkVmPermissions();
 	void checkRunningVms();
@@ -511,7 +511,7 @@ private:
 
 	// Helpers
 	SmartPtr<CDspUserHelper> m_pUserHelper;
-	CDspShellHelper m_shellHelper;
+	QScopedPointer<CDspShellHelper> m_shellHelper;
 	QScopedPointer<CDspVmDirHelper> m_vmDirHelper;
 	CDspVmSnapshotStoreHelper m_vmSnapshotStoreHelper;
 

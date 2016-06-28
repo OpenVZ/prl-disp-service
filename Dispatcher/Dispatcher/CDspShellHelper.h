@@ -49,6 +49,7 @@
 #include "CDspClient.h"
 #include "CDspTaskHelper.h"
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
+#include "CDspRegistry.h"
 
 
 /**
@@ -60,7 +61,9 @@ class CDspShellHelper : public QObject
 public:
 
 	// constructor
-	CDspShellHelper();
+	CDspShellHelper(Registry::Public& registry_): m_registry(registry_)
+	{
+	}
 
 	// destructor
 	~CDspShellHelper();
@@ -189,6 +192,8 @@ private:
 											  const QString & param);
 
 	void fixPrlServicesInEtcHosts(const QStringList& keys);
+
+	Registry::Public& m_registry;
 }; // class CDspShellHelper
 
 
