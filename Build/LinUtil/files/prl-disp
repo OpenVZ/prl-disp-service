@@ -14,7 +14,7 @@ LIBVIRT_LOG_FILTERS="1:qemu 1:remote"
 
 #  Log outputs - where to send the message once it has passed through filters.
 
-LIBVIRT_LOG_OUTPUTS="1:syslog:prl_disp_service 1:file:/var/log/libvirt/libvirtd.log"
+LIBVIRT_LOG_OUTPUTS="1:file:/var/log/libvirt/libvirt.log"
 
 #
 ################################################################################
