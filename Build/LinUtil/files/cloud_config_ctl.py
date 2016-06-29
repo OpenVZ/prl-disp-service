@@ -105,7 +105,9 @@ class CloudBaseInit(OpenStackConfigDrive):
     def prepare_password_command(self, name, credentials):
         if credentials.get(u"is_encrypted", False):
             return u""
-        s = u"net user \"{}\" \"{}\"".format(name, credentials[u"password"])
+        p = credentials[u"password"].replace("\\", "\\\\")
+        p = p.replace("\"", "\\\"")
+        s = u"net user \"{}\" \"{}\"".format(name, p)
         r = u"{} || {} /add".format(s, s)
         return r
 
