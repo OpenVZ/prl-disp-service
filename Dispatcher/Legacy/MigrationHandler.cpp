@@ -59,6 +59,8 @@ PRL_RESULT Start::execute()
 PRL_RESULT FirstStart::execute()
 {
 	WRITE_TRACE(DBG_DEBUG, "Start converted VM for the first time");
+	if (m_vnc)
+		m_vnc->close();
 	PRL_RESULT e;
 	if (PRL_SUCCEEDED(e = m_v2v.start()))
 		return m_next->execute();
@@ -141,11 +143,12 @@ PRL_RESULT Nvram::execute()
 ////////////////////////////////////////////////////////////////////////////////
 // struct Convoy
 
-bool Convoy::appoint(const SmartPtr<CVmConfiguration>& config_)
+bool Convoy::appoint(const SmartPtr<CVmConfiguration>& config_, const QSharedPointer<QTcpServer>& vnc_)
 {
 	if (!config_.isValid())
 		return false;
 
+	m_vnc = vnc_;
 	m_uuid = config_->getVmIdentification()->getVmUuid();
 	m_config = config_;
 	start("prl_legacy_migration_app");
@@ -176,7 +179,7 @@ void Convoy::release(const IOSender::Handle& handle_, const SmartPtr<IOPackage>&
 	// TODO: possibly we need to setup vcmmd before the first start too
 	boost::optional<Legacy::Vm::V2V> v2v = Legacy::Vm::Converter().getV2V(*m_config);
 	if (v2v)
-		u.reset(new Step::Convert(*v2v, new Step::FirstStart(*v2v, u.take())));
+		u.reset(new Step::Convert(*v2v, new Step::FirstStart(*v2v, m_vnc, u.take())));
 	u.reset(new Step::Nvram(*m_config, new Step::Registration(m_uuid, *m_config, u.take())));
 
 	SmartPtr<CDspClient> pUserSession;

@@ -32,6 +32,7 @@
 
 #include <QObject>
 #include <QProcess>
+#include <QTcpServer>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "CDspHandlerRegistrator.h"
 #include "CDspDispConnection.h"
@@ -74,11 +75,11 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-// struct Convert
+// struct FirstStart
 
 struct FirstStart: Unit
 {
-	FirstStart(Legacy::Vm::V2V &v2v, Unit* next_): m_v2v(v2v)
+	FirstStart(Legacy::Vm::V2V &v2v, const QSharedPointer<QTcpServer>& vnc_, Unit* next_): m_v2v(v2v), m_vnc(vnc_)
 	{
 		m_next.reset(next_);
 	}
@@ -87,6 +88,7 @@ struct FirstStart: Unit
 
 private:
 	const Legacy::Vm::V2V &m_v2v;
+	QSharedPointer<QTcpServer> m_vnc;
 	QScopedPointer<Unit> m_next;
 };
 
@@ -176,7 +178,7 @@ struct Convoy: QProcess
 	{
 	}
 
-	bool appoint(const SmartPtr<CVmConfiguration>& config_);
+	bool appoint(const SmartPtr<CVmConfiguration>& config_, const QSharedPointer<QTcpServer>& vnc_);
 	bool deport();
 	void release(const IOSender::Handle& handle_, const SmartPtr<IOPackage>& package_);
 	IOSender::Handle getConnection()
@@ -191,6 +193,7 @@ private:
 	SmartPtr<IOPackage> m_package;
 	QString m_uuid;
 	SmartPtr<CVmConfiguration> m_config;
+	QSharedPointer<QTcpServer> m_vnc;
 };
 
 using namespace IOService;

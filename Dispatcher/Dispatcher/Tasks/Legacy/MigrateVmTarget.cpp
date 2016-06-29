@@ -700,7 +700,7 @@ PRL_RESULT MigrateVmTarget::migrateRunningVm()
 		return PRL_ERR_OPERATION_FAILED;
 	}
 
-	if (!c->appoint(m_pVmConfig))
+	if (!c->appoint(m_pVmConfig, m_vnc))
 		return PRL_ERR_OPERATION_FAILED;
 
 	m_nSteps |= MIGRATE_VM_APP_STARTED;
@@ -1175,16 +1175,30 @@ void MigrateVmTarget::unregisterHaClusterResource()
 void MigrateVmTarget::checkRemoteDisplay()
 {
 	CVmRemoteDisplay* r = m_pVmConfig->getVmSettings()->getVmRemoteDisplay();
-	if (NULL == r || r->getMode() != PRD_MANUAL || r->getPortNumber() >= PRL_VM_REMOTE_DISPAY_MIN_PORT)
+	if (NULL == r || r->getMode() != PRD_MANUAL)
 		return;
 
 	CVmEvent cEvent;
 	cEvent.setEventCode(PRL_ERR_VZ_OPERATION_FAILED);
-	cEvent.addEventParameter(new CVmEventParameter(PVE::String,
-		QString("Virtuozzo %1 doesn't support VNC port less than %2.")
-		.arg(VER_FULL_BUILD_NUMBER_STR)
-		.arg(PRL_VM_REMOTE_DISPAY_MIN_PORT),
-		EVT_PARAM_MESSAGE_PARAM_0));
+	if (r->getPortNumber() < PRL_VM_REMOTE_DISPAY_MIN_PORT)
+	{
+		cEvent.addEventParameter(new CVmEventParameter(PVE::String,
+			QString("Virtuozzo %1 does not support VNC port numbers smaller than %2.")
+			.arg(VER_FULL_BUILD_NUMBER_STR)
+			.arg(PRL_VM_REMOTE_DISPAY_MIN_PORT),
+			EVT_PARAM_MESSAGE_PARAM_0));
+	}
+	else
+	{
+		m_vnc = QSharedPointer<QTcpServer>(new QTcpServer());
+		// check and reserve VNC port
+		if (m_vnc->listen(QHostAddress(r->getHostName()), r->getPortNumber()))
+			return;
+		cEvent.addEventParameter(new CVmEventParameter(PVE::String,
+			QString("VNC port %1 is busy on the target server.")
+			.arg(r->getPortNumber()),
+			EVT_PARAM_MESSAGE_PARAM_0));
+	}
 	m_lstCheckPrecondsErrors.append(cEvent.toString());
 }
 
