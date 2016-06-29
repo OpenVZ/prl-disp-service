@@ -498,99 +498,6 @@ void Subject::run()
 }
 
 } // namespace Breeding
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Performance
-
-void Performance::run()
-{
-	Agent::Vm::Performance::List c = m_agent.getPerformance();
-	foreach (const Agent::Vm::Performance::Unit& p, c)
-	{
-		QString u;
-		if (p.getUuid(u).isFailed())
-			continue;
-
-		QSharedPointer<Model::Domain> v = m_view->find(u);
-		if (v.isNull())
-			continue;
-
-		Prl::Expected<Agent::Vm::Stat::CounterList_type, Error::Simple>
-			c = p.getCpu();
-		if (c.isSucceed())
-			v->setCounters(c.value());
-
-		v->setCounters(p.getMemory());
-
-		boost::optional<CVmConfiguration> x = v->getConfig();
-		if (x)
-		{
-			foreach(const CVmGenericNetworkAdapter* a, x->getVmHardwareList()->m_lstNetworkAdapters)
-			{
-				if (a->getEnabled() != PVE::DeviceEnabled ||
-					a->getConnected() != PVE::DeviceConnected)
-					continue;
-
-				Prl::Expected<Agent::Vm::Stat::CounterList_type, Error::Simple>
-					s = p.getInterface(a);
-				if (s.isSucceed())
-					v->setCounters(s.value());
-			}
-
-			foreach (const CVmHardDisk* d, x->getVmHardwareList()->m_lstHardDisks)
-			{
-				if (d->getEnabled() != PVE::DeviceEnabled ||
-					d->getConnected() != PVE::DeviceConnected)
-					continue;
-
-				Prl::Expected<Agent::Vm::Stat::CounterList_type, Error::Simple>
-					s = p.getDisk(d);
-				if (s.isSucceed())
-					v->setCounters(s.value());
-			}
-		}
-
-		Prl::Expected<Agent::Vm::Stat::CounterList_type, Error::Simple>
-			vc = p.getVCpuList();
-		if (vc.isSucceed())
-			v->setCounters(vc.value());
-	}
-}
-
-/*
-void Performance::pull(Agent::Vm::Unit agent_)
-{
-	QString u;
-	m.getUuid(u);
-	QSharedPointer<Model::Domain> d = m_view->find(domain_);
-	if (d.isNull())
-		return;
-
-	int n;
-	n = virDomainGetCPUStats(&domain_, NULL, 0, -1, 1, 0);
-	if (0 < n)
-	{
-		QVector<virTypedParameter> q(n);
-		virDomainGetCPUStats(&domain_, q.data(), n, -1, 1, 0);
-		d->setCpuUsage();
-	}
-	n = virDomainMemoryStats(&domain_, NULL, 0,
-		VIR_DOMAIN_MEMORY_STAT_UNUSED |
-		VIR_DOMAIN_MEMORY_STAT_AVAILABLE |
-		VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON);
-	if (0 < n)
-	{
-		QVector<virDomainMemoryStatStruct> q(n);
-		virDomainMemoryStats(&domain_, q.data(), n,
-			VIR_DOMAIN_MEMORY_STAT_UNUSED |
-			VIR_DOMAIN_MEMORY_STAT_AVAILABLE |
-			VIR_DOMAIN_MEMORY_STAT_ACTUAL_BALLOON);
-		d->setMemoryUsage();
-	}
-//	virDomainBlockStats();
-//	virDomainInterfaceStats();
-}
-*/
 } // namespace Instrument
 
 namespace Callback
@@ -1285,15 +1192,11 @@ void Link::disconnect(virConnectPtr libvirtd_, int reason_, void* opaque_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Domains
 
-Domains::Domains(Registry::Actual& registry_, int timeout_):
+Domains::Domains(Registry::Actual& registry_):
 	m_eventState(-1), m_eventReboot(-1),
 	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
 	m_eventTrayChange(-1), m_registry(&registry_)
 {
-	m_timer.stop();
-	m_timer.setInterval(timeout_);
-	m_timer.setSingleShot(false);
-	this->connect(&m_timer, SIGNAL(timeout()), SLOT(getPerformance()));
 }
 
 void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
@@ -1301,7 +1204,8 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 	m_view = QSharedPointer<Model::System>(new Model::System(*m_registry));
 	m_libvirtd = libvirtd_.toWeakRef();
 	Kit.setLink(libvirtd_);
-	m_timer.start();
+	(new Performance::Miner(Kit.vms(), m_view.toWeakRef()))
+		->startTimer(PERFORMANCE_TIMEOUT);
 	m_eventState = virConnectDomainEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_DOMAIN_EVENT_ID_LIFECYCLE,
@@ -1343,20 +1247,8 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 	QThreadPool::globalInstance()->start(q);
 }
 
-void Domains::getPerformance()
-{
-	QSharedPointer<virConnect> x = m_libvirtd.toStrongRef();
-	if (x.isNull())
-		return;
-
-	QRunnable* q = new Instrument::Performance(x, m_view);
-	q->setAutoDelete(true);
-	QThreadPool::globalInstance()->start(q);
-}
-
 void Domains::setDisconnected()
 {
-	m_timer.stop();
 	QSharedPointer<virConnect> x;
 	Kit.setLink(x);
 	x = m_libvirtd.toStrongRef();
@@ -1376,6 +1268,107 @@ void Domains::setDisconnected()
 	m_view.clear();
 }
 
+namespace Performance
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Miner
+
+PRL_RESULT Miner::operator()()
+{
+	QSharedPointer<Model::System> x = m_view.toStrongRef();
+	if (x.isNull())
+		return PRL_ERR_UNINITIALIZED;
+
+	Instrument::Agent::Vm::Performance::List c = m_agent.getPerformance();
+	foreach (const Instrument::Agent::Vm::Performance::Unit& p, c)
+	{
+		QString u;
+		if (p.getUuid(u).isFailed())
+			continue;
+
+		QSharedPointer<Model::Domain> v = x->find(u);
+		if (!v.isNull())
+			superfuse(p, *v);
+	}
+	return PRL_ERR_SUCCESS;
+}
+
+Miner* Miner::clone() const
+{
+	Miner* output = new Miner(m_agent, m_view);
+	output->moveToThread(this->thread());
+	return output;
+}
+
+void Miner::superfuse(const Instrument::Agent::Vm::Performance::Unit& source_, Model::Domain& sink_)
+{
+	Prl::Expected<Instrument::Agent::Vm::Stat::CounterList_type, Error::Simple>
+		c = source_.getCpu();
+	if (c.isSucceed())
+		sink_.setCounters(c.value());
+
+	sink_.setCounters(source_.getMemory());
+
+	boost::optional<CVmConfiguration> x = sink_.getConfig();
+	if (x)
+	{
+		foreach (const CVmGenericNetworkAdapter* a, x->getVmHardwareList()->m_lstNetworkAdapters)
+		{
+			if (a->getEnabled() != PVE::DeviceEnabled ||
+				a->getConnected() != PVE::DeviceConnected)
+				continue;
+
+			Prl::Expected<Instrument::Agent::Vm::Stat::CounterList_type, Error::Simple>
+				s = source_.getInterface(a);
+			if (s.isSucceed())
+				sink_.setCounters(s.value());
+		}
+
+		foreach (const CVmHardDisk* d, x->getVmHardwareList()->m_lstHardDisks)
+		{
+			if (d->getEnabled() != PVE::DeviceEnabled ||
+				d->getConnected() != PVE::DeviceConnected)
+				continue;
+
+			Prl::Expected<Instrument::Agent::Vm::Stat::CounterList_type, Error::Simple>
+				s = source_.getDisk(d);
+			if (s.isSucceed())
+				sink_.setCounters(s.value());
+		}
+	}
+
+	Prl::Expected<Instrument::Agent::Vm::Stat::CounterList_type, Error::Simple>
+		vc = source_.getVCpuList();
+	if (vc.isSucceed())
+		sink_.setCounters(vc.value());
+}
+
+void Miner::timerEvent(QTimerEvent* event_)
+{
+	killTimer(event_->timerId());
+	QRunnable* q = new Task(this);
+	q->setAutoDelete(true);
+	QThreadPool::globalInstance()->start(q);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Task
+
+void Task::run()
+{
+	if (m_miner.isNull())
+		return;
+
+	if (PRL_ERR_UNINITIALIZED != (*m_miner)())
+	{
+		Miner* m = m_miner->clone();
+		if (NULL != m)
+			m->startTimer(PERFORMANCE_TIMEOUT);
+	}
+	m_miner.take()->deleteLater();
+}
+
+} // namespace Performance
 } // namespace Monitor
 
 ///////////////////////////////////////////////////////////////////////////////

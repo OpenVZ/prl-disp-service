@@ -314,18 +314,15 @@ private:
 
 struct Domains: QObject
 {
-	explicit Domains(Registry::Actual& registry_,
-		int timeout_ = PERFORMANCE_TIMEOUT);
+	explicit Domains(Registry::Actual& registry_);
 
 public slots:
-	void getPerformance();
 	void setConnected(QSharedPointer<virConnect>);
 	void setDisconnected();
 
 private:
 	Q_OBJECT
 
-	QTimer m_timer;
 	int m_eventState;
 	int m_eventReboot;
 	int m_eventWakeUp;
@@ -337,6 +334,50 @@ private:
 	QSharedPointer<Model::System> m_view;
 };
 
+namespace Performance
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Miner
+
+struct Miner: QObject
+{
+	Miner(const Instrument::Agent::Vm::List& agent_, const QWeakPointer<Model::System>& view_):
+		m_agent(agent_), m_view(view_)
+	{
+	}
+
+	PRL_RESULT operator()();
+	Miner* clone() const;
+
+protected:
+	void timerEvent(QTimerEvent* );
+
+private:
+	Q_OBJECT
+
+	static void superfuse(const Instrument::Agent::Vm::Performance::Unit& source_,
+		Model::Domain& sink_);
+
+	Instrument::Agent::Vm::List m_agent;
+	QWeakPointer<Model::System> m_view;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Task
+
+struct Task: QRunnable
+{
+	explicit Task(Miner* miner_): m_miner(miner_)
+	{
+	}
+
+	void run();
+
+private:
+	QScopedPointer<Miner> m_miner;
+};
+
+} // namespace Performance
 } // namespace Monitor
 
 namespace Instrument
@@ -621,26 +662,6 @@ private:
 };
 
 } // namespace Breeding
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Performance
-
-struct Performance: QRunnable
-{
-	Performance(QSharedPointer<virConnect> libvirtd_, QSharedPointer<Model::System> view_):
-		m_agent(libvirtd_), m_view(view_)
-	{
-	}
-
-	void run();
-
-private:
-	void pull(Agent::Vm::Unit vm_);
-
-	Agent::Vm::List m_agent;
-	QSharedPointer<Model::System> m_view;
-};
-
 } // namespace Instrument
 } // namespace Libvirt
 
