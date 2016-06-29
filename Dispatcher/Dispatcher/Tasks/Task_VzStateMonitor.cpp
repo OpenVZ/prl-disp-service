@@ -160,14 +160,13 @@ void Task_VzStateMonitor::sendState(const QString &ctid, int state)
 			state == VZCTL_ENV_REGISTERED)
 	{
 		if (state == VZCTL_ENV_REGISTERED) {
-			VIRTUAL_MACHINE_STATE nState;
-			PRL_RESULT res = CDspService::instance()->getVzHelper()->getVzlibHelper().get_env_status(uuid, nState);
-			if (PRL_FAILED(res)) {
+			tribool_type run = CVzHelper::is_env_running(uuid);
+			if (boost::logic::indeterminate(run)) {
 				WRITE_TRACE(DBG_FATAL, "Unable to get state of the container with id=%s", QSTR2UTF8(uuid));
 				return;
 			}
 
-			if (nState == VMS_RUNNING)
+			if (run)
 				processChangeCtState(uuid, VMS_RUNNING);
 		}
 
