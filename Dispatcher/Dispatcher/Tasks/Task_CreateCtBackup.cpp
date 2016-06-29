@@ -84,8 +84,8 @@ PRL_RESULT Task_CreateCtBackupSource::prepareTask()
 	// check params in existing VM
 	CDspService* s = CDspService::instance();
 	SmartPtr<CDspClient> client = getClient();
-	VIRTUAL_MACHINE_STATE state;
 	PRL_RESULT nRetCode;
+	tribool_type run;
 
 	if (!QFile::exists(VZ_BACKUP_CLIENT)) {
 		nRetCode = PRL_ERR_UNIMPLEMENTED;
@@ -120,15 +120,14 @@ PRL_RESULT Task_CreateCtBackupSource::prepareTask()
 		nRetCode = PRL_ERR_UNIMPLEMENTED;
 		goto exit;
 	}
-	/* check existing Ct state */
-	nRetCode = s->getVzHelper()->getVzlibHelper().get_env_status(m_sVmUuid, state);
-	if (PRL_FAILED(nRetCode)) {
-		WRITE_TRACE(DBG_FATAL, "get_env_status() failer. Reason: %#x (%s)",
-				nRetCode, PRL_RESULT_TO_STRING(nRetCode));
+
+	run = CVzHelper::is_env_running(m_sVmUuid);
+	if (boost::logic::indeterminate(run)) {
+		nRetCode = PRL_ERR_OPERATION_FAILED;
 		goto exit;
 	}
 
-	if (state == VMS_RUNNING)
+	if (run)
 		setInternalFlags(getInternalFlags() | PVM_CT_RUNNING);
 
 	{

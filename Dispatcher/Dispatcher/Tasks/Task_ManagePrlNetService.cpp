@@ -194,9 +194,8 @@ void Watcher::updateRates()
 	CDspService::instance()->getVzHelper()->getCtConfigList(user, 0, cts);
 	foreach(SmartPtr<CVmConfiguration> c, cts)
 	{
-		VIRTUAL_MACHINE_STATE nState = VMS_UNKNOWN;
-		CVzHelper::get_env_status(c->getVmIdentification()->getVmUuid(), nState);
-		if (nState == VMS_RUNNING)
+		tribool_type run = CVzHelper::is_env_running(c->getVmIdentification()->getVmUuid());
+		if (run)
 			Task_NetworkShapingManagement::setNetworkRate(*c);
 	}
 }
