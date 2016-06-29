@@ -47,6 +47,10 @@
 #include <prlxmlmodel/CtTemplate/CtTemplate.h>
 #include <boost/function.hpp>
 
+#include <boost/logic/tribool.hpp>
+
+typedef boost::logic::tribool tribool_type;
+
 #ifndef NETLINK_VZEVENT
 #define NETLINK_VZEVENT         31
 #endif
@@ -208,6 +212,7 @@ public:
 	int get_envid_list(QStringList &lst);
 	static int get_env_status_by_ctid(const QString &ctid, VIRTUAL_MACHINE_STATE &nState);
 	static int get_env_status(const QString &uuid, VIRTUAL_MACHINE_STATE &nState);
+	static tribool_type is_env_running(const QString &uuid);
 	static Ct::Statistics::Aggregate* get_env_stat(const QString& uuid_);
 	static int get_env_fstat(const QString &uuid, QList<Ct::Statistics::Filesystem>& fs);
 	static int set_env_uptime(const QString &uuid, const quint64 uptime, const QDateTime & date);

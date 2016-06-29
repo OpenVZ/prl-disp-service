@@ -512,6 +512,22 @@ int CVzHelper::get_env_status(const QString &uuid, VIRTUAL_MACHINE_STATE &nState
 	return get_env_status_by_ctid(ctid, nState);
 }
 
+tribool_type CVzHelper::is_env_running(const QString &uuid)
+{
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return boost::logic::indeterminate;
+
+	vzctl_env_status_t status;
+	if (vzctl2_get_env_status(QSTR2UTF8(ctid), &status, ENV_STATUS_RUNNING)) {
+		WRITE_TRACE(DBG_FATAL, "Failed to get Ct %s status: %s",
+				QSTR2UTF8(ctid), vzctl2_get_last_error());
+		return boost::logic::indeterminate;
+	}
+
+	return (status.mask & ENV_STATUS_RUNNING);
+}
+
 static unsigned int Ostemplate2Dist(const char *str)
 {
 	QString dist;

@@ -1115,10 +1115,10 @@ void CDspVzHelper::syncCtsUptime()
 	}
 	foreach(const tuple_type& t, a)
 	{
-		VIRTUAL_MACHINE_STATE s;
-		if (0 != CVzHelper::get_env_status(t.first, s) ||
-			s != VMS_RUNNING)
+		tribool_type run = CVzHelper::is_env_running(t.first);
+		if (!run)
 			continue;
+
 		if (0 == CVzHelper::sync_env_uptime(t.first))
 			m_configCache.remove(t.second);
 	}

@@ -479,13 +479,15 @@ PRL_RESULT Task_VzManager::changeVNCServerState(SmartPtr<CVmConfiguration> pOldC
 	CVmRemoteDisplay* oldD = oldSettings->getVmRemoteDisplay();
 	CVmRemoteDisplay* newD = newSettings->getVmRemoteDisplay();
 	PRL_RESULT res = PRL_ERR_SUCCESS;
-	VIRTUAL_MACHINE_STATE nState = VMS_UNKNOWN;
+	tribool_type run;
 
 	// Start VNC
 	if ( oldD->getMode() != newD->getMode() ) {
-		res = CVzHelper::get_env_status(sUuid, nState);
-		if (PRL_FAILED(res) || nState != VMS_RUNNING)
-			return res;
+		run = CVzHelper::is_env_running(sUuid);
+		if (boost::logic::indeterminate(run))
+			return PRL_ERR_OPERATION_FAILED;
+		if (!run)
+			return PRL_ERR_SUCCESS;
 
 		if (newD->getMode() == PRD_DISABLED) {
 			res = stop_vnc_server(sUuid, false);
@@ -500,9 +502,11 @@ PRL_RESULT Task_VzManager::changeVNCServerState(SmartPtr<CVmConfiguration> pOldC
 			  (oldD->getHostName() != newD->getHostName() ||
 			   oldD->getPortNumber() != newD->getPortNumber() ||
 			   oldD->getPassword() != newD->getPassword()) ) {
-		res = CVzHelper::get_env_status(sUuid, nState);
-		if (PRL_FAILED(res) || nState != VMS_RUNNING)
-			return res;
+		run = CVzHelper::is_env_running(sUuid);
+		if (boost::logic::indeterminate(run))
+			return PRL_ERR_OPERATION_FAILED;
+		if (!run)
+			return PRL_ERR_SUCCESS;
 
 		res = stop_vnc_server(sUuid, false);
 		if (res == PRL_ERR_VNC_SERVER_NOT_STARTED)
@@ -546,9 +550,8 @@ PRL_RESULT Task_VzManager::editConfig()
 		return PRL_ERR_ACTION_NOT_SUPPORTED_FOR_CT;
 	// Handle the Firewall settings change on the running CT
 	if (!lstFullItemIds.filter(QRegExp("\\.(?=Firewall\\.|MAC|NetAddress)")).isEmpty()) {
-		VIRTUAL_MACHINE_STATE nState = VMS_UNKNOWN;
-		PRL_RESULT res = getVzHelper()->getVzlibHelper().get_env_status(sUuid, nState);
-		if (nState == VMS_RUNNING) {
+		tribool_type run = CVzHelper::is_env_running(sUuid);
+		if (run) {
 			res = setupFirewall(pConfig);
 			if (PRL_FAILED(res))
 				return res;
