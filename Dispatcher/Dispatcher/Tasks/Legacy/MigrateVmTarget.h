@@ -148,6 +148,7 @@ private:
 	SmartPtr<CVmFileListCopyTarget> m_pVmMigrateTarget;
 
 	SmartPtr<CVmDirectory::TemporaryCatalogueItem> m_pVmInfo;
+	QSharedPointer<QTcpServer> m_vnc;
 
 private slots:
 	void clientDisconnected(IOSender::Handle h);
