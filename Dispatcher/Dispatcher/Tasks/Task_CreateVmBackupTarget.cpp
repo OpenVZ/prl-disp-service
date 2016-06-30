@@ -65,7 +65,7 @@ void Image::remove() const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Nbd
 
-PRL_RESULT Nbd::start(const Image& image_)
+PRL_RESULT Nbd::start(const Image& image_, quint32 flags_)
 {
 	QTemporaryFile f;
 	f.setFileTemplate(QString("%1/%2.sock.XXXXXX")
@@ -78,6 +78,8 @@ PRL_RESULT Nbd::start(const Image& image_)
 	f.close();
 
 	VirtualDisk::qcow2PolicyList_type p(1, VirtualDisk::Policy::Qcow2::unix_type(n));
+	if (!(flags_ & PBT_UNCOMPRESSED))
+		p.push_back(VirtualDisk::Policy::Qcow2::compressed_type(true));
 	PRL_RESULT e = m_nbd.open(image_.getPath(), PRL_DISK_WRITE, p);
 	if (PRL_SUCCEEDED(e)) 
 		m_url = n;
@@ -288,7 +290,7 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
 
 		QSharedPointer< ::Backup::Target::Nbd> n(new ::Backup::Target::Nbd());
 		m_createdTibs << qMakePair(a, n);
-		if (PRL_FAILED((e = n->start(a))))
+		if (PRL_FAILED((e = n->start(a, m_nFlags))))
 			return e;
 	}
 	return PRL_ERR_SUCCESS;
