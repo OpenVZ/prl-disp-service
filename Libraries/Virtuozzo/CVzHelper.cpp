@@ -262,8 +262,9 @@ PRL_STAT_NET_TRAFFIC *CVzHelper::get_net_stat(const QString &uuid)
 
 	Network::Builder b(uuid);
 
-	if (!b.addv4() && !b.addv6())
+	if (!b.addv4())
 		return NULL;
+	b.addv6();
 
 	return b.getResult();
 }
