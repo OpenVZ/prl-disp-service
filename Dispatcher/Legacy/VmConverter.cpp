@@ -257,6 +257,7 @@ struct Killer: Command::Vm::Shutdown::Fallback
 	void react()
 	{
 		Command::Vm::Shutdown::Fallback::react();
+		WRITE_TRACE(DBG_FATAL, "VM was killed after timeout (%u secs)", getTimeout());
 		*m_sink = Error::Simple(PRL_ERR_TIMEOUT, "VM was killed after timeout");
 	}
 
