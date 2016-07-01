@@ -58,13 +58,14 @@ PRL_RESULT Start::execute()
 
 PRL_RESULT FirstStart::execute()
 {
-	WRITE_TRACE(DBG_DEBUG, "Start converted VM for the first time");
+	WRITE_TRACE(DBG_INFO, "Start converted VM for the first time");
 	if (m_vnc)
 		m_vnc->close();
 	PRL_RESULT e;
 	if (PRL_SUCCEEDED(e = m_v2v.start()))
 		return m_next->execute();
 
+	WRITE_TRACE(DBG_FATAL, "Failed to do first start of VM: %s", PRL_RESULT_TO_STRING(e));
 	return e;
 }
 
