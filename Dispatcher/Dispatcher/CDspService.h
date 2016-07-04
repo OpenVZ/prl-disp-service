@@ -101,6 +101,7 @@ class CEtraceStatic;
 #endif
 class CDspAsyncRequest;
 class CDspDispConnectionsManager;
+class CDspDBusHub;
 
 namespace Registry
 {
