@@ -1100,8 +1100,8 @@ private:
 
 CVmEventParameter *ClassfulOffline::getParam() const
 {
-	QScopedPointer<PRL_STAT_NET_TRAFFIC> s(CVzHelper::get_net_stat(m_uuid));
-	return s.isNull() ? NULL : Conversion::Network::convert(*s);
+	QScopedPointer<Ct::Statistics::Net> s(CVzHelper::get_net_stat(m_uuid));
+	return s.isNull() ? NULL : Conversion::Network::convert(s->total);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1528,7 +1528,7 @@ namespace Flavor
 
 struct Classful {
 
-	typedef const PRL_STAT_NET_TRAFFIC source_type;
+	typedef const Ct::Statistics::Net source_type;
 	typedef PRL_STAT_NET_TRAFFIC value_type;
 
 	static const char *getName()
@@ -1538,7 +1538,7 @@ struct Classful {
 
 	static value_type extract(source_type &net)
 	{
-		return net;
+		return net.total;
 	}
 };
 
@@ -1987,10 +1987,10 @@ void Collector::collectCt(const QString &uuid,
 	collect(ctc::Disk::Read(a.disk));
 	collect(ctc::Disk::Write(a.disk));
 	collect(ctc::Network::Classful(a.net));
-	collect(ctc::Network::ReceivedSize(a.net));
-	collect(ctc::Network::TransmittedSize(a.net));
-	collect(ctc::Network::ReceivedPackets(a.net));
-	collect(ctc::Network::TransmittedPackets(a.net));
+	collect(ctc::Network::ReceivedSize(a.net.total));
+	collect(ctc::Network::TransmittedSize(a.net.total));
+	collect(ctc::Network::ReceivedPackets(a.net.total));
+	collect(ctc::Network::TransmittedPackets(a.net.total));
 
 	Ct::Statistics::Memory *m = a.memory.get();
 	if (m != NULL) {
@@ -2910,7 +2910,7 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 		output->getUptimeStatistics()->setOsUptime(ctc::Uptime(c).getValue());
 
 		using ::Ct::Counter::accumulateTraffic;
-		const PRL_STAT_NET_TRAFFIC& n = a->net;
+		const PRL_STAT_NET_TRAFFIC& n = a->net.total;
 		net->setInDataSize(ctc::Network::ReceivedSize(n).getValue());
 		net->setOutDataSize(ctc::Network::TransmittedSize(n).getValue());
 		net->setInPkgsCount(ctc::Network::ReceivedPackets(n).getValue());
