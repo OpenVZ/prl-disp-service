@@ -105,10 +105,14 @@ PRL_RESULT GuestFS::getMountablePartitions(QStringList &partitions)
 	}
 
 	for (char **cur = fs; *cur != NULL; cur += 2) {
-		QString fs(*(cur + 1));
-		m_partToFilesystem[*cur] = fs;
-		if (fs != "unknown" && fs != "swap")
-			partitions << *cur;
+		// Mount only partitions and LV, not e.g. snapshots
+		if (QString(*cur).startsWith("/dev/"))
+		{
+			QString fs(*(cur + 1));
+			m_partToFilesystem[*cur] = fs;
+			if (fs != "unknown" && fs != "swap")
+				partitions << *cur;
+		}
 		free(*cur);
 		free(*(cur + 1));
 	}
