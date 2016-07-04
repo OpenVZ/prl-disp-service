@@ -907,7 +907,7 @@ void CDspService::start ()
 			WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher DOES NOT STARTED !!!" );
 			return;
 		}
-		m_dbusHub.reset(new CDspDBusHub());
+		CDspDBusHub::createDetached();
 #ifndef _WIN_
 	// System signals handler.
 	CUnixSignalHandler* pSigTermHandler = CUnixSignalHandler::installHandler(SIGTERM);

@@ -7,7 +7,7 @@
 ///
 /// @author aburluka
 ///
-/// Copyright (c) 2005-2015 Parallels IP Holdings GmbH
+/// Copyright (c) 2005-2016 Parallels IP Holdings GmbH
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -30,7 +30,6 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
-
 #ifndef CDSPDBUSHUB_H
 #define CDSPDBUSHUB_H
 
@@ -40,6 +39,10 @@
 #include <QScopedPointer>
 
 class QDBusInterface;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct CDspDBusHub
+
 class CDspDBusHub: public QObject
 {
 	Q_OBJECT
@@ -47,6 +50,8 @@ class CDspDBusHub: public QObject
 public:
 	explicit CDspDBusHub();
 	~CDspDBusHub();
+
+	static void createDetached();
 
 public slots:
 	void slotCpuFeaturesSync();
