@@ -2023,8 +2023,9 @@ void Task_RestoreVmBackupTarget::runV2V()
 			break;
 		if (PRL_FAILED(nRetCode = v2v->do_()))
 			break;
-		if (PRL_FAILED(nRetCode = v2v->start()))
-			break;
+		Prl::Expected<void, Error::Simple> r = v2v->start();
+		if (r.isFailed())
+			nRetCode = r.error().code();
 	} while (0);
 
 	exit(nRetCode);
