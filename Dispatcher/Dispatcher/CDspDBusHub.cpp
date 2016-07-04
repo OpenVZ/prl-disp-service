@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// Copyright (c) 2008-2015 Parallels IP Holdings GmbH
+/// Copyright (c) 2008-2016 Parallels IP Holdings GmbH
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -39,7 +39,6 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-
 #define FORCE_LOGGING_PREFIX "DspVmStateSender"
 
 #include "CDspService.h"
@@ -50,20 +49,10 @@
 #include <Libraries/CpuFeatures/CCpuHelper.h>
 #include "Tasks/Task_UpdateCommonPrefs.h"
 
-CDspDBusHub::CDspDBusHub()
-	: m_interface(new QDBusInterface("vz.cpufeatures", "/vz/cpufeatures",
-				"vz.CpuFeatures", QDBusConnection::systemBus(), this))
+namespace
 {
-	if (!m_interface->connection().connect("vz.cpufeatures", "/vz/cpufeatures",
-				"vz.CpuFeatures", "Sync", this, SLOT(slotCpuFeaturesSync())))
-	{
-		WRITE_TRACE(DBG_FATAL, "Unable to subscribe on Sync event");
-	}
-}
-
-CDspDBusHub::~CDspDBusHub()
-{
-}
+///////////////////////////////////////////////////////////////////////////////
+// struct SetFeatures
 
 struct SetFeatures: std::unary_function<void, CDispCommonPreferences&>
 {
@@ -78,9 +67,39 @@ struct SetFeatures: std::unary_function<void, CDispCommonPreferences&>
 	};
 };
 
+} // namespace
+
+///////////////////////////////////////////////////////////////////////////////
+// struct CDspDBusHub
+
+CDspDBusHub::CDspDBusHub()
+	: m_interface(new QDBusInterface("vz.cpufeatures", "/vz/cpufeatures",
+				"vz.CpuFeatures", QDBusConnection::systemBus(), this))
+{
+	if (!m_interface->connection().connect(m_interface->service(), m_interface->path(),
+				m_interface->interface(), "Sync", this, SLOT(slotCpuFeaturesSync())))
+	{
+		WRITE_TRACE(DBG_FATAL, "Unable to subscribe on Sync event");
+	}
+}
+
+CDspDBusHub::~CDspDBusHub()
+{
+}
+
+void CDspDBusHub::createDetached()
+{
+	QScopedPointer<CDspDBusHub> p(new CDspDBusHub());
+
+	if (!p->connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), SLOT(deleteLater())))
+		return;
+
+	// make it fly (detach)
+	p.take()->moveToThread(QCoreApplication::instance()->thread());
+}
+
 void CDspDBusHub::slotCpuFeaturesSync()
 {
 	WRITE_TRACE(DBG_INFO, "CPU features were synced");
 	CDspService::instance()->updateCommonPreferences(SetFeatures());
 }
-

@@ -470,7 +470,6 @@ private:
 	SmartPtr<IOServerPool> m_ioServerPool;
 
 	SmartPtr<CDspVmStateSenderThread> m_pVmStateSenderThread;
-	QScopedPointer<CDspDBusHub> m_dbusHub;
 
 		// mutex should be defined before its data. ( to destroy after data )
 	QMutex m_hostInfoMutex;
