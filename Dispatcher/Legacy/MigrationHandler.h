@@ -50,13 +50,16 @@ namespace Step
 ////////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
+typedef ::Error::Simple error_type;
+typedef Prl::Expected<void, error_type> result_type;
+
 struct Unit
 {
 	virtual ~Unit()
 	{
 	}
 
-	virtual PRL_RESULT execute() = 0;
+	virtual result_type execute() = 0;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -68,7 +71,7 @@ struct Start: Unit
 	{
 	}
 
-	PRL_RESULT execute();
+	result_type execute();
 
 private:
 	QString m_uuid;
@@ -84,7 +87,7 @@ struct FirstStart: Unit
 		m_next.reset(next_);
 	}
 
-	PRL_RESULT execute();
+	result_type execute();
 
 private:
 	const Legacy::Vm::V2V &m_v2v;
@@ -102,7 +105,7 @@ struct Convert: Unit
 		m_next.reset(next_);
 	}
 
-	PRL_RESULT execute();
+	result_type execute();
 
 private:
 	const Legacy::Vm::V2V &m_v2v;
@@ -120,7 +123,7 @@ struct Vcmmd: Unit
 		m_next.reset(next_);
 	}
 
-	PRL_RESULT execute();
+	result_type execute();
 
 private:
 	QString m_uuid;
@@ -139,7 +142,7 @@ struct Registration: Unit
 		m_next.reset(next_);
 	}
 
-	PRL_RESULT execute();
+	result_type execute();
 
 private:
 	QString m_uuid;
@@ -158,7 +161,7 @@ struct Nvram: Unit
 		m_next.reset(next_);
 	}
 
-	PRL_RESULT execute();
+	result_type execute();
 
 private:
 	const CVmConfiguration* m_config;

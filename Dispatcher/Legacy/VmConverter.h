@@ -31,6 +31,7 @@
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 #include <boost/optional.hpp>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 
 namespace Legacy
 {
@@ -48,7 +49,7 @@ struct V2V
 	}
 
 	PRL_RESULT do_() const;
-	PRL_RESULT start() const;
+	Prl::Expected<void, Error::Simple> start() const;
 
 private:
 	CVmConfiguration m_cfg;
