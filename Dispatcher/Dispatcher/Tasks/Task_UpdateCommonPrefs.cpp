@@ -594,38 +594,5 @@ PRL_RESULT Task_UpdateCommonPrefs::updateCpuFeaturesMask(
 	if (CCpuHelper::isMasksEqual(oldMask, newMask))
 		return PRL_ERR_SUCCESS;
 
-	PRL_RESULT ret = CCpuHelper::maskUpdate(newMask);
-	if (PRL_FAILED(ret))
-		return ret;
-
-	QString mask(newMask.toString());
-
-	QMultiHash<QString, SmartPtr<CVmConfiguration> > vms =
-		CDspService::instance()->getVmDirHelper().getAllVmList();
-	foreach(QString dirUuid, vms.uniqueKeys())
-	{
-		foreach(SmartPtr<CVmConfiguration> pVmConfig, vms.values(dirUuid))
-		{
-			if(!pVmConfig)
-				continue;
-
-			CVmEvent e;
-			e.addEventParameter(new CVmEventParameter(PVE::String,
-				mask, EVT_PARAM_VMCFG_CPU_FEATURES_MASK));
-
-			QString vmUuid = pVmConfig->getVmIdentification()->getVmUuid();
-
-			if (CDspService::instance()->getVmDirHelper().atomicEditVmConfigByVm(
-				dirUuid, vmUuid, e, getClient()))
-			{
-				CVmEvent event(PET_DSP_EVT_VM_CONFIG_CHANGED, vmUuid, PIE_DISPATCHER);
-				SmartPtr<IOPackage> pkg = DispatcherPackage::createInstance(
-					PVE::DspVmEvent, event, getRequestPackage());
-				CDspService::instance()->getClientManager().sendPackageToVmClients(
-					pkg, dirUuid, vmUuid);
-			}
-		}
-	}
-
-	return PRL_ERR_SUCCESS;
+	return CCpuHelper::maskUpdate(newMask);
 }
