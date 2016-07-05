@@ -71,6 +71,8 @@
 #include "CVcmmdInterface.h"
 #include "CDspBackupDevice.h"
 
+#include "Libraries/CpuFeatures/CCpuHelper.h"
+
 #ifdef _WIN_
 	#include <process.h>
 	#define getpid _getpid
@@ -1657,7 +1659,6 @@ Q_GLOBAL_STATIC(Dispatcher, getDispatcher);
 
 } // namespace Command
 
-
 using namespace Parallels;
 
 REGISTER_HANDLER( IOService::IOSender::Vm,
@@ -1915,30 +1916,34 @@ void CDspVmManager::changeTimezone( int tzIndex )
 void CDspVmManager::onDispConfigChanged
 	(const SmartPtr<CDispCommonPreferences> old_, const SmartPtr<CDispCommonPreferences> new_)
 {
+	namespace vm = Libvirt::Instrument::Agent::Vm;
 	if (NULL == m_registry)
 		return;
 
-	// This could be a factory here if there will be more than one action.
+	Vm::Config::Edit::Connector b;
+
 	quint32 t = new_->getWorkspacePreferences()->getVmGuestCpuLimitType();
-	if (old_->getWorkspacePreferences()->getVmGuestCpuLimitType() == t)
+	if (old_->getWorkspacePreferences()->getVmGuestCpuLimitType() != t)
+		b.setLimitType(t);
+
+	if(!CCpuHelper::isMasksEqual(*old_->getCpuPreferences(), *new_->getCpuPreferences()))
+		b.setCpuFeatures(*new_->getCpuPreferences());
+
+	boost::optional<Vm::Config::Edit::Gear> g = b.getResult();
+	if (!g)
 		return;
 
-	Libvirt::Instrument::Agent::Vm::List l = Libvirt::Kit.vms();
-	QList<Libvirt::Instrument::Agent::Vm::Unit> all;
+	vm::List l = Libvirt::Kit.vms();
+	QList<vm::Unit> all;
 	l.all(all);
 
-	foreach (const Libvirt::Instrument::Agent::Vm::Unit& u, all)
+	foreach (const vm::Unit& u, all)
 	{
 		QString uuid;
 		if (u.getUuid(uuid).isFailed())
 			continue;
-		Registry::Access a = m_registry->find(uuid);
-		boost::optional<Vm::Config::Edit::Atomic> e = a.getConfigEditor();
 
-		if (!e)
-			continue;
-
-		(*e)(Vm::Config::Edit::Cpu::LimitType(t));
+		g.get()(m_registry->find(uuid), u);
 	}
 }
 
@@ -1946,8 +1951,58 @@ namespace Vm
 {
 namespace Config
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Updater
+
+void Updater::operator()(Registry::Access& access_, Libvirt::Instrument::Agent::Vm::Unit& unit_)
+{
+	boost::optional<CVmConfiguration> c;
+	if (c = access_.getConfig())
+		unit_.setConfig(c.get());
+}
+
 namespace Edit
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Gear
+
+void Gear::operator()(Registry::Access access_, Libvirt::Instrument::Agent::Vm::Unit unit_)
+{
+	if (m_signal.isNull())
+		return;
+
+	boost::optional<Vm::Config::Edit::Atomic> e = access_.getConfigEditor();
+	if (!e)
+		return;
+
+	(*e)(*m_signal);
+
+	if (!m_tail.empty())
+		m_tail(access_, unit_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+void Connector::setLimitType(quint32 type_)
+{
+	m_signal->connect(Cpu::LimitType(type_));
+}
+
+void Connector::setCpuFeatures(const CDispCpuPreferences& cpu_)
+{
+
+	m_tail = Vm::Config::Updater();
+	m_signal->connect(Cpu::Features(cpu_));
+}
+
+boost::optional<Gear> Connector::getResult()
+{
+	if (m_signal->empty())
+		return boost::none;
+	return Gear(m_signal, m_tail);
+}
+
 namespace Cpu
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -1985,6 +2040,12 @@ PRL_RESULT LimitType::operator()(CVmConfiguration& config_) const
 	}
 
 	cpu->setGuestLimitType(m_value);
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Features::operator()(CVmConfiguration& config_) const
+{
+	CCpuHelper::update(config_, m_value);
 	return PRL_ERR_SUCCESS;
 }
 
