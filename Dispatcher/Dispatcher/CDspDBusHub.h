@@ -37,8 +37,7 @@
 #include <QString>
 #include <QObject>
 #include <QScopedPointer>
-
-class QDBusInterface;
+#include <QDBusConnection>
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct CDspDBusHub
@@ -48,8 +47,7 @@ class CDspDBusHub: public QObject
 	Q_OBJECT
 
 public:
-	explicit CDspDBusHub();
-	~CDspDBusHub();
+	CDspDBusHub();
 
 	static void createDetached();
 
@@ -57,7 +55,7 @@ public slots:
 	void slotCpuFeaturesSync();
 
 private:
-	QScopedPointer<QDBusInterface> m_interface;
+	QDBusConnection m_bus;
 };
 
 #endif //CDSPDBUSHUB_H

@@ -73,18 +73,20 @@ struct SetFeatures: std::unary_function<void, CDispCommonPreferences&>
 // struct CDspDBusHub
 
 CDspDBusHub::CDspDBusHub()
-	: m_interface(new QDBusInterface("vz.cpufeatures", "/vz/cpufeatures",
-				"vz.CpuFeatures", QDBusConnection::systemBus(), this))
+	: m_bus(QDBusConnection::systemBus())
 {
-	if (!m_interface->connection().connect(m_interface->service(), m_interface->path(),
-				m_interface->interface(), "Sync", this, SLOT(slotCpuFeaturesSync())))
+	if (!m_bus.isConnected())
+	{
+		WRITE_TRACE(DBG_FATAL, "Failed to get D-Bus connection");
+		// TODO: retry on timer
+		return;
+	}
+
+	if (!m_bus.connect("com.virtuozzo.cpufeatures", "/com/virtuozzo/cpufeatures",
+		"com.virtuozzo.cpufeatures", "Sync", this, SLOT(slotCpuFeaturesSync())))
 	{
 		WRITE_TRACE(DBG_FATAL, "Unable to subscribe on Sync event");
 	}
-}
-
-CDspDBusHub::~CDspDBusHub()
-{
 }
 
 void CDspDBusHub::createDetached()
