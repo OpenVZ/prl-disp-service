@@ -297,9 +297,24 @@ result_type Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	}
 
 	unsigned os = cfg->getVmSettings()->getVmCommonOptions()->getOsVersion();
-	bool noSCSI = cfg->getVmSettings()->getVmCommonOptions()->getOsType() ==
-				PVS_GUEST_TYPE_WINDOWS &&
-			IS_WIN_VER_BELOW(os, PVS_GUEST_VER_WIN_VISTA);
+	bool isWin = cfg->getVmSettings()->getVmCommonOptions()->getOsType() ==
+				PVS_GUEST_TYPE_WINDOWS;
+
+	CVmUsbController *usb = cfg->getVmSettings()->getUsbController();
+	if (isWin && IS_WIN_VER_BELOW(os, PVS_GUEST_VER_WIN_WINDOWS8))
+	{
+		usb->setUhcEnabled(true);
+		usb->setEhcEnabled(true);
+		usb->setXhcEnabled(false);
+	}
+	else
+	{
+		usb->setUhcEnabled(false);
+		usb->setEhcEnabled(false);
+		usb->setXhcEnabled(true);
+	}
+
+	bool noSCSI = isWin && IS_WIN_VER_BELOW(os, PVS_GUEST_VER_WIN_VISTA);
 	Helper h(noSCSI ? PMS_VIRTIO_BLOCK_DEVICE : PMS_SCSI_DEVICE,
 	         noSCSI ? PCD_BUSLOGIC : PCD_VIRTIO_SCSI,
 			 *pVmHardware);
