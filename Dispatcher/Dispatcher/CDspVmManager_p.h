@@ -34,12 +34,15 @@
 
 #include "CDspClient.h"
 #include "CDspLibvirt.h"
+#include "CDspRegistry.h"
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/fold.hpp>
 #include <boost/mpl/pair.hpp>
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/inserter.hpp>
+#include <boost/signals2/signal.hpp>
 #include <prlcommon/Std/SmartPtr.h>
+#include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
 #include <Libraries/ProtoSerializer/CProtoSerializer.h>
 
 
@@ -871,14 +874,61 @@ namespace Vm
 {
 namespace Config
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Updater
+
+struct Updater
+{
+	void operator()(Registry::Access& access_, Libvirt::Instrument::Agent::Vm::Unit& unit_);
+};
+
 namespace Edit
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Gear
+
+struct Gear
+{
+	typedef Libvirt::Instrument::Agent::Vm::Unit unit_type;
+	typedef boost::signals2::signal<void (CVmConfiguration& )> signal_type;
+	typedef boost::function2<void, Registry::Access&, unit_type& > tail_type;
+
+	Gear(const QSharedPointer<signal_type>& signal_, const tail_type& tail_)
+		: m_signal(signal_), m_tail(tail_)
+	{
+	}
+
+	void operator()(Registry::Access access_, Libvirt::Instrument::Agent::Vm::Unit unit_);
+
+private:
+	QSharedPointer<signal_type> m_signal;
+	tail_type m_tail;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+struct Connector
+{
+	Connector(): m_signal(new Gear::signal_type)
+	{
+	}
+
+	void setLimitType(quint32 type_);
+	void setCpuFeatures(const CDispCpuPreferences& cpu_);
+	boost::optional<Gear> getResult();
+
+private:
+	QSharedPointer<Gear::signal_type> m_signal;
+	Gear::tail_type m_tail;
+};
+
 namespace Cpu
 {
 ///////////////////////////////////////////////////////////////////////////////
 // struct LimitType
 
-struct  LimitType: std::unary_function<PRL_RESULT, CVmConfiguration&>
+struct LimitType: std::unary_function<PRL_RESULT, CVmConfiguration&>
 {
 	explicit LimitType(quint32 value_): m_value(value_)
 	{
@@ -888,6 +938,21 @@ struct  LimitType: std::unary_function<PRL_RESULT, CVmConfiguration&>
 
 private:
 	quint32 m_value;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Features
+
+struct Features: std::unary_function<PRL_RESULT, CVmConfiguration&>
+{
+	explicit Features(const CDispCpuPreferences& value_): m_value(value_)
+	{
+	}
+
+	PRL_RESULT operator()(CVmConfiguration& config_) const;
+
+private:
+	CDispCpuPreferences m_value;
 };
 
 } // namespace Cpu
