@@ -1582,6 +1582,7 @@ PRL_RESULT Vm::setDevices()
 	x.setPanicList(p.getResult());
 
 	Libvirt::Domain::Xml::Memballoon m;
+	m.setStats(5);
 	m.setAutodeflate(Libvirt::Domain::Xml::EVirOnOffOn);
 	x.setMemballoon(m);
 
