@@ -52,7 +52,7 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "CDspVmStateSender.h"
 #include "CDspVmManager_p.h"
-
+#include <poll.h>
 #include "CDspVzHelper.h"
 #include <sys/resource.h>
 #include "Libraries/Virtuozzo/CVzHelper.h"
@@ -1556,8 +1556,6 @@ PRL_RESULT BackupProcess::read(char *data, qint32 size, UINT32 tmo)
 {
 	int rc;
 	size_t count;
-	SmartPtr<fd_set> fds(IOService::allocFDSet(m_out[0] + 1));
-	struct timeval tv;
 	unsigned nTimeout = tmo/TARGET_DISPATCHER_TIMEOUT_COUNTS; // in sec
 
 	count = 0;
@@ -1592,12 +1590,12 @@ PRL_RESULT BackupProcess::read(char *data, qint32 size, UINT32 tmo)
 		for (int i = 1; i <= TARGET_DISPATCHER_TIMEOUT_COUNTS; i++) {
 			if (m_isKilled)
 				return PRL_ERR_OPERATION_WAS_CANCELED;
+
+			pollfd p;
+			p.fd = m_out[0];
+			p.events = POLLIN;
 			do {
-				::memset(fds.getImpl(), 0, FDNUM2SZ(m_out[0] + 1));
-				FD_SET(m_out[0], fds.getImpl());
-				tv.tv_sec = nTimeout;
-				tv.tv_usec = 0;
-				rc = select(m_out[0] + 1, fds.getImpl(), NULL, NULL, &tv);
+				rc = poll(&p, 1, nTimeout * 1000);
 				if (rc == 0 && i == TARGET_DISPATCHER_TIMEOUT_COUNTS) {
 					WRITE_TRACE(DBG_FATAL, "[%s] full timeout expired (%d sec)",
 						__FUNCTION__, tmo);
@@ -1610,7 +1608,7 @@ PRL_RESULT BackupProcess::read(char *data, qint32 size, UINT32 tmo)
 					WRITE_TRACE(DBG_FATAL, "[%s] select() error : %s", __FUNCTION__, strerror(errno));
 					return PRL_ERR_BACKUP_INTERNAL_ERROR;
 				}
-			} while(!FD_ISSET(m_out[0], fds.getImpl()));
+			} while (0 == (p.revents & POLLIN));
 			if (rc > 0)
 				break;
 		}
