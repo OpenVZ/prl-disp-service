@@ -1951,16 +1951,6 @@ namespace Vm
 {
 namespace Config
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Updater
-
-void Updater::operator()(Registry::Access& access_, Libvirt::Instrument::Agent::Vm::Unit& unit_)
-{
-	boost::optional<CVmConfiguration> c;
-	if (c = access_.getConfig())
-		unit_.setConfig(c.get());
-}
-
 namespace Edit
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -1977,8 +1967,12 @@ void Gear::operator()(Registry::Access access_, Libvirt::Instrument::Agent::Vm::
 
 	(*e)(*m_signal);
 
-	if (!m_tail.empty())
-		m_tail(access_, unit_);
+	if (!m_configure.empty())
+	{
+		boost::optional<CVmConfiguration> c = access_.getConfig();
+		if (c)
+			m_configure(unit_, c.get());
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1991,8 +1985,7 @@ void Connector::setLimitType(quint32 type_)
 
 void Connector::setCpuFeatures(const CDispCpuPreferences& cpu_)
 {
-
-	m_tail = Vm::Config::Updater();
+	m_configure = &Gear::unit_type::setConfig;
 	m_signal->connect(Cpu::Features(cpu_));
 }
 
@@ -2000,7 +1993,8 @@ boost::optional<Gear> Connector::getResult()
 {
 	if (m_signal->empty())
 		return boost::none;
-	return Gear(m_signal, m_tail);
+
+	return Gear(m_signal, boost::bind(m_configure, _1, _2));
 }
 
 namespace Cpu
