@@ -577,6 +577,31 @@ void Clock::operator()(const mpl::at_c<Libvirt::Domain::Xml::VClock::types, 2>::
 	m_clock->setTimeShift(variable_.getValue().getAdjustment().get().toLongLong());
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Adjustment
+
+void Adjustment::operator()(const mpl::at_c<Libvirt::Domain::Xml::VClock::types, 0>::type& fixed_) const
+{
+	mpl::at_c<Libvirt::Domain::Xml::VAdjustment::types, 1>::type value;
+	value.setValue(QString::number(m_offset));
+	Libvirt::Domain::Xml::Clock376 c = fixed_.getValue();
+	c.setOffset(Libvirt::Domain::Xml::EOffsetUtc);
+	c.setAdjustment(Libvirt::Domain::Xml::VAdjustment(value));
+	mpl::at_c<Libvirt::Domain::Xml::VClock::types, 0>::type v;
+	v.setValue(c);
+	m_result->setClock(v);
+}
+
+void Adjustment::operator()(const mpl::at_c<Libvirt::Domain::Xml::VClock::types, 2>::type& variable_) const
+{
+	Libvirt::Domain::Xml::Clock382 c = variable_.getValue();
+	c.setBasis(Libvirt::Domain::Xml::EBasisUtc);
+	c.setAdjustment(QString::number(m_offset));
+	mpl::at_c<Libvirt::Domain::Xml::VClock::types, 2>::type v;
+	v.setValue(c);
+	m_result->setClock(v);
+}
+
 namespace Controller
 {
 

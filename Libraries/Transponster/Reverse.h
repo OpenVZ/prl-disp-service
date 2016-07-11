@@ -239,6 +239,36 @@ struct Fixer: Builder
 	PRL_RESULT setDevices();
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Pipeline
+
+struct Pipeline
+{
+	explicit Pipeline(char* xml_);
+
+	PRL_RESULT operator()(boost::function1<PRL_RESULT, Libvirt::Domain::Xml::Domain&> action_);
+
+	QString getResult();
+
+private:
+	QScopedPointer<Libvirt::Domain::Xml::Domain> m_result;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Clock
+
+struct Clock: std::unary_function<PRL_RESULT, Libvirt::Domain::Xml::Domain&>
+{
+	explicit Clock(const qint64 offset_): m_offset(offset_)
+	{
+	}
+
+	PRL_RESULT operator()(Libvirt::Domain::Xml::Domain&);
+
+private:
+	qint64 m_offset;
+};
+
 } // namespace Reverse
 } // namespace Vm
 
