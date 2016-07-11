@@ -874,14 +874,6 @@ namespace Vm
 {
 namespace Config
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Updater
-
-struct Updater
-{
-	void operator()(Registry::Access& access_, Libvirt::Instrument::Agent::Vm::Unit& unit_);
-};
-
 namespace Edit
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -891,10 +883,11 @@ struct Gear
 {
 	typedef Libvirt::Instrument::Agent::Vm::Unit unit_type;
 	typedef boost::signals2::signal<void (CVmConfiguration& )> signal_type;
-	typedef boost::function2<void, Registry::Access&, unit_type& > tail_type;
+	typedef boost::function2<Libvirt::Result, unit_type, const CVmConfiguration& >
+		configure_type;
 
-	Gear(const QSharedPointer<signal_type>& signal_, const tail_type& tail_)
-		: m_signal(signal_), m_tail(tail_)
+	Gear(const QSharedPointer<signal_type>& signal_, const configure_type& configure_)
+		: m_signal(signal_), m_configure(configure_)
 	{
 	}
 
@@ -902,7 +895,7 @@ struct Gear
 
 private:
 	QSharedPointer<signal_type> m_signal;
-	tail_type m_tail;
+	configure_type m_configure;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -910,7 +903,7 @@ private:
 
 struct Connector
 {
-	Connector(): m_signal(new Gear::signal_type)
+	Connector(): m_signal(new Gear::signal_type), m_configure()
 	{
 	}
 
@@ -920,7 +913,7 @@ struct Connector
 
 private:
 	QSharedPointer<Gear::signal_type> m_signal;
-	Gear::tail_type m_tail;
+	Libvirt::Result (Gear::unit_type::* m_configure)(const CVmConfiguration& );
 };
 
 namespace Cpu
