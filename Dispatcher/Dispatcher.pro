@@ -5,7 +5,7 @@ contains(USE_PRECOMPILED_HEADERS, 1) {
 	win32:PRECOMPILED_HEADER = Precomp.h
 }
 
-QT += network core xml
+QT += network core xml dbus
 QT -= gui
 
 linux-g++* {
@@ -87,6 +87,7 @@ HEADERS += \
 	CVcmmdInterface.h \
 	CDspVzLicense.h \
 	CDspVmGuest.h \
+	CDspDBusHub.h \
 	\
 	EditHelpers/CMultiEditDispatcher.h \
 	EditHelpers/CMultiEditMergeHelper.h \
@@ -207,6 +208,7 @@ SOURCES += \
 	CVcmmdInterface.cpp \
 	CDspVzLicense.cpp \
 	CDspVmGuest.cpp \
+	CDspDBusHub.cpp \
 	\
 	EditHelpers/CMultiEditDispatcher.cpp \
 	EditHelpers/CMultiEditMergeVmConfig.cpp \

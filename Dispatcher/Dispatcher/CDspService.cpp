@@ -32,6 +32,7 @@
 #include <QFile>
 #include <QDir>
 #include <QMutableListIterator>
+#include <QDBusInterface>
 
 #include <prlcommon/Interfaces/ParallelsQt.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
@@ -56,6 +57,7 @@
 #include "CDspCommon.h"
 #include "CDspTestConfig.h"
 #include "CDspDispConnectionsManager.h"
+#include "CDspDBusHub.h"
 
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlxmlmodel/DispConfig/CDispNetAdapter.h>
@@ -905,6 +907,7 @@ void CDspService::start ()
 			WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher DOES NOT STARTED !!!" );
 			return;
 		}
+		CDspDBusHub::createDetached();
 #ifndef _WIN_
 	// System signals handler.
 	CUnixSignalHandler* pSigTermHandler = CUnixSignalHandler::installHandler(SIGTERM);
