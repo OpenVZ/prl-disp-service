@@ -1647,6 +1647,16 @@ PRL_RESULT Mixer::setIdentification()
 	return PRL_ERR_SUCCESS;
 }
 
+
+PRL_RESULT Mixer::setResources(const VtInfo& info_)
+{
+	// we don't need to rewrite clock
+	boost::optional<Libvirt::Domain::Xml::Clock> t = m_result->getClock();
+	PRL_RESULT r = Builder::setResources(info_);
+	m_result->setClock(t);
+	return r;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Fixer
 
