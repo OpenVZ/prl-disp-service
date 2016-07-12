@@ -487,11 +487,6 @@ void List::add(const CVmGenericNetworkAdapter* network_)
 		m_deviceList.add(a.value());
 }
 
-const Attachment& List::getAttachment() const
-{
-	return m_attachment;
-}
-
 } //namespace Boot
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1403,7 +1398,6 @@ PRL_RESULT Builder::setDevices()
 	x.setEmulator(b.getEmulator());
 	x.setChoice938List(Transponster::Device::deviceList_type()
 			<< b.getDeviceList()
-			<< t.getAttachment().getControllers()
 			<< u.getDevices());
 
 	m_result->setDevices(x);
