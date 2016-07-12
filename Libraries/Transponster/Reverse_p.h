@@ -674,8 +674,6 @@ struct List
 {
 	List(const CVmSettings& settings_, Device::List& list_);
 
-	const Attachment& getAttachment() const;
-
 	void add(const CVmHardDisk* hdd_, const CVmRunTimeOptions* runtime_);
 	void add(const CVmOpticalDisk* cdrom_);
 	void add(const CVmFloppyDisk* floppy_);
@@ -688,7 +686,6 @@ private:
 private:
 	Reverse m_boot;
 	Device::List& m_deviceList;
-	Attachment m_attachment;
 };
 
 template<class T>
