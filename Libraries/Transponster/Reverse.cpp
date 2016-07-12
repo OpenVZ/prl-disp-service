@@ -699,68 +699,6 @@ Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
 } // namespace Network
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Attachment
-
-void Attachment::craftController(const Libvirt::Domain::Xml::VChoice589& bus_, quint16 index_)
-{
-	Libvirt::Domain::Xml::Controller x;
-	x.setIndex(index_);
-	x.setChoice589(bus_);
-	mpl::at_c<Libvirt::Domain::Xml::VChoice938::types, 1>::type y;
-	y.setValue(x);
-	m_controllerList << Libvirt::Domain::Xml::VChoice938(y);
-}
-
-Libvirt::Domain::Xml::VAddress Attachment::craftIde()
-{
-	quint16 c = m_ide / IDE_UNITS / IDE_BUSES;
-	quint16 b = m_ide / IDE_UNITS % IDE_BUSES;
-	quint16 u = m_ide++ % IDE_UNITS;
-
-	if (c > 0 && u == 0 && b == 0)
-	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice589::types, 0>::type v;
-		v.setValue(Libvirt::Domain::Xml::EType6Ide);
-		craftController(v, c);
-	}
-
-	return Address().setUnit(u).setBus(b)(c);
-}
-
-Libvirt::Domain::Xml::VAddress Attachment::craftSata()
-{
-	quint16 c = m_sata / SATA_UNITS;
-	quint16 u = m_sata++ % SATA_UNITS;
-
-	if (c > 0 && u == 0)
-	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice589::types, 0>::type v;
-		v.setValue(Libvirt::Domain::Xml::EType6Sata);
-		craftController(v, c);
-	}
-
-	return Address().setUnit(u)(c);
-}
-
-Libvirt::Domain::Xml::VAddress Attachment::craftScsi(const boost::optional<Libvirt::Domain::Xml::EModel>& model_)
-{
-	Libvirt::Domain::Xml::EModel m = Libvirt::Domain::Xml::EModelAuto;
-	if (model_)
-		m = model_.get();
-	quint16 c = m_scsi[m] / SCSI_TARGETS;
-	quint16 t = m_scsi[m]++ % SCSI_TARGETS;
-
-	if (t == 0)
-	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice589::types, 1>::type v;
-		v.setValue(m);
-		craftController(v, c);
-	}
-
-	return Address().setTarget(t)(c);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct List
 
 void List::addGuestChannel(const QString &path_)

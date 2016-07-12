@@ -634,40 +634,6 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Attachment
-
-struct Attachment
-{
-	Attachment(): m_ide(0), m_sata(0)
-	{
-	}
-
-	Libvirt::Domain::Xml::VAddress craftIde();
-	Libvirt::Domain::Xml::VAddress craftSata();
-	Libvirt::Domain::Xml::VAddress craftScsi(const boost::optional<Libvirt::Domain::Xml::EModel>& model_);
-	deviceList_type getControllers() const
-	{
-		return m_controllerList;
-	}
-
-private:
-	enum
-	{
-		IDE_UNITS = 2,
-		IDE_BUSES = 2,
-		SATA_UNITS = 6,
-		SCSI_TARGETS = 256
-	};
-
-	void craftController(const Libvirt::Domain::Xml::VChoice589& bus_, quint16 index_);
-
-	quint16 m_ide;
-	quint16 m_sata;
-	QMap<Libvirt::Domain::Xml::EModel, quint16> m_scsi;
-	deviceList_type m_controllerList;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct List
 
 struct List
@@ -735,22 +701,7 @@ void List::build(T builder_)
 	builder_.setTarget();
 	builder_.setBackingChain();
 
-	Libvirt::Domain::Xml::Disk d = static_cast<const T&>(builder_).getResult();
-	switch (d.getTarget().getBus().get())
-	{
-	case Libvirt::Domain::Xml::EBusIde:
-		d.setAddress(m_attachment.craftIde());
-		break;
-	case Libvirt::Domain::Xml::EBusSata:
-		d.setAddress(m_attachment.craftSata());
-		break;
-	case Libvirt::Domain::Xml::EBusScsi:
-		d.setAddress(m_attachment.craftScsi(builder_.getModel().getScsiModel()));
-		break;
-	default:
-		break;
-	}
-	m_deviceList.add(d);
+	m_deviceList.add(static_cast<const T&>(builder_).getResult());
 }
 
 } // namespace Boot
