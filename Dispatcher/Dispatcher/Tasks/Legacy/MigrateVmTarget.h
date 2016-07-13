@@ -84,6 +84,7 @@ private:
 	void checkRemoteDisplay();
 	void checkEfiBoot();
 	void checkFlags();
+	void checkBinary();
 	/**
 	 * Checks whether target VM home path resides on iscsi storage
 	 */

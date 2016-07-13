@@ -175,6 +175,8 @@ private:
 
 struct Convoy: QProcess
 {
+	static const char migrationBinary[];
+
 	Convoy(const SmartPtr<CDspDispConnection>& connection_,
 			const SmartPtr<IOPackage>& package_)
 		: m_connection(connection_), m_package(package_)

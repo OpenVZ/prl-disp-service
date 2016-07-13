@@ -284,6 +284,7 @@ PRL_RESULT MigrateVmTarget::prepareTask()
 
 	checkRequiresDiskSpace();
 	checkRemoteDisplay();
+	checkBinary();
 	checkEfiBoot();
 	checkFlags();
 exit:
@@ -1231,6 +1232,21 @@ void MigrateVmTarget::checkFlags()
 			"Try again without a clone mode option. The VM will be unregistered "
 			"at the end of the migration process.")
 		.arg(VER_FULL_BUILD_NUMBER_RELEASE_MAJOR),
+		EVT_PARAM_MESSAGE_PARAM_0));
+	m_lstCheckPrecondsErrors.append(cEvent.toString());
+}
+
+void MigrateVmTarget::checkBinary()
+{
+	QString path(Legacy::Vm::Migration::Convoy::migrationBinary);
+	if (QFile::exists(path))
+		return;
+
+	CVmEvent cEvent;
+	cEvent.setEventCode(PRL_ERR_VZ_OPERATION_FAILED);
+	cEvent.addEventParameter(new CVmEventParameter(PVE::String,
+		QString("The migration binary '%1' is missing on the target server.\nInstall Virtuozzo legacy components and try again.")
+		.arg(path),
 		EVT_PARAM_MESSAGE_PARAM_0));
 	m_lstCheckPrecondsErrors.append(cEvent.toString());
 }
