@@ -55,6 +55,7 @@
 #include "CDspBugPatcherLogic.h"
 #include "CDspVmManager_p.h"
 #include "CDspBackupDevice.h"
+#include <ctime>
 
 #include <Libraries/PrlNetworking/netconfig.h>
 
@@ -2045,6 +2046,21 @@ void Task_RegisterVm::patchNewConfiguration()
 		}
 	}
 
+	if (m_pVmConfig->getVmHardwareList()->getClock() != NULL &&
+		m_pVmConfig->getVmHardwareList()->getClock()->getTimeShift() != 0)
+		return;
+
+	if (!IS_WINDOWS(m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsVersion()))
+		return;
+
+	std::time_t current_time;
+	std::time(&current_time);
+	std::tm timeinfo;
+	localtime_r(&current_time, &timeinfo);
+
+	QScopedPointer<Clock> c(new Clock());
+	c->setTimeShift(timeinfo.tm_gmtoff);
+	m_pVmConfig->getVmHardwareList()->setClock(c.take());
 }
 
 QString Task_RegisterVm::regenerateVmUuid()

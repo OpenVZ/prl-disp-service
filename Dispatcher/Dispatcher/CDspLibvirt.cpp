@@ -357,6 +357,16 @@ Prl::Expected<QString, Error::Simple> Config::fixup(const CVmConfiguration& valu
 	return u.getResult();
 }
 
+Prl::Expected<QString, Error::Simple> Config::adjustClock(qint64 offset_) const
+{
+	Transponster::Vm::Reverse::Pipeline u(read_());
+	PRL_RESULT res = u(Transponster::Vm::Reverse::Clock(offset_));
+	if (PRL_FAILED(res))
+		return Error::Simple(res);
+
+	return u.getResult();
+}
+
 } // namespace Agent
 
 namespace Breeding
@@ -817,6 +827,14 @@ int trayChange(virConnectPtr , virDomainPtr domain_,
 	return 0;
 }
 
+int rtcChange(virConnectPtr , virDomainPtr domain_,
+		qint64 utcoffset_, void* opaque_)
+{
+	Model::Coarse* v = (Model::Coarse* )opaque_;
+	v->adjustClock(domain_, utcoffset_);
+	return 0;
+}
+
 int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
                 int detail_, void* opaque_)
 {
@@ -1134,6 +1152,16 @@ void Coarse::disconnectDevice(virDomainPtr domain_, const QString& alias_)
 	CDspService::instance()->getVmStateSender()->onVmDeviceDetached(getUuid(domain_), alias_);
 }
 
+void Coarse::adjustClock(virDomainPtr domain_, qint64 offset_)
+{
+	// round offset to the nearest half an hour
+	// offset = (offset + 0.25h) / 0.5h * 0.5h
+	offset_ = (offset_ + 900) / 1800 * 1800;
+	virDomainRef(domain_);
+	Instrument::Agent::Vm::Unit a(domain_);
+	a.adjustClock(offset_);
+}
+
 } // namespace Model
 
 namespace Monitor
@@ -1242,6 +1270,12 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::trayChange),
 							new Model::Coarse(m_view),
 							&Callback::Plain::delete_<Model::Coarse>);
+	m_eventRtcChange = virConnectDomainEventRegisterAny(libvirtd_.data(),
+							NULL,
+							VIR_DOMAIN_EVENT_ID_RTC_CHANGE,
+							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::rtcChange),
+							new Model::Coarse(m_view),
+							&Callback::Plain::delete_<Model::Coarse>);
 	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, m_view, *m_registry);
 	q->setAutoDelete(true);
 	QThreadPool::globalInstance()->start(q);
@@ -1264,6 +1298,8 @@ void Domains::setDisconnected()
 	m_eventDeviceDisconnect = -1;
 	virConnectDomainEventDeregisterAny(x.data(), m_eventTrayChange);
 	m_eventTrayChange = -1;
+	virConnectDomainEventDeregisterAny(x.data(), m_eventRtcChange);
+	m_eventRtcChange = -1;
 	m_libvirtd.clear();
 	m_view.clear();
 }

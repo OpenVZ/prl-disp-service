@@ -439,6 +439,7 @@ struct Unit
 	Result setConfig(const CVmConfiguration& value_);
 	Result completeConfig(CVmConfiguration& config_);
 	Result setMemoryStatsPeriod(qint64 seconds_);
+	Result adjustClock(qint64 adjusment_);
 
 	Migration::Agent migrate(const QString& uri_);
 

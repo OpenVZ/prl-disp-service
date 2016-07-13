@@ -411,6 +411,28 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Adjustment
+
+struct Adjustment: boost::static_visitor<void>
+{
+	Adjustment(Libvirt::Domain::Xml::Clock& result_, qint64 offset_)
+		: m_result(&result_), m_offset(offset_)
+	{
+	}
+
+	template<class T>
+	void operator()(const T& ) const
+	{
+	}
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VClock::types, 0>::type& fixed_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VClock::types, 2>::type& variable_) const;
+
+private:
+	Libvirt::Domain::Xml::Clock* m_result;
+	qint64 m_offset;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Uuid
 
 template<class T>
