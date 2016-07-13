@@ -955,7 +955,7 @@ void Detector::react(unsigned oldState_, unsigned newState_, QString vmUuid_, QS
 {
 	Q_UNUSED(dirUuid_);
 	Q_UNUSED(oldState_);
-	if (newState_ == m_state && m_uuid == vmUuid_)
+	if (m_predicate(newState_) && m_uuid == vmUuid_)
 	{
 		sender()->disconnect(this);
 		emit detected();
@@ -973,7 +973,7 @@ Detector* Switch::craftDetector(const ::Command::Context& context_)
 	if (Prepare::Policy<Switch>::do_(Switch(s), context_).isFailed())
 		return NULL;
 
-	return new Detector(context_.getVmUuid(), s);
+	return new Detector(context_.getVmUuid(), boost::bind(std::equal_to<unsigned>(), s, _1));
 }
 
 Libvirt::Result Switch::operator()()
