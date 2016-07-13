@@ -1579,6 +1579,15 @@ PRL_RESULT Mixer::setIdentification()
 	return PRL_ERR_SUCCESS;
 }
 
+PRL_RESULT Mixer::setResources(const VtInfo& info_)
+{
+	// we don't need to rewrite clock
+	boost::optional<Libvirt::Domain::Xml::Clock> t = m_result->getClock();
+	PRL_RESULT r = Builder::setResources(info_);
+	m_result->setClock(t);
+	return r;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Fixer
 
@@ -1647,6 +1656,49 @@ PRL_RESULT Fixer::setDevices()
 PRL_RESULT Fixer::setResources(const VtInfo&)
 {
 	m_result->setCurrentMemory(boost::none);
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Pipeline
+
+Pipeline::Pipeline(char* xml_)
+{
+	shape(xml_, m_result);
+}
+
+PRL_RESULT Pipeline::operator()(boost::function1<PRL_RESULT, Libvirt::Domain::Xml::Domain&> action_)
+{
+	if (m_result.isNull())
+		return PRL_ERR_READ_XML_CONTENT;
+
+	return action_(*m_result);
+}
+
+QString Pipeline::getResult()
+{
+	if (m_result.isNull())
+		return QString();
+
+	QDomDocument x;
+	m_result->save(x);
+	m_result.reset();
+	return x.toString();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Clock
+
+PRL_RESULT Clock::operator()(Libvirt::Domain::Xml::Domain& dst_)
+{
+	boost::optional<Libvirt::Domain::Xml::Clock> t = dst_.getClock();
+	if (!t)
+		return PRL_ERR_READ_XML_CONTENT;
+
+	Libvirt::Domain::Xml::Clock c;
+	boost::apply_visitor(Visitor::Adjustment(c, m_offset), t->getClock());
+
+	dst_.setClock(c);
 	return PRL_ERR_SUCCESS;
 }
 

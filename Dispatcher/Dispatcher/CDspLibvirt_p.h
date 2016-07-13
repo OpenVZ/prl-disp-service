@@ -270,6 +270,7 @@ struct Coarse
 	static QString getUuid(virDomainPtr domain_);
 	void disconnectCd(virDomainPtr domain_, const QString& alias_);
 	void disconnectDevice(virDomainPtr domain_, const QString& alias_);
+	void adjustClock(virDomainPtr domain_, qint64 offset_);
 
 private:
 	QSharedPointer<System> m_fine;
@@ -329,6 +330,7 @@ private:
 	int m_eventDeviceConnect;
 	int m_eventDeviceDisconnect;
 	int m_eventTrayChange;
+	int m_eventRtcChange;
 	Registry::Actual* m_registry;
 	QWeakPointer<virConnect> m_libvirtd;
 	QSharedPointer<Model::System> m_view;
@@ -489,6 +491,7 @@ struct Config
 	Result convert(CVmConfiguration& dst_) const;
 	Prl::Expected<QString, Error::Simple> mixup(const CVmConfiguration& value_) const;
 	Prl::Expected<QString, Error::Simple> fixup(const CVmConfiguration& value_) const;
+	Prl::Expected<QString, Error::Simple> adjustClock(qint64 offset_) const;
 
 private:
 	char* read_() const;

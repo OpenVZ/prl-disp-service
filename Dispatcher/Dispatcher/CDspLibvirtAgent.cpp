@@ -443,6 +443,25 @@ Result Unit::setConfig(const CVmConfiguration& value_)
 	return Result();
 }
 
+Result Unit::adjustClock(qint64 offset_)
+{
+	QSharedPointer<virConnect> link_ = getLink();
+	if (link_.isNull())
+		return Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
+
+	Config config(m_domain, link_, VIR_DOMAIN_XML_INACTIVE);
+	Prl::Expected<QString, Error::Simple> x = config.adjustClock(offset_);
+	if (x.isFailed())
+		return x.error();
+
+	virDomainPtr d = virDomainDefineXML(link_.data(), x.value().toUtf8().data());
+	if (NULL == d)
+		return Failure(PRL_ERR_VM_APPLY_CONFIG_FAILED);
+
+	m_domain = QSharedPointer<virDomain>(d, &virDomainFree);
+	return Result();
+}
+
 Result Unit::completeConfig(CVmConfiguration& config_)
 {
 	if (m_domain.isNull())
