@@ -272,6 +272,11 @@ struct Model
 		return getTarget()
 			+ Parallels::toBase26(m_dataSource->getStackIndex());
 	}
+	quint32 getIndex() const
+	{
+		return m_dataSource->getStackIndex();
+	}
+
 	QString getImageFile() const
 	{
 		QString f = m_dataSource->getUserFriendlyName();
@@ -638,13 +643,10 @@ private:
 
 struct Attachment
 {
-	Attachment(): m_ide(0), m_sata(0)
-	{
-	}
-
-	Libvirt::Domain::Xml::VAddress craftIde();
-	Libvirt::Domain::Xml::VAddress craftSata();
-	Libvirt::Domain::Xml::VAddress craftScsi(const boost::optional<Libvirt::Domain::Xml::EModel>& model_);
+	Libvirt::Domain::Xml::VAddress craftIde(quint32 index_);
+	Libvirt::Domain::Xml::VAddress craftSata(quint32 index_);
+	Libvirt::Domain::Xml::VAddress craftScsi
+		(quint32 index_, const boost::optional<Libvirt::Domain::Xml::EModel>& model_);
 	deviceList_type getControllers() const
 	{
 		return m_controllerList;
@@ -661,9 +663,6 @@ private:
 
 	void craftController(const Libvirt::Domain::Xml::VChoice589& bus_, quint16 index_);
 
-	quint16 m_ide;
-	quint16 m_sata;
-	QMap<Libvirt::Domain::Xml::EModel, quint16> m_scsi;
 	deviceList_type m_controllerList;
 };
 
@@ -739,13 +738,14 @@ void List::build(T builder_)
 	switch (d.getTarget().getBus().get())
 	{
 	case Libvirt::Domain::Xml::EBusIde:
-		d.setAddress(m_attachment.craftIde());
+		d.setAddress(m_attachment.craftIde(builder_.getModel().getIndex()));
 		break;
 	case Libvirt::Domain::Xml::EBusSata:
-		d.setAddress(m_attachment.craftSata());
+		d.setAddress(m_attachment.craftSata(builder_.getModel().getIndex()));
 		break;
 	case Libvirt::Domain::Xml::EBusScsi:
-		d.setAddress(m_attachment.craftScsi(builder_.getModel().getScsiModel()));
+		d.setAddress(m_attachment.craftScsi
+				(builder_.getModel().getIndex(), builder_.getModel().getScsiModel()));
 		break;
 	default:
 		break;

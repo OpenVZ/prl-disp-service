@@ -711,11 +711,11 @@ void Attachment::craftController(const Libvirt::Domain::Xml::VChoice589& bus_, q
 	m_controllerList << Libvirt::Domain::Xml::VChoice938(y);
 }
 
-Libvirt::Domain::Xml::VAddress Attachment::craftIde()
+Libvirt::Domain::Xml::VAddress Attachment::craftIde(quint32 index_)
 {
-	quint16 c = m_ide / IDE_UNITS / IDE_BUSES;
-	quint16 b = m_ide / IDE_UNITS % IDE_BUSES;
-	quint16 u = m_ide++ % IDE_UNITS;
+	quint16 c = index_ / IDE_UNITS / IDE_BUSES;
+	quint16 b = index_ / IDE_UNITS % IDE_BUSES;
+	quint16 u = index_ % IDE_UNITS;
 
 	if (c > 0 && u == 0 && b == 0)
 	{
@@ -727,10 +727,10 @@ Libvirt::Domain::Xml::VAddress Attachment::craftIde()
 	return Address().setUnit(u).setBus(b)(c);
 }
 
-Libvirt::Domain::Xml::VAddress Attachment::craftSata()
+Libvirt::Domain::Xml::VAddress Attachment::craftSata(quint32 index_)
 {
-	quint16 c = m_sata / SATA_UNITS;
-	quint16 u = m_sata++ % SATA_UNITS;
+	quint16 c = index_ / SATA_UNITS;
+	quint16 u = index_ % SATA_UNITS;
 
 	if (c > 0 && u == 0)
 	{
@@ -742,13 +742,14 @@ Libvirt::Domain::Xml::VAddress Attachment::craftSata()
 	return Address().setUnit(u)(c);
 }
 
-Libvirt::Domain::Xml::VAddress Attachment::craftScsi(const boost::optional<Libvirt::Domain::Xml::EModel>& model_)
+Libvirt::Domain::Xml::VAddress Attachment::craftScsi
+	(quint32 index_, const boost::optional<Libvirt::Domain::Xml::EModel>& model_)
 {
 	Libvirt::Domain::Xml::EModel m = Libvirt::Domain::Xml::EModelAuto;
 	if (model_)
 		m = model_.get();
-	quint16 c = m_scsi[m] / SCSI_TARGETS;
-	quint16 t = m_scsi[m]++ % SCSI_TARGETS;
+	quint16 c = index_ / SCSI_TARGETS;
+	quint16 t = index_ % SCSI_TARGETS;
 
 	if (t == 0)
 	{
