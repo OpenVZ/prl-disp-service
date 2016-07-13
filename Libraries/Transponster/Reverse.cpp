@@ -487,6 +487,11 @@ void List::add(const CVmGenericNetworkAdapter* network_)
 		m_deviceList.add(a.value());
 }
 
+const Attachment& List::getAttachment() const
+{
+	return m_attachment;
+}
+
 } //namespace Boot
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -692,6 +697,69 @@ Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
 }
 
 } // namespace Network
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Attachment
+
+void Attachment::craftController(const Libvirt::Domain::Xml::VChoice589& bus_, quint16 index_)
+{
+	Libvirt::Domain::Xml::Controller x;
+	x.setIndex(index_);
+	x.setChoice589(bus_);
+	mpl::at_c<Libvirt::Domain::Xml::VChoice938::types, 1>::type y;
+	y.setValue(x);
+	m_controllerList << Libvirt::Domain::Xml::VChoice938(y);
+}
+
+Libvirt::Domain::Xml::VAddress Attachment::craftIde(quint32 index_)
+{
+	quint16 c = index_ / IDE_UNITS / IDE_BUSES;
+	quint16 b = index_ / IDE_UNITS % IDE_BUSES;
+	quint16 u = index_ % IDE_UNITS;
+
+	if (c > 0 && u == 0 && b == 0)
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VChoice589::types, 0>::type v;
+		v.setValue(Libvirt::Domain::Xml::EType6Ide);
+		craftController(v, c);
+	}
+
+	return Address().setUnit(u).setBus(b)(c);
+}
+
+Libvirt::Domain::Xml::VAddress Attachment::craftSata(quint32 index_)
+{
+	quint16 c = index_ / SATA_UNITS;
+	quint16 u = index_ % SATA_UNITS;
+
+	if (c > 0 && u == 0)
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VChoice589::types, 0>::type v;
+		v.setValue(Libvirt::Domain::Xml::EType6Sata);
+		craftController(v, c);
+	}
+
+	return Address().setUnit(u)(c);
+}
+
+Libvirt::Domain::Xml::VAddress Attachment::craftScsi
+	(quint32 index_, const boost::optional<Libvirt::Domain::Xml::EModel>& model_)
+{
+	Libvirt::Domain::Xml::EModel m = Libvirt::Domain::Xml::EModelAuto;
+	if (model_)
+		m = model_.get();
+	quint16 c = index_ / SCSI_TARGETS;
+	quint16 t = index_ % SCSI_TARGETS;
+
+	if (t == 0)
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VChoice589::types, 1>::type v;
+		v.setValue(m);
+		craftController(v, c);
+	}
+
+	return Address().setTarget(t)(c);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct List
@@ -1398,6 +1466,7 @@ PRL_RESULT Builder::setDevices()
 	x.setEmulator(b.getEmulator());
 	x.setChoice938List(Transponster::Device::deviceList_type()
 			<< b.getDeviceList()
+			<< t.getAttachment().getControllers()
 			<< u.getDevices());
 
 	m_result->setDevices(x);
