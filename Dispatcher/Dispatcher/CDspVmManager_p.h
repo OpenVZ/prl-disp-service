@@ -38,7 +38,9 @@
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/fold.hpp>
 #include <boost/mpl/pair.hpp>
+#include <boost/mpl/for_each.hpp>
 #include <boost/mpl/vector.hpp>
+#include <boost/mpl/vector_c.hpp>
 #include <boost/mpl/inserter.hpp>
 #include <boost/signals2/signal.hpp>
 #include <prlcommon/Std/SmartPtr.h>
@@ -480,12 +482,34 @@ private:
 namespace State
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Check
+
+template <typename V>
+struct Check: std::unary_function<unsigned, bool>
+{
+	typedef QSet<unsigned> storage_t;
+
+	Check()
+	{
+		boost::mpl::for_each<V>(boost::bind(&storage_t::insert, &m_storage, _1));
+	}
+
+	bool operator()(unsigned state_) const
+	{
+		return m_storage.contains(state_);
+	}
+
+private:
+	storage_t m_storage;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Detector
 
 struct Detector: QObject
 {
-	Detector(const QString& uuid_, VIRTUAL_MACHINE_STATE state_):
-		m_uuid(uuid_), m_state(state_)
+	Detector(const QString& uuid_, const boost::function1<bool, unsigned>& predicate_):
+		m_uuid(uuid_), m_predicate(predicate_)
 	{
 	}
 
@@ -499,7 +523,7 @@ private:
 	Q_OBJECT
 
 	const QString m_uuid;
-	const VIRTUAL_MACHINE_STATE m_state;
+	boost::function1<bool, unsigned> m_predicate;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -521,10 +545,10 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Strict
+// struct Plural
 
-template<VIRTUAL_MACHINE_STATE S>
-struct Strict
+template<typename L>
+struct Plural
 {
 	static Detector* craftDetector(const Context& context_)
 	{
@@ -536,12 +560,21 @@ struct Strict
 	}
 	static Detector* craftDetector(const QString& uuid_)
 	{
-		return new Detector(uuid_, S);
+		return new Detector(uuid_, Check<L>());
 	}
 	static Fork::Reactor* craftReactor(const Context& context_)
 	{
 		return new Reactor(context_);
 	}
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Strict
+
+template<VIRTUAL_MACHINE_STATE S>
+struct Strict: Plural<boost::mpl::vector_c<unsigned, S> >
+{
 };
 
 namespace Snapshot
