@@ -52,7 +52,6 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "CDspVmStateSender.h"
 #include "CDspVmManager_p.h"
-
 #include "CDspVzHelper.h"
 #include <sys/resource.h>
 #include "Libraries/Virtuozzo/CVzHelper.h"
@@ -78,6 +77,237 @@
 
 namespace Backup
 {
+namespace Process
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Flop
+// m_name, m_task
+
+void Flop::operator()(const QString& program_, int code_, const QString& stderr_)
+{
+	PRL_RESULT e = (program_ == "restore" || program_ == "restore_ct") ?
+		PRL_ERR_BACKUP_RESTORE_CMD_FAILED : PRL_ERR_BACKUP_BACKUP_CMD_FAILED;
+
+	CDspTaskFailure f(*m_task);
+	f.setCode(e)(m_name, QString::number(code_));
+	m_task->getLastError()->addEventParameter(new CVmEventParameter(PVE::String,
+		stderr_, EVT_PARAM_DETAIL_DESCRIPTION));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Driver
+
+Driver::Driver(int channel_): m_channel(channel_)
+{
+	long f = fcntl(channel_, F_GETFL);
+	if (-1 != f)
+		fcntl(channel_, F_SETFL, f | O_NONBLOCK);
+}
+
+void Driver::setupChildProcess()
+{
+	QProcess::setupChildProcess(); // requires vz-built qt version
+	fcntl(m_channel, F_SETFD, ~FD_CLOEXEC);
+}
+
+void Driver::write_(SmartPtr<char> data_, quint32 size_)
+{
+	if (0 > write(data_.getImpl(), size_))
+	{
+		WRITE_TRACE(DBG_FATAL, "write() error : %s",
+			QSTR2UTF8(errorString()));
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+PRL_RESULT Unit::start(QStringList args_, int version_)
+{
+	PRL_ASSERT(args_.size());
+	QMutexLocker g(&m_mutex);
+	if (NULL != m_driver.get())
+		return PRL_ERR_DOUBLE_INIT;
+
+	int p[2] = {};
+	QString x = args_.takeFirst();
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, p) < 0)
+	{
+		WRITE_TRACE(DBG_FATAL, "socketpair() error : %s", strerror(errno));
+		return PRL_ERR_BACKUP_INTERNAL_ERROR;
+	}
+	if (BACKUP_PROTO_V4 > version_) {
+		// old syntax, prepend arguments by fds
+		args_.insert(0, QString::number(STDIN_FILENO));
+		args_.insert(1, QString::number(p[1]));
+	} else {
+		// new syntax, append arguments by named fd args
+		args_ << "--fdin" << QString::number(STDIN_FILENO);
+		args_ << "--fdout" << QString::number(p[1]);
+	}
+	WRITE_TRACE(DBG_WARNING, "Run cmd: %s", QSTR2UTF8(args_.join(" ")));
+
+	QScopedPointer<Driver> d(new Driver(p[1]));
+	connect(d.data(), SIGNAL(finished(int, QProcess::ExitStatus)),
+		SLOT(reactFinish(int, QProcess::ExitStatus)), Qt::DirectConnection);
+	d->start(x, args_, QIODevice::Unbuffered | QIODevice::ReadWrite);
+	d->moveToThread(QCoreApplication::instance()->thread());
+	::close(p[1]);
+	if (!d->waitForStarted())
+	{
+		::close(p[0]);
+		return PRL_ERR_BACKUP_TOOL_CANNOT_START;
+	}
+	m_program = x;
+	m_driver.reset(d.take());
+	m_channel = QSharedPointer<QLocalSocket>(new QLocalSocket);
+	m_channel->setSocketDescriptor(p[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
+//	m_channel->moveToThread(m_driver->thread());
+	return PRL_ERR_SUCCESS;
+}
+
+void Unit::reactFinish(int code_, QProcess::ExitStatus status_)
+{
+	QString x;
+	QMutexLocker g(&m_mutex);
+	std::swap(x, m_program);
+	if (QProcess::CrashExit == status_)
+		WRITE_TRACE(DBG_FATAL, "%s have crashed", QSTR2UTF8(x));
+	else if (0 != code_)
+	{
+		QString y = m_driver->readAllStandardError();
+		WRITE_TRACE(DBG_FATAL, "%s exited with code %d, error: %s", QSTR2UTF8(x),
+			code_, QSTR2UTF8(y));
+		if (!m_callback.empty())
+			m_callback(x, code_, y);
+	}
+	m_channel.clear();
+	m_event.wakeAll();
+}
+
+PRL_RESULT Unit::waitForFinished()
+{
+	QMutexLocker g(&m_mutex);
+	if (NULL == m_driver.get())
+		return PRL_ERR_UNINITIALIZED;
+
+	if (!m_program.isEmpty())
+		m_event.wait(&m_mutex);
+
+	if (QProcess::CrashExit == m_driver->exitStatus())
+		return PRL_ERR_BACKUP_INTERNAL_ERROR;
+
+	if (0 != m_driver->exitCode())
+		return PRL_ERR_BACKUP_ACRONIS_ERR;
+
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Unit::write(char* data_, quint32 size_)
+{
+	IOService::IODataBuffer b;
+	b.open(QIODevice::ReadWrite);
+	b.write(data_, size_);
+	return write(SmartPtr<char>(b.takeBuffer(), SmartPtrPolicy::ArrayStorage), size_);
+}
+
+PRL_RESULT Unit::write(const SmartPtr<char>& data_, quint32 size_)
+{
+	if (size_ == 0)
+		return PRL_ERR_SUCCESS;
+
+	if (!data_.isValid())
+		return PRL_ERR_INVALID_ARG;
+
+	QMutexLocker g(&m_mutex);
+	if (NULL == m_driver.get())
+		return PRL_ERR_UNINITIALIZED;
+
+	if (m_program.isEmpty())
+		return PRL_ERR_UNEXPECTED;
+
+	qRegisterMetaType<SmartPtr<char> >("SmartPtr<char>");
+	if (!QMetaObject::invokeMethod(m_driver.get(), "write_", Qt::QueuedConnection,
+		Q_ARG(SmartPtr<char>, data_),
+		Q_ARG(quint32, size_)))
+		return PRL_ERR_UNEXPECTED;
+
+	QCoreApplication::sendPostedEvents();
+	return PRL_ERR_SUCCESS;
+}
+
+void Unit::kill()
+{
+	QMutexLocker g(&m_mutex);
+	if (NULL != m_driver.get())
+		m_driver->terminate();
+
+	if (!m_channel.isNull())
+		m_channel->abort();
+}
+
+Prl::Expected<QPair<char*, qint32>, PRL_RESULT>
+	Unit::read_(QLocalSocket& channel_, char* buffer_, qint32 capacity_)
+{
+	if (!channel_.isValid())
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	if (QLocalSocket::ConnectedState != channel_.state() ||
+		channel_.error() == QLocalSocket::PeerClosedError)
+	{
+		WRITE_TRACE(DBG_FATAL, "read() error: the channel is aborted");
+		return PRL_ERR_BACKUP_INTERNAL_ERROR;
+	}
+	qint64 a = channel_.bytesAvailable();
+	if (0 == a)
+		return qMakePair(buffer_, capacity_);
+
+	qint64 r = channel_.read(buffer_, qMin<qint64>(capacity_, a));
+	if (-1 == r)
+	{
+		WRITE_TRACE(DBG_FATAL, "read() error: %s", QSTR2UTF8(channel_.errorString()));
+		return PRL_ERR_BACKUP_INTERNAL_ERROR;
+	}
+	if (capacity_ > r)
+		return qMakePair(buffer_ + r, qint32(capacity_ - r));
+
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Unit::read(char *data, qint32 size, UINT32 tmo)
+{
+	m_mutex.lock();
+	QSharedPointer<QLocalSocket> x = m_channel;
+	m_mutex.unlock();
+	if (x.isNull())
+		return PRL_ERR_UNINITIALIZED;
+
+	Prl::Expected<QPair<char*, qint32>, PRL_RESULT> y(qMakePair(data, size));
+	for (; 0 == tmo; x->waitForReadyRead(-1))
+	{
+		y = read_(*x, y.value().first, y.value().second);
+		if (y.isFailed())
+			return y.error();
+	}
+	unsigned s = TARGET_DISPATCHER_TIMEOUT_COUNTS;
+	unsigned t = tmo / s; // in sec
+	forever
+	{
+		y = read_(*x, y.value().first, y.value().second);
+		if (y.isFailed())
+			return y.error();
+
+		if (0 == --s)
+			break;
+		if (x->waitForReadyRead(t * 1000))
+			s = TARGET_DISPATCHER_TIMEOUT_COUNTS;
+	}
+	WRITE_TRACE(DBG_FATAL, "full timeout expired (%d sec)", tmo);
+	return PRL_ERR_BACKUP_INTERNAL_ERROR;
+}
+
+} // namespace Process
+
 namespace Work
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -386,7 +616,7 @@ void Thaw::timerEvent(QTimerEvent *event_)
 	release();
 }
 
-PRL_RESULT Thaw::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
+PRL_RESULT Thaw::do_(SmartPtr<IOPackage> request_, process_type& dst_)
 {
 	release();
 	return forward(request_, dst_);
@@ -543,7 +773,7 @@ Chain::~Chain()
 {
 }
 
-PRL_RESULT Chain::forward(SmartPtr<IOPackage> request_, BackupProcess& dst_)
+PRL_RESULT Chain::forward(SmartPtr<IOPackage> request_, process_type& dst_)
 {
 	if (NULL == m_next.getImpl())
 		return PRL_ERR_SUCCESS;
@@ -564,12 +794,12 @@ struct GoodBye: Chain
 	{
 		return !m_yes;
 	}
-	PRL_RESULT do_(SmartPtr<IOPackage> request_, BackupProcess& dst_);
+	PRL_RESULT do_(SmartPtr<IOPackage> request_, process_type& dst_);
 private:
         bool m_yes;
 };
 
-PRL_RESULT GoodBye::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
+PRL_RESULT GoodBye::do_(SmartPtr<IOPackage> request_, process_type& dst_)
 {
 	if (ABackupProxyGoodBye != request_->header.type)
 		return forward(request_, dst_);
@@ -588,12 +818,12 @@ struct Close: Chain
 	{
 	}
 
-	PRL_RESULT do_(SmartPtr<IOPackage> request_, BackupProcess& dst_);
+	PRL_RESULT do_(SmartPtr<IOPackage> request_, process_type& dst_);
 private:
 	quint32 m_timeout;
 };
 
-PRL_RESULT Close::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
+PRL_RESULT Close::do_(SmartPtr<IOPackage> request_, process_type& dst_)
 {
 	if (ABackupProxyCloseRequest != request_->header.type)
 		return forward(request_, dst_);
@@ -613,7 +843,7 @@ PRL_RESULT Close::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Forward
 
-PRL_RESULT Forward::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
+PRL_RESULT Forward::do_(SmartPtr<IOPackage> request_, process_type& dst_)
 {
 	IOSendJob::Handle hJob = m_client->sendPackage(request_);
 	IOSendJob::Result res = m_client->waitForSend(hJob, m_timeout*1000);
@@ -652,7 +882,7 @@ PRL_RESULT Forward::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
 	if (PRL_FAILED(e))
 		return e;
 
-	return dst_.write(b.getImpl(), uSize);
+	return dst_.write(b, uSize);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -662,7 +892,7 @@ struct Progress: Chain
 {
 	Progress(CVmEvent& stub_, quint32 disk_, SmartPtr<IOPackage> src_);
 
-	PRL_RESULT do_(SmartPtr<IOPackage> request_, BackupProcess& dst_);
+	PRL_RESULT do_(SmartPtr<IOPackage> request_, process_type& dst_);
 private:
 	quint32 m_disk;
 	CVmEvent m_stub;
@@ -674,7 +904,7 @@ Progress::Progress(CVmEvent& stub_, quint32 disk_, SmartPtr<IOPackage> src_):
 {
 }
 
-PRL_RESULT Progress::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
+PRL_RESULT Progress::do_(SmartPtr<IOPackage> request_, process_type& dst_)
 {
 	if (ABackupProxyProgress != request_->header.type)
 		return forward(request_, dst_);
@@ -702,19 +932,19 @@ PRL_RESULT Progress::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
 
 struct Client
 {
-	Client(BackupProcess* process_, const QStringList& args_);
+	Client(Backup::Process::Unit* process_, const QStringList& args_);
 
-	PRL_RESULT result(bool cancelled_, const QString& vm_, CVmEvent* event_);
+	PRL_RESULT result(bool cancelled_, CVmEvent* event_);
 	SmartPtr<IOPackage> pull(quint32 version_, SmartPtr<char> buffer_, qint64 cb_);
 private:
 	SmartPtr<IOPackage> doPull(SmartPtr<char> buffer_, qint64 cb_);
 
 	PRL_RESULT m_start;
 	QStringList m_argv;
-	std::auto_ptr<BackupProcess> m_process;
+	std::auto_ptr<Backup::Process::Unit> m_process;
 };
 
-Client::Client(BackupProcess* process_, const QStringList& argv_):
+Client::Client(Backup::Process::Unit* process_, const QStringList& argv_):
 	m_start(PRL_ERR_UNINITIALIZED), m_argv(argv_), m_process(process_)
 {
 }
@@ -761,10 +991,8 @@ SmartPtr<IOPackage> Client::pull(quint32 version_, SmartPtr<char> buffer_, qint6
 	if (PRL_FAILED(m_start))
 		return SmartPtr<IOPackage>();
 	if (PRL_ERR_UNINITIALIZED == e)
-	{
-		m_process->setReadFdBlock();
 		WRITE_TRACE(DBG_INFO, "BACKUP_PROTO client version %u", version_);
-	}
+
 	SmartPtr<IOPackage> output = doPull(buffer_, cb_);
 	if (NULL == output.getImpl())
 		m_process->kill();
@@ -772,25 +1000,20 @@ SmartPtr<IOPackage> Client::pull(quint32 version_, SmartPtr<char> buffer_, qint6
 	return output;
 }
 
-PRL_RESULT Client::result(bool cancelled_, const QString& vm_, CVmEvent* event_)
+PRL_RESULT Client::result(bool cancelled_, CVmEvent* event_)
 {
 	if (PRL_FAILED(m_start))
 		return m_start;
 
 	m_start = PRL_ERR_UNINITIALIZED;
-	PRL_RESULT e = m_process->waitForFinished();
-	if (PRL_ERR_BACKUP_ACRONIS_ERR == e)
-	{
-		e = (m_argv.at(0) == "restore" || m_argv.at(0) == "restore_ct") ?
-			PRL_ERR_BACKUP_RESTORE_CMD_FAILED : PRL_ERR_BACKUP_BACKUP_CMD_FAILED;
-		event_->setEventCode(e);
-		event_->addEventParameter(new CVmEventParameter(PVE::String, vm_, EVT_PARAM_MESSAGE_PARAM_0));
-		event_->addEventParameter(new CVmEventParameter(PVE::Integer,
-				QString::number(m_process->exitCode()), EVT_PARAM_MESSAGE_PARAM_1));
-		event_->addEventParameter(new CVmEventParameter(PVE::String,
-				m_process->getError(), EVT_PARAM_DETAIL_DESCRIPTION));
-	}
-	return cancelled_ ? PRL_ERR_OPERATION_WAS_CANCELED : e;
+	PRL_RESULT output = m_process->waitForFinished();
+	if (cancelled_)
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	if (NULL != event_ && output == PRL_ERR_BACKUP_ACRONIS_ERR)
+		return event_->getEventCode();
+
+	return output;
 }
 
 namespace Backup
@@ -1465,192 +1688,6 @@ void Task_BackupHelper::unlockExclusive(const QString &sBackupUuid)
 	}
 }
 
-BackupProcess::BackupProcess() : m_isKilled(false)
-{
-	for (int j = 0; j < 2 ; j++)
-		m_out[j] = -1;
-}
-
-BackupProcess::~BackupProcess()
-{
-	for (int j = 0; j < 2 ; j++) {
-		if (m_out[j] != -1)
-			::close(m_out[j]);
-	}
-}
-
-void BackupProcess::setupChildProcess()
-{
-	QProcess::setupChildProcess(); // requires vz-built qt version
-	fcntl(m_out[1], F_SETFD, ~FD_CLOEXEC);
-}
-
-PRL_RESULT BackupProcess::start(const QStringList& arg_, int version_)
-{
-	PRL_ASSERT(arg_.size());
-	QStringList a(arg_);
-	m_sCmd = a.takeFirst();
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, m_out) < 0) {
-		WRITE_TRACE(DBG_FATAL, "socketpair() error : %s", strerror(errno));
-		return PRL_ERR_BACKUP_INTERNAL_ERROR;
-	}
-
-	if (BACKUP_PROTO_V4 > version_) {
-		// old syntax, prepend arguments by fds
-		a.insert(0, QString::number(STDIN_FILENO));
-		a.insert(1, QString::number(m_out[1]));
-	} else {
-		// new syntax, append arguments by named fd args
-		a << "--fdin" << QString::number(STDIN_FILENO);
-		a << "--fdout" << QString::number(m_out[1]);
-	}
-	WRITE_TRACE(DBG_WARNING, "Run cmd: %s", QSTR2UTF8(a.join(" ")));
-
-	for (int j = 0; j < 2 ; j++) {
-		long flags;
-		if ((flags = fcntl(m_out[j], F_GETFL)) != -1)
-			fcntl(m_out[j], F_SETFL, flags | O_NONBLOCK);
-	}
-	QProcess::start(m_sCmd, a, QIODevice::Unbuffered | QIODevice::ReadWrite);
-	if (!waitForStarted())
-		return PRL_ERR_BACKUP_TOOL_CANNOT_START;
-	::close(m_out[1]);
-	m_out[1] = -1;
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT BackupProcess::waitForFinished()
-{
-	QProcess::waitForFinished(-1);
-	if (exitStatus() == QProcess::CrashExit) {
-		WRITE_TRACE(DBG_FATAL, "%s have crashed", QSTR2UTF8(m_sCmd));
-		return PRL_ERR_BACKUP_INTERNAL_ERROR;
-	}
-
-	if ((exitCode())) {
-		m_error = readAllStandardError();
-		WRITE_TRACE(DBG_FATAL, "%s exited with code %d, error: %s", QSTR2UTF8(m_sCmd),
-			exitCode(), QSTR2UTF8(m_error));
-		return PRL_ERR_BACKUP_ACRONIS_ERR;
-	}
-	return PRL_ERR_SUCCESS;
-}
-
-QString BackupProcess::getError()
-{
-	return m_error;
-}
-
-void BackupProcess::kill()
-{
-	QProcess::terminate();
-	m_isKilled = true;
-}
-
-PRL_RESULT BackupProcess::read(char *data, qint32 size)
-{
-	return read(data, size, 0);
-}
-
-PRL_RESULT BackupProcess::read(char *data, qint32 size, UINT32 tmo)
-{
-	int rc;
-	size_t count;
-	SmartPtr<fd_set> fds(IOService::allocFDSet(m_out[0] + 1));
-	struct timeval tv;
-	unsigned nTimeout = tmo/TARGET_DISPATCHER_TIMEOUT_COUNTS; // in sec
-
-	count = 0;
-	while (1) {
-		/* read data */
-		while (1) {
-			errno = 0;
-			rc = ::read(m_out[0], data + count, size - count);
-			if (rc > 0) {
-				count += rc;
-				if (count >= (size_t)size) {
-					return PRL_ERR_SUCCESS;
-				}
-				continue;
-			} else if (rc == 0) {
-				/* end of file - pipe was close, will check client exit code */
-				WRITE_TRACE(DBG_DEBUG, "[%s] EOF", __FUNCTION__);
-				return PRL_ERR_BACKUP_INTERNAL_ERROR;
-			}
-			if ((errno == EAGAIN) || (errno == EINTR)) {
-				break;
-			} else {
-				WRITE_TRACE(DBG_FATAL, "[%s] read() error : %s", __FUNCTION__, strerror(errno));
-				return PRL_ERR_BACKUP_INTERNAL_ERROR;
-			}
-		}
-
-		if (!tmo)
-			continue;
-
-		/* wait next data in socket */
-		for (int i = 1; i <= TARGET_DISPATCHER_TIMEOUT_COUNTS; i++) {
-			if (m_isKilled)
-				return PRL_ERR_OPERATION_WAS_CANCELED;
-			do {
-				::memset(fds.getImpl(), 0, FDNUM2SZ(m_out[0] + 1));
-				FD_SET(m_out[0], fds.getImpl());
-				tv.tv_sec = nTimeout;
-				tv.tv_usec = 0;
-				rc = select(m_out[0] + 1, fds.getImpl(), NULL, NULL, &tv);
-				if (rc == 0 && i == TARGET_DISPATCHER_TIMEOUT_COUNTS) {
-					WRITE_TRACE(DBG_FATAL, "[%s] full timeout expired (%d sec)",
-						__FUNCTION__, tmo);
-					return PRL_ERR_BACKUP_INTERNAL_ERROR;
-				} else if (rc == 0) {
-					WRITE_TRACE(DBG_DEBUG, "[%s] partial timeout expired (%d sec)",
-						__FUNCTION__, nTimeout*i);
-					break;
-				} else if (rc < 0) {
-					WRITE_TRACE(DBG_FATAL, "[%s] select() error : %s", __FUNCTION__, strerror(errno));
-					return PRL_ERR_BACKUP_INTERNAL_ERROR;
-				}
-			} while(!FD_ISSET(m_out[0], fds.getImpl()));
-			if (rc > 0)
-				break;
-		}
-	}
-
-	/* but we never should be here */
-	return PRL_ERR_BACKUP_INTERNAL_ERROR;
-}
-
-PRL_RESULT BackupProcess::write(char *data, quint32 size)
-{
-	if (size == 0)
-		return PRL_ERR_SUCCESS;
-
-	quint32 count = 0;
-	while (count < size) {
-		int rc = QIODevice::write(data + count, size - count);
-		if (rc < 0) {
-			WRITE_TRACE(DBG_FATAL, "write() error : %s", QSTR2UTF8(errorString()));
-			return PRL_ERR_BACKUP_INTERNAL_ERROR;
-		}
-		do {
-			if (!waitForBytesWritten(-1)) {
-				WRITE_TRACE(DBG_FATAL, "Failed to write to backup process: %s",
-						QSTR2UTF8(QIODevice::errorString())); 
-				return PRL_ERR_BACKUP_INTERNAL_ERROR;
-			}
-		} while (bytesToWrite());
-		count += rc;
-	}
-	return PRL_ERR_SUCCESS;
-}
-
-void BackupProcess::setReadFdBlock()
-{
-	long flags;
-	if ((flags = fcntl(m_out[0], F_GETFL)) != -1)
-		fcntl(m_out[0], F_SETFL, flags & ~O_NONBLOCK);
-}
-
 PRL_RESULT Task_BackupHelper::handleABackupPackage(
 				const SmartPtr<CDspDispConnection> &pDispConnection,
 				const SmartPtr<IOPackage> &pRequest,
@@ -1678,7 +1715,7 @@ PRL_RESULT Task_BackupHelper::handleABackupPackage(
 	/* write request to process */
 	if (PRL_FAILED(nRetCode = m_cABackupServer.write((char *)&uSize, sizeof(uSize))))
 		return nRetCode;
-	if (PRL_FAILED(nRetCode = m_cABackupServer.write(pBuffer.getImpl(), uSize)))
+	if (PRL_FAILED(nRetCode = m_cABackupServer.write(pBuffer, uSize)))
 		return nRetCode;
 	/* and read reply */
 	if (PRL_FAILED(nRetCode = m_cABackupServer.read((char *)&nSize, sizeof(nSize), tmo)))
@@ -1736,7 +1773,8 @@ PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const 
 	a.prepend((BACKUP_PROTO_V4 > m_nRemoteVersion) ?
                         QString(PRL_ABACKUP_CLIENT) : QString(VZ_BACKUP_CLIENT));
 	a << "--timeout" << QString::number(m_nBackupTimeout);
-	Client x(m_cABackupClient = new BackupProcess, a);
+	Client x(m_cABackupClient = new Backup::Process::Unit(boost::bind<void>(
+		Backup::Process::Flop(sVmName_, *this), _1, _2, _3)), a);
 	while (b->no())
 	{
 		SmartPtr<IOPackage> q = x.pull(m_nRemoteVersion, m_pBuffer, m_nBufSize);
@@ -1748,7 +1786,7 @@ PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const 
                 	break;
 		}
 	}
-	PRL_RESULT output = x.result(m_bKillCalled, sVmName_, getLastError());
+	PRL_RESULT output = x.result(m_bKillCalled, getLastError());
 	m_bKillCalled = false;
 	m_cABackupClient = NULL;
 	return output;

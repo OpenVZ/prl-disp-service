@@ -267,7 +267,7 @@ struct Thaw: QObject, Chain
 	Thaw(const ::Backup::Snapshot::Vm::Object& object_) : m_object(object_) {}
 	~Thaw();
 
-	PRL_RESULT do_(SmartPtr<IOPackage> request_, BackupProcess& dst_);
+	PRL_RESULT do_(SmartPtr<IOPackage> request_, process_type& dst_);
 
 public slots:
 	void release();
@@ -337,6 +337,45 @@ private:
 } // namespace Bitmap
 } // namespace Push
 } // namespace Work
+
+namespace Process
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Flop
+
+struct Flop
+{
+	Flop(const QString& name_, CDspTaskHelper& task_):
+		m_name(name_), m_task(&task_)
+	{
+	}
+
+	void operator()(const QString& program_, int code_, const QString& stderr_);
+
+private:
+	QString m_name;
+	CDspTaskHelper* m_task;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Driver
+
+struct Driver: QProcess
+{
+	explicit Driver(int channel_);
+
+	Q_INVOKABLE void write_(SmartPtr<char> data_, quint32 size_);
+
+protected:
+	void setupChildProcess();
+
+private:
+	Q_OBJECT
+
+	int m_channel;
+};
+
+} // namespace Process
 } // namespace Backup
 
 namespace
