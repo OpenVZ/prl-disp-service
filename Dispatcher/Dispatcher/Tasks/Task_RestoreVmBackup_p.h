@@ -175,7 +175,7 @@ struct Handler: Chain
 	{
 		return m_usage;
 	}
-	PRL_RESULT do_(SmartPtr<IOPackage> request_, BackupProcess& dst_);
+	PRL_RESULT do_(SmartPtr<IOPackage> request_, process_type& dst_);
 private:
 	quint64 m_size;
 	quint64 m_usage;
@@ -363,7 +363,7 @@ private:
 
 struct Workerv3
 {
-	Workerv3(sendFiles_type send_, BackupProcess *process_)
+	Workerv3(sendFiles_type send_, Backup::Process::Unit *process_)
 		: m_escort(send_), m_process(process_) {}
 	~Workerv3();
 
@@ -371,7 +371,7 @@ struct Workerv3
 
 private:
 	sendFiles_type m_escort;
-	BackupProcess* m_process;
+	Backup::Process::Unit* m_process;
 };
 
 } // namespace Source

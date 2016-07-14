@@ -425,7 +425,7 @@ Handler::Handler(SmartPtr<IOClient> io_, quint32 timeout_): m_size(0ULL), m_usag
 	next(SmartPtr<Chain>(new Forward(io_, timeout_)));
 }
 
-PRL_RESULT Handler::do_(SmartPtr<IOPackage> request_, BackupProcess& dst_)
+PRL_RESULT Handler::do_(SmartPtr<IOPackage> request_, process_type& dst_)
 {
 	if (ABackupQueryArchiveReply != request_->header.type)
 		return forward(request_, dst_);

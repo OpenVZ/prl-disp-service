@@ -77,34 +77,53 @@ enum BackupCheckMode {
 	PRL_BACKUP_CHECK_MODE_WRITE,
 };
 
-class BackupProcess : public QProcess
+namespace Backup
 {
-public:
-	friend class Task_BackupHelper;
+namespace Process
+{
+struct Driver;
 
-	BackupProcess();
-	virtual ~BackupProcess();
-	PRL_RESULT start(const QStringList& args, int version);
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+struct Unit: QObject
+{
+	typedef boost::function3<void, const QString&, int, const QString&>
+		callback_type;
+
+	Unit()
+	{
+	}
+	explicit Unit(const callback_type& callback_): m_callback(callback_)
+	{
+	}
+
+	PRL_RESULT start(QStringList args_, int version_);
 	PRL_RESULT waitForFinished();
 	void kill();
-	PRL_RESULT read(char *buffer, qint32 size);
-	PRL_RESULT read(char *buffer, qint32 size, UINT32 tmo);
-	PRL_RESULT write(char *buffer, quint32 size);
-	PRL_RESULT handleABackupPackage(
-			const SmartPtr<CDspDispConnection> &pDispConnection,
-			const SmartPtr<IOPackage> &pRequest);
-	void setReadFdBlock();
-	QString getError();
+	PRL_RESULT read(char *buffer, qint32 size, UINT32 tmo = 0);
+	PRL_RESULT write(char* data_, quint32 size_);
+	PRL_RESULT write(const SmartPtr<char>& data_, quint32 size_);
 
-protected:
-	void setupChildProcess();
+private slots:
+	void reactFinish(int code_, QProcess::ExitStatus status_);
 
 private:
-	QString m_sCmd;
-	QString m_error;
-	bool m_isKilled;
-	int m_out[2];
+	Q_OBJECT
+
+	static Prl::Expected<QPair<char*, qint32>, PRL_RESULT>
+		read_(QLocalSocket& channel_, char* buffer_, qint32 capacity_);
+
+	QMutex m_mutex;
+	QString m_program;
+	QWaitCondition m_event;
+	callback_type m_callback;
+	std::auto_ptr<Driver> m_driver;
+	QSharedPointer<QLocalSocket> m_channel;
 };
+
+} // namespace Process
+} // namespace Backup
 
 enum _PRL_BACKUP_STEP {
 	BACKUP_REGISTER_EX_OP	= (1 << 0),
@@ -115,15 +134,17 @@ enum _PRL_BACKUP_STEP {
 
 struct Chain
 {
+	typedef Backup::Process::Unit process_type;
+
 	virtual ~Chain();
 
 	void next(SmartPtr<Chain> next_)
 	{
 		m_next = next_;
 	}
-	virtual PRL_RESULT do_(SmartPtr<IOPackage> request_, BackupProcess& dst_) = 0;
+	virtual PRL_RESULT do_(SmartPtr<IOPackage> request_, process_type& dst_) = 0;
 protected:
-	PRL_RESULT forward(SmartPtr<IOPackage> request_, BackupProcess& dst_);
+	PRL_RESULT forward(SmartPtr<IOPackage> request_, process_type& dst_);
 
 private:
 	SmartPtr<Chain> m_next;
@@ -139,7 +160,7 @@ struct Forward: Chain
 	{
 	}
 
-	PRL_RESULT do_(SmartPtr<IOPackage> request_, BackupProcess& dst_);
+	PRL_RESULT do_(SmartPtr<IOPackage> request_, process_type& dst_);
 private:
 	quint32 m_timeout;
 	SmartPtr<IOClient> m_client;
@@ -411,11 +432,11 @@ protected:
 	QList<QPair<QFileInfo, QString> > m_DirList;
 	/* list of files for plain copy : file info and relative path from Vm home directory */
 	QList<QPair<QFileInfo, QString> > m_FileList;
-	BackupProcess m_cABackupServer;
+	Backup::Process::Unit m_cABackupServer;
 	::Backup::Activity::Object::componentList_type m_urls;
 
 private:
-	BackupProcess* m_cABackupClient;
+	Backup::Process::Unit* m_cABackupClient;
 	bool m_bKillCalled;
 	SmartPtr<char> m_pBuffer;
 	qint64 m_nBufSize;
