@@ -168,7 +168,7 @@ def create_bridges():
 
     # Get list of interfaces for which to create bridges.
     to_bridges = []
-    for iface, cp in interfaces.items():
+    for iface, cp in sorted(interfaces.items()):
         if dequote(cp.get("BRIDGE", "")) != "":
             continue
         elif (iface == "lo" or
