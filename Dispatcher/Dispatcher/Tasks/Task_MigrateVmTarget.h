@@ -70,6 +70,10 @@ public:
 	PRL_RESULT sendStartConfirmation();
 	QList<CVmHardDisk> getImagesToCreate();
 	std::pair<CVmFileListCopySender*, CVmFileListCopyTarget*> createCopier();
+	const CVmConfiguration* getVmConfig() const
+	{
+		return m_pVmConfig.get();
+	}
 
 protected:
 	virtual PRL_RESULT prepareTask();

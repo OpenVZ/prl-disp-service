@@ -933,22 +933,18 @@ void Connector::react(const SmartPtr<IOPackage>& package_)
 	}
 }
 
-namespace Move
-{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Frontend
+// struct Synch
 
-void Frontend::synch(const msmf::none&)
+void Synch::send(Tunnel::IO& io_, Connector& connector_)
 {
 	SmartPtr<IOPackage> p = IOPackage::createInstance(Vm::Pump::FinishCommand_type::s_command, 1);
 	if (!p.isValid())
-		return getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
+		return connector_.handle(Flop::Event(PRL_ERR_FAILURE));
 
-	if (!m_io->sendPackage(p).isValid())
-		return getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
+	if (!io_.sendPackage(p).isValid())
+		return connector_.handle(Flop::Event(PRL_ERR_FAILURE));
 }
-
-} //namespace Move
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
@@ -1281,6 +1277,9 @@ PRL_RESULT Task_MigrateVmTarget::reactStart(const SmartPtr<IOPackage> &package)
 	if (PRL_FAILED(nRetCode = registerVmBeforeMigration()))
 		return nRetCode;
 
+	if (m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+		return nRetCode;
+
 	WRITE_TRACE(DBG_DEBUG, "declare VM UUID:%s, Dir UUID:%s, Config:%s",
 		qPrintable(m_sVmUuid), qPrintable(m_sVmDirUuid), qPrintable(m_sVmConfigPath));
 	if (PRL_FAILED(nRetCode = m_registry.declare(CVmIdent(m_sVmUuid, m_sVmDirUuid), m_sVmConfigPath)))
@@ -1349,6 +1348,12 @@ void Task_MigrateVmTarget::finalizeTask()
 			announceMacAddresses(m_pVmConfig);
 		}
 
+		if (m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+		{
+			CDspService::instance()->getVmStateSender()->
+				onVmStateChanged(VMS_MIGRATING, VMS_STOPPED, m_sVmUuid, m_sVmDirUuid, false);
+		}
+
 		PRL_EVENT_TYPE evtType;
 		/* restore Vm previous state */
 		switch (m_nPrevVmState)
@@ -1367,6 +1372,7 @@ void Task_MigrateVmTarget::finalizeTask()
 			evtType = PET_DSP_EVT_VM_STOPPED;
 			break;
 		}
+
 		CVmEvent cStateEvent(evtType, m_sVmUuid, PIE_DISPATCHER);
 		SmartPtr<IOPackage> pUpdateVmStatePkg =
 			DispatcherPackage::createInstance( PVE::DspVmEvent, cStateEvent.toString());
@@ -1403,7 +1409,8 @@ void Task_MigrateVmTarget::finalizeTask()
 		   we can remove 'already existed Vm' */
 		if (m_nSteps & MIGRATE_STARTED)
 		{
-			if (PRL_FAILED(m_registry.undeclare(m_sVmUuid)))
+			if (!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate()
+				&& PRL_FAILED(m_registry.undeclare(m_sVmUuid)))
 				WRITE_TRACE(DBG_FATAL, "Unable to undeclare VM after migration fail");
 
 			if (!CDspService::instance()->isServerStopping())
@@ -1665,6 +1672,9 @@ PRL_RESULT Task_MigrateVmTarget::registerVmBeforeMigration()
 		pVmDirItem->setTemplate( !m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate() );
 	else
 		pVmDirItem->setTemplate( m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate() );
+
+	if (pVmDirItem->isTemplate())
+		m_sVmDirUuid = CDspVmDirManager::getTemplatesDirectoryUuid();
 
 	nRetCode = CDspService::instance()->getVmDirHelper().insertVmDirectoryItem(m_sVmDirUuid, pVmDirItem);
 	if (PRL_FAILED(nRetCode))
@@ -1950,7 +1960,8 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 			boost::ref(*this))
 		<< backend_type::Copying(boost::ref(*this))
 		<< moveStep
-		<< backend_type::Commiting(boost::ref(*m_pVmConfig), boost::cref(m_lstCheckFilesExt), m_nPrevVmState),
+		<< backend_type::Commiting(boost::ref(*m_pVmConfig), boost::cref(m_lstCheckFilesExt), m_nPrevVmState)
+		<< backend_type::Syncing(~0),
 		boost::ref(*this), boost::ref(io)
 		);
 	(Migrate::Vm::Walker<backend_type>(machine))();
