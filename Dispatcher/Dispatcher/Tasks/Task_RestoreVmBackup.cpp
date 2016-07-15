@@ -463,7 +463,7 @@ void Task_RestoreVmBackupSource::restoreImage(const SmartPtr<IOPackage> p_,
 	QString out;
 	WRITE_TRACE(DBG_FATAL, "Run cmd: %s", QSTR2UTF8(cmdline.join(" ")));
 	PRL_RESULT e = PRL_ERR_SUCCESS;
-	if (!HostUtils::RunCmdLineUtility(cmdline.join(" "), out, QEMU_IMG_RUN_TIMEOUT, &process))
+	if (!HostUtils::RunCmdLineUtility(cmdline.join(" "), out, -1, &process))
 	{
 		WRITE_TRACE(DBG_FATAL, "Cannot restore hdd %s: %s", QSTR2UTF8(to),
 				process.readAllStandardError().constData());
