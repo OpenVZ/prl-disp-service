@@ -79,7 +79,11 @@ PRL_RESULT Nbd::start(const Image& image_, quint32 flags_)
 
 	VirtualDisk::qcow2PolicyList_type p(1, VirtualDisk::Policy::Qcow2::unix_type(n));
 	if (!(flags_ & PBT_UNCOMPRESSED))
+	{
 		p.push_back(VirtualDisk::Policy::Qcow2::compressed_type(true));
+		// Compressed data is not aligned. Enable cache for speediup
+		p.push_back(VirtualDisk::Policy::Qcow2::cached_type(true));
+	}
 	PRL_RESULT e = m_nbd.open(image_.getPath(), PRL_DISK_WRITE, p);
 	if (PRL_SUCCEEDED(e)) 
 		m_url = n;
