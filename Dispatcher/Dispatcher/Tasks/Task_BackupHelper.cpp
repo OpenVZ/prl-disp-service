@@ -242,30 +242,29 @@ void Unit::kill()
 	if (NULL != m_driver.get())
 		m_driver->terminate();
 
-	if (!m_channel.isNull())
-		m_channel->abort();
+	m_channel.clear();
 }
 
 Prl::Expected<QPair<char*, qint32>, PRL_RESULT>
-	Unit::read_(QLocalSocket& channel_, char* buffer_, qint32 capacity_)
+	Unit::read_(const QSharedPointer<QLocalSocket>& channel_, char* buffer_, qint32 capacity_)
 {
-	if (!channel_.isValid())
+	if (channel_.isNull())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	if (QLocalSocket::ConnectedState != channel_.state() ||
-		channel_.error() == QLocalSocket::PeerClosedError)
+	if (QLocalSocket::ConnectedState != channel_->state() ||
+		channel_->error() == QLocalSocket::PeerClosedError)
 	{
 		WRITE_TRACE(DBG_FATAL, "read() error: the channel is aborted");
 		return PRL_ERR_BACKUP_INTERNAL_ERROR;
 	}
-	qint64 a = channel_.bytesAvailable();
+	qint64 a = channel_->bytesAvailable();
 	if (0 == a)
 		return qMakePair(buffer_, capacity_);
 
-	qint64 r = channel_.read(buffer_, qMin<qint64>(capacity_, a));
+	qint64 r = channel_->read(buffer_, qMin<qint64>(capacity_, a));
 	if (-1 == r)
 	{
-		WRITE_TRACE(DBG_FATAL, "read() error: %s", QSTR2UTF8(channel_.errorString()));
+		WRITE_TRACE(DBG_FATAL, "read() error: %s", QSTR2UTF8(channel_->errorString()));
 		return PRL_ERR_BACKUP_INTERNAL_ERROR;
 	}
 	if (capacity_ > r)
@@ -285,7 +284,10 @@ PRL_RESULT Unit::read(char *data, qint32 size, UINT32 tmo)
 	Prl::Expected<QPair<char*, qint32>, PRL_RESULT> y(qMakePair(data, size));
 	for (; 0 == tmo; x->waitForReadyRead(-1))
 	{
-		y = read_(*x, y.value().first, y.value().second);
+		m_mutex.lock();
+		x = m_channel;
+		m_mutex.unlock();
+		y = read_(x, y.value().first, y.value().second);
 		if (y.isFailed())
 			return y.error();
 	}
@@ -293,7 +295,10 @@ PRL_RESULT Unit::read(char *data, qint32 size, UINT32 tmo)
 	unsigned t = tmo / s; // in sec
 	forever
 	{
-		y = read_(*x, y.value().first, y.value().second);
+		m_mutex.lock();
+		x = m_channel;
+		m_mutex.unlock();
+		y = read_(x, y.value().first, y.value().second);
 		if (y.isFailed())
 			return y.error();
 

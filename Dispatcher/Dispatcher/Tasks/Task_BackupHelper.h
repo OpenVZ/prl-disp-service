@@ -112,7 +112,7 @@ private:
 	Q_OBJECT
 
 	static Prl::Expected<QPair<char*, qint32>, PRL_RESULT>
-		read_(QLocalSocket& channel_, char* buffer_, qint32 capacity_);
+		read_(const QSharedPointer<QLocalSocket>& channel_, char* buffer_, qint32 capacity_);
 
 	QMutex m_mutex;
 	QString m_program;
