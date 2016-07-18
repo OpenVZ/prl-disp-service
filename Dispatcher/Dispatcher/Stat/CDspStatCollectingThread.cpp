@@ -613,6 +613,71 @@ struct Traits<Filesystem::Disk::Name> : Filesystem::Traits<Filesystem::Disk::Nam
 
 } // namespace Names
 
+namespace Flavor
+{
+namespace Network
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ipv4
+
+struct Ipv4
+{
+	typedef Ct::Statistics::Net source_type;
+	typedef PRL_STAT_NET_TRAFFIC value_type;
+
+	static const char* getName()
+	{
+		return PRL_NET_CLASSFUL_TRAFFIC_IPV4_PTRN;
+	}
+
+	static value_type extract(const source_type &n)
+	{
+		return n.ipv4;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ipv6
+
+struct Ipv6
+{
+	typedef Ct::Statistics::Net source_type;
+	typedef PRL_STAT_NET_TRAFFIC value_type;
+
+	static const char* getName()
+	{
+		return PRL_NET_CLASSFUL_TRAFFIC_IPV6_PTRN;
+	}
+
+	static value_type extract(const source_type &n)
+	{
+		return n.ipv6;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Total
+
+struct Total
+{
+	typedef Ct::Statistics::Net source_type;
+	typedef PRL_STAT_NET_TRAFFIC value_type;
+
+	static const char* getName()
+	{
+		return PRL_NET_CLASSFUL_TRAFFIC_PTRN;
+	}
+
+	static value_type extract(const source_type &n)
+	{
+		return n.total;
+	}
+};
+
+} // namespace Network
+} // namespace Flavor
+
 } // end of namespace
 
 QString multiCounterName(const char *prefix, quint32 i, const char *suffix)
@@ -1078,6 +1143,7 @@ namespace Network {
 ///////////////////////////////////////////////////////////////////////////////
 // struct ClassfulOffline
 
+template <typename Flavor>
 struct ClassfulOffline {
 
 	ClassfulOffline(const QString& uuid)
@@ -1087,7 +1153,7 @@ struct ClassfulOffline {
 
 	const char *getName() const
 	{
-		return PRL_NET_CLASSFUL_TRAFFIC_PTRN;
+		return Flavor::getName();
 	}
 
 	CVmEventParameter *getParam() const;
@@ -1097,16 +1163,17 @@ private:
 	QString m_uuid;
 };
 
-
-CVmEventParameter *ClassfulOffline::getParam() const
+template <typename Flavor>
+CVmEventParameter *ClassfulOffline<Flavor>::getParam() const
 {
-	QScopedPointer<PRL_STAT_NET_TRAFFIC> s(CVzHelper::get_net_stat(m_uuid));
-	return s.isNull() ? NULL : Conversion::Network::convert(*s);
+	QScopedPointer<Ct::Statistics::Net> s(CVzHelper::get_net_stat(m_uuid));
+	return s.isNull() ? NULL : Conversion::Network::convert(Flavor::extract(*s));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct ClassfulOnline
 
+template <typename Flavor>
 struct ClassfulOnline
 {
 	ClassfulOnline(const QString &uuid, QWeakPointer<Stat::Storage> storage,
@@ -1117,27 +1184,29 @@ struct ClassfulOnline
 
 	const char *getName() const
 	{
-		return PRL_NET_CLASSFUL_TRAFFIC_PTRN;
+		return Flavor::getName();
 	}
 
 	CVmEventParameter *getParam() const;
 
 private:
+	void fill(PRL_STAT_NET_TRAFFIC &stat) const;
 
 	const QString m_uuid;
 	QWeakPointer<Stat::Storage> m_storage;
 	const QList<CVmGenericNetworkAdapter*>* m_nics;
 };
 
-CVmEventParameter *ClassfulOnline::getParam() const
+template <>
+void ClassfulOnline< ::Flavor::Network::Ipv6>::fill(PRL_STAT_NET_TRAFFIC &stat) const
 {
-	CVmEventParameter *p = ClassfulOffline(m_uuid).getParam();
-	if (p != NULL)
-		return p;
+	Q_UNUSED(stat);
+}
 
-	PRL_STAT_NET_TRAFFIC stat;
+template <typename Flavor>
+void ClassfulOnline<Flavor>::fill(PRL_STAT_NET_TRAFFIC &stat) const
+{
 	// Copy data to only 1 network class
-	stat = PRL_STAT_NET_TRAFFIC();
 	foreach (const CVmGenericNetworkAdapter* nic, *m_nics)
 	{
 		stat.incoming[1] += GetPerfCounter(m_storage, Stat::Name::Interface::getPacketsIn(*nic));
@@ -1145,6 +1214,18 @@ CVmEventParameter *ClassfulOnline::getParam() const
 		stat.incoming_pkt[1] += GetPerfCounter(m_storage, Stat::Name::Interface::getBytesIn(*nic));
 		stat.outgoing_pkt[1] += GetPerfCounter(m_storage, Stat::Name::Interface::getBytesOut(*nic));
 	}
+}
+
+template <typename Flavor>
+CVmEventParameter *ClassfulOnline<Flavor>::getParam() const
+{
+	CVmEventParameter *p = ClassfulOffline<Flavor>(m_uuid).getParam();
+	if (p != NULL)
+		return p;
+
+	// To force zero initialization
+	PRL_STAT_NET_TRAFFIC stat = PRL_STAT_NET_TRAFFIC();
+	fill(stat);
 
 	return Conversion::Network::convert(stat);
 }
@@ -1523,24 +1604,6 @@ namespace Network
 {
 namespace Flavor
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Classful
-
-struct Classful {
-
-	typedef const PRL_STAT_NET_TRAFFIC source_type;
-	typedef PRL_STAT_NET_TRAFFIC value_type;
-
-	static const char *getName()
-	{
-		return PRL_NET_CLASSFUL_TRAFFIC_PTRN;
-	}
-
-	static value_type extract(source_type &net)
-	{
-		return net;
-	}
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct ReceivedSize
@@ -1620,7 +1683,9 @@ struct TransmittedPackets {
 
 } // namespace Flavor
 
-typedef SingleCounter<Flavor::Classful, Conversion::Network> Classful;
+typedef SingleCounter< ::Flavor::Network::Ipv4, Conversion::Network> Classful4;
+typedef SingleCounter< ::Flavor::Network::Ipv6, Conversion::Network> Classful6;
+typedef SingleCounter< ::Flavor::Network::Total, Conversion::Network> Classful;
 typedef SingleCounter<Flavor::ReceivedSize, Conversion::Uint64> ReceivedSize;
 typedef SingleCounter<Flavor::TransmittedSize, Conversion::Uint64> TransmittedSize;
 typedef SingleCounter<Flavor::ReceivedPackets, Conversion::Uint64> ReceivedPackets;
@@ -1986,11 +2051,13 @@ void Collector::collectCt(const QString &uuid,
 	collect(ctc::HostTimeDelta(t));
 	collect(ctc::Disk::Read(a.disk));
 	collect(ctc::Disk::Write(a.disk));
+	collect(ctc::Network::Classful4(a.net));
+	collect(ctc::Network::Classful6(a.net));
 	collect(ctc::Network::Classful(a.net));
-	collect(ctc::Network::ReceivedSize(a.net));
-	collect(ctc::Network::TransmittedSize(a.net));
-	collect(ctc::Network::ReceivedPackets(a.net));
-	collect(ctc::Network::TransmittedPackets(a.net));
+	collect(ctc::Network::ReceivedSize(a.net.total));
+	collect(ctc::Network::TransmittedSize(a.net.total));
+	collect(ctc::Network::ReceivedPackets(a.net.total));
+	collect(ctc::Network::TransmittedPackets(a.net.total));
 
 	Ct::Statistics::Memory *m = a.memory.get();
 	if (m != NULL) {
@@ -2059,7 +2126,9 @@ void Collector::collectVm(const QString &uuid, const CVmConfiguration &config)
 
 	const QList<CVmGenericNetworkAdapter*> &nics =
 		config.getVmHardwareList()->m_lstNetworkAdapters;
-	collect(vmc::Network::ClassfulOnline(uuid, p, nics));
+	collect(vmc::Network::ClassfulOnline<Flavor::Network::Ipv4>(uuid, p, nics));
+	collect(vmc::Network::ClassfulOnline<Flavor::Network::Ipv6>(uuid, p, nics));
+	collect(vmc::Network::ClassfulOnline<Flavor::Network::Total>(uuid, p, nics));
 	foreach (const CVmGenericNetworkAdapter* nic, nics)
 	{
 		collect(vmc::makeVmCounter(p,
@@ -2087,7 +2156,10 @@ void Collector::collectVm(const QString &uuid, const CVmConfiguration &config)
 
 void Collector::collectVmOffline(const QString &uuid_)
 {
-	collect(Vm::Counter::Network::ClassfulOffline(uuid_));
+	namespace ext = Flavor::Network;
+	collect(Vm::Counter::Network::ClassfulOffline<ext::Ipv4>(uuid_));
+	collect(Vm::Counter::Network::ClassfulOffline<ext::Ipv6>(uuid_));
+	collect(Vm::Counter::Network::ClassfulOffline<ext::Total>(uuid_));
 }
 
 template <typename Counter>
@@ -2910,7 +2982,7 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 		output->getUptimeStatistics()->setOsUptime(ctc::Uptime(c).getValue());
 
 		using ::Ct::Counter::accumulateTraffic;
-		const PRL_STAT_NET_TRAFFIC& n = a->net;
+		const PRL_STAT_NET_TRAFFIC& n = a->net.total;
 		net->setInDataSize(ctc::Network::ReceivedSize(n).getValue());
 		net->setOutDataSize(ctc::Network::TransmittedSize(n).getValue());
 		net->setInPkgsCount(ctc::Network::ReceivedPackets(n).getValue());

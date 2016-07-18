@@ -153,13 +153,23 @@ struct Filesystem
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Net
+
+struct Net
+{
+	PRL_STAT_NET_TRAFFIC ipv4;
+	PRL_STAT_NET_TRAFFIC ipv6;
+	PRL_STAT_NET_TRAFFIC total;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Aggregate
 
 struct Aggregate
 {
 	Cpu cpu;
 	SmartPtr<Memory> memory;
-	PRL_STAT_NET_TRAFFIC net;
+	Net net;
 	Disk disk;
 	QList<Filesystem> filesystem;
 };
@@ -190,7 +200,7 @@ public:
 	// private
 	static int autocalculate_cpumask(unsigned envid, unsigned ncpu,
 			unsigned long ram, unsigned long *mask, int size);
-	static PRL_STAT_NET_TRAFFIC *get_net_stat(const QString &id_);
+	static Ct::Statistics::Net *get_net_stat(const QString &id_);
 	static int update_network_classes_config(const CNetworkClassesConfig &conf);
 	static int get_network_classes_config(CNetworkClassesConfig &conf);
 	static int update_network_shaping_config(const CNetworkShapingConfig &conf);
