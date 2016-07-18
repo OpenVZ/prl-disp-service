@@ -1120,6 +1120,9 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	// https://jira.sw.ru/browse/PSBM-20397
 	m_pVmConfig->getVmIdentification()->setVmName(sVmName);
 
+	// set current VM home path to the restored config
+	m_pVmConfig->getVmIdentification()->setHomePath(sPathToVmConfig);
+
 	// TODO Should we use CDspBugPatcherLogic here?
 	// #PSBM-13394
 	CDspVmNetworkHelper::updateHostMacAddresses(m_pVmConfig, NULL, HMU_NONE);
