@@ -936,7 +936,7 @@ void Connector::react(const SmartPtr<IOPackage>& package_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Synch
 
-void Synch::send(Tunnel::IO& io_, Connector& connector_)
+void Synch::send(Tunnel::IO& io_, Connector& connector_) const
 {
 	SmartPtr<IOPackage> p = IOPackage::createInstance(Vm::Pump::FinishCommand_type::s_command, 1);
 	if (!p.isValid())
@@ -1277,8 +1277,8 @@ PRL_RESULT Task_MigrateVmTarget::reactStart(const SmartPtr<IOPackage> &package)
 	if (PRL_FAILED(nRetCode = registerVmBeforeMigration()))
 		return nRetCode;
 
-	if (m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
-		return nRetCode;
+	if (isTemplate())
+		return PRL_ERR_SUCCESS;
 
 	WRITE_TRACE(DBG_DEBUG, "declare VM UUID:%s, Dir UUID:%s, Config:%s",
 		qPrintable(m_sVmUuid), qPrintable(m_sVmDirUuid), qPrintable(m_sVmConfigPath));
@@ -1305,7 +1305,7 @@ void Task_MigrateVmTarget::changeSID()
 
 	// no need to change SID for templates - it will be changed on
 	// deployment from it
-	if (m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+	if (isTemplate())
 		return;
 
 	CProtoCommandPtr pRequest = CProtoSerializer::CreateProtoBasicVmCommand(
@@ -1348,7 +1348,7 @@ void Task_MigrateVmTarget::finalizeTask()
 			announceMacAddresses(m_pVmConfig);
 		}
 
-		if (m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+		if (isTemplate())
 		{
 			CDspService::instance()->getVmStateSender()->
 				onVmStateChanged(VMS_MIGRATING, VMS_STOPPED, m_sVmUuid, m_sVmDirUuid, false);
@@ -1409,7 +1409,7 @@ void Task_MigrateVmTarget::finalizeTask()
 		   we can remove 'already existed Vm' */
 		if (m_nSteps & MIGRATE_STARTED)
 		{
-			if (!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate()
+			if (!isTemplate()
 				&& PRL_FAILED(m_registry.undeclare(m_sVmUuid)))
 				WRITE_TRACE(DBG_FATAL, "Unable to undeclare VM after migration fail");
 
@@ -1867,7 +1867,7 @@ PRL_RESULT Task_MigrateVmTarget::registerHaClusterResource()
 {
 	PRL_RESULT nRetCode;
 
-	if (m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+	if (isTemplate())
 		return PRL_ERR_SUCCESS;
 
 	CVmHighAvailability* pHighAvailability = m_pVmConfig->getVmSettings()->getHighAvailability();
@@ -1948,7 +1948,7 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 1>::type(
 			boost::msm::back::states_
 				<< mvt::Move::Frontend::Tunneling(boost::ref(io))
-				<< mvt::Move::Frontend::synchState_type(~0),
+				<< mvt::Move::Frontend::Syncing(~0),
 			boost::ref(io)));
 
 	backend_type machine(boost::msm::back::states_
