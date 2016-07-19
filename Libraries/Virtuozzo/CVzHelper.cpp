@@ -1916,6 +1916,8 @@ int CVzOperationHelper::apply_env_config(SmartPtr<CVmConfiguration> &pConfig,
 
 		foreach(CVmHardDisk *pHdd, lstOldHardDisks) {
 			if (!findDiskInList(pHdd, lstNewHardDisks)) {
+				if (!pHdd->getStorageURL().isEmpty())
+					nFlags &= ~PVCF_DETACH_HDD_BUNDLE;
 				ret = del_env_disk(uuid, *pHdd, nFlags);
 				if (ret)
 					return ret;
