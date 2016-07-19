@@ -47,22 +47,21 @@ namespace Step
 ////////////////////////////////////////////////////////////////////////////////
 // struct Start
 
-PRL_RESULT Start::execute()
+result_type Start::execute()
 {
-	return Libvirt::Kit.vms().at(m_uuid).start().isFailed() ?
-		PRL_ERR_VM_START_FAILED : PRL_ERR_SUCCESS;
+	return Libvirt::Kit.vms().at(m_uuid).start();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // struct Start
 
-PRL_RESULT FirstStart::execute()
+result_type FirstStart::execute()
 {
-	WRITE_TRACE(DBG_DEBUG, "Start converted VM for the first time");
+	WRITE_TRACE(DBG_INFO, "Start converted VM for the first time");
 	if (m_vnc)
 		m_vnc->close();
-	PRL_RESULT e;
-	if (PRL_SUCCEEDED(e = m_v2v.start()))
+	result_type e = m_v2v.start();
+	if (e.isSucceed())
 		return m_next->execute();
 
 	return e;
@@ -71,48 +70,49 @@ PRL_RESULT FirstStart::execute()
 ////////////////////////////////////////////////////////////////////////////////
 // struct Convert
 
-PRL_RESULT Convert::execute()
+result_type Convert::execute()
 {
 	PRL_RESULT e;
 	if (PRL_SUCCEEDED(e = m_v2v.do_()))
 		return m_next->execute();
 
-	return e;
+	return error_type(e, "Failed to convert VM. For more details, see logs on the target node.");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // struct Vcmmd
 
-PRL_RESULT Vcmmd::execute()
+result_type Vcmmd::execute()
 {
 	::Vcmmd::Frontend< ::Vcmmd::Unregistered> v(m_uuid);
 	const SmartPtr<CVmConfiguration> config(new CVmConfiguration(m_config));
 	PRL_RESULT e = v(::Vcmmd::Unregistered(config));
 
 	if (PRL_FAILED(e))
-		return e;
+		return error_type(e, "Unable to register VM in VCMMD");
 
-	if (PRL_SUCCEEDED(e = m_next->execute()))
+	result_type r = m_next->execute();
+	if (r.isFailed())
 		v.commit();
 
-	return e;
+	return r;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // struct Registration
 
-PRL_RESULT Registration::execute()
+result_type Registration::execute()
 {
 	Libvirt::Result r(Command::Vm::Gear<Command::Tag::State
 			  <Command::Vm::Registrator, Command::Vm::Fork::State::Strict<VMS_STOPPED> > >
 			  ::run(*m_config));
 
 	if (r.isFailed())
-		return r.error().code();
+		return r;
 
-	PRL_RESULT e = m_next->execute();
+	result_type e = m_next->execute();
 
-	if (PRL_FAILED(e))
+	if (e.isFailed())
 		Libvirt::Kit.vms().at(m_uuid).undefine();
 
 	return e;
@@ -121,7 +121,7 @@ PRL_RESULT Registration::execute()
 ////////////////////////////////////////////////////////////////////////////////
 // struct Nvram
 
-PRL_RESULT Nvram::execute()
+result_type Nvram::execute()
 {
 	PRL_RESULT e = PRL_ERR_SUCCESS;
 	CVmStartupBios* b = m_config->getVmSettings()->getVmStartupOptions()->getBios();
@@ -133,9 +133,9 @@ PRL_RESULT Nvram::execute()
 	}
 
 	if (PRL_SUCCEEDED(e))
-		e = m_next->execute();
+		return m_next->execute();
 
-	return e;
+	return error_type(e, "Unable to create NVRAM for VM");
 }
 
 } // namespace Step
@@ -184,15 +184,17 @@ void Convoy::release(const IOSender::Handle& handle_, const SmartPtr<IOPackage>&
 
 	SmartPtr<CDspClient> pUserSession;
 
-	PRL_RESULT e = PRL_ERR_SUCCESS;
-	if (PRL_FAILED(e = u->execute()))
+	Step::result_type e = u->execute();
+	if (e.isFailed())
 	{
-		CDispToDispCommandPtr d = CDispToDispProtoSerializer::CreateDispToDispResponseCommand(e, package_);
+		CVmEvent v = e.error().convertToEvent();
+		CDispToDispCommandPtr d = CDispToDispProtoSerializer::CreateDispToDispResponseCommand(package_, &v);
+
 		CDspDispConnection(handle_, pUserSession).sendPackageResult(DispatcherPackage::createInstance(
 			d->GetCommandId(), d->GetCommand()->toString(), package_));
 	}
-
-	CDspDispConnection(handle_, pUserSession).sendPackageResult(IOPackage::duplicateInstance(package_));
+	else
+		CDspDispConnection(handle_, pUserSession).sendPackageResult(IOPackage::duplicateInstance(package_));
 }
 
 void Convoy::handlePackage(IOSender::Handle handle_, const SmartPtr<IOPackage> package_)

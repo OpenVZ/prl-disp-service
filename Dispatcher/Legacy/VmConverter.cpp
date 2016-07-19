@@ -257,7 +257,9 @@ struct Killer: Command::Vm::Shutdown::Fallback
 	void react()
 	{
 		Command::Vm::Shutdown::Fallback::react();
-		*m_sink = Error::Simple(PRL_ERR_TIMEOUT, "VM was killed after timeout");
+		WRITE_TRACE(DBG_FATAL, "VM was killed after timeout (%u secs)", getTimeout());
+		*m_sink = Error::Simple(PRL_ERR_TIMEOUT,
+			"VM had not stopped automatically and was forcibly shut down after timeout.");
 	}
 
 private:
@@ -381,14 +383,11 @@ PRL_RESULT V2V::do_() const
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT V2V::start() const
+Prl::Expected<void, Error::Simple> V2V::start() const
 {
 	foreach (CVmGenericNetworkAdapter* l, m_cfg.getVmHardwareList()->m_lstNetworkAdapters)
 		l->setConnected(PVE::DeviceDisconnected);
-	Libvirt::Result e = Command::Vm::Gear<firstStart_type>::run(m_cfg);
-	if (e.isFailed())
-		return e.error().code();
-	return PRL_ERR_SUCCESS;
+	return Command::Vm::Gear<firstStart_type>::run(m_cfg);
 }
 
 } // namespace Vm
