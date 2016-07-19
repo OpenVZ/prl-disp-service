@@ -1405,7 +1405,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCt()
 	/* flag PBT_RESTORE_TO_COPY - create new CT and ignore existing CT */
 	if (!(m_nFlags & PBT_RESTORE_TO_COPY)) {
 		/* does this Ct already exists? */
-		pConfig = CDspService::instance()->getVzHelper()->getVzlibHelper().get_env_config(m_sVmUuid);
+		pConfig = CVzHelper::get_env_config(m_sVmUuid);
 	}
 	if (pConfig) {
 		m_bVmExist = true;
@@ -1508,6 +1508,15 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 			WRITE_TRACE(DBG_FATAL, "register_env() exited with error %#x, %s",
 					nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
 			break;
+		}
+
+		SmartPtr<CVmConfiguration> c = CVzHelper::get_env_config(m_sVmUuid);
+
+		if (c && c->getVmIdentification()->getVmName() != sCtName)
+		{
+			nRetCode = m_VzOpHelper.set_env_name(m_sVmUuid, sCtName);
+			if (PRL_FAILED(nRetCode))
+				break;
 		}
 
 		/* restore uptime */
