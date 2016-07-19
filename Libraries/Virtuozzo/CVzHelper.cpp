@@ -199,17 +199,17 @@ struct Builder
 
 	bool addv6();
 
-	PRL_STAT_NET_TRAFFIC* getResult();
+	Ct::Statistics::Net* getResult();
 
 private:
 	VzctlHandleWrap m_env;
-	QScopedPointer<PRL_STAT_NET_TRAFFIC> m_result;
+	QScopedPointer<Ct::Statistics::Net> m_result;
 
 	bool fill(bool v6_);
 };
 
 Builder::Builder(const QString& id_) :
-	m_result(new PRL_STAT_NET_TRAFFIC())
+	m_result(new Ct::Statistics::Net())
 {
 	int ret;
 	m_env.reset(vzctl2_env_open(
@@ -236,18 +236,25 @@ bool Builder::fill(bool v6_)
 		return false;
 	}
 
+	PRL_STAT_NET_TRAFFIC &sink = v6_ ? m_result->ipv6 : m_result->ipv4;
+
 	for (unsigned int i = 0; i < PRL_TC_CLASS_MAX; i++)
 	{
-		m_result->incoming[i] += stat.incoming[i];
-		m_result->outgoing[i] += stat.outgoing[i];
-		m_result->incoming_pkt[i] += stat.incoming_pkt[i];
-		m_result->outgoing_pkt[i] += stat.outgoing_pkt[i];
+		sink.incoming[i] += stat.incoming[i];
+		sink.outgoing[i] += stat.outgoing[i];
+		sink.incoming_pkt[i] += stat.incoming_pkt[i];
+		sink.outgoing_pkt[i] += stat.outgoing_pkt[i];
+
+		m_result->total.incoming[i] += stat.incoming[i];
+		m_result->total.outgoing[i] += stat.outgoing[i];
+		m_result->total.incoming_pkt[i] += stat.incoming_pkt[i];
+		m_result->total.outgoing_pkt[i] += stat.outgoing_pkt[i];
 	}
 
 	return true;
 }
 
-PRL_STAT_NET_TRAFFIC* Builder::getResult()
+Ct::Statistics::Net* Builder::getResult()
 {
 	return m_result.take();
 }
@@ -255,15 +262,16 @@ PRL_STAT_NET_TRAFFIC* Builder::getResult()
 } // namespace Network
 } // namespace
 
-PRL_STAT_NET_TRAFFIC *CVzHelper::get_net_stat(const QString &uuid)
+Ct::Statistics::Net *CVzHelper::get_net_stat(const QString &uuid)
 {
 	if (!is_vz_running())
 		return NULL;
 
 	Network::Builder b(uuid);
 
-	if (!b.addv4() && !b.addv6())
+	if (!b.addv4())
 		return NULL;
+	b.addv6();
 
 	return b.getResult();
 }
@@ -3559,8 +3567,8 @@ Ct::Statistics::Aggregate *CVzHelper::get_env_stat(const QString& uuid)
 
 	QScopedPointer<Aggregate> a(new Aggregate());
 
-	QScopedPointer<PRL_STAT_NET_TRAFFIC> n(get_net_stat(ctid));
-	a->net = n.isNull() ? PRL_STAT_NET_TRAFFIC() : *n;
+	QScopedPointer<Ct::Statistics::Net> n(get_net_stat(ctid));
+	a->net = n.isNull() ? Ct::Statistics::Net() : *n;
 	if (st.mask & ENV_STATUS_RUNNING) {
 		a->disk = get_env_iostat(uuid);
 		a->memory = SmartPtr<Ct::Statistics::Memory>(get_env_meminfo(uuid));
