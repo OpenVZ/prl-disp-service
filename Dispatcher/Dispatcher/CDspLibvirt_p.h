@@ -331,6 +331,7 @@ private:
 	int m_eventDeviceDisconnect;
 	int m_eventTrayChange;
 	int m_eventRtcChange;
+	int m_eventAgent;
 	Registry::Actual* m_registry;
 	QWeakPointer<virConnect> m_libvirtd;
 	QSharedPointer<Model::System> m_view;

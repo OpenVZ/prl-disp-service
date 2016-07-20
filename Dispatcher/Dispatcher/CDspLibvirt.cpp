@@ -786,9 +786,21 @@ int wakeUp(virConnectPtr , virDomainPtr domain_, int , void* opaque_)
 	return 0;
 }
 
-int reboot(virConnectPtr connect_, virDomainPtr domain_, void* opaque_)
+int reboot(virConnectPtr , virDomainPtr domain_, void* opaque_)
 {
-	return wakeUp(connect_, domain_, 0, opaque_);
+	WRITE_TRACE(DBG_INFO, "ID_REBOOTED");
+	Model::Coarse* v = (Model::Coarse* )opaque_;
+	v->setState(domain_, VMS_REBOOTED);
+	return 0;
+}
+
+int agent(virConnectPtr , virDomainPtr domain_, int state_, int /*reason_*/, void* opaque_)
+{
+	WRITE_TRACE(DBG_INFO, "ID_AGENT_LIFECYCLE");
+	Model::Coarse* v = (Model::Coarse* )opaque_;
+	if (state_ == VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_CONNECTED)
+		v->setState(domain_, VMS_AGENT_STARTED);
+	return 0;
 }
 
 int deviceConnect(virConnectPtr , virDomainPtr domain_, const char *device_,
@@ -1220,7 +1232,7 @@ void Link::disconnect(virConnectPtr libvirtd_, int reason_, void* opaque_)
 Domains::Domains(Registry::Actual& registry_):
 	m_eventState(-1), m_eventReboot(-1),
 	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
-	m_eventTrayChange(-1), m_registry(&registry_)
+	m_eventTrayChange(-1), m_eventAgent(-1), m_registry(&registry_)
 {
 }
 
@@ -1273,6 +1285,12 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::rtcChange),
 							new Model::Coarse(m_view),
 							&Callback::Plain::delete_<Model::Coarse>);
+	m_eventAgent = virConnectDomainEventRegisterAny(libvirtd_.data(),
+							NULL,
+							VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE,
+							VIR_DOMAIN_EVENT_CALLBACK(&Callback::Plain::agent),
+							new Model::Coarse(m_view),
+							&Callback::Plain::delete_<Model::Coarse>);
 	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, m_view, *m_registry);
 	q->setAutoDelete(true);
 	QThreadPool::globalInstance()->start(q);
@@ -1297,6 +1315,8 @@ void Domains::setDisconnected()
 	m_eventTrayChange = -1;
 	virConnectDomainEventDeregisterAny(x.data(), m_eventRtcChange);
 	m_eventRtcChange = -1;
+	virConnectDomainEventDeregisterAny(x.data(), m_eventAgent);
+	m_eventAgent = -1;
 	m_libvirtd.clear();
 	m_view.clear();
 }
