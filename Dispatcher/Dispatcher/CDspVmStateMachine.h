@@ -85,10 +85,11 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	template <VIRTUAL_MACHINE_STATE N>
 	struct State: public msmf::state<>, boost::mpl::integral_c<VIRTUAL_MACHINE_STATE, N>
 	{
-		template <class Event, class Fsm>
-		void on_entry(Event const&, Fsm& fsm_)
+		template <class Event, class FSM>
+		void on_entry(Event const&, FSM& fsm_)
 		{
-			WRITE_TRACE(DBG_INFO, "VM '%s' changed state to %s", qPrintable(fsm_.m_name), PRL_VM_STATE_TO_STRING(N));
+			WRITE_TRACE(DBG_INFO, "VM '%s' changed state to %s",
+				qPrintable(fsm_.getName()), PRL_VM_STATE_TO_STRING(N));
 		}
 	};
 
@@ -98,11 +99,82 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	typedef State<VMS_MOUNTED> Mounted;
 	typedef State<VMS_UNKNOWN> Unknown;
 
-	// State
-	struct Running: State<VMS_RUNNING>
+	struct Running_: msmf::state_machine_def<Running_>, boost::mpl::integral_c<VIRTUAL_MACHINE_STATE, VMS_RUNNING>
 	{
+		typedef State<VMS_RUNNING> Started;
+		typedef State<VMS_REBOOTED> Rebooted;
+
+		typedef Rebooted initial_state;
 		typedef boost::mpl::vector< ::Vm::State::Running> flag_list;
+
+		Running_(): m_big()
+		{
+		}
+		explicit Running_(Frontend& big_): m_big(&big_)
+		{
+		}
+
+		const QString getName() const
+		{
+			return NULL == m_big ? QString() : m_big->getName();
+		}
+
+		template <class Event>
+		void no_transition(const Event&, Running_& fsm_, int state_)
+		{
+			WRITE_TRACE(DBG_FATAL, "VM '%s': no transition from state '%d' on event 'Event<%s>'\n",
+				qPrintable(fsm_.getName()), state_,
+				PRL_VM_STATE_TO_STRING(Event::value));
+		}
+
+		// Pseudo-state
+		struct Already: msmf::entry_pseudo_state<0>
+		{
+		};
+
+		// Action
+		struct GuestTools
+		{
+			template<class Event, class FromState>
+			void operator()(const Event&, Running_& fsm_, FromState&, Started&)
+			{
+				WRITE_TRACE(DBG_INFO, "action guest tools on running for VM '%s'",
+					qPrintable(fsm_.getName()));
+				bool f = boost::is_same<FromState, Rebooted>::value;
+
+				::Vm::Guest::Actor *a = new ::Vm::Guest::Actor(fsm_.m_big->getConfigEditor());
+				::Vm::Guest::Watcher *p = new ::Vm::Guest::Watcher(fsm_.m_big->getUuid());
+
+				p->connect(p, SIGNAL(guestToolsStarted(const QString)),
+						a, SLOT(setToolsVersionSlot(const QString)));
+				p->connect(p, SIGNAL(destroyed()), a, SLOT(deleteLater()));
+				if (f) {
+					p->connect(p, SIGNAL(guestToolsStarted(const QString)),
+							a, SLOT(configureNetworkSlot(const QString)));
+					p->connect(p, SIGNAL(destroyed()), a, SLOT(deleteLater()));
+				}
+
+				fsm_.m_big->m_toolsState = p->getFuture();
+				p->startTimer(0);
+			}
+		};
+
+		struct transition_table : boost::mpl::vector
+		<
+			msmf::Row<Started,  Event<VMS_REBOOTED>,      Rebooted>,
+			msmf::Row<Rebooted, Event<VMS_REBOOTED>,      msmf::none>,
+			msmf::Row<Started,  Event<VMS_AGENT_STARTED>, msmf::none, GuestTools>,
+			msmf::Row<Rebooted, Event<VMS_AGENT_STARTED>, Started,    GuestTools>,
+			msmf::Row<Already, Event<VMS_RUNNING>,        Started,    GuestTools>
+		>
+		{
+		};
+
+	private:
+		Frontend *m_big;
 	};
+	
+	typedef boost::msm::back::state_machine<Running_> Running;
 
 	// State
 	struct Reverting: Stopped
@@ -272,33 +344,6 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		}
 	};
 
-	// Action
-	struct GuestTools
-	{
-		template<class Event, class FromState>
-		void operator()(const Event&, Frontend& fsm_, FromState&, Running&)
-		{
-			WRITE_TRACE(DBG_INFO, "action guest tools on running for VM '%s'", qPrintable(fsm_.m_name));
-			bool f = boost::is_same<FromState, Unknown>::value;
-
-			::Vm::Guest::Actor *a = new ::Vm::Guest::Actor(fsm_.getConfigEditor());
-			::Vm::Guest::Watcher *p = new ::Vm::Guest::Watcher(fsm_.getUuid());
-
-			p->connect(p, SIGNAL(guestToolsStarted(const QString)),
-				a, SLOT(setToolsVersionSlot(const QString)));
-			p->connect(p, SIGNAL(destroyed()), a, SLOT(deleteLater()));
-			if (!f) {
-				p->connect(p, SIGNAL(guestToolsStarted(const QString)),
-					a, SLOT(configureNetworkSlot(const QString)));
-				p->connect(p, SIGNAL(destroyed()), a, SLOT(deleteLater()));
-			}
-
-			fsm_.m_toolsState = p->getFuture();
-
-			p->startTimer(0);
-		}
-	};
-
 	struct BackupDisable
 	{
 		template<class Event, class FromState, class ToState>
@@ -330,14 +375,14 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	msmf::Row<Unknown,    Event<VMS_PAUSED>,     Paused,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Notification> > >,
 
-	msmf::Row<Unknown,    Event<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification, GuestTools> > >,
+	msmf::Row<Unknown,    Event<VMS_RUNNING>,    Running::entry_pt<Running::Already>,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
 	msmf::Row<Stopped,    Event<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification, GuestTools> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >,
 
 	msmf::Row<Stopped,    Event<VMS_MOUNTED>,    Mounted,    Notification >,
 
@@ -403,7 +448,8 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Runtime, Notification> > >,
 
 	msmf::Row<Reverting,  Event<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification, GuestTools> > >
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >
+
 	//      +-----------+----------------------+-----------+--------+
 	> {};
 
@@ -449,6 +495,7 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	{
 		m_home = QFileInfo(path_);
 	}
+
 	PRL_VM_TOOLS_STATE getToolsState()
 	{
 		if (m_toolsState.has_value())

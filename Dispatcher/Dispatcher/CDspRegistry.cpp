@@ -82,6 +82,8 @@ Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 	::Vm::State::Machine(uuid_, user_, routing_),
 	m_storage(new Stat::Storage(uuid_)), m_routing(routing_)
 {
+	set_states(boost::msm::back::states_ << ::Vm::State::Machine::Running(boost::ref(*this)));
+
 	// Current balloon value (in kB).
 	m_storage->addAbsolute("mem.guest_total");
 
@@ -125,6 +127,12 @@ void Vm::updateState(VIRTUAL_MACHINE_STATE value_)
 		break;
 	case VMS_SUSPENDED:
 		process_event(::Vm::State::Event<VMS_SUSPENDED>());
+		break;
+	case VMS_REBOOTED:
+		process_event(::Vm::State::Event<VMS_REBOOTED>());
+		break;
+	case VMS_AGENT_STARTED:
+		process_event(::Vm::State::Event<VMS_AGENT_STARTED>());
 		break;
 	default:
 		process_event(::Vm::State::Event<VMS_UNKNOWN>());
