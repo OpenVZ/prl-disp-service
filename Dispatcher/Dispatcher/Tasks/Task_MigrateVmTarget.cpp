@@ -575,29 +575,26 @@ void Perform::on_entry(const Event&, FSM& fsm_)
 	::Libvirt::Instrument::Agent::Vm::Snapshot::List s =
 		::Libvirt::Kit.vms().at(m_config->getVmIdentification()->getVmUuid()).getSnapshot();
 
-	m_merge = QSharedPointer<merge_type>(new merge_type(s, helper_type(m_check).getDisks(*m_config)));
-
-	m_future = m_merge->start();
-
-	if (!getConnector()->connect(m_future.data(),
-			SIGNAL(finished()),
+	m_receiver = QSharedPointer<receiver_type>(new receiver_type());
+	if (getConnector()->connect(m_receiver.data(),
+			SIGNAL(done()),
 			SLOT(reactFinished())))
+		m_merge = s.startMerge(helper_type(m_check).getDisks(*m_config), *m_receiver);
+	else
+	{
 		WRITE_TRACE(DBG_FATAL, "can't connect commit future");
+		m_receiver.clear();
+	}
 }
 
 template <typename Event, typename FSM>
 void Perform::on_exit(const Event&, FSM&)
 {
-	if (!m_future.isNull())
+	m_merge.stop();
+	if (!m_receiver.isNull())
 	{
-		m_future->disconnect(SIGNAL(finished()), getConnector(), SLOT(reactFinished()));
-		m_future.clear();
-	}
-
-	if (!m_merge.isNull())
-	{
-		m_merge->stop();
-		m_merge.clear();
+		m_receiver->disconnect(SIGNAL(done()), getConnector(), SLOT(reactFinished()));
+		m_receiver.clear();
 	}
 }
 

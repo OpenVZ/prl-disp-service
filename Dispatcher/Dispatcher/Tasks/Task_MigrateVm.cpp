@@ -319,15 +319,15 @@ void Disks::rollback()
 	foreach (CVmHardDisk d, m_disks)
 	{
 		d.setSystemName(disguise(d.getSystemName()));
-
 		disks << d;
 	}
 
-	::Libvirt::Instrument::Agent::Vm::Snapshot::Merge m(m_agent, disks);
 	WRITE_TRACE(DBG_DEBUG, "start merge and wait");
-	m.start()->wait();
+	::Libvirt::Instrument::Agent::Vm::Block::Completion r;
+	::Libvirt::Instrument::Agent::Vm::Block::Activity a = m_agent.startMerge(disks, r);
+	r.wait();
 	WRITE_TRACE(DBG_DEBUG, "finish merge");
-	m.stop();
+	a.stop();
 	WRITE_TRACE(DBG_DEBUG, "merge finished");
 }
 

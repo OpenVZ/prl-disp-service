@@ -27,7 +27,9 @@
 #include "CDspService.h"
 #include "Stat/CDspStatStorage.h"
 #include <boost/bind.hpp>
+#include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/range/combine.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <Libraries/Transponster/Direct.h>
 #include <Libraries/Transponster/Reverse.h>
@@ -1804,6 +1806,19 @@ Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> Unit::getProgress() 
 	}
 }
 
+Result Unit::start() const
+{
+	quint32 flags = VIR_DOMAIN_BLOCK_COMMIT_ACTIVE;
+
+	WRITE_TRACE(DBG_DEBUG, "commit blocks for disk %s", qPrintable(m_disk));
+	if (0 != virDomainBlockCommit(m_domain.data(), m_disk.toUtf8().data(), NULL, NULL, 0, flags))
+	{
+		WRITE_TRACE(DBG_DEBUG, "failed to commit blocks for disk %s", qPrintable(m_disk));
+		return Failure(PRL_ERR_FAILURE);
+	}
+	return Result();
+}
+
 Result Unit::abort() const
 {
 	if (0 != virDomainBlockJobAbort(m_domain.data(), m_disk.toUtf8().data(), 0))
@@ -1826,75 +1841,123 @@ Result Unit::finish() const
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Future
+// struct Counter
 
-void Future::wait()
+void Counter::account(const QString& one_)
 {
-	if (m_timer == -1)
-		return;
-
-	if (!connect(this, SIGNAL(finished()), SLOT(exit())))
-	{
-		WRITE_TRACE(DBG_FATAL, "can't connect");
-		return;
-	}
-	m_loop.exec();
+	QMetaObject::invokeMethod(this, "account_", Qt::AutoConnection, Q_ARG(QString, one_));
 }
 
-void Future::cancel()
+void Counter::reset()
 {
-	foreach(const Unit& u, m_units)
-		u.abort();
-
-	foreach(const Unit& u, m_completed)
-		u.abort();
-
-	m_units.clear();
-	m_completed.clear();
+	QMetaObject::invokeMethod(this, "reset_", Qt::AutoConnection);
 }
 
-void Future::exit()
+void Counter::account_(QString one_)
 {
-	m_loop.quit();
-}
-
-void Future::timerEvent(QTimerEvent* event_)
-{
-	killTimer(event_->timerId());
-
-	QList<Unit> units;
-	foreach (const Unit& unit, m_units)
-	{
-		Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> r =	unit.getProgress();
-		if (r.isFailed())
-		{
-			WRITE_TRACE(DBG_FATAL, "unable to check job progress");
-			// jobs failed
-			continue;
-		}
-
-		WRITE_TRACE(DBG_DEBUG, "check job progress %llu, %llu", r.value().first, r.value().second);
-		if (r.value().first < r.value().second)
-		{
-			// check next time
-			units << unit;
-			continue;
-		}
-
-		WRITE_TRACE(DBG_DEBUG, "job completed");
-		m_completed << unit;
-	}
-
-	m_units = units;
-
-	if (units.isEmpty())
-	{
-		m_timer = -1;
-		emit finished();
+	if (!m_pending.remove(one_))
 		return;
-	}
 
-	m_timer = startTimer(500);
+	if (m_pending.isEmpty())
+		m_receiver->occur();
+}
+
+void Counter::reset_()
+{
+	if (m_pending.isEmpty())
+		return;
+
+	QSet<QString> a = m_pending;
+	foreach (const QString& b, a)
+	{
+		account_(b);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Callback
+
+Callback::~Callback()
+{
+	m_counter->reset();
+}
+
+void Callback::do_(const QString& one_)
+{
+	m_counter->account(one_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Tracker
+
+Tracker::Tracker(QSharedPointer<virDomain> domain_):
+	m_ticket(-1), m_domain(domain_)
+{
+}
+
+Result Tracker::start(QSharedPointer<Counter> callback_)
+{
+	if (callback_.isNull())
+		return Error::Simple(PRL_ERR_INVALID_ARG);
+
+	if (m_domain.isNull())
+		return Error::Simple(PRL_ERR_INVALID_HANDLE);
+
+	if (-1 != m_ticket)
+		return Error::Simple(PRL_ERR_INVALID_HANDLE);
+
+	virConnectPtr c = virDomainGetConnect(m_domain.data());
+	m_ticket = virConnectDomainEventRegisterAny(c, m_domain.data(),
+			VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2,
+			VIR_DOMAIN_EVENT_CALLBACK(&react),
+			new Callback(callback_), &free);
+	if (-1 == m_ticket)
+		return Failure(PRL_ERR_FAILURE);
+
+	return Result();
+}
+
+Result Tracker::stop()
+{
+	if (-1 == m_ticket)
+		return Error::Simple(PRL_ERR_INVALID_HANDLE);
+
+	virConnectPtr c = virDomainGetConnect(m_domain.data());
+	virConnectDomainEventDeregisterAny(c, m_ticket);
+	m_ticket = -1;
+	return Result();
+}
+
+void Tracker::react(virConnectPtr, virDomainPtr, const char * disk_, int type_, int status_, void * opaque_)
+{
+	WRITE_TRACE(DBG_DEBUG, "block job event: disk '%s' got status %d", disk_, status_);
+	if (type_ != VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT)
+		return;
+
+	((Callback* )opaque_)->do_(disk_);
+}
+
+void Tracker::free(void* callback_)
+{
+	delete (Callback* )callback_;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Activity
+
+void Activity::stop()
+{
+	if (!m_tracker.isNull())
+	{
+		m_tracker->stop();
+		m_tracker.clear();
+	}
+	if (!m_units.isEmpty())
+	{
+		std::for_each(m_units.begin(), m_units.end(),
+			boost::bind(&Unit::finish, _1));
+		m_units.clear();
+	}
 }
 
 } // namespace Block
@@ -2101,46 +2164,36 @@ Result List::createExternal(const QString& uuid_, const QList<CVmHardDisk*>& dis
 	return Result();
 }
 
-Prl::Expected<Block::Unit, ::Error::Simple> List::merge(const CVmHardDisk& disk_)
+Block::Activity List::startMerge(const QList<CVmHardDisk>& disks_, Block::Completion& completion_)
 {
-	quint32 flags = VIR_DOMAIN_BLOCK_COMMIT_ACTIVE;
-
-	QString target = Transponster::Vm::Reverse::Device<CVmHardDisk>::getTargetName(disk_);
-
-	WRITE_TRACE(DBG_DEBUG, "commit blocks for disk %s", qPrintable(target));
-	if (0 != virDomainBlockCommit(m_domain.data(), target.toUtf8().data(), NULL, NULL, 0, flags))
+	QSet<QString> n;
+	BOOST_FOREACH(const CVmHardDisk& d, disks_)
 	{
-		WRITE_TRACE(DBG_DEBUG, "failed to commit blocks for disk %s", qPrintable(target));
-		return Failure(PRL_ERR_FAILURE);
+		n << Transponster::Vm::Reverse::Device<CVmHardDisk>::getTargetName(d);
 	}
+	QSharedPointer<Block::Counter> c(new Block::Counter(n, completion_));
+	c->moveToThread(QCoreApplication::instance()->thread());
 
-	return Block::Unit(m_domain, target, disk_.getSystemName());
-}
+	QSharedPointer<Block::Tracker> t(new Block::Tracker(m_domain));
+	t->start(c);
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Merge
-
-QSharedPointer<Block::Future> Merge::start()
-{
-	foreach (const CVmHardDisk& d, m_disks)
+	QString a;
+	CVmHardDisk d;
+	QList<Block::Unit> u;
+	BOOST_FOREACH(boost::tie(a, d), boost::combine(n, disks_))
 	{
-		Prl::Expected<Block::Unit, ::Error::Simple> r = m_agent.merge(d);
+		Block::Unit b(m_domain, a, d.getSystemName());
+		WRITE_TRACE(DBG_DEBUG, "create unit with name '%s'", qPrintable(a));
+		Result r = b.start();
 		if (r.isSucceed())
 		{
-			m_units << r.value();
+			u << b;
+			continue;
 		}
-		else
-			WRITE_TRACE(DBG_FATAL, "unable to merge disk '%s'", qPrintable(d.getSystemName()));
+		c->account(a);
+		WRITE_TRACE(DBG_FATAL, "unable to merge disk '%s'", qPrintable(a));
 	}
-
-	return QSharedPointer<Block::Future>(new Block::Future(m_units));
-}
-
-void Merge::stop()
-{
-	foreach(const Block::Unit& u, m_units)
-		u.finish();
-	m_units.clear();
+	return Block::Activity(t, u);
 }
 
 } // namespace Snapshot
