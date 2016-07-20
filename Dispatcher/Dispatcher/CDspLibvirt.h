@@ -38,8 +38,10 @@
 #include <prlsdk/PrlTypes.h>
 #include <libvirt/libvirt.h>
 #include <boost/optional.hpp>
+#include <boost/function.hpp>
 #include <libvirt/virterror.h>
 #include <libvirt/libvirt-qemu.h>
+#include <boost/thread/future.hpp>
 #include <prlxmlmodel/VtInfo/VtInfo.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
@@ -209,12 +211,17 @@ namespace Block
 
 struct Unit
 {
+	// need this empty constructor for ability to store Unit in QHash
+	Unit()
+	{
+	}
 	Unit(const QSharedPointer<virDomain>& domain_, const QString& disk_, const QString& path_):
 		m_domain(domain_), m_disk(disk_), m_path(path_)
 	{
 	}
 
 	Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> getProgress() const;
+	Result start() const;
 	Result abort() const;
 	Result finish() const;
 
@@ -225,33 +232,111 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Future
+// struct Completion
 
-struct Future: QObject
+struct Completion: QObject
 {
-	explicit Future(const QList<Unit>& units_): m_units(units_)
+	Completion()
 	{
-		m_timer = startTimer(0);
+		m_future = m_promise.get_future();
 	}
 
-	void wait();
-	void cancel();
+	void wait()
+	{
+		m_future.wait();
+	}
+	void occur()
+	{
+		m_promise.set_value();
+		emit done();
+	}
 
 signals:
-	void finished();
-
-private slots:
-	void exit();
+	void done();
 
 private:
-	void timerEvent(QTimerEvent*);
-
 	Q_OBJECT
 
+	boost::future<void> m_future;
+	boost::promise<void> m_promise;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Counter
+
+struct Counter: QObject
+{
+	Counter(const QSet<QString>& initial_, Completion& receiver_):
+		m_receiver(&receiver_), m_pending(initial_)
+	{
+	}
+
+	void account(const QString& one_);
+	void reset();
+
+private:
+	Q_OBJECT
+
+	Q_INVOKABLE void account_(QString one_);
+	Q_INVOKABLE void reset_();
+
+	Completion* m_receiver;
+	QSet<QString> m_pending;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Callback
+
+struct Callback
+{
+	explicit Callback(QSharedPointer<Counter> counter_): m_counter(counter_)
+	{
+	}
+	~Callback();
+
+	void do_(const QString& one_);
+
+private:
+	QSharedPointer<Counter> m_counter;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Tracker
+
+struct Tracker: boost::noncopyable
+{
+	explicit Tracker(QSharedPointer<virDomain> domain_);
+
+	Result start(QSharedPointer<Counter> callback_);
+	Result stop();
+
+private:
+	static void react(virConnectPtr, virDomainPtr, const char * disk_,
+		int type_, int status_, void * opaque_);
+	static void free(void* opaque_);
+
+	int m_ticket;
+	QSharedPointer<virDomain> m_domain;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Activity
+
+struct Activity
+{
+	Activity()
+	{
+	}
+	Activity(const QSharedPointer<Tracker>& tracker_, const QList<Unit>& units_):
+		m_units(units_), m_tracker(tracker_)
+	{
+	}
+
+	void stop();
+
+private:
 	QList<Unit> m_units;
-	QList<Unit> m_completed;
-	int m_timer;
-	QEventLoop m_loop;
+	QSharedPointer<Tracker> m_tracker;
 };
 
 } // namespace Block
@@ -295,7 +380,8 @@ struct List
 	Result defineConsistent(const QString& uuid_, const QString& description_,
 		Unit* dst_ = NULL);
 	Result createExternal(const QString& uuid_, const QList<CVmHardDisk*>& disks_);
-	Prl::Expected<Block::Unit, ::Error::Simple> merge(const CVmHardDisk& disk_);
+	
+	Block::Activity startMerge(const QList<CVmHardDisk>& disks_, Block::Completion& completion_);
 
 private:
 	Prl::Expected<Unit, ::Error::Simple>
@@ -305,24 +391,6 @@ private:
 		(const Prl::Expected<Unit, ::Error::Simple>& result_, Unit* dst_);
 
 	QSharedPointer<virDomain> m_domain;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Merge
-
-struct Merge
-{
-	Merge(const List& agent_, const QList<CVmHardDisk>& disks): m_agent(agent_), m_disks(disks), m_units()
-	{
-	}
-
-	QSharedPointer<Block::Future> start();
-	void stop();
-
-private:
-	List m_agent;
-	QList<CVmHardDisk> m_disks;
-	QList<Block::Unit> m_units;
 };
 
 } // namespace Snapshot
