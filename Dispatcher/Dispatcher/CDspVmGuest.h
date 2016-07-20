@@ -38,7 +38,6 @@
 #include <prlsdk/PrlEnums.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
-#define BOOST_THREAD_PROVIDES_FUTURE
 #include <boost/thread.hpp>
 #include <boost/thread/future.hpp>
 
