@@ -39,7 +39,6 @@
 #include <Libraries/Transponster/Direct.h>
 #include <Libraries/Transponster/Reverse.h>
 #include <Libraries/Transponster/Reverse_p.h>
-#include <boost/math/special_functions/sign.hpp>
 
 namespace Libvirt
 {
@@ -1155,9 +1154,6 @@ void Coarse::disconnectDevice(virDomainPtr domain_, const QString& alias_)
 
 void Coarse::adjustClock(virDomainPtr domain_, qint64 offset_)
 {
-	// round offset to the nearest half an hour
-	// offset = (offset + 0.25h) / 0.5h * 0.5h
-	offset_ = (::llabs(offset_) + 900) / 1800 * 1800 * boost::math::sign(offset_);
 	virDomainRef(domain_);
 	Instrument::Agent::Vm::Unit a(domain_);
 	a.adjustClock(offset_);
