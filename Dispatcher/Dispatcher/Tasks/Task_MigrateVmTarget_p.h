@@ -199,7 +199,7 @@ struct Perform: Trace<Perform>, Vm::Connector::Mixin<Connector>
 		m_config(&config_), m_check(checkFiles_), m_state(state_)
 	{
 	}
-	Perform(): m_config(), m_check(), m_state()
+	Perform(): m_config(), m_state()
 	{
 	}
 
@@ -215,14 +215,14 @@ struct Perform: Trace<Perform>, Vm::Connector::Mixin<Connector>
 
 private:
 	typedef Migrate::Vm::Target::Libvirt::Pstorage helper_type;
-	typedef ::Libvirt::Instrument::Agent::Vm::Block::Future future_type;
-	typedef ::Libvirt::Instrument::Agent::Vm::Snapshot::Merge merge_type;
+	typedef ::Libvirt::Instrument::Agent::Vm::Block::Activity merge_type;
+	typedef ::Libvirt::Instrument::Agent::Vm::Block::Completion receiver_type;
 
+	merge_type m_merge;
 	CVmConfiguration* m_config;
 	QStringList m_check;
-	QSharedPointer<future_type> m_future;
-	QSharedPointer<merge_type> m_merge;
 	VIRTUAL_MACHINE_STATE m_state;
+	QSharedPointer<receiver_type> m_receiver;
 };
 
 } // namespace Commit
