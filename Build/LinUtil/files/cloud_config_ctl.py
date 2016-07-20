@@ -109,8 +109,8 @@ class CloudBaseInit(OpenStackConfigDrive):
     def prepare_password_command(self, name, credentials):
         if credentials.get("is_encrypted", False):
             return ""
-        p = credentials["password"].replace("'", "''")
-        s = "net user '{}' '{}'".format(name, p)
+        p = credentials["password"].replace("\"", "\\\"")
+        s = 'net user "{}" "{}"'.format(name, p)
         r = "{} || {} /add".format(s, s)
         return r
 
@@ -160,10 +160,9 @@ class CloudInit(OpenStackConfigDrive):
             f.write("\n")
 
     def prepare_password_command(self, user, credentials):
-        if credentials.get("is_encrypted", True):
-            return "echo -e '{0}':'{1}' | chpasswd -e".format(user, credentials[u"password"])
-        b = base64.b64encode(credentials["password"].encode("unicode-escape"))
-        return "echo -e '{0}':\"'\"$(echo '{1}'  | base64 -w 0 --decode)\"'\" | chpasswd".format(user, b)
+        s = " -e" if credentials.get("is_encrypted", True) else ""
+        b = base64.b64encode(user + ":" + credentials["password"])
+        return "CRED=$(echo '{0}' | base64 -w 0 --decode); echo -e $CRED | chpasswd{1}".format(b, s)
 
     def useradd_command(self, user):
         return "/usr/sbin/useradd {0} 1>/dev/null 2>&1 || :".format(user)
