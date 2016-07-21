@@ -564,8 +564,9 @@ void Connector::reactFinished()
 // struct Perform
 
 template <typename Event, typename FSM>
-void Perform::on_entry(const Event&, FSM& fsm_)
+void Perform::on_entry(const Event& event_, FSM& fsm_)
 {
+	Trace<Perform>::on_entry(event_, fsm_);
 	if (m_state != VMS_RUNNING && m_state != VMS_PAUSED)
 	{
 		fsm_.process_event(Done());
@@ -588,8 +589,9 @@ void Perform::on_entry(const Event&, FSM& fsm_)
 }
 
 template <typename Event, typename FSM>
-void Perform::on_exit(const Event&, FSM&)
+void Perform::on_exit(const Event& event_, FSM& fsm_)
 {
+	Trace<Perform>::on_exit(event_, fsm_);
 	m_merge.stop();
 	if (!m_receiver.isNull())
 	{
