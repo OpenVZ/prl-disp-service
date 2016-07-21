@@ -236,6 +236,12 @@ void CVmMigrateTargetServer::handlePackage ( IOSender::Handle h, const SmartPtr<
 				this,
 				SLOT(handlePackage(IOSender::Handle, const SmartPtr<IOPackage>)));
 
+		if (PRL_FAILED((*m_subject)(p)))
+		{
+			m_subject.reset();
+			return QCoreApplication::exit(-1);
+		}
+
 		WRITE_TRACE(DBG_DEBUG, "Asked local dispatcher to finalize migration");
 		if (!send(IOPackage::duplicateInstance(p)))
 		{
@@ -564,8 +570,9 @@ Subject::Subject(const Object::Unit& object_, const Object::Saviour& saviour_,
 		(connection_, Disk::Block(m_disk)));
 
 	Finish::Local f(object_.getUuid(), s);
-	m_map[VmMigrateFinishCmd] = command_type(new Finish::Return<Return<Finish::Global> >
-		(Return<Finish::Global>(connection_, Finish::Global(f))));
+	m_map[VmMigrateFinishCmd] = command_type(new Finish::Return<Finish::Global>
+		(connection_, new Finish::Global(f)));
+
 	m_map[VmMigrateFreeGuestCmd] = command_type(new Return<Saviour::Command>
 		(connection_, Saviour::Command(s)));
 	m_map[VmMigrateFillDiskMapCmd] = command_type(new Delegate<Disk::Map::Fill>
@@ -573,8 +580,6 @@ Subject::Subject(const Object::Unit& object_, const Object::Saviour& saviour_,
 	m_map[VmMigrateMakeDiskMapCmd] = command_type(new Return<Disk::Map::Make>
 		(connection_, Disk::Map::Make(m_tracking)));
 
-	m_map[FileCopyFinishCmd] = command_type(new Finish::Return<File::Finish>
-		(File::Finish(f, m_default)));
 	m_map[FileCopyCancelCmd] = command_type(new File::Cancel(connection_.getCopier()));
 }
 
