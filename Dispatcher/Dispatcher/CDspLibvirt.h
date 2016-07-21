@@ -269,6 +269,8 @@ struct Counter: QObject
 	Counter(const QSet<QString>& initial_, Completion& receiver_):
 		m_receiver(&receiver_), m_pending(initial_)
 	{
+		if (m_pending.isEmpty())
+			m_receiver->occur();
 	}
 
 	void account(const QString& one_);
