@@ -1763,7 +1763,7 @@ PRL_RESULT Clock::operator()(Libvirt::Domain::Xml::Domain& dst_)
 	if (!t)
 		return PRL_ERR_READ_XML_CONTENT;
 
-	Libvirt::Domain::Xml::Clock c;
+	Libvirt::Domain::Xml::Clock c = t.get();
 	boost::apply_visitor(Visitor::Adjustment(c, m_offset), t->getClock());
 
 	dst_.setClock(c);
