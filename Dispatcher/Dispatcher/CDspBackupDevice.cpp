@@ -469,7 +469,7 @@ namespace Deferred
 namespace
 {
 
-Prl::Expected<CVmHardDisk, Error::Simple> getModel(const QString& uuid_, uint index_)
+Prl::Expected<CVmHardDisk, Error::Simple> getModel(const QString& uuid_, const QString& serial_)
 {
 	CVmConfiguration c;
 	// we need device alias, which is only set in the runtime config
@@ -478,11 +478,11 @@ Prl::Expected<CVmHardDisk, Error::Simple> getModel(const QString& uuid_, uint in
 		return r.error();
 	const QList<CVmHardDisk* >& d = c.getVmHardwareList()->m_lstHardDisks;
 	QList<CVmHardDisk* >::const_iterator it(std::find_if(d.constBegin(), d.constEnd(),
-		boost::bind(&CVmHardDisk::getIndex, _1) == index_));
+		boost::bind(&CVmHardDisk::getSerialNumber, _1) == serial_));
 	if (it == d.end())
 	{
-		WRITE_TRACE(DBG_FATAL, "VM '%s' config doesn't contain disk with index %u",
-			qPrintable(uuid_), index_);
+		WRITE_TRACE(DBG_FATAL, "VM '%s' config doesn't contain disk with SN '%s'",
+			qPrintable(uuid_), qPrintable(serial_));
 		return Error::Simple(PRL_ERR_UNEXPECTED);
 	}
 	return CVmHardDisk(*it);
@@ -544,7 +544,7 @@ template <class T>
 PRL_RESULT Action<T>::start(const T& event_)
 {
 	Prl::Expected<CVmHardDisk, Error::Simple> d = getModel(event_.getVmUuid(),
-		event_.getModel().getIndex());
+		event_.getModel().getSerialNumber());
 	if (d.isFailed())
 		return d.error().code();
 
