@@ -601,18 +601,35 @@ struct Global: Local
 template<class T>
 struct Return: Command
 {
-	explicit Return(const T& chain_): m_chain(chain_)
+	Return(Connection& connection_, T* chain_):
+		m_chain(chain_), m_connection(&connection_)
 	{
 	}
 
 	PRL_RESULT execute(const package_type& package_)
 	{
-		(void)m_chain.execute(package_);
-		return PRL_ERR_IO_STOPPED;
+		PRL_RESULT output = PRL_ERR_SUCCESS;
+
+		if (!m_chain.isNull() && PRL_SUCCEEDED(output = m_chain->execute(package_)))
+		{
+			m_chain.clear();
+			return output;
+		}
+
+		CDispToDispCommandPtr c =
+			CDispToDispProtoSerializer::CreateDispToDispResponseCommand(
+				output, package_);
+		package_type p = DispatcherPackage::createInstance(c->GetCommandId(),
+				 c->GetCommand()->toString(), package_);
+		if (!m_connection->send(p))
+			WRITE_TRACE(DBG_FATAL, "Reply package sending failure");
+
+		return output;
 	}
 
 private:
-	T m_chain;
+	QSharedPointer<T> m_chain;
+	Connection* m_connection;
 };
 
 } // namespace Finish
