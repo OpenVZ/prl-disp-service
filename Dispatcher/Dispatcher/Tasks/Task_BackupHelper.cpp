@@ -122,11 +122,21 @@ void Driver::write_(SmartPtr<char> data_, quint32 size_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
+void Unit::reset()
+{
+	if (NULL != m_driver)
+	{
+		m_driver->disconnect(this);
+		m_driver->deleteLater();
+		m_driver = NULL;
+	}
+}
+
 PRL_RESULT Unit::start(QStringList args_, int version_)
 {
 	PRL_ASSERT(args_.size());
 	QMutexLocker g(&m_mutex);
-	if (NULL != m_driver.get())
+	if (NULL != m_driver)
 		return PRL_ERR_DOUBLE_INIT;
 
 	int p[2] = {};
@@ -147,19 +157,19 @@ PRL_RESULT Unit::start(QStringList args_, int version_)
 	}
 	WRITE_TRACE(DBG_WARNING, "Run cmd: %s", QSTR2UTF8(args_.join(" ")));
 
-	QScopedPointer<Driver> d(new Driver(p[1]));
-	connect(d.data(), SIGNAL(finished(int, QProcess::ExitStatus)),
+	m_driver = new Driver(p[1]);
+	connect(m_driver, SIGNAL(finished(int, QProcess::ExitStatus)),
 		SLOT(reactFinish(int, QProcess::ExitStatus)), Qt::DirectConnection);
-	d->start(x, args_, QIODevice::Unbuffered | QIODevice::ReadWrite);
-	d->moveToThread(QCoreApplication::instance()->thread());
+	m_driver->start(x, args_, QIODevice::Unbuffered | QIODevice::ReadWrite);
+	m_driver->moveToThread(QCoreApplication::instance()->thread());
 	::close(p[1]);
-	if (!d->waitForStarted())
+	if (!m_driver->waitForStarted())
 	{
+		reset();
 		::close(p[0]);
 		return PRL_ERR_BACKUP_TOOL_CANNOT_START;
 	}
 	m_program = x;
-	m_driver.reset(d.take());
 	m_channel = QSharedPointer<QLocalSocket>(new QLocalSocket);
 	m_channel->setSocketDescriptor(p[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
 //	m_channel->moveToThread(m_driver->thread());
@@ -183,12 +193,13 @@ void Unit::reactFinish(int code_, QProcess::ExitStatus status_)
 	}
 	m_channel.clear();
 	m_event.wakeAll();
+	m_driver->disconnect(this);
 }
 
 PRL_RESULT Unit::waitForFinished()
 {
 	QMutexLocker g(&m_mutex);
-	if (NULL == m_driver.get())
+	if (NULL == m_driver)
 		return PRL_ERR_UNINITIALIZED;
 
 	if (!m_program.isEmpty())
@@ -220,14 +231,14 @@ PRL_RESULT Unit::write(const SmartPtr<char>& data_, quint32 size_)
 		return PRL_ERR_INVALID_ARG;
 
 	QMutexLocker g(&m_mutex);
-	if (NULL == m_driver.get())
+	if (NULL == m_driver)
 		return PRL_ERR_UNINITIALIZED;
 
 	if (m_program.isEmpty())
 		return PRL_ERR_UNEXPECTED;
 
 	qRegisterMetaType<SmartPtr<char> >("SmartPtr<char>");
-	if (!QMetaObject::invokeMethod(m_driver.get(), "write_", Qt::QueuedConnection,
+	if (!QMetaObject::invokeMethod(m_driver, "write_", Qt::QueuedConnection,
 		Q_ARG(SmartPtr<char>, data_),
 		Q_ARG(quint32, size_)))
 		return PRL_ERR_UNEXPECTED;
@@ -239,7 +250,7 @@ PRL_RESULT Unit::write(const SmartPtr<char>& data_, quint32 size_)
 void Unit::kill()
 {
 	QMutexLocker g(&m_mutex);
-	if (NULL != m_driver.get())
+	if (NULL != m_driver)
 		m_driver->terminate();
 
 	m_channel.clear();
@@ -935,7 +946,7 @@ PRL_RESULT Progress::do_(SmartPtr<IOPackage> request_, process_type& dst_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Client
 
-struct Client
+struct Client: boost::noncopyable
 {
 	Client(Backup::Process::Unit* process_, const QStringList& args_);
 
@@ -946,11 +957,12 @@ private:
 
 	PRL_RESULT m_start;
 	QStringList m_argv;
-	std::auto_ptr<Backup::Process::Unit> m_process;
+	QSharedPointer<Backup::Process::Unit> m_process;
 };
 
 Client::Client(Backup::Process::Unit* process_, const QStringList& argv_):
-	m_start(PRL_ERR_UNINITIALIZED), m_argv(argv_), m_process(process_)
+	m_start(PRL_ERR_UNINITIALIZED), m_argv(argv_),
+	m_process(process_, &Backup::Process::Unit::deleteLater)
 {
 }
 
