@@ -728,15 +728,24 @@ struct Connector: Connector_, Vm::Connector::Base<Machine_type>
 	void react(const SmartPtr<IOPackage>& package_);
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Synch
+
+struct Synch
+{
+	typedef Pipeline::State<Machine_type, Vm::Pump::FinishCommand_type> Syncing;
+
+	void send(Tunnel::IO& io_, Connector& connector) const;
+};
+
 namespace Move
 {
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
+struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
 {
 	typedef boost::msm::back::state_machine<Tunnel::Frontend> Tunneling;
-	typedef Pipeline::State<Machine_type, Vm::Pump::FinishCommand_type> synchState_type;
 	typedef Tunneling initial_state;
 
 	explicit Frontend(Tunnel::IO& io_): m_io(&io_)
@@ -746,13 +755,16 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	{
 	}
 
-	void synch(const msmf::none&);
+	void synch(const msmf::none&)
+	{
+		send(*m_io, *getConnector());
+	}
 
 	struct transition_table : boost::mpl::vector<
-		_row<Tunneling::exit_pt<Flop::State>, Flop::Event,           Flop::State>,
-		_row<synchState_type,                 Flop::Event,           Flop::State>,
-		a_row<Tunneling::exit_pt<Success>,    msmf::none,            synchState_type, &Frontend::synch>,
-		msmf::Row<synchState_type,            synchState_type::Good, Success>
+		_row<Tunneling::exit_pt<Flop::State>, Flop::Event,       Flop::State>,
+		_row<Syncing,                         Flop::Event,       Flop::State>,
+		a_row<Tunneling::exit_pt<Success>,    msmf::none,        Syncing, &Frontend::synch>,
+		msmf::Row<Syncing,                    Syncing::Good,     Success>
 	>
 	{
 	};
@@ -766,7 +778,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
+struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
 {
 	typedef boost::msm::back::state_machine<Start::Frontend> Starting;
 	typedef boost::msm::back::state_machine<Content::Frontend> Copying;
@@ -790,6 +802,16 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	{
 	}
 
+	bool isTemplate(const msmf::none&)
+	{
+		return m_task->isTemplate();
+	}
+
+	void synch(const msmf::none&)
+	{
+		send(*m_io, *getConnector());
+	}
+
 	template <typename Event, typename FSM>
 	void on_entry(const Event&, FSM&);
 
@@ -806,8 +828,11 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 		// wire success exits sequentially up to FINISHED
 		msmf::Row<Starting::exit_pt<Success>,  msmf::none,Copying>,
 		msmf::Row<Copying::exit_pt<Success>,   msmf::none,Moving>,
+		row<Copying::exit_pt<Success>,         msmf::none,Syncing,
+			&Frontend::synch, &Frontend::isTemplate>,
 		msmf::Row<Moving::exit_pt<Success>,    msmf::none,Commiting>,
 		msmf::Row<Commiting,                   Commiting::Done,Finished>,
+		msmf::Row<Syncing,                     Syncing::Good, Finished>,
 		// handle asyncronous termination
 		a_row<Starting,                        Flop::Event, Finished, &Frontend::setResult>,
 		a_row<Copying,                         Flop::Event, Finished, &Frontend::setResult>,

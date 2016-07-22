@@ -825,9 +825,10 @@ void Frontend::on_exit(const Event& event_, FSM& fsm_)
 	m_io->disconnect(SIGNAL(disconnected()), getConnector(), SLOT(cancel()));
 }
 
-void Frontend::pokePeer(const msmf::none&)
+bool Frontend::isTemplate(const boost::mpl::true_&)
 {
-	m_task->confirmFinish();
+	return m_task->getTargetConfig()->getVmSettings()
+		->getVmCommonOptions()->isTemplate();
 }
 
 void Frontend::setResult(const peerQuitState_type::Good&)
@@ -940,13 +941,15 @@ PRL_RESULT Task_MigrateVmSource::prepareTask()
 	{
 		/* before CDspVm get instance, to select m_nRegisterCmd */
 		/* LOCK inside brackets */
-		CDspLockedPointer<CVmDirectoryItem> pVmDirItem =
-			CDspService::instance()->getVmDirManager().getVmDirItemByUuid(m_sVmDirUuid, m_sVmUuid);
+		CVmIdent ident(CDspVmDirHelper::getVmIdentByVmUuid(m_sVmUuid, getClient()));
+		CDspLockedPointer<CVmDirectoryItem> pVmDirItem(CDspService::instance()->getVmDirManager()
+				.getVmDirItemByUuid(ident));
 		if (!pVmDirItem) {
 			nRetCode = PRL_ERR_VM_UUID_NOT_FOUND;
 			WRITE_TRACE(DBG_FATAL, "Couldn't to find Vm with UUID '%s'", QSTR2UTF8(m_sVmUuid));
 			goto exit;
 		}
+		m_sVmDirUuid = ident.second;
 		m_sVmName = pVmDirItem->getVmName();
 		m_sVmConfigPath = pVmDirItem->getVmHome();
 		m_sVmHomePath = CFileHelper::GetFileRoot(m_sVmConfigPath);

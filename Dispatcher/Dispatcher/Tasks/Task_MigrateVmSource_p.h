@@ -679,7 +679,14 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	template <typename Event, typename FSM>
 	void on_exit(const Event&, FSM&);
 
-	void pokePeer(const msmf::none&);
+	bool isTemplate(const boost::mpl::true_&);
+
+	template <typename T>
+	void pokePeer(const T&)
+	{
+		m_task->confirmFinish();
+	}
+
 	void setResult(const peerQuitState_type::Good&);
 	void setResult(const Flop::Event& value_);
 
@@ -695,6 +702,8 @@ struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 		_row<checkState_type,                  checkState_type::Good,    startState_type>,
 		_row<startState_type,                  startState_type::Good,    copyState_type>,
 		_row<copyState_type,                   boost::mpl::true_,        moveState_type>,
+		row<copyState_type,                    boost::mpl::true_,        peerQuitState_type,
+			&Frontend::pokePeer, &Frontend::isTemplate>,
 		a_row<moveState_type::exit_pt<Success>,msmf::none,               peerQuitState_type,&Frontend::pokePeer>,
 		a_row<peerQuitState_type,              peerQuitState_type::Good, Finished,          &Frontend::setResult>
 	>
