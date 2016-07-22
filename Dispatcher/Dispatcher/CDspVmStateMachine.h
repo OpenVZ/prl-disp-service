@@ -418,7 +418,7 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	msmf::Row<Paused,     Event<VMS_SUSPENDED>,  Suspended,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Notification> > >,
 
-	msmf::Row<Paused,     Event<VMS_RUNNING>,    Running,
+	msmf::Row<Paused,     Event<VMS_RUNNING>,    Running::entry_pt<Running::Already>,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, Cluster, Notification> > >,
 
 	//      +-----------+----------------------+-----------+--------+
