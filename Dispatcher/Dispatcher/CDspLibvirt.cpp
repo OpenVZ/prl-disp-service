@@ -1220,7 +1220,7 @@ void Link::disconnect(virConnectPtr libvirtd_, int reason_, void* opaque_)
 Domains::Domains(Registry::Actual& registry_):
 	m_eventState(-1), m_eventReboot(-1),
 	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
-	m_eventTrayChange(-1), m_registry(&registry_)
+	m_eventTrayChange(-1), m_eventRtcChange(-1), m_registry(&registry_)
 {
 }
 
