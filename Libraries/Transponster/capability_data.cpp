@@ -63,6 +63,18 @@ QString Traits<Capability::Xml::PUnsignedLong>::generate(Capability::Xml::PUnsig
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PHexuint
+
+bool Validatable<Capability::Xml::PHexuint>::validate(const Capability::Xml::PHexuint::value_type& value_)
+{
+	QRegExp q("(0x)?[0-9a-f]+");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PPositiveInteger
 
 bool Traits<Capability::Xml::PPositiveInteger>::parse(const QString& src_, Capability::Xml::PPositiveInteger::value_type& dst_)
@@ -99,9 +111,9 @@ QString Traits<Capability::Xml::POctalMode>::generate(Capability::Xml::POctalMod
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1740
+// struct PData1746
 
-bool Validatable<Capability::Xml::PData1740>::validate(const Capability::Xml::PData1740::value_type& value_)
+bool Validatable<Capability::Xml::PData1746>::validate(const Capability::Xml::PData1746::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,2}");
 	if (!q.exactMatch(value_))
@@ -111,21 +123,21 @@ bool Validatable<Capability::Xml::PData1740>::validate(const Capability::Xml::PD
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1742
+// struct PData1748
 
-bool Traits<Capability::Xml::PData1742>::parse(const QString& src_, Capability::Xml::PData1742::value_type& dst_)
+bool Traits<Capability::Xml::PData1748>::parse(const QString& src_, Capability::Xml::PData1748::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Capability::Xml::PData1742>::generate(Capability::Xml::PData1742::value_type src_)
+QString Traits<Capability::Xml::PData1748>::generate(Capability::Xml::PData1748::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Capability::Xml::PData1742>::validate(Capability::Xml::PData1742::value_type value_)
+bool Validatable<Capability::Xml::PData1748>::validate(Capability::Xml::PData1748::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -137,9 +149,9 @@ bool Validatable<Capability::Xml::PData1742>::validate(Capability::Xml::PData174
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1744
+// struct PData1750
 
-bool Validatable<Capability::Xml::PData1744>::validate(const Capability::Xml::PData1744::value_type& value_)
+bool Validatable<Capability::Xml::PData1750>::validate(const Capability::Xml::PData1750::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,6}");
 	if (!q.exactMatch(value_))
@@ -149,21 +161,21 @@ bool Validatable<Capability::Xml::PData1744>::validate(const Capability::Xml::PD
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1746
+// struct PData1752
 
-bool Traits<Capability::Xml::PData1746>::parse(const QString& src_, Capability::Xml::PData1746::value_type& dst_)
+bool Traits<Capability::Xml::PData1752>::parse(const QString& src_, Capability::Xml::PData1752::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Capability::Xml::PData1746>::generate(Capability::Xml::PData1746::value_type src_)
+QString Traits<Capability::Xml::PData1752>::generate(Capability::Xml::PData1752::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Capability::Xml::PData1746>::validate(Capability::Xml::PData1746::value_type value_)
+bool Validatable<Capability::Xml::PData1752>::validate(Capability::Xml::PData1752::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -175,9 +187,9 @@ bool Validatable<Capability::Xml::PData1746>::validate(Capability::Xml::PData174
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1748
+// struct PData1754
 
-bool Validatable<Capability::Xml::PData1748>::validate(const Capability::Xml::PData1748::value_type& value_)
+bool Validatable<Capability::Xml::PData1754>::validate(const Capability::Xml::PData1754::value_type& value_)
 {
 	QRegExp q("[a-fA-F0-9]{32}");
 	if (!q.exactMatch(value_))
@@ -187,9 +199,9 @@ bool Validatable<Capability::Xml::PData1748>::validate(const Capability::Xml::PD
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1750
+// struct PData1756
 
-bool Validatable<Capability::Xml::PData1750>::validate(const Capability::Xml::PData1750::value_type& value_)
+bool Validatable<Capability::Xml::PData1756>::validate(const Capability::Xml::PData1756::value_type& value_)
 {
 	QRegExp q("[a-fA-F0-9]{8}\\-([a-fA-F0-9]{4}\\-){3}[a-fA-F0-9]{12}");
 	if (!q.exactMatch(value_))
@@ -604,14 +616,14 @@ bool Traits<Capability::Xml::VUUID>::parse(const QString& src_, Capability::Xml:
 {
 	int x;
 	mpl::at_c<Capability::Xml::VUUID::types, 0>::type a0;
-	x = Marshal<Capability::Xml::PData1748>::setString(src_, a0);
+	x = Marshal<Capability::Xml::PData1754>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
 		return true;
 	}
 	mpl::at_c<Capability::Xml::VUUID::types, 1>::type a1;
-	x = Marshal<Capability::Xml::PData1750>::setString(src_, a1);
+	x = Marshal<Capability::Xml::PData1756>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
@@ -626,9 +638,9 @@ QString Traits<Capability::Xml::VUUID>::generate(const Capability::Xml::VUUID& s
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Capability::Xml::PData1748>::getString(boost::get<mpl::at_c<Capability::Xml::VUUID::types, 0>::type>(src_));
+		return Marshal<Capability::Xml::PData1754>::getString(boost::get<mpl::at_c<Capability::Xml::VUUID::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Capability::Xml::PData1750>::getString(boost::get<mpl::at_c<Capability::Xml::VUUID::types, 1>::type>(src_));
+		return Marshal<Capability::Xml::PData1756>::getString(boost::get<mpl::at_c<Capability::Xml::VUUID::types, 1>::type>(src_));
 	}
 	return QString();
 }

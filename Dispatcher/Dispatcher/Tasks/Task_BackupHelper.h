@@ -91,11 +91,15 @@ struct Unit: QObject
 	typedef boost::function3<void, const QString&, int, const QString&>
 		callback_type;
 
-	Unit()
+	Unit(): m_driver()
 	{
 	}
-	explicit Unit(const callback_type& callback_): m_callback(callback_)
+	explicit Unit(const callback_type& callback_): m_driver(), m_callback(callback_)
 	{
+	}
+	~Unit()
+	{
+		reset();
 	}
 
 	PRL_RESULT start(QStringList args_, int version_);
@@ -111,14 +115,15 @@ private slots:
 private:
 	Q_OBJECT
 
+	void reset();
 	static Prl::Expected<QPair<char*, qint32>, PRL_RESULT>
 		read_(const QSharedPointer<QLocalSocket>& channel_, char* buffer_, qint32 capacity_);
 
 	QMutex m_mutex;
+	Driver* m_driver;
 	QString m_program;
 	QWaitCondition m_event;
 	callback_type m_callback;
-	std::auto_ptr<Driver> m_driver;
 	QSharedPointer<QLocalSocket> m_channel;
 };
 
