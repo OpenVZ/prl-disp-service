@@ -82,6 +82,28 @@ struct Traits<Iface::Xml::PUnsignedLong>
 
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PHexuint
+
+namespace Iface
+{
+namespace Xml
+{
+struct PHexuint
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Iface
+
+template<>
+struct Validatable<Iface::Xml::PHexuint>: mpl::true_
+{
+	static bool validate(const Iface::Xml::PHexuint::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PPositiveInteger
 
 namespace Iface
@@ -130,59 +152,6 @@ struct Traits<Iface::Xml::POctalMode>
 
 };
 
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData1206
-
-namespace Iface
-{
-namespace Xml
-{
-struct PData1206
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Iface
-
-template<>
-struct Validatable<Iface::Xml::PData1206>: mpl::true_
-{
-	static bool validate(const Iface::Xml::PData1206::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData1208
-
-namespace Iface
-{
-namespace Xml
-{
-struct PData1208
-{
-	typedef qint32 value_type;
-};
-
-} // namespace Xml
-} // namespace Iface
-
-template<>
-struct Traits<Iface::Xml::PData1208>
-{
-	static bool parse(const QString& src_, Iface::Xml::PData1208::value_type& dst_);
-
-	static QString generate(Iface::Xml::PData1208::value_type src_);
-
-};
-
-template<>
-struct Validatable<Iface::Xml::PData1208>: mpl::true_
-{
-	static bool validate(Iface::Xml::PData1208::value_type value_);
-
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct PData1210
@@ -268,6 +237,37 @@ namespace Xml
 {
 struct PData1216
 {
+	typedef qint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Iface
+
+template<>
+struct Traits<Iface::Xml::PData1216>
+{
+	static bool parse(const QString& src_, Iface::Xml::PData1216::value_type& dst_);
+
+	static QString generate(Iface::Xml::PData1216::value_type src_);
+
+};
+
+template<>
+struct Validatable<Iface::Xml::PData1216>: mpl::true_
+{
+	static bool validate(Iface::Xml::PData1216::value_type value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData1218
+
+namespace Iface
+{
+namespace Xml
+{
+struct PData1218
+{
 	typedef QString value_type;
 };
 
@@ -275,9 +275,31 @@ struct PData1216
 } // namespace Iface
 
 template<>
-struct Validatable<Iface::Xml::PData1216>: mpl::true_
+struct Validatable<Iface::Xml::PData1218>: mpl::true_
 {
-	static bool validate(const Iface::Xml::PData1216::value_type& value_);
+	static bool validate(const Iface::Xml::PData1218::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData1220
+
+namespace Iface
+{
+namespace Xml
+{
+struct PData1220
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Iface
+
+template<>
+struct Validatable<Iface::Xml::PData1220>: mpl::true_
+{
+	static bool validate(const Iface::Xml::PData1220::value_type& value_);
 
 };
 

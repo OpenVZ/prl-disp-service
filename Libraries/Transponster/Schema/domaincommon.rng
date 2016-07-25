@@ -3897,6 +3897,18 @@
       </attribute>
     </optional>
   </define>
+  <define name="dimmaddress">
+    <optional>
+      <attribute name="slot">
+        <ref name="unsignedInt"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="base">
+        <ref name="hexuint"/>
+      </attribute>
+    </optional>
+  </define>
   <define name="devices">
     <element name="devices">
       <interleave>
@@ -4324,6 +4336,12 @@
           </attribute>
           <ref name="isaaddress"/>
         </group>
+        <group>
+          <attribute name="type">
+            <value>dimm</value>
+          </attribute>
+          <ref name="dimmaddress"/>
+        </group>
       </choice>
     </element>
   </define>
@@ -4358,6 +4376,9 @@
         <ref name="memorydev-target"/>
         <optional>
           <ref name="address"/>
+        </optional>
+        <optional>
+          <ref name="alias"/>
         </optional>
       </interleave>
     </element>
