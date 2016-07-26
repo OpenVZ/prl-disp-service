@@ -24,10 +24,9 @@
  * Schaffhausen, Switzerland.
  */
 
-#include <libtar.h>
-#include <zlib.h>
 #include <prlcommon/Interfaces/ParallelsTypes.h>
 #include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/PrlCommonUtilsBase/Archive.h>
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -74,129 +73,6 @@ namespace {
 
 const int g_maxSizeToReadFromLog = 16*1024*1024;
 
-namespace Compressor
-{
-
-struct Zlib : private QMap<int, gzFile>
-{
-	Zlib() : QMap<int, gzFile>(), m_count(0)
-	{
-	}
-
-	int open(const char *path, int oflags, int mode);
-	int close(int index);
-	ssize_t read(int index, void *buf, size_t len);
-	ssize_t write(int index, const void *buf, size_t len);
-
-private:
-	int m_count;
-	QMutex m_lock;
-} s_zlib;
-
-int Zlib::open(const char *pathname, int oflags, int mode)
-{
-	(void)mode;
-	const char *gzoflags = 0;
-	gzFile gzf;
-	int fd;
-
-	switch (oflags & O_ACCMODE)
-	{
-	case O_WRONLY:
-		gzoflags = "wb";
-		break;
-	case O_RDONLY:
-		gzoflags = "rb";
-		break;
-	default:
-	case O_RDWR:
-		errno = EINVAL;
-		return -1;
-	}
-
-	fd = ::open(pathname, oflags, mode);
-	if (fd == -1)
-		return -1;
-
-	if ((oflags & O_CREAT) && fchmod(fd, mode))
-	{
-		::close(fd);
-		return -1;
-	}
-
-	gzf = ::gzdopen(fd, gzoflags);
-	if (!gzf)
-	{
-		::close(fd);
-		errno = ENOMEM;
-		return -1;
-	}
-
-	QMutexLocker lock(&m_lock);
-	return insert(m_count++, gzf).key();
-}
-
-int Zlib::close(int index)
-{
-	QMutexLocker lock(&m_lock);
-	gzFile f = take(index);
-	if (!f) {
-		errno = EINVAL;
-		return -1;
-	}
-	return ::gzclose(f);
-}
-
-ssize_t Zlib::read(int index, void *buf, size_t len)
-{
-	QMutexLocker lock(&m_lock);
-	const_iterator i = find(index);
-	if (i == end()) {
-		errno = EINVAL;
-		return -1;
-	}
-	return ::gzread(i.value(), buf, len);
-}
-
-ssize_t Zlib::write(int index, const void *buf, size_t len)
-{
-	QMutexLocker lock(&m_lock);
-	const_iterator i = find(index);
-	if (i == end()) {
-		errno = EINVAL;
-		return -1;
-	}
-	return ::gzwrite(i.value(), buf, len);
-}
-
-int gzopen_frontend(const char *pathname, int oflags, int mode)
-{
-	return s_zlib.open(pathname, oflags, mode);
-}
-
-int gzclose_frontend(int index)
-{
-	return s_zlib.close(index);
-}
-
-ssize_t gzread_frontend(int index, void *buf, size_t len)
-{
-	return s_zlib.read(index, buf, len);
-}
-
-ssize_t gzwrite_frontend(int index, const void *buf, size_t len)
-{
-	return s_zlib.write(index, buf, len);
-}
-
-tartype_t s_interface = {
-	(openfunc_t)gzopen_frontend,
-	gzclose_frontend,
-	gzread_frontend,
-	gzwrite_frontend
-};
-
-} // namespace Compressor
 } // anonymous namespace
 
 PRL_RESULT CPackedProblemReport::createInstance( CPackedProblemReport::packedReportSide side ,
@@ -359,27 +235,10 @@ m_strArchPath( strPathToSave )
 
 PRL_RESULT CPackedProblemReport::extractArchive( const QString & strPath )
 {
-	TAR *t;
 
-	WRITE_TRACE(DBG_INFO, "Extract incoming archive %s to directoty %s",
-					QSTR2UTF8( m_strArchPath ),
-					QSTR2UTF8( strPath ) );
-	if ( tar_open(&t, m_strArchPath.toUtf8().data(), &Compressor::s_interface,O_RDONLY, 0, 0 ) == -1 )
+	if (Archive::Reader::extractAll(m_strArchPath, strPath) < 0)
 	{
-		WRITE_TRACE(DBG_FATAL, "tar_open(): %s\n", strerror(errno));
-		return PRL_ERR_FAILURE;
-	}
-
-	if ( tar_extract_all(t, strPath.toUtf8().data() ) != 0)
-	{
-		WRITE_TRACE(DBG_FATAL, "tar_extract_all(): %s\n", strerror(errno));
-		tar_close(t);
-		return PRL_ERR_FAILURE;
-	}
-
-	if (tar_close(t) != 0)
-	{
-		WRITE_TRACE(DBG_FATAL, "tar_close(): %s\n", strerror(errno));
+		WRITE_TRACE(DBG_FATAL, "unable to extract file from archive '%s'", qPrintable(m_strArchPath));
 		return PRL_ERR_FAILURE;
 	}
 
@@ -818,49 +677,18 @@ PRL_RESULT CPackedProblemReport::packReport()
 {
 	saveMainXml();
 	QStringList lstFiles = createReportFilesList();
-
-	TAR *t;
-
-	if ( tar_open( &t,
-					m_strArchPath.toUtf8().data(),
-					&Compressor::s_interface,
-					O_WRONLY | O_CREAT,
-					0644,
-					0) == -1 )
+	QScopedPointer<Archive::Writer> w(Archive::Writer::create(m_strArchPath));
+	if (w.isNull())
 	{
-		WRITE_TRACE( DBG_FATAL, "tar_open(): %s\n", strerror(errno) );
+		WRITE_TRACE(DBG_FATAL, "unable to create archive '%s'", qPrintable(m_strArchPath));
 		return PRL_ERR_FAILURE;
 	}
 
-	foreach( QString strPath, lstFiles )
+	foreach(const QString& f, lstFiles)
 	{
-		QString strPathToSave = QFileInfo(m_strTempDirPath).fileName() + QString("/");
-		strPathToSave += QFileInfo(strPath).fileName();
-		if ( tar_append_tree( t,
-								strPath.toUtf8().data(),
-								strPathToSave.toUtf8().data() ) != 0 )
-		{
-			WRITE_TRACE(DBG_FATAL, "tar_append_tree(\"%s\", \"%s\"): %s\n",
-							QSTR2UTF8( m_strTempDirPath ),
-							QSTR2UTF8( strPathToSave ),
-							strerror(errno) );
-
-			tar_close(t);
-			return PRL_ERR_FAILURE;
-		}
-	}
-
-	if ( tar_append_eof( t ) != 0 )
-	{
-		WRITE_TRACE(DBG_FATAL, "tar_append_eof(): %s\n", strerror(errno) );
-		tar_close(t);
-		return PRL_ERR_FAILURE;
-	}
-
-	if (tar_close(t) != 0)
-	{
-		WRITE_TRACE(DBG_FATAL, "tar_close(): %s\n", strerror(errno) );
-		return PRL_ERR_FAILURE;
+		QString p = QDir(QFileInfo(m_strTempDirPath).fileName()).filePath(QFileInfo(f).fileName());
+		if (PRL_FAILED(w->append(f, p)))
+			WRITE_TRACE(DBG_FATAL, "unable to write file '%s' to problem report", qPrintable(f));
 	}
 
 	m_bCleanupTempDir = true;
