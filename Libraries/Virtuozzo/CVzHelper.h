@@ -382,8 +382,9 @@ public:
 	int delete_env(const QString &uuid);
 	int delete_env(unsigned int id);
 	int register_env(const QString &sPath, const QString &ctId,
-			const QString &sUuid,
+			const QString &sUuid, const QString &sName,
 			PRL_UINT32 nFlags, SmartPtr<CVmConfiguration> &pConfig);
+	int register_env(const SmartPtr<CVmConfiguration> &pConfig, PRL_UINT32 nFlags);
 	int unregister_env(const QString &sUuid, int flags);
 	int set_env_userpasswd(const QString &uuid, const QString &user,
 			const QString &pw, PRL_UINT32 nFlags);

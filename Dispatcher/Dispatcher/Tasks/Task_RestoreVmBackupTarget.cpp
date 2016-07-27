@@ -1425,7 +1425,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 {
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	QString sCtName;
-	SmartPtr<CVmConfiguration> pNewConfig;
 
 	/* ID, name, private : use values of existing CT, ignore m_sTargetVmHomePath & m_sTargetVmName from command
 	   and values from backuped CT config */
@@ -1501,22 +1500,11 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 		nRetCode = x->do_();
 
 		/* and reregister to set ctId & m_sTargetVmHomePath in restored config */
-		nRetCode = m_VzOpHelper.register_env(m_sTargetVmHomePath, ctId,
-				pConfig->getVmIdentification()->getVmUuid(),
-				PRCF_FORCE | PRVF_IGNORE_HA_CLUSTER, pNewConfig);
+		nRetCode = m_VzOpHelper.register_env(pConfig, PRCF_FORCE|PRVF_IGNORE_HA_CLUSTER);
 		if (PRL_FAILED(nRetCode)) {
 			WRITE_TRACE(DBG_FATAL, "register_env() exited with error %#x, %s",
 					nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
 			break;
-		}
-
-		SmartPtr<CVmConfiguration> c = CVzHelper::get_env_config(m_sVmUuid);
-
-		if (c && c->getVmIdentification()->getVmName() != sCtName)
-		{
-			nRetCode = m_VzOpHelper.set_env_name(m_sVmUuid, sCtName);
-			if (PRL_FAILED(nRetCode))
-				break;
 		}
 
 		/* restore uptime */
@@ -1611,7 +1599,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewCt(const QString &sDefaultCtFol
 
 		nRetCode = m_VzOpHelper.register_env(m_sTargetPath, ctId,
 				m_pVmConfig->getVmIdentification()->getVmUuid(),
-				PRCF_FORCE, pConfig);
+				sCtName, PRCF_FORCE, pConfig);
 		if (PRL_FAILED(nRetCode)) {
 			WRITE_TRACE(DBG_FATAL, "register_env() exited with error %#x, %s",
 					nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
@@ -1628,15 +1616,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewCt(const QString &sDefaultCtFol
 				break;
 			}
 			pConfig = m_pVmConfig;
-		}
-		if (!sCtName.isEmpty()) {
-			nRetCode = m_VzOpHelper.set_env_name(m_sVmUuid, sCtName);
-			if (PRL_FAILED(nRetCode)) {
-				WRITE_TRACE(DBG_FATAL, "set_env_name() exited with error %#x, %s",
-						nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
-				break;
-			}
-			pConfig->getVmIdentification()->setVmName(sCtName);
 		}
 
 		nRetCode = CDspService::instance()->getVzHelper()->insertVmDirectoryItem(pConfig);
