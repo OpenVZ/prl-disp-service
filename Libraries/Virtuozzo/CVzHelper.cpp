@@ -2016,8 +2016,8 @@ QString CVzHelper::build_ctid_from_uuid(const QString& uuid)
 	return ctid;
 }
 
-int CVzOperationHelper::register_env(const QString &sPath,
-		const QString &sCtId, const QString &sUuid,
+int CVzOperationHelper::register_env(const QString &sPath, const QString &sCtId,
+		const QString &sUuid, const QString &sName,
 		PRL_UINT32 nFlags, SmartPtr<CVmConfiguration> &pConfig)
 {
 	int ret;
@@ -2057,6 +2057,11 @@ int CVzOperationHelper::register_env(const QString &sPath,
 		args += sUuid;
 	}
 
+	if (!sName.isEmpty()) {
+		args += "--name";
+		args += sName;
+	}
+
 	if (nFlags & PRCF_FORCE)
 		args += "--force";
 
@@ -2067,6 +2072,17 @@ int CVzOperationHelper::register_env(const QString &sPath,
 	pConfig = CVzHelper::get_env_config_by_ctid(ctid);
 
 	return PRL_ERR_SUCCESS;
+}
+
+int CVzOperationHelper::register_env(const SmartPtr<CVmConfiguration> &pConfig,
+		PRL_UINT32 nFlags)
+{
+	SmartPtr<CVmConfiguration> c;
+	return register_env(pConfig->getVmIdentification()->getHomePath(),
+			pConfig->getVmIdentification()->getCtId(),
+			pConfig->getVmIdentification()->getVmUuid(),
+			pConfig->getVmIdentification()->getVmName(),
+			nFlags, c);
 }
 
 int CVzOperationHelper::unregister_env(const QString &uuid, int flags)
