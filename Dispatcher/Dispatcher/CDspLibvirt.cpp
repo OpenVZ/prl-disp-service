@@ -786,9 +786,22 @@ int wakeUp(virConnectPtr , virDomainPtr domain_, int , void* opaque_)
 	return 0;
 }
 
-int reboot(virConnectPtr connect_, virDomainPtr domain_, void* opaque_)
+int reboot(virConnectPtr , virDomainPtr domain_, void* opaque_)
 {
-	return wakeUp(connect_, domain_, 0, opaque_);
+	Model::Coarse* v = (Model::Coarse* )opaque_;
+	v->show(domain_, boost::bind(&Registry::Reactor::reboot, _1));
+	return 0;
+}
+
+int connectAgent(virConnectPtr , virDomainPtr domain_, int state_, int /*reason_*/, void* opaque_)
+{
+	Model::Coarse* v = (Model::Coarse* )opaque_;
+	if (state_ == VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_CONNECTED)
+	{
+		v->show(domain_, boost::bind
+			(&Registry::Reactor::connectAgent, _1));
+	}
+	return 0;
 }
 
 int deviceConnect(virConnectPtr , virDomainPtr domain_, const char *device_,
@@ -959,6 +972,7 @@ namespace Model
 
 Domain::Domain(const Registry::Access& access_): m_pid(), m_access(access_)
 {
+	qRegisterMetaType<reaction_type>("Domain::reaction_type");
 }
 
 boost::optional<CVmConfiguration> Domain::getConfig()
@@ -968,7 +982,7 @@ boost::optional<CVmConfiguration> Domain::getConfig()
 
 void Domain::setState(VIRTUAL_MACHINE_STATE value_)
 {
-	m_access.updateState(value_);
+	m_access.getReactor().proceed(value_);
 }
 
 void Domain::setConfig(CVmConfiguration value_)
@@ -977,9 +991,9 @@ void Domain::setConfig(CVmConfiguration value_)
 	m_access.updateConfig(value_);
 }
 
-void Domain::prepareToSwitch()
+void Domain::show(reaction_type reaction_)
 {
-	m_access.prepareToSwitch();
+	reaction_(m_access.getReactor());
 }
 
 namespace
@@ -1058,11 +1072,24 @@ QString Coarse::getUuid(virDomainPtr domain_)
 	return output;
 }
 
-void Coarse::setState(virDomainPtr domain_, VIRTUAL_MACHINE_STATE value_)
+bool Coarse::show(virDomainPtr domain_, const Domain::reaction_type& reaction_)
 {
 	QSharedPointer<Domain> d = m_fine->find(getUuid(domain_));
-	if (!d.isNull() && !QMetaObject::invokeMethod(d.data(), "setState", Q_ARG(VIRTUAL_MACHINE_STATE, value_)))
-		WRITE_TRACE(DBG_FATAL, "Unable to invoke VM 'setState' method");
+	if (d.isNull())
+		return false;
+
+	typedef Domain::reaction_type reaction_type;
+	bool output = QMetaObject::invokeMethod(d.data(), "show",
+		Q_ARG(reaction_type, reaction_));
+	if (!output)
+		WRITE_TRACE(DBG_FATAL, "Unable to invoke VM 'show' method");
+
+	return output;
+}
+
+void Coarse::setState(virDomainPtr domain_, VIRTUAL_MACHINE_STATE value_)
+{
+	show(domain_, boost::bind(&Registry::Reactor::proceed, _1, value_));
 }
 
 void Coarse::prepareToSwitch(virDomainPtr domain_)
@@ -1070,14 +1097,13 @@ void Coarse::prepareToSwitch(virDomainPtr domain_)
 	QSharedPointer<Domain> d = m_fine->find(getUuid(domain_));
 	if (d.isNull())
 		return;
-	if (QMetaObject::invokeMethod(d.data(), "prepareToSwitch"))
+
+	if (show(domain_, boost::bind(&Registry::Reactor::prepareToSwitch, _1)))
 	{
 		virDomainRef(domain_);
 		QThreadPool::globalInstance()->start
 			(new Instrument::Pull::Switch(Instrument::Agent::Vm::Unit(domain_), d));
 	}
-	else
-		WRITE_TRACE(DBG_FATAL, "Unable to invoke VM 'setState' method");
 }
 
 void Coarse::remove(virDomainPtr domain_)
@@ -1220,7 +1246,8 @@ void Link::disconnect(virConnectPtr libvirtd_, int reason_, void* opaque_)
 Domains::Domains(Registry::Actual& registry_):
 	m_eventState(-1), m_eventReboot(-1),
 	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
-	m_eventTrayChange(-1), m_eventRtcChange(-1), m_registry(&registry_)
+	m_eventTrayChange(-1), m_eventRtcChange(-1), m_eventAgent(-1),
+	m_registry(&registry_)
 {
 }
 
@@ -1273,6 +1300,12 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::rtcChange),
 							new Model::Coarse(m_view),
 							&Callback::Plain::delete_<Model::Coarse>);
+	m_eventAgent = virConnectDomainEventRegisterAny(libvirtd_.data(),
+							NULL,
+							VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE,
+							VIR_DOMAIN_EVENT_CALLBACK(&Callback::Plain::connectAgent),
+							new Model::Coarse(m_view),
+							&Callback::Plain::delete_<Model::Coarse>);
 	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, m_view, *m_registry);
 	q->setAutoDelete(true);
 	QThreadPool::globalInstance()->start(q);
@@ -1297,6 +1330,8 @@ void Domains::setDisconnected()
 	m_eventTrayChange = -1;
 	virConnectDomainEventDeregisterAny(x.data(), m_eventRtcChange);
 	m_eventRtcChange = -1;
+	virConnectDomainEventDeregisterAny(x.data(), m_eventAgent);
+	m_eventAgent = -1;
 	m_libvirtd.clear();
 	m_view.clear();
 }

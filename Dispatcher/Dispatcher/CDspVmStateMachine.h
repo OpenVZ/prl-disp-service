@@ -34,14 +34,10 @@
 #include <Libraries/StatesUtils/StatesHelper.h>
 #include <prlsdk/PrlEnums.h>
 #include <prlcommon/Logging/Logging.h>
-#include <typeinfo>
-#include <boost/msm/back/tools.hpp>
 #include <boost/signals2/signal.hpp>
-#include <boost/msm/front/functor_row.hpp>
-#include <boost/msm/back/state_machine.hpp>
-#include <boost/msm/front/state_machine_def.hpp>
 #include "CDspLibvirtExec.h"
 #include "CDspVmGuest.h"
+#include "CDspVmStateMachine_p.h"
 
 namespace Vm
 {
@@ -49,13 +45,11 @@ namespace State
 {
 namespace msmf = boost::msm::front;
 
-QString demangle(const char* name_);
-
 ///////////////////////////////////////////////////////////////////////////////
-// struct Event
+// struct Conventional
 
 template <VIRTUAL_MACHINE_STATE N>
-struct Event: boost::mpl::integral_c<VIRTUAL_MACHINE_STATE, N>
+struct Conventional: boost::mpl::integral_c<VIRTUAL_MACHINE_STATE, N>
 {
 };
 
@@ -63,6 +57,20 @@ struct Event: boost::mpl::integral_c<VIRTUAL_MACHINE_STATE, N>
 // struct Switch
 
 struct Switch
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Agent
+
+struct Agent
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Reboot
+
+struct Reboot
 {
 };
 
@@ -77,18 +85,20 @@ struct Running
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-struct Frontend: msmf::state_machine_def<Frontend>
+struct Frontend: Details::Frontend<Frontend>
 {
 	Frontend(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 			const QSharedPointer< ::Network::Routing>& routing_);
 
 	template <VIRTUAL_MACHINE_STATE N>
-	struct State: public msmf::state<>, boost::mpl::integral_c<VIRTUAL_MACHINE_STATE, N>
+	struct State: Details::Trace<State<N> >, boost::mpl::integral_c<VIRTUAL_MACHINE_STATE, N>
 	{
-		template <class Event, class Fsm>
-		void on_entry(Event const&, Fsm& fsm_)
+		template <class Event, class FSM>
+		void on_entry(Event const& event_, FSM& fsm_)
 		{
-			WRITE_TRACE(DBG_INFO, "VM '%s' changed state to %s", qPrintable(fsm_.m_name), PRL_VM_STATE_TO_STRING(N));
+			Details::Trace<State>::on_entry(event_, fsm_);
+			WRITE_TRACE(DBG_INFO, "VM '%s' changed state to %s",
+				qPrintable(fsm_.getName()), PRL_VM_STATE_TO_STRING(N));
 		}
 	};
 
@@ -98,11 +108,112 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	typedef State<VMS_MOUNTED> Mounted;
 	typedef State<VMS_UNKNOWN> Unknown;
 
-	// State
-	struct Running: State<VMS_RUNNING>
+	// Running_
+	struct Running_: Details::Frontend<Running_>, boost::mpl::integral_c<VIRTUAL_MACHINE_STATE, VMS_RUNNING>
 	{
+		struct Agent;
 		typedef boost::mpl::vector< ::Vm::State::Running> flag_list;
+
+		Running_(): m_big()
+		{
+		}
+		explicit Running_(State::Frontend& big_): m_big(&big_)
+		{
+		}
+
+		const QString getName() const
+		{
+			return NULL == m_big ? QString() : m_big->getName();
+		}
+
+		template<class T>
+		void pullToolsVersion(const T&)
+		{
+			pullToolsVersion();
+		}
+
+		void pullToolsVersionAfterReboot(const Agent&)
+		{
+			pullToolsVersion(new ::Vm::Guest::Actor(m_big->getConfigEditor()));
+		}
+
+		// Pseudo-state
+		struct Already: msmf::entry_pseudo_state<0>
+		{
+		};
+
+		// Started
+		struct Started: Details::Trace<Started>
+		{
+		};
+
+		// Rebooted
+		typedef struct Rebooted: Details::Trace<Rebooted>
+		{
+		} initial_state;
+
+		struct transition_table: boost::mpl::vector
+		<
+			msmf::Row
+			<
+				Started,
+				Reboot,
+				Rebooted
+			>,
+			msmf::Row
+			<
+				Rebooted,
+				Reboot,
+				msmf::none
+			>,
+			a_irow<
+				Started,
+				Agent,
+				&Running_::pullToolsVersion<Agent>
+			>,
+			a_row<
+				Rebooted,
+				Agent,
+				Started,
+				&Running_::pullToolsVersionAfterReboot
+			>,
+			a_row
+			<
+				Already,
+				Conventional<VMS_RUNNING>,
+				Started,
+				&Running_::pullToolsVersion<Conventional<VMS_RUNNING> >
+			>
+		>
+		{
+		};
+
+	private:
+		void pullToolsVersion(::Vm::Guest::Actor* network_ = NULL)
+		{
+			WRITE_TRACE(DBG_INFO, "action guest tools on running for VM '%s'",
+				qPrintable(getName()));
+
+			::Vm::Guest::Actor *a = new ::Vm::Guest::Actor(m_big->getConfigEditor());
+			::Vm::Guest::Watcher *p = new ::Vm::Guest::Watcher(m_big->getUuid());
+
+			a->connect(p, SIGNAL(destroyed()), SLOT(deleteLater()));
+			a->connect(p, SIGNAL(guestToolsStarted(const QString)),
+					SLOT(setToolsVersionSlot(const QString)));
+			if (NULL != network_)
+			{
+				network_->connect(p, SIGNAL(destroyed()), SLOT(deleteLater()));
+				network_->connect(p, SIGNAL(guestToolsStarted(const QString)),
+						SLOT(configureNetworkSlot(const QString)));
+			}
+			m_big->m_toolsState = p->getFuture();
+			p->startTimer(0);
+		}
+
+		State::Frontend *m_big;
 	};
+	
+	typedef boost::msm::back::state_machine<Running_> Running;
 
 	// State
 	struct Reverting: Stopped
@@ -272,33 +383,6 @@ struct Frontend: msmf::state_machine_def<Frontend>
 		}
 	};
 
-	// Action
-	struct GuestTools
-	{
-		template<class Event, class FromState>
-		void operator()(const Event&, Frontend& fsm_, FromState&, Running&)
-		{
-			WRITE_TRACE(DBG_INFO, "action guest tools on running for VM '%s'", qPrintable(fsm_.m_name));
-			bool f = boost::is_same<FromState, Unknown>::value;
-
-			::Vm::Guest::Actor *a = new ::Vm::Guest::Actor(fsm_.getConfigEditor());
-			::Vm::Guest::Watcher *p = new ::Vm::Guest::Watcher(fsm_.getUuid());
-
-			p->connect(p, SIGNAL(guestToolsStarted(const QString)),
-				a, SLOT(setToolsVersionSlot(const QString)));
-			p->connect(p, SIGNAL(destroyed()), a, SLOT(deleteLater()));
-			if (!f) {
-				p->connect(p, SIGNAL(guestToolsStarted(const QString)),
-					a, SLOT(configureNetworkSlot(const QString)));
-				p->connect(p, SIGNAL(destroyed()), a, SLOT(deleteLater()));
-			}
-
-			fsm_.m_toolsState = p->getFuture();
-
-			p->startTimer(0);
-		}
-	};
-
 	struct BackupDisable
 	{
 		template<class Event, class FromState, class ToState>
@@ -318,68 +402,68 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
 	//
-	msmf::Row<Unknown,    Event<VMS_STOPPED>,    Stopped,
+	msmf::Row<Unknown,    Conventional<VMS_STOPPED>,    Stopped,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Notification> >, HasState>,
 
-	msmf::Row<Unknown,    Event<VMS_STOPPED>,    Suspended,
+	msmf::Row<Unknown,    Conventional<VMS_STOPPED>,    Suspended,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Notification> >, HasState>,
 
-	msmf::Row<Unknown,    Event<VMS_SUSPENDED>,  Suspended,
+	msmf::Row<Unknown,    Conventional<VMS_SUSPENDED>,  Suspended,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Notification> > >,
 
-	msmf::Row<Unknown,    Event<VMS_PAUSED>,     Paused,
+	msmf::Row<Unknown,    Conventional<VMS_PAUSED>,     Paused,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Notification> > >,
 
-	msmf::Row<Unknown,    Event<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification, GuestTools> > >,
-
-	//      +-----------+----------------------+-----------+--------+
-	//        Start       Event                  Target      Action
-	//      +-----------+----------------------+-----------+--------+
-	msmf::Row<Stopped,    Event<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification, GuestTools> > >,
-
-	msmf::Row<Stopped,    Event<VMS_MOUNTED>,    Mounted,    Notification >,
-
-	//      +-----------+----------------------+-----------+--------+
-	//        Start       Event                  Target      Action
-	//      +-----------+----------------------+-----------+--------+
-	msmf::Row<Suspended,  Event<VMS_STOPPED>,    Stopped,    Notification >,
-
-	msmf::Row<Suspended,  Event<VMS_PAUSED>,     Paused,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Notification> > >,
-
-	msmf::Row<Suspended,  Event<VMS_RUNNING>,    Running,
+	msmf::Row<Unknown,    Conventional<VMS_RUNNING>,    Running::entry_pt<Running::Already>,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
-	msmf::Row<Running,    Event<VMS_STOPPED>,    Stopped,
+	msmf::Row<Stopped,    Conventional<VMS_RUNNING>,    Running,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >,
+
+	msmf::Row<Stopped,    Conventional<VMS_MOUNTED>,    Mounted,    Notification >,
+
+	//      +-----------+----------------------+-----------+--------+
+	//        Start       Event                  Target      Action
+	//      +-----------+----------------------+-----------+--------+
+	msmf::Row<Suspended,  Conventional<VMS_STOPPED>,    Stopped,    Notification >,
+
+	msmf::Row<Suspended,  Conventional<VMS_PAUSED>,     Paused,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Notification> > >,
+
+	msmf::Row<Suspended,  Conventional<VMS_RUNNING>,    Running,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >,
+
+	//      +-----------+----------------------+-----------+--------+
+	//        Start       Event                  Target      Action
+	//      +-----------+----------------------+-----------+--------+
+	msmf::Row<Running,    Conventional<VMS_STOPPED>,    Stopped,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Cluster, BackupDisable, Notification> > >,
 
-	msmf::Row<Running,    Event<VMS_SUSPENDED>,  Suspended,
+	msmf::Row<Running,    Conventional<VMS_SUSPENDED>,  Suspended,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Cluster, BackupDisable, Notification> > >,
 
-	msmf::Row<Running,    Event<VMS_PAUSED>,     Paused,
+	msmf::Row<Running,    Conventional<VMS_PAUSED>,     Paused,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Cluster, Notification> > >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
-	msmf::Row<Paused,     Event<VMS_STOPPED>,    Stopped,
+	msmf::Row<Paused,     Conventional<VMS_STOPPED>,    Stopped,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Notification> > >,
 
-	msmf::Row<Paused,     Event<VMS_SUSPENDED>,  Suspended,
+	msmf::Row<Paused,     Conventional<VMS_SUSPENDED>,  Suspended,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Notification> > >,
 
-	msmf::Row<Paused,     Event<VMS_RUNNING>,    Running,
+	msmf::Row<Paused,     Conventional<VMS_RUNNING>,    Running::entry_pt<Running::Already>,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, Cluster, Notification> > >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
-	msmf::Row<Mounted,    Event<VMS_STOPPED>,    Stopped,    Notification >,
+	msmf::Row<Mounted,    Conventional<VMS_STOPPED>,    Stopped,    Notification >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
@@ -390,51 +474,23 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
-	msmf::Row<Reverting,  Event<VMS_STOPPED>,    Stopped,
+	msmf::Row<Reverting,  Conventional<VMS_STOPPED>,    Stopped,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Notification> >, HasState>,
 
-	msmf::Row<Reverting,  Event<VMS_STOPPED>,    Suspended,
+	msmf::Row<Reverting,  Conventional<VMS_STOPPED>,    Suspended,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Notification> >, HasState>,
 
-	msmf::Row<Reverting,  Event<VMS_SUSPENDED>,  Suspended,
+	msmf::Row<Reverting,  Conventional<VMS_SUSPENDED>,  Suspended,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Notification> > >,
 
-	msmf::Row<Reverting,  Event<VMS_PAUSED>,     Paused,
+	msmf::Row<Reverting,  Conventional<VMS_PAUSED>,     Paused,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Runtime, Notification> > >,
 
-	msmf::Row<Reverting,  Event<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification, GuestTools> > >
+	msmf::Row<Reverting,  Conventional<VMS_RUNNING>,    Running,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >
+
 	//      +-----------+----------------------+-----------+--------+
 	> {};
-
-	template <class Event, class FSM>
-	void no_transition(const Event&, FSM& fms_, int state_)
-	{
-		typedef typename boost::msm::back::recursive_get_transition_table<FSM>::type recursive_stt;
-		typedef typename boost::msm::back::generate_state_set<recursive_stt>::type all_states;
-		std::string n;
-		boost::mpl::for_each<all_states,boost::msm::wrap<boost::mpl::placeholders::_1> >
-			(boost::msm::back::get_state_name<recursive_stt>(n, state_));
-
-		WRITE_TRACE(DBG_FATAL, "VM '%s': no transition from state '%s' on event 'Event<%s>'\n",
-			qPrintable(fms_.m_name),
-			qPrintable(demangle(n.c_str())),
-			PRL_VM_STATE_TO_STRING(Event::value));
-	}
-
-	template <class FSM>
-	void no_transition(const Switch&, FSM& fms_, int state_)
-	{
-		typedef typename boost::msm::back::recursive_get_transition_table<FSM>::type recursive_stt;
-		typedef typename boost::msm::back::generate_state_set<recursive_stt>::type all_states;
-		std::string n;
-		boost::mpl::for_each<all_states,boost::msm::wrap<boost::mpl::placeholders::_1> >
-			(boost::msm::back::get_state_name<recursive_stt>(n, state_));
-
-		WRITE_TRACE(DBG_FATAL, "VM '%s': unable to prepare for snapshot-switch from state '%s'",
-			qPrintable(fms_.m_name),
-			qPrintable(demangle(n.c_str())));
-	}
 
 	const QString& getName() const
 	{
@@ -449,6 +505,7 @@ struct Frontend: msmf::state_machine_def<Frontend>
 	{
 		m_home = QFileInfo(path_);
 	}
+
 	PRL_VM_TOOLS_STATE getToolsState()
 	{
 		if (m_toolsState.has_value())

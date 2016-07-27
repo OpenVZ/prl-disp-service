@@ -32,20 +32,15 @@
 #ifndef __TASK_MIGRATEVM_P_H__
 #define __TASK_MIGRATEVM_P_H__
 
-#include <typeinfo>
 #include <boost/mpl/pair.hpp>
 #include <boost/mpl/copy_if.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/mpl/contains.hpp>
-#include <boost/msm/back/tools.hpp>
-#include <boost/msm/front/functor_row.hpp>
-#include <boost/msm/back/state_machine.hpp>
-#include <boost/msm/front/state_machine_def.hpp>
 
-#include <cxxabi.h>
 #include <CDspTaskHelper.h>
 #include <CDspDispConnection.h>
 #include <boost/mpl/has_xxx.hpp>
+#include <CDspVmStateMachine_p.h>
 #include <prlsdk/PrlErrorsValues.h>
 #include "Task_MigrateVmQObject_p.h"
 #include <prlcommon/Logging/Logging.h>
@@ -59,6 +54,7 @@ namespace Migrate
 namespace Vm
 {
 namespace msmf = boost::msm::front;
+namespace vsd = ::Vm::State::Details;
 
 using IOService::IOPackage;
 using IOService::IOSendJob;
@@ -87,77 +83,11 @@ private:
 	CDspTaskHelper* m_task;
 };
 
-QString demangle(const char* );
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Trace
-
-template<class T>
-struct Trace: boost::msm::front::state<>
-{
-	template <typename Event, typename FSM>
-	void on_entry(const Event&, FSM&)
-	{
-		WRITE_TRACE(DBG_FATAL, "enter %s state\nevent %s\n",
-			qPrintable(demangle()), qPrintable(Trace<Event>::demangle()));
-	}
-	template <typename Event, typename FSM>
-	void on_exit(const Event&, FSM&)
-	{
-		WRITE_TRACE(DBG_FATAL, "leave %s state\nevent %s\n",
-			qPrintable(demangle()), qPrintable(Trace<Event>::demangle()));
-	}
-	static QString demangle()
-	{
-		return Vm::demangle(typeid(T).name());
-	}
-};
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Success
 
 struct Success: msmf::exit_pseudo_state<boost::msm::front::none>
 {
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Frontend
-
-template<class T>
-struct Frontend: msmf::state_machine_def<T>
-{
-	template <typename Event, typename FSM>
-	void on_entry(const Event&, FSM&)
-	{
-		WRITE_TRACE(DBG_FATAL, "enter %s state\nevent %s\n",
-			qPrintable(Trace<T>::demangle()), qPrintable(Trace<Event>::demangle()));
-	}
-	template <typename Event, typename FSM>
-	void on_exit(const Event&, FSM&)
-	{
-		WRITE_TRACE(DBG_FATAL, "leave %s state\nevent %s\n",
-			qPrintable(Trace<T>::demangle()), qPrintable(Trace<Event>::demangle()));
-	}
-	template <class FSM, class Event>
-	void no_transition(const Event& , FSM&, int state_)
-	{
-		typedef typename boost::msm::back::recursive_get_transition_table<FSM>::type recursive_stt;
-		typedef typename boost::msm::back::generate_state_set<recursive_stt>::type all_states;
-		std::string n;
-		boost::mpl::for_each<all_states,boost::msm::wrap<boost::mpl::_1> >
-			(boost::msm::back::get_state_name<recursive_stt>(n, state_));
-
-		WRITE_TRACE(DBG_FATAL, "no transition from state %s on event %s\n",
-			qPrintable(demangle(n.c_str())),
-			qPrintable(Trace<Event>::demangle()));
-	}
-	template <class FSM,class Event>
-	void exception_caught (Event const&,FSM&, std::exception& exception_)
-	{
-		WRITE_TRACE(DBG_FATAL, "exception %s, fsm %s, event %s\n", exception_.what(),
-			qPrintable(Trace<FSM>::demangle()),
-			qPrintable(Trace<Event>::demangle()));
-	}
 };
 
 namespace Flop
@@ -351,14 +281,14 @@ struct Machine
 // struct Frontend
 
 template<class T>
-struct Frontend: Vm::Frontend<Frontend<T> >
+struct Frontend: vsd::Frontend<Frontend<T> >
 {
 	typedef typename Function::Initial<T>::type initial_state;
 
 	template <typename Event, typename FSM>
 	void on_entry(const Event& event_, FSM& fsm_)
 	{
-		Vm::Frontend<Frontend<T> >::on_entry(event_, fsm_);
+		vsd::Frontend<Frontend<T> >::on_entry(event_, fsm_);
 		m_count = 0;
 	}
 
@@ -366,12 +296,12 @@ struct Frontend: Vm::Frontend<Frontend<T> >
 	{
 	};
 
-	struct Good: Trace<Good>
+	struct Good: vsd::Trace<Good>
 	{
 		template<typename Event, typename FSM>
 		void on_entry(const Event& event_, FSM& fsm_)
 		{
-			Trace<Good>::on_entry(event_, fsm_);
+			vsd::Trace<Good>::on_entry(event_, fsm_);
 			++fsm_.m_count;
 			if (fsm_.m_count == boost::mpl::size<T>::value)
 				fsm_.process_event(Joined());
@@ -576,10 +506,10 @@ struct Connector: Vm::Connector::Base<T>, Slot
 // struct State
 
 template<class T, class U>
-struct State: Trace<State<T, U> >, Vm::Connector::Mixin<Connector<T> >
+struct State: vsd::Trace<State<T, U> >, Vm::Connector::Mixin<Connector<T> >
 {
 	typedef boost::function1<PRL_RESULT, const SmartPtr<IOPackage>& > callback_type;
-	typedef Trace<State<T, U> > def_type;
+	typedef vsd::Trace<State<T, U> > def_type;
 
 	explicit State(quint32 timeout_): m_timeout(timeout_)
 	{
@@ -922,19 +852,19 @@ private:
 // struct Pump
 
 template<class T, Parallels::IDispToDispCommands X>
-struct Pump: Trace<Pump<T, X> >, Vm::Connector::Mixin<Connector<T, X> >
+struct Pump: vsd::Trace<Pump<T, X> >, Vm::Connector::Mixin<Connector<T, X> >
 {
 	Pump(): m_ioservice(), m_iodevice()
 	{
 	}
 
-	using Trace<Pump>::on_entry;
+	using vsd::Trace<Pump>::on_entry;
 
 	template <typename FSM>
 	void on_entry(const Launch_type& event_, FSM& fsm_)
 	{
 		bool x;
-		Trace<Pump>::on_entry(event_, fsm_);
+		vsd::Trace<Pump>::on_entry(event_, fsm_);
 		m_ioservice = event_.get<0>();
 		m_iodevice = event_.get<1>();
 		Packer p(X);
@@ -964,7 +894,7 @@ struct Pump: Trace<Pump<T, X> >, Vm::Connector::Mixin<Connector<T, X> >
 	template <typename Event, typename FSM>
 	void on_exit(const Event& event_, FSM& fsm_)
 	{
-		Trace<Pump>::on_exit(event_, fsm_);
+		vsd::Trace<Pump>::on_exit(event_, fsm_);
 		m_iodevice->disconnect(SIGNAL(readyRead()), this->getConnector(),
 			SLOT(readyRead()));
 		m_iodevice->disconnect(SIGNAL(readChannelFinished()),
@@ -1179,18 +1109,18 @@ private:
 // struct Pump
 
 template<class T, Parallels::IDispToDispCommands X>
-struct Pump: Trace<Pump<T, X> >, Vm::Connector::Mixin<Connector<T, X> >
+struct Pump: vsd::Trace<Pump<T, X> >, Vm::Connector::Mixin<Connector<T, X> >
 {
 	Pump(): m_iodevice()
 	{
 	}
 
-	using Trace<Pump>::on_entry;
+	using vsd::Trace<Pump>::on_entry;
 
 	template <typename FSM>
 	void on_entry(const Launch_type& event_, FSM& fsm_)
 	{
-		Trace<Pump>::on_entry(event_, fsm_);
+		vsd::Trace<Pump>::on_entry(event_, fsm_);
 		m_iodevice = event_.get<1>();
 		this->getConnector()->setQueue(new Queue(*m_iodevice));
 		this->getConnector()->connect(m_iodevice, SIGNAL(bytesWritten(qint64)),
@@ -1202,7 +1132,7 @@ struct Pump: Trace<Pump<T, X> >, Vm::Connector::Mixin<Connector<T, X> >
 	template <typename Event, typename FSM>
 	void on_exit(const Event& event_, FSM& fsm_)
 	{
-		Trace<Pump>::on_exit(event_, fsm_);
+		vsd::Trace<Pump>::on_exit(event_, fsm_);
 		this->getConnector()->setObjectName(QString());
 		this->getConnector()->setQueue(NULL);
 		m_iodevice->disconnect(SIGNAL(bytesWritten(qint64)),
@@ -1239,21 +1169,21 @@ typedef Pump::Event<Parallels::VmMigrateLibvirtTunnelChunk> libvirtChunk_type;
 ///////////////////////////////////////////////////////////////////////////////
 // struct Dummy
 
-struct Dummy: Trace<Dummy>
+struct Dummy: vsd::Trace<Dummy>
 {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Prime
 
-struct Prime: Trace<Prime>
+struct Prime: vsd::Trace<Prime>
 {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Ready
 
-struct Ready: Trace<Ready>
+struct Ready: vsd::Trace<Ready>
 {
 };
 
@@ -1261,9 +1191,9 @@ struct Ready: Trace<Ready>
 // struct Hub
 
 template<class T,class U, Parallels::IDispToDispCommands X>
-struct Hub: Trace<T>, Vm::Connector::Mixin<typename U::machine_type>
+struct Hub: vsd::Trace<T>, Vm::Connector::Mixin<typename U::machine_type>
 {
-	typedef Trace<T> def_type;
+	typedef vsd::Trace<T> def_type;
 	typedef typename U::pump_type pump_type;
 	typedef QHash<QString, pump_type> pumpMap_type;
 	typedef Vm::Tunnel::Ready initial_state;
@@ -1361,7 +1291,7 @@ private:
 // struct Essence
 
 template<class L, class Q1, class Q2, class E>
-struct Essence: Vm::Frontend<Essence<L, Q1, Q2, E> >
+struct Essence: vsd::Frontend<Essence<L, Q1, Q2, E> >
 {
 	struct Entry: msmf::entry_pseudo_state<0>
 	{
@@ -1397,7 +1327,7 @@ namespace Libvirt
 ///////////////////////////////////////////////////////////////////////////////
 // struct Running
 
-struct Running: Trace<Running>
+struct Running: vsd::Trace<Running>
 {
 };
 
@@ -1471,12 +1401,12 @@ void Driver<T>::reactFinished(int code_, QProcess::ExitStatus status_)
 // struct Frontend_
 
 template<class T, class U>
-struct Frontend_: Vm::Frontend<T>, Vm::Connector::Mixin<Driver<U> >
+struct Frontend_: vsd::Frontend<T>, Vm::Connector::Mixin<Driver<U> >
 {
 	template <typename Event, typename FSM>
 	void on_exit(const Event& event_, FSM& fsm_)
 	{
-		Vm::Frontend<T>::on_exit(event_, fsm_);
+		vsd::Frontend<T>::on_exit(event_, fsm_);
 		this->getConnector()->cancel();
 	}
 };

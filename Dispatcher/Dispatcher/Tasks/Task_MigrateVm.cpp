@@ -719,7 +719,7 @@ bool Frontend::setup(const char* method_)
 template <typename Event, typename FSM>
 void Frontend::on_entry(const Event& event_, FSM& fsm_)
 {
-	Vm::Frontend<Frontend>::on_entry(event_, fsm_);
+	vsd::Frontend<Frontend>::on_entry(event_, fsm_);
 	getConnector()->setService(m_service);
 	if (setup(SLOT(acceptLibvirt())) && setup(SLOT(acceptQemuState()))
 		&& setup(SLOT(acceptQemuDisk())))
@@ -731,7 +731,7 @@ void Frontend::on_entry(const Event& event_, FSM& fsm_)
 template <typename Event, typename FSM>
 void Frontend::on_exit(const Event& event_, FSM& fsm_)
 {
-	Vm::Frontend<Frontend>::on_exit(event_, fsm_);
+	vsd::Frontend<Frontend>::on_exit(event_, fsm_);
 	foreach (const QSharedPointer<QTcpServer>& s, m_servers)
 	{
 		s->disconnect(SIGNAL(newConnection()),
@@ -800,7 +800,7 @@ template <typename Event, typename FSM>
 void Frontend::on_entry(const Event& event_, FSM& fsm_)
 {
 	bool x;
-	Vm::Frontend<Frontend>::on_entry(event_, fsm_);
+	vsd::Frontend<Frontend>::on_entry(event_, fsm_);
 	x = getConnector()->connect(m_task, SIGNAL(cancel()), SLOT(cancel()));
 	if (!x)
 		WRITE_TRACE(DBG_FATAL, "can't connect");
@@ -818,7 +818,7 @@ void Frontend::on_entry(const Event& event_, FSM& fsm_)
 template <typename Event, typename FSM>
 void Frontend::on_exit(const Event& event_, FSM& fsm_)
 {
-	Vm::Frontend<Frontend>::on_exit(event_, fsm_);
+	vsd::Frontend<Frontend>::on_exit(event_, fsm_);
 	m_task->disconnect(SIGNAL(cancel()), getConnector(), SLOT(cancel()));
 	m_io->disconnect(SIGNAL(onReceived(const SmartPtr<IOPackage>&)),
 			getConnector(), SLOT(react(const SmartPtr<IOPackage>&)));

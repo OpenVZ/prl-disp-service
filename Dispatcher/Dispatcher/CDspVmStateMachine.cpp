@@ -29,7 +29,8 @@ namespace Vm
 {
 namespace State
 {
-
+namespace Details
+{
 QString demangle(const char* name_)
 {
 	const char* x = name_;
@@ -42,6 +43,8 @@ QString demangle(const char* name_)
 	free(y);
 	return output;
 }
+
+} // namespace Details
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend

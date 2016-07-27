@@ -68,6 +68,7 @@ HEADERS += \
 	CDspVmConfigurationChangesWatcher.h \
 	CDspVmConfigManager.h \
 	CDspRegistry.h \
+	CDspVmStateMachine_p.h \
 	CDspVmStateMachine.h \
 	CDspVmAutoTaskManagerBase.h \
 	CDspVmStateSender.h \

@@ -65,6 +65,30 @@ struct Vm;
 struct Actual;
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Reactor
+
+struct Reactor
+{
+	explicit Reactor(const QWeakPointer<Vm>& vm_): m_vm(vm_)
+	{
+	}
+
+	void prepareToSwitch();
+
+	void reboot();
+
+	void connectAgent();
+
+	void proceed(VIRTUAL_MACHINE_STATE destination_);
+
+private:
+	template<class T>
+	void forward(const T& event_);
+
+	QWeakPointer<Vm> m_vm;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Access
 
 struct Access
@@ -81,10 +105,6 @@ struct Access
 
 	boost::optional<CVmConfiguration> getConfig();
 
-	void prepareToSwitch();
-
-	void updateState(VIRTUAL_MACHINE_STATE value_);
-
 	void updateConfig(const CVmConfiguration& value_);
 
 	QWeakPointer<Stat::Storage> getStorage();
@@ -92,6 +112,11 @@ struct Access
 	boost::optional< ::Vm::Config::Edit::Atomic> getConfigEditor() const;
 
 	PRL_VM_TOOLS_STATE getToolsState();
+
+	Reactor getReactor() const
+	{
+		return Reactor(m_vm);
+	}
 
 private:
 	QString m_uuid;

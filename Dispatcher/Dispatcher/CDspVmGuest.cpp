@@ -61,6 +61,8 @@ void Actor::configureNetwork(CVmConfiguration& c_, QString& uuid,
 	Network::Difference::Vm v(c_);
 	int type = c_.getVmSettings()->getVmCommonOptions()->getOsType();
 	QStringList cmd = v.calculate(CVmConfiguration(), type);
+
+	WRITE_TRACE(DBG_INFO, "configureNetwork %s", qPrintable(cmd.join(" ")));
 	if (!cmd.isEmpty()) {
 		QString c = cmd.takeFirst();
 		r.reset(new Libvirt::Instrument::Agent::Vm::Exec::Request(c, cmd));
