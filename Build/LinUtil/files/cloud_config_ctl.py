@@ -127,8 +127,6 @@ class CloudBaseInit(OpenStackConfigDrive):
         s = []
         s.extend(data.get("runcmd", []))
         s.extend(data.get("bootcmd", []))
-        if "nettoolcmd" in data:
-            s.append(data["nettoolcmd"])
         user_data = os.path.join(self.tmp_dir, self.user_data_path);
         prepare_dir(user_data)
         if "users" in data:
@@ -176,8 +174,6 @@ class CloudInit(OpenStackConfigDrive):
         with open(user_data, "w") as f:
             d = {"runcmd": data.get("runcmd", []),
                  "bootcmd": data.get("bootcmd", [])}
-            if "nettoolcmd" in data:
-                d["runcmd"].extend(data["nettoolcmd"])
 
             if "users" in data:
                 for name, credentials in data["users"].iteritems():
@@ -232,9 +228,6 @@ class Datastore:
     def add_boot_command(self, command):
         self.add_command("bootcmd", command)
 
-    def assign_nettool_command(self, command):
-        self.data["nettoolcmd"] = command
-
     def dump(self):
         if not self.data:
             return
@@ -268,10 +261,6 @@ class Datastore:
                     continue
 
                 for key, value in blocks.iteritems():
-                    # nettoolcmd cannot be merged,
-                    # should only appear in input file
-                    if key == "nettoolcmd":
-                        continue
                     if key in data:
                         data[key] = append_without_duplicates(value, data[key])
                     else:
@@ -291,12 +280,6 @@ def handle_boot_commands(args):
 
 def handle_run_commands(args):
     args.storage.add_run_command(args.command)
-    args.storage.dump()
-
-# prl_disp_service uses prl_nettool program for handling networking parameters
-# We should overwrite this command every time when networking settings changed
-def handle_nettool_commands(args):
-    args.storage.assign_nettool_command(args.command)
     args.storage.dump()
 
 def handle_merge(args):
@@ -326,7 +309,6 @@ def main():
 
     create_cmd_parser(sp, "run-command", "Manage run commands list", handle_run_commands)
     create_cmd_parser(sp, "boot-command", "Manage boot commands list", handle_boot_commands)
-    create_cmd_parser(sp, "nettool-command", "Manage prl-nettool commands list", handle_nettool_commands)
 
     merge_subparser = sp.add_parser("merge", help="merge arbitrary cloud-init file")
     merge_subparser.add_argument("files", default=[], metavar="", help="Specifies files with cloud-init config", nargs="*")
