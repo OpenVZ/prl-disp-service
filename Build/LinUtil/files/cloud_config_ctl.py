@@ -95,24 +95,89 @@ class CloudBaseInit(OpenStackConfigDrive):
     def __del__(self):
         OpenStackConfigDrive.__del__(self)
 
-    def prepare_script(self, commands):
-        # codepage should be fixed to correctly use unicode
-        s = "rem cmd\r\n\r\nchcp 65001\r\n\r\n"
+    def prepare_script(self, commands, data):
+        s = ("#!/usr/bin/env python\r\n"
+             "\r\n"
+             "import os, struct, win32api, win32net\r\n"
+             "import win32file, win32netcon, win32con, wmi\r\n"
+             "\r\n"
+             "def eject(drive):\r\n"
+             "    FSCTL_LOCK_VOLUME = 0x0090018\r\n"
+             "    FSCTL_DISMOUNT_VOLUME = 0x00090020\r\n"
+             "    IOCTL_STORAGE_MEDIA_REMOVAL = 0x002D4804\r\n"
+             "    IOCTL_STORAGE_EJECT_MEDIA = 0x002D4808\r\n"
+             "\r\n"
+             "    volume = r\"\\\\.\\{}\".format(drive)\r\n"
+             "    h = win32file.CreateFile(volume, win32con.GENERIC_READ | win32con.GENERIC_WRITE,\r\n"
+             "                             win32con.FILE_SHARE_READ | win32con.FILE_SHARE_WRITE, None,\r\n"
+             "                             win32con.OPEN_EXISTING, 0, None)\r\n"
+             "    win32file.DeviceIoControl(h, FSCTL_LOCK_VOLUME, bytes(\"\", \"UTF-8\"), 0, None)\r\n"
+             "    win32file.DeviceIoControl(h, FSCTL_DISMOUNT_VOLUME, bytes(\"\", \"UTF-8\"), 0, None)\r\n"
+             "\r\n"
+             "    try:\r\n"
+             "        win32file.DeviceIoControl(h, IOCTL_STORAGE_MEDIA_REMOVAL, struct.pack(\"B\", 0), 0, None)\r\n"
+             "        win32file.DeviceIoControl(h, IOCTL_STORAGE_EJECT_MEDIA, bytes(\"\", \"UTF-8\"), 0, None)\r\n"
+             "    finally:\r\n"
+             "        win32file.CloseHandle(h)\r\n"
+             "\r\n"
+             "def run_setup(drive):\r\n"
+             "    os.system(\"{}\\setup.exe\".format(drive))\r\n"
+             "\r\n"
+             "def run_on_cdrom(label, action):\r\n"
+             "    w = wmi.WMI()\r\n"
+             "    for d in w.Win32_CDROMDrive():\r\n"
+             "        if d.VolumeName != label:\r\n"
+             "            continue\r\n"
+             "        action(d.Drive)\r\n"
+             "\r\n"
+             "def eject_cloudconfig_cd():\r\n"
+             "    run_on_cdrom(\"config-2\", eject)\r\n"
+             "\r\n"
+             "def install_qga():\r\n"
+             "    run_on_cdrom(\"vz-tools-win\", run_setup)\r\n"
+             "\r\n"
+             "def set_password(username, password):\r\n"
+			 # This error codes should be in some python module, but they are absent, so I took them from
+			 # https://msdn.microsoft.com/ru-ru/library/windows/desktop/aa370674(v=vs.85).aspx
+             "    USER_ALREADY_EXISTS = 2224\r\n"
+             "    PASSWORD_INSECURE = 2245\r\n"
+             "    try:\r\n"
+             "        try:\r\n"
+             "            win32net.NetUserAdd(None, 1,\r\n"
+             "                        {\"name\": username,\r\n"
+             "                         \"password\":password,\r\n"
+             "                         \"password_age\":0,\r\n"
+             "                         \"priv\":win32netcon.USER_PRIV_USER,\r\n"
+             "                         \"home_dir\":\"\",\r\n"
+             "                         \"flags\":win32netcon.UF_SCRIPT | win32netcon.UF_DONT_EXPIRE_PASSWD})\r\n"
+             "        except win32net.error as e:\r\n"
+             "            if e.winerror == USER_ALREADY_EXISTS:\r\n"
+             "                win32net.NetUserSetInfo(None, username, 1003, {\"password\": password})\r\n"
+             "            else:\r\n"
+             "                raise\r\n"
+             "    except win32net.error as e:\r\n"
+             "        if e.winerror == PASSWORD_INSECURE:\r\n"
+             "            print(\"Password is insecure\")\r\n"
+             "        else:\r\n"
+             "            raise\r\n"
+             "\r\n"
+             "def main():\r\n"
+             "    install_qga()\r\n")
+        if "users" in data:
+            for name, credentials in data["users"].iteritems():
+                s += "    set_password(\"{}\",\"{}\")\r\n".format(name, credentials["password"].replace('"', '\\"'))
+
         for command in commands:
             if type(command) is unicode:
-                s += command + "\r\n"
+                s += "    os.system(\"{}\")\r\n".format(command)
             else:
                 # windows cmd supports only double quotes
-                s += " ".join(command).replace("'", "\"") + "\r\n"
+                s += "    os.system(\"{}\")\r\n".format(" ".join(command).replace("'", "\""))
+        s += ("    eject_cloudconfig_cd()\r\n"
+              "\r\n"
+              "if __name__ == \"__main__\":\r\n"
+              "    main()\r\n")
         return s
-
-    def prepare_password_command(self, name, credentials):
-        if credentials.get("is_encrypted", False):
-            return ""
-        p = credentials["password"].replace("\"", "\\\"")
-        s = 'net user "{}" "{}"'.format(name, p)
-        r = "{} || {} /add".format(s, s)
-        return r
 
     def write_meta_data(self):
         meta_data = os.path.join(self.tmp_dir, self.meta_data_path);
@@ -129,16 +194,9 @@ class CloudBaseInit(OpenStackConfigDrive):
         s.extend(data.get("bootcmd", []))
         user_data = os.path.join(self.tmp_dir, self.user_data_path);
         prepare_dir(user_data)
-        if "users" in data:
-            for name, credentials in data["users"].iteritems():
-                x = unicode(self.prepare_password_command(name, credentials))
-                if not x:
-                    continue
-                s.append(x)
 
         with open(user_data, 'w') as f:
-            f.write(self.prepare_script(s))
-            f.write("\r\n")
+            f.write(self.prepare_script(s, data))
 
 class CloudInit(OpenStackConfigDrive):
     def __init__(self, iso):
