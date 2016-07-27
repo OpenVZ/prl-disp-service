@@ -167,7 +167,17 @@ struct Frontend: msmf::state_machine_def<Frontend>
 			{
 				x(QSTR2UTF8(a->getHostInterfaceName()));
 			}
-			Task_NetworkShapingManagement::setNetworkRate(y.get());
+			if (PRL_FAILED(Task_NetworkShapingManagement::setNetworkRate(y.get())))
+			{
+				CVmEvent m;
+				m.setEventType(PET_DSP_EVT_ERROR_MESSAGE);
+				m.setEventCode(PRL_ERR_VZ_OPERATION_FAILED);
+				m.addEventParameter(new CVmEventParameter(PVE::String,
+					"Failed to configure the network rate for VM. See logs for more details."
+					, EVT_PARAM_MESSAGE_PARAM_0));
+				SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, m);
+				fsm_.getService().getClientManager().sendPackageToAllClients(p);
+			}
 		}
 	};
 
