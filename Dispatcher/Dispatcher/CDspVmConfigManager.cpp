@@ -463,6 +463,7 @@ void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 			a->getPktFilter()->setPreventIpSpoof(
 					(*it)->getPktFilter()->isPreventIpSpoof());
 		}
+		a->setFirewall(new CVmNetFirewall((*it)->getFirewall()));
 	}
 }
 
