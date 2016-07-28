@@ -143,6 +143,8 @@ result_type Nvram::execute()
 ////////////////////////////////////////////////////////////////////////////////
 // struct Convoy
 
+const char Convoy::migrationBinary[] = "/usr/bin/prl_legacy_migration_app";
+
 bool Convoy::appoint(const SmartPtr<CVmConfiguration>& config_, const QSharedPointer<QTcpServer>& vnc_)
 {
 	if (!config_.isValid())
@@ -151,7 +153,7 @@ bool Convoy::appoint(const SmartPtr<CVmConfiguration>& config_, const QSharedPoi
 	m_vnc = vnc_;
 	m_uuid = config_->getVmIdentification()->getVmUuid();
 	m_config = config_;
-	start("prl_legacy_migration_app");
+	start(migrationBinary);
 
 	if (!waitForStarted())
 	{
