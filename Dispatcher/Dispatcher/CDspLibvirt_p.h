@@ -211,14 +211,16 @@ namespace Model
 
 struct Domain: QObject
 {
+	typedef boost::function1<void, Registry::Reactor> reaction_type;
+
 	explicit Domain(const Registry::Access& access_);
 
 	void setPid(quint32 value_)
 	{
 		m_pid = value_;
 	}
+	Q_INVOKABLE void show(reaction_type reaction_);
 	Q_INVOKABLE void setState(VIRTUAL_MACHINE_STATE value_);
-	Q_INVOKABLE void prepareToSwitch();
 
 	boost::optional<CVmConfiguration> getConfig();
 	void setConfig(CVmConfiguration value_);
@@ -263,6 +265,8 @@ struct Coarse
 
 	void setState(virDomainPtr domain_, VIRTUAL_MACHINE_STATE value_);
 	void prepareToSwitch(virDomainPtr domain_);
+	bool show(virDomainPtr domain_,
+		const Domain::reaction_type& reaction_);
 	void remove(virDomainPtr domain_);
 	void sendProblemReport(virDomainPtr domain_);
 	void pullInfo(virDomainPtr domain_);
@@ -331,6 +335,7 @@ private:
 	int m_eventDeviceDisconnect;
 	int m_eventTrayChange;
 	int m_eventRtcChange;
+	int m_eventAgent;
 	Registry::Actual* m_registry;
 	QWeakPointer<virConnect> m_libvirtd;
 	QSharedPointer<Model::System> m_view;

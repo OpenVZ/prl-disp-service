@@ -91,7 +91,7 @@ private:
 // struct State
 
 template<class T, class U>
-struct State: Trace<T>, Vm::Connector::Mixin<Shadow::Connector>
+struct State: vsd::Trace<T>, Vm::Connector::Mixin<Shadow::Connector>
 {
 	typedef Beholder<U> beholder_type;
 	typedef QSharedPointer<beholder_type> beholderPointer_type;
@@ -99,7 +99,7 @@ struct State: Trace<T>, Vm::Connector::Mixin<Shadow::Connector>
 	template<typename Event, typename FSM>
 	void on_exit(const Event& event_, FSM& fsm_)
 	{
-		Trace<T>::on_exit(event_, fsm_);
+		vsd::Trace<T>::on_exit(event_, fsm_);
 		setBeholder(beholderPointer_type());
 	}
 
@@ -192,9 +192,9 @@ namespace Pump
 // struct Frontend
 
 template<class T, Parallels::IDispToDispCommands X>
-struct Frontend: Vm::Frontend<Frontend<T, X> >
+struct Frontend: vsd::Frontend<Frontend<T, X> >
 {
-	typedef Vm::Frontend<Frontend<T, X> > def_type;
+	typedef vsd::Frontend<Frontend<T, X> > def_type;
 	typedef Vm::Pump::Push::Pump<T, X> pushState_type;
 	typedef Vm::Pump::Pull::Pump<T, X> pullState_type;
 
@@ -537,7 +537,7 @@ struct Hub: Vm::Tunnel::Hub<Hub<X, Y>, Traits<Y>, Y>
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
+struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 {
 	typedef QSharedPointer<QTcpSocket> client_type;
 	typedef Libvirt::State::serverList_type serverList_type;
@@ -656,7 +656,7 @@ struct Connector: Connector_, Vm::Connector::Base<Machine_type>
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
+struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 {
 	typedef Pipeline::State<Machine_type, CheckReply> checkState_type;
 	typedef Pipeline::State<Machine_type, StartReply> startState_type;

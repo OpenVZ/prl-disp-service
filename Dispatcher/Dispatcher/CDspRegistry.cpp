@@ -53,9 +53,18 @@ struct Vm: ::Vm::State::Machine
 	Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 			const QSharedPointer<Network::Routing>& routing_);
 
-	void prepareToSwitch();
+	template<class T>
+	void react(const T& event_)
+	{
+		QMutexLocker l(&m_mutex);
 
-	void updateState(VIRTUAL_MACHINE_STATE value_);
+		if (getName().isEmpty())
+		{
+			WRITE_TRACE(DBG_DEBUG, "attempt to update VM state before first define, that is wrong");
+			return;
+		}
+		process_event(event_);
+	}
 
 	void updateConfig(CVmConfiguration value_);
 
@@ -82,6 +91,8 @@ Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 	::Vm::State::Machine(uuid_, user_, routing_),
 	m_storage(new Stat::Storage(uuid_)), m_routing(routing_)
 {
+	set_states(boost::msm::back::states_ << ::Vm::State::Machine::Running(boost::ref(*this)));
+
 	// Current balloon value (in kB).
 	m_storage->addAbsolute("mem.guest_total");
 
@@ -90,46 +101,6 @@ Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 
 	// Sum of cpu times of all vcpu used by VE (in msec)
 	m_storage->addAbsolute("cpu_time");
-}
-
-void Vm::prepareToSwitch()
-{
-	QMutexLocker l(&m_mutex);
-
-	process_event(::Vm::State::Switch());
-}
-
-void Vm::updateState(VIRTUAL_MACHINE_STATE value_)
-{
-	QMutexLocker l(&m_mutex);
-
-	if (getName().isEmpty())
-	{
-		WRITE_TRACE(DBG_DEBUG, "tries to update VM state before first define, that is wrong");
-		return;
-	}
-
-	switch(value_)
-	{
-	case VMS_RUNNING:
-		process_event(::Vm::State::Event<VMS_RUNNING>());
-		break;
-	case VMS_STOPPED:
-		process_event(::Vm::State::Event<VMS_STOPPED>());
-		break;
-	case VMS_PAUSED:
-		process_event(::Vm::State::Event<VMS_PAUSED>());
-		break;
-	case VMS_MOUNTED:
-		process_event(::Vm::State::Event<VMS_MOUNTED>());
-		break;
-	case VMS_SUSPENDED:
-		process_event(::Vm::State::Event<VMS_SUSPENDED>());
-		break;
-	default:
-		process_event(::Vm::State::Event<VMS_UNKNOWN>());
-		return;
-	}
 }
 
 void Vm::updateConfig(CVmConfiguration value_)
@@ -242,6 +213,51 @@ Visitor::result_type Visitor::operator()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Reactor
+
+void Reactor::prepareToSwitch()
+{
+	forward(::Vm::State::Switch());
+}
+
+void Reactor::reboot()
+{
+	forward(::Vm::State::Reboot());
+}
+
+void Reactor::connectAgent()
+{
+	forward(::Vm::State::Agent());
+}
+
+void Reactor::proceed(VIRTUAL_MACHINE_STATE destination_)
+{
+	switch(destination_)
+	{
+	case VMS_RUNNING:
+		return forward(::Vm::State::Conventional<VMS_RUNNING>());
+	case VMS_STOPPED:
+		return forward(::Vm::State::Conventional<VMS_STOPPED>());
+	case VMS_PAUSED:
+		return forward(::Vm::State::Conventional<VMS_PAUSED>());
+	case VMS_MOUNTED:
+		return forward(::Vm::State::Conventional<VMS_MOUNTED>());
+	case VMS_SUSPENDED:
+		return forward(::Vm::State::Conventional<VMS_SUSPENDED>());
+	default:
+		return forward(::Vm::State::Conventional<VMS_UNKNOWN>());
+	}
+}
+
+template<class T>
+void Reactor::forward(const T& event_)
+{
+	QSharedPointer<Vm> x = m_vm.toStrongRef();
+	if (!x.isNull())
+		x->react(event_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Access
 
 boost::optional<CVmConfiguration> Access::getConfig()
@@ -251,24 +267,6 @@ boost::optional<CVmConfiguration> Access::getConfig()
 		return boost::none;
 
 	return x->getConfig();
-}
-
-void Access::prepareToSwitch()
-{
-	QSharedPointer<Vm> x = m_vm.toStrongRef();
-	if (x.isNull())
-		return;
-
-	x->prepareToSwitch();
-}
-
-void Access::updateState(VIRTUAL_MACHINE_STATE value_)
-{
-	QSharedPointer<Vm> x = m_vm.toStrongRef();
-	if (x.isNull())
-		return;
-
-	x->updateState(value_);
 }
 
 void Access::updateConfig(const CVmConfiguration& value_)

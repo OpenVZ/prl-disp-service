@@ -107,7 +107,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Tentative
 
-struct Tentative: Trace<Tentative>, Vm::Connector::Mixin<Connector>
+struct Tentative: vsd::Trace<Tentative>, Vm::Connector::Mixin<Connector>
 {
 	explicit Tentative(const QString& uuid_): m_uuid(uuid_)
 	{
@@ -136,9 +136,9 @@ namespace Content
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-struct Frontend: Vm::Frontend<Frontend>
+struct Frontend: vsd::Frontend<Frontend>
 {
-	typedef struct Copying: Trace<Copying>
+	typedef struct Copying: vsd::Trace<Copying>
 	{
 	} initial_state;
 
@@ -192,7 +192,7 @@ struct Connector: Connector_, Vm::Connector::Base<Machine_type>
 ///////////////////////////////////////////////////////////////////////////////
 // struct Perform
 
-struct Perform: Trace<Perform>, Vm::Connector::Mixin<Connector>
+struct Perform: vsd::Trace<Perform>, Vm::Connector::Mixin<Connector>
 {
 	Perform(CVmConfiguration& config_, const QStringList& checkFiles_,
 			VIRTUAL_MACHINE_STATE state_):
@@ -232,7 +232,7 @@ namespace Start
 ///////////////////////////////////////////////////////////////////////////////
 // struct Preparing
 
-struct Preparing: Trace<Preparing>
+struct Preparing: vsd::Trace<Preparing>
 {
 	typedef QList<CVmHardDisk> volume_type;
 
@@ -244,7 +244,7 @@ struct Preparing: Trace<Preparing>
 	template <typename Event, typename FSM>
 	void on_entry(const Event& event_, FSM& fsm_)
 	{
-		Trace<Preparing>::on_entry(event_, fsm_);
+		vsd::Trace<Preparing>::on_entry(event_, fsm_);
 		if (m_volume.isEmpty())
 			fsm_.process_event(boost::mpl::true_());
 		else
@@ -304,7 +304,7 @@ namespace Pump
 // struct Frontend
 
 template<class T, Parallels::IDispToDispCommands X>
-struct Frontend: Vm::Frontend<Frontend<T, X> >
+struct Frontend: vsd::Frontend<Frontend<T, X> >
 {
 	typedef Vm::Pump::Push::Pump<T, X> pushState_type;
 	typedef Vm::Pump::Pull::Pump<T, X> pullState_type;
@@ -329,14 +329,14 @@ typedef boost::phoenix::expression::value<QIODevice* >::type disconnected_type;
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connecting
 
-struct Connecting: Trace<Connecting>
+struct Connecting: vsd::Trace<Connecting>
 {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Disconnecting
 
-struct Disconnecting: Trace<Disconnecting>
+struct Disconnecting: vsd::Trace<Disconnecting>
 {
 };
 
@@ -408,9 +408,9 @@ struct Socket<QLocalSocket>
 // struct Haul
 
 template<class T, class U, Parallels::IDispToDispCommands X, class V>
-struct Haul: Vm::Frontend<U>, Vm::Connector::Mixin<typename Socket<T>::function_type::template apply<V>::type>
+struct Haul: vsd::Frontend<U>, Vm::Connector::Mixin<typename Socket<T>::function_type::template apply<V>::type>
 {
-	typedef Vm::Frontend<U> def_type;
+	typedef vsd::Frontend<U> def_type;
 	typedef Pump::Frontend<V, X> pump_type;
 	typedef boost::msm::back::state_machine<pump_type> pumpState_type;
 	typedef Vm::Tunnel::Prime initial_state;
@@ -669,7 +669,7 @@ struct Channel: Shortcut<Channel>::type
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-struct Frontend: Vm::Frontend<Frontend>
+struct Frontend: vsd::Frontend<Frontend>
 {
 	typedef Qemu::Hub<Parallels::VmMigrateConnectQemuStateCmd, Parallels::VmMigrateQemuStateTunnelChunk>
 		qemuState_type;
@@ -695,7 +695,7 @@ struct Frontend: Vm::Frontend<Frontend>
 	template <typename Event, typename FSM>
 	void on_entry(const Event& event_, FSM& fsm_)
 	{
-		Vm::Frontend<Frontend>::on_entry(event_, fsm_);
+		vsd::Frontend<Frontend>::on_entry(event_, fsm_);
 		fsm_.process_event(boost::phoenix::ref(*m_service));
 	}
 
@@ -743,7 +743,7 @@ namespace Move
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
+struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
 {
 	typedef boost::msm::back::state_machine<Tunnel::Frontend> Tunneling;
 	typedef Tunneling initial_state;
@@ -778,7 +778,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-struct Frontend: Vm::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
+struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
 {
 	typedef boost::msm::back::state_machine<Start::Frontend> Starting;
 	typedef boost::msm::back::state_machine<Content::Frontend> Copying;

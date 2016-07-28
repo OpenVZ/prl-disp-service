@@ -65,19 +65,6 @@ namespace Migrate
 {
 namespace Vm
 {
-QString demangle(const char* name_)
-{
-	const char* x = name_;
-	int status = -1; 
-	char* y = abi::__cxa_demangle(x, NULL, NULL, &status);
-	if (0 != status)
-		return x;
-
-	QString output = y;
-	free(y);
-	return output;
-}
-
 namespace Pump
 {
 namespace Pull
@@ -515,7 +502,7 @@ namespace Content
 template <typename Event, typename FSM>
 void Frontend::on_entry(const Event& event_, FSM& fsm_)
 {
-	Vm::Frontend<Frontend>::on_entry(event_, fsm_);
+	vsd::Frontend<Frontend>::on_entry(event_, fsm_);
 	std::pair<CVmFileListCopySender*, CVmFileListCopyTarget*> pair = m_task->createCopier();
 	m_sender.reset(pair.first);
 	m_copier.reset(pair.second);
@@ -524,7 +511,7 @@ void Frontend::on_entry(const Event& event_, FSM& fsm_)
 template <typename Event, typename FSM>
 void Frontend::on_exit(const Event& event_, FSM& fsm_)
 {
-	Vm::Frontend<Frontend>::on_exit(event_, fsm_);
+	vsd::Frontend<Frontend>::on_exit(event_, fsm_);
 	// order is significant
 	m_copier.reset();
 	m_sender.reset();
@@ -952,7 +939,7 @@ template <typename Event, typename FSM>
 void Frontend::on_entry(const Event& event_, FSM& fsm_)
 {
 	bool x;
-	Vm::Frontend<Frontend>::on_entry(event_, fsm_);
+	vsd::Frontend<Frontend>::on_entry(event_, fsm_);
 	x = getConnector()->connect(m_task, SIGNAL(cancel()), SLOT(cancel()),
 		Qt::QueuedConnection);
 	if (!x)
@@ -971,7 +958,7 @@ void Frontend::on_entry(const Event& event_, FSM& fsm_)
 template <typename Event, typename FSM>
 void Frontend::on_exit(const Event& event_, FSM& fsm_)
 {
-	Vm::Frontend<Frontend>::on_exit(event_, fsm_);
+	vsd::Frontend<Frontend>::on_exit(event_, fsm_);
 	m_task->disconnect(SIGNAL(cancel()), getConnector(), SLOT(cancel()));
 	m_io->disconnect(SIGNAL(onReceived(const SmartPtr<IOPackage>&)),
 			getConnector(), SLOT(react(const SmartPtr<IOPackage>&)));
