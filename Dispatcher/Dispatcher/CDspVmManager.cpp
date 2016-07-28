@@ -1994,7 +1994,11 @@ boost::optional<Gear> Connector::getResult()
 	if (m_signal->empty())
 		return boost::none;
 
-	return Gear(m_signal, boost::bind(m_configure, _1, _2));
+	Gear::configure_type x;
+	if (NULL != m_configure)
+		x = boost::bind(m_configure, _1, _2);
+
+	return Gear(m_signal, x);
 }
 
 namespace Cpu
