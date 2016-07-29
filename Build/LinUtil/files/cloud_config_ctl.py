@@ -218,7 +218,7 @@ class CloudInit(OpenStackConfigDrive):
     def prepare_password_command(self, user, credentials):
         s = " -e" if credentials.get("is_encrypted", True) else ""
         b = base64.b64encode(user + ":" + credentials["password"])
-        return "CRED=$(echo '{0}' | base64 -w 0 --decode); echo -e $CRED | chpasswd{1}".format(b, s)
+        return "CRED=$(echo '{0}' | base64 -w 0 --decode); echo $CRED | chpasswd{1}".format(b, s)
 
     def useradd_command(self, user):
         return "/usr/sbin/useradd {0} 1>/dev/null 2>&1 || :".format(user)
