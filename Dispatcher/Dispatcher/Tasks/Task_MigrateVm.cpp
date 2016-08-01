@@ -1388,7 +1388,7 @@ Migrate::Vm::Source::Content::Copier* Task_MigrateVmSource::createCopier()
 	// don't share non threadsave data with this objects as
 	// they will be used in a different thread
 	SmartPtr<CVmEvent> error(new CVmEvent());
-	SmartPtr<CVmFileListCopySender> sender(new CVmFileListCopySenderClient(m_pIoClient));
+	SmartPtr<CVmFileListCopySender> sender(new CVmFileListCopySenderClient(m_pIoClient, getBandwidth()));
 	SmartPtr<CVmFileListCopySource> copier(new CVmFileListCopySource(
 				sender.getImpl(),
 				QString(m_pVmConfig->getVmIdentification()->getVmUuid()),
