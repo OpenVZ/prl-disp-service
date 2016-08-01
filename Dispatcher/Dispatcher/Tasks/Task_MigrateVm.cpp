@@ -991,7 +991,8 @@ PRL_RESULT Task_MigrateVmSource::prepareTask()
 	//Check remote clone preconditions
 	if (PVMT_CLONE_MODE & getRequestFlags())
 	{
-		if (VMS_STOPPED != m_nPrevVmState)
+		if (VMS_STOPPED != m_nPrevVmState &&
+			!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
 		{
 			nRetCode = PRL_ERR_VZ_OPERATION_FAILED;
 			CDspTaskFailure(*this)(nRetCode,
