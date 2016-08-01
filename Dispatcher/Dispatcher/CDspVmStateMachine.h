@@ -111,7 +111,6 @@ struct Frontend: Details::Frontend<Frontend>
 	// Running_
 	struct Running_: Details::Frontend<Running_>, boost::mpl::integral_c<VIRTUAL_MACHINE_STATE, VMS_RUNNING>
 	{
-		struct Agent;
 		typedef boost::mpl::vector< ::Vm::State::Running> flag_list;
 
 		Running_(): m_big()
