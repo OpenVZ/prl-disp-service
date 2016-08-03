@@ -335,6 +335,8 @@ public:
 	/* updates an id of the last successful incremental backup */
 	PRL_RESULT updateLastPartialNumber(const QString &ve_, const QString &uuid_, unsigned number_);
 
+	quint64 getBandwidth() const;
+
 protected:
 	Task_BackupHelper(const SmartPtr<CDspClient> &client, const SmartPtr<IOPackage> &p);
 	virtual ~Task_BackupHelper();
