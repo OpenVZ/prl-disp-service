@@ -383,12 +383,15 @@ struct Frontend: Details::Frontend<Frontend>
 			}
 
 			WRITE_TRACE(DBG_INFO, "updating config from runtime for VM '%s'", qPrintable(fsm_.m_name));
+			Config::Edit::Atomic e = fsm_.getConfigEditor();
 			boost::signals2::signal<void (CVmConfiguration& )> s;
 			s.connect(boost::bind(&Vm::Config::Repairer<Vm::Config::revise_types>::type::do_,
 				_1, boost::cref(runtime)));
 			s.connect(boost::bind(&Cluster::configure<FromState, ToState>, _1,
 				boost::ref(from_), boost::ref(to_)));
-			fsm_.getConfigEditor()(s);
+			s.connect(boost::bind<void>(Vnc::Secure::Frontend(e, fsm_.getService()),
+				_1, boost::cref(runtime)));
+			e(s);
 		}
 	};
 

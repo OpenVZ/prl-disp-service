@@ -826,7 +826,9 @@ void List::add(const CVmRemoteDisplay* vnc_)
 
 	Libvirt::Domain::Xml::Variant688 v;
 	v.setPort(vnc_->getPortNumber());
-	v.setListen(vnc_->getHostName());
+	v.setListen(vnc_->isEncrypted() ?
+		QHostAddress(QHostAddress::LocalHostIPv6).toString() :
+		vnc_->getHostName());
 	if (PRD_AUTO == vnc_->getMode())
 		v.setAutoport(Libvirt::Domain::Xml::EVirYesNoYes);
 
