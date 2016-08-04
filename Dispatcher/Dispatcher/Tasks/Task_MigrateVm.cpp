@@ -828,7 +828,8 @@ void Frontend::on_exit(const Event& event_, FSM& fsm_)
 bool Frontend::isTemplate(const boost::mpl::true_&)
 {
 	return m_task->getTargetConfig()->getVmSettings()
-		->getVmCommonOptions()->isTemplate();
+		->getVmCommonOptions()->isTemplate()
+		|| PVMT_SWITCH_TEMPLATE & m_task->getFlags();
 }
 
 void Frontend::setResult(const peerQuitState_type::Good&)
