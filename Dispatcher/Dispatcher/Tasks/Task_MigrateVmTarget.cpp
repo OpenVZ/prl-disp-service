@@ -1654,10 +1654,7 @@ PRL_RESULT Task_MigrateVmTarget::registerVmBeforeMigration()
 	pVmDirItem->setChangedBy(getClient()->getUserName());
 	pVmDirItem->setChangeDateTime(QDateTime::currentDateTime());
 
-	if ( PVMT_SWITCH_TEMPLATE & getRequestFlags() )
-		pVmDirItem->setTemplate( !m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate() );
-	else
-		pVmDirItem->setTemplate( m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate() );
+	pVmDirItem->setTemplate(m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate());
 
 	if (pVmDirItem->isTemplate())
 		m_sVmDirUuid = CDspVmDirManager::getTemplatesDirectoryUuid();
@@ -1712,14 +1709,14 @@ PRL_RESULT Task_MigrateVmTarget::saveVmConfig()
 	m_pVmConfig->getVmIdentification()->setLastServerUuid(sLastServerUuid);
 
 	if (!(m_nReservedFlags & PVM_DONT_COPY_VM)) {
-		if ( PVMT_CLONE_MODE & getRequestFlags() )
+		if (PVMT_SWITCH_TEMPLATE & getRequestFlags())
 		{
-			if ( PVMT_SWITCH_TEMPLATE & getRequestFlags() )
-				m_pVmConfig->getVmSettings()->getVmCommonOptions()->setTemplate(
-					!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate() );
-
-			Task_CloneVm::ResetNetSettings(m_pVmConfig);
+			m_pVmConfig->getVmSettings()->getVmCommonOptions()->setTemplate(
+				!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate());
 		}
+
+		if (PVMT_CLONE_MODE & getRequestFlags())
+			Task_CloneVm::ResetNetSettings(m_pVmConfig);
 
 		// Try to create empty configuration file
 		if (!CFileHelper::CreateBlankFile(m_sVmConfigPath, &getClient()->getAuthHelper()))
