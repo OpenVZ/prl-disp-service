@@ -1926,13 +1926,13 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 
 	mvt::Tunnel::IO io(*m_dispConnection);
 
+	backend_type::Syncing syncingStep(boost::msm::back::states_
+		<< boost::mpl::at_c<backend_type::syncing_type::initial_state, 0>::type(boost::cref(m_sVmUuid))
+		<< boost::mpl::at_c<backend_type::syncing_type::initial_state, 1>::type(~0));
+
 	backend_type::Moving moveStep(boost::msm::back::states_
-		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 0>::type(boost::cref(m_sVmUuid))
-		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 1>::type(
-			boost::msm::back::states_
-				<< mvt::Move::Frontend::Tunneling(boost::ref(io))
-				<< mvt::Move::Frontend::Syncing(~0),
-			boost::ref(io)));
+		<< syncingStep
+		<< boost::mpl::at_c<backend_type::moving_type::initial_state, 1>::type(boost::ref(io)));
 
 	backend_type machine(boost::msm::back::states_
 		<< Migrate::Vm::Finished(*this)
@@ -1943,9 +1943,10 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 			boost::ref(*this))
 		<< backend_type::Copying(boost::ref(*this))
 		<< moveStep
+		<< syncingStep
 		<< backend_type::Commiting(boost::ref(*m_pVmConfig), boost::cref(m_lstCheckFilesExt), m_nPrevVmState)
-		<< backend_type::Syncing(~0),
-		boost::ref(*this), boost::ref(io)
+		<< backend_type::Synch::State(~0),
+		boost::ref(*this), boost::ref(io), boost::ref(*m_pVmConfig)
 		);
 	(Migrate::Vm::Walker<backend_type>(machine))();
 
