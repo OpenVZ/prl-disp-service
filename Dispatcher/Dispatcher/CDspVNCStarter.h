@@ -43,7 +43,7 @@
 #include <QProcess>
 #include <QObject>
 #include <memory>
-
+#include <CDspVmConfigManager.h>
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlxmlmodel/VmConfig/CVmRemoteDisplay.h>
 
@@ -57,6 +57,27 @@
 
 namespace Vnc
 {
+namespace Secure
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+struct Frontend
+{
+	Frontend(const ::Vm::Config::Edit::Atomic& commit_, CDspService& service_):
+		m_service(&service_), m_commit(commit_)
+	{
+	}
+
+	void operator()(CVmConfiguration& object_, const CVmConfiguration& runtime_) const;
+
+private:
+	CDspService* m_service;
+	::Vm::Config::Edit::Atomic m_commit;
+};
+
+} // namespace Secure
+
 namespace Starter
 {
 struct Unit;

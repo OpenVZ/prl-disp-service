@@ -80,20 +80,32 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct RemoteDisplay
-
-struct RemoteDisplay
-{
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Nvram
 
 struct Nvram
 {
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
+
+namespace RemoteDisplay
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Encrypted
+
+struct Encrypted
+{
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unencrypted
+
+struct Unencrypted
+{
+	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+};
+
+} // namespace RemoteDisplay
 
 namespace Index
 {
@@ -316,10 +328,11 @@ struct Reviser<N, void>
 	}
 };
 
-typedef boost::mpl::vector<RemoteDisplay, Nvram, Cpu::Mask> revise_types;
+typedef boost::mpl::vector<RemoteDisplay::Unencrypted, Nvram, Cpu::Mask> revise_types;
 typedef boost::mpl::vector<Identification, OsInfo, RuntimeOptions, GlobalNetwork,
 		Index::Patch, Cpu::Copy, NetworkDevices, HardDisks, State::Patch,
-		MemoryOptions, HighAvailability, Tools> untranslatable_types;
+		MemoryOptions, HighAvailability, Tools, RemoteDisplay::Encrypted>
+		untranslatable_types;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Repairer

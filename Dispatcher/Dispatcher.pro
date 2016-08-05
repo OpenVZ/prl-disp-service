@@ -47,6 +47,7 @@ HEADERS += \
 	CDspTaskHelper.h \
 	CDspTaskManager.h \
 	CDspUserHelper.h \
+	CDspVNCStarter_p.h \
 	CDspVNCStarter.h \
 	CDspVm.h \
 	CDspDispConnection.h \

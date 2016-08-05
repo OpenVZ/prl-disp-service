@@ -36,6 +36,7 @@
 #include <QWriteLocker>
 #include "CDspVmDirManager.h"
 #include "CDspService.h"
+#include "CDspVNCStarter_p.h"
 #include <prlxmlmodel/VmConfig/CVmHardDisk.h>
 #include "EditHelpers/CMultiEditMergeVmConfig.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
@@ -75,15 +76,6 @@ quint64 MemGuarantee::operator()(quint64 ramsize_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct RemoteDisplay
-
-void RemoteDisplay::do_(CVmConfiguration& old_, const CVmConfiguration& new_) 
-{
-	old_.getVmSettings()->getVmRemoteDisplay()->setPortNumber
-		(new_.getVmSettings()->getVmRemoteDisplay()->getPortNumber());
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Nvram
 
 void Nvram::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
@@ -91,6 +83,41 @@ void Nvram::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 	old_.getVmSettings()->getVmStartupOptions()->getBios()->setNVRAM
 		(new_.getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM());
 }
+
+namespace RemoteDisplay
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Encrypted
+
+void Encrypted::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	CVmRemoteDisplay* x = Vnc::Traits::purify(&old_);
+	if (NULL == x || !x->isEncrypted())
+		return;
+
+	CVmRemoteDisplay* y = Vnc::Traits::purify(&new_);
+	if (NULL != y)
+	{
+		y->setEncrypted(true);
+		y->setHostName(x->getHostName());
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unencrypted
+
+void Unencrypted::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+{
+	CVmRemoteDisplay* x = Vnc::Traits::purify(&old_);
+	if (NULL == x || x->isEncrypted())
+		return;
+
+	CVmRemoteDisplay* y = Vnc::Traits::purify(&new_);
+	if (NULL != y)
+		x->setPortNumber(y->getPortNumber());
+}
+
+} // namespace RemoteDisplay
 
 namespace Index
 {

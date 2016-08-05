@@ -56,7 +56,7 @@
 #include "CDspSync.h"
 #include "CDspVm.h"
 #include "CDspVmStateSender.h"
-
+#include "CDspVNCStarter_p.h"
 #include <prlxmlmodel/DispConfig/CDispUser.h>
 #include <prlxmlmodel/DispConfig/CDispWorkspacePreferences.h>
 #include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
@@ -2890,10 +2890,19 @@ void CDspVmDirHelper::resetAdvancedParamsFromVmConfig( SmartPtr<CVmConfiguration
 	pOutVmConfig->getVmSettings()->getVmRuntimeOptions()->getInternalVmInfo()
 		->setParallelsEvent( pEvt );
 
-	CVmRemoteDisplay *remDisplay = pOutVmConfig->getVmSettings()->getVmRemoteDisplay();
-	if ( remDisplay->getMode() == PRD_AUTO || remDisplay->getMode() == PRD_DISABLED )
+	CVmRemoteDisplay *remDisplay = Vnc::Traits::purify(pOutVmConfig.getImpl());
+	switch (remDisplay->getMode())
+	{
+	case PRD_DISABLED:
 		remDisplay->setPortNumber(0);
-
+		break;
+	case PRD_AUTO:
+		remDisplay->setPortNumber(0);
+	case PRD_MANUAL:
+		remDisplay->setEncrypted(Vnc::Encryption
+			(*CDspService::instance()->getQSettings().getPtr())
+				.enabled());
+	}
 	CCpuHelper::update(*pOutVmConfig);
 }
 

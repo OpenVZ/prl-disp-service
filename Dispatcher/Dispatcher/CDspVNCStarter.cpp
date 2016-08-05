@@ -44,7 +44,11 @@
 #include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
 #include "CDspVNCStarter.h"
 #include "CDspService.h"
+#include "CDspVNCStarter_p.h"
 #include <prlcommon/Logging/Logging.h>
+#include <boost/functional/factory.hpp>
+#include <boost/random/uniform_int.hpp>
+#include <boost/random/mersenne_twister.hpp>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
@@ -72,39 +76,6 @@ namespace Api
 {
 ///////////////////////////////////////////////////////////////////////////////
 // struct Server
-
-struct Server
-{
-	Server(const QString& binary_, const QString& vm_,
-		const CVmRemoteDisplay& display_);
-
-	const QString& binary() const
-	{
-		return m_binary;
-	}
-	const QString& password() const
-	{
-		return m_password;
-	}
-	const QProcessEnvironment& envp() const
-	{
-		return m_envp;
-	}
-	void hostname(const QHostAddress& value_)
-	{
-		m_hostname = value_.toString();
-	}
-	QStringList operator()(quint16 port_) const;
-	QStringList operator()(quint16 start_, quint16 end_) const;
-private:
-	QStringList do_(const QStringList& aux_) const;
-
-	QString m_vm;
-	QString m_binary;
-	QString m_hostname;
-	QString m_password;
-	QProcessEnvironment m_envp;
-};
 
 Server::Server(const QString& binary_, const QString& vm_, const CVmRemoteDisplay& display_):
 	m_vm(vm_), m_binary(binary_), m_hostname(display_.getHostName()),
@@ -144,19 +115,6 @@ QStringList Server::do_(const QStringList& aux_) const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Stunnel
 
-struct Stunnel
-{
-	Stunnel(const QByteArray& key_, const QByteArray& certificate_);
-
-	PRL_RESULT key(QTemporaryFile& dst_) const;
-	PRL_RESULT certificate(QTemporaryFile& dst_) const;
-private:
-	static PRL_RESULT prepare(QTemporaryFile& dst_, const QByteArray data_);
-
-	QByteArray m_key;
-	QByteArray m_certificate;
-};
-
 Stunnel::Stunnel(const QByteArray& key_, const QByteArray& certificate_):
 	m_key(key_), m_certificate(certificate_)
 {
@@ -191,6 +149,193 @@ PRL_RESULT Stunnel::certificate(QTemporaryFile& dst_) const
 }
 
 } // namespace Api
+
+namespace Secure
+{
+namespace Launch
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Sweeper
+
+void Sweeper::cleanup(QProcess* victim_)
+{
+	if (NULL == victim_)
+		return;
+
+	WRITE_TRACE(DBG_FATAL, "Try to stop a task by sending KILL signal");
+	victim_->kill();
+	if (!victim_->waitForFinished(WAIT_VNC_SERVER_TO_START_OR_STOP_PROCESS))
+		WRITE_TRACE(DBG_FATAL, "Can't stop the task");
+
+	delete victim_;
+}
+
+void Sweeper::cleanup(QTcpSocket* victim_)
+{
+	if (NULL != victim_)
+	{
+		victim_->disconnectFromHost();
+		delete victim_;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Subject
+
+Subject::Subject(quint16 peer_, const Api::Stunnel& api_):
+	m_peer(peer_), m_accept(), m_api(api_)
+{
+}
+
+PRL_RESULT Subject::startStunnel(quint16 begin_, quint16 end_)
+{
+	if (begin_ > end_)
+		return PRL_ERR_INVALID_ARG;
+
+	QSet<quint16> u;
+	boost::mt19937 g(time(NULL));
+	boost::uniform_int<quint16> d(begin_, end_);
+	quint16 z = d.max() - d.min() + 1;
+	while (u.size() != z)
+	{
+		quint16 p = d(g);
+		if (u.constEnd() == u.insert(p))
+			continue;
+
+		m_stunnel.reset(new QProcess());
+		QString c = QString("%1:%2")
+				.arg(QHostAddress(QHostAddress::LocalHostIPv6).toString())
+				.arg(m_peer);
+		if (PRL_SUCCEEDED(Component::Stunnel(p, c, m_api).do_(*m_stunnel)))
+		{
+			m_accept = p;
+			return PRL_ERR_SUCCESS;
+		}
+	}
+	m_stunnel.reset();
+	return PRL_ERR_FAILURE;
+}
+
+PRL_RESULT Subject::bringUpKeepAlive()
+{
+	m_keepAlive.reset(new QTcpSocket());
+	m_keepAlive->connectToHost(QHostAddress::LocalHostIPv6, m_peer);
+	if (!m_keepAlive->waitForConnected(WAIT_VNC_SERVER_TO_START_OR_STOP_PROCESS))
+		return PRL_ERR_CANT_CONNECT_TO_DISPATCHER;
+
+	return PRL_ERR_SUCCESS;
+}
+
+Tunnel* Subject::getResult()
+{
+	QScopedPointer<Tunnel> y(new Tunnel(m_accept, m_keepAlive.data(), m_stunnel.data()));
+	bool x = y->connect(m_stunnel.take(), SIGNAL(finished(int, QProcess::ExitStatus)),
+			SLOT(reactFinish(int, QProcess::ExitStatus))) &&
+			y->connect(m_keepAlive.take(), SIGNAL(disconnected()),
+				SLOT(reactDisconnect()));
+	if (!x) 
+		y.reset();
+
+	return y.take();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Backend
+
+void Backend::run()
+{
+	QScopedPointer<Subject> s(m_subject());
+	quint16 p = m_setup.getPortNumber(), e = p;
+	if (PRD_AUTO == m_setup.getMode())
+		e = Starter::Unit::DEFAULT_END;
+
+	if (PRL_FAILED(s->startStunnel(p, e)))
+		return;
+
+	if (PRL_FAILED(s->bringUpKeepAlive()))
+		return;
+
+	Tunnel* t = s->getResult();
+	if (NULL == t)
+		return;
+
+	p = t->getPort();
+	t->connect(t, SIGNAL(ripped()), SLOT(deleteLater()));
+	t->moveToThread(QCoreApplication::instance()->thread());
+	m_commit(boost::bind(&Traits::configure, p, _1));
+}
+
+} // namespace Launch
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Tunnel
+
+Tunnel::Tunnel(quint16 accept_, QTcpSocket* keepAlive_, QProcess* stunnel_):
+	m_port(accept_), m_stunnel(stunnel_), m_keepAlive(keepAlive_)
+{
+	if (NULL != m_stunnel)
+		m_stunnel->setParent(this);
+
+	if (NULL != m_keepAlive)
+		m_keepAlive->setParent(this);
+}
+
+void Tunnel::reactFinish(int, QProcess::ExitStatus)
+{
+	m_stunnel = NULL;
+	if (NULL == m_keepAlive)
+		emit ripped();
+	else
+		m_keepAlive->disconnectFromHost();
+}
+
+void Tunnel::reactDisconnect()
+{
+	m_keepAlive = NULL;
+	if (NULL == m_stunnel)
+		emit ripped();
+	else
+		m_stunnel->terminate();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+void Frontend::operator()(CVmConfiguration& object_, const CVmConfiguration& runtime_) const
+{
+	CVmRemoteDisplay* a = Traits::purify(&object_);
+	if (NULL == a)
+		return;
+
+	a->setEncrypted(false);
+	if (PRD_DISABLED == a->getMode())
+		return;
+
+	CVmRemoteDisplay* b = Traits::purify(&runtime_);
+	if (NULL == b)
+		return;
+
+	QByteArray c, k;
+	if (!Vnc::Encryption(*(m_service->getQSettings().getPtr())).state(k, c))
+		return;
+
+	a->setEncrypted(true);
+	CVmRemoteDisplay d = *b;
+	if (PRD_AUTO == d.getMode())
+	{
+		d.setPortNumber(m_service->getDispConfigGuard()
+			.getDispCommonPrefs()
+			->getRemoteDisplayPreferences()->getBasePort());
+	}
+	QRunnable* q = new Launch::Backend(boost::bind(
+			boost::factory<Launch::Subject* >(),
+				b->getPortNumber(),
+				Vnc::Api::Stunnel(k, c)), d, m_commit);
+	q->setAutoDelete(true);
+	QThreadPool::globalInstance()->start(q);
+}
+
+} // namespace Secure
 
 ///////////////////////////////////////////////////////////////////////////////
 // class Guard
@@ -323,24 +468,16 @@ namespace Component
 // struct Unit
 
 template<class T>
-struct Unit
+Unit<T>::~Unit()
 {
-	~Unit()
-	{
-		QMutexLocker g(&m_mutex);
-		Guard* x = m_guard.release();
-		if (NULL == x)
-			return;
+	QMutexLocker g(&m_mutex);
+	Guard* x = m_guard.release();
+	if (NULL == x)
+		return;
 
-		QCoreApplication::postEvent(x, new QEvent(QEvent::Close));
-		QCoreApplication::postEvent(x, new QEvent(QEvent::DeferredDelete));
-	}
-
-	PRL_RESULT operator()(const CDspVNCStarter& observer_);
-private:
-	QMutex m_mutex;
-	std::auto_ptr<Guard> m_guard;
-};
+	QCoreApplication::postEvent(x, new QEvent(QEvent::Close));
+	QCoreApplication::postEvent(x, new QEvent(QEvent::DeferredDelete));
+}
 
 template<class T>
 PRL_RESULT Unit<T>::operator()(const CDspVNCStarter& observer_)
@@ -381,25 +518,6 @@ PRL_RESULT Unit<T>::operator()(const CDspVNCStarter& observer_)
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Server
-
-struct Server: Unit<Server>
-{
-	Server(quint16 port_, const Api::Server& api_);
-	Server(quint16 start_, quint16 end_, const Api::Server& api_);
-
-	quint16 port() const
-	{
-		return m_port;
-	}
-	PRL_RESULT do_(QProcess& process_);
-private:
-	PRL_RESULT port(QProcess& process_);
-
-	quint16 m_port;
-	QString m_marker;
-	Api::Server m_api;
-	QStringList m_argv;
-};
 
 Server::Server(quint16 port_, const Api::Server& api_):
 	m_port(port_), m_marker("Listening for VNC connections on TCP port "),
@@ -483,18 +601,12 @@ PRL_RESULT Server::port(QProcess& process_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Stunnel
 
-struct Stunnel: Unit<Stunnel>
-{
-	Stunnel(quint16 accept_, quint16 connect_, const Api::Stunnel& api_);
-
-	PRL_RESULT do_(QProcess& process_);
-private:
-	quint16 m_accept;
-	quint16 m_connect;
-	Api::Stunnel m_api;
-};
-
 Stunnel::Stunnel(quint16 accept_, quint16 connect_, const Api::Stunnel& api_):
+	m_accept(accept_), m_connect(QString::number(connect_)), m_api(api_)
+{
+}
+
+Stunnel::Stunnel(quint16 accept_, const QString& connect_, const Api::Stunnel& api_):
 	m_accept(accept_), m_connect(connect_), m_api(api_)
 {
 }
@@ -533,57 +645,7 @@ PRL_RESULT Stunnel::do_(QProcess& process_)
 namespace Starter
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Unit
-
-struct Unit
-{
-	enum
-	{
-		DEFAULT_START = 5800,
-		DEFAULT_END = 65535
-	};
-	virtual ~Unit()
-	{
-	}
-
-	quint16 port() const
-	{
-		return m_port;
-	}
-	virtual PRL_RESULT start(quint16 port_) = 0;
-	virtual PRL_RESULT start(quint16 start_, quint16 end_) = 0;
-protected:
-	Unit(CDspVNCStarter& q_): m_port(0), m_q(&q_)
-	{
-	}
-	CDspVNCStarter& q() const
-	{
-		return *m_q;
-	}
-	void port(quint16 value_)
-	{
-		m_port = value_;
-	}
-private:
-	quint16 m_port;
-	CDspVNCStarter* m_q;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Raw
-
-struct Raw: Unit
-{
-	Raw(const Api::Server& api_, CDspVNCStarter& q_);
-
-	PRL_RESULT start(quint16 port_);
-	PRL_RESULT start(quint16 start_, quint16 end_);
-private:
-	PRL_RESULT start(Component::Server* server_);
-
-	const Api::Server m_api;
-	std::auto_ptr<Component::Server> m_server;
-};
 
 Raw::Raw(const Api::Server& api_, CDspVNCStarter& q_): Unit(q_), m_api(api_)
 {
@@ -613,19 +675,6 @@ PRL_RESULT Raw::start(quint16 start_, quint16 end_)
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Secure
-
-struct Secure: Unit
-{
-	Secure(const Api::Server& raw_, const Api::Stunnel& secure_, CDspVNCStarter& q_);
-
-	PRL_RESULT start(quint16 port_);
-	PRL_RESULT start(quint16 start_, quint16 end_);
-private:
-	const Api::Server m_raw;
-	const Api::Stunnel m_secure;
-	std::auto_ptr<Component::Server> m_server;
-	std::auto_ptr<Component::Stunnel> m_stunnel;
-};
 
 Secure::Secure(const Api::Server& raw_, const Api::Stunnel& secure_, CDspVNCStarter& q_):
 	Unit(q_), m_raw(raw_), m_secure(secure_)
@@ -681,6 +730,32 @@ PRL_RESULT Secure::start(quint16 start_, quint16 end_)
 }
 
 } // namespace Starter
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Traits
+
+CVmRemoteDisplay* Traits::purify(const CVmConfiguration* config_)
+{
+	if (NULL == config_)
+		return NULL;
+
+	CVmSettings* x = config_->getVmSettings();
+	if (NULL == x)
+		return NULL;
+
+	return x->getVmRemoteDisplay();
+}
+
+PRL_RESULT Traits::configure(const quint16 value_, CVmConfiguration& dst_)
+{
+	CVmRemoteDisplay* b = purify(&dst_);
+	if (NULL == b)
+		return PRL_ERR_INVALID_ARG;
+
+	b->setPortNumber(value_);
+	return PRL_ERR_SUCCESS;
+}
+
 } // namespace Vnc
 
 ///////////////////////////////////////////////////////////////////////////////
