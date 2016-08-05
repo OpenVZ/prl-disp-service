@@ -321,6 +321,28 @@ struct Frontend: vsd::Frontend<Frontend<T, X> >
 
 } // namespace Pump
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+struct Connector: Connector_, Vm::Connector::Base<Machine_type>
+{
+	void cancel();
+
+	void disconnected();
+
+	void react(const SmartPtr<IOPackage>& package_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Synch
+
+struct Synch
+{
+	typedef Pipeline::State<Machine_type, Vm::Pump::FinishCommand_type> State;
+
+	void send(Tunnel::IO& io_, Connector& connector) const;
+};
+
 namespace Tunnel
 {
 typedef boost::phoenix::expression::reference<IO>::type ioEvent_type;
@@ -669,7 +691,7 @@ struct Channel: Shortcut<Channel>::type
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-struct Frontend: vsd::Frontend<Frontend>
+struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Vm::Target::Connector>, Synch
 {
 	typedef Qemu::Hub<Parallels::VmMigrateConnectQemuStateCmd, Parallels::VmMigrateQemuStateTunnelChunk>
 		qemuState_type;
@@ -699,11 +721,16 @@ struct Frontend: vsd::Frontend<Frontend>
 		fsm_.process_event(boost::phoenix::ref(*m_service));
 	}
 
+	void synch(const msmf::none&)
+	{
+		send(*m_service, *getConnector());
+	}
+
 	struct transition_table : boost::mpl::vector<
 		msmf::Row<initial_state,       ioEvent_type,
 			essenceState_type::entry_pt<essence_type::Entry> >,
-		msmf::Row<essenceState_type
-			::exit_pt<Success>,    msmf::none,  Success>,
+		a_row<essenceState_type
+			::exit_pt<Success>,    msmf::none,  Success, &Frontend::synch>,
 		msmf::Row<essenceState_type
 			::exit_pt<Flop::State>,Flop::Event, Flop::State>
 	>
@@ -717,65 +744,6 @@ private:
 } // namespace Tunnel
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Connector
-
-struct Connector: Connector_, Vm::Connector::Base<Machine_type>
-{
-	void cancel();
-
-	void disconnected();
-
-	void react(const SmartPtr<IOPackage>& package_);
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Synch
-
-struct Synch
-{
-	typedef Pipeline::State<Machine_type, Vm::Pump::FinishCommand_type> Syncing;
-
-	void send(Tunnel::IO& io_, Connector& connector) const;
-};
-
-namespace Move
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Frontend
-
-struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
-{
-	typedef boost::msm::back::state_machine<Tunnel::Frontend> Tunneling;
-	typedef Tunneling initial_state;
-
-	explicit Frontend(Tunnel::IO& io_): m_io(&io_)
-	{
-	}
-	Frontend(): m_io()
-	{
-	}
-
-	void synch(const msmf::none&)
-	{
-		send(*m_io, *getConnector());
-	}
-
-	struct transition_table : boost::mpl::vector<
-		_row<Tunneling::exit_pt<Flop::State>, Flop::Event,       Flop::State>,
-		_row<Syncing,                         Flop::Event,       Flop::State>,
-		a_row<Tunneling::exit_pt<Success>,    msmf::none,        Syncing, &Frontend::synch>,
-		msmf::Row<Syncing,                    Syncing::Good,     Success>
-	>
-	{
-	};
-
-private:
-	Tunnel::IO* m_io;
-};
-
-} // namespace Move
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
 struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
@@ -787,18 +755,27 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
 			boost::mpl::vector
 			<
 				Join::State<Libvirt::Tentative, Libvirt::Tentative::Defined>,
-				Join::Machine<Move::Frontend>
+				Join::State<Synch::State, Synch::State::Good>
+			>
+		> syncing_type;
+	typedef boost::msm::back::state_machine<syncing_type> Syncing;
+	typedef Join::Frontend
+		<
+			boost::mpl::vector
+			<
+				Join::Machine<syncing_type>,
+				Join::Machine<Tunnel::Frontend>
 			>
 		> moving_type;
 	typedef boost::msm::back::state_machine<moving_type> Moving;
 	typedef Commit::Perform Commiting;
 	typedef Starting initial_state;
 
-	Frontend(Task_MigrateVmTarget& task_, Tunnel::IO& io_):
-		m_io(&io_), m_task(&task_)
+	Frontend(Task_MigrateVmTarget& task_, Tunnel::IO& io_, CVmConfiguration& config_):
+		m_io(&io_), m_task(&task_), m_config(&config_)
 	{
 	}
-	Frontend(): m_io(), m_task()
+	Frontend(): m_io(), m_task(), m_config()
 	{
 	}
 
@@ -807,9 +784,20 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
 		return m_task->isTemplate();
 	}
 
+	bool isSwitched(const msmf::none&)
+	{
+		return m_task->getRequestFlags() & PVMT_SWITCH_TEMPLATE;
+	}
+
 	void synch(const msmf::none&)
 	{
 		send(*m_io, *getConnector());
+	}
+
+	void define(const msmf::none&)
+	{
+		if (::Libvirt::Kit.vms().define(*m_config).isFailed())
+			getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
 	}
 
 	template <typename Event, typename FSM>
@@ -825,18 +813,24 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
 		a_row<Starting::exit_pt<Flop::State>,  Flop::Event,Finished, &Frontend::setResult>,
 		a_row<Copying::exit_pt<Flop::State>,   Flop::Event,Finished, &Frontend::setResult>,
 		a_row<Moving::exit_pt<Flop::State>,    Flop::Event,Finished, &Frontend::setResult>,
+		a_row<Syncing::exit_pt<Flop::State>,   Flop::Event,Finished, &Frontend::setResult>,
 		// wire success exits sequentially up to FINISHED
 		msmf::Row<Starting::exit_pt<Success>,  msmf::none,Copying>,
 		msmf::Row<Copying::exit_pt<Success>,   msmf::none,Moving>,
 		row<Copying::exit_pt<Success>,         msmf::none,Syncing,
+			&Frontend::define, &Frontend::isSwitched>,
+		row<Copying::exit_pt<Success>,         msmf::none,Synch::State,
 			&Frontend::synch, &Frontend::isTemplate>,
 		msmf::Row<Moving::exit_pt<Success>,    msmf::none,Commiting>,
 		msmf::Row<Commiting,                   Commiting::Done,Finished>,
-		msmf::Row<Syncing,                     Syncing::Good, Finished>,
+		msmf::Row<Syncing::exit_pt<Success>,   msmf::none,Finished>,
+		msmf::Row<Synch::State,                Synch::State::Good, Finished>,
 		// handle asyncronous termination
 		a_row<Starting,                        Flop::Event, Finished, &Frontend::setResult>,
 		a_row<Copying,                         Flop::Event, Finished, &Frontend::setResult>,
 		a_row<Commiting,                       Flop::Event, Finished, &Frontend::setResult>,
+		a_row<Syncing,                         Flop::Event, Finished, &Frontend::setResult>,
+		a_row<Synch::State,                    Flop::Event, Finished, &Frontend::setResult>,
 		a_row<Moving,                          Flop::Event, Finished, &Frontend::setResult>
 	>
 	{
@@ -845,6 +839,7 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
 private:
 	Tunnel::IO* m_io;
 	Task_MigrateVmTarget *m_task;
+	CVmConfiguration* m_config;
 };
 
 } // namespace Target
