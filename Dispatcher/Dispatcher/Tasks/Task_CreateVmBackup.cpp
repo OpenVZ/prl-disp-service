@@ -406,11 +406,6 @@ PRL_RESULT Task_CreateVmBackupSource::prepareTask()
 	if (PRL_FAILED(nRetCode = connect()))
 		goto exit;
 
-	if (!CDspService::instance()->getShellServiceHelper().isLocalAddress(m_sServerHostname)) {
-		WRITE_TRACE(DBG_FATAL, "Backup to the remote server is not implemented");
-		nRetCode = PRL_ERR_UNIMPLEMENTED;
-		goto exit;
-	}
 	if (PRL_FAILED(nRetCode = d(b)))
 		goto exit;
 
