@@ -161,7 +161,6 @@ PRL_RESULT Unit::start(QStringList args_, int version_)
 	connect(m_driver, SIGNAL(finished(int, QProcess::ExitStatus)),
 		SLOT(reactFinish(int, QProcess::ExitStatus)), Qt::DirectConnection);
 	m_driver->start(x, args_, QIODevice::Unbuffered | QIODevice::ReadWrite);
-	m_driver->moveToThread(QCoreApplication::instance()->thread());
 	::close(p[1]);
 	if (!m_driver->waitForStarted())
 	{
@@ -170,6 +169,7 @@ PRL_RESULT Unit::start(QStringList args_, int version_)
 		return PRL_ERR_BACKUP_TOOL_CANNOT_START;
 	}
 	m_program = x;
+	m_driver->moveToThread(QCoreApplication::instance()->thread());
 	m_channel = QSharedPointer<QLocalSocket>(new QLocalSocket);
 	m_channel->setSocketDescriptor(p[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
 //	m_channel->moveToThread(m_driver->thread());
