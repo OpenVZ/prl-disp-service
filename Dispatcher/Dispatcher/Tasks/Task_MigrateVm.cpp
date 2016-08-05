@@ -829,12 +829,12 @@ bool Frontend::isTemplate(const boost::mpl::true_&)
 {
 	return m_task->getTargetConfig()->getVmSettings()
 		->getVmCommonOptions()->isTemplate()
-		|| PVMT_SWITCH_TEMPLATE & m_task->getFlags();
+		|| PVMT_SWITCH_TEMPLATE & m_task->getRequestFlags();
 }
 
 void Frontend::setResult(const peerQuitState_type::Good&)
 {
-	if (PVMT_CLONE_MODE & m_task->getFlags())
+	if (PVMT_CLONE_MODE & m_task->getRequestFlags())
 		return;
 
 	::Libvirt::Kit.vms().at(m_task->getVmUuid()).kill();
