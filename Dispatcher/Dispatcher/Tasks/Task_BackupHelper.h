@@ -239,6 +239,8 @@ struct Ct
 	QStringList buildPushArgs(const Activity::Object::Model& a_) const;
 
 private:
+	QString processUrl(const QString& url_) const;
+
 	Task_BackupHelper *m_context;
 };
 
@@ -317,6 +319,11 @@ public:
 	const ::Backup::Activity::Object::componentList_type& getUrls() const
 	{
 		return m_urls;
+	}
+
+	const QString& getServerHostname() const
+	{
+		return m_sServerHostname;
 	}
 
 	Chain * prepareABackupChain(const QStringList& args_, const QString &sNotificationVmUuid,

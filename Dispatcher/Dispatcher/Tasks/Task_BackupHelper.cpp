@@ -350,6 +350,16 @@ QStringList Ct::buildArgs(const Product::component_type& t_, const QFileInfo* f_
 	return a;
 }
 
+QString Ct::processUrl(const QString& url_) const
+{
+	QUrl q(url_);
+	if (q.scheme() == "nbd") {
+		// replace INADDR_ANY by a real remote server hostname
+		q.setHost(m_context->getServerHostname());
+	}
+	return q.toString();
+}
+
 QStringList Ct::buildPushArgs(const Activity::Object::Model& activity_) const
 {
 	QStringList a;
@@ -363,7 +373,7 @@ QStringList Ct::buildPushArgs(const Activity::Object::Model& activity_) const
 		{
 			if (t.second.absoluteFilePath() == c.first.absoluteFilePath())
 			{
-				u = c.second;
+				u = processUrl(c.second);
 				break;
 			}
 		}

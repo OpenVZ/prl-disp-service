@@ -67,26 +67,25 @@ void Image::remove() const
 
 PRL_RESULT Nbd::start(const Image& image_, quint32 flags_)
 {
-	QTemporaryFile f;
-	f.setFileTemplate(QString("%1/%2.sock.XXXXXX")
-		.arg(QDir::tempPath())
-		.arg(QFileInfo(image_.getPath()).fileName()));
-	if (!f.open())
+	QTcpServer s;
+	if (!s.listen()) {
+		WRITE_TRACE(DBG_FATAL, "Failed to reserve port for NBD server!");
 		return PRL_ERR_BACKUP_INTERNAL_ERROR;
-	QString n(f.fileName());
-	f.setAutoRemove(false);
-	f.close();
+	}
+	QHostAddress a = s.serverAddress();
+	quint16 port = s.serverPort();
+	s.close();
 
-	VirtualDisk::qcow2PolicyList_type p(1, VirtualDisk::Policy::Qcow2::unix_type(n));
+	VirtualDisk::qcow2PolicyList_type p(1, VirtualDisk::Policy::Qcow2::port_type(port));
 	if (!(flags_ & PBT_UNCOMPRESSED))
 	{
 		p.push_back(VirtualDisk::Policy::Qcow2::compressed_type(true));
-		// Compressed data is not aligned. Enable cache for speediup
+		// Compressed data is not aligned. Enable cache for speedup
 		p.push_back(VirtualDisk::Policy::Qcow2::cached_type(true));
 	}
 	PRL_RESULT e = m_nbd.open(image_.getPath(), PRL_DISK_WRITE, p);
 	if (PRL_SUCCEEDED(e)) 
-		m_url = n;
+		m_url = QString("nbd://%1:%2").arg(a.toString()).arg(port);
 	return e;
 }
 
@@ -95,12 +94,11 @@ void Nbd::stop()
 	if (m_url.isEmpty())
 		return;
 	m_nbd.close();
-	QFile::remove(m_url);
 }
 
 QString Nbd::getUrl() const
 {
-	return QString("nbd+unix://%1").arg(m_url);
+	return m_url;
 }
 
 } // namespace Target
