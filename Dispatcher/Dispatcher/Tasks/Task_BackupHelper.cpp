@@ -350,12 +350,26 @@ QStringList Ct::buildArgs(const Product::component_type& t_, const QFileInfo* f_
 	return a;
 }
 
-QString Ct::processUrl(const QString& url_) const
+///////////////////////////////////////////////////////////////////////////////
+// struct UrlBuilder
+
+QString UrlBuilder::operator()(const QString& path_)
 {
-	QUrl q(url_);
+	QString u;
+	foreach (const Activity::Object::component_type& c, m_urls)
+	{
+		if (path_ == c.first.absoluteFilePath()) {
+			u = c.second;
+			break;
+		}
+	}
+	if (u.isEmpty())
+		return u;
+
+	QUrl q(u);
 	if (q.scheme() == "nbd") {
 		// replace INADDR_ANY by a real remote server hostname
-		q.setHost(m_context->getServerHostname());
+		q.setHost(m_hostname);
 	}
 	return q.toString();
 }
@@ -365,20 +379,12 @@ QStringList Ct::buildPushArgs(const Activity::Object::Model& activity_) const
 	QStringList a;
 	a << QString((m_context->getFlags() & PBT_INCREMENTAL) ? "append_ct" : "create_ct");
 
+	UrlBuilder b(m_context->getUrls(), m_context->getServerHostname());
 	foreach (const Product::component_type& t, m_context->getProduct()->getVmTibs())
 	{
 		const QFileInfo* f = Command::findArchive(t, activity_);
-		QString u;
-		foreach (const Activity::Object::component_type& c, m_context->getUrls())
-		{
-			if (t.second.absoluteFilePath() == c.first.absoluteFilePath())
-			{
-				u = processUrl(c.second);
-				break;
-			}
-		}
 		a << "--image" << QString("ploop://%1::%2").arg(f->absoluteFilePath())
-						.arg(u);
+				.arg(b(t.second.absoluteFilePath()));
 	}
 	return a;
 }
@@ -411,10 +417,11 @@ QStringList Vm::buildPushArgs() const
 			.getConfig()->getVmIdentification()->getVmName();
 	a << "-n" << n;
 
+	UrlBuilder b(m_context->getUrls(), m_context->getServerHostname());
 	foreach (const Product::component_type& t, m_context->getProduct()->getVmTibs())
 	{
 		a << "--image" << QString("%1::%2").arg(t.first.getImage())
-						.arg(t.second.absoluteFilePath());
+				.arg(b(t.second.absoluteFilePath()));
 	}
 	return a;
 }

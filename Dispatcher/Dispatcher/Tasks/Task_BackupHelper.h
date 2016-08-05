@@ -228,6 +228,23 @@ private:
 namespace Work
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct UrlBuilder
+
+struct UrlBuilder
+{
+	typedef ::Backup::Activity::Object::componentList_type componentList_type;
+
+	UrlBuilder(const componentList_type& urls_, const QString& server_)
+		: m_urls(urls_), m_hostname(server_) {}
+
+	QString operator()(const QString& path_);
+
+private:
+	componentList_type m_urls;
+	QString m_hostname;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Ct
 
 struct Ct
@@ -239,8 +256,6 @@ struct Ct
 	QStringList buildPushArgs(const Activity::Object::Model& a_) const;
 
 private:
-	QString processUrl(const QString& url_) const;
-
 	Task_BackupHelper *m_context;
 };
 
