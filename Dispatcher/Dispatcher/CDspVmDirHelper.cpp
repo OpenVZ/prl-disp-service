@@ -2345,34 +2345,6 @@ void CDspVmDirHelper::updateVmSecurityInfo ( SmartPtr<CDspClient> pUserSession
 	}
 }
 
-/////////////////////////////////////
-//
-//  dispatcher internal requests
-//
-/////////////////////////////////////
-
-QList<QString> CDspVmDirHelper::getVmDirUuidByVmUuid( const QString& vm_uuid )
-{
-	QList<QString> lst;
-	Vm::Directory::Dao::Locked x;
-	foreach (const CVmDirectory& d, x.getList())
-	{
-		if (d.getUuid() == CDspVmDirManager::getTemplatesDirectoryUuid())
-			continue;
-
-		foreach( CVmDirectoryItem* pDirItem, d.m_lstVmDirectoryItems )
-		{
-			if( pDirItem->getVmUuid() == vm_uuid )
-			{
-				lst << d.getUuid();
-				break;
-			}
-		}
-	}
-
-	return lst;
-}
-
 /**
 * @brief Gets VM list
 */
