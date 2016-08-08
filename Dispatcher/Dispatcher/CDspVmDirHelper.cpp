@@ -1213,9 +1213,10 @@ void CDspVmDirHelper::fillVmState(
 	, const QString& sVmUuid
 	, CVmEvent& outVmEvent )
 {
+	CVmIdent ident(CDspVmDirHelper::getVmIdentByVmUuid(sVmUuid, pUserSession));
 	outVmEvent.addEventParameter(
 		new CVmEventParameter(PVE::Integer,
-			QString("%1").arg(CDspVm::getVmState(sVmUuid, pUserSession->getVmDirectoryUuid())),
+			QString("%1").arg(CDspVm::getVmState(ident.first, ident.second)),
 			EVT_PARAM_VMINFO_VM_STATE)
 		);
 }
