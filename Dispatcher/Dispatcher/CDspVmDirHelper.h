@@ -624,12 +624,6 @@ private:
 	SmartPtr<CVmConfiguration> CreateDefaultVmConfigByRcValid(
 		SmartPtr<CDspClient> pUserSession, PRL_RESULT rc, const QString& vmUuid);
 
-	/**
-	* @brief Gets vmDirUuid by vm_uuid
-	* @param vm_uuid
-	*/
-	static QList<QString> getVmDirUuidByVmUuid( const QString& vm_uuid );
-
 private:
 	Registry::Public& m_registry;
 	CMultiEditMergeVmConfig* m_pVmConfigEdit;

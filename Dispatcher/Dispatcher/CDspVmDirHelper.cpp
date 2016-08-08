@@ -1213,9 +1213,10 @@ void CDspVmDirHelper::fillVmState(
 	, const QString& sVmUuid
 	, CVmEvent& outVmEvent )
 {
+	CVmIdent ident(CDspVmDirHelper::getVmIdentByVmUuid(sVmUuid, pUserSession));
 	outVmEvent.addEventParameter(
 		new CVmEventParameter(PVE::Integer,
-			QString("%1").arg(CDspVm::getVmState(sVmUuid, pUserSession->getVmDirectoryUuid())),
+			QString("%1").arg(CDspVm::getVmState(ident.first, ident.second)),
 			EVT_PARAM_VMINFO_VM_STATE)
 		);
 }
@@ -2342,34 +2343,6 @@ void CDspVmDirHelper::updateVmSecurityInfo ( SmartPtr<CDspClient> pUserSession
 		// Generate "VM security changed" event for all active sessions
 		sendEventVmSecurityChanged( pUserSession->getVmDirectoryUuid(), vm_uuid, p );
 	}
-}
-
-/////////////////////////////////////
-//
-//  dispatcher internal requests
-//
-/////////////////////////////////////
-
-QList<QString> CDspVmDirHelper::getVmDirUuidByVmUuid( const QString& vm_uuid )
-{
-	QList<QString> lst;
-	Vm::Directory::Dao::Locked x;
-	foreach (const CVmDirectory& d, x.getList())
-	{
-		if (d.getUuid() == CDspVmDirManager::getTemplatesDirectoryUuid())
-			continue;
-
-		foreach( CVmDirectoryItem* pDirItem, d.m_lstVmDirectoryItems )
-		{
-			if( pDirItem->getVmUuid() == vm_uuid )
-			{
-				lst << d.getUuid();
-				break;
-			}
-		}
-	}
-
-	return lst;
 }
 
 /**
