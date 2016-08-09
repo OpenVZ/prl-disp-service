@@ -409,6 +409,28 @@ struct Frontend: Details::Frontend<Frontend>
 		}
 	};
 
+	struct Lock
+	{
+		template<class E, class S, class D>
+		void operator()(const E&, Frontend& fsm_, S&, D&)
+		{
+			CDspClient& u = fsm_.getUser();
+			fsm_.getService().getVmDirHelper().registerExclusiveVmOperation
+				(fsm_.getUuid(), u.getVmDirectoryUuid(), PVE::DspCmdVmStartEx, u.getSessionUuid());
+		}
+	};
+
+	struct Unlock
+	{
+		template<class E, class S, class D>
+		void operator()(const E&, Frontend& fsm_, S&, D&)
+		{
+			CDspClient& u = fsm_.getUser();
+			fsm_.getService().getVmDirHelper().unregisterExclusiveVmOperation
+				(fsm_.getUuid(), u.getVmDirectoryUuid(), PVE::DspCmdVmStartEx, u.getSessionUuid());
+		}
+	};
+
 	struct transition_table : boost::mpl::vector<
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
@@ -424,16 +446,16 @@ struct Frontend: Details::Frontend<Frontend>
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Notification> > >,
 
 	msmf::Row<Unknown,    Conventional<VMS_PAUSED>,     Paused,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Lock, Notification> > >,
 
 	msmf::Row<Unknown,    Conventional<VMS_RUNNING>,    Running::entry_pt<Running::Already>,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Lock, Notification> > >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
 	msmf::Row<Stopped,    Conventional<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Lock, Notification> > >,
 
 	msmf::Row<Stopped,    Conventional<VMS_MOUNTED>,    Mounted,    Notification >,
 
@@ -443,19 +465,19 @@ struct Frontend: Details::Frontend<Frontend>
 	msmf::Row<Suspended,  Conventional<VMS_STOPPED>,    Stopped,    Notification >,
 
 	msmf::Row<Suspended,  Conventional<VMS_PAUSED>,     Paused,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Lock, Notification> > >,
 
 	msmf::Row<Suspended,  Conventional<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Lock, Notification> > >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
 	msmf::Row<Running,    Conventional<VMS_STOPPED>,    Stopped,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Cluster, BackupDisable, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Cluster, BackupDisable, Unlock, Notification> > >,
 
 	msmf::Row<Running,    Conventional<VMS_SUSPENDED>,  Suspended,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Cluster, BackupDisable, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Cluster, BackupDisable, Unlock, Notification> > >,
 
 	msmf::Row<Running,    Conventional<VMS_PAUSED>,     Paused,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Cluster, Notification> > >,
@@ -464,10 +486,10 @@ struct Frontend: Details::Frontend<Frontend>
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
 	msmf::Row<Paused,     Conventional<VMS_STOPPED>,    Stopped,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Unlock, Notification> > >,
 
 	msmf::Row<Paused,     Conventional<VMS_SUSPENDED>,  Suspended,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Unlock, Notification> > >,
 
 	msmf::Row<Paused,     Conventional<VMS_RUNNING>,    Running::entry_pt<Running::Already>,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, Cluster, Notification> > >,
@@ -496,10 +518,10 @@ struct Frontend: Details::Frontend<Frontend>
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Notification> > >,
 
 	msmf::Row<Reverting,  Conventional<VMS_PAUSED>,     Paused,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Runtime, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Runtime, Lock, Notification> > >,
 
 	msmf::Row<Reverting,  Conventional<VMS_RUNNING>,    Running,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Notification> > >
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Lock, Notification> > >
 
 	//      +-----------+----------------------+-----------+--------+
 	> {};
