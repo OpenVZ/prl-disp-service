@@ -1060,10 +1060,17 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 
 	m_pVmConfig->getVmIdentification()->setVmName(m_sVmName);
 
+	/*  to get target VM home directory path */
+	bundle = QFileInfo(m_pVmConfig->getVmIdentification()->getHomePath()).dir().dirName();
+
 	m_sVmUuid = m_sOriginVmUuid = m_pVmConfig->getVmIdentification()->getVmUuid();
 	m_sVmDirUuid = getClient()->getVmDirectoryUuid();
 	if (!(m_nReservedFlags & PVM_DONT_COPY_VM) && (PVMT_CLONE_MODE & getRequestFlags()))
+	{
 		m_pVmConfig->getVmIdentification()->setVmUuid(m_sVmUuid = Uuid::createUuid().toString());
+		// change bundle name for cloned VM
+		bundle = Vm::Config::getVmHomeDirName(m_sVmUuid);
+	}
 
 	m_cSrcHostInfo.fromString(m_sSrcHostInfo);
 	if (PRL_FAILED(m_cSrcHostInfo.m_uiRcInit))
@@ -1073,8 +1080,6 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 		goto exit;
 	}
 
-	/*  to get target VM home directory path */
-	bundle = QFileInfo(m_pVmConfig->getVmIdentification()->getHomePath()).dir().dirName();
 	m_sTargetVmHomePath = QString("%1/%2").arg(m_sVmDirPath)
 		.arg(bundle.isEmpty() ? Vm::Config::getVmHomeDirName(m_sVmUuid) : bundle);
 	m_sTargetVmHomePath = QFileInfo(m_sTargetVmHomePath).absoluteFilePath();
