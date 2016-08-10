@@ -327,6 +327,37 @@ PRL_RESULT Unit::read(char *data, qint32 size, UINT32 tmo)
 namespace Work
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct UrlBuilder
+
+QString UrlBuilder::operator()(const QString& url_) const
+{
+	QUrl q(url_);
+	if (q.scheme() == "nbd") {
+		// replace INADDR_ANY by a real remote server hostname
+		q.setHost(m_hostname);
+	}
+	return q.toString();
+}
+
+QString UrlBuilder::operator()(
+	const ::Backup::Activity::Object::componentList_type& urls_,
+	const QString& path_) const
+{
+	QString u;
+	foreach (const Activity::Object::component_type& c, urls_)
+	{
+		if (path_ == c.first.absoluteFilePath()) {
+			u = c.second;
+			break;
+		}
+	}
+	if (u.isEmpty())
+		return u;
+
+	return (*this)(u);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Ct
 
 Ct::Ct(Task_BackupHelper& task_) : m_context(&task_)
@@ -350,41 +381,17 @@ QStringList Ct::buildArgs(const Product::component_type& t_, const QFileInfo* f_
 	return a;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct UrlBuilder
-
-QString UrlBuilder::operator()(const QString& path_)
-{
-	QString u;
-	foreach (const Activity::Object::component_type& c, m_urls)
-	{
-		if (path_ == c.first.absoluteFilePath()) {
-			u = c.second;
-			break;
-		}
-	}
-	if (u.isEmpty())
-		return u;
-
-	QUrl q(u);
-	if (q.scheme() == "nbd") {
-		// replace INADDR_ANY by a real remote server hostname
-		q.setHost(m_hostname);
-	}
-	return q.toString();
-}
-
 QStringList Ct::buildPushArgs(const Activity::Object::Model& activity_) const
 {
 	QStringList a;
 	a << QString((m_context->getFlags() & PBT_INCREMENTAL) ? "append_ct" : "create_ct");
 
-	UrlBuilder b(m_context->getUrls(), m_context->getServerHostname());
+	UrlBuilder b(m_context->getServerHostname());
 	foreach (const Product::component_type& t, m_context->getProduct()->getVmTibs())
 	{
 		const QFileInfo* f = Command::findArchive(t, activity_);
 		a << "--image" << QString("ploop://%1::%2").arg(f->absoluteFilePath())
-				.arg(b(t.second.absoluteFilePath()));
+				.arg(b(m_context->getUrls(), t.second.absoluteFilePath()));
 	}
 	return a;
 }
@@ -417,11 +424,11 @@ QStringList Vm::buildPushArgs() const
 			.getConfig()->getVmIdentification()->getVmName();
 	a << "-n" << n;
 
-	UrlBuilder b(m_context->getUrls(), m_context->getServerHostname());
+	UrlBuilder b(m_context->getServerHostname());
 	foreach (const Product::component_type& t, m_context->getProduct()->getVmTibs())
 	{
 		a << "--image" << QString("%1::%2").arg(t.first.getImage())
-				.arg(b(t.second.absoluteFilePath()));
+				.arg(b(m_context->getUrls(), t.second.absoluteFilePath()));
 	}
 	return a;
 }
@@ -797,6 +804,66 @@ Prl::Expected<QStringList, PRL_RESULT> Getter::operator()(
 } // namespace Bitmap
 } // namespace Push
 } // namespace Work
+
+namespace Storage
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Image
+
+PRL_RESULT Image::build(quint64 size_, const QString& base_)
+{
+	VirtualDisk::qcow2PolicyList_type p(1, VirtualDisk::Policy::Qcow2::size_type(size_));
+	if (!base_.isEmpty())
+		p.push_back(VirtualDisk::Policy::Qcow2::base_type(base_));
+	return VirtualDisk::Qcow2::create(m_path, p);
+}
+
+void Image::remove() const
+{
+	QFile(m_path).remove();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Nbd
+
+PRL_RESULT Nbd::start(const Image& image_, quint32 flags_)
+{
+	QTcpServer s;
+	if (!s.listen()) {
+		WRITE_TRACE(DBG_FATAL, "Failed to reserve port for NBD server!");
+		return PRL_ERR_BACKUP_INTERNAL_ERROR;
+	}
+	QHostAddress a = s.serverAddress();
+	quint16 port = s.serverPort();
+	s.close();
+
+	VirtualDisk::qcow2PolicyList_type p(1, VirtualDisk::Policy::Qcow2::port_type(port));
+	if (!(flags_ & PBT_UNCOMPRESSED))
+	{
+		p.push_back(VirtualDisk::Policy::Qcow2::compressed_type(true));
+		// Compressed data is not aligned. Enable cache for speedup
+		p.push_back(VirtualDisk::Policy::Qcow2::cached_type(true));
+	}
+	PRL_RESULT e = m_nbd.open(image_.getPath(), PRL_DISK_WRITE, p);
+	if (PRL_SUCCEEDED(e)) 
+		m_url = QString("nbd://%1:%2").arg(a.toString()).arg(port);
+	return e;
+}
+
+void Nbd::stop()
+{
+	if (m_url.isEmpty())
+		return;
+	m_url.clear();
+	m_nbd.close();
+}
+
+QString Nbd::getUrl() const
+{
+	return m_url;
+}
+
+} // namespace Storage
 } // namespace Backup
 
 ///////////////////////////////////////////////////////////////////////////////

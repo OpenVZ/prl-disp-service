@@ -79,6 +79,9 @@ class Task_RestoreVmBackupSource : public Task_BackupHelper
 {
 	Q_OBJECT
 
+	typedef QPair< QString,
+		QSharedPointer< ::Backup::Storage::Nbd> > archive_type;
+
 public:
 	Task_RestoreVmBackupSource(
 		SmartPtr<CDspDispConnection> &,
@@ -109,14 +112,15 @@ private:
  
 	WaiterTillHandlerUsingObject m_waiter;
 
+	QList<archive_type> m_nbds;
+
 private:
 	PRL_RESULT restore(const ::Backup::Work::object_type& variant_);
 	PRL_RESULT restoreVmABackup(SmartPtr<CVmConfiguration> ve_);
 	PRL_RESULT restoreVmVBackup(SmartPtr<CVmConfiguration> ve_);
 	PRL_RESULT sendFiles(IOSendJob::Handle& job_);
 	PRL_RESULT sendStartReply(const SmartPtr<CVmConfiguration>& ve_, IOSendJob::Handle& job_);
-	static void restoreImage(const SmartPtr<IOPackage> p_,
-		SmartPtr<CDspDispConnection> connection_, quint32 timeout_);
+	void mountImage(const SmartPtr<IOPackage> p_);
 
 private slots:
 	void clientDisconnected(IOSender::Handle h);
@@ -135,7 +139,7 @@ public:
 		CProtoCommandPtr,
 		const SmartPtr<IOPackage> &);
 	virtual ~Task_RestoreVmBackupTarget();
-	PRL_RESULT sendRestoreImageRequest(const QString&, const QString&);
+	Prl::Expected<QString, PRL_RESULT> sendMountImageRequest(const QString&);
 
 protected:
 	virtual PRL_RESULT prepareTask();
