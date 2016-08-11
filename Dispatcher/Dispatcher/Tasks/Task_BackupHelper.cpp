@@ -575,6 +575,7 @@ QStringList VCommand::buildArgs(object_type& variant_)
 	a << "-p" << m_context->getBackupUuid();
 	if (m_context->getFlags() & PBT_UNCOMPRESSED)
 		a << "--uncompressed";
+	a << "--limit-speed" << QString::number(m_context->getBandwidth());
 	a << "--disp-mode";
 	return a;
 }
@@ -1919,4 +1920,12 @@ PRL_RESULT Task_BackupHelper::CloneHardDiskState(const QString &sDiskImage,
 	Q_UNUSED(sSnapshotUuid);
 	Q_UNUSED(sDstDirectory);
 	return PRL_ERR_UNIMPLEMENTED;
+}
+
+quint64 Task_BackupHelper::getBandwidth() const
+{
+	QString r;
+	CVzHelper::get_vz_config_param("VZ_TOOLS_IOLIMIT", r);
+
+	return r.toULongLong();
 }
