@@ -38,6 +38,7 @@
 #include "Task_DispToDispConnHelper.h"
 #include "CDspClient.h"
 #include "prlcommon/IOService/IOCommunication/IOClient.h"
+#include "prlcommon/VirtualDisk/Qcow2Disk.h"
 #include "Libraries/VmFileList/CVmFileListCopy.h"
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "prlxmlmodel/BackupTree/VmItem.h"
@@ -128,6 +129,42 @@ private:
 };
 
 } // namespace Process
+
+namespace Storage
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Image
+
+struct Image
+{
+	explicit Image(const QString& path_) : m_path(path_) {}
+
+	PRL_RESULT build(quint64 size_, const QString& base_);
+	void remove() const;
+	const QString& getPath() const
+	{
+		return m_path;
+	}
+
+private:
+	QString m_path;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Nbd
+
+struct Nbd
+{
+	PRL_RESULT start(const Image& image_, quint32 flags_);
+	void stop();
+	QString getUrl() const;
+
+private:
+	QString m_url;
+	VirtualDisk::Qcow2 m_nbd;
+};
+
+} // namespace Storage
 } // namespace Backup
 
 enum _PRL_BACKUP_STEP {
@@ -232,15 +269,13 @@ namespace Work
 
 struct UrlBuilder
 {
-	typedef ::Backup::Activity::Object::componentList_type componentList_type;
+	explicit UrlBuilder(const QString& server_) : m_hostname(server_) {}
 
-	UrlBuilder(const componentList_type& urls_, const QString& server_)
-		: m_urls(urls_), m_hostname(server_) {}
-
-	QString operator()(const QString& path_);
+	QString operator()(const QString& url_) const;
+	QString operator()(const ::Backup::Activity::Object::componentList_type& urls_,
+			const QString& path_) const;
 
 private:
-	componentList_type m_urls;
 	QString m_hostname;
 };
 

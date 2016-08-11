@@ -196,7 +196,7 @@ void CDspDispConnectionsManager::handleToDispatcherPackage ( const IOSender::Han
 			if (IS_FILE_COPY_PACKAGE(p->header.type) ||
 				IS_ABACKUP_PROXY_PACKAGE(p->header.type) ||
 				is_migrate_package(p->header.type) ||
-				(p->header.type == VmBackupRestoreImage) ||
+				(p->header.type == VmBackupMountImage) ||
 				(p->header.type == CtMigrateCmd))
 			{
 				/* retransmit package to task */

@@ -282,6 +282,9 @@ void Task_RestoreVmBackupSource::finalizeTask()
 {
 	m_cABackupServer.kill();
 
+	foreach(const archive_type& f, m_nbds)
+		f.second->stop();
+
 	if (m_bBackupLocked)
 		unlockShared(m_sBackupUuid);
 	m_bBackupLocked = false;
@@ -444,37 +447,25 @@ void Task_RestoreVmBackupSource::handleABackupPackage(IOSender::Handle h, const 
 		m_cABackupServer.kill();
 }
 
-void Task_RestoreVmBackupSource::restoreImage(const SmartPtr<IOPackage> p_,
-		SmartPtr<CDspDispConnection> connection_, quint32 timeout_)
+void Task_RestoreVmBackupSource::mountImage(const SmartPtr<IOPackage> p_)
 {
-	QString to = UTF8_2QSTR(p_->buffers[0].getImpl());
-	QString from = UTF8_2QSTR(p_->buffers[1].getImpl());
-	if (to.isEmpty() || from.isEmpty()) {
-		WRITE_TRACE(DBG_FATAL, "Invalid VmBackupRestoreImage command");
-		return;
+	QString a = UTF8_2QSTR(p_->buffers[0].getImpl());
+	::Backup::Storage::Image i(a);
+	QSharedPointer< ::Backup::Storage::Nbd> n(new ::Backup::Storage::Nbd());
+	PRL_RESULT e = n->start(i, m_nFlags);
+	IOSendJob::Handle j;
+	if (PRL_FAILED(e))
+		j = m_pDispConnection->sendSimpleResponse(p_, e);
+	else {
+		m_nbds << qMakePair(a, n);
+
+		QByteArray url(n->getUrl().toUtf8());
+		SmartPtr<IOPackage> r = IOPackage::createInstance(VmBackupRestoreImage, 1, p_);
+		r->fillBuffer(0, IOPackage::RawEncoding, url.constData(), url.size()+1);
+		j = m_pDispConnection->sendPackage(r);
 	}
 
-	QString format = (QFileInfo(to).suffix().startsWith("qcow2") ||
-			QFileInfo(to).suffix() == "hdd") ? "qcow2" : "raw";
-	QStringList cmdline = QStringList() << QEMU_IMG << "convert" << "-O" << format
-			<< "-S" << "64k" << "-t" << "none" << from << to;
-
-	QProcess process;
-	QString out;
-	WRITE_TRACE(DBG_FATAL, "Run cmd: %s", QSTR2UTF8(cmdline.join(" ")));
-	PRL_RESULT e = PRL_ERR_SUCCESS;
-	if (!HostUtils::RunCmdLineUtility(cmdline.join(" "), out, -1, &process))
-	{
-		WRITE_TRACE(DBG_FATAL, "Cannot restore hdd %s: %s", QSTR2UTF8(to),
-				process.readAllStandardError().constData());
-		e = PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
-	} else
-		WRITE_TRACE(DBG_DEBUG, "qemu-img output:\n%s", qPrintable(out));
-
-	// send reply to target side
-	IOSendJob::Handle j = connection_->sendSimpleResponse(p_, e);
-	IOServerInterface_Client &s(CDspService::instance()->getIOServer());
-	if (s.waitForSend(j, timeout_) != IOSendJob::Success)
+	if (m_ioServer.waitForSend(j, m_nTimeout) != IOSendJob::Success)
 		WRITE_TRACE(DBG_FATAL, "[%s] Package sending failure", __FUNCTION__);
 }
 
@@ -498,10 +489,8 @@ void Task_RestoreVmBackupSource::handleVBackupPackage(IOSender::Handle h, const 
 		return;
 	}
 
-	if (p->header.type == VmBackupRestoreImage) {
-		QtConcurrent::run(&Task_RestoreVmBackupSource::restoreImage,
-			p, m_pDispConnection, m_nTimeout);
-	}
+	if (p->header.type == VmBackupMountImage)
+		mountImage(p);
 }
 
 void Task_RestoreVmBackupSource::clientDisconnected(IOSender::Handle h)

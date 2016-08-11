@@ -43,6 +43,7 @@
 #include "prlcommon/PrlUuid/Uuid.h"
 
 #include "Task_RestoreVmBackup.h"
+#include "Task_BackupHelper_p.h"
 #include "Tasks/Task_RegisterVm.h"
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "CDspService.h"
@@ -412,7 +413,28 @@ PRL_RESULT Assistant::operator()(const QStringList& argv_, SmartPtr<Chain> custo
 
 PRL_RESULT Assistant::operator()(const QString& image_, const QString& archive_) const
 {
-	return m_task->sendRestoreImageRequest(image_, archive_);
+	Prl::Expected<QString, PRL_RESULT> e = m_task->sendMountImageRequest(archive_);
+	if (e.isFailed())
+		return e.error();
+
+	QString u = ::Backup::Work::UrlBuilder(m_task->getServerHostname())(e.value());
+	QString format = (QFileInfo(image_).suffix().startsWith("qcow2") ||
+			QFileInfo(image_).suffix() == "hdd") ? "qcow2" : "raw";
+	QStringList cmdline = QStringList() << QEMU_IMG << "convert" << "-O" << format
+			<< "-S" << "64k" << "-t" << "none" << u << image_;
+
+	QProcess process;
+	QString out;
+	WRITE_TRACE(DBG_FATAL, "Run cmd: %s", QSTR2UTF8(cmdline.join(" ")));
+	if (!HostUtils::RunCmdLineUtility(cmdline.join(" "), out, -1, &process))
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot restore hdd %s: %s", QSTR2UTF8(image_),
+				process.readAllStandardError().constData());
+		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
+	}
+
+	WRITE_TRACE(DBG_DEBUG, "qemu-img output:\n%s", qPrintable(out));
+	return PRL_ERR_SUCCESS;
 }
 
 namespace Query
@@ -873,12 +895,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::prepareTask()
 	if (PRL_FAILED(nRetCode = sendStartRequest()))
 		goto exit;
 
-	if (BACKUP_PROTO_V4 <= m_nRemoteVersion &&
-		!CDspService::instance()->getShellServiceHelper().isLocalAddress(m_sServerHostname)) {
-		WRITE_TRACE(DBG_FATAL, "Restore from the remote server is not implemented");
-		nRetCode = PRL_ERR_UNIMPLEMENTED;
-		goto exit;
-	}
 	if (m_nFlags & PBT_RESTORE_TO_COPY)
 		m_sVmUuid = Uuid::createUuid().toString();
 	else if (m_sVmUuid.isEmpty())
@@ -1798,19 +1814,22 @@ PRL_RESULT Task_RestoreVmBackupTarget::sendStartRequest()
 }
 
 /* send request to restore image for remote dispatcher and wait reply from dispatcher */
-PRL_RESULT Task_RestoreVmBackupTarget::sendRestoreImageRequest(const QString& image_,
+Prl::Expected<QString, PRL_RESULT> Task_RestoreVmBackupTarget::sendMountImageRequest(
 		const QString& archive_)
 {
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	SmartPtr<IOPackage> r, p = IOPackage::createInstance(VmBackupRestoreImage, 2);
-	p->fillBuffer(0, IOPackage::RawEncoding, QSTR2UTF8(image_), image_.size()+1);
-	p->fillBuffer(1, IOPackage::RawEncoding, QSTR2UTF8(archive_), archive_.size()+1);
+	SmartPtr<IOPackage> r, p = IOPackage::createInstance(VmBackupMountImage, 1);
+	QByteArray d = archive_.toUtf8();
+	p->fillBuffer(0, IOPackage::RawEncoding, d.constData(), d.size()+1);
 	PRL_RESULT output;
-	if (PRL_FAILED(output = SendReqAndWaitReplyLong(p, r, m_nBackupTimeout * 1000)))
+	if (PRL_FAILED(output = SendReqAndWaitReply(p, r)))
 		return output;
 
+	if (r->header.type == VmBackupRestoreImage)
+		return UTF8_2QSTR(r->buffers[0].getImpl());
+		
 	if (r->header.type != DispToDispResponseCmd)
 	{
 		WRITE_TRACE(DBG_FATAL, "Invalid package header:%x, expected header:%x",

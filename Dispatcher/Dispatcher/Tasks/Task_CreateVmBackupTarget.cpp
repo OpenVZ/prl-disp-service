@@ -42,68 +42,6 @@
 #include "Task_CreateVmBackup.h"
 #include "Task_BackupHelper_p.h"
 
-namespace Backup
-{
-namespace Target
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Image
-
-PRL_RESULT Image::build(quint64 size_, const QString& base_)
-{
-	VirtualDisk::qcow2PolicyList_type p(1, VirtualDisk::Policy::Qcow2::size_type(size_));
-	if (!base_.isEmpty())
-		p.push_back(VirtualDisk::Policy::Qcow2::base_type(base_));
-	return VirtualDisk::Qcow2::create(m_path, p);
-}
-
-void Image::remove() const
-{
-	QFile(m_path).remove();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Nbd
-
-PRL_RESULT Nbd::start(const Image& image_, quint32 flags_)
-{
-	QTcpServer s;
-	if (!s.listen()) {
-		WRITE_TRACE(DBG_FATAL, "Failed to reserve port for NBD server!");
-		return PRL_ERR_BACKUP_INTERNAL_ERROR;
-	}
-	QHostAddress a = s.serverAddress();
-	quint16 port = s.serverPort();
-	s.close();
-
-	VirtualDisk::qcow2PolicyList_type p(1, VirtualDisk::Policy::Qcow2::port_type(port));
-	if (!(flags_ & PBT_UNCOMPRESSED))
-	{
-		p.push_back(VirtualDisk::Policy::Qcow2::compressed_type(true));
-		// Compressed data is not aligned. Enable cache for speedup
-		p.push_back(VirtualDisk::Policy::Qcow2::cached_type(true));
-	}
-	PRL_RESULT e = m_nbd.open(image_.getPath(), PRL_DISK_WRITE, p);
-	if (PRL_SUCCEEDED(e)) 
-		m_url = QString("nbd://%1:%2").arg(a.toString()).arg(port);
-	return e;
-}
-
-void Nbd::stop()
-{
-	if (m_url.isEmpty())
-		return;
-	m_nbd.close();
-}
-
-QString Nbd::getUrl() const
-{
-	return m_url;
-}
-
-} // namespace Target
-} // namespace Backup
-
 /*******************************************************************************
 
  Vm & Ct Backup creation task for server
@@ -280,14 +218,14 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
 	}
 
 	for (int i = 0; i < l.size(); ++i) {
-		::Backup::Target::Image a(l.at(i).second.absoluteFilePath());
+		::Backup::Storage::Image a(l.at(i).second.absoluteFilePath());
 		QString base((x.size() ? x.at(i).second.absoluteFilePath() : ""));
 		PRL_RESULT e = a.build(l.at(i).first.getDevice().getSize() << 20, base);
 		if (PRL_FAILED(e))
 			return e;
 		m_lstTibFileList << l.at(i).second.fileName();
 
-		QSharedPointer< ::Backup::Target::Nbd> n(new ::Backup::Target::Nbd());
+		QSharedPointer< ::Backup::Storage::Nbd> n(new ::Backup::Storage::Nbd());
 		m_createdTibs << qMakePair(a, n);
 		if (PRL_FAILED((e = n->start(a, m_nFlags))))
 			return e;
