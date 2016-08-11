@@ -217,97 +217,225 @@ namespace Exclusive
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
-bool Unit::conflicts(const Unit& party_) const
+boost::logic::tribool Unit::isReconciled(const Unit& party_) const
 {
-	bool bIsExecCmdStart = (PVE::DspCmdVmStart == m_command || PVE::DspCmdVmStartEx == m_command);
-	if (party_.getCommand() != m_command)
+	PVE::IDispatcherCommands x = party_.getCommand();
+	if (x == m_command)
 	{
-		if ( PVE::DspCmdVmLock == party_.getCommand() )
-			return m_session != party_.getSession() && !bIsExecCmdStart;
-
-		/* set of operations, conflicts with backup operations */
-		// TODO/FIXME: if need support more then 4 command
-		//       need to implement simple MATRIX instead this ugly if/else logic.
-
-		bool bIsCmdStart = (PVE::DspCmdVmStart == party_.getCommand() || PVE::DspCmdVmStartEx == party_.getCommand());
-		bool bVmIsLockedInCurrentSession = (PVE::DspCmdVmLock == m_command &&
-			m_session == party_.getSession());
-
-		if( (bIsExecCmdStart && PVE::DspCmdDirVmEditCommit == party_.getCommand())
-			|| (PVE::DspCmdDirVmEditCommit == m_command && bIsCmdStart)
-			|| (PVE::DspCmdDirVmEditCommit == m_command && PVE::DspCmdCtlVmEditWithRename == party_.getCommand())
-			|| (bIsExecCmdStart && PVE::DspCmdDirVmMigrate == party_.getCommand())
-			|| (bIsExecCmdStart && PVE::DspCmdDirVmMigrateClone == party_.getCommand())
-
-			|| ( ! bIsExecCmdStart && PVE::DspCmdCtlVmEditWithHardwareChanged == party_.getCommand())
-			|| (PVE::DspCmdCtlVmEditWithHardwareChanged == m_command && ! bIsCmdStart)
-
-			|| ( ! bIsExecCmdStart && PVE::DspCmdCtlVmEditFirewall == party_.getCommand())
-			|| (PVE::DspCmdCtlVmEditFirewall == m_command && ! bIsCmdStart)
-
-			|| ( ! bIsExecCmdStart && PVE::DspCmdCtlVmEditBootcampReconfigure == party_.getCommand())
-			|| (PVE::DspCmdCtlVmEditBootcampReconfigure == m_command && ! bIsCmdStart)
-			|| (bVmIsLockedInCurrentSession)
-			|| (bIsExecCmdStart && PVE::DspCmdCreateVmBackup == party_.getCommand())
-			|| (bIsExecCmdStart && PVE::DspCmdVmCompact == party_.getCommand())
-			|| (bIsExecCmdStart && PVE::DspCmdCtlUpdateShadowVm == party_.getCommand())
-			|| (bIsCmdStart && PVE::DspCmdVmCompact == m_command)
-			|| (PVE::DspCmdDirVmEditCommit == party_.getCommand() && PVE::DspCmdVmCompact == m_command)
-			)
+		switch (x)
 		{
+		case PVE::DspCmdDirVmClone:
+		case PVE::DspCmdDirCopyImage:
+		case PVE::DspCmdDirVmEditCommit:
+		case PVE::DspCmdDirVmMigrateClone:
+			return true;
+		default:
 			return false;
 		}
-		else if ((PVE::DspCmdRestoreVmBackup == party_.getCommand()))
-		{
-			return getReference()->hasBackupConflict(m_command);
-		}
-		else if (PVE::DspCmdCreateVmBackup == m_command) {
-			if (PVE::DspCmdVmCreateSnapshot == party_.getCommand() &&
-					m_taskId == party_.getTaskId())
-			{
-				// Allow snapshot creation under CreateVmBackup task
-				return false;
-			}
-			return getReference()->hasBackupConflict(party_.getCommand());
-		}
-		else if (PVE::DspCmdRestoreVmBackup == m_command) {
-			return (getReference()->hasBackupConflict(party_.getCommand())
-				|| getReference()->isSnapshot(party_.getCommand())
-				|| bIsCmdStart);
-		}
-		else if ((PVE::DspCmdVmCreateSnapshot == party_.getCommand()) ||
-			(PVE::DspCmdVmSwitchToSnapshot == party_.getCommand()) ||
-			(PVE::DspCmdVmDeleteSnapshot == party_.getCommand()) ||
-			(PVE::DspCmdCtlVmCommitDiskUnfinished == party_.getCommand()))
-		{
-			return getReference()->hasSnapshotConflict(m_command);
-		}
-		else if (PVE::DspCmdVmResizeDisk == party_.getCommand() &&
-				PVE::DspCmdDirVmEditCommit == m_command &&
-				m_taskId == party_.getTaskId())
-			return false;
-		else if (getReference()->isClone(party_.getCommand()) && getReference()->isClone(m_command))
-			return false;
-
-		return true;
 	}
-	// accept the same operation for VM
 	switch (m_command)
 	{
-	case PVE::DspCmdDirVmClone:
 	case PVE::DspCmdDirVmEditCommit:
-	case PVE::DspCmdDirCopyImage:
-	case PVE::DspCmdDirVmMigrateClone:
-		/*
-		 * allow more then one simultaneous tasks for the same VM template migration in clone mode,
-		 * (https://jira.sw.ru/browse/PSBM-13328)
-		 */
-		return false;
+		switch (x)
+		{
+		case PVE::DspCmdVmStart:
+		case PVE::DspCmdVmResume:
+		case PVE::DspCmdVmStartEx:
+			return true;
+		default:
+			break;
+		}
+		break;
+
+	case PVE::DspCmdVmCompact:
+		switch (x)
+		{
+		case PVE::DspCmdVmStartEx:
+			return true;
+		default:
+			break;
+		}
+		break;
+
+	case PVE::DspCmdCtlVmEditFirewall:
+	case PVE::DspCmdCtlVmEditBootcampReconfigure:
+	case PVE::DspCmdCtlVmEditWithHardwareChanged:
+		switch (x)
+		{
+		case PVE::DspCmdVmStartEx:
+			break;
+		default:
+			return true;
+		}
+		break;
 	default:
-		// cmd == execCmd
-		// reject the same operation for VM
-		return true;
+		if (getReference()->isClone(m_command) && getReference()->isClone(x))
+			return true;
 	}
+	return boost::logic::indeterminate;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Newcomer
+
+boost::logic::tribool Newcomer::isReconciled(const Native& native_) const
+{
+	boost::logic::tribool b = Unit::isReconciled(native_);
+	if (!boost::logic::indeterminate(b))
+		return b;
+
+	PVE::IDispatcherCommands x = native_.getCommand();
+	switch (getCommand())
+	{
+	case PVE::DspCmdVmLock:
+		switch (x)
+		{
+		case PVE::DspCmdVmStartEx:
+			return true;
+		default:
+			return getSession() == native_.getSession();
+		}
+
+	case PVE::DspCmdDirVmEditCommit:
+		switch (x)
+		{
+		case PVE::DspCmdVmCompact:
+			return true;
+		default:
+			break;
+		}
+		break;
+
+	case PVE::DspCmdCtlVmEditWithRename:
+		switch (x)
+		{
+		case PVE::DspCmdDirVmEditCommit:
+			return true;
+		default:
+			break;
+		}
+		break;
+
+	case PVE::DspCmdDirVmMigrate:
+	case PVE::DspCmdDirVmMigrateClone:
+	case PVE::DspCmdVmCompact:
+	case PVE::DspCmdCreateVmBackup:
+	case PVE::DspCmdCtlUpdateShadowVm:
+		switch (x)
+		{
+		case PVE::DspCmdVmStartEx:
+			return true;
+		default:
+			break;
+		}
+		break;
+
+	case PVE::DspCmdRestoreVmBackup:
+		switch (x)
+		{
+		case PVE::DspCmdVmStart:
+		case PVE::DspCmdVmResume:
+		case PVE::DspCmdVmStartEx:
+			return false;
+		default:
+			return !getReference()->hasBackupConflict(x);
+		}
+
+	case PVE::DspCmdVmCreateSnapshot:
+	case PVE::DspCmdVmDeleteSnapshot:
+	case PVE::DspCmdVmSwitchToSnapshot:
+	case PVE::DspCmdCtlVmCommitDiskUnfinished:
+		return !getReference()->hasSnapshotConflict(x);
+
+	case PVE::DspCmdVmResizeDisk:
+		switch (x)
+		{
+		case PVE::DspCmdDirVmEditCommit:
+			if (getTaskId() == native_.getTaskId())
+				return true;
+		default:
+			break;
+		}
+		break;
+
+	case PVE::DspCmdVmStartEx:
+		switch (x)
+		{
+		case PVE::DspCmdVmStart:
+		case PVE::DspCmdVmResume:
+		case PVE::DspCmdDirVmMigrate:
+		case PVE::DspCmdDirVmMigrateClone:
+		case PVE::DspCmdVmSwitchToSnapshot:
+			return true;
+		default:
+			break;
+		}
+		break;
+
+	default:
+		break;
+	}
+	return boost::logic::indeterminate;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Native
+
+bool Native::isReconciled(const Newcomer& newcomer_) const
+{
+	boost::logic::tribool b;
+	if (!boost::logic::indeterminate(b = Unit::isReconciled(newcomer_)))
+		return b;
+
+	if (!boost::logic::indeterminate(b = newcomer_.isReconciled(*this)))
+		return b;
+
+	PVE::IDispatcherCommands x = newcomer_.getCommand();
+	switch (getCommand())
+	{
+	case PVE::DspCmdVmLock:
+		return getSession() == newcomer_.getSession();
+
+	case PVE::DspCmdCreateVmBackup:
+		switch (x)
+		{
+		case PVE::DspCmdVmCreateSnapshot:
+			if (getTaskId() == newcomer_.getTaskId())
+			{
+				// Allow snapshot creation under CreateVmBackup task
+				return true;
+			}
+		default:
+			return !getReference()->hasBackupConflict(x);
+		}
+		break;
+
+	case PVE::DspCmdRestoreVmBackup:
+		switch (x)
+		{
+		case PVE::DspCmdVmStart:
+		case PVE::DspCmdVmResume:
+			return false;
+		default:
+			return !(getReference()->hasBackupConflict(x) ||
+							getReference()->isSnapshot(x));
+		}
+		break;
+
+	case PVE::DspCmdVmStartEx:
+		switch (x)
+		{
+		case PVE::DspCmdVmResume:
+			return true;
+		default:
+			break;
+		}
+		break;
+
+	default:
+		break;
+	}
+	return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -413,12 +541,13 @@ PRL_RESULT Conflict::operator()()
 
 Conflict* Gang::join(const Unit& party_)
 {
-	foreach(const Unit& x, m_store)
+	Newcomer n(party_);
+	foreach(const Native& x, m_store)
 	{
-		if (x.conflicts(party_))
+		if (!x.isReconciled(n))
 			return new Conflict(x, party_, m_resolver);
 	}
-	m_store.insert(party_.getCommand(), party_);
+	m_store.insert(party_.getCommand(), Native(party_));
 	return NULL;
 }
 
@@ -515,6 +644,7 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 	case PVE::DspCmdDirCopyImage:
 	case PVE::DspCmdDirVmMove:
 	case PVE::DspCmdCtlVmCommitDiskUnfinished:
+	case PVE::DspCmdVmResume:
 		break;
 	default:
 		WRITE_TRACE(DBG_FATAL, "internal error: unsupported incomming cmd %#x", cmd );

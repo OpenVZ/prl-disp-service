@@ -39,6 +39,8 @@
 #ifndef __CDspVmDirHelper_p_H_
 #define __CDspVmDirHelper_p_H_
 
+#include <boost/logic/tribool.hpp>
+
 namespace Task
 {
 namespace Vm
@@ -70,11 +72,39 @@ struct Unit
 	}
 	bool conflicts(const Unit& party_) const;
 
+protected:
+	boost::logic::tribool isReconciled(const Unit& party_) const;
+
 private:
 	QString m_taskId;
 	IOSender::Handle m_session;
 	PVE::IDispatcherCommands m_command;
 
+};
+
+struct Native;
+///////////////////////////////////////////////////////////////////////////////
+// struct Newcomer
+
+struct Newcomer: Unit
+{
+	explicit Newcomer(const Unit& unit_): Unit(unit_)
+	{
+	}
+
+	boost::logic::tribool isReconciled(const Native& native_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Native
+
+struct Native: Unit
+{
+	explicit Native(const Unit& unit_): Unit(unit_)
+	{
+	}
+
+	bool isReconciled(const Newcomer& newcomer_) const;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -127,7 +157,7 @@ struct Gang
 	const Unit* findFirst(PVE::IDispatcherCommands command_) const;
 
 private:
-	typedef QMultiHash<PVE::IDispatcherCommands, Unit> store_type;
+	typedef QMultiHash<PVE::IDispatcherCommands, Native> store_type;
 
 	Event m_resolver;
 	store_type m_store;

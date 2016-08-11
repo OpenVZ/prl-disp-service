@@ -121,6 +121,24 @@ void Context::reply(const Libvirt::Result& result_) const
 		reply(PRL_ERR_SUCCESS);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Start
+
+template<class T>
+Libvirt::Result Start::do_(T policy_)
+{
+	Libvirt::Instrument::Agent::Vm::Unit a = getAgent();
+	CStatesHelper h(getConfig()->getVmIdentification()->getHomePath());
+	if (!h.savFileExists())
+		return policy_(a);
+
+	Libvirt::Result output = a.resume(h.getSavFileName());
+	if (output.isSucceed())
+		h.dropStateFiles();
+
+	return output;
+}
+
 namespace Need
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -852,47 +870,32 @@ struct Essence<PVE::DspCmdVmGuestLogout>
 };
 
 template<>
-struct Essence<PVE::DspCmdVmStart>: Need::Agent, Need::Config, Need::Context
+struct Essence<PVE::DspCmdVmStart>: Start, Need::Context
 {
 	Libvirt::Result operator()()
 	{
-		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
-		Libvirt::Result e = getAgent().getState(s);
-		if (e.isFailed())
-			return e;
+		Vcmmd::Frontend<Vcmmd::Unregistered> v(getContext().getVmUuid());
+		PRL_RESULT err = v(Vcmmd::Unregistered(getConfig()));
+		if (PRL_FAILED(err))
+			return Error::Simple(err);
+		Backup::Device::Service(getConfig())
+			.setContext(Backup::Device::Agent::Unit(getContext().getSession()))
+			.enable();
 
-		if (VMS_RUNNING == s)
-			return Error::Simple(PRL_ERR_FAILURE, "VM is already running");
-
-		CStatesHelper h(getConfig()->getVmIdentification()->getHomePath());
-		if (VMS_PAUSED == s)
-		{
-			e = h.savFileExists() ? getAgent().resume(h.getSavFileName()) :
-				getAgent().unpause();
-			if (e.isFailed())
-				return e;
-		}
-		else
-		{
-			Vcmmd::Frontend<Vcmmd::Unregistered> v(getContext().getVmUuid());
-			PRL_RESULT err = v(Vcmmd::Unregistered(getConfig()));
-			if (PRL_FAILED(err))
-				return Error::Simple(err);
-			Backup::Device::Service(getConfig())
-				.setContext(Backup::Device::Agent::Unit(getContext().getSession()))
-				.enable();
-
-			e = h.savFileExists() ? getAgent().resume(h.getSavFileName()) :
-				getAgent().start();
-			if (e.isFailed())
-				return e;
-			
+		Libvirt::Result output = do_(boost::bind(&Libvirt::Instrument::Agent::Vm::Unit::start, _1));
+		if (output.isSucceed())
 			v.commit();
-		}
-		if (h.savFileExists())
-			h.dropStateFiles();
 
-		return Libvirt::Result();
+		return output;
+	}
+};
+
+template<>
+struct Essence<PVE::DspCmdVmResume>: Start
+{
+	Libvirt::Result operator()()
+	{
+		return do_(boost::bind(&Libvirt::Instrument::Agent::Vm::Unit::unpause, _1));
 	}
 };
 
@@ -925,6 +928,18 @@ void Reactor<PVE::DspCmdVmStart>::react()
 
 template<>
 quint32 Reactor<PVE::DspCmdVmStart>::getInterval() const
+{
+	return 120;
+}
+
+template<>
+void Reactor<PVE::DspCmdVmResume>::react()
+{
+	m_context.reply(PRL_ERR_TIMEOUT);
+}
+
+template<>
+quint32 Reactor<PVE::DspCmdVmResume>::getInterval() const
 {
 	return 120;
 }
@@ -1067,6 +1082,16 @@ Libvirt::Result Visitor::operator()(T launcher_, boost::mpl::false_)
 	return Prepare::Policy<T>::do_(launcher_, m_context);
 }
 
+template<class T, PVE::IDispatcherCommands X>
+Libvirt::Result Visitor::operator()(Tag::Lock<X, T>)
+{
+	Libvirt::Result e = m_setup(X, m_context.getIdent(), m_context.getSession());
+	if (e.isFailed())
+		return e;
+
+	return (*this)(T());
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Gear
 
@@ -1089,6 +1114,41 @@ Libvirt::Result Gear::operator()(Reactor& reactor_)
 
 namespace Prepare
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Lock
+
+Lock::Lock(const CVmIdent& ident_, const IOSender::Handle& session_,
+	CDspVmDirHelper& service_):
+	m_ident(ident_), m_session(session_), m_service(&service_)
+{
+}
+
+Lock::~Lock()
+{
+	if (!m_command)
+		return;
+
+	m_service->unregisterExclusiveVmOperation
+		(m_ident.first, m_ident.second, m_command.get(), m_session);
+}
+
+PRL_RESULT Lock::operator()(PVE::IDispatcherCommands command_)
+{
+	if (PVE::DspCmdVmLock == command_)
+		return PRL_ERR_UNIMPLEMENTED;
+
+	if (m_command)
+		return PRL_ERR_INVALID_HANDLE;
+
+	PRL_RESULT e = m_service->registerExclusiveVmOperation
+		(m_ident.first, m_ident.second, command_, m_session);
+	if (PRL_FAILED(e))
+		return e;
+
+	m_command = command_;
+	return PRL_ERR_SUCCESS;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Extra
 
@@ -1143,6 +1203,24 @@ Libvirt::Result Extra::operator()
 	s.unlock();
 	m_tracker->add(a.take());
 	m_tracker->add(b.take());
+
+	return Libvirt::Result();
+}
+
+Libvirt::Result Extra::operator()(PVE::IDispatcherCommands name_,
+	const CVmIdent& ident_, const SmartPtr<CDspClient>& session_)
+{
+	if (!session_.isValid())
+		return Error::Simple(PRL_ERR_INVALID_ARG);
+
+	CDspVmDirHelper& h = CDspService::instance()->getVmDirHelper();
+	QScopedPointer<Lock> a(new Prepare::Lock
+		(ident_, session_->getSessionUuid(), h));
+	PRL_RESULT e = (*a)(name_);
+	if (PRL_FAILED(e))
+		return Error::Simple(e);
+
+	m_tracker->add(a.take());
 
 	return Libvirt::Result();
 }
@@ -1498,6 +1576,48 @@ private:
 	Context m_context;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Body<Tag::Special<PVE::DspCmdVmStart> >
+
+template<>
+struct Body<Tag::Special<PVE::DspCmdVmStart> >
+{
+	template<PVE::IDispatcherCommands X>
+	struct Translate
+	{
+		typedef Tag::Fork
+		<
+			Tag::Lock
+			<
+				X,
+				Tag::Timeout
+				<
+					Tag::State
+					<
+						Essence<X>,
+						Vm::Fork::State::Strict<VMS_RUNNING>
+					>,
+					Tag::Libvirt<X>
+				>
+			>
+		> schema_type;
+		typedef Details::Body<schema_type> type;
+	};
+
+	static void run(Context& context_)
+	{
+		switch (CDspVm::getVmState(context_.getIdent().first, context_.getIdent().second))
+		{
+		case VMS_PAUSED:
+			return Translate<PVE::DspCmdVmResume>::type::run(context_);
+		case VMS_RUNNING:
+			return context_.reply(Error::Simple(PRL_ERR_FAILURE, "VM is already running"));
+		default:
+			return Translate<PVE::DspCmdVmStart>::type::run(context_);
+		}
+	}
+};
+
 } // namespace Details
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1582,10 +1702,8 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmChangeSid] = map(Tag::Special<PVE::DspCmdVmChangeSid>());
 	m_map[PVE::DspCmdVmResetUptime] = map(Tag::Special<PVE::DspCmdVmResetUptime>());
 	m_map[PVE::DspCmdVmAuthWithGuestSecurityDb] = map(Tag::Special<PVE::DspCmdVmAuthWithGuestSecurityDb>());
-	m_map[PVE::DspCmdVmStart] = map(Tag::Fork<Tag::Timeout<Tag::State<Essence<PVE::DspCmdVmStart>,
-		Vm::Fork::State::Strict<VMS_RUNNING> >, Tag::Libvirt<PVE::DspCmdVmStart> > >());
-	m_map[PVE::DspCmdVmStartEx] = map(Tag::Fork<Tag::Timeout<Tag::State<Essence<PVE::DspCmdVmStart>,
-		Vm::Fork::State::Strict<VMS_RUNNING> >, Tag::Libvirt<PVE::DspCmdVmStart> > >());
+	m_map[PVE::DspCmdVmStart] = map(Tag::Special<PVE::DspCmdVmStart>());
+	m_map[PVE::DspCmdVmStartEx] = m_map[PVE::DspCmdVmStart];
 	m_map[PVE::DspCmdVmCreateSnapshot] = map(Tag::Fork<Essence<PVE::DspCmdVmCreateSnapshot> >());
 	m_map[PVE::DspCmdVmSwitchToSnapshot] = map(Tag::Fork<
 		Tag::State<Snapshot::Revert<Snapshot::Vcmmd<Snapshot::Switch> >, Vm::Fork::State::Snapshot::Switch> >());

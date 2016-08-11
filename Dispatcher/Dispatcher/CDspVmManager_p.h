@@ -47,6 +47,7 @@
 #include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
 #include <Libraries/ProtoSerializer/CProtoSerializer.h>
 
+class CDspVmDirHelper;
 
 namespace Command
 {
@@ -198,6 +199,14 @@ struct IsAsync<Tag::Timeout<T, U> >: boost::mpl::true_
 {
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Lock
+
+template<PVE::IDispatcherCommands X, class T>
+struct Lock
+{
+};
+
 } // namespace Tag
 
 namespace Need
@@ -289,6 +298,16 @@ private:
 };
 
 } // namespace Need
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Start
+
+struct Start: Need::Agent, Need::Config
+{
+protected:
+	template<class T>
+	Libvirt::Result do_(T policy_);
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Essence
@@ -429,6 +448,23 @@ struct Policy<T, typename boost::enable_if<boost::mpl::empty<typename Mixture<T>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Lock
+
+struct Lock: QObject
+{
+	Lock(const CVmIdent& ident_, const IOSender::Handle& session_, CDspVmDirHelper& service_);
+	~Lock();
+
+	PRL_RESULT operator()(PVE::IDispatcherCommands command_);
+
+private:
+	CVmIdent m_ident;
+	IOSender::Handle m_session;
+	CDspVmDirHelper* m_service;
+	boost::optional<PVE::IDispatcherCommands> m_command;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Extra
 
 struct Extra
@@ -438,6 +474,8 @@ struct Extra
 	{
 	}
 
+	Libvirt::Result operator()(PVE::IDispatcherCommands name_, const CVmIdent& ident_,
+		const SmartPtr<CDspClient>& session_);
 	Libvirt::Result operator()(quint32 timeout_, Fork::Reactor* reactor_);
 
 	Libvirt::Result operator()
@@ -682,6 +720,9 @@ struct Visitor
 	Libvirt::Result operator()
 		(Tag::Timeout<T, Tag::Libvirt<X> >, boost::mpl::true_ = boost::mpl::true_());
 
+	template<class T, PVE::IDispatcherCommands X>
+	Libvirt::Result operator()(Tag::Lock<X, T>);
+
 private:
 	Context m_context;
 	QEventLoop* m_loop;
@@ -788,27 +829,27 @@ private:
 template<class T, class Enabled = void>
 struct Gear
 {
-        template<class U>
-        static Libvirt::Result run(const U& load_)
-        {
-                return T()(load_);
-        }
+	template<class U>
+	static Libvirt::Result run(const U& load_)
+	{
+		return T()(load_);
+	}
 };
 
 template<class T>
 struct Gear<T, typename boost::enable_if<Tag::IsAsync<T> >::type>
 {
-        template<class U>
-        static Libvirt::Result run(const U& load_)
-        {
-                QEventLoop x;
-                Async::Gear<T, U> g(load_, x);
-                Libvirt::Result e = Fork::Gear(x)(g);
-                if (e.isFailed())
-                        return e;
+	template<class U>
+	static Libvirt::Result run(const U& load_)
+	{
+		QEventLoop x;
+		Async::Gear<T, U> g(load_, x);
+		Libvirt::Result e = Fork::Gear(x)(g);
+		if (e.isFailed())
+			return e;
 
-                return g.getResult();
-        }
+		return g.getResult();
+	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
