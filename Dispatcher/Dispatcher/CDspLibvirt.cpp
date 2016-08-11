@@ -834,9 +834,20 @@ int deviceDisconnect(virConnectPtr , virDomainPtr domain_, const char* device_,
 int trayChange(virConnectPtr , virDomainPtr domain_,
 		const char* device_, int reason_, void* opaque_)
 {
+	Model::Tray t(domain_, device_);
 	Model::Coarse* v = (Model::Coarse* )opaque_;
-	if (reason_ == 0) // Tray opened
-		v->disconnectCd(domain_, device_);
+	switch (reason_)
+	{
+	case VIR_DOMAIN_EVENT_TRAY_CHANGE_OPEN:
+		v->show(domain_, boost::bind(&Model::Tray::open, t, _1));
+		break;
+	case VIR_DOMAIN_EVENT_TRAY_CHANGE_CLOSE:
+		v->show(domain_, boost::bind(&Model::Tray::close, t, _1));
+		break;
+	default:
+		WRITE_TRACE(DBG_WARNING, "Unknown trayChange reason %d", reason_);
+		break;
+	}
 	return 0;
 }
 
@@ -967,6 +978,44 @@ void error(void* opaque_, virErrorPtr value_)
 
 namespace Model
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Tray
+
+Tray::Tray(virDomainPtr domain_, const char* alias_):
+	m_alias(alias_), m_agent(domain_)
+{
+	virDomainRef(domain_);
+}
+
+void Tray::open(Registry::Reactor& vm_)
+{
+	boost::optional<CVmOpticalDisk> m = find();
+	if (m)
+		vm_.openTray(m.get());
+}
+
+void Tray::close(Registry::Reactor& vm_)
+{
+	boost::optional<CVmOpticalDisk> m = find();
+	if (m)
+		vm_.closeTray(m.get());
+}
+
+boost::optional<CVmOpticalDisk> Tray::find() const
+{
+	CVmConfiguration c;
+	Libvirt::Result r = m_agent.getConfig(c, true);
+	if (r.isFailed())
+		return boost::none;
+
+	foreach(CVmOpticalDisk* x, c.getVmHardwareList()->m_lstOpticalDisks)
+	{
+		if (-1 != m_alias.indexOf(x->getAlias()))
+			return *x;
+	}
+	return boost::none;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Domain
 
@@ -1144,33 +1193,6 @@ void Coarse::pullInfo(virDomainPtr domain_)
 	}
 	if (NULL != q)
 		QThreadPool::globalInstance()->start(q);
-}
-
-void Coarse::disconnectCd(virDomainPtr domain_, const QString& alias_)
-{
-	PRL_RESULT res;
-	QString vmUuid(getUuid(domain_));
-	QString vmDir = CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->getDefaultVmDirectory();
-
-	SmartPtr<CVmConfiguration> vm = CDspService::instance()->getVmDirHelper()
-		.getVmConfigByUuid(vmDir, vmUuid, res);
-	if (!vm) {
-		WRITE_TRACE(DBG_WARNING, "Unable to disconnect cdrom %s for VM %s", QSTR2UTF8(alias_), QSTR2UTF8(vmUuid));
-		return;
-	}
-
-	QList<CVmOpticalDisk* >::iterator last(vm->getVmHardwareList()->m_lstOpticalDisks.end());
-	QList<CVmOpticalDisk* >::iterator it(
-			std::find_if(vm->getVmHardwareList()->m_lstOpticalDisks.begin(), last,
-				boost::bind(&CVmOpticalDisk::getAlias, _1) == boost::cref(alias_)));
-	if (it == last)
-		return;
-	(*it)->setConnected(PVE::DeviceDisconnected);
-	CVmEvent e;
-	e.addEventParameter(new CVmEventParameter(PVE::String,
-				(*it)->toString(), EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
-	Task_EditVm::atomicEditVmConfigByVm(vmDir, vmUuid,
-			e, CDspClient::makeServiceUser(vmDir));
 }
 
 void Coarse::disconnectDevice(virDomainPtr domain_, const QString& alias_)

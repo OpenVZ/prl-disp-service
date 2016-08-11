@@ -207,6 +207,24 @@ private:
 namespace Model
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Tray
+
+struct Tray
+{
+	Tray(virDomainPtr domain_, const char* alias_);
+
+	void open(Registry::Reactor& vm_);
+
+	void close(Registry::Reactor& vm_);
+
+private:
+	boost::optional<CVmOpticalDisk> find() const;
+
+	QString m_alias;
+	Instrument::Agent::Vm::Unit m_agent;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Domain
 
 struct Domain: QObject
@@ -272,7 +290,6 @@ struct Coarse
 	void pullInfo(virDomainPtr domain_);
 
 	static QString getUuid(virDomainPtr domain_);
-	void disconnectCd(virDomainPtr domain_, const QString& alias_);
 	void disconnectDevice(virDomainPtr domain_, const QString& alias_);
 	void adjustClock(virDomainPtr domain_, qint64 offset_);
 

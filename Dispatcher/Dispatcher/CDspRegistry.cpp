@@ -39,12 +39,68 @@
 #include <boost/phoenix/operator.hpp>
 #include <boost/phoenix/core/argument.hpp>
 #include <boost/phoenix/core/reference.hpp>
+#include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
 #ifdef _LIBVIRT_
 #include "CDspLibvirt.h"
 #endif // _LIBVIRT_
 
 namespace Registry
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Tray
+
+struct Tray
+{
+	explicit Tray(const CVmOpticalDisk& pattern_): m_pattern(pattern_)
+	{
+	}
+
+	void open(CVmConfiguration& config_) const;
+
+	void close(CVmConfiguration& config_) const;
+
+private:
+	CVmOpticalDisk* find(const CVmConfiguration& config_) const;
+
+	CVmOpticalDisk m_pattern;
+};
+
+void Tray::open(CVmConfiguration& config_) const
+{
+	CVmOpticalDisk* x = find(config_);
+	if (NULL != x)
+	{
+		QString y = x->getSystemName();
+		x->setSystemName(QString());
+		x->setDescription(y);
+		x->setUserFriendlyName(QString());
+	}
+}
+
+void Tray::close(CVmConfiguration& config_) const
+{
+	CVmOpticalDisk* x = find(config_);
+	if (NULL == x)
+		return;
+
+	QString d = x->getDescription();
+	if (d.isEmpty())
+		return;
+
+	if (x->getUserFriendlyName().isEmpty() || x->getSystemName().isEmpty())
+	{
+		x->setSystemName(d);
+		x->setUserFriendlyName(d);
+	}
+	x->setDescription(QString());
+}
+
+CVmOpticalDisk* Tray::find(const CVmConfiguration& config_) const
+{
+	return CXmlModelHelper::GetDeviceByIndex
+		(config_.getVmHardwareList()->m_lstOpticalDisks, m_pattern.getIndex());
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
@@ -255,6 +311,20 @@ void Reactor::forward(const T& event_)
 	QSharedPointer<Vm> x = m_vm.toStrongRef();
 	if (!x.isNull())
 		x->react(event_);
+}
+
+void Reactor::openTray(const CVmOpticalDisk& model_)
+{
+	QSharedPointer<Vm> x = m_vm.toStrongRef();
+	if (!x.isNull())
+		x->getConfigEditor()(boost::bind(&Tray::open, Tray(model_), _1));
+}
+
+void Reactor::closeTray(const CVmOpticalDisk& model_)
+{
+	QSharedPointer<Vm> x = m_vm.toStrongRef();
+	if (!x.isNull())
+		x->getConfigEditor()(boost::bind(&Tray::close, Tray(model_), _1));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
