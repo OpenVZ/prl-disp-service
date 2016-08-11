@@ -273,6 +273,8 @@ void Patch::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 	CVmStartupOptions* o = old_.getVmSettings()->getVmStartupOptions();
 	CVmStartupOptions* n = new_.getVmSettings()->getVmStartupOptions();
 	n->setAutoStart(o->getAutoStart());
+	new_.getVmSettings()->getShutdown()->setAutoStop
+		(old_.getVmSettings()->getShutdown()->getAutoStop());
 
 	QList<CVmStartupOptions::CVmBootDevice*> b = n->m_lstBootDeviceList;
 	Device<CVmHardDisk, PDE_HARD_DISK>
