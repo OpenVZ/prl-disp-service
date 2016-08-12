@@ -410,9 +410,9 @@ void Hdd::setIopsLimit(const CVmRunTimeOptions& runtime_)
 
 	if (p != 0)
 	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice1057::types, 0>::type y;
+		mpl::at_c<Libvirt::Domain::Xml::VChoice1061::types, 0>::type y;
 		y.setValue(p);
-		t.setChoice1057(Libvirt::Domain::Xml::VChoice1057(y));
+		t.setChoice1061(Libvirt::Domain::Xml::VChoice1061(y));
 	}
 
 	getResult().setIotune(t);
