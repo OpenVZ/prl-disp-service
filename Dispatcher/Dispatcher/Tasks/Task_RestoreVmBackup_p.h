@@ -147,7 +147,8 @@ struct Assistant
 	Assembly* getAssembly() const;
 	PRL_RESULT operator()(const QStringList& argv_, unsigned disk_) const;
 	PRL_RESULT operator()(const QStringList& argv_, SmartPtr<Chain> custom_) const;
-	PRL_RESULT operator()(const QString& image_, const QString& archive_) const;
+	PRL_RESULT operator()(const QString& image_, const QString& archive_,
+			const QString& format_) const;
 	PRL_RESULT make(const QString& path_, bool failIfExists_) const;
 private:
 	AClient::Unit m_unit;
@@ -228,6 +229,7 @@ private:
 		QFileInfo tib;
 		QFileInfo intermediate;
 		quint64 sizeOnDisk;
+		QString format;
 	};
 	typedef std::map<int, Hdd> hddMap_type;
 
