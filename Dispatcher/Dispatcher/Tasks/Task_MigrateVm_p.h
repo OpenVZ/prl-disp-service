@@ -664,7 +664,14 @@ struct Sending
 {
 };
 
-typedef boost::variant<Reading, Sending, Closing, Success> state_type;
+///////////////////////////////////////////////////////////////////////////////
+// struct Obstruction
+
+struct Obstruction
+{
+};
+
+typedef boost::variant<Reading, Sending, Closing, Success, Obstruction> state_type;
 typedef Prl::Expected<state_type, Flop::Event> target_type;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -703,6 +710,7 @@ struct Queue: private Vm::Pump::Queue
 	target_type dequeue();
 	Prl::Expected<void, Flop::Event> enqueueEof();
 	Prl::Expected<void, Flop::Event> enqueueData();
+	using Vm::Pump::Queue::size;
 
 private:
 	Prl::Expected<void, Flop::Event> enqueue(const SmartPtr<IOPackage>& package_);
@@ -732,6 +740,8 @@ struct Eof: boost::static_visitor<target_type>
 		(const boost::mpl::at_c<state_type::types, 0>::type& value_) const;
 	target_type operator()
 		(const boost::mpl::at_c<state_type::types, 1>::type& value_) const;
+	target_type operator()
+		(const boost::mpl::at_c<state_type::types, 4>::type& value_) const;
 
 private:
 	Queue* m_queue;
@@ -758,6 +768,8 @@ struct Sent: boost::static_visitor<target_type>
 		(const boost::mpl::at_c<state_type::types, 1>::type& value_) const;
 	target_type operator()
 		(const boost::mpl::at_c<state_type::types, 2>::type& value_) const;
+	target_type operator()
+		(const boost::mpl::at_c<state_type::types, 4>::type& value_) const;
 
 private:
 	Queue* m_queue;

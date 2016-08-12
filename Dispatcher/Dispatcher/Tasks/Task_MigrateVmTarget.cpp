@@ -309,6 +309,17 @@ target_type Eof::operator()
 	return x.isFailed() ? target_type(x.error()) : target_type(state_type(value_));
 }
 
+target_type Eof::operator()
+	(const boost::mpl::at_c<state_type::types, 4>::type& value_) const
+{
+	Q_UNUSED(value_);
+	Prl::Expected<void, Flop::Event> x = m_queue->enqueueData();
+	if (x.isFailed())
+		return x.error();
+
+	return (*this)(boost::mpl::at_c<state_type::types, 1>::type());
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Sent
 
@@ -327,6 +338,17 @@ target_type Sent::operator()
 	return state_type(Success());
 }
 
+target_type Sent::operator()
+	(const boost::mpl::at_c<state_type::types, 4>::type& value_) const
+{
+	Q_UNUSED(value_);
+	Prl::Expected<void, Flop::Event> x = m_queue->enqueueData();
+	if (x.isFailed())
+		return x.error();
+
+	return (*this)(boost::mpl::at_c<state_type::types, 1>::type());
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Ready
 
@@ -341,6 +363,9 @@ target_type Ready::operator()
 target_type Ready::operator()
 	(const boost::mpl::at_c<state_type::types, 1>::type& value_) const
 {
+	if (31 < m_queue->size())
+		return target_type(state_type(Obstruction()));
+
 	Prl::Expected<void, Flop::Event> x = m_queue->enqueueData();
 	return x.isFailed() ? target_type(x.error()) : target_type(state_type(value_));
 }
