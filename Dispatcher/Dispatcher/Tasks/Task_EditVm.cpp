@@ -1606,13 +1606,14 @@ PRL_RESULT Task_EditVm::editVm()
 										//OK to change connected state for all devices without additional checkings except hard disks
 											continue;
 
-										//Check that hard disk non IDE and SCSI
 										CVmClusteredDevice *pClusteredDev = dynamic_cast<CVmClusteredDevice *>( pOldDevice );
 										PRL_ASSERT(pClusteredDev);
 										if ( pClusteredDev )
 										{
 											PRL_MASS_STORAGE_INTERFACE_TYPE nIfaceType = pClusteredDev->getInterfaceType();
-											if ( PMS_SATA_DEVICE == nIfaceType )//OK - SATA devices can be connected/disconnected either VM stopped or not
+											// VIRTIO and SCSI devices can be disconnected either from a running VM or stopped
+											if (PMS_VIRTIO_BLOCK_DEVICE == nIfaceType ||
+													nIfaceType == PMS_SCSI_DEVICE)
 												continue;
 										}
 									}
@@ -1658,8 +1659,9 @@ PRL_RESULT Task_EditVm::editVm()
 									if (d && d->getSerialNumber().isEmpty())
 										d->setSerialNumber(Parallels::generateDiskSerialNumber());
 
-									// VIRTIO devices can be added either on running VM or stopped
-									if (PMS_VIRTIO_BLOCK_DEVICE == d->getInterfaceType())
+									// VIRTIO and SCSI devices can be added either on running VM or stopped
+									if (PMS_VIRTIO_BLOCK_DEVICE == d->getInterfaceType() ||
+											d->getInterfaceType() == PMS_SCSI_DEVICE)
 										continue;
 								}
 
