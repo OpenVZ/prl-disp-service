@@ -81,6 +81,10 @@ struct Reactor
 
 	void proceed(VIRTUAL_MACHINE_STATE destination_);
 
+	void openTray(const CVmOpticalDisk& model_);
+
+	void closeTray(const CVmOpticalDisk& model_);
+
 private:
 	template<class T>
 	void forward(const T& event_);
