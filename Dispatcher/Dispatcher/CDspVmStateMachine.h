@@ -35,12 +35,19 @@
 #include <prlsdk/PrlEnums.h>
 #include <prlcommon/Logging/Logging.h>
 #include <boost/signals2/signal.hpp>
+#include <boost/msm/front/internal_row.hpp>
 #include "CDspLibvirtExec.h"
 #include "CDspVmGuest.h"
 #include "CDspVmStateMachine_p.h"
 
 namespace Vm
 {
+namespace Tray
+{
+typedef boost::function1<void, CVmConfiguration& > action_type;
+
+} // namespace Tray
+
 namespace State
 {
 namespace msmf = boost::msm::front;
@@ -125,6 +132,11 @@ struct Frontend: Details::Frontend<Frontend>
 			return NULL == m_big ? QString() : m_big->getName();
 		}
 
+		void changeTray(const Tray::action_type& action_)
+		{
+			m_big->getConfigEditor()(action_);
+		}
+
 		template<class T>
 		void pullToolsVersion(const T&)
 		{
@@ -150,6 +162,13 @@ struct Frontend: Details::Frontend<Frontend>
 		typedef struct Rebooted: Details::Trace<Rebooted>
 		{
 		} initial_state;
+
+		struct internal_transition_table: boost::mpl::vector
+		<
+			msmf::a_internal<Tray::action_type, Running_, &Running_::changeTray>
+		>
+		{
+		};
 
 		struct transition_table: boost::mpl::vector
 		<

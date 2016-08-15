@@ -315,16 +315,12 @@ void Reactor::forward(const T& event_)
 
 void Reactor::openTray(const CVmOpticalDisk& model_)
 {
-	QSharedPointer<Vm> x = m_vm.toStrongRef();
-	if (!x.isNull())
-		x->getConfigEditor()(boost::bind(&Tray::open, Tray(model_), _1));
+	return forward(::Vm::Tray::action_type(boost::bind(&Tray::open, Tray(model_), _1)));
 }
 
 void Reactor::closeTray(const CVmOpticalDisk& model_)
 {
-	QSharedPointer<Vm> x = m_vm.toStrongRef();
-	if (!x.isNull())
-		x->getConfigEditor()(boost::bind(&Tray::close, Tray(model_), _1));
+	return forward(::Vm::Tray::action_type(boost::bind(&Tray::close, Tray(model_), _1)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
