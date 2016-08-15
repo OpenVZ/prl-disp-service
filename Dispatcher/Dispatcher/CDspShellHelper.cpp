@@ -758,7 +758,7 @@ void CDspShellHelper::hostCommonInfoBeginEdit (
 		return;
 	}
 
-	CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig()->lock();
+	QMutexLocker editLock( CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig() );
 
 	SmartPtr<CDispatcherConfig > pDispConfigPrev(
 		new CDispatcherConfig( CDspService::instance()->getDispConfigGuard().getDispConfig().getPtr() ) );
@@ -774,7 +774,6 @@ void CDspShellHelper::hostCommonInfoBeginEdit (
 		CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig()
 			->registerBeginEdit( pUser->getClientHandle(), pDispConfigPrev );
 	}
-	CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig()->unlock();
 
 	pUser->sendSimpleResponse(p, err);
 }

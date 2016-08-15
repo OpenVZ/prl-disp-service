@@ -962,15 +962,13 @@ void CDspUserHelper::userProfileBeginEdit (
 		return;
 	}
 
-	CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig()->lock();
+	QMutexLocker editLock( CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig() );
 
 	SmartPtr<CDispatcherConfig > pDispConfigPrev(
 		new CDispatcherConfig( CDspService::instance()->getDispConfigGuard().getDispConfig().getPtr() ) );
 
 	CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig()
 		->registerBeginEdit( pUser->getClientHandle(), pDispConfigPrev, USER_ID_EXT );
-
-	CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig()->unlock();
 
 	pUser->sendSimpleResponse( p, PRL_ERR_SUCCESS );
 }
