@@ -696,7 +696,7 @@ struct Visitor : boost::static_visitor<void>
 
 	void operator()(boost::mpl::int_<PCFE_EXT_0000000D_EAX>)
 	{
-		static const char *f[] = {NULL};
+		static const char *f[] = {"xsaveopt", "xsavec", "xgetbv1", NULL};
 
 		m_list->push_back(Register(f, &Config::type::getEXT_0000000D_EAX_MASK));
 	}

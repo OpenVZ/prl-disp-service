@@ -1089,8 +1089,8 @@ void CpuFeaturesMask::getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &
 	{
 		if (features.contains(name))
 			continue;
-		/* invtsc is non migratable (see libvirt cpu_map.xml) */
-		if (name == "invtsc")
+		/* invtsc and xsaves are non migratable (see libvirt cpu_map.xml) */
+		if (name == "invtsc" || name == "xsaves")
 			continue;
 		Libvirt::Domain::Xml::Feature f;
 		f.setName(name);
