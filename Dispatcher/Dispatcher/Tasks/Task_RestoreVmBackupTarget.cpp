@@ -411,16 +411,15 @@ PRL_RESULT Assistant::operator()(const QStringList& argv_, SmartPtr<Chain> custo
 	return m_unit(argv_, custom_);
 }
 
-PRL_RESULT Assistant::operator()(const QString& image_, const QString& archive_) const
+PRL_RESULT Assistant::operator()(const QString& image_, const QString& archive_,
+			const QString& format_) const
 {
 	Prl::Expected<QString, PRL_RESULT> e = m_task->sendMountImageRequest(archive_);
 	if (e.isFailed())
 		return e.error();
 
 	QString u = ::Backup::Work::UrlBuilder(m_task->getServerHostname())(e.value());
-	QString format = (QFileInfo(image_).suffix().startsWith("qcow2") ||
-			QFileInfo(image_).suffix() == "hdd") ? "qcow2" : "raw";
-	QStringList cmdline = QStringList() << QEMU_IMG << "convert" << "-O" << format
+	QStringList cmdline = QStringList() << QEMU_IMG << "convert" << "-O" << format_
 			<< "-S" << "64k" << "-t" << "none" << u << image_;
 
 	QProcess process;
@@ -531,6 +530,7 @@ PRL_RESULT Vm::add(const ::Backup::Product::component_type& component_)
 	d.mountPoint = CFileHelper::GetMountPoint(f.absolutePath());
 	d.sizeOnDisk = c.getDevice().getSizeOnDisk() << 20;
 	d.intermediate = f;
+	d.format = (c.getDevice().getDiskType() == PHD_EXPANDING_HARD_DISK) ? "qcow2" : "raw";
 	m_hddMap.insert(std::make_pair(c.getDevice().getIndex(), d));
 	return PRL_ERR_SUCCESS;
 }
@@ -605,7 +605,7 @@ PRL_RESULT Vm::restoreA(const hddMap_type::const_iterator& hdd_) const
 PRL_RESULT Vm::restoreV(const hddMap_type::const_iterator& hdd_) const
 {
 	return m_assist(hdd_->second.intermediate.absoluteFilePath(),
-			hdd_->second.tib.absoluteFilePath());
+		hdd_->second.tib.absoluteFilePath(), hdd_->second.format);
 }
 
 PRL_RESULT Vm::restore(quint32 version_) const
@@ -751,9 +751,10 @@ PRL_RESULT Image::do_(const Assistant& assist_, quint32 version_)
 		return PRL_ERR_DISK_MOUNT_FAILED;
 
 	PRL_RESULT output;
-	if (BACKUP_PROTO_V3 < version_)
-		output = assist_(device->getName(), m_archive.second.absoluteFilePath());
-	else {
+	if (BACKUP_PROTO_V3 < version_) {
+		// we specify 'raw' format, because target is a mounted ploop device
+		output = assist_(device->getName(), m_archive.second.absoluteFilePath(), "raw");
+	} else {
 		output = assist_(m_query.getApi().restore(m_archive,
 			QFileInfo(device->getName())), m_archive.first.getDevice().getIndex());
 	}
