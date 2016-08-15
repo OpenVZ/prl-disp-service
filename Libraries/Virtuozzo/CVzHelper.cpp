@@ -1725,6 +1725,19 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 			WRITE_TRACE(DBG_FATAL, "vzctl2_env_set_ha_prio() failed [%d]", ret);
 	}
 
+	QStringList lRaw = pConfig->getCtSettings()->getRawParam();
+	QStringList lRawOld = pOldConfig->getCtSettings()->getRawParam();
+	bool (QString::*fn)(const QString&, Qt::CaseSensitivity) const = &QString::startsWith;
+	foreach(const QString& s, getEnvRawParam()) {
+		QStringList::const_iterator n = std::find_if(lRaw.begin(), lRaw.end(), boost::bind(fn, _1, s, Qt::CaseSensitive));
+		QStringList::const_iterator o = std::find_if(lRawOld.begin(), lRawOld.end(), boost::bind(fn, _1, s, Qt::CaseSensitive));
+		if (n != lRaw.end()) {
+			if (o == lRawOld.end() || *n != *o)
+				vzctl2_env_set_param(h, QSTR2UTF8(s), QSTR2UTF8(n->mid(s.length() + 1)));
+		} else if (o != lRawOld.end())
+			vzctl2_env_set_param(h, QSTR2UTF8(s), NULL);
+	}
+
 	return 0;
 }
 
@@ -1774,21 +1787,6 @@ static int create_env_config(const QString &uuid, SmartPtr<CVmConfiguration> &pC
 	vzctl2_env_set_diskspace(new_param, &res);
 	res.b = res.l = diskSize / 4;
 	vzctl2_env_set_diskinodes(new_param, &res);
-
-	foreach(QString s, pConfig->getCtSettings()->getRawParam()) {
-		int n = s.indexOf('=');
-
-		if (n < 2)
-			continue;
-
-		std::string l = s.left(n - 1).toStdString();
-		std::string r = s.mid(n + 1).toStdString();
-
-		if (l.empty() || r.empty())
-			continue;
-
-		vzctl2_env_set_param(h, l.c_str(), r.c_str());
-	}
 
 	ret = vzctl2_apply_param(h, new_param, VZCTL_SKIP_SETUP|VZCTL_SAVE);
 	if (ret) {
