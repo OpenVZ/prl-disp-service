@@ -124,7 +124,7 @@ int CVzNetworkShaping::update_network_shaping_config(const CNetworkShapingConfig
 {
 	FILE *rfp, *wfp;
 	char buf[4096];
-	char r_path[512];
+	char r_path[PATH_MAX];
 	char tmp_path[4096], orig_path[4096];
 	bool bandwidth_printed = false;
 	bool totalrate_printed = false;
