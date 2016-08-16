@@ -88,6 +88,26 @@ struct CEnvCpumask {
 	void set_reserved_ram(unsigned long ram) { reserved_ram = ram; }
 };
 
+namespace Statistics
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Filesystem
+
+struct Filesystem
+{
+	Filesystem() : total(0), free(0), index(0)
+	{
+	}
+
+	quint64 total;
+	quint64 free;
+	quint64 index;
+	QString device;
+};
+
+} // namespace Statistics
+
 namespace Ct
 {
 namespace Statistics
@@ -138,21 +158,6 @@ struct Disk {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Filesystem
-
-struct Filesystem
-{
-	Filesystem() : total(0), free(0), index(0)
-	{
-	}
-
-	quint64 total;
-	quint64 free;
-	quint64 index;
-	QString device;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Net
 
 struct Net
@@ -171,7 +176,7 @@ struct Aggregate
 	SmartPtr<Memory> memory;
 	Net net;
 	Disk disk;
-	QList<Filesystem> filesystem;
+	QList< ::Statistics::Filesystem> filesystem;
 };
 
 } // namespace Statistics
@@ -224,7 +229,7 @@ public:
 	static int get_env_status(const QString &uuid, VIRTUAL_MACHINE_STATE &nState);
 	static tribool_type is_env_running(const QString &uuid);
 	static Ct::Statistics::Aggregate* get_env_stat(const QString& uuid_);
-	static int get_env_fstat(const QString &uuid, QList<Ct::Statistics::Filesystem>& fs);
+	static int get_env_fstat(const QString &uuid, QList<Statistics::Filesystem>& fs);
 	static int set_env_uptime(const QString &uuid, const quint64 uptime, const QDateTime & date);
 	static int reset_env_uptime(const QString &uuid);
 	static int sync_env_uptime(const QString& uuid_);

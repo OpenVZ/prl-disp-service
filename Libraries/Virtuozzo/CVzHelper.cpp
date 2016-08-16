@@ -2509,14 +2509,14 @@ Prl::Expected<QString, PRL_RESULT> CVzOperationHelper::get_env_mount_info(
 		const SmartPtr<CVmConfiguration> &pConfig)
 {
 	QString uuid = pConfig->getVmIdentification()->getVmUuid();
-	QList<Ct::Statistics::Filesystem> filesystems;
+	QList<Statistics::Filesystem> filesystems;
 	PRL_RESULT res;
 	if (PRL_FAILED(res = CVzHelper::get_env_fstat(uuid, filesystems)))
 		return res;
 
 	QStringList lstMounts;
 	QList<CVmHardDisk*> lstDisk = pConfig->getVmHardwareList()->m_lstHardDisks;
-	foreach(const Ct::Statistics::Filesystem &fs, filesystems) {
+	foreach(const Statistics::Filesystem &fs, filesystems) {
 		if (fs.device.isEmpty())
 			continue;
 
@@ -3032,7 +3032,7 @@ static Ct::Statistics::Memory *get_env_meminfo(const QString &uuid)
 	return m.take();
 }
 
-int CVzHelper::get_env_fstat(const QString &uuid, QList<Ct::Statistics::Filesystem>& fs)
+int CVzHelper::get_env_fstat(const QString &uuid, QList<Statistics::Filesystem>& fs)
 {
 	SmartPtr<CVmConfiguration> config = CVzHelper::get_env_config(uuid);
 	if (!config.isValid())
@@ -3048,7 +3048,7 @@ int CVzHelper::get_env_fstat(const QString &uuid, QList<Ct::Statistics::Filesyst
 		return -1;
 	}
 
-	QList<Ct::Statistics::Filesystem> tmp;
+	QList<Statistics::Filesystem> tmp;
 	foreach (const CVmHardDisk& disk, config->getVmHardwareList()->m_lstHardDisks) {
 		struct vzctl_disk_stats stats;
 		ret = vzctl2_env_get_disk_stats(h, QSTR2UTF8(disk.getUuid()),
@@ -3058,7 +3058,7 @@ int CVzHelper::get_env_fstat(const QString &uuid, QList<Ct::Statistics::Filesyst
 		// take only filesystems that are mounted inside CT
 		if (stats.device[0] == '\0')
 			continue;
-		Ct::Statistics::Filesystem f;
+		Statistics::Filesystem f;
 		f.total = stats.total;
 		f.free = stats.free;
 		f.index = disk.getIndex();

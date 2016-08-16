@@ -41,6 +41,8 @@
 #include "CDspCommon.h"
 #include "CDspRegistry.h"
 #include "CDspStatStorage.h"
+#include "CDspLibvirt.h"
+#include "CDspLibvirtExec.h"
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 #include <prlsdk/PrlPerfCounters.h>
 #include <prlsdk/PrlIOStructs.h>
@@ -51,6 +53,8 @@
 #include <QRegExp>
 #include <QWeakPointer>
 #include <numeric>
+#include <boost/foreach.hpp>
+#include <boost/tuple/tuple.hpp>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
@@ -112,10 +116,8 @@ namespace Stat
 {
 namespace Collecting
 {
-namespace Ct
-{
 
-static DAO<QList< ::Ct::Statistics::Filesystem> > s_dao;
+static DAO<QList< ::Statistics::Filesystem> > s_dao;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Farmer
@@ -163,20 +165,50 @@ void Farmer::timerEvent(QTimerEvent *event_)
 	{
 		m_watcher.reset(new QFutureWatcher<void>);
 		this->connect(m_watcher.data(), SIGNAL(finished()), SLOT(reset()));
-		m_watcher->setFuture(QtConcurrent::run(this, &Farmer::collect));
+		PRL_VM_TYPE t = PVT_VM;
+		CDspService::instance()->getVmDirManager().getVmTypeByUuid(m_ident.first, t);
+		m_watcher->setFuture(QtConcurrent::run(this,
+			t == PVT_CT ? &Farmer::collectCt : &Farmer::collectVm));
 	}
 
 	m_timer = startTimer(m_period);
 }
 
-void Farmer::collect()
+void Farmer::collectCt()
 {
-	QList< ::Ct::Statistics::Filesystem> f;
+	QList< ::Statistics::Filesystem> f;
 	CVzHelper::get_env_fstat(m_ident.first, f);
-	s_dao.set(m_ident.first, f);
+	Stat::Collecting::s_dao.set(m_ident.first, f);
 }
 
-} // namespace Ct
+void Farmer::collectVm()
+{
+	Prl::Expected< QList<boost::tuple<quint64,quint64,QString> >,
+		::Error::Simple> r = Libvirt::Kit.vms().at(m_ident.first)
+			.getGuest().getFsInfo();
+	if (r.isFailed())
+		return;
+
+	QSharedPointer<Stat::Storage> s =
+		CDspStatCollectingThread::getStorage(m_ident.first).toStrongRef();
+	if (s.isNull())
+		return;
+
+	QList< ::Statistics::Filesystem> l;
+	typedef boost::tuple<quint64,quint64,QString> result_type;
+	BOOST_FOREACH(result_type& e, r.value()) {
+		::Statistics::Filesystem f;
+
+		f.total = e.get<0>();
+		f.free = e.get<1>();
+		QString name = e.get<2>();
+		QString q = (name.startsWith("\\\\?\\")) ? name.mid(4) : name;
+		f.device = q;
+		l << f;
+	}
+
+	Stat::Collecting::s_dao.set(m_ident.first, l);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Mapper
@@ -203,12 +235,7 @@ void Mapper::begin(CVmIdent ident_)
 	if (NULL != f)
 		return;
 
-	PRL_VM_TYPE t = PVT_VM;
-	CDspService::instance()->getVmDirManager().getVmTypeByUuid(ident_.first, t);
-	if (t == PVT_VM)
-		return;
-
-	f = new Ct::Farmer(ident_);
+	f = new Farmer(ident_);
 	f->setObjectName(k);
 	f->setParent(this);
 
@@ -1230,148 +1257,7 @@ CVmEventParameter *ClassfulOnline<Flavor>::getParam() const
 	return Conversion::Network::convert(stat);
 }
 
-}; // namespace Network
-
-namespace Filesystem {
-
-namespace nf = Names::Filesystem;
-
-namespace Device {
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Find
-
-struct Find
-{
-	explicit Find(const QString& prefix_) : m_prefix(prefix_)
-	{
-	}
-
-	int operator()(const counter_t& counter_);
-
-	QString getResult() const
-	{
-		return m_result;
-	}
-
-private:
-	QString m_prefix;
-	QString m_result;
-};
-
-int Find::operator()(const counter_t& counter_)
-{
-	QString n = UTF8_2QSTR(counter_.name + sizeof(PERF_COUNT_TYPE_INC) - 1);
-	if (n.startsWith(m_prefix) && PERF_COUNT_ATOMIC_GET(&counter_) != 0) {
-		m_result = n.remove(m_prefix);
-		return ENUM_BREAK;
-	}
-	return ENUM_CONTINUE;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Unit
-
-struct Unit
-{
-	Unit(QWeakPointer<Stat::Storage> storage_, unsigned index_)
-		: m_storage(storage_), m_name(index_)
-	{
-	}
-
-	QString getName() const
-	{
-		return nf::Traits<nf::Name<nf::Device> >::getExternal(m_name);
-	}
-
-	CVmEventParameter *getParam() const
-	{
-		return Conversion::String::convert(getValue());
-	}
-
-	QString getValue() const;
-
-private:
-	static int find(counters_storage_t *, counter_t *counter_, void *context_)
-	{
-		return (*static_cast<Find*>(context_))(*counter_);
-	}
-
-	QWeakPointer<Stat::Storage> m_storage;
-	nf::Name<nf::Device> m_name;
-};
-
-QString Unit::getValue() const
-{
-	return QString();
-
-	// FIXME: Write me! #PSBM-43138
-	// Find f(nf::Traits<nf::Name<nf::Device> >::getInternal(m_name) + ".");
-	// m_storage.enum_counters(find, &f);
-	// return f.getResult();
-}
-
-} // namespace Device
-
-namespace Disk {
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Index
-
-struct Index
-{
-	Index(QWeakPointer<Stat::Storage> storage_,
-		const CVmConfiguration& config_,
-		unsigned index_, unsigned diskIndex_)
-	: m_storage(storage_), m_config(config_), m_name(index_, diskIndex_)
-	{
-	}
-
-	QString getName() const
-	{
-		return nf::Traits<nf::Disk::Name>::getExternal(m_name);
-	}
-
-	CVmEventParameter *getParam() const
-	{
-		return Conversion::Uint64::convert(getValue());
-	}
-
-	quint64 getValue() const;
-
-private:
-	QWeakPointer<Stat::Storage> m_storage;
-	const CVmConfiguration& m_config;
-	nf::Disk::Name m_name;
-};
-
-quint64 Index::getValue() const
-{
-	quint64 p = GetPerfCounter(m_storage,
-		nf::Traits<nf::Disk::Name>::getInternal(m_name));
-
-	PRL_MASS_STORAGE_INTERFACE_TYPE i = PMS_UNKNOWN_DEVICE;
-	if (p < PIM_SCSI_MASK_OFFSET) {
-		i = PMS_IDE_DEVICE;
-		p /= PIM_IDE_MASK_OFFSET;
-	} else if (p < PIM_SATA_MASK_OFFSET) {
-		i = PMS_SCSI_DEVICE;
-		p /= PIM_SCSI_MASK_OFFSET;
-	} else {
-		i = PMS_SATA_DEVICE;
-		p /= PIM_SATA_MASK_OFFSET;
-	}
-
-	int x = BitFindLowestSet64(p);
-	foreach(const CVmHardDisk& d, m_config.getVmHardwareList()->m_lstHardDisks) {
-		if (d.getInterfaceType() == i && (int)d.getStackIndex() == x)
-			return d.getIndex();
-	}
-	return 0;
-}
-
-} // namespace Disk
-} // namespace Filesystem
+} // namespace Network
 } // namespace Counter
 } // namespace
 } // namespace Vm
@@ -1912,7 +1798,7 @@ struct Index
 template <class Name>
 struct Flavor
 {
-	typedef Statistics::Filesystem source_type;
+	typedef ::Statistics::Filesystem source_type;
 	typedef Names::Filesystem::Name<Name> name_type;
 
 	explicit Flavor(unsigned index_) : m_name(index_)
@@ -2072,10 +1958,10 @@ void Collector::collectCt(const QString &uuid,
 	for (quint32 i = 0; i < vcpunum; ++i)
 		collect(ctc::VCpuTime(a.cpu, i, vcpunum));
 
-	const QList< ::Ct::Statistics::Filesystem>& f = Stat::Collecting::Ct::s_dao.get(uuid);
+	const QList< ::Statistics::Filesystem>& f = Stat::Collecting::s_dao.get(uuid);
 	for (int i = 0; i < f.size(); ++i)
 	{
-		const Ct::Statistics::Filesystem& fs = f.at(i);
+		const ::Statistics::Filesystem& fs = f.at(i);
 		collect(ctc::Filesystem::Total(i, fs));
 		collect(ctc::Filesystem::Free(i, fs));
 		collect(ctc::Filesystem::Device(i, fs));
@@ -2086,6 +1972,7 @@ void Collector::collectCt(const QString &uuid,
 void Collector::collectVm(const QString &uuid, const CVmConfiguration &config)
 {
 	namespace vmc = Vm::Counter;
+	namespace ctc = Ct::Counter;
 
 	QWeakPointer<Stat::Storage> p = CDspStatCollectingThread::getStorage(uuid);
 
@@ -2141,16 +2028,13 @@ void Collector::collectVm(const QString &uuid, const CVmConfiguration &config)
 			Stat::Name::Interface::getBytesOut(*nic)));
 	}
 
-	namespace nf = Names::Filesystem;
-	quint64 fsCount = GetPerfCounter(p, "fs.count");
-	for (unsigned i = 0; i < fsCount; ++i)
+	const QList< ::Statistics::Filesystem>& f = Stat::Collecting::s_dao.get(uuid);
+	for (int i = 0; i < f.size(); ++i)
 	{
-		collect(vmc::makeVmCounter(p, nf::Name<nf::Total>(i)));
-		collect(vmc::makeVmCounter(p, nf::Name<nf::Free>(i)));
-		collect(vmc::Filesystem::Device::Unit(p, i));
-		quint64 diskCount = GetPerfCounter(p, QSTR2UTF8(nf::Name<nf::Disk::Count>(i)()));
-		for (unsigned j = 0; j < diskCount; ++j)
-			collect(vmc::Filesystem::Disk::Index(p, config, i, j));
+		const ::Statistics::Filesystem& fs = f.at(i);
+		collect(ctc::Filesystem::Total(i, fs));
+		collect(ctc::Filesystem::Free(i, fs));
+		collect(ctc::Filesystem::Device(i, fs));
 	}
 }
 
@@ -3122,4 +3006,3 @@ void CDspStatCollectingThread::schedule()
 
 	QMetaObject::invokeMethod(s_instance, "timerEvent", Q_ARG(QTimerEvent*, NULL));
 }
-
