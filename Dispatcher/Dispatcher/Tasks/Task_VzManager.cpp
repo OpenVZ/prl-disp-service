@@ -977,10 +977,7 @@ PRL_RESULT Task_VzManager::create_env_disk()
 		return PRL_ERR_HDD_IMAGE_IS_ALREADY_EXIST;
 	}
 
-	/* Mbytes -> Bytes */
-	quint64 size = (quint64) disk.getSize() << 20;
-
-	return get_op_helper()->create_disk_image(sPath, size);
+	return get_op_helper()->create_env_disk(pCmd->GetVmUuid(), disk);
 }
 
 static CVmHardDisk *find_disk_by_fname(const SmartPtr<CVmConfiguration> &pConfig,
