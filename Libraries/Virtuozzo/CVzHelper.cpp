@@ -2143,9 +2143,19 @@ int CVzOperationHelper::create_env(const QString &dst, SmartPtr<CVmConfiguration
 		args += name;
 	}
 
-	if (flags & PRNVM_PRESERVE_DISK)
+	if (flags & PRNVM_PRESERVE_DISK) {
 		args += "--no-hdd";
-
+	} else {
+		foreach(CVmHardDisk* d, pConfig->getVmHardwareList()->m_lstHardDisks) {
+			if (d->getEncryption() &&
+				!d->getEncryption()->getKeyId().isEmpty())
+			{
+				args +=  "--encryption-keyid";
+				args += d->getEncryption()->getKeyId();
+				break;
+			}
+		}
+	}
 
 	args += "--uuid";
 	args += uuid;
@@ -2293,6 +2303,11 @@ int CVzOperationHelper::create_env_disk(const QString &uuid, const CVmHardDisk &
 	if (!disk.getStorageURL().isEmpty()) {
 		args += "--storage-url";
 		args += disk.getStorageURL().toString();
+	}
+
+	if (disk.getEncryption() && !disk.getEncryption()->getKeyId().isEmpty()) {
+		args += "--encryption-keyid";
+		args += disk.getEncryption()->getKeyId();
 	}
 
 	args += "--size";
@@ -2704,7 +2719,7 @@ int CVzOperationHelper::switch_env_snapshot(const QString &uuid, const QString &
 int CVzOperationHelper::create_disk_image(const QString &path, quint64 sizeBytes)
 {
 	int ret;
-	struct vzctl_create_image_param param;
+	vzctl_create_image_param param = vzctl_create_image_param();
 
 	param.mode = 0;		/* expanded */
 	param.size = sizeBytes >> 10;	/* 1K blocks*/
