@@ -594,21 +594,40 @@ private:
 
 namespace Address
 {
+namespace String
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Stringify
+// struct Conductor
 
-struct Stringify: boost::static_visitor<QString>
+struct Conductor: boost::static_visitor<QString>
 {
 	template<class T>
 	QString operator()(const T& t) const
 	{
 		return QString("%1").arg(t.getValue());
 	}
-	QString operator()(const mpl::at_c<Libvirt::Domain::Xml::VIpPrefix::types, 0>::type& prefix4_) const
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ipv4Mask
+
+struct Ipv4Mask: boost::static_visitor<QString>
+{
+	QString operator()(const mpl::at_c<Libvirt::Domain::Xml::VIpPrefix::types, 0>::type& mask4_) const
 	{
-		return PrlNet::getIPv4MaskFromPrefix(prefix4_.getValue()).toString();
+		return PrlNet::getIPv4MaskFromPrefix(mask4_.getValue()).toString();
+	}
+	QString operator()(const mpl::at_c<Libvirt::Domain::Xml::VIpPrefix::types, 1>::type& mask6_) const
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VIpPrefix::types, 0>::type m;
+		if (!m.setValue(mask6_.getValue()))
+			m.setValue(32);
+
+		return (*this)(m);
 	}
 };
+
+} // namespace String
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Ip

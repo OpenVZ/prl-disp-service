@@ -1385,9 +1385,7 @@ PRL_RESULT Miner::operator()()
 
 Miner* Miner::clone() const
 {
-	Miner* output = new Miner(m_agent, m_view);
-	output->moveToThread(this->thread());
-	return output;
+	return new Miner(m_agent, m_view);
 }
 
 void Miner::superfuse(const Instrument::Agent::Vm::Performance::Unit& source_, Model::Domain& sink_)
@@ -1453,7 +1451,10 @@ void Task::run()
 	{
 		Miner* m = m_miner->clone();
 		if (NULL != m)
+		{
 			m->startTimer(PERFORMANCE_TIMEOUT);
+			m->moveToThread(m_miner->thread());
+		}
 	}
 	m_miner.take()->deleteLater();
 }

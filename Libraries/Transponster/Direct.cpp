@@ -212,14 +212,35 @@ QList<QString> Ips::operator()(const QList<Libvirt::Domain::Xml::Ip>& ips_)
 	QList<QString> ips;
 	foreach (const Libvirt::Domain::Xml::Ip& ip, ips_)
 	{
-		QString a = boost::apply_visitor(Visitor::Address::Stringify(), ip.getAddress());
-		QString res = QString("%1/%2").arg(a);
+		QString a = boost::apply_visitor(Visitor::Address::String::Conductor(), ip.getAddress());
+		QString res = QString("%1/%2").arg(a), m;
 
-		if (ip.getPrefix())
-			ips << res.arg(boost::apply_visitor(Visitor::Address::Stringify(), ip.getPrefix().get()));
+		Libvirt::Domain::Xml::VIpPrefix p;
+		if (QHostAddress(a).protocol() == QAbstractSocket::IPv4Protocol)
+		{
+			if (ip.getPrefix())
+				p = ip.getPrefix().get();
+			else
+			{
+				mpl::at_c<Libvirt::Domain::Xml::VIpPrefix::types, 0>::type d;
+				d.setValue(24);
+				p = d;
+			}
+			m = boost::apply_visitor(Visitor::Address::String::Ipv4Mask(), p);
+		}
 		else
-			ips << (QHostAddress(a).protocol() == QAbstractSocket::IPv4Protocol
-				? res.arg("255.255.255.0") : res.arg(64));
+		{
+			if (ip.getPrefix())
+				p = ip.getPrefix().get();
+			else
+			{
+				mpl::at_c<Libvirt::Domain::Xml::VIpPrefix::types, 1>::type d;
+				d.setValue(64);
+				p = d;
+			}
+			m = boost::apply_visitor(Visitor::Address::String::Conductor(), p);
+		}
+		ips << res.arg(m);
 	}
 	return ips;
 }
