@@ -1711,7 +1711,8 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmStartVNCServer] = map(Tag::Simple<PVE::DspCmdVmStartVNCServer>());
 	m_map[PVE::DspCmdVmStopVNCServer] = map(Tag::Simple<PVE::DspCmdVmStopVNCServer>());
 	m_map[PVE::DspCmdVmReset] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmReset> > >());
-	m_map[PVE::DspCmdVmPause] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmPause> > >());
+	m_map[PVE::DspCmdVmPause] = map(Tag::Fork<Tag::State<Essence<PVE::DspCmdVmPause>,
+		Vm::Fork::State::Strict<VMS_PAUSED> > >());
 	m_map[PVE::DspCmdVmSuspend] = map(Tag::Fork<Tag::State<Essence<PVE::DspCmdVmSuspend>,
 		Vm::Fork::State::Strict<VMS_SUSPENDED> > >());
 	m_map[PVE::DspCmdVmDropSuspendedState] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDropSuspendedState> > >());
