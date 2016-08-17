@@ -163,15 +163,20 @@ struct Frontend: Details::Frontend<Frontend>
 		{
 		} initial_state;
 
-		struct internal_transition_table: boost::mpl::vector
-		<
-			msmf::a_internal<Tray::action_type, Running_, &Running_::changeTray>
-		>
+		// Stopping
+		struct Stopping: Details::Trace<Stopping>
 		{
 		};
 
 		struct transition_table: boost::mpl::vector
 		<
+			msmf::Row<Started, Conventional<VMS_STOPPING>, Stopping>,
+			msmf::Row<Already, Conventional<VMS_STOPPING>, Stopping>,
+			msmf::Row<Rebooted, Conventional<VMS_STOPPING>, Stopping>,
+			a_irow<Started, Tray::action_type, &Running_::changeTray>,
+			a_irow<Already, Tray::action_type, &Running_::changeTray>,
+			a_irow<Rebooted, Tray::action_type, &Running_::changeTray>,
+			msmf::Row<Stopping, Reboot, Rebooted>,
 			msmf::Row
 			<
 				Started,
