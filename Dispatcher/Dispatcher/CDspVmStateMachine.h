@@ -143,7 +143,8 @@ struct Frontend: Details::Frontend<Frontend>
 			pullToolsVersion();
 		}
 
-		void pullToolsVersionAfterReboot(const Agent&)
+		template <class T>
+		void pullToolsVersionAfterReboot(const T&)
 		{
 			pullToolsVersion(new ::Vm::Guest::Actor(m_big->getConfigEditor()));
 		}
@@ -198,7 +199,13 @@ struct Frontend: Details::Frontend<Frontend>
 				Rebooted,
 				Agent,
 				Started,
-				&Running_::pullToolsVersionAfterReboot
+				&Running_::pullToolsVersionAfterReboot<Agent>
+			>,
+			a_row<
+				Rebooted,
+				Switch,
+				Started,
+				&Running_::pullToolsVersionAfterReboot<Switch>
 			>,
 			a_row
 			<
