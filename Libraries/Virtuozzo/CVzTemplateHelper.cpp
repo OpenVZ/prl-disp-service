@@ -261,11 +261,13 @@ PRL_RESULT CVzTemplateHelper::get_templates(QList<SmartPtr<CtTemplate> > &lstVzT
 
 PRL_RESULT CVzTemplateHelper::install_templates_env(QString env_uuid, QStringList &lstVzTmpl)
 {
-	Q_UNUSED(env_uuid)
-
 	struct options_vztt *pOpt;
 	char ** pTmplLst;
 	int rc;
+
+	QString ctid = CVzHelper::get_ctid_by_uuid(env_uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
 
 	if (lstVzTmpl.empty())
 		return PRL_ERR_SUCCESS;
@@ -283,12 +285,11 @@ PRL_RESULT CVzTemplateHelper::install_templates_env(QString env_uuid, QStringLis
 		return PRL_ERR_MEMORY_ALLOC_ERROR;
 	}
 
-	unsigned int ctid = -1;
 
-	rc = vztt2_install_tmpl(ctid, pTmplLst, lstVzTmpl.size(), pOpt, NULL, NULL);
+	rc = vztt2_install_tmpl(QSTR2UTF8(ctid), pTmplLst, lstVzTmpl.size(), pOpt, NULL, NULL);
 	if (0 != rc)
 		WRITE_TRACE(DBG_FATAL, "Cannot install EZ application templates"
-					" from CT %d with %d", ctid, rc);
+				" from CT %s with %d", QSTR2UTF8(ctid), rc);
 	free_tmpl_list(pTmplLst, lstVzTmpl.size());
 	free_options(pOpt);
 
@@ -297,11 +298,13 @@ PRL_RESULT CVzTemplateHelper::install_templates_env(QString env_uuid, QStringLis
 
 PRL_RESULT CVzTemplateHelper::remove_templates_env(QString env_uuid, QStringList &lstVzTmpl)
 {
-	Q_UNUSED(env_uuid)
-
 	struct options_vztt *pOpt;
 	char ** pTmplLst;
 	int rc;
+
+	QString ctid = CVzHelper::get_ctid_by_uuid(env_uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
 
 	if (lstVzTmpl.empty())
 		return PRL_ERR_SUCCESS;
@@ -319,12 +322,10 @@ PRL_RESULT CVzTemplateHelper::remove_templates_env(QString env_uuid, QStringList
 		return PRL_ERR_MEMORY_ALLOC_ERROR;
 	}
 
-	unsigned int ctid = -1;
-
-	rc = vztt2_remove_tmpl(ctid, pTmplLst, lstVzTmpl.size(), pOpt, NULL);
+	rc = vztt2_remove_tmpl(QSTR2UTF8(ctid), pTmplLst, lstVzTmpl.size(), pOpt, NULL);
 	if (0 != rc)
 		WRITE_TRACE(DBG_FATAL, "Cannot remove EZ application templates"
-				" from CT %d with %d", ctid, rc);
+				" from CT %s with %d", QSTR2UTF8(ctid), rc);
 	free_tmpl_list(pTmplLst, lstVzTmpl.size());
 	free_options(pOpt);
 
