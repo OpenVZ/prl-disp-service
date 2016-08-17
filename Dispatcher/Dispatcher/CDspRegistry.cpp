@@ -292,6 +292,8 @@ void Reactor::proceed(VIRTUAL_MACHINE_STATE destination_)
 	{
 	case VMS_RUNNING:
 		return forward(::Vm::State::Conventional<VMS_RUNNING>());
+	case VMS_STOPPING:
+		return forward(::Vm::State::Conventional<VMS_STOPPING>());
 	case VMS_STOPPED:
 		return forward(::Vm::State::Conventional<VMS_STOPPED>());
 	case VMS_PAUSED:
