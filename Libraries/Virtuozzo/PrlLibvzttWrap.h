@@ -34,10 +34,10 @@
 FUNC_DECL(void, vztt_init_logger, (const char * logfile, int loglevel))
 FUNC_DECL(int, vztt2_get_templates_list, (char *ostemplate, struct options_vztt *opts,
 	struct tmpl_list_el ***ls))
-FUNC_DECL(int, vztt2_install_tmpl,  (unsigned veid, char *tlist[], size_t size,
+FUNC_DECL(int, vztt2_install_tmpl,  (const char *ctid, char *tlist[], size_t size,
 	struct options_vztt *opts_vztt, struct package ***pkg_updated,
 	struct package ***pkg_removed))
-FUNC_DECL(int, vztt2_remove_tmpl,  (unsigned veid, char *tlist[], size_t size,
+FUNC_DECL(int, vztt2_remove_tmpl,  (const char *ctid, char *tlist[], size_t size,
 	struct options_vztt *opts_vztt, struct package ***pkg_removed))
 FUNC_DECL(int, vztt2_remove_os_template,  (char *tmpl, struct options_vztt *opts_vztt))
 FUNC_DECL(int, vztt2_remove_app_template,  (char *tmpl, struct options_vztt *opts_vztt))
