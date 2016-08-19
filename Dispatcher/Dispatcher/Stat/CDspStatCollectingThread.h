@@ -54,8 +54,6 @@ struct Storage;
 
 namespace Collecting
 {
-namespace Ct
-{
 ///////////////////////////////////////////////////////////////////////////////
 // struct Farmer
 
@@ -73,15 +71,14 @@ protected:
 	void timerEvent(QTimerEvent* event_);
 
 private:
-	void collect();
+	void collectCt();
+	void collectVm();
 
 	int m_timer;
 	quint64 m_period;
 	CVmIdent m_ident;
 	QScopedPointer<QFutureWatcher<void> > m_watcher;
 };
-
-} //namespace Ct
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Mapper

@@ -39,6 +39,8 @@
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <libvirt/libvirt.h>
+#include <boost/tuple/tuple.hpp>
+#include "CDspLibvirt.h"
 
 namespace Libvirt
 {
@@ -344,6 +346,8 @@ struct Guest
 	Result setUserPasswd(const QString& user_, const QString& passwd_, bool crypted_);
 	Result freezeFs();
 	Result thawFs();
+	Prl::Expected< QList<boost::tuple<quint64,quint64,QString> >, ::Error::Simple>
+		getFsInfo();
 	Result checkAgent();
 	Prl::Expected<QString, Libvirt::Agent::Failure> getAgentVersion(int retries = Exec::Exec::RETRIES);
 	Prl::Expected<Exec::Future, Error::Simple> startProgram(const Exec::Request& r);

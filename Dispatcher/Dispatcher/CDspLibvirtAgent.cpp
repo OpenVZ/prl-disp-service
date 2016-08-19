@@ -30,11 +30,11 @@
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/combine.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <Libraries/Transponster/Direct.h>
 #include <Libraries/Transponster/Reverse.h>
-#include <boost/algorithm/string/replace.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 
@@ -820,6 +820,30 @@ Result Guest::thawFs()
 {
 	return do_(m_domain.data(), boost::bind
 		(&virDomainFSThaw, _1, (const char **)NULL, 0, 0));
+}
+
+Prl::Expected< QList<boost::tuple<quint64,quint64,QString> >, ::Error::Simple>
+Guest::getFsInfo()
+{
+	Prl::Expected<QString, Libvirt::Agent::Failure> r =
+		Exec::Exec(m_domain).executeInAgent(QString("{\"execute\":\"guest-get-fsinfo\"}"));
+	if (r.isFailed())
+		return r.error();
+	std::istringstream is(r.value().toUtf8().data());
+	boost::property_tree::ptree pt;
+	QList<boost::tuple<quint64,quint64,QString> > l;
+	try {
+		boost::property_tree::json_parser::read_json(is, pt);
+		BOOST_FOREACH(boost::property_tree::ptree::value_type& v, pt.get_child("return")) {
+			uint64_t t = v.second.get<uint64_t>("total");
+			uint64_t f = v.second.get<uint64_t>("free");
+			QString s = QString::fromStdString(v.second.get<std::string>("name"));
+			l << boost::make_tuple(t, f, s);
+		}
+	} catch (const std::exception &) {
+		return Failure(PRL_ERR_FAILURE);
+	}
+	return l;
 }
 
 Result Guest::checkAgent()
