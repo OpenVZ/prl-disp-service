@@ -3060,7 +3060,7 @@ Action* Adapter::operator()(const Request& input_) const
 				<CVmGenericNetworkAdapter>, _1, copy));
 		}
 		// but we can attach 'routed' interface to network's bridge without libvirt
-		else if (x->getEmulatedType() == PNA_ROUTED && d->getEmulatedType() == PNA_BRIDGED_ETHERNET)
+		else if (x->getEmulatedType() == PNA_ROUTED && d->getEmulatedType() == PNA_BRIDGED_NETWORK)
 			a = new Reconnect(*d);
 		else
 			continue;

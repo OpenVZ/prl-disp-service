@@ -7450,7 +7450,7 @@ void PrlVmManipulationsTest::testAutoVirtualNetworksConfigureDuringVmCreation()
 
 	CREATE_NET_DEVICE(hSharedNet, PNA_SHARED)
 	CREATE_NET_DEVICE(hHostOnlyNet, PNA_HOST_ONLY)
-	CREATE_NET_DEVICE(hBridgedNet, PNA_BRIDGED_ETHERNET)
+	CREATE_NET_DEVICE(hBridgedNet, PNA_BRIDGED_NETWORK)
 
 	CHECK_ASYNC_OP_SUCCEEDED(PrlVm_Reg( m_VmHandle, "", PRL_FALSE ))
 	CHECK_ASYNC_OP_SUCCEEDED(PrlVm_RefreshConfig( m_VmHandle ))
@@ -7500,7 +7500,7 @@ void PrlVmManipulationsTest::testAutoVirtualNetworksConfigureDuringVmRegistratio
 
 	CREATE_NET_DEVICE(hSharedNet, PNA_SHARED)
 	CREATE_NET_DEVICE(hHostOnlyNet, PNA_HOST_ONLY)
-	CREATE_NET_DEVICE(hBridgedNet, PNA_BRIDGED_ETHERNET)
+	CREATE_NET_DEVICE(hBridgedNet, PNA_BRIDGED_NETWORK)
 
 	CAuthHelper _auth( TestConfig::getUserLogin() );
 	QVERIFY(_auth.AuthUser( TestConfig::getUserPassword() ));

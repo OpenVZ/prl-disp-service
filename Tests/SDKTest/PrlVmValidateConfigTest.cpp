@@ -2177,7 +2177,7 @@ void PrlVmValidateConfigTest::testValidateConfigNetworkAdapterOnValid()
 
 			CHECK_RET_CODE_EXP(PrlVmCfg_CreateVmDev(m_VmHandle, PDE_GENERIC_NETWORK_ADAPTER, hDevice.GetHandlePtr()));
 
-			CHECK_RET_CODE_EXP(PrlVmDev_SetEmulatedType(hDevice, (PRL_VM_DEV_EMULATION_TYPE )PNA_BRIDGED_ETHERNET));
+			CHECK_RET_CODE_EXP(PrlVmDev_SetEmulatedType(hDevice, (PRL_VM_DEV_EMULATION_TYPE )PNA_BRIDGED_NETWORK));
 			CHECK_RET_CODE_EXP(PrlVmDev_SetEnabled(hDevice, TRUE));
 			CHECK_RET_CODE_EXP(PrlVmDevNet_GenerateMacAddr(hDevice));
 			CHECK_RET_CODE_EXP(PrlVmDevNet_SetBoundAdapterIndex(hDevice,nSysIndex));
@@ -2188,7 +2188,7 @@ void PrlVmValidateConfigTest::testValidateConfigNetworkAdapterOnValid()
 			// add default adapter;
 			CHECK_RET_CODE_EXP(PrlVmCfg_CreateVmDev(m_VmHandle, PDE_GENERIC_NETWORK_ADAPTER, hDevice.GetHandlePtr()));
 
-			CHECK_RET_CODE_EXP(PrlVmDev_SetEmulatedType(hDevice, (PRL_VM_DEV_EMULATION_TYPE )PNA_BRIDGED_ETHERNET));
+			CHECK_RET_CODE_EXP(PrlVmDev_SetEmulatedType(hDevice, (PRL_VM_DEV_EMULATION_TYPE )PNA_BRIDGED_NETWORK));
 			CHECK_RET_CODE_EXP(PrlVmDev_SetEnabled(hDevice, TRUE));
 			CHECK_RET_CODE_EXP(PrlVmDevNet_GenerateMacAddr(hDevice));
 			CHECK_RET_CODE_EXP(PrlVmDevNet_SetBoundAdapterName(hDevice, "AdapterXXX"));
@@ -2255,7 +2255,7 @@ void PrlVmValidateConfigTest::testValidateConfigNetworkAdapterOnInvalidAdapter()
 	// 1 Add bridged ethernet network adapter with invalid adapter name
 	CHECK_RET_CODE_EXP(PrlVmCfg_CreateVmDev(m_VmHandle, PDE_GENERIC_NETWORK_ADAPTER, hDevice.GetHandlePtr()));
 
-	CHECK_RET_CODE_EXP(PrlVmDev_SetEmulatedType(hDevice, (PRL_VM_DEV_EMULATION_TYPE )PNA_BRIDGED_ETHERNET));
+	CHECK_RET_CODE_EXP(PrlVmDev_SetEmulatedType(hDevice, (PRL_VM_DEV_EMULATION_TYPE )PNA_BRIDGED_NETWORK));
 	CHECK_RET_CODE_EXP(PrlVmDev_SetEnabled(hDevice, TRUE));
 	CHECK_RET_CODE_EXP(PrlVmDevNet_GenerateMacAddr(hDevice));
 	CHECK_RET_CODE_EXP(PrlVmDevNet_SetBoundAdapterName(hDevice, "AdapterXXX 1"));
@@ -2263,7 +2263,7 @@ void PrlVmValidateConfigTest::testValidateConfigNetworkAdapterOnInvalidAdapter()
 	// 2 Add bridged ethernet network adapter with invalid adapter name
 	CHECK_RET_CODE_EXP(PrlVmCfg_CreateVmDev(m_VmHandle, PDE_GENERIC_NETWORK_ADAPTER, hDevice.GetHandlePtr()));
 
-	CHECK_RET_CODE_EXP(PrlVmDev_SetEmulatedType(hDevice, (PRL_VM_DEV_EMULATION_TYPE )PNA_BRIDGED_ETHERNET));
+	CHECK_RET_CODE_EXP(PrlVmDev_SetEmulatedType(hDevice, (PRL_VM_DEV_EMULATION_TYPE )PNA_BRIDGED_NETWORK));
 	CHECK_RET_CODE_EXP(PrlVmDev_SetEnabled(hDevice, TRUE));
 	CHECK_RET_CODE_EXP(PrlVmDevNet_GenerateMacAddr(hDevice));
 	CHECK_RET_CODE_EXP(PrlVmDevNet_SetBoundAdapterName(hDevice, "AdapterXXX 2"));
@@ -2282,7 +2282,7 @@ void PrlVmValidateConfigTest::testValidateConfigNetworkAdapterOnInvalidAdapter()
 	// 4 Add bridged ethernet network adapter with invalid index but device is not enabled
 	CHECK_RET_CODE_EXP(PrlVmCfg_CreateVmDev(m_VmHandle, PDE_GENERIC_NETWORK_ADAPTER, hDevice.GetHandlePtr()));
 
-	CHECK_RET_CODE_EXP(PrlVmDev_SetEmulatedType(hDevice, (PRL_VM_DEV_EMULATION_TYPE )PNA_BRIDGED_ETHERNET));
+	CHECK_RET_CODE_EXP(PrlVmDev_SetEmulatedType(hDevice, (PRL_VM_DEV_EMULATION_TYPE )PNA_BRIDGED_NETWORK));
 	CHECK_RET_CODE_EXP(PrlVmDev_SetEnabled(hDevice, FALSE));
 	CHECK_RET_CODE_EXP(PrlVmDevNet_GenerateMacAddr(hDevice));
 	CHECK_RET_CODE_EXP(PrlVmDevNet_SetBoundAdapterName(hDevice, "AdapterXXX 3"));
@@ -2307,7 +2307,7 @@ void PrlVmValidateConfigTest::testValidateConfigNetworkAdapterOnDefaultSysIndex(
 	SdkHandleWrap hDevice;
 	CHECK_RET_CODE_EXP(PrlVmCfg_CreateVmDev(m_VmHandle, PDE_GENERIC_NETWORK_ADAPTER, hDevice.GetHandlePtr()));
 
-	CHECK_RET_CODE_EXP(PrlVmDev_SetEmulatedType(hDevice, (PRL_VM_DEV_EMULATION_TYPE )PNA_BRIDGED_ETHERNET));
+	CHECK_RET_CODE_EXP(PrlVmDev_SetEmulatedType(hDevice, (PRL_VM_DEV_EMULATION_TYPE )PNA_BRIDGED_NETWORK));
 	CHECK_RET_CODE_EXP(PrlVmDev_SetEnabled(hDevice, TRUE));
 	CHECK_RET_CODE_EXP(PrlVmDevNet_GenerateMacAddr(hDevice));
 	CHECK_RET_CODE_EXP(PrlVmDevNet_SetBoundAdapterIndex(hDevice, (PRL_UINT32 )-1));
@@ -3658,7 +3658,7 @@ void PrlVmValidateConfigTest::testValidateConfigOnAllInvalid()
 // Network adapter - PRL_ERR_VMCONF_NETWORK_ADAPTER_INVALID_MAC_ADDRESS
 	CVmGenericNetworkAdapter *pNetAdapter = new CVmGenericNetworkAdapter();
 	pNetAdapter->setMacAddress("asdasd");
-	pNetAdapter->setEmulatedType( (PRL_VM_DEV_EMULATION_TYPE )PNA_BRIDGED_ETHERNET);
+	pNetAdapter->setEmulatedType( (PRL_VM_DEV_EMULATION_TYPE )PNA_BRIDGED_NETWORK);
 	pNetAdapter->setEnabled( TRUE );
 	pNetAdapter->setBoundAdapterIndex(0xAAAAAAAA);
 	_vm_conf.getVmHardwareList()->addNetworkAdapter(pNetAdapter);

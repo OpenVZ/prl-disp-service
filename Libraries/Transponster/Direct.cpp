@@ -277,7 +277,7 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	a->setIndex(m_hardware->m_lstNetworkAdapters.size());
 	a->setConnected();
 	a->setEnabled(PVE::DeviceEnabled);
-	a->setEmulatedType(PNA_BRIDGED_ETHERNET);
+	a->setEmulatedType(PNA_BRIDGED_NETWORK);
 	if (bridge_.getValue().getModel())
 	{
 		a->setAdapterType(parseAdapterType(bridge_.getValue().getModel().get()));
@@ -325,7 +325,7 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	a->setIndex(m_hardware->m_lstNetworkAdapters.size());
 	a->setConnected();
 	a->setEnabled(PVE::DeviceEnabled);
-	a->setEmulatedType(PNA_BRIDGED_ETHERNET);
+	a->setEmulatedType(PNA_BRIDGED_NETWORK);
 	if (network_.getValue().getModel())
 	{
 		a->setAdapterType(parseAdapterType(network_.getValue().getModel().get()));

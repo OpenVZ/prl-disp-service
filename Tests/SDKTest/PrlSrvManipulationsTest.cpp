@@ -1454,7 +1454,7 @@ void PrlSrvManipulationsTest::testGetDispNetNonValidIndex()
 	PRL_BOOL bDhcpEnabled;\
 	QVERIFY(!PRL_SUCCEEDED(PrlDispNet_IsDhcpEnabled(hDispNet, &bDhcpEnabled)));\
 	QVERIFY(!PRL_SUCCEEDED(PrlDispNet_SetDhcpEnabled(hDispNet, bDhcpEnabled)));\
-	PRL_NET_ADAPTER_EMULATED_TYPE nNetworkType = PNA_BRIDGED_ETHERNET;\
+	PRL_NET_ADAPTER_EMULATED_TYPE nNetworkType = PNA_BRIDGED_NETWORK;\
 	QVERIFY(!PRL_SUCCEEDED(PrlDispNet_GetNetworkType(hDispNet, &nNetworkType)));\
 	QVERIFY(!PRL_SUCCEEDED(PrlDispNet_SetNetworkType(hDispNet, nNetworkType)));\
 	PRL_CHAR sDispNetName[STR_BUF_LENGTH];\
@@ -1580,7 +1580,7 @@ void PrlSrvManipulationsTest::testDispNetGetNetworkType()
 {
 	RECEIVE_DISP_CONFIG
 	ADD_DISP_NET
-	PRL_NET_ADAPTER_EMULATED_TYPE nEmulatedType = PNA_BRIDGED_ETHERNET;
+	PRL_NET_ADAPTER_EMULATED_TYPE nEmulatedType = PNA_BRIDGED_NETWORK;
 	CHECK_RET_CODE_EXP(PrlDispNet_GetNetworkType(hDispNet, &nEmulatedType))
 	EXTRACT_DISP_CONFIG_AS_XML_MODEL_OBJECT
 	QVERIFY(nEmulatedType == _dcp.getNetworkPreferences()->getNetAdapters()->back()->getNetworkType());
@@ -1591,7 +1591,7 @@ void PrlSrvManipulationsTest::testDispNetSetNetworkType()
 	RECEIVE_DISP_CONFIG
 	ADD_DISP_NET
 	EXTRACT_DISP_CONFIG_AS_XML_MODEL_OBJECT
-	PRL_NET_ADAPTER_EMULATED_TYPE nEmulatedType = _dcp.getNetworkPreferences()->getNetAdapters()->back()->getNetworkType() == PNA_BRIDGED_ETHERNET ? PNA_HOST_ONLY : PNA_BRIDGED_ETHERNET;
+	PRL_NET_ADAPTER_EMULATED_TYPE nEmulatedType = _dcp.getNetworkPreferences()->getNetAdapters()->back()->getNetworkType() == PNA_BRIDGED_NETWORK ? PNA_HOST_ONLY : PNA_BRIDGED_NETWORK;
 	CHECK_RET_CODE_EXP(PrlDispNet_SetNetworkType(hDispNet, nEmulatedType))
 	PRL_NET_ADAPTER_EMULATED_TYPE nActualEmulatedType;
 	CHECK_RET_CODE_EXP(PrlDispNet_GetNetworkType(hDispNet, &nActualEmulatedType))

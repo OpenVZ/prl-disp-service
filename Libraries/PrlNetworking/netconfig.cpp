@@ -741,7 +741,7 @@ CVirtualNetwork *PrlNet::GetVirtualNetworkForAdapter(CParallelsNetworkConfig *ne
 	}else if(emulatedType == PNA_SHARED)
 	{
 		pVirtNetworking = PrlNet::GetSharedNetwork(networkConfig);
-	}else if(emulatedType == PNA_BRIDGED_ETHERNET)
+	}else if(emulatedType == PNA_BRIDGED_NETWORK)
 	{
 		pVirtNetworking = PrlNet::GetBridgedNetwork(networkConfig);
 	}
@@ -977,11 +977,11 @@ PRL_RESULT PrlNet::GetAdapterForVM(
 
 	if (networkingType == 3 )// custom
 	{
-		networkingType = PNA_BRIDGED_ETHERNET;
+		networkingType = PNA_BRIDGED_NETWORK;
 		adapterIndex |= PRL_ADAPTER_START_INDEX;
 	}
 
-	if( PNA_BRIDGED_ETHERNET == networkingType )
+	if( PNA_BRIDGED_NETWORK == networkingType )
 	{
 		if (adapterIndex < 0) {
 			PRL_RESULT res = PrlNet::getDefaultBridgedAdapter(

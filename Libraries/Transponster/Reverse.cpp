@@ -678,7 +678,7 @@ Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
 {
 	switch (network_.getEmulatedType())
 	{
-	case PNA_BRIDGED_ETHERNET:
+	case PNA_BRIDGED_NETWORK:
 		if (network_.getVirtualNetworkID().isEmpty())
 			return Adapter<0>()(network_, boot_);
 
