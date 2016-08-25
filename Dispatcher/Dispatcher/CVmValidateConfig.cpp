@@ -1624,7 +1624,7 @@ void CVmValidateConfig::CheckNetworkAdapter()
 					ADD_FID(setIds);
 				}
 			}
-			else if (PrlNet::getMode() != PRL_NET_MODE_VME ||
+			else if ((PrlNet::getMode() != PRL_NET_MODE_VME && pNetAdapter->getEmulatedType() != PNA_BRIDGE) ||
 				pNetAdapter->getEmulatedType() == PNA_BRIDGED_NETWORK)
 			{
 				PrlNet::EthAdaptersList::Iterator itEthAdapter;

@@ -1551,7 +1551,8 @@ QSet<QString> Task_ManagePrlNetService::extractIPAddressesFromVMConfiguration(Sm
 		if (!adapter)
 			continue;
 		if (adapter->getEmulatedType() == PNA_ROUTED ||
-			adapter->getEmulatedType() == PNA_DIRECT_ASSIGN)
+			adapter->getEmulatedType() == PNA_DIRECT_ASSIGN ||
+			adapter->getEmulatedType() == PNA_BRIDGE)
 			continue;
 		PRL_NET_VIRTUAL_NETWORK_TYPE nNetType;
 		PRL_RESULT nResult = PrlNet::GetNetworkTypeForAdapter(pNetworkConfig.getPtr(), adapter, &nNetType);

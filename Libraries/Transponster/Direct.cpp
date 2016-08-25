@@ -277,7 +277,7 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 	a->setIndex(m_hardware->m_lstNetworkAdapters.size());
 	a->setConnected();
 	a->setEnabled(PVE::DeviceEnabled);
-	a->setEmulatedType(PNA_BRIDGED_NETWORK);
+	a->setEmulatedType(PNA_BRIDGE);
 	if (bridge_.getValue().getModel())
 	{
 		a->setAdapterType(parseAdapterType(bridge_.getValue().getModel().get()));
@@ -287,11 +287,8 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 		const QString& n = bridge_.getValue().getSource().get().getBridge().get();
 		if (n == QString("host-routed"))
 			a->setEmulatedType(PNA_ROUTED);
-		else
-		{
-			a->setSystemName(n);
-			a->setBoundAdapterName(n);
-		}
+		a->setVirtualNetworkID(n);
+		a->setSystemName(n);
 	}
 	if (bridge_.getValue().getMac())
 	{
