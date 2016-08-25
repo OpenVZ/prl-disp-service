@@ -142,20 +142,20 @@ QStringList Api::getOutgoings(const char* action_, const QString& device_) const
 {
 	Api a(m_binary, "FORWARD");
 	return QStringList()
+		<< a.getAction(action_).jump(m_chain)("-i")(device_)
 		<< a.getAction(action_).jump(m_chain)
 			("-m")("physdev")("--physdev-is-bridged")
-			("--physdev-in")(device_)
-		<< a.getAction(action_).jump(m_chain)("-i")(device_);
+			("--physdev-in")(device_);
 }
 
 QStringList Api::getIncomings(const char* action_, const QString& device_) const
 {
 	Api a(m_binary, "FORWARD");
 	return QStringList()
+		<< a.getAction(action_).jump(m_chain)("-o")(device_)
 		<< a.getAction(action_).jump(m_chain)
 			("-m")("physdev")("--physdev-is-bridged")
-			("--physdev-out")(device_)
-		<< a.getAction(action_).jump(m_chain)("-o")(device_);
+			("--physdev-out")(device_);
 }
 
 QString Api::getIncomingChain(const QString& device_)
@@ -293,8 +293,8 @@ void CFirewallHelper::AddRules(CVmGenericNetworkAdapter* pAdapter, const QString
 		// Set up firewall rules
 		m_lstRules += a.getAction("-N");
 		m_lstRules += a6.getAction("-N");
-		m_lstRules += a.getIncomings("-A", veth_name);
-		m_lstRules += a6.getIncomings("-A", veth_name);
+		m_lstRules += a.getIncomings("-I", veth_name);
+		m_lstRules += a6.getIncomings("-I", veth_name);
 		AddDirectionRules(pAdapter, x, PFD_INCOMING);
 	}
 	x = Api::getOutgoingChain(veth_name);
@@ -303,8 +303,8 @@ void CFirewallHelper::AddRules(CVmGenericNetworkAdapter* pAdapter, const QString
 		// Set up firewall rules
 		m_lstRules += a.getAction("-N");
 		m_lstRules += a6.getAction("-N");
-		m_lstRules += a.getOutgoings("-A", veth_name);
-		m_lstRules += a6.getOutgoings("-A", veth_name);
+		m_lstRules += a.getOutgoings("-I", veth_name);
+		m_lstRules += a6.getOutgoings("-I", veth_name);
 		AddDirectionRules(pAdapter, x, PFD_OUTGOING);
 	}
 }
