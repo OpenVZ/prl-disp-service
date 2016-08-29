@@ -2145,6 +2145,10 @@ int CVzOperationHelper::create_env(const QString &dst, SmartPtr<CVmConfiguration
 
 	if (flags & PRNVM_PRESERVE_DISK) {
 		args += "--no-hdd";
+		if (ostemplate.isEmpty()) {
+			args += "--ostemplate";
+			args += "";
+		}
 	} else {
 		foreach(CVmHardDisk* d, pConfig->getVmHardwareList()->m_lstHardDisks) {
 			if (d->getEncryption() &&
