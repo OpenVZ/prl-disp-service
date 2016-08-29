@@ -218,7 +218,6 @@ void Task_VzStateMonitor::sendState(const QString &ctid, int state)
 	}
 	else
 	{
-		WRITE_TRACE(DBG_FATAL, "unknown Ct state %d", state);
 		return;
 	}
 	SmartPtr<IOPackage> p = DispatcherPackage::createInstance( PVE::DspVmEvent, event );
