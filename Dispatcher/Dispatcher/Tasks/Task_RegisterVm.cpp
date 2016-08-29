@@ -897,7 +897,7 @@ void Task_RegisterVm::PatchNetworkAdapters()
 					pNetAdapter->setConnected( PVE::DeviceDisconnected );
 			break;
 
-			case PNA_BRIDGED_ETHERNET:
+			case PNA_BRIDGED_NETWORK:
 				if ( pBridgedNet )
 					pNetAdapter->setVirtualNetworkID( pBridgedNet->getNetworkID() );
 				else

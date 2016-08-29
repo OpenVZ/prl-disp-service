@@ -641,7 +641,10 @@ Libvirt::Domain::Xml::Interface620 Adapter<0>::prepare(const CVmGenericNetworkAd
 	output.setIpList(Ips()(network_.getNetAddresses()));
 	output.setModel(View(network_).getAdapterType());
 	Libvirt::Domain::Xml::Source6 s;
-	s.setBridge(network_.getSystemName());
+	if (network_.getVirtualNetworkID().isEmpty())
+		s.setBridge(QString("host-routed"));
+	else
+		s.setBridge(network_.getVirtualNetworkID());
 	output.setSource(s);
 	output.setTarget(network_.getHostInterfaceName());
 	return output;
@@ -678,10 +681,12 @@ Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
 {
 	switch (network_.getEmulatedType())
 	{
-	case PNA_BRIDGED_ETHERNET:
+	case PNA_BRIDGE:
+		return Adapter<0>()(network_, boot_);
+	case PNA_BRIDGED_NETWORK:
+		/* Legacy case before PNA_BRIDGE introduced*/
 		if (network_.getVirtualNetworkID().isEmpty())
 			return Adapter<0>()(network_, boot_);
-
 		return Adapter<3>()(network_, boot_);
 	case PNA_DIRECT_ASSIGN:
 		return Adapter<4>()(network_, boot_);
@@ -689,6 +694,7 @@ Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
 	{
 		CVmGenericNetworkAdapter routed(network_);
 		routed.setSystemName(QString("host-routed"));
+		routed.setVirtualNetworkID(QString("host-routed"));
 		return Adapter<0>()(routed, boot_);
 	}
 	default:

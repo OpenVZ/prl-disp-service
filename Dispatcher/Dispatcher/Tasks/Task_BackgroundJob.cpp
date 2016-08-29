@@ -362,7 +362,8 @@ PRL_RESULT announceMacAddresses(SmartPtr<CVmConfiguration> &pVmConfig)
 		if (adapter == NULL)
 			continue;
 		if (adapter->getEmulatedType() == PNA_ROUTED ||
-			adapter->getEmulatedType() == PNA_DIRECT_ASSIGN)
+			adapter->getEmulatedType() == PNA_DIRECT_ASSIGN ||
+			adapter->getEmulatedType() == PNA_BRIDGE)
 			continue;
 		PRL_RESULT nResult;
 		QString sAdapterSysName;
