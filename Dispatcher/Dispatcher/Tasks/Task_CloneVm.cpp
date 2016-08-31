@@ -55,6 +55,7 @@
 #include <prlcommon/VirtualDisk/Qcow2Disk.h>
 #include "Libraries/ProtoSerializer/CProtoSerializer.h"
 #include "CDspBackupDevice.h"
+#include "CDspVmManager_p.h"
 
 using namespace Parallels;
 
@@ -843,7 +844,9 @@ void Dress::undoLibvirtDomain()
 PRL_RESULT Dress::addLibvirtDomain()
 {
 #ifdef _LIBVIRT_
-	Libvirt::Result r(Libvirt::Kit.vms().define(*m_config));
+	Libvirt::Result r(Command::Vm::Gear<Command::Tag::State
+		<Command::Vm::Registrator, Command::Vm::Fork::State::Plural
+			<boost::mpl::vector_c<unsigned, VMS_STOPPED, VMS_SUSPENDED> > > >::run(*m_config));
 	if (r.isSucceed())
 		return PRL_ERR_SUCCESS;
 
