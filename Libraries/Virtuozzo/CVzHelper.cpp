@@ -989,6 +989,10 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 			pNet->setAutoApply(dev.configure_mode != VZCTL_VETH_CONFIGURE_NONE);
 			if (dev.network != NULL)
 				pNet->setVirtualNetworkID(QString(dev.network));
+
+			pNet->setEmulatedType(
+				dev.nettype == VZCTL_NETTYPE_BRIDGE ?
+					PNA_BRIDGE : PNA_BRIDGED_NETWORK);
 			QString mac;
 			if (dev.mac_ve != NULL) {
 				mac = QString(dev.mac_ve).remove(QChar(':'));
@@ -1476,7 +1480,8 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 				pAdapter->isAutoApply() == pOldAdapter->isAutoApply() &&
 				pAdapter->getHostInterfaceName() == pOldAdapter->getHostInterfaceName() &&
 				pAdapter->getPktFilter()->isPreventMacSpoof() == pOldAdapter->getPktFilter()->isPreventMacSpoof() &&
-				pAdapter->getPktFilter()->isPreventIpSpoof() == pOldAdapter->getPktFilter()->isPreventIpSpoof())
+				pAdapter->getPktFilter()->isPreventIpSpoof() == pOldAdapter->getPktFilter()->isPreventIpSpoof() &&
+				pAdapter->getEmulatedType() != pOldAdapter->getEmulatedType())
 			continue;
 
 		vzctl_veth_dev_iterator itdev;
@@ -1526,6 +1531,8 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 
 		QByteArray gw6(pAdapter->getDefaultGatewayIPv6().toUtf8());
 		dev.gw6 = gw6.data();
+		if (pAdapter->getEmulatedType() == PNA_BRIDGE)
+			dev.nettype = VZCTL_NETTYPE_BRIDGE;
 
 		itdev = vzctl2_create_veth_dev(&dev, sizeof(dev));
 		if (itdev == NULL) {
