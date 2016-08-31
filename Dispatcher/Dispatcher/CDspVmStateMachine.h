@@ -39,6 +39,7 @@
 #include "CDspLibvirtExec.h"
 #include "CDspVmGuest.h"
 #include "CDspVmStateMachine_p.h"
+#include <Libraries/PrlCommonUtils/CFirewallHelper.h>
 
 namespace Vm
 {
@@ -349,6 +350,10 @@ struct Frontend: Details::Frontend<Frontend>
 
 			WRITE_TRACE(DBG_INFO, "configuring routes for VM '%s'", qPrintable(fsm_.m_name));
 			fsm_.m_routing->up(y.get());
+			SmartPtr<CVmConfiguration> x(&y.get(), SmartPtrPolicy::DoNotReleasePointee);
+			CFirewallHelper fw(x);
+			if (PRL_FAILED(fw.Execute()))
+				WRITE_TRACE(DBG_FATAL, "failed to enable firewall rules for VM '%s'", qPrintable(fsm_.m_name));
 		}
 	};
 
@@ -364,6 +369,10 @@ struct Frontend: Details::Frontend<Frontend>
 
 			WRITE_TRACE(DBG_INFO, "disabling routes for VM '%s'", qPrintable(fsm_.m_name));
 			fsm_.m_routing->down(y.get());
+			SmartPtr<CVmConfiguration> x(&y.get(), SmartPtrPolicy::DoNotReleasePointee);
+			CFirewallHelper fw(x, true);
+			if (PRL_FAILED(fw.Execute()))
+				WRITE_TRACE(DBG_FATAL, "failed to disable firewall rules for VM '%s'", qPrintable(fsm_.m_name));
 		}
 	};
 
