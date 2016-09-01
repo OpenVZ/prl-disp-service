@@ -835,6 +835,16 @@ struct Connector: Vm::Connector::Base<T>, Slot
 		if (m_queue.isNull())
 			return;
 
+		QObject* s = this->sender();
+		if (NULL == s)
+			return;
+
+		if (!s->inherits("QIODevice"))
+			return;
+
+		if (0 == ((QIODevice*)s)->bytesAvailable())
+			return;
+
 		this->setState(boost::apply_visitor(Visitor::Ready(*m_queue), m_state));
 	}
 

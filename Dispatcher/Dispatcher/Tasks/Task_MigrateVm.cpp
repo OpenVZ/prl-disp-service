@@ -609,6 +609,8 @@ QSharedPointer<QTcpSocket> Connector::accept_()
 		return QSharedPointer<QTcpSocket>();
 
 	QSharedPointer<QTcpSocket> output(s->nextPendingConnection());
+	output->setReadBufferSize(1 << 24);
+	output->setProperty("channel", QVariant(uint(output->localPort())));
 	handle(output);
 	return output;
 }
