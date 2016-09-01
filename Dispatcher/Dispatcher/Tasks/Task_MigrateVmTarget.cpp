@@ -234,7 +234,11 @@ SmartPtr<IOPackage> Packer::operator()(const QTcpSocket& source_)
 	std::swap(m_spice, b);
 	if (output.isValid())
 	{
-		quint32 p = source_.localPort();
+		QVariant v = source_.property("channel");
+		if (!v.isValid())
+			return SmartPtr<IOPackage>();
+
+		quint32 p = v.toUInt();
 		output->fillBuffer(0, IOPackage::RawEncoding, &p, sizeof(p));
 	}
 	return output;
