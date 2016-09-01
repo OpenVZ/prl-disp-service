@@ -418,7 +418,22 @@ PRL_RESULT Assistant::operator()(const QString& image_, const QString& archive_,
 	if (e.isFailed())
 		return e.error();
 
-	QString u = ::Backup::Work::UrlBuilder(m_task->getServerHostname())(e.value());
+	QString u = e.value();;
+	::Backup::Tunnel::Source::Factory::result_type t =
+		m_task->craftTunnel()(m_task->getFlags());
+	
+	if (t.isFailed())
+		return t.error();
+	else if (t.value().isNull())
+		u = m_task->patch(u);
+	else
+	{
+		Prl::Expected<QUrl, PRL_RESULT> x = t.value()->addStrand(u);
+		if (x.isFailed())
+			return x.error();
+
+		u = x.value().toString();
+	}
 	QStringList cmdline = QStringList() << QEMU_IMG << "convert" << "-O" << format_
 			<< "-S" << "64k" << "-t" << "none" << u << image_;
 
@@ -2041,3 +2056,9 @@ void Task_RestoreVmBackupTarget::runV2V()
 
 	exit(nRetCode);
 }
+
+::Backup::Tunnel::Source::Factory Task_RestoreVmBackupTarget::craftTunnel()
+{
+	return ::Backup::Tunnel::Source::Factory(m_sServerHostname, getIoClient());
+}
+

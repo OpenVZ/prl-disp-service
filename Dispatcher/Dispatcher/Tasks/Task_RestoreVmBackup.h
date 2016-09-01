@@ -48,6 +48,18 @@
 #include "CDspVzHelper.h"
 #include "Legacy/VmConverter.h"
 
+namespace Backup
+{
+namespace Tunnel
+{
+namespace Source
+{
+struct Factory;
+
+} // namespace Source
+} // namespace Tunnel
+} // namespace Backup
+
 namespace Restore
 {
 struct Move;
@@ -139,6 +151,8 @@ public:
 		CProtoCommandPtr,
 		const SmartPtr<IOPackage> &);
 	virtual ~Task_RestoreVmBackupTarget();
+
+	::Backup::Tunnel::Source::Factory craftTunnel();
 	Prl::Expected<QString, PRL_RESULT> sendMountImageRequest(const QString&);
 
 protected:

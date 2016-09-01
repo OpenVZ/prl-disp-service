@@ -254,13 +254,6 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Spin
-
-struct Spin: ::Vm::State::Details::Trace<Spin>
-{
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
 struct Frontend: ::Vm::State::Details::Frontend<Frontend>,
@@ -268,6 +261,7 @@ struct Frontend: ::Vm::State::Details::Frontend<Frontend>,
 {
 	typedef ::Vm::State::Details::Frontend<Frontend> def_type;
 	typedef QSharedPointer<QTcpSocket> client_type;
+	typedef SmartPtr<CDspDispConnection> entry_type;
 	typedef Migrate::Vm::Target::Tunnel::ioEvent_type ioEvent_type;
 	typedef Migrate::Vm::Target::Tunnel::Qemu::Hub
 	<
@@ -287,7 +281,7 @@ struct Frontend: ::Vm::State::Details::Frontend<Frontend>,
 	using def_type::on_entry;
 
 	template <typename FSM>
-	void on_entry(const SmartPtr<CDspDispConnection>& event_, FSM& fsm_)
+	void on_entry(const entry_type& event_, FSM& fsm_)
 	{
 		def_type::on_entry(event_, fsm_);
 		if (event_.isValid())
@@ -314,6 +308,9 @@ struct Frontend: ::Vm::State::Details::Frontend<Frontend>,
 	}
 
 	void spin(const qemuDisk_type::Good&);
+
+	template<class T>
+	static PRL_RESULT decorate(const entry_type& event_, T decorated_);
 
 	struct transition_table : boost::mpl::vector
 	<
@@ -351,6 +348,18 @@ private:
 
 	QSharedPointer<io_type> m_service;
 };
+
+template<class T>
+PRL_RESULT Frontend::decorate(const entry_type& event_, T decorated_)
+{
+	Backup::Tunnel::Target::backend_type b;
+	(Migrate::Vm::Walker<backend_type>(b))();
+	b.start(event_);
+	PRL_RESULT output = decorated_();
+	b.stop();
+
+	return output;
+}
 
 } // namespace Target
 } // namespace Tunnel

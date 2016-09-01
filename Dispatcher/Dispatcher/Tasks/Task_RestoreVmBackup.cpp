@@ -417,13 +417,20 @@ PRL_RESULT Task_RestoreVmBackupSource::restore(const ::Backup::Work::object_type
 	if (PRL_FAILED(nRetCode))
 		goto exit_1;
 
-	nRetCode = (BACKUP_PROTO_V4 > m_nRemoteVersion) ?
-		Restore::Source::Workerv3(
+	if (BACKUP_PROTO_V4 > m_nRemoteVersion)
+	{
+		nRetCode = Restore::Source::Workerv3(
 			boost::bind(&Task_RestoreVmBackupSource::sendFiles, this, job),
-			&m_cABackupServer)() :
-		Restore::Source::Workerv4(
-			boost::bind(&Task_RestoreVmBackupSource::sendFiles, this, job),
-			boost::bind(&Task_RestoreVmBackupSource::exec, this))();
+			&m_cABackupServer)();
+	}
+	else
+	{
+		nRetCode = Backup::Tunnel::Target::backend_type::decorate
+			(m_pDispConnection, Restore::Source::Workerv4(
+					boost::bind(&Task_RestoreVmBackupSource::sendFiles, this, job),
+					boost::bind(&Task_RestoreVmBackupSource::exec, this)
+				));
+	}
 exit_1:
 	QObject::disconnect(m_pDispConnection.getImpl(),
 		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),

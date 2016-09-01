@@ -457,11 +457,8 @@ PRL_RESULT Task_CreateVmBackupTarget::run_body()
 	}
 	else
 	{
-		Backup::Tunnel::Target::backend_type b;
-		(Migrate::Vm::Walker<Backup::Tunnel::Target::backend_type>(b))();
-		b.start(m_pDispConnection);
-		nRetCode = exec();
-		b.stop();
+		nRetCode = Backup::Tunnel::Target::backend_type::decorate
+			(m_pDispConnection, boost::bind(&Task_CreateVmBackupTarget::exec, this));
 	}
 
 	QObject::disconnect(m_pDispConnection.getImpl(),
