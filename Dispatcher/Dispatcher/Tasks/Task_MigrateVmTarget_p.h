@@ -620,20 +620,20 @@ struct Channel: Shortcut<Channel<T>, T>::type
 ///////////////////////////////////////////////////////////////////////////////
 // struct Traits
 
-template<class T, Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
-struct Traits
+template<class T>
+struct Traits: T
 {
-	typedef Machine_type machine_type;
-	typedef boost::msm::back::state_machine<Channel<T, X, Y> > pump_type;
+	typedef boost::msm::back::state_machine<Channel<T> > pump_type;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hub
 
-template<Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
-struct Hub: Vm::Tunnel::Hub<Hub<X, Y>, Traits<Hub<X, Y>, X, Y>, Y>
+template<class T>
+struct Hub: Vm::Tunnel::Hub::Unit<Hub<T>, Traits<T> >
 {
-	typedef Vm::Tunnel::Hub<Hub, Traits<Hub, X, Y>, Y> def_type;
+	typedef Vm::Tunnel::Hub::Unit<Hub, Traits<T> > def_type;
+	typedef typename T::spawnEvent_type spawnEvent_type;
 
 	Hub(): m_service()
 	{
@@ -692,7 +692,7 @@ struct Hub: Vm::Tunnel::Hub<Hub<X, Y>, Traits<Hub<X, Y>, X, Y>, Y>
 				typename boost::mpl::push_front
 				<
 					typename def_type::internal_transition_table,
-					msmf::Internal<Vm::Pump::Event<X>, Action>
+					msmf::Internal<spawnEvent_type, Action>
 				>::type,
 				msmf::Internal<Vm::Pump::Launch_type, Action>
 			>::type,
@@ -761,10 +761,24 @@ struct Channel: Shortcut<Channel>::type
 
 struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Vm::Target::Connector>, Synch
 {
-	typedef Qemu::Hub<Parallels::VmMigrateConnectQemuStateCmd, Parallels::VmMigrateQemuStateTunnelChunk>
-		qemuState_type;
-	typedef Qemu::Hub<Parallels::VmMigrateConnectQemuDiskCmd, Parallels::VmMigrateQemuDiskTunnelChunk>
-		qemuDisk_type;
+	typedef Qemu::Hub
+		<
+			Vm::Tunnel::Hub::Traits
+			<
+				Machine_type,
+				Parallels::VmMigrateConnectQemuStateCmd,
+				Parallels::VmMigrateQemuStateTunnelChunk
+			>
+		> qemuState_type;
+	typedef Qemu::Hub
+		<
+			Vm::Tunnel::Hub::Traits
+			<
+				Machine_type,
+				Parallels::VmMigrateConnectQemuDiskCmd,
+				Parallels::VmMigrateQemuDiskTunnelChunk
+			>
+		> qemuDisk_type;
 	typedef Vm::Tunnel::Essence
 		<
 			Join::Machine<Libvirt::Channel>,
@@ -806,7 +820,7 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Vm::Target::Conne
 	};
 
 private:
-        IO* m_service;
+	IO* m_service;
 };
 
 } // namespace Tunnel
