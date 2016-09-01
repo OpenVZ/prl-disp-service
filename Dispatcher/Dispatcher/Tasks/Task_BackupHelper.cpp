@@ -327,37 +327,6 @@ PRL_RESULT Unit::read(char *data, qint32 size, UINT32 tmo)
 namespace Work
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct UrlBuilder
-
-QString UrlBuilder::operator()(const QString& url_) const
-{
-	QUrl q(url_);
-	if (q.scheme() == "nbd") {
-		// replace INADDR_ANY by a real remote server hostname
-		q.setHost(m_hostname);
-	}
-	return q.toString();
-}
-
-QString UrlBuilder::operator()(
-	const ::Backup::Activity::Object::componentList_type& urls_,
-	const QString& path_) const
-{
-	QString u;
-	foreach (const Activity::Object::component_type& c, urls_)
-	{
-		if (path_ == c.first.absoluteFilePath()) {
-			u = c.second;
-			break;
-		}
-	}
-	if (u.isEmpty())
-		return u;
-
-	return (*this)(u);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Ct
 
 Ct::Ct(Task_BackupHelper& task_) : m_context(&task_)
@@ -381,21 +350,6 @@ QStringList Ct::buildArgs(const Product::component_type& t_, const QFileInfo* f_
 	return a;
 }
 
-QStringList Ct::buildPushArgs(const Activity::Object::Model& activity_) const
-{
-	QStringList a;
-	a << QString((m_context->getFlags() & PBT_INCREMENTAL) ? "append_ct" : "create_ct");
-
-	UrlBuilder b(m_context->getServerHostname());
-	foreach (const Product::component_type& t, m_context->getProduct()->getVmTibs())
-	{
-		const QFileInfo* f = Command::findArchive(t, activity_);
-		a << "--image" << QString("ploop://%1::%2").arg(f->absoluteFilePath())
-				.arg(b(m_context->getUrls(), t.second.absoluteFilePath()));
-	}
-	return a;
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
@@ -412,24 +366,6 @@ QStringList Vm::buildArgs(const QString& snapshot_,
 	a << t_.first.getFolder() << m_context->getProduct()->getStore().absolutePath()
 		<< t_.second.absoluteFilePath() << snapshot_ << f_->absoluteFilePath();
 
-	return a;
-}
-
-QStringList Vm::buildPushArgs() const
-{
-	QStringList a;
-	a << QString((m_context->getFlags() & PBT_INCREMENTAL) ? "append" : "create");
-
-	QString n = m_context->getProduct()->getObject()
-			.getConfig()->getVmIdentification()->getVmName();
-	a << "-n" << n;
-
-	UrlBuilder b(m_context->getServerHostname());
-	foreach (const Product::component_type& t, m_context->getProduct()->getVmTibs())
-	{
-		a << "--image" << QString("%1::%2").arg(t.first.getImage())
-				.arg(b(m_context->getUrls(), t.second.absoluteFilePath()));
-	}
 	return a;
 }
 
@@ -536,6 +472,56 @@ PRL_RESULT ACommand::do_(object_type& variant_)
 
 namespace Push
 {
+namespace Flavor
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Basic
+
+QStringList Basic::craftEpilog(Task_BackupHelper& context_)
+{
+	QStringList output;
+	output << "-p" << context_.getBackupUuid();
+	if (context_.getFlags() & PBT_UNCOMPRESSED)
+		output << "--uncompressed";
+
+	output << "--limit-speed" << QString::number(context_.getBandwidth());
+	output << "--disp-mode";
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ct
+
+QString Ct::craftProlog(Task_BackupHelper& context_)
+{
+	return (context_.getFlags() & PBT_INCREMENTAL) ? "append_ct" : "create_ct";
+}
+
+QString Ct::craftImage(const component_type& component_, const QString& url_) const
+{
+	const QFileInfo* f = Command::findArchive(component_, *m_activity);
+	return QString("ploop://%1::%2").arg(f->absoluteFilePath())
+		.arg(url_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+QStringList Vm::craftProlog(Task_BackupHelper& context_)
+{
+	QStringList a;
+	a << QString((context_.getFlags() & PBT_INCREMENTAL) ? "append" : "create");
+	return a << "-n" << context_.getProduct()->getObject()
+		.getConfig()->getVmIdentification()->getVmName();
+}
+
+QString Vm::craftImage(const component_type& component_, const QString& url_)
+{
+	return QString("%1::%2").arg(component_.first.getImage()).arg(url_);
+}
+
+} // namespace Flavor
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Mode
 
@@ -564,37 +550,65 @@ Prl::Expected<mode_type, PRL_RESULT> Mode::operator()(Vm&) const
 
 QStringList Builder::operator()(Ct& variant_) const
 {
-	return variant_.buildPushArgs(m_activity);
+	Q_UNUSED(variant_);
+	return craft(Flavor::Ct(*m_activity));
 }
 
 QStringList Builder::operator()(Vm& variant_) const
 {
-	return variant_.buildPushArgs();
+	Q_UNUSED(variant_);
+	return craft(Flavor::Vm());
+}
+
+void Builder::addMap(const Activity::Object::component_type& component_, const QUrl& url_)
+{
+	m_map[component_.first.absoluteFilePath()] = url_;
+}
+
+template<class T>
+QStringList Builder::craft(T subject_) const
+{
+	QStringList a;
+	a << subject_.craftProlog(*m_context);
+	foreach (const Product::component_type& t, m_context->getProduct()->getVmTibs())
+	{
+		a << "--image" <<
+			subject_.craftImage(t, m_map[t.second.absoluteFilePath()].toString());
+	}
+	return a << subject_.craftEpilog(*m_context);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct VCommand
 
-QStringList VCommand::buildArgs(object_type& variant_)
-{
-	QStringList a(boost::apply_visitor(Builder(m_activity), variant_));
-
-	a << "-p" << m_context->getBackupUuid();
-	if (m_context->getFlags() & PBT_UNCOMPRESSED)
-		a << "--uncompressed";
-	a << "--limit-speed" << QString::number(m_context->getBandwidth());
-	a << "--disp-mode";
-	return a;
-}
-
-PRL_RESULT VCommand::do_(object_type& variant_)
+PRL_RESULT VCommand::operator()(const Activity::Object::componentList_type& components_,
+	object_type& variant_)
 {
 	Prl::Expected<mode_type, PRL_RESULT> m =
 		boost::apply_visitor(Mode(m_uuid, m_context), variant_);
 	if (m.isFailed())
 		return m.error();
 
-	QStringList a(buildArgs(variant_));
+	Builder b(*m_context, m_activity);
+	if (m_tunnel.isNull())
+	{
+		foreach (const Activity::Object::component_type& c, components_)
+		{
+			b.addMap(c, m_context->patch(c.second));
+		}
+	}
+	else
+	{
+		foreach (const Activity::Object::component_type& c, components_)
+		{
+			Prl::Expected<QUrl, PRL_RESULT> x = m_tunnel->addStrand(c.second);
+			if (x.isFailed())
+				return x.error();
+
+			b.addMap(c, x.value());
+		}
+	}
+	QStringList a(boost::apply_visitor(b, variant_));
 	SmartPtr<Chain> p(m_builder(a));
 	return boost::apply_visitor(Visitor(m_worker, p, a), m.value());
 }
@@ -628,9 +642,9 @@ SmartPtr<Chain> Frozen::decorate(SmartPtr<Chain> chain_)
 		return chain_;
 
 	Thaw* t = new Thaw(m_object);
-	t->moveToThread(QCoreApplication::instance()->thread());
 	t->startTimer(20 * 1000);
 	t->next(chain_);
+	t->moveToThread(QCoreApplication::instance()->thread());
 	return SmartPtr<Chain>(t);
 }
 
@@ -1195,6 +1209,239 @@ QString Suffix::operator()() const
 	return output.append(".qcow2");
 }
 
+namespace Tunnel
+{
+namespace Source
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+void Connector::reactReceive(const SmartPtr<IOPackage>& package_)
+{
+	switch (package_->header.type)
+	{
+	case Parallels::VmMigrateQemuDiskTunnelChunk:
+		return handle(Migrate::Vm::Pump::Event
+			<Parallels::VmMigrateQemuDiskTunnelChunk>(package_));
+	default:
+		WRITE_TRACE(DBG_DEBUG, "Unknown package type: %d.", package_->header.type);
+	}
+}
+
+void Connector::reactAccept()
+{
+	QSharedPointer<QTcpSocket> a;
+	QTcpServer* s = (QTcpServer* )sender();
+	if (NULL != s)
+	{
+		a = QSharedPointer<QTcpSocket>(s->nextPendingConnection());
+		a->setReadBufferSize(1 << 24);
+		a->setProperty("channel", s->property("channel"));
+		handle(a);
+	}
+	handle(Migrate::Vm::Source::Tunnel::Qemu::Launch<Parallels::VmMigrateConnectQemuDiskCmd>
+		(m_service, a.data()));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Agent
+
+void Agent::cancel()
+{
+	m_backend->process_event(Migrate::Vm::Flop::Event(PRL_ERR_OPERATION_WAS_CANCELED));
+}
+
+qint32 Agent::addStrand(quint16 spice_)
+{
+	QSharedPointer<QTcpServer> s(new QTcpServer());
+	if (!s->listen(QHostAddress::LocalHost))
+	{
+		WRITE_TRACE(DBG_FATAL, "can't listen");
+		return -1;
+	}
+	s->setProperty("channel", QVariant(uint(spice_)));
+	m_backend->process_event(s);
+	return s->serverPort();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+template <typename Event, typename FSM>
+void Frontend::on_entry(const Event& event_, FSM& fsm_)
+{
+	def_type::on_entry(event_, fsm_);
+	getConnector()->setService(m_service);
+	getConnector()->connect(m_service,
+		SIGNAL(onReceived(const SmartPtr<IOPackage>&)),
+		SLOT(reactReceive(const SmartPtr<IOPackage>&)));
+}
+
+template <typename Event, typename FSM>
+void Frontend::on_exit(const Event& event_, FSM& fsm_)
+{
+	def_type::on_exit(event_, fsm_);
+	m_service->disconnect(SIGNAL(onReceived(const SmartPtr<IOPackage>&)), getConnector());
+	foreach (const client_type& c, m_clients)
+	{
+		c->close();
+	}
+	foreach (const server_type& s, m_servers)
+	{
+		s->close();
+		s->disconnect(SIGNAL(newConnection()), getConnector());
+	}
+	m_clients.clear();
+	m_servers.clear();
+	getConnector()->setService(NULL);
+}
+
+void Frontend::accept(const client_type& client_)
+{
+	m_clients << client_;
+}
+
+void Frontend::listen(const server_type& server_)
+{
+	if (server_.isNull())
+		return;
+
+	m_servers << server_;
+	getConnector()->connect(server_.data(), SIGNAL(newConnection()),
+		SLOT(reactAccept()), Qt::QueuedConnection);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Subject
+
+void Subject::run()
+{
+	Migrate::Vm::Source::Tunnel::IO io(*m_channel);
+
+	QEventLoop x;
+	backend_type b(boost::ref(x), boost::ref(io));
+	x.connect(&io, SIGNAL(disconnected()), SLOT(quit()), Qt::QueuedConnection);
+
+	(Migrate::Vm::Walker<backend_type>(b))();
+	b.start();
+
+	QSharedPointer<Agent> a(new Agent(b), &Agent::deleteLater);
+	m_promise.set_value(a.toWeakRef());
+	x.exec();
+	io.disconnect(SIGNAL(disconnected()), &x);
+	b.stop();
+	a.clear();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+Unit::~Unit()
+{
+	bool x = QMetaObject::invokeMethod(m_agent.data(),
+				"cancel", Qt::QueuedConnection);
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "cannot cancel");
+}
+
+PRL_RESULT Unit::operator()(const SmartPtr<IOClient>& channel_)
+{
+	if (!m_agent.isNull())
+		return PRL_ERR_INVALID_HANDLE;
+
+	Subject::promise_type p;
+	boost::future<QWeakPointer<Agent> > f = p.get_future();
+	Subject* s = new Subject(channel_, p);
+	s->setAutoDelete(true);
+	m_pool.start(s);
+	if (boost::future_status::ready != f.wait_for(boost::chrono::seconds(5)))
+	{
+		m_pool.waitForDone();
+		return PRL_ERR_TIMEOUT;
+	}
+	m_agent = f.get();
+	return PRL_ERR_SUCCESS;
+}
+
+Prl::Expected<QUrl, PRL_RESULT> Unit::addStrand(const QUrl& remote_)
+{
+	if ("nbd" != remote_.scheme())
+		return PRL_ERR_INVALID_ARG;
+
+	if (m_agent.isNull())
+		return PRL_ERR_INVALID_HANDLE;
+
+	qint32 p = 0;
+	bool x = QMetaObject::invokeMethod(m_agent.data(),
+				"addStrand",
+				Qt::BlockingQueuedConnection,
+				Q_RETURN_ARG(qint32, p),
+				Q_ARG(quint16, remote_.port()));
+	if (!x) 
+		return PRL_ERR_UNEXPECTED;
+	if (0 > p)
+		return PRL_ERR_FAILURE;
+
+	QUrl output = remote_;
+	output.setHost(QHostAddress(QHostAddress::LocalHost).toString());
+	output.setPort(p);
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+Factory::result_type Factory::operator()(quint32 flags_) const
+{
+	Q_UNUSED(flags_);
+	value_type output;
+	if (CDspService::instance()->getShellServiceHelper().isLocalAddress(m_target))
+		return output;
+
+	output = value_type(new Unit());
+	PRL_RESULT e = (*output)(m_channel);
+	if (PRL_FAILED(e))
+		return e;
+
+	return output;
+}
+
+} // namespace Source
+
+namespace Target
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+void Connector::reactReceive(const SmartPtr<IOPackage>& package_)
+{
+	WRITE_TRACE(DBG_FATAL, "react package %d.", package_->header.type);
+	switch (package_->header.type)
+	{
+	case Parallels::VmMigrateConnectQemuDiskCmd:
+		return handle(Migrate::Vm::Pump::Event
+			<Parallels::VmMigrateConnectQemuDiskCmd>(package_));
+	case Parallels::VmMigrateQemuDiskTunnelChunk:
+		return handle(Migrate::Vm::Pump::Event
+			<Parallels::VmMigrateQemuDiskTunnelChunk>(package_));
+	default:
+		WRITE_TRACE(DBG_DEBUG, "Unknown package type: %d.", package_->header.type);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+void Frontend::spin(const qemuDisk_type::Good&)
+{
+	if (m_service.isNull())
+		getConnector()->handle(Migrate::Vm::Flop::Event(PRL_ERR_INVALID_HANDLE));
+	else
+		getConnector()->handle(boost::phoenix::ref(*m_service));
+}
+
+} // namespace Target
+} // namespace Tunnel
 } // namespace Backup
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1885,7 +2132,7 @@ PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const 
         	if (PRL_FAILED(y->do_(q, *m_cABackupClient)))
 		{
 			m_cABackupClient->kill();
-                	break;
+			break;
 		}
 	}
 	PRL_RESULT output = x.result(m_bKillCalled, getLastError());
@@ -1996,3 +2243,13 @@ quint64 Task_BackupHelper::getBandwidth() const
 
 	return r.toULongLong();
 }
+
+QString Task_BackupHelper::patch(QUrl url_) const
+{
+	if (url_.scheme() == "nbd") {
+		// replace INADDR_ANY by a real remote server hostname
+		url_.setHost(m_sServerHostname);
+	}
+	return url_.toString();
+}
+

@@ -288,7 +288,6 @@ struct Ct
 
 	QStringList buildArgs(const Product::component_type& t_,
 		const QFileInfo* f_) const;
-	QStringList buildPushArgs(const Activity::Object::Model& a_) const;
 
 private:
 	Task_BackupHelper *m_context;
@@ -303,7 +302,6 @@ struct Vm
 
 	QStringList buildArgs(const QString& snapshot_, const Product::component_type& t_,
 			const QFileInfo* f_) const;
-	QStringList buildPushArgs() const;
 
 private:
 	Task_BackupHelper *m_context;
@@ -366,15 +364,8 @@ public:
 	{
 		return m_product;
 	}
-	const ::Backup::Activity::Object::componentList_type& getUrls() const
-	{
-		return m_urls;
-	}
 
-	const QString& getServerHostname() const
-	{
-		return m_sServerHostname;
-	}
+	QString patch(QUrl url_) const;
 
 	Chain * prepareABackupChain(const QStringList& args_, const QString &sNotificationVmUuid,
 				unsigned int nDiskIdx);

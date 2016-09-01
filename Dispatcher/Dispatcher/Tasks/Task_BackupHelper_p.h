@@ -36,10 +36,325 @@
 
 #include "CDspService.h"
 #include "Task_BackupHelper.h"
+#include "Task_MigrateVmSource_p.h"
+#include "Task_MigrateVmTarget_p.h"
 #include "CDspVmBackupInfrastructure_p.h"
 
 namespace Backup
 {
+namespace Tunnel
+{
+namespace Source
+{
+struct Frontend;
+typedef boost::msm::back::state_machine<Frontend> backend_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+struct Connector: QObject, Migrate::Vm::Connector::Base<backend_type>
+{
+	Connector(): m_service()
+	{
+	}
+
+	void setService(Migrate::Vm::Source::Tunnel::IO* value_)
+	{
+		m_service = value_;
+	}
+
+public slots:
+	void reactReceive(const SmartPtr<IOPackage>& package_);
+
+	void reactAccept();
+
+private:
+	Q_OBJECT
+
+	Migrate::Vm::Source::Tunnel::IO* m_service;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+struct Frontend: ::Vm::State::Details::Frontend<Frontend>,
+	Migrate::Vm::Connector::Mixin<Connector>
+{
+	typedef ::Vm::State::Details::Frontend<Frontend> def_type;
+	typedef QSharedPointer<QTcpSocket> client_type;
+	typedef QSharedPointer<QTcpServer> server_type;
+	typedef Migrate::Vm::Source::Tunnel::Qemu::Hub
+	<
+		Migrate::Vm::Tunnel::Hub::Traits
+		<
+			backend_type,
+			Parallels::VmMigrateConnectQemuDiskCmd,
+			Parallels::VmMigrateQemuDiskTunnelChunk
+		>
+	> qemuDisk_type;
+	typedef qemuDisk_type initial_state;
+
+	Frontend(QEventLoop& loop_, Migrate::Vm::Source::Tunnel::IO& service_):
+		m_loop(&loop_), m_service(&service_)
+	{
+	}
+	Frontend(): m_loop(), m_service()
+	{
+	}
+
+	using def_type::on_entry;
+
+	template <typename Event, typename FSM>
+	void on_entry(const Event& event_, FSM& fsm_);
+
+	template <typename Event, typename FSM>
+	void on_exit(const Event& event_, FSM& fsm_);
+
+	void accept(const client_type& client_);
+
+	void listen(const server_type& server_);
+
+	template<class T>
+	void finish(const T& event_)
+	{
+		Q_UNUSED(event_);
+		m_loop->quit();
+	}
+
+	struct transition_table : boost::mpl::vector
+	<
+		a_irow
+		<
+			qemuDisk_type,
+			client_type,
+			&Frontend::accept
+		>,
+		a_irow
+		<
+			qemuDisk_type,
+			server_type,
+			&Frontend::listen
+		>,
+		a_row
+		<
+			qemuDisk_type,
+			Migrate::Vm::Flop::Event,
+			Migrate::Vm::Flop::State,
+			&Frontend::finish
+		>,
+		a_row
+		<
+			qemuDisk_type,
+			qemuDisk_type::Good,
+			Migrate::Vm::Success,
+			&Frontend::finish
+		>
+	>
+	{
+	};
+
+private:
+	QEventLoop* m_loop;
+	QList<server_type> m_servers;
+	QList<client_type> m_clients;
+	Migrate::Vm::Source::Tunnel::IO* m_service;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Agent
+
+struct Agent: QObject
+{
+	explicit Agent(backend_type& backend_): m_backend(&backend_)
+	{
+	}
+
+	Q_INVOKABLE void cancel();
+	Q_INVOKABLE qint32 addStrand(quint16 spice_);
+
+private:
+	Q_OBJECT
+
+	backend_type* m_backend;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Subject
+
+struct Subject: QRunnable
+{
+	typedef boost::promise<QWeakPointer<Agent> > promise_type;
+
+	Subject(const SmartPtr<IOClient>& channel_, promise_type& promise_):
+		m_channel(channel_)
+	{
+		m_promise.swap(promise_);
+	}
+
+	void run();
+
+private:
+	promise_type m_promise;
+	SmartPtr<IOClient> m_channel;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+struct Unit
+{
+	~Unit();
+
+	PRL_RESULT operator()(const SmartPtr<IOClient>& channel_);
+
+	Prl::Expected<QUrl, PRL_RESULT> addStrand(const QUrl& remote_);
+
+private:
+	QThreadPool m_pool;
+	QWeakPointer<Agent> m_agent;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+struct Factory
+{
+	typedef QSharedPointer<Unit> value_type;
+	typedef Prl::Expected<value_type, PRL_RESULT> result_type;
+
+	Factory(const QString& target_, const SmartPtr<IOClient>& channel_):
+		m_target(target_), m_channel(channel_)
+	{
+	}
+
+	result_type operator()(quint32 flags_) const;
+
+private:
+	const QString m_target;
+	SmartPtr<IOClient> m_channel;
+};
+
+} // namespace Source
+
+namespace Target
+{
+struct Frontend;
+typedef boost::msm::back::state_machine<Frontend> backend_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+struct Connector: QObject, Migrate::Vm::Connector::Base<backend_type>
+{
+public slots:
+	void reactReceive(const SmartPtr<IOPackage>& package_);
+
+private:
+	Q_OBJECT
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Spin
+
+struct Spin: ::Vm::State::Details::Trace<Spin>
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+struct Frontend: ::Vm::State::Details::Frontend<Frontend>,
+	Migrate::Vm::Connector::Mixin<Connector>
+{
+	typedef ::Vm::State::Details::Frontend<Frontend> def_type;
+	typedef QSharedPointer<QTcpSocket> client_type;
+	typedef Migrate::Vm::Target::Tunnel::ioEvent_type ioEvent_type;
+	typedef Migrate::Vm::Target::Tunnel::Qemu::Hub
+	<
+		Migrate::Vm::Tunnel::Hub::Traits
+		<
+			backend_type,
+			Parallels::VmMigrateConnectQemuDiskCmd,
+			Parallels::VmMigrateQemuDiskTunnelChunk
+		>
+	> qemuDisk_type;
+	typedef Migrate::Vm::Tunnel::Prime initial_state;
+
+	Frontend(): m_service()
+	{
+	}
+
+	using def_type::on_entry;
+
+	template <typename FSM>
+	void on_entry(const SmartPtr<CDspDispConnection>& event_, FSM& fsm_)
+	{
+		def_type::on_entry(event_, fsm_);
+		if (event_.isValid())
+		{
+			m_service = QSharedPointer<io_type>(new io_type(*event_));
+			getConnector()->connect(m_service.data(),
+				SIGNAL(onReceived(const SmartPtr<IOPackage>&)),
+				SLOT(reactReceive(const SmartPtr<IOPackage>&)));
+		}
+		spin(qemuDisk_type::Good());
+	}
+
+	template <typename Event, typename FSM>
+	void on_exit(const Event& event_, FSM& fsm_)
+	{
+		def_type::on_exit(event_, fsm_);
+		if (!m_service.isNull())
+		{
+			m_service->disconnect(
+				SIGNAL(onReceived(const SmartPtr<IOPackage>&)),
+				getConnector());
+		}
+		m_service.clear();
+	}
+
+	void spin(const qemuDisk_type::Good&);
+
+	struct transition_table : boost::mpl::vector
+	<
+		boost::msm::front::Row
+		<
+			initial_state,
+			ioEvent_type,
+			qemuDisk_type
+		>,
+		boost::msm::front::Row
+		<
+			initial_state,
+			Migrate::Vm::Flop::Event,
+			Migrate::Vm::Flop::State
+		>,
+		boost::msm::front::Row
+		<
+			qemuDisk_type,
+			Migrate::Vm::Flop::Event,
+			Migrate::Vm::Flop::State
+		>,
+		a_row
+		<
+			qemuDisk_type,
+			qemuDisk_type::Good,
+			initial_state,
+			&Frontend::spin
+		>
+	>
+	{
+	};
+
+private:
+	typedef Migrate::Vm::Target::Tunnel::IO io_type;
+
+	QSharedPointer<io_type> m_service;
+};
+
+} // namespace Target
+} // namespace Tunnel
+
 namespace Work
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -140,19 +455,68 @@ private:
 
 namespace Push
 {
+namespace Flavor
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Basic
+
+struct Basic
+{
+	typedef Product::component_type component_type;
+
+	static QStringList craftEpilog(Task_BackupHelper& context_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ct
+
+struct Ct: Basic
+{
+	explicit Ct(const Activity::Object::Model& activity_): m_activity(&activity_)
+	{
+	}
+
+	static QString craftProlog(Task_BackupHelper& context_);
+
+	QString craftImage(const component_type& component_, const QString& url_) const;
+
+private:
+	const Activity::Object::Model* m_activity;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+struct Vm: Basic
+{
+	static QStringList craftProlog(Task_BackupHelper& context_);
+
+	static QString craftImage(const component_type& component_, const QString& url_);
+};
+
+} // namespace Flavor
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Builder
 
 struct Builder : boost::static_visitor<QStringList>
 {
-	Builder(const Activity::Object::Model& activity_)
-		: m_activity(activity_) {}
+	Builder(Task_BackupHelper& context_, const Activity::Object::Model& activity_):
+		m_context(&context_), m_activity(&activity_)
+	{
+	}
 
 	QStringList operator()(Ct&) const;
 	QStringList operator()(Vm&) const;
+	void addMap(const Activity::Object::component_type& component_, const QUrl& url_);
 
 private:
-	const Activity::Object::Model& m_activity;
+	template<class T>
+	QStringList craft(T subject_) const;
+
+	Task_BackupHelper* m_context;
+	QHash<QString, QUrl> m_map;
+	const Activity::Object::Model* m_activity;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -209,7 +573,9 @@ private:
 
 struct VCommand : Command
 {
+	typedef Tunnel::Source::Factory::value_type tunnel_type;
 	typedef boost::function1<Chain *, const QStringList& > builder_type;
+	typedef ::Backup::Activity::Object::componentList_type componentList_type;
 	typedef boost::function2<PRL_RESULT, const QStringList&, SmartPtr<Chain> > worker_type;
 
 	VCommand(Task_BackupHelper& task_, const Activity::Object::Model& activity_)
@@ -228,13 +594,17 @@ struct VCommand : Command
 	{
 	}
 
-	PRL_RESULT do_(object_type& variant_);
+	PRL_RESULT operator()(const Activity::Object::componentList_type& components_,
+		object_type& variant_);
+	void setTunnel(const tunnel_type& value_)
+	{
+		m_tunnel = value_;
+	}
 
 private:
-	QStringList buildArgs(object_type& variant_);
-
 	QString m_uuid;
 	builder_type m_builder;
+	tunnel_type m_tunnel;
 	worker_type m_worker;
 };
 
