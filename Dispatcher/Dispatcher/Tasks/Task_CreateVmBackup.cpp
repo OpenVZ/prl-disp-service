@@ -92,11 +92,20 @@ PRL_RESULT Task_CreateVmBackup::backupHardDiskDevices(const ::Backup::Activity::
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
 	m_product->setStore(m_sBackupRootPath);
-	if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
-		m_product->setSuffix(::Backup::Suffix(getBackupNumber())());
-		return ::Backup::Work::Push::VCommand(*this, activity_).do_(variant_);
-	} else
+	if (BACKUP_PROTO_V4 > m_nRemoteVersion)
 		return ::Backup::Work::Acronis::ACommand(*this, activity_).do_(variant_);
+
+	::Backup::Work::Push::VCommand v(*this, activity_);
+	m_product->setSuffix(::Backup::Suffix(getBackupNumber())());
+
+	typedef ::Backup::Tunnel::Source::Factory factory_type;
+	factory_type f(m_sServerHostname, getIoClient());
+	factory_type::result_type r = f(m_nFlags);
+	if (r.isFailed())
+		return r.error();
+	
+	v.setTunnel(r.value());
+	return v(m_urls, variant_);
 }
 
 /* send start request for remote dispatcher and wait reply from dispatcher */

@@ -437,9 +437,8 @@ PRL_RESULT Task_CreateVmBackupTarget::run_body()
 		nRetCode = PRL_ERR_BACKUP_INTERNAL_ERROR;
 		goto exit;
 	}
-	if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
-		nRetCode = exec();
-	} else {
+	if (BACKUP_PROTO_V4 > m_nRemoteVersion)
+	{
 		/* for QTemporaryFile file name exist after open() and before close() only */
 		m_sABackupOutFile = tmpFile.fileName();
 		tmpFile.close();
@@ -455,6 +454,14 @@ PRL_RESULT Task_CreateVmBackupTarget::run_body()
 
 		nRetCode = m_cABackupServer.waitForFinished();
 		loadTibFiles();
+	}
+	else
+	{
+		Backup::Tunnel::Target::backend_type b;
+		(Migrate::Vm::Walker<Backup::Tunnel::Target::backend_type>(b))();
+		b.start(m_pDispConnection);
+		nRetCode = exec();
+		b.stop();
 	}
 
 	QObject::disconnect(m_pDispConnection.getImpl(),
