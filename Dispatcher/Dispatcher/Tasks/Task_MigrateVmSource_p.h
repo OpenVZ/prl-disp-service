@@ -681,11 +681,8 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 
 	bool isTemplate(const boost::mpl::true_&);
 
-	template <typename T>
-	void pokePeer(const T&)
-	{
-		m_task->confirmFinish();
-	}
+	template<class T>
+	void pokePeer(const T&);
 
 	void setResult(const peerQuitState_type::Good&);
 	void setResult(const Flop::Event& value_);
