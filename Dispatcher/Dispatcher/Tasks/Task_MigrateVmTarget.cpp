@@ -651,46 +651,6 @@ void Frontend::create(const CVmHardDisk& event_)
 
 namespace Tunnel
 {
-namespace Connector
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Basic
-
-template<class T, class M>
-void Basic<T, M>::reactConnected()
-{
-	boost::optional<QString> t;
-	QIODevice* d = (QIODevice* )this->sender();
-	if (!this->objectName().isEmpty())
-	{
-		t = this->objectName();
-		d->setObjectName(t.get());
-	}
-	this->handle(Vm::Pump::Launch_type(this->getService(), d, t));
-}
-
-template<class T, class M>
-void Basic<T, M>::reactDisconnected()
-{
-	QIODevice* d = (QIODevice* )this->sender();
-	if (NULL == d)
-		return;
-
-	this->handle(boost::phoenix::val(d));
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Tcp
-
-template<class M>
-void Tcp<M>::reactError(QAbstractSocket::SocketError value_)
-{
-	Q_UNUSED(value_);
-	this->handle(Flop::Event(PRL_ERR_FILE_READ_ERROR));
-}
-
-} // namespace Connector
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct IO
 
@@ -803,90 +763,6 @@ void Socket<QTcpSocket>::disconnect(type& socket_)
 	socket_.disconnectFromHost();
 }
 
-template<class M>
-QSharedPointer<QTcpSocket> Socket<QTcpSocket>::craft(Connector::Tcp<M>& connector_)
-{
-	bool x;
-	QSharedPointer<type> output = QSharedPointer<type>
-		(new QTcpSocket(), &QObject::deleteLater);
-	x = connector_.connect(output.data(), SIGNAL(connected()),
-		SLOT(reactConnected()), Qt::QueuedConnection);
-	if (!x)
-		WRITE_TRACE(DBG_FATAL, "can't connect socket connect");
-	x = connector_.connect(output.data(), SIGNAL(disconnected()),
-		SLOT(reactDisconnected()), Qt::QueuedConnection);
-	if (!x)
-		WRITE_TRACE(DBG_FATAL, "can't connect socket disconnect");
-	x = connector_.connect(output.data(), SIGNAL(error(QAbstractSocket::SocketError)),
-		SLOT(reactError(QAbstractSocket::SocketError)), Qt::QueuedConnection);
-	if (!x)
-		WRITE_TRACE(DBG_FATAL, "can't connect socket errors");
-
-	return output;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Haul
-
-template<class T, class U, Parallels::IDispToDispCommands X, class V>
-template <typename FSM>
-void Haul<T, U, X, V>::on_entry(ioEvent_type const& event_, FSM& fsm_)
-{
-	def_type::on_entry(event_, fsm_);
-	this->getConnector()->setService(&event_());
-	m_socket = Socket<T>::craft(*this->getConnector());
-}
-
-template<class T, class U, Parallels::IDispToDispCommands X, class V>
-template <typename Event, typename FSM>
-void Haul<T, U, X, V>::on_exit(const Event& event_, FSM& fsm_)
-{
-	def_type::on_exit(event_, fsm_);
-	disconnect_();
-	m_socket.clear();
-	this->getConnector()->setService(NULL);
-}
-
-namespace Qemu
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Channel
-
-template<class T, Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
-void Channel<T, X, Y>::connect(const launch_type& event_)
-{
-	quint32 z;
-	SmartPtr<char> b;
-	IOPackage::EncodingType t;
-	event_.getPackage()->getBuffer(0, t, b, z);
-	boost::optional<QString> s = Vm::Pump::Push::Packer::getSpice(*event_.getPackage());
-	if (s)
-		this->getConnector()->setObjectName(s.get());
-
-	this->getSocket()->connectToHost(QHostAddress::LocalHost, *(quint16*)b.getImpl());
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Hub
-
-template<Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
-template <typename FSM>
-void Hub<X, Y>::on_entry(ioEvent_type const& event_, FSM& fsm_)
-{
-	def_type::on_entry(event_, fsm_);
-	m_service = &event_();
-}
-
-template<Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
-template <typename Event, typename FSM>
-void Hub<X, Y>::on_exit(const Event& event_, FSM& fsm_)
-{
-	def_type::on_exit(event_, fsm_);
-	m_service = NULL;
-}
-
-} // namespace Qemu
-
 namespace Libvirt
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -994,6 +870,16 @@ void Frontend::setResult(const Flop::Event& value_)
 {
 	if (value_.isFailed())
 		boost::apply_visitor(Flop::Visitor(*m_task), value_.error());
+}
+
+bool Frontend::isTemplate(const msmf::none&)
+{
+	return m_task->isTemplate();
+}
+
+bool Frontend::isSwitched(const msmf::none&)
+{
+	return m_task->getRequestFlags() & PVMT_SWITCH_TEMPLATE;
 }
 
 } // namespace Target
