@@ -684,7 +684,11 @@ PRL_RESULT Stopped::wrap(const T& worker_) const
 	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
 	u.getState(s);
 	if (s == VMS_PAUSED) // check that vm is in an expected state
-		u.kill();
+	{
+		e = ::Command::Vm::Gear< ::Command::Tag::State<
+			::Command::Vm::Shutdown::Killer, ::Command::Vm::Fork::State::Plural
+				<boost::mpl::vector_c<unsigned, VMS_STOPPED, VMS_SUSPENDED> > > >::run(m_uuid);
+	}
 
 	return output;
 }
