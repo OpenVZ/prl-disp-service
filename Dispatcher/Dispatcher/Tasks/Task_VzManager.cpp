@@ -45,6 +45,40 @@
 #endif
 
 
+namespace
+{
+
+namespace Encryption
+{
+
+QString getFilter()
+{
+	return "Hardware\\.Hdd\\[\\d+\\]\\.Encryption";
+}
+
+struct Match
+{
+	Match(const CVmHardDisk *disk_) : m_old(disk_)
+	{
+	}
+
+	bool operator()(const CVmHardDisk *new_)
+	{
+		if (new_->getUuid() != m_old->getUuid())
+			return false;
+
+		QString o = m_old->getEncryption() ? m_old->getEncryption()->getKeyId() : "";
+		QString n = new_->getEncryption() ? new_->getEncryption()->getKeyId() : "";
+		return n != o;
+	}
+
+private:
+	const CVmHardDisk *m_old;
+};
+
+} // namespace Encryption
+} // anonymous namespace
+
 Task_VzManager::Task_VzManager(const SmartPtr<CDspClient>& pClient,
 		 const SmartPtr<IOPackage>& p) :
 	CDspTaskHelper(pClient, p),
@@ -535,7 +569,7 @@ PRL_RESULT Task_VzManager::editConfig()
 		return code;
 	}
 	QString sUuid = pConfig->getVmIdentification()->getVmUuid();
-	SmartPtr<CVmConfiguration> pOldConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+	SmartPtr<CVmConfiguration> pOldConfig = getVzHelper()->getCtConfig(getClient(), sUuid, true);
 	if (!pOldConfig)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
@@ -548,6 +582,8 @@ PRL_RESULT Task_VzManager::editConfig()
 	// Code below prohibits all other than Hdd and Network devices for Containers
 	if (!lstFullItemIds.filter(QRegExp("Hardware\\.(?!Hdd|Network|Cpu|Memory)")).isEmpty())
 		return PRL_ERR_ACTION_NOT_SUPPORTED_FOR_CT;
+	if (!lstFullItemIds.filter(QRegExp(Encryption::getFilter())).isEmpty())
+		return PRL_ERR_ENCRYPTION_COMMIT_PROHIBITED;
 	// Handle the Firewall settings change on the running CT
 	if (!lstFullItemIds.filter(QRegExp("\\.(?=Firewall\\.|MAC|NetAddress)")).isEmpty()) {
 		tribool_type run = CVzHelper::is_env_running(sUuid);
@@ -1348,6 +1384,9 @@ PRL_RESULT Task_VzManager::process_cmd()
 	case PVE::DspCmdVmGetProblemReport:
 		ret = send_problem_report();
 		break;
+	case PVE::DspCmdVmCommitEncryption:
+		ret = commit_encryption();
+		break;
 	default:
 		ret = PRL_ERR_UNIMPLEMENTED;
 	}
@@ -1552,5 +1591,61 @@ PRL_RESULT Task_VzManager::send_network_settings()
 PRL_RESULT Task_VzManager::send_problem_report()
 {
 	CDspProblemReportHelper::getProblemReport( getClient(), getRequestPackage() );
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Task_VzManager::commit_encryption()
+{
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
+	if (!cmd->IsValid())
+		return PRL_ERR_UNRECOGNIZED_REQUEST;
+
+	CVmConfiguration config(cmd->GetFirstStrParam());
+	if (!IS_OPERATION_SUCCEEDED(config.m_uiRcInit))
+		return PRL_ERR_PARSE_VM_CONFIG;
+
+	QString uuid = config.getVmIdentification()->getVmUuid();
+	SmartPtr<CVmConfiguration> old = getVzHelper()->getCtConfig(getClient(), uuid, true);
+	if (!old)
+		return PRL_ERR_VM_GET_CONFIG_FAILED;
+
+	QStringList x;
+	config.diffDocuments(old.get(), x);
+	// Settings.Runtime.InternalVmInfo stores CVmEvent which is always changed
+	// during config commit
+	if (!x.filter(QRegExp(QString("^(?:(?!") + Encryption::getFilter() +
+		"|Settings\\.Runtime\\.InternalVmInfo))")).isEmpty())
+	{
+		WRITE_TRACE(DBG_FATAL, "encryption changes were rejected:\n%s",
+			qPrintable(x.join("\n")));
+		return PRL_ERR_ENCRYPTION_COMMIT_REJECTED;
+	}
+
+	// XXX: Only changes in disk encryption settings are handled here.
+	//      New encrypted disks are added in editConfig()
+	const QList<CVmHardDisk *> &n = config.getVmHardwareList()->m_lstHardDisks;
+	foreach (const CVmHardDisk *od, old->getVmHardwareList()->m_lstHardDisks)
+	{
+		Encryption::Match m(od);
+		QList<CVmHardDisk *>::const_iterator nd = std::find_if(
+			n.constBegin(), n.constEnd(), m);
+		if (nd != n.constEnd())
+		{
+			PRL_RESULT res = get_op_helper()->set_disk_encryption(uuid,
+				**nd, cmd->GetCommandFlags());
+			if (PRL_FAILED(res))
+				return res;
+		}
+	}
+
+	CDspService::instance()->getVzHelper()->getConfigCache().
+		remove(config.getVmIdentification()->getHomePath());
+
+	SmartPtr<CVmConfiguration> c = getVzHelper()->getCtConfig(getClient(), uuid, true);
+	if (!c)
+		return PRL_ERR_VM_GET_CONFIG_FAILED;
+
+	getResponseCmd()->SetParamsList(QStringList() << c->toString());
+	sendEvent(PET_DSP_EVT_VM_CONFIG_CHANGED, uuid);
 	return PRL_ERR_SUCCESS;
 }
