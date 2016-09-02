@@ -580,14 +580,6 @@ struct Essence<PVE::DspCmdVmCreateSnapshot>: Need::Agent, Need::Context,
 			return e;
 
 		s.commit();
-		// tree changed
-		sendEvent(PET_DSP_EVT_VM_SNAPSHOTS_TREE_CHANGED, PIE_DISPATCHER);
-		// snapshooted
-		sendEvent(PET_DSP_EVT_VM_SNAPSHOTED, PIE_DISPATCHER);
-		// reply
-		respond(getCommand()->GetSnapshotUuid());
-		// swapping finished
-		sendEvent(PET_DSP_EVT_VM_MEMORY_SWAPPING_FINISHED, PIE_VIRTUAL_MACHINE);
 
 		return Libvirt::Result();
 	}
@@ -595,6 +587,22 @@ struct Essence<PVE::DspCmdVmCreateSnapshot>: Need::Agent, Need::Context,
 
 namespace Snapshot
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Create
+
+struct Create: Essence<PVE::DspCmdVmCreateSnapshot>
+{
+	Libvirt::Result operator()()
+	{
+		Libvirt::Result e = Essence<PVE::DspCmdVmCreateSnapshot>::operator()();
+		if (e.isFailed())
+			return e;
+
+		Vm::Prepare::Policy<Vm::Fork::State::Snapshot::Response>::
+			do_(Vm::Fork::State::Snapshot::Response(), getContext());
+		return Libvirt::Result();
+	}
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // class Vcmmd
@@ -1016,6 +1024,27 @@ Libvirt::Result Switch::operator()()
 			break;
 	}
 	return Libvirt::Result();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Create
+
+Detector* Create::craftDetector(const ::Command::Context& context_)
+{
+	VIRTUAL_MACHINE_STATE s;
+	if (Prepare::Policy<Create>::do_(Create(s), context_).isFailed())
+		return NULL;
+
+	// Only running VM changes it's state on snapshot creation
+	if (s != VMS_RUNNING)
+		return NULL;
+
+	return new Detector(context_.getVmUuid(), boost::bind(std::equal_to<unsigned>(), s, _1));
+}
+
+Libvirt::Result Create::operator()()
+{
+	return getAgent().getState(*m_state);
 }
 
 } // namespace Snapshot
@@ -1577,6 +1606,21 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Body<Tag::Special<PVE::DspCmdVmCreateSnapshot> >
+
+template<>
+void Body<Tag::Special<PVE::DspCmdVmCreateSnapshot> >::run(Context& context_)
+{
+	if (CDspVm::getVmState(context_.getIdent().first, context_.getIdent().second) == VMS_RUNNING)
+	{
+		return Details::Body<Tag::Fork<Tag::State<Essence<PVE::DspCmdVmCreateSnapshot>,
+		       Vm::Fork::State::Snapshot::Create> > >::run(context_);
+	}
+
+	return Details::Body<Tag::Fork<Snapshot::Create> >::run(context_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Body<Tag::Special<PVE::DspCmdVmStart> >
 
 template<>
@@ -1704,7 +1748,7 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmAuthWithGuestSecurityDb] = map(Tag::Special<PVE::DspCmdVmAuthWithGuestSecurityDb>());
 	m_map[PVE::DspCmdVmStart] = map(Tag::Special<PVE::DspCmdVmStart>());
 	m_map[PVE::DspCmdVmStartEx] = m_map[PVE::DspCmdVmStart];
-	m_map[PVE::DspCmdVmCreateSnapshot] = map(Tag::Fork<Essence<PVE::DspCmdVmCreateSnapshot> >());
+	m_map[PVE::DspCmdVmCreateSnapshot] = map(Tag::Special<PVE::DspCmdVmCreateSnapshot>());
 	m_map[PVE::DspCmdVmSwitchToSnapshot] = map(Tag::Fork<
 		Tag::State<Snapshot::Revert<Snapshot::Vcmmd<Snapshot::Switch> >, Vm::Fork::State::Snapshot::Switch> >());
 	m_map[PVE::DspCmdVmDeleteSnapshot] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDeleteSnapshot> > >());

@@ -649,7 +649,7 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct FromSnapshot
+// struct Switch
 
 struct Switch: Need::Agent, Need::Config, Need::Context, Need::Command<Parallels::CProtoSwitchToSnapshotCommand>
 {
@@ -661,6 +661,63 @@ struct Switch: Need::Agent, Need::Config, Need::Context, Need::Command<Parallels
 	static Fork::Reactor* craftReactor(const ::Command::Context& context_)
 	{
 		return new Reactor(context_);
+	}
+	Libvirt::Result operator()();
+
+private:
+	VIRTUAL_MACHINE_STATE* m_state;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Response
+
+struct Response: Need::Context, Need::Command<Parallels::CProtoCreateSnapshotCommand>
+{
+	Libvirt::Result operator()()
+	{
+		// tree changed
+		sendEvent(PET_DSP_EVT_VM_SNAPSHOTS_TREE_CHANGED, PIE_DISPATCHER);
+		// snapshooted
+		sendEvent(PET_DSP_EVT_VM_SNAPSHOTED, PIE_DISPATCHER);
+		// reply
+		respond(getCommand()->GetSnapshotUuid());
+		// swapping finished
+		sendEvent(PET_DSP_EVT_VM_MEMORY_SWAPPING_FINISHED, PIE_VIRTUAL_MACHINE);
+		return Libvirt::Result();
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Sender
+
+struct Sender: Fork::Reactor
+{
+	explicit Sender(const ::Command::Context& context_): m_context(context_)
+	{
+	}
+
+	void react()
+	{
+		Prepare::Policy<Response>::do_(Response(), m_context);
+	}
+
+private:
+	::Command::Context m_context;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Create
+
+struct Create: Need::Agent
+{
+	explicit Create(VIRTUAL_MACHINE_STATE& state_): m_state(&state_)
+	{
+	}
+
+	static Detector* craftDetector(const ::Command::Context& context_);
+	static Fork::Reactor* craftReactor(const ::Command::Context& context_)
+	{
+		return new Sender(context_);
 	}
 	Libvirt::Result operator()();
 
