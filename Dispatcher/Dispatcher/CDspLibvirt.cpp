@@ -181,13 +181,9 @@ namespace Migration
 ///////////////////////////////////////////////////////////////////////////////
 // struct Basic
 
-Result Basic::operator()(Parameters::Builder& builder_)
+Result Basic::addXml(const char* parameter_, Config agent_)
 {
-	const QString n = m_config->getVmIdentification()->getVmName();
-	if (!builder_.add(VIR_MIGRATE_PARAM_DEST_NAME, n))
-		return Failure(PRL_ERR_FAILURE);
-
-	Prl::Expected<QString, Error::Simple> x = m_agent.fixup(*m_config);
+	Prl::Expected<QString, Error::Simple> x = agent_.fixup(*m_config);
 	if (x.isFailed())
 	{
 		WRITE_TRACE(DBG_DEBUG, "VM configuration fixup failed");
@@ -196,13 +192,19 @@ Result Basic::operator()(Parameters::Builder& builder_)
 
 	WRITE_TRACE(DBG_DEBUG, "migration target xml:\n%s", x.value().toUtf8().data());
 
-	if (!builder_.add(VIR_MIGRATE_PARAM_DEST_XML, x.value()))
-		return Failure(PRL_ERR_FAILURE);
+	if (m_builder->add(parameter_, x.value()))
+		return Result();
 
-	if (!builder_.add(VIR_MIGRATE_PARAM_PERSIST_XML, x.value()))
-		return Failure(PRL_ERR_FAILURE);
+	return Failure(PRL_ERR_FAILURE);
+}
 
-	return Result();
+Result Basic::addName()
+{
+	const QString n = m_config->getVmIdentification()->getVmName();
+	if (m_builder->add(VIR_MIGRATE_PARAM_DEST_NAME, n))
+		return Result();
+
+	return Failure(PRL_ERR_FAILURE);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

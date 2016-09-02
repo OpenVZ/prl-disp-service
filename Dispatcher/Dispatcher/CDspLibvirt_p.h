@@ -559,15 +559,17 @@ namespace Migration
 
 struct Basic
 {
-	Basic(const Config& agent_, const CVmConfiguration& config_):
-		m_agent(agent_), m_config(&config_)
+	Basic(const CVmConfiguration& config_, Parameters::Builder& builder_):
+		m_builder(&builder_), m_config(&config_)
 	{
 	}
 
-	Result operator()(Parameters::Builder& builder_);
+	Result addXml(const char* parameter_, Config agent_);
+
+	Result addName();
 
 private:
-	Config m_agent;
+	Parameters::Builder* m_builder;
 	const CVmConfiguration* m_config;
 };
 
