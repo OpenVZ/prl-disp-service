@@ -108,6 +108,7 @@ struct Image
 	 */
 	explicit Image(const QString& path);
 	PRL_RESULT createDiskDescriptor(const QString& imagePath, unsigned long long size) const;
+	PRL_RESULT setEncryptionKeyid(const QString &keyid) const;
 	PRL_RESULT createSnapshot(const QString& path = QString()) const;
 	PRL_RESULT setActiveDeltaLimit(unsigned long long lim) const;
 	PRL_RESULT getBaseDeltaFilename(QString& path) const;

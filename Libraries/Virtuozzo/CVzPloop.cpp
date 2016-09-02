@@ -363,6 +363,28 @@ PRL_RESULT Image::createSnapshot(const QString& path) const
 	return res ? PRL_ERR_UNEXPECTED : PRL_ERR_SUCCESS;
 }
 
+PRL_RESULT Image::setEncryptionKeyid(const QString& keyid) const
+{
+	PRL_RESULT rc = loadPloopLibrary();
+	if (PRL_FAILED(rc))
+		return rc;
+
+	ploop_disk_images_data *di;
+	rc = ploop_open_dd(&di, QSTR2UTF8(m_path));
+	if (rc)
+	{
+		trace("ploop_open_dd", rc);
+		return PRL_ERR_UNEXPECTED;
+	}
+
+	rc = ploop_set_encryption_keyid(di, QSTR2UTF8(keyid));
+	if (rc)
+		trace("ploop_create_snapshot", rc);
+
+	ploop_close_dd(di);
+	return rc ? PRL_ERR_UNEXPECTED : PRL_ERR_SUCCESS;
+}
+
 PRL_RESULT Image::setActiveDeltaLimit(unsigned long long lim) const
 {
 	ploop_disk_images_data *di;
