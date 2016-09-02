@@ -174,6 +174,7 @@ private:
 	void copyCtTemplate(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
 
 	void appendAdvancedParamsToCtConfig(SmartPtr<CVmConfiguration> pOutConfig);
+	void UpdateHardDiskInformation(SmartPtr<CVmConfiguration> &config);
 
 private:
 	CConfigCache m_configCache;

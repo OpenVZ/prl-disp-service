@@ -50,6 +50,7 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 
 #include "Dispatcher/Dispatcher/Cache/CacheImpl.h"
+#include "Libraries/Virtuozzo/CVzPloop.h"
 
 
 /*************** CDspVzHelper::CConfigCache *************/
@@ -264,6 +265,29 @@ bool CDspVzHelper::checkAccess(SmartPtr<CDspClient> &pUserSession)
 	return true;
 }
 
+void CDspVzHelper::UpdateHardDiskInformation(SmartPtr<CVmConfiguration> &config)
+{
+	foreach(CVmHardDisk *d, config->getVmHardwareList()->m_lstHardDisks)
+	{
+		if (d->getEmulatedType() != PVE::HardDiskImage)
+			continue;
+
+		QString keyid;
+		PloopImage::Image i(d->getUserFriendlyName());
+
+		i.getEncryptionKeyid(keyid);
+		if (keyid.isEmpty())
+			continue;
+
+		CVmHddEncryption* enc = d->getEncryption();
+		if (!enc) {
+			enc = new CVmHddEncryption();
+			d->setEncryption(enc);
+		}
+		enc->setKeyId(keyid);
+	}
+}
+
 SmartPtr<CVmConfiguration> CDspVzHelper::getCtConfig(
 		SmartPtr<CDspClient> pUserSession,
 		const QString &sUuid,
@@ -293,6 +317,7 @@ SmartPtr<CVmConfiguration> CDspVzHelper::getCtConfig(
 		fillCtInfo(pUserSession, sUuid, *evt);
 		pConfig->getVmSettings()->getVmRuntimeOptions()
 			->getInternalVmInfo()->setParallelsEvent(evt);
+		UpdateHardDiskInformation(pConfig);
 	}
 
 	return pConfig;
