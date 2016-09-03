@@ -163,7 +163,17 @@ Result Agent::setDowntime(quint32 value_)
 Result Agent::migrate(const CVmConfiguration& config_, unsigned int flags_,
 	Parameters::Builder& parameters_)
 {
-	Result e = Basic(Config(m_domain, m_link, 0), config_)(parameters_);
+	Result e;
+	Basic b(config_, parameters_);
+	e = b.addName();
+	if (e.isFailed())
+		return e;
+
+	e = b.addXml(VIR_MIGRATE_PARAM_DEST_XML, Config(m_domain, m_link, 0));
+	if (e.isFailed())
+		return e;
+
+	e = b.addXml(VIR_MIGRATE_PARAM_PERSIST_XML, Config(m_domain, m_link, VIR_DOMAIN_XML_INACTIVE));
 	if (e.isFailed())
 		return e;
 
