@@ -1344,9 +1344,14 @@ void CDspVmDirHelper::fillVmState(
 	, CVmEvent& outVmEvent )
 {
 	CVmIdent ident(CDspVmDirHelper::getVmIdentByVmUuid(sVmUuid, pUserSession));
+
+	// VMS_STOPPED is the only possible state for template
+	VIRTUAL_MACHINE_STATE s = ident.second == CDspVmDirManager::getTemplatesDirectoryUuid() ?
+		VMS_STOPPED : CDspVm::getVmState(ident.first, ident.second);
+
 	outVmEvent.addEventParameter(
 		new CVmEventParameter(PVE::Integer,
-			QString("%1").arg(CDspVm::getVmState(ident.first, ident.second)),
+			QString("%1").arg(s),
 			EVT_PARAM_VMINFO_VM_STATE)
 		);
 }
