@@ -45,7 +45,7 @@
 #include <boost/signals2/signal.hpp>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
-#include <Libraries/ProtoSerializer/CProtoSerializer.h>
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 
 class CDspVmDirHelper;
 

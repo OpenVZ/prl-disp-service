@@ -43,7 +43,7 @@
 #include <prlxmlmodel/UserInformation/SessionInfo.h>
 #include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 #include <prlcommon/IOService/IOCommunication/IOSendJob.h>
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 
 using namespace IOService;
 using Parallels::CProtoCommandPtr;

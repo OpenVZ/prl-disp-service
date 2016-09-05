@@ -48,7 +48,7 @@
 #include <boost/tuple/tuple.hpp>
 
 #include <prlcommon/Std/SmartPtr.h>
-#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 

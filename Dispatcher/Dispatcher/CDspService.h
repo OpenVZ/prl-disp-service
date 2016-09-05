@@ -75,7 +75,7 @@
 #include <prlxmlmodel/VmDirectory/CVmDirectories.h>
 #include <prlxmlmodel/NetworkConfig/CParallelsNetworkConfig.h>
 
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 
 #include <Libraries/Etrace/Etrace.h>

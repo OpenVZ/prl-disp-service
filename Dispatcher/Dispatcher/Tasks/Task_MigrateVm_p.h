@@ -45,7 +45,7 @@
 #include "Task_MigrateVmQObject_p.h"
 #include <prlcommon/Logging/Logging.h>
 #include <boost/phoenix/core/value.hpp>
-#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Interfaces/ParallelsDispToDispProto.h>
 

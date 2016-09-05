@@ -42,8 +42,8 @@
 
 #include "DspMonitor.h"
 
-#include <prlxmlmodel/Messaging/CVmEvent.h>
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlxmlmodel/VmDirectory/CVmDirectoryItem.h>
 #include <prlcommon/Logging/Logging.h>
 #include "CDspTaskHelper.h"
@@ -53,8 +53,8 @@
 #include "CDspClientManager.h"
 #include "CDspVmManager.h"
 #include "CDspVm.h"
-#include "CProtoCommands.h"
-#include "CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoCommands.h>
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/Std/PrlTime.h>

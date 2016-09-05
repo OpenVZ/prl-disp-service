@@ -37,10 +37,10 @@
 #include <prlcommon/Logging/Logging.h>
 #include "Tests/CommonTestsUtils.h"
 #include <set>
-#include <prlxmlmodel/Messaging/CVmEvent.h>
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include "Build/Current.ver"
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 
 using std::set;
 using namespace Parallels;

@@ -34,7 +34,7 @@
 #include "CDspVzHelper.h"
 #include "CDspTaskHelper.h"
 #include <prlxmlmodel/VmDirectory/CVmDirectory.h>
-#include "Libraries/ProtoSerializer/CProtoCommands.h"
+#include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include "Libraries/Virtuozzo/CVzHelper.h"
 
 using namespace Parallels;

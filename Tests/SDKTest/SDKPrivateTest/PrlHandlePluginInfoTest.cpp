@@ -31,7 +31,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "PrlHandlePluginInfoTest.h"
-#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEvent.h>
 #include "SDK/Handles/Disp/PrlHandlePluginInfo.h"
 #include "Tests/CommonTestsUtils.h"
 

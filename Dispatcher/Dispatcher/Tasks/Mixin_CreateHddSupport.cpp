@@ -35,7 +35,7 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "Mixin_CreateHddSupport.h"
 #include "Task_CommonHeaders.h"
 

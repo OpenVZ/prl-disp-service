@@ -55,7 +55,7 @@
 #endif
 #include "Libraries/StatesUtils/StatesHelper.h"
 #include "Libraries/PrlCommonUtils/CVmMigrateHelper.h"
-#include <prlxmlmodel/Messaging/CVmEventParameterList.h>
+#include <prlcommon/Messaging/CVmEventParameterList.h>
 #include "Task_MigrateVmSource_p.h"
 #include <boost/functional/factory.hpp>
 

@@ -34,8 +34,8 @@
 #include "PrlVmExecFunctionalityTest.h"
 #include "Tests/CommonTestsUtils.h"
 #include "SimpleServerWrapper.h"
-#include <prlxmlmodel/Messaging/CVmEvent.h>
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlcommon/Interfaces/ParallelsNamespaceTests.h>
 
 #include <fcntl.h>

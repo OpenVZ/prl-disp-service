@@ -37,7 +37,7 @@
 #include <QMutex>
 
 #include "CDspTaskHelper.h"
-#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEvent.h>
 
 class CDspTaskManager : public QObject
 {

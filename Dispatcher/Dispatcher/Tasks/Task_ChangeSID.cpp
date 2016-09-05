@@ -29,7 +29,7 @@
 #include "Task_ChangeSID.h"
 #include "Task_CommonHeaders.h"
 
-#include "CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "CDspClientManager.h"
 #include "CDspVmManager_p.h"
 #include "CDspLibvirtExec.h"

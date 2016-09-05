@@ -44,7 +44,7 @@
 #ifdef _LIBVIRT_
 #include "CDspLibvirt.h"
 #endif // _LIBVIRT_
-#include "CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "CDspClientManager.h"
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>

@@ -35,8 +35,8 @@
 
 #include <prlcommon/Interfaces/ParallelsDispToDispProto.h>
 #include <prlcommon/IOService/IOCommunication/IOProtocol.h>
-#include "Libraries/ProtoSerializer/CProtoCommands.h"
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoCommands.h>
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 
 #ifdef _WIN_
 #define WINDOWS_LEAN_AND_MEAN

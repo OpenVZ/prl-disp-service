@@ -36,7 +36,7 @@
 #include <QString>
 #include <QUrl>
 #include <prlxmlmodel/VmConfig/CVmHardDisk.h>
-#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEvent.h>
 #include "CDspClient.h"
 #include "CDspTaskHelper.h"
 #include <prlcommon/Std/noncopyable.h>

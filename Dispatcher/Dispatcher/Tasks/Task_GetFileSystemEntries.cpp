@@ -38,9 +38,9 @@
 #include "Task_GetFileSystemEntries.h"
 #include "Task_CommonHeaders.h"
 
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include <prlcommon/Std/PrlAssert.h>
-//#include "CProtoCommands.h"
+//#include <prlcommon/ProtoSerializer/CProtoCommands.h>
 
 using namespace Parallels;
 

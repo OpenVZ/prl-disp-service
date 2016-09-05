@@ -39,7 +39,7 @@
 #include <QImage>
 
 #include <prlcommon/PrlUuid/Uuid.h>
-#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEvent.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/VmConfig/CVmGuestSharing.h>
 #include <prlxmlmodel/VmConfig/CVmHostSharing.h>
@@ -47,7 +47,7 @@
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/DiskImage/DiskImage.h"
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlxmlmodel/HostHardwareInfo/CSystemStatistics.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlxmlmodel/NetworkConfig/CVirtualNetwork.h>
@@ -60,7 +60,7 @@
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #endif
 
-#include "Libraries/ProtoSerializer/CProtoCommands.h"
+#include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include "Libraries/StatesStore/SavedStateTree.h"
 #include "Libraries/PrlNetworking/netconfig.h"
 

@@ -52,10 +52,10 @@
 #include "CDspClientManager.h"
 #include "CDspVmGuestPersonality.h"
 
-#include <prlxmlmodel/Messaging/CVmEvent.h>
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlcommon/Interfaces/ParallelsDomModel.h>
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"

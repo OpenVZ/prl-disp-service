@@ -31,7 +31,7 @@
 #include "Task_DiskImageResizer.h"
 #include "Task_CommonHeaders.h"
 
-#include "CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "CDspClientManager.h"
 #include "CDspAccessManager.h"
 

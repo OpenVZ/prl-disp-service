@@ -37,7 +37,7 @@
 #include "CDspTaskHelper.h"
 #include "Task_DispToDispConnHelper.h"
 #include "CDspClient.h"
-#include "Libraries/ProtoSerializer/CProtoCommands.h"
+#include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include <prlcommon/IOService/IOCommunication/IOClient.h>
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 #include "CDspDispConnection.h"

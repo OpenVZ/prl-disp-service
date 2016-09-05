@@ -32,8 +32,8 @@
 #include "CDspStatCollectingThread.h"
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Std/PrlAssert.h>
-#include <prlxmlmodel/Messaging/CVmEvent.h>
-#include <prlxmlmodel/Messaging/CVmBinaryEventParameter.h>
+#include <prlcommon/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmBinaryEventParameter.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include "CDspClient.h"
 #include "CDspVm.h"
@@ -43,7 +43,7 @@
 #include "CDspStatStorage.h"
 #include "CDspLibvirt.h"
 #include "CDspLibvirtExec.h"
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include <prlsdk/PrlPerfCounters.h>
 #include <prlsdk/PrlIOStructs.h>
 #include <prlcommon/HostUtils/HostUtils.h>

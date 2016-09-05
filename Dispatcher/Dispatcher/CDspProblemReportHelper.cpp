@@ -41,7 +41,7 @@
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlsdk/PrlEventsValues.h>
 #include <prlsdk/PrlEnums.h>
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "Build/Current.ver"
 
 #include "CDspService.h"
@@ -49,7 +49,7 @@
 #include "CDspShellHelper.h"
 
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
-#include <prlxmlmodel/Messaging/CVmBinaryEventParameter.h>
+#include <prlcommon/Messaging/CVmBinaryEventParameter.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/GuestOsInformation/CVmGuestOsInformation.h>
 

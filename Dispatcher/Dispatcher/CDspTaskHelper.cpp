@@ -41,8 +41,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "CDspTaskHelper.h"
 #include <prlcommon/Logging/Logging.h>
-#include "CProtoSerializer.h"
-#include "CProtoCommands.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
+#include <prlcommon/ProtoSerializer/CProtoCommands.h>
 
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/Interfaces/ParallelsQt.h>

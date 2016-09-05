@@ -31,13 +31,13 @@
 
 #include "CDspHwMonitorNotifier.h"
 #include "CDspService.h"
-#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEvent.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include "CDspUserHelper.h"
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include "CDspClientManager.h"
 #include "CDspVmManager.h"
-#include "CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "Tasks/Task_BackgroundJob.h"
 #include <prlcommon/Std/PrlAssert.h>
 #include <Libraries/HostInfo/CHostInfo.h>

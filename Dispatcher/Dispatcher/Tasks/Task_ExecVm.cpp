@@ -39,7 +39,7 @@
 #include "Task_ExecVm.h"
 #include <prlsdk/PrlCommandsFlags.h>
 #include <prlcommon/Std/PrlAssert.h>
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "Libraries/PrlCommonUtils/CFirewallHelper.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "Libraries/Virtuozzo/CVzHelper.h"

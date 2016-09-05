@@ -35,7 +35,7 @@
 #define __CDspVmSnapshotInfrastructure_H_
 
 #include <prlcommon/Logging/Logging.h>
-#include "Libraries/ProtoSerializer/CProtoCommands.h"
+#include <prlcommon/ProtoSerializer/CProtoCommands.h>
 //#include "Libraries/VirtualDisk/DiskStates.h"  // VirtualDisk commented out by request from CP team
 
 class CDspVm;

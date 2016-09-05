@@ -36,10 +36,10 @@
 
 #include "CDspTaskHelper.h"
 #include "CDspAccessManager.h"
-#include <prlxmlmodel/Messaging/CVmEvent.h>
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include "CDspUserHelper.h"
-#include "CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 
 #include "Tasks/Task_CloneVm.h"
 #include <prlcommon/Logging/Logging.h>

@@ -42,8 +42,8 @@
 
 #include <prlcommon/PrlUuid/Uuid.h>
 #include "SDK/Handles/PveControl.h"
-#include <prlxmlmodel/Messaging/CVmEvent.h>
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 
 #define CREATE_CORRECT_VM_CONFIG\
 	QFile _file("./TestDspCmdDirValidateVmConfig_vm_config.xml");\

@@ -38,7 +38,7 @@
 #define H_TestDspCmdUserGetProfile_H
 
 #include "TestDispatcherBase.h"
-#include <prlxmlmodel/Messaging/CResult.h>
+#include <prlcommon/Messaging/CResult.h>
 
 class TestDspCmdUserGetProfile :
    public TestDispatcherBase

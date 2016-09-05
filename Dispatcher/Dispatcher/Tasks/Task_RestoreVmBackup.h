@@ -40,7 +40,7 @@
 #include "CDspClient.h"
 #include "CDspVmConfigManager.h"
 #include "prlxmlmodel/VmConfig/CVmConfiguration.h"
-#include "Libraries/ProtoSerializer/CProtoCommands.h"
+#include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include "prlcommon/IOService/IOCommunication/IOClient.h"
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 #include "CDspDispConnection.h"

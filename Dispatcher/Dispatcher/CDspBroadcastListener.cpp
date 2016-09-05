@@ -45,8 +45,8 @@
 #include <QMutex>
 
 #include "CDspBroadcastListener.h"
-#include <prlxmlmodel/Messaging/CVmEvent.h>
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlxmlmodel/DispConfig/CDispWorkspacePreferences.h>
 #include "CDspService.h"
 #include "Libraries/HostInfo/CHostInfo.h"

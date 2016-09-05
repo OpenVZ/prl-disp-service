@@ -49,7 +49,7 @@
 
 #include "CDspVzLicense.h"
 
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/Std/PrlTime.h>

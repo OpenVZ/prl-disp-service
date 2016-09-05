@@ -44,7 +44,7 @@
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/Std/PrlAssert.h>
-#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>
 #include <prlcommon/Std/SmartPtr.h>

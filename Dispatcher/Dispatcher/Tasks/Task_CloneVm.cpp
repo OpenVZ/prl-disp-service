@@ -39,7 +39,7 @@
 #include "Task_CloneVm_p.h"
 #include "Task_CommonHeaders.h"
 
-#include "CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "CDspClientManager.h"
 #include "CFileHelperDepPart.h"
 #include <prlcommon/Std/PrlAssert.h>
@@ -53,7 +53,7 @@
 #include <prlcommon/Std/noncopyable.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/VirtualDisk/Qcow2Disk.h>
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "CDspBackupDevice.h"
 #include "CDspVmManager_p.h"
 

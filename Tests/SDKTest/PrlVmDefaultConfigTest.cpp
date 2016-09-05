@@ -37,7 +37,7 @@
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 
-#include "Libraries/ProtoSerializer/CProtoCommands.h"
+#include <prlcommon/ProtoSerializer/CProtoCommands.h>
 
 using namespace Parallels;
 

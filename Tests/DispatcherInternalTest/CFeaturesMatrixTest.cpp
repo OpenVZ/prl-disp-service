@@ -32,7 +32,7 @@
 
 #include "CFeaturesMatrixTest.h"
 #include <prlcommon/PrlCommonUtilsBase/CFeaturesMatrix.h>
-#include <prlxmlmodel/Messaging/CVmBinaryEventParameter.h>
+#include <prlcommon/Messaging/CVmBinaryEventParameter.h>
 
 void CFeaturesMatrixTest::testInitialize()
 {

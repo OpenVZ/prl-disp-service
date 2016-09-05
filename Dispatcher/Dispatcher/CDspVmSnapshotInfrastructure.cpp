@@ -42,7 +42,7 @@
 #include <prlxmlmodel/VmInfo/CVmInfo.h>
 #include "CDspVmSnapshotInfrastructure.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 
 namespace Snapshot
 {

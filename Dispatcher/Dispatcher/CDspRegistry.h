@@ -40,7 +40,7 @@
 #include <boost/mpl/at.hpp>
 #include <prlsdk/PrlEnums.h>
 #include "CDspVmConfigManager.h"
-#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEvent.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>

@@ -40,7 +40,7 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 
 #include <QMutexLocker>
 #include <QMultiHash>
@@ -60,8 +60,8 @@
 #include <prlxmlmodel/DispConfig/CDispUser.h>
 #include <prlxmlmodel/DispConfig/CDispWorkspacePreferences.h>
 #include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
-#include <prlxmlmodel/Messaging/CVmEvent.h>
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlxmlmodel/HostHardwareInfo/CHwFileSystemInfo.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
@@ -92,7 +92,7 @@
 #endif
 
 #include <prlxmlmodel/ProblemReport/CProblemReport.h>
-#include <prlxmlmodel/Messaging/CVmBinaryEventParameter.h>
+#include <prlcommon/Messaging/CVmBinaryEventParameter.h>
 #include <prlxmlmodel/GuestOsInformation/CVmGuestOsInformation.h>
 
 #include <prlcommon/Logging/Logging.h>

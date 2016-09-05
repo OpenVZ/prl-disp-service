@@ -47,8 +47,8 @@
 
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 #include <prlcommon/HostUtils/HostUtils.h>
-#include "CProtoSerializer.h"
-#include "CProtoCommands.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
+#include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include "CDspService.h"
 #include "CDspClientManager.h"
 #include "CDspUserHelper.h"
@@ -61,12 +61,12 @@
 #include <prlcommon/IOService/IOCommunication/IOSSLInterface.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Logging/Logging.h>
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlxmlmodel/HostHardwareInfo/CHwOsVersion.h>
 #include <prlxmlmodel/UserInformation/ParallelsUserInformation.h>
 #include <prlxmlmodel/DispConfig/CDispUserSettings.h>
-#include <prlxmlmodel/Messaging/CVmBinaryEventParameter.h>
+#include <prlcommon/Messaging/CVmBinaryEventParameter.h>
 
 #include <prlcommon/Std/PrlAssert.h>
 #include "Build/Current.ver"

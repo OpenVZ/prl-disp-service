@@ -58,8 +58,8 @@
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 
-#include <prlxmlmodel/Messaging/CVmEvent.h>
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/VmDirectory/CVmDirectories.h>
 #include <prlxmlmodel/ProblemReport/CProblemReport.h>

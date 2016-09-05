@@ -35,7 +35,7 @@
 #include <QObject>
 #include <QEventLoop>
 #include <prlsdk/PrlTypes.h>
-#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <libvirt/libvirt.h>

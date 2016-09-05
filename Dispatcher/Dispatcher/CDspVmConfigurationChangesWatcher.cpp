@@ -38,7 +38,7 @@
 #include "CDspVmDirManager.h"
 #include "CDspService.h"
 #include "CDspBugPatcherLogic.h"
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include <QFile>
 #include <QMutexLocker>
 #include <prlcommon/Std/noncopyable.h>

@@ -38,8 +38,8 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "CDspService.h"
 #include "CDspRouter.h"
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
-#include "Libraries/ProtoSerializer/CProtoCommands.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
+#include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 #include <prlcommon/IOService/IOCommunication/IOSSLInterface.h>
 #include "CDspHandlerRegistrator.h"

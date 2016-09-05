@@ -35,7 +35,7 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "CDspClientManager.h"
 #include "CDspBugPatcherLogic.h"
 

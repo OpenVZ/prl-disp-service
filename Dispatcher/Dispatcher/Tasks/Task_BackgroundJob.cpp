@@ -39,7 +39,7 @@
 #include "Task_BackgroundJob.h"
 #include "Task_CommonHeaders.h"
 #include "Task_ManagePrlNetService.h"
-#include "CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>

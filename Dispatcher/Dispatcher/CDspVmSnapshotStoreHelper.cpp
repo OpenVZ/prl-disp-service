@@ -35,7 +35,7 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 
 
 #include <prlcommon/Interfaces/ParallelsQt.h>

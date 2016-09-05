@@ -40,7 +40,7 @@
 #include "CDspClient.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
-#include "Libraries/ProtoSerializer/CProtoCommands.h"
+#include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include <prlcommon/IOService/IOCommunication/IOClient.h>
 #include "CDspDispConnection.h"
 #include "CDspVm.h"

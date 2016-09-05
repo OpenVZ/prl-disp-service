@@ -36,7 +36,7 @@
 
 #include "Task_MoveVm.h"
 
-#include "CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "CDspClientManager.h"
 #include "CDspService.h"
 #include "CFileHelperDepPart.h"

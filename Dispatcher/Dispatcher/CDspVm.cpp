@@ -59,11 +59,11 @@
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
-#include <prlxmlmodel/Messaging/CVmEvent.h>
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include "CVmValidateConfig.h"
 
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/PrlCommonUtilsBase/Common.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"

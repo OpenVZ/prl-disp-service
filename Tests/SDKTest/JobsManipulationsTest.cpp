@@ -34,8 +34,8 @@
 #include "Tests/CommonTestsUtils.h"
 #include <prlcommon/Interfaces/ParallelsDomModel.h>
 #include <prlcommon/Interfaces/ParallelsTypes.h>
-#include <prlxmlmodel/Messaging/CVmEvent.h>
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlxmlmodel/DispConfig/CDispCommonPreferences.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/Logging/Logging.h>

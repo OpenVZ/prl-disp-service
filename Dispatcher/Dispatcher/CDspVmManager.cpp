@@ -45,7 +45,7 @@
 #include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
 #include "Libraries/PrlCommonUtils/CVmQuestionHelper.h"
 #include "Libraries/NonQtUtils/CQuestionHelper.h"
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/HostUtils/HostUtils.h>
@@ -56,9 +56,9 @@
 #include <Libraries/PowerWatcher/PowerWatcher.h>
 #include "Libraries/PrlNetworking/netconfig.h"
 
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlxmlmodel/ProblemReport/CProblemReport.h>
-#include <prlxmlmodel/Messaging/CVmBinaryEventParameter.h>
+#include <prlcommon/Messaging/CVmBinaryEventParameter.h>
 #include "Libraries/HostInfo/CHostInfo.h"
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlxmlmodel/HostHardwareInfo/CHwGenericDevice.h>

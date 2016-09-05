@@ -40,8 +40,8 @@
 
 //#include "Libraries/DiskImage/DiskImage.h"  // DiskImage commented out by request from CP team
 #include <prlsdk/PrlDisk.h>
-#include <prlxmlmodel/Messaging/CVmEvent.h>
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include "CDspTaskHelper.h"
 #include <prlxmlmodel/HostHardwareInfo/CHwFileSystemInfo.h>
 #include "CDspClient.h"

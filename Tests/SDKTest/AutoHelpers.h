@@ -45,7 +45,7 @@
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/Std/PrlAssert.h>
-#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>
 #include <prlcommon/Std/SmartPtr.h>
@@ -53,7 +53,7 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/NonQtUtils/CQuestionHelper.h"
 
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 
 
 #include <prlxmlmodel/DispConfig/CDispCommonPreferences.h>

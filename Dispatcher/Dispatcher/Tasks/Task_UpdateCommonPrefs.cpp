@@ -40,7 +40,7 @@
 #include <Build/Current.ver>
 
 #include "CDspClientManager.h"
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "CDspService.h"
 #include "CDspVmManager.h"
 #include "CDspCommon.h"

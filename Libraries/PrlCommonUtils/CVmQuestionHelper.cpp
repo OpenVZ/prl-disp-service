@@ -33,7 +33,7 @@
 #include "Libraries/NonQtUtils/CQuestionHelper.h"
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 
 using namespace IOService;

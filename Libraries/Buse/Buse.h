@@ -36,7 +36,7 @@
 #include <QString>
 
 #include <prlsdk/PrlTypes.h>
-#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEvent.h>
 
 namespace Buse {
 

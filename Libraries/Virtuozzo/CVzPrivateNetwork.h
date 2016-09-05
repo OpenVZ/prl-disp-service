@@ -24,7 +24,7 @@
 #define _CVZPRIVATENETWORK_H_
 
 #include <prlxmlmodel/NetworkConfig/CPrivateNetworks.h>
-#include <prlxmlmodel/Messaging/CVmEvent.h>
+#include <prlcommon/Messaging/CVmEvent.h>
 
 class CVzPrivateNetwork
 {

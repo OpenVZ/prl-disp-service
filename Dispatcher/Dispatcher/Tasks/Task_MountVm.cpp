@@ -28,7 +28,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 #include <prlcommon/Std/PrlAssert.h>
-#include <Libraries/ProtoSerializer/CProtoSerializer.h>
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include <Libraries/PrlCommonUtils/CFileHelper.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 

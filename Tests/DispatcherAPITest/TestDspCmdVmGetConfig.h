@@ -40,7 +40,7 @@
 #include <QDomDocument>
 
 #include "TestDispatcherBase.h"
-#include <prlxmlmodel/Messaging/CResult.h>
+#include <prlcommon/Messaging/CResult.h>
 #include <prlxmlmodel/VmDirectory/CVmDirectoryItem.h>
 
 

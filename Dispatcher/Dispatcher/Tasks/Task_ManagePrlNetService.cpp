@@ -39,7 +39,7 @@
 #include "../CDspService.h"
 #include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
 #include <prlxmlmodel/DispConfig/CDispNetAdapter.h>
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlxmlmodel/VmConfig/CVmNetworkRates.h>
 
 #include "CDspClientManager.h"
@@ -51,8 +51,8 @@
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <prlcommon/HostUtils/HostUtils.h>
-#include "Libraries/ProtoSerializer/CProtoSerializer.h"
-#include "Libraries/ProtoSerializer/CProtoCommands.h"
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
+#include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
 #include "Libraries/Virtuozzo/CVzPrivateNetwork.h"
 #include "Dispatcher/Dispatcher/CDspService.h"

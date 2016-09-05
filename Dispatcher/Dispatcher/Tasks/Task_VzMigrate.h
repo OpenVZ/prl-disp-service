@@ -36,7 +36,7 @@
 
 #include "CDspTaskHelper.h"
 #include "CDspClient.h"
-#include "Libraries/ProtoSerializer/CProtoCommands.h"
+#include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include <prlcommon/IOService/IOCommunication/IOClient.h>
 #include "CDspDispConnection.h"
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"

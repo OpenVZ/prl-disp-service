@@ -38,8 +38,8 @@
 #include "CDspService.h"
 #include "CDspUserHelper.h"
 
-#include "CProtoSerializer.h"
-#include <prlxmlmodel/Messaging/CVmEventParameter.h>
+#include <prlcommon/ProtoSerializer/CProtoSerializer.h>
+#include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlcommon/Std/PrlTime.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"

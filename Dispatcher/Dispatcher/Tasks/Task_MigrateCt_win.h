@@ -41,7 +41,7 @@
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include "Task_DispToDispConnHelper.h"
-#include "Libraries/ProtoSerializer/CProtoCommands.h"
+#include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include <prlcommon/IOService/IOCommunication/IOClient.h>
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 #include "Libraries/VmFileList/CVmFileListCopy.h"
