@@ -2205,7 +2205,7 @@ Block::Activity List::startMerge(const QList<CVmHardDisk>& disks_, Block::Comple
 	{
 		n << Transponster::Vm::Reverse::Device<CVmHardDisk>::getTargetName(d);
 	}
-	QSharedPointer<Block::Counter> c(new Block::Counter(n, completion_));
+	QSharedPointer<Block::Counter> c(new Block::Counter(n, completion_), &QObject::deleteLater);
 	c->moveToThread(QCoreApplication::instance()->thread());
 
 	QSharedPointer<Block::Tracker> t(new Block::Tracker(m_domain));

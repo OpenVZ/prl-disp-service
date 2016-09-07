@@ -370,9 +370,26 @@ namespace Connector
 template<class T, class M>
 struct Basic: T, Vm::Connector::Base<M>
 {
-	void reactConnected();
+	void reactConnected()
+	{
+		boost::optional<QString> t;
+		QIODevice* d = (QIODevice* )this->sender();
+		if (!this->objectName().isEmpty())
+		{
+			t = this->objectName();
+			d->setObjectName(t.get());
+		}
+		this->handle(Vm::Pump::Launch_type(this->getService(), d, t));
+	}
 
-	void reactDisconnected();
+	void reactDisconnected()
+	{
+		QIODevice* d = (QIODevice* )this->sender();
+		if (NULL == d)
+			return;
+
+		this->handle(boost::phoenix::val(d));
+	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -381,7 +398,11 @@ struct Basic: T, Vm::Connector::Base<M>
 template<class M>
 struct Tcp: Basic<Tcp_, M>
 {
-	void reactError(QAbstractSocket::SocketError);
+	void reactError(QAbstractSocket::SocketError value_)
+	{
+		Q_UNUSED(value_);
+		this->handle(Flop::Event(PRL_ERR_FILE_READ_ERROR));
+	}
 };
 
 } // namespace Connector
@@ -406,7 +427,26 @@ struct Socket<QTcpSocket>
 	static void disconnect(type& socket_);
 
 	template<class M>
-	static QSharedPointer<type> craft(Connector::Tcp<M>& connector_);
+	static QSharedPointer<type> craft(Connector::Tcp<M>& connector_)
+	{
+		bool x;
+		QSharedPointer<type> output = QSharedPointer<type>
+			(new QTcpSocket(), &QObject::deleteLater);
+		x = connector_.connect(output.data(), SIGNAL(connected()),
+			SLOT(reactConnected()), Qt::QueuedConnection);
+		if (!x)
+			WRITE_TRACE(DBG_FATAL, "can't connect socket connect");
+		x = connector_.connect(output.data(), SIGNAL(disconnected()),
+			SLOT(reactDisconnected()), Qt::QueuedConnection);
+		if (!x)
+			WRITE_TRACE(DBG_FATAL, "can't connect socket disconnect");
+		x = connector_.connect(output.data(), SIGNAL(error(QAbstractSocket::SocketError)),
+			SLOT(reactError(QAbstractSocket::SocketError)), Qt::QueuedConnection);
+		if (!x)
+			WRITE_TRACE(DBG_FATAL, "can't connect socket errors");
+
+		return output;
+	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -440,10 +480,21 @@ struct Haul: vsd::Frontend<U>, Vm::Connector::Mixin<typename Socket<T>::function
 	using def_type::on_entry;
 
 	template <typename FSM>
-	void on_entry(ioEvent_type const& event_, FSM& fsm_);
+	void on_entry(ioEvent_type const& event_, FSM& fsm_)
+	{
+		def_type::on_entry(event_, fsm_);
+		this->getConnector()->setService(&event_());
+		m_socket = Socket<T>::craft(*this->getConnector());
+	}
 
 	template <typename Event, typename FSM>
-	void on_exit(const Event& event_, FSM& fsm_);
+	void on_exit(const Event& event_, FSM& fsm_)
+	{
+		def_type::on_exit(event_, fsm_);
+		disconnect_();
+		m_socket.clear();
+		this->getConnector()->setService(NULL);
+	}
 
 	void disconnect()
 	{
@@ -507,32 +558,41 @@ namespace Qemu
 ///////////////////////////////////////////////////////////////////////////////
 // struct Shortcut
 
-template<class T, class U, Parallels::IDispToDispCommands X>
+template<class T, class U>
 struct Shortcut
 {
-	typedef boost::msm::back::state_machine<U> top_type;
 	typedef Haul
 		<
 			QTcpSocket,
 			T,
-			X,
-			Machine_type
-//			top_type
+			U::haulEvent_type::s_command,
+			typename U::machine_type
 		> type;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Channel
 
-template<class T, Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
-struct Channel: Shortcut<Channel<T, X, Y>, T, Y>::type
+template<class T>
+struct Channel: Shortcut<Channel<T>, T>::type
 {
-	typedef Vm::Pump::Event<X> launch_type;
-	typedef Vm::Pump::Event<Y> chunk_type;
+	typedef typename T::spawnEvent_type launch_type;
+	typedef typename T::haulEvent_type chunk_type;
 	typedef int activate_deferred_events;
-	typedef typename Shortcut<Channel<T, X, Y>, T, Y>::type def_type;
+	typedef typename Shortcut<Channel, T>::type def_type;
 
-	void connect(const launch_type& event_);
+	void connect(const launch_type& event_)
+	{
+		quint32 z;
+		SmartPtr<char> b;
+		IOPackage::EncodingType t;
+		event_.getPackage()->getBuffer(0, t, b, z);
+		boost::optional<QString> s = Vm::Pump::Push::Packer::getSpice(*event_.getPackage());
+		if (s)
+			this->getConnector()->setObjectName(s.get());
+
+		this->getSocket()->connectToHost(QHostAddress::LocalHost, *(quint16*)b.getImpl());
+	}
 
 	struct transition_table : boost::mpl::vector<
 		typename def_type::template
@@ -560,20 +620,20 @@ struct Channel: Shortcut<Channel<T, X, Y>, T, Y>::type
 ///////////////////////////////////////////////////////////////////////////////
 // struct Traits
 
-template<class T, Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
-struct Traits
+template<class T>
+struct Traits: T
 {
-	typedef Machine_type machine_type;
-	typedef boost::msm::back::state_machine<Channel<T, X, Y> > pump_type;
+	typedef boost::msm::back::state_machine<Channel<T> > pump_type;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hub
 
-template<Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
-struct Hub: Vm::Tunnel::Hub<Hub<X, Y>, Traits<Hub<X, Y>, X, Y>, Y>
+template<class T>
+struct Hub: Vm::Tunnel::Hub::Unit<Hub<T>, Traits<T> >
 {
-	typedef Vm::Tunnel::Hub<Hub, Traits<Hub, X, Y>, Y> def_type;
+	typedef Vm::Tunnel::Hub::Unit<Hub, Traits<T> > def_type;
+	typedef typename T::spawnEvent_type spawnEvent_type;
 
 	Hub(): m_service()
 	{
@@ -582,17 +642,25 @@ struct Hub: Vm::Tunnel::Hub<Hub<X, Y>, Traits<Hub<X, Y>, X, Y>, Y>
 	using def_type::on_entry;
 
 	template <typename FSM>
-	void on_entry(ioEvent_type const& event_, FSM& fsm_);
+	void on_entry(ioEvent_type const& event_, FSM& fsm_)
+	{
+		def_type::on_entry(event_, fsm_);
+		m_service = &event_();
+	}
 
 	template <typename Event, typename FSM>
-	void on_exit(const Event& event_, FSM& fsm_);
+	void on_exit(const Event& event_, FSM& fsm_)
+	{
+		def_type::on_exit(event_, fsm_);
+		m_service = NULL;
+	}
 
 	struct Action
 	{
 		typedef typename def_type::pump_type pump_type;
 
 		template<class M>
-		void operator()(Vm::Pump::Event<X> const& event_, M& fsm_, Hub& state_, Hub&)
+		void operator()(spawnEvent_type const& event_, M& fsm_, Hub& state_, Hub&)
 		{
 			boost::optional<QString> s =
 				Vm::Pump::Push::Packer::getSpice(*event_.getPackage());
@@ -624,7 +692,7 @@ struct Hub: Vm::Tunnel::Hub<Hub<X, Y>, Traits<Hub<X, Y>, X, Y>, Y>
 				typename boost::mpl::push_front
 				<
 					typename def_type::internal_transition_table,
-					msmf::Internal<Vm::Pump::Event<X>, Action>
+					msmf::Internal<spawnEvent_type, Action>
 				>::type,
 				msmf::Internal<Vm::Pump::Launch_type, Action>
 			>::type,
@@ -693,10 +761,24 @@ struct Channel: Shortcut<Channel>::type
 
 struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Vm::Target::Connector>, Synch
 {
-	typedef Qemu::Hub<Parallels::VmMigrateConnectQemuStateCmd, Parallels::VmMigrateQemuStateTunnelChunk>
-		qemuState_type;
-	typedef Qemu::Hub<Parallels::VmMigrateConnectQemuDiskCmd, Parallels::VmMigrateQemuDiskTunnelChunk>
-		qemuDisk_type;
+	typedef Qemu::Hub
+		<
+			Vm::Tunnel::Hub::Traits
+			<
+				Machine_type,
+				Parallels::VmMigrateConnectQemuStateCmd,
+				Parallels::VmMigrateQemuStateTunnelChunk
+			>
+		> qemuState_type;
+	typedef Qemu::Hub
+		<
+			Vm::Tunnel::Hub::Traits
+			<
+				Machine_type,
+				Parallels::VmMigrateConnectQemuDiskCmd,
+				Parallels::VmMigrateQemuDiskTunnelChunk
+			>
+		> qemuDisk_type;
 	typedef Vm::Tunnel::Essence
 		<
 			Join::Machine<Libvirt::Channel>,
@@ -738,7 +820,7 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Vm::Target::Conne
 	};
 
 private:
-        IO* m_service;
+	IO* m_service;
 };
 
 } // namespace Tunnel
@@ -779,15 +861,9 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
 	{
 	}
 
-	bool isTemplate(const msmf::none&)
-	{
-		return m_task->isTemplate();
-	}
+	bool isTemplate(const msmf::none&);
 
-	bool isSwitched(const msmf::none&)
-	{
-		return m_task->getRequestFlags() & PVMT_SWITCH_TEMPLATE;
-	}
+	bool isSwitched(const msmf::none&);
 
 	void synch(const msmf::none&)
 	{

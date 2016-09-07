@@ -494,25 +494,33 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Traits
 
-template<Parallels::IDispToDispCommands X>
-struct Traits
+template<class T>
+struct Traits: T
 {
-	typedef Machine_type machine_type;
-	typedef boost::msm::back::state_machine<Pump::Frontend<machine_type, X> > pump_type;
+	typedef Launch<T::spawnEvent_type::s_command> spawnEvent_type;
+	typedef boost::msm::back::state_machine
+		<
+			Pump::Frontend
+			<
+				typename T::machine_type,
+				T::haulEvent_type::s_command
+			>
+		> pump_type;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hub
 
-template<Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
-struct Hub: Vm::Tunnel::Hub<Hub<X, Y>, Traits<Y>, Y>
+template<class T>
+struct Hub: Vm::Tunnel::Hub::Unit<Hub<T>, Traits<T> >
 {
-	typedef Vm::Tunnel::Hub<Hub, Traits<Y>, Y> def_type;
+	typedef Vm::Tunnel::Hub::Unit<Hub, Traits<T> > def_type;
+	typedef typename Traits<T>::spawnEvent_type spawnEvent_type;
 
 	struct Action
 	{
 		template<class M>
-		void operator()(Launch<X> const& event_, M& fsm_, Hub& state_, Hub&)
+		void operator()(spawnEvent_type const& event_, M& fsm_, Hub& state_, Hub&)
 		{
 			Prl::Expected<Vm::Pump::Launch_type, Flop::Event> x = event_();
 			if (x.isFailed())
@@ -526,7 +534,7 @@ struct Hub: Vm::Tunnel::Hub<Hub<X, Y>, Traits<Y>, Y>
 	struct internal_transition_table: boost::mpl::push_front
 		<
 			typename def_type::internal_transition_table,
-			msmf::Internal<Launch<X>, Action>
+			msmf::Internal<spawnEvent_type, Action>
 		>::type
 	{
 	};
@@ -543,10 +551,24 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	typedef Libvirt::State::serverList_type serverList_type;
 	typedef Pump::Frontend<Machine_type, Vm::Tunnel::libvirtChunk_type::s_command>
 		libvirt_type;
-	typedef Qemu::Hub<Parallels::VmMigrateConnectQemuStateCmd, Parallels::VmMigrateQemuStateTunnelChunk>
-		qemuState_type;
-	typedef Qemu::Hub<Parallels::VmMigrateConnectQemuDiskCmd, Parallels::VmMigrateQemuDiskTunnelChunk>
-		qemuDisk_type;
+	typedef Qemu::Hub
+		<
+			Vm::Tunnel::Hub::Traits
+			<
+				Machine_type,
+				Parallels::VmMigrateConnectQemuStateCmd,
+				Parallels::VmMigrateQemuStateTunnelChunk
+			>
+		> qemuState_type;
+	typedef Qemu::Hub
+		<
+			Vm::Tunnel::Hub::Traits
+			<
+				Machine_type,
+				Parallels::VmMigrateConnectQemuDiskCmd,
+				Parallels::VmMigrateQemuDiskTunnelChunk
+			>
+		> qemuDisk_type;
 	typedef Vm::Tunnel::Essence
 		<
 			Join::Machine<libvirt_type>,
@@ -681,11 +703,8 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 
 	bool isTemplate(const boost::mpl::true_&);
 
-	template <typename T>
-	void pokePeer(const T&)
-	{
-		m_task->confirmFinish();
-	}
+	template<class T>
+	void pokePeer(const T&);
 
 	void setResult(const peerQuitState_type::Good&);
 	void setResult(const Flop::Event& value_);

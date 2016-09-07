@@ -1209,14 +1209,30 @@ struct Ready: vsd::Trace<Ready>
 {
 };
 
+namespace Hub
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Hub
+// struct Traits
 
-template<class T,class U, Parallels::IDispToDispCommands X>
-struct Hub: vsd::Trace<T>, Vm::Connector::Mixin<typename U::machine_type>
+template<class T, Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
+struct Traits
+{
+	typedef T machine_type;
+	typedef Vm::Pump::Event<X> spawnEvent_type;
+	typedef Vm::Pump::Event<Y> haulEvent_type;
+	typedef Vm::Pump::Quit<Y> quitEvent_type;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+template<class T,class U>
+struct Unit: vsd::Trace<T>, Vm::Connector::Mixin<typename U::machine_type>
 {
 	typedef vsd::Trace<T> def_type;
 	typedef typename U::pump_type pump_type;
+	typedef typename U::haulEvent_type haulEvent_type;
+	typedef typename U::quitEvent_type quitEvent_type;
 	typedef QHash<QString, pump_type> pumpMap_type;
 	typedef Vm::Tunnel::Ready initial_state;
 
@@ -1245,7 +1261,7 @@ struct Hub: vsd::Trace<T>, Vm::Connector::Mixin<typename U::machine_type>
 	struct Action
 	{
 		template<class M>
-		void operator()(Vm::Pump::Event<X> const& event_, M& fsm_, Hub& state_, Hub&)
+		void operator()(haulEvent_type const& event_, M& fsm_, Unit& state_, Unit&)
 		{
 			boost::optional<QString> s =
 				Vm::Pump::Push::Packer::getSpice(*event_.getPackage());
@@ -1257,7 +1273,7 @@ struct Hub: vsd::Trace<T>, Vm::Connector::Mixin<typename U::machine_type>
 				p->process_event(event_);
 		}
 		template<class M>
-		void operator()(Vm::Pump::Quit<X> const& event_, M& fsm_, Hub& state_, Hub&)
+		void operator()(quitEvent_type const& event_, M& fsm_, Unit& state_, Unit&)
 		{
 			QString k = event_();
 			pump_type* p = state_.match(k);
@@ -1273,8 +1289,8 @@ struct Hub: vsd::Trace<T>, Vm::Connector::Mixin<typename U::machine_type>
 	};
 
 	struct internal_transition_table: boost::mpl::vector<
-		msmf::Internal<Vm::Pump::Quit<X>,     Action>,
-		msmf::Internal<Vm::Pump::Event<X>,    Action>
+		msmf::Internal<quitEvent_type, Action>,
+		msmf::Internal<haulEvent_type, Action>
 	>
 	{
 	};
@@ -1308,6 +1324,8 @@ protected:
 private:
 	pumpMap_type m_pumpMap;
 };
+
+} // namespace Hub
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Essence

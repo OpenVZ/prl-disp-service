@@ -848,6 +848,12 @@ void Frontend::setResult(const Flop::Event& value_)
 		boost::apply_visitor(Flop::Visitor(*m_task), value_.error());
 }
 
+template<class T>
+void Frontend::pokePeer(const T&)
+{
+	m_task->confirmFinish();
+}
+
 } // namespace Source
 } // namespace Vm
 } // namespace Migrate
