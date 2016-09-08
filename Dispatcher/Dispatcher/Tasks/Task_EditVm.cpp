@@ -1654,8 +1654,8 @@ PRL_RESULT Task_EditVm::editVm()
 									continue;
 
 								// network adapters can be added either on running VM or stopped
-								if (PDE_GENERIC_NETWORK_ADAPTER == nType)
-									continue;
+								//if (PDE_GENERIC_NETWORK_ADAPTER == nType)
+								//	continue;
 
 								if (nType == PDE_HARD_DISK)
 								{
