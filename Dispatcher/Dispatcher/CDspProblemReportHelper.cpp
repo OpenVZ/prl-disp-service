@@ -839,42 +839,34 @@ void CDspProblemReportHelper::FillVmProblemReportData
 
 	bool isRunning = CDspVm::getVmState(strVmUuid, strDirUuid) == VMS_RUNNING;
 
-	QString tmpFileName = QDir::temp()
-		.absoluteFilePath("vz-%1-%2").arg(strVmUuid)
-		.arg(QDateTime::currentMSecsSinceEpoch());
-
-	QString screenImage = tmpFileName + ".pnm";
-	// QEMU renerates screenshot in PNM format
-	u.getGuest().dumpScreen(screenImage);
-
-	// Convert to PNG and attach
-	QProcess convertImage;
-	convertImage.setStandardOutputFile(screenImage + ".png");
-	QString output;
-	if (HostUtils::RunCmdLineUtility("pnmtopng " + screenImage, output, 10000, &convertImage))
-		cReport.appendScreenshot(screenImage + ".png", "screenshot.png");
-
-	QFile::remove(screenImage);
-	QFile::remove(screenImage + ".png");
-
-	QString stateFile = tmpFileName + ".state";
-	Prl::Expected<Libvirt::Instrument::Agent::Vm::Command::Future, Error::Simple> e = 
-		u.getGuest().dumpState(stateFile);
-
-	if (e.isSucceed())
-		e.value().wait(10000);
-
-	// It doesn't matter if wait failed or migration failed, we need to try unpause VM.
-	VIRTUAL_MACHINE_STATE currentState = VMS_UNKNOWN;
-	if ((isRunning && u.getState(currentState).isFailed()) ||
-		(currentState == VMS_PAUSED && u.unpause().isFailed()))
-	{
-		WRITE_TRACE(DBG_FATAL, "Problem report got error. VM %s may be paused", qPrintable(strVmUuid));
+	typedef Libvirt::Instrument::Agent::Vm::Screenshot screenshot_t;
+	Prl::Expected<screenshot_t, Error::Simple> x = u.getGuest().dumpScreen();
+	if (x.isSucceed()) {
+		QTemporaryFile a;
+		if (a.open() && PRL_SUCCEEDED(x.value().save(a.fileName(), "PNG")))
+			cReport.appendScreenshot(a.fileName(), "screenshot.png");
 	}
 
-	// Try to add file even after error
-	cReport.appendSystemLog(stateFile, "qemu-statefile.gz");
-	QFile::remove(stateFile);
+	QTemporaryFile y;
+	if (y.open()) {
+		Prl::Expected<Libvirt::Instrument::Agent::Vm::Command::Future, Error::Simple> e = 
+			u.getGuest().dumpState(y.fileName());
+
+		if (e.isSucceed())
+			e.value().wait(10000);
+
+		// It doesn't matter if wait failed or migration failed, we need to try unpause VM.
+		VIRTUAL_MACHINE_STATE currentState = VMS_UNKNOWN;
+		if ((isRunning && u.getState(currentState).isFailed()) ||
+				(currentState == VMS_PAUSED && u.unpause().isFailed()))
+		{
+			WRITE_TRACE(DBG_FATAL, "Problem report got error. VM %s may be paused", qPrintable(strVmUuid));
+		}
+
+		// Try to add file even after error
+		cReport.appendSystemLog(y.fileName(), "qemu-statefile.gz");
+		y.close();
+	}
 
 	const QDateTime minDumpTime = QDateTime::currentDateTime().addDays(-GUEST_CRASH_DUMPS_MAX_AGE_IN_DAYS);
 	WRITE_REPORT_PROFILER_STRING( "addGuestCrashDumps" );

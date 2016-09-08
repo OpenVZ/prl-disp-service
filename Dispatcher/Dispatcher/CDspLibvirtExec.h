@@ -328,6 +328,24 @@ struct Future;
 } // namespace Command
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Screenshot
+
+struct Screenshot
+{
+	explicit Screenshot(const QByteArray& data_) : m_data(data_) {}
+
+	void setSize(const QSize& size_)
+	{
+		m_size = size_;
+	}
+	PRL_RESULT save(const QString& to_, const QString& format_) const;
+
+private:
+	QByteArray m_data;
+	QSize m_size;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Guest
 
 struct Unit;
@@ -338,7 +356,7 @@ struct Guest
 	}
 
 	Result traceEvents(bool enable_); 
-	Result dumpScreen(const QString& path);
+	Prl::Expected<Screenshot, ::Error::Simple> dumpScreen();
 	Prl::Expected<QString, ::Error::Simple>
 		dumpMemory(const QString& path);
 	Prl::Expected<Command::Future, ::Error::Simple>
