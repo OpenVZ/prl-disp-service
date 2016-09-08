@@ -1652,6 +1652,11 @@ PRL_RESULT Task_EditVm::editVm()
 							{
 								if ( CXmlModelHelper::IsElemInList( pNewDevice, *pOldLstDevs ) )//Old device - ignore checks
 									continue;
+
+								// network adapters can be added either on running VM or stopped
+								if (PDE_GENERIC_NETWORK_ADAPTER == nType)
+									continue;
+
 								if (nType == PDE_HARD_DISK)
 								{
 									CVmHardDisk *d = dynamic_cast<CVmHardDisk*>(pNewDevice);
@@ -3338,6 +3343,12 @@ template<>
 QList<CVmSerialPort* > Hotplug<CVmSerialPort>::getList(const CVmHardware* hardware_)
 {
 	return hardware_->m_lstSerialPorts;
+}
+
+template<>
+QList<CVmGenericNetworkAdapter* > Hotplug<CVmGenericNetworkAdapter>::getList(const CVmHardware* hardware_)
+{
+	return hardware_->m_lstNetworkAdapters;
 }
 
 template<class T>
