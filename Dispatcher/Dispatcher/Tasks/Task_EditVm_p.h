@@ -538,8 +538,8 @@ private:
 // struct Driver
 
 typedef boost::mpl::vector<ChangeableMedia<CVmOpticalDisk>, ChangeableMedia<CVmFloppyDisk>,
-		Adapter, Hotplug<CVmSerialPort>, Hotplug<CVmHardDisk>, Disk,
-		Blkiotune, Network::Factory, Memory, Cpu::Factory> probeList_type;
+		Adapter, Hotplug<CVmSerialPort>, Hotplug<CVmHardDisk>, Hotplug<CVmGenericNetworkAdapter>,
+		Disk, Blkiotune, Network::Factory, Memory, Cpu::Factory> probeList_type;
 
 struct Driver: Gear<Driver, probeList_type>
 {

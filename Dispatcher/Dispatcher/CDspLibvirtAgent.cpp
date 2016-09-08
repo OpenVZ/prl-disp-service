@@ -1664,6 +1664,7 @@ Result Editor::plug(const T& device_)
 }
 template Result Editor::plug<CVmHardDisk>(const CVmHardDisk& device_);
 template Result Editor::plug<CVmSerialPort>(const CVmSerialPort& device_);
+template Result Editor::plug<CVmGenericNetworkAdapter>(const CVmGenericNetworkAdapter& device_);
 template Result Editor::plug<Transponster::Vm::Reverse::Dimm>
 	(const Transponster::Vm::Reverse::Dimm& device_);
 
@@ -1680,6 +1681,7 @@ Result Editor::unplug(const T& device_)
 }
 template Result Editor::unplug<CVmHardDisk>(const CVmHardDisk& device_);
 template Result Editor::unplug<CVmSerialPort>(const CVmSerialPort& device_);
+template Result Editor::unplug<CVmGenericNetworkAdapter>(const CVmGenericNetworkAdapter& device_);
 
 template<class T>
 Result Editor::update(const T& device_)
