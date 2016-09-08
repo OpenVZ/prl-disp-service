@@ -769,9 +769,17 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 		}
 		// ONBOOT
 		CVmStartupOptions *pSo = pConfig->getVmSettings()->getVmStartupOptions();
-		int enabled;
-		if ((ret = vzctl2_env_get_autostart(env_param, &enabled)) == 0)
-			pSo->setAutoStart(enabled ? PAO_VM_START_ON_LOAD : PAO_VM_START_MANUAL);
+		int e;
+		if ((ret = vzctl2_env_get_autostart(env_param, &e)) == 0)
+			pSo->setAutoStart(e ? PAO_VM_START_ON_LOAD : PAO_VM_START_MANUAL);
+
+		if ((ret = vzctl2_env_get_autostop(env_param, &e)) == 0) {
+			Shutdown *pS = pConfig->getVmSettings()->getShutdown();
+			if (e == VZCTL_AUTOSTOP_SHUTDOWN)
+				pS->setAutoStop(PAO_VM_STOP);
+			else if (e == VZCTL_AUTOSTOP_SUSPEND)
+				pS->setAutoStop(PAO_VM_SUSPEND);
+		}
 
 		// BOOTORDER
 		if (vzctl2_env_get_bootorder(env_param, &ul) == 0)
@@ -1410,6 +1418,14 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 	PRL_VM_AUTOSTART_OPTION mode = pConfig->getVmSettings()->getVmStartupOptions()->getAutoStart();
 	if (oldmode != mode)
 		vzctl2_env_set_autostart(new_param, (mode == PAO_VM_START_MANUAL ? 0 : 1));
+
+	if (pOldConfig->getVmSettings()->getShutdown()->getAutoStop() !=
+		 pConfig->getVmSettings()->getShutdown()->getAutoStop())
+	{
+		 vzctl2_env_set_autostop(new_param, pConfig->getVmSettings()->
+			getShutdown()->getAutoStop() == PAO_VM_SUSPEND ?
+				VZCTL_AUTOSTOP_SUSPEND : VZCTL_AUTOSTOP_SHUTDOWN);
+	}
 
 	bool oldtmpl = pOldConfig->getVmSettings()->getVmCommonOptions()->isTemplate();
 	bool tmpl = pConfig->getVmSettings()->getVmCommonOptions()->isTemplate();
