@@ -34,10 +34,7 @@
 #ifndef __TASK_MIGRATEVMSOURCE_P_H__
 #define __TASK_MIGRATEVMSOURCE_P_H__
 
-#include <QTcpServer>
-#include <QTcpSocket>
-#include <boost/ref.hpp>
-#include "Task_MigrateVm_p.h"
+#include "Task_MigrateVmTunnel_p.h"
 #include <boost/msm/back/state_machine.hpp>
 #include <boost/msm/front/state_machine_def.hpp>
 #include <Libraries/VmFileList/CVmFileListCopy.h>
@@ -54,9 +51,9 @@ namespace Source
 {
 struct Frontend;
 typedef boost::msm::back::state_machine<Frontend> Machine_type;
-typedef Pump::Event<Parallels::VmMigrateCheckPreconditionsReply> CheckReply;
-typedef Pump::Event<Parallels::VmMigrateReply> StartReply;
-typedef Pump::Event<Parallels::DispToDispResponseCmd> PeerFinished;
+typedef Vm::Pump::Event<Parallels::VmMigrateCheckPreconditionsReply> CheckReply;
+typedef Vm::Pump::Event<Parallels::VmMigrateReply> StartReply;
+typedef Vm::Pump::Event<Parallels::DispToDispResponseCmd> PeerFinished;
 
 namespace Shadow
 {
@@ -185,56 +182,6 @@ private:
 };
 
 } // namespace Content
-
-namespace Pump
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Frontend
-
-template<class T, Parallels::IDispToDispCommands X>
-struct Frontend: vsd::Frontend<Frontend<T, X> >
-{
-	typedef vsd::Frontend<Frontend<T, X> > def_type;
-	typedef Vm::Pump::Push::Pump<T, X> pushState_type;
-	typedef Vm::Pump::Pull::Pump<T, X> pullState_type;
-
-	Frontend(): m_device()
-	{
-	}
-
-	template<typename Event, typename FSM>
-	void on_exit(const Event& event_, FSM& fsm_)
-	{
-		def_type::on_exit(event_, fsm_);
-		if (NULL != m_device)
-			m_device->close();
-
-		m_device = NULL;
-	}
-
-	using def_type::on_entry;
-
-	template<typename FSM>
-	void on_entry(const Vm::Pump::Launch_type& event_, FSM& fsm_)
-	{
-		def_type::on_entry(event_, fsm_);
-		m_device = event_.get<1>();
-	}
-
-	struct transition_table : boost::mpl::vector<
-		msmf::Row<pushState_type, Flop::Event,      Flop::State>,
-		msmf::Row<pushState_type, Vm::Pump::Quit<X>,Success>
-	>
-	{
-	};
-
-	typedef boost::mpl::vector<pushState_type, pullState_type> initial_state;
-
-private:
-	QIODevice* m_device;
-};
-
-} // namespace Pump
 
 namespace Libvirt
 {
@@ -449,7 +396,6 @@ private:
 	QSharedPointer<Progress> m_progress;
 };
 
-
 } // namespace Libvirt
 
 namespace Tunnel
@@ -468,79 +414,6 @@ struct Connector: Connector_, Vm::Connector::Base<Machine_type>
 private:
 	QSharedPointer<QTcpSocket> accept_();
 };
-
-namespace Qemu
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Launch
-
-template<Parallels::IDispToDispCommands X>
-struct Launch
-{
-	typedef boost::tuples::element<0, Vm::Pump::Launch_type>::type service_type;
-
-	Launch(service_type service_, QTcpSocket* socket_):
-		m_service(service_), m_socket(socket_)
-	{
-	}
-
-	Prl::Expected<Vm::Pump::Launch_type, Flop::Event> operator()() const;
-
-private:
-	service_type m_service;
-	QTcpSocket* m_socket;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Traits
-
-template<class T>
-struct Traits: T
-{
-	typedef Launch<T::spawnEvent_type::s_command> spawnEvent_type;
-	typedef boost::msm::back::state_machine
-		<
-			Pump::Frontend
-			<
-				typename T::machine_type,
-				T::haulEvent_type::s_command
-			>
-		> pump_type;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Hub
-
-template<class T>
-struct Hub: Vm::Tunnel::Hub::Unit<Hub<T>, Traits<T> >
-{
-	typedef Vm::Tunnel::Hub::Unit<Hub, Traits<T> > def_type;
-	typedef typename Traits<T>::spawnEvent_type spawnEvent_type;
-
-	struct Action
-	{
-		template<class M>
-		void operator()(spawnEvent_type const& event_, M& fsm_, Hub& state_, Hub&)
-		{
-			Prl::Expected<Vm::Pump::Launch_type, Flop::Event> x = event_();
-			if (x.isFailed())
-				return (void)fsm_.process_event(x.error());
-
-			if (!state_.start(x.value(), x.value().get<2>()))
-				return (void)fsm_.process_event(Flop::Event(PRL_ERR_INVALID_ARG));
-		}
-	};
-
-	struct internal_transition_table: boost::mpl::push_front
-		<
-			typename def_type::internal_transition_table,
-			msmf::Internal<spawnEvent_type, Action>
-		>::type
-	{
-	};
-};
-
-} // namespace Qemu
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend

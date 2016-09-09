@@ -36,8 +36,7 @@
 
 #include "CDspService.h"
 #include "Task_BackupHelper.h"
-#include "Task_MigrateVmSource_p.h"
-#include "Task_MigrateVmTarget_p.h"
+#include "Task_MigrateVmTunnel_p.h"
 #include "CDspVmBackupInfrastructure_p.h"
 
 namespace Backup

@@ -133,6 +133,7 @@ HEADERS += \
 	Tasks/Task_SyncVmsUptime.h \
 	Tasks/Task_MigrateVm.h \
 	Tasks/Task_MigrateVmTarget.h \
+	Tasks/Task_MigrateVmTunnel_p.h \
 	Tasks/Task_MigrateVmTarget_p.h \
 	Tasks/Legacy/MigrateVmTarget.h \
 	Legacy/MigrationHandler.h \
