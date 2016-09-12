@@ -213,9 +213,9 @@ public:
 	static int set_rate(const CVmConfiguration &config, const CVmNetworkRates &lstRate);
 	static SmartPtr<CVmConfiguration> get_env_config_by_ctid(const QString &ctid);
 	static SmartPtr<CVmConfiguration> get_env_config(const QString &uuid);
-	static SmartPtr<CVmConfiguration> get_env_config_from_file(const QString &sFile,
-			int &err, int layout = 0,
-			bool use_relative_path = false);
+	static SmartPtr<CVmConfiguration> get_env_config_from_file(
+			const QString &sFile, int &err, int layout = 0,
+			PRL_UINT32 flags = 0);
 	static SmartPtr<CVmConfiguration> get_env_config_sample(const QString &name, int &err);
 	/**
 	 * Get paramater by name 'PARAM=VALUE'from global configuration file
