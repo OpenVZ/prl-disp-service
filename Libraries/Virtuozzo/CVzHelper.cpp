@@ -1159,8 +1159,7 @@ SmartPtr<CVmConfiguration> CVzHelper::get_env_config(const QString &uuid)
 }
 
 SmartPtr<CVmConfiguration> CVzHelper::get_env_config_from_file(
-		const QString &sFile, int &err,
-		int layout, bool use_relative_path)
+		const QString &sFile, int &err,	int layout, PRL_UINT32 flags)
 {
 	int ret;
 	SmartPtr<CVmConfiguration> pConfig;
@@ -1172,8 +1171,7 @@ SmartPtr<CVmConfiguration> CVzHelper::get_env_config_from_file(
 		return pConfig;
 	}
 
-	int flags = VZCTL_CONF_SKIP_GLOBAL |
-			use_relative_path ? VZCTL_CONF_USE_RELATIVE_PATH : 0;
+	flags |= VZCTL_CONF_SKIP_GLOBAL;
 	VzctlHandleWrap h(vzctl2_env_open_conf(NULL, QSTR2UTF8(sFile), flags, &ret));
 	if (h == NULL) {
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open_conf %s [%d]",
