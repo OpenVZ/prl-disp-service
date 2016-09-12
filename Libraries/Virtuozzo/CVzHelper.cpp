@@ -672,6 +672,16 @@ static void conf_add_disk_entry(SmartPtr<CVmConfiguration> &pConfig,
 		if (url.isValid())
 			pDisk->setStorageURL(url);
 	}
+
+	if (disk.enc_keyid) {
+		CVmHddEncryption* enc = pDisk->getEncryption();
+		if (!enc) {
+			enc = new CVmHddEncryption();
+			pDisk->setEncryption(enc);
+		}
+		enc->setKeyId(disk.enc_keyid);
+	}
+
 	pConfig->getVmHardwareList()->addHardDisk(pDisk);
 }
 
