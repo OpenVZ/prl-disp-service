@@ -1348,9 +1348,27 @@ PRL_RESULT Builder::setBlank()
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
 	mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
+	Libvirt::Domain::Xml::Os2 os;
+	if (getStartupOptions(os))
+		vos.setValue(os);
 
-	//EFI boot support
+	m_result->setOs(vos);
+	return PRL_ERR_SUCCESS;
+}
+
+bool Builder::getStartupOptions(Libvirt::Domain::Xml::Os2& os_) const
+{
+	bool changed = false;
+	CVmStartupOptions* o = m_input.getVmSettings()->getVmStartupOptions();
+	if (o->isAllowSelectBootDevice())
+	{
+		Libvirt::Domain::Xml::Bootmenu menu;
+		menu.setEnable(Libvirt::Domain::Xml::EVirYesNoYes);
+		os_.setBootmenu(menu);
+		changed = true;
+	}
 	CVmStartupBios* b = m_input.getVmSettings()->getVmStartupOptions()->getBios();
+	//EFI boot support
 	if (b != NULL && b->isEfiEnabled())
 	{
 		Libvirt::Domain::Xml::Loader l;
@@ -1360,8 +1378,7 @@ PRL_RESULT Builder::setBlank()
 		// package OVMF.x86_64
 		l.setOwnValue(QString("/usr/share/OVMF/OVMF_CODE.fd"));
 
-		Libvirt::Domain::Xml::Os2 os;
-		os.setLoader(l);
+		os_.setLoader(l);
 
 		QString x = b->getNVRAM();
 		if (!x.isEmpty())
@@ -1369,14 +1386,11 @@ PRL_RESULT Builder::setBlank()
 			Libvirt::Domain::Xml::Nvram n;
 			n.setOwnValue(x);
 			n.setFormat(Libvirt::Domain::Xml::EFormatQcow2);
-			os.setNvram(n);
+			os_.setNvram(n);
 		}
-
-		vos.setValue(os);
+		changed = true;
 	}
-
-	m_result->setOs(vos);
-	return PRL_ERR_SUCCESS;
+	return changed;
 }
 
 PRL_RESULT Builder::setSettings()
