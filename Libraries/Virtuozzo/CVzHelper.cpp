@@ -576,7 +576,8 @@ static unsigned int Ostemplate2Dist(const char *str)
 	return PVS_GUEST_VER_LIN_OTHER;
 }
 
-static QString get_env_xml_config_path(SmartPtr<CVmConfiguration> &pConfig,
+static QString get_env_xml_config_path(
+		const SmartPtr<CVmConfiguration> &pConfig,
 		const QString &dir = QString())
 {
 	QString cfg = !dir.isEmpty() ? dir :
@@ -604,7 +605,7 @@ static void set_encryption_keyid(CVmHardDisk *hdd, const QString &keyid)
 	enc->setKeyId(keyid);
 }
 
-static int merge_params(SmartPtr<CVmConfiguration> &pConfig,
+static int merge_params(const SmartPtr<CVmConfiguration> &pConfig,
 		const QString &dir = QString())
 {
 	QString xml_conf = get_env_xml_config_path(pConfig, dir);
@@ -655,7 +656,7 @@ static int merge_params(SmartPtr<CVmConfiguration> &pConfig,
 	return 0;
 }
 
-static void conf_add_disk_entry(SmartPtr<CVmConfiguration> &pConfig,
+static void conf_add_disk_entry(const SmartPtr<CVmConfiguration> &pConfig,
 		struct vzctl_disk_param &disk, int idx)
 {
 	CVmHardDisk *pDisk = new CVmHardDisk;
@@ -695,7 +696,8 @@ static void conf_add_disk_entry(SmartPtr<CVmConfiguration> &pConfig,
 	pConfig->getVmHardwareList()->addHardDisk(pDisk);
 }
 
-static int conf_get_disk(SmartPtr<CVmConfiguration> &pConfig, vzctl_env_param_ptr env_param)
+static int conf_get_disk(const SmartPtr<CVmConfiguration> &pConfig,
+		vzctl_env_param_ptr env_param)
 {
 	struct vzctl_disk_param disk;
 
@@ -728,7 +730,7 @@ static QStringList getEnvRawParam()
 }
 
 static int get_vm_config(vzctl_env_handle_ptr h,
-		SmartPtr<CVmConfiguration> &pConfig,
+		const SmartPtr<CVmConfiguration> &pConfig,
 		const QString &dir = QString())
 {
 	const char *data;
@@ -2218,7 +2220,7 @@ int CVzOperationHelper::create_env(const QString &dst, SmartPtr<CVmConfiguration
 	SmartPtr<CVmConfiguration> pNewConfig = CVzHelper::get_env_config_by_ctid(uuid);
 	if (!pNewConfig)
 		return PRL_ERR_VZ_OPERATION_FAILED;
- 
+
 	QString cfg = get_env_xml_config_path(pNewConfig);
 	// Store xml copy (#PSBM-8440)
 	pConfig->saveToFile(cfg, true, true);
