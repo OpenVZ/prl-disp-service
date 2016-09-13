@@ -298,6 +298,32 @@ struct Essence<PVE::DspCmdVmDropSuspendedState>: Need::Config, Need::Context
 	}
 };
 
+template<>
+struct Essence<PVE::DspCmdVmCaptureScreen>: Need::Agent, Need::Context,
+		Need::Command<CProtoVmCaptureScreen>
+{
+	Libvirt::Result operator()()
+	{
+		typedef Libvirt::Instrument::Agent::Vm::Screenshot screenshot_t;
+
+		Prl::Expected<screenshot_t, Error::Simple> e = getAgent().getGuest().dumpScreen();
+		if (e.isFailed())
+			return e;
+		screenshot_t s = e.value();
+		s.setSize(QSize(getCommand()->GetWidth(), getCommand()->GetHeight()));
+
+		QTemporaryFile a;
+		if (!a.open())
+			return Error::Simple(PRL_ERR_MEMORY_ALLOC_ERROR);
+		PRL_RESULT r = s.save(a.fileName(), "PNG");
+		if (PRL_FAILED(r))
+			return Error::Simple(r);
+
+		respond(QString(a.readAll().toBase64()));
+		return Libvirt::Result();
+	}
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hotplug
 
@@ -1773,6 +1799,7 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmGuestRunProgram] = map(Tag::Special<PVE::DspCmdVmGuestRunProgram>());
 	m_map[PVE::DspCmdVmGuestGetNetworkSettings] = map(Tag::Fork<Essence<PVE::DspCmdVmGuestGetNetworkSettings> >());
 	m_map[PVE::DspCmdVmGuestSetUserPasswd] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmGuestSetUserPasswd> > >());
+	m_map[PVE::DspCmdVmCaptureScreen] = map(Tag::Fork<Essence<PVE::DspCmdVmCaptureScreen> >());
 
 	m_internal[QString("dbgdump")] = Internal::dumpMemory;
 }

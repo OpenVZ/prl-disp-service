@@ -772,6 +772,31 @@ Result Future::wait(int timeout_)
 } // namespace Command
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Screenshot
+
+PRL_RESULT Screenshot::save(const QString& to_, const QString& format_) const
+{
+	if (format_ != "PNG")
+		return PRL_ERR_UNIMPLEMENTED;
+
+	// Convert to PNG and attach
+	QString c("pnmtopng");
+	if (!m_size.isEmpty())
+		c.append(QString(" -size='%1 %2 0'").arg(m_size.width()).arg(m_size.height()));
+	QProcess p;
+	p.setStandardOutputFile(to_);
+	p.start(c);
+	p.write(m_data);
+	p.closeWriteChannel();
+	if (!p.waitForStarted() || !p.waitForFinished(10000)) {
+		WRITE_TRACE(DBG_FATAL, "Failed to convert to PNG, command '%s' is failed",
+				QSTR2UTF8(c));
+		return PRL_ERR_FAILURE;
+	}
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Guest
 
 Result Guest::traceEvents(bool enable_)
@@ -779,9 +804,18 @@ Result Guest::traceEvents(bool enable_)
 	return execute(QString("trace-event * %1").arg(enable_ ? "on" : "off"));
 }
 
-Result Guest::dumpScreen(const QString& path)
+Prl::Expected<Screenshot, Error::Simple> Guest::dumpScreen()
 {
-	return execute(QString("screendump %1").arg(path));
+	QTemporaryFile a;
+	if (!a.open())
+		return Failure(PRL_ERR_FAILURE);
+
+	// QEMU generates screenshot in PNM format
+	Result e = execute(QString("screendump %1").arg(a.fileName()));
+	if (e.isFailed())
+		return e.error();
+
+	return Screenshot(a.readAll());
 }
 
 Prl::Expected<QString, Error::Simple>
