@@ -291,6 +291,7 @@ struct Device
 	PRL_RESULT mount();
 	PRL_RESULT mount(const QString& mountPoint_);
 	PRL_RESULT umount();
+	PRL_RESULT setEncryption(const CVmHddEncryption *encryption_);
 	const QString& getName() const
 	{
 		return m_name;

@@ -52,6 +52,7 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "prlxmlmodel/BackupTree/VmItem.h"
 #include "Libraries/Virtuozzo/CVzHelper.h"
+#include "Libraries/Virtuozzo/CVzPloop.h"
 #include "Libraries/PrlNetworking/netconfig.h"
 #include "Libraries/CpuFeatures/CCpuHelper.h"
 #include "Legacy/VmConverter.h"
@@ -687,6 +688,10 @@ namespace Ploop
 ///////////////////////////////////////////////////////////////////////////////
 // struct Device
 
+Device::Device(const QString& path_): m_path(path_)
+{
+}
+
 SmartPtr<Device> Device::make(const QString& path_, quint64 sizeBytes_)
 {
 	if (PRL_FAILED(CVzOperationHelper().create_disk_image(path_, sizeBytes_)))
@@ -716,8 +721,13 @@ PRL_RESULT Device::umount()
 	return PRL_ERR_SUCCESS;
 }
 
-Device::Device(const QString& path_): m_path(path_)
+PRL_RESULT Device::setEncryption(const CVmHddEncryption *encryption_)
 {
+	if (!encryption_ || encryption_->getKeyId().isEmpty())
+		return PRL_ERR_SUCCESS;
+
+	PloopImage::Image d(m_path);
+	return d.setEncryptionKeyid(encryption_->getKeyId());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -774,6 +784,8 @@ PRL_RESULT Image::do_(const Assistant& assist_, quint32 version_)
 			QFileInfo(device->getName())), m_archive.first.getDevice().getIndex());
 	}
 	device->umount();
+	if (PRL_SUCCEEDED(output))
+		output = device->setEncryption(m_archive.first.getDevice().getEncryption());
 	return output;
 }
 

@@ -152,7 +152,7 @@ namespace Ct
 
 PRL_RESULT Object::getConfig(config_type& dst_) const
 {
-	dst_ = m_vz->getCtConfig(getActor(), getIdent().first);
+	dst_ = m_vz->getCtConfig(getActor(), getIdent().first, true);
 	if (dst_.isValid())
 		return PRL_ERR_SUCCESS;
 
