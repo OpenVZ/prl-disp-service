@@ -1397,8 +1397,9 @@ Prl::Expected<QUrl, PRL_RESULT> Unit::addStrand(const QUrl& remote_)
 
 Factory::result_type Factory::operator()(quint32 flags_) const
 {
-	Q_UNUSED(flags_);
 	value_type output;
+	if (flags_ & PBT_DIRECT_DATA_CONNECTION)
+		return output;
 	if (CDspService::instance()->getShellServiceHelper().isLocalAddress(m_target))
 		return output;
 
