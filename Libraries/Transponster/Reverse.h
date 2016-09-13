@@ -193,6 +193,9 @@ protected:
 
 	CVmConfiguration m_input;
 	QScopedPointer<Libvirt::Domain::Xml::Domain> m_result;
+
+private:
+	bool getStartupOptions(Libvirt::Domain::Xml::Os2& os_) const;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

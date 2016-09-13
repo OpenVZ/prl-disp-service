@@ -833,6 +833,30 @@ private:
 	CVmStartupBios* m_bios;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Bootmenu
+
+struct Bootmenu: boost::static_visitor<void>
+{
+	explicit Bootmenu(CVmStartupOptions& opts_): m_opts(&opts_)
+	{
+	}
+
+	template<class T>
+	void operator()(const T&) const
+	{
+	}
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type& os_) const
+	{
+		const Libvirt::Domain::Xml::Bootmenu* m = os_.getValue().getBootmenu().get_ptr();
+		if (m)
+			m_opts->setAllowSelectBootDevice(m->getEnable() == Libvirt::Domain::Xml::EVirYesNoYes);
+	}
+
+private:
+	CVmStartupOptions* m_opts;
+};
+
 } // namespace Startup
 
 namespace Fixup

@@ -929,7 +929,9 @@ PRL_RESULT Vm::setSettings()
 
 	//EFI boot support
 	Libvirt::Domain::Xml::VOs v = m_input->getOs();
-	CVmStartupBios* b = s->getVmStartupOptions()->getBios();
+	CVmStartupOptions *so = s->getVmStartupOptions();
+	boost::apply_visitor(Visitor::Startup::Bootmenu(*so), v);
+	CVmStartupBios* b = so->getBios();
 	boost::apply_visitor(Visitor::Startup::Bios(*b), v);
 
 	CVmUsbController* u(new CVmUsbController());
