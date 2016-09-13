@@ -391,7 +391,7 @@ Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> Loader::operator()(const C
 	PRL_RESULT e = PRL_ERR_SUCCESS;
 	QString s = QString("%1/" VZ_CT_CONFIG_FILE).arg(m_path);
 	SmartPtr<CVmConfiguration> p = CVzHelper::get_env_config_from_file(
-				s, e, VZCTL_LAYOUT_5, VZCTL_CONF_USE_RELATIVE_PATH);
+				s, e, VZCTL_LAYOUT_5, true);
 	if (!p)
 		return e;
 	return p;
@@ -1637,7 +1637,7 @@ PRL_RESULT Task_BackupHelper::loadVeConfig(const QString &backupUuid,
 */
 		int x = 0;
 		c = CVzHelper::get_env_config_from_file(file, x,
-			(type == PVBT_CT_PLOOP) * VZCTL_LAYOUT_5, VZCTL_CONF_USE_RELATIVE_PATH);
+			(type == PVBT_CT_PLOOP) * VZCTL_LAYOUT_5, true);
 		if (!c) {
 			WRITE_TRACE(DBG_FATAL, "Failed to load config file '%s'", QSTR2UTF8(file));
 			unlockShared(backupUuid);
