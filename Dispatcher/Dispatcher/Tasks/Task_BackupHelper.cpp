@@ -170,7 +170,7 @@ PRL_RESULT Unit::start(QStringList args_, int version_)
 	}
 	m_program = x;
 	m_driver->moveToThread(QCoreApplication::instance()->thread());
-	m_channel = QSharedPointer<QLocalSocket>(new QLocalSocket);
+	m_channel = QSharedPointer<QLocalSocket>(new QLocalSocket, &QObject::deleteLater);
 	m_channel->setSocketDescriptor(p[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
 //	m_channel->moveToThread(m_driver->thread());
 	return PRL_ERR_SUCCESS;
