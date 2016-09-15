@@ -201,6 +201,7 @@ void CDspAccessManager::initAccessRights()
 	m_accessRights[PVE::DspCmdVmMount]		= PAIR( R | W | X     , PAR_VM_MOUNT_ACCESS);
 	m_accessRights[PVE::DspCmdVmUmount]		= PAIR( R | W | X     , PAR_VM_MOUNT_ACCESS);
 	m_accessRights[PVE::DspCmdDirVmMove]            = PAIR( R | W | X	, PAR_VM_MOVE_ACCESS );
+	m_accessRights[PVE::DspCmdVmCommitEncryption]   = PAIR(R | W , PAR_VM_COMMIT_ACCESS);
 
 #undef N
 #undef R

@@ -2467,6 +2467,25 @@ int CVzOperationHelper::resize_env_disk(const QString &uuid, const QString &sPat
 	return run_prg(BIN_VZCTL, args);
 }
 
+int CVzOperationHelper::set_disk_encryption(const QString& uuid_,
+	const CVmHardDisk& disk_, unsigned int flags_)
+{
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid_);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	QStringList args;
+	CVmHddEncryption *e = disk_.getEncryption();
+	args << "set" << ctid << "--save" << "--device-set" << disk_.getUuid()
+		<< "--encryption-keyid" << (e ? e->getKeyId() : "");
+	if (flags_ & PCEF_CHANGE_MASTER_KEY)
+		args += "--reencrypt";
+	if (!(flags_ & PCEF_DONT_SHRED_PLAIN_DATA))
+		args += "--wipe";
+
+	return run_prg(BIN_VZCTL, args);
+}
+
 int CVzOperationHelper::start_env(const QString &uuid, PRL_UINT32 nFlags)
 {
 	QStringList args;

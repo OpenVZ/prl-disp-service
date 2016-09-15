@@ -85,6 +85,7 @@ private:
 	PRL_RESULT move_env();
 	PRL_RESULT send_network_settings();
 	PRL_RESULT send_problem_report();
+	PRL_RESULT commit_encryption();
 
 private:
 	PRL_RESULT checkAndLockRegisterParameters(

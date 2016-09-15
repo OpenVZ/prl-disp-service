@@ -780,7 +780,8 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 		bOk = true;
 		nType = PVT_CT;
 	} else if (p->header.type == PVE::DspCmdDirVmEditCommit ||
-		 p->header.type == PVE::DspCmdVmSectionValidateConfig)
+		 p->header.type == PVE::DspCmdVmSectionValidateConfig ||
+		 p->header.type == PVE::DspCmdVmCommitEncryption)
 	{
 		// VM uuid stored in the CVmConfiguration
 		CVmConfiguration cfg;
@@ -859,6 +860,7 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 		case PVE::DspCmdVmRestartGuest:
 		case PVE::DspCmdVmGetPackedProblemReport:
 		case PVE::DspCmdVmGetProblemReport:
+		case PVE::DspCmdVmCommitEncryption:
 			m_service->getTaskManager().schedule(new Task_VzManager( pUserSession, p));
 			break;
 		case PVE::DspCmdVmGuestRunProgram:
