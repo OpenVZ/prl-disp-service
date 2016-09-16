@@ -192,6 +192,8 @@ PRL_RESULT Task_CreateImage::run_body()
 											EVT_PARAM_MESSAGE_PARAM_0));
 					throw PRL_ERR_VMCONF_HARD_DISK_SYS_NAME_HAS_INVALID_SYMBOL;
 				}
+				if (!CVmValidateConfig::IsSerialNumberValid(hard_disk.getSerialNumber()))
+					throw CDspTaskFailure(*this)(PRL_ERR_VMCONF_HARD_DISK_SERIAL_IS_NOT_VALID, hard_disk.getSerialNumber());
 
 				PRL_RESULT ret = createHdd( hard_disk );
 				if( PRL_FAILED( ret ) )
