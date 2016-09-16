@@ -62,14 +62,17 @@ namespace Source
 ///////////////////////////////////////////////////////////////////////////////
 // struct Workerv4
 
-PRL_RESULT Workerv4::operator()()
+PRL_RESULT Workerv4::operator()(Task_RestoreVmBackupSource* task_)
 {
+	if (NULL == task_)
+		return PRL_ERR_INVALID_ARG;
+
 	// send escort files
 	PRL_RESULT e = m_escort();
 	if (PRL_FAILED(e))
 		return e;
 
-	return m_exec();
+	return m_exec(task_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -426,9 +429,9 @@ PRL_RESULT Task_RestoreVmBackupSource::restore(const ::Backup::Work::object_type
 	else
 	{
 		nRetCode = Backup::Tunnel::Target::backend_type::decorate
-			(m_pDispConnection, Restore::Source::Workerv4(
-					boost::bind(&Task_RestoreVmBackupSource::sendFiles, this, job),
-					boost::bind(&Task_RestoreVmBackupSource::exec, this)
+			(m_pDispConnection, *this, Restore::Source::Workerv4(
+					boost::bind(&Task_RestoreVmBackupSource::sendFiles, this, boost::ref(job)),
+					boost::bind(&Task_RestoreVmBackupSource::exec, _1)
 				));
 	}
 exit_1:
