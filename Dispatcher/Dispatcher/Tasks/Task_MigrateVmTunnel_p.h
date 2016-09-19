@@ -297,7 +297,7 @@ struct Socket<QTcpSocket>
 		if (!x)
 			WRITE_TRACE(DBG_FATAL, "can't connect socket disconnect");
 		x = connector_.connect(output.data(), SIGNAL(error(QAbstractSocket::SocketError)),
-			SLOT(reactError(QAbstractSocket::SocketError)), Qt::QueuedConnection);
+			SLOT(reactError(QAbstractSocket::SocketError)));
 		if (!x)
 			WRITE_TRACE(DBG_FATAL, "can't connect socket errors");
 

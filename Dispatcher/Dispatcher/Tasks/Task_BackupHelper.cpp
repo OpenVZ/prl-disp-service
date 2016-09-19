@@ -1247,6 +1247,11 @@ void Connector::reactAccept()
 		(m_service, a.data()));
 }
 
+void Connector::reactDisconnect()
+{
+	handle(Migrate::Vm::Flop::Event(PRL_ERR_OPERATION_WAS_CANCELED));
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Agent
 
@@ -1279,12 +1284,16 @@ void Frontend::on_entry(const Event& event_, FSM& fsm_)
 	getConnector()->connect(m_service,
 		SIGNAL(onReceived(const SmartPtr<IOPackage>&)),
 		SLOT(reactReceive(const SmartPtr<IOPackage>&)));
+	getConnector()->connect(m_service,
+		SIGNAL(disconnected()),
+		SLOT(reactDisconnect()));
 }
 
 template <typename Event, typename FSM>
 void Frontend::on_exit(const Event& event_, FSM& fsm_)
 {
 	def_type::on_exit(event_, fsm_);
+	m_service->disconnect(SIGNAL(disconnected()), getConnector());
 	m_service->disconnect(SIGNAL(onReceived(const SmartPtr<IOPackage>&)), getConnector());
 	foreach (const client_type& c, m_clients)
 	{
@@ -1323,7 +1332,7 @@ void Subject::run()
 	Migrate::Vm::Source::Tunnel::IO io(*m_channel);
 
 	QEventLoop x;
-	backend_type b(boost::ref(x), boost::ref(io));
+	backend_type b(boost::msm::back::states_ << Terminal(x), boost::ref(io));
 	x.connect(&io, SIGNAL(disconnected()), SLOT(quit()), Qt::QueuedConnection);
 
 	(Migrate::Vm::Walker<backend_type>(b))();

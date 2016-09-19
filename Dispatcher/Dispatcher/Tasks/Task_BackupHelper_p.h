@@ -67,10 +67,34 @@ public slots:
 
 	void reactAccept();
 
+	void reactDisconnect();
+
 private:
 	Q_OBJECT
 
 	Migrate::Vm::Source::Tunnel::IO* m_service;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Terminal
+
+struct Terminal: boost::msm::front::terminate_state<>
+{
+	Terminal(): m_loop()
+	{
+	}
+	explicit Terminal(QEventLoop& loop_): m_loop(&loop_)
+	{
+	}
+
+	template <typename Event, typename FSM>
+	void on_entry(const Event&, FSM&)
+	{
+		m_loop->exit();
+	}
+
+private:
+	QEventLoop* m_loop;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -93,11 +117,11 @@ struct Frontend: ::Vm::State::Details::Frontend<Frontend>,
 	> qemuDisk_type;
 	typedef qemuDisk_type initial_state;
 
-	Frontend(QEventLoop& loop_, Migrate::Vm::Source::Tunnel::IO& service_):
-		m_loop(&loop_), m_service(&service_)
+	explicit Frontend(Migrate::Vm::Source::Tunnel::IO& service_):
+		m_service(&service_)
 	{
 	}
-	Frontend(): m_loop(), m_service()
+	Frontend(): m_service()
 	{
 	}
 
@@ -113,13 +137,6 @@ struct Frontend: ::Vm::State::Details::Frontend<Frontend>,
 
 	void listen(const server_type& server_);
 
-	template<class T>
-	void finish(const T& event_)
-	{
-		Q_UNUSED(event_);
-		m_loop->quit();
-	}
-
 	struct transition_table : boost::mpl::vector
 	<
 		a_irow
@@ -134,26 +151,23 @@ struct Frontend: ::Vm::State::Details::Frontend<Frontend>,
 			server_type,
 			&Frontend::listen
 		>,
-		a_row
+		boost::msm::front::Row
 		<
 			qemuDisk_type,
 			Migrate::Vm::Flop::Event,
-			Migrate::Vm::Flop::State,
-			&Frontend::finish
+			Terminal
 		>,
-		a_row
+		boost::msm::front::Row
 		<
 			qemuDisk_type,
 			qemuDisk_type::Good,
-			Migrate::Vm::Success,
-			&Frontend::finish
+			Terminal
 		>
 	>
 	{
 	};
 
 private:
-	QEventLoop* m_loop;
 	QList<server_type> m_servers;
 	QList<client_type> m_clients;
 	Migrate::Vm::Source::Tunnel::IO* m_service;
@@ -253,6 +267,38 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Terminal
+
+struct Terminal: boost::msm::front::terminate_state<>
+{
+	Terminal(): m_task()
+	{
+	}
+	explicit Terminal(CDspTaskHelper& task_): m_task(&task_)
+	{
+	}
+
+	template <typename FSM>
+	void on_entry(const Migrate::Vm::Flop::Event& event_, FSM&)
+	{
+		if (NULL == m_task)
+			return;
+
+		boost::apply_visitor(Migrate::Vm::Flop::Visitor(*m_task), event_.error());
+		m_task->exit(m_task->getLastErrorCode());
+	}
+	template <typename Event, typename FSM>
+	void on_entry(const Event&, FSM&)
+	{
+		WRITE_TRACE(DBG_FATAL, "leave state machine with an event %s",
+			qPrintable(::Vm::State::Details::Trace<Event>::demangle()));
+	}
+
+private:
+	CDspTaskHelper* m_task;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
 struct Frontend: ::Vm::State::Details::Frontend<Frontend>,
@@ -308,8 +354,8 @@ struct Frontend: ::Vm::State::Details::Frontend<Frontend>,
 
 	void spin(const qemuDisk_type::Good&);
 
-	template<class T>
-	static PRL_RESULT decorate(const entry_type& event_, T decorated_);
+	template<class T, class D>
+	static PRL_RESULT decorate(const entry_type& event_, T& task_, D decorated_);
 
 	struct transition_table : boost::mpl::vector
 	<
@@ -323,13 +369,13 @@ struct Frontend: ::Vm::State::Details::Frontend<Frontend>,
 		<
 			initial_state,
 			Migrate::Vm::Flop::Event,
-			Migrate::Vm::Flop::State
+			Terminal
 		>,
 		boost::msm::front::Row
 		<
 			qemuDisk_type,
 			Migrate::Vm::Flop::Event,
-			Migrate::Vm::Flop::State
+			Terminal
 		>,
 		a_row
 		<
@@ -348,13 +394,13 @@ private:
 	QSharedPointer<io_type> m_service;
 };
 
-template<class T>
-PRL_RESULT Frontend::decorate(const entry_type& event_, T decorated_)
+template<class T, class D>
+PRL_RESULT Frontend::decorate(const entry_type& event_, T& task_, D decorated_)
 {
-	Backup::Tunnel::Target::backend_type b;
+	Backup::Tunnel::Target::backend_type b(boost::msm::back::states_ << Terminal(task_));
 	(Migrate::Vm::Walker<backend_type>(b))();
 	b.start(event_);
-	PRL_RESULT output = decorated_();
+	PRL_RESULT output = decorated_(&task_);
 	b.stop();
 
 	return output;

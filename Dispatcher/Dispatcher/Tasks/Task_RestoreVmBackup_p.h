@@ -38,6 +38,7 @@
 #include "prlcommon/Std/noncopyable.h"
 
 class Task_RestoreVmBackupTarget;
+class Task_RestoreVmBackupSource;
 
 namespace Restore
 {
@@ -350,11 +351,11 @@ typedef boost::function0<PRL_RESULT> sendFiles_type;
 
 struct Workerv4
 {
-	typedef boost::function0<int> exec_type;
+	typedef boost::function1<int, Task_RestoreVmBackupSource* > exec_type;
 
 	Workerv4(sendFiles_type send_, exec_type exec_) : m_escort(send_), m_exec(exec_) {}
 
-	PRL_RESULT operator()();
+	PRL_RESULT operator()(Task_RestoreVmBackupSource* task_);
 
 private:
 	sendFiles_type m_escort;
