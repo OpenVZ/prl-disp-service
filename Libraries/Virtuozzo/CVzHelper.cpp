@@ -646,6 +646,7 @@ static int merge_params(const SmartPtr<CVmConfiguration> &pConfig,
 			pHdd->setIndex(pVmHdd->getIndex());
 			pHdd->setStackIndex(pVmHdd->getStackIndex());
 			pHdd->setInterfaceType(pVmHdd->getInterfaceType());
+			pHdd->setSerialNumber(pVmHdd->getSerialNumber());
 
 			CVmHddEncryption* enc = pVmHdd->getEncryption();
 			if (enc)
