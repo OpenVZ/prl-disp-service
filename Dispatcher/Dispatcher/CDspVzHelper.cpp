@@ -274,13 +274,14 @@ void CDspVzHelper::UpdateHardDiskInformation(SmartPtr<CVmConfiguration> &config)
 
 		QString keyid;
 		PloopImage::Image i(d->getUserFriendlyName());
-
-		i.getEncryptionKeyid(keyid);
-		if (keyid.isEmpty())
+		if (PRL_FAILED(i.getEncryptionKeyid(keyid)))
 			continue;
 
 		CVmHddEncryption* enc = d->getEncryption();
 		if (!enc) {
+			// don't create instance if key id was not set
+			if (keyid.isEmpty())
+				continue;
 			enc = new CVmHddEncryption();
 			d->setEncryption(enc);
 		}
