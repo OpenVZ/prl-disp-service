@@ -408,26 +408,41 @@ PRL_RESULT Task_RestoreVmBackupSource::restore(const ::Backup::Work::object_type
 		goto exit_0;
 	}
 
-	h = (BACKUP_PROTO_V4 > m_nRemoteVersion) ?
-		SLOT(handleABackupPackage(IOSender::Handle, const SmartPtr<IOPackage>)) :
-		SLOT(handleVBackupPackage(IOSender::Handle, const SmartPtr<IOPackage>));
-	bConnected = QObject::connect(m_pDispConnection.getImpl(),
-		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
-		h, Qt::DirectConnection);
-	PRL_ASSERT(bConnected);
-
-	nRetCode = sendStartReply(e.value(), job);
-	if (PRL_FAILED(nRetCode))
-		goto exit_1;
-
 	if (BACKUP_PROTO_V4 > m_nRemoteVersion)
 	{
+		bConnected = QObject::connect(m_pDispConnection.getImpl(),
+			SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
+			SLOT(handleABackupPackage(IOSender::Handle, const SmartPtr<IOPackage>)),
+			Qt::DirectConnection);
+		PRL_ASSERT(bConnected);
+
+		nRetCode = sendStartReply(e.value(), job);
+		if (PRL_FAILED(nRetCode))
+			goto exit_1;
+
 		nRetCode = Restore::Source::Workerv3(
 			boost::bind(&Task_RestoreVmBackupSource::sendFiles, this, job),
 			&m_cABackupServer)();
 	}
 	else
 	{
+		bConnected = QObject::connect(m_pDispConnection.getImpl(),
+			SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
+			SLOT(handleVBackupPackage(IOSender::Handle, const SmartPtr<IOPackage>)),
+			Qt::DirectConnection);
+		PRL_ASSERT(bConnected);
+
+		Migrate::Vm::Target::Tunnel::IO x(*m_pDispConnection);
+		bConnected = QObject::connect(&x,
+			SIGNAL(onReceived(const SmartPtr<IOPackage>&)),
+			SLOT(mountImage(const SmartPtr<IOPackage>&)),
+			Qt::DirectConnection);
+		PRL_ASSERT(bConnected);
+
+		nRetCode = sendStartReply(e.value(), job);
+		if (PRL_FAILED(nRetCode))
+			goto exit_1;
+
 		nRetCode = Backup::Tunnel::Target::backend_type::decorate
 			(m_pDispConnection, *this, Restore::Source::Workerv4(
 					boost::bind(&Task_RestoreVmBackupSource::sendFiles, this, boost::ref(job)),
@@ -457,20 +472,27 @@ void Task_RestoreVmBackupSource::handleABackupPackage(IOSender::Handle h, const 
 		m_cABackupServer.kill();
 }
 
-void Task_RestoreVmBackupSource::mountImage(const SmartPtr<IOPackage> p_)
+void Task_RestoreVmBackupSource::mountImage(const SmartPtr<IOPackage>& package_)
 {
-	QString a = UTF8_2QSTR(p_->buffers[0].getImpl());
+	if (package_->header.type != VmBackupMountImage)
+		return;
+
+	WaiterTillHandlerUsingObject::AutoUnlock g(m_waiter);
+	if (!g.isLocked())
+		return;
+
+	QString a = UTF8_2QSTR(package_->buffers[0].getImpl());
 	::Backup::Storage::Image i(a);
 	QSharedPointer< ::Backup::Storage::Nbd> n(new ::Backup::Storage::Nbd());
 	PRL_RESULT e = n->start(i, m_nFlags);
 	IOSendJob::Handle j;
 	if (PRL_FAILED(e))
-		j = m_pDispConnection->sendSimpleResponse(p_, e);
+		j = m_pDispConnection->sendSimpleResponse(package_, e);
 	else {
 		m_nbds << qMakePair(a, n);
 
 		QByteArray url(n->getUrl().toUtf8());
-		SmartPtr<IOPackage> r = IOPackage::createInstance(VmBackupRestoreImage, 1, p_);
+		SmartPtr<IOPackage> r = IOPackage::createInstance(VmBackupRestoreImage, 1, package_);
 		r->fillBuffer(0, IOPackage::RawEncoding, url.constData(), url.size()+1);
 		j = m_pDispConnection->sendPackage(r);
 	}
@@ -498,9 +520,6 @@ void Task_RestoreVmBackupSource::handleVBackupPackage(IOSender::Handle h, const 
 		exit(PRL_ERR_OPERATION_WAS_CANCELED);
 		return;
 	}
-
-	if (p->header.type == VmBackupMountImage)
-		mountImage(p);
 }
 
 void Task_RestoreVmBackupSource::clientDisconnected(IOSender::Handle h)

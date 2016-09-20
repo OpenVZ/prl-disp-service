@@ -132,9 +132,9 @@ private:
 	PRL_RESULT restoreVmVBackup(SmartPtr<CVmConfiguration> ve_);
 	PRL_RESULT sendFiles(IOSendJob::Handle& job_);
 	PRL_RESULT sendStartReply(const SmartPtr<CVmConfiguration>& ve_, IOSendJob::Handle& job_);
-	void mountImage(const SmartPtr<IOPackage> p_);
 
 private slots:
+	void mountImage(const SmartPtr<IOPackage>& package_);
 	void clientDisconnected(IOSender::Handle h);
 	void handleABackupPackage(IOSender::Handle h, const SmartPtr<IOPackage> p);
 	void handleVBackupPackage(IOSender::Handle h, const SmartPtr<IOPackage> p);
