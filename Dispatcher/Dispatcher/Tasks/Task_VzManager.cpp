@@ -1609,6 +1609,10 @@ PRL_RESULT Task_VzManager::commit_encryption()
 	if (!old)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
+	PRL_RESULT res = check_env_state(PVE::DspCmdVmCommitEncryption, uuid);
+	if (PRL_FAILED(res))
+		return res;
+
 	QStringList x;
 	config.diffDocuments(old.get(), x);
 	// Settings.Runtime.InternalVmInfo stores CVmEvent which is always changed
@@ -1631,7 +1635,7 @@ PRL_RESULT Task_VzManager::commit_encryption()
 			n.constBegin(), n.constEnd(), m);
 		if (nd != n.constEnd())
 		{
-			PRL_RESULT res = get_op_helper()->set_disk_encryption(uuid,
+			res = get_op_helper()->set_disk_encryption(uuid,
 				**nd, cmd->GetCommandFlags());
 			if (PRL_FAILED(res))
 				return res;
