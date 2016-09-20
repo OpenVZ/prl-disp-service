@@ -462,6 +462,7 @@ bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
 		case PRL_ERR_UNSUPPORTED_DEVICE_TYPE:
 		case PRL_ERR_VMCONF_VM_NAME_HAS_INVALID_SYMBOL:
 		case PRL_ERR_INVALID_MEMORY_GUARANTEE:
+		case PRL_ERR_VMCONF_HARD_DISK_SERIAL_IS_NOT_VALID:
 		{
 			evtResult.setEventType(PET_DSP_EVT_ERROR_MESSAGE);
 			evtResult.setEventCode(m_lstResults[i]);
@@ -683,6 +684,12 @@ bool CVmValidateConfig::HasSysNameInvalidSymbol(const QString& qsSysName)
 		}
 	}
 	return false;
+}
+
+bool CVmValidateConfig::IsSerialNumberValid(const QString& qsSerial)
+{
+	QRegExp re("[A-Za-z0-9_\\.\\+\\-]*");
+	return re.exactMatch(qsSerial);
 }
 
 QString CVmValidateConfig::GetFileNameFromInvalidPath(const QString& qsSysName)
@@ -1522,6 +1529,15 @@ void CVmValidateConfig::CheckHardDisk()
 					ADD_FID((E_SET << qsSN_id << qsET_id << pHardDisk->getRemote_id()) + setIds);
 				}
 			}
+		}
+
+		if (!IsSerialNumberValid(pHardDisk->getSerialNumber()))
+		{
+			m_lstResults += PRL_ERR_VMCONF_HARD_DISK_SERIAL_IS_NOT_VALID;
+			m_mapParameters.insert(m_lstResults.size(), QStringList()
+					<< pHardDisk->getSerialNumber() << QString::number(pHardDisk->getIndex() + 1));
+			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
+			ADD_FID((E_SET << pHardDisk->getSerialNumber_id()) + setIds);
 		}
 	}
 
