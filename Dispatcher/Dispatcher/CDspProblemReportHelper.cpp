@@ -652,6 +652,7 @@ static void addVmAdvancedInfoToReport( CProblemReport & cReport,
 
 }
 
+#if 0 // temporarily disabled #PSBM-52089
 static void addSysrqTriggerToReport( CProblemReport & cReport )
 {
 #ifdef _LIN_
@@ -679,6 +680,7 @@ static void addSysrqTriggerToReport( CProblemReport & cReport )
 #endif // _LIN_
 
 }
+#endif // 0
 
 static void addCrashDumpsToReport( CProblemReport & cReport,
 								  const ParallelsDirs::UserInfo* pUserInfo,
@@ -994,8 +996,9 @@ void CDspProblemReportHelper::FillProblemReportData
         if( !bHasValidVmCfg || !bVmRunning )
             addFreshRegisteredVmLogsAndConfigs( cReport, strDirUuid, strVmUuid );
 
-	WRITE_REPORT_PROFILER_STRING( "addSysrqTriggerToReport" );
-	addSysrqTriggerToReport( cReport );
+	// temporarily disabled #PSBM-52089
+	//WRITE_REPORT_PROFILER_STRING( "addSysrqTriggerToReport" );
+	//addSysrqTriggerToReport( cReport );
 
 	WRITE_REPORT_PROFILER_STRING( "addCrashDumpsToReport" );
 	addCrashDumpsToReport( cReport, pUserInfo, CRASH_DUMPS_MAX_COUNT );
