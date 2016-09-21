@@ -244,6 +244,23 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Vcmmd
+
+struct Vcmmd: Decorator
+{
+	Vcmmd(const QString& uuid_, Unit* next_): Decorator(next_), m_uuid(uuid_)
+	{
+	}
+
+	::Libvirt::Result do_();
+	void rollback();
+	void cleanup();
+
+private:
+	QString m_uuid;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct File
 
 struct File: Decorator

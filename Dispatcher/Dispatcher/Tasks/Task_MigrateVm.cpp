@@ -40,6 +40,7 @@
 #include "Libraries/StatesStore/SavedStateTree.h"
 #include <prlcommon/Std/PrlTime.h>
 
+#include "CVcmmdInterface.h"
 #include "CDspVmDirHelper.h"
 #include "CDspVmStateSender.h"
 #include "Task_MigrateVm.h"
@@ -247,6 +248,24 @@ const char Unit::suffix[] = "pstorage-source";
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Vcmmd
+
+::Libvirt::Result Vcmmd::do_()
+{
+	::Vcmmd::Api(m_uuid).deactivate();
+	return ::Libvirt::Result();
+}
+
+void Vcmmd::cleanup()
+{
+}
+
+void Vcmmd::rollback()
+{
+	::Vcmmd::Api(m_uuid).activate();
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct File
 
 ::Libvirt::Result File::do_()
@@ -408,6 +427,9 @@ Unit* Online::operator()(const agent_type& agent_, const CVmConfiguration& targe
 		o.setBandwidth(bw);
 
 	work = new Migration(boost::bind< ::Libvirt::Result>(o, target_));
+
+	if (m_task->getOldState() == VMS_RUNNING)
+		work = new Vcmmd(m_task->getVmUuid(), work);
 
 	if (!disks.isEmpty())
 	{
