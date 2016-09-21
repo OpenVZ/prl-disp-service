@@ -227,7 +227,17 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
 
 		QSharedPointer< ::Backup::Storage::Nbd> n(new ::Backup::Storage::Nbd());
 		m_createdTibs << qMakePair(a, n);
-		if (PRL_FAILED((e = n->start(a, m_nFlags))))
+	}
+
+	// local VMs backup optimization (due to bad qemu -> nbd performance on zero pages
+	// PSBM-51258
+	if (CDspService::instance()->getShellServiceHelper().isLocalAddress(m_sSourceHost) &&
+			!(getInternalFlags() & PVM_CT_PLOOP_BACKUP))
+		return PRL_ERR_SUCCESS;
+
+	foreach(const archive_type& f, m_createdTibs) {
+		PRL_RESULT e = f.second->start(f.first, m_nFlags);
+		if (PRL_FAILED(e))
 			return e;
 	}
 	return PRL_ERR_SUCCESS;
@@ -395,7 +405,7 @@ PRL_RESULT Task_CreateVmBackupTarget::run_body()
 
 	foreach(const archive_type& a, m_createdTibs) {
 		QString path(a.first.getPath());
-		QString url(a.second->getUrl());
+		QString url((!a.second->getUrl().isEmpty()) ? a.second->getUrl() : a.first.getPath());
 		pPackage->fillBuffer(i++, IOPackage::RawEncoding, QSTR2UTF8(path), path.size()+1);
 		pPackage->fillBuffer(i++, IOPackage::RawEncoding, QSTR2UTF8(url), url.size()+1);
 	}
