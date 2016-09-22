@@ -256,8 +256,14 @@ struct Tcp: Basic<Tcp_, M>
 {
 	void reactError(QAbstractSocket::SocketError value_)
 	{
-		Q_UNUSED(value_);
-		this->handle(Flop::Event(PRL_ERR_FILE_READ_ERROR));
+		WRITE_TRACE(DBG_DEBUG, "tunnel's socket emited SocketError with code %d", value_);
+		switch (value_)
+		{
+		case QAbstractSocket::RemoteHostClosedError:
+			return;
+		default:
+			this->handle(Flop::Event(PRL_ERR_FILE_READ_ERROR));
+		}
 	}
 };
 
