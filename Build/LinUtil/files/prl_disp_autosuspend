@@ -54,6 +54,7 @@ for line in output.splitlines():
             continue
         try:
             suspend_vms()
+            break
         except Exception, err:
             error(repr(err))
     except IndexError:
