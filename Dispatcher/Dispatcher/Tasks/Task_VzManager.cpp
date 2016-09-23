@@ -585,7 +585,7 @@ PRL_RESULT Task_VzManager::editConfig()
 	if (!lstFullItemIds.filter(QRegExp(Encryption::getFilter())).isEmpty())
 		return PRL_ERR_ENCRYPTION_COMMIT_PROHIBITED;
 	// Handle the Firewall settings change on the running CT
-	if (!lstFullItemIds.filter(QRegExp("\\.(?=Firewall\\.|MAC|NetAddress)")).isEmpty()) {
+	if (!lstFullItemIds.filter(QRegExp("\\.(?=Firewall\\.|MAC|NetAddress|PktFilter)")).isEmpty()) {
 		tribool_type run = CVzHelper::is_env_running(sUuid);
 		if (run) {
 			res = setupFirewall(pConfig);
