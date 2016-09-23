@@ -1616,7 +1616,7 @@ PRL_RESULT Vm::setDevices()
 void Vm::setCommandline()
 {
 	Libvirt::Domain::Xml::Commandline q;
-	q.setArgList(QList<QString>() << "-d" << "guest_errors,unimp,cpu_reset");
+	q.setArgList(QList<QString>() << "-d" << "guest_errors,unimp");
 	m_result->setCommandline(q);
 }
 
