@@ -210,6 +210,10 @@ PRL_RESULT CFileHelperDepPart::CopyFileWithNotifications(const QString & source_
 	if (!CDspAccessManager::setOwner(source_, owner_, false))
 		return PRL_ERR_CANT_CHANGE_OWNER_OF_FILE;
 
+	QFile d(dest_);
+	if (!d.open(QIODevice::ReadWrite) || fsync(d.handle()) != 0)
+		WRITE_TRACE(DBG_FATAL, "unable to sync %s", qPrintable(dest_));
+
 	NotifyCopyEvent(taskHelper_, PET_VM_INF_END_FILE_COPYING, devType_, devNum_);
 	NotifyCopyEvent(taskHelper_, PET_VM_INF_END_BUNCH_COPYING, devType_, devNum_);
 	return PRL_ERR_SUCCESS;;
