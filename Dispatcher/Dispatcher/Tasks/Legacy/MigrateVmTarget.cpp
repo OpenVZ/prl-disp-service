@@ -542,7 +542,7 @@ void MigrateVmTarget::finalizeTask()
 
 		/* if migration was not started, do not cleanup anything -
 		   we can remove 'already existed Vm' */
-		if (m_nSteps & MIGRATE_STARTED)
+		if ((m_nSteps & MIGRATE_STARTED) && getLastErrorCode() != PRL_ERR_FIXME)
 		{
 			if (PRL_FAILED(m_registry.undeclare(m_sVmUuid)))
 				WRITE_TRACE(DBG_FATAL, "Unable to undeclare VM after migration fail");
@@ -706,7 +706,9 @@ PRL_RESULT MigrateVmTarget::migrateRunningVm()
 
 	m_nSteps |= MIGRATE_VM_APP_STARTED;
 
-	return exec();
+	PRL_RESULT r = exec();
+
+	return PRL_SUCCEEDED(c->getError()) ? r : c->getError();
 }
 
 void MigrateVmTarget::handleVmMigrateEvent(const QString& sVmUuid, const SmartPtr<IOPackage>& p)

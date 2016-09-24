@@ -179,7 +179,7 @@ struct Convoy: QProcess
 
 	Convoy(const SmartPtr<CDspDispConnection>& connection_,
 			const SmartPtr<IOPackage>& package_)
-		: m_connection(connection_), m_package(package_)
+		: m_connection(connection_), m_package(package_), m_result(PRL_ERR_SUCCESS)
 	{
 	}
 
@@ -192,6 +192,10 @@ struct Convoy: QProcess
 	}
 
 	void handlePackage(IOSender::Handle, const SmartPtr<IOPackage>);
+	PRL_RESULT getError()
+	{
+		return m_result;
+	}
 
 private:
 	SmartPtr<CDspDispConnection> m_connection;
@@ -199,6 +203,7 @@ private:
 	QString m_uuid;
 	SmartPtr<CVmConfiguration> m_config;
 	QSharedPointer<QTcpServer> m_vnc;
+	PRL_RESULT m_result;
 };
 
 using namespace IOService;

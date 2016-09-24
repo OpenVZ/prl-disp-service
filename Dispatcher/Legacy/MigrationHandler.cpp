@@ -112,7 +112,7 @@ result_type Registration::execute()
 
 	result_type e = m_next->execute();
 
-	if (e.isFailed())
+	if (e.isFailed() && e.error().code() != PRL_ERR_FIXME)
 		Libvirt::Kit.vms().at(m_uuid).undefine();
 
 	return e;
@@ -194,6 +194,7 @@ void Convoy::release(const IOSender::Handle& handle_, const SmartPtr<IOPackage>&
 
 		CDspDispConnection(handle_, pUserSession).sendPackageResult(DispatcherPackage::createInstance(
 			d->GetCommandId(), d->GetCommand()->toString(), package_));
+		m_result = e.error().code();
 	}
 	else
 		CDspDispConnection(handle_, pUserSession).sendPackageResult(IOPackage::duplicateInstance(package_));
