@@ -1,0 +1,61 @@
+#!/usr/bin/python
+
+import subprocess32 as subprocess
+import sys
+import threading
+import prlsdkapi
+
+def log(mess):
+    if not mess:
+        return
+    with open("/dev/kmsg", "w") as f:
+        f.write("prl_disp_autosuspend: " + mess)
+        f.close()
+
+def error(mess):
+    log(mess)
+    sys.exit(1)
+
+def suspend_vms(timeout = 60 * 1000):
+    threads = []
+    # Connect to dispatcher
+    prlsdkapi.init_server_sdk()
+    server = prlsdkapi.Server()
+    server.login_local().wait(msecs = timeout)
+
+    # Get VMs list
+    vms = server.get_vm_list_ex(prlsdkapi.consts.PVTF_VM)
+    for res in [ r for r in vms.wait(msecs = timeout)
+            if r.get_config().get_auto_stop() == prlsdkapi.consts.PAO_VM_SUSPEND and
+            r.get_vm_info().get_state() not in
+            (prlsdkapi.consts.VMS_STOPPED, prlsdkapi.consts.VMS_STOPPING,
+            prlsdkapi.consts.VMS_SUSPENDING, prlsdkapi.consts.VMS_SUSPENDED) ]:
+        thread = threading.Thread(target=res.suspend().wait)
+        thread.start()
+        threads.append(thread)
+
+    # Wait for VMs suspended
+    for thread in threads:
+        thread.join()
+
+    # Disconnect
+    server.logoff().wait(msecs = timeout)
+    prlsdkapi.deinit_sdk()
+
+# Detect that we're going to reboot/shutdown
+proc = subprocess.Popen("/usr/bin/systemctl -q --no-legend list-jobs",
+        stderr=None, stdout=subprocess.PIPE,
+        stdin=subprocess.PIPE, shell = True)
+(output, err) = proc.communicate()
+
+for line in output.splitlines():
+    try:
+        if not line.split(" ")[1] in ("reboot.target", "shutdown.target"):
+            continue
+        try:
+            suspend_vms()
+            break
+        except Exception, err:
+            error(repr(err))
+    except IndexError:
+        pass
