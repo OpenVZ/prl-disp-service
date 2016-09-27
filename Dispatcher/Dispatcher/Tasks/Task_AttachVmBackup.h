@@ -41,6 +41,75 @@
 #include "Libraries/Virtuozzo/CVzPloop.h"
 
 namespace Attach {
+namespace Source {
+
+/**
+ * Backup metadata needed to setup a data source for HDD
+ */
+struct BackupInfo {
+	/**
+	 * Constructor with params
+	 *
+	 * @param id - backup ID in the form: "{UUID}[.pit]"
+	 * @param diskName - name of disk backup
+	 */
+	BackupInfo(const QString& id, const QString& diskName)
+		: m_id(id), m_diskName(diskName), m_pit(1), m_version(0)
+	{
+	}
+
+	/**
+	 * Get the incremental backup number (point in time)
+	 *
+	 * @return point in time
+	 */
+	unsigned int getPit() const
+	{
+		return m_pit;
+	}
+
+	unsigned int getVersion() const
+	{
+		return m_version;
+	}
+
+	QString getId() const
+	{
+		return m_id;
+	}
+
+	QString getDiskName() const
+	{
+		return m_diskName;
+	}
+
+	const CVmHddEncryption *getEncryption() const
+	{
+		return m_encryption.data();
+	}
+
+	PRL_RESULT fromString(const QString& data, CVmEvent *e = NULL);
+	QString getDiskPath() const;
+
+private:
+	/** backup ID */
+	QString m_id;
+	/** name of the backuped disk */
+	QString m_diskName;
+	/** incremental backup number (point in time) */
+	unsigned int m_pit;
+	/** UUID of the backuped VM */
+	QString m_vmUuid;
+	/** backup UUID */
+	QString m_uuid;
+	/** backup version */
+	unsigned int m_version;
+	/** disk encryption parameters */
+	QScopedPointer<CVmHddEncryption> m_encryption;
+};
+
+} // namespace Source
+
 namespace Wrap {
 
 /** Image wrapper */
