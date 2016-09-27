@@ -852,11 +852,8 @@ PRL_RESULT Nbd::start(const Image& image_, quint32 flags_)
 		WRITE_TRACE(DBG_FATAL, "Failed to reserve port for NBD server!");
 		return PRL_ERR_BACKUP_INTERNAL_ERROR;
 	}
-	QHostAddress a = s.serverAddress();
-	quint16 port = s.serverPort();
-	s.close();
-
-	VirtualDisk::qcow2PolicyList_type p(1, VirtualDisk::Policy::Qcow2::port_type(port));
+	VirtualDisk::qcow2PolicyList_type p(1,
+				VirtualDisk::Policy::Qcow2::fd_type(s.socketDescriptor()));
 	if (!(flags_ & PBT_UNCOMPRESSED))
 	{
 		p.push_back(VirtualDisk::Policy::Qcow2::compressed_type(true));
@@ -865,7 +862,8 @@ PRL_RESULT Nbd::start(const Image& image_, quint32 flags_)
 	}
 	PRL_RESULT e = m_nbd.open(image_.getPath(), PRL_DISK_WRITE, p);
 	if (PRL_SUCCEEDED(e)) 
-		m_url = QString("nbd://%1:%2").arg(a.toString()).arg(port);
+		m_url = QString("nbd://%1:%2").arg(s.serverAddress().toString())
+				.arg(s.serverPort());
 	return e;
 }
 
