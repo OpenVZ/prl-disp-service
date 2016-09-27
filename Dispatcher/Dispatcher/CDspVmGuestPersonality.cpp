@@ -31,6 +31,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 #include "CDspVmGuestPersonality.h"
+#include "CDspVmConfigManager.h"
 #include "CDspService.h"
 #include "Tasks/Task_EditVm.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
@@ -38,6 +39,7 @@
 #ifdef _LIBVIRT_
 #include "CDspLibvirt.h"
 #endif // _LIBVIRT_
+#include <boost/bind.hpp>
 
 namespace Personalize
 {
@@ -228,34 +230,31 @@ QString CDspVmGuestPersonality::tryToConnect(const CVmHardware& hardware_, const
 	return "";
 }
 
+quint32 CDspVmGuestPersonality::findGap(const CVmHardware& hardware_,
+		boost::function<quint32(const CVmClusteredDevice*)> getter_) const
+{
+	using Vm::Config::Index::Pool;
+	Pool::population_type idx;
+	foreach(const CVmOpticalDisk* c, hardware_.m_lstOpticalDisks)
+		idx.push_back(getter_(c));
+	foreach(const CVmHardDisk* h, hardware_.m_lstHardDisks) {
+		if (h->getInterfaceType() == PMS_IDE_DEVICE)
+			idx.push_back(getter_(h));
+	}
+	return Pool(idx).getAvailable();
+}
+
 QString CDspVmGuestPersonality::prepareNewCdrom(const CVmHardware& hardware_, const QString& image_) const
 {
 	CVmOpticalDisk d;
-
-	quint32 i(0);
-	quint32 s(0);
-	foreach(const CVmOpticalDisk* c, hardware_.m_lstOpticalDisks)
-	{
-		if (i < c->getIndex())
-			i = c->getIndex();
-		if (c->getInterfaceType() == d.getInterfaceType() &&
-			s < c->getStackIndex())
-			s = c->getStackIndex();
-	}
-	foreach(const CVmHardDisk* h, hardware_.m_lstHardDisks)
-	{
-		if (h->getInterfaceType() == d.getInterfaceType() &&
-			s < h->getStackIndex())
-			s = h->getStackIndex();
-	}
 
 	d.setEnabled(PVE::DeviceEnabled);
 	d.setConnected(PVE::DeviceConnected);
 	d.setEmulatedType(PVE::CdRomImage);
 	d.setSystemName(image_);
 	d.setUserFriendlyName(image_);
-	d.setIndex(i + 1);
-	d.setStackIndex(s + 1);
+	d.setIndex(findGap(hardware_, boost::bind(&CVmClusteredDevice::getIndex, _1)));
+	d.setStackIndex(findGap(hardware_, boost::bind(&CVmClusteredDevice::getStackIndex, _1)));
 	d.setDescription(::Personalize::getCdLabel());
 	return d.toString();
 }
