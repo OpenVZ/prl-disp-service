@@ -132,8 +132,8 @@ namespace Create {
 
 struct Common: Mixin
 {
-	Common(const QString& path, const QString& image)
-		: m_image(image), m_auth(NULL)
+	Common(const QString& path, const QString& image, const CVmHddEncryption *encryption_ = NULL)
+		: m_image(image), m_auth(NULL), m_encryption(encryption_)
 	{
 		m_path = path;
 	}
@@ -161,12 +161,13 @@ private:
 	QString m_image;
 	QString m_wrapper;
 	CAuthHelper *m_auth;
+	const CVmHddEncryption *m_encryption;
 };
 
 struct Ct: Common
 {
-	Ct(const QString& path, const QString& image)
-		: Common(path, image)
+	Ct(const QString& path, const QString& image, const CVmHddEncryption *encryption_)
+		: Common(path, image, encryption_)
 	{
 	}
 

@@ -73,12 +73,12 @@ struct BackupInfo {
 		return m_version;
 	}
 
-	QString getId() const
+	const QString& getId() const
 	{
 		return m_id;
 	}
 
-	QString getDiskName() const
+	const QString& getDiskName() const
 	{
 		return m_diskName;
 	}
@@ -146,7 +146,7 @@ private:
 struct Ploop {
 	Ploop(const QString& path);
 	QString getImage() const;
-	PRL_RESULT setImage(const QString& path);
+	PRL_RESULT setImage(const QString& path, const CVmHddEncryption *encryption_);
 	void destroy() const;
 	PRL_RESULT mount(QString& dev) const;
 	PRL_RESULT umount() const;
@@ -228,7 +228,7 @@ struct Factory
 {
 	explicit Factory(const QString& uuid);
 	PRL_RESULT create(const CVmHardDisk& disk, const QString& vmHome);
-	PRL_RESULT create(const QString& backupId, const QString& diskName,
+	PRL_RESULT create(const Source::BackupInfo& backup_,
 		const QString& dir, CAuthHelper *auth);
 	Factory& setVmUuid(const QString& uuid);
 
@@ -380,6 +380,8 @@ protected:
 	Attach::Source::Resource m_resource;
 	/** virtual disk params */
 	CVmHardDisk m_disk;
+	/** backup metadata */
+	QScopedPointer<Attach::Source::BackupInfo> m_backup;
 };
 
 /**
