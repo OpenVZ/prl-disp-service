@@ -24,30 +24,30 @@ def prepare_to_reboot(timeout = 60 * 1000):
     server.login_local().wait(msecs = timeout)
 
     # Create file with list of auto autostart
-    f = open("/var/spool/prl-disp/prl_disp_noautostart.py", "w")
-    f.write("units_skip_start = (")
+    noautostart = "units_skip_start = ("
 
     # Get VMs list
     vms = server.get_vm_list_ex(prlsdkapi.consts.PVTF_VM + prlsdkapi.consts.PVTF_CT)
     for res in [ r for r in vms.wait(msecs = timeout) ]:
         # Place to list only if it was not in running state
-        if res.get_config().get_auto_start() == prlsdkapi.consts.PAO_VM_START_ON_RELOAD and \
-                res.get_vm_info().get_state() != prlsdkapi.consts.VMS_RUNNING:
-            f.write("\"%s\", " % res.get_config().get_uuid())
+        if (res.get_config().get_auto_start() == prlsdkapi.consts.PAO_VM_START_ON_RELOAD and
+                res.get_vm_info().get_state() != prlsdkapi.consts.VMS_RUNNING):
+            noautostart += "\"%s\", " % res.get_config().get_uuid()
 
         # Suspend VMs
-        if res.get_config().get_vm_type() != prlsdkapi.consts.PVT_VM or \
-                res.get_config().get_auto_stop() != prlsdkapi.consts.PAO_VM_SUSPEND or \
-                res.get_vm_info().get_state() in \
+        if (res.get_config().get_vm_type() != prlsdkapi.consts.PVT_VM or
+                res.get_config().get_auto_stop() != prlsdkapi.consts.PAO_VM_SUSPEND or
+                res.get_vm_info().get_state() in
                 (prlsdkapi.consts.VMS_STOPPED, prlsdkapi.consts.VMS_STOPPING,
-                prlsdkapi.consts.VMS_SUSPENDING, prlsdkapi.consts.VMS_SUSPENDED):
+                prlsdkapi.consts.VMS_SUSPENDING, prlsdkapi.consts.VMS_SUSPENDED)):
             continue
         thread = threading.Thread(target=res.suspend().wait)
         thread.start()
         threads.append(thread)
 
-    f.write(")\n")
-    f.close()
+    with open("/var/spool/prl-disp/prl_disp_noautostart.py", "w") as f:
+        f.write(noautostart + ")\n")
+        f.close()
 
     # Wait for VMs suspended
     for thread in threads:
