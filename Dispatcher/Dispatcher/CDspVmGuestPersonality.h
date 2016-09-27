@@ -35,6 +35,7 @@
 
 #include <QObject>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <boost/function.hpp>
 
 namespace Personalize
 {
@@ -70,6 +71,8 @@ public slots:
 	void slotVmPersonalityChanged(QString, QString);
 
 private:
+	quint32 findGap(const CVmHardware& hardware_,
+			boost::function<quint32(const CVmClusteredDevice*)> getter_) const;
 	QString tryToConnect(const CVmHardware& hardware_, const QString& image_) const;
 	QString prepareNewCdrom(const CVmHardware& hardware_, const QString& image_) const;
 	QString getHomeDir(const QString& dirUuid_, const QString& vmUuid_) const;
