@@ -28,6 +28,17 @@ import shutil
 import errno
 import prlsdkapi
 
+units_skip_start = ()
+
+# Import config file
+try:
+    sys.path.insert(0, "/var/spool/prl-disp")
+    import prl_disp_noautostart
+    units_skip_start = prl_disp_noautostart.units_skip_start
+    sys.path.pop(0)
+except:
+    pass
+
 # Get units dir
 try:
     unitsdir = sys.argv[3]
@@ -131,8 +142,11 @@ try:
     vms = server.get_vm_list_ex(prlsdkapi.consts.PVTF_VM + prlsdkapi.consts.PVTF_CT)
     for res in [ r for r in vms.wait(msecs = timeout)
             if r.get_config().get_auto_start() ]:
+        uuid = res.get_config().get_uuid()
+        if uuid in units_skip_start:
+            continue
         unit = CT_unit if res.get_config().get_vm_type() == prlsdkapi.consts.PVT_CT else VM_unit
-        unitslist.append(unit(res.get_config().get_uuid()))
+        unitslist.append(unit(uuid))
 
     # Disconnect
     server.logoff().wait(msecs = timeout)
