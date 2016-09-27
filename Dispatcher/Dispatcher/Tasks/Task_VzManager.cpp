@@ -1089,6 +1089,7 @@ PRL_RESULT Task_VzManager::process_state()
 		if (PRL_SUCCEEDED(CVzHelper::get_env_status(getVmUuid(), state)))
 			s->onVmStateChanged(state, m_nState, getVmUuid(), m_sVzDirUuid, false);
 	}
+	s.unlock();
 
 	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), getVmUuid());
 	if (!pConfig)
