@@ -1100,7 +1100,13 @@ void CpuFeaturesMask::getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &
 			continue;
 		Libvirt::Domain::Xml::Feature f;
 		f.setName(name);
-		f.setPolicy(Libvirt::Domain::Xml::EPolicyRequire);
+		Libvirt::Domain::Xml::EPolicy p(Libvirt::Domain::Xml::EPolicyRequire);
+		/* FIXME arat feature will be implemented in Update3. It should be disabled
+		   to keep libvirt migration work. It is not working in update1 QEMU.
+		   #PSBM-52808 #PSBM-51001 #PSBM-52852 */
+		if (name == "arat")
+			p = Libvirt::Domain::Xml::EPolicyDisable;
+		f.setPolicy(p);
 		l.append(f);
 	}
 	foreach(QString name, features)
