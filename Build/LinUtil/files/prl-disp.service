@@ -15,6 +15,7 @@ ExecStop=-/usr/libexec/prl_disp_reboot
 KillMode=process
 Restart=on-failure
 RestartSec=5s
+LimitNOFILE=102400
 
 [Install]
 WantedBy=multi-user.target
