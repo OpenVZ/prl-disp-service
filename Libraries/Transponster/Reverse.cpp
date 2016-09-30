@@ -525,7 +525,7 @@ QString View::getAdapterType() const
 {
 	switch (m_network.getAdapterType()) {
 	case PNT_RTL:
-		return QString("ne2k_pci");
+		return QString("rtl8139");
 	case PNT_E1000:
 		return QString("e1000");
 	default:
