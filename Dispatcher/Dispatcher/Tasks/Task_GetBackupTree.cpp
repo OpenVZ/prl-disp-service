@@ -218,6 +218,9 @@ PRL_RESULT Task_GetBackupTreeTarget::addDisks(T& entry,
 		/* use relative paths for disks that reside in the VM home directory */
 		b->setOriginalPath(fi.dir() == home ? fi.fileName() : fi.filePath());
 		b->setSize(a.first.getDevice().getSize() << 20);
+		CVmHddEncryption *e = a.first.getDevice().getEncryption();
+		if (e)
+			b->setEncryption(new CVmHddEncryption(e));
 		list->m_lstBackupDisks << b;
 	}
 	entry.setBackupDisks(list.take());

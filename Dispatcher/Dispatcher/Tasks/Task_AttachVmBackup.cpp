@@ -161,11 +161,16 @@ QString Ploop::getImage() const
  * @param path - full path to a disk image file
  * @return PRL_RESULT error code
  */
-PRL_RESULT Ploop::setImage(const QString& path)
+PRL_RESULT Ploop::setImage(const QString& path, const CVmHddEncryption *encryption_)
 {
 	PRL_RESULT res = m_ploop.createDiskDescriptor(path, QFileInfo(path).size());
 	if (PRL_FAILED(res))
 		return res;
+	if (encryption_ && !encryption_->getKeyId().isEmpty()) {
+		res = m_ploop.setEncryptionKeyid(encryption_->getKeyId());
+		if (PRL_FAILED(res))
+			return res;
+	}
 	/* to be able to replay and save FS journal, we need the image to be writable
 	 * thus create a rw snapshot over a ro image file */
 	res = m_ploop.createSnapshot(m_path);
@@ -526,7 +531,7 @@ PRL_RESULT Common::setPloop()
 		return PRL_ERR_OUT_OF_MEMORY;
 
 	PRL_RESULT res;
-	if (PRL_FAILED(res = ploop->setImage(m_image)))
+	if (PRL_FAILED(res = ploop->setImage(m_image, m_encryption)))
 		return res;
 	m_ploop = ploop;
 	return PRL_ERR_SUCCESS;
@@ -600,7 +605,7 @@ PRL_RESULT Factory::create(const CVmHardDisk& disk, const QString& vmHome)
 	}
 }
 
-PRL_RESULT Factory::create(const QString& backupId, const QString& diskName,
+PRL_RESULT Factory::create(const Source::BackupInfo& backup_,
 	const QString& dir, CAuthHelper *auth)
 {
 	QString path = makeDiskName(auth, dir);
@@ -608,14 +613,14 @@ PRL_RESULT Factory::create(const QString& backupId, const QString& diskName,
 	if (PRL_FAILED(res))
 		return res;
 
-	QString image = Image(m_uuid, backupId, diskName).getPath();
+	QString image = Image(m_uuid, backup_.getId(), backup_.getDiskName()).getPath();
 	switch(m_type)
 	{
 	case PVT_VM:
 		res = setResult(Create::Vm(path, image, *auth));
 		break;
 	case PVT_CT:
-		res = setResult(Create::Ct(path, image));
+		res = setResult(Create::Ct(path, image, backup_.getEncryption()));
 		break;
 	default:
 		m_result.reset();
@@ -630,6 +635,18 @@ PRL_RESULT Factory::create(const QString& backupId, const QString& diskName,
 
 namespace Source {
 
+namespace {
+
+const CBackupDisk *findDisk(const QList<CBackupDisk*>& disks_,
+	const QString& name_)
+{
+	QList<CBackupDisk*>::const_iterator p = std::find_if(disks_.constBegin(),
+		disks_.constEnd(), boost::bind(&CBackupDisk::getName, _1) == name_);
+	return (p == disks_.constEnd()) ? NULL : *p;
+}
+
+} // anonymous namespace
+
 /**
  * Initialize backup info from string
  *
@@ -641,7 +658,6 @@ PRL_RESULT BackupInfo::fromString(const QString& data, CVmEvent *e)
 {
 	do {
 		BackupTree tree;
-		QList<QString> disks;
 		tree.fromString(data);
 		if (tree.m_lstVmItem.size() != 1) {
 			WRITE_TRACE(DBG_FATAL, "GetBackupTree reply contain %d VM UUIDs",
@@ -661,6 +677,8 @@ PRL_RESULT BackupInfo::fromString(const QString& data, CVmEvent *e)
 		BackupItem *backup = vm->m_lstBackupItem[0];
 		m_uuid = backup->getUuid();
 		QString id;
+		const CBackupDisk* disk = NULL;
+
 		if (backup->m_lstPartialBackupItem.size()) {
 			if (backup->m_lstPartialBackupItem.size() != 1) {
 				WRITE_TRACE(DBG_FATAL, "GetBackupTree reply contain %d partial backup UUIDs",
@@ -673,27 +691,27 @@ PRL_RESULT BackupInfo::fromString(const QString& data, CVmEvent *e)
 				WRITE_TRACE(DBG_FATAL, "GetBackupTree reply doesn't contain disk list");
 				break;
 			}
-			foreach(CBackupDisk *disk, backup->m_lstPartialBackupItem[0]->getBackupDisks()->m_lstBackupDisks)
-				disks << disk->getName();
+			disk = findDisk(backup->m_lstPartialBackupItem[0]->getBackupDisks()->m_lstBackupDisks, m_diskName);
 		} else {
 			id = backup->getId();
 			if (!backup->getBackupDisks()) {
 				WRITE_TRACE(DBG_FATAL, "GetBackupTree reply doesn't contain disk list");
 				break;
 			}
-			foreach(CBackupDisk *disk, backup->getBackupDisks()->m_lstBackupDisks)
-				disks << disk->getName();
+			disk = findDisk(backup->getBackupDisks()->m_lstBackupDisks, m_diskName);
 		}
 		if (id != m_id) {
 			WRITE_TRACE(DBG_FATAL, "GetBackupTree reply contain backup id '%s' instead of '%s'",
 				QSTR2UTF8(id), QSTR2UTF8(m_id));
 			break;
 		}
-		if (disks.indexOf(m_diskName) == -1) {
+		if (!disk) {
 			WRITE_TRACE(DBG_FATAL, "GetBackupTree reply doesn't contain disk '%s'",
 				QSTR2UTF8(m_diskName));
 			break;
 		}
+		if (disk->getEncryption())
+			m_encryption.reset(new CVmHddEncryption(disk->getEncryption()));
 		return PRL_ERR_SUCCESS;
 	} while (0);
 
@@ -968,9 +986,11 @@ PRL_RESULT Task_AttachVmBackupHelper::doMakeImage()
 	QString b;
 	if (PRL_FAILED(res = fetchBackupInfo(b)))
 		return res;
-	Attach::Source::BackupInfo backup(m_resource.getBackupId(), m_resource.getDiskId());
-	if (PRL_FAILED(res = backup.fromString(b, getLastError())))
+	m_backup.reset(new Attach::Source::BackupInfo(m_resource.getBackupId(), m_resource.getDiskId()));
+	if (PRL_FAILED(res = m_backup->fromString(b, getLastError()))) {
+		m_backup.reset();
 		return res;
+	}
 	Buse::Buse buse;
 	Attach::Wrap::Image image(m_sVmUuid, m_resource.getBackupId(), m_resource.getDiskId());
 	res = buse.exists(image.getName());
@@ -999,7 +1019,7 @@ PRL_RESULT Task_AttachVmBackupHelper::doMakeImage()
 	std::auto_ptr<Buse::Entry> entry(buse.create(image.getName(), &e));
 	if (!entry.get())
 		return fromBuseError(e.getEventCode());
-	Attach::Source::Flavor f(entry.get(), backup);
+	Attach::Source::Flavor f(entry.get(), *m_backup);
 	/* for Linux guests we need to mangle the MBR/GPT, so that the disk partitions
 	 * would not be automatically processed by udev, see #PSBM-28706 */
 	if (vmType == PVT_VM && osType == PVS_GUEST_TYPE_LINUX)
@@ -1111,8 +1131,11 @@ PRL_RESULT Task_AttachVmBackup::run_body()
 		Attach::Wrap::Image image(m_sVmUuid, m_resource.getBackupId(),
 			m_resource.getDiskId());
 		Attach::Wrap::Factory f(m_sVmUuid);
-		if (PRL_FAILED(res = f.create(m_resource.getBackupId(),
-			m_resource.getDiskId(), m_diskDir, auth))) {
+		if (!m_backup) {
+			res = PRL_ERR_UNEXPECTED;
+			break;
+		}
+		if (PRL_FAILED(res = f.create(*m_backup, m_diskDir, auth))) {
 			image.remove();
 			break;
 		}
