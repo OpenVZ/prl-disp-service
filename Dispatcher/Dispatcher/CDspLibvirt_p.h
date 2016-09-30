@@ -689,6 +689,29 @@ private:
 };
 
 } // namespace Breeding
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Pipeline
+
+struct Pipeline
+{
+	typedef Prl::Expected<void, QString> result_type;
+	typedef QPair<QSharedPointer<QProcess>, QString> proc_type;
+
+	explicit Pipeline(const QStringList &cmds_):
+		m_cmds(cmds_)
+	{
+	}
+
+	result_type operator()(const QByteArray &input_ = QByteArray(),
+						   const QString &outFile_ = QString()) const;
+
+private:
+	QList<proc_type> build() const;
+
+	QStringList m_cmds;
+};
+
 } // namespace Instrument
 } // namespace Libvirt
 

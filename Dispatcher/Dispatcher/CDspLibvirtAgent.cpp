@@ -780,17 +780,21 @@ PRL_RESULT Screenshot::save(const QString& to_, const QString& format_) const
 		return PRL_ERR_UNIMPLEMENTED;
 
 	// Convert to PNG and attach
-	QString c("pnmtopng");
-	if (!m_size.isEmpty())
-		c.append(QString(" -size='%1 %2 0'").arg(m_size.width()).arg(m_size.height()));
-	QProcess p;
-	p.setStandardOutputFile(to_);
-	p.start(c);
-	p.write(m_data);
-	p.closeWriteChannel();
-	if (!p.waitForStarted() || !p.waitForFinished(10000)) {
+	QStringList cmds("pnmtopng");
+	if (!m_size.isNull())
+	{
+		QString s("pamscale");
+		if (m_size.width())
+			s.append(QString(" -width %1").arg(m_size.width()));
+		if (m_size.height())
+			s.append(QString(" -height %1").arg(m_size.height()));
+		cmds.prepend(s);
+	}
+
+	Instrument::Pipeline::result_type r = Instrument::Pipeline(cmds)(m_data, to_);
+	if (r.isFailed()) {
 		WRITE_TRACE(DBG_FATAL, "Failed to convert to PNG, command '%s' is failed",
-				QSTR2UTF8(c));
+				QSTR2UTF8(r.error()));
 		return PRL_ERR_FAILURE;
 	}
 	return PRL_ERR_SUCCESS;
@@ -2703,5 +2707,57 @@ QSharedPointer<Vm::Exec::AuxChannel> Hub::addAsyncExec(const Vm::Unit &unit_)
 }
 
 } // namespace Agent
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Pipeline
+
+Pipeline::result_type Pipeline::operator()(
+		const QByteArray &input_, const QString &outFile_) const
+{
+	if (m_cmds.isEmpty())
+		return result_type();
+
+	QList<proc_type> procs = build();
+
+	if (!outFile_.isEmpty())
+		procs.last().first->setStandardOutputFile(outFile_);
+	foreach(const proc_type &p, procs)
+	{
+		p.first->start(p.second);
+	}
+
+	if (!input_.isEmpty())
+	{
+		procs.first().first->write(input_);
+		procs.first().first->closeWriteChannel();
+	}
+
+	foreach(const proc_type &p, procs)
+	{
+		if (!p.first->waitForStarted() || !p.first->waitForFinished(10000))
+			return p.second;
+	}
+	return result_type();
+}
+
+QList<Pipeline::proc_type> Pipeline::build() const
+{
+	QList<proc_type> procs;
+	foreach(const QString &cmd, m_cmds)
+	{
+		procs << proc_type(QSharedPointer<QProcess>(new QProcess), cmd);
+	}
+
+	// Setup a pipeline
+	QSharedPointer<QProcess> last;
+	foreach(const proc_type &p, procs)
+	{
+		if (last)
+			last->setStandardOutputProcess(p.first.data());
+		last = p.first;
+	}
+	return procs;
+}
+
 } // namespace Instrument
 } // namespace Libvirt
