@@ -232,10 +232,6 @@ PRL_RESULT CDspVzHelper::check_env_state(PRL_UINT32 nCmd, const QString &sUuid, 
 		if (nState == VMS_RUNNING)
 			return PRL_ERR_SUCCESS;
 		break;
-	case PVE::DspCmdVmCommitEncryption:
-		if (nState == VMS_STOPPED)
-			return PRL_ERR_SUCCESS;
-		break;
 	default:
                 return PRL_ERR_SUCCESS;
         }
