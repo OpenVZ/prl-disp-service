@@ -250,7 +250,7 @@ QList<QString> Ips::operator()(const QList<Libvirt::Domain::Xml::Ip>& ips_)
 
 PRL_VM_NET_ADAPTER_TYPE Network::parseAdapterType(const QString& type)
 {
-	if (type == "ne2k_pci")
+	if (type == "rtl8139")
 		return PNT_RTL;
 	else if (type == "e1000")
 		return PNT_E1000;
