@@ -1419,6 +1419,11 @@ PRL_RESULT Builder::setSettings()
 	CVmRunTimeOptions* r(s->getVmRuntimeOptions());
 	if (NULL == r)
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
+	CVmOnCrash *c = r->getOnCrash();
+	if (NULL == c)
+		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
+	c->setMode(s->getVmRuntimeOptions()->getOnCrash()->getMode());
+	c->setOptions(s->getVmRuntimeOptions()->getOnCrash()->getOptions());
 
 	Libvirt::Domain::Xml::Blkiotune b;
 	b.setWeight(HostUtils::convertIoprioToWeight(r->getIoPriority()));

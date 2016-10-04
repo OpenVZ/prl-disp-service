@@ -24,6 +24,7 @@
 #include <QHostAddress>
 #include "CDspService.h"
 #include "CDspLibvirt_p.h"
+#include "CDspVmManager_p.h"
 #include <QtCore/qmetatype.h>
 #include "CDspVmStateSender.h"
 #include "CDspVmNetworkHelper.h"
@@ -46,6 +47,35 @@ namespace Instrument
 {
 namespace Pull
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Crash
+
+void Crash::run()
+{
+	CVmOnCrash *o = m_config.getVmSettings()->getVmRuntimeOptions()->getOnCrash();
+	if (o->getOptions() & POCO_REPORT)
+		sendProblemReport();
+
+	if (o->getMode() == POCA_RESTART)
+	{
+		QString uuid = m_config.getVmIdentification()->getVmUuid();
+		Command::Vm::Gear<Command::Tag::State<Command::Vm::Resurrect, Command::Vm::Fork::State::Strict<VMS_RUNNING> > >::run(uuid);
+	}
+}
+
+void Crash::sendProblemReport()
+{
+	QString uuid = m_config.getVmIdentification()->getVmUuid();
+
+	CProtoCommandPtr cmd(new CProtoSendProblemReport(QString(), uuid, 0));
+	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspCmdSendProblemReport, cmd);
+	QString vmDir = CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->getDefaultVmDirectory();
+	SmartPtr<CDspClient> c = CDspClient::makeServiceUser(vmDir);
+	CDspTaskFuture<Task_CreateProblemReport> ft = CDspService::instance()->getTaskManager().schedule(new Task_CreateProblemReport(c, p));
+	if (m_config.getVmSettings()->getVmRuntimeOptions()->getOnCrash()->getMode() == POCA_RESTART)
+		ft.wait();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct State
 
@@ -861,7 +891,7 @@ int rtcChange(virConnectPtr , virDomainPtr domain_,
 	return 0;
 }
 
-int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
+int lifecycle(virConnectPtr, virDomainPtr domain_, int event_,
                 int detail_, void* opaque_)
 {
 
@@ -951,8 +981,7 @@ int lifecycle(virConnectPtr , virDomainPtr domain_, int event_,
 		{
 		case VIR_DOMAIN_EVENT_CRASHED_PANICKED:
 			WRITE_TRACE(DBG_FATAL, "VM \"%s\" got guest panic.", virDomainGetName(domain_));
-			v->setState(domain_, VMS_PAUSED);
-			v->sendProblemReport(domain_);
+			v->onCrash(domain_);
 			break;
 		default:
 			v->setState(domain_, VMS_STOPPED);
@@ -1163,13 +1192,15 @@ void Coarse::remove(virDomainPtr domain_)
 	m_fine->remove(getUuid(domain_));
 }
 
-void Coarse::sendProblemReport(virDomainPtr domain_)
+void Coarse::onCrash(virDomainPtr domain_)
 {
-	CProtoCommandPtr cmd(new CProtoSendProblemReport(QString(), getUuid(domain_), 0));
-	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspCmdSendProblemReport, cmd);
-	QString vmDir = CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->getDefaultVmDirectory();
-	SmartPtr<CDspClient> c = CDspClient::makeServiceUser(vmDir);
-	CDspService::instance()->getTaskManager().schedule(new Task_CreateProblemReport(c, p));
+	QSharedPointer<Domain> d = m_fine->find(getUuid(domain_));
+	if (d.isNull())
+		return;
+
+	setState(domain_, VMS_PAUSED);
+	CVmConfiguration c = d->getConfig().get();
+	QThreadPool::globalInstance()->start(new Instrument::Pull::Crash(c));
 }
 
 void Coarse::pullInfo(virDomainPtr domain_)

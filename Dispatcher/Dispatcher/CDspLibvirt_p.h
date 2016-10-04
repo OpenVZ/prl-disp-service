@@ -286,12 +286,12 @@ struct Coarse
 	bool show(virDomainPtr domain_,
 		const Domain::reaction_type& reaction_);
 	void remove(virDomainPtr domain_);
-	void sendProblemReport(virDomainPtr domain_);
 	void pullInfo(virDomainPtr domain_);
 
 	static QString getUuid(virDomainPtr domain_);
 	void disconnectDevice(virDomainPtr domain_, const QString& alias_);
 	void adjustClock(virDomainPtr domain_, qint64 offset_);
+	void onCrash(virDomainPtr domain_);
 
 private:
 	QSharedPointer<System> m_fine;
@@ -408,6 +408,24 @@ namespace Instrument
 {
 namespace Pull
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Crash
+
+struct Crash: QRunnable
+{
+	Crash(const CVmConfiguration& config_):
+		m_config(config_)
+	{
+		setAutoDelete(true);
+	}
+
+	void run();
+	void sendProblemReport();
+
+private:
+	CVmConfiguration m_config;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct State
 

@@ -1306,6 +1306,27 @@ Libvirt::Result Frankenstein::operator()(const QString& uuid_) const
 	return Libvirt::Kit.vms().at(uuid_).startPaused();
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Resurrect
+
+Libvirt::Result Resurrect::operator()(const QString& uuid_)
+{
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(uuid_);
+	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+	Libvirt::Result output = u.getState(s);
+	if (output.isFailed())
+		return output;
+
+	output = u.reset();
+	if (output.isFailed())
+		return output;
+
+	if (VMS_PAUSED == s)
+		output = u.unpause();
+
+	return output;
+}
+
 namespace Shutdown
 {
 ///////////////////////////////////////////////////////////////////////////////
