@@ -179,9 +179,9 @@ def create_bridges():
             continue
         elif dequote(cp.get("ONBOOT", "").lower()) != "yes":
             continue
-        elif dequote(cp.get("MASTER", "").lower()).startswith("bond"):
+        elif dequote(cp.get("MASTER", "").lower()) != "":
             continue
-        elif dequote(cp.get("TEAM_MASTER", "").lower()).startswith("team"):
+        elif dequote(cp.get("TEAM_MASTER", "").lower()) != "":
             continue
         to_bridges.append(iface)
 
