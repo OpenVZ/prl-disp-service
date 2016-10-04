@@ -147,6 +147,11 @@ public:
 	*/
 	static bool IsSerialNumberValid(const QString& qsSerial);
 
+	/**
+	* Check kvm_intel is loaded with nested=Y
+	*/
+	static bool IsNestedVirtEnabled();
+
 private:
 
 	CVmValidateConfig() {}

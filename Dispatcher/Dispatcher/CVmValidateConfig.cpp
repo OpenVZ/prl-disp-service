@@ -692,6 +692,15 @@ bool CVmValidateConfig::IsSerialNumberValid(const QString& qsSerial)
 	return re.exactMatch(qsSerial);
 }
 
+bool CVmValidateConfig::IsNestedVirtEnabled()
+{
+	QFile f("/sys/module/kvm_intel/parameters/nested");
+	if (!f.open(QIODevice::ReadOnly))
+		return false;
+	QString qsContent = f.readAll();
+	return qsContent == "Y";
+}
+
 QString CVmValidateConfig::GetFileNameFromInvalidPath(const QString& qsSysName)
 {
 	int idx = qsSysName.lastIndexOf('/');
@@ -1192,6 +1201,12 @@ void CVmValidateConfig::CheckCpu()
 				ADD_FID(E_SET << pCpu->getNodeMask_id());
 			}
 		}
+	}
+	if (pCpu->isVirtualizedHV() &&
+		!CVmValidateConfig::IsNestedVirtEnabled())
+	{
+		m_lstResults += PRL_WARN_NESTED_VIRT_NOT_ENABLED;
+		ADD_FID(E_SET << pCpu->getVirtualizedHV_id());
 	}
 }
 
