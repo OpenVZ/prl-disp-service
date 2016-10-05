@@ -170,29 +170,49 @@ void Farmer::timerEvent(QTimerEvent *event_)
 		m_watcher->setFuture(QtConcurrent::run(this,
 			t == PVT_CT ? &Farmer::collectCt : &Farmer::collectVm));
 	}
-
-	m_timer = startTimer(m_period);
 }
 
 void Farmer::collectCt()
 {
 	QList< ::Statistics::Filesystem> f;
-	CVzHelper::get_env_fstat(m_ident.first, f);
+	if (PRL_FAILED(CVzHelper::get_env_fstat(m_ident.first, f)))
+		return;
+
 	Stat::Collecting::s_dao.set(m_ident.first, f);
+
+	m_timer = startTimer(m_period);
 }
 
 void Farmer::collectVm()
 {
-	Prl::Expected< QList<boost::tuple<quint64,quint64,QString> >,
-		::Error::Simple> r = Libvirt::Kit.vms().at(m_ident.first)
-			.getGuest().getFsInfo();
-	if (r.isFailed())
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_ident.first);
+	if (CDspVm::getVmState(m_ident) != VMS_RUNNING) {
+		if (m_watcher) {
+			m_watcher->disconnect(this, SLOT(reset()));
+			m_watcher.reset();
+		}
 		return;
+	}
+
+	Prl::Expected< QList<boost::tuple<quint64,quint64,QString> >,
+		::Error::Simple> r = u.getGuest().getFsInfo();
+	if (r.isFailed()) {
+		if (m_watcher) {
+			m_watcher->disconnect(this, SLOT(reset()));
+			m_watcher.reset();
+		}
+		return;
+	}
 
 	QSharedPointer<Stat::Storage> s =
 		CDspStatCollectingThread::getStorage(m_ident.first).toStrongRef();
-	if (s.isNull())
+	if (s.isNull()) {
+		if (m_watcher) {
+			m_watcher->disconnect(this, SLOT(reset()));
+			m_watcher.reset();
+		}
 		return;
+	}
 
 	QList< ::Statistics::Filesystem> l;
 	typedef boost::tuple<quint64,quint64,QString> result_type;
@@ -208,6 +228,8 @@ void Farmer::collectVm()
 	}
 
 	Stat::Collecting::s_dao.set(m_ident.first, l);
+
+	m_timer = startTimer(m_period);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2075,22 +2097,17 @@ Libvirt::Result GetPerformanceStatisticsCt(const CVmIdent &id, Collector &c)
 Libvirt::Result GetPerformanceStatisticsVm(const CVmIdent &id, Collector &c)
 {
 	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(id.first);
+	VIRTUAL_MACHINE_STATE s = CDspVm::getVmState(id);
 
-	VIRTUAL_MACHINE_STATE s;
-	Libvirt::Result r = u.getState(s);
-	if (r.isFailed())
-		return r;
-
-	if (VMS_STOPPED == s)
-	{
+	if (VMS_STOPPED == s) {
 		c.collectVmOffline(id.first);
 		return Libvirt::Result();
-	}
-	if (VMS_RUNNING != s)
+	} else if (VMS_RUNNING != s) {
 		return Libvirt::Result(Error::Simple(PRL_ERR_DISP_VM_IS_NOT_STARTED));
+	}
 
 	CVmConfiguration v;
-	r = u.getConfig(v, true);
+	Libvirt::Result r = u.getConfig(v, true);
 	if (r.isFailed())
 		return r;
 

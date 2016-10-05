@@ -90,7 +90,7 @@ class Watcher: public QObject
 	Q_OBJECT
 
 public:
-	explicit Watcher(const QString& uuid_) : m_uuid(uuid_)
+	explicit Watcher(const QString& uuid_) : m_uuid(uuid_), m_count(0)
 	{
 	}
 
@@ -109,6 +109,7 @@ protected:
 private:
 	QString m_uuid;
 	boost::promise<PRL_VM_TOOLS_STATE> m_state;
+	int m_count;
 };
 
 } //namespace Guest

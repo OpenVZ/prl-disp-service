@@ -828,10 +828,16 @@ int reboot(virConnectPtr , virDomainPtr domain_, void* opaque_)
 int connectAgent(virConnectPtr , virDomainPtr domain_, int state_, int /*reason_*/, void* opaque_)
 {
 	Model::Coarse* v = (Model::Coarse* )opaque_;
-	if (state_ == VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_CONNECTED)
+	switch (state_) 
 	{
+	case VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_CONNECTED:
 		v->show(domain_, boost::bind
 			(&Registry::Reactor::connectAgent, _1));
+		break;
+	case VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_DISCONNECTED:
+		v->show(domain_, boost::bind
+			(&Registry::Reactor::disconnectAgent, _1));
+		break;
 	}
 	return 0;
 }
