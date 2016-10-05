@@ -1,3 +1,4 @@
 [Unit]
 Description=Virtuozzo virtual machines and container target
-PartOf=prl-disp.service
+BindsTo=prl-disp.service
+ConditionPathExists=/run/virtuozzo.target.start
