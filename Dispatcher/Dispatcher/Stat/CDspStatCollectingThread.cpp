@@ -73,6 +73,12 @@
  */
 #define STAT_COLLECTING_TIMEOUT 1000
 
+/**
+ * Limit fs info stat collecting period to 30 seconds
+ * #PSBM-53264
+ */
+#define STAT_COLLECTING_FS_TIMEOUT 30000
+
 using namespace Parallels;
 
 namespace
@@ -127,7 +133,7 @@ Farmer::Farmer(const CVmIdent& ident_):
 {
 	qint64 c = CDspService::instance()->getDispConfigGuard()
 		.getDispWorkSpacePrefs()->getVmGuestCollectPeriod() * 1000;
-	m_period = qMax(c, qint64(STAT_COLLECTING_TIMEOUT));
+	m_period = qMax(c, qint64(STAT_COLLECTING_FS_TIMEOUT));
 }
 
 void Farmer::reset()
