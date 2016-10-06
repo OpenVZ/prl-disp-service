@@ -74,10 +74,10 @@
 #define STAT_COLLECTING_TIMEOUT 1000
 
 /**
- * Limit fs info stat collecting period to 30 seconds
+ * Limit fs info stat collecting period to 10 seconds
  * #PSBM-53264
  */
-#define STAT_COLLECTING_FS_TIMEOUT 30000
+#define STAT_COLLECTING_FS_TIMEOUT 10000
 
 using namespace Parallels;
 
@@ -138,8 +138,10 @@ Farmer::Farmer(const CVmIdent& ident_):
 
 void Farmer::reset()
 {
-	if (m_watcher)
-	{
+	if (m_watcher) {
+		if (sender() == m_watcher.data() && m_watcher->result()) {
+			m_timer = startTimer(m_period);	
+		}
 		m_watcher->disconnect(this, SLOT(reset()));
 		m_watcher->waitForFinished();
 		m_watcher.reset();
@@ -169,7 +171,7 @@ void Farmer::timerEvent(QTimerEvent *event_)
 
 	if (!m_watcher)
 	{
-		m_watcher.reset(new QFutureWatcher<void>);
+		m_watcher.reset(new QFutureWatcher<bool>);
 		this->connect(m_watcher.data(), SIGNAL(finished()), SLOT(reset()));
 		PRL_VM_TYPE t = PVT_VM;
 		CDspService::instance()->getVmDirManager().getVmTypeByUuid(m_ident.first, t);
@@ -178,47 +180,32 @@ void Farmer::timerEvent(QTimerEvent *event_)
 	}
 }
 
-void Farmer::collectCt()
+bool Farmer::collectCt()
 {
 	QList< ::Statistics::Filesystem> f;
 	if (PRL_FAILED(CVzHelper::get_env_fstat(m_ident.first, f)))
-		return;
+		return false;
 
 	Stat::Collecting::s_dao.set(m_ident.first, f);
 
-	m_timer = startTimer(m_period);
+	return true;
 }
 
-void Farmer::collectVm()
+bool Farmer::collectVm()
 {
 	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_ident.first);
-	if (CDspVm::getVmState(m_ident) != VMS_RUNNING) {
-		if (m_watcher) {
-			m_watcher->disconnect(this, SLOT(reset()));
-			m_watcher.reset();
-		}
-		return;
-	}
+	if (CDspVm::getVmState(m_ident) != VMS_RUNNING)
+		return false;
 
 	Prl::Expected< QList<boost::tuple<quint64,quint64,QString> >,
 		::Error::Simple> r = u.getGuest().getFsInfo();
-	if (r.isFailed()) {
-		if (m_watcher) {
-			m_watcher->disconnect(this, SLOT(reset()));
-			m_watcher.reset();
-		}
-		return;
-	}
+	if (r.isFailed())
+		return false;
 
 	QSharedPointer<Stat::Storage> s =
 		CDspStatCollectingThread::getStorage(m_ident.first).toStrongRef();
-	if (s.isNull()) {
-		if (m_watcher) {
-			m_watcher->disconnect(this, SLOT(reset()));
-			m_watcher.reset();
-		}
-		return;
-	}
+	if (s.isNull())
+		return false;
 
 	QList< ::Statistics::Filesystem> l;
 	typedef boost::tuple<quint64,quint64,QString> result_type;
@@ -235,7 +222,7 @@ void Farmer::collectVm()
 
 	Stat::Collecting::s_dao.set(m_ident.first, l);
 
-	m_timer = startTimer(m_period);
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -71,13 +71,13 @@ protected:
 	void timerEvent(QTimerEvent* event_);
 
 private:
-	void collectCt();
-	void collectVm();
+	bool collectCt();
+	bool collectVm();
 
 	int m_timer;
 	quint64 m_period;
 	CVmIdent m_ident;
-	QScopedPointer<QFutureWatcher<void> > m_watcher;
+	QScopedPointer<QFutureWatcher<bool> > m_watcher;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
