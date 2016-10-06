@@ -509,14 +509,9 @@ struct Essence<PVE::DspCmdVmGuestSetUserPasswd>: Need::Agent, Need::Config,
 					getCommand()->GetUserPassword(),
 					getCommand()->GetCommandFlags() & PSPF_PASSWD_CRYPTED))
 				return Error::Simple(PRL_ERR_OPERATION_FAILED);
-			CVmEvent v;
-			v.addEventParameter(new CVmEventParameter(PVE::String,
-						"", EVT_PARAM_VMCFG_NEW_DEVICE_CONFIG));
 
 			CDspService::instance()->getVmStateSender()->onVmPersonalityChanged(
 					getContext().getDirectoryUuid(), getContext().getVmUuid());
-			Task_EditVm::atomicEditVmConfigByVm(getContext().getDirectoryUuid(),
-					getContext().getVmUuid(), v, getContext().getSession());
 		}
 		else
 		{
