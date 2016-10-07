@@ -286,6 +286,11 @@ void Reactor::connectAgent()
 	forward(::Vm::State::Agent());
 }
 
+void Reactor::disconnectAgent()
+{
+	forward(::Vm::State::NoAgent());
+}
+
 void Reactor::proceed(VIRTUAL_MACHINE_STATE destination_)
 {
 	switch(destination_)

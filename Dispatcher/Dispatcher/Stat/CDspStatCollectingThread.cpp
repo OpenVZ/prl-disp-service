@@ -127,17 +127,28 @@ Farmer::Farmer(const CVmIdent& ident_):
 {
 	qint64 c = CDspService::instance()->getDispConfigGuard()
 		.getDispWorkSpacePrefs()->getVmGuestCollectPeriod() * 1000;
-	m_period = qMax(c, qint64(STAT_COLLECTING_TIMEOUT));
+	m_period = m_initialPeriod = qMax(c, qint64(STAT_COLLECTING_FS_TIMEOUT_MIN));
 }
 
 void Farmer::reset()
 {
-	if (m_watcher)
-	{
-		m_watcher->disconnect(this, SLOT(reset()));
-		m_watcher->waitForFinished();
-		m_watcher.reset();
+	if (!m_watcher)
+		return;
+	if (sender() == m_watcher.data()) {
+		if (!m_watcher->result()) {
+			/* error, doubling polling period */
+			m_period *= 2;
+			if (m_period > STAT_COLLECTING_FS_TIMEOUT_MAX)
+				m_period = STAT_COLLECTING_FS_TIMEOUT_MAX;
+		} else {
+			/* success, polling with initial period */
+			m_period = m_initialPeriod;
+		}
+		m_timer = startTimer(m_period);	
 	}
+	m_watcher->disconnect(this, SLOT(reset()));
+	m_watcher->waitForFinished();
+	m_watcher.reset();
 }
 
 void Farmer::handle(unsigned state_, QString uuid_, QString dir_, bool flag_)
@@ -163,36 +174,41 @@ void Farmer::timerEvent(QTimerEvent *event_)
 
 	if (!m_watcher)
 	{
-		m_watcher.reset(new QFutureWatcher<void>);
+		m_watcher.reset(new QFutureWatcher<bool>);
 		this->connect(m_watcher.data(), SIGNAL(finished()), SLOT(reset()));
 		PRL_VM_TYPE t = PVT_VM;
 		CDspService::instance()->getVmDirManager().getVmTypeByUuid(m_ident.first, t);
 		m_watcher->setFuture(QtConcurrent::run(this,
 			t == PVT_CT ? &Farmer::collectCt : &Farmer::collectVm));
 	}
-
-	m_timer = startTimer(m_period);
 }
 
-void Farmer::collectCt()
+bool Farmer::collectCt()
 {
 	QList< ::Statistics::Filesystem> f;
-	CVzHelper::get_env_fstat(m_ident.first, f);
+	if (PRL_FAILED(CVzHelper::get_env_fstat(m_ident.first, f)))
+		return false;
+
 	Stat::Collecting::s_dao.set(m_ident.first, f);
+
+	return true;
 }
 
-void Farmer::collectVm()
+bool Farmer::collectVm()
 {
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_ident.first);
+	if (CDspVm::getVmState(m_ident) != VMS_RUNNING)
+		return false;
+
 	Prl::Expected< QList<boost::tuple<quint64,quint64,QString> >,
-		::Error::Simple> r = Libvirt::Kit.vms().at(m_ident.first)
-			.getGuest().getFsInfo();
+		::Error::Simple> r = u.getGuest().getFsInfo();
 	if (r.isFailed())
-		return;
+		return false;
 
 	QSharedPointer<Stat::Storage> s =
 		CDspStatCollectingThread::getStorage(m_ident.first).toStrongRef();
 	if (s.isNull())
-		return;
+		return false;
 
 	QList< ::Statistics::Filesystem> l;
 	typedef boost::tuple<quint64,quint64,QString> result_type;
@@ -208,6 +224,8 @@ void Farmer::collectVm()
 	}
 
 	Stat::Collecting::s_dao.set(m_ident.first, l);
+
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2075,22 +2093,17 @@ Libvirt::Result GetPerformanceStatisticsCt(const CVmIdent &id, Collector &c)
 Libvirt::Result GetPerformanceStatisticsVm(const CVmIdent &id, Collector &c)
 {
 	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(id.first);
+	VIRTUAL_MACHINE_STATE s = CDspVm::getVmState(id);
 
-	VIRTUAL_MACHINE_STATE s;
-	Libvirt::Result r = u.getState(s);
-	if (r.isFailed())
-		return r;
-
-	if (VMS_STOPPED == s)
-	{
+	if (VMS_STOPPED == s) {
 		c.collectVmOffline(id.first);
 		return Libvirt::Result();
-	}
-	if (VMS_RUNNING != s)
+	} else if (VMS_RUNNING != s) {
 		return Libvirt::Result(Error::Simple(PRL_ERR_DISP_VM_IS_NOT_STARTED));
+	}
 
 	CVmConfiguration v;
-	r = u.getConfig(v, true);
+	Libvirt::Result r = u.getConfig(v, true);
 	if (r.isFailed())
 		return r;
 

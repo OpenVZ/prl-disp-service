@@ -76,6 +76,13 @@ struct Agent
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct NoAgent
+
+struct NoAgent
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Reboot
 
 struct Reboot
@@ -187,6 +194,18 @@ struct Frontend: Details::Frontend<Frontend>
 			>,
 			msmf::Row
 			<
+				Already,
+				NoAgent,
+				Started
+			>,
+			msmf::Row
+			<
+				Started,
+				NoAgent,
+				msmf::none
+			>,
+			msmf::Row
+			<
 				Rebooted,
 				Reboot,
 				msmf::none
@@ -238,7 +257,7 @@ struct Frontend: Details::Frontend<Frontend>
 						SLOT(configureNetworkSlot(const QString)));
 			}
 			m_big->m_toolsState = p->getFuture();
-			p->startTimer(0);
+			p->startTimer(1000);
 		}
 
 		State::Frontend *m_big;

@@ -79,6 +79,8 @@ struct Reactor
 
 	void connectAgent();
 
+	void disconnectAgent();
+
 	void proceed(VIRTUAL_MACHINE_STATE destination_);
 
 	void openTray(const CVmOpticalDisk& model_);

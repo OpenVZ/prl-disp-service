@@ -59,6 +59,15 @@ namespace Collecting
 
 class Farmer: public QObject
 {
+	enum {
+		/*
+		 * Limit fs info stat collecting period to 10 seconds
+		 * #PSBM-53264
+		 */
+		STAT_COLLECTING_FS_TIMEOUT_MIN = 10*1000,
+		STAT_COLLECTING_FS_TIMEOUT_MAX = 3600*1000
+	};
+
 	Q_OBJECT
 public:
 	explicit Farmer(const CVmIdent& ident_);
@@ -71,13 +80,14 @@ protected:
 	void timerEvent(QTimerEvent* event_);
 
 private:
-	void collectCt();
-	void collectVm();
+	bool collectCt();
+	bool collectVm();
 
 	int m_timer;
 	quint64 m_period;
+	quint64 m_initialPeriod;
 	CVmIdent m_ident;
-	QScopedPointer<QFutureWatcher<void> > m_watcher;
+	QScopedPointer<QFutureWatcher<bool> > m_watcher;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
