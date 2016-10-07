@@ -422,6 +422,7 @@ PRL_RESULT Image::updateDiskInformation(CVmHardDisk& disk) const
 	} else
 		e->setKeyId(keyid);
 
+	disk.setSizeInBytes(di->size << 9); /* Sectors -> bytes */
 	ploop_close_dd(di);
 
 	return PRL_ERR_SUCCESS;
