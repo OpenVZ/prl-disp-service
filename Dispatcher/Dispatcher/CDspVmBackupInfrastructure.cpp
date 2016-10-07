@@ -672,8 +672,11 @@ PRL_RESULT Object::freeze(Task::Workbench& task_)
 PRL_RESULT Object::thaw()
 {
 	Libvirt::Result r = Libvirt::Kit.vms().at(m_uuid).getGuest().thawFs();
-	if (r.isFailed())
+	if (r.isFailed()) {
+		WRITE_TRACE(DBG_FATAL, "Failed to thaw guest OS filesystem, error %d",
+				r.error().code());
 		return r.error().code();
+	}
 	return PRL_ERR_SUCCESS;
 }
 

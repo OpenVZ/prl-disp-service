@@ -659,10 +659,8 @@ Thaw::~Thaw()
 void Thaw::release()
 {
 	QMutexLocker l(&m_lock);
-	if (m_object) {
-		m_object->thaw();
+	if (m_object && PRL_SUCCEEDED(m_object->thaw()))
 		m_object = boost::none;
-	}
 }
 
 void Thaw::timerEvent(QTimerEvent *event_)
