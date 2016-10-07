@@ -1328,6 +1328,10 @@ bool CDspService::init()
 
 		TestConfig::instance();
 
+		// initialize resolver library - initialization is not
+		// thread-safe (PSBM-53164)
+		(void)QHostInfo::localDomainName();
+
 		if ( ! initAllConfigs() && ! recoverAllConfigs() )
 			throw 0;
 
