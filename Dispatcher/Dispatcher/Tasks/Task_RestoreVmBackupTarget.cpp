@@ -767,7 +767,7 @@ PRL_RESULT Image::do_(const Assistant& assist_, quint32 version_)
 			return e;
 	}
 
-	quint64 s = m_archive.first.getDevice().getSize() << 20;
+	quint64 s = m_archive.first.getDeviceSizeInBytes();
 	SmartPtr<Device> device(Device::make(m_intermediate, s));
 	if (!device.isValid())
 		return PRL_ERR_VM_CREATE_HDD_IMG_INVALID_CREATE;
