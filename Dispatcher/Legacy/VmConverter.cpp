@@ -24,6 +24,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "VmConverter.h"
+#include "CDspService.h"
 #include "CDspLibvirt.h"
 #include "CDspVmManager_p.h"
 #include "CDspVmConfigManager.h"
@@ -256,6 +257,16 @@ struct Killer: Command::Vm::Shutdown::Fallback
 	}
 	void react()
 	{
+		if (CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()
+			->getDebug()->isLegacyVmUpgrade())
+		{
+			WRITE_TRACE(DBG_FATAL, "VM has not been stopped before timeout (%u secs)", getTimeout());
+			*m_sink = Error::Simple(PRL_ERR_FIXME,
+				"The converted VM could not shut down on its own after conversion and was preserved for investigation");
+			return;
+
+		}
+
 		Command::Vm::Shutdown::Fallback::react();
 		WRITE_TRACE(DBG_FATAL, "VM was killed after timeout (%u secs)", getTimeout());
 		*m_sink = Error::Simple(PRL_ERR_TIMEOUT,
@@ -400,9 +411,18 @@ PRL_RESULT V2V::do_() const
 
 Prl::Expected<void, Error::Simple> V2V::start() const
 {
-	foreach (CVmGenericNetworkAdapter* l, m_cfg.getVmHardwareList()->m_lstNetworkAdapters)
+	CVmConfiguration cfg = m_cfg;
+
+	foreach (CVmGenericNetworkAdapter* l, cfg.getVmHardwareList()->m_lstNetworkAdapters)
 		l->setConnected(PVE::DeviceDisconnected);
-	return Command::Vm::Gear<firstStart_type>::run(m_cfg);
+
+	Prl::Expected<void, Error::Simple> e = Command::Vm::Gear<firstStart_type>::run(cfg);
+
+	// store config with disabled network
+	if (e.isFailed() && e.error().code() == PRL_ERR_FIXME)
+		Libvirt::Kit.vms().define(cfg);
+
+	return e;
 }
 
 } // namespace Vm

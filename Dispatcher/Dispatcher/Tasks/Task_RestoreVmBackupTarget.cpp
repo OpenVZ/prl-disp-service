@@ -1254,11 +1254,15 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewVm()
 			a->revert();
 			break;
 		}
-		if (m_converter.get() != NULL && PRL_FAILED(nRetCode = doV2V()))
+		if (m_converter.get() != NULL && PRL_FAILED(nRetCode = doV2V())
+			&& nRetCode != PRL_ERR_FIXME)
 		{
 			unregisterVm();
 			a->revert();
 		}
+
+		if (nRetCode == PRL_ERR_FIXME)
+			nRetCode = PRL_ERR_TIMEOUT;
 	} while(false);
 	CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(pVmInfo.getImpl());
 	return nRetCode;
