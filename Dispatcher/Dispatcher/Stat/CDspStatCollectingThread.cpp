@@ -73,12 +73,6 @@
  */
 #define STAT_COLLECTING_TIMEOUT 1000
 
-/**
- * Limit fs info stat collecting period to 10 seconds
- * #PSBM-53264
- */
-#define STAT_COLLECTING_FS_TIMEOUT 10000
-
 using namespace Parallels;
 
 namespace
@@ -133,19 +127,28 @@ Farmer::Farmer(const CVmIdent& ident_):
 {
 	qint64 c = CDspService::instance()->getDispConfigGuard()
 		.getDispWorkSpacePrefs()->getVmGuestCollectPeriod() * 1000;
-	m_period = qMax(c, qint64(STAT_COLLECTING_FS_TIMEOUT));
+	m_period = m_initialPeriod = qMax(c, qint64(STAT_COLLECTING_FS_TIMEOUT_MIN));
 }
 
 void Farmer::reset()
 {
-	if (m_watcher) {
-		if (sender() == m_watcher.data() && m_watcher->result()) {
-			m_timer = startTimer(m_period);	
+	if (!m_watcher)
+		return;
+	if (sender() == m_watcher.data()) {
+		if (!m_watcher->result()) {
+			/* error, doubling polling period */
+			m_period *= 2;
+			if (m_period > STAT_COLLECTING_FS_TIMEOUT_MAX)
+				m_period = STAT_COLLECTING_FS_TIMEOUT_MAX;
+		} else {
+			/* success, polling with initial period */
+			m_period = m_initialPeriod;
 		}
-		m_watcher->disconnect(this, SLOT(reset()));
-		m_watcher->waitForFinished();
-		m_watcher.reset();
+		m_timer = startTimer(m_period);	
 	}
+	m_watcher->disconnect(this, SLOT(reset()));
+	m_watcher->waitForFinished();
+	m_watcher.reset();
 }
 
 void Farmer::handle(unsigned state_, QString uuid_, QString dir_, bool flag_)
