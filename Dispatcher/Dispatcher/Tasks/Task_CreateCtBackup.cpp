@@ -106,11 +106,12 @@ PRL_RESULT Task_CreateCtBackupSource::prepareTask()
 	if (PRL_FAILED(nRetCode = connect()))
 		goto exit;
 
-	m_pVmConfig = s->getVzHelper()->getCtConfig(client, m_sVmUuid);
+	m_pVmConfig = s->getVzHelper()->getCtConfig(client, m_sVmUuid, true);
 	if (!m_pVmConfig.isValid()) {
 		WRITE_TRACE(DBG_FATAL, "Can not load config for uuid %s", QSTR2UTF8(m_sVmUuid));
 		goto exit;
 	}
+
 	if (VZCTL_LAYOUT_4 < m_pVmConfig->getCtSettings()->getLayout())
 		setInternalFlags((getInternalFlags() & ~PVM_CT_BACKUP) | PVM_CT_PLOOP_BACKUP);
 	else

@@ -220,9 +220,12 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
 	for (int i = 0; i < l.size(); ++i) {
 		::Backup::Storage::Image a(l.at(i).second.absoluteFilePath());
 		QString base((x.size() ? x.at(i).second.absoluteFilePath() : ""));
-		PRL_RESULT e = a.build(l.at(i).first.getDevice().getSize() << 20, base);
+
+		PRL_RESULT e = a.build(l.at(i).first.getDeviceSizeInBytes(),
+					base);
 		if (PRL_FAILED(e))
 			return e;
+
 		m_lstTibFileList << l.at(i).second.fileName();
 
 		QSharedPointer< ::Backup::Storage::Nbd> n(new ::Backup::Storage::Nbd());

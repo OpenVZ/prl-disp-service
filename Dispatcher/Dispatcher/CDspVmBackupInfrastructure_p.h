@@ -71,6 +71,10 @@ struct Component
 	{
 		return *m_device;
 	}
+	quint64 getDeviceSizeInBytes() const
+	{
+		return m_device->getSizeInBytes() ?: (m_device->getSize() << 20);
+	}
 	const QString& getFolder() const
 	{
 		return m_folder;

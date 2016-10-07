@@ -385,7 +385,7 @@ PRL_RESULT Image::setEncryptionKeyid(const QString& keyid) const
 	return rc ? PRL_ERR_UNEXPECTED : PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Image::getEncryptionKeyid(QString& keyid) const
+PRL_RESULT Image::updateDiskInformation(CVmHardDisk& disk) const
 {
 	PRL_RESULT rc = loadPloopLibrary();
 	if (PRL_FAILED(rc))
@@ -407,10 +407,24 @@ PRL_RESULT Image::getEncryptionKeyid(QString& keyid) const
 		return PRL_ERR_UNEXPECTED;
 	}
 
+	QString keyid;
 	if (di->enc && di->enc->keyid)
 		keyid = di->enc->keyid;
 
+	CVmHddEncryption* e = disk.getEncryption();
+	if (!e) {
+		// don't create instance if key id was not set
+		if (!keyid.isEmpty()) {
+			e = new CVmHddEncryption();
+			e->setKeyId(keyid);
+			disk.setEncryption(e);
+		}
+	} else
+		e->setKeyId(keyid);
+
+	disk.setSizeInBytes(di->size << 9); /* Sectors -> bytes */
 	ploop_close_dd(di);
+
 	return PRL_ERR_SUCCESS;
 }
 

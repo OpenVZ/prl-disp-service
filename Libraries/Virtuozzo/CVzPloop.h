@@ -36,6 +36,8 @@
 #include <QString>
 #include <QList>
 
+#include <prlxmlmodel/VmConfig/CVmHardDisk.h>
+
 #define PLOOPLIB "/usr/lib64/libploop.so"
 #define PARTED "/sbin/parted"
 
@@ -67,39 +69,6 @@ class Ploop
 namespace PloopImage
 {
 
-struct ImageData
-{
-	ImageData(const QString& guid_, const QString& file_)
-		: guid(guid_), file(file_)
-	{
-	}
-	QString guid;
-	QString file;
-};
-
-struct SnapshotData
-{
-	SnapshotData(const QString& guid_, const QString& parent_guid_)
-		: guid(guid_), parent_guid(parent_guid_)
-	{
-	}
-	QString guid;
-	QString parent_guid;
-};
-
-struct DiskDescriptor
-{
-	unsigned long long size;
-	unsigned int heads;
-	unsigned int cylinders;
-	unsigned int sectors;
-	unsigned int blocksize;
-	int mode;
-	QString top_guid;
-	QList<ImageData> images;
-	QList<SnapshotData> snapshots;
-};
-
 struct Image
 {
 	/**
@@ -109,7 +78,7 @@ struct Image
 	explicit Image(const QString& path);
 	PRL_RESULT createDiskDescriptor(const QString& imagePath, unsigned long long size) const;
 	PRL_RESULT setEncryptionKeyid(const QString &keyid) const;
-	PRL_RESULT getEncryptionKeyid(QString &keyid) const;
+	PRL_RESULT updateDiskInformation(CVmHardDisk& disk) const;
 	PRL_RESULT createSnapshot(const QString& path = QString()) const;
 	PRL_RESULT setActiveDeltaLimit(unsigned long long lim) const;
 	PRL_RESULT getBaseDeltaFilename(QString& path) const;
