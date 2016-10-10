@@ -753,6 +753,7 @@ PRL_RESULT Traits::configure(const quint16 value_, CVmConfiguration& dst_)
 		return PRL_ERR_INVALID_ARG;
 
 	b->setPortNumber(value_);
+	b->setWebSocketPortNumber(value_);
 	return PRL_ERR_SUCCESS;
 }
 
