@@ -1563,6 +1563,9 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 					nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
 			break;
 		}
+		/* invalidate config */
+		CDspService::instance()->getVzHelper()->getConfigCache().
+				remove(m_sTargetVmHomePath);
 	} while(0);
 
 	if (PRL_FAILED(nRetCode) && x.get()) {
