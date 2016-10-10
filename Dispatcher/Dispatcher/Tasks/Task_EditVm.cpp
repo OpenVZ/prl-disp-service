@@ -1569,7 +1569,7 @@ PRL_RESULT Task_EditVm::editVm()
 								{
 									if (PDE_OPTICAL_DISK == nType)
 									{
-										if (pOldDevice->getDescription() == ::Personalize::getCdLabel()) {
+										if (::Personalize::isCloudConfigCd(pOldDevice)) {
 											::Personalize::Configurator(*pVmConfigNew).clean();
 											cloudCdRemoved = true;
 										}
@@ -1598,7 +1598,7 @@ PRL_RESULT Task_EditVm::editVm()
 									if ( CXmlModelHelper::JustConnectedPropWasChanged( pOldDevice, pNewDevice ) )
 									{
 										if (PDE_OPTICAL_DISK == nType &&
-												pNewDevice->getDescription() == ::Personalize::getCdLabel() &&
+												::Personalize::isCloudConfigCd(pOldDevice) &&
 												pNewDevice->getConnected() == PVE::DeviceDisconnected) {
 												cloudCdRemoved = true;
 										}

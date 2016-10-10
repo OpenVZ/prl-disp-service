@@ -40,6 +40,7 @@
 #include <boost/phoenix/core/argument.hpp>
 #include <boost/phoenix/core/reference.hpp>
 #include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
+#include "CDspVmGuestPersonality.h"
 #ifdef _LIBVIRT_
 #include "CDspLibvirt.h"
 #endif // _LIBVIRT_
@@ -68,13 +69,9 @@ private:
 void Tray::open(CVmConfiguration& config_) const
 {
 	CVmOpticalDisk* x = find(config_);
-	if (NULL != x)
-	{
-		QString y = x->getSystemName();
-		x->setSystemName(QString());
-		x->setDescription(y);
-		x->setUserFriendlyName(QString());
-	}
+	if (NULL == x)
+		return;
+	x->setConnected(PVE::DeviceDisconnected);
 }
 
 void Tray::close(CVmConfiguration& config_) const
@@ -82,17 +79,7 @@ void Tray::close(CVmConfiguration& config_) const
 	CVmOpticalDisk* x = find(config_);
 	if (NULL == x)
 		return;
-
-	QString d = x->getDescription();
-	if (d.isEmpty())
-		return;
-
-	if (x->getUserFriendlyName().isEmpty() || x->getSystemName().isEmpty())
-	{
-		x->setSystemName(d);
-		x->setUserFriendlyName(d);
-	}
-	x->setDescription(QString());
+	x->setConnected(PVE::DeviceConnected);
 }
 
 CVmOpticalDisk* Tray::find(const CVmConfiguration& config_) const

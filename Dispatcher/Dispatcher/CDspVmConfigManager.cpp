@@ -424,6 +424,31 @@ void Identification::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct OpticalDisks
+
+void OpticalDisks::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	QList<CVmOpticalDisk*>& l = new_.getVmHardwareList()->m_lstOpticalDisks;
+	QList<CVmOpticalDisk*>& o = old_.getVmHardwareList()->m_lstOpticalDisks;
+
+	foreach(CVmOpticalDisk* h, l)
+	{
+		QList<CVmOpticalDisk*>::iterator it = std::find_if(o.begin(), o.end(),
+			boost::bind(&CVmOpticalDisk::getIndex, _1)
+				== h->getIndex());
+
+		if (it == o.end())
+			continue;
+
+		h->setSystemName((*it)->getSystemName());
+		h->setUserFriendlyName((*it)->getUserFriendlyName());
+		h->setDescription((*it)->getDescription());
+		h->setLabel((*it)->getLabel());
+	}
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
 // struct HardDisks
 
 void HardDisks::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
