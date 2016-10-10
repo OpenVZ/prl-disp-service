@@ -2,6 +2,8 @@
 
 /usr/libexec/prl_disp_first_start > /dev/null 2>&1
 /usr/bin/systemctl daemon-reload > /dev/null 2>&1
+touch /run/virtuozzo.target.start
 /usr/bin/systemctl start virtuozzo.target > /dev/null 2>&1
+rm -f /run/virtuozzo.target.start
 
 :
