@@ -110,7 +110,8 @@ Failure::Failure(PRL_RESULT result_): Error::Simple(result_), m_virErrorCode(0)
 
 bool Failure::isTransient() const
 {
-	return m_virErrorCode == VIR_ERR_AGENT_UNSYNCED;
+	return m_virErrorCode == VIR_ERR_AGENT_UNRESPONSIVE ||
+	       m_virErrorCode == VIR_ERR_AGENT_UNSYNCED;
 }
 
 }
