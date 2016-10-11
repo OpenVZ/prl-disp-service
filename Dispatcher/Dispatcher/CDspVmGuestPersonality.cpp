@@ -44,9 +44,19 @@
 namespace Personalize
 {
 
+namespace
+{
 QString getCdLabel()
 {
 	return "cloud-init-disk";
+}
+}
+
+bool isCloudConfigCd(const CVmDevice* disk_)
+{
+	const CVmOpticalDisk* d(dynamic_cast<const CVmOpticalDisk *>(disk_));
+	PRL_ASSERT(d);
+	return d && (d->getLabel() == ::Personalize::getCdLabel());
 }
 
 namespace
@@ -220,11 +230,15 @@ QString CDspVmGuestPersonality::tryToConnect(const CVmHardware& hardware_, const
 	foreach(const CVmOpticalDisk* c, hardware_.m_lstOpticalDisks)
 	{
 		if (!(c->getEmulatedType() == PVE::CdRomImage &&
-				c->getSystemName() == image_ &&
-				c->getUserFriendlyName() == image_))
+				((c->getSystemName() == image_ &&
+				c->getUserFriendlyName() == image_)
+				 || c->getLabel() == ::Personalize::getCdLabel())))
 			continue;
 		CVmOpticalDisk d(*c);
+		d.setSystemName(image_);
+		d.setUserFriendlyName(image_);
 		d.setConnected(PVE::DeviceConnected);
+		d.setLabel(::Personalize::getCdLabel());
 		return d.toString();
 	}
 	return "";
@@ -253,8 +267,9 @@ QString CDspVmGuestPersonality::prepareNewCdrom(const CVmHardware& hardware_, co
 	d.setEmulatedType(PVE::CdRomImage);
 	d.setSystemName(image_);
 	d.setUserFriendlyName(image_);
+	d.setItemId(hardware_.m_lstOpticalDisks.size());
 	d.setIndex(findGap(hardware_, boost::bind(&CVmClusteredDevice::getIndex, _1)));
 	d.setStackIndex(findGap(hardware_, boost::bind(&CVmClusteredDevice::getStackIndex, _1)));
-	d.setDescription(::Personalize::getCdLabel());
+	d.setLabel(::Personalize::getCdLabel());
 	return d.toString();
 }

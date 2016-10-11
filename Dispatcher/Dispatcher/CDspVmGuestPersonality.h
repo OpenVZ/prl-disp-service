@@ -39,7 +39,7 @@
 
 namespace Personalize
 {
-QString getCdLabel();
+bool isCloudConfigCd(const CVmDevice* disk_);
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Configurator
