@@ -55,6 +55,7 @@ struct Traits
 {
 	static CVmRemoteDisplay* purify(const CVmConfiguration* config_);
 	static PRL_RESULT configure(const quint16 value_, CVmConfiguration& dst_);
+	static PRL_RESULT configureWS(const quint16 value_, CVmConfiguration& dst_);
 };
 
 namespace Api
@@ -309,14 +310,38 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct SetPort
+
+struct SetPort
+{
+	typedef boost::function2<PRL_RESULT, const quint16, CVmConfiguration&> configure_type;
+
+	SetPort(const commit_type &commit_, const configure_type &configure_):
+		m_commit(commit_), m_configure(configure_)
+	{
+	}
+
+	PRL_RESULT operator()(quint16 port_)
+	{
+		return m_commit(boost::bind(m_configure, port_, _1)); 
+	}
+
+private:
+	commit_type m_commit;
+	configure_type m_configure;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Backend
 
 struct Backend: QRunnable
 {
 	typedef boost::function0<Subject* > subject_type;
+	typedef QPair<quint16, quint16> range_type;
+	typedef boost::function1<PRL_RESULT, const quint16> configure_type;
 
-	Backend(const subject_type& subject_, const CVmRemoteDisplay& input_,
-		const commit_type& commit_):
+	Backend(const subject_type& subject_, const range_type& input_,
+		const configure_type& commit_):
 		m_commit(commit_), m_subject(subject_), m_setup(input_)
 	{
 	}
@@ -324,9 +349,9 @@ struct Backend: QRunnable
 	void run();
 
 private:
-	commit_type m_commit;
+	configure_type m_commit;
 	subject_type m_subject;
-	CVmRemoteDisplay m_setup;
+	range_type m_setup;
 };
 
 } // namespace Launch

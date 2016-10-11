@@ -245,9 +245,7 @@ Tunnel* Subject::getResult()
 void Backend::run()
 {
 	QScopedPointer<Subject> s(m_subject());
-	quint16 p = m_setup.getPortNumber(), e = p;
-	if (PRD_AUTO == m_setup.getMode())
-		e = Starter::Unit::DEFAULT_END;
+	quint16 p = m_setup.first, e = m_setup.second;
 
 	if (PRL_FAILED(s->startStunnel(p, e)))
 		return;
@@ -262,7 +260,7 @@ void Backend::run()
 	p = t->getPort();
 	t->connect(t, SIGNAL(ripped()), SLOT(deleteLater()));
 	t->moveToThread(QCoreApplication::instance()->thread());
-	m_commit(boost::bind(&Traits::configure, p, _1));
+	m_commit(p);
 }
 
 } // namespace Launch
@@ -320,17 +318,33 @@ void Frontend::operator()(CVmConfiguration& object_, const CVmConfiguration& run
 		return;
 
 	a->setEncrypted(true);
-	CVmRemoteDisplay d = *b;
-	if (PRD_AUTO == d.getMode())
+	Launch::Backend::range_type d(b->getPortNumber(), b->getPortNumber());
+	if (PRD_AUTO == b->getMode())
 	{
-		d.setPortNumber(m_service->getDispConfigGuard()
+		d.first = m_service->getDispConfigGuard()
 			.getDispCommonPrefs()
-			->getRemoteDisplayPreferences()->getBasePort());
+			->getRemoteDisplayPreferences()->getBasePort();
+		d.second = Starter::Unit::DEFAULT_END;
 	}
 	QRunnable* q = new Launch::Backend(boost::bind(
 			boost::factory<Launch::Subject* >(),
 				b->getPortNumber(),
-				Vnc::Api::Stunnel(k, c)), d, m_commit);
+				Vnc::Api::Stunnel(k, c)), d,
+				Launch::SetPort(m_commit, &Traits::configure));
+	q->setAutoDelete(true);
+	QThreadPool::globalInstance()->start(q);
+
+	if (b->getWebSocketPortNumber() == b->getPortNumber())
+		return;
+
+	// Start from auto-assigned and to max.
+	d = Launch::Backend::range_type(
+			b->getWebSocketPortNumber(), b->getWebSocketPortNumber());
+	q = new Launch::Backend(boost::bind(
+			boost::factory<Launch::Subject* >(),
+				b->getWebSocketPortNumber(),
+				Vnc::Api::Stunnel(k, c)), d,
+				Launch::SetPort(m_commit, &Traits::configureWS));
 	q->setAutoDelete(true);
 	QThreadPool::globalInstance()->start(q);
 }
@@ -753,6 +767,15 @@ PRL_RESULT Traits::configure(const quint16 value_, CVmConfiguration& dst_)
 		return PRL_ERR_INVALID_ARG;
 
 	b->setPortNumber(value_);
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Traits::configureWS(const quint16 value_, CVmConfiguration& dst_)
+{
+	CVmRemoteDisplay* b = purify(&dst_);
+	if (NULL == b)
+		return PRL_ERR_INVALID_ARG;
+
 	b->setWebSocketPortNumber(value_);
 	return PRL_ERR_SUCCESS;
 }
