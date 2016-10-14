@@ -200,6 +200,13 @@ PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics:
 	else
 		v->setPortNumber(0);
 
+	if (s->getValue().getWebsocket() && s->getValue().getWebsocket().get() > 0)
+	{
+		v->setWebSocketPortNumber(s->getValue().getWebsocket().get());
+	}
+	else
+		v->setWebSocketPortNumber(0);
+
 	m_vm->getVmSettings()->setVmRemoteDisplay(v.take());
 	return PRL_ERR_SUCCESS;
 }

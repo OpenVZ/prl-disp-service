@@ -1112,6 +1112,7 @@ void CDspVzHelper::appendAdvancedParamsToCtConfig(SmartPtr<CVmConfiguration> pOu
 	} else if ( remDisplay->getMode() == PRD_DISABLED ) {
 		remDisplay->setPortNumber(0);
 	}
+	remDisplay->setWebSocketPortNumber(remDisplay->getPortNumber());
 }
 
 #ifdef _LIN_
