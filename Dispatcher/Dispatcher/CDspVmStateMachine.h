@@ -257,7 +257,10 @@ struct Frontend: Details::Frontend<Frontend>
 						SLOT(configureNetworkSlot(const QString)));
 			}
 			m_big->m_toolsState = p->getFuture();
-			p->startTimer(1000);
+
+			// usually guest agent is ready within 2..3 seconds after event
+			// starting watcher earlier results in connect error logged
+			p->startTimer(5000);
 		}
 
 		State::Frontend *m_big;
