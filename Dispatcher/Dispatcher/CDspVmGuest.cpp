@@ -134,14 +134,14 @@ void Watcher::timerEvent(QTimerEvent *ev_)
 			return;
 		}
 		if (r.error().virErrorCode() == VIR_ERR_AGENT_UNRESPONSIVE) {
-			// agent is not started - retry 5 seconds
-			if (++m_count > 5) {
+			// agent is not started - retry 5 minutes with 10 secs interval
+			if (++m_count > 30) {
 				deleteLater();
 				return;
 			}
 		}
 		// agent is not ready, retry
-		startTimer(1000);
+		startTimer(10000);
 		return;
 	}
 
