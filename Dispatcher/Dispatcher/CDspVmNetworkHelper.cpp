@@ -355,7 +355,17 @@ Libvirt::Result Dao::update(const CVirtualNetwork& model_)
 		WRITE_TRACE(DBG_FATAL, "Cannot change the network ID '%s' !", QSTR2UTF8(x));
 		return Error::Simple(PRL_NET_DUPLICATE_VIRTUAL_NETWORK_ID);
 	}
-	return define(model_);
+
+	PRL_NET_VIRTUAL_NETWORK_TYPE t = w.getNetworkType();
+	w = model_;
+
+	if (w.getNetworkType() == PVN_HOST_ONLY && w.getNetworkType() != t)
+	{
+		w.setBoundCardMac("");
+		w.setVZVirtualNetwork(NULL);
+	}
+
+	return define(w);
 }
 
 Libvirt::Result Dao::craftBridge(CVirtualNetwork& network_)
