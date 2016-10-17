@@ -1065,6 +1065,7 @@ void CDspService::stop (CDspService::StopMode stop_mode)
 		}
 #endif // _LIBVIRT_
 #endif
+		QThreadPool::globalInstance()->waitForDone();
 	}
 
 	// #126543, #132528  fix to prevent deadlock on destroy QFileSystemWatcher.
