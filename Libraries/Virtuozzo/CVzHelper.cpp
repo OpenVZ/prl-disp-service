@@ -387,6 +387,8 @@ PRL_RESULT CVzOperationHelper::run_prg(const char *name, const QStringList &lstA
 		fcntl(progress_fd[1], F_SETFD, ~FD_CLOEXEC);
 		m_Envs.insert(QString("VZ_PROGRESS_FD"), QString("%1").arg(progress_fd[1]));
 	}
+	if (strcmp(name, BIN_VZCTL) == 0)
+		m_Envs.insert("VZCTL_FLAG_DONT_SEND_EVT", "yes");
 
 	VzProcess proc(progress_fd[1]);
 	if (m_Envs.isEmpty()) {
