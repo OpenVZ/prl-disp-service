@@ -204,7 +204,7 @@ def create_bridges():
         interfaces[iface]["BRIDGE"] = "\"%s\"" % br_name
         # Move attributes.
         for attr in interfaces[iface]:
-            if attr in ["DEVICE", "HWADDR", "UUID", "BRIDGE", "TYPE", "DEVICETYPE"]:
+            if attr in ["DEVICE", "HWADDR", "UUID", "BRIDGE", "TYPE", "DEVICETYPE", "NAME"]:
                 continue
             if attr.startswith("BOND"):
                 continue
