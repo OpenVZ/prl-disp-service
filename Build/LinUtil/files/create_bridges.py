@@ -186,6 +186,15 @@ def create_bridges():
         to_bridges.append(iface)
 
     to_write = []
+    # Add DEVICE= field to configs where absent
+    for iface, cp in sorted(interfaces.items()):
+        if dequote(cp.get("DEVICE", "")) != "":
+            continue
+        cp["DEVICE"] = iface
+        # Other configs will be added for writing later
+        if iface not in to_bridges:
+            to_write.append((cp, "ifcfg-%s" % iface, True))
+
     # Create bridges.
     for iface in to_bridges:
         print "Creating bridge config for %s" % iface
