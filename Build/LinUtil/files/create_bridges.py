@@ -139,94 +139,87 @@ def dequote(s):
         s = s[1:-1]
     return s
 
-
-def create_bridges():
-    """Create bridge configs for interfaces.
-
-    Exclude:
-        bridge
-        loopback
-        venet
-        slave eths
-        already having an attached bridge
-    """
-    # Read interface configs.
-    os.chdir(CONFIG_PATH)
+def read_configs():
     interfaces = {}
-    # We enumerate new bridges starting from max existing brN.
-    bridge_re = re.compile(r"^br(\d+)$")
-    current_bridge_id = 0
     for ifcfg in glob.glob("ifcfg-*"):
-        iface = ifcfg.replace("ifcfg-", "")
         cp = NoSectionConfigParser()
         cp.read(ifcfg)
-        interfaces[iface] = cp
+        interfaces[ifcfg.replace("ifcfg-", "")] = cp
+    return interfaces
+
+def get_current_bridge_id(interfaces):
+    bridge_re = re.compile(r"^br(\d+)$")
+    current_bridge_id = 0
+    for iface in interfaces:
         # Get bridge id.
         match = bridge_re.match(iface)
         if match and int(match.group(1)) >= current_bridge_id:
             current_bridge_id = int(match.group(1)) + 1
+    return current_bridge_id
 
-    # Get list of interfaces for which to create bridges.
-    to_bridges = []
-    for iface, cp in sorted(interfaces.items()):
-        if dequote(cp.get("BRIDGE", "")) != "":
-            continue
-        elif (iface == "lo" or
-              dequote(cp.get("NAME", "").lower()) == "loopback"):
-            continue
-        elif dequote(cp.get("TYPE", "").lower()) in ["venet", "bridge"]:
-            # TODO: Or only for existing bridges?
-            continue
-        elif dequote(cp.get("ONBOOT", "").lower()) != "yes":
-            continue
-        elif dequote(cp.get("MASTER", "").lower()) != "":
-            continue
-        elif dequote(cp.get("TEAM_MASTER", "").lower()) != "":
-            continue
-        to_bridges.append(iface)
 
-    to_write = []
-    # Create bridges.
-    for iface in to_bridges:
-        print "Creating bridge config for %s" % iface
-        br_name = "br%s" % current_bridge_id
-        bridge = NoSectionConfigParser()
-        bridge["DEVICE"] = "\"%s\"" % br_name
-        interfaces[iface]["BRIDGE"] = "\"%s\"" % br_name
-        # Move attributes.
-        for attr in interfaces[iface]:
-            if attr in ["DEVICE", "HWADDR", "UUID", "BRIDGE", "TYPE", "DEVICETYPE"]:
-                continue
-            if attr.startswith("BOND"):
-                continue
-            bridge[attr] = interfaces[iface][attr]
-            if attr != "ONBOOT":
-                interfaces[iface].delete(attr)
-        bridge["TYPE"] = "\"Bridge\""
-        bridge["DELAY"] = "\"2\""
-        bridge["STP"] = "\"off\""
-        bridge["UUID"] = "\"%s\"" % open(
-                "/proc/sys/kernel/random/uuid").read().strip()
-        # Save to config files. (ConfigParser, filename, backup).
-        to_write.append((bridge, "ifcfg-%s" % br_name, False))
-        to_write.append((interfaces[iface], "ifcfg-%s" % iface, True))
-        current_bridge_id += 1
+def need_device(cp):
+    return dequote(cp.get("DEVICE", "")) == ""
 
-    # If nothing changed, there is no need to restart networking.
-    if len(to_write) == 0:
-        return
+def add_device(iface, cp):
+    cp["DEVICE"] = iface
+    filename = "ifcfg-%s" % iface
+    return (filename, BACKUP_PREFIX + filename)
 
-    netmanager = NetworkServiceManager()
-    # If networking is running, stop it.
-    netmanager.stop_networking()
 
-    # Write configs.
+def need_bridge(iface, cp):
+    if dequote(cp.get("BRIDGE", "")) != "":
+        return False
+    elif (iface == "lo" or
+            dequote(cp.get("NAME", "").lower()) == "loopback"):
+        return False
+    elif dequote(cp.get("TYPE", "").lower()) in ["venet", "bridge"]:
+        # TODO: Or only for existing bridges?
+        return False
+    elif dequote(cp.get("ONBOOT", "").lower()) != "yes":
+        return False
+    elif dequote(cp.get("MASTER", "").lower()) != "":
+        return False
+    elif dequote(cp.get("TEAM_MASTER", "").lower()) != "":
+        return False
+    return True
+
+def create_bridge(iface, cp, bridge_id, to_write):
+    global current_bridge_id
+
+    print "Creating bridge config for %s" % iface
+    br_name = "br%s" % bridge_id
+    bridge = NoSectionConfigParser()
+    bridge["DEVICE"] = "\"%s\"" % br_name
+    cp["BRIDGE"] = "\"%s\"" % br_name
+    # Move attributes.
+    for attr in cp:
+        if attr in ["DEVICE", "HWADDR", "UUID", "BRIDGE", "TYPE", "DEVICETYPE", "NAME"]:
+            continue
+        if attr.startswith("BOND"):
+            continue
+        bridge[attr] = cp[attr]
+        if attr != "ONBOOT":
+            cp.delete(attr)
+    bridge["TYPE"] = "\"Bridge\""
+    bridge["DELAY"] = "\"2\""
+    bridge["STP"] = "\"off\""
+    bridge["UUID"] = "\"%s\"" % open(
+            "/proc/sys/kernel/random/uuid").read().strip()
+    # Save to config files. (ConfigParser, filename, backup).
+    to_write.append((bridge, "ifcfg-%s" % br_name, None))
+    
+    filename = "ifcfg-%s" % iface
+    return (filename, BACKUP_PREFIX + filename)
+
+
+def write_configs(to_write):
     written = []
     error = False
     for cp, filename, backup in to_write:
         try:
             if backup:
-                os.rename(filename, BACKUP_PREFIX + filename)
+                os.rename(filename, backup)
                 written.append((filename, backup))
                 cp.write(open(filename, "w"))
             else:
@@ -242,11 +235,51 @@ def create_bridges():
             # Best effort.
             try:
                 if backup:
-                    os.rename(BACKUP_PREFIX + filename, filename)
+                    os.rename(backup, filename)
                 else:
                     os.remove(filename)
             except:
                 pass
+
+
+def create_bridges():
+    """Create bridge configs for interfaces.
+
+    Exclude:
+        bridge
+        loopback
+        venet
+        slave eths
+        already having an attached bridge
+    """
+    # Read interface configs.
+    os.chdir(CONFIG_PATH)
+    interfaces = read_configs()
+    # We enumerate new bridges starting from max existing brN.
+    current_bridge_id = get_current_bridge_id(interfaces)
+
+    to_write = []
+    for iface, cp in sorted(interfaces.items()):
+        filename, backup = None, None
+        if dequote(cp.get("ONBOOT", "").lower()) != "yes":
+            continue
+        if need_bridge(iface, cp):
+            filename, backup = create_bridge(iface, cp, current_bridge_id, to_write)
+            current_bridge_id += 1
+        if need_device(cp):
+            filename, backup = add_device(iface, cp)
+        if filename:
+            to_write.append((cp, filename, backup))
+
+    # If nothing changed, there is no need to restart networking.
+    if not to_write:
+        return
+
+    netmanager = NetworkServiceManager()
+    # If networking is running, stop it.
+    netmanager.stop_networking()
+
+    write_configs(to_write)
 
     # If networking was running, restart it.
     netmanager.start_networking()
