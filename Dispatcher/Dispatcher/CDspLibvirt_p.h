@@ -292,6 +292,7 @@ struct Coarse
 	void disconnectDevice(virDomainPtr domain_, const QString& alias_);
 	void adjustClock(virDomainPtr domain_, qint64 offset_);
 	void onCrash(virDomainPtr domain_);
+	void updateInterfaces(virNetworkPtr domain_);
 
 private:
 	QSharedPointer<System> m_fine;
@@ -353,6 +354,7 @@ private:
 	int m_eventTrayChange;
 	int m_eventRtcChange;
 	int m_eventAgent;
+	int m_eventNetworkLifecycle;
 	Registry::Actual* m_registry;
 	QWeakPointer<virConnect> m_libvirtd;
 	QSharedPointer<Model::System> m_view;
@@ -511,6 +513,23 @@ struct Switch: Config
 private:
 	Agent::Vm::Unit m_agent;
 	QSharedPointer<Model::Domain> m_view;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Network
+
+struct Network: QRunnable
+{
+	Network(const QString& network_, const QSharedPointer<Model::System>& fine_)
+		: m_network(network_), m_fine(fine_)
+	{
+	}
+
+	void run();
+
+private:
+	QString m_network;
+	QSharedPointer<Model::System> m_fine;
 };
 
 } // namespace Pull
