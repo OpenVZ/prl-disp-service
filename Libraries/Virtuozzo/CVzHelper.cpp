@@ -66,6 +66,7 @@
 #include <vzctl/vzctl_param.h>
 
 #include <boost/bind.hpp>
+#include <boost/foreach.hpp>
 
 #ifndef FAIRSCHED_SET_RATE
 	#define FAIRSCHED_SET_RATE      0
@@ -82,6 +83,26 @@
 
 QMutex CVzHelper::s_mtxEnvUuidMap;
 QHash< QString, QString > CVzHelper::s_envUuidMap;
+
+static struct ub_res_id_map {
+	PRL_CT_RESOURCE sdk;
+	int vz;
+} __ub_res_map[] = {
+	{PCR_LOCKEDPAGES, VZCTL_PARAM_LOCKEDPAGES},
+	{PCR_PRIVVMPAGES, VZCTL_PARAM_PRIVVMPAGES},
+	{PCR_SHMPAGES, VZCTL_PARAM_SHMPAGES},
+	{PCR_NUMPROC, VZCTL_PARAM_NUMPROC},
+	{PCR_PHYSPAGES, VZCTL_PARAM_PHYSPAGES},
+	{PCR_VMGUARPAGES, VZCTL_PARAM_VMGUARPAGES},
+	{PCR_OOMGUARPAGES, VZCTL_PARAM_OOMGUARPAGES},
+	{PCR_NUMFLOCK, VZCTL_PARAM_NUMFLOCK},
+	{PCR_NUMPTY, VZCTL_PARAM_NUMPTY},
+	{PCR_NUMSIGINFO, VZCTL_PARAM_NUMSIGINFO},
+	{PCR_DGRAMRCVBUF, VZCTL_PARAM_DGRAMRCVBUF},
+	{PCR_NUMFILE, VZCTL_PARAM_NUMFILE},
+	{PCR_NUMIPTENT, VZCTL_PARAM_NUMIPTENT},
+	{PCR_SWAPPAGES, VZCTL_PARAM_SWAPPAGES},
+};
 
 struct VzProcess: QProcess
 {
@@ -882,26 +903,27 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 			pCt->setFeaturesOffMask(f.off);
 		}
 		// UB resources
-		struct vzctl_2UL_res res;
-		if (vzctl2_env_get_ub_resource(env_param, VZCTL_PARAM_SWAPPAGES, &res) == 0) {
-			CCtResource *pRes = new CCtResource;
+		BOOST_FOREACH(const ub_res_id_map& x, __ub_res_map) {
+			struct vzctl_2UL_res res;
+			if (vzctl2_env_get_ub_resource(env_param, x.vz, &res) == 0)
+			{
+				CCtResource *pRes = new CCtResource;
 
-			pRes->setResourceId(PCR_SWAPPAGES);
-			pRes->setBarrier(res.b);
-			pRes->setLimit(res.l);
-			pCt->addResource(pRes);
+				pRes->setResourceId(x.sdk);
+				pRes->setBarrier(res.b);
+				pRes->setLimit(res.l);
+				pCt->addResource(pRes);
+			}
 		}
 		// QUOTAUGIDLIMIT
 		if (vzctl2_env_get_quotaugidlimit(env_param, &ul) == 0)
 		{
 			CCtResource *pRes = new CCtResource;
-
 			pRes->setResourceId(PCR_QUOTAUGIDLIMIT);
 			pRes->setBarrier(ul);
 			pRes->setLimit(ul);
 			pCt->addResource(pRes);
 		}
-
 		QStringList l;
 		foreach(QString s, getEnvRawParam()) {
 			if (vzctl2_env_get_param(h, QSTR2UTF8(s), &data) == 0 && data != NULL)
@@ -1369,17 +1391,21 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 	}
 
 	// UB resoureces
-	CCtResource *pResOld = pOldConfig->getCtSettings()->getResource(PCR_SWAPPAGES);
-	CCtResource *pRes = pConfig->getCtSettings()->getResource(PCR_SWAPPAGES);
-	struct vzctl_2UL_res res;
-	if (is_ub_resource_changed(pResOld, pRes)) {
-		res.b = pRes->getBarrier();
-		res.l = pRes->getLimit();
-		vzctl2_env_set_ub_resource(new_param, VZCTL_PARAM_SWAPPAGES, &res);
+	BOOST_FOREACH(const ub_res_id_map& x, __ub_res_map) {
+		CCtResource *pResOld = pOldConfig->getCtSettings()->getResource(x.sdk);
+		CCtResource *pRes = pConfig->getCtSettings()->getResource(x.sdk);
+		if (is_ub_resource_changed(pResOld, pRes)) {
+			struct vzctl_2UL_res res;
+			res.b = pRes->getBarrier();
+			res.l = pRes->getLimit();
+			vzctl2_env_set_ub_resource(new_param, x.vz, &res);
+		}
 	}
 	// QUOTAUGIDLIMIT
-	pResOld = pOldConfig->getCtSettings()->getResource(PCR_QUOTAUGIDLIMIT);
-	pRes = pConfig->getCtSettings()->getResource(PCR_QUOTAUGIDLIMIT);
+	CCtResource *pResOld = pOldConfig->getCtSettings()->
+					getResource(PCR_QUOTAUGIDLIMIT);
+	CCtResource *pRes = pConfig->getCtSettings()->
+					getResource(PCR_QUOTAUGIDLIMIT);
 	if (is_ub_resource_changed(pResOld, pRes))
 		vzctl2_env_set_quotaugidlimit(new_param, pRes->getLimit());
 
