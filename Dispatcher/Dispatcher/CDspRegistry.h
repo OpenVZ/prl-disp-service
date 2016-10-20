@@ -87,6 +87,8 @@ struct Reactor
 
 	void closeTray(const CVmOpticalDisk& model_);
 
+	void updateNetwork(const QString& network_);
+
 private:
 	template<class T>
 	void forward(const T& event_);
