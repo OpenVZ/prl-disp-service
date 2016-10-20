@@ -154,6 +154,59 @@ void Switch::run()
 		s.apply(m_view);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Network
+
+void Network::run()
+{
+	if (m_network.isEmpty())
+		return;
+
+	QList<Agent::Vm::Unit> a;
+	Libvirt::Kit.vms().all(a);
+	foreach (Agent::Vm::Unit m, a)
+	{
+		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+		if (m.getState(s).isFailed())
+		{
+			WRITE_TRACE(DBG_FATAL, "Unable to get VM state");
+			continue;
+		}
+
+		if (s != VMS_RUNNING && s != VMS_PAUSED)
+			continue;
+
+		QString u;
+		if (m.getUuid(u).isFailed())
+		{
+			WRITE_TRACE(DBG_FATAL, "Unable to get VM uuid");
+			continue;
+		}
+
+		QSharedPointer<Model::Domain> d = m_fine->find(u);
+		if (d.isNull())
+		{
+			WRITE_TRACE(DBG_FATAL, "Unable to get domain model");
+			continue;
+		}
+
+		boost::optional<CVmConfiguration> c = d->getConfig();
+		if (!c)
+		{
+			WRITE_TRACE(DBG_FATAL, "Unable to get VM config");
+			continue;
+		}
+
+		foreach(CVmGenericNetworkAdapter *a, c->getVmHardwareList()->m_lstNetworkAdapters)
+		{
+			if (a->getVirtualNetworkID() != m_network)
+				continue;
+
+			m.getRuntime().update(*a);
+		}
+	}
+}
+
 } // namespace Pull
 
 namespace Agent
@@ -897,6 +950,16 @@ int rtcChange(virConnectPtr , virDomainPtr domain_,
 	return 0;
 }
 
+int networkLifecycle(virConnectPtr, virNetworkPtr net_, int event_, int, void* opaque_)
+{
+	if (event_ != VIR_NETWORK_EVENT_STARTED)
+		return 0;
+
+	Model::Coarse* v = (Model::Coarse* )opaque_;
+	v->updateInterfaces(net_);
+	return 0;
+}
+
 int lifecycle(virConnectPtr, virDomainPtr domain_, int event_,
                 int detail_, void* opaque_)
 {
@@ -1247,6 +1310,12 @@ void Coarse::adjustClock(virDomainPtr domain_, qint64 offset_)
 	a.adjustClock(offset_);
 }
 
+void Coarse::updateInterfaces(virNetworkPtr net_)
+{
+	QThreadPool::globalInstance()->start
+		(new Instrument::Pull::Network(virNetworkGetName(net_), m_fine));
+}
+
 } // namespace Model
 
 namespace Monitor
@@ -1309,7 +1378,7 @@ Domains::Domains(Registry::Actual& registry_):
 	m_eventState(-1), m_eventReboot(-1),
 	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
 	m_eventTrayChange(-1), m_eventRtcChange(-1), m_eventAgent(-1),
-	m_registry(&registry_)
+	m_eventNetworkLifecycle(-1), m_registry(&registry_)
 {
 }
 
@@ -1368,6 +1437,12 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 							VIR_DOMAIN_EVENT_CALLBACK(&Callback::Plain::connectAgent),
 							new Model::Coarse(m_view),
 							&Callback::Plain::delete_<Model::Coarse>);
+	m_eventNetworkLifecycle = virConnectNetworkEventRegisterAny(libvirtd_.data(),
+							NULL,
+							VIR_NETWORK_EVENT_ID_LIFECYCLE,
+							VIR_NETWORK_EVENT_CALLBACK(Callback::Plain::networkLifecycle),
+							new Model::Coarse(m_view),
+							&Callback::Plain::delete_<Model::Coarse>);
 	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, m_view, *m_registry);
 	q->setAutoDelete(true);
 	QThreadPool::globalInstance()->start(q);
@@ -1394,6 +1469,8 @@ void Domains::setDisconnected()
 	m_eventRtcChange = -1;
 	virConnectDomainEventDeregisterAny(x.data(), m_eventAgent);
 	m_eventAgent = -1;
+	virConnectNetworkEventDeregisterAny(x.data(), m_eventNetworkLifecycle);
+	m_eventNetworkLifecycle = -1;
 	m_libvirtd.clear();
 	m_view.clear();
 }
