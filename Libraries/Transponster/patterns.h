@@ -23,19 +23,27 @@
 
 #ifndef __PATTERNS_H__
 #define __PATTERNS_H__
+#include <QHash>
+#include <QPair>
 #include "base.h"
 #include <QStack>
 #include <QDomNode>
 #include "marshal.h"
 #include <QBitArray>
 #include <boost/none.hpp>
+#include <boost/foreach.hpp>
+#include <prlsdk/PrlTypes.h>
+#include <prlsdk/PrlErrors.h>
+#include <boost/function.hpp>
 #include <boost/mpl/inherit.hpp>
 #include <boost/variant/get.hpp>
 #include <boost/variant/variant.hpp>
 #include <boost/optional/optional.hpp>
+#include <prlcommon/Logging/Logging.h>
 #include <boost/mpl/inherit_linearly.hpp>
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/type_traits/is_base_of.hpp>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 
 namespace Libvirt
 {
@@ -92,6 +100,18 @@ struct Fragment;
 
 template<class T, class N>
 struct Element;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct ZeroOrMore forward declaration
+
+template<class T>
+struct ZeroOrMore;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct OneOrMore forward declaration
+
+template<class T>
+struct OneOrMore;
 
 namespace Details
 {
@@ -302,77 +322,178 @@ struct Body: private Composite<T>::type
 namespace Unordered
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Consumer
+// struct Player
 
-class Consumer
+template<class T, class U>
+struct Player: Details::Group::Visitor::Unit<T, QStack<QDomElement> >
 {
-	typedef Details::Group::Visitor::Context<QStack<QDomElement> > step_type;
+	typedef QStack<QDomElement> stack_type;
+	typedef Details::Group::Visitor::Unit<T, stack_type> base_type;
+	typedef Details::Group::Visitor::Context<stack_type> context_type;
 
-public:
-	explicit Consumer(step_type::dom_type& point_):
-		m_best(-1), m_step(~0U), m_point(point_), m_dom(&point_)
+	Player(const base_type& base_, const U& u_): base_type(base_), m_u(u_)
 	{
 	}
 
-	bool update(quint32 step_, const step_type& parsing_)
+	context_type* operator()(context_type& context_)
 	{
-		int p = parsing_.getResult();
-		if (p <= getResult())
-			return false;
+		base_type::setContext(&context_);
+		bool x = base_type::operator()(m_u);
+		base_type::setContext(NULL);
 
-		m_best = p;
-		m_step = step_;
-		*m_dom = *parsing_.getDom();
+		return x ? &context_: NULL;
+	}
+
+private:
+	U m_u;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Round
+
+struct Round
+{
+	typedef QPair<quint32, int> result_type;
+	typedef Details::Group::Visitor::Context<QStack<QDomElement> > context_type;
+	typedef std::map<quint32, boost::function<context_type* (context_type& )> >
+		playerMap_type;
+
+	void addPlayer(playerMap_type::key_type key_, const playerMap_type::mapped_type& value_)
+	{
+		m_players.insert(std::make_pair(key_, value_));
+	}
+	result_type operator()(context_type::dom_type& point_)
+	{
+		context_type::dom_type w;
+		result_type output = qMakePair(~0U, -1);
+		BOOST_FOREACH(playerMap_type::const_reference c, m_players)
+		{
+			context_type::dom_type x = point_;
+			context_type s(x);
+			if (NULL == c.second(s) || s.getDom() == NULL)
+				continue;
+
+			int p = s.getResult();
+			if (p > output.second)
+			{
+				w = *s.getDom();
+				output = qMakePair(c.first, p);
+			}
+		}
+		if (!w.isEmpty())
+			point_ = w;
+
+		return output;
+	}
+
+private:
+	playerMap_type m_players;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Arbiter
+
+struct Arbiter
+{
+	BOOST_STRONG_TYPEDEF(PRL_RESULT, error_type);
+	typedef Prl::Expected<int, error_type> result_type;
+
+	explicit Arbiter(const QBitArray& roster_):
+		m_score(), m_roster(roster_), m_result(error_type(PRL_ERR_SERVICE_BUSY))
+	{
+	}
+
+	template<class U, quint32 I>
+	bool allow(Cons<U, I>)
+	{
+		return m_roster.testBit(I);
+	}
+	template<class U, quint32 I>
+	bool allow(Cons<OneOrMore<U>, I>)
+	{
 		return true;
 	}
-	quint32 getStep() const
+	template<class U, quint32 I>
+	bool allow(Cons<ZeroOrMore<U>, I>)
 	{
-		return m_step;
+		(void)m_zeroOrMore[I];
+		return m_roster.testBit(I);
 	}
-	int getResult() const
+	result_type getResult() const
 	{
-		return m_best;
+		return m_result;
 	}
-	const step_type::dom_type& getPoint() const
+	void record(const Round::result_type& round_)
 	{
-		return m_point;
+		if (round_.first >= static_cast<quint32>(m_roster.size()))
+		{
+			if (!sealResult())
+					m_result = error_type(PRL_ERR_FAILURE);
+
+			return;
+		}
+		m_score += round_.second;
+		if (0 == m_zeroOrMore.count(round_.first))
+		{
+			m_roster.setBit(round_.first, false);
+			if (0 == round_.second)
+				sealResult();
+		}
+		else
+		{
+			m_zeroOrMore[round_.first] = round_.second;
+			if (0 == round_.second)
+			{
+				m_roster.setBit(round_.first, false);
+				sealResult();
+			}
+		}
 	}
+
 private:
-	int m_best;
-	quint32 m_step;
-	step_type::dom_type m_point, *m_dom;
+	bool sealResult()
+	{
+		if (0 < m_roster.count(true))
+			return false;
+
+		m_result = m_score;
+		return true;
+	}
+
+	int m_score;
+	QBitArray m_roster;
+	result_type m_result;
+	QHash<quint32, boost::optional<int> > m_zeroOrMore;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // class Visitor
 
 template<class T>
-class Visitor: Details::Group::Visitor::Unit<T, QStack<QDomElement> >
+class Visitor
 {
-	typedef Details::Group::Visitor::Unit<T, QStack<QDomElement> > base_type;
+	typedef Details::Group::Visitor::Unit<T, QStack<QDomElement> > unit_type;
 
-public:
-	Visitor(typename base_type::group_type& group_, const QBitArray& mask_, Consumer& consumer_):
-		base_type(group_), m_mask(mask_), m_consumer(&consumer_)
+public: 
+	Visitor(typename unit_type::group_type& group_, Arbiter& arbiter_, Round& round_):
+		m_round(&round_), m_arbiter(&arbiter_), m_unit(group_)
 	{
 	}
 
 	template<class U, quint32 I>
-	bool operator()(Cons<U, I> cons_)
+	void operator()(Cons<U, I> cons_)
 	{
-		if (!m_mask.testBit(I))
-			return false;
-
-		QStack<QDomElement> d = m_consumer->getPoint();
-		Details::Group::Visitor::Context<QStack<QDomElement> > c(d);
-		base_type::setContext(&c);
-		base_type::operator()(cons_);
-		base_type::setContext(NULL);
-		return m_consumer->update(I, c);
+		if (m_arbiter->allow(cons_))
+		{
+			m_round->addPlayer(I,
+				Player<T, Cons<U, I> >(m_unit, cons_));
+		}
 	}
+
 private:
-	QBitArray m_mask;
-	Consumer* m_consumer;
+	Round* m_round;
+	Arbiter* m_arbiter;
+	unit_type m_unit;
 };
 
 } // namespace Unordered
@@ -839,7 +960,7 @@ struct ZeroOrMore: Access<Details::Value::Identity<QList<typename Value<T>::type
 	int consume(QStack<QDomElement>& stack_)
 	{
 		int output = 0;
-		list_type v;
+		list_type v = this->getValue();
 		while (true)
 		{
 			Fragment<T> x = Fragment<T>();
@@ -916,22 +1037,21 @@ struct Unordered: Details::Group::Body<T>, Pattern
 {
 	int consume(QStack<QDomElement>& stack_)
 	{
-		int output = 0;
-		QBitArray v(mpl::size<T>::value, true);
-		while (0 < v.count(true))
+		using Details::Group::Unordered::Arbiter;
+		Arbiter a(QBitArray(mpl::size<T>::value, true));
+		forever
 		{
-			Details::Group::Unordered::Consumer x(stack_);
+			Details::Group::Unordered::Round r;
 			mpl::for_each<typename Details::Group::Fold<T>::type>
-				(Details::Group::Unordered::Visitor<T>(*this, v, x));
+				(Details::Group::Unordered::Visitor<T>(*this, a, r));
 
-			int y = x.getResult();
-			if (0 > y)
-				return y;
-
-			output += y;
-			v.toggleBit(x.getStep());
+			a.record(r(stack_));
+			Arbiter::result_type x = a.getResult();
+			if (x.isSucceed())
+				return x.value();
+			if (PRL_ERR_SERVICE_BUSY != x.error())
+				return -1;
 		}
-		return output;
 	}
 };
 
