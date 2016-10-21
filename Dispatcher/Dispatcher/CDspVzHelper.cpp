@@ -1113,6 +1113,7 @@ void CDspVzHelper::appendAdvancedParamsToCtConfig(SmartPtr<CVmConfiguration> pOu
 		remDisplay->setPortNumber(0);
 	}
 	remDisplay->setWebSocketPortNumber(remDisplay->getPortNumber());
+	remDisplay->setEncrypted(Vnc::Encryption(*CDspService::instance()->getQSettings().getPtr()).enabled());
 }
 
 #ifdef _LIN_
