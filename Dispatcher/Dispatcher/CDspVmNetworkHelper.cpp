@@ -363,6 +363,7 @@ Libvirt::Result Dao::update(const CVirtualNetwork& model_)
 	{
 		w.setBoundCardMac("");
 		w.setVZVirtualNetwork(NULL);
+		w.setVLANTag();
 	}
 
 	return define(w);
