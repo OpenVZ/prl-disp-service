@@ -76,7 +76,7 @@ namespace Agent
 ///////////////////////////////////////////////////////////////////////////////
 // struct Failure
 //
-struct Failure: ::Error::Simple
+struct Failure: ::Libvirt::Failure
 {
 	Failure(PRL_RESULT result_);
 	bool isTransient() const;

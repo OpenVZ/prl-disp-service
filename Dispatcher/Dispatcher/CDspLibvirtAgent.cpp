@@ -85,6 +85,9 @@ PRL_RESULT Failure::fabricate(PRL_RESULT result_)
 		return PRL_ERR_VM_SNAPSHOT_NOT_FOUND;
 	case VIR_ERR_OPERATION_ABORTED:
 		return PRL_ERR_OPERATION_WAS_CANCELED;
+	case VIR_ERR_AGENT_UNRESPONSIVE:
+	case VIR_ERR_AGENT_UNSYNCED:
+		return PRL_ERR_VM_EXEC_GUEST_TOOL_NOT_AVAILABLE;
 	}
 
 	return result_;
@@ -95,17 +98,11 @@ namespace Agent
 ///////////////////////////////////////////////////////////////////////////////
 // struct Failure
 
-Failure::Failure(PRL_RESULT result_): Error::Simple(result_), m_virErrorCode(0)
+Failure::Failure(PRL_RESULT result_): Libvirt::Failure(result_), m_virErrorCode(0)
 {
 	virErrorPtr err = virGetLastError();
-	if (err) {
-		const char *m = NULL;
+	if (err)
 		m_virErrorCode = err->code;
-#if (LIBVIR_VERSION_NUMBER > 1000004)
-		details() = m = err->message;
-#endif
-		WRITE_TRACE(DBG_DEBUG, "libvirt error %s", m ? : "unknown");
-	}
 }
 
 bool Failure::isTransient() const
