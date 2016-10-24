@@ -300,13 +300,18 @@ private:
 	SmartPtr<CDspClient> m_user;
 };
 
-quint64 GetPerfCounter(const QWeakPointer<Stat::Storage> storage_, const QString& name_)
+Stat::timedValue_type getFullPerfCounter(const QWeakPointer<Stat::Storage>& storage_, const QString& name_)
 {
 	QSharedPointer<Stat::Storage> s = storage_.toStrongRef();
 	if (s.isNull())
-		return 0;
+		return Stat::timedValue_type();
 
 	return s->read(name_);
+}
+
+quint64 GetPerfCounter(const QWeakPointer<Stat::Storage>& storage_, const QString& name_)
+{
+	return getFullPerfCounter(storage_, name_).first;
 }
 
 SmartPtr<IOPackage> create_binary_package(CVmEvent &event)
@@ -365,28 +370,52 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Meter
+namespace {
+
+enum
+{
+	PERFORMANCE_TIMEOUT = 10000,
+	PERFORMANCE_SMOOTH = PERFORMANCE_TIMEOUT / STAT_COLLECTING_TIMEOUT
+};
+
+} //namespace
 
 struct Meter
 {
 	void record(quint64 t, quint64 v);
+	void record(quint64 t, const Stat::timedValue_type& v);
 	Usage report() const;
+
+	quint64 value() const {
+		return m_value.second.first;
+	}
+	quint64 time() const {
+		return m_value.second.second;
+	}
 
 private:
 
 	QPair<quint64, quint64> m_time;
-	QPair<quint64, quint64> m_value;
+	QPair<Stat::timedValue_type, Stat::timedValue_type> m_value;
 };
 
 void Meter::record(quint64 t, quint64 v)
 {
 	m_time = qMakePair(m_time.second, t);
-	m_value = qMakePair(m_value.second, v > 0 ? v : m_value.second);
+	m_value = qMakePair(m_value.second, v > 0 ? Stat::timedValue_type(v, 0) : m_value.second);
+}
+
+void Meter::record(quint64 t, const Stat::timedValue_type& v)
+{
+	m_time = qMakePair(m_time.second, t / PERFORMANCE_SMOOTH);
+	quint64 step = v.first / PERFORMANCE_SMOOTH;
+	m_value = qMakePair(m_value.second, Stat::timedValue_type(step, v.second));
 }
 
 Usage Meter::report() const
 {
 	return Usage(m_time.second - m_time.first,
-			m_value.second - m_value.first);
+			m_value.second.first - m_value.first.first);
 }
 
 quint32 getHostCpus()
@@ -854,9 +883,12 @@ void VCpu::recordTime(Meter &m, quint64 v) const
 
 void VCpu::recordMsec(Meter &m) const
 {
-	m.record(PrlGetTimeMonotonic(),
-			GetPerfCounter(m_storage, Stat::Name::Cpu::getName()) /
-			(getHostCpus() ?: 1));
+	Stat::timedValue_type c = getFullPerfCounter(m_storage, Stat::Name::Cpu::getName());
+	if (c.second > m.time())
+	{
+		c.first /= (getHostCpus() ?: 1);
+		m.record(PrlGetTimeMonotonic(), c);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
