@@ -51,7 +51,7 @@ void Storage::addAbsolute(const QString& name_)
 	if (m_absolute.contains(name_) || m_incremental.contains(name_))
 		return;
 
-	m_absolute.insert(name_, 0);
+	m_absolute.insert(name_, timedValue_type());
 }
 
 void Storage::addIncremental(const QString& name_)
@@ -61,30 +61,30 @@ void Storage::addIncremental(const QString& name_)
 	if (m_incremental.contains(name_) || m_absolute.contains(name_))
 		return;
 
-	m_incremental.insert(name_, 0);
+	m_incremental.insert(name_, timedValue_type());
 }
 
-quint64 Storage::read(const QString& name_)
+timedValue_type Storage::read(const QString& name_)
 {
 	QReadLocker l(&m_rwLock);
 
 	if (m_absolute.contains(name_))
-		return m_absolute.value(name_);
+		return m_absolute[name_];
 
 	if (m_incremental.contains(name_))
-		return m_incremental.value(name_);
+		return m_incremental[name_];
 
-	return 0;
+	return timedValue_type();
 }
 
-void Storage::write(const QString& name_, quint64 value_)
+void Storage::write(const QString& name_, quint64 value_, quint64 time_)
 {
 	QWriteLocker l(&m_rwLock);
 
 	if (m_absolute.contains(name_))
-		m_absolute[name_] = value_;
+		m_absolute[name_] = timedValue_type(value_, time_);
 	else if (m_incremental.contains(name_))
-		m_incremental[name_] = value_;
+		m_incremental[name_] = timedValue_type(value_, time_);
 }
 
 namespace Name

@@ -32,6 +32,7 @@
 #ifndef __CDSPSTATSTORAGE_H__
 #define __CDSPSTATSTORAGE_H__
 
+#include <QPair>
 #include <QHash>
 #include <QString>
 #include <QReadWriteLock>
@@ -39,6 +40,7 @@
 
 namespace Stat
 {
+typedef QPair<quint64, quint64> timedValue_type;
 ///////////////////////////////////////////////////////////////////////////////
 // struct Storage
 
@@ -50,12 +52,12 @@ struct Storage: boost::noncopyable
 
 	void addIncremental(const QString& name_);
 
-	quint64 read(const QString& name_);
+	timedValue_type read(const QString& name_);
 
-	void write(const QString& name_, quint64 value_);
+	void write(const QString& name_, quint64 value_, quint64 time_);
 
 private:
-	typedef QHash<QString, quint64> hash_type;
+	typedef QHash<QString, timedValue_type> hash_type;
 
 	QReadWriteLock m_rwLock;
 	hash_type m_absolute;
