@@ -3327,7 +3327,7 @@ int CVzExecHelper::run_cmd(const QString &uuid,
 
 	args += BIN_VZCTL;
 	args += "--quiet";
-	args += "exec2";
+	args += nFlags & PRPM_RUN_PROGRAM_IN_SHELL ? "exec2" : "exec3";
 	args += ctid;
 	args += sPrg;
 	args += Args;
