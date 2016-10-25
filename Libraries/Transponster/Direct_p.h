@@ -359,6 +359,31 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct DiskForm
+
+struct DiskForm: boost::static_visitor<PRL_RESULT>
+{
+	DiskForm(CVmHardware& hardware_, Clip& clip_, const Libvirt::Domain::Xml::Disk& disk_):
+		m_clip(&clip_), m_hardware(hardware_), m_disk(disk_)
+	{
+	}
+
+	template <class T>
+	PRL_RESULT operator()(const T& ) const
+	{
+		return PRL_ERR_SUCCESS;
+	}
+
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type& disk_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 1>::type& lun_) const;
+
+private:
+	Clip* m_clip;
+	CVmHardware& m_hardware;
+	const Libvirt::Domain::Xml::Disk& m_disk;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Device
 
 struct Device: boost::static_visitor<PRL_RESULT>
@@ -862,6 +887,29 @@ private:
 namespace Fixup
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct DiskForm
+
+struct DiskForm: boost::static_visitor<PRL_RESULT>
+{
+	DiskForm(CVmHardware* hardware_, QList<Libvirt::Domain::Xml::VChoice941>* list_,
+			const Libvirt::Domain::Xml::Disk& disk_)
+		: m_hardware(hardware_), m_list(list_), m_disk(disk_)
+	{
+	}
+
+	template <typename T>
+	void setDiskSource(const QList<T*> list_, uint index_) const;
+
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type& disk_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 1>::type& lun_) const;
+
+private:
+	CVmHardware* m_hardware;
+	QList<Libvirt::Domain::Xml::VChoice941>* m_list;
+	mutable Libvirt::Domain::Xml::Disk m_disk;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Device
 
 struct Device: boost::static_visitor<PRL_RESULT>
@@ -871,8 +919,6 @@ struct Device: boost::static_visitor<PRL_RESULT>
 	{
 	}
 
-	template <typename T>
-	void setDiskSource(Libvirt::Domain::Xml::Disk& disk_, const QList<T*> list_, uint index_);
 	template<class T>
 	PRL_RESULT operator()(const T& device_) const
 	{

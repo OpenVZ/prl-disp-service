@@ -130,6 +130,7 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	boost::optional<QString> alias(disk_.getAlias());
 	if (alias)
 		d->setAlias(*alias);
+	d->setPassthrough(1 == disk_.getDisk().which());
 	return PRL_ERR_SUCCESS;
 }
 
@@ -399,6 +400,31 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct DiskForm
+
+PRL_RESULT DiskForm::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type& disk_) const
+{
+	switch (disk_.getValue())
+	{
+	case Libvirt::Domain::Xml::EDeviceDisk:
+		return Disk(m_hardware, *m_clip)(m_disk);
+	case Libvirt::Domain::Xml::EDeviceCdrom:
+		return Cdrom(m_hardware, *m_clip)(m_disk);
+	case Libvirt::Domain::Xml::EDeviceFloppy:
+		return Floppy(m_hardware, *m_clip)(m_disk);
+	}
+	return PRL_ERR_UNIMPLEMENTED;
+}
+
+PRL_RESULT DiskForm::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 1>::type& lun_) const
+{
+	if (Libvirt::Domain::Xml::EDevice1Lun == lun_.getValue().getDevice())
+		return Disk(m_hardware, *m_clip)(m_disk);
+
+	return PRL_ERR_UNIMPLEMENTED;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Device
 
 PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::types, 4>::type& interface_) const
@@ -514,28 +540,10 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::
 
 PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::types, 0>::type& disk_) const
 {
-	if (0 != disk_.getValue().getDisk().which())
-		return PRL_ERR_SUCCESS;
-
-	const Libvirt::Domain::Xml::EDevice* e = boost::get<mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type>
-		(disk_.getValue().getDisk()).getValue().get_ptr();
-	if (NULL != e)
-	{
-		CVmHardware* h = m_vm->getVmHardwareList();
-		if (NULL == h)
-			return PRL_ERR_UNEXPECTED;
-
-		switch (*e)
-		{
-		case Libvirt::Domain::Xml::EDeviceDisk:
-			return Disk(*h, *m_clip)(disk_.getValue());
-		case Libvirt::Domain::Xml::EDeviceCdrom:
-			return Cdrom(*h, *m_clip)(disk_.getValue());
-		case Libvirt::Domain::Xml::EDeviceFloppy:
-			return Floppy(*h, *m_clip)(disk_.getValue());
-		}
-	}
-	return PRL_ERR_UNIMPLEMENTED;
+	CVmHardware* h(m_vm->getVmHardwareList());
+	if (!h)
+		return PRL_ERR_UNEXPECTED;
+	return boost::apply_visitor(DiskForm(*h, *m_clip, disk_.getValue()), disk_.getValue().getDisk());
 }
 
 PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::types, 9>::type& video_) const
@@ -698,13 +706,13 @@ bool Traits<CVmHardDisk>::examine(const CVmHardDisk* item_, uint index_, PRL_MAS
 } // namespace
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Device
+// struct DiskForm
 
 template <typename T>
-void Device::setDiskSource(Libvirt::Domain::Xml::Disk& disk_, const QList<T*> list_, uint index_)
+void DiskForm::setDiskSource(const QList<T*> list_, uint index_) const
 {
 	Clustered<CVmHardDisk> c;
-	if (!c(disk_))
+	if (!c(m_disk))
 		return;
 
 	typename QList<T*>::const_iterator item = std::find_if(list_.constBegin(), list_.constEnd(),
@@ -715,9 +723,47 @@ void Device::setDiskSource(Libvirt::Domain::Xml::Disk& disk_, const QList<T*> li
 
 	Transponster::Device::Clustered::Builder::Ordinary<T> b(*item);
 	b.setSource();
-	disk_.setDiskSource(static_cast<const Transponster::Device::Clustered::Builder::Ordinary<T>& >(b)
+	m_disk.setDiskSource(static_cast<const Transponster::Device::Clustered::Builder::Ordinary<T>& >(b)
 		.getResult().getDiskSource());
 }
+
+PRL_RESULT DiskForm::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type& disk_) const
+{
+	const Libvirt::Domain::Xml::EDevice e = disk_.getValue();
+	QString dev = m_disk.getTarget().getDev();
+	if (dev.isEmpty())
+		return PRL_ERR_FAILURE;
+
+	uint i = Parallels::fromBase26(dev.remove(0, 2));
+
+	switch (e)
+	{
+	case Libvirt::Domain::Xml::EDeviceDisk:
+		setDiskSource(m_hardware->m_lstHardDisks, i);
+		break;
+	case Libvirt::Domain::Xml::EDeviceCdrom:
+		setDiskSource(m_hardware->m_lstOpticalDisks, i);
+		break;
+	case Libvirt::Domain::Xml::EDeviceFloppy:
+		setDiskSource(m_hardware->m_lstFloppyDisks, i);
+		break;
+	}
+	mpl::at_c<Libvirt::Domain::Xml::VChoice941::types, 0>::type y;
+	y.setValue(m_disk);
+	*m_list << Libvirt::Domain::Xml::VChoice941(y);
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT DiskForm::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 1>::type& lun_) const
+{
+	if (Libvirt::Domain::Xml::EDevice1Lun != lun_.getValue().getDevice())
+		return PRL_ERR_UNEXPECTED;
+
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Device
 
 PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::types, 12>::type&)
 {
@@ -727,38 +773,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::
 
 PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::types, 0>::type& disk_)
 {
-	if (0 != disk_.getValue().getDisk().which())
-		return PRL_ERR_SUCCESS;
-
-	Libvirt::Domain::Xml::Disk disk = disk_.getValue();
-
-	const Libvirt::Domain::Xml::EDevice* e = boost::get<mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type>
-		(disk.getDisk()).getValue().get_ptr();
-	if (NULL != e)
-	{
-		QString dev = disk.getTarget().getDev();
-		if (dev.isEmpty())
-			return PRL_ERR_FAILURE;
-
-		uint i = Parallels::fromBase26(dev.remove(0, 2));
-
-		switch (*e)
-		{
-		case Libvirt::Domain::Xml::EDeviceDisk:
-			setDiskSource(disk, m_hardware.m_lstHardDisks, i);
-			break;
-		case Libvirt::Domain::Xml::EDeviceCdrom:
-			setDiskSource(disk, m_hardware.m_lstOpticalDisks, i);
-			break;
-		case Libvirt::Domain::Xml::EDeviceFloppy:
-			setDiskSource(disk, m_hardware.m_lstFloppyDisks, i);
-			break;
-		}
-	}
-	mpl::at_c<Libvirt::Domain::Xml::VChoice941::types, 0>::type y;
-	y.setValue(disk);
-	*m_list << Libvirt::Domain::Xml::VChoice941(y);
-	return PRL_ERR_SUCCESS;
+	return boost::apply_visitor(DiskForm(&m_hardware, m_list, disk_.getValue()), disk_.getValue().getDisk());
 }
 
 } // namespace Fixup

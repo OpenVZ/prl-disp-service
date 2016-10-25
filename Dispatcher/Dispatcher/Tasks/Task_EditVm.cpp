@@ -1661,7 +1661,7 @@ PRL_RESULT Task_EditVm::editVm()
 								{
 									CVmHardDisk *d = dynamic_cast<CVmHardDisk*>(pNewDevice);
 									PRL_ASSERT(d);
-									if (d && d->getSerialNumber().isEmpty())
+									if (d && d->getSerialNumber().isEmpty() && d->getPassthrough() != PVE::PassthroughEnabled)
 										d->setSerialNumber(Parallels::generateDiskSerialNumber());
 
 									// VIRTIO and SCSI devices can be added either on running VM or stopped
