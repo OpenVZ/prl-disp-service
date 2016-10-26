@@ -698,7 +698,7 @@ bool CVmValidateConfig::IsNestedVirtEnabled()
 	if (!f.open(QIODevice::ReadOnly))
 		return false;
 	QString qsContent = f.readAll();
-	return qsContent == "Y";
+	return qsContent.startsWith('Y', Qt::CaseInsensitive);
 }
 
 QString CVmValidateConfig::GetFileNameFromInvalidPath(const QString& qsSysName)
