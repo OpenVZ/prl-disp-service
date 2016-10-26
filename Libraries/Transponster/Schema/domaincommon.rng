@@ -1263,15 +1263,13 @@
     <element name="disk">
       <choice>
         <group>
-          <optional>
-            <attribute name="device">
-              <choice>
-                <value>floppy</value>
-                <value>disk</value>
-                <value>cdrom</value>
-              </choice>
-            </attribute>
-          </optional>
+          <attribute name="device">
+            <choice>
+              <value>floppy</value>
+              <value>disk</value>
+              <value>cdrom</value>
+            </choice>
+          </attribute>
         </group>
         <group>
           <attribute name="device">

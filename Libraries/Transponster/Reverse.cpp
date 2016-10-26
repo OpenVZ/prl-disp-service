@@ -423,6 +423,18 @@ void Hdd::setSerial(const QString& serial_)
 	getResult().setSerial(serial_);
 }
 
+void Hdd::setDisk()
+{
+	Ordinary<CVmHardDisk>::setDisk();
+	if (PVE::PassthroughEnabled != m_hdd.getPassthrough())
+		return;
+	mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 1>::type x;
+	Libvirt::Domain::Xml::Disk461 d;
+	d.setDevice(Libvirt::Domain::Xml::EDevice1Lun);
+	x.setValue(d);
+	getResult().setDisk(Libvirt::Domain::Xml::VDisk(x));
+}
+
 } // namespace Builder
 
 } // namespace Clustered
@@ -445,7 +457,7 @@ void List::add(const CVmHardDisk* hdd_, const CVmRunTimeOptions* runtime_)
 	if (hdd_->getEnabled() != PVE::DeviceEnabled)
 		return;
 	Clustered::Builder::Hdd b(*hdd_, m_boot(*hdd_));
-	if (NULL != runtime_)
+	if (NULL != runtime_ && hdd_->getPassthrough() != PVE::PassthroughEnabled)
 	{
 		b.setIoLimit(runtime_->getIoLimit());
 		b.setIopsLimit(*runtime_);

@@ -3516,7 +3516,7 @@ namespace Domain
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Optional<Attribute<Domain::Xml::EDevice, Name::Strict<336> > >, Disk461 > > VDiskImpl;
+typedef Choice<mpl::vector<Attribute<Domain::Xml::EDevice, Name::Strict<336> >, Disk461 > > VDiskImpl;
 typedef VDiskImpl::value_type VDisk;
 
 } // namespace Xml
