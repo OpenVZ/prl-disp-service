@@ -76,14 +76,19 @@ PRL_RESULT Api::init(const SmartPtr<CVmConfiguration>& config_)
 
 	int r = vcmmd_register_ve(qPrintable(m_uuid), vmType, &vcmmdConfig, 0);
 
-	if (VCMMD_ERROR_VE_NAME_ALREADY_IN_USE != r)
+	if (VCMMD_ERROR_VE_NAME_ALREADY_IN_USE != r) {
+		vcmmd_ve_config_deinit(&vcmmdConfig);
 		return treat(r, "vcmmd_register_ve");
+	}
 
 	r = vcmmd_unregister_ve(qPrintable(m_uuid));
-	if (r)
+	if (r) {
+		vcmmd_ve_config_deinit(&vcmmdConfig);
 		return treat(r, "vcmmd_unregister_ve");
+	}
 
 	r = vcmmd_register_ve(qPrintable(m_uuid), vmType, &vcmmdConfig, 0);
+	vcmmd_ve_config_deinit(&vcmmdConfig);
 	return treat(r, "vcmmd_register_ve");
 }
 
@@ -94,8 +99,9 @@ PRL_RESULT Api::update(quint64 limit_, quint64 guarantee_)
 	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_GUARANTEE, guarantee_);
 	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_LIMIT, limit_);
 
-	return treat(vcmmd_update_ve(qPrintable(m_uuid), &config, 0),
-		"vcmmd_update_ve");
+	int r = vcmmd_update_ve(qPrintable(m_uuid), &config, 0);
+	vcmmd_ve_config_deinit(&config);
+	return treat(r, "vcmmd_update_ve");
 }
 
 Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> Api::getConfig() const
@@ -110,6 +116,7 @@ Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> Api::getConfig() const
 	vcmmd_ve_config_extract(&config, VCMMD_VE_CONFIG_LIMIT, (uint64_t*)&output.first);
 	vcmmd_ve_config_extract(&config, VCMMD_VE_CONFIG_GUARANTEE, (uint64_t*)&output.second);
 
+	vcmmd_ve_config_deinit(&config);
 	return output;
 }
 
