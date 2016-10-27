@@ -1013,7 +1013,14 @@ PRL_RESULT Task_VzManager::create_env_disk()
 		return PRL_ERR_HDD_IMAGE_IS_ALREADY_EXIST;
 	}
 
-	return get_op_helper()->create_env_disk(pCmd->GetVmUuid(), disk);
+	ret = get_op_helper()->create_env_disk(pCmd->GetVmUuid(), disk);
+	if (PRL_FAILED(ret))
+		return ret;
+
+	getVzHelper()->getConfigCache()
+		.remove(pConfig->getVmIdentification()->getHomePath());
+
+	return PRL_ERR_SUCCESS
 }
 
 static CVmHardDisk *find_disk_by_fname(const SmartPtr<CVmConfiguration> &pConfig,
