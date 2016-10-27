@@ -1020,7 +1020,7 @@ PRL_RESULT Task_VzManager::create_env_disk()
 	getVzHelper()->getConfigCache()
 		.remove(pConfig->getVmIdentification()->getHomePath());
 
-	return PRL_ERR_SUCCESS
+	return PRL_ERR_SUCCESS;
 }
 
 static CVmHardDisk *find_disk_by_fname(const SmartPtr<CVmConfiguration> &pConfig,
