@@ -1013,7 +1013,7 @@ PRL_RESULT Task_VzManager::create_env_disk()
 		return PRL_ERR_HDD_IMAGE_IS_ALREADY_EXIST;
 	}
 
-	ret = get_op_helper()->create_env_disk(pCmd->GetVmUuid(), disk);
+	PRL_RESULT ret = get_op_helper()->create_env_disk(pCmd->GetVmUuid(), disk);
 	if (PRL_FAILED(ret))
 		return ret;
 
