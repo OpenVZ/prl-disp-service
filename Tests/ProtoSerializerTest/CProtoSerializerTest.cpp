@@ -483,78 +483,46 @@ void CProtoSerializerTest::testCreateDspWsResponseCommandWithAdditionalErrorInfo
 	CHECK_STANDARD_RESULT_PARAMS
 }
 
-#define LOGIN_LOCAL_CMD_PARAMS_DECLARE\
-	quint32 nUserId = 501;\
-	quint64 nProcessId = ((quint64)1 << 55); /* more than 2^32 to test 64 bit value */ \
-	PRL_UNUSED_PARAM(nUserId); \
-	PRL_UNUSED_PARAM(nProcessId);
+#define LOGIN_LOCAL_CMD_PARAMS_DECLARE \
+        QString sPrevSessionUuid = "somePrevSessionUuid";
 
 void CProtoSerializerTest::testCreateDspCmdUserLoginLocalCommand()
 {
 	LOGIN_LOCAL_CMD_PARAMS_DECLARE
-	CProtoCommandPtr pCmd = CProtoSerializer::CreateDspCmdUserLoginLocalCommand(nUserId, PAM_SERVER, nProcessId);
+	CProtoCommandPtr pCmd = CProtoSerializer::CreateDspCmdUserEasyLoginLocalCommand(PAM_SERVER, sPrevSessionUuid);
 	SmartPtr<CVmEvent> pEvent = pCmd->GetCommand();
-	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_LOGIN_LOCAL_CMD_USER_ID, PVE::UnsignedInt, QString("%1").arg(nUserId))
+	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_EASY_LOGIN_LOCAL_CMD_SESSION_TO_RESTORE, PVE::String, sPrevSessionUuid)
 }
 
 void CProtoSerializerTest::testParseDspCmdUserLoginLocalCommand()
 {
 	LOGIN_LOCAL_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
-	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(nUserId), EVT_PARAM_LOGIN_LOCAL_CMD_USER_ID));
-	_pkg->addEventParameter(new CVmEventParameter(PVE::UInt64, QString("%1").arg(nProcessId), EVT_PARAM_LOGIN_LOCAL_CMD_PROCESS_ID));
-	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdUserLoginLocal, _pkg->toString());
+	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sPrevSessionUuid, EVT_PARAM_EASY_LOGIN_LOCAL_CMD_SESSION_TO_RESTORE));
+	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdUserEasyLoginLocal, _pkg->toString());
 	QVERIFY(pCmd->IsValid());
-	CProtoCommandDspCmdUserLoginLocal *pDspCmdUserLoginLocalCmd = CProtoSerializer::CastToProtoCommand<CProtoCommandDspCmdUserLoginLocal>(pCmd);
-	QVERIFY(nUserId == pDspCmdUserLoginLocalCmd->GetUserId());
-	QVERIFY(nProcessId == pDspCmdUserLoginLocalCmd->GetProcessId());
 }
 
 #define CHECK_LOGIN_LOCAL_CMD_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS\
-	CProtoCommandDspCmdUserLoginLocal *pDspCmdUserLoginLocalCmd = CProtoSerializer::CastToProtoCommand<CProtoCommandDspCmdUserLoginLocal>(pCmd); \
-	pDspCmdUserLoginLocalCmd->GetUserId(); \
-	pDspCmdUserLoginLocalCmd->GetProcessId();
+	CProtoCommandDspCmdUserEasyLoginLocal *pDspCmdUserLoginLocalCmd = CProtoSerializer::CastToProtoCommand<CProtoCommandDspCmdUserEasyLoginLocal>(pCmd); \
+	pDspCmdUserLoginLocalCmd->GetPrevSessionUuid();
 
 void CProtoSerializerTest::testDspCmdUserLoginLocalCommandIsValidFailedOnEmptyPackage()
 {
 	LOGIN_LOCAL_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
-	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdUserLoginLocal, _pkg->toString());
+	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdUserEasyLoginLocal, _pkg->toString());
 	QVERIFY(!pCmd->IsValid());
 	CHECK_LOGIN_LOCAL_CMD_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS
 }
 
-void CProtoSerializerTest::testDspCmdUserLoginLocalCommandIsValidFailedOnUserIdAbsent()
+void CProtoSerializerTest::testDspCmdUserLoginLocalCommandIsValidFailedOnPrevSessionUuidAbsent()
 {
 	LOGIN_LOCAL_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
-	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdUserLoginLocal, _pkg->toString());
+	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(PVE::DspCmdUserEasyLoginLocal, _pkg->toString());
 	QVERIFY(!pCmd->IsValid());
 	CHECK_LOGIN_LOCAL_CMD_NOT_FAILED_ON_GETTING_NON_PRESENTS_PARAMS
-}
-
-void CProtoSerializerTest::testCreateDspWsResponseCommandForDspCmdUserLoginLocal()
-{
-	QString sFilePath = "some file path";
-	QString sCheckData = "some check data";
-	PVE::IDispatcherCommands nCmdIdentifier = PVE::DspCmdUserLoginLocal;
-	PRL_RESULT nErrCode = PRL_ERR_SUCCESS;
-	CProtoCommandPtr pCmd = CProtoSerializer::CreateDspWsResponseCommand(nCmdIdentifier, nErrCode);
-	CProtoCommandDspWsResponse *pResponseCmd = CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>(pCmd);
-	pResponseCmd->AddStandardParam(sFilePath);
-	pResponseCmd->AddStandardParam(sCheckData);
-	pCmd = CProtoSerializer::ParseCommand(PVE::DspWsResponse, pCmd->GetCommand()->toString());
-	SmartPtr<CResult> pResult( new CResult );
-	pResponseCmd = CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>(pCmd);
-	pResponseCmd->FillResult(pResult.getImpl());
-	QVERIFY(pResult->GetParamsCount() == 2);
-	QCOMPARE(pResult->GetParamToken(0), sFilePath);
-	QCOMPARE(pResult->GetParamToken(1), sCheckData);
-	CHECK_STANDARD_RESULT_PARAMS
-	QVERIFY(pResponseCmd->GetStandardParamsCount() == 2);
-	QCOMPARE(pResponseCmd->GetStandardParam(0), sFilePath);
-	QCOMPARE(pResponseCmd->GetStandardParam(1), sCheckData);
-	QCOMPARE(pResponseCmd->GetStandardParam(2), QString());//Check on out of range here
 }
 
 void CProtoSerializerTest::testCreateDspCmdUserLogoffCommand()
@@ -1220,11 +1188,6 @@ void CProtoSerializerTest::testDspCmdVmAnswerCommandIsValidFailedOnAnswerAbsent(
 void CProtoSerializerTest::testParseCommandForDspCmdSMCShutdownDispatcher()
 {
 	TEST_PARSE_COMMAND_WITH_ONE_STR_PARAM(DspCmdSMCShutdownDispatcher)
-}
-
-void CProtoSerializerTest::testParseDspCmdUserLoginLocalStage2Command()
-{
-	TEST_PARSE_COMMAND_WITH_ONE_STR_PARAM(DspCmdUserLoginLocalStage2)
 }
 
 void CProtoSerializerTest::testParseCommandForDspCmdCtlApplyVmConfig()

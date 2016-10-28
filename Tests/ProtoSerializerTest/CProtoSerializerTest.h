@@ -75,12 +75,10 @@ private slots:
 	void testCreateDspCmdUserLoginLocalCommand();
 	void testParseDspCmdUserLoginLocalCommand();
 	void testDspCmdUserLoginLocalCommandIsValidFailedOnEmptyPackage();
-	void testDspCmdUserLoginLocalCommandIsValidFailedOnUserIdAbsent();
-	void testCreateDspWsResponseCommandForDspCmdUserLoginLocal();
+	void testDspCmdUserLoginLocalCommandIsValidFailedOnPrevSessionUuidAbsent();
 	void testCreateDspCmdUserLogoffCommand();
 	void testParseDspCmdUserLogoffCommand();
 	void testParseCommandForDspCmdSMCShutdownDispatcher();
-	void testParseDspCmdUserLoginLocalStage2Command();
 	void testParseCommandForDspCmdDirGetVmList();
 	void testParseCommandForDspCmdUserGetEvent();
 	void testParseCommandForDspCmdUserGetProfile();

@@ -247,8 +247,7 @@ static bool isCommandAllowedWithoutInitComplete( PVE::IDispatcherCommands cmd )
 	switch(cmd)
 	{
 	case PVE::DspCmdUserLogin:
-	case PVE::DspCmdUserLoginLocal:
-	case PVE::DspCmdUserLoginLocalStage2:
+	case PVE::DspCmdUserEasyLoginLocal:
 	case PVE::DspCmdUserLogoff:
 	case PVE::DspCmdAllHostUsers:
 	case PVE::DspCmdUserGetLicenseInfo:
@@ -384,7 +383,7 @@ void CDspClientManager::handleToDispatcherPackage (
 			}
 		}
 		break;
-		case PVE::DspCmdUserLoginLocal:
+		case PVE::DspCmdUserEasyLoginLocal:
 			{
 				m_rwLock.lockForRead();
 				bool cliExists = m_clients.contains(h);
@@ -402,40 +401,8 @@ void CDspClientManager::handleToDispatcherPackage (
 						return;
 					}
 
-					m_service->getUserHelper().processUserLoginLocal( h, p );
-
-					ReleaseLogonClient(h);
-				}
-				return;
-			}
-			break;
-		case PVE::DspCmdUserLoginLocalStage2:
-			{
-				if (m_service->isServerStopping())
-				{
-					WRITE_TRACE(DBG_FATAL, "Dispatcher shutdown is in progress!");
-					m_service->sendSimpleResponseToClient(h, p, PRL_ERR_DISP_SHUTDOWN_IN_PROCESS);
-					return;
-				}
-
-				m_rwLock.lockForRead();
-				bool cliExists = m_clients.contains(h);
-				m_rwLock.unlock();
-
-				if ( cliExists )
-					m_service->sendSimpleResponseToClient(h, p, PRL_ERR_USER_IS_ALREADY_LOGGED);
-				else
-				{
-					if (!CaptureLogonClient(h))
-					{
-						WRITE_TRACE(DBG_FATAL, "Client logon actions reached up limit!");
-						m_service->
-							sendSimpleResponseToClient(h, p, PRL_ERR_DISP_LOGON_ACTIONS_REACHED_UP_LIMIT);
-						return;
-					}
-
 					SmartPtr<CDspClient> client =
-						m_service->getUserHelper().processUserLoginLocalStage2(h, p);
+						m_service->getUserHelper().processUserLoginLocal( h, p );
 					if ( client )
 					{
 						m_rwLock.lockForWrite();
