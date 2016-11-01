@@ -417,8 +417,7 @@ public:
 			SmartPtr<CVmConfiguration> &pOldConfig, unsigned int nFlags = 0);
 	int del_env_disk(const QString &uuid, const CVmHardDisk &disk, unsigned int flags);
 	int create_env_snapshot(const QString &uuid, const QString &snap_uuid,
-			const QString &name, const QString &desc,
-			PRL_UINT32 nFlags);
+			const QString &name, const QString &desc);
 	int delete_env_snapshot(const QString &uuid, const QString &snap_uuid, bool bDelChild);
 	int switch_env_snapshot(const QString &uuid, const QString &snap_uuid,
 			PRL_UINT32 flags);

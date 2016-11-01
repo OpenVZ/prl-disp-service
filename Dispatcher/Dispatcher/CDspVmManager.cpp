@@ -586,12 +586,9 @@ struct Essence<PVE::DspCmdVmCreateSnapshot>: Need::Agent, Need::Context,
 			c.SetName(getCommand()->GetName());
 			if (s.add(f) && s.setMetadata(c))
 			{
-				Libvirt::Instrument::Agent::Vm::Snapshot::Request req;
-
-				req.setDescription(getCommand()->GetSnapshotUuid());
-				req.setFlags(getCommand()->GetCommandFlags());
 				e = getAgent().getSnapshot().define(
-					getCommand()->GetSnapshotUuid(), req);
+					getCommand()->GetSnapshotUuid(),
+					getCommand()->GetDescription());
 			}
 			else
 			{

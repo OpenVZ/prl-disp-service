@@ -2748,8 +2748,7 @@ int CVzOperationHelper::auth_env_user(const QString &uuid, const QString &user, 
 }
 
 int CVzOperationHelper::create_env_snapshot(const QString &uuid,
-		const QString &snap_uuid, const QString &name,
-		const QString &desc, PRL_UINT32 nFlags)
+		const QString &snap_uuid, const QString &name, const QString &desc)
 {
 	Q_UNUSED(name);
 	Q_UNUSED(desc);
@@ -2766,9 +2765,6 @@ int CVzOperationHelper::create_env_snapshot(const QString &uuid,
 	args += "snapshot";
 	args += ctid;
 	args += "--uuid"; args += snap_uuid;
-	if (nFlags & PCSF_DISK_ONLY)
-		args += "--skip_dump";
-
 	args += "--env";
 
 	m_Envs.insert(VZCTL_ENV_SNAPSHOT_NAME_PARAM, name);
