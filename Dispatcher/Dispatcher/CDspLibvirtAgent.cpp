@@ -2037,6 +2037,23 @@ void Activity::stop()
 namespace Snapshot
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Request
+
+Request::Request() : m_flags(VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC)
+{
+}
+
+void Request::setDiskOnly()
+{
+	m_flags |= VIR_DOMAIN_SNAPSHOT_CREATE_DISK_ONLY;
+}
+
+void Request::setConsistent()
+{
+	m_flags |= VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
 Unit::Unit(virDomainSnapshotPtr snapshot_): m_snapshot(snapshot_, &virDomainSnapshotFree)
@@ -2155,7 +2172,7 @@ Result List::all(QList<Unit>& dst_) const
 }
 
 Prl::Expected<Unit, Error::Simple>
-	List::define(const QString& uuid_, const QString& description_, quint32 flags_)
+	List::define_(const QString& uuid_, const Request& req_)
 {
 	CVmConfiguration x;
 	virDomainRef(m_domain.data());
@@ -2168,7 +2185,7 @@ Prl::Expected<Unit, Error::Simple>
 	if ((e = m.getState(s)).isFailed())
 		return e.error();
 
-	Transponster::Snapshot::Reverse y(uuid_, description_, x);
+	Transponster::Snapshot::Reverse y(uuid_, req_.getDescription(), x);
 	PRL_RESULT f = Transponster::Director::snapshot(y);
 	if (PRL_FAILED(f))
 		return Error::Simple(f);
@@ -2178,7 +2195,8 @@ Prl::Expected<Unit, Error::Simple>
 
 	WRITE_TRACE(DBG_DEBUG, "xml:\n%s", y.getResult().toUtf8().data());
 	virDomainSnapshotPtr p = virDomainSnapshotCreateXML(m_domain.data(),
-					y.getResult().toUtf8().data(), flags_);
+			y.getResult().toUtf8().data(),
+			req_.getFlags());
 	if (NULL == p)
 		return Failure(PRL_ERR_FAILURE);
 
@@ -2195,16 +2213,9 @@ Result List::translate(const Prl::Expected<Unit, Error::Simple>& result_, Unit* 
 	return Result();
 }
 
-Result List::define(const QString& uuid_, const QString& description_, Unit* dst_)
+Result List::define(const QString& uuid_, const Request& req_, Unit* dst_)
 {
-	return translate(define(uuid_, description_,
-		VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC), dst_);
-}
-
-Result List::defineConsistent(const QString& uuid_, const QString& description_, Unit* dst_)
-{
-	return translate(define(uuid_, description_,
-		VIR_DOMAIN_SNAPSHOT_CREATE_QUIESCE | VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC), dst_);
+	return translate(define_(uuid_, req_), dst_);
 }
 
 Result List::createExternal(const QString& uuid_, const QList<CVmHardDisk*>& disks_)

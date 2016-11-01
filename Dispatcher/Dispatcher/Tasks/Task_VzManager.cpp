@@ -1174,7 +1174,8 @@ PRL_RESULT Task_VzManager::create_env_snapshot()
 	CProtoCreateSnapshotCommand *pCmd = CProtoSerializer::CastToProtoCommand<CProtoCreateSnapshotCommand>(cmd);
 
 	res = get_op_helper()->create_env_snapshot(cmd->GetVmUuid(), sSnapUuid,
-			pCmd->GetName(), pCmd->GetDescription());
+			pCmd->GetName(), pCmd->GetDescription(),
+			pCmd->GetCommandFlags());
 	if (PRL_SUCCEEDED(res)) {
 		getResponseCmd()->AddStandardParam(sSnapUuid);
 		sendEvent(PET_DSP_EVT_VM_SNAPSHOTED, cmd->GetVmUuid());

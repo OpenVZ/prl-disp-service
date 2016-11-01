@@ -345,6 +345,37 @@ private:
 
 namespace Snapshot
 {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Request
+
+struct Request
+{
+	Request();
+
+	const QString& getDescription() const
+	{
+		return m_description;
+	}
+
+	void setDescription(const QString& description_)
+	{
+		m_description = description_;
+	}
+
+	quint32 getFlags() const
+	{
+		return m_flags;
+	}
+
+	void setDiskOnly();
+	void setConsistent();
+
+private:
+	QString m_description;
+	quint32 m_flags;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
@@ -377,9 +408,7 @@ struct List
 
 	Unit at(const QString& uuid_) const;
 	Result all(QList<Unit>& dst_) const;
-	Result define(const QString& uuid_, const QString& description_,
-		Unit* dst_ = NULL);
-	Result defineConsistent(const QString& uuid_, const QString& description_,
+	Result define(const QString& uuid_, const Request& req_,
 		Unit* dst_ = NULL);
 	Result createExternal(const QString& uuid_, const QList<CVmHardDisk*>& disks_);
 	
@@ -387,7 +416,7 @@ struct List
 
 private:
 	Prl::Expected<Unit, ::Error::Simple>
-		define(const QString& uuid_, const QString& description_, quint32 flags_);
+		define_(const QString& uuid_, const Request& req_);
 
 	static Result translate
 		(const Prl::Expected<Unit, ::Error::Simple>& result_, Unit* dst_);
