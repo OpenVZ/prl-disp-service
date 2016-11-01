@@ -355,7 +355,8 @@ Result Unit::suspend(const QString& sav_)
 Result Unit::undefine()
 {
 	return do_(m_domain.data(), boost::bind(&virDomainUndefineFlags, _1,
-		VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA));
+		VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA |
+		VIR_DOMAIN_UNDEFINE_KEEP_NVRAM));
 }
 
 Result Unit::getState(VIRTUAL_MACHINE_STATE& dst_) const
