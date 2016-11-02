@@ -3587,7 +3587,7 @@ int CVzOperationHelper::move_env(const QString &sUuid, const QString &sNewHome,
 	} else {
 		sDstCtid = sSrcCtid;
  	}
-	sNewPrivate = QString("%1/%2").arg(sNewHome).arg(sDstCtid);
+	sNewPrivate = QFileInfo(QString("%1/%2").arg(sNewHome).arg(sDstCtid)).absoluteFilePath();
 
 	// vzmlocal 101 --noevent --new-private /vz/private/test
 	args += sSrcCtid;

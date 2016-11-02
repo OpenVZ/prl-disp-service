@@ -758,7 +758,7 @@ PRL_RESULT Task_VzManager::register_env()
 
 	QString vm_uuid = sUuid;
 	QString vm_name;
-	QString vm_home = sPath + "/" + VMDIR_DEFAULT_VM_CONFIG_FILE;
+	QString vm_home = sPath;
 
 	PRL_RESULT res;
 	CVmDirectory::TemporaryCatalogueItem vmInfo( vm_uuid, vm_home, vm_name);
@@ -1467,11 +1467,11 @@ PRL_RESULT Task_VzManager::move_env()
 
 	QString sUuid = pCmd->GetVmUuid();
 	QString sNewHome = pCmd->GetNewHomePath();
-
 	if (sNewHome.isEmpty()) {
 		WRITE_TRACE(DBG_FATAL, "New container home path path is empty");
 		return PRL_ERR_INVALID_PARAM;
 	}
+
 	res = check_env_state(PVE::DspCmdDirVmMove, sUuid);
 	if (PRL_FAILED(res))
 		return res;
@@ -1481,9 +1481,8 @@ PRL_RESULT Task_VzManager::move_env()
 		WRITE_TRACE(DBG_FATAL, "Can not get container ID for UUID %s", QSTR2UTF8(sUuid));
 		return PRL_ERR_CT_NOT_FOUND;
 	}
-
 	QString sName = pConfig->getVmIdentification()->getVmName();
-	CVmDirectory::TemporaryCatalogueItem vmInfo( sUuid, QString(), sName );
+	CVmDirectory::TemporaryCatalogueItem vmInfo( sUuid, sNewHome, sName );
 
 	res = CDspService::instance()->getVmDirManager()
 			.lockExistingExclusiveVmParameters(m_sVzDirUuid, &vmInfo);
@@ -1512,9 +1511,11 @@ PRL_RESULT Task_VzManager::move_env()
 	}
 
 	res = get_op_helper()->move_env(sUuid, sNewHome, sName);
-
 	// Get updated config
 	if (PRL_SUCCEEDED(res)) {
+		getVzHelper()->getConfigCache()
+			.remove(pConfig->getVmIdentification()->getHomePath());
+
 		pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
 		if (!pConfig) {
 			WRITE_TRACE(DBG_FATAL, "Can not get container ID for UUID %s after move",
@@ -1525,7 +1526,6 @@ PRL_RESULT Task_VzManager::move_env()
 
 	// Update Vm directory item
 	if (PRL_SUCCEEDED(res)) {
-
 		CDspLockedPointer< CVmDirectoryItem >
 			pVmDirItem = CDspService::instance()->getVmDirManager()
 			.getVmDirItemByUuid(m_sVzDirUuid, sUuid );
@@ -1534,9 +1534,7 @@ PRL_RESULT Task_VzManager::move_env()
 			WRITE_TRACE(DBG_FATAL, "Can't found VmDirItem by vmUuid = %s",
 					QSTR2UTF8(sUuid));
 		} else {
-			QString newConfPath = pConfig->getVmIdentification()->getHomePath() +
-				"/" + VMDIR_DEFAULT_VM_CONFIG_FILE;
-			pVmDirItem->setVmHome(newConfPath);
+			pVmDirItem->setVmHome(pConfig->getVmIdentification()->getHomePath());
 			pVmDirItem->setCtId(pConfig->getVmIdentification()->getCtId());
 			res = CDspService::instance()->getVmDirManager().updateVmDirItem(pVmDirItem);
 			if (PRL_FAILED(res) )
