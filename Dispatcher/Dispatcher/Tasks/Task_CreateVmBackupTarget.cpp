@@ -433,25 +433,24 @@ PRL_RESULT Task_CreateVmBackupTarget::run_body()
 		goto exit;
 	}
 
-	/* part one : plain copy of config files */
-	nRetCode = exec();
-	if (PRL_FAILED(nRetCode)) {
-		WRITE_TRACE(DBG_FATAL, "Backup Plain copy stage failed: %s",
-				PRL_RESULT_TO_STRING(nRetCode));
-		goto exit;
-	}
-
-	/* create temporary file for abackup server */
-	tmpFile.setFileTemplate(QString("%1/ABackupOutFile.XXXXXX").arg(m_sTargetPath));
-	/* open() & closed() to get real file name */
-	if (!tmpFile.open()) {
-		WRITE_TRACE(DBG_FATAL, "QTemporaryFile::open() error: %s",
-				QSTR2UTF8(tmpFile.errorString()));
-		nRetCode = PRL_ERR_BACKUP_INTERNAL_ERROR;
-		goto exit;
-	}
 	if (BACKUP_PROTO_V4 > m_nRemoteVersion)
 	{
+		/* part one : plain copy of config files */
+		nRetCode = exec();
+		if (PRL_FAILED(nRetCode)) {
+			WRITE_TRACE(DBG_FATAL, "Backup Plain copy stage failed: %s",
+					PRL_RESULT_TO_STRING(nRetCode));
+			goto exit;
+		}
+		/* create temporary file for abackup server */
+		tmpFile.setFileTemplate(QString("%1/ABackupOutFile.XXXXXX").arg(m_sTargetPath));
+		/* open() & closed() to get real file name */
+		if (!tmpFile.open()) {
+			WRITE_TRACE(DBG_FATAL, "QTemporaryFile::open() error: %s",
+					QSTR2UTF8(tmpFile.errorString()));
+			nRetCode = PRL_ERR_BACKUP_INTERNAL_ERROR;
+			goto exit;
+		}
 		/* for QTemporaryFile file name exist after open() and before close() only */
 		m_sABackupOutFile = tmpFile.fileName();
 		tmpFile.close();
@@ -546,7 +545,7 @@ void Task_CreateVmBackupTarget::finalizeTask()
 void Task_CreateVmBackupTarget::handlePackage(IOSender::Handle h, const SmartPtr<IOPackage> p)
 {
 	PRL_RESULT nRetCode;
-	bool bExit;
+	bool bExit = false;
 
 	// #439777 to protect call handler for destroying object
 	WaiterTillHandlerUsingObject::AutoUnlock lock( m_waiter );
@@ -559,8 +558,12 @@ void Task_CreateVmBackupTarget::handlePackage(IOSender::Handle h, const SmartPtr
 	if (IS_FILE_COPY_PACKAGE(p->header.type)) {
 		PRL_ASSERT(m_pVmCopyTarget);
 		nRetCode = m_pVmCopyTarget->handlePackage(p, &bExit);
-		if (bExit)
+		if (!bExit)
+			return;
+		if (PRL_FAILED(nRetCode))
 			exit(nRetCode);
+		if (m_nRemoteVersion < BACKUP_PROTO_V4)
+			exit(PRL_ERR_SUCCESS);
 	} else if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
 		if (p->header.type == ABackupProxyCancelCmd)
 			exit(PRL_ERR_OPERATION_WAS_CANCELED);
