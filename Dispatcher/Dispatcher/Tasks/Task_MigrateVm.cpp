@@ -370,7 +370,7 @@ void getOnlyPcsFsObjects(QList<T*>& dst_, const QList<T*>& src_)
 	}
 }
 
-void removeUnshared(QList<CVmHardDisk*> disks_, const QList<CVmHardDisk*>& unshared_)
+void removeUnshared(QList<CVmHardDisk*>& disks_, const QList<CVmHardDisk*>& unshared_)
 {
 	QMutableListIterator<CVmHardDisk*> i(disks_);
 	while (i.hasNext())
