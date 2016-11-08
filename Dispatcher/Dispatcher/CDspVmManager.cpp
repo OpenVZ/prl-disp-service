@@ -214,7 +214,7 @@ struct Essence<PVE::DspCmdVmStop>: Need::Agent, Need::Command<CProtoVmCommandSto
 {
 	Libvirt::Result operator()()
 	{
-		switch (getCommand()->GetStopMode())
+		switch (getCommand()->GetStopMode() & PRL_VM_STOP_MODE_MASK)
 		{
 		case PSM_ACPI:
 		case PSM_SHUTDOWN:
