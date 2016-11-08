@@ -1099,13 +1099,13 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	}
 
 	VIRTUAL_MACHINE_STATE state = CDspVm::getVmState(m_sVmUuid, getClient()->getVmDirectoryUuid());
-	if ((state == VMS_RUNNING) || (state == VMS_PAUSED) || (state == VMS_SUSPENDED)) {
+	if ((state == VMS_RUNNING) || (state == VMS_PAUSED)) {
 		nRetCode = PRL_ERR_BACKUP_RESTORE_VM_RUNNING;
 		CVmEvent *pEvent = getLastError();
 		pEvent->setEventCode(nRetCode);
 		pEvent->addEventParameter(new CVmEventParameter(
 					PVE::String, sVmName, EVT_PARAM_MESSAGE_PARAM_0));
-		WRITE_TRACE(DBG_FATAL, "[%s] VM %s already exists and is running, suspended or paused",
+		WRITE_TRACE(DBG_FATAL, "[%s] VM %s already exists and is running or paused",
 				__FUNCTION__, QSTR2UTF8(m_sVmUuid));
 		return nRetCode;
 	}
@@ -1513,12 +1513,12 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 		return nRetCode;
 	}
 
-	if (state == VMS_RUNNING || state == VMS_SUSPENDED || state == VMS_MOUNTED) {
+	if (state == VMS_RUNNING || state == VMS_MOUNTED) {
 		nRetCode = PRL_ERR_BACKUP_RESTORE_VM_RUNNING;
 		CVmEvent *pEvent = getLastError();
 		pEvent->setEventCode(nRetCode);
 		pEvent->addEventParameter(new CVmEventParameter(PVE::String, sCtName, EVT_PARAM_MESSAGE_PARAM_0));
-		WRITE_TRACE(DBG_FATAL, "[%s] VM %s already exists and is running, suspended or mounted",
+		WRITE_TRACE(DBG_FATAL, "[%s] VM %s already exists and is running or mounted",
 				__FUNCTION__, QSTR2UTF8(m_sVmUuid));
 		return nRetCode;
 	}
