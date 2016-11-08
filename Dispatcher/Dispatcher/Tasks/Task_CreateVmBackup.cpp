@@ -179,6 +179,11 @@ PRL_RESULT Task_CreateVmBackup::sendStartRequest(const ::Backup::Activity::Objec
 		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmBackupCreateFirstReply>(pDspReply);
 
 	m_nRemoteVersion = pCreateReply->GetVersion();
+	if (BACKUP_PROTO_V4 > m_nRemoteVersion) {
+		WRITE_TRACE(DBG_FATAL, "Error: Backup to legacy storage is not allowed!");
+		return PRL_ERR_BACKUP_UNSUPPORTED_STORAGE_VERSION;
+	}
+
 	m_sBackupUuid = pCreateReply->GetBackupUuid();
 	m_nBackupNumber = pCreateReply->GetBackupNumber();
 	m_sBackupRootPath = pCreateReply->GetBackupRootPath();
@@ -200,12 +205,10 @@ PRL_RESULT Task_CreateVmBackup::sendStartRequest(const ::Backup::Activity::Objec
 	}
 	m_nFlags = nFlags;
 
-	if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
-		for (unsigned i = 2; i < pReply->header.buffersNumber; i += 2) {
-			QFileInfo x(UTF8_2QSTR(pReply->buffers[i-1].getImpl()));
-			QString u(UTF8_2QSTR(pReply->buffers[i].getImpl()));
-			m_urls.push_back(::Backup::Activity::Object::component_type(x, u));
-		}
+	for (unsigned i = 2; i < pReply->header.buffersNumber; i += 2) {
+		QFileInfo x(UTF8_2QSTR(pReply->buffers[i-1].getImpl()));
+		QString u(UTF8_2QSTR(pReply->buffers[i].getImpl()));
+		m_urls.push_back(::Backup::Activity::Object::component_type(x, u));
 	}
 
 	return PRL_ERR_SUCCESS;
