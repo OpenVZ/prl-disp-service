@@ -436,6 +436,36 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::
 	return boost::apply_visitor(Network(*h, *m_clip), interface_.getValue());
 }
 
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::types, 5>::type& input_) const
+{
+	CVmHardware* h = m_vm->getVmHardwareList();
+	if (NULL == h)
+		return PRL_ERR_UNEXPECTED;
+
+	if (!input_.getValue().getBus())
+		return PRL_ERR_SUCCESS;
+
+	switch (input_.getValue().getBus().get())
+	{
+	case Libvirt::Domain::Xml::EBus1Usb:
+	{
+		const QList<CVmUsbDevice*>& u = h->m_lstUsbDevices;
+		if (std::find_if(u.begin(), u.end(),
+			boost::bind(&CVmUsbDevice::getUsbType, _1) == PUDT_OTHER)
+			== u.end())
+		{
+			CVmUsbDevice* d = new(CVmUsbDevice);
+			d->setEnabled(PVE::DeviceEnabled);
+			d->setUsbType(PUDT_OTHER);
+			h->addUsbDevice(d);
+		}
+	}
+	default:
+		break;
+	}
+	return PRL_ERR_SUCCESS;
+}
+
 PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::types, 6>::type& sound_) const
 {
 	CVmHardware* h = m_vm->getVmHardwareList();
@@ -659,17 +689,6 @@ void Usb::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice590::types, 2>
 		break;
 	default:
 		return;
-	}
-
-	const QList<CVmUsbDevice*>& u = m_hardware->m_lstUsbDevices;
-	if (std::find_if(u.begin(), u.end(),
-		boost::bind(&CVmUsbDevice::getUsbType, _1) == PUDT_OTHER)
-		== u.end())
-	{
-		CVmUsbDevice* d = new(CVmUsbDevice);
-		d->setEnabled(PVE::DeviceEnabled);
-		d->setUsbType(PUDT_OTHER);
-		m_hardware->addUsbDevice(d);
 	}
 }
 

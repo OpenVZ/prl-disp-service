@@ -401,6 +401,7 @@ struct Device: boost::static_visitor<PRL_RESULT>
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::types, 0>::type& disk_) const;
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::types, 1>::type& controller_) const;
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::types, 4>::type& interface_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::types, 5>::type& input_) const;
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::types, 6>::type& sound_) const;
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice941::types, 8>::type& graphics_) const
 	{
