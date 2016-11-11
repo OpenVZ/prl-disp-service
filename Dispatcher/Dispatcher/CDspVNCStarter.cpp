@@ -577,7 +577,7 @@ PRL_RESULT Server::port(QProcess& process_)
 	for (bool ok = false; !ok;)
 	{
 		if (!process_.canReadLine () &&
-			!process_.waitForReadyRead(WAIT_TO_EXIT_VNC_SERVER_AFTER_START))
+			!process_.waitForReadyRead(WAIT_VNC_SERVER_TO_WRITE_AFTER_START))
 		{
 			process_.waitForFinished(1);
 			if (QProcess::NotRunning == process_.state())
