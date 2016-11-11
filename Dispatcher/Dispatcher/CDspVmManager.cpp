@@ -775,9 +775,12 @@ CHostHardwareInfo parsePrlNetToolOut(const QString &data)
 		m.insert(params.takeFirst(), params);
 	}
 
-	h.getNetworkSettings()->getGlobalNetwork()->setSearchDomains(
-		m.take("SEARCHDOMAIN").takeFirst().split(" ", QString::SkipEmptyParts));
-
+	QStringList x = m.take("SEARCHDOMAIN");
+	if (!x.isEmpty())
+	{
+		h.getNetworkSettings()->getGlobalNetwork()->setSearchDomains(
+			x.first().split(" ", QString::SkipEmptyParts));
+	}
 	QMap<QString, QMap<QString, QStringList> > n;
 	for(QMap<QString, QStringList>::iterator i = m.begin(); i != m.end(); ++i)
 	{
