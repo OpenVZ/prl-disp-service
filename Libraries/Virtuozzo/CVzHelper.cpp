@@ -607,7 +607,7 @@ static QString get_env_xml_config_path(
 			pConfig->getVmIdentification()->getHomePath();
 	if (cfg.isEmpty())
 		return QString();
-	return (cfg + "/.ve.xml");
+	return (cfg + "/" VZ_CT_XML_CONFIG_FILE);
 }
 
 static CVmHardDisk *findDiskInList(CVmHardDisk *pHdd, QList<CVmHardDisk *> &lst)
@@ -1189,6 +1189,9 @@ SmartPtr<CVmConfiguration> CVzHelper::get_env_config_by_ctid(const QString &ctid
 	pConfig = SmartPtr<CVmConfiguration> (new CVmConfiguration);
 
 	ret = get_vm_config(h, pConfig);
+	QString cfg = get_env_xml_config_path(pConfig);
+	if (ret == 0 && !QFileInfo(cfg).exists())
+		pConfig->saveToFile(cfg, true, true);
 
 	return pConfig;
 }
