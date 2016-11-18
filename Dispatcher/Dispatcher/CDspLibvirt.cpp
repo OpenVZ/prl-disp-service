@@ -67,7 +67,9 @@ void Crash::sendProblemReport()
 {
 	QString uuid = m_config.getVmIdentification()->getVmUuid();
 
-	CProtoCommandPtr cmd(new CProtoSendProblemReport(QString(), uuid, 0));
+	CProblemReport r;
+	r.setReportType(PRT_AUTOMATIC_VM_GENERATED_REPORT);
+	CProtoCommandPtr cmd(new CProtoSendProblemReport(r.toString(), uuid, 0));
 	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspCmdSendProblemReport, cmd);
 	QString vmDir = CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->getDefaultVmDirectory();
 	SmartPtr<CDspClient> c = CDspClient::makeServiceUser(vmDir);
