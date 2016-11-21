@@ -332,7 +332,9 @@ struct Future;
 
 struct Screenshot
 {
-	explicit Screenshot(const QByteArray& data_) : m_data(data_) {}
+	explicit Screenshot(const QByteArray& data_) : m_data(data_), m_size(0, 0)
+	{
+	}
 
 	void setSize(const QSize& size_)
 	{

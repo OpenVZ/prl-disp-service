@@ -1092,77 +1092,77 @@ bool CDspProblemReportHelper::getProblemReport(SmartPtr<CDspClient> pUser,
 }
 
 SmartPtr<CPackedProblemReport> CDspProblemReportHelper::getProblemReportObj(
-                                        SmartPtr<CDspClient> pUser,
-										const SmartPtr<IOPackage>&p,
-										bool bSendByTimeout)
+	SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>&p, bool bSendByTimeout)
 {
 	PRL_VM_TYPE nType = PVT_VM;
 
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( p );
-	if ( ! cmd->IsValid() ) {
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(p);
+	if (!cmd->IsValid())
+	{
 		// Send error
-		pUser->sendSimpleResponse( p, PRL_ERR_FAILURE );
-        return SmartPtr<CPackedProblemReport>();
+		pUser->sendSimpleResponse(p, PRL_ERR_FAILURE);
+		return SmartPtr<CPackedProblemReport>();
 	}
 
 	//create "Problem Report" directory and fix permissions
-    CProblemReportUtils::GetProblemReportPath( ParallelsDirs::getCommonDefaultVmCatalogue() );
+	CProblemReportUtils::GetProblemReportPath(ParallelsDirs::getCommonDefaultVmCatalogue());
 
 	QString sVmUuid = cmd->GetVmUuid();
 	CDspService::instance()->getVmDirManager().getVmTypeByUuid(sVmUuid, nType);
 	WRITE_TRACE(DBG_FATAL, "Creating report for vm %s", qPrintable(sVmUuid));
 
-        CPackedProblemReport * pTmpReport = NULL;
-        CPackedProblemReport::createInstance( CPackedProblemReport::DispSide, &pTmpReport );
-        SmartPtr<CPackedProblemReport> pReport( pTmpReport );
-        if ( !pReport )
-		{
-			WRITE_TRACE(DBG_FATAL, "cannot create report instance!");
-			PRL_ASSERT(false);
-			pUser->sendSimpleResponse( p, PRL_ERR_FAILURE );
-            return SmartPtr<CPackedProblemReport>();
-		}
+	CPackedProblemReport * pTmpReport = NULL;
+	CPackedProblemReport::createInstance(CPackedProblemReport::DispSide, &pTmpReport);
+	SmartPtr<CPackedProblemReport> pReport(pTmpReport);
+	if (!pReport)
+	{
+		WRITE_TRACE(DBG_FATAL, "cannot create report instance!");
+		PRL_ASSERT(false);
+		pUser->sendSimpleResponse(p, PRL_ERR_FAILURE);
+		return SmartPtr<CPackedProblemReport>();
+	}
 
-        if (p->header.type == PVE::DspCmdSendProblemReport)
-        {
-            // The incoming report being received with the command DspCmdSendProblemReport
-            // has the old xml-based format.
+	if (p->header.type == PVE::DspCmdSendProblemReport)
+	{
+		// The incoming report being received with the command DspCmdSendProblemReport
+		// has the old xml-based format.
 
-            // TODO XXX FIXME: it is required to add other info to the report such as logs
-            // JIRA: #PM-6888
-            SmartPtr<CProblemReport> xmlPR(new CProblemReport);
-			xmlPR->fromString(CProtoSerializer::CastToProtoCommand<CProtoSendProblemReport>(cmd)->GetReportData());
+		// TODO XXX FIXME: it is required to add other info to the report such as logs
+		// JIRA: #PM-6888
+		SmartPtr<CProblemReport> xmlPR(new CProblemReport);
+		xmlPR->fromString(CProtoSerializer::CastToProtoCommand<CProtoSendProblemReport>(cmd)->GetReportData());
 
-			// Save report reason
-			pReport->setReportReason(xmlPR->getReportReason());
+		pReport->setReportType(xmlPR->getReportType());
+		// Save report reason
+		pReport->setReportReason(xmlPR->getReportReason());
 
-            // Save ClientInfo
-            if (ClientInfo *const ci = xmlPR->getClientInfo())
-                pReport->setClientInfo(new ClientInfo(ci));
-        }
+		// Save ClientInfo
+		if (ClientInfo *const ci = xmlPR->getClientInfo())
+			pReport->setClientInfo(new ClientInfo(ci));
+	}
 
-		PRL_RESULT res = PRL_ERR_SUCCESS;
-		SmartPtr<CVmConfiguration> pVmConfig;
-		if (nType == PVT_VM) {
-			pVmConfig = CDspService::instance()->getVmDirHelper().getVmConfigByUuid(
-				pUser,
-				sVmUuid,
-				res);
-		}
+	PRL_RESULT res = PRL_ERR_SUCCESS;
+	SmartPtr<CVmConfiguration> pVmConfig;
+	if (nType == PVT_VM)
+	{
+		pVmConfig = CDspService::instance()->getVmDirHelper().getVmConfigByUuid(
+				pUser, sVmUuid,	res);
+	}
 #ifdef _CT_
-		else {
-			pVmConfig = CDspService::instance()->getVzHelper()->getCtConfig(pUser, sVmUuid);
-		}
+	else
+	{
+		pVmConfig = CDspService::instance()->getVzHelper()->getCtConfig(pUser, sVmUuid);
+	}
 #endif
 
-		if( pVmConfig )
-			CDspProblemReportHelper::FormProblemReportDataForDisconnect( *pReport.getImpl(), pVmConfig );
-		else
-		{
-			WRITE_TRACE(DBG_FATAL, "Unable to get vm config by uuid %s, error %s"
+	if(pVmConfig)
+		pReport->setVmConfig(pVmConfig.getImpl()->toString());
+	else
+	{
+		WRITE_TRACE(DBG_FATAL, "Unable to get vm config by uuid %s, error %s"
 				, QSTR2UTF8( sVmUuid )
 				, PRL_RESULT_TO_STRING( res ) );
-		}
+	}
 
 /*		FIXME enable back when new perfCounters platform will be ready
 		QString qsPerfCountersInfo = CDspService::instance()
@@ -1170,8 +1170,11 @@ SmartPtr<CPackedProblemReport> CDspProblemReportHelper::getProblemReportObj(
 
 		pReport->setPerformanceCounters( qsPerfCountersInfo ); */
 
-		CDspProblemReportHelper::FillProblemReportData( *pReport.getImpl(), pUser, pUser->getVmDirectoryUuid() );
-		// set report type
+	CDspProblemReportHelper::FillProblemReportData(*pReport.getImpl(), pUser, pUser->getVmDirectoryUuid());
+	// set report type
+
+	if (pReport->getReportType() != PRT_AUTOMATIC_VM_GENERATED_REPORT)
+	{
 		if(bSendByTimeout)
 		{
 			pReport->setReportType(PRT_USER_DEFINED_ON_NOT_RESPONDING_VM_REPORT);
@@ -1184,21 +1187,22 @@ SmartPtr<CPackedProblemReport> CDspProblemReportHelper::getProblemReportObj(
 		{
 			switch(CDspVm::getVmState(sVmUuid, pUser->getVmDirectoryUuid()))
 			{
-			case VMS_RUNNING:
-			case VMS_PAUSED:
-				pReport->setReportType(PRT_USER_DEFINED_ON_RUNNING_VM_REPORT);
-				break;
-			default:
-				pReport->setReportType(PRT_USER_DEFINED_ON_STOPPED_VM_REPORT);
+				case VMS_RUNNING:
+				case VMS_PAUSED:
+					pReport->setReportType(PRT_USER_DEFINED_ON_RUNNING_VM_REPORT);
+					break;
+				default:
+					pReport->setReportType(PRT_USER_DEFINED_ON_STOPPED_VM_REPORT);
 			}
 		}
 		else
 		{
 			pReport->setReportType(PRT_USER_DEFINED_ON_CONTAINER_REPORT);
 		}
+	}
 
-		pReport->saveMainXml();
-        return pReport;
+	pReport->saveMainXml();
+	return pReport;
 }
 
 bool CDspProblemReportHelper::isOldProblemReportClient(SmartPtr<CDspClient> pClient, const SmartPtr<IOPackage>& p)
