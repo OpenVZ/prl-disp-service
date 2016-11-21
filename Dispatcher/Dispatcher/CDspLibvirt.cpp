@@ -35,6 +35,7 @@
 #include "Tasks/Task_ManagePrlNetService.h"
 #include "Tasks/Task_EditVm.h"
 #include <prlcommon/PrlUuid/PrlUuid.h>
+#include <prlcommon/Std/PrlTime.h>
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <Libraries/StatesUtils/StatesHelper.h>
 #include <Libraries/Transponster/Direct.h>
@@ -1154,7 +1155,7 @@ namespace
 void addAndWrite(Stat::Storage& storage_, const QString& name_, quint64 value_)
 {
 	storage_.addAbsolute(name_);
-	storage_.write(name_, value_);
+	storage_.write(name_, value_, PrlGetTimeMonotonic());
 }
 
 } // namespace
@@ -1479,6 +1480,7 @@ void Domains::setDisconnected()
 
 namespace Performance
 {
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Miner
 
