@@ -1525,7 +1525,7 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 				pAdapter->getHostInterfaceName() == pOldAdapter->getHostInterfaceName() &&
 				pAdapter->getPktFilter()->isPreventMacSpoof() == pOldAdapter->getPktFilter()->isPreventMacSpoof() &&
 				pAdapter->getPktFilter()->isPreventIpSpoof() == pOldAdapter->getPktFilter()->isPreventIpSpoof() &&
-				pAdapter->getEmulatedType() != pOldAdapter->getEmulatedType())
+				pAdapter->getEmulatedType() == pOldAdapter->getEmulatedType())
 			continue;
 
 		vzctl_veth_dev_iterator itdev;
