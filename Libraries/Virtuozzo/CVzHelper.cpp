@@ -1000,6 +1000,7 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 		/* venet device always exists, add it with -1 idx */
 		pVenet->setIndex((unsigned int) -1);
 		pVenet->setSystemName(QString("venet0"));
+		pVenet->setHostInterfaceName(QString("venet0"));
 		pVenet->setEnabled(true);
 		pVenet->setNetAddresses(ips);
 		pVenet->setEmulatedType(PNA_ROUTED);
