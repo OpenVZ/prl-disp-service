@@ -324,19 +324,6 @@ bool CEthIfaceListReader::readIfaceConf( int sock, const struct ifreq *ifr, EthI
 			nAdapter |= PRL_VME_ADAPTER_START_INDEX;
 	}
 
-#if defined(_LIN_)
-	// filter out Linux bridges
-	{
-		char path[PATH_MAX];
-		struct stat st;
-
-		snprintf(path, PATH_MAX,
-				"/sys/class/net/%s/bridge", ifr->ifr_name);
-		if ((stat(path, &st) == 0) && S_ISDIR(st.st_mode))
-			return false;
-	}
-#endif
-
 	eth = EthIface(ifr->ifr_name, ifaceFlags, bcastIpAddr, macAddr, vlan_tag, nAdapter ) ;
 
 	return true;
