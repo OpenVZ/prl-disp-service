@@ -117,7 +117,8 @@ namespace Stat
 namespace Collecting
 {
 
-static DAO<QList< ::Statistics::Filesystem> > s_dao;
+static DAO<QList< ::Statistics::Filesystem> > s_daoFs;
+static DAO<QList< ::Statistics::Disk> > s_daoDisk;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Farmer
@@ -185,11 +186,18 @@ void Farmer::timerEvent(QTimerEvent *event_)
 
 bool Farmer::collectCt()
 {
-	QList< ::Statistics::Filesystem> f;
-	if (PRL_FAILED(CVzHelper::get_env_fstat(m_ident.first, f)))
+	SmartPtr<CVmConfiguration> cfg = CDspService::instance()->
+		getVzHelper()->getCtConfig(CDspClient::makeServiceUser(), m_ident.first);
+	if (!cfg.isValid())
 		return false;
 
-	Stat::Collecting::s_dao.set(m_ident.first, f);
+	QList< ::Statistics::Filesystem> f;
+	QList< ::Statistics::Disk> d;
+	if (PRL_FAILED(CVzHelper::get_env_disk_stat(cfg, f, d)))
+		return false;
+
+	Stat::Collecting::s_daoFs.set(m_ident.first, f);
+	Stat::Collecting::s_daoDisk.set(m_ident.first, d);
 
 	return true;
 }
@@ -223,7 +231,7 @@ bool Farmer::collectVm()
 		l << f;
 	}
 
-	Stat::Collecting::s_dao.set(m_ident.first, l);
+	Stat::Collecting::s_daoFs.set(m_ident.first, l);
 
 	return true;
 }
@@ -1532,53 +1540,67 @@ typedef SingleCounter<Flavor::UserAverage, Conversion::Uint64> UserAverage;
 
 namespace Disk
 {
-namespace Flavor
-{
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Read
 
-struct Read {
-
-	typedef const Ct::Statistics::Disk source_type;
-	typedef quint64 value_type;
-
-	static const char *getName()
+struct Read
+{
+	static const char* getName()
 	{
-		return "devices.ide0.read_total";
-	}
-
-	static value_type extract(source_type &disk)
-	{
-		return disk.read;
+		return "read_total";
 	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Write
 
-struct Write {
-
-	typedef const Ct::Statistics::Disk source_type;
-	typedef quint64 value_type;
-
-	static const char *getName()
+struct Write
+{
+	static const char* getName()
 	{
-		return "devices.ide0.write_total";
-	}
-
-	static value_type extract(source_type &disk)
-	{
-		return disk.write;
+		return "write_total";
 	}
 };
 
-} // namespace Flavor
+///////////////////////////////////////////////////////////////////////////////
+// struct Flavor
 
-typedef SingleCounter<Flavor::Read, Conversion::Uint64> Read;
-typedef SingleCounter<Flavor::Write, Conversion::Uint64> Write;
+template<class N>
+struct Flavor
+{
+	typedef const ::Statistics::Disk source_type;
+	explicit Flavor(int index_): m_index(index_)
+	{
+	}
 
-} // namespace Disk
+	QString getName() const
+	{
+		return QString("devices.hdd%1.%2").arg(m_index).arg(N::getName());
+	}
+
+	static CVmEventParameter *getParam(const source_type& source_);
+
+private:
+	int m_index;
+};
+
+template<>
+CVmEventParameter *Flavor<Read>::getParam(const source_type& source_)
+{
+	return Conversion::Uint64::convert(source_.read);
+}
+
+template<>
+CVmEventParameter *Flavor<Write>::getParam(const source_type& source_)
+{
+	return Conversion::Uint64::convert(source_.read);
+}
+
+typedef ::Stat::Counter::Enumerable<Read, Flavor> ReadTotal;
+typedef ::Stat::Counter::Enumerable<Write, Flavor> WriteTotal;
+
+} // namespace Ct::{anonymous}::Counter::Disk
 
 namespace Network
 {
@@ -1939,6 +1961,7 @@ typedef ::Stat::Counter::Enumerable<Names::Filesystem::Free, Flavor> Free;
 typedef ::Stat::Counter::Enumerable<Disk::Index, Flavor> Index;
 typedef ::Stat::Counter::Enumerable<Names::Filesystem::Device, Flavor> Device;
 
+
 } // namespace Filesystem
 
 } // namespace Counter
@@ -2000,8 +2023,6 @@ void Collector::collectCt(const QString &uuid,
 	collect(ctc::GuestUsage(t));
 	collect(ctc::GuestTimeDelta(t));
 	collect(ctc::HostTimeDelta(t));
-	collect(ctc::Disk::Read(a.disk));
-	collect(ctc::Disk::Write(a.disk));
 	collect(ctc::Network::Classful4(a.net));
 	collect(ctc::Network::Classful6(a.net));
 	collect(ctc::Network::Classful(a.net));
@@ -2023,7 +2044,8 @@ void Collector::collectCt(const QString &uuid,
 	for (quint32 i = 0; i < vcpunum; ++i)
 		collect(ctc::VCpuTime(a.cpu, i, vcpunum));
 
-	const QList< ::Statistics::Filesystem>& f = Stat::Collecting::s_dao.get(uuid);
+	const QList< ::Statistics::Filesystem>& f =
+				Stat::Collecting::s_daoFs.get(uuid);
 	for (int i = 0; i < f.size(); ++i)
 	{
 		const ::Statistics::Filesystem& fs = f.at(i);
@@ -2031,6 +2053,12 @@ void Collector::collectCt(const QString &uuid,
 		collect(ctc::Filesystem::Free(i, fs));
 		collect(ctc::Filesystem::Device(i, fs));
 		collect(ctc::Filesystem::Index(i, fs));
+	}
+
+	foreach (const ::Statistics::Disk& disk, Stat::Collecting::s_daoDisk.get(uuid))
+	{
+		collect(ctc::Disk::ReadTotal(disk.index, disk));
+		collect(ctc::Disk::WriteTotal(disk.index, disk));
 	}
 }
 
@@ -2093,7 +2121,8 @@ void Collector::collectVm(const QString &uuid, const CVmConfiguration &config)
 			Stat::Name::Interface::getBytesOut(*nic)));
 	}
 
-	const QList< ::Statistics::Filesystem>& f = Stat::Collecting::s_dao.get(uuid);
+	const QList< ::Statistics::Filesystem>& f =
+			Stat::Collecting::s_daoFs.get(uuid);
 	for (int i = 0; i < f.size(); ++i)
 	{
 		const ::Statistics::Filesystem& fs = f.at(i);
@@ -2914,7 +2943,6 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 
 		SmartPtr<CSystemStatistics> output(new CSystemStatistics());
 		QScopedPointer<CNetIfaceStatistics> net(new CNetIfaceStatistics());
-		QScopedPointer<CDiskStatistics> disk(new CDiskStatistics());
 
 		QScopedPointer<CCpuStatistics> cpu(new CCpuStatistics());
 		const Ct::Statistics::Cpu &c = a->cpu;
@@ -2942,12 +2970,7 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 		memory->setUsageSize(ctc::Memory::Used(m).getValue());
 		memory->setFreeSize(ctc::Memory::Free(m).getValue());
 		memory->setRealSize(ctc::Memory::Real(m).getValue());
-
-		const Ct::Statistics::Disk &d = a->disk;
-		disk->setReadBytesTotal(ctc::Disk::Read(d).getValue());
-		disk->setWriteBytesTotal(ctc::Disk::Write(d).getValue());
-		output->m_lstDisksStatistics.append(disk.take());
-
+	
 		return output;
 	}
 #endif

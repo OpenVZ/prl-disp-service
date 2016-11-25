@@ -106,6 +106,21 @@ struct Filesystem
 	QString device;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Disk
+
+struct Disk {
+	Disk() : read(0), write(0), index(0)
+	{
+	}
+
+	// bytes
+	quint64 read;
+	quint64 write;
+	int index;
+};
+
+
 } // namespace Statistics
 
 namespace Ct
@@ -145,17 +160,6 @@ struct Memory {
 	quint64 swap_out;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Disk
-
-struct Disk {
-	Disk() : read(0), write(0)
-	{
-	}
-	// bytes
-	quint64 read;
-	quint64 write;
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Net
@@ -175,7 +179,7 @@ struct Aggregate
 	Cpu cpu;
 	SmartPtr<Memory> memory;
 	Net net;
-	Disk disk;
+	QList< ::Statistics::Disk> disk;
 	QList< ::Statistics::Filesystem> filesystem;
 };
 
@@ -228,8 +232,10 @@ public:
 	static int get_env_status_by_ctid(const QString &ctid, VIRTUAL_MACHINE_STATE &nState);
 	static int get_env_status(const QString &uuid, VIRTUAL_MACHINE_STATE &nState);
 	static tribool_type is_env_running(const QString &uuid);
-	static Ct::Statistics::Aggregate* get_env_stat(const QString& uuid_);
-	static int get_env_fstat(const QString &uuid, QList<Statistics::Filesystem>& fs);
+	static Ct::Statistics::Aggregate* get_env_stat(const QString& uuid);
+	static int get_env_disk_stat(const SmartPtr<CVmConfiguration>& config,
+			QList<Statistics::Filesystem>& fs,
+			QList<Statistics::Disk>& disk);
 	static int set_env_uptime(const QString &uuid, const quint64 uptime, const QDateTime & date);
 	static int reset_env_uptime(const QString &uuid);
 	static int sync_env_uptime(const QString& uuid_);
