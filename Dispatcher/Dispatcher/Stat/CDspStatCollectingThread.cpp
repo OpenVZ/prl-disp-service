@@ -119,6 +119,7 @@ namespace Collecting
 
 static DAO<QList< ::Statistics::Filesystem> > s_daoFs;
 static DAO<QList< ::Statistics::Disk> > s_daoDisk;
+static DAO<QList< Ct::Statistics::Network::General> > s_daoNet;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Farmer
@@ -193,11 +194,15 @@ bool Farmer::collectCt()
 
 	QList< ::Statistics::Filesystem> f;
 	QList< ::Statistics::Disk> d;
-	if (PRL_FAILED(CVzHelper::get_env_disk_stat(cfg, f, d)))
-		return false;
+	if (PRL_SUCCEEDED(CVzHelper::get_env_disk_stat(cfg, f, d)))
+	{
+		Stat::Collecting::s_daoFs.set(m_ident.first, f);
+		Stat::Collecting::s_daoDisk.set(m_ident.first, d);
+	}
 
-	Stat::Collecting::s_daoFs.set(m_ident.first, f);
-	Stat::Collecting::s_daoDisk.set(m_ident.first, d);
+	QList< Ct::Statistics::Network::General> n;
+	if (PRL_SUCCEEDED(CVzHelper::get_net_stat(cfg, n)))
+		Stat::Collecting::s_daoNet.set(m_ident.first, n);
 
 	return true;
 }
@@ -705,7 +710,7 @@ namespace Network
 
 struct Ipv4
 {
-	typedef Ct::Statistics::Net source_type;
+	typedef Ct::Statistics::Network::Classfull source_type;
 	typedef PRL_STAT_NET_TRAFFIC value_type;
 
 	static const char* getName()
@@ -724,7 +729,7 @@ struct Ipv4
 
 struct Ipv6
 {
-	typedef Ct::Statistics::Net source_type;
+	typedef Ct::Statistics::Network::Classfull source_type;
 	typedef PRL_STAT_NET_TRAFFIC value_type;
 
 	static const char* getName()
@@ -743,7 +748,7 @@ struct Ipv6
 
 struct Total
 {
-	typedef Ct::Statistics::Net source_type;
+	typedef Ct::Statistics::Network::Classfull source_type;
 	typedef PRL_STAT_NET_TRAFFIC value_type;
 
 	static const char* getName()
@@ -1295,7 +1300,7 @@ private:
 template <typename Flavor>
 CVmEventParameter *ClassfulOffline<Flavor>::getParam() const
 {
-	QScopedPointer<Ct::Statistics::Net> s(CVzHelper::get_net_stat(m_uuid));
+	QScopedPointer<Ct::Statistics::Network::Classfull> s(CVzHelper::get_net_classfull_stat(m_uuid));
 	return s.isNull() ? NULL : Conversion::Network::convert(Flavor::extract(*s));
 }
 
@@ -1604,7 +1609,8 @@ typedef ::Stat::Counter::Enumerable<Write, Flavor> WriteTotal;
 
 namespace Network
 {
-namespace Flavor
+
+namespace
 {
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1612,17 +1618,9 @@ namespace Flavor
 
 struct ReceivedSize {
 
-	typedef const PRL_STAT_NET_TRAFFIC source_type;
-	typedef quint64 value_type;
-
-	static const char *getName()
+	static const char* getName()
 	{
-		return "net.nic0.bytes_in";
-	}
-
-	static value_type extract(source_type &net)
-	{
-		return accumulateTraffic(net.incoming);
+		return "bytes_in";
 	}
 };
 
@@ -1631,17 +1629,9 @@ struct ReceivedSize {
 
 struct TransmittedSize {
 
-	typedef const PRL_STAT_NET_TRAFFIC source_type;
-	typedef quint64 value_type;
-
-	static const char *getName()
+	static const char* getName()
 	{
-		return "net.nic0.bytes_out";
-	}
-
-	static value_type extract(source_type &net)
-	{
-		return accumulateTraffic(net.outgoing);
+		return "bytes_out";
 	}
 };
 
@@ -1650,17 +1640,9 @@ struct TransmittedSize {
 
 struct ReceivedPackets {
 
-	typedef const PRL_STAT_NET_TRAFFIC source_type;
-	typedef quint64 value_type;
-
-	static const char *getName()
+	static const char* getName()
 	{
-		return "net.nic0.pkts_in";
-	}
-
-	static value_type extract(source_type &net)
-	{
-		return accumulateTraffic(net.incoming_pkt);
+		return "pkts_in";
 	}
 };
 
@@ -1669,29 +1651,66 @@ struct ReceivedPackets {
 
 struct TransmittedPackets {
 
-	typedef const PRL_STAT_NET_TRAFFIC source_type;
-	typedef quint64 value_type;
-
-	static const char *getName()
+	static const char* getName()
 	{
-		return "net.nic0.pkts_out";
-	}
-
-	static value_type extract(source_type &net)
-	{
-		return accumulateTraffic(net.outgoing_pkt);
+		return "pkts_out";
 	}
 };
 
-} // namespace Flavor
+} //namespace
+
+template<class N>
+struct Flavor
+{
+	typedef const Ct::Statistics::Network::General source_type;
+	explicit Flavor(int index_): m_index(index_)
+	{
+	}
+
+	QString getName() const
+	{
+		if (m_index == -1)
+			return QString("net.venet0.%1").arg(N::getName());
+		return QString("net.nic%1.%2").arg(m_index).arg(N::getName());
+	}
+
+	static CVmEventParameter *getParam(const source_type& source_);
+
+private:
+	int m_index;
+};
+
+template<>
+CVmEventParameter *Flavor<ReceivedSize>::getParam(const source_type& source_)
+{
+	return Conversion::Uint64::convert(source_.bytes_in);
+}
+
+template<>
+CVmEventParameter *Flavor<TransmittedSize>::getParam(const source_type& source_)
+{
+	return Conversion::Uint64::convert(source_.bytes_out);
+}
+
+template<>
+CVmEventParameter *Flavor<ReceivedPackets>::getParam(const source_type& source_)
+{
+	return Conversion::Uint64::convert(source_.pkts_in);
+}
+
+template<>
+CVmEventParameter *Flavor<TransmittedPackets>::getParam(const source_type& source_)
+{
+	return Conversion::Uint64::convert(source_.pkts_out);
+}
 
 typedef SingleCounter< ::Flavor::Network::Ipv4, Conversion::Network> Classful4;
 typedef SingleCounter< ::Flavor::Network::Ipv6, Conversion::Network> Classful6;
 typedef SingleCounter< ::Flavor::Network::Total, Conversion::Network> Classful;
-typedef SingleCounter<Flavor::ReceivedSize, Conversion::Uint64> ReceivedSize;
-typedef SingleCounter<Flavor::TransmittedSize, Conversion::Uint64> TransmittedSize;
-typedef SingleCounter<Flavor::ReceivedPackets, Conversion::Uint64> ReceivedPackets;
-typedef SingleCounter<Flavor::TransmittedPackets, Conversion::Uint64> TransmittedPackets;
+typedef ::Stat::Counter::Enumerable<ReceivedSize, Flavor> ReceivedSize;
+typedef ::Stat::Counter::Enumerable<TransmittedSize, Flavor> TransmittedSize;
+typedef ::Stat::Counter::Enumerable<ReceivedPackets, Flavor> ReceivedPackets;
+typedef ::Stat::Counter::Enumerable<TransmittedPackets, Flavor> TransmittedPackets;
 
 } // namespace Network
 
@@ -2026,10 +2045,13 @@ void Collector::collectCt(const QString &uuid,
 	collect(ctc::Network::Classful4(a.net));
 	collect(ctc::Network::Classful6(a.net));
 	collect(ctc::Network::Classful(a.net));
-	collect(ctc::Network::ReceivedSize(a.net.total));
-	collect(ctc::Network::TransmittedSize(a.net.total));
-	collect(ctc::Network::ReceivedPackets(a.net.total));
-	collect(ctc::Network::TransmittedPackets(a.net.total));
+	foreach (const Ct::Statistics::Network::General& dev, Stat::Collecting::s_daoNet.get(uuid))
+	{
+		collect(ctc::Network::ReceivedSize(dev.index, dev));
+		collect(ctc::Network::TransmittedSize(dev.index, dev));
+		collect(ctc::Network::ReceivedPackets(dev.index, dev));
+		collect(ctc::Network::TransmittedPackets(dev.index, dev));
+	}
 
 	Ct::Statistics::Memory *m = a.memory.get();
 	if (m != NULL) {
@@ -2942,8 +2964,6 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 		dao.set(sVmUuid, t);
 
 		SmartPtr<CSystemStatistics> output(new CSystemStatistics());
-		QScopedPointer<CNetIfaceStatistics> net(new CNetIfaceStatistics());
-
 		QScopedPointer<CCpuStatistics> cpu(new CCpuStatistics());
 		const Ct::Statistics::Cpu &c = a->cpu;
 		cpu->setTotalTime(ctc::Uptime(c).getValue());
@@ -2953,14 +2973,7 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 		output->m_lstCpusStatistics.append(cpu.take());
 		output->getUptimeStatistics()->setOsUptime(ctc::Uptime(c).getValue());
 
-		using ::Ct::Counter::accumulateTraffic;
-		const PRL_STAT_NET_TRAFFIC& n = a->net.total;
-		net->setInDataSize(ctc::Network::ReceivedSize(n).getValue());
-		net->setOutDataSize(ctc::Network::TransmittedSize(n).getValue());
-		net->setInPkgsCount(ctc::Network::ReceivedPackets(n).getValue());
-		net->setOutPkgsCount(ctc::Network::TransmittedPackets(n).getValue());
-		*output->getNetClassStatistics() = n;
-		output->m_lstNetIfacesStatistics.append(net.take());
+		*output->getNetClassStatistics() = a->net.total;
 
 		CMemoryStatistics *memory = output->getMemoryStatistics();
 		Ct::Statistics::Memory m;

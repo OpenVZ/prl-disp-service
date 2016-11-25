@@ -25,6 +25,7 @@
 #define __CVZHELPER_H__
 #include <QString>
 #include <QMap>
+#include <QHash>
 #include <QStack>
 #include <QMutex>
 #include <QProcessEnvironment>
@@ -160,16 +161,36 @@ struct Memory {
 	quint64 swap_out;
 };
 
+namespace Network
+{
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Net
+// struct Classfull
 
-struct Net
+struct Classfull
 {
 	PRL_STAT_NET_TRAFFIC ipv4;
 	PRL_STAT_NET_TRAFFIC ipv6;
 	PRL_STAT_NET_TRAFFIC total;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Net
+
+struct General
+{
+	General() : bytes_in(0), bytes_out(0), pkts_in(0), pkts_out(0), index(0)
+	{
+	}
+
+	quint64 bytes_in;
+	quint64 bytes_out;
+	quint64 pkts_in;
+	quint64 pkts_out;
+	unsigned index;
+};
+
+} //namespace Network
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Aggregate
@@ -178,8 +199,8 @@ struct Aggregate
 {
 	Cpu cpu;
 	SmartPtr<Memory> memory;
-	Net net;
 	QList< ::Statistics::Disk> disk;
+	Network::Classfull net;
 	QList< ::Statistics::Filesystem> filesystem;
 };
 
@@ -209,7 +230,9 @@ public:
 	// private
 	static int autocalculate_cpumask(unsigned envid, unsigned ncpu,
 			unsigned long ram, unsigned long *mask, int size);
-	static Ct::Statistics::Net *get_net_stat(const QString &id_);
+	static Ct::Statistics::Network::Classfull *get_net_classfull_stat(const QString &id_);
+	static int get_net_stat_by_dev(const QString &ctid, CVmGenericNetworkAdapter *dev, Ct::Statistics::Network::General& stat);
+	static int get_net_stat(const SmartPtr<CVmConfiguration>& config, QList<Ct::Statistics::Network::General>& stat);
 	static int update_network_classes_config(const CNetworkClassesConfig &conf);
 	static int get_network_classes_config(CNetworkClassesConfig &conf);
 	static int update_network_shaping_config(const CNetworkShapingConfig &conf);

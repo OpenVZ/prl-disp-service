@@ -220,17 +220,17 @@ struct Builder
 
 	bool addv6();
 
-	Ct::Statistics::Net* getResult();
+	Ct::Statistics::Network::Classfull* getResult();
 
 private:
 	VzctlHandleWrap m_env;
-	QScopedPointer<Ct::Statistics::Net> m_result;
+	QScopedPointer<Ct::Statistics::Network::Classfull> m_result;
 
 	bool fill(bool v6_);
 };
 
 Builder::Builder(const QString& id_) :
-	m_result(new Ct::Statistics::Net())
+	m_result(new Ct::Statistics::Network::Classfull())
 {
 	int ret;
 	m_env.reset(vzctl2_env_open(
@@ -275,7 +275,7 @@ bool Builder::fill(bool v6_)
 	return true;
 }
 
-Ct::Statistics::Net* Builder::getResult()
+Ct::Statistics::Network::Classfull* Builder::getResult()
 {
 	return m_result.take();
 }
@@ -283,12 +283,53 @@ Ct::Statistics::Net* Builder::getResult()
 } // namespace Network
 } // namespace
 
-Ct::Statistics::Net *CVzHelper::get_net_stat(const QString &uuid)
+int CVzHelper::get_net_stat_by_dev(const QString &ctid, CVmGenericNetworkAdapter *dev, Ct::Statistics::Network::General& stat)
+{
+	QString out;
+	QStringList a;
+
+	a << "/usr/sbin/ip" << "netns" << "exec" << ctid << "ip" << "-s" << "l" << "show" << "dev" << dev->getSystemName();
+	if (!HostUtils::RunCmdLineUtility(a, out))
+		return PRL_ERR_FAILURE;
+
+	int pos;
+	QRegExp rx("\\s+(\\d+)\\s+(\\d+)\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+");
+	if ((pos = rx.indexIn(out)) == -1)
+		return PRL_ERR_FAILURE ;
+
+	stat.bytes_in = rx.cap(1).toULongLong();
+	stat.pkts_in = rx.cap(2).toULongLong();
+	rx.indexIn(out, pos + rx.matchedLength());
+	stat.bytes_out = rx.cap(1).toULongLong();
+	stat.pkts_out = rx.cap(2).toULongLong();
+	stat.index = dev->getIndex();
+
+	return PRL_ERR_SUCCESS;
+}
+
+int CVzHelper::get_net_stat(const SmartPtr<CVmConfiguration>& config, QList<Ct::Statistics::Network::General>& stat)
+{
+	QString uuid = config->getVmIdentification()->getVmUuid();
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	
+	QList<Ct::Statistics::Network::General> stat_;
+	foreach(CVmGenericNetworkAdapter* pNet, config->getVmHardwareList()->m_lstNetworkAdapters)
+	{
+		Ct::Statistics::Network::General dev_stat;
+		if (!get_net_stat_by_dev(ctid, pNet, dev_stat))
+			stat_.append(dev_stat);
+	}
+	stat_.swap(stat);
+
+	return PRL_ERR_SUCCESS;
+}
+
+Ct::Statistics::Network::Classfull *CVzHelper::get_net_classfull_stat(const QString &ctid)
 {
 	if (!is_vz_running())
 		return NULL;
 
-	Network::Builder b(uuid);
+	Network::Builder b(ctid);
 
 	if (!b.addv4())
 		return NULL;
@@ -3699,8 +3740,9 @@ Ct::Statistics::Aggregate *CVzHelper::get_env_stat(const QString& uuid)
 
 	QScopedPointer<Aggregate> a(new Aggregate());
 
-	QScopedPointer<Ct::Statistics::Net> n(get_net_stat(ctid));
-	a->net = n.isNull() ? Ct::Statistics::Net() : *n;
+	QScopedPointer<Ct::Statistics::Network::Classfull> n(get_net_classfull_stat(ctid));
+	a->net = n.isNull() ? Ct::Statistics::Network::Classfull() : *n;
+	
 	if (st.mask & ENV_STATUS_RUNNING) {
 		a->memory = SmartPtr<Ct::Statistics::Memory>(get_env_meminfo(uuid));
 		a->cpu = get_env_cpustat(uuid);
