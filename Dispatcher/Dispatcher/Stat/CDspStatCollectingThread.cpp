@@ -539,12 +539,12 @@ struct Traits
 {
 	static QString getExternal(const T& t_)
 	{
-		return t_();
+		return t_.getName();
 	}
 
 	static QString getInternal(const T& t_)
 	{
-		return t_();
+		return t_.getName();
 	}
 };
 
@@ -574,7 +574,7 @@ struct Name
 	{
 	}
 
-	QString operator()() const
+	QString getName() const
 	{
 		return QString("fs%1.%2").arg(m_index).arg(Leaf::getName());
 	}
@@ -628,9 +628,9 @@ struct Name
 	{
 	}
 
-	QString operator()() const
+	QString getName() const
 	{
-		return QString("%1.%2").arg(m_name()).arg(m_index);
+		return QString("%1.%2").arg(m_name.getName()).arg(m_index);
 	}
 
 private:
@@ -664,12 +664,12 @@ struct Traits
 {
 	static QString getExternal(const T& t_)
 	{
-		return t_().prepend("guest.");
+		return t_.getName().prepend("guest.");
 	}
 
 	static QString getInternal(const T& t_)
 	{
-		return t_();
+		return t_.getName();
 	}
 };
 
@@ -841,6 +841,50 @@ QList<CVmIdent> Perf::select(const mapped_type& user_) const
 	return output;
 }
 
+namespace Counter
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Spicy
+
+template <class F>
+struct Spicy
+{
+	typedef F flavor_type;
+	typedef typename F::source_type source_type;
+
+	Spicy(const F& flavor_, const source_type& source_):
+		m_flavor(flavor_), m_source(&source_)
+	{
+	}
+
+	QString getName() const
+	{
+		return Names::Traits<F>::getExternal(m_flavor);
+	}
+
+	CVmEventParameter *getParam() const
+	{
+		return m_flavor.getParam(*m_source);
+	}
+
+private:
+	const F m_flavor;
+	const source_type* const m_source;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Enumerable
+
+template <class Name, template<class> class Flavor>
+struct Enumerable: Spicy<Flavor<Name> >
+{
+	Enumerable(unsigned index_, const typename Flavor<Name>::source_type& source_)
+		: Spicy<Flavor<Name> >(Flavor<Name>(index_), source_)
+	{
+	}
+};
+
+} // namespace Counter
 } // namespace Stat
 
 namespace Vm
@@ -1855,9 +1899,9 @@ struct Flavor
 	{
 	}
 
-	const name_type& getName() const
+	QString getName() const
 	{
-		return m_name;
+		return Names::Filesystem::Traits<name_type>::getExternal(m_name);
 	}
 
 	static CVmEventParameter *getParam(const source_type& f_);
@@ -1890,39 +1934,10 @@ CVmEventParameter *Flavor<Names::Filesystem::Device>::getParam(const source_type
 	return Conversion::String::convert(f_.device);
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Counter
-
-template <class Name>
-struct Counter
-{
-	typedef typename Flavor<Name>::source_type source_type;
-	typedef typename Flavor<Name>::name_type name_type;
-
-	Counter(unsigned index_, const source_type& source_)
-		: m_flavor(index_), m_source(&source_)
-	{
-	}
-
-	QString getName() const
-	{
-		return Names::Filesystem::Traits<name_type>::getExternal(m_flavor.getName());
-	}
-
-	CVmEventParameter *getParam() const
-	{
-		return Flavor<Name>::getParam(*m_source);
-	}
-
-private:
-	const Flavor<Name> m_flavor;
-	const source_type * const m_source;
-};
-
-typedef Counter<Names::Filesystem::Total> Total;
-typedef Counter<Names::Filesystem::Free> Free;
-typedef Counter<Disk::Index> Index;
-typedef Counter<Names::Filesystem::Device> Device;
+typedef ::Stat::Counter::Enumerable<Names::Filesystem::Total, Flavor> Total;
+typedef ::Stat::Counter::Enumerable<Names::Filesystem::Free, Flavor> Free;
+typedef ::Stat::Counter::Enumerable<Disk::Index, Flavor> Index;
+typedef ::Stat::Counter::Enumerable<Names::Filesystem::Device, Flavor> Device;
 
 } // namespace Filesystem
 
