@@ -50,6 +50,7 @@
 #include "CDspClientManager.h"
 #include "CDspVmManager.h"
 #include "CDspBugPatcherLogic.h"
+#include "CDspVmGuestPersonality.h"
 #include "CDspProblemReportHelper.h"
 #include "CDspAsyncRequest.h"
 #include "CDspRegistry.h"
@@ -896,7 +897,6 @@ void CDspService::start ()
 
 		m_pUserHelper = SmartPtr<CDspUserHelper>(new CDspUserHelper);
 		m_pVmConfigWatcher = SmartPtr<CDspVmConfigurationChangesWatcher>(new CDspVmConfigurationChangesWatcher());
-		m_pVmStateSenderThread = SmartPtr<CDspVmStateSenderThread>( new CDspVmStateSenderThread );
 		bool bConnected;
 		Q_UNUSED(bConnected);
 
@@ -1037,7 +1037,7 @@ void CDspService::stop (CDspService::StopMode stop_mode)
 	// #PDFM-30119 second call to clear all static object after tasks finished.
 	cleanupAllStaticObjects();
 
-	if ( m_pVmStateSenderThread->isRunning() )
+	if (m_pVmStateSenderThread.isValid() &&  m_pVmStateSenderThread->isRunning())
 	{
 		m_pVmStateSenderThread->exit();
 		WRITE_TRACE(DBG_FATAL, "Wait to stop VmStateSenderThread" );
@@ -1518,7 +1518,28 @@ bool CDspService::initHostInfo()
 
 void CDspService::initVmStateSender()
 {
-	m_pVmStateSenderThread->start( QThread::HighPriority );
+	bool f;
+	CDspVmStateSender* x = new CDspVmStateSender();
+	Vm::Proclamation* a = new Vm::Proclamation(getClientManager());
+	a->setParent(x);
+	Vm::Registration::Reconfiguration* b = new Vm::Registration::Reconfiguration(*this);
+	b->setParent(x);
+	CDspVmGuestPersonality* c = new CDspVmGuestPersonality();
+	c->setParent(x);
+	f = b->connect(x, SIGNAL(signalVmCreated(QString, QString)),
+		SLOT(react(QString, QString)), Qt::DirectConnection);
+	PRL_ASSERT(f);
+
+	f = a->connect(x, SIGNAL(signalVmRegistered(QString, QString, QString)),
+		SLOT(reactRegistered(QString, QString, QString)), Qt::DirectConnection);
+	PRL_ASSERT(f);
+
+	f = c->connect(x, SIGNAL(signalSendVmPersonalityChanged(QString, QString)),
+		SLOT(slotVmPersonalityChanged(QString, QString)), Qt::DirectConnection);
+	PRL_ASSERT(f);
+
+	m_pVmStateSenderThread = SmartPtr<CDspVmStateSenderThread>(new CDspVmStateSenderThread(x));
+	m_pVmStateSenderThread->start(QThread::HighPriority);
 }
 
 void CDspService::initPlugins()
