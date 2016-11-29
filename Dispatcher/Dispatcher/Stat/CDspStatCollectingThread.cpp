@@ -53,6 +53,7 @@
 #include <QRegExp>
 #include <QWeakPointer>
 #include <numeric>
+#include <limits>
 #include <boost/foreach.hpp>
 #include <boost/tuple/tuple.hpp>
 
@@ -1669,9 +1670,8 @@ struct Flavor
 
 	QString getName() const
 	{
-		if (m_index == -1)
-			return QString("net.venet0.%1").arg(N::getName());
-		return QString("net.nic%1.%2").arg(m_index).arg(N::getName());
+		unsigned int index = (m_index == -1) ? std::numeric_limits< unsigned int >::max() : m_index;
+		return QString("net.nic%1.%2").arg(index).arg(N::getName());
 	}
 
 	static CVmEventParameter *getParam(const source_type& source_);
