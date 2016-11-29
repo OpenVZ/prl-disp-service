@@ -594,10 +594,6 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 		//https://bugzilla.sw.ru/show_bug.cgi?id=267152
 		CAuthHelperImpersonateWrapper _impersonate( &getClient()->getAuthHelper() );
 
-		// #PDFM-20418
-		if( !doRegisterOnly() )
-			m_pVmConfig->getVmIdentification()->setCreationDate( QDateTime::currentDateTime() );
-
 		// #116916 MAC address may be empty;
 		createMACAddress(m_pVmConfig, QSet<QString>(), true);
 
@@ -956,10 +952,10 @@ void Task_RegisterVm::finalizeTask()
 
 
 		pVmDirItem->setRegisteredBy( userName );
-		pVmDirItem->setRegDateTime( QDateTime::currentDateTime() );
+		pVmDirItem->setRegDateTime(m_pVmConfig->getVmIdentification()->getVmUptimeStartDateTime());
 		pVmDirItem->setChangedBy( userName );
 
-		pVmDirItem->setChangeDateTime( QDateTime::currentDateTime() );
+		pVmDirItem->setChangeDateTime(m_pVmConfig->getVmIdentification()->getVmUptimeStartDateTime());
 
 		if (
 			!(getRequestFlags() & PRVF_IGNORE_HA_CLUSTER) &&
@@ -1048,57 +1044,40 @@ void Task_RegisterVm::finalizeTask()
 			.unlockExclusiveVmParameters( m_pVmInfo );
 	}
 
-	if ( ! isApplianceRegistered() )
+	// send response
+	if (PRL_FAILED(getLastErrorCode()))
 	{
-		// send response
-		if ( PRL_FAILED( getLastErrorCode() ) )
-			getClient()->sendResponseError( getLastError(), getRequestPackage() );
-		else
-		{
-			CProtoCommandPtr pCmd
-				= CProtoSerializer::CreateDspWsResponseCommand( getRequestPackage(), PRL_ERR_SUCCESS );
-			CProtoCommandDspWsResponse*
-				pResponseCmd = CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>( pCmd );
-
-			SmartPtr<CVmConfiguration> pVmConfig(new CVmConfiguration(m_pVmConfig->toString()));
-			CDspService::instance()->getVmDirHelper().appendAdvancedParamsToVmConfig(getClient(), pVmConfig);
-			pResponseCmd->SetVmConfig( pVmConfig->toString() );
-
-			getClient()->sendResponse( pCmd, getRequestPackage() );
-		}
+		return (void)getClient()->sendResponseError
+			(getLastError(), getRequestPackage());
 	}
+	// #PDFM-27714: Workaround to avoid dispatcher crash
 
-	if ( PRL_SUCCEEDED( getLastErrorCode() ) )
+	/**
+	 * Notify all user: vm directory changed
+	 */
+	if(!doRegisterOnly())
 	{
-		// #PDFM-27714: Workaround to avoid dispatcher crash
-
-		/**
-		 * Notify all user: vm directory changed
-		 */
-
-		// Generate "VM added" event
-		CVmEvent event( PET_DSP_EVT_VM_ADDED,
-						m_pVmInfo->vmUuid,
-						PIE_DISPATCHER );
-
-		if (m_bVmRegisterNameWasEmpty)
-		{
-			event.addEventParameter(
-				new CVmEventParameter( PVE::String, m_pVmInfo->vmName, EVT_PARAM_GENERATED_VM_NAME));
-		}
-
-		if (isApplianceRegistered())
-		{
-			event.addEventParameter(
-				new CVmEventParameter(PVE::String, m_strApplianceId, EVT_PARAM_APPLIANCE_ID) );
-		}
-
-		SmartPtr<IOPackage> p =
-			DispatcherPackage::createInstance( PVE::DspVmEvent, event, getRequestPackage());
-
-		CDspService::instance()->getClientManager().sendPackageToVmClients( p,
-			m_dirUuid, m_pVmInfo->vmUuid );
+		CDspService::instance()->getVmStateSender()
+			->onVmCreated(m_dirUuid, m_pVmInfo->vmUuid);
 	}
+	QString n;
+	if (m_bVmRegisterNameWasEmpty)
+		n = m_pVmInfo->vmName;
+
+	CDspService::instance()->getVmStateSender()
+		->onVmRegistered(m_dirUuid, m_pVmInfo->vmUuid, n);
+
+	// send response
+	CProtoCommandPtr pCmd
+		= CProtoSerializer::CreateDspWsResponseCommand( getRequestPackage(), PRL_ERR_SUCCESS );
+	CProtoCommandDspWsResponse*
+		pResponseCmd = CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>( pCmd );
+
+	SmartPtr<CVmConfiguration> pVmConfig(new CVmConfiguration(m_pVmConfig->toString()));
+	CDspService::instance()->getVmDirHelper().appendAdvancedParamsToVmConfig(getClient(), pVmConfig);
+	pResponseCmd->SetVmConfig( pVmConfig->toString() );
+
+	getClient()->sendResponse( pCmd, getRequestPackage() );
 }
 
 PRL_RESULT Task_RegisterVm::run_body()
@@ -1266,7 +1245,12 @@ PRL_RESULT Task_RegisterVm::run_body()
 		//https://bugzilla.sw.ru/show_bug.cgi?id=464813
 		m_pVmConfig->getVmIdentification()->setVmUptimeInSeconds();
 		m_pVmConfig->getVmIdentification()->setVmUptimeStartDateTime();
-
+		// #PDFM-20418
+		if(!doRegisterOnly())
+		{
+			m_pVmConfig->getVmIdentification()->setCreationDate
+				(m_pVmConfig->getVmIdentification()->getVmUptimeStartDateTime());
+		}
 		// always patch old config to enable shared folsers #465074
 		m_pVmConfig->getVmSettings()->getVmTools()->getVmSharing()->
 						getHostSharing()->setUserDefinedFoldersEnabled(true);

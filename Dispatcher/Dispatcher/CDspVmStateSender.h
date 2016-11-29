@@ -53,12 +53,11 @@
 class CDspVmStateSenderThread;
 class CDspVmStateSender: public QObject
 {
-	friend class CDspVmStateSenderThread;
 	Q_OBJECT
 
+public:
 	CDspVmStateSender();
 
-public:
 	VIRTUAL_MACHINE_STATE tell(const CVmIdent& vm_) const;
 
 	void onVmStateChanged( VIRTUAL_MACHINE_STATE nVmOldState, VIRTUAL_MACHINE_STATE nVmNewState,
@@ -68,6 +67,8 @@ public:
 	void onVmConfigChanged(QString vmDirUuid_, QString vmUuid_);
 	void onVmPersonalityChanged(QString vmDirUuid_, QString vmUuid_);
 	void onVmDeviceDetached(QString vmUuid_, QString device_);
+	void onVmCreated(const QString& directory_, const QString& uuid_);
+	void onVmRegistered(const QString& directory_, const QString& uuid_, const QString& name_);
 
 signals:
 	void signalVmStateChanged( unsigned int nVmOldState, unsigned int nVmNewState,
@@ -77,6 +78,8 @@ signals:
 	void signalSendVmConfigChanged(QString, QString);
 	void signalSendVmPersonalityChanged(QString, QString);
 	void signalVmDeviceDetached(QString vmUuid, QString device);
+	void signalVmCreated(QString directory_, QString uuid_);
+	void signalVmRegistered(QString directory_, QString uuid_, QString name_);
 
 public slots:
 	void slotSendVmStateChanged( unsigned int nVmState, QString vmUuid, QString dirUuid, bool notifyVm );
@@ -92,7 +95,7 @@ private:
 class CDspVmStateSenderThread : public QThread
 {
 public:
-	CDspVmStateSenderThread();
+	explicit CDspVmStateSenderThread(CDspVmStateSender* ready_);
 
 	CDspLockedPointer<CDspVmStateSender> getVmStateSender();
 
@@ -104,5 +107,30 @@ private:
 
 	// should be created inside thread ( to process slots in this eventloop )
 	CDspVmStateSender* m_pVmStateSender;
+	QScopedPointer<CDspVmStateSender> m_bin;
 };
+
+class CDspClientManager;
+namespace Vm
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Proclamation
+
+struct Proclamation: QObject
+{
+	explicit Proclamation(CDspClientManager& driver_): m_driver(&driver_)
+	{
+	}
+
+public slots:
+	void reactRegistered(QString directory_, QString uuid_, QString name_);
+
+private:
+	Q_OBJECT
+
+	CDspClientManager* m_driver;
+};
+
+} // namespace Vm
+
 #endif // __CDspVmStateSender_H_
