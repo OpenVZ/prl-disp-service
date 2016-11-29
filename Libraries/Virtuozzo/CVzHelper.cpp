@@ -697,6 +697,14 @@ static int merge_params(const SmartPtr<CVmConfiguration> &pConfig,
 			}
 		}
 	}
+
+	/* BootOrder */
+	QList<CVmStartupOptions::CVmBootDevice*> boot;
+	foreach (CVmStartupOptions::CVmBootDevice* b, pVmConfig->getVmSettings()->getVmStartupOptions()->getBootDeviceList()) {
+		boot.append(new CVmStartupOptions::CVmBootDevice(*b));
+	}
+	pConfig->getVmSettings()->getVmStartupOptions()->setBootDeviceList(boot);
+
 	/* merge remote display settings (https://jira.sw.ru/browse/PSBM-11677) */
 	CVmRemoteDisplay *pRemoteDisplay =
 		new CVmRemoteDisplay(pVmConfig->getVmSettings()->getVmRemoteDisplay());
@@ -718,6 +726,7 @@ static int merge_params(const SmartPtr<CVmConfiguration> &pConfig,
 				set_encryption_keyid(pHdd, enc->getKeyId());
 		}
 	}
+
 
 	return 0;
 }
