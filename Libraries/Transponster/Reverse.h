@@ -190,6 +190,7 @@ struct Builder
 
 protected:
 	PRL_RESULT setIdentification();
+	void addDebugCommandline();
 
 	CVmConfiguration m_input;
 	QScopedPointer<Libvirt::Domain::Xml::Domain> m_result;
@@ -221,6 +222,7 @@ struct Mixer: Builder
 {
 	Mixer(const CVmConfiguration& input_, char* xml_);
 
+	PRL_RESULT setBlank();
 	PRL_RESULT setIdentification();
 	PRL_RESULT setResources(const VtInfo&);
 };

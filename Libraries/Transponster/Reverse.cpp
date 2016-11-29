@@ -1584,6 +1584,38 @@ QString Builder::getResult()
 	return x.toString();
 }
 
+void Builder::addDebugCommandline()
+{
+	if (DBG_DEBUG > __log_level)
+		return;
+
+	// EFI only
+	if (m_input.getVmIdentification() == NULL
+		|| m_input.getVmSettings() == NULL
+		|| m_input.getVmSettings()->getVmStartupOptions() == NULL
+		|| m_input.getVmSettings()->getVmStartupOptions()->getBios() == NULL
+		|| !m_input.getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled())
+		return;
+
+	boost::optional<Libvirt::Domain::Xml::Commandline> c = m_result->getCommandline();
+	if (!c)
+		c = Libvirt::Domain::Xml::Commandline();
+
+	QList<QString> a = c->getArgList();
+
+	if (!a.contains("-global"))
+		a << "-global" << "isa-debugcon.iobase=0x402";
+
+	if (!a.contains("-debugcon"))
+	{
+		QString x = QFileInfo(m_input.getVmIdentification()->getHomePath())
+			.dir().absoluteFilePath("qdbg.log");
+		a << "-debugcon" << QString("file:%1").arg(x);
+	}
+	c->setArgList(a);
+	m_result->setCommandline(*c);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
@@ -1643,6 +1675,7 @@ void Vm::setCommandline()
 	Libvirt::Domain::Xml::Commandline q;
 	q.setArgList(QList<QString>() << "-d" << "guest_errors,unimp");
 	m_result->setCommandline(q);
+	return addDebugCommandline();
 }
 
 void Vm::setFeatures()
@@ -1690,6 +1723,13 @@ Mixer::Mixer(const CVmConfiguration& input_, char* xml_): Builder(input_)
 	shape(xml_, m_result);
 }
 
+PRL_RESULT Mixer::setBlank()
+{
+	PRL_RESULT r = Builder::setBlank();
+	addDebugCommandline();
+	return r;
+}
+
 PRL_RESULT Mixer::setIdentification()
 {
 	return PRL_ERR_SUCCESS;
@@ -1723,6 +1763,24 @@ PRL_RESULT Fixer::setBlank()
 
 	m_result->setOs(boost::apply_visitor
 		(Visitor::Fixup::Os(b->getNVRAM()), m_result->getOs()));
+
+	boost::optional<Libvirt::Domain::Xml::Commandline> c = m_result->getCommandline();
+	if (!c)
+		return PRL_ERR_SUCCESS;
+
+	QList<QString> l = c->getArgList();
+
+	// remove "-debugcon <vm-home-path>/qdbg.log" from commandline
+	int i = l.indexOf("-debugcon");
+	if (i > 0 && i < l.size())
+	{
+		l.removeAt(i+1);
+		l.removeAt(i);
+	}
+	c->setArgList(l);
+	m_result->setCommandline(*c);
+	addDebugCommandline();
+
 	return PRL_ERR_SUCCESS;
 }
 
