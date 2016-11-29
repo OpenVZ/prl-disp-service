@@ -54,10 +54,15 @@ namespace Pull
 void Crash::run()
 {
 	CVmOnCrash *o = m_config.getVmSettings()->getVmRuntimeOptions()->getOnCrash();
-	if (o->getOptions() & POCO_REPORT)
+	PRL_UINT32 opts = o->getOptions();
+	PRL_VM_ON_CRASH_ACTION mode = o->getMode();
+
+	QMetaObject::invokeMethod(m_domain.data(), "crash");
+
+	if (opts & POCO_REPORT)
 		sendProblemReport();
 
-	if (o->getMode() == POCA_RESTART)
+	if (mode == POCA_RESTART)
 	{
 		QString uuid = m_config.getVmIdentification()->getVmUuid();
 		Command::Vm::Gear<Command::Tag::State<Command::Vm::Resurrect, Command::Vm::Fork::State::Strict<VMS_RUNNING> > >::run(uuid);
@@ -1149,6 +1154,35 @@ void Domain::show(reaction_type reaction_)
 	reaction_(m_access.getReactor());
 }
 
+void Domain::crash()
+{
+	boost::optional<CVmConfiguration> c = getConfig();
+	if (!c)
+		return;
+
+	CVmOnCrash *o = c->getVmSettings()->getVmRuntimeOptions()->getOnCrash();
+	if (o->getMode() != POCA_RESTART || !(o->getOptions() & POCO_REPORT))
+		return;
+
+	m_crashes.push_back(PrlGetTimeMonotonic());
+	quint32 s = m_crashes.size();
+	if (s < o->getLimit())
+		return;
+
+	if (s > o->getLimit())
+		m_crashes.pop_front();
+
+	quint64 d = m_crashes.back() - m_crashes.front();
+	// 24 * 3600 * 1000000
+	if (d < 86400000000ULL)
+	{
+		o->setMode(POCA_PAUSE);
+		setConfig(c.get());
+
+		m_crashes.clear();
+	}
+}
+
 namespace
 {
 
@@ -1272,7 +1306,7 @@ void Coarse::onCrash(virDomainPtr domain_)
 
 	setState(domain_, VMS_PAUSED);
 	CVmConfiguration c = d->getConfig().get();
-	QThreadPool::globalInstance()->start(new Instrument::Pull::Crash(c));
+	QThreadPool::globalInstance()->start(new Instrument::Pull::Crash(d, c));
 }
 
 void Coarse::pullInfo(virDomainPtr domain_)

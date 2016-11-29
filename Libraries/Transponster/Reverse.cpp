@@ -1439,6 +1439,7 @@ PRL_RESULT Builder::setSettings()
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 	c->setMode(s->getVmRuntimeOptions()->getOnCrash()->getMode());
 	c->setOptions(s->getVmRuntimeOptions()->getOnCrash()->getOptions());
+	c->setLimit(s->getVmRuntimeOptions()->getOnCrash()->getLimit());
 
 	Libvirt::Domain::Xml::Blkiotune b;
 	b.setWeight(HostUtils::convertIoprioToWeight(r->getIoPriority()));
