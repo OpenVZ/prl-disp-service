@@ -1031,6 +1031,11 @@ void CDspProblemReportHelper::FillProblemReportData
 				.arg(vmConfig.getVmIdentification()->getVmName()),
 			QString("libvirt-%1.log")
 				.arg(vmConfig.getVmIdentification()->getVmName()));
+		cReport.appendSystemLog(
+			QString("/var/log/libvirt/qemu/%1.qdbg.log")
+				.arg(vmConfig.getVmIdentification()->getVmName()),
+			QString("libvirt-%1-qdbg.log")
+				.arg(vmConfig.getVmIdentification()->getVmName()));
 	}
 	addSystemLog(cReport, QFileInfo("/var/log/libvirt/libvirtd.log"));
 	addSystemLog(cReport, QFileInfo("/var/log/libvirt/libvirt.log"));

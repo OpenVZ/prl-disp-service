@@ -1608,9 +1608,8 @@ void Builder::addDebugCommandline()
 
 	if (!a.contains("-debugcon"))
 	{
-		QString x = QFileInfo(m_input.getVmIdentification()->getHomePath())
-			.dir().absoluteFilePath("qdbg.log");
-		a << "-debugcon" << QString("file:%1").arg(x);
+		a << "-debugcon" << QString("file:/var/log/libvirt/qemu/%1.qdbg.log")
+			.arg(m_input.getVmIdentification()->getVmName());
 	}
 	c->setArgList(a);
 	m_result->setCommandline(*c);
