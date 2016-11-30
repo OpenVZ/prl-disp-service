@@ -42,6 +42,7 @@
 #include <boost/thread/future.hpp>
 
 #include "CDspVmConfigManager.h"
+#include "CVmIdent.h"
 
 #ifdef _LIBVIRT_
 #include "CDspLibvirt.h"
@@ -90,7 +91,7 @@ class Watcher: public QObject
 	Q_OBJECT
 
 public:
-	explicit Watcher(const QString& uuid_) : m_uuid(uuid_), m_count(0)
+	Watcher(const CVmIdent& ident_) : m_ident(ident_), m_count(0)
 	{
 	}
 
@@ -98,6 +99,7 @@ public:
 	{
 		return m_state.get_future();
 	}
+	void onChangedState(PRL_VM_TOOLS_STATE state_, const QString& version_);
 
 signals:
 	void guestToolsStarted(const QString v_);
@@ -107,7 +109,7 @@ protected:
 	virtual void timerEvent(QTimerEvent*);
 
 private:
-	QString m_uuid;
+	CVmIdent m_ident;
 	boost::promise<PRL_VM_TOOLS_STATE> m_state;
 	int m_count;
 };
