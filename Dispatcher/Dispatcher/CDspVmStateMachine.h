@@ -245,7 +245,8 @@ struct Frontend: Details::Frontend<Frontend>
 				qPrintable(getName()));
 
 			::Vm::Guest::Actor *a = new ::Vm::Guest::Actor(m_big->getConfigEditor());
-			::Vm::Guest::Watcher *p = new ::Vm::Guest::Watcher(m_big->getUuid());
+			::Vm::Guest::Watcher *p = new ::Vm::Guest::Watcher(
+				MakeVmIdent(m_big->getUuid(), m_big->getUser().getVmDirectoryUuid()));
 
 			a->connect(p, SIGNAL(destroyed()), SLOT(deleteLater()));
 			a->connect(p, SIGNAL(guestToolsStarted(const QString)),
