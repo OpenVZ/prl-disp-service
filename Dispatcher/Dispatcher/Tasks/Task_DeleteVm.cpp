@@ -52,6 +52,7 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/StatesUtils/StatesHelper.h"
 #include "CDspBackupDevice.h"
+#include "CDspVm_p.h"
 
 using namespace Parallels;
 
@@ -865,26 +866,10 @@ void Task_DeleteVm::postVmDeletedEvent()
 {
 	if (m_flgVmWasDeletedFromSystemTables ) //&& sharedVmHash.isEmpty() )
 	{
-		// Generate "VM Deleted" event
-		CVmEvent event( doUnregisterOnly()?PET_DSP_EVT_VM_UNREGISTERED:PET_DSP_EVT_VM_DELETED,
-			m_pVmConfig->getVmIdentification()->getVmUuid(),
-			PIE_DISPATCHER );
-
-		SmartPtr<IOPackage> p =
-			DispatcherPackage::createInstance( PVE::DspVmEvent, event, getRequestPackage());
-
-		//////////////////////////////////////////////////////////////////////////
-		// Send to all vm dir clients because
-		// 1) #120118 vm was removed manualy
-		// 2) #265595 user has access denied after registration this vm by root.
-		// 3) This code is very simpler than any other.
-		QList< SmartPtr<CDspClient> >
-			allVmDirClients = CDspService::instance()->getClientManager()
-				.getSessionsListSnapshot(m_vmDirectoryUuid)
-					.values();
-
-		CDspService::instance()->getClientManager()
-			.sendPackageToClientList( p, allVmDirClients );
+		DspVm::vdh().sendVmRemovedEvent(
+			MakeVmIdent(m_pVmConfig->getVmIdentification()->getVmUuid(), m_vmDirectoryUuid),
+			(doUnregisterOnly()) ? PET_DSP_EVT_VM_UNREGISTERED : PET_DSP_EVT_VM_DELETED,
+			 getRequestPackage());
 	}
 
 }
