@@ -1832,11 +1832,7 @@ void CDspVmDirHelper::sendVmConfigChangedEvent(const CVmIdent& vmIdent, const Sm
 
 void CDspVmDirHelper::sendVmConfigChangedEvent(const QString& vmDirUuid, const QString& vmUuid, const SmartPtr<IOPackage> &pRequest)
 {
-	CVmEvent event( PET_DSP_EVT_VM_CONFIG_CHANGED, vmUuid, PIE_DISPATCHER );
-	SmartPtr<IOPackage> p = DispatcherPackage::createInstance( PVE::DspVmEvent, event, pRequest );
-	CDspService::instance()->getClientManager()
-		.sendPackageToVmClients( p, vmDirUuid, vmUuid);
-	CDspService::instance()->getVmStateSender()->onVmConfigChanged(vmDirUuid, vmUuid);
+	sendVmConfigChangedEvent(MakeVmIdent(vmUuid, vmDirUuid), pRequest);
 }
 
 //
