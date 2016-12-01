@@ -37,6 +37,7 @@
 #include "CDspVmDirManager.h"
 #include "CDspService.h"
 #include "CDspVNCStarter_p.h"
+#include "Tasks/Task_EditVm.h"
 #include <prlxmlmodel/VmConfig/CVmHardDisk.h>
 #include "EditHelpers/CMultiEditMergeVmConfig.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
@@ -44,6 +45,7 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Interfaces/ParallelsDomModel.h>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
+#include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
 
 #include "Dispatcher/Dispatcher/Cache/CacheImpl.h"
 
@@ -422,6 +424,10 @@ void Identification::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
 	new_.getVmIdentification()->setHomePath
 		(old_.getVmIdentification()->getHomePath());
+	new_.getVmIdentification()->setCreationDate
+		(old_.getVmIdentification()->getCreationDate());
+	new_.getVmIdentification()->setSourceVmUuid
+		(old_.getVmIdentification()->getSourceVmUuid());
 	new_.getVmIdentification()->setVmUptimeStartDateTime
 		(old_.getVmIdentification()->getVmUptimeStartDateTime());
 }
@@ -996,6 +1002,115 @@ PRL_RESULT Atomic::operator()(const action_type& action_)
 
 } // namespace Edit
 } // namespace Config
+
+namespace Registration
+{
+namespace Unattended
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Survey
+
+quint32 Survey::getGuestType() const
+{
+	const CVmSettings* s = m_model->getVmSettings();
+	if (NULL == s)
+		return 0;
+
+	const CVmCommonOptions* o = s->getVmCommonOptions();
+	if (NULL == o)
+		return 0;
+
+	return o->getOsVersion();
+}
+
+const CVmFloppyDisk* Survey::find(const QString& image_) const
+{
+	foreach(const CVmFloppyDisk* f, getList())
+	{
+		if (PVE::FloppyDiskImage != f->getEmulatedType())
+			continue;
+
+		if (image_ == f->getSystemName() && f->getUserFriendlyName() == image_)
+			return f;
+	}       
+	return NULL;
+}
+
+quint32 Survey::getNextItemId() const
+{
+	return getList().size();
+}
+
+quint32 Survey::getNextIndex() const
+{
+	QList<CVmFloppyDisk* > x = getList();
+	return CXmlModelHelper::GetUnusedDeviceIndex<CVmFloppyDisk>(x);
+}
+
+quint32 Survey::getNextStackIndex() const
+{
+	Vm::Config::Index::Pool::population_type p;
+	std::transform(getList().begin(), getList().end(),
+		std::back_inserter(p), boost::bind(&CVmFloppyDisk::getStackIndex, _1));
+	return Vm::Config::Index::Pool(p).getAvailable();
+}
+
+const QList<CVmFloppyDisk* >& Survey::getList() const
+{
+	static const QList<CVmFloppyDisk* > s_empty;
+	CVmHardware* h = m_model->getVmHardwareList();
+	if (NULL == h)
+		return s_empty;
+
+	return h->m_lstFloppyDisks;
+}
+
+} // namespace Unattended
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Reconfiguration
+
+void Reconfiguration::react(QString directory_, QString uuid_)
+{
+	PRL_RESULT x;
+	SmartPtr<CVmConfiguration> y = m_service->getVmDirHelper()
+		.getVmConfigByUuid(directory_, uuid_, x);
+	if (!y.isValid())
+		return;
+
+	Unattended::Survey s(*y);
+	quint32 t = s.getGuestType();
+	if (!IS_WINDOWS(t))
+		return;
+
+	QString i = ParallelsDirs::getWindowsUnattendedFloppy(t);
+	if (i.isEmpty())
+		return;
+
+	if (!QFileInfo(i).exists())
+		return;
+
+	if (NULL != s.find(i))
+		return;
+
+	CVmFloppyDisk d;
+	d.setEnabled(PVE::DeviceEnabled);
+	d.setConnected(PVE::DeviceConnected);
+	d.setEmulatedType(PVE::FloppyDiskImage);
+	d.setSystemName(i);
+	d.setUserFriendlyName(i);
+	d.setItemId(s.getNextItemId());
+	d.setIndex(s.getNextIndex());
+	d.setStackIndex(s.getNextStackIndex());
+
+	CVmEvent e;
+	e.addEventParameter(new CVmEventParameter(PVE::String,
+		d.toString(), EVT_PARAM_VMCFG_NEW_DEVICE_CONFIG));
+	Task_EditVm::atomicEditVmConfigByVm(directory_, uuid_,
+		e, CDspClient::makeServiceUser(directory_));
+}
+
+} // namespace Registration
 } // namespace Vm
 
 namespace Trie
