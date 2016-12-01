@@ -38,6 +38,7 @@
 #include "Dispatcher/Dispatcher/Cache/Cache.h"
 #include <QReadWriteLock>
 #include <QHash>
+#include <QObject>
 #include <QVector>
 #include <QDateTime>
 #include <boost/mpl/vector.hpp>
@@ -494,6 +495,54 @@ private:
 
 } // namespace Edit
 } // namespace Config
+
+namespace Registration
+{
+namespace Unattended
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Survey
+
+struct Survey
+{
+	explicit Survey(const CVmConfiguration& model_): m_model(&model_)
+	{
+	}
+
+	quint32 getGuestType() const;
+	const CVmFloppyDisk* find(const QString& image_) const;
+	quint32 getNextItemId() const;
+	quint32 getNextIndex() const;
+	quint32 getNextStackIndex() const;
+
+private:
+	const QList<CVmFloppyDisk* >& getList() const;
+
+	const CVmConfiguration* m_model;
+};
+
+} // namespace Unattended
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Reconfiguration
+
+struct Reconfiguration: QObject
+{
+	Q_OBJECT
+
+public:
+	explicit Reconfiguration(CDspService& service_): m_service(&service_)
+	{
+	}
+
+public slots:
+	void react(QString directory_, QString uuid_);
+
+private:
+	CDspService* m_service;
+};
+
+} // namespace Registration
 } // namespace Vm
 
 // NB. In computer science, a trie, also called digital tree and sometimes
