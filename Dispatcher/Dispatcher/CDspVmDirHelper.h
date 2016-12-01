@@ -523,6 +523,8 @@ private:
 public:
 	static PRL_RESULT UpdateHardDiskInformation(SmartPtr<CVmConfiguration> &pConfig);
 
+	static void sendVmRemovedEvent(const CVmIdent& vmIdent, PRL_EVENT_TYPE type_
+		, const SmartPtr<IOPackage> &pRequest = SmartPtr<IOPackage>(0));
 	static void sendVmConfigChangedEvent(const CVmIdent& vmIdent
 		, const SmartPtr<IOPackage> &pRequest = SmartPtr<IOPackage>(0));
 

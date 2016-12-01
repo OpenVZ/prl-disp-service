@@ -1802,21 +1802,37 @@ void CDspVmDirHelper::restoreVm( SmartPtr<CDspClient> pUserSession, const SmartP
 	pUserSession->sendResponse( pCmd, pkg );
 }
 
+void CDspVmDirHelper::sendVmRemovedEvent(const CVmIdent& vmIdent, PRL_EVENT_TYPE type_,
+		const SmartPtr<IOPackage> &pRequest)
+{
+	// Generate "VM Deleted" event
+	CVmEvent event(type_, vmIdent.first, PIE_DISPATCHER);
+	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, event, pRequest);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Send to all vm dir clients because
+	// 1) #120118 vm was removed manualy
+	// 2) #265595 user has access denied after registration this vm by root.
+	// 3) This code is very simpler than any other.
+	QList< SmartPtr<CDspClient> > allVmDirClients = CDspService::instance()->getClientManager()
+		.getSessionsListSnapshot(vmIdent.second).values();
+
+	CDspService::instance()->getClientManager()
+		.sendPackageToClientList(p, allVmDirClients);
+}
+
 void CDspVmDirHelper::sendVmConfigChangedEvent(const CVmIdent& vmIdent, const SmartPtr<IOPackage> &pRequest)
 {
 	CVmEvent event( PET_DSP_EVT_VM_CONFIG_CHANGED, vmIdent.first, PIE_DISPATCHER );
 	SmartPtr<IOPackage> p = DispatcherPackage::createInstance( PVE::DspVmEvent, event, pRequest );
 	CDspService::instance()->getClientManager()
 		.sendPackageToVmClients( p, vmIdent.second, vmIdent.first );
+	CDspService::instance()->getVmStateSender()->onVmConfigChanged(vmIdent.second, vmIdent.first);
 }
 
 void CDspVmDirHelper::sendVmConfigChangedEvent(const QString& vmDirUuid, const QString& vmUuid, const SmartPtr<IOPackage> &pRequest)
 {
-	CVmEvent event( PET_DSP_EVT_VM_CONFIG_CHANGED, vmUuid, PIE_DISPATCHER );
-	SmartPtr<IOPackage> p = DispatcherPackage::createInstance( PVE::DspVmEvent, event, pRequest );
-	CDspService::instance()->getClientManager()
-		.sendPackageToVmClients( p, vmDirUuid, vmUuid);
-	CDspService::instance()->getVmStateSender()->onVmConfigChanged(vmDirUuid, vmUuid);
+	sendVmConfigChangedEvent(MakeVmIdent(vmUuid, vmDirUuid), pRequest);
 }
 
 //

@@ -126,7 +126,7 @@ void Watcher::timerEvent(QTimerEvent *ev_)
 	killTimer(ev_->timerId());
 
 	Prl::Expected<QString, Libvirt::Agent::Failure> r =
-		Libvirt::Kit.vms().at(m_uuid).getGuest().getAgentVersion(0);
+		Libvirt::Kit.vms().at(m_ident.first).getGuest().getAgentVersion(0);
 	if (r.isFailed()) {
 		if (r.error().virErrorCode() == VIR_ERR_OPERATION_INVALID) {
 			// domain is not running
@@ -146,12 +146,22 @@ void Watcher::timerEvent(QTimerEvent *ev_)
 	}
 
 	m_state.set_value(PTS_INSTALLED);
+	onChangedState(PTS_INSTALLED, r.value());
 
 	emit guestToolsStarted(r.value());
 
 	// tools ready, stop checking
 	deleteLater();
-	return;
+}
+
+void Watcher::onChangedState(PRL_VM_TOOLS_STATE state_, const QString& version_)
+{
+	CVmEvent e(PET_DSP_EVT_VM_TOOLS_STATE_CHANGED, m_ident.first, PIE_DISPATCHER);
+	e.addEventParameter(new CVmEventParameter(PVE::Integer, QString::number(state_),
+                        EVT_PARAM_VM_TOOLS_STATE));
+	e.addEventParameter(new CVmEventParameter(PVE::String, version_, EVT_PARAM_VM_TOOLS_VERSION));
+	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, e);
+	CDspService::instance()->getClientManager().sendPackageToVmClients(p, m_ident.second, m_ident.first);
 }
 
 } // namespace Guest
