@@ -50,7 +50,6 @@
 #include "CDspCommon.h"
 #include "CDspService.h"
 #include "CDspClientManager.h"
-#include "CDspVmGuestPersonality.h"
 
 #include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/Messaging/CVmEventParameter.h>
@@ -132,10 +131,23 @@ void CDspVmStateSender::onVmDeviceDetached(QString vmUuid_, QString device_)
 	emit signalVmDeviceDetached(vmUuid_, device_);
 }
 
-CDspVmStateSenderThread::CDspVmStateSenderThread()
-:	m_mtx( QMutex::Recursive), m_pVmStateSender()
+void CDspVmStateSender::onVmCreated
+	(const QString& directory_, const QString& uuid_)
 {
+	emit signalVmCreated(directory_, uuid_);
+}
 
+void CDspVmStateSender::onVmRegistered
+	(const QString& directory_, const QString& uuid_, const QString& name_)
+{
+	emit signalVmRegistered(directory_, uuid_, name_);
+}
+
+CDspVmStateSenderThread::CDspVmStateSenderThread(CDspVmStateSender* ready_)
+:	m_mtx( QMutex::Recursive), m_pVmStateSender(), m_bin(ready_)
+{
+	if (!m_bin.isNull())
+		m_bin->moveToThread(this);
 }
 
 CDspLockedPointer<CDspVmStateSender> CDspVmStateSenderThread::getVmStateSender()
@@ -147,15 +159,9 @@ CDspLockedPointer<CDspVmStateSender> CDspVmStateSenderThread::getVmStateSender()
 
 void CDspVmStateSenderThread::run()
 {
-	CDspVmStateSender x;
-	m_pVmStateSender = &x;
-	CDspVmGuestPersonality y;
-
-	bool b = QObject::connect(&x,
-			SIGNAL(signalSendVmPersonalityChanged(QString, QString)),
-			&y,
-			SLOT(slotVmPersonalityChanged(QString, QString)), Qt::DirectConnection);
-	PRL_ASSERT(b);
+	m_mtx.lock();
+	m_pVmStateSender = m_bin.data();
+	m_mtx.unlock();
 
 	COMMON_TRY
 	{
@@ -163,7 +169,9 @@ void CDspVmStateSenderThread::run()
 	}
 	COMMON_CATCH;
 
+	m_mtx.lock();
 	m_pVmStateSender = NULL;
+	m_mtx.unlock();
 }
 
 void CDspVmStateSender::slotSendVmStateChanged(
@@ -226,3 +234,25 @@ void CDspVmStateSender::slotSendVmAdditionStateChanged( unsigned int nVmAddition
 		vmUuid
 		);
 }
+
+namespace Vm
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Proclamation
+
+void Proclamation::reactRegistered(QString directory_, QString uuid_, QString name_)
+{
+	// Generate "VM added" event
+	CVmEvent e(PET_DSP_EVT_VM_ADDED, uuid_, PIE_DISPATCHER);
+
+	if (!name_.isEmpty())
+	{
+		e.addEventParameter(
+			new CVmEventParameter(PVE::String, name_, EVT_PARAM_GENERATED_VM_NAME));
+	}
+	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, e);
+	m_driver->sendPackageToVmClients(p, directory_, uuid_);
+}
+
+} // namespace Vm
+
