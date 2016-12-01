@@ -78,6 +78,8 @@ struct EthernetAdapter
 	unsigned char _macAddr[6];  ///< Macaddress of the adapter
 
 	bool		_bEnabled;		///< Is adapter enabled
+
+	int		_nType;			///< type of adapter (PRL_NET_ADAPTER_TYPE)
 };
 
 // PrlAdapter is always greater then eth adapter.
@@ -98,6 +100,14 @@ int		   getMaximumAdapterIndex();
 /// Creates a list of Parallels adapters, both enabled and disabled
 /// @param adaptersList [out] Resulting list of adapters
 PRL_RESULT makePrlAdaptersList( EthAdaptersList &adaptersList );
+
+
+/// Creates a list of all ethernet adapters.
+/// @param adaptersList [out] Resulting list of adapters
+/// @param bUpAdapters [in] Enumerate only UP adapters
+/// @param bConfigured [in] Enumerate only configured adapters (with ip addrsses)
+PRL_RESULT makeAdapterList( EthAdaptersList &adaptersList,
+		bool bUpAdapters, bool bConfigured = false );
 
 /// Creates a list of ethernet adapters to which VM and NAT is able to bind.
 /// @param adaptersList [out] Resulting list of adapters

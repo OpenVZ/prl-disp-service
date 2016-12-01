@@ -79,7 +79,7 @@ PRL_RESULT PrlNet_Private::findPrlAdapter( int adapterIndex, PrlNet::EthernetAda
 QString PrlNet::findAdapterName(const QString& mac_, unsigned short vlan_)
 {
 	EthIfaceList l;
-	if(!::makeEthIfacesList(l, false))
+	if(!::makeBindableEthIfacesList(l, false))
 		return QString();
 
 	foreach(const EthIface& e, l)
@@ -97,7 +97,7 @@ PRL_RESULT PrlNet::makePrlAdaptersList( PrlNet::EthAdaptersList &adaptersList )
 
 	// create a list of all Parallels adapter. No matter up or down
 	EthIfaceList ethList;
-	if( !::makeEthIfacesList( ethList, false ) )
+	if( !::makeBindableEthIfacesList( ethList, false ) )
 	{
 		MODULE_STORE_SYSTEM_ERROR();
 

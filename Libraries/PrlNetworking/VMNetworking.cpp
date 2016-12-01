@@ -59,6 +59,8 @@
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
 
+#include <boost/bind.hpp>
+
 static void inline MODULE_STORE_SYSTEM_ERROR()
 {
 #if defined(_WIN_)
@@ -104,6 +106,7 @@ static void EthIface2EthAdapter( const EthIface &ethIface, PrlNet::EthernetAdapt
 	ethAdapter._bEnabled = true; // Adapter can't be disabled in Windows
 #else
 	ethAdapter._bEnabled = !!(ethIface._ifaceFlags&IFF_UP);
+	ethAdapter._nType = ethIface._nType;
 #endif
 
 	ethAdapter._vlanTag = ethIface._vlanTag;
@@ -116,7 +119,7 @@ static void EthIface2EthAdapter( const EthIface &ethIface, PrlNet::EthernetAdapt
 }
 
 
-PRL_RESULT PrlNet::makeBindableAdapterList( PrlNet::EthAdaptersList &adaptersList,
+PRL_RESULT PrlNet::makeAdapterList( PrlNet::EthAdaptersList &adaptersList,
 		bool bUpAdapters, bool bConfigured)
 {
 	adaptersList.clear();
@@ -139,6 +142,20 @@ PRL_RESULT PrlNet::makeBindableAdapterList( PrlNet::EthAdaptersList &adaptersLis
 	}
 
 	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT PrlNet::makeBindableAdapterList( PrlNet::EthAdaptersList &adaptersList,
+		bool bUpAdapters, bool bConfigured)
+{
+	PRL_RESULT res = makeAdapterList(adaptersList, bUpAdapters, bConfigured);
+	if (PRL_SUCCEEDED(res))
+	{
+		adaptersList.erase(std::remove_if(adaptersList.begin(),
+							adaptersList.end(),
+							boost::bind(&EthernetAdapter::_nType, _1) == NIC_TYPE_BRIDGE),
+					adaptersList.end());
+	}
+	return res;
 }
 
 
@@ -165,7 +182,7 @@ PRL_RESULT PrlNet::getDefaultBridgedAdapter( PrlNet::EthAdaptersList &adaptersLi
 	defaultAdapter = adaptersList.end();
 
 	EthIfaceList ethList;
-	if( !::makeEthIfacesList(ethList, true) ) // only UP adapters
+	if( !::makeBindableEthIfacesList(ethList, true) ) // only UP adapters
 	{
 		MODULE_STORE_SYSTEM_ERROR();
 
