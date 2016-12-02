@@ -32,12 +32,16 @@
 
 #include <QMap>
 
+#include <boost/bind.hpp>
+#include <boost/tuple/tuple.hpp>
+
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 #include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
+#include <prlcommon/Std/LockedPtr.h>
 
 #include <prlsdk/PrlEnums.h>
 
@@ -1127,6 +1131,39 @@ PRL_RESULT PrlNet::WriteNetworkConfig(CParallelsNetworkConfig &networkConfig)
 	return PRL_ERR_SUCCESS;
 }
 
+bool PrlNet::PatchBridgedNetwork(const CHostHardwareInfo &hostInfo, CVirtualNetwork *pNetwork)
+{
+	if (pNetwork->getNetworkType() != PVN_BRIDGED_ETHERNET)
+		return false;
+
+	QList<CHwNetAdapter*>::const_iterator b = hostInfo.m_lstVirtualNetworkAdapters.begin();
+	QList<CHwNetAdapter*>::const_iterator e = hostInfo.m_lstVirtualNetworkAdapters.end();
+	QList<CHwNetAdapter*>::const_iterator p =
+		std::find_if(b, e, boost::bind(&CHwNetAdapter::getMacAddress, _1)
+					== pNetwork->getBoundCardMac());
+	if (p == e)
+		return false;
+
+	CHwNetAdapter *a = *p;
+	QStringList v4, v6;
+	boost::tie(v4, v6) = NetworkUtils::ParseIps(a->getNetAddresses());
+	if (!v6.isEmpty())
+	{
+		QString ip, mask;
+		NetworkUtils::ParseIpMask(v6.front(), ip, mask);
+		pNetwork->getHostOnlyNetwork()->setHostIP6Address(QHostAddress(ip));
+		pNetwork->getHostOnlyNetwork()->setIP6NetMask(QHostAddress(mask));
+	}
+	if (!v4.isEmpty())
+	{
+		QString ip, mask;
+		NetworkUtils::ParseIpMask(v4.front(), ip, mask);
+		pNetwork->getHostOnlyNetwork()->setHostIPAddress(QHostAddress(ip));
+		pNetwork->getHostOnlyNetwork()->setIPNetMask(QHostAddress(mask));
+	}
+
+	return true;
+}
 
 PRL_RESULT PrlNet::InitNetworkConfig(
 	CParallelsNetworkConfig &networkConfig

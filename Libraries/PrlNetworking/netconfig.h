@@ -278,6 +278,8 @@ UINT64 SfGetUINT64(const char *flag, UINT64 defaultValue);
 // Shared Networking is disabled for PSBM
 bool isSharedEnabled();
 
+bool PatchBridgedNetwork(const CHostHardwareInfo &hostInfo, CVirtualNetwork *pNetwork);
+
 }
 
 #endif //prl_netconfig_h__
