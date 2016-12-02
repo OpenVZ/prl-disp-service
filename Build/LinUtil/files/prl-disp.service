@@ -2,7 +2,9 @@
 Description=Dispatcher service.
 After=syslog.target network.target
 After=libvirtd.service systemd-modules-load.service vzevent.service vz.service
+After=virt-guest-shutdown.target
 Wants=libvirtd.service systemd-modules-load.service vzevent.service vz.service
+Requires=virt-guest-shutdown.target
 
 [Service]
 Type=notify
