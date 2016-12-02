@@ -287,8 +287,16 @@ int CVzHelper::get_net_stat_by_dev(const QString &ctid, CVmGenericNetworkAdapter
 {
 	QString out;
 	QStringList a;
+	QString ifname;
 
-	a << "/usr/sbin/ip" << "netns" << "exec" << ctid << "ip" << "-s" << "l" << "show" << "dev" << dev->getSystemName();
+	a << "/usr/sbin/ip";
+	if (dev->getSystemName() == "venet0") {
+		a << "netns" << "exec" << ctid << "ip";
+		ifname = dev->getSystemName();
+	} else
+		ifname = dev->getHostInterfaceName();
+	a << "-s" << "l" << "show" << "dev" << ifname;
+
 	if (!HostUtils::RunCmdLineUtility(a, out))
 		return PRL_ERR_FAILURE;
 
