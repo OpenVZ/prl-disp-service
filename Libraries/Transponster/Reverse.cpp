@@ -1044,7 +1044,8 @@ PRL_RESULT Cpu::setUnits()
 	if (!v)
 		return PRL_ERR_UNINITIALIZED;
 
-	m_tune->setShares(m_input.getCpuUnits() * 1024 / 1000);
+	if (0 != m_input.getCpuUnits())
+		m_tune->setShares(m_input.getCpuUnits() * 1024 / 1000);
 	if (m_vt.isGlobalCpuLimit()) {
 		m_tune->setGlobalPeriod(v->getDefaultPeriod());
 		m_tune->setGlobalQuota(-1);
