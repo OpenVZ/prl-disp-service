@@ -742,7 +742,7 @@ Result Future::wait(int timeout_)
 
 		Prl::Expected<QString, Error::Simple> res = m_guest.execute(cmd, false);
 		if (res.isFailed())
-			return res;
+			continue;
 		QString state = res.value();
 
 		std::istringstream is(state.toUtf8().data());
@@ -752,6 +752,7 @@ Result Future::wait(int timeout_)
 		try {
 			boost::property_tree::json_parser::read_json(is, r);
 		} catch (const boost::property_tree::json_parser::json_parser_error&) {
+			WRITE_TRACE(DBG_DEBUG, "unable to parse query-status result: %s", qPrintable(state));
 			return Error::Simple(PRL_ERR_FAILURE);
 		}
 		std::string status = r.get<std::string>("return.status", std::string("none"));
@@ -759,6 +760,7 @@ Result Future::wait(int timeout_)
 		// Is state changed?
 		if (status != m_status)
 		{
+			WRITE_TRACE(DBG_DEBUG, "query-status result: %s", qPrintable(state));
 			m_status.clear();
 			return res;
 		}

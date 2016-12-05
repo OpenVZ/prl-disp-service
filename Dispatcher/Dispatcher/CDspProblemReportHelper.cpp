@@ -854,15 +854,15 @@ void CDspProblemReportHelper::FillVmProblemReportData
 		Prl::Expected<Libvirt::Instrument::Agent::Vm::Command::Future, Error::Simple> e = 
 			u.getGuest().dumpState(y.fileName());
 
-		if (e.isSucceed())
-			e.value().wait(10000);
+		if (e.isSucceed() && e.value().wait(10000).isFailed())
+			WRITE_TRACE(DBG_DEBUG, "got an error while dumping state for a problem report");
 
 		// It doesn't matter if wait failed or migration failed, we need to try unpause VM.
 		VIRTUAL_MACHINE_STATE currentState = VMS_UNKNOWN;
 		if ((isRunning && u.getState(currentState).isFailed()) ||
 				(currentState == VMS_PAUSED && u.unpause().isFailed()))
 		{
-			WRITE_TRACE(DBG_FATAL, "Problem report got error. VM %s may be paused", qPrintable(strVmUuid));
+			WRITE_TRACE(DBG_FATAL, "Unable to resume VM. VM %s may be paused", qPrintable(strVmUuid));
 		}
 
 		// Try to add file even after error
