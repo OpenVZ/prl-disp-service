@@ -1063,16 +1063,19 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 			m_pVmConfig->getVmHardwareList()->m_lstHardDisks,
 			m_lstNonSharedDisks);
 
-	// check that external disk paths are not exist
-	foreach (const QString & disk, m_lstNonSharedDisks) {
-		if (!QFileInfo(disk).exists())
-			continue;
-		WRITE_TRACE(DBG_FATAL,
-			"External disk file '%s' already exists.", QSTR2UTF8(disk));
-		nRetCode = CDspTaskFailure(*this)
-				(PRL_ERR_VM_MIGRATE_EXT_DISK_DIR_ALREADY_EXISTS_ON_TARGET,
-					disk);
-		goto exit;
+	if (!(m_nMigrationFlags & PVMT_DONT_CREATE_DISK))
+	{
+		// check that external disk paths are not exist
+		foreach (const QString & disk, m_lstNonSharedDisks) {
+			if (!QFileInfo(disk).exists())
+				continue;
+			WRITE_TRACE(DBG_FATAL,
+				"External disk file '%s' already exists.", QSTR2UTF8(disk));
+			nRetCode = CDspTaskFailure(*this)
+					(PRL_ERR_VM_MIGRATE_EXT_DISK_DIR_ALREADY_EXISTS_ON_TARGET,
+						disk);
+			goto exit;
+		}
 	}
 
 	{
@@ -1377,7 +1380,8 @@ bool Task_MigrateVmTarget::isSharedDisk(const QString& name) const
 QList<CVmHardDisk> Task_MigrateVmTarget::getImagesToCreate()
 {
 	QList<CVmHardDisk> output;
-	if ((m_nPrevVmState == VMS_RUNNING) || (m_nPrevVmState == VMS_PAUSED))
+	if (!(m_nMigrationFlags & PVMT_DONT_CREATE_DISK) &&
+			((m_nPrevVmState == VMS_RUNNING) || (m_nPrevVmState == VMS_PAUSED)))
 	{
 		CVmHardware h(m_pVmConfig->getVmHardwareList());
 		h.RevertDevicesPathToAbsolute(m_sTargetVmHomePath);
