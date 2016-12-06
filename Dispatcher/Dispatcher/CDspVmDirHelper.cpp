@@ -1434,9 +1434,6 @@ PRL_RESULT CDspVmDirHelper::fillVmInfo(
 
 	PRL_RESULT err = PRL_ERR_FAILURE;
 	SmartPtr<CVmConfiguration> c = getVmConfigByUuid(pUserSession, vm_uuid, err);
-	if (c && !c->getVmSettings()->getVmCommonOptions()->isTemplate())
-		Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(vm_uuid);
-
 	VIRTUAL_MACHINE_STATE s(VMS_STOPPED);
 	if (c && !c->getVmSettings()->getVmCommonOptions()->isTemplate())
 		s = CDspVm::getVmState( vm_uuid, ident.second);
