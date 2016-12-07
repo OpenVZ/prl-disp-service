@@ -423,6 +423,12 @@ PRL_RESULT Image::updateDiskInformation(CVmHardDisk& disk) const
 		e->setKeyId(keyid);
 
 	disk.setSizeInBytes(di->size << 9); /* Sectors -> bytes */
+
+	quint64 size = 0;
+	for (int i = 0; i < di->nimages; i++)
+		size += QFileInfo(di->images[i]->file).size();
+
+	disk.setSizeOnDisk(size >> 20); /* bytes To Mbytes */
 	ploop_close_dd(di);
 
 	return PRL_ERR_SUCCESS;
