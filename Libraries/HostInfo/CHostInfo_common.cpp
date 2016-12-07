@@ -289,7 +289,9 @@ void CDspHostInfo::updateNetworkInfo()
 		return;
 
 	CleanupGenericDevicesList( p_HostHwInfo->m_lstNetworkAdapters,
-								p_HostHwInfo->getNetworkAdapters() );
+					p_HostHwInfo->getNetworkAdapters() );
+	CleanupGenericDevicesList( p_HostHwInfo->m_lstVirtualNetworkAdapters,
+					p_HostHwInfo->getVirtualNetworkAdapters() );
 
 	p_HostHwInfo->getNetworkSettings()->setMaxVmNetAdapters(MAX_NET_DEVICES);
 	p_HostHwInfo->getNetworkSettings()->setMaxHostNetAdapters(PrlNet::getMaximumAdapterIndex()+1);
@@ -309,23 +311,26 @@ void CDspHostInfo::GetNETList()
 
 	//==================== get eth adapters
 	EthAdaptersList ethList;
-	ret = makeBindableAdapterList( ethList, true );
+	ret = makeAdapterList( ethList, true );
 
 	if ( PRL_FAILED( ret ) )
 		WRITE_TRACE(DBG_FATAL, "makeBindableAdapterList() return error %#x, [%s]", ret, QSTR2UTF8( getSysErrorText() ) );
 
-	QListIterator<EthernetAdapter> it(ethList);
-	while ( it.hasNext() )
+	foreach (const EthernetAdapter& a, ethList)
 	{
-		p_HostHwInfo->addNetworkAdapter( convertAndCreateNetAdapter( it.next() ) );
-	}//while
-
+		if (a._nType == NIC_TYPE_BRIDGE)
+			p_HostHwInfo->addVirtualNetworkAdapter( convertAndCreateNetAdapter( a ) );
+		else
+			p_HostHwInfo->addNetworkAdapter( convertAndCreateNetAdapter( a ) );
+	}
 
 	PrlNet::IfIpList ifIpList;
 
+	QList<CHwNetAdapter*> lstAdapters = p_HostHwInfo->m_lstVirtualNetworkAdapters
+						+ p_HostHwInfo->m_lstNetworkAdapters;
 	// Fill ip4 configuration
 	PrlNet::getIfaceIpList( ifIpList, true );
-	foreach(CHwNetAdapter *netAdapter, p_HostHwInfo->m_lstNetworkAdapters)
+	foreach(CHwNetAdapter *netAdapter, lstAdapters)
 	{
 		QList<QString> ipList;
 		foreach( AddressInfo ai, ifIpList )
@@ -347,7 +352,7 @@ void CDspHostInfo::GetNETList()
 	// debug output:
 	LOG_MESSAGE (DBG_DEBUG, "hw network adapter list");
 
-	QListIterator< CHwNetAdapter* > it2 = p_HostHwInfo->m_lstNetworkAdapters;
+	QListIterator< CHwNetAdapter* > it2 = lstAdapters;
 	while ( it2.hasNext() )
 	{
 		QString	xml = ElementToString< CHwNetAdapter* > ( it2.next(), "debug_hw_adapter_info" );
