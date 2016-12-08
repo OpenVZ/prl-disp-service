@@ -1608,78 +1608,18 @@ void CVmValidateConfig::CheckNetworkAdapter()
 
 	QSet<QString > setNA_ids;
 
-	do
-	{
-		CDspLockedPointer<CParallelsNetworkConfig>
-			pNetworkConfig = CDspService::instance()->getNetworkConfig();
-		if (!pNetworkConfig.isValid())
-			break;
-
-		PrlNet::EthAdaptersList ethAdaptersList;
-		PRL_RESULT prlResult = PrlNet::makeBindableAdapterList(ethAdaptersList, true);
-		if( PRL_FAILED(prlResult) )
-		{
-			m_lstResults += PRL_ERR_VMCONF_NETWORK_ADAPTER_ETHLIST_CREATE_ERROR;
-			break;
-		}
-
-		for(int i = 0; i < lstNetworkAdapters.size(); i++)
-		{
-			CVmGenericNetworkAdapter* pNetAdapter = lstNetworkAdapters[i];
-			if ( ! pNetAdapter )
-				continue;
-
-			setNA_ids << pNetAdapter->getFullItemId() << pNetAdapter->getNetAddresses_id();
-			if (pNetAdapter->getEnabled() != PVE::DeviceEnabled
-				|| pNetAdapter->getEmulatedType() == PNA_DIRECT_ASSIGN
-				|| pNetAdapter->getEmulatedType() == PNA_ROUTED)
-				continue;
-
-			QSet<QString > setIds = E_SET << pNetAdapter->getFullItemId()
-				<< pNetAdapter->getEnabled_id() << pNetAdapter->getEmulatedType_id();
-
-			if (PrlNet::getMode() == PRL_NET_MODE_VME &&
-				!pNetAdapter->getVirtualNetworkID().isEmpty())
-			{
-				CVirtualNetwork *pNetwork = PrlNet::GetVirtualNetworkByID(
-						pNetworkConfig.getPtr()->getVirtualNetworks(),
-						pNetAdapter->getVirtualNetworkID());
-				if ( !pNetwork )
-				{
-					WRITE_TRACE(DBG_FATAL, "Virtual network %s does not exist.",
-							QSTR2UTF8(pNetAdapter->getVirtualNetworkID()));
-					m_lstResults += PRL_NET_VMDEVICE_VIRTUAL_NETWORK_NOT_EXIST;
-					m_mapParameters.insert(m_lstResults.size(), QStringList()
-						<< pNetAdapter->getSystemName()
-						<< pNetAdapter->getVirtualNetworkID());
-					ADD_FID(setIds);
-				}
-			}
-			else if ((PrlNet::getMode() != PRL_NET_MODE_VME && pNetAdapter->getEmulatedType() != PNA_BRIDGE) ||
-				pNetAdapter->getEmulatedType() == PNA_BRIDGED_NETWORK)
-			{
-				PrlNet::EthAdaptersList::Iterator itEthAdapter;
-				prlResult = PrlNet::GetAdapterForVM( ethAdaptersList,
-						pNetworkConfig.getPtr(), *pNetAdapter, itEthAdapter );
-				if (PRL_FAILED(prlResult))
-				{
-					m_lstResults += PRL_ERR_VMCONF_NETWORK_ADAPTER_INVALID_BOUND_INDEX;
-					m_mapParameters.insert(m_lstResults.size(),
-						QStringList() << QString::number(i + 1));
-					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
-					ADD_FID(setIds);
-				}
-			}
-		}
-	} while(0);
-
 	QList<QString > lstMacAddresses;
 	QList<QHostAddress > lstIPAddresses;
 
 	for(int i = 0; i < lstNetworkAdapters.size(); i++)
 	{
 		CVmGenericNetworkAdapter* pNetAdapter = lstNetworkAdapters[i];
-		if (!pNetAdapter || pNetAdapter->getEnabled() != PVE::DeviceEnabled
+		if (!pNetAdapter)
+			continue;
+
+		setNA_ids << pNetAdapter->getFullItemId() << pNetAdapter->getNetAddresses_id();
+
+		if (pNetAdapter->getEnabled() != PVE::DeviceEnabled
 			|| (PRL_VM_DEV_EMULATION_TYPE )pNetAdapter->getEmulatedType() == PDT_USE_DIRECT_ASSIGN)
 			continue;
 
