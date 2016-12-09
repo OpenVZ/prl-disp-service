@@ -675,7 +675,10 @@ void Usb::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice590::types, 2>
 {
 	boost::optional<Libvirt::Domain::Xml::EModel1> m = usb_.getValue().getModel();
 	if (!m)
-		return;
+	{
+		// libvirt uses piix3-uhci for the default USB controller model.
+		m = Libvirt::Domain::Xml::EModel1Piix3Uhci;
+	}
 	switch (m.get())
 	{
 	case Libvirt::Domain::Xml::EModel1Piix3Uhci:
