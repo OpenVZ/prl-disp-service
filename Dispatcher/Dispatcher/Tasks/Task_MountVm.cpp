@@ -194,7 +194,8 @@ PRL_RESULT Task_MountVm::MountVm()
 		return PRL_ERR_FAILURE;
 	if (VMS_RUNNING == s && !(m_nFlags & PMVD_READ_ONLY)) {
 		WRITE_TRACE(DBG_FATAL, "Cannot mount running VM in read-write mode");
-		return PRL_ERR_DISP_VM_IS_NOT_STOPPED;
+		return CDspTaskFailure(*this)(PRL_ERR_DISP_VM_IS_NOT_STOPPED,
+						m_pVmConfig->getVmIdentification()->getVmName());
 	}
 	if (VMS_SUSPENDED == s && !(m_nFlags & PMVD_READ_ONLY)) {
 		WRITE_TRACE(DBG_FATAL, "Cannot mount suspended VM in read-write mode");
