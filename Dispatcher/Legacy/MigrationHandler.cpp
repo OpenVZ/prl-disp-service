@@ -76,6 +76,10 @@ result_type Convert::execute()
 	if (PRL_SUCCEEDED(e = m_v2v.do_()))
 		return m_next->execute();
 
+	if (CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()
+		->getDebug()->isLegacyVmUpgrade())
+		return error_type(PRL_ERR_FIXME, "Unable to convert the migrated VM. It was preserved for investigation");
+
 	return error_type(e, "Failed to convert VM. For more details, see logs on the target node.");
 }
 
