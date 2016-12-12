@@ -230,6 +230,10 @@ result_type Helper::do_()
 			return res;
 	}
 
+	// 3d acceleration is disabled
+	if (m_hardware.getVideo())
+		m_hardware.getVideo()->setEnable3DAcceleration(P3D_DISABLED);
+
 	// Parallel ports are not supported anymore
 	m_hardware.m_lstParallelPortOlds.clear();
 	m_hardware.m_lstParallelPorts.clear();
