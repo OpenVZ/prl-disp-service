@@ -58,40 +58,6 @@ using namespace IOService;
 
 class CDspClientManager;
 
-/** Helper in login local procedure. */
-class CUserLoginLocalHelper
-{
-public:
-	/**
-	 * Class constructor
-	 * @param pointer to parent uesr service helper
-	 * @param pointer to processing user
-	 */
-	CUserLoginLocalHelper ( SmartPtr<CDspClient>& pUser, quint64 processId) /* throw (const char *) */;
-	/** Class destructor */
-	~CUserLoginLocalHelper ();
-	/** Checks user validity: determines whether necessary check data presents in check file */
-	bool CheckValidity();
-	/** Returns path to checking user validity file */
-	inline const QString &GetCheckFilePath() const {return (m_sCheckFilePath);}
-	/** Returns data for checking user validity */
-	inline const QString &GetCheckData() const {return (m_sCheckData);}
-	/** Returns pointer to processing user */
-	inline SmartPtr<CDspClient> GetUser() const {return (m_pUser);}
-	/** Returns PID of client's process **/
-	inline quint64 GetClientProcessId() const {return m_pid;}
-
-private:
-	/** Pointer to processing user instance */
-	SmartPtr<CDspClient> m_pUser;
-	/** PID of client's process **/
-	quint64 m_pid;
-	/** Checking file path */
-	QString m_sCheckFilePath;
-	/** Checking data */
-	QString m_sCheckData;
-};
-
 /**
  * @brief This class implements user dispatching logic
  * @author SergeyM
@@ -125,13 +91,8 @@ public:
 		    const IOSender::Handle& h, const SmartPtr<IOPackage>& p, quint32 nFlags = 0, bool *pbWasPreAuthorized = NULL );
 
 	// Process user's local login request
-	void processUserLoginLocal ( const IOSender::Handle&,
+	SmartPtr<CDspClient> processUserLoginLocal ( const IOSender::Handle&,
 								 const SmartPtr<IOPackage>& );
-
-	// Process user's local login second stage request
-	SmartPtr<CDspClient> processUserLoginLocalStage2 (
-								 const IOSender::Handle&,
-								 const SmartPtr<IOPackage>&);
 
 	// Process user's logoff request
 	bool processUserLogoff ( SmartPtr<CDspClient>&,
@@ -203,19 +164,6 @@ public:
 	SmartPtr<IOPackage> makeLoginResponsePacket( const SmartPtr<CDspClient>& pSession
 		, const SmartPtr<IOPackage>& pkg );
 
-signals:
-	void chargeLoginLocalHelpersCleaner();
-
-private slots:
-	void onChargeLoginLocalHelpersCleaner();
-
-private:
-	// Login local helpers hash
-	QHash<QString, CUserLoginLocalHelper *> m_LoginLocalHelpers;
-
-	// Login local helpers hash access synchronizing mutex
-	QMutex m_LoginLocalHelpersMutex;
-
 private:
 	/**
 	 * @brief Check whether advanced authorization required over trusted channel connection.
@@ -270,11 +218,6 @@ private:
 	bool isSentillionClient(const QString& qsSessionId) const;
 #endif	// SENTILLION_VTHERE_PLAYER
 
-private slots:
-	/**
-	 * Slot processes login local operations hash and cleans all objects which were timed out
-	 */
-	void processLoginLocalHash ();
 }; // class CDspUserHelper
 
 #endif // __CDspUserHelper_H_

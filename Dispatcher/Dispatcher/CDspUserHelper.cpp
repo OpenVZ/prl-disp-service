@@ -76,6 +76,7 @@
 #include "Interfaces/Debug.h"
 
 #include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
+#include <boost/optional.hpp>
 
 #define LOGIN_LOCAL_TIMEOUT_SEC 30
 
@@ -83,80 +84,8 @@ using namespace Parallels;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-CUserLoginLocalHelper::CUserLoginLocalHelper (
-    SmartPtr<CDspClient>& pUser, quint64 processId )
-    /* throw (const char *) */
-	: m_pUser(pUser), m_pid( processId )
-{
-	QString
-		authDirPath
-#ifndef	_WIN_
-		= QDir::tempPath();
-
-
-#else
-		// #265833 To prevent unable to authorize the user on some Vista with enabled UAC (from HP for example).
-			//	QDir::tempPath() always returns WINDOWS/Temp
-			// and dispatcher can't create file under Impersonate in this case.
-		= ParallelsDirs::getDispatcherConfigDir();
-#endif
-
-	m_sCheckFilePath =  authDirPath  + "/" + Uuid::createUuid().toString();
-	WRITE_TRACE(DBG_DEBUG, "Authorization file path is '%s'", QSTR2UTF8(m_sCheckFilePath));
-	m_sCheckData = Uuid::createUuid().toString();
-
-	if (CFileHelper::CreateBlankFile(m_sCheckFilePath, &pUser->getAuthHelper()))
-    {
-        if (!QFile(m_sCheckFilePath).setPermissions(QFile::ReadOwner | QFile::WriteOwner))
-		{
-			QFile::remove(m_sCheckFilePath);
-			WRITE_TRACE(DBG_FATAL, "Couldn't to set necessary permissions to authorization file '%s'"
-				, QSTR2UTF8(m_sCheckFilePath));
-            throw PRL_ERR_COULDNT_SET_PERMISSIONS_TO_AUTHORIZATION_FILE;
-		}
-    }
-    else
-	{
-		WRITE_TRACE(DBG_FATAL, "Couldn't to create an authorization file '%s'", QSTR2UTF8(m_sCheckFilePath));
-        throw PRL_ERR_COULDNT_CREATE_AUTHORIZATION_FILE;
-	}
-}
-
-CUserLoginLocalHelper::~CUserLoginLocalHelper()
-{
-    QFile::remove(m_sCheckFilePath);
-}
-
-bool CUserLoginLocalHelper::CheckValidity()
-{
-    QFile _file(m_sCheckFilePath);
-    if (_file.open(QIODevice::ReadOnly))
-    {
-        if (_file.size() == m_sCheckData.size())
-        {
-            QTextStream _stream(&_file);
-            QString sActualData = _stream.readAll();
-            if (m_sCheckData == sActualData)
-                return (true);
-            else
-                WRITE_TRACE(DBG_FATAL, "File data do not match necessary check data: expected '%s' actual '%s'"
-					, m_sCheckData.toUtf8().data(), sActualData.toUtf8().data());
-        }
-        else
-            LOG_MESSAGE(DBG_FATAL, "");
-    }
-    else
-        WRITE_TRACE(DBG_FATAL, "Couldn't to open check user validity file '%s'", m_sCheckFilePath.toUtf8().data());
-    return (false);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 CDspUserHelper::CDspUserHelper ()
 {
-	bool bConnected = connect( this, SIGNAL(chargeLoginLocalHelpersCleaner())
-		, SLOT(onChargeLoginLocalHelpersCleaner()), Qt::QueuedConnection );
-	PRL_ASSERT(bConnected);
 }
 
 CDspUserHelper::~CDspUserHelper ()
@@ -389,177 +318,70 @@ bool CDspUserHelper::fillUserPreferences (
     return true;
 }
 
-void CDspUserHelper::processLoginLocalHash ()
-{
-    QMutexLocker _lock(&m_LoginLocalHelpersMutex);
-    QList<QString> _timedout_helpers;
-    QHash<QString, CUserLoginLocalHelper *>::const_iterator _helper = m_LoginLocalHelpers.begin();
-    for(; _helper != m_LoginLocalHelpers.end(); ++_helper)
-    {
-        if (_helper.value()->GetUser()->getSessionUptimeInSec() >= LOGIN_LOCAL_TIMEOUT_SEC)
-            _timedout_helpers.append(_helper.key());
-    }
-    foreach(QString sHelperId, _timedout_helpers)
-        SmartPtr<CUserLoginLocalHelper> _helper( m_LoginLocalHelpers.take(sHelperId) );
-}
-
-void CDspUserHelper::processUserLoginLocal (
-    const IOSender::Handle& h,
+SmartPtr<CDspClient>  CDspUserHelper::processUserLoginLocal (
+	const IOSender::Handle& h,
 	const SmartPtr<IOPackage>& p )
 {
 	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( p );
 	if ( ! cmd->IsValid() ) {
 		// Send error
 		CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_FAILURE );
-		return;
+		return SmartPtr<CDspClient>();
 	}
 
-	CProtoCommandDspCmdUserLoginLocal* loginCmd =
-		CProtoSerializer::CastToProtoCommand<CProtoCommandDspCmdUserLoginLocal>(cmd);
+	CProtoCommandDspCmdUserEasyLoginLocal* loginCmd =
+		CProtoSerializer::CastToProtoCommand<CProtoCommandDspCmdUserEasyLoginLocal>(cmd);
 
-    QMutexLocker _lock(&m_LoginLocalHelpersMutex);
-    if (m_LoginLocalHelpers.contains(h))
-    {
-		// Send error
-		CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_ACCESS_TOKEN_INVALID );
-        return;
-    }
+	/**
+	 * create an instance of user's object
+	 */
 
-    /**
-     * create an instance of user's object
-     */
-
-    SmartPtr<CDspClient> p_NewUser( new CDspClient( h ) );
-    /**
-     * check if user is valid and authorized
-     */
-
-    if (!p_NewUser->getAuthHelper().AuthUser(loginCmd->GetUserId()))
-    {
-        WRITE_TRACE(DBG_FATAL, "Can't authorize user with id [%d].",
-					  loginCmd->GetUserId());
+	SmartPtr<CDspClient> p_NewUser( new CDspClient( h ) );
+	/**
+	 * check if user is valid and authorized
+	 */
+	boost::optional<quint32> uid = CDspService::instance()->getIOServer().clientUid(h);
+	if (!p_NewUser->getAuthHelper().AuthUser(uid.get()))
+	{
+		WRITE_TRACE(DBG_FATAL, "Can't authorize user with id [%d].", uid.get());
 
 		// Send error
 		CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_LOCAL_AUTHENTICATION_FAILED );
-        return;
-    }
-    try
-    {
-        p_NewUser->setLocal( true );
-	p_NewUser->setNonInteractive(loginCmd->GetCommandFlags() & PACF_NON_INTERACTIVE_MODE);
-		CUserLoginLocalHelper *pLoginLocalHelper =
-			new CUserLoginLocalHelper(p_NewUser, loginCmd->GetProcessId() );
-        m_LoginLocalHelpers.insert(h, pLoginLocalHelper);
-		emit chargeLoginLocalHelpersCleaner();
+		return SmartPtr<CDspClient>();
+	}
+	try
+	{
+		p_NewUser->setLocal( true );
+		p_NewUser->setNonInteractive( loginCmd->GetCommandFlags() & PACF_NON_INTERACTIVE_MODE );
+		p_NewUser->setPrevSessionUuid( loginCmd->GetPrevSessionUuid() );
+		boost::optional<qint32> pid = CDspService::instance()->getIOServer().clientPid(h);
+		p_NewUser->storeClientProcessInfo( (Q_PID)pid.get() );
 
+		bool res = fillUserPreferences( h, p, p_NewUser );
 
-        /**
-         * reply to user
-         */
+		if ( !res )
+			return SmartPtr<CDspClient>();
 
-		CProtoCommandPtr pResponse = CProtoSerializer::CreateDspWsResponseCommand( p, PRL_ERR_SUCCESS );
-		CProtoCommandDspWsResponse* response =
-			CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>(pResponse);
+		CDspLockedPointer<CDispUser>
+			pLockedDispUser = CDspService::instance()->getDispConfigGuard()
+					.getDispUserByUuid( p_NewUser->getUserSettingsUuid() );
+		if( pLockedDispUser )
+		{
+			WRITE_TRACE(DBG_FATAL, "Parallels user [%s] successfully logged on( LOCAL ). [sessionId = %s ]",
+				QSTR2UTF8( pLockedDispUser->getUserName() ),
+				QSTR2UTF8( p_NewUser->getClientHandle() ) );
+		}
+		pLockedDispUser.unlock();
 
-		response->AddStandardParam( pLoginLocalHelper->GetCheckFilePath() );
-		response->AddStandardParam( pLoginLocalHelper->GetCheckData() );
-		SmartPtr<IOPackage> responsePkg =
-			DispatcherPackage::createInstance( PVE::DspWsResponse, pResponse, p );
-		CDspService::instance()->getIOServer().sendPackage( h, responsePkg );
-    }
-    catch (PRL_RESULT e)
-    {
-        WRITE_TRACE(DBG_FATAL, "Error occured on user check validity preparation: '%.8X'", e);
+	}
+	catch (PRL_RESULT e)
+	{
+		WRITE_TRACE(DBG_FATAL, "Error occured on user check validity preparation: '%.8X'", e);
 		// Send error
 		CDspService::instance()->sendSimpleResponseToClient( h, p, e );
-        return;
-    }
-}
-
-void CDspUserHelper::onChargeLoginLocalHelpersCleaner()
-{
-	QTimer::singleShot(LOGIN_LOCAL_TIMEOUT_SEC * 1000, this, SLOT(processLoginLocalHash()));
-}
-
-SmartPtr<CDspClient> CDspUserHelper::processUserLoginLocalStage2 (
-    const IOSender::Handle& h,
-	const SmartPtr<IOPackage>& p )
-{
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( p );
-	if ( ! cmd->IsValid() ) {
-		// Send error
-		CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_FAILURE );
 		return SmartPtr<CDspClient>();
 	}
-
-	CProtoCommandWithOneStrParam* loginCmd =
-		CProtoSerializer::CastToProtoCommand<CProtoCommandWithOneStrParam>(cmd);
-	QString prevSessionUuid = loginCmd->GetFirstStrParam();
-
-#ifdef SENTILLION_VTHERE_PLAYER
-	if ( ! isSentillionClient(prevSessionUuid) )
-	{
-		CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_NOT_SENTILLION_CLIENT );
-		return SmartPtr<CDspClient>();
-	}
-#endif	// SENTILLION_VTHERE_PLAYER
-
-	SmartPtr<CDspClient> user(0);
-	quint64 userPid = 0;
-	{
-		QMutexLocker _lock(&m_LoginLocalHelpersMutex);
-		if (!m_LoginLocalHelpers.contains(h))
-		{
-			// Send error
-			CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_ACCESS_TOKEN_INVALID );
-			return SmartPtr<CDspClient>();
-		}
-
-		SmartPtr<CUserLoginLocalHelper> pLoginLocalHelper( m_LoginLocalHelpers.take(h) );
-		if (!pLoginLocalHelper->CheckValidity())
-		{
-				// Send error
-				CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_LOCAL_AUTHENTICATION_FAILED );
-				return SmartPtr<CDspClient>();
-		}
-		// FIXME - may be it need . it comment because old client wait disconnect signal from
-		// transport and new client may try to connect early
-		/*if ( CDspService::instance()->getClientManager().getUserSession( prevSessionUuid ) )
-		{
-			CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_PREV_SESSION_IS_ACTIVE );
-			return SmartPtr<CDspClient>();
-		}*/
-		user = pLoginLocalHelper->GetUser();
-		userPid = pLoginLocalHelper->GetClientProcessId();
-	}
-
-	user->setPrevSessionUuid( prevSessionUuid );
-	user->storeClientProcessInfo( (Q_PID)userPid );
-
-	bool res = fillUserPreferences( h, p, user );
-
-	if ( !res )
-		return SmartPtr<CDspClient>();
-
-	PRL_ASSERT( user );
-	CDspLockedPointer<CDispUser>
-		pLockedDispUser = CDspService::instance()->getDispConfigGuard()
-		.getDispUserByUuid( user->getUserSettingsUuid() );
-	if( pLockedDispUser )
-	{
-		WRITE_TRACE(DBG_FATAL, "Parallels user [%s] successfully logged on( LOCAL ). [sessionId = %s ]",
-			QSTR2UTF8( pLockedDispUser->getUserName() ),
-			QSTR2UTF8( user->getClientHandle() ) );
-	}
-	pLockedDispUser.unlock();
-
-	//////////////////////////////////////////////////////////////////////////
-	//
-	//  NOTE: PRL_ERR_SUCCESS response should be sent from caller
-	//
-	//////////////////////////////////////////////////////////////////////////
-
-	return user;
+	return p_NewUser;
 }
 
 /**

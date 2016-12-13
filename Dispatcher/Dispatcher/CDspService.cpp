@@ -2758,6 +2758,8 @@ void CDspService::createIOServers ( quint32 listenPort, PRL_SECURITY_LEVEL secur
 		IOSender::Dispatcher,
 		ParallelsDirs::getDispatcherLocalSocketPath(),
 		0, true )));
+	m_ioLocalUnixListeningServer->setUserConnectionLimit(getDispConfigGuard()
+                .getDispWorkSpacePrefs()->getLimits()->getMaxLogonActions());
 	bRes = m_ioServerPool->addServer( m_ioLocalUnixListeningServer );
 	PRL_ASSERT(bRes);
 #endif
