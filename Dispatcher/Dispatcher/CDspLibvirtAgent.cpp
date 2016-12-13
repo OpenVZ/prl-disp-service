@@ -639,7 +639,7 @@ Stat::CounterList_type Unit::getMemory() const
 {
 	quint64 v = 0;
 	Stat::CounterList_type output;
-	if (getValue("balloon.actual", v = 0))
+	if (getValue("balloon.current", v = 0))
 	{
 		output.append(Stat::Counter_type(
 			::Stat::Name::Memory::getBalloonActual(), v));
