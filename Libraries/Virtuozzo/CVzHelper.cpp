@@ -406,7 +406,7 @@ static int vz2prl_err(int vzret)
 		if (vzret == prl_error_map[i].vzerr)
 			return prl_error_map[i].prlerr;
 	}
-	return PRL_ERR_VZ_OPERATION_FAILED;
+	return PRL_ERR_VZCTL_OPERATION_FAILED;
 }
 
 void CProgressHepler::process_progress_evt()
