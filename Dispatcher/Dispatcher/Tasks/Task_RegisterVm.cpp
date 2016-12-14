@@ -51,6 +51,7 @@
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/StatesUtils/StatesHelper.h"
+#include "Libraries/CpuFeatures/CCpuHelper.h"
 #include "CVmValidateConfig.h"
 #include "CDspBugPatcherLogic.h"
 #include "CDspVmManager_p.h"
@@ -1309,6 +1310,7 @@ PRL_RESULT Task_RegisterVm::run_body()
 				throw CDspTaskFailure(*this)(PRL_ERR_DISK_DIR_CREATE_ERROR, s);
 			m_lstCreatedDirs.append(s);
 		}
+		CCpuHelper::update(*m_pVmConfig);
 
 		ret = saveVmConfig( );
 		if( PRL_FAILED( ret ) )
