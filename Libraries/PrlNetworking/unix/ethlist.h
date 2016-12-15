@@ -46,11 +46,12 @@ struct EthIface
 
 	int	_nAdapter;		///< Index of the adapter
 						///< Note: Prl adapters starts from index PRL_ADAPTER_START_INDEX
+	int	_nType;			///< Network adapter type (PRL_NET_ADAPTER_TYPE)
 
 	EthIface();
 	EthIface(const QString &name, int ifaceFlags,
 			 unsigned int bcastIpAddr, const unsigned char macAddr[6],
-			 unsigned short vlanTag, int nAdapter);
+			 unsigned short vlanTag, int nAdapter, int nType);
 	EthIface( const EthIface& eth );
 };
 
@@ -70,5 +71,11 @@ typedef std::list<EthIface> EthIfaceList;
 /// @param bUpOnly - list adapters with UP state only
 /// @param bConfigured - list only configured adapters (with ip addrsses)
 bool makeEthIfacesList( EthIfaceList &ethList, bool bUpOnly, bool bConfigured = false );
+
+/// creates a list of bindable ethernet interfaces with valid parameters
+/// @param ethList - ouput list of the interfaces
+/// @param bUpOnly - list adapters with UP state only
+/// @param bConfigured - list only configured adapters (with ip addrsses)
+bool makeBindableEthIfacesList(EthIfaceList &ethList, bool bUpOnly, bool bConfigured = false);
 
 #endif //nat_ethlist_h__

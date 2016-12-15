@@ -26,6 +26,10 @@
 /// Schaffhausen, Switzerland.
 ///
 ///////////////////////////////////////////////////////////////////////////////
+
+#include <QFileInfo>
+#include <boost/bind.hpp>
+
 #include <prlsdk/PrlEnums.h>
 
 #include <errno.h>
@@ -64,6 +68,7 @@ EthIface::EthIface()
 	, _bcastIpAddr()
 	, _vlanTag(PRL_INVALID_VLAN_TAG)
 	, _nAdapter(-1)
+	, _nType(-1)
 {
 	memset( _macAddr, 0, 6 );
 }
@@ -75,18 +80,20 @@ EthIface::EthIface( const EthIface& eth )
 	, _bcastIpAddr(eth._bcastIpAddr)
 	, _vlanTag(eth._vlanTag)
 	, _nAdapter(eth._nAdapter)
+	, _nType(eth._nType)
 {
 	memcpy( _macAddr, eth._macAddr, 6 );
 }
 
 
 EthIface::EthIface(const QString &name, int ifaceFlags, unsigned bcastIpAddr,
-		const unsigned char macAddr[6], unsigned short vlanTag, int nAdapter)
+		const unsigned char macAddr[6], unsigned short vlanTag, int nAdapter, int nType)
 	: _name(name)
 	, _ifaceFlags(ifaceFlags)
 	, _bcastIpAddr(bcastIpAddr)
 	, _vlanTag(vlanTag)
 	, _nAdapter(nAdapter)
+	, _nType(nType)
 {
 	memcpy( _macAddr, macAddr, 6 );
 }
@@ -105,6 +112,7 @@ class CEthIfaceListReader
 	///@param ifr  	Request structure with filled name and AddrFamily. In MAC it must be as it came from SIOCGIFCONF [in]
 	///@param eth 	Resulting configuratuib [out]
 	///@param bUpOnly If true, then only UP interface will be processed. For down interfaces false will be returned
+	///@param bConfigured If true, the only configured interfaces will be processed
 	///@return true if configuration was successfully read
 	bool readIfaceConf( int sock, const struct ifreq *ifr, EthIface &eth, bool bUpOnly, bool bConfigured );
 public:
@@ -271,8 +279,9 @@ static bool IsPrlVme(const char *ifname)
 
 
 bool CEthIfaceListReader::readIfaceConf( int sock, const struct ifreq *ifr, EthIface &eth,
-		bool bUpOnly, bool bConfigured )
+		bool bUpOnly, bool bConfigured)
 {
+	int nType = NIC_TYPE_PHYSICAL;
 	struct ifreq ifreq; // create a copy for each request
 	//
 	// Obtain flags of the interface
@@ -314,6 +323,8 @@ bool CEthIfaceListReader::readIfaceConf( int sock, const struct ifreq *ifr, EthI
 	}
 
 	unsigned short vlan_tag = readVLANTag(sock, ifr);
+	if (vlan_tag != PRL_INVALID_VLAN_TAG)
+		nType = NIC_TYPE_VLAN;
 
 	// is it a PVSNIC ?
 	int nAdapter = readVNICNumber(sock, ifr);
@@ -321,23 +332,22 @@ bool CEthIfaceListReader::readIfaceConf( int sock, const struct ifreq *ifr, EthI
 		nAdapter = m_nAdapterCounter++;
 		bool is_vme = IsPrlVme(ifr->ifr_name);
 		if (is_vme)
+		{
 			nAdapter |= PRL_VME_ADAPTER_START_INDEX;
+			nType = NIC_TYPE_VETH;
+		}
 	}
 
 #if defined(_LIN_)
-	// filter out Linux bridges
 	{
-		char path[PATH_MAX];
-		struct stat st;
-
-		snprintf(path, PATH_MAX,
-				"/sys/class/net/%s/bridge", ifr->ifr_name);
-		if ((stat(path, &st) == 0) && S_ISDIR(st.st_mode))
-			return false;
+		QString path = QString("/sys/class/net/%1/bridge").arg(ifr->ifr_name);
+		QFileInfo info(path);
+		if (info.isDir())
+			nType = NIC_TYPE_BRIDGE;
 	}
 #endif
 
-	eth = EthIface(ifr->ifr_name, ifaceFlags, bcastIpAddr, macAddr, vlan_tag, nAdapter ) ;
+	eth = EthIface(ifr->ifr_name, ifaceFlags, bcastIpAddr, macAddr, vlan_tag, nAdapter, nType ) ;
 
 	return true;
 }
@@ -413,6 +423,14 @@ bool makeEthIfacesList( EthIfaceList &ethList, bool bUpOnly, bool bConfigured )
 	bool bRes = ethIfaceListReader.makeEthIfacesList( ethList, bUpOnly, bConfigured );
 	if( bRes )
 		ethList.sort(); // sort adapters
+	return bRes;
+}
+
+bool makeBindableEthIfacesList( EthIfaceList &ethList, bool bUpOnly, bool bConfigured)
+{
+	bool bRes = makeEthIfacesList(ethList, bUpOnly, bConfigured);
+	if (bRes)
+		ethList.remove_if(boost::bind(&EthIface::_nType, _1) == NIC_TYPE_BRIDGE);
 	return bRes;
 }
 

@@ -96,6 +96,7 @@
 #include <typeinfo>
 #include <algorithm>
 #include <boost/bind.hpp>
+#include <boost/foreach.hpp>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
@@ -903,8 +904,9 @@ void CDspShellHelper::sendVirtualNetworkList(SmartPtr<CDspClient>& pUser,
 	}
 
 	QStringList x;
-	foreach(const CVirtualNetwork& y, a)
+	BOOST_FOREACH(CVirtualNetwork& y, a)
 	{
+		PrlNet::PatchBridgedNetwork(*CDspService::instance()->getHostInfo()->data(), &y);
 		x += y.toString();
 	}
 	CProtoCommandPtr pResponse = CProtoSerializer::CreateDspWsResponseCommand( p, PRL_ERR_SUCCESS );
