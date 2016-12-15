@@ -30,6 +30,7 @@
 #include <QUrl>
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <Libraries/CpuFeatures/CCpuHelper.h>
+#include <boost/mpl/for_each.hpp>
 
 namespace Transponster
 {
@@ -187,20 +188,10 @@ bool Resources::getClock(Libvirt::Domain::Xml::Clock& dst_)
 	if (NULL == o)
 		return false;
 
-	mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 3>::type v;
-
-	quint32 os = m_config->getVmSettings()->getVmCommonOptions()->getOsVersion();
-	if (IS_WINDOWS(os) && os >= PVS_GUEST_VER_WIN_2008)
-		v.setValue(Libvirt::Domain::Xml::EName2Hypervclock);
-	else
-		v.setValue(Libvirt::Domain::Xml::EName2Kvmclock);
-
-	Libvirt::Domain::Xml::Timer t;
-	t.setTimer(Libvirt::Domain::Xml::VTimer(v));
-	t.setPresent(Libvirt::Domain::Xml::EVirYesNoYes);
-
 	QList<Libvirt::Domain::Xml::Timer> timers;
-	timers.append(t);
+	Visitor::Timer v(*o, timers);
+	boost::mpl::for_each<Libvirt::Domain::Xml::VTimer::types>(boost::ref(v));
+
 	dst_.setTimerList(timers);
 
 	Libvirt::Domain::Xml::Clock377 k;
