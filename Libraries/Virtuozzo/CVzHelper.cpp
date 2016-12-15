@@ -668,9 +668,11 @@ static QString get_env_xml_config_path(
 
 static CVmHardDisk *findDiskInList(CVmHardDisk *pHdd, QList<CVmHardDisk *> &lst)
 {
-	foreach(CVmHardDisk *p, lst)
-		if (p->getUuid() == pHdd->getUuid())
+	foreach(CVmHardDisk *p, lst) {
+		if (p->getUserFriendlyName() == pHdd->getUserFriendlyName())
 			return p;
+	}
+
 	return NULL;
 }
 
