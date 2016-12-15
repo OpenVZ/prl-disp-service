@@ -208,7 +208,7 @@ def create_bridge(iface, cp, bridge_id, to_write):
             "/proc/sys/kernel/random/uuid").read().strip()
     # Save to config files. (ConfigParser, filename, backup).
     to_write.append((bridge, "ifcfg-%s" % br_name, None))
-    
+
     filename = "ifcfg-%s" % iface
     return (filename, BACKUP_PREFIX + filename)
 
@@ -241,6 +241,17 @@ def write_configs(to_write):
             except:
                 pass
 
+def rename_device(iface, cp):
+    niface = dequote(cp.get("DEVICE", ""))
+    f_iface = "ifcfg-%s" % iface
+    if not niface:
+        return f_iface, iface
+    f_niface = "ifcfg-%s" % niface
+    try:
+        os.rename(f_iface, f_niface)
+    except:
+        return f_iface, iface
+    return f_niface, niface
 
 def create_bridges():
     """Create bridge configs for interfaces.
@@ -263,11 +274,12 @@ def create_bridges():
         filename, backup = None, None
         if dequote(cp.get("ONBOOT", "").lower()) != "yes":
             continue
+        if need_device(cp):
+            filename, backup = add_device(iface, cp)
+        filename, iface = rename_device(iface, cp)
         if need_bridge(iface, cp):
             filename, backup = create_bridge(iface, cp, current_bridge_id, to_write)
             current_bridge_id += 1
-        if need_device(cp):
-            filename, backup = add_device(iface, cp)
         if filename:
             to_write.append((cp, filename, backup))
 
