@@ -743,6 +743,8 @@ static int merge_params(const SmartPtr<CVmConfiguration> &pConfig,
 				set_encryption_keyid(pHdd, enc->getKeyId());
 		}
 	}
+	pConfig->getVmSettings()->getVmStartupOptions()->setAutoStartDelay
+		(pVmConfig->getVmSettings()->getVmStartupOptions()->getAutoStartDelay());
 
 
 	return 0;

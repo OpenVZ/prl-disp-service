@@ -65,29 +65,21 @@ def error(mess):
     log(mess)
     sys.exit(1)
 
+def get_vmtype(vmtype):
+    if vmtype == prlsdkapi.consts.PVT_CT:
+        return "Container"
+    return "Virtual Machine"
+
+def get_classtype(obj):
+    return re.sub("^Systemd_", "", obj.__class__.__name__)
+
 class Systemd_unit(object):
-    def __init__(self, uuid):
-        self.uuid = uuid
-        self.description = ""
+    def __init__(self, config):
+        self.uuid = config.get_uuid()
         self.service_prefix = "vz_"
         self.deftarget = deftarget
         self.lock = started_dir + "/" + self.nobr_uuid
-
-    def __str__(self):
-        return \
-"[Unit]\n" \
-"Description={self.description}\n" \
-"After={self.deftarget} prl-disp.service vz.service\n" \
-"ConditionPathExists=!{self.lock}\n" \
-"\n" \
-"[Service]\n" \
-"ExecStart=/bin/prlctl start {self.uuid}\n" \
-"ExecStartPost=/bin/touch {self.lock}\n" \
-"Type=oneshot\n" \
-"RemainAfterExit=yes\n" \
-"\n" \
-"[Install]\n" \
-"WantedBy={self.deftarget}\n".format(**locals())
+        self.description = " ".join((get_vmtype(config.get_vm_type()), self.uuid, get_classtype(self)))
 
     @property
     def nobr_uuid(self):
@@ -95,7 +87,7 @@ class Systemd_unit(object):
 
     @property
     def unitname(self):
-        return self.service_prefix + self.nobr_uuid + ".service"
+        return self.service_prefix + self.nobr_uuid + ".%s" % get_classtype(self)
 
     @property
     def unitname_f(self):
@@ -110,27 +102,69 @@ class Systemd_unit(object):
         with open(self.unitname_f, "w") as f:
             f.write(str(self))
             f.close()
-        os.symlink(self.unitname_f, target_dir + "/" + self.unitname)
 
-class VM_unit(Systemd_unit):
-    def __init__(self, uuid):
-        super(VM_unit, self).__init__(uuid)
-        self.description = "Virtual Machine %s service" % uuid
+class Systemd_service(Systemd_unit):
+    def __init__(self, config):
+        super(Systemd_service, self).__init__(config)
 
-class CT_unit(Systemd_unit):
-    def __init__(self, uuid):
-        super(CT_unit, self).__init__(uuid)
-        self.description = "Container %s service" % uuid
+    def __str__(self):
+        return \
+"[Unit]\n" \
+"Description={self.description}\n" \
+"After={self.deftarget} prl-disp.service vz.service\n" \
+"ConditionPathExists=!{self.lock}\n" \
+"\n" \
+"[Service]\n" \
+"ExecStart=/bin/prlctl start {self.uuid}\n" \
+"ExecStartPost=/bin/touch {self.lock}\n" \
+"Type=oneshot\n" \
+"RemainAfterExit=yes\n" \
+"\n".format(**locals())
+
+class Systemd_timer(Systemd_unit):
+    def __init__(self, config):
+        super(Systemd_timer, self).__init__(config)
+        self.autostart = config.get_auto_start_delay()
+
+    def __str__(self):
+        return \
+"[Unit]\n" \
+"Description={self.description}\n" \
+"\n" \
+"[Timer]\n" \
+"OnActiveSec={self.autostart}\n" \
+"\n" \
+"[Install]\n" \
+"WantedBy={self.deftarget}\n".format(**locals())
+
+    def install(self):
+        super(Systemd_timer, self).install()
+        try:
+            os.symlink(self.unitname_f, target_dir + "/" + self.unitname)
+        except OSError, e:
+            if e.errno == errno.EEXIST:
+                pass
+            else:
+                error("Failed to create %s: %s" % (_dir, e))
+
+class Unit():
+    def __init__(self, config):
+        self.service = Systemd_service(config)
+        self.timer = Systemd_timer(config)
+
+    def install(self):
+        self.service.install()
+        self.timer.install()
 
 # Create base directories
-for dir in (started_dir, target_dir):
+for _dir in (started_dir, target_dir):
     try:
-        os.mkdir(dir)
+        os.mkdir(_dir)
     except OSError, e:
         if e.errno == errno.EEXIST:
             pass
         else:
-            error("Failed to create %s: %s" % (started_dir, e))
+            error("Failed to create %s: %s" % (_dir, e))
 
 try:
     # Connect to dispatcher
@@ -142,11 +176,9 @@ try:
     vms = server.get_vm_list_ex(prlsdkapi.consts.PVTF_VM + prlsdkapi.consts.PVTF_CT)
     for res in [ r for r in vms.wait(msecs = timeout)
             if r.get_config().get_auto_start() ]:
-        uuid = res.get_config().get_uuid()
-        if uuid in units_skip_start:
+        if res.get_config().get_uuid() in units_skip_start:
             continue
-        unit = CT_unit if res.get_config().get_vm_type() == prlsdkapi.consts.PVT_CT else VM_unit
-        unitslist.append(unit(uuid))
+        unitslist.append(Unit(res.get_config()))
 
     # Disconnect
     server.logoff().wait(msecs = timeout)
@@ -155,5 +187,5 @@ except Exception, err:
     if not unitslist:
         error(repr(err))
 
-for unit in [ u for u in unitslist if not u.exists() ]:
+for unit in unitslist:
     unit.install()
