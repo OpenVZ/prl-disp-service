@@ -242,20 +242,22 @@ def write_configs(to_write):
                 pass
 
 def rename_device(iface, cp):
+    need_restart = False
     niface = dequote(cp.get("DEVICE", ""))
     f_iface = "ifcfg-%s" % iface
     if not niface or niface == iface:
-        return f_iface, iface
+        return f_iface, iface, need_restart
     f_niface = "ifcfg-%s" % niface
     try:
         if os.path.exists(f_niface):
             os.rename(f_niface, BACKUP_PREFIX + f_niface)
+            need_restart = True
         os.rename(f_iface, f_niface)
     except:
-        return f_iface, iface
-    return f_niface, niface
+        return f_iface, iface, need_restart
+    return f_niface, niface, need_restart
 
-def create_bridges():
+def proceed_devices():
     """Create bridge configs for interfaces.
 
     Exclude:
@@ -278,14 +280,21 @@ def create_bridges():
             continue
         if need_device(cp):
             filename, backup = add_device(iface, cp)
-        filename, iface = rename_device(iface, cp)
+        filename, iface, need_restart = rename_device(iface, cp)
+        if need_restart:
+            return proceed_devices()
         if need_bridge(iface, cp):
             filename, backup = create_bridge(iface, cp, current_bridge_id, to_write)
             current_bridge_id += 1
         if filename:
             to_write.append((cp, filename, backup))
 
+    return to_write
+
+def create_bridges():
     # If nothing changed, there is no need to restart networking.
+    to_write = proceed_devices()
+
     if not to_write:
         return
 
