@@ -244,10 +244,12 @@ def write_configs(to_write):
 def rename_device(iface, cp):
     niface = dequote(cp.get("DEVICE", ""))
     f_iface = "ifcfg-%s" % iface
-    if not niface:
+    if not niface or niface == iface:
         return f_iface, iface
     f_niface = "ifcfg-%s" % niface
     try:
+        if os.path.exists(f_niface):
+            os.rename(f_niface, BACKUP_PREFIX + f_niface)
         os.rename(f_iface, f_niface)
     except:
         return f_iface, iface
