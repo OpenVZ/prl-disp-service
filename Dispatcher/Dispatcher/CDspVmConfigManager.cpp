@@ -279,6 +279,7 @@ void Patch::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 	CVmStartupOptions* o = old_.getVmSettings()->getVmStartupOptions();
 	CVmStartupOptions* n = new_.getVmSettings()->getVmStartupOptions();
 	n->setAutoStart(o->getAutoStart());
+	n->setAutoStartDelay(o->getAutoStartDelay());
 	new_.getVmSettings()->getShutdown()->setAutoStop
 		(old_.getVmSettings()->getShutdown()->getAutoStop());
 
