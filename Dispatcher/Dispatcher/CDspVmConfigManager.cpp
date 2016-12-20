@@ -86,6 +86,12 @@ void Nvram::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 		(new_.getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM());
 }
 
+void OnCrash::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+{
+	old_.getVmSettings()->getVmRuntimeOptions()->setOnCrash(
+		new CVmOnCrash(new_.getVmSettings()->getVmRuntimeOptions()->getOnCrash()));
+}
+
 namespace RemoteDisplay
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -379,7 +385,7 @@ void OsInfo::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct RuntimeOptions
 
-void RuntimeOptions::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+void RuntimeOptions::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
 	old_.getVmSettings()->setVmRuntimeOptions
 		(new CVmRunTimeOptions(new_.getVmSettings()->getVmRuntimeOptions()));

@@ -239,6 +239,7 @@ struct Domain: QObject
 	}
 	Q_INVOKABLE void show(reaction_type reaction_);
 	Q_INVOKABLE void setState(VIRTUAL_MACHINE_STATE value_);
+	Q_INVOKABLE void crash();
 
 	boost::optional<CVmConfiguration> getConfig();
 	void setConfig(CVmConfiguration value_);
@@ -251,6 +252,7 @@ private:
 
 	quint32 m_pid;
 	Registry::Access m_access;
+	QList<quint64> m_crashes;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -415,8 +417,8 @@ namespace Pull
 
 struct Crash: QRunnable
 {
-	Crash(const CVmConfiguration& config_):
-		m_config(config_)
+	Crash(const QSharedPointer<Model::Domain>& domain_, const CVmConfiguration& config_):
+		m_domain(domain_), m_config(config_)
 	{
 		setAutoDelete(true);
 	}
@@ -425,6 +427,7 @@ struct Crash: QRunnable
 	void sendProblemReport();
 
 private:
+	QSharedPointer<Model::Domain> m_domain;
 	CVmConfiguration m_config;
 };
 
