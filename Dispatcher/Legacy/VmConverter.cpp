@@ -329,6 +329,8 @@ result_type Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 		usb->setXhcEnabled(true);
 	}
 
+	cfg->getVmSettings()->getVmRuntimeOptions()->getOnCrash()->setMode(POCA_PAUSE);
+
 	bool noSCSI = isWin && IS_WIN_VER_BELOW(os, PVS_GUEST_VER_WIN_VISTA);
 	Helper h(noSCSI ? PMS_VIRTIO_BLOCK_DEVICE : PMS_SCSI_DEVICE,
 	         noSCSI ? PCD_BUSLOGIC : PCD_VIRTIO_SCSI,
