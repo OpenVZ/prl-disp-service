@@ -450,35 +450,6 @@ void CDspProblemReportHelper::FillCommonReportData( CProblemReport & cReport, bo
             pCTInfo->setContainersRunning(calcRunContainers());
             cReport.setContainersInfo(pCTInfo);
 
-            // gather vz report
-            QString sReportFile;
-            QString sVzReportCollector("/usr/libexec/vzreport/vzreport_collector -p");
-	    QStringList lstEnv;
-	    lstEnv += QString("%1=%2").arg("VZREPORT_COLLECTOR_TIMEOUT").arg(REPORT_COMMAND_TIMEOUT/1000); // in seconds
-	    QProcess proc;
-	    proc.setEnvironment(lstEnv);
-	    bool result = HostUtils::RunCmdLineUtility(sVzReportCollector, sReportFile, REPORT_COMMAND_TIMEOUT, &proc);
-            if( !sReportFile.isEmpty() )
-            {
-                // sample of the first line of the output:
-                // "Collecting report in /tmp/vzreport.manual.176961/vzreport.tgz\n"
-                QString path = sReportFile.split("\n").first().split(" ").last();
-                QFileInfo fVzReport(path);
-
-                if( result )
-                {
-                    cReport.appendSystemLog(fVzReport.filePath(), fVzReport.fileName());
-                    // report data copied to parallels report - cleanup original data
-                    QFile::remove(fVzReport.filePath());
-                }
-
-                QDir tmpDir(fVzReport.dir());
-                if (tmpDir.dirName().contains("vzreport.manual."))
-                {
-                    // cleanup temporary dir also
-                    CFileHelper::ClearAndDeleteDir(tmpDir.path());
-                }
-            }
 
         }
 
@@ -1040,6 +1011,38 @@ void CDspProblemReportHelper::FillProblemReportData
 	addSystemLog(cReport, QFileInfo("/var/log/libvirt/libvirtd.log"));
 	addSystemLog(cReport, QFileInfo("/var/log/libvirt/libvirt.log"));
 	addSystemLog(cReport, QFileInfo("/var/log/vcmmd.log"));
+
+	// gather vz report
+
+	QString sReportFile;
+	QString sVzReportCollector("/usr/libexec/vzreport/vzreport_collector -p");
+	QStringList lstEnv;
+	lstEnv += QString("%1=%2").arg("VZREPORT_COLLECTOR_TIMEOUT").arg(REPORT_COMMAND_TIMEOUT/1000); // in seconds
+	QProcess proc;
+	proc.setEnvironment(lstEnv);
+	bool result = HostUtils::RunCmdLineUtility(sVzReportCollector, sReportFile, REPORT_COMMAND_TIMEOUT, &proc);
+	if(!sReportFile.isEmpty())
+	{
+		// sample of the first line of the output:
+		// "Collecting report in /tmp/vzreport.manual.176961/vzreport.tgz\n"
+		QString path = sReportFile.split("\n").first().split(" ").last();
+		QFileInfo fVzReport(path);
+
+		if(result)
+		{
+			cReport.appendVzReport(fVzReport.filePath());
+			// report data copied to parallels report - cleanup original data
+			QFile::remove(fVzReport.filePath());
+		}
+
+		QDir tmpDir(fVzReport.dir());
+		if (tmpDir.dirName().contains("vzreport.manual."))
+		{
+			// cleanup temporary dir also
+			CFileHelper::ClearAndDeleteDir(tmpDir.path());
+		}
+	}
+
 #endif
 	WRITE_REPORT_PROFILER_STRING( "EndOfFillProblemReport" );
 }
