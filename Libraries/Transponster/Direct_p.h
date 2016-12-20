@@ -986,6 +986,30 @@ struct Memory: boost::static_visitor<QString>
 };
 
 } // namespace Numatune
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Timer
+
+struct Timer: boost::static_visitor<void>
+{
+	Timer(const CVmCommonOptions& config_, QList<Libvirt::Domain::Xml::Timer>& timers_):
+		m_config(config_), m_timers(timers_)
+	{
+	}
+
+	template<class T>
+	void operator()(const T&) const
+	{
+	}
+
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 0>::type& ) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 3>::type& ) const;
+
+private:
+	const CVmCommonOptions& m_config;
+	QList<Libvirt::Domain::Xml::Timer>& m_timers;
+};
+
 } // namespace Visitor
 
 template<class T>

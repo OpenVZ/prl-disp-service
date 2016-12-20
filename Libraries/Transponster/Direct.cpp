@@ -24,6 +24,7 @@
 #include "Direct.h"
 #include "Direct_p.h"
 #include "Reverse_p.h"
+#include <prlsdk/PrlOses.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 
 namespace Transponster
@@ -815,6 +816,43 @@ QString Memory::operator()(const mpl::at_c<Libvirt::Domain::Xml::VMemory::types,
 }
 
 } // namespace Numatune
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Timer
+
+void Timer::operator()(const mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 0>::type& ) const
+{
+	mpl::at_c<Libvirt::Domain::Xml::VTickpolicy::types, 0>::type p;
+	p.setValue(Libvirt::Domain::Xml::ETickpolicyDiscard);
+
+	Libvirt::Domain::Xml::Timer402 tt;
+	tt.setTickpolicy(Libvirt::Domain::Xml::VTickpolicy(p));
+	tt.setName(Libvirt::Domain::Xml::EName1Pit);
+
+	mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 2>::type v;
+	v.setValue(tt);
+
+	Libvirt::Domain::Xml::Timer t;
+	t.setTimer(Libvirt::Domain::Xml::VTimer(v));
+	m_timers.append(t);
+}
+
+void Timer::operator()(const mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 3>::type& ) const
+{
+	quint32 os = m_config.getOsVersion();
+
+	mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 3>::type v;
+	if (IS_WINDOWS(os) && os >= PVS_GUEST_VER_WIN_2008)
+		v.setValue(Libvirt::Domain::Xml::EName2Hypervclock);
+	else
+		v.setValue(Libvirt::Domain::Xml::EName2Kvmclock);
+
+	Libvirt::Domain::Xml::Timer t;
+	t.setTimer(Libvirt::Domain::Xml::VTimer(v));
+	t.setPresent(Libvirt::Domain::Xml::EVirYesNoYes);
+	m_timers.append(t);
+}
+
 } // namespace Visitor
 
 namespace Vm
