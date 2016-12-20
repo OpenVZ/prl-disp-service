@@ -394,6 +394,28 @@ void CPackedProblemReport::appendMemoryDump(CRepMemoryDump * pDump)
 	CProblemReport::appendMemoryDump( pDump );
 }
 
+void CPackedProblemReport::appendVzReport(const QString& path_)
+{
+	if (!QFile::exists(path_))
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot find vzreport '%s' to append", qPrintable(path_));
+		return;
+	}
+	QString f = QFileInfo(path_).fileName();
+	QString p = QDir(m_strTempDirPath).absoluteFilePath(f);
+	if(!QFile::copy(path_, p))
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot copy file '%s' to temp dir '%s'",
+			qPrintable(path_), qPrintable(p));
+		return;
+	}
+
+	CRepSystemLog *l = new CRepSystemLog();
+	l->setName(f);
+	l->setData();
+	CProblemReport::appendSystemLog(l);
+}
+
 void CPackedProblemReport::appendSystemLog( const QString& strPathFrom,
 										   const QString& strCustomName )
 {
