@@ -181,6 +181,7 @@ public:
 
 	void sendLicenseInfo(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
 	void updateLicense(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
+	void sendVcmmdConfig(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
 
 private:
 	PRL_RESULT refreshVmsCPUFeatures(SmartPtr<CDspClient>& user_) const;

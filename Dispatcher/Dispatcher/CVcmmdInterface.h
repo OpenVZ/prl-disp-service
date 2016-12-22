@@ -35,9 +35,11 @@
 #include <QSharedPointer>
 #include <libvcmmd/vcmmd.h>
 #include <boost/utility/result_of.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include "CDspVmConfigManager.h"
 #include <prlsdk/PrlErrors.h>
+#include <prlxmlmodel/VcmmdConfig/CVcmmdConfig.h>
 
 /*
  * This is a helper class to interact with vcmmd daemon.
@@ -189,6 +191,33 @@ private:
 
 template <>
 void Frontend<Unregistered>::commit();
+
+namespace Config
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct File
+
+struct File
+{
+	boost::property_tree::ptree read();
+	PRL_RESULT write(const boost::property_tree::ptree& t_);
+
+private:
+	static const QString s_configPath;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+//struct DAO
+
+struct DAO
+{
+	PRL_RESULT getPersistent(CVcmmdConfig& config_) const;
+	PRL_RESULT getRuntime(CVcmmdConfig& config_) const;
+	PRL_RESULT set(const CVcmmdConfig& config_) const;
+};
+
+} //namespace Config
 
 } // namespace Vcmmd
 
