@@ -727,8 +727,11 @@ static int merge_params(const SmartPtr<CVmConfiguration> &pConfig,
 		new CVmRemoteDisplay(pVmConfig->getVmSettings()->getVmRemoteDisplay());
 	pConfig->getVmSettings()->setVmRemoteDisplay(pRemoteDisplay);
 
+	CVmConfiguration c(pVmConfig.getImpl());
+	c.getVmHardwareList()->SetDevicesPathToRelative(c.getVmIdentification()->getHomePath());
+
 	/* updete hdd indexes */
-	foreach(CVmHardDisk *pVmHdd, pVmConfig->getVmHardwareList()->m_lstHardDisks) {
+	foreach(CVmHardDisk *pVmHdd, c.getVmHardwareList()->m_lstHardDisks) {
 		CVmHardDisk *pHdd;
 
 		if ((pHdd = findDiskInList(pVmHdd, pConfig->getVmHardwareList()->m_lstHardDisks))) {
