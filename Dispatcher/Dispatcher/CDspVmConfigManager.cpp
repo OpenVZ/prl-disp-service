@@ -370,9 +370,11 @@ void OsInfo::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 {
 	// DEBUG LOGS FOR #PSBM-44712
 	if (new_.getVmSettings() != NULL && new_.getVmSettings()->getVmCommonOptions() != NULL)
+	{
 		WRITE_TRACE(DBG_DEBUG, "#PSBM-44712 OsType: %d, OsVersion: %d",
 			new_.getVmSettings()->getVmCommonOptions()->getOsType(),
 			new_.getVmSettings()->getVmCommonOptions()->getOsVersion());
+	}
 	else
 		WRITE_TRACE(DBG_DEBUG, "#PSBM-44712 NO OS INFO");
 
@@ -385,7 +387,7 @@ void OsInfo::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct RuntimeOptions
 
-void RuntimeOptions::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+void RuntimeOptions::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 {
 	old_.getVmSettings()->setVmRuntimeOptions
 		(new CVmRunTimeOptions(new_.getVmSettings()->getVmRuntimeOptions()));
