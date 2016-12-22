@@ -815,6 +815,8 @@ void CDspClientManager::handleToDispatcherPackage (
 		return m_service->getShellServiceHelper().leaveCPUPool(client, p);
 	case PVE::DspCmdVmCommitEncryption:
 		return (void)client->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED);
+	case PVE::DspCmdGetVcmmdConfig:
+		return (void)m_service->getShellServiceHelper().sendVcmmdConfig(client, p);
 	} //switch( p->header.type )
 	///////////////////////////////////////////////
 

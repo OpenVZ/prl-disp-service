@@ -56,6 +56,7 @@
 #include <prlxmlmodel/DispConfig/CDispWorkspacePreferences.h>
 #include <prlxmlmodel/DispConfig/CDispVirtuozzoPreferences.h>
 #include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
+#include <prlxmlmodel/VcmmdConfig/CVcmmdConfig.h>
 #include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
@@ -67,6 +68,7 @@
 #include "CDspClientManager.h"
 #include "CDspVmInfoDatabase.h"
 #include "CDspVzLicense.h"
+#include "CVcmmdInterface.h"
 
 #include "Tasks/Task_UpdateCommonPrefs.h"
 #include "Tasks/Task_ManagePrlNetService.h"
@@ -1004,6 +1006,37 @@ void CDspShellHelper::sendIPPrivateNetworksList(SmartPtr<CDspClient>& pUser, con
 	pUser->sendResponse( pResponse, p );
 }
 
+void CDspShellHelper::sendVcmmdConfig(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p)
+{
+	PRL_RESULT ret = PRL_ERR_SUCCESS;
+	do {
+		CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(p);
+		if (!pCmd->IsValid())
+		{
+			ret = PRL_ERR_FAILURE;
+			break;
+		}
+
+		CVcmmdConfig c;
+		if (pCmd->GetCommandFlags() & VCMMD_COMMAND_RUNTIME)
+			ret = Vcmmd::Config::DAO().getRuntime(c);
+		else
+			ret = Vcmmd::Config::DAO().getPersistent(c);
+		if (PRL_FAILED(ret))
+			break;
+
+		CProtoCommandPtr cmd = CProtoSerializer::CreateDspWsResponseCommand(p, PRL_ERR_SUCCESS);
+		CProtoCommandDspWsResponse* pResponseCmd =
+			CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>(cmd);
+		pResponseCmd->AddStandardParam(c.toString());
+
+		pUser->sendResponse(cmd, p);
+		return;
+	}
+	while(0);
+	pUser->sendSimpleResponse(p, ret);
+}
+
 static QMutex* gs_pmtxUserAuth = new QMutex;
 
 void CDspShellHelper::changeServerInternalValue(
@@ -1104,6 +1137,21 @@ void CDspShellHelper::changeServerInternalValue(
 			}
 		}
 #endif
+		else if (sKey == PRL_KEY_SET_VCMMD_CONFIG_VALUE)
+		{
+			if (!pUser->getAuthHelper().isLocalAdministrator())
+				throw PRL_ERR_ACCESS_DENIED;
+
+			CVmEvent event(sValue);
+			CVmEventParameter *pEventParam = event.getEventParameter(EVT_PARAM_VCMMD_CONFIG_VALUE);
+			if (!pEventParam)
+				throw PRL_ERR_FAILURE;
+
+			CVcmmdConfig c;
+			c.fromString(pEventParam->getParamValue());
+			if (PRL_FAILED(ret = Vcmmd::Config::DAO().set(c)))
+				throw ret;
+		}
 		else
 		{
 			throw PRL_ERR_UNIMPLEMENTED;
