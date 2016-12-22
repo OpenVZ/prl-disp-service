@@ -63,7 +63,7 @@ QString getVmHomeDirName(const QString& uuid_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct MemGuarantee
 
-quint64 MemGuarantee::operator()(quint64 ramsize_)
+quint64 MemGuarantee::operator()(quint64 ramsize_) const
 {
 	switch(m_type)
 	{

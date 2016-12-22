@@ -132,7 +132,10 @@ private:
 
 struct VcmmdAction: Action
 {
-	VcmmdAction(const Vcmmd::Api& vcmmd_, quint64 limit_, quint64 guarantee_):
+	typedef Vcmmd::Api::guarantee_type guarantee_type;
+
+	VcmmdAction(const Vcmmd::Api& vcmmd_, quint64 limit_,
+		const guarantee_type& guarantee_):
 		m_vcmmd(vcmmd_), m_limit(limit_), m_guarantee(guarantee_)
 	{
 	}
@@ -142,7 +145,7 @@ struct VcmmdAction: Action
 private:
 	Vcmmd::Api m_vcmmd;
 	quint64 m_limit;
-	quint64 m_guarantee;
+	guarantee_type m_guarantee;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

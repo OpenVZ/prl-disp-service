@@ -2738,7 +2738,7 @@ bool Reconnect::execute(CDspTaskFailure& feedback_)
 
 bool VcmmdAction::execute(CDspTaskFailure& feedback_)
 {
-	PRL_RESULT e = m_vcmmd.update(m_limit, m_guarantee);
+	PRL_RESULT e = m_vcmmd.update(m_limit << 20, m_guarantee);
 	if (PRL_FAILED(e))
 	{
 		feedback_(e);
@@ -3105,10 +3105,9 @@ Action* Memory::operator()(const Request& input_) const
 			return new Flop(x.error());
 	}
 	quint64 l = n->getRamSize();
-	quint64 g = ::Vm::Config::MemGuarantee(*n)(l) << 20;
-	l = l << 20;
+	::Vm::Config::MemGuarantee g(*n);
 	// No use in updating configuration if it doesn't differ from current
-	if (l == x.value().first && x.value().second == g)
+	if (std::make_pair(l << 20, g(l) << 20) == x.value())
 		return NULL;
 
 	return new VcmmdAction(a, l, g);

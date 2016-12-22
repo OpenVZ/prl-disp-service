@@ -67,10 +67,12 @@ namespace Vcmmd
 
 struct Api
 {
+	typedef ::Vm::Config::MemGuarantee guarantee_type;
+
 	explicit Api(const QString& uuid_);
 
 	PRL_RESULT init(const SmartPtr<CVmConfiguration>& config_);
-	PRL_RESULT update(quint64 limit_, quint64 guarantee_);
+	PRL_RESULT update(quint64 limit_, const guarantee_type& guarantee_);
 	Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> getConfig() const;
 	void deinit();
 	void activate();
@@ -78,6 +80,8 @@ struct Api
 
 private:
 	static PRL_RESULT treat(int status_, const char* name_, int level_ = DBG_FATAL);
+	static vcmmd_ve_config* init(quint64 limit_, const guarantee_type& guarantee_,
+		vcmmd_ve_config& value_);
 
 	QString m_uuid;
 };

@@ -45,27 +45,39 @@ Api::Api(const QString& uuid_)
 	m_uuid = uuid.toString(PrlUuid::WithoutBrackets).data();
 }
 
+vcmmd_ve_config* Api::init(quint64 limit_, const guarantee_type& guarantee_, vcmmd_ve_config& value_)
+{
+	vcmmd_ve_config_init(&value_);
+	vcmmd_ve_config_append(&value_, VCMMD_VE_CONFIG_LIMIT, limit_);
+	vcmmd_ve_config_append(&value_, VCMMD_VE_CONFIG_GUARANTEE,
+		guarantee_(limit_ >> 20) << 20);
+	switch (guarantee_.getType())
+	{
+	case PRL_MEMGUARANTEE_AUTO:
+		vcmmd_ve_config_append(&value_, VCMMD_VE_CONFIG_GUARANTEE_TYPE, VCMMD_MEMGUARANTEE_AUTO);
+		break;
+	default:
+		vcmmd_ve_config_append(&value_, VCMMD_VE_CONFIG_GUARANTEE_TYPE, VCMMD_MEMGUARANTEE_PERCENTS);
+	}
+
+	return &value_;
+}
+
 PRL_RESULT Api::init(const SmartPtr<CVmConfiguration>& config_)
 {
 	if (!config_.isValid())
 		return PRL_ERR_INVALID_PARAM;
 
 	CVmMemory* memory = config_->getVmHardwareList()->getMemory();
-	quint64 limit = memory->getRamSize();
-	quint64 guarantee = ::Vm::Config::MemGuarantee(*memory)(limit);
 	quint64 vram = config_->
 		getVmHardwareList()->getVideo()->getMemorySize();
-	quint64 ostype = config_->
-		getVmSettings()->getVmCommonOptions()->getOsType();
 
 	struct vcmmd_ve_config vcmmdConfig;
-	vcmmd_ve_config_init(&vcmmdConfig);
-	vcmmd_ve_config_append(&vcmmdConfig, VCMMD_VE_CONFIG_GUARANTEE, guarantee << 20);
-	vcmmd_ve_config_append(&vcmmdConfig, VCMMD_VE_CONFIG_LIMIT, limit << 20);
-	vcmmd_ve_config_append(&vcmmdConfig, VCMMD_VE_CONFIG_VRAM, vram << 20);
+	vcmmd_ve_config_append(init(memory->getRamSize() << 20, guarantee_type(*memory), vcmmdConfig),
+		VCMMD_VE_CONFIG_VRAM, vram << 20);
 
 	vcmmd_ve_type_t vmType = VCMMD_VE_VM;
-	switch(ostype){
+	switch(config_->getVmSettings()->getVmCommonOptions()->getOsType()){
 		case PVS_GUEST_TYPE_WINDOWS:
 			vmType = VCMMD_VE_VM_WINDOWS;
 			break;
@@ -92,14 +104,10 @@ PRL_RESULT Api::init(const SmartPtr<CVmConfiguration>& config_)
 	return treat(r, "vcmmd_register_ve");
 }
 
-PRL_RESULT Api::update(quint64 limit_, quint64 guarantee_)
+PRL_RESULT Api::update(quint64 limit_, const guarantee_type& guarantee_)
 {
-	struct vcmmd_ve_config config;
-	vcmmd_ve_config_init(&config);
-	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_GUARANTEE, guarantee_);
-	vcmmd_ve_config_append(&config, VCMMD_VE_CONFIG_LIMIT, limit_);
-
-	int r = vcmmd_update_ve(qPrintable(m_uuid), &config, 0);
+	vcmmd_ve_config config;
+	int r = vcmmd_update_ve(qPrintable(m_uuid), init(limit_, guarantee_, config), 0);
 	vcmmd_ve_config_deinit(&config);
 	return treat(r, "vcmmd_update_ve");
 }
