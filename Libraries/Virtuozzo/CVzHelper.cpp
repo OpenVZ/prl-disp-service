@@ -2057,12 +2057,9 @@ int CVzOperationHelper::apply_env_config(SmartPtr<CVmConfiguration> &pConfig,
 			return ret;
 	}
 
-	CVmConfiguration a(pConfig.getImpl()), b(pOldConfig.getImpl());
-	a.getVmHardwareList()->SetDevicesPathToRelative(a.getVmIdentification()->getHomePath());
-	b.getVmHardwareList()->SetDevicesPathToRelative(b.getVmIdentification()->getHomePath());
 	if ((PVCF_DESTROY_HDD_BUNDLE | PVCF_DETACH_HDD_BUNDLE) & nFlags) {
-		QList<CVmHardDisk *> &lstNewHardDisks = a.getVmHardwareList()->m_lstHardDisks;
-		QList<CVmHardDisk *> &lstOldHardDisks = b.getVmHardwareList()->m_lstHardDisks;
+		QList<CVmHardDisk *> &lstNewHardDisks = pConfig->getVmHardwareList()->m_lstHardDisks;
+		QList<CVmHardDisk *> &lstOldHardDisks = pOldConfig->getVmHardwareList()->m_lstHardDisks;
 
 		foreach(CVmHardDisk *pHdd, lstOldHardDisks) {
 			if (!findDiskInList(pHdd, lstNewHardDisks)) {
@@ -2075,8 +2072,8 @@ int CVzOperationHelper::apply_env_config(SmartPtr<CVmConfiguration> &pConfig,
 		}
 	}
 
-	QList<CVmHardDisk *> &lstNewHardDisks = a.getVmHardwareList()->m_lstHardDisks;
-	QList<CVmHardDisk *> &lstOldHardDisks = b.getVmHardwareList()->m_lstHardDisks;
+	QList<CVmHardDisk *> &lstNewHardDisks = pConfig->getVmHardwareList()->m_lstHardDisks;
+	QList<CVmHardDisk *> &lstOldHardDisks = pOldConfig->getVmHardwareList()->m_lstHardDisks;
 	/* add DISK */
 	foreach (CVmHardDisk *pHdd, lstNewHardDisks) {
 		if (findDiskInList(pHdd, lstOldHardDisks) == NULL) {
