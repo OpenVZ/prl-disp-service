@@ -73,7 +73,8 @@ PRL_RESULT Api::init(const SmartPtr<CVmConfiguration>& config_)
 		getVmHardwareList()->getVideo()->getMemorySize();
 
 	struct vcmmd_ve_config vcmmdConfig;
-	vcmmd_ve_config_append(init(memory->getRamSize() << 20, guarantee_type(*memory), vcmmdConfig),
+	vcmmd_ve_config_append(init(quint64(memory->getRamSize()) << 20,
+		guarantee_type(*memory), vcmmdConfig),
 		VCMMD_VE_CONFIG_VRAM, vram << 20);
 
 	vcmmd_ve_type_t vmType = VCMMD_VE_VM;
