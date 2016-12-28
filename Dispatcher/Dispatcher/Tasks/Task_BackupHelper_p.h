@@ -800,6 +800,23 @@ private:
 };
 
 } // namespace Process
+
+namespace Object
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+struct State
+{
+	explicit State(const SmartPtr<CVmConfiguration>& model_);
+
+	bool equals(const State& other_) const;
+
+private:
+	std::map<QString, quint64> m_list;
+};
+
+} // namespace Object
 } // namespace Backup
 
 namespace

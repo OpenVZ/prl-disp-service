@@ -703,19 +703,6 @@ void Task_CreateVmBackupTarget::clientDisconnected(IOSender::Handle h)
 // compare hdd lists from current VM config and from VM config of last base backup
 PRL_RESULT Task_CreateVmBackupTarget::wasHddListChanged(bool *pbWasChanged)
 {
-	std::map<QString, unsigned long> ls0, ls1;
-	QFileInfo fi;
-
-	// load hdd list from current config
-	foreach(CVmHardDisk *pHdd, ::Backup::Object::Model(m_pVmConfig).getImages()) {
-		QString d = pHdd->getSystemName();
-		if (QFileInfo(d).isRelative()) {
-			d = QFileInfo(QDir(m_pVmConfig->getVmIdentification()->getHomePath()),
-				d).absoluteFilePath();
-		}
-		ls0[d] = pHdd->getSize();
-	}
-
 	// load hdd list from last full backup config
 	QString x;
 	CVmConfiguration VmConfig;
@@ -744,15 +731,7 @@ PRL_RESULT Task_CreateVmBackupTarget::wasHddListChanged(bool *pbWasChanged)
 		WRITE_TRACE(DBG_FATAL, "Can not load config file %s", QSTR2UTF8(x));
 		return PRL_ERR_BACKUP_INTERNAL_ERROR;
 	}
-	foreach(CVmHardDisk *pHdd, ::Backup::Object::Model(p).getImages()) {
-		QString d = pHdd->getSystemName();
-		if (QFileInfo(d).isRelative()) {
-			d = QFileInfo(QDir(m_pVmConfig->getVmIdentification()->getHomePath()),
-				d).absoluteFilePath();
-		}
-		ls1[d] = pHdd->getSize();
-	}
-	*pbWasChanged = !(ls1.size() == ls0.size() && std::equal(ls1.begin(), ls1.end(), ls0.begin()));
+	*pbWasChanged = !::Backup::Object::State(m_pVmConfig).equals(::Backup::Object::State(p));
 	return PRL_ERR_SUCCESS;
 }
 

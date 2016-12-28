@@ -879,6 +879,35 @@ QString Nbd::getUrl() const
 }
 
 } // namespace Storage
+
+namespace Object
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+State::State(const SmartPtr<CVmConfiguration>& model_)
+{
+	if (!model_.isValid())
+		return;
+
+	QString h = model_->getVmIdentification()->getHomePath();
+	::Backup::Product::Model p(::Backup::Object::Model(model_), h);
+	::Backup::Product::componentList_type x =
+		PVT_VM == model_->getVmType() ?
+			p.getVmTibs() : p.getCtTibs();
+	foreach (::Backup::Product::componentList_type::const_reference c, x)
+	{
+		m_list[c.first.getImage()] = c.first.getDeviceSizeInBytes();
+	}
+}
+
+bool State::equals(const State& other_) const
+{
+	return m_list.size() == other_.m_list.size() &&
+		std::equal(m_list.begin(), m_list.end(), other_.m_list.begin());
+}
+
+} // namespace Object
 } // namespace Backup
 
 ///////////////////////////////////////////////////////////////////////////////
