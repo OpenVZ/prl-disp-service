@@ -1512,12 +1512,10 @@ PRL_RESULT Task_EditVm::editVm()
 					throw PRL_ERR_VM_UUID_NOT_FOUND;
 
 				// Since we use uuid in VM directory name EditVM is unable to change VmHome
-				vmHomePath = CFileHelper::GetFileRoot(pVmDirItem->getVmHome());
-
-				strVmHome = pVmDirItem->getVmHome();
+				qsOldDirName = vmHomePath = CFileHelper::GetFileRoot(strVmHome = pVmDirItem->getVmHome());
+				pVmDirItem.unlock();
 
 				oldVmName = pVmConfigOld->getVmIdentification()->getVmName();
-				qsOldDirName = CFileHelper::GetFileRoot( strVmHome );
 
 				// bug #8627
 				if ( pVmConfigOld->getVmHardwareList()->toString()
@@ -2134,9 +2132,7 @@ PRL_RESULT Task_EditVm::editVm()
 
 			// clear flags suspend and change for HDD images
 			// clear suspend flag for disks
-			DspVm::vdh().getMultiEditDispatcher()->lock();
 			CStatesHelper::SetSuspendParameterForAllDisks(pVmConfigNew.getImpl(),0);
-			DspVm::vdh().getMultiEditDispatcher()->unlock();
 			DspVm::vdh().getMultiEditDispatcher()->registerCommit(vm_uuid, getClient()->getClientHandle());
 		}
 
