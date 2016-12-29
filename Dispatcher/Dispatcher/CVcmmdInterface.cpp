@@ -29,9 +29,13 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <QFile>
+#include <QTemporaryFile>
+#include <boost/property_tree/json_parser.hpp>
 #include <prlsdk/PrlOses.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlUuid/Uuid.h>
+#include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "CVcmmdInterface.h"
 
 namespace Vcmmd
@@ -175,6 +179,97 @@ void Frontend<Unregistered>::commit()
 {
 	m_api.reset();
 }
+
+namespace Config
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct File
+
+const QString File::s_configPath("/etc/vz/vcmmd.conf");
+
+boost::property_tree::ptree File::read()
+{
+	boost::property_tree::ptree result;
+	std::ifstream is(s_configPath.toStdString().c_str());
+	if (!is.is_open())
+		return result;
+
+	try
+	{
+		boost::property_tree::json_parser::read_json(is, result);
+	}
+	catch (const boost::property_tree::json_parser::json_parser_error&)
+	{
+		WRITE_TRACE(DBG_FATAL, "Failed to parse %s", QSTR2UTF8(s_configPath));
+	}
+	is.close();
+
+	return result;
+}
+
+PRL_RESULT File::write(const boost::property_tree::ptree& t_)
+{
+	QTemporaryFile f(s_configPath + "_XXX");
+	if (!f.open())
+		return PRL_ERR_FAILURE;
+
+	std::stringstream ss;
+	boost::property_tree::json_parser::write_json(ss, t_, true);
+
+	QByteArray a;
+	a.append(QString::fromStdString(ss.str()));
+	f.write(a);
+	f.close();
+
+	if (!CFileHelper::AtomicMoveFile(f.fileName(), s_configPath))
+	{
+		WRITE_TRACE(DBG_FATAL, "Failed to rename %s to %s", QSTR2UTF8(f.fileName()), QSTR2UTF8(s_configPath));
+		return PRL_ERR_FAILURE;
+	}
+	f.setAutoRemove(false);
+
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct DAO
+
+PRL_RESULT DAO::getPersistent(CVcmmdConfig& config_) const
+{
+	boost::property_tree::ptree t = File().read();
+	config_.setPolicy(QString::fromStdString(
+		t.get<std::string>("LoadManager.Policy")));
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT DAO::getRuntime(CVcmmdConfig& config_) const
+{
+	int ret;
+	char name[256];
+
+	if((ret = vcmmd_get_current_policy(name, sizeof(name))))
+	{
+		char e[256];
+		WRITE_TRACE(DBG_FATAL, "vcmmd_get_current_policy error: %s",
+				vcmmd_strerror(ret, e, sizeof(e)));
+		return PRL_ERR_FAILURE;
+	}
+
+	config_.setPolicy(QString(name));
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT DAO::set(const CVcmmdConfig& config_) const
+{
+	File f;
+	boost::property_tree::ptree t = f.read();
+	t.put<std::string>("LoadManager.Policy",
+				config_.getPolicy().toStdString());
+	return f.write(t);
+}
+
+} //namespace Config
 
 } // namespace Vcmmd
 
