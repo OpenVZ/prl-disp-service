@@ -29,14 +29,60 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <QFile>
-#include <QTemporaryFile>
-#include <boost/property_tree/json_parser.hpp>
 #include <prlsdk/PrlOses.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlUuid/Uuid.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "CVcmmdInterface.h"
+
+namespace
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Status
+
+struct Status
+{
+	explicit Status(int status_) : m_status(status_)
+	{
+	}
+
+	Status& log(const char *name_, int level_ = DBG_FATAL);
+	PRL_RESULT treat();
+
+private:
+	int m_status;
+};
+
+Status& Status::log(const char *name_, int level_)
+{
+	if (0 != m_status)
+	{
+		char e[255] = {};
+		WRITE_TRACE(level_, " failed. %s: %s", name_,
+				vcmmd_strerror(m_status, e, sizeof(e)));
+	}
+	return *this;
+}
+
+PRL_RESULT Status::treat()
+{
+	switch (m_status)
+	{
+	case 0:
+		return PRL_ERR_SUCCESS;
+	case VCMMD_ERROR_CONNECTION_FAILED:
+		return PRL_ERR_VCMMD_NO_CONNECTION;
+	case VCMMD_ERROR_UNABLE_APPLY_VE_GUARANTEE:
+		return PRL_ERR_UNABLE_APPLY_MEMORY_GUARANTEE;
+	case VCMMD_ERROR_POLICY_SET_INVALID_NAME:
+		return PRL_ERR_INVALID_ARG;
+	case VCMMD_ERROR_POLICY_SET_ACTIVE_VES:
+		return PRL_ERR_RUNNING_VM_OR_CT;
+	default:
+		return PRL_ERR_FAILURE;
+	}
+}
+
+} //anonymous namespace
 
 namespace Vcmmd
 {
@@ -95,18 +141,18 @@ PRL_RESULT Api::init(const SmartPtr<CVmConfiguration>& config_)
 
 	if (VCMMD_ERROR_VE_NAME_ALREADY_IN_USE != r) {
 		vcmmd_ve_config_deinit(&vcmmdConfig);
-		return treat(r, "vcmmd_register_ve");
+		return Status(r).log("vcmmd_register_ve").treat();
 	}
 
 	r = vcmmd_unregister_ve(qPrintable(m_uuid));
 	if (r) {
 		vcmmd_ve_config_deinit(&vcmmdConfig);
-		return treat(r, "vcmmd_unregister_ve");
+		return Status(r).log("vcmmd_unregister_ve").treat();
 	}
 
 	r = vcmmd_register_ve(qPrintable(m_uuid), vmType, &vcmmdConfig, 0);
 	vcmmd_ve_config_deinit(&vcmmdConfig);
-	return treat(r, "vcmmd_register_ve");
+	return Status(r).log("vcmmd_register_ve").treat();
 }
 
 PRL_RESULT Api::update(quint64 limit_, const guarantee_type& guarantee_)
@@ -114,14 +160,14 @@ PRL_RESULT Api::update(quint64 limit_, const guarantee_type& guarantee_)
 	vcmmd_ve_config config;
 	int r = vcmmd_update_ve(qPrintable(m_uuid), init(limit_, guarantee_, config), 0);
 	vcmmd_ve_config_deinit(&config);
-	return treat(r, "vcmmd_update_ve");
+	return Status(r).log("vcmmd_update_ve").treat();
 }
 
 Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> Api::getConfig() const
 {
 	struct vcmmd_ve_config config;
-	PRL_RESULT e = treat(vcmmd_get_ve_config(qPrintable(m_uuid), &config),
-		"vcmmd_get_ve_config");
+	PRL_RESULT e = Status(vcmmd_get_ve_config(qPrintable(m_uuid), &config))
+				.log("vcmmd_get_ve_config").treat();
 	if (PRL_FAILED(e))
 		return e;
 
@@ -136,39 +182,19 @@ Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> Api::getConfig() const
 void Api::deinit()
 {
 	int r = vcmmd_unregister_ve(qPrintable(m_uuid));
-	treat(r, "vcmmd_unregister_ve", r == VCMMD_ERROR_VE_NOT_REGISTERED ? DBG_WARNING : DBG_FATAL);
+	Status(r).log("vcmmd_unregister_ve", r == VCMMD_ERROR_VE_NOT_REGISTERED ? DBG_WARNING : DBG_FATAL);
 }
 
 void Api::activate()
 {
 	int r = vcmmd_activate_ve(qPrintable(m_uuid), 0);
-	treat(r, "vcmmd_activate_ve", r == VCMMD_ERROR_VE_ALREADY_ACTIVE ? DBG_WARNING : DBG_FATAL);
+	Status(r).log("vcmmd_activate_ve", r == VCMMD_ERROR_VE_ALREADY_ACTIVE ? DBG_WARNING : DBG_FATAL);
 }
 
 void Api::deactivate()
 {
 	int r = vcmmd_deactivate_ve(qPrintable(m_uuid));
-	treat(r, "vcmmd_deactivate_ve", r == VCMMD_ERROR_VE_NOT_ACTIVE ? DBG_WARNING : DBG_FATAL);
-}
-
-PRL_RESULT Api::treat(int status_, const char* name_, int level_)
-{
-	if (0 == status_)
-		return PRL_ERR_SUCCESS;
-
-	char e[255] = {};
-	WRITE_TRACE(level_, " failed. %s: %s", name_,
-		vcmmd_strerror(status_, e, sizeof(e)));
-
-	switch (status_)
-	{
-	case VCMMD_ERROR_CONNECTION_FAILED:
-		return PRL_ERR_VCMMD_NO_CONNECTION;
-	case VCMMD_ERROR_UNABLE_APPLY_VE_GUARANTEE:
-		return PRL_ERR_UNABLE_APPLY_MEMORY_GUARANTEE;
-	default:
-		return PRL_ERR_FAILURE;
-	}
+	Status(r).log("vcmmd_deactivate_ve", r == VCMMD_ERROR_VE_NOT_ACTIVE ? DBG_WARNING : DBG_FATAL);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -184,62 +210,17 @@ namespace Config
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct File
-
-const QString File::s_configPath("/etc/vz/vcmmd.conf");
-
-boost::property_tree::ptree File::read()
-{
-	boost::property_tree::ptree result;
-	std::ifstream is(s_configPath.toStdString().c_str());
-	if (!is.is_open())
-		return result;
-
-	try
-	{
-		boost::property_tree::json_parser::read_json(is, result);
-	}
-	catch (const boost::property_tree::json_parser::json_parser_error&)
-	{
-		WRITE_TRACE(DBG_FATAL, "Failed to parse %s", QSTR2UTF8(s_configPath));
-	}
-	is.close();
-
-	return result;
-}
-
-PRL_RESULT File::write(const boost::property_tree::ptree& t_)
-{
-	QTemporaryFile f(s_configPath + "_XXX");
-	if (!f.open())
-		return PRL_ERR_FAILURE;
-
-	std::stringstream ss;
-	boost::property_tree::json_parser::write_json(ss, t_, true);
-
-	QByteArray a;
-	a.append(QString::fromStdString(ss.str()));
-	f.write(a);
-	f.close();
-
-	if (!CFileHelper::AtomicMoveFile(f.fileName(), s_configPath))
-	{
-		WRITE_TRACE(DBG_FATAL, "Failed to rename %s to %s", QSTR2UTF8(f.fileName()), QSTR2UTF8(s_configPath));
-		return PRL_ERR_FAILURE;
-	}
-	f.setAutoRemove(false);
-
-	return PRL_ERR_SUCCESS;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct DAO
 
 PRL_RESULT DAO::getPersistent(CVcmmdConfig& config_) const
 {
-	boost::property_tree::ptree t = File().read();
-	config_.setPolicy(QString::fromStdString(
-		t.get<std::string>("LoadManager.Policy")));
+	int ret;
+	char name[256];
+
+	if ((ret = vcmmd_get_policy_from_file(name, sizeof(name))))
+		return Status(ret).log("vcmmd_get_policy_from_file").treat();
+
+	config_.setPolicy(QString(name));
 	return PRL_ERR_SUCCESS;
 }
 
@@ -248,13 +229,8 @@ PRL_RESULT DAO::getRuntime(CVcmmdConfig& config_) const
 	int ret;
 	char name[256];
 
-	if((ret = vcmmd_get_current_policy(name, sizeof(name))))
-	{
-		char e[256];
-		WRITE_TRACE(DBG_FATAL, "vcmmd_get_current_policy error: %s",
-				vcmmd_strerror(ret, e, sizeof(e)));
-		return PRL_ERR_FAILURE;
-	}
+	if ((ret = vcmmd_get_current_policy(name, sizeof(name))))
+		return Status(ret).log("vcmmd_get_current_policy").treat();
 
 	config_.setPolicy(QString(name));
 	return PRL_ERR_SUCCESS;
@@ -262,11 +238,7 @@ PRL_RESULT DAO::getRuntime(CVcmmdConfig& config_) const
 
 PRL_RESULT DAO::set(const CVcmmdConfig& config_) const
 {
-	File f;
-	boost::property_tree::ptree t = f.read();
-	t.put<std::string>("LoadManager.Policy",
-				config_.getPolicy().toStdString());
-	return f.write(t);
+	return Status(vcmmd_set_policy(QSTR2UTF8(config_.getPolicy()))).log("vcmmd_set_policy").treat();
 }
 
 } //namespace Config
