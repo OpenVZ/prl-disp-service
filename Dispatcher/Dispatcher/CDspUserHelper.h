@@ -62,10 +62,8 @@ class CDspClientManager;
  * @brief This class implements user dispatching logic
  * @author SergeyM
  */
-class CDspUserHelper : public QObject
+class CDspUserHelper
 {
-	Q_OBJECT
-
 public:
 	// constructor
 	CDspUserHelper();
