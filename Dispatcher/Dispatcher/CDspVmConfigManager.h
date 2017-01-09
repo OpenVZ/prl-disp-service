@@ -279,14 +279,6 @@ struct Copy
 	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Mask
-
-struct Mask
-{
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
-};
-
 } // namespace Cpu
 
 struct Identification
@@ -346,7 +338,7 @@ struct Reviser<N, void>
 	}
 };
 
-typedef boost::mpl::vector<RemoteDisplay::Unencrypted, Nvram, Cpu::Mask, OnCrash> revise_types;
+typedef boost::mpl::vector<RemoteDisplay::Unencrypted, Nvram, OnCrash> revise_types;
 typedef boost::mpl::vector<Identification, OsInfo, RuntimeOptions, GlobalNetwork,
 		Index::Patch, Cpu::Copy, NetworkDevices, HardDisks, OpticalDisks, State::Patch,
 		MemoryOptions, HighAvailability, Tools, RemoteDisplay::Encrypted>
