@@ -253,14 +253,6 @@ struct RuntimeOptions
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct OnCrash
-
-struct OnCrash
-{
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct GlobalNetwork
 
 struct GlobalNetwork
@@ -338,7 +330,7 @@ struct Reviser<N, void>
 	}
 };
 
-typedef boost::mpl::vector<RemoteDisplay::Unencrypted, Nvram, OnCrash> revise_types;
+typedef boost::mpl::vector<RemoteDisplay::Unencrypted, Nvram> revise_types;
 typedef boost::mpl::vector<Identification, OsInfo, RuntimeOptions, GlobalNetwork,
 		Index::Patch, Cpu::Copy, NetworkDevices, HardDisks, OpticalDisks, State::Patch,
 		MemoryOptions, HighAvailability, Tools, RemoteDisplay::Encrypted>
