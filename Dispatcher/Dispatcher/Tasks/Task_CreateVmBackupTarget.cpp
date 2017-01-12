@@ -731,6 +731,11 @@ PRL_RESULT Task_CreateVmBackupTarget::wasHddListChanged(bool *pbWasChanged)
 		WRITE_TRACE(DBG_FATAL, "Can not load config file %s", QSTR2UTF8(x));
 		return PRL_ERR_BACKUP_INTERNAL_ERROR;
 	}
+
+	// Use VmHome from the source #PSBM-54345
+	p->getVmIdentification()->setHomePath(
+			m_pVmConfig->getVmIdentification()->getHomePath());
+
 	*pbWasChanged = !::Backup::Object::State(m_pVmConfig).equals(::Backup::Object::State(p));
 	return PRL_ERR_SUCCESS;
 }
