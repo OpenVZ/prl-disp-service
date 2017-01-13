@@ -152,8 +152,13 @@ void Vm::updateConfig(CVmConfiguration value_)
 
 	setName(value_.getVmIdentification()->getVmName());
 	boost::signals2::signal<void (CVmConfiguration& )> s;
-	s.connect(boost::bind(&::Vm::Config::Repairer< ::Vm::Config::untranslatable_types>
-				::type::do_, boost::ref(value_), _1));
+	if (value_.getVmIdentification()->getHomePath().isEmpty())
+	{
+		// NB. libvirt config doesn't contain VM home. for other sources
+		// there is no need to merge.
+		s.connect(boost::bind(&::Vm::Config::Repairer< ::Vm::Config::untranslatable_types>
+					::type::do_, boost::ref(value_), _1));
+	}
 	if (is_flag_active< ::Vm::State::Running>())
 	{
 		s.connect(boost::bind(&Network::Routing::reconfigure,
