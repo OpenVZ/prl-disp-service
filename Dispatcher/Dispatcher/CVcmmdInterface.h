@@ -35,7 +35,6 @@
 #include <QSharedPointer>
 #include <libvcmmd/vcmmd.h>
 #include <boost/utility/result_of.hpp>
-#include <boost/property_tree/ptree.hpp>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include "CDspVmConfigManager.h"
 #include <prlsdk/PrlErrors.h>
@@ -81,7 +80,6 @@ struct Api
 	void deactivate();
 
 private:
-	static PRL_RESULT treat(int status_, const char* name_, int level_ = DBG_FATAL);
 	static vcmmd_ve_config* init(quint64 limit_, const guarantee_type& guarantee_,
 		vcmmd_ve_config& value_);
 
@@ -194,19 +192,6 @@ void Frontend<Unregistered>::commit();
 
 namespace Config
 {
-
-///////////////////////////////////////////////////////////////////////////////
-// struct File
-
-struct File
-{
-	boost::property_tree::ptree read();
-	PRL_RESULT write(const boost::property_tree::ptree& t_);
-
-private:
-	static const QString s_configPath;
-};
-
 ///////////////////////////////////////////////////////////////////////////////
 //struct DAO
 
