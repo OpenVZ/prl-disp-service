@@ -1676,25 +1676,29 @@ template<>
 struct Body<Tag::Special<PVE::DspCmdVmStart> >
 {
 	template<PVE::IDispatcherCommands X>
-	struct Translate
+	struct Core
 	{
-		typedef Tag::Fork
+		typedef Tag::State
 		<
-			Tag::Lock
-			<
-				X,
-				Tag::Timeout
-				<
-					Tag::State
-					<
-						Essence<X>,
-						Vm::Fork::State::Strict<VMS_RUNNING>
-					>,
-					Tag::Libvirt<X>
-				>
-			>
-		> schema_type;
-		typedef Details::Body<schema_type> type;
+			Essence<X>,
+			Vm::Fork::State::Strict<VMS_RUNNING>
+		> type;
+	};
+
+	template<PVE::IDispatcherCommands X>
+	struct Restrict
+	{
+		typedef Tag::Timeout
+		<
+			typename Core<X>::type,
+			Tag::Libvirt<X>
+		> type;
+	};
+
+	template<PVE::IDispatcherCommands X, typename D>
+	struct Decorate
+	{
+		typedef Details::Body<Tag::Fork<Tag::Lock<X, typename D::type> > > type;
 	};
 
 	static void run(Context& context_)
@@ -1702,11 +1706,13 @@ struct Body<Tag::Special<PVE::DspCmdVmStart> >
 		switch (CDspVm::getVmState(context_.getIdent().first, context_.getIdent().second))
 		{
 		case VMS_PAUSED:
-			return Translate<PVE::DspCmdVmResume>::type::run(context_);
+			return Decorate<PVE::DspCmdVmResume, Restrict<PVE::DspCmdVmResume> >::type::run(context_);
 		case VMS_RUNNING:
 			return context_.reply(Error::Simple(PRL_ERR_FAILURE, "VM is already running"));
+		case VMS_SUSPENDED:
+			return Decorate<PVE::DspCmdVmStart, Core<PVE::DspCmdVmStart> >::type::run(context_);
 		default:
-			return Translate<PVE::DspCmdVmStart>::type::run(context_);
+			return Decorate<PVE::DspCmdVmStart, Restrict<PVE::DspCmdVmStart> >::type::run(context_);
 		}
 	}
 };
