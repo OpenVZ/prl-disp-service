@@ -1177,7 +1177,7 @@ void Domain::crash()
 	if (d < 86400000000ULL)
 	{
 		o->setMode(POCA_PAUSE);
-		setConfig(c.get());
+		m_access.updateConfig(c.get());
 
 		m_crashes.clear();
 	}
