@@ -924,7 +924,10 @@ PRL_RESULT Task_RestoreVmBackupTarget::prepareTask()
 		goto exit;
 
 	if (m_nFlags & PBT_RESTORE_TO_COPY)
-		m_sVmUuid = Uuid::createUuid().toString();
+	{
+		if (m_sVmUuid == m_sOriginVmUuid || m_sVmUuid.isEmpty())
+			m_sVmUuid = Uuid::createUuid().toString();
+	}
 	else if (m_sVmUuid.isEmpty())
 		m_sVmUuid = m_pVmConfig->getVmIdentification()->getVmUuid();
 
@@ -1798,7 +1801,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::sendStartRequest()
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	pStartCmd = CDispToDispProtoSerializer::CreateVmBackupRestoreCommand(m_sVmUuid, m_sBackupId, m_nFlags);
+	QString u = (m_nFlags & PBT_RESTORE_TO_COPY) ? QString() : m_sVmUuid;
+	pStartCmd = CDispToDispProtoSerializer::CreateVmBackupRestoreCommand(u, m_sBackupId, m_nFlags);
 
 	pPackage = DispatcherPackage::createInstance(
 			pStartCmd->GetCommandId(),
@@ -1837,7 +1841,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::sendStartRequest()
 	m_nRemoteVersion = pFirstReply->GetVersion();
 	if (m_nRemoteVersion <= BACKUP_PROTO_V3)
 		m_converter.reset(new Legacy::Vm::Converter());
-	m_sVmUuid = pFirstReply->GetVmUuid();
+	m_sOriginVmUuid = pFirstReply->GetVmUuid();
 	m_sBackupUuid = pFirstReply->GetBackupUuid();
 	m_nBackupNumber = pFirstReply->GetBackupNumber();
 	m_sBackupRootPath = pFirstReply->GetBackupRootPath();
