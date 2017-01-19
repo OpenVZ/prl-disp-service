@@ -408,13 +408,10 @@ QList<action_type> Shifter::operator()(const list_type& objects_, quint32 index_
 	element_type p = (index_ > 0) ? objects_.at(index_ - 1) : element_type(new Item);
 	a << rebaseItem(*n, *p, false);
 	a << Remover::unlinkItem(*c, CDspTaskFailure(*m_context));
-	a << moveItem(*n, *c);
-	for (int i = index_ + 2; i < objects_.size(); i++) {
+	p = n;
+	for (int i = index_ + 2; i < objects_.size(); i++, p = n) {
 		n = objects_.at(i);
-		c = objects_.at(i - 1);
-		element_type p = objects_.at(i - 2);
 		a << rebaseItem(*n, *p, true);
-		a << moveItem(*n, *c);
 	}
 	a << boost::bind(m_updater, objects_.at(objects_.size() - 2)->getNumber());
 	return a;
