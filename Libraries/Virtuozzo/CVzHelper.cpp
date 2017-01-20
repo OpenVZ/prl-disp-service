@@ -3139,6 +3139,31 @@ int CVzOperationHelper::remove_disks_from_env_config(SmartPtr<CVmConfiguration> 
 	return 0;
 }
 
+int CVzOperationHelper::reinstall_env(const QString &uuid, const QString &os,
+		PRL_UINT32 flags)
+{
+	QStringList args;
+
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	args += "reinstall";
+	args += ctid;
+	if (!os.isEmpty()) {
+		args += "--ostemplate";
+		args += os;
+	}
+	if (flags & REINSTALL_SKIP_BACKUP)
+		args += "--skipbackup";
+	if (flags & REINSTALL_SKIP_SCRIPTS)
+		args += "--skipscripts";
+	if (flags & REINSTALL_RESET_PWDB)
+		args += "--resetpwdb";
+
+	return run_prg(BIN_VZCTL, args);
+}
+
 static Ct::Statistics::Cpu get_env_cpustat(const QString &uuid)
 {
 	int ret;
