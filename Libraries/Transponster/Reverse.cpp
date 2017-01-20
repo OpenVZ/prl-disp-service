@@ -559,7 +559,6 @@ QString View::getFilterName() const
 
 	if (filter->isPreventIpSpoof() &&
 		// For enforced static IPs only
-		m_network.isAutoApply() &&
 		!m_network.isConfigureWithDhcp() &&
 		!getIpv4().isEmpty())
 		filters << "no-ip-spoofing";
