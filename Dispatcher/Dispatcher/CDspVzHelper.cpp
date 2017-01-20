@@ -793,7 +793,11 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 	}
 	else
 	{
-		vm_uuid = pCmd->GetVmUuid();
+		if (p->header.type == PVE::DspCmdCtReinstall)
+			vm_uuid = pCmd->GetFirstStrParam();
+		else
+			vm_uuid = pCmd->GetVmUuid();
+
 		if (vm_uuid.isEmpty())
 			LOG_MESSAGE(DBG_INFO, "=> empty vmuuid for %s",
 					PVE::DispatcherCommandToString(p->header.type));
@@ -851,6 +855,7 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 		case PVE::DspCmdVmGetPackedProblemReport:
 		case PVE::DspCmdVmGetProblemReport:
 		case PVE::DspCmdVmCommitEncryption:
+		case PVE::DspCmdCtReinstall:
 			m_service->getTaskManager().schedule(new Task_VzManager( pUserSession, p));
 			break;
 		case PVE::DspCmdVmGuestRunProgram:

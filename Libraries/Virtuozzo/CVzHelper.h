@@ -468,6 +468,8 @@ public:
 	int get_env_netinfo(const QString &uuid, QList<CHwNetAdapter*> &adapters);
 	int set_disk_encryption(const QString& uuid_, const CVmHardDisk& disk_,
 		unsigned int flags_);
+	int reinstall_env(const QString &uuid, const QString &os,
+                PRL_UINT32 flags);
 
 private:
 	CVzOperationCleaner &get_cleaner() { return m_cleaner; }
