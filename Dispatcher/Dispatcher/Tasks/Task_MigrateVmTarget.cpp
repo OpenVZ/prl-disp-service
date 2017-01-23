@@ -51,6 +51,7 @@
 #include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
+#include "Libraries/CpuFeatures/CCpuHelper.h"
 #ifdef _LIN_
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #endif
@@ -565,6 +566,25 @@ void Frontend::copy(const CopyCommand_type& event_)
 }
 
 } // namespace Content
+
+namespace Tune
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Perform
+
+template <typename Event, typename FSM>
+void Perform::on_entry(const Event& event_, FSM& fsm_)
+{
+	Trace<Perform>::on_entry(event_, fsm_);
+	if (m_state != VMS_STOPPED)
+		return;
+	CCpuHelper::update(*m_config);
+	if (::Libvirt::Kit.vms().define(*m_config).isFailed())
+		fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
+}
+
+} // namespace Tune
 
 namespace Commit
 {
@@ -1868,6 +1888,7 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 		<< backend_type::Copying(boost::ref(*this))
 		<< moveStep
 		<< syncingStep
+		<< backend_type::Tuning(boost::ref(*m_pVmConfig), m_nPrevVmState)
 		<< backend_type::Commiting(boost::ref(*m_pVmConfig), boost::cref(m_lstCheckFilesExt), m_nPrevVmState)
 		<< backend_type::Synch::State(~0),
 		boost::ref(*this), boost::ref(io), boost::ref(*m_pVmConfig)
