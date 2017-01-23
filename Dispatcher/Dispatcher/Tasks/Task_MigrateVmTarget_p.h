@@ -176,6 +176,33 @@ private:
 
 } // namespace Content
 
+namespace Tune
+{
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Perform
+
+struct Perform: vsd::Trace<Perform>
+{
+	Perform(CVmConfiguration& config_, VIRTUAL_MACHINE_STATE state_):
+		m_config(&config_), m_state(state_)
+	{
+	}
+
+	Perform(): m_config(), m_state()
+	{
+	}
+
+	template <typename Event, typename FSM>
+	void on_entry(const Event&, FSM&);
+
+private:
+	CVmConfiguration* m_config;
+	VIRTUAL_MACHINE_STATE m_state;
+};
+
+} // namespace Tune
+
 namespace Commit
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -479,6 +506,7 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
 			>
 		> moving_type;
 	typedef boost::msm::back::state_machine<moving_type> Moving;
+	typedef Tune::Perform Tuning;
 	typedef Commit::Perform Commiting;
 	typedef Starting initial_state;
 
@@ -526,13 +554,15 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
 			&Frontend::define, &Frontend::isSwitched>,
 		row<Copying::exit_pt<Success>,         msmf::none,Synch::State,
 			&Frontend::synch, &Frontend::isTemplate>,
-		msmf::Row<Moving::exit_pt<Success>,    msmf::none,Commiting>,
+		msmf::Row<Moving::exit_pt<Success>,    msmf::none,Tuning>,
+		msmf::Row<Tuning,                      msmf::none,Commiting>,
 		msmf::Row<Commiting,                   Commiting::Done,Finished>,
 		msmf::Row<Syncing::exit_pt<Success>,   msmf::none,Finished>,
 		msmf::Row<Synch::State,                Synch::State::Good, Finished>,
 		// handle asyncronous termination
 		a_row<Starting,                        Flop::Event, Finished, &Frontend::setResult>,
 		a_row<Copying,                         Flop::Event, Finished, &Frontend::setResult>,
+		a_row<Tuning,                          Flop::Event, Finished, &Frontend::setResult>,
 		a_row<Commiting,                       Flop::Event, Finished, &Frontend::setResult>,
 		a_row<Syncing,                         Flop::Event, Finished, &Frontend::setResult>,
 		a_row<Synch::State,                    Flop::Event, Finished, &Frontend::setResult>,
