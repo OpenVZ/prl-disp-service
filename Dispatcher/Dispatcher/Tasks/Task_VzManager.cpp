@@ -1295,6 +1295,21 @@ PRL_RESULT Task_VzManager::stop_vnc_server(QString sCtUuid, bool onCtStop)
 	return nRetCode;
 }
 
+PRL_RESULT Task_VzManager::reinstall_env()
+{
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(
+							getRequestPackage());
+	if (!cmd->IsValid())
+		return PRL_ERR_UNRECOGNIZED_REQUEST;
+
+	CProtoCommandWithTwoStrParams *pCmd =
+		CProtoSerializer::CastToProtoCommand<CProtoCommandWithTwoStrParams>(cmd);
+
+	return get_op_helper()->reinstall_env(pCmd->GetFirstStrParam(),
+				pCmd->GetSecondStrParam(),
+				pCmd->GetCommandFlags());
+}
+
 PRL_RESULT Task_VzManager::process_cmd()
 {
 	PRL_RESULT ret = PRL_ERR_SUCCESS;
@@ -1395,6 +1410,9 @@ PRL_RESULT Task_VzManager::process_cmd()
 		break;
 	case PVE::DspCmdVmCommitEncryption:
 		ret = commit_encryption();
+		break;
+	case PVE::DspCmdCtReinstall:
+		ret = reinstall_env();
 		break;
 	default:
 		ret = PRL_ERR_UNIMPLEMENTED;

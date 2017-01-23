@@ -86,6 +86,7 @@ private:
 	PRL_RESULT send_network_settings();
 	PRL_RESULT send_problem_report();
 	PRL_RESULT commit_encryption();
+	PRL_RESULT reinstall_env();
 
 private:
 	PRL_RESULT checkAndLockRegisterParameters(
