@@ -1357,12 +1357,17 @@ void Vm::collect(const QDir& home_)
 		}
 	}
 
+	QString nvram = m_config->getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM();
+	if (!nvram.isEmpty())
+	{
+		QFileInfo nvram_f(home_, nvram);
+		x << qMakePair(nvram_f, nvram_f.fileName());
+	}
+
 	QDir h(home_);
 	foreach(const QFileInfo& i, h.entryInfoList(QDir::NoDotAndDotDot|QDir::Files|QDir::NoSymLinks))
 	{
 		if (i.fileName().startsWith("parallels.log"))
-			x << qMakePair(i, i.fileName());
-		if (i.fileName().startsWith(PRL_VM_NVRAM_FILE_NAME))
 			x << qMakePair(i, i.fileName());
 	}
 
