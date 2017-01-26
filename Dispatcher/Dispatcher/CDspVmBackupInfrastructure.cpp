@@ -1362,6 +1362,8 @@ void Vm::collect(const QDir& home_)
 	{
 		if (i.fileName().startsWith("parallels.log"))
 			x << qMakePair(i, i.fileName());
+		if (i.fileName().startsWith(PRL_VM_NVRAM_FILE_NAME))
+			x << qMakePair(i, i.fileName());
 	}
 
 	QFileInfo s(home_, "scripts");
