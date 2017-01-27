@@ -983,6 +983,8 @@ void CDspProblemReportHelper::FillProblemReportData
 
 #ifdef _LIN_
 	addSystemLog(cReport, QFileInfo("/var/log/shaman.log"));
+	addSystemLog(cReport, QFileInfo("/var/log/shaman-monitor.log"));
+	addSystemLog(cReport, QFileInfo("/var/log/pdrs.log"));
 	QFileInfoList a = CDspHaClusterHelper::getReport();
 	foreach (QFileInfo f, a)
 	{
