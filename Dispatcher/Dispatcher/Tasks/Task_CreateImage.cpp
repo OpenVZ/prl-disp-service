@@ -41,6 +41,7 @@
 
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 #include <prlcommon/HostUtils/HostUtils.h>
+#include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 #include "Build/Current.ver"
 
 // By adding this interface we enable allocations tracing in the module
@@ -192,7 +193,7 @@ PRL_RESULT Task_CreateImage::run_body()
 											EVT_PARAM_MESSAGE_PARAM_0));
 					throw PRL_ERR_VMCONF_HARD_DISK_SYS_NAME_HAS_INVALID_SYMBOL;
 				}
-				if (!CVmValidateConfig::IsSerialNumberValid(hard_disk.getSerialNumber()))
+				if (!Parallels::IsSerialNumberValid(hard_disk.getSerialNumber()))
 					throw CDspTaskFailure(*this)(PRL_ERR_VMCONF_HARD_DISK_SERIAL_IS_NOT_VALID, hard_disk.getSerialNumber());
 
 				PRL_RESULT ret = createHdd( hard_disk );

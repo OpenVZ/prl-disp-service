@@ -61,6 +61,7 @@
 #include <prlcommon/Interfaces/ApiDevNums.h>
 #include <boost/mpl/quote.hpp>
 #include <boost/mpl/for_each.hpp>
+#include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 
 static const QStringList g_UrlSchemeList = QStringList()
 	<< "ftp://" << "http://" << "https://" << "smb://" << "nfs://";
@@ -683,12 +684,6 @@ bool CVmValidateConfig::HasSysNameInvalidSymbol(const QString& qsSysName)
 		}
 	}
 	return false;
-}
-
-bool CVmValidateConfig::IsSerialNumberValid(const QString& qsSerial)
-{
-	QRegExp re("[A-Za-z0-9_\\.\\+\\-]*");
-	return re.exactMatch(qsSerial);
 }
 
 bool CVmValidateConfig::IsNestedVirtEnabled()
@@ -1545,7 +1540,7 @@ void CVmValidateConfig::CheckHardDisk()
 			}
 		}
 
-		if (!IsSerialNumberValid(pHardDisk->getSerialNumber()))
+		if (!Parallels::IsSerialNumberValid(pHardDisk->getSerialNumber()))
 		{
 			m_lstResults += PRL_ERR_VMCONF_HARD_DISK_SERIAL_IS_NOT_VALID;
 			m_mapParameters.insert(m_lstResults.size(), QStringList()

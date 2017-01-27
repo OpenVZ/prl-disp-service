@@ -142,10 +142,6 @@ public:
 									 const QString& qsSysName,
 									 const QString& qsVmUuidToSkip,
 									 bool& bHasRunningAnotherVm);
-	/**
-	* Check invalid symbols in HDD's serial number
-	*/
-	static bool IsSerialNumberValid(const QString& qsSerial);
 
 	/**
 	* Check kvm_intel is loaded with nested=Y

@@ -60,6 +60,7 @@
 #include <prlxmlmodel/HostHardwareInfo/CHwNetAdapter.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
+#include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 
 
 #include <vzctl/libvzctl.h>
@@ -1712,10 +1713,17 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 	QList<CVmHardDisk *> &lstOldHardDisks = pOldConfig->getVmHardwareList()->m_lstHardDisks;
 	foreach (CVmHardDisk *pOldHdd, lstOldHardDisks) {
 		CVmHardDisk *pHdd = findDiskInList(pOldHdd, lstNewHardDisks);
-		if (pHdd != NULL &&
-			(pHdd->getMountPoint() != pOldHdd->getMountPoint() ||
+		if (pHdd == NULL)
+			continue;
+		
+
+		if (pHdd->getSerialNumber() != pOldHdd->getSerialNumber() &&
+		    !Parallels::IsSerialNumberValid(pHdd->getSerialNumber()))
+			return PRL_ERR_VMCONF_HARD_DISK_SERIAL_IS_NOT_VALID;
+
+		if (pHdd->getMountPoint() != pOldHdd->getMountPoint() ||
 				pHdd->isAutoCompressEnabled() != pOldHdd->isAutoCompressEnabled() ||
-				pHdd->getUserFriendlyName() != pOldHdd->getUserFriendlyName()))
+				pHdd->getUserFriendlyName() != pOldHdd->getUserFriendlyName())
 		{
 			struct vzctl_disk_param param = vzctl_disk_param();
 
