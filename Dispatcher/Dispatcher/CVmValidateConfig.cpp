@@ -56,7 +56,6 @@
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
 #include "Tasks/Task_ManagePrlNetService.h"
-#include "StringUtils.h"
 #include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
 #include "Interfaces/Config.h"
 #include <prlcommon/Interfaces/ApiDevNums.h>
