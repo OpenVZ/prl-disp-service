@@ -254,17 +254,7 @@ PRL_RESULT Task_AuthUserWithGuestSecurityDb::ConcreteDoBackgroundJob()
 
 		// Get VM auth utility execution path
 		QString strVmAuthExecutableDir = UTF8_2QSTR(getenv(PVS_VM_EXECUTABLE_ENV));
-		QString vmAuthProcName;
-
-		// If environment variable PVS_VM_EXECUTABLE_ENV is not set,
-		// we set full VM auth utility path as: [current executable dir] + [VM_AUTH_EXECUTABLE]
-		if (strVmAuthExecutableDir.isEmpty())
-		{
-			strVmAuthExecutableDir = (QCoreApplication::instance())->applicationDirPath();
-			vmAuthProcName = strVmAuthExecutableDir + VM_AUTH_EXECUTABLE;
-		}
-		else
-			vmAuthProcName = ( strVmAuthExecutableDir + VM_AUTH_EXECUTABLE );
+		QString vmAuthProcName = "/usr/sbin/vmauth";
 
 		QProcess _vm_auth_proc;
 		_vm_auth_proc.start(vmAuthProcName, lstArgs);
