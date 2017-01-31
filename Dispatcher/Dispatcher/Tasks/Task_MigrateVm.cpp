@@ -1318,7 +1318,7 @@ void Task_MigrateVmSource::cancelOperation(SmartPtr<CDspClient> pUser, const Sma
 	SmartPtr<IOPackage> p;
 	WRITE_TRACE(DBG_FATAL, "%s", __FUNCTION__);
 
-	if (!p.isValid()) {
+	if (!pkg.isValid()) {
 		// CDspTaskManager destructor call cancelOperation() for task with dummy package
 		CProtoCommandPtr pCmd = CProtoSerializer::CreateProtoBasicVmCommand(
 					PVE::DspCmdVmMigrateCancel, m_sVmUuid);
