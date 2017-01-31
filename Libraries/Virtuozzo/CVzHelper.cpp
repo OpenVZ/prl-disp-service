@@ -578,7 +578,7 @@ int CVzHelper::get_env_status_by_ctid(const QString &ctid, VIRTUAL_MACHINE_STATE
 	}
 
 	if (status.mask & ENV_STATUS_RUNNING)
-		nState = VMS_RUNNING;
+		nState = status.mask & ENV_STATUS_CPT_SUSPENDED ? VMS_PAUSED : VMS_RUNNING;
 	else if (status.mask & ENV_STATUS_SUSPENDED)
 		nState = VMS_SUSPENDED;
 	else if (status.mask & ENV_STATUS_MOUNTED)
@@ -2591,6 +2591,20 @@ int CVzOperationHelper::set_disk_encryption(const QString& uuid_,
 		args += "--reencrypt";
 	if (!(flags_ & PCEF_DONT_SHRED_PLAIN_DATA))
 		args += "--wipe";
+
+	return run_prg(BIN_VZCTL, args);
+}
+
+int CVzOperationHelper::pause_env(const QString &uuid)
+{
+	QStringList args;
+
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	args += "pause";
+	args += ctid;
 
 	return run_prg(BIN_VZCTL, args);
 }
