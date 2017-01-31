@@ -204,6 +204,7 @@ PRL_RESULT CDspVzHelper::check_env_state(PRL_UINT32 nCmd, const QString &sUuid, 
 
         switch (nCmd) {
         case PVE::DspCmdVmStop:
+	case PVE::DspCmdVmPause:
                 if (nState == VMS_RUNNING)
                         return PRL_ERR_SUCCESS;
 				res = PRL_ERR_DISP_VM_IS_NOT_STARTED;
@@ -856,6 +857,7 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 		case PVE::DspCmdVmGetProblemReport:
 		case PVE::DspCmdVmCommitEncryption:
 		case PVE::DspCmdCtReinstall:
+		case PVE::DspCmdVmPause:
 			m_service->getTaskManager().schedule(new Task_VzManager( pUserSession, p));
 			break;
 		case PVE::DspCmdVmGuestRunProgram:
@@ -948,7 +950,6 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 			m_service->getTaskManager().schedule(new Task_VzManager( pUserSession, p));
 			break;
 		case PVE::DspCmdVmReset:
-		case PVE::DspCmdVmPause:
 		case PVE::DspCmdVmSetConfig:
 		case PVE::DspCmdDirLockVm:
 		case PVE::DspCmdDirUnlockVm:
