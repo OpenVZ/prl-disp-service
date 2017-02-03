@@ -236,6 +236,7 @@ PRL_RESULT Task_VzManager::create_env()
 	if (PRL_FAILED(res))
 		return res;
 
+	CDspService::instance()->getVmDirHelper().resetAdvancedParamsFromVmConfig(pConfig);
 	res = get_op_helper()->create_env(sPath, pConfig, pCmd->GetCommandFlags());
 	if (PRL_SUCCEEDED(res)) {
 		res = getVzHelper()->insertVmDirectoryItem(pConfig);
@@ -653,6 +654,7 @@ PRL_RESULT Task_VzManager::editConfig()
 
 	// reset IP addresses for CT templates
 	Task_EditVm::resetNetworkAddressesFromVmConfig(pConfig, pOldConfig);
+	CDspService::instance()->getVmDirHelper().resetAdvancedParamsFromVmConfig(pConfig);
 
 	// update High Availability Cluster resource
 	if (pConfig->getVmSettings()->getHighAvailability()->toString() !=
