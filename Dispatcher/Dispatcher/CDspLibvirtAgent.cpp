@@ -526,7 +526,7 @@ Editor Unit::getRuntime() const
 
 Editor Unit::getEditor() const
 {
-	return Editor(m_domain);
+	return Editor(m_domain, VIR_DOMAIN_AFFECT_CONFIG);
 }
 
 Result Unit::setMemoryStatsPeriod(qint64 seconds_)
@@ -713,6 +713,13 @@ Unit::getInterface(const CVmGenericNetworkAdapter& iface_) const
 bool Unit::getValue(const QString& name_, quint64& dst_) const
 {
 	return 1 == virTypedParamsGetULLong(m_record->params, m_record->nparams, qPrintable(name_), &dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+
+List::List(virDomainStatsRecordPtr* records_): m_data(records_, &virDomainStatsRecordListFree)
+{
 }
 
 } // namespace Performance

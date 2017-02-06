@@ -42,6 +42,9 @@
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/Std/noncopyable.h>
 #include <boost/ptr_container/ptr_map.hpp>
+#include <libvirt/libvirt.h>
+#include <libvirt/virterror.h>
+#include <libvirt/libvirt-qemu.h>
 
 namespace Libvirt
 {

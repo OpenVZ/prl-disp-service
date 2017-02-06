@@ -36,6 +36,7 @@
 #include "CDspLibvirtExec.h"
 #include "CDspVmGuest.h"
 #include "CDspVmNetworkHelper.h"
+#include <libvirt/virterror.h>
 
 namespace Vm {
 

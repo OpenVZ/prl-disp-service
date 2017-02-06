@@ -36,11 +36,8 @@
 #include <utility>
 #include <QWeakPointer>
 #include <prlsdk/PrlTypes.h>
-#include <libvirt/libvirt.h>
 #include <boost/optional.hpp>
 #include <boost/function.hpp>
-#include <libvirt/virterror.h>
-#include <libvirt/libvirt-qemu.h>
 #include <boost/thread/future.hpp>
 #include <prlxmlmodel/VtInfo/VtInfo.h>
 #include <prlcommon/Logging/Logging.h>
@@ -50,6 +47,30 @@
 #include <prlxmlmodel/HostHardwareInfo/CHwNetAdapter.h>
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
+
+struct _virDomain;
+typedef struct _virDomain virDomain;
+typedef virDomain *virDomainPtr;
+
+struct _virConnect;
+typedef struct _virConnect virConnect;
+typedef virConnect *virConnectPtr;
+
+struct _virDomainSnapshot;
+typedef struct _virDomainSnapshot virDomainSnapshot;
+typedef virDomainSnapshot *virDomainSnapshotPtr;
+
+struct _virNetwork;
+typedef struct _virNetwork virNetwork;
+typedef virNetwork *virNetworkPtr;
+
+struct _virInterface;
+typedef struct _virInterface virInterface;
+typedef virInterface *virInterfacePtr;
+
+struct _virDomainStatsRecord;
+typedef struct _virDomainStatsRecord virDomainStatsRecord;
+typedef virDomainStatsRecord *virDomainStatsRecordPtr;
 
 class CSavedStateTree;
 
@@ -142,9 +163,7 @@ private:
 
 struct List: QList<Unit>
 {
-	explicit List(virDomainStatsRecordPtr* records_): m_data(records_, &virDomainStatsRecordListFree)
-	{
-	}
+	explicit List(virDomainStatsRecordPtr* records_);
 
 private:
 	QSharedPointer<virDomainStatsRecordPtr> m_data;
@@ -175,8 +194,7 @@ private:
 
 struct Editor
 {
-	explicit Editor(const QSharedPointer<virDomain>& domain_,
-			quint32 flags_ = VIR_DOMAIN_AFFECT_CONFIG)
+	explicit Editor(const QSharedPointer<virDomain>& domain_, quint32 flags_)
 		: m_domain(domain_), m_flags(flags_)
 	{
 	}
