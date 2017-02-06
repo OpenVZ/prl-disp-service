@@ -604,6 +604,8 @@ PRL_RESULT CDspVmSnapshotStoreHelper::sendSnapshotsTree(SmartPtr<CDspClient> pUs
 	{
 		WRITE_TRACE(DBG_FATAL, "Unable to load snapshot tree for vm %s",
 			QSTR2UTF8(cmd->GetVmUuid()));
+		pUser->sendResponseError(e.error().convertToEvent(), pkg);
+		return e.error().code();
 	}
 
 	View v(config);
