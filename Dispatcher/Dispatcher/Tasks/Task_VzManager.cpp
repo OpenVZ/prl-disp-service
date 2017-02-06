@@ -250,7 +250,7 @@ PRL_RESULT Task_VzManager::create_env()
 
 	if (PRL_SUCCEEDED(res)) {
 		getResponseCmd()->SetVmConfig(pConfig->toString());
-		sendEvent(PET_DSP_EVT_VM_ADDED, vm_uuid);
+		sendEvent(PET_DSP_EVT_VM_CREATED, vm_uuid);
 	}
 
 	return res;
@@ -323,6 +323,8 @@ PRL_RESULT Task_VzManager::pause_env()
 	res = get_op_helper()->pause_env(sUuid);
 	if (PRL_FAILED(res))
 		return res;
+
+	sendEvent(PET_DSP_EVT_VM_PAUSED, sUuid);
 
 	return PRL_ERR_SUCCESS;
 }
@@ -515,6 +517,8 @@ PRL_RESULT Task_VzManager::delete_env()
 			if (PRL_FAILED(ret) && ret != PRL_ERR_ENTRY_DOES_NOT_EXIST)
 				WRITE_TRACE(DBG_FATAL, "Can't delete Container %s from VmDirectory by error: %s",
 						QSTR2UTF8(vm_uuid), PRL_RESULT_TO_STRING(ret) );
+
+			sendEvent(PET_DSP_EVT_VM_DELETED, sUuid);
 		}
 
 		// delete temporary registration
@@ -795,6 +799,7 @@ PRL_RESULT Task_VzManager::register_env()
 		if (PRL_FAILED(res))
 			get_op_helper()->unregister_env(
 					pConfig->getVmIdentification()->getVmUuid(), 0);
+		sendEvent(PET_DSP_EVT_VM_ADDED, sUuid);
 	}
 	// delete temporary registration
 	CDspService::instance()->getVmDirManager()
@@ -842,6 +847,7 @@ PRL_RESULT Task_VzManager::unregister_env()
 			if (PRL_FAILED(ret) && ret != PRL_ERR_ENTRY_DOES_NOT_EXIST)
 				WRITE_TRACE(DBG_FATAL, "Can't delete Container %s from VmDirectory by error: %s",
 						QSTR2UTF8(uuid), PRL_RESULT_TO_STRING(ret) );
+			sendEvent(PET_DSP_EVT_VM_DELETED, uuid);
 		}
 		// delete temporary registration
 		CDspService::instance()->getVmDirManager()
