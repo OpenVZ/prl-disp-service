@@ -445,6 +445,8 @@ PRL_RESULT Task_VzManager::suspend_env()
 		return res;
 
 	res = get_op_helper()->suspend_env(sUuid);
+	if (PRL_SUCCEEDED(res))
+		sendEvent(PET_DSP_EVT_VM_SUSPENDED, sUuid);
 
 	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
 	if (pConfig.isValid())
