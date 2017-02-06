@@ -38,9 +38,12 @@
 #include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
-#include <libvirt/libvirt.h>
 #include <boost/tuple/tuple.hpp>
 #include "CDspLibvirt.h"
+
+struct _virStream;
+typedef struct _virStream virStream;
+typedef virStream *virStreamPtr;
 
 namespace Libvirt
 {
