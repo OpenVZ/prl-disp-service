@@ -294,9 +294,12 @@ PRL_RESULT Task_VzManager::start_env()
 	if (pConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
 		return PRL_ERR_CANT_TO_START_VM_TEMPLATE;
 
-	PRL_RESULT res = check_env_state(PVE::DspCmdVmStart, sUuid);
+	VIRTUAL_MACHINE_STATE nState;
+	PRL_RESULT res = CVzHelper::get_env_status(sUuid, nState);
 	if (PRL_FAILED(res))
 		return res;
+	else if (nState == VMS_RUNNING)
+		return PRL_ERR_DISP_VM_IS_NOT_STOPPED;
 
 	Backup::Device::Service(pConfig).setContext(*this).enable();
 
@@ -304,6 +307,9 @@ PRL_RESULT Task_VzManager::start_env()
 		sUuid, CDspService::instance()->getHaClusterHelper()->getStartCommandFlags(pCmd));
 	if (PRL_FAILED(res))
 		return res;
+
+	if (nState == VMS_PAUSED)
+		sendEvent(PET_DSP_EVT_VM_STARTED, sUuid);
 
 	return PRL_ERR_SUCCESS;
 }
