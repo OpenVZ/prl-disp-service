@@ -33,7 +33,6 @@ HEADERS += \
 	CDspCommon.h \
 	CVmIdent.h \
 	CDspAccessManager.h \
-	CDspBroadcastListener.h \
 	CDspClient.h \
 	CDspClientManager.h \
 	CDspDispConfigGuard.h \
@@ -161,7 +160,6 @@ HEADERS += \
 SOURCES += \
 	RoutesTable.cpp \
 	CDspAccessManager.cpp \
-	CDspBroadcastListener.cpp \
 	CDspClient.cpp \
 	CDspClientManager.cpp \
 	CDspDispConfigGuard.cpp \

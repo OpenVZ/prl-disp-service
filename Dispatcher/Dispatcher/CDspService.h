@@ -52,7 +52,6 @@
 #include "CDspVmMigrateHelper.h"
 #include "CDspVmConfigurationChangesWatcher.h"
 #include "CDspVmConfigManager.h"
-#include "CDspBroadcastListener.h"
 #include "CDspIOClientHandler.h"
 #include "CDspIOCtClientHandler.h"
 #include "CDspHaClusterHelper.h"
@@ -499,8 +498,6 @@ private:
 	QScopedPointer<CDspClientManager> m_clientManager;
 	QScopedPointer<CDspDispConnectionsManager> m_dispConnectionsManager;
 
-	/** Broadcast messages processing service */
-	SmartPtr<CDspBroadcastListener> m_pBroadcastMsgsProcessingService;
 	/** Host hardware changes monitoring thread */
 	SmartPtr<CDspHwMonitorThread> m_pHwMonitorThread;
 

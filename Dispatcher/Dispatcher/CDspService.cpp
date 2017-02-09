@@ -929,9 +929,6 @@ void CDspService::start ()
 
 #endif
 
-		//Instantiate UDP listener after files initialization in order to prevent server answers with empty data
-			m_pBroadcastMsgsProcessingService = SmartPtr<CDspBroadcastListener>(new CDspBroadcastListener);
-
 			precacheVmConfigs();
 			checkVmPermissions();
 			if ( CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->isVmConfigWatcherEnabled() )
