@@ -87,6 +87,34 @@ PRL_RESULT Status::treat()
 namespace Vcmmd
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Updater
+
+PRL_RESULT Updater::execute()
+{
+	vcmmd_ve_config c;
+
+	vcmmd_ve_config_init(&c);
+	if (m_guarantee)
+		m_setMemory(m_limit, *m_guarantee, c);
+
+	if (m_cpuMask)
+	{
+		vcmmd_ve_config_append_string(&c, VCMMD_VE_CONFIG_CPU_LIST,
+			qPrintable(*m_cpuMask));
+	}
+
+	if (m_nodeMask)
+	{
+		vcmmd_ve_config_append_string(&c, VCMMD_VE_CONFIG_NODE_LIST,
+			qPrintable(*m_nodeMask));
+	}
+
+	int r = vcmmd_update_ve(qPrintable(m_uuid), &c, 0);
+	vcmmd_ve_config_deinit(&c);
+	return Status(r).log("vcmmd_update_ve").treat();
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Api
 
 Api::Api(const QString& uuid_)
@@ -95,12 +123,12 @@ Api::Api(const QString& uuid_)
 	m_uuid = uuid.toString(PrlUuid::WithoutBrackets).data();
 }
 
-vcmmd_ve_config* Api::init(quint64 limit_, const guarantee_type& guarantee_, vcmmd_ve_config& value_)
+void Api::setMemory(quint64 limit_, const guarantee_type& guarantee_,
+		vcmmd_ve_config& value_)
 {
-	vcmmd_ve_config_init(&value_);
-	vcmmd_ve_config_append(&value_, VCMMD_VE_CONFIG_LIMIT, limit_);
+	vcmmd_ve_config_append(&value_, VCMMD_VE_CONFIG_LIMIT, limit_ << 20);
 	vcmmd_ve_config_append(&value_, VCMMD_VE_CONFIG_GUARANTEE,
-		guarantee_(limit_ >> 20) << 20);
+		guarantee_(limit_) << 20);
 	switch (guarantee_.getType())
 	{
 	case PRL_MEMGUARANTEE_AUTO:
@@ -109,8 +137,6 @@ vcmmd_ve_config* Api::init(quint64 limit_, const guarantee_type& guarantee_, vcm
 	default:
 		vcmmd_ve_config_append(&value_, VCMMD_VE_CONFIG_GUARANTEE_TYPE, VCMMD_MEMGUARANTEE_PERCENTS);
 	}
-
-	return &value_;
 }
 
 PRL_RESULT Api::init(const SmartPtr<CVmConfiguration>& config_)
@@ -122,10 +148,20 @@ PRL_RESULT Api::init(const SmartPtr<CVmConfiguration>& config_)
 	quint64 vram = config_->
 		getVmHardwareList()->getVideo()->getMemorySize();
 
-	struct vcmmd_ve_config vcmmdConfig;
-	vcmmd_ve_config_append(init(quint64(memory->getRamSize()) << 20,
-		guarantee_type(*memory), vcmmdConfig),
-		VCMMD_VE_CONFIG_VRAM, vram << 20);
+	vcmmd_ve_config vcmmdConfig;
+	vcmmd_ve_config_init(&vcmmdConfig);
+
+	setMemory(quint64(memory->getRamSize()), guarantee_type(*memory),
+			vcmmdConfig);
+	vcmmd_ve_config_append(&vcmmdConfig, VCMMD_VE_CONFIG_VRAM, vram << 20);
+
+	QString m = config_->getVmHardwareList()->getCpu()->getCpuMask();
+	if (!m.isEmpty())
+		vcmmd_ve_config_append_string(&vcmmdConfig, VCMMD_VE_CONFIG_CPU_LIST, QSTR2UTF8(m));
+
+	m = config_->getVmHardwareList()->getCpu()->getNodeMask();
+	if (!m.isEmpty())
+		vcmmd_ve_config_append_string(&vcmmdConfig, VCMMD_VE_CONFIG_NODE_LIST, QSTR2UTF8(m));
 
 	vcmmd_ve_type_t vmType = VCMMD_VE_VM;
 	switch(config_->getVmSettings()->getVmCommonOptions()->getOsType()){
@@ -153,14 +189,6 @@ PRL_RESULT Api::init(const SmartPtr<CVmConfiguration>& config_)
 	r = vcmmd_register_ve(qPrintable(m_uuid), vmType, &vcmmdConfig, 0);
 	vcmmd_ve_config_deinit(&vcmmdConfig);
 	return Status(r).log("vcmmd_register_ve").treat();
-}
-
-PRL_RESULT Api::update(quint64 limit_, const guarantee_type& guarantee_)
-{
-	vcmmd_ve_config config;
-	int r = vcmmd_update_ve(qPrintable(m_uuid), init(limit_, guarantee_, config), 0);
-	vcmmd_ve_config_deinit(&config);
-	return Status(r).log("vcmmd_update_ve").treat();
 }
 
 Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> Api::getConfig() const
@@ -208,7 +236,6 @@ void Frontend<Unregistered>::commit()
 
 namespace Config
 {
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct DAO
 
