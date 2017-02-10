@@ -143,6 +143,10 @@ public:
 							/*OUT*/QString & userId,
 							/*IN*/bool bSecure );
 
+	enum {
+		MAX_PASSWORD_LENGTH = 256,
+	};
+
 public:
 	/////////////////////////////////////
 	//

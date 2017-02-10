@@ -455,11 +455,20 @@ SmartPtr<CDspClient> CDspUserHelper::processLogin (
 	QString user = _user;
 	WRITE_TRACE(DBG_FATAL, "Login request from user [%s]", QSTR2UTF8( user ) );
 
+	SmartPtr<CDspClient> p_NewUser( new CDspClient( h, user, nFlags ) );
+	if (password.size() > MAX_PASSWORD_LENGTH) {
+		CVmEvent e;
+		e.setEventCode(PRL_ERR_INVALID_ARG);
+		e.addEventParameter(new CVmEventParameter(PVE::String, "Passwords longer than 256 characters are not allowed", EVT_PARAM_DETAIL_DESCRIPTION));
+		WRITE_TRACE(DBG_FATAL, "Can't authorize user [%s]: password exceeds maximum length", user.toUtf8().data());
+		p_NewUser->sendResponseError(e, p);
+		return SmartPtr<CDspClient>();
+	}
+
 	////////////////////////////////////////////////////////////////////////
 	// create an instance of user's object
 	////////////////////////////////////////////////////////////////////////
 
-	SmartPtr<CDspClient> p_NewUser( new CDspClient( h, user, nFlags ) );
 	p_NewUser->setPrevSessionUuid( prevSessionUuid );
 	p_NewUser->setNonInteractive(nFlags & PACF_NON_INTERACTIVE_MODE);
 
