@@ -39,6 +39,7 @@
 #include "CDspVmConfigManager.h"
 #include <prlsdk/PrlErrors.h>
 #include <prlxmlmodel/VcmmdConfig/CVcmmdConfig.h>
+#include <boost/optional.hpp>
 
 /*
  * This is a helper class to interact with vcmmd daemon.
@@ -63,25 +64,68 @@
 
 namespace Vcmmd
 {
+
+typedef ::Vm::Config::MemGuarantee guarantee_type;
+typedef boost::function<void (quint64, const guarantee_type&,
+				vcmmd_ve_config&)> setMemory_type;
+
+///////////////////////////////////////////////////////////////////////////////
+//struct Updater
+
+struct Updater
+{
+	explicit Updater(const QString& uuid, setMemory_type setMemory_) :
+			m_uuid(uuid), m_setMemory(setMemory_), m_limit(0)
+	{
+	}
+
+	void setRamSize(quint64 limit_, const guarantee_type& guarantee_)
+	{
+		m_limit = limit_;
+		m_guarantee = guarantee_;
+	}
+
+	void setCpuMask(const QString& mask_)
+	{
+		m_cpuMask = mask_;
+	}
+
+	void setNodeMask(const QString& mask_)
+	{
+		m_nodeMask = mask_;
+	}
+
+	PRL_RESULT execute();
+
+private:
+	QString m_uuid;
+	setMemory_type m_setMemory;
+	quint64 m_limit;
+	boost::optional<guarantee_type> m_guarantee;
+	boost::optional<QString> m_cpuMask;
+	boost::optional<QString> m_nodeMask;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Api
 
 struct Api
 {
-	typedef ::Vm::Config::MemGuarantee guarantee_type;
-
 	explicit Api(const QString& uuid_);
 
 	PRL_RESULT init(const SmartPtr<CVmConfiguration>& config_);
-	PRL_RESULT update(quint64 limit_, const guarantee_type& guarantee_);
 	Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> getConfig() const;
 	void deinit();
 	void activate();
 	void deactivate();
+	Updater update()
+	{
+		return Updater(m_uuid, &Vcmmd::Api::setMemory);
+	}
 
 private:
-	static vcmmd_ve_config* init(quint64 limit_, const guarantee_type& guarantee_,
-		vcmmd_ve_config& value_);
+	static void setMemory(quint64 limit_, const guarantee_type& guarantee_,
+			vcmmd_ve_config& value_);
 
 	QString m_uuid;
 };
