@@ -32,6 +32,7 @@
 //#define LOGGING_ON
 //#define FORCE_LOGGING_LEVEL DBG_DEBUG
 
+#include "CDspVmBrand.h"
 #include "Interfaces/Debug.h"
 #include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
@@ -403,9 +404,14 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 
 	if ( m_nMigrationFlags & PVMT_CLONE_MODE )
 	{
-		SmartPtr<CVmConfiguration> pNewConfig = SmartPtr<CVmConfiguration>( new CVmConfiguration );
+		SmartPtr<CVmConfiguration> pNewConfig;
+		::Vm::Private::Brand b(pConfig->getVmIdentification()->getHomePath(), getClient());
+		if (PRL_FAILED(nRetCode = b.stamp()))
+			goto exit;
+
+		pNewConfig = SmartPtr<CVmConfiguration>( new CVmConfiguration );
 		pNewConfig->fromString(pConfig->toString());
-		if (PRL_FAILED(pNewConfig->m_uiRcInit)) {
+		if (PRL_FAILED(nRetCode = pNewConfig->m_uiRcInit)) {
 			WRITE_TRACE(DBG_FATAL, "CT config copy error");
 			goto exit;
 		}

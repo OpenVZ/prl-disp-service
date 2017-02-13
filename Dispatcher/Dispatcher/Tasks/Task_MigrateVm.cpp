@@ -32,6 +32,7 @@
 //#define LOGGING_ON
 //#define FORCE_LOGGING_LEVEL DBG_DEBUG
 
+#include "CDspVmBrand.h"
 #include "Interfaces/Debug.h"
 #include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
@@ -1341,6 +1342,10 @@ PRL_RESULT Task_MigrateVmSource::migrateStoppedVm()
 		/* get full directories and files lists for migration */
 		if (PRL_FAILED(nRetCode = CVmMigrateHelper::GetEntryListsVmHome(m_sVmHomePath, m_dList, m_fList)))
 			return nRetCode;
+
+		::Vm::Private::Brand b(m_sVmHomePath, getClient());
+		m_fList << b.getFiles();
+		m_dList << b.getFolders();
 	}
 
 	if ((m_nPrevVmState != VMS_RUNNING) && (m_nPrevVmState != VMS_PAUSED))

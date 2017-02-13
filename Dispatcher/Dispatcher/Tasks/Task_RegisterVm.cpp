@@ -44,6 +44,7 @@
 #ifdef _LIBVIRT_
 #include "CDspLibvirt.h"
 #endif // _LIBVIRT_
+#include "CDspVmBrand.h"
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "CDspClientManager.h"
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
@@ -1149,17 +1150,9 @@ PRL_RESULT Task_RegisterVm::run_body()
 				}
 				else
 				{
-					getLastError()->setEventCode( PRL_ERR_VM_CONFIG_DOESNT_EXIST );
-					getLastError()->addEventParameter(
-						new CVmEventParameter( PVE::String,
-						m_pVmConfig->getVmIdentification()->getVmName(),
-	                    EVT_PARAM_MESSAGE_PARAM_0 ) );
-					getLastError()->addEventParameter(
-						new CVmEventParameter( PVE::String,
-						strVmHomePath,
-	                    EVT_PARAM_MESSAGE_PARAM_1 ) );
-
-					throw PRL_ERR_VM_CONFIG_DOESNT_EXIST;
+					throw CDspTaskFailure(*this)
+						.setCode(PRL_ERR_VM_CONFIG_DOESNT_EXIST)
+						(m_pVmConfig->getVmIdentification()->getVmName(), strVmHomePath);
 				}
 			}
 		}
@@ -1167,23 +1160,18 @@ PRL_RESULT Task_RegisterVm::run_body()
 		{
 			if ( flgPathExist )
 			{
-				getLastError()->setEventCode(PRL_ERR_VM_CONFIG_ALREADY_EXISTS);
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, m_pVmInfo->vmXmlPath,
-                                EVT_PARAM_RETURN_PARAM_TOKEN));
-				throw PRL_ERR_VM_DIR_CONFIG_ALREADY_EXISTS;
+				throw CDspTaskFailure(*this)
+					.setToken(m_pVmInfo->vmXmlPath)(PRL_ERR_VM_CONFIG_ALREADY_EXISTS);
 			}
 
 			// Check directory
 			if (!CFileHelper::DirectoryExists(strVmHomeDir, &getClient()->getAuthHelper()))
 			{
-				if (!CFileHelper::WriteDirectory(strVmHomeDir, &getClient()->getAuthHelper()))
+				if (!CFileHelper::WriteDirectory(strVmHomeDir, &getClient()->getAuthHelper())
+					|| PRL_FAILED(Vm::Private::Brand(strVmHomeDir, getClient()).stamp()))
 				{
-					getLastError()->setEventCode(PRL_ERR_USER_NO_AUTH_TO_CREATE_VM_IN_DIR);
-					getLastError()->addEventParameter(
-						new CVmEventParameter( PVE::String, strVmHomeDir,
-                                EVT_PARAM_MESSAGE_PARAM_0));
-					throw PRL_ERR_USER_NO_AUTH_TO_CREATE_VM_IN_DIR;
+					throw CDspTaskFailure(*this)
+						(PRL_ERR_USER_NO_AUTH_TO_CREATE_VM_IN_DIR, strVmHomeDir);
 				}
 				else
 					m_lstCreatedDirs.append( strVmHomeDir );

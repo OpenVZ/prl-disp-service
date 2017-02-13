@@ -29,6 +29,7 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
+#include "CDspVmBrand.h"
 #if defined(_LIN_)
 #include <CDspBackupDevice.h>
 #endif
@@ -1314,8 +1315,9 @@ void Ct::collect(const QDir& home_)
 		}
 		z << subtree;
 	}
-	setFiles(y);
-	setFolders(z);
+	::Vm::Private::Brand b(home_.absolutePath(), NULL);
+	setFiles(y << b.getFiles());
+	setFolders(z << b.getFolders());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1381,8 +1383,9 @@ void Vm::collect(const QDir& home_)
 			x << qMakePair(t, QString("%1/%2").arg(s.fileName()).arg(t.fileName()));
 		}
 	}
-	setFiles(x);
-	setFolders(y);
+	::Vm::Private::Brand b(home_.absolutePath(), NULL);
+	setFiles(x << b.getFiles());
+	setFolders(y << b.getFolders());
 }
 
 } // namespace Escort

@@ -27,6 +27,7 @@
 ///
 /////////////////////////////////////////////////////////////////////////////////
 
+#include "CDspVmBrand.h"
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "Libraries/PrlCommonUtils/CFirewallHelper.h"
@@ -239,7 +240,11 @@ PRL_RESULT Task_VzManager::create_env()
 	CDspService::instance()->getVmDirHelper().resetAdvancedParamsFromVmConfig(pConfig);
 	res = get_op_helper()->create_env(sPath, pConfig, pCmd->GetCommandFlags());
 	if (PRL_SUCCEEDED(res)) {
-		res = getVzHelper()->insertVmDirectoryItem(pConfig);
+		if (sPath.isEmpty())
+			sPath = pConfig->getVmIdentification()->getHomePath();
+		res = ::Vm::Private::Brand(sPath, getClient()).stamp();
+		if (PRL_SUCCEEDED(res))
+			res = getVzHelper()->insertVmDirectoryItem(pConfig);
 		if (PRL_FAILED(res))
 			get_op_helper()->delete_env(
 					pConfig->getVmIdentification()->getVmUuid());
@@ -946,7 +951,13 @@ PRL_RESULT Task_VzManager::clone_env()
 
 	res = get_op_helper()->clone_env(pConfig, sNewHome, sNewName, nFlags, pNewConfig);
 	if (PRL_SUCCEEDED(res)) {
-		res = getVzHelper()->insertVmDirectoryItem(pNewConfig);
+		if (sNewHome.isEmpty())
+			sNewHome = pNewConfig->getVmIdentification()->getHomePath();
+
+		::Vm::Private::Brand b(sNewHome, getClient());
+		b.remove();
+		if (PRL_SUCCEEDED(res = b.stamp()))
+			res = getVzHelper()->insertVmDirectoryItem(pNewConfig);
 		if (PRL_FAILED(res))
 			get_op_helper()->delete_env(
 					pNewConfig->getVmIdentification()->getVmUuid());

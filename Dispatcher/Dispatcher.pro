@@ -90,6 +90,7 @@ HEADERS += \
 	CDspVzLicense.h \
 	CDspVmGuest.h \
 	CDspDBusHub.h \
+	CDspVmBrand.h \
 	\
 	EditHelpers/CMultiEditDispatcher.h \
 	EditHelpers/CMultiEditMergeHelper.h \
@@ -211,6 +212,7 @@ SOURCES += \
 	CDspVzLicense.cpp \
 	CDspVmGuest.cpp \
 	CDspDBusHub.cpp \
+	CDspVmBrand.cpp \
 	\
 	EditHelpers/CMultiEditDispatcher.cpp \
 	EditHelpers/CMultiEditMergeVmConfig.cpp \
