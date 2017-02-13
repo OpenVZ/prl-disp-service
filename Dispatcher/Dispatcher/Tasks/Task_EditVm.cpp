@@ -2734,7 +2734,7 @@ bool Reconnect::execute(CDspTaskFailure& feedback_)
 
 bool VcmmdAction::execute(CDspTaskFailure& feedback_)
 {
-	PRL_RESULT e = m_updater.execute();
+	PRL_RESULT e = m_api.update(m_patch);
 	if (PRL_FAILED(e))
 	{
 		feedback_(e);
@@ -3087,7 +3087,7 @@ Action* Vcmmd::operator()(const Request& input_) const
 	::Vcmmd::Api a(input_.getObject().first);
 	// Although vcmmd.update would succeed if we provide the same values
 	// we still want to read configuration first, to get vcmmd status
-	Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> x =
+	Prl::Expected< ::Vcmmd::Config::Vm::Model, PRL_RESULT> x =
 		a.getConfig();
 	if (x.isFailed())
 	{
@@ -3100,24 +3100,24 @@ Action* Vcmmd::operator()(const Request& input_) const
 		else
 			return new Flop(x.error());
 	}
-
-	::Vcmmd::Updater u = a.update();
-
-	quint64 l = n->getRamSize();
+	::Vcmmd::Config::Vm::Model p;
+	quint64 l = n->getRamSize(), r = x.value().getRam().get();
 	::Vm::Config::MemGuarantee g(*n);
 	// No use in updating configuration if it doesn't differ from current
-	if (std::make_pair(l << 20, g(l) << 20) != x.value())
-		u.setRamSize(l, g);
-
+	if (std::make_pair(l, g(l)) != std::make_pair(r, x.value().getGuarantee().get()(r)))
+	{
+		p.setRam(l);
+		p.setGuarantee(g);
+	}
 	if (input_.getStart().getVmHardwareList()->getCpu()->getCpuMask() !=
 			input_.getFinal().getVmHardwareList()->getCpu()->getCpuMask())
-		u.setCpuMask(input_.getFinal().getVmHardwareList()->getCpu()->getCpuMask());
+		p.setCpuMask(input_.getFinal().getVmHardwareList()->getCpu()->getCpuMask());
 
 	if (input_.getStart().getVmHardwareList()->getCpu()->getNodeMask() !=
 			input_.getFinal().getVmHardwareList()->getCpu()->getNodeMask())
-		u.setNodeMask(input_.getFinal().getVmHardwareList()->getCpu()->getNodeMask());
+		p.setNodeMask(input_.getFinal().getVmHardwareList()->getCpu()->getNodeMask());
 
-	return new VcmmdAction(u);
+	return new VcmmdAction(a, p);
 }
 
 namespace

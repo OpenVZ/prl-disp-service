@@ -132,15 +132,16 @@ private:
 
 struct VcmmdAction: Action
 {
-	explicit VcmmdAction(const Vcmmd::Updater& updater_) :
-			m_updater(updater_)
+	VcmmdAction(const Vcmmd::Api& api_, const Vcmmd::Config::Vm::Model& patch_):
+			m_api(api_), m_patch(patch_)
 	{
 	}
 
 	bool execute(CDspTaskFailure& feedback_);
 
 private:
-	Vcmmd::Updater m_updater;
+	Vcmmd::Api m_api;
+	Vcmmd::Config::Vm::Model m_patch;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
