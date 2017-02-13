@@ -35,6 +35,7 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
+#include "CDspVmBrand.h"
 #include "Task_CloneVm.h"
 #include "Task_CloneVm_p.h"
 #include "Task_CommonHeaders.h"
@@ -739,6 +740,10 @@ PRL_RESULT Private::addRoot()
 	PRL_RESULT e = addFolder(m_folder);
 	if (PRL_FAILED(e))
 		return e;
+
+	e = ::Vm::Private::Brand(m_folder, getAuth()).stamp();
+	if (PRL_FAILED(e))
+		return Failure(getTask())(PRL_ERR_MAKE_DIRECTORY, m_folder);
 
 	return PRL_ERR_SUCCESS;
 }

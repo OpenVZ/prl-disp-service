@@ -32,6 +32,7 @@
 //#define LOGGING_ON
 //#define FORCE_LOGGING_LEVEL DBG_DEBUG
 
+#include "CDspVmBrand.h"
 #include "Interfaces/Debug.h"
 #include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
@@ -1183,6 +1184,13 @@ PRL_RESULT Task_MigrateVmTarget::reactStart(const SmartPtr<IOPackage> &package)
 					"[%s] Cannot set permissions for Vm bundle \"%s\", will use default",
 					__FUNCTION__, QSTR2UTF8(m_sTargetVmHomePath));
 			}
+		}
+		if (PVMT_CLONE_MODE & getRequestFlags())
+		{
+			PRL_RESULT e = ::Vm::Private::Brand(m_sTargetVmHomePath, getClient())
+					.stamp();
+			if (PRL_FAILED(e))
+				return e;
 		}
 	}
 

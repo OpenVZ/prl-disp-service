@@ -33,7 +33,7 @@
 //#define FORCE_LOGGING_LEVEL DBG_DEBUG
 
 #include <QProcess>
-
+#include "CDspVmBrand.h"
 #include "Interfaces/Debug.h"
 #include "prlcommon/Interfaces/ParallelsQt.h"
 #include "prlcommon/Interfaces/ParallelsNamespace.h"
@@ -1326,7 +1326,14 @@ PRL_RESULT Task_RestoreVmBackupTarget::getFiles(bool bVmExist_)
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	return PRL_ERR_SUCCESS;
+	if (m_nFlags & PBT_RESTORE_TO_COPY)
+	{
+		::Vm::Private::Brand b(m_sTargetPath, getClient());
+		b.remove();
+		nRetCode = b.stamp();
+		
+	}
+	return nRetCode;
 }
 
 PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Restore::Assembly>& dst_)

@@ -264,6 +264,8 @@ public:
 class CVmFileListCopySource : public CVmFileListCopyBase
 {
 public:
+	typedef QList<QPair<QFileInfo, QString> > objectList_type;
+
 	CVmFileListCopySource(
 		CVmFileListCopySender *hSender,
 		const QString &sVmUuid,
@@ -275,11 +277,11 @@ public:
 
 	PRL_RESULT SendReqAndWaitReply(const SmartPtr<IOPackage> &package, SmartPtr<IOPackage> &reply);
 	PRL_RESULT Copy(
-		const QList<QPair<QFileInfo, QString> > &dirList,
-		const QList<QPair<QFileInfo, QString> > &fileList);
+		const objectList_type &dirList,
+		const objectList_type &fileList);
 	PRL_RESULT SendFirstRequest();
-	PRL_RESULT SendDirRequest(const QPair<QFileInfo, QString> &dPair);
-	PRL_RESULT SendFileRequest(const QPair<QFileInfo, QString> &fPair);
+	PRL_RESULT SendDirRequest(objectList_type::const_reference dPair);
+	PRL_RESULT SendFileRequest(objectList_type::const_reference fPair);
 	PRL_RESULT SendFinishRequest();
 	PRL_RESULT SetCopyObject(const SmartPtr<CVmFileListCopyObject> &pCopyObject);
 
