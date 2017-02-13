@@ -64,47 +64,102 @@
 
 namespace Vcmmd
 {
-
-typedef ::Vm::Config::MemGuarantee guarantee_type;
-typedef boost::function<void (quint64, const guarantee_type&,
-				vcmmd_ve_config&)> setMemory_type;
-
-///////////////////////////////////////////////////////////////////////////////
-//struct Updater
-
-struct Updater
+namespace Config
 {
-	explicit Updater(const QString& uuid, setMemory_type setMemory_) :
-			m_uuid(uuid), m_setMemory(setMemory_), m_limit(0)
+///////////////////////////////////////////////////////////////////////////////
+// struct DAO
+
+struct DAO
+{
+	PRL_RESULT getPersistent(CVcmmdConfig& config_) const;
+	PRL_RESULT getRuntime(CVcmmdConfig& config_) const;
+	PRL_RESULT set(const CVcmmdConfig& config_) const;
+};
+
+namespace Vm
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Model
+
+struct Model
+{
+	typedef ::Vm::Config::MemGuarantee guarantee_type;
+
+	void setRam(quint64 value_)
 	{
+		m_ram = value_;
 	}
 
-	void setRamSize(quint64 limit_, const guarantee_type& guarantee_)
+	const boost::optional<quint64>& getRam() const
 	{
-		m_limit = limit_;
-		m_guarantee = guarantee_;
+		return m_ram;
 	}
 
-	void setCpuMask(const QString& mask_)
+	void setVideoRam(quint64 value_)
 	{
-		m_cpuMask = mask_;
+		m_vram = value_;
 	}
 
-	void setNodeMask(const QString& mask_)
+	const boost::optional<quint64>& getVideoRam() const
 	{
-		m_nodeMask = mask_;
+		return m_vram;
 	}
 
-	PRL_RESULT execute();
+	void setCpuMask(const QString& value_)
+	{
+		m_cpuMask = value_;
+	}
+
+	const QString& getCpuMask() const
+	{
+		return m_cpuMask;
+	}
+
+	void setNodeMask(const QString& value_)
+	{
+		m_nodeMask = value_;
+	}
+
+	const QString& getNodeMask() const
+	{
+		return m_nodeMask;
+	}
+
+	void setGuarantee(const guarantee_type& value_)
+	{
+		m_guarantee = value_;
+	}
+
+	const boost::optional<guarantee_type>& getGuarantee() const
+	{
+		return m_guarantee;
+	}
 
 private:
-	QString m_uuid;
-	setMemory_type m_setMemory;
-	quint64 m_limit;
+	boost::optional<quint64> m_ram;
+	boost::optional<quint64> m_vram;
+	QString m_cpuMask, m_nodeMask;
 	boost::optional<guarantee_type> m_guarantee;
-	boost::optional<QString> m_cpuMask;
-	boost::optional<QString> m_nodeMask;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Marshal
+
+struct Marshal
+{
+	explicit Marshal(vcmmd_ve_config& dataStore_): m_dataStore(&dataStore_)
+	{
+	}
+
+	void load(Model& dst_);
+	void save(const Model& ve_);
+
+private:
+	vcmmd_ve_config* m_dataStore;
+};
+
+} // namespace Vm
+} // namespace Config
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Api
@@ -114,19 +169,13 @@ struct Api
 	explicit Api(const QString& uuid_);
 
 	PRL_RESULT init(const SmartPtr<CVmConfiguration>& config_);
-	Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> getConfig() const;
+	PRL_RESULT update(const Config::Vm::Model& patch_);
+	Prl::Expected<Config::Vm::Model, PRL_RESULT> getConfig() const;
 	void deinit();
 	void activate();
 	void deactivate();
-	Updater update()
-	{
-		return Updater(m_uuid, &Vcmmd::Api::setMemory);
-	}
 
 private:
-	static void setMemory(quint64 limit_, const guarantee_type& guarantee_,
-			vcmmd_ve_config& value_);
-
 	QString m_uuid;
 };
 
@@ -233,20 +282,6 @@ private:
 
 template <>
 void Frontend<Unregistered>::commit();
-
-namespace Config
-{
-///////////////////////////////////////////////////////////////////////////////
-//struct DAO
-
-struct DAO
-{
-	PRL_RESULT getPersistent(CVcmmdConfig& config_) const;
-	PRL_RESULT getRuntime(CVcmmdConfig& config_) const;
-	PRL_RESULT set(const CVcmmdConfig& config_) const;
-};
-
-} //namespace Config
 
 } // namespace Vcmmd
 
