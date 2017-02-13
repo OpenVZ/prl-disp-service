@@ -3314,6 +3314,23 @@ Vm::Action* Factory::operator()(const Request& input_) const
 		a->setNext(output);
 		output = a;
 	}
+
+	if (oldCpu->getCpuMask() != newCpu->getCpuMask())
+	{
+		Action* a(f.craftRuntime(boost::bind(&vm::Editor::setCpuMask,
+			_1, newCpu->getNumber(), newCpu->getCpuMask())));
+		a->setNext(output);
+		output = a;
+	}
+
+	if (oldCpu->getNodeMask() != newCpu->getNodeMask())
+	{
+		Action* a(f.craftRuntime(boost::bind(&vm::Editor::setNodeMask,
+			_1, newCpu->getNodeMask())));
+		a->setNext(output);
+		output = a;
+	}
+
 	return output;
 }
 
@@ -3326,7 +3343,6 @@ Vm::Action* Factory::craftLimit(const Request& input_) const
 			oldCpu->getCpuLimitValue() == newCpu->getCpuLimitValue() &&
 			oldCpu->getNumber() == newCpu->getNumber())
 		return NULL;
-
 
 	if (newCpu->getCpuLimitType() != PRL_CPULIMIT_MHZ
 			&& newCpu->getCpuLimitType() != PRL_CPULIMIT_PERCENTS)
