@@ -206,6 +206,8 @@ struct Editor
 	Result setIoPriority(quint32 ioprio_);
 	Result setCpuUnits(quint32 units_);
 	Result setCpuCount(quint32 count_);
+	Result setCpuMask(quint32 ncpus_, const QString& mask_);
+	Result setNodeMask(const QString& mask_);
 
 	template<class T>
 	Result plug(const T& device_);

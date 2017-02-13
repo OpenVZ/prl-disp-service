@@ -38,6 +38,8 @@
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 
+#include <vzctl/libvzctl.h>
+
 Q_GLOBAL_STATIC(QMutex, getBoostJsonLock);
 
 namespace Libvirt
@@ -1695,6 +1697,36 @@ Result Editor::setCpuUnits(quint32 units_)
 Result Editor::setCpuCount(quint32 units_)
 {
 	return do_(m_domain.data(), boost::bind(&virDomainSetVcpus, _1, units_));
+}
+
+Result Editor::setCpuMask(quint32 ncpus_, const QString& mask_)
+{
+	unsigned long cpumap[64];
+
+	if (vzctl2_bitmap_parse(qPrintable(mask_), cpumap, sizeof(cpumap)))
+		return Failure(PRL_ERR_SET_CPUMASK);
+
+	for (unsigned n = 0; n < ncpus_; ++n)
+	{
+		if (do_(m_domain.data(),
+				boost::bind(&virDomainPinVcpuFlags,
+					_1, n, (unsigned char*)cpumap, sizeof(cpumap),
+					VIR_DOMAIN_VCPU_LIVE)).isFailed())
+			return Failure(PRL_ERR_SET_CPUMASK);
+	}
+
+	return Result();
+}
+
+Result Editor::setNodeMask(const QString& mask_)
+{
+	Libvirt::Instrument::Agent::Parameters::Builder param;
+
+	param.add(VIR_DOMAIN_NUMA_NODESET, mask_);
+	Parameters::Result_type p = param.extract();
+
+	return do_(m_domain.data(), boost::bind(&virDomainSetNumaParameters,
+			_1, p.first.data(), p.second, VIR_DOMAIN_AFFECT_LIVE));
 }
 
 template<class T>
