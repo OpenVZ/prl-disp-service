@@ -299,8 +299,7 @@ result_type Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	CVmStartupBios* b = cfg->getVmSettings()->getVmStartupOptions()->getBios();
 	if (b->isEfiEnabled())
 	{
-		b->setNVRAM(QDir(QFileInfo(cfg->getVmIdentification()->getHomePath()).absolutePath())
-			.absoluteFilePath(PRL_VM_NVRAM_FILE_NAME));
+		b->setNVRAM(PRL_VM_NVRAM_FILE_NAME);
 	}
 	else
 		b->setNVRAM(QString());
