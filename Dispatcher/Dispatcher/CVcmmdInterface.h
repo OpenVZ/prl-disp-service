@@ -39,6 +39,7 @@
 #include "CDspVmConfigManager.h"
 #include <prlsdk/PrlErrors.h>
 #include <prlxmlmodel/VcmmdConfig/CVcmmdConfig.h>
+#include <boost/optional.hpp>
 
 /*
  * This is a helper class to interact with vcmmd daemon.
@@ -63,26 +64,118 @@
 
 namespace Vcmmd
 {
+namespace Config
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct DAO
+
+struct DAO
+{
+	PRL_RESULT getPersistent(CVcmmdConfig& config_) const;
+	PRL_RESULT getRuntime(CVcmmdConfig& config_) const;
+	PRL_RESULT set(const CVcmmdConfig& config_) const;
+};
+
+namespace Vm
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Model
+
+struct Model
+{
+	typedef ::Vm::Config::MemGuarantee guarantee_type;
+
+	void setRam(quint64 value_)
+	{
+		m_ram = value_;
+	}
+
+	const boost::optional<quint64>& getRam() const
+	{
+		return m_ram;
+	}
+
+	void setVideoRam(quint64 value_)
+	{
+		m_vram = value_;
+	}
+
+	const boost::optional<quint64>& getVideoRam() const
+	{
+		return m_vram;
+	}
+
+	void setCpuMask(const QString& value_)
+	{
+		m_cpuMask = value_;
+	}
+
+	const QString& getCpuMask() const
+	{
+		return m_cpuMask;
+	}
+
+	void setNodeMask(const QString& value_)
+	{
+		m_nodeMask = value_;
+	}
+
+	const QString& getNodeMask() const
+	{
+		return m_nodeMask;
+	}
+
+	void setGuarantee(const guarantee_type& value_)
+	{
+		m_guarantee = value_;
+	}
+
+	const boost::optional<guarantee_type>& getGuarantee() const
+	{
+		return m_guarantee;
+	}
+
+private:
+	boost::optional<quint64> m_ram;
+	boost::optional<quint64> m_vram;
+	QString m_cpuMask, m_nodeMask;
+	boost::optional<guarantee_type> m_guarantee;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Marshal
+
+struct Marshal
+{
+	explicit Marshal(vcmmd_ve_config& dataStore_): m_dataStore(&dataStore_)
+	{
+	}
+
+	void load(Model& dst_);
+	void save(const Model& ve_);
+
+private:
+	vcmmd_ve_config* m_dataStore;
+};
+
+} // namespace Vm
+} // namespace Config
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Api
 
 struct Api
 {
-	typedef ::Vm::Config::MemGuarantee guarantee_type;
-
 	explicit Api(const QString& uuid_);
 
 	PRL_RESULT init(const SmartPtr<CVmConfiguration>& config_);
-	PRL_RESULT update(quint64 limit_, const guarantee_type& guarantee_);
-	Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> getConfig() const;
+	PRL_RESULT update(const Config::Vm::Model& patch_);
+	Prl::Expected<Config::Vm::Model, PRL_RESULT> getConfig() const;
 	void deinit();
 	void activate();
 	void deactivate();
 
 private:
-	static vcmmd_ve_config* init(quint64 limit_, const guarantee_type& guarantee_,
-		vcmmd_ve_config& value_);
-
 	QString m_uuid;
 };
 
@@ -189,20 +282,6 @@ private:
 
 template <>
 void Frontend<Unregistered>::commit();
-
-namespace Config
-{
-///////////////////////////////////////////////////////////////////////////////
-//struct DAO
-
-struct DAO
-{
-	PRL_RESULT getPersistent(CVcmmdConfig& config_) const;
-	PRL_RESULT getRuntime(CVcmmdConfig& config_) const;
-	PRL_RESULT set(const CVcmmdConfig& config_) const;
-};
-
-} //namespace Config
 
 } // namespace Vcmmd
 

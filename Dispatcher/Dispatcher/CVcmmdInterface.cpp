@@ -95,38 +95,22 @@ Api::Api(const QString& uuid_)
 	m_uuid = uuid.toString(PrlUuid::WithoutBrackets).data();
 }
 
-vcmmd_ve_config* Api::init(quint64 limit_, const guarantee_type& guarantee_, vcmmd_ve_config& value_)
-{
-	vcmmd_ve_config_init(&value_);
-	vcmmd_ve_config_append(&value_, VCMMD_VE_CONFIG_LIMIT, limit_);
-	vcmmd_ve_config_append(&value_, VCMMD_VE_CONFIG_GUARANTEE,
-		guarantee_(limit_ >> 20) << 20);
-	switch (guarantee_.getType())
-	{
-	case PRL_MEMGUARANTEE_AUTO:
-		vcmmd_ve_config_append(&value_, VCMMD_VE_CONFIG_GUARANTEE_TYPE, VCMMD_MEMGUARANTEE_AUTO);
-		break;
-	default:
-		vcmmd_ve_config_append(&value_, VCMMD_VE_CONFIG_GUARANTEE_TYPE, VCMMD_MEMGUARANTEE_PERCENTS);
-	}
-
-	return &value_;
-}
-
 PRL_RESULT Api::init(const SmartPtr<CVmConfiguration>& config_)
 {
 	if (!config_.isValid())
 		return PRL_ERR_INVALID_PARAM;
 
+	Config::Vm::Model m;
+	vcmmd_ve_config vcmmdConfig;
 	CVmMemory* memory = config_->getVmHardwareList()->getMemory();
-	quint64 vram = config_->
-		getVmHardwareList()->getVideo()->getMemorySize();
+	m.setRam(quint64(memory->getRamSize()));
+	m.setVideoRam(config_->
+		getVmHardwareList()->getVideo()->getMemorySize());
+	m.setCpuMask(config_->getVmHardwareList()->getCpu()->getCpuMask());
+	m.setNodeMask(config_->getVmHardwareList()->getCpu()->getNodeMask());
+	m.setGuarantee(Config::Vm::Model::guarantee_type(*memory));
 
-	struct vcmmd_ve_config vcmmdConfig;
-	vcmmd_ve_config_append(init(quint64(memory->getRamSize()) << 20,
-		guarantee_type(*memory), vcmmdConfig),
-		VCMMD_VE_CONFIG_VRAM, vram << 20);
-
+	Config::Vm::Marshal(vcmmdConfig).save(m);
 	vcmmd_ve_type_t vmType = VCMMD_VE_VM;
 	switch(config_->getVmSettings()->getVmCommonOptions()->getOsType()){
 		case PVS_GUEST_TYPE_WINDOWS:
@@ -155,15 +139,16 @@ PRL_RESULT Api::init(const SmartPtr<CVmConfiguration>& config_)
 	return Status(r).log("vcmmd_register_ve").treat();
 }
 
-PRL_RESULT Api::update(quint64 limit_, const guarantee_type& guarantee_)
+PRL_RESULT Api::update(const Config::Vm::Model& patch_)
 {
-	vcmmd_ve_config config;
-	int r = vcmmd_update_ve(qPrintable(m_uuid), init(limit_, guarantee_, config), 0);
-	vcmmd_ve_config_deinit(&config);
+	vcmmd_ve_config c;
+	Config::Vm::Marshal(c).save(patch_);
+	int r = vcmmd_update_ve(qPrintable(m_uuid), &c, 0);
+	vcmmd_ve_config_deinit(&c);
 	return Status(r).log("vcmmd_update_ve").treat();
 }
 
-Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> Api::getConfig() const
+Prl::Expected<Config::Vm::Model, PRL_RESULT> Api::getConfig() const
 {
 	struct vcmmd_ve_config config;
 	PRL_RESULT e = Status(vcmmd_get_ve_config(qPrintable(m_uuid), &config))
@@ -171,10 +156,8 @@ Prl::Expected<std::pair<quint64, quint64>, PRL_RESULT> Api::getConfig() const
 	if (PRL_FAILED(e))
 		return e;
 
-	std::pair<quint64, quint64> output;
-	vcmmd_ve_config_extract(&config, VCMMD_VE_CONFIG_LIMIT, (uint64_t*)&output.first);
-	vcmmd_ve_config_extract(&config, VCMMD_VE_CONFIG_GUARANTEE, (uint64_t*)&output.second);
-
+	Config::Vm::Model output;
+	Config::Vm::Marshal(config).load(output);
 	vcmmd_ve_config_deinit(&config);
 	return output;
 }
@@ -208,7 +191,6 @@ void Frontend<Unregistered>::commit()
 
 namespace Config
 {
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct DAO
 
@@ -241,7 +223,87 @@ PRL_RESULT DAO::set(const CVcmmdConfig& config_) const
 	return Status(vcmmd_set_policy(QSTR2UTF8(config_.getPolicy()))).log("vcmmd_set_policy").treat();
 }
 
-} //namespace Config
+namespace Vm
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Marshal
+ 
+void Marshal::load(Model& dst_)
+{
+	uint64_t v = 0;
+	if (vcmmd_ve_config_extract(m_dataStore, VCMMD_VE_CONFIG_LIMIT, &v))
+		dst_.setRam(v >> 20);
+	if (vcmmd_ve_config_extract(m_dataStore, VCMMD_VE_CONFIG_GUARANTEE, &v) &&
+		dst_.getRam().get() && dst_.getRam().get() > 0)
+	{
+		uint64_t t = 0;
+		quint32 g = ((v >> 20) * 100 + dst_.getRam().get() - 1) / dst_.getRam().get();
+		vcmmd_ve_config_extract(m_dataStore, VCMMD_VE_CONFIG_GUARANTEE_TYPE, &t);
+		switch (t)
+		{
+		case VCMMD_MEMGUARANTEE_AUTO:
+			dst_.setGuarantee(Model::guarantee_type(g,
+				PRL_MEMGUARANTEE_AUTO));
+			break;
+		case VCMMD_MEMGUARANTEE_PERCENTS:
+			dst_.setGuarantee(Model::guarantee_type(g,
+				PRL_MEMGUARANTEE_PERCENTS));
+		}
+	}
+	if (vcmmd_ve_config_extract(m_dataStore, VCMMD_VE_CONFIG_VRAM, &v))
+		dst_.setVideoRam(v >> 20);
 
+	const char* s = NULL;
+	if (vcmmd_ve_config_extract_string(m_dataStore, VCMMD_VE_CONFIG_CPU_LIST, &s))
+		dst_.setCpuMask(s);
+	if (vcmmd_ve_config_extract_string(m_dataStore, VCMMD_VE_CONFIG_NODE_LIST, &s))
+		dst_.setNodeMask(s);
+}
+
+void Marshal::save(const Model& ve_)
+{
+	vcmmd_ve_config_init(m_dataStore);
+	if (ve_.getRam())
+	{
+		vcmmd_ve_config_append(m_dataStore, VCMMD_VE_CONFIG_LIMIT,
+			ve_.getRam().get() << 20);
+		if (ve_.getGuarantee())
+		{
+			vcmmd_ve_config_append(m_dataStore, VCMMD_VE_CONFIG_GUARANTEE,
+				ve_.getGuarantee().get()
+					(ve_.getRam().get()) << 20);
+			switch (ve_.getGuarantee().get().getType())
+			{
+			case PRL_MEMGUARANTEE_AUTO:
+				vcmmd_ve_config_append(m_dataStore,
+					VCMMD_VE_CONFIG_GUARANTEE_TYPE,
+					VCMMD_MEMGUARANTEE_AUTO);
+				break;
+			default:
+				vcmmd_ve_config_append(m_dataStore,
+					VCMMD_VE_CONFIG_GUARANTEE_TYPE,
+					VCMMD_MEMGUARANTEE_PERCENTS);
+			}
+		}
+	}
+	if (ve_.getVideoRam())
+	{
+		vcmmd_ve_config_append(m_dataStore, VCMMD_VE_CONFIG_VRAM,
+			ve_.getVideoRam().get() << 20);
+	}
+	if (!ve_.getCpuMask().isEmpty())
+	{
+		vcmmd_ve_config_append_string(m_dataStore,
+			VCMMD_VE_CONFIG_CPU_LIST, QSTR2UTF8(ve_.getCpuMask()));
+	}
+	if (!ve_.getNodeMask().isEmpty())
+	{
+		vcmmd_ve_config_append_string(m_dataStore, VCMMD_VE_CONFIG_NODE_LIST,
+			QSTR2UTF8(ve_.getNodeMask()));
+	}
+}
+
+} // namespace Vm
+} // namespace Config
 } // namespace Vcmmd
 

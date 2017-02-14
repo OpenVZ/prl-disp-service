@@ -132,20 +132,16 @@ private:
 
 struct VcmmdAction: Action
 {
-	typedef Vcmmd::Api::guarantee_type guarantee_type;
-
-	VcmmdAction(const Vcmmd::Api& vcmmd_, quint64 limit_,
-		const guarantee_type& guarantee_):
-		m_vcmmd(vcmmd_), m_limit(limit_), m_guarantee(guarantee_)
+	VcmmdAction(const Vcmmd::Api& api_, const Vcmmd::Config::Vm::Model& patch_):
+			m_api(api_), m_patch(patch_)
 	{
 	}
 
 	bool execute(CDspTaskFailure& feedback_);
 
 private:
-	Vcmmd::Api m_vcmmd;
-	quint64 m_limit;
-	guarantee_type m_guarantee;
+	Vcmmd::Api m_api;
+	Vcmmd::Config::Vm::Model m_patch;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -411,9 +407,9 @@ struct Adapter
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Memory
+// struct Vcmmd
 
-struct Memory
+struct Vcmmd
 {
 	Action* operator()(const Request& input_) const;
 };
@@ -542,7 +538,7 @@ private:
 
 typedef boost::mpl::vector<ChangeableMedia<CVmOpticalDisk>, ChangeableMedia<CVmFloppyDisk>,
 		Adapter, Hotplug<CVmSerialPort>, Hotplug<CVmHardDisk>, Hotplug<CVmGenericNetworkAdapter>,
-		Disk, Blkiotune, Network::Factory, Memory, Cpu::Factory> probeList_type;
+		Disk, Blkiotune, Network::Factory, Vcmmd, Cpu::Factory> probeList_type;
 
 struct Driver: Gear<Driver, probeList_type>
 {

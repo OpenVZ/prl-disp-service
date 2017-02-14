@@ -72,6 +72,10 @@ struct MemGuarantee
 	: m_type(memory_.getMemGuaranteeType()), m_guarantee(memory_.getMemGuarantee())
 	{
 	}
+	MemGuarantee(quint32 guarantee_, PRL_MEMGUARANTEE_TYPE type_):
+		m_type(type_), m_guarantee(guarantee_)
+	{
+	}
 
 	quint64 operator()(quint64 ramsize_) const;
 	PRL_MEMGUARANTEE_TYPE getType() const
