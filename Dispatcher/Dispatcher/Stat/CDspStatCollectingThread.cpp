@@ -1600,7 +1600,7 @@ CVmEventParameter *Flavor<Read>::getParam(const source_type& source_)
 template<>
 CVmEventParameter *Flavor<Write>::getParam(const source_type& source_)
 {
-	return Conversion::Uint64::convert(source_.read);
+	return Conversion::Uint64::convert(source_.write);
 }
 
 typedef ::Stat::Counter::Enumerable<Read, Flavor> ReadTotal;
