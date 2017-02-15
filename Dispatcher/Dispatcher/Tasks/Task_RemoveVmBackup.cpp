@@ -185,7 +185,7 @@ void Task_RemoveVmBackupSource::finalizeTask()
 
 	if (PRL_SUCCEEDED(getLastErrorCode()))
 	{
-		QString sVmDirUuid = getClient()->getVmDirectoryUuid();
+		QString sVmDirUuid = CDspVmDirHelper::getVmDirUuidByVmUuid(m_sVmUuid, getClient());
 		bool isVmExists;
 
 		SmartPtr<IOPackage> pPackage;
