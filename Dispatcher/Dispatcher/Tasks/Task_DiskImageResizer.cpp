@@ -40,7 +40,6 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/StatesUtils/StatesHelper.h"
 
-#include <prlxmlmodel/DiskImageInfo/CDiskImageInfo.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 
 
@@ -54,6 +53,54 @@ using namespace Parallels;
 #define MB2SECT(x)	((PRL_UINT64) (x) << 11)
 #define SECT2MB(x)	((x) >> 11)
 #define BYTE2MB(x)	((x) >> 20)
+
+namespace
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Info
+
+struct Info
+{
+	explicit Info(QIODevice& resizer_): m_resizer(&resizer_)
+	{
+	}
+
+	PRL_RESULT operator()(CDiskImageInfo& builder_);
+
+private:
+	QIODevice* m_resizer;
+};
+
+PRL_RESULT Info::operator()(CDiskImageInfo& builder_)
+{
+	builder_.setResizeSupported(true);
+	forever
+	{
+		QByteArray a = m_resizer->readLine(4096).trimmed();
+		if (a.isEmpty())
+			break;
+		
+		if (a.contains("Unsupported filesystem"))
+			builder_.setResizeSupported(false);
+		else if (a.contains("The last partition cannot be resized "))
+			builder_.setResizeSupported(false);
+
+		QList<QByteArray> b = a.split(':');
+		if (2 != b.size())
+			continue;
+		b[1] = b[1].trimmed();
+		b[1].truncate(b[1].indexOf('M'));
+		if (b[0].startsWith("Size"))
+			builder_.setCurrentSize(b[1].toULongLong());
+		else if (b[0].startsWith("Minimum without resizing the last partition"))
+		{}
+		else if (b[0].startsWith("Minimum"))
+			builder_.setMinSize(qMax<qlonglong>(100, b[1].toLongLong()));
+	}
+	return PRL_ERR_SUCCESS;
+}
+
+} // namespace
 
 Task_DiskImageResizer::Task_DiskImageResizer(SmartPtr<CDspClient>& user,
 				const SmartPtr<IOPackage>& p,
@@ -202,7 +249,11 @@ void Task_DiskImageResizer::finalizeTask()
 
 		CProtoCommandPtr pCmd = CProtoSerializer::CreateDspWsResponseCommand(
 				getRequestPackage(), PRL_ERR_SUCCESS);
-
+		if (m_Flags & PRIF_DISK_INFO)
+		{
+			CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>(pCmd)
+				->AddStandardParam(m_info.toString());
+		}
 		if (!(m_OpFlags & TASK_SKIP_SEND_RESPONSE))
 			getClient()->sendResponse(pCmd, getRequestPackage());
 	}
@@ -301,31 +352,29 @@ PRL_RESULT Task_DiskImageResizer::run_disk_tool()
 		lstArgs += QString("--resize_partition");
 
 	QProcess resizer_proc;
+	resizer_proc.setProcessChannelMode(QProcess::MergedChannels);
 
 	Notify(PET_DSP_EVT_DISK_RESIZE_STARTED);
 
 	resizer_proc.start(resizer_cmd, lstArgs);
 
 	PRL_RESULT ret = PRL_ERR_SUCCESS;
-	PRL_BOOL bContinue = resizer_proc.waitForStarted();
-
-	/* Progress event loop untill error arived or programm exited */
-	while (bContinue)
+	if (resizer_proc.waitForStarted())
 	{
-		if (resizer_proc.state() == QProcess::NotRunning)
-			bContinue = false;
+		/* Progress event loop untill error arived or programm exited */
+		while (resizer_proc.state() == QProcess::Running)
+		{
+			QCoreApplication::processEvents(QEventLoop::AllEvents, MAX_TIME_INTERVAL);
 
-		QCoreApplication::processEvents(QEventLoop::AllEvents, MAX_TIME_INTERVAL);
-
-		HostUtils::Sleep(MAX_TIME_INTERVAL);
+			HostUtils::Sleep(MAX_TIME_INTERVAL);
+		}
 	}
-
 	/* remove from cache */
 	if (!infoMode)
 		CDspService::instance()->getVmConfigManager().getHardDiskConfigCache().remove( m_DiskImage );
 
 	if (infoMode) {
-		ret = PRL_ERR_SUCCESS;
+		ret = Info(resizer_proc)(m_info);
 	} else if (resizer_proc.exitCode() != 0 && !operationIsCancelled()) {
 		ret = resizer_proc.exitCode();
 		CVmEvent *pEvent = getLastError();

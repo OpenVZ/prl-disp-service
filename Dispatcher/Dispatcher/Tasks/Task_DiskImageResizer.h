@@ -32,6 +32,7 @@
 #include "CDspVm.h"
 #include "CDspTaskHelper.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlxmlmodel/DiskImageInfo/CDiskImageInfo.h>
 
 enum {
 	TASK_SKIP_LOCK		= 0x1,
@@ -72,6 +73,7 @@ private:
 	QString m_DiskImage;
 	PRL_UINT32 m_NewSize;
 	PRL_UINT32 m_Flags;
+	CDiskImageInfo m_info;
 	SmartPtr<CVmConfiguration> m_pVmConfig;
 };
 
