@@ -39,7 +39,7 @@
 #include <prlcommon/Logging/LoggingConfig.h>
 
 // Maximum guest physical memory size (in megabytes)
-enum DefaultMaxValues { VM_MAX_MEM = (256 * 1024), VM_MAX_VCPU = 32 };
+enum DefaultMaxValues { VM_MAX_MEM = (4 * 1024 * 1024), VM_MAX_VCPU = 256 };
 
 /**
  * Constant used to define start address, PCI prefetchable space
