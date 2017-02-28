@@ -274,7 +274,7 @@ CVmFileListCopySenderClient::~CVmFileListCopySenderClient()
 IOSendJob::Handle CVmFileListCopySenderClient::sendPackage(const SmartPtr<IOPackage> p)
 {
 	if (m_bandwidth > 0)
-		m_throttle.set(p->fullPackageSize() * 1000 / m_bandwidth);
+		m_throttle.set(p->fullPackageSize() * 1000L / m_bandwidth);
 	return m_pIoClient->sendPackage(p);
 }
 
