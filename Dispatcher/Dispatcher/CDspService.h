@@ -77,7 +77,6 @@
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 
-#include <Libraries/Etrace/Etrace.h>
 
 Q_DECLARE_METATYPE(VIRTUAL_MACHINE_STATE)
 
@@ -95,9 +94,6 @@ class CDspVmStateSender;
 class CDspVmStateSenderThread;
 class CDspVzHelper;
 class ConnectionsStatisticsManager;
-#ifdef ETRACE
-class CEtraceStatic;
-#endif
 class CDspAsyncRequest;
 class CDspDispConnectionsManager;
 class CDspDBusHub;
@@ -258,10 +254,6 @@ public:
 	 */
 	void startNatDetection(IOSender::ConnectionMode mode);
 	void updateNatStatistics(const struct NATStatistic &stat);
-
-#ifdef ETRACE
-	CDspLockedPointer<CEtraceStatic> getEtrace();
-#endif
 
 
 public:
@@ -445,10 +437,6 @@ public:
 	bool isServerStartedCompletely() { return m_bInitWasDone; }
 
 private:
-#ifdef ETRACE
-	QMutex m_etraceMutex;
-#endif
-
 	// timer to trace current date time every day (need to investigate problems by long logs).
 	int m_nTimestampTraceTimerId;
 

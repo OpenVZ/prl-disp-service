@@ -522,9 +522,6 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 	qRegisterMetaType<SmartPtr<IOPackage> >("SmartPtr<IOPackage>");
 	qRegisterMetaType<VIRTUAL_MACHINE_STATE >("VIRTUAL_MACHINE_STATE");
 	qRegisterMetaType<SmartPtr<CDispCommonPreferences> >("SmartPtr<CDispCommonPreferences>");
-#ifdef ETRACE
-	CEtraceStatic::get_instance()->init(true);
-#endif
 
 	m_registry.reset(new Registry::Actual(*this));
 	m_shellHelper.reset(new CDspShellHelper(*m_registry));
@@ -572,9 +569,6 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 CDspService::~CDspService ()
 {
 	stop(SM_FORCE_STOP);
-#ifdef ETRACE
-	CEtraceStatic::get_instance()->deinit();
-#endif
 }
 
 void CDspService::enableConfigsCrashSafeMech()
@@ -786,13 +780,6 @@ CDspLockedPointer<CDspVmStateSender> CDspService::getVmStateSender()
 	}
 	return m_pVmStateSenderThread->getVmStateSender();
 }
-
-#ifdef ETRACE
-CDspLockedPointer<CEtraceStatic> CDspService::getEtrace()
-{
-	return CDspLockedPointer<CEtraceStatic>(&m_etraceMutex, CEtraceStatic::get_instance());
-}
-#endif
 
 void CDspService::stopListeningAnyAddr ()
 {

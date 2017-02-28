@@ -20,7 +20,6 @@ include($$LIBS_LEVEL/CpuFeatures/CpuFeatures.pri)
 
 include($$LIBS_LEVEL/PowerWatcher/PowerWatcher.pri)
 win32: include($$LIBS_LEVEL/BattWatcher/BattWatcher.pri)
-include($$LIBS_LEVEL/Etrace/Etrace.pri)
 win32 {
 	include($$LIBS_LEVEL/WinUAC/ElevatedPriveleges/ElevatedPriveleges.pri)
 	include($$LIBS_LEVEL/WinSecurityChecks/SigningValidity/SigningValidity.pri)
