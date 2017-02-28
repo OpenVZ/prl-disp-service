@@ -1,7 +1,0 @@
-TARGET = prl_etrace_util
-PROJ_PATH = $$PWD
-include(../../../../Sources/Build/qmake/build_target.pri)
-
-win32:LIBS *= ws2_32.lib
-
-include(../Etrace.pri)
