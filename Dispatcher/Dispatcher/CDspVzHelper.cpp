@@ -195,14 +195,14 @@ PRL_RESULT CDspVzHelper::fillVzDirectory(CVmDirectory *pDir)
 
 PRL_RESULT CDspVzHelper::check_env_state(PRL_UINT32 nCmd, const QString &sUuid, CVmEvent *errEvt)
 {
-        VIRTUAL_MACHINE_STATE nState;
-        PRL_RESULT res = getVzlibHelper().get_env_status(sUuid, nState);
-        if (PRL_FAILED(res))
-                return res;
+	VIRTUAL_MACHINE_STATE nState;
+	PRL_RESULT res = getVzlibHelper().get_env_status(sUuid, nState);
+	if (PRL_FAILED(res))
+		return res;
 
-        res = PRL_ERR_DISP_VM_COMMAND_CANT_BE_EXECUTED;
+	res = PRL_ERR_DISP_VM_COMMAND_CANT_BE_EXECUTED;
 
-        switch (nCmd) {
+	switch (nCmd) {
 	case PVE::DspCmdVmPause:
 		if (nState == VMS_RUNNING)
 			return PRL_ERR_SUCCESS;
@@ -213,33 +213,33 @@ PRL_RESULT CDspVzHelper::check_env_state(PRL_UINT32 nCmd, const QString &sUuid, 
 			return PRL_ERR_SUCCESS;
 		res = PRL_ERR_DISP_VM_IS_NOT_STARTED;
 		break;
-        case PVE::DspCmdVmStartEx:
-        case PVE::DspCmdVmStart:
-                if (nState != VMS_RUNNING)
-                        return PRL_ERR_SUCCESS;
-				res = PRL_ERR_DISP_VM_IS_NOT_STOPPED;
-                break;
-        case PVE::DspCmdDirUnregVm:
-        case PVE::DspCmdDirVmDelete:
-                if (nState == VMS_STOPPED || nState == VMS_SUSPENDED)
-                        return PRL_ERR_SUCCESS;
-                break;
-        case PVE::DspCmdVmSuspend:
-                if (nState == VMS_RUNNING)
-                        return PRL_ERR_SUCCESS;
-                break;
-        case PVE::DspCmdVmResume:
-                if (nState == VMS_SUSPENDED)
-                        return PRL_ERR_SUCCESS;
-                break;
+	case PVE::DspCmdVmStartEx:
+	case PVE::DspCmdVmStart:
+		if (nState != VMS_RUNNING)
+			return PRL_ERR_SUCCESS;
+		res = PRL_ERR_DISP_VM_IS_NOT_STOPPED;
+		break;
+	case PVE::DspCmdDirUnregVm:
+	case PVE::DspCmdDirVmDelete:
+		if (nState == VMS_STOPPED || nState == VMS_SUSPENDED)
+			return PRL_ERR_SUCCESS;
+		break;
+	case PVE::DspCmdVmSuspend:
+		if (nState == VMS_RUNNING)
+			return PRL_ERR_SUCCESS;
+		break;
+	case PVE::DspCmdVmResume:
+		if (nState == VMS_SUSPENDED)
+			return PRL_ERR_SUCCESS;
+		break;
 	case PVE::DspCmdVmGuestRunProgram:
 	case PVE::DspCmdVmLoginInGuest:
 		if (nState == VMS_RUNNING)
 			return PRL_ERR_SUCCESS;
 		break;
 	default:
-                return PRL_ERR_SUCCESS;
-        }
+		return PRL_ERR_SUCCESS;
+	}
 
 	if (errEvt != NULL) {
 		errEvt->setEventCode( res );
