@@ -83,7 +83,7 @@ private:
 Task_VzManager::Task_VzManager(const SmartPtr<CDspClient>& pClient,
 		 const SmartPtr<IOPackage>& p) :
 	CDspTaskHelper(pClient, p),
-	m_pResponseCmd(CProtoSerializer::CreateDspWsResponseCommand( getRequestPackage(), PRL_ERR_SUCCESS)),
+	m_pResponseCmd(CProtoSerializer::CreateDspWsResponseCommand(getRequestPackage(), PRL_ERR_SUCCESS)),
 	m_pVzOpHelper(new CVzOperationHelper(Task_VzManager::sendEvt, this))
 
 {
@@ -95,7 +95,7 @@ Task_VzManager::Task_VzManager(const SmartPtr<CDspClient>& pClient,
 		const SmartPtr<IOPackage>& p,
 		const QString &sUuid, VIRTUAL_MACHINE_STATE nState) :
 	CDspTaskHelper(pClient, p),
-	m_pResponseCmd(CProtoSerializer::CreateDspWsResponseCommand( getRequestPackage(), PRL_ERR_SUCCESS)),
+	m_pResponseCmd(CProtoSerializer::CreateDspWsResponseCommand(getRequestPackage(), PRL_ERR_SUCCESS)),
 	m_pVzOpHelper(new CVzOperationHelper())
 {
 	m_bProcessState = true;
@@ -118,7 +118,7 @@ void Task_VzManager::sendProgressEvt(PRL_EVENT_TYPE type, const QString &sUuid,
 				sStage,
 				EVT_PARAM_PROGRESS_STAGE));
 
-	SmartPtr<IOPackage> p =	DispatcherPackage::createInstance( PVE::DspVmEvent, event,
+	SmartPtr<IOPackage> p =	DispatcherPackage::createInstance(PVE::DspVmEvent, event,
 			getRequestPackage());
 
 	getClient()->sendPackage(p);
@@ -140,7 +140,7 @@ void Task_VzManager::cancelOperation(SmartPtr<CDspClient> pUserSession, const Sm
 
 CProtoCommandDspWsResponse *Task_VzManager::getResponseCmd()
 {
-	return CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>( m_pResponseCmd );
+	return CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>(m_pResponseCmd);
 }
 
 void Task_VzManager::sendEvent(PRL_EVENT_TYPE type, const QString &sUuid)
@@ -148,11 +148,11 @@ void Task_VzManager::sendEvent(PRL_EVENT_TYPE type, const QString &sUuid)
 	/**
 	 * Notify all user: vm directory changed
 	 */
-	CVmEvent event( type, sUuid, PIE_DISPATCHER );
+	CVmEvent event(type, sUuid, PIE_DISPATCHER);
 	SmartPtr<IOPackage> p =
-		DispatcherPackage::createInstance( PVE::DspVmEvent, event, getRequestPackage());
+		DispatcherPackage::createInstance(PVE::DspVmEvent, event, getRequestPackage());
 
-	CDspService::instance()->getClientManager().sendPackageToAllClients( p );
+	CDspService::instance()->getClientManager().sendPackageToAllClients(p);
 }
 
 PRL_RESULT Task_VzManager::check_env_state(PRL_UINT32 nCmd, const QString &sUuid)
@@ -166,41 +166,41 @@ PRL_RESULT Task_VzManager::checkAndLockRegisterParameters(
 	PRL_RESULT lockResult = CDspService::instance()->getVmDirManager()
 			.checkAndLockNotExistsExclusiveVmParameters(QStringList(), pVmInfo);
 
-	if (PRL_FAILED( lockResult))
+	if (PRL_FAILED(lockResult))
 	{
 		switch (lockResult)
 		{
 		case PRL_ERR_VM_ALREADY_REGISTERED_VM_UUID:
 			getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
+				new CVmEventParameter(PVE::String, pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
 			break;
 
 		case PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH:
 			getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
+				new CVmEventParameter(PVE::String, pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
 			getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, pVmInfo->vmXmlPath, EVT_PARAM_MESSAGE_PARAM_1));
+				new CVmEventParameter(PVE::String, pVmInfo->vmXmlPath, EVT_PARAM_MESSAGE_PARAM_1));
 			break;
 
 		case PRL_ERR_VM_ALREADY_REGISTERED_VM_NAME:
 			getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
+				new CVmEventParameter(PVE::String, pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
 			break;
 
 		case PRL_ERR_VM_ALREADY_REGISTERED:
 			getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
+					new CVmEventParameter(PVE::String, pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
 			break;
 
 		case PRL_ERR_VM_ALREADY_REGISTERED_UNIQUE_PARAMS:; // use default
 
 		default:
 			getLastError()->addEventParameter(
-				 new CVmEventParameter( PVE::String, pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
+				 new CVmEventParameter(PVE::String, pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
 			getLastError()->addEventParameter(
-				 new CVmEventParameter( PVE::String, pVmInfo->vmXmlPath, EVT_PARAM_RETURN_PARAM_TOKEN));
+				 new CVmEventParameter(PVE::String, pVmInfo->vmXmlPath, EVT_PARAM_RETURN_PARAM_TOKEN));
 			getLastError()->addEventParameter(
-				 new CVmEventParameter( PVE::String, pVmInfo->vmName, EVT_PARAM_RETURN_PARAM_TOKEN));
+				 new CVmEventParameter(PVE::String, pVmInfo->vmName, EVT_PARAM_RETURN_PARAM_TOKEN));
 		}
 
 		return lockResult;
@@ -211,8 +211,8 @@ PRL_RESULT Task_VzManager::checkAndLockRegisterParameters(
 
 PRL_RESULT Task_VzManager::create_env()
 {
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( getRequestPackage());
-	if ( ! cmd->IsValid() )
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
+	if (!cmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 
 	CProtoVmCreateCommand *pCmd = CProtoSerializer::CastToProtoCommand<CProtoVmCreateCommand>(cmd);
@@ -222,7 +222,7 @@ PRL_RESULT Task_VzManager::create_env()
 	pConfig->fromString(pCmd->GetVmConfig());
 
 	QString sPath = pCmd->GetVmHomePath();
-	if (!sPath.isEmpty() && !QDir::isAbsolutePath( sPath) ) {
+	if (!sPath.isEmpty() && !QDir::isAbsolutePath(sPath)) {
 		WRITE_TRACE(DBG_FATAL, "Invalid path '%s'", QSTR2UTF8(sPath));
 		return PRL_ERR_VMDIR_PATH_IS_NOT_ABSOLUTE;
 	}
@@ -231,7 +231,7 @@ PRL_RESULT Task_VzManager::create_env()
 	QString vm_name = pConfig->getVmIdentification()->getVmName();
 	QString vm_home;
 
-	CVmDirectory::TemporaryCatalogueItem vmInfo( vm_uuid, vm_home, vm_name);
+	CVmDirectory::TemporaryCatalogueItem vmInfo(vm_uuid, vm_home, vm_name);
 	// Lock
 	PRL_RESULT res = checkAndLockRegisterParameters(&vmInfo);
 	if (PRL_FAILED(res))
@@ -268,13 +268,13 @@ PRL_RESULT Task_VzManager::setupFirewall(SmartPtr<CVmConfiguration> &pConfig)
 	PRL_RESULT ret = fw.Execute();
 	if (PRL_FAILED(ret))
 	{
-		if ( ret == PRL_ERR_FIREWALL_TOOL_EXECUTED_WITH_ERROR )
+		if (ret == PRL_ERR_FIREWALL_TOOL_EXECUTED_WITH_ERROR)
 		{
-			getLastError()->setEventType( PET_DSP_EVT_ERROR_MESSAGE );
+			getLastError()->setEventType(PET_DSP_EVT_ERROR_MESSAGE);
 			getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String,
+					new CVmEventParameter(PVE::String,
 						fw.GetErrorMessage(),
-						EVT_PARAM_DETAIL_DESCRIPTION )
+						EVT_PARAM_DETAIL_DESCRIPTION)
 					);
 		}
 		return ret;
@@ -284,7 +284,7 @@ PRL_RESULT Task_VzManager::setupFirewall(SmartPtr<CVmConfiguration> &pConfig)
 
 PRL_RESULT Task_VzManager::start_env()
 {
-	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand( getRequestPackage() );
+	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!pCmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 	if (CDspService::instance()->isServerStopping())
@@ -360,7 +360,7 @@ PRL_RESULT Task_VzManager::reset_env()
 
 PRL_RESULT Task_VzManager::restart_env()
 {
-	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand( getRequestPackage() );
+	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!pCmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 	if (CDspService::instance()->isServerStopping())
@@ -384,8 +384,8 @@ PRL_RESULT Task_VzManager::restart_env()
 
 PRL_RESULT Task_VzManager::stop_env()
 {
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( getRequestPackage());
-	if ( ! cmd->IsValid() )
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
+	if (!cmd->IsValid())
 		return PRL_ERR_FAILURE;
 
 	CProtoVmCommandStop *pCmd = CProtoSerializer::CastToProtoCommand<CProtoVmCommandStop>(cmd);
@@ -410,8 +410,8 @@ PRL_RESULT Task_VzManager::stop_env()
 
 PRL_RESULT Task_VzManager::mount_env()
 {
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( getRequestPackage());
-	if ( ! cmd->IsValid() )
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
+	if (!cmd->IsValid())
 		return PRL_ERR_FAILURE;
 
 	PRL_RESULT res;
@@ -440,8 +440,8 @@ PRL_RESULT Task_VzManager::mount_env()
 
 PRL_RESULT Task_VzManager::umount_env()
 {
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( getRequestPackage());
-	if ( ! cmd->IsValid() )
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
+	if (!cmd->IsValid())
 		return PRL_ERR_FAILURE;
 
 	PRL_RESULT res;
@@ -456,7 +456,7 @@ PRL_RESULT Task_VzManager::umount_env()
 
 PRL_RESULT Task_VzManager::suspend_env()
 {
-	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand( getRequestPackage() );
+	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!pCmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 
@@ -480,7 +480,7 @@ PRL_RESULT Task_VzManager::suspend_env()
 
 PRL_RESULT Task_VzManager::resume_env()
 {
-	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand( getRequestPackage() );
+	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!pCmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 
@@ -503,7 +503,7 @@ PRL_RESULT Task_VzManager::delete_env()
 {
 	PRL_RESULT res, ret;
 
-	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand( getRequestPackage() );
+	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!pCmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 
@@ -533,7 +533,7 @@ PRL_RESULT Task_VzManager::delete_env()
 	QString vm_name = pConfig->getVmIdentification()->getVmName();
 	QString vm_home = pConfig->getVmIdentification()->getHomePath();
 
-	CVmDirectory::TemporaryCatalogueItem vmInfo( vm_uuid, vm_home, vm_name);
+	CVmDirectory::TemporaryCatalogueItem vmInfo(vm_uuid, vm_home, vm_name);
 
 	res = CDspService::instance()->getVmDirManager()
 			.lockExclusiveVmParameters(m_sVzDirUuid, &vmInfo);
@@ -547,7 +547,7 @@ PRL_RESULT Task_VzManager::delete_env()
 					.deleteVmDirectoryItem(m_sVzDirUuid, vm_uuid);
 			if (PRL_FAILED(ret) && ret != PRL_ERR_ENTRY_DOES_NOT_EXIST)
 				WRITE_TRACE(DBG_FATAL, "Can't delete Container %s from VmDirectory by error: %s",
-						QSTR2UTF8(vm_uuid), PRL_RESULT_TO_STRING(ret) );
+						QSTR2UTF8(vm_uuid), PRL_RESULT_TO_STRING(ret));
 
 			sendEvent(PET_DSP_EVT_VM_DELETED, sUuid);
 		}
@@ -571,7 +571,7 @@ PRL_RESULT Task_VzManager::changeVNCServerState(SmartPtr<CVmConfiguration> pOldC
 	tribool_type run;
 
 	// Start VNC
-	if ( oldD->getMode() != newD->getMode() ) {
+	if (oldD->getMode() != newD->getMode()) {
 		run = CVzHelper::is_env_running(sUuid);
 		if (boost::logic::indeterminate(run))
 			return PRL_ERR_OPERATION_FAILED;
@@ -587,10 +587,10 @@ PRL_RESULT Task_VzManager::changeVNCServerState(SmartPtr<CVmConfiguration> pOldC
 		}
 	}
 	// VNC config has been changed
-	else if ( newD->getMode() != PRD_DISABLED &&
+	else if (newD->getMode() != PRD_DISABLED &&
 			  (oldD->getHostName() != newD->getHostName() ||
 			   oldD->getPortNumber() != newD->getPortNumber() ||
-			   oldD->getPassword() != newD->getPassword()) ) {
+			   oldD->getPassword() != newD->getPassword())) {
 		run = CVzHelper::is_env_running(sUuid);
 		if (boost::logic::indeterminate(run))
 			return PRL_ERR_OPERATION_FAILED;
@@ -611,16 +611,16 @@ PRL_RESULT Task_VzManager::editConfig()
 {
 	PRL_RESULT res;
 
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( getRequestPackage() );
-	if ( ! cmd->IsValid() )
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
+	if (!cmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 
-	SmartPtr<CVmConfiguration> pConfig( new CVmConfiguration( cmd->GetFirstStrParam() ) );
-	if( !IS_OPERATION_SUCCEEDED( pConfig->m_uiRcInit ) )
+	SmartPtr<CVmConfiguration> pConfig(new CVmConfiguration(cmd->GetFirstStrParam()));
+	if(!IS_OPERATION_SUCCEEDED(pConfig->m_uiRcInit))
 	{
 		PRL_RESULT code = PRL_ERR_PARSE_VM_CONFIG;
 		WRITE_TRACE(DBG_FATAL, "Error occurred while modification CT configuration: %s",
-				PRL_RESULT_TO_STRING( code ) );
+				PRL_RESULT_TO_STRING(code));
 		return code;
 	}
 	QString sUuid = pConfig->getVmIdentification()->getVmUuid();
@@ -656,7 +656,7 @@ PRL_RESULT Task_VzManager::editConfig()
 		QString vm_home;
 
 		// Lock the new name in the VmDirectory
-		CVmDirectory::TemporaryCatalogueItem vmInfo( vm_uuid, vm_home, vm_name);
+		CVmDirectory::TemporaryCatalogueItem vmInfo(vm_uuid, vm_home, vm_name);
 		res = checkAndLockRegisterParameters(&vmInfo);
 		if (PRL_FAILED(res))
 			return res;
@@ -665,7 +665,7 @@ PRL_RESULT Task_VzManager::editConfig()
 		if (PRL_SUCCEEDED(res)) {
 			CDspLockedPointer< CVmDirectoryItem >
 				pVmDirItem = CDspService::instance()->getVmDirManager()
-				.getVmDirItemByUuid(m_sVzDirUuid, sUuid );
+				.getVmDirItemByUuid(m_sVzDirUuid, sUuid);
 
 			if (!pVmDirItem) {
 				WRITE_TRACE(DBG_FATAL, "Can't found VmDirItem by vmUuid = %s",
@@ -673,7 +673,7 @@ PRL_RESULT Task_VzManager::editConfig()
 			} else {
 				pVmDirItem->setVmName(name);
 				PRL_RESULT ret = CDspService::instance()->getVmDirManager().updateVmDirItem(pVmDirItem);
-				if (PRL_FAILED(ret) )
+				if (PRL_FAILED(ret))
 					WRITE_TRACE(DBG_FATAL, "Can't update Container %s VmCatalogue by error: %s",
 						QSTR2UTF8(sUuid), PRL_RESULT_TO_STRING(ret));
 			}
@@ -778,11 +778,11 @@ PRL_RESULT Task_VzManager::editConfig()
 	} while (0);
 
 ok:
-	if ( PRL_SUCCEEDED(res) ) {
+	if (PRL_SUCCEEDED(res)) {
 		SmartPtr<CVmConfiguration> pNewConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
 		QStringList lstParams(pNewConfig ?
 				pNewConfig->toString() : pConfig->toString());
-		getResponseCmd()->SetParamsList( lstParams );
+		getResponseCmd()->SetParamsList(lstParams);
 
 		sendEvent(PET_DSP_EVT_VM_CONFIG_CHANGED, sUuid);
 	}
@@ -792,8 +792,8 @@ ok:
 
 PRL_RESULT Task_VzManager::register_env()
 {
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( getRequestPackage() );
-	if ( ! cmd->IsValid() )
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
+	if (!cmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 
 	QString sPath = cmd->GetFirstStrParam();
@@ -803,7 +803,7 @@ PRL_RESULT Task_VzManager::register_env()
 		getLastError()->addEventParameter(new CVmEventParameter(
 						PVE::String,
 						sPath,
-						EVT_PARAM_MESSAGE_PARAM_0 ));
+						EVT_PARAM_MESSAGE_PARAM_0));
 		return PRL_ERR_DIRECTORY_DOES_NOT_EXIST;
 	}
 	SmartPtr<CVmConfiguration> pConfig;
@@ -817,7 +817,7 @@ PRL_RESULT Task_VzManager::register_env()
 	QString vm_home = sPath;
 
 	PRL_RESULT res;
-	CVmDirectory::TemporaryCatalogueItem vmInfo( vm_uuid, vm_home, vm_name);
+	CVmDirectory::TemporaryCatalogueItem vmInfo(vm_uuid, vm_home, vm_name);
 	// Lock
 	res = checkAndLockRegisterParameters(&vmInfo);
 	if (PRL_FAILED(res))
@@ -846,8 +846,8 @@ PRL_RESULT Task_VzManager::unregister_env()
 {
 	PRL_RESULT res, ret;
 
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( getRequestPackage() );
-	if ( ! cmd->IsValid() )
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
+	if (!cmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 
 	QString uuid = cmd->GetVmUuid();
@@ -877,7 +877,7 @@ PRL_RESULT Task_VzManager::unregister_env()
 						.deleteVmDirectoryItem(m_sVzDirUuid, uuid);
 			if (PRL_FAILED(ret) && ret != PRL_ERR_ENTRY_DOES_NOT_EXIST)
 				WRITE_TRACE(DBG_FATAL, "Can't delete Container %s from VmDirectory by error: %s",
-						QSTR2UTF8(uuid), PRL_RESULT_TO_STRING(ret) );
+						QSTR2UTF8(uuid), PRL_RESULT_TO_STRING(ret));
 			sendEvent(PET_DSP_EVT_VM_DELETED, uuid);
 		}
 		// delete temporary registration
@@ -892,7 +892,7 @@ PRL_RESULT Task_VzManager::set_env_userpasswd()
 {
 	int res;
 
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( getRequestPackage() );
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!cmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 
@@ -910,7 +910,7 @@ PRL_RESULT Task_VzManager::auth_env_user()
 {
 	int res;
 
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( getRequestPackage() );
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!cmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 
@@ -928,7 +928,7 @@ PRL_RESULT Task_VzManager::clone_env()
 {
 	PRL_RESULT res;
 
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( getRequestPackage() );
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!cmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 
@@ -1009,21 +1009,21 @@ PRL_RESULT Task_VzManager::clone_env()
 	CDspLockedPointer<CVmEvent> pParams = getTaskParameters();
 
 	pParams->addEventParameter(
-			new CVmEventParameter( PVE::String,
+			new CVmEventParameter(PVE::String,
 				pNewConfig->getVmIdentification()->getVmUuid(),
-				EVT_PARAM_DISP_TASK_CLONE_VM_UUID ) );
+				EVT_PARAM_DISP_TASK_CLONE_VM_UUID));
 	pParams->addEventParameter(
-			new CVmEventParameter( PVE::String,
+			new CVmEventParameter(PVE::String,
 				pNewConfig->getVmIdentification()->getVmName(),
-				EVT_PARAM_DISP_TASK_CLONE_NEW_VM_NAME ) );
+				EVT_PARAM_DISP_TASK_CLONE_NEW_VM_NAME));
 	pParams->addEventParameter(
-			new CVmEventParameter( PVE::String,
+			new CVmEventParameter(PVE::String,
 				pNewConfig->getVmIdentification()->getHomePath(),
-				EVT_PARAM_DISP_TASK_CLONE_NEW_VM_ROOT_DIR ) );
+				EVT_PARAM_DISP_TASK_CLONE_NEW_VM_ROOT_DIR));
 	pParams->addEventParameter(
-			new CVmEventParameter( PVE::Boolean,
+			new CVmEventParameter(PVE::Boolean,
 				QString("%1").arg(isTemplate),
-				EVT_PARAM_DISP_TASK_CLONE_AS_TEMPLATE ) );
+				EVT_PARAM_DISP_TASK_CLONE_AS_TEMPLATE));
 	return PRL_ERR_SUCCESS;
 }
 
@@ -1037,7 +1037,7 @@ static QString getFullPath(const QString &sHomePath, const QString &sPath)
 
 PRL_RESULT Task_VzManager::create_env_disk()
 {
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( getRequestPackage() );
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!cmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 
@@ -1102,7 +1102,7 @@ PRL_RESULT Task_VzManager::resize_env_disk()
 {
 	PRL_RESULT res = PRL_ERR_SUCCESS;
 
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( getRequestPackage() );
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!cmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 
@@ -1202,7 +1202,7 @@ PRL_RESULT Task_VzManager::send_snapshot_tree()
 	}
 
 	QBuffer buffer;
-	if (!buffer.open( QIODevice::WriteOnly)) {
+	if (!buffer.open(QIODevice::WriteOnly)) {
 		WRITE_TRACE(DBG_FATAL, "Can't open internal buffer");
 		return PRL_ERR_FAILURE;
 	}
@@ -1302,13 +1302,13 @@ PRL_RESULT Task_VzManager::start_vnc_server(QString sCtUuid, bool onCtStart)
 	QString vncServerApp = "prl_vzvncserver_app";
 
 	SmartPtr<CVmConfiguration> pVmConfig = getVzHelper()->getCtConfig(getClient(), sCtUuid);
-	if( !pVmConfig )
+	if(!pVmConfig)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
 	CVmRemoteDisplay *remDisplay = pVmConfig->getVmSettings()->getVmRemoteDisplay();
 
 	PRL_VM_REMOTE_DISPLAY_MODE mode = remDisplay->getMode();
-	if ( mode == PRD_DISABLED ) {
+	if (mode == PRD_DISABLED) {
 		if (onCtStart)
 			return PRL_ERR_SUCCESS;
 		WRITE_TRACE(DBG_FATAL, "VNC server for Container UUID %s is disabled", QSTR2UTF8(sCtUuid));
@@ -1332,12 +1332,12 @@ PRL_RESULT Task_VzManager::start_vnc_server(QString sCtUuid, bool onCtStart)
 		WRITE_TRACE(DBG_FATAL, "VNC server for Container UUID %s already started", QSTR2UTF8(sCtUuid));
 		return PRL_ERR_VNC_SERVER_ALREADY_STARTED;
 	}
-	if ( mode == PRD_AUTO ) {
+	if (mode == PRD_AUTO) {
 		// send event to GUI for changing the config params
-		CVmEvent event( PET_DSP_EVT_VM_CONFIG_CHANGED, sCtUuid, PIE_DISPATCHER );
+		CVmEvent event(PET_DSP_EVT_VM_CONFIG_CHANGED, sCtUuid, PIE_DISPATCHER);
 		SmartPtr<IOPackage> pkgNew =
-			DispatcherPackage::createInstance( PVE::DspVmEvent, event, getRequestPackage() );
-		CDspService::instance()->getClientManager().sendPackageToAllClients( pkgNew );
+			DispatcherPackage::createInstance(PVE::DspVmEvent, event, getRequestPackage());
+		CDspService::instance()->getClientManager().sendPackageToAllClients(pkgNew);
 	}
 	return PRL_ERR_SUCCESS;
 #else
@@ -1497,7 +1497,7 @@ PRL_RESULT Task_VzManager::run_body()
 
 	try
 	{
-		if ( PRL_FAILED( getLastErrorCode() ) )
+		if (PRL_FAILED(getLastErrorCode()))
 			throw getLastErrorCode();
 
 		if (m_bProcessState) {
@@ -1510,10 +1510,10 @@ PRL_RESULT Task_VzManager::run_body()
 	{
 		ret = code;
 		WRITE_TRACE(DBG_FATAL, "Action failed with code [%#x][%s]",
-			ret, PRL_RESULT_TO_STRING( ret ) );
+			ret, PRL_RESULT_TO_STRING(ret));
 	}
 
-	setLastErrorCode( ret );
+	setLastErrorCode(ret);
 
 	return ret;
 }
@@ -1525,7 +1525,7 @@ void Task_VzManager::finalizeTask()
 
 	PRL_RESULT res = getLastErrorCode();
 	// Send response
-	if ( PRL_FAILED( res ) ) {
+	if (PRL_FAILED(res)) {
 		if (res == PRL_ERR_VZ_OPERATION_FAILED ||
 				res == PRL_ERR_VZCTL_OPERATION_FAILED)
 		{
@@ -1537,9 +1537,9 @@ void Task_VzManager::finalizeTask()
 					QString::number(get_op_helper()->get_rc()),
 					EVT_PARAM_OP_RC));
 		}
-		getClient()->sendResponseError( getLastError(), getRequestPackage() );
+		getClient()->sendResponseError(getLastError(), getRequestPackage());
 	} else {
-		getClient()->sendResponse( m_pResponseCmd, getRequestPackage() );
+		getClient()->sendResponse(m_pResponseCmd, getRequestPackage());
 	}
 }
 
@@ -1547,7 +1547,7 @@ PRL_RESULT Task_VzManager::move_env()
 {
 	PRL_RESULT res;
 
-	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( getRequestPackage() );
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!cmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 
@@ -1570,7 +1570,7 @@ PRL_RESULT Task_VzManager::move_env()
 		return PRL_ERR_CT_NOT_FOUND;
 	}
 	QString sName = pConfig->getVmIdentification()->getVmName();
-	CVmDirectory::TemporaryCatalogueItem vmInfo( sUuid, sNewHome, sName );
+	CVmDirectory::TemporaryCatalogueItem vmInfo(sUuid, sNewHome, sName);
 
 	res = CDspService::instance()->getVmDirManager()
 			.lockExistingExclusiveVmParameters(m_sVzDirUuid, &vmInfo);
@@ -1581,19 +1581,19 @@ PRL_RESULT Task_VzManager::move_env()
 		case PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH:
 			WRITE_TRACE(DBG_FATAL, "path '%s' already registered", QSTR2UTF8(vmInfo.vmXmlPath));
 			getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, vmInfo.vmName, EVT_PARAM_MESSAGE_PARAM_0));
+				new CVmEventParameter(PVE::String, vmInfo.vmName, EVT_PARAM_MESSAGE_PARAM_0));
 			getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, vmInfo.vmXmlPath, EVT_PARAM_MESSAGE_PARAM_1));
+				new CVmEventParameter(PVE::String, vmInfo.vmXmlPath, EVT_PARAM_MESSAGE_PARAM_1));
 			break;
 		default:
 			WRITE_TRACE(DBG_FATAL, "can't register container with UUID '%s', name '%s', path '%s",
 				QSTR2UTF8(vmInfo.vmUuid), QSTR2UTF8(vmInfo.vmName), QSTR2UTF8(vmInfo.vmXmlPath));
 			getLastError()->addEventParameter(
-				 new CVmEventParameter( PVE::String, vmInfo.vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
+				 new CVmEventParameter(PVE::String, vmInfo.vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
 			getLastError()->addEventParameter(
-				 new CVmEventParameter( PVE::String, vmInfo.vmXmlPath, EVT_PARAM_RETURN_PARAM_TOKEN));
+				 new CVmEventParameter(PVE::String, vmInfo.vmXmlPath, EVT_PARAM_RETURN_PARAM_TOKEN));
 			getLastError()->addEventParameter(
-				 new CVmEventParameter( PVE::String, vmInfo.vmName, EVT_PARAM_RETURN_PARAM_TOKEN));
+				 new CVmEventParameter(PVE::String, vmInfo.vmName, EVT_PARAM_RETURN_PARAM_TOKEN));
 		}
 		return res;
 	}
@@ -1616,7 +1616,7 @@ PRL_RESULT Task_VzManager::move_env()
 	if (PRL_SUCCEEDED(res)) {
 		CDspLockedPointer< CVmDirectoryItem >
 			pVmDirItem = CDspService::instance()->getVmDirManager()
-			.getVmDirItemByUuid(m_sVzDirUuid, sUuid );
+			.getVmDirItemByUuid(m_sVzDirUuid, sUuid);
 
 		if (!pVmDirItem) {
 			WRITE_TRACE(DBG_FATAL, "Can't found VmDirItem by vmUuid = %s",
@@ -1625,7 +1625,7 @@ PRL_RESULT Task_VzManager::move_env()
 			pVmDirItem->setVmHome(pConfig->getVmIdentification()->getHomePath());
 			pVmDirItem->setCtId(pConfig->getVmIdentification()->getCtId());
 			res = CDspService::instance()->getVmDirManager().updateVmDirItem(pVmDirItem);
-			if (PRL_FAILED(res) )
+			if (PRL_FAILED(res))
 				WRITE_TRACE(DBG_FATAL, "Can't update Container %s VmCatalogue by error: %s",
 					QSTR2UTF8(sUuid), PRL_RESULT_TO_STRING(res));
 		}
@@ -1642,19 +1642,19 @@ PRL_RESULT Task_VzManager::move_env()
 	// Set some parameters in the response
 	CDspLockedPointer<CVmEvent> pParams = getTaskParameters();
 	pParams->addEventParameter(
-			new CVmEventParameter( PVE::String,
+			new CVmEventParameter(PVE::String,
 				pConfig->getVmIdentification()->getVmUuid(),
-				EVT_PARAM_DISP_TASK_VM_UUID ) );
+				EVT_PARAM_DISP_TASK_VM_UUID));
 	pParams->addEventParameter(
-			new CVmEventParameter( PVE::String,
+			new CVmEventParameter(PVE::String,
 				pConfig->getVmIdentification()->getHomePath(),
-				EVT_PARAM_DISP_TASK_MOVE_NEW_HOME_PATH) );
+				EVT_PARAM_DISP_TASK_MOVE_NEW_HOME_PATH));
 
 	// send event to GUI for changing the config params
-	CVmEvent event( PET_DSP_EVT_VM_CONFIG_CHANGED, sUuid, PIE_DISPATCHER );
+	CVmEvent event(PET_DSP_EVT_VM_CONFIG_CHANGED, sUuid, PIE_DISPATCHER);
 	SmartPtr<IOPackage> pkg =
-		DispatcherPackage::createInstance( PVE::DspVmEvent, event, getRequestPackage() );
-	CDspService::instance()->getClientManager().sendPackageToAllClients( pkg );
+		DispatcherPackage::createInstance(PVE::DspVmEvent, event, getRequestPackage());
+	CDspService::instance()->getClientManager().sendPackageToAllClients(pkg);
 	return res;
 }
 
@@ -1685,7 +1685,7 @@ PRL_RESULT Task_VzManager::send_network_settings()
 
 PRL_RESULT Task_VzManager::send_problem_report()
 {
-	CDspProblemReportHelper::getProblemReport( getClient(), getRequestPackage() );
+	CDspProblemReportHelper::getProblemReport(getClient(), getRequestPackage());
 	return PRL_ERR_SUCCESS;
 }
 
