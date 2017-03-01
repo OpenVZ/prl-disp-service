@@ -203,12 +203,16 @@ PRL_RESULT CDspVzHelper::check_env_state(PRL_UINT32 nCmd, const QString &sUuid, 
         res = PRL_ERR_DISP_VM_COMMAND_CANT_BE_EXECUTED;
 
         switch (nCmd) {
-        case PVE::DspCmdVmStop:
 	case PVE::DspCmdVmPause:
-                if (nState == VMS_RUNNING)
-                        return PRL_ERR_SUCCESS;
-				res = PRL_ERR_DISP_VM_IS_NOT_STARTED;
-                break;
+		if (nState == VMS_RUNNING)
+			return PRL_ERR_SUCCESS;
+		res = PRL_ERR_DISP_VM_IS_NOT_STARTED;
+		break;
+	case PVE::DspCmdVmStop:
+		if (nState == VMS_RUNNING || nState == VMS_PAUSED)
+			return PRL_ERR_SUCCESS;
+		res = PRL_ERR_DISP_VM_IS_NOT_STARTED;
+		break;
         case PVE::DspCmdVmStartEx:
         case PVE::DspCmdVmStart:
                 if (nState != VMS_RUNNING)
@@ -858,6 +862,7 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 		case PVE::DspCmdVmCommitEncryption:
 		case PVE::DspCmdCtReinstall:
 		case PVE::DspCmdVmPause:
+		case PVE::DspCmdVmReset:
 			m_service->getTaskManager().schedule(new Task_VzManager( pUserSession, p));
 			break;
 		case PVE::DspCmdVmGuestRunProgram:
@@ -949,7 +954,6 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 		case PVE::DspCmdVmGuestGetNetworkSettings:
 			m_service->getTaskManager().schedule(new Task_VzManager( pUserSession, p));
 			break;
-		case PVE::DspCmdVmReset:
 		case PVE::DspCmdVmSetConfig:
 		case PVE::DspCmdDirLockVm:
 		case PVE::DspCmdDirUnlockVm:
