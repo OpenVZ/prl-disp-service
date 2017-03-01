@@ -60,6 +60,7 @@ private:
 	PRL_RESULT setupFirewall(SmartPtr<CVmConfiguration> &pConfig);
 	PRL_RESULT start_env();
 	PRL_RESULT pause_env();
+	PRL_RESULT reset_env();
 	PRL_RESULT restart_env();
 	PRL_RESULT stop_env();
 	PRL_RESULT mount_env();

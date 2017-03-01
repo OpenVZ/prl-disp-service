@@ -335,6 +335,24 @@ PRL_RESULT Task_VzManager::pause_env()
 	return PRL_ERR_SUCCESS;
 }
 
+PRL_RESULT Task_VzManager::reset_env()
+{
+	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(getRequestPackage());
+	if (!pCmd->IsValid())
+		return PRL_ERR_UNRECOGNIZED_REQUEST;
+	QString sUuid = pCmd->GetVmUuid();
+
+	PRL_RESULT res = check_env_state(PVE::DspCmdVmStop, sUuid);
+	if (PRL_FAILED(res))
+		return res;
+
+	res = get_op_helper()->stop_env(sUuid, PSM_KILL);
+	if (PRL_FAILED(res))
+		return res;
+
+	return get_op_helper()->start_env(sUuid, 0);
+}
+
 PRL_RESULT Task_VzManager::restart_env()
 {
 	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand( getRequestPackage() );
@@ -1363,6 +1381,9 @@ PRL_RESULT Task_VzManager::process_cmd()
 		break;
 	case PVE::DspCmdVmRestartGuest:
 		ret = restart_env();
+		break;
+	case PVE::DspCmdVmReset:
+		ret = reset_env();
 		break;
 	case PVE::DspCmdVmStop:
 		ret = stop_env();
