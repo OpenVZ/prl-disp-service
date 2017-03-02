@@ -1260,6 +1260,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewVm()
 		if (m_converter.get() != NULL && PRL_FAILED(nRetCode = doV2V())
 			&& nRetCode != PRL_ERR_FIXME)
 		{
+			CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(pVmInfo.getImpl());
 			unregisterVm();
 			a->revert();
 		}
@@ -1990,7 +1991,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::unregisterVm()
 	/* do not call checkAndLockNotExistsExclusiveVmParameters */
 	CDspService::instance()->getTaskManager().schedule(new Task_DeleteVm(
 		client, pPackage, m_pVmConfig->toString(),
-		PVD_UNREGISTER_ONLY)).wait().getResult(&evt);
+		PVD_UNREGISTER_ONLY | PVD_SKIP_VM_OPERATION_LOCK)).wait().getResult(&evt);
 
 	// wait finishing thread and return task result
 	if (PRL_FAILED(evt.getEventCode())) {
