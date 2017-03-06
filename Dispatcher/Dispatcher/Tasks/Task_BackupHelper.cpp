@@ -1485,6 +1485,8 @@ void Frontend::spin(const qemuDisk_type::Good&)
 ///////////////////////////////////////////////////////////////////////////////
 // class Task_BackupHelper
 
+Backup::Metadata::Lock Task_BackupHelper::s_metadataLock;
+
 Task_BackupHelper::Task_BackupHelper(const SmartPtr<CDspClient> &client, const SmartPtr<IOPackage> &p)
 :CDspTaskHelper(client, p),
 Task_DispToDispConnHelper(getLastError()),
@@ -1626,187 +1628,33 @@ PRL_RESULT Task_BackupHelper::connect()
 			m_nFlags);
 }
 
-/* load data from .metadata file for Vm */
-PRL_RESULT Task_BackupHelper::loadVmMetadata(const QString &sVmUuid, VmItem *pVmItem)
-{
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	QString sPath = QString("%1/%2/" PRL_BACKUP_METADATA).arg(getBackupDirectory()).arg(sVmUuid);
-
-	if (PRL_FAILED(nRetCode = pVmItem->loadFromFile(sPath))) {
-		WRITE_TRACE(DBG_FATAL,
-			"[%s] Error occurred while Vm metadata \"%s\" loading with code [%#x][%s]",
-			__FUNCTION__, QSTR2UTF8(sPath), nRetCode, PRL_RESULT_TO_STRING(nRetCode));
-	}
-	/* set vm uuid as directory name */
-	pVmItem->setUuid(sVmUuid);
-	return nRetCode;
-}
-
-PRL_RESULT Task_BackupHelper::loadVeConfig(const QString &backupUuid,
-	const QString &path, PRL_VM_BACKUP_TYPE type, SmartPtr<CVmConfiguration>& conf)
-{
-	PRL_RESULT res = PRL_ERR_SUCCESS;
-	SmartPtr<CVmConfiguration> c;
-	if (type == PVBT_VM) {
-		QFile file(QDir(path).filePath(VMDIR_DEFAULT_VM_CONFIG_FILE));
-		c = SmartPtr<CVmConfiguration>(new(std::nothrow) CVmConfiguration);
-		if (!c)
-			return PRL_ERR_OUT_OF_MEMORY;
-		if (PRL_FAILED(res = lockShared(backupUuid)))
-			return res;
-		if (PRL_FAILED(res = c->loadFromFile(&file, false))) {
-			WRITE_TRACE(DBG_FATAL, "Failed to load config file '%s'", QSTR2UTF8(file.fileName()));
-			unlockShared(backupUuid);
-			return res;
-		}
-	}
-#ifdef _CT_
-	else if (type == PVBT_CT_PLOOP || type == PVBT_CT_VZFS) {
-		QString file(QDir(path).filePath(VZ_CT_CONFIG_FILE));
-		if (PRL_FAILED(res = lockShared(backupUuid)))
-			return res;
-/*
-		c = CVzHelper::get_env_config_from_file(file, res, 0,
-			(type == PVBT_CT_PLOOP) * VZCTL_LAYOUT_5, true);
-*/
-		int x = 0;
-		c = CVzHelper::get_env_config_from_file(file, x,
-			(type == PVBT_CT_PLOOP) * VZCTL_LAYOUT_5, true);
-		if (!c) {
-			WRITE_TRACE(DBG_FATAL, "Failed to load config file '%s'", QSTR2UTF8(file));
-			unlockShared(backupUuid);
-			return PRL_FAILED(res) ? res : PRL_ERR_UNEXPECTED;
-		}
-	}
-#endif // _CT_
-	else {
-		WRITE_TRACE(DBG_FATAL, "loading VE config for backup type %d is not implemented", type);
-		res = PRL_ERR_UNEXPECTED;
-	}
-
-	if (PRL_SUCCEEDED(res))
-		conf = c;
-	unlockShared(backupUuid);
-	return res;
-}
-
-/* load data from .metadata file for base backup */
-PRL_RESULT Task_BackupHelper::loadBaseBackupMetadata(
-		const QString &sVmUuid,
-		const QString &sBackupUuid,
-		BackupItem *pBackupItem)
-{
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	QDateTime nullDateTime(QDate(1970, 1, 1));
-	QString sPath = QString("%1/%2/%3/" PRL_BASE_BACKUP_DIRECTORY "/" PRL_BACKUP_METADATA)
-		.arg(getBackupDirectory()).arg(sVmUuid).arg(sBackupUuid);
-
-	if (PRL_FAILED(nRetCode = lockShared(sBackupUuid)))
-		return nRetCode;
-
-	pBackupItem->setDateTime(nullDateTime);
-	if (PRL_FAILED(nRetCode = pBackupItem->loadFromFile(sPath))) {
-		if (QFile::exists(sPath)) {
-			WRITE_TRACE(DBG_FATAL,
-				"[%s] Error occurred while backup metadata \"%s\" loading with code [%#x][%s]",
-				__FUNCTION__, QSTR2UTF8(sPath), nRetCode, PRL_RESULT_TO_STRING(nRetCode));
-		} else {
-			WRITE_TRACE(DBG_FATAL,
-				"[%s] backup metadata file %s does not exist", __FUNCTION__, QSTR2UTF8(sPath));
-			unlockShared(sBackupUuid);
-			return PRL_ERR_BACKUP_INTERNAL_ERROR;
-		}
-	}
-	/* in any case set Vm uuid */
-	pBackupItem->setUuid(sBackupUuid);
-	pBackupItem->setId(sBackupUuid);
-	pBackupItem->setType(PRL_BACKUP_FULL_TYPE);
-
-	unlockShared(sBackupUuid);
-	return nRetCode;
-}
-
-/* load data from .metadata file for partial backup */
-PRL_RESULT Task_BackupHelper::loadPartialBackupMetadata(
-		const QString &sVmUuid,
-		const QString &sBackupUuid,
-		unsigned nBackupNumber,
-		PartialBackupItem *pPartialBackupItem)
-{
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	QDateTime nullDateTime(QDate(1970, 1, 1));
-	QString sPath = QString("%1/%2/%3/%4/" PRL_BACKUP_METADATA)
-		.arg(getBackupDirectory()).arg(sVmUuid).arg(sBackupUuid).arg(nBackupNumber);
-
-	if (PRL_FAILED(nRetCode = lockShared(sBackupUuid)))
-		return nRetCode;
-
-	pPartialBackupItem->setDateTime(nullDateTime);
-	if (PRL_FAILED(nRetCode = pPartialBackupItem->loadFromFile(sPath))) {
-		WRITE_TRACE(DBG_FATAL,
-			"[%s] Error occurred while backup metadata \"%s\" loading with code [%#x][%s]",
-			__FUNCTION__, QSTR2UTF8(sPath), nRetCode, PRL_RESULT_TO_STRING(nRetCode));
-	}
-	/* in any case set Vm uuid */
-	pPartialBackupItem->setNumber(nBackupNumber);
-	pPartialBackupItem->setId(QString("%1.%2").arg(sBackupUuid).arg(nBackupNumber));
-	pPartialBackupItem->setType(PRL_BACKUP_INCREMENTAL_TYPE);
-
-	unlockShared(sBackupUuid);
-	return nRetCode;
-}
-
-/* get full backups uuid list for vm uuid */
-void Task_BackupHelper::getBaseBackupList(
-				const QString &sVmUuid,
-				QStringList &lstBackupUuid,
-				CAuthHelper *pAuthHelper,
-				BackupCheckMode mode)
-{
-	QDir dir;
-	QFileInfoList entryList;
-	int i;
-
-	lstBackupUuid.clear();
-	dir.setPath(QString("%1/%2").arg(getBackupDirectory()).arg(sVmUuid));
-	if (!dir.exists())
-		return;
-	if (!QFile::exists(QString("%1/" PRL_BACKUP_METADATA).arg(dir.absolutePath())))
-		return;
-
-	entryList = dir.entryInfoList(QDir::NoDotAndDotDot | QDir::Dirs);
-	for (i = 0; i < entryList.size(); ++i) {
-		if (pAuthHelper) {
-			/* check client's permissions */
-			if (mode == PRL_BACKUP_CHECK_MODE_WRITE) {
-				if (!CFileHelper::FileCanWrite(entryList.at(i).absoluteFilePath(), pAuthHelper))
-					continue;
-			} else {
-				if (!CFileHelper::FileCanRead(entryList.at(i).absoluteFilePath(), pAuthHelper))
-					continue;
-			}
-		}
-		if (!Uuid::isUuid(entryList.at(i).fileName()))
-			continue;
-		lstBackupUuid.append(entryList.at(i).fileName());
-	}
-}
-
 BackupItem* Task_BackupHelper::getLastBaseBackup(const QString &sVmUuid,
 			CAuthHelper *pAuthHelper, BackupCheckMode mode)
 {
-	int i;
-	QStringList lstBackupUuid;
-	std::auto_ptr<BackupItem> a, b;
-	QDateTime lastDateTime(QDate(1970, 1, 1));
 
-	getBaseBackupList(sVmUuid, lstBackupUuid, pAuthHelper, mode);
-	for (i = 0; i < lstBackupUuid.size(); ++i) {
-		b.reset(new BackupItem);
-		loadBaseBackupMetadata(sVmUuid, lstBackupUuid.at(i), b.get());
-		if (lastDateTime <= b->getDateTime()) {
-			lastDateTime = b->getDateTime();
-			a = b;
+	QStringList lstBackupUuid;
+	std::auto_ptr<BackupItem> a;
+	QDateTime lastDateTime(QDate(1970, 1, 1));
+	Backup::Metadata::Catalog c = getCatalog(sVmUuid);
+	if (PRL_BACKUP_CHECK_MODE_WRITE == mode && pAuthHelper != NULL)
+		lstBackupUuid = c.getIndexForWrite(*pAuthHelper);
+	else
+		lstBackupUuid = c.getIndexForRead(pAuthHelper);
+
+	foreach(const QString& u, lstBackupUuid)
+	{
+		if (PRL_FAILED(getMetadataLock().grabShared(u)))
+			continue;
+		Backup::Metadata::Sequence s = c.getSequence(u);
+		Prl::Expected<BackupItem, PRL_RESULT> b =
+			s.getHeadItem(s.getIndex().first());
+		getMetadataLock().releaseShared(u);
+		if (b.isFailed())
+			continue;
+		if (lastDateTime <= b.value().getDateTime())
+		{
+			lastDateTime = b.value().getDateTime();
+			a.reset(new BackupItem(b.value()));
 		}
 	}
 	return a.release();
@@ -1815,82 +1663,57 @@ BackupItem* Task_BackupHelper::getLastBaseBackup(const QString &sVmUuid,
 PRL_RESULT Task_BackupHelper::updateLastPartialNumber(const QString &ve_,
 		const QString &uuid_, unsigned number_)
 {
-	BackupItem b;
-	QString path = QString("%1/%2/%3/" PRL_BASE_BACKUP_DIRECTORY "/" PRL_BACKUP_METADATA)
-					.arg(getBackupDirectory()).arg(ve_).arg(uuid_); 
-	PRL_RESULT e = b.loadFromFile(path);
-	if (PRL_FAILED(e))
-		return e;
-	b.setLastNumber(number_);
-	return b.saveToFile(path);
-}
+	Backup::Metadata::Sequence s = getCatalog(ve_).getSequence(uuid_);
+	quint32 h = s.getIndex().first();
+	Prl::Expected<BackupItem, PRL_RESULT> b = s.getHeadItem(h);
+	if (b.isFailed())
+		return b.error();
 
-/* get partial backups list for vm uuid and full backup uuid */
-void Task_BackupHelper::getPartialBackupList(
-				const QString &sVmUuid,
-				const QString &sBackupUuid,
-				QList<unsigned> &lstBackupNumber)
-{
-	QDir dir;
-	QFileInfoList entryList;
-	int i, j;
-	bool ok;
-	unsigned number;
-
-	lstBackupNumber.clear();
-	dir.setPath(QString("%1/%2/%3").arg(getBackupDirectory()).arg(sVmUuid).arg(sBackupUuid));
-	if (!dir.exists())
-		return;
-
-	entryList = dir.entryInfoList(QDir::NoDotAndDotDot | QDir::Dirs);
-	for (i = 0; i < entryList.size(); ++i) {
-		number = entryList.at(i).fileName().toUInt(&ok);
-		if (!ok)
-			continue;
-		if (!QFile::exists(QString("%1/" PRL_BACKUP_METADATA).arg(entryList.at(i).absoluteFilePath())))
-			continue;
-		/* ordered list */
-		for (j = 0; j < lstBackupNumber.size(); ++j)
-			if (lstBackupNumber.at(j) > number)
-				break;
-		lstBackupNumber.insert(j, number);
-	}
+	b.value().setLastNumber(number_);
+	return s.save(b.value(), h);
 }
 
 unsigned Task_BackupHelper::getNextPartialBackup(const QString &sVmUuid, const QString &sBackupUuid)
 {
-	QList<unsigned> lstBackupNumber;
-	getPartialBackupList(sVmUuid, sBackupUuid, lstBackupNumber);
-	if (lstBackupNumber.size())
-		return lstBackupNumber.last() + 1;
-	else
-		return PRL_PARTIAL_BACKUP_START_NUMBER;
+	QList<quint32> lstBackupNumber = getCatalog(sVmUuid).getSequence(sBackupUuid).getIndex();
+	if (lstBackupNumber.isEmpty())
+		return PRL_BASE_BACKUP_NUMBER;
+
+	return lstBackupNumber.last() + 1;
 }
 
 PRL_RESULT Task_BackupHelper::getBackupParams(const QString &sVmUuid, const QString &sBackupUuid,
 		unsigned nBackupNumber, quint64 &nSize, quint32 &nBundlePermissions)
 {
-	PRL_RESULT nRetCode;
+	PRL_RESULT output = getMetadataLock().grabShared(sBackupUuid);
+	if (PRL_FAILED(output))
+		return output;
 
-	if (nBackupNumber == PRL_BASE_BACKUP_NUMBER)
+	Backup::Metadata::Sequence s = getCatalog(sVmUuid).getSequence(sBackupUuid);
+	if (nBackupNumber == s.getIndex().first())
 	{
-		BackupItem bItem;
-		nRetCode = loadBaseBackupMetadata(sVmUuid, sBackupUuid, &bItem);
-		if (PRL_FAILED(nRetCode))
-			return nRetCode;
-		nSize = bItem.getOriginalSize();
-		nBundlePermissions = bItem.getBundlePermissions();
+		Prl::Expected<BackupItem, PRL_RESULT> b = s.getHeadItem(nBackupNumber);
+		if (b.isFailed())
+			output = b.error();
+		else
+		{
+			nSize = b.value().getOriginalSize();
+			nBundlePermissions = b.value().getBundlePermissions();
+		}
 	}
 	else
 	{
-		PartialBackupItem bItem;
-		nRetCode = loadPartialBackupMetadata(sVmUuid, sBackupUuid, nBackupNumber, &bItem);
-		if (PRL_FAILED(nRetCode))
-			return nRetCode;
-		nSize = bItem.getOriginalSize();
-		nBundlePermissions = bItem.getBundlePermissions();
+		Prl::Expected<PartialBackupItem, PRL_RESULT> p = s.getTailItem(nBackupNumber);
+		if (p.isFailed())
+			output = p.error();
+		else
+		{
+			nSize = p.value().getOriginalSize();
+			nBundlePermissions = p.value().getBundlePermissions();
+		}
 	}
-	return nRetCode;
+	getMetadataLock().releaseShared(sBackupUuid);
+	return output;
 }
 
 PRL_RESULT Task_BackupHelper::checkFreeDiskSpace(
@@ -1993,86 +1816,6 @@ QString Task_BackupHelper::getBackupDirectory()
 		return ParallelsDirs::getDefaultBackupDir();
 	else
 		return sBackupDirectory;
-}
-
-bool Task_BackupHelper::isBackupDirEmpty(const QString &sVmUuid, const QString &sBackupUuid)
-{
-	QString sBackupDir = QString("%1/%2/%3").arg(getBackupDirectory()).arg(sVmUuid).arg(sBackupUuid);
-	QFileInfo dir;
-	QList<unsigned> lstBackupNumber;
-
-	dir.setFile(QString("%1/" PRL_BASE_BACKUP_DIRECTORY).arg(sBackupDir));
-	if (dir.exists())
-		return false;
-
-	getPartialBackupList(sVmUuid, sBackupUuid, lstBackupNumber);
-	return lstBackupNumber.isEmpty();
-}
-
-static QMutex g_mutex;
-static QHash <QString, Task_BackupHelper *> g_exclusiveLocks;
-static QMultiHash <QString, Task_BackupHelper *> g_sharedLocks;
-
-PRL_RESULT Task_BackupHelper::lockShared(const QString &sBackupUuid)
-{
-	PRL_ASSERT(!sBackupUuid.isEmpty());
-	QMutexLocker locker(&g_mutex);
-
-	if (g_exclusiveLocks.find(sBackupUuid) != g_exclusiveLocks.end()) {
-		WRITE_TRACE(DBG_FATAL, "[%s] Backup %s is already locked for writing",
-			__FUNCTION__, QSTR2UTF8(sBackupUuid));
-		return PRL_ERR_BACKUP_LOCKED_FOR_WRITING;
-	}
-	g_sharedLocks.insert(sBackupUuid, this);
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Task_BackupHelper::lockExclusive(const QString &sBackupUuid)
-{
-	PRL_ASSERT(!sBackupUuid.isEmpty());
-	QMutexLocker locker(&g_mutex);
-
-	if (g_sharedLocks.find(sBackupUuid) != g_sharedLocks.end()) {
-		WRITE_TRACE(DBG_FATAL, "[%s] Backup %s is already locked for reading",
-			__FUNCTION__, QSTR2UTF8(sBackupUuid));
-		return PRL_ERR_BACKUP_LOCKED_FOR_READING;
-	}
-
-	if (g_exclusiveLocks.find(sBackupUuid) != g_exclusiveLocks.end()) {
-		WRITE_TRACE(DBG_FATAL, "[%s] Backup %s is already locked for writing",
-			__FUNCTION__, QSTR2UTF8(sBackupUuid));
-		return PRL_ERR_BACKUP_LOCKED_FOR_WRITING;
-	}
-
-	g_exclusiveLocks.insert(sBackupUuid, this);
-	return PRL_ERR_SUCCESS;
-}
-
-void Task_BackupHelper::unlockShared(const QString &sBackupUuid)
-{
-	PRL_ASSERT(!sBackupUuid.isEmpty());
-	QMutexLocker locker(&g_mutex);
-	if (g_sharedLocks.remove(sBackupUuid, this) == 0) {
-		WRITE_TRACE(DBG_FATAL, "[%s] Unlock for non-locked backup %s",
-			__FUNCTION__, QSTR2UTF8(sBackupUuid));
-	}
-}
-
-void Task_BackupHelper::unlockExclusive(const QString &sBackupUuid)
-{
-	PRL_ASSERT(!sBackupUuid.isEmpty());
-	QMutexLocker locker(&g_mutex);
-	QHash <QString, Task_BackupHelper *>::iterator it;
-	it = g_exclusiveLocks.find(sBackupUuid);
-	if (it == g_exclusiveLocks.end()) {
-		WRITE_TRACE(DBG_FATAL, "[%s] Unlock for non-locked backup %s",
-			__FUNCTION__, QSTR2UTF8(sBackupUuid));
-		return;
-	}
-	while (it != g_exclusiveLocks.end() && it.key() == sBackupUuid) {
-		PRL_ASSERT(it.value() == this);
-		it = g_exclusiveLocks.erase(it);
-	}
 }
 
 PRL_RESULT Task_BackupHelper::handleABackupPackage(
@@ -2289,5 +2032,16 @@ QString Task_BackupHelper::patch(QUrl url_) const
 		url_.setHost(m_sServerHostname);
 	}
 	return url_.toString();
+}
+
+Backup::Metadata::Lock& Task_BackupHelper::getMetadataLock()
+{
+	return s_metadataLock;
+}
+
+Backup::Metadata::Catalog Task_BackupHelper::getCatalog(const QString& vm_)
+{
+	return Backup::Metadata::Catalog(Backup::Metadata::Carcass
+		(getBackupDirectory(), vm_));
 }
 

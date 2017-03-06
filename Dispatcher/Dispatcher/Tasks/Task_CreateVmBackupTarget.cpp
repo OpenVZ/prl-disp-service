@@ -103,14 +103,9 @@ PRL_RESULT Task_CreateVmBackupTarget::validateBackupDir(const QString &sPath)
 
 	/* if directory does not exist - to create */
 	if (!backupsdir.exists()) {
-		if (!backupsdir.mkdir(sPath)) {
-			nRetCode = PRL_ERR_BACKUP_CANNOT_CREATE_DIRECTORY;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-					PVE::String, sPath, EVT_PARAM_MESSAGE_PARAM_0));
+		if (!CFileHelper::WriteDirectory(sPath, &getClient()->getAuthHelper())) {
 			WRITE_TRACE(DBG_FATAL, "Cannot create \"%s\" directory", QSTR2UTF8(sPath));
-			return nRetCode;
+			return CDspTaskFailure(*this)(PRL_ERR_BACKUP_CANNOT_CREATE_DIRECTORY, sPath);
 		}
 	}
 
@@ -148,6 +143,7 @@ PRL_RESULT Task_CreateVmBackupTarget::validateBackupDir(const QString &sPath)
 PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 {
 	bool f = 0 != (m_nFlags & PBT_FULL);
+	Backup::Metadata::Carcass c(getBackupDirectory(), m_sVmUuid);
 	do {
 		if (f) {
 			break;
@@ -166,8 +162,7 @@ PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 				"is not found, will create a full backup instead of incremental");
 			break;
 		}
-		setBackupRoot(QString("%1/%2/%3").arg(getBackupDirectory())
-				.arg(m_sVmUuid).arg(m_sBackupUuid));
+		setBackupRoot(c.getSequence(m_sBackupUuid).absolutePath());
 		if (0 != (getInternalFlags() & PVM_CT_VZFS_BACKUP)) {
 			break;
 		}
@@ -186,11 +181,11 @@ PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 		m_nFlags |= PBT_FULL;
 		/* create new base backup */
 		m_sBackupUuid = Uuid::createUuid().toString();
-		m_nBackupNumber = 0;
-		setBackupRoot(QString("%1/%2/%3").arg(getBackupDirectory()).arg(m_sVmUuid).arg(m_sBackupUuid));
-		m_sTargetPath = QString("%1/" PRL_BASE_BACKUP_DIRECTORY).arg(getBackupRoot());
-	} else
-		m_sTargetPath = QString("%1/%2").arg(getBackupRoot()).arg(m_nBackupNumber);
+		m_nBackupNumber = Backup::Metadata::Sequence::BASE;
+		setBackupRoot(c.getSequence(m_sBackupUuid).absolutePath());
+	}
+	m_sTargetPath = c.getItem(m_sBackupUuid, m_nBackupNumber).absolutePath();
+	
 	return PRL_ERR_SUCCESS;
 }
 
@@ -290,8 +285,9 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 	CFileHelper::GetDiskAvailableSpace(getBackupDirectory(), &m_nFreeDiskSpace);
 
 	if (m_nFlags & PBT_FULL) {
+		Backup::Metadata::Carcass c(getBackupDirectory(), m_sVmUuid);
 		/* Create /var/parallels/backups/VM_UUID */
-		nRetCode = validateBackupDir(QString("%1/%2").arg(getBackupDirectory()).arg(m_sVmUuid));
+		nRetCode = validateBackupDir(c.getCatalog().absolutePath());
 		if (nRetCode != PRL_ERR_SUCCESS)
 			goto exit;
 
@@ -350,9 +346,9 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 	   https://jira.sw.ru/browse/PSBM-8198
 	 */
 	if (m_nFlags & PBT_FULL)
-		nRetCode = lockExclusive(m_sBackupUuid);
+		nRetCode = getMetadataLock().grabExclusive(m_sBackupUuid);
 	else
-		nRetCode = lockShared(m_sBackupUuid);
+		nRetCode = getMetadataLock().grabShared(m_sBackupUuid);
 	if (PRL_FAILED(nRetCode))
 		goto exit;
 	m_bBackupLocked = true;
@@ -502,9 +498,9 @@ void Task_CreateVmBackupTarget::finalizeTask()
 
 	if (m_bBackupLocked) {
 		if (m_nFlags & PBT_FULL)
-			unlockExclusive(m_sBackupUuid);
+			getMetadataLock().releaseExclusive(m_sBackupUuid);
 		else
-			unlockShared(m_sBackupUuid);
+			getMetadataLock().releaseShared(m_sBackupUuid);
 	}
 	m_bBackupLocked = false;
 
@@ -520,18 +516,12 @@ void Task_CreateVmBackupTarget::finalizeTask()
 
 		/* remove current backup directory */
 		if (m_sTargetPath.size()) {
-			QString path;
-			CFileHelper::ClearAndDeleteDir(m_sTargetPath);
-
-			/* remove BackupUuid directory if it is empty */
-			if (isBackupDirEmpty(m_sVmUuid, m_sBackupUuid)) {
-				CFileHelper::ClearAndDeleteDir(getBackupRoot());
-			}
+			Backup::Metadata::Catalog c = getCatalog(m_sVmUuid);
+			c.getSequence(m_sBackupUuid).remove(m_nBackupNumber);
 			/* and remove VmUuid directory if it is empty - check it as root */
-			QStringList lstBackupUuid;
-			getBaseBackupList(m_sVmUuid, lstBackupUuid);
+			QStringList lstBackupUuid = c.getIndexForRead();
 			if (lstBackupUuid.isEmpty()) {
-				path = QString("%1/%2").arg(getBackupDirectory()).arg(m_sVmUuid);
+				QString path = QString("%1/%2").arg(getBackupDirectory()).arg(m_sVmUuid);
 				CFileHelper::ClearAndDeleteDir(path);
 			}
 		}
@@ -614,26 +604,11 @@ quint64 Task_CreateVmBackupTarget::getBackupSize()
 
 PRL_RESULT Task_CreateVmBackupTarget::saveMetadata()
 {
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	VmItem iVm;
-
-	/* rewrote metadata in Vm directory */
-	if (getInternalFlags() & PVM_CT_VZFS_BACKUP)
-		iVm.setVmType(PVBT_CT_VZFS);
-	else if (getInternalFlags() & PVM_CT_PLOOP_BACKUP)
-		iVm.setVmType(PVBT_CT_PLOOP);
-	else if (getInternalFlags() & PVM_CT_VZWIN_BACKUP)
-		iVm.setVmType(PVBT_CT_VZWIN);
-	else
-		iVm.setVmType(PVBT_VM);
-
-	iVm.setUuid(m_sVmUuid);
-	iVm.setName(m_sVmName);
-	iVm.setVersion(m_nRemoteVersion);
-	nRetCode = iVm.saveToFile(QString("%1/%2/" PRL_BACKUP_METADATA).arg(getBackupDirectory()).arg(m_sVmUuid));
-
+	PRL_RESULT e;
+	Backup::Metadata::Catalog c = getCatalog(m_sVmUuid);
 	/* create metadata in backup directory */
-	if (m_nFlags & PBT_FULL) {
+	if (m_nFlags & PBT_FULL)
+	{
 		BackupItem cBackup;
 		cBackup.setUuid(m_sBackupUuid);
 		cBackup.setId(m_sBackupUuid);
@@ -652,8 +627,10 @@ PRL_RESULT Task_CreateVmBackupTarget::saveMetadata()
 		cBackup.setOriginalSize(m_nOriginalSize);
 		cBackup.setBundlePermissions(m_nBundlePermissions);
 		cBackup.setFlags(m_nFlags);
-		nRetCode = cBackup.saveToFile(QString("%1/" PRL_BACKUP_METADATA).arg(m_sTargetPath));
-	} else {
+		e = c.getSequence(m_sBackupUuid).save(cBackup);
+	}
+	else
+	{
 		PartialBackupItem cBackup;
 		cBackup.setNumber(m_nBackupNumber);
 		cBackup.setId(QString("%1.%2").arg(m_sBackupUuid).arg(m_nBackupNumber));
@@ -671,11 +648,25 @@ PRL_RESULT Task_CreateVmBackupTarget::saveMetadata()
 		cBackup.setOriginalSize(m_nOriginalSize);
 		cBackup.setBundlePermissions(m_nBundlePermissions);
 		cBackup.setFlags(m_nFlags);
-		nRetCode = cBackup.saveToFile(QString("%1/" PRL_BACKUP_METADATA).arg(m_sTargetPath));
-		if (PRL_SUCCEEDED(nRetCode))
-			nRetCode = updateLastPartialNumber(m_sVmUuid, m_sBackupUuid, m_nBackupNumber);
+		e = c.getSequence(m_sBackupUuid).create(cBackup, m_nBackupNumber);
 	}
-	return nRetCode;
+	if (PRL_FAILED(e))
+		return e;
+
+	VmItem iVm;
+	/* rewrote metadata in Vm directory */
+	if (getInternalFlags() & PVM_CT_VZFS_BACKUP)
+		iVm.setVmType(PVBT_CT_VZFS);
+	else if (getInternalFlags() & PVM_CT_PLOOP_BACKUP)
+		iVm.setVmType(PVBT_CT_PLOOP);
+	else if (getInternalFlags() & PVM_CT_VZWIN_BACKUP)
+		iVm.setVmType(PVBT_CT_VZWIN);
+	else
+		iVm.setVmType(PVBT_VM);
+	iVm.setUuid(m_sVmUuid);
+	iVm.setName(m_sVmName);
+	iVm.setVersion(m_nRemoteVersion);
+	return c.saveItem(iVm);
 }
 
 void Task_CreateVmBackupTarget::clientDisconnected(IOSender::Handle h)

@@ -124,7 +124,7 @@ PRL_RESULT Task_RemoveVmBackupSource::run_body()
 		{
 			foreach( BackupItem *backup, vm->m_lstBackupItem )
 			{
-				if ( backup->getId() != sBackupUuid )
+				if (backup->getUuid() != sBackupUuid)
 					continue;
 
 				m_sVmUuid = vm->getUuid();
@@ -222,52 +222,76 @@ namespace Remove
 ///////////////////////////////////////////////////////////////////////////////
 // struct Item
 
-PRL_RESULT Item::load(Task_BackupHelper *context_)
+PRL_RESULT Item::load(const Backup::Metadata::Sequence& sequence_)
 {
-	PRL_RESULT e;
 	QStringList l;
-	if (m_number < PRL_PARTIAL_BACKUP_START_NUMBER) {
-		BackupItem b;
-		if (PRL_FAILED((e = context_->loadBaseBackupMetadata(m_ve, m_uuid, &b))))
-			return e;
-		l = b.getTibFileList();
-		m_data = b;
-	} else {
-		PartialBackupItem p;
-		if (PRL_FAILED((e = context_->loadPartialBackupMetadata(m_ve, m_uuid, m_number, &p))))
-			return e;
-		l = p.getTibFileList();
-		m_data = p;
+	QList<quint32> i = sequence_.getIndex();
+	if (!i.contains(m_number))
+		return PRL_ERR_BACKUP_BACKUP_NOT_FOUND;
+
+	if (m_number == i.front())
+	{
+		Prl::Expected<BackupItem, PRL_RESULT> b =
+			sequence_.getHeadItem(m_number);
+		if (b.isFailed())
+			return b.error();
+		l = b.value().getTibFileList();
+		m_data = b.value();
 	}
-	foreach(QString f, l)
-		m_files << QFileInfo(m_dir.absoluteDir(), f).absoluteFilePath();
-	return e;
+	else
+	{
+		Prl::Expected<PartialBackupItem, PRL_RESULT> p =
+			sequence_.getTailItem(m_number);
+		if (p.isFailed())
+			return p.error();
+		l = p.value().getTibFileList();
+		m_data = p.value();
+	}
+	m_files.clear();
+	m_lair = sequence_.showItemLair(m_number).absolutePath();
+	foreach(const QString& f, l)
+		m_files << QFileInfo(sequence_.showLair(), f).absoluteFilePath();
+
+	return PRL_ERR_SUCCESS;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Meta
 
-PRL_RESULT Meta::operator()(const PartialBackupItem& from_, const BackupItem& to_) const
+PRL_RESULT Meta::operator()(const BackupItem& from_, const PartialBackupItem& to_) const
 {
-	BackupItem b(to_);
-	b.setHost(from_.getHost());
-	b.setServerUuid(from_.getServerUuid());
-	b.setDateTime(from_.getDateTime());
-	b.setCreator(from_.getCreator());
-	b.setSize(b.getSize() + from_.getSize());
-	b.setDescription(from_.getDescription());
-	b.setOriginalSize(b.getOriginalSize() + from_.getOriginalSize());
-	b.setBundlePermissions(from_.getBundlePermissions());
-	return b.saveToFile(m_file);
+	BackupItem b;
+	b.setId(to_.getId());
+	b.setUuid(from_.getUuid());
+	b.setHost(to_.getHost());
+	b.setServerUuid(to_.getServerUuid());
+	b.setDateTime(to_.getDateTime());
+	b.setCreator(to_.getCreator());
+	b.setSize(getSize());
+	b.setDescription(to_.getDescription());
+	b.setOriginalSize(to_.getOriginalSize() + from_.getOriginalSize());
+	b.setBundlePermissions(to_.getBundlePermissions());
+	b.setTibFileList(to_.getTibFileList());
+	b.setFlags(from_.getFlags());
+	b.setLastNumber(from_.getLastNumber());
+	return m_sequence.save(b, m_item->getNumber());
 }
 
 PRL_RESULT Meta::operator()(const PartialBackupItem& from_, const PartialBackupItem& to_) const
 {
-	PartialBackupItem p(from_);
-	p.setNumber(to_.getNumber());
-	p.setId(to_.getId());
-	p.setTibFileList(to_.getTibFileList());
-	return p.saveToFile(m_file);
+	Q_UNUSED(from_);
+	PartialBackupItem p(to_);
+	p.setSize(getSize());
+	return m_sequence.update(p, m_item->getNumber());
+}
+
+qulonglong Meta::getSize() const
+{
+	qulonglong output = 0;
+	foreach (const QString& t, m_item->getFiles())
+		output += QFileInfo(t).size();
+
+	return output;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -296,7 +320,7 @@ PRL_RESULT Remover::unlink(const QString& file_)
 QList<action_type> Remover::unlinkItem(const Item& item_, const CDspTaskFailure& fail_)
 {
 	QList<action_type> a;
-	a << boost::bind(Remover::rmdir, item_.getDir(), fail_);
+	a << boost::bind(Remover::rmdir, item_.getLair(), fail_);
 	foreach(QString f, item_.getFiles())
 		a << boost::bind(Remover::unlink, f);
 	return a;
@@ -306,7 +330,7 @@ QList<action_type> Remover::operator()(const list_type& objects_, quint32 index_
 {
 	if (!index_) {
 		return QList<action_type>() << boost::bind(Remover::rmdir,
-			QFileInfo(objects_.first()->getDir()).absolutePath(),
+			QFileInfo(objects_.first()->getLair()).absolutePath(),
 			CDspTaskFailure(*m_context));
 	}
 
@@ -319,54 +343,9 @@ QList<action_type> Remover::operator()(const list_type& objects_, quint32 index_
 ///////////////////////////////////////////////////////////////////////////////
 // struct Shifter
 
-PRL_RESULT Shifter::move(const QString& from_, const QString& to_)
-{
-	QFile f(from_);
-	if (f.rename(to_))
-		return PRL_ERR_SUCCESS;
-	WRITE_TRACE(DBG_FATAL, "QFile::rename from %s to %s failed, error: %s",
-			QSTR2UTF8(from_), QSTR2UTF8(to_), QSTR2UTF8(f.errorString()));
-	return PRL_ERR_OPERATION_FAILED;
-}
-
-PRL_RESULT Shifter::moveDir(const QString& from_, const QString& to_)
-{
-	QFileInfo f(from_), t(to_);
-	QDir b(f.dir());
-	if (b.rename(f.fileName(), t.fileName()))
-		return PRL_ERR_SUCCESS;
-	WRITE_TRACE(DBG_FATAL, "QDir::rename from %s to %s failed!",
-					QSTR2UTF8(from_), QSTR2UTF8(to_));
-	return PRL_ERR_OPERATION_FAILED;
-}
-
-QList<action_type> Shifter::moveItem(const Item& from_, const Item& to_)
-{
-	QList<action_type> a;
-	PRL_RESULT (*f)(const Meta&, item_type&, item_type&) = boost::apply_visitor<Meta, item_type, item_type>;
-	a << boost::bind(f, Meta(from_.getDir()), from_.getData(), to_.getData());
-	a << boost::bind(Shifter::moveDir, from_.getDir(), to_.getDir());
-
-	if (from_.getFiles().size() != to_.getFiles().size()) {
-		WRITE_TRACE(DBG_FATAL, "Different number of archives for backup %s and %s",
-				QSTR2UTF8(from_.getDir()), QSTR2UTF8(to_.getDir()));
-		return a << action_type();
-	}
-	for (int i = 0; i < from_.getFiles().size(); i++)
-		a << boost::bind(Shifter::move, from_.getFiles().at(i), to_.getFiles().at(i));
-	return a;
-}
-
-PRL_RESULT Shifter::rebase(const QString& file_, const QString& base_, bool safe_)
+PRL_RESULT Shifter::rebase(const QString& file_, const QString& base_)
 {
 	QStringList a = QStringList() << QEMU_IMG << "rebase" << "-t" << "none";
-	if (safe_) {
-		// -u (unsafe) means simply change of base name - a caller
-		// guarantee that content of base image is not changed - and it
-		// is so indeed, because we just renamed base image and need to
-		// reflect this rename in this one.
-		a << "-u";
-	}
 	a << "-b" << base_ << file_;
 	WRITE_TRACE(DBG_FATAL, "Run cmd: %s", QSTR2UTF8(a.join(" ")));
 
@@ -381,40 +360,87 @@ PRL_RESULT Shifter::rebase(const QString& file_, const QString& base_, bool safe
 	return PRL_ERR_SUCCESS;
 }
 
-QList<action_type> Shifter::rebaseItem(const Item& item_, const Item& base_, bool safe_)
+QList<action_type> Shifter::rebaseItem(const Item& item_, const Item& base_)
 {
 	QList<action_type> a;
 	for (int i = 0; i < item_.getFiles().size(); i++) {
 		QString base = (i < base_.getFiles().size()) ? base_.getFiles().at(i) : ""; 
-		a << boost::bind(Shifter::rebase, item_.getFiles().at(i), base, safe_);
+		a << boost::bind(Shifter::rebase, item_.getFiles().at(i), base);
 	}
 	return a;
 }
 
-QList<action_type> Shifter::operator()(const list_type& objects_, quint32 index_)
+QList<action_type> Shifter::operator()(quint32 item_)
 {
-	// Overall algorithm:
-	// 	* rebase n(next) to c(current)(to be removed) item to the p(previous) one
-	// 	* remove c(current)
-	// 	* shift n(next) to the place of c(current)
-	// 	* repeat shift for all subsequent images, with renames of their bases
-	// 	* update information about the latest incremental number
-	QList<action_type> a;
-	element_type c = objects_.at(index_);
-	if (objects_.size() == (int)index_ + 1)
+	element_type c(new Item(item_));
+	c->load(m_sequence);
+	if (m_next.isNull())
 		return Remover::unlinkItem(*c, CDspTaskFailure(*m_context));
 
-	element_type n = objects_.at(index_ + 1);
-	element_type p = (index_ > 0) ? objects_.at(index_ - 1) : element_type(new Item);
-	a << rebaseItem(*n, *p, false);
-	a << Remover::unlinkItem(*c, CDspTaskFailure(*m_context));
-	p = n;
-	for (int i = index_ + 2; i < objects_.size(); i++, p = n) {
-		n = objects_.at(i);
-		a << rebaseItem(*n, *p, true);
+	element_type n = m_next, p = m_preceding;
+	n->load(m_sequence);
+	if (p.isNull())
+		p = element_type(new Item());
+	else
+		p->load(m_sequence);
+
+	QList<action_type> output = rebaseItem(*n, *p);
+	PRL_RESULT (*f)(const Meta&, item_type&, item_type&) =
+		&boost::apply_visitor<Meta, item_type, item_type>;
+	output << boost::bind(f, Meta(n, m_sequence), c->getData(), n->getData());
+	output << Remover::unlinkItem(*c, CDspTaskFailure(*m_context));
+	return output;
+}
+
+void Shifter::setNext(quint32 value_)
+{
+	m_next = element_type(new Item(value_));
+}
+
+void Shifter::setPreceding(quint32 value_)
+{
+	m_preceding = element_type(new Item(value_));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Confectioner
+
+Confectioner::result_type Confectioner::operator()
+	(Shifter producer_,Prl::Expected<VmItem, PRL_RESULT> catalog_) const
+{
+	if (catalog_.isFailed())
+		return PRL_ERR_BACKUP_BACKUP_NOT_FOUND;
+
+	if (catalog_.value().getVersion() < BACKUP_PROTO_V4)
+		return PRL_ERR_BACKUP_UNSUPPORTED_KEEP_CHAIN;
+
+	QList<quint32>::const_iterator p = std::find
+		(m_index.constBegin(), m_index.constEnd(), m_number);
+	if (m_index.constEnd() == p)
+		return PRL_ERR_BACKUP_BACKUP_NOT_FOUND;
+
+	if (m_index.constBegin() != p)
+		producer_.setPreceding(*(p - 1));
+	if (m_number != m_index.last())
+		producer_.setNext(*(p + 1));
+
+	return producer_(m_number);
+}
+
+Confectioner::result_type Confectioner::operator()
+	(Remover producer_, const Metadata::Sequence& sequence_) const
+{
+	int z = 0;
+	list_type o;
+	foreach(quint32 n, m_index)
+	{
+		element_type x(new Item(n));
+		x->load(sequence_);
+		if (n == m_number)
+			z = o.size();
+		o << x;
 	}
-	a << boost::bind(m_updater, objects_.at(objects_.size() - 2)->getNumber());
-	return a;
+	return producer_(o, z);
 }
 
 } // namespace Remove
@@ -446,58 +472,36 @@ Prl::Expected<QList<Backup::Remove::action_type>, PRL_RESULT> Task_RemoveVmBacku
 	if (m_sBackupId.isEmpty() && !m_sVmUuid.isEmpty())
 		return removeAllBackupsForVm();
 
+	Backup::Metadata::Catalog c(getCatalog(m_sVmUuid));
 	parseBackupId(m_sBackupId, m_sBackupUuid, m_nBackupNumber);
-
-	bool shift = m_nFlags & PBT_KEEP_CHAIN;
-	if (shift) {
-		VmItem v;
-		if (PRL_FAILED(loadVmMetadata(m_sVmUuid, &v))) {
-			CDspTaskFailure(*this)(m_sVmUuid);
-			return PRL_ERR_BACKUP_BACKUP_NOT_FOUND;
-		}
-
-		if (v.getVersion() < BACKUP_PROTO_V4)
-			return PRL_ERR_BACKUP_UNSUPPORTED_KEEP_CHAIN;
-	}
-
-	QStringList b;
-	getBaseBackupList(m_sVmUuid, b);
-	if (!b.contains(m_sBackupUuid))
+	QStringList u = c.getIndexForRead();
+	if (!u.contains(m_sBackupUuid))
 		return PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
 
-	QString path = QString("%1/%2/%3").arg(getBackupDirectory()).arg(m_sVmUuid).arg(m_sBackupUuid);
-	Backup::Remove::list_type o;
-	o << Backup::Remove::element_type(new Backup::Remove::Item(path, m_sVmUuid, m_sBackupUuid));
-	int pos = 0;
+	PRL_RESULT e = getMetadataLock().grabShared(m_sBackupUuid);
+	if (PRL_FAILED(e))
+		return e;
 
-	QList<unsigned> p;
-	if (m_nBackupNumber != PRL_BASE_BACKUP_NUMBER || shift) {
-		getPartialBackupList(m_sVmUuid, m_sBackupUuid, p);
-		if (p.isEmpty())
-			shift = false;
+	Backup::Metadata::Sequence s = c.getSequence(m_sBackupUuid);
+	QList<quint32> i = s.getIndex();
+	Prl::Expected<QList<Backup::Remove::action_type>, PRL_RESULT> output;
+	if (1 == i.size() && u.size() == 1)
+		output = removeAllBackupsForVm();
+	else
+	{
+		Backup::Remove::Confectioner x(i, m_nBackupNumber);
+		if (m_nFlags & PBT_KEEP_CHAIN)
+			output = x(Backup::Remove::Shifter(*this, s), c.loadItem());
+		else
+			output = x(Backup::Remove::Remover(*this), s);
+
+		if (output.isSucceed())
+			m_lstBackupUuid.append(m_sBackupUuid);
+		else
+			CDspTaskFailure(*this)(m_sVmUuid);
 	}
-	if ((b.size() == 1) && m_nBackupNumber == PRL_BASE_BACKUP_NUMBER && !shift)
-		return removeAllBackupsForVm();
-	foreach(unsigned i, p) {
-		Backup::Remove::element_type x(
-			new Backup::Remove::Item(path, m_sVmUuid, m_sBackupUuid));
-		x->setNumber(i);
-		if (i == m_nBackupNumber)
-			pos = o.size();
-		o << x;
-	}
-
-	m_lstBackupUuid.append(m_sBackupUuid);
-
-	foreach(Backup::Remove::element_type i, o)
-		i->load(this);
-	if (shift) {
-		return Backup::Remove::Shifter(*this, boost::bind(
-			&Task_BackupHelper::updateLastPartialNumber, this, m_sVmUuid, m_sBackupUuid, _1))
-			(o, pos);
-	}
-
-	return Backup::Remove::Remover(*this)(o, pos);
+	getMetadataLock().releaseShared(m_sBackupUuid);
+	return output;
 }
 
 PRL_RESULT Task_RemoveVmBackupTarget::do_(const QList<Backup::Remove::action_type>& actions_)
@@ -505,7 +509,7 @@ PRL_RESULT Task_RemoveVmBackupTarget::do_(const QList<Backup::Remove::action_typ
 	/* to lock all backups */
 	PRL_RESULT e;
 	for (m_nLocked = 0; m_nLocked < m_lstBackupUuid.size(); ++m_nLocked) {
-		if (PRL_FAILED(e = lockExclusive(m_lstBackupUuid.at(m_nLocked))))
+		if (PRL_FAILED(e = getMetadataLock().grabExclusive(m_lstBackupUuid.at(m_nLocked))))
 			return e;
 	}
 
@@ -552,7 +556,7 @@ void Task_RemoveVmBackupTarget::finalizeTask()
 {
 	if (m_nLocked)
 		for (int i = 0; (i < m_nLocked) && (i < m_lstBackupUuid.size()); ++i)
-			unlockExclusive(m_lstBackupUuid.at(i));
+			getMetadataLock().releaseExclusive(m_lstBackupUuid.at(i));
 	m_nLocked = 0;
 
 	if (PRL_FAILED(getLastErrorCode()))
@@ -566,14 +570,14 @@ void Task_RemoveVmBackupTarget::finalizeTask()
 Prl::Expected<QList<Backup::Remove::action_type>, PRL_RESULT> Task_RemoveVmBackupTarget::removeAllBackupsForVm()
 {
 	/* get base backup list for this user */
-	getBaseBackupList(m_sVmUuid, m_lstBackupUuid, &getClient()->getAuthHelper(), PRL_BACKUP_CHECK_MODE_WRITE);
+	m_lstBackupUuid = getCatalog(m_sVmUuid).getIndexForWrite(getClient()->getAuthHelper());
 	if (m_lstBackupUuid.isEmpty()) {
 		CDspTaskFailure(*this)(m_sVmUuid);
 		WRITE_TRACE(DBG_FATAL, "Could not find any backup of the Vm \"%s\"", QSTR2UTF8(m_sVmUuid));
 		return PRL_ERR_BACKUP_BACKUP_NOT_FOUND;
 	}
 
-	QFileInfo x(QString("%1/%2").arg(getBackupDirectory()).arg(m_sVmUuid));
+	QString x = Backup::Metadata::Carcass(getBackupDirectory(), m_sVmUuid).getCatalog().absolutePath();
 	return QList<Backup::Remove::action_type>() <<
-		boost::bind(Backup::Remove::Remover::rmdir, x.absoluteFilePath(), CDspTaskFailure(*this));
+		boost::bind(Backup::Remove::Remover::rmdir, x, CDspTaskFailure(*this));
 }

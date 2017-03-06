@@ -33,6 +33,10 @@
 #define __CDspVmBackupInfrastructure_H_
 
 #include "CDspVmBackupInfrastructure_p.h"
+#include <prlxmlmodel/BackupTree/VmItem.h>
+#include <prlxmlmodel/BackupTree/BackupItem.h>
+#include <prlxmlmodel/BackupTree/CBackupDisks.h>
+#include <prlxmlmodel/BackupTree/PartialBackupItem.h>
 
 namespace Backup
 {
@@ -365,6 +369,130 @@ private:
 
 } // namespace Vm
 } // namespace Activity
+
+namespace Metadata
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Lock
+
+struct Lock: boost::noncopyable
+{
+	PRL_RESULT grabShared(const QString& sequence_);
+	void releaseShared(const QString& sequence_);
+	PRL_RESULT grabExclusive(const QString& sequence_);
+	void releaseExclusive(const QString& sequence_);
+
+private:
+	QMutex m_mutex;
+	QSet<QString> m_exclusive;
+	QMultiHash<QString, QThread* > m_shared;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Carcass
+
+struct Carcass
+{
+	Carcass(const QString& root_, const QString& ve_);
+
+	const QDir& getCatalog() const
+	{
+		return m_root;
+	}
+	QDir getSequence(const QString& uuid_) const;
+	QDir getItem(const QString& sequence_, quint32 number_) const;
+
+private:
+	QDir m_root;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ve
+
+struct Ve
+{
+	explicit Ve(const Carcass& fs_): m_fs(fs_)
+	{
+	}
+
+	QFileInfo showItem() const;
+	Prl::Expected<VmItem, PRL_RESULT>
+		loadItem();
+	PRL_RESULT saveItem(const VmItem& value_);
+	Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT>
+		loadConfig(const QString& sequence_, quint32 number_);
+
+protected:
+	const Carcass& getFs() const
+	{
+		return m_fs;
+	}
+
+private:
+	Carcass m_fs;
+	boost::optional<VmItem> m_cache;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Sequence
+
+struct Sequence
+{
+	enum
+	{
+		BASE = 1
+	};
+
+	Sequence(const QString& uuid_, const Carcass& fs_):
+		m_fs(fs_), m_uuid(uuid_)
+	{
+	}
+
+	QList<quint32> getIndex() const;
+	QDir showLair() const
+	{
+		return m_fs.getSequence(m_uuid);
+	}
+	QDir showItemLair(quint32 at_) const
+	{
+		return m_fs.getItem(m_uuid, at_);
+	}
+	Prl::Expected<BackupItem, PRL_RESULT>
+		getHeadItem(quint32 at_ = BASE) const;
+	Prl::Expected<PartialBackupItem, PRL_RESULT> getTailItem(quint32 at_) const;
+	Prl::Expected<CBackupDisks, PRL_RESULT> getDisks(quint32 at_);
+	PRL_RESULT save(const BackupItem& value_, quint32 at_ = BASE);
+	PRL_RESULT create(const PartialBackupItem& value_, quint32 at_);
+	PRL_RESULT update(const PartialBackupItem& value_, quint32 at_);
+	PRL_RESULT remove(quint32 at_);
+
+private:
+	QString showItem(quint32 at_) const;
+
+	Carcass m_fs;
+	const QString m_uuid;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Catalog
+
+struct Catalog: private Ve
+{
+	Catalog(const Carcass& fs_): Ve(fs_)
+	{
+	}
+
+	QStringList getIndexForRead(CAuthHelper* auth_ = NULL) const;
+	QStringList getIndexForWrite(CAuthHelper& auth_) const;
+	Sequence getSequence(const QString& at_) const;
+	using Ve::loadItem;
+	using Ve::saveItem;
+
+private:
+	QFileInfoList getSequences() const;
+};
+
+} // namespace Metadata
 } // namespace Backup
 
 #endif // __CDspVmBackupInfrastructure_H_

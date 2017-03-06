@@ -373,13 +373,6 @@ public:
 		const QString &sNotificationVmUuid, unsigned int nDiskIdx);
 	PRL_RESULT startABackupClient(const QString& sVmName_, const QStringList& args_,
 		SmartPtr<Chain> custom_);
-	/* load data from .metadata file for base backup */
-	PRL_RESULT loadBaseBackupMetadata(const QString &sVmUuid, const QString &sBackupUuid,
-			BackupItem *pBackupItem);
-
-	/* load data from .metadata file for partial backup */
-	PRL_RESULT loadPartialBackupMetadata(const QString &sVmUuid, const QString &sBackupUuid,
-			unsigned nBackupNumber, PartialBackupItem *pPartialBackupItem);
 	/* updates an id of the last successful incremental backup */
 	PRL_RESULT updateLastPartialNumber(const QString &ve_, const QString &uuid_, unsigned number_);
 
@@ -397,43 +390,18 @@ protected:
            exclude obj from dirList or fileList */
 	PRL_RESULT getEntryLists(const QString &sStartPath, bool (*excludeFunc)(const QString &));
 
-	/* load data from .metadata file for Vm */
-	PRL_RESULT loadVmMetadata(const QString &sVmUuid, VmItem *pVmItem);
-
 	/* find Vm uuid for backup uuid in backup directory */
 	PRL_RESULT findVmUuidForBackupUuid(const QString &sBackupUuid, QString &sVmUuid);
 
 	/* get backup directory full path */
 	QString getBackupDirectory();
 
-	PRL_RESULT lockShared(const QString &sBackupUuid);
-
-	PRL_RESULT lockExclusive(const QString &sBackupUuid);
-
-	void unlockShared(const QString &sBackupUuid);
-
-	void unlockExclusive(const QString &sBackupUuid);
-
-	/* get full backups uuid list for vm uuid */
- 	void getBaseBackupList(
-				const QString &sVmUuid,
-				QStringList &lstBackupUuid,
-				CAuthHelper *pAuthHelper = NULL,
-				BackupCheckMode mode = PRL_BACKUP_CHECK_MODE_READ);
  	/* get last full backup item for vm uuid */
 	BackupItem* getLastBaseBackup(const QString &sVmUuid, CAuthHelper *pAuthHelper, BackupCheckMode mode);
- 	/* get partial backups list for vm uuid and full backup uuid */
- 	void getPartialBackupList(
- 				const QString &sVmUuid,
- 				const QString &sBackupUuid,
- 				QList<unsigned> &lstBackupNumber);
  	/* get next partial backup number */
  	unsigned getNextPartialBackup(const QString &sVmUuid, const QString &sBackupUuid);
  	/* parse BackupUuid[.BackupNumber] */
  	PRL_RESULT parseBackupId(const QString &sBackupId, QString &sBackupUuid, unsigned &nBackupNumber);
-
- 	/* is backup directory for sBackupUuid is empty from base and partial backups */
- 	bool isBackupDirEmpty(const QString &sVmUuid, const QString &sBackupUuid);
 
 	PRL_RESULT handleABackupPackage(
 			const SmartPtr<CDspDispConnection> &pDispConnection,
@@ -442,7 +410,7 @@ protected:
 	PRL_RESULT GetBackupTreeRequest(const QString &sVmUuid, QString &sBackupTree);
 	void killABackupClient();
 	PRL_RESULT getBackupParams(const QString &sVmUuid, const QString &sBackupUuid,
-                unsigned nBackupNumber, quint64 &nSize, quint32 &nBundlePermissions);
+		unsigned nBackupNumber, quint64 &nSize, quint32 &nBundlePermissions);
 	PRL_RESULT checkFreeDiskSpace(quint64 nRequiredSize, quint64 nAvailableSize, bool bIsCreateOp);
 
 	virtual bool isCancelled() { return operationIsCancelled(); }
@@ -457,8 +425,8 @@ protected:
 	PRL_RESULT CloneHardDiskState(const QString &sDiskImage,
 			const QString &sSnapshotUuid, const QString &sDstDirectory);
 
-	PRL_RESULT loadVeConfig(const QString &backupUuid, const QString &path,
-		PRL_VM_BACKUP_TYPE type, SmartPtr<CVmConfiguration>& conf);
+	Backup::Metadata::Lock& getMetadataLock();
+	Backup::Metadata::Catalog getCatalog(const QString& vm_);
 
 protected:
 	SmartPtr<CVmConfiguration> m_pVmConfig;
@@ -491,6 +459,8 @@ protected:
 	::Backup::Activity::Object::componentList_type m_urls;
 
 private:
+	static Backup::Metadata::Lock s_metadataLock;
+
 	Backup::Process::Unit* m_cABackupClient;
 	bool m_bKillCalled;
 	SmartPtr<char> m_pBuffer;
