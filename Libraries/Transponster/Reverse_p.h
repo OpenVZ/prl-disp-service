@@ -438,8 +438,8 @@ void Ordinary<T>::setDriver()
 	d.setIo(Libvirt::Domain::Xml::EIoNative);
 	d.setDiscard(Libvirt::Domain::Xml::EDiscardUnmap);
 	d.setDriverFormat(b);
-	boost::optional<Libvirt::Domain::Xml::EModel> m = getModel().getScsiModel();
-	if (m && m.get() == Libvirt::Domain::Xml::EModelVirtioScsi)
+	boost::optional<Libvirt::Domain::Xml::EBus> u = getModel().getBus();
+	if (u && u.get() == Libvirt::Domain::Xml::EBusVirtio)
 		d.setIothread(1);
 
 	m_result.setDriver(d);
