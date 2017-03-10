@@ -1836,6 +1836,12 @@
                 <ref name="unsignedInt"/>
               </attribute>
             </optional>
+            <optional>
+              <ref name="ioeventfd"/>
+            </optional>
+            <optional>
+              <ref name="driverIOThread"/>
+            </optional>
           </element>
         </optional>
       </interleave>
