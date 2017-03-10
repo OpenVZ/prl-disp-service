@@ -300,7 +300,7 @@ void Task_GetBackupTreeTarget::getBackupTree(QString &msg)
 			if (NULL == i)
 				continue;
 
-			addBackup(v.value().m_lstBackupItem, i);
+			v.value().m_lstBackupItem << i;
 			if (filterSingleBackup())
 				break;
 		}
@@ -308,6 +308,9 @@ void Task_GetBackupTreeTarget::getBackupTree(QString &msg)
 			/* to skip Vm directories without backups */
 			continue;
 		}
+		std::sort(v.value().m_lstBackupItem.begin(), v.value().m_lstBackupItem.end(),
+			boost::bind(&BackupItem::getDateTime, _1) <
+			boost::bind(&BackupItem::getDateTime, _2));
 		bTree.m_lstVmItem.append(new VmItem(v.value()));
 		/* if we searched for a backup or a chain - it is already found here */
 		if (backupFilterEnabled())
@@ -316,13 +319,3 @@ void Task_GetBackupTreeTarget::getBackupTree(QString &msg)
 	msg = bTree.toString();
 }
 
-template <class T>
-void Task_GetBackupTreeTarget::addBackup(QList<T*>& list, T *backup)
-{
-	int i;
-	/* order list by backup data&time creation */
-	for (i = 0; i < list.size(); ++i)
-		if (list.at(i)->getDateTime() > backup->getDateTime())
-			break;
-	list.insert(i, backup);
-}

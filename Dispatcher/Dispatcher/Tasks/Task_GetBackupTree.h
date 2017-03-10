@@ -118,8 +118,6 @@ protected:
 private:
 	void getBackupTree(QString &msg);
 
-	template <class T>
-	void addBackup(QList<T*>& list, T *backup);
 	bool filterSingleBackup() { return m_nFlags & PBT_BACKUP_ID; }
 	bool filterBackupChain() { return m_nFlags & PBT_CHAIN; }
 	bool backupFilterEnabled() { return filterSingleBackup() || filterBackupChain(); }
