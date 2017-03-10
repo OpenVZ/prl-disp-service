@@ -39,7 +39,7 @@
 #include <prlcommon/Logging/Logging.h>
 #include "Libraries/StatesStore/SavedStateTree.h"
 #include <prlcommon/Std/PrlTime.h>
-
+#include "CDspVmBrand.h"
 #include "CVcmmdInterface.h"
 #include "CDspVmDirHelper.h"
 #include "CDspVmStateSender.h"
@@ -1341,6 +1341,13 @@ PRL_RESULT Task_MigrateVmSource::migrateStoppedVm()
 		/* get full directories and files lists for migration */
 		if (PRL_FAILED(nRetCode = CVmMigrateHelper::GetEntryListsVmHome(m_sVmHomePath, m_dList, m_fList)))
 			return nRetCode;
+
+		if (PVMT_CLONE_MODE & getRequestFlags())
+		{
+			Vm::Private::Brand b(m_sVmHomePath, getClient());
+			foreach (Vm::Private::Brand::entryList_type::const_reference e, b.getFiles())
+				m_fList.removeOne(e);
+		}
 	}
 
 	if ((m_nPrevVmState != VMS_RUNNING) && (m_nPrevVmState != VMS_PAUSED))
