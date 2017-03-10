@@ -99,7 +99,7 @@ namespace Command
 // struct Context
 
 Context::Context(const SmartPtr<CDspClient>& session_, const SmartPtr<IOPackage>& package_):
-	m_session(session_), m_package(package_)
+	m_session(session_), m_package(package_), m_trace(package_)
 {
 	m_request = CProtoSerializer::ParseCommand((PVE::IDispatcherCommands)m_package->header.type,
 						UTF8_2QSTR(m_package->buffers[0].getImpl()));
@@ -108,17 +108,29 @@ Context::Context(const SmartPtr<CDspClient>& session_, const SmartPtr<IOPackage>
 	m_ident = MakeVmIdent(m_request->GetVmUuid(), m_session->getVmDirectoryUuid());
 }
 
+void Context::reply(int code_) const
+{
+	m_trace.finish(code_);
+	m_session->sendSimpleResponse(m_package, code_);
+}
+
 void Context::reply(const CVmEvent& error_) const
 {
+	m_trace.finish(error_.getEventCode());
 	m_session->sendResponseError(&error_, m_package);
 }
 
 void Context::reply(const Libvirt::Result& result_) const
 {
 	if (result_.isFailed())
-		m_session->sendResponseError(result_.error().convertToEvent(), m_package);
+		reply(result_.error().convertToEvent());
 	else
 		reply(PRL_ERR_SUCCESS);
+}
+
+void Context::reportStart()
+{
+	m_trace.start();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1633,6 +1645,7 @@ struct Body<Tag::Fork<T> >: QRunnable
 	void run()
 	{
 		QEventLoop x;
+		m_context.reportStart();
 		Vm::Fork::Slip<T> y(x, m_context);
 		Libvirt::Result	e = Vm::Fork::Gear(x)(y);
 		if (e.isFailed())
@@ -1708,6 +1721,7 @@ struct Body<Tag::Special<PVE::DspCmdVmStart> >
 		case VMS_PAUSED:
 			return Decorate<PVE::DspCmdVmResume, Restrict<PVE::DspCmdVmResume> >::type::run(context_);
 		case VMS_RUNNING:
+			context_.reportStart();
 			return context_.reply(Error::Simple(PRL_ERR_FAILURE, "VM is already running"));
 		case VMS_SUSPENDED:
 			return Decorate<PVE::DspCmdVmStart, Core<PVE::DspCmdVmStart> >::type::run(context_);
@@ -1869,6 +1883,7 @@ void Dispatcher::do_(const SmartPtr<CDspClient>& session_, const SmartPtr<IOPack
 
 void Dispatcher::doInternal_(Context& context_) const
 {
+	context_.reportStart();
 	CProtoVmInternalCommand* x = CProtoSerializer::CastToProtoCommand
 		<CProtoVmInternalCommand>(context_.getRequest());
 

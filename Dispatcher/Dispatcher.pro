@@ -91,6 +91,7 @@ HEADERS += \
 	CDspVmGuest.h \
 	CDspDBusHub.h \
 	CDspVmBrand.h \
+	CDspTaskTrace.h \
 	\
 	EditHelpers/CMultiEditDispatcher.h \
 	EditHelpers/CMultiEditMergeHelper.h \
@@ -213,6 +214,7 @@ SOURCES += \
 	CDspVmGuest.cpp \
 	CDspDBusHub.cpp \
 	CDspVmBrand.cpp \
+	CDspTaskTrace.cpp \
 	\
 	EditHelpers/CMultiEditDispatcher.cpp \
 	EditHelpers/CMultiEditMergeVmConfig.cpp \

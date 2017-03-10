@@ -50,6 +50,16 @@ namespace Libvirt
 {
 namespace Callback
 {
+namespace Plain
+{
+template<class T>
+void delete_(void* opaque_)
+{
+        delete (T* )opaque_;
+}
+
+} // namespace Plain
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Base
 
@@ -637,6 +647,24 @@ struct Bandwidth
 
 private:
 	quint64 m_value;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Completion
+
+struct Completion
+{
+	typedef QSharedPointer<boost::promise<quint64> > feedback_type;
+
+	Completion(virDomainPtr match_, const feedback_type& feedback_);
+
+	int operator()(virTypedParameterPtr params_, int paramsCount_);
+	static int react(virConnectPtr, virDomainPtr domain_,
+		virTypedParameterPtr params_, int paramsCount_, void *opaque_);
+
+private:
+	QString m_match;
+	feedback_type m_feedback;
 };
 
 namespace Qemu

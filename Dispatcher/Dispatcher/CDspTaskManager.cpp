@@ -31,7 +31,7 @@
 
 #include <QCoreApplication>
 #include <QTimer>
-
+#include "CDspTaskTrace.h"
 #include "CDspTaskManager.h"
 #include <prlcommon/HostUtils/HostUtils.h>
 
@@ -44,11 +44,13 @@
 CDspTaskManager::CDspTaskManager ()
 :m_bDeinited(false)
 {
+	Task::Trace::setup();
 }
 
 CDspTaskManager::~CDspTaskManager ()
 {
 	deinit();
+	Task::Trace::raze();
 	WRITE_TRACE(DBG_FATAL, "CDspTaskManager was destructed." );
 }
 

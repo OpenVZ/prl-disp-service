@@ -234,7 +234,7 @@ void Online::setBandwidth(quint64 value_)
 	m_bandwidth = QSharedPointer<Bandwidth>(new Bandwidth(value_));
 }
 
-Result Online::operator()(const CVmConfiguration& config_)
+Result Online::migrate(const CVmConfiguration& config_)
 {
 	unsigned int f = VIR_MIGRATE_PERSIST_DEST |
 			VIR_MIGRATE_CHANGE_PROTECTION |
@@ -262,14 +262,37 @@ Result Online::operator()(const CVmConfiguration& config_)
 	{
 		Result e = o(b);
 		if (e.isFailed())
-			return e;
+			return e.error();
 	}
 	// 3s is approximation of live downtime requirements in PCS6
 	Result e = setDowntime(3);
 	if (e.isFailed())
-		return e;
+		return e.error();
 
-	return migrate(config_, f, b);
+	return Agent::migrate(config_, f, b);
+}
+
+Online::result_type Online::operator()(const CVmConfiguration& config_)
+{
+	Vm::Migration::Completion::feedback_type p(new boost::promise<quint64>());
+	boost::future<quint64> v = p->get_future();
+	int s = virConnectDomainEventRegisterAny(getLink(), getDomain(),
+			VIR_DOMAIN_EVENT_ID_JOB_COMPLETED,
+			VIR_DOMAIN_EVENT_CALLBACK(Vm::Migration::Completion::react),
+			new Vm::Migration::Completion(getDomain(), p),
+			&Callback::Plain::delete_<Vm::Migration::Completion>);
+	if (-1 == s)
+		return Failure(PRL_ERR_FAILURE);
+
+	Result e = migrate(config_);
+	if (e.isFailed())
+	{
+		virConnectNetworkEventDeregisterAny(getLink(), s);
+		return e.error();
+	}
+	quint64 output = v.get();
+	virConnectNetworkEventDeregisterAny(getLink(), s);
+	return output;
 };
 
 } // namespace Migration

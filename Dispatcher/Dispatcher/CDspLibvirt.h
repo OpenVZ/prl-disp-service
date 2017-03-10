@@ -485,6 +485,15 @@ protected:
 	Result migrate(const CVmConfiguration& config_, unsigned int flags_,
 		Parameters::Builder& parameters_);
 
+	virConnectPtr getLink() const
+	{
+		return m_link.data();
+	}
+	virDomainPtr getDomain() const
+	{
+		return m_domain.data();
+	}
+
 private:
 	QSharedPointer<virDomain> m_domain;
 	QSharedPointer<virConnect> m_link;
@@ -496,6 +505,8 @@ private:
 
 struct Online: Agent
 {
+	typedef Prl::Expected<quint64, ::Error::Simple> result_type;
+
 	explicit Online(const Agent& agent_);
 
 	void setQemuState(qint32 port_);
@@ -507,9 +518,11 @@ struct Online: Agent
 	}
 	void setBandwidth(quint64 value_);
 
-	Result operator()(const CVmConfiguration& config_);
+	result_type operator()(const CVmConfiguration& config_);
 
 private:
+	Result migrate(const CVmConfiguration& config_);
+
 	QSharedPointer<Qemu::Disk> m_qemuDisk;
 	QSharedPointer<Qemu::State> m_qemuState;
 	QSharedPointer<Compression> m_compression;

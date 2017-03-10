@@ -406,6 +406,7 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 	{
 		SmartPtr<CVmConfiguration> pNewConfig;
 		::Vm::Private::Brand b(pConfig->getVmIdentification()->getHomePath(), getClient());
+		b.remove();
 		if (PRL_FAILED(nRetCode = b.stamp()))
 			goto exit;
 
