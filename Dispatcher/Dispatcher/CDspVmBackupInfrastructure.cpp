@@ -33,11 +33,14 @@
 #if defined(_LIN_)
 #include <CDspBackupDevice.h>
 #endif
+#if defined(_CT_)
+#include <vzctl/libvzctl.h>
+#endif
+#include "CDspLibvirtExec.h"
 #include <Tasks/Task_CloneVm_p.h>
 #include "CDspVmBackupInfrastructure.h"
 #include "CDspVmSnapshotInfrastructure.h"
 #include <prlxmlmodel/BackupActivity/BackupActivity.h>
-#include "CDspLibvirtExec.h"
 
 namespace Backup
 {
@@ -1663,5 +1666,409 @@ PRL_RESULT Service::erase(const CVmIdent& ident_, T& t_)
 }
 
 } // namespace Activity
+
+namespace Metadata
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Lock
+
+PRL_RESULT Lock::grabShared(const QString& sequence_)
+{
+	PRL_ASSERT(!sequence_.isEmpty());
+	QMutexLocker g(&m_mutex);
+
+	if (m_exclusive.contains(sequence_))
+	{
+		WRITE_TRACE(DBG_FATAL, "Backup %s has already been locked for writing",
+			QSTR2UTF8(sequence_));
+		return PRL_ERR_BACKUP_LOCKED_FOR_WRITING;
+	}
+	m_shared.insert(sequence_, QThread::currentThread());
+	return PRL_ERR_SUCCESS;
+}
+
+void Lock::releaseShared(const QString& sequence_)
+{
+	QMutexLocker g(&m_mutex);
+	QMultiHash<QString, QThread* >::iterator p =
+		m_shared.find(sequence_, QThread::currentThread());
+	if (m_shared.end() == p)
+	{
+		WRITE_TRACE(DBG_FATAL, "Unlock for non-locked backup %s",
+			QSTR2UTF8(sequence_));
+	}
+	else
+		m_shared.erase(p);
+}
+
+PRL_RESULT Lock::grabExclusive(const QString& sequence_)
+{
+	PRL_ASSERT(!sequence_.isEmpty());
+	QMutexLocker g(&m_mutex);
+
+	if (m_exclusive.contains(sequence_))
+	{
+		WRITE_TRACE(DBG_FATAL, "Backup %s has already been locked for writing",
+			QSTR2UTF8(sequence_));
+		return PRL_ERR_BACKUP_LOCKED_FOR_WRITING;
+	}
+	if (m_shared.contains(sequence_))
+	{
+		WRITE_TRACE(DBG_FATAL, "Backup %s has already been locked for reading",
+			QSTR2UTF8(sequence_));
+		return PRL_ERR_BACKUP_LOCKED_FOR_READING;
+	}
+	m_exclusive.insert(sequence_);
+	return PRL_ERR_SUCCESS;
+}
+
+void Lock::releaseExclusive(const QString& sequence_)
+{
+	QMutexLocker g(&m_mutex);
+	if (0 == m_exclusive.remove(sequence_))
+	{
+		WRITE_TRACE(DBG_FATAL, "Unlock for non-locked backup %s",
+			QSTR2UTF8(sequence_));
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Carcass
+
+Carcass::Carcass(const QString& root_, const QString& ve_):
+	m_root(QDir(root_).filePath(ve_))
+{
+}
+
+QDir Carcass::getSequence(const QString& uuid_) const
+{
+	return m_root.absoluteFilePath(uuid_);
+}
+
+QDir Carcass::getItem(const QString& sequence_, quint32 number_) const
+{
+	if (Sequence::BASE == number_)
+	{
+		return QDir(getSequence(sequence_)
+			.absoluteFilePath(PRL_BASE_BACKUP_DIRECTORY));
+	}
+	return QDir(getSequence(sequence_)
+		.absoluteFilePath(QString::number(number_)));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ve
+
+QFileInfo Ve::showItem() const
+{
+	return m_fs.getCatalog().filePath(PRL_BACKUP_METADATA);
+}
+
+Prl::Expected<VmItem, PRL_RESULT> Ve::loadItem()
+{
+	if (m_cache)
+		return m_cache.get();
+
+	VmItem output;
+	QString sPath = showItem().absoluteFilePath();
+	PRL_RESULT e = output.loadFromFile(sPath);
+	if (PRL_FAILED(e))
+	{
+		WRITE_TRACE(DBG_FATAL,
+			"Error occurred while Vm metadata \"%s\" loading with code [%#x][%s]",
+			QSTR2UTF8(sPath), e, PRL_RESULT_TO_STRING(e));
+		return e;
+	}
+	m_cache = output;
+	return output;
+}
+
+PRL_RESULT Ve::saveItem(const VmItem& value_)
+{
+	PRL_RESULT output = VmItem(value_).saveToFile(showItem().absoluteFilePath());
+	if (PRL_SUCCEEDED(output))
+		m_cache = value_;
+
+	return output;
+}
+
+Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT>
+	Ve::loadConfig(const QString& sequence_, quint32 number_)
+{
+	Prl::Expected<VmItem, PRL_RESULT> m = loadItem();
+	if (m.isFailed())
+		return m.error();
+
+	int l = 0;
+	PRL_RESULT e = PRL_ERR_SUCCESS;
+	SmartPtr<CVmConfiguration> output;
+	switch (m.value().getVmType())
+	{
+	case PVBT_VM:
+	{
+		QFile file(m_fs.getItem(sequence_, number_).filePath(VMDIR_DEFAULT_VM_CONFIG_FILE));
+		output = SmartPtr<CVmConfiguration>(new(std::nothrow) CVmConfiguration);
+		if (!output.isValid())
+			return PRL_ERR_OUT_OF_MEMORY;
+		if (PRL_FAILED(e = output->loadFromFile(&file, false)))
+			WRITE_TRACE(DBG_FATAL, "Failed to load config file '%s'", QSTR2UTF8(file.fileName()));
+		break;
+	}
+#ifdef _CT_
+	case PVBT_CT_PLOOP:
+		// NB. there is no break here intentionally.
+		l = VZCTL_LAYOUT_5;
+	case PVBT_CT_VZFS:
+	{
+		int x = 0;
+		QString file(m_fs.getItem(sequence_, number_).filePath(VZ_CT_CONFIG_FILE));
+		output = CVzHelper::get_env_config_from_file(file, x, l, true);
+		if (!output.isValid())
+		{
+			WRITE_TRACE(DBG_FATAL, "Failed to load config file '%s'", QSTR2UTF8(file));
+			e = PRL_ERR_UNEXPECTED;
+		}
+		break;
+	}
+#endif // _CT_
+	default:
+		WRITE_TRACE(DBG_FATAL, "loading VE config for backup type %d is not implemented",
+			m.value().getVmType());
+		return PRL_ERR_UNEXPECTED;
+	}
+	if (PRL_FAILED(e))
+		return e;
+
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Sequence
+
+QList<quint32> Sequence::getIndex() const
+{
+	QList<quint32> output;
+	QDir d(m_fs.getSequence(m_uuid));
+	if (!d.exists())
+		return output;
+
+	foreach (const QFileInfo& e, d.entryInfoList(QDir::NoDotAndDotDot | QDir::Dirs))
+	{
+		bool ok;
+		quint32 number = e.fileName().toUInt(&ok);
+		if (!ok)
+			continue;
+		if (QFile::exists(showItem(number)))
+			output << number;
+	}
+	std::sort(output.begin(), output.end());
+	if (showItemLair(BASE).exists())
+		output.prepend(BASE);
+
+	return output;
+}
+
+Prl::Expected<BackupItem, PRL_RESULT> Sequence::getHeadItem(quint32 at_) const
+{
+	BackupItem output;
+	output.setDateTime(QDateTime(QDate(1970, 1, 1)));
+	QString sPath = showItem(at_);
+	PRL_RESULT e = output.loadFromFile(sPath);
+	if (PRL_FAILED(e))
+	{
+		if (QFile::exists(sPath))
+		{
+			WRITE_TRACE(DBG_FATAL,
+				"Cannot load backup \"%s\" metadata with code [%#x][%s]",
+				QSTR2UTF8(sPath), e, PRL_RESULT_TO_STRING(e));
+		}
+		else
+		{
+			WRITE_TRACE(DBG_FATAL,
+				"backup metadata file %s does not exist", QSTR2UTF8(sPath));
+			return PRL_ERR_BACKUP_INTERNAL_ERROR;
+		}
+		// in any case set backup uuid
+		output.setUuid(m_uuid);
+		output.setId(m_uuid);
+	}
+	output.setType(PRL_BACKUP_FULL_TYPE);
+	if (PRL_FAILED(e))
+		return e;
+
+	return output;
+}
+
+Prl::Expected<PartialBackupItem, PRL_RESULT> Sequence::getTailItem(quint32 at_) const
+{
+	PartialBackupItem output;
+	output.setDateTime(QDateTime(QDate(1970, 1, 1)));
+	QString sPath = showItem(at_);
+	PRL_RESULT e = output.loadFromFile(sPath);
+	if (PRL_FAILED(e))
+	{
+		WRITE_TRACE(DBG_FATAL,
+			"Error occurred while backup metadata \"%s\" loading with code [%#x][%s]",
+			QSTR2UTF8(sPath), e, PRL_RESULT_TO_STRING(e));
+		// in any case set backup uuid
+		output.setNumber(at_);
+		output.setId(QString("%1.%2").arg(m_uuid).arg(at_));
+	}
+	output.setType(PRL_BACKUP_INCREMENTAL_TYPE);
+
+	if (PRL_FAILED(e))
+		return e;
+
+	return output;
+}
+
+Prl::Expected<CBackupDisks, PRL_RESULT> Sequence::getDisks(quint32 at_)
+{
+	Ve u(m_fs);
+	Prl::Expected<VmItem, PRL_RESULT> m = u.loadItem();
+	if (m.isFailed())
+		return m.error();
+
+	Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> x =
+		u.loadConfig(m_uuid, at_);
+
+	if (x.isFailed())
+		return x.error();
+
+	x.value()->setRelativePath();
+	// XXX: empty home doesn't work here, so generate some random cookie
+	QString home("/" + Uuid::createUuid().toString());
+	Backup::Product::Model p(Backup::Object::Model(x.value()), home);
+	Backup::Product::componentList_type archives;
+	if (BACKUP_PROTO_V4 <= m.value().getVersion())
+	{
+		p.setSuffix(::Backup::Suffix(at_)());
+		archives = p.getVmTibs();
+	}
+	else if (m.value().getVmType() == PVBT_VM)
+		archives = p.getVmTibs();
+	else
+		archives = p.getCtTibs();
+
+	CBackupDisks output;
+	foreach(const Backup::Product::component_type& a, archives)
+	{
+		CBackupDisk *b = new (std::nothrow) CBackupDisk;
+		if (!b)
+			return PRL_ERR_OUT_OF_MEMORY;
+		b->setName(a.second.fileName());
+		QFileInfo fi(a.first.getImage());
+		// use relative paths for disks that reside in the VM home directory
+		b->setOriginalPath(fi.dir() == home ? fi.fileName() : fi.filePath());
+		b->setSize(a.first.getDevice().getSize() << 20);
+		CVmHddEncryption *e = a.first.getDevice().getEncryption();
+		if (e)
+			b->setEncryption(new CVmHddEncryption(e));
+		output.m_lstBackupDisks << b;
+	}
+	return output;
+}
+
+PRL_RESULT Sequence::save(const BackupItem& value_, quint32 at_)
+{
+	return BackupItem(value_).saveToFile(showItem(at_));
+}
+
+PRL_RESULT Sequence::create(const PartialBackupItem& value_, quint32 at_)
+{
+	PRL_RESULT e = update(value_, at_);
+	if (PRL_FAILED(e))
+		return e;
+
+	quint32 i = getIndex().first();
+	Prl::Expected<BackupItem, PRL_RESULT> h = getHeadItem(i);
+	if (h.isFailed())
+		return h.error();
+
+	h.value().setLastNumber(at_);
+	return save(h.value(), i);
+}
+
+PRL_RESULT Sequence::update(const PartialBackupItem& value_, quint32 at_)
+{
+	return PartialBackupItem(value_).saveToFile(showItem(at_));
+}
+
+PRL_RESULT Sequence::remove(quint32 at_)
+{
+	QDir d = m_fs.getItem(m_uuid, at_);
+	QString p = d.absolutePath();
+	if (!d.cdUp())
+		return PRL_ERR_FILE_NOT_FOUND;
+	if (!CFileHelper::ClearAndDeleteDir(p))
+		return PRL_ERR_FAILURE;
+	if (getIndex().isEmpty() && !CFileHelper::ClearAndDeleteDir(d.absolutePath()))
+		return PRL_ERR_FAILURE;
+
+	return PRL_ERR_SUCCESS;
+}
+
+QString Sequence::showItem(quint32 at_) const
+{
+	return m_fs.getItem(m_uuid, at_).filePath(PRL_BACKUP_METADATA);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Catalog
+
+Sequence Catalog::getSequence(const QString& at_) const
+{
+	return Sequence(at_, getFs());
+}
+
+QFileInfoList Catalog::getSequences() const
+{
+	QFileInfoList output;
+	if (!showItem().exists())
+		return output;
+
+	foreach (const QFileInfo& e, getFs().getCatalog()
+		.entryInfoList(QDir::NoDotAndDotDot | QDir::Dirs))
+	{
+		if (Uuid::isUuid(e.fileName()))
+			output << e;
+	}
+	return output;
+}
+
+QStringList Catalog::getIndexForRead(CAuthHelper* auth_) const
+{
+	QStringList output;
+	QFileInfoList x = getSequences();
+	if (NULL == auth_)
+	{
+		foreach (const QFileInfo& e, x)
+		{
+			output << e.fileName();
+		}
+	}
+	else
+	{
+		foreach (const QFileInfo& e, x)
+		{
+			if (CFileHelper::FileCanRead(e.absoluteFilePath(), auth_))
+				output << e.fileName();
+		}
+	}
+	return output;
+}
+
+QStringList Catalog::getIndexForWrite(CAuthHelper& auth_) const
+{
+	QStringList output;
+	foreach (const QFileInfo& e, getSequences())
+	{
+		if (CFileHelper::FileCanWrite(e.absoluteFilePath(), &auth_))
+			output << e.fileName();
+	}
+	return output;
+}
+
+} // namespace Metadata
 } // namespace Backup
 

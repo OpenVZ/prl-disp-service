@@ -55,32 +55,25 @@ typedef boost::variant<BackupItem, PartialBackupItem> item_type;
 
 struct Item
 {
-	Item() : m_number(0) {}
-
-	Item(const QString& path_,  const QString& ve_, const QString& uuid_)
-		: m_ve(ve_), m_uuid(uuid_), m_number(0)
+	Item() : m_number()
 	{
-		m_dir = QFileInfo(QDir(path_), PRL_BASE_BACKUP_DIRECTORY);
+	}
+	explicit Item(quint32 number_): m_number(number_)
+	{
 	}
 
-	void setNumber(quint32 number_)
-	{
-		m_number = number_;
-		if (m_number >= PRL_PARTIAL_BACKUP_START_NUMBER)
-			m_dir.setFile(m_dir.absoluteDir(), QString::number(number_));
-	}
 	quint32 getNumber() const
 	{
 		return m_number;
 	}
-	PRL_RESULT load(Task_BackupHelper *context_);
+	PRL_RESULT load(const Backup::Metadata::Sequence& sequence_);
 	const QStringList& getFiles() const
 	{
 		return m_files;
 	}
-	QString getDir() const
+	const QString& getLair() const
 	{
-		return m_dir.absoluteFilePath();
+		return m_lair;
 	}
 	const item_type& getData() const
 	{
@@ -88,31 +81,28 @@ struct Item
 	}
 
 private:
-	QString m_ve;
-	QString m_uuid;
 	quint32 m_number;
 	QStringList m_files;
-	QFileInfo m_dir;
+	QString m_lair;
 	item_type m_data;
 };
 
 typedef QSharedPointer<Item> element_type;
 typedef QList<element_type> list_type;
-typedef boost::function0<PRL_RESULT> action_type;
+typedef boost::function<PRL_RESULT()> action_type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Meta
 
 struct Meta : boost::static_visitor<PRL_RESULT>
 {
-	explicit Meta(const QString& path_)
+	Meta(element_type item_, const Backup::Metadata::Sequence& sequence_):
+		m_item(item_), m_sequence(sequence_)
 	{
-		m_file = QString("%1/" PRL_BACKUP_METADATA).arg(path_);
 	}
 	
-	PRL_RESULT operator()(const PartialBackupItem& from_, const BackupItem& to_) const;
+	PRL_RESULT operator()(const BackupItem& from_, const PartialBackupItem& to_) const;
 	PRL_RESULT operator()(const PartialBackupItem& from_, const PartialBackupItem& to_) const;
-
 	template<class T, class Y>
 	PRL_RESULT operator()(const T&, const Y&) const
 	{
@@ -120,7 +110,10 @@ struct Meta : boost::static_visitor<PRL_RESULT>
 	}
 
 private:
-	QString m_file;
+	qulonglong getSize() const;
+
+	element_type m_item;
+	mutable Backup::Metadata::Sequence m_sequence;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -145,21 +138,44 @@ private:
 
 struct Shifter
 {
-	typedef boost::function1<PRL_RESULT, unsigned> updater_type;
+	Shifter(Task_BackupHelper& context_, const Backup::Metadata::Sequence& sequence_):
+		m_context(&context_), m_sequence(sequence_)
+	{
+	}
 
-	Shifter(Task_BackupHelper& context_, updater_type updater_)
-		: m_context(&context_), m_updater(updater_) {}
+	static PRL_RESULT rebase(const QString& file_, const QString& base_);
+	static QList<action_type> rebaseItem(const Item& item_, const Item& base_);
+	QList<action_type> operator()(quint32 item_);
 
-	static PRL_RESULT move(const QString& from_, const QString& to_);
-	static PRL_RESULT moveDir(const QString& from_, const QString& to_);
-	QList<action_type> moveItem(const Item& from_, const Item& to_);
-	static PRL_RESULT rebase(const QString& file_, const QString& base_, bool safe_);
-	static QList<action_type> rebaseItem(const Item& item_, const Item& base_, bool safe_);
-	QList<action_type> operator()(const list_type& objects_, quint32 index_);
+	void setNext(quint32 value_);
+	void setPreceding(quint32 value_);
 
 private:
 	Task_BackupHelper *m_context;
-	updater_type m_updater;
+	Backup::Metadata::Sequence m_sequence;
+	element_type m_next, m_preceding;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Confectioner
+
+struct Confectioner
+{
+	typedef Prl::Expected<QList<action_type>, PRL_RESULT> result_type;
+
+	Confectioner(const QList<quint32>& index_, quint32 number_):
+		m_number(number_), m_index(index_)
+	{
+	}
+
+	result_type operator()
+		(Shifter producer_,Prl::Expected<VmItem, PRL_RESULT> catalog_) const;
+	result_type operator()
+		(Remover producer_, const Metadata::Sequence& sequence_) const;
+
+private:
+	quint32 m_number;
+	const QList<quint32> m_index;
 };
 
 } // namespace Remove

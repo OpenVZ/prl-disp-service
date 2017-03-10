@@ -32,7 +32,7 @@
 #include "Interfaces/Debug.h"
 #include "prlcommon/Interfaces/ParallelsQt.h"
 #include "prlcommon/Interfaces/ParallelsNamespace.h"
-
+#include <boost/foreach.hpp>
 #include "prlcommon/Logging/Logging.h"
 #include "Libraries/StatesStore/SavedStateTree.h"
 
@@ -42,6 +42,84 @@
 #include "prlcommon/Std/PrlAssert.h"
 #include "prlxmlmodel/BackupTree/BackupTree.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
+
+namespace Backup
+{
+namespace Tree
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Branch
+
+BackupItem* Branch::show() const
+{
+	QList<quint32> x = m_metadata.getIndex();
+	if (x.isEmpty())
+		return NULL;
+
+	return filterList(x.first(), x);
+}
+
+BackupItem* Branch::filterOne(const QString& sequence_, quint32 number_) const
+{
+	if (sequence_ != m_uuid)
+		return NULL;
+	QList<quint32> x = m_metadata.getIndex();
+	if (!x.contains(number_))
+		return NULL;
+
+	return filterList(x.first(), QList<quint32>() << number_);
+}
+
+BackupItem* Branch::filterChain(const QString& sequence_, quint32 number_) const
+{
+	if (sequence_ != m_uuid)
+		return NULL;
+
+	QList<quint32> x = m_metadata.getIndex();
+	QList<quint32>::iterator p = std::find(x.begin(), x.end(), number_);
+	if (x.constEnd() == p)
+		return NULL;
+
+	quint32 h = x.first();
+	x.erase(x.begin(), p);
+	return filterList(h, x);
+}
+
+BackupItem* Branch::filterList(quint32 head_, QList<quint32> filter_) const
+{
+	if (filter_.isEmpty())
+		return NULL;
+
+	Prl::Expected<BackupItem, PRL_RESULT> b = m_metadata.getHeadItem(head_);
+	if (b.isFailed())
+		return NULL;
+
+	Prl::Expected<CBackupDisks, PRL_RESULT> d =
+		Backup::Metadata::Sequence(m_metadata).getDisks(head_);
+	if (d.isFailed())
+		return NULL;
+
+	filter_.removeOne(head_);
+	BackupItem* output = new BackupItem(b.value());
+	output->setBackupDisks(new CBackupDisks(d.value()));
+	foreach (quint32 n, filter_)
+	{
+		Prl::Expected<PartialBackupItem, PRL_RESULT> p = m_metadata.getTailItem(n);
+		if (p.isFailed())
+			continue;
+		d = Backup::Metadata::Sequence(m_metadata).getDisks(n);
+		if (d.isFailed())
+			continue;
+
+		output->m_lstPartialBackupItem << new PartialBackupItem(p.value());
+		output->m_lstPartialBackupItem.last()->setBackupDisks
+			(new CBackupDisks(d.value()));
+	}
+	return output;
+}
+
+} // namespace Tree
+} // namespace Backup
 
 /*******************************************************************************
 
@@ -179,152 +257,58 @@ PRL_RESULT Task_GetBackupTreeTarget::run_body()
 	return nRetCode;
 }
 
-template <class T>
-PRL_RESULT Task_GetBackupTreeTarget::addDisks(T& entry,
-	const VmItem& vm, const QString& uuid, unsigned number)
-{
-	QString path = QString("%1/%2/%3").arg(getBackupDirectory()).arg(vm.getUuid()).arg(uuid);
-	if (number == PRL_BASE_BACKUP_NUMBER)
-		path = QString("%1/" PRL_BASE_BACKUP_DIRECTORY).arg(path);
-	else
-		path = QString("%1/%2").arg(path).arg(number);
-
-	QScopedPointer<CBackupDisks> list(new (std::nothrow) CBackupDisks);
-	if (!list)
-		return PRL_ERR_OUT_OF_MEMORY;
-	SmartPtr<CVmConfiguration> conf;
-	PRL_RESULT res = loadVeConfig(uuid, path, vm.getVmType(), conf);
-	if (PRL_FAILED(res))
-		return res;
-	conf->setRelativePath();
-	/* XXX: empty home doesn't work here, so generate some random cookie */
-	QString home("/" + Uuid::createUuid().toString());
-	Backup::Product::Model p(Backup::Object::Model(conf), home);
-	Backup::Product::componentList_type archives;
-	if (BACKUP_PROTO_V4 <= vm.getVersion()) {
-		p.setSuffix(::Backup::Suffix(number)());
-		archives = p.getVmTibs();
-	} else if (vm.getVmType() == PVBT_VM)
-		archives = p.getVmTibs();
-	else
-		archives = p.getCtTibs();
-
-	foreach(const Backup::Product::component_type& a, archives) {
-		CBackupDisk *b = new (std::nothrow) CBackupDisk;
-		if (!b)
-			return PRL_ERR_OUT_OF_MEMORY;
-		b->setName(a.second.fileName());
-		QFileInfo fi(a.first.getImage());
-		/* use relative paths for disks that reside in the VM home directory */
-		b->setOriginalPath(fi.dir() == home ? fi.fileName() : fi.filePath());
-		b->setSize(a.first.getDevice().getSize() << 20);
-		CVmHddEncryption *e = a.first.getDevice().getEncryption();
-		if (e)
-			b->setEncryption(new CVmHddEncryption(e));
-		list->m_lstBackupDisks << b;
-	}
-	entry.setBackupDisks(list.take());
-	return PRL_ERR_SUCCESS;
-}
-
 void Task_GetBackupTreeTarget::getBackupTree(QString &msg)
 {
-	QDir dir;
-	QFileInfoList entryList;
-	int i, j, k;
+	QString s;
+	quint32 n = 0;
+	if (backupFilterEnabled())
+		parseBackupId(m_sUuid, s, n); 
+		
 	BackupTree bTree;
-	QString sVmUuid;
-	QString sBackupUuid;
-	unsigned nBackupNumber;
-	QStringList lstBaseBackupUuid;
-	QList<unsigned> lstPartialBackupNumber;
-	VmItem cVmItem;
-	bool chain = false;
-
 	/* set empty xml string at the first (https://jira.sw.ru/browse/PSBM-9137) */
-	msg = bTree.toString();
-	dir.setPath(getBackupDirectory());
-	if (!dir.exists())
-		return;
-
-	entryList = dir.entryInfoList(QDir::NoDotAndDotDot | QDir::Dirs);
-	for (i = 0; i < entryList.size(); ++i) {
-		sVmUuid = entryList.at(i).fileName();
+	foreach (const QFileInfo& e, QDir(getBackupDirectory()).entryInfoList(QDir::NoDotAndDotDot | QDir::Dirs))
+	{
+		const QString sVmUuid = e.fileName();
 		if (!Uuid::isUuid(sVmUuid))
 			continue;
 		if (!backupFilterEnabled() && !m_sUuid.isEmpty() && (m_sUuid != sVmUuid))
 			continue;
 
-		loadVmMetadata(sVmUuid, &cVmItem);
+		Backup::Metadata::Catalog c = getCatalog(sVmUuid);
+		Prl::Expected<VmItem, PRL_RESULT> v = c.loadItem();
+		if (v.isFailed())
+			continue;
 
 		/* skip inappropriate vmtype */
-		if (!(m_nFlags & PBT_VM) && (cVmItem.getVmType() == PVBT_VM))
-			continue;
-		if (!(m_nFlags & PBT_CT) && (cVmItem.getVmType() != PVBT_VM))
+		if (!((PVBT_VM == v.value().getVmType()) ^ (((m_nFlags & (PBT_VM | PBT_CT)) & PBT_VM) == 0)))
 			continue;
 
-		QScopedPointer<VmItem> pVmItem(new (std::nothrow) VmItem(cVmItem));
-		if (!pVmItem)
-			return;
-		getBaseBackupList(sVmUuid, lstBaseBackupUuid, &getClient()->getAuthHelper(), PRL_BACKUP_CHECK_MODE_READ);
-		for (j = 0; j < lstBaseBackupUuid.size(); ++j) {
-			sBackupUuid = lstBaseBackupUuid.at(j);
-			QScopedPointer<BackupItem> pBackupItem(new (std::nothrow) BackupItem);
-			if (!pBackupItem)
-				return;
-			if (PRL_FAILED(loadBaseBackupMetadata(sVmUuid, sBackupUuid, pBackupItem.data())))
+		BOOST_FOREACH (const QString& sBackupUuid, c.getIndexForRead(&getClient()->getAuthHelper()))
+		{
+			if (PRL_FAILED(getMetadataLock().grabShared(sBackupUuid)))
 				continue;
-			if (PRL_FAILED(addDisks(*pBackupItem, cVmItem, sBackupUuid, PRL_BASE_BACKUP_NUMBER)))
+
+			BackupItem* i;
+			Backup::Tree::Branch b(sBackupUuid, c.getSequence(sBackupUuid));
+			if (filterSingleBackup())
+				i = b.filterOne(s, n);
+			else if (filterBackupChain() && v.value().m_lstBackupItem.isEmpty())
+				i = b.filterChain(s, n);
+			else
+				i = b.show();
+			getMetadataLock().releaseShared(sBackupUuid);
+			if (NULL == i)
 				continue;
-			if (backupFilterEnabled() && (m_sUuid == pBackupItem->getId())) {
-				if (filterSingleBackup()) {
-					/* found needed full backup - nothing to do anymore */
-					addBackup(pVmItem->m_lstBackupItem, pBackupItem.take());
-					break;
-				} else if (filterBackupChain()) {
-					/* enable chain search mode - add all incremental
-					 * backups of this full backup to the output */
-					chain = true;
-				}
-			}
-			getPartialBackupList(sVmUuid, sBackupUuid, lstPartialBackupNumber);
-			for (k = 0; k < lstPartialBackupNumber.size(); ++k) {
-				nBackupNumber = lstPartialBackupNumber.at(k);
-				QScopedPointer<PartialBackupItem> pPartialBackupItem(new (std::nothrow) PartialBackupItem);
-				if (!pPartialBackupItem)
-					return;
-				if (PRL_FAILED(loadPartialBackupMetadata(sVmUuid, sBackupUuid, nBackupNumber, pPartialBackupItem.data())))
-					continue;
-				if (PRL_FAILED(addDisks(*pPartialBackupItem, cVmItem, sBackupUuid, nBackupNumber)))
-					continue;
-				if (backupFilterEnabled()) {
-					if (m_sUuid == pPartialBackupItem->getId()) {
-						if (filterSingleBackup()) {
-							/* found needed incremental backup - nothing to do anymore */
-							addBackup(pBackupItem->m_lstPartialBackupItem, pPartialBackupItem.take());
-							break;
-						} else if (filterBackupChain()) {
-							/* add all incremental backups after this backup to the output */
-							chain = true;
-						}
-					} else if (!chain) {
-						continue;
-					}
-				}
-				addBackup(pBackupItem->m_lstPartialBackupItem, pPartialBackupItem.take());
-			}
-			if (backupFilterEnabled() && pBackupItem->m_lstPartialBackupItem.isEmpty()
-				&& (m_sUuid != pBackupItem->getId())) {
-				/* no partial backups are found for current full backup */
-				continue;
-			}
-			addBackup(pVmItem->m_lstBackupItem, pBackupItem.take());
+
+			addBackup(v.value().m_lstBackupItem, i);
+			if (filterSingleBackup())
+				break;
 		}
-		if (pVmItem->m_lstBackupItem.isEmpty()) {
+		if (v.value().m_lstBackupItem.isEmpty()) {
 			/* to skip Vm directories without backups */
 			continue;
 		}
-		bTree.m_lstVmItem.append(pVmItem.take());
+		bTree.m_lstVmItem.append(new VmItem(v.value()));
 		/* if we searched for a backup or a chain - it is already found here */
 		if (backupFilterEnabled())
 			break;

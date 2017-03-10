@@ -45,6 +45,37 @@
 #include "prlxmlmodel/BackupTree/VmItem.h"
 #include "prlxmlmodel/BackupTree/CBackupDisks.h"
 
+namespace Backup
+{
+namespace Tree
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Branch
+
+struct Branch
+{
+	Branch(const QString& uuid_, const Metadata::Sequence& metadata_):
+		m_uuid(uuid_), m_metadata(metadata_)
+	{
+	}
+
+	BackupItem* show() const;
+	BackupItem* filterOne(const QString& sequence_, quint32 number_) const;
+	BackupItem* filterChain(const QString& sequence_, quint32 number_) const;
+
+private:
+	BackupItem* filterList(quint32 head_, QList<quint32> filter_) const;
+
+	const QString m_uuid;
+	Metadata::Sequence m_metadata;
+};
+
+} // namespace Tree
+} // namespace Backup
+
+///////////////////////////////////////////////////////////////////////////////
+// class Task_GetBackupTreeSource
+
 class Task_GetBackupTreeSource : public Task_BackupHelper
 {
 	Q_OBJECT
@@ -67,6 +98,9 @@ private:
 	QString& m_sUuid;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// class Task_GetBackupTreeTarget
+
 class Task_GetBackupTreeTarget : public Task_BackupHelper
 {
 	Q_OBJECT
@@ -86,13 +120,9 @@ private:
 
 	template <class T>
 	void addBackup(QList<T*>& list, T *backup);
-
 	bool filterSingleBackup() { return m_nFlags & PBT_BACKUP_ID; }
 	bool filterBackupChain() { return m_nFlags & PBT_CHAIN; }
 	bool backupFilterEnabled() { return filterSingleBackup() || filterBackupChain(); }
-
-	template <class T>
-	PRL_RESULT addDisks(T& entry, const VmItem& vm, const QString& uuid, unsigned number);
 
 private:
 	SmartPtr<CDspDispConnection> m_pDispConnection;

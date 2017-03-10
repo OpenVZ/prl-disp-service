@@ -153,7 +153,7 @@ Task_RestoreVmBackupSource::~Task_RestoreVmBackupSource()
 PRL_RESULT Task_RestoreVmBackupSource::prepareTask()
 {
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	VmItem cVmItem;
+	Prl::Expected<VmItem, PRL_RESULT> x;
 
 	if (m_sBackupId.isEmpty()) {
 		if (m_sVmUuid.isEmpty()) {
@@ -174,13 +174,7 @@ PRL_RESULT Task_RestoreVmBackupSource::prepareTask()
 		}
 		m_sBackupUuid = b->getUuid();
 		delete b;
-		QList<unsigned> lstBackupNumber;
-		getPartialBackupList(m_sVmUuid, m_sBackupUuid, lstBackupNumber);
-		if (lstBackupNumber.size())
-			/* it will restore from last partial backup */
-			m_nBackupNumber = lstBackupNumber.last();
-		else
-			m_nBackupNumber = PRL_BASE_BACKUP_NUMBER;
+		m_nBackupNumber = getCatalog(m_sVmUuid).getSequence(m_sBackupUuid).getIndex().last();
 	} else {
 		if (PRL_FAILED(parseBackupId(m_sBackupId, m_sBackupUuid, m_nBackupNumber))) {
 			nRetCode = PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
@@ -204,12 +198,10 @@ PRL_RESULT Task_RestoreVmBackupSource::prepareTask()
 			goto exit;
 		}
 	}
-
-	m_sBackupRootPath = QString("%1/%2/%3").arg(getBackupDirectory()).arg(m_sVmUuid).arg(m_sBackupUuid);
-	if (m_nBackupNumber == PRL_BASE_BACKUP_NUMBER)
-		m_sBackupPath = QString("%1/" PRL_BASE_BACKUP_DIRECTORY).arg(m_sBackupRootPath);
-	else
-		m_sBackupPath = QString("%1/%2").arg(m_sBackupRootPath).arg(m_nBackupNumber);
+	m_sBackupPath = getCatalog(m_sVmUuid).getSequence(m_sBackupUuid)
+		.showItemLair(m_nBackupNumber).absolutePath();
+	m_sBackupRootPath = getCatalog(m_sVmUuid).getSequence(m_sBackupUuid)
+		.showLair().absolutePath();
 
 	/* to check access before */
 	if (!CFileHelper::FileCanRead(m_sBackupRootPath, &getClient()->getAuthHelper())) {
@@ -224,21 +216,25 @@ PRL_RESULT Task_RestoreVmBackupSource::prepareTask()
 	}
 
 	/* to get vmtype */
-	if (PRL_FAILED(nRetCode = loadVmMetadata(m_sVmUuid, &cVmItem)))
+	x = getCatalog(m_sVmUuid).loadItem();
+	if (x.isFailed())
+	{
+		nRetCode = x.error();
 		goto exit;
-	m_sVmName = cVmItem.getName();
-	if (cVmItem.getVmType() == PVBT_CT_VZFS)
+	}
+	m_sVmName = x.value().getName();
+	if (x.value().getVmType() == PVBT_CT_VZFS)
 		m_nInternalFlags |= PVM_CT_VZFS_BACKUP;
-	else if (cVmItem.getVmType() == PVBT_CT_PLOOP)
+	else if (x.value().getVmType() == PVBT_CT_PLOOP)
 		m_nInternalFlags |= PVM_CT_PLOOP_BACKUP;
-	else if (cVmItem.getVmType() == PVBT_CT_VZWIN)
+	else if (x.value().getVmType() == PVBT_CT_VZWIN)
 		m_nInternalFlags |= PVM_CT_VZWIN_BACKUP;
-	m_nRemoteVersion = cVmItem.getVersion();
+	m_nRemoteVersion = x.value().getVersion();
 	if (m_nRemoteVersion == 0)
 		m_nRemoteVersion = BACKUP_PROTO_V3;
 
 	/* to lock backup */
-	if (PRL_FAILED(nRetCode = lockShared(m_sBackupUuid)))
+	if (PRL_FAILED(nRetCode = getMetadataLock().grabShared(m_sBackupUuid)))
 		goto exit;
 	m_bBackupLocked = true;
 #ifdef _LIN_
@@ -289,7 +285,7 @@ void Task_RestoreVmBackupSource::finalizeTask()
 		f.second->stop();
 
 	if (m_bBackupLocked)
-		unlockShared(m_sBackupUuid);
+		getMetadataLock().releaseShared(m_sBackupUuid);
 	m_bBackupLocked = false;
 
 	if (PRL_FAILED(getLastErrorCode()))
@@ -341,7 +337,6 @@ PRL_RESULT Task_RestoreVmBackupSource::sendStartReply(const SmartPtr<CVmConfigur
 		WRITE_TRACE(DBG_FATAL, "Unable to get backup OriginalSize %x", code);
 		nOriginalSize = 0;
 	}
-
 	CDispToDispCommandPtr pReply = CDispToDispProtoSerializer::CreateVmBackupRestoreFirstReply(
 			m_sVmUuid,
 			m_sVmName,
