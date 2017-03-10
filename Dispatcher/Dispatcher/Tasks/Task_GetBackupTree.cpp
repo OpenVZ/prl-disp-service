@@ -280,7 +280,8 @@ void Task_GetBackupTreeTarget::getBackupTree(QString &msg)
 			continue;
 
 		/* skip inappropriate vmtype */
-		if (!((PVBT_VM == v.value().getVmType()) ^ (((m_nFlags & (PBT_VM | PBT_CT)) & PBT_VM) == 0)))
+		bool t = PVBT_VM == v.value().getVmType();
+		if ((t && (m_nFlags & PBT_VM) == 0) || (!t && (m_nFlags & PBT_CT) == 0))
 			continue;
 
 		BOOST_FOREACH (const QString& sBackupUuid, c.getIndexForRead(&getClient()->getAuthHelper()))
