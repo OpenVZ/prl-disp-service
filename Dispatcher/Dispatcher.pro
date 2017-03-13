@@ -147,6 +147,7 @@ HEADERS += \
 	Tasks/Task_MigrateVm_p.h \
 	Tasks/Task_MigrateVmSource_p.h \
 	Tasks/Task_MigrateVmQObject_p.h \
+	Tasks/Task_UpdateVm.h \
 	\
 	HwMonitor/CDspHwMonitorNotifier.h \
 	HwMonitor/CDspHwMonitorHandler.h \
@@ -260,6 +261,7 @@ SOURCES += \
 	Tasks/Task_EditVm.cpp \
 	Tasks/Task_VmDataStatistic.cpp \
 	Tasks/Task_EventLoopBase.cpp \
+	Tasks/Task_UpdateVm.cpp \
 	\
 	HwMonitor/CDspHwMonitorNotifier.cpp \
 	HwMonitor/CDspHwMonitorThread.cpp  \
