@@ -374,19 +374,6 @@ public://Convenient global methods
 	 */
 	SmartPtr<CVmConfiguration> getVmConfig( SmartPtr<CDspClient> pUser, PRL_RESULT &nOutError) const;
 
-	/**
-	 * VM migration helper - generates start VM migration request package
-	 * with necessary additional information (host hardware info, VM configuration and etc.)
-	 * @param pointer to start VM migration command
-	 * @param pointer to original migrate VM request package
-	 * @return pointer to newly generated VM migration package
-	 */
-	SmartPtr<IOPackage> CreateVmMigrationPackageWithAdditionalInfo(
-		CProtoCommandPtr pMigrateVmCmd,
-		const SmartPtr<IOPackage> &pMigrateVmRequest,
-		VIRTUAL_MACHINE_STATE nPrevVmStateBeforeMigration
-	);
-
 	void applyVMNetworkSettings(VIRTUAL_MACHINE_STATE nNewState);
 	void disableStoreRunningState(bool bDisable);
 
