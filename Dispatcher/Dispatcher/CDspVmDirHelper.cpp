@@ -84,6 +84,7 @@
 #include "Tasks/Task_ManagePrlNetService.h"
 #include "Tasks/Task_DiskImageResizer.h"
 #include "Tasks/Task_MigrateVm.h"
+#include "Tasks/Task_UpdateVm.h"
 #include "Tasks/Task_ConvertDisks.h"
 #include "Tasks/Task_EditVm.h"
 #include "Tasks/Task_CopyImage.h"
@@ -2148,8 +2149,17 @@ void CDspVmDirHelper::migrateVm ( const IOSender::Handle&,
 		return;
 	}
 
-	CDspService::instance()->getTaskManager()
-		.schedule(new Task_MigrateVmSource(m_registry, pUserSession, cmd, pkg));
+	if (pVmCmd->GetCommandFlags() & PVM_UPDATE_MODE)
+	{
+		CDspService::instance()->getTaskManager()
+			.schedule(new Task_UpdateVm(pUserSession, cmd, pkg));
+	}
+	else
+	{
+		CDspService::instance()->getTaskManager()
+			.schedule(new Task_MigrateVmSource(m_registry,
+						pUserSession, cmd, pkg));
+	}
 }
 
 void CDspVmDirHelper::lockVm( SmartPtr<CDspClient> pUserSession, const SmartPtr<IOPackage> &p )

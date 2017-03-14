@@ -561,6 +561,7 @@ struct Unit
 	Result adjustClock(qint64 adjusment_);
 
 	Migration::Agent migrate(const QString& uri_);
+	Result updateQemu();
 
 	List up() const;
 	Guest getGuest() const;

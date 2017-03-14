@@ -499,6 +499,15 @@ Migration::Agent Unit::migrate(const QString &uri_)
 	return Migration::Agent(m_domain, getLink(), uri_);
 }
 
+Result Unit::updateQemu()
+{
+	return do_(m_domain.data(), boost::bind(&virDomainMigrateToURI3, _1,
+			(const char *)NULL, (virTypedParameterPtr) NULL, 0, 
+			VIR_MIGRATE_PEER2PEER | VIR_MIGRATE_LOCAL |
+			VIR_MIGRATE_LIVE | VIR_MIGRATE_POSTCOPY |
+			VIR_MIGRATE_POSTCOPY_START | VIR_MIGRATE_RELEASE_RAM));
+}
+
 Result Unit::getUuid(QString& dst_) const
 {
 	char u[VIR_UUID_STRING_BUFLEN] = {};
