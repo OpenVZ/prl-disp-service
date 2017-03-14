@@ -372,8 +372,6 @@ PRL_RESULT Task_RestoreVmBackupSource::restore(const ::Backup::Work::object_type
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> e;
 	IOSendJob::Handle job;
-	bool bConnected;
-	const char *h = "";
 
 	if (operationIsCancelled()) {
 		nRetCode = PRL_ERR_OPERATION_WAS_CANCELED;
@@ -405,7 +403,7 @@ PRL_RESULT Task_RestoreVmBackupSource::restore(const ::Backup::Work::object_type
 
 	if (BACKUP_PROTO_V4 > m_nRemoteVersion)
 	{
-		bConnected = QObject::connect(m_pDispConnection.getImpl(),
+		bool bConnected = QObject::connect(m_pDispConnection.getImpl(),
 			SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
 			SLOT(handleABackupPackage(IOSender::Handle, const SmartPtr<IOPackage>)),
 			Qt::DirectConnection);
@@ -421,7 +419,7 @@ PRL_RESULT Task_RestoreVmBackupSource::restore(const ::Backup::Work::object_type
 	}
 	else
 	{
-		bConnected = QObject::connect(m_pDispConnection.getImpl(),
+		bool bConnected = QObject::connect(m_pDispConnection.getImpl(),
 			SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
 			SLOT(handleVBackupPackage(IOSender::Handle, const SmartPtr<IOPackage>)),
 			Qt::DirectConnection);
@@ -445,9 +443,8 @@ PRL_RESULT Task_RestoreVmBackupSource::restore(const ::Backup::Work::object_type
 				));
 	}
 exit_1:
-	QObject::disconnect(m_pDispConnection.getImpl(),
-		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
-		this, h);
+	m_pDispConnection->disconnect(SIGNAL(onPackageReceived
+		(IOSender::Handle, const SmartPtr<IOPackage>)), this);
 exit_0:
 	setLastErrorCode(nRetCode);
 	return nRetCode;
@@ -520,17 +517,27 @@ void Task_RestoreVmBackupSource::handleVBackupPackage(IOSender::Handle h, const 
 void Task_RestoreVmBackupSource::clientDisconnected(IOSender::Handle h)
 {
 	// #439777 to protect call handler for destroying object
-	WaiterTillHandlerUsingObject::AutoUnlock lock( m_waiter );
-	if( !lock.isLocked() )
+	if (!m_waiter.lockHandler())
 		return;
 
-	if (h != m_hHandle)
-		return;
+	if (h == m_hHandle)
+	{
+		WRITE_TRACE(DBG_FATAL, "%s", __FUNCTION__);
+		SmartPtr<CDspClient> nullClient;
+		CancelOperationSupport::cancelOperation(nullClient, getRequestPackage());
+		if (m_pVmCopySource.isValid())
+			m_pVmCopySource->cancelOperation();
 
-	WRITE_TRACE(DBG_FATAL, "%s", __FUNCTION__);
-	SmartPtr<CDspClient> nullClient;
-	CancelOperationSupport::cancelOperation(nullClient, getRequestPackage());
-	if (m_pVmCopySource.getImpl())
-		m_pVmCopySource->cancelOperation();
-	m_cABackupServer.kill();
+		m_waiter.unlockHandler();
+	}
+	else
+	{
+		m_waiter.unlockHandler();
+		return;
+	}
+	SmartPtr<IOPackage> x = IOPackage::createInstance(ABackupProxyCancelCmd, 0);
+	if (BACKUP_PROTO_V4 > m_nRemoteVersion)
+		handleABackupPackage(h, x);
+	else
+		handleVBackupPackage(h, x);
 }
