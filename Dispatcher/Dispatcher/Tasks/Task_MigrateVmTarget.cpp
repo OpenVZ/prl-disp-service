@@ -1264,10 +1264,6 @@ void Task_MigrateVmTarget::finalizeTask()
 
 	if (PRL_SUCCEEDED(getLastErrorCode()))
 	{
-		// update config for shared storage
-		if ((m_nReservedFlags & PVM_DONT_COPY_VM) && !(PVMT_CLONE_MODE & getRequestFlags()))
-			saveVmConfig();
-
 		/* and set logged user by owner to all VM's files */
 		Mixin_CreateVmSupport().setDefaultVmPermissions(getClient(), m_sVmConfigPath, true);
 

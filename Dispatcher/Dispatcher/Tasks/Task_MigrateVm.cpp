@@ -987,7 +987,7 @@ PRL_RESULT Task_MigrateVmSource::prepareTask()
 
 		/* will load config with relative path */
 		nRetCode = CDspService::instance()->getVmConfigManager().loadConfig(
-					m_pVmConfig, pVmDirItem.getPtr()->getVmHome(), getClient(), false, true);
+					m_pVmConfig, pVmDirItem.getPtr()->getVmHome(), getClient(), false, false);
 		if (PRL_FAILED(nRetCode)) {
 			WRITE_TRACE(DBG_FATAL, "Vm %s config loading failed. Reason: %#x (%s)",
 					QSTR2UTF8(m_sVmName), nRetCode, PRL_RESULT_TO_STRING(nRetCode));
