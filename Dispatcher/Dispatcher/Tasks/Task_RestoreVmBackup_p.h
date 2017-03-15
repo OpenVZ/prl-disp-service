@@ -35,7 +35,8 @@
 #include <boost/function.hpp>
 #include "CDspVmBackupInfrastructure_p.h"
 #include "Task_BackupHelper.h"
-#include "prlcommon/Std/noncopyable.h"
+#include <prlcommon/Std/noncopyable.h>
+#include <prlcommon/HostUtils/HostUtils.h>
 
 class Task_RestoreVmBackupTarget;
 class Task_RestoreVmBackupSource;
@@ -135,6 +136,37 @@ private:
 };
 
 } // namespace AClient
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Program
+
+struct Program: ExecHandlerBase
+{
+	typedef Prl::Expected<QString, PRL_RESULT> result_type;
+	enum
+	{
+		QUANTUM = 3000
+	};
+
+	static result_type execute(const QStringList& argv_, CDspTaskHelper& task_);
+
+	void crashed();
+
+	void waitFailed();
+
+	void exitCode(int value_);
+
+	const result_type& getResult() const
+	{
+		return m_result;
+	}
+
+private:
+	Program(QProcess& process_, const QString& name_, CDspTaskHelper& task_);
+
+	CDspTaskHelper* m_task;
+	result_type m_result;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Assistant
