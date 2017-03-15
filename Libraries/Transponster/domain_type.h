@@ -5500,22 +5500,6 @@ struct Driver1
 	{
 		m_maxSectors = value_;
 	}
-	const boost::optional<EVirOnOff >& getIoeventfd() const
-	{
-		return m_ioeventfd;
-	}
-	void setIoeventfd(const boost::optional<EVirOnOff >& value_)
-	{
-		m_ioeventfd = value_;
-	}
-	const boost::optional<PUnsignedInt::value_type >& getIothread() const
-	{
-		return m_iothread;
-	}
-	void setIothread(const boost::optional<PUnsignedInt::value_type >& value_)
-	{
-		m_iothread = value_;
-	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
 	bool save(QDomDocument& ) const;
@@ -5524,8 +5508,6 @@ private:
 	boost::optional<PUnsignedInt::value_type > m_queues;
 	boost::optional<PUnsignedInt::value_type > m_cmdPerLun;
 	boost::optional<PUnsignedInt::value_type > m_maxSectors;
-	boost::optional<EVirOnOff > m_ioeventfd;
-	boost::optional<PUnsignedInt::value_type > m_iothread;
 };
 
 } // namespace Xml
@@ -13680,7 +13662,7 @@ struct Traits<Domain::Xml::Variant589>
 template<>
 struct Traits<Domain::Xml::Driver1>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<592> > >, Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<593> > >, Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<594> > >, Optional<Attribute<Domain::Xml::EVirOnOff, Name::Strict<534> > >, Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<360> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<592> > >, Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<593> > >, Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<594> > > > > marshal_type;
 
 	static int parse(Domain::Xml::Driver1& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Driver1& , QDomElement& );
