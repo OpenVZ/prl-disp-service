@@ -1653,21 +1653,6 @@ bool CDspService::setupDispEnv ()
 	}
 
 	//////////////////////////////////////////////////////////////////////
-	// create default vm directory
-	if ( ! checkExistAndCreateDirectory(strDefaultCommonVmCatalogueDir,
-		rootAuth,
-		CDspService::permVmDir) )
-	{
-		QString msg = QString( "\n Can't create parallels vm directory '%1'.\n %2\n %3" )
-			.arg( strDefaultCommonVmCatalogueDir )
-			.arg( "Need try recreate it manually" )
-			.arg( "But Dispatcher will continue initialization.");
-		printHorrorLogMessage( msg, PRL_ERR_SUCCESS );
-
-		return true;
-	}
-
-	//////////////////////////////////////////////////////////////////////
 	// create default swap vm directory
 	if ( ! checkExistAndCreateDirectory(strDefaultSwapPathForVMOnNetworkShares,
 		rootAuth,
@@ -1679,13 +1664,6 @@ bool CDspService::setupDispEnv ()
 			.arg( "But Dispatcher will continue initialization.");
 		printHorrorLogMessage( msg, PRL_ERR_SUCCESS );
 	}
-#ifdef _LIN_
-	QStringList h;
-	perf_enum_storages(&handle, &h, perf_get_storage_lock());
-	perf_release_storage_lock();
-	bool (* f)(const QString& ) = &QFile::remove;
-	std::for_each(h.begin(), h.end(), f);
-#endif // _LIN_
 	return true;
 }
 
