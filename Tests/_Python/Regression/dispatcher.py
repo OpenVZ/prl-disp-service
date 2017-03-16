@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# (c) Parallels Software International, Inc. 2005-2008
+# Copyright (c) 2005-2017, Parallels International GmbH
+# All Rights Reserved.
+#
+# Our contact details: Parallels International GmbH, Vordergasse 59, 8200
+# Schaffhausen, Switzerland.
 #
 # AUTHOR:
 # sergeyt@

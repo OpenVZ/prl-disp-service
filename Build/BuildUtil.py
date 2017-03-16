@@ -4,7 +4,7 @@
 #
 # BuildUtil.py
 #
-# Copyright (C) 1999-2014 Parallels IP Holdings GmbH
+# Copyright (c) 1999-2017, Parallels International GmbH
 #
 # This file is part of Parallels SDK. Parallels SDK is free
 # software; you can redistribute it and/or modify it under the
@@ -21,13 +21,13 @@
 # License along with this library.  If not, see
 # <http://www.gnu.org/licenses/>.
 #
-# Our contact details: Parallels IP Holdings GmbH, Vordergasse 59, 8200
+# Our contact details: Parallels International GmbH, Vordergasse 59, 8200
 # Schaffhausen, Switzerland.
 #
 
 """
 
-@copyright: Copyright (c) 2005-2015 Parallels IP Holdings GmbH. All Rights Reserved; U{http://www.openvz.org}
+@copyright: Copyright (c) 2005-2017, Parallels International GmbH. All Rights Reserved; U{http://www.openvz.org}
 @organization: OpenVZ
 @contact: U{http://www.openvz.org}
 G{packagetree}

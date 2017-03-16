@@ -1,12 +1,12 @@
-/**
-* @file utf82wstr_imp.h
-*
-* @brief Routines to convert utf8 string to wchar_t string
-*
-* @author andreyp@
-* @author owner is alexg@
-*
-* Copyright (c) 2005-2015 Parallels IP Holdings GmbH
+/*
+ * @file utf82wstr_imp.h
+ *
+ * @brief Routines to convert utf8 string to wchar_t string
+ *
+ * @author andreyp@
+ * @author owner is alexg@
+ *
+ * Copyright (c) 2005-2017, Parallels International GmbH
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -24,9 +24,9 @@
  * <http://www.gnu.org/licenses/> or write to Free Software Foundation,
  * 51 Franklin Street, Fifth Floor Boston, MA 02110, USA.
  *
- * Our contact details: Parallels IP Holdings GmbH, Vordergasse 59, 8200
+ * Our contact details: Parallels International GmbH, Vordergasse 59, 8200
  * Schaffhausen, Switzerland.
-*/
+ */
 
 
 ////////////////////////////////////////////////////////////////////////////////
