@@ -2589,8 +2589,6 @@ bool CDspVmDirHelper::createUsersVmDirectory( SmartPtr<CDspClient> pUserSession 
 		strUserSettingsUuid = p_user->getUserId();
 	}
 
-	CAuthHelper& authHelper = pUserSession->getAuthHelper();
-
 	if( ! CDspService::instance()->getVmDirManager().getVmDirectory( strVmDirectoryUuid ) )
 	{
 		WRITE_TRACE(DBG_FATAL, "Error: not exist vmDir in VmDirCatalogue for dir_uuid [%s]", QSTR2UTF8( strVmDirectoryUuid ) );
@@ -2626,24 +2624,6 @@ bool CDspVmDirHelper::createUsersVmDirectory( SmartPtr<CDspClient> pUserSession 
 				QSTR2UTF8( strVmDirectoryName )
 				);
 		}
-		else
-		{
-			WRITE_TRACE(DBG_FATAL, "Will to repair default vm directory %s", QSTR2UTF8( vm_dir.path() ) );
-			// create a new one
-			if( !CFileHelper::WriteDirectory( strVmDirectoryName, &authHelper ) )
-			{
-				WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher can not create VM directory %s. Reason: %ld: %s",
-					QSTR2UTF8( vm_dir.path() ),
-					Prl::GetLastError(),
-					QSTR2UTF8( Prl::GetLastErrorAsString() )
-					);
-				return false;
-			}
-			// directory creation succeeded
-			WRITE_TRACE(DBG_FATAL, "Parallels VM Directory %s successfully created.",
-				QSTR2UTF8( vm_dir.path() ) );
-		}
-
 	}
 
 	return true;
