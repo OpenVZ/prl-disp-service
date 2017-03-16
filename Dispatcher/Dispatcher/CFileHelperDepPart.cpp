@@ -136,6 +136,9 @@ struct CopyProgress: QFile
 protected:
 	virtual qint64 readData(char* data, qint64 maxSize_)
 	{
+		if (m_taskHelper->operationIsCancelled())
+			return -1;
+
 		qint64 r = QFile::readData(data, maxSize_);
 		handleWrittenBytes(r);
 		return r;
@@ -206,7 +209,10 @@ PRL_RESULT CFileHelperDepPart::CopyFileWithNotifications(const QString & source_
 	if (!p.open(QIODevice::ReadOnly | QIODevice::Unbuffered))
 		return PRL_ERR_FILE_NOT_FOUND;
 	if (!p.copy(dest_))
-		return PRL_ERR_OPERATION_FAILED;
+	{
+		return taskHelper_->operationIsCancelled() ? taskHelper_->getCancelResult() :
+			PRL_ERR_OPERATION_FAILED;
+	}
 	if (!CDspAccessManager::setOwner(source_, owner_, false))
 		return PRL_ERR_CANT_CHANGE_OWNER_OF_FILE;
 
