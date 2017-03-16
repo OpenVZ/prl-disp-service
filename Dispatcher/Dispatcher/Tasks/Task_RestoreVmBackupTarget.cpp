@@ -355,6 +355,63 @@ bool Toolkit::folderExists(const QString& path_) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Program
+
+Program::result_type Program::execute(const QStringList& argv_, CDspTaskHelper& task_)
+{
+	if (argv_.isEmpty())
+		return PRL_ERR_INVALID_ARG;
+
+	QProcess q;
+	QString j = argv_.join(" ");
+	Program p(q, j, task_);
+	WRITE_TRACE(DBG_FATAL, "Run cmd: %s", qPrintable(j));
+	return HostUtils::RunCmdLineUtilityEx(argv_, q, QUANTUM)(p).getResult();
+}
+
+void Program::crashed()
+{
+	ExecHandlerBase::crashed();
+	m_result = PRL_ERR_FAILURE;
+}
+
+void Program::waitFailed()
+{
+	forever
+	{
+		if (m_task->operationIsCancelled())
+		{
+			m_process->kill();
+			m_process->waitForFinished();
+			m_result = m_task->getCancelResult();
+			return;
+		}
+		if (m_process->waitForFinished(QUANTUM))
+		{
+			if (QProcess::CrashExit == m_process->exitStatus())
+				crashed();
+			else
+				exitCode(m_process->exitCode());
+			return;
+		}
+	}
+}
+
+void Program::exitCode(int value_)
+{
+	ExecHandlerBase::exitCode(value_);
+	if (0 == value_)
+		m_result = UTF8_2QSTR(m_process->readAllStandardOutput());
+	else
+		m_result = PRL_ERR_OPERATION_FAILED;
+}
+
+Program::Program(QProcess& process_, const QString& name_, CDspTaskHelper& task_):
+	ExecHandlerBase(process_, name_), m_task(&task_), m_result(PRL_ERR_UNINITIALIZED)
+{
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Assistant
 
 Assistant::Assistant(Task_RestoreVmBackupTarget& task_, const AClient::Unit& unit_):
@@ -438,17 +495,14 @@ PRL_RESULT Assistant::operator()(const QString& image_, const QString& archive_,
 	QStringList cmdline = QStringList() << QEMU_IMG << "convert" << "-O" << format_
 			<< "-S" << "64k" << "-t" << "none" << u << image_;
 
-	QProcess process;
-	QString out;
-	WRITE_TRACE(DBG_FATAL, "Run cmd: %s", QSTR2UTF8(cmdline.join(" ")));
-	if (!HostUtils::RunCmdLineUtility(cmdline.join(" "), out, -1, &process))
+	Program::result_type q = Program::execute(cmdline, *m_task);
+	if (q.isFailed())
 	{
-		WRITE_TRACE(DBG_FATAL, "Cannot restore hdd %s: %s", QSTR2UTF8(image_),
-				process.readAllStandardError().constData());
+		WRITE_TRACE(DBG_FATAL, "Cannot restore hdd %s", qPrintable(image_));
 		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
 	}
 
-	WRITE_TRACE(DBG_DEBUG, "qemu-img output:\n%s", qPrintable(out));
+	WRITE_TRACE(DBG_DEBUG, "qemu-img output:\n%s", qPrintable(q.value()));
 	return PRL_ERR_SUCCESS;
 }
 
