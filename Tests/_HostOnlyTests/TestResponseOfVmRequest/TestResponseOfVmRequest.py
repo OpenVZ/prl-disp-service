@@ -4,8 +4,11 @@
 #
 # ==================================================================
 #
-# Copyright (c) 2005-2015 Parallels IP Holdings GmbH.
+# Copyright (c) 2005-2017, Parallels International GmbH.
 # All Rights Reserved.
+#
+# Our contact details: Parallels International GmbH, Vordergasse 59, 8200
+# Schaffhausen, Switzerland.
 #
 # This Module is a part of Parallels test system.
 #
