@@ -531,7 +531,8 @@ enum EModel
 	EModelVmpvscsi,
 	EModelIbmvscsi,
 	EModelVirtioScsi,
-	EModelLsisas1078
+	EModelLsisas1078,
+	EModelHvScsi
 };
 
 enum EModel1
@@ -826,10 +827,10 @@ enum EModel5
 	EModel5Virtio
 };
 
-enum EChoice1026
+enum EChoice1030
 {
-	EChoice1026DevRandom,
-	EChoice1026DevHwrng
+	EChoice1030DevRandom,
+	EChoice1030DevHwrng
 };
 
 enum EModel6
