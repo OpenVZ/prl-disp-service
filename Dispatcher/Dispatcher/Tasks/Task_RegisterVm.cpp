@@ -539,19 +539,7 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 			}
 
 			if( m_vmRootDir.isEmpty() )
-			{
 				m_vmRootDir= CDspVmDirHelper::getVmRootPathForUser( getClient() );
-
-				// #127473 to prevent create directory on external unmounted disk
-				if( !QDir(m_vmRootDir).exists() )
-				{
-					WRITE_TRACE(DBG_FATAL, "Parallels VM Directory %s does not exists." , QSTR2UTF8( m_vmRootDir ) );
-					getLastError()->addEventParameter(
-						new CVmEventParameter( PVE::String, m_vmRootDir,
-						EVT_PARAM_MESSAGE_PARAM_0 ) );
-					throw PRL_ERR_VM_DIRECTORY_FOLDER_DOESNT_EXIST;
-				}
-			}
 
 			if (m_vmRootDir.endsWith('/') || m_vmRootDir.endsWith('\\'))
 				m_vmRootDir.chop(1);
