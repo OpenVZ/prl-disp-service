@@ -7,6 +7,7 @@ Libraries/PrlCommonUtilsBase/PrlStringifyConsts.cpp
 **/Makefile*
 !Makefile.Linux
 !Makefile.version
+!Makefile.incl
 !Libraries/PrlCommonUtils/build.win/Makefile
 z-Build/
 

@@ -649,7 +649,7 @@ PRL_RESULT CDspVmDirManager::initVzDirCatalogue()
 	CVmDirectory* pVzDir = new CVmDirectory(
 				getVzDirectoryUuid(),
 				QString(VZ_DIR_PATH),
-				"Virtuozzo Container"
+				PRODUCT_NAME_SHORT " Container"
 				);
 
 	WRITE_TRACE(DBG_FATAL, "initVzDirCatalogue");
@@ -701,7 +701,7 @@ PRL_RESULT CDspVmDirManager::initTemplatesDirCatalogue()
 		CVmDirectory* templatesDir(new CVmDirectory(
 			getTemplatesDirectoryUuid(),
 			ParallelsDirs::getCommonDefaultVmCatalogue(),
-			"Virtuozzo VM Templates"));
+			PRODUCT_NAME_SHORT " VM Templates"));
 		catalogue->addVmDirectory(templatesDir);
 		return saveVmDirCatalogue();
 	}

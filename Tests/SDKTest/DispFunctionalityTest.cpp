@@ -641,9 +641,6 @@ void DispFunctionalityTest::test_bug127473_DenyToCloneVmToUnexistingDir()
 
 void DispFunctionalityTest::test_VmUptime()
 {
-	// https://bugzilla.sw.ru/show_bug.cgi?id=127477
-	// OS uptime for VM does not reported by Parallels SDK
-
 	// 1. create VM
 	// 2. start VM
 	// 3. get vm statistic
@@ -2064,7 +2061,7 @@ void DispFunctionalityTest::testLicenseInfo_FromUpdateLicenseResponse()
 	AutoRestoreLicenseCreds restoreLicenseCreds(session);
 
 	QString username("unit-test");
-	QString company("parallels");
+	QString company("testcompany");
 
 	test_login();
 	SET_LICENSE_USER_AND_COMPANY(m_ServerHandle, username, company)

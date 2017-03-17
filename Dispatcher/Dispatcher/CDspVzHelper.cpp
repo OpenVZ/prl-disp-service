@@ -348,7 +348,7 @@ PRL_RESULT CDspVzHelper::getCtConfigList(SmartPtr<CDspClient> pUserSession,
 							.getVzDirectory();
 	if ( !pDir)
 	{
-		WRITE_TRACE(DBG_FATAL, "Virtuozzo Directory not found, skip Ct processing");
+		WRITE_TRACE(DBG_FATAL, PRODUCT_NAME_SHORT " Directory not found, skip Ct processing");
 		return PRL_ERR_SUCCESS;
 	}
 	if (checkAccess(pUserSession))
@@ -732,7 +732,7 @@ void CDspVzHelper::guestRunProgram(const IOSender::Handle& sender,
 #endif
 }
 
-// Handle Virtuozzo Container Command
+// Handle Container Command
 // return is commend were processed sign
 bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 		SmartPtr<CDspClient> &pUserSession,
@@ -1008,7 +1008,7 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 	return true;
 }
 
-// Handle Dispatcher-Dispatcher command for Virtuozzo Container & Template
+// Handle Dispatcher-Dispatcher command for Container & Template
 bool CDspVzHelper::handleToDispatcherPackage(
 			SmartPtr<CDspDispConnection> pDispConnection,
 			const SmartPtr<IOPackage>& p)

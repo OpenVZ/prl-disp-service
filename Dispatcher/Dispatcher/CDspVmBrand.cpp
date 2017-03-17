@@ -57,8 +57,8 @@ PRL_RESULT Brand::stamp()
 		WRITE_TRACE(DBG_FATAL, "Cannot create folder %s", qPrintable(x));
 		return PRL_ERR_MAKE_DIRECTORY;
 	}
-	QString y = QDir(x).absoluteFilePath("virtuozzo-release");
-	if (!QFile::copy("/etc/virtuozzo-release", y))
+	QString y = QDir(x).absoluteFilePath(PRODUCT_RELEASE_FILE);
+	if (!QFile::copy("/etc/" PRODUCT_RELEASE_FILE, y))
 	{       
 		WRITE_TRACE(DBG_FATAL, "Cannot brand %s", qPrintable(y));
 		return PRL_ERR_COPY_VM_INFO_FILE;
@@ -97,7 +97,7 @@ Brand::entryList_type Brand::getFiles() const
 {
 	entryList_type output;
 	QDir x(getFolder().absoluteFilePath());
-	QFileInfo a[] = {QFileInfo(x, "virtuozzo-release"), QFileInfo(x, "dispatcher-build")};
+	QFileInfo a[] = {QFileInfo(x, PRODUCT_RELEASE_FILE), QFileInfo(x, "dispatcher-build")};
 	BOOST_FOREACH(const QFileInfo& i, a)
 	{
 		if (i.exists())

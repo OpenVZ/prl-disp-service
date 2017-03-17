@@ -107,7 +107,7 @@ static int GetVNicNumber(const QString &adapterName)
 	}
 
 	if( s <'0' || s > '9' )
-		return 255; // this is Parallels adapter, but wrong-named
+		return 255; // this is Prl adapter, but wrong-named
 
 	return s - '0';
 }
@@ -125,7 +125,7 @@ bool makeEthIfacesList( EthIfaceList &ethList, bool unusedParam, bool unusedPara
 	DWORD err = pvsnet->open_prlnet();
 	if (0 != err) {
 		WRITE_TRACE(DBG_FATAL,
-			"makeEthIfacesList: error %u opening driver! Parallels driver is probably not installed!",
+			"makeEthIfacesList: error %u opening driver! Prl driver is probably not installed!",
 			err);
 		return false;
 	}

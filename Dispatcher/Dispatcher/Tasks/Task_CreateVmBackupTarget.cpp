@@ -272,7 +272,7 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 
 		if ( ! CDspService::instance()->checkExistAndCreateDirectory( getBackupDirectory(), rootAuth, CDspService::permBackupDir ) )
 		{
-			WRITE_TRACE( DBG_FATAL, "Can't create parallels backup directory '%s'", QSTR2UTF8( getBackupDirectory() ) );
+			WRITE_TRACE( DBG_FATAL, "Can't create backup directory '%s'", QSTR2UTF8( getBackupDirectory() ) );
 			nRetCode = PRL_ERR_BACKUP_CANNOT_CREATE_DIRECTORY;
 			CVmEvent *pEvent = getLastError();
 			pEvent->setEventCode(nRetCode);
@@ -286,12 +286,10 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 
 	if (m_nFlags & PBT_FULL) {
 		Backup::Metadata::Carcass c(getBackupDirectory(), m_sVmUuid);
-		/* Create /var/parallels/backups/VM_UUID */
 		nRetCode = validateBackupDir(c.getCatalog().absolutePath());
 		if (nRetCode != PRL_ERR_SUCCESS)
 			goto exit;
 
-		/* Create /var/parallels/backups/VM_UUID/BACKUP_UUID with owner = client */
 		if (!CFileHelper::CreateDirectoryPath(getBackupRoot(), &getClient()->getAuthHelper())) {
 			nRetCode = PRL_ERR_BACKUP_CANNOT_CREATE_DIRECTORY;
 			CVmEvent *pEvent = getLastError();

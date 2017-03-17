@@ -256,7 +256,7 @@ void CProblemReportUtilsTest::testParseLowMemoryDumpOfMobileApp_isJettisoned()
 
 void CProblemReportUtilsTest::testExtractPCSIsoVersion()
 {
-	QString sInput("Parallels Cloud Server 6.0.6 (1992)");
+	QString sInput(PRODUCT_NAME_SHORT " Server 6.0.6 (1992)");
 	QString sResult = CProblemReportUtils::extractIsoVersion(sInput);
 
 	QCOMPARE(sResult, QString("6.0.6-1992"));

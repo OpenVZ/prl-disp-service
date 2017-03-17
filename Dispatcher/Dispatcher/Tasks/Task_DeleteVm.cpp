@@ -462,7 +462,7 @@ PRL_RESULT Task_DeleteVm::run_body()
 				ret = PRL_ERR_NOT_ALL_FILES_WAS_DELETED;
 			}
 
-			// finally remove all parallels file entries
+			// finally remove all prl file entries
 
 			if (QFileInfo(strVmHomeDir).isDir())
 			{
@@ -470,7 +470,7 @@ PRL_RESULT Task_DeleteVm::run_body()
 				removeGarbageDirs(strVmHomeDir);
 				removeGarbageFiles(strVmHomeDir);
 
-				// search parallels files in vm home directory
+				// search prl files in vm home directory
 				QStringList list;
 				searchParallelsImagesInsideVmHome(strVmHomeDir,list);
 				list << strVmHomeDir; // add vm dir to deleting list
@@ -694,7 +694,7 @@ void Task_DeleteVm::removeGarbageFiles(const QString & strDir)
 
 }
 
-// this function search parallels dirs in input directory and remove it
+// this function search prl dirs in input directory and remove it
 bool Task_DeleteVm::removeGarbageDirs(const QString & strDir)
 {
 	// clear garbage from directory

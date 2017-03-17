@@ -1039,7 +1039,7 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 
 		if ( !pUserDirectory )
 		{
-			WRITE_TRACE(DBG_FATAL, "No VM Directory assigned for Parallels user with sessionId = [%s] "
+			WRITE_TRACE(DBG_FATAL, "No VM Directory assigned for " PRODUCT_NAME_SHORT " user with sessionId = [%s] "
 				, QSTR2UTF8( pUserSession->getClientHandle() )
 				);
 
@@ -1110,7 +1110,7 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 
 	QStringList lstVmConfigurations;
 #ifdef _CT_
-	// Append Virtuozzo Containers to the list
+	// Append Containers to the list
 	if (nFlags & PVTF_CT) {
 		QList<SmartPtr<CVmConfiguration> > _ct_configs;
 		CDspService::instance()->getVzHelper()->getCtConfigList(pUserSession, nFlags, _ct_configs);
@@ -2605,7 +2605,7 @@ bool CDspVmDirHelper::createUsersVmDirectory( SmartPtr<CDspClient> pUserSession 
 	if( !vm_dir.exists() )
 	{
 		// directory does not exist
-		WRITE_TRACE(DBG_FATAL, "Parallels VM Directory %s does not exists." , QSTR2UTF8( vm_dir.path() ) );
+		WRITE_TRACE(DBG_FATAL, "VM Directory %s does not exists." , QSTR2UTF8( vm_dir.path() ) );
 
 		QString strVmHomeOfDirectory;
 		{
@@ -2984,7 +2984,6 @@ void CDspVmDirHelper::resetAdvancedParamsFromVmConfig( SmartPtr<CVmConfiguration
 	pOutVmConfig->getVmIdentification()->setLastModifDate(
 		QDateTime::fromString( XML_DEFAULT_DATE_TIME, XML_DATETIME_FORMAT ) );
 
-	// #3227 http://bugzilla.parallels.com/attachment.cgi?id=6737
 	bool bParentalControlEnabled = pOutVmConfig->getVmSecurity()->isParentalControlEnabled();
 	QString qsStamp = pOutVmConfig->getVmSecurity()->getFieldPatchedValue(PARENTAL_CONTROL_ENABLED_STR);
 	pOutVmConfig->setVmSecurity( new CVmSecurity( ) );
@@ -3316,7 +3315,6 @@ SmartPtr<CVmSecurity> CDspVmDirHelper::FillVmSecurity(
 	SmartPtr<CDspClient> pUserSession,
 	CVmDirectoryItem* pVmDirItem )
 {
-	// #3227 http://bugzilla.parallels.com/attachment.cgi?id=6737
 	SmartPtr<CVmSecurity> pVmSecurity( new CVmSecurity() );
 
 	PRL_ASSERT( pUserSession );

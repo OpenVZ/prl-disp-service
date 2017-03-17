@@ -372,9 +372,6 @@ bool CDspBugPatcherLogic::patchVmConfig(const QString& vmDirUuid,
 
 void CDspBugPatcherLogic::patchDefaultVmDirectoryPath()
 {
-	// https://bugzilla.sw.ru/show_bug.cgi?id=445937
-	// [ [win7] 2x Parallels folders on Windows 7 with PD4 ]
-
 	// TODO:
 	// 1. replace default path for default vm directory
 	// 2. fix default path in users vm directories if they have path which equals path to common vm directory

@@ -936,7 +936,7 @@ PRL_RESULT Builder::saveConfig(const QString& name_, const QString& uuid_)
 		return PRL_ERR_SUCCESS;
 
 	QString p = m_private->getPath(VMDIR_DEFAULT_VM_CONFIG_FILE);
-	WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher unable to save configuration of the VM %s to file %s. Reason: %ld: %s",
+	WRITE_TRACE(DBG_FATAL, "Dispatcher unable to save configuration of the VM %s to file %s. Reason: %ld: %s",
 		QSTR2UTF8(uuid_), QSTR2UTF8(p), Prl::GetLastError(), QSTR2UTF8( Prl::GetLastErrorAsString() ));
 	// check error code - it may be not free space for save config
 	switch (e)
@@ -1368,7 +1368,7 @@ Task_CloneVm::Task_CloneVm(Registry::Public& registry_,
 			// #127473 to prevent create directory on external unmounted disk
 			if( !QDir(newVmRootDir).exists() )
 			{
-				WRITE_TRACE(DBG_FATAL, "Parallels VM Directory %s does not exists." , QSTR2UTF8( newVmRootDir ) );
+				WRITE_TRACE(DBG_FATAL, PRODUCT_NAME_SHORT " VM Directory %s does not exists." , QSTR2UTF8( newVmRootDir ) );
 				setLastErrorCode (PRL_ERR_VM_DIRECTORY_FOLDER_DOESNT_EXIST);
 				getLastError()->addEventParameter(
 					new CVmEventParameter( PVE::String, newVmRootDir,

@@ -115,12 +115,6 @@ class CommonTests:
         # ---------------------------------------------------------
         def Test_bugs3115_2511_CantRecreateImage( self, server ):
 
-            #
-            #   This test try recreate image with different parameters
-            #   as defined in
-            #   bug 2511: http://bugzilla.parallels.ru/show_bug.cgi?id=2511
-            #   bug 3115: http://bugzilla.parallels.ru/show_bug.cgi?id=3115
-            #
             result = 0
 
             vm = server.create_vm()

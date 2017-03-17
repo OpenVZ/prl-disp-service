@@ -136,11 +136,11 @@ protected:
 
 	/// restore default network settings
 	PRL_RESULT cmdNetPrlNetworkServiceRestoreDefaults();
-	/// add new parallels network adapter
+	/// add new network adapter
 	PRL_RESULT cmdAddNetAdapter();
-	/// delete parallels network adapter
+	/// delete network adapter
 	PRL_RESULT cmdDeleteNetAdapter();
-	/// update configuration of the parallels network adapter
+	/// update configuration of the network adapter
 	PRL_RESULT cmdUpdateNetAdapter();
 
 	/// add a new virtual network
@@ -162,7 +162,7 @@ private:
 	PRL_RESULT restartPrlNetService( );
 
 	/// Helper function.
-	/// Restart and reconfigure Parallels Adapter if it doesn't started yet.
+	/// Restart and reconfigure Adapter if it doesn't started yet.
 	PRL_RESULT restartParallelsAdapter(
 	    CVirtualNetwork *pOldConfig,
 	    CVirtualNetwork *pNewConfig,

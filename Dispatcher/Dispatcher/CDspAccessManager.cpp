@@ -118,7 +118,6 @@ void CDspAccessManager::initAccessRights()
 #define PAIR( rigths, cmdAlias )   \
 	qMakePair( PRL_SEC_AM( rigths )	, cmdAlias );
 
-// http://wiki.parallels.com/index.php/Using_VM_Permissions
 	m_accessRights[PVE::DspCmdVmStart]                = PAIR( R | X	, PAR_VM_START_ACCESS );
 	m_accessRights[PVE::DspCmdVmStartEx]              = PAIR( R | W | X	, PAR_VM_START_EX_ACCESS );
 	m_accessRights[PVE::DspCmdVmRestartGuest]         = PAIR( R | X	, PAR_VM_RESTART_GUEST_ACCESS );
@@ -230,9 +229,6 @@ CDspAccessManager::getAccessRightsToVm(SmartPtr<CDspClient> pSession_, const QSt
 CDspAccessManager::VmAccessRights
 CDspAccessManager::getAccessRightsToVm(SmartPtr<CDspClient> pSession, const CVmDirectoryItem* pVmDirItem)
 {
-	//  As defined in specification:
-	//	http://wiki.parallels.com/index.php/Using_VM_Permissions
-	//
 	PRL_SEC_AM mode = CDspAccessManager::VmAccessRights::arCanNone;
 
 	PRL_ASSERT( pSession );
@@ -522,8 +518,6 @@ CDspAccessManager::getAllowedVmCommands( SmartPtr<CDspClient> pSession, const CV
 		{
 			// VM is unexist but its information present in vmdirectory.
 			// operation possible for client.
-			// http://wiki.parallels.com/index.php/Processing_Invalid_VM_States
-			// #8883
 			if (it.key() != PVE::DspCmdDirUnregVm && it.key() != PVE::DspCmdVmStop)
 				continue;
 		}

@@ -679,7 +679,7 @@ Log::Log(const QString& home_, const QString& name_, Component* decorated_):
 PRL_RESULT Log::execute()
 {
 	PRL_RESULT output = Decorator::execute();
-	// only now will open parallels.log on shared Vm bundle,
+	// only now will open log on shared Vm bundle,
 	// so source side alredy closed this file
 	// and we will not get open error (https://jira.sw.ru/browse/PSBM-11247)
 	// on shared PCS

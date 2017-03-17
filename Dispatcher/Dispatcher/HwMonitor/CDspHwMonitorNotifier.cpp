@@ -553,7 +553,7 @@ bool isAutoconnectBlacklisted(USHORT vid, USHORT pid)
 		{ 0x10D5, 0x000D, 0x000D },	// KVM TENDNet TK-407
 		// This list was originaly created based on
 		// IOUSBFamily-378.4.3\AppleUSBHub\Classes\AppleUSBHubPort.cpp
-		// and modified according to apple's hardware found in parallels office:
+		// and modified according to apple's hardware found in office:
 		// 205, 20C, 221 - external keyboard
 		// 304 - external mouse
 		// 21a, 21b, 22a, 237 - internal keyboard/trackpad

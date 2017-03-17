@@ -1221,7 +1221,7 @@ void PrlVmExecFunctionalityTest::testVmGuestGetNetworkSettings()
 	QCOMPARE(sHostname, QString("test hostname"));
 
 	QStringList lstExpectedDnsServers = QStringList()<<"192.168.1.254"<<"10.30.8.254";
-	QStringList lstExpectedSearchDomains = QStringList()<<"sw.ru"<<"parallels.com";
+	QStringList lstExpectedSearchDomains = QStringList()<<"sw.ru";
 	QStringList lstExpectedNetAddresses = QStringList()<<"192.168.1.1/255.255.255.0"<<"10.30.8.245/255.255.255.0";
 
 	PRL_CHECK_STRINGS_LIST(hSrvConfig, PrlSrvCfg_GetDnsServers, lstExpectedDnsServers)

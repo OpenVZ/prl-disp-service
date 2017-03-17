@@ -47,10 +47,10 @@ PRL_RESULT getDefaultBridgedAdapter(const EthIfaceList &ethList,
 
 
 #if defined(_WIN_)
-/// Obtains parameters of Parallels adapter as it is configured in the
+/// Obtains parameters of Prl adapter as it is configured in the
 /// host operating system. This is required for the adapter
 /// for which DHCP is disabled but NAT is enabled
-/// @param prlAdapterIndex [in] index of the Parallels adapter
+/// @param prlAdapterIndex [in] index of the Prl adapter
 /// @param ipaddr [out] ip address of the adapter
 /// @param netmask [out] netmask of the adapter
 PRL_RESULT  getPrlSystemAdapterParams(

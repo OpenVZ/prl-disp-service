@@ -347,7 +347,7 @@ void CMainDspService::start ()
 	WRITE_TRACE(DBG_FATAL, "Execute mode is %s.", ParallelsDirs::getAppExecuteModeAsCString() );
 
 #ifndef _WIN_
-	// #PDFM-23800 [Parallels Service should be started as ROOT to prevent startup problems]
+	// #PDFM-23800 [Dispatcher Service should be started as ROOT to prevent startup problems]
 	if( geteuid() )
 	{
 		WRITE_TRACE( DBG_FATAL, "Unable to start dispatcher under not-root user( euid: %d, uid: %d ) ",
@@ -891,7 +891,7 @@ void CDspService::start ()
 		{
 			PRL_ASSERT(CMainDspService::instance());
 			CMainDspService::instance()->stop();
-			WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher DOES NOT STARTED !!!" );
+			WRITE_TRACE(DBG_FATAL, "Dispatcher DOES NOT STARTED !!!" );
 			return;
 		}
 		CDspDBusHub::createDetached();
@@ -942,7 +942,7 @@ void CDspService::start ()
 	if (m_bInitWasDone)
 	{
 		// #8380
-		WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher started" );
+		WRITE_TRACE(DBG_FATAL, "Dispatcher started" );
 	}
 	else
 		CMainDspService::instance()->doStop();
@@ -1379,11 +1379,11 @@ bool CDspService::init()
 	}
 	catch ( ... )
 	{
-		WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher initialization FAILED !!!" );
+		WRITE_TRACE(DBG_FATAL, "Dispatcher initialization FAILED !!!" );
 	}
 
 	if( m_bFirstInitPhaseCompleted )
-		WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher initialization finished" );
+		WRITE_TRACE(DBG_FATAL, "Dispatcher initialization finished" );
 
 	wakeAllInitCompletedWaiters( true );
 
@@ -1534,7 +1534,7 @@ void CDspService::initPlugins()
 
 void CDspService::initNetworkPreferences(CDispCommonPreferences& config_)
 {
-	// Sync with Virtuozzo shaping configuration on Dispatcher start
+	// Sync with Vz shaping configuration on Dispatcher start
 	CDispNetworkPreferences* c = config_.getNetworkPreferences();
 
 	CNetworkClassesConfig *pClassesCfg = c->getNetworkClassesConfig();
@@ -1645,7 +1645,7 @@ bool CDspService::setupDispEnv ()
 	if ( ! checkExistAndCreateDirectory(strDispConfigDir, rootAuth,
 		CDspService::permDispConfigDir) )
 	{
-		QString msg = QString( "\nCan't create parallels configs directory '%1'." )
+		QString msg = QString( "\nCan't create " PRODUCT_NAME_SHORT "configs directory '%1'." )
 			.arg( strDispConfigDir );
 		printHorrorLogMessage( msg, PRL_ERR_FAILURE );
 
@@ -1909,16 +1909,16 @@ bool CDspService::initDispConfig ()
 	////////////////////////////////////////////////////////////////////////
 	//
 	// We expect to see Dispatcher's configuration XML file in
-	// $PARALLELS_CONFIG_DIR/dispatcher.xml,
-	// where $PARALLELS_CONFIG_DIR is the environment variable, which points
-	// to the Parallels home directory. If $PARALLELS_CONFIG_DIR is not set,
+	// $DISPATCHER_CONFIG_DIR/dispatcher.xml,
+	// where $DISPATCHER_CONFIG_DIR is the environment variable, which points
+	// to the home directory. If $DISPATCHER_CONFIG_DIR is not set,
 	// or/and assume default path, as it
-	// is returned by ParallelsDirs::getDispatcherConfigDir() + DISPATCHER_PARALLELS_DIR_NAME.
+	// is returned by ParallelsDirs::getDispatcherConfigDir() + DISPATCHER_DIR_NAME.
 	//
 	////////////////////////////////////////////////////////////////////////
 
 	////////////////////////////////////////////////////////////////////////
-	// Check Parallels home directory
+	// Check home directory
 	////////////////////////////////////////////////////////////////////////
 
 	try
@@ -1932,12 +1932,12 @@ bool CDspService::initDispConfig ()
 		bool bDispConfExists = f_in_cfg.exists();
 		if( !bDispConfExists && !createDispConfig() )
 		{
-			WRITE_TRACE(DBG_FATAL, "Can't create Parallels Dispatcher's configuration file %s",
+			WRITE_TRACE(DBG_FATAL, "Can't create Dispatcher's configuration file %s",
 				strDispConfigFile.toUtf8().data() );
 			throw 0;
 		}
 
-		WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher is processing configuration file %s",
+		WRITE_TRACE(DBG_FATAL, "Dispatcher is processing configuration file %s",
 			strDispConfigFile.toUtf8().data() );
 
 		////////////////////////////////////////////////////////////////////////
@@ -1966,7 +1966,7 @@ bool CDspService::initDispConfig ()
 		CDspDispConfigGuard::storeConstantValue_ServerUuid(
 			getDispConfigGuard().getDispConfig()->getVmServerIdentification()->getServerUuid() );
 
-		WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher ID=%s configuration loaded successfully.",
+		WRITE_TRACE(DBG_FATAL, "Dispatcher ID=%s configuration loaded successfully.",
 						QSTR2UTF8(CDspDispConfigGuard::getServerUuid()) );
 
 		//https://bugzilla.sw.ru/show_bug.cgi?id=439457
@@ -2538,14 +2538,14 @@ bool CDspService::checkExistAndCreateDirectory ( const QString& strDirPath,
 
 	if ( !ret )
 	{
-		WRITE_TRACE(DBG_FATAL, "Can't create Parallels directory %s",
+		WRITE_TRACE(DBG_FATAL, "Can't create " PRODUCT_NAME_SHORT " directory %s",
 			QSTR2UTF8(strDirPath));
 		return false;
 	}
 
 #   ifndef _WIN_
 
-	// Setup permissions for parallels directory
+	// Setup permissions for directory
 	if(perm==permDispConfigDir)
 		chmod( QSTR2UTF8(strDirPath),modeDispConfigDir );
 	else if(perm==permVmDir)

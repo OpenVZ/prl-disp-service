@@ -2086,7 +2086,7 @@ PRL_RESULT Task_EditVm::editVm()
 
 			if (!IS_OPERATION_SUCCEEDED(save_rc))
 			{
-				WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher unable to save configuration "
+				WRITE_TRACE(DBG_FATAL, "Dispatcher unable to save configuration "
 					"of the VM %s to file %s. Reason: %ld(%s)",
 					QSTR2UTF8( vm_uuid ),
 					QSTR2UTF8( strVmHome ),
@@ -2160,7 +2160,7 @@ PRL_RESULT Task_EditVm::editVm()
 		DspVm::vdh().sendVmConfigChangedEvent(ident, getRequestPackage());
 
 		//////////////////////////////////////////////////////////////////////////
-		// configure Virtuozzo specific parameters
+		// configure Vz specific parameters
 		/////////////////////////////////////////////////////////////////////////
 		configureVzParameters(pVmConfigNew, pVmConfigOld);
 	}
@@ -2436,8 +2436,6 @@ PRL_RESULT Task_EditVm::createPortsOutputFiles(
 						, ret
 						, PRL_RESULT_TO_STRING( ret )
 						);
-					/* ignore this error by review @2313 */
-					/* http://review.parallels.com:8080/index.jsp?page=ReviewDisplay&reviewid=2313 */
 					continue;
 				}
 

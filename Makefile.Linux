@@ -40,16 +40,16 @@ install: all
 	mkdir -p $(DESTDIR)$(UNITDIR)
 	install -m 755 $(LINDIR)/cloud_config_ctl.py $(DESTDIR)$(LIBEXECDIR)/cloud_config_ctl.py
 	install -m 755 $(LINDIR)/create_bridges.py $(DESTDIR)$(LIBEXECDIR)/create_bridges.py
-	install -m 644 $(LINDIR)/parallels.logrotate $(DESTDIR)$(SYSCONFDIR)/logrotate.d/parallels
-	install -m 644 $(LINDIR)/blacklist-parallels.conf $(DESTDIR)$(SYSCONFDIR)/modprobe.d/blacklist-parallels.conf
+	install -m 644 $(LINDIR)/vz.logrotate $(DESTDIR)$(SYSCONFDIR)/logrotate.d/vz
+	install -m 644 $(LINDIR)/blacklist-vz.conf $(DESTDIR)$(SYSCONFDIR)/modprobe.d/blacklist-vz.conf
 	install -m 644 $(LINDIR)/prl_disp_service.pam $(DESTDIR)$(SYSCONFDIR)/pam.d/prl_disp_service
 	install -m 644 $(LINDIR)/prl_prelink.conf $(DESTDIR)$(SYSCONFDIR)/prelink.conf.d/prl_prelink.conf
-	install -m 755 $(LINDIR)/rc.sysinit.parallels $(DESTDIR)$(SYSCONFDIR)/rc.sysinit.parallels
+	install -m 755 $(LINDIR)/rc.sysinit.vz $(DESTDIR)$(SYSCONFDIR)/rc.sysinit.vz
 	install -m 644 $(LINDIR)/prl-disp $(DESTDIR)$(SYSCONFDIR)/sysconfig/prl-disp
 	install -m 644 $(LINDIR)/99-prl-disp.conf $(DESTDIR)$(SYSCONFDIR)/sysctl.d/99-prl-disp.conf
-	install -m 644 $(LINDIR)/udev-parallels.node $(DESTDIR)$(SYSCONFDIR)/udev/makedev.d/55-parallels.node
-	install -m 644 $(LINDIR)/55-parallels.permissions $(DESTDIR)$(SYSCONFDIR)/udev/permissions.d/55-parallels.permissions
-	install -m 644 $(LINDIR)/udev-parallels.rules $(DESTDIR)$(SYSCONFDIR)/udev/rules.d/55-parallels.rules
+	install -m 644 $(LINDIR)/udev-vz.node $(DESTDIR)$(SYSCONFDIR)/udev/makedev.d/55-vz.node
+	install -m 644 $(LINDIR)/55-vz.permissions $(DESTDIR)$(SYSCONFDIR)/udev/permissions.d/55-vz.permissions
+	install -m 644 $(LINDIR)/udev-vz.rules $(DESTDIR)$(SYSCONFDIR)/udev/rules.d/55-vz.rules
 	install -m 644 $(LINDIR)/prl-disp.service $(DESTDIR)$(UNITDIR)/prl-disp.service
 	install -m 644 $(DBGDIR)/tests/prl-disp-unittests.zip $(DESTDIR)$(DATADIR)/prl-disp-service/prl-disp-unittests.zip
 	install -m 644 $(DBGDIR)/tests/pythontests.zip $(DESTDIR)$(DATADIR)/prl-disp-service/pythontests.zip

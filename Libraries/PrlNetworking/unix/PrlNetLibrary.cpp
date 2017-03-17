@@ -95,7 +95,7 @@ PRL_RESULT PrlNet::makePrlAdaptersList( PrlNet::EthAdaptersList &adaptersList )
 {
 	adaptersList.clear();
 
-	// create a list of all Parallels adapter. No matter up or down
+	// create a list of all Prl adapter. No matter up or down
 	EthIfaceList ethList;
 	if( !::makeBindableEthIfacesList( ethList, false ) )
 	{
@@ -367,12 +367,12 @@ PRL_RESULT PrlNet::startNetworking( const QString &parallelsDir, const QString &
 		// Note: we should not interrupt networking installation process due to configuration error.
 		// We should start drivers and napt anyway. So, just make a notice in syslog.
 		//
-		syslog(LOG_ERR, "Failed to read Parallels networking configuration."
-			" See Parallels.log for description. Status %s(%x)\n",
+		syslog(LOG_ERR, "Failed to read prl networking configuration."
+			" See log file for description. Status %s(%x)\n",
 			PRL_RESULT_TO_STRING ( prlResult ), (unsigned)prlResult );
 
-		WRITE_TRACE(DBG_FATAL, "Failed to read Parallels networking configuration."
-			" See Parallels.log for description. Status %s(%x)",
+		WRITE_TRACE(DBG_FATAL, "Failed to read networking configuration."
+			" See log file for description. Status %s(%x)",
 			PRL_RESULT_TO_STRING ( prlResult ), (unsigned)prlResult );
 
 		networkConfig.setDefaults(); // Note: this will make empty config.
@@ -410,7 +410,7 @@ PRL_RESULT PrlNet::startNetworking( const QString &parallelsDir, const QString &
 }
 
 
-// returns names of the Parallels NATD
+// returns names of the Prl NATD
 void PrlNet_Private::getPrlNatdNames( const QString &parallelsDir, QString &cmd, QString &arg0 )
 {
 	arg0 = "prl_naptd";

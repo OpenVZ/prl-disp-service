@@ -418,7 +418,7 @@ PRL_RESULT MigrateVmTarget::run_body()
 	{
 		nRetCode = PRL_ERR_VZ_OPERATION_FAILED;
 		CDspTaskFailure(*this)(PRL_ERR_VZ_OPERATION_FAILED, QString(
-			"Migration of stopped VMs to Virtuozzo %1 is not implemented.\n"
+			"Migration of stopped VMs to Dispatcher %1 is not implemented.\n"
 			"Start the VM and try again.").arg(VER_FULL_BUILD_NUMBER_STR));
 		goto exit;
 		//nRetCode = migrateStoppedVm();
@@ -1186,7 +1186,7 @@ void MigrateVmTarget::checkRemoteDisplay()
 	if (r->getPortNumber() < PRL_VM_REMOTE_DISPAY_MIN_PORT)
 	{
 		cEvent.addEventParameter(new CVmEventParameter(PVE::String,
-			QString("Virtuozzo %1 does not support VNC port numbers smaller than %2.")
+			QString("Dispatcher %1 does not support VNC port numbers smaller than %2.")
 			.arg(VER_FULL_BUILD_NUMBER_STR)
 			.arg(PRL_VM_REMOTE_DISPAY_MIN_PORT),
 			EVT_PARAM_MESSAGE_PARAM_0));
@@ -1216,7 +1216,7 @@ void MigrateVmTarget::checkEfiBoot()
 	cEvent.setEventCode(PRL_ERR_VZ_OPERATION_FAILED);
 	cEvent.addEventParameter(new CVmEventParameter(PVE::String,
 		QString("The requested VM has EFI boot enabled. "
-			"Migration of EFI bootloader to Virtuozzo %1 is not supported.")
+			"Migration of EFI bootloader to Dispatcher %1 is not supported.")
 		.arg(VER_FULL_BUILD_NUMBER_STR),
 		EVT_PARAM_MESSAGE_PARAM_0));
 	m_lstCheckPrecondsErrors.append(cEvent.toString());
@@ -1230,7 +1230,7 @@ void MigrateVmTarget::checkFlags()
 	CVmEvent cEvent;
 	cEvent.setEventCode(PRL_ERR_VZ_OPERATION_FAILED);
 	cEvent.addEventParameter(new CVmEventParameter(PVE::String,
-		QString("Migration to Virtuozzo %1 in clone mode is not supported.\n"
+		QString("Migration to Dispatcher %1 in clone mode is not supported.\n"
 			"Try again without a clone mode option. The VM will be unregistered "
 			"at the end of the migration process.")
 		.arg(VER_FULL_BUILD_NUMBER_RELEASE_MAJOR),
@@ -1247,7 +1247,7 @@ void MigrateVmTarget::checkBinary()
 	CVmEvent cEvent;
 	cEvent.setEventCode(PRL_ERR_VZ_OPERATION_FAILED);
 	cEvent.addEventParameter(new CVmEventParameter(PVE::String,
-		QString("The migration binary '%1' is missing on the target server.\nInstall Virtuozzo legacy components and try again.")
+		QString("The migration binary '%1' is missing on the target server.\nInstall legacy components and try again.")
 		.arg(path),
 		EVT_PARAM_MESSAGE_PARAM_0));
 	m_lstCheckPrecondsErrors.append(cEvent.toString());

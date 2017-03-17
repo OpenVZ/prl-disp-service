@@ -226,7 +226,7 @@ static bool readMacAddr(int sock, const struct ifreq *ifr,
 }
 
 
-// Detects whether the interface is Parallels VNIC and returns its number
+// Detects whether the interface is Prl VNIC and returns its number
 // @return -1 if interface is not a VNIC, its number otherwise
 static int readVNICNumber(int sock, const struct ifreq *ifr)
 {

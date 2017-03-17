@@ -27,9 +27,7 @@
 
 """
 
-@copyright: Copyright (c) 2005-2017, Parallels International GmbH. All Rights Reserved; U{http://www.openvz.org}
-@organization: OpenVZ
-@contact: U{http://www.openvz.org}
+@copyright: Copyright (c) 2005-2017, Parallels International GmbH. All Rights Reserved
 G{packagetree}
 G{importgraph}
 
@@ -42,8 +40,7 @@ import urllib
 import time
 import subprocess
 
-# This is for python 2.3 used in
-# build of Parallels Transporter
+# This is for python 2.3
 try:
     import string24 as string
 except:

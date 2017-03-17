@@ -367,7 +367,7 @@ SmartPtr<CDspClient>  CDspUserHelper::processUserLoginLocal (
 					.getDispUserByUuid( p_NewUser->getUserSettingsUuid() );
 		if( pLockedDispUser )
 		{
-			WRITE_TRACE(DBG_FATAL, "Parallels user [%s] successfully logged on( LOCAL ). [sessionId = %s ]",
+			WRITE_TRACE(DBG_FATAL, PRODUCT_NAME_SHORT " user [%s] successfully logged on( LOCAL ). [sessionId = %s ]",
 				QSTR2UTF8( pLockedDispUser->getUserName() ),
 				QSTR2UTF8( p_NewUser->getClientHandle() ) );
 		}
@@ -492,7 +492,7 @@ SmartPtr<CDspClient> CDspUserHelper::processLogin (
 		.getDispUserByUuid( p_NewUser->getUserSettingsUuid() );
 	if( pLockedDispUser )
 	{
-		WRITE_TRACE(DBG_FATAL, "Parallels user [%s] successfully logged on. [sessionId = %s ]",
+		WRITE_TRACE(DBG_FATAL, PRODUCT_NAME_SHORT " user [%s] successfully logged on. [sessionId = %s ]",
 			QSTR2UTF8( pLockedDispUser->getUserName() ),
 			QSTR2UTF8( p_NewUser->getClientHandle() ) );
 	}
@@ -534,7 +534,7 @@ bool CDspUserHelper::processUserLogoff (
 			.getDispUserByUuid( pUser->getUserSettingsUuid() );
 		if( pLockedDispUser )
 		{
-			WRITE_TRACE(DBG_FATAL, "Parallels user [%s] successfully logged off. [sessionId = %s ]",
+			WRITE_TRACE(DBG_FATAL, PRODUCT_NAME_SHORT " user [%s] successfully logged off. [sessionId = %s ]",
 				QSTR2UTF8( pLockedDispUser->getUserName() ),
 				QSTR2UTF8( pUser->getClientHandle() ) );
 
