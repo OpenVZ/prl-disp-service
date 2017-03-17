@@ -1742,6 +1742,7 @@
                   <value>ibmvscsi</value>
                   <value>virtio-scsi</value>
                   <value>lsisas1078</value>
+                  <value>hv-scsi</value>
                 </choice>
               </attribute>
             </optional>
@@ -3907,6 +3908,13 @@
       </attribute>
     </optional>
   </define>
+  <define name="vmbusaddress">
+    <optional>
+      <attribute name="instanceid">
+        <ref name="UUID"/>
+      </attribute>
+    </optional>
+  </define>
   <define name="devices">
     <element name="devices">
       <interleave>
@@ -4339,6 +4347,12 @@
             <value>dimm</value>
           </attribute>
           <ref name="dimmaddress"/>
+        </group>
+        <group>
+          <attribute name="type">
+            <value>vmbus</value>
+          </attribute>
+          <ref name="vmbusaddress"/>
         </group>
       </choice>
     </element>

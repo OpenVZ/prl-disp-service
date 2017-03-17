@@ -153,7 +153,7 @@ bool Topology::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Topology, Name::Strict<979> > m;
+	Element<Topology, Name::Strict<981> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -163,14 +163,14 @@ bool Topology::load(const QDomElement& src_)
 
 bool Topology::save(QDomElement& dst_) const
 {
-	Element<Topology, Name::Strict<979> > m;
+	Element<Topology, Name::Strict<981> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Topology::save(QDomDocument& dst_) const
 {
-	Element<Topology, Name::Strict<979> > m;
+	Element<Topology, Name::Strict<981> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -220,7 +220,7 @@ bool Feature::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Feature, Name::Strict<973> > m;
+	Element<Feature, Name::Strict<975> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -230,14 +230,14 @@ bool Feature::load(const QDomElement& src_)
 
 bool Feature::save(QDomElement& dst_) const
 {
-	Element<Feature, Name::Strict<973> > m;
+	Element<Feature, Name::Strict<975> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Feature::save(QDomDocument& dst_) const
 {
-	Element<Feature, Name::Strict<973> > m;
+	Element<Feature, Name::Strict<975> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -284,7 +284,7 @@ bool Cell::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Cell, Name::Strict<984> > m;
+	Element<Cell, Name::Strict<986> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -294,14 +294,14 @@ bool Cell::load(const QDomElement& src_)
 
 bool Cell::save(QDomElement& dst_) const
 {
-	Element<Cell, Name::Strict<984> > m;
+	Element<Cell, Name::Strict<986> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Cell::save(QDomDocument& dst_) const
 {
-	Element<Cell, Name::Strict<984> > m;
+	Element<Cell, Name::Strict<986> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -429,7 +429,7 @@ bool Entry::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Entry, Name::Strict<990> > m;
+	Element<Entry, Name::Strict<992> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -439,14 +439,14 @@ bool Entry::load(const QDomElement& src_)
 
 bool Entry::save(QDomElement& dst_) const
 {
-	Element<Entry, Name::Strict<990> > m;
+	Element<Entry, Name::Strict<992> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Entry::save(QDomDocument& dst_) const
 {
-	Element<Entry, Name::Strict<990> > m;
+	Element<Entry, Name::Strict<992> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -493,7 +493,7 @@ bool Entry1::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Entry1, Name::Strict<990> > m;
+	Element<Entry1, Name::Strict<992> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -503,14 +503,14 @@ bool Entry1::load(const QDomElement& src_)
 
 bool Entry1::save(QDomElement& dst_) const
 {
-	Element<Entry1, Name::Strict<990> > m;
+	Element<Entry1, Name::Strict<992> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Entry1::save(QDomDocument& dst_) const
 {
-	Element<Entry1, Name::Strict<990> > m;
+	Element<Entry1, Name::Strict<992> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -2627,15 +2627,15 @@ int Traits<Domain::Xml::Cputune>::generate(const Domain::Xml::Cputune& src_, QDo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Memory1131
+// struct Memory1135
 
-int Traits<Domain::Xml::Memory1131>::parse(Domain::Xml::Memory1131& , QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Memory1135>::parse(Domain::Xml::Memory1135& , QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	return m.consume(stack_);
 }
 
-int Traits<Domain::Xml::Memory1131>::generate(const Domain::Xml::Memory1131& , QDomElement& dst_)
+int Traits<Domain::Xml::Memory1135>::generate(const Domain::Xml::Memory1135& , QDomElement& dst_)
 {
 	marshal_type m;
 	return m.produce(dst_);
@@ -2839,7 +2839,7 @@ bool Apic::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Apic, Name::Strict<945> > m;
+	Element<Apic, Name::Strict<947> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -2849,14 +2849,14 @@ bool Apic::load(const QDomElement& src_)
 
 bool Apic::save(QDomElement& dst_) const
 {
-	Element<Apic, Name::Strict<945> > m;
+	Element<Apic, Name::Strict<947> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Apic::save(QDomDocument& dst_) const
 {
-	Element<Apic, Name::Strict<945> > m;
+	Element<Apic, Name::Strict<947> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -2900,7 +2900,7 @@ bool Spinlocks::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Spinlocks, Name::Strict<1065> > m;
+	Element<Spinlocks, Name::Strict<1069> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -2910,14 +2910,14 @@ bool Spinlocks::load(const QDomElement& src_)
 
 bool Spinlocks::save(QDomElement& dst_) const
 {
-	Element<Spinlocks, Name::Strict<1065> > m;
+	Element<Spinlocks, Name::Strict<1069> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Spinlocks::save(QDomDocument& dst_) const
 {
-	Element<Spinlocks, Name::Strict<1065> > m;
+	Element<Spinlocks, Name::Strict<1069> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -2964,7 +2964,7 @@ bool VendorId::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<VendorId, Name::Strict<971> > m;
+	Element<VendorId, Name::Strict<973> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -2974,14 +2974,14 @@ bool VendorId::load(const QDomElement& src_)
 
 bool VendorId::save(QDomElement& dst_) const
 {
-	Element<VendorId, Name::Strict<971> > m;
+	Element<VendorId, Name::Strict<973> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool VendorId::save(QDomDocument& dst_) const
 {
-	Element<VendorId, Name::Strict<971> > m;
+	Element<VendorId, Name::Strict<973> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -3162,7 +3162,7 @@ bool Pvspinlock::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Pvspinlock, Name::Strict<951> > m;
+	Element<Pvspinlock, Name::Strict<953> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -3172,14 +3172,14 @@ bool Pvspinlock::load(const QDomElement& src_)
 
 bool Pvspinlock::save(QDomElement& dst_) const
 {
-	Element<Pvspinlock, Name::Strict<951> > m;
+	Element<Pvspinlock, Name::Strict<953> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Pvspinlock::save(QDomDocument& dst_) const
 {
-	Element<Pvspinlock, Name::Strict<951> > m;
+	Element<Pvspinlock, Name::Strict<953> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -3223,7 +3223,7 @@ bool Capabilities::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Capabilities, Name::Strict<883> > m;
+	Element<Capabilities, Name::Strict<884> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -3233,14 +3233,14 @@ bool Capabilities::load(const QDomElement& src_)
 
 bool Capabilities::save(QDomElement& dst_) const
 {
-	Element<Capabilities, Name::Strict<883> > m;
+	Element<Capabilities, Name::Strict<884> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Capabilities::save(QDomDocument& dst_) const
 {
-	Element<Capabilities, Name::Strict<883> > m;
+	Element<Capabilities, Name::Strict<884> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -3391,7 +3391,7 @@ bool Pmu::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Pmu, Name::Strict<953> > m;
+	Element<Pmu, Name::Strict<955> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -3401,14 +3401,14 @@ bool Pmu::load(const QDomElement& src_)
 
 bool Pmu::save(QDomElement& dst_) const
 {
-	Element<Pmu, Name::Strict<953> > m;
+	Element<Pmu, Name::Strict<955> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Pmu::save(QDomDocument& dst_) const
 {
-	Element<Pmu, Name::Strict<953> > m;
+	Element<Pmu, Name::Strict<955> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -3448,7 +3448,7 @@ bool Vmport::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Vmport, Name::Strict<954> > m;
+	Element<Vmport, Name::Strict<956> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -3458,14 +3458,14 @@ bool Vmport::load(const QDomElement& src_)
 
 bool Vmport::save(QDomElement& dst_) const
 {
-	Element<Vmport, Name::Strict<954> > m;
+	Element<Vmport, Name::Strict<956> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Vmport::save(QDomDocument& dst_) const
 {
-	Element<Vmport, Name::Strict<954> > m;
+	Element<Vmport, Name::Strict<956> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -3505,7 +3505,7 @@ bool Gic::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Gic, Name::Strict<955> > m;
+	Element<Gic, Name::Strict<957> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -3515,14 +3515,14 @@ bool Gic::load(const QDomElement& src_)
 
 bool Gic::save(QDomElement& dst_) const
 {
-	Element<Gic, Name::Strict<955> > m;
+	Element<Gic, Name::Strict<957> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Gic::save(QDomDocument& dst_) const
 {
-	Element<Gic, Name::Strict<955> > m;
+	Element<Gic, Name::Strict<957> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -3659,7 +3659,7 @@ bool SuspendToMem::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<SuspendToMem, Name::Strict<769> > m;
+	Element<SuspendToMem, Name::Strict<770> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -3669,14 +3669,14 @@ bool SuspendToMem::load(const QDomElement& src_)
 
 bool SuspendToMem::save(QDomElement& dst_) const
 {
-	Element<SuspendToMem, Name::Strict<769> > m;
+	Element<SuspendToMem, Name::Strict<770> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool SuspendToMem::save(QDomDocument& dst_) const
 {
-	Element<SuspendToMem, Name::Strict<769> > m;
+	Element<SuspendToMem, Name::Strict<770> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -3716,7 +3716,7 @@ bool SuspendToDisk::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<SuspendToDisk, Name::Strict<771> > m;
+	Element<SuspendToDisk, Name::Strict<772> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -3726,14 +3726,14 @@ bool SuspendToDisk::load(const QDomElement& src_)
 
 bool SuspendToDisk::save(QDomElement& dst_) const
 {
-	Element<SuspendToDisk, Name::Strict<771> > m;
+	Element<SuspendToDisk, Name::Strict<772> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool SuspendToDisk::save(QDomDocument& dst_) const
 {
-	Element<SuspendToDisk, Name::Strict<771> > m;
+	Element<SuspendToDisk, Name::Strict<772> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -4630,30 +4630,30 @@ int Traits<Domain::Xml::Driver>::generate(const Domain::Xml::Driver& src_, QDomE
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1132
+// struct Anonymous1136
 
 namespace Domain
 {
 namespace Xml
 {
-bool Anonymous1132::load(const QDomElement& src_)
+bool Anonymous1136::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
 	k.push(src_.firstChildElement());
-	return 0 <= Traits<Anonymous1132>::parse(*this, k);
+	return 0 <= Traits<Anonymous1136>::parse(*this, k);
 }
 
-bool Anonymous1132::save(QDomElement& dst_) const
+bool Anonymous1136::save(QDomElement& dst_) const
 {
-	return 0 <= Traits<Anonymous1132>::generate(*this, dst_);
+	return 0 <= Traits<Anonymous1136>::generate(*this, dst_);
 }
 
 
 } // namespace Xml
 } // namespace Domain
 
-int Traits<Domain::Xml::Anonymous1132>::parse(Domain::Xml::Anonymous1132& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Anonymous1136>::parse(Domain::Xml::Anonymous1136& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -4665,7 +4665,7 @@ int Traits<Domain::Xml::Anonymous1132>::parse(Domain::Xml::Anonymous1132& dst_, 
 	return output;
 }
 
-int Traits<Domain::Xml::Anonymous1132>::generate(const Domain::Xml::Anonymous1132& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Anonymous1136>::generate(const Domain::Xml::Anonymous1136& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSource(), m.get<0>().get<1>()))
@@ -4677,9 +4677,9 @@ int Traits<Domain::Xml::Anonymous1132>::generate(const Domain::Xml::Anonymous113
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Mirror1041
+// struct Mirror1045
 
-int Traits<Domain::Xml::Mirror1041>::parse(Domain::Xml::Mirror1041& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Mirror1045>::parse(Domain::Xml::Mirror1045& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -4688,12 +4688,12 @@ int Traits<Domain::Xml::Mirror1041>::parse(Domain::Xml::Mirror1041& dst_, QStack
 		dst_.setFile(m.get<0>().getValue());
 		dst_.setFormat(m.get<1>().getValue());
 		dst_.setJob(m.get<2>().getValue());
-		dst_.setAnonymous1132(m.get<3>().getValue());
+		dst_.setAnonymous1136(m.get<3>().getValue());
 	}
 	return output;
 }
 
-int Traits<Domain::Xml::Mirror1041>::generate(const Domain::Xml::Mirror1041& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Mirror1045>::generate(const Domain::Xml::Mirror1045& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getFile(), m.get<0>()))
@@ -4702,20 +4702,20 @@ int Traits<Domain::Xml::Mirror1041>::generate(const Domain::Xml::Mirror1041& src
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getJob(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAnonymous1132(), m.get<3>()))
+	if (0 > Details::Marshal::assign(src_.getAnonymous1136(), m.get<3>()))
 		return -1;
 
 	return m.produce(dst_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Mirror1043
+// struct Mirror1047
 
 namespace Domain
 {
 namespace Xml
 {
-Mirror1043::Mirror1043(): m_job()
+Mirror1047::Mirror1047(): m_job()
 {
 }
 
@@ -4723,7 +4723,7 @@ Mirror1043::Mirror1043(): m_job()
 } // namespace Xml
 } // namespace Domain
 
-int Traits<Domain::Xml::Mirror1043>::parse(Domain::Xml::Mirror1043& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Mirror1047>::parse(Domain::Xml::Mirror1047& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -4736,7 +4736,7 @@ int Traits<Domain::Xml::Mirror1043>::parse(Domain::Xml::Mirror1043& dst_, QStack
 	return output;
 }
 
-int Traits<Domain::Xml::Mirror1043>::generate(const Domain::Xml::Mirror1043& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Mirror1047>::generate(const Domain::Xml::Mirror1047& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getJob(), m.get<0>()))
@@ -4760,7 +4760,7 @@ bool Mirror::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Mirror, Name::Strict<1039> > m;
+	Element<Mirror, Name::Strict<1043> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -4770,14 +4770,14 @@ bool Mirror::load(const QDomElement& src_)
 
 bool Mirror::save(QDomElement& dst_) const
 {
-	Element<Mirror, Name::Strict<1039> > m;
+	Element<Mirror, Name::Strict<1043> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Mirror::save(QDomDocument& dst_) const
 {
-	Element<Mirror, Name::Strict<1039> > m;
+	Element<Mirror, Name::Strict<1043> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -4884,7 +4884,7 @@ bool Auth::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Auth, Name::Strict<1048> > m;
+	Element<Auth, Name::Strict<1052> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -4894,14 +4894,14 @@ bool Auth::load(const QDomElement& src_)
 
 bool Auth::save(QDomElement& dst_) const
 {
-	Element<Auth, Name::Strict<1048> > m;
+	Element<Auth, Name::Strict<1052> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Auth::save(QDomDocument& dst_) const
 {
-	Element<Auth, Name::Strict<1048> > m;
+	Element<Auth, Name::Strict<1052> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -5128,9 +5128,9 @@ int Traits<Domain::Xml::Encryption>::generate(const Domain::Xml::Encryption& src
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant1056
+// struct Variant1060
 
-int Traits<Domain::Xml::Variant1056>::parse(Domain::Xml::Variant1056& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Variant1060>::parse(Domain::Xml::Variant1060& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -5142,7 +5142,7 @@ int Traits<Domain::Xml::Variant1056>::parse(Domain::Xml::Variant1056& dst_, QSta
 	return output;
 }
 
-int Traits<Domain::Xml::Variant1056>::generate(const Domain::Xml::Variant1056& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Variant1060>::generate(const Domain::Xml::Variant1060& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getReadBytesSec(), m.get<0>().get<0>()))
@@ -5154,9 +5154,9 @@ int Traits<Domain::Xml::Variant1056>::generate(const Domain::Xml::Variant1056& s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant1060
+// struct Variant1064
 
-int Traits<Domain::Xml::Variant1060>::parse(Domain::Xml::Variant1060& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Variant1064>::parse(Domain::Xml::Variant1064& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -5168,7 +5168,7 @@ int Traits<Domain::Xml::Variant1060>::parse(Domain::Xml::Variant1060& dst_, QSta
 	return output;
 }
 
-int Traits<Domain::Xml::Variant1060>::generate(const Domain::Xml::Variant1060& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Variant1064>::generate(const Domain::Xml::Variant1064& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getReadIopsSec(), m.get<0>().get<0>()))
@@ -5190,7 +5190,7 @@ bool Iotune::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Iotune, Name::Strict<1054> > m;
+	Element<Iotune, Name::Strict<1058> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -5200,14 +5200,14 @@ bool Iotune::load(const QDomElement& src_)
 
 bool Iotune::save(QDomElement& dst_) const
 {
-	Element<Iotune, Name::Strict<1054> > m;
+	Element<Iotune, Name::Strict<1058> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Iotune::save(QDomDocument& dst_) const
 {
-	Element<Iotune, Name::Strict<1054> > m;
+	Element<Iotune, Name::Strict<1058> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -5222,8 +5222,8 @@ int Traits<Domain::Xml::Iotune>::parse(Domain::Xml::Iotune& dst_, QStack<QDomEle
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setChoice1057(m.get<0>().getValue());
-		dst_.setChoice1061(m.get<1>().getValue());
+		dst_.setChoice1061(m.get<0>().getValue());
+		dst_.setChoice1065(m.get<1>().getValue());
 	}
 	return output;
 }
@@ -5231,9 +5231,9 @@ int Traits<Domain::Xml::Iotune>::parse(Domain::Xml::Iotune& dst_, QStack<QDomEle
 int Traits<Domain::Xml::Iotune>::generate(const Domain::Xml::Iotune& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getChoice1057(), m.get<0>()))
+	if (0 > Details::Marshal::assign(src_.getChoice1061(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice1061(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getChoice1065(), m.get<1>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -5506,30 +5506,30 @@ int Traits<Domain::Xml::Usbportaddress>::generate(const Domain::Xml::Usbportaddr
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1133
+// struct Anonymous1137
 
 namespace Domain
 {
 namespace Xml
 {
-bool Anonymous1133::load(const QDomElement& src_)
+bool Anonymous1137::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
 	k.push(src_.firstChildElement());
-	return 0 <= Traits<Anonymous1133>::parse(*this, k);
+	return 0 <= Traits<Anonymous1137>::parse(*this, k);
 }
 
-bool Anonymous1133::save(QDomElement& dst_) const
+bool Anonymous1137::save(QDomElement& dst_) const
 {
-	return 0 <= Traits<Anonymous1133>::generate(*this, dst_);
+	return 0 <= Traits<Anonymous1137>::generate(*this, dst_);
 }
 
 
 } // namespace Xml
 } // namespace Domain
 
-int Traits<Domain::Xml::Anonymous1133>::parse(Domain::Xml::Anonymous1133& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Anonymous1137>::parse(Domain::Xml::Anonymous1137& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -5542,7 +5542,7 @@ int Traits<Domain::Xml::Anonymous1133>::parse(Domain::Xml::Anonymous1133& dst_, 
 	return output;
 }
 
-int Traits<Domain::Xml::Anonymous1133>::generate(const Domain::Xml::Anonymous1133& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Anonymous1137>::generate(const Domain::Xml::Anonymous1137& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getCssid(), m.get<0>()))
@@ -5995,9 +5995,9 @@ int Traits<Domain::Xml::Disk>::generate(const Domain::Xml::Disk& src_, QDomEleme
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant575
+// struct Variant576
 
-int Traits<Domain::Xml::Variant575>::parse(Domain::Xml::Variant575& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Variant576>::parse(Domain::Xml::Variant576& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -6009,7 +6009,7 @@ int Traits<Domain::Xml::Variant575>::parse(Domain::Xml::Variant575& dst_, QStack
 	return output;
 }
 
-int Traits<Domain::Xml::Variant575>::generate(const Domain::Xml::Variant575& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Variant576>::generate(const Domain::Xml::Variant576& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getModel(), m.get<1>()))
@@ -6021,13 +6021,13 @@ int Traits<Domain::Xml::Variant575>::generate(const Domain::Xml::Variant575& src
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant580
+// struct Variant581
 
 namespace Domain
 {
 namespace Xml
 {
-Variant580::Variant580(): m_model()
+Variant581::Variant581(): m_model()
 {
 }
 
@@ -6035,7 +6035,7 @@ Variant580::Variant580(): m_model()
 } // namespace Xml
 } // namespace Domain
 
-int Traits<Domain::Xml::Variant580>::parse(Domain::Xml::Variant580& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Variant581>::parse(Domain::Xml::Variant581& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -6047,7 +6047,7 @@ int Traits<Domain::Xml::Variant580>::parse(Domain::Xml::Variant580& dst_, QStack
 	return output;
 }
 
-int Traits<Domain::Xml::Variant580>::generate(const Domain::Xml::Variant580& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Variant581>::generate(const Domain::Xml::Variant581& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getModel(), m.get<0>()))
@@ -6059,9 +6059,9 @@ int Traits<Domain::Xml::Variant580>::generate(const Domain::Xml::Variant580& src
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant589
+// struct Variant590
 
-int Traits<Domain::Xml::Variant589>::parse(Domain::Xml::Variant589& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Variant590>::parse(Domain::Xml::Variant590& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -6073,7 +6073,7 @@ int Traits<Domain::Xml::Variant589>::parse(Domain::Xml::Variant589& dst_, QStack
 	return output;
 }
 
-int Traits<Domain::Xml::Variant589>::generate(const Domain::Xml::Variant589& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Variant590>::generate(const Domain::Xml::Variant590& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getPorts(), m.get<1>()))
@@ -6197,7 +6197,7 @@ int Traits<Domain::Xml::Controller>::parse(Domain::Xml::Controller& dst_, QStack
 		dst_.setIndex(m.get<0>().getValue());
 		dst_.setAlias(m.get<1>().get<0>().getValue());
 		dst_.setAddress(m.get<1>().get<1>().getValue());
-		dst_.setChoice590(m.get<1>().get<2>().getValue());
+		dst_.setChoice591(m.get<1>().get<2>().getValue());
 		dst_.setDriver(m.get<1>().get<3>().getValue());
 	}
 	return output;
@@ -6212,7 +6212,7 @@ int Traits<Domain::Xml::Controller>::generate(const Domain::Xml::Controller& src
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>().get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice590(), m.get<1>().get<2>()))
+	if (0 > Details::Marshal::assign(src_.getChoice591(), m.get<1>().get<2>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>().get<3>()))
 		return -1;
@@ -6404,32 +6404,6 @@ int Traits<Domain::Xml::Driver2>::generate(const Domain::Xml::Driver2& src_, QDo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Filesystem596
-
-int Traits<Domain::Xml::Filesystem596>::parse(Domain::Xml::Filesystem596& dst_, QStack<QDomElement>& stack_)
-{
-	marshal_type m;
-	int output = m.consume(stack_);
-	if (0 <= output)
-	{
-		dst_.setDriver(m.get<1>().getValue());
-		dst_.setSource(m.get<2>().getValue());
-	}
-	return output;
-}
-
-int Traits<Domain::Xml::Filesystem596>::generate(const Domain::Xml::Filesystem596& src_, QDomElement& dst_)
-{
-	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getSource(), m.get<2>()))
-		return -1;
-
-	return m.produce(dst_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Filesystem597
 
 int Traits<Domain::Xml::Filesystem597>::parse(Domain::Xml::Filesystem597& dst_, QStack<QDomElement>& stack_)
@@ -6456,9 +6430,9 @@ int Traits<Domain::Xml::Filesystem597>::generate(const Domain::Xml::Filesystem59
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Filesystem599
+// struct Filesystem598
 
-int Traits<Domain::Xml::Filesystem599>::parse(Domain::Xml::Filesystem599& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Filesystem598>::parse(Domain::Xml::Filesystem598& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -6470,7 +6444,7 @@ int Traits<Domain::Xml::Filesystem599>::parse(Domain::Xml::Filesystem599& dst_, 
 	return output;
 }
 
-int Traits<Domain::Xml::Filesystem599>::generate(const Domain::Xml::Filesystem599& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Filesystem598>::generate(const Domain::Xml::Filesystem598& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>()))
@@ -6482,9 +6456,9 @@ int Traits<Domain::Xml::Filesystem599>::generate(const Domain::Xml::Filesystem59
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Filesystem601
+// struct Filesystem600
 
-int Traits<Domain::Xml::Filesystem601>::parse(Domain::Xml::Filesystem601& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Filesystem600>::parse(Domain::Xml::Filesystem600& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -6496,7 +6470,7 @@ int Traits<Domain::Xml::Filesystem601>::parse(Domain::Xml::Filesystem601& dst_, 
 	return output;
 }
 
-int Traits<Domain::Xml::Filesystem601>::generate(const Domain::Xml::Filesystem601& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Filesystem600>::generate(const Domain::Xml::Filesystem600& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>()))
@@ -6523,6 +6497,32 @@ int Traits<Domain::Xml::Filesystem602>::parse(Domain::Xml::Filesystem602& dst_, 
 }
 
 int Traits<Domain::Xml::Filesystem602>::generate(const Domain::Xml::Filesystem602& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getSource(), m.get<2>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Filesystem603
+
+int Traits<Domain::Xml::Filesystem603>::parse(Domain::Xml::Filesystem603& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setDriver(m.get<1>().getValue());
+		dst_.setSource(m.get<2>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::Filesystem603>::generate(const Domain::Xml::Filesystem603& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>()))
@@ -6598,9 +6598,9 @@ int Traits<Domain::Xml::Source5>::generate(const Domain::Xml::Source5& src_, QDo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Filesystem606
+// struct Filesystem607
 
-int Traits<Domain::Xml::Filesystem606>::parse(Domain::Xml::Filesystem606& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Filesystem607>::parse(Domain::Xml::Filesystem607& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -6612,7 +6612,7 @@ int Traits<Domain::Xml::Filesystem606>::parse(Domain::Xml::Filesystem606& dst_, 
 	return output;
 }
 
-int Traits<Domain::Xml::Filesystem606>::generate(const Domain::Xml::Filesystem606& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Filesystem607>::generate(const Domain::Xml::Filesystem607& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>()))
@@ -6638,7 +6638,7 @@ bool Filesystem::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Filesystem, Name::Strict<595> > m;
+	Element<Filesystem, Name::Strict<596> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -6648,14 +6648,14 @@ bool Filesystem::load(const QDomElement& src_)
 
 bool Filesystem::save(QDomElement& dst_) const
 {
-	Element<Filesystem, Name::Strict<595> > m;
+	Element<Filesystem, Name::Strict<596> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Filesystem::save(QDomDocument& dst_) const
 {
-	Element<Filesystem, Name::Strict<595> > m;
+	Element<Filesystem, Name::Strict<596> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -7145,7 +7145,7 @@ bool Ip::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Ip, Name::Strict<652> > m;
+	Element<Ip, Name::Strict<653> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -7155,14 +7155,14 @@ bool Ip::load(const QDomElement& src_)
 
 bool Ip::save(QDomElement& dst_) const
 {
-	Element<Ip, Name::Strict<652> > m;
+	Element<Ip, Name::Strict<653> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Ip::save(QDomDocument& dst_) const
 {
-	Element<Ip, Name::Strict<652> > m;
+	Element<Ip, Name::Strict<653> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -7208,7 +7208,7 @@ bool Backend::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Backend, Name::Strict<656> > m;
+	Element<Backend, Name::Strict<657> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -7218,14 +7218,14 @@ bool Backend::load(const QDomElement& src_)
 
 bool Backend::save(QDomElement& dst_) const
 {
-	Element<Backend, Name::Strict<656> > m;
+	Element<Backend, Name::Strict<657> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Backend::save(QDomDocument& dst_) const
 {
-	Element<Backend, Name::Strict<656> > m;
+	Element<Backend, Name::Strict<657> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -7258,9 +7258,9 @@ int Traits<Domain::Xml::Backend>::generate(const Domain::Xml::Backend& src_, QDo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Driver661
+// struct Driver662
 
-int Traits<Domain::Xml::Driver661>::parse(Domain::Xml::Driver661& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Driver662>::parse(Domain::Xml::Driver662& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -7275,7 +7275,7 @@ int Traits<Domain::Xml::Driver661>::parse(Domain::Xml::Driver661& dst_, QStack<Q
 	return output;
 }
 
-int Traits<Domain::Xml::Driver661>::generate(const Domain::Xml::Driver661& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Driver662>::generate(const Domain::Xml::Driver662& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getName(), m.get<0>()))
@@ -7507,7 +7507,7 @@ bool Parameter::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Parameter, Name::Strict<1034> > m;
+	Element<Parameter, Name::Strict<1038> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -7517,14 +7517,14 @@ bool Parameter::load(const QDomElement& src_)
 
 bool Parameter::save(QDomElement& dst_) const
 {
-	Element<Parameter, Name::Strict<1034> > m;
+	Element<Parameter, Name::Strict<1038> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Parameter::save(QDomDocument& dst_) const
 {
-	Element<Parameter, Name::Strict<1034> > m;
+	Element<Parameter, Name::Strict<1038> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -7567,7 +7567,7 @@ bool FilterrefNodeAttributes::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<FilterrefNodeAttributes, Name::Strict<669> > m;
+	Element<FilterrefNodeAttributes, Name::Strict<670> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -7577,14 +7577,14 @@ bool FilterrefNodeAttributes::load(const QDomElement& src_)
 
 bool FilterrefNodeAttributes::save(QDomElement& dst_) const
 {
-	Element<FilterrefNodeAttributes, Name::Strict<669> > m;
+	Element<FilterrefNodeAttributes, Name::Strict<670> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool FilterrefNodeAttributes::save(QDomDocument& dst_) const
 {
-	Element<FilterrefNodeAttributes, Name::Strict<669> > m;
+	Element<FilterrefNodeAttributes, Name::Strict<670> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -7627,7 +7627,7 @@ bool Tune::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Tune, Name::Strict<671> > m;
+	Element<Tune, Name::Strict<672> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -7637,14 +7637,14 @@ bool Tune::load(const QDomElement& src_)
 
 bool Tune::save(QDomElement& dst_) const
 {
-	Element<Tune, Name::Strict<671> > m;
+	Element<Tune, Name::Strict<672> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Tune::save(QDomDocument& dst_) const
 {
-	Element<Tune, Name::Strict<671> > m;
+	Element<Tune, Name::Strict<672> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -7928,9 +7928,9 @@ int Traits<Domain::Xml::Tag>::generate(const Domain::Xml::Tag& src_, QDomElement
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Interface620
+// struct Interface621
 
-int Traits<Domain::Xml::Interface620>::parse(Domain::Xml::Interface620& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Interface621>::parse(Domain::Xml::Interface621& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -7959,7 +7959,7 @@ int Traits<Domain::Xml::Interface620>::parse(Domain::Xml::Interface620& dst_, QS
 	return output;
 }
 
-int Traits<Domain::Xml::Interface620>::generate(const Domain::Xml::Interface620& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Interface621>::generate(const Domain::Xml::Interface621& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSource(), m.get<1>().get<0>()))
@@ -8005,9 +8005,9 @@ int Traits<Domain::Xml::Interface620>::generate(const Domain::Xml::Interface620&
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Interface622
+// struct Interface623
 
-int Traits<Domain::Xml::Interface622>::parse(Domain::Xml::Interface622& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Interface623>::parse(Domain::Xml::Interface623& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -8035,7 +8035,7 @@ int Traits<Domain::Xml::Interface622>::parse(Domain::Xml::Interface622& dst_, QS
 	return output;
 }
 
-int Traits<Domain::Xml::Interface622>::generate(const Domain::Xml::Interface622& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Interface623>::generate(const Domain::Xml::Interface623& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSource(), m.get<1>().get<0>()))
@@ -8146,9 +8146,9 @@ int Traits<Domain::Xml::Source7>::generate(const Domain::Xml::Source7& src_, QDo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Interface626
+// struct Interface627
 
-int Traits<Domain::Xml::Interface626>::parse(Domain::Xml::Interface626& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Interface627>::parse(Domain::Xml::Interface627& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -8176,7 +8176,7 @@ int Traits<Domain::Xml::Interface626>::parse(Domain::Xml::Interface626& dst_, QS
 	return output;
 }
 
-int Traits<Domain::Xml::Interface626>::generate(const Domain::Xml::Interface626& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Interface627>::generate(const Domain::Xml::Interface627& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSource(), m.get<1>().get<0>()))
@@ -8280,9 +8280,9 @@ int Traits<Domain::Xml::Source8>::generate(const Domain::Xml::Source8& src_, QDo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Interface628
+// struct Interface629
 
-int Traits<Domain::Xml::Interface628>::parse(Domain::Xml::Interface628& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Interface629>::parse(Domain::Xml::Interface629& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -8311,7 +8311,7 @@ int Traits<Domain::Xml::Interface628>::parse(Domain::Xml::Interface628& dst_, QS
 	return output;
 }
 
-int Traits<Domain::Xml::Interface628>::generate(const Domain::Xml::Interface628& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Interface629>::generate(const Domain::Xml::Interface629& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSource(), m.get<1>().get<0>()))
@@ -8417,9 +8417,9 @@ int Traits<Domain::Xml::Source9>::generate(const Domain::Xml::Source9& src_, QDo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Interface630
+// struct Interface631
 
-int Traits<Domain::Xml::Interface630>::parse(Domain::Xml::Interface630& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Interface631>::parse(Domain::Xml::Interface631& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -8448,7 +8448,7 @@ int Traits<Domain::Xml::Interface630>::parse(Domain::Xml::Interface630& dst_, QS
 	return output;
 }
 
-int Traits<Domain::Xml::Interface630>::generate(const Domain::Xml::Interface630& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Interface631>::generate(const Domain::Xml::Interface631& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSource(), m.get<1>().get<0>()))
@@ -8586,9 +8586,9 @@ int Traits<Domain::Xml::InterfaceOptions>::generate(const Domain::Xml::Interface
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Interface633
+// struct Interface634
 
-int Traits<Domain::Xml::Interface633>::parse(Domain::Xml::Interface633& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Interface634>::parse(Domain::Xml::Interface634& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -8616,7 +8616,7 @@ int Traits<Domain::Xml::Interface633>::parse(Domain::Xml::Interface633& dst_, QS
 	return output;
 }
 
-int Traits<Domain::Xml::Interface633>::generate(const Domain::Xml::Interface633& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Interface634>::generate(const Domain::Xml::Interface634& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSource(), m.get<1>().get<0>()))
@@ -8724,13 +8724,13 @@ int Traits<Domain::Xml::Source10>::generate(const Domain::Xml::Source10& src_, Q
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Interface636
+// struct Interface637
 
 namespace Domain
 {
 namespace Xml
 {
-Interface636::Interface636(): m_type()
+Interface637::Interface637(): m_type()
 {
 }
 
@@ -8738,7 +8738,7 @@ Interface636::Interface636(): m_type()
 } // namespace Xml
 } // namespace Domain
 
-int Traits<Domain::Xml::Interface636>::parse(Domain::Xml::Interface636& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Interface637>::parse(Domain::Xml::Interface637& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -8751,7 +8751,7 @@ int Traits<Domain::Xml::Interface636>::parse(Domain::Xml::Interface636& dst_, QS
 	return output;
 }
 
-int Traits<Domain::Xml::Interface636>::generate(const Domain::Xml::Interface636& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Interface637>::generate(const Domain::Xml::Interface637& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getType(), m.get<0>()))
@@ -8829,9 +8829,9 @@ int Traits<Domain::Xml::Source11>::generate(const Domain::Xml::Source11& src_, Q
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Interface637
+// struct Interface638
 
-int Traits<Domain::Xml::Interface637>::parse(Domain::Xml::Interface637& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Interface638>::parse(Domain::Xml::Interface638& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -8843,7 +8843,7 @@ int Traits<Domain::Xml::Interface637>::parse(Domain::Xml::Interface637& dst_, QS
 	return output;
 }
 
-int Traits<Domain::Xml::Interface637>::generate(const Domain::Xml::Interface637& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Interface638>::generate(const Domain::Xml::Interface638& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSource(), m.get<1>().get<0>()))
@@ -8962,9 +8962,9 @@ int Traits<Domain::Xml::Address>::generate(const Domain::Xml::Address& src_, QDo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Source643
+// struct Source644
 
-int Traits<Domain::Xml::Source643>::parse(Domain::Xml::Source643& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Source644>::parse(Domain::Xml::Source644& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -8976,7 +8976,7 @@ int Traits<Domain::Xml::Source643>::parse(Domain::Xml::Source643& dst_, QStack<Q
 	return output;
 }
 
-int Traits<Domain::Xml::Source643>::generate(const Domain::Xml::Source643& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Source644>::generate(const Domain::Xml::Source644& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getUsbproduct(), m.get<0>()))
@@ -8988,9 +8988,9 @@ int Traits<Domain::Xml::Source643>::generate(const Domain::Xml::Source643& src_,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Address647
+// struct Address648
 
-int Traits<Domain::Xml::Address647>::parse(Domain::Xml::Address647& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Address648>::parse(Domain::Xml::Address648& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -9002,7 +9002,7 @@ int Traits<Domain::Xml::Address647>::parse(Domain::Xml::Address647& dst_, QStack
 	return output;
 }
 
-int Traits<Domain::Xml::Address647>::generate(const Domain::Xml::Address647& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Address648>::generate(const Domain::Xml::Address648& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getBus(), m.get<1>()))
@@ -9074,9 +9074,9 @@ int Traits<Domain::Xml::Source12>::generate(const Domain::Xml::Source12& src_, Q
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Interface649
+// struct Interface650
 
-int Traits<Domain::Xml::Interface649>::parse(Domain::Xml::Interface649& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Interface650>::parse(Domain::Xml::Interface650& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -9106,7 +9106,7 @@ int Traits<Domain::Xml::Interface649>::parse(Domain::Xml::Interface649& dst_, QS
 	return output;
 }
 
-int Traits<Domain::Xml::Interface649>::generate(const Domain::Xml::Interface649& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Interface650>::generate(const Domain::Xml::Interface650& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getManaged(), m.get<1>()))
@@ -9168,7 +9168,7 @@ bool Input::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Input, Name::Strict<864> > m;
+	Element<Input, Name::Strict<865> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -9178,14 +9178,14 @@ bool Input::load(const QDomElement& src_)
 
 bool Input::save(QDomElement& dst_) const
 {
-	Element<Input, Name::Strict<864> > m;
+	Element<Input, Name::Strict<865> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Input::save(QDomDocument& dst_) const
 {
-	Element<Input, Name::Strict<864> > m;
+	Element<Input, Name::Strict<865> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -9238,7 +9238,7 @@ bool Sound::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Sound, Name::Strict<829> > m;
+	Element<Sound, Name::Strict<830> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -9248,14 +9248,14 @@ bool Sound::load(const QDomElement& src_)
 
 bool Sound::save(QDomElement& dst_) const
 {
-	Element<Sound, Name::Strict<829> > m;
+	Element<Sound, Name::Strict<830> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Sound::save(QDomDocument& dst_) const
 {
-	Element<Sound, Name::Strict<829> > m;
+	Element<Sound, Name::Strict<830> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -9380,9 +9380,9 @@ int Traits<Domain::Xml::Hostdevsubsyspci>::generate(const Domain::Xml::Hostdevsu
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Source889
+// struct Source890
 
-int Traits<Domain::Xml::Source889>::parse(Domain::Xml::Source889& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Source890>::parse(Domain::Xml::Source890& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -9394,7 +9394,7 @@ int Traits<Domain::Xml::Source889>::parse(Domain::Xml::Source889& dst_, QStack<Q
 	return output;
 }
 
-int Traits<Domain::Xml::Source889>::generate(const Domain::Xml::Source889& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Source890>::generate(const Domain::Xml::Source890& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getUsbproduct(), m.get<0>()))
@@ -9618,9 +9618,9 @@ int Traits<Domain::Xml::Scsiaddress>::generate(const Domain::Xml::Scsiaddress& s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Source892
+// struct Source893
 
-int Traits<Domain::Xml::Source892>::parse(Domain::Xml::Source892& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Source893>::parse(Domain::Xml::Source893& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -9633,7 +9633,7 @@ int Traits<Domain::Xml::Source892>::parse(Domain::Xml::Source892& dst_, QStack<Q
 	return output;
 }
 
-int Traits<Domain::Xml::Source892>::generate(const Domain::Xml::Source892& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Source893>::generate(const Domain::Xml::Source893& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getProtocol(), m.get<0>()))
@@ -9707,13 +9707,13 @@ int Traits<Domain::Xml::Host1>::generate(const Domain::Xml::Host1& src_, QDomEle
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Source893
+// struct Source894
 
 namespace Domain
 {
 namespace Xml
 {
-Source893::Source893(): m_protocol()
+Source894::Source894(): m_protocol()
 {
 }
 
@@ -9721,7 +9721,7 @@ Source893::Source893(): m_protocol()
 } // namespace Xml
 } // namespace Domain
 
-int Traits<Domain::Xml::Source893>::parse(Domain::Xml::Source893& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Source894>::parse(Domain::Xml::Source894& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -9735,7 +9735,7 @@ int Traits<Domain::Xml::Source893>::parse(Domain::Xml::Source893& dst_, QStack<Q
 	return output;
 }
 
-int Traits<Domain::Xml::Source893>::generate(const Domain::Xml::Source893& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Source894>::generate(const Domain::Xml::Source894& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getProtocol(), m.get<0>()))
@@ -9841,7 +9841,7 @@ bool Hostdev::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Hostdev, Name::Strict<639> > m;
+	Element<Hostdev, Name::Strict<640> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -9851,14 +9851,14 @@ bool Hostdev::load(const QDomElement& src_)
 
 bool Hostdev::save(QDomElement& dst_) const
 {
-	Element<Hostdev, Name::Strict<639> > m;
+	Element<Hostdev, Name::Strict<640> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Hostdev::save(QDomDocument& dst_) const
 {
-	Element<Hostdev, Name::Strict<639> > m;
+	Element<Hostdev, Name::Strict<640> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -9873,7 +9873,7 @@ int Traits<Domain::Xml::Hostdev>::parse(Domain::Xml::Hostdev& dst_, QStack<QDomE
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setChoice874(m.get<0>().getValue());
+		dst_.setChoice875(m.get<0>().getValue());
 		dst_.setAlias(m.get<1>().getValue());
 		dst_.setBoot(m.get<2>().getValue());
 		dst_.setRom(m.get<3>().getValue());
@@ -9887,7 +9887,7 @@ int Traits<Domain::Xml::Hostdev>::parse(Domain::Xml::Hostdev& dst_, QStack<QDomE
 int Traits<Domain::Xml::Hostdev>::generate(const Domain::Xml::Hostdev& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getChoice874(), m.get<0>()))
+	if (0 > Details::Marshal::assign(src_.getChoice875(), m.get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<1>()))
 		return -1;
@@ -9906,9 +9906,9 @@ int Traits<Domain::Xml::Hostdev>::generate(const Domain::Xml::Hostdev& src_, QDo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Graphics679
+// struct Graphics680
 
-int Traits<Domain::Xml::Graphics679>::parse(Domain::Xml::Graphics679& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Graphics680>::parse(Domain::Xml::Graphics680& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -9921,7 +9921,7 @@ int Traits<Domain::Xml::Graphics679>::parse(Domain::Xml::Graphics679& dst_, QSta
 	return output;
 }
 
-int Traits<Domain::Xml::Graphics679>::generate(const Domain::Xml::Graphics679& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Graphics680>::generate(const Domain::Xml::Graphics680& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getDisplay(), m.get<1>()))
@@ -9935,9 +9935,9 @@ int Traits<Domain::Xml::Graphics679>::generate(const Domain::Xml::Graphics679& s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant688
+// struct Variant689
 
-int Traits<Domain::Xml::Variant688>::parse(Domain::Xml::Variant688& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Variant689>::parse(Domain::Xml::Variant689& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -9952,7 +9952,7 @@ int Traits<Domain::Xml::Variant688>::parse(Domain::Xml::Variant688& dst_, QStack
 	return output;
 }
 
-int Traits<Domain::Xml::Variant688>::generate(const Domain::Xml::Variant688& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Variant689>::generate(const Domain::Xml::Variant689& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getPort(), m.get<0>()))
@@ -9970,9 +9970,9 @@ int Traits<Domain::Xml::Variant688>::generate(const Domain::Xml::Variant688& src
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Listen740
+// struct Listen741
 
-int Traits<Domain::Xml::Listen740>::parse(Domain::Xml::Listen740& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Listen741>::parse(Domain::Xml::Listen741& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -9984,7 +9984,7 @@ int Traits<Domain::Xml::Listen740>::parse(Domain::Xml::Listen740& dst_, QStack<Q
 	return output;
 }
 
-int Traits<Domain::Xml::Listen740>::generate(const Domain::Xml::Listen740& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Listen741>::generate(const Domain::Xml::Listen741& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getNetwork(), m.get<1>()))
@@ -9996,15 +9996,15 @@ int Traits<Domain::Xml::Listen740>::generate(const Domain::Xml::Listen740& src_,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Graphics697
+// struct Graphics698
 
-int Traits<Domain::Xml::Graphics697>::parse(Domain::Xml::Graphics697& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Graphics698>::parse(Domain::Xml::Graphics698& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setChoice690(m.get<1>().getValue());
+		dst_.setChoice691(m.get<1>().getValue());
 		dst_.setPasswd(m.get<2>().getValue());
 		dst_.setKeymap(m.get<3>().getValue());
 		dst_.setPasswdValidTo(m.get<4>().getValue());
@@ -10014,10 +10014,10 @@ int Traits<Domain::Xml::Graphics697>::parse(Domain::Xml::Graphics697& dst_, QSta
 	return output;
 }
 
-int Traits<Domain::Xml::Graphics697>::generate(const Domain::Xml::Graphics697& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Graphics698>::generate(const Domain::Xml::Graphics698& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getChoice690(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getChoice691(), m.get<1>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getPasswd(), m.get<2>()))
 		return -1;
@@ -10048,7 +10048,7 @@ bool Channel::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Channel, Name::Strict<707> > m;
+	Element<Channel, Name::Strict<708> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -10058,14 +10058,14 @@ bool Channel::load(const QDomElement& src_)
 
 bool Channel::save(QDomElement& dst_) const
 {
-	Element<Channel, Name::Strict<707> > m;
+	Element<Channel, Name::Strict<708> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Channel::save(QDomDocument& dst_) const
 {
-	Element<Channel, Name::Strict<707> > m;
+	Element<Channel, Name::Strict<708> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -10098,9 +10098,9 @@ int Traits<Domain::Xml::Channel>::generate(const Domain::Xml::Channel& src_, QDo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Graphics732
+// struct Graphics733
 
-int Traits<Domain::Xml::Graphics732>::parse(Domain::Xml::Graphics732& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Graphics733>::parse(Domain::Xml::Graphics733& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -10129,7 +10129,7 @@ int Traits<Domain::Xml::Graphics732>::parse(Domain::Xml::Graphics732& dst_, QSta
 	return output;
 }
 
-int Traits<Domain::Xml::Graphics732>::generate(const Domain::Xml::Graphics732& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Graphics733>::generate(const Domain::Xml::Graphics733& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getPort(), m.get<1>()))
@@ -10175,9 +10175,9 @@ int Traits<Domain::Xml::Graphics732>::generate(const Domain::Xml::Graphics732& s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Graphics736
+// struct Graphics737
 
-int Traits<Domain::Xml::Graphics736>::parse(Domain::Xml::Graphics736& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Graphics737>::parse(Domain::Xml::Graphics737& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -10193,7 +10193,7 @@ int Traits<Domain::Xml::Graphics736>::parse(Domain::Xml::Graphics736& dst_, QSta
 	return output;
 }
 
-int Traits<Domain::Xml::Graphics736>::generate(const Domain::Xml::Graphics736& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Graphics737>::generate(const Domain::Xml::Graphics737& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getPort(), m.get<1>()))
@@ -10213,9 +10213,9 @@ int Traits<Domain::Xml::Graphics736>::generate(const Domain::Xml::Graphics736& s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Graphics738
+// struct Graphics739
 
-int Traits<Domain::Xml::Graphics738>::parse(Domain::Xml::Graphics738& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Graphics739>::parse(Domain::Xml::Graphics739& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -10227,7 +10227,7 @@ int Traits<Domain::Xml::Graphics738>::parse(Domain::Xml::Graphics738& dst_, QSta
 	return output;
 }
 
-int Traits<Domain::Xml::Graphics738>::generate(const Domain::Xml::Graphics738& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Graphics739>::generate(const Domain::Xml::Graphics739& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getDisplay(), m.get<1>()))
@@ -10249,7 +10249,7 @@ bool Acceleration::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Acceleration, Name::Strict<751> > m;
+	Element<Acceleration, Name::Strict<752> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -10259,14 +10259,14 @@ bool Acceleration::load(const QDomElement& src_)
 
 bool Acceleration::save(QDomElement& dst_) const
 {
-	Element<Acceleration, Name::Strict<751> > m;
+	Element<Acceleration, Name::Strict<752> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Acceleration::save(QDomDocument& dst_) const
 {
-	Element<Acceleration, Name::Strict<751> > m;
+	Element<Acceleration, Name::Strict<752> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -10378,7 +10378,7 @@ bool Video::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Video, Name::Strict<742> > m;
+	Element<Video, Name::Strict<743> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -10388,14 +10388,14 @@ bool Video::load(const QDomElement& src_)
 
 bool Video::save(QDomElement& dst_) const
 {
-	Element<Video, Name::Strict<742> > m;
+	Element<Video, Name::Strict<743> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Video::save(QDomDocument& dst_) const
 {
-	Element<Video, Name::Strict<742> > m;
+	Element<Video, Name::Strict<743> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -10661,7 +10661,7 @@ int Traits<Domain::Xml::Target2>::parse(Domain::Xml::Target2& dst_, QStack<QDomE
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setChoice785(m.get<0>().getValue());
+		dst_.setChoice786(m.get<0>().getValue());
 		dst_.setPort(m.get<1>().getValue());
 	}
 	return output;
@@ -10670,7 +10670,7 @@ int Traits<Domain::Xml::Target2>::parse(Domain::Xml::Target2& dst_, QStack<QDomE
 int Traits<Domain::Xml::Target2>::generate(const Domain::Xml::Target2& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getChoice785(), m.get<0>()))
+	if (0 > Details::Marshal::assign(src_.getChoice786(), m.get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getPort(), m.get<1>()))
 		return -1;
@@ -10829,7 +10829,7 @@ bool Channel1::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Channel1, Name::Strict<707> > m;
+	Element<Channel1, Name::Strict<708> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -10839,14 +10839,14 @@ bool Channel1::load(const QDomElement& src_)
 
 bool Channel1::save(QDomElement& dst_) const
 {
-	Element<Channel1, Name::Strict<707> > m;
+	Element<Channel1, Name::Strict<708> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Channel1::save(QDomDocument& dst_) const
 {
-	Element<Channel1, Name::Strict<707> > m;
+	Element<Channel1, Name::Strict<708> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -10863,7 +10863,7 @@ int Traits<Domain::Xml::Channel1>::parse(Domain::Xml::Channel1& dst_, QStack<QDo
 	{
 		dst_.setType(m.get<0>().getValue());
 		dst_.setQemucdevSrcDef(m.get<1>().get<0>().getValue());
-		dst_.setChoice851(m.get<1>().get<1>().getValue());
+		dst_.setChoice852(m.get<1>().get<1>().getValue());
 		dst_.setAlias(m.get<1>().get<2>().getValue());
 		dst_.setAddress(m.get<1>().get<3>().getValue());
 	}
@@ -10877,7 +10877,7 @@ int Traits<Domain::Xml::Channel1>::generate(const Domain::Xml::Channel1& src_, Q
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getQemucdevSrcDef(), m.get<1>().get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice851(), m.get<1>().get<1>()))
+	if (0 > Details::Marshal::assign(src_.getChoice852(), m.get<1>().get<1>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<1>().get<2>()))
 		return -1;
@@ -10888,24 +10888,24 @@ int Traits<Domain::Xml::Channel1>::generate(const Domain::Xml::Channel1& src_, Q
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Smartcard852
+// struct Smartcard853
 
-int Traits<Domain::Xml::Smartcard852>::parse(Domain::Xml::Smartcard852& , QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Smartcard853>::parse(Domain::Xml::Smartcard853& , QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	return m.consume(stack_);
 }
 
-int Traits<Domain::Xml::Smartcard852>::generate(const Domain::Xml::Smartcard852& , QDomElement& dst_)
+int Traits<Domain::Xml::Smartcard853>::generate(const Domain::Xml::Smartcard853& , QDomElement& dst_)
 {
 	marshal_type m;
 	return m.produce(dst_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Smartcard856
+// struct Smartcard857
 
-int Traits<Domain::Xml::Smartcard856>::parse(Domain::Xml::Smartcard856& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Smartcard857>::parse(Domain::Xml::Smartcard857& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -10919,7 +10919,7 @@ int Traits<Domain::Xml::Smartcard856>::parse(Domain::Xml::Smartcard856& dst_, QS
 	return output;
 }
 
-int Traits<Domain::Xml::Smartcard856>::generate(const Domain::Xml::Smartcard856& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Smartcard857>::generate(const Domain::Xml::Smartcard857& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getCertificate(), m.get<1>()))
@@ -10935,13 +10935,13 @@ int Traits<Domain::Xml::Smartcard856>::generate(const Domain::Xml::Smartcard856&
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Smartcard857
+// struct Smartcard858
 
 namespace Domain
 {
 namespace Xml
 {
-Smartcard857::Smartcard857(): m_type()
+Smartcard858::Smartcard858(): m_type()
 {
 }
 
@@ -10949,7 +10949,7 @@ Smartcard857::Smartcard857(): m_type()
 } // namespace Xml
 } // namespace Domain
 
-int Traits<Domain::Xml::Smartcard857>::parse(Domain::Xml::Smartcard857& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Smartcard858>::parse(Domain::Xml::Smartcard858& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -10962,7 +10962,7 @@ int Traits<Domain::Xml::Smartcard857>::parse(Domain::Xml::Smartcard857& dst_, QS
 	return output;
 }
 
-int Traits<Domain::Xml::Smartcard857>::generate(const Domain::Xml::Smartcard857& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Smartcard858>::generate(const Domain::Xml::Smartcard858& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getType(), m.get<1>()))
@@ -10986,7 +10986,7 @@ bool Smartcard::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Smartcard, Name::Strict<713> > m;
+	Element<Smartcard, Name::Strict<714> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -10996,14 +10996,14 @@ bool Smartcard::load(const QDomElement& src_)
 
 bool Smartcard::save(QDomElement& dst_) const
 {
-	Element<Smartcard, Name::Strict<713> > m;
+	Element<Smartcard, Name::Strict<714> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Smartcard::save(QDomDocument& dst_) const
 {
-	Element<Smartcard, Name::Strict<713> > m;
+	Element<Smartcard, Name::Strict<714> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -11053,7 +11053,7 @@ bool Hub::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Hub, Name::Strict<868> > m;
+	Element<Hub, Name::Strict<869> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -11063,14 +11063,14 @@ bool Hub::load(const QDomElement& src_)
 
 bool Hub::save(QDomElement& dst_) const
 {
-	Element<Hub, Name::Strict<868> > m;
+	Element<Hub, Name::Strict<869> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Hub::save(QDomDocument& dst_) const
 {
-	Element<Hub, Name::Strict<868> > m;
+	Element<Hub, Name::Strict<869> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -11120,7 +11120,7 @@ bool Redirdev::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Redirdev, Name::Strict<869> > m;
+	Element<Redirdev, Name::Strict<870> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -11130,14 +11130,14 @@ bool Redirdev::load(const QDomElement& src_)
 
 bool Redirdev::save(QDomElement& dst_) const
 {
-	Element<Redirdev, Name::Strict<869> > m;
+	Element<Redirdev, Name::Strict<870> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Redirdev::save(QDomDocument& dst_) const
 {
-	Element<Redirdev, Name::Strict<869> > m;
+	Element<Redirdev, Name::Strict<870> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -11196,7 +11196,7 @@ bool Usbdev::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Usbdev, Name::Strict<798> > m;
+	Element<Usbdev, Name::Strict<799> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -11206,14 +11206,14 @@ bool Usbdev::load(const QDomElement& src_)
 
 bool Usbdev::save(QDomElement& dst_) const
 {
-	Element<Usbdev, Name::Strict<798> > m;
+	Element<Usbdev, Name::Strict<799> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Usbdev::save(QDomDocument& dst_) const
 {
-	Element<Usbdev, Name::Strict<798> > m;
+	Element<Usbdev, Name::Strict<799> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -11255,13 +11255,13 @@ int Traits<Domain::Xml::Usbdev>::generate(const Domain::Xml::Usbdev& src_, QDomE
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Backend1029
+// struct Backend1033
 
 namespace Domain
 {
 namespace Xml
 {
-Backend1029::Backend1029(): m_type()
+Backend1033::Backend1033(): m_type()
 {
 }
 
@@ -11269,7 +11269,7 @@ Backend1029::Backend1029(): m_type()
 } // namespace Xml
 } // namespace Domain
 
-int Traits<Domain::Xml::Backend1029>::parse(Domain::Xml::Backend1029& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Backend1033>::parse(Domain::Xml::Backend1033& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -11281,7 +11281,7 @@ int Traits<Domain::Xml::Backend1029>::parse(Domain::Xml::Backend1029& dst_, QSta
 	return output;
 }
 
-int Traits<Domain::Xml::Backend1029>::generate(const Domain::Xml::Backend1029& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Backend1033>::generate(const Domain::Xml::Backend1033& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getType(), m.get<1>()))
@@ -11307,7 +11307,7 @@ bool Rate::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Rate, Name::Strict<1031> > m;
+	Element<Rate, Name::Strict<1035> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -11317,14 +11317,14 @@ bool Rate::load(const QDomElement& src_)
 
 bool Rate::save(QDomElement& dst_) const
 {
-	Element<Rate, Name::Strict<1031> > m;
+	Element<Rate, Name::Strict<1035> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Rate::save(QDomDocument& dst_) const
 {
-	Element<Rate, Name::Strict<1031> > m;
+	Element<Rate, Name::Strict<1035> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -11371,7 +11371,7 @@ bool Rng::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Rng, Name::Strict<937> > m;
+	Element<Rng, Name::Strict<939> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -11381,14 +11381,14 @@ bool Rng::load(const QDomElement& src_)
 
 bool Rng::save(QDomElement& dst_) const
 {
-	Element<Rng, Name::Strict<937> > m;
+	Element<Rng, Name::Strict<939> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Rng::save(QDomDocument& dst_) const
 {
-	Element<Rng, Name::Strict<937> > m;
+	Element<Rng, Name::Strict<939> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -11497,7 +11497,7 @@ bool Tpm::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Tpm, Name::Strict<859> > m;
+	Element<Tpm, Name::Strict<860> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -11507,14 +11507,14 @@ bool Tpm::load(const QDomElement& src_)
 
 bool Tpm::save(QDomElement& dst_) const
 {
-	Element<Tpm, Name::Strict<859> > m;
+	Element<Tpm, Name::Strict<860> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Tpm::save(QDomDocument& dst_) const
 {
-	Element<Tpm, Name::Strict<859> > m;
+	Element<Tpm, Name::Strict<860> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -11761,7 +11761,7 @@ bool Watchdog::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Watchdog, Name::Strict<837> > m;
+	Element<Watchdog, Name::Strict<838> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -11771,14 +11771,14 @@ bool Watchdog::load(const QDomElement& src_)
 
 bool Watchdog::save(QDomElement& dst_) const
 {
-	Element<Watchdog, Name::Strict<837> > m;
+	Element<Watchdog, Name::Strict<838> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Watchdog::save(QDomDocument& dst_) const
 {
-	Element<Watchdog, Name::Strict<837> > m;
+	Element<Watchdog, Name::Strict<838> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -11831,7 +11831,7 @@ bool Memballoon::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Memballoon, Name::Strict<843> > m;
+	Element<Memballoon, Name::Strict<844> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -11841,14 +11841,14 @@ bool Memballoon::load(const QDomElement& src_)
 
 bool Memballoon::save(QDomElement& dst_) const
 {
-	Element<Memballoon, Name::Strict<843> > m;
+	Element<Memballoon, Name::Strict<844> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Memballoon::save(QDomDocument& dst_) const
 {
-	Element<Memballoon, Name::Strict<843> > m;
+	Element<Memballoon, Name::Strict<844> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -11957,7 +11957,7 @@ bool Panic::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Panic, Name::Strict<943> > m;
+	Element<Panic, Name::Strict<945> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -11967,14 +11967,14 @@ bool Panic::load(const QDomElement& src_)
 
 bool Panic::save(QDomElement& dst_) const
 {
-	Element<Panic, Name::Strict<943> > m;
+	Element<Panic, Name::Strict<945> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Panic::save(QDomDocument& dst_) const
 {
-	Element<Panic, Name::Strict<943> > m;
+	Element<Panic, Name::Strict<945> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -12050,7 +12050,7 @@ int Traits<Domain::Xml::Devices>::parse(Domain::Xml::Devices& dst_, QStack<QDomE
 	if (0 <= output)
 	{
 		dst_.setEmulator(m.get<0>().getValue());
-		dst_.setChoice941List(m.get<1>().getValue());
+		dst_.setChoice943List(m.get<1>().getValue());
 		dst_.setWatchdog(m.get<2>().getValue());
 		dst_.setMemballoon(m.get<3>().getValue());
 		dst_.setNvram(m.get<4>().getValue());
@@ -12064,7 +12064,7 @@ int Traits<Domain::Xml::Devices>::generate(const Domain::Xml::Devices& src_, QDo
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getEmulator(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice941List(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getChoice943List(), m.get<1>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getWatchdog(), m.get<2>()))
 		return -1;
@@ -12222,7 +12222,7 @@ bool Env::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Env, Name::Strict<1112> > m;
+	Element<Env, Name::Strict<1116> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -12232,14 +12232,14 @@ bool Env::load(const QDomElement& src_)
 
 bool Env::save(QDomElement& dst_) const
 {
-	Element<Env, Name::Strict<1112> > m;
+	Element<Env, Name::Strict<1116> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Env::save(QDomDocument& dst_) const
 {
-	Element<Env, Name::Strict<1112> > m;
+	Element<Env, Name::Strict<1116> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -12282,7 +12282,7 @@ bool Commandline::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Commandline, Name::Scoped<1110, 1113> > m;
+	Element<Commandline, Name::Scoped<1114, 1117> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -12292,14 +12292,14 @@ bool Commandline::load(const QDomElement& src_)
 
 bool Commandline::save(QDomElement& dst_) const
 {
-	Element<Commandline, Name::Scoped<1110, 1113> > m;
+	Element<Commandline, Name::Scoped<1114, 1117> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Commandline::save(QDomDocument& dst_) const
 {
-	Element<Commandline, Name::Scoped<1110, 1113> > m;
+	Element<Commandline, Name::Scoped<1114, 1117> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
