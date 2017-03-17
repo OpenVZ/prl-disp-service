@@ -127,7 +127,7 @@ PRL_RESULT PrlNet::makePrlAdaptersList( PrlNet::EthAdaptersList &adaptersList )
 	{
 		MODULE_STORE_SYSTEM_ERROR();
 
-		WRITE_TRACE(DBG_FATAL, "[PrlNet]  Error creating list of Parallels Adapters: %d",
+		WRITE_TRACE(DBG_FATAL, "[PrlNet]  Error creating list of Prl Adapters: %d",
 			s_LastSystemError );
 		return PRL_NET_SYSTEM_ERROR;
 	}
@@ -673,7 +673,7 @@ PRL_RESULT PrlNet::installPrlService( const QString &parallelsDir )
 	{
 		MODULE_STORE_SYSTEM_ERROR();
 
-		WRITE_TRACE(DBG_FATAL, "Error Installing Parallels Networking service: %d",
+		WRITE_TRACE(DBG_FATAL, "Error Installing Prl Networking service: %d",
 			s_LastSystemError );
 		return PRL_NET_SYSTEM_ERROR;
 	}
@@ -752,7 +752,7 @@ PRL_RESULT PrlNet::startPrlNetService(const QString &parallelsDir,  PrlNet::SrvA
 		assert(0);
 		MODULE_STORE_SYSTEM_ERROR();
 
-		WRITE_TRACE(DBG_FATAL, "Parallels Networking service: unknown operation requested: %d",
+		WRITE_TRACE(DBG_FATAL, "Prl Networking service: unknown operation requested: %d",
 			 s_LastSystemError );
 		return PRL_NET_SRV_NOTIFY_ERROR;
 	}
@@ -885,11 +885,11 @@ PRL_RESULT PrlNet::stopNetworking(const QString &parallelsDir)
 }
 
 
-// returns windows-guid of parallels adapter
+// returns windows-guid of Prl adapter
 static PRL_RESULT
 GetPrlAdapterGuid(int adapterIndex, QString &adapterGuid)
 {
-	// find out the parallels adapter guid.
+	// find out the prl adapter guid.
 	EthIfaceList ethList;
 	if ( !::makeEthIfacesList( ethList, true ) )
 	{
@@ -960,7 +960,7 @@ PRL_RESULT PrlNet::DisablePrlIPv6RouterDiscovery(int prlAdapterIndex)
 {
 	int idx;
 	if (!PrlNetInternal::GetPrlAdapterSysIndex(prlAdapterIndex, idx)) {
-		WRITE_TRACE(DBG_FATAL, "Failed to obtain system-index of parallels-adapter %d",
+		WRITE_TRACE(DBG_FATAL, "Failed to obtain system-index of prl-adapter %d",
 			prlAdapterIndex);
 		return PRL_ERR_FAILURE;
 	}
@@ -1006,7 +1006,7 @@ static PRL_RESULT setPrlAdapterIPv6Address(
 {
 	int iface_sysidx;
 	if (!PrlNetInternal::GetPrlAdapterSysIndex(adapterIndex, iface_sysidx)) {
-		WRITE_TRACE(DBG_FATAL, "Failed to obtain system-index of parallels-adapter %d",
+		WRITE_TRACE(DBG_FATAL, "Failed to obtain system-index of prl-adapter %d",
 			adapterIndex);
 		return PRL_ERR_FAILURE;
 	}

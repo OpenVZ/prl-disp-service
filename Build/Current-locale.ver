@@ -11,14 +11,6 @@
 	#define VER_FULL_BUILD_LOCALE_STR "en_US"
 #endif
 
-#ifndef VER_FULL_BUILD_DISTRIBUTOR_STR
-	#define VER_FULL_BUILD_DISTRIBUTOR_STR "parallels"
-#endif
-
-#ifndef DISTRIBUTOR_PARALLELS
-	#define DISTRIBUTOR_PARALLELS
-#endif
-
 #ifndef INSTALLER_CEIPROGRAM_FLAG_FILE_ENABLE
 	#define INSTALLER_CEIPROGRAM_FLAG_FILE_ENABLE     "prl_server_ceiprogram_enable"
 #endif

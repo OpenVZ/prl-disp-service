@@ -115,7 +115,7 @@ namespace Device
 {
 
 struct List;
-typedef QList<Libvirt::Domain::Xml::VChoice941 > deviceList_type;
+typedef QList<Libvirt::Domain::Xml::VChoice943 > deviceList_type;
 typedef Boot::Reverse::order_type boot_type;
 
 namespace Clustered
@@ -330,6 +330,8 @@ struct Model
 			return Libvirt::Domain::Xml::EModelLsilogic;
 		case PCD_VIRTIO_SCSI:
 			return Libvirt::Domain::Xml::EModelVirtioScsi;
+		case PCD_HYPER_V_SCSI:
+			return Libvirt::Domain::Xml::EModelHvScsi;
 		default:
 			return boost::optional<Libvirt::Domain::Xml::EModel>();
 		}
@@ -662,7 +664,7 @@ private:
 		SCSI_TARGETS = 256
 	};
 
-	void craftController(const Libvirt::Domain::Xml::VChoice590& bus_, quint16 index_);
+	void craftController(const Libvirt::Domain::Xml::VChoice591& bus_, quint16 index_);
 
 	deviceList_type m_controllerList;
 };

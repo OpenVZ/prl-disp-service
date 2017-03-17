@@ -85,12 +85,12 @@ private:
 					QStringList& outLstNotRemovedFiles);
 
 	/**
-	* this function search parallels files in input directory and remove it
+	* this function search prl files in input directory and remove it
 	*/
 	void removeGarbageFiles(const QString & strDir);
 
 	/**
-	* this function search parallels dirs in input directory and remove it
+	* this function search prl dirs in input directory and remove it
 	*/
 	bool removeGarbageDirs(const QString & strDir);
 

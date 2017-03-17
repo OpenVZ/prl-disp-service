@@ -74,12 +74,12 @@ public:
 			QList<SmartPtr<CVmConfiguration> > &lstConfig);
 	PRL_RESULT check_env_state(PRL_UINT32 nCmd, const QString &sUuid, CVmEvent *errEvt);
 
-	// Handle Virtuozzo Container Command
+	// Handle Container Command
 	// return is commend were processed sign
 	bool handlePackage(const IOSender::Handle& sender,
 			SmartPtr<CDspClient> &pUserSession,
 			const SmartPtr<IOPackage>& pkg);
-	// Handle Dispatcher-Dispatcher command for Virtuozzo Container & Template
+	// Handle Dispatcher-Dispatcher command for Container & Template
 	bool handleToDispatcherPackage(
 			SmartPtr<CDspDispConnection> pDispConnection,
 			const SmartPtr<IOPackage>& p);

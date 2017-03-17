@@ -1433,7 +1433,7 @@ PRL_RESULT Task_RegisterVm::saveVmConfig( )
 			break;
 		}
 
-		WRITE_TRACE(DBG_FATAL, "Parallels Dispatcher unable to save configuration of the VM %s to file %s. Reason: %ld: %s",
+		WRITE_TRACE(DBG_FATAL, "Dispatcher unable to save configuration of the VM %s to file %s. Reason: %ld: %s",
 			QSTR2UTF8(m_pVmInfo->vmName),
 			QSTR2UTF8(m_pVmConfig->getOutFileName()),
 			Prl::GetLastError(),
@@ -1512,7 +1512,7 @@ PRL_RESULT	Task_RegisterVm::createFloppyDisks()
 						);
 				}
 
-				// continue in any case because this parallels image and it shouldn't created.
+				// continue in any case because this image and it shouldn't created.
 				continue;
 			}
 

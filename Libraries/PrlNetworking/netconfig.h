@@ -167,10 +167,10 @@ bool ContainsIPReservation(const CIPReservations* pIPReservations,
 				const QHostAddress &IPAddress, const QString &MacAddress);
 
 
-// Create list of host only networks sorted by Parallels Adapter number.
+// Create list of host only networks sorted by Adapter number.
 QList<CVirtualNetwork *> MakeHostOnlyNetworksList(const CParallelsNetworkConfig *pNetworkConfig);
 
-// Create list of Parallels Adapters
+// Create list of Adapters
 QList<CParallelsAdapter *> MakeParallelsAdaptersList(const CParallelsNetworkConfig *pNetworkConfig);
 
 // Return port for offmgmt-service with name srvName
@@ -207,7 +207,7 @@ PRL_RESULT WriteNetworkConfig(CParallelsNetworkConfig &networkConfig);
 // Read network configuration from default location.
 // Create default network configuration if file don't exist.
 // This is initial task that either done by dispatcher, or by unix
-// Parallels network startup program.
+// network startup program.
 // Returns an error if failed to parse file.
 //
 // @param bConfigurationRestored Will setup bConfigurationRestored if default configuration was created or
@@ -255,7 +255,7 @@ void InitConfigLibrary(const CParallelsNetworkConfig *pNetworkConfig);
 // and will be returned by isIPv6Enabled()
 void setIPv6Enabled(bool enabled);
 
-// IPv6 is enabled for Parallels desktop
+// IPv6 is enabled for desktop
 // The value for this flag has to be calculated separately using
 // CParallelsNetworkConfig and some host settings
 bool isIPv6Enabled();

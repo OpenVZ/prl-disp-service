@@ -665,7 +665,8 @@ Enum<Domain::Xml::EModel>::data_type Enum<Domain::Xml::EModel>::getData()
 			(data_type::value_type(Domain::Xml::EModelVmpvscsi, "vmpvscsi"))
 			(data_type::value_type(Domain::Xml::EModelIbmvscsi, "ibmvscsi"))
 			(data_type::value_type(Domain::Xml::EModelVirtioScsi, "virtio-scsi"))
-			(data_type::value_type(Domain::Xml::EModelLsisas1078, "lsisas1078"));
+			(data_type::value_type(Domain::Xml::EModelLsisas1078, "lsisas1078"))
+			(data_type::value_type(Domain::Xml::EModelHvScsi, "hv-scsi"));
 }
 
 template<>
@@ -1041,11 +1042,11 @@ Enum<Domain::Xml::EModel5>::data_type Enum<Domain::Xml::EModel5>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EChoice1026>::data_type Enum<Domain::Xml::EChoice1026>::getData()
+Enum<Domain::Xml::EChoice1030>::data_type Enum<Domain::Xml::EChoice1030>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EChoice1026DevRandom, "/dev/random"))
-			(data_type::value_type(Domain::Xml::EChoice1026DevHwrng, "/dev/hwrng"));
+			(data_type::value_type(Domain::Xml::EChoice1030DevRandom, "/dev/random"))
+			(data_type::value_type(Domain::Xml::EChoice1030DevHwrng, "/dev/hwrng"));
 }
 
 template<>

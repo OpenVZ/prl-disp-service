@@ -83,7 +83,7 @@
 #define SVC_NVIDIA_QUADRO_FX_5800	"nVidia Corporation Quadro FX 5800"
 
 /* This struct help convert usb device devndor_id+device_id
-   to parallels usb device type */
+   to usb device type */
 struct USB_DEV2PUDT {
 	UINT ven_id;		// [0x0000, 0xffff] -> exect match, ~0 -> any
 	UINT dev_id;		// [0x0000, 0xffff] -> exect match, ~0 -> any
@@ -91,7 +91,7 @@ struct USB_DEV2PUDT {
 };
 
 /* This struct help convert usb interface class+subclass+protocol
-   to parallels usb device type */
+   to usb device type */
 struct USB_IFC2PUDT {
 	UINT ifc_class;			// [0x00, 0xff] -> exect match, ~0 -> any
 	UINT ifc_subclass;		// [0x00, 0xff] -> exect match, ~0 -> any
@@ -100,7 +100,7 @@ struct USB_IFC2PUDT {
 };
 
 // Table to covert usb device vendor_id+product_id to
-// parallels usb device type.
+// usb device type.
 static const USB_DEV2PUDT usb_dev2pudt[] = {
 	{ 0x05ac,   0x1000, PUDT_BLUETOOTH},	// Apple bluetooth controller
 	{ 0x05ac,   0x8203, PUDT_BLUETOOTH},	// Apple bluetooth controller
@@ -196,7 +196,7 @@ static const USB_DEV2PUDT usb_dev2pudt[] = {
 };
 
 // Table to converting usb interface class+subcluss+protocol to
-// parallels usb device type.
+// usb device type.
 static const USB_IFC2PUDT usb_ifc2pudt[] = {
 	{ 0x0e,  ~0U,  ~0U, PUDT_VIDEO},		// Detect video device
 	{ 0x06,  ~0U,  ~0U, PUDT_FOTO},			// Detect still image device
@@ -795,7 +795,7 @@ QString CDspHostInfo::CreateUsbSystemName(	const QString &sLocationId,
 {
 	// Create usb-device identifier :
 	//		<System Name>|<Vendor ID>|<Product ID>|<Device Bus Speed>|
-	//      <Keyboard/Mouse or ParallelsDevice>|<Serial Number>
+	//      <Keyboard/Mouse or Device>|<Serial Number>
 	return QString("%1|%2|%3|%4|%5|%6")
 					.arg(sLocationId)
 					.arg(uVID , 4, 16, QChar('0'))

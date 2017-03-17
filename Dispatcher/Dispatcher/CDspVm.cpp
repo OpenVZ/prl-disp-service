@@ -1121,7 +1121,6 @@ void CDspVm::changeVmState(const SmartPtr<IOPackage> &p, bool&)
 				changeVmState(VMS_SUSPENDING); break;
 			case PET_DSP_EVT_VM_SUSPENDED:
 				{
-					//see https://bugzilla.parallels.com/show_bug.cgi?id=464867
 					//by some reasons VM_SUSPENDED event can income even if not suspend
 					//operation was performed
 					VIRTUAL_MACHINE_STATE state = getVmStateUnsync();

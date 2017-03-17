@@ -546,7 +546,7 @@ void PrlNet::DeleteVirtualNetwork(CParallelsNetworkConfig *pNetworkConfig, CVirt
 	delete pVirtualNetwork;
 }
 
-// Create list of host only networks sorted by Parallels Adapter number (both enabled and disabled)
+// Create list of host only networks sorted by Prl Adapter number (both enabled and disabled)
 QList<CVirtualNetwork *>  PrlNet::MakeHostOnlyNetworksList(const CParallelsNetworkConfig *pNetworkConfig)
 {
 	CVirtualNetworks *pNetworks = pNetworkConfig->getVirtualNetworks();
@@ -916,7 +916,7 @@ PRL_RESULT PrlNet::GetAdapterForNetwork(
 		CParallelsAdapter *pAdapter = pHostOnlyParams->getParallelsAdapter();
 		if (pAdapter == NULL)
 		{
-			WRITE_TRACE(DBG_FATAL, "Parallels Adapter for network %s are not configured.",
+			WRITE_TRACE(DBG_FATAL, "Prl Adapter for network %s are not configured.",
 				pNetwork->getNetworkID().toAscii().constData());
 			return PRL_NET_VMDEVICE_VIRTUAL_NETWORK_CONFIG_ERROR;
 		}
@@ -934,7 +934,7 @@ PRL_RESULT PrlNet::GetAdapterForNetwork(
 			}
 		}
 
-		WRITE_TRACE(DBG_FATAL, "Parallels Adapter (%d) for virtual network %s doesn't exist or it is disabled.",
+		WRITE_TRACE(DBG_FATAL, "Prl Adapter (%d) for virtual network %s doesn't exist or it is disabled.",
 			(int)GET_PRL_ADAPTER_NUMBER(nAdapterIndex),
 			pNetwork->getNetworkID().toAscii().constData() );
 

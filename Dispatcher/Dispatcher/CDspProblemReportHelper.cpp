@@ -396,7 +396,7 @@ void CDspProblemReportHelper::FillCommonReportData( CProblemReport & cReport, bo
 	cReport.setProductName( VER_SHORTPRODUCTNAME_STR );
 
 #ifdef _LIN_
-	QFile f("/etc/parallels-release");
+	QFile f(PRODUCT_RELEASE_FILE);
 
 	if(f.open(QIODevice::ReadOnly))
 	{
@@ -405,7 +405,7 @@ void CDspProblemReportHelper::FillCommonReportData( CProblemReport & cReport, bo
 	else
 	{
 		WRITE_TRACE(DBG_FATAL,
-			"Failed to open file '/etc/parallels-release': %s", QSTR2UTF8(f.errorString()));
+			"Failed to open file '" PRODUCT_RELEASE_FILE "': %s", QSTR2UTF8(f.errorString()));
 	}
 #endif
 
@@ -1033,7 +1033,7 @@ void CDspProblemReportHelper::FillProblemReportData
 		if(result)
 		{
 			cReport.appendVzReport(fVzReport.filePath());
-			// report data copied to parallels report - cleanup original data
+			// report data copied to report - cleanup original data
 			QFile::remove(fVzReport.filePath());
 		}
 

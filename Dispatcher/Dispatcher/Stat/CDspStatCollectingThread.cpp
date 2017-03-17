@@ -68,8 +68,7 @@
 #include "CDspVzHelper.h"
 
 /**
- * Since statistics module consumes a lot of CPU as described in
- * bug #3702 http://bugzilla.parallels.com/show_bug.cgi?id=3702
+ * Since statistics module consumes a lot of CPU
  * Extending the collect delay to reduce CPU usage.
  */
 #define STAT_COLLECTING_TIMEOUT 1000

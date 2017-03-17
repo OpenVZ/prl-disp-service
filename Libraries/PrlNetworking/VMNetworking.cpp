@@ -159,7 +159,7 @@ PRL_RESULT PrlNet::makeBindableAdapterList( PrlNet::EthAdaptersList &adaptersLis
 }
 
 
-// return first non-parallels network adapter
+// return first non-prl network adapter
 PRL_RESULT PrlNet::getFirstAdapter(PrlNet::EthAdaptersList &adaptersList,
 			PrlNet::EthAdaptersList::Iterator &itFirstAdapter)
 {

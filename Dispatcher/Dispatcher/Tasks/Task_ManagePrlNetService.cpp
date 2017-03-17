@@ -378,7 +378,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdNetPrlNetworkServiceRestoreDefaults()
 	int err = PrlNet::loadPrlNetbridgeKext( ParallelsDriversDir );
 	if (err)
 	{
-		WRITE_TRACE(DBG_FATAL, "[PrlNet] Failed to load Parallels Networking driver %d.", err );
+		WRITE_TRACE(DBG_FATAL, "[PrlNet] Failed to load Networking driver %d.", err );
 	}
 #endif
 
@@ -564,7 +564,7 @@ PRL_RESULT Task_ManagePrlNetService::addHostOnlyVirtualNetwork(
 	CVirtualNetwork *pVirtualNetwork,
 	CDspLockedPointer<CParallelsNetworkConfig>& pNetworkConfig)
 {
-	// index of new Parallels Adapter
+	// index of new Adapter
 	int nAdapterIndex = getPrlAdapterIdx(pVirtualNetwork);
 
 	////////////////////////////
@@ -578,7 +578,7 @@ PRL_RESULT Task_ManagePrlNetService::addHostOnlyVirtualNetwork(
 			QString qsAdapterName = pVirtualNetwork->getHostOnlyNetwork()
 				->getParallelsAdapter()->getName();
 			WRITE_TRACE(DBG_FATAL, "Unable to bind the network to"
-				" Parallels Adapter %d because Virtual Network"
+				" Adapter %d because Virtual Network"
 				" %s already uses this adapter.",
 				nAdapterIndex, QSTR2UTF8(pTmp->getNetworkID()));
 			return PRL_NET_ADAPTER_ALREADY_USED;
@@ -609,7 +609,7 @@ PRL_RESULT Task_ManagePrlNetService::addHostOnlyVirtualNetwork(
 			return PRL_NET_VIRTUAL_NETWORK_SHARED_EXISTS;
 		else
 		{
-			WRITE_TRACE(DBG_FATAL, "[AddVirtualNetwork] Failed to generate parallels adapter index.");
+			WRITE_TRACE(DBG_FATAL, "[AddVirtualNetwork] Failed to generate adapter index.");
 			return PRL_NET_INSTALL_FAILED;
 		}
 	}
@@ -990,8 +990,8 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateVirtualNetwork(
 	if (nOldAdapterIndex != nNewAdapterIndex && nNewAdapterIndex != PAI_INVALID_ADAPTER)
 	{
 // Add adapter
-// NOTE: Can index be changed for the Parallels Adapter?
-//       Should we delete and add new Parallels Adapter in this case?
+// NOTE: Can index be changed for the Adapter?
+//       Should we delete and add new Adapter in this case?
 //       Can index be changed in general? May be it is an SDK error?
 
 		if (nNewAdapterIndex == PAI_GENERATE_INDEX)
@@ -1008,7 +1008,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateVirtualNetwork(
 				return PRL_NET_VIRTUAL_NETWORK_SHARED_EXISTS;
 			else
 			{
-				WRITE_TRACE(DBG_FATAL, "[AddVirtualNetwork] Failed to generate parallels adapter index.");
+				WRITE_TRACE(DBG_FATAL, "[AddVirtualNetwork] Failed to generate adapter index.");
 				return PRL_NET_INSTALL_FAILED;
 			}
 		}
@@ -1055,7 +1055,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateVirtualNetwork(
 	}
 #endif
 
-	// Restart Parallels Adapter if configuration was changed
+	// Restart Adapter if configuration was changed
 
 	// Will be set to true if change of ip address failed.
 	// Fail of IP-address change should be remembered and notification passed to user
@@ -1077,7 +1077,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateVirtualNetwork(
 	PRL_RESULT prlResult = PrlNet::WriteNetworkConfig(*pNetworkConfig.getPtr());
 	if (PRL_FAILED(prlResult))
 	{
-		WRITE_TRACE(DBG_FATAL, "Failed to update Parallels Network Config: %x", (unsigned)prlResult);
+		WRITE_TRACE(DBG_FATAL, "Failed to update Network Config: %x", (unsigned)prlResult);
 	}
 	pNetworkConfig.unlock();  // NOTE:  unlock() should be called on last line!
 
@@ -1774,7 +1774,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdAddIPPrivateNetwork()
 	prlResult = PrlNet::WriteNetworkConfig(*pNetworkConfig.getPtr());
 	if (PRL_FAILED(prlResult))
 	{
-		WRITE_TRACE(DBG_FATAL, "Failed to update Parallels Network Config: %x", (unsigned)prlResult);
+		WRITE_TRACE(DBG_FATAL, "Failed to update Network Config: %x", (unsigned)prlResult);
 		return prlResult;
 	}
 
@@ -1862,7 +1862,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateIPPrivateNetwork()
 	prlResult = PrlNet::WriteNetworkConfig(*pNetworkConfig.getPtr());
 	if (PRL_FAILED(prlResult))
 	{
-		WRITE_TRACE(DBG_FATAL, "Failed to update Parallels Network Config: %x", (unsigned)prlResult);
+		WRITE_TRACE(DBG_FATAL, "Failed to update Network Config: %x", (unsigned)prlResult);
 		return prlResult;
 	}
 
@@ -1926,7 +1926,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdRemoveIPPrivateNetwork()
 
 	prlResult = PrlNet::WriteNetworkConfig(*pNetworkConfig.getPtr());
 	if (PRL_FAILED(prlResult))
-		WRITE_TRACE(DBG_FATAL, "Failed to update Parallels Network Config: %x", prlResult);
+		WRITE_TRACE(DBG_FATAL, "Failed to update Network Config: %x", prlResult);
 
 	return PRL_ERR_SUCCESS;
 }

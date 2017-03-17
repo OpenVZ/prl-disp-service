@@ -171,7 +171,7 @@ PRL_RESULT Ploop::Init()
 		return PRL_ERR_UNEXPECTED;
 	}
 
-	/* We accept the Parallels HDD directory or
+	/* We accept the HDD directory or
 	   path to DISKDESCRIPTOR_XML */
 	if (fi.isDir())
 	{

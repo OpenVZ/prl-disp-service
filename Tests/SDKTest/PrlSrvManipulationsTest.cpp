@@ -874,7 +874,7 @@ void PrlSrvManipulationsTest::testDispConfigGetDefaulCtDir()
 {
 #ifdef _LIN_
 	if (CVzHelper::is_vz_running() != 1)
-		QSKIP("Virtuozzo is not running", SkipAll);
+		QSKIP("vzkernel is not running", SkipAll);
 	RECEIVE_DISP_CONFIG
 
 	PRL_CHAR sDir[STR_BUF_LENGTH];

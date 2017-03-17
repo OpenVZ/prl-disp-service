@@ -1084,7 +1084,7 @@ void PrlVmDevManipulationsTest::testNetSetBoundAdapterIndex()
 	QString sExpectedDefaultGatewayIPv6 = TEST_DEFAULT_GATEWAY_IPv6;\
 	QStringList lstNetAddresses = QStringList()<<"1.2.3.4/1.2.3.0:24"<<"5.6.7.8/5.6.7.0:24"<<"9.10.11.12/9.10.11.0:24";\
 	QStringList lstDnsServers = QStringList()<<"192.168.1.254"<<"10.30.8.254";\
-	QStringList lstSearchDomains = QStringList()<<"sw.ru"<<"parallels.com";\
+	QStringList lstSearchDomains = QStringList()<<"sw.ru";\
 	QString sExpectedVirtualNetworkId = Uuid::createUuid().toString();\
 	SdkHandleWrap hVmDev;\
 	QVERIFY(PRL_SUCCEEDED(PrlVmCfg_CreateVmDev(m_VmHandle, PDE_GENERIC_NETWORK_ADAPTER, hVmDev.GetHandlePtr())));\

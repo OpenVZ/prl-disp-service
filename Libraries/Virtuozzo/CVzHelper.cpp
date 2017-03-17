@@ -3527,7 +3527,7 @@ void CVzStateMonitor::start(state_event_handler_fn cb, void *obj)
 
 	if (m_kevt_fd != -1)
 	{
-		WRITE_TRACE(DBG_FATAL, "Virtuozzo status monitor already running");
+		WRITE_TRACE(DBG_FATAL, "Vz status monitor already running");
 		return;
 	}
 	m_bStopStatusMonitor = false;

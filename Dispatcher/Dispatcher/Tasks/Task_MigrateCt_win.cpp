@@ -124,7 +124,7 @@ static PRL_RESULT GetEntryLists(
 					continue;
 				if (fileInfo.absoluteFilePath() == config_backup.absoluteFilePath())
 					continue;
-				/* skip parallels.log */
+				/* skip log */
 				if (fileInfo.absoluteFilePath() == log.absoluteFilePath())
 					continue;
 				if (fileInfo.absoluteFilePath() == statlog.absoluteFilePath())

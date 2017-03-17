@@ -68,25 +68,25 @@ bool isNatdRunning();
 
 PRL_RESULT findPrlAdapter(int adapterIndex, PrlNet::EthernetAdapter &adapter);
 
-/// @brief Configures newly installed parallels adapter
-/// @param prlDriversDir Directory where parallels drivers are located
-/// @param adapterIndex Index of the parallels adapter
+/// @brief Configures newly installed prl adapter
+/// @param prlDriversDir Directory where prl drivers are located
+/// @param adapterIndex Index of the prl adapter
 /// @param adapterName Name to assign to the adapter
 bool configurePrlAdapter(
 	const QString &prlDriversDir,
 	int adapterIndex, bool bHiddenAdapter, const QString &adapterName );
 
-/// Unconfigures Parallels Adapter
-/// @param adapterIndex Adapter to unconfigure. -1 to unconfigure all Parallels Adapter.
+/// Unconfigures Prl Adapter
+/// @param adapterIndex Adapter to unconfigure. -1 to unconfigure all Prl Adapter.
 void unconfigurePrlAdapter(int adapterIndex);
 
-/// Plugs Parallels Interface into the system
+/// Plugs Prl Interface into the system
 PRL_RESULT plugPrlAdapter( int adapterIndex );
 
-// Unplugs Parallels Interface from the system
+// Unplugs Prl Interface from the system
 PRL_RESULT unplugPrlAdapter( int adapterIndex );
 
-// returns names of the Parallels NATD
+// returns names of the Prl NATD
 void getPrlNatdNames(const QString &parallelsDir, QString &cmd, QString &arg0);
 
 // execute command in arg0

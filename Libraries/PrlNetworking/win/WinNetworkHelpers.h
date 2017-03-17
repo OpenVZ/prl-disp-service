@@ -142,10 +142,10 @@ PMIB_IFTABLE getIfTable();
 /// Get routing table.
 SmartPtr<MIB_IPFORWARD_TABLE2> getIpForwardTable2();
 
-/// Searches Parallels adapter in the adapters list of the whole system
+/// Searches Prl adapter in the adapters list of the whole system
 PRL_RESULT findPrlAdapter(int prlAdapterIndex, PIP_ADAPTER_INFO adaptersList, PIP_ADAPTER_INFO *ppAdapter);
 
-/// returns windows-index of parallels adapter
+/// returns windows-index of Prl adapter
 bool GetPrlAdapterSysIndex(int prlAdapterIndex, int &iface_idx);
 
 /// IP6Address/prefixLen

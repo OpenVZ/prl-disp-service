@@ -54,7 +54,7 @@ unitslist = []
 
 deftarget = "virtuozzo.target"
 
-started_dir = "/run/virtuozzo-generator"
+started_dir = "/run/vz-generator"
 target_dir = unitsdir + "/" + deftarget + ".wants"
 
 def log(mess):

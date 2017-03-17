@@ -37,11 +37,11 @@
 #define PRL_VME_ADAPTER_START_INDEX 0x20000000
 // mask to apply to adapter index to obtain adapter number
 #define PRL_ADAPTER_INDEX_MASK	0x0fffffff
-// true if adapter is a Parallels adapter
+// true if adapter is a Prl adapter
 #define IS_PRL_ADAPTER_INDEX(idx) ( 0 != ((idx)&PRL_ADAPTER_START_INDEX) )
 // true if adapter is a VME adapter
 #define IS_VME_ADAPTER_INDEX(idx) ( 0 != ((idx)&PRL_VME_ADAPTER_START_INDEX) )
-// return number of Parallels adapter using index
+// return number of Prl adapter using index
 #define GET_PRL_ADAPTER_NUMBER(idx) ((idx)&PRL_ADAPTER_INDEX_MASK)
 
 enum PRL_NET_MODE

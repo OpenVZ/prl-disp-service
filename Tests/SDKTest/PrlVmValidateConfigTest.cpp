@@ -2351,8 +2351,7 @@ void PrlVmValidateConfigTest::testValidateConfigNetworkAdapterOnInvalidMacAddres
 	CHECK_RET_CODE_EXP(PrlVmDevNet_SetMacAddress(hDevice, "000000000000"));
 	CHECK_RET_CODE_EXP(PrlVmDev_SetEmulatedType(hDevice, PDT_USE_DIRECT_ASSIGN));
 	CHECK_RET_CODE_EXP(PrlVmDev_SetEnabled(hDevice, TRUE));
-// 4 Add network adapter with valid MAC address but not belongs to Parallels interval
-// https://bugzilla.sw.ru/show_bug.cgi?id=437789
+// 4 Add network adapter with valid MAC address but not belongs to Prl interval
 	CHECK_RET_CODE_EXP(PrlVmCfg_CreateVmDev(m_VmHandle, PDE_GENERIC_NETWORK_ADAPTER, hDevice.GetHandlePtr()));
 	CHECK_RET_CODE_EXP(PrlVmDevNet_SetMacAddress(hDevice, "0007E909DCC6"));
 	CHECK_RET_CODE_EXP(PrlVmDev_SetEmulatedType(hDevice, (PRL_VM_DEV_EMULATION_TYPE)PNA_HOST_ONLY));

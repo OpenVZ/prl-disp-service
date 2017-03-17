@@ -832,7 +832,7 @@ void CDspShellHelper::managePrlNetService (
 }
 
 /**
-* @brief Sends Parallels Network Service status.
+* @brief Sends Prl Network Service status.
 */
 void CDspShellHelper::sendNetServiceStatus (
 	SmartPtr<CDspClient>& pUser,

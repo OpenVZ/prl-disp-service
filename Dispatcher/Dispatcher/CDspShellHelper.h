@@ -125,11 +125,11 @@ public:
 	void hostCommonInfoCommit ( SmartPtr<CDspClient>&,
 								const SmartPtr<IOPackage>& );
 
-	/** Manages Parallels Network Service */
+	/** Manages Network Service */
 	void managePrlNetService ( SmartPtr<CDspClient>&,
 							   const SmartPtr<IOPackage>& );
 
-	/** Sends Parallels Network Service tatus */
+	/** Sends Network Service status */
 	static void sendNetServiceStatus ( SmartPtr<CDspClient>&,
 						   const SmartPtr<IOPackage>& );
 

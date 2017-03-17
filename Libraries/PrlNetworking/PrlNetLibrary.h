@@ -58,8 +58,8 @@ class CParallelsNetworkConfig;
 namespace PrlNet
 {
 
-/// @class ParallelsAdapter
-/// Describes Ethernet Adapters (both Parallels and Ethernet)
+/// @class Adapter
+/// Describes Ethernet Adapters (both Prl and Ethernet)
 struct EthernetAdapter
 {
 	QString 	_name;			///< User-friendly name of the adapter
@@ -69,7 +69,7 @@ struct EthernetAdapter
 	int			_adapterIndex;	///< Index of the adapter.
 								///< Note: Prl adapters starts from index 0x80000000
 
-	bool		_bParallelsAdapter; /// true if is a parallels adapter.
+	bool		_bParallelsAdapter; /// true if is a prl adapter.
 
 	QString 	_adapterGuid;   ///< Windows GUID of the adapter (Win32 only)
 
@@ -97,7 +97,7 @@ typedef QList<EthernetAdapter> EthAdaptersList;
 /// e.g if 6 is returned, then adapter can have maximum index 6.
 int		   getMaximumAdapterIndex();
 
-/// Creates a list of Parallels adapters, both enabled and disabled
+/// Creates a list of Prl adapters, both enabled and disabled
 /// @param adaptersList [out] Resulting list of adapters
 PRL_RESULT makePrlAdaptersList( EthAdaptersList &adaptersList );
 
@@ -117,7 +117,7 @@ PRL_RESULT makeBindableAdapterList( EthAdaptersList &adaptersList,
 		bool bUpAdapters, bool bConfigured = false );
 
 
-/// Get first non-parallels adapter on system.
+/// Get first non-prl adapter on system.
 /// Usually used in sequence
 /// if (PRL_FAILED(getDefaultBridgedAdapter(...)
 ///     return getFirstAdapter(...);
@@ -133,16 +133,16 @@ PRL_RESULT getDefaultBridgedAdapter(EthAdaptersList &adaptersList,
 /// Returns true if ethernet adapter is a WiFi adapter.
 bool isWIFIAdapter(const EthernetAdapter& ethAdapter);
 
-/// Returns true if ethernet adapter is the Parallels virtual adapter.
+/// Returns true if ethernet adapter is the Prl virtual adapter.
 bool isVirtualAdapter(const EthernetAdapter& ethAdapter);
 
-/// Enable/Disable Parallels adapter
-/// @param adapterIndex [in] Parallels adapter to enable/disable
+/// Enable/Disable Prl adapter
+/// @param adapterIndex [in] Prl adapter to enable/disable
 /// @param bEnable [in] True to enable operation, false - disable
 PRL_RESULT enablePrlAdapter( int adapterIndex, bool bEnable );
 
-/// Renames Parallels adapter
-/// @param adapterIndex [in] Parallels adapter to rename
+/// Renames Prl adapter
+/// @param adapterIndex [in] Prl adapter to rename
 /// @param newName [in] new name of the adapter
 PRL_RESULT renamePrlAdapter(
     const QString &prlDriversDir,
@@ -150,14 +150,14 @@ PRL_RESULT renamePrlAdapter(
     bool bHiddenAdapter,
     const QString &newName );
 
-/// Installs and starts Parallels network service
+/// Installs and starts Prl network service
 /// Note: in unix-systems installation of the service is not required
 /// This function will simple start service
-/// @param parallelsDir Directory where Parallels is installed
+/// @param PrlDir Directory where Product is installed
 PRL_RESULT installPrlService( const QString &parallelsDir );
 
 /// For debugging purposes
-/// Removes Parallels network service
+/// Removes Prl network service
 PRL_RESULT uninstallPrlService( );
 
 struct SrvAction
@@ -169,7 +169,7 @@ struct SrvAction
 	};
 };
 
-/// Starts/stops Parallels network service
+/// Starts/stops network service
 PRL_RESULT startPrlNetService( const QString &parallelsDir, SrvAction::Action action );
 
 struct SrvStatus
@@ -182,10 +182,10 @@ struct SrvStatus
 	};
 };
 
-/// Get current state of the Parallels network service
+/// Get current state of the network service
 PRL_RESULT getPrlNetServiceStatus(SrvStatus::Status *pStatus);
 
-/// Notifies Parallels network service about changes in configuration
+/// Notifies network service about changes in configuration
 /// (NIC was installed/uninstalled, DHCP parameters where changed etc)
 PRL_RESULT notifyPrlNetService(const QString &parallelsDir);
 
@@ -214,11 +214,11 @@ void	getDefaultDhcpParams(
 /// Starts networking adapters configured in Dispatcher.xml
 PRL_RESULT startNetworking( const QString &parallelsDir, const QString &prlDriversDir );
 
-/// Stops parallels networking adapters (Unix only)
+/// Stops networking adapters (Unix only)
 PRL_RESULT stopNetworking(const QString &parallelsDir);
 
 #if defined(_MAC_)
-/// Removes all parallels interfaces from the SCPreferences
+/// Removes all Prl interfaces from the SCPreferences
 PRL_RESULT uninstallNetworkAdapters();
 
 /// returns true if Mac Connection Sharing is enabled for the adapter
@@ -235,23 +235,23 @@ PRL_RESULT setAdapterIpAddress(const QString& adapterName,
 #endif
 
 
-/// setup IP-addresses for parallels adapter.
+/// setup IP-addresses for Prl adapter.
 /// @param bHiddenAdapter Ignored for win/lin and used for Mac only.
 ///	true  if change should be done using IOCTL to interface,
 ///	false if using Mac OS Network Preferences.
 PRL_RESULT setPrlAdapterIpAddresses(int adapterIndex, bool bHiddenAdapter,
 		const CHostOnlyNetwork *pNetwork);
 
-/// Delete IP-addresses from parallels adapter.
+/// Delete IP-addresses from Prl adapter.
 /// So far do nothing for win/lin
 /// @param bHiddenAdapter see setPrlAdapterIpAddresses func.
 PRL_RESULT delPrlAdapterIpAddresses(int adapterIndex, bool bHiddenAdapter,
 		const CHostOnlyNetwork *pNetwork);
 
 #if !defined(_WIN_)
-/// load Parallels Netbridge driver.
+/// load Prl Netbridge driver.
 int loadPrlNetbridgeKext( const QString &qPrlDriversDir );
-/// load Parallels Adapters driver.
+/// load Prl Adapters driver.
 int loadPrlAdaptersKext( const QString &qPrlDriversDir );
 /// Set unix-interface flags
 bool setIfFlags( const char *if_name, int set_flags, int clear_flags );
@@ -259,10 +259,10 @@ bool setIfFlags( const char *if_name, int set_flags, int clear_flags );
 
 #if defined(_WIN_)
 
-/// Obtains parameters of Parallels adapter as it is configured in the
+/// Obtains parameters of Prl adapter as it is configured in the
 /// host operating system. This is required for the adapter
 /// for which DHCP is disabled but NAT is enabled
-/// @param prlAdapterIndex [in] index of the Parallels adapter
+/// @param prlAdapterIndex [in] index of the Prl adapter
 /// @param ipaddr [out] ip address of the adapter
 /// @param netmask [out] netmask of the adapter
 PRL_RESULT  getPrlSystemAdapterParams(
@@ -272,7 +272,7 @@ PRL_RESULT  getPrlSystemAdapterParams(
 #endif
 
 #if defined(_WIN_) || defined(_LIN_)
-/// Disable IPv6 router discovery on Parallels adapter
+/// Disable IPv6 router discovery on  adapter
 PRL_RESULT DisablePrlIPv6RouterDiscovery(int prlAdapterIndex);
 #endif
 

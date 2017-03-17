@@ -551,8 +551,7 @@ void ProcessNetSessions(SmartPtr<CUsersStatInfo> pUsersStatInfo)
 
 void CDspStatCollector::GetSystemUsersSessions(SmartPtr<CUsersStatInfo> pUsersStatInfo)
 {
-/* FIXME: Temporarily commented due issues of Secur32.dll under w2k3 64 bit hosts:
-			http://bugzilla.parallels.com/show_bug.cgi?id=7211
+/* FIXME: Temporarily commented due issues of Secur32.dll under w2k3 64 bit hosts
 
 	PLUID sessions = NULL;
 	ULONG count;

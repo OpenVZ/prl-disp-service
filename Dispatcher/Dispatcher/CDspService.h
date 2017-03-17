@@ -523,7 +523,6 @@ private:
 	//////////////////////////////////////////////////////////////////////////
 	// Complex objects should be last in  definition list:
 	// Reason:  Complex objects should be destroyed BEFORE their dependencies
-	// Bug: #6042 http://bugzilla.parallels.com/show_bug.cgi?id=6042
 	//
 	//////////////////////////////////////////////////////////////////////////
 	SmartPtr<CDspTaskManager> m_pTaskManager;

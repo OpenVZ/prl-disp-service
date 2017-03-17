@@ -85,9 +85,9 @@ QString getDispConfig(const QString& vmHomeDir_)
 QString getTemplatePath(quint32 os_)
 {
     if (IS_WINDOWS(os_))
-        return "/usr/share/virtuozzo/vz-win-user-config";
+        return "/usr/share/vz-guest-tools/vz-win-user-config";
     else
-        return "/usr/share/virtuozzo/vz-lin-user-config";
+        return "/usr/share/vz-guest-tools/vz-lin-user-config";
 }
 } // anonymous namespace
 

@@ -28,7 +28,7 @@
 ///	Implementation of the class Task_GetInfoFromParallelsUtils
 ///
 /// @brief
-///	This class implements Parallels Utitlites functions Information requests
+///	This class implements Utitlites functions Information requests
 ///
 /// @author sergeyt
 ///	Artemr@
