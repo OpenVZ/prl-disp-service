@@ -1113,9 +1113,19 @@ SmartPtr<CPackedProblemReport> CDspProblemReportHelper::getProblemReportObj(
 		pUser->sendSimpleResponse(p, PRL_ERR_FAILURE);
 		return SmartPtr<CPackedProblemReport>();
 	}
-
+	QString c = ParallelsDirs::getCommonDefaultVmCatalogue();
+	if (!CFileHelper::WriteDirectory(c, &pUser->getAuthHelper()))
+	{
+		pUser->sendSimpleResponse(p, PRL_ERR_FAILURE);
+		return SmartPtr<CPackedProblemReport>();
+	}
 	//create "Problem Report" directory and fix permissions
-	CProblemReportUtils::GetProblemReportPath(ParallelsDirs::getCommonDefaultVmCatalogue());
+	if (CProblemReportUtils::GetProblemReportPath(c).isEmpty())
+	{
+		// Send error
+		pUser->sendSimpleResponse(p, PRL_ERR_FAILURE);
+		return SmartPtr<CPackedProblemReport>();
+	}
 
 	QString sVmUuid = cmd->GetVmUuid();
 	CDspService::instance()->getVmDirManager().getVmTypeByUuid(sVmUuid, nType);
