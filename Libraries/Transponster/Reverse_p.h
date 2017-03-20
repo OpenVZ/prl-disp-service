@@ -641,18 +641,80 @@ private:
 	address_type m_address;
 };
 
+namespace Controller
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+
+struct List
+{
+	List() : m_scsiIndex()
+	{
+	}
+
+	void add(const Libvirt::Domain::Xml::VChoice591& bus_, quint16 index_);
+	quint16 addScsi(Libvirt::Domain::Xml::EModel model_);
+
+	const deviceList_type& getResult() const
+	{
+		return m_controllerList;
+	}
+
+private:
+	quint16 m_scsiIndex;
+	deviceList_type m_controllerList;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Scsi
+
+struct Scsi
+{
+	explicit Scsi(Libvirt::Domain::Xml::EModel model_): m_controllerId(), m_deviceCounter(), m_model(model_)
+	{
+	}
+
+	Libvirt::Domain::Xml::VAddress craftSlot(List& controllerList_)
+	{
+		quint16 t = m_deviceCounter % MAX_TARGETS;
+		if (0 == t)
+		{
+			m_controllerId = controllerList_.addScsi(m_model);
+		}
+
+		m_deviceCounter++;
+		return Address().setTarget(t)(m_controllerId);
+	}
+
+private:
+	enum
+	{
+		MAX_TARGETS = 256
+	};
+
+	quint16 m_controllerId;
+	quint16 m_deviceCounter;
+	const Libvirt::Domain::Xml::EModel m_model;
+};
+
+} // namespace Controller
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Attachment
 
 struct Attachment
 {
+	explicit Attachment() : m_controllerList(), m_virtioScsi(Libvirt::Domain::Xml::EModelVirtioScsi),
+							m_hypervScsi(Libvirt::Domain::Xml::EModelHvScsi)
+	{
+	}
 	Libvirt::Domain::Xml::VAddress craftIde(quint32 index_);
 	Libvirt::Domain::Xml::VAddress craftSata(quint32 index_);
 	Libvirt::Domain::Xml::VAddress craftScsi
-		(quint32 index_, const boost::optional<Libvirt::Domain::Xml::EModel>& model_);
+		(const boost::optional<Libvirt::Domain::Xml::EModel>& model_);
 	deviceList_type getControllers() const
 	{
-		return m_controllerList;
+		return m_controllerList.getResult();
 	}
 
 private:
@@ -660,13 +722,12 @@ private:
 	{
 		IDE_UNITS = 2,
 		IDE_BUSES = 2,
-		SATA_UNITS = 6,
-		SCSI_TARGETS = 256
+		SATA_UNITS = 6
 	};
 
-	void craftController(const Libvirt::Domain::Xml::VChoice591& bus_, quint16 index_);
-
-	deviceList_type m_controllerList;
+	Controller::List m_controllerList;
+	Controller::Scsi m_virtioScsi;
+	Controller::Scsi m_hypervScsi;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -747,8 +808,7 @@ void List::build(T builder_)
 		d.setAddress(m_attachment.craftSata(builder_.getModel().getIndex()));
 		break;
 	case Libvirt::Domain::Xml::EBusScsi:
-		d.setAddress(m_attachment.craftScsi
-				(builder_.getModel().getIndex(), builder_.getModel().getScsiModel()));
+		d.setAddress(m_attachment.craftScsi(builder_.getModel().getScsiModel()));
 		break;
 	default:
 		break;
