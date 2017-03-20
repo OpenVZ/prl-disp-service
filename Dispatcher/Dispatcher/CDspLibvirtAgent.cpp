@@ -141,14 +141,14 @@ namespace Migration
 
 Result Agent::cancel()
 {
-	return do_(m_domain.data(), boost::bind(&virDomainAbortJob, _1));
+	return do_(getDomain().data(), boost::bind(&virDomainAbortJob, _1));
 }
 
 Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple>
 Agent::getProgress()
 {
 	virDomainJobInfo j;
-	Result x = do_(m_domain.data(), boost::bind(&virDomainGetJobInfo, _1, &j));
+	Result x = do_(getDomain().data(), boost::bind(&virDomainGetJobInfo, _1, &j));
 	if (x.isFailed())
 		return x.error();
 
@@ -157,7 +157,7 @@ Agent::getProgress()
 
 Result Agent::setDowntime(quint32 value_)
 {
-	return do_(m_domain.data(), boost::bind(&virDomainMigrateSetMaxDowntime, _1, 1000*value_, 0));
+	return do_(getDomain().data(), boost::bind(&virDomainMigrateSetMaxDowntime, _1, 1000*value_, 0));
 }
 
 Result Agent::migrate(const CVmConfiguration& config_, unsigned int flags_,
@@ -169,11 +169,13 @@ Result Agent::migrate(const CVmConfiguration& config_, unsigned int flags_,
 	if (e.isFailed())
 		return e;
 
-	e = b.addXml(VIR_MIGRATE_PARAM_DEST_XML, Config(m_domain, m_link, VIR_DOMAIN_XML_MIGRATABLE));
+	e = b.addXml(VIR_MIGRATE_PARAM_DEST_XML,
+		Config(getDomain(), getLink(), VIR_DOMAIN_XML_MIGRATABLE));
 	if (e.isFailed())
 		return e;
 
-	e = b.addXml(VIR_MIGRATE_PARAM_PERSIST_XML, Config(m_domain, m_link, VIR_DOMAIN_XML_INACTIVE));
+	e = b.addXml(VIR_MIGRATE_PARAM_PERSIST_XML,
+		Config(getDomain(), getLink(), VIR_DOMAIN_XML_INACTIVE));
 	if (e.isFailed())
 		return e;
 
@@ -183,11 +185,11 @@ Result Agent::migrate(const CVmConfiguration& config_, unsigned int flags_,
 	if (c.isNull())
 		return Failure(PRL_ERR_FAILURE);
 
-	if (NULL == m_domain.data())
+	if (getDomain().isNull())
 		return Result(Error::Simple(PRL_ERR_UNINITIALIZED));
 
 	Parameters::Result_type p = parameters_.extract();
-	virDomainPtr d = virDomainMigrate3(m_domain.data(), c.data(),
+	virDomainPtr d = virDomainMigrate3(getDomain().data(), c.data(),
 				p.first.data(), p.second, flags_);
 	if (NULL == d)
 		return Failure(PRL_ERR_FAILURE);
@@ -274,97 +276,107 @@ Result Online::operator()(const CVmConfiguration& config_)
 
 } // namespace Migration
 
+namespace Limb
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Unit
+// struct Abstract
 
-Unit::Unit(virDomainPtr domain_): m_domain(domain_, &virDomainFree)
+Abstract::linkReference_type Abstract::getLink() const
 {
+	virConnectPtr x = virDomainGetConnect(m_domain.data());
+	if (NULL == x)
+		return linkReference_type();
+
+	virConnectRef(x);
+	return linkReference_type(x, &virConnectClose);
 }
 
-Result Unit::kill()
+void Abstract::setDomain(virDomainPtr value_)
 {
-	return do_(m_domain.data(), boost::bind(&virDomainDestroy, _1));
+	m_domain = QSharedPointer<virDomain>(value_, &virDomainFree);
 }
 
-Result Unit::shutdown()
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+Result State::kill()
 {
-	return do_(m_domain.data(), boost::bind
+	return do_(getDomain().data(), boost::bind(&virDomainDestroy, _1));
+}
+
+Result State::shutdown()
+{
+	return do_(getDomain().data(), boost::bind
 		(&virDomainShutdownFlags, _1, VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN |
 			VIR_DOMAIN_SHUTDOWN_GUEST_AGENT));
 }
 
-Result Unit::start_(unsigned int flags_)
+Result State::start_(unsigned int flags_)
 {
 	int s = VIR_DOMAIN_NOSTATE;
-	if (-1 == virDomainGetState(m_domain.data(), &s, NULL, 0))
+	if (-1 == virDomainGetState(getDomain().data(), &s, NULL, 0))
 		return Failure(PRL_ERR_VM_GET_STATUS_FAILED);
 
 	if (s == VIR_DOMAIN_CRASHED)
 		kill();
 
-	return do_(m_domain.data(), boost::bind(&virDomainCreateWithFlags, _1, flags_));
+	return do_(getDomain().data(), boost::bind(&virDomainCreateWithFlags, _1, flags_));
 }
 
-Result Unit::start()
+Result State::start()
 {
 	return start_(VIR_DOMAIN_START_FORCE_BOOT);
 }
 
-Result Unit::startPaused()
+Result State::startPaused()
 {
 	return start_(VIR_DOMAIN_START_PAUSED);
 }
 
-Result Unit::reboot()
+Result State::reboot()
 {
-	return do_(m_domain.data(), boost::bind(&virDomainReboot, _1, 0));
+	return do_(getDomain().data(), boost::bind(&virDomainReboot, _1, 0));
 }
 
-Result Unit::reset()
+Result State::reset()
 {
-	return do_(m_domain.data(), boost::bind(&virDomainReset, _1, 0));
+	return do_(getDomain().data(), boost::bind(&virDomainReset, _1, 0));
 }
 
-Result Unit::rename(const QString& to_)
-{
-	return do_(m_domain.data(), boost::bind(&virDomainRename, _1,
-		qPrintable(to_), 0));
-}
-
-Result Unit::resume(const QString& sav_)
+Result State::resume(const QString& sav_)
 {
 	return do_(getLink().data(), boost::bind
 		(&virDomainRestore, _1, qPrintable(sav_)));
 }
 
-Result Unit::pause()
+Result State::pause()
 {
-	return do_(m_domain.data(), boost::bind(&virDomainSuspend, _1));
+	return do_(getDomain().data(), boost::bind(&virDomainSuspend, _1));
 }
 
-Result Unit::unpause()
+Result State::unpause()
 {
-	return do_(m_domain.data(), boost::bind(&virDomainResume, _1));
+	return do_(getDomain().data(), boost::bind(&virDomainResume, _1));
 }
 
-Result Unit::suspend(const QString& sav_)
+Result State::suspend(const QString& sav_)
 {
-	return do_(m_domain.data(), boost::bind
+	return do_(getDomain().data(), boost::bind
 		(&virDomainSaveFlags, _1, qPrintable(sav_), (const char* )NULL,
 			VIR_DOMAIN_SAVE_RUNNING));
 }
 
-Result Unit::undefine()
+Result State::undefine()
 {
-	return do_(m_domain.data(), boost::bind(&virDomainUndefineFlags, _1,
+	return do_(getDomain().data(), boost::bind(&virDomainUndefineFlags, _1,
 		VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA |
 		VIR_DOMAIN_UNDEFINE_KEEP_NVRAM));
 }
 
-Result Unit::getState(VIRTUAL_MACHINE_STATE& dst_) const
+Result State::getValue(VIRTUAL_MACHINE_STATE& dst_) const
 {
 	int s = VIR_DOMAIN_NOSTATE, r;
-	if (-1 == virDomainGetState(m_domain.data(), &s, &r, 0))
+	if (-1 == virDomainGetState(getDomain().data(), &s, &r, 0))
 		return Failure(PRL_ERR_VM_GET_STATUS_FAILED);
 
 	switch (s)
@@ -395,13 +407,65 @@ Result Unit::getState(VIRTUAL_MACHINE_STATE& dst_) const
 	return Result();
 }
 
+Migration::Agent State::migrate(const QString &uri_)
+{
+	return Migration::Agent(getDomain(), uri_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Maintenance
+
+Result Maintenance::updateQemu()
+{
+	return do_(getDomain().data(), boost::bind(&virDomainMigrateToURI3, _1,
+			(const char *)NULL, (virTypedParameterPtr) NULL, 0, 
+			VIR_MIGRATE_PEER2PEER | VIR_MIGRATE_LOCAL |
+			VIR_MIGRATE_LIVE | VIR_MIGRATE_POSTCOPY |
+			VIR_MIGRATE_POSTCOPY_START | VIR_MIGRATE_RELEASE_RAM));
+}
+
+Result Maintenance::adjustClock(qint64 offset_)
+{
+	linkReference_type l = getLink();
+	if (l.isNull())
+		return Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
+
+	Config config(getDomain(), l, VIR_DOMAIN_XML_INACTIVE);
+	Prl::Expected<QString, Error::Simple> x = config.adjustClock(offset_);
+	if (x.isFailed())
+		return x.error();
+
+	virDomainPtr d = virDomainDefineXML(l.data(), x.value().toUtf8().data());
+	if (NULL == d)
+		return Failure(PRL_ERR_VM_APPLY_CONFIG_FAILED);
+
+	setDomain(d);
+	return Result();
+}
+
+} // namespace Limb
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+Unit::Unit(virDomainPtr domain_): Abstract(domainReference_type())
+{
+	setDomain(domain_);
+}
+
+Result Unit::rename(const QString& to_)
+{
+	return do_(getDomain().data(), boost::bind(&virDomainRename, _1,
+		qPrintable(to_), 0));
+}
+
 Exec::AuxChannel* Unit::getChannel(const QString& path_) const
 {
 	virStreamPtr stream = virStreamNew(getLink().data(), VIR_STREAM_NONBLOCK);
 	if (!stream)
 		return NULL;
 
-	int ret = virDomainOpenChannel(m_domain.data(), QSTR2UTF8(path_), stream, 0);
+	int ret = virDomainOpenChannel(getDomain().data(), QSTR2UTF8(path_), stream, 0);
 	if (ret) {
 		virStreamFree(stream);
 		return NULL;
@@ -410,26 +474,15 @@ Exec::AuxChannel* Unit::getChannel(const QString& path_) const
 	return new Exec::AuxChannel(stream);
 }
 
-QSharedPointer<virConnect> Unit::getLink() const
-{
-	QSharedPointer<virConnect> output;
-	virConnectPtr x = virDomainGetConnect(m_domain.data());
-	if (NULL == x)
-		return QSharedPointer<virConnect>();
-
-	virConnectRef(x);
-	return QSharedPointer<virConnect>(x, &virConnectClose);
-}
-
 Result Unit::getConfig(CVmConfiguration& dst_, bool runtime_) const
 {
-	Config config(m_domain, getLink(), runtime_ ? 0 : VIR_DOMAIN_XML_INACTIVE);
+	Config config(getDomain(), getLink(), runtime_ ? 0 : VIR_DOMAIN_XML_INACTIVE);
 	return config.convert(dst_);
 }
 
 Result Unit::getConfig(QString& dst_, bool runtime_) const
 {
-	Config config(m_domain, getLink(), runtime_ ? 0 : VIR_DOMAIN_XML_INACTIVE);
+	Config config(getDomain(), getLink(), runtime_ ? 0 : VIR_DOMAIN_XML_INACTIVE);
 	Prl::Expected<QString, Error::Simple> s = config.read();
 	if (s.isFailed())
 		return s.error();
@@ -439,11 +492,11 @@ Result Unit::getConfig(QString& dst_, bool runtime_) const
 
 Result Unit::setConfig(const CVmConfiguration& value_)
 {
-	QSharedPointer<virConnect> link_ = getLink();
+	linkReference_type link_ = getLink();
 	if (link_.isNull())
 		return Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
 
-	Config config(m_domain, link_, VIR_DOMAIN_XML_INACTIVE);
+	Config config(getDomain(), link_, VIR_DOMAIN_XML_INACTIVE);
 	Prl::Expected<QString, Error::Simple> x = config.mixup(value_);
 	if (x.isFailed())
 		return x.error();
@@ -452,39 +505,20 @@ Result Unit::setConfig(const CVmConfiguration& value_)
 	if (NULL == d)
 		return Failure(PRL_ERR_VM_APPLY_CONFIG_FAILED);
 
-	m_domain = QSharedPointer<virDomain>(d, &virDomainFree);
-	return Result();
-}
-
-Result Unit::adjustClock(qint64 offset_)
-{
-	QSharedPointer<virConnect> link_ = getLink();
-	if (link_.isNull())
-		return Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
-
-	Config config(m_domain, link_, VIR_DOMAIN_XML_INACTIVE);
-	Prl::Expected<QString, Error::Simple> x = config.adjustClock(offset_);
-	if (x.isFailed())
-		return x.error();
-
-	virDomainPtr d = virDomainDefineXML(link_.data(), x.value().toUtf8().data());
-	if (NULL == d)
-		return Failure(PRL_ERR_VM_APPLY_CONFIG_FAILED);
-
-	m_domain = QSharedPointer<virDomain>(d, &virDomainFree);
+	setDomain(d);
 	return Result();
 }
 
 Result Unit::completeConfig(CVmConfiguration& config_)
 {
-	if (m_domain.isNull())
+	if (getDomain().isNull())
 		return Result(Error::Simple(PRL_ERR_UNINITIALIZED));
 	foreach(CVmHardDisk *d, config_.getVmHardwareList()->m_lstHardDisks)
 	{
 		if (d->getEmulatedType() != PVE::HardDiskImage)
 			continue;
 		virDomainBlockInfo b;
-		if (virDomainGetBlockInfo(m_domain.data(), QSTR2UTF8(d->getSystemName()),
+		if (virDomainGetBlockInfo(getDomain().data(), QSTR2UTF8(d->getSystemName()),
 			&b, 0) == 0)
 		{
 			d->setSize(b.capacity >> 20);
@@ -494,24 +528,10 @@ Result Unit::completeConfig(CVmConfiguration& config_)
 	return Result();
 }
 
-Migration::Agent Unit::migrate(const QString &uri_)
-{
-	return Migration::Agent(m_domain, getLink(), uri_);
-}
-
-Result Unit::updateQemu()
-{
-	return do_(m_domain.data(), boost::bind(&virDomainMigrateToURI3, _1,
-			(const char *)NULL, (virTypedParameterPtr) NULL, 0, 
-			VIR_MIGRATE_PEER2PEER | VIR_MIGRATE_LOCAL |
-			VIR_MIGRATE_LIVE | VIR_MIGRATE_POSTCOPY |
-			VIR_MIGRATE_POSTCOPY_START | VIR_MIGRATE_RELEASE_RAM));
-}
-
 Result Unit::getUuid(QString& dst_) const
 {
 	char u[VIR_UUID_STRING_BUFLEN] = {};
-	if (virDomainGetUUIDString(m_domain.data(), u))
+	if (virDomainGetUUIDString(getDomain().data(), u))
 		return Failure(PRL_ERR_FAILURE);
 
 	PrlUuid x(u);
@@ -527,23 +547,38 @@ List Unit::up() const
 
 Guest Unit::getGuest() const
 {
-	return Guest(m_domain);
+	return Guest(getDomain());
 }
 
 Editor Unit::getRuntime() const
 {
-	return Editor(m_domain, VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE);
+	return Editor(getDomain(), VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE);
 }
 
 Editor Unit::getEditor() const
 {
-	return Editor(m_domain, VIR_DOMAIN_AFFECT_CONFIG);
+	return Editor(getDomain(), VIR_DOMAIN_AFFECT_CONFIG);
 }
 
 Result Unit::setMemoryStatsPeriod(qint64 seconds_)
 {
-	return do_(m_domain.data(), boost::bind(&virDomainSetMemoryStatsPeriod, _1,
+	return do_(getDomain().data(), boost::bind(&virDomainSetMemoryStatsPeriod, _1,
 		seconds_, VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE));
+}
+
+Snapshot::List Unit::getSnapshot() const
+{
+	return Snapshot::List(getDomain());
+}
+
+Limb::State Unit::getState() const
+{
+	return Limb::State(getDomain());
+}
+
+Limb::Maintenance Unit::getMaintenance() const
+{
+	return Limb::Maintenance(getDomain());
 }
 
 namespace Performance
@@ -2233,7 +2268,7 @@ Prl::Expected<Unit, Error::Simple>
 		return e.error();
 
 	VIRTUAL_MACHINE_STATE s;
-	if ((e = m.getState(s)).isFailed())
+	if ((e = m.getState().getValue(s)).isFailed())
 		return e.error();
 
 	Transponster::Snapshot::Reverse y(uuid_, req_.getDescription(), x);

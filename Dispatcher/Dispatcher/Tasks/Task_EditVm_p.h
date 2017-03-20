@@ -198,6 +198,12 @@ struct Forge
 			(getUnit(), decorated_);
 	}
 	template<class T>
+	Action* craftState(const T& decorated_) const
+	{
+		return new Domain<T, Libvirt::Instrument::Agent::Vm::Limb::State>
+			(getUnit().getState(), decorated_);
+	}
+	template<class T>
 	Action* craftGuest(const T& decorated_) const
 	{
 		return new Domain<T, Libvirt::Instrument::Agent::Vm::Guest>

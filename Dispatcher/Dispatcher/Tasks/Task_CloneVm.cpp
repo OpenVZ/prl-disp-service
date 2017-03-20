@@ -842,7 +842,7 @@ PRL_RESULT Dress::importBootcamps()
 void Dress::undoLibvirtDomain()
 {
 #ifdef _LIBVIRT_
-	Libvirt::Kit.vms().at(getNewVmIdent().first).undefine();
+	Libvirt::Kit.vms().at(getNewVmIdent().first).getState().undefine();
 #endif // _LIBVIRT_
 }
 

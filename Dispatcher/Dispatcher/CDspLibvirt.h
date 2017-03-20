@@ -454,6 +454,33 @@ struct CidGenerator;
 
 } // namespace Exec
 
+namespace Limb
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Abstract
+
+struct Abstract
+{
+	typedef QSharedPointer<virDomain> domainReference_type;
+	typedef QSharedPointer<virConnect> linkReference_type;
+
+	explicit Abstract(const domainReference_type& domain_): m_domain(domain_)
+	{
+	}
+
+	linkReference_type getLink() const;
+	const domainReference_type& getDomain() const
+	{
+		return m_domain;
+	}
+	void setDomain(virDomainPtr value_);
+
+private:
+	QSharedPointer<virDomain> m_domain;
+};
+
+} // namespace Limb
+
 namespace Migration
 {
 struct Basic;
@@ -469,11 +496,10 @@ struct State;
 ///////////////////////////////////////////////////////////////////////////////
 // struct Agent
 
-struct Agent
+struct Agent: private Limb::Abstract
 {
-	Agent(QSharedPointer<virDomain> domain_, QSharedPointer<virConnect> link_,
-		const QString& uri_):
-		m_domain(domain_), m_link(link_), m_uri(uri_)
+	Agent(const domainReference_type& domain_, const QString& uri_):
+		Limb::Abstract(domain_), m_uri(uri_)
 	{
 	}
 
@@ -486,8 +512,6 @@ protected:
 		Parameters::Builder& parameters_);
 
 private:
-	QSharedPointer<virDomain> m_domain;
-	QSharedPointer<virConnect> m_link;
 	QString m_uri;
 };
 
@@ -530,16 +554,17 @@ struct Offline: Agent
 
 } // namespace Migration
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Unit
-
-struct List;
-struct Guest;
-struct Unit
+namespace Limb
 {
-	explicit Unit(virDomainPtr domain_ = NULL);
+///////////////////////////////////////////////////////////////////////////////
+// struct State
 
-	Result getUuid(QString& dst_) const;
+struct State: private Abstract
+{
+	explicit State(const domainReference_type& domain_): Abstract(domain_)
+	{
+	}
+
 	Result kill();
 	Result shutdown();
 	Result start();
@@ -548,36 +573,58 @@ struct Unit
 	Result reset();
 	Result pause();
 	Result unpause();
-	Result rename(const QString& to_);
 	Result resume(const QString& sav_);
 	Result suspend(const QString& sav_);
 	Result undefine();
-	Result getState(VIRTUAL_MACHINE_STATE& dst_) const;
+	Migration::Agent migrate(const QString& uri_);
+	Result getValue(VIRTUAL_MACHINE_STATE& dst_) const;
+
+private:
+	Result start_(unsigned int flags_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Maintenance
+
+struct Maintenance: private Abstract
+{
+	explicit Maintenance(const domainReference_type& domain_): Abstract(domain_)
+	{
+	}
+
+	void emitDefined();
+	Result updateQemu();
+	Result adjustClock(qint64 adjusment_);
+};
+
+} // namespace Limb
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+struct List;
+struct Guest;
+struct Unit: private Limb::Abstract
+{
+	explicit Unit(virDomainPtr domain_ = NULL);
+
+	Result getUuid(QString& dst_) const;
+	Result rename(const QString& to_);
 	Result getConfig(CVmConfiguration& dst_, bool runtime_ = false) const;
 	Result getConfig(QString& dst_, bool runtime_ = false) const;
 	Result setConfig(const CVmConfiguration& value_);
 	Result completeConfig(CVmConfiguration& config_);
 	Result setMemoryStatsPeriod(qint64 seconds_);
-	Result adjustClock(qint64 adjusment_);
-
-	Migration::Agent migrate(const QString& uri_);
-	Result updateQemu();
 
 	List up() const;
 	Guest getGuest() const;
-	Snapshot::List getSnapshot() const
-	{
-		return Snapshot::List(m_domain);
-	}
+	Snapshot::List getSnapshot() const;
 	Editor getRuntime() const;
 	Editor getEditor() const;
 	Exec::AuxChannel* getChannel(const QString& path_) const;
 
-private:
-	QSharedPointer<virConnect> getLink() const;
-	Result start_(unsigned int flags_);
-
-	QSharedPointer<virDomain> m_domain;
+	Limb::State getState() const;
+	Limb::Maintenance getMaintenance() const;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -143,6 +143,7 @@ PRL_RESULT Task_ChangeSID::run_body()
 	SmartPtr<CDspClient> pFakeSession(new CDspClient(Uuid::createUuid(), "fake-user" ));
 
 	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(getVmUuid());
+	Libvirt::Instrument::Agent::Vm::Limb::State s = u.getState();
 
 	try
 	{
@@ -199,13 +200,13 @@ PRL_RESULT Task_ChangeSID::run_body()
 
 		VIRTUAL_MACHINE_STATE state = VMS_UNKNOWN;
 		
-		Libvirt::Result e = u.getState(state);
+		Libvirt::Result e = s.getValue(state);
 		if (e.isFailed())
 			throw e.error().code();
 
 		jobProgressEvent(1);
 		if (state != VMS_RUNNING) {
-			e = u.start();
+			e = s.start();
 			if (e.isFailed())
 				throw e.error().code();
 			bVmStarted = true;
@@ -242,7 +243,7 @@ PRL_RESULT Task_ChangeSID::run_body()
 		WRITE_TRACE(DBG_FATAL, "%s: error: %s", __FILE__, PRL_RESULT_TO_STRING( PRL_ERR_REVERT_IMPERSONATE_FAILED ) );
 
 	if (bVmStarted)
-		!m_bStandAlone && PRL_FAILED(ret) ? u.kill() : u.shutdown();
+		!m_bStandAlone && PRL_FAILED(ret) ? s.kill() : s.shutdown();
 
 	if (bVmLocked)
 		CDspService::instance()->getVmDirHelper().unlockVm(getVmUuid(), pFakeSession, getRequestPackage());
@@ -308,7 +309,7 @@ PRL_RESULT Task_ChangeSID::change_sid(Libvirt::Instrument::Agent::Vm::Unit& u)
 
 		// handle Vm start failure
 		VIRTUAL_MACHINE_STATE state = VMS_UNKNOWN;
-		u.getState(state);
+		u.getState().getValue(state);
 		if (state != VMS_RUNNING) {
 			WRITE_TRACE(DBG_FATAL, "Vm start failed, state changed to stopped");
 			return PRL_ERR_CHANGESID_VM_START_FAILED;

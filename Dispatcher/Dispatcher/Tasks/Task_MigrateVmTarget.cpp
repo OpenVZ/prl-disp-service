@@ -634,6 +634,8 @@ void Perform::on_exit(const Event& event_, FSM& fsm_)
 	{
 		m_receiver->disconnect(SIGNAL(done()), getConnector(), SLOT(reactFinished()));
 		m_receiver.clear();
+		::Libvirt::Kit.vms().at(m_config->getVmIdentification()->getVmUuid())
+			.getMaintenance().emitDefined();
 	}
 }
 

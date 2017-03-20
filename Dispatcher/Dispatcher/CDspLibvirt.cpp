@@ -94,7 +94,7 @@ State::State(): m_value(VMS_UNKNOWN)
 void State::read(Agent::Vm::Unit agent_)
 {
 	m_value = VMS_UNKNOWN;
-	if (agent_.getState(m_value).isFailed())
+	if (agent_.getState().getValue(m_value).isFailed())
 		WRITE_TRACE(DBG_FATAL, "Unable to get VM state");
 }
 
@@ -142,9 +142,17 @@ void Acquaintance::run()
 {
 	Config::run();
 	boost::optional<CVmConfiguration> c = m_view->getConfig();
-	if (!c || m_agent.setConfig(c.get()).isFailed())
+	if (!c)
 		WRITE_TRACE(DBG_DEBUG, "Unable to redefine configuration for new VM");
-
+	else
+	{
+		Libvirt::Result e = m_agent.setConfig(c.get());
+		if (e.isFailed())
+		{
+			WRITE_TRACE(DBG_DEBUG, "Unable to redefine configuration for new VM: %s",
+				qPrintable(e.error().convertToEvent().toString()));
+		}
+	}
 	State s;
 	s.read(m_agent);
 	s.apply(m_view);
@@ -175,7 +183,7 @@ void Network::run()
 	foreach (Agent::Vm::Unit m, a)
 	{
 		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
-		if (m.getState(s).isFailed())
+		if (m.getState().getValue(s).isFailed())
 		{
 			WRITE_TRACE(DBG_FATAL, "Unable to get VM state");
 			continue;
@@ -476,7 +484,7 @@ void Vm::operator()(Agent::Hub& hub_)
 		if (!validate(u))
 		{
 			// unregister VM from libvirt
-			l.at(u).undefine();
+			l.at(u).getState().undefine();
 			// at this point VM is not registered in m_view->m_domainMap
 			// thus we need to manually remove the corresponding
 			// directory item from Dispatcher
@@ -605,6 +613,22 @@ void Subject::run()
 
 namespace Callback
 {
+namespace Transport
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Visitor
+
+Visitor::~Visitor()
+{
+}
+
+void Visitor::complain(const char* name_)
+{
+	WRITE_TRACE(DBG_FATAL, "%s is a bad target for the transport", name_);
+}
+
+} // namespace Transport
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Timeout
 
@@ -683,6 +707,23 @@ void Socket::write(int socket_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Mock
+
+void Mock::fire(const eventHandler_type& event_)
+{
+	if (m_model.isNull())
+	{
+		WRITE_TRACE(DBG_FATAL, "event without a model");
+		event_(NULL);
+	}
+	else
+	{
+		Model::Coarse m(m_model);
+		event_(&m);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Hub
 
 void Hub::add(int id_, virEventTimeoutCallback callback_)
@@ -695,15 +736,22 @@ void Hub::add(int id_, int socket_, virEventHandleCallback callback_)
 	m_socketMap.insert(id_, new Socket(socket_, callback_, id_));
 }
 
-void Hub::setOpaque(int id_, void* opaque_, virFreeCallback free_)
+void Hub::setOpaque(int id_, Transport::Visitor* value_)
 {
+	QScopedPointer<Transport::Visitor> g(value_);
+	if (g.isNull())
+		return;
+
+	if (Mock::ID == id_)
+		return g->visit(m_mock);
+
 	boost::ptr_map<int, Socket>::iterator a = m_socketMap.find(id_);
 	if (m_socketMap.end() != a)
-		return a->second->setOpaque(opaque_, free_);
+		return g->visit(*a->second);
 
 	boost::ptr_map<int, Timeout>::iterator b = m_timeoutMap.find(id_);
 	if (m_timeoutMap.end() != b)
-		return b->second->setOpaque(opaque_, free_);
+		return g->visit(*b->second);
 }
 
 void Hub::setEvents(int id_, int value_)
@@ -753,9 +801,10 @@ void Hub::remove(int id_)
 void Access::setHub(const QSharedPointer<Hub>& hub_)
 {
 	qRegisterMetaType<virFreeCallback>("virFreeCallback");
+	qRegisterMetaType<Transport::Visitor* >("Transport::Visitor* ");
 	qRegisterMetaType<virEventHandleCallback>("virEventHandleCallback");
 	qRegisterMetaType<virEventTimeoutCallback>("virEventTimeoutCallback");
-	m_generator = QAtomicInt(1);
+	m_generator = QAtomicInt(Mock::ID + 1);
 	m_hub = hub_;
 }
 
@@ -768,8 +817,7 @@ int Access::add(int interval_, virEventTimeoutCallback callback_, void* opaque_,
 	int output = m_generator.fetchAndAddOrdered(1);
 	QMetaObject::invokeMethod(h.data(), "add", Q_ARG(int, output),
 		Q_ARG(virEventTimeoutCallback, callback_));
-	QMetaObject::invokeMethod(h.data(), "setOpaque", Q_ARG(int, output), Q_ARG(void*, opaque_),
-		Q_ARG(virFreeCallback, free_));
+	setOpaque(output, new Transport::Opaque(opaque_, free_));
 	QMetaObject::invokeMethod(h.data(), "setInterval", Q_ARG(int, output), Q_ARG(int, interval_));
 	return output;
 }
@@ -783,8 +831,7 @@ int Access::add(int socket_, int events_, virEventHandleCallback callback_, void
 	int output = m_generator.fetchAndAddOrdered(1);
 	QMetaObject::invokeMethod(h.data(), "add", Q_ARG(int, output), Q_ARG(int, socket_),
 		Q_ARG(virEventHandleCallback, callback_));
-	QMetaObject::invokeMethod(h.data(), "setOpaque", Q_ARG(int, output), Q_ARG(void*, opaque_),
-		Q_ARG(virFreeCallback, free_));
+	setOpaque(output, new Transport::Opaque(opaque_, free_));
 	QMetaObject::invokeMethod(h.data(), "setEvents", Q_ARG(int, output), Q_ARG(int, events_));
 	return output;
 }
@@ -805,6 +852,17 @@ void Access::setInterval(int id_, int value_)
 		return;
 
 	QMetaObject::invokeMethod(h.data(), "setInterval", Q_ARG(int, id_), Q_ARG(int, value_));
+}
+
+void Access::setOpaque(int id_, Transport::Visitor* value_)
+{
+	QScopedPointer<Transport::Visitor> g(value_);
+	QSharedPointer<Hub> h = m_hub.toStrongRef();
+	if (h.isNull())
+		return;
+
+	QMetaObject::invokeMethod(h.data(), "setOpaque", Q_ARG(int, id_),
+		Q_ARG(Transport::Visitor*, g.take()));
 }
 
 int Access::remove(int id_)
@@ -832,6 +890,115 @@ void Sweeper::timerEvent(QTimerEvent* event_)
 	QSharedPointer<Hub> h = g_access.getHub();
 	if (!h.isNull())
 		h->remove(m_id);	
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+int State::react(virConnectPtr, virDomainPtr domain_, int event_,
+	int subtype_, void* opaque_)
+{
+	QSharedPointer<Model::Domain> d;
+	Model::Coarse* v = (Model::Coarse* )opaque_;
+	switch (event_)
+	{
+	case VIR_DOMAIN_EVENT_DEFINED:
+		if (subtype_ == VIR_DOMAIN_EVENT_DEFINED_FROM_SNAPSHOT)
+		{
+			v->prepareToSwitch(domain_);
+			return 0;
+		}
+		break;
+	case VIR_DOMAIN_EVENT_UNDEFINED:
+		if (VIR_DOMAIN_EVENT_UNDEFINED_REMOVED == subtype_)
+			v->remove(domain_);
+
+		return 0;
+	case VIR_DOMAIN_EVENT_STARTED:
+		if (subtype_ == VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT)
+			// state updated on defined from snapshot
+			return 0;
+
+		// This event means that live migration is started, but VM has
+		// not been defined yet. Ignore it.
+		if (subtype_ == VIR_DOMAIN_EVENT_STARTED_MIGRATED)
+			return 0;
+
+		v->setState(domain_, VMS_RUNNING);
+		return 0;
+	case VIR_DOMAIN_EVENT_RESUMED:
+		if (subtype_ == VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT)
+			// state updated on defined from snapshot
+			return 0;
+
+		v->setState(domain_, VMS_RUNNING);
+		return 0;
+	case VIR_DOMAIN_EVENT_SUSPENDED:
+		if (subtype_ == VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT)
+			// state updated on defined from snapshot
+			return 0;
+
+		switch (subtype_)
+		{
+		case VIR_DOMAIN_EVENT_SUSPENDED_PAUSED:
+		case VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED:
+		case VIR_DOMAIN_EVENT_SUSPENDED_IOERROR:
+		case VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG:
+		case VIR_DOMAIN_EVENT_SUSPENDED_RESTORED:
+		case VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR:
+			v->setState(domain_, VMS_PAUSED);
+			break;
+		}
+		return 0;
+	case VIR_DOMAIN_EVENT_PMSUSPENDED:
+		switch (subtype_)
+		{
+		case VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY:
+			v->setState(domain_, VMS_PAUSED);
+			break;
+		case VIR_DOMAIN_EVENT_PMSUSPENDED_DISK:
+			v->setState(domain_, VMS_SUSPENDED);
+			break;
+		}
+		return 0;
+	case VIR_DOMAIN_EVENT_STOPPED:
+		if (subtype_ == VIR_DOMAIN_EVENT_STOPPED_FROM_SNAPSHOT)
+			// state updated on defined from snapshot
+			return 0;
+
+		switch (subtype_)
+		{
+		case VIR_DOMAIN_EVENT_STOPPED_SAVED:
+			v->setState(domain_, VMS_SUSPENDED);
+			break;
+		default:
+			v->setState(domain_, VMS_STOPPED);
+			break;
+		}
+		return 0;
+	case VIR_DOMAIN_EVENT_SHUTDOWN:
+		v->setState(domain_, VMS_STOPPING);
+		return 0;
+	case VIR_DOMAIN_EVENT_CRASHED:
+		switch (subtype_)
+		{
+		case VIR_DOMAIN_EVENT_CRASHED_PANICKED:
+			WRITE_TRACE(DBG_FATAL, "VM \"%s\" got guest panic.", virDomainGetName(domain_));
+			v->onCrash(domain_);
+			break;
+		default:
+			v->setState(domain_, VMS_STOPPED);
+			break;
+		}
+		return 0;
+
+	default:
+		return 0;
+	}
+
+	// update vm configuration and state
+	v->pullInfo(domain_);
+	return 0;
 }
 
 namespace Plain
@@ -965,113 +1132,6 @@ int networkLifecycle(virConnectPtr, virNetworkPtr net_, int event_, int, void* o
 
 	Model::Coarse* v = (Model::Coarse* )opaque_;
 	v->updateInterfaces(net_);
-	return 0;
-}
-
-int lifecycle(virConnectPtr, virDomainPtr domain_, int event_,
-                int detail_, void* opaque_)
-{
-
-	QSharedPointer<Model::Domain> d;
-	Model::Coarse* v = (Model::Coarse* )opaque_;
-	switch (event_)
-	{
-	case VIR_DOMAIN_EVENT_DEFINED:
-		if (detail_ == VIR_DOMAIN_EVENT_DEFINED_FROM_SNAPSHOT)
-		{
-			v->prepareToSwitch(domain_);
-			return 0;
-		}
-		break;
-	case VIR_DOMAIN_EVENT_UNDEFINED:
-		if (VIR_DOMAIN_EVENT_UNDEFINED_REMOVED == detail_)
-			v->remove(domain_);
-
-		return 0;
-	case VIR_DOMAIN_EVENT_STARTED:
-		if (detail_ == VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT)
-			// state updated on defined from snapshot
-			return 0;
-
-		// This event means that live migration is started, but VM has
-		// not been defined yet. Ignore it.
-		if (detail_ == VIR_DOMAIN_EVENT_STARTED_MIGRATED)
-			return 0;
-
-		v->setState(domain_, VMS_RUNNING);
-		return 0;
-	case VIR_DOMAIN_EVENT_RESUMED:
-		if (detail_ == VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT)
-			// state updated on defined from snapshot
-			return 0;
-
-		v->setState(domain_, VMS_RUNNING);
-		return 0;
-	case VIR_DOMAIN_EVENT_SUSPENDED:
-		if (detail_ == VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT)
-			// state updated on defined from snapshot
-			return 0;
-
-		switch (detail_)
-		{
-		case VIR_DOMAIN_EVENT_SUSPENDED_PAUSED:
-		case VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED:
-		case VIR_DOMAIN_EVENT_SUSPENDED_IOERROR:
-		case VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG:
-		case VIR_DOMAIN_EVENT_SUSPENDED_RESTORED:
-		case VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR:
-			v->setState(domain_, VMS_PAUSED);
-			break;
-		}
-		return 0;
-	case VIR_DOMAIN_EVENT_PMSUSPENDED:
-		switch (detail_)
-		{
-		case VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY:
-			v->setState(domain_, VMS_PAUSED);
-			break;
-		case VIR_DOMAIN_EVENT_PMSUSPENDED_DISK:
-			v->setState(domain_, VMS_SUSPENDED);
-			break;
-		}
-		return 0;
-	case VIR_DOMAIN_EVENT_STOPPED:
-		if (detail_ == VIR_DOMAIN_EVENT_STOPPED_FROM_SNAPSHOT)
-			// state updated on defined from snapshot
-			return 0;
-
-		switch (detail_)
-		{
-		case VIR_DOMAIN_EVENT_STOPPED_SAVED:
-			v->setState(domain_, VMS_SUSPENDED);
-			break;
-		default:
-			v->setState(domain_, VMS_STOPPED);
-			break;
-		}
-		return 0;
-	case VIR_DOMAIN_EVENT_SHUTDOWN:
-		v->setState(domain_, VMS_STOPPING);
-		return 0;
-	case VIR_DOMAIN_EVENT_CRASHED:
-		switch (detail_)
-		{
-		case VIR_DOMAIN_EVENT_CRASHED_PANICKED:
-			WRITE_TRACE(DBG_FATAL, "VM \"%s\" got guest panic.", virDomainGetName(domain_));
-			v->onCrash(domain_);
-			break;
-		default:
-			v->setState(domain_, VMS_STOPPED);
-			break;
-		}
-		return 0;
-
-	default:
-		return 0;
-	}
-
-	// update vm configuration and state
-	v->pullInfo(domain_);
 	return 0;
 }
 
@@ -1344,7 +1404,7 @@ void Coarse::adjustClock(virDomainPtr domain_, qint64 offset_)
 {
 	virDomainRef(domain_);
 	Instrument::Agent::Vm::Unit a(domain_);
-	a.adjustClock(offset_);
+	a.getMaintenance().adjustClock(offset_);
 }
 
 void Coarse::updateInterfaces(virNetworkPtr net_)
@@ -1421,66 +1481,67 @@ Domains::Domains(Registry::Actual& registry_):
 
 void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 {
-	m_view = QSharedPointer<Model::System>(new Model::System(*m_registry));
+	Callback::Mock::model_type v(new Model::System(*m_registry));
 	m_libvirtd = libvirtd_.toWeakRef();
+	Callback::g_access.setOpaque(Callback::Mock::ID, new Callback::Transport::Model(v));
 	Kit.setLink(libvirtd_);
-	(new Performance::Miner(Kit.vms(), m_view.toWeakRef()))
+	(new Performance::Miner(Kit.vms(), v.toWeakRef()))
 		->startTimer(PERFORMANCE_TIMEOUT);
 	m_eventState = virConnectDomainEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_DOMAIN_EVENT_ID_LIFECYCLE,
-							VIR_DOMAIN_EVENT_CALLBACK(&Callback::Plain::lifecycle),
-							new Model::Coarse(m_view),
+							VIR_DOMAIN_EVENT_CALLBACK(&Callback::State::react),
+							new Model::Coarse(v),
 							&Callback::Plain::delete_<Model::Coarse>);
 	m_eventReboot = virConnectDomainEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_DOMAIN_EVENT_ID_REBOOT,
 							VIR_DOMAIN_EVENT_CALLBACK(&Callback::Plain::reboot),
-							new Model::Coarse(m_view),
+							new Model::Coarse(v),
 							&Callback::Plain::delete_<Model::Coarse>);
 	m_eventWakeUp = virConnectDomainEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_DOMAIN_EVENT_ID_PMWAKEUP,
 							VIR_DOMAIN_EVENT_CALLBACK(&Callback::Plain::wakeUp),
-							new Model::Coarse(m_view),
+							new Model::Coarse(v),
 							&Callback::Plain::delete_<Model::Coarse>);
 	m_eventDeviceConnect = virConnectDomainEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_DOMAIN_EVENT_ID_DEVICE_ADDED,
 							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::deviceConnect),
-							new Model::Coarse(m_view),
+							new Model::Coarse(v),
 							&Callback::Plain::delete_<Model::Coarse>);
 	m_eventDeviceDisconnect = virConnectDomainEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED,
 							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::deviceDisconnect),
-							new Model::Coarse(m_view),
+							new Model::Coarse(v),
 							&Callback::Plain::delete_<Model::Coarse>);
 	m_eventTrayChange = virConnectDomainEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_DOMAIN_EVENT_ID_TRAY_CHANGE,
 							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::trayChange),
-							new Model::Coarse(m_view),
+							new Model::Coarse(v),
 							&Callback::Plain::delete_<Model::Coarse>);
 	m_eventRtcChange = virConnectDomainEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_DOMAIN_EVENT_ID_RTC_CHANGE,
 							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::rtcChange),
-							new Model::Coarse(m_view),
+							new Model::Coarse(v),
 							&Callback::Plain::delete_<Model::Coarse>);
 	m_eventAgent = virConnectDomainEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_DOMAIN_EVENT_ID_AGENT_LIFECYCLE,
 							VIR_DOMAIN_EVENT_CALLBACK(&Callback::Plain::connectAgent),
-							new Model::Coarse(m_view),
+							new Model::Coarse(v),
 							&Callback::Plain::delete_<Model::Coarse>);
 	m_eventNetworkLifecycle = virConnectNetworkEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_NETWORK_EVENT_ID_LIFECYCLE,
 							VIR_NETWORK_EVENT_CALLBACK(Callback::Plain::networkLifecycle),
-							new Model::Coarse(m_view),
+							new Model::Coarse(v),
 							&Callback::Plain::delete_<Model::Coarse>);
-	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, m_view, *m_registry);
+	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, v, *m_registry);
 	q->setAutoDelete(true);
 	QThreadPool::globalInstance()->start(q);
 }
@@ -1508,8 +1569,8 @@ void Domains::setDisconnected()
 	m_eventAgent = -1;
 	virConnectNetworkEventDeregisterAny(x.data(), m_eventNetworkLifecycle);
 	m_eventNetworkLifecycle = -1;
+	Callback::g_access.setOpaque(Callback::Mock::ID, new Callback::Transport::Model());
 	m_libvirtd.clear();
-	m_view.clear();
 }
 
 namespace Performance
@@ -1641,4 +1702,26 @@ void Host::run()
 	a.setClosed();
 }
 
+namespace Instrument
+{
+namespace Agent
+{
+namespace Vm
+{
+namespace Limb
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Maintenance
+
+void Maintenance::emitDefined()
+{
+	Callback::g_access.setOpaque(Callback::Mock::ID,
+		new Callback::Transport::Event(boost::bind
+			(Callback::State(getLink(), getDomain()), VIR_DOMAIN_EVENT_DEFINED, 0, _1)));
+}
+
+} // namespace Limb
+} // namespace Vm
+} // namespace Agent
+} // namespace Instrument
 } // namespace Libvirt

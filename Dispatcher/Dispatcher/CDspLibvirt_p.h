@@ -48,6 +48,13 @@
 
 namespace Libvirt
 {
+namespace Model
+{
+struct Coarse;
+struct System;
+
+} // namespace Model
+
 namespace Callback
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -136,6 +143,29 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Mock
+
+struct Mock
+{
+	typedef QSharedPointer<Model::System> model_type;
+	typedef boost::function<void (Model::Coarse* )> eventHandler_type;
+
+	enum
+	{
+		ID = 1
+	};
+
+	void setModel(const model_type& value_)
+	{
+		m_model = value_;
+	}
+	void fire(const eventHandler_type& event_);
+
+private:
+	model_type m_model;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Sweeper
 
 struct Sweeper: QObject
@@ -164,6 +194,47 @@ private:
 	QScopedPointer<Timeout> m_pet2;
 };
 
+namespace Transport
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Visitor
+
+struct Visitor
+{
+	virtual ~Visitor();
+
+	virtual void visit(Base& ) = 0;
+	virtual void visit(Mock& ) = 0;
+
+protected:
+	void complain(const char* name_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Opaque
+
+struct Opaque: boost::noncopyable, Visitor
+{
+	Opaque(void* cargo_, virFreeCallback free_): m_cargo(cargo_), m_free(free_)
+	{
+	}
+
+	void visit(Base& callback_)
+	{
+		callback_.setOpaque(m_cargo, m_free);
+	}
+	void visit(Mock&)
+	{
+		complain("Mock");
+	}
+
+private:
+	void *m_cargo;
+	virFreeCallback m_free;
+};
+
+} // namespace Transport
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hub
 
@@ -174,11 +245,12 @@ struct Hub: QObject
 	Q_INVOKABLE void remove(int id_);
 	Q_INVOKABLE void setEvents(int id_, int value_);
 	Q_INVOKABLE void setInterval(int id_, int value_);
-	Q_INVOKABLE void setOpaque(int id_, void* opaque_, virFreeCallback free_);
+	Q_INVOKABLE void setOpaque(int id_, Transport::Visitor* value_);
 
 private:
 	Q_OBJECT
 
+	Mock m_mock;
 	boost::ptr_map<int, Socket> m_socketMap;
 	boost::ptr_map<int, Timeout> m_timeoutMap;
 	boost::ptr_map<int, Sweeper> m_sweeperMap;
@@ -198,11 +270,40 @@ struct Access
 	int add(int socket_, int events_, virEventHandleCallback callback_, void* opaque_, virFreeCallback free_);
 	void setEvents(int id_, int value_);
 	void setInterval(int id_, int value_);
+	void setOpaque(int id_, Transport::Visitor* value_);
 	int remove(int id_);
 
 private:
 	QAtomicInt m_generator;
 	QWeakPointer<Hub> m_hub;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+struct State
+{
+	typedef Instrument::Agent::Vm::Limb::Abstract::linkReference_type
+		link_type;
+	typedef Instrument::Agent::Vm::Limb::Abstract::domainReference_type
+		domain_type;
+	typedef void result_type;
+
+	State(const link_type& link_, const domain_type& domain_):
+		m_link(link_), m_domain(domain_)
+	{
+	}
+
+	void operator()(int event_, int subtype_, Model::Coarse* opaque_)
+	{
+		react(m_link.data(), m_domain.data(), event_, subtype_, opaque_);
+	}
+	static int react(virConnectPtr, virDomainPtr domain_, int event_,
+		int subtype_, void* opaque_);
+
+private:
+	link_type m_link;
+	domain_type m_domain;
 };
 
 } // namespace Callback
@@ -362,7 +463,6 @@ private:
 	int m_eventNetworkLifecycle;
 	Registry::Actual* m_registry;
 	QWeakPointer<virConnect> m_libvirtd;
-	QSharedPointer<Model::System> m_view;
 };
 
 namespace Performance
@@ -756,6 +856,67 @@ private:
 };
 
 } // namespace Instrument
+
+namespace Callback
+{
+namespace Transport
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Individual
+
+struct Individual: Visitor
+{
+	void visit(Base&)
+	{
+		complain("Base");
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Event
+
+struct Event: Individual
+{
+	typedef Mock::eventHandler_type cargo_type;
+
+	explicit Event(const cargo_type& cargo_): m_cargo(cargo_)
+	{
+	}
+
+	void visit(Mock& callback_)
+	{
+		callback_.fire(m_cargo);
+	}
+
+private:
+	cargo_type m_cargo;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Model
+
+struct Model: Individual
+{
+	typedef Mock::model_type cargo_type;
+
+	Model()
+	{
+	}
+	explicit Model(const cargo_type& cargo_): m_cargo(cargo_)
+	{
+	}
+
+	void visit(Mock& callback_)
+	{
+		callback_.setModel(m_cargo);
+	}
+
+private:
+	cargo_type m_cargo;
+};
+
+} // namespace Transport
+} // namespace Callback
 } // namespace Libvirt
 
 #endif // __CDSPLIBVIRT_P_H__

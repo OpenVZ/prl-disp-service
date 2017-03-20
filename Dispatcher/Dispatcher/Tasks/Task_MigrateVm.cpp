@@ -571,7 +571,7 @@ Flop::Event State::start(serverList_type const& serverList_)
 	const QString u = QString("qemu+tcp://%1:%2/system")
 				.arg(QHostAddress(QHostAddress::LocalHost).toString())
 				.arg(serverList_.first()->serverPort());
-	Task::agent_type a = ::Libvirt::Kit.vms().at(m_task->getVmUuid()).migrate(u);
+	Task::agent_type a = ::Libvirt::Kit.vms().at(m_task->getVmUuid()).getState().migrate(u);
 	switch (m_task->getOldState())
 	{
 	case VMS_PAUSED:
@@ -861,7 +861,7 @@ void Frontend::setResult(const peerQuitState_type::Good&)
 	if (PVMT_CLONE_MODE & m_task->getRequestFlags())
 		return;
 
-	::Libvirt::Kit.vms().at(m_task->getVmUuid()).kill();
+	::Libvirt::Kit.vms().at(m_task->getVmUuid()).getState().kill();
 }
 
 void Frontend::setResult(const Flop::Event& value_)

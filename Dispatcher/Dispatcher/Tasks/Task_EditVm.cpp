@@ -2341,7 +2341,7 @@ PRL_RESULT Task_EditVm::configureVzParameters(SmartPtr<CVmConfiguration> pNewVmC
 	QString sVmUuid = pNewVmConfig->getVmIdentification()->getVmUuid();
 	// Configure for running VM only
 	VIRTUAL_MACHINE_STATE s;
-	Libvirt::Result r(Libvirt::Kit.vms().at(sVmUuid).getState(s));
+	Libvirt::Result r(Libvirt::Kit.vms().at(sVmUuid).getState().getValue(s));
 	if (r.isFailed())
 		return r.error().code();
 	if (s != VMS_RUNNING)
@@ -2855,7 +2855,7 @@ Action* Apply::operator()(const Request& input_) const
 		QString t;
 		if (b)
 		{
-			n = f.craft(boost::bind(&vm::Unit::undefine, _1));
+			n = f.craftState(boost::bind(&vm::Limb::State::undefine, _1));
 			t = DspVm::vdm().getTemplatesDirectoryUuid();
 		}
 		else
@@ -3443,7 +3443,7 @@ QList<CVmHardDisk* > Hotplug<CVmHardDisk>::getDifference(const QList<CVmHardDisk
 Action* Driver::prime(const Request& input_) const
 {
 	VIRTUAL_MACHINE_STATE s;
-	if (Libvirt::Kit.vms().at(input_.getObject().first).getState(s).isFailed())
+	if (Libvirt::Kit.vms().at(input_.getObject().first).getState().getValue(s).isFailed())
 		return NULL;
 	if (VMS_RUNNING != s)
 		return NULL;

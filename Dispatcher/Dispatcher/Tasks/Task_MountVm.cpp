@@ -190,7 +190,7 @@ PRL_RESULT Task_MountVm::MountVm()
 
 	/* Deny rw for running or suspended. */
 	VIRTUAL_MACHINE_STATE s;
-	if (Libvirt::Kit.vms().at(getVmUuid()).getState(s).isFailed())
+	if (Libvirt::Kit.vms().at(getVmUuid()).getState().getValue(s).isFailed())
 		return PRL_ERR_FAILURE;
 	if (VMS_RUNNING == s && !(m_nFlags & PMVD_READ_ONLY)) {
 		WRITE_TRACE(DBG_FATAL, "Cannot mount running VM in read-write mode");
