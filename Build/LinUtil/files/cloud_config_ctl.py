@@ -165,7 +165,7 @@ class CloudBaseInit(OpenStackConfigDrive):
              "    install_qga()\r\n")
         if "users" in data:
             for name, credentials in data["users"].iteritems():
-                s += "    set_password(\"{}\",\"{}\")\r\n".format(name, credentials["password"].replace('"', '\\"'))
+                s += "    set_password(\"{}\",\"{}\")\r\n".format(name, credentials["password"].replace('\\', '\\\\').replace('"', '\\"'))
 
         for command in commands:
             if type(command) is unicode:
