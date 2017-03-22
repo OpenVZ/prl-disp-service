@@ -761,7 +761,7 @@ static void conf_add_disk_entry(const SmartPtr<CVmConfiguration> &pConfig,
 	pDisk->setIndex(idx);
 	pDisk->setEnabled(disk.enabled != VZCTL_PARAM_OFF);
 	pDisk->setSize(size);
-	pDisk->setInterfaceType(PMS_UNKNOWN_DEVICE);
+	pDisk->setInterfaceType(PMS_SCSI_DEVICE);
 
 	if (disk.use_device) {
 		pDisk->setEmulatedType(PDT_USE_REAL_DEVICE);
