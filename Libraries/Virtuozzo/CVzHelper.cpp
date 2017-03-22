@@ -669,9 +669,13 @@ static QString get_env_xml_config_path(
 
 static CVmHardDisk *findDiskInList(CVmHardDisk *pHdd, QList<CVmHardDisk *> &lst)
 {
-	foreach(CVmHardDisk *p, lst)
-		if (p->getUuid() == pHdd->getUuid())
+	foreach(CVmHardDisk *p, lst) {
+		if (!p->getUuid().isEmpty() && !pHdd->getUuid().isEmpty()) {
+			if (p->getUuid() == pHdd->getUuid())
+				return p;
+		} else if (p->getUserFriendlyName() == pHdd->getUserFriendlyName())
 			return p;
+	}
 	return NULL;
 }
 
@@ -1727,7 +1731,7 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 		{
 			struct vzctl_disk_param param = vzctl_disk_param();
 
-			strncpy(param.uuid,  QSTR2UTF8(pHdd->getUuid()), sizeof(param.uuid) -1);
+			strncpy(param.uuid, QSTR2UTF8(pOldHdd->getUuid()), sizeof(param.uuid) -1);
 
 			QByteArray mnt;
 			if (pHdd->getMountPoint() != pOldHdd->getMountPoint()) {
@@ -1955,10 +1959,12 @@ static int create_env_config(const QString &uuid, SmartPtr<CVmConfiguration> &pC
 		foreach(CVmHardDisk* pHdd, pConfig->getVmHardwareList()->m_lstHardDisks) {
 			struct vzctl_disk_param d = vzctl_disk_param();
 
-			unsigned int len = pHdd->getUuid().length();
-			if (len >= sizeof(d.uuid))
-				len = sizeof(d.uuid) -1;
-			strncpy(d.uuid, pHdd->getUuid().toUtf8(), len);
+			if (!pHdd->getUuid().isEmpty()) {
+				unsigned int len = pHdd->getUuid().length();
+				if (len >= sizeof(d.uuid))
+					len = sizeof(d.uuid) -1;
+				strncpy(d.uuid, pHdd->getUuid().toUtf8(), len);
+			}
 
 			QByteArray mnt;
 			if (!pHdd->getMountPoint().isEmpty()) {
@@ -2083,6 +2089,8 @@ int CVzOperationHelper::apply_env_config(SmartPtr<CVmConfiguration> &pConfig,
 	/* add DISK */
 	foreach (CVmHardDisk *pHdd, lstNewHardDisks) {
 		if (findDiskInList(pHdd, lstOldHardDisks) == NULL) {
+			if (pHdd->getUuid().isEmpty())
+				pHdd->setUuid(Uuid::createUuid().toString());
 			if (create_env_disk(uuid, pHdd))
 				return PRL_ERR_OPERATION_FAILED;
 		}
