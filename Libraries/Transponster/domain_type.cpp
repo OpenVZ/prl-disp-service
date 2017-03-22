@@ -6130,6 +6130,8 @@ int Traits<Domain::Xml::Driver1>::parse(Domain::Xml::Driver1& dst_, QStack<QDomE
 		dst_.setQueues(m.get<0>().getValue());
 		dst_.setCmdPerLun(m.get<1>().getValue());
 		dst_.setMaxSectors(m.get<2>().getValue());
+		dst_.setIoeventfd(m.get<3>().getValue());
+		dst_.setIothread(m.get<4>().getValue());
 	}
 	return output;
 }
@@ -6142,6 +6144,10 @@ int Traits<Domain::Xml::Driver1>::generate(const Domain::Xml::Driver1& src_, QDo
 	if (0 > Details::Marshal::assign(src_.getCmdPerLun(), m.get<1>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getMaxSectors(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getIoeventfd(), m.get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getIothread(), m.get<4>()))
 		return -1;
 
 	return m.produce(dst_);
