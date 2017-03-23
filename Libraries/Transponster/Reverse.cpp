@@ -706,18 +706,39 @@ Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
 
 } // namespace Network
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Attachment
-
-void Attachment::craftController(const Libvirt::Domain::Xml::VChoice591& bus_, quint16 index_)
+namespace Controller
 {
+
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+
+void List::add(const Libvirt::Domain::Xml::VChoice591& bus_, quint16 index_)
+{
+	Libvirt::Domain::Xml::Driver1 d;
+	d.setIothread(1);
 	Libvirt::Domain::Xml::Controller x;
 	x.setIndex(index_);
+	x.setDriver(d);
 	x.setChoice591(bus_);
 	mpl::at_c<Libvirt::Domain::Xml::VChoice943::types, 1>::type y;
 	y.setValue(x);
 	m_controllerList << Libvirt::Domain::Xml::VChoice943(y);
 }
+
+quint16 List::addScsi(Libvirt::Domain::Xml::EModel model_)
+{
+	quint16 controllerId = m_scsiIndex++;
+	mpl::at_c<Libvirt::Domain::Xml::VChoice591::types, 1>::type v;
+	v.setValue(model_);
+	add(v, controllerId);
+
+	return controllerId;
+}
+
+} // namespace Controller
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Attachment
 
 Libvirt::Domain::Xml::VAddress Attachment::craftIde(quint32 index_)
 {
@@ -729,7 +750,7 @@ Libvirt::Domain::Xml::VAddress Attachment::craftIde(quint32 index_)
 	{
 		mpl::at_c<Libvirt::Domain::Xml::VChoice591::types, 0>::type v;
 		v.setValue(Libvirt::Domain::Xml::EType6Ide);
-		craftController(v, c);
+		m_controllerList.add(v, c);
 	}
 
 	return Address().setUnit(u).setBus(b)(c);
@@ -744,29 +765,25 @@ Libvirt::Domain::Xml::VAddress Attachment::craftSata(quint32 index_)
 	{
 		mpl::at_c<Libvirt::Domain::Xml::VChoice591::types, 0>::type v;
 		v.setValue(Libvirt::Domain::Xml::EType6Sata);
-		craftController(v, c);
+		m_controllerList.add(v, c);
 	}
 
 	return Address().setUnit(u)(c);
 }
 
 Libvirt::Domain::Xml::VAddress Attachment::craftScsi
-	(quint32 index_, const boost::optional<Libvirt::Domain::Xml::EModel>& model_)
+	(const boost::optional<Libvirt::Domain::Xml::EModel>& model_)
 {
 	Libvirt::Domain::Xml::EModel m = Libvirt::Domain::Xml::EModelAuto;
 	if (model_)
 		m = model_.get();
-	quint16 c = index_ / SCSI_TARGETS;
-	quint16 t = index_ % SCSI_TARGETS;
-
-	if (t == 0)
+	switch (m)
 	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice591::types, 1>::type v;
-		v.setValue(m);
-		craftController(v, c);
+		case Libvirt::Domain::Xml::EModelHvScsi:
+			return m_hypervScsi.craftSlot(m_controllerList);
+		default:
+			return m_virtioScsi.craftSlot(m_controllerList);
 	}
-
-	return Address().setTarget(t)(c);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1503,6 +1520,7 @@ PRL_RESULT Builder::setDevices()
 			<< u.getDevices());
 
 	m_result->setDevices(x);
+	m_result->setIothreads(t.getAttachment().getControllers().size());
 	return PRL_ERR_SUCCESS;
 }
 
