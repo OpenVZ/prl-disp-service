@@ -2088,6 +2088,15 @@ int CVzOperationHelper::apply_env_config(SmartPtr<CVmConfiguration> &pConfig,
 	QList<CVmHardDisk *> &lstOldHardDisks = pOldConfig->getVmHardwareList()->m_lstHardDisks;
 	/* add DISK */
 	foreach (CVmHardDisk *pHdd, lstNewHardDisks) {
+		const QString &i = pHdd->getUserFriendlyName();
+
+		if (!i.isEmpty() && QFileInfo(i).isRelative()) {
+			pHdd->setUserFriendlyName(
+				QFileInfo(QString("%1/%2").
+					arg(pConfig->getVmIdentification()->getHomePath()).
+					arg(i)).absoluteFilePath());
+		}
+
 		if (findDiskInList(pHdd, lstOldHardDisks) == NULL) {
 			if (pHdd->getUuid().isEmpty())
 				pHdd->setUuid(Uuid::createUuid().toString());
