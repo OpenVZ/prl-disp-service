@@ -35,6 +35,7 @@
 #include "CDspClient.h"
 #include "CDspLibvirt.h"
 #include "CDspRegistry.h"
+#include "CDspTaskTrace.h"
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/fold.hpp>
 #include <boost/mpl/pair.hpp>
@@ -86,10 +87,8 @@ struct Context
 	{
 		return m_request->GetCommandId();
 	}
-	void reply(int code_) const
-	{
-		m_session->sendSimpleResponse(m_package, code_);
-	}
+	void reportStart();
+	void reply(int code_) const;
 	void reply(const CVmEvent& error_) const;
 	void reply(const Libvirt::Result& result_) const;
 
@@ -98,6 +97,7 @@ private:
 	SmartPtr<IOPackage> m_package;
 	CProtoCommandPtr m_request;
 	CVmIdent m_ident;
+	Task::Trace m_trace;
 };
 
 namespace Tag

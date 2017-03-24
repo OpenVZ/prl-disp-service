@@ -324,6 +324,47 @@ Result Bandwidth::operator()(Parameters::Builder& builder_)
 	return Result();
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Completion
+
+Completion::Completion(virDomainPtr match_, const feedback_type& feedback_):
+	m_match(Model::Coarse::getUuid(match_)), m_feedback(feedback_)
+{
+}
+
+int Completion::operator()(virTypedParameterPtr params_, int paramsCount_)
+{
+	quint64 v = 0;
+	int output = virTypedParamsGetULLong(params_, paramsCount_,
+			VIR_DOMAIN_JOB_DOWNTIME, &v);
+	if (0 > output)
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot extract migration downtime value");
+		if (!m_feedback.isNull())
+			m_feedback->set_value(~0);
+	}
+	else if (m_feedback.isNull())
+		WRITE_TRACE(DBG_DEBUG, "Total migration downtime %-12llu ms", v);
+	else
+		m_feedback->set_value(v);
+	
+	return output;
+}
+
+int Completion::react(virConnectPtr, virDomainPtr domain_,
+	virTypedParameterPtr params_, int paramsCount_, void *opaque_)
+{
+	Completion* x = reinterpret_cast<Completion* >(opaque_);
+	if (NULL == x)
+		return -1;
+
+	int output = 0;
+	if (Model::Coarse::getUuid(domain_) == x->m_match)
+		output = (*x)(params_, paramsCount_);
+
+	return output;
+}
+
 namespace Qemu
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -836,12 +877,6 @@ void Sweeper::timerEvent(QTimerEvent* event_)
 
 namespace Plain
 {
-template<class T>
-void delete_(void* opaque_)
-{
-        delete (T* )opaque_;
-}
-
 int addSocket(int socket_, int events_, virEventHandleCallback callback_,
                 void* opaque_, virFreeCallback free_)
 {

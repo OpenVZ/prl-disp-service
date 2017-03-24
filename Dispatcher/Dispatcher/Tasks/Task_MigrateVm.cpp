@@ -32,6 +32,7 @@
 //#define LOGGING_ON
 //#define FORCE_LOGGING_LEVEL DBG_DEBUG
 
+#include "CDspTaskTrace.h"
 #include "Interfaces/Debug.h"
 #include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
@@ -350,123 +351,145 @@ void Disks::rollback()
 	WRITE_TRACE(DBG_DEBUG, "merge finished");
 }
 
-namespace
+namespace Online
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Separatist
 
-template <typename T>
-void getOnlyPcsFsObjects(QList<T*>& dst_, const QList<T*>& src_)
+QString Separatist::getNVRAM() const
 {
-	foreach (T* d, src_)
+	CVmSettings* a = m_source->getVmSettings();
+	if (NULL == a)
+		return QString();
+
+	CVmStartupOptions* b = a->getVmStartupOptions();
+	if (NULL == b)
+		return QString();
+
+	CVmStartupBios* c = b->getBios();
+	if (NULL == c)
+		return QString();
+
+	QString r = c->getNVRAM();
+	if (pcs_fs(qPrintable(r)))
+		return r;
+
+	return QString();
+}
+
+QList<CVmHardDisk*> Separatist::getDisks() const
+{
+	return refine(m_source->getVmHardwareList()->m_lstHardDisks);
+}
+
+QList<CVmSerialPort*> Separatist::getSerialPorts() const
+{
+	return refine(m_source->getVmHardwareList()->m_lstSerialPorts);
+}
+ 
+template<class T>
+QList<T*> Separatist::refine(const QList<T*>& mix_)
+{
+	QList<T*> output;
+	foreach (T* d, mix_)
 	{
 		if (d->getEnabled() == PVE::DeviceEnabled &&
 			d->getConnected() == PVE::DeviceConnected &&
 			pcs_fs(qPrintable(d->getSystemName())))
 		{
 			WRITE_TRACE(DBG_DEBUG, "%s is stored on vstorage", qPrintable(d->getSystemName()));
-			dst_ << d;
+			output << d;
 		}
 		else
 			WRITE_TRACE(DBG_DEBUG, "%s is stored NOT on vstorage", qPrintable(d->getSystemName()));
 	}
+	return output;
 }
-
-void removeUnshared(QList<CVmHardDisk*>& disks_, const QList<CVmHardDisk*>& unshared_)
-{
-	QMutableListIterator<CVmHardDisk*> i(disks_);
-	while (i.hasNext())
-	{
-		if (unshared_.contains(i.next()))
-			i.remove();
-	}
-}
-
-} // namespace
-
+ 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Online
+// struct Component
 
-Unit* Online::operator()(const agent_type& agent_, const CVmConfiguration& target_)
+::Libvirt::Result Component::execute()
 {
-	Unit* work = NULL;
-	const CVmConfiguration* config = m_task->getVmConfig();
+	agent_type::result_type r = m_agent(m_target);
+	if (r.isFailed())
+		return r.error();
 
+	m_bus->handle(downtime_type(r.value()));
+	return ::Libvirt::Result();
+}
+ 
+///////////////////////////////////////////////////////////////////////////////
+// struct Hatchery
+
+Unit* Hatchery::operator()(const agent_type& agent_, const CVmConfiguration& target_)
+{
+	const CVmConfiguration* config = m_task->getVmConfig();
 	if (NULL == config)
 		return NULL;
 
-	QList<CVmHardDisk*> disks;
-	getOnlyPcsFsObjects(disks, config->getVmHardwareList()->m_lstHardDisks);
-
-	QList<CVmHardDisk*> unshared = m_task->getVmUnsharedDisks();
-
-	if (unshared.isEmpty())
+	Separatist u(*config);
+	QList<CVmHardDisk*> m = m_task->getVmUnsharedDisks(), s = u.getDisks();
+	if (m.isEmpty())
 		WRITE_TRACE(DBG_DEBUG, "there is no unshared disks to migrate");
 
-	if (!disks.isEmpty())
+	if (!s.isEmpty())
 	{
-		WRITE_TRACE(DBG_DEBUG, "there are disks on pstorage to migrate");
-		removeUnshared(disks, unshared);
-		unshared.append(disks);
+		WRITE_TRACE(DBG_DEBUG, "there are disks on vstorage to migrate");
+		s = s.toSet().subtract(m.toSet()).toList();
+		m << s;
 	}
 
-	if (unshared.isEmpty())
-		WRITE_TRACE(DBG_DEBUG, "there is no disk to migrate");
-
-	::Libvirt::Instrument::Agent::Vm::Migration::Online o(agent_);
+	Component::agent_type o(agent_);
 	if (m_task->getFlags() & PVMT_UNCOMPRESSED)
 		o.setUncompressed();
 
 	if (m_ports)
 		o.setQemuState(m_ports->first);
 
-	if (!unshared.isEmpty())
-		m_ports ? o.setQemuDisk(unshared, m_ports->second) : o.setQemuDisk(unshared);
-
+	if (m.isEmpty())
+		WRITE_TRACE(DBG_DEBUG, "there is no disk to migrate");
+	else
+		m_ports ? o.setQemuDisk(m, m_ports->second) : o.setQemuDisk(m);
 
 	quint64 bw = m_task->getBandwidth();
 	if (bw > 0)
 		o.setBandwidth(bw);
 
-	work = new Migration(boost::bind< ::Libvirt::Result>(o, target_));
-
+	Unit* output = new Component(o, target_, m_bus);
 	if (m_task->getOldState() == VMS_RUNNING)
-		work = new Vcmmd(m_task->getVmUuid(), work);
+		output = new Vcmmd(m_task->getVmUuid(), output);
 
-	if (!disks.isEmpty())
+	if (!s.isEmpty())
 	{
 		WRITE_TRACE(DBG_DEBUG, "some disks will be migrated using snapshots");
-		work = new Disks(disks, ::Libvirt::Kit.vms().at(m_task->getVmUuid()).getSnapshot(), work);
+		output = new Disks(s, ::Libvirt::Kit.vms().at(m_task->getVmUuid()).getSnapshot(), output);
 	}
+	foreach(CVmSerialPort* p, u.getSerialPorts())
+		output = new File(p->getSystemName(), output);
 
-	QList<CVmSerialPort*> serials;
-	getOnlyPcsFsObjects(serials, config->getVmHardwareList()->m_lstSerialPorts);
+	QString r = u.getNVRAM();
+	if (!r.isEmpty())
+		output = new File(r, output);
 
-	foreach(CVmSerialPort* s, serials)
-		work = new File(s->getSystemName(), work);
-
-	CVmSettings* a;
-	CVmStartupOptions* b;
-	CVmStartupBios* c;
-	QString nvram;
-	if (NULL != (a = config->getVmSettings()) &&
-			NULL != (b = a->getVmStartupOptions()) &&
-			NULL != (c = b->getBios()) &&
-			pcs_fs(qPrintable(c->getNVRAM())))
-		work = new File(c->getNVRAM(), work);
-
-	return work;
+	return output;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Offline
+} // namespace Online
 
-Unit* Offline::operator()(const Online::agent_type& agent_, const CVmConfiguration& target_) const
+namespace Offline
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Hatchery
+
+Unit* Hatchery::operator()(const agent_type& agent_, const CVmConfiguration& target_) const
 {
 	WRITE_TRACE(DBG_DEBUG, "we use offline migration");
-	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Offline offline_type;
 
-	return new Migration(boost::bind< ::Libvirt::Result>(offline_type(agent_), target_));
+	return new Component(Component::agent_type(agent_), target_);
 }
 
+} // namespace Offline
 } // namespace Trick
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -578,15 +601,16 @@ Flop::Event State::start(serverList_type const& serverList_)
 	case VMS_RUNNING:
 		break;
 	default:
-		return (*m_beholder)(new Task(a, boost::bind<Trick::Unit* >(Trick::Offline(), _1, _2),
-				m_task->getTargetConfig()));
+		return (*m_beholder)(new Task(a, boost::bind<Trick::Unit* >
+			(Trick::Offline::Hatchery(), _1, _2),
+ 				m_task->getTargetConfig()));
 	}
 	m_progress = QSharedPointer<Progress>(new Progress(a, m_reporter),
 			&QObject::deleteLater);
 	m_progress->moveToThread(QCoreApplication::instance()->thread());
 	m_progress->startTimer(0);
 
-	Trick::Online f(*m_task);
+	Trick::Online::Hatchery f(*m_task, getConnector());
 	if (0 == (m_task->getFlags() & PVMT_DIRECT_DATA_CONNECTION))
 	{
 		f.setPorts(qMakePair(serverList_.at(1)->serverPort(),
@@ -874,6 +898,16 @@ template<class T>
 void Frontend::pokePeer(const T&)
 {
 	m_task->confirmFinish();
+}
+
+void Frontend::audit(const Libvirt::Trick::Online::downtime_type& downtime_)
+{
+	boost::property_tree::ptree p;
+	p.put("downtime", downtime_);
+	p.put("compression", !(m_task->getFlags() & PVMT_UNCOMPRESSED));
+	p.put("encryption", !(m_task->getFlags() & PVMT_DIRECT_DATA_CONNECTION));
+	Task::Trace t(m_task->getRequestPackage());
+	t.report(p);
 }
 
 } // namespace Source

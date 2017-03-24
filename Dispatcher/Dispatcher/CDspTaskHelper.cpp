@@ -39,6 +39,7 @@
 /// @history
 ///
 ////////////////////////////////////////////////////////////////////////////////
+#include "CDspTaskTrace.h"
 #include "CDspTaskHelper.h"
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
@@ -212,6 +213,8 @@ void CDspTaskHelper::run()
 		, getRequestFlags()
 		);
 
+	Task::Trace t(m_requestPkg);
+	t.start();
 	bool bExceptionWasCaught = false;
 	try
 	{
@@ -304,12 +307,13 @@ void CDspTaskHelper::run()
 
 	if( bExceptionWasCaught )
 	{
+		setLastErrorCode(PRL_ERR_UNEXPECTED);
 		// #114031
 		WRITE_TRACE(DBG_FATAL, "Some exception was uncatched inside task. "
 			"Send default response %s to client prevent client app hangs."
-			, PRL_RESULT_TO_STRING(PRL_ERR_UNEXPECTED) );
+			, PRL_RESULT_TO_STRING(getLastErrorCode()) );
 
-		getClient()->sendSimpleResponse( getRequestPackage(), PRL_ERR_UNEXPECTED );
+		getClient()->sendSimpleResponse(getRequestPackage(), getLastErrorCode());
 	}
 
 	WRITE_TRACE(DBG_FATAL, "Task '%s' with uuid = %s was finished with result %s (%#x) ) "
@@ -319,6 +323,7 @@ void CDspTaskHelper::run()
 		, getLastErrorCode()
 		);
 
+	t.finish(getLastErrorCode());
 	checkVmAdditionState( true );
 }
 

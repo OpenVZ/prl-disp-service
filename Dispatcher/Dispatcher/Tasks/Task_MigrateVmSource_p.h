@@ -34,12 +34,13 @@
 #ifndef __TASK_MIGRATEVMSOURCE_P_H__
 #define __TASK_MIGRATEVMSOURCE_P_H__
 
+#include "CDspLibvirt.h"
 #include "Task_MigrateVmTunnel_p.h"
+#include <prlcommon/HostUtils/PCSUtils.h>
 #include <boost/msm/back/state_machine.hpp>
 #include <boost/msm/front/state_machine_def.hpp>
+#include <boost/serialization/strong_typedef.hpp>
 #include <Libraries/VmFileList/CVmFileListCopy.h>
-#include <prlcommon/HostUtils/PCSUtils.h>
-#include "CDspLibvirt.h"
 
 class Task_MigrateVmSource;
 
@@ -226,24 +227,6 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Migration
-
-struct Migration: Unit
-{
-	explicit Migration(const boost::function0< ::Libvirt::Result>& work_): m_work(work_)
-	{
-	}
-
-	::Libvirt::Result execute()
-	{
-		return m_work();
-	}
-
-private:
-	boost::function0< ::Libvirt::Result> m_work;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Vcmmd
 
 struct Vcmmd: Decorator
@@ -298,19 +281,64 @@ private:
 	agent_type m_agent;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Online
-
-struct Online
+namespace Online
 {
-	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Agent agent_type;
+BOOST_STRONG_TYPEDEF(quint64, downtime_type)
 
-	explicit Online(Task_MigrateVmSource& task_):
-		m_task(&task_), m_ports(boost::none)
+///////////////////////////////////////////////////////////////////////////////
+// struct Separatist
+
+struct Separatist
+{
+	explicit Separatist(const CVmConfiguration& source_): m_source(&source_)
 	{
 	}
 
-	Online& setPorts(const QPair<quint16,quint16>& ports_)
+	QString getNVRAM() const;
+	QList<CVmHardDisk*> getDisks() const;
+	QList<CVmSerialPort*> getSerialPorts() const;
+
+private:
+	template<class T>
+	static QList<T*> refine(const QList<T*>& mix_);
+
+	const CVmConfiguration* m_source;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Component
+
+struct Component: Unit
+{
+	typedef Shadow::Connector* bus_type;
+	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Online agent_type;
+
+	Component(const agent_type& agent_, const CVmConfiguration& target_,
+		bus_type bus_): m_bus(bus_), m_agent(agent_), m_target(target_)
+	{
+	}
+
+	::Libvirt::Result execute();
+
+private:
+	bus_type m_bus;
+	agent_type m_agent;
+	CVmConfiguration m_target;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hatchery
+
+struct Hatchery
+{
+	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Agent agent_type;
+
+	Hatchery(Task_MigrateVmSource& task_, Component::bus_type bus_):
+		m_bus(bus_), m_task(&task_), m_ports(boost::none)
+	{
+	}
+
+	Hatchery& setPorts(const QPair<quint16,quint16>& ports_)
 	{
 		m_ports = ports_;
 		return *this;
@@ -319,18 +347,48 @@ struct Online
 	Unit* operator()(const agent_type& agent, const CVmConfiguration& target_);
 
 private:
+	Component::bus_type m_bus;
 	Task_MigrateVmSource* m_task;
 	boost::optional<QPair<quint16,quint16> > m_ports;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Offline
+} // namespace Online
 
-struct Offline
+namespace Offline
 {
-	Unit* operator()(const Online::agent_type& agent_, const CVmConfiguration& target_) const;
+///////////////////////////////////////////////////////////////////////////////
+// struct Component
+
+struct Component: Unit
+{
+	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Offline agent_type;
+
+	Component(const agent_type& agent_, const CVmConfiguration& target_):
+		m_agent(agent_), m_target(target_)
+	{
+	}
+
+	::Libvirt::Result execute()
+	{
+		return m_agent(m_target);
+	}
+
+private:
+	agent_type m_agent;
+	CVmConfiguration m_target;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Hatchery
+
+struct Hatchery
+{
+	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Agent agent_type;
+
+	Unit* operator()(const agent_type& agent_, const CVmConfiguration& target_) const;
+};
+
+} // namespace Offline
 } // namespace Trick
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -599,6 +657,8 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 	void setResult(const peerQuitState_type::Good&);
 	void setResult(const Flop::Event& value_);
 
+	void audit(const Libvirt::Trick::Online::downtime_type& downtime_);
+
 	struct transition_table : boost::mpl::vector<
 		// wire error exits to FINISHED immediately
 		a_row<checkState_type,                     Flop::Event, Finished, &Frontend::setResult>,
@@ -613,6 +673,11 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 		_row<copyState_type,                   boost::mpl::true_,        moveState_type>,
 		row<copyState_type,                    boost::mpl::true_,        peerQuitState_type,
 			&Frontend::pokePeer, &Frontend::isTemplate>,
+		a_irow<
+			moveState_type,
+			Libvirt::Trick::Online::downtime_type,
+			&Frontend::audit
+		>,
 		a_row<moveState_type::exit_pt<Success>,msmf::none,               peerQuitState_type,&Frontend::pokePeer>,
 		a_row<peerQuitState_type,              peerQuitState_type::Good, Finished,          &Frontend::setResult>
 	>
