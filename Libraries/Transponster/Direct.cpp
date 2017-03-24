@@ -83,12 +83,12 @@ PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Iotune
 
-void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1065::types, 0>::type& iopsLimit_) const
+void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1067::types, 0>::type& iopsLimit_) const
 {
 	m_disk->setIopsLimit(iopsLimit_.getValue());
 }
 
-void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1061::types, 0>::type& ioLimit_) const
+void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1063::types, 0>::type& ioLimit_) const
 {
 	m_disk->setIoLimit(new CVmIoLimit(PRL_IOLIMIT_BS, ioLimit_.getValue()));
 }
@@ -122,8 +122,8 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	if (t)
 	{
 		Iotune v(d);
-		boost::apply_visitor(v, (*t).getChoice1061());
-		boost::apply_visitor(v, (*t).getChoice1065());
+		boost::apply_visitor(v, (*t).getChoice1063());
+		boost::apply_visitor(v, (*t).getChoice1067());
 	}
 	d->setTargetDeviceName(disk_.getTarget().getDev());
 	if (disk_.getSerial())
@@ -175,7 +175,7 @@ PRL_RESULT Cdrom::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 
 PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics::types, 1>::type& vnc_) const
 {
-	if (0 != vnc_.getValue().getChoice691().which())
+	if (0 != vnc_.getValue().getChoice695().which())
 		return PRL_ERR_UNIMPLEMENTED;
 		
 	QScopedPointer<CVmRemoteDisplay> v(new CVmRemoteDisplay());
@@ -183,9 +183,9 @@ PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics:
 	{
 		v->setPassword(vnc_.getValue().getPasswd().get());
 	}
-	const mpl::at_c<Libvirt::Domain::Xml::VChoice691::types, 0>::type* s =
-		boost::get<mpl::at_c<Libvirt::Domain::Xml::VChoice691::types, 0>::type>
-			(&vnc_.getValue().getChoice691());
+	const mpl::at_c<Libvirt::Domain::Xml::VChoice695::types, 0>::type* s =
+		boost::get<mpl::at_c<Libvirt::Domain::Xml::VChoice695::types, 0>::type>
+			(&vnc_.getValue().getChoice695());
 	if (s->getValue().getListen())
 	{
 		v->setHostName(s->getValue().getListen().get());
@@ -428,7 +428,7 @@ PRL_RESULT DiskForm::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::typ
 ///////////////////////////////////////////////////////////////////////////////
 // struct Device
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::types, 4>::type& interface_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 4>::type& interface_) const
 {
 	CVmHardware* h = m_vm->getVmHardwareList();
 	if (NULL == h)
@@ -437,7 +437,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::
 	return boost::apply_visitor(Network(*h, *m_clip), interface_.getValue());
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::types, 5>::type& input_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 5>::type& input_) const
 {
 	CVmHardware* h = m_vm->getVmHardwareList();
 	if (NULL == h)
@@ -467,7 +467,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::types, 6>::type& sound_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 6>::type& sound_) const
 {
 	CVmHardware* h = m_vm->getVmHardwareList();
 	if (NULL == h)
@@ -483,7 +483,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::types, 11>::type& parallel_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 11>::type& parallel_) const
 {
 	CVmHardware* h = m_vm->getVmHardwareList();
 	if (NULL == h)
@@ -502,7 +502,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::types, 12>::type& serial_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 12>::type& serial_) const
 {
 	CVmHardware* h = m_vm->getVmHardwareList();
 	if (NULL == h)
@@ -569,7 +569,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::types, 0>::type& disk_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 0>::type& disk_) const
 {
 	CVmHardware* h(m_vm->getVmHardwareList());
 	if (!h)
@@ -577,7 +577,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::
 	return boost::apply_visitor(DiskForm(*h, *m_clip, disk_.getValue()), disk_.getValue().getDisk());
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::types, 9>::type& video_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 9>::type& video_) const
 {
 	CVmHardware* h = m_vm->getVmHardwareList();
 	if (NULL == h)
@@ -603,9 +603,9 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::types, 1>::type& controller_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 1>::type& controller_) const
 {
-	if (controller_.getValue().getChoice591().which() != 2)
+	if (controller_.getValue().getChoice595().which() != 2)
 		return PRL_ERR_SUCCESS;
 	if (m_vm->getVmSettings() == NULL)
 		return PRL_ERR_UNEXPECTED;
@@ -616,7 +616,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::
 	if (NULL == h)
 		return PRL_ERR_UNEXPECTED;
 	boost::apply_visitor(Visitor::Controller::Usb(*u, *h),
-		controller_.getValue().getChoice591());
+		controller_.getValue().getChoice595());
 	return PRL_ERR_SUCCESS;
 }
 
@@ -648,7 +648,7 @@ void Adjustment::operator()(const mpl::at_c<Libvirt::Domain::Xml::VClock::types,
 {
 	mpl::at_c<Libvirt::Domain::Xml::VAdjustment::types, 1>::type value;
 	value.setValue(QString::number(m_offset));
-	Libvirt::Domain::Xml::Clock377 c = fixed_.getValue();
+	Libvirt::Domain::Xml::Clock381 c = fixed_.getValue();
 	c.setOffset(Libvirt::Domain::Xml::EOffsetUtc);
 	c.setAdjustment(Libvirt::Domain::Xml::VAdjustment(value));
 	mpl::at_c<Libvirt::Domain::Xml::VClock::types, 0>::type v;
@@ -658,7 +658,7 @@ void Adjustment::operator()(const mpl::at_c<Libvirt::Domain::Xml::VClock::types,
 
 void Adjustment::operator()(const mpl::at_c<Libvirt::Domain::Xml::VClock::types, 2>::type& variable_) const
 {
-	Libvirt::Domain::Xml::Clock383 c = variable_.getValue();
+	Libvirt::Domain::Xml::Clock387 c = variable_.getValue();
 	c.setBasis(Libvirt::Domain::Xml::EBasisUtc);
 	c.setAdjustment(QString::number(m_offset));
 	mpl::at_c<Libvirt::Domain::Xml::VClock::types, 2>::type v;
@@ -672,7 +672,7 @@ namespace Controller
 ///////////////////////////////////////////////////////////////////////////////
 // struct Usb
 
-void Usb::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice591::types, 2>::type& usb_) const
+void Usb::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice595::types, 2>::type& usb_) const
 {
 	boost::optional<Libvirt::Domain::Xml::EModel1> m = usb_.getValue().getModel();
 	if (!m)
@@ -771,9 +771,9 @@ PRL_RESULT DiskForm::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::typ
 		setDiskSource(m_hardware->m_lstFloppyDisks, i);
 		break;
 	}
-	mpl::at_c<Libvirt::Domain::Xml::VChoice943::types, 0>::type y;
+	mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 0>::type y;
 	y.setValue(m_disk);
-	*m_list << Libvirt::Domain::Xml::VChoice943(y);
+	*m_list << Libvirt::Domain::Xml::VChoice946(y);
 	return PRL_ERR_SUCCESS;
 }
 
@@ -788,13 +788,13 @@ PRL_RESULT DiskForm::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::typ
 ///////////////////////////////////////////////////////////////////////////////
 // struct Device
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::types, 12>::type&)
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 12>::type&)
 {
 	//drop all serial devices
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice943::types, 0>::type& disk_)
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 0>::type& disk_)
 {
 	return boost::apply_visitor(DiskForm(&m_hardware, m_list, disk_.getValue()), disk_.getValue().getDisk());
 }
@@ -825,7 +825,7 @@ void Timer::operator()(const mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 0>::
 	mpl::at_c<Libvirt::Domain::Xml::VTickpolicy::types, 0>::type p;
 	p.setValue(Libvirt::Domain::Xml::ETickpolicyDiscard);
 
-	Libvirt::Domain::Xml::Timer402 tt;
+	Libvirt::Domain::Xml::Timer406 tt;
 	tt.setTickpolicy(Libvirt::Domain::Xml::VTickpolicy(p));
 	tt.setName(Libvirt::Domain::Xml::EName1Pit);
 
@@ -1035,12 +1035,12 @@ PRL_RESULT Vm::setDevices()
 	if (NULL != d)
 	{
 		Visitor::Controller::Collect::output_type x;
-		foreach (const Libvirt::Domain::Xml::VChoice943& v, d->getChoice943List())
+		foreach (const Libvirt::Domain::Xml::VChoice946& v, d->getChoice946List())
 		{
 			boost::apply_visitor(Visitor::Controller::Collect(x), v);
 		}
 		Clip c(*m_result->getVmSettings()->getVmStartupOptions(), x);
-		foreach (const Libvirt::Domain::Xml::VChoice943& v, d->getChoice943List())
+		foreach (const Libvirt::Domain::Xml::VChoice946& v, d->getChoice946List())
 		{
 			boost::apply_visitor(Visitor::Device(*m_result, c), v);
 		}
@@ -1173,7 +1173,7 @@ PRL_RESULT Direct::setHostOnly()
 			boost::apply_visitor(Visitor::Address::Ip(*h), a.get());
 
 		boost::optional<QString> f = p.getFamily();
-		boost::optional<Libvirt::Network::Xml::VChoice1190> m = p.getChoice1190();
+		boost::optional<Libvirt::Network::Xml::VChoice1192> m = p.getChoice1192();
 		if (f && m)
 			boost::apply_visitor(Visitor::Address::Mask(*h, *f), m.get());
 
@@ -1283,8 +1283,8 @@ PRL_RESULT Direct::setMaster()
 	if (m_input.isNull())
 		return PRL_ERR_READ_XML_CONTENT;
  
-	foreach (const Libvirt::Iface::Xml::VChoice1254& a,
-		m_input->getBridge().getChoice1254List())
+	foreach (const Libvirt::Iface::Xml::VChoice1256& a,
+		m_input->getBridge().getChoice1256List())
 	{
 		if (boost::apply_visitor(Visitor::Bridge::Master(m_master), a))
 			return PRL_ERR_SUCCESS;
@@ -1382,14 +1382,14 @@ Vm::Vm(char* xml_)
 	if (snapshot.isNull())
 		return;
 
-	if (!snapshot->getChoice1732())
+	if (!snapshot->getChoice1734())
 		return;
 
-	if (1 == snapshot->getChoice1732()->which())
+	if (1 == snapshot->getChoice1734()->which())
 	{
 		const Libvirt::Domain::Xml::Domain& d =
-			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice1732::types, 1>::type>
-				(snapshot->getChoice1732().get()).getValue();
+			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice1734::types, 1>::type>
+				(snapshot->getChoice1734().get()).getValue();
 		m_input.reset(new Libvirt::Domain::Xml::Domain(d));
 	}
 }
@@ -1428,7 +1428,7 @@ boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> Clip::getControllerModel(const Lib
 	{
 		if (a.getController().get() != QString::number(c.getIndex()))
 			continue;
-		boost::apply_visitor(Visitor::Controller::Scsi(m), c.getChoice591());
+		boost::apply_visitor(Visitor::Controller::Scsi(m), c.getChoice595());
 		if (m)
 			break;
 	}

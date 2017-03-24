@@ -115,7 +115,7 @@ namespace Device
 {
 
 struct List;
-typedef QList<Libvirt::Domain::Xml::VChoice943 > deviceList_type;
+typedef QList<Libvirt::Domain::Xml::VChoice946 > deviceList_type;
 typedef Boot::Reverse::order_type boot_type;
 
 namespace Clustered
@@ -656,7 +656,7 @@ struct List
 	{
 	}
 
-	void add(const Libvirt::Domain::Xml::VChoice591& bus_, quint16 index_);
+	void add(const Libvirt::Domain::Xml::VChoice595& bus_, quint16 index_);
 	quint16 addScsi(Libvirt::Domain::Xml::EModel model_);
 
 	const deviceList_type& getResult() const
