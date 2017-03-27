@@ -167,7 +167,7 @@ PRL_RESULT Task_DeleteVm::prepareTask()
 	if (!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
 	{
 		VIRTUAL_MACHINE_STATE s;
-		Libvirt::Result r = Libvirt::Kit.vms().at(getVmUuid()).getState(s);
+		Libvirt::Result r = Libvirt::Kit.vms().at(getVmUuid()).getState().getValue(s);
 		if (r.isSucceed() && s != VMS_STOPPED && s != VMS_SUSPENDED)
 		{
 			CDspTaskFailure(*this)(PRL_ERR_DISP_VM_IS_NOT_STOPPED, getVmUuid());
@@ -351,7 +351,7 @@ PRL_RESULT Task_DeleteVm::run_body()
 	{
 #ifdef _LIBVIRT_
 		Libvirt::Result r(Libvirt::Kit.vms().at(m_pVmConfig->getVmIdentification()->getVmUuid())
-				.undefine());
+				.getState().undefine());
 		ret = (r.isFailed()? r.error().code() : PRL_ERR_SUCCESS);
 #endif // _LIBVIRT_
 	}

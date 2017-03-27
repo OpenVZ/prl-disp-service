@@ -533,7 +533,7 @@ Prl::Expected<mode_type, PRL_RESULT> Mode::operator()(Vm&) const
 {
 	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_uuid);
 	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
-	if (u.getState(s).isFailed())
+	if (u.getState().getValue(s).isFailed())
 		return PRL_ERR_VM_UUID_NOT_FOUND;
 
 	if (s == VMS_STOPPED)
@@ -693,7 +693,7 @@ PRL_RESULT Stopped::wrap(const T& worker_) const
 
 	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_uuid);
 	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
-	u.getState(s);
+	u.getState().getValue(s);
 	if (s == VMS_PAUSED) // check that vm is in an expected state
 	{
 		e = ::Command::Vm::Gear< ::Command::Tag::State<

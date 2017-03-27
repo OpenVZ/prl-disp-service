@@ -170,7 +170,7 @@ void Watcher::updateRates()
 	foreach (const Libvirt::Instrument::Agent::Vm::Unit& u, all)
 	{
 		VIRTUAL_MACHINE_STATE s(VMS_UNKNOWN);
-		if (u.getState(s).isFailed())
+		if (u.getState().getValue(s).isFailed())
 			continue;
 
 		if (VMS_RUNNING != s && VMS_PAUSED != s)

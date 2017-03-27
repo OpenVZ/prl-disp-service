@@ -139,7 +139,7 @@ void Context::reportStart()
 template<class T>
 Libvirt::Result Start::do_(T policy_)
 {
-	Libvirt::Instrument::Agent::Vm::Unit a = getAgent();
+	Libvirt::Instrument::Agent::Vm::Limb::State a = getAgent().getState();
 	CStatesHelper h(getConfig()->getVmIdentification()->getHomePath());
 	if (!h.savFileExists())
 		return policy_(a);
@@ -230,9 +230,9 @@ struct Essence<PVE::DspCmdVmStop>: Need::Agent, Need::Command<CProtoVmCommandSto
 		{
 		case PSM_ACPI:
 		case PSM_SHUTDOWN:
-			return getAgent().shutdown();
+			return getAgent().getState().shutdown();
 		default:
-			return getAgent().kill();
+			return getAgent().getState().kill();
 		}
 	}
 };
@@ -242,7 +242,7 @@ struct Essence<PVE::DspCmdVmPause>: Need::Agent, Need::Context
 {
 	Libvirt::Result operator()()
 	{
-		Libvirt::Result output = getAgent().pause();
+		Libvirt::Result output = getAgent().getState().pause();
 		if (output.isFailed())
 			return output;
 
@@ -256,7 +256,7 @@ struct Essence<PVE::DspCmdVmRestartGuest>: Need::Agent
 {
 	Libvirt::Result operator()()
 	{
-		return getAgent().reboot();
+		return getAgent().getState().reboot();
 	}
 };
 
@@ -266,16 +266,16 @@ struct Essence<PVE::DspCmdVmReset>: Need::Agent
 	Libvirt::Result operator()()
 	{
 		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
-		Libvirt::Result output = getAgent().getState(s);
+		Libvirt::Result output = getAgent().getState().getValue(s);
 		if (output.isFailed())
 			return output;
 
-		output = getAgent().reset();
+		output = getAgent().getState().reset();
 		if (output.isFailed())
 			return output;
 
 		if (VMS_PAUSED == s)
-			output = getAgent().unpause();
+			output = getAgent().getState().unpause();
 
 		return output;
 	}
@@ -287,7 +287,7 @@ struct Essence<PVE::DspCmdVmSuspend>: Need::Agent, Need::Config
 	Libvirt::Result operator()()
 	{
 		CStatesHelper h(getConfig()->getVmIdentification()->getHomePath());
-		return getAgent().suspend(h.getSavFileName());
+		return getAgent().getState().suspend(h.getSavFileName());
 	}
 };
 
@@ -656,7 +656,7 @@ struct Vcmmd: Need::Agent, Need::Context, Need::Config, Need::Command<CProtoSwit
 			return output;
 
 		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
-		Libvirt::Result e = getAgent().getState(s);
+		Libvirt::Result e = getAgent().getState().getValue(s);
 		if (e.isFailed())
 			return e;
 
@@ -930,7 +930,7 @@ struct Essence<PVE::DspCmdVmStart>: Start, Need::Context
 			.setContext(Backup::Device::Agent::Unit(getContext().getSession()))
 			.enable();
 
-		Libvirt::Result output = do_(boost::bind(&Libvirt::Instrument::Agent::Vm::Unit::start, _1));
+		Libvirt::Result output = do_(boost::bind(&Libvirt::Instrument::Agent::Vm::Limb::State::start, _1));
 		if (output.isSucceed())
 			v.commit();
 
@@ -943,7 +943,7 @@ struct Essence<PVE::DspCmdVmResume>: Start
 {
 	Libvirt::Result operator()()
 	{
-		return do_(boost::bind(&Libvirt::Instrument::Agent::Vm::Unit::unpause, _1));
+		return do_(boost::bind(&Libvirt::Instrument::Agent::Vm::Limb::State::unpause, _1));
 	}
 };
 
@@ -1084,7 +1084,7 @@ Detector* Create::craftDetector(const ::Command::Context& context_)
 
 Libvirt::Result Create::operator()()
 {
-	return getAgent().getState(*m_state);
+	return getAgent().getState().getValue(*m_state);
 }
 
 } // namespace Snapshot
@@ -1317,7 +1317,7 @@ Libvirt::Result Starter::operator()(const CVmConfiguration& config_) const
 
 Libvirt::Result Frankenstein::operator()(const QString& uuid_) const
 {
-	return Libvirt::Kit.vms().at(uuid_).startPaused();
+	return Libvirt::Kit.vms().at(uuid_).getState().startPaused();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1325,9 +1325,10 @@ Libvirt::Result Frankenstein::operator()(const QString& uuid_) const
 
 Libvirt::Result Resurrect::operator()(const QString& uuid_)
 {
-	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(uuid_);
+	Libvirt::Instrument::Agent::Vm::Limb::State u =
+		Libvirt::Kit.vms().at(uuid_).getState();
 	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
-	Libvirt::Result output = u.getState(s);
+	Libvirt::Result output = u.getValue(s);
 	if (output.isFailed())
 		return output;
 
@@ -1348,7 +1349,7 @@ namespace Shutdown
 
 Libvirt::Result Launcher::operator()(const QString& uuid_)
 {
-	return Libvirt::Kit.vms().at(uuid_).shutdown();
+	return Libvirt::Kit.vms().at(uuid_).getState().shutdown();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1356,7 +1357,7 @@ Libvirt::Result Launcher::operator()(const QString& uuid_)
 
 Libvirt::Result Killer::operator()(const QString& uuid_)
 {
-	return Libvirt::Kit.vms().at(uuid_).kill();
+	return Libvirt::Kit.vms().at(uuid_).getState().kill();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1365,8 +1366,9 @@ Libvirt::Result Killer::operator()(const QString& uuid_)
 void Fallback::react()
 {
 	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
-	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_uuid);
-	*m_sink = u.getState(s);
+	Libvirt::Instrument::Agent::Vm::Limb::State u =
+		Libvirt::Kit.vms().at(m_uuid).getState();
+	*m_sink = u.getValue(s);
 	if (m_sink->isSucceed() && s != VMS_STOPPED)
 		*m_sink = u.kill();
 }
@@ -2259,7 +2261,7 @@ PRL_RESULT LimitType::operator()(CVmConfiguration& config_) const
 	QString uuid = config_.getVmIdentification()->getVmUuid();
 	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(uuid);
 	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
-	if (u.getState(s).isFailed() || VMS_UNKNOWN == s)
+	if (u.getState().getValue(s).isFailed() || VMS_UNKNOWN == s)
 		return PRL_ERR_FAILURE;
 
 	CVmCpu* cpu(config_.getVmHardwareList()->getCpu());

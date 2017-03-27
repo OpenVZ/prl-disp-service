@@ -830,8 +830,8 @@ void CDspProblemReportHelper::FillVmProblemReportData
 
 		// It doesn't matter if wait failed or migration failed, we need to try unpause VM.
 		VIRTUAL_MACHINE_STATE currentState = VMS_UNKNOWN;
-		if ((isRunning && u.getState(currentState).isFailed()) ||
-				(currentState == VMS_PAUSED && u.unpause().isFailed()))
+		if ((isRunning && u.getState().getValue(currentState).isFailed()) ||
+				(currentState == VMS_PAUSED && u.getState().unpause().isFailed()))
 		{
 			WRITE_TRACE(DBG_FATAL, "Unable to resume VM. VM %s may be paused", qPrintable(strVmUuid));
 		}
