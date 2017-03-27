@@ -287,11 +287,11 @@ Online::result_type Online::operator()(const CVmConfiguration& config_)
 	Result e = migrate(config_);
 	if (e.isFailed())
 	{
-		virConnectNetworkEventDeregisterAny(getLink(), s);
+		virConnectDomainEventDeregisterAny(getLink(), s);
 		return e.error();
 	}
 	quint64 output = v.get();
-	virConnectNetworkEventDeregisterAny(getLink(), s);
+	virConnectDomainEventDeregisterAny(getLink(), s);
 	return output;
 };
 
