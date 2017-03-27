@@ -708,33 +708,97 @@ Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
 
 namespace Controller
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+Libvirt::Domain::Xml::Controller Factory::craft
+	(const Libvirt::Domain::Xml::VChoice595& bus_, quint16 index_)
+{
+	Libvirt::Domain::Xml::Controller output;
+	output.setIndex(index_);
+	output.setChoice595(bus_);
+
+	return output;
+}
+
+Factory::result_type Factory::wrap(const Libvirt::Domain::Xml::Controller& object_)
+{
+	mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 1>::type output;
+	output.setValue(object_);
+	return Libvirt::Domain::Xml::VChoice946(output);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct List
+// class Moldy
 
-void List::add(const Libvirt::Domain::Xml::VChoice595& bus_, quint16 index_)
+Moldy::result_type Moldy::operator()(Libvirt::Domain::Xml::EType6 bus_, quint16 index_)
+{
+	mpl::at_c<Libvirt::Domain::Xml::VChoice595::types, 0>::type b;
+	b.setValue(bus_);
+	return wrap(craft(b, index_));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// class Virtio
+
+Virtio::result_type Virtio::operator()(quint16 index_)
 {
 	Libvirt::Domain::Xml::Driver1 d;
 	d.setIothread(1);
-	Libvirt::Domain::Xml::Controller x;
-	x.setIndex(index_);
+	mpl::at_c<Libvirt::Domain::Xml::VChoice595::types, 1>::type b;
+	b.setValue(Libvirt::Domain::Xml::EModelVirtioScsi);
+	Libvirt::Domain::Xml::Controller x = craft(b, index_);
 	x.setDriver(d);
-	x.setChoice595(bus_);
-	mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 1>::type y;
-	y.setValue(x);
-	m_controllerList << Libvirt::Domain::Xml::VChoice946(y);
+
+	return wrap(x);
 }
 
-quint16 List::addScsi(Libvirt::Domain::Xml::EModel model_)
+///////////////////////////////////////////////////////////////////////////////
+// class Hyperv
+
+Hyperv::result_type Hyperv::operator()(quint16 index_)
 {
-	quint16 controllerId = m_scsiIndex++;
-	mpl::at_c<Libvirt::Domain::Xml::VChoice595::types, 1>::type v;
-	v.setValue(model_);
-	add(v, controllerId);
-
-	return controllerId;
+	mpl::at_c<Libvirt::Domain::Xml::VChoice595::types, 1>::type b;
+	b.setValue(Libvirt::Domain::Xml::EModelHvScsi);
+	return wrap(craft(b, index_));
 }
 
+namespace Scsi
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Arrangement
+
+Libvirt::Domain::Xml::VAddress Arrangement::operator()(deviceList_type& controllers_)
+{
+	quint16 t = m_device % MAX_TARGETS;
+	if (0 == t)
+	{
+		m_controller = controllers_.size();
+		controllers_ << m_factory(m_controller);
+	}
+	m_device++;
+	return Address().setTarget(t)(m_controller);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Bus
+
+Bus::Bus(): m_hyperv(Arrangement(Hyperv())), m_virtio(Arrangement(Virtio()))
+{
+}
+
+Libvirt::Domain::Xml::VAddress Bus::operator()(Libvirt::Domain::Xml::EModel model_)
+{
+	switch (model_)
+	{
+	case Libvirt::Domain::Xml::EModelHvScsi:
+		return m_hyperv(m_controllers);
+	default:
+		return m_virtio(m_controllers);
+	}
+}
+
+} // namespace Scsi
 } // namespace Controller
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -747,11 +811,7 @@ Libvirt::Domain::Xml::VAddress Attachment::craftIde(quint32 index_)
 	quint16 u = index_ % IDE_UNITS;
 
 	if (c > 0 && u == 0 && b == 0)
-	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice595::types, 0>::type v;
-		v.setValue(Libvirt::Domain::Xml::EType6Ide);
-		m_controllerList.add(v, c);
-	}
+		m_controllers << m_moldy(Libvirt::Domain::Xml::EType6Ide, c);
 
 	return Address().setUnit(u).setBus(b)(c);
 }
@@ -762,11 +822,7 @@ Libvirt::Domain::Xml::VAddress Attachment::craftSata(quint32 index_)
 	quint16 u = index_ % SATA_UNITS;
 
 	if (c > 0 && u == 0)
-	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice595::types, 0>::type v;
-		v.setValue(Libvirt::Domain::Xml::EType6Sata);
-		m_controllerList.add(v, c);
-	}
+		m_controllers << m_moldy(Libvirt::Domain::Xml::EType6Sata, c);
 
 	return Address().setUnit(u)(c);
 }
@@ -777,13 +833,13 @@ Libvirt::Domain::Xml::VAddress Attachment::craftScsi
 	Libvirt::Domain::Xml::EModel m = Libvirt::Domain::Xml::EModelAuto;
 	if (model_)
 		m = model_.get();
-	switch (m)
-	{
-		case Libvirt::Domain::Xml::EModelHvScsi:
-			return m_hypervScsi.craftSlot(m_controllerList);
-		default:
-			return m_virtioScsi.craftSlot(m_controllerList);
-	}
+
+	return m_scsi(m);
+}
+
+deviceList_type Attachment::getControllers() const
+{
+	return m_controllers + m_scsi.getControllers();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
