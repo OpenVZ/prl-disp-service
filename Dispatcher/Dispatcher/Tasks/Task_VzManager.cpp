@@ -308,6 +308,10 @@ PRL_RESULT Task_VzManager::start_env()
 		return CDspTaskFailure(*this)(PRL_ERR_DISP_VM_IS_NOT_STOPPED,
 			pConfig->getVmIdentification()->getVmName());
 	}
+	else if (nState == VMS_SUSPENDED)
+	{
+		return resume_env();
+	}
 
 	Backup::Device::Service(pConfig).setContext(*this).enable();
 
