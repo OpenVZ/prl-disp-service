@@ -496,7 +496,7 @@ struct State;
 ///////////////////////////////////////////////////////////////////////////////
 // struct Agent
 
-struct Agent: private Limb::Abstract
+struct Agent: protected Limb::Abstract
 {
 	Agent(const domainReference_type& domain_, const QString& uri_):
 		Limb::Abstract(domain_), m_uri(uri_)
@@ -510,15 +510,6 @@ protected:
 	Result setDowntime(quint32 value_);
 	Result migrate(const CVmConfiguration& config_, unsigned int flags_,
 		Parameters::Builder& parameters_);
-
-	virConnectPtr getLink() const
-	{
-		return m_link.data();
-	}
-	virDomainPtr getDomain() const
-	{
-		return m_domain.data();
-	}
 
 private:
 	QString m_uri;

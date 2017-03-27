@@ -278,10 +278,10 @@ Online::result_type Online::operator()(const CVmConfiguration& config_)
 {
 	Vm::Migration::Completion::feedback_type p(new boost::promise<quint64>());
 	boost::future<quint64> v = p->get_future();
-	int s = virConnectDomainEventRegisterAny(getLink(), getDomain(),
+	int s = virConnectDomainEventRegisterAny(getLink().data(), getDomain().data(),
 			VIR_DOMAIN_EVENT_ID_JOB_COMPLETED,
 			VIR_DOMAIN_EVENT_CALLBACK(Vm::Migration::Completion::react),
-			new Vm::Migration::Completion(getDomain(), p),
+			new Vm::Migration::Completion(getDomain().data(), p),
 			&Callback::Plain::delete_<Vm::Migration::Completion>);
 	if (-1 == s)
 		return Failure(PRL_ERR_FAILURE);
@@ -289,11 +289,11 @@ Online::result_type Online::operator()(const CVmConfiguration& config_)
 	Result e = migrate(config_);
 	if (e.isFailed())
 	{
-		virConnectDomainEventDeregisterAny(getLink(), s);
+		virConnectDomainEventDeregisterAny(getLink().data(), s);
 		return e.error();
 	}
 	quint64 output = v.get();
-	virConnectDomainEventDeregisterAny(getLink(), s);
+	virConnectDomainEventDeregisterAny(getLink().data(), s);
 	return output;
 };
 
