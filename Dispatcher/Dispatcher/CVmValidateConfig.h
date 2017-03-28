@@ -155,6 +155,7 @@ private:
 	CVmValidateConfig& operator=(const CVmValidateConfig& ) { return *this; }
 
 	bool getOldVmConfig();
+	template <class T> void ValidateScsi(const QList<T* >& devices_);
 
 	void CheckGeneralParameters();
 	void CheckBootOption();

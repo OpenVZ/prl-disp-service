@@ -86,7 +86,7 @@ PRL_RESULT Task_UpdateVm::run_body()
 		return CDspTaskFailure(*this)(e);
 	}
 
-	Libvirt::Result r = Libvirt::Kit.vms().at(m_sVmUuid).updateQemu();
+	Libvirt::Result r = Libvirt::Kit.vms().at(m_sVmUuid).getMaintenance().updateQemu();
 	if (r.isFailed())
 		getLastError()->fromString(r.error().convertToEvent().toString());
 

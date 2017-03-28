@@ -49,7 +49,7 @@ namespace Step
 
 result_type Start::execute()
 {
-	return Libvirt::Kit.vms().at(m_uuid).start();
+	return Libvirt::Kit.vms().at(m_uuid).getState().start();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -117,7 +117,7 @@ result_type Registration::execute()
 	result_type e = m_next->execute();
 
 	if (e.isFailed() && e.error().code() != PRL_ERR_FIXME)
-		Libvirt::Kit.vms().at(m_uuid).undefine();
+		Libvirt::Kit.vms().at(m_uuid).getState().undefine();
 
 	return e;
 }

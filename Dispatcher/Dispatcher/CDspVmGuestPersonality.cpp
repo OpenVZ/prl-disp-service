@@ -178,7 +178,7 @@ void CDspVmGuestPersonality::slotVmPersonalityChanged(QString vmDirUuid_, QStrin
 	}
 
 	VIRTUAL_MACHINE_STATE s;
-	Libvirt::Result z(Libvirt::Kit.vms().at(vmUuid_).getState(s));
+	Libvirt::Result z(Libvirt::Kit.vms().at(vmUuid_).getState().getValue(s));
 	if (z.isFailed()) {
 		WRITE_TRACE(DBG_FATAL, "Unable to get %s state", QSTR2UTF8(vmUuid_));
 		return;
