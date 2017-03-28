@@ -62,6 +62,7 @@
 #include <boost/mpl/quote.hpp>
 #include <boost/mpl/for_each.hpp>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
+#include <prlcommon/Interfaces/ParallelsSdk.h>
 
 static const QStringList g_UrlSchemeList = QStringList()
 	<< "ftp://" << "http://" << "https://" << "smb://" << "nfs://";
@@ -1905,6 +1906,22 @@ void CVmValidateConfig::CheckParallelPort()
 
 }
 
+template <class T>
+void CVmValidateConfig::ValidateScsi(const QList<T* >& devices_)
+{
+	unsigned int nOsVersion = m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsVersion();
+	foreach(T *dev, devices_)
+	{
+		if (dev->getSubType() == PCD_HYPER_V_SCSI && !PVS_GUEST_HYPERV_SUPPORTED(nOsVersion))
+		{
+			m_lstResults += PRL_ERR_VMCONF_SCSI_HYPERV_LINUX_NOT_SUPPORTED;
+			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(dev->getIndex(), dev->getItemId()));
+			ADD_FID(E_SET << dev->getFullItemId() << dev->getEnabled_id()
+				<< dev->getInterfaceType_id() << dev->getStackIndex_id());
+		}
+	}
+}
+
 void CVmValidateConfig::CheckMassStorageDevices(PRL_MASS_STORAGE_INTERFACE_TYPE type)
 {
 	if (!m_pVmConfig)
@@ -2055,6 +2072,11 @@ void CVmValidateConfig::CheckSataDevices()
 
 void CVmValidateConfig::CheckScsiDevices()
 {
+	if (!m_pVmConfig)
+		return;
+	ValidateScsi(m_pVmConfig->getVmHardwareList()->m_lstOpticalDisks);
+	ValidateScsi(m_pVmConfig->getVmHardwareList()->m_lstHardDisks);
+	ValidateScsi(m_pVmConfig->getVmHardwareList()->m_lstGenericScsiDevices);
 	CheckMassStorageDevices(PMS_SCSI_DEVICE);
 }
 
