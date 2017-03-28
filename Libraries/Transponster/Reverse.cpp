@@ -70,7 +70,7 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu& dst_)
 	if(0 == u->getNumber())
 		return false;
 
-	dst_.setMode(Libvirt::Domain::Xml::EModeCustom);
+	dst_.setMode(Libvirt::Domain::Xml::EModeHostModel);
 
 	Vm::Reverse::CpuFeaturesMask mask(*m_config);
 	mask.getFeatures(vt_, dst_);
@@ -1161,7 +1161,7 @@ PRL_RESULT Cpu::setNumber()
 ///////////////////////////////////////////////////////////////////////////////
 // struct CpuFeaturesMask
 
-void CpuFeaturesMask::getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &cpu)
+void CpuFeaturesMask::getFeatures(const VtInfo&, Libvirt::Domain::Xml::Cpu &cpu)
 {
 	QSet<QString> features = CCpuHelper::getDisabledFeatures(*m_input);
 
@@ -1169,24 +1169,6 @@ void CpuFeaturesMask::getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &
 		features.insert(QString("vmx"));
 
 	QList<Libvirt::Domain::Xml::Feature> l;
-	foreach(const QString& name, vt_.getRequiredCpuFeatures())
-	{
-		if (features.contains(name))
-			continue;
-		/* invtsc and xsaves are non migratable (see libvirt cpu_map.xml) */
-		if (name == "invtsc" || name == "xsaves")
-			continue;
-		Libvirt::Domain::Xml::Feature f;
-		f.setName(name);
-		Libvirt::Domain::Xml::EPolicy p(Libvirt::Domain::Xml::EPolicyRequire);
-		/* FIXME arat feature will be implemented in Update3. It should be disabled
-		   to keep libvirt migration work. It is not working in update1 QEMU.
-		   #PSBM-52808 #PSBM-51001 #PSBM-52852 */
-		if (name == "arat")
-			p = Libvirt::Domain::Xml::EPolicyDisable;
-		f.setPolicy(p);
-		l.append(f);
-	}
 	foreach(QString name, features)
 	{
 		/* hypervisor feature is pure virtual, it's always absent
