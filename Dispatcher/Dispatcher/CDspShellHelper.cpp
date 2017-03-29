@@ -1384,7 +1384,11 @@ bool CDspShellHelper::isLocalAddress(const QString &sHost)
 
 	QHostAddress address;
 	if (!address.setAddress(sHost))
-		return false;
+	{
+		QHostInfo x = QHostInfo::fromName(sHost);
+		return !QNetworkInterface::allAddresses().toSet()
+			.intersect(x.addresses().toSet()).isEmpty();
+	}
 	if (address == QHostAddress::LocalHost || address == QHostAddress::LocalHostIPv6)
 		return true;
 
