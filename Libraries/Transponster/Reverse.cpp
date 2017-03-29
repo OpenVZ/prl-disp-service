@@ -1778,10 +1778,21 @@ PRL_RESULT Mixer::setIdentification()
 
 PRL_RESULT Mixer::setResources(const VtInfo& info_)
 {
-	// we don't need to rewrite clock
+	// we don't need to rewrite clock and cpu model
+	boost::optional<Libvirt::Domain::Xml::Cpu> u = m_result->getCpu();
 	boost::optional<Libvirt::Domain::Xml::Clock> t = m_result->getClock();
 	PRL_RESULT r = Builder::setResources(info_);
 	m_result->setClock(t);
+	if (u)
+	{
+		boost::optional<Libvirt::Domain::Xml::Cpu> x = m_result->getCpu();
+		if (x)
+			x.get().setModel(u.get().getModel());
+		else
+			x = u;
+
+		m_result->setCpu(x);
+	}
 	return r;
 }
 
