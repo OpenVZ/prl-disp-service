@@ -1917,6 +1917,9 @@ PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const 
 		}
 	}
 	PRL_RESULT output = x.result(m_bKillCalled, getLastError());
+	if (!m_bKillCalled && !isConnected())
+		output = PRL_ERR_IO_NO_CONNECTION;
+
 	m_bKillCalled = false;
 	m_cABackupClient = NULL;
 	return output;
