@@ -80,8 +80,8 @@ protected:
 	void timerEvent(QTimerEvent* event_);
 
 private:
-	bool collectCt();
-	bool collectVm();
+	static bool collectCt(CVmIdent ident_);
+	static bool collectVm(CVmIdent ident_);
 
 	int m_timer;
 	quint64 m_period;

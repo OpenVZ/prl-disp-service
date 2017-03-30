@@ -180,15 +180,15 @@ void Farmer::timerEvent(QTimerEvent *event_)
 		this->connect(m_watcher.data(), SIGNAL(finished()), SLOT(reset()));
 		PRL_VM_TYPE t = PVT_VM;
 		CDspService::instance()->getVmDirManager().getVmTypeByUuid(m_ident.first, t);
-		m_watcher->setFuture(QtConcurrent::run(this,
-			t == PVT_CT ? &Farmer::collectCt : &Farmer::collectVm));
+		m_watcher->setFuture(QtConcurrent::run(
+			t == PVT_CT ? &Farmer::collectCt : &Farmer::collectVm, m_ident));
 	}
 }
 
-bool Farmer::collectCt()
+bool Farmer::collectCt(CVmIdent ident_)
 {
 	SmartPtr<CVmConfiguration> cfg = CDspService::instance()->
-		getVzHelper()->getCtConfig(CDspClient::makeServiceUser(), m_ident.first);
+		getVzHelper()->getCtConfig(CDspClient::makeServiceUser(), ident_.first);
 	if (!cfg.isValid())
 		return false;
 
@@ -196,21 +196,21 @@ bool Farmer::collectCt()
 	QList< ::Statistics::Disk> d;
 	if (PRL_SUCCEEDED(CVzHelper::get_env_disk_stat(cfg, f, d)))
 	{
-		Stat::Collecting::s_daoFs.set(m_ident.first, f);
-		Stat::Collecting::s_daoDisk.set(m_ident.first, d);
+		Stat::Collecting::s_daoFs.set(ident_.first, f);
+		Stat::Collecting::s_daoDisk.set(ident_.first, d);
 	}
 
 	QList< Ct::Statistics::Network::General> n;
 	if (PRL_SUCCEEDED(CVzHelper::get_net_stat(cfg, n)))
-		Stat::Collecting::s_daoNet.set(m_ident.first, n);
+		Stat::Collecting::s_daoNet.set(ident_.first, n);
 
 	return true;
 }
 
-bool Farmer::collectVm()
+bool Farmer::collectVm(CVmIdent ident_)
 {
-	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_ident.first);
-	if (CDspVm::getVmState(m_ident) != VMS_RUNNING)
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(ident_.first);
+	if (CDspVm::getVmState(ident_) != VMS_RUNNING)
 		return false;
 
 	Prl::Expected< QList<boost::tuple<quint64,quint64,QString> >,
@@ -219,7 +219,7 @@ bool Farmer::collectVm()
 		return false;
 
 	QSharedPointer<Stat::Storage> s =
-		CDspStatCollectingThread::getStorage(m_ident.first).toStrongRef();
+		CDspStatCollectingThread::getStorage(ident_.first).toStrongRef();
 	if (s.isNull())
 		return false;
 
@@ -236,7 +236,7 @@ bool Farmer::collectVm()
 		l << f;
 	}
 
-	Stat::Collecting::s_daoFs.set(m_ident.first, l);
+	Stat::Collecting::s_daoFs.set(ident_.first, l);
 
 	return true;
 }
