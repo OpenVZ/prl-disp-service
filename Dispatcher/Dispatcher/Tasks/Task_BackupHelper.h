@@ -158,9 +158,13 @@ struct Nbd
 	PRL_RESULT start(const Image& image_, quint32 flags_);
 	void stop();
 	QString getUrl() const;
+	void setExportName(const QString& value_)
+	{
+		m_exportName = value_;
+	}
 
 private:
-	QString m_url;
+	QString m_url, m_exportName;
 	VirtualDisk::Qcow2 m_nbd;
 };
 

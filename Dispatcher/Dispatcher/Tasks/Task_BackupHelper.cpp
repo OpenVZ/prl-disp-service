@@ -857,11 +857,22 @@ PRL_RESULT Nbd::start(const Image& image_, quint32 flags_)
 		// Compressed data is not aligned. Enable cache for speedup
 		p.push_back(VirtualDisk::Policy::Qcow2::cached_type(true));
 	}
+	if (!m_exportName.isEmpty())
+		p.push_back(VirtualDisk::Policy::Qcow2::exportName_type(m_exportName));
+
 	PRL_RESULT e = m_nbd.open(image_.getPath(), PRL_DISK_WRITE, p);
-	if (PRL_SUCCEEDED(e)) 
-		m_url = QString("nbd://%1:%2").arg(s.serverAddress().toString())
-				.arg(s.serverPort());
-	return e;
+	if (PRL_FAILED(e))
+		return e;
+
+	QUrl u;
+	u.setScheme("nbd");
+	u.setHost(s.serverAddress().toString());
+	u.setPort(s.serverPort());
+	if (!m_exportName.isEmpty())
+		u.setPath(m_exportName);
+
+	m_url = u.toString();
+	return PRL_ERR_SUCCESS;
 }
 
 void Nbd::stop()

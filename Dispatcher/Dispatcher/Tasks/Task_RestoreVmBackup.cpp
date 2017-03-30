@@ -476,6 +476,9 @@ void Task_RestoreVmBackupSource::mountImage(const SmartPtr<IOPackage>& package_)
 	QString a = UTF8_2QSTR(package_->buffers[0].getImpl());
 	::Backup::Storage::Image i(a);
 	QSharedPointer< ::Backup::Storage::Nbd> n(new ::Backup::Storage::Nbd());
+	if (BACKUP_PROTO_V5 <= m_nRemoteVersion)
+		n->setExportName(QFileInfo(a).fileName());
+
 	PRL_RESULT e = n->start(i, m_nFlags);
 	IOSendJob::Handle j;
 	if (PRL_FAILED(e))
