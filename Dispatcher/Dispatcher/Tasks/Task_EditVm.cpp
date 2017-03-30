@@ -1279,7 +1279,6 @@ PRL_RESULT Task_EditVm::editVm()
 	bool flgVmWasUnregisteredInConfigWatcher = false;
 
 	bool flgExclusiveOperationWasRegistered = false;
-	bool flgExclusiveRenameOperationWasRegistered = false;
 	bool flgExclusiveHardwareChangedWasRegistered = false;
 	bool flgExclusiveFirewallChangedWasRegistered = false;
 
@@ -1763,7 +1762,7 @@ PRL_RESULT Task_EditVm::editVm()
 					PVE::DspCmdCtlVmEditWithRename, getClient());
 				if (PRL_FAILED(ret))
 					throw ret;
-				flgExclusiveRenameOperationWasRegistered = true;
+				bVmWasRenamed = true;
 			}
 
 			if (newVmName != oldVmName)
@@ -2208,7 +2207,7 @@ PRL_RESULT Task_EditVm::editVm()
 		DspVm::vdh().unregisterExclusiveVmOperation(ident.first, ident.second,
 				PVE::DspCmdCtlVmEditWithHardwareChanged, getClient());
 	}
-	if (flgExclusiveRenameOperationWasRegistered)
+	if (bVmWasRenamed)
 	{
 		DspVm::vdh().unregisterExclusiveVmOperation(ident.first, ident.second,
 				PVE::DspCmdCtlVmEditWithRename, getClient());
