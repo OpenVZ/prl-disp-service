@@ -83,7 +83,7 @@ PRL_RESULT Task_UpdateVm::run_body()
 		WRITE_TRACE(DBG_FATAL, "registerExclusiveVmOperation failed. Reason: %#x (%s)",
 				e, PRL_RESULT_TO_STRING(e));
 		
-		return CDspTaskFailure(*this)(e);
+		return CDspTaskFailure(*this)(PRL_ERR_VM_IS_EXCLUSIVELY_LOCKED);
 	}
 
 	Libvirt::Result r = Libvirt::Kit.vms().at(m_sVmUuid).getMaintenance().updateQemu();
