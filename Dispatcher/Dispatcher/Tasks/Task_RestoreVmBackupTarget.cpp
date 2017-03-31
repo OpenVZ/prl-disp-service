@@ -1863,7 +1863,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::sendStartRequest()
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	QString u = (m_nFlags & PBT_RESTORE_TO_COPY) ? QString() : m_sVmUuid;
+	QString u = (m_nFlags & PBT_RESTORE_TO_COPY) && !m_sBackupId.isEmpty() ? QString() : m_sVmUuid;
 	pStartCmd = CDispToDispProtoSerializer::CreateVmBackupRestoreCommand(u, m_sBackupId, m_nFlags);
 
 	pPackage = DispatcherPackage::createInstance(
