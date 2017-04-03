@@ -892,6 +892,12 @@ QList< IOSendJob::Handle > CDspClientManager::sendPackageToClientList(
 
 bool CDspClientManager::CaptureLogonClient(const IOSender::Handle& h)
 {
+	// NB. client uid is always -1 for network sockets. thus we
+	// can rely on that fact and perform simpler test.
+	boost::optional<quint32> u = m_service->getIOServer().clientUid(h);
+	if (u && u.get() == 0)
+		return true;
+
 	unsigned int nLimit = m_service->getDispConfigGuard()
 		.getDispWorkSpacePrefs()->getLimits()->getMaxLogonActions();
 
