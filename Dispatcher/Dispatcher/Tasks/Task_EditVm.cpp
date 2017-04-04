@@ -215,7 +215,6 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 	// NOTE:	TO EXCLUDE DEADLOCK m_pVmConfigEdit mutex
 	//			SHOULD be locked BEFORE CDspLockedPointer<..> from getVmDirManager().getXX().
 	//////////////////////////////////////////////////////////////////////////
-	QMutexLocker lock(CDspService::instance()->getVmDirHelper().getMultiEditDispatcher());
 
 	LOG_MESSAGE( DBG_DEBUG, "atomicEdit() for was called for vm  %s", QSTR2UTF8( vmUuid ) );
 
@@ -227,6 +226,7 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 			nRetCode, PRL_RESULT_TO_STRING(nRetCode));
 		return (false);
 	}
+	QMutexLocker lock(CDspService::instance()->getVmDirHelper().getMultiEditDispatcher());
 
 	bool retValue = false;
 	QString vmName;
@@ -696,6 +696,7 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 			.getMultiEditDispatcher()->cleanupBeginEditMark( vmUuid, hFakeClientHandle );
 	}
 
+	lock.unlock();
 	CDspService::instance()->getVmDirHelper()
 		.unregisterExclusiveVmOperation( vmUuid, vmDirUuid, PVE::DspCmdDirVmEditCommit, pUserSession );
 
