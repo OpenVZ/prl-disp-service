@@ -227,7 +227,6 @@ boost::logic::tribool Unit::isReconciled(const Unit& party_) const
 		{
 		case PVE::DspCmdDirVmClone:
 		case PVE::DspCmdDirCopyImage:
-		case PVE::DspCmdDirVmEditCommit:
 		case PVE::DspCmdDirVmMigrateClone:
 			return true;
 		default:
