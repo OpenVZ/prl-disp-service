@@ -442,18 +442,27 @@ bool Native::isReconciled(const Newcomer& newcomer_) const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Event
 
-Event::Event(QMutex& mutex_): m_mutex(&mutex_), m_event(new QWaitCondition())
+Event::Event(QMutex& mutex_): m_mutex(&mutex_), m_condition(new std::pair<bool, QWaitCondition>())
 {
 }
 
 void Event::set()
 {
-	m_event->wakeOne();
+	m_condition->first = true;
+	m_condition->second.wakeAll();
 }
 
-bool Event::wait()
+boost::logic::tribool Event::wait()
 {
-	return m_event->wait(m_mutex, 30000);
+	if (!m_condition->first)
+	{
+		if (!m_condition->second.wait(m_mutex, 30000))
+			return false;
+		if (!m_condition->first)
+			return boost::logic::indeterminate;
+	}
+	m_condition->first = false;
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -531,7 +540,10 @@ PRL_RESULT Conflict::operator()()
 		m_pending.getTaskId() == m_running.getTaskId())
 		return getResult();
 
-	if (m_resolved.wait())
+	boost::logic::tribool w = m_resolved.wait();
+	if (boost::logic::indeterminate(w))
+		return PRL_ERR_OPERATION_PENDING;
+	if (w)
 		return PRL_ERR_SUCCESS;
 
 	return getResult();
@@ -655,7 +667,7 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 
 	QMutexLocker lock( &m_mutex );
 	QString key = makeKey( vmUuid, vmDirUuid );
-	for(bool q = false;; q = true)
+	for(bool q = false;;)
 	{
 		if (!m_opHash.contains(key))
 		{
@@ -673,8 +685,12 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 			return x->getResult();
 
 		PRL_RESULT e = (*x)();
+		if (PRL_ERR_OPERATION_PENDING == e)
+			continue;
 		if (PRL_FAILED(e))
 			return e;
+
+		q = true;
 	}
 }
 

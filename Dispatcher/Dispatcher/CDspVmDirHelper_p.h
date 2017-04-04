@@ -115,11 +115,11 @@ struct Event
 	explicit Event(QMutex& mutex_);
 
 	void set();
-	bool wait();
+	boost::logic::tribool wait();
 
 private:
 	QMutex* m_mutex;
-	QSharedPointer<QWaitCondition> m_event;
+	QSharedPointer<std::pair<bool, QWaitCondition> > m_condition;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
