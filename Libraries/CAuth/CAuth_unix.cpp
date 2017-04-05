@@ -198,16 +198,6 @@ bool CAuth::isLocalAdministrator(const QString& user) const
 	int ret = getgrnam_r("root", &grp, buf, GROUP_ENT_BUFFER_MAX_LENGTH, &pgrp);
 
 	if (pgrp && ret == 0)
-		if (CheckWhetherUserAtGroup(user, pgrp))
-			return (true);
-
-	ret = getgrnam_r("admin",&grp,buf,GROUP_ENT_BUFFER_MAX_LENGTH,&pgrp);
-	if( pgrp && ret == 0 )
-		if(CheckWhetherUserAtGroup(user,pgrp))
-			return (true);
-
-	ret = getgrnam_r("wheel", &grp, buf, GROUP_ENT_BUFFER_MAX_LENGTH, &pgrp);
-	if (pgrp && ret == 0)
 		return (CheckWhetherUserAtGroup(user, pgrp));
 	return (false);
 }
