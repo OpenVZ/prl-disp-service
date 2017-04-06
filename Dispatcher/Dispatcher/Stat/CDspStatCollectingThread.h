@@ -36,16 +36,12 @@
 #include <QMutex>
 #include <QSet>
 #include <QMap>
+#include "CDspRegistry.h"
 #include "CDspStatCollector.h"
 #include "CDspClient.h"
 #include <prlcommon/Std/SmartPtr.h>
 #include "CDspVmStateSender.h"
 #include "CDspVm.h"
-
-namespace Registry
-{
-struct Public;
-} // namespace Registry
 
 namespace Stat
 {
@@ -54,6 +50,46 @@ struct Storage;
 
 namespace Collecting
 {
+namespace Harvester
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Ct
+
+struct Ct
+{
+	typedef bool result_type;
+
+	explicit Ct(const QString& uuid_): m_uuid(uuid_)
+	{
+	}
+
+	bool operator()() const;
+
+private:
+	QString m_uuid;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+struct Vm
+{
+	typedef bool result_type;
+
+	Vm(const CVmIdent& ident_, const Registry::Access& access_):
+		m_ident(ident_), m_access(access_)
+	{
+	}
+
+	bool operator()();
+
+private:
+	CVmIdent m_ident;
+	Registry::Access m_access;
+};
+
+} // namespace Harvester
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Farmer
 
@@ -70,7 +106,7 @@ class Farmer: public QObject
 
 	Q_OBJECT
 public:
-	explicit Farmer(const CVmIdent& ident_);
+	Farmer(const CVmIdent& ident_, const Registry::Access& access_);
 
 public slots:
 	void reset();
@@ -80,13 +116,11 @@ protected:
 	void timerEvent(QTimerEvent* event_);
 
 private:
-	static bool collectCt(CVmIdent ident_);
-	static bool collectVm(CVmIdent ident_);
-
 	int m_timer;
 	quint64 m_period;
 	quint64 m_initialPeriod;
 	CVmIdent m_ident;
+	Registry::Access m_access;
 	QScopedPointer<QFutureWatcher<bool> > m_watcher;
 };
 
@@ -99,9 +133,17 @@ class Mapper: public QObject
 
 	typedef CDspLockedPointer<CDspVmStateSender> sender_type;
 
+public:
+	explicit Mapper(Registry::Public& registry_): m_registry(registry_)
+	{
+	}
+
 public slots:
 	void abort(CVmIdent ident_);
 	void begin(CVmIdent ident_);
+
+private:
+	Registry::Public& m_registry;
 };
 
 } // namespace Collecting

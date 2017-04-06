@@ -135,26 +135,30 @@ struct Frontend: Details::Frontend<Frontend>
 		{
 		}
 
-		const QString getName() const
-		{
-			return NULL == m_big ? QString() : m_big->getName();
-		}
-
 		void changeTray(const Tray::action_type& action_)
 		{
 			m_big->getConfigEditor()(action_);
 		}
 
-		template<class T>
-		void pullToolsVersion(const T&)
+		void pullToolsVersionAfterReconnect(const Conventional<VMS_RUNNING>&)
 		{
-			pullToolsVersion();
+			m_big->m_toolsState = ::Vm::Guest::Connector
+				(m_big->getUser().getVmDirectoryUuid(), *m_big)
+				.setRetries(0)();
+		}
+
+		void pullToolsVersion(const Agent&)
+		{
+			m_big->m_toolsState = ::Vm::Guest::Connector
+				(m_big->getUser().getVmDirectoryUuid(), *m_big)();
 		}
 
 		template <class T>
 		void pullToolsVersionAfterReboot(const T&)
 		{
-			pullToolsVersion(new ::Vm::Guest::Actor(m_big->getConfigEditor()));
+			m_big->m_toolsState = ::Vm::Guest::Connector
+				(m_big->getUser().getVmDirectoryUuid(), *m_big)
+				.setNetwork(new ::Vm::Guest::Actor(m_big->getConfigEditor()))();
 		}
 
 		// Pseudo-state
@@ -213,7 +217,7 @@ struct Frontend: Details::Frontend<Frontend>
 			a_irow<
 				Started,
 				Agent,
-				&Running_::pullToolsVersion<Agent>
+				&Running_::pullToolsVersion
 			>,
 			a_row<
 				Rebooted,
@@ -232,38 +236,13 @@ struct Frontend: Details::Frontend<Frontend>
 				Already,
 				Conventional<VMS_RUNNING>,
 				Started,
-				&Running_::pullToolsVersion<Conventional<VMS_RUNNING> >
+				&Running_::pullToolsVersionAfterReconnect
 			>
 		>
 		{
 		};
 
 	private:
-		void pullToolsVersion(::Vm::Guest::Actor* network_ = NULL)
-		{
-			WRITE_TRACE(DBG_INFO, "action guest tools on running for VM '%s'",
-				qPrintable(getName()));
-
-			::Vm::Guest::Actor *a = new ::Vm::Guest::Actor(m_big->getConfigEditor());
-			::Vm::Guest::Watcher *p = new ::Vm::Guest::Watcher(
-				MakeVmIdent(m_big->getUuid(), m_big->getUser().getVmDirectoryUuid()));
-
-			a->connect(p, SIGNAL(destroyed()), SLOT(deleteLater()));
-			a->connect(p, SIGNAL(guestToolsStarted(const QString)),
-					SLOT(setToolsVersionSlot(const QString)));
-			if (NULL != network_)
-			{
-				network_->connect(p, SIGNAL(destroyed()), SLOT(deleteLater()));
-				network_->connect(p, SIGNAL(guestToolsStarted(const QString)),
-						SLOT(configureNetworkSlot(const QString)));
-			}
-			m_big->m_toolsState = p->getFuture();
-
-			// usually guest agent is ready within 2..3 seconds after event
-			// starting watcher earlier results in connect error logged
-			p->startTimer(5000);
-		}
-
 		State::Frontend *m_big;
 	};
 	

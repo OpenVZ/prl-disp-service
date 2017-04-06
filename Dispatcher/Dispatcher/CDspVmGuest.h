@@ -51,10 +51,14 @@
 
 namespace Vm
 {
+namespace State
+{
+struct Frontend;
+
+} // namespace State
 
 namespace Guest
 {
-
 ///////////////////////////////////////////////////////////////////////////////
 // class Actor
 
@@ -91,11 +95,17 @@ class Watcher: public QObject
 	Q_OBJECT
 
 public:
-	Watcher(const CVmIdent& ident_) : m_ident(ident_), m_count(0)
+	typedef boost::future<PRL_VM_TOOLS_STATE> future_type;
+
+	explicit Watcher(const CVmIdent& ident_): m_ident(ident_), m_count(), m_retries()
 	{
 	}
 
-	boost::future<PRL_VM_TOOLS_STATE> getFuture()
+	void setRetries(quint32 value_)
+	{
+		m_retries = value_;
+	}
+	future_type getFuture()
 	{
 		return m_state.get_future();
 	}
@@ -111,11 +121,30 @@ protected:
 private:
 	CVmIdent m_ident;
 	boost::promise<PRL_VM_TOOLS_STATE> m_state;
-	int m_count;
+	int m_count, m_retries;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
+
+struct Connector
+{
+	typedef Watcher::future_type result_type;
+
+	Connector(const QString& directory_, State::Frontend& frontend_);
+
+	Connector& setNetwork(Actor* value_);
+	Connector& setRetries(quint32 value_);
+	result_type operator()();
+
+private:
+	quint32 m_retries;
+	QString m_directory;
+	State::Frontend* m_frontend;
+	QScopedPointer<Actor> m_network;
 };
 
 } //namespace Guest
-
 } //namespace Vm
 
 #endif // __DSPVMGUESTPERSONALITY_H__

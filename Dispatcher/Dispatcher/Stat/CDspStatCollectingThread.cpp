@@ -39,7 +39,6 @@
 #include "CDspVm.h"
 #include "CDspService.h"
 #include "CDspCommon.h"
-#include "CDspRegistry.h"
 #include "CDspStatStorage.h"
 #include "CDspLibvirt.h"
 #include "CDspLibvirtExec.h"
@@ -119,13 +118,82 @@ namespace Collecting
 
 static DAO<QList< ::Statistics::Filesystem> > s_daoFs;
 static DAO<QList< ::Statistics::Disk> > s_daoDisk;
-static DAO<QList< Ct::Statistics::Network::General> > s_daoNet;
+static DAO<QList< ::Ct::Statistics::Network::General> > s_daoNet;
+
+namespace Harvester
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Ct
+
+bool Ct::operator()() const
+{
+	SmartPtr<CVmConfiguration> cfg = CDspService::instance()->
+		getVzHelper()->getCtConfig(CDspClient::makeServiceUser(), m_uuid);
+	if (!cfg.isValid())
+		return false;
+
+	QList< ::Statistics::Filesystem> f;
+	QList< ::Statistics::Disk> d;
+	if (PRL_SUCCEEDED(CVzHelper::get_env_disk_stat(cfg, f, d)))
+	{
+		Stat::Collecting::s_daoFs.set(m_uuid, f);
+		Stat::Collecting::s_daoDisk.set(m_uuid, d);
+	}
+
+	QList< ::Ct::Statistics::Network::General> n;
+	if (PRL_SUCCEEDED(CVzHelper::get_net_stat(cfg, n)))
+		Stat::Collecting::s_daoNet.set(m_uuid, n);
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+bool Vm::operator()()
+{
+	if (CDspVm::getVmState(m_ident) != VMS_RUNNING)
+		return false;
+
+	PRL_VM_TOOLS_STATE t = m_access.getToolsState();
+	if (PTS_INSTALLED != t && PTS_OUTDATED != t)
+		return false;
+
+	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_ident.first);
+	Prl::Expected< QList<boost::tuple<quint64,quint64,QString> >,
+		::Error::Simple> r = u.getGuest().getFsInfo();
+	if (r.isFailed())
+		return false;
+
+	QSharedPointer<Stat::Storage> s = m_access.getStorage().toStrongRef();
+	if (s.isNull())
+		return false;
+
+	QList< ::Statistics::Filesystem> l;
+	typedef boost::tuple<quint64,quint64,QString> result_type;
+	BOOST_FOREACH(result_type& e, r.value()) {
+		::Statistics::Filesystem f;
+
+		f.total = e.get<0>();
+		f.free = e.get<1>();
+		QString name = e.get<2>();
+		QString q = (name.startsWith("\\\\?\\")) ? name.mid(4) : name;
+		f.device = q;
+		l << f;
+	}
+
+	Stat::Collecting::s_daoFs.set(m_ident.first, l);
+
+	return true;
+}
+
+} // namespace Harvester
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Farmer
 
-Farmer::Farmer(const CVmIdent& ident_):
-	m_timer(startTimer(0)), m_ident(ident_)
+Farmer::Farmer(const CVmIdent& ident_, const Registry::Access& access_):
+	m_timer(startTimer(0)), m_ident(ident_), m_access(access_)
 {
 	qint64 c = CDspService::instance()->getDispConfigGuard()
 		.getDispWorkSpacePrefs()->getVmGuestCollectPeriod() * 1000;
@@ -180,65 +248,11 @@ void Farmer::timerEvent(QTimerEvent *event_)
 		this->connect(m_watcher.data(), SIGNAL(finished()), SLOT(reset()));
 		PRL_VM_TYPE t = PVT_VM;
 		CDspService::instance()->getVmDirManager().getVmTypeByUuid(m_ident.first, t);
-		m_watcher->setFuture(QtConcurrent::run(
-			t == PVT_CT ? &Farmer::collectCt : &Farmer::collectVm, m_ident));
+		if (PVT_VM == t)
+			m_watcher->setFuture(QtConcurrent::run(Harvester::Vm(m_ident, m_access)));
+		else
+			m_watcher->setFuture(QtConcurrent::run(Harvester::Ct(m_ident.first)));
 	}
-}
-
-bool Farmer::collectCt(CVmIdent ident_)
-{
-	SmartPtr<CVmConfiguration> cfg = CDspService::instance()->
-		getVzHelper()->getCtConfig(CDspClient::makeServiceUser(), ident_.first);
-	if (!cfg.isValid())
-		return false;
-
-	QList< ::Statistics::Filesystem> f;
-	QList< ::Statistics::Disk> d;
-	if (PRL_SUCCEEDED(CVzHelper::get_env_disk_stat(cfg, f, d)))
-	{
-		Stat::Collecting::s_daoFs.set(ident_.first, f);
-		Stat::Collecting::s_daoDisk.set(ident_.first, d);
-	}
-
-	QList< Ct::Statistics::Network::General> n;
-	if (PRL_SUCCEEDED(CVzHelper::get_net_stat(cfg, n)))
-		Stat::Collecting::s_daoNet.set(ident_.first, n);
-
-	return true;
-}
-
-bool Farmer::collectVm(CVmIdent ident_)
-{
-	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(ident_.first);
-	if (CDspVm::getVmState(ident_) != VMS_RUNNING)
-		return false;
-
-	Prl::Expected< QList<boost::tuple<quint64,quint64,QString> >,
-		::Error::Simple> r = u.getGuest().getFsInfo();
-	if (r.isFailed())
-		return false;
-
-	QSharedPointer<Stat::Storage> s =
-		CDspStatCollectingThread::getStorage(ident_.first).toStrongRef();
-	if (s.isNull())
-		return false;
-
-	QList< ::Statistics::Filesystem> l;
-	typedef boost::tuple<quint64,quint64,QString> result_type;
-	BOOST_FOREACH(result_type& e, r.value()) {
-		::Statistics::Filesystem f;
-
-		f.total = e.get<0>();
-		f.free = e.get<1>();
-		QString name = e.get<2>();
-		QString q = (name.startsWith("\\\\?\\")) ? name.mid(4) : name;
-		f.device = q;
-		l << f;
-	}
-
-	Stat::Collecting::s_daoFs.set(ident_.first, l);
-
-	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -266,7 +280,7 @@ void Mapper::begin(CVmIdent ident_)
 	if (NULL != f)
 		return;
 
-	f = new Farmer(ident_);
+	f = new Farmer(ident_, m_registry.find(ident_.first));
 	f->setObjectName(k);
 	f->setParent(this);
 
@@ -2337,7 +2351,7 @@ void CDspStatCollectingThread::timerEvent(QTimerEvent* event_)
 
 void CDspStatCollectingThread::run()
 {
-	Stat::Collecting::Mapper m;
+	Stat::Collecting::Mapper m(m_registry);
 	m.connect(this, SIGNAL(abort(CVmIdent)), SLOT(abort(CVmIdent)));
 	m.connect(this, SIGNAL(begin(CVmIdent)), SLOT(begin(CVmIdent)));
 	m_last = QDateTime::currentDateTime();
@@ -2434,6 +2448,7 @@ void CDspStatCollectingThread::CleanupSubscribersLists()
 
 QWeakPointer<Stat::Storage> CDspStatCollectingThread::getStorage(const QString& uuid_)
 {
+	QMutexLocker g(s_instanceMutex);
 	if (NULL == s_instance)
 		return QWeakPointer<Stat::Storage>();
 
