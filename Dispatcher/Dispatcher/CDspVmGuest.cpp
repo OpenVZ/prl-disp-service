@@ -29,12 +29,9 @@
 ///
 /////////////////////////////////////////////////////////////////////////////////
 
-#include "CDspService.h"
+#include "CDspVmStateMachine.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/HostUtils/HostUtils.h>
-#include "CDspLibvirt.h"
-#include "CDspLibvirtExec.h"
-#include "CDspVmGuest.h"
 #include "CDspVmNetworkHelper.h"
 #include <libvirt/virterror.h>
 
@@ -136,7 +133,7 @@ void Watcher::timerEvent(QTimerEvent *ev_)
 		}
 		if (r.error().virErrorCode() == VIR_ERR_AGENT_UNRESPONSIVE) {
 			// agent is not started - retry 5 minutes with 10 secs interval
-			if (++m_count > 30) {
+			if (++m_count > m_retries) {
 				deleteLater();
 				return;
 			}
@@ -165,6 +162,46 @@ void Watcher::onChangedState(PRL_VM_TOOLS_STATE state_, const QString& version_)
 	CDspService::instance()->getClientManager().sendPackageToVmClients(p, m_ident.second, m_ident.first);
 }
 
-} // namespace Guest
+///////////////////////////////////////////////////////////////////////////////
+// struct Connector
 
+Connector::Connector(const QString& directory_, State::Frontend& frontend_):
+	m_retries(30), m_directory(directory_), m_frontend(&frontend_)
+{
+}
+
+Connector& Connector::setNetwork(Actor* value_)
+{
+	m_network.reset(value_);
+	return *this;
+}
+Connector& Connector::setRetries(quint32 value_)
+{
+	m_retries = value_;
+	return *this;
+}
+Connector::result_type Connector::operator()()
+{
+	Actor *a = new Actor(m_frontend->getConfigEditor());
+	Watcher *p = new Watcher(MakeVmIdent(m_frontend->getUuid(), m_directory));
+
+	a->connect(p, SIGNAL(destroyed()), SLOT(deleteLater()));
+	a->connect(p, SIGNAL(guestToolsStarted(const QString)),
+		SLOT(setToolsVersionSlot(const QString)));
+	if (!m_network.isNull())
+	{
+		m_network->connect(p, SIGNAL(destroyed()), SLOT(deleteLater()));
+		m_network->connect(p, SIGNAL(guestToolsStarted(const QString)),
+			SLOT(configureNetworkSlot(const QString)));
+		m_network.take();
+	}
+	// usually guest agent is ready within 2..3 seconds after event
+	// starting watcher earlier results in connect error logged
+	p->setRetries(m_retries);
+	p->startTimer(5000);
+                
+	return p->getFuture();
+}
+
+} // namespace Guest
 } // namespace Vm
