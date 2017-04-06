@@ -58,6 +58,8 @@
 
 namespace Vnc
 {
+typedef QPair<quint32, quint32> range_type;
+
 namespace Secure
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -101,13 +103,13 @@ public:
 	PRL_RESULT Start (
 		const QString& sVmUuid,
 		CVmRemoteDisplay *remDisplay,
-		PRL_UINT32 minPort );
+		::Vnc::range_type port );
 
 	PRL_RESULT Start (
 		const QString& app,
 		const QString& sID,
 		CVmRemoteDisplay *remDisplay,
-		PRL_UINT32 minPort );
+		::Vnc::range_type port );
 
 	PRL_UINT32 GetPort();
 public slots:

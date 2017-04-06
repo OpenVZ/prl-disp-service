@@ -324,7 +324,9 @@ void Frontend::operator()(CVmConfiguration& object_, const CVmConfiguration& run
 		d.first = m_service->getDispConfigGuard()
 			.getDispCommonPrefs()
 			->getRemoteDisplayPreferences()->getBasePort();
-		d.second = Starter::Unit::DEFAULT_END;
+		d.second = m_service->getDispConfigGuard()
+			.getDispCommonPrefs()
+			->getRemoteDisplayPreferences()->getMaxPort();
 	}
 	QRunnable* q = new Launch::Backend(boost::bind(
 			boost::factory<Launch::Subject* >(),
@@ -805,7 +807,7 @@ PRL_RESULT CDspVNCStarter::Start (
 		const QString& app,
 		const QString& sID,
 		CVmRemoteDisplay *remDisplay,
-		PRL_UINT32 minPort )
+		Vnc::range_type port )
 {
 	QMutexLocker g(&m_mutex);
 	if (NULL != m_impl)
@@ -827,7 +829,7 @@ PRL_RESULT CDspVNCStarter::Start (
 	g.unlock();
 
 	if (PRD_AUTO == remDisplay->getMode())
-		e = x->start(minPort, Vnc::Starter::Unit::DEFAULT_END);
+		e = x->start(port.first, port.second);
 	else
 		e = x->start(remDisplay->getPortNumber());
 
@@ -846,9 +848,9 @@ PRL_RESULT CDspVNCStarter::Start (
 PRL_RESULT CDspVNCStarter::Start (
 		const QString& sVmUuid,
 		CVmRemoteDisplay *remDisplay,
-		PRL_UINT32 minPort )
+		Vnc::range_type port )
 {
-	return Start(VNCServerApp, sVmUuid, remDisplay, minPort);
+	return Start(VNCServerApp, sVmUuid, remDisplay, port);
 }
 
 PRL_RESULT CDspVNCStarter::Terminate ()

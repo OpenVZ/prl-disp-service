@@ -1330,8 +1330,9 @@ PRL_RESULT Task_VzManager::start_vnc_server(QString sCtUuid, bool onCtStart)
 	CDispRemoteDisplayPreferences* rdConfig =
 		CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()->getRemoteDisplayPreferences();
 
-	PRL_RESULT e = x->Start(QString(vncServerApp), CVzHelper::get_ctid_by_uuid(sCtUuid), remDisplay,
-				rdConfig->getBasePort());
+	Vnc::range_type r(rdConfig->getBasePort(), rdConfig->getMaxPort());
+	PRL_RESULT e = x->Start(QString(vncServerApp),
+			CVzHelper::get_ctid_by_uuid(sCtUuid), remDisplay, r);
 	if (PRL_FAILED(e))
 		return e;
 	if (!getVzHelper()->addCtVNCServer(sCtUuid, x))

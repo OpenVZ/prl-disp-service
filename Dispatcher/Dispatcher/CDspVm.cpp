@@ -879,7 +879,8 @@ void CDspVm::startVNCServer (SmartPtr<CDspClient> pUser,
 		CDispRemoteDisplayPreferences* rdConfig =
 			CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()->getRemoteDisplayPreferences();
 
-		nRetCode = d().m_vncStarter.Start( getVmUuid(), remDisplay, rdConfig->getBasePort());
+		Vnc::range_type r(rdConfig->getBasePort(), rdConfig->getMaxPort());
+		nRetCode = d().m_vncStarter.Start(getVmUuid(), remDisplay, r);
 		if ( PRL_FAILED( nRetCode ) )
 			throw nRetCode;
 
