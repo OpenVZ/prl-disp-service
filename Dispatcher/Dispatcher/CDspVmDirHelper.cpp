@@ -453,13 +453,11 @@ void Event::set()
 
 boost::logic::tribool Event::wait()
 {
+	if (!m_condition->second.wait(m_mutex, 30000))
+		return false;
 	if (!m_condition->first)
-	{
-		if (!m_condition->second.wait(m_mutex, 30000))
-			return false;
-		if (!m_condition->first)
-			return boost::logic::indeterminate;
-	}
+		return boost::logic::indeterminate;
+
 	m_condition->first = false;
 	return true;
 }
@@ -664,10 +662,10 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 		return PRL_ERR_INVALID_ARG;
 	}//switch
 
-	QMutexLocker lock( &m_mutex );
 	QString key = makeKey( vmUuid, vmDirUuid );
 	for(bool q = false;;)
 	{
+		QMutexLocker lock(&m_mutex);
 		if (!m_opHash.contains(key))
 		{
 			m_opHash.insert(key, Task::Vm::Exclusive::Gang(
