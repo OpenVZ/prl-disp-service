@@ -49,19 +49,20 @@ Brand::Brand(const QString& private_, const SmartPtr<CDspClient>& user_):
 		m_user = &user_->getAuthHelper();
 }
 
-PRL_RESULT Brand::stamp()
+PRL_RESULT Brand::stamp(boost::optional<CDspTaskFailure> sink_)
 {       
 	QString x = getFolder().absoluteFilePath();
 	if (!CFileHelper::WriteDirectory(x, m_user))
 	{       
 		WRITE_TRACE(DBG_FATAL, "Cannot create folder %s", qPrintable(x));
-		return PRL_ERR_MAKE_DIRECTORY;
+		return sink_ ? sink_.get()(PRL_ERR_MAKE_DIRECTORY, x) : PRL_ERR_MAKE_DIRECTORY;
 	}
 	QString y = QDir(x).absoluteFilePath(PRODUCT_RELEASE_FILE_NAME);
 	if (!QFile::copy(PRODUCT_RELEASE_FILE, y))
 	{       
 		WRITE_TRACE(DBG_FATAL, "Cannot brand %s", qPrintable(y));
-		return PRL_ERR_COPY_VM_INFO_FILE;
+		return sink_ ? sink_.get().setCode(PRL_ERR_COPY_VM_INFO_FILE)
+			(PRODUCT_RELEASE_FILE, y) : PRL_ERR_COPY_VM_INFO_FILE;
 	}
 	QFile b(QDir(x).absoluteFilePath("dispatcher-build"));
 	if (!b.open(QIODevice::WriteOnly))
