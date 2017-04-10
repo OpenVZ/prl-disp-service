@@ -242,7 +242,7 @@ PRL_RESULT Task_VzManager::create_env()
 	if (PRL_SUCCEEDED(res)) {
 		if (sPath.isEmpty())
 			sPath = pConfig->getVmIdentification()->getHomePath();
-		res = ::Vm::Private::Brand(sPath, getClient()).stamp();
+		res = ::Vm::Private::Brand(sPath, getClient()).stamp(CDspTaskFailure(*this));
 		if (PRL_SUCCEEDED(res))
 			res = getVzHelper()->insertVmDirectoryItem(pConfig);
 		if (PRL_FAILED(res))

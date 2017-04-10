@@ -32,6 +32,7 @@
 #ifndef __CVMPRIVATEBRAND_H__
 #define __CVMPRIVATEBRAND_H__
 
+#include "CDspTaskHelper.h"
 #include "CVmFileListCopy.h"
 
 class CDspClient;
@@ -54,7 +55,7 @@ struct Brand
 	}
 	Brand(const QString& private_, const SmartPtr<CDspClient>& user_);
 
-	PRL_RESULT stamp();
+	PRL_RESULT stamp(boost::optional<CDspTaskFailure> sink_ = boost::none);
 	PRL_RESULT remove();
 	entryList_type getFiles() const;
 	entryList_type getFolders() const;
