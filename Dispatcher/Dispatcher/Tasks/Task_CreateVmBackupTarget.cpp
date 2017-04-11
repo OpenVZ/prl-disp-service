@@ -118,13 +118,9 @@ PRL_RESULT Task_CreateVmBackupTarget::validateBackupDir(const QString &sPath)
 
 	if (fbackupsdir.permissions() != nPermissions) {
 		if (!fbackupsdir.setPermissions(nPermissions)) {
-			nRetCode = PRL_ERR_BACKUP_CANNOT_SET_PERMISSIONS;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-				PVE::String, sPath, EVT_PARAM_MESSAGE_PARAM_0));
 			WRITE_TRACE(DBG_FATAL, "Cannot set permissions for directory \"%s\"", QSTR2UTF8(sPath));
-			return nRetCode;
+			return CDspTaskFailure(*this)
+				(PRL_ERR_BACKUP_CANNOT_SET_PERMISSIONS, sPath);
 		}
 	}
 #ifndef _WIN_
@@ -243,6 +239,7 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
 
 PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 {
+	CDspTaskFailure f(*this);
 	m_lastBase = SmartPtr<BackupItem>(getLastBaseBackup(m_sVmUuid,
 						&getClient()->getAuthHelper(),
 						PRL_BACKUP_CHECK_MODE_WRITE));
@@ -257,10 +254,7 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 		new CVmFileListCopyTarget(m_pSender.getImpl(), m_sVmUuid, m_sTargetPath, getLastError(), m_nTimeout));
 
 	if (CFileHelper::DirectoryExists(m_sTargetPath, &getClient()->getAuthHelper())) {
-		nRetCode = PRL_ERR_BACKUP_DIRECTORY_ALREADY_EXIST;
-		CVmEvent *pEvent = getLastError();
-		pEvent->setEventCode(nRetCode);
-		pEvent->addEventParameter(new CVmEventParameter(PVE::String, m_sTargetPath, EVT_PARAM_MESSAGE_PARAM_0));
+		nRetCode = f(PRL_ERR_BACKUP_DIRECTORY_ALREADY_EXIST, m_sTargetPath);
 		WRITE_TRACE(DBG_FATAL, "Target directory \"%s\" already exist", QSTR2UTF8(m_sTargetPath));
 		goto exit;
 	}
@@ -273,11 +267,7 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 		if ( ! CDspService::instance()->checkExistAndCreateDirectory( getBackupDirectory(), rootAuth, CDspService::permBackupDir ) )
 		{
 			WRITE_TRACE( DBG_FATAL, "Can't create backup directory '%s'", QSTR2UTF8( getBackupDirectory() ) );
-			nRetCode = PRL_ERR_BACKUP_CANNOT_CREATE_DIRECTORY;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(PVE::String, getBackupDirectory(), EVT_PARAM_MESSAGE_PARAM_0));
-
+			nRetCode = f(PRL_ERR_BACKUP_CANNOT_CREATE_DIRECTORY, getBackupDirectory());
 			goto exit;
 		}
 	}
@@ -291,11 +281,7 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 			goto exit;
 
 		if (!CFileHelper::CreateDirectoryPath(getBackupRoot(), &getClient()->getAuthHelper())) {
-			nRetCode = PRL_ERR_BACKUP_CANNOT_CREATE_DIRECTORY;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-					PVE::String, getBackupRoot(), EVT_PARAM_MESSAGE_PARAM_0));
+			nRetCode = f(PRL_ERR_BACKUP_CANNOT_CREATE_DIRECTORY, getBackupRoot());
 			WRITE_TRACE(DBG_FATAL, "Cannot create \"%s\" directory", QSTR2UTF8(getBackupRoot()));
 			goto exit;
 		}
@@ -303,32 +289,21 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 		QFile fdir(QString("%1/.").arg(getBackupRoot()));
 		if (!fdir.setPermissions(QFile::ReadUser|QFile::WriteUser|QFile::ExeUser|QFile::ReadGroup))
 		{
-			nRetCode = PRL_ERR_BACKUP_CANNOT_SET_PERMISSIONS;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-					PVE::String, getBackupRoot(), EVT_PARAM_MESSAGE_PARAM_0));
+			nRetCode = f(PRL_ERR_BACKUP_CANNOT_SET_PERMISSIONS, getBackupRoot());
 			WRITE_TRACE(DBG_FATAL, "Cannot set permissions for directory \"%s\"", QSTR2UTF8(getBackupRoot()));
 			goto exit;
 		}
 	} else {
 		/* to check access before */
 		if (!CFileHelper::FileCanWrite(getBackupRoot(), &getClient()->getAuthHelper())) {
-			nRetCode = PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-					PVE::String, m_sBackupUuid, EVT_PARAM_MESSAGE_PARAM_0));
+			nRetCode = f(PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND, m_sBackupUuid);
 			WRITE_TRACE(DBG_FATAL, "User %s have not permissions for create incremental backup for %s",
 				QSTR2UTF8(getClient()->getAuthHelper().getUserName()), QSTR2UTF8(m_sBackupUuid));
 			goto exit;
 		}
 	}
 	if (!CFileHelper::WriteDirectory(m_sTargetPath, &getClient()->getAuthHelper())) {
-		nRetCode = PRL_ERR_BACKUP_CANNOT_CREATE_DIRECTORY;
-		CVmEvent *pEvent = getLastError();
-		pEvent->setEventCode(nRetCode);
-		pEvent->addEventParameter(new CVmEventParameter(PVE::String, m_sTargetPath, EVT_PARAM_MESSAGE_PARAM_0));
+		nRetCode = f(PRL_ERR_BACKUP_CANNOT_CREATE_DIRECTORY, m_sTargetPath);
 		WRITE_TRACE(DBG_FATAL, "Cannot create \"%s\" directory", QSTR2UTF8(m_sTargetPath));
 		goto exit;
 	}

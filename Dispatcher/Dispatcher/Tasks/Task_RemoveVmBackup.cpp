@@ -107,14 +107,11 @@ PRL_RESULT Task_RemoveVmBackupSource::run_body()
 		unsigned nBackupNumber;
 
 		if (PRL_FAILED(parseBackupId(m_sBackupId, sBackupUuid, nBackupNumber))) {
-				nRetCode = PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
-				CVmEvent *pEvent = getLastError();
-				pEvent->setEventCode(nRetCode);
-				pEvent->addEventParameter(new CVmEventParameter(
-						PVE::String, m_sBackupId, EVT_PARAM_MESSAGE_PARAM_0));
-				WRITE_TRACE(DBG_FATAL, "Failed to parse backupId \"%s\".",
-					    QSTR2UTF8(m_sBackupId));
-				goto exit;
+			nRetCode = CDspTaskFailure(*this)
+				(PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND, m_sBackupId);
+			WRITE_TRACE(DBG_FATAL, "Failed to parse backupId \"%s\".",
+				QSTR2UTF8(m_sBackupId));
+			goto exit;
 		}
 
 		BackupTree bTree;
@@ -137,11 +134,8 @@ PRL_RESULT Task_RemoveVmBackupSource::run_body()
 
 		if (m_sVmUuid.isEmpty())
 		{
-			nRetCode = PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-					PVE::String, m_sBackupId, EVT_PARAM_MESSAGE_PARAM_0));
+			nRetCode = CDspTaskFailure(*this)
+				(PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND, m_sBackupId);
 			WRITE_TRACE(DBG_FATAL, "Failed to find vm for backupId \"%s\".",
 				QSTR2UTF8(sBackupUuid));
 			goto exit;

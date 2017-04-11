@@ -986,11 +986,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::prepareTask()
 		m_sVmUuid = m_pVmConfig->getVmIdentification()->getVmUuid();
 
 	if (m_sVmUuid.isEmpty()) {
-		nRetCode = PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
-		CVmEvent *pEvent = getLastError();
-		pEvent->setEventCode(nRetCode);
-		pEvent->addEventParameter(new CVmEventParameter(
-				PVE::String, m_sBackupUuid, EVT_PARAM_MESSAGE_PARAM_0));
+		nRetCode = CDspTaskFailure(*this)
+			(PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND, m_sBackupUuid);
 		WRITE_TRACE(DBG_FATAL, "Can't get Vm uuid for backup uuid %s", QSTR2UTF8(m_sBackupUuid));
 		goto exit;
 	}
@@ -1157,11 +1154,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 
 	VIRTUAL_MACHINE_STATE state = CDspVm::getVmState(m_sVmUuid, getClient()->getVmDirectoryUuid());
 	if ((state == VMS_RUNNING) || (state == VMS_PAUSED)) {
-		nRetCode = PRL_ERR_BACKUP_RESTORE_VM_RUNNING;
-		CVmEvent *pEvent = getLastError();
-		pEvent->setEventCode(nRetCode);
-		pEvent->addEventParameter(new CVmEventParameter(
-					PVE::String, sVmName, EVT_PARAM_MESSAGE_PARAM_0));
+		nRetCode = CDspTaskFailure(*this)
+			(PRL_ERR_BACKUP_RESTORE_VM_RUNNING, sVmName);
 		WRITE_TRACE(DBG_FATAL, "[%s] VM %s already exists and is running or paused",
 				__FUNCTION__, QSTR2UTF8(m_sVmUuid));
 		return nRetCode;
@@ -1172,13 +1166,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	code = CDspService::instance()->getAccessManager()
 			.checkAccess(getClient(), PVE::DspCmdRestoreVmBackup, m_sVmUuid, &bSetNotValid);
 	if (PRL_FAILED(code) && code != PRL_ERR_VM_CONFIG_DOESNT_EXIST) {
-		nRetCode = PRL_ERR_BACKUP_ACCESS_TO_VM_DENIED;
-		CVmEvent *pEvent = getLastError();
-		pEvent->setEventCode(nRetCode);
-		pEvent->addEventParameter(new CVmEventParameter(
-				PVE::String, sVmName.isEmpty() ? m_sVmUuid : sVmName , EVT_PARAM_MESSAGE_PARAM_0));
-		pEvent->addEventParameter(new CVmEventParameter(
-				PVE::String, PRL_RESULT_TO_STRING(code), EVT_PARAM_MESSAGE_PARAM_1));
+		nRetCode = CDspTaskFailure(*this).setCode(PRL_ERR_BACKUP_ACCESS_TO_VM_DENIED)
+			(sVmName.isEmpty() ? m_sVmUuid : sVmName, PRL_RESULT_TO_STRING(code));
 		WRITE_TRACE(DBG_FATAL, "[%s] Access check failed for user {%s} when accessing VM {%s}. Reason: %#x (%s)",
 			__FUNCTION__, QSTR2UTF8(getClient()->getClientHandle()),
 			QSTR2UTF8(m_sVmUuid), code, PRL_RESULT_TO_STRING(code));
@@ -1579,10 +1568,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 	}
 
 	if (state == VMS_RUNNING || state == VMS_MOUNTED) {
-		nRetCode = PRL_ERR_BACKUP_RESTORE_VM_RUNNING;
-		CVmEvent *pEvent = getLastError();
-		pEvent->setEventCode(nRetCode);
-		pEvent->addEventParameter(new CVmEventParameter(PVE::String, sCtName, EVT_PARAM_MESSAGE_PARAM_0));
+		nRetCode = CDspTaskFailure(*this)(PRL_ERR_BACKUP_RESTORE_VM_RUNNING, sCtName);
 		WRITE_TRACE(DBG_FATAL, "[%s] VM %s already exists and is running or mounted",
 				__FUNCTION__, QSTR2UTF8(m_sVmUuid));
 		return nRetCode;
@@ -1686,11 +1672,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewCt(const QString &sDefaultCtFol
 	}
 	if (nState != VMS_UNKNOWN) {
 		/* failure */
-		nRetCode = PRL_ERR_BACKUP_CT_ID_ALREADY_EXIST;
-		CVmEvent *pEvent = getLastError();
-		pEvent->setEventCode(nRetCode);
-		pEvent->addEventParameter(new CVmEventParameter(
-					PVE::String, ctId, EVT_PARAM_MESSAGE_PARAM_0));
+		nRetCode = CDspTaskFailure(*this)(PRL_ERR_BACKUP_CT_ID_ALREADY_EXIST, ctId);
 		WRITE_TRACE(DBG_FATAL, "Container with ID %s already exist",
 				QSTR2UTF8(ctId));
 		return nRetCode;
@@ -1803,54 +1785,39 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtToTargetPath(
 
 PRL_RESULT Task_RestoreVmBackupTarget::lockExclusiveVmParameters(SmartPtr<CVmDirectory::TemporaryCatalogueItem> pInfo)
 {
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-
+	CDspTaskFailure f(*this);
 	/* lock register uuid, private & name */
-	nRetCode = CDspService::instance()->getVmDirManager()
+	PRL_RESULT nRetCode = CDspService::instance()->getVmDirManager()
 				.checkAndLockNotExistsExclusiveVmParameters(QStringList(), pInfo.getImpl());
 	switch (nRetCode)
 	{
 	case PRL_ERR_SUCCESS:
-		break;
+		return PRL_ERR_SUCCESS;
+
 	case PRL_ERR_VM_ALREADY_REGISTERED_VM_UUID:
 		WRITE_TRACE(DBG_FATAL, "UUID '%s' already registered", QSTR2UTF8(pInfo->vmUuid));
-		getLastError()->addEventParameter(
-			new CVmEventParameter( PVE::String, pInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
-		break;
+		return f.setToken(pInfo->vmUuid)(nRetCode);
 
 	case PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH:
 		WRITE_TRACE(DBG_FATAL, "path '%s' already registered", QSTR2UTF8(pInfo->vmXmlPath));
-		getLastError()->addEventParameter(
-			new CVmEventParameter( PVE::String, pInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
-		getLastError()->addEventParameter(
-			new CVmEventParameter( PVE::String, pInfo->vmXmlPath, EVT_PARAM_MESSAGE_PARAM_1));
-		break;
+		return f.setCode(nRetCode)(pInfo->vmName, pInfo->vmXmlPath);
 
 	case PRL_ERR_VM_ALREADY_REGISTERED_VM_NAME:
 		WRITE_TRACE(DBG_FATAL, "name '%s' already registered", QSTR2UTF8(pInfo->vmName));
-		getLastError()->addEventParameter(
-			new CVmEventParameter( PVE::String, pInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
-		break;
+		return f(nRetCode, pInfo->vmName);
 
 	case PRL_ERR_VM_ALREADY_REGISTERED:
 		WRITE_TRACE(DBG_FATAL, "container '%s' already registered", QSTR2UTF8(pInfo->vmName));
-		getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, pInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
+		return f(nRetCode, pInfo->vmName);
 		break;
 
 	case PRL_ERR_VM_ALREADY_REGISTERED_UNIQUE_PARAMS:; // use default
 	default:
 		WRITE_TRACE(DBG_FATAL, "can't register container with UUID '%s', name '%s', path '%s",
 			QSTR2UTF8(pInfo->vmUuid), QSTR2UTF8(pInfo->vmName), QSTR2UTF8(pInfo->vmXmlPath));
-		getLastError()->addEventParameter(
-			 new CVmEventParameter( PVE::String, pInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
-		getLastError()->addEventParameter(
-			 new CVmEventParameter( PVE::String, pInfo->vmXmlPath, EVT_PARAM_RETURN_PARAM_TOKEN));
-		getLastError()->addEventParameter(
-			 new CVmEventParameter( PVE::String, pInfo->vmName, EVT_PARAM_RETURN_PARAM_TOKEN));
-		break;
+		return f.setToken(pInfo->vmUuid).setToken(pInfo->vmXmlPath)
+			.setToken(pInfo->vmName)(nRetCode);
 	}
-	return nRetCode;
 }
 
 /* send start request for remote dispatcher and wait reply from dispatcher */
@@ -2077,15 +2044,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::registerVm()
 
 	// wait finishing thread and return task result
 	if (PRL_FAILED(evt.getEventCode())) {
-		nRetCode = PRL_ERR_BACKUP_REGISTER_VM_FAILED;
-		CVmEvent *pEvent = getLastError();
-		pEvent->setEventCode(nRetCode);
-		pEvent->addEventParameter(new CVmEventParameter(
-				PVE::String,
-				m_pVmConfig->getVmIdentification()->getVmName(),
-				EVT_PARAM_MESSAGE_PARAM_0));
-		pEvent->addEventParameter(new CVmEventParameter(
-				PVE::String, PRL_RESULT_TO_STRING(evt.getEventCode()), EVT_PARAM_MESSAGE_PARAM_1));
+		nRetCode = CDspTaskFailure(*this).setCode(PRL_ERR_BACKUP_REGISTER_VM_FAILED)
+			(m_pVmConfig->getVmIdentification()->getVmName(), PRL_RESULT_TO_STRING(evt.getEventCode()));
 		WRITE_TRACE(DBG_FATAL,
 			"[%s] Error occurred while register Vm %s from backup %s with code [%#x][%s]",
 			__FUNCTION__,

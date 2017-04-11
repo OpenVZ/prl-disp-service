@@ -1744,16 +1744,10 @@ PRL_RESULT Task_BackupHelper::checkFreeDiskSpace(
 		QString strSize;
 		strSize.sprintf("%.1f", (float)nRequiredSize / 1024.0 / 1024.0 / 1024.0);
 
-		{
-			nRetCode = bIsCreateOp ? PRL_ERR_BACKUP_CREATE_NOT_ENOUGH_FREE_DISK_SPACE :
-					PRL_ERR_BACKUP_RESTORE_NOT_ENOUGH_FREE_DISK_SPACE;
-
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(PVE::String, strSize, EVT_PARAM_MESSAGE_PARAM_0));
-			pEvent->addEventParameter(new CVmEventParameter(PVE::String, strFree, EVT_PARAM_MESSAGE_PARAM_1));
-
-		}
+		nRetCode = CDspTaskFailure(*this)
+				.setCode(bIsCreateOp ? PRL_ERR_BACKUP_CREATE_NOT_ENOUGH_FREE_DISK_SPACE :
+					PRL_ERR_BACKUP_RESTORE_NOT_ENOUGH_FREE_DISK_SPACE)
+				(strSize, strFree);
 		WRITE_TRACE(DBG_FATAL, "Not enought free disk space avail=%llu required=%llu",
 				nAvailableSize, nRequiredSize);
 
