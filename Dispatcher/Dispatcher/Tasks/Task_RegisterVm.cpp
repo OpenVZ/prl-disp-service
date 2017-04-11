@@ -492,11 +492,9 @@ void Task_RegisterVm::checkVMOnOtherServerUuid( bool *pbServerUuidWasChanged /* 
 				WRITE_TRACE(DBG_FATAL, "You can force the registration, but this will revoke "
 										"all access to the Virtual Mashine from the original server "
 										"and HA clusters, if the VM was registered there.");
-				getLastError()->setEventCode(PRL_ERR_FORCE_REG_ON_SHARED_STORAGE_IS_NEEDED);
-				getLastError()->addEventParameter(new CVmEventParameter(PVE::String,
-					m_pVmConfig->getVmIdentification()->getVmName(),
-					EVT_PARAM_MESSAGE_PARAM_0));
-				throw PRL_ERR_FORCE_REG_ON_SHARED_STORAGE_IS_NEEDED;
+				throw CDspTaskFailure(*this)
+					(PRL_ERR_FORCE_REG_ON_SHARED_STORAGE_IS_NEEDED,
+					m_pVmConfig->getVmIdentification()->getVmName());
 			}
 		}
 	}
@@ -511,7 +509,7 @@ void Task_RegisterVm::checkVMOnOtherServerUuid( bool *pbServerUuidWasChanged /* 
 PRL_RESULT Task_RegisterVm::prepareTask()
 {
 	PRL_RESULT ret = PRL_ERR_SUCCESS;
-
+	CDspTaskFailure f(*this);
 	try
 	{
 		/**
@@ -530,13 +528,7 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 
 			if( !m_vmRootDir.isEmpty() &&
 				!CFileHelper::DirectoryExists( m_vmRootDir, &getClient()->getAuthHelper() ) )
-			{
-				getLastError()->addEventParameter(
-					new CVmEventParameter(PVE::String,
-					m_vmRootDir,
-					EVT_PARAM_MESSAGE_PARAM_0));
-				throw PRL_ERR_DIRECTORY_DOES_NOT_EXIST;
-			}
+				throw f(PRL_ERR_DIRECTORY_DOES_NOT_EXIST, m_vmRootDir);
 
 			if( m_vmRootDir.isEmpty() )
 				m_vmRootDir= CDspVmDirHelper::getVmRootPathForUser( getClient() );
@@ -656,11 +648,7 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 		if( CFileHelper::isRemotePath(vm_root_dir) )
 		{
 			if( ! CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->isAllowUseNetworkShares() )
-			{
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, vm_root_dir, EVT_PARAM_MESSAGE_PARAM_0));
-				throw PRL_ERR_UNSUPPORTED_NETWORK_FILE_SYSTEM;
-			}
+				throw f(PRL_ERR_UNSUPPORTED_NETWORK_FILE_SYSTEM, vm_root_dir);
 		}
 
 		/**
@@ -685,11 +673,8 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 			// VM already registered in VmDirectory
 			if ( !m_sCustomVmUuid.isEmpty() && lockErrorsList.contains(PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH) )
 			{
-				getLastError()->addEventParameter(
-						new CVmEventParameter( PVE::String, vm_name, EVT_PARAM_MESSAGE_PARAM_0));
-				getLastError()->addEventParameter(
-						new CVmEventParameter( PVE::String, vm_root_dir, EVT_PARAM_MESSAGE_PARAM_1));
-				throw PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH;
+				throw f.setCode(PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH)
+					(vm_name, vm_root_dir);
 			}
 
 			QString qsVmDirName = QFileInfo(sNewVmDirectoryPath).fileName();
@@ -776,39 +761,22 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 			switch ( lockResult )
 			{
 			case PRL_ERR_VM_ALREADY_REGISTERED_VM_UUID:
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, m_pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
-				break;
+				throw f.setToken(m_pVmInfo->vmUuid)(lockResult);
 
 			case PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH:
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, vm_name, EVT_PARAM_MESSAGE_PARAM_0));
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, vm_root_dir, EVT_PARAM_MESSAGE_PARAM_1));
-				break;
-
-			case PRL_ERR_VM_ALREADY_REGISTERED_VM_NAME:
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, m_pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
-				break;
+				throw f.setCode(lockResult)(vm_name, vm_root_dir);
 
 			case PRL_ERR_VM_ALREADY_REGISTERED:
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, m_pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
-				break;
+			case PRL_ERR_VM_ALREADY_REGISTERED_VM_NAME:
+				throw f(lockResult, m_pVmInfo->vmName);
 
 			case PRL_ERR_VM_ALREADY_REGISTERED_UNIQUE_PARAMS:; // use default
 
 			default:
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, m_pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, m_pVmInfo->vmXmlPath, EVT_PARAM_RETURN_PARAM_TOKEN));
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, m_pVmInfo->vmName, EVT_PARAM_RETURN_PARAM_TOKEN));
+				throw f.setToken(m_pVmInfo->vmUuid)
+					.setToken(m_pVmInfo->vmXmlPath)
+					.setToken(m_pVmInfo->vmName)(lockResult);
 			}//switch
-
-			throw lockResult;
 		}
 
 		m_flgLockRegistred=true;
@@ -1074,6 +1042,7 @@ PRL_RESULT Task_RegisterVm::run_body()
 {
 	PRL_RESULT ret = PRL_ERR_SUCCESS;
 
+	CDspTaskFailure f(*this);
 	bool flgImpersonated = false;
 	try
 	{
@@ -1112,34 +1081,20 @@ PRL_RESULT Task_RegisterVm::run_body()
 
 					if ( CFileHelper::FileExists(newVmHome, &getClient()->getAuthHelper()) )
 					{
-						getLastError()->setEventCode(PRL_ERR_FILE_OR_DIR_ALREADY_EXISTS);
-						getLastError()->addEventParameter(
-							new CVmEventParameter( PVE::String, m_pVmConfig->getVmIdentification()->getVmName(),
-							EVT_PARAM_MESSAGE_PARAM_0));
-						getLastError()->addEventParameter(
-							new CVmEventParameter( PVE::String, newVmHome,
-							EVT_PARAM_MESSAGE_PARAM_1));
-
-						throw PRL_ERR_FILE_OR_DIR_ALREADY_EXISTS;
+						throw f.setCode(PRL_ERR_FILE_OR_DIR_ALREADY_EXISTS)
+							(m_pVmConfig->getVmIdentification()->getVmName(), newVmHome);
 					}
 					else if ( !CFileHelper::RenameEntry(m_strPathToVmDirToRegister,
                                             newVmHome,
                                             &getClient()->getAuthHelper()) )
-					{
-						getLastError()->setEventCode( PRL_ERR_CANT_RENAME_DIR_ENTRY );
-						getLastError()->addEventParameter(
-							new CVmEventParameter( PVE::String, m_strPathToVmDirToRegister,
-													EVT_PARAM_MESSAGE_PARAM_0));
-						throw PRL_ERR_CANT_RENAME_DIR_ENTRY;
-					}
+						throw f(PRL_ERR_CANT_RENAME_DIR_ENTRY, m_strPathToVmDirToRegister);
 
 					Task_EditVm::CorrectDevicePathsInVmConfig(m_pVmConfig, m_strPathToVmDirToRegister, newVmHome);
 					m_strRenamedVmHome = newVmHome;
 				}
 				else
 				{
-					throw CDspTaskFailure(*this)
-						.setCode(PRL_ERR_VM_CONFIG_DOESNT_EXIST)
+					throw f.setCode(PRL_ERR_VM_CONFIG_DOESNT_EXIST)
 						(m_pVmConfig->getVmIdentification()->getVmName(), strVmHomePath);
 				}
 			}
@@ -1147,10 +1102,7 @@ PRL_RESULT Task_RegisterVm::run_body()
 		else // ! doRegisterOnly()
 		{
 			if ( flgPathExist )
-			{
-				throw CDspTaskFailure(*this)
-					.setToken(m_pVmInfo->vmXmlPath)(PRL_ERR_VM_CONFIG_ALREADY_EXISTS);
-			}
+				throw f.setToken(m_pVmInfo->vmXmlPath)(PRL_ERR_VM_CONFIG_ALREADY_EXISTS);
 
 			// Check directory
 			if (!CFileHelper::DirectoryExists(strVmHomeDir, &getClient()->getAuthHelper()))
@@ -1158,8 +1110,7 @@ PRL_RESULT Task_RegisterVm::run_body()
 				if (!CFileHelper::WriteDirectory(strVmHomeDir, &getClient()->getAuthHelper())
 					|| PRL_FAILED(Vm::Private::Brand(strVmHomeDir, getClient()).stamp()))
 				{
-					throw CDspTaskFailure(*this)
-						(PRL_ERR_USER_NO_AUTH_TO_CREATE_VM_IN_DIR, strVmHomeDir);
+					throw f(PRL_ERR_USER_NO_AUTH_TO_CREATE_VM_IN_DIR, strVmHomeDir);
 				}
 				else
 					m_lstCreatedDirs.append( strVmHomeDir );
@@ -1313,21 +1264,15 @@ PRL_RESULT Task_RegisterVm::run_body()
 		}
 		if( PRL_FAILED( ret ) )
 		{
-			if (ret == PRL_ERR_CANT_CHANGE_OWNER_OF_FILE)
+			switch (ret)
 			{
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, strVmHomeDir,
-					EVT_PARAM_MESSAGE_PARAM_0));
-
-				throw PRL_ERR_CANT_CHANGE_OWNER_OF_VM_FILE;
+			case PRL_ERR_CANT_CHANGE_OWNER_OF_FILE:
+				throw f(ret, strVmHomeDir);
+			case PRL_ERR_CANT_CHANGE_FILE_PERMISSIONS:
+				throw f(ret, m_pVmInfo->vmName);
+			default:
+				throw ret;
 			}
-			if (ret == PRL_ERR_CANT_CHANGE_FILE_PERMISSIONS)
-			{
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, m_pVmInfo->vmName,
-					EVT_PARAM_MESSAGE_PARAM_0));
-			}
-			throw ret;
 		}
 
 		ret = PRL_ERR_SUCCESS;
@@ -1541,10 +1486,8 @@ PRL_RESULT	Task_RegisterVm::createFloppyDisks()
 				m_lstCreatedFiles.append( strFullPath );
 			else
 			{
-				getLastError()->setEventCode( PRL_ERR_CANT_CREATE_FLOPPY_IMAGE );
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, strFullPath, EVT_PARAM_MESSAGE_PARAM_0));
-				return PRL_ERR_CANT_CREATE_FLOPPY_IMAGE;
+				return CDspTaskFailure(*this)
+					(PRL_ERR_CANT_CREATE_FLOPPY_IMAGE, strFullPath);
 			}
 		}
 		else
@@ -1592,20 +1535,13 @@ PRL_RESULT	Task_RegisterVm::createSerialPorts()
 			if ( !CFileHelper::DirectoryExists(strDir, &getClient()->getAuthHelper()) )
 			{
 				if ( !CFileHelper::WriteDirectory(strDir, &getClient()->getAuthHelper()) )
-				{
-					getLastError()->setEventCode( PRL_ERR_MAKE_DIRECTORY );
-					getLastError()->addEventParameter(
-						new CVmEventParameter(PVE::String, strDir, EVT_PARAM_MESSAGE_PARAM_0) );
-					return PRL_ERR_MAKE_DIRECTORY;
-				}
+					return CDspTaskFailure(*this)(PRL_ERR_MAKE_DIRECTORY, strDir);
 			}
 			// Try to create blank file
 			if ( !CFileHelper::CreateBlankFile(strFullPath, &getClient()->getAuthHelper()) )
 			{
-				getLastError()->setEventCode( PRL_ERR_ACCES_DENIED_FILE_TO_PARENT_PARENT_DIR );
-				getLastError()->addEventParameter(
-					new CVmEventParameter(PVE::String, strFullPath, EVT_PARAM_MESSAGE_PARAM_0) );
-				return PRL_ERR_ACCES_DENIED_FILE_TO_PARENT_PARENT_DIR;
+				return CDspTaskFailure(*this)
+					(PRL_ERR_ACCES_DENIED_FILE_TO_PARENT_PARENT_DIR, strFullPath);
 			}
 			else
 				m_lstCreatedFiles.append( strFullPath );
@@ -1656,20 +1592,13 @@ PRL_RESULT	Task_RegisterVm::createParallelPorts()
 			if ( !CFileHelper::DirectoryExists(strDir, &getClient()->getAuthHelper()) )
 			{
 				if ( !CFileHelper::WriteDirectory(strDir, &getClient()->getAuthHelper()) )
-				{
-					getLastError()->setEventCode(PRL_ERR_MAKE_DIRECTORY);
-					getLastError()->addEventParameter(
-						new CVmEventParameter(PVE::String, strDir,	EVT_PARAM_MESSAGE_PARAM_0) );
-					return PRL_ERR_MAKE_DIRECTORY;
-				}
+					return CDspTaskFailure(*this)(PRL_ERR_MAKE_DIRECTORY, strDir);
 			}
 			// Try to create blank file
 			if ( !CFileHelper::CreateBlankFile(strFullPath, &getClient()->getAuthHelper()) )
 			{
-				getLastError()->setEventCode( PRL_ERR_CANT_CREATE_PARALLEL_PORT_IMAGE );
-				getLastError()->addEventParameter(
-					new CVmEventParameter(PVE::String, strFullPath, EVT_PARAM_MESSAGE_PARAM_0) );
-				return PRL_ERR_CANT_CREATE_PARALLEL_PORT_IMAGE;
+				return CDspTaskFailure(*this)
+					(PRL_ERR_CANT_CREATE_PARALLEL_PORT_IMAGE, strFullPath);
 			}
 			else
 				m_lstCreatedFiles.append( strFullPath );
@@ -1783,9 +1712,6 @@ PRL_RESULT	Task_RegisterVm::createHardDisks()
 				m_lstCreatedDirs.append( strFullPath );
 			else
 			{
-				getLastError()->setEventCode( ret );
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, strFullPath, EVT_PARAM_RETURN_PARAM_TOKEN) );
 				for (int i = 0 ; i < taskCreateImage.getLastError()->m_lstEventParameters.size() ; i++)
 				{
 					// copy all event parameters
@@ -1794,7 +1720,7 @@ PRL_RESULT	Task_RegisterVm::createHardDisks()
 						);
 				}
 
-				return ret;
+				return CDspTaskFailure(*this).setToken(strFullPath)(ret);
 			}
 		}
 		else
@@ -1835,19 +1761,13 @@ PRL_RESULT	Task_RegisterVm::createHardDisks()
 			}
 			else
 			{
-				getLastError()->setEventCode( ret );
 				if (ret == PRL_ERR_CANT_CHANGE_FILE_PERMISSIONS)
 				{
-					getLastError()->addEventParameter(
-						new CVmEventParameter( PVE::String, m_pVmConfig->getVmIdentification()->getVmName(),
-						EVT_PARAM_MESSAGE_PARAM_0));
+					return CDspTaskFailure(*this)
+						(ret, m_pVmConfig->getVmIdentification()->getVmName());
 				}
 				else
-				{
-					getLastError()->addEventParameter(
-						new CVmEventParameter( PVE::String, strFullPath, EVT_PARAM_RETURN_PARAM_TOKEN) );
-				}
-				return ret;
+					return CDspTaskFailure(*this).setToken(strFullPath)(ret);
 			}
 		}
 	}
@@ -2083,16 +2003,8 @@ PRL_RESULT Task_RegisterVm::tryToRestoreVmConfig( const QString& sPathToVmDir )
 			getClient()->getAuthHelper().getUserFullName());
 	if ( PRL_FAILED(nRes) )
 	{
-		getLastError()->addEventParameter(
-			new CVmEventParameter( PVE::String,
-			"Unknown",
-			EVT_PARAM_MESSAGE_PARAM_0 ) );
-		getLastError()->addEventParameter(
-			new CVmEventParameter( PVE::String,
-			vm_xml_path,
-			EVT_PARAM_MESSAGE_PARAM_1 ) );
-
-		return PRL_ERR_VM_CONFIG_DOESNT_EXIST;
+		return CDspTaskFailure(*this).setCode(PRL_ERR_VM_CONFIG_DOESNT_EXIST)
+			("Unknown", vm_xml_path);
 	}
 
 	return PRL_ERR_SUCCESS;
