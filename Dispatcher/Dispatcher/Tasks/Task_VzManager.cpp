@@ -168,42 +168,25 @@ PRL_RESULT Task_VzManager::checkAndLockRegisterParameters(
 
 	if (PRL_FAILED(lockResult))
 	{
+		CDspTaskFailure f(*this);
+		f.setCode(lockResult);
 		switch (lockResult)
 		{
 		case PRL_ERR_VM_ALREADY_REGISTERED_VM_UUID:
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String, pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
-			break;
+			return f(pVmInfo->vmUuid);
 
 		case PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH:
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String, pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String, pVmInfo->vmXmlPath, EVT_PARAM_MESSAGE_PARAM_1));
-			break;
-
-		case PRL_ERR_VM_ALREADY_REGISTERED_VM_NAME:
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String, pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
-			break;
+			return f(pVmInfo->vmName, pVmInfo->vmXmlPath);
 
 		case PRL_ERR_VM_ALREADY_REGISTERED:
-			getLastError()->addEventParameter(
-					new CVmEventParameter(PVE::String, pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
-			break;
+		case PRL_ERR_VM_ALREADY_REGISTERED_VM_NAME:
+			return f(pVmInfo->vmName);
 
 		case PRL_ERR_VM_ALREADY_REGISTERED_UNIQUE_PARAMS:; // use default
-
 		default:
-			getLastError()->addEventParameter(
-				 new CVmEventParameter(PVE::String, pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
-			getLastError()->addEventParameter(
-				 new CVmEventParameter(PVE::String, pVmInfo->vmXmlPath, EVT_PARAM_RETURN_PARAM_TOKEN));
-			getLastError()->addEventParameter(
-				 new CVmEventParameter(PVE::String, pVmInfo->vmName, EVT_PARAM_RETURN_PARAM_TOKEN));
+			return f.setToken(pVmInfo->vmUuid).setToken(pVmInfo->vmXmlPath)
+				.setToken(pVmInfo->vmName)();
 		}
-
-		return lockResult;
 	}
 
 	return PRL_ERR_SUCCESS;
@@ -718,13 +701,9 @@ PRL_RESULT Task_VzManager::editConfig()
 	if (oldD->getPassword() != newD->getPassword()) {
 		if (newD->getPassword().length() > PRL_VM_REMOTE_DISPLAY_MAX_PASS_LEN) {
 			WRITE_TRACE(DBG_FATAL, "The specified remote display password is too long.");
-			getLastError()->addEventParameter(
-				new CVmEventParameter(
-					PVE::UnsignedInt,
-					QString::number(PRL_VM_REMOTE_DISPLAY_MAX_PASS_LEN),
-					EVT_PARAM_MESSAGE_PARAM_0));
-
-			return PRL_ERR_VMCONF_REMOTE_DISPLAY_PASSWORD_TOO_LONG;
+			return CDspTaskFailure(*this)
+				(PRL_ERR_VMCONF_REMOTE_DISPLAY_PASSWORD_TOO_LONG,
+				QString::number(PRL_VM_REMOTE_DISPLAY_MAX_PASS_LEN));
 		}
 	}
 
@@ -806,13 +785,8 @@ PRL_RESULT Task_VzManager::register_env()
 	QString sPath = cmd->GetFirstStrParam();
 
 	if (!QFileInfo(sPath).exists())
-	{
-		getLastError()->addEventParameter(new CVmEventParameter(
-						PVE::String,
-						sPath,
-						EVT_PARAM_MESSAGE_PARAM_0));
-		return PRL_ERR_DIRECTORY_DOES_NOT_EXIST;
-	}
+		return CDspTaskFailure(*this)(PRL_ERR_DIRECTORY_DOES_NOT_EXIST, sPath);
+
 	SmartPtr<CVmConfiguration> pConfig;
 
 	QString sUuid = cmd->GetVmUuid();
@@ -1077,11 +1051,7 @@ PRL_RESULT Task_VzManager::create_env_disk()
 			disk.getUserFriendlyName());
 	if (QFileInfo(sPath).exists()) {
 		WRITE_TRACE(DBG_FATAL, "Disk image [%s] is already exist.", QSTR2UTF8(sPath));
-		getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String,
-					sPath,
-					EVT_PARAM_MESSAGE_PARAM_0));
-		return PRL_ERR_HDD_IMAGE_IS_ALREADY_EXIST;
+		return CDspTaskFailure(*this)(PRL_ERR_HDD_IMAGE_IS_ALREADY_EXIST, sPath);
 	}
 
 	PRL_RESULT ret = get_op_helper()->create_env_disk(pCmd->GetVmUuid(), disk);
@@ -1584,26 +1554,20 @@ PRL_RESULT Task_VzManager::move_env()
 			.lockExistingExclusiveVmParameters(m_sVzDirUuid, &vmInfo);
 	if (PRL_FAILED(res))
 	{
+		CDspTaskFailure f(*this);
+		f.setCode(res);
 		switch (res)
 		{
 		case PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH:
 			WRITE_TRACE(DBG_FATAL, "path '%s' already registered", QSTR2UTF8(vmInfo.vmXmlPath));
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String, vmInfo.vmName, EVT_PARAM_MESSAGE_PARAM_0));
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String, vmInfo.vmXmlPath, EVT_PARAM_MESSAGE_PARAM_1));
-			break;
+			return f(vmInfo.vmName, vmInfo.vmXmlPath);
+
 		default:
 			WRITE_TRACE(DBG_FATAL, "can't register container with UUID '%s', name '%s', path '%s",
 				QSTR2UTF8(vmInfo.vmUuid), QSTR2UTF8(vmInfo.vmName), QSTR2UTF8(vmInfo.vmXmlPath));
-			getLastError()->addEventParameter(
-				 new CVmEventParameter(PVE::String, vmInfo.vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
-			getLastError()->addEventParameter(
-				 new CVmEventParameter(PVE::String, vmInfo.vmXmlPath, EVT_PARAM_RETURN_PARAM_TOKEN));
-			getLastError()->addEventParameter(
-				 new CVmEventParameter(PVE::String, vmInfo.vmName, EVT_PARAM_RETURN_PARAM_TOKEN));
+			return f.setToken(vmInfo.vmUuid).setToken(vmInfo.vmXmlPath)
+				.setToken(vmInfo.vmName)();
 		}
-		return res;
 	}
 
 	res = get_op_helper()->move_env(sUuid, sNewHome, sName);

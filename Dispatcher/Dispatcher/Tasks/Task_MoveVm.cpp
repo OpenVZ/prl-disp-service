@@ -182,15 +182,9 @@ PRL_RESULT Task_MoveVm::prepareTask()
 	if ((VMS_SUSPENDED != vmState) && (VMS_STOPPED != vmState)) {
 		WRITE_TRACE(DBG_FATAL, "Error: can't move Vm home, Vm state is forbidden! (state = %#x, '%s')",
 				vmState, PRL_VM_STATE_TO_STRING( vmState ) );
-		getLastError()->addEventParameter( new CVmEventParameter (
-				PVE::String,
-				m_pVmConfig->getVmIdentification()->getVmName(),
-				EVT_PARAM_MESSAGE_PARAM_0 ) );
-		getLastError()->addEventParameter( new CVmEventParameter (
-				PVE::String,
-				PRL_VM_STATE_TO_STRING(vmState),
-				EVT_PARAM_MESSAGE_PARAM_1 ) );
-		nRetCode = PRL_ERR_DISP_VM_COMMAND_CANT_BE_EXECUTED;
+		nRetCode = CDspTaskFailure(*this)
+			.setCode(PRL_ERR_DISP_VM_COMMAND_CANT_BE_EXECUTED)
+			(m_pVmConfig->getVmIdentification()->getVmName(), PRL_VM_STATE_TO_STRING(vmState));
 		goto exit;
 	}
 
@@ -202,24 +196,19 @@ PRL_RESULT Task_MoveVm::prepareTask()
 			.lockExistingExclusiveVmParameters(m_sVmDirUuid, m_pVmInfo.getImpl());
 	if (PRL_FAILED(nRetCode))
 	{
+		CDspTaskFailure f(*this);
+		f.setCode(nRetCode);
 		switch (nRetCode)
 		{
 		case PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH:
 			WRITE_TRACE(DBG_FATAL, "path '%s' already registered", QSTR2UTF8(m_pVmInfo->vmXmlPath));
-			getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, m_pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
-			getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, m_pVmInfo->vmXmlPath, EVT_PARAM_MESSAGE_PARAM_1));
+			f(m_pVmInfo->vmName, m_pVmInfo->vmXmlPath);
 			break;
 		default:
 			WRITE_TRACE(DBG_FATAL, "can't register container with UUID '%s', name '%s', path '%s",
 				QSTR2UTF8(m_pVmInfo->vmUuid), QSTR2UTF8(m_pVmInfo->vmName), QSTR2UTF8(m_pVmInfo->vmXmlPath));
-			getLastError()->addEventParameter(
-				 new CVmEventParameter( PVE::String, m_pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
-			getLastError()->addEventParameter(
-				 new CVmEventParameter( PVE::String, m_pVmInfo->vmXmlPath, EVT_PARAM_RETURN_PARAM_TOKEN));
-			getLastError()->addEventParameter(
-				 new CVmEventParameter( PVE::String, m_pVmInfo->vmName, EVT_PARAM_RETURN_PARAM_TOKEN));
+			f.setToken(m_pVmInfo->vmUuid).setToken(m_pVmInfo->vmXmlPath)
+				.setToken(m_pVmInfo->vmName)();
 		}
 		goto exit;
 	}
@@ -320,8 +309,9 @@ PRL_RESULT Task_MoveVm::run_body()
 
 		if (r.isFailed())
 		{
-			getLastError()->fromString(r.error().convertToEvent().toString());
-			nRetCode = PRL_ERR_OPERATION_FAILED;
+			CVmEvent e = r.error().convertToEvent();
+			e.setEventCode(PRL_ERR_OPERATION_FAILED);
+			CDspTaskFailure(*this)(e);
 			goto exit;
 		}
 	}
