@@ -1102,7 +1102,10 @@ bool Model::canFreeze() const
 			osVer != PVS_GUEST_VER_WIN_2008 &&
 			osVer != PVS_GUEST_VER_WIN_WINDOWS7 &&
 			osVer != PVS_GUEST_VER_WIN_WINDOWS8 &&
-			osVer != PVS_GUEST_VER_WIN_2012)
+			osVer != PVS_GUEST_VER_WIN_WINDOWS8_1 &&
+			osVer != PVS_GUEST_VER_WIN_WINDOWS10 &&
+			osVer != PVS_GUEST_VER_WIN_2012 &&
+			osVer != PVS_GUEST_VER_WIN_2016)
 		{
 			WRITE_TRACE(DBG_FATAL, "Windows: Suspend of HDD is not supported");
 			return false;
