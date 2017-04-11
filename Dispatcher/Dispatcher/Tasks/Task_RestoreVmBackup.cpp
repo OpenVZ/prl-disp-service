@@ -164,11 +164,8 @@ PRL_RESULT Task_RestoreVmBackupSource::prepareTask()
 		/* restore from last incremental of last backup if backup id does not specified (#420596) */
 		BackupItem* b = getLastBaseBackup(m_sVmUuid, &getClient()->getAuthHelper(), PRL_BACKUP_CHECK_MODE_READ);
 		if (NULL == b) {
-			nRetCode = PRL_ERR_BACKUP_BACKUP_NOT_FOUND;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-				PVE::String, m_sVmUuid, EVT_PARAM_MESSAGE_PARAM_0));
+			nRetCode = CDspTaskFailure(*this)
+				(PRL_ERR_BACKUP_BACKUP_NOT_FOUND, m_sVmUuid);
 			WRITE_TRACE(DBG_FATAL, "Could not find any backup of the Vm %s", QSTR2UTF8(m_sVmUuid));
 			goto exit;
 		}
@@ -177,11 +174,8 @@ PRL_RESULT Task_RestoreVmBackupSource::prepareTask()
 		m_nBackupNumber = getCatalog(m_sVmUuid).getSequence(m_sBackupUuid).getIndex().last();
 	} else {
 		if (PRL_FAILED(parseBackupId(m_sBackupId, m_sBackupUuid, m_nBackupNumber))) {
-			nRetCode = PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-				PVE::String, m_sBackupUuid, EVT_PARAM_MESSAGE_PARAM_0));
+			nRetCode = CDspTaskFailure(*this)
+				(PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND, m_sBackupUuid);
 			WRITE_TRACE(DBG_FATAL, "Invalid backup id \"%s\"", QSTR2UTF8(m_sBackupId));
 			goto exit;
 		}
@@ -189,11 +183,8 @@ PRL_RESULT Task_RestoreVmBackupSource::prepareTask()
 
 	if (m_sVmUuid.isEmpty()) {
 		if (PRL_FAILED(findVmUuidForBackupUuid(m_sBackupUuid, m_sVmUuid))) {
-			nRetCode = PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
-			CVmEvent *pEvent = getLastError();
-			pEvent->setEventCode(nRetCode);
-			pEvent->addEventParameter(new CVmEventParameter(
-					PVE::String, m_sBackupUuid, EVT_PARAM_MESSAGE_PARAM_0));
+			nRetCode = CDspTaskFailure(*this)
+				(PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND, m_sBackupUuid);
 			WRITE_TRACE(DBG_FATAL, "Backup \"%s\" does not exist", QSTR2UTF8(m_sBackupUuid));
 			goto exit;
 		}
@@ -205,11 +196,8 @@ PRL_RESULT Task_RestoreVmBackupSource::prepareTask()
 
 	/* to check access before */
 	if (!CFileHelper::FileCanRead(m_sBackupRootPath, &getClient()->getAuthHelper())) {
-		nRetCode = PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
-		CVmEvent *pEvent = getLastError();
-		pEvent->setEventCode(nRetCode);
-		pEvent->addEventParameter(new CVmEventParameter(
-				PVE::String, m_sBackupUuid, EVT_PARAM_MESSAGE_PARAM_0));
+		nRetCode = CDspTaskFailure(*this)
+			(PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND, m_sBackupUuid);
 		WRITE_TRACE(DBG_FATAL, "User %s have not permissions for restore backup %s",
 			QSTR2UTF8(getClient()->getAuthHelper().getUserName()), QSTR2UTF8(m_sBackupUuid));
 		goto exit;
@@ -243,10 +231,8 @@ PRL_RESULT Task_RestoreVmBackupSource::prepareTask()
 	if (Backup::Device::isAttached(m_sBackupUuid)) {
 		WRITE_TRACE(DBG_FATAL, "backup '%s' is attached to VM, restore is not possible",
 			QSTR2UTF8(m_sBackupUuid));
-		nRetCode = PRL_ERR_BACKUP_RESTORE_PROHIBIT_WHEN_ATTACHED;
-		getLastError()->setEventCode(nRetCode);
-		getLastError()->addEventParameter(new CVmEventParameter(
-				PVE::String, m_sBackupUuid, EVT_PARAM_MESSAGE_PARAM_0));
+		nRetCode = CDspTaskFailure(*this)
+			(PRL_ERR_BACKUP_RESTORE_PROHIBIT_WHEN_ATTACHED, m_sBackupUuid);
 	}
 #endif // _LIN_
 exit:
@@ -385,11 +371,8 @@ PRL_RESULT Task_RestoreVmBackupSource::restore(const ::Backup::Work::object_type
 		goto exit_0;
 	}
 	if (!CFileHelper::DirectoryExists(m_sBackupPath, &m_pDispConnection->getUserSession()->getAuthHelper())) {
-		nRetCode = PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND;
-		CVmEvent *pEvent = getLastError();
-		pEvent->setEventCode(nRetCode);
-		pEvent->addEventParameter(new CVmEventParameter(
-				PVE::String, m_sBackupUuid, EVT_PARAM_MESSAGE_PARAM_0));
+		nRetCode = CDspTaskFailure(*this)
+			(PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND, m_sBackupUuid);
 		WRITE_TRACE(DBG_FATAL, "Backup directory \"%s\" does not exist", QSTR2UTF8(m_sBackupPath));
 		goto exit_0;
 	}
