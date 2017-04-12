@@ -1523,12 +1523,9 @@ PRL_RESULT Task_EditVm::editVm()
 				{
 					if ( nState == VMS_PAUSED )
 					{
-						getLastError()->addEventParameter(
-							new CVmEventParameter(
-								PVE::String,
-								pVmConfigOld->getVmIdentification()->getVmName(),
-								EVT_PARAM_MESSAGE_PARAM_0));
-						throw PRL_ERR_CANNOT_EDIT_HARDWARE_FOR_PAUSED_VM;
+						throw CDspTaskFailure(*this)
+							(PRL_ERR_CANNOT_EDIT_HARDWARE_FOR_PAUSED_VM,
+							pVmConfigOld->getVmIdentification()->getVmName());
 					}
 
 					CVmHardware* pHardware_old = pVmConfigOld->getVmHardwareList();
@@ -1784,42 +1781,26 @@ PRL_RESULT Task_EditVm::editVm()
 
 				if( PRL_FAILED( lockResult ) )
 				{
+					CDspTaskFailure f(*this);
+					f.setCode(lockResult);
 					switch ( lockResult )
 					{
 					case PRL_ERR_VM_ALREADY_REGISTERED_VM_UUID:
-						getLastError()->addEventParameter(
-							new CVmEventParameter( PVE::String, pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
-						break;
+						throw f.setToken(pVmInfo->vmUuid)();
 
 					case PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH:
-						getLastError()->addEventParameter(
-							new CVmEventParameter( PVE::String, pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
-						getLastError()->addEventParameter(
-							new CVmEventParameter( PVE::String, pVmInfo->vmXmlPath, EVT_PARAM_MESSAGE_PARAM_1));
-						break;
-
-					case PRL_ERR_VM_ALREADY_REGISTERED_VM_NAME:
-						getLastError()->addEventParameter(
-							new CVmEventParameter( PVE::String, pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
-						break;
+						throw f(pVmInfo->vmName, pVmInfo->vmXmlPath);
 
 					case PRL_ERR_VM_ALREADY_REGISTERED:
-						getLastError()->addEventParameter(
-							new CVmEventParameter( PVE::String, pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
-						break;
+					case PRL_ERR_VM_ALREADY_REGISTERED_VM_NAME:
+						throw f(pVmInfo->vmName);
 
 					case PRL_ERR_VM_ALREADY_REGISTERED_UNIQUE_PARAMS:; // use default
-
 					default:
-						getLastError()->addEventParameter(
-							new CVmEventParameter( PVE::String, pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
-						getLastError()->addEventParameter(
-							new CVmEventParameter( PVE::String, pVmInfo->vmXmlPath, EVT_PARAM_RETURN_PARAM_TOKEN));
-						getLastError()->addEventParameter(
-							new CVmEventParameter( PVE::String, pVmInfo->vmName, EVT_PARAM_RETURN_PARAM_TOKEN));
+						throw f.setToken(pVmInfo->vmUuid)
+							.setToken(pVmInfo->vmXmlPath)
+							.setToken(pVmInfo->vmName)();
 					} //switch
-
-					throw lockResult;
 				}
 
 				DspVm::vdm().unlockExclusiveVmParameters(pVmInfo.getImpl());
@@ -1856,8 +1837,6 @@ PRL_RESULT Task_EditVm::editVm()
 					LOG_MESSAGE( DBG_INFO, "CVmValidateConfig::validate() return true\n");
 
 					// send reply to user
-					getLastError()->setEventType( PET_DSP_EVT_ERROR_MESSAGE );
-
 					getLastError()->addEventParameter(new CVmEventParameter(PVE::String,
 						evtResult.toString(),
 						EVT_PARAM_COMPLEX_EVENT));
@@ -1964,18 +1943,13 @@ PRL_RESULT Task_EditVm::editVm()
 							( lstDevices->at(j)->getConnected() == PVE::DeviceConnected )
 							)
 						{
-							getLastError()->setEventType( PET_DSP_EVT_ERROR_MESSAGE );
-							getLastError()->addEventParameter(
-								new CVmEventParameter( PVE::String,
-								lstDevices->at(j)->getUserFriendlyName(),
-								EVT_PARAM_MESSAGE_PARAM_0 )
-								);
-
 							WRITE_TRACE(DBG_FATAL,
 								"connected remote device %s was found",
 								QSTR2UTF8(lstDevices->at(j)->getUserFriendlyName()));
 
-							throw PRL_ERR_CANNOT_SAVE_REMOTE_DEVICE_STATE;
+							throw CDspTaskFailure(*this)
+								(PRL_ERR_CANNOT_SAVE_REMOTE_DEVICE_STATE,
+								lstDevices->at(j)->getUserFriendlyName());
 						}
 				}
 			}
@@ -1988,13 +1962,9 @@ PRL_RESULT Task_EditVm::editVm()
 				if (newRemDisplay->getPassword().length() > PRL_VM_REMOTE_DISPLAY_MAX_PASS_LEN)
 				{
 					WRITE_TRACE(DBG_FATAL, "The specified remote display password is too long.");
-					getLastError()->addEventParameter(
-						new CVmEventParameter(
-							PVE::UnsignedInt,
-							QString::number(PRL_VM_REMOTE_DISPLAY_MAX_PASS_LEN),
-							EVT_PARAM_MESSAGE_PARAM_0));
-
-					throw PRL_ERR_VMCONF_REMOTE_DISPLAY_PASSWORD_TOO_LONG;
+					throw CDspTaskFailure(*this)
+						(PRL_ERR_VMCONF_REMOTE_DISPLAY_PASSWORD_TOO_LONG,
+						QString::number(PRL_VM_REMOTE_DISPLAY_MAX_PASS_LEN));
 				}
 			}
 
@@ -2098,15 +2068,8 @@ PRL_RESULT Task_EditVm::editVm()
 				if ( save_rc == PRL_ERR_NOT_ENOUGH_DISK_SPACE_TO_XML_SAVE )
 					throw save_rc;
 
-				getLastError()->setEventType( PET_DSP_EVT_ERROR_MESSAGE );
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, newVmName,
-					EVT_PARAM_MESSAGE_PARAM_0 ) );
-				getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, QFileInfo( strVmHome ).path(),
-					EVT_PARAM_MESSAGE_PARAM_1 ) );
-
-				throw PRL_ERR_SAVE_VM_CONFIG;
+				throw CDspTaskFailure(*this).setCode(PRL_ERR_SAVE_VM_CONFIG)
+					(newVmName, QFileInfo(strVmHome).path());
 			}
 
 #ifdef _LIBVIRT_
@@ -2166,7 +2129,8 @@ PRL_RESULT Task_EditVm::editVm()
 	}
 	catch (PRL_RESULT code)
 	{
-		getLastError()->setEventCode( code );
+		CDspTaskFailure f(*this);
+		f.setCode(code);
 		WRITE_TRACE(DBG_FATAL, "Error occurred while modification VM configuration with code [%#x (%s)]"
 			, code
 			, PRL_RESULT_TO_STRING( code ) );
@@ -2180,11 +2144,7 @@ PRL_RESULT Task_EditVm::editVm()
 		{
 		case PRL_ERR_DISP_VM_IS_NOT_STOPPED:
 		case PRL_ERR_VM_MUST_BE_STOPPED_BEFORE_RENAMING:
-			getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String,
-				pVmConfigOld->getVmIdentification()->getVmName(),
-				EVT_PARAM_MESSAGE_PARAM_0)
-				);
+			f(pVmConfigOld->getVmIdentification()->getVmName());
 		break;
 		default:;
 		}

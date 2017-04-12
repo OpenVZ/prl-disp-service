@@ -220,9 +220,7 @@ PRL_RESULT Task_MigrateCtTarget::prepareTask()
 		/* CT with such ID already exists */
 		if (!m_sCtNewId.isEmpty() || m_sCtNewName.isEmpty()) {
 			/* failure */
-			nRetCode = PRL_ERR_CT_MIGRATE_ID_ALREADY_EXIST;
-			getLastError()->addEventParameter(new CVmEventParameter(
-				PVE::String, ctid, EVT_PARAM_MESSAGE_PARAM_0));
+			nRetCode = CDspTaskFailure(*this)(PRL_ERR_CT_MIGRATE_ID_ALREADY_EXIST, ctid);
 			WRITE_TRACE(DBG_FATAL, "[%s] Container with ID %s already exist",
 				__FUNCTION__, QSTR2UTF8(ctid));
 			goto exit;
@@ -253,32 +251,28 @@ PRL_RESULT Task_MigrateCtTarget::prepareTask()
 			.checkAndLockNotExistsExclusiveVmParameters(QStringList(), m_pVmInfo.getImpl());
 	if (PRL_FAILED(nRetCode))
 	{
+		CDspTaskFailure f(*this);
+		f.setCode(nRetCode);
 		switch (nRetCode)
 		{
 		case PRL_ERR_VM_ALREADY_REGISTERED_VM_UUID:
 			WRITE_TRACE(DBG_FATAL, "UUID '%s' already registered", QSTR2UTF8(m_pVmInfo->vmUuid));
-			getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, m_pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
+			f(m_pVmInfo->vmUuid);
 			break;
 
 		case PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH:
 			WRITE_TRACE(DBG_FATAL, "path '%s' already registered", QSTR2UTF8(m_pVmInfo->vmXmlPath));
-			getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, m_pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
-			getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, m_pVmInfo->vmXmlPath, EVT_PARAM_MESSAGE_PARAM_1));
+			f(m_pVmInfo->vmName, m_pVmInfo->vmXmlPath);
 			break;
 
 		case PRL_ERR_VM_ALREADY_REGISTERED_VM_NAME:
 			WRITE_TRACE(DBG_FATAL, "name '%s' already registered", QSTR2UTF8(m_pVmInfo->vmName));
-			getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, m_pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
+			f(m_pVmInfo->vmName);
 			break;
 
 		case PRL_ERR_VM_ALREADY_REGISTERED:
 			WRITE_TRACE(DBG_FATAL, "container '%s' already registered", QSTR2UTF8(m_pVmInfo->vmName));
-			getLastError()->addEventParameter(
-					new CVmEventParameter( PVE::String, m_pVmInfo->vmName, EVT_PARAM_MESSAGE_PARAM_0));
+			f(m_pVmInfo->vmName);
 			break;
 
 		case PRL_ERR_VM_ALREADY_REGISTERED_UNIQUE_PARAMS:; // use default
@@ -286,12 +280,8 @@ PRL_RESULT Task_MigrateCtTarget::prepareTask()
 		default:
 			WRITE_TRACE(DBG_FATAL, "can't register container with UUID '%s', name '%s', path '%s",
 				QSTR2UTF8(m_pVmInfo->vmUuid), QSTR2UTF8(m_pVmInfo->vmName), QSTR2UTF8(m_pVmInfo->vmXmlPath));
-			getLastError()->addEventParameter(
-				 new CVmEventParameter( PVE::String, m_pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
-			getLastError()->addEventParameter(
-				 new CVmEventParameter( PVE::String, m_pVmInfo->vmXmlPath, EVT_PARAM_RETURN_PARAM_TOKEN));
-			getLastError()->addEventParameter(
-				 new CVmEventParameter( PVE::String, m_pVmInfo->vmName, EVT_PARAM_RETURN_PARAM_TOKEN));
+			f.setToken(m_pVmInfo->vmUuid).setToken(m_pVmInfo->vmXmlPath)
+				.setToken(m_pVmInfo->vmName)();
 		}
 		goto exit;
 	}

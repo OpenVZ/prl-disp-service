@@ -126,22 +126,22 @@ QString Task_DeleteVm::getVmUuid()
 
 PRL_RESULT Task_DeleteVm::prepareTask()
 {
-    PRL_RESULT ret = PRL_ERR_SUCCESS;
+	CDspTaskFailure f(*this);
+	PRL_RESULT ret = PRL_ERR_SUCCESS;
 
-    try
-    {
-        /**
-         * check parameters
-         */
-        if( !IS_OPERATION_SUCCEEDED( m_pVmConfig->m_uiRcInit ) )
-        {
-            // send error to user: can't parse VM config
-            getLastError()->setEventCode(PRL_ERR_CANT_PARSE_VM_CONFIG);
-            throw PRL_ERR_PARSE_VM_CONFIG;
-        }
+	try
+	{
+		/**
+		* check parameters
+		*/
+		if( !IS_OPERATION_SUCCEEDED( m_pVmConfig->m_uiRcInit ) )
+		{
+			// send error to user: can't parse VM config
+			throw f(PRL_ERR_CANT_PARSE_VM_CONFIG);
+		}
 
 		m_vmDirectoryUuid = CDspVmDirHelper::getVmDirUuidByVmUuid(
-				m_pVmConfig->getVmIdentification()->getVmUuid(), getClient());
+		m_pVmConfig->getVmIdentification()->getVmUuid(), getClient());
 		if (m_vmDirectoryUuid.isEmpty())
 			throw PRL_ERR_VM_UUID_NOT_FOUND;
 
@@ -169,10 +169,7 @@ PRL_RESULT Task_DeleteVm::prepareTask()
 		VIRTUAL_MACHINE_STATE s;
 		Libvirt::Result r = Libvirt::Kit.vms().at(getVmUuid()).getState().getValue(s);
 		if (r.isSucceed() && s != VMS_STOPPED && s != VMS_SUSPENDED)
-		{
-			CDspTaskFailure(*this)(PRL_ERR_DISP_VM_IS_NOT_STOPPED, getVmUuid());
-			return PRL_ERR_DISP_VM_IS_NOT_STOPPED;
-		}
+			return f(PRL_ERR_DISP_VM_IS_NOT_STOPPED, getVmUuid());
 	}
 	if (!(m_flags & PVD_SKIP_VM_OPERATION_LOCK))
 	{
@@ -200,8 +197,7 @@ PRL_RESULT Task_DeleteVm::prepareTask()
 			if ( ! pDirectoryItem )
 			{
 				// send error to user: VM with given UUID is not found
-				getLastError()->setEventCode(PRL_ERR_VM_UUID_NOT_FOUND);
-				throw PRL_ERR_VM_UUID_NOT_FOUND;
+				throw f(PRL_ERR_VM_UUID_NOT_FOUND);
 			}
 
 			m_sVmHomePath = pDirectoryItem->getVmHome();
@@ -232,13 +228,8 @@ PRL_RESULT Task_DeleteVm::prepareTask()
 
 		if (!PRL_SUCCEEDED(lockResult))
 		{
-			getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, m_pVmInfo->vmUuid, EVT_PARAM_RETURN_PARAM_TOKEN));
-			getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, m_pVmInfo->vmXmlPath, EVT_PARAM_RETURN_PARAM_TOKEN));
-			getLastError()->addEventParameter(
-				new CVmEventParameter( PVE::String, m_pVmInfo->vmName, EVT_PARAM_RETURN_PARAM_TOKEN));
-			throw lockResult;
+			throw f.setToken(m_pVmInfo->vmUuid).setToken(m_pVmInfo->vmXmlPath)
+				.setToken(m_pVmInfo->vmName)(lockResult);
 		}
 
 		m_flgLockRegistred=true;
@@ -364,6 +355,7 @@ PRL_RESULT Task_DeleteVm::run_body()
 		return ret;
 	}
 
+	CDspTaskFailure f(*this);
 	bool flgImpersonated = false;
 	try
 	{
@@ -397,12 +389,9 @@ PRL_RESULT Task_DeleteVm::run_body()
 					foreach ( const QString& path, lstNotRemovedFiles )
 					{
 						WRITE_TRACE(DBG_FATAL, "file wasn't delete. path = [%s]",  QSTR2UTF8(path) );
-						getLastError()->addEventParameter(
-							new CVmEventParameter( PVE::String, path,
-							EVT_PARAM_RETURN_PARAM_TOKEN));
+						f.setToken(path);
 					}
-					getLastError()->setEventCode(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
-					ret = PRL_ERR_NOT_ALL_FILES_WAS_DELETED;
+					ret = f(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
 				}
 			}
 
@@ -418,11 +407,8 @@ PRL_RESULT Task_DeleteVm::run_body()
 				PRL_ASSERT(QFileInfo(strVmHomeDir).isDir());
 				if ( QFileInfo(strVmHomeDir).isDir() && CFileHelper::ClearAndDeleteDir( strVmHomeDir ) )
 					break;
-				else
-				{
-					getLastError()->setEventCode(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
-					ret = PRL_ERR_NOT_ALL_FILES_WAS_DELETED;
-				}
+
+				ret = f(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
 			}
 
 			if(!removeVmResources( m_pVmConfig, lstNotRemovedFiles))
@@ -434,12 +420,9 @@ PRL_RESULT Task_DeleteVm::run_body()
 					foreach ( const QString& path, lstNotRemovedFiles )
 					{
 						WRITE_TRACE(DBG_FATAL, "file wasn't delete. path = [%s]",  QSTR2UTF8(path) );
-						getLastError()->addEventParameter(
-							new CVmEventParameter( PVE::String, path,
-							EVT_PARAM_RETURN_PARAM_TOKEN));
+						f.setToken(path);
 					}
-					getLastError()->setEventCode(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
-					ret = PRL_ERR_NOT_ALL_FILES_WAS_DELETED;
+					ret = f(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
 				}
 			} //if(!removeVmResources
 
@@ -458,8 +441,7 @@ PRL_RESULT Task_DeleteVm::run_body()
 					, QSTR2UTF8( Prl::GetLastErrorAsString() )
 					);
 
-				getLastError()->setEventCode(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
-				ret = PRL_ERR_NOT_ALL_FILES_WAS_DELETED;
+				ret = f(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
 			}
 
 			// finally remove all prl file entries
@@ -483,12 +465,9 @@ PRL_RESULT Task_DeleteVm::run_body()
 						foreach ( const QString& path, lstNotRemovedFiles )
 						{
 							WRITE_TRACE(DBG_FATAL, "file wasn't delete. path = [%s]",  QSTR2UTF8(path) );
-							getLastError()->addEventParameter(
-								new CVmEventParameter( PVE::String, path,
-								EVT_PARAM_RETURN_PARAM_TOKEN));
+							f.setToken(path);
 						}
-						getLastError()->setEventCode(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
-						ret = PRL_ERR_NOT_ALL_FILES_WAS_DELETED;
+						ret = f(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
 					}
 				}
 			}
@@ -840,18 +819,12 @@ PRL_RESULT Task_DeleteVm::checkUserAccess( CDspLockedPointer<CVmDirectoryItem> p
 				// send error to user: user is not authorized to access this VM
 				WRITE_TRACE(DBG_FATAL, ">>> User hasn't rights to  access this VM %#x, %s"
 					, err, PRL_RESULT_TO_STRING( err ) );
-				getLastError()->setEventCode( err );
-				if (pDirectoryItem)
-				{
-					getLastError()->addEventParameter(
-							new CVmEventParameter(PVE::String, pDirectoryItem->getVmName(),
-													EVT_PARAM_MESSAGE_PARAM_0 ) );
-					getLastError()->addEventParameter(
-							new CVmEventParameter(PVE::String, pDirectoryItem->getVmHome(),
-													EVT_PARAM_MESSAGE_PARAM_1 ) );
-				}
+				CDspTaskFailure f(*this);
+				if (!pDirectoryItem.isValid())
+					return f(err);
 
-				return err;
+				return f.setCode(err)
+					(pDirectoryItem->getVmName(), pDirectoryItem->getVmHome());
 			}
 		}
 	} // if ( ! doUnregisterOnly() )
