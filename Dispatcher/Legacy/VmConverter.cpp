@@ -37,6 +37,8 @@
 #include <boost/range/algorithm/copy.hpp>
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 #include <boost/bind.hpp>
+#include "Tasks/Task_EditVm.h"
+#include "Tasks/Task_EditVm_p.h"
 
 using namespace Legacy::Vm;
 
@@ -82,10 +84,11 @@ struct Helper
 	result_type do_();
 	result_type insertTools(const QString &path, CVmStartupOptions *options);
 
+	static result_type buildResult(PRL_RESULT code, const QString &param);
+
 private:
 	template <typename T> result_type do_(T *pDevice);
 	template <typename T> bool isConverted(const T &device) const;
-	static result_type buildResult(PRL_RESULT code, const QString &param);
 
 	CVmHardware &m_hardware;
 
@@ -341,6 +344,29 @@ result_type Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	return h.insertTools(ParallelsDirs::getToolsImage(PAM_SERVER, os),
 	                     cfg->getVmSettings()->getVmStartupOptions());
 }
+
+
+result_type Converter::convertBios(const SmartPtr<CVmConfiguration> &cfg) const
+{
+	CVmStartupBios* b = cfg->getVmSettings()->getVmStartupOptions()->getBios();
+
+	QString n = b->getNVRAM();
+	if (!n.isEmpty())
+	{
+		if (QFileInfo(n).isRelative())
+			n = QDir(cfg->getVmIdentification()->getHomePath()).absoluteFilePath(n);
+		QFile::remove(n);
+
+		PRL_RESULT e = Edit::Vm::Create::Action<CVmStartupBios>(*b, *cfg).execute();
+		if (!PRL_SUCCEEDED(e))
+		{
+			WRITE_TRACE(DBG_FATAL, "Unable to generate new NVRAM image.");
+			return Helper::buildResult(e, n);
+		}
+	}
+	return result_type();
+}
+
 
 boost::optional<V2V> Converter::getV2V(const CVmConfiguration &cfg) const
 {
