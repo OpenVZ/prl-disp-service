@@ -2092,6 +2092,13 @@ void Task_RestoreVmBackupTarget::runV2V()
 	do {
 		if (!v2v)
 			break;
+		//Substitute NVRAM
+		Legacy::Vm::result_type res = m_converter->convertBios(m_pVmConfig);
+		if (res.isFailed())
+		{
+			nRetCode = res.error()->getEventCode();
+			break;
+		}
 		if (PRL_FAILED(nRetCode = v2v->do_()))
 			break;
 		Prl::Expected<void, Error::Simple> r = v2v->start();

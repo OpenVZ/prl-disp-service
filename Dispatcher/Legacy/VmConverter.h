@@ -61,6 +61,7 @@ private:
 struct Converter
 {
 	result_type convertHardware(SmartPtr<CVmConfiguration> &cfg) const;
+	result_type convertBios(const SmartPtr<CVmConfiguration> &cfg) const;
 	boost::optional<V2V> getV2V(const CVmConfiguration &cfg) const;
 };
 
