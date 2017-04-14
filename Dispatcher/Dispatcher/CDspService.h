@@ -406,10 +406,6 @@ public:
 
 	void doStopFromMainThread ();
 
-	ProcPerfStoragesContainer* getPerfStorageContainer() ;
-
-	storage_descriptor_t getBasePerfStorage() ;
-
 	// #128020
 	QString getHostOsVersion() const;
 
@@ -447,9 +443,6 @@ private:
 	bool m_bRebootHost;
 
 	QString m_sStatisticReporterTaskUuid;
-
-	ProcPerfStoragesContainer m_perfstorage_container ;
-	storage_descriptor_t       m_base_perfstorage ;
 
 	SmartPtr<IOServerInterface> m_ioListeningServer;
 	SmartPtr<IOServerInterface> m_ioLocalUnixListeningServer;

@@ -35,7 +35,6 @@
 #include <QMutex>
 #include <QList>
 #include "CDspStatisticsGuard.h"
-#include "Libraries/PerfCount/PerfLib/PerfCounter.h"
 
 class CVmEvent ;
 

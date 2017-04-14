@@ -14,7 +14,6 @@ include($$LIBS_LEVEL/VmFileList/VmFileList.pri)
 include($$LIBS_LEVEL/Virtuozzo/Virtuozzo.pri)
 include($$LIBS_LEVEL/StatesUtils/StatesUtils.pri)
 include($$LIBS_LEVEL/StatesStore/StatesStore.pri)
-include($$LIBS_LEVEL/PerfCount/PerfLib/PerfCounter.pri)
 include($$LIBS_LEVEL/Buse/Buse.pri)
 include($$LIBS_LEVEL/CpuFeatures/CpuFeatures.pri)
 
