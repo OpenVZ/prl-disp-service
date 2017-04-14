@@ -218,27 +218,43 @@ private:
 	bootList_type m_bootList;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Patch
-
-struct Patch
-{
-	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
-};
-
 } // namespace Index
 
-namespace State
+namespace Patch
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Patch
+// struct Alias
 
-struct Patch
+struct Alias
+{
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
+
+	template <class T>
+	static void draw(QList<T*>& new_, const QList<T*>& old_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Index
+
+struct Index
 {
 	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
-} // namespace State
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+struct State
+{
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
+
+	template <class T>
+	static void updateDisabled(QList<T*>& new_, const QList<T*>& old_);
+	template <class T>
+	static void updateDisconnected(QList<T*>& new_, const QList<T*>& old_);
+};
+
+} // namespace Patch
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct OsInfo
@@ -334,9 +350,9 @@ struct Reviser<N, void>
 	}
 };
 
-typedef boost::mpl::vector<RemoteDisplay::Unencrypted, Nvram> revise_types;
+typedef boost::mpl::vector<RemoteDisplay::Unencrypted, Nvram, Patch::Alias> revise_types;
 typedef boost::mpl::vector<Identification, OsInfo, RuntimeOptions, GlobalNetwork,
-		Index::Patch, Cpu::Copy, NetworkDevices, HardDisks, OpticalDisks, State::Patch,
+		Patch::Index, Cpu::Copy, NetworkDevices, HardDisks, OpticalDisks, Patch::State,
 		MemoryOptions, HighAvailability, Tools, RemoteDisplay::Encrypted>
 		untranslatable_types;
 

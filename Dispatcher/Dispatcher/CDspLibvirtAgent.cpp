@@ -276,16 +276,17 @@ Result Online::migrate(const CVmConfiguration& config_)
 
 Online::result_type Online::operator()(const CVmConfiguration& config_)
 {
-	Vm::Migration::Completion::feedback_type p(new boost::promise<quint64>());
+	Vm::Completion::Migration::feedback_type p(new boost::promise<quint64>());
 	boost::future<quint64> v = p->get_future();
+	QScopedPointer<Vm::Completion::Migration> g(new Vm::Completion::Migration(getDomain().data(), p));
 	int s = virConnectDomainEventRegisterAny(getLink().data(), getDomain().data(),
 			VIR_DOMAIN_EVENT_ID_JOB_COMPLETED,
-			VIR_DOMAIN_EVENT_CALLBACK(Vm::Migration::Completion::react),
-			new Vm::Migration::Completion(getDomain().data(), p),
-			&Callback::Plain::delete_<Vm::Migration::Completion>);
+			VIR_DOMAIN_EVENT_CALLBACK(Vm::Completion::Migration::react),
+			g.data(), &Callback::Plain::delete_<Vm::Completion::Migration>);
 	if (-1 == s)
 		return Failure(PRL_ERR_FAILURE);
 
+	g.take();
 	Result e = migrate(config_);
 	if (e.isFailed())
 	{
@@ -1692,7 +1693,7 @@ Result Editor::setCpuLimit(quint32 globalLimit_, quint32 limit_,
 		return Failure(PRL_ERR_SET_CPULIMIT);
 
 	Parameters::Result_type p(b.extract());
-	Result r(do_(m_domain.data(), boost::bind(&virDomainSetSchedulerParametersFlags, _1,
+	Result r(do_(getDomain().data(), boost::bind(&virDomainSetSchedulerParametersFlags, _1,
 							p.first.data(), p.second, m_flags)));
 	return r;
 }
@@ -1717,7 +1718,7 @@ Result Editor::setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quin
 					&s, &m, param_, limit_)).isFailed())
 		return Failure(PRL_ERR_SET_IOLIMIT);
 
-	Result r = do_(m_domain.data(), boost::bind(&virDomainSetBlockIoTune, _1,
+	Result r = do_(getDomain().data(), boost::bind(&virDomainSetBlockIoTune, _1,
 							QSTR2UTF8(disk_.getTargetDeviceName()),
 							p, s, VIR_DOMAIN_AFFECT_CURRENT |
 							VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE));
@@ -1735,7 +1736,7 @@ Result Editor::setIoPriority(quint32 ioprio_)
 					&s, &m, VIR_DOMAIN_BLKIO_WEIGHT, ioprio_)).isFailed())
 		return Failure(PRL_ERR_SET_IOPRIO);
 
-	Result r(do_(m_domain.data(), boost::bind(&virDomainSetBlkioParameters, _1,
+	Result r(do_(getDomain().data(), boost::bind(&virDomainSetBlkioParameters, _1,
 							p, s, VIR_DOMAIN_AFFECT_CURRENT |
 							VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE)));
 	virTypedParamsFree(p, s);
@@ -1753,7 +1754,7 @@ Result Editor::setCpuUnits(quint32 units_)
 					&s, &m, VIR_DOMAIN_SCHEDULER_CPU_SHARES, units_)).isFailed())
 		return Failure(PRL_ERR_SET_CPUUNITS);
 
-	Result r(do_(m_domain.data(), boost::bind(&virDomainSetSchedulerParametersFlags, _1,
+	Result r(do_(getDomain().data(), boost::bind(&virDomainSetSchedulerParametersFlags, _1,
 							p, s, VIR_DOMAIN_AFFECT_CURRENT |
 							VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE)));
 
@@ -1763,7 +1764,7 @@ Result Editor::setCpuUnits(quint32 units_)
 
 Result Editor::setCpuCount(quint32 units_)
 {
-	return do_(m_domain.data(), boost::bind(&virDomainSetVcpus, _1, units_));
+	return do_(getDomain().data(), boost::bind(&virDomainSetVcpus, _1, units_));
 }
 
 Result Editor::setCpuMask(quint32 ncpus_, const QString& mask_)
@@ -1775,7 +1776,7 @@ Result Editor::setCpuMask(quint32 ncpus_, const QString& mask_)
 
 	for (unsigned n = 0; n < ncpus_; ++n)
 	{
-		if (do_(m_domain.data(),
+		if (do_(getDomain().data(),
 				boost::bind(&virDomainPinVcpuFlags,
 					_1, n, (unsigned char*)cpumap, sizeof(cpumap),
 					VIR_DOMAIN_VCPU_LIVE)).isFailed())
@@ -1792,7 +1793,7 @@ Result Editor::setNodeMask(const QString& mask_)
 	param.add(VIR_DOMAIN_NUMA_NODESET, mask_);
 	Parameters::Result_type p = param.extract();
 
-	return do_(m_domain.data(), boost::bind(&virDomainSetNumaParameters,
+	return do_(getDomain().data(), boost::bind(&virDomainSetNumaParameters,
 			_1, p.first.data(), p.second, VIR_DOMAIN_AFFECT_LIVE));
 }
 
@@ -1805,7 +1806,7 @@ Result Editor::plug(const T& device_)
 	if (x.isFailed())
 		return x.error();
 
-	return Hotplug(m_domain).attach(x.value());
+	return Hotplug(getDomain()).attach(x.value());
 }
 template Result Editor::plug<CVmHardDisk>(const CVmHardDisk& device_);
 template Result Editor::plug<CVmSerialPort>(const CVmSerialPort& device_);
@@ -1822,7 +1823,24 @@ Result Editor::unplug(const T& device_)
 	if (x.isFailed())
 		return x.error();
 
-	return Hotplug(m_domain).detach(x.value());
+	QString a = device_.getAlias();
+	Vm::Completion::Hotplug::feedback_type p(new boost::promise<void>());
+	boost::future<void> w = p->get_future();
+	QScopedPointer<Vm::Completion::Hotplug> g(new Vm::Completion::Hotplug(getDomain().data(), a, p));
+	int m = virConnectDomainEventRegisterAny(getLink().data(),
+		getDomain().data(), VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED,
+		VIR_DOMAIN_EVENT_CALLBACK(Vm::Completion::Hotplug::react),
+		g.data(), &Callback::Plain::delete_<Vm::Completion::Hotplug>);
+	if (-1 == m)
+		return Failure(PRL_ERR_FAILURE);
+
+	g.take();
+	Result output = Hotplug(getDomain()).detach(x.value());
+	if (output.isSucceed())
+		w.get();
+
+	virConnectDomainEventDeregisterAny(getLink().data(), m);
+	return output;
 }
 template Result Editor::unplug<CVmHardDisk>(const CVmHardDisk& device_);
 template Result Editor::unplug<CVmSerialPort>(const CVmSerialPort& device_);
@@ -1837,7 +1855,7 @@ Result Editor::update(const T& device_)
 	if (x.isFailed())
 		return x.error();
 
-	return Hotplug(m_domain).update(x.value());
+	return Hotplug(getDomain()).update(x.value());
 }
 template Result Editor::update<CVmFloppyDisk>(const CVmFloppyDisk& device_);
 template Result Editor::update<CVmOpticalDisk>(const CVmOpticalDisk& device_);
