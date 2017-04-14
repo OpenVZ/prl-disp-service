@@ -162,21 +162,6 @@ inline IOServer* setup(IOServer* server_)
 	return server_;
 }
 
-#ifdef _LIN_
-int handle(const storage_descriptor_t* unit_, void* data_)
-{
-	QStringList* d = reinterpret_cast<QStringList* >(data_);
-	if (NULL != d && unit_ != NULL)
-	{
-		QString p("/proc/self/fd/");
-		p += QString::number(reinterpret_cast<intptr_t>(unit_->internal));
-		QString t = QFile::symLinkTarget(p);
-		if (!t.isEmpty())
-			*d << t;
-	}
-	return ENUM_CONTINUE;
-}
-#endif // _LIN_
 } // namespace
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -537,9 +522,6 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 #ifdef _CT_
 	m_pVzHelper = SmartPtr<CDspVzHelper>(new CDspVzHelper(*this, b));
 #endif
-
-	// initialize storage with NULL, it will be created on demand
-	m_base_perfstorage.storage = NULL ;
 
 	m_strServerUuidFromCorruptedDispConfig.clear();
 	PRL_ASSERT( m_pVmManagerHandler && dynamic_cast<CDspVmManager*>( m_pVmManagerHandler.getImpl()) );
@@ -2817,18 +2799,6 @@ bool CDspService::initNetworkConfig( bool bNotifyNetworkService )
 QString CDspService::makeBackupSuffix()
 {
 	return QString( ".BACKUP." ) + QDateTime::currentDateTime().toString( "yyyy-MM-dd_hh-mm-ss" );
-}
-
-ProcPerfStoragesContainer* CDspService::getPerfStorageContainer()
-{
-	return &m_perfstorage_container ;
-}
-
-storage_descriptor_t CDspService::getBasePerfStorage()
-{
-	if (!m_base_perfstorage.storage)
-		m_base_perfstorage = m_perfstorage_container.AddNewStorage("disp_server") ;
-	return m_base_perfstorage ;
 }
 
 QString CDspService::getHostOsVersion() const

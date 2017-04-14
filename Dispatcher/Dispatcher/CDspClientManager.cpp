@@ -54,39 +54,13 @@ using namespace Parallels;
 /*****************************************************************************/
 
 CDspClientManager::CDspClientManager(CDspService& service_, const Backup::Task::Launcher& backup_):
-	CDspHandler(IOService::IOSender::Client, "ClientHandler"),
-	dsp_commands(NULL), dsp_error_commands(NULL), m_service(&service_),
+	CDspHandler(IOService::IOSender::Client, "ClientHandler"), m_service(&service_),
 	m_backup(backup_)
 {
 }
 
-static inline counter_t* create_counter(const storage_descriptor_t &sd, const char *c_name, counter_ptr *result)
-{
-    if (*result)
-        return *result ;
-
-    int err = perf_add_counter(sd.storage, c_name, result) ;
-    PRL_ASSERT( err == ERR_NO_ERROR ) ;
-    PRL_ASSERT( *result ) ;
-
-    return *result ;
-}
-
 void CDspClientManager::init ()
 {
-	/*****************************************************************************************
-	 * $PERF$ "mgmt.commands"
-	 * Total count of management commands, recieved by Dispatcher
-	 *****************************************************************************************/
-    create_counter(m_service->getBasePerfStorage(),
-		PERF_COUNT_TYPE_INC "mgmt.commands", &dsp_commands) ;
-
-	/*****************************************************************************************
-	 * $PERF$ "mgmt.error_commands"
-	 * Total count of failed management commands, recieved by Dispatcher
-	 *****************************************************************************************/
-    create_counter(m_service->getBasePerfStorage(),
-		PERF_COUNT_TYPE_INC "mgmt.error_commands", &dsp_error_commands) ;
 }
 
 SmartPtr<CDspClient> CDspClientManager::getUserSession (
@@ -308,8 +282,6 @@ void CDspClientManager::handleToDispatcherPackage (
 		return;
 
 	}while(0);
-
- 	PERF_COUNT_ATOMIC_INC( dsp_commands ) ;
 
 	switch( p->header.type )
 	{
@@ -824,7 +796,6 @@ void CDspClientManager::handleToDispatcherPackage (
 	{
 		// Send error
 		m_service->sendSimpleResponseToClient(h, p, PRL_ERR_UNIMPLEMENTED);
-		PERF_COUNT_ATOMIC_INC(dsp_error_commands);
 		return;
 	}
 }

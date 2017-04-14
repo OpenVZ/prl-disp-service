@@ -44,8 +44,6 @@
 #include "CDspVmDirManager.h"
 #include "CDspAccessManager.h"
 
-#include "Libraries/PerfCount/PerfLib/PerfCounter.h"
-
 class CDspService;
 
 class CDspClientManager : public CDspHandler
@@ -200,9 +198,6 @@ private:
 	typedef QSet< IOSender::Handle >	handle_set;
 	handle_set	m_setLogonClients;
 	handle_set  m_preAuthorizedSessions;
-
-	counter_t * dsp_commands ;
-	counter_t * dsp_error_commands ;
 
 	CDspService* m_service;
 	Backup::Task::Launcher m_backup;

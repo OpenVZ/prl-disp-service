@@ -49,7 +49,6 @@
 #include "CDspVmSuspendHelper.h"
 #include <prlxmlmodel/DispConfig/CDispCpuPreferences.h>
 
-#include "Libraries/PerfCount/PerfLib/PerfCounter.h"
 
 namespace DspVm
 {

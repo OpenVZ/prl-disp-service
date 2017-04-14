@@ -46,8 +46,6 @@
 #include "CDspVmSuspendHelper.h"
 #include <prlxmlmodel/DispConfig/CDispCpuPreferences.h>
 
-#include "Libraries/PerfCount/PerfLib/PerfCounter.h"
-
 using namespace IOService;
 
 /** Header classes predefines */
