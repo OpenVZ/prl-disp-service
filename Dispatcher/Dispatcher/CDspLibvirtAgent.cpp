@@ -991,11 +991,10 @@ Guest::getAgentVersion(int retries)
 	boost::property_tree::ptree result;
 	try {
 		boost::property_tree::json_parser::read_json(is, result);
-	} catch (const boost::property_tree::json_parser::json_parser_error&) {
+		return QString::fromStdString(result.get<std::string>("return.version"));
+	} catch (const std::exception &) {
 		return Libvirt::Agent::Failure(PRL_ERR_FAILURE);
 	}
-
-	return QString::fromStdString(result.get<std::string>("return.version"));
 }
 
 Prl::Expected<QString, Error::Simple>
