@@ -988,8 +988,8 @@ Guest::getAgentVersion(int retries)
 
 	// read_json is not thread safe
 	QMutexLocker locker(getBoostJsonLock());
-	boost::property_tree::ptree result;
 	try {
+		boost::property_tree::ptree result;
 		boost::property_tree::json_parser::read_json(is, result);
 		return QString::fromStdString(result.get<std::string>("return.version"));
 	} catch (const std::exception &) {
@@ -1067,12 +1067,9 @@ Exec::Exec::getCommandStatus(int pid)
 	boost::property_tree::ptree result;
 	try {
 		boost::property_tree::json_parser::read_json(is, result);
-	} catch (const boost::property_tree::json_parser::json_parser_error&) {
-		return Libvirt::Agent::Failure(PRL_ERR_FAILURE);
-	}
+		if (!result.get<bool>("return.exited"))
+			return boost::optional<Result>();
 
-	bool exited = result.get<bool>("return.exited");
-	if (exited) {
 		Result st;
 		st.exitcode = result.get<int>("return.signal", -1);
 		if (st.exitcode != -1) {
@@ -1088,8 +1085,9 @@ Exec::Exec::getCommandStatus(int pid)
 		st.stdErr = QByteArray::fromBase64(s.c_str());
 
 		return boost::optional<Result>(st);
+	} catch (const std::exception&) {
+		return Libvirt::Agent::Failure(PRL_ERR_FAILURE);
 	}
-	return boost::optional<Result>();
 }
 
 Prl::Expected<void, Libvirt::Agent::Failure>
@@ -1125,14 +1123,14 @@ Exec::Exec::runCommand(const Libvirt::Instrument::Agent::Vm::Exec::Request& req)
 
 	// read_json is not thread safe
 	QMutexLocker locker(getBoostJsonLock());
-	boost::property_tree::ptree result;
 	try {
+		boost::property_tree::ptree result;
 		boost::property_tree::json_parser::read_json(is, result);
-	} catch (const boost::property_tree::json_parser::json_parser_error&) {
+		return result.get<int>("return.pid");
+	} catch (const std::exception&) {
 		return Libvirt::Agent::Failure(PRL_ERR_FAILURE);
 	}
 
-	return result.get<int>("return.pid");
 }
 
 QString Exec::Request::getJson() const
