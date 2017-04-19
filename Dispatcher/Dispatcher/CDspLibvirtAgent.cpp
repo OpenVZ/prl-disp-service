@@ -2775,7 +2775,12 @@ Prl::Expected<VtInfo, Error::Simple> Host::getVt() const
 			->getDispatcherSettings()->getCommonPreferences()
 			->getWorkspacePreferences()->getVmGuestCpuLimitType());
 
-	Transponster::Capabilities::Direct d(virConnectGetCapabilities(m_link.data()));
+
+	char *caps = virConnectGetCapabilities(m_link.data());
+	if (caps == NULL)
+		return Failure(PRL_ERR_FAILURE);
+
+	Transponster::Capabilities::Direct d(caps);
 	v.setRequiredCpuFeatures(d.getCpuFeatures());
 	v.setCpuModel(d.getCpuModel());
 
