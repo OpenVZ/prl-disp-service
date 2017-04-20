@@ -150,6 +150,96 @@ PRL_RESULT Stunnel::certificate(QTemporaryFile& dst_) const
 
 } // namespace Api
 
+namespace Socat
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Accept
+
+Accept::result_type Accept::craftInsecure(quint16 port_)
+{
+	return QString("TCP4-LISTEN:").append(QString::number(port_))
+		.append(",reuseaddr,fork,linger=0");
+}
+
+Accept::result_type Accept::operator()(quint16 port_)
+{
+	if (m_key.isNull())
+	{
+		PRL_RESULT e;
+		QSharedPointer<QTemporaryFile> k(new QTemporaryFile());
+		if (PRL_FAILED(e = m_ssl.key(*k)))
+			return e;
+
+		QSharedPointer<QTemporaryFile> c(new QTemporaryFile());
+		if (PRL_FAILED(e = m_ssl.certificate(*c)))
+			return e;
+
+		m_key = k;
+		m_certificate = c;
+	}
+	return QString("OPENSSL-LISTEN:").append(QString::number(port_))
+		.append(",reuseaddr,fork,linger=0,verify=0,pf=ip4")
+		.append(",key=").append(m_key->fileName())
+		.append(",cert=").append(m_certificate->fileName());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Launcher
+
+Launcher::Launcher(): m_accept(boost::bind(&Accept::craftInsecure, _1))
+{
+}
+
+Launcher::Launcher(const Api::Stunnel& ssl_): m_accept(boost::bind(Accept(ssl_), _1))
+{
+}
+
+Launcher& Launcher::setTarget(const QHostAddress& address_, quint16 port_)
+{
+	switch (address_.protocol())
+	{
+	case QAbstractSocket::IPv4Protocol:
+		m_target = QStringList() << QString("TCP4:")
+			.append(QHostAddress(QHostAddress::LocalHost).toString())
+			.append(":").append(QString::number(port_));
+		break;
+	case QAbstractSocket::IPv6Protocol:
+		m_target = QStringList() << QString("TCP6:[")
+			.append(QHostAddress(QHostAddress::LocalHostIPv6).toString())
+			.append("]:").append(QString::number(port_));
+		break;
+	default:
+		m_target.clear();
+	}
+	return *this;
+}
+
+PRL_RESULT Launcher::operator()(quint16 accept_, QProcess& process_)
+{
+	if (m_target.isEmpty())
+		return PRL_ERR_UNINITIALIZED;
+
+	Accept::result_type a = m_accept(accept_);
+	if (a.isFailed())
+		return a.error();
+
+	process_.start("/usr/bin/socat", QStringList() << "-d" << "-d"
+		<< "-lyuser" << a.value() << m_target);
+	if (!process_.waitForStarted(WAIT_VNC_SERVER_TO_START_OR_STOP_PROCESS))
+	{
+		WRITE_TRACE(DBG_FATAL, "Error: can't start socat");
+		return PRL_ERR_FAILED_TO_START_VNC_SERVER;
+	}
+	if (process_.waitForFinished(WAIT_TO_EXIT_VNC_SERVER_AFTER_START))
+	{
+		WRITE_TRACE(DBG_FATAL, "Error: the socat has quitted unexectedly");
+		return PRL_ERR_UNEXPECTED;
+	}
+	return PRL_ERR_SUCCESS;
+}
+
+} // namespace Socat
+
 namespace Secure
 {
 namespace Launch
@@ -182,8 +272,8 @@ void Sweeper::cleanup(QTcpSocket* victim_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Subject
 
-Subject::Subject(quint16 peer_, const Api::Stunnel& api_):
-	m_peer(peer_), m_accept(), m_api(api_)
+Subject::Subject(quint16 peer_, const Socat::Launcher& launcher_):
+	m_peer(peer_), m_accept(), m_launcher(launcher_)
 {
 }
 
@@ -203,10 +293,7 @@ PRL_RESULT Subject::startStunnel(quint16 begin_, quint16 end_)
 			continue;
 
 		m_stunnel.reset(new QProcess());
-		QString c = QString("%1:%2")
-				.arg(QHostAddress(QHostAddress::LocalHostIPv6).toString())
-				.arg(m_peer);
-		if (PRL_SUCCEEDED(Component::Stunnel(p, c, m_api).do_(*m_stunnel)))
+		if (PRL_SUCCEEDED(m_launcher(p, *m_stunnel)))
 		{
 			m_accept = p;
 			return PRL_ERR_SUCCESS;
@@ -314,10 +401,13 @@ void Frontend::operator()(CVmConfiguration& object_, const CVmConfiguration& run
 		return;
 
 	QByteArray c, k;
-	if (!Vnc::Encryption(*(m_service->getQSettings().getPtr())).state(k, c))
-		return;
-
-	a->setEncrypted(true);
+	Socat::Launcher u;
+	if (Vnc::Encryption(*(m_service->getQSettings().getPtr())).state(k, c))
+	{
+		u = Socat::Launcher(Vnc::Api::Stunnel(k, c));
+		a->setEncrypted(true);
+	}
+	u.setTarget(QHostAddress(b->getHostName()), b->getPortNumber());
 	Launch::Backend::range_type d(b->getPortNumber(), b->getPortNumber());
 	if (PRD_AUTO == b->getMode())
 	{
@@ -330,8 +420,7 @@ void Frontend::operator()(CVmConfiguration& object_, const CVmConfiguration& run
 	}
 	QRunnable* q = new Launch::Backend(boost::bind(
 			boost::factory<Launch::Subject* >(),
-				b->getPortNumber(),
-				Vnc::Api::Stunnel(k, c)), d,
+				b->getPortNumber(), u), d,
 				Launch::SetPort(m_commit, &Traits::configure));
 	q->setAutoDelete(true);
 	QThreadPool::globalInstance()->start(q);
@@ -339,13 +428,13 @@ void Frontend::operator()(CVmConfiguration& object_, const CVmConfiguration& run
 	if (b->getWebSocketPortNumber() == b->getPortNumber())
 		return;
 
+	u.setTarget(QHostAddress(b->getHostName()), b->getWebSocketPortNumber());
 	// Start from auto-assigned and to max.
 	d = Launch::Backend::range_type(
 			b->getWebSocketPortNumber(), b->getWebSocketPortNumber());
 	q = new Launch::Backend(boost::bind(
 			boost::factory<Launch::Subject* >(),
-				b->getWebSocketPortNumber(),
-				Vnc::Api::Stunnel(k, c)), d,
+				b->getWebSocketPortNumber(), u), d,
 				Launch::SetPort(m_commit, &Traits::configureWS));
 	q->setAutoDelete(true);
 	QThreadPool::globalInstance()->start(q);
