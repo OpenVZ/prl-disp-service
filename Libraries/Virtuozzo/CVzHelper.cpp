@@ -1451,6 +1451,19 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 	if (olddesc != desc)
 		 vzctl2_env_set_description(new_param, QSTR2UTF8(desc));
 
+	// UB resoureces
+	BOOST_FOREACH(const ub_res_id_map& x, __ub_res_map) {
+		CCtResource *pResOld = pOldConfig->getCtSettings()->getResource(x.sdk);
+		CCtResource *pRes = pConfig->getCtSettings()->getResource(x.sdk);
+		if (is_ub_resource_changed(pResOld, pRes)) {
+			struct vzctl_2UL_res res;
+			res.b = pRes->getBarrier();
+			res.l = pRes->getLimit();
+			vzctl2_env_set_ub_resource(new_param, x.vz, &res);
+		}
+	}
+
+	// NB: overwrite UB physpages limit
 	const CVmMemory *old_mem = pOldConfig->getVmHardwareList()->getMemory();
 	const CVmMemory *mem = pConfig->getVmHardwareList()->getMemory();
 	if (old_mem->getRamSize() != mem->getRamSize() &&
@@ -1469,17 +1482,7 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 		vzctl2_env_set_memguarantee(new_param, &g);
 	}
 
-	// UB resoureces
-	BOOST_FOREACH(const ub_res_id_map& x, __ub_res_map) {
-		CCtResource *pResOld = pOldConfig->getCtSettings()->getResource(x.sdk);
-		CCtResource *pRes = pConfig->getCtSettings()->getResource(x.sdk);
-		if (is_ub_resource_changed(pResOld, pRes)) {
-			struct vzctl_2UL_res res;
-			res.b = pRes->getBarrier();
-			res.l = pRes->getLimit();
-			vzctl2_env_set_ub_resource(new_param, x.vz, &res);
-		}
-	}
+
 	// QUOTAUGIDLIMIT
 	CCtResource *pResOld = pOldConfig->getCtSettings()->
 					getResource(PCR_QUOTAUGIDLIMIT);
