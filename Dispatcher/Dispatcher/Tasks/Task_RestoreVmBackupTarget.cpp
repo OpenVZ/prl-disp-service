@@ -493,7 +493,7 @@ PRL_RESULT Assistant::operator()(const QString& image_, const QString& archive_,
 		u = x.value().toString();
 	}
 	QStringList cmdline = QStringList() << QEMU_IMG << "convert" << "-O" << format_
-			<< "-S" << "64k" << "-t" << "none" << "-o" << "cluster_size=1M,lazy_refcounts=on" 
+			<< "-S" << "64k" << "-t" << "none" << "-o" << "lazy_refcounts=on" 
             << u << image_;
 
 	Program::result_type q = Program::execute(cmdline, *m_task);
