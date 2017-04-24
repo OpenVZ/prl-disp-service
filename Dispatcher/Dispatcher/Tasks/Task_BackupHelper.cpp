@@ -536,11 +536,13 @@ Prl::Expected<mode_type, PRL_RESULT> Mode::operator()(Vm&) const
 	if (u.getState().getValue(s).isFailed())
 		return PRL_ERR_VM_UUID_NOT_FOUND;
 
-	if (s == VMS_STOPPED)
-		return mode_type(Stopped(m_uuid));
-	if (m_context->getProduct()->getObject().canFreeze())
-		return mode_type(Frozen(m_context, m_uuid));
-
+	if (!m_context->getProduct()->getObject().getImages().isEmpty())
+	{
+		if (s == VMS_STOPPED)
+			return mode_type(Stopped(m_uuid));
+		if (m_context->getProduct()->getObject().canFreeze())
+			return mode_type(Frozen(m_context, m_uuid));
+	}
 	return mode_type(boost::blank());
 }
 
@@ -799,6 +801,9 @@ QStringList Getter::process(const QString& data_)
 Prl::Expected<QStringList, PRL_RESULT> Getter::operator()(
 		const Activity::Object::Model& activity_, object_type& variant_)
 {
+	if (activity_.getSnapshot().getComponents().isEmpty())
+		return QStringList();
+
 	QString u = m_config->getVmIdentification()->getVmUuid();
 	Prl::Expected<mode_type, PRL_RESULT> m =
 		boost::apply_visitor(Mode(u, m_context), variant_);
