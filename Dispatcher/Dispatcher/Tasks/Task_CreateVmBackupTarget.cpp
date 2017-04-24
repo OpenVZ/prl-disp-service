@@ -668,39 +668,22 @@ void Task_CreateVmBackupTarget::clientDisconnected(IOSender::Handle h)
 PRL_RESULT Task_CreateVmBackupTarget::wasHddListChanged(bool *pbWasChanged)
 {
 	// load hdd list from last full backup config
-	QString x;
-	CVmConfiguration VmConfig;
-	SmartPtr<CVmConfiguration> p;
-	QFileInfo b(getBackupRoot(), PRL_BASE_BACKUP_DIRECTORY);
-	if (0 == (getInternalFlags() & PVM_CT_PLOOP_BACKUP))
+	using namespace Backup::Metadata;
+	Carcass c(getBackupDirectory(), m_sVmUuid);
+	Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> x =
+		Ve(c).loadConfig(m_sBackupUuid,
+			Sequence(m_sBackupUuid, c).getIndex().first());
+	if (x.isFailed())
 	{
-		if (0 == (getInternalFlags() & PVM_CT_VZWIN_BACKUP))
-			x = QDir(b.absoluteFilePath()).absoluteFilePath(VMDIR_DEFAULT_VM_CONFIG_FILE);
-		else
-			x = QDir(b.absoluteFilePath()).absoluteFilePath(VZ_CT_XML_CONFIG_FILE);
-
-		QFile file(x);
-		// load config from base backup with relative path
-		if (PRL_SUCCEEDED(VmConfig.loadFromFile(&file, false)))
-			p = SmartPtr<CVmConfiguration>(&VmConfig, SmartPtrPolicy::DoNotReleasePointee);
-	}
-	else
-	{
-		int y = 0;
-		x = QDir(b.absoluteFilePath()).absoluteFilePath(VZ_CT_CONFIG_FILE);
-		p = CVzHelper::get_env_config_from_file(x, y, VZCTL_LAYOUT_5, true);
-	}
-	if (!p.isValid())
-	{
-		WRITE_TRACE(DBG_FATAL, "Can not load config file %s", QSTR2UTF8(x));
+		WRITE_TRACE(DBG_FATAL, "Can not load config file %s", PRL_RESULT_TO_STRING(x.error()));
 		return PRL_ERR_BACKUP_INTERNAL_ERROR;
 	}
-
 	// Use VmHome from the source #PSBM-54345
-	p->getVmIdentification()->setHomePath(
+	x.value()->getVmIdentification()->setHomePath(
 			m_pVmConfig->getVmIdentification()->getHomePath());
 
-	*pbWasChanged = !::Backup::Object::State(m_pVmConfig).equals(::Backup::Object::State(p));
+	*pbWasChanged = !::Backup::Object::State(m_pVmConfig)
+		.equals(::Backup::Object::State(x.value()));
 	return PRL_ERR_SUCCESS;
 }
 
