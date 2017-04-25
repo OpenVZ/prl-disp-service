@@ -495,7 +495,7 @@ PRL_RESULT Assistant::operator()(const QString& image_, const QString& archive_,
 	QStringList cmdline = QStringList() << QEMU_IMG << "convert" << "-O" << format_
 			<< "-S" << "64k" << "-t" << "none";
 	if (format_ == "qcow2")
-		cmdline << "-o" << "lazy_refcounts=on"; 
+		cmdline << "-o" << "cluster_size=1M,lazy_refcounts=on"; 
 	cmdline << u << image_;
 
 	Program::result_type q = Program::execute(cmdline, *m_task);

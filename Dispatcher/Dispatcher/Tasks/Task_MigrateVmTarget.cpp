@@ -455,7 +455,7 @@ bool Pstorage::createBackedImage(const CVmHardDisk& disk_, const QString& path_)
 {
 	QStringList a;
 	a << "create" << "-f" << "qcow2";
-	a << "-o" << "lazy_refcounts=on";
+	a << "-o" << "cluster_size=1M,lazy_refcounts=on";
 	a << "-b" << disk_.getSystemName();
 	a << "-o" << QString("backing_fmt=%1").arg("qcow2");
 	a << path_;
@@ -667,7 +667,7 @@ void Frontend::create(const CVmHardDisk& event_)
 {
 	QStringList a;
 	a << "create" << "-f" << "qcow2";
-	a << "-o" << "lazy_refcounts=on";
+	a << "-o" << "cluster_size=1M,lazy_refcounts=on";
 	a << event_.getSystemName();
 	a << QString::number(event_.getSize()).append("M");
 
