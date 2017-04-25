@@ -145,7 +145,7 @@ PRL_RESULT Task_RemoveVmBackupSource::run_body()
 	pCommand = CDispToDispProtoSerializer::CreateVmBackupRemoveCommand(m_sVmUuid, m_sBackupId, m_nFlags);
 	pPackage = DispatcherPackage::createInstance(pCommand->GetCommandId(), pCommand->GetCommand()->toString());
 
-	if (PRL_FAILED(nRetCode = SendReqAndWaitReply(pPackage, pReply)))
+	if (PRL_FAILED(nRetCode = SendReqAndWaitReplyLong(pPackage, pReply, ~0U)))
 		goto exit;
 
 	if (pReply->header.type != DispToDispResponseCmd) {
@@ -525,14 +525,7 @@ PRL_RESULT Task_RemoveVmBackupTarget::run_body()
 
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	Prl::Expected<QList<Backup::Remove::action_type>, PRL_RESULT> e = prepare();
-	if (e.isFailed()) {
-		nRetCode = e.error();
-		goto exit;
-	}
-
-	nRetCode = do_(e.value());
-
-exit:
+	nRetCode = e.isFailed() ? e.error() : do_(e.value());
 	if (nRetCode == PRL_ERR_BACKUP_BACKUP_UUID_NOT_FOUND) {
 		if (m_nFlags & PBT_IGNORE_NOT_EXISTS)
 			nRetCode = PRL_ERR_SUCCESS;
