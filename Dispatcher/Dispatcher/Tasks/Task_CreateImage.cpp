@@ -545,7 +545,7 @@ PRL_RESULT Task_CreateImage::createHdd(const CVmHardDisk& dto_)
 
 	QStringList a;
 	a << "create" << "-f" << "qcow2";
-	a << "-o" << "lazy_refcounts=on";
+	a << "-o" << "cluster_size=1M,lazy_refcounts=on";
 	a << strFullPath;
 	a << QString::number(dto_.getSize()).append("M");
 	int r = QProcess::execute("qemu-img", a);
