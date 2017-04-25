@@ -308,7 +308,9 @@ PRL_RESULT Task_CreateVmBackup::doBackup(const QString& source_, ::Backup::Work:
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	nRetCode = backupHardDiskDevices(a, variant_);
+	if (!m_urls.isEmpty())
+		nRetCode = backupHardDiskDevices(a, variant_);
+
 	if (PRL_FAILED(nRetCode))
 		(void)waitForTargetFinished(ABackupProxyCancelCmd, e);
 	else {
