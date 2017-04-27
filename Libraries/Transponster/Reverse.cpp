@@ -715,7 +715,7 @@ namespace Controller
 void List::add(const Libvirt::Domain::Xml::VChoice595& bus_, quint16 index_)
 {
 	Libvirt::Domain::Xml::Driver1 d;
-	d.setIothread(1);
+//	d.setIothread(1);
 	Libvirt::Domain::Xml::Controller x;
 	x.setIndex(index_);
 	x.setDriver(d);
@@ -1502,7 +1502,7 @@ PRL_RESULT Builder::setDevices()
 			<< u.getDevices());
 
 	m_result->setDevices(x);
-	m_result->setIothreads(qMax(t.getAttachment().getControllers().size(), 1));
+//	m_result->setIothreads(qMax(t.getAttachment().getControllers().size(), 1));
 	return PRL_ERR_SUCCESS;
 }
 
