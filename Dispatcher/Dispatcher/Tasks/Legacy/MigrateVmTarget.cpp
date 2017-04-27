@@ -1181,14 +1181,22 @@ void MigrateVmTarget::checkRemoteDisplay()
 	if (NULL == r || r->getMode() != PRD_MANUAL)
 		return;
 
+	PRL_UINT32 base, max;
+	{
+		CDspLockedPointer<CDispCommonPreferences> p = CDspService::
+			instance()->getDispConfigGuard().getDispCommonPrefs();
+		base = p->getRemoteDisplayPreferences()->getBasePort();
+		max = p->getRemoteDisplayPreferences()->getMaxPort();
+	}
+
 	CVmEvent cEvent;
 	cEvent.setEventCode(PRL_ERR_VZ_OPERATION_FAILED);
-	if (r->getPortNumber() < PRL_VM_REMOTE_DISPAY_MIN_PORT)
+	if (r->getPortNumber() < base || r->getPortNumber() > max)
 	{
 		cEvent.addEventParameter(new CVmEventParameter(PVE::String,
-			QString("Dispatcher %1 does not support VNC port numbers smaller than %2.")
+			QString("Dispatcher %1 does not support VNC port %2, supported range %3:%4")
 			.arg(VER_FULL_BUILD_NUMBER_STR)
-			.arg(PRL_VM_REMOTE_DISPAY_MIN_PORT),
+			.arg(r->getPortNumber()).arg(base).arg(max),
 			EVT_PARAM_MESSAGE_PARAM_0));
 	}
 	else
