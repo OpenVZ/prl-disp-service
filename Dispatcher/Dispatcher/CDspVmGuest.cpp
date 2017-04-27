@@ -126,12 +126,12 @@ void Watcher::timerEvent(QTimerEvent *ev_)
 	Prl::Expected<QString, Libvirt::Agent::Failure> r =
 		Libvirt::Kit.vms().at(m_ident.first).getGuest().getAgentVersion(0);
 	if (r.isFailed()) {
-		if (r.error().virErrorCode() == VIR_ERR_OPERATION_INVALID) {
+		if (r.error().getMainCode() == VIR_ERR_OPERATION_INVALID) {
 			// domain is not running
 			deleteLater();
 			return;
 		}
-		if (r.error().virErrorCode() == VIR_ERR_AGENT_UNRESPONSIVE) {
+		if (r.error().getMainCode() == VIR_ERR_AGENT_UNRESPONSIVE) {
 			// agent is not started - retry 5 minutes with 10 secs interval
 			if (++m_count > m_retries) {
 				deleteLater();

@@ -100,17 +100,21 @@ namespace Agent
 ///////////////////////////////////////////////////////////////////////////////
 // struct Failure
 
-Failure::Failure(PRL_RESULT result_): Libvirt::Failure(result_), m_virErrorCode(0)
+Failure::Failure(PRL_RESULT result_): Libvirt::Failure(result_),
+	m_mainCode(), m_extraCode()
 {
 	virErrorPtr err = virGetLastError();
 	if (err)
-		m_virErrorCode = err->code;
+	{
+		m_mainCode = err->code;
+		m_extraCode = err->int1;
+	}
 }
 
 bool Failure::isTransient() const
 {
-	return m_virErrorCode == VIR_ERR_AGENT_UNRESPONSIVE ||
-	       m_virErrorCode == VIR_ERR_AGENT_UNSYNCED;
+	return m_mainCode == VIR_ERR_AGENT_UNRESPONSIVE ||
+	       m_mainCode == VIR_ERR_AGENT_UNSYNCED;
 }
 
 }
@@ -119,17 +123,18 @@ namespace Instrument
 {
 namespace Agent
 {
+typedef Prl::Expected<void, ::Libvirt::Agent::Failure> doResult_type;
 
 template<class T, class U>
-static Result do_(T* handle_, U action_)
+static doResult_type do_(T* handle_, U action_)
 {
 	if (NULL == handle_)
-		return Result(Error::Simple(PRL_ERR_UNINITIALIZED));
+		return ::Libvirt::Agent::Failure(PRL_ERR_UNINITIALIZED);
 
 	if (0 <= action_(handle_))
-		return Result();
+		return doResult_type();
 
-	return Failure(PRL_ERR_FAILURE);
+	return ::Libvirt::Agent::Failure(PRL_ERR_FAILURE);
 }
 
 namespace Vm
@@ -324,7 +329,15 @@ void Abstract::setDomain(virDomainPtr value_)
 
 Result State::kill()
 {
-	return do_(getDomain().data(), boost::bind(&virDomainDestroy, _1));
+	doResult_type output = do_(getDomain().data(), boost::bind(&virDomainDestroy, _1));
+	if (output.isFailed())
+	{
+		if (VIR_ERR_SYSTEM_ERROR == output.error().getMainCode() &&
+			output.error().getExtraCode() == EBUSY)
+			output = ::Libvirt::Agent::Failure(PRL_ERR_TIMEOUT);
+	}
+
+	return output;
 }
 
 Result State::shutdown()

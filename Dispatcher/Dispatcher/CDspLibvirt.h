@@ -101,9 +101,18 @@ struct Failure: ::Libvirt::Failure
 {
 	Failure(PRL_RESULT result_);
 	bool isTransient() const;
-	int virErrorCode() const { return m_virErrorCode; }
+
+	int getMainCode() const
+	{
+		return m_mainCode;
+	}
+	int getExtraCode() const
+	{
+		return m_extraCode;
+	}
+
 private:
-	int m_virErrorCode;
+	int m_mainCode, m_extraCode;
 };
 
 } // namespace Agent
