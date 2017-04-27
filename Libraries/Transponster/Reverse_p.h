@@ -648,59 +648,47 @@ private:
 namespace Controller
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Factory
+// struct List
 
-struct Factory
+struct List
 {
-	typedef Libvirt::Domain::Xml::VChoice946 result_type;
-	Libvirt::Domain::Xml::Controller craft
-		(const Libvirt::Domain::Xml::VChoice595& bus_, quint16 index_);
-	result_type wrap(const Libvirt::Domain::Xml::Controller& object_);
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// class Moldy
-
-class Moldy: Factory
-{
-public: 
-	result_type operator()(Libvirt::Domain::Xml::EType6 bus_, quint16 index_);
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// class Virtio
-
-class Virtio: Factory
-{
-public: 
-	result_type operator()(quint16 index_);
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// class Hyperv
-
-class Hyperv: Factory
-{
-public: 
-	result_type operator()(quint16 index_);
-};
-
-namespace Scsi
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Arrangement
-
-struct Arrangement
-{
-	typedef boost::function<Libvirt::Domain::Xml::VChoice946 (quint16)>
-		factory_type;
-
-	explicit Arrangement(const factory_type& factory_):
-		m_device(), m_controller(), m_factory(factory_)
+	List() : m_scsiIndex()
 	{
 	}
 
-	Libvirt::Domain::Xml::VAddress operator()(deviceList_type& controllers_);
+	void add(const Libvirt::Domain::Xml::VChoice595& bus_, quint16 index_);
+	quint16 addScsi(Libvirt::Domain::Xml::EModel model_);
+
+	const deviceList_type& getResult() const
+	{
+		return m_controllerList;
+	}
+
+private:
+	quint16 m_scsiIndex;
+	deviceList_type m_controllerList;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Scsi
+
+struct Scsi
+{
+	explicit Scsi(Libvirt::Domain::Xml::EModel model_): m_controllerId(), m_deviceCounter(), m_model(model_)
+	{
+	}
+
+	Libvirt::Domain::Xml::VAddress craftSlot(List& controllerList_)
+	{
+		quint16 t = m_deviceCounter % MAX_TARGETS;
+		if (0 == t)
+		{
+			m_controllerId = controllerList_.addScsi(m_model);
+		}
+
+		m_deviceCounter++;
+		return Address().setTarget(t)(m_controllerId);
+	}
 
 private:
 	enum
@@ -708,30 +696,11 @@ private:
 		MAX_TARGETS = 256
 	};
 
-	quint16 m_device;
-	quint16 m_controller;
-	factory_type m_factory;
+	quint16 m_controllerId;
+	quint16 m_deviceCounter;
+	const Libvirt::Domain::Xml::EModel m_model;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Bus
-
-struct Bus
-{
-	Bus();
-
-	const deviceList_type& getControllers() const
-	{
-		return m_controllers;
-	}
-	Libvirt::Domain::Xml::VAddress operator()(Libvirt::Domain::Xml::EModel model_);
-
-private:
-	Arrangement m_hyperv, m_virtio;
-	deviceList_type m_controllers;
-};
-
-} // namespace Scsi
 } // namespace Controller
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -739,11 +708,18 @@ private:
 
 struct Attachment
 {
+	explicit Attachment() : m_controllerList(), m_virtioScsi(Libvirt::Domain::Xml::EModelVirtioScsi),
+							m_hypervScsi(Libvirt::Domain::Xml::EModelHvScsi)
+	{
+	}
 	Libvirt::Domain::Xml::VAddress craftIde(quint32 index_);
 	Libvirt::Domain::Xml::VAddress craftSata(quint32 index_);
 	Libvirt::Domain::Xml::VAddress craftScsi
 		(const boost::optional<Libvirt::Domain::Xml::EModel>& model_);
-	deviceList_type getControllers() const;
+	deviceList_type getControllers() const
+	{
+		return m_controllerList.getResult();
+	}
 
 private:
 	enum
@@ -753,9 +729,9 @@ private:
 		SATA_UNITS = 6
 	};
 
-	Controller::Moldy m_moldy;
-	Controller::Scsi::Bus m_scsi;
-	deviceList_type m_controllers;
+	Controller::List m_controllerList;
+	Controller::Scsi m_virtioScsi;
+	Controller::Scsi m_hypervScsi;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
