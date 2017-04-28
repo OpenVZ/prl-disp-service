@@ -1048,8 +1048,7 @@ void CVmValidateConfig::CheckRemoteDisplay()
 	}
 
 	if (pRemoteDisplay->getMode() == PRD_MANUAL &&
-	       (pRemoteDisplay->getPortNumber() < base ||
-		pRemoteDisplay->getPortNumber() > max))
+			pRemoteDisplay->getPortNumber() < base)
 	{
 		m_lstResults += PRL_ERR_REMOTE_DISPLAY_WRONG_PORT_NUMBER;
 		m_mapParameters.insert(m_lstResults.size(), QStringList()
