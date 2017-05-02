@@ -166,8 +166,14 @@ void Switch::run()
 	Config::run();
 	State s;
 	s.read(m_agent);
-	if (VMS_STOPPED == s.getValue())
-		s.apply(m_view);
+	switch (s.getValue())
+	{
+	case VMS_PAUSED:
+	case VMS_STOPPED:
+		return (void)s.apply(m_view);
+	default:
+		break;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
