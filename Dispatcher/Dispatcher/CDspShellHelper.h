@@ -60,12 +60,10 @@ class CDspShellHelper : public QObject
 {
 public:
 
-	// constructor
-	CDspShellHelper(Registry::Public& registry_): m_registry(registry_)
+	explicit CDspShellHelper(Registry::Public& registry_): m_registry(registry_)
 	{
 	}
 
-	// destructor
 	~CDspShellHelper();
 
 	// cancel command
@@ -194,6 +192,7 @@ private:
 
 	void fixPrlServicesInEtcHosts(const QStringList& keys);
 
+	QMutex m_mutex;
 	Registry::Public& m_registry;
 }; // class CDspShellHelper
 
