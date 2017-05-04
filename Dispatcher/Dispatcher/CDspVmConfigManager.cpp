@@ -119,7 +119,6 @@ void Unencrypted::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 	{
 		x->setPortNumber(y->getPortNumber());
 		x->setWebSocketPortNumber(y->getWebSocketPortNumber());
-		x->setHostName(y->getHostName());
 	}
 }
 

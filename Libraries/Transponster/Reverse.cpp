@@ -853,9 +853,7 @@ void List::add(const CVmRemoteDisplay* vnc_)
 	v.setPort(vnc_->getPortNumber());
 	// Websocket port auto-allocation must be explicit.
 	v.setWebsocket(-1);
-	v.setListen(vnc_->isEncrypted() ?
-		QHostAddress(QHostAddress::LocalHostIPv6).toString() :
-		vnc_->getHostName());
+	v.setListen(QHostAddress(QHostAddress::LocalHostIPv6).toString());
 	if (PRD_AUTO == vnc_->getMode())
 		v.setAutoport(Libvirt::Domain::Xml::EVirYesNoYes);
 

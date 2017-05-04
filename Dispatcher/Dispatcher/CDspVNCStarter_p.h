@@ -244,6 +244,46 @@ private:
 
 } // namespace Starter
 
+namespace Socat
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Accept
+
+struct Accept
+{
+	typedef Prl::Expected<QString, PRL_RESULT> result_type;
+
+	explicit Accept(const Api::Stunnel& ssl_): m_ssl(ssl_)
+	{
+	}
+
+	result_type operator()(quint16 port_);
+	static result_type craftInsecure(quint16 port_);
+
+private:
+	Api::Stunnel m_ssl;
+	QSharedPointer<QTemporaryFile> m_key;
+	QSharedPointer<QTemporaryFile> m_certificate;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Launcher
+
+struct Launcher
+{
+	Launcher();
+	explicit Launcher(const Api::Stunnel& ssl_);
+
+	PRL_RESULT operator()(quint16 accept_, QProcess& process_);
+	Launcher& setTarget(const QHostAddress& address_, quint16 port_);
+
+private:
+	QStringList m_target;
+	boost::function<Accept::result_type (quint16) > m_accept;
+};
+
+} // namespace Socat
+
 namespace Secure
 {
 typedef ::Vm::Config::Edit::Atomic commit_type;
@@ -295,7 +335,7 @@ struct Sweeper
 
 struct Subject
 {
-	Subject(quint16 peer_, const Api::Stunnel& api_);
+	Subject(quint16 peer_, const Socat::Launcher& launcher_);
 
 	PRL_RESULT bringUpKeepAlive();
 	PRL_RESULT startStunnel(quint16 begin_, quint16 end_);
@@ -304,7 +344,7 @@ struct Subject
 private:
 	quint16 m_peer;
 	quint16 m_accept;
-	Api::Stunnel m_api;
+	Socat::Launcher m_launcher;
 	QScopedPointer<QProcess, Sweeper> m_stunnel;
 	QScopedPointer<QTcpSocket, Sweeper> m_keepAlive;
 };
