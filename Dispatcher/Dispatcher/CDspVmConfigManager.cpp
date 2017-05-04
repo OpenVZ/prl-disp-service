@@ -89,19 +89,19 @@ void Nvram::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 namespace RemoteDisplay
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Encrypted
+// struct Pivot
 
-void Encrypted::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+void Pivot::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
 	CVmRemoteDisplay* x = Vnc::Traits::purify(&old_);
-	if (NULL == x || !x->isEncrypted())
+	if (NULL == x)
 		return;
 
 	CVmRemoteDisplay* y = Vnc::Traits::purify(&new_);
 	if (NULL != y)
 	{
-		y->setEncrypted(true);
 		y->setHostName(x->getHostName());
+		y->setEncrypted(x->isEncrypted());
 	}
 }
 
@@ -117,6 +117,7 @@ void Unencrypted::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 	CVmRemoteDisplay* y = Vnc::Traits::purify(&new_);
 	if (NULL != y)
 	{
+		x->setHostName(y->getHostName());
 		x->setPortNumber(y->getPortNumber());
 		x->setWebSocketPortNumber(y->getWebSocketPortNumber());
 	}

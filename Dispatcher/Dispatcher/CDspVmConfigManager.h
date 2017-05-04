@@ -99,9 +99,9 @@ struct Nvram
 namespace RemoteDisplay
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Encrypted
+// struct Pivot
 
-struct Encrypted
+struct Pivot
 {
 	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
@@ -353,7 +353,7 @@ struct Reviser<N, void>
 typedef boost::mpl::vector<RemoteDisplay::Unencrypted, Nvram, Patch::Alias> revise_types;
 typedef boost::mpl::vector<Identification, OsInfo, RuntimeOptions, GlobalNetwork,
 		Patch::Index, Cpu::Copy, NetworkDevices, HardDisks, OpticalDisks, Patch::State,
-		MemoryOptions, HighAvailability, Tools, RemoteDisplay::Encrypted>
+		MemoryOptions, HighAvailability, Tools, RemoteDisplay::Pivot>
 		untranslatable_types;
 
 ///////////////////////////////////////////////////////////////////////////////
