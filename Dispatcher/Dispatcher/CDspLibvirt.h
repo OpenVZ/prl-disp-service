@@ -198,41 +198,6 @@ private:
 	QSharedPointer<virDomain> m_domain;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Editor
-
-struct Editor
-{
-	explicit Editor(const QSharedPointer<virDomain>& domain_, quint32 flags_)
-		: m_domain(domain_), m_flags(flags_)
-	{
-	}
-
-	Result setPerCpuLimit(quint32 limit_, quint32 period_);
-	Result setGlobalCpuLimit(quint32 limit_, quint32 period_);
-	Result setIoLimit(const CVmHardDisk& disk_, quint32 limit_);
-	Result setIopsLimit(const CVmHardDisk& disk_, quint32 limit_);
-	Result setIoPriority(quint32 ioprio_);
-	Result setCpuUnits(quint32 units_);
-	Result setCpuCount(quint32 count_);
-	Result setCpuMask(quint32 ncpus_, const QString& mask_);
-	Result setNodeMask(const QString& mask_);
-
-	template<class T>
-	Result plug(const T& device_);
-	template<class T>
-	Result unplug(const T& device_);
-	template<class T>
-	Result update(const T& device_);
-
-private:
-	Result setCpuLimit(quint32 globalLimit_, quint32 limit_, quint32 period_);
-	Result setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_);
-
-	QSharedPointer<virDomain> m_domain;
-	quint32 m_flags;
-};
-
 namespace Block
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -611,6 +576,40 @@ struct Maintenance: private Abstract
 };
 
 } // namespace Limb
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Editor
+
+struct Editor: private Limb::Abstract
+{
+	explicit Editor(const domainReference_type& domain_, quint32 flags_)
+		: Limb::Abstract(domain_), m_flags(flags_)
+	{
+	}
+
+	Result setPerCpuLimit(quint32 limit_, quint32 period_);
+	Result setGlobalCpuLimit(quint32 limit_, quint32 period_);
+	Result setIoLimit(const CVmHardDisk& disk_, quint32 limit_);
+	Result setIopsLimit(const CVmHardDisk& disk_, quint32 limit_);
+	Result setIoPriority(quint32 ioprio_);
+	Result setCpuUnits(quint32 units_);
+	Result setCpuCount(quint32 count_);
+	Result setCpuMask(quint32 ncpus_, const QString& mask_);
+	Result setNodeMask(const QString& mask_);
+
+	template<class T>
+	Result plug(const T& device_);
+	template<class T>
+	Result unplug(const T& device_);
+	template<class T>
+	Result update(const T& device_);
+
+private:
+	Result setCpuLimit(quint32 globalLimit_, quint32 limit_, quint32 period_);
+	Result setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_);
+
+	quint32 m_flags;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit

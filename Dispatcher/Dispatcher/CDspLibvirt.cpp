@@ -281,6 +281,78 @@ Result_type Builder::extract()
 
 namespace Vm
 {
+namespace Completion
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Hotplug
+
+Hotplug::Hotplug(virDomainPtr match_, const QString& device_,
+	const feedback_type& feedback_): m_feedback(feedback_),
+	m_match(Model::Coarse::getUuid(match_), device_)
+{
+}
+
+void Hotplug::operator()()
+{
+	m_feedback->set_value();
+}
+
+int Hotplug::react(virConnectPtr, virDomainPtr domain_,
+	const char* device_, void* opaque_)
+{
+	Hotplug* x = reinterpret_cast<Hotplug* >(opaque_);
+	if (NULL == x)
+		return -1;
+
+	if (QPair<QString, QString>(Model::Coarse::getUuid(domain_), device_) == x->m_match)
+		(*x)();
+
+	return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Migration
+
+Migration::Migration(virDomainPtr match_, const feedback_type& feedback_):
+	m_match(Model::Coarse::getUuid(match_)), m_feedback(feedback_)
+{
+}
+
+int Migration::operator()(virTypedParameterPtr params_, int paramsCount_)
+{
+	quint64 v = 0;
+	int output = virTypedParamsGetULLong(params_, paramsCount_,
+			VIR_DOMAIN_JOB_DOWNTIME, &v);
+	if (0 > output)
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot extract migration downtime value");
+		if (!m_feedback.isNull())
+			m_feedback->set_value(~0);
+	}
+	else if (m_feedback.isNull())
+		WRITE_TRACE(DBG_DEBUG, "Total migration downtime %-12llu ms", v);
+	else
+		m_feedback->set_value(v);
+	
+	return output;
+}
+
+int Migration::react(virConnectPtr, virDomainPtr domain_,
+	virTypedParameterPtr params_, int paramsCount_, void *opaque_)
+{
+	Migration* x = reinterpret_cast<Migration* >(opaque_);
+	if (NULL == x)
+		return -1;
+
+	int output = 0;
+	if (Model::Coarse::getUuid(domain_) == x->m_match)
+		output = (*x)(params_, paramsCount_);
+
+	return output;
+}
+
+} // namespace Completion
+
 namespace Migration
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -336,47 +408,6 @@ Result Bandwidth::operator()(Parameters::Builder& builder_)
 		return Failure(PRL_ERR_FAILURE);
 
 	return Result();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Completion
-
-Completion::Completion(virDomainPtr match_, const feedback_type& feedback_):
-	m_match(Model::Coarse::getUuid(match_)), m_feedback(feedback_)
-{
-}
-
-int Completion::operator()(virTypedParameterPtr params_, int paramsCount_)
-{
-	quint64 v = 0;
-	int output = virTypedParamsGetULLong(params_, paramsCount_,
-			VIR_DOMAIN_JOB_DOWNTIME, &v);
-	if (0 > output)
-	{
-		WRITE_TRACE(DBG_FATAL, "Cannot extract migration downtime value");
-		if (!m_feedback.isNull())
-			m_feedback->set_value(~0);
-	}
-	else if (m_feedback.isNull())
-		WRITE_TRACE(DBG_DEBUG, "Total migration downtime %-12llu ms", v);
-	else
-		m_feedback->set_value(v);
-	
-	return output;
-}
-
-int Completion::react(virConnectPtr, virDomainPtr domain_,
-	virTypedParameterPtr params_, int paramsCount_, void *opaque_)
-{
-	Completion* x = reinterpret_cast<Completion* >(opaque_);
-	if (NULL == x)
-		return -1;
-
-	int output = 0;
-	if (Model::Coarse::getUuid(domain_) == x->m_match)
-		output = (*x)(params_, paramsCount_);
-
-	return output;
 }
 
 namespace Qemu
@@ -1115,7 +1146,6 @@ int deviceConnect(virConnectPtr , virDomainPtr domain_, const char *device_,
 	void *opaque_)
 {
 	Q_UNUSED(device_);
-	Q_UNUSED(domain_);
 	Q_UNUSED(opaque_);
 /*
 	// XXX: enable this for vme* devices when network device hotplug is fixed
@@ -1127,6 +1157,7 @@ int deviceConnect(virConnectPtr , virDomainPtr domain_, const char *device_,
 		Instrument::Traffic::Accounting(c.getVmIdentification()->getVmUuid())(device_);
 	}
 */
+	Model::Coarse::emitDefined(domain_);
 	return 0;
 }
 
@@ -1135,6 +1166,7 @@ int deviceDisconnect(virConnectPtr , virDomainPtr domain_, const char* device_,
 {
 	Model::Coarse* v = (Model::Coarse* )opaque_;
 	v->disconnectDevice(domain_, device_);
+	v->emitDefined(domain_);
 	return 0;
 }
 
@@ -1358,6 +1390,14 @@ QString Coarse::getUuid(virDomainPtr domain_)
 	virDomainRef(domain_);
 	Instrument::Agent::Vm::Unit(domain_).getUuid(output);
 	return output;
+}
+
+void Coarse::emitDefined(virDomainPtr domain_)
+{
+	namespace agent = Libvirt::Instrument::Agent::Vm::Limb;
+	virDomainRef(domain_);
+	agent::Maintenance(agent::Abstract::domainReference_type(domain_))
+		.emitDefined();
 }
 
 bool Coarse::show(virDomainPtr domain_, const Domain::reaction_type& reaction_)

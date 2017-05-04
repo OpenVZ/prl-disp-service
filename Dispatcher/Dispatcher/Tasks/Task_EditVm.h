@@ -92,7 +92,6 @@ private:
 	// Prepare applying new config to a running VM.
 	void applyVmConfig(
 		SmartPtr<CDspClient>,
-		SmartPtr<CVmConfiguration> pVmConfigNew,
 		SmartPtr<CVmConfiguration> pVmConfigOld,
 		const SmartPtr<IOPackage>& pkg );
 

@@ -404,11 +404,13 @@ struct Coarse
 	void remove(virDomainPtr domain_);
 	void pullInfo(virDomainPtr domain_);
 
-	static QString getUuid(virDomainPtr domain_);
 	void disconnectDevice(virDomainPtr domain_, const QString& alias_);
 	void adjustClock(virDomainPtr domain_, qint64 offset_);
 	void onCrash(virDomainPtr domain_);
 	void updateInterfaces(virNetworkPtr domain_);
+
+	static QString getUuid(virDomainPtr domain_);
+	static void emitDefined(virDomainPtr domain_);
 
 private:
 	QSharedPointer<System> m_fine;
@@ -705,6 +707,47 @@ private:
 
 namespace Vm
 {
+namespace Completion
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Hotplug
+
+struct Hotplug
+{
+	typedef QSharedPointer<boost::promise<void> > feedback_type;
+
+	Hotplug(virDomainPtr match_, const QString& device_,
+		const feedback_type& feedback_);
+
+	void operator()();
+	static int react(virConnectPtr, virDomainPtr domain_,
+		const char* device_, void* opaque_);
+
+private:
+	feedback_type m_feedback;
+	QPair<QString, QString> m_match;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Migration
+
+struct Migration
+{
+	typedef QSharedPointer<boost::promise<quint64> > feedback_type;
+
+	Migration(virDomainPtr match_, const feedback_type& feedback_);
+
+	int operator()(virTypedParameterPtr params_, int paramsCount_);
+	static int react(virConnectPtr, virDomainPtr domain_,
+		virTypedParameterPtr params_, int paramsCount_, void *opaque_);
+
+private:
+	QString m_match;
+	feedback_type m_feedback;
+};
+
+} // namespace Completion
+
 namespace Migration
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -747,24 +790,6 @@ struct Bandwidth
 
 private:
 	quint64 m_value;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Completion
-
-struct Completion
-{
-	typedef QSharedPointer<boost::promise<quint64> > feedback_type;
-
-	Completion(virDomainPtr match_, const feedback_type& feedback_);
-
-	int operator()(virTypedParameterPtr params_, int paramsCount_);
-	static int react(virConnectPtr, virDomainPtr domain_,
-		virTypedParameterPtr params_, int paramsCount_, void *opaque_);
-
-private:
-	QString m_match;
-	feedback_type m_feedback;
 };
 
 namespace Qemu

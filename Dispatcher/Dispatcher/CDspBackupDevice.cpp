@@ -468,26 +468,6 @@ namespace Deferred
 
 namespace
 {
-
-Prl::Expected<CVmHardDisk, Error::Simple> getModel(const QString& uuid_, const QString& serial_)
-{
-	CVmConfiguration c;
-	// we need device alias, which is only set in the runtime config
-	Libvirt::Result r = Libvirt::Kit.vms().at(uuid_).getConfig(c, true);
-	if (r.isFailed())
-		return r.error();
-	const QList<CVmHardDisk* >& d = c.getVmHardwareList()->m_lstHardDisks;
-	QList<CVmHardDisk* >::const_iterator it(std::find_if(d.constBegin(), d.constEnd(),
-		boost::bind(&CVmHardDisk::getSerialNumber, _1) == serial_));
-	if (it == d.end())
-	{
-		WRITE_TRACE(DBG_FATAL, "VM '%s' config doesn't contain disk with SN '%s'",
-			qPrintable(uuid_), qPrintable(serial_));
-		return Error::Simple(PRL_ERR_UNEXPECTED);
-	}
-	return CVmHardDisk(*it);
-}
-
 PRL_RESULT defer(Base& action_)
 {
 	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
@@ -543,12 +523,7 @@ void Action<Teardown>::do_()
 template <class T>
 PRL_RESULT Action<T>::start(const T& event_)
 {
-	Prl::Expected<CVmHardDisk, Error::Simple> d = getModel(event_.getVmUuid(),
-		event_.getModel().getSerialNumber());
-	if (d.isFailed())
-		return d.error().code();
-
-	QScopedPointer<Action> x(new Action(d.value(), event_));
+	QScopedPointer<Action> x(new Action(event_.getModel(), event_));
 	PRL_RESULT output = defer(*x);
 	if (PRL_SUCCEEDED(output))
 		x.take();

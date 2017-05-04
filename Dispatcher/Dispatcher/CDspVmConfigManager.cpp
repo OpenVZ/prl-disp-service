@@ -271,10 +271,37 @@ quint32 Pool::getAvailable()
 	return output;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Patch
+} // namespace Index
 
-void Patch::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+namespace Patch
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Alias
+
+void Alias::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	CVmHardware *n = new_.getVmHardwareList();
+	CVmHardware *o = old_.getVmHardwareList();
+	draw(n->m_lstHardDisks, o->m_lstHardDisks);
+	draw(n->m_lstSerialPorts, o->m_lstSerialPorts);
+	draw(n->m_lstOpticalDisks, o->m_lstOpticalDisks);
+}
+
+template <class T>
+void Alias::draw(QList<T*>& new_, const QList<T*>& old_)
+{
+	foreach(T *d, new_)
+	{
+		T* x = CXmlModelHelper::GetDeviceByIndex(old_, d->getIndex());
+		if (NULL != x)
+			d->setAlias(x->getAlias());
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Index
+
+void Index::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
 	CVmStartupOptions* o = old_.getVmSettings()->getVmStartupOptions();
 	CVmStartupOptions* n = new_.getVmSettings()->getVmStartupOptions();
@@ -284,46 +311,41 @@ void Patch::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 		(old_.getVmSettings()->getShutdown()->getAutoStop());
 
 	QList<CVmStartupOptions::CVmBootDevice*> b = n->m_lstBootDeviceList;
-	Device<CVmHardDisk, PDE_HARD_DISK>
+	Config::Index::Device<CVmHardDisk, PDE_HARD_DISK>
 		(old_.getVmHardwareList()->m_lstHardDisks, b)
 			(new_.getVmHardwareList()->m_lstHardDisks);
-	Device<CVmOpticalDisk, PDE_OPTICAL_DISK>
+	Config::Index::Device<CVmOpticalDisk, PDE_OPTICAL_DISK>
 		(old_.getVmHardwareList()->m_lstOpticalDisks, b)
 			(new_.getVmHardwareList()->m_lstOpticalDisks);
-	Device<CVmFloppyDisk, PDE_FLOPPY_DISK>
+	Config::Index::Device<CVmFloppyDisk, PDE_FLOPPY_DISK>
 		(old_.getVmHardwareList()->m_lstFloppyDisks, b)
 			(new_.getVmHardwareList()->m_lstFloppyDisks);
-	Device<CVmGenericNetworkAdapter, PDE_GENERIC_NETWORK_ADAPTER>
+	Config::Index::Device<CVmGenericNetworkAdapter, PDE_GENERIC_NETWORK_ADAPTER>
 		(old_.getVmHardwareList()->m_lstNetworkAdapters, b)
 			(new_.getVmHardwareList()->m_lstNetworkAdapters);
 }
 
-} // namespace Index
-
-namespace State
-{
+///////////////////////////////////////////////////////////////////////////////
+// struct State
 
 template <class T>
-void updateDisconnected(QList<T*>& new_, const QList<T*>& old_)
+void State::updateDisconnected(QList<T*>& new_, const QList<T*>& old_)
 {
 	foreach(T *d, new_)
 	{
-		typename QList<T*>::const_iterator i = std::find_if(old_.begin(), old_.end(),
-			boost::bind(&T::getIndex, _1) == d->getIndex());
-		if (i == old_.end())
+		T* o = CXmlModelHelper::GetDeviceByIndex(old_, d->getIndex());
+		if (NULL == o || o->getConnected() != PVE::DeviceDisconnected)
 			continue;
-		if ((*i)->getConnected() == PVE::DeviceDisconnected)
-		{
-			d->setSystemName((*i)->getSystemName());
-			d->setUserFriendlyName((*i)->getUserFriendlyName());
-			d->setConnected(PVE::DeviceDisconnected);
-			d->setDescription((*i)->getDescription());
-		}
+
+		d->setSystemName(o->getSystemName());
+		d->setUserFriendlyName(o->getUserFriendlyName());
+		d->setConnected(PVE::DeviceDisconnected);
+		d->setDescription(o->getDescription());
 	}
 }
 
 template <class T>
-void updateDisabled(QList<T*>& new_, const QList<T*>& old_)
+void State::updateDisabled(QList<T*>& new_, const QList<T*>& old_)
 {
 	// disabled devices are not present in the list after "Reverse"
 	// transformation - copy them from the original list
@@ -331,18 +353,13 @@ void updateDisabled(QList<T*>& new_, const QList<T*>& old_)
 	{
 		if (d->getEnabled() != PVE::DeviceDisabled)
 			continue;
-		if (std::find_if(new_.begin(), new_.end(),
-			boost::bind(&T::getIndex, _1) == d->getIndex()) == new_.end())
-		{
+
+		if (NULL == CXmlModelHelper::GetDeviceByIndex(new_, d->getIndex()))
 			new_ << new T(*d);
-		}
 	}
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Patch
-
-void Patch::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+void State::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
 	CVmHardware *o = new_.getVmHardwareList();
 	CVmHardware *n = old_.getVmHardwareList();
@@ -355,7 +372,7 @@ void Patch::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 	updateDisabled(o->m_lstFloppyDisks, n->m_lstFloppyDisks);
 }
 
-} // namespace State
+} // namespace Patch
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct OsInfo
@@ -435,20 +452,16 @@ void OpticalDisks::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 
 	foreach(CVmOpticalDisk* h, l)
 	{
-		QList<CVmOpticalDisk*>::iterator it = std::find_if(o.begin(), o.end(),
-			boost::bind(&CVmOpticalDisk::getIndex, _1)
-				== h->getIndex());
-
-		if (it == o.end())
+		CVmOpticalDisk* x = CXmlModelHelper::GetDeviceByIndex(o, h->getIndex());
+		if (NULL == x)
 			continue;
 
-		h->setSystemName((*it)->getSystemName());
-		h->setUserFriendlyName((*it)->getUserFriendlyName());
-		h->setDescription((*it)->getDescription());
-		h->setLabel((*it)->getLabel());
+		h->setSystemName(x->getSystemName());
+		h->setUserFriendlyName(x->getUserFriendlyName());
+		h->setDescription(x->getDescription());
+		h->setLabel(x->getLabel());
 	}
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct HardDisks
@@ -460,31 +473,22 @@ void HardDisks::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 
 	foreach(CVmHardDisk* h, l)
 	{
-		QList<CVmHardDisk*>::iterator it = std::find_if(o.begin(), o.end(),
-			boost::bind(&CVmHardDisk::getIndex, _1)
-				== h->getIndex());
-
-		if (it == o.end())
+		CVmHardDisk* x = CXmlModelHelper::GetDeviceByIndex(o, h->getIndex());
+		if (NULL == x)
 			continue;
 
-		h->setUuid((*it)->getUuid());
-		h->setStorageURL((*it)->getStorageURL());
+		h->setUuid(x->getUuid());
+		h->setStorageURL(x->getStorageURL());
 		if (0 == h->getSize())
-			h->setSize((*it)->getSize());
+			h->setSize(x->getSize());
 	}
 	foreach(CVmHardDisk* h, o)
 	{
 		if (h->getConnected() == PVE::DeviceConnected)
 			continue;
 
-		QList<CVmHardDisk*>::iterator it = std::find_if(l.begin(), l.end(),
-				boost::bind(&CVmHardDisk::getIndex, _1)
-					== h->getIndex());
-
-		if (it != l.end())
-			continue;
-
-		new_.getVmHardwareList()->addHardDisk(new CVmHardDisk(*h));
+		if (NULL == CXmlModelHelper::GetDeviceByIndex(l, h->getIndex()))
+			new_.getVmHardwareList()->addHardDisk(new CVmHardDisk(*h));
 	}
 }
 
@@ -498,28 +502,25 @@ void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 
 	foreach(CVmGenericNetworkAdapter* a, l)
 	{
-		QList<CVmGenericNetworkAdapter*>::iterator it = std::find_if(o.begin(), o.end(),
-			 boost::bind(&CVmGenericNetworkAdapter::getIndex, _1)
-			 	== a->getIndex());
-
-		if (it == o.end())
+		CVmGenericNetworkAdapter* x = CXmlModelHelper::GetDeviceByIndex(o, a->getIndex());
+		if (NULL == x)
 			continue;
 
-		a->setAutoApply((*it)->isAutoApply());
-		a->setDefaultGateway((*it)->getDefaultGateway());
-		a->setDefaultGatewayIPv6((*it)->getDefaultGatewayIPv6());
-		a->setConfigureWithDhcp((*it)->isConfigureWithDhcp());
-		a->setConfigureWithDhcpIPv6((*it)->isConfigureWithDhcpIPv6());
-		a->setDnsIPAddresses((*it)->getDnsIPAddresses());
-		a->setSearchDomains((*it)->getSearchDomains());
-		a->setHostMacAddress((*it)->getHostMacAddress());
+		a->setAutoApply(x->isAutoApply());
+		a->setDefaultGateway(x->getDefaultGateway());
+		a->setDefaultGatewayIPv6(x->getDefaultGatewayIPv6());
+		a->setConfigureWithDhcp(x->isConfigureWithDhcp());
+		a->setConfigureWithDhcpIPv6(x->isConfigureWithDhcpIPv6());
+		a->setDnsIPAddresses(x->getDnsIPAddresses());
+		a->setSearchDomains(x->getSearchDomains());
+		a->setHostMacAddress(x->getHostMacAddress());
 		// If spoofing protection is disabled, check our config.
 		if (!a->getPktFilter()->isPreventIpSpoof())
 		{
 			a->getPktFilter()->setPreventIpSpoof(
-					(*it)->getPktFilter()->isPreventIpSpoof());
+					x->getPktFilter()->isPreventIpSpoof());
 		}
-		a->setFirewall(new CVmNetFirewall((*it)->getFirewall()));
+		a->setFirewall(new CVmNetFirewall(x->getFirewall()));
 	}
 }
 
