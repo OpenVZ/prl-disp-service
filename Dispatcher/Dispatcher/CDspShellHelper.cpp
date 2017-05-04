@@ -105,7 +105,6 @@
 
 using namespace Parallels;
 
-// destructor
 CDspShellHelper::~CDspShellHelper()
 {
 }
@@ -1376,12 +1375,14 @@ bool CDspShellHelper::isLocalAddress(const QString &sHost)
 
 	// is sHost full or short hostname ?
 	QString sLocalHostName = QHostInfo::localHostName();
-	QString sLocalDomainName = QHostInfo::localDomainName();
 	if (sHost == sLocalHostName)
 		return true;
-	if (sLocalHostName == sHost + "." + sLocalDomainName)
-		return true;
-
+	else
+	{
+		QMutexLocker g(&m_mutex);
+		if (sLocalHostName == (sHost + "." + QHostInfo::localDomainName()))
+			return true;
+	}
 	QHostAddress address;
 	if (!address.setAddress(sHost))
 	{
