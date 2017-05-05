@@ -71,13 +71,15 @@ private:
 struct Clip
 {
 	typedef QList<Libvirt::Domain::Xml::Controller> controllerList_type;
+	typedef boost::optional<Libvirt::Domain::Xml::PPositiveInteger::value_type>
+		order_type;
 
 	Clip(CVmStartupOptions& boot_, const controllerList_type& controllers_)
 		: m_bootList(&boot_.m_lstBootDeviceList), m_controllerList(&controllers_)
 	{
 	}
 
-	Boot::Slot getBootSlot(Libvirt::Domain::Xml::PPositiveInteger::value_type order_);
+	Boot::Slot getBootSlot(const order_type& order_);
 
 	boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> getControllerModel(const Libvirt::Domain::Xml::Disk& disk_) const;
 

@@ -68,11 +68,7 @@ PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	d->setItemId(m_hardware->m_lstFloppyDisks.size());
 	d->setIndex(m_hardware->m_lstFloppyDisks.size());
 	m_hardware->addFloppyDisk(d);
-	if (disk_.getBoot())
-	{
-		m_clip->getBootSlot(disk_.getBoot().get())
-			.set(d->getDeviceType(), d->getIndex());
-	}
+	m_clip->getBootSlot(disk_.getBoot()).set(d->getDeviceType(), d->getIndex());
 	d->setTargetDeviceName(disk_.getTarget().getDev());
 	boost::optional<QString> alias(disk_.getAlias());
 	if (alias)
@@ -113,11 +109,7 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	if (m)
 		d->setSubType(m.get());
 	m_hardware->addHardDisk(d);
-	if (disk_.getBoot())
-	{
-		m_clip->getBootSlot(disk_.getBoot().get())
-			.set(d->getDeviceType(), d->getIndex());
-	}
+	m_clip->getBootSlot(disk_.getBoot()).set(d->getDeviceType(), d->getIndex());
 	boost::optional<Libvirt::Domain::Xml::Iotune> t = disk_.getIotune();
 	if (t)
 	{
@@ -158,11 +150,7 @@ PRL_RESULT Cdrom::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	if (m)
 		d->setSubType(m.get());
 	m_hardware->addOpticalDisk(d);
-	if (disk_.getBoot())
-	{
-		m_clip->getBootSlot(disk_.getBoot().get())
-			.set(d->getDeviceType(), d->getIndex());
-	}
+	m_clip->getBootSlot(disk_.getBoot()).set(d->getDeviceType(), d->getIndex());
 	d->setTargetDeviceName(disk_.getTarget().getDev());
 	boost::optional<QString> alias(disk_.getAlias());
 	if (alias)
@@ -311,11 +299,8 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 
 	a->setNetAddresses(Ips()(bridge_.getValue().getIpList()));
 
-	if (bridge_.getValue().getBoot())
-	{
-		m_clip->getBootSlot(bridge_.getValue().getBoot().get())
-			.set(a->getDeviceType(), a->getIndex());
-	}
+	m_clip->getBootSlot(bridge_.getValue().getBoot())
+		.set(a->getDeviceType(), a->getIndex());
 	if (bridge_.getValue().getLink()
 			&& bridge_.getValue().getLink().get() == Libvirt::Domain::Xml::EStateDown)
 		a->setConnected(PVE::DeviceDisconnected);
@@ -349,11 +334,8 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 
 	a->setNetAddresses(Ips()(network_.getValue().getIpList()));
 
-	if (network_.getValue().getBoot())
-	{
-		m_clip->getBootSlot(network_.getValue().getBoot().get())
-			.set(a->getDeviceType(), a->getIndex());
-	}
+	m_clip->getBootSlot(network_.getValue().getBoot())
+		.set(a->getDeviceType(), a->getIndex());
 	if (network_.getValue().getLink()
 			&& network_.getValue().getLink().get() == Libvirt::Domain::Xml::EStateDown)
 		a->setConnected(PVE::DeviceDisconnected);
@@ -387,11 +369,8 @@ PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface:
 
 	a->setNetAddresses(Ips()(direct_.getValue().getIpList()));
 
-	if (direct_.getValue().getBoot())
-	{
-		m_clip->getBootSlot(direct_.getValue().getBoot().get())
-			.set(a->getDeviceType(), a->getIndex());
-	}
+	m_clip->getBootSlot(direct_.getValue().getBoot())
+		.set(a->getDeviceType(), a->getIndex());
 	if (direct_.getValue().getLink()
 			&& direct_.getValue().getLink().get() == Libvirt::Domain::Xml::EStateDown)
 		a->setConnected(PVE::DeviceDisconnected);
@@ -1399,16 +1378,23 @@ Vm::Vm(char* xml_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Clip
 
-Boot::Slot Clip::getBootSlot(Libvirt::Domain::Xml::PPositiveInteger::value_type order_)
+Boot::Slot Clip::getBootSlot(const order_type& order_)
 {
 	CVmStartupOptions::CVmBootDevice* d = new CVmStartupOptions::CVmBootDevice();
-	d->sequenceNumber = order_;
-	d->inUseStatus = true;
+	if (order_)
+	{
+		typedef CVmStartupOptions::CVmBootDevice device_type;
 
-	QList<CVmStartupOptions::CVmBootDevice*>::iterator it =
-		std::lower_bound(m_bootList->begin(), m_bootList->end(), d,
-			boost::bind(&CVmStartupOptions::CVmBootDevice::getBootingNumber, _1) < order_);
-	m_bootList->insert(it, d);
+		d->sequenceNumber = order_.get();
+		d->inUseStatus = true;
+		QList<device_type* >::iterator it =
+			std::lower_bound(m_bootList->begin(), m_bootList->end(), d,
+				boost::bind(&device_type::getBootingNumber, _1) < order_.get() &&
+				boost::bind(&device_type::isInUse, _1));
+		m_bootList->insert(it, d);
+	}
+	else
+		m_bootList->push_back(d);
 
 	return Boot::Slot(*d);
 }
