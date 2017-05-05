@@ -117,7 +117,6 @@ void Unencrypted::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 	CVmRemoteDisplay* y = Vnc::Traits::purify(&new_);
 	if (NULL != y)
 	{
-		x->setHostName(y->getHostName());
 		x->setPortNumber(y->getPortNumber());
 		x->setWebSocketPortNumber(y->getWebSocketPortNumber());
 	}
