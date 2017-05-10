@@ -1249,7 +1249,7 @@ PRL_RESULT Task_EditVm::editVm()
 	// Extract VM Uuid
 	QString vm_uuid = m_sVmUuid = pVmConfigNew->getVmIdentification()->getVmUuid();
 
-	WRITE_TRACE( DBG_FATAL, "Commit vm configuartion: vm_uuid='%s'" , QSTR2UTF8( vm_uuid ) );
+	WRITE_TRACE( DBG_FATAL, "Commit vm configuration: vm_uuid='%s'" , QSTR2UTF8( vm_uuid ) );
 
 	// Extract operations with confirmation
 	QList<PRL_ALLOWED_VM_COMMAND> lstNewLockedOperations = pVmConfigNew->getVmSecurity()
