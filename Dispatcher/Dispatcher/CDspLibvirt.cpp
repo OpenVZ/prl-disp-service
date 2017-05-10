@@ -1396,7 +1396,7 @@ void Coarse::emitDefined(virDomainPtr domain_)
 {
 	namespace agent = Libvirt::Instrument::Agent::Vm::Limb;
 	virDomainRef(domain_);
-	agent::Maintenance(agent::Abstract::domainReference_type(domain_))
+	agent::Maintenance(agent::Abstract::domainReference_type(domain_, &virDomainFree))
 		.emitDefined();
 }
 
