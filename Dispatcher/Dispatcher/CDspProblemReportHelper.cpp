@@ -825,7 +825,7 @@ void CDspProblemReportHelper::FillVmProblemReportData
 		Prl::Expected<Libvirt::Instrument::Agent::Vm::Command::Future, Error::Simple> e = 
 			u.getGuest().dumpState(y.fileName());
 
-		if (e.isSucceed() && e.value().wait(10000).isFailed())
+		if (e.isFailed() || e.value().wait(10000).isFailed())
 			WRITE_TRACE(DBG_DEBUG, "got an error while dumping state for a problem report");
 
 		// It doesn't matter if wait failed or migration failed, we need to try unpause VM.

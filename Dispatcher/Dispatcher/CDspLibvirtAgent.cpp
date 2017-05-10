@@ -848,7 +848,7 @@ Result Future::wait(int timeout_)
 		std::string status = r.get<std::string>("return.status", std::string("none"));
 
 		// Is state changed?
-		if (status != m_status)
+		if (!r.get<bool>("return.running", false) && m_status != status)
 		{
 			WRITE_TRACE(DBG_DEBUG, "query-status result: %s", qPrintable(state));
 			m_status.clear();
