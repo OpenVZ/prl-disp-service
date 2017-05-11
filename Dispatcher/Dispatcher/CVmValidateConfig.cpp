@@ -1039,20 +1039,20 @@ void CVmValidateConfig::CheckRemoteDisplay()
 
 	QString qsRDM_id = pRemoteDisplay->getMode_id();
 
-	PRL_UINT32 base, max;
+	PRL_UINT32 base;
 	{
 		CDspLockedPointer<CDispCommonPreferences> p = CDspService::
 			instance()->getDispConfigGuard().getDispCommonPrefs();
 		base = p->getRemoteDisplayPreferences()->getBasePort();
-		max = p->getRemoteDisplayPreferences()->getMaxPort();
 	}
 
 	if (pRemoteDisplay->getMode() == PRD_MANUAL &&
-			pRemoteDisplay->getPortNumber() < base)
+			(pRemoteDisplay->getPortNumber() < base ||
+			 pRemoteDisplay->getPortNumber() > std::numeric_limits<quint16>::max()))
 	{
 		m_lstResults += PRL_ERR_REMOTE_DISPLAY_WRONG_PORT_NUMBER;
 		m_mapParameters.insert(m_lstResults.size(), QStringList()
-				<< QString::number(base) << QString::number(max));
+				<< QString::number(base) << QString::number(std::numeric_limits<quint16>::max()));
 		ADD_FID(E_SET << qsRDM_id << pRemoteDisplay->getPortNumber_id());
 	}
 
