@@ -1145,19 +1145,9 @@ int connectAgent(virConnectPtr , virDomainPtr domain_, int state_, int /*reason_
 int deviceConnect(virConnectPtr , virDomainPtr domain_, const char *device_,
 	void *opaque_)
 {
-	Q_UNUSED(device_);
-	Q_UNUSED(opaque_);
-/*
-	// XXX: enable this for vme* devices when network device hotplug is fixed
 	Model::Coarse* v = (Model::Coarse* )opaque_;
-	QSharedPointer<Model::Domain> d = v->access(domain_);
-	if (!d.isNull())
-	{
-		CVmConfiguration c = d->getConfig();
-		Instrument::Traffic::Accounting(c.getVmIdentification()->getVmUuid())(device_);
-	}
-*/
-	Model::Coarse::emitDefined(domain_);
+	v->show(domain_, boost::bind
+		(&Registry::Reactor::updateConnected, _1, QString(device_), PVE::DeviceConnected));
 	return 0;
 }
 
@@ -1165,23 +1155,22 @@ int deviceDisconnect(virConnectPtr , virDomainPtr domain_, const char* device_,
                         void* opaque_)
 {
 	Model::Coarse* v = (Model::Coarse* )opaque_;
+	v->show(domain_, boost::bind
+		(&Registry::Reactor::updateConnected, _1, QString(device_), PVE::DeviceDisconnected));
 	v->disconnectDevice(domain_, device_);
-	v->emitDefined(domain_);
 	return 0;
 }
 
-int trayChange(virConnectPtr , virDomainPtr domain_,
+int trayChange(virConnectPtr connect_, virDomainPtr domain_,
 		const char* device_, int reason_, void* opaque_)
 {
-	Model::Tray t(domain_, device_);
-	Model::Coarse* v = (Model::Coarse* )opaque_;
 	switch (reason_)
 	{
 	case VIR_DOMAIN_EVENT_TRAY_CHANGE_OPEN:
-		v->show(domain_, boost::bind(&Model::Tray::open, t, _1));
+		deviceDisconnect(connect_, domain_, device_, opaque_);
 		break;
 	case VIR_DOMAIN_EVENT_TRAY_CHANGE_CLOSE:
-		v->show(domain_, boost::bind(&Model::Tray::close, t, _1));
+		deviceConnect(connect_, domain_, device_, opaque_);
 		break;
 	default:
 		WRITE_TRACE(DBG_WARNING, "Unknown trayChange reason %d", reason_);
@@ -1220,44 +1209,6 @@ void error(void* opaque_, virErrorPtr value_)
 
 namespace Model
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Tray
-
-Tray::Tray(virDomainPtr domain_, const char* alias_):
-	m_alias(alias_), m_agent(domain_)
-{
-	virDomainRef(domain_);
-}
-
-void Tray::open(Registry::Reactor& vm_)
-{
-	boost::optional<CVmOpticalDisk> m = find();
-	if (m)
-		vm_.openTray(m.get());
-}
-
-void Tray::close(Registry::Reactor& vm_)
-{
-	boost::optional<CVmOpticalDisk> m = find();
-	if (m)
-		vm_.closeTray(m.get());
-}
-
-boost::optional<CVmOpticalDisk> Tray::find() const
-{
-	CVmConfiguration c;
-	Libvirt::Result r = m_agent.getConfig(c, true);
-	if (r.isFailed())
-		return boost::none;
-
-	foreach(CVmOpticalDisk* x, c.getVmHardwareList()->m_lstOpticalDisks)
-	{
-		if (-1 != m_alias.indexOf(x->getAlias()))
-			return *x;
-	}
-	return boost::none;
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Domain
 

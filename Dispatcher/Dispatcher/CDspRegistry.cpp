@@ -47,46 +47,57 @@
 
 namespace Registry
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Tray
-
-struct Tray
+namespace Device
 {
-	explicit Tray(const CVmOpticalDisk& pattern_): m_pattern(pattern_)
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+struct State
+{
+	typedef void result_type;
+
+	State(const QString& alias_, PVE::DeviceConnectedState value_):
+		m_alias(alias_), m_value(value_)
 	{
 	}
 
-	void open(CVmConfiguration& config_) const;
-
-	void close(CVmConfiguration& config_) const;
+	void operator()(CVmConfiguration& config_) const;
 
 private:
-	CVmOpticalDisk* find(const CVmConfiguration& config_) const;
+	template<class T>
+	bool update(const QList<T* >& list_) const;
 
-	CVmOpticalDisk m_pattern;
+	const QString m_alias;
+	const PVE::DeviceConnectedState m_value;
 };
 
-void Tray::open(CVmConfiguration& config_) const
+template<class T>
+bool State::update(const QList<T* >& list_) const
 {
-	CVmOpticalDisk* x = find(config_);
-	if (NULL == x)
-		return;
-	x->setConnected(PVE::DeviceDisconnected);
+	typedef typename QList<T* >::const_iterator iterator_type;
+
+	iterator_type e = list_.end();
+	iterator_type p = std::find_if(list_.begin(), e,
+		boost::bind(&T::getAlias, _1) == boost::cref(m_alias));
+	if (p == e)
+		return false;
+
+	(*p)->setConnected(m_value);
+	return true;
 }
 
-void Tray::close(CVmConfiguration& config_) const
+void State::operator()(CVmConfiguration& config_) const
 {
-	CVmOpticalDisk* x = find(config_);
-	if (NULL == x)
+	CVmHardware *h = config_.getVmHardwareList();
+	if (update(h->m_lstHardDisks))
 		return;
-	x->setConnected(PVE::DeviceConnected);
+	if (update(h->m_lstSerialPorts))
+		return;
+	if (update(h->m_lstOpticalDisks))
+		return;
 }
 
-CVmOpticalDisk* Tray::find(const CVmConfiguration& config_) const
-{
-	return CXmlModelHelper::GetDeviceByIndex
-		(config_.getVmHardwareList()->m_lstOpticalDisks, m_pattern.getIndex());
-}
+} // namespace Device
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
@@ -312,14 +323,10 @@ void Reactor::forward(const T& event_)
 		x->react(event_);
 }
 
-void Reactor::openTray(const CVmOpticalDisk& model_)
+void Reactor::updateConnected(const QString& device_, PVE::DeviceConnectedState value_)
 {
-	return forward(::Vm::Tray::action_type(boost::bind(&Tray::open, Tray(model_), _1)));
-}
-
-void Reactor::closeTray(const CVmOpticalDisk& model_)
-{
-	return forward(::Vm::Tray::action_type(boost::bind(&Tray::close, Tray(model_), _1)));
+	return forward(::Vm::Configuration::update_type
+		(boost::bind(Device::State(device_, value_), _1)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

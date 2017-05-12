@@ -43,11 +43,11 @@
 
 namespace Vm
 {
-namespace Tray
+namespace Configuration
 {
-typedef boost::function1<void, CVmConfiguration& > action_type;
+typedef boost::function<void(CVmConfiguration& )> update_type;
 
-} // namespace Tray
+} // namespace Configuration
 
 namespace State
 {
@@ -135,9 +135,9 @@ struct Frontend: Details::Frontend<Frontend>
 		{
 		}
 
-		void changeTray(const Tray::action_type& action_)
+		void apply(const Configuration::update_type& update_)
 		{
-			m_big->getConfigEditor()(action_);
+			m_big->getConfigEditor()(update_);
 		}
 
 		void pullToolsVersionAfterReconnect(const Conventional<VMS_RUNNING>&)
@@ -186,9 +186,9 @@ struct Frontend: Details::Frontend<Frontend>
 			msmf::Row<Started, Conventional<VMS_STOPPING>, Stopping>,
 			msmf::Row<Already, Conventional<VMS_STOPPING>, Stopping>,
 			msmf::Row<Rebooted, Conventional<VMS_STOPPING>, Stopping>,
-			a_irow<Started, Tray::action_type, &Running_::changeTray>,
-			a_irow<Already, Tray::action_type, &Running_::changeTray>,
-			a_irow<Rebooted, Tray::action_type, &Running_::changeTray>,
+			a_irow<Started, Configuration::update_type, &Running_::apply>,
+			a_irow<Already, Configuration::update_type, &Running_::apply>,
+			a_irow<Rebooted, Configuration::update_type, &Running_::apply>,
 			msmf::Row<Stopping, Reboot, Rebooted>,
 			msmf::Row
 			<

@@ -126,119 +126,58 @@ void Unencrypted::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 
 namespace Index
 {
-
-namespace Match
-{
-
 ///////////////////////////////////////////////////////////////////////////////
-// struct Image
-
-struct Image
-{
-	explicit Image(const QString& image_) : m_image(image_)
-	{
-	}
-
-	template<class T>
-	bool operator()(const T* device_) const
-	{
-		 return device_->getSystemName() == m_image;
-	}
-
-private:
-	QString m_image;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Index
+// struct Match
 
 template<class T>
-struct Index
+struct Match
 {
-	explicit Index(const T& device_):
-		m_index(device_.getStackIndex()),
-		m_iface(device_.getInterfaceType())
+	explicit Match(const T& needle_): m_needle(&needle_)
 	{
 	}
 
-	bool operator()(const T* device_) const
-	{
-		 return device_->getStackIndex() == m_index
-			&& m_iface == device_->getInterfaceType();
-	}
+	bool operator()(const T* item_);
 
 private:
-	uint m_index;
-	uint m_iface;
+	const T* m_needle;
 };
 
-template <>
-Index<CVmFloppyDisk>::Index(const CVmFloppyDisk& device_):
-	m_index(Parallels::fromBase26(device_.getTargetDeviceName().remove(0, 2)))
+template<>
+bool Match<CVmHardDisk>::operator()(const CVmHardDisk* item_)
 {
+	return item_->getSystemName() == m_needle->getSystemName();
 }
 
-template <>
-bool Index<CVmFloppyDisk>::operator()(const CVmFloppyDisk* device_) const
+template<>
+bool Match<CVmOpticalDisk>::operator()(const CVmOpticalDisk* item_)
 {
-	return device_->getIndex() == m_index;
+	return item_->getStackIndex() == m_needle->getStackIndex() &&
+		item_->getInterfaceType() == m_needle->getInterfaceType();
 }
 
-template<class T>
-typename QList<T*>::iterator choose(typename QList<T*>::iterator begin_,
-		typename QList<T*>::iterator end_, const T& device_)
+template<>
+bool Match<CVmFloppyDisk>::operator()(const CVmFloppyDisk* item_)
 {
-	//if (!device_.getSystemName().isEmpty())
-	//	return std::find_if(begin_, end_, Image(device_.getSystemName()));
-	// If image path is not set, then this means that the
-	// device was originally disconnected.
-	// Try matching by target device name, which we expect to
-	// be in the form: <prefix><base26-encoded device index>.
-	// It is already decoded into (InterfaceType, StartIndex)
-	return std::find_if(begin_, end_, Index<T>(device_));
+	return item_->getIndex() ==
+		Parallels::fromBase26(m_needle->getTargetDeviceName().remove(0, 2));
 }
 
-} // namespace Match
+template<>
+bool Match<CVmGenericNetworkAdapter>::operator()(const CVmGenericNetworkAdapter* item_)
+{
+	return item_->getHostInterfaceName() == m_needle->getHostInterfaceName();
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Device
 
-template<>
-QList<CVmHardDisk*>::iterator
-Device<CVmHardDisk, PDE_HARD_DISK>::findDevice
-	(QList<CVmHardDisk*>::iterator begin_, QList<CVmHardDisk*>::iterator end_,
-	 	const CVmHardDisk* disk_)
+template <class T, PRL_DEVICE_TYPE D>
+typename Device<T, D>::iterator_type
+	Device<T, D>::findDevice(
+		typename Device<T, D>::iterator_type begin_,
+		typename Device<T, D>::iterator_type end_, const T* needle_)
 {
-	return std::find_if(begin_, end_, Match::Image(disk_->getSystemName()));
-}
-
-template<>
-QList<CVmOpticalDisk*>::iterator
-Device<CVmOpticalDisk, PDE_OPTICAL_DISK>::findDevice
-	(QList<CVmOpticalDisk*>::iterator begin_, QList<CVmOpticalDisk*>::iterator end_,
-	 	const CVmOpticalDisk* cdrom_)
-{
-	return Match::choose(begin_, end_, *cdrom_);
-}
-
-template<>
-QList<CVmFloppyDisk*>::iterator
-Device<CVmFloppyDisk, PDE_FLOPPY_DISK>::findDevice
-	(QList<CVmFloppyDisk*>::iterator begin_, QList<CVmFloppyDisk*>::iterator end_,
-		const CVmFloppyDisk* floppy_)
-{
-	return Match::choose(begin_, end_, *floppy_);
-}
-
-template<>
-QList<CVmGenericNetworkAdapter*>::iterator
-Device<CVmGenericNetworkAdapter, PDE_GENERIC_NETWORK_ADAPTER>::findDevice
-	(QList<CVmGenericNetworkAdapter*>::iterator begin_, QList<CVmGenericNetworkAdapter*>::iterator end_,
-		const CVmGenericNetworkAdapter* adapter_)
-{
-	return std::find_if(begin_, end_,
-		 boost::bind(&CVmGenericNetworkAdapter::getHostInterfaceName, _1) ==
-			adapter_->getHostInterfaceName());
+	return std::find_if(begin_, end_, Match<T>(*needle_));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -275,25 +214,44 @@ quint32 Pool::getAvailable()
 namespace Patch
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Alias
+// struct Runtime
 
-void Alias::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+void Runtime::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
 	CVmHardware *n = new_.getVmHardwareList();
 	CVmHardware *o = old_.getVmHardwareList();
-	draw(n->m_lstHardDisks, o->m_lstHardDisks);
-	draw(n->m_lstSerialPorts, o->m_lstSerialPorts);
-	draw(n->m_lstOpticalDisks, o->m_lstOpticalDisks);
+	drawAlias(n->m_lstHardDisks, o->m_lstHardDisks);
+	updateConnected(n->m_lstHardDisks, o->m_lstHardDisks);
+	drawAlias(n->m_lstSerialPorts, o->m_lstSerialPorts);
+	drawAlias(n->m_lstOpticalDisks, o->m_lstOpticalDisks);
+	updateConnected(n->m_lstOpticalDisks, o->m_lstOpticalDisks);
+	updateConnected(n->m_lstFloppyDisks, o->m_lstFloppyDisks);
+	updateConnected(n->m_lstNetworkAdapters, o->m_lstNetworkAdapters);
 }
 
 template <class T>
-void Alias::draw(QList<T*>& new_, const QList<T*>& old_)
+void Runtime::drawAlias(QList<T*>& new_, const QList<T*>& old_)
 {
 	foreach(T *d, new_)
 	{
 		T* x = CXmlModelHelper::GetDeviceByIndex(old_, d->getIndex());
 		if (NULL != x)
 			d->setAlias(x->getAlias());
+	}
+}
+
+template <class T>
+void Runtime::updateConnected(QList<T*>& new_, const QList<T*>& old_)
+{
+	typedef typename QList<T*>::const_iterator iterator_type;
+	iterator_type b = old_.begin(), e = old_.end();
+	foreach(T *d, new_)
+	{
+		if (PVE::DeviceDisabled == d->getEnabled())
+			continue;
+
+		iterator_type m = std::find_if(b, e, Config::Index::Match<T>(*d));
+		d->setConnected(e == m ? PVE::DeviceDisconnected : PVE::DeviceConnected);
 	}
 }
 
