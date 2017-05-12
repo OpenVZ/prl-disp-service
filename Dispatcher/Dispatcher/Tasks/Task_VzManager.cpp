@@ -223,8 +223,7 @@ PRL_RESULT Task_VzManager::create_env()
 	CDspService::instance()->getVmDirHelper().resetAdvancedParamsFromVmConfig(pConfig);
 	res = get_op_helper()->create_env(sPath, pConfig, pCmd->GetCommandFlags());
 	if (PRL_SUCCEEDED(res)) {
-		if (sPath.isEmpty())
-			sPath = pConfig->getVmIdentification()->getHomePath();
+		sPath = pConfig->getVmIdentification()->getHomePath();
 		res = ::Vm::Private::Brand(sPath, getClient()).stamp(CDspTaskFailure(*this));
 		if (PRL_SUCCEEDED(res))
 			res = getVzHelper()->insertVmDirectoryItem(pConfig);
