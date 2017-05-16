@@ -1465,6 +1465,8 @@ PRL_RESULT Task_EditVm::editVm()
 		QString oldVmName;
 		QString strVmHome;
 		QString vmHomePath;
+		CVmRemoteDisplay oldRemDisplay(pVmConfigOld->getVmSettings()->getVmRemoteDisplay());
+		CVmRemoteDisplay* newRemDisplay = pVmConfigNew->getVmSettings()->getVmRemoteDisplay();
 		{
 			//
 			// NOTE:	TO EXCLUDE DEADLOCK m_pVmConfigEdit mutex
@@ -1919,57 +1921,40 @@ PRL_RESULT Task_EditVm::editVm()
 
 			resetNetworkAddressesFromVmConfig( pVmConfigNew, pVmConfigOld );
 
-			//Fill server UUID field because it information needing at VM check
-			//access procedure
-			pVmConfigNew->getVmIdentification()->setServerUuid(
-				CDspService::instance()->getDispConfigGuard().getDispConfig()->
-				getVmServerIdentification()->getServerUuid()
-				);
-
-
-			// cannot save remote device to connected state!
-			// #429716 #429855 #110571
-
-			if(nState == VMS_STOPPED)
-			for ( int i = 0; i < PDE_MAX; i++ )
+			switch (newRemDisplay->getMode())
 			{
-				if ( QList<CVmDevice*>* lstDevices =
-					reinterpret_cast< QList<CVmDevice*>* >
-					(pVmConfigNew->getVmHardwareList()->m_aDeviceLists[i] ) )
+			case PRD_DISABLED:
+				bNeedVNCStop = oldRemDisplay.getMode() != PRD_DISABLED;
+				break;
+			case PRD_AUTO:
+				if (PRD_AUTO == oldRemDisplay.getMode())
 				{
-					for ( int j = 0; j < lstDevices->size(); j++ )
-						if ( lstDevices->at(j)->isRemote()
-									&&
-							( lstDevices->at(j)->getConnected() == PVE::DeviceConnected )
-							)
-						{
-							WRITE_TRACE(DBG_FATAL,
-								"connected remote device %s was found",
-								QSTR2UTF8(lstDevices->at(j)->getUserFriendlyName()));
-
-							throw CDspTaskFailure(*this)
-								(PRL_ERR_CANNOT_SAVE_REMOTE_DEVICE_STATE,
-								lstDevices->at(j)->getUserFriendlyName());
-						}
+					newRemDisplay->setPortNumber(oldRemDisplay.getPortNumber());
+					newRemDisplay->setWebSocketPortNumber(oldRemDisplay.getWebSocketPortNumber());
 				}
+			default:
+				switch (oldRemDisplay.getMode())
+				{
+				case PRD_DISABLED:
+					bNeedVNCStart = true;
+					break;
+				case PRD_MANUAL:
+					bNeedVNCStart = bNeedVNCStop = (oldRemDisplay.getPortNumber() != newRemDisplay->getPortNumber());
+				case PRD_AUTO:
+					bNeedVNCStart = bNeedVNCStop = bNeedVNCStop ||
+						oldRemDisplay.getHostName() != newRemDisplay->getHostName() ||
+						oldRemDisplay.getPassword() != newRemDisplay->getPassword();
+				}       
 			}
 
-			CVmRemoteDisplay* oldRemDisplay = pVmConfigOld->getVmSettings()->getVmRemoteDisplay();
-			CVmRemoteDisplay* newRemDisplay = pVmConfigNew->getVmSettings()->getVmRemoteDisplay();
-
-			if (oldRemDisplay->getPassword() != newRemDisplay->getPassword())
+			if (nState != VMS_STOPPED)
 			{
-				if (newRemDisplay->getPassword().length() > PRL_VM_REMOTE_DISPLAY_MAX_PASS_LEN)
+				if (bVmWasRenamed)
 				{
-					WRITE_TRACE(DBG_FATAL, "The specified remote display password is too long.");
-					throw CDspTaskFailure(*this)
-						(PRL_ERR_VMCONF_REMOTE_DISPLAY_PASSWORD_TOO_LONG,
-						QString::number(PRL_VM_REMOTE_DISPLAY_MAX_PASS_LEN));
+					WRITE_TRACE(DBG_FATAL, "Unable to change name for running VM %s.",
+						qPrintable(vm_uuid));
+					throw PRL_ERR_VM_MUST_BE_STOPPED_BEFORE_RENAMING;
 				}
-			}
-
-			// Check VNC config difference for running VM
-			do {
 				/* We can't stop VNC server here, because main thread
 				 * may issue cleanupAllBeginEditMarksByAccessToken, which
 				 * will try to occure MultiEditDispatcher lock, but it is
@@ -1977,52 +1962,19 @@ PRL_RESULT Task_EditVm::editVm()
 				 * But function, which terminate VNC process wait for
 				 * signal from main thread, it wait for timeout and
 				 * exit with error. */
-				// Start VNC
-				if ( oldRemDisplay->getMode() == PRD_DISABLED &&
-					 newRemDisplay->getMode() != PRD_DISABLED ) {
-					bNeedVNCStart = true;
+				if (bNeedVNCStop || bNeedVNCStart)
+				{
+					WRITE_TRACE(DBG_FATAL, "Unable to edit VNC preferences for running VM %s.",
+						qPrintable(vm_uuid));
+					throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
 				}
-				// Stop VNC
-				else if ( oldRemDisplay->getMode() != PRD_DISABLED &&
-						  newRemDisplay->getMode() == PRD_DISABLED ) {
-					bNeedVNCStop = true;
-				}
-				// VNC config has been changed
-				else if ( newRemDisplay->getMode() != PRD_DISABLED &&
-						  oldRemDisplay->getMode() != PRD_DISABLED &&
-						  (oldRemDisplay->getHostName() !=
-						   newRemDisplay->getHostName() ||
-						   (oldRemDisplay->getPortNumber() !=
-						    newRemDisplay->getPortNumber() &&
-						    oldRemDisplay->getMode() == PRD_MANUAL) ||
-						   oldRemDisplay->getPassword() !=
-						   newRemDisplay->getPassword()) ) {
-					bNeedVNCStart = true;
-					bNeedVNCStop = true;
-				}
-
-
-			} while (0);
+			}
 
 			quint32 t(CDspService::instance()->getDispConfigGuard().getDispConfig()
 					->getDispatcherSettings()->getCommonPreferences()
 					->getWorkspacePreferences()->getVmGuestCpuLimitType());
 
 			pVmConfigNew->getVmHardwareList()->getCpu()->setGuestLimitType(t);
-
-			if (nState != VMS_STOPPED && (bNeedVNCStop || bNeedVNCStart))
-			{
-				WRITE_TRACE(DBG_FATAL, "Unable to edit VNC preferences for running VM %s.",
-					qPrintable(vm_uuid));
-				throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
-			}
-
-			if (nState != VMS_STOPPED && bVmWasRenamed)
-			{
-				WRITE_TRACE(DBG_FATAL, "Unable to change name for running VM %s.",
-					qPrintable(vm_uuid));
-				throw PRL_ERR_VM_MUST_BE_STOPPED_BEFORE_RENAMING;
-			}
 
 			//Do not let change VM uptime through VM edit
 			//https://bugzilla.sw.ru/show_bug.cgi?id=464218
@@ -2033,6 +1985,13 @@ PRL_RESULT Task_EditVm::editVm()
 			pVmConfigNew->getVmIdentification()->setVmUptimeInSeconds(
 				pVmConfigOld->getVmIdentification()->getVmUptimeInSeconds()
 			);
+
+			//Fill server UUID field because it information needing at VM check
+			//access procedure
+			pVmConfigNew->getVmIdentification()->setServerUuid(
+				CDspService::instance()->getDispConfigGuard().getDispConfig()->
+				getVmServerIdentification()->getServerUuid()
+				);
 
 			// High Availability Cluster
 			//

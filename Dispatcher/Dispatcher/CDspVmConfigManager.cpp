@@ -102,23 +102,8 @@ void Pivot::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 	{
 		y->setHostName(x->getHostName());
 		y->setEncrypted(x->isEncrypted());
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Unencrypted
-
-void Unencrypted::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
-{
-	CVmRemoteDisplay* x = Vnc::Traits::purify(&old_);
-	if (NULL == x || x->isEncrypted())
-		return;
-
-	CVmRemoteDisplay* y = Vnc::Traits::purify(&new_);
-	if (NULL != y)
-	{
-		x->setPortNumber(y->getPortNumber());
-		x->setWebSocketPortNumber(y->getWebSocketPortNumber());
+		y->setPortNumber(x->getPortNumber());
+		y->setWebSocketPortNumber(x->getWebSocketPortNumber());
 	}
 }
 

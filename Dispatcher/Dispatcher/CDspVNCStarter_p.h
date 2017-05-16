@@ -324,10 +324,27 @@ namespace Launch
 ///////////////////////////////////////////////////////////////////////////////
 // struct Sweeper
 
-struct Sweeper
+struct Sweeper: QObject
 {
+	typedef boost::function<PRL_RESULT(const quint16)> commit_type;
+
+	explicit Sweeper(const commit_type& commit_): m_commit(commit_)
+	{
+	}
+
 	static void cleanup(QProcess* victim_);
 	static void cleanup(QTcpSocket* victim_);
+
+public slots:
+	void reactRipped()
+	{
+		m_commit(0);
+	}
+
+private:
+	Q_OBJECT
+
+	commit_type m_commit;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -354,7 +371,8 @@ private:
 
 struct SetPort
 {
-	typedef boost::function2<PRL_RESULT, const quint16, CVmConfiguration&> configure_type;
+	typedef boost::function<PRL_RESULT(const quint16, CVmConfiguration&)>
+		configure_type;
 
 	SetPort(const commit_type &commit_, const configure_type &configure_):
 		m_commit(commit_), m_configure(configure_)
@@ -378,7 +396,7 @@ struct Backend: QRunnable
 {
 	typedef boost::function0<Subject* > subject_type;
 	typedef QPair<quint16, quint16> range_type;
-	typedef boost::function1<PRL_RESULT, const quint16> configure_type;
+	typedef boost::function<PRL_RESULT(const quint16)> configure_type;
 
 	Backend(const subject_type& subject_, const range_type& input_,
 		const configure_type& commit_):

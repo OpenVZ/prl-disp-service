@@ -69,7 +69,14 @@ static const QStringList g_UrlSchemeList = QStringList()
 
 namespace Validation
 {
-typedef boost::mpl::vector<VmNameEmpty, VmNameInvalidSymbols, VmNameLength, MemGuarateeValue> problem_types;
+typedef boost::mpl::vector
+	<
+		VmNameEmpty,
+		VmNameInvalidSymbols,
+		VmNameLength,
+		MemGuarateeValue,
+		RemoteDesktopPassword
+	> problem_types;
 
 ////////////////////////////////////////////////////////////////////////////////
 // struct Traits
@@ -119,6 +126,17 @@ boost::optional<MemGuarateeValue> Traits<MemGuarateeValue>::check(const CVmConfi
 }
 
 template <>
+boost::optional<RemoteDesktopPassword> Traits<RemoteDesktopPassword>::check(const CVmConfiguration& vm_)
+{
+	const int b = PRL_VM_REMOTE_DISPLAY_MAX_PASS_LEN;
+	if (vm_.getVmSettings()->getVmRemoteDisplay()->getPassword().length() <= b)
+		return boost::none;
+
+	WRITE_TRACE(DBG_FATAL, "The specified remote display password is too long.");
+	return RemoteDesktopPassword(b);
+}
+
+template <>
 QSet<QString> Traits<VmNameEmpty>::getIds(const CVmConfiguration& vm_)
 {
 	return QSet<QString>() << vm_.getVmIdentification()->getVmName_id();
@@ -140,6 +158,12 @@ template <>
 QSet<QString> Traits<MemGuarateeValue>::getIds(const CVmConfiguration& vm_)
 {
 	return QSet<QString>() << vm_.getVmHardwareList()->getMemory()->getMemGuarantee_id();
+}
+
+template <>
+QSet<QString> Traits<RemoteDesktopPassword>::getIds(const CVmConfiguration& vm_)
+{
+	return QSet<QString>() << vm_.getVmSettings()->getVmRemoteDisplay()->getPassword_id();
 }
 
 template<>
@@ -164,6 +188,12 @@ template<>
 PRL_RESULT Traits<MemGuarateeValue>::getError()
 {
 	return PRL_ERR_INVALID_MEMORY_GUARANTEE;
+}
+
+template<>
+PRL_RESULT Traits<RemoteDesktopPassword>::getError()
+{
+	return PRL_ERR_VMCONF_REMOTE_DISPLAY_PASSWORD_TOO_LONG;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

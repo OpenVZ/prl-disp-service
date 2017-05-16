@@ -95,6 +95,17 @@ struct MemGuarateeValue: Error
 };
 
 ////////////////////////////////////////////////////////////////////////////////
+// struct RemoteDesktopPassword
+
+struct RemoteDesktopPassword: Error
+{
+	explicit RemoteDesktopPassword(const int length_)
+	{
+		m_params << QString::number(length_);
+	}
+};
+
+////////////////////////////////////////////////////////////////////////////////
 // struct Traits
 
 template <class T>

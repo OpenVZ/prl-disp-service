@@ -106,14 +106,6 @@ struct Pivot
 	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Unencrypted
-
-struct Unencrypted
-{
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
-};
-
 } // namespace RemoteDisplay
 
 namespace Index
@@ -352,7 +344,7 @@ struct Reviser<N, void>
 	}
 };
 
-typedef boost::mpl::vector<RemoteDisplay::Unencrypted, Nvram, Patch::Runtime> revise_types;
+typedef boost::mpl::vector<Nvram, Patch::Runtime> revise_types;
 typedef boost::mpl::vector<Identification, OsInfo, RuntimeOptions, GlobalNetwork,
 		Patch::Index, Cpu::Copy, NetworkDevices, HardDisks, OpticalDisks, Patch::State,
 		MemoryOptions, HighAvailability, Tools, RemoteDisplay::Pivot>

@@ -374,38 +374,24 @@ struct Essence<PVE::DspCmdVmDevConnect>:
 {
 	Libvirt::Result operator()()
 	{
-		Libvirt::Result output;
 		switch (getCommand()->GetDeviceType())
 		{
 		case PDE_OPTICAL_DISK:
 		{
 			CVmOpticalDisk y;
 			StringToElement<CVmOpticalDisk* >(&y, getCommand()->GetDeviceConfig());
-			output = getAgent().getRuntime().update(y);
-			break;
+			return getAgent().getRuntime().update(y);
 		}
 		case PDE_HARD_DISK:
 		{
 			CVmHardDisk y;
 			StringToElement<CVmHardDisk* >(&y, getCommand()->GetDeviceConfig());
-			Hotplug(getAgent().getRuntime(), *getConfig()->getVmIdentification(),
+			return Hotplug(getAgent().getRuntime(), *getConfig()->getVmIdentification(),
 				getContext().getSession()).plug(y);
-			break;
 		}
 		default:
-			output = Error::Simple(PRL_ERR_UNIMPLEMENTED);
+			return Error::Simple(PRL_ERR_UNIMPLEMENTED);
 		}
-		if (output.isSucceed())
-		{
-			CVmEvent v;
-			v.addEventParameter(new CVmEventParameter(PVE::String,
-				getCommand()->GetDeviceConfig(),
-				EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
-
-			Task_EditVm::atomicEditVmConfigByVm(getContext().getDirectoryUuid(),
-				getContext().getVmUuid(), v, getContext().getSession());
-		}
-		return output;
 	}
 };
 
@@ -415,39 +401,25 @@ struct Essence<PVE::DspCmdVmDevDisconnect>:
 {
 	Libvirt::Result operator()()
 	{
-		Libvirt::Result output;
 		switch (getCommand()->GetDeviceType())
 		{
 		case PDE_OPTICAL_DISK:
 		{
 			CVmOpticalDisk y;
 			StringToElement<CVmOpticalDisk* >(&y, getCommand()->GetDeviceConfig());
-			output = getAgent().getRuntime().update(y);
+			return getAgent().getRuntime().update(y);
 		}
-			break;
 		case PDE_HARD_DISK:
 		{
 			CVmHardDisk y;
 			StringToElement<CVmHardDisk* >(&y, getCommand()->GetDeviceConfig());
 			y.setConnected(PVE::DeviceConnected);
-			Hotplug(getAgent().getRuntime(), *getConfig()->getVmIdentification(),
+			return Hotplug(getAgent().getRuntime(), *getConfig()->getVmIdentification(),
 				getContext().getSession()).unplug(y);
 		}
-			break;
 		default:
-			output = Error::Simple(PRL_ERR_UNIMPLEMENTED);
+			return Error::Simple(PRL_ERR_UNIMPLEMENTED);
 		}
-		if (output.isSucceed())
-		{
-			CVmEvent v;
-			v.addEventParameter(new CVmEventParameter(PVE::String,
-				getCommand()->GetDeviceConfig(),
-				EVT_PARAM_VMCFG_DEVICE_CONFIG_WITH_NEW_STATE));
-
-			Task_EditVm::atomicEditVmConfigByVm(getContext().getDirectoryUuid(),
-				getContext().getVmUuid(), v, getContext().getSession());
-		}
-		return output;
 	}
 };
 
