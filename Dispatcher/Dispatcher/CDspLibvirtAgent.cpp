@@ -1743,7 +1743,7 @@ Result Editor::setIoPriority(quint32 ioprio_)
 	qint32 m(0);
 
 	if (do_(&p, boost::bind(&virTypedParamsAddUInt, _1,
-					&s, &m, VIR_DOMAIN_BLKIO_WEIGHT, ioprio_)).isFailed())
+					&s, &m, VIR_DOMAIN_BLKIO_WEIGHT, HostUtils::convertIoprioToWeight(ioprio_))).isFailed())
 		return Failure(PRL_ERR_SET_IOPRIO);
 
 	Result r(do_(getDomain().data(), boost::bind(&virDomainSetBlkioParameters, _1,
