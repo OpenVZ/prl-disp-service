@@ -806,6 +806,9 @@ PRL_RESULT Task_VzManager::register_env()
 	res = get_op_helper()->register_env(sPath, QString(), sUuid, vm_name,
 			cmd->GetCommandFlags(), pConfig);
 	if (PRL_SUCCEEDED(res)) {
+		if (sUuid.isEmpty())
+			sUuid = pConfig->getVmIdentification()->getVmUuid();
+
 		res = getVzHelper()->insertVmDirectoryItem(pConfig);
 		if (PRL_FAILED(res))
 			get_op_helper()->unregister_env(
