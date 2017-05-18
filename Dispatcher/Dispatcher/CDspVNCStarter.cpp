@@ -344,7 +344,10 @@ void Backend::run()
 	if (NULL == t)
 		return;
 
+	Sweeper* w = new Sweeper(m_commit);
+	w->setParent(t);
 	p = t->getPort();
+	w->connect(t, SIGNAL(ripped()), SLOT(reactRipped()));
 	t->connect(t, SIGNAL(ripped()), SLOT(deleteLater()));
 	t->moveToThread(QCoreApplication::instance()->thread());
 	m_commit(p);

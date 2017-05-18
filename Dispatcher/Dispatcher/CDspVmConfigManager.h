@@ -106,14 +106,6 @@ struct Pivot
 	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Unencrypted
-
-struct Unencrypted
-{
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
-};
-
 } // namespace RemoteDisplay
 
 namespace Index
@@ -223,14 +215,16 @@ private:
 namespace Patch
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Alias
+// struct Runtime
 
-struct Alias
+struct Runtime
 {
 	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 
 	template <class T>
-	static void draw(QList<T*>& new_, const QList<T*>& old_);
+	static void drawAlias(QList<T*>& new_, const QList<T*>& old_);
+	template <class T>
+	static void updateConnected(QList<T*>& new_, const QList<T*>& old_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -350,7 +344,7 @@ struct Reviser<N, void>
 	}
 };
 
-typedef boost::mpl::vector<RemoteDisplay::Unencrypted, Nvram, Patch::Alias> revise_types;
+typedef boost::mpl::vector<Nvram, Patch::Runtime> revise_types;
 typedef boost::mpl::vector<Identification, OsInfo, RuntimeOptions, GlobalNetwork,
 		Patch::Index, Cpu::Copy, NetworkDevices, HardDisks, OpticalDisks, Patch::State,
 		MemoryOptions, HighAvailability, Tools, RemoteDisplay::Pivot>

@@ -83,11 +83,9 @@ struct Reactor
 
 	void proceed(VIRTUAL_MACHINE_STATE destination_);
 
-	void openTray(const CVmOpticalDisk& model_);
-
-	void closeTray(const CVmOpticalDisk& model_);
-
 	void updateNetwork(const QString& network_);
+
+	void updateConnected(const QString& device_, PVE::DeviceConnectedState value_);
 
 private:
 	template<class T>
