@@ -578,18 +578,30 @@ PRL_RESULT Task_ExecVm::sendToClient(int type, const char *data, int size)
 	if (!m_ioClient.isValid())
 		return PRL_ERR_SUCCESS;
 
-	CVmEvent event((PRL_EVENT_TYPE)type, m_sVmUuid, PIE_VIRTUAL_MACHINE);
-	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(
-			(PRL_EVENT_TYPE)type, event, getRequestPackage());
-
-	if (data != NULL && size > 0)
-		p->fillBuffer(0, IOPackage::RawEncoding, (char *)(data), size);
-
-	IOSendJob::Handle job = m_ioClient->sendPackage(p);
-	if (CDspService::instance()->getIOServer().waitForSend(job, m_nTimeout) != IOSendJob::Success) {
-		WRITE_TRACE(DBG_FATAL, "Task_ExecVm: package type=%d sending failure", type);
-		return PRL_ERR_OPERATION_FAILED;
-	}
+	if (NULL == data)
+		size = 0;
+	do
+	{
+		CVmEvent event((PRL_EVENT_TYPE)type, m_sVmUuid, PIE_VIRTUAL_MACHINE);
+		SmartPtr<IOPackage> p = DispatcherPackage::createInstance(
+				(PRL_EVENT_TYPE)type, event, getRequestPackage());
+		if (0 < size)
+		{
+			IOPackage::PODData d;
+			d.bufferSize = size;
+			d.bufferEncoding = IOPackage::RawEncoding;
+			qint32 w = p->stowBuffer(0, (char*)(data), d);
+			if (0 > w)
+				return PRL_ERR_UNEXPECTED;
+			size -= w;
+			data += w;
+		}
+		IOSendJob::Handle job = m_ioClient->sendPackage(p);
+		if (CDspService::instance()->getIOServer().waitForSend(job, m_nTimeout) != IOSendJob::Success) {
+			WRITE_TRACE(DBG_FATAL, "Task_ExecVm: package type=%d sending failure", type);
+			return PRL_ERR_OPERATION_FAILED;
+		}
+	} while(0 < size);
 
 	return PRL_ERR_SUCCESS;
 }
