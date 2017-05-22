@@ -2753,9 +2753,8 @@ Prl::Expected<QString, PRL_RESULT> CVzOperationHelper::get_env_mount_info(
 
 		QString fstype, mountpoint;
 		get_device_mount_info(fs.device + "p1", fstype, mountpoint);
-		// Kb to bytes.
 		lstMounts << Parallels::formatMountInfo(
-				fs.device, image, mountpoint, fstype, fs.total << 10, fs.free << 10);
+				fs.device, image, mountpoint, fstype, fs.total, fs.free);
 	}
 	return lstMounts.join("\n");
 }
@@ -3301,8 +3300,8 @@ int CVzHelper::get_env_disk_stat(const SmartPtr<CVmConfiguration>& config,
 			continue;
 
 		Statistics::Filesystem f;
-		f.total = stats.total;
-		f.free = stats.free;
+		f.total = stats.total << 10; // Kb to bytes
+		f.free = stats.free << 10; // Kb to bytes
 		f.index = hdd.getIndex();
 		f.device = QString(stats.device);
 		f_tmp.append(f);
