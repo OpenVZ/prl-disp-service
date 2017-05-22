@@ -30,6 +30,7 @@
 #include "CDspVmNetworkHelper.h"
 #include "CDspBackupDevice.h"
 #include "Stat/CDspStatStorage.h"
+#include <boost/algorithm/string.hpp>
 #include "Tasks/Task_CreateProblemReport.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_ManagePrlNetService.h"
@@ -1164,6 +1165,10 @@ int deviceDisconnect(virConnectPtr , virDomainPtr domain_, const char* device_,
 int trayChange(virConnectPtr connect_, virDomainPtr domain_,
 		const char* device_, int reason_, void* opaque_)
 {
+	const char PREFIX[] = "drive-";
+	if (boost::starts_with(device_, PREFIX))
+		device_ += strlen(PREFIX);
+
 	switch (reason_)
 	{
 	case VIR_DOMAIN_EVENT_TRAY_CHANGE_OPEN:
