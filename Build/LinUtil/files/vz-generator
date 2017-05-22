@@ -46,8 +46,8 @@ try:
 except:
     unitsdir = "/run/systemd/generator.late"
 
-# Maximum timeout - 60 seconds
-timeout = 60 * 1000
+# Maximum timeout - 32400000 seconds (9000 hours)
+timeout = 32400000 * 1000
 
 # Units list
 unitslist = []
