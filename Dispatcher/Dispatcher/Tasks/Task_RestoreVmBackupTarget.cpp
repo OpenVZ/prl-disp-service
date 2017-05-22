@@ -824,7 +824,16 @@ PRL_RESULT Image::do_(const Assistant& assist_, quint32 version_)
 			return e;
 	}
 
-	quint64 s = m_archive.first.getDeviceSizeInBytes();
+	PRL_RESULT output;
+	quint64 s = 0;
+	if (BACKUP_PROTO_V3 < version_)
+		s = m_archive.first.getDeviceSizeInBytes();
+	else
+	{
+		if (PRL_FAILED(output = m_query(m_archive, assist_, s)))
+			return output;
+	}
+
 	SmartPtr<Device> device(Device::make(m_intermediate, s));
 	if (!device.isValid())
 		return PRL_ERR_VM_CREATE_HDD_IMG_INVALID_CREATE;
@@ -832,7 +841,6 @@ PRL_RESULT Image::do_(const Assistant& assist_, quint32 version_)
 	if (PRL_FAILED(device->mount()))
 		return PRL_ERR_DISK_MOUNT_FAILED;
 
-	PRL_RESULT output;
 	if (BACKUP_PROTO_V3 < version_) {
 		// we specify 'raw' format, because target is a mounted ploop device
 		output = assist_(device->getName(), m_archive.second.absoluteFilePath(), "raw");
