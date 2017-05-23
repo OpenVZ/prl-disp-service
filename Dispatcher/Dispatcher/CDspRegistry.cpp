@@ -273,6 +273,11 @@ void Reactor::reboot()
 	forward(::Vm::State::Reboot());
 }
 
+void Reactor::upgrade()
+{
+	forward(::Vm::State::Upgrade());
+}
+
 void Reactor::connectAgent()
 {
 	forward(::Vm::State::Agent());

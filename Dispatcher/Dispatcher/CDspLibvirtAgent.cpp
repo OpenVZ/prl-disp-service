@@ -454,11 +454,15 @@ Migration::Agent State::migrate(const QString &uri_)
 
 Result Maintenance::updateQemu()
 {
-	return do_(getDomain().data(), boost::bind(&virDomainMigrateToURI3, _1,
+	Result output = do_(getDomain().data(), boost::bind(&virDomainMigrateToURI3, _1,
 			(const char *)NULL, (virTypedParameterPtr) NULL, 0, 
 			VIR_MIGRATE_PEER2PEER | VIR_MIGRATE_LOCAL |
 			VIR_MIGRATE_LIVE | VIR_MIGRATE_POSTCOPY |
 			VIR_MIGRATE_POSTCOPY_START | VIR_MIGRATE_RELEASE_RAM));
+	if (output.isSucceed())
+		emitQemuUpdated();
+
+	return output;
 }
 
 Result Maintenance::adjustClock(qint64 offset_)

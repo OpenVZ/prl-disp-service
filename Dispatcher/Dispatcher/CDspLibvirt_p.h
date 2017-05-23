@@ -343,7 +343,7 @@ private:
 
 struct Domain: QObject
 {
-	typedef boost::function1<void, Registry::Reactor> reaction_type;
+	typedef boost::function<void(Registry::Reactor)> reaction_type;
 
 	explicit Domain(const Registry::Access& access_);
 

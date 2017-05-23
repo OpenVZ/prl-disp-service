@@ -993,16 +993,20 @@ int State::react(virConnectPtr, virDomainPtr domain_, int event_,
 
 		return 0;
 	case VIR_DOMAIN_EVENT_STARTED:
-		if (subtype_ == VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT)
+		switch (subtype_)
+		{
+		case -1:
+			v->show(domain_, boost::bind(&Registry::Reactor::upgrade, _1));
+			break;
+		default:
+			v->setState(domain_, VMS_RUNNING);
+		case VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT:
 			// state updated on defined from snapshot
-			return 0;
-
-		// This event means that live migration is started, but VM has
-		// not been defined yet. Ignore it.
-		if (subtype_ == VIR_DOMAIN_EVENT_STARTED_MIGRATED)
-			return 0;
-
-		v->setState(domain_, VMS_RUNNING);
+		case VIR_DOMAIN_EVENT_STARTED_MIGRATED:
+			// This event means that live migration is started, but VM has
+			// not been defined yet. Ignore it.
+			break;
+		}
 		return 0;
 	case VIR_DOMAIN_EVENT_RESUMED:
 		if (subtype_ == VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT)
@@ -1794,11 +1798,21 @@ namespace Limb
 ///////////////////////////////////////////////////////////////////////////////
 // struct Maintenance
 
-void Maintenance::emitDefined()
+void Maintenance::emitLifecycle(int category_, int type_)
 {
 	Callback::g_access.setOpaque(Callback::Mock::ID,
 		new Callback::Transport::Event(boost::bind
-			(Callback::State(getLink(), getDomain()), VIR_DOMAIN_EVENT_DEFINED, 0, _1)));
+			(Callback::State(getLink(), getDomain()), category_, type_, _1)));
+}
+
+void Maintenance::emitDefined()
+{
+	emitLifecycle(VIR_DOMAIN_EVENT_DEFINED, 0);
+}
+
+void Maintenance::emitQemuUpdated()
+{
+	emitLifecycle(VIR_DOMAIN_EVENT_STARTED, -1);
 }
 
 } // namespace Limb
