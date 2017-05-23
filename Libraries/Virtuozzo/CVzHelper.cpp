@@ -2097,6 +2097,35 @@ int CVzOperationHelper::apply_env_config(SmartPtr<CVmConfiguration> &pConfig,
 
 	QList<CVmHardDisk *> &lstNewHardDisks = pConfig->getVmHardwareList()->m_lstHardDisks;
 	QList<CVmHardDisk *> &lstOldHardDisks = pOldConfig->getVmHardwareList()->m_lstHardDisks;
+
+	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
+	if (h == NULL) {
+		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
+				QSTR2UTF8(uuid), vzctl2_get_last_error());
+		return PRL_ERR_OPERATION_FAILED;
+	}
+
+	VzctlParamWrap new_param(vzctl2_alloc_env_param());
+	if (new_param == NULL) {
+		WRITE_TRACE(DBG_FATAL, "vzctl2_alloc_env_param");
+		return PRL_ERR_OPERATION_FAILED;
+	}
+
+	ret = fill_env_param(h, new_param, pConfig, pOldConfig);
+	if (ret)
+		return ret;
+
+	// Store xml copy
+	QString cfg = get_env_xml_config_path(pConfig);
+	ret = pConfig->saveToFile(cfg, true, true);
+
+	ret = vzctl2_apply_param(h, new_param, VZCTL_SAVE);
+	if (ret) {
+		WRITE_TRACE(DBG_FATAL, "vzctl2_apply_param failed: %s [%d]",
+				vzctl2_get_last_error(), ret);
+		return PRL_ERR_OPERATION_FAILED;
+	}
+
 	/* add DISK */
 	foreach (CVmHardDisk *pHdd, lstNewHardDisks) {
 		const QString &i = pHdd->getUserFriendlyName();
@@ -2113,34 +2142,6 @@ int CVzOperationHelper::apply_env_config(SmartPtr<CVmConfiguration> &pConfig,
 				pHdd->setUuid(Uuid::createUuid().toString());
 			if (create_env_disk(uuid, pHdd))
 				return PRL_ERR_OPERATION_FAILED;
-		}
-	}
-
-	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
-	if (h == NULL) {
-		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
-				QSTR2UTF8(uuid), vzctl2_get_last_error());
-		return PRL_ERR_OPERATION_FAILED;
-	}
-
-	VzctlParamWrap new_param(vzctl2_alloc_env_param());
-	if (new_param == NULL) {
-		WRITE_TRACE(DBG_FATAL, "vzctl2_alloc_env_param");
-		return PRL_ERR_OPERATION_FAILED;
-	}
-
-	ret = fill_env_param(h, new_param, pConfig, pOldConfig);
-	if (ret == 0) {
-
-		// Store xml copy
-		QString cfg = get_env_xml_config_path(pConfig);
-		ret = pConfig->saveToFile(cfg, true, true);
-
-		ret = vzctl2_apply_param(h, new_param, VZCTL_SAVE);
-		if (ret) {
-			WRITE_TRACE(DBG_FATAL, "vzctl2_apply_param failed: %s [%d]",
-					vzctl2_get_last_error(), ret);
-			ret = PRL_ERR_OPERATION_FAILED;
 		}
 	}
 
