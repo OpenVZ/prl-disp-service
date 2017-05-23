@@ -389,18 +389,14 @@ void Tunnel::reactDisconnect()
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-void Frontend::operator()(CVmConfiguration& object_, const CVmConfiguration& runtime_) const
+void Frontend::draw(CVmRemoteDisplay& object_, const CVmRemoteDisplay* runtime_,
+	const range_type& playground_) const
 {
-	CVmRemoteDisplay* a = Traits::purify(&object_);
-	if (NULL == a)
+	object_.setEncrypted(false);
+	if (PRD_DISABLED == object_.getMode())
 		return;
 
-	a->setEncrypted(false);
-	if (PRD_DISABLED == a->getMode())
-		return;
-
-	CVmRemoteDisplay* b = Traits::purify(&runtime_);
-	if (NULL == b)
+	if (NULL == runtime_)
 		return;
 
 	QByteArray c, k;
@@ -408,11 +404,40 @@ void Frontend::operator()(CVmConfiguration& object_, const CVmConfiguration& run
 	if (Vnc::Encryption(*(m_service->getQSettings().getPtr())).state(k, c))
 	{
 		u = Socat::Launcher(Vnc::Api::Stunnel(k, c));
-		a->setEncrypted(true);
+		object_.setEncrypted(true);
 	}
-	u.setTarget(QHostAddress(b->getHostName()), b->getPortNumber());
-	Launch::Backend::range_type d(b->getPortNumber(), b->getPortNumber());
-	if (PRD_AUTO == b->getMode())
+	u.setTarget(QHostAddress(runtime_->getHostName()), runtime_->getPortNumber());
+	Launch::Backend::range_type d(playground_.first, playground_.second);
+	QRunnable* q = new Launch::Backend(boost::bind(
+			boost::factory<Launch::Subject* >(),
+				runtime_->getPortNumber(), u), d,
+				Launch::SetPort(m_commit, &Traits::configure));
+	q->setAutoDelete(true);
+	QThreadPool::globalInstance()->start(q);
+
+	if (runtime_->getWebSocketPortNumber() == runtime_->getPortNumber())
+		return;
+
+	u.setTarget(QHostAddress(runtime_->getHostName()), runtime_->getWebSocketPortNumber());
+	// Start from auto-assigned and to max.
+	d.first = d.second = runtime_->getWebSocketPortNumber();
+	q = new Launch::Backend(boost::bind(
+			boost::factory<Launch::Subject* >(),
+				runtime_->getWebSocketPortNumber(), u), d,
+				Launch::SetPort(m_commit, &Traits::configureWS));
+	q->setAutoDelete(true);
+	QThreadPool::globalInstance()->start(q);
+}
+
+void Frontend::setup(CVmConfiguration& object_, const CVmConfiguration& runtime_) const
+{
+	CVmRemoteDisplay* a = Traits::purify(&object_);
+	if (NULL == a)
+		return;
+
+	range_type d;
+	CVmRemoteDisplay* b = Traits::purify(&runtime_);
+	if (PRD_AUTO == a->getMode())
 	{
 		d.first = m_service->getDispConfigGuard()
 			.getDispCommonPrefs()
@@ -421,26 +446,21 @@ void Frontend::operator()(CVmConfiguration& object_, const CVmConfiguration& run
 			.getDispCommonPrefs()
 			->getRemoteDisplayPreferences()->getMaxPort();
 	}
-	QRunnable* q = new Launch::Backend(boost::bind(
-			boost::factory<Launch::Subject* >(),
-				b->getPortNumber(), u), d,
-				Launch::SetPort(m_commit, &Traits::configure));
-	q->setAutoDelete(true);
-	QThreadPool::globalInstance()->start(q);
+	else if (NULL != b)
+	{
+		d.first = b->getPortNumber();
+		d.second = b->getPortNumber();
+	}
+	draw(*a, b, d);
+}
 
-	if (b->getWebSocketPortNumber() == b->getPortNumber())
+void Frontend::restore(CVmConfiguration& object_, const CVmConfiguration& runtime_) const
+{
+	CVmRemoteDisplay* a = Traits::purify(&object_);
+	if (NULL == a)
 		return;
 
-	u.setTarget(QHostAddress(b->getHostName()), b->getWebSocketPortNumber());
-	// Start from auto-assigned and to max.
-	d = Launch::Backend::range_type(
-			b->getWebSocketPortNumber(), b->getWebSocketPortNumber());
-	q = new Launch::Backend(boost::bind(
-			boost::factory<Launch::Subject* >(),
-				b->getWebSocketPortNumber(), u), d,
-				Launch::SetPort(m_commit, &Traits::configureWS));
-	q->setAutoDelete(true);
-	QThreadPool::globalInstance()->start(q);
+	draw(*a, Traits::purify(&runtime_), range_type(a->getPortNumber(), a->getPortNumber()));
 }
 
 } // namespace Secure

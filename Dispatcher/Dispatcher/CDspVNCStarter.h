@@ -72,9 +72,13 @@ struct Frontend
 	{
 	}
 
-	void operator()(CVmConfiguration& object_, const CVmConfiguration& runtime_) const;
+	void setup(CVmConfiguration& object_, const CVmConfiguration& runtime_) const;
+	void restore(CVmConfiguration& object_, const CVmConfiguration& runtime_) const;
 
 private:
+	void draw(CVmRemoteDisplay& object_, const CVmRemoteDisplay* runtime_,
+		const range_type& playground_) const;
+
 	CDspService* m_service;
 	::Vm::Config::Edit::Atomic m_commit;
 };
