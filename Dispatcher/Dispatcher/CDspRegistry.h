@@ -77,6 +77,8 @@ struct Reactor
 
 	void reboot();
 
+	void upgrade();
+
 	void connectAgent();
 
 	void disconnectAgent();

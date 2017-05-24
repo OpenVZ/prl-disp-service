@@ -90,6 +90,13 @@ struct Reboot
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Upgrade
+
+struct Upgrade
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Running
 
 // State flag that VM is active
@@ -140,6 +147,24 @@ struct Frontend: Details::Frontend<Frontend>
 			m_big->getConfigEditor()(action_);
 		}
 
+		void upgrade(const Upgrade&)
+		{
+			CVmConfiguration runtime;
+			Libvirt::Instrument::Agent::Vm::Unit v = Libvirt::Kit.vms().at(m_big->getUuid());
+			if (v.getConfig(runtime, true).isFailed())
+			{
+				WRITE_TRACE(DBG_INFO, "failed to read runtime config from for VM '%s'",
+					qPrintable(m_big->m_name));
+				return;
+			}
+			WRITE_TRACE(DBG_INFO, "updating config from runtime for VM '%s'",
+					qPrintable(m_big->m_name));
+			Config::Edit::Atomic e = m_big->getConfigEditor();
+			e(boost::bind<void>(&Vnc::Secure::Frontend::restore,
+				Vnc::Secure::Frontend(e, m_big->getService()),
+				_1, boost::cref(runtime)));
+		}
+
 		void pullToolsVersionAfterReconnect(const Conventional<VMS_RUNNING>&)
 		{
 			m_big->m_toolsState = ::Vm::Guest::Connector
@@ -184,10 +209,10 @@ struct Frontend: Details::Frontend<Frontend>
 		struct transition_table: boost::mpl::vector
 		<
 			msmf::Row<Started, Conventional<VMS_STOPPING>, Stopping>,
-			msmf::Row<Already, Conventional<VMS_STOPPING>, Stopping>,
 			msmf::Row<Rebooted, Conventional<VMS_STOPPING>, Stopping>,
+			a_irow<Started, Upgrade, &Running_::upgrade>,
+			a_irow<Rebooted, Upgrade, &Running_::upgrade>,
 			a_irow<Started, Tray::action_type, &Running_::changeTray>,
-			a_irow<Already, Tray::action_type, &Running_::changeTray>,
 			a_irow<Rebooted, Tray::action_type, &Running_::changeTray>,
 			msmf::Row<Stopping, Reboot, Rebooted>,
 			msmf::Row
@@ -195,12 +220,6 @@ struct Frontend: Details::Frontend<Frontend>
 				Started,
 				Reboot,
 				Rebooted
-			>,
-			msmf::Row
-			<
-				Already,
-				NoAgent,
-				Started
 			>,
 			msmf::Row
 			<
@@ -427,7 +446,8 @@ struct Frontend: Details::Frontend<Frontend>
 			WRITE_TRACE(DBG_INFO, "updating config from runtime for VM '%s'", qPrintable(fsm_.m_name));
 			Config::Edit::Atomic e = fsm_.getConfigEditor();
 			boost::signals2::signal<void (CVmConfiguration& )> s;
-			s.connect(boost::bind<void>(Vnc::Secure::Frontend(e, fsm_.getService()),
+			s.connect(boost::bind<void>(&Vnc::Secure::Frontend::setup,
+				Vnc::Secure::Frontend(e, fsm_.getService()),
 				_1, boost::cref(runtime)));
 			s.connect(boost::bind(&Vm::Config::Repairer<Vm::Config::revise_types>::type::do_,
 				_1, boost::cref(runtime)));
