@@ -160,7 +160,7 @@ struct Frontend: Details::Frontend<Frontend>
 			WRITE_TRACE(DBG_INFO, "updating config from runtime for VM '%s'",
 					qPrintable(m_big->m_name));
 			Config::Edit::Atomic e = m_big->getConfigEditor();
-			e(boost::bind<void>(&Vnc::Secure::Frontend::restore,
+			e(boost::bind<void>(&Vnc::Secure::Frontend::setup,
 				Vnc::Secure::Frontend(e, m_big->getService()),
 				_1, boost::cref(runtime)));
 		}
