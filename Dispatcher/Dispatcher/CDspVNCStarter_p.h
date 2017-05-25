@@ -400,16 +400,22 @@ struct Backend: QRunnable
 
 	Backend(const subject_type& subject_, const range_type& input_,
 		const configure_type& commit_):
-		m_commit(commit_), m_subject(subject_), m_setup(input_)
+		m_commit(commit_), m_subject(subject_), m_setup(input_),
+		m_sweepMode()
 	{
 	}
 
 	void run();
+	void setSweepMode(PRL_VM_REMOTE_DISPLAY_MODE value_)
+	{
+		m_sweepMode = value_;
+	}
 
 private:
 	configure_type m_commit;
 	subject_type m_subject;
 	range_type m_setup;
+	PRL_VM_REMOTE_DISPLAY_MODE m_sweepMode;
 };
 
 } // namespace Launch

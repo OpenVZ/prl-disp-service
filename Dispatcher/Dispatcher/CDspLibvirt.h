@@ -571,8 +571,12 @@ struct Maintenance: private Abstract
 	}
 
 	void emitDefined();
+	void emitQemuUpdated();
 	Result updateQemu();
 	Result adjustClock(qint64 adjusment_);
+
+private:
+	void emitLifecycle(int category_, int type_);
 };
 
 } // namespace Limb
