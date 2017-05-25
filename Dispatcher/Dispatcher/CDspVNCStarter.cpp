@@ -344,10 +344,13 @@ void Backend::run()
 	if (NULL == t)
 		return;
 
-	Sweeper* w = new Sweeper(m_commit);
-	w->setParent(t);
+	if (PRD_AUTO == m_sweepMode)
+	{
+		Sweeper* w = new Sweeper(m_commit);
+		w->setParent(t);
+		w->connect(t, SIGNAL(ripped()), SLOT(reactRipped()));
+	}
 	p = t->getPort();
-	w->connect(t, SIGNAL(ripped()), SLOT(reactRipped()));
 	t->connect(t, SIGNAL(ripped()), SLOT(deleteLater()));
 	t->moveToThread(QCoreApplication::instance()->thread());
 	m_commit(p);
@@ -408,11 +411,12 @@ void Frontend::draw(CVmRemoteDisplay& object_, const CVmRemoteDisplay* runtime_,
 	}
 	u.setTarget(QHostAddress(runtime_->getHostName()), runtime_->getPortNumber());
 	Launch::Backend::range_type d(playground_.first, playground_.second);
-	QRunnable* q = new Launch::Backend(boost::bind(
+	Launch::Backend* q = new Launch::Backend(boost::bind(
 			boost::factory<Launch::Subject* >(),
 				runtime_->getPortNumber(), u), d,
 				Launch::SetPort(m_commit, &Traits::configure));
 	q->setAutoDelete(true);
+	q->setSweepMode(object_.getMode());
 	QThreadPool::globalInstance()->start(q);
 
 	if (runtime_->getWebSocketPortNumber() == runtime_->getPortNumber())
@@ -426,6 +430,7 @@ void Frontend::draw(CVmRemoteDisplay& object_, const CVmRemoteDisplay* runtime_,
 				runtime_->getWebSocketPortNumber(), u), d,
 				Launch::SetPort(m_commit, &Traits::configureWS));
 	q->setAutoDelete(true);
+	q->setSweepMode(PRD_AUTO);
 	QThreadPool::globalInstance()->start(q);
 }
 
