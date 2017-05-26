@@ -24,29 +24,27 @@
 
 import subprocess32 as subprocess
 import sys
+import logging
 import threading
 import prlsdkapi
 
-def log(mess):
-    if not mess:
-        return
-    with open("/dev/kmsg", "w") as f:
-        f.write("prl_disp_autosuspend: " + mess)
-        f.close()
-
 def error(mess):
-    log(mess)
+    logger.error(mess)
     sys.exit(1)
 
 def prepare_to_reboot(timeout = 60 * 1000):
     threads = []
     # Connect to dispatcher
+    logger.info("SDK init...")
     prlsdkapi.init_server_sdk()
+    logger.info("Connecting to dispatcher...")
     server = prlsdkapi.Server()
     server.login_local().wait(msecs = timeout)
 
     # Create file with list of auto autostart
     noautostart = "units_skip_start = ("
+
+    logger.info("Retreiving VMs list...")
 
     # Get VMs list
     vms = server.get_vm_list_ex(prlsdkapi.consts.PVTF_VM + prlsdkapi.consts.PVTF_CT)
@@ -63,6 +61,7 @@ def prepare_to_reboot(timeout = 60 * 1000):
                 (prlsdkapi.consts.VMS_STOPPED, prlsdkapi.consts.VMS_STOPPING,
                 prlsdkapi.consts.VMS_SUSPENDING, prlsdkapi.consts.VMS_SUSPENDED)):
             continue
+        logger.info("Suspending VM %s..." % res.get_config().get_uuid())
         thread = threading.Thread(target=res.suspend().wait)
         thread.start()
         threads.append(thread)
@@ -71,13 +70,36 @@ def prepare_to_reboot(timeout = 60 * 1000):
         f.write(noautostart + ")\n")
         f.close()
 
+    logger.info("Waiting for suspend threads...")
+
     # Wait for VMs suspended
     for thread in threads:
         thread.join()
 
     # Disconnect
+    logger.info("Disconnecting from dispatcher...")
     server.logoff().wait(msecs = timeout)
+    logger.info("SDK deinit...")
     prlsdkapi.deinit_sdk()
+
+# Redirect messages to /dev/null
+devnull = open("/dev/null", 'w')
+sys.stdout.flush()
+sys.stderr.flush()
+sys.stdout, sys.stderr = devnull, devnull
+
+progname = "prl_disp_reboot"
+
+# Setup logger
+defloglevel = logging.INFO
+logformat = "%(asctime)-15s %(message)s"
+logging.basicConfig(format=logformat)
+logger = logging.getLogger(progname)
+logger.setLevel(defloglevel)
+fh = logging.FileHandler("/var/log/%s.log" % progname)
+fh.setLevel(defloglevel)
+fh.setFormatter(logging.Formatter(logformat))
+logger.addHandler(fh)
 
 # Detect that we're going to reboot/shutdown
 proc = subprocess.Popen("/usr/bin/systemctl -q --no-legend list-jobs",
@@ -85,9 +107,12 @@ proc = subprocess.Popen("/usr/bin/systemctl -q --no-legend list-jobs",
         stdin=subprocess.PIPE, shell = True)
 (output, err) = proc.communicate()
 
+logger.info("Determining state...")
+
 for line in output.splitlines():
     try:
         if not line.split(" ")[1] in ("reboot.target", "shutdown.target"):
+            logger.info("Not in reboot or shutdown state!")
             continue
         try:
             prepare_to_reboot()
@@ -96,3 +121,5 @@ for line in output.splitlines():
             error(repr(err))
     except IndexError:
         pass
+
+logger.info("All done!")
