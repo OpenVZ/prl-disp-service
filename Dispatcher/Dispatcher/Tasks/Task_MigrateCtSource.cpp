@@ -195,8 +195,7 @@ PRL_RESULT Task_MigrateCtSource::run_body()
 		lstArgs.append("yes");
 	}
 
-	// If target name not empty and don't contain valid CTID treat it as containers name
-	if (!m_sTargetServerCtName.isEmpty() && CVzHelper::parse_ctid(m_sTargetServerCtName).isEmpty())
+	if (!m_sTargetServerCtName.isEmpty())
 		lstArgs.append(QString("--new-name=%1").arg(m_sTargetServerCtName));
 
 	/*lstArgs.append("-v");*/
