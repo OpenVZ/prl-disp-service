@@ -520,19 +520,23 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 
 		if ( !doRegisterOnly() )
 		{
+			CAuthHelper& a = getClient()->getAuthHelper();
 			//https://bugzilla.sw.ru/show_bug.cgi?id=267152
-			CAuthHelperImpersonateWrapper _impersonate( &getClient()->getAuthHelper() );
+			CAuthHelperImpersonateWrapper _impersonate(&a);
 
 			if ( ! m_vmRootDir.isEmpty() && ! QDir::isAbsolutePath( m_vmRootDir ) )
 				throw PRL_ERR_VMDIR_PATH_IS_NOT_ABSOLUTE;
 
 			if( !m_vmRootDir.isEmpty() &&
-				!CFileHelper::DirectoryExists( m_vmRootDir, &getClient()->getAuthHelper() ) )
+				!CFileHelper::DirectoryExists( m_vmRootDir, &a ) )
 				throw f(PRL_ERR_DIRECTORY_DOES_NOT_EXIST, m_vmRootDir);
 
 			if( m_vmRootDir.isEmpty() )
-				m_vmRootDir= CDspVmDirHelper::getVmRootPathForUser( getClient() );
-
+			{
+				m_vmRootDir= CDspVmDirHelper::getVmRootPathForUser(getClient());
+				CFileHelper::WriteDirectory(m_vmRootDir, &a);
+				QFile::setPermissions(m_vmRootDir, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+			}
 			if (m_vmRootDir.endsWith('/') || m_vmRootDir.endsWith('\\'))
 				m_vmRootDir.chop(1);
 
