@@ -221,7 +221,7 @@ def create_bridge(iface, cp, bridge_id, to_write):
         if attr.startswith("BOND"):
             continue
         bridge[attr] = cp[attr]
-        if attr != "ONBOOT":
+        if attr not in ("ONBOOT", "MTU"):
             cp.delete(attr)
     bridge["TYPE"] = "\"Bridge\""
     bridge["DELAY"] = "\"2\""
