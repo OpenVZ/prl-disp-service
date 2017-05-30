@@ -944,6 +944,7 @@ template<>
 void Reactor<PVE::DspCmdVmStart>::react()
 {
 	m_context.reply(PRL_ERR_TIMEOUT);
+	emit finish();
 }
 
 template<>
@@ -956,6 +957,7 @@ template<>
 void Reactor<PVE::DspCmdVmResume>::react()
 {
 	m_context.reply(PRL_ERR_TIMEOUT);
+	emit finish();
 }
 
 template<>
@@ -970,7 +972,11 @@ void Reactor<PVE::DspCmdVmStop>::react()
 	Libvirt::Result e;
 	Shutdown::Fallback f(m_context.getVmUuid(), e);
 	f.react();
-	m_context.reply(e);
+	if (e.isFailed())
+	{
+		m_context.reply(e);
+		emit finish();
+	}
 }
 
 template<>
@@ -1193,7 +1199,7 @@ PRL_RESULT Lock::operator()(PVE::IDispatcherCommands command_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Extra
 
-Libvirt::Result Extra::operator()(quint32 timeout_, Fork::Reactor* reactor_)
+Libvirt::Result Extra::operator()(quint32 timeout_, Fork::Timeout::Handler* reactor_)
 {
 	if (NULL == reactor_)
 		return Error::Simple(PRL_ERR_INVALID_ARG);
@@ -1203,7 +1209,7 @@ Libvirt::Result Extra::operator()(quint32 timeout_, Fork::Reactor* reactor_)
 	if (!r->connect(t.data(), SIGNAL(timeout()), SLOT(react()), Qt::QueuedConnection))
 		return Error::Simple(PRL_ERR_FAILURE);
 
-	if (!m_loop->connect(t.data(), SIGNAL(timeout()), SLOT(quit()), Qt::QueuedConnection))
+	if (!m_loop->connect(r.data(), SIGNAL(finish()), SLOT(quit()), Qt::QueuedConnection))
 		return Error::Simple(PRL_ERR_FAILURE);
 
 	t->setInterval(timeout_ * 1000);
@@ -1343,6 +1349,8 @@ void Fallback::react()
 	*m_sink = u.getValue(s);
 	if (m_sink->isSucceed() && s != VMS_STOPPED)
 		*m_sink = u.kill();
+
+	emit finish();
 }
 
 quint32 Fallback::getTimeout()

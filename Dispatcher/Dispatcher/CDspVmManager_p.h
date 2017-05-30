@@ -325,6 +325,11 @@ namespace State
 {
 struct Detector;
 } // namespace State
+
+namespace Timeout
+{
+struct Handler;
+} // namespace Timeout;
 } // namespace Fork
 
 namespace Prepare
@@ -476,7 +481,7 @@ struct Extra
 
 	Libvirt::Result operator()(PVE::IDispatcherCommands name_, const CVmIdent& ident_,
 		const SmartPtr<CDspClient>& session_);
-	Libvirt::Result operator()(quint32 timeout_, Fork::Reactor* reactor_);
+	Libvirt::Result operator()(quint32 timeout_, Fork::Timeout::Handler* reactor_);
 
 	Libvirt::Result operator()
 		(Fork::State::Detector* detector_, Fork::Reactor* reactor_);
@@ -731,10 +736,22 @@ private:
 namespace Timeout
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Handler
+
+struct Handler: Fork::Reactor
+{
+signals:
+	void finish();
+
+private:
+	Q_OBJECT
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Reactor
 
 template<PVE::IDispatcherCommands X>
-struct Reactor: Fork::Reactor
+struct Reactor: Handler
 {
 	explicit Reactor(const Context& context_): m_context(context_)
 	{
@@ -962,7 +979,7 @@ struct Killer
 ///////////////////////////////////////////////////////////////////////////////
 // struct Fallback
 
-struct Fallback: Fork::Reactor
+struct Fallback: Fork::Timeout::Handler
 {
 	Fallback(const QString& uuid_, Libvirt::Result& sink_):
 		m_uuid(uuid_), m_sink(&sink_)
