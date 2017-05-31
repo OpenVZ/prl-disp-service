@@ -416,6 +416,7 @@ public:
 	CDispToDispAuthorizeCommand(
 		const QString &sUserName, const QString &sPassword
 	);
+	~CDispToDispAuthorizeCommand();
 
 	/** Overridden method that let to determine whether protocol command valid */
 	bool IsValid();

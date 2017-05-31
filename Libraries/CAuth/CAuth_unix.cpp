@@ -244,8 +244,8 @@ bool CAuth::AuthUser(const QString & userName,
 	m_bAuthAvailable = true;
 
     int ret;
-    char *str = strdup(password.toAscii().data());
-    struct pam_conv pamConv = { pamConvers, str };
+    QByteArray a = password.toAscii();
+    struct pam_conv pamConv = { pamConvers, a.data() };
     pam_handle_t* pamh;
 
     // Init library
@@ -253,30 +253,29 @@ bool CAuth::AuthUser(const QString & userName,
     if (ret != PAM_SUCCESS) {
 		m_bAuthAvailable = false;
         WRITE_TRACE(DBG_FATAL, "Can't init PAM library: %s", pam_strerror(pamh, ret));
-        free(str);
+	a.fill(0);
         return false;
     }
 
     // Auth user
-    if ((ret = pam_authenticate(pamh, 0)) != PAM_SUCCESS) {
+    ret = pam_authenticate(pamh, 0);
+    a.fill(0);
+    if (ret != PAM_SUCCESS) {
 		// PAM_MODULE_UNKNOWN is error that indicates problem with pam modules. This problem
 		// can be found on x64 linux usualy.
 		m_bAuthAvailable = (PAM_MODULE_UNKNOWN != ret);
         WRITE_TRACE(DBG_FATAL, "Auth failed: %s [%d]", pam_strerror(pamh, ret), ret);
         if ((ret = pam_end(pamh, ret)) != PAM_SUCCESS)
             WRITE_TRACE(DBG_FATAL, "Can't deinit PAM library ? : %s", pam_strerror(pamh, ret));
-        free(str);
         return false;
     }
 
     // Unload library
     if ((ret = pam_end(pamh, ret)) != PAM_SUCCESS) {
         WRITE_TRACE(DBG_FATAL, "Can't deinit PAM library ? : %s", pam_strerror(pamh, ret));
-        free(str);
         return false;
     }
 
-    free(str);
 
 	return FillUserIdentifier( userName, m_UserId, m_UserPrimaryGroupId );
 }

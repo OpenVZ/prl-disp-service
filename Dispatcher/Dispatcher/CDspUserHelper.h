@@ -85,7 +85,7 @@ public:
 
 	// Process user logon via user & password
 	SmartPtr<CDspClient> processLogin (
-		    const QString user, const QString password, const QString prevSessionUuid,
+		    const QString user, const QString& password, const QString prevSessionUuid,
 		    const IOSender::Handle& h, const SmartPtr<IOPackage>& p, quint32 nFlags = 0, bool *pbWasPreAuthorized = NULL );
 
 	// Process user's local login request

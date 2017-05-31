@@ -42,7 +42,7 @@
 
 #include <QDir>
 #include <QTimer>
-
+#include <boost/scope_exit.hpp>
 #include <prlcommon/Interfaces/ParallelsQt.h>
 
 #include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
@@ -407,7 +407,13 @@ SmartPtr<CDspClient> CDspUserHelper::processDispacherLogin (
 	CDispToDispAuthorizeCommand *authCmd =
 		CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispAuthorizeCommand>(cmd);
 
-	return processLogin(authCmd->GetUserName(), authCmd->GetPassword(), "", h , p);
+	QString x = authCmd->GetPassword();
+	BOOST_SCOPE_EXIT(&x)
+	{
+		x.fill(0);
+	}
+	BOOST_SCOPE_EXIT_END;
+	return processLogin(authCmd->GetUserName(), x, "", h , p);
 }
 
 /**
@@ -434,8 +440,14 @@ SmartPtr<CDspClient> CDspUserHelper::processUserLogin (
 	CProtoCommandDspCmdUserLogin* loginCmd =
 		CProtoSerializer::CastToProtoCommand<CProtoCommandDspCmdUserLogin>(cmd);
 
+	QString x = loginCmd->GetPassword();
+	BOOST_SCOPE_EXIT(&x)
+	{
+		x.fill(0);
+	}
+	BOOST_SCOPE_EXIT_END;
 	return processLogin(
-			loginCmd->GetUserLoginName(), loginCmd->GetPassword(), loginCmd->GetPrevSessionUuid(), h , p,
+			loginCmd->GetUserLoginName(), x, loginCmd->GetPrevSessionUuid(), h , p,
 			loginCmd->GetCommandFlags(), &bWasPreAuthorized );
 }
 
@@ -447,7 +459,7 @@ SmartPtr<CDspClient> CDspUserHelper::processUserLogin (
 * @return
 */
 SmartPtr<CDspClient> CDspUserHelper::processLogin (
-    const QString _user, const QString password, const QString prevSessionUuid,
+    const QString _user, const QString& password, const QString prevSessionUuid,
 	const IOSender::Handle& h, const SmartPtr<IOPackage>& p, quint32 nFlags,
 	bool *
 	)
@@ -472,14 +484,14 @@ SmartPtr<CDspClient> CDspUserHelper::processLogin (
 	p_NewUser->setPrevSessionUuid( prevSessionUuid );
 	p_NewUser->setNonInteractive(nFlags & PACF_NON_INTERACTIVE_MODE);
 
-		if (user.isEmpty() || !p_NewUser->getAuthHelper().AuthUser(password))
-		{
-			WRITE_TRACE(DBG_FATAL, "Can't authorize user [%s].", user.toUtf8().data());
+	if (user.isEmpty() || !p_NewUser->getAuthHelper().AuthUser(password))
+	{
+		WRITE_TRACE(DBG_FATAL, "Can't authorize user [%s].", user.toUtf8().data());
 
-			// Client wasn't preauthprized as well - send error
-			CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_AUTHENTICATION_FAILED );
-			return SmartPtr<CDspClient>();
-		}
+		// Client wasn't preauthprized as well - send error
+		CDspService::instance()->sendSimpleResponseToClient( h, p, PRL_ERR_AUTHENTICATION_FAILED );
+		return SmartPtr<CDspClient>();
+	}
 
 	bool res = fillUserPreferences( h, p, p_NewUser );
 
