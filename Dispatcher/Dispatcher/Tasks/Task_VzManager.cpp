@@ -303,7 +303,11 @@ PRL_RESULT Task_VzManager::start_env()
 		return res;
 
 	if (nState == VMS_PAUSED)
-		sendEvent(PET_DSP_EVT_VM_STARTED, sUuid);
+	{
+		CDspService::instance()->getVmStateSender()->
+			onVmStateChanged(VMS_PAUSED, VMS_RUNNING, sUuid,
+					m_sVzDirUuid, false);
+	}
 
 	return PRL_ERR_SUCCESS;
 }
@@ -324,7 +328,8 @@ PRL_RESULT Task_VzManager::pause_env()
 	if (PRL_FAILED(res))
 		return res;
 
-	sendEvent(PET_DSP_EVT_VM_PAUSED, sUuid);
+	CDspService::instance()->getVmStateSender()->
+		onVmStateChanged(VMS_RUNNING, VMS_PAUSED, sUuid, m_sVzDirUuid, false);
 
 	return PRL_ERR_SUCCESS;
 }
@@ -458,7 +463,11 @@ PRL_RESULT Task_VzManager::suspend_env()
 
 	res = get_op_helper()->suspend_env(sUuid);
 	if (PRL_SUCCEEDED(res))
-		sendEvent(PET_DSP_EVT_VM_SUSPENDED, sUuid);
+	{
+		CDspService::instance()->getVmStateSender()->
+			onVmStateChanged(VMS_RUNNING, VMS_SUSPENDED, sUuid,
+					m_sVzDirUuid, false);
+	}
 
 	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
 	if (pConfig.isValid())
@@ -1135,9 +1144,7 @@ PRL_RESULT Task_VzManager::process_state()
 	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
 	if (s && m_nState != VMS_UNKNOWN)
 	{
-		VIRTUAL_MACHINE_STATE state;
-		if (PRL_SUCCEEDED(CVzHelper::get_env_status(getVmUuid(), state)))
-			s->onVmStateChanged(state, m_nState, getVmUuid(), m_sVzDirUuid, false);
+		s->onVmStateChanged(VMS_UNKNOWN, m_nState, getVmUuid(), m_sVzDirUuid, false);
 	}
 	s.unlock();
 
