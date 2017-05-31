@@ -34,6 +34,7 @@
 #include "CVmMigrationProto.h"
 #include "CVmBackupProto.h"
 #include "CCtTemplateProto.h"
+#include <boost/scope_exit.hpp>
 #include <prlcommon/Messaging/CVmEventParameterList.h>
 
 namespace Parallels
@@ -124,11 +125,16 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::ParseCommand(
 
 CDispToDispCommandPtr CDispToDispProtoSerializer::ParseCommand( const SmartPtr<IOService::IOPackage> &p)
 {
-    if ( ! p.isValid() )
-        return CDispToDispCommandPtr(new CDispToDispUnknownCommand);
+	if (!p.isValid())
+		return CDispToDispCommandPtr(new CDispToDispUnknownCommand);
 
-    return ParseCommand( (IDispToDispCommands)p->header.type,
-						 UTF8_2QSTR( p->buffers[0].getImpl() ) );
+	QString x = UTF8_2QSTR(p->buffers[0].getImpl());
+	BOOST_SCOPE_EXIT(&x)
+	{
+		x.fill(0);
+	}
+	BOOST_SCOPE_EXIT_END;
+	return ParseCommand((IDispToDispCommands)p->header.type, x);
 }
 
 CDispToDispCommandPtr CDispToDispProtoSerializer::CreateDispToDispAuthorizeCommand(
@@ -454,6 +460,17 @@ bool CDispToDispAuthorizeCommand::IsValid()
 		present = CheckWhetherParamPresents(EVT_PARAM_DISP_TO_DISP_AUTHORIZE_CMD_USER_NAME, PVE::String)
 			&& CheckWhetherParamPresents(EVT_PARAM_DISP_TO_DISP_AUTHORIZE_CMD_PASSWORD, PVE::String);
 	return present;
+}
+
+CDispToDispAuthorizeCommand::~CDispToDispAuthorizeCommand()
+{
+	CVmEventParameter* p = m_pProtoPackage->getEventParameter(EVT_PARAM_DISP_TO_DISP_AUTHORIZE_CMD_PASSWORD);
+	if (NULL == p)
+		return;
+
+	QString v = p->getParamValue();
+	p->setParamValue(QString());
+	v.fill(0);
 }
 
 bool CDispToDispAuthorizeCommand::NeedAuthBySessionUuid()
