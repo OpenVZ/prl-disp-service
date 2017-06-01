@@ -270,6 +270,7 @@ struct Killer: Command::Vm::Shutdown::Fallback
 			WRITE_TRACE(DBG_FATAL, "VM has not been stopped before timeout (%u secs)", getTimeout());
 			*m_sink = Error::Simple(PRL_ERR_FIXME,
 				"The converted VM could not shut down on its own after conversion and was preserved for investigation");
+			emit finish();
 			return;
 
 		}
