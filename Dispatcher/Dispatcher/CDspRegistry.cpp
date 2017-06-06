@@ -56,8 +56,9 @@ struct State
 {
 	typedef void result_type;
 
-	State(const QString& alias_, PVE::DeviceConnectedState value_):
-		m_alias(alias_), m_value(value_)
+	State(const QString& alias_, PVE::DeviceConnectedState value_,
+		const CVmConfiguration& runtime_):
+		m_alias(alias_), m_runtime(runtime_), m_value(value_)
 	{
 	}
 
@@ -68,6 +69,7 @@ private:
 	bool update(const QList<T* >& list_) const;
 
 	const QString m_alias;
+	const CVmConfiguration m_runtime;
 	const PVE::DeviceConnectedState m_value;
 };
 
@@ -88,6 +90,8 @@ bool State::update(const QList<T* >& list_) const
 
 void State::operator()(CVmConfiguration& config_) const
 {
+	::Vm::Config::Repairer< ::Vm::Config::revise_types>
+		::type::do_(config_, m_runtime);
 	CVmHardware *h = config_.getVmHardwareList();
 	if (update(h->m_lstHardDisks))
 		return;
@@ -328,10 +332,11 @@ void Reactor::forward(const T& event_)
 		x->react(event_);
 }
 
-void Reactor::updateConnected(const QString& device_, PVE::DeviceConnectedState value_)
+void Reactor::updateConnected(const QString& device_, PVE::DeviceConnectedState value_,
+	const CVmConfiguration& runtime_)
 {
 	return forward(::Vm::Configuration::update_type
-		(boost::bind(Device::State(device_, value_), _1)));
+		(boost::bind(Device::State(device_, value_, runtime_), _1)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -87,7 +87,8 @@ struct Reactor
 
 	void updateNetwork(const QString& network_);
 
-	void updateConnected(const QString& device_, PVE::DeviceConnectedState value_);
+	void updateConnected(const QString& device_, PVE::DeviceConnectedState value_,
+		const CVmConfiguration& runtime_);
 
 private:
 	template<class T>

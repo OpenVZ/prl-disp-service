@@ -316,56 +316,245 @@ private:
 	domain_type m_domain;
 };
 
-} // namespace Callback
-
-namespace Model
+namespace Reactor
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Domain
+// struct Performance
 
-struct Domain: QObject
+struct Performance
+{
+	typedef Instrument::Agent::Vm::Performance::Unit source_type;
+
+	explicit Performance(const source_type& source_): m_source(source_)
+	{
+	}
+
+	void operator()(Registry::Access& access_);
+
+private:
+	typedef Instrument::Agent::Vm::Stat::CounterList_type data_type;
+
+	void account(Registry::Access& access_, const data_type& data_);
+
+	source_type m_source;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Show
+
+struct Show
 {
 	typedef boost::function<void(Registry::Reactor)> reaction_type;
 
-	explicit Domain(const Registry::Access& access_);
-
-	void setPid(quint32 value_)
+	explicit Show(const reaction_type& reaction_): m_reaction(reaction_)
 	{
-		m_pid = value_;
 	}
-	Q_INVOKABLE void show(reaction_type reaction_);
-	Q_INVOKABLE void setState(VIRTUAL_MACHINE_STATE value_);
-	Q_INVOKABLE void crash();
 
-	boost::optional<CVmConfiguration> getConfig();
-	void setConfig(CVmConfiguration value_);
-
-	void setCounters(const Instrument::Agent::Vm::Stat::CounterList_type& src_);
+	void operator()(Registry::Access& access_)
+	{
+		m_reaction(access_.getReactor());
+	}
 
 private:
-	Q_OBJECT
-
-
-	quint32 m_pid;
-	Registry::Access m_access;
-	QList<quint64> m_crashes;
+	reaction_type m_reaction;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+struct State
+{
+	typedef Instrument::Agent::Vm::Unit agent_type;
+	typedef VIRTUAL_MACHINE_STATE value_type;
+
+	State(): m_value(VMS_UNKNOWN)
+	{
+	}
+	explicit State(value_type value_): m_value(value_)
+	{
+	}
+
+	void read(agent_type agent_);
+	void operator()(Registry::Access& access_)
+	{
+		access_.getReactor().proceed(m_value);
+	}
+	value_type getValue() const
+	{
+		return m_value;
+	}
+
+private:
+	value_type m_value;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Device
+
+struct Device
+{
+	Device(const QString& alias_, PVE::DeviceConnectedState state_,
+		const State::agent_type& agent_):
+		m_alias(alias_), m_agent(agent_), m_state(state_)
+	{
+	}
+
+	void operator()(Registry::Access& access_);
+
+private:
+	QString m_alias;
+	State::agent_type m_agent;
+	PVE::DeviceConnectedState m_state;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Domain
+
+struct Domain
+{
+	explicit Domain(const State::agent_type& agent_): m_agent(agent_)
+	{
+	}
+
+	void update(Registry::Access& access_);
+	void updateConfig(Registry::Access& access_);
+	void insert(Registry::Access& access_);
+	void switch_(Registry::Access& access_);
+
+private:
+	State m_state;
+	State::agent_type m_agent;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Network
+
+struct Network
+{
+	Network(const QString& id_, const State::agent_type& agent_):
+		m_id(id_), m_agent(agent_)
+	{
+	}
+
+	void operator()(Registry::Access& access_);
+
+private:
+	QString m_id;
+	State::agent_type m_agent;
+};
+
+namespace Crash
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Primary
+
+struct Primary
+{
+	void operator()(Registry::Access& access_, CVmConfiguration snapshot_);
+
+private:
+	QList<quint64> m_pits;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Secondary
+
+struct Secondary: QRunnable
+{
+	Secondary(const QString& uuid_, const CVmOnCrash& config_):
+		m_uuid(uuid_), m_config(config_)
+	{
+	}
+
+	void run();
+
+private:
+	QString m_uuid;
+	CVmOnCrash m_config;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Shell
+
+struct Shell
+{
+	explicit Shell(const QWeakPointer<Primary>& primary_): m_primary(primary_)
+	{
+	}
+
+	void operator()(Registry::Access& access_);
+
+private:
+	QWeakPointer<Primary> m_primary;
+};
+
+} // namespace Crash
+} // namespace Reactor
+} // namespace Callback
+
+namespace Reaction
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Shell
+
+struct Shell: QRunnable
+{
+	typedef boost::function<void(Registry::Access& )> reaction_type;
+	typedef QQueue<reaction_type> storage_type;
+	typedef std::pair<storage_type, QMutex> queue_type;
+	typedef QWeakPointer<queue_type> queuePointer_type;
+
+	Shell(const queuePointer_type& queue_, const Registry::Access& access_):
+		m_access(access_), m_queue(queue_)
+	{
+	}
+
+	void run();
+
+private:
+	Registry::Access m_access;
+	queuePointer_type m_queue;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Demonstrator
+
+struct Demonstrator
+{
+	explicit Demonstrator(const Registry::Access& access_);
+
+	void show(const Shell::reaction_type& reaction_);
+	void showCrash();
+
+private:
+	typedef Callback::Reactor::Crash::Primary crash_type;
+
+	Registry::Access m_access;
+	QSharedPointer<crash_type> m_crash;
+	QSharedPointer<Shell::queue_type> m_queue;
+};
+
+} // namespace Reaction
+
+namespace Model
+{
 ///////////////////////////////////////////////////////////////////////////////
 // struct System
 
 struct System: QObject
 {
+	typedef Reaction::Demonstrator entry_type;
+
 	explicit System(Registry::Actual& registry_);
 
 	void remove(const QString& uuid_);
-	QSharedPointer<Domain> add(const QString& uuid_);
-	QSharedPointer<Domain> find(const QString& uuid_);
+	QSharedPointer<entry_type> add(const QString& uuid_);
+	QSharedPointer<entry_type> find(const QString& uuid_);
 
 private:
 	Q_OBJECT
 
-	typedef QHash<QString, QSharedPointer<Domain> > domainMap_type;
+	typedef QHash<QString, QSharedPointer<entry_type> > domainMap_type;
 	domainMap_type m_domainMap;
 	Registry::Actual& m_registry;
 };
@@ -375,18 +564,20 @@ private:
 
 struct Coarse
 {
+	typedef Callback::Reactor::Show::reaction_type reaction_type;
+
 	explicit Coarse(QSharedPointer<System> fine_): m_fine(fine_)
 	{
 	}
 
 	void setState(virDomainPtr domain_, VIRTUAL_MACHINE_STATE value_);
 	void prepareToSwitch(virDomainPtr domain_);
-	bool show(virDomainPtr domain_,
-		const Domain::reaction_type& reaction_);
+	bool show(virDomainPtr domain_, const reaction_type& reaction_);
 	void remove(virDomainPtr domain_);
 	void pullInfo(virDomainPtr domain_);
 
-	void disconnectDevice(virDomainPtr domain_, const QString& alias_);
+	void updateConnected(virDomainPtr domain_, const QString& alias_,
+		PVE::DeviceConnectedState value_);
 	void adjustClock(virDomainPtr domain_, qint64 offset_);
 	void onCrash(virDomainPtr domain_);
 	void updateInterfaces(virNetworkPtr domain_);
@@ -480,9 +671,6 @@ protected:
 private:
 	Q_OBJECT
 
-	static void superfuse(const Instrument::Agent::Vm::Performance::Unit& source_,
-		Model::Domain& sink_);
-
 	Instrument::Agent::Vm::List m_agent;
 	QWeakPointer<Model::System> m_view;
 };
@@ -509,112 +697,6 @@ namespace Instrument
 {
 namespace Pull
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Crash
-
-struct Crash: QRunnable
-{
-	Crash(const QSharedPointer<Model::Domain>& domain_, const CVmConfiguration& config_):
-		m_domain(domain_), m_config(config_)
-	{
-		setAutoDelete(true);
-	}
-
-	void run();
-	void sendProblemReport();
-
-private:
-	QSharedPointer<Model::Domain> m_domain;
-	CVmConfiguration m_config;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct State
-
-struct State
-{
-	State();
-
-	void read(Agent::Vm::Unit agent_);
-	void apply(const QSharedPointer<Model::Domain>& domain_);
-	VIRTUAL_MACHINE_STATE getValue() const
-	{
-		return m_value;
-	}
-
-private:
-	VIRTUAL_MACHINE_STATE m_value;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Config
-
-struct Config: QRunnable
-{
-	Config(const Agent::Vm::Unit& agent_, QSharedPointer<Model::Domain> view_):
-		m_agent(agent_), m_view(view_)
-	{
-		setAutoDelete(true);
-	}
-
-	void run();
-
-private:
-	Agent::Vm::Unit m_agent;
-	QSharedPointer<Model::Domain> m_view;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Everything
-
-struct Everything: Config
-{
-	Everything(const Agent::Vm::Unit& agent_, QSharedPointer<Model::Domain> view_):
-		Config(agent_, view_), m_agent(agent_), m_view(view_)
-	{
-	}
-
-	void run();
-
-private:
-	Agent::Vm::Unit m_agent;
-	QSharedPointer<Model::Domain> m_view;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Acquaintance
-
-struct Acquaintance: Config
-{
-	Acquaintance(const Agent::Vm::Unit& agent_, QSharedPointer<Model::Domain> view_):
-		Config(agent_, view_), m_agent(agent_), m_view(view_)
-	{
-	}
-
-	void run();
-
-private:
-	Agent::Vm::Unit m_agent;
-	QSharedPointer<Model::Domain> m_view;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Switch
-
-struct Switch: Config
-{
-	Switch(const Agent::Vm::Unit& agent_, QSharedPointer<Model::Domain> view_):
-		Config(agent_, view_), m_agent(agent_), m_view(view_)
-	{
-	}
-
-	void run();
-
-private:
-	Agent::Vm::Unit m_agent;
-	QSharedPointer<Model::Domain> m_view;
-};
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Network
 

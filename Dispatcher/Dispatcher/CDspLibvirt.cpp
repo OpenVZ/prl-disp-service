@@ -50,134 +50,6 @@ namespace Instrument
 namespace Pull
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Crash
-
-void Crash::run()
-{
-	CVmOnCrash *o = m_config.getVmSettings()->getVmRuntimeOptions()->getOnCrash();
-	PRL_UINT32 opts = o->getOptions();
-	PRL_VM_ON_CRASH_ACTION mode = o->getMode();
-
-	QMetaObject::invokeMethod(m_domain.data(), "crash");
-
-	if (opts & POCO_REPORT)
-		sendProblemReport();
-
-	if (mode == POCA_RESTART)
-	{
-		QString uuid = m_config.getVmIdentification()->getVmUuid();
-		Command::Vm::Gear<Command::Tag::State<Command::Vm::Resurrect, Command::Vm::Fork::State::Strict<VMS_RUNNING> > >::run(uuid);
-	}
-}
-
-void Crash::sendProblemReport()
-{
-	QString uuid = m_config.getVmIdentification()->getVmUuid();
-
-	CProblemReport r;
-	r.setReportType(PRT_AUTOMATIC_VM_GENERATED_REPORT);
-	CProtoCommandPtr cmd(new CProtoSendProblemReport(r.toString(), uuid, 0));
-	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspCmdSendProblemReport, cmd);
-	QString vmDir = CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->getDefaultVmDirectory();
-	SmartPtr<CDspClient> c = CDspClient::makeServiceUser(vmDir);
-	CDspTaskFuture<Task_CreateProblemReport> ft = CDspService::instance()->getTaskManager().schedule(new Task_CreateProblemReport(c, p));
-	if (m_config.getVmSettings()->getVmRuntimeOptions()->getOnCrash()->getMode() == POCA_RESTART)
-		ft.wait();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct State
-
-State::State(): m_value(VMS_UNKNOWN)
-{
-}
-
-void State::read(Agent::Vm::Unit agent_)
-{
-	m_value = VMS_UNKNOWN;
-	if (agent_.getState().getValue(m_value).isFailed())
-		WRITE_TRACE(DBG_FATAL, "Unable to get VM state");
-}
-
-void State::apply(const QSharedPointer<Model::Domain>& domain_)
-{
-	if (VMS_UNKNOWN != m_value && !QMetaObject::invokeMethod
-		(domain_.data(), "setState", Q_ARG(VIRTUAL_MACHINE_STATE, m_value)))
-		WRITE_TRACE(DBG_FATAL, "Unable to invoke VM 'setState' member");
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Config
-
-void Config::run()
-{
-	State s;
-	s.read(m_agent);
-	CVmConfiguration c;
-	if (m_agent.getConfig(c).isSucceed())
-	{
-		CVmConfiguration runtime;
-		if ((s.getValue() == VMS_RUNNING || s.getValue() == VMS_PAUSED)
-				&& m_agent.getConfig(runtime, true).isSucceed())
-			Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(c, runtime);
-
-		m_view->setConfig(c);
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Everything
-
-void Everything::run()
-{
-	Config::run();
-	State s;
-	s.read(m_agent);
-	s.apply(m_view);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Acquaintance
-
-void Acquaintance::run()
-{
-	Config::run();
-	boost::optional<CVmConfiguration> c = m_view->getConfig();
-	if (!c)
-		WRITE_TRACE(DBG_DEBUG, "Unable to redefine configuration for new VM");
-	else
-	{
-		Libvirt::Result e = m_agent.setConfig(c.get());
-		if (e.isFailed())
-		{
-			WRITE_TRACE(DBG_DEBUG, "Unable to redefine configuration for new VM: %s",
-				qPrintable(e.error().convertToEvent().toString()));
-		}
-	}
-	State s;
-	s.read(m_agent);
-	s.apply(m_view);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Switch
-
-void Switch::run()
-{
-	Config::run();
-	State s;
-	s.read(m_agent);
-	switch (s.getValue())
-	{
-	case VMS_PAUSED:
-	case VMS_STOPPED:
-		return (void)s.apply(m_view);
-	default:
-		break;
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Network
 
 void Network::run()
@@ -206,27 +78,13 @@ void Network::run()
 			continue;
 		}
 
-		QSharedPointer<Model::Domain> d = m_fine->find(u);
+		QSharedPointer<Model::System::entry_type> d = m_fine->find(u);
 		if (d.isNull())
 		{
 			WRITE_TRACE(DBG_FATAL, "Unable to get domain model");
 			continue;
 		}
-
-		boost::optional<CVmConfiguration> c = d->getConfig();
-		if (!c)
-		{
-			WRITE_TRACE(DBG_FATAL, "Unable to get VM config");
-			continue;
-		}
-
-		foreach(CVmGenericNetworkAdapter *a, c->getVmHardwareList()->m_lstNetworkAdapters)
-		{
-			if (a->getVirtualNetworkID() != m_network)
-				continue;
-
-			m.getRuntime().update(*a);
-		}
+		d->show(Callback::Reactor::Network(m_network, m));
 	}
 }
 
@@ -580,11 +438,12 @@ void Vm::operator()(Agent::Hub& hub_)
 	{
 		QString u;
 		m.getUuid(u);
-		QSharedPointer<Model::Domain> v = m_view->add(u);
+		QSharedPointer<Model::System::entry_type> v = m_view->add(u);
 		if (!v.isNull())
 		{
 			s.removeOne(u);
-			Pull::Everything(m, v).run();
+			Registry::Access r = m_registry->find(u);
+			Callback::Reactor::Domain(m).update(r);	
 		}
 	}
 	foreach (const QString& u, s)
@@ -977,7 +836,7 @@ void Sweeper::timerEvent(QTimerEvent* event_)
 int State::react(virConnectPtr, virDomainPtr domain_, int event_,
 	int subtype_, void* opaque_)
 {
-	QSharedPointer<Model::Domain> d;
+	QSharedPointer<Model::System::entry_type> d;
 	Model::Coarse* v = (Model::Coarse* )opaque_;
 	switch (event_)
 	{
@@ -1151,8 +1010,7 @@ int deviceConnect(virConnectPtr , virDomainPtr domain_, const char *device_,
 	void *opaque_)
 {
 	Model::Coarse* v = (Model::Coarse* )opaque_;
-	v->show(domain_, boost::bind
-		(&Registry::Reactor::updateConnected, _1, QString(device_), PVE::DeviceConnected));
+	v->updateConnected(domain_, device_, PVE::DeviceConnected);
 	return 0;
 }
 
@@ -1160,9 +1018,7 @@ int deviceDisconnect(virConnectPtr , virDomainPtr domain_, const char* device_,
                         void* opaque_)
 {
 	Model::Coarse* v = (Model::Coarse* )opaque_;
-	v->show(domain_, boost::bind
-		(&Registry::Reactor::updateConnected, _1, QString(device_), PVE::DeviceDisconnected));
-	v->disconnectDevice(domain_, device_);
+	v->updateConnected(domain_, device_, PVE::DeviceDisconnected);
 	return 0;
 }
 
@@ -1214,91 +1070,314 @@ void error(void* opaque_, virErrorPtr value_)
 }
 
 } // namespace Plain
-} // namespace Callback
 
-namespace Model
+namespace Reactor
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Performance
+
+void Performance::operator()(Registry::Access& access_)
+{
+	Prl::Expected<Instrument::Agent::Vm::Stat::CounterList_type, Error::Simple>
+		c = m_source.getCpu();
+	if (c.isSucceed())
+		account(access_, c.value());
+
+	account(access_, m_source.getMemory());
+
+	boost::optional<CVmConfiguration> x = access_.getConfig();
+	if (x)
+	{
+		foreach (const CVmGenericNetworkAdapter* a, x->getVmHardwareList()->m_lstNetworkAdapters)
+		{
+			if (a->getEnabled() != PVE::DeviceEnabled ||
+				a->getConnected() != PVE::DeviceConnected)
+				continue;
+
+			Prl::Expected<Instrument::Agent::Vm::Stat::CounterList_type, Error::Simple>
+				s = m_source.getInterface(a);
+			if (s.isSucceed())
+				account(access_, s.value());
+		}
+
+		foreach (const CVmHardDisk* d, x->getVmHardwareList()->m_lstHardDisks)
+		{
+			if (d->getEnabled() != PVE::DeviceEnabled ||
+				d->getConnected() != PVE::DeviceConnected)
+				continue;
+
+			Prl::Expected<Instrument::Agent::Vm::Stat::CounterList_type, Error::Simple>
+				s = m_source.getDisk(d);
+			if (s.isSucceed())
+				account(access_, s.value());
+		}
+	}
+
+	Prl::Expected<Instrument::Agent::Vm::Stat::CounterList_type, Error::Simple>
+		vc = m_source.getVCpuList();
+	if (vc.isSucceed())
+		account(access_, vc.value());
+}
+
+void Performance::account(Registry::Access& access_, const data_type& data_)
+{
+	QSharedPointer<Stat::Storage> s = access_.getStorage();
+	if (s.isNull())
+		return;
+
+	foreach (const Instrument::Agent::Vm::Stat::Counter_type& c, data_)
+	{
+		s->addAbsolute(c.first);
+		s->write(c.first, c.second, PrlGetTimeMonotonic());
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+void State::read(agent_type agent_)
+{
+	m_value = VMS_UNKNOWN;
+	if (agent_.getState().getValue(m_value).isFailed())
+		WRITE_TRACE(DBG_FATAL, "Unable to get VM state");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Device
+
+void Device::operator()(Registry::Access& access_)
+{
+	CVmConfiguration r;
+	if (m_agent.getConfig(r, true).isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "Unable to get VM runtime configuration");
+		return;
+	}
+	access_.getReactor().updateConnected(m_alias, m_state, r);
+	if (PVE::DeviceDisconnected != m_state)
+		return;
+
+	QString u;
+	m_agent.getUuid(u);
+	CDspService::instance()->getVmStateSender()->onVmDeviceDetached(u, m_alias);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Domain
 
-Domain::Domain(const Registry::Access& access_): m_pid(), m_access(access_)
+void Domain::updateConfig(Registry::Access& access_)
 {
-	qRegisterMetaType<reaction_type>("Domain::reaction_type");
-}
-
-boost::optional<CVmConfiguration> Domain::getConfig()
-{
-	return m_access.getConfig();
-}
-
-void Domain::setState(VIRTUAL_MACHINE_STATE value_)
-{
-	m_access.getReactor().proceed(value_);
-}
-
-void Domain::setConfig(CVmConfiguration value_)
-{
-	Libvirt::Kit.vms().at(m_access.getUuid()).completeConfig(value_);
-	m_access.updateConfig(value_);
-}
-
-void Domain::show(reaction_type reaction_)
-{
-	reaction_(m_access.getReactor());
-}
-
-void Domain::crash()
-{
-	boost::optional<CVmConfiguration> c = getConfig();
-	if (!c)
+	m_state.read(m_agent);
+	CVmConfiguration c;
+	if (m_agent.getConfig(c).isFailed())
 		return;
 
-	CVmOnCrash *o = c->getVmSettings()->getVmRuntimeOptions()->getOnCrash();
+	CVmConfiguration runtime;
+	if ((m_state.getValue() == VMS_RUNNING || m_state.getValue() == VMS_PAUSED)
+		&& m_agent.getConfig(runtime, true).isSucceed())
+		Vm::Config::Repairer<Vm::Config::revise_types>::type::do_(c, runtime);
+
+	m_agent.completeConfig(c);
+	access_.updateConfig(c);
+}
+
+void Domain::update(Registry::Access& access_)
+{
+	updateConfig(access_);
+	m_state(access_);
+}
+
+void Domain::switch_(Registry::Access& access_)
+{
+	updateConfig(access_);
+	switch (m_state.getValue())
+	{
+	case VMS_PAUSED:
+	case VMS_STOPPED:
+		return m_state(access_);
+	default:
+		break;
+	}
+}
+
+void Domain::insert(Registry::Access& access_)
+{
+	boost::optional<CVmConfiguration> c = access_.getConfig();
+	if (c)
+		return update(access_);
+
+	updateConfig(access_);
+	c = access_.getConfig();
+	if (!c) 
+		WRITE_TRACE(DBG_DEBUG, "Unable to redefine configuration for new VM");
+	else
+	{
+		Libvirt::Result e = m_agent.setConfig(c.get());
+		if (e.isFailed())
+		{
+			WRITE_TRACE(DBG_DEBUG, "Unable to redefine configuration for new VM: %s",
+				qPrintable(e.error().convertToEvent().toString()));
+		}
+	}
+	m_state(access_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Network
+
+void Network::operator()(Registry::Access& access_)
+{
+	boost::optional<CVmConfiguration> c = access_.getConfig();
+	if (!c)
+	{
+		WRITE_TRACE(DBG_FATAL, "Unable to get VM config");
+		return;
+	}
+
+	foreach(CVmGenericNetworkAdapter *a, c->getVmHardwareList()->m_lstNetworkAdapters)
+	{
+		if (a->getVirtualNetworkID() != m_id)
+		continue;
+
+		m_agent.getRuntime().update(*a);
+	}
+}
+
+namespace Crash
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Primary
+
+void Primary::operator()(Registry::Access& access_, CVmConfiguration snapshot_)
+{
+	CVmOnCrash *o = snapshot_.getVmSettings()->getVmRuntimeOptions()->getOnCrash();
 	if (o->getMode() != POCA_RESTART || !(o->getOptions() & POCO_REPORT))
 		return;
 
-	m_crashes.push_back(PrlGetTimeMonotonic());
-	quint32 s = m_crashes.size();
+	m_pits.push_back(PrlGetTimeMonotonic());
+	quint32 s = m_pits.size();
 	if (s < o->getLimit())
 		return;
 
 	if (s > o->getLimit())
-		m_crashes.pop_front();
+		m_pits.pop_front();
 
-	quint64 d = m_crashes.back() - m_crashes.front();
+	quint64 d = m_pits.back() - m_pits.front();
 	// 24 * 3600 * 1000000
 	if (d < 86400000000ULL)
 	{
 		o->setMode(POCA_PAUSE);
-		m_access.updateConfig(c.get());
+		access_.updateConfig(snapshot_);
 
-		m_crashes.clear();
+		m_pits.clear();
 	}
 }
 
-namespace
-{
+///////////////////////////////////////////////////////////////////////////////
+// struct Secondary
 
-void addAndWrite(Stat::Storage& storage_, const QString& name_, quint64 value_)
+void Secondary::run()
 {
-	storage_.addAbsolute(name_);
-	storage_.write(name_, value_, PrlGetTimeMonotonic());
+	if (m_config.getOptions() & POCO_REPORT)
+	{
+		CProblemReport r;
+		r.setReportType(PRT_AUTOMATIC_VM_GENERATED_REPORT);
+		CProtoCommandPtr cmd(new CProtoSendProblemReport(r.toString(), m_uuid, 0));
+		SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspCmdSendProblemReport, cmd);
+		QString vmDir = CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->getDefaultVmDirectory();
+		SmartPtr<CDspClient> c = CDspClient::makeServiceUser(vmDir);
+		CDspTaskFuture<Task_CreateProblemReport> ft = CDspService::instance()->getTaskManager().schedule(new Task_CreateProblemReport(c, p));
+		if (POCA_RESTART == m_config.getMode())
+			ft.wait();
+	}
+	if (POCA_RESTART == m_config.getMode())
+	{
+		Command::Vm::Gear<Command::Tag::State<Command::Vm::Resurrect,
+			Command::Vm::Fork::State::Strict<VMS_RUNNING> > >::run(m_uuid);
+	}
 }
 
-} // namespace
+///////////////////////////////////////////////////////////////////////////////
+// struct Shell
 
-void Domain::setCounters(const Instrument::Agent::Vm::Stat::CounterList_type& src_)
+void Shell::operator()(Registry::Access& access_)
 {
-	QSharedPointer<Stat::Storage> s = m_access.getStorage();
-	if (s.isNull())
+	QSharedPointer<Primary> p = m_primary.toStrongRef();
+	if (p.isNull())
 		return;
 
-	foreach (const Instrument::Agent::Vm::Stat::Counter_type& c, src_)
+	boost::optional<CVmConfiguration> c = access_.getConfig();
+	if (!c)
+		return;
+
+	(*p)(access_, c.get());
+	QRunnable* q = new Secondary(c->getVmIdentification()->getVmUuid(),
+		c->getVmSettings()->getVmRuntimeOptions()->getOnCrash());
+	q->setAutoDelete(true);
+	QThreadPool::globalInstance()->start(q);
+}
+
+} // namespace Crash
+} // namespace Reactor
+} // namespace Callback
+
+namespace Reaction
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Shell
+
+void Shell::run()
+{
+	forever
 	{
-		addAndWrite(*s, c.first, c.second);
+		QSharedPointer<queue_type> x = m_queue.toStrongRef();
+		if (x.isNull())
+			return;
+
+		QMutexLocker g(&x->second);
+		if (x->first.isEmpty())
+			return;
+
+		reaction_type y = x->first.head();
+		g.unlock();
+		y(m_access);
+		g.relock();
+		(void)x->first.dequeue();
+		if (x->first.isEmpty())
+			return;
 	}
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Demonstrator
+
+Demonstrator::Demonstrator(const Registry::Access& access_):
+	m_access(access_), m_crash(new crash_type()), m_queue(new Shell::queue_type())
+{
+}
+
+void Demonstrator::show(const Shell::reaction_type& reaction_)
+{
+	QMutexLocker g(&m_queue->second);
+	bool x = m_queue->first.isEmpty();
+	m_queue->first.enqueue(reaction_);
+	if (!x) 
+		return;
+
+	QRunnable* q = new Shell(m_queue.toWeakRef(), m_access);
+	q->setAutoDelete(true);
+	QThreadPool::globalInstance()->start(q);
+}
+
+void Demonstrator::showCrash()
+{
+	show(Callback::Reactor::Crash::Shell(m_crash.toWeakRef()));
+}
+
+} // namespace Reaction
+
+namespace Model
+{
 ///////////////////////////////////////////////////////////////////////////////
 // struct System
 
@@ -1312,31 +1391,30 @@ void System::remove(const QString& uuid_)
 	if (m_domainMap.end() == p)
 		return;
 
-	p.value()->setState(VMS_UNKNOWN);
+	p.value()->show(Callback::Reactor::State(VMS_UNKNOWN));
 
 	m_domainMap.erase(p);
 	m_registry.undefine(uuid_);
 }
 
-QSharedPointer<Domain> System::add(const QString& uuid_)
+QSharedPointer<System::entry_type> System::add(const QString& uuid_)
 {
 	if (uuid_.isEmpty() || m_domainMap.contains(uuid_))
-		return QSharedPointer<Domain>();
+		return QSharedPointer<System::entry_type>();
 
 	Prl::Expected<Registry::Access, Error::Simple> a = m_registry.define(uuid_);
 	if (a.isFailed())
-		return QSharedPointer<Domain>();
+		return QSharedPointer<System::entry_type>();
 
-	QSharedPointer<Domain> x(new Domain(a.value()));
-	x->moveToThread(this->thread());
+	QSharedPointer<System::entry_type> x(new System::entry_type(a.value()));
 	return m_domainMap[uuid_] = x;
 }
 
-QSharedPointer<Domain> System::find(const QString& uuid_)
+QSharedPointer<System::entry_type> System::find(const QString& uuid_)
 {
 	domainMap_type::const_iterator p = m_domainMap.find(uuid_);
 	if (m_domainMap.end() == p)
-		return QSharedPointer<Domain>();
+		return QSharedPointer<System::entry_type>();
 
 	return p.value();
 }
@@ -1360,38 +1438,34 @@ void Coarse::emitDefined(virDomainPtr domain_)
 		.emitDefined();
 }
 
-bool Coarse::show(virDomainPtr domain_, const Domain::reaction_type& reaction_)
+bool Coarse::show(virDomainPtr domain_, const reaction_type& reaction_)
 {
-	QSharedPointer<Domain> d = m_fine->find(getUuid(domain_));
+	QSharedPointer<System::entry_type> d = m_fine->find(getUuid(domain_));
 	if (d.isNull())
 		return false;
 
-	typedef Domain::reaction_type reaction_type;
-	bool output = QMetaObject::invokeMethod(d.data(), "show",
-		Q_ARG(reaction_type, reaction_));
-	if (!output)
-		WRITE_TRACE(DBG_FATAL, "Unable to invoke VM 'show' method");
-
-	return output;
+	d->show(Callback::Reactor::Show(reaction_));
+	return true;
 }
 
 void Coarse::setState(virDomainPtr domain_, VIRTUAL_MACHINE_STATE value_)
 {
-	show(domain_, boost::bind(&Registry::Reactor::proceed, _1, value_));
+	QSharedPointer<System::entry_type> d = m_fine->find(getUuid(domain_));
+	if (!d.isNull())
+		d->show(Callback::Reactor::State(value_));
 }
 
 void Coarse::prepareToSwitch(virDomainPtr domain_)
 {
-	QSharedPointer<Domain> d = m_fine->find(getUuid(domain_));
+	QSharedPointer<System::entry_type> d = m_fine->find(getUuid(domain_));
 	if (d.isNull())
 		return;
 
-	if (show(domain_, boost::bind(&Registry::Reactor::prepareToSwitch, _1)))
-	{
-		virDomainRef(domain_);
-		QThreadPool::globalInstance()->start
-			(new Instrument::Pull::Switch(Instrument::Agent::Vm::Unit(domain_), d));
-	}
+	virDomainRef(domain_);
+	d->show(Callback::Reactor::Show(boost::bind(&Registry::Reactor::prepareToSwitch, _1)));
+	Instrument::Agent::Vm::Unit a(domain_);
+	Callback::Reactor::Domain r(a);
+	d->show(boost::bind(&Callback::Reactor::Domain::switch_, r, _1));
 }
 
 void Coarse::remove(virDomainPtr domain_)
@@ -1401,24 +1475,23 @@ void Coarse::remove(virDomainPtr domain_)
 
 void Coarse::onCrash(virDomainPtr domain_)
 {
-	QSharedPointer<Domain> d = m_fine->find(getUuid(domain_));
+	QSharedPointer<System::entry_type> d = m_fine->find(getUuid(domain_));
 	if (d.isNull())
 		return;
 
 	setState(domain_, VMS_PAUSED);
-	CVmConfiguration c = d->getConfig().get();
-	QThreadPool::globalInstance()->start(new Instrument::Pull::Crash(d, c));
+	d->showCrash();
 }
 
 void Coarse::pullInfo(virDomainPtr domain_)
 {
-	QRunnable* q = NULL;
 	virDomainRef(domain_);
 	QString u = getUuid(domain_);
 	Instrument::Agent::Vm::Unit a(domain_);
-	QSharedPointer<Domain> d = m_fine->find(u);
+	Callback::Reactor::Domain r(a);
+	QSharedPointer<System::entry_type> d = m_fine->find(u);
 	if (!d.isNull())
-		q = new Instrument::Pull::Config(a, d);
+		d->show(boost::bind(&Callback::Reactor::Domain::updateConfig, r, _1));
 	else
 	{
 		if ((d = m_fine->add(u)).isNull())
@@ -1426,19 +1499,20 @@ void Coarse::pullInfo(virDomainPtr domain_)
 			WRITE_TRACE(DBG_DEBUG, "Unable to add new domain to the list");
 			return;
 		}
-
-		if (d->getConfig())
-			q = new Instrument::Pull::Everything(a, d);
-		else
-			q = new Instrument::Pull::Acquaintance(a, d);
+		d->show(boost::bind(&Callback::Reactor::Domain::insert, r, _1));
 	}
-	if (NULL != q)
-		QThreadPool::globalInstance()->start(q);
 }
 
-void Coarse::disconnectDevice(virDomainPtr domain_, const QString& alias_)
+void Coarse::updateConnected(virDomainPtr domain_, const QString& alias_,
+	PVE::DeviceConnectedState value_)
 {
-	CDspService::instance()->getVmStateSender()->onVmDeviceDetached(getUuid(domain_), alias_);
+	QSharedPointer<System::entry_type> d = m_fine->find(getUuid(domain_));
+	if (d.isNull())
+		return;
+
+	virDomainRef(domain_);
+	Instrument::Agent::Vm::Unit a(domain_);
+	d->show(Callback::Reactor::Device(alias_, value_, a));
 }
 
 void Coarse::adjustClock(virDomainPtr domain_, qint64 offset_)
@@ -1626,16 +1700,17 @@ PRL_RESULT Miner::operator()()
 	if (x.isNull())
 		return PRL_ERR_UNINITIALIZED;
 
-	Instrument::Agent::Vm::Performance::List c = m_agent.getPerformance();
-	foreach (const Instrument::Agent::Vm::Performance::Unit& p, c)
+	typedef Instrument::Agent::Vm::Performance::Unit unit_type;
+	QList<unit_type> c = m_agent.getPerformance();
+	foreach (const unit_type& p, c)
 	{
 		QString u;
 		if (p.getUuid(u).isFailed())
 			continue;
 
-		QSharedPointer<Model::Domain> v = x->find(u);
+		QSharedPointer<Model::System::entry_type> v = x->find(u);
 		if (!v.isNull())
-			superfuse(p, *v);
+			v->show(Callback::Reactor::Performance(p));
 	}
 	return PRL_ERR_SUCCESS;
 }
@@ -1643,49 +1718,6 @@ PRL_RESULT Miner::operator()()
 Miner* Miner::clone() const
 {
 	return new Miner(m_agent, m_view);
-}
-
-void Miner::superfuse(const Instrument::Agent::Vm::Performance::Unit& source_, Model::Domain& sink_)
-{
-	Prl::Expected<Instrument::Agent::Vm::Stat::CounterList_type, Error::Simple>
-		c = source_.getCpu();
-	if (c.isSucceed())
-		sink_.setCounters(c.value());
-
-	sink_.setCounters(source_.getMemory());
-
-	boost::optional<CVmConfiguration> x = sink_.getConfig();
-	if (x)
-	{
-		foreach (const CVmGenericNetworkAdapter* a, x->getVmHardwareList()->m_lstNetworkAdapters)
-		{
-			if (a->getEnabled() != PVE::DeviceEnabled ||
-				a->getConnected() != PVE::DeviceConnected)
-				continue;
-
-			Prl::Expected<Instrument::Agent::Vm::Stat::CounterList_type, Error::Simple>
-				s = source_.getInterface(a);
-			if (s.isSucceed())
-				sink_.setCounters(s.value());
-		}
-
-		foreach (const CVmHardDisk* d, x->getVmHardwareList()->m_lstHardDisks)
-		{
-			if (d->getEnabled() != PVE::DeviceEnabled ||
-				d->getConnected() != PVE::DeviceConnected)
-				continue;
-
-			Prl::Expected<Instrument::Agent::Vm::Stat::CounterList_type, Error::Simple>
-				s = source_.getDisk(d);
-			if (s.isSucceed())
-				sink_.setCounters(s.value());
-		}
-	}
-
-	Prl::Expected<Instrument::Agent::Vm::Stat::CounterList_type, Error::Simple>
-		vc = source_.getVCpuList();
-	if (vc.isSucceed())
-		sink_.setCounters(vc.value());
 }
 
 void Miner::timerEvent(QTimerEvent* event_)
