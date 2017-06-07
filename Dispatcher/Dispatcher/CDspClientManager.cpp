@@ -37,6 +37,7 @@
 #include "Stat/CDspStatisticsGuard.h"
 #include "CDspRouter.h"
 #include "CDspVm.h"
+#include <boost/scope_exit.hpp>
 #include "Tasks/Task_ManagePrlNetService.h"
 #include "Tasks/Task_CreateProblemReport.h"
 #include "Tasks/Task_BackgroundJob.h"
@@ -216,25 +217,6 @@ QHash< IOSender::Handle, SmartPtr<CDspClient> > CDspClientManager::getSessionLis
 	return sessions;
 }
 
-static bool isCommandAllowedWithoutInitComplete( PVE::IDispatcherCommands cmd )
-{
-	switch(cmd)
-	{
-	case PVE::DspCmdUserLogin:
-	case PVE::DspCmdUserEasyLoginLocal:
-	case PVE::DspCmdUserLogoff:
-	case PVE::DspCmdAllHostUsers:
-	case PVE::DspCmdUserGetLicenseInfo:
-	case PVE::DspCmdDirGetVmList:
-	case PVE::DspCmdVmGetConfig:
-	case PVE::DspCmdGetVmConfigById:
-	case PVE::DspCmdGetVmInfo:
-		return true;
-	default:
-		return false;
-	}
-}
-
 void CDspClientManager::handleToDispatcherPackage (
 		const IOSender::Handle& h,
 		const SmartPtr<IOPackage>& p )
@@ -252,37 +234,22 @@ void CDspClientManager::handleToDispatcherPackage (
 					 DispatcherCmdsToJobTypeConverter::Convert((PVE::IDispatcherCommands )p->header.type))
 				 );
 	saved_type = p->header.type;
-
-	do
+	BOOST_SCOPE_EXIT(&p)
 	{
-		if(m_service->isFirstInitPhaseCompleted())
-			break;
-
-		if (!m_service->waitForInitCompletion())
+		IOPackage::PODData& d = IODATAMEMBER(p.getImpl())[0];
+		switch (p->header.type)
 		{
-			WRITE_TRACE(DBG_FATAL, "Timeout is over ! Service initialization was not done !" );
-			m_service->sendSimpleResponseToClient( h, p, PRL_ERR_TIMEOUT);
-			return;
+		case PVE::DspCmdUserLogin:
+		case PVE::DspCmdUserEasyLoginLocal:
+			bzero(p->buffers[0].getImpl(), d.bufferSize);
 		}
-		break;
-
-		if( isCommandAllowedWithoutInitComplete( (PVE::IDispatcherCommands)p->header.type ) )
-			break;
-
-		SmartPtr<CDspClient> pClient = getUserSession(h);
-		PRL_ASSERT( pClient ); // always should be
-		if( !pClient )
-		{
-			WRITE_TRACE(DBG_FATAL, "Client %s not found.", QSTR2UTF8(h) );
-			m_service->sendSimpleResponseToClient(h, p, PRL_ERR_FAILURE);
-			return;
-		}
-
-		m_service->getTaskManager().schedule(new Task_PendentClientRequest( pClient, p ));
-		return;
-
-	}while(0);
-
+	}
+	BOOST_SCOPE_EXIT_END;
+	if (!m_service->isFirstInitPhaseCompleted() && !m_service->waitForInitCompletion())
+	{
+		WRITE_TRACE(DBG_FATAL, "Timeout is over ! Service initialization was not done !");
+		return (void)m_service->sendSimpleResponseToClient(h, p, PRL_ERR_TIMEOUT);
+	}
 	switch( p->header.type )
 	{
 		case PVE::DspCmdUserLogin:
