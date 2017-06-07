@@ -34,7 +34,7 @@
 #include "CDspClientManager.h"
 #include "CDspRouter.h"
 #include "CDspVm.h"
-
+#include <boost/scope_exit.hpp>
 #include <prlcommon/Std/PrlAssert.h>
 #include "Tasks/Legacy/MigrateVmTarget.h"
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
@@ -102,7 +102,12 @@ void CDspDispConnectionsManager::handleToDispatcherPackage ( const IOSender::Han
 		{
 			PRL_RESULT ret;
 			do {
-
+				BOOST_SCOPE_EXIT(&p)
+				{
+					IOPackage::PODData& d = IODATAMEMBER(p.getImpl())[0];
+					bzero(p->buffers[0].getImpl(), d.bufferSize);
+				}
+				BOOST_SCOPE_EXIT_END;
 				if (m_service->isServerStopping())
 				{
 					WRITE_TRACE(DBG_FATAL, "Dispatcher shutdown is in progress!");
