@@ -140,13 +140,14 @@ typedef QList<Counter_type> CounterList_type;
 
 namespace Performance
 {
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
 struct Unit
 {
-	explicit Unit(const virDomainStatsRecordPtr record_);
+	typedef QSharedPointer<virDomainStatsRecordPtr> pin_type;
+
+	Unit(const virDomainStatsRecordPtr record_, const pin_type& pin_);
 
 	Result getUuid(QString& dst_) const;
 	Prl::Expected<Stat::CounterList_type, Error::Simple>
@@ -162,20 +163,10 @@ struct Unit
 private:
 	bool getValue(const QString& name_, quint64& dst_) const;
 
+	pin_type m_pin;
 	const virDomainStatsRecord* m_record;
 	QHash<QString, unsigned> m_ifaces;
 	QHash<QString, unsigned> m_disks;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct List
-
-struct List: QList<Unit>
-{
-	explicit List(virDomainStatsRecordPtr* records_);
-
-private:
-	QSharedPointer<virDomainStatsRecordPtr> m_data;
 };
 
 } // namespace Performance
@@ -656,7 +647,7 @@ struct List
 	Result all(QList<Unit>& dst_);
 	Result define(const CVmConfiguration& config_, Unit* dst_ = NULL);
 	Result start(const CVmConfiguration& config_);
-	Performance::List getPerformance();
+	QList<Performance::Unit> getPerformance();
 
 private:
 	Prl::Expected<QString, Error::Simple> getXml(const CVmConfiguration& config_);

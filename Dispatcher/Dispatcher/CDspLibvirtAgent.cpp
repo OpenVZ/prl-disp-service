@@ -628,7 +628,8 @@ namespace Performance
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
-Unit::Unit(const virDomainStatsRecordPtr record_): m_record(record_)
+Unit::Unit(const virDomainStatsRecordPtr record_, const pin_type& pin_):
+	m_pin(pin_), m_record(record_)
 {
 	if (NULL == record_)
 		return;
@@ -800,13 +801,6 @@ Unit::getInterface(const CVmGenericNetworkAdapter& iface_) const
 bool Unit::getValue(const QString& name_, quint64& dst_) const
 {
 	return 1 == virTypedParamsGetULLong(m_record->params, m_record->nparams, qPrintable(name_), &dst_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct List
-
-List::List(virDomainStatsRecordPtr* records_): m_data(records_, &virDomainStatsRecordListFree)
-{
 }
 
 } // namespace Performance
@@ -1968,16 +1962,16 @@ Result List::all(QList<Unit>& dst_)
 	return Result();
 }
 
-Performance::List List::getPerformance()
+QList<Performance::Unit> List::getPerformance()
 {
+	QList<Performance::Unit> output;
 	virDomainStatsRecordPtr* s = NULL;
 	int z = virConnectGetAllDomainStats(m_link.data(), 0, &s, VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE);
-
-	Performance::List c(s);
+	Performance::Unit::pin_type p(s, &virDomainStatsRecordListFree);
 	if (0 > z)
 	{
 		WRITE_TRACE(DBG_FATAL, "unable to get perfomance statistics for all domains (return %d)", z);
-		return c;
+		return output;
 	}
 
 	for (int i = 0; i < z; ++i)
@@ -1985,10 +1979,10 @@ Performance::List List::getPerformance()
 		if (s[i] == NULL)
 			continue;
 
-		c << Performance::Unit(s[i]);
+		output << Performance::Unit(s[i], p);
 	}
 
-	return c;
+	return output;
 }
 
 namespace Block
