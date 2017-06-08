@@ -97,7 +97,7 @@ class Watcher: public QObject
 public:
 	typedef boost::future<PRL_VM_TOOLS_STATE> future_type;
 
-	explicit Watcher(const CVmIdent& ident_): m_ident(ident_), m_count(), m_retries()
+	explicit Watcher(const CVmIdent& ident_): m_ident(ident_), m_retries()
 	{
 	}
 
@@ -105,11 +105,15 @@ public:
 	{
 		m_retries = value_;
 	}
+	quint32 getRetries() const
+	{
+		return m_retries;
+	}
 	future_type getFuture()
 	{
 		return m_state.get_future();
 	}
-	void onChangedState(PRL_VM_TOOLS_STATE state_, const QString& version_);
+	void adopt(PRL_VM_TOOLS_STATE state_, const QString& version_);
 
 signals:
 	void guestToolsStarted(const QString v_);
@@ -121,7 +125,24 @@ protected:
 private:
 	CVmIdent m_ident;
 	boost::promise<PRL_VM_TOOLS_STATE> m_state;
-	int m_count, m_retries;
+	int m_retries;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Spin
+
+struct Spin: QRunnable
+{
+	Spin(const CVmIdent& ident_, Watcher& watcher_):
+		m_ident(ident_), m_watcher(&watcher_)
+	{
+	}
+
+	void run();
+
+private:
+	CVmIdent m_ident;
+	Watcher* m_watcher;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
