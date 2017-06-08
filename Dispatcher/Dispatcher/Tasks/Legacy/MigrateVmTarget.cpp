@@ -1185,7 +1185,7 @@ void MigrateVmTarget::checkRemoteDisplay()
 	{
 		CDspLockedPointer<CDispCommonPreferences> p = CDspService::
 			instance()->getDispConfigGuard().getDispCommonPrefs();
-		base = p->getRemoteDisplayPreferences()->getBasePort();
+		base = p->getRemoteDisplayPreferences()->getMinPort();
 	}
 
 	CVmEvent cEvent;
