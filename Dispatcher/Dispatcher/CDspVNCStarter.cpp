@@ -446,7 +446,7 @@ void Frontend::setup(CVmConfiguration& object_, const CVmConfiguration& runtime_
 	{
 		d.first = m_service->getDispConfigGuard()
 			.getDispCommonPrefs()
-			->getRemoteDisplayPreferences()->getBasePort();
+			->getRemoteDisplayPreferences()->getMinPort();
 		d.second = m_service->getDispConfigGuard()
 			.getDispCommonPrefs()
 			->getRemoteDisplayPreferences()->getMaxPort();
