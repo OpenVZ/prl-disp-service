@@ -74,7 +74,6 @@ void Actor::setToolsVersionSlot(const QString v_)
 	m_editor(boost::bind(&setToolsVersion, _1, boost::cref(v_)));
 }
 
-
 void Actor::configureNetworkSlot(const QString v_)
 {
 	Q_UNUSED(v_);
@@ -122,44 +121,59 @@ Libvirt::Result Actor::runProgram(
 void Watcher::timerEvent(QTimerEvent *ev_)
 {
 	killTimer(ev_->timerId());
-
-	Prl::Expected<QString, Libvirt::Agent::Failure> r =
-		Libvirt::Kit.vms().at(m_ident.first).getGuest().getAgentVersion(0);
-	if (r.isFailed()) {
-		if (r.error().getMainCode() == VIR_ERR_OPERATION_INVALID) {
-			// domain is not running
-			deleteLater();
-			return;
-		}
-		if (r.error().getMainCode() == VIR_ERR_AGENT_UNRESPONSIVE) {
-			// agent is not started - retry 5 minutes with 10 secs interval
-			if (++m_count > m_retries) {
-				deleteLater();
-				return;
-			}
-		}
-		// agent is not ready, retry
-		startTimer(10000);
+	if (m_retries == 0)
+	{
+		deleteLater();
 		return;
 	}
-
-	m_state.set_value(PTS_INSTALLED);
-	onChangedState(PTS_INSTALLED, r.value());
-
-	emit guestToolsStarted(r.value());
-
-	// tools ready, stop checking
-	deleteLater();
+	--m_retries;
+	QRunnable* q = new Spin(m_ident, *this);
+	q->setAutoDelete(true);
+	QThreadPool::globalInstance()->start(q);
 }
 
-void Watcher::onChangedState(PRL_VM_TOOLS_STATE state_, const QString& version_)
+void Watcher::adopt(PRL_VM_TOOLS_STATE state_, const QString& version_)
 {
+	m_state.set_value(state_);
 	CVmEvent e(PET_DSP_EVT_VM_TOOLS_STATE_CHANGED, m_ident.first, PIE_DISPATCHER);
 	e.addEventParameter(new CVmEventParameter(PVE::Integer, QString::number(state_),
                         EVT_PARAM_VM_TOOLS_STATE));
 	e.addEventParameter(new CVmEventParameter(PVE::String, version_, EVT_PARAM_VM_TOOLS_VERSION));
 	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, e);
 	CDspService::instance()->getClientManager().sendPackageToVmClients(p, m_ident.second, m_ident.first);
+
+	emit guestToolsStarted(version_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Spin
+
+void Spin::run()
+{
+	Prl::Expected<QString, Libvirt::Agent::Failure> r =
+		Libvirt::Kit.vms().at(m_ident.first).getGuest().getAgentVersion(0);
+	if (r.isSucceed())
+	{
+		// emit or smth.
+		m_watcher->adopt(PTS_INSTALLED, r.value());
+	}
+	else
+	{
+		switch (r.error().getMainCode())
+		{
+		case VIR_ERR_OPERATION_INVALID:
+			// domain is not running
+			break;
+		case VIR_ERR_AGENT_UNRESPONSIVE:
+			// agent is not started - retry 5 minutes with 10 secs interval
+			if (0 >= m_watcher->getRetries())
+				break;
+		default:
+			// agent is not ready, retry
+			return (void)m_watcher->startTimer(10000);
+		}
+	}
+	m_watcher->deleteLater();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -185,20 +199,21 @@ Connector::result_type Connector::operator()()
 	Actor *a = new Actor(m_frontend->getConfigEditor());
 	Watcher *p = new Watcher(MakeVmIdent(m_frontend->getUuid(), m_directory));
 
-	a->connect(p, SIGNAL(destroyed()), SLOT(deleteLater()));
+	a->setParent(p);
 	a->connect(p, SIGNAL(guestToolsStarted(const QString)),
-		SLOT(setToolsVersionSlot(const QString)));
+		SLOT(setToolsVersionSlot(const QString)), Qt::DirectConnection);
 	if (!m_network.isNull())
 	{
-		m_network->connect(p, SIGNAL(destroyed()), SLOT(deleteLater()));
+		m_network->setParent(p);
 		m_network->connect(p, SIGNAL(guestToolsStarted(const QString)),
-			SLOT(configureNetworkSlot(const QString)));
+			SLOT(configureNetworkSlot(const QString)), Qt::DirectConnection);
 		m_network.take();
 	}
 	// usually guest agent is ready within 2..3 seconds after event
 	// starting watcher earlier results in connect error logged
 	p->setRetries(m_retries);
 	p->startTimer(5000);
+	p->moveToThread(QCoreApplication::instance()->thread());
                 
 	return p->getFuture();
 }
