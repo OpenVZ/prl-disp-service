@@ -453,7 +453,7 @@ void Event::set()
 
 boost::logic::tribool Event::wait()
 {
-	if (!m_condition->second.wait(m_mutex, 30000))
+	if (!m_condition->second.wait(m_mutex, TIMEOUT))
 		return false;
 	if (!m_condition->first)
 		return boost::logic::indeterminate;
@@ -663,7 +663,8 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 	}//switch
 
 	QString key = makeKey( vmUuid, vmDirUuid );
-	for(bool q = false;;)
+	QTime b = QTime::currentTime().addMSecs(2*Task::Vm::Exclusive::Event::TIMEOUT);
+	forever
 	{
 		QMutexLocker lock(&m_mutex);
 		if (!m_opHash.contains(key))
@@ -678,7 +679,7 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 		if (x.isNull())
 			return PRL_ERR_SUCCESS;
 
-		if (q)
+		if (b <= QTime::currentTime())
 			return x->getResult();
 
 		PRL_RESULT e = (*x)();
@@ -686,8 +687,6 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 			continue;
 		if (PRL_FAILED(e))
 			return e;
-
-		q = true;
 	}
 }
 
