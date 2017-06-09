@@ -112,6 +112,11 @@ struct Native: Unit
 
 struct Event
 {
+	enum
+	{
+		TIMEOUT = 30000
+	};
+
 	explicit Event(QMutex& mutex_);
 
 	void set();

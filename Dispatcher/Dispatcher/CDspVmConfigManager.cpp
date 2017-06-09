@@ -236,7 +236,8 @@ void Runtime::updateConnected(QList<T*>& new_, const QList<T*>& old_)
 			continue;
 
 		iterator_type m = std::find_if(b, e, Config::Index::Match<T>(*d));
-		d->setConnected(e == m ? PVE::DeviceDisconnected : PVE::DeviceConnected);
+		d->setConnected(e == m || (*m)->getSystemName().isEmpty() ?
+			PVE::DeviceDisconnected : PVE::DeviceConnected);
 	}
 }
 
@@ -899,7 +900,7 @@ PRL_RESULT Unlocked::operator()(const action_type& action_)
 	CMultiEditMergeVmConfig* m = h.getMultiEditDispatcher();
 	m->registerBeginEdit(m_uuid, f, x);
 	action_type::result_type r = action_(*x);
-	if (PRL_FAILED(e))
+	if (r.isFailed())
 	{
 		m->cleanupBeginEditMark(d, f);
 		return r.error();
