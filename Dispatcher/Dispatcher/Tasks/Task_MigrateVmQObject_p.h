@@ -161,6 +161,8 @@ private:
 	Q_OBJECT
 };
 
+struct Connector;
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Slot
 
@@ -181,6 +183,33 @@ private:
 
 namespace Libvirt
 {
+namespace Trick
+{
+namespace Online
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Carrier
+
+struct Carrier: QObject
+{
+	typedef Shadow::Connector* target_type;
+
+	Carrier(target_type target_, QObject* parent_):
+		QObject(parent_), m_target(target_)
+	{
+	}
+
+	Q_INVOKABLE void haul(quint64 downtime_);
+
+private:
+	Q_OBJECT
+
+	target_type m_target;
+};
+
+} // namespace Online
+} // namespace Trick
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Progress
 
