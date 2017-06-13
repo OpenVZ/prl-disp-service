@@ -2213,12 +2213,13 @@ Libvirt::Result GetPerformanceStatisticsVm(const CVmIdent &id, Collector &c)
 		return Libvirt::Result(Error::Simple(PRL_ERR_DISP_VM_IS_NOT_STARTED));
 	}
 
-	CVmConfiguration v;
-	Libvirt::Result r = u.getConfig(v, true);
-	if (r.isFailed())
-		return r;
+	PRL_RESULT r;
+	SmartPtr<CVmConfiguration> v = CDspService::instance()->getVmDirHelper().
+			getVmConfigByUuid(id, r);
+	if (!v)
+		return Libvirt::Result(Error::Simple(r));
 
-	c.collectVm(id.first, v);
+	c.collectVm(id.first, *v.get());
 
 	return Libvirt::Result();
 }
