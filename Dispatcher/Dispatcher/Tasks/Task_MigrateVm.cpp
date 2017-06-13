@@ -415,7 +415,7 @@ QList<T*> Separatist::refine(const QList<T*>& mix_)
 	if (r.isFailed())
 		return r.error();
 
-	m_bus->handle(downtime_type(r.value()));
+	QMetaObject::invokeMethod(m_bus, "haul", Q_ARG(quint64, r.value()));
 	return ::Libvirt::Result();
 }
  
@@ -473,6 +473,14 @@ Unit* Hatchery::operator()(const agent_type& agent_, const CVmConfiguration& tar
 		output = new File(r, output);
 
 	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Carrier
+
+void Carrier::haul(quint64 downtime_)
+{
+	m_target->handle(downtime_type(downtime_));
 }
 
 } // namespace Online

@@ -310,7 +310,7 @@ private:
 
 struct Component: Unit
 {
-	typedef Shadow::Connector* bus_type;
+	typedef Carrier* bus_type;
 	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Online agent_type;
 
 	Component(const agent_type& agent_, const CVmConfiguration& target_,
@@ -333,8 +333,8 @@ struct Hatchery
 {
 	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Agent agent_type;
 
-	Hatchery(Task_MigrateVmSource& task_, Component::bus_type bus_):
-		m_bus(bus_), m_task(&task_), m_ports(boost::none)
+	Hatchery(Task_MigrateVmSource& task_, Carrier::target_type bus_):
+		m_bus(new Carrier(bus_, bus_)), m_task(&task_), m_ports(boost::none)
 	{
 	}
 
