@@ -236,9 +236,27 @@ void Runtime::updateConnected(QList<T*>& new_, const QList<T*>& old_)
 			continue;
 
 		iterator_type m = std::find_if(b, e, Config::Index::Match<T>(*d));
-		d->setConnected(e == m || (*m)->getSystemName().isEmpty() ?
+		d->setConnected(e == m || *m == NULL || !guessConnected(**m) ?
 			PVE::DeviceDisconnected : PVE::DeviceConnected);
 	}
+}
+
+template <class T>
+bool Runtime::guessConnected(const T&)
+{
+	return true;
+}
+
+template <>
+bool Runtime::guessConnected(const CVmOpticalDisk& device_)
+{
+	return !device_.getSystemName().isEmpty();
+}
+
+template <>
+bool Runtime::guessConnected(const CVmGenericNetworkAdapter& device_)
+{
+	return PVE::DeviceConnected == device_.getConnected();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

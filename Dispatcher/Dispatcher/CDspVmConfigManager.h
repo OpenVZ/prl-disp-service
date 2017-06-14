@@ -225,6 +225,8 @@ struct Runtime
 	static void drawAlias(QList<T*>& new_, const QList<T*>& old_);
 	template <class T>
 	static void updateConnected(QList<T*>& new_, const QList<T*>& old_);
+	template <class T>
+	static bool guessConnected(const T& device_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
