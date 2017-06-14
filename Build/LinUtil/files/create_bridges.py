@@ -33,6 +33,8 @@ import re
 CONFIG_PATH = "/etc/sysconfig/network-scripts"
 SECTION_NAME = "section"
 BACKUP_PREFIX = "vz_preserved-"
+BLACKLIST_PARAMS = ["DEVICE", "HWADDR", "UUID", "BRIDGE", "TYPE", "DEVICETYPE", "NAME", "VLAN",
+                    "VLAN_ID", "PHYSDEV", "REORDER_HDR", "GVRP", "MVRP"]
 
 
 class FakeSection(object):
@@ -216,7 +218,7 @@ def create_bridge(iface, cp, bridge_id, to_write):
     cp["BRIDGE"] = "\"%s\"" % br_name
     # Move attributes.
     for attr in cp:
-        if attr in ["DEVICE", "HWADDR", "UUID", "BRIDGE", "TYPE", "DEVICETYPE", "NAME"]:
+        if attr in BLACKLIST_PARAMS:
             continue
         if attr.startswith("BOND"):
             continue
