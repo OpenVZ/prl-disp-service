@@ -944,14 +944,14 @@ PRL_RESULT Atomic::operator()(const action_type& action_)
 	QString d = a->getVmDirectoryUuid();
 	CDspVmDirHelper& h = m_service->getVmDirHelper();
 	PRL_RESULT output = h.registerExclusiveVmOperation
-		(m_decorated.getUuid(), d, PVE::DspCmdDirVmEditCommit, a);
+		(m_decorated.getUuid(), d, PVE::DspCmdCtlApplyVmConfig, a);
 	if (PRL_SUCCEEDED(output))
 	{
 		QMutexLocker g(h.getMultiEditDispatcher());
 		output = m_decorated(action_);
 		g.unlock();
 		h.unregisterExclusiveVmOperation
-			(m_decorated.getUuid(), d, PVE::DspCmdDirVmEditCommit, a);
+			(m_decorated.getUuid(), d, PVE::DspCmdCtlApplyVmConfig, a);
 	}
 	return output;
 }
