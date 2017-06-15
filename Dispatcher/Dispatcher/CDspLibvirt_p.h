@@ -502,7 +502,7 @@ struct Shell: QRunnable
 	typedef boost::function<void(Registry::Access& )> reaction_type;
 	typedef QQueue<reaction_type> storage_type;
 	typedef std::pair<storage_type, QMutex> queue_type;
-	typedef QWeakPointer<queue_type> queuePointer_type;
+	typedef QSharedPointer<queue_type> queuePointer_type;
 
 	Shell(const queuePointer_type& queue_, const Registry::Access& access_):
 		m_access(access_), m_queue(queue_)
@@ -530,8 +530,8 @@ private:
 	typedef Callback::Reactor::Crash::Primary crash_type;
 
 	Registry::Access m_access;
+	Shell::queuePointer_type m_queue;
 	QSharedPointer<crash_type> m_crash;
-	QSharedPointer<Shell::queue_type> m_queue;
 };
 
 } // namespace Reaction

@@ -1328,22 +1328,21 @@ namespace Reaction
 
 void Shell::run()
 {
+	if (m_queue.isNull())
+		return;
+
 	forever
 	{
-		QSharedPointer<queue_type> x = m_queue.toStrongRef();
-		if (x.isNull())
+		QMutexLocker g(&m_queue->second);
+		if (m_queue->first.isEmpty())
 			return;
 
-		QMutexLocker g(&x->second);
-		if (x->first.isEmpty())
-			return;
-
-		reaction_type y = x->first.head();
+		reaction_type y = m_queue->first.head();
 		g.unlock();
 		y(m_access);
 		g.relock();
-		(void)x->first.dequeue();
-		if (x->first.isEmpty())
+		(void)m_queue->first.dequeue();
+		if (m_queue->first.isEmpty())
 			return;
 	}
 }
@@ -1352,7 +1351,7 @@ void Shell::run()
 // struct Demonstrator
 
 Demonstrator::Demonstrator(const Registry::Access& access_):
-	m_access(access_), m_crash(new crash_type()), m_queue(new Shell::queue_type())
+	m_access(access_), m_queue(new Shell::queue_type()), m_crash(new crash_type())
 {
 }
 
@@ -1364,7 +1363,7 @@ void Demonstrator::show(const Shell::reaction_type& reaction_)
 	if (!x) 
 		return;
 
-	QRunnable* q = new Shell(m_queue.toWeakRef(), m_access);
+	QRunnable* q = new Shell(m_queue, m_access);
 	q->setAutoDelete(true);
 	QThreadPool::globalInstance()->start(q);
 }
@@ -1391,10 +1390,11 @@ void System::remove(const QString& uuid_)
 	if (m_domainMap.end() == p)
 		return;
 
-	p.value()->show(Callback::Reactor::State(VMS_UNKNOWN));
+	domainMap_type::mapped_type x = p.value();
+	x->show(Callback::Reactor::State(VMS_UNKNOWN));
+	x->show(boost::bind(&Registry::Actual::undefine, &m_registry, uuid_));
 
 	m_domainMap.erase(p);
-	m_registry.undefine(uuid_);
 }
 
 QSharedPointer<System::entry_type> System::add(const QString& uuid_)

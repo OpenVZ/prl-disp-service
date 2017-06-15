@@ -536,10 +536,10 @@ struct Frontend: Details::Frontend<Frontend>
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
 	msmf::Row<Running,    Conventional<VMS_STOPPED>,    Stopped,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Cluster, BackupDisable, Unlock, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Unlock, Cluster, BackupDisable, Notification> > >,
 
 	msmf::Row<Running,    Conventional<VMS_SUSPENDED>,  Suspended,
-		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Cluster, BackupDisable, Unlock, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Unlock, Cluster, BackupDisable, Notification> > >,
 
 	msmf::Row<Running,    Conventional<VMS_PAUSED>,     Paused,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Cluster, Notification> > >,
