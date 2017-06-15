@@ -186,7 +186,13 @@ def need_device(cp):
     return dequote(cp.get("DEVICE", "")) == ""
 
 def add_device(iface, cp):
-    cp["DEVICE"] = iface
+    is_vlan = dequote(cp.get("VLAN", "").lower())
+    vlan_id = dequote(cp.get("VLAN_ID", ""))
+    physdev = dequote(cp.get("PHYSDEV", ""))
+    if is_vlan == "yes" and vlan_id and physdev:
+        cp["DEVICE"] = "%s.%s" % (physdev, vlan_id)
+    else:
+        cp["DEVICE"] = iface
     filename = "ifcfg-%s" % iface
     return (filename, BACKUP_PREFIX + filename)
 
