@@ -242,6 +242,8 @@ boost::logic::tribool Unit::isReconciled(const Unit& party_) const
 		case PVE::DspCmdVmResume:
 		case PVE::DspCmdVmStartEx:
 			return true;
+		case PVE::DspCmdCtlApplyVmConfig:
+			return false;
 		default:
 			break;
 		}
@@ -305,6 +307,16 @@ boost::logic::tribool Newcomer::isReconciled(const Native& native_) const
 			break;
 		}
 		break;
+
+	case PVE::DspCmdCtlApplyVmConfig:
+		switch (x)
+		{
+		case PVE::DspCmdVmLock:
+		case PVE::DspCmdDirVmEditCommit:
+			return false;
+		default:
+			return true;
+		}
 
 	case PVE::DspCmdCtlVmEditWithRename:
 		switch (x)
@@ -482,6 +494,7 @@ PRL_RESULT Conflict::getResult() const
 	case PVE::DspCmdDirUnregVm:
 		return PRL_ERR_VM_LOCKED_FOR_UNREGISTER;
 	case PVE::DspCmdDirVmEditCommit:
+	case PVE::DspCmdCtlApplyVmConfig:
 		return PRL_ERR_VM_LOCKED_FOR_EDIT_COMMIT;
 	case PVE::DspCmdVmStart:
 		return PRL_ERR_VM_LOCKED_FOR_EXECUTE;
@@ -655,6 +668,7 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 	case PVE::DspCmdDirVmMove:
 	case PVE::DspCmdCtlVmCommitDiskUnfinished:
 	case PVE::DspCmdVmResume:
+	case PVE::DspCmdCtlApplyVmConfig:
 		break;
 	default:
 		WRITE_TRACE(DBG_FATAL, "internal error: unsupported incomming cmd %#x", cmd );
