@@ -451,9 +451,16 @@ Prl::Expected<void, Error::Simple> V2V::start() const
 	Prl::Expected<void, Error::Simple> e = Command::Vm::Gear<firstStart_type>::run(cfg);
 
 	// store config with disabled network
-	if (e.isFailed() && e.error().code() == PRL_ERR_FIXME)
-		Libvirt::Kit.vms().define(cfg);
-
+	if (e.isFailed())
+	{
+		if (e.error().code() == PRL_ERR_FIXME)
+			Libvirt::Kit.vms().define(cfg);
+	}
+	else
+	{
+		Libvirt::Kit.vms().at(m_cfg.getVmIdentification()->getVmUuid())
+			.getMaintenance().emitDefined();
+	}
 	return e;
 }
 
