@@ -248,6 +248,12 @@ bool Runtime::guessConnected(const T&)
 }
 
 template <>
+bool Runtime::guessConnected(const CVmFloppyDisk& device_)
+{
+	return !device_.getSystemName().isEmpty();
+}
+
+template <>
 bool Runtime::guessConnected(const CVmOpticalDisk& device_)
 {
 	return !device_.getSystemName().isEmpty();
