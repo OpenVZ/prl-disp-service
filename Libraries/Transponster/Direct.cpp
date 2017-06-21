@@ -926,6 +926,7 @@ PRL_RESULT Cpu::setNumber()
 		return PRL_ERR_NO_DATA;
 
 	m_result->setNumber(m_vcpu->getOwnValue());
+	m_result->setSockets(1);
 	return PRL_ERR_SUCCESS;
 }
 
