@@ -446,8 +446,9 @@ SmartPtr<CDspClient> CDspUserHelper::processUserLogin (
 		x.fill(0);
 	}
 	BOOST_SCOPE_EXIT_END;
+
 	return processLogin(
-			loginCmd->GetUserLoginName(), x, loginCmd->GetPrevSessionUuid(), h , p,
+			loginCmd->GetUserLoginName(), decodePassword(x, h), loginCmd->GetPrevSessionUuid(), h , p,
 			loginCmd->GetCommandFlags(), &bWasPreAuthorized );
 }
 
@@ -468,10 +469,12 @@ SmartPtr<CDspClient> CDspUserHelper::processLogin (
 	WRITE_TRACE(DBG_FATAL, "Login request from user [%s]", QSTR2UTF8( user ) );
 
 	SmartPtr<CDspClient> p_NewUser( new CDspClient( h, user, nFlags ) );
-	if (password.size() > MAX_PASSWORD_LENGTH) {
+	if (password.size() > MAX_ENCODED_PASSWORD_LENGTH) {
 		CVmEvent e;
 		e.setEventCode(PRL_ERR_INVALID_ARG);
-		e.addEventParameter(new CVmEventParameter(PVE::String, "Passwords longer than 256 characters are not allowed", EVT_PARAM_DETAIL_DESCRIPTION));
+		e.addEventParameter(new CVmEventParameter(PVE::String,
+			QString("Passwords longer than %1 characters are not allowed").arg(MAX_PASSWORD_LENGTH),
+			EVT_PARAM_DETAIL_DESCRIPTION));
 		WRITE_TRACE(DBG_FATAL, "Can't authorize user [%s]: password exceeds maximum length", user.toUtf8().data());
 		p_NewUser->sendResponseError(e, p);
 		return SmartPtr<CDspClient>();
@@ -1176,10 +1179,10 @@ SmartPtr<IOPackage> CDspUserHelper::makeLoginResponsePacket(
 
 	//https://bugzilla.sw.ru/show_bug.cgi?id=449210
 	SmartPtr<IOPackage> responsePkg;
-	IOCommunication::ProtocolVersion _proto_version;
-	memset(&_proto_version, 0, sizeof(IOCommunication::ProtocolVersion));
-	if ( CDspService::instance()->getIOServer().clientProtocolVersion( pSession->getClientHandle(), _proto_version ) &&
-		 IOPROTOCOL_BINARY_RESPONSE_SUPPORT(_proto_version) )
+	IOCommunication::ProtocolVersion proto_version;
+	memset(&proto_version, 0, sizeof(IOCommunication::ProtocolVersion));
+	if ( CDspService::instance()->getIOServer().clientProtocolVersion( pSession->getClientHandle(), proto_version ) &&
+		 IOPROTOCOL_BINARY_RESPONSE_SUPPORT(proto_version) )
 	{
 		//Add supported OSes matrix
 		TOpaqueTypeList<PRL_UINT8> _oses_types = CGuestOsesHelper::GetSupportedOsesTypes(PHO_UNKNOWN);
@@ -1349,6 +1352,20 @@ bool CDspUserHelper::searchUserDefinedProxySettings(  const QString & /*strUrl*/
 		return true;
 	}
 	return false;
+}
+
+QString CDspUserHelper::decodePassword(const QString &password, const IOSender::Handle &h)
+{
+	IOCommunication::ProtocolVersion proto_version;
+	memset(&proto_version, 0, sizeof(IOCommunication::ProtocolVersion));
+	if (CDspService::instance()->getIOServer().clientProtocolVersion(h, proto_version) &&
+		IOPROTOCOL_NEW_LOGIN_SUPPORT(proto_version))
+	{
+		QByteArray b;
+		b.append(password);
+		return QByteArray::fromBase64(b);
+	}
+	return password;
 }
 
 /*****************************************************************************/

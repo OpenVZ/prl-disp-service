@@ -143,10 +143,6 @@ public:
 							/*OUT*/QString & userId,
 							/*IN*/bool bSecure );
 
-	enum {
-		MAX_PASSWORD_LENGTH = 256,
-	};
-
 public:
 	/////////////////////////////////////
 	//
@@ -213,6 +209,9 @@ private:
 	// load from dispatcher qsettings user defined data and adds it to CDispUserSettings object
 	PRL_RESULT addUserDefinedProxySecure( SmartPtr<CDispUserSettings> pData,
 									const QString & strUserId );
+
+	// decode password
+	QString decodePassword(const QString& password, const IOSender::Handle &h);
 
 
 #ifdef SENTILLION_VTHERE_PLAYER
