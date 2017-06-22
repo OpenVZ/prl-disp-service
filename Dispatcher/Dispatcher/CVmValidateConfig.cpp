@@ -1169,11 +1169,16 @@ void CVmValidateConfig::CheckCpu()
 	}
 
 	CVmCpu *pCpu = m_pVmConfig->getVmHardwareList()->getCpu();
-	unsigned int nCpuCount = pCpu->getNumber();
-	if (!nCpuCount)
+	unsigned c = pCpu->getNumber(), s = pCpu->getSockets(), vmCores = c * s;
+	if (0 == c)
 	{
 		m_lstResults += PRL_ERR_VMCONF_CPU_ZERO_COUNT;
 		ADD_FID(E_SET << pCpu->getNumber_id());
+	}
+	else if (0 == s)
+	{
+		m_lstResults += PRL_ERR_VMCONF_CPU_ZERO_COUNT;
+		ADD_FID(E_SET << pCpu->getSockets_id());
 	}
 	else if (!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
 	{
@@ -1190,18 +1195,18 @@ void CVmValidateConfig::CheckCpu()
 
 		unsigned int nHostCpuCount = pHostInfo->getCpu()->getNumber();
 		unsigned int maxAllowedCpuCount = qMin(nHostCpuCount, max > 0 ? max : PRL_MAX_CPU_COUNT);
-		if (nCpuCount > maxAllowedCpuCount)
+		if (vmCores > maxAllowedCpuCount)
 		{
 			m_lstResults += PRL_ERR_VMCONF_CPU_COUNT_MORE_MAX_CPU_COUNT;
 			m_mapParameters.insert(m_lstResults.size(), QStringList()
 						<< QString::number(maxAllowedCpuCount));
-			ADD_FID(E_SET << pCpu->getNumber_id());
+			ADD_FID(E_SET << pCpu->getNumber_id() << pCpu->getSockets_id());
 		}
 
-		if (nCpuCount > nHostCpuCount)
+		if (vmCores > nHostCpuCount)
 		{
 			m_lstResults += PRL_ERR_VMCONF_CPU_COUNT_MORE_HOST_CPU_COUNT;
-			ADD_FID(E_SET << pCpu->getNumber_id());
+			ADD_FID(E_SET << pCpu->getNumber_id() << pCpu->getSockets_id());
 		}
 
 		QString sMask = pCpu->getCpuMask();
@@ -1216,11 +1221,11 @@ void CVmValidateConfig::CheckCpu()
 			} else {
 				unsigned int nBits = getBitsCount(bMask, sizeof(bMask));
 
-				if (nCpuCount < nHostCpuCount && nBits < nCpuCount) {
+				if (vmCores < nHostCpuCount && nBits < s) {
 					m_lstResults += PRL_ERR_VMCONF_CPU_MASK_INVALID_CPU_NUM;
 					m_mapParameters.insert(m_lstResults.size(), QStringList()
 						<< QString::number(nBits));
-					ADD_FID(E_SET << pCpu->getCpuMask_id() << pCpu->getNumber_id());
+					ADD_FID(E_SET << pCpu->getCpuMask_id() << pCpu->getSockets_id());
 				}
 			}
 		}
