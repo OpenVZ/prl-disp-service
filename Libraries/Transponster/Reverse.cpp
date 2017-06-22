@@ -55,6 +55,16 @@ void Resources::setCpu(const Libvirt::Domain::Xml::Cpu& src_)
 		if (maxNumaRam)
 			h->getMemory()->setMaxNumaRamSize(maxNumaRam);
 	}
+	CVmCpu* u = h->getCpu();
+	if (NULL == u)
+		return;
+
+	boost::optional<Libvirt::Domain::Xml::Topology> f = src_.getTopology();
+	if (f)
+	{
+		u->setNumber(f.get().getCores());
+		u->setSockets(f.get().getSockets());
+	}
 }
 
 bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu& dst_)
@@ -81,6 +91,12 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu& dst_)
 	z.setOwnValue(vt_.getCpuModel());
 	dst_.setModel(z);
 
+	Libvirt::Domain::Xml::Topology t;
+	t.setCores(u->getNumber());
+	t.setThreads(1);
+	t.setSockets(u->getSockets());
+	dst_.setTopology(t);
+
 	CVmMemory *m = h->getMemory();
 	if (m->isEnableHotplug()) {
 
@@ -90,7 +106,7 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu& dst_)
 		cell.setId(id);
 
 		QString mask = "0";
-		for (unsigned int i=1; i<u->getNumber(); i++)
+		for (unsigned int i=1; i < u->getSockets(); i++)
 			mask += "," + QString::number(i);
 
 		cell.setCpus(mask);
@@ -1140,7 +1156,7 @@ PRL_RESULT Cpu::setLimit()
 	if (m_vt.isGlobalCpuLimit())
 		m_tune->setGlobalQuota(q);
 	else
-		m_tune->setQuota(q / m_input.getNumber());
+		m_tune->setQuota(q / (m_input.getNumber() * m_input.getSockets()));
 
 	return PRL_ERR_SUCCESS;
 }
@@ -1150,8 +1166,9 @@ PRL_RESULT Cpu::setNumber()
 	if (!m_vcpu)
 		return PRL_ERR_UNINITIALIZED;
 
-	m_vcpu->setOwnValue(m_input.isEnableHotplug() ? 32 : m_input.getNumber());
-	m_vcpu->setCurrent(m_input.getNumber());
+	quint32 x = m_input.getNumber() * m_input.getSockets();
+	m_vcpu->setOwnValue(m_input.isEnableHotplug() ? 32 : x);
+	m_vcpu->setCurrent(x);
 
 	return PRL_ERR_SUCCESS;
 }
