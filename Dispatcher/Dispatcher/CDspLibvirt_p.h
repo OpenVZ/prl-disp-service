@@ -778,12 +778,16 @@ namespace Completion
 
 struct Hotplug
 {
+	typedef void result_type;
 	typedef QSharedPointer<boost::promise<void> > feedback_type;
+	typedef Instrument::Agent::Vm::Limb::Abstract::domainReference_type
+		domain_type;
 
 	Hotplug(virDomainPtr match_, const QString& device_,
 		const feedback_type& feedback_);
 
-	void operator()();
+	void operator()(Registry::Reactor&);
+	void operator()(Model::Coarse* model_, domain_type domain_);
 	static int react(virConnectPtr, virDomainPtr domain_,
 		const char* device_, void* opaque_);
 
