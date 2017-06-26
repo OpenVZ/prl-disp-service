@@ -1814,13 +1814,40 @@ Result Editor::plug(const T& device_)
 	if (x.isFailed())
 		return x.error();
 
-	return Hotplug(getDomain()).attach(x.value());
+	QString a = device_.getAlias();
+	Vm::Completion::Hotplug::feedback_type p(new boost::promise<void>());
+	boost::future<void> w = p->get_future();
+	QScopedPointer<Vm::Completion::Hotplug> g(new Vm::Completion::Hotplug(getDomain().data(), a, p));
+	int m = virConnectDomainEventRegisterAny(getLink().data(),
+		getDomain().data(), VIR_DOMAIN_EVENT_ID_DEVICE_ADDED,
+		VIR_DOMAIN_EVENT_CALLBACK(Vm::Completion::Hotplug::react),
+		g.data(), &Callback::Plain::delete_<Vm::Completion::Hotplug>);
+	if (-1 == m)
+		return Failure(PRL_ERR_FAILURE);
+
+	g.take();
+	Result output = Hotplug(getDomain()).attach(x.value());
+	if (output.isSucceed())
+		w.get();
+
+	virConnectDomainEventDeregisterAny(getLink().data(), m);
+	return output;
 }
 template Result Editor::plug<CVmHardDisk>(const CVmHardDisk& device_);
 template Result Editor::plug<CVmSerialPort>(const CVmSerialPort& device_);
 template Result Editor::plug<CVmGenericNetworkAdapter>(const CVmGenericNetworkAdapter& device_);
-template Result Editor::plug<Transponster::Vm::Reverse::Dimm>
-	(const Transponster::Vm::Reverse::Dimm& device_);
+
+template<>
+Result Editor::plug<Transponster::Vm::Reverse::Dimm>(const Transponster::Vm::Reverse::Dimm& device_)
+{
+	Prl::Expected<QString, ::Error::Simple> x =
+		Transponster::Vm::Reverse::Device<Transponster::Vm::Reverse::Dimm>
+			::getPlugXml(device_);
+	if (x.isFailed())
+		return x.error();
+
+	return Hotplug(getDomain()).attach(x.value());
+}
 
 template<class T>
 Result Editor::unplug(const T& device_)

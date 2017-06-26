@@ -45,6 +45,12 @@
 
 namespace Libvirt
 {
+namespace Callback
+{
+static Access g_access;
+
+} // namespace Callback
+
 namespace Instrument
 {
 namespace Pull
@@ -151,9 +157,14 @@ Hotplug::Hotplug(virDomainPtr match_, const QString& device_,
 {
 }
 
-void Hotplug::operator()()
+void Hotplug::operator()(Registry::Reactor&)
 {
 	m_feedback->set_value();
+}
+
+void Hotplug::operator()(Model::Coarse* model_, domain_type domain_)
+{
+	model_->show(domain_.data(), *this);
 }
 
 int Hotplug::react(virConnectPtr, virDomainPtr domain_,
@@ -163,9 +174,17 @@ int Hotplug::react(virConnectPtr, virDomainPtr domain_,
 	if (NULL == x)
 		return -1;
 
-	if (QPair<QString, QString>(Model::Coarse::getUuid(domain_), device_) == x->m_match)
-		(*x)();
+	QPair<QString, QString> m(Model::Coarse::getUuid(domain_), QString());
+	if (!x->m_match.second.isEmpty())
+		m.second = device_;
 
+	if (m == x->m_match)
+	{
+		virDomainRef(domain_);
+		Callback::g_access.setOpaque(Callback::Mock::ID,
+			new Callback::Transport::Event(boost::bind(*x, _1,
+				domain_type(domain_, &virDomainFree))));
+	}
 	return 0;
 }
 
@@ -812,8 +831,6 @@ int Access::remove(int id_)
 	QMetaObject::invokeMethod(h.data(), "remove", Q_ARG(int, id_));
 	return 0;
 }
-
-static Access g_access;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Sweeper
