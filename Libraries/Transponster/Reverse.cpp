@@ -90,13 +90,14 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu& dst_)
 		z = *dst_.getModel();
 	z.setOwnValue(vt_.getCpuModel());
 	dst_.setModel(z);
-
-	Libvirt::Domain::Xml::Topology t;
-	t.setCores(u->getNumber());
-	t.setThreads(1);
-	t.setSockets(u->getSockets());
-	dst_.setTopology(t);
-
+	if (!u->isEnableHotplug())
+	{
+		Libvirt::Domain::Xml::Topology t;
+		t.setCores(u->getNumber());
+		t.setThreads(1);
+		t.setSockets(u->getSockets());
+		dst_.setTopology(t);
+	}
 	CVmMemory *m = h->getMemory();
 	if (m->isEnableHotplug()) {
 
@@ -114,7 +115,6 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu& dst_)
 		cells.append(cell);
 		dst_.setNuma(cells);
 	}
-
 	return true;
 }
 
