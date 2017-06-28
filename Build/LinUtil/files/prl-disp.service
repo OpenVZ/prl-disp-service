@@ -5,6 +5,8 @@ After=libvirtd.service systemd-modules-load.service vzevent.service vz.service
 After=virt-guest-shutdown.target
 Wants=libvirtd.service systemd-modules-load.service vzevent.service vz.service
 Requires=virt-guest-shutdown.target
+Conflicts=umount.target
+Before=umount.target
 
 [Service]
 Type=notify
