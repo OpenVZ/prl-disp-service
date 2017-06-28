@@ -50,7 +50,7 @@
 #include "CDspTaskHelper.h"
 
 #ifndef _LIN_
-class Task_MigrateCtTarget : public CDspTaskHelper
+class Task_MigrateCtTarget : public CDspTaskHelper, public Toll::Choke
 {
 	Q_OBJECT
 
@@ -74,7 +74,7 @@ private:
 #include "Task_VzMigrate.h"
 #include "Libraries/Virtuozzo/CVzHelper.h"
 
-class Task_MigrateCtTarget : public Task_VzMigrate
+class Task_MigrateCtTarget : public Task_VzMigrate, public Toll::Choke
 {
 	Q_OBJECT
 

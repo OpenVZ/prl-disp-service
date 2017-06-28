@@ -72,7 +72,7 @@ struct Copier;
 } // namespace Migrate
 
 
-class Task_MigrateVmSource : public CDspTaskHelper, public Task_DispToDispConnHelper
+class Task_MigrateVmSource : public CDspTaskHelper, public Task_DispToDispConnHelper, public Toll::Choke
 {
 	Q_OBJECT
 
@@ -106,7 +106,6 @@ public:
 	PRL_RESULT confirmFinish();
 	QList<CVmHardDisk* > getVmUnsharedDisks() const;
 	Migrate::Vm::Source::Content::Copier* createCopier();
-	quint64 getBandwidth() const;
 
 protected:
 	virtual PRL_RESULT prepareTask();

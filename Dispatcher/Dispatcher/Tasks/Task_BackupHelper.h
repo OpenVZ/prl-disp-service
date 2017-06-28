@@ -320,7 +320,7 @@ typedef boost::variant<Ct, Vm> object_type;
 // class Task_BackupHelper
 
 class Task_BackupHelper: public CDspTaskHelper, public Task_DispToDispConnHelper,
-			protected Backup::AClient
+			protected Backup::AClient, public Toll::Choke
 {
 	Q_OBJECT
 
@@ -379,8 +379,6 @@ public:
 		SmartPtr<Chain> custom_);
 	/* updates an id of the last successful incremental backup */
 	PRL_RESULT updateLastPartialNumber(const QString &ve_, const QString &uuid_, unsigned number_);
-
-	quint64 getBandwidth() const;
 
 protected:
 	Task_BackupHelper(const SmartPtr<CDspClient> &client, const SmartPtr<IOPackage> &p);
@@ -472,3 +470,4 @@ private:
 };
 
 #endif //__Task_BackupHelper_H_
+

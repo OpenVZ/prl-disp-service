@@ -304,6 +304,9 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 	QString sVmUuid;
 	SmartPtr<CVmConfiguration> pConfig;
 	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspCmdCtlDispatherFakeCommand);
+	QScopedPointer<CVmMigrateCheckPreconditionsReply> cmd(
+            new CVmMigrateCheckPreconditionsReply(
+                m_lstCheckPrecondsErrors, QStringList(), m_nFlags | PVM_CT_MIGRATE));
 
 	if (operationIsCancelled()) {
 		nRetCode = PRL_ERR_OPERATION_WAS_CANCELED;
@@ -321,12 +324,11 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 		Qt::DirectConnection);
 	PRL_ASSERT(bConnected);
 
-	m_nFlags |= PVM_CT_MIGRATE;
 	/* and send reply on Precond Check command */
-	pReply = CDispToDispProtoSerializer::CreateVmMigrateCheckPreconditionsReply(
-			m_lstCheckPrecondsErrors, QStringList(), m_nFlags);
+	cmd->SetBandwidth(getDegree());
+
 	pPackage = DispatcherPackage::createInstance(
-			pReply->GetCommandId(), pReply->GetCommand()->toString(), getRequestPackage());
+			cmd->GetCommandId(), cmd->GetCommand()->toString(), getRequestPackage());
 
 	/* set timer */
 	pTimer = new QTimer();

@@ -602,3 +602,17 @@ CVmEvent& CDspTaskFailure::getError() const
 	return *(m_task->getLastError());
 }
 
+namespace Toll
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Choke
+
+quint64 Choke::getDegree()
+{
+	QString r;
+	CVzHelper::get_vz_config_param("VZ_TOOLS_IOLIMIT", r);
+
+	return r.toULongLong();
+}
+
+} // namespace Toll

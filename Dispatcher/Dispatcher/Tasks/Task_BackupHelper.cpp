@@ -483,7 +483,7 @@ QStringList Basic::craftEpilog(Task_BackupHelper& context_)
 	if (context_.getFlags() & PBT_UNCOMPRESSED)
 		output << "--uncompressed";
 
-	output << "--limit-speed" << QString::number(context_.getBandwidth());
+	output << "--limit-speed" << QString::number(context_.getDegree());
 	output << "--disp-mode";
 	return output;
 }
@@ -2028,14 +2028,6 @@ PRL_RESULT Task_BackupHelper::CloneHardDiskState(const QString &sDiskImage,
 	Q_UNUSED(sSnapshotUuid);
 	Q_UNUSED(sDstDirectory);
 	return PRL_ERR_UNIMPLEMENTED;
-}
-
-quint64 Task_BackupHelper::getBandwidth() const
-{
-	QString r;
-	CVzHelper::get_vz_config_param("VZ_TOOLS_IOLIMIT", r);
-
-	return r.toULongLong();
 }
 
 QString Task_BackupHelper::patch(QUrl url_) const
