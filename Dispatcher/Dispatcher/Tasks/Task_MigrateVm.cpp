@@ -452,7 +452,7 @@ Unit* Hatchery::operator()(const agent_type& agent_, const CVmConfiguration& tar
 	else
 		m_ports ? o.setQemuDisk(m, m_ports->second) : o.setQemuDisk(m);
 
-	quint64 bw = m_task->getBandwidth();
+	quint64 bw = m_task->getDegree();
 	if (bw > 0)
 		o.setBandwidth(bw);
 
@@ -1468,7 +1468,7 @@ Migrate::Vm::Source::Content::Copier* Task_MigrateVmSource::createCopier()
 	// don't share non threadsave data with this objects as
 	// they will be used in a different thread
 	SmartPtr<CVmEvent> error(new CVmEvent());
-	SmartPtr<CVmFileListCopySender> sender(new CVmFileListCopySenderClient(m_pIoClient, getBandwidth()));
+	SmartPtr<CVmFileListCopySender> sender(new CVmFileListCopySenderClient(m_pIoClient, getDegree()));
 	SmartPtr<CVmFileListCopySource> copier(new CVmFileListCopySource(
 				sender.getImpl(),
 				QString(m_pVmConfig->getVmIdentification()->getVmUuid()),
@@ -1830,11 +1830,3 @@ QList<CVmHardDisk* > Task_MigrateVmSource::getVmUnsharedDisks() const
 	return output;
 }
 
-quint64 Task_MigrateVmSource::getBandwidth() const
-{
-	QString r;
-	CDspService::instance()->getVzHelper()
-		->getVzlibHelper().get_vz_config_param("VZ_TOOLS_IOLIMIT", r);
-
-	return r.toULongLong();
-}

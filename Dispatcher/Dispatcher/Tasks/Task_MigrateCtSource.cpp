@@ -204,6 +204,9 @@ PRL_RESULT Task_MigrateCtSource::run_body()
 	/* to force nfs -> non-nfs migration */
 	lstArgs.append("--nonsharedfs");
 
+	if (m_nBandwidth > 0)
+		lstArgs.append(QString("--limit-speed=%1").arg(m_nBandwidth));
+
 	lstArgs.append(m_sServerHostname);
 	lstArgs.append(ctid);
 
@@ -414,6 +417,10 @@ PRL_RESULT Task_MigrateCtSource::CheckVmMigrationPreconditions()
 			CDispToDispProtoSerializer::CastToDispToDispCommand<CVmMigrateCheckPreconditionsReply>(pCmd);
 		m_lstCheckPrecondsErrors = pResponseCmd->GetCheckPreconditionsResult();
 		m_nReservedFlags = pResponseCmd->GetCommandFlags();
+		m_nBandwidth = getDegree();
+		quint64 targetBw = pResponseCmd->GetBandwidth();
+		if (targetBw > 0 && targetBw < m_nBandwidth)
+			m_nBandwidth = targetBw;
 		if (!(m_nReservedFlags & PVM_CT_MIGRATE)) {
 			/* migration of the containers does not supports */
 			WRITE_TRACE(DBG_FATAL, "Remote server does not support migration of the containers");

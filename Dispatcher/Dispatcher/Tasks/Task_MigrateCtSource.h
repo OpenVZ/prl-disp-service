@@ -44,7 +44,7 @@
 #include <prlcommon/IOService/IOCommunication/IOClient.h>
 #include "Task_VzMigrate.h"
 
-class Task_MigrateCtSource : public Task_VzMigrate
+class Task_MigrateCtSource : public Task_VzMigrate, public Toll::Choke
 {
 	Q_OBJECT
 
@@ -86,6 +86,7 @@ private:
 	QString m_sServerSessionUuid;
 	QString m_sTargetServerCtName;
 	QString m_sTargetServerCtHomePath;
+	quint64 m_nBandwidth;
 
 	SmartPtr<CVmConfiguration> m_pVmConfig;
 

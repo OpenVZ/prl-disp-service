@@ -241,6 +241,8 @@ public:
 	QStringList GetNonSharedDisks();
 	QString GetConfig();
 	void SetConfig(const QString& config);
+	quint64 GetBandwidth();
+	void SetBandwidth(const quint64 bw);
 };
 
 /**

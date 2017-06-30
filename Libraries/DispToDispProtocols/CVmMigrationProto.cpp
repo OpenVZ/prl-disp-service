@@ -219,6 +219,16 @@ void CVmMigrateCheckPreconditionsReply::SetConfig(const QString& config)
 	SetStringParamValue(config, "migrate_check_preconditions_config");
 }
 
+quint64 CVmMigrateCheckPreconditionsReply::GetBandwidth()
+{
+	return GetUnsignedInt64ParamValue("migrate_check_preconditions_bandwidth");
+}
+
+void CVmMigrateCheckPreconditionsReply::SetBandwidth(const quint64 bw)
+{
+	SetUnsignedInt64ParamValue(bw, "migrate_check_preconditions_bandwidth");
+}
+
 //**********************************************Start migration command implementation*********************************
 
 CVmMigrateStartCommand::CVmMigrateStartCommand(
