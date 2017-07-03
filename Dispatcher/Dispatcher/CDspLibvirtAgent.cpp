@@ -1814,10 +1814,10 @@ Result Editor::plug(const T& device_)
 	if (x.isFailed())
 		return x.error();
 
-	QString a = device_.getAlias();
 	Vm::Completion::Hotplug::feedback_type p(new boost::promise<void>());
 	boost::future<void> w = p->get_future();
-	QScopedPointer<Vm::Completion::Hotplug> g(new Vm::Completion::Hotplug(getDomain().data(), a, p));
+	QScopedPointer<Vm::Completion::Hotplug> g(
+		new Vm::Completion::Hotplug(getDomain().data(), QString(), p));
 	int m = virConnectDomainEventRegisterAny(getLink().data(),
 		getDomain().data(), VIR_DOMAIN_EVENT_ID_DEVICE_ADDED,
 		VIR_DOMAIN_EVENT_CALLBACK(Vm::Completion::Hotplug::react),
