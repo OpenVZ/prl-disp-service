@@ -531,15 +531,17 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 				!CFileHelper::DirectoryExists( m_vmRootDir, &a ) )
 				throw f(PRL_ERR_DIRECTORY_DOES_NOT_EXIST, m_vmRootDir);
 
-			if( m_vmRootDir.isEmpty() )
-			{
-				m_vmRootDir= CDspVmDirHelper::getVmRootPathForUser(getClient());
-				CFileHelper::WriteDirectory(m_vmRootDir, &a);
-				QFile::setPermissions(m_vmRootDir, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
-			}
+			if (m_vmRootDir.isEmpty())
+				m_vmRootDir = CDspVmDirHelper::getVmRootPathForUser(getClient());
+			
 			if (m_vmRootDir.endsWith('/') || m_vmRootDir.endsWith('\\'))
 				m_vmRootDir.chop(1);
 
+			if (!CFileHelper::DirectoryExists(m_vmRootDir, &a))
+			{
+				CFileHelper::WriteDirectory(m_vmRootDir, &a);
+				QFile::setPermissions(m_vmRootDir, QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+			}
 			//////////////////////////////////////////////////////////////////////////
 			setTaskParameters( m_pVmConfig->toString(), m_vmRootDir );
 
