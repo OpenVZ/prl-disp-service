@@ -1803,6 +1803,31 @@ PRL_RESULT Mixer::setBlank()
 	return r;
 }
 
+PRL_RESULT Mixer::setDevices()
+{
+	QList<Libvirt::Domain::Xml::VChoice946 > h;
+	boost::optional<Libvirt::Domain::Xml::Devices> d = m_result->getDevices();
+	if (d)
+	{
+		Visitor::Mixer::Device v;
+		foreach (const Libvirt::Domain::Xml::VChoice946& e, d.get().getChoice946List())
+		{
+			e.apply_visitor(v);
+		}
+		h = v.getResult();
+	}
+	PRL_RESULT output = Builder::setDevices();
+	if (PRL_SUCCEEDED(output))
+	{
+		d = m_result->getDevices();
+		QList<Libvirt::Domain::Xml::VChoice946 > t = d.get().getChoice946List();
+		d.get().setChoice946List(t << h);
+		m_result->setDevices(d);
+	}
+
+	return output;
+}
+
 PRL_RESULT Mixer::setIdentification()
 {
 	return PRL_ERR_SUCCESS;
