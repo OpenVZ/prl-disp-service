@@ -223,6 +223,7 @@ struct Mixer: Builder
 	Mixer(const CVmConfiguration& input_, char* xml_);
 
 	PRL_RESULT setBlank();
+	PRL_RESULT setDevices();
 	PRL_RESULT setIdentification();
 	PRL_RESULT setResources(const VtInfo&);
 };
