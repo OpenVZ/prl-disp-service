@@ -1006,6 +1006,7 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 	if (!(m_nReservedFlags & PVM_DONT_COPY_VM) && (PVMT_CLONE_MODE & getRequestFlags()))
 	{
 		m_pVmConfig->getVmIdentification()->setVmUuid(m_sVmUuid = Uuid::createUuid().toString());
+		m_pVmConfig->getVmIdentification()->setCtId(QString::number(Uuid::toVzid(m_sVmUuid)));
 		// change bundle name for cloned VM
 		bundle = Vm::Config::getVmHomeDirName(m_sVmUuid);
 	}
