@@ -1,12 +1,10 @@
 [Unit]
 Description=Dispatcher service.
-After=syslog.target network.target
+After=syslog.target network.target local-fs.target vstorage-fs.service
 After=libvirtd.service systemd-modules-load.service vzevent.service vz.service
 After=virt-guest-shutdown.target
-Wants=libvirtd.service systemd-modules-load.service vzevent.service vz.service
-Requires=virt-guest-shutdown.target
-Conflicts=umount.target
-Before=umount.target
+Wants=libvirtd.service systemd-modules-load.service vzevent.service vz.service local-fs.target vstorage-fs.service
+Requires=virt-guest-shutdown.target local-fs.target vstorage-fs.service
 
 [Service]
 Type=notify
