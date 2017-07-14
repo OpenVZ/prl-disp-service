@@ -972,6 +972,32 @@ private:
 
 } // namespace Fixup
 
+namespace Mixer
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Device
+
+struct Device: boost::static_visitor<void>
+{
+	template<class T>
+	void operator()(const T&) const
+	{
+	}
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 7>::type& passthrough_)
+	{
+		m_result << passthrough_;
+	}
+	const QList<Libvirt::Domain::Xml::VChoice946>& getResult() const
+	{
+		return m_result;
+	}
+
+private:
+	QList<Libvirt::Domain::Xml::VChoice946> m_result;
+};      
+        
+} // namespace Mixer
+ 
 namespace Numatune
 {
 
