@@ -898,7 +898,6 @@ void CDspService::start ()
 
 #endif
 
-			precacheVmConfigs();
 			checkVmPermissions();
 			if ( CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->isVmConfigWatcherEnabled() )
 			{
@@ -1570,33 +1569,6 @@ void CDspService::initHypervisor()
 	m_hypervisor->moveToThread(m_hypervisor.data());
 	m_hypervisor->QThread::start();
 #endif // _LIBVIRT_
-}
-
-void CDspService::precacheVmConfigs()
-{
-		// Precache mode
-		// Bug 116916 - "cold PD4.0 app start takes 2x longer then Fusion"
-		QHash< SmartPtr<CVmConfiguration>, QString > vmList;
-
-		SmartPtr<CDspClient> pFakeUserSession = SmartPtr<CDspClient>( new CDspClient(IOSender::Handle()) );
-		pFakeUserSession->getAuthHelper().AuthUserBySelfProcessOwner();
-
-		QMultiHash< QString, SmartPtr<CVmConfiguration> > vmHash =
-			CDspService::instance()->getVmDirHelper().getAllVmList();
-		foreach ( QString vmDirUuid, vmHash.uniqueKeys() )
-		{
-			foreach( SmartPtr<CVmConfiguration> pVmConfig, vmHash.values( vmDirUuid ) )
-			{
-				PRL_ASSERT( pVmConfig );
-				if( !pVmConfig )
-					continue;
-
-				if (pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
-					continue;
-
-				CDspVmDirHelper::UpdateHardDiskInformation(pVmConfig);
-			}
-		}
 }
 
 void CDspService::initSyncVmUptimeTask()

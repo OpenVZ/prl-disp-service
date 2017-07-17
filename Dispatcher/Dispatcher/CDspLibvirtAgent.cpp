@@ -720,6 +720,12 @@ Unit::getDisk(const CVmHardDisk& disk_) const
 	if (getValue(block.arg("rd.bytes"), value))
 		r.append(Stat::Counter_type(::Stat::Name::Hdd::getReadTotal(disk_), value));
 
+	if (getValue(block.arg("capacity"), value))
+		r.append(Stat::Counter_type(::Stat::Name::Hdd::getCapacity(disk_), value));
+
+	if (getValue(block.arg("allocation"), value))
+		r.append(Stat::Counter_type(::Stat::Name::Hdd::getAllocation(disk_), value));
+
 	return r;
 }
 
@@ -1993,7 +1999,7 @@ QList<Performance::Unit> List::getPerformance()
 {
 	QList<Performance::Unit> output;
 	virDomainStatsRecordPtr* s = NULL;
-	int z = virConnectGetAllDomainStats(m_link.data(), 0, &s, VIR_CONNECT_GET_ALL_DOMAINS_STATS_ACTIVE);
+	int z = virConnectGetAllDomainStats(m_link.data(), 0, &s, VIR_CONNECT_GET_ALL_DOMAINS_STATS_PERSISTENT);
 	Performance::Unit::pin_type p(s, &virDomainStatsRecordListFree);
 	if (0 > z)
 	{

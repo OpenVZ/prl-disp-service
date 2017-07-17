@@ -135,6 +135,10 @@ struct Hdd
 
 	static QString getWriteTotal(const CVmHardDisk& disk_);
 
+	static QString getCapacity(const CVmHardDisk& disk_);
+
+	static QString getAllocation(const CVmHardDisk& disk_);
+
 private:
 	static QString generate(const CVmHardDisk& disk_, const QString& stat_);
 
