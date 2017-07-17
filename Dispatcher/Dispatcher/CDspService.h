@@ -343,7 +343,6 @@ private:
 	bool initVmDirCatalogue ();
 	bool checkConfigsIntegrity ();
 	void initHypervisor();
-	void precacheVmConfigs();
 	void reconnectToRunningVms();
 
 	bool createDispConfig ();

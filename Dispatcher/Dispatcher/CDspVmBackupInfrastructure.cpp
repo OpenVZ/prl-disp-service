@@ -1468,7 +1468,8 @@ PRL_RESULT Unit::start(Snapshot::Vm::Subject* snapshot_)
 {
 	if (m_config.isValid())
 	{
-		CDspVmDirHelper::UpdateHardDiskInformation(m_config);
+		Libvirt::Kit.vms().at(m_config->getVmIdentification()->getVmUuid())
+			.completeConfig(*m_config);
 		m_config->setRelativePath();
 		m_config = config_type();
 	}

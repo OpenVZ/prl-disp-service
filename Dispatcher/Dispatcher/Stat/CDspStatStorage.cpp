@@ -202,6 +202,16 @@ QString Hdd::getWriteTotal(const CVmHardDisk& disk_)
 	return generate(disk_, "write_total");
 }
 
+QString Hdd::getCapacity(const CVmHardDisk& disk_)
+{
+	return generate(disk_, "capacity");
+}
+
+QString Hdd::getAllocation(const CVmHardDisk& disk_)
+{
+	return generate(disk_, "allocation");
+}
+
 QString Hdd::generate(const CVmHardDisk& disk_, const QString& stat_)
 {
 	return QString("devices.%1%2.%3").

@@ -71,7 +71,7 @@
 #include "Libraries/CpuFeatures/CCpuHelper.h"
 #include "CVmValidateConfig.h"
 #include "CDspBugPatcherLogic.h"
-
+#include "Stat/CDspStatStorage.h"
 #include "EditHelpers/CMultiEditMergeVmConfig.h"
 #include "CDspTaskHelper.h"
 #include "Tasks/Task_RegisterVm.h"
@@ -3066,11 +3066,23 @@ PRL_RESULT CDspVmDirHelper::UpdateHardDiskInformation(SmartPtr<CVmConfiguration>
 {
 	if (pConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
 		return PRL_ERR_SUCCESS;
-	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(
-			pConfig->getVmIdentification()->getVmUuid());
-	Libvirt::Result r = u.completeConfig(*pConfig);
-	if (r.isFailed())
-		return r.error().code();
+
+	QSharedPointer< ::Stat::Storage> s = m_registry.find(pConfig->getVmIdentification()->getVmUuid())
+		.getStorage();
+	if (s.isNull())
+		return PRL_ERR_INVALID_HANDLE;
+
+	foreach(CVmHardDisk *d, pConfig->getVmHardwareList()->m_lstHardDisks)
+	{
+		::Stat::timedValue_type v;
+		v = s->read(::Stat::Name::Hdd::getAllocation(*d));
+		if (0 != v.second)
+			d->setSizeOnDisk(v.first >> 20);
+
+		v = s->read(::Stat::Name::Hdd::getCapacity(*d));
+		if (0 != v.second)
+			d->setSize(v.first >> 20);
+	}
 	return PRL_ERR_SUCCESS;
 }
 
