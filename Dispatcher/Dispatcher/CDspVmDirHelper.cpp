@@ -3078,10 +3078,11 @@ PRL_RESULT CDspVmDirHelper::UpdateHardDiskInformation(SmartPtr<CVmConfiguration>
 		v = s->read(::Stat::Name::Hdd::getAllocation(*d));
 		if (0 != v.second)
 			d->setSizeOnDisk(v.first >> 20);
-
+/*
 		v = s->read(::Stat::Name::Hdd::getCapacity(*d));
 		if (0 != v.second)
 			d->setSize(v.first >> 20);
+*/
 	}
 	return PRL_ERR_SUCCESS;
 }
