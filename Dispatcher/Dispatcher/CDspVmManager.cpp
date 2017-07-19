@@ -357,15 +357,14 @@ Libvirt::Result Hotplug::plug(const CVmHardDisk& disk_)
 
 Libvirt::Result Hotplug::unplug(const CVmHardDisk& disk_)
 {
-	if (Backup::Device::Details::Finding(disk_).isKindOf())
+	namespace bd = ::Backup::Device;
+	Libvirt::Result output = m_runtime.unplug(disk_);
+	if (output.isSucceed() && bd::Details::Finding(disk_).isKindOf())
 	{
-		::Backup::Device::Event::EditVm *v = new ::Backup::Device::Event::EditVm(
-			new ::Backup::Device::Agent::Unit(m_session),
-			m_session->getVmDirectoryUuid());
-		::Backup::Device::Oneshot x(m_ident.getHomePath(), m_ident.getVmUuid());
-		x.setVisitor(v).disable(disk_);
+		bd::Event::Disconnector()(bd::Event::Disable
+			(m_ident.getVmUuid(), m_ident.getHomePath(), disk_));
 	}
-	return m_runtime.unplug(disk_);
+	return output;
 }
 
 template<>
