@@ -319,6 +319,9 @@ PRL_RESULT Disconnect<F>::accept(Visitor& visitor_)
 	return visitor_.visit(*this);
 }
 
+template struct Disconnect<true>;
+template struct Disconnect<false>;
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Cleanup
 
