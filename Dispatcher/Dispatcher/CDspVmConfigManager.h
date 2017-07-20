@@ -215,18 +215,37 @@ private:
 namespace Patch
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+template<class T>
+struct Builder
+{
+	typedef QList<T*> list_type;
+
+	Builder(const list_type& source_, list_type& target_):
+		m_source(source_), m_target(&target_)
+	{
+	}
+
+	Builder& drawAlias();
+	Builder& updateDisabled();
+	Builder& updateConnected();
+	Builder& updateDisconnected();
+
+private:
+	static bool guessConnected(const T& device_);
+
+	const list_type m_source;
+	list_type* m_target;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Runtime
 
 struct Runtime
 {
 	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
-
-	template <class T>
-	static void drawAlias(QList<T*>& new_, const QList<T*>& old_);
-	template <class T>
-	static void updateConnected(QList<T*>& new_, const QList<T*>& old_);
-	template <class T>
-	static bool guessConnected(const T& device_);
+	static void drawAliases(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -243,11 +262,6 @@ struct Index
 struct State
 {
 	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
-
-	template <class T>
-	static void updateDisabled(QList<T*>& new_, const QList<T*>& old_);
-	template <class T>
-	static void updateDisconnected(QList<T*>& new_, const QList<T*>& old_);
 };
 
 } // namespace Patch
