@@ -2148,7 +2148,7 @@ PRL_RESULT Task_EditVm::editVm()
 	// Try to apply the new VM config if the VM is running
 	if (PRL_SUCCEEDED(ret))
 	{
-		applyVmConfig(getClient(), pVmConfigOld, getRequestPackage());
+		applyVmConfig(pVmConfigOld, pVmConfigNew);
 		ret = getLastErrorCode();
 		if (!cloudCdRemoved && CDspVm::getVmState(ident) == VMS_STOPPED) {
 			CDspService::instance()->getVmStateSender()->onVmPersonalityChanged(
@@ -2241,23 +2241,16 @@ void Task_EditVm::updateNetworkSettings(
 /**
 * Prepare applying a new config to a running VM.
 */
-void Task_EditVm::applyVmConfig(SmartPtr<CDspClient> pUserSession,
-	SmartPtr<CVmConfiguration> pVmConfigOld, const SmartPtr<IOPackage>& pkg)
+void Task_EditVm::applyVmConfig(SmartPtr<CVmConfiguration> old_, SmartPtr<CVmConfiguration> new_)
 {
-	QString d = pUserSession->getVmDirectoryUuid();
-	QString u = pVmConfigOld->getVmIdentification()->getVmUuid();
-	PVE::IDispatcherCommands c = (PVE::IDispatcherCommands)pkg->header.type;
-	PRL_RESULT e = DspVm::vdh().registerExclusiveVmOperation(u, d, c, pUserSession, getJobUuid());
-	if (PRL_FAILED(e))
+	CVmConfiguration x;
+	Libvirt::Result e = Libvirt::Kit.vms().at(getVmUuid()).getConfig(x, true);
+	if (e.isFailed())
 		return;
 
-	SmartPtr<CVmConfiguration> x = DspVm::vdh().getVmConfigByUuid(pUserSession, u, e);
-	DspVm::vdh().unregisterExclusiveVmOperation(u, d, c, pUserSession);
-	if (PRL_FAILED(e))
-		return;
-
-	DspVm::vdh().appendAdvancedParamsToVmConfig(pUserSession, x);
-	Edit::Vm::Runtime::Driver(*this)(pVmConfigOld, x);
+	::Vm::Config::Patch::Runtime::drawAliases(*new_, x);
+	DspVm::vdh().appendAdvancedParamsToVmConfig(getClient(), new_);
+	Edit::Vm::Runtime::Driver(*this)(old_, new_);
 }
 
 PRL_RESULT Task_EditVm::configureVzParameters(SmartPtr<CVmConfiguration> pNewVmConfig,

@@ -199,38 +199,42 @@ quint32 Pool::getAvailable()
 namespace Patch
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Runtime
+// struct Builder
 
-void Runtime::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+template<class T>
+Builder<T>& Builder<T>::drawAlias()
 {
-	CVmHardware *n = new_.getVmHardwareList();
-	CVmHardware *o = old_.getVmHardwareList();
-	drawAlias(n->m_lstHardDisks, o->m_lstHardDisks);
-	updateConnected(n->m_lstHardDisks, o->m_lstHardDisks);
-	drawAlias(n->m_lstSerialPorts, o->m_lstSerialPorts);
-	drawAlias(n->m_lstOpticalDisks, o->m_lstOpticalDisks);
-	updateConnected(n->m_lstOpticalDisks, o->m_lstOpticalDisks);
-	updateConnected(n->m_lstFloppyDisks, o->m_lstFloppyDisks);
-	updateConnected(n->m_lstNetworkAdapters, o->m_lstNetworkAdapters);
-}
-
-template <class T>
-void Runtime::drawAlias(QList<T*>& new_, const QList<T*>& old_)
-{
-	foreach(T *d, new_)
+	foreach(T *d, *m_target)
 	{
-		T* x = CXmlModelHelper::GetDeviceByIndex(old_, d->getIndex());
+		T* x = CXmlModelHelper::GetDeviceByIndex(m_source, d->getIndex());
 		if (NULL != x)
 			d->setAlias(x->getAlias());
 	}
+	return *this;
 }
 
-template <class T>
-void Runtime::updateConnected(QList<T*>& new_, const QList<T*>& old_)
+template<class T>
+Builder<T>& Builder<T>::updateDisabled()
 {
-	typedef typename QList<T*>::const_iterator iterator_type;
-	iterator_type b = old_.begin(), e = old_.end();
-	foreach(T *d, new_)
+	// disabled devices are not present in the list after "Reverse"
+	// transformation - copy them from the original list
+	foreach(const T *d, m_source)
+	{
+		if (d->getEnabled() != PVE::DeviceDisabled)
+			continue;
+
+		if (NULL == CXmlModelHelper::GetDeviceByIndex(*m_target, d->getIndex()))
+			*m_target << new T(*d);
+	}
+	return *this;
+}
+
+template<class T>
+Builder<T>& Builder<T>::updateConnected()
+{
+	typedef typename list_type::const_iterator iterator_type;
+	iterator_type b = m_source.begin(), e = m_source.end();
+	foreach(T *d, *m_target)
 	{
 		if (PVE::DeviceDisabled == d->getEnabled())
 			continue;
@@ -239,30 +243,72 @@ void Runtime::updateConnected(QList<T*>& new_, const QList<T*>& old_)
 		d->setConnected(e == m || *m == NULL || !guessConnected(**m) ?
 			PVE::DeviceDisconnected : PVE::DeviceConnected);
 	}
+	return *this;
+}
+
+template<class T>
+Builder<T>& Builder<T>::updateDisconnected()
+{
+	foreach(T *d, *m_target)
+	{
+		T* o = CXmlModelHelper::GetDeviceByIndex(m_source, d->getIndex());
+		if (NULL == o || o->getConnected() != PVE::DeviceDisconnected)
+			continue;
+
+		d->setSystemName(o->getSystemName());
+		d->setUserFriendlyName(o->getUserFriendlyName());
+		d->setConnected(PVE::DeviceDisconnected);
+		d->setDescription(o->getDescription());
+	}
+	return *this;
 }
 
 template <class T>
-bool Runtime::guessConnected(const T&)
+bool Builder<T>::guessConnected(const T&)
 {
 	return true;
 }
 
 template <>
-bool Runtime::guessConnected(const CVmFloppyDisk& device_)
+bool Builder<CVmFloppyDisk>::guessConnected(const CVmFloppyDisk& device_)
 {
 	return !device_.getSystemName().isEmpty();
 }
 
 template <>
-bool Runtime::guessConnected(const CVmOpticalDisk& device_)
+bool Builder<CVmOpticalDisk>::guessConnected(const CVmOpticalDisk& device_)
 {
 	return !device_.getSystemName().isEmpty();
 }
 
 template <>
-bool Runtime::guessConnected(const CVmGenericNetworkAdapter& device_)
+bool Builder<CVmGenericNetworkAdapter>::guessConnected(const CVmGenericNetworkAdapter& device_)
 {
 	return PVE::DeviceConnected == device_.getConnected();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Runtime
+
+void Runtime::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	drawAliases(new_, old_);
+	CVmHardware *n = new_.getVmHardwareList();
+	CVmHardware *o = old_.getVmHardwareList();
+	
+	Builder<CVmHardDisk>(o->m_lstHardDisks, n->m_lstHardDisks).updateConnected();
+	Builder<CVmFloppyDisk>(o->m_lstFloppyDisks, n->m_lstFloppyDisks).updateConnected();
+	Builder<CVmOpticalDisk>(o->m_lstOpticalDisks, n->m_lstOpticalDisks).updateConnected();
+	Builder<CVmGenericNetworkAdapter>(o->m_lstNetworkAdapters, n->m_lstNetworkAdapters).updateConnected();
+}
+
+void Runtime::drawAliases(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	CVmHardware *n = new_.getVmHardwareList();
+	CVmHardware *o = old_.getVmHardwareList();
+	Builder<CVmHardDisk>(o->m_lstHardDisks, n->m_lstHardDisks).drawAlias();
+	Builder<CVmSerialPort>(o->m_lstSerialPorts, n->m_lstSerialPorts).drawAlias();
+	Builder<CVmOpticalDisk>(o->m_lstOpticalDisks, n->m_lstOpticalDisks).drawAlias();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -295,48 +341,17 @@ void Index::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct State
 
-template <class T>
-void State::updateDisconnected(QList<T*>& new_, const QList<T*>& old_)
-{
-	foreach(T *d, new_)
-	{
-		T* o = CXmlModelHelper::GetDeviceByIndex(old_, d->getIndex());
-		if (NULL == o || o->getConnected() != PVE::DeviceDisconnected)
-			continue;
-
-		d->setSystemName(o->getSystemName());
-		d->setUserFriendlyName(o->getUserFriendlyName());
-		d->setConnected(PVE::DeviceDisconnected);
-		d->setDescription(o->getDescription());
-	}
-}
-
-template <class T>
-void State::updateDisabled(QList<T*>& new_, const QList<T*>& old_)
-{
-	// disabled devices are not present in the list after "Reverse"
-	// transformation - copy them from the original list
-	foreach(const T *d, old_)
-	{
-		if (d->getEnabled() != PVE::DeviceDisabled)
-			continue;
-
-		if (NULL == CXmlModelHelper::GetDeviceByIndex(new_, d->getIndex()))
-			new_ << new T(*d);
-	}
-}
-
 void State::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
 	CVmHardware *o = new_.getVmHardwareList();
 	CVmHardware *n = old_.getVmHardwareList();
 
 	// XXX: HDDs could not be disconnected
-	updateDisabled(o->m_lstHardDisks, n->m_lstHardDisks);
-	updateDisconnected(o->m_lstOpticalDisks, n->m_lstOpticalDisks);
-	updateDisabled(o->m_lstOpticalDisks, n->m_lstOpticalDisks);
-	updateDisconnected(o->m_lstFloppyDisks, n->m_lstFloppyDisks);
-	updateDisabled(o->m_lstFloppyDisks, n->m_lstFloppyDisks);
+	Builder<CVmHardDisk>(n->m_lstHardDisks, o->m_lstHardDisks).updateDisabled();
+	Builder<CVmFloppyDisk>(n->m_lstFloppyDisks, o->m_lstFloppyDisks)
+		.updateDisabled().updateDisconnected();
+	Builder<CVmOpticalDisk>(n->m_lstOpticalDisks, o->m_lstOpticalDisks)
+		.updateDisabled().updateDisconnected();
 }
 
 } // namespace Patch

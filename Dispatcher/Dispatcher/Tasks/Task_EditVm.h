@@ -90,10 +90,7 @@ private:
 	PRL_RESULT editVm();
 	//
 	// Prepare applying new config to a running VM.
-	void applyVmConfig(
-		SmartPtr<CDspClient>,
-		SmartPtr<CVmConfiguration> pVmConfigOld,
-		const SmartPtr<IOPackage>& pkg );
+	void applyVmConfig(SmartPtr<CVmConfiguration> old_, SmartPtr<CVmConfiguration> new_);
 
 	/**
 	* apply new networking setting on host if adapters are changed
