@@ -1707,6 +1707,25 @@ void Domains::setDisconnected()
 
 namespace Performance
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Broker
+
+void Broker::despatch()
+{
+	if (m_view.isNull())
+		return;
+
+	foreach (const unit_type& p, m_list)
+	{
+		QString u;
+		if (p.getUuid(u).isFailed())
+			continue;
+
+		QSharedPointer<Model::System::entry_type> v = m_view->find(u);
+		if (!v.isNull())
+			v->show(Callback::Reactor::Performance(p));
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Miner
@@ -1717,18 +1736,15 @@ PRL_RESULT Miner::operator()()
 	if (x.isNull())
 		return PRL_ERR_UNINITIALIZED;
 
-	typedef Instrument::Agent::Vm::Performance::Unit unit_type;
-	QList<unit_type> c = m_agent.getPerformance();
-	foreach (const unit_type& p, c)
-	{
-		QString u;
-		if (p.getUuid(u).isFailed())
-			continue;
+	Broker* b = new Broker(m_agent.getPerformance(), x);
+	QTimer* t = new QTimer();
+	t->setSingleShot(true);
+	b->setParent(t);
+	t->moveToThread(x->thread());
+	b->connect(t, SIGNAL(timeout()), SLOT(despatch()));
+	t->connect(t, SIGNAL(timeout()), SLOT(deleteLater()));
+	t->start();
 
-		QSharedPointer<Model::System::entry_type> v = x->find(u);
-		if (!v.isNull())
-			v->show(Callback::Reactor::Performance(p));
-	}
 	return PRL_ERR_SUCCESS;
 }
 
