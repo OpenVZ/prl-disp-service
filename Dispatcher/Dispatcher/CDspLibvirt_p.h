@@ -653,6 +653,30 @@ private:
 namespace Performance
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Broker
+
+struct Broker: QObject
+{
+	typedef Instrument::Agent::Vm::Performance::Unit unit_type;
+	typedef QList<unit_type> list_type;
+	typedef QSharedPointer<Model::System> view_type;
+
+	Broker(const list_type& list_, const view_type& view_):
+		m_list(list_), m_view(view_)
+	{
+	}
+
+public slots:
+	void despatch();
+
+private:
+	Q_OBJECT
+	
+	list_type m_list;
+	view_type m_view;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Miner
 
 struct Miner: QObject
