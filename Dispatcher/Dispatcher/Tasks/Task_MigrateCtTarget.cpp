@@ -303,6 +303,7 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 	QStringList lstArgs;
 	QString sVmUuid;
 	SmartPtr<CVmConfiguration> pConfig;
+	SmartPtr<CVmConfiguration> pNewConfig;
 	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspCmdCtlDispatherFakeCommand);
 	QScopedPointer<CVmMigrateCheckPreconditionsReply> cmd(
             new CVmMigrateCheckPreconditionsReply(
@@ -394,20 +395,23 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 		goto exit;
 	}
 
-	if ( m_nMigrationFlags & PVMT_CLONE_MODE )
-	{
-		SmartPtr<CVmConfiguration> pNewConfig;
+
+	pNewConfig = SmartPtr<CVmConfiguration>(new CVmConfiguration);
+	pNewConfig->fromString(pConfig->toString());
+	if (PRL_FAILED(nRetCode = pNewConfig->m_uiRcInit)) {
+		WRITE_TRACE(DBG_FATAL, "CT config copy error");
+		goto exit;
+	}
+
+	if (m_nVersion < MIGRATE_DISP_PROTO_V7)
+		pNewConfig->setAppVersion(CVmConfiguration::makeAppVersion());
+
+	if (m_nMigrationFlags & PVMT_CLONE_MODE) {
 		::Vm::Private::Brand b(pConfig->getVmIdentification()->getHomePath(), getClient());
 		b.remove();
 		if (PRL_FAILED(nRetCode = b.stamp()))
 			goto exit;
 
-		pNewConfig = SmartPtr<CVmConfiguration>( new CVmConfiguration );
-		pNewConfig->fromString(pConfig->toString());
-		if (PRL_FAILED(nRetCode = pNewConfig->m_uiRcInit)) {
-			WRITE_TRACE(DBG_FATAL, "CT config copy error");
-			goto exit;
-		}
 		/* change UUID on ve.conf */
 		pNewConfig->getVmIdentification()->setVmUuid(m_sCtUuid);
 		pNewConfig->getVmIdentification()->setVmName(m_sCtNewName);
@@ -419,10 +423,8 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 		Task_CloneVm::ResetNetSettings(pNewConfig);
 		/* call apply_env_config() before pConfig->getVmIdentification()->setVmUuid(m_sCtUuid), otherwise
 		   pNewConfig == pConfig and apply_env_config() will not update config file */
-		CDspService::instance()->getVzHelper()->getVzlibHelper().
-			update_ctid_map(m_sCtUuid, m_cVmConfig.getVmIdentification()->getCtId());
+		CVzHelper::update_ctid_map(m_sCtUuid, m_cVmConfig.getVmIdentification()->getCtId());
 		get_op_helper().update_env_uuid(pNewConfig, pConfig);
-		get_op_helper().apply_env_config(pNewConfig, pConfig, 0);
 	}
 
 	// insert new item in user's VM Directory
@@ -432,14 +434,20 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 			nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
 	}
 
+	if (pNewConfig->toString() != pConfig->toString())
+		get_op_helper().apply_env_config(pNewConfig, pConfig, 0);
+
 	/*
 	   Send event to vzevent handler. It's workaround of https://jira.sw.ru/browse/PSBM-9446
 	   Kernel should send ve-start event with ... | ENV_STATUS_SUSPENDED mask
 	   (see https://jira.sw.ru/browse/PSBM-9469)
 	*/
-	CDspService::instance()->getTaskManager().schedule(new Task_VzManager
-		(m_pDispConnection->getUserSession(), p, m_sCtUuid, VMS_RESUMING));
-	/* don't wait this task - we will ignore result in any case */
+
+	if (m_nPrevVmState == VMS_RUNNING) {
+		CDspService::instance()->getTaskManager().schedule(new Task_VzManager
+			(m_pDispConnection->getUserSession(), p, m_sCtUuid, VMS_RESUMING));
+		/* don't wait this task - we will ignore result in any case */
+	}
 
 exit:
 	setLastErrorCode(nRetCode);
