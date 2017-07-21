@@ -96,7 +96,7 @@ result_type Vcmmd::execute()
 		return error_type(e, "Unable to register VM in VCMMD");
 
 	result_type r = m_next->execute();
-	if (r.isFailed())
+	if (r.isSucceed())
 		v.commit();
 
 	return r;
