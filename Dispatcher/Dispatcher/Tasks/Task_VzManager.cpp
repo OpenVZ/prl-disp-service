@@ -689,20 +689,6 @@ PRL_RESULT Task_VzManager::editConfig()
 	Task_EditVm::resetNetworkAddressesFromVmConfig(pConfig, pOldConfig);
 	CDspService::instance()->getVmDirHelper().resetAdvancedParamsFromVmConfig(pConfig);
 
-	// update High Availability Cluster resource
-	if (pConfig->getVmSettings()->getHighAvailability()->toString() !=
-			pOldConfig->getVmSettings()->getHighAvailability()->toString()
-		&& CFileHelper::isSharedFS(pConfig->getVmIdentification()->getHomePath())) {
-		res = CDspService::instance()->getHaClusterHelper()->updateClusterResourceParams(
-				sUuid,
-				pOldConfig->getVmSettings()->getHighAvailability(),
-				pConfig->getVmSettings()->getHighAvailability(),
-				pConfig->getVmIdentification()->getHomePath(),
-				PVT_CT);
-		if (PRL_FAILED(res))
-			return res;
-	}
-
 	CVmRemoteDisplay* oldD = pOldConfig->getVmSettings()->getVmRemoteDisplay();
 	CVmRemoteDisplay* newD = pConfig->getVmSettings()->getVmRemoteDisplay();
 
