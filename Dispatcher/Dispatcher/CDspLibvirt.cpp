@@ -1743,7 +1743,7 @@ PRL_RESULT Miner::operator()()
 	t->moveToThread(x->thread());
 	b->connect(t, SIGNAL(timeout()), SLOT(despatch()));
 	t->connect(t, SIGNAL(timeout()), SLOT(deleteLater()));
-	t->start();
+	QMetaObject::invokeMethod(t, "start", Qt::QueuedConnection);
 
 	return PRL_ERR_SUCCESS;
 }
