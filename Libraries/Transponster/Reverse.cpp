@@ -760,7 +760,7 @@ Moldy::result_type Moldy::operator()(Libvirt::Domain::Xml::EType6 bus_, quint16 
 Virtio::result_type Virtio::operator()(quint16 index_)
 {
 	Libvirt::Domain::Xml::Driver1 d;
-	d.setIothread(1);
+//	d.setIothread(1);
 	mpl::at_c<Libvirt::Domain::Xml::VChoice595::types, 1>::type b;
 	b.setValue(Libvirt::Domain::Xml::EModelVirtioScsi);
 	Libvirt::Domain::Xml::Controller x = craft(b, index_);
@@ -1590,7 +1590,7 @@ PRL_RESULT Builder::setDevices()
 			<< u.getDevices());
 
 	m_result->setDevices(x);
-	m_result->setIothreads(qMax(t.getAttachment().getControllers().size(), 1));
+//	m_result->setIothreads(qMax(t.getAttachment().getControllers().size(), 1));
 	return PRL_ERR_SUCCESS;
 }
 
