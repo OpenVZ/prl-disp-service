@@ -3008,7 +3008,6 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 	SmartPtr<CDspVm> pVm = CDspVm::GetVmInstanceByUuid( sVmUuid, sVmDirUuid );
 	PRL_UINT64 nVmUptime = 0;
 	quint64 nTotalVmRamSize = 0;
-	quint64 usage = 0;
 	quint32 msec = 0, time = 0;
 	QWeakPointer<Stat::Storage> p = getStorage(sVmUuid);
 
@@ -3049,8 +3048,8 @@ SmartPtr<CSystemStatistics> CDspStatCollectingThread::GetVmGuestStatistics(
 	pVmStat->m_lstCpusStatistics.append(new CCpuStatistics);
 	pVmStat->m_lstCpusStatistics.last()->setPercentsUsage(time);
 
-	pVmStat->getMemoryStatistics()->setTotalSize(nTotalVmRamSize);
-	pVmStat->getMemoryStatistics()->setUsageSize(usage);
+	pVmStat->getMemoryStatistics()->setTotalSize(Vm::Counter::Memory::Flavor::Total::extract(p));
+	pVmStat->getMemoryStatistics()->setUsageSize(Vm::Counter::Memory::Flavor::Used::extract(p));
 	pVmStat->getMemoryStatistics()->setFreeSize(
 		pVmStat->getMemoryStatistics()->getTotalSize() - pVmStat->getMemoryStatistics()->getUsageSize()
 	);

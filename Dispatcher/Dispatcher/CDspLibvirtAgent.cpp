@@ -759,7 +759,7 @@ Stat::CounterList_type Unit::getMemory() const
 			::Stat::Name::Memory::getMajorFault(), v));
 	}
 	quint64 a = 0;
-	if (getValue("balloon.available", a))
+	if (getValue("balloon.maximum", a))
 	{
 		output.append(Stat::Counter_type(
 			::Stat::Name::Memory::getTotal(), a));
