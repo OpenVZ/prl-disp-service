@@ -97,8 +97,12 @@ class Watcher: public QObject
 public:
 	typedef boost::future<PRL_VM_TOOLS_STATE> future_type;
 
-	explicit Watcher(const CVmIdent& ident_): m_ident(ident_), m_retries()
+	Watcher(const CVmIdent& ident_, QWeakPointer<QAtomicInt> incarnation_) :
+		m_ident(ident_), m_retries(), m_incarnation(incarnation_), m_ourIncarnation(0)
 	{
+		QSharedPointer<QAtomicInt> ref = incarnation_.toStrongRef();
+		if (ref)
+			m_ourIncarnation = *ref;
 	}
 
 	void setRetries(quint32 value_)
@@ -126,6 +130,8 @@ private:
 	CVmIdent m_ident;
 	boost::promise<PRL_VM_TOOLS_STATE> m_state;
 	int m_retries;
+	QWeakPointer<QAtomicInt> m_incarnation;
+	int m_ourIncarnation;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -152,7 +158,8 @@ struct Connector
 {
 	typedef Watcher::future_type result_type;
 
-	Connector(const QString& directory_, State::Frontend& frontend_);
+	Connector(const QString& directory_, State::Frontend& frontend_,
+		QWeakPointer<QAtomicInt> incarnation_);
 
 	Connector& setNetwork(Actor* value_);
 	Connector& setRetries(quint32 value_);
@@ -163,6 +170,7 @@ private:
 	QString m_directory;
 	State::Frontend* m_frontend;
 	QScopedPointer<Actor> m_network;
+	QWeakPointer<QAtomicInt> m_incarnation;
 };
 
 } //namespace Guest

@@ -138,7 +138,7 @@ struct Frontend: Details::Frontend<Frontend>
 		Running_(): m_big()
 		{
 		}
-		explicit Running_(State::Frontend& big_): m_big(&big_)
+		explicit Running_(State::Frontend& big_): m_big(&big_), m_incarnation(new QAtomicInt())
 		{
 		}
 
@@ -167,22 +167,28 @@ struct Frontend: Details::Frontend<Frontend>
 
 		void pullToolsVersionAfterReconnect(const Conventional<VMS_RUNNING>&)
 		{
+			m_incarnation.data()->ref();
 			m_big->m_toolsState = ::Vm::Guest::Connector
-				(m_big->getUser().getVmDirectoryUuid(), *m_big)
+				(m_big->getUser().getVmDirectoryUuid(), *m_big,
+				 m_incarnation.toWeakRef())
 				.setRetries(0)();
 		}
 
 		void pullToolsVersion(const Agent&)
 		{
+			m_incarnation.data()->ref();
 			m_big->m_toolsState = ::Vm::Guest::Connector
-				(m_big->getUser().getVmDirectoryUuid(), *m_big)();
+				(m_big->getUser().getVmDirectoryUuid(), *m_big,
+				 m_incarnation.toWeakRef())();
 		}
 
 		template <class T>
 		void pullToolsVersionAfterReboot(const T&)
 		{
+			m_incarnation.data()->ref();
 			m_big->m_toolsState = ::Vm::Guest::Connector
-				(m_big->getUser().getVmDirectoryUuid(), *m_big)
+				(m_big->getUser().getVmDirectoryUuid(), *m_big,
+				 m_incarnation.toWeakRef())
 				.setNetwork(new ::Vm::Guest::Actor(m_big->getConfigEditor()))();
 		}
 
@@ -263,6 +269,7 @@ struct Frontend: Details::Frontend<Frontend>
 
 	private:
 		State::Frontend *m_big;
+		QSharedPointer<QAtomicInt> m_incarnation;
 	};
 	
 	typedef boost::msm::back::state_machine<Running_> Running;

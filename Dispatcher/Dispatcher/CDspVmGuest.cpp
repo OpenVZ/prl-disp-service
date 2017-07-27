@@ -134,6 +134,10 @@ void Watcher::timerEvent(QTimerEvent *ev_)
 
 void Watcher::adopt(PRL_VM_TOOLS_STATE state_, const QString& version_)
 {
+	QSharedPointer<QAtomicInt> ref = m_incarnation.toStrongRef();
+	if (!ref || m_ourIncarnation != *ref)
+		return;
+
 	m_state.set_value(state_);
 	CVmEvent e(PET_DSP_EVT_VM_TOOLS_STATE_CHANGED, m_ident.first, PIE_DISPATCHER);
 	e.addEventParameter(new CVmEventParameter(PVE::Integer, QString::number(state_),
@@ -179,8 +183,10 @@ void Spin::run()
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
-Connector::Connector(const QString& directory_, State::Frontend& frontend_):
-	m_retries(30), m_directory(directory_), m_frontend(&frontend_)
+Connector::Connector(const QString& directory_, State::Frontend& frontend_,
+		QWeakPointer<QAtomicInt> incarnation_) :
+	m_retries(30), m_directory(directory_), m_frontend(&frontend_),
+	m_incarnation(incarnation_)
 {
 }
 
@@ -197,7 +203,8 @@ Connector& Connector::setRetries(quint32 value_)
 Connector::result_type Connector::operator()()
 {
 	Actor *a = new Actor(m_frontend->getConfigEditor());
-	Watcher *p = new Watcher(MakeVmIdent(m_frontend->getUuid(), m_directory));
+	Watcher *p = new Watcher(MakeVmIdent(m_frontend->getUuid(), m_directory),
+		m_incarnation);
 
 	a->setParent(p);
 	a->connect(p, SIGNAL(guestToolsStarted(const QString)),
