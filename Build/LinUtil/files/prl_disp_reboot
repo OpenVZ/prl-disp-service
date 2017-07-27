@@ -42,7 +42,7 @@ def prepare_to_reboot(timeout = 60 * 1000):
     server.login_local().wait(msecs = timeout)
 
     # Create file with list of auto autostart
-    noautostart = "units_skip_start = ("
+    autostart = "units_to_start = ("
 
     logger.info("Retreiving VMs list...")
 
@@ -52,9 +52,9 @@ def prepare_to_reboot(timeout = 60 * 1000):
         # Place to list only if it was not in running state
         logger.info("UUID: %s" % res.get_config().get_uuid())
         if (res.get_config().get_auto_start() == prlsdkapi.consts.PAO_VM_START_ON_RELOAD and
-                res.get_vm_info().get_state() != prlsdkapi.consts.VMS_RUNNING):
-            noautostart += "\"%s\", " % res.get_config().get_uuid()
-            logger.info("%s: Autostart disabled" % res.get_config().get_uuid())
+                res.get_vm_info().get_state() == prlsdkapi.consts.VMS_RUNNING):
+            autostart += "\"%s\", " % res.get_config().get_uuid()
+            logger.info("%s: Autostart enabled" % res.get_config().get_uuid())
 
         # Suspend VMs
         if (res.get_config().get_vm_type() != prlsdkapi.consts.PVT_VM or
@@ -68,8 +68,8 @@ def prepare_to_reboot(timeout = 60 * 1000):
         thread.start()
         threads.append(thread)
 
-    with open("/var/spool/prl-disp/prl_disp_noautostart.py", "w") as f:
-        f.write(noautostart + ")\n")
+    with open("/var/spool/prl-disp/prl_disp_autostart.py", "w") as f:
+        f.write(autostart + ")\n")
         f.close()
 
     logger.info("Waiting for suspend threads...")
