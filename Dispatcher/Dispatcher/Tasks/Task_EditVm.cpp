@@ -1437,6 +1437,12 @@ PRL_RESULT Task_EditVm::editVm()
 							(HostUtils::generateHostInterfaceName(new_adapter->getMacAddress()));
 				}
 
+				// Remove duplicate IPs
+				QStringList new_ips(new_adapter->getNetAddresses());
+
+				new_ips.removeDuplicates();
+				new_adapter->setNetAddresses(new_ips);
+
 				if (!(old_adapter->getNetAddresses() == new_adapter->getNetAddresses())) {
 					WRITE_TRACE(DBG_INFO, "IP will be changed for VM %s",
 							QSTR2UTF8(vm_uuid));
