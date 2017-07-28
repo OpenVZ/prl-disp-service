@@ -29,13 +29,13 @@ import shutil
 import errno
 import prlsdkapi
 
-units_skip_start = ()
+units_to_start = ()
 
 # Import config file
 try:
     sys.path.insert(0, "/var/spool/prl-disp")
-    import prl_disp_noautostart
-    units_skip_start = prl_disp_noautostart.units_skip_start
+    import prl_disp_autostart
+    units_to_start = prl_disp_autostart.units_to_start
     sys.path.pop(0)
 except:
     pass
@@ -177,7 +177,8 @@ try:
     vms = server.get_vm_list_ex(prlsdkapi.consts.PVTF_VM + prlsdkapi.consts.PVTF_CT)
     for res in [ r for r in vms.wait(msecs = timeout)
             if r.get_config().get_auto_start() ]:
-        if res.get_config().get_uuid() in units_skip_start:
+        if res.get_config().get_auto_start() == prlsdkapi.consts.PAO_VM_START_ON_RELOAD and \
+                res.get_config().get_uuid() not in units_to_start:
             continue
         unitslist.append(Unit(res.get_config()))
 
