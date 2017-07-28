@@ -615,8 +615,8 @@ Flop::Event State::start(serverList_type const& serverList_)
 	}
 	m_progress = QSharedPointer<Progress>(new Progress(a, m_reporter),
 			&QObject::deleteLater);
-	m_progress->moveToThread(QCoreApplication::instance()->thread());
 	m_progress->startTimer(0);
+	m_progress->moveToThread(QCoreApplication::instance()->thread());
 
 	Trick::Online::Hatchery f(*m_task, getConnector());
 	if (0 == (m_task->getFlags() & PVMT_DIRECT_DATA_CONNECTION))

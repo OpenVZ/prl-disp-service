@@ -118,6 +118,7 @@ public:
 		return m_state.get_future();
 	}
 	void adopt(PRL_VM_TOOLS_STATE state_, const QString& version_);
+	Q_INVOKABLE void respin();
 
 signals:
 	void guestToolsStarted(const QString v_);
