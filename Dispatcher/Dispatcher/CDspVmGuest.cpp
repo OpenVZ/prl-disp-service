@@ -149,6 +149,14 @@ void Watcher::adopt(PRL_VM_TOOLS_STATE state_, const QString& version_)
 	emit guestToolsStarted(version_);
 }
 
+void Watcher::respin()
+{
+	if (thread() == QThread::currentThread())
+		startTimer(10000);
+	else
+		WRITE_TRACE(DBG_FATAL, "Bad thread for the call");
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Spin
 
@@ -174,7 +182,8 @@ void Spin::run()
 				break;
 		default:
 			// agent is not ready, retry
-			return (void)m_watcher->startTimer(10000);
+			return (void)QMetaObject::invokeMethod(m_watcher, "respin",
+				Qt::QueuedConnection);
 		}
 	}
 	m_watcher->deleteLater();
