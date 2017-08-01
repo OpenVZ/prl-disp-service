@@ -319,6 +319,8 @@ Tunnel* Subject::getResult()
 	bool x = y->connect(m_stunnel.take(), SIGNAL(finished(int, QProcess::ExitStatus)),
 			SLOT(reactFinish(int, QProcess::ExitStatus))) &&
 			y->connect(m_keepAlive.take(), SIGNAL(disconnected()),
+				SLOT(reactDisconnect())) &&
+			y->connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()),
 				SLOT(reactDisconnect()));
 	if (!x) 
 		y.reset();
