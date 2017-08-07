@@ -46,9 +46,6 @@
 #include <CDspVmConfigManager.h>
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlxmlmodel/VmConfig/CVmRemoteDisplay.h>
-
-#include <memory>
-
 #include <boost/optional.hpp>
 #include <stdint.h>
 
