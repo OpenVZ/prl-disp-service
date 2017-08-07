@@ -276,9 +276,14 @@ struct Launcher
 
 	PRL_RESULT operator()(quint16 accept_, QProcess& process_);
 	Launcher& setTarget(const QHostAddress& address_, quint16 port_);
+	const QPair<QHostAddress, quint16>& getServer() const
+	{
+		return m_server;
+	}
 
 private:
 	QStringList m_target;
+	QPair<QHostAddress, quint16> m_server;
 	boost::function<Accept::result_type (quint16) > m_accept;
 };
 
@@ -352,14 +357,13 @@ private:
 
 struct Subject
 {
-	Subject(quint16 peer_, const Socat::Launcher& launcher_);
+	explicit Subject(const Socat::Launcher& launcher_);
 
 	PRL_RESULT bringUpKeepAlive();
 	PRL_RESULT startStunnel(quint16 begin_, quint16 end_);
 	Tunnel* getResult();
 
 private:
-	quint16 m_peer;
 	quint16 m_accept;
 	Socat::Launcher m_launcher;
 	QScopedPointer<QProcess, Sweeper> m_stunnel;
@@ -420,6 +424,25 @@ private:
 
 } // namespace Launch
 } // namespace Secure
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Scope
+
+struct Scope
+{
+	typedef Secure::Launch::Backend::range_type range_type;
+
+	explicit Scope(CDspService& service_): m_service(&service_)
+	{
+	}
+
+	range_type getAutoRange() const;
+	boost::optional<Api::Stunnel> getEncryption() const;
+
+private:
+	CDspService* m_service;
+};
+
 } // namespace Vnc
 
 #endif //CDSPVNCSTARTER_P_H

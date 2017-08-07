@@ -150,6 +150,27 @@ PRL_RESULT Stunnel::certificate(QTemporaryFile& dst_) const
 
 } // namespace Api
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Scope
+
+Scope::range_type Scope::getAutoRange() const
+{
+	CDspLockedPointer<CDispCommonPreferences> p = m_service->getDispConfigGuard()
+                        .getDispCommonPrefs();
+
+	return range_type(p->getRemoteDisplayPreferences()->getMinPort(),
+			p->getRemoteDisplayPreferences()->getMaxPort());
+}
+
+boost::optional<Api::Stunnel> Scope::getEncryption() const
+{
+	QByteArray c, k;
+	if (Vnc::Encryption(*(m_service->getQSettings().getPtr())).state(k, c))
+		return Api::Stunnel(k, c);
+
+	return boost::none;
+}
+
 namespace Socat
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -199,17 +220,20 @@ Launcher& Launcher::setTarget(const QHostAddress& address_, quint16 port_)
 	switch (address_.protocol())
 	{
 	case QAbstractSocket::IPv4Protocol:
+		m_server = qMakePair(QHostAddress(QHostAddress::LocalHost), port_);
 		m_target = QStringList() << QString("TCP4:")
-			.append(QHostAddress(QHostAddress::LocalHost).toString())
+			.append(m_server.first.toString())
 			.append(":").append(QString::number(port_));
 		break;
 	case QAbstractSocket::IPv6Protocol:
+		m_server = qMakePair(QHostAddress(QHostAddress::LocalHostIPv6), port_);
 		m_target = QStringList() << QString("TCP6:[")
-			.append(QHostAddress(QHostAddress::LocalHostIPv6).toString())
+			.append(m_server.first.toString())
 			.append("]:").append(QString::number(port_));
 		break;
 	default:
 		m_target.clear();
+		m_server = qMakePair(QHostAddress(QHostAddress::Null), port_);
 	}
 	return *this;
 }
@@ -272,8 +296,8 @@ void Sweeper::cleanup(QTcpSocket* victim_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Subject
 
-Subject::Subject(quint16 peer_, const Socat::Launcher& launcher_):
-	m_peer(peer_), m_accept(), m_launcher(launcher_)
+Subject::Subject(const Socat::Launcher& launcher_):
+	m_accept(), m_launcher(launcher_)
 {
 }
 
@@ -306,7 +330,8 @@ PRL_RESULT Subject::startStunnel(quint16 begin_, quint16 end_)
 PRL_RESULT Subject::bringUpKeepAlive()
 {
 	m_keepAlive.reset(new QTcpSocket());
-	m_keepAlive->connectToHost(QHostAddress::LocalHostIPv6, m_peer);
+	m_keepAlive->connectToHost(m_launcher.getServer().first,
+		m_launcher.getServer().second);
 	if (!m_keepAlive->waitForConnected(WAIT_VNC_SERVER_TO_START_OR_STOP_PROCESS))
 		return PRL_ERR_CANT_CONNECT_TO_DISPATCHER;
 
@@ -404,18 +429,19 @@ void Frontend::draw(CVmRemoteDisplay& object_, const CVmRemoteDisplay* runtime_,
 	if (NULL == runtime_)
 		return;
 
-	QByteArray c, k;
 	Socat::Launcher u;
-	if (Vnc::Encryption(*(m_service->getQSettings().getPtr())).state(k, c))
+	Scope s(*m_service);
+	boost::optional<Vnc::Api::Stunnel> e = s.getEncryption();
+	if (e)
 	{
-		u = Socat::Launcher(Vnc::Api::Stunnel(k, c));
+		u = Socat::Launcher(e.get());
 		object_.setEncrypted(true);
 	}
-	u.setTarget(QHostAddress(runtime_->getHostName()), runtime_->getPortNumber());
+	QHostAddress a(runtime_->getHostName());
+	u.setTarget(a, runtime_->getPortNumber());
 	Launch::Backend::range_type d(playground_.first, playground_.second);
 	Launch::Backend* q = new Launch::Backend(boost::bind(
-			boost::factory<Launch::Subject* >(),
-				runtime_->getPortNumber(), u), d,
+			boost::factory<Launch::Subject* >(), u), d,
 				Launch::SetPort(m_commit, &Traits::configure));
 	q->setAutoDelete(true);
 	q->setSweepMode(object_.getMode());
@@ -424,12 +450,14 @@ void Frontend::draw(CVmRemoteDisplay& object_, const CVmRemoteDisplay* runtime_,
 	if (runtime_->getWebSocketPortNumber() == runtime_->getPortNumber())
 		return;
 
-	u.setTarget(QHostAddress(runtime_->getHostName()), runtime_->getWebSocketPortNumber());
+	u.setTarget(a, runtime_->getWebSocketPortNumber());
 	// Start from auto-assigned and to max.
 	d.first = d.second = runtime_->getWebSocketPortNumber();
+	if (QAbstractSocket::IPv4Protocol == a.protocol())
+		d = s.getAutoRange();
+
 	q = new Launch::Backend(boost::bind(
-			boost::factory<Launch::Subject* >(),
-				runtime_->getWebSocketPortNumber(), u), d,
+			boost::factory<Launch::Subject* >(), u), d,
 				Launch::SetPort(m_commit, &Traits::configureWS));
 	q->setAutoDelete(true);
 	q->setSweepMode(PRD_AUTO);
@@ -446,12 +474,9 @@ void Frontend::setup(CVmConfiguration& object_, const CVmConfiguration& runtime_
 	CVmRemoteDisplay* b = Traits::purify(&runtime_);
 	if (PRD_AUTO == a->getMode())
 	{
-		d.first = m_service->getDispConfigGuard()
-			.getDispCommonPrefs()
-			->getRemoteDisplayPreferences()->getMinPort();
-		d.second = m_service->getDispConfigGuard()
-			.getDispCommonPrefs()
-			->getRemoteDisplayPreferences()->getMaxPort();
+		Scope::range_type x = Scope(*m_service).getAutoRange();
+		d.first = x.first;
+		d.second = x.second; 
 	}
 	else if (NULL != b)
 	{
