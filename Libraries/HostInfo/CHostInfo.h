@@ -408,6 +408,7 @@ private:
 #ifdef _LIN_
 	void BuildCOMList(const char* Mask, QList<CHwGenericDevice*>& List);
 	void GetHddDevList(QList<CHwHardDisk*>& List);
+	QMap<QString, QString> GetHddMpathList();
 	void GetHddUdevList(QList<CHwHardDisk*>& List);
 #endif
 

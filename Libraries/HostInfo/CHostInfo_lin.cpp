@@ -338,6 +338,22 @@ static inline bool isCdrom(const QString& dev_)
 	return (InquiryBuffer[0]&0x1F) == TYPE_ROM;
 }
 
+QMap<QString, QString> CDspHostInfo::GetHddMpathList()
+{
+	QMap<QString, QString> list;
+	QDir d("/dev/mapper");
+	foreach (const QString &n, d.entryList(QDir::Files, QDir::Name))
+	{
+		if (!n.contains("mpath"))
+			continue;
+
+		QFileInfo i(d, n);
+		list.insert(i.canonicalFilePath(), i.absoluteFilePath());
+	}
+
+	return list;
+}
+
 /*
  * Build HDD list based on udev disk list by id.
  */
@@ -350,15 +366,22 @@ void CDspHostInfo::GetHddUdevList(QList<CHwHardDisk*>& List)
 
 	Entries = Entries.filter(Filter);
 
+	QMap<QString, QString> mpath = GetHddMpathList();
+
 	for (it = Entries.begin(); it != Entries.end(); it++)
 	{
 		QString File = QString(UDEV_HDD_BASE "/%1").arg(*it);
 		QFileInfo Info(File);
+		QString c = Info.canonicalFilePath();
 
-		if (isCdrom(Info.canonicalFilePath()))
+		QMap<QString, QString>::const_iterator i = mpath.find(c);
+		if (i != mpath.end())
+			File = i.value();
+
+		if (isCdrom(c))
 			continue;
 
-		QString FriendlyName = GetHDDFriendly(Info.canonicalFilePath());
+		QString FriendlyName = GetHDDFriendly(c);
 
 		if (CheckAddHdd(File))
 			continue;
