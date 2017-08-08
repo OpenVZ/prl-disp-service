@@ -362,7 +362,6 @@ void CDspHostInfo::GetHddUdevList(QList<CHwHardDisk*>& List)
 	QRegExp Filter("^(?!.+part\\d+$)");
 	QDir d(UDEV_HDD_BASE);
 	QStringList Entries = d.entryList(QDir::Files, QDir::Name);
-	QStringList::iterator it;
 
 	Entries = Entries.filter(Filter);
 
