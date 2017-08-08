@@ -347,7 +347,7 @@ QMap<QString, QString> CDspHostInfo::GetHddMpathList()
 		if (!n.contains("mpath"))
 			continue;
 
-		QFileInfo i(QString("/dev/mapper/%1").arg(n));
+		QFileInfo i(d, n);
 		list.insert(i.canonicalFilePath(), i.absoluteFilePath());
 	}
 
@@ -360,18 +360,17 @@ QMap<QString, QString> CDspHostInfo::GetHddMpathList()
 void CDspHostInfo::GetHddUdevList(QList<CHwHardDisk*>& List)
 {
 	QRegExp Filter("^(?!.+part\\d+$)");
-	QDir Disks(UDEV_HDD_BASE);
-	QStringList Entries = Disks.entryList(QDir::Files, QDir::Name);
+	QDir d(UDEV_HDD_BASE);
+	QStringList Entries = d.entryList(QDir::Files, QDir::Name);
 	QStringList::iterator it;
 
 	Entries = Entries.filter(Filter);
 
 	QMap<QString, QString> mpath = GetHddMpathList();
-
-	for (it = Entries.begin(); it != Entries.end(); it++)
+	foreach (const QString &n, Entries)
 	{
-		QString File = QString(UDEV_HDD_BASE "/%1").arg(*it);
-		QFileInfo Info(File);
+		QFileInfo Info(d, n);
+		QString File = Info.absoluteFilePath();
 		QString c = Info.canonicalFilePath();
 
 		QMap<QString, QString>::const_iterator i = mpath.find(c);
