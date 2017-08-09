@@ -410,7 +410,7 @@ PRL_RESULT V2V::do_() const
 	{
 		::setenv("LIBGUESTFS_BACKEND_SETTINGS",
 				 qPrintable(QString("network_bridge=%1").arg(bridge)), 1);
-		WRITE_TRACE(DBG_DEBUG, "setenv: %s=%s",
+		WRITE_TRACE(DBG_FATAL, "setenv: %s=%s",
 					"LIBGUESTFS_BACKEND_SETTINGS",
 					qPrintable(QString("network_bridge=%1").arg(bridge)));
 	}
@@ -418,19 +418,16 @@ PRL_RESULT V2V::do_() const
 	QStringList cmdline = QStringList()
 		<< VIRT_V2V
 		<< "-i" << "libvirt"
-		<< "--in-place";
-
-	if (DBG_DEBUG >= GetLogLevel())
-		cmdline << "-v" << "-x";
+		<< "--in-place" << "-v" << "-x";
 
 	cmdline << ::Uuid(m_cfg.getVmIdentification()->getVmUuid()).toStringWithoutBrackets();
 
 	QProcess process;
 	HostUtils::RunCmdLineUtilityEx(cmdline.join(" "), process, V2V_RUN_TIMEOUT, NULL);
 
-	WRITE_TRACE(DBG_DEBUG, "virt-v2v output:");
+	WRITE_TRACE(DBG_FATAL, "virt-v2v output:");
 	foreach (const QString& s, QString(process.readAllStandardOutput()).split("\n"))
-		WRITE_TRACE(DBG_DEBUG, "%s", qPrintable(s));
+		WRITE_TRACE(DBG_FATAL, "%s", qPrintable(s));
 	if (QProcess::NormalExit != process.exitStatus() || process.exitCode() != 0)
 	{
 		WRITE_TRACE(DBG_FATAL, "Cannot convert VM to vz7 format: virt-v2v failed");
