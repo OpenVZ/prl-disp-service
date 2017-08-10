@@ -1159,6 +1159,22 @@ void State::read(agent_type agent_)
 		WRITE_TRACE(DBG_FATAL, "Unable to get VM state");
 }
 
+void State::operator()(Registry::Access& access_)
+{
+	value_type v = m_value;
+	if (VMS_STOPPED == v)
+	{
+		boost::optional<CVmConfiguration> c = access_.getConfig();
+		if (c)
+		{
+			CStatesHelper h(c.get().getVmIdentification()->getHomePath());
+			if (h.savFileExists())
+				v = VMS_SUSPENDED;
+		}
+	}
+	access_.getReactor().proceed(v);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Device
 

@@ -375,10 +375,7 @@ struct State
 	}
 
 	void read(agent_type agent_);
-	void operator()(Registry::Access& access_)
-	{
-		access_.getReactor().proceed(m_value);
-	}
+	void operator()(Registry::Access& access_);
 	value_type getValue() const
 	{
 		return m_value;
