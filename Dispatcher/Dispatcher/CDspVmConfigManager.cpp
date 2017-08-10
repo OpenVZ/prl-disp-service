@@ -977,6 +977,16 @@ PRL_RESULT Atomic::operator()(const action_type& action_)
 	return output;
 }
 
+CVmIdent Atomic::getObject() const
+{
+	QString d;
+	const SmartPtr<CDspClient> a = m_decorated.getActor();
+	if (a.isValid())
+		d = a->getVmDirectoryUuid();
+
+	return MakeVmIdent(m_decorated.getUuid(), d);
+}
+
 } // namespace Edit
 } // namespace Config
 

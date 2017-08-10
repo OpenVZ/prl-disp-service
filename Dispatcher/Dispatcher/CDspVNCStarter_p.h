@@ -378,18 +378,17 @@ struct SetPort
 	typedef boost::function<PRL_RESULT(const quint16, CVmConfiguration&)>
 		configure_type;
 
-	SetPort(const commit_type &commit_, const configure_type &configure_):
-		m_commit(commit_), m_configure(configure_)
+	SetPort(const commit_type &commit_, const configure_type &configure_,
+		CDspService& service_):
+		m_commit(commit_), m_service(&service_), m_configure(configure_)
 	{
 	}
 
-	PRL_RESULT operator()(quint16 port_)
-	{
-		return m_commit(boost::bind(m_configure, port_, _1)); 
-	}
+	PRL_RESULT operator()(quint16 port_);
 
 private:
 	commit_type m_commit;
+	CDspService* m_service;
 	configure_type m_configure;
 };
 
