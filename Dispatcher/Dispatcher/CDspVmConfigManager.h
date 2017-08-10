@@ -41,6 +41,7 @@
 #include <QObject>
 #include <QVector>
 #include <QDateTime>
+#include "CVmIdent.h"
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/fold.hpp>
 #include <boost/bind.hpp>
@@ -513,6 +514,7 @@ struct Atomic
 		return (*this)(a);
 	}
 	PRL_RESULT operator()(const action_type& action_);
+	CVmIdent getObject() const;
 
 private:
 	Unlocked m_decorated;

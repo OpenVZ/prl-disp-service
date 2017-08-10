@@ -294,6 +294,21 @@ void Sweeper::cleanup(QTcpSocket* victim_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct SetPort
+
+PRL_RESULT SetPort::operator()(quint16 port_)
+{
+	PRL_RESULT e = m_commit(boost::bind(m_configure, port_, _1));
+	if (PRL_FAILED(e))
+		return e;
+
+	m_service->getVmDirHelper()
+		.sendVmConfigChangedEvent(m_commit.getObject(), SmartPtr<IOPackage>());
+
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Subject
 
 Subject::Subject(const Socat::Launcher& launcher_):
@@ -442,7 +457,8 @@ void Frontend::draw(CVmRemoteDisplay& object_, const CVmRemoteDisplay* runtime_,
 	Launch::Backend::range_type d(playground_.first, playground_.second);
 	Launch::Backend* q = new Launch::Backend(boost::bind(
 			boost::factory<Launch::Subject* >(), u), d,
-				Launch::SetPort(m_commit, &Traits::configure));
+				Launch::SetPort(m_commit, &Traits::configure,
+					*m_service));
 	q->setAutoDelete(true);
 	q->setSweepMode(object_.getMode());
 	QThreadPool::globalInstance()->start(q);
@@ -458,7 +474,8 @@ void Frontend::draw(CVmRemoteDisplay& object_, const CVmRemoteDisplay* runtime_,
 
 	q = new Launch::Backend(boost::bind(
 			boost::factory<Launch::Subject* >(), u), d,
-				Launch::SetPort(m_commit, &Traits::configureWS));
+				Launch::SetPort(m_commit, &Traits::configureWS,
+					*m_service));
 	q->setAutoDelete(true);
 	q->setSweepMode(PRD_AUTO);
 	QThreadPool::globalInstance()->start(q);
