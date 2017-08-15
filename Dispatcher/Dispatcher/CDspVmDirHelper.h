@@ -79,10 +79,7 @@ class CDspVmDirHelper
 	friend class CDspVm;
 public:
 	// constructor
-	CDspVmDirHelper(Registry::Public& registry_);
-
-	// destructor
-	~CDspVmDirHelper();
+	CDspVmDirHelper(Registry::Public& registry_, Vm::Directory::Ephemeral& ephemeral_);
 
 public:
 	/////////////////////////////////////
@@ -470,7 +467,7 @@ public:
 	PRL_VM_COLOR getUniqueVmColor( const QString& vmDirUuid );
 
 	static SmartPtr<CVmConfiguration> CreateVmConfigFromDirItem(
-				const QString& sServerUuid, CVmDirectoryItem* pDirItem);
+				const QString& sServerUuid, const CVmDirectoryItem* pDirItem);
 
 	static CVmIdent getVmIdentByVmUuid(const QString &vmUuid_, SmartPtr<CDspClient> userSession_);
 	static QString getVmDirUuidByVmUuid(const QString &vmUuid_, SmartPtr<CDspClient> userSession_);
@@ -504,15 +501,6 @@ private:
 
 	// Internal implementation of VM Directory accessor
 	CVmDirectory* getVmDirectory ( CDispUser*, CAuthHelper* p_authHelper);
-
-/*
-	// Get VM directory item by param
-	CVmDirectoryItem* getVmDirectoryItemByParam ( SmartPtr<CDspClient>,
-		ItemParamType paramType,
-		const QString& paramValue);
-*/
-
-
 
 	/**
 	* Return path to Vm Home of user.
@@ -628,15 +616,10 @@ private:
 
 private:
 	Registry::Public& m_registry;
-	CMultiEditMergeVmConfig* m_pVmConfigEdit;
+	Vm::Directory::Ephemeral* m_ephemeral;
 	ExclusiveVmOperations	m_exclusiveVmOperations;
 	SmartPtr<CDspVmMountRegistry> m_vmMountRegistry;
-
-	friend class Task_EditVm;
-	friend class Task_RegisterVm;
-
-	static QSet<int> g_remoteDisplayPorts;
-
+	QScopedPointer<CMultiEditMergeVmConfig> m_pVmConfigEdit;
 }; // class CDspVmDirHelper
 
 

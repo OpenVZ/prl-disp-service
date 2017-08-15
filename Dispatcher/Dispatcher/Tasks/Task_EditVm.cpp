@@ -56,6 +56,7 @@
 #include "Tasks/Mixin_CreateHddSupport.h"
 #include "CDspCommon.h"
 #include "CDspService.h"
+#include "CDspVmDirHelper_p.h"
 #include "CVmValidateConfig.h"
 #include "CDspVmNetworkHelper.h"
 #include "CDspVmGuestPersonality.h"
@@ -161,7 +162,8 @@ void Task_EditVm::finalizeTask()
 			WRITE_TRACE( DBG_FATAL, "Can't load vm config for %s vm to make EditCommit response by err %s"
 				, QSTR2UTF8( getVmUuid() )
 				, PRL_RESULT_TO_STRING(error) );
-			pVmConfig = vmDirHelper.CreateDefaultVmConfigByRcValid( getClient(), error, getVmUuid() );
+			pVmConfig = ::List::Directory::Item::Inaccessible::Default(*CDspService::instance(), getClient())
+				.craft(error, getVmUuid());
 		}
 		if( pVmConfig )
 		{

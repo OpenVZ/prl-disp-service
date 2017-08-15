@@ -54,7 +54,6 @@
 #include "CDspProblemReportHelper.h"
 #include "CDspAsyncRequest.h"
 #include "CDspRegistry.h"
-
 #include "CDspCommon.h"
 #include "CDspTestConfig.h"
 #include "CDspDispConnectionsManager.h"
@@ -509,14 +508,16 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 	qRegisterMetaType<SmartPtr<CDispCommonPreferences> >("SmartPtr<CDispCommonPreferences>");
 
 	m_registry.reset(new Registry::Actual(*this));
+	::Vm::Directory::Ephemeral* p = new ::Vm::Directory::Ephemeral(*this);
 	m_shellHelper.reset(new CDspShellHelper(*m_registry));
-	m_vmDirHelper.reset(new CDspVmDirHelper(*m_registry));
+	m_vmDirHelper.reset(new CDspVmDirHelper(*m_registry, *p));
 	m_vmMigrateHelper.reset(new CDspVmMigrateHelper(*m_registry));
 	m_pReconnectTimer = new QTimer(this);
 	m_pReconnectTimer->setSingleShot(true);
 
 	Backup::Task::Launcher b(*m_registry, m_pTaskManager, m_backup);
 	m_AppSettings.init(QCoreApplication::applicationName());
+	m_vmDirManager.reset(new CDspVmDirManager(*p));
 	m_clientManager.reset(new CDspClientManager(*this, b));
 	m_dispConnectionsManager.reset(new CDspDispConnectionsManager(*this, b));
 #ifdef _CT_
@@ -676,7 +677,7 @@ CDspLockedPointer<CDspHostInfo> CDspService::getHostInfo ()
 
 CDspVmDirManager& CDspService::getVmDirManager ()
 {
-	return m_vmDirManager;
+	return *m_vmDirManager;
 }
 
 CDspAccessManager& CDspService::getAccessManager ()

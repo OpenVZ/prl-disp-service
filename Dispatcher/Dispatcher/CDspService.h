@@ -469,7 +469,7 @@ private:
 	CDspVmConfigManager m_configManager;
 
 	CDspAccessManager	m_vmAccessManager;		// should be defined before m_taskManager ( bug #6042 )
-	CDspVmDirManager	m_vmDirManager;		// should be defined before m_taskManager ( bug #6042 )
+	QScopedPointer<CDspVmDirManager> m_vmDirManager;	// should be defined before m_taskManager ( bug #6042 )
 	CDspDispConfigGuard m_dispConfigGuard;  // should be defined before m_taskManager ( bug #6042 )
 
 	SmartPtr<CDspHandler> m_pVmManagerHandler;

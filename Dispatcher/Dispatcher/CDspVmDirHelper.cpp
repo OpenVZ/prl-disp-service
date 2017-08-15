@@ -837,17 +837,10 @@ QString CDspVmDirHelper::ExclusiveVmOperations::makeKey( const QString& vmUuid, 
 }
 
 // constructor
-CDspVmDirHelper::CDspVmDirHelper(Registry::Public& registry_): m_registry(registry_)
+CDspVmDirHelper::CDspVmDirHelper(Registry::Public& registry_, Vm::Directory::Ephemeral& ephemeral_):
+	m_registry(registry_), m_ephemeral(&ephemeral_), m_vmMountRegistry(new CDspVmMountRegistry()),
+	m_pVmConfigEdit(new CMultiEditMergeVmConfig())
 {
-	m_pVmConfigEdit= new CMultiEditMergeVmConfig();
-	m_vmMountRegistry = SmartPtr<CDspVmMountRegistry>(new CDspVmMountRegistry);
-}
-
-
-// destructor
-CDspVmDirHelper::~CDspVmDirHelper()
-{
-	delete m_pVmConfigEdit;
 }
 
 /**
@@ -887,70 +880,8 @@ QList<QString> CDspVmDirHelper::getVmList (
 SmartPtr<CVmConfiguration> CDspVmDirHelper::CreateDefaultVmConfigByRcValid(
 	SmartPtr<CDspClient> pUserSession, PRL_RESULT rc, const QString& vmUuid)
 {
-	PRL_RESULT error = PRL_ERR_SUCCESS;
-	SmartPtr<CVmConfiguration> pVmConfig(0);
-
-	CVmIdent ident(CDspVmDirHelper::getVmIdentByVmUuid(vmUuid, pUserSession));
-		CDspLockedPointer< CVmDirectoryItem > pVmDirItem(CDspService::instance()->getVmDirManager().getVmDirItemByUuid(ident));
-
-	switch (rc)
-	{
-	case PRL_ERR_VM_CONFIG_DOESNT_EXIST:
-	case PRL_ERR_PARSE_VM_CONFIG:
-		if ( pVmDirItem && CDspService::instance()->getVmConfigManager()
-								.canConfigRestore( pVmDirItem->getVmHome(), pUserSession )
-			)
-		{
-			rc = PRL_ERR_VM_CONFIG_CAN_BE_RESTORED;
-		}
-		pVmConfig = SmartPtr<CVmConfiguration>(new CVmConfiguration());
-		break;
-	case PRL_ERR_VM_CONFIG_INVALID_VM_UUID:
-	case PRL_ERR_VM_CONFIG_INVALID_SERVER_UUID:
-	case PRL_ERR_VM_IS_EXCLUSIVELY_LOCKED:
-		pVmConfig = getVmConfigByUuid(pUserSession, vmUuid, error);
-		if( ! pVmConfig )
-		{
-			WRITE_TRACE(DBG_FATAL, "getVmConfigByUuid( %s ) return NULL. error %#x(%s)"
-				, QSTR2UTF8( vmUuid )
-				, error, PRL_RESULT_TO_STRING( error ) );
-			return SmartPtr<CVmConfiguration>();
-		}
-		break;
-	case PRL_ERR_ACCESS_TO_VM_DENIED:
-		pVmConfig = SmartPtr<CVmConfiguration>(new CVmConfiguration());
-		break;
-	default:
-		return SmartPtr<CVmConfiguration>();
-	}
-
-	pVmConfig->getVmIdentification()->setVmUuid(vmUuid);
-	pVmConfig->setValidRc(rc);
-
-	if (pVmDirItem)
-	{
-		QString sVmName = pVmDirItem->getVmName();
-		if (sVmName.isEmpty())
-		{
-			// Get from file path
-			QFileInfo fileInfo(QFileInfo(pVmDirItem->getVmHome()).path());
-			sVmName = fileInfo.fileName();
-
-			// Make VM name unique
-			sVmName = Task_RegisterVm::getUniqueVmName(sVmName, ident.second);
-		}
-		pVmConfig->getVmIdentification()->setVmName(sVmName);
-	}
-	else
-	{
-		WRITE_TRACE(DBG_FATAL, "Can't found pVmDirItem by dirUuid=%s, vmUuid = %s",
-			QSTR2UTF8( pUserSession->getVmDirectoryUuid() ),
-			QSTR2UTF8( vmUuid )
-			);
-		pVmConfig->getVmIdentification()->setVmName(PRL_UNKNOWN_NAME);
-	}
-
-	return pVmConfig;
+	return ::List::Directory::Item::Inaccessible::Default
+		(*CDspService::instance(), pUserSession).craft(rc, vmUuid);
 }
 
 void CDspVmDirHelper::sendNotValidState(
@@ -986,7 +917,7 @@ void CDspVmDirHelper::sendNotValidState(const QString& strVmDirUuid, PRL_RESULT 
 }
 
 SmartPtr<CVmConfiguration> CDspVmDirHelper::CreateVmConfigFromDirItem(
-				const QString& sServerUuid, CVmDirectoryItem* pDirItem)
+				const QString& sServerUuid, const CVmDirectoryItem* pDirItem)
 {
 	SmartPtr<CVmConfiguration> pConfig = SmartPtr<CVmConfiguration>(new CVmConfiguration());
 	if (!pConfig)
@@ -1014,11 +945,15 @@ CVmIdent CDspVmDirHelper::getVmIdentByVmUuid(const QString &vmUuid_, SmartPtr<CD
 
 QString CDspVmDirHelper::getVmDirUuidByVmUuid(const QString &vmUuid_, SmartPtr<CDspClient> userSession_)
 {
-	foreach (const QString& dirUuid, userSession_->getVmDirectoryUuidList()) {
-		CDspLockedPointer<CVmDirectoryItem> p(CDspService::instance()->getVmDirManager()
-			.getVmDirItemByUuid(dirUuid, vmUuid_));
-		if (p)
-			return dirUuid;
+	Q_UNUSED(userSession_);
+	Vm::Directory::Dao::Locked x;
+	foreach (const CVmDirectory& d, x.getList())
+	{
+		foreach(CVmDirectoryItem* pDirItem, d.m_lstVmDirectoryItems)
+		{
+			if (pDirItem->getVmUuid() == vmUuid_)
+				return d.getUuid();
+		}
 	}
 	return QString();
 }
@@ -1045,131 +980,41 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 		pUserSession->sendSimpleResponse( pkg, PRL_ERR_FAILURE );
 		return false;
 	}
+	CDspService* s = CDspService::instance();
 	quint32 nFlags = cmd->GetCommandFlags();
-	QString sServerUuid = CDspService::instance()->getDispConfigGuard().getDispConfig()
+	QString sServerUuid = s->getDispConfigGuard().getDispConfig()
 				->getVmServerIdentification()->getServerUuid();
 
-	QList<SmartPtr<CVmConfiguration> > _vms_configs;
+	::List::Directory::Factory::ephemeral_type e = m_ephemeral->snapshot();
+	e.insert(CDspVmDirManager::getVzDirectoryUuid());
+
 	QStringList dirUuids;
 	dirUuids.append(CDspVmDirManager::getTemplatesDirectoryUuid());
 	dirUuids.append(pUserSession->getVmDirectoryUuid());
-	foreach (QString dirUuid, dirUuids)
-	{
-		// Skip Vm if there is type specification in the flags
-		if ((nFlags & (PVTF_VM | PVTF_CT)) && !(nFlags & PVTF_VM))
-			break;
-		//LOCK before use
-		CDspLockedPointer<CVmDirectory>
-			pUserDirectory = CDspService::instance()->getVmDirManager()
-			.getVmDirectory(dirUuid);
-
-		if ( !pUserDirectory )
-		{
-			WRITE_TRACE(DBG_FATAL, "No VM Directory assigned for " PRODUCT_NAME_SHORT " user with sessionId = [%s] "
-				, QSTR2UTF8( pUserSession->getClientHandle() )
-				);
-
-			pUserSession->sendSimpleResponse( pkg, PRL_ERR_VM_DIRECTORY_NOT_EXIST );
-
-			return false;
-		}
-
-		for( int iItemIndex = 0; iItemIndex < pUserDirectory->m_lstVmDirectoryItems.size(); iItemIndex++ )
-		{
-			SmartPtr<CVmConfiguration> pVmConfig(0);
-
-			// get next VM from directory
-			CVmDirectoryItem* pDirectoryItem = pUserDirectory->m_lstVmDirectoryItems.at( iItemIndex );
-
-#ifdef _CT_
-			if (pDirectoryItem->getVmType() == PVT_CT)
-				continue;
-#endif
-
-			// Check if user is authorized to access this VM
-			// AccessCheck
-			PRL_RESULT rc = PRL_ERR_FAILURE;
-			rc = CDspService::instance()->getAccessManager()
-				.checkAccess(pUserSession, PVE::DspCmdDirGetVmList, pDirectoryItem);
-			if (PRL_FAILED(rc))
-			{
-				WRITE_TRACE(DBG_FATAL, "[%s] Access check failed for user %s when accessing VM %s. Reason: %#x (%s)",
-					__FUNCTION__, QSTR2UTF8(pUserSession->getClientHandle()),
-					QSTR2UTF8(pDirectoryItem->getVmUuid()), rc, PRL_RESULT_TO_STRING(rc)
-					);
-
-				if (PRL_ERR_ACCESS_TO_VM_DENIED == rc)
-					continue;
-
-				if (nFlags & PGVLF_GET_ONLY_IDENTITY_INFO)
-					/* if this flag specified, do not load VM/CT configs,
-					   use dispatchers config only (https://jira.sw.ru/browse/PSBM-9300) */
-					pVmConfig = CreateVmConfigFromDirItem(sServerUuid, pDirectoryItem);
-				else
-					pVmConfig = CreateDefaultVmConfigByRcValid(
-						pUserSession, rc, pDirectoryItem->getVmUuid());
-			}
-			else
-			{
-				// try to load VM config from XML
-				if (nFlags & PGVLF_GET_ONLY_IDENTITY_INFO)
-					/* if this flag specified, do not load VM/CT configs,
-					   use dispatchers config only (https://jira.sw.ru/browse/PSBM-9300) */
-					pVmConfig = CreateVmConfigFromDirItem(sServerUuid, pDirectoryItem);
-				else
-					pVmConfig = getVmConfigForDirectoryItem(pUserSession, pDirectoryItem, rc);
-				if( !pVmConfig )
-				{
-					WRITE_TRACE(DBG_FATAL, ">>> Error [%#x / %s ] occurred while trying to load VM config from file [%s]",
-						rc,
-						PRL_RESULT_TO_STRING( rc ),
-						QSTR2UTF8( pDirectoryItem->getVmHome() )  );
-				}
-
-			}
-
-			if( pVmConfig )
-				_vms_configs.append(pVmConfig);
-
-		}
-	}
+	dirUuids.append(e.toList());
 
 	QStringList lstVmConfigurations;
-#ifdef _CT_
-	// Append Containers to the list
-	if (nFlags & PVTF_CT) {
-		QList<SmartPtr<CVmConfiguration> > _ct_configs;
-		CDspService::instance()->getVzHelper()->getCtConfigList(pUserSession, nFlags, _ct_configs);
-		foreach(SmartPtr<CVmConfiguration> pVmConfig, _ct_configs)
-		{
-			lstVmConfigurations.append( pVmConfig->toString() );
-		}
-	}
-#endif
-
-	// Append VMs to the list
-	foreach(SmartPtr<CVmConfiguration> pVmConfig, _vms_configs)
+	QScopedPointer< ::List::Directory::Chain> x
+		(::List::Directory::Factory(*s, e)(pUserSession, nFlags));
+	if (!x.isNull())
 	{
-		if (nFlags & PGVLF_GET_STATE_INFO)
+		foreach (const QString& u, dirUuids)
 		{
-			CVmEvent e;
+			CDspLockedPointer<CVmDirectory>
+				d = s->getVmDirManager().getVmDirectory(u);
+			if (!d.isValid())
+			{
+				WRITE_TRACE(DBG_FATAL, "No VM Directory assigned for "
+					PRODUCT_NAME_SHORT " user with sessionId = [%s] ",
+					qPrintable(pUserSession->getClientHandle()));
 
-			fillVmState(pUserSession, pVmConfig->getVmIdentification()->getVmUuid(), e);
-
-			pVmConfig->getVmSettings()->getVmRuntimeOptions()
-				->getInternalVmInfo()->setParallelsEvent( new CVmEvent(&e) );
-
+				pUserSession->sendSimpleResponse(pkg, PRL_ERR_VM_DIRECTORY_NOT_EXIST);
+				return false;
+			}
+			x->handle(*d);
 		}
-		else if (!(nFlags & PGVLF_GET_ONLY_IDENTITY_INFO))
-		{
-			bool f = nFlags & PGVLF_FILL_AUTOGENERATED;
-			fillOuterConfigParams( pUserSession, pVmConfig, f );
-		}
-
-		// Add VM config to results set
-		lstVmConfigurations.append( pVmConfig->toString() );
+		lstVmConfigurations = x->getResult();
 	}
-
 	CProtoCommandPtr pCmd = CProtoSerializer::CreateDspWsResponseCommand( pkg, PRL_ERR_SUCCESS );
 	CProtoCommandDspWsResponse
 		*pResponseCmd = CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>( pCmd );
@@ -3576,7 +3421,7 @@ PRL_RESULT CDspVmDirHelper::loadFastRebootData( const QString &/*vmUuid*/, QStri
 
 CMultiEditMergeVmConfig* CDspVmDirHelper::getMultiEditDispatcher()
 {
-		return m_pVmConfigEdit;
+	return m_pVmConfigEdit.data();
 }
 
 void CDspVmDirHelper::recoverMixedVmPermission( SmartPtr<CDspClient> pOwnerSession )
@@ -3712,4 +3557,382 @@ void CDspVmDirHelper::moveVm( SmartPtr<CDspClient> pUserSession, const SmartPtr<
 	CDspService::instance()->getTaskManager().schedule(new Task_MoveVm( pUserSession , pkg));
 }
 
+
+namespace List
+{
+namespace Directory
+{
+namespace Item
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Component
+
+Component::~Component()
+{
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Chain
+
+Chain::result_type Chain::handle(const CVmDirectoryItem& item_)
+{
+	if (m_next.isNull())
+		return PRL_ERR_UNIMPLEMENTED;
+
+	return m_next->handle(item_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Identity
+
+Identity::result_type Identity::handle(const CVmDirectoryItem& item_)
+{
+	value_type output = CDspVmDirHelper::CreateVmConfigFromDirItem(m_uuid, &item_);
+	if (!output.isValid())
+	{
+		WRITE_TRACE(DBG_FATAL, ">>> Cannot create a Vm config for the file %s",
+			qPrintable(item_.getVmHome()));
+		return PRL_ERR_FAILURE;
+	}
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Sterling
+
+Sterling::result_type Sterling::handle(const CVmDirectoryItem& item_)
+{
+	SmartPtr<CVmConfiguration> output;
+	PRL_RESULT e = m_service->getVmConfigManager().loadConfig(output,
+		item_.getVmHome(), m_session, true, false);
+
+	if (PRL_FAILED(e) || !output.isValid())
+	{
+		WRITE_TRACE(DBG_FATAL, ">>> Error [%#x / %s ] occurred while trying to load VM config from file [%s]",
+			e, PRL_RESULT_TO_STRING(e), qPrintable(item_.getVmHome()));
+		return PRL_ERR_PARSE_VM_CONFIG;
+	}
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+Vm::result_type Vm::handle(const CVmDirectoryItem& item_)
+{
+	if (PVT_CT == item_.getVmType())
+		return PRL_ERR_INVALID_PARAM;
+
+	return Chain::handle(item_);
+}
+
+namespace Inaccessible
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Chain
+
+PRL_RESULT Chain::determine(const CVmDirectoryItem& item_)
+{
+	CVmDirectoryItem i(&item_);
+	return m_service->getAccessManager()
+		.checkAccess(m_session, PVE::DspCmdDirGetVmList, &i);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Identity
+
+Identity::result_type Identity::handle(const CVmDirectoryItem& item_)
+{
+	PRL_RESULT e = determine(item_);
+	if (PRL_SUCCEEDED(e))
+		return Chain::handle(item_);
+
+	return m_chain.handle(item_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Default
+
+QString Default::craftName(const CVmDirectoryItem* item_, const QString& uid_) const
+{
+	QString d = getSession()->getVmDirectoryUuid();
+	if (NULL == item_)
+	{
+		WRITE_TRACE(DBG_FATAL, "Can't found d by dirUuid=%s, vmUuid = %s",
+			qPrintable(d), qPrintable(uid_));
+
+		return PRL_UNKNOWN_NAME;
+	}
+	QString output = item_->getVmName();
+	if (output.isEmpty())
+	{
+		// Make VM name unique
+		output = Task_RegisterVm::getUniqueVmName
+			(QFileInfo(item_->getVmHome()).dir().dirName(), d);
+	}
+
+	return output;
+}
+
+Default::result_type Default::handle(const CVmDirectoryItem& item_)
+{
+	PRL_RESULT e = determine(item_);
+	if (PRL_SUCCEEDED(e))
+		return Chain::handle(item_);
+
+	value_type output = craft(e, item_.getVmUuid());
+	if (!output.isValid())
+	{
+		WRITE_TRACE(DBG_FATAL, ">>> Error [%#x / %s ] occurred while "
+			"trying to load VM config from file [%s]",
+			e, PRL_RESULT_TO_STRING(e), qPrintable(item_.getVmHome()));
+		return PRL_ERR_FAILURE;
+	}
+
+	return output;
+}
+
+Default::value_type Default::craft(PRL_RESULT code_, const QString& uid_)
+{
+	value_type output;
+	CVmIdent o(getService().getVmDirHelper().getVmIdentByVmUuid(uid_, getSession()));
+	CDspLockedPointer<CVmDirectoryItem> d(getService().getVmDirManager().getVmDirItemByUuid(o));
+	switch (code_)
+	{
+	case PRL_ERR_VM_CONFIG_INVALID_VM_UUID:
+	case PRL_ERR_VM_CONFIG_INVALID_SERVER_UUID:
+	case PRL_ERR_VM_IS_EXCLUSIVELY_LOCKED:
+	{
+		PRL_RESULT e;
+		output = getService().getVmDirHelper().getVmConfigByUuid(getSession(), uid_, e);
+		if (!output.isValid())
+		{
+			WRITE_TRACE(DBG_FATAL, "getVmConfigByUuid( %s ) return NULL. error %#x(%s)",
+				qPrintable(uid_), e, PRL_RESULT_TO_STRING(e));
+		}
+		break;
+	}
+	case PRL_ERR_VM_CONFIG_DOESNT_EXIST:
+	case PRL_ERR_PARSE_VM_CONFIG:
+		if (d.isValid() && getService().getVmConfigManager().canConfigRestore(d->getVmHome(), getSession()))
+			code_ = PRL_ERR_VM_CONFIG_CAN_BE_RESTORED;
+
+	case PRL_ERR_ACCESS_TO_VM_DENIED:
+		output = value_type(new CVmConfiguration());
+	default:
+		break;
+	}
+	if (output.isValid())
+	{
+		output->getVmIdentification()->setVmName(craftName(d.getPtr(), uid_));
+		output->getVmIdentification()->setVmUuid(uid_);
+		output->setValidRc(code_);
+	}
+
+	return output;
+}
+
+} // namespace Inaccessible
+
+///////////////////////////////////////////////////////////////////////////////
+// struct State
+
+State::result_type State::handle(const CVmDirectoryItem& item_)
+{
+	result_type output = Chain::handle(item_);
+	if (output.isFailed())
+		return output;
+
+	const value_type& r = output.value();
+	QString u = item_.getVmUuid();
+	QString d = CDspVmDirHelper::getVmDirUuidByVmUuid(u, m_session);
+	VIRTUAL_MACHINE_STATE s = item_.isTemplate() ? VMS_STOPPED :
+		CDspVm::getVmState(u, d);
+	CVmEvent* e = new CVmEvent();
+	e->addEventParameter(new CVmEventParameter(PVE::Integer, QString::number(s),
+		EVT_PARAM_VMINFO_VM_STATE));
+	r->getVmSettings()->getVmRuntimeOptions()->getInternalVmInfo()->setParallelsEvent(e);
+
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Extra
+
+Extra::result_type Extra::handle(const CVmDirectoryItem& item_)
+{
+	result_type output = Chain::handle(item_);
+	if (output.isFailed())
+		return output;
+
+	m_service->getVmDirHelper()
+		.fillOuterConfigParams(m_session, output.value(), m_autogenerated);
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+Chain* Factory::operator()(const session_type& session_, quint32 flags_) const
+{
+	Chain* output = NULL;
+	if (flags_ & PGVLF_GET_STATE_INFO)
+		output = new State(session_);
+	else if (0 == (flags_ & PGVLF_GET_ONLY_IDENTITY_INFO))
+		output = new Extra(session_, flags_ & PGVLF_FILL_AUTOGENERATED, *m_service);
+
+	Chain* y;
+	Item::Identity* i = NULL;
+	if (flags_ & PGVLF_GET_ONLY_IDENTITY_INFO)
+	{
+		i = new Item::Identity(m_service->getDispConfigGuard().getDispConfig()
+			->getVmServerIdentification()->getServerUuid());
+		y = new Inaccessible::Identity(*m_service, session_, *i);
+	}
+	else
+		y = new Inaccessible::Default(*m_service, session_);
+
+	if (NULL == output)
+		output = y;
+	else
+		output->setNext(y);
+
+	if (flags_ & PGVLF_GET_ONLY_IDENTITY_INFO)
+		y->setNext(i);
+	else
+		y->setNext(new Sterling(session_, *m_service));
+
+	return output;
+}
+
+} // namespace Item
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Chain
+
+Chain::~Chain()
+{
+}
+
+QStringList Chain::getResult() const
+{
+	if (m_next.isNull())
+		return m_result;
+
+	return QStringList() << m_result << m_next->getResult();
+}
+
+PRL_RESULT Chain::handle(const CVmDirectory& directory_)
+{
+	if (m_next.isNull())
+		return PRL_ERR_SUCCESS;
+
+	return m_next->handle(directory_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Loop
+
+PRL_RESULT Loop::handle(const CVmDirectory& directory_)
+{
+	if (m_loader.isNull())
+		return PRL_ERR_UNINITIALIZED;
+
+	foreach (CVmDirectoryItem* i, directory_.m_lstVmDirectoryItems)
+	{
+		Item::Component::result_type x = m_loader->handle(*i);
+		if (x.isSucceed())
+			deposit(*x.value());
+	}
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Branch
+
+Branch::Branch(const QSet<QString>& ephemeral_, Item::Component* loader_):
+	m_ephemeral(ephemeral_)
+{
+	Item::Vm* v = new Item::Vm();
+	v->setNext(loader_);
+	setLoader(v);
+}
+
+namespace Template
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+PRL_RESULT Vm::handle(const CVmDirectory& directory_)
+{
+	if (isEphemeral(directory_))
+		return Branch::handle(directory_);
+
+	return Chain::handle(directory_);
+}
+
+} // namespace Template
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+PRL_RESULT Vm::handle(const CVmDirectory& directory_)
+{
+	if (isEphemeral(directory_))
+		return Chain::handle(directory_);
+
+	return Branch::handle(directory_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ct
+
+Ct::Ct(const session_type& session_, quint32 flags_, CDspService& service_):
+	m_uuid(CDspVmDirManager::getVzDirectoryUuid()), m_flags(flags_),
+	m_service(&service_), m_session(session_)
+{
+}
+
+PRL_RESULT Ct::handle(const CVmDirectory& directory_)
+{
+	if (directory_.getUuid() != m_uuid)
+		return Chain::handle(directory_);
+
+	QList<value_type> a;
+	m_service->getVzHelper()->getCtConfigList(m_session, m_flags, a);
+	foreach(const value_type& i, a)
+	{
+		deposit(*i);
+	}
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+Chain* Factory::operator()(const session_type& session_, quint32 flags_) const
+{
+	Chain *x = NULL, *output = NULL;
+	quint32 m = flags_ & (PVTF_VM | PVTF_CT);
+	if (m & PVTF_CT)
+		output = x = new Ct(session_, flags_, *m_service);
+
+	if (0 == m || (m & PVTF_VM))
+	{
+		Item::Factory f(*m_service);
+		Chain* y = new Vm(m_ephemeral, f(session_, flags_));
+		if (NULL == x)
+			output = y;
+		else
+			x->setNext(y);
+
+		x = y;
+		x->setNext(new Template::Vm(m_ephemeral, f(session_, flags_)));
+	}
+
+	return output;
+}
+
+} // namespace Directory
+} // namespace List
 
