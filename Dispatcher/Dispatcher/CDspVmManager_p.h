@@ -981,12 +981,19 @@ struct Killer
 
 struct Fallback: Fork::Timeout::Handler
 {
+	typedef boost::optional<VIRTUAL_MACHINE_STATE> exception_type;
+
 	Fallback(const QString& uuid_, Libvirt::Result& sink_):
 		m_uuid(uuid_), m_sink(&sink_)
 	{
+		setException(VMS_STOPPED);
 	}
 
 	void react();
+	void setException(const exception_type& value_)
+	{
+		m_exception = value_;
+	}
 	static quint32 getTimeout();
 	static Fallback* craft(const QString& uuid_, Libvirt::Result& sink_)
 	{
@@ -995,6 +1002,7 @@ struct Fallback: Fork::Timeout::Handler
 
 private:
 	QString m_uuid;
+	exception_type m_exception;
 	Libvirt::Result* m_sink;
 };
 
