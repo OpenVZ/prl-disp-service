@@ -30,7 +30,9 @@
 #include <prlsdk/PrlEnums.h>
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/optional.hpp>
+#include <prlcommon/PrlCommonUtilsBase/SysError.h>
 
+class CDspService;
 class CDspVmDirManager;
 namespace Vm
 {
@@ -220,6 +222,31 @@ private:
 };
 
 } // namespace Dao
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ephemeral
+
+struct Ephemeral: QObject
+{
+	typedef QSet<QString> directoryList_type;
+
+	explicit Ephemeral(CDspService& service_);
+
+	Prl::Expected<QString, PRL_RESULT> insert(const QString& path_);
+	PRL_RESULT remove(const QString& uid_);
+	boost::optional<QString> find(const QString& path_) const;
+	directoryList_type snapshot() const;
+
+private:
+	typedef CDspLockedPointer<CVmDirectories> catalogPointer_type;
+
+	catalogPointer_type getCatalog() const;
+
+	mutable QMutex m_mutex;
+	CDspService* m_service;
+	directoryList_type m_directoryList;
+};
+
 } // namespace Directory
 } // namespace Vm
 
@@ -233,7 +260,7 @@ class CDspVmDirManager
 	friend class CDspVm;
 
 public:
-	CDspVmDirManager();
+	explicit CDspVmDirManager(::Vm::Directory::Ephemeral& ephemeral_);
 	~CDspVmDirManager();
 
 	/**
@@ -379,6 +406,7 @@ private:
 	QMutex	m_mutex;
 	QString m_vmDirCatalogueFile;
 	CVmDirectories m_vmDirCatalogue;
-
+	::Vm::Directory::Ephemeral* m_ephemeral;
 };
+
 #endif //H__CDspVmDirManager__H

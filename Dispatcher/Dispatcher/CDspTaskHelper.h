@@ -131,10 +131,10 @@ public:
 	SmartPtr<IOPackage> getRequestPackage ();
 	PRL_UINT32 getRequestFlags ();
 
-	CVmEvent *getLastError();
+	CVmEvent *getLastError() const;
 
 	// method to easy access to getLastError()->getEventCode()
-	PRL_RESULT	getLastErrorCode();
+	PRL_RESULT getLastErrorCode() const;
 
 	// Flag allows to cancel task on client disconnect.
 	// NOTE: Some tasks ask questions on cancel and can hangs here ( convertBootcamp )!

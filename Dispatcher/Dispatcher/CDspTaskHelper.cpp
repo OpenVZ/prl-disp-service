@@ -420,7 +420,7 @@ void	CDspTaskHelper::reassignTask( SmartPtr<CDspClient>& pNewClient, const Smart
 /**
  * @brief Return last error
  */
-CVmEvent *CDspTaskHelper::getLastError()
+CVmEvent *CDspTaskHelper::getLastError() const
 {
 	PRL_ASSERT( m_pLastError );
 	return m_pLastError;
@@ -431,7 +431,7 @@ CDspLockedPointer<CVmEvent> CDspTaskHelper::getTaskParameters()
 	return CDspLockedPointer<CVmEvent> ( &m_mtxTaskParams, &m_evtTaskParams );
 }
 
-PRL_RESULT	CDspTaskHelper::getLastErrorCode()
+PRL_RESULT CDspTaskHelper::getLastErrorCode() const
 {
 	return getLastError()->getEventCode();
 }

@@ -35,8 +35,8 @@
 #include "CDspVzHelper.h"
 
 
-CDspVmDirManager::CDspVmDirManager()
-:m_mutex( QMutex::Recursive )
+CDspVmDirManager::CDspVmDirManager(::Vm::Directory::Ephemeral& ephemeral_):
+	m_mutex(QMutex::Recursive), m_ephemeral(&ephemeral_)
 {
 }
 
@@ -329,22 +329,29 @@ PRL_RESULT CDspVmDirManager::deleteVmDirItem( const QString& dirUuid, const QStr
 	return res;
 }
 
-PRL_RESULT	CDspVmDirManager::saveVmDirCatalogue()
+PRL_RESULT CDspVmDirManager::saveVmDirCatalogue()
 {
 	CDspLockedPointer<CVmDirectories> pCatalogue = getVmDirCatalogue();
-	QFile f(m_vmDirCatalogueFile);
-	PRL_RESULT save_rc = pCatalogue->saveToFile(&f);
-	if( PRL_FAILED( save_rc ) )
+	CVmDirectories x(pCatalogue.getPtr());
+	QList<CVmDirectory* > y;
+	x.m_lstVmDirectory.swap(y);
+	QSet<QString> g = m_ephemeral->snapshot();
+	foreach (CVmDirectory* d, y)
 	{
-		WRITE_TRACE(DBG_FATAL, "Error %s on save VM catalogue file. Reason: %ld: %s. path = '%s'"
-			, PRL_RESULT_TO_STRING(save_rc)
-			, Prl::GetLastError()
-			, QSTR2UTF8( Prl::GetLastErrorAsString() )
-			, QSTR2UTF8( m_vmDirCatalogueFile )
-			);
+		if (g.contains(d->getUuid()))
+			delete d;
+		else
+			x.m_lstVmDirectory << d;
+	}
+	QFile f(m_vmDirCatalogueFile);
+	PRL_RESULT e = x.saveToFile(&f);
+	if (PRL_FAILED(e))
+	{
+		WRITE_TRACE(DBG_FATAL, "Error %s on save VM catalogue file. Reason: %ld: %s. path = '%s'",
+			PRL_RESULT_TO_STRING(e), Prl::GetLastError(),
+			QSTR2UTF8(Prl::GetLastErrorAsString()), QSTR2UTF8(m_vmDirCatalogueFile));
 		return PRL_ERR_SAVE_VM_CATALOG;
 	}
-
 	return PRL_ERR_SUCCESS;
 }
 
@@ -771,6 +778,80 @@ QString getFolder(const QString& uuid_)
 	CDspLockedPointer<CVmDirectory> x = CDspService::instance()
 				->getVmDirManager().getVmDirectory(uuid_);
 	return x.isValid() ? x->getDefaultVmFolder() : QString();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ephemeral
+
+Ephemeral::Ephemeral(CDspService& service_): QObject(&service_), m_service(&service_)
+{
+}
+
+Prl::Expected<QString, PRL_RESULT> Ephemeral::insert(const QString& path_)
+{
+	catalogPointer_type a = getCatalog();
+	foreach (CVmDirectory* d, a->m_lstVmDirectory)
+	{
+		if (path_ == d->getDefaultVmFolder())
+			return PRL_ERR_VM_DIR_CONFIG_ALREADY_EXISTS;
+	}
+	QScopedPointer<CVmDirectory> d(new CVmDirectory
+		(Uuid::createUuid(), path_, "Ephemeral directory"));
+	QString output = d->getUuid();
+	a->addVmDirectory(d.take());
+	QMutexLocker g(&m_mutex);
+	m_directoryList.insert(output);
+
+	return output;
+}
+
+PRL_RESULT Ephemeral::remove(const QString& uid_)
+{
+	catalogPointer_type a = getCatalog();
+	QMutexLocker g(&m_mutex);
+	if (!m_directoryList.contains(uid_))
+		return PRL_ERR_FILE_NOT_FOUND;
+
+	CVmDirectory* d = a->getVmDirectoryByUuid(uid_);
+	if (NULL == d)
+		return PRL_ERR_FILE_NOT_FOUND;
+
+	if (!d->m_lstVmDirectoryItems.isEmpty())
+		return PRL_ERR_INVALID_HANDLE;
+
+	a->m_lstVmDirectory.removeOne(d);
+	delete d;
+	m_directoryList.remove(uid_);
+
+	return PRL_ERR_SUCCESS;
+}
+
+boost::optional<QString> Ephemeral::find(const QString& path_) const
+{
+	catalogPointer_type a = getCatalog();
+	foreach (CVmDirectory* d, a->m_lstVmDirectory)
+	{
+		if (path_ == d->getDefaultVmFolder())
+		{
+			QMutexLocker g(&m_mutex);
+			if (!m_directoryList.contains(d->getUuid()))
+				break;
+
+			return d->getUuid();
+		}
+	}
+	return boost::none;
+}
+
+Ephemeral::directoryList_type Ephemeral::snapshot() const
+{
+	QMutexLocker g(&m_mutex);
+	return m_directoryList;
+}
+
+Ephemeral::catalogPointer_type Ephemeral::getCatalog() const
+{
+	return m_service->getVmDirManager().getVmDirCatalogue();
 }
 
 namespace Dao
