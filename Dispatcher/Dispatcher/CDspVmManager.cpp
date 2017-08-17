@@ -970,6 +970,7 @@ void Reactor<PVE::DspCmdVmStop>::react()
 {
 	Libvirt::Result e;
 	Shutdown::Fallback f(m_context.getVmUuid(), e);
+	f.setException(boost::none);
 	f.react();
 	if (e.isFailed())
 	{
@@ -1342,11 +1343,16 @@ Libvirt::Result Killer::operator()(const QString& uuid_)
 
 void Fallback::react()
 {
-	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+	bool x = true;
 	Libvirt::Instrument::Agent::Vm::Limb::State u =
 		Libvirt::Kit.vms().at(m_uuid).getState();
-	*m_sink = u.getValue(s);
-	if (m_sink->isSucceed() && s != VMS_STOPPED)
+	if (m_exception)
+	{
+		VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+		*m_sink = u.getValue(s);
+		x = (m_sink->isSucceed() && s != m_exception.get());
+	}
+	if (x)  
 		*m_sink = u.kill();
 
 	emit finish();
