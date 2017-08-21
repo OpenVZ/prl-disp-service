@@ -84,7 +84,7 @@ QString PrlNet::findAdapterName(const QString& mac_, unsigned short vlan_)
 
 	foreach(const EthIface& e, l)
 	{
-		if (ethAddressToString(e._macAddr) == mac_ && e._vlanTag == vlan_)
+		if (mac_.compare(ethAddressToString(e._macAddr), Qt::CaseInsensitive) == 0 && e._vlanTag == vlan_)
 			return QString(e._name);
 	}
 
