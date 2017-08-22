@@ -75,7 +75,7 @@ boost::optional<CVmConfiguration> Frontend::getConfig() const
 
 	PRL_RESULT r = getHome().isEmpty() ? PRL_ERR_FAILURE :
 		// got it from CDspVmDirHelper::getVmConfigForDirectoryItem
-		CDspService::instance()->getVmConfigManager().loadConfig(
+		m_service->getVmConfigManager().loadConfig(
 			x, getHome(), SmartPtr<CDspClient>(0), true, false);
 
 	if (PRL_SUCCEEDED(r))
