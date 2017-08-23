@@ -1011,7 +1011,9 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 				pUserSession->sendSimpleResponse(pkg, PRL_ERR_VM_DIRECTORY_NOT_EXIST);
 				return false;
 			}
-			x->handle(*d);
+			CVmDirectory y(d.getPtr());
+			d.unlock();
+			x->handle(y);
 		}
 		lstVmConfigurations = x->getResult();
 	}

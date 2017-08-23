@@ -75,7 +75,6 @@ private:
 			boost::function<quint32(const CVmClusteredDevice*)> getter_) const;
 	QString tryToConnect(const CVmHardware& hardware_, const QString& image_) const;
 	QString prepareNewCdrom(const CVmHardware& hardware_, const QString& image_) const;
-	QString getHomeDir(const QString& dirUuid_, const QString& vmUuid_) const;
 };
 
 #endif // __DSPVMGUESTPERSONALITY_H__
