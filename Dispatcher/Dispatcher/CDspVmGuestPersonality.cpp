@@ -186,10 +186,12 @@ void CDspVmGuestPersonality::slotVmPersonalityChanged(QString vmDirUuid_, QStrin
 	if (s != VMS_STOPPED)
 		return;
 
-	QString h(getHomeDir(vmDirUuid_, vmUuid_));
+	QString h(vm->getVmIdentification()->getHomePath());
 	if (h.isEmpty())
+	{
+		WRITE_TRACE(DBG_FATAL, "Unable to get %s home", QSTR2UTF8(vmUuid_));
 		return;
-
+	}
 	QString p = Personalize::getIsoPath(h);
 	CAuthHelper r;
 	if (!CFileHelper::FileExists(p, &r))
@@ -211,18 +213,6 @@ void CDspVmGuestPersonality::slotVmPersonalityChanged(QString vmDirUuid_, QStrin
 				cdrom, EVT_PARAM_VMCFG_NEW_DEVICE_CONFIG));
 	Task_EditVm::atomicEditVmConfigByVm(vmDirUuid_, vmUuid_,
 			e, CDspClient::makeServiceUser(vmDirUuid_));
-}
-
-QString CDspVmGuestPersonality::getHomeDir(const QString& dirUuid_, const QString& vmUuid_) const
-{
-	CDspLockedPointer<CVmDirectoryItem> p =
-		CDspService::instance()->getVmDirManager().getVmDirItemByUuid(dirUuid_, vmUuid_);
-	if (!p)
-	{
-		WRITE_TRACE(DBG_FATAL, "Unable to get dir item");
-		return "";
-	}
-	return p->getVmHome();
 }
 
 QString CDspVmGuestPersonality::tryToConnect(const CVmHardware& hardware_, const QString& image_) const
