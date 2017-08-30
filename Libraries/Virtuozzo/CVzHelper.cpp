@@ -3268,25 +3268,17 @@ int CVzHelper::get_env_disk_stat(const SmartPtr<CVmConfiguration>& config,
 		QList< Statistics::Filesystem>& fs,
 		QList< Statistics::Disk>& disks)
 {
-	QString uuid = config->getVmIdentification()->getVmUuid();
-	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
-	if (ctid.isEmpty())
-		return PRL_ERR_CT_NOT_FOUND;
-	int ret;
-	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
-	if (h == NULL) {
-		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
-			QSTR2UTF8(uuid), vzctl2_get_last_error());
-		return -1;
-	}
-
 	QList<Statistics::Filesystem> f_tmp;
 	QList<Statistics::Disk> d_tmp;
 	foreach (const CVmHardDisk& hdd, config->getVmHardwareList()->m_lstHardDisks) {
 		struct vzctl_disk_stats stats;
-		ret = vzctl2_env_get_disk_stats(h, QSTR2UTF8(hdd.getUuid()),
-				&stats, sizeof(stats));
-		if (ret)
+
+		if (hdd.getEmulatedType() == PVE::RealHardDisk ||
+				!hdd.getStorageURL().isEmpty())
+			continue;
+
+		if (vzctl2_get_disk_stats(QSTR2UTF8(hdd.getUserFriendlyName()),
+				&stats, sizeof(stats)))
 			return PRL_ERR_FAILURE;
 
 		Statistics::Disk d;
