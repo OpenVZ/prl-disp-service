@@ -3268,103 +3268,154 @@ Vm::Action* Factory::craftLimit(const Request& input_) const
 
 } // namespace Cpu
 
+namespace Hotplug
+{
+namespace Traits
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Hotplug
+// struct Generic
 
-template<>
-QList<CVmHardDisk* > Hotplug<CVmHardDisk>::getList(const CVmHardware* hardware_)
+template<class T>
+bool Generic<T>::canPlug(const device_type& novel_)
 {
-	return hardware_->m_lstHardDisks;
-}
-
-template<>
-QList<CVmSerialPort* > Hotplug<CVmSerialPort>::getList(const CVmHardware* hardware_)
-{
-	return hardware_->m_lstSerialPorts;
-}
-
-template<>
-QList<CVmGenericNetworkAdapter* > Hotplug<CVmGenericNetworkAdapter>::getList(const CVmHardware* hardware_)
-{
-	return hardware_->m_lstNetworkAdapters;
+	return PVE::DeviceEnabled == novel_.getEnabled() &&
+		novel_.getConnected() == PVE::DeviceConnected;
 }
 
 template<class T>
-Action* Hotplug<T>::operator()(const Request& input_) const
+bool Generic<T>::canPlug(const device_type& original_, const device_type& update_)
+{
+	return (PVE::DeviceEnabled == update_.getEnabled() &&
+		PVE::DeviceConnected == update_.getConnected() &&
+		(update_.getEnabled() != original_.getEnabled() ||
+		update_.getConnected() != original_.getConnected()));
+}
+
+template<class T>
+typename Generic<T>::device_type* Generic<T>::match(device_type* needle_, const haystack_type& haystack_)
+{
+	return CXmlModelHelper::IsElemInList(needle_, haystack_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Specific<CVmHardDisk>
+
+Specific<CVmHardDisk>::device_type*
+Specific<CVmHardDisk>::match(device_type* needle_, const haystack_type& haystack_)
+{
+	typedef haystack_type::const_iterator iterator_type;
+
+	iterator_type e = haystack_.end();
+	iterator_type x = std::find_if(haystack_.begin(), e,
+		boost::bind(isHardDisksSystemPathEqual, _1, needle_));
+	if (e == x)
+		return NULL;
+
+	return *x;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Specific<CVmGenericNetworkAdapter>
+
+bool Specific<CVmGenericNetworkAdapter>::canPlug(const device_type& novel_)
+{
+	return PVE::DeviceEnabled == novel_.getEnabled();
+}
+
+bool Specific<CVmGenericNetworkAdapter>
+	::canPlug(const device_type& original_, const device_type& update_)
+{
+	return (PVE::DeviceEnabled == update_.getEnabled() &&
+		update_.getEnabled() != original_.getEnabled());
+}
+
+bool Specific<CVmGenericNetworkAdapter>
+	::canUpdate(const device_type& original_, const device_type& update_)
+{
+	return (PVE::DeviceEnabled == update_.getEnabled() &&
+		update_.getEnabled() == original_.getEnabled() &&
+		update_.getConnected() != original_.getConnected());
+}
+
+} // namespace Traits
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Generic
+
+template<class T>
+Action* Generic<T>::operator()(const Request& input_) const
 {
 	Forge f(input_);
 	Action* output = NULL;
-	QList<T* > o = getList(input_.getStart().getVmHardwareList());
-	QList<T* > n = getList(input_.getFinal().getVmHardwareList());
-	foreach (T* d, getDifference(n, o))
+	haystack_type o = traits_type::point(input_.getStart().getVmHardwareList());
+	haystack_type n = traits_type::point(input_.getFinal().getVmHardwareList());
+	foreach (device_type* d, n)
 	{
-		Action* a = f.craftRuntime(boost::bind(
-			&Libvirt::Instrument::Agent::Vm::Editor::plug<T>,
-			_1, *d));
-		a->setNext(output);
-		output = a;
-	}
-	foreach (T* d, getDifference(o, n))
-	{
-		Action* a = f.craftRuntime(boost::bind(
-			&Libvirt::Instrument::Agent::Vm::Editor::unplug<T>,
-			_1, *d));
-		a->setNext(output);
-		output = a;
-	}
-	return output;
-}
-
-template<class T>
-QList<T* > Hotplug<T>::getDifference(const QList<T* >& first_,
-				const QList<T* >& second_)
-{
-	QList<T* > output;
-	foreach (T* d, first_)
-	{
-		T* x = CXmlModelHelper::IsElemInList(d, second_);
-		if (NULL == x)
+		device_type* x = traits_type::match(d, o);
+		if ((NULL == x) ? traits_type::canPlug(*d) : traits_type::canPlug(*x, *d))
 		{
-			if (PVE::DeviceEnabled == d->getEnabled() &&
-				PVE::DeviceConnected == d->getConnected())
-				output << d;
+			Action* a = f.craftRuntime(boost::bind(
+				&Libvirt::Instrument::Agent::Vm::Editor::plug<T>,
+				_1, *d));
+			a->setNext(output);
+			output = a;
 		}
-		else if (PVE::DeviceEnabled == d->getEnabled() &&
-			PVE::DeviceConnected == d->getConnected() &&
-			(d->getEnabled() != x->getEnabled() ||
-			d->getConnected() != x->getConnected()))
+	}
+	foreach (device_type* d, o)
+	{
+		device_type* x = traits_type::match(d, n);
+		if ((NULL == x) ? traits_type::canPlug(*d) : traits_type::canPlug(*x, *d))
 		{
-			output << d;
+			Action* a = f.craftRuntime(boost::bind(
+				&Libvirt::Instrument::Agent::Vm::Editor::unplug<T>,
+				_1, *d));
+			a->setNext(output);
+			output = a;
 		}
 	}
 	return output;
 }
 
-template<>
-QList<CVmHardDisk* > Hotplug<CVmHardDisk>::getDifference(const QList<CVmHardDisk* >& first_,
-				const QList<CVmHardDisk* >& second_)
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory<CVmGenericNetworkAdapter>
+
+Action* Factory<CVmGenericNetworkAdapter>::operator()(const Request& input_) const
 {
-	QList<CVmHardDisk* > output;
-	foreach (CVmHardDisk* d, first_)
+	Forge f(input_);
+	QList<Action* > c;
+	Action* output = generic_type::operator()(input_);
+	haystack_type o = traits_type::point(input_.getStart().getVmHardwareList());
+	haystack_type n = traits_type::point(input_.getFinal().getVmHardwareList());
+	foreach (device_type* d, n)
 	{
-		QList<CVmHardDisk *>::const_iterator x =
-			std::find_if(second_.begin(), second_.end(), boost::bind(isHardDisksSystemPathEqual, _1, d));
-		if (x == second_.end())
+		device_type* x = traits_type::match(d, o);
+		if (NULL == x || !traits_type::canUpdate(*x, *d))
+			continue;
+
+		c << f.craftRuntime(boost::bind(
+			&Libvirt::Instrument::Agent::Vm::Editor::update<CVmGenericNetworkAdapter>,
+			_1, *d));
+	}
+	if (!c.isEmpty())
+	{
+		c.push_front(f.craft(boost::bind(&kick, _1)));
+		foreach (Action* a, c)
 		{
-			if (PVE::DeviceEnabled == d->getEnabled() &&
-				PVE::DeviceConnected == d->getConnected())
-				output << d;
-		}
-		else if (PVE::DeviceEnabled == d->getEnabled() &&
-			PVE::DeviceConnected == d->getConnected() &&
-			(d->getEnabled() != (*x)->getEnabled() ||
-			d->getConnected() != (*x)->getConnected()))
-		{
-			output << d;
+			a->setNext(output);
+			output = a;
 		}
 	}
 	return output;
 }
+
+Libvirt::Result Factory<CVmGenericNetworkAdapter>::kick(Libvirt::Instrument::Agent::Vm::Unit& agent_)
+{
+	agent_.getMaintenance().emitDefined();
+	return Libvirt::Result();
+}
+
+} // namespace Hotplug
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Driver
 

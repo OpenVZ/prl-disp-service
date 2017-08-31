@@ -525,26 +525,121 @@ private:
 
 } // namespace Cpu
 
+namespace Hotplug
+{
+namespace Traits
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Hotplug
+// struct Generic
 
 template<class T>
-struct Hotplug
+struct Generic
 {
+	typedef T device_type;
+	typedef QList<device_type* > haystack_type;
+
+	static bool canPlug(const device_type& novel_);
+	static bool canPlug(const device_type& original_, const device_type& update_);
+	static device_type* match(device_type* needle_, const haystack_type& haystack_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Specific forward declaration
+
+template<class T>
+struct Specific;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Specific<CVmHardDisk>
+
+template<>
+struct Specific<CVmHardDisk>: Generic<CVmHardDisk>
+{
+        static CVmHardDisk* match(CVmHardDisk* needle_, const haystack_type& haystack_);
+        static haystack_type point(const CVmHardware* hardware_)
+	{
+		return hardware_->m_lstHardDisks;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Specific<CVmSerialPort>
+
+template<>
+struct Specific<CVmSerialPort>: Generic<CVmSerialPort>
+{
+	static haystack_type point(const CVmHardware* hardware_)
+	{
+		return hardware_->m_lstSerialPorts;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Specific<CVmGenericNetworkAdapter>
+
+template<>
+struct Specific<CVmGenericNetworkAdapter>
+{
+	typedef Generic<CVmGenericNetworkAdapter> generic_type;
+	typedef generic_type::device_type device_type;
+	typedef generic_type::haystack_type haystack_type;
+
+	static haystack_type point(const CVmHardware* hardware_)
+	{
+		return hardware_->m_lstNetworkAdapters;
+	}
+	static device_type* match(device_type* needle_, const haystack_type& haystack_)
+	{
+		return generic_type::match(needle_, haystack_);
+	}
+	static bool canPlug(const device_type& novel_);
+	static bool canPlug(const device_type& original_, const device_type& update_);
+	static bool canUpdate(const device_type& original_, const device_type& update_);
+};
+
+} // namespace Traits
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Generic
+
+template<class T>
+struct Generic
+{
+	typedef Traits::Specific<T> traits_type;
+	typedef typename traits_type::device_type device_type;
+	typedef typename traits_type::haystack_type haystack_type;
+
+	Action* operator()(const Request& input_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+template<class T>
+struct Factory: Generic<T>
+{
+};
+
+template<>
+struct Factory<CVmGenericNetworkAdapter>: Generic<CVmGenericNetworkAdapter>
+{
+	typedef Generic<CVmGenericNetworkAdapter> generic_type;
+
 	Action* operator()(const Request& input_) const;
 
 private:
-	static QList<T* > getList(const CVmHardware* hardware_);
-	static QList<T* > getDifference(const QList<T* >& first_,
-					const QList<T* >& second_);
+	static Libvirt::Result kick(Libvirt::Instrument::Agent::Vm::Unit& agent_);
 };
+
+} // namespace Hotplug
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Driver
 
 typedef boost::mpl::vector<ChangeableMedia<CVmOpticalDisk>, ChangeableMedia<CVmFloppyDisk>,
-		Adapter, Hotplug<CVmSerialPort>, Hotplug<CVmHardDisk>, Hotplug<CVmGenericNetworkAdapter>,
-		Disk, Blkiotune, Network::Factory, Vcmmd, Cpu::Factory> probeList_type;
+		Adapter, Hotplug::Factory<CVmSerialPort>, Hotplug::Factory<CVmHardDisk>,
+		Hotplug::Factory<CVmGenericNetworkAdapter>, Disk, Blkiotune,
+		Network::Factory, Vcmmd, Cpu::Factory> probeList_type;
 
 struct Driver: Gear<Driver, probeList_type>
 {
