@@ -130,7 +130,9 @@ private:
 template<>
 bool Match<CVmHardDisk>::operator()(const CVmHardDisk* item_)
 {
-	return item_->getSystemName() == m_needle->getSystemName();
+	return (item_->getSystemName() == m_needle->getSystemName() ||
+		(!item_->getSerialNumber().isEmpty() && 
+		(item_->getSerialNumber() == m_needle->getSerialNumber())));
 }
 
 template<>
