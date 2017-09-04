@@ -263,8 +263,8 @@ struct Iotune: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1067::types, 0>::type& iopsLimit_) const;
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1063::types, 0>::type& ioLimit_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1073::types, 0>::type& iopsLimit_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1069::types, 0>::type& ioLimit_) const;
 
 private:
 	CVmHardDisk* m_disk;
@@ -400,18 +400,18 @@ struct Device: boost::static_visitor<PRL_RESULT>
 	{
 		return PRL_ERR_SUCCESS;
 	}
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 0>::type& disk_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 1>::type& controller_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 4>::type& interface_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 5>::type& input_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 6>::type& sound_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 8>::type& graphics_) const
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice952::types, 0>::type& disk_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice952::types, 1>::type& controller_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice952::types, 4>::type& interface_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice952::types, 5>::type& input_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice952::types, 6>::type& sound_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice952::types, 8>::type& graphics_) const
 	{
 		return boost::apply_visitor(Graphics(*m_vm), graphics_.getValue()); 
 	}
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 9>::type& video_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 11>::type& parallel_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 12>::type& serial_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice952::types, 9>::type& video_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice952::types, 11>::type& parallel_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice952::types, 12>::type& serial_) const;
 
 private:
 	Clip* m_clip;
@@ -504,17 +504,17 @@ struct Addressing: boost::static_visitor<void>
 		consume(group_.getValue().getProtocol());
 		consume(group_.getValue().getProtocol2());
 	}
-	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1292::types, 0>::type& ) const
+	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1300::types, 0>::type& ) const
 	{
 		m_sink->setConfigureWithDhcp(true);
 	}
-	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1292::types, 1>::type& ) const
+	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1300::types, 1>::type& ) const
 	{
 		m_sink->setConfigureWithDhcp(false);
 	}
 
 private:
-	void consume(const boost::optional<Libvirt::Iface::Xml::VChoice1292 >& ipv4_) const
+	void consume(const boost::optional<Libvirt::Iface::Xml::VChoice1300 >& ipv4_) const
 	{
 		if (ipv4_)
 			boost::apply_visitor(*this, ipv4_.get());
@@ -546,7 +546,7 @@ struct Collect: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 1>::type& controller_) const
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice952::types, 1>::type& controller_) const
 	{
 		m_output->append(controller_.getValue());
 	}
@@ -569,7 +569,7 @@ struct Scsi: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice595::types, 1>::type& model_) const
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice601::types, 1>::type& model_) const
 	{
 		if (!model_.getValue())
 			return;
@@ -615,7 +615,7 @@ struct Usb: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice595::types, 2>::type& usb_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice601::types, 2>::type& usb_) const;
 private:
 	CVmUsbController *m_settings;
 	CVmHardware *m_hardware;
@@ -702,11 +702,11 @@ struct Mask: boost::static_visitor<void>
 	void operator()(const T& ) const
 	{
 	}
-	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice1192::types, 0>::type& addr_) const
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice1196::types, 0>::type& addr_) const
 	{
 		m_result->setIPNetMask(QHostAddress(addr_.getValue()));
 	}
-	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice1192::types, 1>::type& prefix_) const
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice1196::types, 1>::type& prefix_) const
 	{
 		boost::apply_visitor(*this, prefix_.getValue());
 	}
@@ -801,7 +801,7 @@ struct Master: boost::static_visitor<bool>
 	{
 		return false;
 	}
-	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1256::types, 0>::type& ethernet_) const
+	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1264::types, 0>::type& ethernet_) const
 	{
 		m_result->setDeviceName(ethernet_.getValue().getName());
 		if (ethernet_.getValue().getMac())
@@ -811,7 +811,7 @@ struct Master: boost::static_visitor<bool>
 		}
 		return true;
 	}
-	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1256::types, 1>::type& vlan_) const
+	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1264::types, 1>::type& vlan_) const
 	{
 		Libvirt::Iface::Xml::VlanInterfaceCommon c = vlan_.getValue().getVlanInterfaceCommon();
 		if (c.getName())
@@ -821,7 +821,7 @@ struct Master: boost::static_visitor<bool>
 		m_result->setVLANTag(v.getTag());
 		return true;
 	}
-	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1256::types, 2>::type& bond_) const
+	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1264::types, 2>::type& bond_) const
 	{
 		Libvirt::Iface::Xml::BondInterfaceCommon c = bond_.getValue().getBondInterfaceCommon();
 		m_result->setDeviceName(c.getName());
@@ -897,7 +897,7 @@ namespace Fixup
 
 struct DiskForm: boost::static_visitor<PRL_RESULT>
 {
-	DiskForm(CVmHardware* hardware_, QList<Libvirt::Domain::Xml::VChoice946>* list_,
+	DiskForm(CVmHardware* hardware_, QList<Libvirt::Domain::Xml::VChoice952>* list_,
 			const Libvirt::Domain::Xml::Disk& disk_)
 		: m_hardware(hardware_), m_list(list_), m_disk(disk_)
 	{
@@ -911,7 +911,7 @@ struct DiskForm: boost::static_visitor<PRL_RESULT>
 
 private:
 	CVmHardware* m_hardware;
-	QList<Libvirt::Domain::Xml::VChoice946>* m_list;
+	QList<Libvirt::Domain::Xml::VChoice952>* m_list;
 	mutable Libvirt::Domain::Xml::Disk m_disk;
 };
 
@@ -920,7 +920,7 @@ private:
 
 struct Device: boost::static_visitor<PRL_RESULT>
 {
-	Device(const CVmHardware& hardware_, QList<Libvirt::Domain::Xml::VChoice946>& list_)
+	Device(const CVmHardware& hardware_, QList<Libvirt::Domain::Xml::VChoice952>& list_)
 		: m_hardware(hardware_), m_list(&list_)
 	{
 	}
@@ -931,12 +931,12 @@ struct Device: boost::static_visitor<PRL_RESULT>
 		*m_list << device_;
 		return PRL_ERR_SUCCESS;
 	}
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 0>::type& disk_);
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 12>::type& serial_);
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice952::types, 0>::type& disk_);
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice952::types, 12>::type& serial_);
 
 private:
 	CVmHardware m_hardware;
-	QList<Libvirt::Domain::Xml::VChoice946>* m_list;
+	QList<Libvirt::Domain::Xml::VChoice952>* m_list;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -983,17 +983,17 @@ struct Device: boost::static_visitor<void>
 	void operator()(const T&) const
 	{
 	}
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice946::types, 7>::type& passthrough_)
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice952::types, 7>::type& passthrough_)
 	{
 		m_result << passthrough_;
 	}
-	const QList<Libvirt::Domain::Xml::VChoice946>& getResult() const
+	const QList<Libvirt::Domain::Xml::VChoice952>& getResult() const
 	{
 		return m_result;
 	}
 
 private:
-	QList<Libvirt::Domain::Xml::VChoice946> m_result;
+	QList<Libvirt::Domain::Xml::VChoice952> m_result;
 };      
         
 } // namespace Mixer
