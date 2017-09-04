@@ -405,7 +405,7 @@ bool Validatable<Network::Xml::PDeviceName>::validate(const Network::Xml::PDevic
 
 bool Validatable<Network::Xml::PFilePath>::validate(const Network::Xml::PFilePath::value_type& value_)
 {
-	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%:\\s]+");
+	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ]+");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -417,7 +417,7 @@ bool Validatable<Network::Xml::PFilePath>::validate(const Network::Xml::PFilePat
 
 bool Validatable<Network::Xml::PDirPath>::validate(const Network::Xml::PDirPath::value_type& value_)
 {
-	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%:\\s]+");
+	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ]+");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -429,7 +429,7 @@ bool Validatable<Network::Xml::PDirPath>::validate(const Network::Xml::PDirPath:
 
 bool Validatable<Network::Xml::PAbsFilePath>::validate(const Network::Xml::PAbsFilePath::value_type& value_)
 {
-	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%,:\\s]+");
+	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%,: ]+");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -441,7 +441,7 @@ bool Validatable<Network::Xml::PAbsFilePath>::validate(const Network::Xml::PAbsF
 
 bool Validatable<Network::Xml::PAbsDirPath>::validate(const Network::Xml::PAbsDirPath::value_type& value_)
 {
-	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%:\\s]*");
+	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ]*");
 	if (!q.exactMatch(value_))
 		return false;
 

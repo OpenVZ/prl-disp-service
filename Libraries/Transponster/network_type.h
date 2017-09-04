@@ -216,14 +216,14 @@ private:
 } // namespace Network
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VChoice1178
+// struct VChoice1182
 
 namespace Network
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<ZeroOrMore<Element<Network::Xml::Interface, Name::Strict<623> > >, ZeroOrMore<Element<Network::Xml::Address, Name::Strict<106> > > > > VChoice1178Impl;
-typedef VChoice1178Impl::value_type VChoice1178;
+typedef Choice<mpl::vector<ZeroOrMore<Element<Network::Xml::Interface, Name::Strict<629> > >, ZeroOrMore<Element<Network::Xml::Address, Name::Strict<106> > > > > VChoice1182Impl;
+typedef VChoice1182Impl::value_type VChoice1182;
 
 } // namespace Xml
 } // namespace Network
@@ -374,13 +374,13 @@ struct Forward
 	{
 		m_managed = value_;
 	}
-	const VChoice1178& getChoice1178() const
+	const VChoice1182& getChoice1182() const
 	{
-		return m_choice1178;
+		return m_choice1182;
 	}
-	void setChoice1178(const VChoice1178& value_)
+	void setChoice1182(const VChoice1182& value_)
 	{
-		m_choice1178 = value_;
+		m_choice1182 = value_;
 	}
 	const boost::optional<PDeviceName::value_type >& getPf() const
 	{
@@ -414,7 +414,7 @@ private:
 	boost::optional<PDeviceName::value_type > m_dev;
 	boost::optional<EMode > m_mode;
 	boost::optional<EVirYesNo > m_managed;
-	VChoice1178 m_choice1178;
+	VChoice1182 m_choice1182;
 	boost::optional<PDeviceName::value_type > m_pf;
 	boost::optional<EName > m_driver;
 	boost::optional<Nat > m_nat;
@@ -651,7 +651,7 @@ namespace Network
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Element<Ordered<mpl::vector<Attribute<mpl::int_<168>, Name::Strict<100> >, Optional<Element<Network::Xml::Parameters, Name::Strict<169> > > > >, Name::Strict<167> >, Element<Ordered<mpl::vector<Attribute<mpl::int_<175>, Name::Strict<100> >, Optional<Element<Network::Xml::Parameters1, Name::Strict<169> > > > >, Name::Strict<167> >, Element<Ordered<mpl::vector<Attribute<mpl::int_<178>, Name::Strict<100> >, Optional<Element<Network::Xml::Parameters2, Name::Strict<169> > > > >, Name::Strict<167> >, Element<Network::Xml::Virtualport, Name::Strict<167> > > > VVirtualPortProfileImpl;
+typedef Choice<mpl::vector<Element<Ordered<mpl::vector<Attribute<mpl::int_<174>, Name::Strict<100> >, Optional<Element<Network::Xml::Parameters, Name::Strict<175> > > > >, Name::Strict<173> >, Element<Ordered<mpl::vector<Attribute<mpl::int_<181>, Name::Strict<100> >, Optional<Element<Network::Xml::Parameters1, Name::Strict<175> > > > >, Name::Strict<173> >, Element<Ordered<mpl::vector<Attribute<mpl::int_<184>, Name::Strict<100> >, Optional<Element<Network::Xml::Parameters2, Name::Strict<175> > > > >, Name::Strict<173> >, Element<Network::Xml::Virtualport, Name::Strict<173> > > > VVirtualPortProfileImpl;
 typedef VVirtualPortProfileImpl::value_type VVirtualPortProfile;
 
 } // namespace Xml
@@ -892,15 +892,15 @@ private:
 } // namespace Network
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1206
+// struct Anonymous1210
 
 namespace Network
 {
 namespace Xml
 {
-struct Anonymous1206
+struct Anonymous1210
 {
-	Anonymous1206();
+	Anonymous1210();
 
 	const PDnsName::value_type& getDomain() const
 	{
@@ -981,13 +981,13 @@ struct Srv
 	{
 		m_protocol = value_;
 	}
-	const boost::optional<Anonymous1206 >& getAnonymous1206() const
+	const boost::optional<Anonymous1210 >& getAnonymous1210() const
 	{
-		return m_anonymous1206;
+		return m_anonymous1210;
 	}
-	void setAnonymous1206(const boost::optional<Anonymous1206 >& value_)
+	void setAnonymous1210(const boost::optional<Anonymous1210 >& value_)
 	{
-		m_anonymous1206 = value_;
+		m_anonymous1210 = value_;
 	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
@@ -996,7 +996,7 @@ struct Srv
 private:
 	QString m_service;
 	PProtocol::value_type m_protocol;
-	boost::optional<Anonymous1206 > m_anonymous1206;
+	boost::optional<Anonymous1210 > m_anonymous1210;
 };
 
 } // namespace Xml
@@ -1104,14 +1104,14 @@ private:
 } // namespace Network
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VChoice1192
+// struct VChoice1196
 
 namespace Network
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Attribute<Network::Xml::PIpv4Addr, Name::Strict<1190> >, Attribute<Network::Xml::VIpPrefix, Name::Strict<659> > > > VChoice1192Impl;
-typedef VChoice1192Impl::value_type VChoice1192;
+typedef Choice<mpl::vector<Attribute<Network::Xml::PIpv4Addr, Name::Strict<1194> >, Attribute<Network::Xml::VIpPrefix, Name::Strict<665> > > > VChoice1196Impl;
+typedef VChoice1196Impl::value_type VChoice1196;
 
 } // namespace Xml
 } // namespace Network
@@ -1154,34 +1154,34 @@ private:
 } // namespace Network
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VChoice1197
+// struct VChoice1201
 
 namespace Network
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Attribute<Network::Xml::PUniMacAddr, Name::Strict<641> >, Attribute<Network::Xml::VDUID, Name::Strict<197> > > > VChoice1197Impl;
-typedef VChoice1197Impl::value_type VChoice1197;
+typedef Choice<mpl::vector<Attribute<Network::Xml::PUniMacAddr, Name::Strict<647> >, Attribute<Network::Xml::VDUID, Name::Strict<203> > > > VChoice1201Impl;
+typedef VChoice1201Impl::value_type VChoice1201;
 
 } // namespace Xml
 } // namespace Network
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Host1198
+// struct Host1202
 
 namespace Network
 {
 namespace Xml
 {
-struct Host1198
+struct Host1202
 {
-	const VChoice1197& getChoice1197() const
+	const VChoice1201& getChoice1201() const
 	{
-		return m_choice1197;
+		return m_choice1201;
 	}
-	void setChoice1197(const VChoice1197& value_)
+	void setChoice1201(const VChoice1201& value_)
 	{
-		m_choice1197 = value_;
+		m_choice1201 = value_;
 	}
 	const boost::optional<QString >& getName() const
 	{
@@ -1193,7 +1193,7 @@ struct Host1198
 	}
 
 private:
-	VChoice1197 m_choice1197;
+	VChoice1201 m_choice1201;
 	boost::optional<QString > m_name;
 };
 
@@ -1207,7 +1207,7 @@ namespace Network
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Host1198, Attribute<QString, Name::Strict<102> > > > VHostImpl;
+typedef Choice<mpl::vector<Host1202, Attribute<QString, Name::Strict<102> > > > VHostImpl;
 typedef VHostImpl::value_type VHost;
 
 } // namespace Xml
@@ -1350,13 +1350,13 @@ struct Ip
 	{
 		m_address = value_;
 	}
-	const boost::optional<VChoice1192 >& getChoice1192() const
+	const boost::optional<VChoice1196 >& getChoice1196() const
 	{
-		return m_choice1192;
+		return m_choice1196;
 	}
-	void setChoice1192(const boost::optional<VChoice1192 >& value_)
+	void setChoice1196(const boost::optional<VChoice1196 >& value_)
 	{
-		m_choice1192 = value_;
+		m_choice1196 = value_;
 	}
 	const boost::optional<PAddrFamily::value_type >& getFamily() const
 	{
@@ -1388,7 +1388,7 @@ struct Ip
 
 private:
 	boost::optional<VIpAddr > m_address;
-	boost::optional<VChoice1192 > m_choice1192;
+	boost::optional<VChoice1196 > m_choice1196;
 	boost::optional<PAddrFamily::value_type > m_family;
 	boost::optional<QString > m_tftp;
 	boost::optional<Dhcp > m_dhcp;
@@ -1398,14 +1398,14 @@ private:
 } // namespace Network
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VChoice1203
+// struct VChoice1207
 
 namespace Network
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Attribute<Network::Xml::PIpv4Addr, Name::Strict<1190> >, Attribute<Network::Xml::VIpPrefix, Name::Strict<659> > > > VChoice1203Impl;
-typedef VChoice1203Impl::value_type VChoice1203;
+typedef Choice<mpl::vector<Attribute<Network::Xml::PIpv4Addr, Name::Strict<1194> >, Attribute<Network::Xml::VIpPrefix, Name::Strict<665> > > > VChoice1207Impl;
+typedef VChoice1207Impl::value_type VChoice1207;
 
 } // namespace Xml
 } // namespace Network
@@ -1435,13 +1435,13 @@ struct Route
 	{
 		m_address = value_;
 	}
-	const boost::optional<VChoice1203 >& getChoice1203() const
+	const boost::optional<VChoice1207 >& getChoice1207() const
 	{
-		return m_choice1203;
+		return m_choice1207;
 	}
-	void setChoice1203(const boost::optional<VChoice1203 >& value_)
+	void setChoice1207(const boost::optional<VChoice1207 >& value_)
 	{
-		m_choice1203 = value_;
+		m_choice1207 = value_;
 	}
 	const VIpAddr& getGateway() const
 	{
@@ -1466,7 +1466,7 @@ struct Route
 private:
 	boost::optional<PAddrFamily::value_type > m_family;
 	VIpAddr m_address;
-	boost::optional<VChoice1203 > m_choice1203;
+	boost::optional<VChoice1207 > m_choice1207;
 	VIpAddr m_gateway;
 	boost::optional<PUnsignedInt::value_type > m_metric;
 };
@@ -1634,7 +1634,7 @@ private:
 template<>
 struct Traits<Network::Xml::Bridge>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::PDeviceName, Name::Strict<102> > >, Optional<Attribute<Network::Xml::EVirOnOff, Name::Strict<1172> > >, Optional<Attribute<Network::Xml::PDelay, Name::Strict<412> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::PDeviceName, Name::Strict<102> > >, Optional<Attribute<Network::Xml::EVirOnOff, Name::Strict<1176> > >, Optional<Attribute<Network::Xml::PDelay, Name::Strict<418> > > > > marshal_type;
 
 	static int parse(Network::Xml::Bridge& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Bridge& , QDomElement& );
@@ -1646,7 +1646,7 @@ struct Traits<Network::Xml::Bridge>
 template<>
 struct Traits<Network::Xml::Interface>
 {
-	typedef Ordered<mpl::vector<Attribute<Network::Xml::PDeviceName, Name::Strict<428> >, Optional<Attribute<Network::Xml::PConnections, Name::Strict<1170> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Network::Xml::PDeviceName, Name::Strict<434> >, Optional<Attribute<Network::Xml::PConnections, Name::Strict<1174> > > > > marshal_type;
 
 	static int parse(Network::Xml::Interface& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Interface& , QDomElement& );
@@ -1670,7 +1670,7 @@ struct Traits<Network::Xml::Pciaddress>
 template<>
 struct Traits<Network::Xml::Address>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<582>, Name::Strict<100> >, Fragment<Network::Xml::Pciaddress >, Optional<Attribute<Network::Xml::PConnections, Name::Strict<1170> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<588>, Name::Strict<100> >, Fragment<Network::Xml::Pciaddress >, Optional<Attribute<Network::Xml::PConnections, Name::Strict<1174> > > > > marshal_type;
 
 	static int parse(Network::Xml::Address& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Address& , QDomElement& );
@@ -1682,7 +1682,7 @@ struct Traits<Network::Xml::Address>
 template<>
 struct Traits<Network::Xml::Address1>
 {
-	typedef Ordered<mpl::vector<Attribute<Network::Xml::PIpv4Addr, Name::Strict<308> >, Attribute<Network::Xml::PIpv4Addr, Name::Strict<1181> > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Network::Xml::PIpv4Addr, Name::Strict<314> >, Attribute<Network::Xml::PIpv4Addr, Name::Strict<1185> > > > marshal_type;
 
 	static int parse(Network::Xml::Address1& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Address1& , QDomElement& );
@@ -1694,7 +1694,7 @@ struct Traits<Network::Xml::Address1>
 template<>
 struct Traits<Network::Xml::Port>
 {
-	typedef Ordered<mpl::vector<Attribute<Network::Xml::PPort, Name::Strict<308> >, Attribute<Network::Xml::PPort, Name::Strict<1181> > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Network::Xml::PPort, Name::Strict<314> >, Attribute<Network::Xml::PPort, Name::Strict<1185> > > > marshal_type;
 
 	static int parse(Network::Xml::Port& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Port& , QDomElement& );
@@ -1706,7 +1706,7 @@ struct Traits<Network::Xml::Port>
 template<>
 struct Traits<Network::Xml::Nat>
 {
-	typedef Unordered<mpl::vector<Optional<Element<Network::Xml::Address1, Name::Strict<106> > >, Optional<Element<Network::Xml::Port, Name::Strict<201> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Optional<Element<Network::Xml::Address1, Name::Strict<106> > >, Optional<Element<Network::Xml::Port, Name::Strict<207> > > > > marshal_type;
 
 	static int parse(Network::Xml::Nat& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Nat& , QDomElement& );
@@ -1718,7 +1718,7 @@ struct Traits<Network::Xml::Nat>
 template<>
 struct Traits<Network::Xml::Forward>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::PDeviceName, Name::Strict<428> > >, Optional<Attribute<Network::Xml::EMode, Name::Strict<365> > >, Optional<Attribute<Network::Xml::EVirYesNo, Name::Strict<645> > >, Unordered<mpl::vector<Network::Xml::VChoice1178Impl, Optional<Element<Attribute<Network::Xml::PDeviceName, Name::Strict<428> >, Name::Strict<1180> > >, Optional<Element<Attribute<Network::Xml::EName, Name::Strict<102> >, Name::Strict<532> > >, Optional<Element<Network::Xml::Nat, Name::Strict<1174> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::PDeviceName, Name::Strict<434> > >, Optional<Attribute<Network::Xml::EMode, Name::Strict<371> > >, Optional<Attribute<Network::Xml::EVirYesNo, Name::Strict<651> > >, Unordered<mpl::vector<Network::Xml::VChoice1182Impl, Optional<Element<Attribute<Network::Xml::PDeviceName, Name::Strict<434> >, Name::Strict<1184> > >, Optional<Element<Attribute<Network::Xml::EName, Name::Strict<102> >, Name::Strict<538> > >, Optional<Element<Network::Xml::Nat, Name::Strict<1178> > > > > > > marshal_type;
 
 	static int parse(Network::Xml::Forward& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Forward& , QDomElement& );
@@ -1730,7 +1730,7 @@ struct Traits<Network::Xml::Forward>
 template<>
 struct Traits<Network::Xml::Parameters>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::VUint8range, Name::Strict<170> > >, Optional<Attribute<Network::Xml::VUint24range, Name::Strict<171> > >, Optional<Attribute<Network::Xml::VUint8range, Name::Strict<172> > >, Optional<Attribute<Network::Xml::VUUID, Name::Strict<173> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::VUint8range, Name::Strict<176> > >, Optional<Attribute<Network::Xml::VUint24range, Name::Strict<177> > >, Optional<Attribute<Network::Xml::VUint8range, Name::Strict<178> > >, Optional<Attribute<Network::Xml::VUUID, Name::Strict<179> > > > > marshal_type;
 
 	static int parse(Network::Xml::Parameters& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Parameters& , QDomElement& );
@@ -1742,7 +1742,7 @@ struct Traits<Network::Xml::Parameters>
 template<>
 struct Traits<Network::Xml::Parameters1>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::PVirtualPortProfileID, Name::Strict<176> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::PVirtualPortProfileID, Name::Strict<182> > > > > marshal_type;
 
 	static int parse(Network::Xml::Parameters1& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Parameters1& , QDomElement& );
@@ -1754,7 +1754,7 @@ struct Traits<Network::Xml::Parameters1>
 template<>
 struct Traits<Network::Xml::Parameters2>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::PVirtualPortProfileID, Name::Strict<176> > >, Optional<Attribute<Network::Xml::VUUID, Name::Strict<179> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::PVirtualPortProfileID, Name::Strict<182> > >, Optional<Attribute<Network::Xml::VUUID, Name::Strict<185> > > > > marshal_type;
 
 	static int parse(Network::Xml::Parameters2& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Parameters2& , QDomElement& );
@@ -1766,7 +1766,7 @@ struct Traits<Network::Xml::Parameters2>
 template<>
 struct Traits<Network::Xml::Parameters3>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::VUint8range, Name::Strict<170> > >, Optional<Attribute<Network::Xml::VUint24range, Name::Strict<171> > >, Optional<Attribute<Network::Xml::VUint8range, Name::Strict<172> > >, Optional<Attribute<Network::Xml::VUUID, Name::Strict<173> > >, Optional<Attribute<Network::Xml::PVirtualPortProfileID, Name::Strict<176> > >, Optional<Attribute<Network::Xml::VUUID, Name::Strict<179> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::VUint8range, Name::Strict<176> > >, Optional<Attribute<Network::Xml::VUint24range, Name::Strict<177> > >, Optional<Attribute<Network::Xml::VUint8range, Name::Strict<178> > >, Optional<Attribute<Network::Xml::VUUID, Name::Strict<179> > >, Optional<Attribute<Network::Xml::PVirtualPortProfileID, Name::Strict<182> > >, Optional<Attribute<Network::Xml::VUUID, Name::Strict<185> > > > > marshal_type;
 
 	static int parse(Network::Xml::Parameters3& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Parameters3& , QDomElement& );
@@ -1778,7 +1778,7 @@ struct Traits<Network::Xml::Parameters3>
 template<>
 struct Traits<Network::Xml::Virtualport>
 {
-	typedef Ordered<mpl::vector<Optional<Element<Network::Xml::Parameters3, Name::Strict<169> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Element<Network::Xml::Parameters3, Name::Strict<175> > > > > marshal_type;
 
 	static int parse(Network::Xml::Virtualport& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Virtualport& , QDomElement& );
@@ -1790,7 +1790,7 @@ struct Traits<Network::Xml::Virtualport>
 template<>
 struct Traits<Network::Xml::BandwidthAttributes>
 {
-	typedef Ordered<mpl::vector<Attribute<Network::Xml::PSpeed, Name::Strict<186> >, Optional<Attribute<Network::Xml::PSpeed, Name::Strict<187> > >, Optional<Attribute<Network::Xml::PSpeed, Name::Strict<188> > >, Optional<Attribute<Network::Xml::PBurstSize, Name::Strict<189> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Network::Xml::PSpeed, Name::Strict<192> >, Optional<Attribute<Network::Xml::PSpeed, Name::Strict<193> > >, Optional<Attribute<Network::Xml::PSpeed, Name::Strict<194> > >, Optional<Attribute<Network::Xml::PBurstSize, Name::Strict<195> > > > > marshal_type;
 
 	static int parse(Network::Xml::BandwidthAttributes& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::BandwidthAttributes& , QDomElement& );
@@ -1802,7 +1802,7 @@ struct Traits<Network::Xml::BandwidthAttributes>
 template<>
 struct Traits<Network::Xml::Bandwidth>
 {
-	typedef Unordered<mpl::vector<Optional<Element<Network::Xml::BandwidthAttributes, Name::Strict<183> > >, Optional<Element<Network::Xml::BandwidthAttributes, Name::Strict<185> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Optional<Element<Network::Xml::BandwidthAttributes, Name::Strict<189> > >, Optional<Element<Network::Xml::BandwidthAttributes, Name::Strict<191> > > > > marshal_type;
 
 	static int parse(Network::Xml::Bandwidth& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Bandwidth& , QDomElement& );
@@ -1814,7 +1814,7 @@ struct Traits<Network::Xml::Bandwidth>
 template<>
 struct Traits<Network::Xml::Tag>
 {
-	typedef Ordered<mpl::vector<Attribute<Network::Xml::PId, Name::Strict<197> >, Optional<Attribute<Network::Xml::ENativeMode, Name::Strict<198> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Network::Xml::PId, Name::Strict<203> >, Optional<Attribute<Network::Xml::ENativeMode, Name::Strict<204> > > > > marshal_type;
 
 	static int parse(Network::Xml::Tag& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Tag& , QDomElement& );
@@ -1826,7 +1826,7 @@ struct Traits<Network::Xml::Tag>
 template<>
 struct Traits<Network::Xml::Portgroup>
 {
-	typedef Ordered<mpl::vector<Attribute<Network::Xml::PDeviceName, Name::Strict<102> >, Optional<Attribute<Network::Xml::EVirYesNo, Name::Strict<136> > >, Unordered<mpl::vector<Optional<Network::Xml::VVirtualPortProfileImpl >, Optional<Element<Network::Xml::Bandwidth, Name::Strict<182> > >, Optional<Element<Ordered<mpl::vector<Optional<Attribute<mpl::int_<130>, Name::Strict<195> > >, OneOrMore<Element<Network::Xml::Tag, Name::Strict<196> > > > >, Name::Strict<194> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Network::Xml::PDeviceName, Name::Strict<102> >, Optional<Attribute<Network::Xml::EVirYesNo, Name::Strict<142> > >, Unordered<mpl::vector<Optional<Network::Xml::VVirtualPortProfileImpl >, Optional<Element<Network::Xml::Bandwidth, Name::Strict<188> > >, Optional<Element<Ordered<mpl::vector<Optional<Attribute<mpl::int_<130>, Name::Strict<201> > >, OneOrMore<Element<Network::Xml::Tag, Name::Strict<202> > > > >, Name::Strict<200> > > > > > > marshal_type;
 
 	static int parse(Network::Xml::Portgroup& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Portgroup& , QDomElement& );
@@ -1838,22 +1838,22 @@ struct Traits<Network::Xml::Portgroup>
 template<>
 struct Traits<Network::Xml::Txt>
 {
-	typedef Ordered<mpl::vector<Attribute<Network::Xml::PDnsName, Name::Strict<102> >, Attribute<QString, Name::Strict<1043> > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Network::Xml::PDnsName, Name::Strict<102> >, Attribute<QString, Name::Strict<1049> > > > marshal_type;
 
 	static int parse(Network::Xml::Txt& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Txt& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1206 traits
+// struct Anonymous1210 traits
 
 template<>
-struct Traits<Network::Xml::Anonymous1206>
+struct Traits<Network::Xml::Anonymous1210>
 {
-	typedef Ordered<mpl::vector<Attribute<Network::Xml::PDnsName, Name::Strict<1> >, Attribute<QString, Name::Strict<309> >, Attribute<Network::Xml::PUnsignedShort, Name::Strict<201> >, Attribute<Network::Xml::PUnsignedShort, Name::Strict<1188> >, Attribute<Network::Xml::PUnsignedShort, Name::Strict<339> > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Network::Xml::PDnsName, Name::Strict<1> >, Attribute<QString, Name::Strict<315> >, Attribute<Network::Xml::PUnsignedShort, Name::Strict<207> >, Attribute<Network::Xml::PUnsignedShort, Name::Strict<1192> >, Attribute<Network::Xml::PUnsignedShort, Name::Strict<345> > > > marshal_type;
 
-	static int parse(Network::Xml::Anonymous1206& , QStack<QDomElement>& );
-	static int generate(const Network::Xml::Anonymous1206& , QDomElement& );
+	static int parse(Network::Xml::Anonymous1210& , QStack<QDomElement>& );
+	static int generate(const Network::Xml::Anonymous1210& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1862,7 +1862,7 @@ struct Traits<Network::Xml::Anonymous1206>
 template<>
 struct Traits<Network::Xml::Srv>
 {
-	typedef Ordered<mpl::vector<Attribute<QString, Name::Strict<818> >, Attribute<Network::Xml::PProtocol, Name::Strict<192> >, Optional<Fragment<Network::Xml::Anonymous1206 > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<QString, Name::Strict<824> >, Attribute<Network::Xml::PProtocol, Name::Strict<198> >, Optional<Fragment<Network::Xml::Anonymous1210 > > > > marshal_type;
 
 	static int parse(Network::Xml::Srv& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Srv& , QDomElement& );
@@ -1874,7 +1874,7 @@ struct Traits<Network::Xml::Srv>
 template<>
 struct Traits<Network::Xml::Host>
 {
-	typedef Ordered<mpl::vector<Attribute<Network::Xml::VIpAddr, Name::Strict<657> >, OneOrMore<Element<Text<Network::Xml::PDnsName >, Name::Strict<1189> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Network::Xml::VIpAddr, Name::Strict<663> >, OneOrMore<Element<Text<Network::Xml::PDnsName >, Name::Strict<1193> > > > > marshal_type;
 
 	static int parse(Network::Xml::Host& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Host& , QDomElement& );
@@ -1886,7 +1886,7 @@ struct Traits<Network::Xml::Host>
 template<>
 struct Traits<Network::Xml::Dns>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::EVirYesNo, Name::Strict<1183> > >, Unordered<mpl::vector<ZeroOrMore<Element<Attribute<Network::Xml::VIpAddr, Name::Strict<1185> >, Name::Strict<1184> > >, ZeroOrMore<Element<Network::Xml::Txt, Name::Strict<1186> > >, ZeroOrMore<Element<Network::Xml::Srv, Name::Strict<1187> > >, ZeroOrMore<Element<Network::Xml::Host, Name::Strict<499> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::EVirYesNo, Name::Strict<1187> > >, Unordered<mpl::vector<ZeroOrMore<Element<Attribute<Network::Xml::VIpAddr, Name::Strict<1189> >, Name::Strict<1188> > >, ZeroOrMore<Element<Network::Xml::Txt, Name::Strict<1190> > >, ZeroOrMore<Element<Network::Xml::Srv, Name::Strict<1191> > >, ZeroOrMore<Element<Network::Xml::Host, Name::Strict<505> > > > > > > marshal_type;
 
 	static int parse(Network::Xml::Dns& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Dns& , QDomElement& );
@@ -1898,22 +1898,22 @@ struct Traits<Network::Xml::Dns>
 template<>
 struct Traits<Network::Xml::Range>
 {
-	typedef Ordered<mpl::vector<Attribute<Network::Xml::VIpAddr, Name::Strict<308> >, Attribute<Network::Xml::VIpAddr, Name::Strict<1181> > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Network::Xml::VIpAddr, Name::Strict<314> >, Attribute<Network::Xml::VIpAddr, Name::Strict<1185> > > > marshal_type;
 
 	static int parse(Network::Xml::Range& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Range& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Host1198 traits
+// struct Host1202 traits
 
 template<>
-struct Traits<Network::Xml::Host1198>
+struct Traits<Network::Xml::Host1202>
 {
-	typedef Ordered<mpl::vector<Network::Xml::VChoice1197Impl, Optional<Attribute<QString, Name::Strict<102> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Network::Xml::VChoice1201Impl, Optional<Attribute<QString, Name::Strict<102> > > > > marshal_type;
 
-	static int parse(Network::Xml::Host1198& , QStack<QDomElement>& );
-	static int generate(const Network::Xml::Host1198& , QDomElement& );
+	static int parse(Network::Xml::Host1202& , QStack<QDomElement>& );
+	static int generate(const Network::Xml::Host1202& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1922,7 +1922,7 @@ struct Traits<Network::Xml::Host1198>
 template<>
 struct Traits<Network::Xml::Host1>
 {
-	typedef Ordered<mpl::vector<Network::Xml::VHostImpl, Attribute<Network::Xml::VIpAddr, Name::Strict<657> > > > marshal_type;
+	typedef Ordered<mpl::vector<Network::Xml::VHostImpl, Attribute<Network::Xml::VIpAddr, Name::Strict<663> > > > marshal_type;
 
 	static int parse(Network::Xml::Host1& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Host1& , QDomElement& );
@@ -1934,7 +1934,7 @@ struct Traits<Network::Xml::Host1>
 template<>
 struct Traits<Network::Xml::Bootp>
 {
-	typedef Ordered<mpl::vector<Attribute<Network::Xml::PFilePath, Name::Strict<486> >, Optional<Attribute<Network::Xml::PDnsName, Name::Strict<630> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Network::Xml::PFilePath, Name::Strict<492> >, Optional<Attribute<Network::Xml::PDnsName, Name::Strict<636> > > > > marshal_type;
 
 	static int parse(Network::Xml::Bootp& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Bootp& , QDomElement& );
@@ -1946,7 +1946,7 @@ struct Traits<Network::Xml::Bootp>
 template<>
 struct Traits<Network::Xml::Dhcp>
 {
-	typedef Ordered<mpl::vector<ZeroOrMore<Element<Network::Xml::Range, Name::Strict<1195> > >, ZeroOrMore<Element<Network::Xml::Host1, Name::Strict<499> > >, Optional<Element<Network::Xml::Bootp, Name::Strict<1201> > > > > marshal_type;
+	typedef Ordered<mpl::vector<ZeroOrMore<Element<Network::Xml::Range, Name::Strict<1199> > >, ZeroOrMore<Element<Network::Xml::Host1, Name::Strict<505> > >, Optional<Element<Network::Xml::Bootp, Name::Strict<1205> > > > > marshal_type;
 
 	static int parse(Network::Xml::Dhcp& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Dhcp& , QDomElement& );
@@ -1958,7 +1958,7 @@ struct Traits<Network::Xml::Dhcp>
 template<>
 struct Traits<Network::Xml::Ip>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::VIpAddr, Name::Strict<106> > >, Optional<Network::Xml::VChoice1192Impl >, Optional<Attribute<Network::Xml::PAddrFamily, Name::Strict<658> > >, Optional<Element<Attribute<QString, Name::Strict<425> >, Name::Strict<498> > >, Optional<Element<Network::Xml::Dhcp, Name::Strict<1194> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::VIpAddr, Name::Strict<106> > >, Optional<Network::Xml::VChoice1196Impl >, Optional<Attribute<Network::Xml::PAddrFamily, Name::Strict<664> > >, Optional<Element<Attribute<QString, Name::Strict<431> >, Name::Strict<504> > >, Optional<Element<Network::Xml::Dhcp, Name::Strict<1198> > > > > marshal_type;
 
 	static int parse(Network::Xml::Ip& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Ip& , QDomElement& );
@@ -1970,7 +1970,7 @@ struct Traits<Network::Xml::Ip>
 template<>
 struct Traits<Network::Xml::Route>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::PAddrFamily, Name::Strict<658> > >, Attribute<Network::Xml::VIpAddr, Name::Strict<106> >, Optional<Network::Xml::VChoice1203Impl >, Attribute<Network::Xml::VIpAddr, Name::Strict<1205> >, Optional<Attribute<Network::Xml::PUnsignedInt, Name::Strict<1206> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::PAddrFamily, Name::Strict<664> > >, Attribute<Network::Xml::VIpAddr, Name::Strict<106> >, Optional<Network::Xml::VChoice1207Impl >, Attribute<Network::Xml::VIpAddr, Name::Strict<1209> >, Optional<Attribute<Network::Xml::PUnsignedInt, Name::Strict<1210> > > > > marshal_type;
 
 	static int parse(Network::Xml::Route& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Route& , QDomElement& );
@@ -1982,7 +1982,7 @@ struct Traits<Network::Xml::Route>
 template<>
 struct Traits<Network::Xml::Network>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::PConnections, Name::Strict<1170> > >, Optional<Attribute<Network::Xml::EVirYesNo, Name::Strict<1171> > >, Unordered<mpl::vector<Element<Text<QString >, Name::Strict<102> >, Optional<Element<Text<Network::Xml::VUUID >, Name::Strict<140> > >, Optional<Element<Network::Xml::Bridge, Name::Strict<624> > >, Optional<Element<Attribute<Network::Xml::PUniMacAddr, Name::Strict<106> >, Name::Strict<641> > >, Optional<Element<Network::Xml::Forward, Name::Strict<1173> > >, Optional<Network::Xml::VVirtualPortProfileImpl >, ZeroOrMore<Element<Network::Xml::Portgroup, Name::Strict<633> > >, Optional<Element<Attribute<Network::Xml::PDnsName, Name::Strict<102> >, Name::Strict<1> > >, Optional<Element<Network::Xml::Dns, Name::Strict<1182> > >, Optional<Element<Network::Xml::Bandwidth, Name::Strict<182> > >, Optional<Element<Ordered<mpl::vector<Optional<Attribute<mpl::int_<130>, Name::Strict<195> > >, OneOrMore<Element<Network::Xml::Tag, Name::Strict<196> > > > >, Name::Strict<194> > >, ZeroOrMore<Element<Network::Xml::Ip, Name::Strict<657> > >, ZeroOrMore<Element<Network::Xml::Route, Name::Strict<1175> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::PConnections, Name::Strict<1174> > >, Optional<Attribute<Network::Xml::EVirYesNo, Name::Strict<1175> > >, Unordered<mpl::vector<Element<Text<QString >, Name::Strict<102> >, Optional<Element<Text<Network::Xml::VUUID >, Name::Strict<146> > >, Optional<Element<Network::Xml::Bridge, Name::Strict<630> > >, Optional<Element<Attribute<Network::Xml::PUniMacAddr, Name::Strict<106> >, Name::Strict<647> > >, Optional<Element<Network::Xml::Forward, Name::Strict<1177> > >, Optional<Network::Xml::VVirtualPortProfileImpl >, ZeroOrMore<Element<Network::Xml::Portgroup, Name::Strict<639> > >, Optional<Element<Attribute<Network::Xml::PDnsName, Name::Strict<102> >, Name::Strict<1> > >, Optional<Element<Network::Xml::Dns, Name::Strict<1186> > >, Optional<Element<Network::Xml::Bandwidth, Name::Strict<188> > >, Optional<Element<Ordered<mpl::vector<Optional<Attribute<mpl::int_<130>, Name::Strict<201> > >, OneOrMore<Element<Network::Xml::Tag, Name::Strict<202> > > > >, Name::Strict<200> > >, ZeroOrMore<Element<Network::Xml::Ip, Name::Strict<663> > >, ZeroOrMore<Element<Network::Xml::Route, Name::Strict<1179> > > > > > > marshal_type;
 
 	static int parse(Network::Xml::Network& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Network& , QDomElement& );

@@ -1954,6 +1954,37 @@ sub getDataType($)
 	return $self->{type};
 }
 
+package Ng::Cocoon;
+
+sub new($$)
+{
+	my $output = bless $_[1], ref($_[0]) || $_[0];
+	$output->{type} = Ng::DataType->new('QDomElement');
+	return $output;
+}
+
+sub generate($)
+{
+}
+
+sub getMember($)
+{
+	my $self = shift;
+	return {name => '', cppType => 'QDomElement'};
+}
+
+sub getMarshal($)
+{
+	my $self = shift;
+	return {name => '', cppType => "Pod"};
+}
+
+sub getDataType($)
+{
+	my $self = shift;
+	return $self->{type};
+}
+
 package Ng::Block;
 use Data::Dumper;
 
@@ -2826,6 +2857,7 @@ sub parseElement($)
 	my ($p, $n) = @_;
 	my $s = getNs($p);
 	my $a = getName($p);
+	my $b = 0;
 	my $output = {	name => Strings->reverse($a),
 			children => [],
 			value => undef,
@@ -2856,6 +2888,7 @@ sub parseElement($)
 			push @{$output->{children}}, parseChoice($n, $output->{name});
 #		} elsif ('notAllowed' eq $n->nodeName) {
 		} elsif ('anyName' eq $n->nodeName) {
+			$b = 1;
 		} elsif ('value' eq $n->nodeName) {
 			push @{$output->{children}}, Ng::Text->new(Ng::Constant->new(parseValue($n)));
 		} elsif ('data' eq $n->nodeName) {
@@ -2865,7 +2898,7 @@ sub parseElement($)
 		}
 	}
 	$s and $output->{ns} = Strings->reverse($s);
-	return Ng::Element->new($output);
+	return $b ? Ng::Cocoon->new($output) : Ng::Element->new($output);
 }
 
 sub parseDefine($)

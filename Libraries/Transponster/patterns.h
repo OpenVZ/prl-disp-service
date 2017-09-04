@@ -813,6 +813,35 @@ struct Validatable<Attribute<T, N> >: Validatable<T>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Pod
+
+struct Pod: Access<QDomElement>, Pattern
+{
+	int consume(QStack<QDomElement>& stack_)
+	{
+		if (stack_.isEmpty())
+			return 0;
+
+		if (stack_.top().isNull())
+			return 0;
+
+		QDomElement t = stack_.pop();
+		setValue(t);
+		stack_.push(t.nextSiblingElement());
+		return 1;
+	}
+	int produce(QDomElement& dst_) const
+	{
+		QDomElement t = getValue();
+		bool x = t.isNull();
+		if (!x && dst_.appendChild(t).isNull())
+			return -1;
+
+		return !x;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Text
 
 template<class T = QString>
