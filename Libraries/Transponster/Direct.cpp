@@ -1435,18 +1435,17 @@ Direct::Direct(char* xml_)
 
 QList<QString> Direct::getCpuFeatures() const
 {
-	if (!m_input->getHost().getCpu().getCpuspec())
+	if (m_input.isNull() || !m_input->getHost().getCpu().getCpuspec())
 		return QList<QString>();
 	return m_input->getHost().getCpu().getCpuspec()->getFeatureList();
 }
 
 QString Direct::getCpuModel() const
 {
-	if (!m_input->getHost().getCpu().getCpuspec())
+	if (m_input.isNull() || !m_input->getHost().getCpu().getCpuspec())
 		return QString();
 	return m_input->getHost().getCpu().getCpuspec()->getModel();
 }
 
 } // namespace Capabilities
-
 } // namespace Transponster
