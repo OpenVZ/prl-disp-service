@@ -72,6 +72,9 @@ PRL_RESULT Task_DispToDispConnHelper::Connect(
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	PRL_SECURITY_LEVEL connSec = PVM_GET_SECURITY_LEVEL(nFlags);
 
+	if (connSec == PSL_LOW_SECURITY)
+		connSec = CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->getMinimalSecurityLevel();
+
 	WRITE_TRACE(DBG_FATAL, "connect to the target dispatcher: host '%s' port %u",\
 		qPrintable(sServerHostname), nServerPort);
 
