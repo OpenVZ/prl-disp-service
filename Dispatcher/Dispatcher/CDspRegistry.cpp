@@ -37,6 +37,7 @@
 #include "CDspVmStateMachine.h"
 #include "Stat/CDspStatStorage.h"
 #include <boost/phoenix/operator.hpp>
+#include <boost/functional/factory.hpp>
 #include <boost/phoenix/core/argument.hpp>
 #include <boost/phoenix/core/reference.hpp>
 #include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
@@ -135,6 +136,7 @@ struct Vm: ::Vm::State::Machine
 	{
 		return getUser().getVmDirectoryUuid();
 	}
+	PRL_VM_TOOLS_STATE getToolsState();
 
 private:
 	void updateDirectory(PRL_VM_TYPE type_);
@@ -149,7 +151,12 @@ Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 	::Vm::State::Machine(uuid_, user_, routing_),
 	m_storage(new Stat::Storage(uuid_)), m_routing(routing_)
 {
-	set_states(boost::msm::back::states_ << ::Vm::State::Machine::Running(boost::ref(*this)));
+	::Vm::State::Machine::Running r(boost::msm::back::states_ <<
+		::Vm::State::Started(getConfigEditor(),
+			boost::bind(boost::factory< ::Vm::Guest::Connector* >(),
+				getDirectory(), boost::ref(*this), _1)),
+					boost::ref(*this));
+	set_states(boost::msm::back::states_ << r);
 
 	// Current balloon value (in kB).
 	m_storage->addAbsolute("mem.guest_total");
@@ -238,6 +245,20 @@ void Vm::updateDirectory(PRL_VM_TYPE type_)
 	m.unlockExclusiveVmParameters(t.data());
 }
 
+PRL_VM_TOOLS_STATE Vm::getToolsState()
+{
+	::Vm::State::Machine::Running& r = get_state< ::Vm::State::Machine::Running& >();
+	::Vm::State::Started& s = r.get_state< ::Vm::State::Started& >();
+	if (s.getTools())
+		return s.getTools().get();
+
+	boost::optional<CVmConfiguration> c = getConfig();
+	if (!c)
+		return PTS_NOT_INSTALLED;
+	QString v = c->getVmSettings()->getVmTools()->getAgentVersion();
+	return v.isEmpty() ? PTS_NOT_INSTALLED : PTS_POSSIBLY_INSTALLED;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Visitor
 
@@ -298,9 +319,9 @@ void Reactor::connectAgent()
 	forward(::Vm::State::Agent());
 }
 
-void Reactor::disconnectAgent()
+void Reactor::updateAgent(const boost::optional<PRL_VM_TOOLS_STATE>& state_)
 {
-	forward(::Vm::State::NoAgent());
+	forward(boost::phoenix::val(state_));
 }
 
 void Reactor::proceed(VIRTUAL_MACHINE_STATE destination_)
