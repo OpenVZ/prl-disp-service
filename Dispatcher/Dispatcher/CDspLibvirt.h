@@ -563,6 +563,7 @@ struct Maintenance: private Abstract
 
 	void emitDefined();
 	void emitQemuUpdated();
+	void emitAgentCorollary(PRL_VM_TOOLS_STATE state_);
 	Result updateQemu();
 	Result adjustClock(qint64 adjusment_);
 

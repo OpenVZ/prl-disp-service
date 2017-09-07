@@ -30,6 +30,7 @@
 #include "CDspVmNetworkHelper.h"
 #include "CDspBackupDevice.h"
 #include "Stat/CDspStatStorage.h"
+#include <boost/bind/protect.hpp>
 #include <boost/algorithm/string.hpp>
 #include "Tasks/Task_CreateProblemReport.h"
 #include "Tasks/Task_BackgroundJob.h"
@@ -1017,7 +1018,7 @@ int connectAgent(virConnectPtr , virDomainPtr domain_, int state_, int /*reason_
 		break;
 	case VIR_CONNECT_DOMAIN_EVENT_AGENT_LIFECYCLE_STATE_DISCONNECTED:
 		v->show(domain_, boost::bind
-			(&Registry::Reactor::disconnectAgent, _1));
+			(&Registry::Reactor::updateAgent, _1, boost::none));
 		break;
 	}
 	return 0;
@@ -1850,6 +1851,14 @@ void Maintenance::emitDefined()
 void Maintenance::emitQemuUpdated()
 {
 	emitLifecycle(VIR_DOMAIN_EVENT_STARTED, -1);
+}
+
+void Maintenance::emitAgentCorollary(PRL_VM_TOOLS_STATE state_)
+{
+	Callback::g_access.setOpaque(Callback::Mock::ID,
+		new Callback::Transport::Event(boost::bind(&Model::Coarse::show, _1,
+			boost::bind(&domainReference_type::data, getDomain()),
+			boost::protect(boost::bind(&Registry::Reactor::updateAgent, _1, state_)))));
 }
 
 } // namespace Limb
