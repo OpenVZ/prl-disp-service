@@ -197,7 +197,7 @@ void Task_ConvertDisks::finalizeTask()
 		{
 			CDspLockedPointer<CVmDirectoryItem> pDirItem
 				= CDspService::instance()->getVmDirHelper()
-					.getVmDirectoryItemByUuid(getClient(), m_vmIdent.first);
+					.getVmDirectoryItemByUuid(m_vmIdent.second, m_vmIdent.first);
 			if (pDirItem.isValid())
 				qsVmHome = pDirItem->getVmHome();
 		}
@@ -464,7 +464,7 @@ PRL_RESULT Task_ConvertDisks::convertDisks()
 		{
 			CDspLockedPointer<CVmDirectoryItem> pDirItem
 				= CDspService::instance()->getVmDirHelper()
-					.getVmDirectoryItemByUuid(getClient(), m_vmIdent.first);
+					.getVmDirectoryItemByUuid(m_vmIdent.second, m_vmIdent.first);
 
 			if ( pDirItem.isValid() )
 			{

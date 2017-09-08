@@ -293,7 +293,7 @@ PRL_RESULT Task_DiskImageResizer::run_body()
 				m_DiskImage,
 				getClient(),
 				CDspService::instance()->getVmDirHelper().getVmDirectoryItemByUuid(
-					getClient(),
+					getClient()->getVmDirectoryUuid(),
 					m_pVmConfig->getVmIdentification()->getVmUuid()).getPtr(),
 				true);
 	if(PRL_FAILED(e))

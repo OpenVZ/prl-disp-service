@@ -986,11 +986,9 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 				->getVmServerIdentification()->getServerUuid();
 
 	::List::Directory::Factory::ephemeral_type e = m_ephemeral->snapshot();
-	e.insert(CDspVmDirManager::getVzDirectoryUuid());
 
 	QStringList dirUuids;
-	dirUuids.append(CDspVmDirManager::getTemplatesDirectoryUuid());
-	dirUuids.append(pUserSession->getVmDirectoryUuid());
+	dirUuids.append(pUserSession->getVmDirectoryUuidList());
 	dirUuids.append(e.toList());
 
 	QStringList lstVmConfigurations;
@@ -1064,7 +1062,8 @@ bool CDspVmDirHelper::findVm(const IOSender::Handle& sender,
 		/* Lock VM dir catalogue */
 		CDspLockedPointer<CVmDirectories> pLockedDirs = dirMgr.getVmDirCatalogue();
 		CVmDirectoryItem *pItem = NULL;
-		foreach (const QString &vmDirUuid, pUserSession->getVmDirectoryUuidList()) {
+		foreach (const QString &vmDirUuid, pUserSession->getVmDirectoryUuidList() +
+			m_ephemeral->snapshot().toList()) {
 			if (nFlags & PGVC_SEARCH_BY_UUID)
 				pItem = dirMgr.getVmDirItemByUuid(vmDirUuid, sSearchId).getPtr();
 			if (pItem == NULL && nFlags & PGVC_SEARCH_BY_NAME)
@@ -2641,12 +2640,23 @@ CDspVmDirHelper::getVmConfigForDirectoryItem(CVmDirectoryItem* pDirectoryItem, P
 }
 
 // get VM directory item by uuid
-CDspLockedPointer<CVmDirectoryItem> CDspVmDirHelper::getVmDirectoryItemByUuid (
-	SmartPtr<CDspClient> pUserSession,
-	const QString& vmUuid )
+QPair<const QString, CDspLockedPointer<CVmDirectoryItem> >
+	CDspVmDirHelper::getVmDirectoryItemByUuid
+		(SmartPtr<CDspClient> pUserSession, const QString& vmUuid)
 {
-	return CDspService::instance()->getVmDirManager()
-		.getVmDirItemByUuid( pUserSession->getVmDirectoryUuid(), vmUuid );
+	typedef QPair<const QString, CDspLockedPointer<CVmDirectoryItem> > result_type;
+
+	if (pUserSession.isValid())
+	{
+		foreach (const QString& d, pUserSession->getVmDirectoryUuidList())
+		{
+			result_type::second_type x = getVmDirectoryItemByUuid(d, vmUuid);
+			if (x.isValid())
+				return result_type(d, x);
+		}
+	}
+
+	return result_type(QString(), getVmDirectoryItemByUuid(QString(), vmUuid));
 }
 
 
@@ -3556,7 +3566,8 @@ void CDspVmDirHelper::moveVm( SmartPtr<CDspClient> pUserSession, const SmartPtr<
 		pUserSession->sendSimpleResponse( pkg, PRL_ERR_FAILURE );
 		return;
 	}
-	CDspService::instance()->getTaskManager().schedule(new Task_MoveVm( pUserSession , pkg));
+	CDspService::instance()->getTaskManager()
+		.schedule(new Task_MoveVm(pUserSession , pkg));
 }
 
 

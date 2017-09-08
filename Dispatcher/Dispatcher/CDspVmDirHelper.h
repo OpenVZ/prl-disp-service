@@ -314,8 +314,8 @@ public:
 	}
 
 	// get VM directory item by uuid
-	CDspLockedPointer<CVmDirectoryItem> getVmDirectoryItemByUuid ( SmartPtr<CDspClient>,
-		const QString& vmUuid );
+	QPair<const QString, CDspLockedPointer<CVmDirectoryItem> >
+		getVmDirectoryItemByUuid(SmartPtr<CDspClient>, const QString& vmUuid);
 
 
 	// get VM directory item by uuid
