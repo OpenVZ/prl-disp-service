@@ -400,7 +400,7 @@ Result State::suspend(const QString& sav_)
 {
 	return do_(getDomain().data(), boost::bind
 		(&virDomainSaveFlags, _1, qPrintable(sav_), (const char* )NULL,
-			VIR_DOMAIN_SAVE_RUNNING));
+			VIR_DOMAIN_SAVE_RUNNING | VIR_DOMAIN_SAVE_BYPASS_CACHE));
 }
 
 Result State::undefine()
