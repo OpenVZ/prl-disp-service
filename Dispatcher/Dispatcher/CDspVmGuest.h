@@ -95,10 +95,8 @@ class Watcher: public QObject
 	Q_OBJECT
 
 public:
-	typedef boost::future<PRL_VM_TOOLS_STATE> future_type;
-
 	Watcher(const CVmIdent& ident_, QWeakPointer<QAtomicInt> incarnation_) :
-		m_ident(ident_), m_retries(), m_incarnation(incarnation_), m_ourIncarnation(0)
+		m_retries(), m_ident(ident_), m_incarnation(incarnation_), m_ourIncarnation(0)
 	{
 		QSharedPointer<QAtomicInt> ref = incarnation_.toStrongRef();
 		if (ref)
@@ -113,11 +111,7 @@ public:
 	{
 		return m_retries;
 	}
-	future_type getFuture()
-	{
-		return m_state.get_future();
-	}
-	void adopt(PRL_VM_TOOLS_STATE state_, const QString& version_);
+	void adopt(PRL_VM_TOOLS_STATE state_, const QString& version_ = QString());
 	Q_INVOKABLE void respin();
 
 signals:
@@ -128,9 +122,8 @@ protected:
 	virtual void timerEvent(QTimerEvent*);
 
 private:
-	CVmIdent m_ident;
-	boost::promise<PRL_VM_TOOLS_STATE> m_state;
 	int m_retries;
+	CVmIdent m_ident;
 	QWeakPointer<QAtomicInt> m_incarnation;
 	int m_ourIncarnation;
 };
@@ -157,14 +150,12 @@ private:
 
 struct Connector
 {
-	typedef Watcher::future_type result_type;
-
 	Connector(const QString& directory_, State::Frontend& frontend_,
 		QWeakPointer<QAtomicInt> incarnation_);
 
 	Connector& setNetwork(Actor* value_);
 	Connector& setRetries(quint32 value_);
-	result_type operator()();
+	void operator()();
 
 private:
 	quint32 m_retries;

@@ -138,15 +138,19 @@ void Watcher::adopt(PRL_VM_TOOLS_STATE state_, const QString& version_)
 	if (!ref || m_ourIncarnation != *ref)
 		return;
 
-	m_state.set_value(state_);
-	CVmEvent e(PET_DSP_EVT_VM_TOOLS_STATE_CHANGED, m_ident.first, PIE_DISPATCHER);
-	e.addEventParameter(new CVmEventParameter(PVE::Integer, QString::number(state_),
-                        EVT_PARAM_VM_TOOLS_STATE));
-	e.addEventParameter(new CVmEventParameter(PVE::String, version_, EVT_PARAM_VM_TOOLS_VERSION));
-	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, e);
-	CDspService::instance()->getClientManager().sendPackageToVmClients(p, m_ident.second, m_ident.first);
+	const QString& u = m_ident.first;
+	Libvirt::Kit.vms().at(u).getMaintenance().emitAgentCorollary(state_);
+	if (PTS_INSTALLED == state_)
+	{
+		CVmEvent e(PET_DSP_EVT_VM_TOOLS_STATE_CHANGED, u, PIE_DISPATCHER);
+		e.addEventParameter(new CVmEventParameter(PVE::Integer, QString::number(state_),
+				EVT_PARAM_VM_TOOLS_STATE));
+		e.addEventParameter(new CVmEventParameter(PVE::String, version_, EVT_PARAM_VM_TOOLS_VERSION));
+		SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, e);
+		CDspService::instance()->getClientManager().sendPackageToVmClients(p, m_ident.second, u);
 
-	emit guestToolsStarted(version_);
+		emit guestToolsStarted(version_);
+	}
 }
 
 void Watcher::respin()
@@ -171,6 +175,7 @@ void Spin::run()
 	}
 	else
 	{
+		PRL_VM_TOOLS_STATE s = PTS_NOT_INSTALLED;
 		switch (r.error().getMainCode())
 		{
 		case VIR_ERR_OPERATION_INVALID:
@@ -178,9 +183,13 @@ void Spin::run()
 			break;
 		case VIR_ERR_AGENT_UNRESPONSIVE:
 			// agent is not started - retry 5 minutes with 10 secs interval
-			if (0 >= m_watcher->getRetries())
-				break;
+			s = PTS_POSSIBLY_INSTALLED;
 		default:
+			if (0 >= m_watcher->getRetries())
+			{
+				m_watcher->adopt(s);
+				break;
+			}
 			// agent is not ready, retry
 			return (void)QMetaObject::invokeMethod(m_watcher, "respin",
 				Qt::QueuedConnection);
@@ -209,7 +218,7 @@ Connector& Connector::setRetries(quint32 value_)
 	m_retries = value_;
 	return *this;
 }
-Connector::result_type Connector::operator()()
+void Connector::operator()()
 {
 	Actor *a = new Actor(m_frontend->getConfigEditor());
 	Watcher *p = new Watcher(MakeVmIdent(m_frontend->getUuid(), m_directory),
@@ -230,8 +239,6 @@ Connector::result_type Connector::operator()()
 	p->setRetries(m_retries);
 	p->startTimer(5000);
 	p->moveToThread(QCoreApplication::instance()->thread());
-                
-	return p->getFuture();
 }
 
 } // namespace Guest
