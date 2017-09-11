@@ -395,8 +395,6 @@ private:
 	quint64 m_deltaValue;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Meter
 namespace {
 
 enum
@@ -406,6 +404,9 @@ enum
 };
 
 } //namespace
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Meter
 
 struct Meter
 {
@@ -441,8 +442,11 @@ void Meter::record(quint64 t, const Stat::timedValue_type& v)
 
 Usage Meter::report() const
 {
-	return Usage(m_time.second - m_time.first,
-			m_value.second.first - m_value.first.first);
+	quint64 x = 0;
+	if (0 < m_value.first.first && (m_value.first.first < m_value.second.first))
+		x = m_value.second.first - m_value.first.first;
+
+	return Usage(m_time.second - m_time.first, x);
 }
 
 quint32 getHostCpus()
