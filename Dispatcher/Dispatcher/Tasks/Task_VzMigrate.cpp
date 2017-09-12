@@ -585,6 +585,11 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 					WRITE_TRACE(DBG_FATAL, "External process in CT");
 					nRetCode = PRL_ERR_CT_MIGRATE_EXTERNAL_PROCESS;
 					break;
+				case 74:
+					CDspTaskFailure(*this)
+						(Error::Simple(nRetCode, "Cannot migrate a container with backups attached").convertToEvent());
+					nRetCode = PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
+					break;
 				default:
 					WRITE_TRACE(DBG_FATAL, "%s exited with code %d", QSTR2UTF8(m_sCmd), rc);
 					nRetCode = PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
