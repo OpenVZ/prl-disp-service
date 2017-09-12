@@ -343,7 +343,7 @@ struct Sweeper: QObject
 public slots:
 	void reactRipped()
 	{
-		m_commit(0);
+		QtConcurrent::run(m_commit, 0);
 	}
 
 private:
