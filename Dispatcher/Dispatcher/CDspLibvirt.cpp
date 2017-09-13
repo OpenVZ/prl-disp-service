@@ -670,10 +670,7 @@ void Socket::write(int socket_)
 void Mock::fire(const eventHandler_type& event_)
 {
 	if (m_model.isNull())
-	{
 		WRITE_TRACE(DBG_FATAL, "event without a model");
-		event_(NULL);
-	}
 	else
 	{
 		Model::Coarse m(m_model);
