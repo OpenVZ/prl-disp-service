@@ -6,6 +6,14 @@
     missingok
 }
 
+/var/log/vz_systemd.log {
+    daily
+    rotate 10
+    copytruncate
+    notifempty
+    missingok
+}
+
 /var/log/libvirt/libvirt.log {
     daily
     rotate 10
