@@ -317,12 +317,6 @@ struct Frontend: Details::Frontend<Frontend>
 			>,
 			msmf::Row
 			<
-				Rebooted,
-				Switch,
-				Started
-			>,
-			msmf::Row
-			<
 				Already,
 				Conventional<VMS_RUNNING>,
 				Started
