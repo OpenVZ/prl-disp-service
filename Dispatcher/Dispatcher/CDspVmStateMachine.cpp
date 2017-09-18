@@ -24,6 +24,7 @@
 #include <QString>
 #include <cxxabi.h>
 #include "CDspVmStateMachine.h"
+#include <boost/functional/factory.hpp>
 
 namespace Vm
 {
@@ -45,6 +46,48 @@ QString demangle(const char* name_)
 }
 
 } // namespace Details
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Started
+
+Started::Started(const editor_type& editor_, const factory_type& factory_):
+	m_guard(), m_factory(factory_), m_incarnation(new QAtomicInt()),
+	m_editor(new editor_type(editor_))
+{
+}
+
+void Started::setTools(const tools_type& value_)
+{
+	m_guard = NULL;
+	m_tools = value_;
+}
+
+void Started::connect_()
+{
+	if (!m_editor.isNull())
+	{
+		connect_(boost::bind(&connector_type::setNetwork, _1,
+			boost::bind(boost::factory< ::Vm::Guest::Actor*>(),
+				boost::cref(*m_editor))));
+	}
+}
+
+void Started::connect_(const decorator_type& decorator_)
+{
+	if (m_incarnation.isNull() || m_factory.empty())
+		return;
+
+	m_incarnation.data()->ref();
+	QScopedPointer<connector_type> x(m_factory(m_incarnation.toWeakRef()));
+	if (x.isNull())
+		return;
+
+	m_guard = m_incarnation.data();
+	if (!decorator_.empty())
+		decorator_(*x);
+
+	(*x)();
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend

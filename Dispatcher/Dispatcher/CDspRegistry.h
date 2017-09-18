@@ -40,9 +40,9 @@
 #include <boost/mpl/at.hpp>
 #include <prlsdk/PrlEnums.h>
 #include "CDspVmConfigManager.h"
+#include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/Messaging/CVmEvent.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
-#include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 
@@ -81,7 +81,7 @@ struct Reactor
 
 	void connectAgent();
 
-	void disconnectAgent();
+	void updateAgent(const boost::optional<PRL_VM_TOOLS_STATE>& state_);
 
 	void proceed(VIRTUAL_MACHINE_STATE destination_);
 

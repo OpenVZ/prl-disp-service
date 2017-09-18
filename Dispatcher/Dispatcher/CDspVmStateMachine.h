@@ -39,6 +39,7 @@
 #include "CDspLibvirtExec.h"
 #include "CDspVmGuest.h"
 #include "CDspVmStateMachine_p.h"
+#include <boost/phoenix/core/value.hpp>
 #include <Libraries/PrlCommonUtils/CFirewallHelper.h>
 
 namespace Vm
@@ -76,13 +77,6 @@ struct Agent
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct NoAgent
-
-struct NoAgent
-{
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Reboot
 
 struct Reboot
@@ -102,6 +96,100 @@ struct Upgrade
 // State flag that VM is active
 struct Running
 {
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Started
+
+struct Started: Details::Trace<Started>
+{
+	typedef Config::Edit::Atomic editor_type;
+	typedef Details::Trace<Started> trace_type;
+	typedef ::Vm::Guest::Connector connector_type;
+	typedef Configuration::update_type update_type;
+	typedef boost::optional<PRL_VM_TOOLS_STATE> tools_type;
+	typedef boost::function<void (connector_type& )> decorator_type;
+	typedef boost::phoenix::expression::value<tools_type>::type toolsEvent_type;
+	typedef boost::function<connector_type* (QWeakPointer<QAtomicInt>)> factory_type;
+
+	Started(): m_guard()
+	{
+	}
+	Started(const editor_type& editor_, const factory_type& factory_);
+
+	template <class M>
+	void on_entry(Conventional<VMS_RUNNING> const& event_, M& fsm_)
+	{
+		trace_type::on_entry(event_, fsm_);
+		connect_(boost::bind(&connector_type::setRetries, _1, 1));
+	}
+	template <class M>
+	void on_entry(Switch const& event_, M& fsm_)
+	{
+		trace_type::on_entry(event_, fsm_);
+		connect_();
+	}
+	template <class M>
+	void on_entry(Agent const& event_, M& fsm_)
+	{
+		trace_type::on_entry(event_, fsm_);
+		connect_();
+	}
+	template <class Event, class M>
+	void on_entry(Event const& event_, M& fsm_)
+	{
+		trace_type::on_entry(event_, fsm_);
+	}
+	template<typename Event, typename M>
+	void on_exit(const Event& event_, M& fsm_)
+	{
+		trace_type::on_exit(event_, fsm_);
+		setTools(boost::none);
+	}
+	const tools_type& getTools() const
+	{
+		return m_tools;
+	}
+
+	struct Action
+	{
+		template<class M>
+		void operator()(Agent const&, M&, Started& state_, Started&)
+		{
+			if (NULL == state_.m_guard)
+				state_.connect_(decorator_type());
+		}
+		template<class M>
+		void operator()(toolsEvent_type const& event_, M&, Started& state_, Started&)
+		{
+			state_.setTools(event_());
+		}
+		template<class M>
+		void operator()(update_type const& event_, M&, Started& state_, Started&)
+		{
+			if (!state_.m_editor.isNull())
+				(*state_.m_editor)(event_);
+		}
+	};
+	struct internal_transition_table: boost::mpl::vector
+		<
+			msmf::Internal<Agent, Action>,
+			msmf::Internal<update_type, Action>,
+			msmf::Internal<toolsEvent_type, Action>
+		>
+	{
+	};
+
+private:
+	void setTools(const tools_type& value_);
+	void connect_();
+        void connect_(const decorator_type& decorator_);
+
+	tools_type m_tools;
+	QAtomicInt* m_guard;
+	factory_type m_factory;
+	QSharedPointer<QAtomicInt> m_incarnation;
+	QSharedPointer<editor_type> m_editor;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -138,7 +226,7 @@ struct Frontend: Details::Frontend<Frontend>
 		Running_(): m_big()
 		{
 		}
-		explicit Running_(State::Frontend& big_): m_big(&big_), m_incarnation(new QAtomicInt())
+		explicit Running_(State::Frontend& big_): m_big(&big_)
 		{
 		}
 
@@ -165,40 +253,8 @@ struct Frontend: Details::Frontend<Frontend>
 				_1, boost::cref(runtime)));
 		}
 
-		void pullToolsVersionAfterReconnect(const Conventional<VMS_RUNNING>&)
-		{
-			m_incarnation.data()->ref();
-			m_big->m_toolsState = ::Vm::Guest::Connector
-				(m_big->getUser().getVmDirectoryUuid(), *m_big,
-				 m_incarnation.toWeakRef())
-				.setRetries(0)();
-		}
-
-		void pullToolsVersion(const Agent&)
-		{
-			m_incarnation.data()->ref();
-			m_big->m_toolsState = ::Vm::Guest::Connector
-				(m_big->getUser().getVmDirectoryUuid(), *m_big,
-				 m_incarnation.toWeakRef())();
-		}
-
-		template <class T>
-		void pullToolsVersionAfterReboot(const T&)
-		{
-			m_incarnation.data()->ref();
-			m_big->m_toolsState = ::Vm::Guest::Connector
-				(m_big->getUser().getVmDirectoryUuid(), *m_big,
-				 m_incarnation.toWeakRef())
-				.setNetwork(new ::Vm::Guest::Actor(m_big->getConfigEditor()))();
-		}
-
 		// Pseudo-state
 		struct Already: msmf::entry_pseudo_state<0>
-		{
-		};
-
-		// Started
-		struct Started: Details::Trace<Started>
 		{
 		};
 
@@ -214,13 +270,27 @@ struct Frontend: Details::Frontend<Frontend>
 
 		struct transition_table: boost::mpl::vector
 		<
-			msmf::Row<Started, Conventional<VMS_STOPPING>, Stopping>,
-			msmf::Row<Rebooted, Conventional<VMS_STOPPING>, Stopping>,
+			msmf::Row
+			<
+				Started,
+				Conventional<VMS_STOPPING>,
+				Stopping
+			>,
+			msmf::Row
+			<
+				Rebooted,
+				Conventional<VMS_STOPPING>,
+				Stopping
+			>,
 			a_irow<Started, Upgrade, &Running_::upgrade>,
 			a_irow<Rebooted, Upgrade, &Running_::upgrade>,
-			a_irow<Started, Configuration::update_type, &Running_::apply>,
 			a_irow<Rebooted, Configuration::update_type, &Running_::apply>,
-			msmf::Row<Stopping, Reboot, Rebooted>,
+			msmf::Row
+			<
+				Stopping,
+				Reboot,
+				Rebooted
+			>,
 			msmf::Row
 			<
 				Started,
@@ -229,8 +299,8 @@ struct Frontend: Details::Frontend<Frontend>
 			>,
 			msmf::Row
 			<
-				Started,
-				NoAgent,
+				Rebooted,
+				Conventional<VMS_RUNNING>,
 				msmf::none
 			>,
 			msmf::Row
@@ -239,29 +309,23 @@ struct Frontend: Details::Frontend<Frontend>
 				Reboot,
 				msmf::none
 			>,
-			a_irow<
-				Started,
-				Agent,
-				&Running_::pullToolsVersion
-			>,
-			a_row<
+			msmf::Row
+			<
 				Rebooted,
 				Agent,
-				Started,
-				&Running_::pullToolsVersionAfterReboot<Agent>
+				Started
 			>,
-			a_row<
+			msmf::Row
+			<
 				Rebooted,
 				Switch,
-				Started,
-				&Running_::pullToolsVersionAfterReboot<Switch>
+				Started
 			>,
-			a_row
+			msmf::Row
 			<
 				Already,
 				Conventional<VMS_RUNNING>,
-				Started,
-				&Running_::pullToolsVersionAfterReconnect
+				Started
 			>
 		>
 		{
@@ -269,7 +333,6 @@ struct Frontend: Details::Frontend<Frontend>
 
 	private:
 		State::Frontend *m_big;
-		QSharedPointer<QAtomicInt> m_incarnation;
 	};
 	
 	typedef boost::msm::back::state_machine<Running_> Running;
@@ -609,17 +672,6 @@ struct Frontend: Details::Frontend<Frontend>
 		m_home = QFileInfo(path_);
 	}
 
-	PRL_VM_TOOLS_STATE getToolsState()
-	{
-		if (m_toolsState.has_value())
-			return m_toolsState.get();
-		boost::optional<CVmConfiguration> c = getConfig();
-		if (!c)
-			return PTS_NOT_INSTALLED;
-		QString v = c->getVmSettings()->getVmTools()->getAgentVersion();
-		return v.isEmpty() ? PTS_NOT_INSTALLED : PTS_POSSIBLY_INSTALLED;
-	}
-
 	void setName(const QString& value_);
 	boost::optional<CVmConfiguration> getConfig() const;
 	Config::Edit::Atomic getConfigEditor() const;
@@ -641,7 +693,6 @@ private:
 	QSharedPointer< ::Network::Routing> m_routing;
 	QString m_name;
 	boost::optional<QFileInfo> m_home;
-	boost::future<PRL_VM_TOOLS_STATE> m_toolsState;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
