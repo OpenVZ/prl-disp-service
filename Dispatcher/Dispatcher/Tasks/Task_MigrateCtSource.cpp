@@ -169,13 +169,16 @@ PRL_RESULT Task_MigrateCtSource::run_body()
 	if (m_sTargetServerCtHomePath.size())
 	{
 		// add CTID to target path, as for VM (https://jira.sw.ru/browse/PSBM-14488)
-		m_sTargetServerCtHomePath =
-			QFileInfo(m_sTargetServerCtHomePath,
-				QFileInfo(sVmHomePath).fileName()).absoluteFilePath();
+		QString x = m_nMigrationFlags & PVMT_CLONE_MODE ?
+			CVzHelper::build_ctid_from_uuid(Uuid::createUuid().toString()) :
+			QFileInfo(sVmHomePath).fileName();
+
+		m_sTargetServerCtHomePath = QFileInfo(
+			m_sTargetServerCtHomePath, x).absoluteFilePath();
 	}
+
 	if (PRL_FAILED(nRetCode = CheckVmMigrationPreconditions()))
 		goto exit;
-
 
 	nRetCode = SendStartRequest();
 	if ( PRL_FAILED( nRetCode ) )
