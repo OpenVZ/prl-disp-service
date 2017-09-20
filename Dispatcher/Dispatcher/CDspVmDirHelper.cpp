@@ -3567,7 +3567,7 @@ void CDspVmDirHelper::moveVm( SmartPtr<CDspClient> pUserSession, const SmartPtr<
 		return;
 	}
 	CDspService::instance()->getTaskManager()
-		.schedule(new Task_MoveVm(pUserSession , pkg));
+		.schedule(new Task_MoveVm(pUserSession , pkg, *m_ephemeral));
 }
 
 

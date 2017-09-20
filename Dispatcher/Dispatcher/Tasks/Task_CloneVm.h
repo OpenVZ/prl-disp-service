@@ -66,8 +66,6 @@ public:
 		const QString & strVmNewPathName,
 		unsigned int nFlags);
 
-	~Task_CloneVm();
-
 	virtual QString getVmUuid();
 
 	/**
@@ -143,13 +141,6 @@ private:
 	*/
 	void SendCloneResponse();
 
-	/**
-	* reimpl
-	*/
-	virtual bool providedAdditionState(){return true;}
-
-	template<class T>
-	PRL_RESULT do_(T tag_, Clone::Source::Total& source_);
 private:
 	Registry::Public& m_registry;
 	SmartPtr<CVmConfiguration> m_pOldVmConfig;
@@ -165,7 +156,7 @@ private:
 	CDspTaskHelper *m_externalTask;
 
 	bool	m_flgLockRegistred;
-	CVmDirectory::TemporaryCatalogueItem*  m_pVmInfo;
+	QScopedPointer<CVmDirectory::TemporaryCatalogueItem> m_pVmInfo;
 
 	/** Sign whether VM template must be created */
 	bool m_bCreateTemplate;

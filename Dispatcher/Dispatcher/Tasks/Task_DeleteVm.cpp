@@ -38,14 +38,10 @@
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "CDspClientManager.h"
 #include "CDspBugPatcherLogic.h"
-
+#include "CDspTemplateStorage.h"
 #include "Task_DeleteVm.h"
-
+#include "Task_DeleteVm_p.h"
 #include "Task_CommonHeaders.h"
-
-//#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
-#include <prlcommon/PrlCommonUtilsBase/SysError.h>
-
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Std/PrlAssert.h>
@@ -59,51 +55,24 @@ using namespace Parallels;
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
 
-namespace
-{
-	const QStringList g_LIST_OF_PARALLELS_FILESGARBAGE_EXTENTION =
-		( QStringList() << "*.mem" << "*.sav" <<"*.xml" << "*.txt" << "*.pvs" << QString("*%1")
-										.arg(VM_INFO_FILE_SUFFIX) << "parallels.log*"
-		<< PRL_VM_NVRAM_FILE_NAME
-		<< PRL_VM_SUSPENDED_SCREEN_FILE_NAME
-		<< "{*-*-*-*-*}.png" /* #125852 to support old suspended screenshot format ( temporally  )*/
-		<< "*.pvs.lock" << "*.pvs.backup"
-#if defined(_WIN_)
-		<< "pvs*.tmp"
-#else
-		<< ".vmm*"
-#endif
-		);
-
-const QStringList g_LIST_OF_PARALLELS_IMAGES_EXTENTION = ( QStringList() << "*.iso" << "*.hdd" << "*.fdd" );
-const QString g_sSNAPSHOTS_DIR_NAME	= "Snapshots";
-
-}
-
 Task_DeleteVm::Task_DeleteVm (
-    SmartPtr<CDspClient>& client,
+	SmartPtr<CDspClient>& client,
 	const SmartPtr<IOPackage>& p,
-    const QString& vm_config,
+	const QString& vm_config,
 	PRL_UINT32 flags,
-	const QStringList & strFilesToDelete)	:
+	const QStringList & strFilesToDelete):
 
 	CDspTaskHelper(client, p),
 	m_flags(flags),
 	m_flgVmWasDeletedFromSystemTables(false),
 	m_flgExclusiveOperationWasRegistred( false ),
-	m_flgLockRegistred(false),
-	m_pVmInfo(0)
+	m_flgLockRegistred(false)
 {
 	m_strListToDelete = strFilesToDelete;
 	m_pVmConfig = SmartPtr<CVmConfiguration>(new CVmConfiguration( vm_config ));
 
 	//////////////////////////////////////////////////////////////////////////
 	setTaskParameters( m_pVmConfig->getVmIdentification()->getVmUuid() );
-}
-
-Task_DeleteVm::~Task_DeleteVm()
-{
-	delete m_pVmInfo;
 }
 
 void Task_DeleteVm::setTaskParameters( const QString& vm_uuid )
@@ -140,56 +109,34 @@ PRL_RESULT Task_DeleteVm::prepareTask()
 			throw f(PRL_ERR_CANT_PARSE_VM_CONFIG);
 		}
 
-		m_vmDirectoryUuid = CDspVmDirHelper::getVmDirUuidByVmUuid(
-		m_pVmConfig->getVmIdentification()->getVmUuid(), getClient());
+		QString vm_name = m_pVmConfig->getVmIdentification()->getVmName();
+		QString vm_uuid = getVmUuid();
+
+		m_vmDirectoryUuid = CDspVmDirHelper::getVmDirUuidByVmUuid(vm_uuid, getClient());
 		if (m_vmDirectoryUuid.isEmpty())
 			throw PRL_ERR_VM_UUID_NOT_FOUND;
 
-		//https://bugzilla.sw.ru/show_bug.cgi?id=441619
-		if ( doUnregisterOnly() )
+		// TODO fix lock managment and remove this state check
+		if (!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
 		{
-			//In unregister VM case we should to wait until suspending sync state completed
-			QString sVmUuid = m_pVmConfig->getVmIdentification()->getVmUuid();
-			VIRTUAL_MACHINE_STATE nInitialState = CDspVm::getVmState( sVmUuid, m_vmDirectoryUuid );
-			if ( VMS_SUSPENDING_SYNC == nInitialState )
-				WRITE_TRACE(DBG_FATAL, "Started wait for VM suspending sync phase");
-			while ( VMS_SUSPENDING_SYNC == CDspVm::getVmState( sVmUuid, m_vmDirectoryUuid ) )
-			{
-				HostUtils::Sleep(1000);
-				if ( operationIsCancelled() )//Task was cancelled - terminate operation
-					throw PRL_ERR_OPERATION_WAS_CANCELED;
-			}
-			if ( VMS_SUSPENDING_SYNC == nInitialState )
-				WRITE_TRACE(DBG_FATAL, "Finished wait for VM suspending sync phase");
+			VIRTUAL_MACHINE_STATE s;
+			Libvirt::Result r = Libvirt::Kit.vms().at(vm_uuid).getState().getValue(s);
+			if (r.isSucceed() && s != VMS_STOPPED && s != VMS_SUSPENDED)
+				return f(PRL_ERR_DISP_VM_IS_NOT_STOPPED, getVmUuid());
 		}
-
-	// TODO fix lock managment and remove this state check
-	if (!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
-	{
-		VIRTUAL_MACHINE_STATE s;
-		Libvirt::Result r = Libvirt::Kit.vms().at(getVmUuid()).getState().getValue(s);
-		if (r.isSucceed() && s != VMS_STOPPED && s != VMS_SUSPENDED)
-			return f(PRL_ERR_DISP_VM_IS_NOT_STOPPED, getVmUuid());
-	}
-	if (!(m_flags & PVD_SKIP_VM_OPERATION_LOCK))
-	{
-		ret = CDspService::instance()->getVmDirHelper().registerExclusiveVmOperation(
-			m_pVmConfig->getVmIdentification()->getVmUuid(),
-			m_vmDirectoryUuid,
-			( PVE::IDispatcherCommands ) getRequestPackage()->header.type,
-			getClient() );
-		if( PRL_FAILED( ret ) )
-			throw ret;
-		m_flgExclusiveOperationWasRegistred = true;
-	}
-
-
-        /**
-         * find VM in global VM hash
-         */
-        QString vm_name = m_pVmConfig->getVmIdentification()->getVmName();
-        QString vm_uuid = m_pVmConfig->getVmIdentification()->getVmUuid();
-
+		if (!(m_flags & PVD_SKIP_VM_OPERATION_LOCK))
+		{
+			ret = CDspService::instance()->getVmDirHelper().registerExclusiveVmOperation(
+				vm_uuid, m_vmDirectoryUuid,
+				( PVE::IDispatcherCommands ) getRequestPackage()->header.type,
+				getClient() );
+			if( PRL_FAILED( ret ) )
+				throw ret;
+			m_flgExclusiveOperationWasRegistred = true;
+		}
+		/**
+		 * find VM in global VM hash
+		 */
 		{
 			CDspLockedPointer<CVmDirectoryItem> pDirectoryItem =
 				CDspService::instance()->getVmDirHelper().getVmDirectoryItemByUuid( m_vmDirectoryUuid, vm_uuid);
@@ -215,21 +162,21 @@ PRL_RESULT Task_DeleteVm::prepareTask()
 				.getVmDirectory(m_vmDirectoryUuid);
 
 
-        /**
-         * check if such VM is not already registered in user's prepare_VM directory
-         */
-        m_pVmInfo =  new CVmDirectory::TemporaryCatalogueItem(vm_uuid, m_sVmHomePath, vm_name);
-        PRL_ASSERT (m_pVmInfo);
+		/**
+		 * check if such VM is not already registered in user's prepare_VM directory
+		 */
+		m_pVmInfo.reset(new CVmDirectory::TemporaryCatalogueItem(vm_uuid, m_sVmHomePath, vm_name));
+		PRL_ASSERT(!m_pVmInfo.isNull());
 
-        m_flgLockRegistred=false;
+		m_flgLockRegistred=false;
 
 		PRL_RESULT lockResult = CDspService::instance()->getVmDirManager()
-			.lockExistingExclusiveVmParameters(m_vmDirectoryUuid, m_pVmInfo);
+			.lockExistingExclusiveVmParameters(m_vmDirectoryUuid, m_pVmInfo.data());
 
 		if (!PRL_SUCCEEDED(lockResult))
 		{
-			throw f.setToken(m_pVmInfo->vmUuid).setToken(m_pVmInfo->vmXmlPath)
-				.setToken(m_pVmInfo->vmName)(lockResult);
+			throw f.setToken(vm_uuid).setToken(m_pVmInfo->vmXmlPath)
+				.setToken(vm_name)(lockResult);
 		}
 
 		m_flgLockRegistred=true;
@@ -247,7 +194,7 @@ PRL_RESULT Task_DeleteVm::prepareTask()
 		}
 		if (!(m_flags & PVD_SKIP_HA_CLUSTER))
 			CDspService::instance()->getHaClusterHelper()->
-					removeClusterResource(m_pVmInfo->vmName);
+					removeClusterResource(vm_name);
 
 		ret = PRL_ERR_SUCCESS;
 		m_flgVmWasDeletedFromSystemTables=true;
@@ -320,10 +267,10 @@ void Task_DeleteVm::finalizeTask()
 	}
 
 	// delete temporary registration
-	if (m_pVmInfo && m_flgLockRegistred)
+	if (!m_pVmInfo.isNull() && m_flgLockRegistred)
 	{
 		CDspService::instance()->getVmDirManager()
-			.unlockExclusiveVmParameters(m_vmDirectoryUuid, m_pVmInfo);
+			.unlockExclusiveVmParameters(m_vmDirectoryUuid, m_pVmInfo.data());
 	}
 
 	postVmDeletedEvent();
@@ -337,463 +284,29 @@ void Task_DeleteVm::finalizeTask()
 
 PRL_RESULT Task_DeleteVm::run_body()
 {
-	PRL_RESULT ret = getLastErrorCode();
-	if (PRL_SUCCEEDED(ret) && !m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+	namespace ic = Instrument::Chain;
+
+	ic::Delete::Request x(m_pVmConfig, m_strListToDelete);
+	if (doUnregisterOnly())
 	{
-#ifdef _LIBVIRT_
-		Libvirt::Result r(Libvirt::Kit.vms().at(m_pVmConfig->getVmIdentification()->getVmUuid())
-				.getState().undefine());
-		ret = (r.isFailed()? r.error().code() : PRL_ERR_SUCCESS);
-#endif // _LIBVIRT_
+		setLastErrorCode(ic::Unregister::Template(
+			ic::Unregister::Vm(*this))(x));
 	}
-	if ( doUnregisterOnly() )
+	else
 	{
-		Backup::Device::Service(m_pVmConfig)
-			.setVmHome(CFileHelper::GetFileRoot(m_sVmHomePath))
-			.disable();
-		setLastErrorCode(ret);
-		return ret;
+		namespace dc = ic::Delete;
+		setLastErrorCode(dc::Template::Shared(getClient()->getAuthHelper(),
+			dc::Template::Regular(*this,
+			dc::Vm::List(*this,
+			dc::Vm::Home(*this))))(x));
 	}
-
-	CDspTaskFailure f(*this);
-	bool flgImpersonated = false;
-	try
+	if (PRL_FAILED(getLastErrorCode()))
 	{
-		// Let current thread impersonate the security context of a logged-on user
-		if( ! getClient()->getAuthHelper().Impersonate() )
-			throw PRL_ERR_IMPERSONATE_FAILED;
-		flgImpersonated = true;
-
-		if (!IS_OPERATION_SUCCEEDED(getLastErrorCode()))
-			throw getLastErrorCode();
-
-		/**
-		* remove VM resources from disk (if required)
-		*/
-
-		QStringList lstNotRemovedFiles;
-		QString strVmHomeDir = CFileHelper::GetFileRoot(m_sVmHomePath);
-
-		if(!m_strListToDelete.isEmpty())
-		{
-			if(!RemoveListOfFiles(m_strListToDelete,
-				lstNotRemovedFiles,
-				strVmHomeDir,
-				false)
-				)
-			{
-				WRITE_TRACE(DBG_FATAL, ">>> Not all files can be delete. !removeVmResources( pVmConfig )");
-
-				if(!lstNotRemovedFiles.isEmpty())
-				{
-					foreach ( const QString& path, lstNotRemovedFiles )
-					{
-						WRITE_TRACE(DBG_FATAL, "file wasn't delete. path = [%s]",  QSTR2UTF8(path) );
-						f.setToken(path);
-					}
-					ret = f(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
-				}
-			}
-
-		}
-		else
-		do {
-			Backup::Device::Service(m_pVmConfig)
-				.setVmHome(CFileHelper::GetFileRoot(m_sVmHomePath))
-				.teardown();
-			// for server mode delete all files from vm directory #270686
-			// common logic for console clients such as prlctl for all modes #436939
-			{
-				PRL_ASSERT(QFileInfo(strVmHomeDir).isDir());
-				if ( QFileInfo(strVmHomeDir).isDir() && CFileHelper::ClearAndDeleteDir( strVmHomeDir ) )
-					break;
-
-				ret = f(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
-			}
-
-			if(!removeVmResources( m_pVmConfig, lstNotRemovedFiles))
-			{
-				WRITE_TRACE(DBG_FATAL, ">>> Not all files can be delete. !removeVmResources( pVmConfig )");
-
-				if(!lstNotRemovedFiles.isEmpty())
-				{
-					foreach ( const QString& path, lstNotRemovedFiles )
-					{
-						WRITE_TRACE(DBG_FATAL, "file wasn't delete. path = [%s]",  QSTR2UTF8(path) );
-						f.setToken(path);
-					}
-					ret = f(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
-				}
-			} //if(!removeVmResources
-
-			/**
-			* remove VM configuration file
-			*/
-
-
-			QFile config_file( m_sVmHomePath );
-			if ( CFileHelper::FileExists(m_sVmHomePath, &getClient()->getAuthHelper())
-					&& !config_file.remove() )
-			{
-				WRITE_TRACE(DBG_FATAL, ">>> Not all files can be delete. can't remove config_file [%s] by error %ld [%s]"
-					, QSTR2UTF8( m_sVmHomePath )
-					, Prl::GetLastError()
-					, QSTR2UTF8( Prl::GetLastErrorAsString() )
-					);
-
-				ret = f(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
-			}
-
-			// finally remove all prl file entries
-
-			if (QFileInfo(strVmHomeDir).isDir())
-			{
-				// clear garbage - this is not handling error massage!
-				removeGarbageDirs(strVmHomeDir);
-				removeGarbageFiles(strVmHomeDir);
-
-				// search prl files in vm home directory
-				QStringList list;
-				searchParallelsImagesInsideVmHome(strVmHomeDir,list);
-				list << strVmHomeDir; // add vm dir to deleting list
-				if(!RemoveListOfFiles(list,lstNotRemovedFiles,strVmHomeDir))
-				{
-					WRITE_TRACE(DBG_FATAL, ">>> Not all files can be delete. !removeVmResources( pVmConfig )");
-
-					if(!lstNotRemovedFiles.isEmpty())
-					{
-						foreach ( const QString& path, lstNotRemovedFiles )
-						{
-							WRITE_TRACE(DBG_FATAL, "file wasn't delete. path = [%s]",  QSTR2UTF8(path) );
-							f.setToken(path);
-						}
-						ret = f(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
-					}
-				}
-			}
-
-		}while(0);
-
-		//////////////////////////////////////////////////////////////////////////
-		// Terminates the impersonation of a user
-		if( ! getClient()->getAuthHelper().RevertToSelf() ) // Don't throw because this thread already finished.
-			WRITE_TRACE(DBG_FATAL, "%s: error: %s", __FILE__, PRL_RESULT_TO_STRING( PRL_ERR_REVERT_IMPERSONATE_FAILED ) );
-
-	}
-	catch (PRL_RESULT code)
-	{
-		ret = code; //PRL_ERR_OPERATION_FAILED;
-
-		if( flgImpersonated && ! getClient()->getAuthHelper().RevertToSelf() )
-			WRITE_TRACE(DBG_FATAL, "%s: error: %s", __FILE__, PRL_RESULT_TO_STRING( PRL_ERR_REVERT_IMPERSONATE_FAILED ) );
-
 		WRITE_TRACE(DBG_FATAL, "Error occurred while deleting VM configuration with code [%#x][%s]",
-			code, PRL_RESULT_TO_STRING( code ) );
+			getLastErrorCode(), PRL_RESULT_TO_STRING(getLastErrorCode()));
 	}
+	return getLastErrorCode();
 
-	/**
-	* finalize and cleanup
-	*/
-	setLastErrorCode(ret);
-	return ret;
-
-}
-
-template<class T>
-void Task_DeleteVm::removeDevices( const QList<T*> & lstDevices, QStringList& outLstNotRemovedFiles)
-{
-	for( int iNdex = 0; iNdex < lstDevices.size(); iNdex++ )
-	{
-		T* pDevice = lstDevices.at( iNdex );
-		if(( (int)pDevice->getEmulatedType() == (int)PDT_USE_IMAGE_FILE) ||
-			((int)pDevice->getEmulatedType() == (int)PDT_USE_OUTPUT_FILE))
-		{
-			// outside vm home don't removed
-			// skip not existing files
-			QString strDevPath = pDevice->getUserFriendlyName();
-			if( strDevPath.isEmpty() ||
-				!CFileHelper::FileExists( strDevPath, &getClient()->getAuthHelper()) ||
-				!isFileInsideVmHome(strDevPath,m_sVmHomePath))
-				continue;
-
-			QFile resource_file( strDevPath );
-			if (!CFileHelper::FileCanWrite( strDevPath,
-				&getClient()->getAuthHelper())
-				|| !resource_file.remove() )
-			{
-				outLstNotRemovedFiles.append( strDevPath );
-				WRITE_TRACE(DBG_FATAL, "file [%s] not removed by error %ld [%s]"
-					, QSTR2UTF8( strDevPath )
-					, Prl::GetLastError()
-					, QSTR2UTF8( Prl::GetLastErrorAsString() )
-					);
-
-			}
-		}
-	}
-}
-
-// Remove VM resources from disk
-bool Task_DeleteVm::removeVmResources( const SmartPtr<CVmConfiguration>& p_VmConfig,
-									  QStringList& outLstNotRemovedFiles
-									  )
-{
-	outLstNotRemovedFiles.clear();
-
-	if (!p_VmConfig)
-	{
-		WRITE_TRACE(DBG_FATAL, "p_VmConfig==0");
-		return false;
-	}
-
-
-	/**
-	* get VM hardware list accessor
-	*/
-
-	CVmHardware* p_VmHardware = p_VmConfig->getVmHardwareList();
-	if( !p_VmHardware )
-		return false;
-
-	/**
-	* process floppy disk images
-	*/
-
-	removeDevices(p_VmHardware->m_lstFloppyDisks, outLstNotRemovedFiles );
-
-	/**
-	* process hard disk images
-	*/
-	for( int iNdex = 0; iNdex < p_VmHardware->m_lstHardDisks.size(); iNdex++ )
-    {
-        CVmHardDisk* pDevice = p_VmHardware->m_lstHardDisks.at( iNdex );
-        if( ( pDevice->getEmulatedType() == PVE::HardDiskImage ) )
-        {
-            // task #603 [Change mechanism of delete Hdd/cdrom/floppy when user remove VM]
-            //      hdd images outside vm catalogue don't removed
-			QString strDevPath = pDevice->getUserFriendlyName();
-			if(strDevPath.isEmpty() ||
-				!CFileHelper::FileExists( strDevPath, &getClient()->getAuthHelper()) ||
-				!isFileInsideVmHome( strDevPath, m_sVmHomePath))
-				continue;
-
-
-            QFile resource_file( strDevPath );
-
-			//if (!CFileHelper::FileCanWrite( pDevice->getUserFriendlyName(), getUser()->getAuthHelper())
-			//  || !resource_file.remove() )
-			// FIXME: Friendly? Really? May be system ?
-
-// VirtualDisk commented out by request from CP team
-//            PRL_RESULT err = IDisk::Remove( strDevPath );
-//            if  ( PRL_ERR_SUCCESS != err )
-//            {
-//                if(!CFileHelper::ClearAndDeleteDir( strDevPath ))
-//				{
-//					outLstNotRemovedFiles.append( strDevPath );
-//					WRITE_TRACE(DBG_FATAL, "file [%s] not removed by error %d"
-//						, QSTR2UTF8( strDevPath )
-//						, err
-//						);
-//				}
-//			}
-		}
-		else
-		{
-// VirtualDisk commented out by request from CP team
-//			PRL_RESULT err = IDisk::Remove( pDevice->getSystemName() );
-//			if  ( PRL_ERR_SUCCESS != err )
-//			{
-//				outLstNotRemovedFiles.append( pDevice->getSystemName() );
-//				WRITE_TRACE(DBG_FATAL, "file [%s] not removed by error %d"
-//					, QSTR2UTF8( pDevice->getSystemName() )
-//					, err
-//					);
-//			}
-		}
-	}
-
-	/**
-	* process CD/DVD-ROMs disk images
-	*/
-
-	removeDevices( p_VmHardware->m_lstOpticalDisks, outLstNotRemovedFiles );
-
-	/**
-	* process serial ports output files
-	*/
-
-	removeDevices( p_VmHardware->m_lstSerialPorts, outLstNotRemovedFiles );
-
-	/**
-	* process parallel ports output files
-	*/
-
-	removeDevices( p_VmHardware->m_lstParallelPorts, outLstNotRemovedFiles );
-
-	/**
-     * following items have no any output files, which can be deleted
-     */
-
-	// network adapters
-	//p_VmHardware->m_lstNetworkAdapters
-
-	// sound devices
-	//p_VmHardware->m_lstSoundDevices
-
-	// USB controllers
-	//p_VmHardware->m_lstUsbDevices
-	return outLstNotRemovedFiles.isEmpty();
-
-}
-
-void Task_DeleteVm::removeGarbageFiles(const QString & strDir)
-{
-	QDir	cDir(strDir);
-	cDir.setFilter(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System);
-	cDir.setNameFilters( g_LIST_OF_PARALLELS_FILESGARBAGE_EXTENTION );
-	cDir.setSorting(QDir::Name | QDir::DirsLast);
-	QFileInfoList cFileList = cDir.entryInfoList();
-
-	for(int i = 0; i < cFileList.size();i++ )
-	{
-		if(cFileList.at(i).isFile())
-		{
-			QString strFileExtention = cFileList.at(i).suffix();
-			// check file extention
-			if(strFileExtention == "xml")
-			{
-				if (cFileList.at(i).baseName() != g_sSNAPSHOTS_DIR_NAME )
-					continue;
-			}
-			QFile::remove(cFileList.at(i).filePath());
-		}
-
-	}
-
-}
-
-// this function search prl dirs in input directory and remove it
-bool Task_DeleteVm::removeGarbageDirs(const QString & strDir)
-{
-	// clear garbage from directory
-	// if we have temporal directory "Windows Applications"
-	// form dir path
-	bool bRes = true;
-
-	QString strDirForClear = ParallelsDirs::getMappingApplicationsDir(strDir);
-	bRes &= CFileHelper::ClearAndDeleteDir(strDirForClear);
-	strDirForClear = ParallelsDirs::getMappingDisksDir(strDir);
-	bRes &= CFileHelper::ClearAndDeleteDir(strDirForClear);
-	strDirForClear = ParallelsDirs::getSnapshotsDir(strDir);
-	bRes &= CFileHelper::ClearAndDeleteDir(strDirForClear);
-	return bRes;
-}
-
-// this function searches .hdd,.fdd and .iso files from vm dir
-bool Task_DeleteVm::searchParallelsImagesInsideVmHome(const QString & strDir,
-													  QStringList & strImagesList)
-{
-	QDir	cDir(strDir);
-	cDir.setFilter(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden);
-	cDir.setNameFilters( g_LIST_OF_PARALLELS_IMAGES_EXTENTION );
-	cDir.setSorting(QDir::Name | QDir::DirsLast);
-	QFileInfoList cFileList = cDir.entryInfoList();
-
-	for(int i = 0; i < cFileList.size();i++ )
-	{
-		if(CFileHelper::FileCanWrite(cFileList.at(i).filePath(),
-			&getClient()->getAuthHelper())
-			)
-			strImagesList.append(cFileList.at(i).filePath());
-	}
-	return !strImagesList.isEmpty();
-}
-// this function correctly removed files from list and delete vm directory at the end
-bool Task_DeleteVm::RemoveListOfFiles(const QStringList & strImagesList,
-									  QStringList & lstNotRemoved,
-									  const QString & strVmDir,
-									  bool bPostProgressEvents)
-{
-	lstNotRemoved.clear();
-	bool isNeedToDeleteVmDir = false;
-	bool bRes = true;
-	for(int i = 0; i < strImagesList.size();i++ )
-	{
-		if (bPostProgressEvents)
-		{
-			postDeleteProgressEvent(i*(100/strImagesList.size()));
-			HostUtils::Sleep(100);
-		}
-
-		QString strCurImage = strImagesList[i];
-		QFileInfo curFileInfo(strCurImage);
-		// skip not existing files
-		if (!CFileHelper::FileExists(strCurImage,&getClient()->getAuthHelper()))
-			continue;
-
-		if (curFileInfo.isFile())
-		{
-			bool bCurDelete = QFile::remove(strCurImage);
-			if(!bCurDelete)
-				lstNotRemoved << strCurImage;
-			bRes &= bCurDelete;
-
-		}
-		else //
-		{
-			if (strVmDir == strCurImage)// vm dir must be deleted at the end
-			{
-				isNeedToDeleteVmDir = true;
-				continue;
-			}
-			// try to delete incoming directory if it internal directory of vm dir
-			if(curFileInfo.isDir())
-			{
-				// check if parent == vm directory
-				if (strCurImage.contains(".hdd"))// for hdd deleting - only it may be out of vm dir
-				{
-// VirtualDisk commented out by request from CP team
-//					PRL_RESULT err = IDisk::Remove(strCurImage);
-//					if( err != PRL_ERR_SUCCESS )
-//					{
-//						WRITE_TRACE(DBG_FATAL, "IDisk::Remove %s failed - error %d"
-//							, QSTR2UTF8( strCurImage )
-//							, err
-//							);
-//						// try to delete invalid disk image
-//						if(!CFileHelper::ClearAndDeleteDir(strCurImage))
-//						{
-//							bRes = false;
-//							lstNotRemoved << strImagesList[i];
-//						}
-//					}
-				}
-				else
-				{
-					// delete only child directory to prevent damage
-					// #431558 compare paths by spec way to prevent errors with symlinks, unexisting files, ...
-					if(CFileHelper::IsPathsEqual(curFileInfo.dir().path(), strVmDir))
-
-					{
-						if (!CFileHelper::ClearAndDeleteDir(strCurImage))
-						{
-							bRes = false;
-							lstNotRemoved << strImagesList[i];
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if(isNeedToDeleteVmDir)
-	{
-		QDir().rmdir(strVmDir);
-	}
-	if (bPostProgressEvents)
-		postDeleteProgressEvent(100);
-	return bRes;
 }
 
 /**
@@ -847,28 +360,275 @@ void Task_DeleteVm::postVmDeletedEvent()
 
 }
 
-/**
-* Notify deletion caller about progress
-*/
-void Task_DeleteVm::postDeleteProgressEvent(uint uiProgress)
+namespace Instrument
 {
-	// Create event for client
-	CVmEvent event(	PET_JOB_DELETE_VM_PROGRESS_CHANGED,
-		Uuid().toString(),
-		PIE_DISPATCHER );
+namespace Command
+{
+namespace Delete
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Libvirt
 
-	/**
-	* Add event parameters
-	*/
+PRL_RESULT Libvirt::operator()()
+{
+#ifdef _LIBVIRT_
+	::Libvirt::Result r(::Libvirt::Kit.vms().at(m_uid)
+			.getState().undefine());
+	if (r.isFailed())
+		return r.error().code();
+#endif // _LIBVIRT_
 
-	event.addEventParameter(new CVmEventParameter( PVE::UnsignedInt,
-		QString::number(uiProgress),
-		EVT_PARAM_PROGRESS_CHANGED));
-
-
-	SmartPtr<IOPackage> p =
-		DispatcherPackage::createInstance( PVE::DspVmEvent, event,
-		getRequestPackage());
-
-	getClient()->sendPackage( p );
+	return PRL_ERR_SUCCESS;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Guise
+
+PRL_RESULT Guise::enable()
+{
+	if (m_auth->Impersonate())
+		return PRL_ERR_SUCCESS;
+
+	return PRL_ERR_IMPERSONATE_FAILED;
+}
+
+PRL_RESULT Guise::disable()
+{
+	if (!m_auth->RevertToSelf())
+	{
+		WRITE_TRACE(DBG_FATAL, "error: %s",
+			PRL_RESULT_TO_STRING(PRL_ERR_REVERT_IMPERSONATE_FAILED));
+	}
+
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Backup
+
+PRL_RESULT Backup::disable()
+{
+	::Backup::Device::Service(m_vm).setVmHome(m_home).disable();
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Backup::teardown()
+{
+	::Backup::Device::Service(m_vm).setVmHome(m_home).teardown();
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Content
+
+PRL_RESULT Content::operator()()
+{
+	// for server mode delete all files from vm directory #270686
+	// common logic for console clients such as prlctl for all modes #436939
+	PRL_ASSERT(QFileInfo(m_home).isDir());
+	if (CFileHelper::ClearAndDeleteDir(m_home))
+		return PRL_ERR_SUCCESS;
+
+	return CDspTaskFailure(*m_task)(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
+}
+
+PRL_RESULT Content::operator()(const QStringList& list_)
+{
+	QStringList b;
+	boost::function<void ()> r;
+	foreach (const QString& i, list_)
+	{
+		// skip not existing files
+		if (!CFileHelper::FileExists(i, &m_task->getClient()->getAuthHelper()))
+			continue;
+
+		QFileInfo x(i);
+		if (x.isFile() && !QFile::remove(i))
+			b << i;
+		else if (x.isDir())
+		{
+			if (m_home == i)// vm dir must be deleted at the end
+				r = boost::bind(&QDir::rmdir, QDir(), m_home);
+
+			// try to delete incoming directory if it internal directory of vm dir
+			// delete only child directory to prevent damage
+			// #431558 compare paths by spec way to prevent errors with symlinks, unexisting files, ...
+			else if (CFileHelper::IsPathsEqual(x.dir().path(), m_home) &&
+				!CFileHelper::ClearAndDeleteDir(i))
+				b << i;
+		}
+	}
+	if (!r.empty())
+		r();
+
+	if (b.isEmpty())
+		return PRL_ERR_SUCCESS;
+
+	CDspTaskFailure f(*m_task);
+	WRITE_TRACE(DBG_FATAL, ">>> Not all files can be delete. !removeVmResources( pVmConfig )");
+	foreach (const QString& i, b)
+	{
+		WRITE_TRACE(DBG_FATAL, "file wasn't delete. path = [%s]", qPrintable(i));
+		f.setToken(i);
+	}
+
+	return f(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
+}
+
+} // namespace Delete
+} // namespace Command
+
+namespace Chain
+{
+namespace Delete
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Request
+
+Request::Request(const vm_type& vm_, const QStringList& itemList_):
+	m_vm(vm_), m_itemList(itemList_)
+{
+	if (m_vm.isValid())
+	{
+		m_home = CFileHelper::GetFileRoot
+			(m_vm->getVmIdentification()->getHomePath());
+	}
+}
+
+bool Request::isTemplate() const
+{
+	return m_vm.isValid() &&
+		m_vm->getVmSettings()->getVmCommonOptions()->isTemplate();
+}
+
+namespace Template
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Shared
+
+Shared::result_type Shared::operator()(const request_type& request_)
+{
+	if (!request_.isTemplate())
+		return base_type::operator()(request_);
+
+	::Template::Storage::Dao::pointer_type p;
+	::Template::Storage::Dao d(*m_auth);
+	PRL_RESULT e = d.findForEntry(request_.getHome(), p);
+	if (PRL_FAILED(e))
+		return base_type::operator()(request_);
+
+	e = p->unlink(QFileInfo(request_.getHome()).fileName());
+	if (PRL_FAILED(e))
+		return e;
+
+	return p->commit();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Regular
+
+Regular::result_type Regular::operator()(const request_type& request_)
+{
+	if (!request_.isTemplate())
+		return base_type::operator()(request_);
+
+	Command::Batch b;
+	Command::Delete::Guise g(m_task->getClient()->getAuthHelper());
+	b.addItem(boost::bind(&Command::Delete::Guise::enable, g),
+		boost::bind(reinterpret_cast<void (Command::Delete::Guise::*)()>
+			(&Command::Delete::Guise::disable), g));
+
+	Command::Delete::Content w(request_.getHome(), *m_task);
+	if (request_.getItems().isEmpty())
+		b.addItem(boost::bind(w));
+	else
+		b.addItem(boost::bind(w, request_.getItems()));
+
+	b.addItem(boost::bind(&Command::Delete::Guise::disable, g));
+	return b.execute();
+}
+
+} // namespace Template
+
+namespace Vm
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Home
+
+Home::result_type Home::operator()(const request_type& request_)
+{
+	if (request_.isTemplate())
+		return PRL_ERR_UNEXPECTED;
+
+	Command::Batch b;
+	b.addItem(Command::Delete::Libvirt(m_task->getVmUuid()));
+	Command::Delete::Guise g(m_task->getClient()->getAuthHelper());
+	b.addItem(boost::bind(&Command::Delete::Guise::enable, g),
+		boost::bind(reinterpret_cast<void (Command::Delete::Guise::*)()>
+			(&Command::Delete::Guise::disable), g));
+	b.addItem(boost::bind(&Command::Delete::Backup::teardown,
+		Command::Delete::Backup(request_.getHome(), request_.getVm())));
+	b.addItem(boost::bind(Command::Delete::Content(request_.getHome(), *m_task)));
+	b.addItem(boost::bind(&Command::Delete::Guise::disable, g));
+
+	return b.execute();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+
+List::result_type List::operator()(const request_type& request_)
+{
+	if (request_.isTemplate())
+		return PRL_ERR_UNEXPECTED;
+
+	if (request_.getItems().isEmpty())
+		return base_type::operator()(request_);
+
+	Command::Batch b;
+	b.addItem(Command::Delete::Libvirt(m_task->getVmUuid()));
+	Command::Delete::Guise g(m_task->getClient()->getAuthHelper());
+	b.addItem(boost::bind(&Command::Delete::Guise::enable, g),
+		boost::bind(reinterpret_cast<void (Command::Delete::Guise::*)()>
+			(&Command::Delete::Guise::disable), g));
+	b.addItem(boost::bind(Command::Delete::Content(request_.getHome(), *m_task),
+		request_.getItems()));
+	b.addItem(boost::bind(&Command::Delete::Guise::disable, g));
+
+	return b.execute();
+}
+
+} // namespace Vm
+} // namespace Delete
+
+namespace Unregister
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Template
+
+Template::result_type Template::operator()(const request_type& request_)
+{
+	if (request_.isTemplate())
+		return PRL_ERR_SUCCESS;
+
+	return Delete::base_type::operator()(request_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+Vm::result_type Vm::operator()(const request_type& request_)
+{
+	if (request_.isTemplate())
+		return PRL_ERR_UNEXPECTED;
+
+	Command::Batch b;
+	b.addItem(Command::Delete::Libvirt(m_task->getVmUuid()));
+	b.addItem(boost::bind(&Command::Delete::Backup::disable,
+		Command::Delete::Backup(request_.getHome(), request_.getVm())));
+	return b.execute();
+}
+
+} // namespace Unregister
+} // namespace Chain
+} // namespace Instrument

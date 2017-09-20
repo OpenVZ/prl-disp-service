@@ -50,8 +50,7 @@ typedef enum _PRL_VM_DELETE_FLAGS
 	PVD_SKIP_HA_CLUSTER		= (1 << 4),
 } PRL_VM_DELETE_FLAGS;
 
-class Task_DeleteVm
-	: public  CDspTaskHelper
+class Task_DeleteVm: public CDspTaskHelper
 {
 	Q_OBJECT
 public:
@@ -60,7 +59,6 @@ public:
 					const QString& vm_config,
 					PRL_UINT32 flags,
 					const QStringList & strFilesToDelete = QStringList());
-	~Task_DeleteVm();
 
 	virtual QString getVmUuid();
 
@@ -76,38 +74,6 @@ protected:
 private:
 	void setTaskParameters(	const QString& vm_uuid );
 
-	// @brief: Remove VM resources from disk
-	// @param p_VmConfig					- vm config
-	// @param outLstNotRemovedFiles  - out parameter - list with not removed files.
-	// @return true if all removed
-	// @return false if someone resource doesn't removed.
-	bool removeVmResources(const SmartPtr<CVmConfiguration>& p_VmConfig,
-					QStringList& outLstNotRemovedFiles);
-
-	/**
-	* this function search prl files in input directory and remove it
-	*/
-	void removeGarbageFiles(const QString & strDir);
-
-	/**
-	* this function search prl dirs in input directory and remove it
-	*/
-	bool removeGarbageDirs(const QString & strDir);
-
-	/**
-	* this function searches .hdd,.fdd and .iso files from vm dir
-	*/
-	bool searchParallelsImagesInsideVmHome(const QString & strDir,QStringList & strImagesList);
-
-	/**
-	* this function correctly removed files from list and fill list that can't remove
-	*/
-	bool RemoveListOfFiles(const QStringList & strImagesList,
-					QStringList & lstNotRemoved,
-					const QString & strVmDir,
-					bool bPostProgressEvents = false);
-
-
 	/**
 	* check if user is authorized to access this VM
 	*/
@@ -117,17 +83,6 @@ private:
 	* Notify all users that VM was removed
 	*/
 	void postVmDeletedEvent();
-
-	/**
-	* Notify deletion caller about progress
-	*/
-	void postDeleteProgressEvent(uint uiProgress);
-
-	/**
-	* remove devices files from list
-	*/
-	template<class T>
-	void removeDevices( const QList<T*> & lstDevices, QStringList& outLstNotRemovedFiles );
 
 private:
 	PRL_UINT32 m_flags;
@@ -139,7 +94,7 @@ private:
 
 	bool			m_flgLockRegistred;
 
-	CVmDirectory::TemporaryCatalogueItem*  m_pVmInfo;
+	QScopedPointer<CVmDirectory::TemporaryCatalogueItem>  m_pVmInfo;
 
 	// list to delete
 	QStringList		m_strListToDelete;
