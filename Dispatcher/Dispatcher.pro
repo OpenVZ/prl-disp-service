@@ -113,10 +113,12 @@ HEADERS += \
 	Tasks/Task_CloneVm.h \
 	Tasks/Task_CloneVm_p.h \
 	Tasks/Task_MoveVm.h \
+	Tasks/Task_MoveVm_p.h \
 	Tasks/Task_CommonHeaders.h \
 	Tasks/Task_CreateImage.h \
 	Tasks/Task_CopyImage.h \
 	Tasks/Task_DeleteVm.h \
+	Tasks/Task_DeleteVm_p.h \
 	Tasks/Task_FileSystemEntriesOperations.h \
 	Tasks/Task_GetFileSystemEntries.h \
 	Tasks/Task_GetInfoFromParallelsUtils.h \

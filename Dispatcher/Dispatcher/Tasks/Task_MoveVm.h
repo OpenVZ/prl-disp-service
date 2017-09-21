@@ -40,21 +40,36 @@
 #include "CDspTaskHelper.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
+namespace Vm
+{
+namespace Directory
+{
+struct Ephemeral;
+
+} // namespace Directory
+} // namespace Vm
+
 enum _PRL_VM_MOVE_STEP {
 	MOVE_VM_EXCL_OP_REGISTERED	= (1 << 0),
 	MOVE_VM_EXCL_PARAMS_LOCKED	= (1 << 1),
-	MOVE_VM_NEW_HOME_SET		= (1 << 2),
-	MOVE_VM_SAME_PARTITION		= (1 << 3),
 };
 
 class Task_MoveVm : public  CDspTaskHelper
 {
    Q_OBJECT
 public:
-	Task_MoveVm ( SmartPtr<CDspClient>&, const SmartPtr<IOPackage>& );
-	~Task_MoveVm();
+	Task_MoveVm(const SmartPtr<CDspClient>&, const SmartPtr<IOPackage>&,
+		Vm::Directory::Ephemeral& ephemeral_);
 
 	virtual QString getVmUuid();
+	const QString& getVmDirectory() const
+	{
+		return m_sVmDirUuid;
+	}
+	const SmartPtr<CVmConfiguration>& getVmConfig() const
+	{
+		return m_pVmConfig;
+	}
 
 protected:
 	virtual PRL_RESULT prepareTask();
@@ -62,12 +77,6 @@ protected:
 	virtual PRL_RESULT run_body();
 
 	virtual void cancelOperation(SmartPtr<CDspClient> pUserSession, const SmartPtr<IOPackage> &p);
-
-private:
-	PRL_RESULT handle_dir_item(const QFileInfo& fi, const QDir& targetDir, QList<QFileInfo>& dirList);
-	PRL_RESULT setVmHome(const QString& path);
-	PRL_RESULT handleClusterResource();
-	PRL_RESULT postMoveActions();
 
 private:
 	SmartPtr<CVmConfiguration> m_pVmConfig;
@@ -83,6 +92,7 @@ private:
 	bool m_isFsSupportPermsAndOwner;
 
 	PRL_UINT32 m_nSteps;
+	Vm::Directory::Ephemeral* m_ephemeral;
 	SmartPtr<CVmDirectory::TemporaryCatalogueItem> m_pVmInfo;
 };
 

@@ -37,13 +37,14 @@
 
 #include "CDspService.h"
 #include "CDspTaskHelper.h"
+#include <boost/variant.hpp>
+#include <boost/function.hpp>
+#include "CDspTemplateStorage.h"
 #include "CDspVmNetworkHelper.h"
 #include <prlcommon/Std/noncopyable.h>
 #include "Tasks/Mixin_CreateVmSupport.h"
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
-#include <boost/function.hpp>
-//#include "Libraries/VirtualDisk/DiskStatesManager.h"
 
 class CDspVm;
 class Task_CloneVm;
@@ -687,13 +688,29 @@ struct Local
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class Shared
+// struct Shared
 
 struct Shared
 {
+	typedef ::Template::Storage::Dao::value_type catalog_type;
+
+	Shared(const QFileInfo& home_, catalog_type* catalog_): m_home(home_),
+		m_catalog(catalog_)
+	{
+	}
+
+	PRL_RESULT operator()(Sink::Builder& builder_, Work& work_) const;
+
+private:
+	QFileInfo m_home;
+	QSharedPointer<catalog_type> m_catalog;
 };
 
 } // namespace Template
+
+typedef boost::variant<Vm::General, Vm::Linked, Vm::Bootcamp, Template::Local, Template::Shared>
+	mode_type;
+
 } // namespace Source
 
 namespace Sink
@@ -991,6 +1008,15 @@ struct Flavor<T, typename EnableIf<IsSame<T, Template::Local>::value ||
 	}
 };
 
+typedef boost::variant
+	<
+		Flavor<Vm::General>,
+		Flavor<Vm::Linked>,
+		Flavor<Vm::Bootcamp>,
+		Flavor<Template::Local>,
+		Flavor<Template::Shared>
+	> mode_type;
+
 } // namespace Sink
 
 
@@ -1008,13 +1034,12 @@ struct NotSupported
 template<class S, class D>
 struct NotSupported<S, D, typename EnableIf<
 	(IsSame<S, Source::Vm::Bootcamp>::value && IsSame<D, Sink::Vm::Linked>::value) ||
-	(IsSame<S, Source::Template::Shared>::value && IsSame<D, Sink::Vm::Linked>::value) ||
 	(IsSame<S, Source::Vm::General>::value && IsSame<D, Sink::Vm::Bootcamp>::value) ||
 	(IsSame<S, Source::Vm::Linked>::value && IsSame<D, Sink::Vm::Bootcamp>::value) ||
+	(IsSame<D, Source::Template::Shared>::value) ||
+	(IsSame<S, Source::Template::Shared>::value && IsSame<D, Sink::Vm::Linked>::value) ||
 	(IsSame<S, Source::Template::Shared>::value && IsSame<D, Sink::Vm::Bootcamp>::value) ||
-	(IsSame<S, Source::Vm::Linked>::value && IsSame<D, Sink::Template::Local>::value) ||
-	(IsSame<S, Source::Vm::Linked>::value && IsSame<D, Sink::Template::Shared>::value) ||
-	(IsSame<S, Source::Vm::Bootcamp>::value && IsSame<D, Sink::Template::Shared>::value)>::type>
+	(IsSame<S, Source::Vm::Linked>::value && IsSame<D, Sink::Template::Local>::value)>::type>
 {
 	static const bool value = true;
 };
@@ -1037,7 +1062,8 @@ struct Small<Source::Vm::Linked, Source::Vm::General>
 template<class S, class D>
 struct Small<S, D, typename EnableIf<NotSupported<S, D>::value>::type>
 {
-	static PRL_RESULT do_(Task_CloneVm& , Source::Work& , Sink::Flavor<D>& )
+	template<class W>
+	static PRL_RESULT do_(Task_CloneVm& , W& , Sink::Flavor<D>& )
 	{
 		return PRL_ERR_VM_REQUEST_NOT_SUPPORTED;
 	}
@@ -1046,7 +1072,8 @@ struct Small<S, D, typename EnableIf<NotSupported<S, D>::value>::type>
 template<class S, class D>
 struct Small<S, D, typename EnableIf<!NotSupported<S, D>::value>::type>
 {
-	static PRL_RESULT do_(Task_CloneVm& task_, Source::Work& source_, Sink::Flavor<D>& sink_)
+	template<class W>
+	static PRL_RESULT do_(Task_CloneVm& task_, W& source_, Sink::Flavor<D>& sink_)
 	{
 		Sink::Private p(task_);
 		Sink::Builder b(task_, Sink::Flavor<D>::getGrub(task_), p);
@@ -1123,6 +1150,52 @@ struct Great<Source::Vm::General, Sink::Vm::Linked>: SnapshotAware<Source::Vm::G
 template<>
 struct Great<Source::Template::Local, Sink::Vm::Linked>: SnapshotAware<Source::Template::Local>
 {
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Visitor
+
+struct Visitor: boost::static_visitor<PRL_RESULT>
+{
+	Visitor(Task_CloneVm& task_, Source::Private& private_): m_task(&task_),
+		m_private(&private_)
+	{
+	}
+
+	template<class T, class D>
+	typename boost::disable_if<boost::is_same<T, Source::Template::Shared>, result_type>::type
+		operator()(const T& , Sink::Flavor<D>& sink_) const
+	{
+		Source::Total t(*m_task, *m_private);
+		Source::Work w(*m_task, t);
+		return Great<T, D>::do_(*m_task, w, sink_);
+	}
+	template<class D>
+	result_type operator()(const Source::Template::Shared& source_, Sink::Flavor<D>& sink_) const
+	{
+		Source::Total t(*m_task, *m_private);
+		Source::Work w(*m_task, t);
+		boost::function<PRL_RESULT (Sink::Builder&)> f =
+			boost::bind<PRL_RESULT>(source_, _1, boost::ref(w));
+		return Small<Source::Template::Shared, D>::do_(*m_task, f, sink_);
+	}
+
+private:
+	Task_CloneVm* m_task;
+	Source::Private* m_private;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Estimate
+
+struct Estimate: private Facade
+{
+	explicit Estimate(Task_CloneVm& task_): Facade(task_)
+	{
+	}
+
+	Prl::Expected<Sink::mode_type, PRL_RESULT> getSink(quint32 flags_) const;
+	Prl::Expected<Source::mode_type, PRL_RESULT> getSource(const QString& home_) const;
 };
 
 } // namespace Work

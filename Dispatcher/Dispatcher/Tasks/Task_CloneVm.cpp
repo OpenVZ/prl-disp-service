@@ -687,6 +687,25 @@ unlock:
 	return output;
 }
 
+namespace Template
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Shared
+
+PRL_RESULT Shared::operator()(Sink::Builder& builder_, Work& work_) const
+{
+	if (m_catalog.isNull())
+		return PRL_ERR_UNINITIALIZED;
+
+	PRL_RESULT e = m_catalog->export_(m_home.fileName(),
+		boost::bind<PRL_RESULT>(boost::ref(work_), boost::ref(builder_)));
+	if (PRL_FAILED(e))
+		return e;
+
+	return m_catalog->commit();
+}
+
+} // namespace Template
 } // namespace Source
 
 namespace Sink
@@ -1303,6 +1322,76 @@ PRL_RESULT Floppy::operator()(CVmFloppyDisk& device_, const QString& target_)
 }
 
 } // namespace Copy
+
+namespace Work
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Estimate
+
+Prl::Expected<Sink::mode_type, PRL_RESULT> Estimate::getSink(quint32 flags_) const
+{
+	using namespace Sink;
+	Private p(getTask());
+	bool t = flags_ & PCVF_CLONE_TO_TEMPLATE;
+	::Template::Storage::Dao::pointer_type c;
+	::Template::Storage::Dao d(*getAuth());
+	PRL_RESULT e = d.findForEntry(p.getRoot(), c);
+	if (PRL_SUCCEEDED(e) && !t)
+		return PRL_ERR_VM_REQUEST_NOT_SUPPORTED;
+
+	if (t)
+	{
+		if (c.isNull())
+			return mode_type(Flavor<Template::Local>());
+
+		return mode_type(Flavor<Template::Shared>());
+	}
+	bool s = flags_ & PCVF_CHANGE_SID;
+	if (s)
+	{
+		if (!Task_ChangeSID::canChangeSid(getConfig()))
+			return PRL_ERR_CHANGESID_NOT_SUPPORTED;
+	}
+	Source::Config x(getTask());
+	bool b = flags_ & PCVF_IMPORT_BOOT_CAMP;
+	if (flags_ & PCVF_LINKED_CLONE || x.isLinked())
+		return mode_type(Flavor<Vm::Linked>(s));
+	else if (!b && x.hasBootcampDevice())
+		return mode_type(Flavor<Vm::Bootcamp>(s));
+
+	Flavor<Vm::General> v(s);
+	v.setBootcamps(b);
+
+	return mode_type(v);
+}
+
+Prl::Expected<Source::mode_type, PRL_RESULT> Estimate::getSource(const QString& home_) const
+{
+	using namespace Source;
+	Config x(getTask());
+	if (x.isLinked())
+		return mode_type(Vm::Linked());
+
+	if (x.isTemplate())
+	{
+		::Template::Storage::Dao::pointer_type p;
+		::Template::Storage::Dao d(*getAuth());
+		PRL_RESULT e = d.findForEntry(home_, p);
+		if (PRL_SUCCEEDED(e))
+			return mode_type(Template::Shared(home_, p.take()));
+
+		if (PRL_ERR_FILE_NOT_FOUND != e)
+			return e;
+
+		return mode_type(Template::Local());
+	}
+	if (x.hasBootcampDevice())
+		return mode_type(Vm::Bootcamp());
+
+	return mode_type(Vm::General());
+}
+
+} // namespace Work
 } // namespace Clone
 
 Task_CloneVm::Task_CloneVm(Registry::Public& registry_,
@@ -1321,7 +1410,6 @@ Task_CloneVm::Task_CloneVm(Registry::Public& registry_,
 	m_mtxWaitExternalTask(QMutex::Recursive),
 	m_externalTask(NULL),
 	m_flgLockRegistred(false),
-	m_pVmInfo(0),
 	m_bCreateTemplate( nFlags & PCVF_CLONE_TO_TEMPLATE ),
 	m_bChangeSID( nFlags & PCVF_CHANGE_SID ),
 	m_bLinkedClone( nFlags & PCVF_LINKED_CLONE ),
@@ -1408,13 +1496,6 @@ Task_CloneVm::Task_CloneVm(Registry::Public& registry_,
 		);
 }
 
-Task_CloneVm::~Task_CloneVm()
-{
-	if (m_pVmInfo)
-		delete m_pVmInfo;
-
-}
-
 void Task_CloneVm::cancelOperation(SmartPtr<CDspClient> pUserSession, const SmartPtr<IOPackage> &p)
 {
 	CDspTaskHelper::cancelOperation(pUserSession, p);
@@ -1493,11 +1574,11 @@ PRL_RESULT Task_CloneVm::prepareTask()
 		if( m_newVmName.isEmpty())
 			throw PRL_ERR_VM_NAME_IS_EMPTY;
 
-		m_pVmInfo =  new CVmDirectory::TemporaryCatalogueItem(m_newVmUuid, m_newVmXmlPath, m_newVmName);
+		m_pVmInfo.reset(new CVmDirectory::TemporaryCatalogueItem(m_newVmUuid, m_newVmXmlPath, m_newVmName));
 		PRL_RESULT lockResult = CDspService::instance()->getVmDirManager()
 			.checkAndLockNotExistsExclusiveVmParameters(
 				getClient()->getVmDirectoryUuidList(),
-				m_pVmInfo );
+				m_pVmInfo.data());
 
 		if( ! PRL_SUCCEEDED( lockResult) )
 		{
@@ -1574,82 +1655,52 @@ void Task_CloneVm::finalizeTask()
 			getClient()->getVmDirectoryUuid(), m_pVmInfo->vmUuid);
 	}
 	// delete temporary registration
-	if (m_pVmInfo && m_flgLockRegistred)
+	if (!m_pVmInfo.isNull() && m_flgLockRegistred)
 	{
 		CDspService::instance()->getVmDirManager()
-			.unlockExclusiveVmParameters( m_pVmInfo );
+			.unlockExclusiveVmParameters(m_pVmInfo.data());
 	}
 
 	// send response
 	SendCloneResponse();
 }
 
-template<class T>
-PRL_RESULT Task_CloneVm::do_(T , Clone::Source::Total& source_)
-{
-	using namespace Clone::Sink;
-	Clone::Source::Work w(*this, source_);
-	if (m_bCreateTemplate)
-	{
-		Flavor<Template::Local> f;
-		return Clone::Work::Great<T, Template::Local>::do_(*this, w, f);
-	}
-	bool s = m_bChangeSID;
-	if (s)
-	{
-		if (!Task_ChangeSID::canChangeSid(getVmConfig()))
-			return PRL_ERR_CHANGESID_NOT_SUPPORTED;
-	}
-	Clone::Source::Config x(*this);
-	if (m_bLinkedClone || x.isLinked())
-	{
-		Flavor<Clone::Sink::Vm::Linked> f(s);
-		return Clone::Work::Great<T, Clone::Sink::Vm::Linked>::do_(*this, w, f);
-	}
-	else if (!m_bImportBootCamp && x.hasBootcampDevice())
-	{
-		Flavor<Clone::Sink::Vm::Bootcamp> f(s);
-		return Clone::Work::Great<T, Clone::Sink::Vm::Bootcamp>::do_(*this, w, f);
-	}
-	Flavor<Clone::Sink::Vm::General> f(s);
-	f.setBootcamps(m_bImportBootCamp);
-	return Clone::Work::Great<T, Clone::Sink::Vm::General>::do_(*this, w, f);
-}
-
 PRL_RESULT Task_CloneVm::run_body()
 {
-	PRL_RESULT output;
 	do
 	{
 		using namespace Clone::Source;
 		Private p(*this);
 		QString u = getVmUuid();
-		if (PRL_FAILED(output = p.setRoot(u)))
+		setLastErrorCode(p.setRoot(u));
+		if (PRL_FAILED(getLastErrorCode()))
 		{
 			WRITE_TRACE(DBG_FATAL, "Unexpected error: couldn't to get VM '%s' home dir",
-				QSTR2UTF8(u));
+				qPrintable(u));
 			break;
 		}
-		Total t(*this, p);
-		if (t.getConfig().isLinked())
+		Clone::Work::Estimate e(*this);
+		Prl::Expected<mode_type, PRL_RESULT> x = e.getSource(p.getRoot());
+		if (x.isFailed())
 		{
-			output = do_(Clone::Source::Vm::Linked(), t);
+			setLastErrorCode(x.error());
 			break;
 		}
-		if (t.getConfig().isTemplate())
+		Prl::Expected<Clone::Sink::mode_type, PRL_RESULT> y = e.getSink
+			(m_bCreateTemplate*PCVF_CLONE_TO_TEMPLATE
+			+ m_bChangeSID*PCVF_CHANGE_SID
+			+ m_bLinkedClone*PCVF_LINKED_CLONE
+			+ m_bImportBootCamp*PCVF_IMPORT_BOOT_CAMP);
+		if (y.isFailed())
 		{
-			output = do_(Template::Local(), t);
+			setLastErrorCode(y.error());
 			break;
 		}
-		if (t.getConfig().hasBootcampDevice())
-		{
-			output = do_(Clone::Source::Vm::Bootcamp(), t);
-			break;
-		}
-		output = do_(Clone::Source::Vm::General(), t);
+		setLastErrorCode(boost::apply_visitor(Clone::Work::Visitor(*this, p), x.value(), y.value()));
+
 	} while(false);
-	setLastErrorCode(output);
-	return output;
+
+	return getLastErrorCode();
 }
 
 void Task_CloneVm::SendCloneResponse()

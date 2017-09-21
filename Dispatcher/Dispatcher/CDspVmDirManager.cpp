@@ -264,8 +264,6 @@ PRL_RESULT CDspVmDirManager::addVmDirItem( const QString& dirUuid, CVmDirectoryI
 			CDspService::instance()->getVmConfigWatcher().registerVmToWatch( pVmDirItem->getVmHome(),
 											pVmDirectory->getUuid(),
 											pVmDirItem->getVmUuid());
-			// to prevent conflicts
-			CDspService::instance()->getVmConfigManager().removeFromCache( pVmDirItem->getVmHome() );
 		}
 	}
 
