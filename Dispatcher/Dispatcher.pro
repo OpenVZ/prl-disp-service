@@ -31,6 +31,7 @@ INCLUDEPATH *= \
 VPATH = Dispatcher
 HEADERS += \
 	CDspCommon.h \
+	CDspInstrument.h \
 	CVmIdent.h \
 	CDspAccessManager.h \
 	CDspClient.h \
@@ -92,6 +93,9 @@ HEADERS += \
 	CDspDBusHub.h \
 	CDspVmBrand.h \
 	CDspTaskTrace.h \
+	CDspTemplateFacade.h \
+	CDspTemplateScanner.h \
+	CDspTemplateStorage.h \
 	\
 	EditHelpers/CMultiEditDispatcher.h \
 	EditHelpers/CMultiEditMergeHelper.h \
@@ -161,9 +165,11 @@ HEADERS += \
 	Cache/CacheImpl.cpp
 
 SOURCES += \
+	CDspInstrument.cpp \
 	RoutesTable.cpp \
 	CDspAccessManager.cpp \
 	CDspClient.cpp \
+	CDspVmDirHelper.cpp \
 	CDspClientManager.cpp \
 	CDspDispConfigGuard.cpp \
 	CDspHandlerRegistrator.cpp \
@@ -179,7 +185,6 @@ SOURCES += \
 	CDspVm.cpp \
 	CDspDispConnection.cpp \
 	CDspVmDirManager.cpp \
-	CDspVmDirHelper.cpp \
 	CDspVmManager.cpp \
 	CDspVmMounter.cpp \
 	CDspVmGuestPersonality.cpp \
@@ -216,6 +221,9 @@ SOURCES += \
 	CDspDBusHub.cpp \
 	CDspVmBrand.cpp \
 	CDspTaskTrace.cpp \
+	CDspTemplateFacade.cpp \
+	CDspTemplateScanner.cpp \
+	CDspTemplateStorage.cpp \
 	\
 	EditHelpers/CMultiEditDispatcher.cpp \
 	EditHelpers/CMultiEditMergeVmConfig.cpp \

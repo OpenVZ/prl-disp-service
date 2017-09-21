@@ -56,6 +56,7 @@
 #include "CDspRegistry.h"
 #include "CDspCommon.h"
 #include "CDspTestConfig.h"
+#include "CDspTemplateScanner.h"
 #include "CDspDispConnectionsManager.h"
 #include "CDspDBusHub.h"
 
@@ -523,6 +524,8 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 #ifdef _CT_
 	m_pVzHelper = SmartPtr<CDspVzHelper>(new CDspVzHelper(*this, b));
 #endif
+	::Template::Scanner::Engine* e = new ::Template::Scanner::Engine(*p, *this);
+	e->start();
 
 	m_strServerUuidFromCorruptedDispConfig.clear();
 	PRL_ASSERT( m_pVmManagerHandler && dynamic_cast<CDspVmManager*>( m_pVmManagerHandler.getImpl()) );
