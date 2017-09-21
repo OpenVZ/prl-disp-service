@@ -770,8 +770,12 @@ void Task_EditVm::beginEditVm(const IOSender::Handle& sender,
 		return;
 	}
 
+	CVmIdent x(vm_uuid, DspVm::vdh().getVmDirectoryItemByUuid(pUserSession, vm_uuid).first);
+	if (x.second.isEmpty())
+		return (void)pUserSession->sendSimpleResponse(pkg, PRL_ERR_NO_VM_DIR_CONFIG_FOUND);
+
 	// We cannot edit suspended or suspending VM
-	VIRTUAL_MACHINE_STATE nState = CDspVm::getVmState(vm_uuid, pUserSession->getVmDirectoryUuid());
+	VIRTUAL_MACHINE_STATE nState = CDspVm::getVmState(x);
 	if (nState == VMS_SUSPENDED || nState == VMS_SUSPENDING || nState == VMS_SUSPENDING_SYNC)
 	{
 		WRITE_TRACE(DBG_FATAL, "Cannot edit VM configuration in suspended or suspending state!");
