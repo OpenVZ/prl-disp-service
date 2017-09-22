@@ -2455,7 +2455,8 @@ int CVzOperationHelper::get_resize_env_info(const QString &uuid, CDiskImageInfo 
 	return PRL_ERR_SUCCESS;
 }
 
-int CVzOperationHelper::create_env_disk(const QString &uuid, const CVmHardDisk &disk)
+int CVzOperationHelper::create_env_disk(const QString &uuid,
+		const CVmHardDisk &disk, bool recreate)
 {
 	QString sPath = disk.getUserFriendlyName();
 	unsigned int nNewSize = disk.getSize();
@@ -2497,6 +2498,9 @@ int CVzOperationHelper::create_env_disk(const QString &uuid, const CVmHardDisk &
 		args += "--encryption-keyid";
 		args += disk.getEncryption()->getKeyId();
 	}
+
+	if (recreate)
+		args += "--recreate";
 
 	args += "--size";
 	args += QString("%1").arg((unsigned long long)nNewSize << 10);

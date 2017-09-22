@@ -429,7 +429,8 @@ public:
 	int move_env(const QString &sUuid, const QString &sNewHome, const QString &sName);
 	int set_env_name(const QString &uuid, const QString &name);
 	int set_env_name(unsigned int id, const QString &name);
-	int create_env_disk(const QString &uuid, const CVmHardDisk &disk);
+	int create_env_disk(const QString &uuid, const CVmHardDisk &disk,
+			bool recreate = false);
 	int create_disk_image(const QString &path, quint64 sizeBytes);
 	int resize_env_disk(const QString &uuid, const QString &sPath,
 			unsigned int nNewSize, unsigned int flags);

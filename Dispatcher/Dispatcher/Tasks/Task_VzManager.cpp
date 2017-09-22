@@ -1046,12 +1046,13 @@ PRL_RESULT Task_VzManager::create_env_disk()
 
 	QString sPath = getFullPath(pConfig->getVmIdentification()->getHomePath(),
 			disk.getUserFriendlyName());
-	if (QFileInfo(sPath).exists()) {
+	if (!pCmd->IsRecreateAllowed() && QFileInfo(sPath).exists()) {
 		WRITE_TRACE(DBG_FATAL, "Disk image [%s] is already exist.", QSTR2UTF8(sPath));
 		return CDspTaskFailure(*this)(PRL_ERR_HDD_IMAGE_IS_ALREADY_EXIST, sPath);
 	}
 
-	PRL_RESULT ret = get_op_helper()->create_env_disk(pCmd->GetVmUuid(), disk);
+	PRL_RESULT ret = get_op_helper()->create_env_disk(pCmd->GetVmUuid(),
+			disk, pCmd->IsRecreateAllowed());
 	if (PRL_FAILED(ret))
 		return ret;
 
