@@ -180,7 +180,7 @@ Result Agent::migrate(const CVmConfiguration& config_, unsigned int flags_,
 		return e;
 
 	e = b.addXml(VIR_MIGRATE_PARAM_PERSIST_XML,
-		Config(getDomain(), getLink(), VIR_DOMAIN_XML_INACTIVE));
+		Config(getDomain(), getLink(), VIR_DOMAIN_XML_INACTIVE | VIR_DOMAIN_XML_MIGRATABLE));
 	if (e.isFailed())
 		return e;
 
