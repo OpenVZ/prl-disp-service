@@ -467,8 +467,12 @@ struct Frontend: Details::Frontend<Frontend>
 		template<class Event, class FromState, class ToState>
 		void operator()(const Event&, Frontend& fsm_, FromState& from_, ToState& to_)
 		{
-			fsm_.getConfigEditor()(boost::bind
-				(&configure<FromState, ToState>, _1, boost::ref(from_), boost::ref(to_)));
+			Config::Edit::Atomic a = fsm_.getConfigEditor();
+			if (VMS_MIGRATING != CDspVm::getVmState(a.getObject()))
+			{
+				a(boost::bind(&configure<FromState, ToState>,
+					_1, boost::ref(from_), boost::ref(to_)));
+			}
 		}
 
 		template<class FromState, class ToState>
