@@ -193,6 +193,34 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Generic
+
+template <VIRTUAL_MACHINE_STATE N>
+struct Generic: Details::Trace<Generic<N> >, boost::mpl::integral_c<VIRTUAL_MACHINE_STATE, N>
+{
+	template <class Event, class FSM>
+	void on_entry(Event const& event_, FSM& fsm_)
+	{
+		Details::Trace<Generic>::on_entry(event_, fsm_);
+		WRITE_TRACE(DBG_INFO, "VM '%s' changed state to %s",
+			qPrintable(fsm_.getName()), PRL_VM_STATE_TO_STRING(N));
+	}
+};
+
+namespace Paused
+{
+typedef Generic<VMS_PAUSED> Ordinary;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unknown
+
+struct Unknown: Ordinary
+{
+};
+
+} // namespace Paused
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
 struct Frontend: Details::Frontend<Frontend>
@@ -200,23 +228,10 @@ struct Frontend: Details::Frontend<Frontend>
 	Frontend(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 			const QSharedPointer< ::Network::Routing>& routing_);
 
-	template <VIRTUAL_MACHINE_STATE N>
-	struct State: Details::Trace<State<N> >, boost::mpl::integral_c<VIRTUAL_MACHINE_STATE, N>
-	{
-		template <class Event, class FSM>
-		void on_entry(Event const& event_, FSM& fsm_)
-		{
-			Details::Trace<State>::on_entry(event_, fsm_);
-			WRITE_TRACE(DBG_INFO, "VM '%s' changed state to %s",
-				qPrintable(fsm_.getName()), PRL_VM_STATE_TO_STRING(N));
-		}
-	};
-
-	typedef State<VMS_STOPPED> Stopped;
-	typedef State<VMS_SUSPENDED> Suspended;
-	typedef State<VMS_PAUSED> Paused;
-	typedef State<VMS_MOUNTED> Mounted;
-	typedef State<VMS_UNKNOWN> Unknown;
+	typedef Generic<VMS_STOPPED> Stopped;
+	typedef Generic<VMS_SUSPENDED> Suspended;
+	typedef Generic<VMS_MOUNTED> Mounted;
+	typedef Generic<VMS_UNKNOWN> Unknown;
 
 	// Running_
 	struct Running_: Details::Frontend<Running_>, boost::mpl::integral_c<VIRTUAL_MACHINE_STATE, VMS_RUNNING>
@@ -364,10 +379,17 @@ struct Frontend: Details::Frontend<Frontend>
 		}
 
 		template<class Event, class FromState>
-		void operator()(const Event&, Frontend& fsm_, FromState&, Paused&)
+		void operator()(const Event&, Frontend& fsm_, FromState&, Paused::Ordinary&)
 		{
 			WRITE_TRACE(DBG_INFO, "disabling guarantees for VM '%s'", qPrintable(fsm_.m_name));
 			Vcmmd::Api(fsm_.getUuid()).deactivate();
+		}
+
+		template<class Event, class FromState>
+		void operator()(const Event& event_, Frontend& fsm_, FromState& source_, Paused::Unknown& target_)
+		{
+			Paused::Ordinary& o = target_;
+			this->operator()(event_, fsm_, source_, o);
 		}
 
 		template<class Event, class FromState, class ToState>
@@ -467,8 +489,12 @@ struct Frontend: Details::Frontend<Frontend>
 		template<class Event, class FromState, class ToState>
 		void operator()(const Event&, Frontend& fsm_, FromState& from_, ToState& to_)
 		{
-			fsm_.getConfigEditor()(boost::bind
-				(&configure<FromState, ToState>, _1, boost::ref(from_), boost::ref(to_)));
+			Config::Edit::Atomic a = fsm_.getConfigEditor();
+			if (VMS_MIGRATING != CDspVm::getVmState(a.getObject()))
+			{
+				a(boost::bind(&configure<FromState, ToState>,
+					_1, boost::ref(from_), boost::ref(to_)));
+			}
 		}
 
 		template<class FromState, class ToState>
@@ -571,7 +597,7 @@ struct Frontend: Details::Frontend<Frontend>
 	msmf::Row<Unknown,    Conventional<VMS_SUSPENDED>,  Suspended,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Notification> > >,
 
-	msmf::Row<Unknown,    Conventional<VMS_PAUSED>,     Paused,
+	msmf::Row<Unknown,    Conventional<VMS_PAUSED>,     Paused::Unknown,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Lock, Notification> > >,
 
 	msmf::Row<Unknown,    Conventional<VMS_RUNNING>,    Running::entry_pt<Running::Already>,
@@ -590,7 +616,7 @@ struct Frontend: Details::Frontend<Frontend>
 	//      +-----------+----------------------+-----------+--------+
 	msmf::Row<Suspended,  Conventional<VMS_STOPPED>,    Stopped,    Notification >,
 
-	msmf::Row<Suspended,  Conventional<VMS_PAUSED>,     Paused,
+	msmf::Row<Suspended,  Conventional<VMS_PAUSED>,     Paused::Ordinary,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Lock, Notification> > >,
 
 	msmf::Row<Suspended,  Conventional<VMS_RUNNING>,    Running,
@@ -605,20 +631,29 @@ struct Frontend: Details::Frontend<Frontend>
 	msmf::Row<Running,    Conventional<VMS_SUSPENDED>,  Suspended,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Unlock, Cluster, BackupDisable, Notification> > >,
 
-	msmf::Row<Running,    Conventional<VMS_PAUSED>,     Paused,
+	msmf::Row<Running,    Conventional<VMS_PAUSED>,     Paused::Ordinary,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Cluster, Notification> > >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
-	msmf::Row<Paused,     Conventional<VMS_STOPPED>,    Stopped,
+	msmf::Row<Paused::Ordinary,     Conventional<VMS_STOPPED>,    Stopped,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Unlock, Notification> > >,
 
-	msmf::Row<Paused,     Conventional<VMS_SUSPENDED>,  Suspended,
+	msmf::Row<Paused::Ordinary,     Conventional<VMS_SUSPENDED>,  Suspended,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Unlock, Notification> > >,
 
-	msmf::Row<Paused,     Conventional<VMS_RUNNING>,    Running::entry_pt<Running::Already>,
+	msmf::Row<Paused::Ordinary,     Conventional<VMS_RUNNING>,    Running::entry_pt<Running::Already>,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, Cluster, Notification> > >,
+
+	msmf::Row<Paused::Unknown,     Conventional<VMS_STOPPED>,    Stopped,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Unlock, Notification> > >,
+
+	msmf::Row<Paused::Unknown,     Conventional<VMS_SUSPENDED>,  Suspended,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Unlock, Notification> > >,
+
+	msmf::Row<Paused::Unknown,     Conventional<VMS_RUNNING>,    Running::entry_pt<Running::Already>,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, Cluster, Runtime, Notification> > >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
@@ -643,7 +678,7 @@ struct Frontend: Details::Frontend<Frontend>
 	msmf::Row<Reverting,  Conventional<VMS_SUSPENDED>,  Suspended,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Notification> > >,
 
-	msmf::Row<Reverting,  Conventional<VMS_PAUSED>,     Paused,
+	msmf::Row<Reverting,  Conventional<VMS_PAUSED>,     Paused::Ordinary,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesUp, Runtime, Lock, Notification> > >,
 
 	msmf::Row<Reverting,  Conventional<VMS_RUNNING>,    Running,
