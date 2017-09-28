@@ -967,6 +967,7 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 {
 	//https://bugzilla.sw.ru/show_bug.cgi?id=267152
 	CAuthHelperImpersonateWrapper _impersonate( &getClient()->getAuthHelper() );
+	bool bSharedStorage = false;
 
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	QString sVmDirPath;
@@ -999,6 +1000,7 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 	m_pVmConfig->getVmIdentification()->setVmName(m_sVmName);
 
 	/*  to get target VM home directory path */
+	m_sTargetVmHomePath = QFileInfo(m_pVmConfig->getVmIdentification()->getHomePath()).absolutePath();
 	bundle = QFileInfo(m_pVmConfig->getVmIdentification()->getHomePath()).dir().dirName();
 
 	m_sVmUuid = m_sOriginVmUuid = m_pVmConfig->getVmIdentification()->getVmUuid();
@@ -1019,11 +1021,20 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 		goto exit;
 	}
 
-	m_sTargetVmHomePath = QString("%1/%2").arg(m_sVmDirPath)
-		.arg(bundle.isEmpty() ? Vm::Config::getVmHomeDirName(m_sVmUuid) : bundle);
-	m_sTargetVmHomePath = QFileInfo(m_sTargetVmHomePath).absoluteFilePath();
-	m_sVmConfigPath = QString("%1/" VMDIR_DEFAULT_VM_CONFIG_FILE).arg(m_sTargetVmHomePath);
-	m_pVmConfig->getVmIdentification()->setHomePath(m_sVmConfigPath);
+	if (checkSharedStorage() == PRL_INFO_VM_MIGRATE_STORAGE_IS_SHARED)
+	{
+		bSharedStorage = true;
+		m_sVmConfigPath = m_pVmConfig->getVmIdentification()->getHomePath();
+	} 
+    else
+	{
+		m_sTargetVmHomePath = QString("%1/%2").arg(m_sVmDirPath)
+			.arg(bundle.isEmpty() ? Vm::Config::getVmHomeDirName(m_sVmUuid) : bundle);
+		m_sTargetVmHomePath = QFileInfo(m_sTargetVmHomePath).absoluteFilePath();
+        bSharedStorage = (checkSharedStorage() == PRL_INFO_VM_MIGRATE_STORAGE_IS_SHARED);
+		m_sVmConfigPath = QString("%1/" VMDIR_DEFAULT_VM_CONFIG_FILE).arg(m_sTargetVmHomePath);
+		m_pVmConfig->getVmIdentification()->setHomePath(m_sVmConfigPath);
+	}
 
 	/* lock Vm exclusive parameters */
 	m_pVmInfo = SmartPtr<CVmDirectory::TemporaryCatalogueItem>(new CVmDirectory::TemporaryCatalogueItem(
@@ -1110,7 +1121,7 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 		   In last case event with code PRL_INFO_VM_MIGRATE_STORAGE_IS_SHARED will added into m_lstCheckPrecondsErrors.
 		   Source side will check m_lstCheckPrecondsErrors.
 		*/
-		if (PRL_ERR_SUCCESS == checkSharedStorage())
+		if (!bSharedStorage)
 		{
 			/* it is not shared based Vm */
 			if (!(m_nMigrationFlags & PVMT_IGNORE_EXISTING_BUNDLE) && QDir(m_sTargetVmHomePath).exists())
