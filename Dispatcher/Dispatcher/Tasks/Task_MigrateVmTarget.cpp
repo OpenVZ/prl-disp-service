@@ -1021,19 +1021,18 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 		goto exit;
 	}
 
-	if ( !(PVMT_CLONE_MODE & getRequestFlags()) 
-        && m_sVmDirPath == m_dispConnection->getUserSession()->getUserDefaultVmDirPath() 
-        && checkSharedStorage() == PRL_INFO_VM_MIGRATE_STORAGE_IS_SHARED)
+	if ( !(PVMT_CLONE_MODE & getRequestFlags())
+		&& m_sVmDirPath == m_dispConnection->getUserSession()->getUserDefaultVmDirPath()
+		&& bSharedStorage = (checkSharedStorage() == PRL_INFO_VM_MIGRATE_STORAGE_IS_SHARED))
 	{
-		bSharedStorage = true;
 		m_sVmConfigPath = m_pVmConfig->getVmIdentification()->getHomePath();
-	} 
-    else
+	}
+	else
 	{
 		m_sTargetVmHomePath = QString("%1/%2").arg(m_sVmDirPath)
 			.arg(bundle.isEmpty() ? Vm::Config::getVmHomeDirName(m_sVmUuid) : bundle);
 		m_sTargetVmHomePath = QFileInfo(m_sTargetVmHomePath).absoluteFilePath();
-        bSharedStorage = (checkSharedStorage() == PRL_INFO_VM_MIGRATE_STORAGE_IS_SHARED);
+		bSharedStorage = (checkSharedStorage() == PRL_INFO_VM_MIGRATE_STORAGE_IS_SHARED);
 		m_sVmConfigPath = QString("%1/" VMDIR_DEFAULT_VM_CONFIG_FILE).arg(m_sTargetVmHomePath);
 		m_pVmConfig->getVmIdentification()->setHomePath(m_sVmConfigPath);
 	}
