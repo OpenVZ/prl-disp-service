@@ -1023,7 +1023,7 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 
 	if ( !(PVMT_CLONE_MODE & getRequestFlags())
 		&& m_sVmDirPath == m_dispConnection->getUserSession()->getUserDefaultVmDirPath()
-		&& bSharedStorage = (checkSharedStorage() == PRL_INFO_VM_MIGRATE_STORAGE_IS_SHARED))
+		&& (bSharedStorage = (checkSharedStorage() == PRL_INFO_VM_MIGRATE_STORAGE_IS_SHARED)))
 	{
 		m_sVmConfigPath = m_pVmConfig->getVmIdentification()->getHomePath();
 	}
