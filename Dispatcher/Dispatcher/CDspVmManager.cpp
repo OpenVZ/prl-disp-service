@@ -1272,6 +1272,33 @@ Libvirt::Result Extra::operator()(PVE::IDispatcherCommands name_,
 	return Libvirt::Result();
 }
 
+Libvirt::Result Extra::operator()(Fork::Config::Detector* detector_)
+{
+	if (NULL == detector_)
+		return Error::Simple(PRL_ERR_INVALID_ARG);
+
+	QScopedPointer<Fork::Config::Detector> a(detector_);
+	if (!m_loop->connect(a.data(), SIGNAL(detected()), SLOT(quit()), Qt::DirectConnection))
+		return Error::Simple(PRL_ERR_FAILURE);
+
+	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
+	if (!s.isValid())
+		return Error::Simple(PRL_ERR_FAILURE);
+
+	// NB. one needs to take some extra measures to handle cases when
+	// required event doesn't fire. for instance, abort waiting by timeout
+	// or wait for another state simultaneously.
+	if (!a->connect(s.getPtr(),
+		SIGNAL(signalSendVmConfigChanged(QString, QString)),
+		SLOT(react(QString, QString)), Qt::QueuedConnection))
+		return Error::Simple(PRL_ERR_FAILURE);
+
+	s.unlock();
+	m_tracker->add(a.take());
+
+	return Libvirt::Result();
+}
+
 } // namespace Prepare
 
 ///////////////////////////////////////////////////////////////////////////////
