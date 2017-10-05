@@ -174,6 +174,14 @@ struct Timeout
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Config
+
+template<class T>
+struct Config
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Reply
 
 template<class T>
@@ -186,6 +194,11 @@ struct Reply
 
 template<class T>
 struct IsAsync: boost::mpl::false_
+{
+};
+
+template<class T>
+struct IsAsync<Tag::Config<T> >: boost::mpl::true_
 {
 };
 
@@ -325,6 +338,11 @@ namespace State
 {
 struct Detector;
 } // namespace State
+
+namespace Config
+{
+struct Detector;
+} // namespace Config
 
 namespace Timeout
 {
@@ -485,6 +503,7 @@ struct Extra
 
 	Libvirt::Result operator()
 		(Fork::State::Detector* detector_, Fork::Reactor* reactor_);
+	Libvirt::Result operator()(Fork::Config::Detector* detector_);
 
 private:
 	QEventLoop* m_loop;
@@ -733,6 +752,35 @@ private:
 } // namespace Snapshot
 } // namespace State
 
+namespace Config
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Detector
+
+struct Detector: QObject
+{
+	explicit Detector(const QString& uid_): m_uid(uid_)
+	{
+	}
+
+public slots:
+	void react(QString, QString uid_)
+	{
+		if (m_uid == uid_)
+			emit detected();
+	}
+
+signals:
+	void detected();
+
+private:
+	Q_OBJECT
+
+	const QString m_uid;
+};
+
+} // namespace Config
+
 namespace Timeout
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -847,6 +895,14 @@ struct Launcher
 	void operator()(Tag::State<U, V>, boost::mpl::true_ = boost::mpl::true_())
 	{
 		*m_sink = m_setup(V::craftDetector(m_load), NULL);
+		if (m_sink->isSucceed())
+			this->operator()(U(), Tag::IsAsync<U>());
+	}
+
+	template<class U>
+	void operator()(Tag::Config<U>, boost::mpl::true_ = boost::mpl::true_())
+	{
+		*m_sink = m_setup(U::craftDetector(m_load));
 		if (m_sink->isSucceed())
 			this->operator()(U(), Tag::IsAsync<U>());
 	}

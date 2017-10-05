@@ -35,6 +35,7 @@
 #include "CDspLibvirt.h"
 #include <boost/bind.hpp>
 #include "CDspTaskHelper.h"
+#include "CDspVmManager_p.h"
 #include "CVcmmdInterface.h"
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/for_each.hpp>
@@ -294,6 +295,95 @@ private:
 	Task_EditVm* m_task;
 };
 
+namespace Config
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Magic
+
+struct Magic
+{
+	typedef Libvirt::Result result_type;
+	typedef Command::Vm::Fork::Config::Detector detector_type;
+	typedef Libvirt::Instrument::Agent::Vm::Unit agent_type;
+
+	static detector_type* craftDetector(agent_type agent_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Define
+
+struct Define: Magic
+{
+	typedef QPair<agent_type, const CVmConfiguration* > load_type;
+
+	static detector_type* craftDetector(const load_type& load_)
+	{
+		return Magic::craftDetector(load_.first);
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Novel
+
+struct Novel: Define
+{
+	result_type operator()(load_type load_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Update
+
+struct Update: Define
+{
+	result_type operator()(load_type load_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Event
+
+struct Event: Magic
+{
+	typedef agent_type load_type;
+
+	result_type operator()(load_type load_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Facade
+
+template<class T, class Enabled = void>
+struct Facade
+{
+	typedef Magic::result_type result_type;
+
+	explicit Facade(const CVmConfiguration& config_): m_config(&config_)
+	{
+	}
+
+	result_type operator()(Magic::agent_type agent_)
+	{
+		return Command::Vm::Gear<Command::Tag::Config<T> >
+			::run(qMakePair(agent_, m_config));
+	}
+
+private:
+	const CVmConfiguration* m_config;
+};
+
+template<class T>
+struct Facade<T, typename boost::enable_if<boost::is_same<typename T::load_type, Magic::agent_type> >::type>
+{
+	typedef Magic::result_type result_type;
+
+	result_type operator()(Magic::agent_type agent_)
+	{
+		return Command::Vm::Gear<Command::Tag::Config<T> >
+			::run(agent_);
+	}
+};
+
+} // namespace Config
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Transfer
 
@@ -333,10 +423,6 @@ private:
 struct Apply
 {
 	Action* operator()(const Request& input_) const;
-
-private:
-	static Libvirt::Result define(Libvirt::Instrument::Agent::Vm::Unit agent_,
-					const CVmConfiguration& config_);
 };
 
 namespace Create
@@ -626,9 +712,6 @@ struct Factory<CVmGenericNetworkAdapter>: Generic<CVmGenericNetworkAdapter>
 	typedef Generic<CVmGenericNetworkAdapter> generic_type;
 
 	Action* operator()(const Request& input_) const;
-
-private:
-	static Libvirt::Result kick(Libvirt::Instrument::Agent::Vm::Unit& agent_);
 };
 
 } // namespace Hotplug

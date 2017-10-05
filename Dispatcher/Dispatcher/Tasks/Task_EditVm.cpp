@@ -2018,6 +2018,7 @@ PRL_RESULT Task_EditVm::editVm()
 			// save VM configuration to file
 			//////////////////////////////////////////////////////////////////////////
 
+			pVmConfigNew->getVmIdentification()->setHomePath(strVmHome);
 			PRL_RESULT save_rc =
 				CDspService::instance()->getVmConfigManager().saveConfig(pVmConfigNew,
 				strVmHome,
@@ -2042,13 +2043,6 @@ PRL_RESULT Task_EditVm::editVm()
 				throw CDspTaskFailure(*this).setCode(PRL_ERR_SAVE_VM_CONFIG)
 					(newVmName, QFileInfo(strVmHome).path());
 			}
-
-#ifdef _LIBVIRT_
-			pVmConfigNew->getVmIdentification()->setHomePath(strVmHome);
-			Edit::Vm::driver_type(*this)(pVmConfigOld, pVmConfigNew);
-			if(!IS_OPERATION_SUCCEEDED(getLastErrorCode()))
-				throw getLastErrorCode();
-#endif // _LIBVIRT_
 
 			CXmlModelHelper::printConfigDiff( *pVmConfigNew, *pVmConfigOld, DBG_WARNING, "VmCfgCommitDiff" );
 
@@ -2078,6 +2072,12 @@ PRL_RESULT Task_EditVm::editVm()
 			if (bNeedVNCStart)
 				pVm->startVNCServer(getClient(), fakePkg, false, true);
 		} while (0);
+
+#ifdef _LIBVIRT_
+		Edit::Vm::driver_type(*this)(pVmConfigOld, pVmConfigNew);
+		if(!IS_OPERATION_SUCCEEDED(getLastErrorCode()))
+			throw getLastErrorCode();
+#endif // _LIBVIRT_
 
 		// Edit firewall
 		ret = editFirewall(pVmConfigNew, pVmConfigOld, nState, flgExclusiveFirewallChangedWasRegistered);
@@ -2679,6 +2679,54 @@ Request::Request(Task_EditVm& task_, const config_type& start_, const config_typ
 		m_object = MakeVmIdent(u, QString());
 }
 
+namespace Config
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Magic
+
+Magic::detector_type* Magic::craftDetector(agent_type agent_)
+{
+	QString u;
+	Libvirt::Result e = agent_.getUuid(u);
+	if (e.isFailed())
+		return NULL;
+
+	return new detector_type(u);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Novel
+
+Novel::result_type Novel::operator()(load_type load_)
+{
+	if (NULL == load_.second)
+		return Libvirt::Result(PRL_ERR_INVALID_ARG);
+
+	return load_.first.up().define(*load_.second);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Update
+
+Update::result_type Update::operator()(load_type load_)
+{
+	if (NULL == load_.second)
+		return Libvirt::Result(PRL_ERR_INVALID_ARG);
+
+	return load_.first.setConfig(*load_.second);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Event
+
+Event::result_type Event::operator()(load_type load_)
+{
+	load_.getMaintenance().emitDefined();
+	return result_type();
+}
+
+} // namespace Config
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Transfer
 
@@ -2734,41 +2782,43 @@ Patch::Patch(const Request& input_):
 
 bool Patch::execute(CDspTaskFailure& feedback_)
 {
-	CDspVmDirManager& dirManager = DspVm::vdm();
-	CDspLockedPointer<CVmDirectoryItem> dirItem = dirManager
-		.getVmDirItemByUuid(m_ident.second, m_ident.first);
-
-	if (!dirItem)
 	{
-		feedback_(PRL_ERR_VM_DIRECTORY_NOT_EXIST);
-		return false;
-	}
+		CDspVmDirManager& dirManager = DspVm::vdm();
+		CDspLockedPointer<CVmDirectoryItem> dirItem = dirManager
+			.getVmDirItemByUuid(m_ident.second, m_ident.first);
 
-	// #441667 - set the same parameters for shared vm
-	CDspVmDirManager::VmDirItemsHash sharedVmHash = dirManager
-		.findVmDirItemsInCatalogue(dirItem->getVmUuid(), dirItem->getVmHome());
+		if (!dirItem)
+		{
+			feedback_(PRL_ERR_VM_DIRECTORY_NOT_EXIST);
+			return false;
+		}
 
-	foreach(CDspLockedPointer<CVmDirectoryItem> dirSharedItem, sharedVmHash)
-	{
-		dirSharedItem->setChangedBy(m_editor);
-		dirSharedItem->setChangeDateTime(QDateTime::currentDateTime());
-		dirSharedItem->setVmName(m_name);
-		dirSharedItem->setVmHome(m_home);
+		// #441667 - set the same parameters for shared vm
+		CDspVmDirManager::VmDirItemsHash sharedVmHash = dirManager
+			.findVmDirItemsInCatalogue(dirItem->getVmUuid(), dirItem->getVmHome());
 
-		/* old code
-		pVmDirSharedItem->getLockedOperationsList()->setLockedOperations(lstNewLockedOperations);
-		pVmDirSharedItem->getLockDown()->setEditingPasswordHash(newLockDownHash);
-		*/
-	}
-	dirItem->setVmHome(m_home);
-	dirItem->setVmName(m_name);
+		foreach(CDspLockedPointer<CVmDirectoryItem> dirSharedItem, sharedVmHash)
+		{
+			dirSharedItem->setChangedBy(m_editor);
+			dirSharedItem->setChangeDateTime(QDateTime::currentDateTime());
+			dirSharedItem->setVmName(m_name);
+			dirSharedItem->setVmHome(m_home);
 
-	PRL_RESULT ret = dirManager.updateVmDirItem(dirItem);
-	if (PRL_FAILED(ret))
-	{
-		WRITE_TRACE(DBG_FATAL, "Can't update VmCatalogue by error %#x, %s", ret, PRL_RESULT_TO_STRING(ret));
-		feedback_(ret);
-		return false;
+			/* old code
+			pVmDirSharedItem->getLockedOperationsList()->setLockedOperations(lstNewLockedOperations);
+			pVmDirSharedItem->getLockDown()->setEditingPasswordHash(newLockDownHash);
+			*/
+		}
+		dirItem->setVmHome(m_home);
+		dirItem->setVmName(m_name);
+
+		PRL_RESULT ret = dirManager.updateVmDirItem(dirItem);
+		if (PRL_FAILED(ret))
+		{
+			WRITE_TRACE(DBG_FATAL, "Can't update VmCatalogue by error %#x, %s", ret, PRL_RESULT_TO_STRING(ret));
+			feedback_(ret);
+			return false;
+		}
 	}
 	return Vm::Action::execute(feedback_);
 }
@@ -2792,8 +2842,7 @@ Action* Apply::operator()(const Request& input_) const
 		}
 		else
 		{
-			n = f.craft(boost::bind(&define, _1, boost::cref
-				(input_.getFinal())));
+			n = f.craft(Config::Facade<Config::Novel>(input_.getFinal()));
 			t = input_.getTask().getClient()->getVmDirectoryUuid();
 		}
 		output->setNext(new Transfer(input_.getObject(), t));
@@ -2805,18 +2854,12 @@ Action* Apply::operator()(const Request& input_) const
 
 	QString x = input_.getStart().getVmIdentification()->getVmName();
 	QString y = input_.getFinal().getVmIdentification()->getVmName();
-	n = f.craft(boost::bind(&vm::Unit::setConfig, _1,
-			boost::cref(input_.getFinal())));
+	n = f.craft(Config::Facade<Config::Update>(input_.getFinal()));
 	if (x != y)
 		output->setNext(f.craft(boost::bind(&vm::Unit::rename, _1, y)));
 
 	output->getTail().setNext(n);
 	return output;
-}
-
-Libvirt::Result Apply::define(vm::Unit agent_, const CVmConfiguration& config_)
-{
-	return agent_.up().define(config_);
 }
 
 namespace Create
@@ -3402,7 +3445,7 @@ Action* Factory<CVmGenericNetworkAdapter>::operator()(const Request& input_) con
 	}
 	if (!c.isEmpty())
 	{
-		c.push_front(f.craft(boost::bind(&kick, _1)));
+		c.push_front(f.craft(Config::Facade<Config::Event>()));
 		foreach (Action* a, c)
 		{
 			a->setNext(output);
@@ -3410,12 +3453,6 @@ Action* Factory<CVmGenericNetworkAdapter>::operator()(const Request& input_) con
 		}
 	}
 	return output;
-}
-
-Libvirt::Result Factory<CVmGenericNetworkAdapter>::kick(Libvirt::Instrument::Agent::Vm::Unit& agent_)
-{
-	agent_.getMaintenance().emitDefined();
-	return Libvirt::Result();
 }
 
 } // namespace Hotplug
