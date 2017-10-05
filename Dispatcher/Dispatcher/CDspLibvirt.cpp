@@ -1210,6 +1210,8 @@ void Domain::updateConfig(Registry::Access& access_)
 
 	m_agent.completeConfig(c);
 	access_.updateConfig(c);
+	CDspService::instance()->getVmStateSender()
+		->onVmConfigChanged(QString(), access_.getUuid());
 }
 
 void Domain::update(Registry::Access& access_)
