@@ -242,8 +242,6 @@ boost::logic::tribool Unit::isReconciled(const Unit& party_) const
 		case PVE::DspCmdVmResume:
 		case PVE::DspCmdVmStartEx:
 			return true;
-		case PVE::DspCmdCtlApplyVmConfig:
-			return false;
 		default:
 			break;
 		}
@@ -312,7 +310,10 @@ boost::logic::tribool Newcomer::isReconciled(const Native& native_) const
 		switch (x)
 		{
 		case PVE::DspCmdVmLock:
-		case PVE::DspCmdDirVmEditCommit:
+		case PVE::DspCmdDirVmMove:
+		case PVE::DspCmdDirVmMigrate:
+		case PVE::DspCmdCreateVmBackup:
+		case PVE::DspCmdRestoreVmBackup:
 			return false;
 		default:
 			return true;
