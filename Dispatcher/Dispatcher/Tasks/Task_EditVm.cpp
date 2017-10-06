@@ -668,9 +668,8 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 #ifdef _LIBVIRT_
 		if (flgApplyConfig)
 		{
-			Task_EditVm task(pUserSession,
-				IOPackage::createInstance(IOSender::UnknownType, 0));
-			(Edit::Vm::driver_type(task))(pVmConfigOld, pVmConfig);
+			Edit::Vm::Config::Update()(Edit::Vm::Config::Update::load_type
+				(Libvirt::Kit.vms().at(vmUuid), pVmConfig.getImpl()));
 		}
 #endif // _LIBVIRT_
 		CXmlModelHelper::printConfigDiff(*pVmConfig, *pVmConfigOld, DBG_WARNING, "VmCfgAtomicEditDiff");
