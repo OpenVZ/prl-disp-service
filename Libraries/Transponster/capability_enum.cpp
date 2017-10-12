@@ -73,6 +73,15 @@ Enum<Capability::Xml::EUriTransport>::data_type Enum<Capability::Xml::EUriTransp
 }
 
 template<>
+Enum<Capability::Xml::EType>::data_type Enum<Capability::Xml::EType>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Capability::Xml::ETypeBoth, "both"))
+			(data_type::value_type(Capability::Xml::ETypeCode, "code"))
+			(data_type::value_type(Capability::Xml::ETypeData, "data"));
+}
+
+template<>
 Enum<Capability::Xml::EOsType>::data_type Enum<Capability::Xml::EOsType>::getData()
 {
 	return ba::list_of<data_type::relation>
@@ -93,17 +102,17 @@ Enum<Capability::Xml::EWordsize>::data_type Enum<Capability::Xml::EWordsize>::ge
 }
 
 template<>
-Enum<Capability::Xml::EType>::data_type Enum<Capability::Xml::EType>::getData()
+Enum<Capability::Xml::EType1>::data_type Enum<Capability::Xml::EType1>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Capability::Xml::ETypeQemu, "qemu"))
-			(data_type::value_type(Capability::Xml::ETypeKqemu, "kqemu"))
-			(data_type::value_type(Capability::Xml::ETypeKvm, "kvm"))
-			(data_type::value_type(Capability::Xml::ETypeXen, "xen"))
-			(data_type::value_type(Capability::Xml::ETypeUml, "uml"))
-			(data_type::value_type(Capability::Xml::ETypeLxc, "lxc"))
-			(data_type::value_type(Capability::Xml::ETypeOpenvz, "openvz"))
-			(data_type::value_type(Capability::Xml::ETypeTest, "test"));
+			(data_type::value_type(Capability::Xml::EType1Qemu, "qemu"))
+			(data_type::value_type(Capability::Xml::EType1Kqemu, "kqemu"))
+			(data_type::value_type(Capability::Xml::EType1Kvm, "kvm"))
+			(data_type::value_type(Capability::Xml::EType1Xen, "xen"))
+			(data_type::value_type(Capability::Xml::EType1Uml, "uml"))
+			(data_type::value_type(Capability::Xml::EType1Lxc, "lxc"))
+			(data_type::value_type(Capability::Xml::EType1Openvz, "openvz"))
+			(data_type::value_type(Capability::Xml::EType1Test, "test"));
 }
 
 template<>

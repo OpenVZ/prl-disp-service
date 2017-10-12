@@ -45,6 +45,9 @@
       <optional>
         <ref name='topology'/>
       </optional>
+      <optional>
+        <ref name='cache'/>
+      </optional>
       <zeroOrMore>
         <ref name='secmodel'/>
       </zeroOrMore>
@@ -246,6 +249,60 @@
         </attribute>
       </optional>
     </element>
+  </define>
+
+  <define name='cache'>
+    <element name='cache'>
+      <oneOrMore>
+        <element name='bank'>
+          <attribute name='id'>
+            <ref name='unsignedInt'/>
+          </attribute>
+          <attribute name='level'>
+            <ref name='unsignedInt'/>
+          </attribute>
+          <ref name='cacheType'/>
+          <attribute name='size'>
+            <ref name='unsignedInt'/>
+          </attribute>
+          <attribute name='unit'>
+            <ref name='unit'/>
+          </attribute>
+          <attribute name='cpus'>
+            <ref name='cpuset'/>
+          </attribute>
+          <zeroOrMore>
+            <element name='control'>
+              <attribute name='granularity'>
+                <ref name='unsignedInt'/>
+              </attribute>
+              <optional>
+                <attribute name='min'>
+                  <ref name='unsignedInt'/>
+                </attribute>
+              </optional>
+              <attribute name='unit'>
+                <ref name='unit'/>
+              </attribute>
+              <ref name='cacheType'/>
+              <attribute name='maxAllocs'>
+                <ref name='unsignedInt'/>
+              </attribute>
+            </element>
+          </zeroOrMore>
+        </element>
+      </oneOrMore>
+    </element>
+  </define>
+
+  <define name='cacheType'>
+    <attribute name='type'>
+      <choice>
+        <value>both</value>
+        <value>code</value>
+        <value>data</value>
+      </choice>
+    </attribute>
   </define>
 
   <define name='guestcaps'>

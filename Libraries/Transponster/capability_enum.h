@@ -72,6 +72,13 @@ enum EUriTransport
 	EUriTransportXenmigr
 };
 
+enum EType
+{
+	ETypeBoth,
+	ETypeCode,
+	ETypeData
+};
+
 enum EOsType
 {
 	EOsTypeXen,
@@ -88,16 +95,16 @@ enum EWordsize
 	EWordsize64
 };
 
-enum EType
+enum EType1
 {
-	ETypeQemu,
-	ETypeKqemu,
-	ETypeKvm,
-	ETypeXen,
-	ETypeUml,
-	ETypeLxc,
-	ETypeOpenvz,
-	ETypeTest
+	EType1Qemu,
+	EType1Kqemu,
+	EType1Kvm,
+	EType1Xen,
+	EType1Uml,
+	EType1Lxc,
+	EType1Openvz,
+	EType1Test
 };
 
 enum EVirYesNo
