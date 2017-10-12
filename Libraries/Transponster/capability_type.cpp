@@ -177,7 +177,7 @@ bool Pages::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Pages, Name::Strict<1834> > m;
+	Element<Pages, Name::Strict<1844> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -187,14 +187,14 @@ bool Pages::load(const QDomElement& src_)
 
 bool Pages::save(QDomElement& dst_) const
 {
-	Element<Pages, Name::Strict<1834> > m;
+	Element<Pages, Name::Strict<1844> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Pages::save(QDomDocument& dst_) const
 {
-	Element<Pages, Name::Strict<1834> > m;
+	Element<Pages, Name::Strict<1844> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -612,34 +612,34 @@ int Traits<Capability::Xml::Sibling>::generate(const Capability::Xml::Sibling& s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1834
+// struct Anonymous1844
 
 namespace Capability
 {
 namespace Xml
 {
-Anonymous1834::Anonymous1834(): m_socketId(), m_coreId()
+Anonymous1844::Anonymous1844(): m_socketId(), m_coreId()
 {
 }
 
-bool Anonymous1834::load(const QDomElement& src_)
+bool Anonymous1844::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
 	k.push(src_.firstChildElement());
-	return 0 <= Traits<Anonymous1834>::parse(*this, k);
+	return 0 <= Traits<Anonymous1844>::parse(*this, k);
 }
 
-bool Anonymous1834::save(QDomElement& dst_) const
+bool Anonymous1844::save(QDomElement& dst_) const
 {
-	return 0 <= Traits<Anonymous1834>::generate(*this, dst_);
+	return 0 <= Traits<Anonymous1844>::generate(*this, dst_);
 }
 
 
 } // namespace Xml
 } // namespace Capability
 
-int Traits<Capability::Xml::Anonymous1834>::parse(Capability::Xml::Anonymous1834& dst_, QStack<QDomElement>& stack_)
+int Traits<Capability::Xml::Anonymous1844>::parse(Capability::Xml::Anonymous1844& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -652,7 +652,7 @@ int Traits<Capability::Xml::Anonymous1834>::parse(Capability::Xml::Anonymous1834
 	return output;
 }
 
-int Traits<Capability::Xml::Anonymous1834>::generate(const Capability::Xml::Anonymous1834& src_, QDomElement& dst_)
+int Traits<Capability::Xml::Anonymous1844>::generate(const Capability::Xml::Anonymous1844& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSocketId(), m.get<0>()))
@@ -713,7 +713,7 @@ int Traits<Capability::Xml::Cpu1>::parse(Capability::Xml::Cpu1& dst_, QStack<QDo
 	if (0 <= output)
 	{
 		dst_.setId(m.get<0>().getValue());
-		dst_.setAnonymous1834(m.get<1>().getValue());
+		dst_.setAnonymous1844(m.get<1>().getValue());
 	}
 	return output;
 }
@@ -723,7 +723,7 @@ int Traits<Capability::Xml::Cpu1>::generate(const Capability::Xml::Cpu1& src_, Q
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getId(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAnonymous1834(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getAnonymous1844(), m.get<1>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -931,6 +931,158 @@ int Traits<Capability::Xml::Cells>::generate(const Capability::Xml::Cells& src_,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Control
+
+namespace Capability
+{
+namespace Xml
+{
+Control::Control(): m_granularity(), m_type(), m_maxAllocs()
+{
+}
+
+bool Control::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Control, Name::Strict<1824> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Control::save(QDomElement& dst_) const
+{
+	Element<Control, Name::Strict<1824> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Control::save(QDomDocument& dst_) const
+{
+	Element<Control, Name::Strict<1824> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Capability
+
+int Traits<Capability::Xml::Control>::parse(Capability::Xml::Control& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setGranularity(m.get<0>().getValue());
+		dst_.setMin(m.get<1>().getValue());
+		dst_.setUnit(m.get<2>().getValue());
+		dst_.setType(m.get<3>().getValue());
+		dst_.setMaxAllocs(m.get<4>().getValue());
+	}
+	return output;
+}
+
+int Traits<Capability::Xml::Control>::generate(const Capability::Xml::Control& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getGranularity(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getMin(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getUnit(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getType(), m.get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getMaxAllocs(), m.get<4>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Bank
+
+namespace Capability
+{
+namespace Xml
+{
+Bank::Bank(): m_id(), m_level(), m_type(), m_size()
+{
+}
+
+bool Bank::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Bank, Name::Strict<1821> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Bank::save(QDomElement& dst_) const
+{
+	Element<Bank, Name::Strict<1821> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Bank::save(QDomDocument& dst_) const
+{
+	Element<Bank, Name::Strict<1821> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Capability
+
+int Traits<Capability::Xml::Bank>::parse(Capability::Xml::Bank& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setId(m.get<0>().getValue());
+		dst_.setLevel(m.get<1>().getValue());
+		dst_.setType(m.get<2>().getValue());
+		dst_.setSize(m.get<3>().getValue());
+		dst_.setUnit(m.get<4>().getValue());
+		dst_.setCpus(m.get<5>().getValue());
+		dst_.setControlList(m.get<6>().getValue());
+	}
+	return output;
+}
+
+int Traits<Capability::Xml::Bank>::generate(const Capability::Xml::Bank& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getId(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getLevel(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getType(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getSize(), m.get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getUnit(), m.get<4>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getCpus(), m.get<5>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getControlList(), m.get<6>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Baselabel
 
 namespace Capability
@@ -1101,7 +1253,8 @@ int Traits<Capability::Xml::Host>::parse(Capability::Xml::Host& dst_, QStack<QDo
 		dst_.setPowerManagement(m.get<2>().getValue());
 		dst_.setMigrationFeatures(m.get<3>().getValue());
 		dst_.setTopology(m.get<4>().getValue());
-		dst_.setSecmodelList(m.get<5>().getValue());
+		dst_.setCache(m.get<5>().getValue());
+		dst_.setSecmodelList(m.get<6>().getValue());
 	}
 	return output;
 }
@@ -1119,7 +1272,9 @@ int Traits<Capability::Xml::Host>::generate(const Capability::Xml::Host& src_, Q
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getTopology(), m.get<4>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getSecmodelList(), m.get<5>()))
+	if (0 > Details::Marshal::assign(src_.getCache(), m.get<5>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getSecmodelList(), m.get<6>()))
 		return -1;
 
 	return m.produce(dst_);
