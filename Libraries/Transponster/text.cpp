@@ -1844,6 +1844,16 @@ static QString g_text[] = {
 	QString("socket_id"),
 	QString("core_id"),
 	QString("siblings"),
+	QString("bank"),
+	QString("level"),
+	QString("cacheType"),
+	QString("control"),
+	QString("granularity"),
+	QString("min"),
+	QString("maxAllocs"),
+	QString("both"),
+	QString("code"),
+	QString("data"),
 	QString("ostype"),
 	QString("os_type"),
 	QString("wordsize"),
@@ -1858,7 +1868,7 @@ static QString g_text[] = {
 	QString("deviceboot"),
 	QString("toggle"),
 	QString("pages"),
-	QString("anonymous1834")
+	QString("anonymous1844")
 };
 
 const QString& getText(quint32 index_)
