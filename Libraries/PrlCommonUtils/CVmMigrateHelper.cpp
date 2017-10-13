@@ -165,6 +165,8 @@ PRL_RESULT CVmMigrateHelper::buildExternalTmpFiles(const QList<CVmHardDisk*> &di
 	{
 		if (NULL == disk)
 			continue;
+		if (PVE::RealHardDisk == disk->getEmulatedType())
+			continue;
 		QFileInfo img(disk->getSystemName());
 		// disk is in a vm bundle
 		if (!img.isAbsolute() || img.absoluteFilePath().startsWith(home))
