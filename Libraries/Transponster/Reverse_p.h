@@ -427,19 +427,20 @@ void Ordinary<T>::setFlags()
 template<class T>
 void Ordinary<T>::setDriver()
 {
-	if (Flavor<T>::image != getModel().getEmulatedType())
-		return;
-
-	mpl::at_c<Libvirt::Domain::Xml::VType::types, 1>::type a;
-	a.setValue(Libvirt::Domain::Xml::VStorageFormat(Flavor<T>::getDriverFormat()));
-	Libvirt::Domain::Xml::DriverFormat b;
-	b.setName("qemu");
-	b.setType(Libvirt::Domain::Xml::VType(a));
 	Libvirt::Domain::Xml::Driver d;
 	d.setCache(Libvirt::Domain::Xml::ECacheNone);
 	d.setIo(Libvirt::Domain::Xml::EIoNative);
-	d.setDiscard(Libvirt::Domain::Xml::EDiscardUnmap);
-	d.setDriverFormat(b);
+
+	if (Flavor<T>::image == getModel().getEmulatedType())
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VType::types, 1>::type a;
+		a.setValue(Libvirt::Domain::Xml::VStorageFormat(Flavor<T>::getDriverFormat()));
+		Libvirt::Domain::Xml::DriverFormat b;
+		b.setName("qemu");
+		b.setType(Libvirt::Domain::Xml::VType(a));
+		d.setDiscard(Libvirt::Domain::Xml::EDiscardUnmap);
+		d.setDriverFormat(b);
+	}
 //	boost::optional<Libvirt::Domain::Xml::EBus> u = getModel().getBus();
 //	if (u && u.get() == Libvirt::Domain::Xml::EBusVirtio)
 //		d.setIothread(1);
