@@ -544,40 +544,41 @@ void Guard::quit()
 
 bool Guard::event(QEvent* event_)
 {
-	QObject::event(event_);
-	if (QEvent::User == event_->type())
+	switch (event_->type())
 	{
+	case QEvent::User:
 		if (NULL == m_process.get())
-			return true;
+			break;
 
 		if (QProcess::NotRunning == m_process->state())
 			quit();
-
-		return true;
-	}
-	if (QEvent::Close != event_->type())
-		return false;
-	QProcess* p = m_process.release();
-	if (NULL == p)
-		return true;
-
-#ifdef _WIN_
-	p->kill();
-#else // _WIN_
-	p->terminate();
-#endif // _WIN_
-	if (!p->waitForFinished(WAIT_VNC_SERVER_TO_START_OR_STOP_PROCESS))
+		break;
+	case QEvent::DeferredDelete:
 	{
-#ifndef _WIN_
-		WRITE_TRACE(DBG_FATAL, "Try to stop task by sending the KILL signal");
-		p->kill();
+		QProcess* p = m_process.release();
+		if (NULL == p)
+			break;
+
+		p->terminate();
 		if (!p->waitForFinished(WAIT_VNC_SERVER_TO_START_OR_STOP_PROCESS))
-#endif // _WIN_
 		{
-			WRITE_TRACE(DBG_FATAL, "Can't stop task");
-			p->deleteLater();
+			WRITE_TRACE(DBG_FATAL, "Try to stop task by sending the KILL signal");
+			p->kill();
+			if (!p->waitForFinished(WAIT_VNC_SERVER_TO_START_OR_STOP_PROCESS))
+			{
+				WRITE_TRACE(DBG_FATAL, "Can't stop task");
+			}
 		}
+		p->deleteLater();
+		break;
 	}
+	default:
+		QObject::event(event_);	
+		return false;
+	}
+	
+	QObject::event(event_);
+
 	return true;
 }
 
@@ -652,7 +653,6 @@ Unit<T>::~Unit()
 	if (NULL == x)
 		return;
 
-	QCoreApplication::postEvent(x, new QEvent(QEvent::Close));
 	QCoreApplication::postEvent(x, new QEvent(QEvent::DeferredDelete));
 }
 
