@@ -406,9 +406,11 @@ PRL_RESULT Task_CreateVmBackupSource::prepareTask()
 		CDspService::instance()->getDispConfigGuard());
 	::Backup::Activity::Vm::Builder b(MakeVmIdent(m_sVmUuid, m_sVmDirUuid), *this);
 
-	if (!QFile::exists(VZ_BACKUP_CLIENT)) {
-		nRetCode = PRL_ERR_UNIMPLEMENTED;
-		goto exit;
+	if (!QFile::exists(VZ_BACKUP_CLIENT))
+	{
+		return CDspTaskFailure(*this)
+			(PRL_ERR_VZ_OPERATION_FAILED,
+			 QString("Backup client is not installed"));
 	}
 
 	/*
