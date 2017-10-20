@@ -768,6 +768,8 @@ Stat::CounterList_type Unit::getMemory() const
 	getValue("balloon.rss", u = 0);
 	if (getValue("balloon.unused", v = 0))
 		u = a - v;
+	else if (a)
+		u = std::min(u, a);
 
 	output.append(Stat::Counter_type(
 		::Stat::Name::Memory::getUsed(), u));
