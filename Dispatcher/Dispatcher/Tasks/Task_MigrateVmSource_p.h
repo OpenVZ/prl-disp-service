@@ -265,7 +265,7 @@ private:
 
 struct Disks: Decorator
 {
-	typedef ::Libvirt::Instrument::Agent::Vm::Snapshot::List agent_type;
+	typedef ::Libvirt::Instrument::Agent::Vm::Unit agent_type;
 
 	Disks(const QList<CVmHardDisk*>& disks_, const agent_type& agent_, Unit* next_):
 		Decorator(next_), m_disks(disks_), m_agent(agent_)

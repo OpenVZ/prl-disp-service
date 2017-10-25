@@ -921,6 +921,166 @@ private:
 
 } // namespace Qemu
 } // namespace Migration
+
+namespace Block
+{
+struct Counter;
+
+namespace Generic
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Model
+
+struct Model
+{
+	typedef CVmHardDisk xml_type;
+
+	explicit Model(const xml_type& xml_): m_xml(&xml_)
+	{
+	}
+
+	QString getTarget() const;
+
+protected:
+	const xml_type& getXml() const
+	{
+		return *m_xml;
+	}
+
+private:
+	const xml_type* m_xml;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Batch
+
+struct Batch
+{
+	typedef Limb::Abstract::domainReference_type
+		domainReference_type;
+	typedef boost::signals2::signal<void ()> signal_type;
+	typedef signal_type::slot_function_type result_type;
+
+	explicit Batch(Counter& counter_);
+
+	void accept(const domainReference_type& domain_, const Model& model_);
+	void reject(const Model& model_);
+	result_type getResult() const;
+
+protected:
+	signal_type& getSignal() const
+	{
+		return *m_signal;
+	}
+
+private:
+	Counter* m_counter;
+	boost::shared_ptr<signal_type> m_signal;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Policy
+
+struct Policy: Limb::Abstract
+{
+	typedef Batch::result_type result_type;
+	typedef QList<CVmHardDisk> imageList_type;
+
+	explicit Policy(const domainReference_type& domain_): Limb::Abstract(domain_)
+	{
+	}
+};
+
+} // namespace Generic
+
+namespace Commit
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Model
+
+struct Model: Generic::Model
+{
+	explicit Model(const xml_type& xml_): Generic::Model(xml_)
+	{
+	}
+
+	QString getImage() const
+	{
+		return getXml().getSystemName();
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Batch
+
+struct Batch: Generic::Batch
+{
+	explicit Batch(Counter& counter_): Generic::Batch(counter_)
+	{
+	}
+
+	void accept(const domainReference_type& domain_, const Model& model_);
+
+private:
+	static void sweep(const QString& path_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Policy
+
+struct Policy: private Generic::Policy
+{
+	explicit Policy(const domainReference_type& domain_): Generic::Policy(domain_)
+	{
+	}
+
+	result_type operator()(const imageList_type& imageList_, Counter& counter_);
+	static int getEvent();
+};
+
+} // namespace Commit
+
+namespace Rebase
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Model
+
+struct Model: Generic::Model
+{
+	explicit Model(const xml_type& xml_): Generic::Model(xml_)
+	{
+	}
+
+	QString getImage() const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Batch
+
+struct Batch: Generic::Batch
+{
+	explicit Batch(Counter& counter_): Generic::Batch(counter_)
+	{
+	}
+
+	void reject(const domainReference_type& domain_, const Model& model_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Policy
+
+struct Policy: private Generic::Policy
+{
+	explicit Policy(const domainReference_type& domain_): Generic::Policy(domain_)
+	{
+	}
+
+	result_type operator()(const imageList_type& imageList_, Counter& counter_);
+	static int getEvent();
+};
+
+} // namespace Rebase
+} // namespace Block
 } // namespace Vm
 } // namespace Agent
 

@@ -2701,7 +2701,7 @@ Novel::result_type Novel::operator()(load_type load_)
 	if (NULL == load_.second)
 		return Libvirt::Result(PRL_ERR_INVALID_ARG);
 
-	return load_.first.up().define(*load_.second);
+	return load_.first.up().getGrub(*load_.second).spawnPersistent();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

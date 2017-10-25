@@ -39,6 +39,7 @@
 #include <boost/optional.hpp>
 #include <boost/function.hpp>
 #include <boost/thread/future.hpp>
+#include <boost/signals2/signal.hpp>
 #include <prlxmlmodel/VtInfo/VtInfo.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
@@ -189,6 +190,33 @@ private:
 	QSharedPointer<virDomain> m_domain;
 };
 
+namespace Limb
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Abstract
+
+struct Abstract
+{
+	typedef QSharedPointer<virDomain> domainReference_type;
+	typedef QSharedPointer<virConnect> linkReference_type;
+
+	explicit Abstract(const domainReference_type& domain_): m_domain(domain_)
+	{
+	}
+
+	linkReference_type getLink() const;
+	const domainReference_type& getDomain() const
+	{
+		return m_domain;
+	}
+	void setDomain(virDomainPtr value_);
+
+private:
+	QSharedPointer<virDomain> m_domain;
+};
+
+} // namespace Limb
+
 namespace Block
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -200,20 +228,25 @@ struct Unit
 	Unit()
 	{
 	}
-	Unit(const QSharedPointer<virDomain>& domain_, const QString& disk_, const QString& path_):
-		m_domain(domain_), m_disk(disk_), m_path(path_)
+	Unit(const QSharedPointer<virDomain>& domain_, const QString& disk_):
+		m_domain(domain_), m_disk(disk_)
 	{
 	}
 
+	const QString& getDisk() const
+	{
+		return m_disk;
+	}
 	Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> getProgress() const;
-	Result start() const;
+	Result commit() const;
+	Result rebase(const QString& base_) const;
+
 	Result abort() const;
 	Result finish() const;
 
 private:
 	QSharedPointer<virDomain> m_domain;
 	QString m_disk;
-	QString m_path;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -276,14 +309,16 @@ private:
 
 struct Callback
 {
-	explicit Callback(QSharedPointer<Counter> counter_): m_counter(counter_)
+	Callback(QSharedPointer<Counter> counter_, int filter_):
+		m_filter(filter_), m_counter(counter_)
 	{
 	}
 	~Callback();
 
-	void do_(const QString& one_);
+	void do_(int event_, const QString& object_);
 
 private:
+	int m_filter;
 	QSharedPointer<Counter> m_counter;
 };
 
@@ -294,7 +329,7 @@ struct Tracker: boost::noncopyable
 {
 	explicit Tracker(QSharedPointer<virDomain> domain_);
 
-	Result start(QSharedPointer<Counter> callback_);
+	Result start(QSharedPointer<Counter> callback_, int event_);
 	Result stop();
 
 private:
@@ -303,6 +338,7 @@ private:
 	static void free(void* opaque_);
 
 	int m_ticket;
+	int m_ticket2;
 	QSharedPointer<virDomain> m_domain;
 };
 
@@ -311,19 +347,41 @@ private:
 
 struct Activity
 {
+	typedef boost::function<void ()> callback_type;
+
 	Activity()
 	{
 	}
-	Activity(const QSharedPointer<Tracker>& tracker_, const QList<Unit>& units_):
-		m_units(units_), m_tracker(tracker_)
+	Activity(const QSharedPointer<Tracker>& tracker_, const callback_type& callback_):
+		m_callback(callback_), m_tracker(tracker_)
 	{
 	}
 
 	void stop();
 
 private:
-	QList<Unit> m_units;
+	callback_type m_callback;
 	QSharedPointer<Tracker> m_tracker;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Launcher
+
+struct Launcher: private Limb::Abstract
+{
+	typedef QList<CVmHardDisk> imageList_type;
+
+	explicit Launcher(const domainReference_type& domain_):
+		Limb::Abstract(domain_)
+	{
+	}
+
+	Activity merge(const imageList_type& imageList_, Completion& completion_);
+	Activity rebase(const imageList_type& imageList_, Completion& completion_);
+
+private:
+	template<class T>
+	Activity start(T policy_, const imageList_type& imageList_, Completion& completion_);
 };
 
 } // namespace Block
@@ -397,8 +455,6 @@ struct List
 		Unit* dst_ = NULL);
 	Result createExternal(const QString& uuid_, const QList<CVmHardDisk*>& disks_);
 	
-	Block::Activity startMerge(const QList<CVmHardDisk>& disks_, Block::Completion& completion_);
-
 private:
 	Prl::Expected<Unit, ::Error::Simple>
 		define_(const QString& uuid_, const Request& req_);
@@ -418,33 +474,6 @@ struct AuxChannel;
 struct CidGenerator;
 
 } // namespace Exec
-
-namespace Limb
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Abstract
-
-struct Abstract
-{
-	typedef QSharedPointer<virDomain> domainReference_type;
-	typedef QSharedPointer<virConnect> linkReference_type;
-
-	explicit Abstract(const domainReference_type& domain_): m_domain(domain_)
-	{
-	}
-
-	linkReference_type getLink() const;
-	const domainReference_type& getDomain() const
-	{
-		return m_domain;
-	}
-	void setDomain(virDomainPtr value_);
-
-private:
-	QSharedPointer<virDomain> m_domain;
-};
-
-} // namespace Limb
 
 namespace Migration
 {
@@ -633,6 +662,30 @@ struct Unit: private Limb::Abstract
 
 	Limb::State getState() const;
 	Limb::Maintenance getMaintenance() const;
+	Block::Launcher getVolume() const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Grub
+
+struct Grub
+{
+	typedef Prl::Expected<Unit, ::Error::Simple> result_type;
+
+	Grub(const Limb::Abstract::linkReference_type& link_, const CVmConfiguration& image_);
+
+	result_type spawnPaused();
+	result_type spawnRunning();
+	result_type spawnPersistent();
+
+private:
+	typedef boost::function<virDomainPtr (virConnectPtr, char* )>
+		decorated_type;
+
+	result_type wrap(const decorated_type& decorated_) const;
+
+	QSharedPointer<CVmConfiguration> m_image;
+	Limb::Abstract::linkReference_type m_link;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -645,14 +698,11 @@ struct List
 	}
 
 	Unit at(const QString& uuid_) const;
+	Grub getGrub(const CVmConfiguration& image_);
 	Result all(QList<Unit>& dst_);
-	Result define(const CVmConfiguration& config_, Unit* dst_ = NULL);
-	Result start(const CVmConfiguration& config_);
 	QList<Performance::Unit> getPerformance();
 
 private:
-	Prl::Expected<QString, Error::Simple> getXml(const CVmConfiguration& config_);
-
 	QSharedPointer<virConnect> m_link;
 };
 

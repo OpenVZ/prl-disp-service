@@ -38,6 +38,11 @@ namespace Command
 ///////////////////////////////////////////////////////////////////////////////
 // struct Batch
 
+void Batch::addItem(const Batch& another_)
+{
+	m_transaction << another_.m_transaction;
+}
+
 void Batch::addItem(const redo_type& redo_, const undo_type& undo_)
 {
 	m_transaction << qMakePair(redo_, undo_);

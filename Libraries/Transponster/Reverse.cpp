@@ -442,6 +442,41 @@ void Hdd::setDisk()
 	getResult().setDisk(Libvirt::Domain::Xml::VDisk(x));
 }
 
+void Hdd::setBackingChain()
+{
+	if (Flavor<CVmHardDisk>::image != m_hdd.getEmulatedType())
+		return;
+
+	mpl::at_c<Libvirt::Domain::Xml::VDiskBackingChain::types, 1>::type e;
+	e.setValue(true);
+	Libvirt::Domain::Xml::VDiskBackingChain a = e;
+	foreach (CVmHddPartition* x, m_hdd.m_lstPartition)
+	{
+		if (x->getSystemName().isEmpty())
+			continue;
+
+		Libvirt::Domain::Xml::BackingStore y;
+		y.setFormat(Libvirt::Domain::Xml::VStorageFormat
+			(Flavor<CVmHardDisk>::getDriverFormat()));
+
+		Libvirt::Domain::Xml::Source4 z;
+		z.setFile(x->getSystemName());
+		z.setStartupPolicy(Libvirt::Domain::Xml::EStartupPolicyOptional);
+		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type s;
+		s.setValue(z);
+		y.setDiskSource(s);
+
+		Libvirt::Domain::Xml::VDiskBackingChainBin b;
+		b.value = a;
+		y.setDiskBackingChain(b);
+		mpl::at_c<Libvirt::Domain::Xml::VDiskBackingChain::types, 0>::type c;
+		c.setValue(y);
+
+		a = c;
+	}
+	getResult().setDiskBackingChain(a);
+}
+
 } // namespace Builder
 
 } // namespace Clustered
@@ -471,6 +506,7 @@ void List::add(const CVmHardDisk* hdd_, const CVmRunTimeOptions* runtime_)
 	}
 	if (!hdd_->getSerialNumber().isEmpty())
 		b.setSerial(hdd_->getSerialNumber());
+
 	build(b);
 }
 

@@ -271,6 +271,28 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct BackingChain
+
+struct BackingChain: boost::static_visitor<void>
+{
+	typedef Libvirt::Domain::Xml::VDiskSource::types list_type;
+
+	explicit BackingChain(CVmHardDisk& disk_): m_disk(&disk_)
+	{
+	}
+
+	template<class T>
+	void operator()(const T& ) const
+	{
+	}
+
+	void operator()(const mpl::at_c<list_type, 4>::type& image_) const;
+
+private:
+	CVmHardDisk* m_disk;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Disk
 
 struct Disk: private Clustered<CVmHardDisk>

@@ -581,7 +581,7 @@ void Perform::on_entry(const Event& event_, FSM& fsm_)
 	if (m_state != VMS_STOPPED)
 		return;
 	CCpuHelper::update(*m_config);
-	if (::Libvirt::Kit.vms().define(*m_config).isFailed())
+	if (::Libvirt::Kit.vms().getGrub(*m_config).spawnPersistent().isFailed())
 		fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
 }
 
@@ -610,14 +610,14 @@ void Perform::on_entry(const Event& event_, FSM& fsm_)
 		return;
 	}
 
-	::Libvirt::Instrument::Agent::Vm::Snapshot::List s =
-		::Libvirt::Kit.vms().at(m_config->getVmIdentification()->getVmUuid()).getSnapshot();
+	::Libvirt::Instrument::Agent::Vm::Block::Launcher s =
+		::Libvirt::Kit.vms().at(m_config->getVmIdentification()->getVmUuid()).getVolume();
 
 	m_receiver = QSharedPointer<receiver_type>(new receiver_type());
 	if (getConnector()->connect(m_receiver.data(),
 			SIGNAL(done()),
 			SLOT(reactFinished())))
-		m_merge = s.startMerge(helper_type(m_check).getDisks(*m_config), *m_receiver);
+		m_merge = s.merge(helper_type(m_check).getDisks(*m_config), *m_receiver);
 	else
 	{
 		WRITE_TRACE(DBG_FATAL, "can't connect commit future");

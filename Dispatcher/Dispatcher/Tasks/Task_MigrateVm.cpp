@@ -323,7 +323,7 @@ void File::rollback()
 		return ::Libvirt::Result();
 
 	WRITE_TRACE(DBG_DEBUG, "creating external snapshot");
-	return m_agent.createExternal(suffix, m_disks);
+	return m_agent.getSnapshot().createExternal(suffix, m_disks);
 }
 
 void Disks::cleanup()
@@ -344,7 +344,7 @@ void Disks::rollback()
 
 	WRITE_TRACE(DBG_DEBUG, "start merge and wait");
 	::Libvirt::Instrument::Agent::Vm::Block::Completion r;
-	::Libvirt::Instrument::Agent::Vm::Block::Activity a = m_agent.startMerge(disks, r);
+	::Libvirt::Instrument::Agent::Vm::Block::Activity a = m_agent.getVolume().merge(disks, r);
 	r.wait();
 	WRITE_TRACE(DBG_DEBUG, "finish merge");
 	a.stop();
@@ -463,7 +463,7 @@ Unit* Hatchery::operator()(const agent_type& agent_, const CVmConfiguration& tar
 	if (!s.isEmpty())
 	{
 		WRITE_TRACE(DBG_DEBUG, "some disks will be migrated using snapshots");
-		output = new Disks(s, ::Libvirt::Kit.vms().at(m_task->getVmUuid()).getSnapshot(), output);
+		output = new Disks(s, ::Libvirt::Kit.vms().at(m_task->getVmUuid()), output);
 	}
 	foreach(CVmSerialPort* p, u.getSerialPorts())
 		output = new File(p->getSystemName(), output);

@@ -622,6 +622,11 @@ Limb::Maintenance Unit::getMaintenance() const
 	return Limb::Maintenance(getDomain());
 }
 
+Block::Launcher Unit::getVolume() const
+{
+	return Block::Launcher(getDomain());
+}
+
 namespace Performance
 {
 
@@ -1906,6 +1911,57 @@ template Result Editor::update<CVmGenericNetworkAdapter>
 	(const CVmGenericNetworkAdapter& device_);
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Grub
+
+Grub::Grub(const Limb::Abstract::linkReference_type& link_, const CVmConfiguration& image_):
+	m_image(new CVmConfiguration(image_)), m_link(link_)
+{
+}
+
+Grub::result_type Grub::spawnPaused()
+{
+	return wrap(boost::bind(&virDomainCreateXML, _1, _2,
+		VIR_DOMAIN_START_PAUSED | VIR_DOMAIN_START_AUTODESTROY));
+}
+
+Grub::result_type Grub::spawnRunning()
+{
+	return wrap(boost::bind(&virDomainCreateXML, _1, _2,
+		VIR_DOMAIN_START_AUTODESTROY));
+}
+
+Grub::result_type Grub::spawnPersistent()
+{
+	return wrap(boost::bind(&virDomainDefineXML, _1, _2));
+}
+
+Grub::result_type Grub::wrap(const decorated_type& decorated_) const
+{
+	if (decorated_.empty())
+		return Error::Simple(PRL_ERR_INVALID_ARG);
+
+	if (m_link.isNull())
+		return Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
+
+	Prl::Expected<VtInfo, Error::Simple> i = Host(m_link).getVt();
+	if (i.isFailed())
+		return i.error();
+
+	Transponster::Vm::Reverse::Vm u(*m_image);
+	if (PRL_FAILED(Transponster::Director::domain(u, i.value())))
+		return Error::Simple(PRL_ERR_BAD_VM_DIR_CONFIG_FILE_SPECIFIED);
+
+	QByteArray x = u.getResult().toUtf8();
+	WRITE_TRACE(DBG_DEBUG, "temporary xml:\n%s", x.data());
+
+	virDomainPtr d = decorated_(m_link.data(), x.data());
+	if (NULL == d)
+		return Failure(PRL_ERR_VM_NOT_CREATED);
+
+	return Unit(d);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct List
 
 Unit List::at(const QString& uuid_) const
@@ -1923,60 +1979,9 @@ Unit List::at(const QString& uuid_) const
 	return Unit(NULL);
 }
 
-
-Prl::Expected<QString, Error::Simple> List::getXml(const CVmConfiguration& config_)
+Grub List::getGrub(const CVmConfiguration& image_)
 {
-	Prl::Expected<VtInfo, Error::Simple> i = Host(m_link).getVt();
-	if (i.isFailed())
-		return i.error();
-
-	Transponster::Vm::Reverse::Vm u(config_);
-	if (PRL_FAILED(Transponster::Director::domain(u, i.value())))
-		return Error::Simple(PRL_ERR_BAD_VM_DIR_CONFIG_FILE_SPECIFIED);
-
-	return u.getResult();
-}
-
-Result List::define(const CVmConfiguration& config_, Unit* dst_)
-{
-	if (m_link.isNull())
-		return Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
-
-	Prl::Expected<QString, Result> r = getXml(config_);
-	if (r.isFailed())
-		return r.error();
-
-	QString x = r.value();
-	WRITE_TRACE(DBG_DEBUG, "xml:\n%s", x.toUtf8().data());
-	virDomainPtr d = virDomainDefineXML(m_link.data(), x.toUtf8().data());
-	if (NULL == d)
-		return Failure(PRL_ERR_VM_NOT_CREATED);
-
-	Unit m(d);
-	if (NULL != dst_)
-		*dst_ = m;
-
-	return Result();
-}
-
-Result List::start(const CVmConfiguration& config_)
-{
-	if (m_link.isNull())
-		return Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
-
-	Prl::Expected<QString, Result> r = getXml(config_);
-	if (r.isFailed())
-		return r.error();
-
-	QString x = r.value();
-	WRITE_TRACE(DBG_DEBUG, "temporary xml:\n%s", x.toUtf8().data());
-
-	virDomainPtr d = virDomainCreateXML(m_link.data(), x.toUtf8().data(), 0);
-	if (NULL == d)
-		return Failure(PRL_ERR_VM_NOT_CREATED);
-
-	Unit m(d);
-	return Result();
+	return Grub(m_link, image_);
 }
 
 Result List::all(QList<Unit>& dst_)
@@ -2022,6 +2027,159 @@ QList<Performance::Unit> List::getPerformance()
 
 namespace Block
 {
+namespace Generic
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Model
+
+QString Model::getTarget() const
+{
+	return Transponster::Vm::Reverse::Device<CVmHardDisk>::getTargetName(getXml());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Batch
+
+Batch::Batch(Counter& counter_): m_counter(&counter_), m_signal(new signal_type())
+{
+}
+
+void Batch::accept(const domainReference_type& domain_, const Model& model_)
+{
+	getSignal().connect(boost::bind(&Unit::finish, Unit(domain_, model_.getTarget())));
+}
+
+void Batch::reject(const Model& model_)
+{
+	m_counter->account(model_.getTarget());
+}
+
+Batch::result_type Batch::getResult() const
+{
+	void (signal_type::* f)() const = &signal_type::operator();
+	return boost::bind(f, m_signal);
+}
+
+} // namespace Generic
+
+namespace Commit
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Batch
+
+void Batch::accept(const domainReference_type& domain_, const Model& model_)
+{
+	Generic::Batch::accept(domain_, model_);
+	getSignal().connect(boost::bind(&Batch::sweep, model_.getImage()));
+}
+
+void Batch::sweep(const QString& path_)
+{
+	// VIR_DOMAIN_BLOCK_COMMIT_DELETE is not implemented for qemu so we need this
+	if (!QFile::remove(path_))
+	{
+		WRITE_TRACE(DBG_FATAL, "unable to remove file %s",
+			qPrintable(path_));
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Policy
+
+Policy::result_type Policy::operator()(const imageList_type& imageList_, Counter& counter_)
+{
+	Batch b(counter_);
+	BOOST_FOREACH(const CVmHardDisk& i, imageList_)
+	{
+		Model m(i);
+		Result r = Unit(getDomain(), m.getTarget()).commit();
+		if (r.isSucceed())
+			b.accept(getDomain(), m);
+		else
+		{
+			b.reject(m);
+			WRITE_TRACE(DBG_FATAL, "unable to merge the disk '%s'",
+				qPrintable(m.getTarget()));
+		}
+	}
+
+	return b.getResult();
+}
+
+int Policy::getEvent()
+{
+	return VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT;
+}
+
+} // namespace Commit
+
+namespace Rebase
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Model
+
+QString Model::getImage() const
+{
+	int z = getXml().m_lstPartition.size();
+	if (2 > z)
+		return QString();
+
+	return getXml().m_lstPartition[z - 2]->getSystemName();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Batch
+
+void Batch::reject(const domainReference_type& domain_, const Model& model_)
+{
+	Generic::Batch::reject(model_);
+	Unit(domain_, model_.getTarget()).abort();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Policy
+
+Policy::result_type Policy::operator()(const imageList_type& imageList_, Counter& counter_)
+{
+	Result e;
+	Batch b(counter_);
+	BOOST_FOREACH(const CVmHardDisk& i, imageList_)
+	{
+		Model m(i);
+		e = Unit(getDomain(), m.getTarget()).rebase(m.getImage());
+		if (e.isFailed())
+		{
+			WRITE_TRACE(DBG_FATAL, "unable to rebase the disk '%s'",
+				qPrintable(m.getTarget()));
+			break;
+		}
+	}
+	if (e.isFailed())
+	{
+		BOOST_FOREACH(const CVmHardDisk& i, imageList_)
+		{
+			b.reject(getDomain(), Model(i));
+		}
+	}
+	else
+	{
+		BOOST_FOREACH(const CVmHardDisk& i, imageList_)
+		{
+			b.accept(getDomain(), Model(i));
+		}
+	}
+
+	return b.getResult();
+}
+
+int Policy::getEvent()
+{
+	return VIR_DOMAIN_BLOCK_JOB_TYPE_PULL;
+}
+
+
+} // namespace Rebase
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
@@ -2048,25 +2206,41 @@ Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> Unit::getProgress() 
 	}
 }
 
-Result Unit::start() const
+Result Unit::commit() const
 {
 	quint32 flags = VIR_DOMAIN_BLOCK_COMMIT_ACTIVE;
 
 	WRITE_TRACE(DBG_DEBUG, "commit blocks for disk %s", qPrintable(m_disk));
 	if (0 != virDomainBlockCommit(m_domain.data(), m_disk.toUtf8().data(), NULL, NULL, 0, flags))
 	{
-		WRITE_TRACE(DBG_DEBUG, "failed to commit blocks for disk %s", qPrintable(m_disk));
+		WRITE_TRACE(DBG_FATAL, "failed to commit blocks for disk %s", qPrintable(m_disk));
 		return Failure(PRL_ERR_FAILURE);
 	}
 	return Result();
 }
 
-Result Unit::abort() const
+Result Unit::rebase(const QString& base_) const
 {
-	if (0 != virDomainBlockJobAbort(m_domain.data(), m_disk.toUtf8().data(), 0))
+	const char* b = NULL;
+	QByteArray z = base_.toUtf8();
+	if (!base_.isEmpty())
+		b = z.data();
+
+	WRITE_TRACE(DBG_DEBUG, "rebase blocks of the disk %s", qPrintable(m_disk));
+	if (0 != virDomainBlockRebase(m_domain.data(), qPrintable(m_disk), b, 0, 0))
+	{
+		WRITE_TRACE(DBG_FATAL, "failed to rebase blocks of the disk %s",
+			qPrintable(m_disk));
 		return Failure(PRL_ERR_FAILURE);
+	}
 
 	return Result();
+}
+
+Result Unit::abort() const
+{
+	return do_(m_domain.data(), boost::bind
+		(&virDomainBlockJobAbort, _1, m_disk.toUtf8().data(), 0));
 }
 
 Result Unit::finish() const
@@ -2074,10 +2248,6 @@ Result Unit::finish() const
 	WRITE_TRACE(DBG_DEBUG, "tries to finish block commit");
 	if (0 != virDomainBlockJobAbort(m_domain.data(), m_disk.toUtf8().data(), VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT))
 		return Failure(PRL_ERR_FAILURE);
-
-	// VIR_DOMAIN_BLOCK_COMMIT_DELETE is not implemented for qemu so we need this
-	if (!QFile::remove(m_path))
-		WRITE_TRACE(DBG_FATAL, "unable to remove file %s", qPrintable(m_path));
 
 	return Result();
 }
@@ -2124,20 +2294,21 @@ Callback::~Callback()
 	m_counter->reset();
 }
 
-void Callback::do_(const QString& one_)
+void Callback::do_(int event_, const QString& object_)
 {
-	m_counter->account(one_);
+	if (m_filter == event_)
+		m_counter->account(object_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Tracker
 
 Tracker::Tracker(QSharedPointer<virDomain> domain_):
-	m_ticket(-1), m_domain(domain_)
+	m_ticket(-1), m_ticket2(-1), m_domain(domain_)
 {
 }
 
-Result Tracker::start(QSharedPointer<Counter> callback_)
+Result Tracker::start(QSharedPointer<Counter> callback_, int event_)
 {
 	if (callback_.isNull())
 		return Error::Simple(PRL_ERR_INVALID_ARG);
@@ -2145,38 +2316,48 @@ Result Tracker::start(QSharedPointer<Counter> callback_)
 	if (m_domain.isNull())
 		return Error::Simple(PRL_ERR_INVALID_HANDLE);
 
-	if (-1 != m_ticket)
+	if (!(-1 == m_ticket && m_ticket2 == -1))
 		return Error::Simple(PRL_ERR_INVALID_HANDLE);
 
 	virConnectPtr c = virDomainGetConnect(m_domain.data());
 	m_ticket = virConnectDomainEventRegisterAny(c, m_domain.data(),
-			VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2,
+			VIR_DOMAIN_EVENT_ID_BLOCK_JOB,
 			VIR_DOMAIN_EVENT_CALLBACK(&react),
-			new Callback(callback_), &free);
+			new Callback(callback_, event_), &free);
 	if (-1 == m_ticket)
 		return Failure(PRL_ERR_FAILURE);
+
+	m_ticket2 = virConnectDomainEventRegisterAny(c, m_domain.data(),
+			VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2,
+			VIR_DOMAIN_EVENT_CALLBACK(&react),
+			new Callback(callback_, event_), &free);
+	if (-1 == m_ticket2)
+	{
+		stop();
+		return Failure(PRL_ERR_FAILURE);
+	}
 
 	return Result();
 }
 
 Result Tracker::stop()
 {
-	if (-1 == m_ticket)
+	if (-1 == m_ticket && m_ticket2 == -1)
 		return Error::Simple(PRL_ERR_INVALID_HANDLE);
 
 	virConnectPtr c = virDomainGetConnect(m_domain.data());
 	virConnectDomainEventDeregisterAny(c, m_ticket);
 	m_ticket = -1;
+	virConnectDomainEventDeregisterAny(c, m_ticket2);
+	m_ticket2 = -1;
+
 	return Result();
 }
 
 void Tracker::react(virConnectPtr, virDomainPtr, const char * disk_, int type_, int status_, void * opaque_)
 {
 	WRITE_TRACE(DBG_DEBUG, "block job event: disk '%s' got status %d", disk_, status_);
-	if (type_ != VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT)
-		return;
-
-	((Callback* )opaque_)->do_(disk_);
+	((Callback* )opaque_)->do_(type_, disk_);
 }
 
 void Tracker::free(void* callback_)
@@ -2194,12 +2375,41 @@ void Activity::stop()
 		m_tracker->stop();
 		m_tracker.clear();
 	}
-	if (!m_units.isEmpty())
+	if (!m_callback.empty())
 	{
-		std::for_each(m_units.begin(), m_units.end(),
-			boost::bind(&Unit::finish, _1));
-		m_units.clear();
+		m_callback();
+		m_callback.clear();
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Launcher
+
+Activity Launcher::merge(const imageList_type& imageList_, Completion& completion_)
+{
+	return start(Commit::Policy(getDomain()), imageList_, completion_);
+}
+
+Activity Launcher::rebase(const imageList_type& imageList_, Completion& completion_)
+{
+	return start(Rebase::Policy(getDomain()), imageList_, completion_);
+}
+
+template<class T>
+Activity Launcher::start(T policy_, const imageList_type& imageList_, Completion& completion_)
+{
+	QSet<QString> n;
+	BOOST_FOREACH(const CVmHardDisk& d, imageList_)
+	{
+		n << Generic::Model(d).getTarget();
+	}
+	QSharedPointer<Counter> c(new Counter(n, completion_), &QObject::deleteLater);
+	c->moveToThread(QCoreApplication::instance()->thread());
+
+	QSharedPointer<Tracker> t(new Tracker(getDomain()));
+	t->start(c, T::getEvent());
+
+	return Activity(t, policy_(imageList_, *c));
 }
 
 } // namespace Block
@@ -2415,38 +2625,6 @@ Result List::createExternal(const QString& uuid_, const QList<CVmHardDisk*>& dis
 		return Failure(PRL_ERR_FAILURE);
 	virDomainSnapshotFree(p);
 	return Result();
-}
-
-Block::Activity List::startMerge(const QList<CVmHardDisk>& disks_, Block::Completion& completion_)
-{
-	QSet<QString> n;
-	BOOST_FOREACH(const CVmHardDisk& d, disks_)
-	{
-		n << Transponster::Vm::Reverse::Device<CVmHardDisk>::getTargetName(d);
-	}
-	QSharedPointer<Block::Counter> c(new Block::Counter(n, completion_), &QObject::deleteLater);
-	c->moveToThread(QCoreApplication::instance()->thread());
-
-	QSharedPointer<Block::Tracker> t(new Block::Tracker(m_domain));
-	t->start(c);
-
-	QString a;
-	CVmHardDisk d;
-	QList<Block::Unit> u;
-	BOOST_FOREACH(boost::tie(a, d), boost::combine(n, disks_))
-	{
-		Block::Unit b(m_domain, a, d.getSystemName());
-		WRITE_TRACE(DBG_DEBUG, "create unit with name '%s'", qPrintable(a));
-		Result r = b.start();
-		if (r.isSucceed())
-		{
-			u << b;
-			continue;
-		}
-		c->account(a);
-		WRITE_TRACE(DBG_FATAL, "unable to merge disk '%s'", qPrintable(a));
-	}
-	return Block::Activity(t, u);
 }
 
 } // namespace Snapshot

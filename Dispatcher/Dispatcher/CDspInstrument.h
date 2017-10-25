@@ -59,6 +59,8 @@ struct Batch
 
 	PRL_RESULT execute();
 	void rollback();
+
+	void addItem(const Batch& another_);
 	void addItem(const redo_type& redo_)
 	{
 		addItem(redo_, undo_type());
