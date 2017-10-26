@@ -1433,18 +1433,42 @@ Direct::Direct(char* xml_)
 	shape(xml_, m_input);
 }
 
+bool Direct::isValid() const
+{
+	return !m_input.isNull() && m_input->getCpu() &&
+		m_input->getCpu()->getMode2().getSupported() == Libvirt::Capability::Xml::EVirYesNoYes &&
+		m_input->getCpu()->getMode2().getAnonymous1809();
+}
+
 QList<QString> Direct::getCpuFeatures() const
 {
-	if (m_input.isNull() || !m_input->getHost().getCpu().getCpuspec())
+	if (!isValid())
 		return QList<QString>();
-	return m_input->getHost().getCpu().getCpuspec()->getFeatureList();
+
+	QList<QString> output;
+	foreach (const Libvirt::Capability::Xml::Feature& f,
+		m_input->getCpu()->getMode2().getAnonymous1809()->getFeatureList())
+	{
+		switch (f.getPolicy())
+		{
+		case Libvirt::Capability::Xml::EPolicyForbid:
+		case Libvirt::Capability::Xml::EPolicyDisable:
+			break;
+		default:
+			output << f.getName();
+		}
+	}
+
+	return output;
 }
 
 QString Direct::getCpuModel() const
 {
-	if (m_input.isNull() || !m_input->getHost().getCpu().getCpuspec())
+	if (!isValid())
 		return QString();
-	return m_input->getHost().getCpu().getCpuspec()->getModel();
+
+	return m_input->getCpu()->getMode2().getAnonymous1809()
+		->getModel().getOwnValue();
 }
 
 } // namespace Capabilities

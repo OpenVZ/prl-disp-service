@@ -33,142 +33,159 @@ namespace Libvirt
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Features
+// struct Enum
 
 namespace Capability
 {
 namespace Xml
 {
-struct Features
+struct Enum
 {
-	Features();
-
-	bool getPae() const
+	const QString& getName() const
 	{
-		return m_pae;
+		return m_name;
 	}
-	void setPae(bool value_)
+	void setName(const QString& value_)
 	{
-		m_pae = value_;
+		m_name = value_;
 	}
-	bool getNonpae() const
+	const QList<QString >& getValueList() const
 	{
-		return m_nonpae;
+		return m_valueList;
 	}
-	void setNonpae(bool value_)
+	void setValueList(const QList<QString >& value_)
 	{
-		m_nonpae = value_;
-	}
-	bool getVmx() const
-	{
-		return m_vmx;
-	}
-	void setVmx(bool value_)
-	{
-		m_vmx = value_;
-	}
-	bool getSvm() const
-	{
-		return m_svm;
-	}
-	void setSvm(bool value_)
-	{
-		m_svm = value_;
+		m_valueList = value_;
 	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
 	bool save(QDomDocument& ) const;
 
 private:
-	bool m_pae;
-	bool m_nonpae;
-	bool m_vmx;
-	bool m_svm;
+	QString m_name;
+	QList<QString > m_valueList;
 };
 
 } // namespace Xml
 } // namespace Capability
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Topology
+// struct Loader
 
 namespace Capability
 {
 namespace Xml
 {
-struct Topology
+struct Loader
 {
-	Topology();
+	Loader();
 
-	PPositiveInteger::value_type getSockets() const
+	EVirYesNo getSupported() const
 	{
-		return m_sockets;
+		return m_supported;
 	}
-	void setSockets(PPositiveInteger::value_type value_)
+	void setSupported(EVirYesNo value_)
 	{
-		m_sockets = value_;
+		m_supported = value_;
 	}
-	PPositiveInteger::value_type getCores() const
+	const boost::optional<QList<QString > >& getValueList() const
 	{
-		return m_cores;
+		return m_valueList;
 	}
-	void setCores(PPositiveInteger::value_type value_)
+	void setValueList(const boost::optional<QList<QString > >& value_)
 	{
-		m_cores = value_;
+		m_valueList = value_;
 	}
-	PPositiveInteger::value_type getThreads() const
+	const QList<Enum >& getEnumList() const
 	{
-		return m_threads;
+		return m_enumList;
 	}
-	void setThreads(PPositiveInteger::value_type value_)
+	void setEnumList(const QList<Enum >& value_)
 	{
-		m_threads = value_;
+		m_enumList = value_;
 	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
 	bool save(QDomDocument& ) const;
 
 private:
-	PPositiveInteger::value_type m_sockets;
-	PPositiveInteger::value_type m_cores;
-	PPositiveInteger::value_type m_threads;
+	EVirYesNo m_supported;
+	boost::optional<QList<QString > > m_valueList;
+	QList<Enum > m_enumList;
 };
 
 } // namespace Xml
 } // namespace Capability
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Pages
+// struct Os
 
 namespace Capability
 {
 namespace Xml
 {
-struct Pages
+struct Os
 {
-	Pages();
+	Os();
 
-	const boost::optional<PUnit::value_type >& getUnit() const
+	EVirYesNo getSupported() const
 	{
-		return m_unit;
+		return m_supported;
 	}
-	void setUnit(const boost::optional<PUnit::value_type >& value_)
+	void setSupported(EVirYesNo value_)
 	{
-		m_unit = value_;
+		m_supported = value_;
 	}
-	PUnsignedInt::value_type getSize() const
+	const boost::optional<Loader >& getLoader() const
 	{
-		return m_size;
+		return m_loader;
 	}
-	void setSize(PUnsignedInt::value_type value_)
+	void setLoader(const boost::optional<Loader >& value_)
 	{
-		m_size = value_;
+		m_loader = value_;
 	}
-	PUnsignedInt::value_type getOwnValue() const
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_supported;
+	boost::optional<Loader > m_loader;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Model
+
+namespace Capability
+{
+namespace Xml
+{
+struct Model
+{
+	const boost::optional<EFallback >& getFallback() const
+	{
+		return m_fallback;
+	}
+	void setFallback(const boost::optional<EFallback >& value_)
+	{
+		m_fallback = value_;
+	}
+	const boost::optional<PVendorId::value_type >& getVendorId() const
+	{
+		return m_vendorId;
+	}
+	void setVendorId(const boost::optional<PVendorId::value_type >& value_)
+	{
+		m_vendorId = value_;
+	}
+	const QString& getOwnValue() const
 	{
 		return m_ownValue;
 	}
-	void setOwnValue(PUnsignedInt::value_type value_)
+	void setOwnValue(const QString& value_)
 	{
 		m_ownValue = value_;
 	}
@@ -177,28 +194,67 @@ struct Pages
 	bool save(QDomDocument& ) const;
 
 private:
-	boost::optional<PUnit::value_type > m_unit;
-	PUnsignedInt::value_type m_size;
-	PUnsignedInt::value_type m_ownValue;
+	boost::optional<EFallback > m_fallback;
+	boost::optional<PVendorId::value_type > m_vendorId;
+	QString m_ownValue;
 };
 
 } // namespace Xml
 } // namespace Capability
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Cpuspec
+// struct Feature
 
 namespace Capability
 {
 namespace Xml
 {
-struct Cpuspec
+struct Feature
 {
-	const QString& getModel() const
+	Feature();
+
+	EPolicy getPolicy() const
+	{
+		return m_policy;
+	}
+	void setPolicy(EPolicy value_)
+	{
+		m_policy = value_;
+	}
+	const PFeatureName::value_type& getName() const
+	{
+		return m_name;
+	}
+	void setName(const PFeatureName::value_type& value_)
+	{
+		m_name = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EPolicy m_policy;
+	PFeatureName::value_type m_name;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Anonymous1809
+
+namespace Capability
+{
+namespace Xml
+{
+struct Anonymous1809
+{
+	const Model& getModel() const
 	{
 		return m_model;
 	}
-	void setModel(const QString& value_)
+	void setModel(const Model& value_)
 	{
 		m_model = value_;
 	}
@@ -210,39 +266,138 @@ struct Cpuspec
 	{
 		m_vendor = value_;
 	}
-	const Topology& getTopology() const
-	{
-		return m_topology;
-	}
-	void setTopology(const Topology& value_)
-	{
-		m_topology = value_;
-	}
-	const QList<PFeatureName::value_type >& getFeatureList() const
+	const QList<Feature >& getFeatureList() const
 	{
 		return m_featureList;
 	}
-	void setFeatureList(const QList<PFeatureName::value_type >& value_)
+	void setFeatureList(const QList<Feature >& value_)
 	{
 		m_featureList = value_;
-	}
-	const QList<Pages >& getPagesList() const
-	{
-		return m_pagesList;
-	}
-	void setPagesList(const QList<Pages >& value_)
-	{
-		m_pagesList = value_;
 	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
 
 private:
-	QString m_model;
+	Model m_model;
 	boost::optional<QString > m_vendor;
-	Topology m_topology;
-	QList<PFeatureName::value_type > m_featureList;
-	QList<Pages > m_pagesList;
+	QList<Feature > m_featureList;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mode
+
+namespace Capability
+{
+namespace Xml
+{
+struct Mode
+{
+	Mode();
+
+	EVirYesNo getSupported() const
+	{
+		return m_supported;
+	}
+	void setSupported(EVirYesNo value_)
+	{
+		m_supported = value_;
+	}
+	const boost::optional<Anonymous1809 >& getAnonymous1809() const
+	{
+		return m_anonymous1809;
+	}
+	void setAnonymous1809(const boost::optional<Anonymous1809 >& value_)
+	{
+		m_anonymous1809 = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_supported;
+	boost::optional<Anonymous1809 > m_anonymous1809;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Model1
+
+namespace Capability
+{
+namespace Xml
+{
+struct Model1
+{
+	Model1();
+
+	EUsable getUsable() const
+	{
+		return m_usable;
+	}
+	void setUsable(EUsable value_)
+	{
+		m_usable = value_;
+	}
+	const QString& getOwnValue() const
+	{
+		return m_ownValue;
+	}
+	void setOwnValue(const QString& value_)
+	{
+		m_ownValue = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EUsable m_usable;
+	QString m_ownValue;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mode1
+
+namespace Capability
+{
+namespace Xml
+{
+struct Mode1
+{
+	Mode1();
+
+	EVirYesNo getSupported() const
+	{
+		return m_supported;
+	}
+	void setSupported(EVirYesNo value_)
+	{
+		m_supported = value_;
+	}
+	const QList<Model1 >& getModelList() const
+	{
+		return m_modelList;
+	}
+	void setModelList(const QList<Model1 >& value_)
+	{
+		m_modelList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_supported;
+	QList<Model1 > m_modelList;
 };
 
 } // namespace Xml
@@ -259,1086 +414,371 @@ struct Cpu
 {
 	Cpu();
 
-	EArchnames getArch() const
+	EVirYesNo getMode() const
+	{
+		return m_mode;
+	}
+	void setMode(EVirYesNo value_)
+	{
+		m_mode = value_;
+	}
+	const Mode& getMode2() const
+	{
+		return m_mode2;
+	}
+	void setMode2(const Mode& value_)
+	{
+		m_mode2 = value_;
+	}
+	const Mode1& getMode3() const
+	{
+		return m_mode3;
+	}
+	void setMode3(const Mode1& value_)
+	{
+		m_mode3 = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_mode;
+	Mode m_mode2;
+	Mode1 m_mode3;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Disk
+
+namespace Capability
+{
+namespace Xml
+{
+struct Disk
+{
+	Disk();
+
+	EVirYesNo getSupported() const
+	{
+		return m_supported;
+	}
+	void setSupported(EVirYesNo value_)
+	{
+		m_supported = value_;
+	}
+	const QList<Enum >& getEnumList() const
+	{
+		return m_enumList;
+	}
+	void setEnumList(const QList<Enum >& value_)
+	{
+		m_enumList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_supported;
+	QList<Enum > m_enumList;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Graphics
+
+namespace Capability
+{
+namespace Xml
+{
+struct Graphics
+{
+	Graphics();
+
+	EVirYesNo getSupported() const
+	{
+		return m_supported;
+	}
+	void setSupported(EVirYesNo value_)
+	{
+		m_supported = value_;
+	}
+	const QList<Enum >& getEnumList() const
+	{
+		return m_enumList;
+	}
+	void setEnumList(const QList<Enum >& value_)
+	{
+		m_enumList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_supported;
+	QList<Enum > m_enumList;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Video
+
+namespace Capability
+{
+namespace Xml
+{
+struct Video
+{
+	Video();
+
+	EVirYesNo getSupported() const
+	{
+		return m_supported;
+	}
+	void setSupported(EVirYesNo value_)
+	{
+		m_supported = value_;
+	}
+	const QList<Enum >& getEnumList() const
+	{
+		return m_enumList;
+	}
+	void setEnumList(const QList<Enum >& value_)
+	{
+		m_enumList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_supported;
+	QList<Enum > m_enumList;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hostdev
+
+namespace Capability
+{
+namespace Xml
+{
+struct Hostdev
+{
+	Hostdev();
+
+	EVirYesNo getSupported() const
+	{
+		return m_supported;
+	}
+	void setSupported(EVirYesNo value_)
+	{
+		m_supported = value_;
+	}
+	const QList<Enum >& getEnumList() const
+	{
+		return m_enumList;
+	}
+	void setEnumList(const QList<Enum >& value_)
+	{
+		m_enumList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_supported;
+	QList<Enum > m_enumList;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Devices
+
+namespace Capability
+{
+namespace Xml
+{
+struct Devices
+{
+	const Disk& getDisk() const
+	{
+		return m_disk;
+	}
+	void setDisk(const Disk& value_)
+	{
+		m_disk = value_;
+	}
+	const Graphics& getGraphics() const
+	{
+		return m_graphics;
+	}
+	void setGraphics(const Graphics& value_)
+	{
+		m_graphics = value_;
+	}
+	const Video& getVideo() const
+	{
+		return m_video;
+	}
+	void setVideo(const Video& value_)
+	{
+		m_video = value_;
+	}
+	const Hostdev& getHostdev() const
+	{
+		return m_hostdev;
+	}
+	void setHostdev(const Hostdev& value_)
+	{
+		m_hostdev = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	Disk m_disk;
+	Graphics m_graphics;
+	Video m_video;
+	Hostdev m_hostdev;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Gic
+
+namespace Capability
+{
+namespace Xml
+{
+struct Gic
+{
+	Gic();
+
+	EVirYesNo getSupported() const
+	{
+		return m_supported;
+	}
+	void setSupported(EVirYesNo value_)
+	{
+		m_supported = value_;
+	}
+	const QList<Enum >& getEnumList() const
+	{
+		return m_enumList;
+	}
+	void setEnumList(const QList<Enum >& value_)
+	{
+		m_enumList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_supported;
+	QList<Enum > m_enumList;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct DomainCapabilities
+
+namespace Capability
+{
+namespace Xml
+{
+struct DomainCapabilities
+{
+	const PAbsFilePath::value_type& getPath() const
+	{
+		return m_path;
+	}
+	void setPath(const PAbsFilePath::value_type& value_)
+	{
+		m_path = value_;
+	}
+	const QString& getDomain() const
+	{
+		return m_domain;
+	}
+	void setDomain(const QString& value_)
+	{
+		m_domain = value_;
+	}
+	const boost::optional<QString >& getMachine() const
+	{
+		return m_machine;
+	}
+	void setMachine(const boost::optional<QString >& value_)
+	{
+		m_machine = value_;
+	}
+	const QString& getArch() const
 	{
 		return m_arch;
 	}
-	void setArch(EArchnames value_)
+	void setArch(const QString& value_)
 	{
 		m_arch = value_;
 	}
-	const boost::optional<Features >& getFeatures() const
+	const boost::optional<PUnsignedInt::value_type >& getVcpu() const
 	{
-		return m_features;
+		return m_vcpu;
 	}
-	void setFeatures(const boost::optional<Features >& value_)
+	void setVcpu(const boost::optional<PUnsignedInt::value_type >& value_)
 	{
-		m_features = value_;
+		m_vcpu = value_;
 	}
-	const boost::optional<Cpuspec >& getCpuspec() const
+	const boost::optional<Os >& getOs() const
 	{
-		return m_cpuspec;
+		return m_os;
 	}
-	void setCpuspec(const boost::optional<Cpuspec >& value_)
+	void setOs(const boost::optional<Os >& value_)
 	{
-		m_cpuspec = value_;
+		m_os = value_;
 	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	EArchnames m_arch;
-	boost::optional<Features > m_features;
-	boost::optional<Cpuspec > m_cpuspec;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PowerManagement
-
-namespace Capability
-{
-namespace Xml
-{
-struct PowerManagement
-{
-	PowerManagement();
-
-	bool getSuspendMem() const
-	{
-		return m_suspendMem;
-	}
-	void setSuspendMem(bool value_)
-	{
-		m_suspendMem = value_;
-	}
-	bool getSuspendDisk() const
-	{
-		return m_suspendDisk;
-	}
-	void setSuspendDisk(bool value_)
-	{
-		m_suspendDisk = value_;
-	}
-	bool getSuspendHybrid() const
-	{
-		return m_suspendHybrid;
-	}
-	void setSuspendHybrid(bool value_)
-	{
-		m_suspendHybrid = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	bool m_suspendMem;
-	bool m_suspendDisk;
-	bool m_suspendHybrid;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct MigrationFeatures
-
-namespace Capability
-{
-namespace Xml
-{
-struct MigrationFeatures
-{
-	MigrationFeatures();
-
-	bool getLive() const
-	{
-		return m_live;
-	}
-	void setLive(bool value_)
-	{
-		m_live = value_;
-	}
-	const boost::optional<QList<EUriTransport > >& getUriTransports() const
-	{
-		return m_uriTransports;
-	}
-	void setUriTransports(const boost::optional<QList<EUriTransport > >& value_)
-	{
-		m_uriTransports = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	bool m_live;
-	boost::optional<QList<EUriTransport > > m_uriTransports;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct ScaledInteger
-
-namespace Capability
-{
-namespace Xml
-{
-struct ScaledInteger
-{
-	ScaledInteger();
-
-	const boost::optional<PUnit::value_type >& getUnit() const
-	{
-		return m_unit;
-	}
-	void setUnit(const boost::optional<PUnit::value_type >& value_)
-	{
-		m_unit = value_;
-	}
-	PUnsignedLong::value_type getOwnValue() const
-	{
-		return m_ownValue;
-	}
-	void setOwnValue(PUnsignedLong::value_type value_)
-	{
-		m_ownValue = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	boost::optional<PUnit::value_type > m_unit;
-	PUnsignedLong::value_type m_ownValue;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Sibling
-
-namespace Capability
-{
-namespace Xml
-{
-struct Sibling
-{
-	Sibling();
-
-	PUnsignedInt::value_type getId() const
-	{
-		return m_id;
-	}
-	void setId(PUnsignedInt::value_type value_)
-	{
-		m_id = value_;
-	}
-	PUnsignedInt::value_type getValue() const
-	{
-		return m_value;
-	}
-	void setValue(PUnsignedInt::value_type value_)
-	{
-		m_value = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	PUnsignedInt::value_type m_id;
-	PUnsignedInt::value_type m_value;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1844
-
-namespace Capability
-{
-namespace Xml
-{
-struct Anonymous1844
-{
-	Anonymous1844();
-
-	PUnsignedInt::value_type getSocketId() const
-	{
-		return m_socketId;
-	}
-	void setSocketId(PUnsignedInt::value_type value_)
-	{
-		m_socketId = value_;
-	}
-	PUnsignedInt::value_type getCoreId() const
-	{
-		return m_coreId;
-	}
-	void setCoreId(PUnsignedInt::value_type value_)
-	{
-		m_coreId = value_;
-	}
-	const PCpuset::value_type& getSiblings() const
-	{
-		return m_siblings;
-	}
-	void setSiblings(const PCpuset::value_type& value_)
-	{
-		m_siblings = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-
-private:
-	PUnsignedInt::value_type m_socketId;
-	PUnsignedInt::value_type m_coreId;
-	PCpuset::value_type m_siblings;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Cpu1
-
-namespace Capability
-{
-namespace Xml
-{
-struct Cpu1
-{
-	Cpu1();
-
-	PUnsignedInt::value_type getId() const
-	{
-		return m_id;
-	}
-	void setId(PUnsignedInt::value_type value_)
-	{
-		m_id = value_;
-	}
-	const boost::optional<Anonymous1844 >& getAnonymous1844() const
-	{
-		return m_anonymous1844;
-	}
-	void setAnonymous1844(const boost::optional<Anonymous1844 >& value_)
-	{
-		m_anonymous1844 = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	PUnsignedInt::value_type m_id;
-	boost::optional<Anonymous1844 > m_anonymous1844;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Cpus
-
-namespace Capability
-{
-namespace Xml
-{
-struct Cpus
-{
-	Cpus();
-
-	PUnsignedInt::value_type getNum() const
-	{
-		return m_num;
-	}
-	void setNum(PUnsignedInt::value_type value_)
-	{
-		m_num = value_;
-	}
-	const QList<Cpu1 >& getCpuList() const
-	{
-		return m_cpuList;
-	}
-	void setCpuList(const QList<Cpu1 >& value_)
-	{
-		m_cpuList = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	PUnsignedInt::value_type m_num;
-	QList<Cpu1 > m_cpuList;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Cell
-
-namespace Capability
-{
-namespace Xml
-{
-struct Cell
-{
-	Cell();
-
-	PUnsignedInt::value_type getId() const
-	{
-		return m_id;
-	}
-	void setId(PUnsignedInt::value_type value_)
-	{
-		m_id = value_;
-	}
-	const boost::optional<ScaledInteger >& getMemory() const
-	{
-		return m_memory;
-	}
-	void setMemory(const boost::optional<ScaledInteger >& value_)
-	{
-		m_memory = value_;
-	}
-	const QList<Pages >& getPagesList() const
-	{
-		return m_pagesList;
-	}
-	void setPagesList(const QList<Pages >& value_)
-	{
-		m_pagesList = value_;
-	}
-	const boost::optional<QList<Sibling > >& getDistances() const
-	{
-		return m_distances;
-	}
-	void setDistances(const boost::optional<QList<Sibling > >& value_)
-	{
-		m_distances = value_;
-	}
-	const boost::optional<Cpus >& getCpus() const
-	{
-		return m_cpus;
-	}
-	void setCpus(const boost::optional<Cpus >& value_)
-	{
-		m_cpus = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	PUnsignedInt::value_type m_id;
-	boost::optional<ScaledInteger > m_memory;
-	QList<Pages > m_pagesList;
-	boost::optional<QList<Sibling > > m_distances;
-	boost::optional<Cpus > m_cpus;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Cells
-
-namespace Capability
-{
-namespace Xml
-{
-struct Cells
-{
-	Cells();
-
-	PUnsignedInt::value_type getNum() const
-	{
-		return m_num;
-	}
-	void setNum(PUnsignedInt::value_type value_)
-	{
-		m_num = value_;
-	}
-	const QList<Cell >& getCellList() const
-	{
-		return m_cellList;
-	}
-	void setCellList(const QList<Cell >& value_)
-	{
-		m_cellList = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	PUnsignedInt::value_type m_num;
-	QList<Cell > m_cellList;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Control
-
-namespace Capability
-{
-namespace Xml
-{
-struct Control
-{
-	Control();
-
-	PUnsignedInt::value_type getGranularity() const
-	{
-		return m_granularity;
-	}
-	void setGranularity(PUnsignedInt::value_type value_)
-	{
-		m_granularity = value_;
-	}
-	const boost::optional<PUnsignedInt::value_type >& getMin() const
-	{
-		return m_min;
-	}
-	void setMin(const boost::optional<PUnsignedInt::value_type >& value_)
-	{
-		m_min = value_;
-	}
-	const PUnit::value_type& getUnit() const
-	{
-		return m_unit;
-	}
-	void setUnit(const PUnit::value_type& value_)
-	{
-		m_unit = value_;
-	}
-	EType getType() const
-	{
-		return m_type;
-	}
-	void setType(EType value_)
-	{
-		m_type = value_;
-	}
-	PUnsignedInt::value_type getMaxAllocs() const
-	{
-		return m_maxAllocs;
-	}
-	void setMaxAllocs(PUnsignedInt::value_type value_)
-	{
-		m_maxAllocs = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	PUnsignedInt::value_type m_granularity;
-	boost::optional<PUnsignedInt::value_type > m_min;
-	PUnit::value_type m_unit;
-	EType m_type;
-	PUnsignedInt::value_type m_maxAllocs;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Bank
-
-namespace Capability
-{
-namespace Xml
-{
-struct Bank
-{
-	Bank();
-
-	PUnsignedInt::value_type getId() const
-	{
-		return m_id;
-	}
-	void setId(PUnsignedInt::value_type value_)
-	{
-		m_id = value_;
-	}
-	PUnsignedInt::value_type getLevel() const
-	{
-		return m_level;
-	}
-	void setLevel(PUnsignedInt::value_type value_)
-	{
-		m_level = value_;
-	}
-	EType getType() const
-	{
-		return m_type;
-	}
-	void setType(EType value_)
-	{
-		m_type = value_;
-	}
-	PUnsignedInt::value_type getSize() const
-	{
-		return m_size;
-	}
-	void setSize(PUnsignedInt::value_type value_)
-	{
-		m_size = value_;
-	}
-	const PUnit::value_type& getUnit() const
-	{
-		return m_unit;
-	}
-	void setUnit(const PUnit::value_type& value_)
-	{
-		m_unit = value_;
-	}
-	const PCpuset::value_type& getCpus() const
-	{
-		return m_cpus;
-	}
-	void setCpus(const PCpuset::value_type& value_)
-	{
-		m_cpus = value_;
-	}
-	const QList<Control >& getControlList() const
-	{
-		return m_controlList;
-	}
-	void setControlList(const QList<Control >& value_)
-	{
-		m_controlList = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	PUnsignedInt::value_type m_id;
-	PUnsignedInt::value_type m_level;
-	EType m_type;
-	PUnsignedInt::value_type m_size;
-	PUnit::value_type m_unit;
-	PCpuset::value_type m_cpus;
-	QList<Control > m_controlList;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Baselabel
-
-namespace Capability
-{
-namespace Xml
-{
-struct Baselabel
-{
-	const QString& getType() const
-	{
-		return m_type;
-	}
-	void setType(const QString& value_)
-	{
-		m_type = value_;
-	}
-	const QString& getOwnValue() const
-	{
-		return m_ownValue;
-	}
-	void setOwnValue(const QString& value_)
-	{
-		m_ownValue = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	QString m_type;
-	QString m_ownValue;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Secmodel
-
-namespace Capability
-{
-namespace Xml
-{
-struct Secmodel
-{
-	const QString& getModel() const
-	{
-		return m_model;
-	}
-	void setModel(const QString& value_)
-	{
-		m_model = value_;
-	}
-	const QString& getDoi() const
-	{
-		return m_doi;
-	}
-	void setDoi(const QString& value_)
-	{
-		m_doi = value_;
-	}
-	const QList<Baselabel >& getBaselabelList() const
-	{
-		return m_baselabelList;
-	}
-	void setBaselabelList(const QList<Baselabel >& value_)
-	{
-		m_baselabelList = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	QString m_model;
-	QString m_doi;
-	QList<Baselabel > m_baselabelList;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Host
-
-namespace Capability
-{
-namespace Xml
-{
-struct Host
-{
-	const boost::optional<VUUID >& getUuid() const
-	{
-		return m_uuid;
-	}
-	void setUuid(const boost::optional<VUUID >& value_)
-	{
-		m_uuid = value_;
-	}
-	const Cpu& getCpu() const
+	const boost::optional<Cpu >& getCpu() const
 	{
 		return m_cpu;
 	}
-	void setCpu(const Cpu& value_)
+	void setCpu(const boost::optional<Cpu >& value_)
 	{
 		m_cpu = value_;
 	}
-	const boost::optional<PowerManagement >& getPowerManagement() const
+	const boost::optional<Devices >& getDevices() const
 	{
-		return m_powerManagement;
+		return m_devices;
 	}
-	void setPowerManagement(const boost::optional<PowerManagement >& value_)
+	void setDevices(const boost::optional<Devices >& value_)
 	{
-		m_powerManagement = value_;
+		m_devices = value_;
 	}
-	const boost::optional<MigrationFeatures >& getMigrationFeatures() const
-	{
-		return m_migrationFeatures;
-	}
-	void setMigrationFeatures(const boost::optional<MigrationFeatures >& value_)
-	{
-		m_migrationFeatures = value_;
-	}
-	const boost::optional<Cells >& getTopology() const
-	{
-		return m_topology;
-	}
-	void setTopology(const boost::optional<Cells >& value_)
-	{
-		m_topology = value_;
-	}
-	const boost::optional<QList<Bank > >& getCache() const
-	{
-		return m_cache;
-	}
-	void setCache(const boost::optional<QList<Bank > >& value_)
-	{
-		m_cache = value_;
-	}
-	const QList<Secmodel >& getSecmodelList() const
-	{
-		return m_secmodelList;
-	}
-	void setSecmodelList(const QList<Secmodel >& value_)
-	{
-		m_secmodelList = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	boost::optional<VUUID > m_uuid;
-	Cpu m_cpu;
-	boost::optional<PowerManagement > m_powerManagement;
-	boost::optional<MigrationFeatures > m_migrationFeatures;
-	boost::optional<Cells > m_topology;
-	boost::optional<QList<Bank > > m_cache;
-	QList<Secmodel > m_secmodelList;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Machine
-
-namespace Capability
-{
-namespace Xml
-{
-struct Machine
-{
-	const boost::optional<QString >& getCanonical() const
-	{
-		return m_canonical;
-	}
-	void setCanonical(const boost::optional<QString >& value_)
-	{
-		m_canonical = value_;
-	}
-	const boost::optional<PUnsignedInt::value_type >& getMaxCpus() const
-	{
-		return m_maxCpus;
-	}
-	void setMaxCpus(const boost::optional<PUnsignedInt::value_type >& value_)
-	{
-		m_maxCpus = value_;
-	}
-	const QString& getOwnValue() const
-	{
-		return m_ownValue;
-	}
-	void setOwnValue(const QString& value_)
-	{
-		m_ownValue = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	boost::optional<QString > m_canonical;
-	boost::optional<PUnsignedInt::value_type > m_maxCpus;
-	QString m_ownValue;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Domain
-
-namespace Capability
-{
-namespace Xml
-{
-struct Domain
-{
-	Domain();
-
-	EType1 getType() const
-	{
-		return m_type;
-	}
-	void setType(EType1 value_)
-	{
-		m_type = value_;
-	}
-	const boost::optional<PAbsFilePath::value_type >& getEmulator() const
-	{
-		return m_emulator;
-	}
-	void setEmulator(const boost::optional<PAbsFilePath::value_type >& value_)
-	{
-		m_emulator = value_;
-	}
-	const QList<Machine >& getMachineList() const
-	{
-		return m_machineList;
-	}
-	void setMachineList(const QList<Machine >& value_)
-	{
-		m_machineList = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	EType1 m_type;
-	boost::optional<PAbsFilePath::value_type > m_emulator;
-	QList<Machine > m_machineList;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Arch
-
-namespace Capability
-{
-namespace Xml
-{
-struct Arch
-{
-	Arch();
-
-	EArchnames getName() const
-	{
-		return m_name;
-	}
-	void setName(EArchnames value_)
-	{
-		m_name = value_;
-	}
-	EWordsize getWordsize() const
-	{
-		return m_wordsize;
-	}
-	void setWordsize(EWordsize value_)
-	{
-		m_wordsize = value_;
-	}
-	const boost::optional<PAbsFilePath::value_type >& getEmulator() const
-	{
-		return m_emulator;
-	}
-	void setEmulator(const boost::optional<PAbsFilePath::value_type >& value_)
-	{
-		m_emulator = value_;
-	}
-	const boost::optional<PAbsFilePath::value_type >& getLoader() const
-	{
-		return m_loader;
-	}
-	void setLoader(const boost::optional<PAbsFilePath::value_type >& value_)
-	{
-		m_loader = value_;
-	}
-	const QList<Machine >& getMachineList() const
-	{
-		return m_machineList;
-	}
-	void setMachineList(const QList<Machine >& value_)
-	{
-		m_machineList = value_;
-	}
-	const QList<Domain >& getDomainList() const
-	{
-		return m_domainList;
-	}
-	void setDomainList(const QList<Domain >& value_)
-	{
-		m_domainList = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	EArchnames m_name;
-	EWordsize m_wordsize;
-	boost::optional<PAbsFilePath::value_type > m_emulator;
-	boost::optional<PAbsFilePath::value_type > m_loader;
-	QList<Machine > m_machineList;
-	QList<Domain > m_domainList;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Featuretoggle
-
-namespace Capability
-{
-namespace Xml
-{
-struct Featuretoggle
-{
-	Featuretoggle();
-
-	EVirYesNo getToggle() const
-	{
-		return m_toggle;
-	}
-	void setToggle(EVirYesNo value_)
-	{
-		m_toggle = value_;
-	}
-	EVirOnOff getDefault() const
-	{
-		return m_default;
-	}
-	void setDefault(EVirOnOff value_)
-	{
-		m_default = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	EVirYesNo m_toggle;
-	EVirOnOff m_default;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Features1
-
-namespace Capability
-{
-namespace Xml
-{
-struct Features1
-{
-	Features1();
-
-	bool getPae() const
-	{
-		return m_pae;
-	}
-	void setPae(bool value_)
-	{
-		m_pae = value_;
-	}
-	bool getNonpae() const
-	{
-		return m_nonpae;
-	}
-	void setNonpae(bool value_)
-	{
-		m_nonpae = value_;
-	}
-	bool getIa64Be() const
-	{
-		return m_ia64Be;
-	}
-	void setIa64Be(bool value_)
-	{
-		m_ia64Be = value_;
-	}
-	const boost::optional<Featuretoggle >& getAcpi() const
-	{
-		return m_acpi;
-	}
-	void setAcpi(const boost::optional<Featuretoggle >& value_)
-	{
-		m_acpi = value_;
-	}
-	const boost::optional<Featuretoggle >& getApic() const
-	{
-		return m_apic;
-	}
-	void setApic(const boost::optional<Featuretoggle >& value_)
-	{
-		m_apic = value_;
-	}
-	bool getCpuselection() const
-	{
-		return m_cpuselection;
-	}
-	void setCpuselection(bool value_)
-	{
-		m_cpuselection = value_;
-	}
-	bool getDeviceboot() const
-	{
-		return m_deviceboot;
-	}
-	void setDeviceboot(bool value_)
-	{
-		m_deviceboot = value_;
-	}
-	const boost::optional<Featuretoggle >& getDisksnapshot() const
-	{
-		return m_disksnapshot;
-	}
-	void setDisksnapshot(const boost::optional<Featuretoggle >& value_)
-	{
-		m_disksnapshot = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	bool m_pae;
-	bool m_nonpae;
-	bool m_ia64Be;
-	boost::optional<Featuretoggle > m_acpi;
-	boost::optional<Featuretoggle > m_apic;
-	bool m_cpuselection;
-	bool m_deviceboot;
-	boost::optional<Featuretoggle > m_disksnapshot;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Guest
-
-namespace Capability
-{
-namespace Xml
-{
-struct Guest
-{
-	Guest();
-
-	EOsType getOsType() const
-	{
-		return m_osType;
-	}
-	void setOsType(EOsType value_)
-	{
-		m_osType = value_;
-	}
-	const Arch& getArch() const
-	{
-		return m_arch;
-	}
-	void setArch(const Arch& value_)
-	{
-		m_arch = value_;
-	}
-	const boost::optional<Features1 >& getFeatures() const
+	const boost::optional<Gic >& getFeatures() const
 	{
 		return m_features;
 	}
-	void setFeatures(const boost::optional<Features1 >& value_)
+	void setFeatures(const boost::optional<Gic >& value_)
 	{
 		m_features = value_;
 	}
@@ -1347,97 +787,126 @@ struct Guest
 	bool save(QDomDocument& ) const;
 
 private:
-	EOsType m_osType;
-	Arch m_arch;
-	boost::optional<Features1 > m_features;
+	PAbsFilePath::value_type m_path;
+	QString m_domain;
+	boost::optional<QString > m_machine;
+	QString m_arch;
+	boost::optional<PUnsignedInt::value_type > m_vcpu;
+	boost::optional<Os > m_os;
+	boost::optional<Cpu > m_cpu;
+	boost::optional<Devices > m_devices;
+	boost::optional<Gic > m_features;
 };
 
 } // namespace Xml
 } // namespace Capability
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capabilities
-
-namespace Capability
-{
-namespace Xml
-{
-struct Capabilities
-{
-	const Host& getHost() const
-	{
-		return m_host;
-	}
-	void setHost(const Host& value_)
-	{
-		m_host = value_;
-	}
-	const QList<Guest >& getGuestList() const
-	{
-		return m_guestList;
-	}
-	void setGuestList(const QList<Guest >& value_)
-	{
-		m_guestList = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	Host m_host;
-	QList<Guest > m_guestList;
-};
-
-} // namespace Xml
-} // namespace Capability
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Features traits
+// struct Enum traits
 
 template<>
-struct Traits<Capability::Xml::Features>
+struct Traits<Capability::Xml::Enum>
 {
-	typedef Ordered<mpl::vector<Optional<Element<Empty, Name::Strict<955> > >, Optional<Element<Empty, Name::Strict<1801> > >, Optional<Element<Empty, Name::Strict<1802> > >, Optional<Element<Empty, Name::Strict<1803> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<QString, Name::Strict<102> >, ZeroOrMore<Element<Text<QString >, Name::Strict<1049> > > > > marshal_type;
 
-	static int parse(Capability::Xml::Features& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Features& , QDomElement& );
+	static int parse(Capability::Xml::Enum& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Enum& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Topology traits
+// struct Loader traits
 
 template<>
-struct Traits<Capability::Xml::Topology>
+struct Traits<Capability::Xml::Loader>
 {
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::PPositiveInteger, Name::Strict<991> >, Attribute<Capability::Xml::PPositiveInteger, Name::Strict<992> >, Attribute<Capability::Xml::PPositiveInteger, Name::Strict<562> > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1804> >, Optional<ZeroOrMore<Element<Text<QString >, Name::Strict<1049> > > >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1805> > > > > marshal_type;
 
-	static int parse(Capability::Xml::Topology& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Topology& , QDomElement& );
+	static int parse(Capability::Xml::Loader& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Loader& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Pages traits
+// struct Os traits
 
 template<>
-struct Traits<Capability::Xml::Pages>
+struct Traits<Capability::Xml::Os>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Capability::Xml::PUnit, Name::Strict<61> > >, Attribute<Capability::Xml::PUnsignedInt, Name::Strict<326> >, Text<Capability::Xml::PUnsignedInt > > > marshal_type;
+	typedef Unordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1804> >, Optional<Element<Capability::Xml::Loader, Name::Strict<265> > > > > marshal_type;
 
-	static int parse(Capability::Xml::Pages& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Pages& , QDomElement& );
+	static int parse(Capability::Xml::Os& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Os& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Cpuspec traits
+// struct Model traits
 
 template<>
-struct Traits<Capability::Xml::Cpuspec>
+struct Traits<Capability::Xml::Model>
 {
-	typedef Ordered<mpl::vector<Element<Text<QString >, Name::Strict<223> >, Optional<Element<Text<QString >, Name::Strict<452> > >, Element<Capability::Xml::Topology, Name::Strict<990> >, ZeroOrMore<Element<Attribute<Capability::Xml::PFeatureName, Name::Strict<102> >, Name::Strict<984> > >, ZeroOrMore<Element<Capability::Xml::Pages, Name::Strict<1844> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Capability::Xml::EFallback, Name::Strict<980> > >, Optional<Attribute<Capability::Xml::PVendorId, Name::Strict<982> > >, Text<QString > > > marshal_type;
 
-	static int parse(Capability::Xml::Cpuspec& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Cpuspec& , QDomElement& );
+	static int parse(Capability::Xml::Model& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Model& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Feature traits
+
+template<>
+struct Traits<Capability::Xml::Feature>
+{
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EPolicy, Name::Strict<985> >, Attribute<Capability::Xml::PFeatureName, Name::Strict<102> > > > marshal_type;
+
+	static int parse(Capability::Xml::Feature& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Feature& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Anonymous1809 traits
+
+template<>
+struct Traits<Capability::Xml::Anonymous1809>
+{
+	typedef Ordered<mpl::vector<Element<Capability::Xml::Model, Name::Strict<223> >, Optional<Element<Text<QString >, Name::Strict<452> > >, ZeroOrMore<Element<Capability::Xml::Feature, Name::Strict<984> > > > > marshal_type;
+
+	static int parse(Capability::Xml::Anonymous1809& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Anonymous1809& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mode traits
+
+template<>
+struct Traits<Capability::Xml::Mode>
+{
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<975>, Name::Strict<102> >, Attribute<Capability::Xml::EVirYesNo, Name::Strict<1804> >, Optional<Fragment<Capability::Xml::Anonymous1809 > > > > marshal_type;
+
+	static int parse(Capability::Xml::Mode& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Mode& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Model1 traits
+
+template<>
+struct Traits<Capability::Xml::Model1>
+{
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EUsable, Name::Strict<1809> >, Text<QString > > > marshal_type;
+
+	static int parse(Capability::Xml::Model1& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Model1& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mode1 traits
+
+template<>
+struct Traits<Capability::Xml::Mode1>
+{
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<974>, Name::Strict<102> >, Attribute<Capability::Xml::EVirYesNo, Name::Strict<1804> >, ZeroOrMore<Element<Capability::Xml::Model1, Name::Strict<223> > > > > marshal_type;
+
+	static int parse(Capability::Xml::Mode1& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Mode1& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1446,262 +915,94 @@ struct Traits<Capability::Xml::Cpuspec>
 template<>
 struct Traits<Capability::Xml::Cpu>
 {
-	typedef Ordered<mpl::vector<Element<Text<Capability::Xml::EArchnames >, Name::Strict<277> >, Optional<Element<Capability::Xml::Features, Name::Strict<150> > >, Optional<Fragment<Capability::Xml::Cpuspec > > > > marshal_type;
+	typedef Ordered<mpl::vector<Element<Ordered<mpl::vector<Attribute<mpl::int_<976>, Name::Strict<102> >, Attribute<Capability::Xml::EVirYesNo, Name::Strict<1804> > > >, Name::Strict<371> >, Element<Capability::Xml::Mode, Name::Strict<371> >, Element<Capability::Xml::Mode1, Name::Strict<371> > > > marshal_type;
 
 	static int parse(Capability::Xml::Cpu& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Cpu& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PowerManagement traits
+// struct Disk traits
 
 template<>
-struct Traits<Capability::Xml::PowerManagement>
+struct Traits<Capability::Xml::Disk>
 {
-	typedef Unordered<mpl::vector<Optional<Element<Empty, Name::Strict<1805> > >, Optional<Element<Empty, Name::Strict<1806> > >, Optional<Element<Empty, Name::Strict<1807> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1804> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1805> > > > > marshal_type;
 
-	static int parse(Capability::Xml::PowerManagement& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::PowerManagement& , QDomElement& );
+	static int parse(Capability::Xml::Disk& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Disk& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct MigrationFeatures traits
+// struct Graphics traits
 
 template<>
-struct Traits<Capability::Xml::MigrationFeatures>
+struct Traits<Capability::Xml::Graphics>
 {
-	typedef Ordered<mpl::vector<Optional<Element<Empty, Name::Strict<1809> > >, Optional<Element<OneOrMore<Element<Text<Capability::Xml::EUriTransport >, Name::Strict<1811> > >, Name::Strict<1810> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1804> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1805> > > > > marshal_type;
 
-	static int parse(Capability::Xml::MigrationFeatures& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::MigrationFeatures& , QDomElement& );
+	static int parse(Capability::Xml::Graphics& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Graphics& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct ScaledInteger traits
+// struct Video traits
 
 template<>
-struct Traits<Capability::Xml::ScaledInteger>
+struct Traits<Capability::Xml::Video>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Capability::Xml::PUnit, Name::Strict<61> > >, Text<Capability::Xml::PUnsignedLong > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1804> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1805> > > > > marshal_type;
 
-	static int parse(Capability::Xml::ScaledInteger& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::ScaledInteger& , QDomElement& );
+	static int parse(Capability::Xml::Video& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Video& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Sibling traits
+// struct Hostdev traits
 
 template<>
-struct Traits<Capability::Xml::Sibling>
+struct Traits<Capability::Xml::Hostdev>
 {
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<203> >, Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1049> > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1804> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1805> > > > > marshal_type;
 
-	static int parse(Capability::Xml::Sibling& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Sibling& , QDomElement& );
+	static int parse(Capability::Xml::Hostdev& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Hostdev& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1844 traits
+// struct Devices traits
 
 template<>
-struct Traits<Capability::Xml::Anonymous1844>
+struct Traits<Capability::Xml::Devices>
 {
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1818> >, Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1819> >, Attribute<Capability::Xml::PCpuset, Name::Strict<1820> > > > marshal_type;
+	typedef Unordered<mpl::vector<Element<Capability::Xml::Disk, Name::Strict<464> >, Element<Capability::Xml::Graphics, Name::Strict<686> >, Element<Capability::Xml::Video, Name::Strict<753> >, Element<Capability::Xml::Hostdev, Name::Strict<650> > > > marshal_type;
 
-	static int parse(Capability::Xml::Anonymous1844& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Anonymous1844& , QDomElement& );
+	static int parse(Capability::Xml::Devices& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Devices& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Cpu1 traits
+// struct Gic traits
 
 template<>
-struct Traits<Capability::Xml::Cpu1>
+struct Traits<Capability::Xml::Gic>
 {
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<203> >, Optional<Fragment<Capability::Xml::Anonymous1844 > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1804> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1805> > > > > marshal_type;
 
-	static int parse(Capability::Xml::Cpu1& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Cpu1& , QDomElement& );
+	static int parse(Capability::Xml::Gic& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Gic& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Cpus traits
+// struct DomainCapabilities traits
 
 template<>
-struct Traits<Capability::Xml::Cpus>
+struct Traits<Capability::Xml::DomainCapabilities>
 {
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1815> >, OneOrMore<Element<Capability::Xml::Cpu1, Name::Strict<212> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Element<Text<Capability::Xml::PAbsFilePath >, Name::Strict<347> >, Element<Text<QString >, Name::Strict<1> >, Optional<Element<Text<QString >, Name::Strict<278> > >, Element<Text<QString >, Name::Strict<277> >, Optional<Element<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1803> >, Name::Strict<330> > >, Optional<Element<Capability::Xml::Os, Name::Strict<214> > >, Optional<Element<Capability::Xml::Cpu, Name::Strict<212> > >, Optional<Element<Capability::Xml::Devices, Name::Strict<220> > >, Optional<Element<Element<Capability::Xml::Gic, Name::Strict<966> >, Name::Strict<150> > > > > marshal_type;
 
-	static int parse(Capability::Xml::Cpus& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Cpus& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Cell traits
-
-template<>
-struct Traits<Capability::Xml::Cell>
-{
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<203> >, Optional<Element<Capability::Xml::ScaledInteger, Name::Strict<318> > >, ZeroOrMore<Element<Capability::Xml::Pages, Name::Strict<1844> > >, Optional<Element<ZeroOrMore<Element<Capability::Xml::Sibling, Name::Strict<1817> > >, Name::Strict<1816> > >, Optional<Element<Capability::Xml::Cpus, Name::Strict<996> > > > > marshal_type;
-
-	static int parse(Capability::Xml::Cell& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Cell& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Cells traits
-
-template<>
-struct Traits<Capability::Xml::Cells>
-{
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1815> >, OneOrMore<Element<Capability::Xml::Cell, Name::Strict<995> > > > > marshal_type;
-
-	static int parse(Capability::Xml::Cells& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Cells& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Control traits
-
-template<>
-struct Traits<Capability::Xml::Control>
-{
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1825> >, Optional<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1826> > >, Attribute<Capability::Xml::PUnit, Name::Strict<61> >, Attribute<Capability::Xml::EType, Name::Strict<100> >, Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1827> > > > marshal_type;
-
-	static int parse(Capability::Xml::Control& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Control& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Bank traits
-
-template<>
-struct Traits<Capability::Xml::Bank>
-{
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<203> >, Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1822> >, Attribute<Capability::Xml::EType, Name::Strict<100> >, Attribute<Capability::Xml::PUnsignedInt, Name::Strict<326> >, Attribute<Capability::Xml::PUnit, Name::Strict<61> >, Attribute<Capability::Xml::PCpuset, Name::Strict<996> >, ZeroOrMore<Element<Capability::Xml::Control, Name::Strict<1824> > > > > marshal_type;
-
-	static int parse(Capability::Xml::Bank& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Bank& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Baselabel traits
-
-template<>
-struct Traits<Capability::Xml::Baselabel>
-{
-	typedef Ordered<mpl::vector<Attribute<QString, Name::Strict<100> >, Text<QString > > > marshal_type;
-
-	static int parse(Capability::Xml::Baselabel& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Baselabel& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Secmodel traits
-
-template<>
-struct Traits<Capability::Xml::Secmodel>
-{
-	typedef Unordered<mpl::vector<Element<Text<QString >, Name::Strict<223> >, Element<Text<QString >, Name::Strict<1800> >, ZeroOrMore<Element<Capability::Xml::Baselabel, Name::Strict<228> > > > > marshal_type;
-
-	static int parse(Capability::Xml::Secmodel& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Secmodel& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Host traits
-
-template<>
-struct Traits<Capability::Xml::Host>
-{
-	typedef Ordered<mpl::vector<Optional<Element<Text<Capability::Xml::VUUID >, Name::Strict<146> > >, Element<Capability::Xml::Cpu, Name::Strict<212> >, Optional<Element<Capability::Xml::PowerManagement, Name::Strict<1797> > >, Optional<Element<Capability::Xml::MigrationFeatures, Name::Strict<1808> > >, Optional<Element<Element<Capability::Xml::Cells, Name::Strict<1814> >, Name::Strict<990> > >, Optional<Element<OneOrMore<Element<Capability::Xml::Bank, Name::Strict<1821> > >, Name::Strict<550> > >, ZeroOrMore<Element<Capability::Xml::Secmodel, Name::Strict<1799> > > > > marshal_type;
-
-	static int parse(Capability::Xml::Host& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Host& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Machine traits
-
-template<>
-struct Traits<Capability::Xml::Machine>
-{
-	typedef Ordered<mpl::vector<Optional<Attribute<QString, Name::Strict<1837> > >, Optional<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1838> > >, Text<QString > > > marshal_type;
-
-	static int parse(Capability::Xml::Machine& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Machine& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Domain traits
-
-template<>
-struct Traits<Capability::Xml::Domain>
-{
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EType1, Name::Strict<100> >, Optional<Element<Text<Capability::Xml::PAbsFilePath >, Name::Strict<684> > >, ZeroOrMore<Element<Capability::Xml::Machine, Name::Strict<278> > > > > marshal_type;
-
-	static int parse(Capability::Xml::Domain& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Domain& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Arch traits
-
-template<>
-struct Traits<Capability::Xml::Arch>
-{
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EArchnames, Name::Strict<102> >, Element<Text<Capability::Xml::EWordsize >, Name::Strict<1833> >, Optional<Element<Text<Capability::Xml::PAbsFilePath >, Name::Strict<684> > >, Optional<Element<Text<Capability::Xml::PAbsFilePath >, Name::Strict<265> > >, ZeroOrMore<Element<Capability::Xml::Machine, Name::Strict<278> > >, OneOrMore<Element<Capability::Xml::Domain, Name::Strict<1> > > > > marshal_type;
-
-	static int parse(Capability::Xml::Arch& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Arch& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Featuretoggle traits
-
-template<>
-struct Traits<Capability::Xml::Featuretoggle>
-{
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1843> >, Attribute<Capability::Xml::EVirOnOff, Name::Strict<142> > > > marshal_type;
-
-	static int parse(Capability::Xml::Featuretoggle& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Featuretoggle& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Features1 traits
-
-template<>
-struct Traits<Capability::Xml::Features1>
-{
-	typedef Unordered<mpl::vector<Optional<Element<Empty, Name::Strict<955> > >, Optional<Element<Empty, Name::Strict<1801> > >, Optional<Element<Empty, Name::Strict<1839> > >, Optional<Element<Capability::Xml::Featuretoggle, Name::Strict<958> > >, Optional<Element<Capability::Xml::Featuretoggle, Name::Strict<956> > >, Optional<Element<Empty, Name::Strict<1841> > >, Optional<Element<Empty, Name::Strict<1842> > >, Optional<Element<Capability::Xml::Featuretoggle, Name::Strict<1524> > > > > marshal_type;
-
-	static int parse(Capability::Xml::Features1& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Features1& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Guest traits
-
-template<>
-struct Traits<Capability::Xml::Guest>
-{
-	typedef Ordered<mpl::vector<Element<Text<Capability::Xml::EOsType >, Name::Strict<1832> >, Element<Capability::Xml::Arch, Name::Strict<277> >, Optional<Element<Capability::Xml::Features1, Name::Strict<150> > > > > marshal_type;
-
-	static int parse(Capability::Xml::Guest& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Guest& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Capabilities traits
-
-template<>
-struct Traits<Capability::Xml::Capabilities>
-{
-	typedef Ordered<mpl::vector<Element<Capability::Xml::Host, Name::Strict<505> >, ZeroOrMore<Element<Capability::Xml::Guest, Name::Strict<400> > > > > marshal_type;
-
-	static int parse(Capability::Xml::Capabilities& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Capabilities& , QDomElement& );
+	static int parse(Capability::Xml::DomainCapabilities& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::DomainCapabilities& , QDomElement& );
 };
 
 } // namespace Libvirt
