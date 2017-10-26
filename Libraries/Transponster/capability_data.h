@@ -969,6 +969,53 @@ struct Validatable<Capability::Xml::PIrq>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PVendorId
+
+namespace Capability
+{
+namespace Xml
+{
+struct PVendorId
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+template<>
+struct Validatable<Capability::Xml::PVendorId>: mpl::true_
+{
+	static bool validate(const Capability::Xml::PVendorId::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PMemoryKB
+
+namespace Capability
+{
+namespace Xml
+{
+struct PMemoryKB
+{
+	typedef ulong value_type;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+template<>
+struct Traits<Capability::Xml::PMemoryKB>
+{
+	static bool parse(const QString& src_, Capability::Xml::PMemoryKB::value_type& dst_);
+
+	static QString generate(Capability::Xml::PMemoryKB::value_type src_);
+
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PFeatureName
 
 namespace Capability
@@ -987,28 +1034,6 @@ template<>
 struct Validatable<Capability::Xml::PFeatureName>: mpl::true_
 {
 	static bool validate(const Capability::Xml::PFeatureName::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct VUUID
-
-namespace Capability
-{
-namespace Xml
-{
-typedef Choice<mpl::vector<PData1771, PData1773 > > VUUIDImpl;
-typedef VUUIDImpl::value_type VUUID;
-
-} // namespace Xml
-} // namespace Capability
-
-template<>
-struct Traits<Capability::Xml::VUUID>
-{
-	static bool parse(const QString& src_, Capability::Xml::VUUID& dst_);
-
-	static QString generate(const Capability::Xml::VUUID& src_);
 
 };
 

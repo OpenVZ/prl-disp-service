@@ -276,7 +276,9 @@ struct Direct
 	QString getCpuModel() const;
 
 private:
-	QScopedPointer<Libvirt::Capability::Xml::Capabilities> m_input;
+	bool isValid() const;
+
+	QScopedPointer<Libvirt::Capability::Xml::DomainCapabilities> m_input;
 };
 
 } // namespace Capabilities

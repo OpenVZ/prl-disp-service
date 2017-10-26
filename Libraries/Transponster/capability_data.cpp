@@ -598,11 +598,11 @@ bool Validatable<Capability::Xml::PIrq>::validate(const Capability::Xml::PIrq::v
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PFeatureName
+// struct PVendorId
 
-bool Validatable<Capability::Xml::PFeatureName>::validate(const Capability::Xml::PFeatureName::value_type& value_)
+bool Validatable<Capability::Xml::PVendorId>::validate(const Capability::Xml::PVendorId::value_type& value_)
 {
-	QRegExp q("[a-zA-Z0-9\\-\\._]+");
+	QRegExp q("[^,]{12}");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -610,39 +610,30 @@ bool Validatable<Capability::Xml::PFeatureName>::validate(const Capability::Xml:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VUUID
+// struct PMemoryKB
 
-bool Traits<Capability::Xml::VUUID>::parse(const QString& src_, Capability::Xml::VUUID& dst_)
+bool Traits<Capability::Xml::PMemoryKB>::parse(const QString& src_, Capability::Xml::PMemoryKB::value_type& dst_)
 {
-	int x;
-	mpl::at_c<Capability::Xml::VUUID::types, 0>::type a0;
-	x = Marshal<Capability::Xml::PData1771>::setString(src_, a0);
-	if (0 < x)
-	{
-		dst_ = a0;
-		return true;
-	}
-	mpl::at_c<Capability::Xml::VUUID::types, 1>::type a1;
-	x = Marshal<Capability::Xml::PData1773>::setString(src_, a1);
-	if (0 < x)
-	{
-		dst_ = a1;
-		return true;
-	}
-
-	return false;
+	bool output = false;
+	dst_ = src_.toULong(&output);
+	return output;
 }
 
-QString Traits<Capability::Xml::VUUID>::generate(const Capability::Xml::VUUID& src_)
+QString Traits<Capability::Xml::PMemoryKB>::generate(Capability::Xml::PMemoryKB::value_type src_)
 {
-	switch (src_.which())
-	{
-	case 0:
-		return Marshal<Capability::Xml::PData1771>::getString(boost::get<mpl::at_c<Capability::Xml::VUUID::types, 0>::type>(src_));
-	case 1:
-		return Marshal<Capability::Xml::PData1773>::getString(boost::get<mpl::at_c<Capability::Xml::VUUID::types, 1>::type>(src_));
-	}
-	return QString();
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PFeatureName
+
+bool Validatable<Capability::Xml::PFeatureName>::validate(const Capability::Xml::PFeatureName::value_type& value_)
+{
+	QRegExp q("[a-zA-Z0-9\\-_\\.]+");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
 }
 
 } // namespace Libvirt

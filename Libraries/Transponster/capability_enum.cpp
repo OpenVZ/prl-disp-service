@@ -28,94 +28,6 @@ namespace ba = boost::assign;
 namespace Libvirt
 {
 template<>
-Enum<Capability::Xml::EArchnames>::data_type Enum<Capability::Xml::EArchnames>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Capability::Xml::EArchnamesAarch64, "aarch64"))
-			(data_type::value_type(Capability::Xml::EArchnamesAlpha, "alpha"))
-			(data_type::value_type(Capability::Xml::EArchnamesArmv7l, "armv7l"))
-			(data_type::value_type(Capability::Xml::EArchnamesCris, "cris"))
-			(data_type::value_type(Capability::Xml::EArchnamesI686, "i686"))
-			(data_type::value_type(Capability::Xml::EArchnamesIa64, "ia64"))
-			(data_type::value_type(Capability::Xml::EArchnamesLm32, "lm32"))
-			(data_type::value_type(Capability::Xml::EArchnamesM68k, "m68k"))
-			(data_type::value_type(Capability::Xml::EArchnamesMicroblaze, "microblaze"))
-			(data_type::value_type(Capability::Xml::EArchnamesMicroblazeel, "microblazeel"))
-			(data_type::value_type(Capability::Xml::EArchnamesMips, "mips"))
-			(data_type::value_type(Capability::Xml::EArchnamesMipsel, "mipsel"))
-			(data_type::value_type(Capability::Xml::EArchnamesMips64, "mips64"))
-			(data_type::value_type(Capability::Xml::EArchnamesMips64el, "mips64el"))
-			(data_type::value_type(Capability::Xml::EArchnamesOpenrisc, "openrisc"))
-			(data_type::value_type(Capability::Xml::EArchnamesParisc, "parisc"))
-			(data_type::value_type(Capability::Xml::EArchnamesParisc64, "parisc64"))
-			(data_type::value_type(Capability::Xml::EArchnamesPpc, "ppc"))
-			(data_type::value_type(Capability::Xml::EArchnamesPpc64, "ppc64"))
-			(data_type::value_type(Capability::Xml::EArchnamesPpcemb, "ppcemb"))
-			(data_type::value_type(Capability::Xml::EArchnamesS390, "s390"))
-			(data_type::value_type(Capability::Xml::EArchnamesS390x, "s390x"))
-			(data_type::value_type(Capability::Xml::EArchnamesSh4, "sh4"))
-			(data_type::value_type(Capability::Xml::EArchnamesSh4eb, "sh4eb"))
-			(data_type::value_type(Capability::Xml::EArchnamesSparc, "sparc"))
-			(data_type::value_type(Capability::Xml::EArchnamesSparc64, "sparc64"))
-			(data_type::value_type(Capability::Xml::EArchnamesUnicore32, "unicore32"))
-			(data_type::value_type(Capability::Xml::EArchnamesX8664, "x86_64"))
-			(data_type::value_type(Capability::Xml::EArchnamesXtensa, "xtensa"))
-			(data_type::value_type(Capability::Xml::EArchnamesXtensaeb, "xtensaeb"));
-}
-
-template<>
-Enum<Capability::Xml::EUriTransport>::data_type Enum<Capability::Xml::EUriTransport>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Capability::Xml::EUriTransportEsx, "esx"))
-			(data_type::value_type(Capability::Xml::EUriTransportTcp, "tcp"))
-			(data_type::value_type(Capability::Xml::EUriTransportXenmigr, "xenmigr"));
-}
-
-template<>
-Enum<Capability::Xml::EType>::data_type Enum<Capability::Xml::EType>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Capability::Xml::ETypeBoth, "both"))
-			(data_type::value_type(Capability::Xml::ETypeCode, "code"))
-			(data_type::value_type(Capability::Xml::ETypeData, "data"));
-}
-
-template<>
-Enum<Capability::Xml::EOsType>::data_type Enum<Capability::Xml::EOsType>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Capability::Xml::EOsTypeXen, "xen"))
-			(data_type::value_type(Capability::Xml::EOsTypeLinux, "linux"))
-			(data_type::value_type(Capability::Xml::EOsTypeHvm, "hvm"))
-			(data_type::value_type(Capability::Xml::EOsTypeExe, "exe"))
-			(data_type::value_type(Capability::Xml::EOsTypeUml, "uml"));
-}
-
-template<>
-Enum<Capability::Xml::EWordsize>::data_type Enum<Capability::Xml::EWordsize>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Capability::Xml::EWordsize31, "31"))
-			(data_type::value_type(Capability::Xml::EWordsize32, "32"))
-			(data_type::value_type(Capability::Xml::EWordsize64, "64"));
-}
-
-template<>
-Enum<Capability::Xml::EType1>::data_type Enum<Capability::Xml::EType1>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Capability::Xml::EType1Qemu, "qemu"))
-			(data_type::value_type(Capability::Xml::EType1Kqemu, "kqemu"))
-			(data_type::value_type(Capability::Xml::EType1Kvm, "kvm"))
-			(data_type::value_type(Capability::Xml::EType1Xen, "xen"))
-			(data_type::value_type(Capability::Xml::EType1Uml, "uml"))
-			(data_type::value_type(Capability::Xml::EType1Lxc, "lxc"))
-			(data_type::value_type(Capability::Xml::EType1Openvz, "openvz"))
-			(data_type::value_type(Capability::Xml::EType1Test, "test"));
-}
-
-template<>
 Enum<Capability::Xml::EVirYesNo>::data_type Enum<Capability::Xml::EVirYesNo>::getData()
 {
 	return ba::list_of<data_type::relation>
@@ -124,11 +36,31 @@ Enum<Capability::Xml::EVirYesNo>::data_type Enum<Capability::Xml::EVirYesNo>::ge
 }
 
 template<>
-Enum<Capability::Xml::EVirOnOff>::data_type Enum<Capability::Xml::EVirOnOff>::getData()
+Enum<Capability::Xml::EFallback>::data_type Enum<Capability::Xml::EFallback>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Capability::Xml::EVirOnOffOn, "on"))
-			(data_type::value_type(Capability::Xml::EVirOnOffOff, "off"));
+			(data_type::value_type(Capability::Xml::EFallbackAllow, "allow"))
+			(data_type::value_type(Capability::Xml::EFallbackForbid, "forbid"));
+}
+
+template<>
+Enum<Capability::Xml::EPolicy>::data_type Enum<Capability::Xml::EPolicy>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Capability::Xml::EPolicyForce, "force"))
+			(data_type::value_type(Capability::Xml::EPolicyRequire, "require"))
+			(data_type::value_type(Capability::Xml::EPolicyOptional, "optional"))
+			(data_type::value_type(Capability::Xml::EPolicyDisable, "disable"))
+			(data_type::value_type(Capability::Xml::EPolicyForbid, "forbid"));
+}
+
+template<>
+Enum<Capability::Xml::EUsable>::data_type Enum<Capability::Xml::EUsable>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Capability::Xml::EUsableYes, "yes"))
+			(data_type::value_type(Capability::Xml::EUsableNo, "no"))
+			(data_type::value_type(Capability::Xml::EUsableUnknown, "unknown"));
 }
 
 } // namespace Libvirt

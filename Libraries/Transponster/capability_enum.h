@@ -31,92 +31,32 @@ namespace Capability
 {
 namespace Xml
 {
-enum EArchnames
-{
-	EArchnamesAarch64,
-	EArchnamesAlpha,
-	EArchnamesArmv7l,
-	EArchnamesCris,
-	EArchnamesI686,
-	EArchnamesIa64,
-	EArchnamesLm32,
-	EArchnamesM68k,
-	EArchnamesMicroblaze,
-	EArchnamesMicroblazeel,
-	EArchnamesMips,
-	EArchnamesMipsel,
-	EArchnamesMips64,
-	EArchnamesMips64el,
-	EArchnamesOpenrisc,
-	EArchnamesParisc,
-	EArchnamesParisc64,
-	EArchnamesPpc,
-	EArchnamesPpc64,
-	EArchnamesPpcemb,
-	EArchnamesS390,
-	EArchnamesS390x,
-	EArchnamesSh4,
-	EArchnamesSh4eb,
-	EArchnamesSparc,
-	EArchnamesSparc64,
-	EArchnamesUnicore32,
-	EArchnamesX8664,
-	EArchnamesXtensa,
-	EArchnamesXtensaeb
-};
-
-enum EUriTransport
-{
-	EUriTransportEsx,
-	EUriTransportTcp,
-	EUriTransportXenmigr
-};
-
-enum EType
-{
-	ETypeBoth,
-	ETypeCode,
-	ETypeData
-};
-
-enum EOsType
-{
-	EOsTypeXen,
-	EOsTypeLinux,
-	EOsTypeHvm,
-	EOsTypeExe,
-	EOsTypeUml
-};
-
-enum EWordsize
-{
-	EWordsize31,
-	EWordsize32,
-	EWordsize64
-};
-
-enum EType1
-{
-	EType1Qemu,
-	EType1Kqemu,
-	EType1Kvm,
-	EType1Xen,
-	EType1Uml,
-	EType1Lxc,
-	EType1Openvz,
-	EType1Test
-};
-
 enum EVirYesNo
 {
 	EVirYesNoYes,
 	EVirYesNoNo
 };
 
-enum EVirOnOff
+enum EFallback
 {
-	EVirOnOffOn,
-	EVirOnOffOff
+	EFallbackAllow,
+	EFallbackForbid
+};
+
+enum EPolicy
+{
+	EPolicyForce,
+	EPolicyRequire,
+	EPolicyOptional,
+	EPolicyDisable,
+	EPolicyForbid
+};
+
+enum EUsable
+{
+	EUsableYes,
+	EUsableNo,
+	EUsableUnknown
 };
 
 

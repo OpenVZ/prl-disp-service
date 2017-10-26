@@ -2839,8 +2839,8 @@ Prl::Expected<VtInfo, Error::Simple> Host::getVt() const
 			->getDispatcherSettings()->getCommonPreferences()
 			->getWorkspacePreferences()->getVmGuestCpuLimitType());
 
-
-	char *caps = virConnectGetCapabilities(m_link.data());
+	char *caps = virConnectGetDomainCapabilities(m_link.data(),
+		NULL, NULL, NULL, NULL, 0);
 	if (caps == NULL)
 		return Failure(PRL_ERR_FAILURE);
 
