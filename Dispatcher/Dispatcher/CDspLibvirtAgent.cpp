@@ -3023,7 +3023,7 @@ Prl::Expected<VtInfo, Error::Simple> Host::getVt() const
 		return Failure(PRL_ERR_FAILURE);
 
 	Transponster::Capabilities::Direct d(caps);
-	v.setRequiredCpuFeatures(d.getCpuFeatures());
+	v.setCpuFeatures(d.getCpuFeatures());
 	v.setCpuModel(d.getCpuModel());
 
 	return v;

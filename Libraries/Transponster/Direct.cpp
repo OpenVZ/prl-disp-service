@@ -1466,24 +1466,28 @@ bool Direct::isValid() const
 		m_input->getCpu()->getMode2().getAnonymous1809();
 }
 
-QList<QString> Direct::getCpuFeatures() const
+CpuFeatures* Direct::getCpuFeatures() const
 {
 	if (!isValid())
-		return QList<QString>();
+		return NULL;
 
-	QList<QString> output;
+	QList<QString> d, r;
 	foreach (const Libvirt::Capability::Xml::Feature& f,
 		m_input->getCpu()->getMode2().getAnonymous1809()->getFeatureList())
 	{
 		switch (f.getPolicy())
 		{
-		case Libvirt::Capability::Xml::EPolicyForbid:
 		case Libvirt::Capability::Xml::EPolicyDisable:
+			d << f.getName();
+		case Libvirt::Capability::Xml::EPolicyForbid:
 			break;
 		default:
-			output << f.getName();
+			r << f.getName();
 		}
 	}
+	CpuFeatures* output = new CpuFeatures();
+	output->setDisabled(d);
+	output->setRequired(r);
 
 	return output;
 }
