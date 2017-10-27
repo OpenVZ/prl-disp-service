@@ -272,7 +272,7 @@ struct Direct
 {
 	explicit Direct(char* xml_);
 
-	QList<QString> getCpuFeatures() const;
+	CpuFeatures* getCpuFeatures() const;
 	QString getCpuModel() const;
 
 private:
