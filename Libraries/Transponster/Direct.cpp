@@ -90,6 +90,23 @@ void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1069::types
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct BackingChain
+
+void BackingChain::operator()(const mpl::at_c<list_type, 4>::type& image_) const
+{
+	if (!image_.getValue() || !image_.getValue().get().getFile())
+		return;
+
+	const QString& f = image_.getValue().get().getFile().get();
+	if (f.isEmpty())
+		return;
+
+	CVmHddPartition* p = new CVmHddPartition();
+	p->setSystemName(f);
+	m_disk->m_lstPartition.prepend(p);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Disk
 
 PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
@@ -124,6 +141,15 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	if (alias)
 		d->setAlias(*alias);
 	d->setPassthrough(1 == disk_.getDisk().which());
+	Libvirt::Domain::Xml::VDiskBackingChain c = disk_.getDiskBackingChain();
+	while (0 == c.which())
+	{
+		typedef mpl::at_c<Libvirt::Domain::Xml::VDiskBackingChain::types, 0>::type
+			chain_type;
+		chain_type& w = boost::get<chain_type>(c);
+		boost::apply_visitor(BackingChain(*d), w.getValue().getDiskSource());
+		c = w.getValue().getDiskBackingChain()->value;
+	}
 	return PRL_ERR_SUCCESS;
 }
 

@@ -529,7 +529,7 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>, Synch
 
 	void define(const msmf::none&)
 	{
-		if (::Libvirt::Kit.vms().define(*m_config).isFailed())
+		if (::Libvirt::Kit.vms().getGrub(*m_config).spawnPersistent().isFailed())
 			getConnector()->handle(Flop::Event(PRL_ERR_FAILURE));
 	}
 

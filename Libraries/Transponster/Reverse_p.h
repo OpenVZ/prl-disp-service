@@ -511,6 +511,7 @@ struct Hdd: Ordinary<CVmHardDisk>
 	void setIopsLimit(const CVmRunTimeOptions& runtime_);
 	void setSerial(const QString& serial_);
 	void setDisk();
+	void setBackingChain();
 
 private:
 	const CVmHardDisk& m_hdd;

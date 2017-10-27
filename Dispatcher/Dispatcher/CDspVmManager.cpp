@@ -1306,7 +1306,7 @@ Libvirt::Result Extra::operator()(Fork::Config::Detector* detector_)
 
 Libvirt::Result Registrator::operator()(const CVmConfiguration& config_)
 {
-	return Libvirt::Kit.vms().define(config_);
+	return Libvirt::Kit.vms().getGrub(config_).spawnPersistent();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1314,7 +1314,7 @@ Libvirt::Result Registrator::operator()(const CVmConfiguration& config_)
 
 Libvirt::Result Starter::operator()(const CVmConfiguration& config_) const
 {
-	return Libvirt::Kit.vms().start(config_);
+	return Libvirt::Kit.vms().getGrub(config_).spawnRunning();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

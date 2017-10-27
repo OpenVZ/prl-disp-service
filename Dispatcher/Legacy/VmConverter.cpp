@@ -451,7 +451,7 @@ Prl::Expected<void, Error::Simple> V2V::start() const
 	if (e.isFailed())
 	{
 		if (e.error().code() == PRL_ERR_FIXME)
-			Libvirt::Kit.vms().define(cfg);
+			Libvirt::Kit.vms().getGrub(cfg).spawnPersistent();
 	}
 	else
 	{

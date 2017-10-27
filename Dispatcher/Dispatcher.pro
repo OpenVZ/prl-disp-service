@@ -132,6 +132,7 @@ HEADERS += \
 	Tasks/Task_RestoreVmBackup_p.h \
 	Tasks/Task_GetBackupTree.h \
 	Tasks/Task_RemoveVmBackup.h \
+	Tasks/Task_RemoveVmBackup_p.h \
 	Tasks/Task_BackupHelper.h \
 	Tasks/Task_BackupHelper_p.h \
 	Tasks/Task_DiskImageResizer.h \
