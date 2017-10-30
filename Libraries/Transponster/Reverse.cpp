@@ -445,7 +445,7 @@ void Hdd::setDisk()
 void Hdd::setBackingChain()
 {
 	if (Flavor<CVmHardDisk>::image != m_hdd.getEmulatedType())
-		return;
+		return Ordinary<CVmHardDisk>::setBackingChain();
 
 	mpl::at_c<Libvirt::Domain::Xml::VDiskBackingChain::types, 1>::type e;
 	e.setValue(true);
