@@ -139,7 +139,6 @@ PRL_RESULT Unit::start(QStringList args_, int version_)
 		return PRL_ERR_DOUBLE_INIT;
 
 	int p[2] = {};
-	QString x = args_.takeFirst();
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, p) < 0)
 	{
 		WRITE_TRACE(DBG_FATAL, "socketpair() error : %s", strerror(errno));
@@ -159,6 +158,8 @@ PRL_RESULT Unit::start(QStringList args_, int version_)
 	m_driver = new Driver(p[1]);
 	connect(m_driver, SIGNAL(finished(int, QProcess::ExitStatus)),
 		SLOT(reactFinish(int, QProcess::ExitStatus)), Qt::DirectConnection);
+
+	QString x = args_.takeFirst();
 	m_driver->start(x, args_, QIODevice::Unbuffered | QIODevice::ReadWrite);
 	::close(p[1]);
 	if (!m_driver->waitForStarted())
@@ -205,7 +206,7 @@ PRL_RESULT Unit::waitForFinished()
 		m_event.wait(&m_mutex);
 
 	if (QProcess::CrashExit == m_driver->exitStatus())
-		return PRL_ERR_BACKUP_INTERNAL_ERROR;
+		return PRL_ERR_DISK_OPERATION_ABORTED;
 
 	if (0 != m_driver->exitCode())
 		return PRL_ERR_BACKUP_ACRONIS_ERR;
@@ -619,17 +620,31 @@ PRL_RESULT VCommand::operator()(const Activity::Object::componentList_type& comp
 
 PRL_RESULT Visitor::operator()(const boost::blank&) const
 {
-	return m_worker(m_chain);
+	PRL_RESULT r = m_worker(m_args, m_chain);
+	if (r == PRL_ERR_DISK_OPERATION_ABORTED && !m_args.isEmpty())
+	{
+		QStringList a(m_args);
+		a[0] = "abort_ct";
+		a.prepend(VZ_BACKUP_CLIENT);
+		
+		WRITE_TRACE(DBG_FATAL, "Run cmd: %s", QSTR2UTF8(a.join(" ")));
+		QProcess p;
+		DefaultExecHandler h(p, a.join(" "));
+		if (!HostUtils::RunCmdLineUtilityEx(a, p, 0, NULL)(h).isSuccess())
+			WRITE_TRACE(DBG_FATAL, "Failed to abort backup");
+	}
+
+	return r;
 }
 
 PRL_RESULT Visitor::operator()(Stopped& variant_) const
 {
-	return variant_.wrap(boost::bind(m_worker, m_chain));
+	return variant_.wrap(boost::bind(m_worker, m_args, m_chain));
 }
 
 PRL_RESULT Visitor::operator()(Frozen& variant_) const
 {
-	return m_worker(variant_.decorate(m_chain));
+	return m_worker(m_args, variant_.decorate(m_chain));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

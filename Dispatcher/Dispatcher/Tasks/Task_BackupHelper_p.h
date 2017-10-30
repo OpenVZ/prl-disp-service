@@ -667,20 +667,20 @@ private:
 
 struct Visitor : boost::static_visitor<PRL_RESULT>
 {
-	typedef boost::function1<PRL_RESULT, SmartPtr<Chain> > worker_type;
-
 	Visitor(VCommand::worker_type worker_, SmartPtr<Chain> chain_,
 		const QStringList& args_)
-		: m_worker(boost::bind(worker_, args_, _1))
-		, m_chain(chain_) {}
+		: m_worker(worker_)
+		, m_chain(chain_)
+		, m_args(args_) {}
 
 	PRL_RESULT operator()(const boost::blank&) const;
 	PRL_RESULT operator()(Stopped& variant_) const;
 	PRL_RESULT operator()(Frozen& variant_) const;
 
 private:
-	worker_type m_worker;
+	VCommand::worker_type m_worker;
 	SmartPtr<Chain> m_chain;
+	QStringList m_args;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
