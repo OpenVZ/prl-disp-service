@@ -477,6 +477,29 @@ void Hdd::setBackingChain()
 	getResult().setDiskBackingChain(a);
 }
 
+void Hdd::setDriver()
+{
+	Ordinary<CVmHardDisk>::setDriver();
+	if (Flavor<CVmHardDisk>::image == getModel().getEmulatedType() ||
+		m_hdd.getStorageURL().isEmpty())
+		return;
+
+	Libvirt::Domain::Xml::Driver d;
+	if (getResult().getDriver())
+		d = getResult().getDriver().get();
+	
+	mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type f;
+	f.setValue(Libvirt::Domain::Xml::EStorageFormatRaw);
+	mpl::at_c<Libvirt::Domain::Xml::VType::types, 1>::type a;
+	a.setValue(Libvirt::Domain::Xml::VStorageFormat(f));
+	Libvirt::Domain::Xml::DriverFormat b;
+	b.setName("qemu");
+	b.setType(Libvirt::Domain::Xml::VType(a));
+	d.setDriverFormat(b);
+
+	getResult().setDriver(d);
+}
+
 } // namespace Builder
 
 } // namespace Clustered
