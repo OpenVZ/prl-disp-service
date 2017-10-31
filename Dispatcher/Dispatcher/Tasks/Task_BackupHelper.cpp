@@ -139,6 +139,7 @@ PRL_RESULT Unit::start(QStringList args_, int version_)
 		return PRL_ERR_DOUBLE_INIT;
 
 	int p[2] = {};
+	QString x = args_.takeFirst();
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, p) < 0)
 	{
 		WRITE_TRACE(DBG_FATAL, "socketpair() error : %s", strerror(errno));
@@ -159,7 +160,6 @@ PRL_RESULT Unit::start(QStringList args_, int version_)
 	connect(m_driver, SIGNAL(finished(int, QProcess::ExitStatus)),
 		SLOT(reactFinish(int, QProcess::ExitStatus)), Qt::DirectConnection);
 
-	QString x = args_.takeFirst();
 	m_driver->start(x, args_, QIODevice::Unbuffered | QIODevice::ReadWrite);
 	::close(p[1]);
 	if (!m_driver->waitForStarted())
