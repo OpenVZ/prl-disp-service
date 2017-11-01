@@ -1010,6 +1010,14 @@ void CDspProblemReportHelper::FillProblemReportData
 			QString("libvirt-%1-qdbg.log")
 				.arg(vmConfig.getVmIdentification()->getVmName()));
 	}
+	else if (nType == PVT_CT)
+	{
+		QString d(QString("%1/dump/Dump").arg(
+			vmConfig.getVmIdentification()->getHomePath()));
+		addSystemLog(cReport, QFileInfo(QDir(d), "dump.log"));
+		addSystemLog(cReport, QFileInfo(QDir(d), "restore.log"));
+	}
+
 	addSystemLog(cReport, QFileInfo("/var/log/libvirt/libvirtd.log"));
 	addSystemLog(cReport, QFileInfo("/var/log/libvirt/libvirt.log"));
 	addSystemLog(cReport, QFileInfo("/var/log/vcmmd.log"));
