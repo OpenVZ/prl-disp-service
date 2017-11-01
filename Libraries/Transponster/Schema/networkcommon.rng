@@ -224,4 +224,11 @@
       <param name='maxInclusive'>65535</param>
     </data>
   </define>
+
+  <define name="macTableManager">
+    <choice>
+      <value>kernel</value>
+      <value>libvirt</value>
+    </choice>
+  </define>
 </grammar>

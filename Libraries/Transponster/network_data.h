@@ -154,59 +154,6 @@ struct Traits<Network::Xml::POctalMode>
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1140
-
-namespace Network
-{
-namespace Xml
-{
-struct PData1140
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Network
-
-template<>
-struct Validatable<Network::Xml::PData1140>: mpl::true_
-{
-	static bool validate(const Network::Xml::PData1140::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData1142
-
-namespace Network
-{
-namespace Xml
-{
-struct PData1142
-{
-	typedef qint32 value_type;
-};
-
-} // namespace Xml
-} // namespace Network
-
-template<>
-struct Traits<Network::Xml::PData1142>
-{
-	static bool parse(const QString& src_, Network::Xml::PData1142::value_type& dst_);
-
-	static QString generate(Network::Xml::PData1142::value_type src_);
-
-};
-
-template<>
-struct Validatable<Network::Xml::PData1142>: mpl::true_
-{
-	static bool validate(Network::Xml::PData1142::value_type value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct PData1144
 
 namespace Network
@@ -290,6 +237,37 @@ namespace Xml
 {
 struct PData1150
 {
+	typedef qint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Network
+
+template<>
+struct Traits<Network::Xml::PData1150>
+{
+	static bool parse(const QString& src_, Network::Xml::PData1150::value_type& dst_);
+
+	static QString generate(Network::Xml::PData1150::value_type src_);
+
+};
+
+template<>
+struct Validatable<Network::Xml::PData1150>: mpl::true_
+{
+	static bool validate(Network::Xml::PData1150::value_type value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData1152
+
+namespace Network
+{
+namespace Xml
+{
+struct PData1152
+{
 	typedef QString value_type;
 };
 
@@ -297,9 +275,31 @@ struct PData1150
 } // namespace Network
 
 template<>
-struct Validatable<Network::Xml::PData1150>: mpl::true_
+struct Validatable<Network::Xml::PData1152>: mpl::true_
 {
-	static bool validate(const Network::Xml::PData1150::value_type& value_);
+	static bool validate(const Network::Xml::PData1152::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData1154
+
+namespace Network
+{
+namespace Xml
+{
+struct PData1154
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Network
+
+template<>
+struct Validatable<Network::Xml::PData1154>: mpl::true_
+{
+	static bool validate(const Network::Xml::PData1154::value_type& value_);
 
 };
 
@@ -1246,7 +1246,7 @@ namespace Network
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<PData1148, PData1150 > > VUUIDImpl;
+typedef Choice<mpl::vector<PData1152, PData1154 > > VUUIDImpl;
 typedef VUUIDImpl::value_type VUUID;
 
 } // namespace Xml
@@ -1268,7 +1268,7 @@ namespace Network
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<PData1140, PData1142 > > VUint8rangeImpl;
+typedef Choice<mpl::vector<PData1144, PData1146 > > VUint8rangeImpl;
 typedef VUint8rangeImpl::value_type VUint8range;
 
 } // namespace Xml
@@ -1290,7 +1290,7 @@ namespace Network
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<PData1144, PData1146 > > VUint24rangeImpl;
+typedef Choice<mpl::vector<PData1148, PData1150 > > VUint24rangeImpl;
 typedef VUint24rangeImpl::value_type VUint24range;
 
 } // namespace Xml

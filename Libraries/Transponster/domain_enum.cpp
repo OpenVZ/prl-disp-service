@@ -722,6 +722,14 @@ Enum<Domain::Xml::EAccessmode>::data_type Enum<Domain::Xml::EAccessmode>::getDat
 }
 
 template<>
+Enum<Domain::Xml::EMacTableManager>::data_type Enum<Domain::Xml::EMacTableManager>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EMacTableManagerKernel, "kernel"))
+			(data_type::value_type(Domain::Xml::EMacTableManagerLibvirt, "libvirt"));
+}
+
+template<>
 Enum<Domain::Xml::EState>::data_type Enum<Domain::Xml::EState>::getData()
 {
 	return ba::list_of<data_type::relation>
@@ -1042,11 +1050,11 @@ Enum<Domain::Xml::EModel5>::data_type Enum<Domain::Xml::EModel5>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EChoice1039>::data_type Enum<Domain::Xml::EChoice1039>::getData()
+Enum<Domain::Xml::EChoice1043>::data_type Enum<Domain::Xml::EChoice1043>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EChoice1039DevRandom, "/dev/random"))
-			(data_type::value_type(Domain::Xml::EChoice1039DevHwrng, "/dev/hwrng"));
+			(data_type::value_type(Domain::Xml::EChoice1043DevRandom, "/dev/random"))
+			(data_type::value_type(Domain::Xml::EChoice1043DevHwrng, "/dev/hwrng"));
 }
 
 template<>

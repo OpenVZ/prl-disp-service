@@ -577,6 +577,12 @@ enum EAccessmode
 	EAccessmodeSquash
 };
 
+enum EMacTableManager
+{
+	EMacTableManagerKernel,
+	EMacTableManagerLibvirt
+};
+
 enum EState
 {
 	EStateUp,
@@ -827,10 +833,10 @@ enum EModel5
 	EModel5Virtio
 };
 
-enum EChoice1039
+enum EChoice1043
 {
-	EChoice1039DevRandom,
-	EChoice1039DevHwrng
+	EChoice1043DevRandom,
+	EChoice1043DevHwrng
 };
 
 enum EModel6
