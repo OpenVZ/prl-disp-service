@@ -2188,22 +2188,12 @@ Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> Unit::getProgress() 
 	if (m_domain.isNull())
 		return Failure(PRL_ERR_TASK_NOT_FOUND);
 
-	WRITE_TRACE(DBG_DEBUG, "get block job info for disk %s", qPrintable(m_disk));
-
 	virDomainBlockJobInfo info;
-	int n = virDomainGetBlockJobInfo(m_domain.data(), m_disk.toUtf8().data(), &info, 0);
-
-	// -1 in case of failure, 0 when nothing found, 1 when info was found.
-	switch (n)
-	{
-	case 1:
-		return std::make_pair(info.cur, info.end);
-	case 0:
-		return Failure(PRL_ERR_TASK_NOT_FOUND);
-	case -1:
-	default:
-		return Failure(PRL_ERR_FAILURE);
-	}
+	Result e = getInfo(info);
+	if (e.isFailed())
+		return e.error();
+	
+	return std::make_pair(info.cur, info.end);
 }
 
 Result Unit::commit() const
@@ -2245,11 +2235,43 @@ Result Unit::abort() const
 
 Result Unit::finish() const
 {
+	virDomainBlockJobInfo x;
+	Result e = getInfo(x);
+	if (e.isFailed())
+	{
+		if (PRL_ERR_TASK_NOT_FOUND == e.error().code())
+			return Result();
+
+		return e.error();
+	}
+	int f = 0;
+	if (VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT == x.type)
+		f = VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT;
+
 	WRITE_TRACE(DBG_DEBUG, "tries to finish block commit");
-	if (0 != virDomainBlockJobAbort(m_domain.data(), m_disk.toUtf8().data(), VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT))
+	if (0 != virDomainBlockJobAbort(m_domain.data(), m_disk.toUtf8().data(), f))
 		return Failure(PRL_ERR_FAILURE);
 
 	return Result();
+}
+
+Result Unit::getInfo(virDomainBlockJobInfo& dst_) const
+{
+	WRITE_TRACE(DBG_DEBUG, "get block job info for disk %s", qPrintable(m_disk));
+
+	int n = virDomainGetBlockJobInfo(m_domain.data(), m_disk.toUtf8().data(), &dst_, 0);
+
+	// -1 in case of failure, 0 when nothing found, 1 when info was found.
+	switch (n)
+	{
+	case 1:
+		return Result();
+	case 0:
+		return Failure(PRL_ERR_TASK_NOT_FOUND);
+	case -1:
+	default:
+		return Failure(PRL_ERR_FAILURE);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
