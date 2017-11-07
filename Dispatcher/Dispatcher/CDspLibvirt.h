@@ -73,6 +73,9 @@ struct _virDomainStatsRecord;
 typedef struct _virDomainStatsRecord virDomainStatsRecord;
 typedef virDomainStatsRecord *virDomainStatsRecordPtr;
 
+struct _virDomainBlockJobInfo;
+typedef struct _virDomainBlockJobInfo virDomainBlockJobInfo;
+
 class CSavedStateTree;
 
 namespace Registry
@@ -245,6 +248,8 @@ struct Unit
 	Result finish() const;
 
 private:
+	Result getInfo(virDomainBlockJobInfo& dst_) const;
+
 	QSharedPointer<virDomain> m_domain;
 	QString m_disk;
 };
