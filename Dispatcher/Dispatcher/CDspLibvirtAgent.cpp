@@ -2217,7 +2217,8 @@ Result Unit::rebase(const QString& base_) const
 		b = z.data();
 
 	WRITE_TRACE(DBG_DEBUG, "rebase blocks of the disk %s", qPrintable(m_disk));
-	if (0 != virDomainBlockRebase(m_domain.data(), qPrintable(m_disk), b, 0, 0))
+	if (0 != virDomainBlockRebase(m_domain.data(), qPrintable(m_disk), b, 0,
+		VIR_DOMAIN_BLOCK_REBASE_X_COMPRESS))
 	{
 		WRITE_TRACE(DBG_FATAL, "failed to rebase blocks of the disk %s",
 			qPrintable(m_disk));
