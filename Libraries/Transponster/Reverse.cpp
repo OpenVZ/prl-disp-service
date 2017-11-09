@@ -105,12 +105,8 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu& dst_)
 		Libvirt::Domain::Xml::Cell cell;
 		boost::optional<unsigned int> id(0);
 		cell.setId(id);
-
-		QString mask = "0";
-		for (unsigned int i=1; i < u->getSockets(); i++)
-			mask += "," + QString::number(i);
-
-		cell.setCpus(mask);
+		int x = u->getSockets() * u->getNumber();
+		cell.setCpus(2 > x ? "0" : QString("0-%1").arg(x - 1));
 		cell.setMemory(m->getMaxNumaRamSize()<<10);
 		cells.append(cell);
 		dst_.setNuma(cells);
