@@ -312,7 +312,6 @@ boost::logic::tribool Newcomer::isReconciled(const Native& native_) const
 		case PVE::DspCmdVmLock:
 		case PVE::DspCmdDirVmMove:
 		case PVE::DspCmdDirVmMigrate:
-		case PVE::DspCmdCreateVmBackup:
 		case PVE::DspCmdRestoreVmBackup:
 			return false;
 		default:
