@@ -473,6 +473,7 @@ PRL_RESULT Instrument::addImages()
 		d->setIndex(h->m_lstHardDisks.size());
 		d->setInterfaceType(PMS_SCSI_DEVICE);
 		d->setEmulatedType(PVE::HardDiskImage);
+		d->setStackIndex(h->m_lstHardDisks.size());
 
 		h->m_lstHardDisks << d;
 	}
