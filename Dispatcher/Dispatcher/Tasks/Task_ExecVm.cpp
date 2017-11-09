@@ -187,7 +187,7 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 		Libvirt::Kit.vms().at(m_task->getVmUuid()).getGuest().startProgram(r);
 
 	if (f.isFailed())
-		return f.error().code();
+		return CDspTaskFailure(*m_task)(f.error().convertToEvent());
 	variant_.setExecer(f.value());
 
 	if (m_task->getRequestFlags() & PFD_STDIN)
