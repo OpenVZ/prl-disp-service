@@ -202,6 +202,7 @@ struct Vm
 	void closeStdin();
 	PRL_RESULT prepare(Task_ExecVm& task_, vm::Exec::Request& request_, Join& join_);
 	PRL_RESULT processStdinData(const char * data, size_t size);
+	PRL_RESULT openStd(Task_ExecVm& task_);
 	PRL_RESULT processStd(QEventLoop& loop_);
 	void cancel()
 	{

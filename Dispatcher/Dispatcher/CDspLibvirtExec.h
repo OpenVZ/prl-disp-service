@@ -195,8 +195,7 @@ private:
 struct AuxChannel;
 
 struct Device: QIODevice {
-	explicit Device(QSharedPointer<AuxChannel> aux_)
-		: m_client(0), m_channel(aux_) { }
+	explicit Device(QSharedPointer<AuxChannel> aux_);
 	~Device()
 	{
 		close();

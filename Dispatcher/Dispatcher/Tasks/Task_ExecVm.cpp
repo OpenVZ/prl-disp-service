@@ -190,6 +190,10 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 		return CDspTaskFailure(*m_task)(f.error().convertToEvent());
 	variant_.setExecer(f.value());
 
+	ret = variant_.openStd(*m_task);
+	if (PRL_FAILED(ret))
+		return ret;
+
 	if (m_task->getRequestFlags() & PFD_STDIN)
 		m_task->sendEvent(PET_IO_READY_TO_ACCEPT_STDIN_PKGS);
 
@@ -373,7 +377,8 @@ PRL_RESULT Vm::prepare(Task_ExecVm& task_, vm::Exec::Request& request_, Join& jo
 
 	m_stdout = QSharedPointer<vm::Exec::ReadDevice>(new vm::Exec::ReadDevice(c));
 	m_stderr = QSharedPointer<vm::Exec::ReadDevice>(new vm::Exec::ReadDevice(c));
-	if (m_stdout == NULL || m_stderr == NULL) {
+	if (m_stdout == NULL || m_stderr == NULL ||
+	    !m_stdout->getClient() || !m_stderr->getClient()) {
 		WRITE_TRACE(DBG_FATAL, "Failed to initialize exec stdout/stderr channel!");
 		return PRL_ERR_FAILURE;
 	}
@@ -383,17 +388,10 @@ PRL_RESULT Vm::prepare(Task_ExecVm& task_, vm::Exec::Request& request_, Join& jo
 
 	if (task_.getRequestFlags() & PFD_STDIN) {
 		m_stdin = QSharedPointer<vm::Exec::WriteDevice>(new vm::Exec::WriteDevice(c));
-		if (m_stdin == NULL) {
+		if (m_stdin == NULL || !m_stdin->getClient()) {
 			WRITE_TRACE(DBG_FATAL, "Failed to initialize exec stdin channel!");
 			return PRL_ERR_FAILURE;
 		}
-		m_stdin->open(QIODevice::WriteOnly);
-	}
-
-	if (!m_stdout->open(QIODevice::ReadOnly)
-		|| !m_stderr->open(QIODevice::ReadOnly)) {
-		WRITE_TRACE(DBG_FATAL, "Failed to open exec stdout/stderr channel!");
-		return PRL_ERR_VM_EXEC_GUEST_TOOL_NOT_AVAILABLE;
 	}
 
 	QList< QPair<int, int> > cls;
@@ -402,6 +400,24 @@ PRL_RESULT Vm::prepare(Task_ExecVm& task_, vm::Exec::Request& request_, Join& jo
 	if (task_.getRequestFlags() & PFD_STDIN)
 		cls << qMakePair(0, m_stdin->getClient());
 	request_.setChannels(cls);
+
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Vm::openStd(Task_ExecVm& task_)
+{
+	if (!m_stdout->open(QIODevice::ReadOnly)
+		|| !m_stderr->open(QIODevice::ReadOnly)) {
+		WRITE_TRACE(DBG_FATAL, "Failed to open exec stdout/stderr channel!");
+		return PRL_ERR_VM_EXEC_GUEST_TOOL_NOT_AVAILABLE;
+	}
+
+	if (task_.getRequestFlags() & PFD_STDIN) {
+		if (!m_stdin->open(QIODevice::WriteOnly)) {
+			WRITE_TRACE(DBG_FATAL, "Failed to open exec stdin channel!");
+			return PRL_ERR_VM_EXEC_GUEST_TOOL_NOT_AVAILABLE;
+		}
+	}
 
 	return PRL_ERR_SUCCESS;
 }
