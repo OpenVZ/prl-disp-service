@@ -1041,14 +1041,6 @@ Guest::execute(const QString& cmd, bool isHmp)
 Prl::Expected<Exec::Future, Error::Simple>
 Guest::startProgram(const Exec::Request& req)
 {
-	Prl::Expected<QString, Libvirt::Agent::Failure> v =
-		Guest::getAgentVersion();
-	if (v.isFailed())
-		return v.error();
-	if (!(v.value().contains("vz") || v.value().contains("rv"))) {
-		return ::Error::Simple(PRL_ERR_FAILURE,
-			QString("Incompatible agent version %1").arg(v.value()));
-	}
 	Exec::Exec e(m_domain);
 	Prl::Expected<int, Error::Simple> r = e.runCommand(req);
 	if (r.isFailed())
@@ -1332,9 +1324,15 @@ namespace Exec
 ///////////////////////////////////////////////////////////////////////////////
 // struct Device
 
+Device::Device(QSharedPointer<AuxChannel> aux_)
+	: m_client(0), m_channel(aux_)
+{
+	m_channel->addIoChannel(*this);
+}
+
 bool Device::open(QIODevice::OpenMode mode_)
 {
-	if (!m_channel->addIoChannel(*this))
+	if (!getClient())
 		return false;
 
 	if (!m_channel->isOpen()) {
