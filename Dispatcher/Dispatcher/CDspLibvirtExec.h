@@ -40,6 +40,7 @@
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <boost/tuple/tuple.hpp>
 #include "CDspLibvirt.h"
+#include <boost/serialization/strong_typedef.hpp>
 
 struct _virStream;
 typedef struct _virStream virStream;
@@ -205,16 +206,19 @@ struct Device: QIODevice {
 	{
 		return m_client;
 	}
-	void setClient(const int client_)
-	{
-		m_client = client_;
-	}
 
 	// QIODevice interface
 	virtual bool open(QIODevice::OpenMode mode_);
 	virtual void close();
 
 protected:
+	AuxChannel& getChannel() const
+	{
+		return *m_channel;
+	}
+	void invalidate();
+
+private:
 	int m_client;
 	QSharedPointer<AuxChannel> m_channel;
 };
@@ -280,6 +284,7 @@ private:
 
 struct AuxChannel : QObject {
 
+	BOOST_STRONG_TYPEDEF(int, ioChannel_type);
 	typedef struct AuxMessageHeader
 	{
 		quint32 magic;
@@ -301,8 +306,8 @@ struct AuxChannel : QObject {
 	static void reactEvent(virStreamPtr st_, int events_, void *opaque_);
 	void processEvent(int events_);
 
-	bool addIoChannel(Device& device_);
-	void removeIoChannel(int id_);
+	Prl::Expected<ioChannel_type, PRL_RESULT> addIoChannel(Device& device_);
+	void removeIoChannel(ioChannel_type id_);
 
 	int writeMessage(const QByteArray& data_, int client_);
 

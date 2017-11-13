@@ -377,7 +377,7 @@ PRL_RESULT Vm::prepare(Task_ExecVm& task_, vm::Exec::Request& request_, Join& jo
 
 	m_stdout = QSharedPointer<vm::Exec::ReadDevice>(new vm::Exec::ReadDevice(c));
 	m_stderr = QSharedPointer<vm::Exec::ReadDevice>(new vm::Exec::ReadDevice(c));
-	if (m_stdout == NULL || m_stderr == NULL ||
+	if (m_stdout.isNull() || m_stderr.isNull() ||
 	    !m_stdout->getClient() || !m_stderr->getClient()) {
 		WRITE_TRACE(DBG_FATAL, "Failed to initialize exec stdout/stderr channel!");
 		return PRL_ERR_FAILURE;
@@ -388,7 +388,7 @@ PRL_RESULT Vm::prepare(Task_ExecVm& task_, vm::Exec::Request& request_, Join& jo
 
 	if (task_.getRequestFlags() & PFD_STDIN) {
 		m_stdin = QSharedPointer<vm::Exec::WriteDevice>(new vm::Exec::WriteDevice(c));
-		if (m_stdin == NULL || !m_stdin->getClient()) {
+		if (m_stdin.isNull() || !m_stdin->getClient()) {
 			WRITE_TRACE(DBG_FATAL, "Failed to initialize exec stdin channel!");
 			return PRL_ERR_FAILURE;
 		}
@@ -424,7 +424,7 @@ PRL_RESULT Vm::openStd(Task_ExecVm& task_)
 
 PRL_RESULT Vm::processStd(QEventLoop& loop_)
 {
-	if (m_stdout == NULL || m_stderr == NULL)
+	if (m_stdout.isNull() || m_stderr.isNull())
 		return PRL_ERR_SUCCESS;
 
 	Poller p(loop_, *m_exec);

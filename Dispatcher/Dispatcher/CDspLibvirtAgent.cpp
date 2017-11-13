@@ -1327,25 +1327,34 @@ namespace Exec
 Device::Device(QSharedPointer<AuxChannel> aux_)
 	: m_client(0), m_channel(aux_)
 {
-	m_channel->addIoChannel(*this);
+	Prl::Expected<AuxChannel::ioChannel_type, PRL_RESULT> c =
+		m_channel->addIoChannel(*this);
+	if (c.isSucceed())
+		m_client = c.value();
 }
 
 bool Device::open(QIODevice::OpenMode mode_)
 {
-	if (!getClient())
+	if (0 == m_client)
 		return false;
 
 	if (!m_channel->isOpen()) {
-		m_channel->removeIoChannel(m_client);
+		invalidate();
 		return false;
 	}
 
 	return QIODevice::open(mode_);
 }
 
+void Device::invalidate()
+{
+	m_channel->removeIoChannel(AuxChannel::ioChannel_type(m_client));
+	m_client = 0;
+}
+
 void Device::close()
 {
-	m_channel->removeIoChannel(m_client);
+	invalidate();
 	QIODevice::close();
 }
 
@@ -1424,9 +1433,9 @@ bool WriteDevice::open(QIODevice::OpenMode mode_)
 
 void WriteDevice::close()
 {
-	if (m_channel->isOpen()) {
+	if (getChannel().isOpen()) {
 		// write EOF
-		m_channel->writeMessage(QByteArray(), m_client);
+		getChannel().writeMessage(QByteArray(), getClient());
 	}
 	Device::close();
 }
@@ -1441,7 +1450,7 @@ qint64 WriteDevice::readData(char *data_, qint64 maxSize_)
 qint64 WriteDevice::writeData(const char *data_, qint64 len_)
 {
 	QByteArray s = QByteArray(data_, len_);
-	return m_channel->writeMessage(s, m_client);
+	return getChannel().writeMessage(s, getClient());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1561,25 +1570,26 @@ void AuxChannel::restartRead()
 	m_read = 0;
 }
 
-bool AuxChannel::addIoChannel(Device& device_)
+Prl::Expected<AuxChannel::ioChannel_type, PRL_RESULT>
+	AuxChannel::addIoChannel(Device& device_)
 {
 	QMutexLocker l(&m_lock);
 
 	if (m_cidGenerator.isNull())
-		return false;
+		return PRL_ERR_UNINITIALIZED;
 
 	boost::optional<int> i = m_cidGenerator->acquire();
 	if (!i)
 	{
 		WRITE_TRACE(DBG_FATAL, "too many execs in progress");
-		return false;
+		return PRL_ERR_INVALID_HANDLE;
 	}
 	m_ioChannels.insert(i.get(), &device_);
-	device_.setClient(i.get());
-	return true;
+
+	return ioChannel_type(i.get());
 }
 
-void AuxChannel::removeIoChannel(int id_)
+void AuxChannel::removeIoChannel(ioChannel_type id_)
 {
 	QMutexLocker l(&m_lock);
 	if (m_ioChannels.remove(id_) > 0)
