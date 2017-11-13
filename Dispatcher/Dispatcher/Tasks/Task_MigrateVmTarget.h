@@ -86,10 +86,6 @@ private:
 	 * Checks whether enough CPUs number on target host to migrate VM
 	 */
 	void checkTargetCpusNumber();
-	/**
-	 * Checks whether CPUs on source and target hosts are compatible
-	 */
-	void checkTargetCpuCompatibility();
 	/* compare available and requires disk spaces */
 	void checkRequiresDiskSpace();
 	/**
