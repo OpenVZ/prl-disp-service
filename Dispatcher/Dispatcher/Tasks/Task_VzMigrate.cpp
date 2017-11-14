@@ -499,6 +499,7 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 	/* will send all packages as response to pParentPackage package */
 	m_pPackage = IOPackage::createInstance(CtMigrateCmd, 2, pParentPackage, false);
 
+	bool exited = false;
 	do {
 		{
 			QMutexLocker l(&m_terminateVzMigrateMutex);
@@ -513,7 +514,7 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 				return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
 			} else if (pid == m_pid) {
 				m_pid = -1;
-				break;
+				exited = true; /* make last turn to flush data */
 			}
 		}
 
@@ -556,7 +557,7 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 				return nRetCode;
 			}
 		}
-	} while(true);
+	} while (!exited);
 
 	terminateHandleDispPackageTask();
 
