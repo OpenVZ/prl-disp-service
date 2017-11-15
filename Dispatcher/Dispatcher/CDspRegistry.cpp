@@ -497,6 +497,7 @@ void Actual::undefine(const QString& uuid_)
 		m_undeclaredMap.remove(uuid_);
 		return;
 	}
+	l.unlock();
 	PRL_RESULT e = m_service->getVmDirHelper()
 		.deleteVmDirectoryItem(m->getDirectory(), uuid_);
 	if (PRL_FAILED(e))
