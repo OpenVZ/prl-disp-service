@@ -286,31 +286,15 @@ Ct::Statistics::Network::Classfull* Builder::getResult()
 
 int CVzHelper::get_net_stat_by_dev(const QString &ctid, CVmGenericNetworkAdapter *dev, Ct::Statistics::Network::General& stat)
 {
-	QString out;
-	QStringList a;
-	QString ifname;
+	struct vzctl_netstat s;
 
-	a << "/usr/sbin/ip";
-	if (dev->getSystemName() == "venet0") {
-		a << "netns" << "exec" << ctid << "ip";
-		ifname = dev->getSystemName();
-	} else
-		ifname = dev->getHostInterfaceName();
-	a << "-s" << "l" << "show" << "dev" << ifname;
-
-	if (!HostUtils::RunCmdLineUtility(a, out))
+	if (vzctl2_get_env_netstat(QSTR2UTF8(ctid),
+			QSTR2UTF8(dev->getHostInterfaceName()), &s, sizeof(s)))
 		return PRL_ERR_FAILURE;
-
-	int pos;
-	QRegExp rx("\\s+(\\d+)\\s+(\\d+)\\s+\\d+\\s+\\d+\\s+\\d+\\s+\\d+");
-	if ((pos = rx.indexIn(out)) == -1)
-		return PRL_ERR_FAILURE ;
-
-	stat.bytes_in = rx.cap(1).toULongLong();
-	stat.pkts_in = rx.cap(2).toULongLong();
-	rx.indexIn(out, pos + rx.matchedLength());
-	stat.bytes_out = rx.cap(1).toULongLong();
-	stat.pkts_out = rx.cap(2).toULongLong();
+	stat.bytes_in = s.incoming;
+	stat.pkts_in = s.incoming_pkt;
+	stat.bytes_out = s.outgoing;
+	stat.pkts_out = s.outgoing_pkt;
 	stat.index = dev->getIndex();
 
 	return PRL_ERR_SUCCESS;
