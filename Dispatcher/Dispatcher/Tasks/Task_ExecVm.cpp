@@ -130,9 +130,6 @@ PRL_RESULT Run::operator()(Exec::Ct& variant_) const
 	if (m_task->sendToClient(PET_IO_FIN_TO_TRANSMIT_STDOUT_STDERR, NULL, 0))
 		return PRL_ERR_OPERATION_FAILED;
 
-	if (!m_task->waitForStage("fin response"))
-		return PRL_ERR_TIMEOUT;
-
 	m_task->setExitCode(variant_.getExecer().get_retcode());
 
 	return PRL_ERR_SUCCESS;
@@ -158,9 +155,6 @@ PRL_RESULT Run::processVmResult(const Libvirt::Instrument::Agent::Vm::Exec::Resu
 	if (m_task->sendToClient(PET_IO_FIN_TO_TRANSMIT_STDOUT_STDERR, NULL, 0))
 		return PRL_ERR_OPERATION_FAILED;
 	
-	if (!m_task->waitForStage("fin response"))
-		return PRL_ERR_TIMEOUT;
-
 	return PRL_ERR_SUCCESS;
 }
 
@@ -503,9 +497,13 @@ void Mediator::slotSendData()
 {
 	vm::Exec::ReadDevice *d = (vm::Exec::ReadDevice *)m_object;
 
-	QByteArray a = d->readAll();
-	if (a.size())
+	forever {
+		QByteArray a = d->readAll();
+		if (a.size() == 0)
+			break;
 		m_task->sendToClient(m_iotype, a.constData(), a.size());
+	}
+
 	if (m_task->operationIsCancelled() || d->atEnd())
 		emit finished();
 }
@@ -534,7 +532,6 @@ Task_ExecVm::Task_ExecVm(const SmartPtr<CDspClient>& pClient,
 		const SmartPtr<IOPackage>& p, Exec::Mode mode) :
 	CDspTaskHelper(pClient, p),
 	m_pResponseCmd(CProtoSerializer::CreateDspWsResponseCommand(getRequestPackage(), PRL_ERR_SUCCESS)),
-	m_stageFinished(false),
 	m_mode(mode)
 {
 	m_nTimeout = CDspService::instance()->getDispConfigGuard().
@@ -700,27 +697,6 @@ PRL_RESULT Task_ExecVm::run_body()
 	return ret;
 }
 
-void Task_ExecVm::wakeUpStage()
-{
-	QMutexLocker _lock(&m_stageMutex);
-	m_stageFinished = true;
-	m_stageCond.wakeAll();
-}
-
-bool Task_ExecVm::waitForStage(const char* what, unsigned int timeout)
-{
-	QMutexLocker _lock(&m_stageMutex);
-	WRITE_TRACE(DBG_DEBUG, "wait for: %s", what);
-	if (!m_stageFinished && !m_stageCond.wait(&m_stageMutex, timeout ? timeout : m_nTimeout)) {
-		WRITE_TRACE(DBG_FATAL, "Task_ExecVm failed to wait %s", what);
-		return false;
-	}
-	// auto-reset
-	m_stageFinished = false;
-	WRITE_TRACE(DBG_DEBUG, "wait for: %s [COMPLETED]", what);
-	return true;
-}
-
 void Task_ExecVm::finalizeTask()
 {
 	PRL_RESULT res = getLastErrorCode();
@@ -777,13 +753,7 @@ void Task_ResponseProcessor::slotProcessStdin(const SmartPtr<IOPackage>& p)
 	if (PRL_SUCCEEDED(e))
 		return;
 
-	m_pExec->wakeUpStage();
 	QThread::exit(e);
-}
-
-void Task_ResponseProcessor::slotProcessFin()
-{
-	m_pExec->wakeUpStage();
 }
 
 PRL_RESULT Task_ResponseProcessor::prepareTask()
@@ -806,13 +776,6 @@ PRL_RESULT Task_ResponseProcessor::prepareTask()
 				Qt::QueuedConnection);
 		PRL_ASSERT(bConnected);
 	}
-
-	bConnected = QObject::connect(hResponse.getImpl(),
-		SIGNAL(onFinPackageReceived()),
-		this,
-		SLOT(slotProcessFin()),
-		Qt::QueuedConnection);
-	PRL_ASSERT(bConnected);
 
 	/* prepare done */
 	QMutexLocker _lock(&m_mutex);
