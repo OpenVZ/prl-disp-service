@@ -32,6 +32,7 @@
 //#define LOGGING_ON
 //#define FORCE_LOGGING_LEVEL DBG_DEBUG
 
+#include "CDspVm_p.h"
 #include "CDspVmBrand.h"
 #include "Interfaces/Debug.h"
 #include <prlcommon/Interfaces/ParallelsQt.h>
@@ -1012,7 +1013,6 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 		// change bundle name for cloned VM
 		bundle = Vm::Config::getVmHomeDirName(m_sVmUuid);
 	}
-
 	m_cSrcHostInfo.fromString(m_sSrcHostInfo);
 	if (PRL_FAILED(m_cSrcHostInfo.m_uiRcInit))
 	{
@@ -1158,6 +1158,8 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 		nRetCode = PRL_ERR_OPERATION_WAS_CANCELED;
 		goto exit;
 	}
+	if ((m_nPrevVmState == VMS_RUNNING || m_nPrevVmState == VMS_PAUSED) && !isTemplate())
+		m_vcmmd.reset(new vcmmd_type(m_sVmUuid));
 
 exit:
 	setLastErrorCode(nRetCode);
@@ -1178,7 +1180,6 @@ PRL_RESULT Task_MigrateVmTarget::reactStart(const SmartPtr<IOPackage> &package)
 
 	m_nMigrationFlags = cmd->GetMigrationFlags();
 	m_nReservedFlags = cmd->GetReservedFlags();
-	m_sSnapshotUuid = cmd->GetSnapshotUuid();
 	m_nBundlePermissions = cmd->GetBundlePermissions();
 	m_nConfigPermissions = cmd->GetConfigPermissions();
 
@@ -1281,8 +1282,8 @@ void Task_MigrateVmTarget::finalizeTask()
 		/* and set logged user by owner to all VM's files */
 		Mixin_CreateVmSupport().setDefaultVmPermissions(getClient(), m_sVmConfigPath, true);
 
-		if (m_sSnapshotUuid.size())
-			DeleteSnapshot();
+		if (!m_vcmmd.isNull())
+			m_vcmmd->commit();
 
 		// leave previously running VM in suspended state
 		if (m_nPrevVmState == VMS_RUNNING && (m_nMigrationFlags & PVM_DONT_RESUME_VM))
@@ -1577,7 +1578,6 @@ PRL_RESULT Task_MigrateVmTarget::checkSharedStorage()
 
 PRL_RESULT Task_MigrateVmTarget::registerVmBeforeMigration()
 {
-	PRL_RESULT nRetCode;
 	CVmDirectoryItem *pVmDirItem = new CVmDirectoryItem;
 
 	pVmDirItem->setVmUuid(m_sVmUuid);
@@ -1591,45 +1591,50 @@ PRL_RESULT Task_MigrateVmTarget::registerVmBeforeMigration()
 	pVmDirItem->setRegDateTime(QDateTime::currentDateTime());
 	pVmDirItem->setChangedBy(getClient()->getUserName());
 	pVmDirItem->setChangeDateTime(QDateTime::currentDateTime());
-
-	pVmDirItem->setTemplate(m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate());
-
-	if (pVmDirItem->isTemplate())
-		m_sVmDirUuid = CDspVmDirManager::getTemplatesDirectoryUuid();
-
-	nRetCode = CDspService::instance()->getVmDirHelper().insertVmDirectoryItem(m_sVmDirUuid, pVmDirItem);
-	if (PRL_FAILED(nRetCode))
+	if (isTemplate())
 	{
-		CVmEvent *pEvent = getLastError();
-		pEvent->setEventCode(PRL_ERR_VM_MIGRATE_REGISTER_VM_FAILED);
-		pEvent->addEventParameter(new CVmEventParameter(
-			PVE::String, m_sVmName, EVT_PARAM_MESSAGE_PARAM_0));
-		pEvent->addEventParameter(new CVmEventParameter(
-			PVE::String, PRL_RESULT_TO_STRING(nRetCode), EVT_PARAM_MESSAGE_PARAM_1));
-		WRITE_TRACE(DBG_FATAL,
-			"Error occurred while register Vm %s with code [%#x][%s]",
-			QSTR2UTF8(m_sVmUuid), nRetCode, PRL_RESULT_TO_STRING(nRetCode));
-		WRITE_TRACE(DBG_FATAL, "Can't insert vm %s into VmDirectory by error %#x, %s",
-			QSTR2UTF8(m_sVmUuid), nRetCode, PRL_RESULT_TO_STRING(nRetCode));
-		return PRL_ERR_VM_MIGRATE_REGISTER_VM_FAILED;
+		pVmDirItem->setTemplate(true);
+		m_sVmDirUuid = CDspVmDirManager::getTemplatesDirectoryUuid();
 	}
+	PRL_RESULT e = PRL_ERR_SUCCESS;
+	do
+	{
+		if (PRL_FAILED(e = DspVm::vdh().insertVmDirectoryItem(m_sVmDirUuid, pVmDirItem)))
+		{
+			WRITE_TRACE(DBG_FATAL, "Can't insert vm %s into VmDirectory by error %#x, %s",
+				QSTR2UTF8(m_sVmUuid), e, PRL_RESULT_TO_STRING(e));
+			break;
+		}
+		if (!m_vcmmd.isNull() && PRL_FAILED(e = (*m_vcmmd)(::Vcmmd::Unregistered(m_pVmConfig))))
+		{
+			WRITE_TRACE(DBG_FATAL, "Can't register vm %s in vcmmd error %#x, %s",
+				QSTR2UTF8(m_sVmUuid), e, PRL_RESULT_TO_STRING(e));
+			break;
+		}
+		/* Notify clients that new VM appeared */
+		CVmEvent event(PET_DSP_EVT_VM_ADDED, m_sVmUuid, PIE_DISPATCHER );
+		SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, event);
+		DspVm::cm().sendPackageToVmClients(p, m_sVmDirUuid, m_sVmUuid);
 
-	/* Notify clients that new VM appeared */
-	CVmEvent event(PET_DSP_EVT_VM_ADDED, m_sVmUuid, PIE_DISPATCHER );
-	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, event);
-	CDspService::instance()->getClientManager().sendPackageToVmClients(p, m_sVmDirUuid, m_sVmUuid);
+		/* Notify clients that VM migration started - and clients wait message with original Vm uuid */
+		SmartPtr<CVmEvent> pEvent = SmartPtr<CVmEvent>(
+			new CVmEvent(PET_DSP_EVT_VM_MIGRATE_STARTED, m_sOriginVmUuid, PIE_DISPATCHER));
+		pEvent->addEventParameter(new CVmEventParameter(PVE::Boolean, "false", EVT_PARAM_MIGRATE_IS_SOURCE));
+		SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspVmEvent, pEvent->toString());
+		/* and notify clients about VM migration start event */
+		CDspService::instance()->getVmStateSender()->
+			onVmStateChanged(VMS_STOPPED, VMS_MIGRATING, m_sVmUuid, m_sVmDirUuid, false);
+		DspVm::cm().sendPackageToVmClients(pPackage, m_sVmDirUuid, m_sOriginVmUuid);
 
- 	/* Notify clients that VM migration started - and clients wait message with original Vm uuid */
-	SmartPtr<CVmEvent> pEvent = SmartPtr<CVmEvent>(
-		new CVmEvent(PET_DSP_EVT_VM_MIGRATE_STARTED, m_sOriginVmUuid, PIE_DISPATCHER));
-	pEvent->addEventParameter(new CVmEventParameter(PVE::Boolean, "false", EVT_PARAM_MIGRATE_IS_SOURCE));
-	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspVmEvent, pEvent->toString());
-	/* and notify clients about VM migration start event */
-	CDspService::instance()->getVmStateSender()->
-		onVmStateChanged(VMS_STOPPED, VMS_MIGRATING, m_sVmUuid, m_sVmDirUuid, false);
-	CDspService::instance()->getClientManager().sendPackageToVmClients(pPackage, m_sVmDirUuid, m_sOriginVmUuid);
+		return PRL_ERR_SUCCESS;
+	} while(false);
 
-	return PRL_ERR_SUCCESS;
+	WRITE_TRACE(DBG_FATAL,
+		"Error occurred while register Vm %s with code [%#x][%s]",
+		QSTR2UTF8(m_sVmUuid), e, PRL_RESULT_TO_STRING(e));
+
+	return CDspTaskFailure(*this).setCode(PRL_ERR_VM_MIGRATE_REGISTER_VM_FAILED)
+			(m_sVmName, PRL_RESULT_TO_STRING(e));
 }
 
 PRL_RESULT Task_MigrateVmTarget::saveVmConfig()
@@ -1696,29 +1701,6 @@ PRL_RESULT Task_MigrateVmTarget::saveVmConfig()
 		}
 	}
 	return PRL_ERR_SUCCESS;
-}
-
-void Task_MigrateVmTarget::DeleteSnapshot()
-{
-/*	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-
-	nRetCode = m_pVm->replaceInitDspCmd(PVE::DspCmdVmDeleteSnapshot, getClient());
-	if ( PRL_FAILED(nRetCode) ) {
-		WRITE_TRACE(DBG_FATAL, "[%s] CDspVm::replaceInitDspCmd() failed. Reason: %#x (%s)",
-			__FUNCTION__, nRetCode, PRL_RESULT_TO_STRING(nRetCode));
-		return;
-	}
-
-	CProtoCommandPtr pRequest =
-		CProtoSerializer::CreateDeleteSnapshotProtoCommand(m_sVmUuid, m_sSnapshotUuid, false);
-	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspCmdVmDeleteSnapshot, pRequest);
-	CVmEvent evt;
-	if (!m_pVm->deleteSnapshot(getClient(), pPackage, &evt, true)) {
-		WRITE_TRACE(DBG_FATAL, "[%s] Unknown error occurred while snapshot deleting", __FUNCTION__);
-	} else if (PRL_FAILED(evt.getEventCode())) {
-		WRITE_TRACE(DBG_FATAL, "[%s] Error occurred while snapshot deleting with code [%#x][%s]",
-			__FUNCTION__, evt.getEventCode(), PRL_RESULT_TO_STRING(evt.getEventCode()));
-	} */
 }
 
 PRL_RESULT Task_MigrateVmTarget::adjustStartVmCommand(SmartPtr<IOPackage> &pPackage)
