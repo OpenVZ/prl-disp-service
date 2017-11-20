@@ -32,20 +32,15 @@
 #ifndef __Task_MigrateVmTarget_H_
 #define __Task_MigrateVmTarget_H_
 
-#include <QString>
-
 #include "CDspTaskHelper.h"
 #include "CDspRegistry.h"
 #include "Task_DispToDispConnHelper.h"
-#include "CDspClient.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlcommon/ProtoSerializer/CProtoCommands.h>
-#include <prlcommon/IOService/IOCommunication/IOClient.h>
 #include "CDspDispConnection.h"
-#include "CDspVm.h"
+#include "CVcmmdInterface.h"
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
-#include "Libraries/VmFileList/CVmFileListCopy.h"
 
 enum _PRL_VM_MIGRATE_TARGET_STEP {
 	MIGRATE_STARTED			= (1 << 0),
@@ -95,7 +90,6 @@ private:
 
 	PRL_RESULT registerVmBeforeMigration();
 	PRL_RESULT saveVmConfig();
-	void DeleteSnapshot();
 	void changeSID();
 	PRL_RESULT adjustStartVmCommand(SmartPtr<IOPackage> &pPackage);
 	PRL_RESULT registerHaClusterResource();
@@ -103,6 +97,8 @@ private:
 	bool isSharedDisk(const QString& name) const;
 
 private:
+	typedef ::Vcmmd::Frontend< ::Vcmmd::Unregistered> vcmmd_type;
+
 	Registry::Public& m_registry;
 	/* from old servers Check & Start commands send from differents connections */
 	SmartPtr<CDspDispConnection> m_dispConnection;
@@ -126,7 +122,6 @@ private:
 	QStringList m_lstNonSharedDisks;
 	quint32 m_nMigrationFlags;
 	quint32 m_nReservedFlags;
-	QString m_sSnapshotUuid;
 	quint32 m_nVersion;
 	VIRTUAL_MACHINE_STATE m_nPrevVmState;
 	QString m_sVmConfig;
@@ -140,6 +135,7 @@ private:
 	QString m_sHaClusterId;
 
 	SmartPtr<CVmDirectory::TemporaryCatalogueItem> m_pVmInfo;
+	QScopedPointer<vcmmd_type> m_vcmmd;
 
 	PRL_RESULT reactStart(const SmartPtr<IOPackage> &package);
 	PRL_RESULT preconditionsReply();
