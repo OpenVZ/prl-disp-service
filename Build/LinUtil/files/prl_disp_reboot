@@ -93,7 +93,7 @@ sys.stdout, sys.stderr = devnull, devnull
 progname = "prl_disp_reboot"
 
 # Setup logger
-defloglevel = logging.INFO
+defloglevel = logging.DEBUG
 logformat = "%(asctime)-15s %(message)s"
 logging.basicConfig(format=logformat)
 logger = logging.getLogger(progname)
@@ -105,10 +105,15 @@ logger.addHandler(fh)
 
 # Detect that we're going to reboot/shutdown
 proc = subprocess.Popen("/usr/bin/systemctl -q --no-legend list-jobs",
-        stderr=None, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, stdout=subprocess.PIPE,
         stdin=subprocess.PIPE, shell = True)
 (output, err) = proc.communicate()
 
+logger.debug("systemctl return code: %d" % proc.returncode)
+logger.debug("stdout of systemctl:")
+logger.debug(output)
+logger.debug("stderr of systemctl:")
+logger.debug(err)
 logger.info("Determining state...")
 
 for line in output.splitlines():
