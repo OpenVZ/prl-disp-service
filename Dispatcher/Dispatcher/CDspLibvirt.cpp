@@ -434,44 +434,53 @@ namespace Breeding
 
 void Vm::operator()(Agent::Hub& hub_)
 {
-	QStringList s = m_registry->snapshot();
-	Agent::Vm::List l = hub_.vms();
-	foreach (const QString& u, s)
-	{
-		if (!validate(u))
-		{
-			// unregister VM from libvirt
-			l.at(u).getState().undefine();
-			// at this point VM is not registered in m_view->m_domainMap
-			// thus we need to manually remove the corresponding
-			// directory item from Dispatcher
-			m_registry->undefine(u);
-			s.removeOne(u);
-		}
-	}
-
-	m_registry->reset();
-
 	QList<Agent::Vm::Unit> a;
-	l.all(a);
+	if (hub_.vms().all(a).isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot list VMs");
+		return;
+	}
+	QHash<QString, Agent::Vm::Unit> b, c;
 	foreach (Agent::Vm::Unit m, a)
 	{
 		QString u;
 		m.getUuid(u);
-		QSharedPointer<Model::System::entry_type> v = m_view->add(u);
-		if (!v.isNull())
-		{
+		WRITE_TRACE(DBG_DEBUG, "persistent UUID %s", qPrintable(u));
+		b[u] = m;
+	}
+	QStringList s = m_registry->snapshot();
+	foreach (const QString& u, s)
+	{
+		if (!validate(u))
+			c[u] = b.take(u);
+	}
+	m_registry->reset();
+	foreach (const QString& u, b.keys())
+	{
+		if (m_view->add(u).isNull())
+			b.remove(u);
+		else
 			s.removeOne(u);
-			Registry::Access r = m_registry->find(u);
-			Callback::Reactor::Domain(m).update(r);	
-		}
 	}
 	foreach (const QString& u, s)
 	{
 		// in order to properly remove the directory item, first we need to
 		// add the VM to the registry and then remove it from there
 		m_registry->define(u);
+		// at this point VM is not registered in m_view->m_domainMap
+		// thus we need to manually remove the corresponding
+		// directory item from Dispatcher
 		m_registry->undefine(u);
+	}
+	foreach (const QString& u, c.keys())
+	{
+		c[u].getState().undefine();
+	}
+	foreach (const QString& u, b.keys())
+	{
+		WRITE_TRACE(DBG_DEBUG, "update UUID %s", qPrintable(u));
+		Registry::Access a = m_registry->find(u);
+		Callback::Reactor::Domain(b[u]).update(a);
 	}
 }
 
