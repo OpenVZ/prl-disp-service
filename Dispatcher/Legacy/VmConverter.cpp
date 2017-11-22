@@ -149,10 +149,11 @@ template<> result_type Helper::do_(CVmHardDisk *pDevice)
 			return buildResult(PRL_ERR_VMCONF_SCSI_DEVICES_COUNT_OUT_OF_RANGE,
 			                   QString::number(PRL_MAX_SCSI_DEVICES_NUM));
 		}
-		pDevice->setStackIndex(m_filled[m_hddType].takeFirst());
 	}
 	pDevice->setInterfaceType(m_hddType);
 	pDevice->setSubType(m_hddSubType);
+	pDevice->setStackIndex(m_filled[m_hddType].takeFirst());
+
 	return result_type();
 }
 
