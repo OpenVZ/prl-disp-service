@@ -460,7 +460,8 @@ public:
 	int create_tsnapshot(const QString &guid, const QString &snap_guid,
 			const QString &cbt_uuid, const char *component_name,
 			const char *snap_dir);
-	int delete_tsnapshot(const QString &uuid, const QString &snapsot_guid);
+	int delete_tsnapshot(const QString &uuid, const QString &snapsot_guid,
+			bool drop_cbt = false);
 	int umount_snapshot(const QString &dev);
 	int mount_disk_snapshot(const QString &path, const QString &snap_guid,
 			const char *component_name, const QString &mnt_dir, QString &dev);
