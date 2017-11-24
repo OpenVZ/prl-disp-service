@@ -3119,7 +3119,8 @@ int CVzOperationHelper::merge_snapshot(const QString &uuid, const QString &snap_
 	return 0;
 }
 
-int CVzOperationHelper::delete_tsnapshot(const QString &uuid, const QString &snap_guid)
+int CVzOperationHelper::delete_tsnapshot(const QString &uuid,
+		const QString &snap_guid, bool drop_cbt)
 {
 	int ret;
 	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
@@ -3131,16 +3132,19 @@ int CVzOperationHelper::delete_tsnapshot(const QString &uuid, const QString &sna
 	if (h == NULL) {
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
 				QSTR2UTF8(uuid), vzctl2_get_last_error());
-		return -1;
+		return PRL_ERR_OPERATION_FAILED;
 	}
 
 	if (vzctl2_env_delete_tsnapshot(h, QSTR2UTF8(snap_guid), m_snap_holder)) {
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_delete_tsnapshot ctid=%s %s",
 				QSTR2UTF8(uuid), vzctl2_get_last_error());
-		return -1;
+		return PRL_ERR_OPERATION_FAILED;
 	}
 
-	return 0;
+	if (drop_cbt)
+		vzctl2_env_drop_cbt(h);
+
+	return PRL_ERR_SUCCESS;
 }
 
 int CVzOperationHelper::remove_disks_from_env_config(SmartPtr<CVmConfiguration> &pConfig,
