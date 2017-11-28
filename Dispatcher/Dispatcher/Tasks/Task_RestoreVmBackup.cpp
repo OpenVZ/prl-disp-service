@@ -129,25 +129,6 @@ m_bBackupLocked(false)
 	m_hHandle = m_pDispConnection->GetConnectionHandle();
 	m_nInternalFlags = 0;
 	m_nRemoteVersion = pCmd->GetVersion();
-	bool bConnected = QObject::connect(
-		&CDspService::instance()->getIOServer(),
-		SIGNAL(onClientDisconnected(IOSender::Handle)),
-		SLOT(clientDisconnected(IOSender::Handle)),
-		Qt::DirectConnection);
-	PRL_ASSERT(bConnected);
-}
-
-Task_RestoreVmBackupSource::~Task_RestoreVmBackupSource()
-{
-	QObject::disconnect(
-		&CDspService::instance()->getIOServer(),
-		SIGNAL(onClientDisconnected(IOSender::Handle)),
-		this,
-		SLOT(clientDisconnected(IOSender::Handle))
-		);
-
-	// #439777 to protect call handler for destroying object
-	m_waiter.waitUnlockAndFinalize();
 }
 
 PRL_RESULT Task_RestoreVmBackupSource::prepareTask()
@@ -155,6 +136,17 @@ PRL_RESULT Task_RestoreVmBackupSource::prepareTask()
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	Prl::Expected<VmItem, PRL_RESULT> x;
 
+	bool bConnected = QObject::connect(
+		&CDspService::instance()->getIOServer(),
+		SIGNAL(onClientDisconnected(IOSender::Handle)),
+		SLOT(clientDisconnected(IOSender::Handle)),
+		Qt::DirectConnection);
+	if (!bConnected)
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot connect a signal slot");
+		nRetCode = PRL_ERR_FAILURE;
+		goto exit;
+	}
 	if (m_sBackupId.isEmpty()) {
 		if (m_sVmUuid.isEmpty()) {
 			WRITE_TRACE(DBG_FATAL, "[%s] Vm uuid and backup id are empty", __FUNCTION__);
@@ -265,6 +257,8 @@ PRL_RESULT Task_RestoreVmBackupSource::run_body()
 
 void Task_RestoreVmBackupSource::finalizeTask()
 {
+	CDspService::instance()->getIOServer()
+		.disconnect(this, SLOT(clientDisconnected(IOSender::Handle)));
 	m_cABackupServer.kill();
 
 	foreach(const archive_type& f, m_nbds)
@@ -273,6 +267,9 @@ void Task_RestoreVmBackupSource::finalizeTask()
 	if (m_bBackupLocked)
 		getMetadataLock().releaseShared(m_sBackupUuid);
 	m_bBackupLocked = false;
+
+	// #439777 to protect call handler for destroying object
+	m_waiter.waitUnlockAndFinalize();
 
 	if (PRL_FAILED(getLastErrorCode()))
 		m_pDispConnection->sendResponseError(getLastError(), getRequestPackage());
