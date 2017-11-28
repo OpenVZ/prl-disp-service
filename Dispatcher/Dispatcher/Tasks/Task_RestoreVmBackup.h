@@ -99,7 +99,6 @@ public:
 		SmartPtr<CDspDispConnection> &,
 		const CDispToDispCommandPtr,
 		const SmartPtr<IOPackage> &);
-	virtual ~Task_RestoreVmBackupSource();
 
 protected:
 	virtual PRL_RESULT prepareTask();
