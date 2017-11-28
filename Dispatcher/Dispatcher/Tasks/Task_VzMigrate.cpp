@@ -499,12 +499,13 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 	/* will send all packages as response to pParentPackage package */
 	m_pPackage = IOPackage::createInstance(CtMigrateCmd, 2, pParentPackage, false);
 
+	int options = WNOHANG;
 	do {
 		{
 			QMutexLocker l(&m_terminateVzMigrateMutex);
 			if (m_pid <= 0)
 				return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-			pid = ::waitpid(m_pid, &status, WNOHANG);
+			pid = ::waitpid(m_pid, &status, options);
 			if (pid < 0) {
 				if (errno == EINTR)
 					continue;
@@ -525,6 +526,12 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 			fds[nFd].events = POLLIN;
 			nFd++;
 		}
+
+		if (nFd == 0) {
+			options = 0;
+			continue;
+		}
+
 		rc = ::poll(fds, nFd, -1);
 		if (rc == -1) {
 			/* will ignore poll() error and wait child exit */
