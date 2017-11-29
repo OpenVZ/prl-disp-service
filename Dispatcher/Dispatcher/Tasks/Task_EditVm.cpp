@@ -2701,7 +2701,16 @@ Novel::result_type Novel::operator()(load_type load_)
 	if (NULL == load_.second)
 		return Libvirt::Result(PRL_ERR_INVALID_ARG);
 
-	return load_.first.up().getGrub(*load_.second).spawnPersistent();
+	return Libvirt::Kit.vms().getGrub(*load_.second).spawnPersistent();
+}
+
+Novel::detector_type* Novel::craftDetector(const load_type& load_)
+{
+	if (NULL == load_.second)
+		return NULL;
+
+	return new detector_type
+		(load_.second->getVmIdentification()->getVmUuid());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2713,6 +2722,11 @@ Update::result_type Update::operator()(load_type load_)
 		return Libvirt::Result(PRL_ERR_INVALID_ARG);
 
 	return load_.first.setConfig(*load_.second);
+}
+
+Update::detector_type* Update::craftDetector(const load_type& load_)
+{
+	return Magic::craftDetector(load_.first);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
