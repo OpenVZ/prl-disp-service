@@ -1190,7 +1190,9 @@ void Device::operator()(Registry::Access& access_)
 
 	QString u;
 	m_agent.getUuid(u);
-	CDspService::instance()->getVmStateSender()->onVmDeviceDetached(u, m_alias);
+	CDspLockedPointer<CDspVmStateSender> x(CDspService::instance()->getVmStateSender());
+	if (x.isValid())
+		x->onVmDeviceDetached(u, m_alias);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1210,8 +1212,9 @@ void Domain::updateConfig(Registry::Access& access_)
 
 	m_agent.completeConfig(c);
 	access_.updateConfig(c);
-	CDspService::instance()->getVmStateSender()
-		->onVmConfigChanged(QString(), access_.getUuid());
+	CDspLockedPointer<CDspVmStateSender> x(CDspService::instance()->getVmStateSender());
+	if (x.isValid())
+		x->onVmConfigChanged(QString(), access_.getUuid());
 }
 
 void Domain::update(Registry::Access& access_)
