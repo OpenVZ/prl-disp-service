@@ -315,11 +315,6 @@ struct Magic
 struct Define: Magic
 {
 	typedef QPair<agent_type, const CVmConfiguration* > load_type;
-
-	static detector_type* craftDetector(const load_type& load_)
-	{
-		return Magic::craftDetector(load_.first);
-	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -328,6 +323,8 @@ struct Define: Magic
 struct Novel: Define
 {
 	result_type operator()(load_type load_);
+
+	static detector_type* craftDetector(const load_type& load_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -336,6 +333,8 @@ struct Novel: Define
 struct Update: Define
 {
 	result_type operator()(load_type load_);
+
+	static detector_type* craftDetector(const load_type& load_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
