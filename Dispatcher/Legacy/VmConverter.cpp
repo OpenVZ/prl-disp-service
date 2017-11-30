@@ -175,6 +175,11 @@ Helper::Helper(PRL_MASS_STORAGE_INTERFACE_TYPE hddType,
 	            std::back_inserter(m_filled[PMS_SCSI_DEVICE]));
 	boost::copy(boost::irange(0, (int)PRL_MAX_IDE_DEVICES_NUM),
 	            std::back_inserter(m_filled[PMS_IDE_DEVICE]));
+	if (hddType != PMS_SCSI_DEVICE)
+	{
+		boost::copy(boost::irange(0, (int)PRL_MAX_GENERIC_PCI_DEVICES),
+			    std::back_inserter(m_filled[PMS_VIRTIO_BLOCK_DEVICE]));
+	}
 
 	foreach(CVmHardDisk *pDevice, m_hardware.m_lstHardDisks) {
 		if (NULL != pDevice && !isConverted(*pDevice))
