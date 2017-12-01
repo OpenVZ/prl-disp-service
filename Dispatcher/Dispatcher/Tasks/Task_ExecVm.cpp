@@ -130,8 +130,9 @@ PRL_RESULT Run::operator()(Exec::Ct& variant_) const
 	if (m_task->sendToClient(PET_IO_FIN_TO_TRANSMIT_STDOUT_STDERR, NULL, 0))
 		return PRL_ERR_OPERATION_FAILED;
 
-	if (!m_task->waitForStage("fin response"))
-		return PRL_ERR_TIMEOUT;
+	// complete exec successfully even when fin timeouted
+	// we have a valid exit code and guest process finished by now
+	m_task->waitForStage("fin response");
 
 	m_task->setExitCode(variant_.getExecer().get_retcode());
 
@@ -781,12 +782,14 @@ void Task_ResponseProcessor::slotProcessStdin(const SmartPtr<IOPackage>& p)
 	if (PRL_SUCCEEDED(e))
 		return;
 
+	WRITE_TRACE(DBG_DEBUG, "wakeUpStage from slotProcessStdin");
 	m_pExec->wakeUpStage();
 	QThread::exit(e);
 }
 
 void Task_ResponseProcessor::slotProcessFin()
 {
+	WRITE_TRACE(DBG_DEBUG, "wakeUpStage from slotProcessFin");
 	m_pExec->wakeUpStage();
 }
 
@@ -809,6 +812,8 @@ PRL_RESULT Task_ResponseProcessor::prepareTask()
 				SLOT(slotProcessStdin(const SmartPtr<IOPackage> &)),
 				Qt::QueuedConnection);
 		PRL_ASSERT(bConnected);
+		if (!bConnected)
+			WRITE_TRACE(DBG_FATAL, "stdin connect fail");
 	}
 
 	bConnected = QObject::connect(hResponse.getImpl(),
@@ -817,6 +822,8 @@ PRL_RESULT Task_ResponseProcessor::prepareTask()
 		SLOT(slotProcessFin()),
 		Qt::QueuedConnection);
 	PRL_ASSERT(bConnected);
+	if (!bConnected)
+		WRITE_TRACE(DBG_FATAL, "fin connect fail");
 
 	/* prepare done */
 	QMutexLocker _lock(&m_mutex);
