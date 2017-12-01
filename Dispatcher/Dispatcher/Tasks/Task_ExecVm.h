@@ -62,6 +62,7 @@ private:
 
 public slots:
 	void slotProcessStdin(const SmartPtr<IOPackage>& p);
+	void slotProcessFin();
 
 private:
 	bool m_bStarted;
@@ -266,6 +267,8 @@ public:
 	const QString &getGuestSessionUuid() const  { return m_sGuestSessionUuid; }
 	PRL_RESULT sendToClient(int type, const char *data, int size);
 	void setExitCode(int code) { m_exitcode = code; }
+	bool waitForStage(const char* what, unsigned int timeout = 0);
+	void wakeUpStage();
 
 private:
 	CProtoCommandDspWsResponse *getResponseCmd();
@@ -278,6 +281,9 @@ private:
 	unsigned int m_nFlags;
 	unsigned int m_nTimeout;
 	CProtoCommandPtr m_pResponseCmd;
+	QMutex m_stageMutex;
+	QWaitCondition m_stageCond;
+	bool m_stageFinished;
 	SmartPtr<CDspClient> m_ioClient;
 	CDspTaskFuture<Task_ResponseProcessor> m_pResponseProcessor;
 	QString m_sVmUuid;
