@@ -3049,9 +3049,6 @@ int CVzOperationHelper::create_tsnapshot(const QString &uuid,
 {
 	int ret;
 
-	if (!cbt_uuid.isEmpty())
-		return PRL_ERR_UNIMPLEMENTED;
-
 	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
 	if (ctid.isEmpty())
 		return PRL_ERR_CT_NOT_FOUND;
@@ -3071,6 +3068,11 @@ int CVzOperationHelper::create_tsnapshot(const QString &uuid,
 	memset(&tsnap, 0, sizeof(tsnap));
 	tsnap.component_name = (char *)component_name;
 	tsnap.snap_dir = (char *)snap_dir;
+	QByteArray u;
+	if (!cbt_uuid.isEmpty()) {
+		u = cbt_uuid.toUtf8();
+		tsnap.cbt_uuid = u.data();
+	}
 
 	ret = vzctl2_env_create_temporary_snapshot(h, QSTR2UTF8(snap_guid),
 			&tsnap, m_snap_holder);
