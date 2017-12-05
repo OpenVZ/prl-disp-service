@@ -798,11 +798,16 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 	}
 	else
 	{
-		if (p->header.type == PVE::DspCmdCtReinstall)
+		switch (p->header.type)
+		{
+		case PVE::DspCmdCtReinstall:
+		case PVE::DspCmdEndVmBackup:
+		case PVE::DspCmdBeginVmBackup:
 			vm_uuid = pCmd->GetFirstStrParam();
-		else
+			break;
+		default:
 			vm_uuid = pCmd->GetVmUuid();
-
+		}
 		if (vm_uuid.isEmpty())
 			LOG_MESSAGE(DBG_INFO, "=> empty vmuuid for %s",
 					PVE::DispatcherCommandToString(p->header.type));
