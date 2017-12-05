@@ -1031,7 +1031,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Mountv4
 
-struct Mountv4: Pure<Export::Mount>
+struct Mountv4: Sketch
 {
 	Mountv4(const QString& ct_, const CVzOperationHelper& core_);
 
@@ -1039,6 +1039,11 @@ struct Mountv4: Pure<Export::Mount>
 	PRL_RESULT rollback()
 	{
 		return commit();
+	}
+	PRL_RESULT begin(const QString& tmp_)
+	{
+		Q_UNUSED(tmp_);
+		return PRL_ERR_SUCCESS;
 	}
 	PRL_RESULT export_(const Product::componentList_type& tibList_, const QDir& store_);
 

@@ -912,11 +912,7 @@ PRL_RESULT Sketch::close(bool flavor_)
 	if (getUuid().isEmpty())
 		return PRL_ERR_UNINITIALIZED;
 
-/*
 	m_core.delete_tsnapshot(m_ct, getUuid(), flavor_);
-*/
-	Q_UNUSED(flavor_);
-	m_core.delete_tsnapshot(m_ct, getUuid());
 	setUuid(QString());
 	setComponents(Product::componentList_type());
 	return PRL_ERR_SUCCESS;
@@ -965,7 +961,7 @@ PRL_RESULT Mount::begin(const QString& tmp_)
 // struct Mountv4
 
 Mountv4::Mountv4(const QString& ct_, const CVzOperationHelper& core_):
-	Pure<Export::Mount>(ct_, Export::Mount(s_component, core_), core_)
+	Sketch(ct_, core_)
 {
 }
 
@@ -1019,10 +1015,7 @@ Bitmap::Bitmap(const QString& ct_, const QString& uuid_, const CVzOperationHelpe
 
 PRL_RESULT Bitmap::begin(const QString& tmp_)
 {
-/*
-	QString u = PrlDiskDescriptor().DescriptorBackupUID().toString();
-*/
-	QString u;
+	QString u("{704718e1-2314-44c8-9087-d78ed36b0f4e}");
 	return open(u, tmp_);
 }
 
