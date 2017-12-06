@@ -2214,7 +2214,7 @@ Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> Unit::getProgress() 
 
 Result Unit::commit() const
 {
-	quint32 flags = VIR_DOMAIN_BLOCK_COMMIT_ACTIVE;
+	quint32 flags = VIR_DOMAIN_BLOCK_COMMIT_ACTIVE | VIR_DOMAIN_BLOCK_COMMIT_SHALLOW;
 
 	WRITE_TRACE(DBG_DEBUG, "commit blocks for disk %s", qPrintable(m_disk));
 	if (0 != virDomainBlockCommit(m_domain.data(), m_disk.toUtf8().data(), NULL, NULL, 0, flags))
