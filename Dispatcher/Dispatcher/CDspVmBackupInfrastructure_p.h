@@ -39,8 +39,8 @@
 #include <Libraries/Virtuozzo/CVzHelper.h>
 //#include <Libraries/VirtualDisk/VirtualDisk.h>
 #include <Libraries/PrlCommonUtils/CFileHelper.h>
+#include <prlcommon/VirtualDisk/VirtualDisk.h>
 
-class IDisk;
 class CDspVzHelper;
 
 namespace Backup
@@ -229,10 +229,8 @@ struct Image
 	PRL_RESULT dropState(const Uuid& uuid_, const QString& target_);
 
 private:
-	static void release(IDisk* value_);
-
 	QString m_path;
-	SmartPtr<IDisk> m_image;
+	QSharedPointer<VirtualDisk::Format> m_image;
 };
 
 } // namespace Vm

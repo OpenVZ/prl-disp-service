@@ -483,11 +483,20 @@ namespace Export
 ///////////////////////////////////////////////////////////////////////////////
 // struct Image
 
-PRL_RESULT Image::operator()(const QString&, const Product::component_type& tib_,
+PRL_RESULT Image::operator()(const QString &snapshot_, const Product::component_type& tib_,
 		const QDir& store_, QString& dst_)
 {
+	PRL_RESULT e;
+	Snapshot::Vm::Image x;
+	QString f = tib_.first.getFolder();
+	if (PRL_FAILED(e = x.open(f)))
+		return e;
+
 	QString t = store_.absoluteFilePath(tib_.second.completeBaseName());
 	CFileHelper::ClearAndDeleteDir(t);
+	if (PRL_FAILED(e = x.dropState(snapshot_, t)))
+		return e;
+
 	dst_ = t;
 	return PRL_ERR_SUCCESS;
 }
@@ -520,45 +529,31 @@ namespace Vm
 
 PRL_RESULT Image::open(const QString& path_)
 {
-	if (m_image.isValid())
+	if (m_image)
 		return PRL_ERR_DOUBLE_INIT;
 
-/*
-	PRL_RESULT e;
-	IDisk* d = IDisk::OpenDisk(path_, PRL_DISK_NO_ERROR_CHECKING | PRL_DISK_READ | PRL_DISK_FAKE_OPEN, &e);
-	if (PRL_FAILED(e))
-	{
-		WRITE_TRACE(DBG_FATAL, "IDisk::OpenDisk(%s) error : %#x( '%s' )",
-			QSTR2UTF8(path_), e, PRL_RESULT_TO_STRING(e));
-		return e;
-	}
-	if (NULL == d)
-	{
-		WRITE_TRACE(DBG_FATAL, "IDisk::OpenDisk(%s) return invalid pointer",
-			QSTR2UTF8(path_));
-		return PRL_ERR_UNEXPECTED;
-	}
+	m_image = QSharedPointer<VirtualDisk::Format>(
+			VirtualDisk::detectImageFormat(path_));
+	if (!m_image)
+		return PRL_ERR_INVALID_ARG;
+
 	m_path = path_;
-	m_image = SmartPtr<IDisk>(d, &release);
-*/
-	m_path = path_;
-	m_image = SmartPtr<IDisk>(NULL, &release);
-	return PRL_ERR_SUCCESS;
+	return m_image->open(path_, PRL_DISK_READ | PRL_DISK_WRITE);
 }
 
 PRL_RESULT Image::close()
 {
-	if (!m_image.isValid())
+	if (!m_image)
 		return PRL_ERR_UNINITIALIZED;
 
 	m_path.clear();
-	m_image.reset();
+	m_image->close();
 	return PRL_ERR_SUCCESS;
 }
 
 PRL_RESULT Image::hasSnapshot(const QString& uuid_)
 {
-	if (!m_image.isValid())
+	if (!m_image)
 		return PRL_ERR_UNINITIALIZED;
 
 /*
@@ -595,7 +590,7 @@ PRL_RESULT Image::hasSnapshot(const QString& uuid_)
 
 PRL_RESULT Image::getBackupSnapshotId(QString& dst_)
 {
-	if (!m_image.isValid())
+	if (!m_image)
 		return PRL_ERR_UNINITIALIZED;
 
 /*
@@ -613,29 +608,13 @@ PRL_RESULT Image::getBackupSnapshotId(QString& dst_)
 
 PRL_RESULT Image::dropState(const Uuid& uuid_, const QString& target_)
 {
-	if (!m_image.isValid())
+	if (!m_image)
 		return PRL_ERR_UNINITIALIZED;
 
-	Q_UNUSED(uuid_);
-	Q_UNUSED(target_);
-	return PRL_ERR_SUCCESS;
-/*
-	CDSManager m;
-	m.AddDisk(m_image.getImpl());
-	PRL_RESULT output = m.CloneState(uuid_, QStringList() << target_, NULL, NULL);
-	m.WaitForCompletion();
-	m.Clear();
-	return output;
-*/
-}
+	QDir d;
+	d.mkdir(target_);
 
-void Image::release(IDisk* value_)
-{
-	if (NULL != value_)
-		Q_UNUSED(value_);
-/*
-		value_->Release();
-*/
+	return m_image->cloneState(uuid_, target_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
