@@ -248,6 +248,16 @@ struct Image
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Ploop
+
+struct Ploop
+{
+        PRL_RESULT operator()(const QString& snapshot_,
+			const Product::component_type& tib_, const QDir& store_,
+			QString& dst_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Mount
 
 struct Mount
@@ -1054,7 +1064,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Bitmap
 
-struct Bitmap: Pure<Export::Image>
+struct Bitmap: Pure<Export::Ploop>
 {
 	Bitmap(const QString& ct_, const QString& uuid_, const CVzOperationHelper& core_);
 

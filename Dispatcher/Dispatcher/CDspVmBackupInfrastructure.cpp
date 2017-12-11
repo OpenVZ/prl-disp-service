@@ -483,7 +483,20 @@ namespace Export
 ///////////////////////////////////////////////////////////////////////////////
 // struct Image
 
-PRL_RESULT Image::operator()(const QString &snapshot_, const Product::component_type& tib_,
+PRL_RESULT Image::operator()(const QString &, const Product::component_type& tib_,
+		const QDir& store_, QString& dst_)
+{
+	QString t = store_.absoluteFilePath(tib_.second.completeBaseName());
+	CFileHelper::ClearAndDeleteDir(t);
+
+	dst_ = t;
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ploop
+
+PRL_RESULT Ploop::operator()(const QString &snapshot_, const Product::component_type& tib_,
 		const QDir& store_, QString& dst_)
 {
 	PRL_RESULT e;
@@ -987,7 +1000,7 @@ PRL_RESULT Mountv4::export_(const Product::componentList_type& tibList_, const Q
 // struct Bitmap
 
 Bitmap::Bitmap(const QString& ct_, const QString& uuid_, const CVzOperationHelper& core_):
-	Pure<Export::Image>(ct_, Export::Image(), core_)
+	Pure<Export::Ploop>(ct_, Export::Ploop(), core_)
 {
 	setMap(uuid_);
 }
