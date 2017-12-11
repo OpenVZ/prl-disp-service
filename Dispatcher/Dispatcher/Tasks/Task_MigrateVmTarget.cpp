@@ -63,6 +63,14 @@
 #include "CDspService.h"
 #include "Libraries/PrlCommonUtils/CVmMigrateHelper.h"
 #include "Task_MigrateVmTarget_p.h"
+#include <boost/phoenix/operator.hpp>
+#include <boost/phoenix/statement.hpp>
+#include <boost/phoenix/core/value.hpp>
+#include <boost/phoenix/core/argument.hpp>
+#include <boost/phoenix/core/reference.hpp>
+#include <boost/phoenix/object/construct.hpp>
+#include <boost/phoenix/bind/bind_function.hpp>
+#include <boost/phoenix/bind/bind_function_object.hpp>
 
 namespace Migrate
 {
@@ -575,14 +583,45 @@ namespace Tune
 ///////////////////////////////////////////////////////////////////////////////
 // struct Perform
 
+Perform::Perform(Task_MigrateVmTarget& task_, VIRTUAL_MACHINE_STATE state_)
+{
+	if (VMS_STOPPED != state_)
+		return;
+
+	m_work = QSharedPointer<work_type>(new work_type());
+	m_editor = QSharedPointer<editor_type>(new editor_type
+		(task_.getVmUuid(), task_.getClient(), *CDspService::instance()));
+
+	bool (*u)(CVmConfiguration&) = &CCpuHelper::update;
+	m_work->connect(boost::bind<void>(u, _1));
+	if (PVMT_CLONE_MODE & task_.getRequestFlags() && !task_.isTemplate())
+	{
+		namespace bp = boost::phoenix;
+		m_work->connect(bp::bind(&Task_CloneVm::ResetNetSettings,
+			bp::construct<SmartPtr<CVmConfiguration> >
+				(&bp::placeholders::arg1, SmartPtrPolicy::DoNotReleasePointee)));
+	}
+}
+
 template <typename Event, typename FSM>
 void Perform::on_entry(const Event& event_, FSM& fsm_)
 {
 	Trace<Perform>::on_entry(event_, fsm_);
-	if (m_state != VMS_STOPPED)
+	if (m_work.isNull() || m_work->empty())
 		return;
-	CCpuHelper::update(*m_config);
-	if (::Libvirt::Kit.vms().getGrub(*m_config).spawnPersistent().isFailed())
+
+	namespace bp = boost::phoenix;
+	typedef editor_type::action_type::result_type result_type;
+
+	CVmConfiguration x;
+	boost::function<result_type (CVmConfiguration& )> a =
+		(
+			bp::bind(bp::ref(*m_work), bp::placeholders::arg1),
+			bp::ref(x) = bp::placeholders::arg1,
+			bp::construct<result_type>()
+		);
+	if (PRL_FAILED((*m_editor)(a)) ||
+		::Libvirt::Kit.vms().getGrub(x).spawnPersistent().isFailed())
 		fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
 }
 
@@ -1639,65 +1678,52 @@ PRL_RESULT Task_MigrateVmTarget::registerVmBeforeMigration()
 
 PRL_RESULT Task_MigrateVmTarget::saveVmConfig()
 {
-	PRL_RESULT nRetCode;
-
-	m_pVmConfig->getVmIdentification()->setVmUuid( m_sVmUuid );
-	if ( PVMT_CLONE_MODE & getRequestFlags() )
-		m_pVmConfig->getVmIdentification()->setSourceVmUuid( m_sOriginVmUuid );
+	// Try to create empty configuration file
+	if (!CFileHelper::CreateBlankFile(m_sVmConfigPath, &getClient()->getAuthHelper()))
+	{
+		WRITE_TRACE(DBG_FATAL,
+			"Couldn't to create blank VM config by path '%s'", QSTR2UTF8(m_sVmConfigPath));
+		return PRL_ERR_SAVE_VM_CONFIG;
+	}
 
 	QString sServerUuid = CDspService::instance()->getDispConfigGuard().getDispConfig()
 			->getVmServerIdentification()->getServerUuid();
 	QString sLastServerUuid = m_pVmConfig->getVmIdentification()->getServerUuid();
+	m_pVmConfig->getVmIdentification()->setVmUuid( m_sVmUuid );
 	m_pVmConfig->getVmIdentification()->setServerUuid(sServerUuid);
 	m_pVmConfig->getVmIdentification()->setLastServerUuid(sLastServerUuid);
 
-	if (!(m_nReservedFlags & PVM_DONT_COPY_VM)) {
-		if (PVMT_SWITCH_TEMPLATE & getRequestFlags())
-		{
-			m_pVmConfig->getVmSettings()->getVmCommonOptions()->setTemplate(
-				!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate());
-		}
+	if (PVMT_SWITCH_TEMPLATE & getRequestFlags())
+		m_pVmConfig->getVmSettings()->getVmCommonOptions()->setTemplate(!isTemplate());
 
-		if (PVMT_CLONE_MODE & getRequestFlags())
+	if (PVMT_CLONE_MODE & getRequestFlags())
+	{
+		m_pVmConfig->getVmIdentification()->setSourceVmUuid( m_sOriginVmUuid );
+		if (isTemplate())
 			Task_CloneVm::ResetNetSettings(m_pVmConfig);
-
-		// Try to create empty configuration file
-		if (!CFileHelper::CreateBlankFile(m_sVmConfigPath, &getClient()->getAuthHelper()))
-		{
-			WRITE_TRACE(DBG_FATAL,
-				"Couldn't to create blank VM config by path '%s'", QSTR2UTF8(m_sVmConfigPath));
-			return PRL_ERR_SAVE_VM_CONFIG;
-		}
 	}
-
 	/**
 	* reset additional parameters in VM configuration
 	* (VM home, last change date, last modification date - never store in VM configuration itself!)
 	*/
 	CDspService::instance()->getVmDirHelper().resetAdvancedParamsFromVmConfig(m_pVmConfig);
 
-	nRetCode = CDspService::instance()->getVmConfigManager().saveConfig(
+	PRL_RESULT nRetCode = CDspService::instance()->getVmConfigManager().saveConfig(
 				m_pVmConfig, m_sVmConfigPath, getClient(), true, true);
 	if (PRL_FAILED(nRetCode))
 	{
 		WRITE_TRACE(DBG_FATAL, "Can't save VM config by error %#x, %s",
 			    nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
 
-		CVmEvent *pEvent = getLastError();
-		pEvent->setEventCode(PRL_ERR_SAVE_VM_CONFIG);
-		pEvent->addEventParameter(new CVmEventParameter(
-				      PVE::String, m_sVmUuid, EVT_PARAM_MESSAGE_PARAM_0));
-		pEvent->addEventParameter(new CVmEventParameter(
-				      PVE::String, m_sTargetVmHomePath, EVT_PARAM_MESSAGE_PARAM_1));
-		return PRL_ERR_SAVE_VM_CONFIG;
+		return CDspTaskFailure(*this).setCode(PRL_ERR_SAVE_VM_CONFIG)(m_sVmUuid, m_sTargetVmHomePath);
 	}
 	/* set original permissions of Vm config (https://jira.sw.ru/browse/PSBM-8333) */
 	if (m_nConfigPermissions) {
 		QFile vmConfig(m_sVmConfigPath);
 		if (!vmConfig.setPermissions((QFile::Permissions)m_nConfigPermissions)) {
 			WRITE_TRACE(DBG_FATAL,
-				"[%s] Cannot set permissions for Vm config \"%s\", will use default",
-				__FUNCTION__, QSTR2UTF8(m_sVmConfigPath));
+				"Cannot set permissions for Vm config \"%s\", will use default",
+				QSTR2UTF8(m_sVmConfigPath));
 		}
 	}
 	return PRL_ERR_SUCCESS;
@@ -1864,7 +1890,7 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 		<< backend_type::Copying(boost::ref(*this))
 		<< moveStep
 		<< syncingStep
-		<< backend_type::Tuning(boost::ref(*m_pVmConfig), m_nPrevVmState)
+		<< backend_type::Tuning(boost::ref(*this), m_nPrevVmState)
 		<< backend_type::Commiting(boost::ref(*m_pVmConfig), boost::cref(m_lstCheckFilesExt), m_nPrevVmState)
 		<< backend_type::Synch::State(~0),
 		boost::ref(*this), boost::ref(io), boost::ref(*m_pVmConfig)
