@@ -60,7 +60,10 @@ public:
 		const CDispToDispCommandPtr,
 		const SmartPtr<IOPackage> &);
 	~Task_MigrateVmTarget();
-	virtual QString  getVmUuid() {return m_sOriginVmUuid;}
+	virtual QString getVmUuid()
+	{
+		return m_sVmUuid;
+	}
 
 	PRL_RESULT sendStartConfirmation();
 	QList<CVmHardDisk> getImagesToCreate();

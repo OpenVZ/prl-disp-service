@@ -38,6 +38,7 @@
 #include "Task_MigrateVmTunnel_p.h"
 #include <boost/msm/back/state_machine.hpp>
 #include <boost/mpl/pair.hpp>
+#include <boost/signals2/signal.hpp>
 #include <boost/msm/front/state_machine_def.hpp>
 #include <Libraries/VmFileList/CVmFileListCopy.h>
 #include "CDspLibvirt.h"
@@ -184,12 +185,8 @@ namespace Tune
 
 struct Perform: vsd::Trace<Perform>
 {
-	Perform(CVmConfiguration& config_, VIRTUAL_MACHINE_STATE state_):
-		m_config(&config_), m_state(state_)
-	{
-	}
-
-	Perform(): m_config(), m_state()
+	Perform(Task_MigrateVmTarget& task_, VIRTUAL_MACHINE_STATE state_);
+	Perform()
 	{
 	}
 
@@ -197,8 +194,11 @@ struct Perform: vsd::Trace<Perform>
 	void on_entry(const Event&, FSM&);
 
 private:
-	CVmConfiguration* m_config;
-	VIRTUAL_MACHINE_STATE m_state;
+	typedef ::Vm::Config::Edit::Unlocked editor_type;
+	typedef boost::signals2::signal<void (CVmConfiguration& )> work_type;
+	
+	QSharedPointer<work_type> m_work;
+	QSharedPointer<editor_type> m_editor;
 };
 
 } // namespace Tune
