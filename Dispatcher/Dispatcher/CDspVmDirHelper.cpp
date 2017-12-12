@@ -3639,6 +3639,21 @@ Vm::result_type Vm::handle(const CVmDirectoryItem& item_)
 	return Chain::handle(item_);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Template
+
+Template::result_type Template::handle(const CVmDirectoryItem& item_)
+{
+	result_type output = Chain::handle(item_);
+	if (output.isSucceed() && output.value().isValid())
+	{
+		output.value()->getVmSettings()
+			->getVmCommonOptions()->setTemplate(true);
+	}
+
+	return output;
+}
+
 namespace Inaccessible
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -3848,6 +3863,12 @@ PRL_RESULT Chain::handle(const CVmDirectory& directory_)
 
 PRL_RESULT Loop::handle(const CVmDirectory& directory_)
 {
+	if (m_predicate.empty())
+		return PRL_ERR_UNINITIALIZED;
+
+	if (!m_predicate(directory_))
+		return Chain::handle(directory_);
+
 	if (m_loader.isNull())
 		return PRL_ERR_UNINITIALIZED;
 
@@ -3861,41 +3882,72 @@ PRL_RESULT Loop::handle(const CVmDirectory& directory_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Branch
+// struct Ephemeral
 
-Branch::Branch(const QSet<QString>& ephemeral_, Item::Component* loader_):
-	m_ephemeral(ephemeral_)
+Loop::predicate_type Ephemeral::craftContains(const list_type& list_)
+{
+	bool (list_type::* x)(const QString& ) const = &list_type::contains;
+	return boost::bind(x, &list_, boost::bind(&CVmDirectory::getUuid, _1));
+}
+
+namespace Vm
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Generic
+
+void Generic::setLoader(Item::Component* value_)
 {
 	Item::Vm* v = new Item::Vm();
-	v->setNext(loader_);
-	setLoader(v);
+	v->setNext(value_);
+	Loop::setLoader(v);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ordinary
+
+Ordinary::Ordinary(const Ephemeral::list_type& ephemeral_, Item::Component* loader_)
+{
+	setLoader(loader_);
+	setPredicate(!boost::bind(Ephemeral::craftContains(ephemeral_), _1));
+}
+
+} // namespace Vm
 
 namespace Template
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Vm
-
-PRL_RESULT Vm::handle(const CVmDirectory& directory_)
+namespace Vm
 {
-	if (isEphemeral(directory_))
-		return Branch::handle(directory_);
+///////////////////////////////////////////////////////////////////////////////
+// struct Generic
 
-	return Chain::handle(directory_);
+void Generic::setLoader(Item::Component* value_)
+{
+	Item::Template* t = new Item::Template();
+	t->setNext(value_);
+	Directory::Vm::Generic::setLoader(t);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Ordinary
+
+Ordinary::Ordinary(Item::Component* loader_)
+{
+	setLoader(loader_);
+	setPredicate(boost::bind(&CVmDirectory::getUuid, _1) ==
+		CDspVmDirManager::getTemplatesDirectoryUuid());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ephemeral
+
+Ephemeral::Ephemeral(const Directory::Ephemeral::list_type& ephemeral_, Item::Component* loader_)
+{
+	setLoader(loader_);
+	setPredicate(Directory::Ephemeral::craftContains(ephemeral_));
+}
+
+} // namespace Vm
 } // namespace Template
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Vm
-
-PRL_RESULT Vm::handle(const CVmDirectory& directory_)
-{
-	if (isEphemeral(directory_))
-		return Chain::handle(directory_);
-
-	return Branch::handle(directory_);
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Ct
@@ -3933,14 +3985,16 @@ Chain* Factory::operator()(const session_type& session_, quint32 flags_) const
 	if (0 == m || (m & PVTF_VM))
 	{
 		Item::Factory f(*m_service);
-		Chain* y = new Vm(m_ephemeral, f(session_, flags_));
+		Chain* y = new Template::Vm::Ordinary(f(session_, flags_));
 		if (NULL == x)
 			output = y;
 		else
 			x->setNext(y);
 
 		x = y;
-		x->setNext(new Template::Vm(m_ephemeral, f(session_, flags_)));
+		y = new Vm::Ordinary(m_ephemeral, f(session_, flags_));
+		x->setNext(y);
+		y->setNext(new Template::Vm::Ephemeral(m_ephemeral, f(session_, flags_)));
 	}
 
 	return output;

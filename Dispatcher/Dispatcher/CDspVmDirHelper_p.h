@@ -247,6 +247,14 @@ struct Vm: Chain
 	result_type handle(const CVmDirectoryItem& item_);
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Template
+
+struct Template: Chain
+{
+	result_type handle(const CVmDirectoryItem& item_);
+};
+
 namespace Inaccessible
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -398,6 +406,8 @@ private:
 
 struct Loop: Chain
 {
+	typedef boost::function<bool (const CVmDirectory&)> predicate_type;
+
 	PRL_RESULT handle(const CVmDirectory& directory_);
 
 protected:
@@ -405,59 +415,78 @@ protected:
 	{
 		m_loader.reset(value_);
 	}
+	void setPredicate(const predicate_type& predicate_)
+	{
+		m_predicate = predicate_;
+	}
 
 private:
+	predicate_type m_predicate;
 	QScopedPointer<Item::Component> m_loader;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Branch
+// struct Ephemeral
 
-struct Branch: Loop
+struct Ephemeral
 {
-	typedef ::Vm::Directory::Ephemeral::directoryList_type ephemeral_type;
+	typedef ::Vm::Directory::Ephemeral::directoryList_type list_type;
 
-	Branch(const ephemeral_type& ephemeral_, Item::Component* loader_);
-
-protected:
-	bool isEphemeral(const CVmDirectory& directory_) const
-	{
-		return m_ephemeral.contains(directory_.getUuid());
-	}
-
-private:
-	ephemeral_type m_ephemeral;
+	static Loop::predicate_type craftContains(const list_type& list_);
 };
+
+namespace Vm
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Generic
+
+struct Generic: Loop
+{
+protected:
+	void setLoader(Item::Component* value_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ordinary
+
+struct Ordinary: Generic
+{
+	Ordinary(const Ephemeral::list_type& ephemeral_, Item::Component* loader_);
+};
+
+} // namespace Vm
 
 namespace Template
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Vm
-
-struct Vm: Branch
+namespace Vm
 {
-	Vm(const ephemeral_type& ephemeral_, Item::Component* loader_):
-		Branch(ephemeral_, loader_)
-	{
-	}
+///////////////////////////////////////////////////////////////////////////////
+// struct Generic
 
-	PRL_RESULT handle(const CVmDirectory& directory_);
+struct Generic: Directory::Vm::Generic
+{
+protected:
+	void setLoader(Item::Component* value_);
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Ordinary
+
+struct Ordinary: Generic
+{
+	explicit Ordinary(Item::Component* loader_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ephemeral
+
+struct Ephemeral: Generic
+{
+	Ephemeral(const Directory::Ephemeral::list_type& ephemeral_, Item::Component* loader_);
+};
+
+} // namespace Vm
 } // namespace Template
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Vm
-
-struct Vm: Branch
-{
-	Vm(const ephemeral_type& ephemeral_, Item::Component* loader_):
-		Branch(ephemeral_, loader_)
-	{
-	}
-
-	PRL_RESULT handle(const CVmDirectory& directory_);
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Ct
