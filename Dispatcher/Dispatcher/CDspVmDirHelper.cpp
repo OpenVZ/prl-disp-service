@@ -3887,7 +3887,7 @@ PRL_RESULT Loop::handle(const CVmDirectory& directory_)
 Loop::predicate_type Ephemeral::craftContains(const list_type& list_)
 {
 	bool (list_type::* x)(const QString& ) const = &list_type::contains;
-	return boost::bind(x, &list_, boost::bind(&CVmDirectory::getUuid, _1));
+	return boost::bind(x, list_, boost::bind(&CVmDirectory::getUuid, _1));
 }
 
 namespace Vm
