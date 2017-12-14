@@ -269,7 +269,7 @@ struct CidGenerator
 	{
 	}
 
-	void release(int id_);
+	bool release(int id_);
 	boost::optional<int> acquire();
 
 private:
