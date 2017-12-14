@@ -105,6 +105,8 @@ struct Filesystem
 	quint64 free;
 	quint64 index;
 	QString device;
+	QString type;
+	QString mountpoint;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

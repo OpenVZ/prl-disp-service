@@ -972,7 +972,7 @@ Result Guest::thawFs()
 		(&virDomainFSThaw, _1, (const char **)NULL, 0, 0));
 }
 
-Prl::Expected< QList<boost::tuple<quint64,quint64,QString> >, ::Error::Simple>
+Prl::Expected< QList<boost::tuple<quint64,quint64,QString,QString,QString> >, ::Error::Simple>
 Guest::getFsInfo()
 {
 	Prl::Expected<QString, Libvirt::Agent::Failure> r =
@@ -981,14 +981,16 @@ Guest::getFsInfo()
 		return r.error();
 	std::istringstream is(r.value().toUtf8().data());
 	boost::property_tree::ptree pt;
-	QList<boost::tuple<quint64,quint64,QString> > l;
+	QList<boost::tuple<quint64,quint64,QString,QString,QString> > l;
 	try {
 		boost::property_tree::json_parser::read_json(is, pt);
 		BOOST_FOREACH(boost::property_tree::ptree::value_type& v, pt.get_child("return")) {
-			uint64_t t = v.second.get<uint64_t>("total");
-			uint64_t f = v.second.get<uint64_t>("free");
-			QString s = QString::fromStdString(v.second.get<std::string>("name"));
-			l << boost::make_tuple(t, f, s);
+			uint64_t a = v.second.get<uint64_t>("total");
+			uint64_t b = v.second.get<uint64_t>("free");
+			QString  c = QString::fromStdString(v.second.get<std::string>("name"));
+			QString  d = QString::fromStdString(v.second.get<std::string>("type"));
+			QString  e = QString::fromStdString(v.second.get<std::string>("mountpoint"));
+			l << boost::make_tuple(a, b, c, d, e);
 		}
 	} catch (const std::exception &) {
 		return Failure(PRL_ERR_FAILURE);

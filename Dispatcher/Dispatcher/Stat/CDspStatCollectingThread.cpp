@@ -160,7 +160,7 @@ bool Vm::operator()()
 		return false;
 
 	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_ident.first);
-	Prl::Expected< QList<boost::tuple<quint64,quint64,QString> >,
+	Prl::Expected< QList<boost::tuple<quint64,quint64,QString,QString,QString> >,
 		::Error::Simple> r = u.getGuest().getFsInfo();
 	if (r.isFailed())
 		return false;
@@ -170,15 +170,19 @@ bool Vm::operator()()
 		return false;
 
 	QList< ::Statistics::Filesystem> l;
-	typedef boost::tuple<quint64,quint64,QString> result_type;
+	typedef boost::tuple<quint64,quint64,QString,QString,QString> result_type;
 	BOOST_FOREACH(result_type& e, r.value()) {
 		::Statistics::Filesystem f;
 
 		f.total = e.get<0>();
 		f.free = e.get<1>();
-		QString name = e.get<2>();
-		QString q = (name.startsWith("\\\\?\\")) ? name.mid(4) : name;
-		f.device = q;
+		f.device = e.get<2>();
+		f.type = e.get<3>();
+		f.mountpoint = e.get<4>();
+		if (f.device.startsWith("\\\\?\\"))
+			f.device = f.device.mid(4);
+		if (f.device.endsWith("\\"))
+			f.device.chop(1);
 		l << f;
 	}
 
@@ -644,6 +648,28 @@ struct Device
 	static QString getName()
 	{
 		return "name";
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Type
+
+struct Type
+{
+	static QString getName()
+	{
+		return "type";
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct MountPoint
+
+struct MountPoint
+{
+	static QString getName()
+	{
+		return "mountpoint";
 	}
 };
 
@@ -1992,10 +2018,24 @@ CVmEventParameter *Flavor<Names::Filesystem::Device>::getParam(const source_type
 	return Conversion::String::convert(f_.device);
 }
 
+template<>
+CVmEventParameter *Flavor<Names::Filesystem::Type>::getParam(const source_type& f_)
+{
+	return Conversion::String::convert(f_.type);
+}
+
+template<>
+CVmEventParameter *Flavor<Names::Filesystem::MountPoint>::getParam(const source_type& f_)
+{
+	return Conversion::String::convert(f_.mountpoint);
+}
+
 typedef ::Stat::Counter::Enumerable<Names::Filesystem::Total, Flavor> Total;
 typedef ::Stat::Counter::Enumerable<Names::Filesystem::Free, Flavor> Free;
 typedef ::Stat::Counter::Enumerable<Disk::Index, Flavor> Index;
 typedef ::Stat::Counter::Enumerable<Names::Filesystem::Device, Flavor> Device;
+typedef ::Stat::Counter::Enumerable<Names::Filesystem::Type, Flavor> Type;
+typedef ::Stat::Counter::Enumerable<Names::Filesystem::MountPoint, Flavor> MountPoint;
 
 
 } // namespace Filesystem
@@ -2091,6 +2131,8 @@ void Collector::collectCt(const QString &uuid,
 		collect(ctc::Filesystem::Total(i, fs));
 		collect(ctc::Filesystem::Free(i, fs));
 		collect(ctc::Filesystem::Device(i, fs));
+		collect(ctc::Filesystem::Type(i, fs));
+		collect(ctc::Filesystem::MountPoint(i, fs));
 		collect(ctc::Filesystem::Index(i, fs));
 	}
 
@@ -2168,6 +2210,9 @@ void Collector::collectVm(const QString &uuid, const CVmConfiguration &config)
 		collect(ctc::Filesystem::Total(i, fs));
 		collect(ctc::Filesystem::Free(i, fs));
 		collect(ctc::Filesystem::Device(i, fs));
+		collect(ctc::Filesystem::Type(i, fs));
+		collect(ctc::Filesystem::MountPoint(i, fs));
+
 	}
 }
 

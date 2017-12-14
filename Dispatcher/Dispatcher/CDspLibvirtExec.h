@@ -373,7 +373,7 @@ struct Guest
 	Result setUserPasswd(const QString& user_, const QString& passwd_, bool crypted_);
 	Result freezeFs();
 	Result thawFs();
-	Prl::Expected< QList<boost::tuple<quint64,quint64,QString> >, ::Error::Simple>
+	Prl::Expected< QList<boost::tuple<quint64,quint64,QString,QString,QString> >, ::Error::Simple>
 		getFsInfo();
 	Result checkAgent();
 	Prl::Expected<QString, Libvirt::Agent::Failure> getAgentVersion(int retries = Exec::Exec::RETRIES);
