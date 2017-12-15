@@ -1350,14 +1350,19 @@ bool Device::open(QIODevice::OpenMode mode_)
 
 void Device::invalidate()
 {
-	m_channel->removeIoChannel(AuxChannel::ioChannel_type(m_client));
-	m_client = 0;
+	int x = 0;
+	std::swap(x, m_client);
+	if (0 != x)
+		m_channel->removeIoChannel(AuxChannel::ioChannel_type(x));
 }
 
 void Device::close()
 {
-	invalidate();
-	QIODevice::close();
+	if (0 != m_client)
+	{
+		invalidate();
+		QIODevice::close();
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1458,10 +1463,10 @@ qint64 WriteDevice::writeData(const char *data_, qint64 len_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct CidGenerator
 
-void CidGenerator::release(int id_)
+bool CidGenerator::release(int id_)
 {
 	QMutexLocker l(&m_mutex);
-	m_set.remove(id_);
+	return m_set.remove(id_);
 }
 
 boost::optional<int> CidGenerator::acquire()
@@ -1593,9 +1598,11 @@ Prl::Expected<AuxChannel::ioChannel_type, PRL_RESULT>
 
 void AuxChannel::removeIoChannel(ioChannel_type id_)
 {
+	if (m_cidGenerator.isNull() || !m_cidGenerator->release(id_))
+		return;
+
 	QMutexLocker l(&m_lock);
-	if (m_ioChannels.remove(id_) > 0)
-		m_cidGenerator->release(id_);
+	m_ioChannels.remove(id_);
 	if ((int)m_readHdr.cid == id_)
 		restartRead();
 }
@@ -1612,16 +1619,15 @@ void AuxChannel::close()
 	virStreamFinish(m_stream);
 	virStreamFree(m_stream);
 	m_stream = NULL;
-	QList<Device*> q = m_ioChannels.values();
-
-	foreach (int cid, m_ioChannels.keys())
-		m_cidGenerator->release(cid);
-	m_ioChannels.clear();
-
-	l.unlock();
-	/* close devices, m_stream should be null for isOpen() to be false */
-	foreach (Device* d, q)
-		d->close();
+	if (!m_cidGenerator.isNull())
+	{
+		foreach (int cid, m_ioChannels.keys())
+		{
+			if (m_cidGenerator->release(cid))
+				m_ioChannels.value(cid)->close();
+		}
+		m_ioChannels.clear();
+	}
 }
 
 void AuxChannel::skipTrash(const QByteArray& data_)
