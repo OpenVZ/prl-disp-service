@@ -35,6 +35,7 @@
 #include "CDspVm_p.h"
 #include "CDspVmBrand.h"
 #include "Interfaces/Debug.h"
+#include "CDspTemplateStorage.h"
 #include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 
@@ -1579,40 +1580,47 @@ void Task_MigrateVmTarget::checkRequiresDiskSpace()
 
 PRL_RESULT Task_MigrateVmTarget::checkSharedStorage()
 {
-	if (m_sSharedFileName.isEmpty())
+	PRL_RESULT output = PRL_ERR_SUCCESS;
+	do
 	{
-		WRITE_TRACE(DBG_FATAL,"Missed filename for shared storage check!");
-		return PRL_ERR_SUCCESS;
-	}
-
-	QFileInfo sharedFileInfo(QString("%1/%2")
-				 .arg(m_sTargetVmHomePath)
-				 .arg(m_sSharedFileName));
-
-	if( !sharedFileInfo.exists() )
-	{
-		if (CVmMigrateHelper::isInsideSharedVmPrivate(m_sTargetVmHomePath))
+		::Template::Storage::Dao::pointer_type c;
+		::Template::Storage::Dao d(getClient()->getAuthHelper());
+		if (PRL_SUCCEEDED(d.findForEntry(m_sTargetVmHomePath, c)))
 		{
-			CVmEvent e;
-			e.setEventCode(PRL_ERR_VM_MIGRATE_TARGET_INSIDE_SHARED_VM_PRIVATE);
-			m_lstCheckPrecondsErrors.append(e.toString());
-			return e.getEventCode();
+			output = PRL_ERR_VM_MIGRATE_CANNOT_REMOTE_CLONE_SHARED_VM;
+			break;
 		}
-		WRITE_TRACE(DBG_FATAL,
-			    "Found no %s file on target server. Storage is NOT shared.",
-			    QSTR2UTF8(sharedFileInfo.absoluteFilePath()));
-		return PRL_ERR_SUCCESS;
-	}
+		if (m_sSharedFileName.isEmpty())
+		{
+			WRITE_TRACE(DBG_FATAL,"Missed filename for shared storage check!");
+			break;
+		}
 
-	WRITE_TRACE(DBG_FATAL,
-		"Found %s file on target server. Storage IS shared.", QSTR2UTF8(sharedFileInfo.fileName()));
+		QFileInfo sharedFileInfo(QDir(m_sTargetVmHomePath), m_sSharedFileName);
+		if (!sharedFileInfo.exists())
+		{
+			if (CVmMigrateHelper::isInsideSharedVmPrivate(m_sTargetVmHomePath))
+			{
+				output = PRL_ERR_VM_MIGRATE_TARGET_INSIDE_SHARED_VM_PRIVATE;
+				break;
+			}
+			WRITE_TRACE(DBG_FATAL,
+				    "Found no %s file on target server. Storage is NOT shared.",
+				    QSTR2UTF8(sharedFileInfo.absoluteFilePath()));
+			break;
+		}
+		output = PRL_INFO_VM_MIGRATE_STORAGE_IS_SHARED;
+		WRITE_TRACE(DBG_FATAL,
+			"Found %s file on target server. Storage IS shared.", QSTR2UTF8(m_sSharedFileName));
+	}
+	while(false);
 
 	//Fill additional error info
-	CVmEvent cEvent;
-	cEvent.setEventCode(PRL_INFO_VM_MIGRATE_STORAGE_IS_SHARED);
-	m_lstCheckPrecondsErrors.append(cEvent.toString());
+	CVmEvent e;
+	e.setEventCode(output);
+	m_lstCheckPrecondsErrors.append(e.toString());
 
-	return PRL_INFO_VM_MIGRATE_STORAGE_IS_SHARED;
+	return output;
 }
 
 PRL_RESULT Task_MigrateVmTarget::registerVmBeforeMigration()
