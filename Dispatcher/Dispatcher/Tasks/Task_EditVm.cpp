@@ -1372,6 +1372,9 @@ PRL_RESULT Task_EditVm::editVm()
 		//////////////////////////////////////////////////////////////////////////
 
 		bool bOldTemplate = pVmConfigOld->getVmSettings()->getVmCommonOptions()->isTemplate();
+		if (bOldTemplate)
+			nState = VMS_STOPPED;
+
 		bool bNewTemplate = pVmConfigNew->getVmSettings()->getVmCommonOptions()->isTemplate();
 		if ( ! bOldTemplate && bNewTemplate && nState != VMS_STOPPED )
 		{
