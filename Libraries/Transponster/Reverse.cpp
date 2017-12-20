@@ -602,6 +602,8 @@ QString View::getAdapterType() const
 		return QString("rtl8139");
 	case PNT_E1000:
 		return QString("e1000");
+	case PNT_HYPERV:
+		return QString("hv-net");
 	default:
 		return QString("virtio");
 	}

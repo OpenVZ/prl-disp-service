@@ -279,6 +279,8 @@ PRL_VM_NET_ADAPTER_TYPE Network::parseAdapterType(const QString& type)
 		return PNT_E1000;
 	else if (type == "virtio")
 		return PNT_VIRTIO;
+	else if (type == "hv-net")
+		return PNT_HYPERV;
 	return PNT_UNDEFINED;
 }
 
