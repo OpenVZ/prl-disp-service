@@ -1651,6 +1651,8 @@ void CVmValidateConfig::CheckNetworkAdapter()
 	QList<QString > lstMacAddresses;
 	QList<QHostAddress > lstIPAddresses;
 
+	unsigned int nOsVersion = m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsVersion();
+
 	for(int i = 0; i < lstNetworkAdapters.size(); i++)
 	{
 		CVmGenericNetworkAdapter* pNetAdapter = lstNetworkAdapters[i];
@@ -1669,6 +1671,14 @@ void CVmValidateConfig::CheckNetworkAdapter()
 		PRL_RESULT errCode = PRL_ERR_SUCCESS;
 		QString sMacAddress = pNetAdapter->getMacAddress();
 		bool bCheckPrlAddress = false;
+
+		if (pNetAdapter->getAdapterType() == PNT_HYPERV && !PVS_GUEST_HYPERV_SUPPORTED(nOsVersion))
+		{
+			m_lstResults += PRL_ERR_VMCONF_SCSI_HYPERV_LINUX_NOT_SUPPORTED;
+			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
+			continue;
+		}
+
 
 		if ( !HostUtils::checkMacAddress(sMacAddress, bCheckPrlAddress ) )
 			errCode = PRL_ERR_VMCONF_NETWORK_ADAPTER_INVALID_MAC_ADDRESS;
