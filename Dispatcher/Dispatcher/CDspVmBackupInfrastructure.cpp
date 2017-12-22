@@ -41,6 +41,7 @@
 #include "CDspVmBackupInfrastructure.h"
 #include "CDspVmSnapshotInfrastructure.h"
 #include <prlxmlmodel/BackupActivity/BackupActivity.h>
+#include <prlcommon/VirtualDisk/PloopDisk.h>
 
 namespace Backup
 {
@@ -883,14 +884,13 @@ namespace Flavor
 ///////////////////////////////////////////////////////////////////////////////
 // struct Sketch
 
-const char Sketch::s_component[] = "prl_backup";
 
 PRL_RESULT Sketch::open(const QString& uuid_, const QString& tmp_)
 {
 	if (!getUuid().isEmpty())
 		return PRL_ERR_DOUBLE_INIT;
 
-	QString c = QString(s_component).append(".").append(uuid_);
+	QString c = VirtualDisk::Ploop::getComponentName(uuid_);
 	if (0 != m_core.create_tsnapshot(m_ct, uuid_, m_map, QSTR2UTF8(c),
 		tmp_.isEmpty() ? NULL : QSTR2UTF8(tmp_)))
 		return PRL_ERR_BACKUP_CREATE_SNAPSHOT_FAILED;
@@ -914,7 +914,7 @@ PRL_RESULT Sketch::close(bool flavor_)
 // struct Mount
 
 Mount::Mount(const QString& ct_, const CVzOperationHelper& core_):
-	Pure<Export::Mount>(ct_, Export::Mount(s_component, core_), core_)
+	Pure<Export::Mount>(ct_, Export::Mount(VirtualDisk::Ploop::getComponentName(), core_), core_)
 {
 }
 
