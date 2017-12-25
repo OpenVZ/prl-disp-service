@@ -1615,11 +1615,13 @@ PRL_RESULT Task_MigrateVmTarget::checkSharedStorage()
 	}
 	while(false);
 
-	//Fill additional error info
-	CVmEvent e;
-	e.setEventCode(output);
-	m_lstCheckPrecondsErrors.append(e.toString());
-
+	if (PRL_FAILED(output))
+	{
+		//Fill additional error info
+		CVmEvent e;
+		e.setEventCode(output);
+		m_lstCheckPrecondsErrors.append(e.toString());
+	}
 	return output;
 }
 
