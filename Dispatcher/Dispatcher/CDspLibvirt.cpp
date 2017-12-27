@@ -1194,14 +1194,13 @@ void Device::operator()(Registry::Access& access_)
 		return;
 	}
 	access_.getReactor().updateConnected(m_alias, m_state, r);
-	if (PVE::DeviceDisconnected != m_state)
+	CDspLockedPointer<CDspVmStateSender> x(CDspService::instance()->getVmStateSender());
+	if (!x.isValid())
 		return;
 
-	QString u;
-	m_agent.getUuid(u);
-	CDspLockedPointer<CDspVmStateSender> x(CDspService::instance()->getVmStateSender());
-	if (x.isValid())
-		x->onVmDeviceDetached(u, m_alias);
+	x->onVmConfigChanged(QString(), access_.getUuid());
+	if (PVE::DeviceDisconnected == m_state)
+		x->onVmDeviceDetached(access_.getUuid(), m_alias);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

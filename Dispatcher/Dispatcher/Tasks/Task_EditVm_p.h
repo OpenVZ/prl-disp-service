@@ -361,7 +361,7 @@ struct Facade
 
 	result_type operator()(Magic::agent_type agent_)
 	{
-		return Command::Vm::Gear<Command::Tag::Config<T> >
+		return Command::Vm::Gear<Command::Tag::Config<T, T> >
 			::run(qMakePair(agent_, m_config));
 	}
 
@@ -376,7 +376,7 @@ struct Facade<T, typename boost::enable_if<boost::is_same<typename T::load_type,
 
 	result_type operator()(Magic::agent_type agent_)
 	{
-		return Command::Vm::Gear<Command::Tag::Config<T> >
+		return Command::Vm::Gear<Command::Tag::Config<T, T> >
 			::run(agent_);
 	}
 };
@@ -539,64 +539,6 @@ struct Factory
 
 namespace Cpu
 {
-
-namespace Limit
-{
-
-typedef boost::function<Libvirt::Result (Libvirt::Instrument::Agent::Vm::Editor, quint64, quint64)> setter_type;
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Percents
-
-struct Percents
-{
-	explicit Percents(quint32 value_, setter_type setter_)
-		: m_value(value_), m_setter(setter_)
-	{
-	}
-
-	Libvirt::Result operator()(const Libvirt::Instrument::Agent::Vm::Editor& agent_) const;
-
-private:
-	quint32 m_value;
-	setter_type m_setter;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Mhz
-
-struct Mhz
-{
-	explicit Mhz(quint32 value_, setter_type setter_)
-		: m_value(value_), m_setter(setter_)
-	{
-	}
-
-	Libvirt::Result operator()(const Libvirt::Instrument::Agent::Vm::Editor& agent_) const;
-
-private:
-	quint32 m_value;
-	setter_type m_setter;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Any
-
-struct Any
-{
-	Any(const CVmCpu& cpu, quint32 type_): m_cpu(cpu), m_type(type_)
-	{
-	}
-
-	Libvirt::Result operator()(const Libvirt::Instrument::Agent::Vm::Editor& agent_) const;
-
-private:
-	CVmCpu m_cpu;
-	quint32 m_type;
-};
-
-} // namespace Limit
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
