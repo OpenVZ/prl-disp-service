@@ -298,6 +298,10 @@ class Command
 	typedef T* value_type;
 
 public:
+	Command(): m_command()
+	{
+	}
+
 	void setCommand(value_type value_)
 	{
 		m_command = value_;
