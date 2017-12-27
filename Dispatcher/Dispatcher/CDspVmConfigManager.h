@@ -156,6 +156,22 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Match
+
+template<class T>
+struct Match
+{
+	explicit Match(const T& needle_): m_needle(&needle_)
+	{
+	}
+
+	bool operator()(const T* item_);
+
+private:
+	const T* m_needle;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Device
 
 template <class T, PRL_DEVICE_TYPE D>

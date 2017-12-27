@@ -73,11 +73,6 @@
 
 namespace
 {
-template<class T, class U> T ceilDiv(T lhs_, U rhs_)
-{
-	return (lhs_ + rhs_ - 1) / rhs_;
-}
-
 // RAM, GiB     <16       <32        <64   ...
 // factor        1         2          4
 // maxNuma     RAM+4     RAM+8      RAM+16
@@ -85,7 +80,7 @@ template<class T, class U> T ceilDiv(T lhs_, U rhs_)
 
 unsigned getMaxNumaRamMb(unsigned ram)
 {
-	unsigned factor = ceilDiv(ram/1024, 16);
+	unsigned factor = (ram/1024 + 15) / 16;
 	return (ram + 4*factor*1024)/1024*1024;
 }
 
@@ -3196,60 +3191,6 @@ Vm::Action* Factory::operator()(const Request& input_) const
 
 namespace Cpu
 {
-
-namespace Limit
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Percents
-
-Libvirt::Result Percents::operator()(const vm::Editor& agent_) const
-{
-	Prl::Expected<VtInfo, Error::Simple> v = Libvirt::Kit.host().getVt();
-	if (v.isFailed())
-		return v.error();
-
-	quint32 p(v.value().getQemuKvm()->getVCpuInfo()->getDefaultPeriod());
-	return m_setter(agent_, m_value * p / 100, p);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Mhz
-
-Libvirt::Result Mhz::operator()(const vm::Editor& agent_) const
-{
-	Prl::Expected<VtInfo, Error::Simple> v = Libvirt::Kit.host().getVt();
-	if (v.isFailed())
-		return v.error();
-
-	/* get cpu limit*/
-	quint32 p(v.value().getQemuKvm()->getVCpuInfo()->getDefaultPeriod());
-	quint32 l = ceilDiv(static_cast<quint64>(m_value) * p,
-			v.value().getQemuKvm()->getVCpuInfo()->getMhz());
-	return m_setter(agent_, l, p);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Any
-
-Libvirt::Result Any::operator()(const vm::Editor& agent_) const
-{
-	quint32 n(m_cpu.getCpuLimitValue());
-	Limit::setter_type s(boost::bind(&vm::Editor::setGlobalCpuLimit, _1, _2, _3));
-	if (PRL_VM_CPULIMIT_GUEST == m_type) {
-		n = ceilDiv(n, m_cpu.getNumber());
-		s = boost::bind(&vm::Editor::setPerCpuLimit, _1, _2, _3);
-	}
-
-	if (m_cpu.getCpuLimitType() == PRL_CPULIMIT_MHZ)
-		return Limit::Mhz(n, s)(agent_);
-	else if (m_cpu.getCpuLimitType() == PRL_CPULIMIT_PERCENTS)
-		return Limit::Percents(n, s)(agent_);
-
-	return Error::Simple(PRL_ERR_FAILURE, "Unknown type of CPU limit");
-}
-
-} // namespace Limit
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
@@ -3326,7 +3267,7 @@ Vm::Action* Factory::craftLimit(const Request& input_) const
 			->getWorkspacePreferences()->getVmGuestCpuLimitType());
 
 	Forge f(input_);
-	return f.craftRuntime(Limit::Any(*newCpu, t));
+	return f.craftRuntime(::Vm::Config::Edit::Cpu::Limit::Any(*newCpu, t));
 }
 
 } // namespace Cpu

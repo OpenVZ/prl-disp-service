@@ -176,7 +176,7 @@ struct Timeout
 ///////////////////////////////////////////////////////////////////////////////
 // struct Config
 
-template<class T>
+template<class T, class U>
 struct Config
 {
 };
@@ -197,18 +197,8 @@ struct IsAsync: boost::mpl::false_
 {
 };
 
-template<class T>
-struct IsAsync<Tag::Config<T> >: boost::mpl::true_
-{
-};
-
-template<class T, class U>
-struct IsAsync<Tag::State<T, U> >: boost::mpl::true_
-{
-};
-
-template<class T, class U>
-struct IsAsync<Tag::Timeout<T, U> >: boost::mpl::true_
+template<class T, class U, template<class, class> class V>
+struct IsAsync<V<T, U> >: boost::mpl::true_
 {
 };
 
@@ -221,6 +211,19 @@ struct Lock
 };
 
 } // namespace Tag
+
+namespace Details
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Body
+
+template<class T>
+struct Body
+{
+	static void run(Context& context_);
+};
+
+} // namespace Details
 
 namespace Need
 {
@@ -333,6 +336,7 @@ namespace Vm
 namespace Fork
 {
 struct Reactor;
+struct Detector;
 
 namespace State
 {
@@ -501,9 +505,9 @@ struct Extra
 		const SmartPtr<CDspClient>& session_);
 	Libvirt::Result operator()(quint32 timeout_, Fork::Timeout::Handler* reactor_);
 
-	Libvirt::Result operator()
-		(Fork::State::Detector* detector_, Fork::Reactor* reactor_);
-	Libvirt::Result operator()(Fork::Config::Detector* detector_);
+	template<class T>
+	typename boost::enable_if<boost::is_base_of<Fork::Detector, T>, Libvirt::Result>::type
+		operator()(T* detector_, Fork::Reactor* reactor_);
 
 private:
 	QEventLoop* m_loop;
@@ -521,6 +525,18 @@ struct Reactor: QObject
 {
 public slots:
 	virtual void react() = 0;
+
+private:
+	Q_OBJECT
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Detector
+
+struct Detector: QObject
+{
+signals:
+	void detected();
 
 private:
 	Q_OBJECT
@@ -568,18 +584,18 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Detector
 
-struct Detector: QObject
+struct Detector: Fork::Detector
 {
 	Detector(const QString& uuid_, const boost::function1<bool, unsigned>& predicate_):
 		m_uuid(uuid_), m_predicate(predicate_)
 	{
 	}
 
+	static const char* getSenderSlot();
+	static const char* getSenderSignal();
+
 public slots:
 	void react(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_);
-
-signals:
-	void detected();
 
 private:
 	Q_OBJECT
@@ -757,26 +773,30 @@ namespace Config
 ///////////////////////////////////////////////////////////////////////////////
 // struct Detector
 
-struct Detector: QObject
+struct Detector: Fork::Detector
 {
+	typedef boost::function<bool ()> predicate_type;
+
 	explicit Detector(const QString& uid_): m_uid(uid_)
 	{
 	}
 
-public slots:
-	void react(QString, QString uid_)
+	void setExtra(const predicate_type& value_)
 	{
-		if (m_uid == uid_)
-			emit detected();
+		m_extra = value_;
 	}
 
-signals:
-	void detected();
+	static const char* getSenderSlot();
+	static const char* getSenderSignal();
+
+public slots:
+	void react(QString, QString uid_);
 
 private:
 	Q_OBJECT
 
 	const QString m_uid;
+	predicate_type m_extra;
 };
 
 } // namespace Config
@@ -834,9 +854,9 @@ struct Visitor
 	template<class T>
 	Libvirt::Result operator()(Tag::Reply<T> launcher_);
 
-	template<class T, class U>
+	template<class T, class U, template<class, class> class V>
 	Libvirt::Result operator()
-		(Tag::State<T, U>, boost::mpl::true_ = boost::mpl::true_());
+		(V<T, U>, boost::mpl::true_ = boost::mpl::true_());
 
 	template<class T, PVE::IDispatcherCommands X>
 	Libvirt::Result operator()
@@ -891,22 +911,13 @@ struct Launcher
 		*m_sink = launcher_(m_load);
 	}
 
-	template<class U, class V>
-	void operator()(Tag::State<U, V>, boost::mpl::true_ = boost::mpl::true_())
+	template<class U, class V, template<class, class> class W>
+	void operator()(W<U, V>, boost::mpl::true_ = boost::mpl::true_())
 	{
 		*m_sink = m_setup(V::craftDetector(m_load), NULL);
 		if (m_sink->isSucceed())
 			this->operator()(U(), Tag::IsAsync<U>());
 	}
-
-	template<class U>
-	void operator()(Tag::Config<U>, boost::mpl::true_ = boost::mpl::true_())
-	{
-		*m_sink = m_setup(U::craftDetector(m_load));
-		if (m_sink->isSucceed())
-			this->operator()(U(), Tag::IsAsync<U>());
-	}
-
 	template<class U, class V>
 	void operator()(Tag::Timeout<U, V>, boost::mpl::true_ = boost::mpl::true_())
 	{
@@ -1014,6 +1025,26 @@ struct Resurrect
 	Libvirt::Result operator()(const QString& uuid_);
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Hotplug
+
+struct Hotplug
+{
+	Hotplug(Libvirt::Instrument::Agent::Vm::Editor runtime_,
+		const CVmIdentification& ident_, const SmartPtr<CDspClient>& session_)
+		: m_runtime(runtime_), m_ident(ident_), m_session(session_)
+	{
+	}
+
+	Libvirt::Result plug(const CVmHardDisk& disk_);
+	Libvirt::Result unplug(const CVmHardDisk& disk_);
+
+private:
+	Libvirt::Instrument::Agent::Vm::Editor m_runtime;
+	const CVmIdentification& m_ident;
+	SmartPtr<CDspClient> m_session;
+};
+
 namespace Shutdown
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -1066,28 +1097,119 @@ typedef Tag::Timeout<Tag::State<Launcher, Fork::State::Strict<VMS_STOPPED> >, Fa
 	schema_type;
 
 } // namespace Shutdown
-} // namespace Vm
+
+namespace Device
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Wish
+
+template<class T>
+struct Wish: Need::Command<Parallels::CProtoVmDeviceCommand>
+{
+protected:
+	T getModel() const
+	{
+		T output;
+		StringToElement<T* >(&output, getCommand()->GetDeviceConfig());
+
+		return output;
+	}
+};
+
+namespace Cdrom
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Launcher
+
+struct Launcher: Need::Agent, Wish<CVmOpticalDisk>, Need::Context
+{
+	Libvirt::Result operator()()
+	{
+		return getAgent().getRuntime().update(getModel());
+	}
+};
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Hotplug
+// struct Lander
 
-struct Hotplug
+struct Lander: Need::Context
 {
-	Hotplug(Libvirt::Instrument::Agent::Vm::Editor runtime_,
-		const CVmIdentification& ident_, const SmartPtr<CDspClient>& session_)
-		: m_runtime(runtime_), m_ident(ident_), m_session(session_)
+	typedef PVE::DeviceConnectedState target_type;
+
+	explicit Lander(target_type target_): m_target(target_)
 	{
 	}
 
-	Libvirt::Result plug(const CVmHardDisk& disk_);
-	Libvirt::Result unplug(const CVmHardDisk& disk_);
+	bool operator()();
+	void setModel(const CVmOpticalDisk& value_)
+	{
+		m_model = value_;
+	}
 
 private:
-	Libvirt::Instrument::Agent::Vm::Editor m_runtime;
-	const CVmIdentification& m_ident;
-	SmartPtr<CDspClient> m_session;
+	CVmOpticalDisk m_model;
+	const target_type m_target;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Tanker
+
+struct Tanker: Wish<CVmOpticalDisk>, Need::Context
+{
+	explicit Tanker(Lander& result_): m_result(&result_)
+	{
+	}
+
+	Libvirt::Result operator()()
+	{
+		m_result->setModel(getModel());
+		Lander::meetRequirements(getContext(), *m_result);
+
+		return Libvirt::Result();
+	}
+
+private:
+	Lander* m_result;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Policy
+
+struct Policy
+{
+	static Fork::Reactor* craftReactor(const Context& context_)
+	{
+		return new Fork::State::Reactor(context_);
+	}
+
+	static Fork::Config::Detector* craftDetector(const Context& context_);
+};
+
+} // namespace Cdrom
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Disk
+
+template<PVE::IDispatcherCommands X>
+struct Disk: Need::Agent, Wish<CVmHardDisk>, Need::Context, Need::Config
+{
+	Libvirt::Result operator()();
+
+private:
+	static Libvirt::Result do_(Hotplug subject_, CVmHardDisk object_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Despatch
+
+template<PVE::IDispatcherCommands X>
+struct Despatch: Need::Command<Parallels::CProtoVmDeviceCommand>
+{
+	static void run(Context& context_);
+};
+
+} // namespace Device
+} // namespace Vm
 } // namespace Command
 
 namespace Vm
@@ -1138,12 +1260,66 @@ private:
 
 namespace Cpu
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct LimitType
-
-struct LimitType: std::unary_function<PRL_RESULT, CVmConfiguration&>
+namespace Limit
 {
-	explicit LimitType(quint32 value_): m_value(value_)
+typedef boost::function<Libvirt::Result (Libvirt::Instrument::Agent::Vm::Editor, quint64, quint64)> setter_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Percents
+
+struct Percents
+{
+	explicit Percents(quint32 value_, setter_type setter_)
+		: m_value(value_), m_setter(setter_)
+	{
+	}
+
+	Libvirt::Result operator()(const Libvirt::Instrument::Agent::Vm::Editor& agent_) const;
+
+private:
+	quint32 m_value;
+	setter_type m_setter;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mhz
+
+struct Mhz
+{
+	explicit Mhz(quint32 value_, setter_type setter_)
+		: m_value(value_), m_setter(setter_)
+	{
+	}
+
+	Libvirt::Result operator()(const Libvirt::Instrument::Agent::Vm::Editor& agent_) const;
+
+private:
+	quint32 m_value;
+	setter_type m_setter;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Any
+
+struct Any
+{
+	Any(const CVmCpu& cpu, quint32 type_): m_cpu(cpu), m_type(type_)
+	{
+	}
+
+	Libvirt::Result operator()(const Libvirt::Instrument::Agent::Vm::Editor& agent_) const;
+
+private:
+	CVmCpu m_cpu;
+	quint32 m_type;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Type
+
+struct Type: std::unary_function<PRL_RESULT, CVmConfiguration&>
+{
+	explicit Type(quint32 value_): m_value(value_)
 	{
 	}
 
@@ -1152,6 +1328,8 @@ struct LimitType: std::unary_function<PRL_RESULT, CVmConfiguration&>
 private:
 	quint32 m_value;
 };
+
+} // namespace Limit
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Features

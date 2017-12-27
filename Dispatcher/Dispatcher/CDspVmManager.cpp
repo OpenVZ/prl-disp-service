@@ -67,7 +67,6 @@
 #include "Tasks/Task_ChangeSID.h"
 #include "Tasks/Task_ExecVm.h"
 #include "Tasks/Task_EditVm.h"
-#include "Tasks/Task_EditVm_p.h"
 #include "CVcmmdInterface.h"
 #include "CDspBackupDevice.h"
 
@@ -333,92 +332,6 @@ struct Essence<PVE::DspCmdVmCaptureScreen>: Need::Agent, Need::Context,
 
 		respond(QString(a.readAll().toBase64()));
 		return Libvirt::Result();
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Hotplug
-
-Libvirt::Result Hotplug::plug(const CVmHardDisk& disk_)
-{
-	if (!Backup::Device::Details::Finding(disk_).isKindOf())
-		return m_runtime.plug(disk_);
-
-	::Backup::Device::Oneshot x(m_ident.getHomePath(), m_ident.getVmUuid());
-	x.setContext(::Backup::Device::Agent::Unit(m_session));
-	Error::Simple e(x.enable(disk_));
-	if (PRL_FAILED(e.code()))
-		return e;
-	Libvirt::Result output = m_runtime.plug(disk_);
-	if (output.isFailed())
-		x.disable(disk_);
-	return output;
-}
-
-Libvirt::Result Hotplug::unplug(const CVmHardDisk& disk_)
-{
-	namespace bd = ::Backup::Device;
-	Libvirt::Result output = m_runtime.unplug(disk_);
-	if (output.isSucceed() && bd::Details::Finding(disk_).isKindOf())
-	{
-		bd::Event::Disconnector()(bd::Event::Disable
-			(m_ident.getVmUuid(), m_ident.getHomePath(), disk_));
-	}
-	return output;
-}
-
-template<>
-struct Essence<PVE::DspCmdVmDevConnect>:
-	Need::Agent, Need::Command<CProtoVmDeviceCommand>, Need::Context, Need::Config
-{
-	Libvirt::Result operator()()
-	{
-		switch (getCommand()->GetDeviceType())
-		{
-		case PDE_OPTICAL_DISK:
-		{
-			CVmOpticalDisk y;
-			StringToElement<CVmOpticalDisk* >(&y, getCommand()->GetDeviceConfig());
-			return getAgent().getRuntime().update(y);
-		}
-		case PDE_HARD_DISK:
-		{
-			CVmHardDisk y;
-			StringToElement<CVmHardDisk* >(&y, getCommand()->GetDeviceConfig());
-			return Hotplug(getAgent().getRuntime(), *getConfig()->getVmIdentification(),
-				getContext().getSession()).plug(y);
-		}
-		default:
-			return Error::Simple(PRL_ERR_UNIMPLEMENTED);
-		}
-	}
-};
-
-template<>
-struct Essence<PVE::DspCmdVmDevDisconnect>:
-	Need::Agent, Need::Command<CProtoVmDeviceCommand>, Need::Context, Need::Config
-{
-	Libvirt::Result operator()()
-	{
-		switch (getCommand()->GetDeviceType())
-		{
-		case PDE_OPTICAL_DISK:
-		{
-			CVmOpticalDisk y;
-			StringToElement<CVmOpticalDisk* >(&y, getCommand()->GetDeviceConfig());
-			return getAgent().getRuntime().update(y);
-		}
-		case PDE_HARD_DISK:
-		{
-			CVmHardDisk y;
-			StringToElement<CVmHardDisk* >(&y, getCommand()->GetDeviceConfig());
-			y.setConnected(PVE::DeviceConnected);
-			return Hotplug(getAgent().getRuntime(), *getConfig()->getVmIdentification(),
-				getContext().getSession()).unplug(y);
-		}
-		default:
-			return Error::Simple(PRL_ERR_UNIMPLEMENTED);
-		}
 	}
 };
 
@@ -985,6 +898,32 @@ quint32 Reactor<PVE::DspCmdVmStop>::getInterval() const
 	return Shutdown::Fallback::getTimeout();
 }
 
+template<>
+void Reactor<PVE::DspCmdVmDevConnect>::react()
+{
+	m_context.reply(Libvirt::Result());
+	emit finish();
+}
+
+template<>
+quint32 Reactor<PVE::DspCmdVmDevConnect>::getInterval() const
+{
+	return 10;
+}
+
+template<>
+void Reactor<PVE::DspCmdVmDevDisconnect>::react()
+{
+	m_context.reply(Libvirt::Result());
+	emit finish();
+}
+
+template<>
+quint32 Reactor<PVE::DspCmdVmDevDisconnect>::getInterval() const
+{
+	return 10;
+}
+
 } // namespace Timeout
 
 namespace State
@@ -1001,6 +940,16 @@ void Detector::react(unsigned oldState_, unsigned newState_, QString vmUuid_, QS
 		sender()->disconnect(this);
 		emit detected();
 	}
+}
+
+const char* Detector::getSenderSlot()
+{
+	return SLOT(react(unsigned, unsigned, QString, QString));
+}
+
+const char* Detector::getSenderSignal()
+{
+	return SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString));
 }
 
 namespace Snapshot
@@ -1068,6 +1017,29 @@ Libvirt::Result Create::operator()()
 } // namespace Snapshot
 } // namespace State
 
+namespace Config
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Detector
+
+void Detector::react(QString, QString uid_)
+{
+	if (m_uid == uid_ && (m_extra.empty() || m_extra()))
+		emit detected();
+}
+
+const char* Detector::getSenderSlot()
+{
+	return SLOT(react(QString, QString));
+}
+
+const char* Detector::getSenderSignal()
+{
+	return SIGNAL(signalSendVmConfigChanged(QString, QString));
+}
+
+} // namespace Config
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Slip
 
@@ -1097,8 +1069,8 @@ Libvirt::Result Visitor::operator()(Tag::Timeout<T, Tag::Libvirt<X> >, boost::mp
 	return (*this)(T(), Tag::IsAsync<T>());
 }
 
-template<class T, class U>
-Libvirt::Result Visitor::operator()(Tag::State<T, U>, boost::mpl::true_)
+template<class T, class U, template<class, class> class V>
+Libvirt::Result Visitor::operator()(V<T, U>, boost::mpl::true_)
 {
 	Libvirt::Result e = m_setup
 		(U::craftDetector(m_context), U::craftReactor(m_context));
@@ -1221,13 +1193,17 @@ Libvirt::Result Extra::operator()(quint32 timeout_, Fork::Timeout::Handler* reac
 	return Libvirt::Result();
 }
 
-Libvirt::Result Extra::operator()
-	(Fork::State::Detector* detector_, Fork::Reactor* reactor_)
+template<class T>
+typename boost::enable_if
+<
+	boost::is_base_of<Fork::Detector, T>,
+	Libvirt::Result
+>::type Extra::operator()(T* detector_, Fork::Reactor* reactor_)
 {
 	if (NULL == detector_)
 		return Error::Simple(PRL_ERR_INVALID_ARG);
 
-	QScopedPointer<Fork::State::Detector> a(detector_);
+	QScopedPointer<T> a(detector_);
 	QScopedPointer<Fork::Reactor> b(reactor_);
 	if (!b.isNull() && !b->connect(a.data(), SIGNAL(detected()), SLOT(react()), Qt::DirectConnection))
 		return Error::Simple(PRL_ERR_FAILURE);
@@ -1242,9 +1218,8 @@ Libvirt::Result Extra::operator()
 	// NB. one needs to take some extra measures to handle cases when
 	// required event doesn't fire. for instance, abort waiting by timeout
 	// or wait for another state simultaneously.
-	if (!a->connect(s.getPtr(),
-		SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString)),
-		SLOT(react(unsigned, unsigned, QString, QString)), Qt::QueuedConnection))
+	if (!a->connect(s.getPtr(), T::getSenderSignal(), T::getSenderSlot(),
+		Qt::QueuedConnection))
 		return Error::Simple(PRL_ERR_FAILURE);
 
 	s.unlock();
@@ -1267,33 +1242,6 @@ Libvirt::Result Extra::operator()(PVE::IDispatcherCommands name_,
 	if (PRL_FAILED(e))
 		return Error::Simple(e);
 
-	m_tracker->add(a.take());
-
-	return Libvirt::Result();
-}
-
-Libvirt::Result Extra::operator()(Fork::Config::Detector* detector_)
-{
-	if (NULL == detector_)
-		return Error::Simple(PRL_ERR_INVALID_ARG);
-
-	QScopedPointer<Fork::Config::Detector> a(detector_);
-	if (!m_loop->connect(a.data(), SIGNAL(detected()), SLOT(quit()), Qt::DirectConnection))
-		return Error::Simple(PRL_ERR_FAILURE);
-
-	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
-	if (!s.isValid())
-		return Error::Simple(PRL_ERR_FAILURE);
-
-	// NB. one needs to take some extra measures to handle cases when
-	// required event doesn't fire. for instance, abort waiting by timeout
-	// or wait for another state simultaneously.
-	if (!a->connect(s.getPtr(),
-		SIGNAL(signalSendVmConfigChanged(QString, QString)),
-		SLOT(react(QString, QString)), Qt::QueuedConnection))
-		return Error::Simple(PRL_ERR_FAILURE);
-
-	s.unlock();
 	m_tracker->add(a.take());
 
 	return Libvirt::Result();
@@ -1347,6 +1295,37 @@ Libvirt::Result Resurrect::operator()(const QString& uuid_)
 	return output;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Hotplug
+
+Libvirt::Result Hotplug::plug(const CVmHardDisk& disk_)
+{
+	if (!Backup::Device::Details::Finding(disk_).isKindOf())
+		return m_runtime.plug(disk_);
+
+	::Backup::Device::Oneshot x(m_ident.getHomePath(), m_ident.getVmUuid());
+	x.setContext(::Backup::Device::Agent::Unit(m_session));
+	Error::Simple e(x.enable(disk_));
+	if (PRL_FAILED(e.code()))
+		return e;
+	Libvirt::Result output = m_runtime.plug(disk_);
+	if (output.isFailed())
+		x.disable(disk_);
+	return output;
+}
+
+Libvirt::Result Hotplug::unplug(const CVmHardDisk& disk_)
+{
+	namespace bd = ::Backup::Device;
+	Libvirt::Result output = m_runtime.unplug(disk_);
+	if (output.isSucceed() && bd::Details::Finding(disk_).isKindOf())
+	{
+		bd::Event::Disconnector()(bd::Event::Disable
+			(m_ident.getVmUuid(), m_ident.getHomePath(), disk_));
+	}
+	return output;
+}
+
 namespace Shutdown
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -1391,6 +1370,128 @@ quint32 Fallback::getTimeout()
 }
 
 } // namespace Shutdown
+
+namespace Device
+{
+namespace Cdrom
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Lander
+
+bool Lander::operator()()
+{
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> x = CDspService::instance()
+		->getVmDirHelper()
+			.getVmConfigByUuid
+				(getContext().getSession(), getContext().getVmUuid(), e);
+	if (!x.isValid())
+	{
+		WRITE_TRACE(DBG_FATAL, "VM %s config is not found: %s",
+			qPrintable(getContext().getVmUuid()), PRL_RESULT_TO_STRING(e));
+		return false;
+	}
+
+	typedef QList<CVmOpticalDisk* > list_type;
+	list_type& y = x->getVmHardwareList()->m_lstOpticalDisks;
+
+	list_type::iterator m = std::find_if(y.begin(), y.end(),
+		::Vm::Config::Index::Match<CVmOpticalDisk>(m_model));
+	if (y.end() == m)
+		return false;
+
+	return m_target == (*m)->getConnected();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Policy
+
+Fork::Config::Detector* Policy::craftDetector(const Context& context_)
+{
+	PVE::DeviceConnectedState s = PVE::DeviceConnected;
+	switch (context_.getCommand())
+	{
+	case PVE::DspCmdVmDevDisconnect:
+		s = PVE::DeviceDisconnected;
+	case PVE::DspCmdVmDevConnect:
+		break;
+	default:
+		WRITE_TRACE(DBG_FATAL, "the command %s is not supported",
+			PVE::DispatcherCommandToString(context_.getCommand()));
+		return NULL;
+	}
+	Lander x(s);
+	if (Prepare::Policy<Tanker>::do_(Tanker(x), context_).isFailed())
+		return NULL;
+
+	Fork::Config::Detector* output = new Fork::Config::Detector(context_.getVmUuid());
+	output->setExtra(boost::bind<bool>(x));
+
+	return output;
+}
+
+} // namespace Cdrom
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Disk
+
+template<PVE::IDispatcherCommands X>
+Libvirt::Result Disk<X>::operator()()
+{
+	return do_(Hotplug(getAgent().getRuntime(), *getConfig()->getVmIdentification(),
+		getContext().getSession()), getModel());
+}
+
+template<>
+Libvirt::Result Disk<PVE::DspCmdVmDevConnect>::do_(Hotplug subject_, CVmHardDisk object_)
+{
+	return subject_.plug(object_);
+}
+
+template<>
+Libvirt::Result Disk<PVE::DspCmdVmDevDisconnect>::do_(Hotplug subject_, CVmHardDisk object_)
+{
+	object_.setConnected(PVE::DeviceConnected);
+	return subject_.unplug(object_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Despatch
+
+template<PVE::IDispatcherCommands X>
+void Despatch<X>::run(Context& context_)
+{
+	Despatch n;
+	Libvirt::Result r = Prepare::Command<CProtoVmDeviceCommand>
+		::meetRequirements(context_, n);
+	if (r.isFailed())
+		return context_.reply(r);
+
+	switch (n.getCommand()->GetDeviceType())
+	{
+	case PDE_HARD_DISK:
+		return Details::Body
+				<
+					Tag::Fork<Tag::Reply<Disk<X> > >
+				>::run(context_);
+	case PDE_OPTICAL_DISK:
+		return Details::Body
+				<
+					Tag::Fork
+					<
+						Tag::Timeout
+						<
+							Tag::Config<Cdrom::Launcher, Cdrom::Policy>,
+							Tag::Libvirt<X>
+						>
+					>
+				>::run(context_);
+	default:
+		return context_.reply(Error::Simple(PRL_ERR_UNIMPLEMENTED));
+	}
+}
+
+} // namespace Device
 } // namespace Vm
 
 namespace Details
@@ -1575,12 +1676,6 @@ struct Execute<Tag::CreateDspVm<X> >
 // struct Body
 
 template<class T>
-struct Body
-{
-	static void run(Context& context_);
-};
-
-template<class T>
 void Body<T>::run(Context& context_)
 {
 	SmartPtr<CDspVm> m = CDspVm::GetVmInstanceByUuid(context_.getIdent());
@@ -1760,6 +1855,22 @@ void Body<Tag::Special<PVE::DspCmdVmPause> >::run(Context& context_)
 		"VM pause from a non-running state is impossible"));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Body<Tag::Special<PVE::DspCmdVmDevConnect> >
+
+template<>
+struct Body<Tag::Special<PVE::DspCmdVmDevConnect> >: Vm::Device::Despatch<PVE::DspCmdVmDevConnect>
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Body<Tag::Special<PVE::DspCmdVmDevDisconnect> >
+
+template<>
+struct Body<Tag::Special<PVE::DspCmdVmDevDisconnect> >: Vm::Device::Despatch<PVE::DspCmdVmDevDisconnect>
+{
+};
+
 } // namespace Details
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1857,8 +1968,8 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmSuspend] = map(Tag::Fork<Tag::State<Essence<PVE::DspCmdVmSuspend>,
 		Vm::Fork::State::Strict<VMS_SUSPENDED> > >());
 	m_map[PVE::DspCmdVmDropSuspendedState] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDropSuspendedState> > >());
-	m_map[PVE::DspCmdVmDevConnect] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDevConnect> > >());
-	m_map[PVE::DspCmdVmDevDisconnect] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDevDisconnect> > >());
+	m_map[PVE::DspCmdVmDevConnect] = map(Tag::Special<PVE::DspCmdVmDevConnect>());
+	m_map[PVE::DspCmdVmDevDisconnect] = map(Tag::Special<PVE::DspCmdVmDevDisconnect>());
 	m_map[PVE::DspCmdVmInitiateDevStateNotifications] = map(Tag::General<PVE::DspCmdVmInitiateDevStateNotifications>());
 	m_map[PVE::DspCmdVmInstallTools] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmInstallTools> > >());
 	m_map[PVE::DspCmdVmMigrateCancel] = map(Tag::Special<PVE::DspCmdVmMigrateCancel>());
@@ -2242,7 +2353,7 @@ void Gear::operator()(Registry::Access access_, Libvirt::Instrument::Agent::Vm::
 
 void Connector::setLimitType(quint32 type_)
 {
-	m_signal->connect(Cpu::LimitType(type_));
+	m_signal->connect(Cpu::Limit::Type(type_));
 }
 
 void Connector::setCpuFeatures(const CDispCpuPreferences& cpu_)
@@ -2265,10 +2376,72 @@ boost::optional<Gear> Connector::getResult()
 
 namespace Cpu
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct LimitType
+namespace Limit
+{
+namespace
+{
+template<class T, class U> T ceilDiv(T lhs_, U rhs_)
+{
+	return (lhs_ + rhs_ - 1) / rhs_;
+}
 
-PRL_RESULT LimitType::operator()(CVmConfiguration& config_) const
+} // namespace
+
+namespace vm = Libvirt::Instrument::Agent::Vm;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Percents
+
+Libvirt::Result Percents::operator()(const vm::Editor& agent_) const
+{
+	Prl::Expected<VtInfo, Error::Simple> v = Libvirt::Kit.host().getVt();
+	if (v.isFailed())
+		return v.error();
+
+	quint32 p(v.value().getQemuKvm()->getVCpuInfo()->getDefaultPeriod());
+	return m_setter(agent_, m_value * p / 100, p);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Mhz
+
+Libvirt::Result Mhz::operator()(const vm::Editor& agent_) const
+{
+	Prl::Expected<VtInfo, Error::Simple> v = Libvirt::Kit.host().getVt();
+	if (v.isFailed())
+		return v.error();
+
+	/* get cpu limit*/
+	quint32 p(v.value().getQemuKvm()->getVCpuInfo()->getDefaultPeriod());
+	quint32 l = ceilDiv(static_cast<quint64>(m_value) * p,
+			v.value().getQemuKvm()->getVCpuInfo()->getMhz());
+	return m_setter(agent_, l, p);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Any
+
+Libvirt::Result Any::operator()(const vm::Editor& agent_) const
+{
+	quint32 n(m_cpu.getCpuLimitValue());
+	Limit::setter_type s(boost::bind(&vm::Editor::setGlobalCpuLimit, _1, _2, _3));
+	if (PRL_VM_CPULIMIT_GUEST == m_type) {
+		n = ceilDiv(n, m_cpu.getNumber());
+		s = boost::bind(&vm::Editor::setPerCpuLimit, _1, _2, _3);
+	}
+
+	if (m_cpu.getCpuLimitType() == PRL_CPULIMIT_MHZ)
+		return Limit::Mhz(n, s)(agent_);
+	else if (m_cpu.getCpuLimitType() == PRL_CPULIMIT_PERCENTS)
+		return Limit::Percents(n, s)(agent_);
+
+	return Error::Simple(PRL_ERR_FAILURE, "Unknown type of CPU limit");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Type
+
+PRL_RESULT Type::operator()(CVmConfiguration& config_) const
 {
 	QString uuid = config_.getVmIdentification()->getVmUuid();
 	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(uuid);
@@ -2285,12 +2458,12 @@ PRL_RESULT LimitType::operator()(CVmConfiguration& config_) const
 	if (VMS_RUNNING == s || VMS_PAUSED == s)
 	{
 		WRITE_TRACE(DBG_INFO, "Update runtime CPU limits for VM '%s'", qPrintable(uuid));
-		r = ::Edit::Vm::Runtime::Cpu::Limit::Any(cpu, m_value)(u.getRuntime());
+		r = Any(cpu, m_value)(u.getRuntime());
 	}
 	else
 	{
 		WRITE_TRACE(DBG_INFO, "Update offline CPU limits for VM '%s'", qPrintable(uuid));
-		r = ::Edit::Vm::Runtime::Cpu::Limit::Any(cpu, m_value)(u.getEditor());
+		r = Any(cpu, m_value)(u.getEditor());
 	}
 
 	if (r.isFailed())
@@ -2302,6 +2475,8 @@ PRL_RESULT LimitType::operator()(CVmConfiguration& config_) const
 	cpu->setGuestLimitType(m_value);
 	return PRL_ERR_SUCCESS;
 }
+
+} // namespace Limit
 
 PRL_RESULT Features::operator()(CVmConfiguration& config_) const
 {
