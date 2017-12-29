@@ -663,7 +663,8 @@ struct Unit: private Limb::Abstract
 	Snapshot::List getSnapshot() const;
 	Editor getRuntime() const;
 	Editor getEditor() const;
-	Exec::AuxChannel* getChannel(const QString& path_) const;
+	QSharedPointer<Exec::AuxChannel>
+		getChannel(const QString& path_) const;
 
 	Limb::State getState() const;
 	Limb::Maintenance getMaintenance() const;

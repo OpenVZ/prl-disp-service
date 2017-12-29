@@ -500,19 +500,26 @@ Result Unit::rename(const QString& to_)
 		qPrintable(to_), 0));
 }
 
-Exec::AuxChannel* Unit::getChannel(const QString& path_) const
+QSharedPointer<Exec::AuxChannel>
+	Unit::getChannel(const QString& path_) const
 {
 	virStreamPtr stream = virStreamNew(getLink().data(), VIR_STREAM_NONBLOCK);
 	if (!stream)
-		return NULL;
+		return QSharedPointer<Exec::AuxChannel>();
 
 	int ret = virDomainOpenChannel(getDomain().data(), QSTR2UTF8(path_), stream, 0);
 	if (ret) {
 		virStreamFree(stream);
-		return NULL;
+		return QSharedPointer<Exec::AuxChannel>();
 	}
-
-	return new Exec::AuxChannel(stream);
+	QSharedPointer<Exec::AuxChannel> output(new Exec::AuxChannel(stream));
+	Exec::Callback* b = new Exec::Callback();
+	b->setTarget(output);
+	virStreamEventAddCallback(stream,
+		VIR_STREAM_EVENT_HANGUP | VIR_STREAM_EVENT_ERROR | VIR_STREAM_EVENT_READABLE,
+		&Exec::Callback::react, b, Libvirt::Callback::Plain::delete_<Exec::Callback>);
+	
+	return output;
 }
 
 Result Unit::getConfig(CVmConfiguration& dst_, bool runtime_) const
@@ -1492,12 +1499,8 @@ enum {
 	AUX_MAGIC_NUMBER = 0x4B58B9CA
 };
 
-AuxChannel::AuxChannel(virStreamPtr stream_)
-	: m_stream(stream_), m_read(0)
+AuxChannel::AuxChannel(virStreamPtr stream_): m_stream(stream_), m_read()
 {
-	virStreamEventAddCallback(m_stream,
-		VIR_STREAM_EVENT_HANGUP | VIR_STREAM_EVENT_ERROR | VIR_STREAM_EVENT_READABLE,
-		&reactEvent, this, NULL);
 }
 
 void AuxChannel::readMessage(const QByteArray& data_)
@@ -1673,6 +1676,24 @@ int AuxChannel::writeMessage(const QByteArray& data_, int client_)
 AuxChannel::~AuxChannel()
 {
 	close();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Callback
+
+void Callback::operator()(int events_)
+{
+	QSharedPointer<AuxChannel> t = m_target.toStrongRef();
+	if (t.isNull())
+		WRITE_TRACE(DBG_FATAL, "The channel target is disconnected");
+	else
+		t->processEvent(events_);
+}
+
+void Callback::react(virStreamPtr stream_, int events_, void *opaque_)
+{
+	Q_UNUSED(stream_);
+	(*(Callback* )opaque_)(events_);
 }
 
 }; //namespace Exec
