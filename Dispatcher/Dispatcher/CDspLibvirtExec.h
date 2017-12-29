@@ -325,6 +325,23 @@ private:
 	QMap<int, Device *> m_ioChannels;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Callback
+
+struct Callback
+{
+	void setTarget(QWeakPointer<AuxChannel> value_)
+	{
+		m_target = value_;
+	}
+	void operator()(int events_);
+
+	static void react(virStreamPtr stream_, int events_, void *opaque_);
+
+private:
+	QWeakPointer<AuxChannel> m_target;
+};
+
 } //namespace Exec
 
 namespace Command
