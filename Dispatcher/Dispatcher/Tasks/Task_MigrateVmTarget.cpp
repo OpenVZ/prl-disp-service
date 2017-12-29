@@ -1615,7 +1615,7 @@ PRL_RESULT Task_MigrateVmTarget::checkSharedStorage()
 	}
 	while(false);
 
-	if (PRL_FAILED(output))
+	if (PRL_ERR_SUCCESS != output)
 	{
 		//Fill additional error info
 		CVmEvent e;
