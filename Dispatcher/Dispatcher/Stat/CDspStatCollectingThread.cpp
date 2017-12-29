@@ -196,8 +196,8 @@ bool Vm::operator()()
 ///////////////////////////////////////////////////////////////////////////////
 // struct Farmer
 
-Farmer::Farmer(const CVmIdent& ident_, const Registry::Access& access_):
-	m_timer(startTimer(0)), m_ident(ident_), m_access(access_)
+Farmer::Farmer(const CVmIdent& ident_, getAccess_type access_):
+	m_timer(startTimer(0)), m_ident(ident_), m_getAccess(access_)
 {
 	qint64 c = CDspService::instance()->getDispConfigGuard()
 		.getDispWorkSpacePrefs()->getVmGuestCollectPeriod() * 1000;
@@ -253,7 +253,7 @@ void Farmer::timerEvent(QTimerEvent *event_)
 		PRL_VM_TYPE t = PVT_VM;
 		CDspService::instance()->getVmDirManager().getVmTypeByUuid(m_ident.first, t);
 		if (PVT_VM == t)
-			m_watcher->setFuture(QtConcurrent::run(Harvester::Vm(m_ident, m_access)));
+			m_watcher->setFuture(QtConcurrent::run(Harvester::Vm(m_ident, m_getAccess())));
 		else
 			m_watcher->setFuture(QtConcurrent::run(Harvester::Ct(m_ident.first)));
 	}
@@ -284,7 +284,7 @@ void Mapper::begin(CVmIdent ident_)
 	if (NULL != f)
 		return;
 
-	f = new Farmer(ident_, m_registry.find(ident_.first));
+	f = new Farmer(ident_, boost::bind(&Registry::Public::find, &m_registry, ident_.first));
 	f->setObjectName(k);
 	f->setParent(this);
 
