@@ -95,6 +95,8 @@ private:
 
 class Farmer: public QObject
 {
+	typedef  boost::function<const Registry::Access(void)> getAccess_type;
+
 	enum {
 		/*
 		 * Limit fs info stat collecting period to 10 seconds
@@ -106,7 +108,7 @@ class Farmer: public QObject
 
 	Q_OBJECT
 public:
-	Farmer(const CVmIdent& ident_, const Registry::Access& access_);
+	Farmer(const CVmIdent& ident_, getAccess_type getAccess_);
 
 public slots:
 	void reset();
@@ -120,7 +122,7 @@ private:
 	quint64 m_period;
 	quint64 m_initialPeriod;
 	CVmIdent m_ident;
-	Registry::Access m_access;
+	getAccess_type m_getAccess;
 	QScopedPointer<QFutureWatcher<bool> > m_watcher;
 };
 
