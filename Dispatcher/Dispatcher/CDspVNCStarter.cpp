@@ -390,7 +390,7 @@ void Backend::run()
 	{
 		Sweeper* w = new Sweeper(m_commit);
 		w->setParent(t);
-		w->connect(t, SIGNAL(ripped()), SLOT(reactRipped()));
+		w->connect(t, SIGNAL(closed()), SLOT(reactRipped()));
 	}
 	p = t->getPort();
 	t->connect(t, SIGNAL(ripped()), SLOT(deleteLater()));
@@ -419,7 +419,10 @@ void Tunnel::reactFinish(int, QProcess::ExitStatus)
 	if (NULL == m_keepAlive)
 		emit ripped();
 	else
+	{
+		emit closed();
 		m_keepAlive->disconnectFromHost();
+	}
 }
 
 void Tunnel::reactDisconnect()
@@ -428,7 +431,10 @@ void Tunnel::reactDisconnect()
 	if (NULL == m_stunnel)
 		emit ripped();
 	else
+	{
+		emit closed();
 		m_stunnel->terminate();
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
