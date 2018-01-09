@@ -311,6 +311,7 @@ struct Tunnel: QObject
 
 signals:
 	void ripped();
+	void closed();
 
 public slots:
 	void reactFinish(int, QProcess::ExitStatus);
