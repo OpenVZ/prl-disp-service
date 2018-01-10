@@ -39,6 +39,7 @@
 #include <QProcess>
 #include <QTcpSocket>
 #include <QHostAddress>
+#include <boost/mpl/at.hpp>
 #include <CDspVmConfigManager.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
@@ -247,21 +248,20 @@ private:
 namespace Socat
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Accept
+// struct Encryption
 
-struct Accept
+struct Encryption: private Api::Stunnel
 {
-	typedef Prl::Expected<QString, PRL_RESULT> result_type;
+	typedef QPair<QString, QString> value_type;
+	typedef Prl::Expected<value_type, PRL_RESULT> result_type;
 
-	explicit Accept(const Api::Stunnel& ssl_): m_ssl(ssl_)
+	explicit Encryption(const Api::Stunnel& ssl_): Api::Stunnel(ssl_)
 	{
 	}
 
-	result_type operator()(quint16 port_);
-	static result_type craftInsecure(quint16 port_);
+	result_type operator()();
 
 private:
-	Api::Stunnel m_ssl;
 	QSharedPointer<QTemporaryFile> m_key;
 	QSharedPointer<QTemporaryFile> m_certificate;
 };
@@ -271,8 +271,11 @@ private:
 
 struct Launcher
 {
-	Launcher();
-	explicit Launcher(const Api::Stunnel& ssl_);
+	typedef boost::variant<QString, QPair<QString, Encryption> > mode_type;
+
+	explicit Launcher(const mode_type& mode_): m_mode(mode_)
+	{
+	}
 
 	PRL_RESULT operator()(quint16 accept_, QProcess& process_);
 	Launcher& setTarget(const QHostAddress& address_, quint16 port_);
@@ -282,9 +285,29 @@ struct Launcher
 	}
 
 private:
+	mode_type m_mode;
 	QStringList m_target;
 	QPair<QHostAddress, quint16> m_server;
-	boost::function<Accept::result_type (quint16) > m_accept;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Visitor
+
+struct Visitor: boost::static_visitor<Prl::Expected<QString, PRL_RESULT> >
+{
+	explicit Visitor(quint16 port_): m_port(port_)
+	{
+	}
+
+	result_type operator()
+		(const boost::mpl::at_c<Launcher::mode_type::types, 0>::type& insecure_) const;
+	result_type operator()
+		(boost::mpl::at_c<Launcher::mode_type::types, 1>::type& secure_) const;
+
+private:
+	QString bind(const char* spell_, const QHostAddress& name_) const;
+
+	const quint16 m_port;
 };
 
 } // namespace Socat
