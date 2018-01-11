@@ -779,10 +779,10 @@ int Access::add(int interval_, virEventTimeoutCallback callback_, void* opaque_,
 		return -1;
 
 	int output = m_generator.fetchAndAddOrdered(1);
-	QMetaObject::invokeMethod(h.data(), "add", Q_ARG(int, output),
+	QMetaObject::invokeMethod(h.data(), "add", Qt::QueuedConnection, Q_ARG(int, output),
 		Q_ARG(virEventTimeoutCallback, callback_));
 	setOpaque(output, new Transport::Opaque(opaque_, free_));
-	QMetaObject::invokeMethod(h.data(), "setInterval", Q_ARG(int, output), Q_ARG(int, interval_));
+	QMetaObject::invokeMethod(h.data(), "setInterval", Qt::QueuedConnection, Q_ARG(int, output), Q_ARG(int, interval_));
 	return output;
 }
 
@@ -793,10 +793,10 @@ int Access::add(int socket_, int events_, virEventHandleCallback callback_, void
 		return -1;
 
 	int output = m_generator.fetchAndAddOrdered(1);
-	QMetaObject::invokeMethod(h.data(), "add", Q_ARG(int, output), Q_ARG(int, socket_),
+	QMetaObject::invokeMethod(h.data(), "add", Qt::QueuedConnection, Q_ARG(int, output), Q_ARG(int, socket_),
 		Q_ARG(virEventHandleCallback, callback_));
 	setOpaque(output, new Transport::Opaque(opaque_, free_));
-	QMetaObject::invokeMethod(h.data(), "setEvents", Q_ARG(int, output), Q_ARG(int, events_));
+	QMetaObject::invokeMethod(h.data(), "setEvents", Qt::QueuedConnection, Q_ARG(int, output), Q_ARG(int, events_));
 	return output;
 }
 
@@ -806,7 +806,7 @@ void Access::setEvents(int id_, int value_)
 	if (h.isNull())
 		return;
 
-	QMetaObject::invokeMethod(h.data(), "setEvents", Q_ARG(int, id_), Q_ARG(int, value_));
+	QMetaObject::invokeMethod(h.data(), "setEvents", Qt::QueuedConnection, Q_ARG(int, id_), Q_ARG(int, value_));
 }
 
 void Access::setInterval(int id_, int value_)
@@ -815,7 +815,7 @@ void Access::setInterval(int id_, int value_)
 	if (h.isNull())
 		return;
 
-	QMetaObject::invokeMethod(h.data(), "setInterval", Q_ARG(int, id_), Q_ARG(int, value_));
+	QMetaObject::invokeMethod(h.data(), "setInterval", Qt::QueuedConnection, Q_ARG(int, id_), Q_ARG(int, value_));
 }
 
 void Access::setOpaque(int id_, Transport::Visitor* value_)
@@ -825,7 +825,7 @@ void Access::setOpaque(int id_, Transport::Visitor* value_)
 	if (h.isNull())
 		return;
 
-	QMetaObject::invokeMethod(h.data(), "setOpaque", Q_ARG(int, id_),
+	QMetaObject::invokeMethod(h.data(), "setOpaque", Qt::QueuedConnection, Q_ARG(int, id_),
 		Q_ARG(Transport::Visitor*, g.take()));
 }
 
@@ -835,7 +835,7 @@ int Access::remove(int id_)
 	if (h.isNull())
 		return -1;
 
-	QMetaObject::invokeMethod(h.data(), "remove", Q_ARG(int, id_));
+	QMetaObject::invokeMethod(h.data(), "remove", Qt::QueuedConnection, Q_ARG(int, id_));
 	return 0;
 }
 
