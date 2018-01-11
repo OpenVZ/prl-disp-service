@@ -1374,10 +1374,6 @@ void Task_MigrateVmSource::cancelOperation(SmartPtr<CDspClient> pUser, const Sma
 
 PRL_RESULT Task_MigrateVmSource::migrateStoppedVm()
 {
-	CVzHelper vz;
-	if (vz.set_vziolimit("VZ_TOOLS"))
-		WRITE_TRACE(DBG_FATAL, "Warning: Ignore IO limit parameters");
-
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	if ( !(m_nReservedFlags & PVM_DONT_COPY_VM) ) {
 		/* get full directories and files lists for migration */

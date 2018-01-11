@@ -3349,16 +3349,6 @@ int CVzHelper::sync_env_uptime(const QString &uuid)
 	return PRL_ERR_SUCCESS;
 }
 
-int CVzHelper::set_vziolimit(const char *name)
-{
-	if (vzctl2_set_vzlimits(name)) {
-		WRITE_TRACE(DBG_FATAL, "failed vzctl2_set_vziolimit %s: %s",
-				name, vzctl2_get_last_error());
-		return -1;
-	}
-	return 0;
-}
-
 /************************************************************************/
 void CVzOperationHelper::cancel_operation()
 {

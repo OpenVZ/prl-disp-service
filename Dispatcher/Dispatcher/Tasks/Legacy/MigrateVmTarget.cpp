@@ -583,10 +583,6 @@ PRL_RESULT MigrateVmTarget::migrateStoppedVm()
 	CDispToDispCommandPtr pReply;
 	SmartPtr<IOPackage> pPackage;
 
-	CVzHelper vz;
-	if (vz.set_vziolimit("VZ_TOOLS"))
-		WRITE_TRACE(DBG_FATAL, "Warning: Ignore IO limit parameters");
-
 	if (!(m_nReservedFlags & PVM_DONT_COPY_VM))
 	{
 		if (PRL_FAILED(nRetCode = saveVmConfig()))

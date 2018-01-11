@@ -264,7 +264,6 @@ public:
 	static int set_env_uptime(const QString &uuid, const quint64 uptime, const QDateTime & date);
 	static int reset_env_uptime(const QString &uuid);
 	static int sync_env_uptime(const QString& uuid_);
-	int set_vziolimit(const char *name);
 
 	static int init_lib();
 

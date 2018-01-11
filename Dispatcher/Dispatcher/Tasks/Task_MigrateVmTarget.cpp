@@ -1249,11 +1249,8 @@ PRL_RESULT Task_MigrateVmTarget::reactStart(const SmartPtr<IOPackage> &package)
 		}
 	}
 
-	CVzHelper vz;
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	m_nSteps |= MIGRATE_STARTED;
-	if (vz.set_vziolimit("VZ_TOOLS"))
-		WRITE_TRACE(DBG_FATAL, "Warning: Ignore IO limit parameters");
 
 	if (!(m_nReservedFlags & PVM_DONT_COPY_VM))
 	{
