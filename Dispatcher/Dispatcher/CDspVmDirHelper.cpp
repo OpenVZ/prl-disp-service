@@ -1697,7 +1697,9 @@ void CDspVmDirHelper::sendVmConfigChangedEvent(const CVmIdent& vmIdent, const Sm
 	SmartPtr<IOPackage> p = DispatcherPackage::createInstance( PVE::DspVmEvent, event, pRequest );
 	CDspService::instance()->getClientManager()
 		.sendPackageToVmClients( p, vmIdent.second, vmIdent.first );
-	CDspService::instance()->getVmStateSender()->onVmConfigChanged(vmIdent.second, vmIdent.first);
+	CDspLockedPointer<CDspVmStateSender> x(CDspService::instance()->getVmStateSender());
+	if (x.isValid())
+		x->onVmConfigChanged(vmIdent.second, vmIdent.first);
 }
 
 void CDspVmDirHelper::sendVmConfigChangedEvent(const QString& vmDirUuid, const QString& vmUuid, const SmartPtr<IOPackage> &pRequest)

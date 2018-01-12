@@ -1034,6 +1034,7 @@ void CDspService::stop (CDspService::StopMode stop_mode)
 		}
 #endif // _LIBVIRT_
 #endif
+		QThreadPool::globalInstance()->setMaxThreadCount(0);
 		QThreadPool::globalInstance()->waitForDone();
 	}
 
