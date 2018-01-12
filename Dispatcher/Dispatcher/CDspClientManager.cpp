@@ -295,9 +295,6 @@ void CDspClientManager::handleToDispatcherPackage (
 					m_preAuthorizedSessions.remove(h);
 					m_rwLock.unlock();
 
-					// Register user for change permissions monitoring
-					m_service->getVmConfigWatcher().addUserToMonitoringPermChanges( h );
-
 					SmartPtr<IOPackage> response = m_service->getUserHelper()
 						.makeLoginResponsePacket(pClient, p);
 					pClient->sendPackage( response );
@@ -354,9 +351,6 @@ void CDspClientManager::handleToDispatcherPackage (
 						}
 						m_clients[h] = client;
 						m_rwLock.unlock();
-
-						// Register user for change permissions monitoring
-						m_service->getVmConfigWatcher().addUserToMonitoringPermChanges(h);
 
 						// bug#9058
 						// m_service->getVmDirHelper().recoverMixedVmPermission( client );

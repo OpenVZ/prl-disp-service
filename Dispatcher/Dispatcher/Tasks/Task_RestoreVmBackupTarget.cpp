@@ -41,7 +41,7 @@
 #include "Task_RestoreVmBackup_p.h"
 #include "prlcommon/Logging/Logging.h"
 #include "prlcommon/PrlUuid/Uuid.h"
-
+#include "CDspClientManager.h"
 #include "Task_RestoreVmBackup.h"
 #include "Task_BackupHelper_p.h"
 #include "Tasks/Task_RegisterVm.h"
@@ -1033,9 +1033,6 @@ void Task_RestoreVmBackupTarget::finalizeTask()
 
 	Disconnect();
 
-	// update Vm config watcher list
-	CDspService::instance()->getVmConfigWatcher().update();
-
 	if (PRL_SUCCEEDED(getLastErrorCode())) {
 		//https://bugzilla.sw.ru/show_bug.cgi?id=267152
 		CAuthHelperImpersonateWrapper _impersonate( &getClient()->getAuthHelper() );
@@ -1205,10 +1202,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 
 	/* create temporary directory */
 	m_sTargetPath = QString("%1.%2.restore").arg(m_sTargetVmHomePath).arg(Uuid::createUuid().toString());
-
-	/* remove target Vm config from watcher (#448235) */
-	CDspService::instance()->getVmConfigWatcher().unregisterVmToWatch(
-			QString("%1/" VMDIR_DEFAULT_VM_CONFIG_FILE).arg(m_sTargetVmHomePath));
 
 	std::auto_ptr<Restore::Assembly> a;
 	if (PRL_FAILED(nRetCode = restoreVmToTargetPath(a)))

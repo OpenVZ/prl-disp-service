@@ -35,7 +35,7 @@
 #include <QListIterator>
 #include <QSettings>
 #include <QRegExp>
-
+#include "CDspClientManager.h"
 #include "CDspBugPatcherLogic.h"
 
 #include <prlxmlmodel/DispConfig/CDispWorkspacePreferences.h>
@@ -49,7 +49,6 @@
 #include <prlcommon/Std/PrlAssert.h>
 
 #include "Libraries/HostInfo/CHostInfo.h"
-//#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/PrlCommonUtilsBase/CHardDiskHelper.h>
 

@@ -642,11 +642,6 @@ CDspVmConfigManager & CDspService::getVmConfigManager()
 	return m_configManager;
 }
 
-CDspVmConfigurationChangesWatcher & CDspService::getVmConfigWatcher ()
-{
-	return (*m_pVmConfigWatcher.getImpl());
-}
-
 CDspUserHelper& CDspService::getUserHelper ()
 {
 	return *m_pUserHelper.getImpl();
@@ -869,10 +864,6 @@ void CDspService::start ()
 		printTimeStamp();
 
 		m_pUserHelper = SmartPtr<CDspUserHelper>(new CDspUserHelper);
-		m_pVmConfigWatcher = SmartPtr<CDspVmConfigurationChangesWatcher>(new CDspVmConfigurationChangesWatcher());
-		bool bConnected;
-		Q_UNUSED(bConnected);
-
 		if( !init() )
 		{
 			PRL_ASSERT(CMainDspService::instance());
@@ -881,36 +872,26 @@ void CDspService::start ()
 			return;
 		}
 		CDspDBusHub::createDetached();
-#ifndef _WIN_
-	// System signals handler.
-	CUnixSignalHandler* pSigTermHandler = CUnixSignalHandler::installHandler(SIGTERM);
-	if ( !pSigTermHandler )
-		WRITE_TRACE( DBG_FATAL, "Can't setup handler for SIGTERM signal" );
-	else
-	{
-		bConnected = QObject::connect( pSigTermHandler, SIGNAL(signalReceived()), SLOT(onTerminateSignalReceived()) );
-		PRL_ASSERT(bConnected);
-	}
+		// System signals handler.
+		CUnixSignalHandler* pSigTermHandler = CUnixSignalHandler::installHandler(SIGTERM);
+		if ( !pSigTermHandler )
+			WRITE_TRACE( DBG_FATAL, "Can't setup handler for SIGTERM signal" );
+		else
+		{
+			bool bConnected = QObject::connect( pSigTermHandler, SIGNAL(signalReceived()), SLOT(onTerminateSignalReceived()) );
+			PRL_ASSERT(bConnected);
+		}
 
-	if( g_bSIGTERM_was_received )
-	{
-		PRL_ASSERT(CMainDspService::instance());
-		CMainDspService::instance()->stop();
-		WRITE_TRACE( DBG_FATAL, "SIGTERM was recieved before dispatcher object was inited." );
-		return;
-	}
-
-#endif
-
-			checkVmPermissions();
-			if ( CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->isVmConfigWatcherEnabled() )
-			{
-				getVmConfigWatcher().setEnabled(true);
-				getVmConfigWatcher().update();
-			}
-
-			CDspStatCollectingThread::start(*m_registry);
-			m_pHwMonitorThread->start( QThread::NormalPriority ); //QThread::LowPriority );
+		if( g_bSIGTERM_was_received )
+		{
+			PRL_ASSERT(CMainDspService::instance());
+			CMainDspService::instance()->stop();
+			WRITE_TRACE( DBG_FATAL, "SIGTERM was recieved before dispatcher object was inited." );
+			return;
+		}
+		checkVmPermissions();
+		CDspStatCollectingThread::start(*m_registry);
+		m_pHwMonitorThread->start( QThread::NormalPriority ); //QThread::LowPriority );
 
 		m_bInitWasDone = true;
 		if(	m_bStopWasSentOnInitPhase )
@@ -1016,9 +997,6 @@ void CDspService::stop (CDspService::StopMode stop_mode)
 
 	if( m_nTimestampTraceTimerId != -1)
 		killTimer( m_nTimestampTraceTimerId );
-
-	m_pVmConfigWatcher->unregisterAll();
-
 	{
 #ifdef _CT_
 		// stop vnc servers for container's
@@ -1037,11 +1015,6 @@ void CDspService::stop (CDspService::StopMode stop_mode)
 		QThreadPool::globalInstance()->setMaxThreadCount(0);
 		QThreadPool::globalInstance()->waitForDone();
 	}
-
-	// #126543, #132528  fix to prevent deadlock on destroy QFileSystemWatcher.
-	// delete all QFileSystemWatcher objects before stop main event loop
-	m_pVmConfigWatcher = SmartPtr<CDspVmConfigurationChangesWatcher>(0);
-
 #ifndef _WIN_
 	// revert sighandler
 	CUnixSignalHandler::removeHandler(SIGTERM);

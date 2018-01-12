@@ -37,7 +37,7 @@
 #include <QBuffer>
 #include <QMap>
 #include <QtAlgorithms>
-
+#include "CDspClientManager.h"
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlsdk/PrlEventsValues.h>
 #include <prlsdk/PrlEnums.h>

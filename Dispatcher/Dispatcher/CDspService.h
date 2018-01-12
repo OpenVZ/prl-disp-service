@@ -50,7 +50,6 @@
 #include "CDspSync.h"
 #include "DspMonitor.h"
 #include "CDspVmMigrateHelper.h"
-#include "CDspVmConfigurationChangesWatcher.h"
 #include "CDspVmConfigManager.h"
 #include "CDspIOClientHandler.h"
 #include "CDspIOCtClientHandler.h"
@@ -158,9 +157,6 @@ public:
 
 	/** Returns task manager */
 	CDspTaskManager& getTaskManager ();
-
-	/** Returns config vm watcher */
-	CDspVmConfigurationChangesWatcher & getVmConfigWatcher ();
 
 	/** Returns config vm manager */
 	CDspVmConfigManager & getVmConfigManager();
@@ -492,8 +488,6 @@ private:
 	QScopedPointer<CDspShellHelper> m_shellHelper;
 	QScopedPointer<CDspVmDirHelper> m_vmDirHelper;
 	CDspVmSnapshotStoreHelper m_vmSnapshotStoreHelper;
-
-	SmartPtr<CDspVmConfigurationChangesWatcher> m_pVmConfigWatcher;
 
 #ifdef _CT_
 	SmartPtr<CDspVzHelper> m_pVzHelper;

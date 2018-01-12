@@ -36,7 +36,7 @@
 #include "Interfaces/Debug.h"
 #include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
-
+#include "CDspClientManager.h"
 #include <prlcommon/Logging/Logging.h>
 #include "Libraries/StatesStore/SavedStateTree.h"
 #include <prlcommon/Std/PrlTime.h>
@@ -1141,13 +1141,8 @@ PRL_RESULT Task_MigrateVmSource::prepareStart()
 	m_nSteps |= MIGRATE_VM_STATE_CHANGED;
 	/* and notify clients about VM migration start event */
 	CDspService::instance()->getClientManager().sendPackageToVmClients(pPackage, m_sVmDirUuid, m_sVmUuid);
-
-	if ( !(PVMT_CLONE_MODE & getRequestFlags()) ) {
-		/* remove target Vm config from watcher (#448235) */
-		CDspService::instance()->getVmConfigWatcher().unregisterVmToWatch(m_sVmConfigPath);
-		m_nSteps |= MIGRATE_UNREGISTER_VM_WATCH;
-	}
 	nRetCode = migrateStoppedVm();
+
 exit:
 	setLastErrorCode(nRetCode);
 	return nRetCode;
@@ -1292,11 +1287,6 @@ void Task_MigrateVmSource::finalizeTask()
 	else
 	{
 		PRL_EVENT_TYPE evtType;
-
-		if (m_nSteps & MIGRATE_UNREGISTER_VM_WATCH)
-			CDspService::instance()->getVmConfigWatcher().registerVmToWatch(
-					m_sVmConfigPath, m_sVmDirUuid, m_sVmUuid);
-
 		if (m_cSavFileCopy.exists())
 			QFile::remove(m_cSavFileCopy.absoluteFilePath());
 		if (m_nSteps & MIGRATE_CONFIGSAV_BACKUPED) {
