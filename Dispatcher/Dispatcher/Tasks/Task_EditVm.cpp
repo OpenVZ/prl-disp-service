@@ -1277,8 +1277,6 @@ PRL_RESULT Task_EditVm::editVm()
 		return PRL_ERR_CANT_EDIT_SUSPENDED_VM;
 	}
 
-	bool flgVmWasUnregisteredInConfigWatcher = false;
-
 	bool flgExclusiveOperationWasRegistered = false;
 	bool flgExclusiveHardwareChangedWasRegistered = false;
 	bool flgExclusiveFirewallChangedWasRegistered = false;
@@ -1352,15 +1350,6 @@ PRL_RESULT Task_EditVm::editVm()
 		//////////////////////////////////////////////////////////////////////////
 		//  END: Rollback read only values.
 		//////////////////////////////////////////////////////////////////////////
-
-		if( pVmConfigNew->getVmIdentification()->getVmName()
-			!= pVmConfigOld->getVmIdentification()->getVmName() )
-		{
-			CDspService::instance()->getVmConfigWatcher().unregisterVmToWatch(
-				CDspVmDirManager::getVmHomeByUuid( getClient()->getVmIdent(vm_uuid) ));
-			flgVmWasUnregisteredInConfigWatcher = true;
-		}
-
 
 		//////////////////////////////////////////////////////////////////////////
 		//  FINALIZE PREPARE PART. BEGIN TO CHECK CONFIG
@@ -2121,14 +2110,6 @@ PRL_RESULT Task_EditVm::editVm()
 		// NOTE:  DO NOT unregister begin edit mark BECAUSE client doesn't send BeginEdit again if commit fails
 		// CDspService::instance()->getVmDirHelper()
 		//	.getMultiEditDispatcher()->cleanupBeginEditMark( vm_uuid, getClient()->getClientHandle() );
-	}
-
-	// NOTE: register to vm watcher should be called before unregistration for any exclusive operations
-	//  It should be done to prevent possible races with removing vm or migrationg
-	if (flgVmWasUnregisteredInConfigWatcher)
-	{
-		CDspService::instance()->getVmConfigWatcher().registerVmToWatch(
-				CDspVmDirManager::getVmHomeByUuid(ident), ident);
 	}
 
 	if (flgExclusiveHardwareChangedWasRegistered)

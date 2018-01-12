@@ -66,7 +66,6 @@ HEADERS += \
 	DspMonitor.h \
 	CDspVmSnapshotStoreHelper.h \
 	CDspVmMigrateHelper.h \
-	CDspVmConfigurationChangesWatcher.h \
 	CDspVmConfigManager.h \
 	CDspRegistry.h \
 	CDspVmStateMachine_p.h \
@@ -199,7 +198,6 @@ SOURCES += \
 	DspMonitor.cpp \
 	CDspVmSnapshotStoreHelper.cpp \
 	CDspVmMigrateHelper.cpp\
-	CDspVmConfigurationChangesWatcher.cpp \
 	CDspVmConfigManager.cpp \
 	CDspVmStateMachine.cpp \
 	CDspVmAutoTaskManagerBase.cpp \

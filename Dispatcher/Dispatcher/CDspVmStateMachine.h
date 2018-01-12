@@ -29,6 +29,7 @@
 #include "CVcmmdInterface.h"
 #include "CDspVmNetworkHelper.h"
 #include "CDspBackupDevice.h"
+#include "CDspClientManager.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Interfaces/Debug.h"
 #include <Libraries/StatesUtils/StatesHelper.h>

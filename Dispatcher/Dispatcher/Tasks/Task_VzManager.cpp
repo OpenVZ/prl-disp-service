@@ -28,6 +28,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 #include "CDspVmBrand.h"
+#include "CDspClientManager.h"
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "Libraries/PrlCommonUtils/CFirewallHelper.h"

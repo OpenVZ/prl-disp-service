@@ -33,6 +33,7 @@
 
 #include <prlcommon/Std/PrlAssert.h>
 #include "CDspService.h"
+#include "CDspClientManager.h"
 #include "CDspVmAutoTaskManagerBase.h"
 
 

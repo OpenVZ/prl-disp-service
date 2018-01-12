@@ -35,7 +35,7 @@
 
 #include <prlcommon/Logging/Logging.h>
 
-
+#include "CDspClientManager.h"
 #include "Task_BackgroundJob.h"
 #include "Task_CommonHeaders.h"
 #include "Task_ManagePrlNetService.h"

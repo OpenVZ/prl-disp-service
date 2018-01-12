@@ -38,7 +38,7 @@
 #include "CDspTemplateStorage.h"
 #include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
-
+#include "CDspClientManager.h"
 #include <prlcommon/Logging/Logging.h>
 #include "Libraries/StatesStore/SavedStateTree.h"
 #include <prlcommon/Std/PrlTime.h>
@@ -1398,8 +1398,6 @@ void Task_MigrateVmTarget::finalizeTask()
 				&& PRL_FAILED(m_registry.undeclare(m_sVmUuid)))
 				WRITE_TRACE(DBG_FATAL, "Unable to undeclare VM after migration fail");
 
-			if (!CDspService::instance()->isServerStopping())
-				CDspService::instance()->getVmConfigWatcher().unregisterVmToWatch(m_sTargetVmHomePath);
 			if ( !(m_nReservedFlags & PVM_DONT_COPY_VM) )
 				CFileHelper::ClearAndDeleteDir(m_sTargetVmHomePath);
 			foreach (const QString & disk, m_lstNonSharedDisks)

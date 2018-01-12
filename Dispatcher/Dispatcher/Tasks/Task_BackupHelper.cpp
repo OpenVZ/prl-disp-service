@@ -36,7 +36,7 @@
 #include <boost/foreach.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
-
+#include "CDspClientManager.h"
 #include "Task_CloneVm_p.h"
 #include "Interfaces/Debug.h"
 #include "prlcommon/Interfaces/ParallelsQt.h"

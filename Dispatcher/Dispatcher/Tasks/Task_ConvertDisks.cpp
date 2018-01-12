@@ -30,7 +30,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 #include "Task_ConvertDisks.h"
-
+#include "CDspClientManager.h"
 
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>

@@ -35,7 +35,7 @@
 #include <memory>
 
 #include <QTemporaryFile>
-
+#include "CDspClientManager.h"
 #include "prlcommon/Interfaces/ParallelsQt.h"
 #include "prlcommon/Interfaces/ParallelsNamespace.h"
 
