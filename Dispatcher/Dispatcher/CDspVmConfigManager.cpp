@@ -1242,18 +1242,11 @@ PRL_RESULT CDspVmConfigManager::saveConfig( SmartPtr<CVmConfiguration> pConfig,
 											bool BNeedToSaveRelativePath )
 {
 	PRL_ASSERT(pUserSession.isValid());
-	QList<CVmIdent> lstConfigIdents = CDspService::instance()->getVmConfigWatcher().unregisterVmToWatch(config_file);
 
 	Vm::Config::Access::Work w(config_file, pUserSession);
 	w.setConfig(pConfig);
 	QWriteLocker locker(&m_mtxAccessLocker);
-	PRL_RESULT output = m_trie->get(config_file).save(w, do_replace, BNeedToSaveRelativePath);
-	locker.unlock();
-
-	foreach( CVmIdent id, lstConfigIdents )
-		CDspService::instance()->getVmConfigWatcher().registerVmToWatch(config_file, id );
-
-	return output;
+	return m_trie->get(config_file).save(w, do_replace, BNeedToSaveRelativePath);
 }
 
 /**
@@ -1266,8 +1259,6 @@ PRL_RESULT CDspVmConfigManager::restoreConfig(const QString& config_file,
 											  SmartPtr<CDspClient> pUserSession,
 											  const QString& owner)
 {
-	CDspService::instance()->getVmConfigWatcher().unregisterVmToWatch(config_file);
-
 	PRL_RESULT output = PRL_ERR_SUCCESS;
 	{
 		Vm::Config::Access::Work w(config_file, pUserSession);
@@ -1281,7 +1272,6 @@ PRL_RESULT CDspVmConfigManager::restoreConfig(const QString& config_file,
 			, output
 			, QSTR2UTF8(config_file) );
 	}
-	CDspService::instance()->getVmConfigWatcher().update();
 	return output;
 }
 
