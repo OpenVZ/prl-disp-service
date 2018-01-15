@@ -266,6 +266,11 @@ PRL_RESULT Object::getDirectoryItem(CVmDirectoryItem& dst_) const
 
 PRL_RESULT Reference::validate(const CVmConfiguration& tentative_)
 {
+	if (!tentative_.getVmIdentification()->getLinkedVmUuid().isEmpty())
+	{
+		WRITE_TRACE(DBG_FATAL, "Backing up of linked clones is not supported");
+		return PRL_ERR_UNIMPLEMENTED;
+	}
 	CVmHardware *h = tentative_.getVmHardwareList();
 	if (NULL == h)
 	{
