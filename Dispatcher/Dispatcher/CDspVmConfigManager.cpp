@@ -411,6 +411,8 @@ void Identification::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 		(old_.getVmIdentification()->getSourceVmUuid());
 	new_.getVmIdentification()->setVmUptimeStartDateTime
 		(old_.getVmIdentification()->getVmUptimeStartDateTime());
+	new_.getVmIdentification()->setLinkedVmUuid
+		(old_.getVmIdentification()->getLinkedVmUuid());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
