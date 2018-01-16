@@ -1349,7 +1349,7 @@ Prl::Expected<Sink::mode_type, PRL_RESULT> Estimate::getSink(quint32 flags_) con
 	bool s = flags_ & PCVF_CHANGE_SID;
 	if (s)
 	{
-		if (!Task_ChangeSID::canChangeSid(getConfig()))
+		if (!Task_ChangeSID::canChangeSid(getConfig().get()))
 			return PRL_ERR_CHANGESID_NOT_SUPPORTED;
 	}
 	Source::Config x(getTask());
