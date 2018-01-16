@@ -56,15 +56,25 @@ def prepare_to_reboot(timeout = 60 * 1000):
             autostart += "\"%s\", " % res.get_config().get_uuid()
             logger.info("%s: Autostart enabled" % res.get_config().get_uuid())
 
-        # Suspend VMs
+        # Skip CTs and stopped/suspended VMs
         if (res.get_config().get_vm_type() != prlsdkapi.consts.PVT_VM or
-                res.get_config().get_auto_stop() != prlsdkapi.consts.PAO_VM_SUSPEND or
                 res.get_vm_info().get_state() in
                 (prlsdkapi.consts.VMS_STOPPED, prlsdkapi.consts.VMS_STOPPING,
                 prlsdkapi.consts.VMS_SUSPENDING, prlsdkapi.consts.VMS_SUSPENDED)):
             continue
-        logger.info("Suspending VM %s..." % res.get_config().get_uuid())
-        thread = threading.Thread(target=res.suspend().wait)
+
+        # Suspend or Stop VMs based on Autostop configuration
+        stopmode = res.get_config().get_auto_stop()
+        if stopmode == prlsdkapi.consts.PAO_VM_SUSPEND:
+            logger.info("Suspending VM %s..." % res.get_config().get_uuid())
+            thread = threading.Thread(target=res.suspend().wait)
+        elif stopmode in [prlsdkapi.consts.PAO_VM_STOP, prlsdkapi.consts.PAO_VM_SHUTDOWN]:
+            logger.info("Stopping VM %s..." % res.get_config().get_uuid())
+            thread = threading.Thread(target=res.stop_ex(prlsdkapi.consts.PSM_ACPI, 0).wait)
+        else:
+            logger.info("Skip VM %s. Unknown autostop mode %d" % (res.get_config().get_uuid(), stopmode))
+            continue
+
         thread.start()
         threads.append(thread)
 
