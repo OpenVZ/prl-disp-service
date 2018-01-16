@@ -1036,7 +1036,7 @@ struct NotSupported<S, D, typename EnableIf<
 	(IsSame<S, Source::Vm::Bootcamp>::value && IsSame<D, Sink::Vm::Linked>::value) ||
 	(IsSame<S, Source::Vm::General>::value && IsSame<D, Sink::Vm::Bootcamp>::value) ||
 	(IsSame<S, Source::Vm::Linked>::value && IsSame<D, Sink::Vm::Bootcamp>::value) ||
-	(IsSame<D, Source::Template::Shared>::value) ||
+	(IsSame<D, Sink::Template::Shared>::value) ||
 	(IsSame<S, Source::Template::Shared>::value && IsSame<D, Sink::Vm::Linked>::value) ||
 	(IsSame<S, Source::Template::Shared>::value && IsSame<D, Sink::Vm::Bootcamp>::value) ||
 	(IsSame<S, Source::Vm::Linked>::value && IsSame<D, Sink::Template::Local>::value)>::type>
