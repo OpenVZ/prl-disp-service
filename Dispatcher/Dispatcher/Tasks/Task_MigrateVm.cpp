@@ -67,6 +67,194 @@ namespace Vm
 {
 namespace Source
 {
+namespace Inspection
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Report
+
+void Report::account(PRL_RESULT problem_)
+{
+	CVmEvent x;
+	x.setEventCode(problem_);
+
+	m_result << x.toString();
+}
+
+void Report::account(PRL_RESULT problem_, const QString& text_)
+{
+	CVmEvent x;
+	x.setEventCode(problem_);
+	x.addEventParameter(new CVmEventParameter(PVE::String,
+			text_, EVT_PARAM_MESSAGE_PARAM_0));
+
+	m_result << x.toString();
+}
+
+void Report::account(PRL_RESULT problem_, const QString& text1_, const QString& text2_)
+{
+	CVmEvent x;
+	x.setEventCode(problem_);
+	x.addEventParameter(new CVmEventParameter(PVE::String,
+			text1_, EVT_PARAM_MESSAGE_PARAM_0));
+	x.addEventParameter(new CVmEventParameter(PVE::String,
+			text2_, EVT_PARAM_MESSAGE_PARAM_1));
+
+	m_result << x.toString();
+}
+
+namespace Clone
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Linked
+
+bool Linked::upsets(request_type::first_type request_)
+{
+	const CVmConfiguration* x = request_->getVmConfig();
+	return NULL != x && !x->getVmIdentification()->getLinkedVmUuid().isEmpty();
+}
+
+void Linked::lament(request_type::second_type report_)
+{
+	report_->account(PRL_ERR_UNIMPLEMENTED);
+	WRITE_TRACE(DBG_FATAL, "Migration of linked clones is not supported");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Online
+
+bool Online::upsets(request_type::first_type request_)
+{
+	const CVmConfiguration* x = request_->getVmConfig();
+	return (PVMT_CLONE_MODE & request_->getRequestFlags() &&
+		request_->getOldState() != VMS_STOPPED &&
+		(x != NULL && !x->getVmSettings()->getVmCommonOptions()->isTemplate()));
+}
+
+void Online::lament(request_type::second_type report_)
+{
+	report_->account(PRL_ERR_VZ_OPERATION_FAILED,
+		"Online migration in the clone mode is not supported. "
+		"Stop the VM and try again.");
+}
+
+} // namespace Clone
+
+///////////////////////////////////////////////////////////////////////////////
+// struct ChangeSid
+
+bool ChangeSid::upsets(request_type::first_type request_)
+{
+	const quint32 x = (PVMT_CLONE_MODE | PVMT_CHANGE_SID);
+	if (x != (request_->getRequestFlags() & x))
+		return false;
+
+	return !Task_ChangeSID::canChangeSid(request_->getVmConfig());
+}
+
+void ChangeSid::lament(request_type::second_type report_)
+{
+	report_->account(PRL_ERR_CHANGESID_NOT_SUPPORTED);
+}
+
+namespace Hardware
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+void Builder::processCdrom()
+{
+	foreach (CVmOpticalDisk* d, m_model->m_lstOpticalDisks)
+	{
+		if (NULL == d)
+			continue;
+		if (!d->isRemote() || !(d->getEnabled() == PVE::DeviceEnabled &&
+			d->getConnected() != PVE::DeviceDisconnected))
+			continue;
+
+		WRITE_TRACE(DBG_FATAL, "ERROR: Connected remote device");
+		m_report.account(PRL_ERR_VM_MIGRATE_REMOTE_DEVICE_IS_ATTACHED,
+			d->getSystemName());
+	}
+}
+
+void Builder::processPci()
+{
+	QList<CVmDevice* > a;
+	a += *((QList<CVmDevice*>* )&m_model->m_lstGenericPciDevices);
+	a += *((QList<CVmDevice*>* )&m_model->m_lstNetworkAdapters);
+	a += *((QList<CVmDevice*>* )&m_model->m_lstPciVideoAdapters);
+
+	foreach (CVmDevice* d, a)
+	{
+		if (PVE::DeviceEnabled != d->getEnabled() || (
+			d->getDeviceType() == PDE_GENERIC_NETWORK_ADAPTER &&
+			d->getEmulatedType() != PDT_USE_DIRECT_ASSIGN))
+			continue;
+
+		WRITE_TRACE(DBG_DEBUG, "ERROR: Connected VTd device");
+		m_report.account(PRL_ERR_VM_MIGRATE_REMOTE_DEVICE_IS_ATTACHED,
+			d->getUserFriendlyName());
+	}
+}
+
+void Builder::processMassStorage(const QString& name_)
+{
+	foreach(CVmHardDisk* d, m_model->m_lstHardDisks)
+	{
+		if (PDT_USE_REAL_DEVICE != (_PRL_VM_DEV_EMULATION_TYPE)d->getEmulatedType())
+			continue;
+		if (PVE::DeviceEnabled == d->getEnabled() && d->getConnected() == PVE::DeviceConnected)
+		{
+			WRITE_TRACE(DBG_FATAL, "Device %s has inappropriate emulated type %d",
+				qPrintable(d->getUserFriendlyName()), d->getEmulatedType());
+			m_report.account(PRL_ERR_VM_MIGRATE_INVALID_DISK_TYPE,
+				name_, d->getSystemName());
+		}
+	}
+	foreach(CVmOpticalDisk* d, m_model->m_lstOpticalDisks)
+	{
+		if (PDT_USE_REAL_DEVICE != (_PRL_VM_DEV_EMULATION_TYPE)d->getEmulatedType())
+			continue;
+		if (PVE::DeviceEnabled == d->getEnabled() && d->getConnected() == PVE::DeviceConnected)
+		{
+			WRITE_TRACE(DBG_FATAL, "Device %s has inappropriate emulated type %d",
+				qPrintable(d->getUserFriendlyName()), d->getEmulatedType());
+			m_report.account(PRL_ERR_VM_MIGRATE_INVALID_DISK_TYPE,
+				name_, d->getSystemName());
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Chain
+
+Chain::result_type Chain::operator()(const request_type& request_)
+{
+	CVmHardware* h = NULL;
+	const CVmConfiguration* x = request_.first->getVmConfig();
+	if (NULL != x)
+		h = x->getVmHardwareList();
+
+	if (NULL == h)
+	{
+		WRITE_TRACE(DBG_FATAL, "Can not get the Vm hardware list");
+		request_.second->account(PRL_ERR_OPERATION_FAILED);
+	}
+	else
+	{
+		Builder b(*h);
+		b.processCdrom();
+		b.processPci();
+		b.processMassStorage(x->getVmIdentification()->getVmName());
+		request_.second->account(b.getResult());
+	}
+
+	return base_type::operator()(request_);
+}
+
+} // namespace Hardware
+} // namespace Inspection
+
 namespace Shadow
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -1059,40 +1247,25 @@ PRL_RESULT Task_MigrateVmSource::prepareTask()
 	// template already in migrating stage, but original template state is stopped
 	if (VMS_MIGRATING == m_nPrevVmState)
 		m_nPrevVmState = VMS_STOPPED;
-
-	//https://jira.sw.ru/browse/PSBM-4996
-	//Check remote clone preconditions
-	if (PVMT_CLONE_MODE & getRequestFlags())
 	{
-		if (VMS_STOPPED != m_nPrevVmState &&
-			!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+		namespace in = Migrate::Vm::Source::Inspection;
+		in::Report x;
+		in::Generic<in::Clone::Linked> y = in::Generic<in::Clone::Linked>
+			(in::Generic<in::Clone::Online>	(in::Generic<in::ChangeSid>
+				(in::Hardware::Chain())));
+		y(qMakePair(this, &x));
+		if (x.getResult().isEmpty())
 		{
-			nRetCode = PRL_ERR_VZ_OPERATION_FAILED;
-			CDspTaskFailure(*this)(nRetCode,
-				"Online migration in the clone mode is not supported. "
-				"Stop the VM and try again.");
-			goto exit;
+			m_cHostInfo.fromString(CDspService::instance()->getHostInfo()->data()->toString());
+			nRetCode = Connect(
+				m_sServerHostname, m_nServerPort, m_sServerSessionUuid, QString(), QString(), m_nMigrationFlags);
 		}
-		//Check change SID preconditions
-		if ( PVMT_CHANGE_SID & getRequestFlags() )
+		else
 		{
-			if (!Task_ChangeSID::canChangeSid(m_pVmConfig)) {
-				nRetCode = PRL_ERR_CHANGESID_NOT_SUPPORTED;
-				goto exit;
-			}
+			m_lstCheckPrecondsErrors = x.getResult();
+			nRetCode = PRL_ERR_VM_MIGRATE_CHECKING_PRECONDITIONS_FAILED;
 		}
 	}
-	{
-		/* LOCK inside brackets */
-		CDspLockedPointer<CDspHostInfo> lockedHostInfo = CDspService::instance()->getHostInfo();
-		m_cHostInfo.fromString( lockedHostInfo->data()->toString() );
-	}
-
-	nRetCode = Connect(
-		m_sServerHostname, m_nServerPort, m_sServerSessionUuid, QString(), QString(), m_nMigrationFlags);
-	if (PRL_FAILED(nRetCode))
-		goto exit;
-
 exit:
 	setLastErrorCode(nRetCode);
 	return nRetCode;
@@ -1506,71 +1679,10 @@ PRL_RESULT Task_MigrateVmSource::CheckVmDevices()
 		return PRL_ERR_OPERATION_FAILED;
 	}
 
-	foreach(CVmOpticalDisk* disk, pVmHardware->m_lstOpticalDisks) {
-		if (NULL == disk)
-			continue;
-		if (disk->isRemote() && (PVE::DeviceEnabled == disk->getEnabled()) &&
-					(PVE::DeviceDisconnected != disk->getConnected()))
-		{
-			WRITE_TRACE(DBG_FATAL, "ERROR: Connected remote device");
-			CVmEvent _error;
-			_error.setEventCode(PRL_ERR_VM_MIGRATE_REMOTE_DEVICE_IS_ATTACHED);
-			_error.addEventParameter(new CVmEventParameter(PVE::String,
-					disk->getSystemName(),
-					EVT_PARAM_MESSAGE_PARAM_0));
-			m_lstCheckPrecondsErrors.append(_error.toString());
-		}
-	}
-
-	QList<CVmDevice*> lstPciDevices = *((QList<CVmDevice*>* )&pVmHardware->m_lstGenericPciDevices);
-	lstPciDevices += *((QList<CVmDevice*>* )&pVmHardware->m_lstNetworkAdapters);
-	lstPciDevices += *((QList<CVmDevice*>* )&pVmHardware->m_lstPciVideoAdapters);
-
-	for(int i = 0; i < lstPciDevices.size(); i++)
+	foreach (CVmOpticalDisk* dvd, pVmHardware->m_lstOpticalDisks)
 	{
-		CVmDevice* pPciDev = lstPciDevices[i];
-		if ( pPciDev->getEnabled() != PVE::DeviceEnabled )
-			continue;
-		if ( pPciDev->getDeviceType() == PDE_GENERIC_NETWORK_ADAPTER
-			&& pPciDev->getEmulatedType() != PDT_USE_DIRECT_ASSIGN )
-			continue;
-
-		WRITE_TRACE(DBG_DEBUG, "ERROR: Connected VTd device");
-		CVmEvent _error;
-		_error.setEventCode(PRL_ERR_VM_MIGRATE_REMOTE_DEVICE_IS_ATTACHED);
-		_error.addEventParameter(new CVmEventParameter(PVE::String,
-				pPciDev->getUserFriendlyName(),
-				EVT_PARAM_MESSAGE_PARAM_0));
-		m_lstCheckPrecondsErrors.append(_error.toString());
-	}
-
-	/* check optical & hard disks: is it images? */
-	QList< CVmMassStorageDevice* > disks;
-	foreach(CVmHardDisk* disk, pVmHardware->m_lstHardDisks)
-		disks.append(disk);
-	foreach(CVmOpticalDisk* dvd, pVmHardware->m_lstOpticalDisks)
-		disks.append(dvd);
-	foreach(CVmMassStorageDevice* pDevice, disks) {
-		if ((_PRL_VM_DEV_EMULATION_TYPE)pDevice->getEmulatedType() == PDT_USE_REAL_DEVICE) {
-			/* skip disabled and disconnected devices */
-			if (PVE::DeviceDisabled == pDevice->getEnabled())
-				continue;
-			if (PVE::DeviceDisconnected == pDevice->getConnected())
-				continue;
-
-			WRITE_TRACE(DBG_FATAL, "[%s] Device %s has inappropriate emulated type %d",
-				__FUNCTION__, QSTR2UTF8(pDevice->getUserFriendlyName()), pDevice->getEmulatedType());
-			CVmEvent event;
-			event.setEventCode(PRL_ERR_VM_MIGRATE_INVALID_DISK_TYPE);
-			event.addEventParameter(new CVmEventParameter(PVE::String,
-					m_sVmName,
-					EVT_PARAM_MESSAGE_PARAM_0));
-			event.addEventParameter(new CVmEventParameter(PVE::String,
-					pDevice->getSystemName(),
-					EVT_PARAM_MESSAGE_PARAM_1));
-		} else if (pDevice->getDeviceType() != PDE_HARD_DISK) {
-			DisconnectExternalImageDevice(pDevice);
-		}
+		if ((_PRL_VM_DEV_EMULATION_TYPE)dvd->getEmulatedType() != PDT_USE_REAL_DEVICE)
+			DisconnectExternalImageDevice(dvd);
 	}
 
 	/* process floppy disk images */

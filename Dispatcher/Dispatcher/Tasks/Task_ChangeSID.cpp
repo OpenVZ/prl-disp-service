@@ -59,9 +59,9 @@ Task_ChangeSID::~Task_ChangeSID()
 {
 }
 
-bool Task_ChangeSID::canChangeSid(const SmartPtr<CVmConfiguration>& p_)
+bool Task_ChangeSID::canChangeSid(const CVmConfiguration* p_)
 {
-	if (!p_.isValid())
+	if (NULL == p_)
 		return false;
 
 	CVmCommonOptions* o = p_->getVmSettings()->getVmCommonOptions();

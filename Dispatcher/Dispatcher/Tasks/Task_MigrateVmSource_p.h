@@ -35,6 +35,7 @@
 #define __TASK_MIGRATEVMSOURCE_P_H__
 
 #include "CDspLibvirt.h"
+#include "CDspInstrument.h"
 #include "Task_MigrateVmTunnel_p.h"
 #include <prlcommon/HostUtils/PCSUtils.h>
 #include <boost/msm/back/state_machine.hpp>
@@ -55,6 +56,119 @@ typedef boost::msm::back::state_machine<Frontend> Machine_type;
 typedef Vm::Pump::Event<Parallels::VmMigrateCheckPreconditionsReply> CheckReply;
 typedef Vm::Pump::Event<Parallels::VmMigrateReply> StartReply;
 typedef Vm::Pump::Event<Parallels::DispToDispResponseCmd> PeerFinished;
+
+namespace Inspection
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Report
+
+struct Report
+{
+	void account(PRL_RESULT problem_);
+	void account(PRL_RESULT problem_, const QString& text_);
+	void account(PRL_RESULT problem_, const QString& text1_, const QString& text2_);
+	void account(const QStringList& problems_)
+	{
+		m_result << problems_;
+	}
+	const QStringList& getResult() const
+	{
+		return m_result;
+	}
+
+private:
+	QStringList m_result;
+};
+
+typedef QPair<Task_MigrateVmSource*, Report* > request_type;
+typedef ::Instrument::Chain::Unit<request_type> base_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Generic
+
+template<class T>
+struct Generic: base_type
+{
+	template<class U>
+	explicit Generic(const U& redo_): base_type(boost::bind<result_type>(redo_, _1))
+	{
+	}
+
+	result_type operator()(const request_type& request_)
+	{
+		if (T::upsets(request_.first))
+			T::lament(request_.second);
+
+		return base_type::operator()(request_);
+	}
+};
+
+namespace Clone
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Linked
+
+struct Linked
+{
+	static bool upsets(request_type::first_type request_);
+	static void lament(request_type::second_type report_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Online
+
+struct Online
+{
+	static bool upsets(request_type::first_type request_);
+	static void lament(request_type::second_type report_);
+};
+
+} // namespace Clone
+
+///////////////////////////////////////////////////////////////////////////////
+// struct ChangeSid
+
+struct ChangeSid
+{
+	static bool upsets(request_type::first_type request_);
+	static void lament(request_type::second_type report_);
+};
+
+namespace Hardware
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+struct Builder
+{
+	explicit Builder(const CVmHardware& model_): m_model(&model_)
+	{
+	}
+
+	void processCdrom();
+	void processPci();
+	void processMassStorage(const QString& name_);
+
+	const QStringList& getResult() const
+	{
+		return m_report.getResult();
+	}
+
+private:
+	Report m_report;
+	const CVmHardware* m_model;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Chain
+
+struct Chain: base_type
+{
+	result_type operator()(const request_type& request_);
+};
+
+} // namespace Hardware
+} // namespace Inspection
 
 namespace Shadow
 {
