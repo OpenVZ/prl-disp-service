@@ -74,14 +74,13 @@ def prepare_to_reboot(timeout = 60 * 1000):
                 thread = threading.Thread(target=res.stop_ex(prlsdkapi.consts.PSM_ACPI, 0).wait)
             else:
                 logger.info("Skip VM %s. Unknown autostop mode %d" % (res.get_config().get_uuid(), stopmode))
-                continue
+                thread = threading.Thread(target=res.stop_ex(prlsdkapi.consts.PSM_ACPI, 0).wait)
 
             thread.start()
             threads.append(thread)
         except Exception as e:
             logger.info("Exception on VM %s:" % res.get_config().get_uuid())
             logger.info("\t%s" % e)
-            continue
 
     with open("/var/spool/prl-disp/prl_disp_autostart.py", "w") as f:
         f.write(autostart + ")\n")
