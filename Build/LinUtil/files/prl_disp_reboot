@@ -49,38 +49,48 @@ def prepare_to_reboot(timeout = 60 * 1000):
     # Get VMs list
     vms = server.get_vm_list_ex(prlsdkapi.consts.PVTF_VM + prlsdkapi.consts.PVTF_CT)
     for res in [ r for r in vms.wait(msecs = timeout) ]:
+        # wrap get_config in a separate try-catch to make sure
+        # we will not get another Exception in "except" due to get_config
+        try:
+            rescfg = res.get_config()
+        except Exception as e:
+            logger.error("Unable to get config, skip resource: %s" % e)
+            continue
+
         try:
             # Place to list only if it was not in running state
-            logger.info("UUID: %s" % res.get_config().get_uuid())
-            if (res.get_config().get_auto_start() == prlsdkapi.consts.PAO_VM_START_ON_RELOAD and
+            logger.info("UUID: %s" % rescfg.get_uuid())
+            if (rescfg.get_auto_start() == prlsdkapi.consts.PAO_VM_START_ON_RELOAD and
                     res.get_vm_info().get_state() == prlsdkapi.consts.VMS_RUNNING):
-                autostart += "\"%s\", " % res.get_config().get_uuid()
-                logger.info("%s: Autostart enabled" % res.get_config().get_uuid())
+                autostart += "\"%s\", " % rescfg.get_uuid()
+                logger.info("%s: Autostart enabled" % rescfg.get_uuid())
 
             # Skip CTs and stopped/suspended VMs
-            if (res.get_config().get_vm_type() != prlsdkapi.consts.PVT_VM or
-                    res.get_vm_info().get_state() in
-                    (prlsdkapi.consts.VMS_STOPPED, prlsdkapi.consts.VMS_STOPPING,
+            state = res.get_vm_info().get_state()
+            if (rescfg.get_vm_type() != prlsdkapi.consts.PVT_VM or
+                    state in (prlsdkapi.consts.VMS_STOPPED, prlsdkapi.consts.VMS_STOPPING,
                     prlsdkapi.consts.VMS_SUSPENDING, prlsdkapi.consts.VMS_SUSPENDED)):
                 continue
 
             # Suspend or Stop VMs based on Autostop configuration
-            stopmode = res.get_config().get_auto_stop()
+            stopmode = rescfg.get_auto_stop()
             if stopmode == prlsdkapi.consts.PAO_VM_SUSPEND:
-                logger.info("Suspending VM %s..." % res.get_config().get_uuid())
+                logger.info("Suspending VM %s (state %d)..." % (rescfg.get_uuid(), state))
                 thread = threading.Thread(target=res.suspend().wait)
             elif stopmode in [prlsdkapi.consts.PAO_VM_STOP, prlsdkapi.consts.PAO_VM_SHUTDOWN]:
-                logger.info("Stopping VM %s..." % res.get_config().get_uuid())
+                logger.info("Stopping VM %s (state %d)..." %  (rescfg.get_uuid(), state))
                 thread = threading.Thread(target=res.stop_ex(prlsdkapi.consts.PSM_ACPI, 0).wait)
             else:
-                logger.info("Skip VM %s. Unknown autostop mode %d" % (res.get_config().get_uuid(), stopmode))
+                logger.error("Unknown autostop mode %d for VM %s (state %d). Stopping..." %
+                        (stopmode, rescfg.get_uuid()), state)
                 thread = threading.Thread(target=res.stop_ex(prlsdkapi.consts.PSM_ACPI, 0).wait)
 
             thread.start()
             threads.append(thread)
+
         except Exception as e:
-            logger.info("Exception on VM %s:" % res.get_config().get_uuid())
-            logger.info("\t%s" % e)
+            logger.error("Exception on VM %s:" % rescfg.get_uuid())
+            logger.error("\t%s" % e)
 
     with open("/var/spool/prl-disp/prl_disp_autostart.py", "w") as f:
         f.write(autostart + ")\n")
