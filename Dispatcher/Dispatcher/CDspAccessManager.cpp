@@ -416,29 +416,30 @@ CDspAccessManager::checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherC
 			throw PRL_ERR_VM_CONFIG_INVALID_VM_UUID;
 		}
 
-		if( CDspDispConfigGuard::getServerUuid() !=
-				pVmConfig->getVmIdentification()->getServerUuid() )
-		do
+		if (CDspDispConfigGuard::getServerUuid() != pVmConfig->getVmIdentification()->getServerUuid())
 		{
-			if ( cmd == PVE::DspCmdDirUnregVm
-				|| cmd == PVE::DspCmdCtlMigrateTarget
-				|| cmd == PVE::DspCmdCtlStartMigratedVm
-			)
+			switch (cmd)
+			{
+			case PVE::DspCmdDirUnregVm:
+			case PVE::DspCmdCtlMigrateTarget:
+			case PVE::DspCmdCtlStartMigratedVm:
 				break;
-
-			/* allow Clone & Reg for multiple registered templates */
-			if( pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate()
-					&& ( cmd == PVE::DspCmdDirRegVm || cmd == PVE::DspCmdDirVmClone)
-			)
-				break;
-
-			if (pErrorInfo)
-				pErrorInfo->addEventParameter(
-					new CVmEventParameter( PVE::String, pVmDirItem->getVmName(),
-								EVT_PARAM_MESSAGE_PARAM_0));
-			throw PRL_ERR_VM_CONFIG_INVALID_SERVER_UUID;
-
-		} while(0);
+			case PVE::DspCmdDirRegVm:
+			case PVE::DspCmdDirVmClone:
+			case PVE::DspCmdDirVmDelete:
+				/* allow Clone & Reg & Delete for multiple registered templates */
+				if (pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+					break;
+			default:
+				if (NULL != pErrorInfo)
+				{
+					pErrorInfo->addEventParameter(
+						new CVmEventParameter( PVE::String, pVmDirItem->getVmName(),
+									EVT_PARAM_MESSAGE_PARAM_0));
+				}
+				throw PRL_ERR_VM_CONFIG_INVALID_SERVER_UUID;
+			}
+		}
 
 		//////////////////////////////////////////////////////////////////////////
 		// check confirmation logic

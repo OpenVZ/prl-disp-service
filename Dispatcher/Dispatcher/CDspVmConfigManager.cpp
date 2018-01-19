@@ -573,7 +573,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Base
 
-Base::Base(): m_cache(new Cache<CVmConfiguration>())
+Base::Base(cache_type* cache_): m_cache(cache_)
 {
 }
 
@@ -584,19 +584,51 @@ Base::~Base()
 void Base::forget(const Work& unit_)
 {
 	Work u = unit_;
-	u.setConfig(SmartPtr<CVmConfiguration>());
+	u.setConfig(object_type());
 	u.save(getCache());
 }
 
+namespace InMemory
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct InMemory
+// struct Cache
 
-PRL_RESULT InMemory::load(Work& dst_, bool )
+Cache::object_type Cache::getFromCache(const QString& key_, session_type)
+{
+	QReadLocker g(&m_guard);
+	object_type x = m_map.value(key_, object_type());
+	if (!x.isValid())
+		return x;
+
+	return object_type(new CVmConfiguration(x.getImpl()));
+}
+
+void Cache::updateCache(const QString& key_, const object_type& object_, session_type)
+{
+	QWriteLocker g(&m_guard);
+	if (object_.isValid())
+	{
+		object_type x(new CVmConfiguration(object_.getImpl()));
+		x->setAbsolutePath();
+		m_map.insert(key_, x);
+	}
+	else
+		m_map.remove(key_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Subject
+
+Subject::Subject(): Base(new Cache())
+{
+}
+
+PRL_RESULT Subject::load(Work& dst_, bool )
 {
 	return dst_.setConfig(getCache()) ?
 			PRL_ERR_SUCCESS : PRL_ERR_FILE_NOT_FOUND;
 }
-PRL_RESULT InMemory::save(const Work& unit_, bool , bool saveRelative_)
+PRL_RESULT Subject::save(const Work& unit_, bool , bool saveRelative_)
 {
 	SmartPtr<CVmConfiguration> x = unit_.getConfig();
 	if (!x.isValid())
@@ -613,6 +645,8 @@ PRL_RESULT InMemory::save(const Work& unit_, bool , bool saveRelative_)
 
 	return PRL_ERR_SUCCESS;
 }
+
+} // namespace InMemory
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Backup
@@ -831,6 +865,10 @@ PRL_RESULT Restore::prepareTarget()
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Mixed
+
+Mixed::Mixed(): Base(new Cache<CVmConfiguration>())
+{
+}
 
 PRL_RESULT Mixed::load(Work& dst_, bool direct_)
 {

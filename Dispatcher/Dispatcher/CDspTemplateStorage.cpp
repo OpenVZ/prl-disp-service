@@ -470,9 +470,14 @@ QDir Layout::getCatalogRoot() const
 // struct Catalog
 
 Catalog::Catalog(const Layout& layout_, CAuthHelper& auth_):
-	m_root(layout_.getCatalogRoot()), m_auth(&auth_),
+	m_root(layout_.getCatalogRoot()), m_batch(), m_auth(&auth_),
 	m_locking(layout_.getLockRoot())
 {
+}
+
+Catalog::~Catalog()
+{
+	delete m_batch;
 }
 
 PRL_RESULT Catalog::find(const QString& name_, QScopedPointer<const Entry::Unit>& dst_) const
@@ -515,10 +520,11 @@ Prl::Expected<QStringList, PRL_RESULT> Catalog::list() const
 
 PRL_RESULT Catalog::commit()
 {
-	if (NULL == m_batch.get())
+	QScopedPointer<Batch> b(m_batch);
+	m_batch = NULL;
+	if (b.isNull())
 		return PRL_ERR_UNINITIALIZED;
 
-	std::auto_ptr<Batch> b(m_batch);
 	return (*b)();
 }
 
@@ -528,19 +534,18 @@ PRL_RESULT Catalog::log(const QString& name_, Entry::Action* action_)
 	if (a.isNull())
 		return PRL_ERR_INVALID_ARG;
 
-	if (NULL == m_batch.get())
+	if (NULL == m_batch)
 	{
 		QSharedPointer<const Lock::Unit> w(m_locking.getWSlow());
 		if (w.isNull())
 			return PRL_ERR_FAILURE;
 
 		PRL_RESULT e;
-		m_batch.reset(new Batch(m_root, w));
-		if (PRL_FAILED(e = m_batch->prepare(*m_auth)))
-		{
-			m_batch.reset();
+		QScopedPointer<Batch> b(new Batch(m_root, w));
+		if (PRL_FAILED(e = b->prepare(*m_auth)))
 			return e;
-		}
+
+		m_batch = b.take();
 	}
 	return m_batch->add(Entry::Unit(QFileInfo(m_root, name_), m_locking), a.take());
 }

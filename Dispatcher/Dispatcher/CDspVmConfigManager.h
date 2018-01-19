@@ -400,7 +400,10 @@ struct Work;
 
 struct Base
 {
-	Base();
+	typedef CacheBase<CVmConfiguration> cache_type;
+	typedef SmartPtr<CVmConfiguration> object_type;
+
+	explicit Base(cache_type* cache_);
 	virtual ~Base();
 
 	virtual PRL_RESULT load(Work& , bool ) = 0;
@@ -409,19 +412,41 @@ struct Base
 	virtual bool canRestore(const Work& ) const = 0;
 	void forget(const Work& unit_);
 protected:
-	CacheBase<CVmConfiguration>& getCache() const
+	cache_type& getCache() const
 	{
 		return *m_cache;
 	}
 private:
-	QScopedPointer<CacheBase<CVmConfiguration> > m_cache;
+	QScopedPointer<cache_type> m_cache;
+};
+
+namespace InMemory
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Cache
+
+struct Cache: Base::cache_type
+{
+	typedef Base::object_type object_type;
+	typedef SmartPtr<CDspClient> session_type;
+
+	object_type getFromCache(const QString& key_, session_type session_);
+	void updateCache(const QString& key_, const object_type& object_, session_type session_);
+
+private:
+	typedef QHash<QString, object_type> map_type;
+
+	QReadWriteLock m_guard;
+	map_type m_map;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct InMemory
+// struct Subject
 
-struct InMemory: Base
+struct Subject: Base
 {
+	Subject();
+
 	PRL_RESULT load(Work& dst_, bool );
 	PRL_RESULT save(const Work& unit_, bool , bool saveRelative_);
 	PRL_RESULT restore(const Work& , const QString& )
@@ -434,11 +459,15 @@ struct InMemory: Base
 	}
 };
 
+} // namespace InMemory
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Mixed
 
 struct Mixed: Base
 {
+	Mixed();
+
 	PRL_RESULT load(Work& dst_, bool direct_);
 	PRL_RESULT save(const Work& src_, bool replace_, bool saveRelative_);
 	PRL_RESULT restore(const Work& unit_, const QString& owner_);

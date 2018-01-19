@@ -202,12 +202,13 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Catalog
 
-struct Catalog
+struct Catalog: boost::noncopyable
 {
 	typedef Entry::Import::content_type import_type;
 	typedef Entry::Export::content_type export_type;
 
 	Catalog(const Layout& layout_, CAuthHelper& auth_);
+	~Catalog();
 
 	const QDir& getRoot() const
 	{
@@ -224,8 +225,8 @@ private:
 	PRL_RESULT log(const QString& name_, Entry::Action* action_);
 
 	QDir m_root;
+	Batch* m_batch;
 	CAuthHelper* m_auth;
-	std::auto_ptr<Batch> m_batch;
 	mutable Lock::Catalog m_locking;
 };
 
