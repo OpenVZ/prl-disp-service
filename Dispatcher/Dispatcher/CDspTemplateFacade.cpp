@@ -339,7 +339,7 @@ PRL_RESULT Host::insert(const QString& path_)
 	if (u.isFailed())
 		return u.error();
 
-	getConfigManager().adopt(path_, new ::Vm::Config::Access::InMemory());
+	getConfigManager().adopt(path_, new ::Vm::Config::Access::InMemory::Subject());
 	QMutexLocker g(&m_lock);
 	m_folderList.insert(u.value());
 
