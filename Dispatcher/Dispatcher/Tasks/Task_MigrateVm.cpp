@@ -199,6 +199,8 @@ void Builder::processPci()
 
 void Builder::processMassStorage(const QString& name_)
 {
+	Q_UNUSED(name_);
+
 	foreach(CVmHardDisk* d, m_model->m_lstHardDisks)
 	{
 		if (PDT_USE_REAL_DEVICE != (_PRL_VM_DEV_EMULATION_TYPE)d->getEmulatedType())
@@ -207,8 +209,6 @@ void Builder::processMassStorage(const QString& name_)
 		{
 			WRITE_TRACE(DBG_FATAL, "Device %s has inappropriate emulated type %d",
 				qPrintable(d->getUserFriendlyName()), d->getEmulatedType());
-			m_report.account(PRL_ERR_VM_MIGRATE_INVALID_DISK_TYPE,
-				name_, d->getSystemName());
 		}
 	}
 	foreach(CVmOpticalDisk* d, m_model->m_lstOpticalDisks)
@@ -219,8 +219,6 @@ void Builder::processMassStorage(const QString& name_)
 		{
 			WRITE_TRACE(DBG_FATAL, "Device %s has inappropriate emulated type %d",
 				qPrintable(d->getUserFriendlyName()), d->getEmulatedType());
-			m_report.account(PRL_ERR_VM_MIGRATE_INVALID_DISK_TYPE,
-				name_, d->getSystemName());
 		}
 	}
 }
