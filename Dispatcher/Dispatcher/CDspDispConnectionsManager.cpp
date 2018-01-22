@@ -34,8 +34,13 @@
 #include "CDspClientManager.h"
 #include "CDspRouter.h"
 #include "CDspVm.h"
+#include <boost/mpl/fold.hpp>
 #include <boost/scope_exit.hpp>
+#include <boost/range/join.hpp>
+#include <boost/mpl/vector.hpp>
+#include <boost/range/irange.hpp>
 #include <prlcommon/Std/PrlAssert.h>
+#include <boost/range/algorithm/find.hpp>
 #include "Tasks/Legacy/MigrateVmTarget.h"
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 
@@ -43,7 +48,85 @@
 
 using namespace Parallels;
 
-namespace {
+namespace
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Next
+
+template<class T>
+struct Next
+{
+	static void do_(const SmartPtr<IOPackage>& request_)
+	{
+		T::do_(request_);
+	}
+};
+
+template<>
+struct Next<void>
+{
+	static void do_(const SmartPtr<IOPackage>& request_)
+	{
+		WRITE_TRACE(DBG_FATAL, "Processing command %d", request_->header.type);
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Step
+
+template<class T, class U>
+struct Step
+{
+	static void do_(const SmartPtr<IOPackage>& request_)
+	{
+		quint32 t = request_->header.type;
+		if (T::contains(t))
+			WRITE_TRACE(DBG_DEBUG, "Processing command %d", t);
+		else
+			Next<U>::do_(request_);
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Copy_
+
+struct Copy_
+{
+	static bool contains(quint32 type_)
+	{
+		return IS_FILE_COPY_PACKAGE(type_);
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Backup_
+
+struct Backup_
+{
+	static bool contains(quint32 type_)
+	{
+		return IS_ABACKUP_PROXY_PACKAGE(type_);
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Migrate_
+
+struct Migrate_
+{
+	static bool contains(quint32 type_)
+	{
+		typedef boost::integer_range<unsigned> irange_type;
+		boost::joined_range
+		<
+			const irange_type,
+			const irange_type
+		> x = boost::join(irange_type(CtMigrateCmd, CtMigrateCmd + 1),
+			irange_type(VmMigrateTunnelRangeStart, VmMigrateTunnelRangeEnd + 1));
+
+		return boost::end(x) != boost::find(x, type_);
+	}
+};
 
 bool is_migrate_protocol_package(int header_type)
 {
@@ -84,17 +167,14 @@ void CDspDispConnectionsManager::DeleteDispConnection( const IOSender::Handle& h
 void CDspDispConnectionsManager::handleToDispatcherPackage ( const IOSender::Handle& h,
 												const SmartPtr<IOPackage> &p )
 {
-	unsigned int loglevel;
  	LOG_MESSAGE(DBG_DEBUG, "%s received package [%s]", __FUNCTION__, p->buffers[0].getImpl());
 
-	if (IS_FILE_COPY_PACKAGE(p->header.type) || IS_ABACKUP_PROXY_PACKAGE(p->header.type) ||
-			(p->header.type == CtMigrateCmd))
-		/* trace backup command on debug mode only */
-		loglevel = DBG_DEBUG;
-	else
-		loglevel = DBG_FATAL;
-
-	WRITE_TRACE(loglevel, "Processing command %d", p->header.type);
+	boost::mpl::fold
+	<   
+		boost::mpl::vector<Copy_, Backup_, Migrate_>,
+		void,
+		Step<boost::mpl::_2, boost::mpl::_1>
+	>::type::do_(p);
 
 	switch( p->header.type )
 	{

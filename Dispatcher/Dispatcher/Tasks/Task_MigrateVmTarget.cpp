@@ -864,7 +864,7 @@ void Connector::react(const SmartPtr<IOPackage>& package_)
 	if (IS_FILE_COPY_PACKAGE(package_->header.type))
 		return handle(CopyCommand_type(package_));
 
-	WRITE_TRACE(DBG_FATAL, "react package %d.", package_->header.type);
+	WRITE_TRACE(DBG_DEBUG, "react package %d.", package_->header.type);
 	switch (package_->header.type)
 	{
 	case VmMigrateStartCmd:
