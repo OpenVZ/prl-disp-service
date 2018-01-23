@@ -183,19 +183,20 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Import
+// struct Storage
 
-struct Import: Instrument::Command::Base
+struct Storage: Instrument::Command::Base
 {
 	typedef Template::Storage::Dao::value_type catalog_type;
 
-	Import(Task_MoveVm& task_, const QFileInfo& source_, catalog_type* catalog_):
+	Storage(Task_MoveVm& task_, const QFileInfo& source_, catalog_type* catalog_):
 		m_task(&task_), m_source(source_), m_catalog(catalog_)
 	{
 	}
 
-	PRL_RESULT execute();
-	PRL_RESULT rollback();
+	PRL_RESULT query();
+	PRL_RESULT sweep();
+	PRL_RESULT import();
 
 private:
 	PRL_RESULT do_(const QFileInfo& target_);

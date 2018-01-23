@@ -494,19 +494,43 @@ Libvirt::result_type Libvirt::operator()()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Import
+// struct Storage
 
-PRL_RESULT Import::execute()
+PRL_RESULT Storage::import()
 {
 	PRL_RESULT e = m_catalog->import(m_source.fileName(),
-		boost::bind(&Import::do_, this, _1));
+		boost::bind(&Storage::do_, this, _1));
 	if (PRL_FAILED(e))
 		return e;
 
 	return m_catalog->commit();
 }
 
-PRL_RESULT Import::rollback()
+PRL_RESULT Storage::query()
+{
+	SmartPtr<CVmConfiguration> x = m_task->getVmConfig();
+	if (!x.isValid())
+		return PRL_ERR_UNINITIALIZED;
+
+	QScopedPointer<const ::Template::Storage::Entry::Unit> u;
+	PRL_RESULT e = m_catalog->find(m_source.fileName(), u);
+	if (PRL_FAILED(e))
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot read the template folder");
+		return e;
+	}
+	SmartPtr<CVmConfiguration> y = u->getConfig();
+	if (!y.isValid())
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot read the template config");
+		return PRL_ERR_OPERATION_FAILED;
+	}
+	*x = *y;
+
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Storage::sweep()
 {
 	PRL_RESULT e = m_catalog->unlink(m_source.fileName());
 	if (PRL_FAILED(e))
@@ -515,7 +539,7 @@ PRL_RESULT Import::rollback()
 	return m_catalog->commit();
 }
 
-PRL_RESULT Import::do_(const QFileInfo& target_)
+PRL_RESULT Storage::do_(const QFileInfo& target_)
 {
 	SmartPtr<CVmConfiguration> x = m_task->getVmConfig();
 	if (!x.isValid())
@@ -646,9 +670,10 @@ Import::result_type Import::operator()(const request_type& request_)
 	tf::Registrar y(u.get(), *x, w);
 	x->getVmIdentification()->setHomePath(request_.second.absoluteFilePath());
 	b.addItem(boost::bind(&tf::Registrar::begin, &y), boost::bind(&tf::Registrar::rollback, &y));
-	Command::Move::Import i(*m_task, request_.first.absolutePath(), p.take());
-	b.addItem(boost::bind(&Command::Move::Import::execute, i),
-		boost::bind(&Command::Move::Import::rollback, i));
+	Command::Move::Storage s(*m_task, request_.first.absolutePath(), p.take());
+	b.addItem(boost::bind(&Command::Move::Storage::import, s),
+		boost::bind(&Command::Move::Storage::sweep, s));
+	b.addItem(boost::bind(&Command::Move::Storage::query, s));
 	b.addItem(boost::bind(&CFileHelper::ClearAndDeleteDir, request_.first.absolutePath()));
 	b.addItem(boost::bind(&CDspVmDirHelper::deleteVmDirectoryItem,
 		&w.getDirectoryHelper(), m_task->getVmDirectory(), m_task->getVmUuid()));
