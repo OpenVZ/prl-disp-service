@@ -103,9 +103,6 @@ public:
 #ifdef _LIN_
 	void syncCtsUptime();
 #endif
-	QList<SmartPtr<CVmConfiguration> > getAutoResumeCtList(
-			QList<SmartPtr<CVmConfiguration> > &configs);
-
 	class CConfigCache
 	{
 	public:
@@ -124,11 +121,6 @@ public:
 		return m_configCache;
 	}
 
-	static QString getVzrebootMarkFile(const SmartPtr<CVmConfiguration> &pConfig)
-	{
-		return QString("/etc/vz/vzreboot/%1").
-				arg(pConfig->getVmIdentification()->getCtId());
-	}
 private:
 	bool checkAccess(SmartPtr<CDspClient> &pUserSession);
 	void sendCtInfo(const IOSender::Handle& sender,

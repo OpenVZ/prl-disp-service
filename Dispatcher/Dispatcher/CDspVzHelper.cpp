@@ -369,24 +369,6 @@ PRL_RESULT CDspVzHelper::getCtConfigList(SmartPtr<CDspClient> pUserSession,
 	return PRL_ERR_SUCCESS;
 }
 
-QList<SmartPtr<CVmConfiguration> > CDspVzHelper::getAutoResumeCtList(
-		 QList<SmartPtr<CVmConfiguration> > &configs)
-{
-	QList<SmartPtr<CVmConfiguration> > resumeList;
-
-	foreach(SmartPtr<CVmConfiguration> pConfig, configs)
-	{
-		/* There no API to get the list of CT suspended in PRAM
-		 * use low-level logic
-		 */
-		QFile f(getVzrebootMarkFile(pConfig));
-		if (f.exists())
-			resumeList += pConfig;
-	}
-
-	return resumeList;
-}
-
 QList<PRL_ALLOWED_VM_COMMAND> CDspVzHelper::getAllowedCommands()
 {
         QList< PRL_ALLOWED_VM_COMMAND > lstAllowed;
