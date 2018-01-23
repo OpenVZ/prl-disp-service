@@ -829,7 +829,7 @@ struct Master: boost::static_visitor<bool>
 		if (ethernet_.getValue().getMac())
 		{
 			m_result->setMacAddress(ethernet_.getValue()
-				.getMac().get().toUpper().remove(QString(":")));
+				.getMac().get().toUpper());
 		}
 		return true;
 	}
