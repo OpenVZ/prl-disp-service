@@ -95,6 +95,10 @@ public:
 	{
 		return m_sServerHostname;
 	}
+	const QString& getTargetPrivate() const
+	{
+		return m_sTargetServerVmHomePath;
+	}
 	const CVmConfiguration *getTargetConfig() const
 	{
 		return m_targetConfig.data();

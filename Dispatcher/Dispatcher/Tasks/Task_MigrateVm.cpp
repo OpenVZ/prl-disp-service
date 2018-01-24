@@ -1097,7 +1097,8 @@ void Frontend::pokePeer(const T&)
 void Frontend::audit(const Libvirt::Trick::Online::downtime_type& downtime_)
 {
 	boost::property_tree::ptree p;
-	p.put("destination", m_task->getTargetAddress().toStdString());
+	p.put("target_address", m_task->getTargetAddress().toStdString());
+	p.put("target_private", m_task->getTargetPrivate().toStdString());
 	p.put("downtime", downtime_);
 	p.put("clone", !!(m_task->getFlags() & PVMT_CLONE_MODE));
 	p.put("remove_src", !!(m_task->getFlags() & PVMT_REMOVE_SOURCE_BUNDLE));
