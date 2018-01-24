@@ -91,6 +91,10 @@ public:
 	{
 		return m_nMigrationFlags;
 	}
+	const QString& getTargetAddress() const
+	{
+		return m_sServerHostname;
+	}
 	const CVmConfiguration *getTargetConfig() const
 	{
 		return m_targetConfig.data();
