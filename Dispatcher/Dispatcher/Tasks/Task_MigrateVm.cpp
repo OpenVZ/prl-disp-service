@@ -1098,6 +1098,9 @@ void Frontend::audit(const Libvirt::Trick::Online::downtime_type& downtime_)
 {
 	boost::property_tree::ptree p;
 	p.put("downtime", downtime_);
+	p.put("clone", !!(m_task->getFlags() & PVMT_CLONE_MODE));
+	p.put("remove_src", !!(m_task->getFlags() & PVMT_REMOVE_SOURCE_BUNDLE));
+	p.put("change_sid", !!(m_task->getFlags() & PVMT_CHANGE_SID));
 	p.put("compression", !(m_task->getFlags() & PVMT_UNCOMPRESSED));
 	p.put("encryption", !(m_task->getFlags() & PVMT_DIRECT_DATA_CONNECTION));
 	Task::Trace t(m_task->getRequestPackage());
