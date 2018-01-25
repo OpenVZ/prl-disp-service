@@ -34,7 +34,6 @@
 #define __Task_BackgroundJob_H_
 
 #include "CDspTaskHelper.h"
-#include "Libraries/PrlCommonUtils/PrlProcess.h"
 #include "CDspVm.h"
 
 class CParallelsNetworkConfig;
@@ -289,38 +288,6 @@ private:
 
 protected:
 	SmartPtr<CDspVm> m_pVm;
-};
-
-class Task_RunVmAction : public Task_BackgroundJob
-{
-public:
-	Task_RunVmAction(
-			SmartPtr<CDspClient>& pUser,
-			const SmartPtr<IOPackage>& pRequestPkg,
-			const SmartPtr<CDspVm> &pVm,
-			PRL_VM_ACTION nAction,
-			const QString &sUserName);
-
-	virtual void cancelOperation(SmartPtr<CDspClient> pUserSession, const SmartPtr<IOPackage> &p);
-
-private:
-	PRL_RESULT RunAction(
-			const QString &VmUuid,
-			const QString &VmDirUuid,
-			PRL_VM_ACTION nAction);
-	/**
-	 * Overridden template method
-	 */
-	virtual PRL_RESULT ConcreteDoBackgroundJob();
-	void finalizeTask();
-
-	PRL_RESULT RunScript(const QString &sScript, const QStringList &lstEnv);
-
-private:
-	SmartPtr<CDspVm> m_pVm;
-	PRL_VM_ACTION m_nAction;
-	QString m_sUserName;
-	PrlProcess m_proc;
 };
 
 class Task_SendHostHardwareInfo: public Task_BackgroundJob

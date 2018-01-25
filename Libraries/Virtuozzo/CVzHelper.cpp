@@ -3460,7 +3460,7 @@ int CVzExecHelper::run_cmd(const QString &uuid,
 
 	WRITE_TRACE(DBG_DEBUG, "EXEC %s", QSTR2UTF8(args.join(" ")));
 
-	m_pid = vfork();
+	m_pid = fork();
 	if (m_pid < 0) {
 		WRITE_TRACE(DBG_FATAL, "fork(): %m");
 		free_argv(argv);

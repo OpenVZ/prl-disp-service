@@ -20,8 +20,7 @@ SOURCES = MetaObjectUtils.cpp
 			CFirewallHelper.h \
 			UserFolderDefs.h \
 			UserFolder.h \
-			CVmMigrateHelper.h \
-			PrlProcess.h
+			CVmMigrateHelper.h
 
 	SOURCES += \
 			CVmQuestionHelper.cpp \
@@ -51,9 +50,5 @@ SOURCES = MetaObjectUtils.cpp
 	unix {
 		HEADERS += CUnixSignalHandler.h
 		SOURCES += CUnixSignalHandler.cpp
-	}
-
-	linux-* {
-		SOURCES += PrlProcess_lin.cpp
 	}
 
