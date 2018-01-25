@@ -1726,12 +1726,8 @@ void Builder::addDebugCommandline()
 	if (DBG_DEBUG > __log_level)
 		return;
 
-	// EFI only
-	if (m_input.getVmIdentification() == NULL
-		|| m_input.getVmSettings() == NULL
-		|| m_input.getVmSettings()->getVmStartupOptions() == NULL
-		|| m_input.getVmSettings()->getVmStartupOptions()->getBios() == NULL
-		|| !m_input.getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled())
+	// Due #PSBM-75384 - now unconditionally
+	if (m_input.getVmIdentification() == NULL)
 		return;
 
 	boost::optional<Libvirt::Domain::Xml::Commandline> c = m_result->getCommandline();
