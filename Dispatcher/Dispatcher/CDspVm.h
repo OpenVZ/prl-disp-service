@@ -377,7 +377,6 @@ public://Convenient global methods
 
 	void wakeupApplyConfigWaiters();
 	bool waitForApplyConfig(unsigned long timeout);
-	PRL_RESULT runActionScript(PRL_VM_ACTION nAction, const SmartPtr<CDspVm> &pVm, bool bWaitForResult = false);
 
 	/**
 	 * Store sign to restore Vm to the previous state before reboot

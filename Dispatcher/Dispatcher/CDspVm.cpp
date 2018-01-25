@@ -1637,30 +1637,6 @@ bool CDspVm::waitForApplyConfig(unsigned long timeout)
 	return d().m_applyConfigCondition.wait( &d().m_applyConfigMutex, timeout );
 }
 
-PRL_RESULT CDspVm::runActionScript(PRL_VM_ACTION nAction, const SmartPtr<CDspVm> &pVm, bool bWaitForResult)
-{
-	const SmartPtr<IOPackage> p =
-		DispatcherPackage::createInstance( PVE::DspCmdCtlDispatherFakeCommand );
-
-	SmartPtr<CDspClient> pUser = getVmRunner();
-	if (!pUser.isValid())
-		pUser = SmartPtr<CDspClient>(new CDspClient(IOSender::Handle()));
-
-	PRL_RESULT ret;
-	SmartPtr<CDspClient> pRunUser = pUser;
-	SmartPtr<CVmConfiguration> vmConfig = getVmConfig(SmartPtr<CDspClient>(0), ret);
-	if (PRL_FAILED(ret) || !vmConfig.isValid())
-	{
-		WRITE_TRACE( DBG_FATAL, "Invalid VM config" );
-		return PRL_ERR_INCONSISTENCY_VM_CONFIG;
-	}
-
-	QString sUserName = pRunUser->getAuthHelper().getUserName();
-	CDspService::instance()->getTaskManager().schedule(new Task_RunVmAction(pUser, p, pVm, nAction, sUserName))
-		.wait(bWaitForResult);
-	return 0;
-}
-
 QString CDspVm::prepareFastReboot(bool suspend)
 {
 	PRL_RESULT nRetCode = PRL_ERR_UNINITIALIZED;
