@@ -36,7 +36,7 @@ bool Enum::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Enum, Name::Strict<1809> > m;
+	Element<Enum, Name::Strict<1849> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -46,14 +46,14 @@ bool Enum::load(const QDomElement& src_)
 
 bool Enum::save(QDomElement& dst_) const
 {
-	Element<Enum, Name::Strict<1809> > m;
+	Element<Enum, Name::Strict<1849> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Enum::save(QDomDocument& dst_) const
 {
-	Element<Enum, Name::Strict<1809> > m;
+	Element<Enum, Name::Strict<1849> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -100,7 +100,7 @@ bool Loader::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Loader, Name::Strict<268> > m;
+	Element<Loader, Name::Strict<273> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -110,14 +110,14 @@ bool Loader::load(const QDomElement& src_)
 
 bool Loader::save(QDomElement& dst_) const
 {
-	Element<Loader, Name::Strict<268> > m;
+	Element<Loader, Name::Strict<273> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Loader::save(QDomDocument& dst_) const
 {
-	Element<Loader, Name::Strict<268> > m;
+	Element<Loader, Name::Strict<273> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -167,7 +167,7 @@ bool Os::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Os, Name::Strict<217> > m;
+	Element<Os, Name::Strict<222> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -177,14 +177,14 @@ bool Os::load(const QDomElement& src_)
 
 bool Os::save(QDomElement& dst_) const
 {
-	Element<Os, Name::Strict<217> > m;
+	Element<Os, Name::Strict<222> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Os::save(QDomDocument& dst_) const
 {
-	Element<Os, Name::Strict<217> > m;
+	Element<Os, Name::Strict<222> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -227,7 +227,7 @@ bool Model::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Model, Name::Strict<226> > m;
+	Element<Model, Name::Strict<231> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -237,14 +237,14 @@ bool Model::load(const QDomElement& src_)
 
 bool Model::save(QDomElement& dst_) const
 {
-	Element<Model, Name::Strict<226> > m;
+	Element<Model, Name::Strict<231> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Model::save(QDomDocument& dst_) const
 {
-	Element<Model, Name::Strict<226> > m;
+	Element<Model, Name::Strict<231> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -294,7 +294,7 @@ bool Feature::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Feature, Name::Strict<988> > m;
+	Element<Feature, Name::Strict<1009> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -304,14 +304,14 @@ bool Feature::load(const QDomElement& src_)
 
 bool Feature::save(QDomElement& dst_) const
 {
-	Element<Feature, Name::Strict<988> > m;
+	Element<Feature, Name::Strict<1009> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Feature::save(QDomDocument& dst_) const
 {
-	Element<Feature, Name::Strict<988> > m;
+	Element<Feature, Name::Strict<1009> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -344,30 +344,30 @@ int Traits<Capability::Xml::Feature>::generate(const Capability::Xml::Feature& s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1813
+// struct Anonymous1853
 
 namespace Capability
 {
 namespace Xml
 {
-bool Anonymous1813::load(const QDomElement& src_)
+bool Anonymous1853::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
 	k.push(src_.firstChildElement());
-	return 0 <= Traits<Anonymous1813>::parse(*this, k);
+	return 0 <= Traits<Anonymous1853>::parse(*this, k);
 }
 
-bool Anonymous1813::save(QDomElement& dst_) const
+bool Anonymous1853::save(QDomElement& dst_) const
 {
-	return 0 <= Traits<Anonymous1813>::generate(*this, dst_);
+	return 0 <= Traits<Anonymous1853>::generate(*this, dst_);
 }
 
 
 } // namespace Xml
 } // namespace Capability
 
-int Traits<Capability::Xml::Anonymous1813>::parse(Capability::Xml::Anonymous1813& dst_, QStack<QDomElement>& stack_)
+int Traits<Capability::Xml::Anonymous1853>::parse(Capability::Xml::Anonymous1853& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -380,7 +380,7 @@ int Traits<Capability::Xml::Anonymous1813>::parse(Capability::Xml::Anonymous1813
 	return output;
 }
 
-int Traits<Capability::Xml::Anonymous1813>::generate(const Capability::Xml::Anonymous1813& src_, QDomElement& dst_)
+int Traits<Capability::Xml::Anonymous1853>::generate(const Capability::Xml::Anonymous1853& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getModel(), m.get<0>()))
@@ -408,7 +408,7 @@ bool Mode::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Mode, Name::Strict<374> > m;
+	Element<Mode, Name::Strict<379> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -418,14 +418,14 @@ bool Mode::load(const QDomElement& src_)
 
 bool Mode::save(QDomElement& dst_) const
 {
-	Element<Mode, Name::Strict<374> > m;
+	Element<Mode, Name::Strict<379> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Mode::save(QDomDocument& dst_) const
 {
-	Element<Mode, Name::Strict<374> > m;
+	Element<Mode, Name::Strict<379> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -441,7 +441,7 @@ int Traits<Capability::Xml::Mode>::parse(Capability::Xml::Mode& dst_, QStack<QDo
 	if (0 <= output)
 	{
 		dst_.setSupported(m.get<1>().getValue());
-		dst_.setAnonymous1813(m.get<2>().getValue());
+		dst_.setAnonymous1853(m.get<2>().getValue());
 	}
 	return output;
 }
@@ -451,7 +451,7 @@ int Traits<Capability::Xml::Mode>::generate(const Capability::Xml::Mode& src_, Q
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSupported(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAnonymous1813(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getAnonymous1853(), m.get<2>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -472,7 +472,7 @@ bool Model1::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Model1, Name::Strict<226> > m;
+	Element<Model1, Name::Strict<231> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -482,14 +482,14 @@ bool Model1::load(const QDomElement& src_)
 
 bool Model1::save(QDomElement& dst_) const
 {
-	Element<Model1, Name::Strict<226> > m;
+	Element<Model1, Name::Strict<231> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Model1::save(QDomDocument& dst_) const
 {
-	Element<Model1, Name::Strict<226> > m;
+	Element<Model1, Name::Strict<231> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -536,7 +536,7 @@ bool Mode1::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Mode1, Name::Strict<374> > m;
+	Element<Mode1, Name::Strict<379> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -546,14 +546,14 @@ bool Mode1::load(const QDomElement& src_)
 
 bool Mode1::save(QDomElement& dst_) const
 {
-	Element<Mode1, Name::Strict<374> > m;
+	Element<Mode1, Name::Strict<379> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Mode1::save(QDomDocument& dst_) const
 {
-	Element<Mode1, Name::Strict<374> > m;
+	Element<Mode1, Name::Strict<379> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -600,7 +600,7 @@ bool Cpu::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Cpu, Name::Strict<215> > m;
+	Element<Cpu, Name::Strict<220> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -610,14 +610,14 @@ bool Cpu::load(const QDomElement& src_)
 
 bool Cpu::save(QDomElement& dst_) const
 {
-	Element<Cpu, Name::Strict<215> > m;
+	Element<Cpu, Name::Strict<220> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Cpu::save(QDomDocument& dst_) const
 {
-	Element<Cpu, Name::Strict<215> > m;
+	Element<Cpu, Name::Strict<220> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -667,7 +667,7 @@ bool Disk::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Disk, Name::Strict<466> > m;
+	Element<Disk, Name::Strict<471> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -677,14 +677,14 @@ bool Disk::load(const QDomElement& src_)
 
 bool Disk::save(QDomElement& dst_) const
 {
-	Element<Disk, Name::Strict<466> > m;
+	Element<Disk, Name::Strict<471> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Disk::save(QDomDocument& dst_) const
 {
-	Element<Disk, Name::Strict<466> > m;
+	Element<Disk, Name::Strict<471> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -731,7 +731,7 @@ bool Graphics::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Graphics, Name::Strict<690> > m;
+	Element<Graphics, Name::Strict<711> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -741,14 +741,14 @@ bool Graphics::load(const QDomElement& src_)
 
 bool Graphics::save(QDomElement& dst_) const
 {
-	Element<Graphics, Name::Strict<690> > m;
+	Element<Graphics, Name::Strict<711> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Graphics::save(QDomDocument& dst_) const
 {
-	Element<Graphics, Name::Strict<690> > m;
+	Element<Graphics, Name::Strict<711> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -795,7 +795,7 @@ bool Video::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Video, Name::Strict<757> > m;
+	Element<Video, Name::Strict<778> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -805,14 +805,14 @@ bool Video::load(const QDomElement& src_)
 
 bool Video::save(QDomElement& dst_) const
 {
-	Element<Video, Name::Strict<757> > m;
+	Element<Video, Name::Strict<778> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Video::save(QDomDocument& dst_) const
 {
-	Element<Video, Name::Strict<757> > m;
+	Element<Video, Name::Strict<778> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -859,7 +859,7 @@ bool Hostdev::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Hostdev, Name::Strict<654> > m;
+	Element<Hostdev, Name::Strict<675> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -869,14 +869,14 @@ bool Hostdev::load(const QDomElement& src_)
 
 bool Hostdev::save(QDomElement& dst_) const
 {
-	Element<Hostdev, Name::Strict<654> > m;
+	Element<Hostdev, Name::Strict<675> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Hostdev::save(QDomDocument& dst_) const
 {
-	Element<Hostdev, Name::Strict<654> > m;
+	Element<Hostdev, Name::Strict<675> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -919,7 +919,7 @@ bool Devices::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Devices, Name::Strict<223> > m;
+	Element<Devices, Name::Strict<228> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -929,14 +929,14 @@ bool Devices::load(const QDomElement& src_)
 
 bool Devices::save(QDomElement& dst_) const
 {
-	Element<Devices, Name::Strict<223> > m;
+	Element<Devices, Name::Strict<228> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Devices::save(QDomDocument& dst_) const
 {
-	Element<Devices, Name::Strict<223> > m;
+	Element<Devices, Name::Strict<228> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -989,7 +989,7 @@ bool Gic::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Gic, Name::Strict<970> > m;
+	Element<Gic, Name::Strict<991> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -999,14 +999,14 @@ bool Gic::load(const QDomElement& src_)
 
 bool Gic::save(QDomElement& dst_) const
 {
-	Element<Gic, Name::Strict<970> > m;
+	Element<Gic, Name::Strict<991> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Gic::save(QDomDocument& dst_) const
 {
-	Element<Gic, Name::Strict<970> > m;
+	Element<Gic, Name::Strict<991> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1049,7 +1049,7 @@ bool DomainCapabilities::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<DomainCapabilities, Name::Strict<1806> > m;
+	Element<DomainCapabilities, Name::Strict<1846> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1059,14 +1059,14 @@ bool DomainCapabilities::load(const QDomElement& src_)
 
 bool DomainCapabilities::save(QDomElement& dst_) const
 {
-	Element<DomainCapabilities, Name::Strict<1806> > m;
+	Element<DomainCapabilities, Name::Strict<1846> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool DomainCapabilities::save(QDomDocument& dst_) const
 {
-	Element<DomainCapabilities, Name::Strict<1806> > m;
+	Element<DomainCapabilities, Name::Strict<1846> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }

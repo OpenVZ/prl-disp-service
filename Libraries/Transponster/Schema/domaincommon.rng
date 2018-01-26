@@ -1803,6 +1803,66 @@
             <attribute name="type">
               <value>pci</value>
             </attribute>
+            <optional>
+              <element name="model">
+                <attribute name="name">
+                  <choice>
+                    <!-- implementations of 'pci-root' -->
+                    <value>spapr-pci-host-bridge</value>
+                    <!-- implementations of 'pci-bridge' -->
+                    <value>pci-bridge</value>
+                    <!-- implementations of 'dmi-to-pci-bridge' -->
+                    <value>i82801b11-bridge</value>
+                    <!-- implementations of 'pcie-root-port' -->
+                    <value>ioh3420</value>
+                    <value>pcie-root-port</value>
+                    <!-- implementations of 'pcie-switch-upstream-port' -->
+                    <value>x3130-upstream</value>
+                    <!-- implementations of 'pcie-switch-downstream-port' -->
+                    <value>xio3130-downstream</value>
+                    <!-- implementations of 'pci-expander-bus' -->
+                    <value>pxb</value>
+                    <!-- implementations of 'pcie-expander-bus' -->
+                    <value>pxb-pcie</value>
+                  </choice>
+                </attribute>
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="target">
+                <optional>
+                  <attribute name='chassisNr'>
+                    <ref name='uint8'/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name="chassis">
+                    <ref name='uint8'/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name="port">
+                    <ref name='uint8'/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name='busNr'>
+                    <ref name='uint8'/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <attribute name='index'>
+                    <ref name='uint8'/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <element name='node'>
+                    <ref name='unsignedInt'/>
+                  </element>
+                </optional>
+              </element>
+            </optional>
             <!-- *-root controllers have an optional element "pcihole64"-->
             <choice>
               <group>
@@ -1823,6 +1883,11 @@
                   <choice>
                     <value>pci-bridge</value>
                     <value>dmi-to-pci-bridge</value>
+                    <value>pcie-root-port</value>
+                    <value>pcie-switch-upstream-port</value>
+                    <value>pcie-switch-downstream-port</value>
+                    <value>pci-expander-bus</value>
+                    <value>pcie-expander-bus</value>
                   </choice>
                 </attribute>
               </group>
