@@ -32,6 +32,17 @@
     </data>
   </define>
 
+  <define name="uint8">
+    <choice>
+      <data type="string">
+        <param name="pattern">0x[0-9a-fA-F]{1,2}</param>
+      </data>
+      <data type="int">
+        <param name="minInclusive">0</param>
+        <param name="maxInclusive">255</param>
+      </data>
+    </choice>
+  </define>
   <define name="uint8range">
     <choice>
       <data type="string">

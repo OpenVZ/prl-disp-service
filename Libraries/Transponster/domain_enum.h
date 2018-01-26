@@ -550,6 +550,19 @@ enum EModel1
 	EModel1None
 };
 
+enum EName3
+{
+	EName3SpaprPciHostBridge,
+	EName3PciBridge,
+	EName3I82801b11Bridge,
+	EName3Ioh3420,
+	EName3PcieRootPort,
+	EName3X3130Upstream,
+	EName3Xio3130Downstream,
+	EName3Pxb,
+	EName3PxbPcie
+};
+
 enum EModel2
 {
 	EModel2PciRoot,
@@ -559,7 +572,12 @@ enum EModel2
 enum EModel3
 {
 	EModel3PciBridge,
-	EModel3DmiToPciBridge
+	EModel3DmiToPciBridge,
+	EModel3PcieRootPort,
+	EModel3PcieSwitchUpstreamPort,
+	EModel3PcieSwitchDownstreamPort,
+	EModel3PciExpanderBus,
+	EModel3PcieExpanderBus
 };
 
 enum EType7
@@ -589,16 +607,16 @@ enum EState
 	EStateDown
 };
 
-enum EName3
-{
-	EName3Kvm,
-	EName3Vfio
-};
-
 enum EName4
 {
-	EName4Qemu,
-	EName4Vhost
+	EName4Kvm,
+	EName4Vfio
+};
+
+enum EName5
+{
+	EName5Qemu,
+	EName5Vhost
 };
 
 enum ETxmode
@@ -661,11 +679,11 @@ enum EType11
 	EType11Micro
 };
 
-enum EName5
+enum EName6
 {
-	EName5Kvm,
-	EName5Vfio,
-	EName5Xen
+	EName6Kvm,
+	EName6Vfio,
+	EName6Xen
 };
 
 enum ESgio1
@@ -710,16 +728,16 @@ enum EDefaultMode
 	EDefaultModeInsecure
 };
 
-enum EName6
+enum EName7
 {
-	EName6Main,
-	EName6Display,
-	EName6Inputs,
-	EName6Cursor,
-	EName6Playback,
-	EName6Record,
-	EName6Smartcard,
-	EName6Usbredir
+	EName7Main,
+	EName7Display,
+	EName7Inputs,
+	EName7Cursor,
+	EName7Playback,
+	EName7Record,
+	EName7Smartcard,
+	EName7Usbredir
 };
 
 enum EMode7
@@ -833,10 +851,10 @@ enum EModel5
 	EModel5Virtio
 };
 
-enum EChoice1043
+enum EChoice1063
 {
-	EChoice1043DevRandom,
-	EChoice1043DevHwrng
+	EChoice1063DevRandom,
+	EChoice1063DevHwrng
 };
 
 enum EModel6
