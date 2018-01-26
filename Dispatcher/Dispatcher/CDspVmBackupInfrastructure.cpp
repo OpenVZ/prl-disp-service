@@ -38,6 +38,7 @@
 #endif
 #include "CDspLibvirtExec.h"
 #include <Tasks/Task_CloneVm_p.h>
+#include "Libraries/Virtuozzo/CVzHelper.h"
 #include "CDspVmBackupInfrastructure.h"
 #include "CDspVmSnapshotInfrastructure.h"
 #include <prlxmlmodel/BackupActivity/BackupActivity.h>
@@ -164,6 +165,27 @@ PRL_RESULT Object::getConfig(config_type& dst_) const
 	WRITE_TRACE(DBG_FATAL, "Can not load config for uuid %s",
 		QSTR2UTF8(getIdent().first));
 	return PRL_ERR_RETRIEVE_VM_CONFIG;
+}
+
+PRL_RESULT Object::lock(const QString& task_)
+{
+	PRL_RESULT ret = ::Backup::Task::Object::lock(task_);
+	if (PRL_SUCCEEDED(ret))
+	{
+		if (CVzHelper::lock_env(getIdent().first, "Backing up") < 0)
+		{
+			WRITE_TRACE(DBG_FATAL, "Can't lock Container");
+			::Backup::Task::Object::unlock();
+			return PRL_ERR_VM_IS_EXCLUSIVELY_LOCKED;
+		}
+	}
+	return ret;
+}
+
+PRL_RESULT Object::unlock()
+{
+	CVzHelper::unlock_env(getIdent().first, -1);
+	return ::Backup::Task::Object::unlock();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

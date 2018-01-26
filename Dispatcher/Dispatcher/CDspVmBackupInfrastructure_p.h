@@ -538,6 +538,8 @@ struct Object: Task::Object
 	}
 
 	PRL_RESULT getConfig(config_type& dst_) const;
+	PRL_RESULT lock(const QString& task_);
+	PRL_RESULT unlock();
 
 private:
 	SmartPtr<CDspVzHelper> m_vz;
