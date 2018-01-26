@@ -120,12 +120,15 @@ PRL_RESULT Task_CreateProblemReport::processReportSending()
 {
     SmartPtr<CPackedProblemReport> pPR = CDspProblemReportHelper::getProblemReportObj(
         getClient(), getRequestPackage());
+	if (pPR.isValid())
     {
         QMutexLocker lk(&m_mtx);
         PRL_ASSERT(!m_pPRSender);
 
         m_pPRSender.reset(new CProblemReportPostWrap);
     }
+	else
+		return PRL_ERR_FAILURE;
 
     m_pPRSender->setIgnoreCertifErrors(false);
     m_pPRSender->initProblemReport(pPR);
