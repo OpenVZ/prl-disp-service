@@ -1069,17 +1069,23 @@ template<class T>
 void shape(char* xml_, QScopedPointer<T>& dst_)
 {
 	if (NULL == xml_)
+	{
+		WRITE_TRACE(DBG_FATAL, "Invalid argument");
 		return;
-
+	}
 	QByteArray b(xml_);
 	free(xml_);
 	QDomDocument x;
 	if (!x.setContent(b, true))
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot parse XML");
 		return;
-
+	}
 	QScopedPointer<T> g(new T());
 	if (g->load(x.documentElement()))
 		dst_.reset(g.take());
+	else
+		WRITE_TRACE(DBG_FATAL, "RNG schema validation has failed");
 }
 
 } // namespace Transponster
