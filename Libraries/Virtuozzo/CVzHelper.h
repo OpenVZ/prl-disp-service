@@ -476,6 +476,7 @@ public:
                 PRL_UINT32 flags);
 
 private:
+	int unregister_env(const QString &ctid);
 	CVzOperationCleaner &get_cleaner() { return m_cleaner; }
 	PRL_RESULT run_prg(const char *name, const QStringList &lstArgs, bool quiet = false);
 

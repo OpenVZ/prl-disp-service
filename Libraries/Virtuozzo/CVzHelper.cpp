@@ -2238,6 +2238,10 @@ int CVzOperationHelper::register_env(const QString &sPath, const QString &sCtId,
 		return ret;
 
 	pConfig = CVzHelper::get_env_config_by_ctid(ctid);
+	if (!pConfig) {
+		unregister_env(ctid);
+		return PRL_ERR_PARSE_VM_CONFIG;
+	}
 
 	return PRL_ERR_SUCCESS;
 }
@@ -2253,14 +2257,9 @@ int CVzOperationHelper::register_env(const SmartPtr<CVmConfiguration> &pConfig,
 			nFlags, c);
 }
 
-int CVzOperationHelper::unregister_env(const QString &uuid, int flags)
+int CVzOperationHelper::unregister_env(const QString &ctid)
 {
-	Q_UNUSED(flags);
 	QStringList args;
-
-	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
-	if (ctid.isEmpty())
-		return PRL_ERR_CT_NOT_FOUND;
 
 	WRITE_TRACE(DBG_FATAL, "Unregister Container %s",
 			QSTR2UTF8(ctid));
@@ -2269,6 +2268,17 @@ int CVzOperationHelper::unregister_env(const QString &uuid, int flags)
 	args += ctid;
 
 	return run_prg(BIN_VZCTL, args);
+}
+
+int CVzOperationHelper::unregister_env(const QString &uuid, int flags)
+{
+	Q_UNUSED(flags);
+
+	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
+	if (ctid.isEmpty())
+		return PRL_ERR_CT_NOT_FOUND;
+
+	return unregister_env(ctid);
 }
 
 int CVzOperationHelper::create_env(const QString &dst, SmartPtr<CVmConfiguration> &pConfig,
