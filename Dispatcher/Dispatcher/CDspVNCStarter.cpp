@@ -174,46 +174,63 @@ boost::optional<Api::Stunnel> Scope::getEncryption() const
 namespace Socat
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Accept
+// struct Encryption
 
-Accept::result_type Accept::craftInsecure(quint16 port_)
-{
-	return QString("TCP4-LISTEN:").append(QString::number(port_))
-		.append(",reuseaddr,fork,linger=0");
-}
-
-Accept::result_type Accept::operator()(quint16 port_)
+Encryption::result_type Encryption::operator()()
 {
 	if (m_key.isNull())
 	{
 		PRL_RESULT e;
 		QSharedPointer<QTemporaryFile> k(new QTemporaryFile());
-		if (PRL_FAILED(e = m_ssl.key(*k)))
+		if (PRL_FAILED(e = key(*k)))
 			return e;
 
 		QSharedPointer<QTemporaryFile> c(new QTemporaryFile());
-		if (PRL_FAILED(e = m_ssl.certificate(*c)))
+		if (PRL_FAILED(e = certificate(*c)))
 			return e;
 
 		m_key = k;
 		m_certificate = c;
 	}
-	return QString("OPENSSL-LISTEN:").append(QString::number(port_))
-		.append(",reuseaddr,fork,linger=0,verify=0,pf=ip4")
-		.append(",key=").append(m_key->fileName())
-		.append(",cert=").append(m_certificate->fileName());
+
+	return qMakePair(m_key->fileName(), m_certificate->fileName());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Visitor
+
+Visitor::result_type Visitor::operator()
+	(const boost::mpl::at_c<Launcher::mode_type::types, 0>::type& insecure_) const
+{
+	return bind("TCP4-LISTEN", QHostAddress(insecure_));
+}
+
+Visitor::result_type Visitor::operator()
+	(boost::mpl::at_c<Launcher::mode_type::types, 1>::type& secure_) const
+{
+	Encryption::result_type e = secure_.second();
+	if (e.isFailed())
+		return e.error();
+
+	return bind("OPENSSL-LISTEN", QHostAddress(secure_.first))
+		.append(",verify=0,pf=ip4")
+		.append(",key=").append(e.value().first)
+		.append(",cert=").append(e.value().second);
+}
+
+QString Visitor::bind(const char* spell_, const QHostAddress& name_) const
+{
+	QString output = QString(spell_).append(":")
+		.append(QString::number(m_port))
+		.append(",reuseaddr,fork,linger=0");
+	if (!name_.isNull() && !(name_ == QHostAddress::Any || name_ == QHostAddress::AnyIPv6))
+		output.append(",bind=").append(name_.toString());
+
+	return output;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Launcher
-
-Launcher::Launcher(): m_accept(boost::bind(&Accept::craftInsecure, _1))
-{
-}
-
-Launcher::Launcher(const Api::Stunnel& ssl_): m_accept(boost::bind(Accept(ssl_), _1))
-{
-}
 
 Launcher& Launcher::setTarget(const QHostAddress& address_, quint16 port_)
 {
@@ -243,7 +260,7 @@ PRL_RESULT Launcher::operator()(quint16 accept_, QProcess& process_)
 	if (m_target.isEmpty())
 		return PRL_ERR_UNINITIALIZED;
 
-	Accept::result_type a = m_accept(accept_);
+	Visitor::result_type a = boost::apply_visitor(Visitor(accept_), m_mode);
 	if (a.isFailed())
 		return a.error();
 
@@ -444,12 +461,12 @@ void Frontend::draw(CVmRemoteDisplay& object_, const CVmRemoteDisplay* runtime_,
 	if (NULL == runtime_)
 		return;
 
-	Socat::Launcher u;
 	Scope s(*m_service);
+	Socat::Launcher u(object_.getHostName());
 	boost::optional<Vnc::Api::Stunnel> e = s.getEncryption();
 	if (e)
 	{
-		u = Socat::Launcher(e.get());
+		u = Socat::Launcher(qMakePair(object_.getHostName(), Socat::Encryption(e.get())));
 		object_.setEncrypted(true);
 	}
 	QHostAddress a(runtime_->getHostName());
