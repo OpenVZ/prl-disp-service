@@ -1262,6 +1262,11 @@ void Task_ManagePrlNetService::updateAdapter(const CVmGenericNetworkAdapter& pAd
 
 			PrlNet::setAdapterIpAddress(vnic_name, DEFAULT_HOSTROUTED_GATEWAY);
 			PrlNet::setAdapterIpAddress(vnic_name, DEFAULT_HOSTROUTED_GATEWAY6);
+			QFile f(QString("/proc/sys/net/ipv4/conf/%1/proxy_arp").arg(vnic_name));
+			if (!f.open(QIODevice::ReadWrite | QIODevice::Unbuffered))
+				WRITE_TRACE(DBG_FATAL, "Failed to enable proxy_arp on %s", qPrintable(vnic_name));
+			else
+				f.write("1", 1);
 		}
 
 		QStringList ips = pAdapter.getNetAddresses();
