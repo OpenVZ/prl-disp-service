@@ -109,6 +109,7 @@
 
 #include <prlcommon/HostUtils/HostUtils.h>
 
+#include "CDspService.h"
 #include "CDspVzHelper.h"
 
 #include "Tasks/Task_BackgroundJob.h"
@@ -2623,16 +2624,28 @@ CDspVmDirHelper::getVmConfigForDirectoryItem(CVmDirectoryItem* pDirectoryItem, P
 	SmartPtr<CVmConfiguration> pVmConfig( new CVmConfiguration() );
 
 	// get config file
-	PRL_RESULT load_rc =
-		CDspService::instance()->getVmConfigManager().loadConfig(pVmConfig,
-		pDirectoryItem->getVmHome(),
-		SmartPtr<CDspClient>(0),
-		bAbsolute,
-		bLoadConfigDirectlyFromDisk
-		);
+	PRL_RESULT rc = PRL_ERR_SUCCESS;
 
+	if (pDirectoryItem->getVmType() == PVT_CT)
+	{ 
+		pVmConfig = CDspService::instance()->getVzHelper()->getCtConfig(
+				SmartPtr<CDspClient>(0),
+				pDirectoryItem->getVmUuid(),
+				pDirectoryItem->getVmHome());
+		if (!pVmConfig)
+			rc = PRL_ERR_VM_GET_CONFIG_FAILED;
+	}
+	else
+	{
+		rc = CDspService::instance()->getVmConfigManager().loadConfig(pVmConfig,
+				pDirectoryItem->getVmHome(),
+				SmartPtr<CDspClient>(0),
+				bAbsolute,
+				bLoadConfigDirectlyFromDisk
+				);
+	}
 
-	if( !IS_OPERATION_SUCCEEDED( load_rc ) )
+	if( !IS_OPERATION_SUCCEEDED(rc) )
 	{
 		error = PRL_ERR_PARSE_VM_CONFIG;
 		pVmConfig = SmartPtr<CVmConfiguration>();

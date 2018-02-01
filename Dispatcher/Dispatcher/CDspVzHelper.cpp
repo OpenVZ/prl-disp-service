@@ -301,19 +301,8 @@ SmartPtr<CVmConfiguration> CDspVzHelper::getCtConfig(
 		getConfigCache().update(sHome, pConfig, pUserSession);
 	}
 
-	if (bFull) {
-
-		pConfig->getVmIdentification()->setVmFilesLocation(
-				CFileHelper::GetVmFilesLocationType(pConfig->getVmIdentification()->getHomePath())
-				);
-		appendAdvancedParamsToCtConfig(pConfig);
-
-		CVmEvent *evt = new CVmEvent;
-		fillCtInfo(pUserSession, sUuid, *evt);
-		pConfig->getVmSettings()->getVmRuntimeOptions()
-			->getInternalVmInfo()->setParallelsEvent(evt);
-		UpdateHardDiskInformation(pConfig);
-	}
+	if (bFull)
+		appendAdvancedParamsToCtConfig(pUserSession, pConfig);
 
 	return pConfig;
 }
@@ -540,12 +529,17 @@ bool CDspVzHelper::sendCtConfigByUuid(const IOSender::Handle& sender,
 		const SmartPtr<IOPackage>& pkg,
 		QString vm_uuid )
 {
+	PRL_RESULT e;
 
-	SmartPtr<CVmConfiguration> pConfig = getCtConfig(pUserSession, vm_uuid, true);
+	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+			getVmDirHelper().getVmConfigByUuid(
+				pUserSession, vm_uuid, e, NULL);
 	if (!pConfig) {
 		pUserSession->sendSimpleResponse( pkg, PRL_ERR_FAILURE );
 		return false;
 	}
+
+	appendAdvancedParamsToCtConfig(pUserSession, pConfig);
 
 	////////////////////////////////////////////////////////////////////////
 	// prepare response
@@ -1090,9 +1084,21 @@ bool CDspVzHelper::isCtVNCServerRunning(const QString &uuid)
 	return false;
 }
 
-void CDspVzHelper::appendAdvancedParamsToCtConfig(SmartPtr<CVmConfiguration> pOutConfig)
+void CDspVzHelper::appendAdvancedParamsToCtConfig(
+		SmartPtr<CDspClient> pUserSession,
+		SmartPtr<CVmConfiguration> pOutConfig)
 {
 	QString sUuid = pOutConfig->getVmIdentification()->getVmUuid();
+
+	pOutConfig->getVmIdentification()->setVmFilesLocation(
+		CFileHelper::GetVmFilesLocationType(
+			pOutConfig->getVmIdentification()->getHomePath()));
+
+	CVmEvent *evt = new CVmEvent;
+	fillCtInfo(pUserSession, sUuid, *evt);
+	pOutConfig->getVmSettings()->getVmRuntimeOptions()
+		->getInternalVmInfo()->setParallelsEvent(evt);
+	UpdateHardDiskInformation(pOutConfig);
 
 	/* update VNC port */
 	CVmRemoteDisplay *remDisplay = pOutConfig->getVmSettings()->getVmRemoteDisplay();

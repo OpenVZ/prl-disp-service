@@ -275,7 +275,9 @@ PRL_RESULT Task_VzManager::start_env()
 
 	QString sUuid = pCmd->GetVmUuid();
 
-	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+		getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, e, NULL);
 	if (!pConfig)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
@@ -363,7 +365,9 @@ PRL_RESULT Task_VzManager::restart_env()
 
 	QString sUuid = pCmd->GetVmUuid();
 
-	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+		getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, e, NULL);
 	if (!pConfig)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
@@ -396,7 +400,9 @@ PRL_RESULT Task_VzManager::stop_env()
 
 	res = get_op_helper()->stop_env(sUuid, pCmd->GetStopMode());
 
-	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+		getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, e, NULL);
 	if (pConfig.isValid())
 		Backup::Device::Service(pConfig).disable();
 
@@ -419,7 +425,9 @@ PRL_RESULT Task_VzManager::mount_env()
 	bool infoMode = (cmd->GetCommandFlags() & PMVD_INFO);
 
 	if (infoMode) {
-		SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+		PRL_RESULT e;
+		SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+			getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, e, NULL);
 		if (!pConfig)
 			return PRL_ERR_VM_GET_CONFIG_FAILED;
 		Prl::Expected<QString, PRL_RESULT> info =
@@ -470,7 +478,9 @@ PRL_RESULT Task_VzManager::suspend_env()
 					m_sVzDirUuid, false);
 	}
 
-	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+		getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, e, NULL);
 	if (pConfig.isValid())
 		Backup::Device::Service(pConfig).disable();
 
@@ -490,7 +500,9 @@ PRL_RESULT Task_VzManager::resume_env()
 	if (PRL_FAILED(res))
 		return res;
 
-	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+		getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, e, NULL);
 	if (!pConfig)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 	Backup::Device::Service(pConfig).setContext(*this).enable();
@@ -524,7 +536,9 @@ PRL_RESULT Task_VzManager::delete_env()
 	if (PRL_FAILED(res))
 		return res;
 
-	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+		getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, e, NULL);
 	if (!pConfig)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
@@ -836,7 +850,9 @@ PRL_RESULT Task_VzManager::unregister_env()
 	if (PRL_FAILED(res))
 		return res;
 
-	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), uuid);
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+		getVmDirHelper().getVmConfigByUuid(getClient(), uuid, e, NULL);
 	if (!pConfig)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
@@ -925,7 +941,9 @@ PRL_RESULT Task_VzManager::clone_env()
 	if (PRL_FAILED(res))
 		return res;
 
-	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+		getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, e, NULL);
 	if (!pConfig)
 	{
 		WRITE_TRACE(DBG_FATAL, "Unable to find CT by uuid %s", QSTR2UTF8(sUuid));
@@ -1033,7 +1051,10 @@ PRL_RESULT Task_VzManager::create_env_disk()
 		return PRL_ERR_BAD_PARAMETERS;
 	}
 
-	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), pCmd->GetVmUuid());
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+		getVmDirHelper().getVmConfigByUuid(getClient(),
+			 pCmd->GetVmUuid(), e, NULL);
 	if (!pConfig) {
 		WRITE_TRACE(DBG_FATAL, "Unable to find CT by uuid %s",
 				QSTR2UTF8(pCmd->GetVmUuid()));
@@ -1089,7 +1110,9 @@ PRL_RESULT Task_VzManager::resize_env_disk()
 	unsigned int nNewSize = pCmd->GetSize();
 	bool infoMode = (pCmd->GetFlags() & PRIF_DISK_INFO);
 
-	SmartPtr<CVmConfiguration> x = getVzHelper()->getCtConfig(getClient(), sUuid);
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> x = CDspService::instance()->
+		getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, e, NULL);
 	if (!x)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
@@ -1136,7 +1159,9 @@ PRL_RESULT Task_VzManager::process_state()
 	}
 	s.unlock();
 
-	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), getVmUuid());
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+		getVmDirHelper().getVmConfigByUuid(getClient(), getVmUuid(), e, NULL);
 	if (!pConfig)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
@@ -1252,7 +1277,9 @@ PRL_RESULT Task_VzManager::switch_env_snapshot()
 	CProtoSwitchToSnapshotCommand *pCmd = CProtoSerializer::CastToProtoCommand<CProtoSwitchToSnapshotCommand>(cmd);
 
 	QString sVmUuid = cmd->GetVmUuid();
-	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sVmUuid);
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+		getVmDirHelper().getVmConfigByUuid(getClient(), sVmUuid, e, NULL);
 	if (!pConfig)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 	res = get_op_helper()->switch_env_snapshot(sVmUuid, pCmd->GetSnapshotUuid(),
@@ -1275,7 +1302,9 @@ PRL_RESULT Task_VzManager::start_vnc_server(QString sCtUuid, bool onCtStart)
 #ifdef _LIN_
 	QString vncServerApp = "prl_vzvncserver_app";
 
-	SmartPtr<CVmConfiguration> pVmConfig = getVzHelper()->getCtConfig(getClient(), sCtUuid);
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> pVmConfig = CDspService::instance()->
+		getVmDirHelper().getVmConfigByUuid(getClient(), sCtUuid, e, NULL);
 	if(!pVmConfig)
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
@@ -1298,7 +1327,7 @@ PRL_RESULT Task_VzManager::start_vnc_server(QString sCtUuid, bool onCtStart)
 		CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()->getRemoteDisplayPreferences();
 
 	Vnc::range_type r(rdConfig->getMinPort(), rdConfig->getMaxPort());
-	PRL_RESULT e = x->Start(QString(vncServerApp),
+	e = x->Start(QString(vncServerApp),
 			CVzHelper::get_ctid_by_uuid(sCtUuid), remDisplay, r);
 	if (PRL_FAILED(e))
 		return e;
@@ -1539,7 +1568,9 @@ PRL_RESULT Task_VzManager::move_env()
 	if (PRL_FAILED(res))
 		return res;
 
-	SmartPtr<CVmConfiguration> pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+		getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, e, NULL);
 	if (!pConfig) {
 		WRITE_TRACE(DBG_FATAL, "Can not get container ID for UUID %s", QSTR2UTF8(sUuid));
 		return PRL_ERR_CT_NOT_FOUND;
@@ -1573,7 +1604,9 @@ PRL_RESULT Task_VzManager::move_env()
 		getVzHelper()->getConfigCache()
 			.remove(pConfig->getVmIdentification()->getHomePath());
 
-		pConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
+		PRL_RESULT e;
+		pConfig = CDspService::instance()->
+			getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, e, NULL);
 		if (!pConfig) {
 			WRITE_TRACE(DBG_FATAL, "Can not get container ID for UUID %s after move",
 				QSTR2UTF8(sUuid));

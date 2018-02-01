@@ -165,7 +165,9 @@ private:
 	/* start source-side task for copy of CT template */
 	void copyCtTemplate(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
 
-	void appendAdvancedParamsToCtConfig(SmartPtr<CVmConfiguration> pOutConfig);
+	void appendAdvancedParamsToCtConfig(
+			SmartPtr<CDspClient> pUserSession,
+			SmartPtr<CVmConfiguration> pOutConfig);
 	void UpdateHardDiskInformation(SmartPtr<CVmConfiguration> &config);
 
 private:
