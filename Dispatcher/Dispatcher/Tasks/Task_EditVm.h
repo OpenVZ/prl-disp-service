@@ -77,12 +77,12 @@ public:
 	static void resetNetworkAddressesFromVmConfig( SmartPtr<CVmConfiguration> pNewVmConfig,
 					SmartPtr<CVmConfiguration> pOldVmConfig );
 
+	virtual QString  getVmUuid();
+
 private:
 	virtual void cancelOperation(SmartPtr<CDspClient> pUserSession, const SmartPtr<IOPackage> &p);
 	virtual PRL_RESULT run_body();
 	virtual void finalizeTask();
-
-	virtual QString  getVmUuid();
 
 	PRL_RESULT mergeSampleConfig(SmartPtr<CVmConfiguration> pConfigNew,
 				SmartPtr<CVmConfiguration> pConfigOld);

@@ -526,13 +526,31 @@ struct Blkiotune
 
 namespace Network
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Action
+
+struct Action: Vm::Action
+{
+	typedef boost::function<Libvirt::Result ()> callback_type;
+
+	Action(const callback_type& callback_, Task_EditVm& task_):
+		m_task(&task_), m_callback(callback_)
+	{
+	}
+
+	bool execute(CDspTaskFailure& feedback_);
+
+private:
+	Task_EditVm* m_task;
+	callback_type m_callback;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
 struct Factory
 {
-	Vm::Action* operator()(const Request& input_) const;
+	Action* operator()(const Request& input_) const;
 };
 
 } // namespace Network
