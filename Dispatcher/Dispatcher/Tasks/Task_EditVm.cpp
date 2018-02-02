@@ -3150,10 +3150,29 @@ Vm::Action* Blkiotune::operator()(const Request& input_) const
 
 namespace Network
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Action
 
+bool Action::execute(CDspTaskFailure& feedback_)
+{
+	Libvirt::Result e = m_callback();
+	if (e.isFailed())
+	{
+		CVmEvent x(e.error().convertToEvent());
+		x.setEventType(PET_DSP_EVT_VM_MESSAGE);
+		x.setEventIssuerId(m_task->getVmUuid());
+		x.setEventIssuerType(PIE_DISPATCHER);
+		SmartPtr<IOPackage> p = DispatcherPackage::createInstance
+			(PVE::DspVmEvent, x, m_task->getRequestPackage());
+		m_task->getClient()->sendPackage(p);
+	}
+	return Vm::Action::execute(feedback_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
-Vm::Action* Factory::operator()(const Request& input_) const
+Action* Factory::operator()(const Request& input_) const
 {
 	::Network::Difference::Vm v(input_.getFinal());
 	unsigned int t = input_.getFinal().getVmSettings()->getVmCommonOptions()->getOsType();
@@ -3165,7 +3184,10 @@ Vm::Action* Factory::operator()(const Request& input_) const
 	Libvirt::Instrument::Agent::Vm::Exec::Request request(c, d);
 	request.setRunInShell(t == PVS_GUEST_TYPE_WINDOWS);
 	QString uuid = input_.getFinal().getVmIdentification()->getVmUuid();
-	return Forge(input_).craftGuest(boost::bind(&::Vm::Guest::Actor::runProgram, _1, uuid, request));
+
+	return new Action(boost::bind
+		(&::Vm::Guest::Actor::runProgram,
+		Libvirt::Kit.vms().at(uuid).getGuest(), uuid, request), input_.getTask());
 }
 
 } // namespace Network
