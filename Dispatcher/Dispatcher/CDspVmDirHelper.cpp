@@ -3631,8 +3631,18 @@ Identity::result_type Identity::handle(const CVmDirectoryItem& item_)
 Sterling::result_type Sterling::handle(const CVmDirectoryItem& item_)
 {
 	SmartPtr<CVmConfiguration> output;
-	PRL_RESULT e = m_service->getVmConfigManager().loadConfig(output,
-		item_.getVmHome(), m_session, true, false);
+	PRL_RESULT e = PRL_ERR_SUCCESS;
+
+	if (PVT_CT == item_.getVmType())
+	{
+		output = m_service->getVzHelper()->getCtConfig(m_session,
+				item_.getVmUuid(), item_.getVmHome(), true);
+	}
+	else
+	{
+		e = m_service->getVmConfigManager().loadConfig(output,
+				item_.getVmHome(), m_session, true, false);
+	}
 
 	if (PRL_FAILED(e) || !output.isValid())
 	{
@@ -3939,7 +3949,7 @@ void Generic::setLoader(Item::Component* value_)
 {
 	Item::Template* t = new Item::Template();
 	t->setNext(value_);
-	Directory::Vm::Generic::setLoader(t);
+	Loop::setLoader(t);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3997,9 +4007,9 @@ Chain* Factory::operator()(const session_type& session_, quint32 flags_) const
 	if (m & PVTF_CT)
 		output = x = new Ct(session_, flags_, *m_service);
 
+	Item::Factory f(*m_service);
 	if (0 == m || (m & PVTF_VM))
 	{
-		Item::Factory f(*m_service);
 		Chain* y = new Template::Vm::Ordinary(f(session_, flags_));
 		if (NULL == x)
 			output = y;
@@ -4009,8 +4019,11 @@ Chain* Factory::operator()(const session_type& session_, quint32 flags_) const
 		x = y;
 		y = new Vm::Ordinary(m_ephemeral, f(session_, flags_));
 		x->setNext(y);
-		y->setNext(new Template::Vm::Ephemeral(m_ephemeral, f(session_, flags_)));
+		x = y;
 	}
+
+	if (x)
+		x->setNext(new Template::Vm::Ephemeral(m_ephemeral, f(session_, flags_)));
 
 	return output;
 }

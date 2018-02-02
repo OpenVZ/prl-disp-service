@@ -719,9 +719,10 @@ CDspVmDirManager::getTemplatesDirectory()
 
 bool CDspVmDirManager::getVmTypeByUuid(const QString &sVmUuid, PRL_VM_TYPE &nType)
 { 
-	QString sDirUuid = CDspService::instance()->getVmDirManager().getVzDirectoryUuid();
-	CDspLockedPointer<CVmDirectoryItem> pDirItem = CDspService::instance()->
-			getVmDirHelper().getVmDirectoryItemByUuid(sDirUuid, sVmUuid);
+	CDspLockedPointer<CVmDirectoryItem> pDirItem= CDspService::instance()->
+			getVmDirManager().getVmDirItemByUuid(
+				CDspVmDirHelper::getVmIdentByVmUuid(sVmUuid,
+					SmartPtr<CDspClient>(0)));
 	if (!pDirItem.isValid())
 		return false;
 

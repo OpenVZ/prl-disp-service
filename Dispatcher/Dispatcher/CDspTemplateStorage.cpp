@@ -31,6 +31,7 @@
 
 #include <mntent.h>
 #include "CDspService.h"
+#include "CDspVzHelper.h"
 #include "CDspInstrument.h"
 #include "CDspTemplateStorage.h"
 #include <prlcommon/HostUtils/PCSUtils.h>
@@ -273,12 +274,26 @@ SmartPtr<CVmConfiguration> Unit::getConfig() const
 		if (g.isNull())
 			return SmartPtr<CVmConfiguration>();
 	}
-	QScopedPointer<CVmConfiguration> x(new CVmConfiguration);
+
 	QFileInfo p(QDir(m_root.absoluteFilePath()), VMDIR_DEFAULT_VM_CONFIG_FILE);
-	QFile f(p.filePath());
-	PRL_RESULT e = x->loadFromFile(&f, false);
-	if (PRL_SUCCEEDED(e))
-		return SmartPtr<CVmConfiguration>(x.take());
+	if (p.exists())
+	{
+		QScopedPointer<CVmConfiguration> x(new CVmConfiguration);
+		QFile f(p.filePath());
+		PRL_RESULT e = x->loadFromFile(&f, false);
+		if (PRL_SUCCEEDED(e))
+			return SmartPtr<CVmConfiguration>(x.take());
+
+		return SmartPtr<CVmConfiguration>();
+	}
+
+	p = QFileInfo(QDir(m_root.absoluteFilePath()), "ve.conf");
+	if (p.exists())
+	{
+		return CDspService::instance()->getVzHelper()->getCtConfig(
+				SmartPtr<CDspClient>(0),
+				QString(), m_root.filePath());
+	}
 
 	return SmartPtr<CVmConfiguration>();
 }
@@ -511,7 +526,7 @@ Prl::Expected<QStringList, PRL_RESULT> Catalog::list() const
 			continue;
 
 		QDir y(m_root.filePath(x));
-		if (y.exists(VMDIR_DEFAULT_VM_CONFIG_FILE))
+		if (y.exists(VMDIR_DEFAULT_VM_CONFIG_FILE) || y.exists("ve.conf"))
 			output << x;
 	}
 

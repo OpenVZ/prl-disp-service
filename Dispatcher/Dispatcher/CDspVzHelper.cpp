@@ -29,6 +29,7 @@
 
 #include "CDspVzHelper.h"
 #include "CDspService.h"
+#include "CDspTemplateStorage.h"
 #include "Tasks/Task_VzManager.h"
 #include "CVmValidateConfig.h"
 
@@ -283,6 +284,29 @@ void CDspVzHelper::UpdateHardDiskInformation(SmartPtr<CVmConfiguration> &config)
 	}
 }
 
+SmartPtr<CVmConfiguration> CDspVzHelper::getConfig(
+		SmartPtr<CDspClient> pUserSession,
+		const QString &sUuid,
+		const QString &sHome)
+{
+	::Template::Storage::Dao::pointer_type c;
+	::Template::Storage::Dao d(pUserSession->getAuthHelper());
+	PRL_RESULT e = d.findForEntry(sHome, c);
+	if (PRL_SUCCEEDED(e))
+	{
+		SmartPtr<CVmConfiguration> x;
+		x = getVzlibHelper().get_env_config_from_file(
+				QString(sHome + "/ve.conf"), e);
+		// FIXME
+		if (x)
+			x->getVmIdentification()->setHomePath(sHome);
+
+		return x;
+	}
+
+	return getVzlibHelper().get_env_config(sUuid);
+}
+
 SmartPtr<CVmConfiguration> CDspVzHelper::getCtConfig(
 		SmartPtr<CDspClient> pUserSession,
 		const QString &sUuid,
@@ -294,7 +318,7 @@ SmartPtr<CVmConfiguration> CDspVzHelper::getCtConfig(
 	if (!pConfig)
 	{
 		/* get From Disk */
-		pConfig = getVzlibHelper().get_env_config(sUuid);
+		pConfig = getConfig(pUserSession, sUuid, sHome);
 		if (!pConfig)
 			return SmartPtr<CVmConfiguration>();
 		/* update Cache */

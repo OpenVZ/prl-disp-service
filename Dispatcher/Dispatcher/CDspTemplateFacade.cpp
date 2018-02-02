@@ -108,7 +108,7 @@ PRL_RESULT Instrument::register_(const CVmConfiguration& item_)
 	x->setVmUuid(i->getVmUuid());
 	x->setVmName(i->getVmName());
 	x->setVmHome(i->getHomePath());
-	x->setVmType(PVT_VM);
+	x->setVmType(item_.getVmType());
 	x->setValid(PVE::VmValid);
 	x->setRegistered(PVE::VmRegistered);
 	x->setTemplate(true);
