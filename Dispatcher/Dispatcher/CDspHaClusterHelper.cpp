@@ -300,7 +300,7 @@ PRL_RESULT CDspHaClusterHelper::getHaClusterID(QString & sHaClusterID)
 QFileInfoList CDspHaClusterHelper::getReport()
 {
 	QFileInfoList output;
-	QFileInfo p("/usr/bin/pstorage-make-report");
+	QFileInfo p("/usr/bin/vstorage-make-report");
 	if (!p.exists())
 		return output;
 	QDir d("/etc/pstorage/clusters");
