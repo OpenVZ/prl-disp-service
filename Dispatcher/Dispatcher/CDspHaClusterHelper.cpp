@@ -303,7 +303,7 @@ QFileInfoList CDspHaClusterHelper::getReport()
 	QFileInfo p("/usr/bin/vstorage-make-report");
 	if (!p.exists())
 		return output;
-	QDir d("/etc/pstorage/clusters");
+	QDir d("/etc/vstorage/clusters");
 	if (!d.exists())
 		return output;
 	QStringList a = d.entryList(QDir::NoDotAndDotDot | QDir::Dirs);
