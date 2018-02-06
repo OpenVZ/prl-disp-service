@@ -208,6 +208,7 @@ MaskTraits::Accessors MaskTraits::createAccessors()
 	INSERT_ACCESSOR("cpuid_80000001_EDX", EXT_80000001_EDX_MASK);
 	INSERT_ACCESSOR("cpuid_80000007_EDX", EXT_80000007_EDX_MASK);
 	INSERT_ACCESSOR("cpuid_00000007_EBX", EXT_00000007_EBX_MASK);
+	INSERT_ACCESSOR("cpuid_00000007_EDX", EXT_00000007_EDX_MASK);
 	INSERT_ACCESSOR("cpuid_80000008_EAX", EXT_80000008_EAX);
 	INSERT_ACCESSOR("cpuid_0000000D_01_EAX", EXT_0000000D_EAX_MASK);
 #undef XML_MODEL
@@ -225,6 +226,7 @@ FeaturesTraits::Accessors FeaturesTraits::createAccessors()
 	INSERT_ACCESSOR("cpuid_80000001_EDX", EXT_80000001_EDX);
 	INSERT_ACCESSOR("cpuid_80000007_EDX", EXT_80000007_EDX);
 	INSERT_ACCESSOR("cpuid_00000007_EBX", EXT_00000007_EBX);
+	INSERT_ACCESSOR("cpuid_00000007_EDX", EXT_00000007_EDX);
 	INSERT_ACCESSOR("cpuid_80000008_EAX", EXT_80000008_EAX);
 	INSERT_ACCESSOR("cpuid_0000000D_01_EAX", EXT_0000000D_EAX);
 #undef XML_MODEL
@@ -242,6 +244,7 @@ MaskCapsTraits::Accessors MaskCapsTraits::createAccessors()
 	INSERT_ACCESSOR("cpuid_80000001_EDX", EXT_80000001_EDX_MASKING_CAP);
 	INSERT_ACCESSOR("cpuid_80000007_EDX", EXT_80000007_EDX_MASKING_CAP);
 	INSERT_ACCESSOR("cpuid_00000007_EBX", EXT_00000007_EBX_MASKING_CAP);
+	INSERT_ACCESSOR("cpuid_00000007_EDX", EXT_00000007_EDX_MASKING_CAP);
 	INSERT_ACCESSOR("cpuid_80000008_EAX", EXT_80000008_EAX_MASKING_CAP);
 	INSERT_ACCESSOR("cpuid_0000000D_01_EAX", EXT_0000000D_EAX_MASKING_CAP);
 #undef XML_MODEL
@@ -259,6 +262,7 @@ VmFeaturesTraits::Accessors VmFeaturesTraits::createAccessors()
 	INSERT_ACCESSOR("cpuid_80000001_EDX", EXT_80000001_EDX_MASK);
 	INSERT_ACCESSOR("cpuid_80000007_EDX", EXT_80000007_EDX_MASK);
 	INSERT_ACCESSOR("cpuid_00000007_EBX", EXT_00000007_EBX_MASK);
+	INSERT_ACCESSOR("cpuid_00000007_EDX", EXT_00000007_EDX_MASK);
 	INSERT_ACCESSOR("cpuid_80000008_EAX", EXT_80000008_EAX);
 	INSERT_ACCESSOR("cpuid_0000000D_01_EAX", EXT_0000000D_EAX_MASK); 
 #undef XML_MODEL
@@ -276,6 +280,7 @@ PoolFeaturesTraits::Accessors PoolFeaturesTraits::createAccessors()
 	INSERT_ACCESSOR("cpuid_80000001_EDX", EXT_80000001_EDX);
 	INSERT_ACCESSOR("cpuid_80000007_EDX", EXT_80000007_EDX);
 	INSERT_ACCESSOR("cpuid_00000007_EBX", EXT_00000007_EBX);
+	INSERT_ACCESSOR("cpuid_00000007_EDX", EXT_00000007_EDX);
 	INSERT_ACCESSOR("cpuid_80000008_EAX", EXT_80000008_EAX);
 	INSERT_ACCESSOR("cpuid_0000000D_01_EAX", EXT_0000000D_EAX);
 #undef XML_MODEL
@@ -685,6 +690,18 @@ struct Visitor : boost::static_visitor<void>
 		static const char *f[] = {NULL};
 
 		m_list->push_back(Register(f, &Config::type::getEXT_80000007_EDX_MASK));
+	}
+
+	void operator()(boost::mpl::int_<PCFE_EXT_00000007_EDX>)
+	{
+		static const char *f[] = {
+			"", "", "", "", "", "", "", "", "", "",
+			"", "", "", "", "", "", "", "", "", "",
+			"", "", "", "", "", "", "spec-ctrl", "stibp", "", "arch-capabilities",
+			NULL
+		};
+
+		m_list->push_back(Register(f, &Config::type::getEXT_00000007_EDX_MASK));
 	}
 
 	void operator()(boost::mpl::int_<PCFE_EXT_80000008_EAX>)

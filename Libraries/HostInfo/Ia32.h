@@ -1811,6 +1811,7 @@ typedef struct _CPUID_INFO
 		};
 	} PowerManagement;
 	UINT	EXT_00000007_EBX;
+	UINT	EXT_00000007_EDX;
 	UINT	EXT_0000000D_EAX;
 
 	// Generic vendor numeric identifier gotten from szVendor
@@ -1839,6 +1840,7 @@ typedef struct _CPU_FEATURES_MASKS
 	EXT_80000008_EAX_T	EXT_80000008_EAX;
 
 	UINT	EXT_00000007_EBX_MASK;
+	UINT	EXT_00000007_EDX_MASK;
 	UINT	EXT_0000000D_EAX_MASK;
 }CPU_FEATURES_MASKS;
 
@@ -2074,6 +2076,13 @@ typedef struct _CPU_FEATURES_MASKS
 * Structured Extended Feature Flags Enumeration Leaf
 */
 #define F_SAVEOPT	(1u << 0)	// XSAVEOPT supported
+
+/*
+ * CPUID 0x00000007 EDX flags
+ */
+#define F_SPEC_CTRL             (1u << 26) // Indirect Branch Restricted Speculation
+#define F_STIBP                 (1u << 27) // Single Thread Indirect Branch Predictor
+#define F_ARCH_CAPABILITIES     (1u << 29) // Support for ARCH_CAPABILITIES MSR
 
 // Opisanie strukturii adresa dlya dlinnogo viizova.
 typedef	struct TAG_FAR_CALL_PTR
