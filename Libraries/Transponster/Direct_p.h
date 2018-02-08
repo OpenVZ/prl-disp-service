@@ -1017,7 +1017,64 @@ struct Device: boost::static_visitor<void>
 private:
 	QList<Libvirt::Domain::Xml::VChoice977> m_result;
 };      
-        
+
+namespace Os
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Type
+
+struct Type: boost::static_visitor<Libvirt::Domain::Xml::VChoice305>
+{
+	typedef mpl::at_c<Libvirt::Domain::Xml::VChoice305::types, 0>::type chosen_type;
+
+	template<class T, class U>
+	result_type operator()(const T&, const U& new_) const
+	{
+		return new_;
+	}
+	result_type operator()(const chosen_type& old_, chosen_type new_) const
+	{
+		Libvirt::Domain::Xml::Hvmx86 x = new_.getValue();
+		x.setMachine(old_.getValue().getMachine());
+		new_.setValue(x);
+
+		return new_;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+struct Unit: boost::static_visitor<Libvirt::Domain::Xml::VOs>
+{
+	typedef mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type chosen_type;
+
+	template<class T, class U>
+	result_type operator()(const T&, const U& new_) const
+	{
+		return new_;
+	}
+	result_type operator()(const chosen_type& old_, chosen_type new_) const
+	{
+		Libvirt::Domain::Xml::Os2 a = old_.getValue();
+		Libvirt::Domain::Xml::Os2 b = new_.getValue();
+
+		typedef boost::optional<Libvirt::Domain::Xml::VChoice305> type_type;
+		type_type x = a.getType(), y = b.getType();
+		if (x)
+		{
+			if (y)
+				b.setType(boost::apply_visitor(Type(), x.get(), y.get()));
+			else
+				b.setType(x);
+			new_.setValue(b);
+		}
+
+		return new_;
+	}
+};
+
+} // namespace Os
 } // namespace Mixer
  
 namespace Numatune
