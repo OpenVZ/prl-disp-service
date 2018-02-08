@@ -1857,8 +1857,10 @@ Mixer::Mixer(const CVmConfiguration& input_, char* xml_): Builder(input_)
 
 PRL_RESULT Mixer::setBlank()
 {
+	Libvirt::Domain::Xml::VOs b = m_result->getOs();
 	PRL_RESULT r = Builder::setBlank();
 	addDebugCommandline();
+	m_result->setOs(boost::apply_visitor(Visitor::Mixer::Os::Unit(), b, m_result->getOs()));
 	return r;
 }
 
