@@ -2366,26 +2366,31 @@ int CVzOperationHelper::create_env(const QString &dst, SmartPtr<CVmConfiguration
 }
 
 int CVzOperationHelper::clone_env(const SmartPtr<CVmConfiguration> &pConfig,
-		const QString &sNewHome, const QString &sNewName, PRL_UINT32 nFlags,
-		SmartPtr<CVmConfiguration> &pNewConfig)
+		const QString &sNewHome, const QString &sNewName,
+		PRL_UINT32 nFlags, SmartPtr<CVmConfiguration> &pNewConfig)
 {
-	Q_UNUSED(nFlags);
 	QStringList args;
+	QString dst_id = pNewConfig->getVmIdentification()->getVmUuid();
 
-	QString uuid = pConfig->getVmIdentification()->getVmUuid();
-
-	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
-	if (ctid.isEmpty())
-		return PRL_ERR_CT_NOT_FOUND;
-
-	// vzmlocal -C 101 --new-id 201 [--new-private /vz/private/test] --new-uuid <uuid>
+	remove_brackets_from_uuid(dst_id);	
 	args += "-C";
-	args += ctid;
+	if (nFlags) {
+		args += dst_id;
+		args += "--private";
+		args += pConfig->getVmIdentification()->getHomePath();
+	} else {
+		QString ctid = CVzHelper::get_ctid_by_uuid(
+				pConfig->getVmIdentification()->getVmUuid());
+		if (ctid.isEmpty())
+			return PRL_ERR_CT_NOT_FOUND;
+
+		args += ctid;
+	}
 
 	if (!sNewHome.isEmpty()) {
 		// Convert sNewHome to VE_PRIVATE
 		args += "--new-private";
-		args += QString("%1/%2").arg(sNewHome).arg(uuid);
+		args += QString("%1/%2").arg(sNewHome).arg(dst_id);
 	}
 
 	if (!sNewName.isEmpty()) {
@@ -2393,9 +2398,8 @@ int CVzOperationHelper::clone_env(const SmartPtr<CVmConfiguration> &pConfig,
 		args += sNewName;
 	}
 
-	QString dst_uuid = pNewConfig->getVmIdentification()->getVmUuid();
 	args += "--new-uuid";
-	args += remove_brackets_from_uuid(dst_uuid);
+	args += dst_id;
 
 	// Avoid CT template locking because
 	// several Clone tasks can be started simultaneously from the same template.
@@ -2407,7 +2411,7 @@ int CVzOperationHelper::clone_env(const SmartPtr<CVmConfiguration> &pConfig,
 		return res;
 
 	// Get new Config
-	pNewConfig = CVzHelper::get_env_config_by_ctid(dst_uuid);
+	pNewConfig = CVzHelper::get_env_config_by_ctid(dst_id);
 
 	return res;
 }
@@ -3664,6 +3668,30 @@ retry:
 	m_kevt_fd = -1;
 }
 
+int CVzOperationHelper::move_env(const QString &sUuid, const QString &sNewHome)
+{
+	QStringList args;
+	QString sSrcCtid = CVzHelper::get_ctid_by_uuid(sUuid);
+	if (sSrcCtid.isEmpty()) {
+		WRITE_TRACE(DBG_FATAL, "Can not get container ID for UUID %s", QSTR2UTF8(sUuid));
+		return PRL_ERR_CT_NOT_FOUND;
+	}
+
+	args += sSrcCtid;
+	args += "--noevent";
+	args += "--new-private";
+	args += sNewHome;
+	args +=  "--skipregister";
+
+	PRL_RESULT e = run_prg("/usr/sbin/vzmlocal", args);
+	if (PRL_FAILED(e))
+		return e;
+
+	CVzHelper::update_ctid_map(sUuid, QString());
+
+	return PRL_ERR_SUCCESS;
+}
+
 int CVzOperationHelper::move_env(const QString &sUuid, const QString &sNewHome,
 	const QString &sName)
 {
@@ -3673,7 +3701,8 @@ int CVzOperationHelper::move_env(const QString &sUuid, const QString &sNewHome,
 
 	sSrcCtid = CVzHelper::get_ctid_by_uuid(sUuid);
 	if (sSrcCtid.isEmpty()) {
-		WRITE_TRACE(DBG_FATAL, "Can not get container ID for UUID %s", QSTR2UTF8(sUuid));
+		WRITE_TRACE(DBG_FATAL, "Can not get container ID for UUID %s",
+				qPrintable(sUuid));
 		return PRL_ERR_CT_NOT_FOUND;
 	}
 

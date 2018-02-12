@@ -33,6 +33,8 @@
 #include "CDspService.h"
 #include "CDspVzHelper.h"
 #include "CDspTaskHelper.h"
+#include "CDspTemplateStorage.h"
+#include "CDspVmDirHelper_p.h"
 #include <prlxmlmodel/VmDirectory/CVmDirectory.h>
 #include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include "Libraries/Virtuozzo/CVzHelper.h"
@@ -45,12 +47,13 @@ class Task_VzManager : public CDspTaskHelper
 public:
 
 	Task_VzManager(const SmartPtr<CDspClient>& pClient,
-			const SmartPtr<IOPackage>& p);
-
+			const SmartPtr<IOPackage>& p,
+			Vm::Directory::Ephemeral* ephemeral = NULL);
 	Task_VzManager(const SmartPtr<CDspClient>& pClient,
 			const SmartPtr<IOPackage>& p,
 			const QString &sUuid, VIRTUAL_MACHINE_STATE nState);
 
+	SmartPtr<CVzOperationHelper> get_op_helper() { return m_pVzOpHelper; }
 private:
 	CProtoCommandDspWsResponse *getResponseCmd();
 	void sendEvent(PRL_EVENT_TYPE type, const QString &sUuid);
@@ -73,6 +76,8 @@ private:
 	PRL_RESULT unregister_env();
 	PRL_RESULT set_env_userpasswd();
 	PRL_RESULT auth_env_user();
+	bool isSharedTemplate(const QString &home);
+	PRL_RESULT clone_env_shared(SmartPtr<CVmConfiguration> pConfig);
 	PRL_RESULT clone_env();
 	PRL_RESULT create_env_disk();
 	PRL_RESULT resize_env_disk();
@@ -84,6 +89,11 @@ private:
 	PRL_RESULT switch_env_snapshot();
 	PRL_RESULT start_vnc_server(QString sCtUuid, bool onCtStart);
 	PRL_RESULT stop_vnc_server(QString sCtUuid, bool onCtStop);
+	PRL_RESULT move_ephemeral(Template::Storage::Catalog *catalog,
+			const QString &target,
+			SmartPtr<CVmConfiguration> &config);
+	PRL_RESULT move_regular(const QString &target,
+			SmartPtr<CVmConfiguration> &config);
 	PRL_RESULT move_env();
 	PRL_RESULT send_network_settings();
 	PRL_RESULT send_problem_report();
@@ -93,8 +103,8 @@ private:
 private:
 	PRL_RESULT checkAndLockRegisterParameters(
 			CVmDirectory::TemporaryCatalogueItem *pVmInfo);
-	SmartPtr<CVzOperationHelper> get_op_helper() { return m_pVzOpHelper; }
 	SmartPtr<CDspVzHelper> getVzHelper() { return CDspService::instance()->getVzHelper(); }
+
 	PRL_RESULT changeVNCServerState(SmartPtr<CVmConfiguration> pOldConfig,
 			SmartPtr<CVmConfiguration> pNewConfig, QString sUuid);
 	void sendProgressEvt(PRL_EVENT_TYPE type, const QString &sUuid,
@@ -114,6 +124,7 @@ private:
 	bool m_bProcessState;
 	VIRTUAL_MACHINE_STATE m_nState;
 	QString m_sVmUuid;
+	Vm::Directory::Ephemeral* m_ephemeral;
 };
 
 #endif	// __Task_VzManager_H__

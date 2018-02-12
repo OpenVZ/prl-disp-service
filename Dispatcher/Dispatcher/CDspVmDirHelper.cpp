@@ -91,6 +91,7 @@
 #ifdef _LIN_
 #include "Tasks/Task_MountVm.h"
 #endif
+#include "Tasks/Task_VzManager.h"
 
 #include <prlxmlmodel/ProblemReport/CProblemReport.h>
 #include <prlcommon/Messaging/CVmBinaryEventParameter.h>
@@ -3584,7 +3585,6 @@ void CDspVmDirHelper::moveVm( SmartPtr<CDspClient> pUserSession, const SmartPtr<
 	CDspService::instance()->getTaskManager()
 		.schedule(new Task_MoveVm(pUserSession , pkg, *m_ephemeral));
 }
-
 
 namespace List
 {

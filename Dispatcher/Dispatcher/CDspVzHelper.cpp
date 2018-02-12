@@ -103,8 +103,10 @@ void CDspVzHelper::CConfigCache::remove(const QString &sHome)
 }
 
 /**************** CDspVzHelper ************************/
-CDspVzHelper::CDspVzHelper(CDspService& service_, const Backup::Task::Launcher& backup_):
-	m_service(&service_), m_backup(backup_)
+CDspVzHelper::CDspVzHelper(CDspService& service_,
+		const Backup::Task::Launcher& backup_,
+		::Vm::Directory::Ephemeral& ephemeral_):
+	m_service(&service_), m_backup(backup_), m_ephemeral(&ephemeral_)
 {
 }
 
@@ -295,13 +297,8 @@ SmartPtr<CVmConfiguration> CDspVzHelper::getConfig(
 	if (PRL_SUCCEEDED(e))
 	{
 		SmartPtr<CVmConfiguration> x;
-		x = getVzlibHelper().get_env_config_from_file(
+		return getVzlibHelper().get_env_config_from_file(
 				QString(sHome + "/ve.conf"), e);
-		// FIXME
-		if (x)
-			x->getVmIdentification()->setHomePath(sHome);
-
-		return x;
 	}
 
 	return getVzlibHelper().get_env_config(sUuid);
@@ -868,7 +865,8 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 		case PVE::DspCmdCtReinstall:
 		case PVE::DspCmdVmPause:
 		case PVE::DspCmdVmReset:
-			m_service->getTaskManager().schedule(new Task_VzManager( pUserSession, p));
+		case PVE::DspCmdVmGuestGetNetworkSettings:
+			m_service->getTaskManager().schedule(new Task_VzManager( pUserSession, p, m_ephemeral));
 			break;
 		case PVE::DspCmdVmGuestRunProgram:
 			guestRunProgram(h, pUserSession, p);
@@ -955,9 +953,6 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 			break;
 		case PVE::DspCmdGetBackupTree:
 			m_backup.startGetBackupTreeSourceTask(pUserSession, p);
-			break;
-		case PVE::DspCmdVmGuestGetNetworkSettings:
-			m_service->getTaskManager().schedule(new Task_VzManager( pUserSession, p));
 			break;
 		case PVE::DspCmdVmSetConfig:
 		case PVE::DspCmdDirLockVm:

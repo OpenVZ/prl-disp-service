@@ -40,15 +40,14 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Dispatcher/Dispatcher/Tasks/Task_UpdateCommonPrefs.h"
 #include "CDspVmStateSender.h"
+#include "CDspTemplateFacade.h"
+#include "CDspInstrument.h"
 
 #ifdef _LIN_
 #include "vzctl/libvzctl.h"
 #include "CDspBackupDevice.h"
 #endif
 
-
-namespace
-{
 
 namespace Encryption
 {
@@ -79,13 +78,115 @@ private:
 };
 
 } // namespace Encryption
-} // anonymous namespace
+
+namespace Command
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Clone
+
+struct Clone
+{
+	Clone(Task_VzManager *task, SmartPtr<CVmConfiguration> &config,
+		SmartPtr<CVmConfiguration> &newConfig) :
+		m_task(task), m_config(config), m_newConfig(newConfig)
+	{}
+
+	PRL_RESULT operator()(const QString &)
+	{
+		CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(
+						m_task->getRequestPackage());
+		if (!cmd->IsValid())
+			return PRL_ERR_UNRECOGNIZED_REQUEST;
+
+		CProtoVmCloneCommand *pCmd = CProtoSerializer::
+				CastToProtoCommand<CProtoVmCloneCommand>(cmd);
+
+		return m_task->get_op_helper()->clone_env(m_config,
+				pCmd->GetVmHomePath(),
+				pCmd->GetVmName(),
+				1, m_newConfig);
+	}
+
+	SmartPtr<CVmConfiguration> getConfig() const
+	{
+		return m_newConfig;
+	}
+
+private:
+	Task_VzManager *m_task;
+	SmartPtr<CVmConfiguration> m_config;
+	SmartPtr<CVmConfiguration> m_newConfig;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Delete
+
+struct Delete
+{
+	Delete(const QString &home, Template::Storage::Catalog *catalog) :
+		m_home(home), m_catalog(catalog)
+	{}
+
+	PRL_RESULT do_()
+	{
+		PRL_RESULT e = m_catalog->unlink(QFileInfo(m_home).fileName());
+		if (PRL_FAILED(e))
+			return e;
+
+		return m_catalog->commit();
+	}
+
+private:
+	QString m_home;
+	Template::Storage::Catalog *m_catalog;
+};
+
+namespace Move
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Import
+
+struct Import
+{
+	Import(Task_VzManager *task, SmartPtr<CVmConfiguration> &config,
+			Template::Storage::Catalog *catalog) :
+		m_task(task), m_config(config), m_catalog(catalog)
+	{}
+	
+	PRL_RESULT execute()
+	{
+		QFileInfo s(m_config->getVmIdentification()->getHomePath());
+		PRL_RESULT e = m_catalog->import(s.fileName(),
+				boost::bind(&Import::do_, this, _1));
+		if (PRL_FAILED(e))
+			return e;
+
+		return m_catalog->commit();
+	}
+
+	PRL_RESULT do_(const QFileInfo& target_)
+	{
+		return m_task->get_op_helper()->move_env(
+			m_config->getVmIdentification()->getVmUuid(),
+			target_.filePath());
+	}
+
+private:
+	Task_VzManager *m_task;
+	SmartPtr<CVmConfiguration> m_config;
+	Template::Storage::Catalog *m_catalog;
+};
+
+} // namespace Move
+} // namespace Command
 
 Task_VzManager::Task_VzManager(const SmartPtr<CDspClient>& pClient,
-		 const SmartPtr<IOPackage>& p) :
+		const SmartPtr<IOPackage>& p,
+		Vm::Directory::Ephemeral* ephemeral) :
 	CDspTaskHelper(pClient, p),
 	m_pResponseCmd(CProtoSerializer::CreateDspWsResponseCommand(getRequestPackage(), PRL_ERR_SUCCESS)),
-	m_pVzOpHelper(new CVzOperationHelper(Task_VzManager::sendEvt, this))
+	m_pVzOpHelper(new CVzOperationHelper(Task_VzManager::sendEvt, this)),
+	m_ephemeral(ephemeral)
 
 {
 	m_bProcessState = false;
@@ -512,7 +613,7 @@ PRL_RESULT Task_VzManager::resume_env()
 
 PRL_RESULT Task_VzManager::delete_env()
 {
-	PRL_RESULT res, ret;
+	PRL_RESULT res;
 
 	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!pCmd->IsValid())
@@ -521,54 +622,70 @@ PRL_RESULT Task_VzManager::delete_env()
 	CProtoVmDeleteCommand * pDeleteCmd = CProtoSerializer::CastToProtoCommand<CProtoVmDeleteCommand>(pCmd);
 	QString sUuid = pDeleteCmd->GetVmUuid();
 
-	VIRTUAL_MACHINE_STATE nState;
-	res = getVzHelper()->getVzlibHelper().get_env_status(sUuid, nState);
-	if (PRL_FAILED(res))
-		return res;
+	QString dirUuid = CDspVmDirHelper::getVmDirUuidByVmUuid(sUuid, getClient());
 
-	if (nState == VMS_MOUNTED) {
-		res = get_op_helper()->umount_env(sUuid);
+	if (dirUuid.isEmpty())
+		return PRL_ERR_VM_UUID_NOT_FOUND;
+
+	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+		getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, res, NULL);
+	if (!pConfig)
+		return PRL_ERR_VM_GET_CONFIG_FAILED;
+
+	QString vm_home = pConfig->getVmIdentification()->getHomePath();
+	Template::Storage::Dao::pointer_type c;
+	Template::Storage::Dao d(getClient()->getAuthHelper());
+	res = d.findForEntry(vm_home, c);
+	if (c.isNull()) {
+		VIRTUAL_MACHINE_STATE nState;
+		res = getVzHelper()->getVzlibHelper().get_env_status(sUuid, nState);
+		if (PRL_FAILED(res))
+			return res;
+
+		if (nState == VMS_MOUNTED) {
+			res = get_op_helper()->umount_env(sUuid);
+			if (PRL_FAILED(res))
+				return res;
+		}
+
+		res = check_env_state(PVE::DspCmdDirVmDelete, sUuid);
 		if (PRL_FAILED(res))
 			return res;
 	}
 
-	res = check_env_state(PVE::DspCmdDirVmDelete, sUuid);
-	if (PRL_FAILED(res))
-		return res;
-
-	PRL_RESULT e;
-	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
-		getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, e, NULL);
-	if (!pConfig)
-		return PRL_ERR_VM_GET_CONFIG_FAILED;
-
 	QString vm_uuid = pConfig->getVmIdentification()->getVmUuid();
 	QString vm_name = pConfig->getVmIdentification()->getVmName();
-	QString vm_home = pConfig->getVmIdentification()->getHomePath();
 
 	CVmDirectory::TemporaryCatalogueItem vmInfo(vm_uuid, vm_home, vm_name);
 
 	res = CDspService::instance()->getVmDirManager()
-			.lockExclusiveVmParameters(m_sVzDirUuid, &vmInfo);
-	if (PRL_SUCCEEDED(res)) {
+			.lockExclusiveVmParameters(dirUuid, &vmInfo);
+	if (PRL_FAILED(res))
+		return res;
+
+	if (c.isNull()) {
 		Backup::Device::Service(pConfig).teardown();
-
 		res = get_op_helper()->delete_env(sUuid);
-		if (PRL_SUCCEEDED(res)) {
-			// FIXME: rollback operation
-			ret = CDspService::instance()->getVmDirHelper()
-					.deleteVmDirectoryItem(m_sVzDirUuid, vm_uuid);
-			if (PRL_FAILED(ret) && ret != PRL_ERR_ENTRY_DOES_NOT_EXIST)
-				WRITE_TRACE(DBG_FATAL, "Can't delete Container %s from VmDirectory by error: %s",
-						QSTR2UTF8(vm_uuid), PRL_RESULT_TO_STRING(ret));
+	} else {
+		Command::Delete d(vm_home, c.data());
+		res = d.do_();
+	}
 
-			sendEvent(PET_DSP_EVT_VM_DELETED, sUuid);
+	if (PRL_SUCCEEDED(res)) {
+		// FIXME: rollback operation
+		res = CDspService::instance()->getVmDirHelper()
+			.deleteVmDirectoryItem(dirUuid, vm_uuid);
+		if (PRL_FAILED(res) && res != PRL_ERR_ENTRY_DOES_NOT_EXIST) {
+			WRITE_TRACE(DBG_FATAL, "Can't delete Container %s from VmDirectory by error: %s",
+					QSTR2UTF8(vm_uuid), PRL_RESULT_TO_STRING(res));
 		}
 
-		// delete temporary registration
-		CDspService::instance()->getVmDirManager()
-			.unlockExclusiveVmParameters(m_sVzDirUuid, &vmInfo);
+		sendEvent(PET_DSP_EVT_VM_DELETED, sUuid);
 	}
+
+	// delete temporary registration
+	CDspService::instance()->getVmDirManager()
+		.unlockExclusiveVmParameters(m_sVzDirUuid, &vmInfo);
 
 	return res;
 }
@@ -918,7 +1035,6 @@ PRL_RESULT Task_VzManager::auth_env_user()
 	return res;
 }
 
-
 PRL_RESULT Task_VzManager::clone_env()
 {
 	PRL_RESULT res;
@@ -937,21 +1053,17 @@ PRL_RESULT Task_VzManager::clone_env()
 	if (sNewName.isEmpty())
 		return PRL_ERR_VM_NAME_IS_EMPTY;
 
-	res = check_env_state(PVE::DspCmdDirVmClone, sUuid);
-	if (PRL_FAILED(res))
-		return res;
-
 	PRL_RESULT e;
 	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
-		getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, e, NULL);
-	if (!pConfig)
-	{
-		WRITE_TRACE(DBG_FATAL, "Unable to find CT by uuid %s", QSTR2UTF8(sUuid));
+		getVmDirHelper().getVmConfigByUuid(getClient(),
+				pCmd->GetVmUuid(), e, NULL);
+	if (!pConfig) {
+		WRITE_TRACE(DBG_FATAL, "Unable to find CT by uuid %s",
+				qPrintable(pCmd->GetVmUuid()));
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 	}
 
 	SmartPtr<CVmConfiguration> pNewConfig(new CVmConfiguration);
-
 	if (!pCmd->GetNewVmUuid().isEmpty())
 		pNewConfig->getVmIdentification()->setVmUuid(pCmd->GetNewVmUuid());
 
@@ -964,18 +1076,33 @@ PRL_RESULT Task_VzManager::clone_env()
 	if (PRL_FAILED(res))
 		return res;
 
-	res = get_op_helper()->clone_env(pConfig, sNewHome, sNewName, nFlags, pNewConfig);
-	if (PRL_SUCCEEDED(res)) {
-		if (sNewHome.isEmpty())
-			sNewHome = pNewConfig->getVmIdentification()->getHomePath();
+	const QString &home = pConfig->getVmIdentification()->getHomePath();
+	Template::Storage::Dao::pointer_type c;
+	Template::Storage::Dao d(getClient()->getAuthHelper());
+	if (PRL_SUCCEEDED(d.findForEntry(home, c))) {
+		Command::Clone x(this, pConfig, pNewConfig);
+		res = c->export_(home, boost::bind<PRL_RESULT>(boost::ref(x),
+					boost::ref(sNewHome)));
+		if (PRL_SUCCEEDED(res))
+			res = c->commit();
+		if (PRL_SUCCEEDED(res))
+			pNewConfig = x.getConfig();
+	} else {
+		res = check_env_state(PVE::DspCmdDirVmClone, sUuid);
+		if (PRL_FAILED(res))
+			return res;
 
+		res = get_op_helper()->clone_env(pConfig, sNewHome, sNewName,
+				0, pNewConfig);
+	}
+	if (PRL_SUCCEEDED(res)) {
 		::Vm::Private::Brand b(sNewHome, getClient());
 		b.remove();
 		if (PRL_SUCCEEDED(res = b.stamp()))
 			res = getVzHelper()->insertVmDirectoryItem(pNewConfig);
 		if (PRL_FAILED(res))
 			get_op_helper()->delete_env(
-					pNewConfig->getVmIdentification()->getVmUuid());
+				pNewConfig->getVmIdentification()->getVmUuid());
 	}
 	// delete temporary registration
 	CDspService::instance()->getVmDirManager()
@@ -1547,24 +1674,122 @@ void Task_VzManager::finalizeTask()
 	}
 }
 
+
+PRL_RESULT Task_VzManager::move_ephemeral(
+		Template::Storage::Catalog *catalog,
+		const QString &target,
+		SmartPtr<CVmConfiguration> &config)
+{
+	if (!config->getVmSettings()->getVmCommonOptions()->isTemplate())
+		return PRL_ERR_VM_REQUEST_NOT_SUPPORTED;
+
+	QString uuid = config->getVmIdentification()->getVmUuid();
+	boost::optional<QString> tgDirUuid = m_ephemeral->find(target);
+	if (!tgDirUuid) {
+		WRITE_TRACE(DBG_FATAL, "Unable to find dir uuid for %s",
+				qPrintable(target));
+		return PRL_ERR_UNEXPECTED;
+	}
+
+	SmartPtr<CVmConfiguration> newConfig(new CVmConfiguration(config.getImpl()));
+
+	QFileInfo x(target, CVzHelper::build_ctid_from_uuid(uuid)); 
+	newConfig->getVmIdentification()->setHomePath(x.filePath());
+
+	Instrument::Command::Batch b;
+	Template::Facade::Workbench w;
+	Template::Facade::Registrar reg(tgDirUuid.get(), *newConfig, w);
+	b.addItem(boost::bind(&Template::Facade::Registrar::begin, &reg),
+			boost::bind(&Template::Facade::Registrar::rollback, &reg));
+	Command::Move::Import i(this, newConfig, catalog);
+	b.addItem(boost::bind(&Command::Move::Import::execute, i));
+	b.addItem(boost::bind(&CDspVmDirHelper::deleteVmDirectoryItem,
+				&w.getDirectoryHelper(), m_sVzDirUuid, uuid));
+	b.addItem(boost::bind(&Template::Facade::Registrar::execute, &reg));
+	b.addItem(boost::bind(&Template::Facade::Registrar::commit, &reg));
+
+	return b.execute();
+}
+
+PRL_RESULT Task_VzManager::move_regular(const QString &target,
+		SmartPtr<CVmConfiguration> &config)
+{
+	QString uuid = config->getVmIdentification()->getVmUuid();
+	QString name = config->getVmIdentification()->getVmName();
+
+	CVmDirectory::TemporaryCatalogueItem vmInfo(uuid, target, name);
+	PRL_RESULT res = CDspService::instance()->getVmDirManager()
+		.lockExistingExclusiveVmParameters(m_sVzDirUuid, &vmInfo);
+	if (PRL_FAILED(res)) {
+		CDspTaskFailure f(*this);
+		f.setCode(res);
+		switch (res)
+		{
+		case PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH:
+			WRITE_TRACE(DBG_FATAL, "path '%s' already registered",
+					QSTR2UTF8(vmInfo.vmXmlPath));
+			return f(vmInfo.vmName, vmInfo.vmXmlPath);
+
+		default:
+			WRITE_TRACE(DBG_FATAL, "can't register container with UUID '%s', name '%s', path '%s",
+					QSTR2UTF8(vmInfo.vmUuid), QSTR2UTF8(vmInfo.vmName), QSTR2UTF8(vmInfo.vmXmlPath));
+			return f.setToken(vmInfo.vmUuid).setToken(vmInfo.vmXmlPath)
+				.setToken(vmInfo.vmName)();
+		}
+	}
+
+	do {
+		res = get_op_helper()->move_env(uuid, target, name);
+		if (PRL_FAILED(res)) 
+			break;
+
+		config = CVzHelper::get_env_config(uuid);
+		if (!config) {
+			res = PRL_ERR_CT_NOT_FOUND;
+			break;
+		}
+
+		// Update Vm directory item
+		CDspLockedPointer< CVmDirectoryItem >
+			pVmDirItem = CDspService::instance()->getVmDirManager()
+			.getVmDirItemByUuid(m_sVzDirUuid, uuid);
+		if (!pVmDirItem) {
+			WRITE_TRACE(DBG_FATAL, "Can't found VmDirItem by vmUuid = %s",
+					QSTR2UTF8(uuid));
+			res = PRL_ERR_CT_NOT_FOUND;
+			break;
+		}
+
+		pVmDirItem->setVmHome(config->getVmIdentification()->getHomePath());
+		pVmDirItem->setCtId(config->getVmIdentification()->getCtId());
+		res = CDspService::instance()->getVmDirManager().updateVmDirItem(pVmDirItem);
+		if (PRL_FAILED(res))
+			WRITE_TRACE(DBG_FATAL, "Can't update Container %s VmCatalogue by error: %s",
+					QSTR2UTF8(uuid), PRL_RESULT_TO_STRING(res));
+	} while (0);
+
+	CDspService::instance()->getVmDirManager().
+		unlockExclusiveVmParameters(&vmInfo);
+
+	return res;
+}
+
 PRL_RESULT Task_VzManager::move_env()
 {
-	PRL_RESULT res;
-
 	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!cmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
 
-	CProtoVmMoveCommand *pCmd = CProtoSerializer::CastToProtoCommand<CProtoVmMoveCommand>(cmd);
-
+	CProtoVmMoveCommand *pCmd = CProtoSerializer::
+				CastToProtoCommand<CProtoVmMoveCommand>(cmd);
 	QString sUuid = pCmd->GetVmUuid();
-	QString sNewHome = pCmd->GetNewHomePath();
-	if (sNewHome.isEmpty()) {
+	QString target = QFileInfo(pCmd->GetNewHomePath()).absoluteFilePath();
+	if (target.isEmpty()) {
 		WRITE_TRACE(DBG_FATAL, "New container home path path is empty");
 		return PRL_ERR_INVALID_PARAM;
 	}
 
-	res = check_env_state(PVE::DspCmdDirVmMove, sUuid);
+	PRL_RESULT res = check_env_state(PVE::DspCmdDirVmMove, sUuid);
 	if (PRL_FAILED(res))
 		return res;
 
@@ -1572,69 +1797,28 @@ PRL_RESULT Task_VzManager::move_env()
 	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
 		getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, e, NULL);
 	if (!pConfig) {
-		WRITE_TRACE(DBG_FATAL, "Can not get container ID for UUID %s", QSTR2UTF8(sUuid));
+		WRITE_TRACE(DBG_FATAL, "Can not get container ID for UUID %s",
+				QSTR2UTF8(sUuid));
 		return PRL_ERR_CT_NOT_FOUND;
 	}
+
+	QString home = pConfig->getVmIdentification()->getHomePath();
 	QString sName = pConfig->getVmIdentification()->getVmName();
-	CVmDirectory::TemporaryCatalogueItem vmInfo(sUuid, sNewHome, sName);
-
-	res = CDspService::instance()->getVmDirManager()
-			.lockExistingExclusiveVmParameters(m_sVzDirUuid, &vmInfo);
-	if (PRL_FAILED(res))
-	{
-		CDspTaskFailure f(*this);
-		f.setCode(res);
-		switch (res)
-		{
-		case PRL_ERR_VM_ALREADY_REGISTERED_VM_PATH:
-			WRITE_TRACE(DBG_FATAL, "path '%s' already registered", QSTR2UTF8(vmInfo.vmXmlPath));
-			return f(vmInfo.vmName, vmInfo.vmXmlPath);
-
-		default:
-			WRITE_TRACE(DBG_FATAL, "can't register container with UUID '%s', name '%s', path '%s",
-				QSTR2UTF8(vmInfo.vmUuid), QSTR2UTF8(vmInfo.vmName), QSTR2UTF8(vmInfo.vmXmlPath));
-			return f.setToken(vmInfo.vmUuid).setToken(vmInfo.vmXmlPath)
-				.setToken(vmInfo.vmName)();
-		}
-	}
-
-	res = get_op_helper()->move_env(sUuid, sNewHome, sName);
-	// Get updated config
+	Template::Storage::Dao::pointer_type c;
+	Template::Storage::Dao d(getClient()->getAuthHelper());
+	res = d.findByRoot(target, c);
 	if (PRL_SUCCEEDED(res)) {
-		getVzHelper()->getConfigCache()
-			.remove(pConfig->getVmIdentification()->getHomePath());
-
-		PRL_RESULT e;
-		pConfig = CDspService::instance()->
-			getVmDirHelper().getVmConfigByUuid(getClient(), sUuid, e, NULL);
-		if (!pConfig) {
-			WRITE_TRACE(DBG_FATAL, "Can not get container ID for UUID %s after move",
-				QSTR2UTF8(sUuid));
-			res = PRL_ERR_CT_NOT_FOUND;
-		}
+		res = move_ephemeral(c.data(), target, pConfig);
+	} else {
+		res = d.findForEntry(home, c);
+		if (PRL_SUCCEEDED(res))
+			res = PRL_ERR_VM_REQUEST_NOT_SUPPORTED;
+		else
+			res = move_regular(target, pConfig);
 	}
 
-	// Update Vm directory item
-	if (PRL_SUCCEEDED(res)) {
-		CDspLockedPointer< CVmDirectoryItem >
-			pVmDirItem = CDspService::instance()->getVmDirManager()
-			.getVmDirItemByUuid(m_sVzDirUuid, sUuid);
-
-		if (!pVmDirItem) {
-			WRITE_TRACE(DBG_FATAL, "Can't found VmDirItem by vmUuid = %s",
-					QSTR2UTF8(sUuid));
-		} else {
-			pVmDirItem->setVmHome(pConfig->getVmIdentification()->getHomePath());
-			pVmDirItem->setCtId(pConfig->getVmIdentification()->getCtId());
-			res = CDspService::instance()->getVmDirManager().updateVmDirItem(pVmDirItem);
-			if (PRL_FAILED(res))
-				WRITE_TRACE(DBG_FATAL, "Can't update Container %s VmCatalogue by error: %s",
-					QSTR2UTF8(sUuid), PRL_RESULT_TO_STRING(res));
-		}
-	}
-
-	// Delete temporary registration
-	CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(&vmInfo);
+	if (PRL_SUCCEEDED(res))
+		getVzHelper()->getConfigCache().remove(home);
 
 	if (PRL_FAILED(res))
 		return res;

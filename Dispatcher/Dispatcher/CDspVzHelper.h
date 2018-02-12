@@ -54,7 +54,9 @@ class CDspVzHelper
 public:
 	typedef SmartPtr<CDspVNCStarter> vncServer_type;
 
-	CDspVzHelper(CDspService& service_, const Backup::Task::Launcher& backup_);
+	CDspVzHelper(CDspService& service_,
+		const Backup::Task::Launcher& backup_,
+		::Vm::Directory::Ephemeral& ephemeral_);
 	~CDspVzHelper();
 
 public:
@@ -185,6 +187,7 @@ private:
 	QMutex m_tblCtVNCServerMtx;
 	CDspService* m_service;
 	Backup::Task::Launcher m_backup;
+	::Vm::Directory::Ephemeral* m_ephemeral;
 #endif
 };
 
