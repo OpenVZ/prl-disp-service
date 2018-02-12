@@ -862,6 +862,130 @@ void Timer::operator()(const mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 3>::
 
 } // namespace Visitor
 
+namespace Chipset
+{
+typedef QPair<quint32, quint32> model_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Generic
+
+template<class T>
+Prl::Expected<model_type, PRL_RESULT>
+	Generic<T>::deserialize(const QString& text_) const
+{
+	if (!text_.startsWith(T::s_PREFIX))
+		return PRL_ERR_SYMBOL_NOT_FOUND;
+
+	quint32 x = 0;
+	std::istringstream s(text_.mid(T::s_PREFIX.length()).toStdString());
+	s >> x;
+
+	return model_type(T::TYPE, x);
+}
+
+template<class T>
+QString Generic<T>::serialize(model_type::second_type version_) const
+{
+	return QString(T::s_PREFIX).append(version_).append(".0");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct i440fx
+
+const QString i440fx::s_PREFIX("pc-i440fx-vz7.");
+
+Prl::Expected<model_type, PRL_RESULT>
+	i440fx::deserialize(const QString& text_) const
+{
+	Prl::Expected<model_type, PRL_RESULT> x =
+		Generic<i440fx>::deserialize(text_);
+	if (x.isFailed())
+		return x;
+
+	return model_type(x.value().first, std::max(x.value().second, 6u) - 3);
+}
+
+QString i440fx::serialize(model_type::second_type version_) const
+{
+	return Generic<i440fx>::serialize(version_ + 3);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Q35
+
+const QString Q35::s_PREFIX("pc-q35-vz7.");
+
+Prl::Expected<model_type, PRL_RESULT>
+	Q35::deserialize(const QString& text_) const
+{
+	Prl::Expected<model_type, PRL_RESULT> x =
+		Generic<Q35>::deserialize(text_);
+	if (x.isFailed())
+		return x;
+	if (7 > x.value().second)
+		return PRL_ERR_INVALID_ARG;
+
+	return model_type(x.value().first, x.value().second - 6);
+
+}
+
+QString Q35::serialize(model_type::second_type version_) const
+{
+	return Generic<Q35>::serialize(version_ + 6);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Marshal
+
+model_type Marshal::deserialize_(const QString& text_) const
+{
+	Prl::Expected<model_type, PRL_RESULT> x;
+	x = i440fx().deserialize(text_);
+	if (x.isSucceed())
+		return x.value();
+	x = Q35().deserialize(text_);
+	if (x.isSucceed())
+		return x.value();
+
+	::Chipset y;
+	return model_type(y.getType(), y.getVersion());
+}
+
+::Chipset Marshal::deserialize(const QString& text_) const
+{
+	model_type m = deserialize_(text_);
+	::Chipset output;
+	output.setType(m.first);
+	output.setVersion(m.second);
+	output.setAlias(text_);
+
+	return output;
+}
+
+QString Marshal::serialize(const model_type& object_) const
+{
+	switch (object_.first)
+	{
+	case i440fx::TYPE: 
+		return i440fx().serialize(object_.second);
+	case Q35::TYPE: 
+		return Q35().serialize(object_.second);
+	default:
+		return QString();
+	}
+}
+
+QString Marshal::serialize(const ::Chipset& object_) const
+{
+	QString a = object_.getAlias();
+	if (!a.isEmpty())
+		return a;
+
+	return serialize(model_type(object_.getType(), object_.getVersion()));
+}
+
+} // namespace Chipset
+
 namespace Vm
 {
 namespace Direct
@@ -1053,6 +1177,7 @@ PRL_RESULT Vm::setDevices()
 			boost::apply_visitor(Visitor::Device(*m_result, c), v);
 		}
 	}
+
 	return PRL_ERR_SUCCESS;
 }
 
@@ -1078,8 +1203,8 @@ PRL_RESULT Vm::setResources(const VtInfo& vt_)
 
 	if (m_input->getClock())
 		r.setClock(m_input->getClock().get());
-	if (m_input->getSysinfo())
-		r.setChipset(m_input->getSysinfo().get());
+
+	r.setChipset(m_input->getOs());
 
 	return PRL_ERR_SUCCESS;
 }
