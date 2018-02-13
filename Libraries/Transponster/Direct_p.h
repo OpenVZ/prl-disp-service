@@ -88,6 +88,66 @@ private:
 	const controllerList_type *m_controllerList;
 };
 
+namespace Chipset
+{
+typedef QPair<quint32, quint32> model_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Generic
+
+template<class T>
+struct Generic
+{
+	Prl::Expected<model_type, PRL_RESULT>
+		deserialize(const QString& text_) const;
+	QString serialize(model_type::second_type version_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct i440fx
+
+struct i440fx: private Generic<i440fx>
+{
+	enum
+	{
+		TYPE = 1
+	};
+	static const QString s_PREFIX;
+
+	Prl::Expected<model_type, PRL_RESULT>
+		deserialize(const QString& text_) const;
+	QString serialize(model_type::second_type version_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Q35
+
+struct Q35: private Generic<Q35>
+{
+	enum
+	{
+		TYPE = 2
+	};
+	static const QString s_PREFIX;
+
+	Prl::Expected<model_type, PRL_RESULT>
+		deserialize(const QString& text_) const;
+	QString serialize(model_type::second_type version_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Marshal
+
+struct Marshal
+{
+	model_type deserialize_(const QString& text_) const;
+	::Chipset deserialize(const QString& text_) const;
+	QString serialize(const model_type& object_) const;
+	QString serialize(const ::Chipset& object_) const;
+};
+
+} // namespace Chipset
+
 namespace Visitor
 {
 namespace Source
@@ -1118,6 +1178,30 @@ struct Timer: boost::static_visitor<void>
 private:
 	const CVmCommonOptions& m_config;
 	QList<Libvirt::Domain::Xml::Timer>& m_timers;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Chipset
+
+struct Chipset: boost::static_visitor<QString>
+{
+	template<class T>
+	QString operator()(const T&) const
+	{
+		return QString();
+	}
+	QString operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice305::types, 0>::type& hvm_) const
+	{
+		return hvm_.getValue().getMachine() ? hvm_.getValue().getMachine().get() : QString();
+	}
+	QString operator()(const mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type& os_) const
+	{
+		Libvirt::Domain::Xml::Os2 a = os_.getValue();
+		if (!a.getType())
+			return QString();
+
+		return boost::apply_visitor(*this, a.getType().get());
+	}
 };
 
 } // namespace Visitor

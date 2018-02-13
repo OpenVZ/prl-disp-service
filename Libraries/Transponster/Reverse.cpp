@@ -305,15 +305,33 @@ bool Resources::getCurrentMemory(Libvirt::Domain::Xml::ScaledInteger& dst_)
 	return true;
 }
 
-void Resources::setChipset(const Libvirt::Domain::Xml::Sysinfo& src_)
+void Resources::setChipset(const Libvirt::Domain::Xml::VOs& src_)
 {
 	CVmHardware* h = getHardware();
 	if (NULL == h)
 		return;
 
-	(void)src_;
-	Chipset* c = new Chipset();
-	h->setChipset(c);
+	*(h->getChipset()) = Chipset::Marshal()
+		.deserialize(boost::apply_visitor(Visitor::Chipset(), src_));
+}
+
+bool Resources::getChipset(Libvirt::Domain::Xml::Os2& dst_)
+{
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return false;
+
+	::Chipset* s = h->getChipset();
+	if (NULL == s)
+		return false;
+
+	Libvirt::Domain::Xml::Hvmx86 m;
+	m.setMachine(Chipset::Marshal().serialize(*s));
+	mpl::at_c<Libvirt::Domain::Xml::VChoice305::types, 0>::type t;
+	t.setValue(m);
+	dst_.setType(Libvirt::Domain::Xml::VChoice305(t));
+
+	return true;
 }
 
 namespace Device
@@ -1508,9 +1526,9 @@ PRL_RESULT Builder::setBlank()
 	if (PVT_VM != m_input.getVmType())
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
-	mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
 	Libvirt::Domain::Xml::Os2 os;
-	if (getStartupOptions(os))
+	mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
+	if (getStartupOptions(os) || Resources(m_input).getChipset(os))
 		vos.setValue(os);
 
 	m_result->setOs(vos);
