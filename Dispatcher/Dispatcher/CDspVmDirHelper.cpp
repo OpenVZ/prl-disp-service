@@ -62,6 +62,7 @@
 #include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
 #include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/Messaging/CVmEventParameter.h>
+#include <prlcommon/Std/PrlTime.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlxmlmodel/HostHardwareInfo/CHwFileSystemInfo.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
@@ -132,6 +133,91 @@
 
 namespace
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct ToolVerCache
+
+struct ToolVerCache
+{
+	ToolVerCache(const char *fname_): m_fname(fname_), m_last_updated(0) {};
+	QString getVersion();
+
+private:
+	QString readVersion();
+
+	QMutex m_mutex;
+	QString m_fname;
+	QString m_version;
+	QDateTime m_mtime;
+	PRL_UINT64 m_last_updated;
+};
+
+/**
+* @brief Read version from the file if mtime has changed
+* @return
+*/
+QString ToolVerCache::readVersion()
+{
+	QFile verFile(m_fname);
+
+	if (!verFile.exists())
+		return m_version;
+
+	QDateTime last_mtime = QFileInfo(verFile).lastModified();
+	if (last_mtime != m_mtime)
+	{
+		verFile.open(QIODevice::ReadOnly);
+		QTextStream in(&verFile);
+		m_version = in.readLine();
+		m_mtime = last_mtime;
+	}
+
+	return m_version;
+}
+
+/**
+* @brief Get guest tools version
+* @return
+*/
+QString ToolVerCache::getVersion()
+{
+	QMutexLocker _locker(&m_mutex);
+	PRL_UINT64 last_uodated = PrlGetTimeMonotonic();
+
+	/* Ratelimit to 5 seconds */
+	if (last_uodated - m_last_updated < 5000000)
+		return m_version;
+
+	m_last_updated = last_uodated;
+
+	return readVersion();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct ToolVersionStorage
+
+struct ToolVersionStorage
+{
+	ToolVersionStorage():
+		m_winver("/usr/share/vz-guest-tools/vz-guest-tools-win.ver"),
+		m_linver("/usr/share/vz-guest-tools/vz-guest-tools-lin.ver") {};
+	QString getHostToolsVersion(int osVersion);
+
+private:
+	ToolVerCache m_winver, m_linver;
+};
+
+/**
+* @brief Retrieve host tools version for an OS version
+* @param osVersion
+* @return version
+*/
+QString ToolVersionStorage::getHostToolsVersion(int osVersion)
+{
+	return (IS_WINDOWS(osVersion) ? m_winver : m_linver).getVersion();
+}
+
+Q_GLOBAL_STATIC(ToolVersionStorage, getToolVersionStorage);
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reference
 
@@ -1435,8 +1521,18 @@ bool CDspVmDirHelper::sendVmToolsInfo(const IOSender::Handle& sender,
 	if (pVmConfig) {
 		toolsVersion = pVmConfig->getVmSettings()->getVmTools()->getAgentVersion();
 		// override tools state for templates from config
-		if (!toolsVersion.isEmpty() && toolsState == PTS_NOT_INSTALLED)
-			toolsState = PTS_POSSIBLY_INSTALLED;
+		if (!toolsVersion.isEmpty())
+		{
+			if (toolsState == PTS_NOT_INSTALLED)
+				toolsState = PTS_POSSIBLY_INSTALLED;
+
+			QString hostToolsVersion = getToolVersionStorage()->getHostToolsVersion(
+				pVmConfig->getVmSettings()->getVmCommonOptions()->getOsVersion());
+			WRITE_TRACE(DBG_TRACE,"Host tools version %s,  Guest tools version %s",
+				qPrintable(hostToolsVersion), qPrintable(toolsVersion));
+			if (QString::compare(hostToolsVersion, toolsVersion) != 0)
+				toolsState = PTS_OUTDATED;
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////
