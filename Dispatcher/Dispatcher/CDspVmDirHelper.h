@@ -301,6 +301,12 @@ public:
 		bool bAbsolute = true,
 		bool bLoadConfigDirectlyFromDisk = false);
 
+	// Get VM configuration for specific Directory item
+	static SmartPtr<CVmConfiguration> getVmConfigByDirectoryItem(
+		SmartPtr<CDspClient>,
+		const CVmDirectoryItem* pDirectoryItem,PRL_RESULT& error,
+		bool bAbsolute = true, bool bLoadConfigDirectlyFromDisk = false);
+
 	/**
 	* Get VM configuration by VmIdent
 	*/
@@ -478,10 +484,6 @@ private:
 		const SmartPtr<IOPackage>&,
 		QString vm_uuid );
 protected:
-	// Get VM configuration for specific Directory item
-	static SmartPtr<CVmConfiguration> getVmConfigForDirectoryItem(CVmDirectoryItem* pDirectoryItem
-		,PRL_RESULT& error, bool bAbsolute = true, bool bLoadConfigDirectlyFromDisk= false );
-
 private:
 	enum ItemParamType {paramIsVmUuid, paramIsVmHome, paramIsVmName};
 

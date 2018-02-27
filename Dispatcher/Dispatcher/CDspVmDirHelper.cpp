@@ -92,6 +92,7 @@
 #ifdef _LIN_
 #include "Tasks/Task_MountVm.h"
 #endif
+#include "Tasks/Task_VzManager.h"
 
 #include <prlxmlmodel/ProblemReport/CProblemReport.h>
 #include <prlcommon/Messaging/CVmBinaryEventParameter.h>
@@ -110,6 +111,7 @@
 
 #include <prlcommon/HostUtils/HostUtils.h>
 
+#include "CDspService.h"
 #include "CDspVzHelper.h"
 
 #include "Tasks/Task_BackgroundJob.h"
@@ -2505,7 +2507,7 @@ CDspVmDirHelper::getAllVmList (const QString& vmDirUuid) const
 				continue;
 #endif
 			PRL_RESULT err = PRL_ERR_SUCCESS;
-			SmartPtr<CVmConfiguration> pVmConfig = getVmConfigForDirectoryItem( pDirectoryItem, err, pFakeUserSession );
+			SmartPtr<CVmConfiguration> pVmConfig = getVmConfigByDirectoryItem(SmartPtr<CDspClient>(0), pDirectoryItem, err);
 			if( PRL_SUCCEEDED( err ) && pVmConfig )
 			{
 				if (sServerUuid != pVmConfig->getVmIdentification()->getServerUuid())
@@ -2656,7 +2658,9 @@ CDspVmDirHelper::getVmConfigByUuid (
 		return SmartPtr<CVmConfiguration>();
 	}
 
-	SmartPtr<CVmConfiguration> pVmConfig = getVmConfigForDirectoryItem( pVmDirItem.operator->(), outError, bAbsolute, bLoadConfigDirectlyFromDisk);
+	SmartPtr<CVmConfiguration> pVmConfig = getVmConfigByDirectoryItem(
+			SmartPtr<CDspClient>(0), pVmDirItem.operator->(),
+			outError, bAbsolute, bLoadConfigDirectlyFromDisk);
 
 	return pVmConfig;
 }
@@ -2697,15 +2701,17 @@ CDspVmDirHelper::getVmConfigForDirectoryItem(SmartPtr<CDspClient> pUserSession,
 	PRL_ASSERT(pUserSession);
 	CAuthHelperImpersonateWrapper _impersonate( &pUserSession->getAuthHelper() );
 
-	return getVmConfigForDirectoryItem ( pDirectoryItem, error );
+	return getVmConfigByDirectoryItem(pUserSession, pDirectoryItem, error);
 }
 
 /**
 * @brief Get VM configuration for specific Directory item.
 * @param pUserSession
 */
-SmartPtr<CVmConfiguration>
-CDspVmDirHelper::getVmConfigForDirectoryItem(CVmDirectoryItem* pDirectoryItem, PRL_RESULT& error, bool bAbsolute, bool bLoadConfigDirectlyFromDisk )
+SmartPtr<CVmConfiguration> CDspVmDirHelper::getVmConfigByDirectoryItem(
+		SmartPtr<CDspClient> pUserSession,
+		const CVmDirectoryItem* pDirectoryItem, PRL_RESULT& error,
+		bool bAbsolute, bool bLoadConfigDirectlyFromDisk )
 {
 	error = PRL_ERR_SUCCESS;
 
@@ -2719,16 +2725,28 @@ CDspVmDirHelper::getVmConfigForDirectoryItem(CVmDirectoryItem* pDirectoryItem, P
 	SmartPtr<CVmConfiguration> pVmConfig( new CVmConfiguration() );
 
 	// get config file
-	PRL_RESULT load_rc =
-		CDspService::instance()->getVmConfigManager().loadConfig(pVmConfig,
-		pDirectoryItem->getVmHome(),
-		SmartPtr<CDspClient>(0),
-		bAbsolute,
-		bLoadConfigDirectlyFromDisk
-		);
+	PRL_RESULT rc = PRL_ERR_SUCCESS;
 
+	if (pDirectoryItem->getVmType() == PVT_CT)
+	{ 
+		pVmConfig = CDspService::instance()->getVzHelper()->getCtConfig(
+				pUserSession,
+				pDirectoryItem->getVmUuid(),
+				pDirectoryItem->getVmHome());
+		if (!pVmConfig)
+			rc = PRL_ERR_VM_GET_CONFIG_FAILED;
+	}
+	else
+	{
+		rc = CDspService::instance()->getVmConfigManager().loadConfig(pVmConfig,
+				pDirectoryItem->getVmHome(),
+				pUserSession,
+				bAbsolute,
+				bLoadConfigDirectlyFromDisk
+				);
+	}
 
-	if( !IS_OPERATION_SUCCEEDED( load_rc ) )
+	if( !IS_OPERATION_SUCCEEDED(rc) )
 	{
 		error = PRL_ERR_PARSE_VM_CONFIG;
 		pVmConfig = SmartPtr<CVmConfiguration>();
@@ -3659,7 +3677,7 @@ PRL_VM_COLOR CDspVmDirHelper::getUniqueVmColor( const QString& vmDirUuid )
 void CDspVmDirHelper::moveVm( SmartPtr<CDspClient> pUserSession, const SmartPtr<IOPackage>& pkg )
 {
 	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( pkg );
-	if ( ! cmd->IsValid() )
+	if (!cmd->IsValid())
 	{
 		pUserSession->sendSimpleResponse( pkg, PRL_ERR_FAILURE );
 		return;
@@ -3667,7 +3685,6 @@ void CDspVmDirHelper::moveVm( SmartPtr<CDspClient> pUserSession, const SmartPtr<
 	CDspService::instance()->getTaskManager()
 		.schedule(new Task_MoveVm(pUserSession , pkg, *m_ephemeral));
 }
-
 
 namespace List
 {
@@ -3713,10 +3730,9 @@ Identity::result_type Identity::handle(const CVmDirectoryItem& item_)
 
 Sterling::result_type Sterling::handle(const CVmDirectoryItem& item_)
 {
-	SmartPtr<CVmConfiguration> output;
-	PRL_RESULT e = m_service->getVmConfigManager().loadConfig(output,
-		item_.getVmHome(), m_session, true, false);
-
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> output = m_service->getVmDirHelper().
+			getVmConfigByDirectoryItem(m_session, &item_, e);
 	if (PRL_FAILED(e) || !output.isValid())
 	{
 		WRITE_TRACE(DBG_FATAL, ">>> Error [%#x / %s ] occurred while trying to load VM config from file [%s]",
@@ -4022,7 +4038,7 @@ void Generic::setLoader(Item::Component* value_)
 {
 	Item::Template* t = new Item::Template();
 	t->setNext(value_);
-	Directory::Vm::Generic::setLoader(t);
+	Loop::setLoader(t);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -4080,9 +4096,9 @@ Chain* Factory::operator()(const session_type& session_, quint32 flags_) const
 	if (m & PVTF_CT)
 		output = x = new Ct(session_, flags_, *m_service);
 
+	Item::Factory f(*m_service);
 	if (0 == m || (m & PVTF_VM))
 	{
-		Item::Factory f(*m_service);
 		Chain* y = new Template::Vm::Ordinary(f(session_, flags_));
 		if (NULL == x)
 			output = y;
@@ -4092,8 +4108,11 @@ Chain* Factory::operator()(const session_type& session_, quint32 flags_) const
 		x = y;
 		y = new Vm::Ordinary(m_ephemeral, f(session_, flags_));
 		x->setNext(y);
-		y->setNext(new Template::Vm::Ephemeral(m_ephemeral, f(session_, flags_)));
+		x = y;
 	}
+
+	if (x)
+		x->setNext(new Template::Vm::Ephemeral(m_ephemeral, f(session_, flags_)));
 
 	return output;
 }

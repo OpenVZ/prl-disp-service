@@ -522,7 +522,7 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 	m_clientManager.reset(new CDspClientManager(*this, b));
 	m_dispConnectionsManager.reset(new CDspDispConnectionsManager(*this, b));
 #ifdef _CT_
-	m_pVzHelper = SmartPtr<CDspVzHelper>(new CDspVzHelper(*this, b));
+	m_pVzHelper = SmartPtr<CDspVzHelper>(new CDspVzHelper(*this, b, *p));
 #endif
 	::Template::Scanner::Engine* e = new ::Template::Scanner::Engine(*p, *this);
 	e->start();

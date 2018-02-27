@@ -29,6 +29,7 @@
 
 #include "CDspVzHelper.h"
 #include "CDspService.h"
+#include "CDspTemplateStorage.h"
 #include "Tasks/Task_VzManager.h"
 #include "CVmValidateConfig.h"
 
@@ -102,8 +103,10 @@ void CDspVzHelper::CConfigCache::remove(const QString &sHome)
 }
 
 /**************** CDspVzHelper ************************/
-CDspVzHelper::CDspVzHelper(CDspService& service_, const Backup::Task::Launcher& backup_):
-	m_service(&service_), m_backup(backup_)
+CDspVzHelper::CDspVzHelper(CDspService& service_,
+		const Backup::Task::Launcher& backup_,
+		::Vm::Directory::Ephemeral& ephemeral_):
+	m_service(&service_), m_backup(backup_), m_ephemeral(&ephemeral_)
 {
 }
 
@@ -283,6 +286,24 @@ void CDspVzHelper::UpdateHardDiskInformation(SmartPtr<CVmConfiguration> &config)
 	}
 }
 
+SmartPtr<CVmConfiguration> CDspVzHelper::getConfig(
+		SmartPtr<CDspClient> pUserSession,
+		const QString &sUuid,
+		const QString &sHome)
+{
+	::Template::Storage::Dao::pointer_type c;
+	::Template::Storage::Dao d(pUserSession->getAuthHelper());
+	PRL_RESULT e = d.findForEntry(sHome, c);
+	if (PRL_SUCCEEDED(e))
+	{
+		SmartPtr<CVmConfiguration> x;
+		return getVzlibHelper().get_env_config_from_file(
+				QString(sHome + "/ve.conf"), e);
+	}
+
+	return getVzlibHelper().get_env_config(sUuid);
+}
+
 SmartPtr<CVmConfiguration> CDspVzHelper::getCtConfig(
 		SmartPtr<CDspClient> pUserSession,
 		const QString &sUuid,
@@ -294,26 +315,15 @@ SmartPtr<CVmConfiguration> CDspVzHelper::getCtConfig(
 	if (!pConfig)
 	{
 		/* get From Disk */
-		pConfig = getVzlibHelper().get_env_config(sUuid);
+		pConfig = getConfig(pUserSession, sUuid, sHome);
 		if (!pConfig)
 			return SmartPtr<CVmConfiguration>();
 		/* update Cache */
 		getConfigCache().update(sHome, pConfig, pUserSession);
 	}
 
-	if (bFull) {
-
-		pConfig->getVmIdentification()->setVmFilesLocation(
-				CFileHelper::GetVmFilesLocationType(pConfig->getVmIdentification()->getHomePath())
-				);
-		appendAdvancedParamsToCtConfig(pConfig);
-
-		CVmEvent *evt = new CVmEvent;
-		fillCtInfo(pUserSession, sUuid, *evt);
-		pConfig->getVmSettings()->getVmRuntimeOptions()
-			->getInternalVmInfo()->setParallelsEvent(evt);
-		UpdateHardDiskInformation(pConfig);
-	}
+	if (bFull)
+		appendAdvancedParamsToCtConfig(pUserSession, pConfig);
 
 	return pConfig;
 }
@@ -540,12 +550,17 @@ bool CDspVzHelper::sendCtConfigByUuid(const IOSender::Handle& sender,
 		const SmartPtr<IOPackage>& pkg,
 		QString vm_uuid )
 {
+	PRL_RESULT e;
 
-	SmartPtr<CVmConfiguration> pConfig = getCtConfig(pUserSession, vm_uuid, true);
+	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->
+			getVmDirHelper().getVmConfigByUuid(
+				pUserSession, vm_uuid, e, NULL);
 	if (!pConfig) {
 		pUserSession->sendSimpleResponse( pkg, PRL_ERR_FAILURE );
 		return false;
 	}
+
+	appendAdvancedParamsToCtConfig(pUserSession, pConfig);
 
 	////////////////////////////////////////////////////////////////////////
 	// prepare response
@@ -850,7 +865,8 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 		case PVE::DspCmdCtReinstall:
 		case PVE::DspCmdVmPause:
 		case PVE::DspCmdVmReset:
-			m_service->getTaskManager().schedule(new Task_VzManager( pUserSession, p));
+		case PVE::DspCmdVmGuestGetNetworkSettings:
+			m_service->getTaskManager().schedule(new Task_VzManager( pUserSession, p, m_ephemeral));
 			break;
 		case PVE::DspCmdVmGuestRunProgram:
 			guestRunProgram(h, pUserSession, p);
@@ -937,9 +953,6 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 			break;
 		case PVE::DspCmdGetBackupTree:
 			m_backup.startGetBackupTreeSourceTask(pUserSession, p);
-			break;
-		case PVE::DspCmdVmGuestGetNetworkSettings:
-			m_service->getTaskManager().schedule(new Task_VzManager( pUserSession, p));
 			break;
 		case PVE::DspCmdVmSetConfig:
 		case PVE::DspCmdDirLockVm:
@@ -1090,9 +1103,21 @@ bool CDspVzHelper::isCtVNCServerRunning(const QString &uuid)
 	return false;
 }
 
-void CDspVzHelper::appendAdvancedParamsToCtConfig(SmartPtr<CVmConfiguration> pOutConfig)
+void CDspVzHelper::appendAdvancedParamsToCtConfig(
+		SmartPtr<CDspClient> pUserSession,
+		SmartPtr<CVmConfiguration> pOutConfig)
 {
 	QString sUuid = pOutConfig->getVmIdentification()->getVmUuid();
+
+	pOutConfig->getVmIdentification()->setVmFilesLocation(
+		CFileHelper::GetVmFilesLocationType(
+			pOutConfig->getVmIdentification()->getHomePath()));
+
+	CVmEvent *evt = new CVmEvent;
+	fillCtInfo(pUserSession, sUuid, *evt);
+	pOutConfig->getVmSettings()->getVmRuntimeOptions()
+		->getInternalVmInfo()->setParallelsEvent(evt);
+	UpdateHardDiskInformation(pOutConfig);
 
 	/* update VNC port */
 	CVmRemoteDisplay *remDisplay = pOutConfig->getVmSettings()->getVmRemoteDisplay();

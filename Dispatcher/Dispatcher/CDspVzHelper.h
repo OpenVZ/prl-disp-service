@@ -54,7 +54,9 @@ class CDspVzHelper
 public:
 	typedef SmartPtr<CDspVNCStarter> vncServer_type;
 
-	CDspVzHelper(CDspService& service_, const Backup::Task::Launcher& backup_);
+	CDspVzHelper(CDspService& service_,
+		const Backup::Task::Launcher& backup_,
+		::Vm::Directory::Ephemeral& ephemeral_);
 	~CDspVzHelper();
 
 public:
@@ -165,8 +167,14 @@ private:
 	/* start source-side task for copy of CT template */
 	void copyCtTemplate(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage> &p);
 
-	void appendAdvancedParamsToCtConfig(SmartPtr<CVmConfiguration> pOutConfig);
+	void appendAdvancedParamsToCtConfig(
+			SmartPtr<CDspClient> pUserSession,
+			SmartPtr<CVmConfiguration> pOutConfig);
 	void UpdateHardDiskInformation(SmartPtr<CVmConfiguration> &config);
+	SmartPtr<CVmConfiguration> getConfig(
+			SmartPtr<CDspClient> pUserSession,
+			const QString &sUuid,
+			const QString &sHome);
 
 private:
 	CConfigCache m_configCache;
@@ -179,6 +187,7 @@ private:
 	QMutex m_tblCtVNCServerMtx;
 	CDspService* m_service;
 	Backup::Task::Launcher m_backup;
+	::Vm::Directory::Ephemeral* m_ephemeral;
 #endif
 };
 
