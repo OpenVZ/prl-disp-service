@@ -805,10 +805,8 @@ bool CDspVzHelper::handlePackage(const IOSender::Handle& h,
 		default:
 			vm_uuid = pCmd->GetVmUuid();
 		}
-		if (vm_uuid.isEmpty())
-			LOG_MESSAGE(DBG_INFO, "=> empty vmuuid for %s",
-					PVE::DispatcherCommandToString(p->header.type));
-		bOk = m_service->getVmDirManager().getVmTypeByUuid(vm_uuid, nType);
+		if (!vm_uuid.isEmpty())
+			bOk = m_service->getVmDirManager().getVmTypeByUuid(vm_uuid, nType);
 	}
 
 	if (!(bOk && nType == PVT_CT))

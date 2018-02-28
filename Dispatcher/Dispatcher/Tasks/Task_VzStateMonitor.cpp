@@ -131,7 +131,8 @@ void Task_VzStateMonitor::processNetConfigChangedEvt(const QString &sUuid)
 
 void Task_VzStateMonitor::processChangeCtState(QString uuid, VIRTUAL_MACHINE_STATE vm_state)
 {
-	SmartPtr<CDspClient> pFakeSession(new CDspClient(Uuid::createUuid(), "fake-user" ));
+	SmartPtr<CDspClient> pFakeSession = CDspClient::makeServiceUser(
+				CDspVmDirManager::getVzDirectoryUuid());
 	SmartPtr<IOPackage> p = DispatcherPackage::createInstance( PVE::DspCmdCtlDispatherFakeCommand );
 	CDspService::instance()->getTaskManager().schedule(new Task_VzManager(pFakeSession, p, uuid, vm_state));
 }
