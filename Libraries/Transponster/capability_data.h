@@ -154,13 +154,13 @@ struct Traits<Capability::Xml::POctalMode>
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1803
+// struct PData1804
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData1803
+struct PData1804
 {
 	typedef QString value_type;
 };
@@ -169,20 +169,20 @@ struct PData1803
 } // namespace Capability
 
 template<>
-struct Validatable<Capability::Xml::PData1803>: mpl::true_
+struct Validatable<Capability::Xml::PData1804>: mpl::true_
 {
-	static bool validate(const Capability::Xml::PData1803::value_type& value_);
+	static bool validate(const Capability::Xml::PData1804::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1805
+// struct PData1806
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData1805
+struct PData1806
 {
 	typedef qint32 value_type;
 };
@@ -191,29 +191,29 @@ struct PData1805
 } // namespace Capability
 
 template<>
-struct Traits<Capability::Xml::PData1805>
+struct Traits<Capability::Xml::PData1806>
 {
-	static bool parse(const QString& src_, Capability::Xml::PData1805::value_type& dst_);
+	static bool parse(const QString& src_, Capability::Xml::PData1806::value_type& dst_);
 
-	static QString generate(Capability::Xml::PData1805::value_type src_);
+	static QString generate(Capability::Xml::PData1806::value_type src_);
 
 };
 
 template<>
-struct Validatable<Capability::Xml::PData1805>: mpl::true_
+struct Validatable<Capability::Xml::PData1806>: mpl::true_
 {
-	static bool validate(Capability::Xml::PData1805::value_type value_);
+	static bool validate(Capability::Xml::PData1806::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1807
+// struct PData1808
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData1807
+struct PData1808
 {
 	typedef QString value_type;
 };
@@ -222,20 +222,20 @@ struct PData1807
 } // namespace Capability
 
 template<>
-struct Validatable<Capability::Xml::PData1807>: mpl::true_
+struct Validatable<Capability::Xml::PData1808>: mpl::true_
 {
-	static bool validate(const Capability::Xml::PData1807::value_type& value_);
+	static bool validate(const Capability::Xml::PData1808::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1809
+// struct PData1810
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData1809
+struct PData1810
 {
 	typedef qint32 value_type;
 };
@@ -244,29 +244,29 @@ struct PData1809
 } // namespace Capability
 
 template<>
-struct Traits<Capability::Xml::PData1809>
+struct Traits<Capability::Xml::PData1810>
 {
-	static bool parse(const QString& src_, Capability::Xml::PData1809::value_type& dst_);
+	static bool parse(const QString& src_, Capability::Xml::PData1810::value_type& dst_);
 
-	static QString generate(Capability::Xml::PData1809::value_type src_);
+	static QString generate(Capability::Xml::PData1810::value_type src_);
 
 };
 
 template<>
-struct Validatable<Capability::Xml::PData1809>: mpl::true_
+struct Validatable<Capability::Xml::PData1810>: mpl::true_
 {
-	static bool validate(Capability::Xml::PData1809::value_type value_);
+	static bool validate(Capability::Xml::PData1810::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1811
+// struct PData1812
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData1811
+struct PData1812
 {
 	typedef QString value_type;
 };
@@ -275,20 +275,20 @@ struct PData1811
 } // namespace Capability
 
 template<>
-struct Validatable<Capability::Xml::PData1811>: mpl::true_
+struct Validatable<Capability::Xml::PData1812>: mpl::true_
 {
-	static bool validate(const Capability::Xml::PData1811::value_type& value_);
+	static bool validate(const Capability::Xml::PData1812::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1813
+// struct PData1814
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData1813
+struct PData1814
 {
 	typedef qint32 value_type;
 };
@@ -297,29 +297,29 @@ struct PData1813
 } // namespace Capability
 
 template<>
-struct Traits<Capability::Xml::PData1813>
+struct Traits<Capability::Xml::PData1814>
 {
-	static bool parse(const QString& src_, Capability::Xml::PData1813::value_type& dst_);
+	static bool parse(const QString& src_, Capability::Xml::PData1814::value_type& dst_);
 
-	static QString generate(Capability::Xml::PData1813::value_type src_);
+	static QString generate(Capability::Xml::PData1814::value_type src_);
 
 };
 
 template<>
-struct Validatable<Capability::Xml::PData1813>: mpl::true_
+struct Validatable<Capability::Xml::PData1814>: mpl::true_
 {
-	static bool validate(Capability::Xml::PData1813::value_type value_);
+	static bool validate(Capability::Xml::PData1814::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1815
+// struct PData1816
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData1815
+struct PData1816
 {
 	typedef QString value_type;
 };
@@ -328,20 +328,20 @@ struct PData1815
 } // namespace Capability
 
 template<>
-struct Validatable<Capability::Xml::PData1815>: mpl::true_
+struct Validatable<Capability::Xml::PData1816>: mpl::true_
 {
-	static bool validate(const Capability::Xml::PData1815::value_type& value_);
+	static bool validate(const Capability::Xml::PData1816::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1817
+// struct PData1818
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData1817
+struct PData1818
 {
 	typedef QString value_type;
 };
@@ -350,9 +350,9 @@ struct PData1817
 } // namespace Capability
 
 template<>
-struct Validatable<Capability::Xml::PData1817>: mpl::true_
+struct Validatable<Capability::Xml::PData1818>: mpl::true_
 {
-	static bool validate(const Capability::Xml::PData1817::value_type& value_);
+	static bool validate(const Capability::Xml::PData1818::value_type& value_);
 
 };
 

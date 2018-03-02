@@ -412,9 +412,9 @@ void Hdd::setIoLimit(const CVmIoLimit* global_)
 
 	if (p != 0)
 	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice1093::types, 0>::type y;
+		mpl::at_c<Libvirt::Domain::Xml::VChoice1094::types, 0>::type y;
 		y.setValue(p);
-		t.setChoice1093(Libvirt::Domain::Xml::VChoice1093(y));
+		t.setChoice1094(Libvirt::Domain::Xml::VChoice1094(y));
 	}
 
 	getResult().setIotune(t);
@@ -431,9 +431,9 @@ void Hdd::setIopsLimit(const CVmRunTimeOptions& runtime_)
 
 	if (p != 0)
 	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice1097::types, 0>::type y;
+		mpl::at_c<Libvirt::Domain::Xml::VChoice1098::types, 0>::type y;
 		y.setValue(p);
-		t.setChoice1097(Libvirt::Domain::Xml::VChoice1097(y));
+		t.setChoice1098(Libvirt::Domain::Xml::VChoice1098(y));
 	}
 
 	getResult().setIotune(t);
@@ -819,9 +819,9 @@ Libvirt::Domain::Xml::Controller Factory::craft
 
 Factory::result_type Factory::wrap(const Libvirt::Domain::Xml::Controller& object_)
 {
-	mpl::at_c<Libvirt::Domain::Xml::VChoice977::types, 1>::type output;
+	mpl::at_c<Libvirt::Domain::Xml::VChoice978::types, 1>::type output;
 	output.setValue(object_);
-	return Libvirt::Domain::Xml::VChoice977(output);
+	return Libvirt::Domain::Xml::VChoice978(output);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -945,9 +945,9 @@ void List::addGuestChannel(const QString &path_)
 {
 	Libvirt::Domain::Xml::Channel1 c;
 	c.setType(Libvirt::Domain::Xml::EQemucdevSrcTypeChoiceUnix);
-	mpl::at_c<Libvirt::Domain::Xml::VChoice886::types, 1>::type x;
+	mpl::at_c<Libvirt::Domain::Xml::VChoice887::types, 1>::type x;
 	x.setValue(path_);
-	c.setChoice886(x);
+	c.setChoice887(x);
 	add<13>(c);
 }
 
@@ -1477,7 +1477,7 @@ Prl::Expected<QString, ::Error::Simple>
 	if (a.isFailed())
 		return a.error();
 
-	mpl::at_c<Extract<Libvirt::Domain::Xml::VChoice977Impl>::type, 4>::type e;
+	mpl::at_c<Extract<Libvirt::Domain::Xml::VChoice978Impl>::type, 4>::type e;
 	e.setValue(a.value());
 	QDomDocument x;
 	e.produce(x);
@@ -1665,7 +1665,7 @@ PRL_RESULT Builder::setDevices()
 		x = m_result->getDevices().get();
 
 	x.setEmulator(b.getEmulator());
-	x.setChoice977List(Transponster::Device::deviceList_type()
+	x.setChoice978List(Transponster::Device::deviceList_type()
 			<< b.getDeviceList()
 			<< t.getAttachment().getControllers()
 			<< u.getDevices());
@@ -1884,12 +1884,12 @@ PRL_RESULT Mixer::setBlank()
 
 PRL_RESULT Mixer::setDevices()
 {
-	QList<Libvirt::Domain::Xml::VChoice977 > h;
+	QList<Libvirt::Domain::Xml::VChoice978 > h;
 	boost::optional<Libvirt::Domain::Xml::Devices> d = m_result->getDevices();
 	if (d)
 	{
 		Visitor::Mixer::Device v;
-		foreach (const Libvirt::Domain::Xml::VChoice977& e, d.get().getChoice977List())
+		foreach (const Libvirt::Domain::Xml::VChoice978& e, d.get().getChoice978List())
 		{
 			e.apply_visitor(v);
 		}
@@ -1899,8 +1899,8 @@ PRL_RESULT Mixer::setDevices()
 	if (PRL_SUCCEEDED(output))
 	{
 		d = m_result->getDevices();
-		QList<Libvirt::Domain::Xml::VChoice977 > t = d.get().getChoice977List();
-		d.get().setChoice977List(t << h);
+		QList<Libvirt::Domain::Xml::VChoice978 > t = d.get().getChoice978List();
+		d.get().setChoice978List(t << h);
 		m_result->setDevices(d);
 	}
 
@@ -2001,16 +2001,16 @@ PRL_RESULT Fixer::setDevices()
 	foreach(const CVmSerialPort* s, m_input.getVmHardwareList()->m_lstSerialPorts)
 		a.add(s);
 
-	QList<Libvirt::Domain::Xml::VChoice977> l = a.getDeviceList();
+	QList<Libvirt::Domain::Xml::VChoice978> l = a.getDeviceList();
 
 	Visitor::Fixup::Device v(m_input.getVmHardwareList(), l);
-	foreach (const Libvirt::Domain::Xml::VChoice977& e, d->getChoice977List())
+	foreach (const Libvirt::Domain::Xml::VChoice978& e, d->getChoice978List())
 	{
 		boost::apply_visitor(v, e);
 	}
 
 	Libvirt::Domain::Xml::Devices devices = *d;
-	devices.setChoice977List(l);
+	devices.setChoice978List(l);
 	m_result->setDevices(devices);
 	return PRL_ERR_SUCCESS;
 }
@@ -2248,9 +2248,9 @@ Libvirt::Network::Xml::Ip craft(const CDHCPServer& src_,
 	output.setAddress(Libvirt::Network::Xml::VIpAddr(a));
 	typename mpl::at_c<Libvirt::Network::Xml::VIpPrefix::types, T::index>::type p;
 	p.setValue(T::getMask(mask_));
-	mpl::at_c<Libvirt::Network::Xml::VChoice1224::types, 1>::type m;
+	mpl::at_c<Libvirt::Network::Xml::VChoice1225::types, 1>::type m;
 	m.setValue(p);
-	output.setChoice1224(Libvirt::Network::Xml::VChoice1224(m));
+	output.setChoice1225(Libvirt::Network::Xml::VChoice1225(m));
 
 	return output;
 }
@@ -2299,10 +2299,10 @@ PRL_RESULT Reverse::setMaster()
 	Libvirt::Iface::Xml::BasicEthernetContent e;
 	e.setMac(m_master.getMacAddress());
 	e.setName(m_master.getDeviceName());
-	mpl::at_c<Libvirt::Iface::Xml::VChoice1296::types, 0>::type v;
+	mpl::at_c<Libvirt::Iface::Xml::VChoice1297::types, 0>::type v;
 	v.setValue(e);
 	Libvirt::Iface::Xml::Bridge b = m_result.getBridge();
-	b.setChoice1296List(QList<Libvirt::Iface::Xml::VChoice1296>() << v);
+	b.setChoice1297List(QList<Libvirt::Iface::Xml::VChoice1297>() << v);
 	m_result.setBridge(b);
 	return PRL_ERR_SUCCESS;
 }
@@ -2313,7 +2313,7 @@ PRL_RESULT Reverse::setBridge()
 	b.setDelay(2.0);
 	b.setStp(Libvirt::Iface::Xml::EVirOnOffOff);
 	m_result.setBridge(b);
-	Libvirt::Iface::Xml::InterfaceAddressing1326 h;
+	Libvirt::Iface::Xml::InterfaceAddressing1327 h;
 	if (!m_master.isConfigureWithDhcp())
 	{
 		if (!m_master.isConfigureWithDhcpIPv6())
@@ -2323,9 +2323,9 @@ PRL_RESULT Reverse::setBridge()
 		p.setDhcp(Libvirt::Iface::Xml::Dhcp());
 		h.setProtocol2(p);
 	}
-	mpl::at_c<Libvirt::Iface::Xml::VChoice1332::types, 0>::type a;
+	mpl::at_c<Libvirt::Iface::Xml::VChoice1333::types, 0>::type a;
 	a.setValue(Libvirt::Iface::Xml::Dhcp());
-	h.setProtocol(Libvirt::Iface::Xml::VChoice1332(a));
+	h.setProtocol(Libvirt::Iface::Xml::VChoice1333(a));
 	mpl::at_c<Libvirt::Iface::Xml::VInterfaceAddressing::types, 0>::type v;
 	v.setValue(h);
 	m_result.setInterfaceAddressing(v);
@@ -2400,7 +2400,7 @@ QList<Libvirt::Snapshot::Xml::Disk> getAbsentee(const QList<T* >& list_)
 		mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 		a.setValue(Device::Clustered::Model<T>(*d).getTargetName());
 		mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 0>::type b;
-		b.setValue(Libvirt::Snapshot::Xml::Disk1801());
+		b.setValue(Libvirt::Snapshot::Xml::Disk1802());
 		Libvirt::Snapshot::Xml::Disk x;
 		x.setName(Libvirt::Snapshot::Xml::VName(a));
 		x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
@@ -2420,7 +2420,7 @@ boost::optional<Libvirt::Snapshot::Xml::Disk> Internal::operator()(const CVmHard
 	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 	a.setValue(Device::Clustered::Model<CVmHardDisk>(disk_).getTargetName());
 	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 1>::type b;
-	b.setValue(Libvirt::Snapshot::Xml::Disk1802());
+	b.setValue(Libvirt::Snapshot::Xml::Disk1803());
 	x.setName(Libvirt::Snapshot::Xml::VName(a));
 	x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
 	return x;
@@ -2437,15 +2437,15 @@ boost::optional<Libvirt::Snapshot::Xml::Disk> External::operator()(const CVmHard
 	Libvirt::Snapshot::Xml::Disk x;
 	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 	Libvirt::Snapshot::Xml::Source s;
-	Libvirt::Snapshot::Xml::Variant1796 o;
-	mpl::at_c<Libvirt::Snapshot::Xml::VChoice1799::types, 0>::type p;
+	Libvirt::Snapshot::Xml::Variant1797 o;
+	mpl::at_c<Libvirt::Snapshot::Xml::VChoice1800::types, 0>::type p;
 	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 2>::type q;
 
 	a.setValue(Device::Clustered::Model<CVmHardDisk>(disk_).getTargetName());
 	s.setFile(disk_.getSystemName() + "." + m_snapshot);
 	o.setSource(s);
 	p.setValue(o);
-	q.setValue(Libvirt::Snapshot::Xml::VChoice1799(p));
+	q.setValue(Libvirt::Snapshot::Xml::VChoice1800(p));
 
 	x.setName(Libvirt::Snapshot::Xml::VName(a));
 	x.setDisk(Libvirt::Snapshot::Xml::VDisk(q));

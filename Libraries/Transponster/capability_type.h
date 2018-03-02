@@ -242,13 +242,13 @@ private:
 } // namespace Capability
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1853
+// struct Anonymous1854
 
 namespace Capability
 {
 namespace Xml
 {
-struct Anonymous1853
+struct Anonymous1854
 {
 	const Model& getModel() const
 	{
@@ -305,13 +305,13 @@ struct Mode
 	{
 		m_supported = value_;
 	}
-	const boost::optional<Anonymous1853 >& getAnonymous1853() const
+	const boost::optional<Anonymous1854 >& getAnonymous1854() const
 	{
-		return m_anonymous1853;
+		return m_anonymous1854;
 	}
-	void setAnonymous1853(const boost::optional<Anonymous1853 >& value_)
+	void setAnonymous1854(const boost::optional<Anonymous1854 >& value_)
 	{
-		m_anonymous1853 = value_;
+		m_anonymous1854 = value_;
 	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
@@ -319,7 +319,7 @@ struct Mode
 
 private:
 	EVirYesNo m_supported;
-	boost::optional<Anonymous1853 > m_anonymous1853;
+	boost::optional<Anonymous1854 > m_anonymous1854;
 };
 
 } // namespace Xml
@@ -807,7 +807,7 @@ private:
 template<>
 struct Traits<Capability::Xml::Enum>
 {
-	typedef Ordered<mpl::vector<Attribute<QString, Name::Strict<107> >, ZeroOrMore<Element<Text<QString >, Name::Strict<1073> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<QString, Name::Strict<107> >, ZeroOrMore<Element<Text<QString >, Name::Strict<1074> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Enum& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Enum& , QDomElement& );
@@ -819,7 +819,7 @@ struct Traits<Capability::Xml::Enum>
 template<>
 struct Traits<Capability::Xml::Loader>
 {
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1848> >, Optional<ZeroOrMore<Element<Text<QString >, Name::Strict<1073> > > >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1849> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1849> >, Optional<ZeroOrMore<Element<Text<QString >, Name::Strict<1074> > > >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1850> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Loader& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Loader& , QDomElement& );
@@ -831,7 +831,7 @@ struct Traits<Capability::Xml::Loader>
 template<>
 struct Traits<Capability::Xml::Os>
 {
-	typedef Unordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1848> >, Optional<Element<Capability::Xml::Loader, Name::Strict<273> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1849> >, Optional<Element<Capability::Xml::Loader, Name::Strict<273> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Os& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Os& , QDomElement& );
@@ -843,7 +843,7 @@ struct Traits<Capability::Xml::Os>
 template<>
 struct Traits<Capability::Xml::Model>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Capability::Xml::EFallback, Name::Strict<1005> > >, Optional<Attribute<Capability::Xml::PVendorId, Name::Strict<1007> > >, Text<QString > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Capability::Xml::EFallback, Name::Strict<1006> > >, Optional<Attribute<Capability::Xml::PVendorId, Name::Strict<1008> > >, Text<QString > > > marshal_type;
 
 	static int parse(Capability::Xml::Model& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Model& , QDomElement& );
@@ -855,22 +855,22 @@ struct Traits<Capability::Xml::Model>
 template<>
 struct Traits<Capability::Xml::Feature>
 {
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EPolicy, Name::Strict<1010> >, Attribute<Capability::Xml::PFeatureName, Name::Strict<107> > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EPolicy, Name::Strict<1011> >, Attribute<Capability::Xml::PFeatureName, Name::Strict<107> > > > marshal_type;
 
 	static int parse(Capability::Xml::Feature& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Feature& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1853 traits
+// struct Anonymous1854 traits
 
 template<>
-struct Traits<Capability::Xml::Anonymous1853>
+struct Traits<Capability::Xml::Anonymous1854>
 {
-	typedef Ordered<mpl::vector<Element<Capability::Xml::Model, Name::Strict<231> >, Optional<Element<Text<QString >, Name::Strict<459> > >, ZeroOrMore<Element<Capability::Xml::Feature, Name::Strict<1009> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Element<Capability::Xml::Model, Name::Strict<231> >, Optional<Element<Text<QString >, Name::Strict<459> > >, ZeroOrMore<Element<Capability::Xml::Feature, Name::Strict<1010> > > > > marshal_type;
 
-	static int parse(Capability::Xml::Anonymous1853& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Anonymous1853& , QDomElement& );
+	static int parse(Capability::Xml::Anonymous1854& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Anonymous1854& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -879,7 +879,7 @@ struct Traits<Capability::Xml::Anonymous1853>
 template<>
 struct Traits<Capability::Xml::Mode>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<1000>, Name::Strict<107> >, Attribute<Capability::Xml::EVirYesNo, Name::Strict<1848> >, Optional<Fragment<Capability::Xml::Anonymous1853 > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<1001>, Name::Strict<107> >, Attribute<Capability::Xml::EVirYesNo, Name::Strict<1849> >, Optional<Fragment<Capability::Xml::Anonymous1854 > > > > marshal_type;
 
 	static int parse(Capability::Xml::Mode& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Mode& , QDomElement& );
@@ -891,7 +891,7 @@ struct Traits<Capability::Xml::Mode>
 template<>
 struct Traits<Capability::Xml::Model1>
 {
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EUsable, Name::Strict<1853> >, Text<QString > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EUsable, Name::Strict<1854> >, Text<QString > > > marshal_type;
 
 	static int parse(Capability::Xml::Model1& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Model1& , QDomElement& );
@@ -903,7 +903,7 @@ struct Traits<Capability::Xml::Model1>
 template<>
 struct Traits<Capability::Xml::Mode1>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<999>, Name::Strict<107> >, Attribute<Capability::Xml::EVirYesNo, Name::Strict<1848> >, ZeroOrMore<Element<Capability::Xml::Model1, Name::Strict<231> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<1000>, Name::Strict<107> >, Attribute<Capability::Xml::EVirYesNo, Name::Strict<1849> >, ZeroOrMore<Element<Capability::Xml::Model1, Name::Strict<231> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Mode1& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Mode1& , QDomElement& );
@@ -915,7 +915,7 @@ struct Traits<Capability::Xml::Mode1>
 template<>
 struct Traits<Capability::Xml::Cpu>
 {
-	typedef Ordered<mpl::vector<Element<Ordered<mpl::vector<Attribute<mpl::int_<1001>, Name::Strict<107> >, Attribute<Capability::Xml::EVirYesNo, Name::Strict<1848> > > >, Name::Strict<379> >, Element<Capability::Xml::Mode, Name::Strict<379> >, Element<Capability::Xml::Mode1, Name::Strict<379> > > > marshal_type;
+	typedef Ordered<mpl::vector<Element<Ordered<mpl::vector<Attribute<mpl::int_<1002>, Name::Strict<107> >, Attribute<Capability::Xml::EVirYesNo, Name::Strict<1849> > > >, Name::Strict<379> >, Element<Capability::Xml::Mode, Name::Strict<379> >, Element<Capability::Xml::Mode1, Name::Strict<379> > > > marshal_type;
 
 	static int parse(Capability::Xml::Cpu& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Cpu& , QDomElement& );
@@ -927,7 +927,7 @@ struct Traits<Capability::Xml::Cpu>
 template<>
 struct Traits<Capability::Xml::Disk>
 {
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1848> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1849> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1849> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1850> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Disk& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Disk& , QDomElement& );
@@ -939,7 +939,7 @@ struct Traits<Capability::Xml::Disk>
 template<>
 struct Traits<Capability::Xml::Graphics>
 {
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1848> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1849> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1849> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1850> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Graphics& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Graphics& , QDomElement& );
@@ -951,7 +951,7 @@ struct Traits<Capability::Xml::Graphics>
 template<>
 struct Traits<Capability::Xml::Video>
 {
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1848> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1849> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1849> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1850> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Video& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Video& , QDomElement& );
@@ -963,7 +963,7 @@ struct Traits<Capability::Xml::Video>
 template<>
 struct Traits<Capability::Xml::Hostdev>
 {
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1848> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1849> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1849> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1850> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Hostdev& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Hostdev& , QDomElement& );
@@ -987,7 +987,7 @@ struct Traits<Capability::Xml::Devices>
 template<>
 struct Traits<Capability::Xml::Gic>
 {
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1848> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1849> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1849> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1850> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Gic& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Gic& , QDomElement& );
@@ -999,7 +999,7 @@ struct Traits<Capability::Xml::Gic>
 template<>
 struct Traits<Capability::Xml::DomainCapabilities>
 {
-	typedef Unordered<mpl::vector<Element<Text<Capability::Xml::PAbsFilePath >, Name::Strict<355> >, Element<Text<QString >, Name::Strict<1> >, Optional<Element<Text<QString >, Name::Strict<286> > >, Element<Text<QString >, Name::Strict<285> >, Optional<Element<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1847> >, Name::Strict<338> > >, Optional<Element<Capability::Xml::Os, Name::Strict<222> > >, Optional<Element<Capability::Xml::Cpu, Name::Strict<220> > >, Optional<Element<Capability::Xml::Devices, Name::Strict<228> > >, Optional<Element<Element<Capability::Xml::Gic, Name::Strict<991> >, Name::Strict<155> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Element<Text<Capability::Xml::PAbsFilePath >, Name::Strict<355> >, Element<Text<QString >, Name::Strict<1> >, Optional<Element<Text<QString >, Name::Strict<286> > >, Element<Text<QString >, Name::Strict<285> >, Optional<Element<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1848> >, Name::Strict<338> > >, Optional<Element<Capability::Xml::Os, Name::Strict<222> > >, Optional<Element<Capability::Xml::Cpu, Name::Strict<220> > >, Optional<Element<Capability::Xml::Devices, Name::Strict<228> > >, Optional<Element<Element<Capability::Xml::Gic, Name::Strict<992> >, Name::Strict<155> > > > > marshal_type;
 
 	static int parse(Capability::Xml::DomainCapabilities& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::DomainCapabilities& , QDomElement& );

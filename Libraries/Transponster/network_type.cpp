@@ -399,7 +399,7 @@ bool Nat::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Nat, Name::Strict<1206> > m;
+	Element<Nat, Name::Strict<1207> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -409,14 +409,14 @@ bool Nat::load(const QDomElement& src_)
 
 bool Nat::save(QDomElement& dst_) const
 {
-	Element<Nat, Name::Strict<1206> > m;
+	Element<Nat, Name::Strict<1207> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Nat::save(QDomDocument& dst_) const
 {
-	Element<Nat, Name::Strict<1206> > m;
+	Element<Nat, Name::Strict<1207> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -459,7 +459,7 @@ bool Forward::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Forward, Name::Strict<1205> > m;
+	Element<Forward, Name::Strict<1206> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -469,14 +469,14 @@ bool Forward::load(const QDomElement& src_)
 
 bool Forward::save(QDomElement& dst_) const
 {
-	Element<Forward, Name::Strict<1205> > m;
+	Element<Forward, Name::Strict<1206> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Forward::save(QDomDocument& dst_) const
 {
-	Element<Forward, Name::Strict<1205> > m;
+	Element<Forward, Name::Strict<1206> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -494,7 +494,7 @@ int Traits<Network::Xml::Forward>::parse(Network::Xml::Forward& dst_, QStack<QDo
 		dst_.setDev(m.get<0>().getValue());
 		dst_.setMode(m.get<1>().getValue());
 		dst_.setManaged(m.get<2>().getValue());
-		dst_.setChoice1210(m.get<3>().get<0>().getValue());
+		dst_.setChoice1211(m.get<3>().get<0>().getValue());
 		dst_.setPf(m.get<3>().get<1>().getValue());
 		dst_.setDriver(m.get<3>().get<2>().getValue());
 		dst_.setNat(m.get<3>().get<3>().getValue());
@@ -511,7 +511,7 @@ int Traits<Network::Xml::Forward>::generate(const Network::Xml::Forward& src_, Q
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getManaged(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice1210(), m.get<3>().get<0>()))
+	if (0 > Details::Marshal::assign(src_.getChoice1211(), m.get<3>().get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getPf(), m.get<3>().get<1>()))
 		return -1;
@@ -1109,7 +1109,7 @@ bool Txt::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Txt, Name::Strict<1218> > m;
+	Element<Txt, Name::Strict<1219> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1119,14 +1119,14 @@ bool Txt::load(const QDomElement& src_)
 
 bool Txt::save(QDomElement& dst_) const
 {
-	Element<Txt, Name::Strict<1218> > m;
+	Element<Txt, Name::Strict<1219> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Txt::save(QDomDocument& dst_) const
 {
-	Element<Txt, Name::Strict<1218> > m;
+	Element<Txt, Name::Strict<1219> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1159,34 +1159,34 @@ int Traits<Network::Xml::Txt>::generate(const Network::Xml::Txt& src_, QDomEleme
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1238
+// struct Anonymous1239
 
 namespace Network
 {
 namespace Xml
 {
-Anonymous1238::Anonymous1238(): m_port(), m_priority(), m_weight()
+Anonymous1239::Anonymous1239(): m_port(), m_priority(), m_weight()
 {
 }
 
-bool Anonymous1238::load(const QDomElement& src_)
+bool Anonymous1239::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
 	k.push(src_.firstChildElement());
-	return 0 <= Traits<Anonymous1238>::parse(*this, k);
+	return 0 <= Traits<Anonymous1239>::parse(*this, k);
 }
 
-bool Anonymous1238::save(QDomElement& dst_) const
+bool Anonymous1239::save(QDomElement& dst_) const
 {
-	return 0 <= Traits<Anonymous1238>::generate(*this, dst_);
+	return 0 <= Traits<Anonymous1239>::generate(*this, dst_);
 }
 
 
 } // namespace Xml
 } // namespace Network
 
-int Traits<Network::Xml::Anonymous1238>::parse(Network::Xml::Anonymous1238& dst_, QStack<QDomElement>& stack_)
+int Traits<Network::Xml::Anonymous1239>::parse(Network::Xml::Anonymous1239& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -1201,7 +1201,7 @@ int Traits<Network::Xml::Anonymous1238>::parse(Network::Xml::Anonymous1238& dst_
 	return output;
 }
 
-int Traits<Network::Xml::Anonymous1238>::generate(const Network::Xml::Anonymous1238& src_, QDomElement& dst_)
+int Traits<Network::Xml::Anonymous1239>::generate(const Network::Xml::Anonymous1239& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getDomain(), m.get<0>()))
@@ -1229,7 +1229,7 @@ bool Srv::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Srv, Name::Strict<1219> > m;
+	Element<Srv, Name::Strict<1220> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1239,14 +1239,14 @@ bool Srv::load(const QDomElement& src_)
 
 bool Srv::save(QDomElement& dst_) const
 {
-	Element<Srv, Name::Strict<1219> > m;
+	Element<Srv, Name::Strict<1220> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Srv::save(QDomDocument& dst_) const
 {
-	Element<Srv, Name::Strict<1219> > m;
+	Element<Srv, Name::Strict<1220> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1263,7 +1263,7 @@ int Traits<Network::Xml::Srv>::parse(Network::Xml::Srv& dst_, QStack<QDomElement
 	{
 		dst_.setService(m.get<0>().getValue());
 		dst_.setProtocol(m.get<1>().getValue());
-		dst_.setAnonymous1238(m.get<2>().getValue());
+		dst_.setAnonymous1239(m.get<2>().getValue());
 	}
 	return output;
 }
@@ -1275,7 +1275,7 @@ int Traits<Network::Xml::Srv>::generate(const Network::Xml::Srv& src_, QDomEleme
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getProtocol(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAnonymous1238(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getAnonymous1239(), m.get<2>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1352,7 +1352,7 @@ bool Dns::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Dns, Name::Strict<1214> > m;
+	Element<Dns, Name::Strict<1215> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1362,14 +1362,14 @@ bool Dns::load(const QDomElement& src_)
 
 bool Dns::save(QDomElement& dst_) const
 {
-	Element<Dns, Name::Strict<1214> > m;
+	Element<Dns, Name::Strict<1215> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Dns::save(QDomDocument& dst_) const
 {
-	Element<Dns, Name::Strict<1214> > m;
+	Element<Dns, Name::Strict<1215> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1421,7 +1421,7 @@ bool Range::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Range, Name::Strict<1227> > m;
+	Element<Range, Name::Strict<1228> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1431,14 +1431,14 @@ bool Range::load(const QDomElement& src_)
 
 bool Range::save(QDomElement& dst_) const
 {
-	Element<Range, Name::Strict<1227> > m;
+	Element<Range, Name::Strict<1228> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Range::save(QDomDocument& dst_) const
 {
-	Element<Range, Name::Strict<1227> > m;
+	Element<Range, Name::Strict<1228> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1471,24 +1471,24 @@ int Traits<Network::Xml::Range>::generate(const Network::Xml::Range& src_, QDomE
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Host1230
+// struct Host1231
 
-int Traits<Network::Xml::Host1230>::parse(Network::Xml::Host1230& dst_, QStack<QDomElement>& stack_)
+int Traits<Network::Xml::Host1231>::parse(Network::Xml::Host1231& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setChoice1229(m.get<0>().getValue());
+		dst_.setChoice1230(m.get<0>().getValue());
 		dst_.setName(m.get<1>().getValue());
 	}
 	return output;
 }
 
-int Traits<Network::Xml::Host1230>::generate(const Network::Xml::Host1230& src_, QDomElement& dst_)
+int Traits<Network::Xml::Host1231>::generate(const Network::Xml::Host1231& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getChoice1229(), m.get<0>()))
+	if (0 > Details::Marshal::assign(src_.getChoice1230(), m.get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getName(), m.get<1>()))
 		return -1;
@@ -1567,7 +1567,7 @@ bool Bootp::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Bootp, Name::Strict<1233> > m;
+	Element<Bootp, Name::Strict<1234> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1577,14 +1577,14 @@ bool Bootp::load(const QDomElement& src_)
 
 bool Bootp::save(QDomElement& dst_) const
 {
-	Element<Bootp, Name::Strict<1233> > m;
+	Element<Bootp, Name::Strict<1234> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Bootp::save(QDomDocument& dst_) const
 {
-	Element<Bootp, Name::Strict<1233> > m;
+	Element<Bootp, Name::Strict<1234> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1627,7 +1627,7 @@ bool Dhcp::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Dhcp, Name::Strict<1226> > m;
+	Element<Dhcp, Name::Strict<1227> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1637,14 +1637,14 @@ bool Dhcp::load(const QDomElement& src_)
 
 bool Dhcp::save(QDomElement& dst_) const
 {
-	Element<Dhcp, Name::Strict<1226> > m;
+	Element<Dhcp, Name::Strict<1227> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Dhcp::save(QDomDocument& dst_) const
 {
-	Element<Dhcp, Name::Strict<1226> > m;
+	Element<Dhcp, Name::Strict<1227> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1723,7 +1723,7 @@ int Traits<Network::Xml::Ip>::parse(Network::Xml::Ip& dst_, QStack<QDomElement>&
 	if (0 <= output)
 	{
 		dst_.setAddress(m.get<0>().getValue());
-		dst_.setChoice1224(m.get<1>().getValue());
+		dst_.setChoice1225(m.get<1>().getValue());
 		dst_.setFamily(m.get<2>().getValue());
 		dst_.setTftp(m.get<3>().getValue());
 		dst_.setDhcp(m.get<4>().getValue());
@@ -1736,7 +1736,7 @@ int Traits<Network::Xml::Ip>::generate(const Network::Xml::Ip& src_, QDomElement
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice1224(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getChoice1225(), m.get<1>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getFamily(), m.get<2>()))
 		return -1;
@@ -1759,7 +1759,7 @@ bool Route::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Route, Name::Strict<1207> > m;
+	Element<Route, Name::Strict<1208> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1769,14 +1769,14 @@ bool Route::load(const QDomElement& src_)
 
 bool Route::save(QDomElement& dst_) const
 {
-	Element<Route, Name::Strict<1207> > m;
+	Element<Route, Name::Strict<1208> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Route::save(QDomDocument& dst_) const
 {
-	Element<Route, Name::Strict<1207> > m;
+	Element<Route, Name::Strict<1208> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1793,7 +1793,7 @@ int Traits<Network::Xml::Route>::parse(Network::Xml::Route& dst_, QStack<QDomEle
 	{
 		dst_.setFamily(m.get<0>().getValue());
 		dst_.setAddress(m.get<1>().getValue());
-		dst_.setChoice1235(m.get<2>().getValue());
+		dst_.setChoice1236(m.get<2>().getValue());
 		dst_.setGateway(m.get<3>().getValue());
 		dst_.setMetric(m.get<4>().getValue());
 	}
@@ -1807,7 +1807,7 @@ int Traits<Network::Xml::Route>::generate(const Network::Xml::Route& src_, QDomE
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice1235(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getChoice1236(), m.get<2>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getGateway(), m.get<3>()))
 		return -1;
