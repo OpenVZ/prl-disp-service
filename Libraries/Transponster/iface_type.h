@@ -135,13 +135,13 @@ private:
 } // namespace Iface
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant1331
+// struct Variant1332
 
 namespace Iface
 {
 namespace Xml
 {
-struct Variant1331
+struct Variant1332
 {
 	const Ip& getIp() const
 	{
@@ -169,14 +169,14 @@ private:
 } // namespace Iface
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VChoice1332
+// struct VChoice1333
 
 namespace Iface
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Element<Iface::Xml::Dhcp, Name::Strict<1226> >, Variant1331 > > VChoice1332Impl;
-typedef VChoice1332Impl::value_type VChoice1332;
+typedef Choice<mpl::vector<Element<Iface::Xml::Dhcp, Name::Strict<1227> >, Variant1332 > > VChoice1333Impl;
+typedef VChoice1333Impl::value_type VChoice1333;
 
 } // namespace Xml
 } // namespace Iface
@@ -276,19 +276,19 @@ private:
 } // namespace Iface
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct InterfaceAddressing1326
+// struct InterfaceAddressing1327
 
 namespace Iface
 {
 namespace Xml
 {
-struct InterfaceAddressing1326
+struct InterfaceAddressing1327
 {
-	const boost::optional<VChoice1332 >& getProtocol() const
+	const boost::optional<VChoice1333 >& getProtocol() const
 	{
 		return m_protocol;
 	}
-	void setProtocol(const boost::optional<VChoice1332 >& value_)
+	void setProtocol(const boost::optional<VChoice1333 >& value_)
 	{
 		m_protocol = value_;
 	}
@@ -302,7 +302,7 @@ struct InterfaceAddressing1326
 	}
 
 private:
-	boost::optional<VChoice1332 > m_protocol;
+	boost::optional<VChoice1333 > m_protocol;
 	boost::optional<Protocol > m_protocol2;
 };
 
@@ -310,13 +310,13 @@ private:
 } // namespace Iface
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct InterfaceAddressing1327
+// struct InterfaceAddressing1328
 
 namespace Iface
 {
 namespace Xml
 {
-struct InterfaceAddressing1327
+struct InterfaceAddressing1328
 {
 	const boost::optional<Protocol >& getProtocol() const
 	{
@@ -326,18 +326,18 @@ struct InterfaceAddressing1327
 	{
 		m_protocol = value_;
 	}
-	const boost::optional<VChoice1332 >& getProtocol2() const
+	const boost::optional<VChoice1333 >& getProtocol2() const
 	{
 		return m_protocol2;
 	}
-	void setProtocol2(const boost::optional<VChoice1332 >& value_)
+	void setProtocol2(const boost::optional<VChoice1333 >& value_)
 	{
 		m_protocol2 = value_;
 	}
 
 private:
 	boost::optional<Protocol > m_protocol;
-	boost::optional<VChoice1332 > m_protocol2;
+	boost::optional<VChoice1333 > m_protocol2;
 };
 
 } // namespace Xml
@@ -350,7 +350,7 @@ namespace Iface
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<InterfaceAddressing1326, InterfaceAddressing1327 > > VInterfaceAddressingImpl;
+typedef Choice<mpl::vector<InterfaceAddressing1327, InterfaceAddressing1328 > > VInterfaceAddressingImpl;
 typedef VInterfaceAddressingImpl::value_type VInterfaceAddressing;
 
 } // namespace Xml
@@ -731,14 +731,14 @@ private:
 } // namespace Iface
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VChoice1321
+// struct VChoice1322
 
 namespace Iface
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Element<Iface::Xml::Miimon, Name::Strict<1308> >, Element<Iface::Xml::Arpmon, Name::Strict<1316> > > > VChoice1321Impl;
-typedef VChoice1321Impl::value_type VChoice1321;
+typedef Choice<mpl::vector<Element<Iface::Xml::Miimon, Name::Strict<1309> >, Element<Iface::Xml::Arpmon, Name::Strict<1317> > > > VChoice1322Impl;
+typedef VChoice1322Impl::value_type VChoice1322;
 
 } // namespace Xml
 } // namespace Iface
@@ -760,13 +760,13 @@ struct Bond
 	{
 		m_mode = value_;
 	}
-	const boost::optional<VChoice1321 >& getChoice1321() const
+	const boost::optional<VChoice1322 >& getChoice1322() const
 	{
-		return m_choice1321;
+		return m_choice1322;
 	}
-	void setChoice1321(const boost::optional<VChoice1321 >& value_)
+	void setChoice1322(const boost::optional<VChoice1322 >& value_)
 	{
-		m_choice1321 = value_;
+		m_choice1322 = value_;
 	}
 	const QList<BasicEthernetContent >& getInterfaceList() const
 	{
@@ -782,7 +782,7 @@ struct Bond
 
 private:
 	boost::optional<EMode1 > m_mode;
-	boost::optional<VChoice1321 > m_choice1321;
+	boost::optional<VChoice1322 > m_choice1322;
 	QList<BasicEthernetContent > m_interfaceList;
 };
 
@@ -827,14 +827,14 @@ private:
 } // namespace Iface
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VChoice1296
+// struct VChoice1297
 
 namespace Iface
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Element<Iface::Xml::BasicEthernetContent, Name::Strict<656> >, Element<Iface::Xml::Interface1, Name::Strict<656> >, Element<Iface::Xml::Interface2, Name::Strict<656> > > > VChoice1296Impl;
-typedef VChoice1296Impl::value_type VChoice1296;
+typedef Choice<mpl::vector<Element<Iface::Xml::BasicEthernetContent, Name::Strict<656> >, Element<Iface::Xml::Interface1, Name::Strict<656> >, Element<Iface::Xml::Interface2, Name::Strict<656> > > > VChoice1297Impl;
+typedef VChoice1297Impl::value_type VChoice1297;
 
 } // namespace Xml
 } // namespace Iface
@@ -864,13 +864,13 @@ struct Bridge
 	{
 		m_delay = value_;
 	}
-	const QList<VChoice1296 >& getChoice1296List() const
+	const QList<VChoice1297 >& getChoice1297List() const
 	{
-		return m_choice1296List;
+		return m_choice1297List;
 	}
-	void setChoice1296List(const QList<VChoice1296 >& value_)
+	void setChoice1297List(const QList<VChoice1297 >& value_)
 	{
-		m_choice1296List = value_;
+		m_choice1297List = value_;
 	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
@@ -879,7 +879,7 @@ struct Bridge
 private:
 	boost::optional<EVirOnOff > m_stp;
 	boost::optional<PTimeval::value_type > m_delay;
-	QList<VChoice1296 > m_choice1296List;
+	QList<VChoice1297 > m_choice1297List;
 };
 
 } // namespace Xml
@@ -1035,7 +1035,7 @@ struct Traits<Iface::Xml::Link>
 template<>
 struct Traits<Iface::Xml::Dhcp>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Iface::Xml::EVirYesNo, Name::Strict<1335> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Iface::Xml::EVirYesNo, Name::Strict<1336> > > > > marshal_type;
 
 	static int parse(Iface::Xml::Dhcp& , QStack<QDomElement>& );
 	static int generate(const Iface::Xml::Dhcp& , QDomElement& );
@@ -1054,15 +1054,15 @@ struct Traits<Iface::Xml::Ip>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant1331 traits
+// struct Variant1332 traits
 
 template<>
-struct Traits<Iface::Xml::Variant1331>
+struct Traits<Iface::Xml::Variant1332>
 {
-	typedef Ordered<mpl::vector<Element<Iface::Xml::Ip, Name::Strict<688> >, Optional<Element<Attribute<Iface::Xml::PIpv4Addr, Name::Strict<1237> >, Name::Strict<1207> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Element<Iface::Xml::Ip, Name::Strict<688> >, Optional<Element<Attribute<Iface::Xml::PIpv4Addr, Name::Strict<1238> >, Name::Strict<1208> > > > > marshal_type;
 
-	static int parse(Iface::Xml::Variant1331& , QStack<QDomElement>& );
-	static int generate(const Iface::Xml::Variant1331& , QDomElement& );
+	static int parse(Iface::Xml::Variant1332& , QStack<QDomElement>& );
+	static int generate(const Iface::Xml::Variant1332& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1083,22 +1083,10 @@ struct Traits<Iface::Xml::Ip1>
 template<>
 struct Traits<Iface::Xml::Protocol>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<1203>, Name::Strict<689> >, Unordered<mpl::vector<Optional<Element<Empty, Name::Strict<1334> > >, Optional<Element<Iface::Xml::Dhcp, Name::Strict<1226> > >, ZeroOrMore<Element<Iface::Xml::Ip1, Name::Strict<688> > >, Optional<Element<Attribute<Iface::Xml::PIpv6Addr, Name::Strict<1237> >, Name::Strict<1207> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<1204>, Name::Strict<689> >, Unordered<mpl::vector<Optional<Element<Empty, Name::Strict<1335> > >, Optional<Element<Iface::Xml::Dhcp, Name::Strict<1227> > >, ZeroOrMore<Element<Iface::Xml::Ip1, Name::Strict<688> > >, Optional<Element<Attribute<Iface::Xml::PIpv6Addr, Name::Strict<1238> >, Name::Strict<1208> > > > > > > marshal_type;
 
 	static int parse(Iface::Xml::Protocol& , QStack<QDomElement>& );
 	static int generate(const Iface::Xml::Protocol& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct InterfaceAddressing1326 traits
-
-template<>
-struct Traits<Iface::Xml::InterfaceAddressing1326>
-{
-	typedef Ordered<mpl::vector<Optional<Element<Ordered<mpl::vector<Attribute<mpl::int_<1329>, Name::Strict<689> >, Iface::Xml::VChoice1332Impl > >, Name::Strict<203> > >, Optional<Element<Iface::Xml::Protocol, Name::Strict<203> > > > > marshal_type;
-
-	static int parse(Iface::Xml::InterfaceAddressing1326& , QStack<QDomElement>& );
-	static int generate(const Iface::Xml::InterfaceAddressing1326& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1107,10 +1095,22 @@ struct Traits<Iface::Xml::InterfaceAddressing1326>
 template<>
 struct Traits<Iface::Xml::InterfaceAddressing1327>
 {
-	typedef Ordered<mpl::vector<Optional<Element<Iface::Xml::Protocol, Name::Strict<203> > >, Optional<Element<Ordered<mpl::vector<Attribute<mpl::int_<1329>, Name::Strict<689> >, Iface::Xml::VChoice1332Impl > >, Name::Strict<203> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Element<Ordered<mpl::vector<Attribute<mpl::int_<1330>, Name::Strict<689> >, Iface::Xml::VChoice1333Impl > >, Name::Strict<203> > >, Optional<Element<Iface::Xml::Protocol, Name::Strict<203> > > > > marshal_type;
 
 	static int parse(Iface::Xml::InterfaceAddressing1327& , QStack<QDomElement>& );
 	static int generate(const Iface::Xml::InterfaceAddressing1327& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct InterfaceAddressing1328 traits
+
+template<>
+struct Traits<Iface::Xml::InterfaceAddressing1328>
+{
+	typedef Ordered<mpl::vector<Optional<Element<Iface::Xml::Protocol, Name::Strict<203> > >, Optional<Element<Ordered<mpl::vector<Attribute<mpl::int_<1330>, Name::Strict<689> >, Iface::Xml::VChoice1333Impl > >, Name::Strict<203> > > > > marshal_type;
+
+	static int parse(Iface::Xml::InterfaceAddressing1328& , QStack<QDomElement>& );
+	static int generate(const Iface::Xml::InterfaceAddressing1328& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1119,7 +1119,7 @@ struct Traits<Iface::Xml::InterfaceAddressing1327>
 template<>
 struct Traits<Iface::Xml::Interface>
 {
-	typedef Unordered<mpl::vector<Element<Attribute<Iface::Xml::EMode, Name::Strict<379> >, Name::Strict<322> >, Attribute<mpl::int_<659>, Name::Strict<105> >, Attribute<Iface::Xml::PDeviceName, Name::Strict<107> >, Optional<Element<Attribute<Iface::Xml::PMacAddr, Name::Strict<111> >, Name::Strict<672> > >, Optional<Element<Iface::Xml::Link, Name::Strict<124> > >, Optional<Element<Attribute<Iface::Xml::PUnsignedInt, Name::Strict<334> >, Name::Strict<1286> > >, Iface::Xml::VInterfaceAddressingImpl > > marshal_type;
+	typedef Unordered<mpl::vector<Element<Attribute<Iface::Xml::EMode, Name::Strict<379> >, Name::Strict<322> >, Attribute<mpl::int_<659>, Name::Strict<105> >, Attribute<Iface::Xml::PDeviceName, Name::Strict<107> >, Optional<Element<Attribute<Iface::Xml::PMacAddr, Name::Strict<111> >, Name::Strict<672> > >, Optional<Element<Iface::Xml::Link, Name::Strict<124> > >, Optional<Element<Attribute<Iface::Xml::PUnsignedInt, Name::Strict<334> >, Name::Strict<1287> > >, Iface::Xml::VInterfaceAddressingImpl > > marshal_type;
 
 	static int parse(Iface::Xml::Interface& , QStack<QDomElement>& );
 	static int generate(const Iface::Xml::Interface& , QDomElement& );
@@ -1179,7 +1179,7 @@ struct Traits<Iface::Xml::Interface1>
 template<>
 struct Traits<Iface::Xml::BondInterfaceCommon>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<1299>, Name::Strict<105> >, Attribute<Iface::Xml::PDeviceName, Name::Strict<107> >, Optional<Element<Iface::Xml::Link, Name::Strict<124> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<1300>, Name::Strict<105> >, Attribute<Iface::Xml::PDeviceName, Name::Strict<107> >, Optional<Element<Iface::Xml::Link, Name::Strict<124> > > > > marshal_type;
 
 	static int parse(Iface::Xml::BondInterfaceCommon& , QStack<QDomElement>& );
 	static int generate(const Iface::Xml::BondInterfaceCommon& , QDomElement& );
@@ -1191,7 +1191,7 @@ struct Traits<Iface::Xml::BondInterfaceCommon>
 template<>
 struct Traits<Iface::Xml::Miimon>
 {
-	typedef Ordered<mpl::vector<Attribute<Iface::Xml::PUnsignedInt, Name::Strict<1309> >, Optional<Attribute<Iface::Xml::PUnsignedInt, Name::Strict<1310> > >, Optional<Attribute<Iface::Xml::PUnsignedInt, Name::Strict<1311> > >, Optional<Attribute<Iface::Xml::ECarrier, Name::Strict<1312> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Iface::Xml::PUnsignedInt, Name::Strict<1310> >, Optional<Attribute<Iface::Xml::PUnsignedInt, Name::Strict<1311> > >, Optional<Attribute<Iface::Xml::PUnsignedInt, Name::Strict<1312> > >, Optional<Attribute<Iface::Xml::ECarrier, Name::Strict<1313> > > > > marshal_type;
 
 	static int parse(Iface::Xml::Miimon& , QStack<QDomElement>& );
 	static int generate(const Iface::Xml::Miimon& , QDomElement& );
@@ -1203,7 +1203,7 @@ struct Traits<Iface::Xml::Miimon>
 template<>
 struct Traits<Iface::Xml::Arpmon>
 {
-	typedef Ordered<mpl::vector<Attribute<Iface::Xml::PUnsignedInt, Name::Strict<1317> >, Attribute<Iface::Xml::PIpv4Addr, Name::Strict<323> >, Optional<Attribute<Iface::Xml::EValidate, Name::Strict<1318> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Iface::Xml::PUnsignedInt, Name::Strict<1318> >, Attribute<Iface::Xml::PIpv4Addr, Name::Strict<323> >, Optional<Attribute<Iface::Xml::EValidate, Name::Strict<1319> > > > > marshal_type;
 
 	static int parse(Iface::Xml::Arpmon& , QStack<QDomElement>& );
 	static int generate(const Iface::Xml::Arpmon& , QDomElement& );
@@ -1215,7 +1215,7 @@ struct Traits<Iface::Xml::Arpmon>
 template<>
 struct Traits<Iface::Xml::Bond>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Iface::Xml::EMode1, Name::Strict<379> > >, Unordered<mpl::vector<Optional<Iface::Xml::VChoice1321Impl >, OneOrMore<Element<Iface::Xml::BasicEthernetContent, Name::Strict<656> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Iface::Xml::EMode1, Name::Strict<379> > >, Unordered<mpl::vector<Optional<Iface::Xml::VChoice1322Impl >, OneOrMore<Element<Iface::Xml::BasicEthernetContent, Name::Strict<656> > > > > > > marshal_type;
 
 	static int parse(Iface::Xml::Bond& , QStack<QDomElement>& );
 	static int generate(const Iface::Xml::Bond& , QDomElement& );
@@ -1227,7 +1227,7 @@ struct Traits<Iface::Xml::Bond>
 template<>
 struct Traits<Iface::Xml::Interface2>
 {
-	typedef Unordered<mpl::vector<Fragment<Iface::Xml::BondInterfaceCommon >, Element<Iface::Xml::Bond, Name::Strict<1299> > > > marshal_type;
+	typedef Unordered<mpl::vector<Fragment<Iface::Xml::BondInterfaceCommon >, Element<Iface::Xml::Bond, Name::Strict<1300> > > > marshal_type;
 
 	static int parse(Iface::Xml::Interface2& , QStack<QDomElement>& );
 	static int generate(const Iface::Xml::Interface2& , QDomElement& );
@@ -1239,7 +1239,7 @@ struct Traits<Iface::Xml::Interface2>
 template<>
 struct Traits<Iface::Xml::Bridge>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Iface::Xml::EVirOnOff, Name::Strict<1204> > >, Optional<Attribute<Iface::Xml::PTimeval, Name::Strict<426> > >, ZeroOrMore<Iface::Xml::VChoice1296Impl > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Iface::Xml::EVirOnOff, Name::Strict<1205> > >, Optional<Attribute<Iface::Xml::PTimeval, Name::Strict<426> > >, ZeroOrMore<Iface::Xml::VChoice1297Impl > > > marshal_type;
 
 	static int parse(Iface::Xml::Bridge& , QStack<QDomElement>& );
 	static int generate(const Iface::Xml::Bridge& , QDomElement& );
@@ -1251,7 +1251,7 @@ struct Traits<Iface::Xml::Bridge>
 template<>
 struct Traits<Iface::Xml::Interface3>
 {
-	typedef Unordered<mpl::vector<Attribute<mpl::int_<655>, Name::Strict<105> >, Attribute<Iface::Xml::PDeviceName, Name::Strict<107> >, Element<Attribute<Iface::Xml::EMode, Name::Strict<379> >, Name::Strict<322> >, Optional<Element<Attribute<Iface::Xml::PUnsignedInt, Name::Strict<334> >, Name::Strict<1286> > >, Iface::Xml::VInterfaceAddressingImpl, Element<Iface::Xml::Bridge, Name::Strict<655> > > > marshal_type;
+	typedef Unordered<mpl::vector<Attribute<mpl::int_<655>, Name::Strict<105> >, Attribute<Iface::Xml::PDeviceName, Name::Strict<107> >, Element<Attribute<Iface::Xml::EMode, Name::Strict<379> >, Name::Strict<322> >, Optional<Element<Attribute<Iface::Xml::PUnsignedInt, Name::Strict<334> >, Name::Strict<1287> > >, Iface::Xml::VInterfaceAddressingImpl, Element<Iface::Xml::Bridge, Name::Strict<655> > > > marshal_type;
 
 	static int parse(Iface::Xml::Interface3& , QStack<QDomElement>& );
 	static int generate(const Iface::Xml::Interface3& , QDomElement& );
@@ -1263,7 +1263,7 @@ struct Traits<Iface::Xml::Interface3>
 template<>
 struct Traits<Iface::Xml::Interface4>
 {
-	typedef Unordered<mpl::vector<Fragment<Iface::Xml::VlanInterfaceCommon >, Element<Attribute<Iface::Xml::EMode, Name::Strict<379> >, Name::Strict<322> >, Optional<Element<Attribute<Iface::Xml::PUnsignedInt, Name::Strict<334> >, Name::Strict<1286> > >, Iface::Xml::VInterfaceAddressingImpl, Element<Iface::Xml::Vlan, Name::Strict<205> > > > marshal_type;
+	typedef Unordered<mpl::vector<Fragment<Iface::Xml::VlanInterfaceCommon >, Element<Attribute<Iface::Xml::EMode, Name::Strict<379> >, Name::Strict<322> >, Optional<Element<Attribute<Iface::Xml::PUnsignedInt, Name::Strict<334> >, Name::Strict<1287> > >, Iface::Xml::VInterfaceAddressingImpl, Element<Iface::Xml::Vlan, Name::Strict<205> > > > marshal_type;
 
 	static int parse(Iface::Xml::Interface4& , QStack<QDomElement>& );
 	static int generate(const Iface::Xml::Interface4& , QDomElement& );
