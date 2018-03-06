@@ -16,7 +16,7 @@ ExecStart=/usr/sbin/prl_disp_service --pidfile /var/run/prl_disp_service.pid
 ExecStop=-/usr/libexec/prl_disp_reboot
 KillMode=mixed
 Restart=on-failure
-RestartSec=5s
+#RestartSec=5s
 LimitNOFILE=102400
 OOMScoreAdjust=-500
 
