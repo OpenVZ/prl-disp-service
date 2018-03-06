@@ -550,6 +550,7 @@ QStringList Device::calculate(const general_type& general_, const Config::Dao& d
 	{
 		device_type* o = devices_.find(a->getSystemName(), a->getIndex());
 		if (isEqual(o, a) && m_general->isAutoApplyIpOnly() == general_.isAutoApplyIpOnly() &&
+				m_general->getDnsIPAddresses() == general_.getDnsIPAddresses() &&
 				!(a->getEmulatedType() == PNA_ROUTED && g))
 			continue;
 
@@ -563,12 +564,17 @@ QStringList Device::calculate(const general_type& general_, const Config::Dao& d
 		else
 			output << Address(*a)(Bridge(m));
 
+		// merge per adaper and global dns lists
+		// "remove" should be completed only if comes from both
+		QStringList d = a->getDnsIPAddresses() +  m_general->getDnsIPAddresses();
+		d.removeDuplicates();
+		if (d.contains("remove") && d.size() > 1)
+			d.removeAll("remove");
 		// ipOnly autoApply skips all except ip/route/gw args
 		// currently this is just dns ips args
-		if (!m_general->isAutoApplyIpOnly() && !a->getDnsIPAddresses().isEmpty())
+		if (!m_general->isAutoApplyIpOnly() && !d.isEmpty())
 		{
-			output << "--dns" << m
-				<< QStringList(a->getDnsIPAddresses()).join(" ");
+			output << "--dns" << m << d.join(" ");
 		}
 	}
 	return output;
