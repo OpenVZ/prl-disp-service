@@ -246,6 +246,16 @@ PRL_RESULT Folder::remove(const QString& uid_)
 	if (e == m)
 		return PRL_ERR_FILE_NOT_FOUND;
 
+	PRL_VM_TYPE type = PVT_VM;
+	getDirectoryManager().getVmTypeByUuid(uid_, type);
+	if (type == PVT_CT)
+	{
+		WRITE_TRACE(DBG_FATAL, "Unregister CT %s", qPrintable(uid_));
+		return getDirectoryHelper().deleteVmDirectoryItem(
+				CDspVmDirHelper::getVmDirUuidByVmUuid(uid_, m_user),
+				uid_);
+	}
+
 	Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> c = m->getConfig();
 	if (c.isFailed())
 		return c.error();
