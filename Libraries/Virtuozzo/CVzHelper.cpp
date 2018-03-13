@@ -63,7 +63,6 @@
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 
 
-#include <vzctl/libvzctl.h>
 #include <vzctl/vzctl_param.h>
 
 #include <boost/bind.hpp>
@@ -1198,7 +1197,8 @@ QString CVzHelper::getVzPrivateDir()
 	QString sVzPrivate;
 	SmartPtr<CVmConfiguration> pConfig;
 
-	pConfig = get_env_config_from_file(VZ_GLOBAL_CFG, ret);
+	pConfig = get_env_config_from_file(VZ_GLOBAL_CFG, ret,
+		Ct::Config::LoadOps());
 	if (pConfig) {
 		sVzPrivate = pConfig->getVmIdentification()->getHomePath();
 		// remove $VEID
@@ -1272,7 +1272,7 @@ SmartPtr<CVmConfiguration> CVzHelper::get_env_config(const QString &uuid)
 
 SmartPtr<CVmConfiguration> CVzHelper::get_env_config_from_file(
 		const QString &sFile, int &err,
-		int layout, bool use_relative_path)
+		const Ct::Config::LoadOps &ops)
 {
 	int ret;
 	SmartPtr<CVmConfiguration> pConfig;
@@ -1284,9 +1284,8 @@ SmartPtr<CVmConfiguration> CVzHelper::get_env_config_from_file(
 		return pConfig;
 	}
 
-	int flags = VZCTL_CONF_SKIP_GLOBAL |
-			use_relative_path ? VZCTL_CONF_USE_RELATIVE_PATH : 0;
-	VzctlHandleWrap h(vzctl2_env_open_conf(NULL, QSTR2UTF8(sFile), flags, &ret));
+	VzctlHandleWrap h(vzctl2_env_open_conf(NULL, QSTR2UTF8(sFile),
+				ops.getFlags(), &ret));
 	if (h == NULL) {
 		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open_conf %s [%d]",
 			vzctl2_get_last_error(), ret);
@@ -1294,8 +1293,9 @@ SmartPtr<CVmConfiguration> CVzHelper::get_env_config_from_file(
 		return pConfig;
 	}
 
-	if (layout) {
-		if (vzctl2_env_set_layout(vzctl2_get_env_param(h), layout, flags)) {
+	if (ops.getLayout()) {
+		if (vzctl2_env_set_layout(vzctl2_get_env_param(h),
+				ops.getLayout(), ops.getFlags())) {
 			WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_set_layout: %s",
 					vzctl2_get_last_error());
 			err = PRL_ERR_PARSE_VM_CONFIG;
@@ -1322,7 +1322,7 @@ static QString get_configsample_file_name(const QString &name)
 SmartPtr<CVmConfiguration> CVzHelper::get_env_config_sample(const QString &name, int &err)
 {
 	return get_env_config_from_file(
-			get_configsample_file_name(name.isEmpty() ? QString("vswap.512MB") : name), err);
+			get_configsample_file_name(name.isEmpty() ? QString("vswap.512MB") : name), err, Ct::Config::LoadOps());
 }
 
 static CVmGenericNetworkAdapter *get_venet_device(SmartPtr<CVmConfiguration> &pConfig)

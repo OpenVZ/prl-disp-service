@@ -203,7 +203,7 @@ PRL_RESULT Task_MigrateCtTarget::prepareTask()
 #ifdef _LIN_
 		int z = 0;
 		QFileInfo x(QDir(m_sCtNewPrivate), VZ_CT_CONFIG_FILE);
-		SmartPtr<CVmConfiguration> y = CVzHelper::get_env_config_from_file(x.absoluteFilePath(), z);
+		SmartPtr<CVmConfiguration> y = CVzHelper::get_env_config_from_file(x.absoluteFilePath(), z, ::Ct::Config::LoadOps());
 		if (y.isValid()) {
 			bCtExists = m_sSrcCtUuid != y->getVmIdentification()->getVmUuid();
 		}

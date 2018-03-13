@@ -1815,7 +1815,10 @@ Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT>
 	if (m.isFailed())
 		return m.error();
 
-	int l = 0;
+	Ct::Config::LoadOps l;
+
+	l.setRelative();
+
 	PRL_RESULT e = PRL_ERR_SUCCESS;
 	SmartPtr<CVmConfiguration> output;
 	switch (m.value().getVmType())
@@ -1833,12 +1836,12 @@ Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT>
 #ifdef _CT_
 	case PVBT_CT_PLOOP:
 		// NB. there is no break here intentionally.
-		l = VZCTL_LAYOUT_5;
+		l.setLayout(VZCTL_LAYOUT_5);
 	case PVBT_CT_VZFS:
 	{
 		int x = 0;
 		QString file(m_fs.getItem(sequence_, number_).filePath(VZ_CT_CONFIG_FILE));
-		output = CVzHelper::get_env_config_from_file(file, x, l, true);
+		output = CVzHelper::get_env_config_from_file(file, x, l);
 		if (!output.isValid())
 		{
 			WRITE_TRACE(DBG_FATAL, "Failed to load config file '%s'", QSTR2UTF8(file));

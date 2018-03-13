@@ -50,6 +50,8 @@
 
 #include <boost/logic/tribool.hpp>
 
+#include <vzctl/libvzctl.h>
+
 typedef boost::logic::tribool tribool_type;
 
 #ifndef NETLINK_VZEVENT
@@ -207,6 +209,49 @@ struct Aggregate
 };
 
 } // namespace Statistics
+
+namespace Config
+{
+
+struct LoadOps
+{
+	LoadOps() : m_layout(0), m_flags(0)
+	{}
+
+	LoadOps& setRelative()
+	{
+		m_flags |= VZCTL_CONF_USE_RELATIVE_PATH;
+		return *this;
+	}
+
+	LoadOps& setUnregistered()
+	{
+		m_flags |= VZCTL_CONF_UNREGISTERED;
+		return *this;
+	}
+
+	LoadOps& setLayout(int layout)
+	{
+		m_layout = layout;
+		return *this;
+	}
+
+	int getLayout() const
+	{
+		return m_layout;
+	}
+
+	int getFlags() const
+	{
+		return m_flags;
+	}
+
+private:
+	int m_layout;
+	int m_flags;
+};
+
+} // namespace Config
 } // namespace Ct
 
 struct CHwNetAdapter;
@@ -243,8 +288,7 @@ public:
 	static SmartPtr<CVmConfiguration> get_env_config_by_ctid(const QString &ctid);
 	static SmartPtr<CVmConfiguration> get_env_config(const QString &uuid);
 	static SmartPtr<CVmConfiguration> get_env_config_from_file(const QString &sFile,
-			int &err, int layout = 0,
-			bool use_relative_path = false);
+			int &err, const Ct::Config::LoadOps &param);
 	static SmartPtr<CVmConfiguration> get_env_config_sample(const QString &name, int &err);
 	/**
 	 * Get paramater by name 'PARAM=VALUE'from global configuration file
