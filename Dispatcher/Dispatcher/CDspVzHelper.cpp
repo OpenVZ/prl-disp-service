@@ -298,7 +298,8 @@ SmartPtr<CVmConfiguration> CDspVzHelper::getConfig(
 	{
 		SmartPtr<CVmConfiguration> x;
 		return getVzlibHelper().get_env_config_from_file(
-				QString(sHome + "/ve.conf"), e);
+				QString(sHome + "/ve.conf"), e,
+				Ct::Config::LoadOps().setUnregistered());
 	}
 
 	return getVzlibHelper().get_env_config(sUuid);
