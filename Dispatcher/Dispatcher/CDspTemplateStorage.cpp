@@ -30,9 +30,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <mntent.h>
+#include <sys/file.h>
 #include "CDspService.h"
 #include "CDspVzHelper.h"
-#include "CDspInstrument.h"
 #include "CDspTemplateStorage.h"
 #include <prlcommon/HostUtils/PCSUtils.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
@@ -122,9 +122,53 @@ PRL_RESULT Unit::enter()
 	if (m_file.isOpen())
 		return PRL_ERR_DOUBLE_INIT;
 	if (m_file.open(m_mode))
-		return PRL_ERR_SUCCESS;
+	{
+		int m = m_mode & QIODevice::WriteOnly ? LOCK_EX : LOCK_SH;
+		if (0 == TEMP_FAILURE_RETRY(::flock(m_file.handle(), m | LOCK_NB)))
+			return PRL_ERR_SUCCESS;
+
+		m_file.close();
+	}
 
 	return PRL_ERR_OPEN_FAILED;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Sentinel
+
+Sentinel::result_type Sentinel::getForRead()
+{
+	result_type output = m_read;
+	if (!output.isNull())
+		return output;
+
+	QScopedPointer<Unit> x(new Unit(m_path, QFile::ReadOnly));
+	PRL_RESULT e = x->enter();
+	if (PRL_SUCCEEDED(e))
+	{
+		output = result_type(x.take());
+		m_read = output.toWeakRef();
+	}
+	return output;
+}
+
+Sentinel::result_type Sentinel::getForWrite()
+{
+	if (!m_read.isNull())
+		return result_type();
+
+	result_type output = m_write;
+	if (!output.isNull())
+		return output;
+
+	QScopedPointer<Unit> x(new Unit(m_path, QFile::WriteOnly));
+	PRL_RESULT e = x->enter();
+	if (PRL_SUCCEEDED(e))
+	{
+		output = result_type(x.take());
+		m_write = output.toWeakRef();
+	}
+	return output;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -134,57 +178,6 @@ Catalog::Catalog(const QDir& root_):
 	m_fast(root_.filePath(".fast")),
 	m_slow(root_.filePath(".slow"))
 {
-}
-
-QSharedPointer<const Unit> Catalog::getRFast()
-{
-	QSharedPointer<const Unit> output = m_rFast;
-	if (!output.isNull())
-		return output;
-
-	QScopedPointer<Unit> x(new Unit(m_fast, QFile::ReadOnly));
-	PRL_RESULT e = x->enter();
-	if (PRL_SUCCEEDED(e))
-	{
-		output = QSharedPointer<const Unit>(x.take());
-		m_rFast = output.toWeakRef();
-	}
-	return output;
-}
-
-QSharedPointer<const Unit> Catalog::getWFast()
-{
-	if (!m_rFast.isNull())
-		return QSharedPointer<const Unit>();
-
-	QSharedPointer<const Unit> output = m_wFast;
-	if (!output.isNull())
-		return output;
-
-	QScopedPointer<Unit> x(new Unit(m_fast, QFile::WriteOnly));
-	PRL_RESULT e = x->enter();
-	if (PRL_SUCCEEDED(e))
-	{
-		output = QSharedPointer<const Unit>(x.take());
-		m_wFast = output.toWeakRef();
-	}
-	return output;
-}
-
-QSharedPointer<const Unit> Catalog::getWSlow()
-{
-	QSharedPointer<const Unit> output = m_wSlow;
-	if (!output.isNull())
-		return output;
-
-	QScopedPointer<Unit> x(new Unit(m_slow, QFile::WriteOnly));
-	PRL_RESULT e = x->enter();
-	if (PRL_SUCCEEDED(e))
-	{
-		output = QSharedPointer<const Unit>(x.take());
-		m_wSlow = output.toWeakRef();
-	}
-	return output;
 }
 
 } // namespace Lock
@@ -225,31 +218,6 @@ struct Sandbox: private Facade
 	}
 private:
 	QFileInfo m_path;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Batch declaration
-
-struct Batch
-{
-	Batch(const QDir& root_, QSharedPointer<const Lock::Unit> guard_):
-		m_root(root_.filePath("sandbox")), m_stage(), m_auth(), m_guard(guard_)
-	{
-	}
-
-	PRL_RESULT operator()();
-	PRL_RESULT add(const Entry::Unit& entry_, Entry::Action* action_);
-	PRL_RESULT prepare(CAuthHelper& auth_);
-	PRL_RESULT getSandbox(const char* prefix_, std::auto_ptr<Sandbox>& dst_) const;
-
-private:
-	void clear();
-
-	QDir m_root;
-	quint32 m_stage;
-	CAuthHelper* m_auth;
-	::Instrument::Command::Batch m_log;
-	QSharedPointer<const Lock::Unit> m_guard;
 };
 
 namespace Entry
@@ -298,26 +266,30 @@ SmartPtr<CVmConfiguration> Unit::getConfig() const
 	return SmartPtr<CVmConfiguration>();
 }
 
+namespace Action
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Action
+// struct Abstract
 
-Action::~Action()
+Abstract::~Abstract()
 {
 }
+
+} // namespace Action
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unlink
 
-struct Unlink: Action
+struct Unlink: Action::Both
 {
-	PRL_RESULT prepare(const Batch& batch_);
+	PRL_RESULT prepare(const Batch::Mode::Both& batch_);
 	PRL_RESULT do_(Unit& object_);
 	PRL_RESULT undo(Unit& object_);
 private:
 	std::auto_ptr<Sandbox> m_backup;
 };
 
-PRL_RESULT Unlink::prepare(const Batch& batch_)
+PRL_RESULT Unlink::prepare(const Batch::Mode::Both& batch_)
 {
 	if (NULL != m_backup.get())
 		return PRL_ERR_DOUBLE_INIT;
@@ -358,7 +330,7 @@ PRL_RESULT Unlink::undo(Unit& object_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Import
 
-PRL_RESULT Import::prepare(const Batch& batch_)
+PRL_RESULT Import::prepare(const Batch::Mode::Both& batch_)
 {
 	if (NULL != m_workspace.get())
 		return PRL_ERR_DOUBLE_INIT;
@@ -407,10 +379,89 @@ PRL_RESULT Export::do_(Unit& object_)
 
 } // namespace Entry
 
+namespace Batch
+{
+namespace Mode
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Batch definition
+// struct Abstract
 
-PRL_RESULT Batch::prepare(CAuthHelper& auth_)
+PRL_RESULT Abstract::operator()()
+{
+	PRL_RESULT output = m_log.execute();
+	m_log = ::Instrument::Command::Batch();
+
+	return output;
+}
+
+PRL_RESULT Abstract::add(const Entry::Unit& entry_, const readAction_type& action_)
+{
+	if (NULL == action_.get())
+		return PRL_ERR_INVALID_ARG;
+
+	m_log.addItem(boost::bind(&Entry::Action::Read::do_, action_, entry_));
+
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Abstract::add(const Entry::Unit& entry_, const bothAction_type& action_)
+{
+	if (NULL == action_.get())
+		return PRL_ERR_INVALID_ARG;
+
+	m_log.addItem(boost::bind(&Entry::Action::Both::do_, action_, entry_),
+		boost::bind(&Entry::Action::Both::undo, action_, entry_));
+
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Both
+
+Both::Both(const QDir& root_, const guard_type& guard_):
+	Abstract(guard_), m_root(root_.filePath("sandbox")), m_stage(), m_auth()
+{
+}
+
+PRL_RESULT Both::operator()()
+{
+	PRL_RESULT output = Abstract::operator()();
+	m_stage = 0;
+
+	return output;
+}
+
+PRL_RESULT Both::add(const Entry::Unit& entry_, const bothAction_type& action_)
+{
+	if (NULL == action_.get())
+		return PRL_ERR_INVALID_ARG;
+
+	if (NULL == m_auth)
+		return PRL_ERR_UNINITIALIZED;
+
+	PRL_RESULT e = action_->prepare(*this);
+	if (PRL_FAILED(e))
+		return e;
+
+	e = Abstract::add(entry_, action_);
+	if (PRL_FAILED(e))
+		return e;
+
+	++m_stage;
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Both::add(const Entry::Unit& entry_, const readAction_type& action_)
+{
+	PRL_RESULT e = Abstract::add(entry_, action_);
+	if (PRL_FAILED(e))
+		return e;
+
+	++m_stage;
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Both::prepare(CAuthHelper& auth_)
 {
 	if (NULL != m_auth)
 		return PRL_ERR_DOUBLE_INIT;
@@ -426,36 +477,7 @@ PRL_RESULT Batch::prepare(CAuthHelper& auth_)
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Batch::operator()()
-{
-	PRL_RESULT output = m_log.execute();
-	m_log = ::Instrument::Command::Batch();
-	m_stage = 0;
-
-	return output;
-}
-
-PRL_RESULT Batch::add(const Entry::Unit& entry_, Entry::Action* action_)
-{
-	boost::shared_ptr<Entry::Action> a(action_);
-	if (NULL == a.get())
-		return PRL_ERR_INVALID_ARG;
-
-	if (NULL == m_auth)
-		return PRL_ERR_UNINITIALIZED;
-
-	PRL_RESULT e = a->prepare(*this);
-	if (PRL_FAILED(e))
-		return e;
-
-	++m_stage;
-	m_log.addItem(boost::bind(&Entry::Action::do_, a, entry_),
-			boost::bind(&Entry::Action::undo, a, entry_));
-
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Batch::getSandbox(const char* prefix_, std::auto_ptr<Sandbox>& dst_) const
+PRL_RESULT Both::getSandbox(const char* prefix_, std::auto_ptr<Sandbox>& dst_) const
 {
 	if (NULL == m_auth)
 		return PRL_ERR_UNINITIALIZED;
@@ -473,6 +495,83 @@ PRL_RESULT Batch::getSandbox(const char* prefix_, std::auto_ptr<Sandbox>& dst_) 
 	return output;
 }
 
+} // namespace Mode
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+Entry::Unit Factory::craftObject(const QString& name_) const
+{
+	return Entry::Unit(QFileInfo(m_root, name_), *m_locking);
+}
+
+Prl::Expected<Mode::Read, PRL_RESULT> Factory::craftForRead() const
+{
+	Lock::Catalog::result_type r(m_locking->getRSlow());
+	if (r.isNull())
+		return PRL_ERR_FAILURE;
+
+	return Mode::Read(r);
+}
+
+Prl::Expected<Mode::Both, PRL_RESULT> Factory::craftForBoth(CAuthHelper& auth_) const
+{
+	Lock::Catalog::result_type w(m_locking->getWSlow());
+	if (w.isNull())
+		return PRL_ERR_FAILURE;
+
+	Mode::Both output(m_root, w);
+	PRL_RESULT e = output.prepare(auth_);
+	if (PRL_FAILED(e))
+		return e;
+
+	return output;
+}
+
+namespace Visitor
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Log
+
+Log::result_type Log::operator()
+	(boost::mpl::at_c<stateList_type, 0>::type& , const boost::mpl::at_c<workList_type, 0>::type& work_) const
+{
+	Prl::Expected<Mode::Both, PRL_RESULT> x = m_factory.craftForBoth(*m_auth);
+	if (x.isFailed())
+		return x.error();
+
+	return this->operator()(x.value(), work_);
+}
+
+Log::result_type Log::operator()
+	(boost::mpl::at_c<stateList_type, 0>::type& , const boost::mpl::at_c<workList_type, 1>::type& work_) const
+{
+	Prl::Expected<Mode::Read, PRL_RESULT> x = m_factory.craftForRead();
+	if (x.isFailed())
+		return x.error();
+
+	return this->operator()(x.value(), work_);
+}
+
+Log::result_type Log::operator()
+	(boost::mpl::at_c<stateList_type, 1>::type& , const boost::mpl::at_c<workList_type, 0>::type& ) const
+{
+	return PRL_ERR_INVALID_HANDLE;
+}
+
+template<class T, class U>
+Log::result_type Log::operator()(T& batch_, const U& work_) const
+{
+	PRL_RESULT e = batch_.add(m_factory.craftObject(m_name), work_);
+	if (PRL_FAILED(e))
+		return e;
+
+	return Mode::state_type(batch_);
+}
+
+} // namespace Visitor
+} // namespace Batch
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Layout
 
@@ -485,19 +584,13 @@ QDir Layout::getCatalogRoot() const
 // struct Catalog
 
 Catalog::Catalog(const Layout& layout_, CAuthHelper& auth_):
-	m_root(layout_.getCatalogRoot()), m_batch(), m_auth(&auth_),
-	m_locking(layout_.getLockRoot())
+	m_root(layout_.getCatalogRoot()), m_auth(&auth_), m_locking(layout_.getLockRoot())
 {
-}
-
-Catalog::~Catalog()
-{
-	delete m_batch;
 }
 
 PRL_RESULT Catalog::find(const QString& name_, QScopedPointer<const Entry::Unit>& dst_) const
 {
-	QSharedPointer<const Lock::Unit> r(m_locking.getRFast());
+	Lock::Catalog::result_type r(m_locking.getRFast());
 	if (r.isNull())
 		return PRL_ERR_FAILURE;
 
@@ -514,7 +607,7 @@ PRL_RESULT Catalog::find(const QString& name_, QScopedPointer<const Entry::Unit>
 
 Prl::Expected<QStringList, PRL_RESULT> Catalog::list() const
 {
-	QSharedPointer<const Lock::Unit> g(m_locking.getRFast());
+	Lock::Catalog::result_type g(m_locking.getRFast());
 	if (g.isNull())
 		return PRL_ERR_FAILURE;
 
@@ -535,49 +628,34 @@ Prl::Expected<QStringList, PRL_RESULT> Catalog::list() const
 
 PRL_RESULT Catalog::commit()
 {
-	QScopedPointer<Batch> b(m_batch);
-	m_batch = NULL;
-	if (b.isNull())
-		return PRL_ERR_UNINITIALIZED;
-
-	return (*b)();
+	return boost::apply_visitor(Batch::Visitor::Commit(), m_batch);
 }
 
-PRL_RESULT Catalog::log(const QString& name_, Entry::Action* action_)
+PRL_RESULT Catalog::log(const QString& name_, const Batch::Mode::work_type& work_)
 {
-	QScopedPointer<Entry::Action> a(action_);
-	if (a.isNull())
-		return PRL_ERR_INVALID_ARG;
+	Batch::Visitor::Log::result_type x = boost::apply_visitor
+		(Batch::Visitor::Log(name_, Batch::Factory(m_root, m_locking), *m_auth),
+			m_batch, work_);
+	if (x.isFailed())
+		return x.error();
 
-	if (NULL == m_batch)
-	{
-		QSharedPointer<const Lock::Unit> w(m_locking.getWSlow());
-		if (w.isNull())
-			return PRL_ERR_FAILURE;
-
-		PRL_RESULT e;
-		QScopedPointer<Batch> b(new Batch(m_root, w));
-		if (PRL_FAILED(e = b->prepare(*m_auth)))
-			return e;
-
-		m_batch = b.take();
-	}
-	return m_batch->add(Entry::Unit(QFileInfo(m_root, name_), m_locking), a.take());
+	m_batch = x.value();
+	return PRL_ERR_SUCCESS;
 }
 
 PRL_RESULT Catalog::import(const QString& name_, const import_type& content_)
 {
-	return log(name_, new Entry::Import(content_));
+	return log(name_, Batch::Mode::Abstract::bothAction_type(new Entry::Import(content_)));
 }
 
 PRL_RESULT Catalog::export_(const QString& name_, const export_type& content_)
 {
-	return log(name_, new Entry::Export(content_));
+	return log(name_, Batch::Mode::Abstract::readAction_type(new Entry::Export(content_)));
 }
 
 PRL_RESULT Catalog::unlink(const QString& name_)
 {
-	return log(name_, new Entry::Unlink());
+	return log(name_, Batch::Mode::Abstract::bothAction_type(new Entry::Unlink()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
