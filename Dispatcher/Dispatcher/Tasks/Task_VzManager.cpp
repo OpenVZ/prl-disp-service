@@ -685,7 +685,7 @@ PRL_RESULT Task_VzManager::delete_env()
 
 	// delete temporary registration
 	CDspService::instance()->getVmDirManager()
-		.unlockExclusiveVmParameters(m_sVzDirUuid, &vmInfo);
+		.unlockExclusiveVmParameters(dirUuid, &vmInfo);
 
 	return res;
 }
