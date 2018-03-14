@@ -391,7 +391,8 @@ Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> Loader::operator()(const C
 	PRL_RESULT e = PRL_ERR_SUCCESS;
 	QString s = QString("%1/" VZ_CT_CONFIG_FILE).arg(m_path);
 	SmartPtr<CVmConfiguration> p = CVzHelper::get_env_config_from_file(
-			s, e, ::Ct::Config::LoadOps().setLayout(VZCTL_LAYOUT_5));
+			s, e, ::Ct::Config::LoadOps().
+				setLayout(VZCTL_LAYOUT_5).setRelative());
 	if (!p)
 		return e;
 	return p;
