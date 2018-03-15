@@ -286,25 +286,6 @@ void CDspVzHelper::UpdateHardDiskInformation(SmartPtr<CVmConfiguration> &config)
 	}
 }
 
-SmartPtr<CVmConfiguration> CDspVzHelper::getConfig(
-		SmartPtr<CDspClient> pUserSession,
-		const QString &sUuid,
-		const QString &sHome)
-{
-	::Template::Storage::Dao::pointer_type c;
-	::Template::Storage::Dao d(pUserSession->getAuthHelper());
-	PRL_RESULT e = d.findForEntry(sHome, c);
-	if (PRL_SUCCEEDED(e))
-	{
-		SmartPtr<CVmConfiguration> x;
-		return getVzlibHelper().get_env_config_from_file(
-				QString(sHome + "/ve.conf"), e,
-				Ct::Config::LoadOps().setUnregistered());
-	}
-
-	return getVzlibHelper().get_env_config(sUuid);
-}
-
 SmartPtr<CVmConfiguration> CDspVzHelper::getCtConfig(
 		SmartPtr<CDspClient> pUserSession,
 		const QString &sUuid,
@@ -312,11 +293,21 @@ SmartPtr<CVmConfiguration> CDspVzHelper::getCtConfig(
 		bool bFull)
 {
 	SmartPtr<CVmConfiguration> pConfig;
+
+	::Template::Storage::Dao::pointer_type c;
+	::Template::Storage::Dao d(pUserSession->getAuthHelper());
+	PRL_RESULT e = d.findForEntry(sHome, c);
+	if (PRL_SUCCEEDED(e)) {
+		CDspService::instance()->getVmConfigManager().
+				loadConfig(pConfig, sHome, pUserSession);
+		return pConfig;
+	}
+
 	pConfig = getConfigCache().get_config(sHome, pUserSession);
 	if (!pConfig)
 	{
 		/* get From Disk */
-		pConfig = getConfig(pUserSession, sUuid, sHome);
+		pConfig = CVzHelper::get_env_config(sUuid);
 		if (!pConfig)
 			return SmartPtr<CVmConfiguration>();
 		/* update Cache */

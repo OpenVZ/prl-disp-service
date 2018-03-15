@@ -305,6 +305,9 @@ PRL_RESULT CDspVmDirManager::deleteVmDirItem( const QString& dirUuid, const QStr
 			CVzHelper::update_ctid_map(pItem->getVmUuid(), QString());
 			CDspService::instance()->getVzHelper()->getConfigCache().
 				remove(pItem->getVmHome());
+
+			CDspService::instance()->getVmConfigManager().
+				removeFromCache(pItem->getVmHome());
 		}
 #endif
 

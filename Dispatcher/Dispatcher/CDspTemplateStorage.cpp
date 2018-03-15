@@ -258,9 +258,11 @@ SmartPtr<CVmConfiguration> Unit::getConfig() const
 	p = QFileInfo(QDir(m_root.absoluteFilePath()), "ve.conf");
 	if (p.exists())
 	{
-		return CDspService::instance()->getVzHelper()->getCtConfig(
-				SmartPtr<CDspClient>(0),
-				QString(), m_root.filePath());
+		int e;
+
+		return CVzHelper::get_env_config_from_file(
+				p.absoluteFilePath(), e,
+				Ct::Config::LoadOps().setUnregistered());
 	}
 
 	return SmartPtr<CVmConfiguration>();
