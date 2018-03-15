@@ -242,9 +242,9 @@ namespace Export
 
 struct Image
 {
-        PRL_RESULT operator()(const QString& snapshot_,
-			const Product::component_type& tib_, const QDir& store_,
-			QString& dst_);
+	PRL_RESULT operator()(const QString& snapshot_,
+		const Product::component_type& tib_, const QDir& store_,
+		QString& dst_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -252,9 +252,9 @@ struct Image
 
 struct Ploop
 {
-        PRL_RESULT operator()(const QString& snapshot_,
-			const Product::component_type& tib_, const QDir& store_,
-			QString& dst_);
+	PRL_RESULT operator()(const QString& snapshot_,
+		const Product::component_type& tib_, const QDir& store_,
+		QString& dst_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -268,8 +268,8 @@ struct Mount
 	}
 
 	PRL_RESULT operator()(const QString& snapshot_,
-			const Product::component_type& tib_, const QDir& store_,
-			QString& dst_);
+		const Product::component_type& tib_, const QDir& store_,
+		QString& dst_);
 
 private:
 	const char* m_component;
