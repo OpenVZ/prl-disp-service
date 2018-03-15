@@ -171,10 +171,6 @@ private:
 			SmartPtr<CDspClient> pUserSession,
 			SmartPtr<CVmConfiguration> pOutConfig);
 	void UpdateHardDiskInformation(SmartPtr<CVmConfiguration> &config);
-	SmartPtr<CVmConfiguration> getConfig(
-			SmartPtr<CDspClient> pUserSession,
-			const QString &sUuid,
-			const QString &sHome);
 
 private:
 	CConfigCache m_configCache;
