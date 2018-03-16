@@ -1063,6 +1063,11 @@ PRL_RESULT Task_VzManager::clone_env()
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 	}
 
+	Template::Storage::Dao::pointer_type c;
+	Template::Storage::Dao d(getClient()->getAuthHelper());
+	if (PRL_SUCCEEDED(d.findByRoot(sNewHome, c)))
+		return PRL_ERR_VM_REQUEST_NOT_SUPPORTED;
+
 	SmartPtr<CVmConfiguration> pNewConfig(new CVmConfiguration);
 	if (!pCmd->GetNewVmUuid().isEmpty())
 		pNewConfig->getVmIdentification()->setVmUuid(pCmd->GetNewVmUuid());
@@ -1077,8 +1082,6 @@ PRL_RESULT Task_VzManager::clone_env()
 		return res;
 
 	const QString &home = pConfig->getVmIdentification()->getHomePath();
-	Template::Storage::Dao::pointer_type c;
-	Template::Storage::Dao d(getClient()->getAuthHelper());
 	if (PRL_SUCCEEDED(d.findForEntry(home, c))) {
 		Command::Clone x(this, pConfig, pNewConfig);
 		res = c->export_(home, boost::bind<PRL_RESULT>(boost::ref(x),
