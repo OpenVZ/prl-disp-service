@@ -292,18 +292,19 @@ SmartPtr<CVmConfiguration> CDspVzHelper::getCtConfig(
 		const QString &sHome,
 		bool bFull)
 {
-	SmartPtr<CVmConfiguration> pConfig;
-
-	::Template::Storage::Dao::pointer_type c;
-	::Template::Storage::Dao d(pUserSession->getAuthHelper());
-	PRL_RESULT e = d.findForEntry(sHome, c);
-	if (PRL_SUCCEEDED(e)) {
-		CDspService::instance()->getVmConfigManager().
-				loadConfig(pConfig, sHome, pUserSession);
-		return pConfig;
+	QString home = sHome;
+	if (home.isEmpty()) {
+		CDspLockedPointer<CVmDirectoryItem> pDir =
+			m_service->getVmDirHelper().getVmDirectoryItemByUuid(
+					CDspVmDirManager::getVzDirectoryUuid(),
+					sUuid);
+		if (!pDir)
+			return SmartPtr<CVmConfiguration>();
+		home = pDir->getVmHome();
 	}
 
-	pConfig = getConfigCache().get_config(sHome, pUserSession);
+	SmartPtr<CVmConfiguration> pConfig = getConfigCache().get_config(
+			home, pUserSession);
 	if (!pConfig)
 	{
 		/* get From Disk */
@@ -311,7 +312,7 @@ SmartPtr<CVmConfiguration> CDspVzHelper::getCtConfig(
 		if (!pConfig)
 			return SmartPtr<CVmConfiguration>();
 		/* update Cache */
-		getConfigCache().update(sHome, pConfig, pUserSession);
+		getConfigCache().update(home, pConfig, pUserSession);
 	}
 
 	if (bFull)
@@ -320,23 +321,28 @@ SmartPtr<CVmConfiguration> CDspVzHelper::getCtConfig(
 	return pConfig;
 }
 
-SmartPtr<CVmConfiguration> CDspVzHelper::getCtConfig(
+SmartPtr<CVmConfiguration> CDspVzHelper::getConfig(
 		SmartPtr<CDspClient> pUserSession,
 		const QString &sUuid,
+		const QString &sHome,
 		bool bFull)
 {
-	QString sHome;
+
 	{
 		CDspLockedPointer<CVmDirectoryItem> pDir =
 			m_service->getVmDirHelper().getVmDirectoryItemByUuid(
 					CDspVmDirManager::getVzDirectoryUuid(),
 					sUuid);
-		if (!pDir)
-			return SmartPtr<CVmConfiguration>();
-		sHome = pDir->getVmHome();
+		if (pDir) {
+			pDir.unlock();
+			return getCtConfig(pUserSession, sUuid, sHome, bFull);
+		}
 	}
 
-	return getCtConfig(pUserSession, sUuid, sHome, bFull);
+	SmartPtr<CVmConfiguration> pConfig;
+	CDspService::instance()->getVmConfigManager().
+			loadConfig(pConfig, sHome, pUserSession);
+	return pConfig;
 }
 
 PRL_RESULT CDspVzHelper::getCtConfigList(SmartPtr<CDspClient> pUserSession,
