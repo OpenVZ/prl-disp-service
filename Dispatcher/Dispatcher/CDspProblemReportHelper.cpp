@@ -1171,18 +1171,8 @@ SmartPtr<CPackedProblemReport> CDspProblemReportHelper::getProblemReportObj(
 
 	PRL_RESULT res = PRL_ERR_SUCCESS;
 	SmartPtr<CVmConfiguration> pVmConfig;
-	if (nType == PVT_VM)
-	{
-		pVmConfig = CDspService::instance()->getVmDirHelper().getVmConfigByUuid(
+	pVmConfig = CDspService::instance()->getVmDirHelper().getVmConfigByUuid(
 				pUser, sVmUuid,	res);
-	}
-#ifdef _CT_
-	else
-	{
-		pVmConfig = CDspService::instance()->getVzHelper()->getCtConfig(pUser, sVmUuid);
-	}
-#endif
-
 	if(pVmConfig)
 		pReport->setVmConfig(pVmConfig.getImpl()->toString());
 	else

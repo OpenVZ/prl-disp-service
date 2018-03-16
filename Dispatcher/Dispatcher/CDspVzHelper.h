@@ -65,11 +65,12 @@ public:
 	SmartPtr<CVmConfiguration> getCtConfig(
 			SmartPtr<CDspClient> pUserSession,
 			const QString &sUuid,
-			const QString &sHome,
+			const QString &sHome = QString(),
 			bool bFull = false);
-	SmartPtr<CVmConfiguration> getCtConfig(
+	SmartPtr<CVmConfiguration> getConfig(
 			SmartPtr<CDspClient> pUserSession,
 			const QString &sUuid,
+			const QString &sHome,
 			bool bFull = false);
 	PRL_RESULT getCtConfigList(SmartPtr<CDspClient> pUserSession,
 			quint32 nFlags,

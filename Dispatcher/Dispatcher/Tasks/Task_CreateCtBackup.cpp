@@ -108,7 +108,7 @@ PRL_RESULT Task_CreateCtBackupSource::prepareTask()
 	if (PRL_FAILED(nRetCode = connect()))
 		goto exit;
 
-	m_pVmConfig = s->getVzHelper()->getCtConfig(client, m_sVmUuid, true);
+	m_pVmConfig = s->getVzHelper()->getCtConfig(client, m_sVmUuid, QString(), true);
 	if (!m_pVmConfig.isValid()) {
 		WRITE_TRACE(DBG_FATAL, "Can not load config for uuid %s", QSTR2UTF8(m_sVmUuid));
 		goto exit;

@@ -2729,7 +2729,7 @@ SmartPtr<CVmConfiguration> CDspVmDirHelper::getVmConfigByDirectoryItem(
 
 	if (pDirectoryItem->getVmType() == PVT_CT)
 	{ 
-		pVmConfig = CDspService::instance()->getVzHelper()->getCtConfig(
+		pVmConfig = CDspService::instance()->getVzHelper()->getConfig(
 				pUserSession,
 				pDirectoryItem->getVmUuid(),
 				pDirectoryItem->getVmHome());
