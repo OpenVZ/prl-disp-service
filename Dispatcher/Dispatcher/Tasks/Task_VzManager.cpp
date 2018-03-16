@@ -371,8 +371,6 @@ PRL_RESULT Task_VzManager::start_env()
 	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!pCmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
-	if (CDspService::instance()->isServerStopping())
-		return PRL_ERR_DISP_SHUTDOWN_IN_PROCESS;
 
 	QString sUuid = pCmd->GetVmUuid();
 
@@ -461,8 +459,6 @@ PRL_RESULT Task_VzManager::restart_env()
 	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(getRequestPackage());
 	if (!pCmd->IsValid())
 		return PRL_ERR_UNRECOGNIZED_REQUEST;
-	if (CDspService::instance()->isServerStopping())
-		return PRL_ERR_DISP_SHUTDOWN_IN_PROCESS;
 
 	QString sUuid = pCmd->GetVmUuid();
 
@@ -1510,8 +1506,10 @@ PRL_RESULT Task_VzManager::reinstall_env()
 
 PRL_RESULT Task_VzManager::process_cmd()
 {
-	PRL_RESULT ret = PRL_ERR_SUCCESS;
+	if (CDspService::instance()->isServerStopping())
+		return PRL_ERR_DISP_SHUTDOWN_IN_PROCESS;
 
+	PRL_RESULT ret = PRL_ERR_SUCCESS;
 	PRL_UINT32 nCmd = getRequestPackage()->header.type;
 	switch(nCmd) {
 	case PVE::DspCmdDirVmCreate:
