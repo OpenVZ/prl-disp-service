@@ -2601,21 +2601,24 @@ PRL_RESULT CDspStatCollectingThread::SubscribeToVmGuestStatistics(const QString 
 PRL_RESULT CDspStatCollectingThread::UnsubscribeFromVmGuestStatistics(const QString &sVmUuid,
                                                                       const SmartPtr<CDspClient> &pUser)
 {
-	PRL_VM_TYPE nType = PVT_VM;
 	QString sDirUuid = pUser->getVmDirectoryUuid();
+
+	if (!sVmUuid.isEmpty()) {
+		PRL_VM_TYPE nType = PVT_VM;
 #ifdef _CT_
-	bool bOk = CDspService::instance()->getVmDirManager().getVmTypeByUuid(sVmUuid, nType);
-	if (bOk && nType == PVT_CT) {
-		sDirUuid = CDspService::instance()->getVmDirManager().getVzDirectoryUuid();
-	}
+		bool bOk = CDspService::instance()->getVmDirManager().getVmTypeByUuid(sVmUuid, nType);
+		if (bOk && nType == PVT_CT) {
+			sDirUuid = CDspService::instance()->getVmDirManager().getVzDirectoryUuid();
+		}
 #endif
 
-	// AccessCheck
-	if ( ! sVmUuid.isEmpty() && nType == PVT_VM)
-	{
-		PRL_RESULT rc = checkAccessRight(pUser, PVE::DspCmdVmUnsubscribeFromGuestStatistics, sVmUuid) ;
-		if (!PRL_SUCCEEDED(rc) && rc!=PRL_ERR_VM_CONFIG_DOESNT_EXIST)
-			return rc;
+		// AccessCheck
+		if (nType == PVT_VM)
+		{
+			PRL_RESULT rc = checkAccessRight(pUser, PVE::DspCmdVmUnsubscribeFromGuestStatistics, sVmUuid) ;
+			if (PRL_FAILED(rc) && rc != PRL_ERR_VM_CONFIG_DOESNT_EXIST)
+				return rc;
+		}
 	}
 
 	CVmIdent x(sVmUuid, sDirUuid);
@@ -2649,8 +2652,7 @@ PRL_RESULT CDspStatCollectingThread::UnsubscribeFromVmGuestStatistics(const QStr
 void CDspStatCollectingThread::ClientDisconnected(const SmartPtr<CDspClient> &pUser)
 {
 	UnsubscribeFromHostStatistics(pUser);
-	QString emptyStr;
-	UnsubscribeFromVmGuestStatistics(emptyStr, pUser);
+	UnsubscribeFromVmGuestStatistics(QString(), pUser);
 	QMutexLocker _lock(g_pSubscribersMutex);
 	foreach (const CVmIdent& i, g_pPerfStatsSubscribers->select(pUser))
 	{
