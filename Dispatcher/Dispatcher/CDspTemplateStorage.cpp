@@ -30,6 +30,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <mntent.h>
+#include <sys/file.h>
 #include "CDspService.h"
 #include "CDspVzHelper.h"
 #include "CDspInstrument.h"
@@ -122,7 +123,13 @@ PRL_RESULT Unit::enter()
 	if (m_file.isOpen())
 		return PRL_ERR_DOUBLE_INIT;
 	if (m_file.open(m_mode))
-		return PRL_ERR_SUCCESS;
+	{
+		int m = m_mode & QIODevice::WriteOnly ? LOCK_EX : LOCK_SH;
+		if (0 == TEMP_FAILURE_RETRY(::flock(m_file.handle(), m | LOCK_NB)))
+			return PRL_ERR_SUCCESS;
+
+		m_file.close();
+	}
 
 	return PRL_ERR_OPEN_FAILED;
 }
