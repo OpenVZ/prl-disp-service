@@ -38,6 +38,7 @@
 #include "Task_CreateImage.h"
 #include "Task_CommonHeaders.h"
 #include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/VirtualDisk/Qcow2Disk.h>
 
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 #include <prlcommon/HostUtils/HostUtils.h>
@@ -543,19 +544,16 @@ PRL_RESULT Task_CreateImage::createHdd(const CVmHardDisk& dto_)
 		return PRL_ERR_HDD_IMAGE_IS_ALREADY_EXIST;
 	}
 
-	QStringList a;
-	a << "create" << "-f" << "qcow2";
-	a << "-o" << "cluster_size=1M,lazy_refcounts=on";
-	a << strFullPath;
-	a << QString::number(dto_.getSize()).append("M");
-	int r = QProcess::execute("qemu-img", a);
-	if (0 != r)
+	VirtualDisk::qcow2PolicyList_type p;
+	p.push_back(VirtualDisk::Policy::Qcow2::size_type(dto_.getSize() << 20));
+	PRL_RESULT e = VirtualDisk::Qcow2::create(strFullPath, p);
+	if (PRL_FAILED(e))
 	{
 		getLastError()->addEventParameter(new CVmEventParameter(PVE::String,
 			strFullPath,
 			EVT_PARAM_MESSAGE_PARAM_0));
 		getLastError()->addEventParameter(new CVmEventParameter(PVE::String,
-			QString("Internal error: %1").arg(r),
+			QString("Internal error: %1").arg(PRL_RESULT_TO_STRING(e)),
 			EVT_PARAM_DETAIL_DESCRIPTION));
 
 		output = PRL_ERR_CANT_CREATE_HDD_IMAGE;
