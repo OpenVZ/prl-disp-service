@@ -43,7 +43,7 @@
 #include "Libraries/StatesStore/SavedStateTree.h"
 #include <prlcommon/Std/PrlTime.h>
 #include <prlcommon/HostUtils/PCSUtils.h>
-
+#include <prlcommon/VirtualDisk/Qcow2Disk.h>
 #include "CDspVmDirHelper.h"
 #include "Task_MigrateVmTarget.h"
 #include "Task_RegisterVm.h"
@@ -463,14 +463,11 @@ bool Pstorage::isNotMigratable(const CVmHardDisk& disk_) const
 
 bool Pstorage::createBackedImage(const CVmHardDisk& disk_, const QString& path_) const
 {
-	QStringList a;
-	a << "create" << "-f" << "qcow2";
-	a << "-o" << "cluster_size=1M,lazy_refcounts=on";
-	a << "-b" << disk_.getSystemName();
-	a << "-o" << QString("backing_fmt=%1").arg("qcow2");
-	a << path_;
-	a << QString::number(disk_.getSize()).append("M");
-	return 0 == QProcess::execute("qemu-img", a);
+	VirtualDisk::qcow2PolicyList_type p;
+	p.push_back(VirtualDisk::Policy::Qcow2::base_type(disk_.getSystemName()));
+	p.push_back(VirtualDisk::Policy::Qcow2::size_type(disk_.getSize() << 20));
+
+	return PRL_SUCCEEDED(VirtualDisk::Qcow2::create(path_, p));
 }
 
 QList<CVmHardDisk> Pstorage::getDisks(const CVmConfiguration& config_) const
