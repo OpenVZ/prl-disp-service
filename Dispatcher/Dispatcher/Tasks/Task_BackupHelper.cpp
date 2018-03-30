@@ -852,6 +852,12 @@ PRL_RESULT Image::build(quint64 size_, const QString& base_)
 	VirtualDisk::qcow2PolicyList_type p(1, VirtualDisk::Policy::Qcow2::size_type(size_));
 	if (!base_.isEmpty())
 		p.push_back(VirtualDisk::Policy::Qcow2::base_type(base_));
+	/* Was requested by den@ #PSBM-63826
+	 * compressed writes will work only if they are aligned by cluster-size
+	 * and here writes to backup by 256k. so, they can't work with 1m
+	 * cluster size
+	 */
+	p.push_back(VirtualDisk::Policy::Qcow2::clusterSize_type(64*1024));
 	return VirtualDisk::Qcow2::create(m_path, p);
 }
 
