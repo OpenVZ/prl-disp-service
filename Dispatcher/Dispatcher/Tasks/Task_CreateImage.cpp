@@ -533,20 +533,19 @@ PRL_RESULT Task_CreateImage::createHdd(const CVmHardDisk& dto_)
 	if (PRL_FAILED(output))
 		return output;
 
-	if (!m_flgRecreateIsAllowed &&
-		CFileHelper::FileExists(strFullPath, &getClient()->getAuthHelper()))
-	{
-		WRITE_TRACE(DBG_FATAL, "Disk image [%s] is already exist.", QSTR2UTF8(strFullPath));
-		getLastError()->addEventParameter(
-				new CVmEventParameter(PVE::String,
-									  strFullPath,
-									  EVT_PARAM_MESSAGE_PARAM_0));
-		return PRL_ERR_HDD_IMAGE_IS_ALREADY_EXIST;
-	}
-
 	VirtualDisk::qcow2PolicyList_type p;
 	p.push_back(VirtualDisk::Policy::Qcow2::size_type(dto_.getSize() << 20));
 	PRL_RESULT e = VirtualDisk::Qcow2::create(strFullPath, p);
+	if (e == PRL_ERR_DISK_FILE_EXISTS && m_flgRecreateIsAllowed)
+	{
+		if (!QFile::remove(strFullPath))
+		{
+			WRITE_TRACE(DBG_FATAL, "Cannot unlink %s",
+				qPrintable(strFullPath));
+		}
+		e = VirtualDisk::Qcow2::create(strFullPath, p);
+	}
+
 	if (PRL_FAILED(e))
 	{
 		getLastError()->addEventParameter(new CVmEventParameter(PVE::String,
