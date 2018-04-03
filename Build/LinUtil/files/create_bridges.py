@@ -199,6 +199,8 @@ def add_device(iface, cp):
 
 def need_bridge(iface, cp):
     if dequote(cp.get("BRIDGE", "")) != "":
+        print "Interface %s has already got a bridge %s" % \
+            (iface, dequote(cp.get("BRIDGE", "")))
         return False
     elif (iface == "lo" or
             dequote(cp.get("NAME", "").lower()) == "loopback"):
@@ -207,10 +209,15 @@ def need_bridge(iface, cp):
         # TODO: Or only for existing bridges?
         return False
     elif dequote(cp.get("ONBOOT", "").lower()) != "yes":
+        print "Interface %s does not have ONBOOT enabled" % iface
         return False
     elif dequote(cp.get("MASTER", "").lower()) != "":
+        print "Interface %s is a slave of %s" % \
+            (iface, dequote(cp.get("MASTER", "")))
         return False
     elif dequote(cp.get("TEAM_MASTER", "").lower()) != "":
+        print "Interface %s is a slave of %s" % \
+            (iface, dequote(cp.get("TEAM_MASTER", "")))
         return False
     return True
 
@@ -307,6 +314,7 @@ def proceed_devices():
     for iface, cp in sorted(interfaces.items()):
         filename, backup = None, None
         if dequote(cp.get("ONBOOT", "").lower()) != "yes":
+            print "Interface %s does not have ONBOOT enabled" % iface
             continue
         if need_device(cp):
             filename, backup = add_device(iface, cp)
