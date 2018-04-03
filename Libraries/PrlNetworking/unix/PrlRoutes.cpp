@@ -258,14 +258,10 @@ bool PrlNet::SetArpToNodeDevices(const QString &ip, const QString &srcMac, bool 
 	}
 	QTextStream(&f) >> old << 1;
 
-	QStringList names = makePhysicalAdapterList();
+	QStringList names = makeAdapterList(PrlNet::Filter::Routed());
 
-	foreach(const QString& name, names)
+	foreach(const QString& adapter, names)
 	{
-		QString adapter = getBridgeName(name);
-		if (adapter.isEmpty())
-			adapter = name;
-
 		bool rc = SetArpToDevice(ip, adapter, add);
 
 		if (!rc) {
