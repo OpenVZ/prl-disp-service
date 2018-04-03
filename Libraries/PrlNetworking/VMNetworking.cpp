@@ -283,15 +283,35 @@ PRL_NET_MODE PrlNet::getMode()
 	return PRL_NET_MODE_VNIC;
 }
 
-QStringList PrlNet::makePhysicalAdapterList()
+QString PrlNet::Filter::Routed::operator()(const QNetworkInterface& iface) const
 {
-	QStringList names;
+	if (!QFileInfo(QString("/sys/class/net/%1/device").arg(iface.name())).exists() &&
+		!QFileInfo(QString("/sys/class/net/%1/bridge").arg(iface.name())).exists())
+		return QString();
+
+	if (iface.addressEntries().isEmpty())
+		return QString();
+
+	QString i =  PrlNet::getBridgeName(iface.name());
+	if (i.isEmpty())
+		i = iface.name();
+
+	return i;
+}
+
+QStringList PrlNet::makeAdapterList(const PrlNet::Filter::Routed& filter)
+{
+	QSet<QString> names;
 	QList<QNetworkInterface> l =  QNetworkInterface::allInterfaces();
 	foreach(const QNetworkInterface& i, l)
 	{
-		if ((QNetworkInterface::IsUp & i.flags())
-				&& QDir(QString("/sys/class/net/%1/device").arg(i.name())).exists())
-			names << i.name();
+		if (!(QNetworkInterface::IsUp & i.flags()))
+			continue;
+
+		QString n = filter(i);
+		if (!n.isEmpty())
+			names << n;
 	}
-	return names;
+
+	return names.values();
 }
