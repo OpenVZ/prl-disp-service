@@ -58,6 +58,16 @@ class CParallelsNetworkConfig;
 namespace PrlNet
 {
 
+namespace Filter
+{
+
+struct Routed
+{
+	QString operator()(const QNetworkInterface& iface) const;
+};
+
+} // namespace Filter
+
 /// @class Adapter
 /// Describes Ethernet Adapters (both Prl and Ethernet)
 struct EthernetAdapter
@@ -361,8 +371,9 @@ QString getBridgeName(const QString& iface);
 bool releaseInterface(const QString& iface);
 bool connectInterface(const QString& iface, const QString& bridge);
 
-QStringList makePhysicalAdapterList();
-}
+QStringList makeAdapterList(const PrlNet::Filter::Routed& filter);
+
+} // namespace PrlNet
 
 #endif // PrlNetLibrary_h__
 
