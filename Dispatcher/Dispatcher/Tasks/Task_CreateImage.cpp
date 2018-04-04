@@ -555,7 +555,8 @@ PRL_RESULT Task_CreateImage::createHdd(const CVmHardDisk& dto_)
 			QString("Internal error: %1").arg(PRL_RESULT_TO_STRING(e)),
 			EVT_PARAM_DETAIL_DESCRIPTION));
 
-		output = PRL_ERR_CANT_CREATE_HDD_IMAGE;
+		output = e == PRL_ERR_DISK_FILE_EXISTS ?
+			PRL_ERR_HDD_IMAGE_IS_ALREADY_EXIST : PRL_ERR_CANT_CREATE_HDD_IMAGE;
 	}
 	WRITE_TRACE(DBG_INFO, "hdd disk image creation finished with code %#x %s"
 		, output, PRL_RESULT_TO_STRING(output) );
