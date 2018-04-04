@@ -45,6 +45,45 @@
 
 namespace Transponster
 {
+namespace Direct
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Text
+
+struct Text: Libvirt::Details::Value::Bin<QByteArray>
+{
+	explicit Text(char* xml_);
+	explicit Text(const QString& xml_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Distiller
+
+template<class T>
+struct Distiller: Libvirt::Details::Value::Bin<T>
+{
+	PRL_RESULT operator()(const Text& xml_)
+	{
+		QDomDocument x;
+		if (!x.setContent(xml_.getValue(), true))
+		{
+			WRITE_TRACE(DBG_FATAL, "Cannot parse XML");
+			return PRL_ERR_READ_XML_CONTENT;
+		}
+		T y;
+		if (y.load(x.documentElement()))
+		{
+			this->setValue(y);
+			return PRL_ERR_SUCCESS;
+		}
+		WRITE_TRACE(DBG_FATAL, "RNG schema validation has failed");
+
+		return PRL_ERR_FAILURE;
+	}
+};
+
+} // namespace Direct
+
 namespace Vm
 {
 namespace Direct
@@ -143,20 +182,13 @@ namespace Physical
 ///////////////////////////////////////////////////////////////////////////////
 // struct Direct
 
-struct Direct
+struct Direct: Libvirt::Details::Value::Bin<CHwNetAdapter>
 {
-	Direct(char* xml_, bool enabled_);
+	typedef Libvirt::Iface::Xml::Interface object_type;
 
-	PRL_RESULT operator()();
+	explicit Direct(bool enabled_);
 
-	const CHwNetAdapter& getResult() const
-	{
-		return m_result;
-	}
-
-private:
-	CHwNetAdapter m_result;
-	QScopedPointer<Libvirt::Iface::Xml::Interface> m_input;
+	PRL_RESULT operator()(const object_type& object_);
 };
 
 } // namespace Physical
@@ -166,20 +198,13 @@ namespace Vlan
 ///////////////////////////////////////////////////////////////////////////////
 // struct Direct
 
-struct Direct
+struct Direct: Libvirt::Details::Value::Bin<CHwNetAdapter>
 {
-	Direct(char* xml_, bool enabled_);
+	typedef Libvirt::Iface::Xml::Interface4 object_type;
 
-	PRL_RESULT operator()();
+	explicit Direct(bool enabled_);
 
-	const CHwNetAdapter& getResult() const
-	{
-		return m_result;
-	}
-
-private:
-	CHwNetAdapter m_result;
-	QScopedPointer<Libvirt::Iface::Xml::Interface4> m_input;
+	PRL_RESULT operator()(const object_type& object_);
 };
 
 } // namespace Vlan
@@ -260,6 +285,25 @@ struct Vm: ::Transponster::Vm::Direct::Vm
 	explicit Vm(char* xml_);
 };
 
+namespace Export
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct View
+
+struct View: Libvirt::Details::Value::Bin
+			<
+				QList
+				<
+					boost::tuple<QString, QString, QUrl>
+				>
+			>
+{
+	typedef Libvirt::Domain::Xml::Domain object_type;
+
+	PRL_RESULT operator()(const object_type& object_);
+};
+
+} // namespace Export
 } // namespace Snapshot
 
 namespace Capabilities
@@ -334,16 +378,6 @@ struct Director
 		return PRL_ERR_SUCCESS;
 	}
 	template<class T>
-	static PRL_RESULT physical(T& builder_)
-	{
-		return builder_();
-	}
-	template<class T>
-	static PRL_RESULT vlan(T& builder_)
-	{
-		return builder_();
-	}
-	template<class T>
 	static PRL_RESULT bridge(T& builder_)
 	{
 		PRL_RESULT e;
@@ -390,6 +424,29 @@ struct Director
 			return e;
 
 		return PRL_ERR_SUCCESS;
+	}
+	template<class T, class U>
+	static PRL_RESULT
+		marshalDirect(U xml_, T& builder_)
+	{
+		Direct::Distiller<typename T::object_type> d;
+		PRL_RESULT e = d(Direct::Text(xml_));
+		if (PRL_FAILED(e))
+			return e;
+		
+		return builder_(d.getValue());
+	}
+	template<class T>
+	static Prl::Expected<QString, PRL_RESULT>
+		marshalReverse(const typename T::object_type& object_, T& builder_)
+	{
+		PRL_RESULT e = builder_(object_);
+		if (PRL_FAILED(e))
+			return e;
+
+		QDomDocument x;
+		builder_.getValue().save(x);
+		return x.toString();
 	}
 };
 

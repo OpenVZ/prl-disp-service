@@ -38,8 +38,8 @@
 #include <CDspDispConfigGuard.h>
 #include <Libraries/Virtuozzo/CVzHelper.h>
 //#include <Libraries/VirtualDisk/VirtualDisk.h>
-#include <Libraries/PrlCommonUtils/CFileHelper.h>
 #include <prlcommon/VirtualDisk/VirtualDisk.h>
+#include <Libraries/PrlCommonUtils/CFileHelper.h>
 
 class CDspVzHelper;
 
@@ -116,7 +116,7 @@ private:
 
 namespace Product
 {
-typedef QPair<Object::Component, QFileInfo> component_type;
+typedef QPair<Object::Component, QUrl> component_type;
 typedef QList<component_type> componentList_type;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -299,7 +299,7 @@ struct Complete
 			if (PRL_FAILED(output))
 				break;
 
-			dst_ << qMakePair(a.first, QFileInfo(x));
+			dst_ << qMakePair(a.first, QUrl::fromLocalFile(x));
 		}
 		return output;
 	}
@@ -809,9 +809,9 @@ struct Unit: Activity::Object::Model
 	}
 	PRL_RESULT start(typename T::snapshot_type* snapshot_)
 	{
-                QScopedPointer<Snapshot::Mergable> x(snapshot_);
-                if (x.isNull())
-                        return PRL_ERR_INVALID_ARG;
+		QScopedPointer<Snapshot::Mergable> x(snapshot_);
+		if (x.isNull())
+			return PRL_ERR_INVALID_ARG;
 
 		if (!m_snapshot.isNull())
 		{
@@ -854,6 +854,7 @@ private:
 
 namespace Vm
 {
+template<class T>
 struct Unit;
 } // namespace Vm
 } // namespace Activity
@@ -882,6 +883,8 @@ private:
 	actor_type m_actor;
 };
 
+namespace Push
+{
 ///////////////////////////////////////////////////////////////////////////////
 // struct Begin
 
@@ -899,33 +902,145 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Commit
+// struct Subject
 
-struct Commit
+struct Subject: Shedable
 {
-	explicit Commit(const QString& uuid_): m_uuid(uuid_)
-	{
-	}
+	Subject(const Task::Vm::Object& vm_, const Task::Vm::Reference& reference_);
 
-	PRL_RESULT operator()(Object& object_)
-	{
-		return object_.commit(m_uuid);
-	}
+	PRL_RESULT merge();
+	PRL_RESULT attach();
+	PRL_RESULT destroy();
+	PRL_RESULT create(Task::Workbench& task_);
+	PRL_RESULT dropState(const QDir& store_);
 
 private:
-	QString m_uuid;
+	PRL_RESULT disband(const boost::function<PRL_RESULT (Object&)>& command_);
+
+	QString m_map;
+	QString m_tmp;
+	Task::Vm::Object m_vm;
+	Product::Model m_product;
+	Product::componentList_type m_tibList;
+};
+
+} // namespace Push
+
+namespace Pull
+{
+namespace agent = Libvirt::Instrument::Agent::Vm;
+
+namespace Mode
+{
+typedef agent::Snapshot::Block agent_type;
+typedef QSharedPointer<agent_type> agentPointer_type;
+typedef Prl::Expected<agentPointer_type, ::Error::Simple> startResult_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Online
+
+struct Online
+{
+	Online(const QString& vm_, const Product::componentList_type& tibList_, const QString& map_):
+		m_vm(vm_), m_map(map_), m_tibList(tibList_)
+	{
+	}
+
+	const QString& getVm() const
+	{
+		return m_vm;
+	}
+	startResult_type start(const QDir& tmp_);
+	PRL_RESULT stop();
+
+private:
+	QString m_vm, m_map;
+	agentPointer_type m_agent;
+	Product::componentList_type m_tibList;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Rollback
+// struct Stopped
 
-struct Rollback
+struct Stopped: private Online
 {
-	PRL_RESULT operator()(Object& object_)
+	Stopped(const Online& chain_): Online(chain_)
 	{
-		return object_.rollback();
+	}
+
+	startResult_type start(const QDir& tmp_);
+	PRL_RESULT stop();
+
+private:
+	PRL_RESULT stop_();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Freezing
+
+struct Freezing: Online
+{
+	typedef ::Backup::Task::Workbench workbench_type;
+	typedef ::Backup::Snapshot::Vm::Object vm_type;
+
+	Freezing(const Online& chain_, const workbench_type& workbench_, const vm_type& object_):
+		Online(chain_), m_object(object_), m_workbench(workbench_)
+	{
+	}
+
+	startResult_type start(const QDir& tmp_);
+
+private:
+	vm_type m_object;
+	workbench_type m_workbench;
+};
+
+} // namespace Mode
+
+namespace Visitor
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Stop
+
+struct Stop: boost::static_visitor<PRL_RESULT>
+{
+	result_type operator()(boost::blank& ) const
+	{
+		// NB. no snapshot - no problem with stopping a snapshot
+		return PRL_ERR_SUCCESS;
+	}
+	template<class T>
+	result_type operator()(T& mode_) const
+	{
+		return mode_.stop();
 	}
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Start
+
+struct Start: boost::static_visitor<Mode::startResult_type>
+{
+	explicit Start(const QDir& tmp_): m_tmp(tmp_)
+	{
+	}
+
+	result_type operator()(boost::blank& ) const
+	{
+		// NB. no error to create a backup snapshot of a diskless VM
+		return result_type();
+	}
+	template<class T>
+	result_type operator()(T& mode_) const
+	{
+		return mode_.start(m_tmp);
+	}
+
+private:
+	QDir m_tmp;
+};
+
+} // namespace Visitor
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Subject
@@ -941,16 +1056,24 @@ struct Subject: Shedable
 	PRL_RESULT dropState(const QDir& store_);
 
 private:
-	template<class T>
-	PRL_RESULT disband(T command_);
+	typedef boost::variant<boost::blank, Mode::Online, Mode::Stopped, Mode::Freezing>
+		mode_type;
+	typedef agent::Block::Export::componentList_type grub_type;
+
+	void setUuid(const QString& value_);
 
 	QString m_map;
 	QString m_tmp;
+	mode_type m_mode;
 	Task::Vm::Object m_vm;
 	Product::Model m_product;
 	Product::componentList_type m_tibList;
+
+	QSharedPointer<agent::Block::Export> m_export;
+	QSharedPointer<agent::Snapshot::Block> m_snapshot;
 };
 
+} // namespace Pull
 } // namespace Vm
 
 namespace Ct
@@ -1174,30 +1297,67 @@ typedef std::map<CVmIdent, QSharedPointer<Unit> > map_type;
 namespace Vm
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Facade
+
+struct Facade
+{
+	virtual ~Facade();
+
+	virtual void abort() = 0;
+	virtual const actor_type& getActor() const = 0;
+	virtual const Activity::Object::Model& getModel() const = 0;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // class Unit
 
-class Unit: private Activity::Unit<Activity::Flavor<Snapshot::Vm::Subject, Escort::Vm>,
-			Task::Vm::Object>
+template<class T>
+class Unit: Activity::Unit<Activity::Flavor<T, Escort::Vm>,
+			Task::Vm::Object>, public Facade
 {
-	typedef Activity::Unit<Activity::Flavor<Snapshot::Vm::Subject, Escort::Vm>,
+	typedef Activity::Unit<Activity::Flavor<T, Escort::Vm>,
 			Task::Vm::Object> base_type;
 
 public:
-	Unit(const Task::Vm::Object& , const Task::Vm::Reference& , const actor_type& );
+	Unit(const Task::Vm::Object& vm_, const Task::Vm::Reference& task_, const actor_type& actor_):
+		base_type(new Flavor<T, Escort::Vm>
+				(task_.getHome(), task_.getStore(),
+				Escort::Vm(task_.getConfig())),
+				actor_, vm_),
+		m_config(task_.getConfig())
+	{
+		this->setUuid(task_.getBackupUuid());
+	}
 
 	const Activity::Object::Model& getModel() const
 	{
 		return *this;
 	}
-	PRL_RESULT start(Snapshot::Vm::Subject* snapshot_);
-	using base_type::abort;
-	using base_type::getActor;
+	PRL_RESULT start(T* snapshot_)
+	{
+		if (this->m_config.isValid())
+		{
+			Libvirt::Kit.vms().at(this->m_config->getVmIdentification()->getVmUuid())
+				.completeConfig(*this->m_config);
+			this->m_config->setRelativePath();
+			this->m_config = config_type();
+		}
+		return base_type::start(snapshot_);
+	}
+	void abort()
+	{
+		this->base_type::abort();
+	}
+	const actor_type& getActor() const
+	{
+		return this->base_type::getActor();
+	}
 
 private:
 	config_type m_config;
 };
 
-typedef std::map<CVmIdent, QSharedPointer<Vm::Unit> > map_type;
+typedef std::map<CVmIdent, QSharedPointer<Vm::Facade> > map_type;
 
 } // namespace Vm
 
@@ -1399,13 +1559,15 @@ namespace Vm
 ///////////////////////////////////////////////////////////////////////////////
 // struct Subject
 
+template<class T>
 struct Subject
 {
 	typedef Object object_type;
-	typedef Activity::Vm::Unit activity_type;
-	typedef Snapshot::Vm::Subject snapshot_type;
+	typedef typename T::value_type snapshot_type;
+	typedef Activity::Vm::Unit<snapshot_type> activity_type;
 
-	explicit Subject(Reference& reference_): m_reference(&reference_)
+	Subject(T flavor_, Reference& reference_):
+		m_flavor(flavor_), m_reference(&reference_)
 	{
 	}
 
@@ -1413,11 +1575,35 @@ struct Subject
 	{
 		return *m_reference;
 	}
-	PRL_RESULT update(const object_type& , const Workbench& );
-	activity_type* craftActivity(const object_type& , const Workbench& ) const;
-	snapshot_type* craftSnapshot(const object_type& ) const;
+	PRL_RESULT update(const object_type& vm_, const Workbench& workbench_)
+	{
+		CVmDirectoryItem d;
+		PRL_RESULT e = vm_.getDirectoryItem(d);
+		if (PRL_FAILED(e))
+			return e;
+
+		SmartPtr<CVmConfiguration> c;
+		e = vm_.getConfig(c);
+		if (PRL_FAILED(e))
+			return e;
+
+		workbench_.getReporter().nameObject(d.getVmName());
+		if (workbench_.getDspTask().operationIsCancelled())
+			return workbench_.getDspTask().getCancelResult();
+
+		return m_reference->update(d, c);
+	}
+	activity_type* craftActivity(const object_type& vm_, const Workbench& workbench_) const
+	{
+		return new activity_type(vm_, *m_reference, workbench_.getDspTask().getClient());
+	}
+	snapshot_type* craftSnapshot(const object_type& vm_) const
+	{
+		return m_flavor(vm_, *m_reference);
+	}
 
 private:
+	T m_flavor;
 	Reference* m_reference;
 };
 

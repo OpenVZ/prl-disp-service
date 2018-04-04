@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar ns="" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <include href='domaincommon.rng'/>
+
+  <start>
+    <ref name="domainblockexport"/>
+  </start>
+
+  <define name="domainblockexport">
+    <element name="domainblockexport">
+      <ref name="domainblockexport_"/>
+    </element>
+  </define>
+</grammar>

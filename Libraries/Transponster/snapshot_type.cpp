@@ -26,30 +26,30 @@
 namespace Libvirt
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Disk1802
+// struct Disk1815
 
-int Traits<Snapshot::Xml::Disk1802>::parse(Snapshot::Xml::Disk1802& , QStack<QDomElement>& stack_)
+int Traits<Snapshot::Xml::Disk1815>::parse(Snapshot::Xml::Disk1815& , QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	return m.consume(stack_);
 }
 
-int Traits<Snapshot::Xml::Disk1802>::generate(const Snapshot::Xml::Disk1802& , QDomElement& dst_)
+int Traits<Snapshot::Xml::Disk1815>::generate(const Snapshot::Xml::Disk1815& , QDomElement& dst_)
 {
 	marshal_type m;
 	return m.produce(dst_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Disk1803
+// struct Disk1816
 
-int Traits<Snapshot::Xml::Disk1803>::parse(Snapshot::Xml::Disk1803& , QStack<QDomElement>& stack_)
+int Traits<Snapshot::Xml::Disk1816>::parse(Snapshot::Xml::Disk1816& , QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	return m.consume(stack_);
 }
 
-int Traits<Snapshot::Xml::Disk1803>::generate(const Snapshot::Xml::Disk1803& , QDomElement& dst_)
+int Traits<Snapshot::Xml::Disk1816>::generate(const Snapshot::Xml::Disk1816& , QDomElement& dst_)
 {
 	marshal_type m;
 	return m.produce(dst_);
@@ -66,7 +66,7 @@ bool Source::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Source, Name::Strict<500> > m;
+	Element<Source, Name::Strict<501> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -76,14 +76,14 @@ bool Source::load(const QDomElement& src_)
 
 bool Source::save(QDomElement& dst_) const
 {
-	Element<Source, Name::Strict<500> > m;
+	Element<Source, Name::Strict<501> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Source::save(QDomDocument& dst_) const
 {
-	Element<Source, Name::Strict<500> > m;
+	Element<Source, Name::Strict<501> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -126,7 +126,7 @@ bool Driver::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Driver, Name::Strict<545> > m;
+	Element<Driver, Name::Strict<546> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -136,14 +136,14 @@ bool Driver::load(const QDomElement& src_)
 
 bool Driver::save(QDomElement& dst_) const
 {
-	Element<Driver, Name::Strict<545> > m;
+	Element<Driver, Name::Strict<546> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Driver::save(QDomDocument& dst_) const
 {
-	Element<Driver, Name::Strict<545> > m;
+	Element<Driver, Name::Strict<546> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -173,9 +173,9 @@ int Traits<Snapshot::Xml::Driver>::generate(const Snapshot::Xml::Driver& src_, Q
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant1797
+// struct Variant1810
 
-int Traits<Snapshot::Xml::Variant1797>::parse(Snapshot::Xml::Variant1797& dst_, QStack<QDomElement>& stack_)
+int Traits<Snapshot::Xml::Variant1810>::parse(Snapshot::Xml::Variant1810& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -187,7 +187,7 @@ int Traits<Snapshot::Xml::Variant1797>::parse(Snapshot::Xml::Variant1797& dst_, 
 	return output;
 }
 
-int Traits<Snapshot::Xml::Variant1797>::generate(const Snapshot::Xml::Variant1797& src_, QDomElement& dst_)
+int Traits<Snapshot::Xml::Variant1810>::generate(const Snapshot::Xml::Variant1810& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSource(), m.get<1>().get<0>()))
@@ -199,9 +199,9 @@ int Traits<Snapshot::Xml::Variant1797>::generate(const Snapshot::Xml::Variant179
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant1798
+// struct Variant1811
 
-int Traits<Snapshot::Xml::Variant1798>::parse(Snapshot::Xml::Variant1798& dst_, QStack<QDomElement>& stack_)
+int Traits<Snapshot::Xml::Variant1811>::parse(Snapshot::Xml::Variant1811& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -213,7 +213,7 @@ int Traits<Snapshot::Xml::Variant1798>::parse(Snapshot::Xml::Variant1798& dst_, 
 	return output;
 }
 
-int Traits<Snapshot::Xml::Variant1798>::generate(const Snapshot::Xml::Variant1798& src_, QDomElement& dst_)
+int Traits<Snapshot::Xml::Variant1811>::generate(const Snapshot::Xml::Variant1811& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSource(), m.get<1>().get<0>()))
@@ -225,9 +225,9 @@ int Traits<Snapshot::Xml::Variant1798>::generate(const Snapshot::Xml::Variant179
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Host1646
+// struct Host1657
 
-int Traits<Snapshot::Xml::Host1646>::parse(Snapshot::Xml::Host1646& dst_, QStack<QDomElement>& stack_)
+int Traits<Snapshot::Xml::Host1657>::parse(Snapshot::Xml::Host1657& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -240,7 +240,7 @@ int Traits<Snapshot::Xml::Host1646>::parse(Snapshot::Xml::Host1646& dst_, QStack
 	return output;
 }
 
-int Traits<Snapshot::Xml::Host1646>::generate(const Snapshot::Xml::Host1646& src_, QDomElement& dst_)
+int Traits<Snapshot::Xml::Host1657>::generate(const Snapshot::Xml::Host1657& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getTransport(), m.get<0>()))
@@ -268,7 +268,7 @@ bool Source1::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Source1, Name::Strict<500> > m;
+	Element<Source1, Name::Strict<501> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -278,14 +278,14 @@ bool Source1::load(const QDomElement& src_)
 
 bool Source1::save(QDomElement& dst_) const
 {
-	Element<Source1, Name::Strict<500> > m;
+	Element<Source1, Name::Strict<501> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Source1::save(QDomDocument& dst_) const
 {
-	Element<Source1, Name::Strict<500> > m;
+	Element<Source1, Name::Strict<501> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -331,7 +331,7 @@ bool Disk::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Disk, Name::Strict<471> > m;
+	Element<Disk, Name::Strict<472> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -341,14 +341,14 @@ bool Disk::load(const QDomElement& src_)
 
 bool Disk::save(QDomElement& dst_) const
 {
-	Element<Disk, Name::Strict<471> > m;
+	Element<Disk, Name::Strict<472> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Disk::save(QDomDocument& dst_) const
 {
-	Element<Disk, Name::Strict<471> > m;
+	Element<Disk, Name::Strict<472> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -391,7 +391,7 @@ bool Domainsnapshot::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Domainsnapshot, Name::Strict<1337> > m;
+	Element<Domainsnapshot, Name::Strict<1346> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -401,14 +401,14 @@ bool Domainsnapshot::load(const QDomElement& src_)
 
 bool Domainsnapshot::save(QDomElement& dst_) const
 {
-	Element<Domainsnapshot, Name::Strict<1337> > m;
+	Element<Domainsnapshot, Name::Strict<1346> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Domainsnapshot::save(QDomDocument& dst_) const
 {
-	Element<Domainsnapshot, Name::Strict<1337> > m;
+	Element<Domainsnapshot, Name::Strict<1346> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -430,7 +430,7 @@ int Traits<Snapshot::Xml::Domainsnapshot>::parse(Snapshot::Xml::Domainsnapshot& 
 		dst_.setMemory(m.get<4>().getValue());
 		dst_.setDisks(m.get<5>().getValue());
 		dst_.setActive(m.get<6>().getValue());
-		dst_.setChoice1783(m.get<7>().getValue());
+		dst_.setChoice1796(m.get<7>().getValue());
 		dst_.setParent(m.get<8>().getValue());
 		dst_.setCookie(m.get<9>().getValue());
 	}
@@ -454,7 +454,7 @@ int Traits<Snapshot::Xml::Domainsnapshot>::generate(const Snapshot::Xml::Domains
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getActive(), m.get<6>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice1783(), m.get<7>()))
+	if (0 > Details::Marshal::assign(src_.getChoice1796(), m.get<7>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getParent(), m.get<8>()))
 		return -1;

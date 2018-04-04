@@ -23,6 +23,12 @@ HEADERS += \
 	snapshot_enum.h \
 	snapshot_data.h \
 	snapshot_type.h \
+	blockexport_data.h \
+	blockexport_enum.h \
+	blockexport_type.h \
+	blocksnapshot_data.h \
+	blocksnapshot_enum.h \
+	blocksnapshot_type.h \
 	marshal.h \
 	patterns.h \
 	Direct.h \
@@ -47,5 +53,11 @@ SOURCES	+= \
 	snapshot_data.cpp \
 	snapshot_enum.cpp \
 	snapshot_type.cpp \
+	blockexport_data.cpp \
+	blockexport_enum.cpp \
+	blockexport_type.cpp \
+	blocksnapshot_data.cpp \
+	blocksnapshot_enum.cpp \
+	blocksnapshot_type.cpp \
 	Direct.cpp \
 	Reverse.cpp

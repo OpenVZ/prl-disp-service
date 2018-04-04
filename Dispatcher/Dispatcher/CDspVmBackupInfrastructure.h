@@ -32,6 +32,7 @@
 #ifndef __CDspVmBackupInfrastructure_H_
 #define __CDspVmBackupInfrastructure_H_
 
+#include <boost/functional/factory.hpp>
 #include "CDspVmBackupInfrastructure_p.h"
 #include <prlxmlmodel/BackupTree/VmItem.h>
 #include <prlxmlmodel/BackupTree/BackupItem.h>
@@ -42,6 +43,34 @@ namespace Backup
 {
 namespace Activity
 {
+namespace Traits
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Ct
+
+template<class T>
+struct Ct
+{
+	typedef Task::Subject<Task::Ct::Subject<T> > task_type;
+	typedef typename Snapshot::Ct::Subject<T> snapshot_type;
+	typedef typename Activity::Ct::Unit activity_type;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm
+
+template<class T>
+struct Vm
+{
+	typedef Task::Vm::Subject<boost::factory<T* > > flavor_type;
+
+	typedef Task::Subject<flavor_type> task_type;
+	typedef typename flavor_type::snapshot_type snapshot_type;
+	typedef typename flavor_type::activity_type activity_type;
+};
+
+} // namespace Traits
+
 ///////////////////////////////////////////////////////////////////////////////
 // class Service
 
@@ -53,12 +82,12 @@ public:
 	template<class T>
 	PRL_RESULT start(Task::Ct::Object ct_, Task::Subject<Task::Ct::Subject<T> > task_)
 	{
-		QScopedPointer<Snapshot::Ct::Subject<T> > s;
+		QScopedPointer<typename Traits::Ct<T>::snapshot_type> s;
 		PRL_RESULT e = task_.getSnapshot(ct_, s);
 		if (PRL_FAILED(e))
 			return e;
 
-		QScopedPointer<Ct::Unit> a;
+		QScopedPointer<typename Traits::Ct<T>::activity_type> a;
 		e = task_.getActivity(ct_, a);
 		if (PRL_FAILED(e))
 			return e;
@@ -75,10 +104,13 @@ public:
 			return e;
 
 		QMutexLocker g(&m_mutex);
-		m_ctActivities[ct_.getIdent()] = QSharedPointer<Ct::Unit>(a.take());
+		m_ctActivities[ct_.getIdent()] = Ct::map_type::mapped_type(a.take());
 		return PRL_ERR_SUCCESS;
 	}
-	PRL_RESULT start(Task::Vm::Object vm_, Task::Subject<Task::Vm::Subject> task_);
+	PRL_RESULT start(Task::Vm::Object vm_,
+		Traits::Vm<Snapshot::Vm::Pull::Subject>::task_type task_);
+	PRL_RESULT start(Task::Vm::Object vm_,
+		Traits::Vm<Snapshot::Vm::Push::Subject>::task_type task_);
 	PRL_RESULT find(const CVmIdent& ident_, Activity::Object::Model& dst_) const;
 	PRL_RESULT track(const CVmIdent& ident_, const actor_type& actor_);
 	PRL_RESULT finish(const CVmIdent& ident_, const actor_type& actor_);
@@ -354,13 +386,33 @@ namespace Vm
 ///////////////////////////////////////////////////////////////////////////////
 // Builder
 
+template<class T>
 struct Builder: Activity::Builder
 {
-	Builder(const CVmIdent& ident_, CDspTaskHelper& task_);
+	Builder(const CVmIdent& ident_, CDspTaskHelper& task_):
+		Activity::Builder(ident_, task_), m_reference(getReporter())
+	{
+	}
 
-	void setObject(CDspVmDirHelper& dirHelper_);
-	void setBackupUuid(const QString& value_);
-	PRL_RESULT startActivity(Activity::Service& service_);
+	void setObject(CDspVmDirHelper& dirHelper_)
+	{
+		m_object.reset(new Task::Vm::Object
+			(getIdent(), getTask().getClient(), dirHelper_));
+	}
+	void setBackupUuid(const QString& value_)
+	{
+		m_reference = Task::Vm::Reference(value_, getReporter());
+	}
+	PRL_RESULT startActivity(Activity::Service& service_)
+	{
+		Task::Workbench* w = getWorkbench();
+		if (NULL == w || m_object.isNull())
+			return PRL_ERR_UNINITIALIZED;
+
+		typedef Task::Vm::Subject<boost::factory<T* > > flavor_type;
+		return service_.start(*m_object, Task::Subject<flavor_type>
+			(flavor_type(boost::factory<T* >(), m_reference), *w));
+	}
 	const Task::Reference& getReference() const
 	{
 		return m_reference;

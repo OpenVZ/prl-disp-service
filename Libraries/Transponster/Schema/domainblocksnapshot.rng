@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar ns="" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <start>
+    <ref name="domainblocksnapshot"/>
+  </start>
+
+  <include href='domaincommon.rng'/>
+
+  <define name="domainblocksnapshot">
+    <element name="domainblocksnapshot">
+      <interleave>
+        <optional>
+          <element name='name'>
+            <text/>
+          </element>
+        </optional>
+        <oneOrMore>
+          <ref name='disksnapshot'/>
+        </oneOrMore>
+      </interleave>
+    </element>
+  </define>
+
+  <define name='disksnapshot'>
+    <element name='disk'>
+      <attribute name='name'>
+        <choice>
+          <ref name='diskTarget'/>
+          <ref name='absFilePath'/>
+        </choice>
+      </attribute>
+      <optional>
+        <attribute name='type'>
+          <value>file</value>
+        </attribute>
+      </optional>
+      <element name='fleece'>
+        <attribute name='file'>
+          <ref name='absFilePath'/>
+        </attribute>
+      </element>
+    </element>
+  </define>
+</grammar>

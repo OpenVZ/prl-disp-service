@@ -323,12 +323,12 @@ struct Iotune: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1098::types, 0>::type& iopsLimit_) const;
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1094::types, 0>::type& ioLimit_) const;
+		void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1101::types, 0>::type& iopsLimit_) const;
+		void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1097::types, 0>::type& ioLimit_) const;
 
-private:
-	CVmHardDisk* m_disk;
-};
+	private:
+		CVmHardDisk* m_disk;
+	};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct BackingChain
@@ -482,18 +482,18 @@ struct Device: boost::static_visitor<PRL_RESULT>
 	{
 		return PRL_ERR_SUCCESS;
 	}
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice978::types, 0>::type& disk_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice978::types, 1>::type& controller_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice978::types, 4>::type& interface_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice978::types, 5>::type& input_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice978::types, 6>::type& sound_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice978::types, 8>::type& graphics_) const
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice979::types, 0>::type& disk_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice979::types, 1>::type& controller_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice979::types, 4>::type& interface_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice979::types, 5>::type& input_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice979::types, 6>::type& sound_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice979::types, 8>::type& graphics_) const
 	{
 		return boost::apply_visitor(Graphics(*m_vm), graphics_.getValue()); 
 	}
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice978::types, 9>::type& video_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice978::types, 11>::type& parallel_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice978::types, 12>::type& serial_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice979::types, 9>::type& video_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice979::types, 11>::type& parallel_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice979::types, 12>::type& serial_) const;
 
 private:
 	Clip* m_clip;
@@ -586,17 +586,17 @@ struct Addressing: boost::static_visitor<void>
 		consume(group_.getValue().getProtocol());
 		consume(group_.getValue().getProtocol2());
 	}
-	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1333::types, 0>::type& ) const
+	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1342::types, 0>::type& ) const
 	{
 		m_sink->setConfigureWithDhcp(true);
 	}
-	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1333::types, 1>::type& ) const
+	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1342::types, 1>::type& ) const
 	{
 		m_sink->setConfigureWithDhcp(false);
 	}
 
 private:
-	void consume(const boost::optional<Libvirt::Iface::Xml::VChoice1333 >& ipv4_) const
+	void consume(const boost::optional<Libvirt::Iface::Xml::VChoice1342 >& ipv4_) const
 	{
 		if (ipv4_)
 			boost::apply_visitor(*this, ipv4_.get());
@@ -628,7 +628,7 @@ struct Collect: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice978::types, 1>::type& controller_) const
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice979::types, 1>::type& controller_) const
 	{
 		m_output->append(controller_.getValue());
 	}
@@ -651,7 +651,7 @@ struct Scsi: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice624::types, 1>::type& model_) const
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice625::types, 1>::type& model_) const
 	{
 		if (!model_.getValue())
 			return;
@@ -697,7 +697,7 @@ struct Usb: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice624::types, 2>::type& usb_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice625::types, 2>::type& usb_) const;
 private:
 	CVmUsbController *m_settings;
 	CVmHardware *m_hardware;
@@ -784,11 +784,11 @@ struct Mask: boost::static_visitor<void>
 	void operator()(const T& ) const
 	{
 	}
-	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice1225::types, 0>::type& addr_) const
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice1234::types, 0>::type& addr_) const
 	{
 		m_result->setIPNetMask(QHostAddress(addr_.getValue()));
 	}
-	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice1225::types, 1>::type& prefix_) const
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice1234::types, 1>::type& prefix_) const
 	{
 		boost::apply_visitor(*this, prefix_.getValue());
 	}
@@ -883,7 +883,7 @@ struct Master: boost::static_visitor<bool>
 	{
 		return false;
 	}
-	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1297::types, 0>::type& ethernet_) const
+	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1306::types, 0>::type& ethernet_) const
 	{
 		m_result->setDeviceName(ethernet_.getValue().getName());
 		if (ethernet_.getValue().getMac())
@@ -893,7 +893,7 @@ struct Master: boost::static_visitor<bool>
 		}
 		return true;
 	}
-	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1297::types, 1>::type& vlan_) const
+	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1306::types, 1>::type& vlan_) const
 	{
 		Libvirt::Iface::Xml::VlanInterfaceCommon c = vlan_.getValue().getVlanInterfaceCommon();
 		if (c.getName())
@@ -903,7 +903,7 @@ struct Master: boost::static_visitor<bool>
 		m_result->setVLANTag(v.getTag());
 		return true;
 	}
-	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1297::types, 2>::type& bond_) const
+	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice1306::types, 2>::type& bond_) const
 	{
 		Libvirt::Iface::Xml::BondInterfaceCommon c = bond_.getValue().getBondInterfaceCommon();
 		m_result->setDeviceName(c.getName());
@@ -979,7 +979,7 @@ namespace Fixup
 
 struct DiskForm: boost::static_visitor<PRL_RESULT>
 {
-	DiskForm(CVmHardware* hardware_, QList<Libvirt::Domain::Xml::VChoice978>* list_,
+	DiskForm(CVmHardware* hardware_, QList<Libvirt::Domain::Xml::VChoice979>* list_,
 			const Libvirt::Domain::Xml::Disk& disk_)
 		: m_hardware(hardware_), m_list(list_), m_disk(disk_)
 	{
@@ -993,7 +993,7 @@ struct DiskForm: boost::static_visitor<PRL_RESULT>
 
 private:
 	CVmHardware* m_hardware;
-	QList<Libvirt::Domain::Xml::VChoice978>* m_list;
+	QList<Libvirt::Domain::Xml::VChoice979>* m_list;
 	mutable Libvirt::Domain::Xml::Disk m_disk;
 };
 
@@ -1002,7 +1002,7 @@ private:
 
 struct Device: boost::static_visitor<PRL_RESULT>
 {
-	Device(const CVmHardware& hardware_, QList<Libvirt::Domain::Xml::VChoice978>& list_)
+	Device(const CVmHardware& hardware_, QList<Libvirt::Domain::Xml::VChoice979>& list_)
 		: m_hardware(hardware_), m_list(&list_)
 	{
 	}
@@ -1013,12 +1013,12 @@ struct Device: boost::static_visitor<PRL_RESULT>
 		*m_list << device_;
 		return PRL_ERR_SUCCESS;
 	}
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice978::types, 0>::type& disk_);
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice978::types, 12>::type& serial_);
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice979::types, 0>::type& disk_);
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice979::types, 12>::type& serial_);
 
 private:
 	CVmHardware m_hardware;
-	QList<Libvirt::Domain::Xml::VChoice978>* m_list;
+	QList<Libvirt::Domain::Xml::VChoice979>* m_list;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1065,17 +1065,17 @@ struct Device: boost::static_visitor<void>
 	void operator()(const T&) const
 	{
 	}
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice978::types, 7>::type& passthrough_)
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice979::types, 7>::type& passthrough_)
 	{
 		m_result << passthrough_;
 	}
-	const QList<Libvirt::Domain::Xml::VChoice978>& getResult() const
+	const QList<Libvirt::Domain::Xml::VChoice979>& getResult() const
 	{
 		return m_result;
 	}
 
 private:
-	QList<Libvirt::Domain::Xml::VChoice978> m_result;
+	QList<Libvirt::Domain::Xml::VChoice979> m_result;
 };      
 
 namespace Os
@@ -1204,29 +1204,65 @@ struct Chipset: boost::static_visitor<QString>
 	}
 };
 
+namespace Export
+{
+namespace xml = Libvirt::Domain::Xml;
+
+typedef QHash<QString, QString> map_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Image
+
+struct Image: boost::static_visitor<bool>
+{
+	explicit Image(map_type& map_): m_map(&map_)
+	{
+	}
+
+	template<class T>
+	result_type operator()(const T& ) const
+	{
+		return false;
+	}
+	result_type operator()(const boost::mpl::at_c<xml::VChoice979::types, 0>::type& disk_) const;
+	result_type operator()(const boost::mpl::at_c<xml::VDisk::types, 0>::type& disk_) const;
+
+private:
+	map_type* m_map;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Name
+
+struct Name: boost::static_visitor<QString>
+{
+	explicit Name(const map_type& map_): m_map(&map_)
+	{
+	}
+
+	result_type operator()(const boost::mpl::at_c<xml::VName1::types, 0>::type& hint_) const
+	{
+		return m_map->value(hint_.getValue(), QString());
+	}
+	result_type operator()(const boost::mpl::at_c<xml::VName1::types, 1>::type& path_) const
+	{
+		return path_.getValue();
+	}
+
+private:
+	const map_type* m_map;
+};
+
+} // namespace Export
 } // namespace Visitor
 
 template<class T>
 void shape(char* xml_, QScopedPointer<T>& dst_)
 {
-	if (NULL == xml_)
-	{
-		WRITE_TRACE(DBG_FATAL, "Invalid argument");
-		return;
-	}
-	QByteArray b(xml_);
-	free(xml_);
-	QDomDocument x;
-	if (!x.setContent(b, true))
-	{
-		WRITE_TRACE(DBG_FATAL, "Cannot parse XML");
-		return;
-	}
-	QScopedPointer<T> g(new T());
-	if (g->load(x.documentElement()))
-		dst_.reset(g.take());
-	else
-		WRITE_TRACE(DBG_FATAL, "RNG schema validation has failed");
+	Direct::Distiller<T> d;
+	PRL_RESULT e = d(Direct::Text(xml_));
+	if (PRL_SUCCEEDED(e))
+		dst_.reset(new T(d.getValue()));
 }
 
 } // namespace Transponster

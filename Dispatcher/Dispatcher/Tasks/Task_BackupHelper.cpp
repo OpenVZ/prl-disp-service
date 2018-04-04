@@ -341,7 +341,7 @@ QStringList Ct::buildArgs(const Product::component_type& t_, const QFileInfo* f_
 	// <private area> <backup path> <tib> <ct_id> <ve_root> <is_running>
 	a << f_->absoluteFilePath()
 		<< m_context->getProduct()->getStore().absolutePath()
-		<< t_.second.absoluteFilePath()
+		<< t_.second.toLocalFile()
 		<< m_context->getProduct()->getObject().getConfig()->getVmIdentification()->getCtId()
 		<< m_context->getProduct()->getObject().getConfig()->getCtSettings()->getMountPath()
 		<< (m_context->isRunning() ? "1" : "0");
@@ -364,7 +364,7 @@ QStringList Vm::buildArgs(const QString& snapshot_,
 	a << QString((m_context->getFlags() & PBT_INCREMENTAL) ? "append" : "create");
 
 	a << t_.first.getFolder() << m_context->getProduct()->getStore().absolutePath()
-		<< t_.second.absoluteFilePath() << snapshot_ << f_->absoluteFilePath();
+		<< t_.second.toLocalFile() << snapshot_ << f_->absoluteFilePath();
 
 	return a;
 }
@@ -372,7 +372,7 @@ QStringList Vm::buildArgs(const QString& snapshot_,
 ///////////////////////////////////////////////////////////////////////////////
 // struct Command
 
-const QFileInfo * Command::findArchive(const Product::component_type& t_,
+const QUrl* Command::findArchive(const Product::component_type& t_,
 	const Activity::Object::Model& a_)
 {
 	foreach (const Product::component_type& c, a_.getSnapshot().getComponents())
@@ -461,8 +461,14 @@ PRL_RESULT ACommand::do_(object_type& variant_)
 	foreach (const Product::component_type& t,
 		boost::apply_visitor(Archives(*(m_context->getProduct().get())), variant_))
 	{
-		const QFileInfo* f = findArchive(t, m_activity);
-		QStringList args = buildArgs(t, f, variant_);
+		const QUrl* u = findArchive(t, m_activity);
+		if (NULL == u || !u->isLocalFile())
+		{
+			output = PRL_ERR_INVALID_HANDLE;
+			break;
+		}
+		QFileInfo f(u->toLocalFile());
+		QStringList args = buildArgs(t, &f, variant_);
 		if (PRL_FAILED(output = m_worker(args, t.first.getDevice().getIndex())))
 			break;
 	}
@@ -500,8 +506,8 @@ QString Ct::craftProlog(Task_BackupHelper& context_)
 
 QString Ct::craftImage(const component_type& component_, const QString& url_) const
 {
-	const QFileInfo* f = Command::findArchive(component_, *m_activity);
-	return QString("ploop://%1::%2").arg(f->absoluteFilePath())
+	const QUrl* f = Command::findArchive(component_, *m_activity);
+	return QString("ploop://%1::%2").arg(f->toLocalFile())
 		.arg(url_);
 }
 
@@ -576,7 +582,7 @@ QStringList Builder::craft(T subject_) const
 	foreach (const Product::component_type& t, m_context->getProduct()->getVmTibs())
 	{
 		a << "--image" <<
-			subject_.craftImage(t, m_map[t.second.absoluteFilePath()].toString());
+			subject_.craftImage(t, m_map[t.second.toLocalFile()].toString());
 	}
 	return a << subject_.craftEpilog(*m_context);
 }
@@ -732,7 +738,11 @@ QStringList Builder::operator()(Ct&) const
 	QStringList a;
 	a << "bitmaps_ct";
 	foreach (const Product::component_type& c, m_components)
-		a << "--image" << QString("ploop://%1").arg(c.second.absoluteFilePath());
+	{
+		QUrl u(c.second);
+		u.setScheme(QLatin1String("ploop"));
+		a << "--image" << u.toString();
+	}
 	return a;
 }
 

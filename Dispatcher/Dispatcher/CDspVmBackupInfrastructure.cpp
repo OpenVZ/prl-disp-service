@@ -37,6 +37,7 @@
 #include <vzctl/libvzctl.h>
 #endif
 #include "CDspLibvirtExec.h"
+#include "CDspVmManager_p.h"
 #include <Tasks/Task_CloneVm_p.h>
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #include "CDspVmBackupInfrastructure.h"
@@ -339,39 +340,6 @@ PRL_RESULT Reference::update(const CVmDirectoryItem& item_, const config_type& c
 	return PRL_ERR_SUCCESS;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Subject
-
-PRL_RESULT Subject::update(const object_type& vm_, const Workbench& workbench_)
-{
-	CVmDirectoryItem d;
-	PRL_RESULT e = vm_.getDirectoryItem(d);
-	if (PRL_FAILED(e))
-		return e;
-
-	SmartPtr<CVmConfiguration> c;
-	e = vm_.getConfig(c);
-	if (PRL_FAILED(e))
-		return e;
-
-	workbench_.getReporter().nameObject(d.getVmName());
-	if (workbench_.getDspTask().operationIsCancelled())
-		return workbench_.getDspTask().getCancelResult();
-
-	return m_reference->update(d, c);
-}
-
-Subject::activity_type* Subject::craftActivity(const object_type& vm_,
-			const Workbench& workbench_) const
-{
-	return new activity_type(vm_, *m_reference, workbench_.getDspTask().getClient());
-}
-
-Subject::snapshot_type* Subject::craftSnapshot(const object_type& vm_) const
-{
-	return new snapshot_type(vm_, *m_reference);
-}
-
 } // namespace Vm
 
 namespace Create
@@ -493,7 +461,7 @@ Vm::Vm(CDspVmDirHelper& dirHelper_, CDspDispConfigGuard& configGuard_):
 PRL_RESULT Vm::operator()
 	(const CVmIdent& ident_, Activity::Service& service_, Sketch& task_)
 {
-	Activity::Vm::Builder b(ident_, task_);
+	Activity::Vm::Builder<Snapshot::Vm::Pull::Subject> b(ident_, task_);
 	if (!task_.getBackupUuid().isEmpty())
 		b.setBackupUuid(task_.getBackupUuid());
 
@@ -514,7 +482,10 @@ namespace Export
 PRL_RESULT Image::operator()(const QString &, const Product::component_type& tib_,
 		const QDir& store_, QString& dst_)
 {
-	QString t = store_.absoluteFilePath(tib_.second.completeBaseName());
+	if (!tib_.second.isLocalFile())
+		return PRL_ERR_INVALID_ARG;
+
+	QString t = store_.absoluteFilePath(QFileInfo(tib_.second.toLocalFile()).completeBaseName());
 	CFileHelper::ClearAndDeleteDir(t);
 
 	dst_ = t;
@@ -527,13 +498,16 @@ PRL_RESULT Image::operator()(const QString &, const Product::component_type& tib
 PRL_RESULT Ploop::operator()(const QString &snapshot_, const Product::component_type& tib_,
 		const QDir& store_, QString& dst_)
 {
+	if (!tib_.second.isLocalFile())
+		return PRL_ERR_INVALID_ARG;
+
 	PRL_RESULT e;
 	Snapshot::Vm::Image x;
 	QString f = tib_.first.getFolder();
 	if (PRL_FAILED(e = x.open(f)))
 		return e;
 
-	QString t = store_.absoluteFilePath(tib_.second.completeBaseName());
+	QString t = store_.absoluteFilePath(QFileInfo(tib_.second.toLocalFile()).completeBaseName());
 	CFileHelper::ClearAndDeleteDir(t);
 	if (PRL_FAILED(e = x.dropState(snapshot_, t)))
 		return e;
@@ -548,12 +522,17 @@ PRL_RESULT Ploop::operator()(const QString &snapshot_, const Product::component_
 PRL_RESULT Mount::operator()(const QString& snapshot_, const Product::component_type& tib_,
 		const QDir& store_, QString& dst_)
 {
-	QString x = store_.absoluteFilePath(tib_.second.fileName()), d;
-	if (!store_.exists(tib_.second.fileName()) && !store_.mkdir(tib_.second.fileName()))
+	if (!tib_.second.isLocalFile())
+		return PRL_ERR_INVALID_ARG;
+
+	QFileInfo f(QFileInfo(tib_.second.toLocalFile()));
+	QString x = store_.absoluteFilePath(f.fileName());
+	if (!store_.exists(f.fileName()) && !store_.mkdir(f.fileName()))
 	{
 		WRITE_TRACE(DBG_FATAL, "Can't create directory \"%s\"", QSTR2UTF8(x));
 		return PRL_ERR_BACKUP_INTERNAL_ERROR;
 	}
+	QString d;
 	if (0 != m_core.mount_disk_snapshot(tib_.first.getFolder(), snapshot_, m_component, x, d))
 		return PRL_ERR_DISK_MOUNT_FAILED;
 
@@ -773,6 +752,8 @@ PRL_RESULT Object::rollback()
 	return disband(PDSF_BACKUP_MAP);
 }
 
+namespace Push
+{
 ///////////////////////////////////////////////////////////////////////////////
 // struct Begin
 
@@ -795,7 +776,7 @@ PRL_RESULT Begin::doConsistent(Object& object_)
 		e = doTrivial(object_);
 		if (PRL_ERR_OPERATION_WAS_CANCELED == object_.thaw())
 		{
-			Rollback()(object_);
+			object_.rollback();
 			e = PRL_ERR_OPERATION_WAS_CANCELED;
 		}
 	case PRL_ERR_OPERATION_WAS_CANCELED:
@@ -815,8 +796,7 @@ Subject::Subject(const Task::Vm::Object& vm_, const Task::Vm::Reference& referen
 {
 }
 
-template<class T>
-PRL_RESULT Subject::disband(T command_)
+PRL_RESULT Subject::disband(const boost::function<PRL_RESULT (Object&)>& command_)
 {
 	if (m_tibList.isEmpty())
 		return PRL_ERR_SUCCESS;
@@ -842,7 +822,7 @@ PRL_RESULT Subject::disband(T command_)
 }
 PRL_RESULT Subject::merge()
 {
-	return disband(Commit(getUuid()));
+	return disband(boost::bind(&Object::commit, _1, boost::cref(getUuid())));
 }
 
 PRL_RESULT Subject::destroy()
@@ -850,7 +830,7 @@ PRL_RESULT Subject::destroy()
 	if (m_map.isEmpty())
 		return merge();
 
-	return disband(Rollback());
+	return disband(boost::bind(&Object::rollback, _1));
 }
 
 PRL_RESULT Subject::create(Task::Workbench& task_)
@@ -902,6 +882,306 @@ PRL_RESULT Subject::dropState(const QDir& store_)
 	return output;
 }
 
+} // namespace Push
+
+namespace Pull
+{
+namespace Mode
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Online
+
+PRL_RESULT Online::stop()
+{
+	if (m_agent.isNull())
+		return PRL_ERR_UNINITIALIZED;
+
+	Libvirt::Result e = m_agent->undefine();
+	m_agent.clear();
+	if (e.isFailed())
+		return e.error().code();
+
+	return PRL_ERR_SUCCESS;
+}
+
+startResult_type Online::start(const QDir& tmp_)
+{
+	if (!m_agent.isNull())
+		return ::Error::Simple(PRL_ERR_DOUBLE_INIT);
+
+	QList<SnapshotComponent> q;
+	foreach (const Product::component_type& a, m_tibList)
+	{
+		if (!a.second.isLocalFile())
+			return ::Error::Simple(PRL_ERR_INVALID_HANDLE);
+
+		QString s;
+		if (tmp_.isRelative())
+			s = a.first.getImage() + ".xblocksnapshot";
+		else
+		{
+			s = tmp_.absoluteFilePath
+				(QFileInfo(a.second.toLocalFile()).fileName());
+		}
+		SnapshotComponent c;
+		c.setState(s);
+		c.setDevice(new CVmHardDisk(a.first.getDevice()));
+		c.getDevice()->setSystemName(a.first.getImage());
+
+		q << c;
+	}
+	Prl::Expected<agent_type, ::Error::Simple> x =
+		Libvirt::Kit.vms().at(m_vm).getSnapshot().defineBlock(m_map, q);
+	if (x.isFailed())
+		return x.error();
+
+	return m_agent = agentPointer_type(new agent_type(x.value()));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Stopped
+
+startResult_type Stopped::start(const QDir& tmp_)
+{
+	Libvirt::Result e = ::Command::Vm::Gear
+						<
+							::Command::Tag::State
+							<
+								::Command::Vm::Frankenstein,
+								::Command::Vm::Fork::State::Strict<VMS_PAUSED>
+							>
+						>::run(getVm());
+	if (e.isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "Failed to start a qemu process!");
+		return e.error();
+	}
+	startResult_type output = Online::start(tmp_);
+	if (output.isFailed())
+		stop_();
+
+	return output;
+}
+
+PRL_RESULT Stopped::stop()
+{
+	PRL_RESULT output = Online::stop();
+	if (PRL_FAILED(output))
+		stop_();
+	else
+	{
+		PRL_RESULT e = stop_();
+		if (PRL_FAILED(e) && e != PRL_ERR_WRONG_VM_STATE)
+			output = e;
+	}
+	return output;
+}
+
+PRL_RESULT Stopped::stop_()
+{
+	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+	Libvirt::Kit.vms().at(getVm()).getState().getValue(s);
+	if (VMS_PAUSED != s)
+	{
+		// check that vm is in an expected state
+		// somebody may change the state from outside
+		return PRL_ERR_WRONG_VM_STATE;
+	}
+	Libvirt::Result e = ::Command::Vm::Gear
+						<
+							::Command::Tag::State
+							<
+								::Command::Vm::Shutdown::Killer,
+								::Command::Vm::Fork::State::Plural
+								<
+									boost::mpl::vector_c<unsigned, VMS_STOPPED, VMS_SUSPENDED>
+								>
+							>
+						>::run(getVm());
+	if (e.isFailed())
+		return e.error().code();
+
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Freezing
+
+startResult_type Freezing::start(const QDir& tmp_)
+{
+	PRL_RESULT e = m_object.freeze(m_workbench);
+	if (PRL_FAILED(e))
+		return Libvirt::Failure(e);
+
+	startResult_type output = Online::start(tmp_);
+	m_object.thaw();
+
+	return output;
+}
+
+} // namespace Mode
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Subject
+
+Subject::Subject(const Task::Vm::Object& vm_, const Task::Vm::Reference& reference_):
+	m_map(reference_.getBackupUuid()), m_vm(vm_),
+	m_product(Backup::Object::Model(reference_.getConfig()), reference_.getHome()),
+	m_tibList(m_product.getVmTibs())
+{
+}
+
+PRL_RESULT Subject::attach()
+{
+	if (m_snapshot.isNull())
+		return PRL_ERR_UNINITIALIZED;
+
+	QString u;
+	Libvirt::Result e = m_snapshot->getUuid(u);
+	if (e.isFailed())
+		return e.error().code();
+
+	setUuid(u);
+
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Subject::destroy()
+{
+	if (m_snapshot.isNull())
+		return PRL_ERR_UNINITIALIZED;
+
+	Libvirt::Result e = m_snapshot->deleteMap();
+	if (e.isFailed())
+		return e.error().code();
+
+	return merge();
+}
+
+void Subject::setUuid(const QString& value_)
+{
+	if (value_.isEmpty())
+	{
+		m_mode = boost::blank();
+		m_snapshot.clear();
+		if (!m_tmp.isEmpty())
+		{
+			CFileHelper::ClearAndDeleteDir(m_tmp);
+			m_tmp.clear();
+		}
+		setComponents(Product::componentList_type());
+	}
+	Shedable::setUuid(value_);
+}
+
+PRL_RESULT Subject::merge()
+{
+	if (!m_export.isNull())
+	{
+		grub_type g;
+		foreach (const Product::component_type& t, getComponents())
+		{
+			g << grub_type::value_type(getUuid(), t.first.getImage(), t.second);
+		}
+		Libvirt::Result e = m_export->stop(g);
+		m_export.clear();
+		Q_UNUSED(e);
+	}
+	PRL_RESULT output = boost::apply_visitor(Visitor::Stop(), m_mode);
+	setUuid(QString());
+
+	return output;
+}
+
+PRL_RESULT Subject::create(Task::Workbench& task_)
+{
+	QString u = m_vm.getIdent().first;
+	VIRTUAL_MACHINE_STATE s = VMS_UNKNOWN;
+	agent::Unit a = Libvirt::Kit.vms().at(u);
+	if (a.getState().getValue(s).isFailed())
+		return PRL_ERR_VM_UUID_NOT_FOUND;
+
+	// else means a diskless VM
+	if (!m_tibList.isEmpty())
+	{
+		Mode::Online o(u, m_tibList, m_map);
+		if (VMS_STOPPED == s)
+			m_mode = Mode::Stopped(o);
+		else if (m_product.getObject().canFreeze())
+		{
+			QScopedPointer<Snapshot::Vm::Object> m;
+			m_vm.getSnapshot(m);
+			m_mode = Mode::Freezing(o, task_, *m);
+		}
+		else
+			m_mode = o;
+
+		// NB. there is no need to create a folder without a single image
+		PRL_RESULT e = task_.openTmp(m_tmp);
+		if (PRL_FAILED(e))
+		{
+			setUuid(QString());
+			return e;
+		}
+	}
+	Visitor::Start::result_type x = boost::apply_visitor(Visitor::Start(m_tmp), m_mode);
+	if (x.isSucceed())
+	{
+		m_snapshot = x.value();
+		attach();
+		return PRL_ERR_SUCCESS;
+	}
+	setUuid(QString());
+
+	return x.error().code();
+}
+
+PRL_RESULT Subject::dropState(const QDir& store_)
+{
+	Q_UNUSED(store_);
+	if (getUuid().isEmpty() && !m_tibList.isEmpty())
+		return PRL_ERR_UNINITIALIZED;
+
+	grub_type g;
+	foreach (const Product::component_type& t, m_tibList)
+	{
+		QUrl u;
+		u.setScheme(QLatin1String("nbd"));
+		u.setHost(QHostAddress(QHostAddress::LocalHost).toString());
+		u.setPort(0);
+		g << grub_type::value_type(getUuid(), t.first.getImage(), u);
+	}
+	typedef agent::Block::Export agent_type;
+	agent_type a = Libvirt::Kit.vms().at(m_vm.getIdent().first).getExport();
+	Libvirt::Result e = a.start(g);
+	if (e.isFailed())
+		return e.error().code();
+
+	m_export = QSharedPointer<agent::Block::Export>(new agent::Block::Export(a));
+	Prl::Expected<grub_type, ::Error::Simple> x = m_export->list();
+	if (x.isFailed())
+		return x.error().code();
+
+	// NB. what if the list doesn't contain some of requested entries?
+	// should we fail or may we skip?
+	Product::componentList_type c;
+	foreach (const Product::component_type& t, m_tibList)
+	{
+		foreach (grub_type::const_reference y, x.value())
+		{
+			if (t.first.getImage() == y.get<1>() && y.get<0>() == getUuid())
+			{
+				c << qMakePair(t.first, y.get<2>());
+				break;
+			}
+		}
+	}
+	setComponents(c);
+
+	return PRL_ERR_SUCCESS;
+}
+
+} // namespace Pull
 } // namespace Vm
 
 namespace Ct
@@ -949,7 +1229,7 @@ void Mount::clean()
 {
 	foreach(const Product::component_type& c, getComponents())
 	{
-		getCore().umount_snapshot(c.second.absoluteFilePath());
+		getCore().umount_snapshot(c.second.toLocalFile());
 	}
 }
 
@@ -1012,7 +1292,7 @@ PRL_RESULT Mountv4::export_(const Product::componentList_type& tibList_, const Q
 				break;
 			m_mounts << a.first.getFolder();
 		}
-		c << qMakePair(a.first, QFileInfo(d));
+		c << qMakePair(a.first, QUrl::fromLocalFile(d));
 	}
 
 	if (PRL_FAILED(output)) {
@@ -1213,18 +1493,20 @@ componentList_type Model::getCtTibs() const
 	// NB. always name the first tib the old way to preserve compatibility
 	// for restore. now all the ploop-based ves archives are private.tib.
 	QFileInfo t(m_store, "private.tib");
-	output << qMakePair(Object::Component(*g.front(), r, m_home), t);
+	output << qMakePair(Object::Component(*g.front(), r, m_home),
+		QUrl::fromLocalFile(t.absoluteFilePath()));
 	g.pop_front();
 	QStringList w;
 	foreach (CVmHardDisk* h, g)
 	{
-		w << output.last().second.fileName();
+		w << t.fileName();
 		// NB. igor@ said that the friendly name was always
 		// an absolute path.
 		// NB. he lied.
 		n = h->getUserFriendlyName();
 		t = QFileInfo(m_store, getTibName(n, w));
-		output << qMakePair(Object::Component(*h, n, m_home), t);
+		output << qMakePair(Object::Component(*h, n, m_home),
+			QUrl::fromLocalFile(t.absoluteFilePath()));
 	}
 	return output;
 }
@@ -1237,8 +1519,9 @@ componentList_type Model::getVmTibs() const
 	{
 		QString n = h->getSystemName();
 		QFileInfo t(m_store, getTibName(n, w));
-		output << qMakePair(Object::Component(*h, n, m_home), t);
-		w << output.last().second.fileName();
+		output << qMakePair(Object::Component(*h, n, m_home),
+			QUrl::fromLocalFile(t.absoluteFilePath()));
+		w << t.fileName();
 	}
 	return output;
 }
@@ -1447,7 +1730,11 @@ QString Model::toString() const
 	foreach (const Product::component_type& c, getSnapshot().getComponents())
 	{
 		SnapshotComponent* x = new SnapshotComponent();
-		x->setState(c.second.absoluteFilePath());
+		if (c.second.isLocalFile())
+			x->setState(c.second.toLocalFile());
+		else
+			x->setState(c.second.toString());
+
 		x->setDevice(new CVmHardDisk(c.first.getDevice()));
 		s->m_lstSnapshotComponents << x;
 	}
@@ -1463,58 +1750,10 @@ QString Model::toString() const
 namespace Vm
 {
 ///////////////////////////////////////////////////////////////////////////////
-// class Unit
+// struct Facade
 
-Unit::Unit(const Task::Vm::Object& vm_, const Task::Vm::Reference& task_,
-		const actor_type& actor_):
-	base_type(new Flavor<Snapshot::Vm::Subject, Escort::Vm>
-			(task_.getHome(), task_.getStore(),
-			Escort::Vm(task_.getConfig())),
-			actor_, vm_),
-	m_config(task_.getConfig())
+Facade::~Facade()
 {
-	setUuid(task_.getBackupUuid());
-}
-
-PRL_RESULT Unit::start(Snapshot::Vm::Subject* snapshot_)
-{
-	if (m_config.isValid())
-	{
-		Libvirt::Kit.vms().at(m_config->getVmIdentification()->getVmUuid())
-			.completeConfig(*m_config);
-		m_config->setRelativePath();
-		m_config = config_type();
-	}
-	return base_type::start(snapshot_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// Builder
-
-Builder::Builder(const CVmIdent& ident_, CDspTaskHelper& task_):
-	Activity::Builder(ident_, task_), m_reference(getReporter())
-{
-}
-
-void Builder::setObject(CDspVmDirHelper& dirHelper_)
-{
-	m_object.reset(new Task::Vm::Object
-		(getIdent(), getTask().getClient(), dirHelper_));
-}
-
-void Builder::setBackupUuid(const QString& value_)
-{
-	m_reference = Task::Vm::Reference(value_, getReporter());
-}
-
-PRL_RESULT Builder::startActivity(Activity::Service& service_)
-{
-	Task::Workbench* w = getWorkbench();
-	if (NULL == w || m_object.isNull())
-		return PRL_ERR_UNINITIALIZED;
-
-	return service_.start(*m_object, Task::Subject<Task::Vm::Subject>
-		(Task::Vm::Subject(m_reference), *w));
 }
 
 } // namespace Vm
@@ -1558,16 +1797,10 @@ void Abort::operator()() const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Service
 
-PRL_RESULT Service::find(const CVmIdent& ident_, Activity::Object::Model& dst_) const
+PRL_RESULT Service::start(Task::Vm::Object vm_,
+	Traits::Vm<Snapshot::Vm::Pull::Subject>::task_type task_)
 {
-	Store::Extract e(dst_);
-	QMutexLocker g(&m_mutex);
-	return find(ident_, e);
-}
-
-PRL_RESULT Service::start(Task::Vm::Object vm_, Task::Subject<Task::Vm::Subject> task_)
-{
-	QScopedPointer<Snapshot::Vm::Subject> s;
+	QScopedPointer<Traits::Vm<Snapshot::Vm::Pull::Subject>::snapshot_type> s;
 	PRL_RESULT e = task_.getSnapshot(vm_, s);
 	if (PRL_FAILED(e))
 		return e;
@@ -1575,7 +1808,38 @@ PRL_RESULT Service::start(Task::Vm::Object vm_, Task::Subject<Task::Vm::Subject>
 	if (PRL_SUCCEEDED(s->attach()) && PRL_FAILED(e = s->destroy()))
 		return e;
 
-	QScopedPointer<Vm::Unit> a;
+	QScopedPointer<Traits::Vm<Snapshot::Vm::Pull::Subject>::activity_type> a;
+	e = task_.getActivity(vm_, a);
+	if (PRL_FAILED(e))
+		return e;
+
+	e = s->create(task_);
+	if (PRL_FAILED(e))
+			return e;
+
+	if (task_.getDspTask().operationIsCancelled())
+	{
+		s->destroy();
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+	}
+	e = a->start(s.take());
+	if (PRL_FAILED(e))
+		return e;
+
+	QMutexLocker g(&m_mutex);
+	m_vmActivities[vm_.getIdent()] = Vm::map_type::mapped_type(a.take());
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Service::start(Task::Vm::Object vm_,
+	Traits::Vm<Snapshot::Vm::Push::Subject>::task_type task_)
+{
+	QScopedPointer<Traits::Vm<Snapshot::Vm::Push::Subject>::snapshot_type> s;
+	PRL_RESULT e = task_.getSnapshot(vm_, s);
+	if (PRL_FAILED(e))
+		return e;
+
+	QScopedPointer<Traits::Vm<Snapshot::Vm::Push::Subject>::activity_type> a;
 	e = task_.getActivity(vm_, a);
 	if (PRL_FAILED(e))
 		return e;
@@ -1588,9 +1852,15 @@ PRL_RESULT Service::start(Task::Vm::Object vm_, Task::Subject<Task::Vm::Subject>
 		return e;
 
 	QMutexLocker g(&m_mutex);
-	m_vmActivities[vm_.getIdent()] = QSharedPointer<Vm::Unit>(a.take());
+	m_vmActivities[vm_.getIdent()] = Vm::map_type::mapped_type(a.take());
 	return PRL_ERR_SUCCESS;
+}
 
+PRL_RESULT Service::find(const CVmIdent& ident_, Activity::Object::Model& dst_) const
+{
+	Store::Extract e(dst_);
+	QMutexLocker g(&m_mutex);
+	return find(ident_, e);
 }
 
 PRL_RESULT Service::finish(const CVmIdent& ident_, const actor_type& actor_)
@@ -1634,14 +1904,14 @@ void Service::abort(IOSender::Handle actor_)
 
 PRL_RESULT Service::abort(const CVmIdent& ident_, const actor_type& actor_)
 {
-        if (actor_.isValid())
-        {
+	if (actor_.isValid())
+	{
 		Store::Abort a(actor_->getClientHandle());
 		m_mutex.lock();
 		find(ident_, a);
 		m_mutex.unlock();
 		a();
-        }
+	}
 	return finish(ident_, actor_);
 }
 
@@ -1972,10 +2242,13 @@ Prl::Expected<CBackupDisks, PRL_RESULT> Sequence::getDisks(quint32 at_)
 	CBackupDisks output;
 	foreach(const Backup::Product::component_type& a, archives)
 	{
+		if (!a.second.isLocalFile())
+			return PRL_ERR_UNEXPECTED;
+
 		CBackupDisk *b = new (std::nothrow) CBackupDisk;
 		if (!b)
 			return PRL_ERR_OUT_OF_MEMORY;
-		b->setName(a.second.fileName());
+		b->setName(QFileInfo(a.second.toLocalFile()).fileName());
 		QFileInfo fi(a.first.getImage());
 		// use relative paths for disks that reside in the VM home directory
 		b->setOriginalPath(fi.dir() == home ? fi.fileName() : fi.filePath());

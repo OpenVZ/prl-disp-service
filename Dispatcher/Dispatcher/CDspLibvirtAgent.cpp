@@ -634,6 +634,11 @@ Block::Launcher Unit::getVolume() const
 	return Block::Launcher(getDomain());
 }
 
+Block::Export Unit::getExport() const
+{
+	return Block::Export(getDomain());
+}
+
 namespace Performance
 {
 
@@ -2480,6 +2485,47 @@ Activity Launcher::start(T policy_, const imageList_type& imageList_, Completion
 	return Activity(t, policy_(imageList_, *c));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Export
+
+Result Export::stop(const componentList_type& request_)
+{
+	Transponster::Snapshot::Export::Request u;
+	Prl::Expected<QString, PRL_RESULT> x = Transponster::Director::marshalReverse(request_, u);
+	if (x.isFailed())
+		return Error::Simple(x.error());
+
+	return do_(getDomain().data(), boost::bind(&virDomainBlockExportXStop,
+		_1, qPrintable(x.value()), 0));
+}
+
+Result Export::start(const componentList_type& request_)
+{
+	Transponster::Snapshot::Export::Request u;
+	Prl::Expected<QString, PRL_RESULT> x = Transponster::Director::marshalReverse(request_, u);
+	if (x.isFailed())
+		return Error::Simple(x.error());
+
+	WRITE_TRACE(DBG_DEBUG, "x-blockexport xml:\n%s", qPrintable(x.value()));
+	return do_(getDomain().data(), boost::bind(&virDomainBlockExportXStart,
+		_1, qPrintable(x.value()), 0));
+}
+
+Prl::Expected<Export::componentList_type, ::Error::Simple> Export::list()
+{
+	Config x(getDomain(), getLink(), 0);
+	Prl::Expected<QString, Error::Simple> c = x.read();
+	if (c.isFailed())
+		return c.error();
+
+	Transponster::Snapshot::Export::View u;
+	PRL_RESULT e = Transponster::Director::marshalDirect(c.value(), u);
+	if (PRL_FAILED(e))
+		return Failure(e);
+
+	return u.getValue();
+}
+
 } // namespace Block
 
 namespace Snapshot
@@ -2594,6 +2640,37 @@ Result Unit::undefineRecursive()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Block
+
+Block::Block(virDomainBlockSnapshotXPtr snapshot_, const QString& map_):
+	m_map(map_), m_object(snapshot_, &virDomainBlockSnapshotXFree)
+{
+}
+
+Result Block::undefine()
+{
+	return do_(m_object.data(),
+		boost::bind(&virDomainBlockSnapshotXDelete, _1, 0));
+}
+
+Result Block::getUuid(QString& dst_) const
+{
+	const char* u = virDomainBlockSnapshotXGetName(m_object.data());
+	if (NULL == u)
+		return Failure(PRL_ERR_INVALID_HANDLE);
+
+	dst_ = u;
+	return Result();
+}
+
+Result Block::deleteMap()
+{
+	virDomainPtr y = virDomainBlockSnapshotXGetDomain(m_object.data());
+	return do_(y, boost::bind(&virDomainBlockCheckpointXRemove, _1,
+		qPrintable(m_map), 0));
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct List
 
 Unit List::at(const QString& uuid_) const
@@ -2664,6 +2741,36 @@ Result List::translate(const Prl::Expected<Unit, Error::Simple>& result_, Unit* 
 Result List::define(const QString& uuid_, const Request& req_, Unit* dst_)
 {
 	return translate(define_(uuid_, req_), dst_);
+}
+
+Prl::Expected<Block, ::Error::Simple>
+	List::defineBlock(const QString& uuid_, const QList<SnapshotComponent>& components_)
+{
+	BackupSnapshot s;
+	quint32 f = VIR_DOMAIN_BLOCK_SNAPSHOT_X_CREATE_AUTODELETE;
+	if (uuid_.isEmpty())
+		s.setUuid(Uuid::createUuid().toString(/*PrlUuid::WithoutBrackets*/));
+	else
+	{
+		s.setUuid(uuid_);
+		f |= VIR_DOMAIN_BLOCK_SNAPSHOT_X_CREATE_CHECKPOINT;
+	}
+	foreach (const SnapshotComponent c, components_)
+	{
+		s.m_lstSnapshotComponents << new SnapshotComponent(c);
+	}
+	Transponster::Snapshot::Block x;
+	Prl::Expected<QString, PRL_RESULT> y = Transponster::Director::marshalReverse(s, x);
+	if (y.isFailed())
+		return Error::Simple(y.error());
+
+	WRITE_TRACE(DBG_DEBUG, "x-blocksnapshot xml:\n%s", qPrintable(y.value()));
+	virDomainBlockSnapshotXPtr b = virDomainBlockSnapshotXCreateXML
+		(m_domain.data(), qPrintable(y.value()), f);
+	if (NULL == b)
+		return Failure(PRL_ERR_FAILURE);
+
+	return Block(b, uuid_);
 }
 
 Result List::createExternal(const QString& uuid_, const QList<CVmHardDisk*>& disks_)
@@ -2992,14 +3099,13 @@ Result List::find(const QString& name_, CHwNetAdapter& dst_) const
 
 	if (NULL != f)
 	{
-		Transponster::Interface::Physical::Direct u(
-			virInterfaceGetXMLDesc(f, VIR_INTERFACE_XML_INACTIVE),
-			0 < virInterfaceIsActive(f));
+		Transponster::Interface::Physical::Direct u(0 < virInterfaceIsActive(f));
+		char* x = virInterfaceGetXMLDesc(f, VIR_INTERFACE_XML_INACTIVE);
 		virInterfaceFree(f);
 
-		if (PRL_SUCCEEDED(Transponster::Director::physical(u)))
+		if (PRL_SUCCEEDED(Transponster::Director::marshalDirect(x, u)))
 		{
-			dst_ = u.getResult();
+			dst_ = u.getValue();
 			return Result();
 		}
 	}
