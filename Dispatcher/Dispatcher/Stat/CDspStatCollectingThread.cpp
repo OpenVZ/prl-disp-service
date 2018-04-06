@@ -2252,7 +2252,6 @@ Libvirt::Result GetPerformanceStatisticsCt(const CVmIdent &id, Collector &c)
 
 Libvirt::Result GetPerformanceStatisticsVm(const CVmIdent &id, Collector &c)
 {
-	Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(id.first);
 	VIRTUAL_MACHINE_STATE s = CDspVm::getVmState(id);
 
 	if (VMS_STOPPED == s) {
