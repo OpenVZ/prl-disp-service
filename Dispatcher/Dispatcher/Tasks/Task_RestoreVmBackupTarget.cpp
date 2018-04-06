@@ -275,14 +275,16 @@ QStringList Api::query(const Backup::Product::component_type& archive_) const
 {
 	return QStringList() << "query_archive" << ""
 			<< m_backupRoot.absolutePath()
-			<< m_backupRoot.absoluteFilePath(archive_.second.fileName())
+			<< m_backupRoot.absoluteFilePath
+				(QFileInfo(archive_.second.toLocalFile()).fileName())
 			<< QString::number(m_no);
 }
 
 QStringList Api::restore(const Backup::Product::component_type& archive_,
 		const QFileInfo& target_) const
 {
-	return restore(m_backupRoot.absoluteFilePath(archive_.second.fileName()), target_);
+	return restore(m_backupRoot.absoluteFilePath
+		(QFileInfo(archive_.second.toLocalFile()).fileName()), target_);
 }
 
 } // namespace AClient
@@ -595,7 +597,7 @@ PRL_RESULT Vm::add(const ::Backup::Product::component_type& component_)
 	if (PRL_FAILED(r))
 		return r;
 	Hdd d;
-	d.tib = component_.second;
+	d.tib = component_.second.toLocalFile();
 	QString x = c.getImage();
 	if (x != y)
 		d.final = x;
@@ -843,7 +845,7 @@ PRL_RESULT Image::do_(const Assistant& assist_, quint32 version_)
 
 	if (BACKUP_PROTO_V3 < version_) {
 		// we specify 'raw' format, because target is a mounted ploop device
-		output = assist_(device->getName(), m_archive.second.absoluteFilePath(), "raw");
+		output = assist_(device->getName(), m_archive.second.toLocalFile(), "raw");
 	} else {
 		output = assist_(m_query.getApi().restore(m_archive,
 			QFileInfo(device->getName())), m_archive.first.getDevice().getIndex());

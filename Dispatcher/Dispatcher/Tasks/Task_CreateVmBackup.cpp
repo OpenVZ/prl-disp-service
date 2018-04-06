@@ -404,7 +404,8 @@ PRL_RESULT Task_CreateVmBackupSource::prepareTask()
 
 	::Backup::Task::Director d(CDspService::instance()->getVmDirHelper(), *m_service,
 		CDspService::instance()->getDispConfigGuard());
-	::Backup::Activity::Vm::Builder b(MakeVmIdent(m_sVmUuid, m_sVmDirUuid), *this);
+	::Backup::Activity::Vm::Builder< ::Backup::Snapshot::Vm::Push::Subject> b
+		(MakeVmIdent(m_sVmUuid, m_sVmDirUuid), *this);
 
 	if (!QFile::exists(VZ_BACKUP_CLIENT))
 	{

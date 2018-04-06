@@ -419,7 +419,7 @@ struct Command
 	Command(Task_BackupHelper& task_, const Activity::Object::Model& activity_)
 		: m_context(&task_), m_activity(activity_) {}
 
-	static const QFileInfo * findArchive(const Product::component_type& t_,
+	static const QUrl * findArchive(const Product::component_type& t_,
 		const Activity::Object::Model& a_);
 
 protected:

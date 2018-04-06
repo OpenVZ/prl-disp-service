@@ -39,9 +39,12 @@
 #include "domain_type.h"
 #include "network_type.h"
 #include "snapshot_type.h"
+#include "blockexport_type.h"
+#include "blocksnapshot_type.h"
 #include <prlxmlmodel/VtInfo/VtInfo.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlxmlmodel/BackupActivity/BackupActivity.h>
 #include <prlxmlmodel/NetworkConfig/CVirtualNetwork.h>
 #include <prlxmlmodel/HostHardwareInfo/CHwNetAdapter.h>
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
@@ -334,7 +337,6 @@ private:
 
 namespace Snapshot
 {
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Internal
 
@@ -388,8 +390,31 @@ private:
 	policy_type m_policy;
 };
 
-} // namespace Snapshot
+///////////////////////////////////////////////////////////////////////////////
+// struct Block
 
+struct Block: Libvirt::Details::Value::Bin<Libvirt::Blocksnapshot::Xml::Domainblocksnapshot>
+{
+	typedef BackupSnapshot object_type;
+
+	PRL_RESULT operator()(const object_type& object_);
+};
+
+namespace Export
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Request
+
+struct Request: Libvirt::Details::Value::Bin<Libvirt::Blockexport::Xml::Domainblockexport_>
+{
+	typedef boost::tuple<QString, QString, QUrl> component_type;
+	typedef QList<component_type> object_type;
+
+	PRL_RESULT operator()(const object_type& object_);
+};
+
+} // namespace Export
+} // namespace Snapshot
 } // namespace Transponster
 
 #endif // __REVERSE_H__

@@ -1232,6 +1232,13 @@
           </data>
         </element>
       </optional>
+      <zeroOrMore>
+        <element name="x-checkpoint">
+          <attribute name="name">
+            <text/>
+          </attribute>
+        </element>
+      </zeroOrMore>
     </interleave>
   </define>
   <define name="snapshot">
@@ -4081,6 +4088,11 @@
         <zeroOrMore>
           <ref name="panic"/>
         </zeroOrMore>
+        <optional>
+          <element name="x-blockexport">
+            <ref name="domainblockexport_"/>
+          </element>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -5308,5 +5320,74 @@
     <attribute name="rawio">
       <ref name="virYesNo"/>
     </attribute>
+  </define>
+
+  <define name="domainblockexport_">
+    <attribute name='type'>
+      <value>nbd</value>
+    </attribute>
+    <interleave>
+      <ref name='exportaddress'/>
+      <oneOrMore>
+        <ref name='diskexport'/>
+      </oneOrMore>
+    </interleave>
+  </define>
+
+  <define name="exportaddress">
+    <element name="address">
+      <attribute name='type'>
+        <value>ip</value>
+      </attribute>
+      <attribute name="host">
+        <ref name="addrIPorName"/>
+      </attribute>
+      <optional>
+        <attribute name="port">
+          <ref name="PortNumber"/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="autoport">
+          <ref name="virYesNo"/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="tls">
+          <ref name="virYesNo"/>
+        </attribute>
+      </optional>
+    </element>
+  </define>
+
+  <define name="diskexport">
+    <element name="disk">
+      <attribute name='name'>
+        <choice>
+          <ref name='diskTarget'/>
+          <ref name='absFilePath'/>
+        </choice>
+      </attribute>
+      <optional>
+        <attribute name='exportname'>
+          <text/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='snapshot'>
+          <text/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='checkpoint'>
+          <text/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="readonly">
+          <ref name="virYesNo"/>
+        </attribute>
+      </optional>
+    </element>
   </define>
 </grammar>

@@ -38,15 +38,17 @@
 #include <prlsdk/PrlTypes.h>
 #include <boost/optional.hpp>
 #include <boost/function.hpp>
+#include <boost/tuple/tuple.hpp>
 #include <boost/thread/future.hpp>
 #include <boost/signals2/signal.hpp>
 #include <prlxmlmodel/VtInfo/VtInfo.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
+#include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 #include <prlxmlmodel/NetworkConfig/CVirtualNetwork.h>
 #include <prlxmlmodel/HostHardwareInfo/CHwNetAdapter.h>
-#include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
+#include <prlxmlmodel/BackupActivity/SnapshotComponent.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 
 struct _virDomain;
@@ -76,6 +78,10 @@ typedef virDomainStatsRecord *virDomainStatsRecordPtr;
 struct _virDomainBlockJobInfo;
 typedef struct _virDomainBlockJobInfo virDomainBlockJobInfo;
 
+struct _virDomainBlockSnapshotX;
+typedef struct _virDomainBlockSnapshotX virDomainBlockSnapshotX;
+typedef virDomainBlockSnapshotX* virDomainBlockSnapshotXPtr;
+
 class CSavedStateTree;
 
 namespace Registry
@@ -93,7 +99,7 @@ struct Failure: ::Error::Simple
 	Failure(PRL_RESULT result_);
 
 private:
-       	static PRL_RESULT fabricate(PRL_RESULT result_);
+	static PRL_RESULT fabricate(PRL_RESULT result_);
 };
 
 namespace Agent
@@ -389,11 +395,28 @@ private:
 	Activity start(T policy_, const imageList_type& imageList_, Completion& completion_);
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Export
+
+struct Export: private Limb::Abstract
+{
+	typedef boost::tuple<QString, QString, QUrl> component_type;
+	typedef QList<component_type> componentList_type;
+
+	explicit Export(const domainReference_type& domain_):
+		Limb::Abstract(domain_)
+	{
+	}
+
+	Result stop(const componentList_type& request_);
+	Result start(const componentList_type& request_);
+	Prl::Expected<componentList_type, ::Error::Simple> list();
+};
+
 } // namespace Block
 
 namespace Snapshot
 {
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Request
 
@@ -446,6 +469,22 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Block
+
+struct Block
+{
+	Block(virDomainBlockSnapshotXPtr snapshot_, const QString& map_);
+
+	Result undefine();
+	Result getUuid(QString& dst_) const;
+	Result deleteMap();
+
+private:
+	const QString m_map;
+	QSharedPointer<virDomainBlockSnapshotX> m_object;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct List
 
 struct List
@@ -459,6 +498,8 @@ struct List
 	Result define(const QString& uuid_, const Request& req_,
 		Unit* dst_ = NULL);
 	Result createExternal(const QString& uuid_, const QList<CVmHardDisk*>& disks_);
+	Prl::Expected<Block, ::Error::Simple>
+		defineBlock(const QString& uuid_, const QList<SnapshotComponent>& disks_);
 	
 private:
 	Prl::Expected<Unit, ::Error::Simple>
@@ -669,6 +710,7 @@ struct Unit: private Limb::Abstract
 	Limb::State getState() const;
 	Limb::Maintenance getMaintenance() const;
 	Block::Launcher getVolume() const;
+	Block::Export getExport() const;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
