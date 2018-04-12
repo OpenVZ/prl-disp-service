@@ -1048,6 +1048,14 @@ namespace Xml
 {
 struct Dns
 {
+	const boost::optional<EVirYesNo >& getEnable() const
+	{
+		return m_enable;
+	}
+	void setEnable(const boost::optional<EVirYesNo >& value_)
+	{
+		m_enable = value_;
+	}
 	const boost::optional<EVirYesNo >& getForwardPlainNames() const
 	{
 		return m_forwardPlainNames;
@@ -1093,6 +1101,7 @@ struct Dns
 	bool save(QDomDocument& ) const;
 
 private:
+	boost::optional<EVirYesNo > m_enable;
 	boost::optional<EVirYesNo > m_forwardPlainNames;
 	QList<VIpAddr > m_forwarderList;
 	QList<Txt > m_txtList;
@@ -1886,7 +1895,7 @@ struct Traits<Network::Xml::Host>
 template<>
 struct Traits<Network::Xml::Dns>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::EVirYesNo, Name::Strict<1225> > >, Unordered<mpl::vector<ZeroOrMore<Element<Attribute<Network::Xml::VIpAddr, Name::Strict<1227> >, Name::Strict<1226> > >, ZeroOrMore<Element<Network::Xml::Txt, Name::Strict<1228> > >, ZeroOrMore<Element<Network::Xml::Srv, Name::Strict<1229> > >, ZeroOrMore<Element<Network::Xml::Host, Name::Strict<513> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Network::Xml::EVirYesNo, Name::Strict<281> > >, Optional<Attribute<Network::Xml::EVirYesNo, Name::Strict<1225> > >, Unordered<mpl::vector<ZeroOrMore<Element<Attribute<Network::Xml::VIpAddr, Name::Strict<1227> >, Name::Strict<1226> > >, ZeroOrMore<Element<Network::Xml::Txt, Name::Strict<1228> > >, ZeroOrMore<Element<Network::Xml::Srv, Name::Strict<1229> > >, ZeroOrMore<Element<Network::Xml::Host, Name::Strict<513> > > > > > > marshal_type;
 
 	static int parse(Network::Xml::Dns& , QStack<QDomElement>& );
 	static int generate(const Network::Xml::Dns& , QDomElement& );
