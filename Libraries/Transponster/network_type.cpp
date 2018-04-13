@@ -1384,11 +1384,12 @@ int Traits<Network::Xml::Dns>::parse(Network::Xml::Dns& dst_, QStack<QDomElement
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setForwardPlainNames(m.get<0>().getValue());
-		dst_.setForwarderList(m.get<1>().get<0>().getValue());
-		dst_.setTxtList(m.get<1>().get<1>().getValue());
-		dst_.setSrvList(m.get<1>().get<2>().getValue());
-		dst_.setHostList(m.get<1>().get<3>().getValue());
+		dst_.setEnable(m.get<0>().getValue());
+		dst_.setForwardPlainNames(m.get<1>().getValue());
+		dst_.setForwarderList(m.get<2>().get<0>().getValue());
+		dst_.setTxtList(m.get<2>().get<1>().getValue());
+		dst_.setSrvList(m.get<2>().get<2>().getValue());
+		dst_.setHostList(m.get<2>().get<3>().getValue());
 	}
 	return output;
 }
@@ -1396,15 +1397,17 @@ int Traits<Network::Xml::Dns>::parse(Network::Xml::Dns& dst_, QStack<QDomElement
 int Traits<Network::Xml::Dns>::generate(const Network::Xml::Dns& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getForwardPlainNames(), m.get<0>()))
+	if (0 > Details::Marshal::assign(src_.getEnable(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getForwarderList(), m.get<1>().get<0>()))
+	if (0 > Details::Marshal::assign(src_.getForwardPlainNames(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTxtList(), m.get<1>().get<1>()))
+	if (0 > Details::Marshal::assign(src_.getForwarderList(), m.get<2>().get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getSrvList(), m.get<1>().get<2>()))
+	if (0 > Details::Marshal::assign(src_.getTxtList(), m.get<2>().get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getHostList(), m.get<1>().get<3>()))
+	if (0 > Details::Marshal::assign(src_.getSrvList(), m.get<2>().get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getHostList(), m.get<2>().get<3>()))
 		return -1;
 
 	return m.produce(dst_);

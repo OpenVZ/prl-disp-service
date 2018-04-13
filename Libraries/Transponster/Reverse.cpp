@@ -2263,6 +2263,10 @@ PRL_RESULT Reverse::setHostOnly()
 	if (NULL == n)
 		return PRL_ERR_SUCCESS;
 
+	Libvirt::Network::Xml::Dns d;
+	d.setEnable(Libvirt::Network::Xml::EVirYesNoNo);
+	m_result.setDns(d);
+
 	QList<Libvirt::Network::Xml::Ip> x;
 	CDHCPServer* v4 = n->getDHCPServer();
 	if (NULL != v4 && v4->isEnabled())
