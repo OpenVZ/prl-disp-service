@@ -1334,7 +1334,7 @@ Component::Component(const CVmHardDisk& device_, const QString& image_, const QS
 	if (!f.isAbsolute())
 	{
 		m_objectHome = objectHome_;
-		f = QFileInfo(QDir(objectHome_), f.fileName());
+		f = QFileInfo(QDir(objectHome_).absoluteFilePath(f.filePath()));
 	}
 	if (f.isDir())
 		m_folder = f.absoluteFilePath();
