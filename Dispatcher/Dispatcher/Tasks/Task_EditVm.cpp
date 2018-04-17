@@ -1541,14 +1541,7 @@ PRL_RESULT Task_EditVm::editVm()
 						QList<void* >* devList_new = (QList<void* >* )pHardware_new->m_aDeviceLists[nType];
 
 						if ( (devList_old == NULL) != (devList_new == NULL) )
-						{
-							ret = DspVm::vdh().registerExclusiveVmOperation(ident.first, ident.second,
-								PVE::DspCmdCtlVmEditWithHardwareChanged, getClient());
-							if (PRL_FAILED(ret))
-								throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
 							flgExclusiveHardwareChangedWasRegistered = true;
-							break;
-						}
 						else if  ( devList_old == NULL || devList_new == NULL )
 							continue;
 						else
@@ -1556,7 +1549,6 @@ PRL_RESULT Task_EditVm::editVm()
 							//Prevent attempts to either change read only during runtime settings of device or disconnect/connect non SATA HDDs
 							QList<CVmDevice *> *pOldLstDevs = reinterpret_cast<QList<CVmDevice *> *>( devList_old );
 							QList<CVmDevice *> *pNewLstDevs = reinterpret_cast<QList<CVmDevice *> *>( devList_new );
-							bool bDoParentLoopBreak = false;
 							foreach( CVmDevice *pOldDevice, *pOldLstDevs )
 							{
 								CVmDevice *pNewDevice = CXmlModelHelper::IsElemInList( pOldDevice, *pNewLstDevs );
@@ -1630,18 +1622,8 @@ PRL_RESULT Task_EditVm::editVm()
 										}
 									}
 								}
-								ret = DspVm::vdh().registerExclusiveVmOperation(ident.first, ident.second,
-											PVE::DspCmdCtlVmEditWithHardwareChanged, getClient());
-								if (PRL_FAILED(ret))
-									throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
 								flgExclusiveHardwareChangedWasRegistered = true;
-								//Exclusive lock was got - can break check procedure now
-								bDoParentLoopBreak = true;
-								break;
 							}
-							if ( bDoParentLoopBreak )
-								break;
-
 							//Now check new devices addition - only SATA or USB devices can be added while VM running
 							foreach( CVmDevice *pNewDevice, *pNewLstDevs )
 							{
@@ -1676,8 +1658,8 @@ PRL_RESULT Task_EditVm::editVm()
 										PRL_ASSERT(false);
 										continue;
 									}
-									if (VMS_STOPPED != nState)
-										throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
+									if (VMS_STOPPED == nState)
+										continue;
 								}
 
 								if ( PDE_PARALLEL_PORT == nType )
@@ -1691,19 +1673,19 @@ PRL_RESULT Task_EditVm::editVm()
 											continue;
 									}
 								}
-
-								ret = DspVm::vdh().registerExclusiveVmOperation(
-									ident.first, ident.second,
-									PVE::DspCmdCtlVmEditWithHardwareChanged, getClient());
-								if (PRL_FAILED(ret))
-									throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
 								flgExclusiveHardwareChangedWasRegistered = true;
-								//Exclusive lock was got - can break check procedure now
-								bDoParentLoopBreak = true;
-								break;
 							}
-							if ( bDoParentLoopBreak )
-								break;
+						}
+					}
+					if (flgExclusiveHardwareChangedWasRegistered)
+					{
+						ret = DspVm::vdh().registerExclusiveVmOperation(
+							ident.first, ident.second,
+							PVE::DspCmdCtlVmEditWithHardwareChanged, getClient());
+						if (PRL_FAILED(ret))
+						{
+							flgExclusiveHardwareChangedWasRegistered = false;
+							throw PRL_ERR_VM_MUST_BE_STOPPED_FOR_CHANGE_DEVICES;
 						}
 					}
 				}
