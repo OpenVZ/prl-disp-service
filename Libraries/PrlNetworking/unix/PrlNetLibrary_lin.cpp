@@ -272,7 +272,6 @@ static __inline void BMAP_SET(void* bmap, unsigned int bit)
 PRL_RESULT PrlNet::setAdapterIpAddress(const QString& adapterName,
 								const QString & ipAddressMask)
 {
-	QHostAddress ip, mask;
 	QString ipstr;
 	if (!NetworkUtils::ParseIpMask(ipAddressMask, ipstr))
 	{
@@ -287,37 +286,14 @@ PRL_RESULT PrlNet::setAdapterIpAddress(const QString& adapterName,
 		return PRL_ERR_NO_DATA;
 	}
 
-	//get ip
-	ip = QHostAddress(ipstr);
+	QNetworkAddressEntry a;
+	a.setIp(QHostAddress(ipstr));
+	a.setPrefixLength(pair.second);
 
-	//calculate mask
-	if (ip.protocol() == QAbstractSocket::IPv4Protocol)
-	{
-		quint32 u_mask = 0;
-		for (int i = 0; i < pair.second; i++)
-			BMAP_SET((PRL_UINT8_PTR) &u_mask, (sizeof(u_mask)*8)-1 - i);
-			//u_mask = u_mask | (1 << (31-i));
-		mask.setAddress(u_mask);
-        }
-	else
-	{
-		Q_IPV6ADDR u_mask;
-		memset(&u_mask, 0, sizeof(u_mask));
+	PRL_RESULT res = setAdapterIpAddress(adapterName, a.ip(), a.netmask());
 
-		for (int i = 0; i < pair.second; i++)
-		{
-			//quint8 *seg = &(u_mask.c[i/8]);
-			//*seg = *seg | (1 << (7-i%8));
-			BMAP_SET((PRL_UINT8_PTR) u_mask.c, (sizeof(u_mask)*8)-1 - i);
-		}
-		mask.setAddress(u_mask);
-	}
-
-	PRL_RESULT res = setAdapterIpAddress(adapterName, ip, mask);
-
-	WRITE_TRACE(DBG_DEBUG, "Add ip address '%s' mask='%s' to '%s' rc=%d",
-						QSTR2UTF8( ipAddressMask), QSTR2UTF8(mask.toString()),
-						QSTR2UTF8( adapterName ), res );
+	WRITE_TRACE(DBG_DEBUG, "Add ip address '%s' to '%s' rc=%d",
+			QSTR2UTF8(ipAddressMask), QSTR2UTF8(adapterName), res);
 
 	return res;
 }
