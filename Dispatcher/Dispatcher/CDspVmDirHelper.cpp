@@ -3868,6 +3868,7 @@ Default::value_type Default::craft(PRL_RESULT code_, const QString& uid_)
 	{
 		output->getVmIdentification()->setVmName(craftName(d.getPtr(), uid_));
 		output->getVmIdentification()->setVmUuid(uid_);
+		output->setVmType(d->getVmType());
 		output->setValidRc(code_);
 	}
 
