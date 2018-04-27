@@ -739,9 +739,7 @@ QStringList Builder::operator()(Ct&) const
 	a << "bitmaps_ct";
 	foreach (const Product::component_type& c, m_components)
 	{
-		QUrl u(c.second);
-		u.setScheme(QLatin1String("ploop"));
-		a << "--image" << u.toString();
+		a << "--image" << QString("ploop://").append(c.second.toLocalFile());
 	}
 	return a;
 }
