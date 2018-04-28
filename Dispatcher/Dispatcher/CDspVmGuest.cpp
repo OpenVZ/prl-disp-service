@@ -156,7 +156,7 @@ void Watcher::adopt(PRL_VM_TOOLS_STATE state_, const QString& version_)
 void Watcher::respin()
 {
 	if (thread() == QThread::currentThread())
-		startTimer(10000);
+		startTimer(20000);
 	else
 		WRITE_TRACE(DBG_FATAL, "Bad thread for the call");
 }
@@ -182,7 +182,7 @@ void Spin::run()
 			// domain is not running
 			break;
 		case VIR_ERR_AGENT_UNRESPONSIVE:
-			// agent is not started - retry 5 minutes with 10 secs interval
+			// agent is not started - retry 10 minutes with 20 secs interval
 			s = PTS_POSSIBLY_INSTALLED;
 		default:
 			if (0 >= m_watcher->getRetries())
