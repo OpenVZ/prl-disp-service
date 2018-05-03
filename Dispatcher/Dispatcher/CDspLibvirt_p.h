@@ -929,78 +929,122 @@ struct Counter;
 namespace Generic
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Model
+// struct Flavor
 
-struct Model
+struct Flavor
 {
 	typedef CVmHardDisk xml_type;
-
-	explicit Model(const xml_type& xml_): m_xml(&xml_)
-	{
-	}
-
-	QString getTarget() const;
-
-protected:
-	const xml_type& getXml() const
-	{
-		return *m_xml;
-	}
-
-private:
-	const xml_type* m_xml;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Batch
-
-struct Batch
-{
 	typedef Limb::Abstract::domainReference_type
 		domainReference_type;
 	typedef boost::signals2::signal<void ()> signal_type;
 	typedef signal_type::slot_function_type result_type;
 
-	explicit Batch(Counter& counter_);
+	Flavor(const xml_type& xml_, domainReference_type domain_): m_xml(xml_)
+	{
+		m_agent = Unit(domain_, getTarget());
+	}
 
-	void accept(const domainReference_type& domain_, const Model& model_);
-	void reject(const Model& model_);
-	result_type getResult() const;
+	QString getTarget() const;
+	void commit(signal_type& batch_) const;
 
 protected:
-	signal_type& getSignal() const
+	const xml_type& getXml() const
 	{
-		return *m_signal;
+		return m_xml;
+	}
+	Unit getAgent() const
+	{
+		return m_agent;
 	}
 
 private:
-	Counter* m_counter;
-	boost::shared_ptr<signal_type> m_signal;
+	Unit m_agent;
+	xml_type m_xml;
+};
+
+namespace Strategy
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct General
+
+struct General
+{
+	typedef Generic::Flavor::signal_type batch_type;
+	typedef QHash<QString, PRL_RESULT> journal_type;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Policy
+// struct Atomic
 
-struct Policy: Limb::Abstract
+template<class T>
+struct Atomic: General
 {
-	typedef Batch::result_type result_type;
-	typedef QList<CVmHardDisk> imageList_type;
-
-	explicit Policy(const domainReference_type& domain_): Limb::Abstract(domain_)
+	explicit Atomic(const QList<T>& componentList_): m_componentList(componentList_)
 	{
 	}
+
+	void setStatus(const QString& component_, PRL_RESULT value_,
+		General::journal_type& journal_) const
+	{
+		if (PRL_SUCCEEDED(value_))
+		{
+			if (!journal_.contains(component_))
+				journal_[component_] = PRL_ERR_SUCCESS;
+
+			return;
+		}
+		foreach(const T& c, m_componentList)
+		{
+			QString t(c.getTarget());
+			// NB. pending or successful jobs are eligible for an abort.
+			// the rest are completed thus it's of no use to abort them.
+			if (!journal_.contains(t) || PRL_SUCCEEDED(journal_[t]))
+				journal_[t] = value_;
+		}
+	}
+	void connect(const T& component_, PRL_RESULT status_, General::batch_type& batch_)
+	{
+		if (PRL_FAILED(status_))
+			component_.abort(batch_);
+		else
+			component_.commit(batch_);
+	}
+
+protected:
+	bool treat(Counter& counter_, const Result& value_) const
+	{
+		if (value_.isSucceed())
+			return false;
+
+		foreach(const T& c, m_componentList)
+		{
+			counter_.account(c.getTarget(), value_.error().code());
+		}
+
+		return true;
+	}
+
+private:
+	const QList<T> m_componentList;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+template<class T>
+struct Unit;
+
+} // namespace Strategy
 } // namespace Generic
 
-namespace Commit
+namespace Flavor
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Model
+// struct Picturesque
 
-struct Model: Generic::Model
+struct Picturesque: Generic::Flavor
 {
-	explicit Model(const xml_type& xml_): Generic::Model(xml_)
+	explicit Picturesque(const Generic::Flavor& generic_): Generic::Flavor(generic_)
 	{
 	}
 
@@ -1011,75 +1055,137 @@ struct Model: Generic::Model
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Batch
+// struct Commit
 
-struct Batch: Generic::Batch
+struct Commit: Picturesque
 {
-	explicit Batch(Counter& counter_): Generic::Batch(counter_)
+	explicit Commit(const Generic::Flavor& generic_): Picturesque(generic_)
 	{
 	}
 
-	void accept(const domainReference_type& domain_, const Model& model_);
+	Result launch() const;
+	void commit(signal_type& batch_) const;
+
+	static int getEvent();
 
 private:
 	static void sweep(const QString& path_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Policy
+// struct Copy
 
-struct Policy: private Generic::Policy
+struct Copy: Picturesque
 {
-	explicit Policy(const domainReference_type& domain_): Generic::Policy(domain_)
+	explicit Copy(const Generic::Flavor& generic_): Picturesque(generic_)
 	{
 	}
 
-	result_type operator()(const imageList_type& imageList_, Counter& counter_);
+	Result launch(const QString& target_) const;
+	void abort(signal_type& batch_) const;
+
 	static int getEvent();
 };
 
-} // namespace Commit
-
-namespace Rebase
-{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Model
+// struct Rebase
 
-struct Model: Generic::Model
+struct Rebase: Generic::Flavor
 {
-	explicit Model(const xml_type& xml_): Generic::Model(xml_)
+	explicit Rebase(const Generic::Flavor& generic_): Generic::Flavor(generic_)
 	{
 	}
 
 	QString getImage() const;
-};
+	Result launch() const;
+	void abort(signal_type& batch_) const;
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Batch
-
-struct Batch: Generic::Batch
-{
-	explicit Batch(Counter& counter_): Generic::Batch(counter_)
-	{
-	}
-
-	void reject(const domainReference_type& domain_, const Model& model_);
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Policy
-
-struct Policy: private Generic::Policy
-{
-	explicit Policy(const domainReference_type& domain_): Generic::Policy(domain_)
-	{
-	}
-
-	result_type operator()(const imageList_type& imageList_, Counter& counter_);
 	static int getEvent();
 };
 
-} // namespace Rebase
+} // namespace Flavor
+
+namespace Generic
+{
+namespace Strategy
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit<Block::Flavor::Copy>
+
+template<>
+struct Unit<Block::Flavor::Copy>: Atomic<Block::Flavor::Copy>
+{
+	typedef QHash<QString, QString> map_type;
+
+	Unit(const QList<Block::Flavor::Copy>& componentList_,
+		const map_type& map_):
+		Atomic<Block::Flavor::Copy>(componentList_), m_map(map_)
+	{
+	}
+
+	bool launch(const Block::Flavor::Copy& flavor_, Counter& counter_) const;
+
+private:
+	const map_type m_map;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit<Block::Flavor::Commit>
+
+template<>
+struct Unit<Block::Flavor::Commit>: General
+{
+	void setStatus(const QString& component_, PRL_RESULT value_,
+		journal_type& journal_) const;
+	bool launch(const Block::Flavor::Commit& flavor_, Counter& counter_) const;
+	void connect(const Block::Flavor::Commit& component_, PRL_RESULT status_,
+		batch_type& batch_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit<Block::Flavor::Rebase>
+
+template<>
+struct Unit<Block::Flavor::Rebase>: Atomic<Block::Flavor::Rebase>
+{
+	explicit Unit(const QList<Block::Flavor::Rebase>& componentList_):
+		Atomic<Block::Flavor::Rebase>(componentList_)
+	{
+	}
+
+	bool launch(const Block::Flavor::Rebase& flavor_, Counter& counter_) const;
+};
+
+} // namespace Strategy
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Meter
+
+template<class T>
+struct Meter: Counter
+{
+	typedef Strategy::Unit<T> strategy_type;
+	typedef typename strategy_type::batch_type batch_type;
+	typedef typename strategy_type::journal_type journal_type;
+
+	Meter(const QList<T>& componentList_, const strategy_type& strategy_,
+		Completion& completion_):
+		Counter(componentList_, completion_), m_componentList(componentList_),
+		m_strategy(strategy_)
+	{
+	}
+
+protected:
+	product_type read_();
+	void account_(QString one_, PRL_RESULT status_);
+
+private:
+	QList<T> m_componentList;
+	journal_type m_journal;
+	strategy_type m_strategy;
+};
+
+} // namespace Generic
 } // namespace Block
 } // namespace Vm
 } // namespace Agent

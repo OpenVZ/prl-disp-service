@@ -32,6 +32,8 @@
 #include <QMutex>
 #include "CDspRegistry.h"
 #include "CDspClient.h"
+#include "CDspInstrument.h"
+#include "CDspTemplateFacade.h"
 #include "CDspDispConfigGuard.h"
 #include "CDspVmNetworkHelper.h"
 #include "CDspVmStateMachine.h"
@@ -105,7 +107,7 @@ void State::operator()(CVmConfiguration& config_) const
 } // namespace Device
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Vm
+// struct Vm declaration
 
 struct Vm: ::Vm::State::Machine
 {
@@ -139,12 +141,187 @@ struct Vm: ::Vm::State::Machine
 	PRL_VM_TOOLS_STATE getToolsState();
 
 private:
-	void updateDirectory(PRL_VM_TYPE type_);
-
 	QMutex m_mutex;
 	QSharedPointer<Stat::Storage> m_storage;
 	QSharedPointer<Network::Routing> m_routing;
 };
+
+namespace Update
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Chain
+
+template<class T>
+struct Chain: Instrument::Chain::Lsp<T, PRL_RESULT>
+{
+	typedef Instrument::Chain::Lsp<T, PRL_RESULT> base_type;
+
+	explicit Chain(const typename base_type::redo_type& redo_): base_type(redo_)
+	{
+	}
+
+	typename base_type::result_type handle(typename base_type::argument_type request_)
+	{
+		Q_UNUSED(request_);
+		T& t = static_cast<T& >(*this);
+		t.execute();
+
+		return PRL_ERR_SUCCESS;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Workbench
+
+struct Workbench: Template::Facade::Workbench
+{
+	typedef Template::Facade::Workbench base_type;
+	typedef CDspClient user_type;
+	typedef ::Vm::State::Machine machine_type;
+
+	Workbench(machine_type& machine_, user_type& user_, const base_type& base_):
+		base_type(base_), m_user(&user_), m_machine(&machine_)
+	{
+	}
+
+	user_type& getUser() const
+	{
+		return *m_user;
+	}
+	machine_type& getMachine() const
+	{
+		return *m_machine;
+	}
+
+private:
+	user_type* m_user;
+	machine_type* m_machine;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Adoption
+
+struct Adoption: Chain<Adoption>, private Workbench
+{
+	Adoption(CVmConfiguration& orphan_, const Workbench& workbench_, const redo_type& redo_):
+		Chain<Adoption>(redo_), Workbench(workbench_), m_orphan(&orphan_)
+	{
+	}
+
+	bool filter(argument_type request_) const;
+	void execute();
+
+private:
+	CVmConfiguration* m_orphan;
+};
+
+bool Adoption::filter(argument_type request_) const
+{
+	return PRL_ERR_VM_UUID_NOT_FOUND == request_ &&
+		getMachine().getHome().isEmpty();
+}
+
+void Adoption::execute()
+{
+	WRITE_TRACE(DBG_DEBUG, "New VM registered directly from libvirt");
+
+	QString u(m_orphan->getVmIdentification()->getVmUuid());
+	QString d(QDir(getUser().getUserDefaultVmDirPath())
+		.absoluteFilePath(::Vm::Config::getVmHomeDirName(u)));
+	QString f(QDir(d).absoluteFilePath(VMDIR_DEFAULT_VM_CONFIG_FILE));
+	getMachine().setHome(f);
+	m_orphan->getVmIdentification()->setHomePath(f);
+
+	WRITE_TRACE(DBG_DEBUG, "update VM directory item");
+
+	Template::Facade::Registrar r(getUser().getVmDirectoryUuid(), *m_orphan, *this);
+	PRL_RESULT e = r.begin();
+	if (PRL_SUCCEEDED(e))
+	{
+		if (PRL_FAILED(e = r.execute()))
+			r.rollback();
+		else
+			r.commit();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Compulsion
+
+struct Compulsion: Chain<Compulsion>, private Workbench
+{
+	typedef boost::signals2::signal<void (CVmConfiguration& )> script_type;
+
+	Compulsion(script_type& script_, const Workbench& workbench_, const redo_type& redo_):
+		Chain<Compulsion>(redo_), Workbench(workbench_), m_script(&script_)
+	{
+	}
+
+	bool filter(argument_type request_) const;
+	void execute();
+
+private:
+	script_type* m_script;
+};
+
+bool Compulsion::filter(argument_type request_) const
+{
+	return PRL_ERR_VM_UUID_NOT_FOUND == request_ &&
+		!getMachine().getHome().isEmpty();
+}
+
+void Compulsion::execute()
+{
+	QString h(getMachine().getHome());
+	SmartPtr<CDspClient> a(&getUser(), SmartPtrPolicy::DoNotReleasePointee);
+	SmartPtr<CVmConfiguration> b(new CVmConfiguration());
+	PRL_RESULT e = getConfigManager().loadConfig(b, h, a, true, false);
+	if (PRL_FAILED(e))
+	{
+		WRITE_TRACE(DBG_DEBUG, "cannot load VM config from %s: %s",
+			qPrintable(h), PRL_RESULT_TO_STRING(e));
+	}
+	else
+	{
+		(*m_script)(*b);
+		getConfigManager().saveConfig(b, h, a, true, true);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Complement
+
+struct Complement: Instrument::Command::Base
+{
+	Complement(CVmConfiguration& config_, Workbench::machine_type& machine_):
+		m_config(&config_), m_machine(&machine_)
+	{
+	}
+
+	result_type operator()(PRL_RESULT request_);
+
+private:
+	CVmConfiguration* m_config;
+	Workbench::machine_type* m_machine;
+};
+
+Complement::result_type Complement::operator()(PRL_RESULT request_)
+{
+	if (PRL_FAILED(request_))
+		return request_;
+
+	QString a(m_machine->getHome());
+	QString b(m_config->getVmIdentification()->getHomePath());
+	if (!b.isEmpty() && a != b)
+		m_machine->setHome(b);
+
+	return PRL_ERR_SUCCESS;
+}
+
+} // namespace Update
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vm definition
 
 Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 		const QSharedPointer<Network::Routing>& routing_):
@@ -187,62 +364,10 @@ void Vm::updateConfig(CVmConfiguration value_)
 			m_routing.data(), _1, boost::cref(value_)));
 	}
 	s.connect(boost::phoenix::placeholders::arg1 = boost::phoenix::cref(value_));
-	if (PRL_ERR_VM_UUID_NOT_FOUND != getConfigEditor()(s))
-		return;
-
-	SmartPtr<CDspClient> a(&getUser(), SmartPtrPolicy::DoNotReleasePointee);
-	SmartPtr<CVmConfiguration> b;
-	if (getHome().isEmpty())
-	{
-		WRITE_TRACE(DBG_DEBUG, "New VM registered directly from libvirt");
-		QString h = QDir(getUser().getUserDefaultVmDirPath())
-			.absoluteFilePath(::Vm::Config::getVmHomeDirName(getUuid()));
-		setHome(QDir(h).absoluteFilePath(VMDIR_DEFAULT_VM_CONFIG_FILE));
-		WRITE_TRACE(DBG_DEBUG, "update VM directory item");
-		updateDirectory(value_.getVmType());
-		value_.getVmIdentification()->setHomePath(getHome());
-
-		b = SmartPtr<CVmConfiguration>(&value_, SmartPtrPolicy::DoNotReleasePointee);
-	}
-	else
-	{
-		b = SmartPtr<CVmConfiguration>(new CVmConfiguration());
-		PRL_RESULT e = getService().getVmConfigManager()
-				.loadConfig(b, getHome(), a, true, false);
-		if (PRL_FAILED(e))
-		{
-			WRITE_TRACE(DBG_DEBUG, "cannot load VM config from %s: %s",
-				qPrintable(getHome()), PRL_RESULT_TO_STRING(e));
-			return;
-		}
-		s(*b);
-	}
-	getService().getVmConfigManager().saveConfig(b, getHome(), a, true, true);
-}
-
-void Vm::updateDirectory(PRL_VM_TYPE type_)
-{
-	typedef CVmDirectory::TemporaryCatalogueItem item_type;
-
-	CDspVmDirManager& m = getService().getVmDirManager();
-	QScopedPointer<item_type> t(new item_type(getUuid(), getHome(), getName()));
-	PRL_RESULT e = m.checkAndLockNotExistsExclusiveVmParameters
-				(QStringList(), t.data());
-	if (PRL_FAILED(e))
-		return;
-
-	QScopedPointer<CVmDirectoryItem> x(new CVmDirectoryItem());
-	x->setVmUuid(getUuid());
-	x->setVmName(getName());
-	x->setVmHome(getHome());
-	x->setVmType(type_);
-	x->setValid(PVE::VmValid);
-	x->setRegistered(PVE::VmRegistered);
-	e = getService().getVmDirHelper().insertVmDirectoryItem(getDirectory(), x.data());
-	if (PRL_SUCCEEDED(e))
-		x.take();
-
-	m.unlockExclusiveVmParameters(t.data());
+	Update::Workbench w(*this, getUser(), Update::Workbench::base_type(getService()));
+	Update::Adoption(value_, w,
+		Update::Compulsion(s, w,
+			Update::Complement(value_, *this)))(getConfigEditor()(s));
 }
 
 PRL_VM_TOOLS_STATE Vm::getToolsState()

@@ -45,6 +45,7 @@
 
 class CDspService;
 class Task_MoveVm;
+class CDspTaskManager;
 class CDspVmDirManager;
 class CVmConfiguration;
 class CDspHaClusterHelper;
@@ -76,6 +77,21 @@ struct Attribute
 
 private:
 	CAuthHelper* m_auth;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Remove
+
+struct Remove: Instrument::Command::Base
+{
+	explicit Remove(const QString& path_): m_path(path_)
+	{
+	}
+
+	result_type operator()();
+
+private:
+	const QString m_path;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -213,15 +229,51 @@ namespace Chain
 {
 namespace Move
 {
-typedef Instrument::Chain::Unit<QPair<QFileInfo, QFileInfo> > base_type;
-
 ///////////////////////////////////////////////////////////////////////////////
-// struct Copy
+// struct Request
 
-struct Copy: base_type
+struct Request: private QPair<QFileInfo, QFileInfo>
 {
-	Copy(Task_MoveVm& task_, bool attribute_):
-		m_attribute(attribute_), m_task(&task_)
+	Request(Task_MoveVm& context_, const QString& target_);
+
+	CVmIdent getObject() const;
+	QString getSourcePrivate() const
+	{
+		return getSourceConfig().absolutePath();
+	}
+	const QFileInfo& getSourceConfig() const
+	{
+		return first;
+	}       
+	QString getTargetPrivate() const
+	{
+		return getTargetConfig().absolutePath();
+	}       
+	const QFileInfo& getTargetConfig() const
+	{
+		return second;
+	}       
+	Task_MoveVm& getContext() const
+	{
+		return *m_context;
+	}
+
+private:
+	typedef QPair<QFileInfo, QFileInfo> base_type;
+
+	Task_MoveVm* m_context;
+};
+
+typedef Instrument::Chain::Unit<Request> base_type;
+
+namespace Copy
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Offline
+
+struct Offline: base_type
+{
+	explicit Offline(bool attribute_): m_attribute(attribute_)
 	{
 	}
 
@@ -229,23 +281,131 @@ struct Copy: base_type
 
 private:
 	bool m_attribute;
-	Task_MoveVm* m_task;
 };
+
+namespace Online
+{
+namespace Special
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Disk
+
+struct Disk
+{
+	explicit Disk(Task_MoveVm& thread_): m_thread(&thread_)
+	{
+	}
+
+	void add(const CVmHardDisk& value_)
+	{
+		m_source << value_;
+	}
+	PRL_RESULT execute(const QDir& target_);
+	PRL_RESULT prepare(const QDir& target_, CDspTaskManager& dispatcher_);
+
+private:
+	Task_MoveVm* m_thread;
+	QList<CVmHardDisk> m_source;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Facade
+
+struct Facade
+{
+	explicit Facade(Task_MoveVm& thread_): m_disk(thread_)
+	{
+	}
+
+	void account(const CVmHardDisk& value_)
+	{
+		m_disk.add(value_);
+	}
+	PRL_RESULT prepare(const QDir& target_);
+	PRL_RESULT execute(const QDir& target_)
+	{
+		return m_disk.execute(target_);
+	}
+
+private:
+	Disk m_disk;
+};
+
+} // namespace Special
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Regular
+
+struct Regular: Instrument::Command::Base
+{
+	typedef QList<QPair<QFileInfo, QString> > itemList_type;
+
+	Regular(const itemList_type& folders_, const itemList_type& files_,
+		Task_MoveVm& thread_):
+		m_thread(&thread_), m_files(files_), m_folders(folders_)
+	{
+	}
+
+	result_type operator()(const QDir& target_);
+
+private:
+	CAuthHelper* getAuth() const;
+
+	Task_MoveVm* m_thread;
+	itemList_type m_files;
+	itemList_type m_folders;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Estimate
+
+struct Estimate
+{
+	typedef Prl::Expected<Regular, PRL_RESULT> regular_type;
+	typedef Prl::Expected<Special::Facade, PRL_RESULT> special_type;
+
+	Estimate();
+
+	PRL_RESULT operator()(const Request& request_);
+	const regular_type& getRegular() const
+	{
+		return m_regular;
+	}
+	const special_type& getSpecial() const
+	{
+		return m_special;
+	}
+
+private:
+	regular_type m_regular;
+	special_type m_special;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Nexus
+
+struct Nexus: base_type
+{
+	explicit Nexus(const redo_type& redo_): base_type(redo_)
+	{
+	}
+
+	result_type operator()(const request_type& request_);
+};
+
+} // namespace Online
+} // namespace Copy
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Rename
 
 struct Rename: base_type
 {
-	Rename(Task_MoveVm& task_, const redo_type& redo_):
-		base_type(redo_), m_task(&task_)
+	explicit Rename(const redo_type& redo_): base_type(redo_)
 	{
 	}
 
 	result_type operator()(const request_type& request_);
-
-private:
-        Task_MoveVm* m_task;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -253,8 +413,8 @@ private:
 
 struct Import: base_type
 {
-	Import(Task_MoveVm& task_, Vm::Directory::Ephemeral& ephemeral_,
-		const redo_type& redo_): base_type(redo_), m_task(&task_),
+	Import(Vm::Directory::Ephemeral& ephemeral_,
+		const redo_type& redo_): base_type(redo_),
 		m_ephemeral(&ephemeral_)
 	{
 	}
@@ -262,7 +422,6 @@ struct Import: base_type
 	result_type operator()(const request_type& request_);
 
 private:
-	Task_MoveVm* m_task;
 	Vm::Directory::Ephemeral* m_ephemeral;
 };
 

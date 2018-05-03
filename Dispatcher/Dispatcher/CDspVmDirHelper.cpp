@@ -416,6 +416,7 @@ boost::logic::tribool Newcomer::isReconciled(const Native& native_) const
 		}
 		break;
 
+	case PVE::DspCmdDirVmMove:
 	case PVE::DspCmdDirVmMigrate:
 	case PVE::DspCmdDirVmMigrateClone:
 	case PVE::DspCmdVmCompact:
