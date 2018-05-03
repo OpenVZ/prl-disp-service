@@ -211,7 +211,9 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
 	for (int i = 0; i < l.size(); ++i) {
 		QFileInfo f(l.at(i).second.toLocalFile());
 		::Backup::Storage::Image a(f.absoluteFilePath());
-		QString base((x.size() ? x.at(i).second.toLocalFile() : ""));
+		QString base((x.size() ? 
+			f.absoluteDir().relativeFilePath(x.at(i).second.toLocalFile()) : 
+			""));
 
 		PRL_RESULT e = a.build(l.at(i).first.getDeviceSizeInBytes(),
 					base);
