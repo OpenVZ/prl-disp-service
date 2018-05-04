@@ -810,35 +810,12 @@ void CDspProblemReportHelper::FillVmProblemReportData
 	u.getConfig(strDomainDesc);
 	cReport.setVmDomain(strDomainDesc);
 
-	bool isRunning = CDspVm::getVmState(strVmUuid, strDirUuid) == VMS_RUNNING;
-
 	typedef Libvirt::Instrument::Agent::Vm::Screenshot screenshot_t;
 	Prl::Expected<screenshot_t, Error::Simple> x = u.getGuest().dumpScreen();
 	if (x.isSucceed()) {
 		QTemporaryFile a;
 		if (a.open() && PRL_SUCCEEDED(x.value().save(a.fileName(), "PNG")))
 			cReport.appendScreenshot(a.fileName(), "screenshot.png");
-	}
-
-	QTemporaryFile y;
-	if (y.open()) {
-		Prl::Expected<Libvirt::Instrument::Agent::Vm::Command::Future, Error::Simple> e = 
-			u.getGuest().dumpState(y.fileName());
-
-		if (e.isFailed() || e.value().wait(10000).isFailed())
-			WRITE_TRACE(DBG_DEBUG, "got an error while dumping state for a problem report");
-
-		// It doesn't matter if wait failed or migration failed, we need to try unpause VM.
-		VIRTUAL_MACHINE_STATE currentState = VMS_UNKNOWN;
-		if ((isRunning && u.getState().getValue(currentState).isFailed()) ||
-				(currentState == VMS_PAUSED && u.getState().unpause().isFailed()))
-		{
-			WRITE_TRACE(DBG_FATAL, "Unable to resume VM. VM %s may be paused", qPrintable(strVmUuid));
-		}
-
-		// Try to add file even after error
-		cReport.appendSystemLog(y.fileName(), "qemu-statefile.gz");
-		y.close();
 	}
 
 	const QDateTime minDumpTime = QDateTime::currentDateTime().addDays(-GUEST_CRASH_DUMPS_MAX_AGE_IN_DAYS);
