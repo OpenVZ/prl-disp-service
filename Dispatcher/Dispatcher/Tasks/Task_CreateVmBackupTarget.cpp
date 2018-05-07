@@ -219,6 +219,8 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
 					base);
 		if (PRL_FAILED(e))
 			return e;
+		if (!CFileHelper::setOwner(a.getPath(), &getClient()->getAuthHelper(), false))
+			return PRL_ERR_CANT_CHANGE_OWNER_OF_FILE;
 
 		m_lstTibFileList << f.fileName();
 

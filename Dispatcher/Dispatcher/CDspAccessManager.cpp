@@ -148,7 +148,7 @@ void CDspAccessManager::initAccessRights()
 	m_accessRights[PVE::DspCmdDirVmMigrate]           = PAIR( R | W | X	, PAR_VM_MIGRATE_ACCESS );
 	m_accessRights[PVE::DspCmdCtlMigrateTarget]       = PAIR( R | W | X	, PAR_VM_MIGRATE_ACCESS );
 	m_accessRights[PVE::DspCmdCtlStartMigratedVm]     = PAIR( R | X	, PAR_VM_START_ACCESS );
-	m_accessRights[PVE::DspCmdCreateVmBackup]         = PAIR( R | W | X	, PAR_VM_CREATE_BACKUP_ACCESS );
+	m_accessRights[PVE::DspCmdCreateVmBackup]         = PAIR( R, PAR_VM_CREATE_BACKUP_ACCESS );
 	m_accessRights[PVE::DspCmdRestoreVmBackup]        = PAIR( R | W | X	, PAR_VM_RESTORE_BACKUP_ACCESS );
 	m_accessRights[PVE::DspCmdDirVmEditBegin]         = PAIR( R | W	, PAR_VM_BEGINEDIT_ACCESS );
 	m_accessRights[PVE::DspCmdDirVmEditCommit]        = PAIR( R | W	, PAR_VM_COMMIT_ACCESS );
