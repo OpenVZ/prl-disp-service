@@ -286,7 +286,8 @@ PRL_NET_MODE PrlNet::getMode()
 QString PrlNet::Filter::Routed::operator()(const QNetworkInterface& iface) const
 {
 	if (!QFileInfo(QString("/sys/class/net/%1/device").arg(iface.name())).exists() &&
-		!QFileInfo(QString("/sys/class/net/%1/bridge").arg(iface.name())).exists())
+		!QFileInfo(QString("/sys/class/net/%1/bridge").arg(iface.name())).exists() &&
+		!iface.name().startsWith("bond"))
 		return QString();
 
 	if (iface.addressEntries().isEmpty())
