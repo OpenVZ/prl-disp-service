@@ -36,6 +36,9 @@
 
 #include "Task_MoveVm.h"
 #include "Task_MoveVm_p.h"
+#include "CDspTaskManager.h"
+#include <boost/foreach.hpp>
+#include "Task_CreateImage.h"
 #include "CDspTemplateFacade.h"
 #include "CDspTemplateScanner.h"
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
@@ -43,8 +46,11 @@
 #include "CDspService.h"
 #include "CFileHelperDepPart.h"
 #include "CDspHaClusterHelper.h"
+#include "CDspVmBackupInfrastructure_p.h"
+#include <prlcommon/HostUtils/PCSUtils.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/Std/PrlAssert.h>
+#include "Libraries/PrlCommonUtils/CVmMigrateHelper.h"
 
 using namespace Parallels;
 
@@ -80,8 +86,6 @@ PRL_RESULT Task_MoveVm::prepareTask()
 	QFileInfo fiNewBundle;
 	QString sNewVmBundle;
 	CDspLockedPointer<CVmEvent> pParams = getTaskParameters();
-
-	VIRTUAL_MACHINE_STATE vmState;
 
 	WRITE_TRACE(DBG_DEBUG, "Move Vm %s to %s, flags %u", QSTR2UTF8(m_sVmUuid), QSTR2UTF8(m_sNewVmHome), m_nFlags);
 
@@ -175,20 +179,6 @@ PRL_RESULT Task_MoveVm::prepareTask()
 		goto exit;
 	}
 	m_nSteps |= MOVE_VM_EXCL_OP_REGISTERED;
-
-	if (!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
-	{
-		vmState = CDspVm::getVmState( m_sVmUuid, m_sVmDirUuid );
-		if ((VMS_SUSPENDED != vmState) && (VMS_STOPPED != vmState)) {
-			WRITE_TRACE(DBG_FATAL, "Error: can't move Vm home, Vm state is forbidden! (state = %#x, '%s')",
-					vmState, PRL_VM_STATE_TO_STRING( vmState ) );
-			nRetCode = CDspTaskFailure(*this)
-				.setCode(PRL_ERR_DISP_VM_COMMAND_CANT_BE_EXECUTED)
-				(m_pVmConfig->getVmIdentification()->getVmName(), PRL_VM_STATE_TO_STRING(vmState));
-			goto exit;
-		}
-	}
-
 	/* lock Vm exclusive parameters */
 	m_pVmInfo = SmartPtr<CVmDirectory::TemporaryCatalogueItem>(new CVmDirectory::TemporaryCatalogueItem(
 			m_sVmUuid, m_sNewVmConfigPath, m_pVmConfig->getVmIdentification()->getVmName()));
@@ -237,10 +227,11 @@ PRL_RESULT Task_MoveVm::run_body()
 	}
 	if (PRL_SUCCEEDED(output))
 	{
-		Chain::Move::Import x(*this, *m_ephemeral,
-			Chain::Move::Rename(*this,
-				Chain::Move::Copy(*this, m_isFsSupportPermsAndOwner)));
-		output = x(qMakePair(QFileInfo(m_sOldVmConfigPath), QFileInfo(m_sNewVmConfigPath)));
+		Chain::Move::Import x(*m_ephemeral,
+			Chain::Move::Copy::Online::Nexus(
+				Chain::Move::Rename(
+					Chain::Move::Copy::Offline(m_isFsSupportPermsAndOwner))));
+		output = x(Chain::Move::Request(*this, m_sNewVmConfigPath));
 	}
 	setLastErrorCode(output);
 	return output;
@@ -303,6 +294,20 @@ void Attribute::operator()(const QFileInfo& source_, const QFileInfo& target_)
 		WRITE_TRACE(DBG_FATAL, "Can not set owner for %s",
 			qPrintable(t));
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Remove
+
+Remove::result_type Remove::operator()()
+{
+	if (!CFileHelper::ClearAndDeleteDir(m_path))
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot remove directory '%s'", qPrintable(m_path));
+		return PRL_ERR_CANT_REMOVE_ENTRY;
+	}
+
+	return PRL_ERR_SUCCESS;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -562,45 +567,244 @@ namespace Chain
 namespace Move
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Copy
+// struct Request
 
-Copy::result_type Copy::operator()(const request_type& request_)
+Request::Request(Task_MoveVm& context_, const QString& target_):
+	base_type(QFileInfo(), QFileInfo(target_)), m_context(&context_)
+{
+	const SmartPtr<CVmConfiguration>& x = context_.getVmConfig();
+	if (x.isValid())
+		first = QFileInfo(x->getVmIdentification()->getHomePath());
+}
+
+CVmIdent Request::getObject() const
+{
+	return MakeVmIdent(m_context->getVmUuid(), m_context->getVmDirectory());
+}
+
+namespace Copy
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Offline
+
+Offline::result_type Offline::operator()(const request_type& request_)
 {
 	Instrument::Command::Batch b;
-	QString s = request_.first.absolutePath();
-	QString t = request_.second.absolutePath();
+	QString s = request_.getSourcePrivate();
+	QString t = request_.getTargetPrivate();
 
-	Command::Move::Copy x(*m_task);
+	Command::Move::Copy x(request_.getContext());
 	if (m_attribute)
 	{
 		x.setAttribute(Command::Move::Attribute
-			(m_task->getClient()->getAuthHelper()));
+			(request_.getContext().getClient()->getAuthHelper()));
 	}
 	b.addItem(boost::bind(x, QFileInfo(s), QFileInfo(t)),
-		boost::bind(&CFileHelper::ClearAndDeleteDir, t));
-	Command::Move::Directory d(MakeVmIdent(m_task->getVmUuid(), m_task->getVmDirectory()));
-	b.addItem(boost::bind(d, request_.second), boost::bind<void>(d, request_.first));
-	Command::Move::Config c(m_task->getVmDirectory(), m_task->getVmConfig());
-	b.addItem(boost::bind(c, request_.second), boost::bind<void>(c, request_.first));
-	b.addItem(boost::bind(Command::Move::Cluster(m_task->getVmConfig()), s, t));
-	b.addItem(boost::bind(&CFileHelper::ClearAndDeleteDir, s));
-	b.addItem(Command::Move::Libvirt(*m_task));
+		Command::Move::Remove(t));
+	Command::Move::Directory d(request_.getObject());
+	b.addItem(boost::bind(d, request_.getTargetConfig()),
+		boost::bind<void>(d, request_.getSourceConfig()));
+	Command::Move::Config c(request_.getContext().getVmDirectory(),
+		request_.getContext().getVmConfig());
+	b.addItem(boost::bind(c, request_.getTargetConfig()),
+		boost::bind<void>(c, request_.getSourceConfig()));
+	b.addItem(boost::bind(Command::Move::Cluster
+		(request_.getContext().getVmConfig()), s, t));
+	b.addItem(Command::Move::Remove(s));
+	b.addItem(Command::Move::Libvirt(request_.getContext()));
 
 	return b.execute();
 }
+
+namespace Online
+{
+namespace Special
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Disk
+
+PRL_RESULT Disk::execute(const QDir& target_)
+{
+	if (m_source.isEmpty())
+		return PRL_ERR_UNINITIALIZED;
+
+	namespace mb = ::Libvirt::Instrument::Agent::Vm::Block;
+	QHash<QString, CVmHardDisk> m;
+	foreach (const CVmHardDisk& i, m_source)
+	{
+		m[target_.absoluteFilePath(i.getSystemName())] = i;
+	}
+	mb::Completion c;
+	mb::Activity a = ::Libvirt::Kit.vms().at(m_thread->getVmUuid())
+			.getVolume().copy(m, c);
+	c.wait();
+	return a.stop();
+}
+
+PRL_RESULT Disk::prepare(const QDir& target_, CDspTaskManager& dispatcher_)
+{
+	typedef CDspTaskFuture<Task_CreateImage> future_type;
+
+	QList<future_type> t;
+	SmartPtr<CDspClient> c = m_thread->getClient();
+	SmartPtr<IOPackage> p(DispatcherPackage::createInstance
+		(PVE::DspCmdDirCreateImage, new CProtoCreateImageCommand()));
+	foreach (CVmHardDisk i, m_source)
+	{
+		i.setSystemName(target_.absoluteFilePath(i.getSystemName()));
+		i.setUserFriendlyName(i.getSystemName());
+		t << dispatcher_.schedule(new Task_CreateImage(
+			c, p, m_thread->getVmConfig(),
+			ElementToString(&i, XML_VM_CONFIG_EL_HARD_DISK),
+			true, false));
+	}
+	PRL_RESULT output = PRL_ERR_SUCCESS;
+	BOOST_FOREACH(future_type& f, t)
+	{
+		PRL_RESULT e = f.wait().getTask()->getLastErrorCode();
+		if (PRL_FAILED(e) && PRL_SUCCEEDED(output))
+			output = e;
+	}
+
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Facade
+
+PRL_RESULT Facade::prepare(const QDir& target_)
+{
+	return m_disk.prepare(target_, CDspService::instance()->getTaskManager());
+}
+
+} // namespace Special
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Regular
+
+Regular::result_type Regular::operator()(const QDir& target_)
+{
+	foreach (itemList_type::const_reference f, m_folders)
+	{
+		if (!CFileHelper::WriteDirectory
+			(target_.absoluteFilePath(f.second), getAuth()))
+			return PRL_ERR_MAKE_DIRECTORY;
+	}
+	int i = 0;
+	foreach (itemList_type::const_reference f, m_files)
+	{
+		PRL_RESULT e = CFileHelperDepPart::CopyFileWithNotifications(
+			f.first.absoluteFilePath(),
+			target_.absoluteFilePath(f.second),
+			getAuth(), m_thread, PDE_CLUSTERED_DEVICE, i++);
+		if (PRL_FAILED(e))
+			return e;
+	}
+
+	return PRL_ERR_SUCCESS;
+}
+
+CAuthHelper* Regular::getAuth() const
+{
+	return &(m_thread->getClient()->getAuthHelper());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Estimate
+
+Estimate::Estimate(): m_regular(PRL_ERR_UNINITIALIZED), m_special(PRL_ERR_UNINITIALIZED)
+{
+}
+
+PRL_RESULT Estimate::operator()(const Request& request_)
+{
+	typedef Regular::itemList_type itemList_type;
+	itemList_type d, f;
+	QString s(request_.getSourcePrivate());
+
+	m_regular = regular_type(PRL_ERR_FAILURE);
+	m_special = special_type(PRL_ERR_FAILURE);
+	PRL_RESULT e = CVmMigrateHelper::GetEntryListsVmHome(s, d, f);
+	if (PRL_FAILED(e))
+		return e;
+
+	m_special = Special::Facade(request_.getContext());
+	foreach (CVmHardDisk* d, ::Backup::Object::Model
+		(request_.getContext().getVmConfig()).getImages())
+	{
+		if (PVE::DeviceConnected != d->getConnected())
+			continue;
+
+		QString n(d->getSystemName());
+		if (QFileInfo(n).isAbsolute())
+		{
+			if (!n.startsWith(s))
+				continue;
+
+			n = QDir(s).relativeFilePath(n);
+		}
+		m_special.value().account(*d);
+		itemList_type::iterator p = std::find_if(f.begin(), f.end(),
+			boost::bind(&itemList_type::value_type::second, _1) ==
+				boost::cref(n));
+		if (f.end() != p)
+			f.erase(p);
+	}
+	m_regular = Regular(d, f, request_.getContext());
+
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Nexus
+
+Nexus::result_type Nexus::operator()(const request_type& request_)
+{
+	VIRTUAL_MACHINE_STATE s = CDspVm::getVmState(request_.getObject());
+	if (!(VMS_RUNNING == s || s == VMS_PAUSED))
+		return Unit<request_type>::operator()(request_);
+
+	Estimate x;
+	PRL_RESULT e = x(request_);
+	if (PRL_FAILED(e))
+		return e;
+
+	Instrument::Command::Batch b;
+	QString t = request_.getTargetPrivate();
+	b.addItem(boost::bind(x.getRegular().value(), QDir(t)),
+		Command::Move::Remove(t));
+	b.addItem(boost::bind(&Special::Facade::prepare, x.getSpecial().value(), QDir(t)));
+	Command::Move::Directory d(request_.getObject());
+	b.addItem(boost::bind(d, request_.getTargetConfig()),
+		boost::bind<void>(d, request_.getSourceConfig()));
+	Command::Move::Config c(request_.getContext().getVmDirectory(),
+		request_.getContext().getVmConfig());
+	b.addItem(boost::bind(c, request_.getTargetConfig()),
+		boost::bind<void>(c, request_.getSourceConfig()));
+	b.addItem(boost::bind(Command::Move::Cluster(request_.getContext().getVmConfig()),
+		request_.getSourcePrivate(), t));
+	b.addItem(boost::bind(&Special::Facade::execute, x.getSpecial().value(), QDir(t)));
+	b.addItem(Command::Move::Remove(request_.getSourcePrivate()));
+	b.addItem(Command::Move::Libvirt(request_.getContext()));
+
+	return b.execute();
+}
+
+} // namespace Online
+} // namespace Copy
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Rename
 
 Rename::result_type Rename::operator()(const request_type& request_)
 {
-	QString s = request_.first.absolutePath();
+	QString s = request_.getSourcePrivate();
 	QString x = CFileHelper::GetMountPoint(s);
 	if (x.isEmpty())
 		return PRL_ERR_OPERATION_FAILED;
 
-	QDir p = request_.second.absoluteDir();
-	QString t = p.absolutePath();
+	QString t = request_.getTargetPrivate();
+	QDir p(t);
 	if (!p.cdUp())
 		return PRL_ERR_UNEXPECTED;
 
@@ -608,17 +812,20 @@ Rename::result_type Rename::operator()(const request_type& request_)
 	if (y.isEmpty())
 		return PRL_ERR_OPERATION_FAILED;
 
-	if (x != y)
+	if (x != y || pcs_fs(qPrintable(y)))
 		return Unit<request_type>::operator()(request_);
 
 	Instrument::Command::Batch b;
 	b.addItem(Command::Move::Rename(s, t), boost::bind<void>(Command::Move::Rename(t, s)));
-	Command::Move::Directory d(MakeVmIdent(m_task->getVmUuid(), m_task->getVmDirectory()));
-	b.addItem(boost::bind(d, request_.second), boost::bind<void>(d, request_.first));
-	Command::Move::Config c(m_task->getVmDirectory(), m_task->getVmConfig());
-	b.addItem(boost::bind(c, request_.second), boost::bind<void>(c, request_.first));
-	b.addItem(boost::bind(Command::Move::Cluster(m_task->getVmConfig()), s, t));
-	b.addItem(Command::Move::Libvirt(*m_task));
+	Command::Move::Directory d(request_.getObject());
+	b.addItem(boost::bind(d, request_.getTargetConfig()),
+		boost::bind<void>(d, request_.getSourceConfig()));
+	Command::Move::Config c(request_.getContext().getVmDirectory(),
+		request_.getContext().getVmConfig());
+	b.addItem(boost::bind(c, request_.getTargetConfig()),
+		boost::bind<void>(c, request_.getSourceConfig()));
+	b.addItem(boost::bind(Command::Move::Cluster(request_.getContext().getVmConfig()), s, t));
+	b.addItem(Command::Move::Libvirt(request_.getContext()));
 
 	return b.execute();
 }
@@ -631,17 +838,17 @@ namespace ts = Template::Storage;
 
 Import::result_type Import::operator()(const request_type& request_)
 {
-	SmartPtr<CVmConfiguration> x = m_task->getVmConfig();
+	SmartPtr<CVmConfiguration> x = request_.getContext().getVmConfig();
 	if (!x.isValid())
 		return PRL_ERR_UNINITIALIZED;
 
 	ts::Dao::pointer_type p;
-	ts::Dao d(m_task->getClient()->getAuthHelper());
-	PRL_RESULT e = d.findForEntry(request_.first.absolutePath(), p);
+	ts::Dao d(request_.getContext().getClient()->getAuthHelper());
+	PRL_RESULT e = d.findForEntry(request_.getSourcePrivate(), p);
 	if (PRL_SUCCEEDED(e))
 		return PRL_ERR_VM_REQUEST_NOT_SUPPORTED;
 
-	QString a = request_.second.absolutePath();
+	QString a = request_.getTargetPrivate();
 	e = d.findForEntry(a, p);
 	if (PRL_FAILED(e))
 		return Unit<request_type>::operator()(request_);
@@ -668,15 +875,16 @@ Import::result_type Import::operator()(const request_type& request_)
 
 	Instrument::Command::Batch b;
 	tf::Registrar y(u.get(), *x, w);
-	x->getVmIdentification()->setHomePath(request_.second.absoluteFilePath());
+	x->getVmIdentification()->setHomePath(request_.getTargetConfig().absoluteFilePath());
 	b.addItem(boost::bind(&tf::Registrar::begin, &y), boost::bind(&tf::Registrar::rollback, &y));
-	Command::Move::Storage s(*m_task, request_.first.absolutePath(), p.take());
+	Command::Move::Storage s(request_.getContext(), request_.getSourcePrivate(), p.take());
 	b.addItem(boost::bind(&Command::Move::Storage::import, s),
 		boost::bind(&Command::Move::Storage::sweep, s));
 	b.addItem(boost::bind(&Command::Move::Storage::query, s));
-	b.addItem(boost::bind(&CFileHelper::ClearAndDeleteDir, request_.first.absolutePath()));
+	b.addItem(Command::Move::Remove(request_.getSourcePrivate()));
 	b.addItem(boost::bind(&CDspVmDirHelper::deleteVmDirectoryItem,
-		&w.getDirectoryHelper(), m_task->getVmDirectory(), m_task->getVmUuid()));
+		&w.getDirectoryHelper(), request_.getContext().getVmDirectory(),
+			request_.getContext().getVmUuid()));
 	b.addItem(boost::bind(&tf::Registrar::execute, &y));
 	b.addItem(boost::bind(&tf::Registrar::commit, &y));
 

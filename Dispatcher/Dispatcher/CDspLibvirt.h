@@ -247,6 +247,7 @@ struct Unit
 		return m_disk;
 	}
 	Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> getProgress() const;
+	Result copy(const CVmHardDisk& target_) const;
 	Result commit() const;
 	Result rebase(const QString& base_) const;
 
@@ -295,21 +296,33 @@ private:
 
 struct Counter: QObject
 {
-	Counter(const QSet<QString>& initial_, Completion& receiver_):
-		m_receiver(&receiver_), m_pending(initial_)
+	typedef boost::function<PRL_RESULT ()> product_type;
+
+	template<class T>
+	Counter(const QList<T>& componentList_, Completion& receiver_):
+		m_receiver(&receiver_)
 	{
+		foreach(const T& c, componentList_)
+		{
+			m_pending << c.getTarget();
+		}
 		if (m_pending.isEmpty())
 			m_receiver->occur();
 	}
 
-	void account(const QString& one_);
+	void account(const QString& one_, PRL_RESULT status_);
 	void reset();
+	product_type read();
+
+protected:
+	void account_(QString one_);
+	Q_INVOKABLE virtual product_type read_() = 0;
+	Q_INVOKABLE virtual void account_(QString one_, PRL_RESULT status_) = 0;
+	Q_INVOKABLE void reset_();
 
 private:
 	Q_OBJECT
 
-	Q_INVOKABLE void account_(QString one_);
-	Q_INVOKABLE void reset_();
 
 	Completion* m_receiver;
 	QSet<QString> m_pending;
@@ -326,7 +339,7 @@ struct Callback
 	}
 	~Callback();
 
-	void do_(int event_, const QString& object_);
+	void do_(int event_, const QString& object_, PRL_RESULT status_);
 
 private:
 	int m_filter;
@@ -340,8 +353,8 @@ struct Tracker: boost::noncopyable
 {
 	explicit Tracker(QSharedPointer<virDomain> domain_);
 
-	Result start(QSharedPointer<Counter> callback_, int event_);
-	Result stop();
+	Result start(QSharedPointer<Counter> counter_, int event_);
+	Prl::Expected<Counter::product_type, ::Error::Simple> stop();
 
 private:
 	static void react(virConnectPtr, virDomainPtr, const char * disk_,
@@ -350,6 +363,7 @@ private:
 
 	int m_ticket;
 	int m_ticket2;
+	QSharedPointer<Counter> m_counter;
 	QSharedPointer<virDomain> m_domain;
 };
 
@@ -358,20 +372,17 @@ private:
 
 struct Activity
 {
-	typedef boost::function<void ()> callback_type;
-
 	Activity()
 	{
 	}
-	Activity(const QSharedPointer<Tracker>& tracker_, const callback_type& callback_):
-		m_callback(callback_), m_tracker(tracker_)
+	explicit Activity(const QSharedPointer<Tracker>& tracker_):
+		m_tracker(tracker_)
 	{
 	}
 
-	void stop();
+	PRL_RESULT stop();
 
 private:
-	callback_type m_callback;
 	QSharedPointer<Tracker> m_tracker;
 };
 
@@ -387,12 +398,13 @@ struct Launcher: private Limb::Abstract
 	{
 	}
 
+	Activity copy(const QHash<QString, CVmHardDisk>& imageList_, Completion& completion_);
 	Activity merge(const imageList_type& imageList_, Completion& completion_);
 	Activity rebase(const imageList_type& imageList_, Completion& completion_);
 
 private:
-	template<class T>
-	Activity start(T policy_, const imageList_type& imageList_, Completion& completion_);
+	template<class T, class U>
+	Activity start(T strategy_, const QList<U>& componentList_, Completion& completion_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

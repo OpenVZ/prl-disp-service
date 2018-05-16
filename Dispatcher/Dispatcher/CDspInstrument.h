@@ -36,6 +36,7 @@
 #include <QPair>
 #include <prlsdk/PrlErrors.h>
 #include <boost/function.hpp>
+#include <boost/call_traits.hpp>
 
 namespace Instrument
 {
@@ -103,6 +104,33 @@ struct Unit
 
 private:
 	redo_type m_redo;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Lsp
+// NB. is an acronum for label switched path
+
+template<class T, class U>
+struct Lsp: Unit<U>
+{
+	typedef typename
+		boost::call_traits
+		<
+			typename Unit<U>::request_type
+		>::param_type argument_type;
+
+	explicit Lsp(const typename Unit<U>::redo_type& redo_): Unit<U>(redo_)
+	{
+	}
+
+	PRL_RESULT operator()(argument_type request_)
+	{
+		T& t = static_cast<T& >(*this);
+		if (t.filter(request_))
+			return t.handle(request_);
+
+		return Unit<U>::operator()(request_);
+	}
 };
 
 } // namespace Chain

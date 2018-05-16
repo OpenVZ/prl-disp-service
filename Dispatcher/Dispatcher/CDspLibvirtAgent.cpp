@@ -30,13 +30,20 @@
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/combine.hpp>
-#include <boost/algorithm/string/replace.hpp>
+#include <boost/phoenix/function.hpp>
+#include <boost/phoenix/operator.hpp>
+#include <boost/phoenix/scope/let.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <Libraries/Transponster/Direct.h>
-#include <Libraries/Transponster/Reverse.h>
-#include <Libraries/PrlNetworking/netconfig.h>
 #include <prlcommon/HostUtils/HostUtils.h>
+#include <boost/phoenix/core/argument.hpp>
+#include <boost/phoenix/core/reference.hpp>
+#include <Libraries/Transponster/Reverse.h>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <Libraries/PrlNetworking/netconfig.h>
+#include <boost/phoenix/scope/local_variable.hpp>
+#include <boost/phoenix/bind/bind_function_object.hpp>
 
 #include <vzctl/libvzctl.h>
 
@@ -2080,50 +2087,148 @@ namespace Block
 namespace Generic
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Model
+// struct Flavor
 
-QString Model::getTarget() const
+QString Flavor::getTarget() const
 {
 	return Transponster::Vm::Reverse::Device<CVmHardDisk>::getTargetName(getXml());
 }
 
+void Flavor::commit(signal_type& batch_) const
+{
+	batch_.connect(boost::bind(&Unit::finish, getAgent()));
+}
+
 ///////////////////////////////////////////////////////////////////////////////
-// struct Batch
+// struct Meter
 
-Batch::Batch(Counter& counter_): m_counter(&counter_), m_signal(new signal_type())
+template<class T>
+Counter::product_type Meter<T>::read_()
 {
+	PRL_RESULT e = PRL_ERR_UNINITIALIZED;
+	boost::shared_ptr<batch_type> b(new batch_type());
+	foreach(const T& c, m_componentList)
+	{
+		QString t(c.getTarget());
+		if (!m_journal.contains(t))
+			continue;
+
+		PRL_RESULT s = m_journal[t];
+		if (PRL_FAILED(e))
+			e = s;
+
+		m_strategy.connect(c, s, *b);
+	}
+
+	namespace bp = boost::phoenix;
+	return bp::let(bp::local_names::_a = bp::val(b), bp::local_names::_b = bp::val(e))
+		[bp::bind(bp::ref(*bp::local_names::_a)), bp::val(bp::local_names::_b)];
 }
 
-void Batch::accept(const domainReference_type& domain_, const Model& model_)
+template<class T>
+void Meter<T>::account_(QString one_, PRL_RESULT status_)
 {
-	getSignal().connect(boost::bind(&Unit::finish, Unit(domain_, model_.getTarget())));
+	m_strategy.setStatus(one_, status_, m_journal);
+	if (m_componentList.size() == m_journal.size())
+	{
+		typedef typename journal_type::key_type key_type;
+		foreach(const key_type& k, m_journal.keys())
+		{
+			Counter::account_(k);
+		}
+	}
+	else
+		Counter::account_(one_);
 }
 
-void Batch::reject(const Model& model_)
+namespace Strategy
 {
-	m_counter->account(model_.getTarget());
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit<Block::Flavor::Copy>
+
+bool Unit<Block::Flavor::Copy>::launch
+	(const Block::Flavor::Copy& flavor_, Counter& counter_) const
+{
+	QString t(flavor_.getTarget());
+	Result e = flavor_.launch(m_map[t]);
+	if (e.isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "unable to copy the disk '%s'",
+			qPrintable(t));
+	}
+
+	return treat(counter_, e);
 }
 
-Batch::result_type Batch::getResult() const
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit<Block::Flavor::Commit>
+
+void Unit<Block::Flavor::Commit>::setStatus(const QString& component_,
+	PRL_RESULT value_, QHash<QString, PRL_RESULT>& journal_) const
 {
-	void (signal_type::* f)() const = &signal_type::operator();
-	return boost::bind(f, m_signal);
+	// NB. success means the job is ready
+	if (PRL_SUCCEEDED(value_))
+		journal_[component_] = PRL_ERR_SUCCESS;
 }
 
+bool Unit<Block::Flavor::Commit>::launch
+	(const Block::Flavor::Commit& flavor_, Counter& counter_) const
+{
+	Result e = flavor_.launch();
+	if (e.isFailed())
+	{
+		QString t(flavor_.getTarget());
+		counter_.account(t, e.error().code());
+		WRITE_TRACE(DBG_FATAL, "unable to merge the disk '%s'",
+			qPrintable(t));
+	}
+
+	return false;
+}
+
+void Unit<Block::Flavor::Commit>::connect
+	(const Block::Flavor::Commit& component_, PRL_RESULT status_, batch_type& batch_)
+{
+	if (PRL_SUCCEEDED(status_))
+		component_.commit(batch_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit<Block::Flavor::Rebase>
+
+bool Unit<Block::Flavor::Rebase>::launch
+	(const Block::Flavor::Rebase& flavor_, Counter& counter_) const
+{
+	Result e = flavor_.launch();
+	if (e.isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "unable to rebase the disk '%s'",
+			qPrintable(flavor_.getTarget()));
+	}
+
+	return treat(counter_, e);
+}
+
+} // namespace Strategy
 } // namespace Generic
 
-namespace Commit
+namespace Flavor
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Batch
+// struct Commit
 
-void Batch::accept(const domainReference_type& domain_, const Model& model_)
+Result Commit::launch() const
 {
-	Generic::Batch::accept(domain_, model_);
-	getSignal().connect(boost::bind(&Batch::sweep, model_.getImage()));
+	return getAgent().commit();
 }
 
-void Batch::sweep(const QString& path_)
+void Commit::commit(signal_type& batch_) const
+{
+	Generic::Flavor::commit(batch_);
+	batch_.connect(boost::bind(&Commit::sweep, getImage()));
+}
+
+void Commit::sweep(const QString& path_)
 {
 	// VIR_DOMAIN_BLOCK_COMMIT_DELETE is not implemented for qemu so we need this
 	if (!QFile::remove(path_))
@@ -2133,42 +2238,36 @@ void Batch::sweep(const QString& path_)
 	}
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Policy
-
-Policy::result_type Policy::operator()(const imageList_type& imageList_, Counter& counter_)
-{
-	Batch b(counter_);
-	BOOST_FOREACH(const CVmHardDisk& i, imageList_)
-	{
-		Model m(i);
-		Result r = Unit(getDomain(), m.getTarget()).commit();
-		if (r.isSucceed())
-			b.accept(getDomain(), m);
-		else
-		{
-			b.reject(m);
-			WRITE_TRACE(DBG_FATAL, "unable to merge the disk '%s'",
-				qPrintable(m.getTarget()));
-		}
-	}
-
-	return b.getResult();
-}
-
-int Policy::getEvent()
+int Commit::getEvent()
 {
 	return VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT;
 }
 
-} // namespace Commit
-
-namespace Rebase
-{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Model
+// struct Copy
 
-QString Model::getImage() const
+Result Copy::launch(const QString& target_) const
+{
+	CVmHardDisk d(getXml());
+	d.setSystemName(target_);
+	d.setUserFriendlyName(target_);
+	return getAgent().copy(d);
+}
+
+void Copy::abort(signal_type& batch_) const
+{
+	batch_.connect(boost::bind(&Unit::abort, getAgent()));
+}
+
+int Copy::getEvent()
+{
+	return VIR_DOMAIN_BLOCK_JOB_TYPE_COPY;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Rebase
+
+QString Rebase::getImage() const
 {
 	int z = getXml().m_lstPartition.size();
 	if (2 > z)
@@ -2177,58 +2276,22 @@ QString Model::getImage() const
 	return getXml().m_lstPartition[z - 2]->getSystemName();
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Batch
-
-void Batch::reject(const domainReference_type& domain_, const Model& model_)
+Result Rebase::launch() const
 {
-	Generic::Batch::reject(model_);
-	Unit(domain_, model_.getTarget()).abort();
+	return getAgent().rebase(getImage());
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Policy
-
-Policy::result_type Policy::operator()(const imageList_type& imageList_, Counter& counter_)
+void Rebase::abort(signal_type& batch_) const
 {
-	Result e;
-	Batch b(counter_);
-	BOOST_FOREACH(const CVmHardDisk& i, imageList_)
-	{
-		Model m(i);
-		e = Unit(getDomain(), m.getTarget()).rebase(m.getImage());
-		if (e.isFailed())
-		{
-			WRITE_TRACE(DBG_FATAL, "unable to rebase the disk '%s'",
-				qPrintable(m.getTarget()));
-			break;
-		}
-	}
-	if (e.isFailed())
-	{
-		BOOST_FOREACH(const CVmHardDisk& i, imageList_)
-		{
-			b.reject(getDomain(), Model(i));
-		}
-	}
-	else
-	{
-		BOOST_FOREACH(const CVmHardDisk& i, imageList_)
-		{
-			b.accept(getDomain(), Model(i));
-		}
-	}
-
-	return b.getResult();
+	batch_.connect(boost::bind(&Unit::abort, getAgent()));
 }
 
-int Policy::getEvent()
+int Rebase::getEvent()
 {
 	return VIR_DOMAIN_BLOCK_JOB_TYPE_PULL;
 }
 
-
-} // namespace Rebase
+} // namespace Flavor
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
@@ -2244,6 +2307,29 @@ Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> Unit::getProgress() 
 		return e.error();
 	
 	return std::make_pair(info.cur, info.end);
+}
+
+Result Unit::copy(const CVmHardDisk& target_) const
+{
+	Prl::Expected<QString, ::Error::Simple> t =
+		Transponster::Vm::Reverse::Device<CVmHardDisk>
+			::getPlugXml(target_);
+	if (t.isFailed())
+		return t.error();
+
+	quint32 flags = VIR_DOMAIN_BLOCK_COPY_SHALLOW |
+		VIR_DOMAIN_BLOCK_COPY_TRANSIENT_JOB | VIR_DOMAIN_BLOCK_COPY_REUSE_EXT;
+	WRITE_TRACE(DBG_DEBUG, "copy blocks for the disk %s", qPrintable(m_disk));
+	WRITE_TRACE(DBG_DEBUG, "the copy target is\n%s", qPrintable(t.value()));
+	if (0 != virDomainBlockCopy(m_domain.data(), qPrintable(m_disk),
+		qPrintable(t.value()), NULL, 0, flags))
+	{
+		WRITE_TRACE(DBG_FATAL, "failed to copy blocks for the disk %s",
+			qPrintable(m_disk));
+		return Failure(PRL_ERR_FAILURE);
+	}
+
+	return Result();
 }
 
 Result Unit::commit() const
@@ -2296,10 +2382,15 @@ Result Unit::finish() const
 		return e.error();
 	}
 	int f = 0;
-	if (VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT == x.type)
+	switch (x.type)
+	{
+	case VIR_DOMAIN_BLOCK_JOB_TYPE_COPY:
+	case VIR_DOMAIN_BLOCK_JOB_TYPE_ACTIVE_COMMIT:
 		f = VIR_DOMAIN_BLOCK_JOB_ABORT_PIVOT;
-
-	WRITE_TRACE(DBG_DEBUG, "tries to finish block commit");
+	default:
+		break;
+	}
+	WRITE_TRACE(DBG_DEBUG, "tries to finish the block job");
 	if (0 != virDomainBlockJobAbort(m_domain.data(), m_disk.toUtf8().data(), f))
 		return Failure(PRL_ERR_FAILURE);
 
@@ -2328,14 +2419,24 @@ Result Unit::getInfo(virDomainBlockJobInfo& dst_) const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Counter
 
-void Counter::account(const QString& one_)
+void Counter::account(const QString& one_, PRL_RESULT status_)
 {
-	QMetaObject::invokeMethod(this, "account_", Qt::AutoConnection, Q_ARG(QString, one_));
+	QMetaObject::invokeMethod(this, "account_", Qt::AutoConnection,
+		Q_ARG(QString, one_), Q_ARG(PRL_RESULT, status_));
 }
 
 void Counter::reset()
 {
 	QMetaObject::invokeMethod(this, "reset_", Qt::AutoConnection);
+}
+
+Counter::product_type Counter::read()
+{
+	product_type output;
+	bool x = QMetaObject::invokeMethod(this, "read_",
+			Qt::BlockingQueuedConnection, Q_RETURN_ARG(product_type, output));
+	Q_UNUSED(x);
+	return output;
 }
 
 void Counter::account_(QString one_)
@@ -2355,7 +2456,7 @@ void Counter::reset_()
 	QSet<QString> a = m_pending;
 	foreach (const QString& b, a)
 	{
-		account_(b);
+		account_(b, PRL_ERR_OPERATION_WAS_CANCELED);
 	}
 }
 
@@ -2367,10 +2468,10 @@ Callback::~Callback()
 	m_counter->reset();
 }
 
-void Callback::do_(int event_, const QString& object_)
+void Callback::do_(int event_, const QString& object_, PRL_RESULT status_)
 {
 	if (m_filter == event_)
-		m_counter->account(object_);
+		m_counter->account(object_, status_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2381,9 +2482,9 @@ Tracker::Tracker(QSharedPointer<virDomain> domain_):
 {
 }
 
-Result Tracker::start(QSharedPointer<Counter> callback_, int event_)
+Result Tracker::start(QSharedPointer<Counter> counter_, int event_)
 {
-	if (callback_.isNull())
+	if (counter_.isNull())
 		return Error::Simple(PRL_ERR_INVALID_ARG);
 
 	if (m_domain.isNull())
@@ -2396,24 +2497,25 @@ Result Tracker::start(QSharedPointer<Counter> callback_, int event_)
 	m_ticket = virConnectDomainEventRegisterAny(c, m_domain.data(),
 			VIR_DOMAIN_EVENT_ID_BLOCK_JOB,
 			VIR_DOMAIN_EVENT_CALLBACK(&react),
-			new Callback(callback_, event_), &free);
+			new Callback(counter_, event_), &free);
 	if (-1 == m_ticket)
 		return Failure(PRL_ERR_FAILURE);
 
 	m_ticket2 = virConnectDomainEventRegisterAny(c, m_domain.data(),
 			VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2,
 			VIR_DOMAIN_EVENT_CALLBACK(&react),
-			new Callback(callback_, event_), &free);
+			new Callback(counter_, event_), &free);
 	if (-1 == m_ticket2)
 	{
 		stop();
 		return Failure(PRL_ERR_FAILURE);
 	}
+	m_counter = counter_;
 
 	return Result();
 }
 
-Result Tracker::stop()
+Prl::Expected<Counter::product_type, ::Error::Simple> Tracker::stop()
 {
 	if (-1 == m_ticket && m_ticket2 == -1)
 		return Error::Simple(PRL_ERR_INVALID_HANDLE);
@@ -2423,14 +2525,28 @@ Result Tracker::stop()
 	m_ticket = -1;
 	virConnectDomainEventDeregisterAny(c, m_ticket2);
 	m_ticket2 = -1;
+	if (m_counter.isNull())
+		return Error::Simple(PRL_ERR_UNINITIALIZED);
 
-	return Result();
+	Counter::product_type output = m_counter->read();
+	m_counter.clear();
+
+	return output;
 }
 
 void Tracker::react(virConnectPtr, virDomainPtr, const char * disk_, int type_, int status_, void * opaque_)
 {
 	WRITE_TRACE(DBG_DEBUG, "block job event: disk '%s' got status %d", disk_, status_);
-	((Callback* )opaque_)->do_(type_, disk_);
+	switch (status_)
+	{
+	case VIR_DOMAIN_BLOCK_JOB_READY:
+	case VIR_DOMAIN_BLOCK_JOB_COMPLETED:
+		return ((Callback* )opaque_)->do_(type_, disk_, PRL_ERR_SUCCESS);
+	case VIR_DOMAIN_BLOCK_JOB_FAILED:
+		return ((Callback* )opaque_)->do_(type_, disk_, PRL_ERR_FAILURE);
+	case VIR_DOMAIN_BLOCK_JOB_CANCELED:
+		return ((Callback* )opaque_)->do_(type_, disk_, PRL_ERR_OPERATION_WAS_CANCELED);
+	}
 }
 
 void Tracker::free(void* callback_)
@@ -2441,48 +2557,73 @@ void Tracker::free(void* callback_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Activity
 
-void Activity::stop()
+PRL_RESULT Activity::stop()
 {
-	if (!m_tracker.isNull())
-	{
+	if (m_tracker.isNull())
+		return PRL_ERR_UNINITIALIZED;
+
+	Prl::Expected<Counter::product_type, ::Error::Simple> t =
 		m_tracker->stop();
-		m_tracker.clear();
-	}
-	if (!m_callback.empty())
-	{
-		m_callback();
-		m_callback.clear();
-	}
+	m_tracker.clear();
+	if (t.isFailed())
+		return t.error().code();
+
+	return t.value()();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Launcher
 
+Activity Launcher::copy(const QHash<QString, CVmHardDisk>& imageList_, Completion& completion_)
+{
+	typedef Generic::Strategy::Unit<Flavor::Copy> strategy_type;
+
+	QList<Flavor::Copy> f;
+	strategy_type::map_type m;
+	BOOST_FOREACH(const QString& k, imageList_.keys())
+	{
+		f << Flavor::Copy(Generic::Flavor(imageList_[k], getDomain()));
+		m[f.back().getTarget()] = k;
+	}
+	return start(strategy_type(f, m), f, completion_);
+}
+
 Activity Launcher::merge(const imageList_type& imageList_, Completion& completion_)
 {
-	return start(Commit::Policy(getDomain()), imageList_, completion_);
+	QList<Flavor::Commit> f;
+	BOOST_FOREACH(const CVmHardDisk& v, imageList_)
+	{
+		f << Flavor::Commit(Generic::Flavor(v, getDomain()));
+	}
+	return start(Generic::Strategy::Unit<Flavor::Commit>(), f, completion_);
 }
 
 Activity Launcher::rebase(const imageList_type& imageList_, Completion& completion_)
 {
-	return start(Rebase::Policy(getDomain()), imageList_, completion_);
+	QList<Flavor::Rebase> f;
+	BOOST_FOREACH(const CVmHardDisk& v, imageList_)
+	{
+		f << Flavor::Rebase(Generic::Flavor(v, getDomain()));
+	}
+	return start(Generic::Strategy::Unit<Flavor::Rebase>(f), f, completion_);
 }
 
-template<class T>
-Activity Launcher::start(T policy_, const imageList_type& imageList_, Completion& completion_)
+template<class T, class U>
+Activity Launcher::start(T strategy_, const QList<U>& componentList_, Completion& completion_)
 {
-	QSet<QString> n;
-	BOOST_FOREACH(const CVmHardDisk& d, imageList_)
-	{
-		n << Generic::Model(d).getTarget();
-	}
-	QSharedPointer<Counter> c(new Counter(n, completion_), &QObject::deleteLater);
+	QSharedPointer<Counter> c(new Generic::Meter<U>(componentList_, strategy_, completion_),
+			&QObject::deleteLater);
 	c->moveToThread(QCoreApplication::instance()->thread());
 
 	QSharedPointer<Tracker> t(new Tracker(getDomain()));
-	t->start(c, T::getEvent());
+	t->start(c, U::getEvent());
 
-	return Activity(t, policy_(imageList_, *c));
+	foreach(const U& f, componentList_)
+	{
+		if (strategy_.launch(f, *c))
+			break;
+	}
+	return Activity(t);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
