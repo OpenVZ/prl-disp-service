@@ -862,7 +862,7 @@ void Reactor<PVE::DspCmdVmStart>::react()
 template<>
 quint32 Reactor<PVE::DspCmdVmStart>::getInterval() const
 {
-	return 120;
+	return 300;
 }
 
 template<>
@@ -875,7 +875,7 @@ void Reactor<PVE::DspCmdVmResume>::react()
 template<>
 quint32 Reactor<PVE::DspCmdVmResume>::getInterval() const
 {
-	return 120;
+	return 300;
 }
 
 template<>
