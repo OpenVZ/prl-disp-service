@@ -1128,7 +1128,6 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	QString sVmName;
 	QString sPathToVmConfig;
 	QString sTmpPath, sVzCacheTmpPath;
-	Libvirt::Result r;
 
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
@@ -1207,7 +1206,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 
 	std::auto_ptr<Restore::Assembly> a;
 	if (PRL_FAILED(nRetCode = restoreVmToTargetPath(a)))
-		goto cleanup_0;
+		return nRetCode;
 	//https://bugzilla.sw.ru/show_bug.cgi?id=464218
 	//Process VM uptime
 	m_pVmConfig->getVmIdentification()->setVmUptimeInSeconds(m_nCurrentVmUptime);
@@ -1224,22 +1223,24 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	CDspVmNetworkHelper::updateHostMacAddresses(m_pVmConfig, NULL, HMU_NONE);
 	// save config : Task_RegisterVm read config from file system
 	if (PRL_FAILED(nRetCode = saveVmConfig()))
-		goto cleanup_0;
+		return nRetCode;
 	if (PRL_FAILED(nRetCode = a->do_()))
-		goto cleanup_0;
+		return nRetCode;
 	// Our config is incorrect after moving. Reload it.
 	if (PRL_FAILED(nRetCode = CDspService::instance()->getVmConfigManager().loadConfig(
 			m_pVmConfig, m_pVmConfig->getVmIdentification()->getHomePath(),
 			getClient(), true, true)))
-		goto cleanup_0;
-	if ((r = Libvirt::Kit.vms().at(m_sVmUuid).setConfig(*m_pVmConfig)).isFailed())
+		return nRetCode;
+
+	Libvirt::Instrument::Agent::Vm::Grub::result_type r =
+		Libvirt::Kit.vms().getGrub(*m_pVmConfig).spawnPersistent();
+	if (r.isFailed())
 	{
-		nRetCode = r.error().code();
 		a->revert();
-		goto cleanup_0;
+		return r.error().code();
 	}
 	if (m_converter.get() != NULL && PRL_FAILED(nRetCode = doV2V()))
-		goto cleanup_0;
+		return nRetCode;
 	{
 		CDspLockedPointer<CVmDirectoryItem> pVmDirItem
 			= CDspService::instance()->getVmDirManager().getVmDirItemByUuid(
@@ -1247,8 +1248,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 		if ( pVmDirItem )
 			pVmDirItem->setTemplate( m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate() );
 	}
-cleanup_0:
-	return nRetCode;
+
+	return PRL_ERR_SUCCESS;
 }
 
 PRL_RESULT Task_RestoreVmBackupTarget::restoreNewVm()
