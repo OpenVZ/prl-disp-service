@@ -698,6 +698,7 @@ struct Visitor : boost::static_visitor<void>
 			"", "", "", "", "", "", "", "", "", "",
 			"", "", "", "", "", "", "", "", "", "",
 			"", "", "", "", "", "", "spec-ctrl", "stibp", "", "arch-facilities",
+			"", "ssbd",
 			NULL
 		};
 
