@@ -179,11 +179,8 @@ bool PrlNet::SetRouteToDevice(const QString &ip, const QString &devName, bool ad
 	WRITE_TRACE(DBG_INFO, "route %s ip=%s device='%s' index=%d ",
 			add ? "add" : "del", ip.toUtf8().constData(), devName.toUtf8().constData(), idx );
 
-        int rc = rtnl_talk(&rth, &req.n, NULL
-#ifndef IFLA_STATS_RTA
-			, 0
-#endif
-			);
+        int rc = rtnl_talk(&rth, &req.n, NULL, 0);
+
 	rtnl_close(&rth);
 
 	if (rc < 0)
@@ -239,11 +236,7 @@ bool PrlNet::SetArpToDevice(const QString &ip, const QString &devName, bool add)
 	WRITE_TRACE(DBG_DEBUG, "arp %s proxy ip=%s device='%s' index=%d ",
 			add ? "add" : "del", ip.toUtf8().constData(), devName.toUtf8().constData(), devIndex);
 
-	int rc = rtnl_talk(&rth, &req.n, NULL
-#ifndef IFLA_STATS_RTA
-			, 0
-#endif
-			);
+	int rc = rtnl_talk(&rth, &req.n, NULL, 0);
 
 	rtnl_close(&rth);
 
