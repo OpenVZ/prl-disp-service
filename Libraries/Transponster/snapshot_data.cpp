@@ -111,44 +111,6 @@ QString Traits<Snapshot::Xml::POctalMode>::generate(Snapshot::Xml::POctalMode::v
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1346
-
-bool Validatable<Snapshot::Xml::PData1346>::validate(const Snapshot::Xml::PData1346::value_type& value_)
-{
-	QRegExp q("0x[0-9a-fA-F]{1,2}");
-	if (!q.exactMatch(value_))
-		return false;
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData1348
-
-bool Traits<Snapshot::Xml::PData1348>::parse(const QString& src_, Snapshot::Xml::PData1348::value_type& dst_)
-{
-	bool output = false;
-	dst_ = src_.toInt(&output);
-	return output;
-}
-
-QString Traits<Snapshot::Xml::PData1348>::generate(Snapshot::Xml::PData1348::value_type src_)
-{
-	return QString::number(src_);
-}
-
-bool Validatable<Snapshot::Xml::PData1348>::validate(Snapshot::Xml::PData1348::value_type value_)
-{
-	if (0 > value_)
-		return false;
-
-	if (255 < value_)
-		return false;
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct PData1350
 
 bool Validatable<Snapshot::Xml::PData1350>::validate(const Snapshot::Xml::PData1350::value_type& value_)
@@ -191,7 +153,7 @@ bool Validatable<Snapshot::Xml::PData1352>::validate(Snapshot::Xml::PData1352::v
 
 bool Validatable<Snapshot::Xml::PData1354>::validate(const Snapshot::Xml::PData1354::value_type& value_)
 {
-	QRegExp q("0x[0-9a-fA-F]{1,6}");
+	QRegExp q("0x[0-9a-fA-F]{1,2}");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -218,7 +180,7 @@ bool Validatable<Snapshot::Xml::PData1356>::validate(Snapshot::Xml::PData1356::v
 	if (0 > value_)
 		return false;
 
-	if (16777215 < value_)
+	if (255 < value_)
 		return false;
 
 	return true;
@@ -229,7 +191,7 @@ bool Validatable<Snapshot::Xml::PData1356>::validate(Snapshot::Xml::PData1356::v
 
 bool Validatable<Snapshot::Xml::PData1358>::validate(const Snapshot::Xml::PData1358::value_type& value_)
 {
-	QRegExp q("[a-fA-F0-9]{32}");
+	QRegExp q("0x[0-9a-fA-F]{1,6}");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -239,7 +201,45 @@ bool Validatable<Snapshot::Xml::PData1358>::validate(const Snapshot::Xml::PData1
 ///////////////////////////////////////////////////////////////////////////////
 // struct PData1360
 
-bool Validatable<Snapshot::Xml::PData1360>::validate(const Snapshot::Xml::PData1360::value_type& value_)
+bool Traits<Snapshot::Xml::PData1360>::parse(const QString& src_, Snapshot::Xml::PData1360::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toInt(&output);
+	return output;
+}
+
+QString Traits<Snapshot::Xml::PData1360>::generate(Snapshot::Xml::PData1360::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Snapshot::Xml::PData1360>::validate(Snapshot::Xml::PData1360::value_type value_)
+{
+	if (0 > value_)
+		return false;
+
+	if (16777215 < value_)
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData1362
+
+bool Validatable<Snapshot::Xml::PData1362>::validate(const Snapshot::Xml::PData1362::value_type& value_)
+{
+	QRegExp q("[a-fA-F0-9]{32}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData1364
+
+bool Validatable<Snapshot::Xml::PData1364>::validate(const Snapshot::Xml::PData1364::value_type& value_)
 {
 	QRegExp q("[a-fA-F0-9]{8}\\-([a-fA-F0-9]{4}\\-){3}[a-fA-F0-9]{12}");
 	if (!q.exactMatch(value_))
@@ -1584,61 +1584,11 @@ bool Validatable<Snapshot::Xml::PAliasName>::validate(const Snapshot::Xml::PAlia
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1555
-
-bool Validatable<Snapshot::Xml::PData1555>::validate(const Snapshot::Xml::PData1555::value_type& value_)
-{
-	QRegExp q("0x[0-9a-eA-E][0-9a-fA-F]?");
-	if (!q.exactMatch(value_))
-		return false;
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData1557
-
-bool Validatable<Snapshot::Xml::PData1557>::validate(const Snapshot::Xml::PData1557::value_type& value_)
-{
-	QRegExp q("0x[fF][0-9a-eA-E]?");
-	if (!q.exactMatch(value_))
-		return false;
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct PData1559
 
-bool Traits<Snapshot::Xml::PData1559>::parse(const QString& src_, Snapshot::Xml::PData1559::value_type& dst_)
+bool Validatable<Snapshot::Xml::PData1559>::validate(const Snapshot::Xml::PData1559::value_type& value_)
 {
-	bool output = false;
-	dst_ = src_.toInt(&output);
-	return output;
-}
-
-QString Traits<Snapshot::Xml::PData1559>::generate(Snapshot::Xml::PData1559::value_type src_)
-{
-	return QString::number(src_);
-}
-
-bool Validatable<Snapshot::Xml::PData1559>::validate(Snapshot::Xml::PData1559::value_type value_)
-{
-	if (0 > value_)
-		return false;
-
-	if (254 < value_)
-		return false;
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PCcwSsidRange
-
-bool Validatable<Snapshot::Xml::PCcwSsidRange>::validate(const Snapshot::Xml::PCcwSsidRange::value_type& value_)
-{
-	QRegExp q("(0x)?[0-3]");
+	QRegExp q("0x[0-9a-eA-E][0-9a-fA-F]?");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -1650,7 +1600,7 @@ bool Validatable<Snapshot::Xml::PCcwSsidRange>::validate(const Snapshot::Xml::PC
 
 bool Validatable<Snapshot::Xml::PData1561>::validate(const Snapshot::Xml::PData1561::value_type& value_)
 {
-	QRegExp q("0x[0-9a-fA-F]{1,4}");
+	QRegExp q("0x[fF][0-9a-eA-E]?");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -1677,6 +1627,56 @@ bool Validatable<Snapshot::Xml::PData1563>::validate(Snapshot::Xml::PData1563::v
 	if (0 > value_)
 		return false;
 
+	if (254 < value_)
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PCcwSsidRange
+
+bool Validatable<Snapshot::Xml::PCcwSsidRange>::validate(const Snapshot::Xml::PCcwSsidRange::value_type& value_)
+{
+	QRegExp q("(0x)?[0-3]");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData1565
+
+bool Validatable<Snapshot::Xml::PData1565>::validate(const Snapshot::Xml::PData1565::value_type& value_)
+{
+	QRegExp q("0x[0-9a-fA-F]{1,4}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData1567
+
+bool Traits<Snapshot::Xml::PData1567>::parse(const QString& src_, Snapshot::Xml::PData1567::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toInt(&output);
+	return output;
+}
+
+QString Traits<Snapshot::Xml::PData1567>::generate(Snapshot::Xml::PData1567::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Snapshot::Xml::PData1567>::validate(Snapshot::Xml::PData1567::value_type value_)
+{
+	if (0 > value_)
+		return false;
+
 	if (65535 < value_)
 		return false;
 
@@ -1684,9 +1684,9 @@ bool Validatable<Snapshot::Xml::PData1563>::validate(Snapshot::Xml::PData1563::v
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1575
+// struct PData1582
 
-bool Validatable<Snapshot::Xml::PData1575>::validate(const Snapshot::Xml::PData1575::value_type& value_)
+bool Validatable<Snapshot::Xml::PData1582>::validate(const Snapshot::Xml::PData1582::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,2}");
 	if (!q.exactMatch(value_))
@@ -1696,21 +1696,21 @@ bool Validatable<Snapshot::Xml::PData1575>::validate(const Snapshot::Xml::PData1
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1577
+// struct PData1584
 
-bool Traits<Snapshot::Xml::PData1577>::parse(const QString& src_, Snapshot::Xml::PData1577::value_type& dst_)
+bool Traits<Snapshot::Xml::PData1584>::parse(const QString& src_, Snapshot::Xml::PData1584::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Snapshot::Xml::PData1577>::generate(Snapshot::Xml::PData1577::value_type src_)
+QString Traits<Snapshot::Xml::PData1584>::generate(Snapshot::Xml::PData1584::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Snapshot::Xml::PData1577>::validate(Snapshot::Xml::PData1577::value_type value_)
+bool Validatable<Snapshot::Xml::PData1584>::validate(Snapshot::Xml::PData1584::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -1722,9 +1722,9 @@ bool Validatable<Snapshot::Xml::PData1577>::validate(Snapshot::Xml::PData1577::v
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1579
+// struct PData1586
 
-bool Validatable<Snapshot::Xml::PData1579>::validate(const Snapshot::Xml::PData1579::value_type& value_)
+bool Validatable<Snapshot::Xml::PData1586>::validate(const Snapshot::Xml::PData1586::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,2}");
 	if (!q.exactMatch(value_))
@@ -1734,21 +1734,21 @@ bool Validatable<Snapshot::Xml::PData1579>::validate(const Snapshot::Xml::PData1
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1581
+// struct PData1588
 
-bool Traits<Snapshot::Xml::PData1581>::parse(const QString& src_, Snapshot::Xml::PData1581::value_type& dst_)
+bool Traits<Snapshot::Xml::PData1588>::parse(const QString& src_, Snapshot::Xml::PData1588::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Snapshot::Xml::PData1581>::generate(Snapshot::Xml::PData1581::value_type src_)
+QString Traits<Snapshot::Xml::PData1588>::generate(Snapshot::Xml::PData1588::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Snapshot::Xml::PData1581>::validate(Snapshot::Xml::PData1581::value_type value_)
+bool Validatable<Snapshot::Xml::PData1588>::validate(Snapshot::Xml::PData1588::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -1760,9 +1760,9 @@ bool Validatable<Snapshot::Xml::PData1581>::validate(Snapshot::Xml::PData1581::v
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1583
+// struct PData1590
 
-bool Validatable<Snapshot::Xml::PData1583>::validate(const Snapshot::Xml::PData1583::value_type& value_)
+bool Validatable<Snapshot::Xml::PData1590>::validate(const Snapshot::Xml::PData1590::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,6}");
 	if (!q.exactMatch(value_))
@@ -1772,21 +1772,21 @@ bool Validatable<Snapshot::Xml::PData1583>::validate(const Snapshot::Xml::PData1
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1585
+// struct PData1592
 
-bool Traits<Snapshot::Xml::PData1585>::parse(const QString& src_, Snapshot::Xml::PData1585::value_type& dst_)
+bool Traits<Snapshot::Xml::PData1592>::parse(const QString& src_, Snapshot::Xml::PData1592::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Snapshot::Xml::PData1585>::generate(Snapshot::Xml::PData1585::value_type src_)
+QString Traits<Snapshot::Xml::PData1592>::generate(Snapshot::Xml::PData1592::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Snapshot::Xml::PData1585>::validate(Snapshot::Xml::PData1585::value_type value_)
+bool Validatable<Snapshot::Xml::PData1592>::validate(Snapshot::Xml::PData1592::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -1798,9 +1798,9 @@ bool Validatable<Snapshot::Xml::PData1585>::validate(Snapshot::Xml::PData1585::v
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1587
+// struct PData1594
 
-bool Validatable<Snapshot::Xml::PData1587>::validate(const Snapshot::Xml::PData1587::value_type& value_)
+bool Validatable<Snapshot::Xml::PData1594>::validate(const Snapshot::Xml::PData1594::value_type& value_)
 {
 	QRegExp q("[a-fA-F0-9]{32}");
 	if (!q.exactMatch(value_))
@@ -1810,9 +1810,9 @@ bool Validatable<Snapshot::Xml::PData1587>::validate(const Snapshot::Xml::PData1
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1589
+// struct PData1596
 
-bool Validatable<Snapshot::Xml::PData1589>::validate(const Snapshot::Xml::PData1589::value_type& value_)
+bool Validatable<Snapshot::Xml::PData1596>::validate(const Snapshot::Xml::PData1596::value_type& value_)
 {
 	QRegExp q("[a-fA-F0-9]{8}\\-([a-fA-F0-9]{4}\\-){3}[a-fA-F0-9]{12}");
 	if (!q.exactMatch(value_))
@@ -1822,9 +1822,9 @@ bool Validatable<Snapshot::Xml::PData1589>::validate(const Snapshot::Xml::PData1
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1784
+// struct PData1791
 
-bool Validatable<Snapshot::Xml::PData1784>::validate(const Snapshot::Xml::PData1784::value_type& value_)
+bool Validatable<Snapshot::Xml::PData1791>::validate(const Snapshot::Xml::PData1791::value_type& value_)
 {
 	QRegExp q("0x[0-9a-eA-E][0-9a-fA-F]?");
 	if (!q.exactMatch(value_))
@@ -1834,9 +1834,9 @@ bool Validatable<Snapshot::Xml::PData1784>::validate(const Snapshot::Xml::PData1
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1786
+// struct PData1793
 
-bool Validatable<Snapshot::Xml::PData1786>::validate(const Snapshot::Xml::PData1786::value_type& value_)
+bool Validatable<Snapshot::Xml::PData1793>::validate(const Snapshot::Xml::PData1793::value_type& value_)
 {
 	QRegExp q("0x[fF][0-9a-eA-E]?");
 	if (!q.exactMatch(value_))
@@ -1846,21 +1846,21 @@ bool Validatable<Snapshot::Xml::PData1786>::validate(const Snapshot::Xml::PData1
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1788
+// struct PData1795
 
-bool Traits<Snapshot::Xml::PData1788>::parse(const QString& src_, Snapshot::Xml::PData1788::value_type& dst_)
+bool Traits<Snapshot::Xml::PData1795>::parse(const QString& src_, Snapshot::Xml::PData1795::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Snapshot::Xml::PData1788>::generate(Snapshot::Xml::PData1788::value_type src_)
+QString Traits<Snapshot::Xml::PData1795>::generate(Snapshot::Xml::PData1795::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Snapshot::Xml::PData1788>::validate(Snapshot::Xml::PData1788::value_type value_)
+bool Validatable<Snapshot::Xml::PData1795>::validate(Snapshot::Xml::PData1795::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -1872,9 +1872,9 @@ bool Validatable<Snapshot::Xml::PData1788>::validate(Snapshot::Xml::PData1788::v
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1790
+// struct PData1797
 
-bool Validatable<Snapshot::Xml::PData1790>::validate(const Snapshot::Xml::PData1790::value_type& value_)
+bool Validatable<Snapshot::Xml::PData1797>::validate(const Snapshot::Xml::PData1797::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,4}");
 	if (!q.exactMatch(value_))
@@ -1884,21 +1884,21 @@ bool Validatable<Snapshot::Xml::PData1790>::validate(const Snapshot::Xml::PData1
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1792
+// struct PData1799
 
-bool Traits<Snapshot::Xml::PData1792>::parse(const QString& src_, Snapshot::Xml::PData1792::value_type& dst_)
+bool Traits<Snapshot::Xml::PData1799>::parse(const QString& src_, Snapshot::Xml::PData1799::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Snapshot::Xml::PData1792>::generate(Snapshot::Xml::PData1792::value_type src_)
+QString Traits<Snapshot::Xml::PData1799>::generate(Snapshot::Xml::PData1799::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Snapshot::Xml::PData1792>::validate(Snapshot::Xml::PData1792::value_type value_)
+bool Validatable<Snapshot::Xml::PData1799>::validate(Snapshot::Xml::PData1799::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -2024,14 +2024,14 @@ bool Traits<Snapshot::Xml::VUUID>::parse(const QString& src_, Snapshot::Xml::VUU
 {
 	int x;
 	mpl::at_c<Snapshot::Xml::VUUID::types, 0>::type a0;
-	x = Marshal<Snapshot::Xml::PData1587>::setString(src_, a0);
+	x = Marshal<Snapshot::Xml::PData1594>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
 		return true;
 	}
 	mpl::at_c<Snapshot::Xml::VUUID::types, 1>::type a1;
-	x = Marshal<Snapshot::Xml::PData1589>::setString(src_, a1);
+	x = Marshal<Snapshot::Xml::PData1596>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
@@ -2046,9 +2046,9 @@ QString Traits<Snapshot::Xml::VUUID>::generate(const Snapshot::Xml::VUUID& src_)
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Snapshot::Xml::PData1587>::getString(boost::get<mpl::at_c<Snapshot::Xml::VUUID::types, 0>::type>(src_));
+		return Marshal<Snapshot::Xml::PData1594>::getString(boost::get<mpl::at_c<Snapshot::Xml::VUUID::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Snapshot::Xml::PData1589>::getString(boost::get<mpl::at_c<Snapshot::Xml::VUUID::types, 1>::type>(src_));
+		return Marshal<Snapshot::Xml::PData1596>::getString(boost::get<mpl::at_c<Snapshot::Xml::VUUID::types, 1>::type>(src_));
 	}
 	return QString();
 }
