@@ -36,7 +36,7 @@ bool Enum::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Enum, Name::Strict<1863> > m;
+	Element<Enum, Name::Strict<1873> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -46,14 +46,14 @@ bool Enum::load(const QDomElement& src_)
 
 bool Enum::save(QDomElement& dst_) const
 {
-	Element<Enum, Name::Strict<1863> > m;
+	Element<Enum, Name::Strict<1873> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Enum::save(QDomDocument& dst_) const
 {
-	Element<Enum, Name::Strict<1863> > m;
+	Element<Enum, Name::Strict<1873> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -344,30 +344,30 @@ int Traits<Capability::Xml::Feature>::generate(const Capability::Xml::Feature& s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1867
+// struct Anonymous1877
 
 namespace Capability
 {
 namespace Xml
 {
-bool Anonymous1867::load(const QDomElement& src_)
+bool Anonymous1877::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
 	k.push(src_.firstChildElement());
-	return 0 <= Traits<Anonymous1867>::parse(*this, k);
+	return 0 <= Traits<Anonymous1877>::parse(*this, k);
 }
 
-bool Anonymous1867::save(QDomElement& dst_) const
+bool Anonymous1877::save(QDomElement& dst_) const
 {
-	return 0 <= Traits<Anonymous1867>::generate(*this, dst_);
+	return 0 <= Traits<Anonymous1877>::generate(*this, dst_);
 }
 
 
 } // namespace Xml
 } // namespace Capability
 
-int Traits<Capability::Xml::Anonymous1867>::parse(Capability::Xml::Anonymous1867& dst_, QStack<QDomElement>& stack_)
+int Traits<Capability::Xml::Anonymous1877>::parse(Capability::Xml::Anonymous1877& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -380,7 +380,7 @@ int Traits<Capability::Xml::Anonymous1867>::parse(Capability::Xml::Anonymous1867
 	return output;
 }
 
-int Traits<Capability::Xml::Anonymous1867>::generate(const Capability::Xml::Anonymous1867& src_, QDomElement& dst_)
+int Traits<Capability::Xml::Anonymous1877>::generate(const Capability::Xml::Anonymous1877& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getModel(), m.get<0>()))
@@ -441,7 +441,7 @@ int Traits<Capability::Xml::Mode>::parse(Capability::Xml::Mode& dst_, QStack<QDo
 	if (0 <= output)
 	{
 		dst_.setSupported(m.get<1>().getValue());
-		dst_.setAnonymous1867(m.get<2>().getValue());
+		dst_.setAnonymous1877(m.get<2>().getValue());
 	}
 	return output;
 }
@@ -451,7 +451,7 @@ int Traits<Capability::Xml::Mode>::generate(const Capability::Xml::Mode& src_, Q
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSupported(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAnonymous1867(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getAnonymous1877(), m.get<2>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1049,7 +1049,7 @@ bool DomainCapabilities::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<DomainCapabilities, Name::Strict<1860> > m;
+	Element<DomainCapabilities, Name::Strict<1870> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1059,14 +1059,14 @@ bool DomainCapabilities::load(const QDomElement& src_)
 
 bool DomainCapabilities::save(QDomElement& dst_) const
 {
-	Element<DomainCapabilities, Name::Strict<1860> > m;
+	Element<DomainCapabilities, Name::Strict<1870> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool DomainCapabilities::save(QDomDocument& dst_) const
 {
-	Element<DomainCapabilities, Name::Strict<1860> > m;
+	Element<DomainCapabilities, Name::Strict<1870> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }

@@ -2697,15 +2697,15 @@ int Traits<Domain::Xml::Cputune>::generate(const Domain::Xml::Cputune& src_, QDo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Memory1171
+// struct Memory1175
 
-int Traits<Domain::Xml::Memory1171>::parse(Domain::Xml::Memory1171& , QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Memory1175>::parse(Domain::Xml::Memory1175& , QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	return m.consume(stack_);
 }
 
-int Traits<Domain::Xml::Memory1171>::generate(const Domain::Xml::Memory1171& , QDomElement& dst_)
+int Traits<Domain::Xml::Memory1175>::generate(const Domain::Xml::Memory1175& , QDomElement& dst_)
 {
 	marshal_type m;
 	return m.produce(dst_);
@@ -4700,30 +4700,30 @@ int Traits<Domain::Xml::Driver>::generate(const Domain::Xml::Driver& src_, QDomE
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1172
+// struct Anonymous1176
 
 namespace Domain
 {
 namespace Xml
 {
-bool Anonymous1172::load(const QDomElement& src_)
+bool Anonymous1176::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
 	k.push(src_.firstChildElement());
-	return 0 <= Traits<Anonymous1172>::parse(*this, k);
+	return 0 <= Traits<Anonymous1176>::parse(*this, k);
 }
 
-bool Anonymous1172::save(QDomElement& dst_) const
+bool Anonymous1176::save(QDomElement& dst_) const
 {
-	return 0 <= Traits<Anonymous1172>::generate(*this, dst_);
+	return 0 <= Traits<Anonymous1176>::generate(*this, dst_);
 }
 
 
 } // namespace Xml
 } // namespace Domain
 
-int Traits<Domain::Xml::Anonymous1172>::parse(Domain::Xml::Anonymous1172& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Anonymous1176>::parse(Domain::Xml::Anonymous1176& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -4735,7 +4735,7 @@ int Traits<Domain::Xml::Anonymous1172>::parse(Domain::Xml::Anonymous1172& dst_, 
 	return output;
 }
 
-int Traits<Domain::Xml::Anonymous1172>::generate(const Domain::Xml::Anonymous1172& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Anonymous1176>::generate(const Domain::Xml::Anonymous1176& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSource(), m.get<0>().get<1>()))
@@ -4758,7 +4758,7 @@ int Traits<Domain::Xml::Mirror1081>::parse(Domain::Xml::Mirror1081& dst_, QStack
 		dst_.setFile(m.get<0>().getValue());
 		dst_.setFormat(m.get<1>().getValue());
 		dst_.setJob(m.get<2>().getValue());
-		dst_.setAnonymous1172(m.get<3>().getValue());
+		dst_.setAnonymous1176(m.get<3>().getValue());
 	}
 	return output;
 }
@@ -4772,7 +4772,7 @@ int Traits<Domain::Xml::Mirror1081>::generate(const Domain::Xml::Mirror1081& src
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getJob(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAnonymous1172(), m.get<3>()))
+	if (0 > Details::Marshal::assign(src_.getAnonymous1176(), m.get<3>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -5576,30 +5576,30 @@ int Traits<Domain::Xml::Usbportaddress>::generate(const Domain::Xml::Usbportaddr
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1173
+// struct Anonymous1177
 
 namespace Domain
 {
 namespace Xml
 {
-bool Anonymous1173::load(const QDomElement& src_)
+bool Anonymous1177::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
 	k.push(src_.firstChildElement());
-	return 0 <= Traits<Anonymous1173>::parse(*this, k);
+	return 0 <= Traits<Anonymous1177>::parse(*this, k);
 }
 
-bool Anonymous1173::save(QDomElement& dst_) const
+bool Anonymous1177::save(QDomElement& dst_) const
 {
-	return 0 <= Traits<Anonymous1173>::generate(*this, dst_);
+	return 0 <= Traits<Anonymous1177>::generate(*this, dst_);
 }
 
 
 } // namespace Xml
 } // namespace Domain
 
-int Traits<Domain::Xml::Anonymous1173>::parse(Domain::Xml::Anonymous1173& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Anonymous1177>::parse(Domain::Xml::Anonymous1177& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -5612,7 +5612,7 @@ int Traits<Domain::Xml::Anonymous1173>::parse(Domain::Xml::Anonymous1173& dst_, 
 	return output;
 }
 
-int Traits<Domain::Xml::Anonymous1173>::generate(const Domain::Xml::Anonymous1173& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Anonymous1177>::generate(const Domain::Xml::Anonymous1177& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getCssid(), m.get<0>()))
@@ -12458,7 +12458,7 @@ int Traits<Domain::Xml::Disk1>::parse(Domain::Xml::Disk1& dst_, QStack<QDomEleme
 		dst_.setName(m.get<0>().getValue());
 		dst_.setExportname(m.get<1>().getValue());
 		dst_.setSnapshot(m.get<2>().getValue());
-		dst_.setCheckpoint(m.get<3>().getValue());
+		dst_.setChoice1174(m.get<3>().getValue());
 		dst_.setReadonly(m.get<4>().getValue());
 	}
 	return output;
@@ -12473,7 +12473,7 @@ int Traits<Domain::Xml::Disk1>::generate(const Domain::Xml::Disk1& src_, QDomEle
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getSnapshot(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getCheckpoint(), m.get<3>()))
+	if (0 > Details::Marshal::assign(src_.getChoice1174(), m.get<3>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getReadonly(), m.get<4>()))
 		return -1;
