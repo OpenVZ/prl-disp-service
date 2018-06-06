@@ -393,7 +393,9 @@ PRL_RESULT Task_VzManager::start_env()
 	}
 	else if (nState == VMS_SUSPENDED)
 	{
-		return resume_env();
+		res = resume_env();
+		if (PRL_SUCCEEDED(res))
+			return PRL_ERR_SUCCESS;
 	}
 
 	Backup::Device::Service(pConfig).setContext(*this).enable();
