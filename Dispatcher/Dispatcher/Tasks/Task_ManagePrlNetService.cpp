@@ -80,16 +80,17 @@ namespace Network
 ////////////////////////////////////////////////////////////////////////////////
 // Shaping
 
-struct Shaping: std::unary_function<void, CDispCommonPreferences&>
+struct Shaping: std::unary_function<CDispCommonPreferences& , PRL_RESULT>
 {
 	Shaping(CNetworkShapingConfig& shaping_): m_shaping(&shaping_)
 	{
 	}
 
-	void operator()(CDispCommonPreferences& config_)
+	result_type operator()(argument_type config_)
 	{
 		config_.getNetworkPreferences()
 			->setNetworkShapingConfig(new CNetworkShapingConfig(m_shaping));
+		return PRL_ERR_SUCCESS;
 	};
 
 private:
@@ -99,16 +100,17 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 // Classes
 
-struct Classes: std::unary_function<void, CDispCommonPreferences&>
+struct Classes: std::unary_function<CDispCommonPreferences& , PRL_RESULT>
 {
 	Classes(CNetworkClassesConfig& classes_): m_classes(&classes_)
 	{
 	}
 
-	void operator()(CDispCommonPreferences& config_)
+	result_type operator()(argument_type config_)
 	{
 		config_.getNetworkPreferences()
 			->setNetworkClassesConfig(new CNetworkClassesConfig(m_classes));
+		return PRL_ERR_SUCCESS;
 	};
 
 private:

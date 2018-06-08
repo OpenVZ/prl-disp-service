@@ -106,10 +106,6 @@ Task_UpdateCommonPrefs::Task_UpdateCommonPrefs (
 	fixReadOnlyInDispToDispPrefs();
 }
 
-Task_UpdateCommonPrefs::~Task_UpdateCommonPrefs()
-{
-}
-
 /**
  * @brief method executed before thread started
  */
@@ -235,80 +231,39 @@ PRL_RESULT Task_UpdateCommonPrefs::saveCommonPrefs()
 
 	// check to change config from other user
 	// NOTE: in this task m_pCommonPrefsEdit safed by 'm_commonPrefsMutex'
-	QMutexLocker editLock( CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig() );
 
 	CDspLockedPointer<CDispatcherConfig>
 		pLockedDispConfig = CDspService::instance()->getDispConfigGuard().getDispConfig();
 
-	SmartPtr<CDispatcherConfig > pDispConfigOld(
-		new CDispatcherConfig( pLockedDispConfig.getPtr() ) );
+	QMutexLocker editLock(CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig());
 
-	CDspLockedPointer<CDispCommonPreferences>
-		pLockedDispCommonPrefs = CDspService::instance()->getDispConfigGuard().getDispCommonPrefs();
-
-	fixReadOnlyInUsbPrefs( pLockedDispCommonPrefs.getPtr() );
-	pLockedDispCommonPrefs->fromString( m_pNewCommonPrefs->toString() );
-
-	std::auto_ptr<CDispCpuPreferences> cpuMask(CCpuHelper::get_cpu_mask());
-	if (!cpuMask.get())
-		return PRL_ERR_FAILURE;
-	pDispConfigOld->getDispatcherSettings()->
-		getCommonPreferences()->getCpuPreferences()->setFeatures(*cpuMask);
-
-	// MERGE
-	SmartPtr<CDispatcherConfig > pDispConfigNew(
-		new CDispatcherConfig( pLockedDispConfig.getPtr() ) );
-
-	if ( ! CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig()
-				->tryToMerge(getClient()->getClientHandle(), pDispConfigNew, pDispConfigOld) )
-		return PRL_ERR_COMMON_SERVER_PREFS_WERE_CHANGED;
-
-	pLockedDispConfig->fromString(pDispConfigNew->toString());
-
-	// Save dispatcher config file
-	PRL_RESULT save_rc = CDspService::instance()->getDispConfigGuard().saveConfig();
-
-	if (PRL_SUCCEEDED(save_rc))
+	PRL_RESULT output = CDspService::instance()->updateCommonPreferences(
+		Details::Preference::Envelope(
+			Details::Preference::Usb(getClient()->getVmDirectoryUuid(),
+				Details::Preference::Merge(getClient()->getClientHandle(), *pLockedDispConfig)),
+					*m_pNewCommonPrefs));
+	if (PRL_SUCCEEDED(output))
 	{
 		CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig()
 			->registerCommit(getClient()->getClientHandle());
 	}
-
 	editLock.unlock();
 
-	if( PRL_FAILED( save_rc ) )
+	if (PRL_FAILED(output))
 	{
 		WRITE_TRACE(DBG_FATAL, "Unable to write data to disp configuration file by error %s"
-			, PRL_RESULT_TO_STRING(save_rc) );
+			, PRL_RESULT_TO_STRING(output));
 
 		CDspService::instance()->getDispConfigGuard()
-				.getDispCommonPrefs()->fromString( m_pOldCommonPrefs->toString() );
+				.getDispCommonPrefs()->fromString(m_pOldCommonPrefs->toString());
 
-		pLockedDispCommonPrefs.unlock();
-		{
-			CDspLockedPointer<CVmDirectories>
-				pLockedVmCatalogue = CDspService::instance()->getVmDirManager().getVmDirCatalogue();
-			pLockedVmCatalogue->getCommonLockedOperations()->setLockedOperations( oldCommonConfirmList );
-			CDspService::instance()->getVmDirManager().saveVmDirCatalogue();
-		}
-
-		return save_rc;
+		CDspLockedPointer<CVmDirectories>
+			pLockedVmCatalogue = CDspService::instance()->getVmDirManager().getVmDirCatalogue();
+		pLockedVmCatalogue->getCommonLockedOperations()->setLockedOperations( oldCommonConfirmList );
+		CDspService::instance()->getVmDirManager().saveVmDirCatalogue();
 	}
 
-	pLockedDispCommonPrefs.unlock();
-	pLockedDispConfig.unlock();
-
-	CDispCpuPreferences* o(pDispConfigOld->getDispatcherSettings()->getCommonPreferences()->getCpuPreferences());
-	CDispCpuPreferences* n(pDispConfigNew->getDispatcherSettings()->getCommonPreferences()->getCpuPreferences());
-	QStringList diff;
-	o->diff(n, diff);
-	if (o->isCpuFeaturesMaskValid() && n->isCpuFeaturesMaskValid() && diff.size() > 0) {
-		PRL_RESULT ret = updateCpuFeaturesMask(*o, *n);
-		if (PRL_FAILED(ret))
-			return ret;
-	}
-
-	return PRL_ERR_SUCCESS;
+	return output;
 }
 
 void Task_UpdateCommonPrefs::checkAndDisableFirewall()
@@ -352,8 +307,6 @@ void Task_UpdateCommonPrefs::finalizeTask()
 		SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, event, getRequestPackage());
 
 		CDspService::instance()->getClientManager().sendPackageToAllClients(p);
-
-		CDspService::instance()->notifyConfigChanged(m_pOldCommonPrefs, m_pNewCommonPrefs);
 	}
 
 	// send response
@@ -491,59 +444,6 @@ void Task_UpdateCommonPrefs::fixReadOnlyInDebug()
 	m_pNewCommonPrefs->getDebug()->setVerboseLogWasChanged( bVerboseLogLevelWasChanged );
 }
 
-void Task_UpdateCommonPrefs::fixReadOnlyInUsbPrefs(
-	CDispCommonPreferences * pOldCommonPrefs)
-{
-	PRL_ASSERT( pOldCommonPrefs );
-	PRL_ASSERT( m_pNewCommonPrefs );
-
-	QString dirUuid = getClient()->getVmDirectoryUuid();
-
-	// USB permanent assignement could be changed here
-	QHash<QString,QString> savedUuids;
-	QHash<QString,PRL_USB_DEVICE_AUTO_CONNECT_OPTION> savedActions;
-	foreach (CDispUsbIdentity * ui, m_pNewCommonPrefs->getUsbPreferences()->m_lstAuthenticUsbMap)
-	{
-		if( ui->m_lstAssociations.isEmpty() )
-			continue;
-		savedUuids.insert( ui->getSystemName(), ui->m_lstAssociations[0]->getVmUuid() );
-		savedActions.insert( ui->getSystemName(), ui->m_lstAssociations[0]->getAction() );
-	}
-
-	m_pNewCommonPrefs->getUsbPreferences()->fromString(
-		pOldCommonPrefs->getUsbPreferences()->toString() );
-
-	foreach (CDispUsbIdentity * ui, m_pNewCommonPrefs->getUsbPreferences()->m_lstAuthenticUsbMap)
-	{
-		if( savedActions.contains( ui->getSystemName() ) )
-		{
-			CDispUsbAssociation * ua = NULL;
-			foreach (ua, ui->m_lstAssociations)
-				if( ua->getDirUuid() == dirUuid )
-					break;
-			if( !ua )
-			{
-				ua = new CDispUsbAssociation;
-				ua->setDirUuid( dirUuid );
-				ui->m_lstAssociations.append( ua );
-			}
-			ua->setAction( savedActions[ ui->getSystemName() ] );
-			if( savedUuids.contains( ui->getSystemName() ) )
-				ua->setVmUuid( savedUuids[ ui->getSystemName() ] );
-		} else
-		{
-			foreach (CDispUsbAssociation * ua, ui->m_lstAssociations) {
-				if ( ua->getDirUuid() == dirUuid )
-				{
-					if ( ui->m_lstAssociations.removeOne( ua ) )
-						delete ua;
-					break;
-				}
-			}
-		}
-	}
-}
-
 void Task_UpdateCommonPrefs::fixReadOnlyListenAnyAddr()
 {
 	PRL_ASSERT( m_pOldCommonPrefs );
@@ -588,11 +488,80 @@ PRL_RESULT Task_UpdateCommonPrefs::checkHeadlessMode()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Task_UpdateCommonPrefs::updateCpuFeaturesMask(
-	const CDispCpuPreferences &oldMask, const CDispCpuPreferences &newMask)
+namespace Details
 {
-	if (CCpuHelper::isMasksEqual(oldMask, newMask))
-		return PRL_ERR_SUCCESS;
+namespace Preference
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Usb
 
-	return CCpuHelper::maskUpdate(newMask);
+Usb::result_type Usb::operator()(const request_type& request_)
+{
+	// USB permanent assignement could be changed here
+	QHash<QString, CDispUsbAssociation> b;
+	foreach (CDispUsbIdentity * ui, request_.first().getUsbPreferences()->m_lstAuthenticUsbMap)
+	{
+		if (!ui->m_lstAssociations.isEmpty())
+		{
+			// do we expect 1 association per identity?
+			b.insert(ui->getSystemName(), CDispUsbAssociation
+				(ui->m_lstAssociations[0]));
+		}
+	}
+
+	request_.first().getUsbPreferences()->fromString(request_.second().getUsbPreferences()->toString());
+	foreach (CDispUsbIdentity * ui, request_.first().getUsbPreferences()->m_lstAuthenticUsbMap)
+	{
+		typedef QList<CDispUsbAssociation* > list_type;
+		list_type& a = ui->m_lstAssociations;
+		list_type::iterator e = a.end();
+		list_type::iterator p = std::find_if(a.begin(), e,
+			boost::bind(&CDispUsbAssociation::getDirUuid, _1) ==
+				boost::cref(m_directory));
+
+		if (e != p)
+		{
+			delete *p;
+			a.erase(p);
+		}
+		QString n(ui->getSystemName());
+		if (b.contains(n))
+		{
+			a.append(new CDispUsbAssociation(b[n]));
+			a.last()->setDirUuid(m_directory);
+		}
+	}
+
+	return chain_type::operator()(request_);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Merge
+
+Merge::result_type Merge::operator()(argument_type request_)
+{
+	QScopedPointer<CDispCpuPreferences> m(CCpuHelper::get_cpu_mask());
+	if (m.isNull())
+		return PRL_ERR_FAILURE;
+
+	request_.second().fromString(request_.first().toString());
+
+	// MERGE
+	SmartPtr<CDispatcherConfig> n(new CDispatcherConfig(m_config));
+	SmartPtr<CDispatcherConfig> o(new CDispatcherConfig(m_config));
+
+	o->getDispatcherSettings()->getCommonPreferences()->
+		getCpuPreferences()->setFeatures(*m);
+
+	if (!CDspService::instance()->getDispConfigGuard().getMultiEditDispConfig()
+				->tryToMerge(m_client, n, o))
+		return PRL_ERR_COMMON_SERVER_PREFS_WERE_CHANGED;
+
+	m_config->fromString(n->toString());
+
+	return PRL_ERR_SUCCESS;
+}
+
+} // namespace Preference
+} // namespace Details
+

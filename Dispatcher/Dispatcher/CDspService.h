@@ -266,9 +266,9 @@ public:
 
 	void emitCleanupOnUserSessionDestroy( QString sessionUuid );
 
-	PRL_RESULT updateCommonPreferences(const boost::function1<void, CDispCommonPreferences&>& action_);
+	PRL_RESULT updateCommonPreferences(const boost::function<PRL_RESULT (CDispCommonPreferences&)>& action_);
 	void notifyConfigChanged(const SmartPtr<CDispCommonPreferences>&, const SmartPtr<CDispCommonPreferences>&);
-	void initNetworkPreferences(CDispCommonPreferences& config_);
+	PRL_RESULT initNetworkPreferences(CDispCommonPreferences& config_);
 
 public slots:
 

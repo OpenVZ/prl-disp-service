@@ -853,9 +853,9 @@ void List::build(T builder_)
 
 namespace Usb
 {
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct List
+
 struct List
 {
 	explicit List(const CVmUsbController* settings_):
@@ -887,6 +887,41 @@ private:
 	const CVmUsbController* m_settings;
 	deviceList_type m_deviceList;
 	quint16 m_controller;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Indicator
+
+struct Indicator: boost::static_visitor<bool>
+{
+	explicit Indicator(const QString& name_);
+
+	template<class T>
+	bool operator()(const T& ) const
+	{
+		return false;
+	}
+
+	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 7>::type& variant_) const
+	{
+		return boost::apply_visitor(*this, variant_.getValue().getChoice917());
+	}
+	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice917::types, 0>::type& variant_) const
+	{
+		return boost::apply_visitor(*this, variant_.getValue().getHostdevsubsys());
+	}
+	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VHostdevsubsys::types, 1>::type& variant_) const
+	{
+		return boost::apply_visitor(*this, variant_.getValue().getSource());
+	}
+	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VSource1::types, 1>::type& variant_) const;
+	bool operator()(Libvirt::Domain::Xml::VChoice985& device_) const
+	{
+		return boost::apply_visitor(*this, device_);
+	}
+
+private:
+        uint m_bus, m_device;
 };
 
 } // namespace Usb

@@ -2073,7 +2073,7 @@ REGISTER_HANDLER( IOService::IOSender::Vm,
 /*****************************************************************************/
 
 CDspVmManager::CDspVmManager ( IOSender::Type type, const char* name ) :
-	CDspHandler(type, name), m_registry(NULL)
+	CDspHandler(type, name)
 {
 }
 
@@ -2085,15 +2085,32 @@ void CDspVmManager::init ()
 {
 }
 
-void CDspVmManager::setRegistry(Registry::Public& registry)
+void CDspVmManager::setRegistry(Registry::Public& registry_)
 {
-	m_registry = &registry;
-	if (!this->connect(CDspService::instance(),
-		SIGNAL(onConfigChanged(const SmartPtr<CDispCommonPreferences>,
-				const SmartPtr<CDispCommonPreferences>)),
-		SLOT(onDispConfigChanged(const SmartPtr<CDispCommonPreferences>,
-				const SmartPtr<CDispCommonPreferences>)), Qt::DirectConnection))
-		WRITE_TRACE(DBG_FATAL, "unable to connect onDispConfigChanged(...)");
+	if (NULL == findChild<QObject* >("cpu"))
+	{
+		Preference::Applying::Cpu* x = new Preference::Applying::Cpu(registry_);
+		x->setObjectName("cpu");
+		x->setParent(this);
+		if (!x->connect(CDspService::instance(),
+			SIGNAL(onConfigChanged(const SmartPtr<CDispCommonPreferences>,
+					const SmartPtr<CDispCommonPreferences>)),
+			SLOT(react(const SmartPtr<CDispCommonPreferences>,
+					const SmartPtr<CDispCommonPreferences>)), Qt::DirectConnection))
+			WRITE_TRACE(DBG_FATAL, "unable to connect Cpu::react(...)");
+	}
+	if (NULL == findChild<QObject* >("usb"))
+	{
+		Preference::Applying::Usb* x = new Preference::Applying::Usb();
+		x->setObjectName("usb");
+		x->setParent(this);
+		if (!x->connect(CDspService::instance(),
+			SIGNAL(onConfigChanged(const SmartPtr<CDispCommonPreferences>,
+					const SmartPtr<CDispCommonPreferences>)),
+			SLOT(react(const SmartPtr<CDispCommonPreferences>,
+					const SmartPtr<CDispCommonPreferences>)), Qt::QueuedConnection))
+			WRITE_TRACE(DBG_FATAL, "unable to connect Usb::react(...)");
+	}
 }
 
 QString CDspVmManager::getVmIdByHandle(const IOSender::Handle& h) const
@@ -2318,40 +2335,6 @@ void CDspVmManager::changeTimezone( int tzIndex )
 	Q_UNUSED( tzIndex );
 }
 
-void CDspVmManager::onDispConfigChanged
-	(const SmartPtr<CDispCommonPreferences> old_, const SmartPtr<CDispCommonPreferences> new_)
-{
-	namespace vm = Libvirt::Instrument::Agent::Vm;
-	if (NULL == m_registry)
-		return;
-
-	Vm::Config::Edit::Connector b;
-
-	quint32 t = new_->getWorkspacePreferences()->getVmGuestCpuLimitType();
-	if (old_->getWorkspacePreferences()->getVmGuestCpuLimitType() != t)
-		b.setLimitType(t);
-
-	if(!CCpuHelper::isMasksEqual(*old_->getCpuPreferences(), *new_->getCpuPreferences()))
-		b.setCpuFeatures(*new_->getCpuPreferences());
-
-	boost::optional<Vm::Config::Edit::Gear> g = b.getResult();
-	if (!g)
-		return;
-
-	vm::List l = Libvirt::Kit.vms();
-	QList<vm::Unit> all;
-	l.all(all);
-
-	foreach (const vm::Unit& u, all)
-	{
-		QString uuid;
-		if (u.getUuid(uuid).isFailed())
-			continue;
-
-		g.get()(m_registry->find(uuid), u);
-	}
-}
-
 namespace Vm
 {
 namespace Config
@@ -2520,5 +2503,86 @@ PRL_RESULT Features::operator()(CVmConfiguration& config_) const
 } // namespace Edit
 } // namespace Config
 } // namespace Vm
+
+namespace Preference
+{
+namespace Applying
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
+
+void Cpu::react(const SmartPtr<CDispCommonPreferences> old_,
+	const SmartPtr<CDispCommonPreferences> new_)
+{
+	namespace vm = Libvirt::Instrument::Agent::Vm;
+	Vm::Config::Edit::Connector b;
+
+	quint32 t = new_->getWorkspacePreferences()->getVmGuestCpuLimitType();
+	if (old_->getWorkspacePreferences()->getVmGuestCpuLimitType() != t)
+		b.setLimitType(t);
+
+	if(!CCpuHelper::isMasksEqual(*old_->getCpuPreferences(), *new_->getCpuPreferences()))
+		b.setCpuFeatures(*new_->getCpuPreferences());
+
+	boost::optional<Vm::Config::Edit::Gear> g = b.getResult();
+	if (!g)
+		return;
+
+	vm::List l = Libvirt::Kit.vms();
+	QList<vm::Unit> all;
+	l.all(all);
+
+	foreach (const vm::Unit& u, all)
+	{
+		QString uuid;
+		if (u.getUuid(uuid).isFailed())
+			continue;
+
+		g.get()(m_registry->find(uuid), u);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Usb
+
+void Usb::react(const SmartPtr<CDispCommonPreferences> old_,
+	const SmartPtr<CDispCommonPreferences> new_)
+{
+	typedef QSet<QPair<QString, QString> > set_type;
+	set_type o, n;
+	foreach (CDispUsbIdentity* i, old_->getUsbPreferences()->m_lstAuthenticUsbMap)
+	{
+		foreach (CDispUsbAssociation* j, i->m_lstAssociations)
+		{
+			o << qMakePair(i->getSystemName(), j->getVmUuid());
+		}
+	}
+	foreach (CDispUsbIdentity* i, new_->getUsbPreferences()->m_lstAuthenticUsbMap)
+	{
+		foreach (CDispUsbAssociation* j, i->m_lstAssociations)
+		{
+			n << qMakePair(i->getSystemName(), j->getVmUuid());
+		}
+	}
+	QHash<QString, CHwUsbDevice* > m;
+	CHostHardwareInfo h(CDspService::instance()->getHostInfo()->data());
+	foreach (CHwUsbDevice* i, h.m_lstUsbDevices)
+	{
+		m[i->getDeviceId()] = i;
+	}
+	foreach (set_type::const_reference i, n.subtract(o))
+	{
+		if (m.contains(i.first))
+			Libvirt::Kit.vms().at(i.second).getEditor().plug(*m[i.first]);
+	}
+	foreach (set_type::const_reference i, o.subtract(n))
+	{
+		if (m.contains(i.first))
+			Libvirt::Kit.vms().at(i.second).getEditor().unplug(*m[i.first]);
+	}
+}
+
+} // namespace Applying
+} // namespace Preference
 
 /*****************************************************************************/

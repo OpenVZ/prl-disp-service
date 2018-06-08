@@ -23,7 +23,6 @@
 
 #include <QHostAddress>
 #include "CDspService.h"
-#include "CDspLibvirt_p.h"
 #include "CDspVmManager_p.h"
 #include <QtCore/qmetatype.h>
 #include "CDspVmStateSender.h"
@@ -43,6 +42,7 @@
 #include <Libraries/Transponster/Direct.h>
 #include <Libraries/Transponster/Reverse.h>
 #include <Libraries/Transponster/Reverse_p.h>
+#include "CDspLibvirt_p.h"
 
 namespace Libvirt
 {
@@ -415,14 +415,22 @@ Prl::Expected<QString, Error::Simple> Config::fixup(const CVmConfiguration& valu
 	return u.getResult();
 }
 
-Prl::Expected<QString, Error::Simple> Config::adjustClock(qint64 offset_) const
+Result Config::alter(const Transponster::Vm::Reverse::Pipeline::action_type& transformer_)
 {
-	Transponster::Vm::Reverse::Pipeline u(read_());
-	PRL_RESULT res = u(Transponster::Vm::Reverse::Clock(offset_));
-	if (PRL_FAILED(res))
-		return Error::Simple(res);
+	if (m_link.isNull())
+		return Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
 
-	return u.getResult();
+	Transponster::Vm::Reverse::Pipeline u(transformer_);
+	PRL_RESULT e = Transponster::Director::marshalDirect(read_(), u);
+	if (PRL_FAILED(e))
+		return Error::Simple(e);
+
+	virDomainPtr d = virDomainDefineXML(m_link.data(), u.getValue().toUtf8().data());
+	if (NULL == d)
+		return Failure(PRL_ERR_VM_APPLY_CONFIG_FAILED);
+
+	m_domain = QSharedPointer<virDomain>(d, &virDomainFree);
+	return Result();
 }
 
 } // namespace Agent

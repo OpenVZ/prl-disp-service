@@ -39,6 +39,8 @@
 #include <QMutex>
 #include "Interfaces/Config.h"
 #include <prlsdk/PrlEnums.h>
+#include <prlcommon/Std/SmartPtr.h>
+#include <prlxmlmodel/DispConfig/CDispCommonPreferences.h>
 
 #ifdef _WIN_
 #include <windows.h>
@@ -75,6 +77,9 @@ public:
 	* @param event_code new device state connected/disconnected
 	*/
 	void onDeviceChange(PRL_DEVICE_TYPE dev_type, const QString &dev_name, unsigned int event_code);
+
+public slots:
+	void react(const SmartPtr<CDispCommonPreferences>, const SmartPtr<CDispCommonPreferences>);
 
 protected:
 	/** Overridden method of thread working body */

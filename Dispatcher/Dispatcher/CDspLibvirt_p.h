@@ -48,6 +48,14 @@
 
 namespace Libvirt
 {
+namespace Domain
+{
+namespace Xml
+{
+struct Domain;
+} // namespace Xml
+} // namespace Domain
+
 namespace Model
 {
 struct Coarse;
@@ -771,7 +779,7 @@ struct Config
 	Result convert(CVmConfiguration& dst_) const;
 	Prl::Expected<QString, Error::Simple> mixup(const CVmConfiguration& value_) const;
 	Prl::Expected<QString, Error::Simple> fixup(const CVmConfiguration& value_) const;
-	Prl::Expected<QString, Error::Simple> adjustClock(qint64 offset_) const;
+	Result alter(const boost::function<PRL_RESULT (::Libvirt::Domain::Xml::Domain& ) >& transformer_);
 
 private:
 	char* read_() const;

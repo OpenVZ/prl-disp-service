@@ -1491,7 +1491,7 @@ void CDspService::initPlugins()
 		return;
 }
 
-void CDspService::initNetworkPreferences(CDispCommonPreferences& config_)
+PRL_RESULT CDspService::initNetworkPreferences(CDispCommonPreferences& config_)
 {
 	// Sync with Vz shaping configuration on Dispatcher start
 	CDispNetworkPreferences* c = config_.getNetworkPreferences();
@@ -1500,17 +1500,19 @@ void CDspService::initNetworkPreferences(CDispCommonPreferences& config_)
 	if (CVzHelper::get_network_classes_config(*pClassesCfg))
 	{
 		WRITE_TRACE(DBG_FATAL, "Unable to update network classes configuration");
-		return;
+		return PRL_ERR_FAILURE;
 	}
 
 	CNetworkShapingConfig *pShapingCfg = c->getNetworkShapingConfig();
 	if (CVzHelper::get_network_shaping_config(*pShapingCfg))
 	{
 		WRITE_TRACE(DBG_FATAL, "Unable to update network shaping configuration");
-		return;
+		return PRL_ERR_FAILURE;
 	}
 
 	WRITE_TRACE(DBG_DEBUG, "Network shaping xml:\n%s", qPrintable(c->toString()));
+
+	return PRL_ERR_SUCCESS;
 }
 
 void CDspService::initPrivateNetworks()
@@ -2781,29 +2783,32 @@ void CDspService::notifyConfigChanged
 	emit onConfigChanged(old_, new_);
 }
 
-PRL_RESULT CDspService::updateCommonPreferences(const boost::function1<void, CDispCommonPreferences&>& action_)
+PRL_RESULT CDspService::updateCommonPreferences(const boost::function<PRL_RESULT (CDispCommonPreferences&)>& action_)
 {
 	CDspLockedPointer<CDispCommonPreferences> n = getDispConfigGuard().getDispCommonPrefs();
 
 	// preserve old config
 	SmartPtr<CDispCommonPreferences> o(new CDispCommonPreferences(n.getPtr()));
 
-	action_(*n);
+	PRL_RESULT output = action_(*n);
+	if (PRL_FAILED(output))
+		return output;
+
 	WRITE_TRACE(DBG_DEBUG, "\n%s", qPrintable(n->getNetworkPreferences()->toString()));
 
 	WRITE_TRACE(DBG_INFO, "Dispacther config has been updated.");
 	QString strDispConfigFile = ParallelsDirs::getDispatcherConfigFilePath();
-	PRL_RESULT rc = getDispConfigGuard().saveConfig(strDispConfigFile);
-	if(PRL_FAILED(rc))
+	output = getDispConfigGuard().saveConfig(strDispConfigFile);
+	if(PRL_FAILED(output))
 	{
 		WRITE_TRACE(DBG_FATAL,
 			"Unable to write updated data to disp configuration file by error %s."
-			" It will stored in memory only !", PRL_RESULT_TO_STRING(rc));
+			" It will stored in memory only !", PRL_RESULT_TO_STRING(output));
 	}
 
 	// emit old and new
 	notifyConfigChanged(o, SmartPtr<CDispCommonPreferences>(new CDispCommonPreferences(n.getPtr())));
-	return rc;
+	return output;
 }
 
 void CDspService::onCleanupOnUserSessionDestroy( QString sessionUuid )
