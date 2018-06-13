@@ -1252,9 +1252,7 @@ void Domain::insert(Registry::Access& access_)
 
 	updateConfig(access_);
 	c = access_.getConfig();
-	if (!c) 
-		WRITE_TRACE(DBG_DEBUG, "Unable to redefine configuration for new VM");
-	else
+	if (c && c->getVmIdentification()->getSourceVmUuid().isEmpty())
 	{
 		Libvirt::Result e = m_agent.setConfig(c.get());
 		if (e.isFailed())
