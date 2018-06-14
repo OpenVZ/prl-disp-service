@@ -937,7 +937,7 @@ Prl::Expected<model_type, PRL_RESULT>
 template<class T>
 QString Generic<T>::serialize(model_type::second_type version_) const
 {
-	return QString(T::s_PREFIX).append(version_).append(".0");
+	return QString(T::s_PREFIX).append(QString::number(version_)).append(".0");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
