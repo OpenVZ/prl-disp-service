@@ -1933,7 +1933,19 @@ void Task_RegisterVm::patchNewConfiguration()
 			pCdRom->setPassthrough( PVE::PassthroughEnabled );
 		}
 	}
-
+	if (!doRegisterOnly())
+	{
+		::Chipset* c = m_pVmConfig->getVmHardwareList()->getChipset();
+		// NB. we have an unused structure chipset inside vm configurations.
+		// its attributes are type: 1, version: 3 be default. it was decided
+		// to employ the structure for holding QEMU machine type values.
+		// type 1 is treated as a discriminator for the i440fx machine types
+		// family and 3 denotes 7.6 machine type. it was decided to assign
+		// minimum 7.7 machine type for new VMs thus the chipset version value
+		// should be not less than 4 for the i440fx machine type.
+		if (NULL != c && c->getType() == 1)
+			c->setVersion(qMax(c->getVersion(), 4u));
+	}
 	if (m_pVmConfig->getVmHardwareList()->getClock() != NULL &&
 		m_pVmConfig->getVmHardwareList()->getClock()->getTimeShift() != 0)
 		return;
