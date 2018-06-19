@@ -722,9 +722,10 @@ PRL_RESULT Task_VzManager::changeVNCServerState(SmartPtr<CVmConfiguration> pOldC
 	}
 	// VNC config has been changed
 	else if (newD->getMode() != PRD_DISABLED &&
-			  (oldD->getHostName() != newD->getHostName() ||
-			   oldD->getPortNumber() != newD->getPortNumber() ||
-			   oldD->getPassword() != newD->getPassword())) {
+		  (oldD->getHostName() != newD->getHostName() ||
+		  (newD->getMode() == PRD_MANUAL &&
+			oldD->getPortNumber() != newD->getPortNumber()) ||
+		   oldD->getPassword() != newD->getPassword())) {
 		run = CVzHelper::is_env_running(sUuid);
 		if (boost::logic::indeterminate(run))
 			return PRL_ERR_OPERATION_FAILED;
