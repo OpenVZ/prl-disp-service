@@ -380,6 +380,14 @@ Enum<Domain::Xml::EPolicy1>::data_type Enum<Domain::Xml::EPolicy1>::getData()
 }
 
 template<>
+Enum<Domain::Xml::EDriver>::data_type Enum<Domain::Xml::EDriver>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EDriverQemu, "qemu"))
+			(data_type::value_type(Domain::Xml::EDriverKvm, "kvm"));
+}
+
+template<>
 Enum<Domain::Xml::EOffOptions>::data_type Enum<Domain::Xml::EOffOptions>::getData()
 {
 	return ba::list_of<data_type::relation>
@@ -1070,11 +1078,11 @@ Enum<Domain::Xml::EModel5>::data_type Enum<Domain::Xml::EModel5>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EChoice1067>::data_type Enum<Domain::Xml::EChoice1067>::getData()
+Enum<Domain::Xml::EChoice1070>::data_type Enum<Domain::Xml::EChoice1070>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EChoice1067DevRandom, "/dev/random"))
-			(data_type::value_type(Domain::Xml::EChoice1067DevHwrng, "/dev/hwrng"));
+			(data_type::value_type(Domain::Xml::EChoice1070DevRandom, "/dev/random"))
+			(data_type::value_type(Domain::Xml::EChoice1070DevHwrng, "/dev/hwrng"));
 }
 
 template<>
