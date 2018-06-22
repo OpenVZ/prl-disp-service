@@ -102,12 +102,12 @@ PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Iotune
 
-void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1101::types, 0>::type& iopsLimit_) const
+void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1104::types, 0>::type& iopsLimit_) const
 {
 	m_disk->setIopsLimit(iopsLimit_.getValue());
 }
 
-void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1097::types, 0>::type& ioLimit_) const
+void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1100::types, 0>::type& ioLimit_) const
 {
 	m_disk->setIoLimit(new CVmIoLimit(PRL_IOLIMIT_BS, ioLimit_.getValue()));
 }
@@ -154,8 +154,8 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	if (t)
 	{
 		Iotune v(d);
-		boost::apply_visitor(v, (*t).getChoice1097());
-		boost::apply_visitor(v, (*t).getChoice1101());
+		boost::apply_visitor(v, (*t).getChoice1100());
+		boost::apply_visitor(v, (*t).getChoice1104());
 	}
 	d->setTargetDeviceName(disk_.getTarget().getDev());
 	if (disk_.getSerial())
@@ -1357,7 +1357,7 @@ PRL_RESULT Direct::setHostOnly()
 			boost::apply_visitor(Visitor::Address::Ip(*h), a.get());
 
 		boost::optional<QString> f = p.getFamily();
-		boost::optional<Libvirt::Network::Xml::VChoice1238> m = p.getChoice1238();
+		boost::optional<Libvirt::Network::Xml::VChoice1241> m = p.getChoice1241();
 		if (f && m)
 			boost::apply_visitor(Visitor::Address::Mask(*h, *f), m.get());
 
@@ -1465,8 +1465,8 @@ PRL_RESULT Direct::setMaster()
 	if (m_input.isNull())
 		return PRL_ERR_READ_XML_CONTENT;
  
-	foreach (const Libvirt::Iface::Xml::VChoice1310& a,
-		m_input->getBridge().getChoice1310List())
+	foreach (const Libvirt::Iface::Xml::VChoice1313& a,
+		m_input->getBridge().getChoice1313List())
 	{
 		if (boost::apply_visitor(Visitor::Bridge::Master(m_master), a))
 			return PRL_ERR_SUCCESS;
@@ -1564,14 +1564,14 @@ Vm::Vm(char* xml_)
 	if (snapshot.isNull())
 		return;
 
-	if (!snapshot->getChoice1806())
+	if (!snapshot->getChoice1809())
 		return;
 
-	if (1 == snapshot->getChoice1806()->which())
+	if (1 == snapshot->getChoice1809()->which())
 	{
 		const Libvirt::Domain::Xml::Domain& d =
-			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice1806::types, 1>::type>
-				(snapshot->getChoice1806().get()).getValue();
+			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice1809::types, 1>::type>
+				(snapshot->getChoice1809().get()).getValue();
 		m_input.reset(new Libvirt::Domain::Xml::Domain(d));
 	}
 }
@@ -1688,7 +1688,7 @@ bool Direct::isValid() const
 {
 	return !m_input.isNull() && m_input->getCpu() &&
 		m_input->getCpu()->getMode2().getSupported() == Libvirt::Capability::Xml::EVirYesNoYes &&
-		m_input->getCpu()->getMode2().getAnonymous1877();
+		m_input->getCpu()->getMode2().getAnonymous1880();
 }
 
 CpuFeatures* Direct::getCpuFeatures() const
@@ -1698,7 +1698,7 @@ CpuFeatures* Direct::getCpuFeatures() const
 
 	QList<QString> d, r;
 	foreach (const Libvirt::Capability::Xml::Feature& f,
-		m_input->getCpu()->getMode2().getAnonymous1877()->getFeatureList())
+		m_input->getCpu()->getMode2().getAnonymous1880()->getFeatureList())
 	{
 		switch (f.getPolicy())
 		{
@@ -1722,7 +1722,7 @@ QString Direct::getCpuModel() const
 	if (!isValid())
 		return QString();
 
-	return m_input->getCpu()->getMode2().getAnonymous1877()
+	return m_input->getCpu()->getMode2().getAnonymous1880()
 		->getModel().getOwnValue();
 }
 

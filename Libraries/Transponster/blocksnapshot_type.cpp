@@ -96,7 +96,7 @@ bool Domainblocksnapshot::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Domainblocksnapshot, Name::Strict<2104> > m;
+	Element<Domainblocksnapshot, Name::Strict<2107> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -106,14 +106,14 @@ bool Domainblocksnapshot::load(const QDomElement& src_)
 
 bool Domainblocksnapshot::save(QDomElement& dst_) const
 {
-	Element<Domainblocksnapshot, Name::Strict<2104> > m;
+	Element<Domainblocksnapshot, Name::Strict<2107> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Domainblocksnapshot::save(QDomDocument& dst_) const
 {
-	Element<Domainblocksnapshot, Name::Strict<2104> > m;
+	Element<Domainblocksnapshot, Name::Strict<2107> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }

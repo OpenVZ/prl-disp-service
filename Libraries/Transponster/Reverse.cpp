@@ -166,6 +166,11 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Domain& dst_)
 	}
 	else if (f)
 		f->setPmu(boost::none);
+
+	Libvirt::Domain::Xml::Vmcoreinfo i;
+	i.setState(Libvirt::Domain::Xml::EVirOnOffOn);
+	f->setVmcoreinfo(i);
+
 	dst_.setFeatures(f);
 
 	return true;
@@ -412,9 +417,9 @@ void Hdd::setIoLimit(const CVmIoLimit* global_)
 
 	if (p != 0)
 	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice1097::types, 0>::type y;
+		mpl::at_c<Libvirt::Domain::Xml::VChoice1100::types, 0>::type y;
 		y.setValue(p);
-		t.setChoice1097(Libvirt::Domain::Xml::VChoice1097(y));
+		t.setChoice1100(Libvirt::Domain::Xml::VChoice1100(y));
 	}
 
 	getResult().setIotune(t);
@@ -431,9 +436,9 @@ void Hdd::setIopsLimit(const CVmRunTimeOptions& runtime_)
 
 	if (p != 0)
 	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice1101::types, 0>::type y;
+		mpl::at_c<Libvirt::Domain::Xml::VChoice1104::types, 0>::type y;
 		y.setValue(p);
-		t.setChoice1101(Libvirt::Domain::Xml::VChoice1101(y));
+		t.setChoice1104(Libvirt::Domain::Xml::VChoice1104(y));
 	}
 
 	getResult().setIotune(t);
@@ -1258,8 +1263,10 @@ PRL_RESULT Cpu::setNumber()
 
 void CpuFeaturesMask::getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &cpu)
 {
+	CpuFeatures* u = vt_.getCpuFeatures();
 	QSet<QString> features = CCpuHelper::getDisabledFeatures(*m_input);
-	features.unite(vt_.getCpuFeatures()->getDisabled().toSet());
+	if (NULL != u)
+		features.unite(u->getDisabled().toSet());
 
 	/* FIXME arat feature will be implemented in Update3. It should be disabled
 	 to keep libvirt migration work. It is not working in update1 QEMU.
@@ -1269,18 +1276,21 @@ void CpuFeaturesMask::getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &
 		features.insert(QString("vmx"));
 
 	QList<Libvirt::Domain::Xml::Feature> l;
-	foreach(const QString& name, vt_.getCpuFeatures()->getRequired())
+	if (NULL != u)
 	{
-		if (features.contains(name))
-			continue;
-		// invtsc and xsaves are non migratable (see libvirt cpu_map.xml)
-		if (name == "invtsc")
-			continue;
+		foreach(const QString& name, u->getRequired())
+		{
+			if (features.contains(name))
+				continue;
+			// invtsc and xsaves are non migratable (see libvirt cpu_map.xml)
+			if (name == "invtsc")
+				continue;
 
-		Libvirt::Domain::Xml::Feature f;
-		f.setName(name);
-		f.setPolicy(Libvirt::Domain::Xml::EPolicyRequire);
-		l.append(f);
+			Libvirt::Domain::Xml::Feature f;
+			f.setName(name);
+			f.setPolicy(Libvirt::Domain::Xml::EPolicyRequire);
+			l.append(f);
+		}
 	}
 	foreach(QString name, features)
 	{
@@ -2248,9 +2258,9 @@ Libvirt::Network::Xml::Ip craft(const CDHCPServer& src_,
 	output.setAddress(Libvirt::Network::Xml::VIpAddr(a));
 	typename mpl::at_c<Libvirt::Network::Xml::VIpPrefix::types, T::index>::type p;
 	p.setValue(T::getMask(mask_));
-	mpl::at_c<Libvirt::Network::Xml::VChoice1238::types, 1>::type m;
+	mpl::at_c<Libvirt::Network::Xml::VChoice1241::types, 1>::type m;
 	m.setValue(p);
-	output.setChoice1238(Libvirt::Network::Xml::VChoice1238(m));
+	output.setChoice1241(Libvirt::Network::Xml::VChoice1241(m));
 
 	return output;
 }
@@ -2303,10 +2313,10 @@ PRL_RESULT Reverse::setMaster()
 	Libvirt::Iface::Xml::BasicEthernetContent e;
 	e.setMac(m_master.getMacAddress());
 	e.setName(m_master.getDeviceName());
-	mpl::at_c<Libvirt::Iface::Xml::VChoice1310::types, 0>::type v;
+	mpl::at_c<Libvirt::Iface::Xml::VChoice1313::types, 0>::type v;
 	v.setValue(e);
 	Libvirt::Iface::Xml::Bridge b = m_result.getBridge();
-	b.setChoice1310List(QList<Libvirt::Iface::Xml::VChoice1310>() << v);
+	b.setChoice1313List(QList<Libvirt::Iface::Xml::VChoice1313>() << v);
 	m_result.setBridge(b);
 	return PRL_ERR_SUCCESS;
 }
@@ -2317,7 +2327,7 @@ PRL_RESULT Reverse::setBridge()
 	b.setDelay(2.0);
 	b.setStp(Libvirt::Iface::Xml::EVirOnOffOff);
 	m_result.setBridge(b);
-	Libvirt::Iface::Xml::InterfaceAddressing1340 h;
+	Libvirt::Iface::Xml::InterfaceAddressing1343 h;
 	if (!m_master.isConfigureWithDhcp())
 	{
 		if (!m_master.isConfigureWithDhcpIPv6())
@@ -2327,9 +2337,9 @@ PRL_RESULT Reverse::setBridge()
 		p.setDhcp(Libvirt::Iface::Xml::Dhcp());
 		h.setProtocol2(p);
 	}
-	mpl::at_c<Libvirt::Iface::Xml::VChoice1346::types, 0>::type a;
+	mpl::at_c<Libvirt::Iface::Xml::VChoice1349::types, 0>::type a;
 	a.setValue(Libvirt::Iface::Xml::Dhcp());
-	h.setProtocol(Libvirt::Iface::Xml::VChoice1346(a));
+	h.setProtocol(Libvirt::Iface::Xml::VChoice1349(a));
 	mpl::at_c<Libvirt::Iface::Xml::VInterfaceAddressing::types, 0>::type v;
 	v.setValue(h);
 	m_result.setInterfaceAddressing(v);
@@ -2404,7 +2414,7 @@ QList<Libvirt::Snapshot::Xml::Disk> getAbsentee(const QList<T* >& list_)
 		mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 		a.setValue(Device::Clustered::Model<T>(*d).getTargetName());
 		mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 0>::type b;
-		b.setValue(Libvirt::Snapshot::Xml::Disk1825());
+		b.setValue(Libvirt::Snapshot::Xml::Disk1828());
 		Libvirt::Snapshot::Xml::Disk x;
 		x.setName(Libvirt::Snapshot::Xml::VName(a));
 		x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
@@ -2424,7 +2434,7 @@ boost::optional<Libvirt::Snapshot::Xml::Disk> Internal::operator()(const CVmHard
 	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 	a.setValue(Device::Clustered::Model<CVmHardDisk>(disk_).getTargetName());
 	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 1>::type b;
-	b.setValue(Libvirt::Snapshot::Xml::Disk1826());
+	b.setValue(Libvirt::Snapshot::Xml::Disk1829());
 	x.setName(Libvirt::Snapshot::Xml::VName(a));
 	x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
 	return x;
@@ -2441,15 +2451,15 @@ boost::optional<Libvirt::Snapshot::Xml::Disk> External::operator()(const CVmHard
 	Libvirt::Snapshot::Xml::Disk x;
 	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 	Libvirt::Snapshot::Xml::Source s;
-	Libvirt::Snapshot::Xml::Variant1820 o;
-	mpl::at_c<Libvirt::Snapshot::Xml::VChoice1823::types, 0>::type p;
+	Libvirt::Snapshot::Xml::Variant1823 o;
+	mpl::at_c<Libvirt::Snapshot::Xml::VChoice1826::types, 0>::type p;
 	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 2>::type q;
 
 	a.setValue(Device::Clustered::Model<CVmHardDisk>(disk_).getTargetName());
 	s.setFile(disk_.getSystemName() + "." + m_snapshot);
 	o.setSource(s);
 	p.setValue(o);
-	q.setValue(Libvirt::Snapshot::Xml::VChoice1823(p));
+	q.setValue(Libvirt::Snapshot::Xml::VChoice1826(p));
 
 	x.setName(Libvirt::Snapshot::Xml::VName(a));
 	x.setDisk(Libvirt::Snapshot::Xml::VDisk(q));
@@ -2579,9 +2589,9 @@ PRL_RESULT Request::operator()(const object_type& object_)
 		n.setValue(d.get<1>());
 		y.setName(n);
 
-		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice2101::types, 1>::type c;
+		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice2104::types, 1>::type c;
 		c.setValue(Libvirt::Blockexport::Xml::EVirYesNoYes);
-		y.setChoice2101(Libvirt::Blockexport::Xml::VChoice2101(c));
+		y.setChoice2104(Libvirt::Blockexport::Xml::VChoice2104(c));
 
 		x << y;
 	}

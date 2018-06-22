@@ -305,6 +305,12 @@ enum EPolicy1
 	EPolicy1Deny
 };
 
+enum EDriver
+{
+	EDriverQemu,
+	EDriverKvm
+};
+
 enum EOffOptions
 {
 	EOffOptionsDestroy,
@@ -851,10 +857,10 @@ enum EModel5
 	EModel5Virtio
 };
 
-enum EChoice1067
+enum EChoice1070
 {
-	EChoice1067DevRandom,
-	EChoice1067DevHwrng
+	EChoice1070DevRandom,
+	EChoice1070DevHwrng
 };
 
 enum EModel6
