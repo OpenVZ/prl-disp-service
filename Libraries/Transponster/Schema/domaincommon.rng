@@ -4176,6 +4176,21 @@
               </optional>
             </element>
           </optional>
+          <optional>
+            <element name="smm">
+              <optional>
+                <attribute name="state">
+                  <ref name="virOnOff"/>
+                </attribute>
+              </optional>
+            </element>
+          </optional>
+          <optional>
+            <ref name="ioapic"/>
+          </optional>
+          <optional>
+            <ref name="vmcoreinfo"/>
+          </optional>
         </interleave>
       </element>
     </optional>
@@ -4421,6 +4436,29 @@
       <optional>
         <attribute name="rebootTimeout">
           <ref name="rebootTimeoutDelay"/>
+        </attribute>
+      </optional>
+    </element>
+  </define>
+
+  <define name="ioapic">
+    <element name="ioapic">
+      <attribute name="driver">
+        <choice>
+          <value>qemu</value>
+          <value>kvm</value>
+        </choice>
+      </attribute>
+      <empty/>
+    </element>
+  </define>
+
+
+  <define name="vmcoreinfo">
+    <element name="vmcoreinfo">
+      <optional>
+        <attribute name="state">
+          <ref name="virOnOff"/>
         </attribute>
       </optional>
     </element>

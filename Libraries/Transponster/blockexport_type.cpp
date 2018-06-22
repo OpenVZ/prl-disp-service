@@ -137,7 +137,7 @@ int Traits<Blockexport::Xml::Disk>::parse(Blockexport::Xml::Disk& dst_, QStack<Q
 		dst_.setName(m.get<0>().getValue());
 		dst_.setExportname(m.get<1>().getValue());
 		dst_.setSnapshot(m.get<2>().getValue());
-		dst_.setChoice2101(m.get<3>().getValue());
+		dst_.setChoice2104(m.get<3>().getValue());
 		dst_.setReadonly(m.get<4>().getValue());
 	}
 	return output;
@@ -152,7 +152,7 @@ int Traits<Blockexport::Xml::Disk>::generate(const Blockexport::Xml::Disk& src_,
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getSnapshot(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice2101(), m.get<3>()))
+	if (0 > Details::Marshal::assign(src_.getChoice2104(), m.get<3>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getReadonly(), m.get<4>()))
 		return -1;
@@ -171,7 +171,7 @@ bool Domainblockexport_::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Domainblockexport_, Name::Strict<2103> > m;
+	Element<Domainblockexport_, Name::Strict<2106> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -181,14 +181,14 @@ bool Domainblockexport_::load(const QDomElement& src_)
 
 bool Domainblockexport_::save(QDomElement& dst_) const
 {
-	Element<Domainblockexport_, Name::Strict<2103> > m;
+	Element<Domainblockexport_, Name::Strict<2106> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Domainblockexport_::save(QDomDocument& dst_) const
 {
-	Element<Domainblockexport_, Name::Strict<2103> > m;
+	Element<Domainblockexport_, Name::Strict<2106> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
