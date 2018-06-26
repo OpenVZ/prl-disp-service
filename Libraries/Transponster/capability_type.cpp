@@ -1039,6 +1039,70 @@ int Traits<Capability::Xml::Gic>::generate(const Capability::Xml::Gic& src_, QDo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Features
+
+namespace Capability
+{
+namespace Xml
+{
+Features::Features(): m_vmcoreinfo()
+{
+}
+
+bool Features::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Features, Name::Strict<155> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Features::save(QDomElement& dst_) const
+{
+	Element<Features, Name::Strict<155> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Features::save(QDomDocument& dst_) const
+{
+	Element<Features, Name::Strict<155> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Capability
+
+int Traits<Capability::Xml::Features>::parse(Capability::Xml::Features& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setGic(m.get<0>().getValue());
+		dst_.setVmcoreinfo(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Capability::Xml::Features>::generate(const Capability::Xml::Features& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getGic(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVmcoreinfo(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct DomainCapabilities
 
 namespace Capability
