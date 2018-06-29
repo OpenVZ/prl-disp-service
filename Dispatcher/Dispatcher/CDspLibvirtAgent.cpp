@@ -946,7 +946,7 @@ Prl::Expected<Screenshot, Error::Simple> Guest::dumpScreen()
 Prl::Expected<QString, Error::Simple>
 Guest::dumpMemory(const QString& path)
 {
-	return execute(QString("dump-guest-memory -z %1").arg(path));
+	return execute(QString("dump-guest-memory -a %1").arg(path));
 }
 
 Prl::Expected<Command::Future, Error::Simple>
