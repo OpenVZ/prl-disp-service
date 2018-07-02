@@ -111,76 +111,12 @@ QString Traits<Capability::Xml::POctalMode>::generate(Capability::Xml::POctalMod
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1830
-
-bool Validatable<Capability::Xml::PData1830>::validate(const Capability::Xml::PData1830::value_type& value_)
-{
-	QRegExp q("0x[0-9a-fA-F]{1,2}");
-	if (!q.exactMatch(value_))
-		return false;
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData1832
-
-bool Traits<Capability::Xml::PData1832>::parse(const QString& src_, Capability::Xml::PData1832::value_type& dst_)
-{
-	bool output = false;
-	dst_ = src_.toInt(&output);
-	return output;
-}
-
-QString Traits<Capability::Xml::PData1832>::generate(Capability::Xml::PData1832::value_type src_)
-{
-	return QString::number(src_);
-}
-
-bool Validatable<Capability::Xml::PData1832>::validate(Capability::Xml::PData1832::value_type value_)
-{
-	if (0 > value_)
-		return false;
-
-	if (255 < value_)
-		return false;
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData1834
-
-bool Validatable<Capability::Xml::PData1834>::validate(const Capability::Xml::PData1834::value_type& value_)
-{
-	QRegExp q("0x[0-9a-fA-F]{1,2}");
-	if (!q.exactMatch(value_))
-		return false;
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct PData1836
 
-bool Traits<Capability::Xml::PData1836>::parse(const QString& src_, Capability::Xml::PData1836::value_type& dst_)
+bool Validatable<Capability::Xml::PData1836>::validate(const Capability::Xml::PData1836::value_type& value_)
 {
-	bool output = false;
-	dst_ = src_.toInt(&output);
-	return output;
-}
-
-QString Traits<Capability::Xml::PData1836>::generate(Capability::Xml::PData1836::value_type src_)
-{
-	return QString::number(src_);
-}
-
-bool Validatable<Capability::Xml::PData1836>::validate(Capability::Xml::PData1836::value_type value_)
-{
-	if (0 > value_)
-		return false;
-
-	if (255 < value_)
+	QRegExp q("0x[0-9a-fA-F]{1,2}");
+	if (!q.exactMatch(value_))
 		return false;
 
 	return true;
@@ -189,7 +125,71 @@ bool Validatable<Capability::Xml::PData1836>::validate(Capability::Xml::PData183
 ///////////////////////////////////////////////////////////////////////////////
 // struct PData1838
 
-bool Validatable<Capability::Xml::PData1838>::validate(const Capability::Xml::PData1838::value_type& value_)
+bool Traits<Capability::Xml::PData1838>::parse(const QString& src_, Capability::Xml::PData1838::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toInt(&output);
+	return output;
+}
+
+QString Traits<Capability::Xml::PData1838>::generate(Capability::Xml::PData1838::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Capability::Xml::PData1838>::validate(Capability::Xml::PData1838::value_type value_)
+{
+	if (0 > value_)
+		return false;
+
+	if (255 < value_)
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData1840
+
+bool Validatable<Capability::Xml::PData1840>::validate(const Capability::Xml::PData1840::value_type& value_)
+{
+	QRegExp q("0x[0-9a-fA-F]{1,2}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData1842
+
+bool Traits<Capability::Xml::PData1842>::parse(const QString& src_, Capability::Xml::PData1842::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toInt(&output);
+	return output;
+}
+
+QString Traits<Capability::Xml::PData1842>::generate(Capability::Xml::PData1842::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Capability::Xml::PData1842>::validate(Capability::Xml::PData1842::value_type value_)
+{
+	if (0 > value_)
+		return false;
+
+	if (255 < value_)
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData1844
+
+bool Validatable<Capability::Xml::PData1844>::validate(const Capability::Xml::PData1844::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,6}");
 	if (!q.exactMatch(value_))
@@ -199,21 +199,21 @@ bool Validatable<Capability::Xml::PData1838>::validate(const Capability::Xml::PD
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1840
+// struct PData1846
 
-bool Traits<Capability::Xml::PData1840>::parse(const QString& src_, Capability::Xml::PData1840::value_type& dst_)
+bool Traits<Capability::Xml::PData1846>::parse(const QString& src_, Capability::Xml::PData1846::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Capability::Xml::PData1840>::generate(Capability::Xml::PData1840::value_type src_)
+QString Traits<Capability::Xml::PData1846>::generate(Capability::Xml::PData1846::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Capability::Xml::PData1840>::validate(Capability::Xml::PData1840::value_type value_)
+bool Validatable<Capability::Xml::PData1846>::validate(Capability::Xml::PData1846::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -225,9 +225,9 @@ bool Validatable<Capability::Xml::PData1840>::validate(Capability::Xml::PData184
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1842
+// struct PData1848
 
-bool Validatable<Capability::Xml::PData1842>::validate(const Capability::Xml::PData1842::value_type& value_)
+bool Validatable<Capability::Xml::PData1848>::validate(const Capability::Xml::PData1848::value_type& value_)
 {
 	QRegExp q("[a-fA-F0-9]{32}");
 	if (!q.exactMatch(value_))
@@ -237,9 +237,9 @@ bool Validatable<Capability::Xml::PData1842>::validate(const Capability::Xml::PD
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1844
+// struct PData1850
 
-bool Validatable<Capability::Xml::PData1844>::validate(const Capability::Xml::PData1844::value_type& value_)
+bool Validatable<Capability::Xml::PData1850>::validate(const Capability::Xml::PData1850::value_type& value_)
 {
 	QRegExp q("[a-fA-F0-9]{8}\\-([a-fA-F0-9]{4}\\-){3}[a-fA-F0-9]{12}");
 	if (!q.exactMatch(value_))
