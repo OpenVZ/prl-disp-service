@@ -1051,8 +1051,9 @@ PRL_RESULT Subject::destroy()
 	if (m_snapshot.isNull())
 		return PRL_ERR_UNINITIALIZED;
 
+	QSharedPointer<agent::Snapshot::Block> x = m_snapshot;
 	merge();
-	Libvirt::Result e = m_snapshot->deleteMap();
+	Libvirt::Result e = x->deleteMap();
 	if (e.isFailed())
 		return e.error().code();
 
