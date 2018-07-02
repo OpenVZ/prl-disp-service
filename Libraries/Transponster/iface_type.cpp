@@ -96,7 +96,7 @@ bool Dhcp::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Dhcp, Name::Strict<1243> > m;
+	Element<Dhcp, Name::Strict<1249> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -106,14 +106,14 @@ bool Dhcp::load(const QDomElement& src_)
 
 bool Dhcp::save(QDomElement& dst_) const
 {
-	Element<Dhcp, Name::Strict<1243> > m;
+	Element<Dhcp, Name::Strict<1249> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Dhcp::save(QDomDocument& dst_) const
 {
-	Element<Dhcp, Name::Strict<1243> > m;
+	Element<Dhcp, Name::Strict<1249> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -203,9 +203,9 @@ int Traits<Iface::Xml::Ip>::generate(const Iface::Xml::Ip& src_, QDomElement& ds
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant1348
+// struct Variant1354
 
-int Traits<Iface::Xml::Variant1348>::parse(Iface::Xml::Variant1348& dst_, QStack<QDomElement>& stack_)
+int Traits<Iface::Xml::Variant1354>::parse(Iface::Xml::Variant1354& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -217,7 +217,7 @@ int Traits<Iface::Xml::Variant1348>::parse(Iface::Xml::Variant1348& dst_, QStack
 	return output;
 }
 
-int Traits<Iface::Xml::Variant1348>::generate(const Iface::Xml::Variant1348& src_, QDomElement& dst_)
+int Traits<Iface::Xml::Variant1354>::generate(const Iface::Xml::Variant1354& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getIp(), m.get<0>()))
@@ -359,9 +359,9 @@ int Traits<Iface::Xml::Protocol>::generate(const Iface::Xml::Protocol& src_, QDo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct InterfaceAddressing1343
+// struct InterfaceAddressing1349
 
-int Traits<Iface::Xml::InterfaceAddressing1343>::parse(Iface::Xml::InterfaceAddressing1343& dst_, QStack<QDomElement>& stack_)
+int Traits<Iface::Xml::InterfaceAddressing1349>::parse(Iface::Xml::InterfaceAddressing1349& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -373,7 +373,7 @@ int Traits<Iface::Xml::InterfaceAddressing1343>::parse(Iface::Xml::InterfaceAddr
 	return output;
 }
 
-int Traits<Iface::Xml::InterfaceAddressing1343>::generate(const Iface::Xml::InterfaceAddressing1343& src_, QDomElement& dst_)
+int Traits<Iface::Xml::InterfaceAddressing1349>::generate(const Iface::Xml::InterfaceAddressing1349& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getProtocol(), m.get<0>()))
@@ -385,9 +385,9 @@ int Traits<Iface::Xml::InterfaceAddressing1343>::generate(const Iface::Xml::Inte
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct InterfaceAddressing1344
+// struct InterfaceAddressing1350
 
-int Traits<Iface::Xml::InterfaceAddressing1344>::parse(Iface::Xml::InterfaceAddressing1344& dst_, QStack<QDomElement>& stack_)
+int Traits<Iface::Xml::InterfaceAddressing1350>::parse(Iface::Xml::InterfaceAddressing1350& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -399,7 +399,7 @@ int Traits<Iface::Xml::InterfaceAddressing1344>::parse(Iface::Xml::InterfaceAddr
 	return output;
 }
 
-int Traits<Iface::Xml::InterfaceAddressing1344>::generate(const Iface::Xml::InterfaceAddressing1344& src_, QDomElement& dst_)
+int Traits<Iface::Xml::InterfaceAddressing1350>::generate(const Iface::Xml::InterfaceAddressing1350& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getProtocol(), m.get<0>()))
@@ -782,7 +782,7 @@ bool Miimon::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Miimon, Name::Strict<1325> > m;
+	Element<Miimon, Name::Strict<1331> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -792,14 +792,14 @@ bool Miimon::load(const QDomElement& src_)
 
 bool Miimon::save(QDomElement& dst_) const
 {
-	Element<Miimon, Name::Strict<1325> > m;
+	Element<Miimon, Name::Strict<1331> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Miimon::save(QDomDocument& dst_) const
 {
-	Element<Miimon, Name::Strict<1325> > m;
+	Element<Miimon, Name::Strict<1331> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -852,7 +852,7 @@ bool Arpmon::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Arpmon, Name::Strict<1333> > m;
+	Element<Arpmon, Name::Strict<1339> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -862,14 +862,14 @@ bool Arpmon::load(const QDomElement& src_)
 
 bool Arpmon::save(QDomElement& dst_) const
 {
-	Element<Arpmon, Name::Strict<1333> > m;
+	Element<Arpmon, Name::Strict<1339> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Arpmon::save(QDomDocument& dst_) const
 {
-	Element<Arpmon, Name::Strict<1333> > m;
+	Element<Arpmon, Name::Strict<1339> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -915,7 +915,7 @@ bool Bond::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Bond, Name::Strict<1316> > m;
+	Element<Bond, Name::Strict<1322> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -925,14 +925,14 @@ bool Bond::load(const QDomElement& src_)
 
 bool Bond::save(QDomElement& dst_) const
 {
-	Element<Bond, Name::Strict<1316> > m;
+	Element<Bond, Name::Strict<1322> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
 bool Bond::save(QDomDocument& dst_) const
 {
-	Element<Bond, Name::Strict<1316> > m;
+	Element<Bond, Name::Strict<1322> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -948,7 +948,7 @@ int Traits<Iface::Xml::Bond>::parse(Iface::Xml::Bond& dst_, QStack<QDomElement>&
 	if (0 <= output)
 	{
 		dst_.setMode(m.get<0>().getValue());
-		dst_.setChoice1338(m.get<1>().get<0>().getValue());
+		dst_.setChoice1344(m.get<1>().get<0>().getValue());
 		dst_.setInterfaceList(m.get<1>().get<1>().getValue());
 	}
 	return output;
@@ -959,7 +959,7 @@ int Traits<Iface::Xml::Bond>::generate(const Iface::Xml::Bond& src_, QDomElement
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getMode(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice1338(), m.get<1>().get<0>()))
+	if (0 > Details::Marshal::assign(src_.getChoice1344(), m.get<1>().get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getInterfaceList(), m.get<1>().get<1>()))
 		return -1;
@@ -1072,7 +1072,7 @@ int Traits<Iface::Xml::Bridge>::parse(Iface::Xml::Bridge& dst_, QStack<QDomEleme
 	{
 		dst_.setStp(m.get<0>().getValue());
 		dst_.setDelay(m.get<1>().getValue());
-		dst_.setChoice1313List(m.get<2>().getValue());
+		dst_.setChoice1319List(m.get<2>().getValue());
 	}
 	return output;
 }
@@ -1084,7 +1084,7 @@ int Traits<Iface::Xml::Bridge>::generate(const Iface::Xml::Bridge& src_, QDomEle
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getDelay(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice1313List(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getChoice1319List(), m.get<2>()))
 		return -1;
 
 	return m.produce(dst_);

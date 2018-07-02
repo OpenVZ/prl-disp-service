@@ -1057,6 +1057,19 @@ Enum<Domain::Xml::EType15>::data_type Enum<Domain::Xml::EType15>::getData()
 }
 
 template<>
+Enum<Domain::Xml::EName8>::data_type Enum<Domain::Xml::EName8>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EName8IsaSerial, "isa-serial"))
+			(data_type::value_type(Domain::Xml::EName8UsbSerial, "usb-serial"))
+			(data_type::value_type(Domain::Xml::EName8PciSerial, "pci-serial"))
+			(data_type::value_type(Domain::Xml::EName8SpaprVty, "spapr-vty"))
+			(data_type::value_type(Domain::Xml::EName8Pl011, "pl011"))
+			(data_type::value_type(Domain::Xml::EName8Sclpconsole, "sclpconsole"))
+			(data_type::value_type(Domain::Xml::EName8Sclplmconsole, "sclplmconsole"));
+}
+
+template<>
 Enum<Domain::Xml::EType16>::data_type Enum<Domain::Xml::EType16>::getData()
 {
 	return ba::list_of<data_type::relation>
@@ -1078,11 +1091,11 @@ Enum<Domain::Xml::EModel5>::data_type Enum<Domain::Xml::EModel5>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EChoice1070>::data_type Enum<Domain::Xml::EChoice1070>::getData()
+Enum<Domain::Xml::EChoice1076>::data_type Enum<Domain::Xml::EChoice1076>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EChoice1070DevRandom, "/dev/random"))
-			(data_type::value_type(Domain::Xml::EChoice1070DevHwrng, "/dev/hwrng"));
+			(data_type::value_type(Domain::Xml::EChoice1076DevRandom, "/dev/random"))
+			(data_type::value_type(Domain::Xml::EChoice1076DevHwrng, "/dev/hwrng"));
 }
 
 template<>

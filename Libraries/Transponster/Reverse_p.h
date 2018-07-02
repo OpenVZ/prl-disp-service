@@ -115,7 +115,7 @@ namespace Device
 {
 
 struct List;
-typedef QList<Libvirt::Domain::Xml::VChoice979 > deviceList_type;
+typedef QList<Libvirt::Domain::Xml::VChoice985 > deviceList_type;
 typedef Boot::Reverse::order_type boot_type;
 
 namespace Clustered
@@ -655,7 +655,7 @@ namespace Controller
 
 struct Factory
 {
-	typedef Libvirt::Domain::Xml::VChoice979 result_type;
+	typedef Libvirt::Domain::Xml::VChoice985 result_type;
 	Libvirt::Domain::Xml::Controller craft
 		(const Libvirt::Domain::Xml::VChoice625& bus_, quint16 index_);
 	result_type wrap(const Libvirt::Domain::Xml::Controller& object_);
@@ -695,7 +695,7 @@ namespace Scsi
 
 struct Arrangement
 {
-	typedef boost::function<Libvirt::Domain::Xml::VChoice979 (quint16)>
+	typedef boost::function<Libvirt::Domain::Xml::VChoice985 (quint16)>
 		factory_type;
 
 	explicit Arrangement(const factory_type& factory_):

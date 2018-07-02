@@ -154,81 +154,6 @@ struct Traits<Blocksnapshot::Xml::POctalMode>
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2107
-
-namespace Blocksnapshot
-{
-namespace Xml
-{
-struct PData2107
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Blocksnapshot
-
-template<>
-struct Validatable<Blocksnapshot::Xml::PData2107>: mpl::true_
-{
-	static bool validate(const Blocksnapshot::Xml::PData2107::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData2109
-
-namespace Blocksnapshot
-{
-namespace Xml
-{
-struct PData2109
-{
-	typedef qint32 value_type;
-};
-
-} // namespace Xml
-} // namespace Blocksnapshot
-
-template<>
-struct Traits<Blocksnapshot::Xml::PData2109>
-{
-	static bool parse(const QString& src_, Blocksnapshot::Xml::PData2109::value_type& dst_);
-
-	static QString generate(Blocksnapshot::Xml::PData2109::value_type src_);
-
-};
-
-template<>
-struct Validatable<Blocksnapshot::Xml::PData2109>: mpl::true_
-{
-	static bool validate(Blocksnapshot::Xml::PData2109::value_type value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData2111
-
-namespace Blocksnapshot
-{
-namespace Xml
-{
-struct PData2111
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Blocksnapshot
-
-template<>
-struct Validatable<Blocksnapshot::Xml::PData2111>: mpl::true_
-{
-	static bool validate(const Blocksnapshot::Xml::PData2111::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct PData2113
 
 namespace Blocksnapshot
@@ -237,25 +162,16 @@ namespace Xml
 {
 struct PData2113
 {
-	typedef qint32 value_type;
+	typedef QString value_type;
 };
 
 } // namespace Xml
 } // namespace Blocksnapshot
 
 template<>
-struct Traits<Blocksnapshot::Xml::PData2113>
-{
-	static bool parse(const QString& src_, Blocksnapshot::Xml::PData2113::value_type& dst_);
-
-	static QString generate(Blocksnapshot::Xml::PData2113::value_type src_);
-
-};
-
-template<>
 struct Validatable<Blocksnapshot::Xml::PData2113>: mpl::true_
 {
-	static bool validate(Blocksnapshot::Xml::PData2113::value_type value_);
+	static bool validate(const Blocksnapshot::Xml::PData2113::value_type& value_);
 
 };
 
@@ -268,16 +184,25 @@ namespace Xml
 {
 struct PData2115
 {
-	typedef QString value_type;
+	typedef qint32 value_type;
 };
 
 } // namespace Xml
 } // namespace Blocksnapshot
 
 template<>
+struct Traits<Blocksnapshot::Xml::PData2115>
+{
+	static bool parse(const QString& src_, Blocksnapshot::Xml::PData2115::value_type& dst_);
+
+	static QString generate(Blocksnapshot::Xml::PData2115::value_type src_);
+
+};
+
+template<>
 struct Validatable<Blocksnapshot::Xml::PData2115>: mpl::true_
 {
-	static bool validate(const Blocksnapshot::Xml::PData2115::value_type& value_);
+	static bool validate(Blocksnapshot::Xml::PData2115::value_type value_);
 
 };
 
@@ -290,25 +215,16 @@ namespace Xml
 {
 struct PData2117
 {
-	typedef qint32 value_type;
+	typedef QString value_type;
 };
 
 } // namespace Xml
 } // namespace Blocksnapshot
 
 template<>
-struct Traits<Blocksnapshot::Xml::PData2117>
-{
-	static bool parse(const QString& src_, Blocksnapshot::Xml::PData2117::value_type& dst_);
-
-	static QString generate(Blocksnapshot::Xml::PData2117::value_type src_);
-
-};
-
-template<>
 struct Validatable<Blocksnapshot::Xml::PData2117>: mpl::true_
 {
-	static bool validate(Blocksnapshot::Xml::PData2117::value_type value_);
+	static bool validate(const Blocksnapshot::Xml::PData2117::value_type& value_);
 
 };
 
@@ -321,16 +237,25 @@ namespace Xml
 {
 struct PData2119
 {
-	typedef QString value_type;
+	typedef qint32 value_type;
 };
 
 } // namespace Xml
 } // namespace Blocksnapshot
 
 template<>
+struct Traits<Blocksnapshot::Xml::PData2119>
+{
+	static bool parse(const QString& src_, Blocksnapshot::Xml::PData2119::value_type& dst_);
+
+	static QString generate(Blocksnapshot::Xml::PData2119::value_type src_);
+
+};
+
+template<>
 struct Validatable<Blocksnapshot::Xml::PData2119>: mpl::true_
 {
-	static bool validate(const Blocksnapshot::Xml::PData2119::value_type& value_);
+	static bool validate(Blocksnapshot::Xml::PData2119::value_type value_);
 
 };
 
@@ -353,6 +278,81 @@ template<>
 struct Validatable<Blocksnapshot::Xml::PData2121>: mpl::true_
 {
 	static bool validate(const Blocksnapshot::Xml::PData2121::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData2123
+
+namespace Blocksnapshot
+{
+namespace Xml
+{
+struct PData2123
+{
+	typedef qint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Blocksnapshot
+
+template<>
+struct Traits<Blocksnapshot::Xml::PData2123>
+{
+	static bool parse(const QString& src_, Blocksnapshot::Xml::PData2123::value_type& dst_);
+
+	static QString generate(Blocksnapshot::Xml::PData2123::value_type src_);
+
+};
+
+template<>
+struct Validatable<Blocksnapshot::Xml::PData2123>: mpl::true_
+{
+	static bool validate(Blocksnapshot::Xml::PData2123::value_type value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData2125
+
+namespace Blocksnapshot
+{
+namespace Xml
+{
+struct PData2125
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Blocksnapshot
+
+template<>
+struct Validatable<Blocksnapshot::Xml::PData2125>: mpl::true_
+{
+	static bool validate(const Blocksnapshot::Xml::PData2125::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData2127
+
+namespace Blocksnapshot
+{
+namespace Xml
+{
+struct PData2127
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Blocksnapshot
+
+template<>
+struct Validatable<Blocksnapshot::Xml::PData2127>: mpl::true_
+{
+	static bool validate(const Blocksnapshot::Xml::PData2127::value_type& value_);
 
 };
 
@@ -2546,103 +2546,6 @@ struct Validatable<Blocksnapshot::Xml::PAliasName>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2316
-
-namespace Blocksnapshot
-{
-namespace Xml
-{
-struct PData2316
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Blocksnapshot
-
-template<>
-struct Validatable<Blocksnapshot::Xml::PData2316>: mpl::true_
-{
-	static bool validate(const Blocksnapshot::Xml::PData2316::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData2318
-
-namespace Blocksnapshot
-{
-namespace Xml
-{
-struct PData2318
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Blocksnapshot
-
-template<>
-struct Validatable<Blocksnapshot::Xml::PData2318>: mpl::true_
-{
-	static bool validate(const Blocksnapshot::Xml::PData2318::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData2320
-
-namespace Blocksnapshot
-{
-namespace Xml
-{
-struct PData2320
-{
-	typedef qint32 value_type;
-};
-
-} // namespace Xml
-} // namespace Blocksnapshot
-
-template<>
-struct Traits<Blocksnapshot::Xml::PData2320>
-{
-	static bool parse(const QString& src_, Blocksnapshot::Xml::PData2320::value_type& dst_);
-
-	static QString generate(Blocksnapshot::Xml::PData2320::value_type src_);
-
-};
-
-template<>
-struct Validatable<Blocksnapshot::Xml::PData2320>: mpl::true_
-{
-	static bool validate(Blocksnapshot::Xml::PData2320::value_type value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PCcwSsidRange
-
-namespace Blocksnapshot
-{
-namespace Xml
-{
-struct PCcwSsidRange
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Blocksnapshot
-
-template<>
-struct Validatable<Blocksnapshot::Xml::PCcwSsidRange>: mpl::true_
-{
-	static bool validate(const Blocksnapshot::Xml::PCcwSsidRange::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct PData2322
 
 namespace Blocksnapshot
@@ -2673,6 +2576,28 @@ namespace Xml
 {
 struct PData2324
 {
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Blocksnapshot
+
+template<>
+struct Validatable<Blocksnapshot::Xml::PData2324>: mpl::true_
+{
+	static bool validate(const Blocksnapshot::Xml::PData2324::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData2326
+
+namespace Blocksnapshot
+{
+namespace Xml
+{
+struct PData2326
+{
 	typedef qint32 value_type;
 };
 
@@ -2680,18 +2605,93 @@ struct PData2324
 } // namespace Blocksnapshot
 
 template<>
-struct Traits<Blocksnapshot::Xml::PData2324>
+struct Traits<Blocksnapshot::Xml::PData2326>
 {
-	static bool parse(const QString& src_, Blocksnapshot::Xml::PData2324::value_type& dst_);
+	static bool parse(const QString& src_, Blocksnapshot::Xml::PData2326::value_type& dst_);
 
-	static QString generate(Blocksnapshot::Xml::PData2324::value_type src_);
+	static QString generate(Blocksnapshot::Xml::PData2326::value_type src_);
 
 };
 
 template<>
-struct Validatable<Blocksnapshot::Xml::PData2324>: mpl::true_
+struct Validatable<Blocksnapshot::Xml::PData2326>: mpl::true_
 {
-	static bool validate(Blocksnapshot::Xml::PData2324::value_type value_);
+	static bool validate(Blocksnapshot::Xml::PData2326::value_type value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PCcwSsidRange
+
+namespace Blocksnapshot
+{
+namespace Xml
+{
+struct PCcwSsidRange
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Blocksnapshot
+
+template<>
+struct Validatable<Blocksnapshot::Xml::PCcwSsidRange>: mpl::true_
+{
+	static bool validate(const Blocksnapshot::Xml::PCcwSsidRange::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData2328
+
+namespace Blocksnapshot
+{
+namespace Xml
+{
+struct PData2328
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Blocksnapshot
+
+template<>
+struct Validatable<Blocksnapshot::Xml::PData2328>: mpl::true_
+{
+	static bool validate(const Blocksnapshot::Xml::PData2328::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData2330
+
+namespace Blocksnapshot
+{
+namespace Xml
+{
+struct PData2330
+{
+	typedef qint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Blocksnapshot
+
+template<>
+struct Traits<Blocksnapshot::Xml::PData2330>
+{
+	static bool parse(const QString& src_, Blocksnapshot::Xml::PData2330::value_type& dst_);
+
+	static QString generate(Blocksnapshot::Xml::PData2330::value_type src_);
+
+};
+
+template<>
+struct Validatable<Blocksnapshot::Xml::PData2330>: mpl::true_
+{
+	static bool validate(Blocksnapshot::Xml::PData2330::value_type value_);
 
 };
 
