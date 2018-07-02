@@ -1051,11 +1051,12 @@ PRL_RESULT Subject::destroy()
 	if (m_snapshot.isNull())
 		return PRL_ERR_UNINITIALIZED;
 
+	merge();
 	Libvirt::Result e = m_snapshot->deleteMap();
 	if (e.isFailed())
 		return e.error().code();
 
-	return merge();
+	return PRL_ERR_SUCCESS;
 }
 
 void Subject::setUuid(const QString& value_)
