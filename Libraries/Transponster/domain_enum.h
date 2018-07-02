@@ -842,6 +842,17 @@ enum EType15
 	EType15UsbSerial
 };
 
+enum EName8
+{
+	EName8IsaSerial,
+	EName8UsbSerial,
+	EName8PciSerial,
+	EName8SpaprVty,
+	EName8Pl011,
+	EName8Sclpconsole,
+	EName8Sclplmconsole
+};
+
 enum EType16
 {
 	EType16Usb
@@ -857,10 +868,10 @@ enum EModel5
 	EModel5Virtio
 };
 
-enum EChoice1070
+enum EChoice1076
 {
-	EChoice1070DevRandom,
-	EChoice1070DevHwrng
+	EChoice1076DevRandom,
+	EChoice1076DevHwrng
 };
 
 enum EModel6
