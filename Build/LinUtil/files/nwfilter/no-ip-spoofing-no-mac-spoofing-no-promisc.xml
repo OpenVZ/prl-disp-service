@@ -2,4 +2,5 @@
    <filterref filter='no-ip-spoofing'/>
    <filterref filter='no-mac-spoofing'/>
    <filterref filter='no-promisc'/>
+   <filterref filter='no-arp-ip-spoofing'/>
 </filter>
