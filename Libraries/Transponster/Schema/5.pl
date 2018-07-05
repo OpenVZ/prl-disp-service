@@ -37,33 +37,15 @@ our $license = <<'LICENSE';
  * Schaffhausen, Switzerland.
  */
 LICENSE
-our $error = 0;
-our $history = undef;
-our $metadata = {'generated' => {}};
+our @history_;
+our $historyCursor = 0;
+our $reserved = 0;
 
 sub generate($$)
 {
-	my $y = $_[1];
-	my $z = $#data;
-	if ($history)
-	{
-		my $p = $z - $error;
-		my $x = $history->{'metadata'}{'generated'}{$p};
-		if ($x && $y.($p - $x->{'error'}) eq $x->{'value'})
-		{
-			my $t = $x->{'value'};
-			$metadata->{'generated'}{$z} = {'value'=> $t, 'error'=> $x->{'error'} + $error};
-			push @data, $t;
-
-			return $z + 1;
-		}
-		else
-		{
-			print q(Not found: ), $y, ', ', ($x ? $x->{'value'} : $p), $/;
-		}
-	}
-	my $t = $y.$z;
-	$metadata->{'generated'}{$z} = {'value'=> $t, 'error'=> 0};
+	my $n = $_[1];
+	my $t = $n.($historyCursor - 1);
+	$history_[$historyCursor] ne $t and $t = $n.$#data;
 	return $_[0]->reverse($t);
 }
 
@@ -77,20 +59,24 @@ sub reverse($$)
 {
 	my ($z, $n) = @_;
 	return undef unless defined($n) && $n gt '';
-	my ($output) = grep {$data[$_] eq $n} 0..$#data;
-	unless(defined $output)
+	my $output;
+	if (@history_ > $historyCursor && $history_[$historyCursor] eq $n)
 	{
-		if ($history && grep {$_->{'value'} eq $n} values %{$history->{'metadata'}{'generated'}})
-		{
-			die 'Duplicate name out of order '.$n.$/;
-		}
-		$output = scalar(@data);
-		if ($history && scalar(@{$history->{'data'}}) > $output && $history->{'data'}[$output - $error] ne $n)
-		{
-			++$error;
-		}
-		push @data, $n;
+		$output = $historyCursor++;
+		$history_[$output] = undef;
+		++$reserved;
 	}
+	else
+	{
+		($output) = grep {$data[$_] eq $n} 1..$#data;
+		unless (defined $output)
+		{
+			++$reserved;
+			$output = scalar(@data);
+			push @data, $n;
+		}
+	}
+
 	return $output;
 }
 
@@ -107,8 +93,7 @@ sub getDefinition($)
 	push @output, "\t".'return g_text[index_ - 1];';
 	push @output, '}';
 	push @output, '';
-	push @output, '//metadata:'.encode_base64(freeze($metadata), '');
-	print STDERR 'ERROR: ', $error, $/;
+	print STDERR 'ERROR: ', ($reserved - $historyCursor), $/;
 	return @output;
 }
 
@@ -116,11 +101,17 @@ sub prime($$)
 {
 	my $file = $_[1];
 	open(FD, '<', $file) or die "Cannot open file $file: $!$/";
-	$history = {'data'=> [''], 'metadata'=> {'generated'=> {}}};
+	@data = ('');
+	@history_ = ('');
+	$reserved = 1;
+	$historyCursor = 1;
 	while (my $l = <FD>)
 	{
-		$l =~ m!QString[(]"([^"]+)"! and push @{$history->{'data'}}, $1;
-		$l =~ m!^//metadata:(.+)! and $history->{'metadata'} = thaw(decode_base64($1));
+		if ($l =~ m!QString[(]"([^"]+)"!)
+		{
+			push @data, $1;
+			push @history_, $1;
+		}
 	}
 	close FD;
 }
