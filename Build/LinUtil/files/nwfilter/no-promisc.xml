@@ -18,4 +18,9 @@
   <rule direction='in' action='drop'>
     <mac/>
   </rule>
+
+  <!-- allow IPv4 Multicast MAC range -->
+  <rule direction='in' action='return' priority='500'>
+    <mac dstmacaddr='01:00:5e:00:00:00' dstmacmask='ff:ff:ff:80:00:00'/>
+  </rule>
 </filter>
