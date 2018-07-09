@@ -95,6 +95,7 @@ struct IPv4
 	static QHostAddress patchEnd(const QHostAddress& start_, const QHostAddress& end_);
 	static int getMask(const QHostAddress& mask_);
 	static const char* getFamily();
+	static bool isEligible(const QHostAddress& address_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -106,6 +107,7 @@ struct IPv6
 	static QHostAddress patchEnd(const QHostAddress& start_, const QHostAddress& end_);
 	static int getMask(const QHostAddress& mask_);
 	static const char* getFamily();
+	static bool isEligible(const QHostAddress& address_);
 };
 
 } // namespace Address
