@@ -91,6 +91,7 @@ struct Context
 	void reply(int code_) const;
 	void reply(const CVmEvent& error_) const;
 	void reply(const Libvirt::Result& result_) const;
+	void reply(const CProtoCommandPtr& result_) const;
 
 private:
 	SmartPtr<CDspClient> m_session;
