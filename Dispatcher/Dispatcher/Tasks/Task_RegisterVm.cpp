@@ -247,43 +247,40 @@ void Task_RegisterVm::extractMACAddressesFromVMConfiguration(SmartPtr<CVmConfigu
 	}
 }
 
-void Task_RegisterVm::createMACAddress(SmartPtr<CVmConfiguration> config,
-										QSet<QString> duplicates,
-										bool bCheckEmpty /* = false*/)
+void Task_RegisterVm::createMACAddress(SmartPtr<CVmConfiguration> config, bool bCheckEmpty /* = false*/)
 {
-	QSET_TO_UPPER_CASE( duplicates );
+	QSet<QString> u;
+	CDspVmNetworkHelper::extractAllVmMacAddresses(u, false);
+	QSET_TO_UPPER_CASE(u);
 
-	QListIterator<CVmHardware*> itH(config->m_lstHardware);
-	while (itH.hasNext())
+	CVmHardware* hard = config->getVmHardwareList();
+	if (NULL == hard)
+		return;
+
+	foreach (CVmGenericNetworkAdapter* adapter, hard->m_lstNetworkAdapters)
 	{
-		CVmHardware* hard = itH.next();
-		if (hard)
-		{
-			QListIterator<CVmGenericNetworkAdapter*> itN(hard->m_lstNetworkAdapters);
-			while (itN.hasNext())
-			{
-				CVmGenericNetworkAdapter* adapter(itN.next());
+		if (NULL == adapter)
+			continue;
 
-				bool bNeedCreate	= ( bCheckEmpty && adapter && adapter->getMacAddress().isEmpty() )
-						|| ( !bCheckEmpty && adapter &&
-						( ( duplicates.isEmpty() && !adapter->isStaticAddress() )
-						 || duplicates.contains( adapter->getMacAddress().toUpper() )
-						) );
+		QString a = adapter->getMacAddress().toUpper();
+		bool bNeedCreate = bCheckEmpty ? a.isEmpty() :
+			(adapter->isStaticAddress() ? a.isEmpty() : u.contains(a));
 
-					if( bNeedCreate )
-					{
-						if(adapter->getHostInterfaceName() == HostUtils::generateHostInterfaceName(adapter->getMacAddress()))
-							adapter->setHostInterfaceName();
+		if (!bNeedCreate)
+			continue;
 
-						adapter->setMacAddress(HostUtils::generateMacAddress());
-						adapter->setHostMacAddress();
-					}
-			}
+		if (adapter->getHostInterfaceName() == HostUtils::generateHostInterfaceName(a))
+			adapter->setHostInterfaceName();
 
-			// #PSBM-13394
-			CDspVmNetworkHelper::updateHostMacAddresses(config, NULL, HMU_NONE);
-		}
+		a.clear();
+		CDspVmNetworkHelper::checkAndMakeUniqueMacAddr(a, u);
+		u << a;
+		adapter->setMacAddress(a);
+		adapter->setStaticAddress(false);
+		adapter->setHostMacAddress();
 	}
+	// #PSBM-13394
+	CDspVmNetworkHelper::updateHostMacAddresses(config, NULL, HMU_NONE);
 }
 
 QString Task_RegisterVm::getUniqueVmName(const QString& sVmNamePattern, const QString& vmDirUuid)
@@ -583,7 +580,7 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 		CAuthHelperImpersonateWrapper _impersonate( &getClient()->getAuthHelper() );
 
 		// #116916 MAC address may be empty;
-		createMACAddress(m_pVmConfig, QSet<QString>(), true);
+		createMACAddress(m_pVmConfig, true);
 
 		// retrieve VM UUID from VM config
 		QString vm_uuid = m_pVmConfig->getVmIdentification()->getVmUuid();

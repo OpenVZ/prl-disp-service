@@ -114,25 +114,32 @@ void CDspVmNetworkHelper::extractMacAddressesFromVMConfiguration(SmartPtr<CVmCon
 	}
 }
 
+QMultiMap<QString, QString> CDspVmNetworkHelper::extractAllVmMacAddresses(bool hostAddresses)
+{
+	Vm::Directory::Dao::Locked d;
+	QMultiMap<QString, QString> output;
+	foreach (const Vm::Directory::Item::List::value_type& i, d.getItemList())
+	{
+		PRL_RESULT e;
+		SmartPtr<CVmConfiguration> c = CDspService::instance()->getVmDirHelper()
+			.getVmConfigByDirectoryItem(SmartPtr<CDspClient>(NULL), i.second, e, true, false);
+		if (!c.isValid())
+			continue;
+
+		QSet<QString> x;
+		CDspVmNetworkHelper::extractMacAddressesFromVMConfiguration(c, x, hostAddresses);
+		foreach (const QString& s, x)
+		{
+			output.insert(s, i.second->getVmUuid());
+		}
+	}
+
+	return output;
+}
 
 bool CDspVmNetworkHelper::extractAllVmMacAddresses(QSet<QString>& macs, bool hostAddresses)
 {
-	QMultiHash< QString, SmartPtr<CVmConfiguration> >
-		vmTotalHash = CDspService::instance()->getVmDirHelper().getAllVmList();
-	foreach( QString dirUuid, vmTotalHash.keys() )
-	{
-		QList< SmartPtr<CVmConfiguration> >
-			vmList = vmTotalHash.values( dirUuid );
-		for( int idx=0; idx<vmList.size(); idx++)
-		{
-			SmartPtr<CVmConfiguration> pConfig( vmList[idx] );
-			if (!pConfig)
-				continue;
-
-			extractMacAddressesFromVMConfiguration(pConfig, macs, hostAddresses);
-		}//for idx
-	} //foreach( QString dirUuid
-
+	macs.unite(extractAllVmMacAddresses(hostAddresses).keys().toSet());
 	return true;
 }
 
@@ -156,12 +163,12 @@ bool CDspVmNetworkHelper::checkAndMakeUniqueMacAddr(QString& mac, const QSet<QSt
 		HostUtils::MacPrefixType prefix)
 {
 	if (mac.isEmpty())
-		mac = HostUtils::generateMacAddress(prefix);
+		mac = HostUtils::generateMacAddress(prefix).toUpper();
 
 	int i = 0;
 	while (isMacAddrConflicts(mac, used) && i++ < 20)
 	{
-		mac = HostUtils::generateMacAddress(prefix);
+		mac = HostUtils::generateMacAddress(prefix).toUpper();
 	}
 
 	if (i > 20)
@@ -182,19 +189,11 @@ void CDspVmNetworkHelper::updateHostMacAddresses(SmartPtr<CVmConfiguration> pVmC
 
 	getUsedHostMacAddresses(*pUsed);
 
-	QListIterator<CVmHardware*> itH(pVmConfig->m_lstHardware);
-	while (itH.hasNext())
+	CVmHardware* hard = pVmConfig->getVmHardwareList();
+	if (NULL != hard)
 	{
-		CVmHardware* hard = itH.next();
-		if (!hard)
-			continue;
-
-		QListIterator<CVmGenericNetworkAdapter*> itN(hard->m_lstNetworkAdapters);
-		while (itN.hasNext())
-		{
-			CVmGenericNetworkAdapter* adapter(itN.next());
-			updateHostMacAddress(pVmConfig, adapter, *pUsed, flags);
-		}
+		std::for_each(hard->m_lstNetworkAdapters.begin(), hard->m_lstNetworkAdapters.end(),
+			boost::bind(&updateHostMacAddress, pVmConfig, _1, boost::cref(*pUsed), flags));
 	}
 }
 
@@ -211,8 +210,7 @@ void CDspVmNetworkHelper::updateHostMacAddress(SmartPtr<CVmConfiguration> pVmCon
 
 	// Form own mac address list
 	QSet<QString> own;
-	bool hostAddresses = true;
-	CDspVmNetworkHelper::extractMacAddressesFromVMConfiguration(pVmConfig, own, hostAddresses);
+	CDspVmNetworkHelper::extractMacAddressesFromVMConfiguration(pVmConfig, own, true);
 	own.insert(pAdapter->getMacAddress()); // add guiest mac to used list
 
 	HostUtils::MacPrefixType prefix = HostUtils::MAC_PREFIX_VM;
