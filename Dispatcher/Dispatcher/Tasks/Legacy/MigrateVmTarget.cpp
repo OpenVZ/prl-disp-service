@@ -1187,7 +1187,7 @@ void MigrateVmTarget::checkRemoteDisplay()
 	if (r->getPortNumber() < base)
 	{
 		cEvent.addEventParameter(new CVmEventParameter(PVE::String,
-			QString("Dispatcher %1 does not support VNC port numbers smaller than %2.")
+			QString("Dispatcher %1 does not support VNC port numbers smaller than %3 (%2).")
 			.arg(VER_FULL_BUILD_NUMBER_STR)
 			.arg(r->getPortNumber()).arg(base),
 			EVT_PARAM_MESSAGE_PARAM_0));
@@ -1199,7 +1199,8 @@ void MigrateVmTarget::checkRemoteDisplay()
 		if (m_vnc->listen(QHostAddress(r->getHostName()), r->getPortNumber()))
 			return;
 		cEvent.addEventParameter(new CVmEventParameter(PVE::String,
-			QString("VNC port %1 is busy on the target server.")
+			QString("VNC address:port %1:%2 is not available on the target server.")
+			.arg(r->getHostName())
 			.arg(r->getPortNumber()),
 			EVT_PARAM_MESSAGE_PARAM_0));
 	}
