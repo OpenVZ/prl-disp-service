@@ -107,6 +107,9 @@ void Task_VzStateMonitor::processConfigChangedEvt(const QString &sUuid)
 	if (!pVmDirItem)
 		return;
 
+	// Invalidate cache
+	CDspService::instance()->getVzHelper()->getConfigCache().
+		remove(pVmDirItem->getVmHome());
 	SmartPtr<CVmConfiguration> pConfig = CDspService::instance()->getVzHelper()->
 		getCtConfig(CDspClient::makeServiceUser(), sUuid);
 	if (!pConfig)
