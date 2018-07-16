@@ -2725,6 +2725,13 @@ void CDspService::createIOServers ( quint32 listenPort, PRL_SECURITY_LEVEL secur
 		Qt::DirectConnection );
 	PRL_ASSERT(bConnected);
 
+        // Signal connect
+	bConnected = m_backup.connect(m_ioServerPool.getImpl(),
+		SIGNAL(onClientDisconnected(IOSender::Handle)),
+		SLOT(abort(IOSender::Handle)),
+		Qt::DirectConnection);
+	PRL_ASSERT(bConnected);
+
 	Q_UNUSED(bConnected);
 }
 
