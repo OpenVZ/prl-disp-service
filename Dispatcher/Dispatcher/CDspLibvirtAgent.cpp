@@ -2700,15 +2700,16 @@ Unit::Unit(virDomainSnapshotPtr snapshot_): m_snapshot(snapshot_, &virDomainSnap
 
 Result Unit::getUuid(QString& dst_) const
 {
-	const char* n = virDomainSnapshotGetName(m_snapshot.data());
-	if (NULL == n)
+	char* x = virDomainSnapshotGetXMLDesc(m_snapshot.data(), VIR_DOMAIN_XML_SECURE);
+	if (NULL == x)
 		return Failure(PRL_ERR_INVALID_HANDLE);
 
-	QString x = n;
-	if (!PrlUuid::isUuid(x.toStdString()))
-		return Failure(PRL_ERR_INVALID_HANDLE);
+	Transponster::Snapshot::Direct y(x);
+	if (PRL_FAILED(Transponster::Director::snapshot(y)))
+		return Failure(PRL_ERR_PARSE_VM_DIR_CONFIG);
 
-	dst_ = x;
+	dst_ = y.getResult().GetGuid();
+
 	return Result();
 }
 
