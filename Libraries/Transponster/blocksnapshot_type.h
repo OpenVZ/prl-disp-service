@@ -112,7 +112,7 @@ private:
 template<>
 struct Traits<Blocksnapshot::Xml::Disk>
 {
-	typedef Ordered<mpl::vector<Attribute<Blocksnapshot::Xml::VName, Name::Strict<107> >, Optional<Attribute<mpl::int_<500>, Name::Strict<105> > >, Element<Attribute<Blocksnapshot::Xml::PAbsFilePath, Name::Strict<500> >, Name::Strict<2315> > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Blocksnapshot::Xml::VName, Name::Strict<107> >, Optional<Attribute<mpl::int_<500>, Name::Strict<105> > >, Element<Attribute<Blocksnapshot::Xml::PAbsFilePath, Name::Strict<500> >, Name::Strict<2334> > > > marshal_type;
 
 	static int parse(Blocksnapshot::Xml::Disk& , QStack<QDomElement>& );
 	static int generate(const Blocksnapshot::Xml::Disk& , QDomElement& );
