@@ -702,6 +702,45 @@ private:
 } // namespace Capability
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Features
+
+namespace Capability
+{
+namespace Xml
+{
+struct Features
+{
+	Features();
+
+	const Gic& getGic() const
+	{
+		return m_gic;
+	}
+	void setGic(const Gic& value_)
+	{
+		m_gic = value_;
+	}
+	EVirYesNo getVmcoreinfo() const
+	{
+		return m_vmcoreinfo;
+	}
+	void setVmcoreinfo(EVirYesNo value_)
+	{
+		m_vmcoreinfo = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	Gic m_gic;
+	EVirYesNo m_vmcoreinfo;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
 // struct DomainCapabilities
 
 namespace Capability
@@ -774,11 +813,11 @@ struct DomainCapabilities
 	{
 		m_devices = value_;
 	}
-	const boost::optional<Gic >& getFeatures() const
+	const boost::optional<Features >& getFeatures() const
 	{
 		return m_features;
 	}
-	void setFeatures(const boost::optional<Gic >& value_)
+	void setFeatures(const boost::optional<Features >& value_)
 	{
 		m_features = value_;
 	}
@@ -795,7 +834,7 @@ private:
 	boost::optional<Os > m_os;
 	boost::optional<Cpu > m_cpu;
 	boost::optional<Devices > m_devices;
-	boost::optional<Gic > m_features;
+	boost::optional<Features > m_features;
 };
 
 } // namespace Xml
@@ -994,12 +1033,24 @@ struct Traits<Capability::Xml::Gic>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Features traits
+
+template<>
+struct Traits<Capability::Xml::Features>
+{
+	typedef Unordered<mpl::vector<Element<Capability::Xml::Gic, Name::Strict<995> >, Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1875> >, Name::Strict<998> > > > marshal_type;
+
+	static int parse(Capability::Xml::Features& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Features& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct DomainCapabilities traits
 
 template<>
 struct Traits<Capability::Xml::DomainCapabilities>
 {
-	typedef Unordered<mpl::vector<Element<Text<Capability::Xml::PAbsFilePath >, Name::Strict<355> >, Element<Text<QString >, Name::Strict<1> >, Optional<Element<Text<QString >, Name::Strict<286> > >, Element<Text<QString >, Name::Strict<285> >, Optional<Element<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1874> >, Name::Strict<338> > >, Optional<Element<Capability::Xml::Os, Name::Strict<222> > >, Optional<Element<Capability::Xml::Cpu, Name::Strict<220> > >, Optional<Element<Capability::Xml::Devices, Name::Strict<228> > >, Optional<Element<Element<Capability::Xml::Gic, Name::Strict<995> >, Name::Strict<155> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Element<Text<Capability::Xml::PAbsFilePath >, Name::Strict<355> >, Element<Text<QString >, Name::Strict<1> >, Optional<Element<Text<QString >, Name::Strict<286> > >, Element<Text<QString >, Name::Strict<285> >, Optional<Element<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1874> >, Name::Strict<338> > >, Optional<Element<Capability::Xml::Os, Name::Strict<222> > >, Optional<Element<Capability::Xml::Cpu, Name::Strict<220> > >, Optional<Element<Capability::Xml::Devices, Name::Strict<228> > >, Optional<Element<Capability::Xml::Features, Name::Strict<155> > > > > marshal_type;
 
 	static int parse(Capability::Xml::DomainCapabilities& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::DomainCapabilities& , QDomElement& );
