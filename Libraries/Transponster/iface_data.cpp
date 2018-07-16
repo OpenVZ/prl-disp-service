@@ -111,76 +111,12 @@ QString Traits<Iface::Xml::POctalMode>::generate(Iface::Xml::POctalMode::value_t
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1265
-
-bool Validatable<Iface::Xml::PData1265>::validate(const Iface::Xml::PData1265::value_type& value_)
-{
-	QRegExp q("0x[0-9a-fA-F]{1,2}");
-	if (!q.exactMatch(value_))
-		return false;
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData1267
-
-bool Traits<Iface::Xml::PData1267>::parse(const QString& src_, Iface::Xml::PData1267::value_type& dst_)
-{
-	bool output = false;
-	dst_ = src_.toInt(&output);
-	return output;
-}
-
-QString Traits<Iface::Xml::PData1267>::generate(Iface::Xml::PData1267::value_type src_)
-{
-	return QString::number(src_);
-}
-
-bool Validatable<Iface::Xml::PData1267>::validate(Iface::Xml::PData1267::value_type value_)
-{
-	if (0 > value_)
-		return false;
-
-	if (255 < value_)
-		return false;
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData1269
-
-bool Validatable<Iface::Xml::PData1269>::validate(const Iface::Xml::PData1269::value_type& value_)
-{
-	QRegExp q("0x[0-9a-fA-F]{1,2}");
-	if (!q.exactMatch(value_))
-		return false;
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct PData1271
 
-bool Traits<Iface::Xml::PData1271>::parse(const QString& src_, Iface::Xml::PData1271::value_type& dst_)
+bool Validatable<Iface::Xml::PData1271>::validate(const Iface::Xml::PData1271::value_type& value_)
 {
-	bool output = false;
-	dst_ = src_.toInt(&output);
-	return output;
-}
-
-QString Traits<Iface::Xml::PData1271>::generate(Iface::Xml::PData1271::value_type src_)
-{
-	return QString::number(src_);
-}
-
-bool Validatable<Iface::Xml::PData1271>::validate(Iface::Xml::PData1271::value_type value_)
-{
-	if (0 > value_)
-		return false;
-
-	if (255 < value_)
+	QRegExp q("0x[0-9a-fA-F]{1,2}");
+	if (!q.exactMatch(value_))
 		return false;
 
 	return true;
@@ -189,7 +125,71 @@ bool Validatable<Iface::Xml::PData1271>::validate(Iface::Xml::PData1271::value_t
 ///////////////////////////////////////////////////////////////////////////////
 // struct PData1273
 
-bool Validatable<Iface::Xml::PData1273>::validate(const Iface::Xml::PData1273::value_type& value_)
+bool Traits<Iface::Xml::PData1273>::parse(const QString& src_, Iface::Xml::PData1273::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toInt(&output);
+	return output;
+}
+
+QString Traits<Iface::Xml::PData1273>::generate(Iface::Xml::PData1273::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Iface::Xml::PData1273>::validate(Iface::Xml::PData1273::value_type value_)
+{
+	if (0 > value_)
+		return false;
+
+	if (255 < value_)
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData1275
+
+bool Validatable<Iface::Xml::PData1275>::validate(const Iface::Xml::PData1275::value_type& value_)
+{
+	QRegExp q("0x[0-9a-fA-F]{1,2}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData1277
+
+bool Traits<Iface::Xml::PData1277>::parse(const QString& src_, Iface::Xml::PData1277::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toInt(&output);
+	return output;
+}
+
+QString Traits<Iface::Xml::PData1277>::generate(Iface::Xml::PData1277::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Iface::Xml::PData1277>::validate(Iface::Xml::PData1277::value_type value_)
+{
+	if (0 > value_)
+		return false;
+
+	if (255 < value_)
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData1279
+
+bool Validatable<Iface::Xml::PData1279>::validate(const Iface::Xml::PData1279::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,6}");
 	if (!q.exactMatch(value_))
@@ -199,21 +199,21 @@ bool Validatable<Iface::Xml::PData1273>::validate(const Iface::Xml::PData1273::v
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1275
+// struct PData1281
 
-bool Traits<Iface::Xml::PData1275>::parse(const QString& src_, Iface::Xml::PData1275::value_type& dst_)
+bool Traits<Iface::Xml::PData1281>::parse(const QString& src_, Iface::Xml::PData1281::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Iface::Xml::PData1275>::generate(Iface::Xml::PData1275::value_type src_)
+QString Traits<Iface::Xml::PData1281>::generate(Iface::Xml::PData1281::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Iface::Xml::PData1275>::validate(Iface::Xml::PData1275::value_type value_)
+bool Validatable<Iface::Xml::PData1281>::validate(Iface::Xml::PData1281::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -225,9 +225,9 @@ bool Validatable<Iface::Xml::PData1275>::validate(Iface::Xml::PData1275::value_t
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1277
+// struct PData1283
 
-bool Validatable<Iface::Xml::PData1277>::validate(const Iface::Xml::PData1277::value_type& value_)
+bool Validatable<Iface::Xml::PData1283>::validate(const Iface::Xml::PData1283::value_type& value_)
 {
 	QRegExp q("[a-fA-F0-9]{32}");
 	if (!q.exactMatch(value_))
@@ -237,9 +237,9 @@ bool Validatable<Iface::Xml::PData1277>::validate(const Iface::Xml::PData1277::v
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1279
+// struct PData1285
 
-bool Validatable<Iface::Xml::PData1279>::validate(const Iface::Xml::PData1279::value_type& value_)
+bool Validatable<Iface::Xml::PData1285>::validate(const Iface::Xml::PData1285::value_type& value_)
 {
 	QRegExp q("[a-fA-F0-9]{8}\\-([a-fA-F0-9]{4}\\-){3}[a-fA-F0-9]{12}");
 	if (!q.exactMatch(value_))
