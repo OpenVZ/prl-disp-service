@@ -127,6 +127,14 @@ void Context::reply(const Libvirt::Result& result_) const
 		reply(PRL_ERR_SUCCESS);
 }
 
+void Context::reply(const CProtoCommandPtr& result_) const
+{
+	CProtoCommandDspWsResponse* w = CProtoSerializer::CastToProtoCommand
+		<CProtoCommandDspWsResponse>(result_);
+	m_trace.finish(w->GetRetCode());
+	m_session->sendResponse(result_, m_package);
+}
+
 void Context::reportStart()
 {
 	m_trace.start();
@@ -204,7 +212,7 @@ void Context::respond(const QString& parameter_, PRL_RESULT code_) const
 	CProtoCommandDspWsResponse* d = CProtoSerializer::CastToProtoCommand
 		<CProtoCommandDspWsResponse>(r);
 	d->AddStandardParam(parameter_);
-	m_context.get().getSession()->sendResponse(r, m_context.get().getPackage());
+	m_context.get().reply(r);
 }
 
 void Context::sendEvent(PRL_EVENT_TYPE type_, PRL_EVENT_ISSUER_TYPE issuer_) const
@@ -449,6 +457,11 @@ struct Essence<PVE::DspCmdVmCreateSnapshot>: Need::Agent, Need::Context,
 	{
 		Libvirt::Result e;
 		Libvirt::Snapshot::Stash s(getConfig(), getCommand()->GetSnapshotUuid());
+		boost::property_tree::ptree p;
+		p.put("snapshot_uuid", getCommand()->GetSnapshotUuid().toStdString());
+		Task::Trace t(getContext().getPackage());
+		t.report(p);
+
 		if (PCSF_BACKUP & getCommand()->GetCommandFlags())
 		{
 // NB. external user doesn't work with backup snapshots. this code is
@@ -764,6 +777,11 @@ struct Essence<PVE::DspCmdVmDeleteSnapshot>: Need::Agent,
 {
 	Libvirt::Result operator()()
 	{
+		boost::property_tree::ptree p;
+		p.put("snapshot_uuid", getCommand()->GetSnapshotUuid().toStdString());
+		Task::Trace t(getContext().getPackage());
+		t.report(p);
+
 		Libvirt::Result output = do_();
 		if (output.isSucceed())
 		{
