@@ -1248,6 +1248,9 @@ QString Exec::Request::getJson() const
 Prl::Expected<QString, Libvirt::Agent::Failure>
 Exec::Exec::executeInAgent(const QString& cmd, int retries)
 {
+	if (m_domain.isNull())
+		return Libvirt::Agent::Failure(PRL_ERR_UNINITIALIZED);
+
 	char *s;
 	
 	/*
