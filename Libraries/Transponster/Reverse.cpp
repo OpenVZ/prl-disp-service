@@ -2141,6 +2141,12 @@ const char* IPv4::getFamily()
 	return "ipv4";
 }
 
+bool IPv4::isEligible(const QHostAddress& address_)
+{
+	return !(address_.isNull() || address_ == QHostAddress(QHostAddress::Any) ||
+			address_ == QHostAddress(QHostAddress::LocalHost));
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct IPv6
 
@@ -2165,6 +2171,12 @@ int IPv6::getMask(const QHostAddress& mask_)
 const char* IPv6::getFamily()
 {
 	return "ipv6";
+}
+
+bool IPv6::isEligible(const QHostAddress& address_)
+{
+	return !(address_.isNull() || address_ == QHostAddress(QHostAddress::AnyIPv6) ||
+			address_ == QHostAddress(QHostAddress::LocalHostIPv6));
 }
 
 } // namespace Address
@@ -2239,31 +2251,105 @@ PRL_RESULT Reverse::setVlan()
 
 namespace
 {
-template<class T>
-Libvirt::Network::Xml::Ip craft(const CDHCPServer& src_,
-			const QHostAddress& host_, const QHostAddress& mask_)
-{
-	typename mpl::at_c<Libvirt::Network::Xml::VIpAddr::types, T::index>::type a, e;
-	a.setValue(src_.getIPScopeStart().toString());
-	e.setValue(T::patchEnd(src_.getIPScopeStart(), src_.getIPScopeEnd()).toString());
-	Libvirt::Network::Xml::Range r;
-	r.setStart(a);
-	r.setEnd(e);
-	Libvirt::Network::Xml::Dhcp h;
-	h.setRangeList(QList<Libvirt::Network::Xml::Range>() << r);
-	Libvirt::Network::Xml::Ip output;
-	output.setFamily(QString(T::getFamily()));
-	output.setDhcp(h);
-	a.setValue(host_.toString());
-	output.setAddress(Libvirt::Network::Xml::VIpAddr(a));
-	typename mpl::at_c<Libvirt::Network::Xml::VIpPrefix::types, T::index>::type p;
-	p.setValue(T::getMask(mask_));
-	mpl::at_c<Libvirt::Network::Xml::VChoice1247::types, 1>::type m;
-	m.setValue(p);
-	output.setChoice1247(Libvirt::Network::Xml::VChoice1247(m));
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
 
-	return output;
-}
+template<class T>
+struct Builder
+{
+	typedef Libvirt::Network::Xml::Ip result_type;
+	
+	void setAddress(const QHostAddress& host_, const QHostAddress& mask_)
+	{
+		typename mpl::at_c<Libvirt::Network::Xml::VIpAddr::types, T::index>::type a;
+
+		m_result.setFamily(QString(T::getFamily()));
+		a.setValue(host_.toString());
+		m_result.setAddress(Libvirt::Network::Xml::VIpAddr(a));
+		typename mpl::at_c<Libvirt::Network::Xml::VIpPrefix::types, T::index>::type p;
+		p.setValue(T::getMask(mask_));
+		mpl::at_c<Libvirt::Network::Xml::VChoice1247::types, 1>::type m;
+		m.setValue(p);
+		m_result.setChoice1247(Libvirt::Network::Xml::VChoice1247(m));
+	}
+	void setDhcp(const CDHCPServer& model_)
+	{
+		typename mpl::at_c<Libvirt::Network::Xml::VIpAddr::types, T::index>::type a, e;
+		a.setValue(model_.getIPScopeStart().toString());
+		e.setValue(T::patchEnd(model_.getIPScopeStart(), model_.getIPScopeEnd()).toString());
+		Libvirt::Network::Xml::Range r;
+		r.setStart(a);
+		r.setEnd(e);
+		Libvirt::Network::Xml::Dhcp h;
+		h.setRangeList(QList<Libvirt::Network::Xml::Range>() << r);
+		m_result.setDhcp(h);
+	}
+	const result_type& getResult() const
+	{
+		return m_result;
+	}
+
+private:
+	result_type m_result;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Visitor
+
+struct Visitor
+{
+	typedef QList<Libvirt::Network::Xml::Ip> result_type;
+
+	Visitor(const CHostOnlyNetwork& model_, result_type& result_):
+		m_result(&result_), m_model(&model_)
+	{
+	}
+
+	template<class T>
+	void operator()(const T& family_) const
+	{
+		Builder<T> b;
+		QHostAddress a = getAddress(family_);
+		if (T::isEligible(a))
+		{
+			b.setAddress(a, getMask(family_));
+			CDHCPServer* h = getDhcp(family_);
+			if (NULL != h && h->isEnabled())
+				b.setDhcp(*h);
+
+			*m_result << b.getResult();
+		}
+	}
+
+	QHostAddress getMask(const Address::IPv4& ) const
+	{
+		return m_model->getIPNetMask();
+	}
+	QHostAddress getAddress(const Address::IPv4& ) const
+	{
+		return m_model->getHostIPAddress();
+	}
+	CDHCPServer* getDhcp(const Address::IPv4& ) const
+	{
+		return m_model->getDHCPServer();
+	}
+	QHostAddress getMask(const Address::IPv6& ) const
+	{
+		return m_model->getIP6NetMask();
+	}
+	QHostAddress getAddress(const Address::IPv6& ) const
+	{
+		return m_model->getHostIP6Address();
+	}
+	CDHCPServer* getDhcp(const Address::IPv6& ) const
+	{
+		return m_model->getDHCPv6ServerOrig();
+	}
+
+private:
+	result_type* m_result;
+	const CHostOnlyNetwork* m_model;
+};
 
 } // namespace
 
@@ -2278,13 +2364,8 @@ PRL_RESULT Reverse::setHostOnly()
 	m_result.setDns(d);
 
 	QList<Libvirt::Network::Xml::Ip> x;
-	CDHCPServer* v4 = n->getDHCPServer();
-	if (NULL != v4 && v4->isEnabled())
-		x << craft<Address::IPv4>(*v4, n->getHostIPAddress(), n->getIPNetMask());
-
-	CDHCPServer* v6 = n->getDHCPv6ServerOrig();
-	if (NULL != v6 && v6->isEnabled())
-		x << craft<Address::IPv6>(*v6, n->getHostIP6Address(), n->getIP6NetMask());
+	boost::mpl::for_each<boost::mpl::vector<Address::IPv4, Address::IPv6>::type>
+                                (Visitor(*n, x));
 
 	if (!x.isEmpty())
 		m_result.setIpList(x);
