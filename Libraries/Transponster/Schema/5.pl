@@ -10,6 +10,8 @@ use UNIVERSAL qw(isa);
 package Strings;
 use Carp qw<longmess>;
 use Data::Dumper;
+use Storable qw<freeze thaw>;
+use MIME::Base64;
 our @data = ('');
 our $license = <<'LICENSE';
 /*
@@ -35,10 +37,34 @@ our $license = <<'LICENSE';
  * Schaffhausen, Switzerland.
  */
 LICENSE
+our $error = 0;
+our $history = undef;
+our $metadata = {'generated' => {}};
 
 sub generate($$)
 {
-	return $_[0]->reverse($_[1].$#data);
+	my $y = $_[1];
+	my $z = $#data;
+	if ($history)
+	{
+		my $p = $z - $error;
+		my $x = $history->{'metadata'}{'generated'}{$p};
+		if ($x && $y.($p - $x->{'error'}) eq $x->{'value'})
+		{
+			my $t = $x->{'value'};
+			$metadata->{'generated'}{$z} = {'value'=> $t, 'error'=> $x->{'error'} + $error};
+			push @data, $t;
+
+			return $z + 1;
+		}
+		else
+		{
+			print q(Not found: ), $y, ', ', ($x ? $x->{'value'} : $p), $/;
+		}
+	}
+	my $t = $y.$z;
+	$metadata->{'generated'}{$z} = {'value'=> $t, 'error'=> 0};
+	return $_[0]->reverse($t);
 }
 
 sub lookup($$)
@@ -54,8 +80,16 @@ sub reverse($$)
 	my ($output) = grep {$data[$_] eq $n} 0..$#data;
 	unless(defined $output)
 	{
+		if ($history && grep {$_->{'value'} eq $n} values %{$history->{'metadata'}{'generated'}})
+		{
+			die 'Duplicate name out of order '.$n.$/;
+		}
+		$output = scalar(@data);
+		if ($history && scalar(@{$history->{'data'}}) > $output && $history->{'data'}[$output - $error] ne $n)
+		{
+			++$error;
+		}
 		push @data, $n;
-		$output = $#data;
 	}
 	return $output;
 }
@@ -72,7 +106,23 @@ sub getDefinition($)
 	push @output, '{';
 	push @output, "\t".'return g_text[index_ - 1];';
 	push @output, '}';
+	push @output, '';
+	push @output, '//metadata:'.encode_base64(freeze($metadata), '');
+	print STDERR 'ERROR: ', $error, $/;
 	return @output;
+}
+
+sub prime($$)
+{
+	my $file = $_[1];
+	open(FD, '<', $file) or die "Cannot open file $file: $!$/";
+	$history = {'data'=> [''], 'metadata'=> {'generated'=> {}}};
+	while (my $l = <FD>)
+	{
+		$l =~ m!QString[(]"([^"]+)"! and push @{$history->{'data'}}, $1;
+		$l =~ m!^//metadata:(.+)! and $history->{'metadata'} = thaw(decode_base64($1));
+	}
+	close FD;
 }
 
 package Namespace;
@@ -2456,7 +2506,7 @@ sub getSaviour($$)
 package main;
 
 our $parser = XML::LibXML->new();
-our $first = File::Spec->rel2abs($ARGV[0]);
+our $first;
 our $start;
 our %defines;
 our %types;
@@ -3000,7 +3050,12 @@ sub generate
 #	print STDERR Dumper($d), $/;
 }
 
-foreach my $x (@ARGV)
+my @av = @ARGV;
+if (-1 == index($av[0], ':'))
+{
+	Strings->prime(File::Spec->rel2abs(shift @av));
+}
+foreach my $x (@av)
 {
 	my ($rng, $tags, $name) = split /:/, $x;
 	Factory->setup($name);
