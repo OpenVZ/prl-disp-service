@@ -724,13 +724,21 @@ PRL_RESULT Estimate::operator()(const Request& request_)
 
 	m_regular = regular_type(PRL_ERR_FAILURE);
 	m_special = special_type(PRL_ERR_FAILURE);
+	const SmartPtr<CVmConfiguration>& c(request_.getContext().getVmConfig());
+	if (!c->getVmHardwareList()->m_lstSerialPorts.isEmpty() ||
+		c->getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled())
+	{
+		return CDspTaskFailure(request_.getContext())
+			(Error::Simple(PRL_ERR_UNSUPPORTED_DEVICE_TYPE,
+				"Online move of VMs with serial ports or EFI bios is not supported")
+					.convertToEvent());
+	}
 	PRL_RESULT e = CVmMigrateHelper::GetEntryListsVmHome(s, d, f);
 	if (PRL_FAILED(e))
 		return e;
 
 	m_special = Special::Facade(request_.getContext());
-	foreach (CVmHardDisk* d, ::Backup::Object::Model
-		(request_.getContext().getVmConfig()).getImages())
+	foreach (CVmHardDisk* d, ::Backup::Object::Model(c).getImages())
 	{
 		if (PVE::DeviceConnected != d->getConnected())
 			continue;
