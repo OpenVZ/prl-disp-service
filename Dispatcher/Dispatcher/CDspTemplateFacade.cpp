@@ -111,7 +111,7 @@ PRL_RESULT Instrument::register_(const CVmConfiguration& item_)
 	x->setVmType(item_.getVmType());
 	x->setValid(PVE::VmValid);
 	x->setRegistered(PVE::VmRegistered);
-	x->setTemplate(true);
+	x->setTemplate(item_.getVmSettings()->getVmCommonOptions()->isTemplate());
 	PRL_RESULT output = getDirectoryHelper().insertVmDirectoryItem(m_folder, x.data());
 	if (PRL_SUCCEEDED(output))
 		x.take();
