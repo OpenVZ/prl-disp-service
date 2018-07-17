@@ -125,8 +125,10 @@ bool View::operator()()
 			Prl::Expected<CSavedStateTree, PRL_RESULT> snapshot =
 				Libvirt::Snapshot::Stash(m_config, x->GetGuid()).getMetadata();
 
-			if (snapshot.isSucceed())
+			if (snapshot.isSucceed()) {
 				x->SetName(snapshot.value().GetName());
+				x->SetDescription(snapshot.value().GetDescription());
+			}
 		}
 	}
 	m_result.DeleteNode(f.GetGuid());
