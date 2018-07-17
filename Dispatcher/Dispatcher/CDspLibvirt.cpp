@@ -883,7 +883,8 @@ int State::react(virConnectPtr, virDomainPtr domain_, int event_,
 			v->show(domain_, boost::bind(&Registry::Reactor::upgrade, _1));
 			break;
 		default:
-			v->setState(domain_, VMS_RUNNING);
+			WRITE_TRACE(DBG_FATAL, "VM %s process is up an running",
+				qPrintable(v->getUuid(domain_)));
 		case VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT:
 			// state updated on defined from snapshot
 		case VIR_DOMAIN_EVENT_STARTED_MIGRATED:
