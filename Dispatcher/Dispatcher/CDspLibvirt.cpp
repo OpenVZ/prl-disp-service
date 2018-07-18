@@ -883,8 +883,7 @@ int State::react(virConnectPtr, virDomainPtr domain_, int event_,
 			v->show(domain_, boost::bind(&Registry::Reactor::upgrade, _1));
 			break;
 		default:
-			WRITE_TRACE(DBG_FATAL, "VM %s process is up an running",
-				qPrintable(v->getUuid(domain_)));
+			v->reactStart(domain_);
 		case VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT:
 			// state updated on defined from snapshot
 		case VIR_DOMAIN_EVENT_STARTED_MIGRATED:
@@ -1421,6 +1420,28 @@ void Demonstrator::showCrash()
 namespace Model
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Entry
+
+Entry::Entry(const Registry::Access& access_):
+	Reaction::Demonstrator(access_), m_last(VMS_UNKNOWN)
+{
+}
+
+void Entry::setState(VIRTUAL_MACHINE_STATE value_)
+{
+	if (value_ == m_last)
+	{
+		WRITE_TRACE(DBG_FATAL, "duplicate status %s is detected for a VM. ignore",
+			PRL_VM_STATE_TO_STRING(value_));
+	}
+	else
+	{
+		m_last = value_;
+		show(Callback::Reactor::State(value_));
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct System
 
 System::System(Registry::Actual& registry_): m_registry(registry_)
@@ -1434,7 +1455,7 @@ void System::remove(const QString& uuid_)
 		return;
 
 	domainMap_type::mapped_type x = p.value();
-	x->show(Callback::Reactor::State(VMS_UNKNOWN));
+	x->setState(VMS_UNKNOWN);
 	x->show(boost::bind(&Registry::Actual::undefine, &m_registry, uuid_));
 
 	m_domainMap.erase(p);
@@ -1491,11 +1512,27 @@ bool Coarse::show(virDomainPtr domain_, const reaction_type& reaction_)
 	return true;
 }
 
+void Coarse::reactStart(virDomainPtr domain_)
+{
+	QString u = getUuid(domain_);
+	QSharedPointer<System::entry_type> d = m_fine->find(u);
+	if (d.isNull())
+		return;
+
+	switch (d->getLast())
+	{
+	case VMS_PAUSED:
+		break;
+	default:
+		d->setState(VMS_RUNNING);
+	}
+}
+
 void Coarse::setState(virDomainPtr domain_, VIRTUAL_MACHINE_STATE value_)
 {
 	QSharedPointer<System::entry_type> d = m_fine->find(getUuid(domain_));
 	if (!d.isNull())
-		d->show(Callback::Reactor::State(value_));
+		d->setState(value_);
 }
 
 void Coarse::prepareToSwitch(virDomainPtr domain_)
