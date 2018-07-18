@@ -536,11 +536,28 @@ private:
 namespace Model
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Entry
+
+struct Entry: Reaction::Demonstrator
+{
+	explicit Entry(const Registry::Access& access_);
+
+	void setState(VIRTUAL_MACHINE_STATE value_);
+	VIRTUAL_MACHINE_STATE getLast() const
+	{
+		return m_last;
+	}
+
+private:
+	VIRTUAL_MACHINE_STATE m_last;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct System
 
 struct System: QObject
 {
-	typedef Reaction::Demonstrator entry_type;
+	typedef Entry entry_type;
 
 	explicit System(Registry::Actual& registry_);
 
@@ -567,6 +584,7 @@ struct Coarse
 	{
 	}
 
+	void reactStart(virDomainPtr domain_);
 	void setState(virDomainPtr domain_, VIRTUAL_MACHINE_STATE value_);
 	void prepareToSwitch(virDomainPtr domain_);
 	bool show(virDomainPtr domain_, const reaction_type& reaction_);
