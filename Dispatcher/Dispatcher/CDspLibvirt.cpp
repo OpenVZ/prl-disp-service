@@ -1429,8 +1429,16 @@ Entry::Entry(const Registry::Access& access_):
 
 void Entry::setState(VIRTUAL_MACHINE_STATE value_)
 {
-	m_last = value_;
-	show(Callback::Reactor::State(value_));
+	if (value_ == m_last)
+	{
+		WRITE_TRACE(DBG_FATAL, "duplicate status %s is detected for a VM. ignore",
+			PRL_VM_STATE_TO_STRING(value_));
+	}
+	else
+	{
+		m_last = value_;
+		show(Callback::Reactor::State(value_));
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1514,9 +1522,6 @@ void Coarse::reactStart(virDomainPtr domain_)
 	switch (d->getLast())
 	{
 	case VMS_PAUSED:
-	case VMS_RUNNING:
-		WRITE_TRACE(DBG_FATAL, "VM %s process is up and running",
-			qPrintable(u));
 		break;
 	default:
 		d->setState(VMS_RUNNING);
