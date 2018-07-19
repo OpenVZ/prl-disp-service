@@ -1522,13 +1522,7 @@ PRL_RESULT Direct::setIdentity()
 	if (m_input.isNull())
 		return PRL_ERR_READ_XML_CONTENT;
 
-	if (PrlUuid::isUuid(m_input->getName().get().toStdString()))
-		m_result.SetGuid(m_input->getName().get());
-	else if (m_input->getDescription() &&
-	    PrlUuid::isUuid(m_input->getDescription().get().toStdString()))
-		m_result.SetGuid(m_input->getDescription().get());
-	else
-		return PRL_ERR_READ_XML_CONTENT;
+	m_result.SetGuid(m_input->getName().get());
 	m_result.SetName(m_input->getName().get());
 	if (m_input->getDescription())
 		m_result.SetDescription(m_input->getDescription().get());
