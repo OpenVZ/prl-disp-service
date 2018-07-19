@@ -497,14 +497,12 @@ struct Essence<PVE::DspCmdVmCreateSnapshot>: Need::Agent, Need::Context,
 			if (s.add(f) && s.setMetadata(c))
 			{
 				Libvirt::Instrument::Agent::Vm::Snapshot::Request req;
+
 				req.setDescription(getCommand()->GetSnapshotUuid());
 				if (getCommand()->GetCommandFlags() & PCSF_DISK_ONLY)
 					req.setDiskOnly();
 				e = getAgent().getSnapshot().define(
-					getCommand()->GetName().isEmpty() ?
-						getCommand()->GetSnapshotUuid():
-						getCommand()->GetName(),
-					req);
+					getCommand()->GetSnapshotUuid(), req);
 			}
 			else
 			{
