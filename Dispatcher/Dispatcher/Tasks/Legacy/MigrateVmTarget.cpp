@@ -700,9 +700,14 @@ PRL_RESULT MigrateVmTarget::migrateRunningVm()
 
 	m_nSteps |= MIGRATE_VM_APP_STARTED;
 
-	PRL_RESULT r = exec();
+	PRL_RESULT output = exec();
+	if (PRL_FAILED(c->getError()))
+		return c->getError();
 
-	return PRL_SUCCEEDED(c->getError()) ? r : c->getError();
+	if (operationIsCancelled())
+		return getCancelResult();
+
+	return output;
 }
 
 void MigrateVmTarget::handleVmMigrateEvent(const QString& sVmUuid, const SmartPtr<IOPackage>& p)
@@ -780,15 +785,9 @@ void MigrateVmTarget::clientDisconnected(IOSender::Handle h)
 	if (!lock.isLocked())
 		return;
 
-	WRITE_TRACE(DBG_DEBUG, "some client was disconnected");
-	if (m_nSteps & MIGRATE_VM_APP_STARTED)
-		return;
-
-	if (h != m_hConnHandle)
-		return;
-
-	SmartPtr<CDspClient> nullClient;
-	cancelOperation(nullClient, getRequestPackage());
+	WRITE_TRACE(DBG_DEBUG, "some client has disconnected");
+	if (h == m_hConnHandle)
+		cancelOperation(SmartPtr<CDspClient>(), getRequestPackage());
 }
 
 void MigrateVmTarget::handleStartPackage(
@@ -852,12 +851,13 @@ void MigrateVmTarget::handleStartPackage(
 // cancel command
 void MigrateVmTarget::cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& p)
 {
-	WRITE_TRACE(DBG_FATAL, "%s", __FUNCTION__);
+	WRITE_TRACE(DBG_FATAL, __FUNCTION__);
 	CancelOperationSupport::cancelOperation(pUser, p);
 	if (m_pVmMigrateTarget.isValid())
 		m_pVmMigrateTarget->cancelOperation();
 
-	QThread::exit(PRL_ERR_OPERATION_WAS_CANCELED);
+	if (0 == (m_nSteps & MIGRATE_VM_APP_STARTED))
+		QThread::exit(PRL_ERR_OPERATION_WAS_CANCELED);
 }
 
 void MigrateVmTarget::handleStartCommandTimeout()
