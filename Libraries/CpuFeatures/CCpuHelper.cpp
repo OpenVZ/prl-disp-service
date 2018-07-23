@@ -668,7 +668,10 @@ struct Visitor : boost::static_visitor<void>
 			"lahf_lm", "cmp_legacy", "svm",	"extapic", "cr8legacy", "abm", "sse4a",
 			"misalignsse", "3dnowprefetch",	"osvw",	"ibs", "xop", "skinit",	"wdt", "", "lwp",
 			"fma4", "tce", "", "nodeid_msr", "", "tbm",	"topoext", "perfctr_core", "perfctr_nb",
+			NULL
+/*
 			"", "dbx", "perftsc", "pcx_l2i", "mwaitext", NULL
+*/
 		};
 
 		m_list->push_back(Register(f, &Config::type::getEXT_80000001_ECX_MASK));
@@ -687,11 +690,14 @@ struct Visitor : boost::static_visitor<void>
 
 	void operator()(boost::mpl::int_<PCFE_EXT_80000007_EDX>)
 	{
+		static const char *f[] = {NULL};
+/*	libvirt does not like CPU features from this register /usr/share/libvirt/cpu_map.xml
 		static const char *f[] = {
 			"ts", "fid", "vid", "ttp", "tm", "stc", "mul100", "hwps",
 			"itsc", "cpb", "efro", "pfi", "pa", "cs", "rapl",
 			NULL
 		};
+*/
 
 		m_list->push_back(Register(f, &Config::type::getEXT_80000007_EDX_MASK));
 	}
