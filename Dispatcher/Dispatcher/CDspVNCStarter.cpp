@@ -49,6 +49,12 @@
 #include <boost/functional/factory.hpp>
 #include <boost/random/uniform_int.hpp>
 #include <boost/random/mersenne_twister.hpp>
+#include <boost/phoenix/operator.hpp>
+#include <boost/phoenix/statement.hpp>
+#include <boost/phoenix/object/delete.hpp>
+#include <boost/phoenix/core/reference.hpp>
+#include <boost/phoenix/bind/bind_function_object.hpp>
+#include <boost/phoenix/bind/bind_member_function.hpp>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
@@ -386,22 +392,37 @@ Tunnel* Subject::getResult()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Backend
+// struct Feedback
 
-void Backend::run()
+void Feedback::generate(Tunnel* result_)
+{
+	if (NULL == result_)
+		emit abort();
+	else
+	{
+		result_->connect(result_, SIGNAL(ripped()), SLOT(deleteLater()));
+		result_->moveToThread(thread());
+		emit adopt(result_);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Script
+
+void Script::operator()(Feedback& feedback_)
 {
 	QScopedPointer<Subject> s(m_subject());
 	quint16 p = m_setup.first, e = m_setup.second;
 
 	if (PRL_FAILED(s->startStunnel(p, e)))
-		return;
+		return feedback_.generate(NULL);
 
 	if (PRL_FAILED(s->bringUpKeepAlive()))
-		return;
+		return feedback_.generate(NULL);
 
 	Tunnel* t = s->getResult();
 	if (NULL == t)
-		return;
+		return feedback_.generate(NULL);
 
 	if (PRD_AUTO == m_sweepMode)
 	{
@@ -410,8 +431,7 @@ void Backend::run()
 		w->connect(t, SIGNAL(closed()), SLOT(reactRipped()));
 	}
 	p = t->getPort();
-	t->connect(t, SIGNAL(ripped()), SLOT(deleteLater()));
-	t->moveToThread(QCoreApplication::instance()->thread());
+	feedback_.generate(t);
 	m_commit(p);
 }
 
@@ -455,7 +475,134 @@ void Tunnel::reactDisconnect()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Driver
+
+Driver::Driver(): m_active(), m_liquidator(), m_starting()
+{
+	qRegisterMetaType<Tunnel* >("Tunnel*");
+	qRegisterMetaType<Liquidator* >("Liquidator*");
+	qRegisterMetaType<Launch::Script* >("Launch::Script*");
+}
+
+void Driver::stop(Liquidator* liquidator_)
+{
+	PRL_ASSERT(NULL != liquidator_);
+	PRL_ASSERT(NULL == m_liquidator);
+
+	m_liquidator = liquidator_;
+	if (NULL != m_active)
+	{
+		m_liquidator->connect(m_active, SIGNAL(ripped()), SLOT(execute()));
+		return;
+	}
+	if (NULL == m_starting)
+		m_liquidator->execute();
+}
+
+void Driver::start(Launch::Script* script_)
+{
+	PRL_ASSERT(NULL != script_);
+
+	if (NULL != m_liquidator)
+	{
+		delete script_;
+		return;
+	}
+	m_pending.reset(script_);
+	if (NULL != m_active)
+		return;
+
+	if (NULL == m_starting)
+		launch();
+}
+
+void Driver::abort()
+{
+	PRL_ASSERT(NULL != m_starting);
+
+	m_starting = NULL;
+	if (NULL != m_liquidator)
+		m_liquidator->execute();
+	else if (!m_pending.isNull())
+		launch();
+}
+
+void Driver::adopt(Tunnel* orphan_)
+{
+	PRL_ASSERT(NULL != orphan_);
+	PRL_ASSERT(NULL != m_starting);
+
+	m_active = orphan_;
+	m_starting = NULL;
+
+	connect(orphan_, SIGNAL(ripped()), SLOT(evict()));
+	if (NULL != m_liquidator)
+		m_liquidator->connect(orphan_, SIGNAL(ripped()), SLOT(execute()));
+}
+
+void Driver::evict()
+{
+	if (NULL == m_active)
+	{
+		WRITE_TRACE(DBG_FATAL, "second evict. it is anxiously");
+		return;
+	}
+	PRL_ASSERT(static_cast<Tunnel* >(sender()) == m_active);
+
+	disconnect(m_active);
+	m_active = NULL;
+
+	if (!m_pending.isNull())
+		launch();
+}
+
+void Driver::launch()
+{
+	PRL_ASSERT(!m_pending.isNull());
+	PRL_ASSERT(NULL == m_starting);
+
+	Launch::Feedback* f = new Launch::Feedback();
+	connect(f, SIGNAL(abort()), SLOT(abort()));
+	connect(f, SIGNAL(adopt(Tunnel*)), SLOT(adopt(Tunnel*)));
+
+	m_starting = m_pending.take();
+	namespace bp = boost::phoenix;
+	boost::function<void ()> l =
+		(
+			bp::bind(bp::ref(*m_starting), bp::ref(*f)),
+			bp::delete_(m_starting),
+			bp::bind(&Launch::Feedback::deleteLater, f)
+		);
+	QtConcurrent::run(l);
+}
+
+void Driver::collapse()
+{
+	connect(m_active, SIGNAL(closed()), SLOT(evict()));
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
+
+Frontend::Frontend(const ::Vm::Config::Edit::Atomic& commit_, CDspService& service_):
+	m_rfb(new Driver()), m_websocket(new Driver()), m_service(&service_),
+	m_commit(commit_)
+{
+	m_rfb->moveToThread(QCoreApplication::instance()->thread());
+	m_rfb->connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()),
+		SLOT(collapse()));
+	m_websocket->moveToThread(QCoreApplication::instance()->thread());
+	m_websocket->connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()),
+		SLOT(collapse()));
+}
+
+Frontend::~Frontend()
+{
+	QMetaObject::invokeMethod(m_rfb, "stop", Qt::AutoConnection,
+		Q_ARG(Liquidator* , new Liquidator(*m_rfb)));
+	QMetaObject::invokeMethod(m_websocket, "stop", Qt::AutoConnection,
+		Q_ARG(Liquidator* , new Liquidator(*m_websocket)));
+}
 
 void Frontend::draw(CVmRemoteDisplay& object_, const CVmRemoteDisplay* runtime_,
 	const range_type& playground_) const
@@ -477,14 +624,14 @@ void Frontend::draw(CVmRemoteDisplay& object_, const CVmRemoteDisplay* runtime_,
 	}
 	QHostAddress a(runtime_->getHostName());
 	u.setTarget(a, runtime_->getPortNumber());
-	Launch::Backend::range_type d(playground_.first, playground_.second);
-	Launch::Backend* q = new Launch::Backend(boost::bind(
+	Launch::Script::range_type d(playground_.first, playground_.second);
+	Launch::Script* q = new Launch::Script(boost::bind(
 			boost::factory<Launch::Subject* >(), u), d,
 				Launch::SetPort(m_commit, &Traits::configure,
 					*m_service));
-	q->setAutoDelete(true);
 	q->setSweepMode(object_.getMode());
-	QThreadPool::globalInstance()->start(q);
+	QMetaObject::invokeMethod(m_rfb, "start", Qt::AutoConnection,
+				Q_ARG(Launch::Script* , q));
 
 	if (runtime_->getWebSocketPortNumber() == runtime_->getPortNumber())
 		return;
@@ -495,13 +642,13 @@ void Frontend::draw(CVmRemoteDisplay& object_, const CVmRemoteDisplay* runtime_,
 	if (QAbstractSocket::IPv4Protocol == a.protocol())
 		d = s.getAutoRange();
 
-	q = new Launch::Backend(boost::bind(
+	q = new Launch::Script(boost::bind(
 			boost::factory<Launch::Subject* >(), u), d,
 				Launch::SetPort(m_commit, &Traits::configureWS,
 					*m_service));
-	q->setAutoDelete(true);
 	q->setSweepMode(PRD_AUTO);
-	QThreadPool::globalInstance()->start(q);
+	QMetaObject::invokeMethod(m_websocket, "start", Qt::AutoConnection,
+				Q_ARG(Launch::Script* , q));
 }
 
 void Frontend::setup(CVmConfiguration& object_, const CVmConfiguration& runtime_) const

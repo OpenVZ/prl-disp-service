@@ -97,6 +97,8 @@ Frontend::Frontend(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 	m_uuid(uuid_), m_service(CDspService::instance()), m_user(user_),
 	m_routing(routing_)
 {
+	m_vnc = QSharedPointer<Vnc::Secure::Frontend>
+		(new Vnc::Secure::Frontend(getConfigEditor(), *m_service));
 }
 
 const QString Frontend::getHome() const

@@ -317,6 +317,25 @@ namespace Secure
 typedef ::Vm::Config::Edit::Atomic commit_type;
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Liquidator
+
+struct Liquidator: QObject
+{
+	explicit Liquidator(QObject& parent_): QObject(&parent_)
+	{
+	}
+
+public slots:
+	void execute()
+	{
+		parent()->deleteLater();
+	}
+
+private:
+	Q_OBJECT
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Tunnel
 
 struct Tunnel: QObject
@@ -417,22 +436,38 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Backend
+// struct Feedback
 
-struct Backend: QRunnable
+struct Feedback: QObject
 {
+	void generate(Tunnel* result_);
+
+signals:
+	void abort();
+	void adopt(Tunnel* orphan_);
+
+private:
+	Q_OBJECT
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Script
+
+struct Script
+{
+	typedef void result_type;
 	typedef boost::function0<Subject* > subject_type;
 	typedef QPair<quint16, quint16> range_type;
 	typedef boost::function<PRL_RESULT(const quint16)> configure_type;
 
-	Backend(const subject_type& subject_, const range_type& input_,
+	Script(const subject_type& subject_, const range_type& input_,
 		const configure_type& commit_):
 		m_commit(commit_), m_subject(subject_), m_setup(input_),
 		m_sweepMode()
 	{
 	}
 
-	void run();
+	void operator()(Feedback& feedback_);
 	void setSweepMode(PRL_VM_REMOTE_DISPLAY_MODE value_)
 	{
 		m_sweepMode = value_;
@@ -446,6 +481,34 @@ private:
 };
 
 } // namespace Launch
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Driver
+
+struct Driver: QObject
+{
+	Driver();
+
+	Q_INVOKABLE void stop(Liquidator* liquidator_);
+	Q_INVOKABLE void start(Launch::Script* script_);
+
+public slots:
+	void abort();
+	void adopt(Tunnel* orphan_);
+	void evict();
+	void collapse();
+
+private:
+	Q_OBJECT
+	
+	void launch();
+
+	Tunnel* m_active;
+	Liquidator* m_liquidator;
+	Launch::Script* m_starting;
+	QScopedPointer<Launch::Script> m_pending;
+};
+
 } // namespace Secure
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -453,7 +516,7 @@ private:
 
 struct Scope
 {
-	typedef Secure::Launch::Backend::range_type range_type;
+	typedef Secure::Launch::Script::range_type range_type;
 
 	explicit Scope(CDspService& service_): m_service(&service_)
 	{
