@@ -416,7 +416,6 @@ struct Domain
 	void update(Registry::Access& access_);
 	void updateConfig(Registry::Access& access_);
 	void insert(Registry::Access& access_);
-	void switch_(Registry::Access& access_);
 
 private:
 	State m_state;

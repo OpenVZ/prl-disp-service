@@ -884,8 +884,6 @@ int State::react(virConnectPtr, virDomainPtr domain_, int event_,
 			break;
 		default:
 			v->reactStart(domain_);
-		case VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT:
-			// state updated on defined from snapshot
 		case VIR_DOMAIN_EVENT_STARTED_MIGRATED:
 			// This event means that live migration is started, but VM has
 			// not been defined yet. Ignore it.
@@ -893,17 +891,9 @@ int State::react(virConnectPtr, virDomainPtr domain_, int event_,
 		}
 		return 0;
 	case VIR_DOMAIN_EVENT_RESUMED:
-		if (subtype_ == VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT)
-			// state updated on defined from snapshot
-			return 0;
-
 		v->setState(domain_, VMS_RUNNING);
 		return 0;
 	case VIR_DOMAIN_EVENT_SUSPENDED:
-		if (subtype_ == VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT)
-			// state updated on defined from snapshot
-			return 0;
-
 		switch (subtype_)
 		{
 		case VIR_DOMAIN_EVENT_SUSPENDED_PAUSED:
@@ -912,6 +902,7 @@ int State::react(virConnectPtr, virDomainPtr domain_, int event_,
 		case VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG:
 		case VIR_DOMAIN_EVENT_SUSPENDED_RESTORED:
 		case VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR:
+		case VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT:
 			v->setState(domain_, VMS_PAUSED);
 			break;
 		}
@@ -928,10 +919,6 @@ int State::react(virConnectPtr, virDomainPtr domain_, int event_,
 		}
 		return 0;
 	case VIR_DOMAIN_EVENT_STOPPED:
-		if (subtype_ == VIR_DOMAIN_EVENT_STOPPED_FROM_SNAPSHOT)
-			// state updated on defined from snapshot
-			return 0;
-
 		switch (subtype_)
 		{
 		case VIR_DOMAIN_EVENT_STOPPED_SAVED:
@@ -1229,19 +1216,6 @@ void Domain::update(Registry::Access& access_)
 {
 	updateConfig(access_);
 	m_state(access_);
-}
-
-void Domain::switch_(Registry::Access& access_)
-{
-	updateConfig(access_);
-	switch (m_state.getValue())
-	{
-	case VMS_PAUSED:
-	case VMS_STOPPED:
-		return m_state(access_);
-	default:
-		break;
-	}
 }
 
 void Domain::insert(Registry::Access& access_)
@@ -1545,7 +1519,7 @@ void Coarse::prepareToSwitch(virDomainPtr domain_)
 	d->show(Callback::Reactor::Show(boost::bind(&Registry::Reactor::prepareToSwitch, _1)));
 	Instrument::Agent::Vm::Unit a(domain_);
 	Callback::Reactor::Domain r(a);
-	d->show(boost::bind(&Callback::Reactor::Domain::switch_, r, _1));
+	d->show(boost::bind(&Callback::Reactor::Domain::updateConfig, r, _1));
 }
 
 void Coarse::remove(virDomainPtr domain_)
