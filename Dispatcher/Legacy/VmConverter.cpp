@@ -265,8 +265,8 @@ struct Killer: Command::Vm::Shutdown::Fallback
 	}
 	static quint32 getTimeout()
 	{
-		// 60 mins;
-		return 60*60;
+		// Scientifically calculated timeout of 28 mins;
+		return 28*60;
 	}
 	void react()
 	{
