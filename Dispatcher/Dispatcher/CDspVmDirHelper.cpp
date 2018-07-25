@@ -3823,7 +3823,7 @@ Default::result_type Default::handle(const CVmDirectoryItem& item_)
 	if (PRL_SUCCEEDED(e))
 		return Chain::handle(item_);
 
-	value_type output = craft(e, item_.getVmUuid());
+	value_type output = craft(e, &item_);
 	if (!output.isValid())
 	{
 		WRITE_TRACE(DBG_FATAL, ">>> Error [%#x / %s ] occurred while "
@@ -3835,29 +3835,32 @@ Default::result_type Default::handle(const CVmDirectoryItem& item_)
 	return output;
 }
 
-Default::value_type Default::craft(PRL_RESULT code_, const QString& uid_)
+Default::value_type Default::craft(PRL_RESULT code_, const CVmDirectoryItem* item_)
 {
+	QString u;
+	if (NULL != item_)
+		u = item_->getVmUuid();
+
 	value_type output;
-	CVmIdent o(getService().getVmDirHelper().getVmIdentByVmUuid(uid_, getSession()));
-	CDspLockedPointer<CVmDirectoryItem> d(getService().getVmDirManager().getVmDirItemByUuid(o));
 	switch (code_)
 	{
 	case PRL_ERR_VM_CONFIG_INVALID_VM_UUID:
 	case PRL_ERR_VM_CONFIG_INVALID_SERVER_UUID:
 	case PRL_ERR_VM_IS_EXCLUSIVELY_LOCKED:
 	{
-		PRL_RESULT e;
-		output = getService().getVmDirHelper().getVmConfigByUuid(getSession(), uid_, e);
+		PRL_RESULT e = PRL_ERR_UNINITIALIZED;
+		output = getService().getVmDirHelper().getVmConfigByUuid(getSession(), u, e);
 		if (!output.isValid())
 		{
 			WRITE_TRACE(DBG_FATAL, "getVmConfigByUuid( %s ) return NULL. error %#x(%s)",
-				qPrintable(uid_), e, PRL_RESULT_TO_STRING(e));
+				qPrintable(u), e, PRL_RESULT_TO_STRING(e));
 		}
 		break;
 	}
 	case PRL_ERR_VM_CONFIG_DOESNT_EXIST:
 	case PRL_ERR_PARSE_VM_CONFIG:
-		if (d.isValid() && getService().getVmConfigManager().canConfigRestore(d->getVmHome(), getSession()))
+		if (NULL != item_ && getService().getVmConfigManager()
+			.canConfigRestore(item_->getVmHome(), getSession()))
 			code_ = PRL_ERR_VM_CONFIG_CAN_BE_RESTORED;
 
 	case PRL_ERR_ACCESS_TO_VM_DENIED:
@@ -3867,10 +3870,28 @@ Default::value_type Default::craft(PRL_RESULT code_, const QString& uid_)
 	}
 	if (output.isValid())
 	{
-		output->getVmIdentification()->setVmName(craftName(d.getPtr(), uid_));
-		output->getVmIdentification()->setVmUuid(uid_);
-		output->setVmType(d->getVmType());
 		output->setValidRc(code_);
+		if (NULL != item_)
+		{
+			output->getVmIdentification()->setVmName(craftName(item_, u));
+			output->getVmIdentification()->setVmUuid(u);
+			output->setVmType(item_->getVmType());
+		}
+	}
+
+	return output;
+}
+
+Default::value_type Default::craft(PRL_RESULT code_, const QString& uid_)
+{
+	CVmIdent o(getService().getVmDirHelper().getVmIdentByVmUuid(uid_, getSession()));
+	CDspLockedPointer<CVmDirectoryItem> d(getService().getVmDirManager().getVmDirItemByUuid(o));
+	value_type output(craft(code_, d.getPtr()));
+	if (!d.isValid() && output.isValid())
+	{
+		output->getVmIdentification()->setVmName(craftName(NULL, uid_));
+		output->getVmIdentification()->setVmUuid(uid_);
+		output->setVmType(PVT_VM);
 	}
 
 	return output;

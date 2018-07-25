@@ -311,6 +311,7 @@ struct Default: Chain
 
 	result_type handle(const CVmDirectoryItem& item_);
 	value_type craft(PRL_RESULT code_, const QString& uid_);
+	value_type craft(PRL_RESULT code_, const CVmDirectoryItem* item_);
 
 private:
 	QString craftName(const CVmDirectoryItem* item_, const QString& uid_) const;
