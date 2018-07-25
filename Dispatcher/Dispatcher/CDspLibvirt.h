@@ -649,6 +649,7 @@ struct Maintenance: private Abstract
 	}
 
 	void emitDefined();
+	void emitRestored();
 	void emitQemuUpdated();
 	void emitAgentCorollary(PRL_VM_TOOLS_STATE state_);
 	Result updateQemu();
