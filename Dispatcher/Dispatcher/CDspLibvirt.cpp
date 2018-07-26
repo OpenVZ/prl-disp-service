@@ -1238,6 +1238,12 @@ void Domain::insert(Registry::Access& access_)
 	m_state(access_);
 }
 
+void Domain::switch_(Registry::Access& access_)
+{
+	updateConfig(access_);
+	m_agent.getMaintenance().emitRestored();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Network
 
@@ -1410,8 +1416,15 @@ void Entry::setState(VIRTUAL_MACHINE_STATE value_)
 	}
 	else
 	{
-		m_last = value_;
-		show(Callback::Reactor::State(value_));
+		switch (m_last = value_)
+		{
+		case VMS_RESTORING:
+			return show(Callback::Reactor::Show(
+				boost::bind(&Registry::Reactor::prepareToSwitch, _1)));
+
+		default:
+			show(Callback::Reactor::State(value_));
+		}
 	}
 }
 
@@ -1516,10 +1529,10 @@ void Coarse::prepareToSwitch(virDomainPtr domain_)
 		return;
 
 	virDomainRef(domain_);
-	d->show(Callback::Reactor::Show(boost::bind(&Registry::Reactor::prepareToSwitch, _1)));
+	d->setState(VMS_RESTORING);
 	Instrument::Agent::Vm::Unit a(domain_);
 	Callback::Reactor::Domain r(a);
-	d->show(boost::bind(&Callback::Reactor::Domain::updateConfig, r, _1));
+	d->show(boost::bind(&Callback::Reactor::Domain::switch_, r, _1));
 }
 
 void Coarse::remove(virDomainPtr domain_)
@@ -1866,6 +1879,33 @@ void Maintenance::emitLifecycle(int category_, int type_)
 void Maintenance::emitDefined()
 {
 	emitLifecycle(VIR_DOMAIN_EVENT_DEFINED, 0);
+}
+
+void Maintenance::emitRestored()
+{
+	VIRTUAL_MACHINE_STATE s;
+	Result e = State(getDomain()).getValue(s);
+	if (e.isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot get the restored VM state");
+		return;
+	}
+	switch (s)
+	{
+	case VMS_STOPPED:
+		return emitLifecycle(VIR_DOMAIN_EVENT_STOPPED,
+			VIR_DOMAIN_EVENT_STOPPED_FROM_SNAPSHOT);
+	case VMS_PAUSED:
+		return emitLifecycle(VIR_DOMAIN_EVENT_SUSPENDED,
+			VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT);
+	case VMS_RUNNING:
+		return emitLifecycle(VIR_DOMAIN_EVENT_STARTED,
+			VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT);
+	default:
+		WRITE_TRACE(DBG_FATAL, "The restored VM state %s is not "
+			"eligible for a state event emission",
+			PRL_VM_STATE_TO_STRING(s));
+	}
 }
 
 void Maintenance::emitQemuUpdated()
