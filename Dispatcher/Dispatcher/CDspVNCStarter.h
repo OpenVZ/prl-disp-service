@@ -47,6 +47,7 @@
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlxmlmodel/VmConfig/CVmRemoteDisplay.h>
 #include <boost/optional.hpp>
+#include <boost/noncopyable.hpp>
 #include <stdint.h>
 
 #define WAIT_VNC_SERVER_TO_START_OR_STOP_PROCESS (30*1000)
@@ -59,15 +60,15 @@ typedef QPair<quint32, quint32> range_type;
 
 namespace Secure
 {
+struct Driver;
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-struct Frontend
+struct Frontend: boost::noncopyable
 {
-	Frontend(const ::Vm::Config::Edit::Atomic& commit_, CDspService& service_):
-		m_service(&service_), m_commit(commit_)
-	{
-	}
+	Frontend(const ::Vm::Config::Edit::Atomic& commit_, CDspService& service_);
+	~Frontend();
 
 	void setup(CVmConfiguration& object_, const CVmConfiguration& runtime_) const;
 	void restore(CVmConfiguration& object_, const CVmConfiguration& runtime_) const;
@@ -76,6 +77,8 @@ private:
 	void draw(CVmRemoteDisplay& object_, const CVmRemoteDisplay* runtime_,
 		const range_type& playground_) const;
 
+	Driver* m_rfb;
+	Driver* m_websocket;
 	CDspService* m_service;
 	::Vm::Config::Edit::Atomic m_commit;
 };

@@ -265,8 +265,7 @@ struct Frontend: Details::Frontend<Frontend>
 					qPrintable(m_big->m_name));
 			Config::Edit::Atomic e = m_big->getConfigEditor();
 			e(boost::bind<void>(&Vnc::Secure::Frontend::setup,
-				Vnc::Secure::Frontend(e, m_big->getService()),
-				_1, boost::cref(runtime)));
+				m_big->m_vnc.data(), _1, boost::cref(runtime)));
 		}
 
 		// Pseudo-state
@@ -538,8 +537,7 @@ struct Frontend: Details::Frontend<Frontend>
 			Config::Edit::Atomic e = fsm_.getConfigEditor();
 			boost::signals2::signal<void (CVmConfiguration& )> s;
 			s.connect(boost::bind<void>(&Vnc::Secure::Frontend::setup,
-				Vnc::Secure::Frontend(e, fsm_.getService()),
-				_1, boost::cref(runtime)));
+				fsm_.m_vnc.data(), _1, boost::cref(runtime)));
 			s.connect(boost::bind(&Vm::Config::Repairer<Vm::Config::revise_types>::type::do_,
 				_1, boost::cref(runtime)));
 			s.connect(boost::bind(&Cluster::configure<FromState, ToState>, _1,
@@ -723,6 +721,7 @@ private:
 	QSharedPointer< ::Network::Routing> m_routing;
 	QString m_name;
 	boost::optional<QFileInfo> m_home;
+	QSharedPointer<Vnc::Secure::Frontend> m_vnc;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
