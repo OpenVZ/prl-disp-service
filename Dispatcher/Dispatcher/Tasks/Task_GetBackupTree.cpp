@@ -235,30 +235,35 @@ PRL_RESULT Task_GetBackupTreeTarget::run_body()
 	//https://bugzilla.sw.ru/show_bug.cgi?id=267152
 	CAuthHelperImpersonateWrapper _impersonate( &getClient()->getAuthHelper() );
 
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	QString msg;
-	CDispToDispCommandPtr pReply;
-	SmartPtr<IOPackage> pPackage;
-
 	getBackupTree(msg);
-	pReply = CDispToDispProtoSerializer::CreateGetBackupTreeReply(msg);
-	pPackage = DispatcherPackage::createInstance(
-			pReply->GetCommandId(),
-			pReply->GetCommand()->toString(),
-			getRequestPackage());
 
-	IOSendJob::Handle hJob = m_pDispConnection->sendPackage(pPackage);
-	if (CDspService::instance()->getIOServer().waitForSend(hJob, m_nTimeout) != IOSendJob::Success) {
-		WRITE_TRACE(DBG_FATAL, "Package sending failure");
-		setLastErrorCode(PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR);
-		return PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
+	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
+	if (isConnected())
+	{
+		CDispToDispCommandPtr pReply = CDispToDispProtoSerializer::CreateGetBackupTreeReply(msg);
+		SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(
+				pReply->GetCommandId(),
+				pReply->GetCommand()->toString(),
+				getRequestPackage());
+
+		IOSendJob::Handle hJob = m_pDispConnection->sendPackage(pPackage);
+		if (CDspService::instance()->getIOServer().waitForSend(hJob, m_nTimeout) != IOSendJob::Success) {
+			WRITE_TRACE(DBG_FATAL, "Package sending failure");
+			setLastErrorCode(nRetCode = PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR);
+		}
 	}
+	else
+		setLastErrorCode(nRetCode = getCancelResult());
 
 	return nRetCode;
 }
 
 void Task_GetBackupTreeTarget::getBackupTree(QString &msg)
 {
+	if (!isConnected())
+		return;
+
 	QString s;
 	quint32 n = 0;
 	if (backupFilterEnabled())
@@ -268,6 +273,9 @@ void Task_GetBackupTreeTarget::getBackupTree(QString &msg)
 	/* set empty xml string at the first (https://jira.sw.ru/browse/PSBM-9137) */
 	foreach (const QFileInfo& e, QDir(getBackupDirectory()).entryInfoList(QDir::NoDotAndDotDot | QDir::Dirs))
 	{
+		if (!isConnected())
+			return;
+
 		const QString sVmUuid = e.fileName();
 		if (!Uuid::isUuid(sVmUuid))
 			continue;
@@ -286,6 +294,9 @@ void Task_GetBackupTreeTarget::getBackupTree(QString &msg)
 
 		BOOST_FOREACH (const QString& sBackupUuid, c.getIndexForRead(&getClient()->getAuthHelper()))
 		{
+			if (!isConnected())
+				return;
+
 			if (PRL_FAILED(getMetadataLock().grabShared(sBackupUuid)))
 				continue;
 
