@@ -79,9 +79,16 @@ PRL_RESULT Task_DispToDispConnHelper::Connect(
 		qPrintable(sServerHostname), nServerPort);
 
 	// Create IO client
-	m_pIoClient = SmartPtr<IOClient>(new IOClient(
-		IORoutingTableHelper::GetClientRoutingTable(connSec),
-		IOSender::Dispatcher, sServerHostname, nServerPort));
+	if (CDspService::instance()->getShellServiceHelper().isLocalAddress(sServerHostname)) {
+		m_pIoClient = SmartPtr<IOClient>(new IOClient(
+			IORoutingTableHelper::GetClientRoutingTable(connSec),
+			IOSender::Dispatcher,
+			ParallelsDirs::getDispatcherLocalSocketPath(), 0, true));
+	} else {
+		m_pIoClient = SmartPtr<IOClient>(new IOClient(
+			IORoutingTableHelper::GetClientRoutingTable(connSec),
+			IOSender::Dispatcher, sServerHostname, nServerPort));
+	}
 
 	m_pIoClient->connectClient(
 		CDspService::instance()->getDispConfigGuard().getDispToDispPrefs()->getConnectionTimeout() * 1000);
