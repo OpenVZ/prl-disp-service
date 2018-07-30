@@ -118,6 +118,7 @@ protected:
 private:
 	void getBackupTree(QString &msg);
 
+	bool isConnected() const;
 	bool filterSingleBackup() { return m_nFlags & PBT_BACKUP_ID; }
 	bool filterBackupChain() { return m_nFlags & PBT_CHAIN; }
 	bool backupFilterEnabled() { return filterSingleBackup() || filterBackupChain(); }
