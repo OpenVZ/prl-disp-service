@@ -331,3 +331,8 @@ void Task_GetBackupTreeTarget::getBackupTree(QString &msg)
 	msg = bTree.toString();
 }
 
+bool Task_GetBackupTreeTarget::isConnected() const
+{
+	return m_pDispConnection.isValid() && CDspService::instance()->getIOServer()
+		.clientState(m_pDispConnection->GetConnectionHandle()) == IOSender::Connected;
+}
