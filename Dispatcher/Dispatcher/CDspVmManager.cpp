@@ -602,6 +602,11 @@ struct Revert: Need::Context, Need::Config, Need::Command<CProtoSwitchToSnapshot
 {
 	Libvirt::Result operator()()
 	{
+		boost::property_tree::ptree p;
+		p.put("snapshot_uuid", getCommand()->GetSnapshotUuid().toStdString());
+		Task::Trace t(getContext().getPackage());
+		t.report(p);
+
 		QString h(getConfig()->getVmIdentification()->getHomePath());
 		QString b(h + ".tmp");
 		QFile::remove(b);
