@@ -457,10 +457,6 @@ struct Essence<PVE::DspCmdVmCreateSnapshot>: Need::Agent, Need::Context,
 	{
 		Libvirt::Result e;
 		Libvirt::Snapshot::Stash s(getConfig(), getCommand()->GetSnapshotUuid());
-		boost::property_tree::ptree p;
-		p.put("snapshot_uuid", getCommand()->GetSnapshotUuid().toStdString());
-		Task::Trace t(getContext().getPackage());
-		t.report(p);
 
 		if (PCSF_BACKUP & getCommand()->GetCommandFlags())
 		{
@@ -522,6 +518,23 @@ struct Essence<PVE::DspCmdVmCreateSnapshot>: Need::Agent, Need::Context,
 
 namespace Snapshot
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Log
+
+template<class T>
+struct Log: T
+{
+	Libvirt::Result operator()()
+	{
+		boost::property_tree::ptree p;
+		p.put("snapshot_uuid", this->getCommand()->GetSnapshotUuid().toStdString());
+		Task::Trace t(this->getContext().getPackage());
+		t.report(p);
+
+		return T::operator()();
+	}
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Create
 
@@ -783,11 +796,6 @@ struct Essence<PVE::DspCmdVmDeleteSnapshot>: Need::Agent,
 {
 	Libvirt::Result operator()()
 	{
-		boost::property_tree::ptree p;
-		p.put("snapshot_uuid", getCommand()->GetSnapshotUuid().toStdString());
-		Task::Trace t(getContext().getPackage());
-		t.report(p);
-
 		Libvirt::Result output = do_();
 		if (output.isSucceed())
 		{
@@ -1808,11 +1816,11 @@ void Body<Tag::Special<PVE::DspCmdVmCreateSnapshot> >::run(Context& context_)
 {
 	if (CDspVm::getVmState(context_.getIdent().first, context_.getIdent().second) == VMS_RUNNING)
 	{
-		return Details::Body<Tag::Fork<Tag::State<Essence<PVE::DspCmdVmCreateSnapshot>,
+		return Details::Body<Tag::Fork<Tag::State<Snapshot::Log<Essence<PVE::DspCmdVmCreateSnapshot> >,
 		       Vm::Fork::State::Snapshot::Create> > >::run(context_);
 	}
 
-	return Details::Body<Tag::Fork<Snapshot::Create> >::run(context_);
+	return Details::Body<Tag::Fork<Snapshot::Log<Snapshot::Create> > >::run(context_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1983,8 +1991,8 @@ Dispatcher::Dispatcher()
 	m_map[PVE::DspCmdVmStartEx] = m_map[PVE::DspCmdVmStart];
 	m_map[PVE::DspCmdVmCreateSnapshot] = map(Tag::Special<PVE::DspCmdVmCreateSnapshot>());
 	m_map[PVE::DspCmdVmSwitchToSnapshot] = map(Tag::Fork<
-		Tag::State<Snapshot::Revert<Snapshot::Vcmmd<Snapshot::Switch> >, Vm::Fork::State::Snapshot::Switch> >());
-	m_map[PVE::DspCmdVmDeleteSnapshot] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmDeleteSnapshot> > >());
+		Tag::State<Snapshot::Log<Snapshot::Revert<Snapshot::Vcmmd<Snapshot::Switch> > >, Vm::Fork::State::Snapshot::Switch> >());
+	m_map[PVE::DspCmdVmDeleteSnapshot] = map(Tag::Fork<Tag::Reply<Snapshot::Log<Essence<PVE::DspCmdVmDeleteSnapshot> > > >());
 	m_map[PVE::DspCmdVmStartVNCServer] = map(Tag::Simple<PVE::DspCmdVmStartVNCServer>());
 	m_map[PVE::DspCmdVmStopVNCServer] = map(Tag::Simple<PVE::DspCmdVmStopVNCServer>());
 	m_map[PVE::DspCmdVmReset] = map(Tag::Fork<Tag::Reply<Essence<PVE::DspCmdVmReset> > >());
