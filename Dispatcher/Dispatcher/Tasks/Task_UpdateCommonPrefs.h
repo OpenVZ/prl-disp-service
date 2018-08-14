@@ -39,11 +39,84 @@
 #define __Task_UpdateCommonPrefs_H_
 
 #include "CDspTaskHelper.h"
+#include "CDspInstrument.h"
+#include <boost/phoenix/core/reference.hpp>
 
 class SimpleLockFlag;
 class CDispCommonPreferences;
 class CDispMemoryPreferences;
 class CDispCpuPreferences;
+class CDispatcherConfig;
+
+namespace Details
+{
+namespace Preference
+{
+typedef boost::phoenix::expression::reference<CDispCommonPreferences>::type reference_type;
+typedef QPair<reference_type, reference_type> event_type;
+typedef Instrument::Chain::Unit<event_type> chain_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Usb
+
+struct Usb: chain_type
+{
+	Usb(const QString& directory_, const redo_type& redo_):
+		chain_type(redo_), m_directory(directory_)
+	{
+	}
+
+	result_type operator()(const request_type& request_);
+
+private:
+	QString m_directory;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Merge
+
+struct Merge: std::unary_function<const event_type&, PRL_RESULT>
+{
+	Merge(const IOSender::Handle& client_, CDispatcherConfig& config_):
+		m_client(client_), m_config(&config_)
+	{
+	}
+
+	result_type operator()(argument_type request_);
+
+private:
+	IOSender::Handle m_client;
+	CDispatcherConfig* m_config;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Envelope
+
+struct Envelope: std::unary_function<CDispCommonPreferences&, PRL_RESULT>
+{
+	typedef chain_type::redo_type handler_type;
+
+	Envelope(const handler_type& handler_, argument_type preferences_):
+		m_handler(handler_), m_preferences(&preferences_)
+	{
+	}
+
+	result_type operator()(argument_type preferences_)
+	{
+		return m_handler(qMakePair(boost::phoenix::ref(*m_preferences),
+			boost::phoenix::ref(preferences_)));
+	}
+
+private:
+	handler_type m_handler;
+	CDispCommonPreferences* m_preferences;
+};
+
+} // namespace Preference
+} // namespace Details
+
+///////////////////////////////////////////////////////////////////////////////
+// class Task_UpdateCommonPrefs
 
 class Task_UpdateCommonPrefs : public  CDspTaskHelper
 {
@@ -54,7 +127,6 @@ public:
 		const SmartPtr<IOPackage>&,
 		const QString& sCommonPrefs
 		);
-	virtual ~Task_UpdateCommonPrefs();
 
 
 	virtual PRL_RESULT	prepareTask();
@@ -73,7 +145,6 @@ private:
 	void fixReadOnlyInNetwork();
 	void fixReadOnlyInPci();
 	void fixReadOnlyInDebug();
-	void fixReadOnlyInUsbPrefs( CDispCommonPreferences * pOldCommonPrefs );
 	void fixReadOnlyListenAnyAddr();
 	void fixReadOnlyInDispToDispPrefs();
 	/**
@@ -91,8 +162,6 @@ private:
 	bool isHostIdChanged() const;
 	PRL_RESULT updateHostId();
 	PRL_RESULT checkHeadlessMode();
-	PRL_RESULT updateCpuFeaturesMask(
-		const CDispCpuPreferences &oldMask, const CDispCpuPreferences &newMask);
 
 private:
 	static QMutex	s_commonPrefsMutex;

@@ -21,16 +21,17 @@
  * Schaffhausen, Switzerland.
  */
 
+#include <QUrl>
 #include "Direct.h"
 #include "Reverse.h"
 #include "Reverse_p.h"
 #include "Direct_p.h"
 #include <prlsdk/PrlOses.h>
+#include <boost/mpl/for_each.hpp>
+#include <Libraries/HostInfo/CHostInfo.h>
 #include <prlcommon/HostUtils/HostUtils.h>
-#include <QUrl>
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <Libraries/CpuFeatures/CCpuHelper.h>
-#include <boost/mpl/for_each.hpp>
 
 namespace Transponster
 {
@@ -1058,6 +1059,8 @@ void List::add(const Libvirt::Domain::Xml::VInterface& adapter_)
 
 namespace Usb
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct List
 
 void List::add(const CVmUsbDevice* usb_)
 {
@@ -1106,6 +1109,29 @@ void List::addMouse()
 		add(Libvirt::Domain::Xml::EType10Tablet);
 	else
 		add(Libvirt::Domain::Xml::EType10Mouse);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Indicator
+
+Indicator::Indicator(const QString& name_):
+	m_bus(USB_SYS_PATH(name_).section('-', 0, 0).toUInt(NULL, 10)),
+	m_device(USB_SYS_PATH(name_).section('-', 1, 1).toUInt(NULL, 10))
+{
+}
+
+bool Indicator::operator()(const mpl::at_c<Libvirt::Domain::Xml::VSource1::types, 1>::type& variant_) const
+{
+	bool k = false;
+	const Libvirt::Domain::Xml::Address& u = variant_.getValue();
+	uint b = u.getBus().toUInt(&k, 16);
+	if (!k)
+		return false;
+	uint d = u.getDevice().toUInt(&k, 16);
+	if (!k)
+		return false;
+
+	return b == m_bus && m_device == d;
 }
 
 } // namespace Usb
@@ -2034,28 +2060,19 @@ PRL_RESULT Fixer::setResources(const VtInfo&)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Pipeline
 
-Pipeline::Pipeline(char* xml_)
+PRL_RESULT Pipeline::operator()(object_type object_)
 {
-	shape(xml_, m_result);
-}
-
-PRL_RESULT Pipeline::operator()(boost::function1<PRL_RESULT, Libvirt::Domain::Xml::Domain&> action_)
-{
-	if (m_result.isNull())
-		return PRL_ERR_READ_XML_CONTENT;
-
-	return action_(*m_result);
-}
-
-QString Pipeline::getResult()
-{
-	if (m_result.isNull())
-		return QString();
+	PRL_RESULT e = m_action(object_);
+	if (PRL_FAILED(e))
+		return e;
 
 	QDomDocument x;
-	m_result->save(x);
-	m_result.reset();
-	return x.toString();
+	if (!object_.save(x))
+		return PRL_ERR_UNEXPECTED;
+
+	setValue(x.toString());
+
+	return PRL_ERR_SUCCESS;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2074,6 +2091,78 @@ PRL_RESULT Clock::operator()(Libvirt::Domain::Xml::Domain& dst_)
 	return PRL_ERR_SUCCESS;
 }
 
+namespace Usb
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Operator
+
+PRL_RESULT Operator::plug(Pipeline::object_type& object_)
+{
+	PRL_RESULT e = unplug(object_);
+	if (PRL_FAILED(e) && e != PRL_ERR_NO_DATA)
+		return e;
+
+	boost::optional<Libvirt::Domain::Xml::Devices> d = object_.getDevices();
+	if (!d)
+		return PRL_ERR_INVALID_ARG;
+
+	Libvirt::Domain::Xml::Address a;
+	QString u = USB_SYS_PATH(m_model->getDeviceId());
+	a.setBus(QString("0x").append(u.section('-', 0, 0)));
+	a.setDevice(QString("0x").append(u.section('-', 1, 1)));
+
+	mpl::at_c<Libvirt::Domain::Xml::VSource1::types, 1>::type b;
+	b.setValue(a);
+
+	Libvirt::Domain::Xml::Source14 c;
+	c.setSource(b);
+
+	mpl::at_c<Libvirt::Domain::Xml::VHostdevsubsys::types, 1>::type f;
+	f.setValue(c);
+
+	Libvirt::Domain::Xml::Hostdevsubsys g;
+	g.setHostdevsubsys(f);
+
+	mpl::at_c<Libvirt::Domain::Xml::VChoice917::types, 0>::type h;
+	h.setValue(g);
+
+	Libvirt::Domain::Xml::Hostdev i;
+	i.setChoice917(h);
+
+	mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 7>::type j;
+	j.setValue(i);
+
+	Transponster::Device::deviceList_type k = d->getChoice985List();
+	k.prepend(j);
+	d->setChoice985List(k);
+	object_.setDevices(d);
+
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Operator::unplug(Pipeline::object_type& object_)
+{
+	boost::optional<Libvirt::Domain::Xml::Devices> d = object_.getDevices();
+	if (!d) 
+		return PRL_ERR_INVALID_ARG;
+
+	Transponster::Device::deviceList_type a = d->getChoice985List();
+	typedef Transponster::Device::deviceList_type::iterator iterator_type;
+
+	iterator_type e = a.end();
+	iterator_type p = std::find_if(a.begin(), e,
+		::Transponster::Device::Usb::Indicator(m_model->getDeviceId()));
+	if (e == p)
+		return PRL_ERR_NO_DATA;
+
+	a.erase(p);
+	d->setChoice985List(a);
+	object_.setDevices(d);
+
+	return PRL_ERR_SUCCESS;
+}
+
+} // namespace Usb
 } // namespace Reverse
 } // namespace Vm
 
@@ -2664,6 +2753,7 @@ PRL_RESULT Request::operator()(const object_type& object_)
 	foreach (object_type::const_reference d, object_)
 	{
 		Libvirt::Blockexport::Xml::Disk y;
+		y.setSnapshot(d.get<0>());
 		y.setSnapshot(d.get<0>());
 
 		boost::mpl::at_c<Libvirt::Blockexport::Xml::VName::types, 1>::type n;

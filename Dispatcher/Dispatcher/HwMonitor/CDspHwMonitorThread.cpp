@@ -39,8 +39,8 @@
 #include "CDspHwMonitorHandler.h"
 
 #include <prlcommon/Std/PrlAssert.h>
-
 #include "Interfaces/Debug.h"
+#include <Libraries/CpuFeatures/CCpuHelper.h>
 
 #define CHECK_HW_INTERVAL_IN_MSEC  (5 * 60 * 1000)
 
@@ -72,6 +72,14 @@ void CDspHwMonitorThread::run()
 			, m_pNotifier
 			, SLOT( onDeviceChange(PRL_DEVICE_TYPE, QString, unsigned int ) )
 		);
+		PRL_ASSERT(bConnected);
+
+		bConnected = pHwMonitorHandler->connect(CDspService::instance(),
+			SIGNAL(onConfigChanged(const SmartPtr<CDispCommonPreferences>,
+					const SmartPtr<CDispCommonPreferences>)),
+			SLOT(react(const SmartPtr<CDispCommonPreferences>,
+					const SmartPtr<CDispCommonPreferences>)),
+			Qt::QueuedConnection);
 		PRL_ASSERT(bConnected);
 
 		pHwMonitorHandler->startHandleDevices();
@@ -152,3 +160,16 @@ void CDspHwMonitorThread::forceCheckHwChanges()
 {
 	emit checkHwChanges();
 }
+
+void CDspHwMonitorHandler::react(const SmartPtr<CDispCommonPreferences> old_,
+	const SmartPtr<CDispCommonPreferences> new_)
+{
+	QStringList d;
+	CDispCpuPreferences* o(old_->getCpuPreferences());
+	CDispCpuPreferences* n(new_->getCpuPreferences());
+	o->diff(n, d);
+	if (o->isCpuFeaturesMaskValid() && n->isCpuFeaturesMaskValid() && !d.isEmpty() &&
+		!CCpuHelper::isMasksEqual(*o, *n))
+		CCpuHelper::maskUpdate(*n);
+}
+

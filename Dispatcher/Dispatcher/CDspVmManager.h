@@ -94,9 +94,6 @@ struct CDspVmManager: QObject, CDspHandler
 	 */
 	CDspLockedPointer<CDspVmSuspendHelper> getSuspendHelper();
 
-private slots:
-	void onDispConfigChanged(const SmartPtr<CDispCommonPreferences>, const SmartPtr<CDispCommonPreferences>);
-
 private:
 	/**
 	 * Handle command, extension for handleFromDispatcherPackage
@@ -138,7 +135,6 @@ private:
 	bool checkFastReboot(void) const;
 private:
 
-	Registry::Public* m_registry;
 	/** VMs clients hash access synchronization object */
 	mutable QReadWriteLock m_rwLock;
 	/** VMs connections hash */

@@ -54,16 +54,18 @@ namespace
 ///////////////////////////////////////////////////////////////////////////////
 // struct SetFeatures
 
-struct SetFeatures: std::unary_function<void, CDispCommonPreferences&>
+struct SetFeatures: std::unary_function<CDispCommonPreferences& , PRL_RESULT>
 {
-	void operator()(CDispCommonPreferences& config_)
+	result_type operator()(argument_type config_)
 	{
 		std::auto_ptr<CDispCpuPreferences> cpuMask(CCpuHelper::get_cpu_mask());
 		if (!cpuMask.get()) {
 			WRITE_TRACE(DBG_FATAL, "Unable to get new CPU features");
-			return;
+			return PRL_ERR_FAILURE;
 		}
 		config_.getCpuPreferences()->setFeatures(*cpuMask);
+
+		return PRL_ERR_SUCCESS;
 	};
 };
 

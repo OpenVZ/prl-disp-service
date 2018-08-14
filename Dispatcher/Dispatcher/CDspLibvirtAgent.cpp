@@ -22,7 +22,6 @@
  */
 
 #include "CDspLibvirt.h"
-#include "CDspLibvirt_p.h"
 #include "CDspLibvirtExec.h"
 #include "CDspService.h"
 #include "Stat/CDspStatStorage.h"
@@ -44,7 +43,7 @@
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <boost/phoenix/scope/local_variable.hpp>
 #include <boost/phoenix/bind/bind_function_object.hpp>
-
+#include "CDspLibvirt_p.h"
 #include <vzctl/libvzctl.h>
 
 Q_GLOBAL_STATIC(QMutex, getBoostJsonLock);
@@ -474,21 +473,8 @@ Result Maintenance::updateQemu()
 
 Result Maintenance::adjustClock(qint64 offset_)
 {
-	linkReference_type l = getLink();
-	if (l.isNull())
-		return Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
-
-	Config config(getDomain(), l, VIR_DOMAIN_XML_INACTIVE);
-	Prl::Expected<QString, Error::Simple> x = config.adjustClock(offset_);
-	if (x.isFailed())
-		return x.error();
-
-	virDomainPtr d = virDomainDefineXML(l.data(), x.value().toUtf8().data());
-	if (NULL == d)
-		return Failure(PRL_ERR_VM_APPLY_CONFIG_FAILED);
-
-	setDomain(d);
-	return Result();
+	return Config(getDomain(), getLink(), VIR_DOMAIN_XML_INACTIVE)
+		.alter(Transponster::Vm::Reverse::Clock(offset_));
 }
 
 } // namespace Limb
@@ -1922,6 +1908,15 @@ Result Editor::plug<Transponster::Vm::Reverse::Dimm>(const Transponster::Vm::Rev
 	return Hotplug(getDomain()).attach(x.value());
 }
 
+template<>
+Result Editor::plug<CHwUsbDevice>(const CHwUsbDevice& device_)
+{
+	typedef Transponster::Vm::Reverse::Usb::Operator transformer_type;
+	transformer_type t(device_);
+	return Config(getDomain(), getLink(), VIR_DOMAIN_XML_INACTIVE)
+		.alter(boost::bind(&transformer_type::plug, &t, _1));
+}
+
 template<class T>
 Result Editor::unplug(const T& device_)
 {
@@ -1953,6 +1948,15 @@ Result Editor::unplug(const T& device_)
 template Result Editor::unplug<CVmHardDisk>(const CVmHardDisk& device_);
 template Result Editor::unplug<CVmSerialPort>(const CVmSerialPort& device_);
 template Result Editor::unplug<CVmGenericNetworkAdapter>(const CVmGenericNetworkAdapter& device_);
+
+template<>
+Result Editor::unplug<CHwUsbDevice>(const CHwUsbDevice& device_)
+{
+	typedef Transponster::Vm::Reverse::Usb::Operator transformer_type;
+	transformer_type t(device_);
+	return Config(getDomain(), getLink(), VIR_DOMAIN_XML_INACTIVE)
+		.alter(boost::bind(&transformer_type::unplug, &t, _1));
+}
 
 template<class T>
 Result Editor::update(const T& device_)

@@ -41,7 +41,6 @@
 #include <QMutex>
 #include <QPair>
 #include <QHash>
-
 #include "CDspClient.h"
 
 class CHwUsbDevice;

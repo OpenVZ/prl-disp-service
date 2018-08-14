@@ -49,6 +49,8 @@
 #include <prlxmlmodel/HostHardwareInfo/CHwNetAdapter.h>
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 
+class CHwUsbDevice;
+
 namespace Transponster
 {
 namespace Vm
@@ -251,33 +253,56 @@ struct Fixer: Builder
 ///////////////////////////////////////////////////////////////////////////////
 // struct Pipeline
 
-struct Pipeline
+struct Pipeline: Libvirt::Details::Value::Bin<QString>
 {
-	explicit Pipeline(char* xml_);
+	typedef Libvirt::Domain::Xml::Domain object_type;
+	typedef boost::function<PRL_RESULT (object_type& )>
+		action_type;
 
-	PRL_RESULT operator()(boost::function1<PRL_RESULT, Libvirt::Domain::Xml::Domain&> action_);
+	explicit Pipeline(const action_type& action_): m_action(action_)
+	{
+	}
 
-	QString getResult();
+	PRL_RESULT operator()(object_type object_);
 
 private:
-	QScopedPointer<Libvirt::Domain::Xml::Domain> m_result;
+	action_type m_action;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Clock
 
-struct Clock: std::unary_function<PRL_RESULT, Libvirt::Domain::Xml::Domain&>
+struct Clock: std::unary_function<Pipeline::object_type&, PRL_RESULT>
 {
 	explicit Clock(const qint64 offset_): m_offset(offset_)
 	{
 	}
 
-	PRL_RESULT operator()(Libvirt::Domain::Xml::Domain&);
+	result_type operator()(argument_type);
 
 private:
 	qint64 m_offset;
 };
 
+namespace Usb
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Operator
+
+struct Operator
+{
+	explicit Operator(const CHwUsbDevice& model_): m_model(&model_)
+	{
+	}
+
+	PRL_RESULT plug(Pipeline::object_type& object_);
+	PRL_RESULT unplug(Pipeline::object_type& object_);
+
+private:
+	const CHwUsbDevice* m_model;
+};
+
+} // namespace Usb
 } // namespace Reverse
 } // namespace Vm
 

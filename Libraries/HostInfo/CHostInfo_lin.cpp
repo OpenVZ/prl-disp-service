@@ -634,66 +634,70 @@ void CDspHostInfo::GetLPTList()
 } // CDspHostInfo::GetLPTList()
 
 
-//#include <System/Usb/Drivers/lin/prl_usb_connect.h>  // System/Usb commented out by request from CP team
-//#include "Devices/Usb/UsbSysfs.h"  // Devices/Usb commented out by request from CP team
+namespace
+{
+const char PRL_USB_SYSFS_PATH[] = "/sys/bus/usb/devices";
+
+} // namespace
 
 // Devices/Usb commented out by request from CP team
-//static QString get_qstring_attr(const char * /*dev*/, const char * /*attr*/)
-//{
-//	char buf[256];
-//	char name[sizeof(PRL_USB_SYSFS_PATH) + strlen(dev) + 1 + strlen(attr) + 1];
-//	sprintf(name, "%s/%s/%s", PRL_USB_SYSFS_PATH, dev, attr);
-//
-//	FILE *fp = fopen(name, "r");
-//	if (fp == NULL)
-//		return QString("");
-//
-//	if (fgets(buf, sizeof(buf), fp) != NULL) {
-//		buf[sizeof(buf)-1] = 0;
-//		int len = strlen(buf);
-//		while (len && (isblank(buf[len-1]) || !isprint(buf[len-1])))
-//			buf[--len] = 0;
-//		fclose(fp);
-//		return QString(buf);
-//	}
-//	fclose(fp);
-//}
+static QString get_qstring_attr(const char * dev, const char * attr)
+{
+	char buf[256];
+	char name[sizeof(PRL_USB_SYSFS_PATH) + strlen(dev) + 1 + strlen(attr) + 1];
+	sprintf(name, "%s/%s/%s", PRL_USB_SYSFS_PATH, dev, attr);
+
+	FILE *fp = fopen(name, "r");
+	if (fp == NULL)
+		return QString("");
+
+	if (fgets(buf, sizeof(buf), fp) != NULL) {
+		buf[sizeof(buf)-1] = 0;
+		int len = strlen(buf);
+		while (len && (isblank(buf[len-1]) || !isprint(buf[len-1])))
+			buf[--len] = 0;
+		fclose(fp);
+		return QString(buf);
+	}
+	fclose(fp);
+	return QString();
+}
 
 // Devices/Usb commented out by request from CP team
-//static int get_int_attr(const char * /*dev*/, const char * /*attr*/)
-//{
-//	int res;
-//	char name[sizeof(PRL_USB_SYSFS_PATH) + strlen(dev) + 1 + strlen(attr) + 1];
-//	sprintf(name, "%s/%s/%s", PRL_USB_SYSFS_PATH, dev, attr);
-//
-//	FILE *fp = fopen(name, "r");
-//	if (fp == NULL)
-//		return -1;
-//
-//	if (fscanf(fp, "%d", &res) != 1)
-//		res = -1;
-//
-//	fclose(fp);
-//	return res;
-//}
+static int get_int_attr(const char * dev, const char * attr)
+{
+	int res;
+	char name[sizeof(PRL_USB_SYSFS_PATH) + strlen(dev) + 1 + strlen(attr) + 1];
+	sprintf(name, "%s/%s/%s", PRL_USB_SYSFS_PATH, dev, attr);
+
+	FILE *fp = fopen(name, "r");
+	if (fp == NULL)
+		return -1;
+
+	if (fscanf(fp, "%d", &res) != 1)
+		res = -1;
+
+	fclose(fp);
+	return res;
+}
 
 // Devices/Usb commented out by request from CP team
-//static int get_hex_attr(const char * /*dev*/, const char * /*attr*/)
-//{
-//	int res;
-//	char name[sizeof(PRL_USB_SYSFS_PATH) + strlen(dev) + 1 + strlen(attr) + 1];
-//	sprintf(name, "%s/%s/%s", PRL_USB_SYSFS_PATH, dev, attr);
-//
-//	FILE *fp = fopen(name, "r");
-//	if (fp == NULL)
-//		return -1;
-//
-//	if (fscanf(fp, "%x", &res) != 1)
-//		res = -1;
-//
-//	fclose(fp);
-//	return res;
-//}
+static int get_hex_attr(const char * dev, const char * attr)
+{
+	int res;
+	char name[sizeof(PRL_USB_SYSFS_PATH) + strlen(dev) + 1 + strlen(attr) + 1];
+	sprintf(name, "%s/%s/%s", PRL_USB_SYSFS_PATH, dev, attr);
+
+	FILE *fp = fopen(name, "r");
+	if (fp == NULL)
+		return -1;
+
+	if (fscanf(fp, "%x", &res) != 1)
+		res = -1;
+
+	fclose(fp);
+	return res;
+}
 
 /* Here we try to detect keyboard/mouse.
  * For this perpouse we use value of InterfaceClass, InterfaceSubClass & InterfaceProtocol
@@ -703,87 +707,87 @@ void CDspHostInfo::GetLPTList()
  */
 
 // Devices/Usb commented out by request from CP team
-//static BOOL check_km(const char * dev)
-//{
-//	int subclass = get_hex_attr(dev, "bDeviceSubClass");
-//	int protocol = get_hex_attr(dev, "bDeviceProtocol");
-//
-//	return subclass == 1 && (protocol == 1 || protocol == 2);
-//}
+static BOOL check_km(const char * dev)
+{
+	int subclass = get_hex_attr(dev, "bDeviceSubClass");
+	int protocol = get_hex_attr(dev, "bDeviceProtocol");
+
+	return subclass == 1 && (protocol == 1 || protocol == 2);
+}
 
 // Devices/Usb commented out by request from CP team
-//static BOOL check_km_intf(const char * dev)
-//{
-//	int iconfig = get_hex_attr(dev, "bConfigurationValue");
-//	int inum = get_hex_attr(dev, "bNumInterfaces");
-//
-//	for (int i = 0; i < inum; i++) {
-//		char name[256];
-//
-//		snprintf(name, sizeof(name)-1, "%s:%d.%d", dev, iconfig, i);
-//
-//		int iclass = get_hex_attr(name, "bInterfaceClass");
-//
-//		if (iclass == 0x3) {
-//			int isubclass = get_hex_attr(name, "bInterfaceSubClass");
-//			int iprotocol = get_hex_attr(name, "bInterfaceProtocol");
-//
-//			if (isubclass == 1 && (iprotocol == 1 || iprotocol == 2))
-//				return TRUE;
-//		}
-//	}
-//	return FALSE;
-//}
+static BOOL check_km_intf(const char * dev)
+{
+	int iconfig = get_hex_attr(dev, "bConfigurationValue");
+	int inum = get_hex_attr(dev, "bNumInterfaces");
+
+	for (int i = 0; i < inum; i++) {
+		char name[256];
+
+		snprintf(name, sizeof(name)-1, "%s:%d.%d", dev, iconfig, i);
+
+		int iclass = get_hex_attr(name, "bInterfaceClass");
+
+		if (iclass == 0x3) {
+			int isubclass = get_hex_attr(name, "bInterfaceSubClass");
+			int iprotocol = get_hex_attr(name, "bInterfaceProtocol");
+
+			if (isubclass == 1 && (iprotocol == 1 || iprotocol == 2))
+				return TRUE;
+		}
+	}
+	return FALSE;
+}
 
 // Devices/Usb commented out by request from CP team
-//static BOOL check_msc_intf(const char * dev)
-//{
-//	int iconfig = get_hex_attr(dev, "bConfigurationValue");
-//	int inum = get_hex_attr(dev, "bNumInterfaces");
-//
-//	for (int i = 0; i < inum; i++) {
-//		char name[256];
-//
-//		snprintf(name, sizeof(name)-1, "%s:%d.%d", dev, iconfig, i);
-//
-//		const int iclass = get_hex_attr(name, "bInterfaceClass");
-//		const int iprotocol = get_hex_attr(name, "bInterfaceProtocol");
-//
-//		PRL_USB_DEVICE_TYPE pudt =
-//			CDspHostInfo::UsbIFC2PUDT(iclass, (UINT)~0, iprotocol);
-//
-//		if (pudt == PUDT_DISK_STORAGE)
-//				return TRUE;
-//	}
-//	return FALSE;
-//}
+static BOOL check_msc_intf(const char * dev)
+{
+	int iconfig = get_hex_attr(dev, "bConfigurationValue");
+	int inum = get_hex_attr(dev, "bNumInterfaces");
+
+	for (int i = 0; i < inum; i++) {
+		char name[256];
+
+		snprintf(name, sizeof(name)-1, "%s:%d.%d", dev, iconfig, i);
+
+		const int iclass = get_hex_attr(name, "bInterfaceClass");
+		const int iprotocol = get_hex_attr(name, "bInterfaceProtocol");
+
+		PRL_USB_DEVICE_TYPE pudt =
+			CDspHostInfo::UsbIFC2PUDT(iclass, (UINT)~0, iprotocol);
+
+		if (pudt == PUDT_DISK_STORAGE)
+				return TRUE;
+	}
+	return FALSE;
+}
 
 // Devices/Usb commented out by request from CP team
-//static unsigned int make_location(const char * dev, int busnum)
-//{
-//	const char * p;
-//	unsigned int location = 0;
-//	int shift = 20;
-//
-//	if ((p = strchr(dev, '-')) == NULL)
-//		return 0;
-//
-//	do {
-//		unsigned int port;
-//
-//		p++;
-//		if (sscanf(p, "%u", &port) != 1)
-//			return 0;
-//
-//		if (shift < 0)
-//			return 0;
-//
-//		location |= (port << shift);
-//		shift -= 4;
-//	} while ((p = strchr(p, '.')) != NULL);
-//
-//	return location ? (location | (busnum << 24)) : 0;
-//}
+static unsigned int make_location(const char * dev, int busnum)
+{
+	const char * p;
+	unsigned int location = 0;
+	int shift = 20;
+
+	if ((p = strchr(dev, '-')) == NULL)
+		return 0;
+
+	do {
+		unsigned int port;
+
+		p++;
+		if (sscanf(p, "%u", &port) != 1)
+			return 0;
+
+		if (shift < 0)
+			return 0;
+
+		location |= (port << shift);
+		shift -= 4;
+	} while ((p = strchr(p, '.')) != NULL);
+
+	return location ? (location | (busnum << 24)) : 0;
+}
 
 static QString get_os_type(void)
 {
@@ -823,193 +827,180 @@ static QString get_os_type(void)
 void CDspHostInfo::GetUSBList()
 {
 // Devices/Usb commented out by request from CP team
-//	LOG_MESSAGE( DBG_INFO, "Recreate USB Devices list in HostHardwareInfo" );
-//
-//	BOOL rescan_required = FALSE;
-//	int prl_usb_connector = -1;
-//	DIR * dir;
-//	struct dirent * de;
-//	// Copy current list to old_dev_lst and clear it
-//	QList<CHwUsbDevice*> old_dev_lst(p_HostHwInfo->m_lstUsbDevices);
-//	p_HostHwInfo->m_lstUsbDevices.clear();
-//
-//	dir = opendir(PRL_USB_SYSFS_PATH);
-//
-//	if (dir == NULL) {
-//		p_HostHwInfo->setUsbSupported(0);
-//		goto out;
-//	}
-//
-//	p_HostHwInfo->setUsbSupported(1);
-//
+	LOG_MESSAGE( DBG_INFO, "Recreate USB Devices list in HostHardwareInfo" );
+
+	BOOL rescan_required = FALSE;
+	int prl_usb_connector = -1;
+	DIR * dir;
+	struct dirent * de;
+	// Copy current list to old_dev_lst and clear it
+	QList<CHwUsbDevice*> old_dev_lst(p_HostHwInfo->m_lstUsbDevices);
+	p_HostHwInfo->m_lstUsbDevices.clear();
+
+	dir = opendir(PRL_USB_SYSFS_PATH);
+
+	if (dir == NULL) {
+		p_HostHwInfo->setUsbSupported(0);
+		goto out;
+	}
+
+	p_HostHwInfo->setUsbSupported(1);
+
 //	prl_usb_connector = open(PRL_USB_CONNECT_PATH, O_RDONLY);
-//
-//	while ((de = readdir(dir)) != NULL) {
-//		struct prl_usb_key key;
-//		int busnum;
-//		int devnum;
-//		int iclass;
-//		BOOL bDeviceServicedByPrl = FALSE;
-//		BOOL bKeyboardMouse = FALSE;
-//
-//		/* Quickly skip irrelevant entries */
-//		if (de->d_name[0] == '.')
+
+	while ((de = readdir(dir)) != NULL) {
+		int busnum;
+		int devnum;
+		int iclass;
+		BOOL bDeviceServicedByPrl = FALSE;
+		BOOL bKeyboardMouse = FALSE;
+
+		/* Quickly skip irrelevant entries */
+		if (de->d_name[0] == '.')
+			continue;
+		if (strchr(de->d_name, ':') != NULL)
+			continue;
+		if (memcmp(de->d_name, "usb", 3) == 0)
+			continue;
+
+		if (sscanf(de->d_name, "%d-", &busnum) != 1)
+			continue;
+
+		if (0 == make_location(de->d_name, busnum))
+			continue;
+
+		/* Skip hubs */
+		iclass = get_hex_attr(de->d_name, "bDeviceClass");
+//		if (iclass < 0)
 //			continue;
-//		if (strchr(de->d_name, ':') != NULL)
-//			continue;
-//		if (memcmp(de->d_name, "usb", 3) == 0)
-//			continue;
-//
-//		if (sscanf(de->d_name, "%d-", &busnum) != 1)
-//			continue;
-//
-//		key.location = make_location(de->d_name, busnum);
-//		if (!key.location)
-//			continue;
-//
-//		/* Skip hubs */
-//		iclass = get_hex_attr(de->d_name, "bDeviceClass");
-//		if (iclass < 0 || iclass == 0x09)
-//			continue;
-//
-//		key.vendor = get_hex_attr(de->d_name, "idVendor");
-//		key.product = get_hex_attr(de->d_name, "idProduct");
-//
-//		QString sNumber = get_qstring_attr(de->d_name, "serial");
-//		key.serial_len = sNumber.length();
-//		if (key.serial_len) {
-//			if (key.serial_len > 255)
-//				key.serial_len = 255;
-//			memcpy(key.serial, QSTR2UTF8(sNumber), key.serial_len);
-//		}
-//		if (sNumber.isEmpty())
-//			sNumber = USB_NUM_EMPTY;
-//
-//		/* Ask prl_usb_connector */
-//		if (prl_usb_connector >= 0) {
-//			if (ioctl(prl_usb_connector, PRL_USB_CONNECT_GET, &key) == 0 ||
-//				errno == ENXIO)
-//				bDeviceServicedByPrl = TRUE;
-//		}
-//
-//		PRL_USB_DEVICE_TYPE pudt = PUDT_OTHER;
-//
-//		/* Check that this thing is keyboard/mouse */
-//		if (!bDeviceServicedByPrl) {
-//			if (iclass == 0x03) {
-//				if (check_km(de->d_name))
-//					bKeyboardMouse = TRUE;
-//			} else if (iclass == 0) {
-//				if (likely(check_msc_intf(de->d_name))) {
-//					iclass = 0x8;
-//					pudt = PUDT_DISK_STORAGE;
-//				}
-//				else if (check_km_intf(de->d_name))
-//					bKeyboardMouse = TRUE;
-//			}
-//		}
-//
-//		/* Create device's suffix */
-//		QString sSuffix("--");
-//		if (bDeviceServicedByPrl)
-//			sSuffix = "PR";
-//		else if (bKeyboardMouse)
-//			sSuffix = "KM";
-//
-//		QString sDevSpeed = USB_SPD_UNKNOWN;
-//		QString sSpeed = get_qstring_attr(de->d_name, "speed");
-//		if (sSpeed == "1.5")		sDevSpeed = USB_SPD_LOW;
-//		else if (sSpeed == "12")	sDevSpeed = USB_SPD_FULL;
-//		else if (sSpeed == "480")	sDevSpeed = USB_SPD_HIGH;
-//		else if (sSpeed == "5000")	sDevSpeed = USB_SPD_SUPER;
-//
-//		QString sManufacturer = get_qstring_attr(de->d_name, "manufacturer");
-//		QString sProduct = get_qstring_attr(de->d_name, "product");
-//
-//		QString sSystemName =
-//			CreateUsbSystemName (QString(de->d_name), key.vendor, key.product, sDevSpeed, sSuffix, sNumber);
-//
-//		QString sFriendlyName;
-//		if (sManufacturer.isEmpty() || sProduct.isEmpty()) {
-//			sFriendlyName = CreateUsbFriendlyName(iclass, key.vendor, key.product);
-//			if (sManufacturer.isEmpty())
-//				sManufacturer = sFriendlyName.section(" - ", 0, 0);
-//			if (sProduct.isEmpty())
-//				sProduct = sFriendlyName.section(" - ", 1, 1);
-//		}
-//		sFriendlyName = QString("%1 - %2").arg(sManufacturer).arg(sProduct);
-//
-//		/* Get devnum */
-//		devnum = get_int_attr(de->d_name, "devnum");
-//		if (devnum < 0)
-//			continue;
-//
-//		if (devnum == 0) {
-//			BOOL was_there = FALSE;
-//
-//			/* Special case. Linux >= 2.6.27 has a disgusting feature: when
-//			 * the device is reset, its devnum is set to 0. It is logically
-//			 * correct, the device really enters default state upon reset,
-//			 * but we cannot open usbfs handle even though usbfs works
-//			 * normally and actually the reset is caused by ioctl()
-//			 * on an open usbfs descriptor. Workaround is: if the device is
-//			 * not in the old list, we ignore it, but we must
-//			 * reschedule scan to wait for completion of reset,
-//			 * linux does not notify about this event.
-//			 * If the device was on the list we proceed normally.
-//			 * There is a risk that the device will be passed to VM
-//			 * right after this and CUsbDev will not able to open usbfs file.
-//			 * We take this risk.
-//			 */
-//			foreach(CHwUsbDevice *old_dev, old_dev_lst)
-//			{
-//				if (old_dev->getDeviceId().section('|', 0, 5) == sSystemName) {
-//					if (prl_usb_connector < 0)
-//						sSystemName = old_dev->getDeviceId();
-//					was_there = TRUE;
-//					break;
-//				}
-//			}
-//
-//			if (!was_there) {
-//				rescan_required = TRUE;
-//				continue;
-//			}
-//		} else {
-//			/* Generate unique name for each new reconnection, when
-//			 * prl_usb_connect is not available. Autoconnect logic
-//			 * in CDspHwMonitorNotifier.cpp implies that autoconnect
-//			 * is disabled, when device is connected to VM and reenabled
-//			 * only on the second reconnection of device with the same name.
-//			 * Could be repaired there but does not worth it.
-//			 */
-//			if (prl_usb_connector < 0)
-//				sSystemName += QString("|%1").arg(devnum, 0, 10);
-//		}
-//		// Loockup or create device element, and append it to new list
-//		LookupOrCreateUSBDevice(old_dev_lst, p_HostHwInfo->m_lstUsbDevices, sSystemName, sFriendlyName, pudt);
-//	}
-//
-//	closedir(dir);
-//
-//	if (prl_usb_connector >= 0)
-//		close(prl_usb_connector);
-//
-//	GetDiskUsbAliases(old_dev_lst, p_HostHwInfo->m_lstUsbDevices);
-//
-//out:
-//	// Clear list of disconnected devices & release memory used for CHwGenericDevice
-//	foreach(CHwUsbDevice *old_dev,  old_dev_lst) {
-//		old_dev_lst.removeAll(old_dev);
-//		delete old_dev;
-//	}
-//
-//	/* Walking over thin ice. We have no direct way to reschedule scan.
-//	 * Setting mtime on sysfs works, but it is a hack which can fail
-//	 * with any newer kernel version.
-//	 */
-//	if (rescan_required)
-//		utimes(PRL_USB_SYSFS_PATH, NULL);
+		if (iclass < 0 || iclass == 0x09)
+			continue;
+
+		quint16 vendor = get_hex_attr(de->d_name, "idVendor");
+		quint16 product = get_hex_attr(de->d_name, "idProduct");
+
+		QString sNumber = get_qstring_attr(de->d_name, "serial");
+		if (sNumber.isEmpty())
+			sNumber = USB_NUM_EMPTY;
+
+		PRL_USB_DEVICE_TYPE pudt = PUDT_OTHER;
+
+		/* Check that this thing is keyboard/mouse */
+		if (!bDeviceServicedByPrl) {
+			if (iclass == 0x03) {
+				if (check_km(de->d_name))
+					bKeyboardMouse = TRUE;
+			} else if (iclass == 0) {
+				if (likely(check_msc_intf(de->d_name))) {
+					iclass = 0x8;
+					pudt = PUDT_DISK_STORAGE;
+				}
+				else if (check_km_intf(de->d_name))
+					bKeyboardMouse = TRUE;
+			}
+		}
+
+		/* Create device's suffix */
+		QString sSuffix("--");
+		if (bDeviceServicedByPrl)
+			sSuffix = "PR";
+		else if (bKeyboardMouse)
+			sSuffix = "KM";
+
+		QString sDevSpeed = USB_SPD_UNKNOWN;
+		QString sSpeed = get_qstring_attr(de->d_name, "speed");
+		if (sSpeed == "1.5")		sDevSpeed = USB_SPD_LOW;
+		else if (sSpeed == "12")	sDevSpeed = USB_SPD_FULL;
+		else if (sSpeed == "480")	sDevSpeed = USB_SPD_HIGH;
+		else if (sSpeed == "5000")	sDevSpeed = USB_SPD_SUPER;
+
+		QString sManufacturer = get_qstring_attr(de->d_name, "manufacturer");
+		QString sProduct = get_qstring_attr(de->d_name, "product");
+
+		QString sSystemName =
+			CreateUsbSystemName (QString(de->d_name), vendor, product, sDevSpeed, sSuffix, sNumber);
+
+		QString sFriendlyName;
+		if (sManufacturer.isEmpty() || sProduct.isEmpty()) {
+			sFriendlyName = CreateUsbFriendlyName(iclass, vendor, product);
+			if (sManufacturer.isEmpty())
+				sManufacturer = sFriendlyName.section(" - ", 0, 0);
+			if (sProduct.isEmpty())
+				sProduct = sFriendlyName.section(" - ", 1, 1);
+		}
+		sFriendlyName = QString("%1 - %2").arg(sManufacturer).arg(sProduct);
+
+		/* Get devnum */
+		devnum = get_int_attr(de->d_name, "devnum");
+		if (devnum < 0)
+			continue;
+
+		if (devnum == 0) {
+			BOOL was_there = FALSE;
+
+			/* Special case. Linux >= 2.6.27 has a disgusting feature: when
+			 * the device is reset, its devnum is set to 0. It is logically
+			 * correct, the device really enters default state upon reset,
+			 * but we cannot open usbfs handle even though usbfs works
+			 * normally and actually the reset is caused by ioctl()
+			 * on an open usbfs descriptor. Workaround is: if the device is
+			 * not in the old list, we ignore it, but we must
+			 * reschedule scan to wait for completion of reset,
+			 * linux does not notify about this event.
+			 * If the device was on the list we proceed normally.
+			 * There is a risk that the device will be passed to VM
+			 * right after this and CUsbDev will not able to open usbfs file.
+			 * We take this risk.
+			 */
+			foreach(CHwUsbDevice *old_dev, old_dev_lst)
+			{
+				if (old_dev->getDeviceId().section('|', 0, 5) == sSystemName) {
+					if (prl_usb_connector < 0)
+						sSystemName = old_dev->getDeviceId();
+					was_there = TRUE;
+					break;
+				}
+			}
+
+			if (!was_there) {
+				rescan_required = TRUE;
+				continue;
+			}
+		} else {
+			/* Generate unique name for each new reconnection, when
+			 * prl_usb_connect is not available. Autoconnect logic
+			 * in CDspHwMonitorNotifier.cpp implies that autoconnect
+			 * is disabled, when device is connected to VM and reenabled
+			 * only on the second reconnection of device with the same name.
+			 * Could be repaired there but does not worth it.
+			 */
+			if (prl_usb_connector < 0)
+				sSystemName += QString("|%1").arg(devnum, 0, 10);
+		}
+		// Loockup or create device element, and append it to new list
+		LookupOrCreateUSBDevice(old_dev_lst, p_HostHwInfo->m_lstUsbDevices, sSystemName, sFriendlyName, pudt);
+	}
+
+	closedir(dir);
+
+	if (prl_usb_connector >= 0)
+		close(prl_usb_connector);
+
+	GetDiskUsbAliases(old_dev_lst, p_HostHwInfo->m_lstUsbDevices);
+
+out:
+	// Clear list of disconnected devices & release memory used for CHwGenericDevice
+	foreach(CHwUsbDevice *old_dev,  old_dev_lst) {
+		old_dev_lst.removeAll(old_dev);
+		delete old_dev;
+	}
+
+	/* Walking over thin ice. We have no direct way to reschedule scan.
+	 * Setting mtime on sysfs works, but it is a hack which can fail
+	 * with any newer kernel version.
+	 */
+	if (rescan_required)
+		utimes(PRL_USB_SYSFS_PATH, NULL);
 } // CDspHostInfo::GetUSBList()
 
 

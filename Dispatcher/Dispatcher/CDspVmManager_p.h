@@ -1356,5 +1356,46 @@ private:
 } // namespace Config
 } // namespace Vm
 
+namespace Preference
+{
+namespace Applying
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
+
+struct Cpu: QObject
+{
+	typedef Registry::Public registry_type;
+
+	explicit Cpu(registry_type& registry_): m_registry(&registry_)
+	{
+	}
+
+public slots:
+	void react(const SmartPtr<CDispCommonPreferences> old_,
+		const SmartPtr<CDispCommonPreferences> new_);
+
+private:
+	Q_OBJECT
+
+	registry_type* m_registry;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Usb
+
+struct Usb: QObject
+{
+public slots:
+	void react(const SmartPtr<CDispCommonPreferences> old_,
+		const SmartPtr<CDispCommonPreferences> new_);
+
+private:
+	Q_OBJECT
+};
+
+} // namespace Applying
+} // namespace Preference
+
 #endif // __CDSPVMMANAGER_P_H__
 
