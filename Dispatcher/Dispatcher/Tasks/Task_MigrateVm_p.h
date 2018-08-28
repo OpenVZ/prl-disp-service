@@ -636,16 +636,128 @@ struct Reading
 {
 };
 
+namespace Fragment
+{
+typedef SmartPtr<IOPackage> bin_type;
+typedef boost::optional<QString> spice_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Format
+
+struct Format
+{
+	virtual ~Format();
+
+	virtual const char* getData(const bin_type& bin_) const = 0;
+	virtual qint64 getDataSize(const bin_type& bin_) const = 0;
+	virtual spice_type getSpice(const bin_type& bin_) const = 0;
+	virtual bin_type assemble(const spice_type& spice_, const char* data_, qint64 size_) const = 0;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Flavor<X>
+
+template<Parallels::IDispToDispCommands X>
+struct Flavor: Format
+{
+	const char* getData(const bin_type& bin_) const
+	{
+		if (bin_.isValid() && bin_->header.buffersNumber > 0)
+			return bin_->buffers[0].getImpl();
+
+		return NULL;
+	}
+	qint64 getDataSize(const bin_type& bin_) const
+	{
+		if (bin_.isValid() && bin_->header.buffersNumber > 0)
+			return IODATAMEMBERCONST(bin_.getImpl())[0].bufferSize;
+
+		return -1;
+	}
+	spice_type getSpice(const bin_type& bin_) const
+	{
+		quint32 z = 0;
+		SmartPtr<char> b;
+		IOPackage::EncodingType t;
+		if (!bin_.isValid() || !bin_->getBuffer(1, t, b, z))
+			return boost::none;
+
+		return QString::fromAscii(b.getImpl(), z);
+	}
+	bin_type assemble(const spice_type& spice_, const char* data_, qint64 size_) const
+	{
+		bin_type output = IOPackage::createInstance(X, 1 + !!spice_);
+		if (!output.isValid())
+			return output;
+
+		output->fillBuffer(0, IOPackage::RawEncoding, data_, size_);
+		if (spice_)
+		{
+			QByteArray b = spice_.get().toUtf8();
+			output->fillBuffer(1, IOPackage::RawEncoding, b.data(), b.size());
+		}
+		return output;
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Flavor<CtMigrateCmd>
+
+template<>
+struct Flavor<CtMigrateCmd>: Format
+{
+	const char* getData(const bin_type& bin_) const;
+	qint64 getDataSize(const bin_type& bin_) const;
+	spice_type getSpice(const bin_type& bin_) const;
+	bin_type assemble(const spice_type& spice_, const char* data_, qint64 size_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Packer
+
+struct Packer
+{
+	template<Parallels::IDispToDispCommands X>
+	explicit Packer(const Flavor<X>& format_): m_format(new Flavor<X>(format_))
+	{
+	}
+
+	void setSpice(const QString& value_)
+	{
+		m_spice = value_;
+	}
+	const Format& getFormat() const
+	{
+		return *m_format;
+	}
+	SmartPtr<IOPackage> operator()();
+	SmartPtr<IOPackage> operator()(QIODevice& source_);
+	SmartPtr<IOPackage> operator()(const QTcpSocket& source_);
+
+private:
+	spice_type m_spice;
+	QSharedPointer<Format> m_format;
+};
+
+} // namespace Fragment
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Queue
 
-struct Queue: QQueue<SmartPtr<IOPackage> >
+struct Queue: QQueue<Fragment::bin_type>
 {
 	bool isEof() const
 	{
-		return !isEmpty() && head()->header.buffersNumber > 0 &&
-			IODATAMEMBERCONST(head().getImpl())[0].bufferSize == 0;
+		return !isEmpty() && m_format != NULL &&
+			m_format->getDataSize(head()) == 0;
 	}
+	void setFormat(const Fragment::Format& value_)
+	{
+		m_format = &value_;
+	}
+
+private:
+	const Fragment::Format* m_format;
 };
 
 namespace Push
@@ -675,36 +787,14 @@ typedef boost::variant<Reading, Sending, Closing, Success, Obstruction> state_ty
 typedef Prl::Expected<state_type, Flop::Event> target_type;
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Packer
-
-struct Packer
-{
-	explicit Packer(Parallels::IDispToDispCommands name_): m_name(name_)
-	{
-	}
-
-	void setSpice(const QString& value_)
-	{
-		m_spice = value_;
-	}
-	SmartPtr<IOPackage> operator()();
-	SmartPtr<IOPackage> operator()(QIODevice& source_);
-	SmartPtr<IOPackage> operator()(const QTcpSocket& source_);
-	static boost::optional<QString> getSpice(const IOPackage& package_);
-
-private:
-	boost::optional<QString> m_spice;
-	Parallels::IDispToDispCommands m_name;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Queue
 
 struct Queue: private Vm::Pump::Queue
 {
-	Queue(const Packer& packer_, IO& service_, QIODevice& device_):
-		m_service(&service_), m_packer(packer_), m_device(&device_)
+	Queue(const Fragment::Packer& packer_, IO& service_, QIODevice& device_):
+		m_service(&service_), m_device(&device_), m_packer(packer_)
 	{
+		setFormat(m_packer.getFormat());
 	}
 
 	target_type dequeue();
@@ -716,8 +806,8 @@ private:
 	Prl::Expected<void, Flop::Event> enqueue(const SmartPtr<IOPackage>& package_);
 
 	IO* m_service;
-	Packer m_packer;
 	QIODevice* m_device;
+	Fragment::Packer m_packer;
 };
 
 namespace Visitor
@@ -821,7 +911,8 @@ struct Connector: Vm::Connector::Base<T>, Slot
 
 		if (!this->objectName().isEmpty())
 		{
-			boost::optional<QString> s = Packer::getSpice(*package_);
+			Fragment::spice_type s = Fragment::Flavor<X>()
+				.getSpice(package_);
 			if (!(s && this->objectName() == s.get()))
 				return;
 		}
@@ -889,7 +980,7 @@ struct Pump: vsd::Trace<Pump<T, X> >, Vm::Connector::Mixin<Connector<T, X> >
 		vsd::Trace<Pump>::on_entry(event_, fsm_);
 		m_ioservice = event_.get<0>();
 		m_iodevice = event_.get<1>();
-		Packer p(X);
+		Fragment::Packer p((Fragment::Flavor<X>()));
 		if (event_.get<2>())
 		{
 			p.setSpice(event_.get<2>().get());
@@ -945,8 +1036,9 @@ namespace Pull
 
 struct WateringPot
 {
-	WateringPot(const SmartPtr<IOPackage>& load_, QIODevice& device_):
-		m_done(), m_device(&device_), m_load(load_)
+	WateringPot(const Fragment::Format& format_, const Fragment::bin_type& load_,
+		QIODevice& device_): m_done(), m_device(&device_), m_load(load_),
+		m_format(&format_)
 	{
 	}
 
@@ -961,7 +1053,8 @@ private:
 
 	qint64 m_done;
 	QIODevice* m_device;
-	SmartPtr<IOPackage> m_load;
+	Fragment::bin_type m_load;
+	const Fragment::Format* m_format;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -971,8 +1064,8 @@ struct Pouring
 {
 	typedef Prl::Expected<void, Flop::Event> status_type;
 
-	Pouring(const SmartPtr<IOPackage>& load_, QIODevice& device_):
-		m_portion(), m_pot(load_, device_)
+	explicit Pouring(const WateringPot& pot_):
+		m_portion(), m_pot(pot_)
 	{
 	}
 
@@ -997,8 +1090,11 @@ typedef Prl::Expected<state_type, Flop::Event> target_type;
 
 struct Queue: private Vm::Pump::Queue
 {
-	explicit Queue(QIODevice& device_): m_device(&device_)
+	template<Parallels::IDispToDispCommands X>
+	Queue(const Fragment::Flavor<X>& format_, QIODevice& device_):
+		m_device(&device_), m_format(new Fragment::Flavor<X>(format_))
 	{
+		setFormat(*m_format);
 	}
 
 	target_type dequeue();
@@ -1006,6 +1102,7 @@ struct Queue: private Vm::Pump::Queue
 
 private:
 	QIODevice* m_device;
+	QSharedPointer<Fragment::Format> m_format;
 };
 
 namespace Visitor
@@ -1144,7 +1241,7 @@ struct Pump: vsd::Trace<Pump<T, X> >, Vm::Connector::Mixin<Connector<T, X> >
 	{
 		vsd::Trace<Pump>::on_entry(event_, fsm_);
 		m_iodevice = event_.get<1>();
-		this->getConnector()->setQueue(new Queue(*m_iodevice));
+		this->getConnector()->setQueue(new Queue(Fragment::Flavor<X>(), *m_iodevice));
 		this->getConnector()->connect(m_iodevice, SIGNAL(bytesWritten(qint64)),
 			SLOT(reactBytesWritten(qint64)), Qt::QueuedConnection);
 		if (event_.get<2>())
@@ -1263,8 +1360,9 @@ struct Unit: vsd::Trace<T>, Vm::Connector::Mixin<typename U::machine_type>
 		template<class M>
 		void operator()(haulEvent_type const& event_, M& fsm_, Unit& state_, Unit&)
 		{
-			boost::optional<QString> s =
-				Vm::Pump::Push::Packer::getSpice(*event_.getPackage());
+			Vm::Pump::Fragment::spice_type s =
+				Vm::Pump::Fragment::Flavor<haulEvent_type::s_command>()
+					.getSpice(event_.getPackage());
 			if (!s)
 				return (void)fsm_.process_event(Flop::Event(PRL_ERR_INVALID_ARG));
 

@@ -916,8 +916,9 @@ namespace Qemu
 template<Parallels::IDispToDispCommands X>
 Prl::Expected<Vm::Pump::Launch_type, Flop::Event> Launch<X>::operator()() const
 {
-	using Vm::Pump::Push::Packer;
-	SmartPtr<IOPackage> x = Packer(X)(*m_socket);
+	using Vm::Pump::Fragment::Packer;
+	Vm::Pump::Fragment::Flavor<X> f;
+	SmartPtr<IOPackage> x = Packer(f)(*m_socket);
 	if (!x.isValid())
 		return Flop::Event(PRL_ERR_FAILURE);
 
@@ -925,7 +926,7 @@ Prl::Expected<Vm::Pump::Launch_type, Flop::Event> Launch<X>::operator()() const
 	if (!j.isValid())
 		return Flop::Event(PRL_ERR_FAILURE);
 
-	return Vm::Pump::Launch_type(m_service, m_socket, Packer::getSpice(*x));
+	return Vm::Pump::Launch_type(m_service, m_socket, f.getSpice(x));
 }
 
 } // namespace Qemu
