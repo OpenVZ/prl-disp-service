@@ -46,7 +46,7 @@
 #include <time.h>
 #include <poll.h>
 #include <sys/resource.h>
-
+#include <boost/foreach.hpp>
 #include "Interfaces/Debug.h"
 #include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
@@ -57,6 +57,7 @@
 
 #include "Task_VzMigrate.h"
 #include "CDspService.h"
+#include "Task_VzMigrate_p.h"
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/Std/noncopyable.h>
 
@@ -74,9 +75,9 @@
  In main thread will use waitpid(WNOHANG) and poll()
 */
 
-namespace
-{
 namespace Migrate
+{
+namespace Ct
 {
 
 inline void close_fd(int &fd)
@@ -169,6 +170,22 @@ struct EndpointPair
 			WRITE_TRACE(DBG_FATAL, "socketpair() : %m");
 			return NULL;
 		}
+		BOOST_FOREACH(int d, f)
+		{
+			int v = std::numeric_limits<int>::max();
+			socklen_t z = sizeof(v);
+			if (0 == ::setsockopt(d, SOL_SOCKET, SO_SNDBUF, reinterpret_cast<char*>(&v), z))
+			{
+				v = std::numeric_limits<int>::max();
+				if (0 == ::setsockopt(d, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char*>(&v), z))
+					continue;
+			}
+			WRITE_TRACE(DBG_FATAL, "setsockopt() : %m");
+			close(f[0]);
+			close(f[1]);
+
+			return NULL;
+		}
 		return new (std::nothrow) EndpointPair(f);
 	}
 
@@ -203,20 +220,18 @@ void exec_cmd(const QStringList &args)
 		::free(t);
 }
 
+} // namespace Ct
 } // namespace Migrate
-} // namespace anonymous
 
 Task_VzMigrate::Task_VzMigrate(const SmartPtr<CDspClient> &client, const SmartPtr<IOPackage> &p)
 :CDspTaskHelper(client, p),
 	Task_DispToDispConnHelper(getLastError()),
 	m_nFd(PRL_CT_MIGRATE_SWAP_FD + 1, -1),
-	m_nBufferSize(PRL_DISP_IO_BUFFER_SIZE),
+	m_nBufferSize(1 << 20),
 	m_pid(-1),
 	m_pHandleDispPackageTask(NULL),
 	m_pfnTermination(&Task_VzMigrate::setPidPolicy)
 {
-	/* alloc buffer for data from vzmigrate and link this buffer with IO package */
-	m_pBuffer = SmartPtr<char>(new char[m_nBufferSize], SmartPtrPolicy::ArrayStorage);
 }
 
 Task_VzMigrate::~Task_VzMigrate()
@@ -231,44 +246,53 @@ Task_VzMigrate::~Task_VzMigrate()
 
 PRL_RESULT Task_VzMigrate::readFromVzMigrate(quint16 nFdNum)
 {
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	quint32 nSize = 0;
-	ssize_t rc;
-
 	PRL_ASSERT(nFdNum < m_nFd.size());
 
+	quint32 nSize = 0;
+	m_pBuffer = SmartPtr<char>(new char[m_nBufferSize], SmartPtrPolicy::ArrayStorage);
+
 	/* read data */
-	while (1) {
+	forever {
 		errno = 0;
-		rc = ::read(m_nFd[nFdNum], m_pBuffer.getImpl() + nSize, (size_t)(m_nBufferSize - nSize));
+		ssize_t rc = ::read(m_nFd[nFdNum], m_pBuffer.getImpl() + nSize, (size_t)(m_nBufferSize - nSize));
 		if (rc > 0) {
 			nSize += (quint32)rc;
 			/* if buffer is full, send it */
-			if (nSize >= m_nBufferSize) {
-				nRetCode = sendDispPackage(nFdNum, nSize);
-				if (PRL_FAILED(nRetCode))
-					return nRetCode;
-				nSize = 0;
-			}
+			if (nSize < m_nBufferSize)
+				continue;
+
+			PRL_RESULT nRetCode = sendDispPackage(nFdNum, nSize);
+			if (PRL_FAILED(nRetCode))
+				return nRetCode;
+
+			nSize = 0;
+			m_pBuffer = SmartPtr<char>(new char[m_nBufferSize], SmartPtrPolicy::ArrayStorage);
 		} else if ((rc == 0) || (errno == ECONNRESET)) {
 			/* end of file - pipe was close, will check client exit code */
 			WRITE_TRACE(DBG_DEBUG, "EOF");
-			Migrate::close_fd(m_nFd[nFdNum]);
-			nRetCode = sendDispPackage(nFdNum, nSize);
+			Migrate::Ct::close_fd(m_nFd[nFdNum]);
+			PRL_RESULT nRetCode = sendDispPackage(nFdNum, nSize);
 			if (PRL_FAILED(nRetCode))
 				return nRetCode;
 			return sendDispPackage(nFdNum, 0);
 		} else if (errno == EAGAIN) {
 			/* no data to read - send buffer and exit */
+			if (0 == nSize)
+				break;
+
 			return sendDispPackage(nFdNum, nSize);
 		} else if (errno == EINTR) {
 			/* signal - send buffer and exit - to check waitpid() */
+			if (0 == nSize)
+				break;
+
 			return sendDispPackage(nFdNum, nSize);
 		} else {
 			WRITE_TRACE(DBG_FATAL, "read() : %m");
 			return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
 		}
-	}
+ 	}
+
 	return PRL_ERR_SUCCESS;
 }
 
@@ -295,7 +319,7 @@ void Task_VzMigrate::readOutFromVzMigrate()
 			/* end of file - pipe was close, will check client exit code */
 			pBuffer[nSize] = '\0';
 			WRITE_TRACE(DBG_INFO, "%s", pBuffer);
-			Migrate::close_fd(m_nFd[PRL_CT_MIGRATE_OUT_FD]);
+			Migrate::Ct::close_fd(m_nFd[PRL_CT_MIGRATE_OUT_FD]);
 			return;
 		} else if ((errno == EAGAIN) || (errno == EINTR)) {
 			pBuffer[nSize] = '\0';
@@ -311,9 +335,10 @@ void Task_VzMigrate::readOutFromVzMigrate()
 /* send package with migration data to target dispatcher */
 PRL_RESULT Task_VzMigrate::sendDispPackage(quint16 nType, quint32 nSize)
 {
-	m_pPackage->fillBuffer(0, IOPackage::RawEncoding, &nType, sizeof(nType));
-	m_pPackage->setBuffer(1, IOPackage::RawEncoding, m_pBuffer, nSize);
-	return sendDispPackage(m_pPackage);
+	SmartPtr<IOPackage> p(IOPackage::duplicateInstance(m_pPackage, true));
+	p->fillBuffer(0, IOPackage::RawEncoding, &nType, sizeof(nType));
+	p->setBuffer(1, IOPackage::RawEncoding, m_pBuffer, nSize);
+	return sendDispPackage(p);
 }
 
 /*
@@ -327,16 +352,16 @@ PRL_RESULT Task_VzMigrate::sendDispPackage(quint16 nType, quint32 nSize)
 PRL_RESULT Task_VzMigrate::startVzMigrate(const QString &sCmd, const QStringList &lstArgs,
 	const CProgressHepler::callback_type& reporter_)
 {
-	QScopedPointer<Migrate::EndpointPair> out_fds(Migrate::EndpointPair::createPipe());
-	QScopedPointer<Migrate::EndpointPair> err_pipe(Migrate::EndpointPair::createPipe());
-	QScopedPointer<Migrate::EndpointPair> cmd_socks(Migrate::EndpointPair::createSocketPair());
-	QScopedPointer<Migrate::EndpointPair> data_socks(Migrate::EndpointPair::createSocketPair());
-	QScopedPointer<Migrate::EndpointPair> tmpl_data_socks(Migrate::EndpointPair::createSocketPair());
-	QScopedPointer<Migrate::EndpointPair> swap_socks(Migrate::EndpointPair::createSocketPair());
+	QScopedPointer<Migrate::Ct::EndpointPair> out_fds(Migrate::Ct::EndpointPair::createPipe());
+	QScopedPointer<Migrate::Ct::EndpointPair> err_pipe(Migrate::Ct::EndpointPair::createPipe());
+	QScopedPointer<Migrate::Ct::EndpointPair> cmd_socks(Migrate::Ct::EndpointPair::createSocketPair());
+	QScopedPointer<Migrate::Ct::EndpointPair> data_socks(Migrate::Ct::EndpointPair::createSocketPair());
+	QScopedPointer<Migrate::Ct::EndpointPair> tmpl_data_socks(Migrate::Ct::EndpointPair::createSocketPair());
+	QScopedPointer<Migrate::Ct::EndpointPair> swap_socks(Migrate::Ct::EndpointPair::createSocketPair());
 
-	QScopedPointer<Migrate::EndpointPair> progressPipe;
+	QScopedPointer<Migrate::Ct::EndpointPair> progressPipe;
 	if (!reporter_.empty())
-		progressPipe.reset(Migrate::EndpointPair::createPipe());
+		progressPipe.reset(Migrate::Ct::EndpointPair::createPipe());
 
 	m_sCmd = sCmd;
 
@@ -374,7 +399,7 @@ PRL_RESULT Task_VzMigrate::startVzMigrate(const QString &sCmd, const QStringList
 			fdnum = (int)rlim.rlim_cur;
 
 		for (int i = 3; i < fdnum; ++i) {
-			Migrate::Endpoint e(i);
+			Migrate::Ct::Endpoint e(i);
 			if ((e == out_fds->child()) ||
 				(e == cmd_socks->child()) ||
 				(e == data_socks->child()) ||
@@ -386,7 +411,7 @@ PRL_RESULT Task_VzMigrate::startVzMigrate(const QString &sCmd, const QStringList
 		}
 
 		/* try to redirect stdin to /dev/null */
-		Migrate::Endpoint(::open("/dev/null", O_RDWR)).dup(STDIN_FILENO);
+		Migrate::Ct::Endpoint(::open("/dev/null", O_RDWR)).dup(STDIN_FILENO);
 
 		out_fds->child().setCloseOnExec(false);
 		out_fds->child().dup(STDOUT_FILENO);
@@ -411,7 +436,7 @@ PRL_RESULT Task_VzMigrate::startVzMigrate(const QString &sCmd, const QStringList
 			::setenv("VZ_PROGRESS_FD", QSTR2UTF8(QString::number(progressPipe->child().release())), 1);
 		}
 
-		Migrate::exec_cmd(args);
+		Migrate::Ct::exec_cmd(args);
 		_exit(-1);
 	}
 
@@ -488,6 +513,7 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 		QMutexLocker _lock(&m_terminateHandleDispPackageTaskMutex);
 		/* start incoming dispatcher package handler */
 		m_pHandleDispPackageTask = new Task_HandleDispPackage(pSendJobInterface, hJob, m_nFd);
+		m_pHandleDispPackageTask->moveToThread(m_pHandleDispPackageTask);
 		bool bConnected = QObject::connect(m_pHandleDispPackageTask,
 				SIGNAL(onDispPackageHandlerFailed(PRL_RESULT, const QString &)),
 				SLOT(handleDispPackageHandlerFailed(PRL_RESULT, const QString &)),
@@ -524,6 +550,7 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 				continue;
 			fds[nFd].fd = fd;
 			fds[nFd].events = POLLIN;
+			fds[nFd].revents = 0;
 			nFd++;
 		}
 
@@ -664,168 +691,6 @@ void Task_VzMigrate::handleDispPackageHandlerFailed(PRL_RESULT nRetCode, const Q
 	getLastError()->fromString(sErrInfo);
 }
 
-Task_HandleDispPackage::Task_HandleDispPackage(
-		IOSendJobInterface *pSendJobInterface,
-		IOSendJob::Handle &hJob,
-		QVector<int> &nFd)
-:m_pSendJobInterface(pSendJobInterface),
-	m_hJob(hJob),
-	m_nFd(nFd),
-	m_bActiveFd(nFd.size(), true)
-{
-}
-
-PRL_RESULT Task_HandleDispPackage::writeToVzMigrate(quint16 nFdNum, char *data, quint32 size)
-{
-	int rc;
-	size_t count;
-	struct pollfd fds[1];
-
-	if (nFdNum >= m_nFd.size()) {
-		WRITE_TRACE( DBG_FATAL, "Invalid FD type : %d", nFdNum);
-		return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-	}
-	if (!m_bActiveFd[nFdNum]) {
-		/* we could end up here when there're several buffered packets, but
-		   the fd is already closed, thus we can't write the data from the packets */
-		WRITE_TRACE(DBG_INFO, "fd#%d already disconnected, discarding data", m_nFd[nFdNum]);
-		return PRL_ERR_SUCCESS;
-	}
-	if (m_nFd[nFdNum] == -1) {
-		WRITE_TRACE(DBG_FATAL, "write() to closed socket");
-		if (nFdNum == PRL_CT_MIGRATE_SWAP_FD) {
-			/* swap fd reader already closed the swap fd, not an error */
-			m_bActiveFd[nFdNum] = false;
-			return PRL_ERR_SUCCESS;
-		}
-		return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-	}
-	if (size == 0)
-		return PRL_ERR_SUCCESS;
-
-	fds[0].fd = m_nFd[nFdNum];
-	fds[0].events = POLLOUT;
-	count = 0;
-	while (1) {
-		while (1) {
-			errno = 0;
-			rc = ::write(m_nFd[nFdNum], data + count, (size_t)(size - count));
-			if (rc > 0) {
-				count += rc;
-				if (count >= size)
-					return PRL_ERR_SUCCESS;
-				continue;
-			}
-			if (errno == EAGAIN) {
-				break;
-			} else if (errno == EINTR) {
-				continue;
-			} else {
-				WRITE_TRACE(DBG_FATAL, "write() : %m");
-				return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-			}
-		}
-
-		while (true) {
-			rc = ::poll(fds, 1, -1);
-			if (rc < 0) {
-				WRITE_TRACE(DBG_FATAL, "poll(write) : %m");
-				return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-			}
-			/* If the writer poll() returns before reader poll(), then we'll have
-			 * POLLHUP for the swap fd here. Otherwise - POLLNVAL.
-			 */
-			if (nFdNum == PRL_CT_MIGRATE_SWAP_FD
-					&& (fds[0].revents & POLLHUP || fds[0].revents & POLLNVAL)) {
-				WRITE_TRACE(DBG_INFO, "poll(write): connection closed for fd#%d", fds[0].fd);
-				m_bActiveFd[nFdNum] = false;
-				return PRL_ERR_SUCCESS;
-			}
-			if (fds[0].revents & POLLOUT) {
-				break;
-			} else if (fds[0].revents) {
-				WRITE_TRACE(DBG_FATAL, "poll(write) : revent = %d", fds[0].revents);
-				return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-			}
-		}
-	}
-
-	/* but we never should be here */
-	return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-}
-
-void Task_HandleDispPackage::run()
-{
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	SmartPtr<IOPackage> p;
-	IOSendJob::Response pResponse;
-	IOPackage::EncodingType nEnc;
-	SmartPtr<char> pBuffer;
-	quint32 nSize;
-	quint16 *pnFdNum;
-	QString sErrInfo;
-	IOSendJob::Result nResult;
-
-	setTerminationEnabled(true);
-
-	while (nRetCode == PRL_ERR_SUCCESS)
-	{
-		nResult = m_pSendJobInterface->waitForResponse(m_hJob);
-		if (nResult == IOSendJob::UrgentlyWaked) {
-			WRITE_TRACE(DBG_DEBUG, "IOSendJob::waitForResponse() was waked, task completed");
-			return;
-		} else if (nResult != IOSendJob::Success) {
-			WRITE_TRACE(DBG_FATAL, "IOSendJob::waitForResponse() failure");
-			nRetCode = PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-			break;
-		}
-		pResponse = m_pSendJobInterface->takeResponse(m_hJob);
-		if (pResponse.responseResult != IOSendJob::Success) {
-			WRITE_TRACE(DBG_FATAL, "IOSendJob::takeResponse() failure");
-			nRetCode = PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-			break;
-		}
-
-		foreach(p, pResponse.responsePackages) {
-			PRL_ASSERT(p->buffers[0].getImpl());
-			if (p->header.type == DispToDispResponseCmd) {
-				/* handle error message */
-				CDispToDispCommandPtr pCmd =
-					CDispToDispProtoSerializer::ParseCommand(
-						DispToDispResponseCmd,
-						UTF8_2QSTR(p->buffers[0].getImpl()));
-				CDispToDispResponseCommand *pRespCmd =
-					CDispToDispProtoSerializer::
-						CastToDispToDispCommand<CDispToDispResponseCommand>(pCmd);
-				nRetCode = pRespCmd->GetRetCode();
-				sErrInfo = pRespCmd->GetErrorInfo()->toString();
-				break;
-			} else if (p->header.type != CtMigrateCmd) {
-				WRITE_TRACE(DBG_FATAL, "Invalid package type : %d", p->header.type);
-				nRetCode = PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-				break;
-			}
-			pnFdNum = (quint16 *)p->buffers[0].getImpl();
-			p->getBuffer(1, nEnc, pBuffer, nSize);
-
-			if (nSize) {
-				PRL_ASSERT(pBuffer.getImpl());
-				/* write to command channel */
-				nRetCode = writeToVzMigrate(*pnFdNum, pBuffer.getImpl(), nSize);
-			} else {
-				/* empty package indicate that this descriptor closed on remote side.
-				   close this descriptor on our side too */
-				::shutdown(m_nFd[*pnFdNum], SHUT_RDWR);
-			}
-			if (PRL_FAILED(nRetCode))
-				break;
-		}
-		if (PRL_FAILED(nRetCode))
-			break;
-	}
-	emit onDispPackageHandlerFailed(nRetCode, sErrInfo);
-}
-
 void Task_VzMigrate::setPidPolicy(pid_t p)
 {
 	if (p > 0)
@@ -864,3 +729,278 @@ void Task_VzMigrate::terminatePidPolicy(pid_t p)
 	foreach (int i, m_nFd)
 		::shutdown(i, SHUT_RDWR);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Task_HandleDispPackage
+
+Task_HandleDispPackage::Task_HandleDispPackage(
+		IOSendJobInterface *pSendJobInterface,
+		IOSendJob::Handle &hJob,
+		QVector<int> &nFd)
+:m_pSendJobInterface(pSendJobInterface),
+	m_hJob(hJob),
+	m_nFd(nFd),
+	m_bActiveFd(nFd.size(), true), m_watcher()
+{
+	m_hub.setParent(this);
+}
+
+void Task_HandleDispPackage::run()
+{
+	int a[] = {PRL_CT_MIGRATE_CMD_FD, PRL_CT_MIGRATE_DATA_FD,
+		PRL_CT_MIGRATE_SWAP_FD, PRL_CT_MIGRATE_TMPLDATA_FD};
+	int s = -1;
+	BOOST_FOREACH(int i, a)
+	{
+		s = TEMP_FAILURE_RETRY(::dup(m_nFd[i]));
+		if (-1 == s)
+		{
+			WRITE_TRACE(DBG_FATAL, "cannot dup %d: %m", m_nFd[i]);
+			break;
+		}
+		Migrate::Ct::Endpoint e(s);
+		e.setNonBlock();
+		e.release();
+		m_hub.startPump(i, s);
+	}
+	if (-1 != s)
+	{
+		QTimer::singleShot(0, this, SLOT(spin()));
+		PRL_RESULT e = exec();
+		if (NULL != m_watcher)
+		{
+			m_watcher->disconnect(SIGNAL(finished()), this);
+			m_watcher->deleteLater();
+			m_watcher = NULL;
+		}
+		if (PRL_FAILED(e))
+		{
+			urgentResponseWakeUp();
+			emit onDispPackageHandlerFailed(e, QString());
+		}
+	}
+	BOOST_FOREACH(int i, a)
+	{
+		m_hub.stopPump(i);
+	}
+}
+
+void Task_HandleDispPackage::spin()
+{
+	QList<SmartPtr<IOPackage> > h;
+	if (NULL == m_watcher)
+	{
+		m_watcher = new QFutureWatcher<Prl::Expected<IOSendJob::Response, PRL_RESULT> >(this);
+		this->connect(m_watcher, SIGNAL(finished()), SLOT(spin()));
+	}
+	else
+	{
+		Prl::Expected<IOSendJob::Response, PRL_RESULT> x = m_watcher->result();
+		if (x.isFailed())
+		{
+			emit onDispPackageHandlerFailed(x.error(), QString());
+			return exit(PRL_ERR_SUCCESS);
+		}
+		h = x.value().responsePackages;
+	}
+	m_watcher->setFuture(QtConcurrent::run(boost::bind
+		(Task_HandleDispPackage::pull, m_pSendJobInterface, m_hJob)));
+	if (!h.isEmpty())
+	{
+		foreach (const SmartPtr<IOPackage>& p, h)
+		{
+			Migrate::Ct::Hub::result_type y = m_hub(p);
+			if (y.isFailed())
+			{
+				urgentResponseWakeUp();
+				emit onDispPackageHandlerFailed(y.error().first, y.error().second);
+				return exit(PRL_ERR_SUCCESS);
+			}
+		}
+	}
+}
+
+Prl::Expected<IOSendJob::Response, PRL_RESULT>
+	Task_HandleDispPackage::pull(IOSendJobInterface* gateway_, IOSendJob::Handle strand_)
+{
+	switch (gateway_->waitForResponse(strand_))
+	{
+	case IOSendJob::UrgentlyWaked:
+		WRITE_TRACE(DBG_DEBUG, "IOSendJob::waitForResponse() was waked, task completed");
+		return PRL_ERR_SUCCESS;
+	case IOSendJob::Success:
+		break;
+	default:
+		WRITE_TRACE(DBG_FATAL, "IOSendJob::waitForResponse() failure");
+		return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
+	}
+	IOSendJob::Response output = gateway_->takeResponse(strand_);
+	if (output.responseResult != IOSendJob::Success)
+	{
+		WRITE_TRACE(DBG_FATAL, "IOSendJob::takeResponse() failure");
+		return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
+	}
+
+	return output;
+}
+
+namespace Migrate
+{
+namespace Ct
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Pump
+
+void Pump::reactReceipt(const mvp::Fragment::bin_type& package_)
+{
+	m_queue.enqueue(package_);
+	setState(boost::apply_visitor(mvpp::Visitor::Receipt(m_queue), m_state));
+}
+
+void Pump::reactBytesWritten(qint64 value_)
+{
+	setState(boost::apply_visitor(mvpp::Visitor::Accounting(value_, m_queue), m_state));
+}
+
+void Pump::setState(const mvpp::target_type& value_)
+{
+	if (value_.isSucceed())
+	{
+		mvpp::target_type x = boost::apply_visitor(m_dispatch,
+					m_state = value_.value());
+		if (x.isSucceed())
+		{
+			m_state = x.value();
+			return;
+		}
+	}
+	QThread::currentThread()->
+		exit(boost::apply_visitor
+			(Ct::Flop::Visitor(), value_.error().error()));
+}
+
+namespace Handler
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Error
+
+bool Error::filter(argument_type request_) const
+{
+	return request_.first.isValid() &&
+		request_.first->header.type == DispToDispResponseCmd;
+}
+
+Error::result_type Error::handle(argument_type request_)
+{
+	CDispToDispCommandPtr a =
+		CDispToDispProtoSerializer::ParseCommand(
+			DispToDispResponseCmd,
+			UTF8_2QSTR(request_.first->buffers[0].getImpl()));
+	CDispToDispResponseCommand* b =
+		CDispToDispProtoSerializer::
+			CastToDispToDispCommand<CDispToDispResponseCommand>(a);
+
+	request_.second() = b->GetErrorInfo()->toString();
+	return b->GetRetCode();
+}
+
+Error::result_type Error::handleUnknown(argument_type request_)
+{
+	if (request_.first.isValid())
+	{
+		WRITE_TRACE(DBG_FATAL, "Invalid package type : %d",
+			request_.first->header.type);
+		return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
+	}
+
+	WRITE_TRACE(DBG_FATAL, "package is NULL");
+	return PRL_ERR_INVALID_ARG;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Fragment
+
+bool Fragment::filter(argument_type request_) const
+{
+	return request_.first.isValid() &&
+		request_.first->header.type == CtMigrateCmd;
+}
+
+Fragment::result_type Fragment::handle(argument_type request_)
+{
+	mvp::Fragment::spice_type s = mvp::Fragment::Flavor<CtMigrateCmd>()
+		.getSpice(request_.first);
+	if (!s)
+	{
+		WRITE_TRACE(DBG_FATAL, "discard an unexpected package");
+		return PRL_ERR_SUCCESS;
+	}
+	int k = s->toInt(NULL);
+	if (m_pumps->contains(k))
+		(*m_pumps)[k].second->reactReceipt(request_.first);
+	else
+	{
+		WRITE_TRACE(DBG_INFO, "channel#%d has already been disconnected. "
+			"discard the data", k);
+	}
+	return PRL_ERR_SUCCESS;
+}
+
+} // namespace Handler
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hub
+
+Hub::Hub()
+{
+	d_ptr->sendChildEvents = false;
+}
+
+void Hub::stopPump(int alias_)
+{
+	if (!m_pumps.contains(alias_))
+		return;
+
+	pump_type p = m_pumps[alias_];
+	::shutdown(p.first->socketDescriptor(), SHUT_RDWR);
+	p.first->disconnect(SIGNAL(bytesWritten(qint64)),
+		p.second, SLOT(reactBytesWritten(qint64)));
+	p.first->close();
+
+	m_pumps.remove(alias_);
+	p.first->deleteLater();
+	p.second->deleteLater();
+}
+
+void Hub::startPump(int alias_, int socket_)
+{
+	if (m_pumps.contains(alias_))
+		return;
+
+	QLocalSocket* d = new QLocalSocket(this);
+	d->setReadBufferSize(-1);
+	d->setSocketDescriptor(socket_, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+	Pump* p = new Pump(mvpp::Queue(mvp::Fragment::Flavor<CtMigrateCmd>(), *d),
+			mvppv::Dispatch(boost::bind(&Hub::stopPump, this, alias_)));
+	p->setParent(this);
+	m_pumps[alias_] = qMakePair(d, p);
+
+	p->connect(d, SIGNAL(bytesWritten(qint64)),
+		SLOT(reactBytesWritten(qint64)), Qt::QueuedConnection);
+}
+
+Hub::result_type Hub::operator()(const mvp::Fragment::bin_type& package_)
+{
+	QString t;
+	PRL_RESULT e = Handler::Fragment(m_pumps,
+				Handler::Error(&Handler::Error::handleUnknown))
+					(qMakePair(package_, boost::phoenix::ref(t)));
+	if (PRL_FAILED(e))
+		return qMakePair(e, t);
+
+	return result_type();
+}
+
+} // namespace Ct
+} // namespace Migrate
+

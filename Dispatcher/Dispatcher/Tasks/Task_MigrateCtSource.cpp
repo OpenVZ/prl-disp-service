@@ -500,12 +500,37 @@ PRL_RESULT Task_MigrateCtSource::SendStartRequest()
 /* send package with migration data to target dispatcher */
 PRL_RESULT Task_MigrateCtSource::sendDispPackage(SmartPtr<IOPackage> &pPackage)
 {
-	IOSendJob::Handle hJob;
-
-	hJob = m_pIoClient->sendPackage(pPackage);
-	if (m_pIoClient->waitForSend(hJob, m_nTimeout) != IOSendJob::Success) {
-		WRITE_TRACE(DBG_FATAL, "Package sending failure");
-		return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
+	IOSendJob::Handle j(m_pIoClient->sendPackage(pPackage));
+	while (!j.isValid() || m_pIoClient->getSendResult(j) == IOSendJob::SendQueueIsFull)
+	{
+		if (m_sent.empty())
+		{
+			WRITE_TRACE(DBG_FATAL, "Package sending failure");
+			return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
+		}
+		j = m_sent.takeFirst();
+		if (IOSendJob::Success != m_pIoClient->waitForSend(j, m_nTimeout))
+		{
+			WRITE_TRACE(DBG_FATAL, "Package sending failure");
+			return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
+		}
+		j = m_pIoClient->sendPackage(pPackage);
+	}
+	bool x = m_sent.isEmpty();
+	m_sent.push_back(j);
+	while (!x && !m_sent.empty())
+	{
+		switch (m_pIoClient->getSendResult(m_sent.front()))
+		{
+		case IOSendJob::Success:
+			m_sent.pop_front();
+			break;
+		case IOSendJob::SendPended:
+			return PRL_ERR_SUCCESS;
+		default:
+			WRITE_TRACE(DBG_FATAL, "Package sending failure");
+			return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
+		}
 	}
 	return PRL_ERR_SUCCESS;
 }
