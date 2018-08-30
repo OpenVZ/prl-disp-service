@@ -54,40 +54,12 @@
 #define PRL_CT_MIGRATE_TMPLDATA_FD	3
 #define PRL_CT_MIGRATE_SWAP_FD		4
 
+struct Task_HandleDispPackage;
 /*
   Separate thread for handle of incoming dispatcher-dispatcher packages:
   - wait packages as reply on m_hJob,
   - send buffer to target socket
 */
-class Task_HandleDispPackage : public QThread
-{
-	Q_OBJECT
-
-public:
-	Task_HandleDispPackage(
-		IOSendJobInterface *pSendJobInterface,
-		IOSendJob::Handle &hJob,
-		QVector<int> &nFd);
-	~Task_HandleDispPackage() {}
-	void run();
-	/* wake up response waitings for task termination */
-	inline IOSendJob::Result urgentResponseWakeUp()
-	{
-		return m_pSendJobInterface->urgentResponseWakeUp(m_hJob);
-	}
-
-private:
-	PRL_RESULT writeToVzMigrate(quint16 nFdNum, char *data, quint32 size);
-
-private:
-	IOSendJobInterface *m_pSendJobInterface;
-	IOSendJob::Handle m_hJob;
-	QVector<int> &m_nFd;
-	QVector<bool> m_bActiveFd;
-signals:
-	void onDispPackageHandlerFailed(PRL_RESULT nRetCode, const QString &sErrInfo);
-};
-
 class Task_VzMigrate : public CDspTaskHelper, public Task_DispToDispConnHelper
 {
 	Q_OBJECT

@@ -317,6 +317,7 @@ contains(DEFINES, _CT_) {
 	linux-* {
 		HEADERS += \
 			Tasks/Task_VzMigrate.h \
+			Tasks/Task_VzMigrate_p.h \
 			Tasks/Task_MigrateCtSource.h \
 			Tasks/Task_MigrateCtTarget.h \
 			Tasks/Task_CopyCtTemplate.h \

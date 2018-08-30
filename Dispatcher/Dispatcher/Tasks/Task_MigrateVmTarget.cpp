@@ -79,6 +79,111 @@ namespace Vm
 {
 namespace Pump
 {
+namespace Fragment
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Format
+
+Format::~Format()
+{
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Flavor<CtMigrateCmd>
+
+const char* Flavor<CtMigrateCmd>::getData(const bin_type& bin_) const
+{
+	if (bin_.isValid() && bin_->header.buffersNumber > 1)
+		return bin_->buffers[1].getImpl();
+
+	return NULL;
+}
+
+qint64 Flavor<CtMigrateCmd>::getDataSize(const bin_type& bin_) const
+{
+	if (bin_.isValid() && bin_->header.buffersNumber > 1)
+		return IODATAMEMBERCONST(bin_.getImpl())[1].bufferSize;
+
+	return -1;
+}
+
+spice_type Flavor<CtMigrateCmd>::getSpice(const bin_type& bin_) const
+{
+	quint32 z = 0;
+	SmartPtr<char> b;
+	IOPackage::EncodingType t;
+	if (!bin_.isValid() || !bin_->getBuffer(0, t, b, z))
+		return boost::none;
+
+	if (sizeof(short) != z)
+		return boost::none;
+
+	return QString().setNum(*(short* )b.getImpl());
+}
+
+bin_type Flavor<CtMigrateCmd>::
+	assemble(const spice_type& spice_, const char* data_, qint64 size_) const
+{
+	bin_type output;
+	if (!spice_)
+		return output;
+
+	bool k = false;
+	short t = spice_->toShort(&k);
+	if (!k) 
+		return output;
+
+	output = IOPackage::createInstance(CtMigrateCmd, 2);
+	if (!output.isValid())
+		return output;
+
+	output->fillBuffer(0, IOPackage::RawEncoding, &t, sizeof(t));
+	output->fillBuffer(1, IOPackage::RawEncoding, data_, size_);
+
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Packer
+
+SmartPtr<IOPackage> Packer::operator()()
+{
+	return getFormat().assemble(m_spice, NULL, 0);
+}
+
+SmartPtr<IOPackage> Packer::operator()(QIODevice& source_)
+{
+	SmartPtr<IOPackage> output;
+	QByteArray b(source_.bytesAvailable(), 0);
+	qint64 z = source_.read(b.data(), b.size());
+	if (-1 == z)
+	{
+		WRITE_TRACE(DBG_FATAL, "read error: %s",
+			qPrintable(source_.errorString()));
+	}
+	else
+		output = getFormat().assemble(m_spice, b.data(), z);
+
+	return output;
+}
+
+SmartPtr<IOPackage> Packer::operator()(const QTcpSocket& source_)
+{
+	SmartPtr<IOPackage> output;
+	boost::optional<QString> b = QString::number(source_.peerPort());
+	std::swap(m_spice, b);
+	QVariant v = source_.property("channel");
+	if (v.isValid())
+	{
+		quint32 p = v.toUInt();
+		output = getFormat().assemble(m_spice, reinterpret_cast<char*>(&p), sizeof(p));
+	}
+	std::swap(m_spice, b);
+	return output;
+}
+
+} // namespace Fragment
+
 namespace Pull
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -86,12 +191,11 @@ namespace Pull
 
 qint64 WateringPot::getVolume() const
 {
-	if (!m_load.isValid())
-		return 0;
-	if (0 == m_load->header.buffersNumber)
-		return 0;
+	qint64 output = m_format->getDataSize(m_load);
+	if (-1 == output)
+		output = 0;
 
-	return IODATAMEMBERCONST(m_load.getImpl())[0].bufferSize;
+	return output;
 }
 
 Prl::Expected<qint64, Flop::Event> WateringPot::operator()()
@@ -100,7 +204,7 @@ Prl::Expected<qint64, Flop::Event> WateringPot::operator()()
 		return Flop::Event(PRL_ERR_NO_DATA);
 
 	const qint64 output = m_device->write(
-			m_load->buffers[0].getImpl() + m_done,
+			m_format->getData(m_load) + m_done,
 			getLevel());
 
 	if (output == -1)
@@ -148,7 +252,8 @@ target_type Queue::dequeue()
 	if (isEof())
 		return state_type(Success());
 
-	return state_type(Pouring(Vm::Pump::Queue::dequeue(), *m_device));
+	return state_type(Pouring(WateringPot
+		(*m_format, Vm::Pump::Queue::dequeue(), *m_device)));
 }
 
 namespace Visitor
@@ -200,73 +305,6 @@ target_type Dispatch::operator()
 
 namespace Push
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Packer
-
-SmartPtr<IOPackage> Packer::operator()()
-{
-	SmartPtr<IOPackage> output = IOPackage::createInstance(m_name, 1 + !!m_spice);
-	if (!output.isValid())
-		return output;
-
-	output->fillBuffer(0, IOPackage::RawEncoding, NULL, 0);
-	if (m_spice)
-	{
-		QByteArray b = m_spice.get().toUtf8();
-		output->fillBuffer(1, IOPackage::RawEncoding, b.data(), b.size());
-	}
-	return output;
-}
-
-SmartPtr<IOPackage> Packer::operator()(QIODevice& source_)
-{
-	SmartPtr<IOPackage> output = (*this)();
-	if (!output.isValid())
-		return output;
-
-	QByteArray b(source_.bytesAvailable(), 0);
-	qint64 z = source_.read(b.data(), b.size());
-	if (-1 == z)
-	{
-		output.reset();
-		WRITE_TRACE(DBG_FATAL, "read error: %s",
-			qPrintable(source_.errorString()));
-	}
-	else
-		output->fillBuffer(0, IOPackage::RawEncoding, b.data(), z);
-
-	return output;
-}
-
-SmartPtr<IOPackage> Packer::operator()(const QTcpSocket& source_)
-{
-	boost::optional<QString> b = QString::number(source_.peerPort());
-	std::swap(m_spice, b);
-	SmartPtr<IOPackage> output = (*this)();
-	std::swap(m_spice, b);
-	if (output.isValid())
-	{
-		QVariant v = source_.property("channel");
-		if (!v.isValid())
-			return SmartPtr<IOPackage>();
-
-		quint32 p = v.toUInt();
-		output->fillBuffer(0, IOPackage::RawEncoding, &p, sizeof(p));
-	}
-	return output;
-}
-
-boost::optional<QString> Packer::getSpice(const IOPackage& package_)
-{
-	quint32 z = 0;
-	SmartPtr<char> b;
-	IOPackage::EncodingType t;
-	if (!package_.getBuffer(1, t, b, z))
-		return boost::none;
-
-	return QString::fromAscii(b.getImpl(), z);
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Queue
 

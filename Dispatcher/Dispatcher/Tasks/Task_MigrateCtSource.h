@@ -100,6 +100,7 @@ private:
 	IOSendJob::Handle m_hStartReqJob;
 
 	bool m_bExVmOperationRegistered;
+	QList<IOSendJob::Handle> m_sent;
 };
 
 #endif //__Task_MigrateCtSource_H_

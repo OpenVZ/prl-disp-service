@@ -88,6 +88,7 @@ struct IO: QObject
 signals:
 	void onReceived(const SmartPtr<IOPackage>& package_);
 	void onSent(const SmartPtr<IOPackage>& package_);
+	void disconnected();
 
 private:
 	Q_OBJECT
@@ -251,9 +252,6 @@ public:
 
 	IOSendJob::Handle sendPackage(const SmartPtr<IOPackage>& package_);
 
-signals:
-	void disconnected();
-
 private slots:
 	void reactReceived(const SmartPtr<IOPackage>& package);
 
@@ -363,9 +361,6 @@ struct IO: Vm::Pump::IO
 	~IO();
 
 	IOSendJob::Handle sendPackage(const SmartPtr<IOPackage>& package_);
-
-signals:
-	void disconnected();
 
 private slots:
 	void reactReceived(IOSender::Handle handle_, const SmartPtr<IOPackage>& package_);

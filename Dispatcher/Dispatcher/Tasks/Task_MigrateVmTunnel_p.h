@@ -141,11 +141,11 @@ struct Traits: T
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hub
 
-template<class T>
-struct Hub: Vm::Tunnel::Hub::Unit<Hub<T>, Traits<T> >
+template<class T, class U = Traits<T> >
+struct Hub: Vm::Tunnel::Hub::Unit<Hub<T, U>, U>
 {
-	typedef Vm::Tunnel::Hub::Unit<Hub, Traits<T> > def_type;
-	typedef typename Traits<T>::spawnEvent_type spawnEvent_type;
+	typedef Vm::Tunnel::Hub::Unit<Hub, U> def_type;
+	typedef typename U::spawnEvent_type spawnEvent_type;
 
 	struct Action
 	{
@@ -432,7 +432,9 @@ struct Channel: Shortcut<Channel<T>, T>::type
 		SmartPtr<char> b;
 		IOPackage::EncodingType t;
 		event_.getPackage()->getBuffer(0, t, b, z);
-		boost::optional<QString> s = Vm::Pump::Push::Packer::getSpice(*event_.getPackage());
+		Vm::Pump::Fragment::spice_type s =
+			Vm::Pump::Fragment::Flavor<launch_type::s_command>()
+				.getSpice(event_.getPackage());
 		if (s)
 			this->getConnector()->setObjectName(s.get());
 
@@ -507,8 +509,9 @@ struct Hub: Vm::Tunnel::Hub::Unit<Hub<T>, Traits<T> >
 		template<class M>
 		void operator()(spawnEvent_type const& event_, M& fsm_, Hub& state_, Hub&)
 		{
-			boost::optional<QString> s =
-				Vm::Pump::Push::Packer::getSpice(*event_.getPackage());
+			Vm::Pump::Fragment::spice_type s =
+				Vm::Pump::Fragment::Flavor<spawnEvent_type::s_command>()
+					.getSpice(event_.getPackage());
 			if (!state_.start(boost::phoenix::ref(*state_.m_service), s))
 				return (void)fsm_.process_event(Flop::Event(PRL_ERR_INVALID_ARG));
 
