@@ -892,6 +892,11 @@ IOSendJob::Handle IO::sendPackage(const SmartPtr<IOPackage> &package)
 	return m_io->sendPackage(package);
 }
 
+IOSendJob::Result IO::getSendResult(const IOSendJob::Handle& job_)
+{
+	return m_io->getSendResult(job_);
+}
+
 void IO::reactReceived(const SmartPtr<IOPackage>& package)
 {
 	emit onReceived(package);
