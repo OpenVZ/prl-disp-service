@@ -84,6 +84,7 @@ namespace Pump
 struct IO: QObject
 {
 	virtual IOSendJob::Handle sendPackage(const SmartPtr<IOPackage>&) = 0;
+	virtual IOSendJob::Result getSendResult(const IOSendJob::Handle& job_) = 0;
 
 signals:
 	void onReceived(const SmartPtr<IOPackage>& package_);
@@ -251,6 +252,7 @@ public:
 	~IO();
 
 	IOSendJob::Handle sendPackage(const SmartPtr<IOPackage>& package_);
+	IOSendJob::Result getSendResult(const IOSendJob::Handle& job_);
 
 private slots:
 	void reactReceived(const SmartPtr<IOPackage>& package);
@@ -361,6 +363,7 @@ struct IO: Vm::Pump::IO
 	~IO();
 
 	IOSendJob::Handle sendPackage(const SmartPtr<IOPackage>& package_);
+	IOSendJob::Result getSendResult(const IOSendJob::Handle& job_);
 
 private slots:
 	void reactReceived(IOSender::Handle handle_, const SmartPtr<IOPackage>& package_);

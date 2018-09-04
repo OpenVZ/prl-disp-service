@@ -146,14 +146,22 @@ bin_type Flavor<CtMigrateCmd>::
 ///////////////////////////////////////////////////////////////////////////////
 // struct Packer
 
-SmartPtr<IOPackage> Packer::operator()()
+bin_type Packer::operator()()
 {
 	return getFormat().assemble(m_spice, NULL, 0);
 }
 
-SmartPtr<IOPackage> Packer::operator()(QIODevice& source_)
+bin_type Packer::operator()(const QByteArray& data_)
 {
-	SmartPtr<IOPackage> output;
+	if (data_.isEmpty())
+		return bin_type();
+
+	return getFormat().assemble(m_spice, data_.data(), data_.size());
+}
+
+bin_type Packer::operator()(QIODevice& source_)
+{
+	bin_type output;
 	QByteArray b(source_.bytesAvailable(), 0);
 	qint64 z = source_.read(b.data(), b.size());
 	if (-1 == z)
@@ -162,14 +170,14 @@ SmartPtr<IOPackage> Packer::operator()(QIODevice& source_)
 			qPrintable(source_.errorString()));
 	}
 	else
-		output = getFormat().assemble(m_spice, b.data(), z);
+		output = (*this)(b);
 
 	return output;
 }
 
-SmartPtr<IOPackage> Packer::operator()(const QTcpSocket& source_)
+bin_type Packer::operator()(const QTcpSocket& source_)
 {
-	SmartPtr<IOPackage> output;
+	bin_type output;
 	boost::optional<QString> b = QString::number(source_.peerPort());
 	std::swap(m_spice, b);
 	QVariant v = source_.property("channel");
@@ -220,16 +228,34 @@ Prl::Expected<qint64, Flop::Event> WateringPot::operator()()
 ///////////////////////////////////////////////////////////////////////////////
 // struct Pouring
 
+qint64 Pouring::getRemaining() const
+{
+	qint64 l = 0;
+	foreach (const WateringPot& p, m_pots)
+	{
+		l += p.getLevel();
+	}
+	return l + m_portion;
+}
+
 Pouring::status_type Pouring::operator()()
 {
 	if (0 < m_portion)
 		return status_type();
 
-	Prl::Expected<qint64, Flop::Event> x = m_pot();
-	if (x.isFailed())
-		return x.error();
+	while (!m_pots.isEmpty())
+	{
+		Prl::Expected<qint64, Flop::Event> x = m_pots.front()();
+		if (x.isFailed())
+			return x.error();
 
-	m_portion = x.value();
+		m_portion += x.value();
+		if (0 < m_pots.front().getLevel())
+			break;
+
+		m_pots.pop_front();
+	}
+
 	return status_type();
 }
 
@@ -252,8 +278,12 @@ target_type Queue::dequeue()
 	if (isEof())
 		return state_type(Success());
 
-	return state_type(Pouring(WateringPot
-		(*m_format, Vm::Pump::Queue::dequeue(), *m_device)));
+	QList<WateringPot> p;
+	while (!isEmpty() && !isEof())
+	{
+		p << WateringPot(*m_format, Vm::Pump::Queue::dequeue(), *m_device);
+	}
+	return state_type(Pouring(p));
 }
 
 namespace Visitor
@@ -308,37 +338,112 @@ namespace Push
 ///////////////////////////////////////////////////////////////////////////////
 // struct Queue
 
-Prl::Expected<void, Flop::Event> Queue::enqueueEof()
+Queue::Queue(const Fragment::Packer& packer_, IO& service_, QIODevice& device_):
+	m_service(&service_), m_device(&device_), m_packer(packer_)
 {
+	m_collector.reserve(1<<22);
+	setFormat(m_packer.getFormat());
+}
+
+Queue::enqueue_type Queue::enqueueEof()
+{
+	if (!m_collector.isEmpty())
+	{
+		enqueue_type x = enqueue();
+		if (x.isFailed())
+			return x;
+	}
 	return enqueue(m_packer());
 }
 
-Prl::Expected<void, Flop::Event> Queue::enqueueData()
+Queue::enqueue_type Queue::enqueueData()
 {
-	return enqueue(m_packer(*m_device));
+	Fragment::bin_type b = m_packer(*m_device);
+	if (!b.isValid())
+		return Flop::Event(PRL_ERR_FAILURE);
+
+	const Fragment::Format& f = m_packer.getFormat();
+	int a = m_collector.capacity() - m_collector.size();
+	int d = f.getDataSize(b);
+	int z = qMin(a, d);
+	QBuffer u;
+	u.setBuffer(&m_collector);
+	if (!u.open(QIODevice::ReadWrite | QIODevice::Append))
+	{
+		WRITE_TRACE(DBG_FATAL, "cannot open QBuffer");
+		return Flop::Event(PRL_ERR_UNEXPECTED);
+	}
+	u.write(f.getData(b), z);
+	u.close();
+	if (a != z)
+		return enqueue_type();
+
+	enqueue_type x = enqueue();
+	if (x.isFailed())
+		return x;
+	
+	d = d - z;
+	if (0 == d)
+		return enqueue_type();
+
+	u.setBuffer(&m_collector);
+	if (!u.open(QIODevice::ReadWrite | QIODevice::Append))
+	{
+		WRITE_TRACE(DBG_FATAL, "cannot open QBuffer");
+		return Flop::Event(PRL_ERR_UNEXPECTED);
+	}
+	u.write(f.getData(b) + z, d);
+
+	return enqueue_type();
 }
 
 target_type Queue::dequeue()
 {
-	if (isEmpty())
+	while (!isEmpty())
+	{
+		IOSendJob::Handle j = m_service->sendPackage(head());
+		if (!j.isValid())
+			return Flop::Event(PRL_ERR_FAILURE);
+
+		if (IOSendJob::SendQueueIsFull == m_service->getSendResult(j))
+			return state_type(Sending());
+
+		bool x = isEof();
+		(void)Vm::Pump::Queue::dequeue();
+		if (x)
+			return state_type(Closing());
+	}
+	if (m_collector.isEmpty())
 		return state_type(Reading());
 
-	bool x = isEof();
-	IOSendJob::Handle j = m_service->sendPackage(Vm::Pump::Queue::dequeue());
-	if (!j.isValid())
-		return Flop::Event(PRL_ERR_FAILURE);
-	if (x)
-		return state_type(Closing());
+	enqueue_type x = enqueue();
+	if (x.isFailed())
+		return x.error();
 
-	return state_type(Sending());
+	target_type output = dequeue();
+	if (output.isSucceed() && !isEmpty())
+	{
+		m_collector.data_ptr()->size = m_packer.getFormat()
+			.getDataSize(Vm::Pump::Queue::dequeue());
+	}
+	return output;
 }
 
-Prl::Expected<void, Flop::Event> Queue::enqueue(const SmartPtr<IOPackage>& package_)
+Queue::enqueue_type Queue::enqueue()
+{
+	enqueue_type output = enqueue(m_packer(m_collector));
+	if (output.isSucceed())
+		m_collector.data_ptr()->size = 0;
+	
+	return output;
+}
+
+Queue::enqueue_type Queue::enqueue(const_reference package_)
 {
 	if (package_.isValid())
 	{
 		Vm::Pump::Queue::enqueue(package_);
-		return Prl::Expected<void, Flop::Event>();
+		return enqueue_type();
 	}
 	return Flop::Event(PRL_ERR_FAILURE);
 }
@@ -387,8 +492,10 @@ target_type Sent::operator()
 target_type Sent::operator()
 	(const boost::mpl::at_c<state_type::types, 2>::type& value_) const
 {
+	if (m_callback.empty())
+		return state_type(value_);
+
 	m_callback();
-	Q_UNUSED(value_);
 	return state_type(Success());
 }
 
@@ -802,6 +909,11 @@ IO::~IO()
 IOSendJob::Handle IO::sendPackage(const SmartPtr<IOPackage>& package_)
 {
 	return m_io->sendPackage(package_);
+}
+
+IOSendJob::Result IO::getSendResult(const IOSendJob::Handle& job_)
+{
+	return CDspService::instance()->getIOServer().getSendResult(job_);
 }
 
 void IO::reactReceived(IOSender::Handle handle_, const SmartPtr<IOPackage>& package_)

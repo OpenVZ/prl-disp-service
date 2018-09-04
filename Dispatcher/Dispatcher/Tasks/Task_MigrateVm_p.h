@@ -730,9 +730,10 @@ struct Packer
 	{
 		return *m_format;
 	}
-	SmartPtr<IOPackage> operator()();
-	SmartPtr<IOPackage> operator()(QIODevice& source_);
-	SmartPtr<IOPackage> operator()(const QTcpSocket& source_);
+	bin_type operator()();
+	bin_type operator()(QIODevice& source_);
+	bin_type operator()(const QByteArray& data_);
+	bin_type operator()(const QTcpSocket& source_);
 
 private:
 	spice_type m_spice;
@@ -791,22 +792,22 @@ typedef Prl::Expected<state_type, Flop::Event> target_type;
 
 struct Queue: private Vm::Pump::Queue
 {
-	Queue(const Fragment::Packer& packer_, IO& service_, QIODevice& device_):
-		m_service(&service_), m_device(&device_), m_packer(packer_)
-	{
-		setFormat(m_packer.getFormat());
-	}
+	typedef Prl::Expected<void, Flop::Event> enqueue_type;
+
+	Queue(const Fragment::Packer& packer_, IO& service_, QIODevice& device_);
 
 	target_type dequeue();
-	Prl::Expected<void, Flop::Event> enqueueEof();
-	Prl::Expected<void, Flop::Event> enqueueData();
+	enqueue_type enqueueEof();
+	enqueue_type enqueueData();
 	using Vm::Pump::Queue::size;
 
 private:
-	Prl::Expected<void, Flop::Event> enqueue(const SmartPtr<IOPackage>& package_);
+	enqueue_type enqueue();
+	enqueue_type enqueue(const_reference package_);
 
 	IO* m_service;
 	QIODevice* m_device;
+	QByteArray m_collector;
 	Fragment::Packer m_packer;
 };
 
@@ -909,16 +910,21 @@ struct Connector: Vm::Connector::Base<T>, Slot
 		if (!(package_.isValid() && package_->header.type == X))
 			return;
 
+		Fragment::Flavor<X> f;
 		if (!this->objectName().isEmpty())
 		{
-			Fragment::spice_type s = Fragment::Flavor<X>()
-				.getSpice(package_);
+			Fragment::spice_type s = f.getSpice(package_);
 			if (!(s && this->objectName() == s.get()))
 				return;
 		}
-		this->setState(boost::apply_visitor(Visitor::Sent(*m_queue,
-			boost::bind(&Connector::template handle<Quit<X> >, this,
-				Quit<X>(this->objectName()))), m_state));
+		Visitor::Sent::callback_type b;
+		if (0 == f.getDataSize(package_))
+		{
+			b = boost::bind(&Connector::template handle<Quit<X> >,
+				this, Quit<X>(this->objectName()));
+		}
+		this->setState(boost::apply_visitor(Visitor::Sent(*m_queue, b),
+				m_state));
 	}
 
 	void readyRead()
@@ -1064,21 +1070,18 @@ struct Pouring
 {
 	typedef Prl::Expected<void, Flop::Event> status_type;
 
-	explicit Pouring(const WateringPot& pot_):
-		m_portion(), m_pot(pot_)
+	explicit Pouring(const QList<WateringPot>& pots_):
+		m_portion(), m_pots(pots_)
 	{
 	}
 
-	qint64 getRemaining() const
-	{
-		return m_pot.getLevel() + m_portion;
-	}
+	qint64 getRemaining() const;
 	status_type operator()();
 	status_type account(qint64 value_);
 
 private:
 	qint64 m_portion;
-	WateringPot m_pot;
+	QList<WateringPot> m_pots;
 };
 
 typedef boost::phoenix::expression::value<Pouring>::type writing_type;
