@@ -156,7 +156,7 @@ void Watcher::adopt(PRL_VM_TOOLS_STATE state_, const QString& version_)
 void Watcher::respin()
 {
 	if (thread() == QThread::currentThread())
-		startTimer(20000);
+		startTimer(60000);
 	else
 		WRITE_TRACE(DBG_FATAL, "Bad thread for the call");
 }
