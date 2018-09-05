@@ -4,6 +4,7 @@
     copytruncate
     notifempty
     missingok
+    compress
 }
 
 /var/log/vz_systemd.log {
@@ -12,6 +13,7 @@
     copytruncate
     notifempty
     missingok
+    compress
 }
 
 /var/log/libvirt/libvirt.log {
@@ -20,4 +22,5 @@
     copytruncate
     notifempty
     missingok
+    compress
 }
