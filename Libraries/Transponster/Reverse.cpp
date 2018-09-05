@@ -86,11 +86,6 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu& dst_)
 	Vm::Reverse::CpuFeaturesMask mask(*m_config);
 	mask.getFeatures(vt_, dst_);
 
-	Libvirt::Domain::Xml::Model z;
-	if (dst_.getModel())
-		z = *dst_.getModel();
-	z.setOwnValue(vt_.getCpuModel());
-	dst_.setModel(z);
 	if (!u->isEnableHotplug())
 	{
 		Libvirt::Domain::Xml::Topology t;
