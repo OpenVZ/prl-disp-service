@@ -121,18 +121,39 @@ QString Task_DiskImageResizer::getVmUuid()
 	return m_pVmConfig ? m_pVmConfig->getVmIdentification()->getVmUuid() : QString();
 }
 
-QString Task_DiskImageResizer::ConvertToFullPath(const QString &sPath)
+PRL_RESULT Task_DiskImageResizer::seed(CProtoVmResizeDiskImageCommand& source_)
 {
-        if (!QFileInfo(sPath).isAbsolute())
-        {
-                QString sVmHomeDirPath = QFileInfo(m_pVmConfig->getVmIdentification()->getHomePath()).absolutePath();
-                if (!QFileInfo(sVmHomeDirPath).isDir())
-                        sVmHomeDirPath = QFileInfo(sVmHomeDirPath).absolutePath();
-                QFileInfo _fi(sVmHomeDirPath + '/' + sPath);
-                return (_fi.absoluteFilePath());
-        }
+	m_disk = NULL;
+	PRL_RESULT c = PRL_ERR_SUCCESS;
+	m_pVmConfig = CDspService::instance()->getVmDirHelper().getVmConfigByUuid(
+						getClient(), source_.GetVmUuid(), c);
+	if (!m_pVmConfig.isValid())
+	{
+		if (PRL_SUCCEEDED(c))
+			c = PRL_ERR_FAILURE;
 
-        return (sPath);
+		WRITE_TRACE(DBG_FATAL, "Cannot read the VM config");
+		return c;
+	}
+	CVmHardware* h = m_pVmConfig->getVmHardwareList();
+	CVmIdentification* i = m_pVmConfig->getVmIdentification();
+	if (NULL == h || i == NULL)
+		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
+
+	const QList<CVmHardDisk* >& a = h->m_lstHardDisks;
+	QList<CVmHardDisk* >::const_iterator e = a.end();
+	QList<CVmHardDisk* >::const_iterator p = std::find_if(a.begin(), e,
+			boost::bind(&CVmHardDisk::getSystemName, _1) == source_.GetDiskImage() &&
+			boost::bind(&CVmHardDisk::getEmulatedType, _1) == PVE::HardDiskImage);
+	if (e == p)
+		return PRL_ERR_FILE_NOT_FOUND;
+
+	h->RevertDevicesPathToAbsolute(QFileInfo(i->getHomePath()).absolutePath());
+	m_disk = *p;
+	m_Flags = source_.GetFlags();
+	m_NewSize = source_.GetSize();
+
+	return PRL_ERR_SUCCESS;
 }
 
 PRL_RESULT Task_DiskImageResizer::prepareTask()
@@ -152,21 +173,10 @@ PRL_RESULT Task_DiskImageResizer::prepareTask()
 
 		CProtoVmResizeDiskImageCommand *pVmCmd =
 			CProtoSerializer::CastToProtoCommand<CProtoVmResizeDiskImageCommand>(cmd);
-		m_DiskImage = ConvertToFullPath(pVmCmd->GetDiskImage());
-		m_NewSize = pVmCmd->GetSize();
-		m_Flags = pVmCmd->GetFlags();
-
-		m_pVmConfig = CDspService::instance()->getVmDirHelper().getVmConfigByUuid(
-								getClient(), pVmCmd->GetVmUuid(), ret);
-		if (!m_pVmConfig)
-		{
-			PRL_ASSERT(PRL_FAILED(ret));
-			if (!PRL_FAILED(ret))
-				ret = PRL_ERR_FAILURE;
-
-			WRITE_TRACE(DBG_FATAL, "Couldn't to extract VM config for ");
+		ret = seed(*pVmCmd);
+		if (PRL_FAILED(ret))
 			throw ret;
-		}
+
 		ret = CDspService::instance()->getAccessManager().checkAccess(getClient(),
 										PVE::DspCmdVmResizeDisk,
 										getVmUuid(),
@@ -234,11 +244,12 @@ void Task_DiskImageResizer::finalizeTask()
 	*/
 	if (PRL_FAILED(ret))
 	{
-		WRITE_TRACE(DBG_FATAL, "Error occurred on DiskResizer diskimage='%s' size=%d [%#x][%s]",
-			QSTR2UTF8(m_DiskImage), m_NewSize,
-			ret, PRL_RESULT_TO_STRING( ret ) );
-
-
+		if (NULL != m_disk)
+		{
+			WRITE_TRACE(DBG_FATAL, "Error occurred on DiskResizer diskimage='%s' size=%d [%#x][%s]",
+				QSTR2UTF8(m_disk->getSystemName()), m_NewSize,
+				ret, PRL_RESULT_TO_STRING( ret ) );
+		}
 		if (!(m_OpFlags & TASK_SKIP_SEND_RESPONSE))
 			getClient()->sendResponseError( getLastError(), getRequestPackage() );
 	}
@@ -257,49 +268,65 @@ void Task_DiskImageResizer::finalizeTask()
 		if (!(m_OpFlags & TASK_SKIP_SEND_RESPONSE))
 			getClient()->sendResponse(pCmd, getRequestPackage());
 	}
+	m_disk = NULL;
 }
 
 PRL_RESULT Task_DiskImageResizer::run_body()
 {
 	PRL_RESULT ret = PRL_ERR_SUCCESS;
-
-	bool flgImpersonated = false;
-	try
+	CVmIdent i(getVmUuid(), getClient()->getVmDirectoryUuid());
+	CAuthHelperImpersonateWrapperPtr g(CAuthHelperImpersonateWrapper
+		::create(&getClient()->getAuthHelper()));
+	if (g->wasImpersonated())
 	{
-		// Let current thread impersonate the security context of a logged-on user
-		if (!getClient()->getAuthHelper().Impersonate())
+		switch (CDspVm::getVmState(i))
 		{
-			getLastError()->setEventCode(PRL_ERR_IMPERSONATE_FAILED);
-			throw PRL_ERR_IMPERSONATE_FAILED;
-		}
-		flgImpersonated = true;
-		ret = run_disk_tool();
-	}
-	catch (PRL_RESULT code)
-	{
-		ret = code;
-		WRITE_TRACE(DBG_FATAL, "Error while resizing the hdd image [%#x][%s]",
-				code, PRL_RESULT_TO_STRING( code ) );
-	}
+		case VMS_PAUSED:
+		case VMS_RUNNING:
+		{
+			Libvirt::Result e;
+			if (0 < (m_Flags & (PRIF_DISK_INFO | PRIF_RESIZE_LAST_PARTITION)))
+			{
+				e = ::Error::Simple(PRL_ERR_VM_REQUEST_NOT_SUPPORTED,
+					"The only supported operation for an online VM is image resize.");
+			}
+			else if (PVE::DeviceEnabled == m_disk->getEnabled() &&
+				m_disk->getConnected() == PVE::DeviceConnected)
+			{
+				e = Libvirt::Kit.vms().at(i.first)
+					.getRuntime().setImageSize(*m_disk, m_NewSize << 20);
+			}
+			else
+				ret = PRL_ERR_INVALID_HANDLE;
 
-	// Terminates the impersonation of a user, return to Dispatcher access rights
-	if (flgImpersonated && !getActualClient()->getAuthHelper().RevertToSelf())
+			if (e.isFailed())
+				ret = CDspTaskFailure(*this)(e.error().convertToEvent());
+			break;
+		}
+		default:
+			ret = run_disk_tool();
+		}
+		g.reset();
+	}
+	else
+		ret = PRL_ERR_IMPERSONATE_FAILED;
+
+	if (PRL_FAILED(ret))
 	{
-		WRITE_TRACE(DBG_FATAL, "RevertToSelf failed: %s",
-			PRL_RESULT_TO_STRING(PRL_ERR_REVERT_IMPERSONATE_FAILED));
+		WRITE_TRACE(DBG_FATAL, "Error while resizing the hdd image [%#x][%s]",
+				ret, PRL_RESULT_TO_STRING(ret));
 	}
 	PRL_RESULT e = CDspService::instance()->getAccessManager()
 			.setOwnerAndAccessRightsToPathAccordingVmRights(
-				m_DiskImage,
+				m_disk->getSystemName(),
 				getClient(),
 				CDspService::instance()->getVmDirHelper().getVmDirectoryItemByUuid(
-					getClient()->getVmDirectoryUuid(),
-					m_pVmConfig->getVmIdentification()->getVmUuid()).getPtr(),
+					i.second, i.first).getPtr(),
 				true);
 	if(PRL_FAILED(e))
 	{
 		WRITE_TRACE(DBG_FATAL, "Can't change owner of the disk image [%s] (0x%x)",
-			QSTR2UTF8(m_DiskImage), e);
+			QSTR2UTF8(m_disk->getSystemName()), e);
 	}
 	setLastErrorCode(ret);
 
@@ -308,7 +335,7 @@ PRL_RESULT Task_DiskImageResizer::run_body()
 
 PRL_RESULT Task_DiskImageResizer::IsHasRightsForResize( CVmEvent& evtOutError )
 {
-	if (!CFileHelper::FileCanWrite(m_DiskImage, &getClient()->getAuthHelper()))
+	if (!CFileHelper::FileCanWrite(m_disk->getSystemName(), &getClient()->getAuthHelper()))
 	{
 		evtOutError.setEventCode( PRL_ERR_ACCESS_TO_VM_HDD_DENIED );
 		evtOutError.addEventParameter(
@@ -316,7 +343,7 @@ PRL_RESULT Task_DiskImageResizer::IsHasRightsForResize( CVmEvent& evtOutError )
 			m_pVmConfig->getVmIdentification()->getVmName(), EVT_PARAM_MESSAGE_PARAM_0));
 		evtOutError.addEventParameter(
 			new CVmEventParameter( PVE::String,
-			m_DiskImage, EVT_PARAM_MESSAGE_PARAM_1));
+			m_disk->getSystemName(), EVT_PARAM_MESSAGE_PARAM_1));
 		return evtOutError.getEventCode();
 	}
 
@@ -341,7 +368,7 @@ PRL_RESULT Task_DiskImageResizer::run_disk_tool()
 
 	lstArgs += "resize";
 	lstArgs += QString("--hdd");
-	lstArgs += m_DiskImage;
+	lstArgs += m_disk->getSystemName();
 	if (infoMode) {
 		lstArgs += "--info";
 	}
@@ -371,7 +398,7 @@ PRL_RESULT Task_DiskImageResizer::run_disk_tool()
 	}
 	/* remove from cache */
 	if (!infoMode)
-		CDspService::instance()->getVmConfigManager().getHardDiskConfigCache().remove( m_DiskImage );
+		CDspService::instance()->getVmConfigManager().getHardDiskConfigCache().remove(m_disk->getSystemName());
 
 	if (infoMode) {
 		ret = Info(resizer_proc)(m_info);

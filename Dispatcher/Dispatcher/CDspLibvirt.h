@@ -250,6 +250,7 @@ struct Unit
 	Result copy(const CVmHardDisk& target_) const;
 	Result commit() const;
 	Result rebase(const QString& base_) const;
+	Result resize(quint64 bytes_) const;
 
 	Result abort() const;
 	Result finish() const;
@@ -673,6 +674,7 @@ struct Editor: private Limb::Abstract
 
 	Result setPerCpuLimit(quint32 limit_, quint32 period_);
 	Result setGlobalCpuLimit(quint32 limit_, quint32 period_);
+	Result setImageSize(const CVmHardDisk& disk_, quint64 bytes_);
 	Result setIoLimit(const CVmHardDisk& disk_, quint32 limit_);
 	Result setIopsLimit(const CVmHardDisk& disk_, quint32 limit_);
 	Result setIoPriority(quint32 ioprio_);
