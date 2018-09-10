@@ -1974,6 +1974,11 @@ template Result Editor::update<CVmOpticalDisk>(const CVmOpticalDisk& device_);
 template Result Editor::update<CVmGenericNetworkAdapter>
 	(const CVmGenericNetworkAdapter& device_);
 
+Result Editor::setImageSize(const CVmHardDisk& disk_, quint64 bytes_)
+{
+	return Block::Unit(getDomain(), disk_.getSystemName()).resize(bytes_);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Grub
 
@@ -2368,6 +2373,20 @@ Result Unit::rebase(const QString& base_) const
 		return Failure(PRL_ERR_FAILURE);
 	}
 
+	return Result();
+}
+
+Result Unit::resize(quint64 bytes_) const
+{
+	const quint32 flags = VIR_DOMAIN_BLOCK_RESIZE_BYTES;
+
+	WRITE_TRACE(DBG_DEBUG, "resize disk %s to %llu", qPrintable(m_disk), bytes_);
+	if (0 != virDomainBlockResize(m_domain.data(), m_disk.toUtf8().data(), bytes_, flags))
+	{
+		WRITE_TRACE(DBG_FATAL, "failed to change size of the disk %s to %llu",
+			qPrintable(m_disk), bytes_);
+		return Failure(PRL_ERR_FAILURE);
+	}
 	return Result();
 }
 

@@ -451,6 +451,8 @@ boost::logic::tribool Newcomer::isReconciled(const Native& native_) const
 	case PVE::DspCmdVmResizeDisk:
 		switch (x)
 		{
+		case PVE::DspCmdVmStartEx:
+			return true;
 		case PVE::DspCmdDirVmEditCommit:
 			if (getTaskId() == native_.getTaskId())
 				return true;

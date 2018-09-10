@@ -48,6 +48,7 @@ public:
 				PRL_UINT32 nOpFlags = 0);
 
 	virtual QString getVmUuid();
+	const QString getDiskImage() const;
 
 protected:
 	PRL_RESULT IsHasRightsForResize( CVmEvent& evtOutError );
@@ -56,7 +57,7 @@ protected:
 	virtual PRL_RESULT run_body();
 
 private:
-	QString ConvertToFullPath(const QString &sPath);
+	PRL_RESULT seed(CProtoVmResizeDiskImageCommand& source_);
 	PRL_RESULT run_disk_tool();
 
 public:
@@ -71,9 +72,10 @@ private:
 	PRL_BOOL m_bflLocked;
 
 	QString m_DiskImage;
-	PRL_UINT32 m_NewSize;
+	PRL_UINT64 m_NewSize;
 	PRL_UINT32 m_Flags;
 	CDiskImageInfo m_info;
+	CVmHardDisk* m_disk;
 	SmartPtr<CVmConfiguration> m_pVmConfig;
 };
 
