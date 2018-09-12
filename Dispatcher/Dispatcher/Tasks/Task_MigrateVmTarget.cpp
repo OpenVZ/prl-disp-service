@@ -399,7 +399,7 @@ Queue::enqueue_type Queue::enqueueData()
 
 target_type Queue::dequeue()
 {
-	while (!isEmpty())
+	if (!isEmpty())
 	{
 		IOSendJob::Handle j = m_service->sendPackage(head());
 		if (!j.isValid())
@@ -412,6 +412,8 @@ target_type Queue::dequeue()
 		(void)Vm::Pump::Queue::dequeue();
 		if (x)
 			return state_type(Closing());
+
+		return state_type(Sending());
 	}
 	if (m_collector.isEmpty())
 		return state_type(Reading());
