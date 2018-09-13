@@ -314,11 +314,21 @@ result_type Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	else
 		b->setNVRAM(QString());
 
-	CVmHardware *pVmHardware;
-	if ((pVmHardware = cfg->getVmHardwareList()) == NULL) {
-		WRITE_TRACE(DBG_FATAL, "[%s] Can not get Vm hardware list", __FUNCTION__);
+	CVmHardware* pVmHardware = cfg->getVmHardwareList();
+	if (NULL == pVmHardware) {
+		WRITE_TRACE(DBG_FATAL, "Can not get Vm hardware list");
 		return result_type();
 	}
+	// NB. we have an unused structure chipset inside vm configurations.
+	// its attributes are type: 1, version: 3 be default. it was decided
+	// to employ the structure for holding QEMU machine type values.
+	// type 1 is treated as a discriminator for the i440fx machine types
+	// family and 3 denotes 7.6 machine type. it was decided to assign
+	// minimum 7.7 machine type for new VMs thus the chipset version value
+	// should be not less than 4 for the i440fx machine type.
+	::Chipset* c = pVmHardware->getChipset();
+	if (NULL != c && c->getType() == 1)
+		c->setVersion(qMax(c->getVersion(), 4u));
 
 	unsigned os = cfg->getVmSettings()->getVmCommonOptions()->getOsVersion();
 	bool isWin = cfg->getVmSettings()->getVmCommonOptions()->getOsType() ==
