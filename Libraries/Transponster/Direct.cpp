@@ -958,7 +958,7 @@ Prl::Expected<model_type, PRL_RESULT>
 
 QString i440fx::serialize(model_type::second_type version_) const
 {
-	return Generic<i440fx>::serialize(version_ + 3);
+	return Generic<i440fx>::serialize(qMax(version_, 3u) + 3u);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
