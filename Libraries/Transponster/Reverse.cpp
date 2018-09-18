@@ -649,7 +649,10 @@ QString View::getFilterName() const
 	CNetPktFilter *filter = m_network.getPktFilter();
 	QStringList filters;
 
-	if (filter->isPreventIpSpoof())
+	if (filter->isPreventIpSpoof() &&
+		// For enforced static IPs only
+		!m_network.isConfigureWithDhcp() &&
+		!getIpv4().isEmpty())
 		filters << "no-ip-spoofing";
 	if (filter->isPreventMacSpoof())
 		filters << "no-mac-spoofing";
@@ -686,12 +689,7 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterre
 		p.setValue(getMac());
 		params << p;
 	}
-	if (m_network.getPktFilter()->isPreventIpSpoof() && m_network.isConfigureWithDhcp())
-	{
-		p.setName("CTRL_IP_LEARNING");
-		p.setValue("dhcp");
-		params << p;
-	}
+
 	foreach(const QString& e, getIpv4())
 	{
 		// IPv4 only, for now
