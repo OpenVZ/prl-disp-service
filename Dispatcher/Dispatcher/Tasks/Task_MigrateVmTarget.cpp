@@ -850,6 +850,16 @@ void Frontend::Action::operator()(const boost::mpl::true_&, Frontend& fsm_,
 
 void Frontend::create(const CVmHardDisk& event_)
 {
+	QDir d(QFileInfo(event_.getSystemName()).dir());
+
+	if (!d.exists() && !CFileHelper::WriteDirectory(d.path(),
+				&m_task->getClient()->getAuthHelper()))
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot create \"%s\" directory",
+				qPrintable(d.path()));
+		getConnector()->handle(Flop::Event(PRL_ERR_VM_MIGRATE_CANNOT_CREATE_DIRECTORY));
+		return;
+	}
 	QStringList a;
 	a << "create" << "-f" << "qcow2";
 	a << "-o" << "cluster_size=1M,lazy_refcounts=on";
