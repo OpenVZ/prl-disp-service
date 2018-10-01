@@ -1922,7 +1922,8 @@ PRL_RESULT Task_VzManager::commit_encryption()
 	// Settings.Runtime.InternalVmInfo stores CVmEvent which is always changed
 	// during config commit
 	if (!x.filter(QRegExp(QString("^(?:(?!") + Encryption::getFilter() +
-		"|Settings\\.Runtime\\.InternalVmInfo))")).isEmpty())
+		"|Settings\\.Runtime\\.InternalVmInfo"
+		"|Settings\\.RemoteDisplay\\.WebSocketPortNumber")).isEmpty())
 	{
 		WRITE_TRACE(DBG_FATAL, "encryption changes were rejected:\n%s",
 			qPrintable(x.join("\n")));
