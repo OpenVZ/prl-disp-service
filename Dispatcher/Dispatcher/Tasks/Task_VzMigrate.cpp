@@ -645,19 +645,19 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 
 void Task_VzMigrate::terminateVzMigrate()
 {
-	QScopedPointer<CProgressHepler> r(m_progress.take());
 	QMutexLocker g(&m_terminateVzMigrateMutex);
+	QScopedPointer<CProgressHepler> r(m_progress.take());
 	pid_t p = m_pid;
 	m_pid = -1;
 	if (0 < p)
 	{
 		terminatePidPolicy(p);
-		if (!r.isNull())
-			r->wait();
 	}
 	else
 		m_pfnTermination = &Task_VzMigrate::terminatePidPolicy;
 
+	if (!r.isNull())
+		r->wait();
 }
 
 void Task_VzMigrate::terminateHandleDispPackageTask()
