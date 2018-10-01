@@ -652,12 +652,12 @@ void Task_VzMigrate::terminateVzMigrate()
 	if (0 < p)
 	{
 		terminatePidPolicy(p);
-		if (!r.isNull())
-			r->wait();
 	}
 	else
 		m_pfnTermination = &Task_VzMigrate::terminatePidPolicy;
 
+	if (!r.isNull())
+		r->wait();
 }
 
 void Task_VzMigrate::terminateHandleDispPackageTask()
