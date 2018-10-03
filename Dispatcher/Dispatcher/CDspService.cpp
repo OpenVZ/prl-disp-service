@@ -1275,6 +1275,10 @@ bool CDspService::init()
 		// initialize resolver library - initialization is not
 		// thread-safe (PSBM-53164)
 		(void)QHostInfo::localDomainName();
+		// PSBM-89190. qt tcp stuff performs a lazy initialization
+		// of this one which is incompatible with multi-threaded
+		// execution.
+		Q_UNUSED(QNetworkProxy());
 
 		if ( ! initAllConfigs() && ! recoverAllConfigs() )
 			throw 0;
