@@ -1458,7 +1458,8 @@ quint32 getVcpuNum(const QString &uuid)
 		return 0;
 
 	quint32 v = c->getVmHardwareList()->getCpu()->getNumber();
-	return v == PRL_CPU_UNLIMITED ? getHostCpus() : v;
+	quint32 n = getHostCpus();
+	return v > n ? n : v;
 }
 
 namespace Flavor
