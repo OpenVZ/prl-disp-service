@@ -771,45 +771,6 @@ private:
 
 } // namespace Vm
 
-namespace Network
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Unit
-
-struct Unit
-{
-	explicit Unit(virNetworkPtr network_ = NULL);
-
-	Result stop();
-	Result start();
-	Result undefine();
-	Result getConfig(CVirtualNetwork& dst_) const;
-
-private:
-	QSharedPointer<virNetwork> m_network;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct List
-
-struct List
-{
-	explicit List(QSharedPointer<virConnect> link_): m_link(link_)
-	{
-	}
-
-	Unit at(const QString& uuid_) const;
-	Result all(QList<Unit>& dst_) const;
-	Result all(QList<CVirtualNetwork>& dst_) const;
-	Result find(const QString& name_, Unit* dst_ = NULL) const;
-	Result define(const CVirtualNetwork& config_, Unit* dst_ = NULL);
-
-private:
-	QSharedPointer<virConnect> m_link;
-};
-
-} // namespace Network
-
 namespace Interface
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -858,6 +819,47 @@ private:
 };
 
 } // namespace Interface
+
+
+
+namespace Network
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+struct Unit
+{
+	explicit Unit(virNetworkPtr network_ = NULL);
+
+	Result stop();
+	Result start();
+	Result undefine();
+	Result getConfig(CVirtualNetwork& dst_) const;
+
+private:
+	QSharedPointer<virNetwork> m_network;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+
+struct List
+{
+	explicit List(QSharedPointer<virConnect> link_): m_link(link_)
+	{
+	}
+
+	Unit at(const QString& uuid_) const;
+	Result all(QList<Unit>& dst_) const;
+	Result all(QList<CVirtualNetwork>& dst_) const;
+	Result find(const QString& name_, Unit* dst_ = NULL) const;
+	Result define(const CVirtualNetwork& config_, Unit* dst_ = NULL);
+
+private:
+	QSharedPointer<virConnect> m_link;
+};
+
+} // namespace Network
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Host
