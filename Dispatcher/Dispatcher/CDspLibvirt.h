@@ -795,6 +795,7 @@ struct Bridge
 private:
 	CHwNetAdapter m_master;
 	QSharedPointer<virInterface> m_interface;
+	QString m_name;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -811,6 +812,8 @@ struct List
 	Result find(const QString& name_, CHwNetAdapter& dst_) const;
 	Result findBridge(const QString& name_, CHwNetAdapter& dst_) const;
 	Result find(const QString& name_, Bridge& dst_) const;
+	Result find(const QString& name_, const QList<Bridge>* bridges_,
+			Bridge& dst_) const;
 	Result find(const CHwNetAdapter& eth_, Bridge& dst_) const;
 	Result define(const CHwNetAdapter& eth_, Bridge& dst_);
 
@@ -834,7 +837,8 @@ struct Unit
 	Result stop();
 	Result start();
 	Result undefine();
-	Result getConfig(CVirtualNetwork& dst_) const;
+	Result getConfig(CVirtualNetwork& dst,
+		const QList<Libvirt::Instrument::Agent::Interface::Bridge>* bridges_ = NULL) const;
 
 private:
 	QSharedPointer<virNetwork> m_network;

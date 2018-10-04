@@ -2996,7 +2996,8 @@ Result Unit::undefine()
 	return do_(m_network.data(), boost::bind(&virNetworkUndefine, _1));
 }
 
-Result Unit::getConfig(CVirtualNetwork& dst_) const
+Result Unit::getConfig(CVirtualNetwork& dst_,
+	const QList<Libvirt::Instrument::Agent::Interface::Bridge>* bridges_) const
 {
 	if (m_network.isNull())
 		return Failure(PRL_ERR_UNINITIALIZED);
@@ -3016,7 +3017,8 @@ Result Unit::getConfig(CVirtualNetwork& dst_) const
 	if (NULL != z)
 	{
 		Libvirt::Instrument::Agent::Interface::Bridge b;
-		Libvirt::Result e = Libvirt::Kit.interfaces().find(z->getBridgeName(), b);
+		Libvirt::Result e = Libvirt::Kit.interfaces().find(
+				z->getBridgeName(), bridges_, b);
 		dst_.getHostOnlyNetwork()->
 			getParallelsAdapter()->setName(z->getBridgeName());
 		if (e.isSucceed())
@@ -3062,11 +3064,16 @@ Result List::all(QList<Unit>& dst_) const
 	if (-1 == z)
 		return Failure(PRL_ERR_FAILURE);
 
+	QList<Libvirt::Instrument::Agent::Interface::Bridge> b;
+	Libvirt::Result e = Libvirt::Kit.interfaces().all(b);
+	if (e.isFailed())
+		return Failure(PRL_ERR_FAILURE);
+
 	for (int i = 0; i < z; ++i)
 	{
 		Unit u(a[i]);
 		CVirtualNetwork x;
-		if (u.getConfig(x).isSucceed())
+		if (u.getConfig(x, &b).isSucceed())
 			dst_ << u;
 	}
 	free(a);
@@ -3084,11 +3091,16 @@ Result List::all(QList<CVirtualNetwork>& dst_) const
 	if (-1 == z)
 		return Failure(PRL_ERR_FAILURE);
 
+	QList<Libvirt::Instrument::Agent::Interface::Bridge> b;
+	Libvirt::Result e = Libvirt::Kit.interfaces().all(b);
+	if (e.isFailed())
+		return Failure(PRL_ERR_FAILURE);
+
 	for (int i = 0; i < z; ++i)
 	{
 		Unit u(a[i]);
 		CVirtualNetwork x;
-		if (u.getConfig(x).isSucceed())
+		if (u.getConfig(x, &b).isSucceed())
 			dst_ << x;
 	}
 	free(a);
@@ -3241,6 +3253,26 @@ Result List::find(const QString& name_, Bridge& dst_) const
 		return e;
 
 	foreach (const Bridge& b, a)
+	{
+		if (b.getName() == name_)
+		{
+			dst_ = b;
+			return Result();
+		}
+	}
+	return Error::Simple(PRL_ERR_NETWORK_ADAPTER_NOT_FOUND);
+}
+
+Result List::find(const QString& name_, const QList<Bridge>* bridges_,
+		Bridge& dst_) const
+{
+	if (bridges_ == NULL)
+		return find(name_, dst_);
+
+	if (name_.startsWith("virbr"))
+		return Error::Simple(PRL_ERR_NETWORK_ADAPTER_NOT_FOUND);
+
+	foreach (const Bridge& b, *bridges_)
 	{
 		if (b.getName() == name_)
 		{
