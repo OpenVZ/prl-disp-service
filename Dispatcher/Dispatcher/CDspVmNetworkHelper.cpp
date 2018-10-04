@@ -249,24 +249,11 @@ Dao::Dao(Libvirt::Instrument::Agent::Hub& libvirt_):
 
 PRL_RESULT Dao::list(QList<CVirtualNetwork>& dst_)
 {
-	QList<Libvirt::Instrument::Agent::Network::Unit> a;
-	Libvirt::Result e = m_networks.all(a);
+	Libvirt::Result e = m_networks.all(dst_);
 	if (e.isFailed())
 	{
 		WRITE_TRACE(DBG_FATAL, "Cannot list networks!");
 		return PRL_ERR_UNEXPECTED;
-	}
-	QStringList x;
-	foreach(Libvirt::Instrument::Agent::Network::Unit n, a)
-	{
-		CVirtualNetwork y;
-		e = n.getConfig(y);
-		if (e.isFailed())
-		{
-			WRITE_TRACE(DBG_FATAL, "Cannot get the network config!");
-			return e.error().code();
-		}
-		dst_ << y;
 	}
 	return PRL_ERR_SUCCESS;
 }

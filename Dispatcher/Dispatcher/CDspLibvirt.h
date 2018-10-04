@@ -800,6 +800,7 @@ struct List
 
 	Unit at(const QString& uuid_) const;
 	Result all(QList<Unit>& dst_) const;
+	Result all(QList<CVirtualNetwork>& dst_) const;
 	Result find(const QString& name_, Unit* dst_ = NULL) const;
 	Result define(const CVirtualNetwork& config_, Unit* dst_ = NULL);
 

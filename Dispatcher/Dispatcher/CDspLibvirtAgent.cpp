@@ -3073,6 +3073,29 @@ Result List::all(QList<Unit>& dst_) const
 	return Result();
 }
 
+Result List::all(QList<CVirtualNetwork>& dst_) const
+{
+	if (m_link.isNull())
+		return Result(Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER));
+
+	virNetworkPtr* a = NULL;
+	int z = virConnectListAllNetworks(m_link.data(), &a,
+					VIR_CONNECT_LIST_NETWORKS_PERSISTENT);
+	if (-1 == z)
+		return Failure(PRL_ERR_FAILURE);
+
+	for (int i = 0; i < z; ++i)
+	{
+		Unit u(a[i]);
+		CVirtualNetwork x;
+		if (u.getConfig(x).isSucceed())
+			dst_ << x;
+	}
+	free(a);
+	return Result();
+}
+
+
 Result List::find(const QString& name_, Unit* dst_) const
 {
 	if (m_link.isNull())
