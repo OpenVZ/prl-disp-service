@@ -771,44 +771,6 @@ private:
 
 } // namespace Vm
 
-namespace Network
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Unit
-
-struct Unit
-{
-	explicit Unit(virNetworkPtr network_ = NULL);
-
-	Result stop();
-	Result start();
-	Result undefine();
-	Result getConfig(CVirtualNetwork& dst_) const;
-
-private:
-	QSharedPointer<virNetwork> m_network;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct List
-
-struct List
-{
-	explicit List(QSharedPointer<virConnect> link_): m_link(link_)
-	{
-	}
-
-	Unit at(const QString& uuid_) const;
-	Result all(QList<Unit>& dst_) const;
-	Result find(const QString& name_, Unit* dst_ = NULL) const;
-	Result define(const CVirtualNetwork& config_, Unit* dst_ = NULL);
-
-private:
-	QSharedPointer<virConnect> m_link;
-};
-
-} // namespace Network
-
 namespace Interface
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -833,6 +795,7 @@ struct Bridge
 private:
 	CHwNetAdapter m_master;
 	QSharedPointer<virInterface> m_interface;
+	QString m_name;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -849,6 +812,8 @@ struct List
 	Result find(const QString& name_, CHwNetAdapter& dst_) const;
 	Result findBridge(const QString& name_, CHwNetAdapter& dst_) const;
 	Result find(const QString& name_, Bridge& dst_) const;
+	Result find(const QString& name_, const QList<Bridge>* bridges_,
+			Bridge& dst_) const;
 	Result find(const CHwNetAdapter& eth_, Bridge& dst_) const;
 	Result define(const CHwNetAdapter& eth_, Bridge& dst_);
 
@@ -857,6 +822,51 @@ private:
 };
 
 } // namespace Interface
+
+
+
+namespace Network
+{
+
+typedef boost::function<Result(virNetworkPtr, CVirtualNetwork&)> config_type;
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+struct Unit
+{
+	explicit Unit(virNetworkPtr network_ = NULL, config_type config_ = NULL);
+
+	Result stop();
+	Result start();
+	Result undefine();
+	Result getConfig(CVirtualNetwork& dst_) const;
+private:
+	QSharedPointer<virNetwork> m_network;
+	config_type m_getConfig;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+
+struct List
+{
+	explicit List(QSharedPointer<virConnect> link_ = QSharedPointer<virConnect>()): m_link(link_)
+	{
+	}
+
+	Unit at(const QString& uuid_) const;
+	Result all(QList<Unit>& dst_) const;
+	Result all(QList<CVirtualNetwork>& dst_) const;
+	Result find(const QString& name_, Unit* dst_ = NULL) const;
+	Result define(const CVirtualNetwork& config_, Unit* dst_ = NULL);
+	Result getConfig(virNetworkPtr network_, CVirtualNetwork& dst_) const;
+
+private:
+	QSharedPointer<virConnect> m_link;
+	mutable QList<Libvirt::Instrument::Agent::Interface::Bridge> m_bridges;
+};
+
+} // namespace Network
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Host
