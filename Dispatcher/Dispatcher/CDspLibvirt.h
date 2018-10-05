@@ -827,21 +827,22 @@ private:
 
 namespace Network
 {
+
+typedef boost::function<Result(virNetworkPtr, CVirtualNetwork&)> config_type;
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
 struct Unit
 {
-	explicit Unit(virNetworkPtr network_ = NULL);
+	explicit Unit(virNetworkPtr network_ = NULL, config_type config_ = NULL);
 
 	Result stop();
 	Result start();
 	Result undefine();
-	Result getConfig(CVirtualNetwork& dst,
-		const QList<Libvirt::Instrument::Agent::Interface::Bridge>* bridges_ = NULL) const;
-
+	Result getConfig(CVirtualNetwork& dst_) const;
 private:
 	QSharedPointer<virNetwork> m_network;
+	config_type m_getConfig;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -849,7 +850,7 @@ private:
 
 struct List
 {
-	explicit List(QSharedPointer<virConnect> link_): m_link(link_)
+	explicit List(QSharedPointer<virConnect> link_ = QSharedPointer<virConnect>()): m_link(link_)
 	{
 	}
 
@@ -858,9 +859,11 @@ struct List
 	Result all(QList<CVirtualNetwork>& dst_) const;
 	Result find(const QString& name_, Unit* dst_ = NULL) const;
 	Result define(const CVirtualNetwork& config_, Unit* dst_ = NULL);
+	Result getConfig(virNetworkPtr network_, CVirtualNetwork& dst_) const;
 
 private:
 	QSharedPointer<virConnect> m_link;
+	mutable QList<Libvirt::Instrument::Agent::Interface::Bridge> m_bridges;
 };
 
 } // namespace Network

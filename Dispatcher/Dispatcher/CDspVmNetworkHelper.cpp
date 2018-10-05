@@ -293,17 +293,13 @@ Libvirt::Result Dao::create(const CVirtualNetwork& model_)
 	if (PVN_HOST_ONLY == model_.getNetworkType())
 		return define(model_);
 
-	QList<Libvirt::Instrument::Agent::Network::Unit> a;
+	QList<CVirtualNetwork> a;
 	Libvirt::Result r = m_networks.all(a);
 	if (r.isFailed())
 		return r;
 
-	foreach(const Libvirt::Instrument::Agent::Network::Unit &u, a)
+	foreach(const CVirtualNetwork &n, a)
 	{
-		CVirtualNetwork n;
-		if ((r = u.getConfig(n)).isFailed())
-			return r;
-
 		if (model_.getBoundCardMac() == n.getBoundCardMac() &&
 			model_.getVLANTag() == n.getVLANTag())
 			return Error::Simple(PRL_NET_ADAPTER_ALREADY_USED);

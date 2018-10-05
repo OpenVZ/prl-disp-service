@@ -2977,7 +2977,8 @@ namespace Network
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
-Unit::Unit(virNetworkPtr network_): m_network(network_, &virNetworkFree)
+Unit::Unit(virNetworkPtr network_, config_type config_):
+	m_network(network_, &virNetworkFree), m_getConfig(config_)
 {
 }
 
@@ -2996,43 +2997,12 @@ Result Unit::undefine()
 	return do_(m_network.data(), boost::bind(&virNetworkUndefine, _1));
 }
 
-Result Unit::getConfig(CVirtualNetwork& dst_,
-	const QList<Libvirt::Instrument::Agent::Interface::Bridge>* bridges_) const
+Result Unit::getConfig(CVirtualNetwork& dst_) const
 {
-	if (m_network.isNull())
+	if (m_getConfig == NULL)
 		return Failure(PRL_ERR_UNINITIALIZED);
 
-	char* x = virNetworkGetXMLDesc(m_network.data(),
-			VIR_NETWORK_XML_INACTIVE);
-	if (NULL == x)
-		return Failure(PRL_ERR_VM_GET_CONFIG_FAILED);
-
-	WRITE_TRACE(DBG_DEBUG, "xml:\n%s", x);
-	Transponster::Network::Direct u(x, 0 < virNetworkIsActive(m_network.data()));
-	if (PRL_FAILED(Transponster::Director::network(u)))
-		return Failure(PRL_ERR_PARSE_VM_DIR_CONFIG);
-
-	dst_ = u.getResult();
-	CVZVirtualNetwork* z = dst_.getVZVirtualNetwork();
-	if (NULL != z)
-	{
-		Libvirt::Instrument::Agent::Interface::Bridge b;
-		Libvirt::Result e = Libvirt::Kit.interfaces().find(
-				z->getBridgeName(), bridges_, b);
-		dst_.getHostOnlyNetwork()->
-			getParallelsAdapter()->setName(z->getBridgeName());
-		if (e.isSucceed())
-		{
-			dst_.setBoundCardMac(b.getMaster().getMacAddress());
-			dst_.setVLANTag(b.getMaster().getVLANTag());
-			z->setMasterInterface(b.getMaster().getDeviceName());
-		}
-		else if (PRL_ERR_NETWORK_ADAPTER_NOT_FOUND == e.error().code())
-			dst_.setVZVirtualNetwork(NULL);
-		else
-			return e;
-	}
-	return Result();
+	return m_getConfig(m_network.data(), dst_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -3047,7 +3017,7 @@ Unit List::at(const QString& uuid_) const
 	virNetworkPtr n = virNetworkLookupByUUIDString(m_link.data(),
 			x.toString(PrlUuid::WithoutBrackets).data());
 	if (NULL != n && virNetworkIsPersistent(n) == 1)
-		return Unit(n);
+		return Unit(n, boost::bind(&List::getConfig, this, _1, _2));
 
 	virNetworkFree(n);
 	return Unit(NULL);
@@ -3064,16 +3034,11 @@ Result List::all(QList<Unit>& dst_) const
 	if (-1 == z)
 		return Failure(PRL_ERR_FAILURE);
 
-	QList<Libvirt::Instrument::Agent::Interface::Bridge> b;
-	Libvirt::Result e = Libvirt::Kit.interfaces().all(b);
-	if (e.isFailed())
-		return Failure(PRL_ERR_FAILURE);
-
 	for (int i = 0; i < z; ++i)
 	{
-		Unit u(a[i]);
+		Unit u(a[i], boost::bind(&List::getConfig, this, _1, _2));
 		CVirtualNetwork x;
-		if (u.getConfig(x, &b).isSucceed())
+		if (u.getConfig(x).isSucceed())
 			dst_ << u;
 	}
 	free(a);
@@ -3091,22 +3056,16 @@ Result List::all(QList<CVirtualNetwork>& dst_) const
 	if (-1 == z)
 		return Failure(PRL_ERR_FAILURE);
 
-	QList<Libvirt::Instrument::Agent::Interface::Bridge> b;
-	Libvirt::Result e = Libvirt::Kit.interfaces().all(b);
-	if (e.isFailed())
-		return Failure(PRL_ERR_FAILURE);
-
 	for (int i = 0; i < z; ++i)
 	{
-		Unit u(a[i]);
+		Unit u(a[i], boost::bind(&List::getConfig, this, _1, _2));
 		CVirtualNetwork x;
-		if (u.getConfig(x, &b).isSucceed())
+		if (u.getConfig(x).isSucceed())
 			dst_ << x;
 	}
 	free(a);
 	return Result();
 }
-
 
 Result List::find(const QString& name_, Unit* dst_) const
 {
@@ -3118,7 +3077,7 @@ Result List::find(const QString& name_, Unit* dst_) const
 	if (NULL == n)
 		return Failure(PRL_ERR_FILE_NOT_FOUND);
 
-	Unit u(n);
+	Unit u(n, boost::bind(&List::getConfig, this, _1, _2));
 	if (1 != virNetworkIsPersistent(n))
 		return Failure(PRL_ERR_FILE_NOT_FOUND);
 
@@ -3146,7 +3105,7 @@ Result List::define(const CVirtualNetwork& config_, Unit* dst_)
 	if (NULL == n)
 		return Failure(PRL_ERR_VM_NOT_CREATED);
 
-	Unit m(n);
+	Unit m(n, boost::bind(&List::getConfig, this, _1, _2));
 	if (0 != virNetworkSetAutostart(n, 1))
 	{
 		m.undefine();
@@ -3155,6 +3114,51 @@ Result List::define(const CVirtualNetwork& config_, Unit* dst_)
 	if (NULL != dst_)
 		*dst_ = m;
 
+	return Result();
+}
+
+Result List::getConfig(virNetworkPtr network_, CVirtualNetwork& dst_) const
+{
+	if (network_ == NULL)
+		return Failure(PRL_ERR_UNINITIALIZED);
+
+	if (m_bridges.isEmpty())
+	{
+		Libvirt::Result e = Libvirt::Kit.interfaces().all(m_bridges);
+		if (e.isFailed())
+			return e;
+	}
+
+	char* x = virNetworkGetXMLDesc(network_,
+			VIR_NETWORK_XML_INACTIVE);
+	if (NULL == x)
+		return Failure(PRL_ERR_VM_GET_CONFIG_FAILED);
+
+	WRITE_TRACE(DBG_DEBUG, "xml:\n%s", x);
+	Transponster::Network::Direct u(x, 0 < virNetworkIsActive(network_));
+	if (PRL_FAILED(Transponster::Director::network(u)))
+		return Failure(PRL_ERR_PARSE_VM_DIR_CONFIG);
+
+	dst_ = u.getResult();
+	CVZVirtualNetwork* z = dst_.getVZVirtualNetwork();
+	if (NULL != z)
+	{
+		Libvirt::Instrument::Agent::Interface::Bridge b;
+		Libvirt::Result e = Libvirt::Kit.interfaces().find(
+				z->getBridgeName(), &m_bridges, b);
+		dst_.getHostOnlyNetwork()->
+			getParallelsAdapter()->setName(z->getBridgeName());
+		if (e.isSucceed())
+		{
+			dst_.setBoundCardMac(b.getMaster().getMacAddress());
+			dst_.setVLANTag(b.getMaster().getVLANTag());
+			z->setMasterInterface(b.getMaster().getDeviceName());
+		}
+		else if (PRL_ERR_NETWORK_ADAPTER_NOT_FOUND == e.error().code())
+			dst_.setVZVirtualNetwork(NULL);
+		else
+			return e;
+	}
 	return Result();
 }
 
@@ -3252,15 +3256,7 @@ Result List::find(const QString& name_, Bridge& dst_) const
 	if (e.isFailed())
 		return e;
 
-	foreach (const Bridge& b, a)
-	{
-		if (b.getName() == name_)
-		{
-			dst_ = b;
-			return Result();
-		}
-	}
-	return Error::Simple(PRL_ERR_NETWORK_ADAPTER_NOT_FOUND);
+	return find(name_, &a, dst_);
 }
 
 Result List::find(const QString& name_, const QList<Bridge>* bridges_,
