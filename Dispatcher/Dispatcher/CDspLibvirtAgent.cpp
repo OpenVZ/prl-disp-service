@@ -2977,8 +2977,8 @@ namespace Network
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
-Unit::Unit(virNetworkPtr network_, config_type config_):
-	m_network(network_, &virNetworkFree), m_getConfig(config_)
+Unit::Unit(virNetworkPtr network_, const read_type& read_):
+	m_read(read_), m_network(network_, &virNetworkFree)
 {
 }
 
@@ -2999,28 +2999,80 @@ Result Unit::undefine()
 
 Result Unit::getConfig(CVirtualNetwork& dst_) const
 {
-	if (m_getConfig == NULL)
+	if (m_read.empty())
 		return Failure(PRL_ERR_UNINITIALIZED);
 
-	return m_getConfig(m_network.data(), dst_);
+	virConnectPtr c = virNetworkGetConnect(m_network.data());
+	virConnectRef(c);
+
+	Prl::Expected<CVirtualNetwork, ::Error::Simple> x = m_read(m_network.data(),
+		Interface::List::Backend(QSharedPointer<virConnect>(c, &virConnectClose)));
+	if (x.isFailed())
+		return x.error();
+
+	dst_ = x.value();
+	return Result();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct List
 
+Prl::Expected<CVirtualNetwork, ::Error::Simple>
+	List::read(virNetworkPtr network_, const Interface::List::Backend& bridges_)
+{
+	if (network_ == NULL)
+		return Failure(PRL_ERR_UNINITIALIZED);
+
+	char* x = virNetworkGetXMLDesc(network_,
+			VIR_NETWORK_XML_INACTIVE);
+	if (NULL == x)
+		return Failure(PRL_ERR_VM_GET_CONFIG_FAILED);
+
+	WRITE_TRACE(DBG_DEBUG, "xml:\n%s", x);
+	Transponster::Network::Direct u(x, 0 < virNetworkIsActive(network_));
+	if (PRL_FAILED(Transponster::Director::network(u)))
+		return Failure(PRL_ERR_PARSE_VM_DIR_CONFIG);
+
+	CVirtualNetwork output = u.getResult();
+	CVZVirtualNetwork* z = output.getVZVirtualNetwork();
+	if (NULL != z)
+	{
+		Prl::Expected<Libvirt::Instrument::Agent::Interface::Bridge, ::Error::Simple>
+			b = bridges_.findByName(z->getBridgeName());
+		output.getHostOnlyNetwork()->
+			getParallelsAdapter()->setName(z->getBridgeName());
+		if (b.isSucceed())
+		{
+			output.setBoundCardMac(b.value().getMaster().getMacAddress());
+			output.setVLANTag(b.value().getMaster().getVLANTag());
+			z->setMasterInterface(b.value().getMaster().getDeviceName());
+		}
+		else if (PRL_ERR_NETWORK_ADAPTER_NOT_FOUND == b.error().code())
+			output.setVZVirtualNetwork(NULL);
+		else
+			return b.error();
+	}
+	return output;
+}
+
+Unit List::craft(virNetworkPtr network_) const
+{
+	return Unit(network_, boost::bind(&List::read, _1, _2));
+}
+
 Unit List::at(const QString& uuid_) const
 {
 	if (m_link.isNull())
-		return Unit(NULL);
+		return Unit();
 
 	PrlUuid x(uuid_.toUtf8().data());
 	virNetworkPtr n = virNetworkLookupByUUIDString(m_link.data(),
 			x.toString(PrlUuid::WithoutBrackets).data());
 	if (NULL != n && virNetworkIsPersistent(n) == 1)
-		return Unit(n, boost::bind(&List::getConfig, this, _1, _2));
+		return craft(n);
 
 	virNetworkFree(n);
-	return Unit(NULL);
+	return Unit();
 }
 
 Result List::all(QList<Unit>& dst_) const
@@ -3034,12 +3086,13 @@ Result List::all(QList<Unit>& dst_) const
 	if (-1 == z)
 		return Failure(PRL_ERR_FAILURE);
 
+	Interface::List::Backend b(m_link);
 	for (int i = 0; i < z; ++i)
 	{
-		Unit u(a[i], boost::bind(&List::getConfig, this, _1, _2));
-		CVirtualNetwork x;
-		if (u.getConfig(x).isSucceed())
-			dst_ << u;
+		if (read(a[i], b).isSucceed())
+			dst_ << craft(a[i]);
+		else
+			virNetworkFree(a[i]);
 	}
 	free(a);
 	return Result();
@@ -3056,12 +3109,14 @@ Result List::all(QList<CVirtualNetwork>& dst_) const
 	if (-1 == z)
 		return Failure(PRL_ERR_FAILURE);
 
+	Interface::List::Backend b(m_link);
 	for (int i = 0; i < z; ++i)
 	{
-		Unit u(a[i], boost::bind(&List::getConfig, this, _1, _2));
-		CVirtualNetwork x;
-		if (u.getConfig(x).isSucceed())
-			dst_ << x;
+		Prl::Expected<CVirtualNetwork, ::Error::Simple> x = read(a[i], b);
+		if (x.isSucceed())
+			dst_ << x.value();
+		else
+			virNetworkFree(a[i]);
 	}
 	free(a);
 	return Result();
@@ -3077,7 +3132,7 @@ Result List::find(const QString& name_, Unit* dst_) const
 	if (NULL == n)
 		return Failure(PRL_ERR_FILE_NOT_FOUND);
 
-	Unit u(n, boost::bind(&List::getConfig, this, _1, _2));
+	Unit u(craft(n));
 	if (1 != virNetworkIsPersistent(n))
 		return Failure(PRL_ERR_FILE_NOT_FOUND);
 
@@ -3105,7 +3160,7 @@ Result List::define(const CVirtualNetwork& config_, Unit* dst_)
 	if (NULL == n)
 		return Failure(PRL_ERR_VM_NOT_CREATED);
 
-	Unit m(n, boost::bind(&List::getConfig, this, _1, _2));
+	Unit m(craft(n));
 	if (0 != virNetworkSetAutostart(n, 1))
 	{
 		m.undefine();
@@ -3114,51 +3169,6 @@ Result List::define(const CVirtualNetwork& config_, Unit* dst_)
 	if (NULL != dst_)
 		*dst_ = m;
 
-	return Result();
-}
-
-Result List::getConfig(virNetworkPtr network_, CVirtualNetwork& dst_) const
-{
-	if (network_ == NULL)
-		return Failure(PRL_ERR_UNINITIALIZED);
-
-	if (m_bridges.isEmpty())
-	{
-		Libvirt::Result e = Libvirt::Kit.interfaces().all(m_bridges);
-		if (e.isFailed())
-			return e;
-	}
-
-	char* x = virNetworkGetXMLDesc(network_,
-			VIR_NETWORK_XML_INACTIVE);
-	if (NULL == x)
-		return Failure(PRL_ERR_VM_GET_CONFIG_FAILED);
-
-	WRITE_TRACE(DBG_DEBUG, "xml:\n%s", x);
-	Transponster::Network::Direct u(x, 0 < virNetworkIsActive(network_));
-	if (PRL_FAILED(Transponster::Director::network(u)))
-		return Failure(PRL_ERR_PARSE_VM_DIR_CONFIG);
-
-	dst_ = u.getResult();
-	CVZVirtualNetwork* z = dst_.getVZVirtualNetwork();
-	if (NULL != z)
-	{
-		Libvirt::Instrument::Agent::Interface::Bridge b;
-		Libvirt::Result e = Libvirt::Kit.interfaces().find(
-				z->getBridgeName(), &m_bridges, b);
-		dst_.getHostOnlyNetwork()->
-			getParallelsAdapter()->setName(z->getBridgeName());
-		if (e.isSucceed())
-		{
-			dst_.setBoundCardMac(b.getMaster().getMacAddress());
-			dst_.setVLANTag(b.getMaster().getVLANTag());
-			z->setMasterInterface(b.getMaster().getDeviceName());
-		}
-		else if (PRL_ERR_NETWORK_ADAPTER_NOT_FOUND == e.error().code())
-			dst_.setVZVirtualNetwork(NULL);
-		else
-			return e;
-	}
 	return Result();
 }
 
@@ -3195,24 +3205,38 @@ Result Bridge::undefine()
 	return do_(m_interface.data(), boost::bind(&virInterfaceUndefine, _1));
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct List
-
-Result List::all(QList<Bridge>& dst_) const
+namespace List
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Backend
+
+Backend::Backend(const QSharedPointer<virConnect>& link_):
+	m_all(Error::Simple(PRL_ERR_UNINITIALIZED)), m_link(link_)
+{
+	reload();
+}
+
+Backend& Backend::reload()
+{
+	m_all = Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER);
 	if (m_link.isNull())
-		return Result(Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER));
+		return *this;
 
 	PrlNet::EthAdaptersList m;
 	PRL_RESULT e = PrlNet::makeBindableAdapterList(m, false, false);
 	if (PRL_FAILED(e))
-		return Result(Error::Simple(e));
-
+	{
+		m_all = Error::Simple(e);
+		return *this;
+	}
 	virInterfacePtr* a = NULL;
 	int z = virConnectListAllInterfaces(m_link.data(), &a, 0);
 	if (-1 == z)
-		return Failure(PRL_ERR_FAILURE);
-
+	{
+		m_all = Error::Simple(PRL_ERR_FAILURE);
+		return *this;
+	}
+	m_all = QList<Bridge>();
 	for (int i = 0; i < z; ++i)
 	{
 		Transponster::Interface::Bridge::Direct u(
@@ -3240,65 +3264,90 @@ Result List::all(QList<Bridge>& dst_) const
 		}
 		Bridge b(a[i], h);
 		if (!b.getName().startsWith("virbr"))
-			dst_ << b;
+			m_all.value() << b;
 	}
 	free(a);
-	return Result();
+	return *this;
 }
 
-Result List::find(const QString& name_, Bridge& dst_) const
+Prl::Expected<Bridge, ::Error::Simple> Backend::findByName(const QString& name_) const
 {
 	if (name_.startsWith("virbr"))
 		return Error::Simple(PRL_ERR_NETWORK_ADAPTER_NOT_FOUND);
 
-	QList<Bridge> a;
-	Result e = all(a);
-	if (e.isFailed())
-		return e;
+	if (m_all.isFailed())
+		return m_all.error();
 
-	return find(name_, &a, dst_);
-}
-
-Result List::find(const QString& name_, const QList<Bridge>* bridges_,
-		Bridge& dst_) const
-{
-	if (bridges_ == NULL)
-		return find(name_, dst_);
-
-	if (name_.startsWith("virbr"))
-		return Error::Simple(PRL_ERR_NETWORK_ADAPTER_NOT_FOUND);
-
-	foreach (const Bridge& b, *bridges_)
+	foreach (const Bridge& b, m_all.value())
 	{
 		if (b.getName() == name_)
-		{
-			dst_ = b;
-			return Result();
-		}
+			return b;
 	}
 	return Error::Simple(PRL_ERR_NETWORK_ADAPTER_NOT_FOUND);
 }
 
-Result List::find(const CHwNetAdapter& eth_, Bridge& dst_) const
+Prl::Expected<Bridge, ::Error::Simple> Backend::findByMasterName(const QString& name_) const
 {
-	QList<Bridge> a;
-	Result e = all(a);
-	if (e.isFailed())
-		return e;
+	if (m_all.isFailed())
+		return m_all.error();
 
-	foreach (const Bridge& b, a)
+	foreach (const Bridge& b, m_all.value())
 	{
-		if (b.getMaster().getMacAddress() == eth_.getMacAddress() &&
-			b.getMaster().getVLANTag() == eth_.getVLANTag())
-		{
-			dst_ = b;
-			return Result();
-		}
+		if (b.getMaster().getDeviceName() == name_)
+			return b;
+	}
+	return Error::Simple(PRL_ERR_NETWORK_ADAPTER_NOT_FOUND);
+}
+
+Prl::Expected<Bridge, ::Error::Simple> Backend::findByMasterMacAndVlan(const QString& mac_, int tag_) const
+{
+	if (m_all.isFailed())
+		return m_all.error();
+
+	foreach (const Bridge& b, m_all.value())
+	{
+		if (b.getMaster().getMacAddress() == mac_ &&
+			b.getMaster().getVLANTag() == tag_)
+			return b;
 	}
 	return Error::Simple(PRL_ERR_BRIDGE_NOT_FOUND_FOR_NETWORK_ADAPTER);
 }
 
-Result List::find(const QString& mac_, unsigned short vlan_, CHwNetAdapter& dst_) const
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+Result Frontend::all(QList<Bridge>& dst_) const
+{
+	Backend b(m_link);
+	if (b.getAll().isFailed())
+		return b.getAll().error();
+
+	dst_ = b.getAll().value();
+	return Result();
+}
+
+Result Frontend::find(const QString& name_, Bridge& dst_) const
+{
+	Prl::Expected<Bridge, ::Error::Simple> x = Backend(m_link).findByName(name_);
+	if (x.isFailed())
+		return x.error();
+
+	dst_ = x.value();
+	return Result();
+}
+
+Result Frontend::find(const CHwNetAdapter& eth_, Bridge& dst_) const
+{
+	Prl::Expected<Bridge, ::Error::Simple> x = Backend(m_link)
+		.findByMasterMacAndVlan(eth_.getMacAddress(), eth_.getVLANTag());
+	if (x.isFailed())
+		return x.error();
+
+	dst_ = x.value();
+	return Result();
+}
+
+Result Frontend::find(const QString& mac_, unsigned short vlan_, CHwNetAdapter& dst_) const
 {
 	QString name = PrlNet::findAdapterName(mac_, vlan_);
 
@@ -3308,7 +3357,7 @@ Result List::find(const QString& mac_, unsigned short vlan_, CHwNetAdapter& dst_
 	return findBridge(name, dst_);
 }
 
-Result List::find(const QString& name_, CHwNetAdapter& dst_) const
+Result Frontend::find(const QString& name_, CHwNetAdapter& dst_) const
 {
 	if (m_link.isNull())
 		return Result(Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER));
@@ -3331,38 +3380,31 @@ Result List::find(const QString& name_, CHwNetAdapter& dst_) const
 	return findBridge(name_, dst_);
 }
 
-Result List::findBridge(const QString& name_, CHwNetAdapter& dst_) const
+Result Frontend::findBridge(const QString& name_, CHwNetAdapter& dst_) const
 {
-	QList<Bridge> a;
-	Result e = all(a);
-	if (e.isFailed())
-		return e;
+	Prl::Expected<Bridge, ::Error::Simple> x = Backend(m_link)
+		.findByMasterName(name_);
+	if (x.isFailed())
+		return x.error();
 
-	foreach (const Bridge& b, a)
-	{
-		if (b.getMaster().getDeviceName() == name_)
-		{
-			dst_ = b.getMaster();
-			return Result();
-		}
-	}
-	return Error::Simple(PRL_ERR_NETWORK_ADAPTER_NOT_FOUND);
+	dst_ = x.value().getMaster();
+	return Result();
 }
 
-Result List::define(const CHwNetAdapter& eth_, Bridge& dst_)
+Result Frontend::define(const CHwNetAdapter& eth_, Bridge& dst_)
 {
-	QList<Bridge> a;
-	Result e = all(a);
-	if (e.isFailed())
-		return e;
+	Backend d(m_link);
+	if (d.getAll().isFailed())
+		return d.getAll().error();
+
+	Prl::Expected<Bridge, ::Error::Simple> m = d
+		.findByMasterName(eth_.getDeviceName());
+	if (m.isSucceed() && m.value().getMaster().getMacAddress() == eth_.getMacAddress())
+		return Result(Error::Simple(PRL_ERR_ENTRY_ALREADY_EXISTS));
 
 	uint x = ~0;
-	foreach (const Bridge& b, a)
+	foreach (const Bridge& b, d.getAll().value())
 	{
-		if (b.getMaster().getMacAddress() == eth_.getMacAddress()
-			&& b.getMaster().getDeviceName() == eth_.getDeviceName())
-			return Result(Error::Simple(PRL_ERR_ENTRY_ALREADY_EXISTS));
-
 		x = qMax(x + 1, b.getName().mid(2).toUInt() + 1) - 1;
 	}
 	forever
@@ -3381,6 +3423,7 @@ Result List::define(const CHwNetAdapter& eth_, Bridge& dst_)
 	}
 }
 
+} // namespace List
 } // namespace Interface
 
 ///////////////////////////////////////////////////////////////////////////////
