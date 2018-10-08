@@ -116,7 +116,7 @@ private:
 	Libvirt::Result craftBridge(CVirtualNetwork& network_);
 
 	Libvirt::Instrument::Agent::Network::List m_networks;
-	Libvirt::Instrument::Agent::Interface::List m_interfaces;
+	Libvirt::Instrument::Agent::Interface::List::Frontend m_interfaces;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

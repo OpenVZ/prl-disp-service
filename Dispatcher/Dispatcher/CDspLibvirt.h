@@ -798,6 +798,80 @@ private:
 	QString m_name;
 };
 
+namespace List
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Backend
+
+struct Backend
+{
+	typedef Prl::Expected<QList<Bridge>, ::Error::Simple> all_type;
+
+	explicit Backend(const QSharedPointer<virConnect>& link_);
+
+	const all_type& getAll() const
+	{
+		return m_all;
+	}
+	Prl::Expected<Bridge, ::Error::Simple> findByName(const QString& name_) const;
+	Prl::Expected<Bridge, ::Error::Simple> findByMasterName(const QString& name_) const;
+	Prl::Expected<Bridge, ::Error::Simple> findByMasterMacAndVlan(const QString& mac_, int tag_) const;
+	Backend& reload();
+
+private:
+	all_type m_all;
+	QSharedPointer<virConnect> m_link;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+struct Frontend
+{
+	explicit Frontend(const QSharedPointer<virConnect>& link_): m_link(link_)
+	{
+	}
+
+	Result all(QList<Bridge>& dst_) const;
+	Result find(const QString& mac_, unsigned short vlan_, CHwNetAdapter& dst_) const;
+	Result find(const QString& name_, CHwNetAdapter& dst_) const;
+	Result findBridge(const QString& name_, CHwNetAdapter& dst_) const;
+	Result find(const QString& name_, Bridge& dst_) const;
+	Result find(const CHwNetAdapter& eth_, Bridge& dst_) const;
+	Result define(const CHwNetAdapter& eth_, Bridge& dst_);
+
+private:
+	QSharedPointer<virConnect> m_link;
+};
+
+} // namespace List
+} // namespace Interface
+
+namespace Network
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+struct Unit
+{
+	typedef boost::function<Prl::Expected<CVirtualNetwork, ::Error::Simple>
+		(virNetworkPtr, const Interface::List::Backend&)> read_type;
+
+	Unit()
+	{
+	}
+	Unit(virNetworkPtr network_, const read_type& read_);
+
+	Result stop();
+	Result start();
+	Result undefine();
+	Result getConfig(CVirtualNetwork& dst_) const;
+
+private:
+	read_type m_read;
+	QSharedPointer<virNetwork> m_network;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct List
 
@@ -807,63 +881,18 @@ struct List
 	{
 	}
 
-	Result all(QList<Bridge>& dst_) const;
-	Result find(const QString& mac_, unsigned short vlan_, CHwNetAdapter& dst_) const;
-	Result find(const QString& name_, CHwNetAdapter& dst_) const;
-	Result findBridge(const QString& name_, CHwNetAdapter& dst_) const;
-	Result find(const QString& name_, Bridge& dst_) const;
-	Result find(const QString& name_, const QList<Bridge>* bridges_,
-			Bridge& dst_) const;
-	Result find(const CHwNetAdapter& eth_, Bridge& dst_) const;
-	Result define(const CHwNetAdapter& eth_, Bridge& dst_);
-
-private:
-	QSharedPointer<virConnect> m_link;
-};
-
-} // namespace Interface
-
-
-
-namespace Network
-{
-
-typedef boost::function<Result(virNetworkPtr, CVirtualNetwork&)> config_type;
-///////////////////////////////////////////////////////////////////////////////
-// struct Unit
-
-struct Unit
-{
-	explicit Unit(virNetworkPtr network_ = NULL, config_type config_ = NULL);
-
-	Result stop();
-	Result start();
-	Result undefine();
-	Result getConfig(CVirtualNetwork& dst_) const;
-private:
-	QSharedPointer<virNetwork> m_network;
-	config_type m_getConfig;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct List
-
-struct List
-{
-	explicit List(QSharedPointer<virConnect> link_ = QSharedPointer<virConnect>()): m_link(link_)
-	{
-	}
-
 	Unit at(const QString& uuid_) const;
 	Result all(QList<Unit>& dst_) const;
 	Result all(QList<CVirtualNetwork>& dst_) const;
 	Result find(const QString& name_, Unit* dst_ = NULL) const;
 	Result define(const CVirtualNetwork& config_, Unit* dst_ = NULL);
-	Result getConfig(virNetworkPtr network_, CVirtualNetwork& dst_) const;
 
 private:
+	Unit craft(virNetworkPtr network_) const;
+	static Prl::Expected<CVirtualNetwork, ::Error::Simple>
+		read(virNetworkPtr network_, const Interface::List::Backend& bridges_);
+
 	QSharedPointer<virConnect> m_link;
-	mutable QList<Libvirt::Instrument::Agent::Interface::Bridge> m_bridges;
 };
 
 } // namespace Network
@@ -898,9 +927,9 @@ struct Hub
 	{
 		return Network::List(m_link.toStrongRef());
 	}
-	Interface::List interfaces()
+	Interface::List::Frontend interfaces()
 	{
-		return Interface::List(m_link.toStrongRef());
+		return Interface::List::Frontend(m_link.toStrongRef());
 	}
 
 	void setLink(QSharedPointer<virConnect> value_);
