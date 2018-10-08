@@ -396,15 +396,14 @@ QList<PRL_ALLOWED_VM_COMMAND> CDspVzHelper::getAllowedCommands()
 }
 
 PRL_RESULT CDspVzHelper::fillCtInfo(SmartPtr<CDspClient> pUserSession,
-		const QString& sVmUuid,
-		CVmEvent& outVmEvent)
+		const SmartPtr<CVmConfiguration>& config, CVmEvent& outVmEvent)
 {
+	VIRTUAL_MACHINE_STATE vmState = VMS_STOPPED;
 	PRL_RESULT res = PRL_ERR_SUCCESS;
-	VIRTUAL_MACHINE_STATE vmState = VMS_UNKNOWN;
+	QString sVmUuid = config->getVmIdentification()->getVmUuid();
 
-	(void) sVmUuid;
-
-	res = getVzlibHelper().get_env_status(sVmUuid, vmState);
+	if (!config->getVmSettings()->getVmCommonOptions()->isTemplate())
+		res = getVzlibHelper().get_env_status(sVmUuid, vmState);
 
 	outVmEvent.addEventParameter(
 			new CVmEventParameter( PVE::Integer
@@ -465,10 +464,10 @@ void CDspVzHelper::sendCtInfo(const IOSender::Handle& sender,
 		return;
 	}
 
-	QString uuid = cmd->GetVmUuid();
-
+	SmartPtr<CVmConfiguration> config(new CVmConfiguration);
+	config->getVmIdentification()->setVmUuid(cmd->GetVmUuid());
 	CVmEvent evt;
-	PRL_RESULT rc = fillCtInfo(pUserSession, uuid, evt);
+	PRL_RESULT rc = fillCtInfo(pUserSession, config, evt);
 	if( PRL_FAILED(rc) )
 	{
 		WRITE_TRACE(DBG_WARNING, "fillCtInfo failed: error #%x, %s", rc, PRL_RESULT_TO_STRING(rc) );
@@ -1110,7 +1109,7 @@ void CDspVzHelper::appendAdvancedParamsToCtConfig(
 			pOutConfig->getVmIdentification()->getHomePath()));
 
 	CVmEvent *evt = new CVmEvent;
-	fillCtInfo(pUserSession, sUuid, *evt);
+	fillCtInfo(pUserSession, pOutConfig, *evt);
 	pOutConfig->getVmSettings()->getVmRuntimeOptions()
 		->getInternalVmInfo()->setParallelsEvent(evt);
 	UpdateHardDiskInformation(pOutConfig);

@@ -143,7 +143,7 @@ private:
 			const SmartPtr<IOPackage>& pkg );
 	QList<PRL_ALLOWED_VM_COMMAND> getAllowedCommands();
 	PRL_RESULT fillCtInfo(SmartPtr<CDspClient> pUserSession,
-			const QString& sVmUuid,
+			const SmartPtr<CVmConfiguration>& config,
 			CVmEvent& outVmEvent);
 	void resetCtUptime(const QString &vm_uuid, SmartPtr<CDspClient> pUser,
 			const SmartPtr<IOPackage> &p);
