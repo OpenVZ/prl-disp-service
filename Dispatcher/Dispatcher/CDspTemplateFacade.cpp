@@ -68,7 +68,9 @@ Prl::Expected<QString, PRL_RESULT> File::getPath() const
 	if (!p.isValid())
 		return PRL_ERR_FILE_NOT_FOUND;
 
-	return QFileInfo(p->getVmHome()).absolutePath();
+	if (p->getVmHome().endsWith(VMDIR_DEFAULT_VM_CONFIG_FILE))
+		return QFileInfo(p->getVmHome()).absolutePath();
+	return QFileInfo(p->getVmHome()).absoluteFilePath();
 }
 
 Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> File::getConfig() const
