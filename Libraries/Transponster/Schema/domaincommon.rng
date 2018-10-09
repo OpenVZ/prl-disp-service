@@ -5436,9 +5436,14 @@
         </attribute>
       </optional>
       <optional>
-        <attribute name='checkpoint'>
-          <text/>
-        </attribute>
+        <choice>
+          <attribute name='checkpoint'>
+            <text/>
+          </attribute>
+          <attribute name='allcheckpoints'>
+            <ref name="virYesNo"/>
+          </attribute>
+        </choice>
       </optional>
       <optional>
         <attribute name="readonly">
