@@ -242,13 +242,13 @@ private:
 } // namespace Capability
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1886
+// struct Anonymous1185
 
 namespace Capability
 {
 namespace Xml
 {
-struct Anonymous1886
+struct Anonymous1185
 {
 	const Model& getModel() const
 	{
@@ -305,13 +305,13 @@ struct Mode
 	{
 		m_supported = value_;
 	}
-	const boost::optional<Anonymous1886 >& getAnonymous1886() const
+	const boost::optional<Anonymous1185 >& getAnonymous1185() const
 	{
-		return m_anonymous1886;
+		return m_anonymous1185;
 	}
-	void setAnonymous1886(const boost::optional<Anonymous1886 >& value_)
+	void setAnonymous1185(const boost::optional<Anonymous1185 >& value_)
 	{
-		m_anonymous1886 = value_;
+		m_anonymous1185 = value_;
 	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
@@ -319,7 +319,7 @@ struct Mode
 
 private:
 	EVirYesNo m_supported;
-	boost::optional<Anonymous1886 > m_anonymous1886;
+	boost::optional<Anonymous1185 > m_anonymous1185;
 };
 
 } // namespace Xml
@@ -901,15 +901,15 @@ struct Traits<Capability::Xml::Feature>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1886 traits
+// struct Anonymous1185 traits
 
 template<>
-struct Traits<Capability::Xml::Anonymous1886>
+struct Traits<Capability::Xml::Anonymous1185>
 {
 	typedef Ordered<mpl::vector<Element<Capability::Xml::Model, Name::Strict<231> >, Optional<Element<Text<QString >, Name::Strict<459> > >, ZeroOrMore<Element<Capability::Xml::Feature, Name::Strict<1022> > > > > marshal_type;
 
-	static int parse(Capability::Xml::Anonymous1886& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Anonymous1886& , QDomElement& );
+	static int parse(Capability::Xml::Anonymous1185& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Anonymous1185& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -918,7 +918,7 @@ struct Traits<Capability::Xml::Anonymous1886>
 template<>
 struct Traits<Capability::Xml::Mode>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<1013>, Name::Strict<107> >, Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Optional<Fragment<Capability::Xml::Anonymous1886 > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<1013>, Name::Strict<107> >, Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Optional<Fragment<Capability::Xml::Anonymous1185 > > > > marshal_type;
 
 	static int parse(Capability::Xml::Mode& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Mode& , QDomElement& );

@@ -29,6 +29,9 @@ HEADERS += \
 	blocksnapshot_data.h \
 	blocksnapshot_enum.h \
 	blocksnapshot_type.h \
+	nodedev_data.h \
+	nodedev_enum.h \
+	nodedev_type.h \
 	marshal.h \
 	patterns.h \
 	Direct.h \
@@ -59,5 +62,8 @@ SOURCES	+= \
 	blocksnapshot_data.cpp \
 	blocksnapshot_enum.cpp \
 	blocksnapshot_type.cpp \
+	nodedev_data.cpp \
+	nodedev_enum.cpp \
+	nodedev_type.cpp \
 	Direct.cpp \
 	Reverse.cpp

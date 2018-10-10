@@ -1357,7 +1357,7 @@ PRL_RESULT Direct::setHostOnly()
 			boost::apply_visitor(Visitor::Address::Ip(*h), a.get());
 
 		boost::optional<QString> f = p.getFamily();
-		boost::optional<Libvirt::Network::Xml::VChoice1247> m = p.getChoice1247();
+		boost::optional<Libvirt::Network::Xml::VChoice2401> m = p.getChoice2401();
 		if (f && m)
 			boost::apply_visitor(Visitor::Address::Mask(*h, *f), m.get());
 
@@ -1465,8 +1465,8 @@ PRL_RESULT Direct::setMaster()
 	if (m_input.isNull())
 		return PRL_ERR_READ_XML_CONTENT;
  
-	foreach (const Libvirt::Iface::Xml::VChoice1319& a,
-		m_input->getBridge().getChoice1319List())
+	foreach (const Libvirt::Iface::Xml::VChoice2462& a,
+		m_input->getBridge().getChoice2462List())
 	{
 		if (boost::apply_visitor(Visitor::Bridge::Master(m_master), a))
 			return PRL_ERR_SUCCESS;
@@ -1564,14 +1564,14 @@ Vm::Vm(char* xml_)
 	if (snapshot.isNull())
 		return;
 
-	if (!snapshot->getChoice1815())
+	if (!snapshot->getChoice2916())
 		return;
 
-	if (1 == snapshot->getChoice1815()->which())
+	if (1 == snapshot->getChoice2916()->which())
 	{
 		const Libvirt::Domain::Xml::Domain& d =
-			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice1815::types, 1>::type>
-				(snapshot->getChoice1815().get()).getValue();
+			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice2916::types, 1>::type>
+				(snapshot->getChoice2916().get()).getValue();
 		m_input.reset(new Libvirt::Domain::Xml::Domain(d));
 	}
 }
@@ -1688,7 +1688,7 @@ bool Direct::isValid() const
 {
 	return !m_input.isNull() && m_input->getCpu() &&
 		m_input->getCpu()->getMode2().getSupported() == Libvirt::Capability::Xml::EVirYesNoYes &&
-		m_input->getCpu()->getMode2().getAnonymous1886();
+		m_input->getCpu()->getMode2().getAnonymous1185();
 }
 
 CpuFeatures* Direct::getCpuFeatures() const
@@ -1698,7 +1698,7 @@ CpuFeatures* Direct::getCpuFeatures() const
 
 	QList<QString> d, r;
 	foreach (const Libvirt::Capability::Xml::Feature& f,
-		m_input->getCpu()->getMode2().getAnonymous1886()->getFeatureList())
+		m_input->getCpu()->getMode2().getAnonymous1185()->getFeatureList())
 	{
 		switch (f.getPolicy())
 		{
@@ -1722,7 +1722,7 @@ QString Direct::getCpuModel() const
 	if (!isValid())
 		return QString();
 
-	return m_input->getCpu()->getMode2().getAnonymous1886()
+	return m_input->getCpu()->getMode2().getAnonymous1185()
 		->getModel().getOwnValue();
 }
 

@@ -38,46 +38,50 @@ our $license = <<'LICENSE';
  */
 LICENSE
 our @history_;
-our $historyCursor = 0;
-our $reserved = 0;
+our @historyCursors = ();
+
+sub reverse($$)
+{
+	my ($z, $n) = @_;
+	return undef unless defined($n) && $n gt '';
+
+	my $output;
+	foreach my $c (@historyCursors)
+	{
+		@history_ > $c or last;
+		if ($history_[$c] eq $n)
+		{
+			$output = $c++;
+			$history_[$output] = undef;
+
+			return $output;
+		}
+	}
+	($output) = grep {$data[$_] eq $n} 1..$#data;
+	unless (defined $output)
+	{
+		$output = $historyCursors[$#historyCursors]++;
+		push @data, $n;
+	}
+
+	return $output;
+}
 
 sub generate($$)
 {
 	my $n = $_[1];
-	my $t = $n.($historyCursor - 1);
-	$history_[$historyCursor] ne $t and $t = $n.$#data;
-	return $_[0]->reverse($t);
+	foreach my $c (@historyCursors)
+	{
+		my $t = $n.($c - 1);
+		@history_ < $c and return $_[0]->reverse($t);
+		$history_[$c] eq $t and return $_[0]->reverse($t);
+	}
 }
 
 sub lookup($$)
 {
 	print Dumper(longmess()) unless defined $_[1];
 	return $data[$_[1]];
-}
-
-sub reverse($$)
-{
-	my ($z, $n) = @_;
-	return undef unless defined($n) && $n gt '';
-	my $output;
-	if (@history_ > $historyCursor && $history_[$historyCursor] eq $n)
-	{
-		$output = $historyCursor++;
-		$history_[$output] = undef;
-		++$reserved;
-	}
-	else
-	{
-		($output) = grep {$data[$_] eq $n} 1..$#data;
-		unless (defined $output)
-		{
-			++$reserved;
-			$output = scalar(@data);
-			push @data, $n;
-		}
-	}
-
-	return $output;
 }
 
 sub getDefinition($)
@@ -93,7 +97,7 @@ sub getDefinition($)
 	push @output, "\t".'return g_text[index_ - 1];';
 	push @output, '}';
 	push @output, '';
-	print STDERR 'ERROR: ', ($reserved - $historyCursor), $/;
+	print STDERR 'ERROR: ', ($historyCursors[$#historyCursors] - scalar(@history_)), $/;
 	return @output;
 }
 
@@ -103,17 +107,22 @@ sub prime($$)
 	open(FD, '<', $file) or die "Cannot open file $file: $!$/";
 	@data = ('');
 	@history_ = ('');
-	$reserved = 1;
-	$historyCursor = 1;
+	@historyCursors = (1);
 	while (my $l = <FD>)
 	{
-		if ($l =~ m!QString[(]"([^"]+)"!)
+		if ($l =~ m!QString[(]"([^"]*)"!)
 		{
 			push @data, $1;
 			push @history_, $1;
+			$1 eq '' and push @historyCursors, scalar(@data);
 		}
 	}
 	close FD;
+	if (@data && $data[$#data])
+	{
+		push @data, '';
+		push @historyCursors, scalar(@data);
+	}
 }
 
 package Namespace;
@@ -2139,6 +2148,10 @@ sub generate($)
 	my $d = $self->{data} || $self->getData();
 	unless (@b)
 	{
+		if ($self->{data} && !exists $self->{data}{valueType})
+		{
+			$d = Ng::Text->new($self->{data});
+		}
 		if ($d)
 		{
 			$self->{pod} = $d;
@@ -2328,13 +2341,12 @@ sub generate($)
 	}
 	foreach my $b (@{$self->{blocks}})
 	{
-		$p = 0;
 		$b->generate();
+		$p = $p && $b->getData();
 		if ($b->getData())
 		{
 			my $d = $b->getData();
 			$v->addAlternative($d);
-			$p = 1;
 		}
 		elsif ($b->getType())
 		{

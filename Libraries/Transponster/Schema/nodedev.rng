@@ -16,7 +16,23 @@
         <element name="path"><text/></element>
       </optional>
       <optional>
-        <element name="parent"><text/></element>
+        <element name="devnode">
+          <attribute name='type'>
+            <value>dev</value>
+          </attribute>
+          <text/>
+        </element>
+      </optional>
+      <zeroOrMore>
+        <element name="devnode">
+          <attribute name='type'>
+            <value>link</value>
+          </attribute>
+          <text/>
+        </element>
+      </zeroOrMore>
+      <optional>
+        <ref name="parent"/>
       </optional>
 
       <optional>
@@ -31,6 +47,29 @@
     </element>
   </define>
 
+  <define name='parent'>
+    <element name='parent'>
+      <choice>
+        <group>
+          <attribute name='wwnn'>
+            <ref name='wwn'/>
+          </attribute>
+          <attribute name='wwpn'>
+            <ref name='wwn'/>
+          </attribute>
+          <empty/>
+        </group>
+        <group>
+          <attribute name='fabric_wwn'>
+            <ref name='wwn'/>
+          </attribute>
+          <empty/>
+        </group>
+        <text/>
+      </choice>
+    </element>
+  </define>
+
   <define name='capability'>
     <element name="capability">
       <choice>
@@ -40,8 +79,12 @@
         <ref name="capusbinterface"/>
         <ref name="capnet"/>
         <ref name="capscsihost"/>
+        <ref name="capscsitarget"/>
         <ref name="capscsi"/>
         <ref name="capstorage"/>
+        <ref name="capdrm"/>
+        <ref name="capmdev"/>
+        <ref name="capccwdev"/>
       </choice>
     </element>
   </define>
@@ -142,8 +185,48 @@
           <value>virt_functions</value>
         </attribute>
         <optional>
-          <ref name='address'/>
+          <attribute name='maxCount'>
+            <ref name='unsignedInt'/>
+          </attribute>
         </optional>
+        <zeroOrMore>
+          <ref name='address'/>
+        </zeroOrMore>
+      </element>
+    </optional>
+
+    <optional>
+      <element name='capability'>
+        <attribute name='type'>
+          <choice>
+            <value>pci-bridge</value>
+            <value>cardbus-bridge</value>
+          </choice>
+        </attribute>
+      </element>
+    </optional>
+
+    <optional>
+      <element name='capability'>
+        <attribute name='type'>
+          <value>mdev_types</value>
+        </attribute>
+        <oneOrMore>
+          <element name='type'>
+            <attribute name='id'>
+              <data type='string'/>
+            </attribute>
+            <optional>
+              <element name='name'><text/></element>
+            </optional>
+            <element name='deviceAPI'>
+              <value>vfio-pci</value>
+            </element>
+            <element name='availableInstances'>
+              <ref name='unsignedInt'/>
+            </element>
+          </element>
+        </oneOrMore>
       </element>
     </optional>
 
@@ -275,8 +358,22 @@
     <ref name="link-speed-state"/>
 
     <zeroOrMore>
+      <element name='feature'>
+        <attribute name='name'>
+          <ref name='netfeaturename'/>
+        </attribute>
+      </element>
+    </zeroOrMore>
+
+    <zeroOrMore>
       <ref name='subcapnet'/>
     </zeroOrMore>
+  </define>
+
+  <define name='netfeaturename'>
+    <data type='string'>
+      <param name='pattern'>[a-zA-Z\-_]+</param>
+    </data>
   </define>
 
   <define name='subcapnet'>
@@ -313,9 +410,11 @@
       <ref name='wwn'/>
     </element>
 
-    <element name='fabric_wwn'>
-      <ref name='wwn'/>
-    </element>
+    <optional>
+      <element name='fabric_wwn'>
+        <ref name='wwn'/>
+      </element>
+    </optional>
   </define>
 
   <define name='capsvports'>
@@ -354,6 +453,36 @@
           </choice>
         </element>
       </zeroOrMore>
+    </optional>
+  </define>
+
+  <define name='capsfcrport'>
+    <attribute name='type'>
+      <value>fc_remote_port</value>
+    </attribute>
+
+    <element name='rport'>
+      <text/>
+    </element>
+
+    <element name='wwpn'>
+      <ref name='wwn'/>
+    </element>
+  </define>
+
+  <define name='capscsitarget'>
+    <attribute name='type'>
+      <value>scsi_target</value>
+    </attribute>
+
+    <element name='target'>
+      <text/>
+    </element>
+
+    <optional>
+      <element name='capability'>
+        <ref name='capsfcrport'/>
+      </element>
     </optional>
   </define>
 
@@ -402,7 +531,7 @@
     <optional>
       <element name='model'>
         <text/>
-        </element>
+      </element>
     </optional>
     <optional>
       <element name='vendor'>
@@ -458,6 +587,50 @@
     </element>
   </define>
 
+  <define name='capdrm'>
+    <attribute name='type'>
+      <value>drm</value>
+    </attribute>
+    <element name='type'>
+      <choice>
+        <value>primary</value>
+        <value>control</value>
+        <value>render</value>
+      </choice>
+    </element>
+  </define>
+
+  <define name='capmdev'>
+    <attribute name='type'>
+      <value>mdev</value>
+    </attribute>
+    <element name='type'>
+      <attribute name='id'>
+        <data type='string'/>
+      </attribute>
+    </element>
+    <element name='iommuGroup'>
+      <attribute name='number'>
+        <ref name='unsignedInt'/>
+      </attribute>
+    </element>
+  </define>
+
+  <define name='capccwdev'>
+    <attribute name='type'>
+      <value>ccw</value>
+    </attribute>
+    <element name='cssid'>
+      <ref name='ccwCssidRange'/>
+    </element>
+    <element name='ssid'>
+      <ref name='ccwSsidRange'/>
+    </element>
+    <element name='devno'>
+      <ref name='ccwDevnoRange'/>
+    </element>
+  </define>
+
   <define name='address'>
     <element name='address'>
       <attribute name='domain'><ref name='hexuint'/></attribute>
@@ -465,12 +638,6 @@
       <attribute name='slot'><ref name='hexuint'/></attribute>
       <attribute name='function'><ref name='hexuint'/></attribute>
     </element>
-  </define>
-
-  <define name='hexuint'>
-    <data type='string'>
-      <param name="pattern">(0x)?[0-9a-f]+</param>
-    </data>
   </define>
 
   <define name='mac'>
