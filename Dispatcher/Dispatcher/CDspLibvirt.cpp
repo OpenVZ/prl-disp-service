@@ -870,6 +870,8 @@ int State::react(virConnectPtr, virDomainPtr domain_, int event_,
 {
 	QSharedPointer<Model::System::entry_type> d;
 	Model::Coarse* v = (Model::Coarse* )opaque_;
+	WRITE_TRACE(DBG_FATAL, "from libvirt: VM \"%s\" lifecycle event %d(event_) %d(subtype_)",
+		virDomainGetName(domain_), event_, subtype_);
 	switch (event_)
 	{
 	case VIR_DOMAIN_EVENT_DEFINED:
