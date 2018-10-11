@@ -19,6 +19,7 @@ KillMode=mixed
 #RestartSec=5s
 LimitNOFILE=102400
 OOMScoreAdjust=-500
+StandardError=null
 
 [Install]
 WantedBy=multi-user.target
