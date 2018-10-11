@@ -2352,9 +2352,9 @@ struct Builder
 		m_result.setAddress(Libvirt::Network::Xml::VIpAddr(a));
 		typename mpl::at_c<Libvirt::Network::Xml::VIpPrefix::types, T::index>::type p;
 		p.setValue(T::getMask(mask_));
-		mpl::at_c<Libvirt::Network::Xml::VChoice1247::types, 1>::type m;
+		mpl::at_c<Libvirt::Network::Xml::VChoice2401::types, 1>::type m;
 		m.setValue(p);
-		m_result.setChoice1247(Libvirt::Network::Xml::VChoice1247(m));
+		m_result.setChoice2401(Libvirt::Network::Xml::VChoice2401(m));
 	}
 	void setDhcp(const CDHCPServer& model_)
 	{
@@ -2478,10 +2478,10 @@ PRL_RESULT Reverse::setMaster()
 	Libvirt::Iface::Xml::BasicEthernetContent e;
 	e.setMac(m_master.getMacAddress());
 	e.setName(m_master.getDeviceName());
-	mpl::at_c<Libvirt::Iface::Xml::VChoice1319::types, 0>::type v;
+	mpl::at_c<Libvirt::Iface::Xml::VChoice2462::types, 0>::type v;
 	v.setValue(e);
 	Libvirt::Iface::Xml::Bridge b = m_result.getBridge();
-	b.setChoice1319List(QList<Libvirt::Iface::Xml::VChoice1319>() << v);
+	b.setChoice2462List(QList<Libvirt::Iface::Xml::VChoice2462>() << v);
 	m_result.setBridge(b);
 	return PRL_ERR_SUCCESS;
 }
@@ -2492,7 +2492,7 @@ PRL_RESULT Reverse::setBridge()
 	b.setDelay(2.0);
 	b.setStp(Libvirt::Iface::Xml::EVirOnOffOff);
 	m_result.setBridge(b);
-	Libvirt::Iface::Xml::InterfaceAddressing1349 h;
+	Libvirt::Iface::Xml::InterfaceAddressing2466 h;
 	if (!m_master.isConfigureWithDhcp())
 	{
 		if (!m_master.isConfigureWithDhcpIPv6())
@@ -2502,9 +2502,9 @@ PRL_RESULT Reverse::setBridge()
 		p.setDhcp(Libvirt::Iface::Xml::Dhcp());
 		h.setProtocol2(p);
 	}
-	mpl::at_c<Libvirt::Iface::Xml::VChoice1355::types, 0>::type a;
+	mpl::at_c<Libvirt::Iface::Xml::VChoice2470::types, 0>::type a;
 	a.setValue(Libvirt::Iface::Xml::Dhcp());
-	h.setProtocol(Libvirt::Iface::Xml::VChoice1355(a));
+	h.setProtocol(Libvirt::Iface::Xml::VChoice2470(a));
 	mpl::at_c<Libvirt::Iface::Xml::VInterfaceAddressing::types, 0>::type v;
 	v.setValue(h);
 	m_result.setInterfaceAddressing(v);
@@ -2579,7 +2579,7 @@ QList<Libvirt::Snapshot::Xml::Disk> getAbsentee(const QList<T* >& list_)
 		mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 		a.setValue(Device::Clustered::Model<T>(*d).getTargetName());
 		mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 0>::type b;
-		b.setValue(Libvirt::Snapshot::Xml::Disk1834());
+		b.setValue(Libvirt::Snapshot::Xml::Disk2926());
 		Libvirt::Snapshot::Xml::Disk x;
 		x.setName(Libvirt::Snapshot::Xml::VName(a));
 		x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
@@ -2599,7 +2599,7 @@ boost::optional<Libvirt::Snapshot::Xml::Disk> Internal::operator()(const CVmHard
 	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 	a.setValue(Device::Clustered::Model<CVmHardDisk>(disk_).getTargetName());
 	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 1>::type b;
-	b.setValue(Libvirt::Snapshot::Xml::Disk1835());
+	b.setValue(Libvirt::Snapshot::Xml::Disk2927());
 	x.setName(Libvirt::Snapshot::Xml::VName(a));
 	x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
 	return x;
@@ -2616,15 +2616,15 @@ boost::optional<Libvirt::Snapshot::Xml::Disk> External::operator()(const CVmHard
 	Libvirt::Snapshot::Xml::Disk x;
 	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 	Libvirt::Snapshot::Xml::Source s;
-	Libvirt::Snapshot::Xml::Variant1829 o;
-	mpl::at_c<Libvirt::Snapshot::Xml::VChoice1832::types, 0>::type p;
+	Libvirt::Snapshot::Xml::Variant2921 o;
+	mpl::at_c<Libvirt::Snapshot::Xml::VChoice2924::types, 0>::type p;
 	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 2>::type q;
 
 	a.setValue(Device::Clustered::Model<CVmHardDisk>(disk_).getTargetName());
 	s.setFile(disk_.getSystemName() + "." + m_snapshot);
 	o.setSource(s);
 	p.setValue(o);
-	q.setValue(Libvirt::Snapshot::Xml::VChoice1832(p));
+	q.setValue(Libvirt::Snapshot::Xml::VChoice2924(p));
 
 	x.setName(Libvirt::Snapshot::Xml::VName(a));
 	x.setDisk(Libvirt::Snapshot::Xml::VDisk(q));
@@ -2755,9 +2755,9 @@ PRL_RESULT Request::operator()(const object_type& object_)
 		n.setValue(d.get<1>());
 		y.setName(n);
 
-		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice2110::types, 1>::type c;
+		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice3195::types, 1>::type c;
 		c.setValue(Libvirt::Blockexport::Xml::EVirYesNoYes);
-		y.setChoice2110(Libvirt::Blockexport::Xml::VChoice2110(c));
+		y.setChoice3195(Libvirt::Blockexport::Xml::VChoice3195(c));
 
 		x << y;
 	}

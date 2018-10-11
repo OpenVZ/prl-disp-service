@@ -344,30 +344,30 @@ int Traits<Capability::Xml::Feature>::generate(const Capability::Xml::Feature& s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous1886
+// struct Anonymous1185
 
 namespace Capability
 {
 namespace Xml
 {
-bool Anonymous1886::load(const QDomElement& src_)
+bool Anonymous1185::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
 	k.push(src_.firstChildElement());
-	return 0 <= Traits<Anonymous1886>::parse(*this, k);
+	return 0 <= Traits<Anonymous1185>::parse(*this, k);
 }
 
-bool Anonymous1886::save(QDomElement& dst_) const
+bool Anonymous1185::save(QDomElement& dst_) const
 {
-	return 0 <= Traits<Anonymous1886>::generate(*this, dst_);
+	return 0 <= Traits<Anonymous1185>::generate(*this, dst_);
 }
 
 
 } // namespace Xml
 } // namespace Capability
 
-int Traits<Capability::Xml::Anonymous1886>::parse(Capability::Xml::Anonymous1886& dst_, QStack<QDomElement>& stack_)
+int Traits<Capability::Xml::Anonymous1185>::parse(Capability::Xml::Anonymous1185& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -380,7 +380,7 @@ int Traits<Capability::Xml::Anonymous1886>::parse(Capability::Xml::Anonymous1886
 	return output;
 }
 
-int Traits<Capability::Xml::Anonymous1886>::generate(const Capability::Xml::Anonymous1886& src_, QDomElement& dst_)
+int Traits<Capability::Xml::Anonymous1185>::generate(const Capability::Xml::Anonymous1185& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getModel(), m.get<0>()))
@@ -441,7 +441,7 @@ int Traits<Capability::Xml::Mode>::parse(Capability::Xml::Mode& dst_, QStack<QDo
 	if (0 <= output)
 	{
 		dst_.setSupported(m.get<1>().getValue());
-		dst_.setAnonymous1886(m.get<2>().getValue());
+		dst_.setAnonymous1185(m.get<2>().getValue());
 	}
 	return output;
 }
@@ -451,7 +451,7 @@ int Traits<Capability::Xml::Mode>::generate(const Capability::Xml::Mode& src_, Q
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSupported(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAnonymous1886(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getAnonymous1185(), m.get<2>()))
 		return -1;
 
 	return m.produce(dst_);
