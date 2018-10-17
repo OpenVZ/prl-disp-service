@@ -32,16 +32,18 @@
 #ifndef __DIRECT_H__
 #define __DIRECT_H__
 
-#include "capability_type.h"
 #include "iface_type.h"
 #include "domain_type.h"
 #include "network_type.h"
+#include "nodedev_type.h"
 #include "snapshot_type.h"
+#include "capability_type.h"
 #include <prlxmlmodel/VtInfo/VtInfo.h>
-#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <Libraries/StatesStore/SavedStateTree.h>
+#include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/NetworkConfig/CVirtualNetwork.h>
 #include <prlxmlmodel/HostHardwareInfo/CHwNetAdapter.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwGenericPciDevice.h>
 
 namespace Transponster
 {
@@ -306,26 +308,36 @@ struct View: Libvirt::Details::Value::Bin
 } // namespace Export
 } // namespace Snapshot
 
-namespace Capabilities
+namespace Host
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Pci
+
+struct Pci: Libvirt::Details::Value::Bin<boost::optional<CHwGenericPciDevice> >
+{
+	typedef Libvirt::Nodedev::Xml::Device object_type;
+
+	PRL_RESULT operator()(const object_type& object_);
+};
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Direct
+// struct Capabilities
 
-struct Direct
+struct Capabilities: private Libvirt::Details::Value::Bin
+			<Libvirt::Capability::Xml::DomainCapabilities>
 {
-	explicit Direct(char* xml_);
+	typedef Libvirt::Capability::Xml::DomainCapabilities object_type;
+
+	PRL_RESULT operator()(const object_type& object_);
 
 	CpuFeatures* getCpuFeatures() const;
 	QString getCpuModel() const;
 
 private:
 	bool isValid() const;
-
-	QScopedPointer<Libvirt::Capability::Xml::DomainCapabilities> m_input;
 };
 
-} // namespace Capabilities
+} // namespace Host
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Director

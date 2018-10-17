@@ -698,7 +698,6 @@ void Adjustment::operator()(const mpl::at_c<Libvirt::Domain::Xml::VClock::types,
 
 namespace Controller
 {
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Usb
 
@@ -724,6 +723,31 @@ void Usb::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice625::types, 2>
 	default:
 		return;
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Pci
+
+bool Pci::operator()(const mpl::at_c<Libvirt::Nodedev::Xml::VCapability::types, 1>::type& pci_) const
+{
+	const mpl::at_c<Libvirt::Nodedev::Xml::VCapability::types, 1>::type::value_type& v = 
+		pci_.getValue();
+
+	if (!v.getCapability())
+		return false;
+
+	CHwGenericPciDevice d;
+	d.setDeviceName(v.getProduct().getOwnValue());
+	d.setDeviceId(QString("%1:%2:%3:%4.%5")
+		.arg(v.getBus()).arg(v.getSlot()).arg(v.getFunction())
+		.arg(v.getVendor().getId())
+		.arg(v.getProduct().getId()));
+	d.setType(PGD_PCI_OTHER);
+	d.setPrimary(true);
+	d.setSupported(true);
+	*m_bin = d;
+
+	return true;
 }
 
 } // namespace Controller
@@ -1673,32 +1697,43 @@ boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> Clip::getControllerModel(const Lib
 	return m;
 }
 
-namespace Capabilities
+namespace Host
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Pci
+
+PRL_RESULT Pci::operator()(const object_type& object_)
+{
+	foreach (const Libvirt::Nodedev::Xml::VCapability& c, object_.getCapabilityList())
+	{
+		Visitor::Controller::Pci::bin_type b;
+		if (boost::apply_visitor(Visitor::Controller::Pci(b), c))
+		{
+			setValue(b);
+			break;
+		}
+	}
+
+	return PRL_ERR_SUCCESS;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Direct
+// struct Capabilities
 
-Direct::Direct(char* xml_)
+PRL_RESULT Capabilities::operator()(const object_type& object_)
 {
-	shape(xml_, m_input);
+	setValue(object_);
+	return PRL_ERR_SUCCESS;
 }
 
-bool Direct::isValid() const
-{
-	return !m_input.isNull() && m_input->getCpu() &&
-		m_input->getCpu()->getMode2().getSupported() == Libvirt::Capability::Xml::EVirYesNoYes &&
-		m_input->getCpu()->getMode2().getAnonymous1185();
-}
-
-CpuFeatures* Direct::getCpuFeatures() const
+CpuFeatures* Capabilities::getCpuFeatures() const
 {
 	if (!isValid())
 		return NULL;
 
 	QList<QString> d, r;
 	foreach (const Libvirt::Capability::Xml::Feature& f,
-		m_input->getCpu()->getMode2().getAnonymous1185()->getFeatureList())
+		getValue().getCpu()->getMode2().getAnonymous1185()->getFeatureList())
 	{
 		switch (f.getPolicy())
 		{
@@ -1717,14 +1752,18 @@ CpuFeatures* Direct::getCpuFeatures() const
 	return output;
 }
 
-QString Direct::getCpuModel() const
+QString Capabilities::getCpuModel() const
 {
-	if (!isValid())
-		return QString();
-
-	return m_input->getCpu()->getMode2().getAnonymous1185()
+	return getValue().getCpu()->getMode2().getAnonymous1185()
 		->getModel().getOwnValue();
 }
 
-} // namespace Capabilities
+bool Capabilities::isValid() const
+{
+	return getValue().getCpu() &&
+		getValue().getCpu()->getMode2().getSupported() == Libvirt::Capability::Xml::EVirYesNoYes &&
+		getValue().getCpu()->getMode2().getAnonymous1185();
+}
+
+} // namespace Host
 } // namespace Transponster

@@ -611,7 +611,6 @@ private:
 
 namespace Controller
 {
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Collect
 
@@ -701,6 +700,29 @@ struct Usb: boost::static_visitor<void>
 private:
 	CVmUsbController *m_settings;
 	CVmHardware *m_hardware;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Pci
+
+struct Pci: boost::static_visitor<bool>
+{
+	typedef CHwGenericPciDevice bin_type;
+
+	explicit Pci(bin_type& bin_): m_bin(&bin_)
+	{
+	}
+
+	template<class T>
+	bool operator()(const T& ) const
+	{
+		return false;
+	}
+
+	bool operator()(const mpl::at_c<Libvirt::Nodedev::Xml::VCapability::types, 1>::type& pci_) const;
+
+private:
+	bin_type* m_bin;
 };
 
 } // namespace Controller
