@@ -3452,16 +3452,44 @@ Prl::Expected<VtInfo, Error::Simple> Host::getVt() const
 			->getDispatcherSettings()->getCommonPreferences()
 			->getWorkspacePreferences()->getVmGuestCpuLimitType());
 
+	Transponster::Host::Capabilities d;
 	char *caps = virConnectGetDomainCapabilities(m_link.data(),
 		NULL, NULL, NULL, NULL, 0);
-	if (caps == NULL)
+	if (PRL_FAILED(Transponster::Director::marshalDirect(caps, d)))
 		return Failure(PRL_ERR_FAILURE);
 
-	Transponster::Capabilities::Direct d(caps);
 	v.setCpuFeatures(d.getCpuFeatures());
 	v.setCpuModel(d.getCpuModel());
 
 	return v;
+}
+
+Prl::Expected<QList<CHwGenericPciDevice>, ::Error::Simple>
+	Host::getAssignablePci() const
+{
+	virNodeDevicePtr* a = NULL;
+	int n = virConnectListAllNodeDevices(m_link.data(), &a,
+		VIR_CONNECT_LIST_NODE_DEVICES_CAP_PCI_DEV);
+	if (-1 == n)
+		return Failure(PRL_ERR_FAILURE);
+
+	Prl::Expected<QList<CHwGenericPciDevice>, ::Error::Simple> output;
+	for (int i = 0; i < n; ++i)
+	{
+		Transponster::Host::Pci u;
+		char* x = virNodeDeviceGetXMLDesc(a[i], 0);
+		if (PRL_FAILED(Transponster::Director::marshalDirect(x, u)))
+		{
+			output = Failure(PRL_ERR_FAILURE);
+			break;
+		}
+		if (u.getValue())
+			output.value() << u.getValue().get();
+	}
+	for (int i = 0; i < n; virNodeDeviceFree(a[i++]));
+	free(a);
+
+	return output;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
