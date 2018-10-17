@@ -507,6 +507,13 @@ void CDspHostInfo::refresh(quint64 nFlags)
 		// clear list of PCI devices
 		CleanupGenericDevicesList(p_HostHwInfo->m_lstGenericPciDevices, p_HostHwInfo->getGenericPciDevices());
 		// get pci list of PCI devices
+		if (!m_pciStrategy.empty())
+		{
+			foreach (const CHwGenericPciDevice& d, *m_pciStrategy())
+			{
+				p_HostHwInfo->addGenericPciDevice(new CHwGenericPciDevice(d));
+			}
+		}
 		WRITE_TRACE(DBG_DEBUG, "--- PCI info refreshed ---");
 	}
 
