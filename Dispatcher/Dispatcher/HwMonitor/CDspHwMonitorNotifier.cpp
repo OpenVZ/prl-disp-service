@@ -44,6 +44,7 @@
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlCommonUtilsBase/EnumToString.h>
 #include <prlsdk/PrlEnums.h>
+#include <boost/functional/value_factory.hpp>
 #include <Libraries/PowerWatcher/PowerWatcher.h>
 
 using namespace Parallels;
@@ -66,9 +67,12 @@ CDspHwMonitorNotifier::CDspHwMonitorNotifier ()
 		CDispUsbPreferences _usb_prefs( CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()->getUsbPreferences() );
 		CDspService::instance()->getHostInfo()->getUsbAuthentic()->SetUsbPreferences( _usb_prefs );
 	}
+	pullPci();
 	//Update host info with USB devices detection
 	{
 		CDspLockedPointer<CDspHostInfo> spHostInfo = CDspService::instance()->getHostInfo();
+		spHostInfo->adopt(boost::bind(boost::value_factory<CDspHostInfo::pciBin_type>(),
+			&m_pciGuard, &m_pciList));
 		spHostInfo->refresh(HI_UPDATE_ALL);
 		// Copy usb device list
 		QList<CHwUsbDevice*> &lstUsbDev = spHostInfo->data()->m_lstUsbDevices;
@@ -101,6 +105,24 @@ CDspHwMonitorNotifier::~CDspHwMonitorNotifier()
 {
 	foreach( CHwUsbDevice *dev, m_lstUsbDev)
 		delete dev;
+
+	CDspService::instance()->getHostInfo()->adopt(CDspHostInfo::pciStrategy_type());
+}
+
+void CDspHwMonitorNotifier::pullPci()
+{
+	Prl::Expected<QList<CHwGenericPciDevice>, Error::Simple> f =
+		Libvirt::Kit.host().getAssignablePci();
+	if (f.isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot read host PCI devices: %s",
+			PRL_RESULT_TO_STRING(f.error().code()));
+	}
+	else
+	{
+		QMutexLocker g(&m_pciGuard);
+		m_pciList = f.value();
+	}
 }
 
 /** Process timeout() signal */
@@ -124,7 +146,7 @@ void CDspHwMonitorNotifier::onCheckHwChanges()
 			m_delayedRefreshFlags);
 		return;
 	}
-
+	pullPci();
 	bool bChanged = false;
 	{
 		CDspLockedPointer<CDspHostInfo> p_lockedHostInfo = CDspService::instance()->getHostInfo();
