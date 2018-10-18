@@ -1447,6 +1447,7 @@ System::System(Registry::Actual& registry_): m_registry(registry_)
 
 void System::remove(const QString& uuid_)
 {
+	WRITE_TRACE(DBG_FATAL, "REMOVE %s %p %d", qPrintable(uuid_), this, m_domainMap.size());
 	domainMap_type::iterator p = m_domainMap.find(uuid_);
 	if (m_domainMap.end() == p)
 		return;
@@ -1460,6 +1461,7 @@ void System::remove(const QString& uuid_)
 
 QSharedPointer<System::entry_type> System::add(const QString& uuid_)
 {
+	WRITE_TRACE(DBG_FATAL, "ADD1 %s", qPrintable(uuid_));
 	if (uuid_.isEmpty() || m_domainMap.contains(uuid_))
 		return QSharedPointer<System::entry_type>();
 
@@ -1467,12 +1469,14 @@ QSharedPointer<System::entry_type> System::add(const QString& uuid_)
 	if (a.isFailed())
 		return QSharedPointer<System::entry_type>();
 
+	WRITE_TRACE(DBG_FATAL, "ADD2 %s %p %d", qPrintable(uuid_), this, m_domainMap.size());
 	QSharedPointer<System::entry_type> x(new System::entry_type(a.value()));
 	return m_domainMap[uuid_] = x;
 }
 
 QSharedPointer<System::entry_type> System::find(const QString& uuid_)
 {
+	WRITE_TRACE(DBG_FATAL, "FIND %s %p %d", qPrintable(uuid_), this, m_domainMap.size());
 	domainMap_type::const_iterator p = m_domainMap.find(uuid_);
 	if (m_domainMap.end() == p)
 		return QSharedPointer<System::entry_type>();
