@@ -179,6 +179,18 @@ CUnixSignalHandler* CUnixSignalHandler::installHandler( int signum )
 	return handler;
 }
 
+void CUnixSignalHandler::ignore(int signum)
+{
+	struct sigaction newAction;
+
+	newAction.sa_handler = SIG_IGN;
+	sigemptyset(&newAction.sa_mask);
+	newAction.sa_flags = 0;
+	newAction.sa_flags |= SA_RESTART;
+
+	sigaction(signum, &newAction, NULL);
+}
+
 CUnixSignalHandler* CUnixSignalHandler::getHandler( int signum )
 {
 	QMutexLocker locker( & CUnixSignalHandlerPrivate::m_mutex );

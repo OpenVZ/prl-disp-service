@@ -873,6 +873,7 @@ void CDspService::start ()
 		}
 		CDspDBusHub::createDetached();
 		// System signals handler.
+		CUnixSignalHandler::ignore(SIGHUP);
 		CUnixSignalHandler* pSigTermHandler = CUnixSignalHandler::installHandler(SIGTERM);
 		if ( !pSigTermHandler )
 			WRITE_TRACE( DBG_FATAL, "Can't setup handler for SIGTERM signal" );

@@ -46,6 +46,7 @@ class CUnixSignalHandler : public QObject
 
 public:
 	static CUnixSignalHandler* installHandler( int signum );
+	static void ignore( int signum );
 	static CUnixSignalHandler* getHandler( int signum );
 	static void removeHandler( int signum );
 
