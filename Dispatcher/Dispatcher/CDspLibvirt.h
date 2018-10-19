@@ -50,6 +50,7 @@
 #include <prlxmlmodel/HostHardwareInfo/CHwNetAdapter.h>
 #include <prlxmlmodel/BackupActivity/SnapshotComponent.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
+#include <prlxmlmodel/HostHardwareInfo/CHwGenericPciDevice.h>
 
 struct _virDomain;
 typedef struct _virDomain virDomain;
@@ -907,6 +908,8 @@ struct Host
 	}
 
 	Prl::Expected<VtInfo, ::Error::Simple> getVt() const;
+	Prl::Expected<QList<CHwGenericPciDevice>, ::Error::Simple>
+		getAssignablePci() const;
 
 private:
 	QSharedPointer<virConnect> m_link;

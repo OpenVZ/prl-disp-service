@@ -45,7 +45,8 @@
 #include <QStringList>
 #include <QList>
 #include <map>
-
+#include <boost/function.hpp>
+#include <prlcommon/Std/LockedPtr.h>
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlcommon/Interfaces/ParallelsTypes.h>
 #include <prlcommon/Interfaces/ParallelsQt.h>
@@ -181,6 +182,8 @@ class CDspHostInfo
 	static const unsigned int VM_MAX_MEM_32BIT;
 
 public:
+	typedef LockedPtr<QList<CHwGenericPciDevice> > pciBin_type;
+	typedef boost::function<pciBin_type ()> pciStrategy_type;
 
 	enum UpdateHardwareInfo
 	{
@@ -285,6 +288,11 @@ public:
 	static PRL_USB_DEVICE_TYPE UsbDEV2PUDT(UINT, UINT);
 	static PRL_USB_DEVICE_TYPE UsbIFC2PUDT(UINT, UINT, UINT);
 
+	void adopt(const pciStrategy_type& value_)
+	{
+		m_pciStrategy = value_;
+	}
+
 private:
 	/* temporary directory listing list */
 	QStringList m_strListTmp;
@@ -296,6 +304,8 @@ private:
 	CHostHardwareInfo* p_HostHwInfo;
 
 	PRL_UINT32 m_nRefreshFlags;
+
+	pciStrategy_type m_pciStrategy;
 
 private:
     // Common constructor

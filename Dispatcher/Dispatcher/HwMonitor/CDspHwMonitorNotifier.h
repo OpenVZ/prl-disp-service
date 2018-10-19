@@ -42,6 +42,7 @@
 #include <QPair>
 #include <QHash>
 #include "CDspClient.h"
+#include <prlxmlmodel/HostHardwareInfo/CHwGenericPciDevice.h>
 
 class CHwUsbDevice;
 class CUsbAuthenticNameList;
@@ -100,6 +101,9 @@ private:
 
 	quint64 m_delayedRefreshFlags;
 
+	QMutex m_pciGuard;
+	QList<CHwGenericPciDevice> m_pciList;
+
 private:
 	/** Notify connected clients */
 	void notifyClients();
@@ -153,6 +157,7 @@ private:
 
 	bool hasConnectedClientsOrRunningVMs() const;
 
+	void pullPci();
 };
 
 #endif//_DSP_HW_MONITOR_NOTIFIER_H_

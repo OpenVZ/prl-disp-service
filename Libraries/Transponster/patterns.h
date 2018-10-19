@@ -930,15 +930,17 @@ struct Element: Fragment<T>
 		if (!Name::Traits<N>::consume(e))
 			return -1;
 
-		stack_.push(e.firstChildElement());
-		int x = Fragment<T>::consume(stack_);
+		QStack<QDomElement> s(stack_);
+		s.push(e.firstChildElement());
+		int x = Fragment<T>::consume(s);
 		if (0 > x)
 			return x;
 
-		QDomElement t = stack_.pop();
+		QDomElement t = s.pop();
 		if (!t.isNull())
 			return -1;
 
+		stack_.swap(s);
 		(void)stack_.pop();
 		stack_.push(e.nextSiblingElement());
 		return 1;
