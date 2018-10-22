@@ -82,7 +82,6 @@ private:
 	/* compare available and requires disk spaces */
 	void checkRequiresDiskSpace();
 	void checkRemoteDisplay();
-	void checkEfiBoot();
 	void checkFlags();
 	void checkBinary();
 	/**
