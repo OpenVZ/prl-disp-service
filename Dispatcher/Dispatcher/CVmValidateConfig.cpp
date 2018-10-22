@@ -1047,7 +1047,7 @@ void CVmValidateConfig::CheckBootOption()
 	}
 
 	if (m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsType() == PVS_GUEST_TYPE_WINDOWS
-		&& m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsVersion() < PVS_GUEST_VER_WIN_WINDOWS8
+		&& m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsVersion() < PVS_GUEST_VER_WIN_2008
 		&& m_pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled())
 	{
 		m_lstResults += PRL_ERR_VMCONF_EFI_UNSUPPORTED_GUEST;

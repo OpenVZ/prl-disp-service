@@ -335,6 +335,105 @@ bool Resources::getChipset(Libvirt::Domain::Xml::Os2& dst_)
 	return true;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct CommandLine
+
+CommandLine& CommandLine::seed(const boost::optional<Libvirt::Domain::Xml::Commandline>& original_)
+{
+	if (original_)
+		m_result = original_->getArgList();
+	else
+		m_result.clear();
+
+	return *this;
+}
+
+CommandLine& CommandLine::addDebug()
+{
+	if (DBG_DEBUG > __log_level)
+		return *this;
+
+	// Due #PSBM-75384 - now unconditionally
+	if (NULL == m_source->getVmIdentification())
+		return *this;
+
+	if (!m_result.contains("-global"))
+		m_result << "-global" << "isa-debugcon.iobase=0x402";
+
+	if (!m_result.contains("-debugcon"))
+	{
+		m_result << "-debugcon" << QString("file:/var/log/libvirt/qemu/%1.qdbg.log")
+			.arg(m_source->getVmIdentification()->getVmName());
+	}
+
+	return *this;
+}
+
+CommandLine& CommandLine::addLogging()
+{
+	if (!m_result.contains("-d"))
+		m_result << "-d" << "guest_errors,unimp";
+
+	return *this;
+}
+
+void CommandLine::stripParameter(int at_)
+{
+	if (-1 < at_ && at_ < m_result.size())
+	{
+		m_result.removeAt(at_+1);
+		m_result.removeAt(at_);
+	}
+}
+
+CommandLine& CommandLine::stripDebugcon()
+{
+	// remove "-debugcon <vm-home-path>/qdbg.log" from commandline
+	stripParameter(m_result.indexOf("-debugcon"));
+	return *this;
+}
+
+CommandLine& CommandLine::workaroundEfi2008R2()
+{
+	CVmSettings* s = m_source->getVmSettings();
+	if (NULL == s)
+		return *this;
+
+	CVmStartupOptions* o = s->getVmStartupOptions();
+	if (NULL == o)
+		return *this;
+
+	CVmStartupBios* b = o->getBios();
+	if (NULL == b)
+		return *this;
+
+	quint32 v = s->getVmCommonOptions()->getOsVersion();
+	int i = m_result.indexOf("-fw_cfg");
+	//EFI boot support
+	if (IS_WINDOWS(v) && (v == PVS_GUEST_VER_WIN_WINDOWS7 || v == PVS_GUEST_VER_WIN_2008)
+		&& b->isEfiEnabled())
+	{
+		if (-1 == i)
+		{
+			m_result << "-fw_cfg"
+				<< "opt/ovmf/vbe_shim/win2008_workaround,string=1";
+		}
+		return *this;
+	}
+	stripParameter(i);
+
+	return *this;
+}
+
+Libvirt::Domain::Xml::Commandline CommandLine::takeResult()
+{
+	Libvirt::Domain::Xml::Commandline output;
+	output.setArgList(m_result);
+	m_result.clear();
+
+	return output;
+}
+
 namespace Device
 {
 
@@ -1770,33 +1869,6 @@ QString Builder::getResult()
 	return x.toString();
 }
 
-void Builder::addDebugCommandline()
-{
-	if (DBG_DEBUG > __log_level)
-		return;
-
-	// Due #PSBM-75384 - now unconditionally
-	if (m_input.getVmIdentification() == NULL)
-		return;
-
-	boost::optional<Libvirt::Domain::Xml::Commandline> c = m_result->getCommandline();
-	if (!c)
-		c = Libvirt::Domain::Xml::Commandline();
-
-	QList<QString> a = c->getArgList();
-
-	if (!a.contains("-global"))
-		a << "-global" << "isa-debugcon.iobase=0x402";
-
-	if (!a.contains("-debugcon"))
-	{
-		a << "-debugcon" << QString("file:/var/log/libvirt/qemu/%1.qdbg.log")
-			.arg(m_input.getVmIdentification()->getVmName());
-	}
-	c->setArgList(a);
-	m_result->setCommandline(*c);
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
@@ -1817,7 +1889,8 @@ PRL_RESULT Vm::setBlank()
 
 	m_result->setOnCrash(Libvirt::Domain::Xml::ECrashOptionsPreserve);
 	setFeatures();
-	setCommandline();
+	m_result->setCommandline(CommandLine(m_input).addDebug()
+		.addLogging().workaroundEfi2008R2().takeResult());
 	return PRL_ERR_SUCCESS;
 }
 
@@ -1849,14 +1922,6 @@ PRL_RESULT Vm::setDevices()
 
 	m_result->setDevices(x);
 	return PRL_ERR_SUCCESS;
-}
-
-void Vm::setCommandline()
-{
-	Libvirt::Domain::Xml::Commandline q;
-	q.setArgList(QList<QString>() << "-d" << "guest_errors,unimp");
-	m_result->setCommandline(q);
-	return addDebugCommandline();
 }
 
 void Vm::setFeatures()
@@ -1908,7 +1973,8 @@ PRL_RESULT Mixer::setBlank()
 {
 	Libvirt::Domain::Xml::VOs b = m_result->getOs();
 	PRL_RESULT r = Builder::setBlank();
-	addDebugCommandline();
+	m_result->setCommandline(CommandLine(m_input).seed(m_result->getCommandline())
+		.addDebug().workaroundEfi2008R2().takeResult());
 	m_result->setOs(boost::apply_visitor(Visitor::Mixer::Os::Unit(), b, m_result->getOs()));
 	return r;
 }
@@ -1984,21 +2050,11 @@ PRL_RESULT Fixer::setBlank()
 		(Visitor::Fixup::Os(b->getNVRAM()), m_result->getOs()));
 
 	boost::optional<Libvirt::Domain::Xml::Commandline> c = m_result->getCommandline();
-	if (!c)
-		return PRL_ERR_SUCCESS;
-
-	QList<QString> l = c->getArgList();
-
-	// remove "-debugcon <vm-home-path>/qdbg.log" from commandline
-	int i = l.indexOf("-debugcon");
-	if (i > 0 && i < l.size())
+	if (c)
 	{
-		l.removeAt(i+1);
-		l.removeAt(i);
+		m_result->setCommandline(CommandLine(m_input).seed(c)
+			.stripDebugcon().addDebug().takeResult());
 	}
-	c->setArgList(l);
-	m_result->setCommandline(*c);
-	addDebugCommandline();
 
 	return PRL_ERR_SUCCESS;
 }
