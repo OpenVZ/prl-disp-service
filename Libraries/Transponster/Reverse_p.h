@@ -980,6 +980,29 @@ private:
 	CVmConfiguration* m_config;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct CommandLine
+
+struct CommandLine
+{
+	explicit CommandLine(const CVmConfiguration& source_): m_source(&source_)
+	{
+	}
+
+	CommandLine& seed(const boost::optional<Libvirt::Domain::Xml::Commandline>& original_);
+	CommandLine& addDebug();
+	CommandLine& addLogging();
+	CommandLine& stripDebugcon();
+	CommandLine& workaroundEfi2008R2();
+	Libvirt::Domain::Xml::Commandline takeResult();
+
+private:
+	void stripParameter(int at_);
+
+	QList<QString> m_result;
+	const CVmConfiguration* m_source;
+};
+
 } // namespace Transponster
 
 #endif // __REVERSE_P_H__

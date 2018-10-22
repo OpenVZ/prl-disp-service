@@ -195,7 +195,6 @@ struct Builder
 
 protected:
 	PRL_RESULT setIdentification();
-	void addDebugCommandline();
 
 	CVmConfiguration m_input;
 	QScopedPointer<Libvirt::Domain::Xml::Domain> m_result;
@@ -216,7 +215,6 @@ struct Vm: Builder
 	using Builder::setIdentification;
 
 private:
-	void setCommandline();
 	void setFeatures();
 };
 
