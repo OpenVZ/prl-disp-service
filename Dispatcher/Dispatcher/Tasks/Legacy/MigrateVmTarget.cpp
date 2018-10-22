@@ -285,7 +285,6 @@ PRL_RESULT MigrateVmTarget::prepareTask()
 	checkRequiresDiskSpace();
 	checkRemoteDisplay();
 	checkBinary();
-	checkEfiBoot();
 	checkFlags();
 exit:
 	setLastErrorCode(nRetCode);
@@ -1204,23 +1203,6 @@ void MigrateVmTarget::checkRemoteDisplay()
 			.arg(r->getPortNumber()),
 			EVT_PARAM_MESSAGE_PARAM_0));
 	}
-	m_lstCheckPrecondsErrors.append(cEvent.toString());
-}
-
-void MigrateVmTarget::checkEfiBoot()
-{
-	if (!m_pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()
-		|| !m_pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled()
-		|| m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsVersion() != PVS_GUEST_VER_WIN_2008)
-		return;
-
-	CVmEvent cEvent;
-	cEvent.setEventCode(PRL_ERR_VZ_OPERATION_FAILED);
-	cEvent.addEventParameter(new CVmEventParameter(PVE::String,
-		QString("The requested VM has EFI boot enabled. "
-			"Migration of EFI bootloader to Dispatcher %1 is not supported.")
-		.arg(VER_FULL_BUILD_NUMBER_STR),
-		EVT_PARAM_MESSAGE_PARAM_0));
 	m_lstCheckPrecondsErrors.append(cEvent.toString());
 }
 
