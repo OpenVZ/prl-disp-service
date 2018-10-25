@@ -1157,6 +1157,9 @@ void List::add(const CVmGenericPciDevice* pci_)
 		return;
 
 	QStringList u(pci_->getSystemName().split(":"));
+	if (3 > u.size())
+		return;
+
 	Libvirt::Domain::Xml::Pciaddress a;
 	a.setBus(QString("0x").append(u[0]));
 	a.setSlot(QString("0x").append(u[1]));

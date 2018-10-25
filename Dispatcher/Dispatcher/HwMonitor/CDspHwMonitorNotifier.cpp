@@ -128,6 +128,7 @@ void CDspHwMonitorNotifier::pullPci()
 /** Process timeout() signal */
 void CDspHwMonitorNotifier::onCheckHwChanges()
 {
+	pullPci();
 	// #PDFM-26528 - do not refresh host info
 	// if there are no clients and no running VMs
 	if ( ! hasConnectedClientsOrRunningVMs() )
@@ -146,7 +147,6 @@ void CDspHwMonitorNotifier::onCheckHwChanges()
 			m_delayedRefreshFlags);
 		return;
 	}
-	pullPci();
 	bool bChanged = false;
 	{
 		CDspLockedPointer<CDspHostInfo> p_lockedHostInfo = CDspService::instance()->getHostInfo();
