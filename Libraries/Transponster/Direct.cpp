@@ -214,7 +214,7 @@ PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics:
 {
 	if (0 != vnc_.getValue().getChoice727().which())
 		return PRL_ERR_UNIMPLEMENTED;
-		
+
 	QScopedPointer<CVmRemoteDisplay> v(new CVmRemoteDisplay());
 	if (vnc_.getValue().getPasswd())
 	{
@@ -513,6 +513,20 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::
 	return PRL_ERR_SUCCESS;
 }
 
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 7>::type& pci_) const
+{
+	CVmHardware* h = m_vm->getVmHardwareList();
+	if (NULL == h)
+		return PRL_ERR_UNEXPECTED;
+
+	QString a;
+	if (pci_.getValue().getAlias())
+		a = pci_.getValue().getAlias().get();
+
+	boost::apply_visitor(Visitor::Nodedev(a, *h), pci_.getValue().getChoice917());
+	return PRL_ERR_SUCCESS;
+}
+
 PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 11>::type& parallel_) const
 {
 	CVmHardware* h = m_vm->getVmHardwareList();
@@ -696,6 +710,26 @@ void Adjustment::operator()(const mpl::at_c<Libvirt::Domain::Xml::VClock::types,
 	m_result->setClock(v);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Nodedev
+
+Nodedev::result_type Nodedev::operator()
+	(const mpl::at_c<Libvirt::Domain::Xml::VHostdevsubsys::types, 0>::type& alternative_) const
+{
+	const Libvirt::Domain::Xml::Pciaddress& a = alternative_.getValue().getSource().getAddress();
+	QString x = QString("%1:%2:%3")
+		.arg(a.getBus().toUInt(NULL, 16))
+		.arg(a.getSlot().toUInt(NULL, 16))
+		.arg(a.getFunction().toUInt(NULL, 16));
+	CVmGenericPciDevice* d = new CVmGenericPciDevice();
+	d->setIndex(m_sink->m_lstGenericPciDevices.size());
+	d->setEnabled(PVE::DeviceEnabled);
+	d->setAlias(m_alias);
+	d->setSystemName(x);
+
+	m_sink->addGenericPciDevice(d);
+}
+
 namespace Controller
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -739,9 +773,11 @@ bool Pci::operator()(const mpl::at_c<Libvirt::Nodedev::Xml::VCapability::types, 
 	CHwGenericPciDevice d;
 	d.setDeviceName(v.getProduct().getOwnValue());
 	d.setDeviceId(QString("%1:%2:%3:%4.%5")
-		.arg(v.getBus()).arg(v.getSlot()).arg(v.getFunction())
-		.arg(v.getVendor().getId())
-		.arg(v.getProduct().getId()));
+		.arg(QString().setNum(v.getBus(), 16))
+		.arg(QString().setNum(v.getSlot(), 16))
+		.arg(QString().setNum(v.getFunction(), 16))
+		.arg(QString(v.getVendor().getId()).replace("0x", ""))
+		.arg(QString(v.getProduct().getId()).replace("0x", "")));
 	d.setType(PGD_PCI_OTHER);
 	d.setPrimary(true);
 	d.setSupported(true);

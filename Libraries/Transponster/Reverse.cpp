@@ -1151,6 +1151,38 @@ void List::add(const Libvirt::Domain::Xml::VInterface& adapter_)
 	add<4>(adapter_);
 }
 
+void List::add(const CVmGenericPciDevice* pci_)
+{
+	if (PVE::DeviceDisabled == pci_->getEnabled())
+		return;
+
+	QStringList u(pci_->getSystemName().split(":"));
+	Libvirt::Domain::Xml::Pciaddress a;
+	a.setBus(QString("0x").append(u[0]));
+	a.setSlot(QString("0x").append(u[1]));
+	a.setFunction(QString("0x").append(u[2]));
+
+	Libvirt::Domain::Xml::Source13 c;
+	c.setAddress(a);
+
+	Libvirt::Domain::Xml::Hostdevsubsyspci d;
+	d.setSource(c);
+
+	mpl::at_c<Libvirt::Domain::Xml::VHostdevsubsys::types, 0>::type f;
+	f.setValue(d);
+
+	Libvirt::Domain::Xml::Hostdevsubsys g;
+	g.setHostdevsubsys(f);
+
+	mpl::at_c<Libvirt::Domain::Xml::VChoice917::types, 0>::type h;
+	h.setValue(g);
+
+	Libvirt::Domain::Xml::Hostdev i;
+	i.setChoice917(h);
+
+	add<7>(i);
+}
+
 namespace Usb
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -1766,10 +1798,10 @@ PRL_RESULT Builder::setDevices()
 	{
 		b.add(d);
 	}
-//	foreach (const CVmParallelPort* d, h->m_lstParallelPorts)
-//	{
-//		b.add(d);
-//	}
+	foreach (const CVmGenericPciDevice* d, h->m_lstGenericPciDevices)
+	{
+		b.add(d);
+	}
 	foreach (const CVmGenericNetworkAdapter* d, h->m_lstNetworkAdapters)
 	{
 		CVmGenericNetworkAdapter copy = PrlNet::fixMacFilter(*d, h->m_lstNetworkAdapters);

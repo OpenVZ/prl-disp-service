@@ -781,6 +781,7 @@ struct List
 	void add(const CVmSerialPort* port_);
 	void add(const CVmSoundDevice* sound_);
 	void add(const CVmVideo* video_);
+	void add(const CVmGenericPciDevice* pci_);
 
 private:
 	template<int N, class T>
