@@ -35,7 +35,7 @@
 #include <dlfcn.h>
 #include <asm/types.h>
 #include <sys/socket.h>
-#include <sys/select.h>
+#include <poll.h>
 #include <linux/netlink.h>
 #include <string.h>
 #include <dirent.h>
@@ -3576,41 +3576,40 @@ retry:
 
 	if (bind(m_kevt_fd, (struct sockaddr *)&nladdr, sizeof(nladdr)) == 0)
 	{
-		nladdr.nl_pid = 0;
-		nladdr.nl_groups = 0;
-		fd_set read_fd_set;
-		struct timeval tv;
 		int n, state;
-		int max_fd = 0;
+		struct pollfd fds[2];
+		nfds_t nfds = 0;
 
+		if (m_kevt_fd != -1) {
+			fds[nfds].fd = m_kevt_fd;
+			fds[nfds].events = POLLIN;
+			fds[nfds].revents = 0;
+			nfds++;
+		}
+		if (evt_fd != -1) {
+			fds[nfds].fd = evt_fd;
+			fds[nfds].events = POLLIN;
+			fds[nfds].revents = 0;
+			nfds++;
+		}
 		WRITE_TRACE(DBG_FATAL, "Starting Vz event monitor");
 		while (!m_bStopStatusMonitor) {
-			FD_ZERO(&read_fd_set);
-			if (m_kevt_fd != -1) {
-				FD_SET(m_kevt_fd, &read_fd_set);
-				max_fd = m_kevt_fd;
-			}
-			if (evt_fd != -1) {
-				FD_SET(evt_fd, &read_fd_set);
-				if (evt_fd > max_fd)
-					max_fd = evt_fd;
-			}
-			if (m_kevt_fd == -1 && evt_fd == -1)
-				break;
-
+			fds[0].events = POLLIN;
+			fds[1].events = POLLIN;
 			iov.iov_base = buf;
 			iov.iov_len = sizeof(buf) - 1;
 			// Handle 7 sec task shutdown timeout
-			tv.tv_sec = 5;
-			tv.tv_usec = 0;
-
-			n = select(max_fd + 1, &read_fd_set, NULL, NULL, &tv);
+			n = ::poll(fds, nfds, 5000);
 			if (n == 0)
 				continue;
 			else if (n < 0)
 				break;
 
-			if (evt_fd != -1 && FD_ISSET(evt_fd, &read_fd_set)) {
+			for (unsigned int i = 0; i < nfds; i++) {
+				if (!(fds[i].revents & POLLIN))
+					continue;
+
+			if (fds[i].fd == evt_fd) {
 				struct vzctl_state_evt state_evt = vzctl_state_evt();
 
 				if (vzctl2_get_state_evt(evt_handle, &state_evt,
@@ -3621,9 +3620,7 @@ retry:
 								state_evt.state);
 					}
 				}
-			}
-			if (m_kevt_fd != -1 && FD_ISSET(m_kevt_fd, &read_fd_set)) {
-
+			} else if (fds[i].fd == m_kevt_fd) {
 				ret = recvmsg(m_kevt_fd, &msg, MSG_DONTWAIT);
 				if (ret <= 0) {
 					WRITE_TRACE(DBG_FATAL, "recvmsg: %m");
@@ -3654,6 +3651,7 @@ retry:
 						cb(obj, lst[1], state);
 				}
 			}
+		}
 		}
 	} else {
 		if (bVzKernel) {
