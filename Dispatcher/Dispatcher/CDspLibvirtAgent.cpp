@@ -518,7 +518,30 @@ QSharedPointer<Exec::AuxChannel>
 Result Unit::getConfig(CVmConfiguration& dst_, bool runtime_) const
 {
 	Config config(getDomain(), getLink(), runtime_ ? 0 : VIR_DOMAIN_XML_INACTIVE);
-	return config.convert(dst_);
+	Result output(config.convert(dst_));
+	if (output.isFailed())
+		return output;
+
+	CDspService* s = CDspService::instance();
+	dst_.getVmIdentification()
+		->setServerUuid(s->getDispConfigGuard().getDispConfig()
+			->getVmServerIdentification()->getServerUuid());
+	CDspLockedPointer<CDspHostInfo> i(s->getHostInfo());
+	if (!i.isValid())
+		return output;
+
+	const QList<CHwGenericPciDevice* >& a =
+		i->data()->getGenericPciDevices()->m_lstGenericPciDevice;
+	foreach (CVmGenericPciDevice* d, dst_.getVmHardwareList()->m_lstGenericPciDevices)
+	{
+		QString m(d->getSystemName().append(":"));
+		foreach (CHwGenericPciDevice* g, a)
+		{
+			if (g->getDeviceId().startsWith(m))
+				d->setUserFriendlyName(g->getDeviceName());
+		}
+	}
+	return output;
 }
 
 Result Unit::getConfig(QString& dst_, bool runtime_) const

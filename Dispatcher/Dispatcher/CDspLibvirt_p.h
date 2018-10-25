@@ -1237,16 +1237,19 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Network
+// struct Host
 
-struct Network
+struct Host
 {
-	explicit Network(const QFileInfo& config_);
+	explicit Host(Agent::Hub& hub_): m_hub(&hub_)
+	{
+	}
 
-	void operator()(Agent::Hub& hub_);
+	void pullPci();
+	void syncNetwork(const QFileInfo& config_);
 
 private:
-	QFileInfo m_digested;
+	Agent::Hub* m_hub;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1261,7 +1264,6 @@ struct Subject: QRunnable
 
 private:
 	Vm m_vm;
-	Network m_network;
 	Agent::Hub m_hub;
 };
 

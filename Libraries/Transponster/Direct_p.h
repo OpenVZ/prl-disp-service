@@ -487,6 +487,7 @@ struct Device: boost::static_visitor<PRL_RESULT>
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 4>::type& interface_) const;
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 5>::type& input_) const;
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 6>::type& sound_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 7>::type& pci_) const;
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 8>::type& graphics_) const
 	{
 		return boost::apply_visitor(Graphics(*m_vm), graphics_.getValue()); 
@@ -607,6 +608,33 @@ private:
 	}
 
 	CHwNetAdapter* m_sink;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Nodedev
+
+struct Nodedev: boost::static_visitor<void>
+{
+	Nodedev(const QString& alias_, CVmHardware& sink_):
+		m_alias(alias_), m_sink(&sink_)
+	{
+	}
+
+	template<class T>
+	result_type operator()(const T& ) const
+	{
+		return;
+	}
+
+	result_type operator()(const mpl::at_c<Libvirt::Domain::Xml::VHostdevsubsys::types, 0>::type& alternative_) const;
+	result_type operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice917::types, 0>::type& alternative_) const
+	{
+		return boost::apply_visitor(*this, alternative_.getValue().getHostdevsubsys());
+	}
+
+private:
+	const QString m_alias;
+	CVmHardware* m_sink;
 };
 
 namespace Controller

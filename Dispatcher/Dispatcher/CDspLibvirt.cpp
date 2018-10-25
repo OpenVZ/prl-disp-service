@@ -378,10 +378,6 @@ Result Config::convert(CVmConfiguration& dst_) const
 	if (NULL == output)
 		return Error::Simple(PRL_ERR_FAILURE);
 
-	output->getVmIdentification()
-		->setServerUuid(CDspService::instance()
-                        ->getDispConfigGuard().getDispConfig()
-                        ->getVmServerIdentification()->getServerUuid());
 	dst_ = *output;
 	delete output;
 	return Result();
@@ -513,16 +509,33 @@ bool Vm::validate(const QString& uuid_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Network
+// struct Host
 
-Network::Network(const QFileInfo& config_):
-	m_digested(config_.absoluteDir(), QString("digested.").append(config_.fileName()))
+void Host::pullPci()
 {
+	Prl::Expected<QList<CHwGenericPciDevice>, Error::Simple> f =
+		m_hub->host().getAssignablePci();
+	if (f.isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot read host PCI devices: %s",
+			PRL_RESULT_TO_STRING(f.error().code()));
+		return;
+	}
+	CDspLockedPointer<CDspHostInfo> i(CDspService::instance()->getHostInfo());
+	if (!i.isValid())
+		return;
+
+	i->data()->ClearList<CHwGenericPciDevice>(i->data()->m_lstGenericPciDevices);
+	foreach (const CHwGenericPciDevice& d, f.value())
+	{
+		i->data()->addGenericPciDevice(new CHwGenericPciDevice(d));
+	}
 }
 
-void Network::operator()(Agent::Hub& hub_)
+void Host::syncNetwork(const QFileInfo& config_)
 {
-	if (m_digested.exists())
+	QFileInfo d(config_.absoluteDir(), QString("digested.").append(config_.fileName()));
+	if (d.exists())
 		return;
 
 	CParallelsNetworkConfig f;
@@ -535,7 +548,8 @@ void Network::operator()(Agent::Hub& hub_)
 			PRL_RESULT_TO_STRING(e));
 		return;
 	}
-	QTemporaryFile t(m_digested.absoluteFilePath());
+	QString p(d.absoluteFilePath()); 
+	QTemporaryFile t(p);
 	if (!t.open())
 	{
 		WRITE_TRACE(DBG_FATAL, "cannot create a temporary file");
@@ -553,14 +567,13 @@ void Network::operator()(Agent::Hub& hub_)
 		foreach (CVirtualNetwork* k, s->m_lstVirtualNetwork)
 		{
 			if (NULL != k && k->isEnabled())
-				::Network::Dao(hub_).create(*k);
+				::Network::Dao(*m_hub).create(*k);
 		}
 	}
-	if (!QFile::rename(t.fileName(), m_digested.absoluteFilePath()))
+	if (!QFile::rename(t.fileName(), p))
 	{
 		WRITE_TRACE(DBG_FATAL, "cannot rename %s -> %s",
-			QSTR2UTF8(t.fileName()),
-			QSTR2UTF8(m_digested.absoluteFilePath()));
+			QSTR2UTF8(t.fileName()), QSTR2UTF8(p));
 		return;
 	}
 	t.setAutoRemove(false);
@@ -570,16 +583,18 @@ void Network::operator()(Agent::Hub& hub_)
 // struct Subject
 
 Subject::Subject(QSharedPointer<virConnect> libvirtd_, QSharedPointer<Model::System> view_,
-	Registry::Actual& registry_):
-	m_vm(view_, registry_), m_network(ParallelsDirs::getNetworkConfigFilePath())
+	Registry::Actual& registry_): m_vm(view_, registry_)
 {
 	m_hub.setLink(libvirtd_);
+	CDspService::instance()->getHwMonitorThread().forceCheckHwChanges();
 }
 
 void Subject::run()
 {
+	Host h(m_hub);
+	h.pullPci();
+	h.syncNetwork(ParallelsDirs::getNetworkConfigFilePath());
 	m_vm(m_hub);
-	m_network(m_hub);
 	QProcess::startDetached("/usr/libexec/vz_systemd");
 }
 
