@@ -177,14 +177,18 @@ bool PrlNet::SetRouteToDevice(const QString &ip, const QString &devName, bool ad
 		return false;
 
 	WRITE_TRACE(DBG_INFO, "route %s ip=%s device='%s' index=%d ",
-			add ? "add" : "del", ip.toUtf8().constData(), devName.toUtf8().constData(), idx );
+			add ? "add" : "del", qPrintable(ip), qPrintable(devName), idx);
 
         int rc = rtnl_talk(&rth, &req.n, NULL, 0);
 
 	rtnl_close(&rth);
 
-	if (rc < 0)
+	if (rc < 0) {
+		WRITE_TRACE(DBG_FATAL, "Failed route %s ip=%s device='%s' index=%d rc=%d",
+			add ? "add" : "del", qPrintable(ip), qPrintable(devName), idx, rc);
+
 		return false;
+	}
 	return true ;
 }
 
@@ -234,14 +238,17 @@ bool PrlNet::SetArpToDevice(const QString &ip, const QString &devName, bool add)
 		return false;
 
 	WRITE_TRACE(DBG_DEBUG, "arp %s proxy ip=%s device='%s' index=%d ",
-			add ? "add" : "del", ip.toUtf8().constData(), devName.toUtf8().constData(), devIndex);
+			add ? "add" : "del", qPrintable(ip), qPrintable(devName), devIndex);
 
 	int rc = rtnl_talk(&rth, &req.n, NULL, 0);
 
 	rtnl_close(&rth);
 
-	if (rc < 0)
+	if (rc < 0) {
+		WRITE_TRACE(DBG_FATAL, "Failed arp %s proxy ip=%s device='%s' index=%d rc=%d",
+				add ? "add" : "del", qPrintable(ip), qPrintable(devName), devIndex, rc);
 		return false;
+	}
 	return true ;
 }
 
