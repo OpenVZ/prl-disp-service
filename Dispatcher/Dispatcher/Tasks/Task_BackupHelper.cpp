@@ -386,27 +386,39 @@ const QUrl* Command::findArchive(const Product::component_type& t_,
 ///////////////////////////////////////////////////////////////////////////////
 // struct Loader
 
+Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> Loader::operator()(const char* basename_) const
+{
+	QFile f(QFileInfo(m_path, basename_).absoluteFilePath());
+	SmartPtr<CVmConfiguration> output = SmartPtr<CVmConfiguration>(new CVmConfiguration());
+	PRL_RESULT e = output->loadFromFile(&f, true);
+	if (PRL_FAILED(e))
+		return e;
+
+	output->setRelativePath();
+	return output;
+}
+
 Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> Loader::operator()(const Ct&) const
 {
+	Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> x =
+		(*this)(VZ_CT_XML_CONFIG_FILE);
+	if (x.isSucceed())
+		return x;
+
 	PRL_RESULT e = PRL_ERR_SUCCESS;
 	QString s = QString("%1/" VZ_CT_CONFIG_FILE).arg(m_path);
-	SmartPtr<CVmConfiguration> p = CVzHelper::get_env_config_from_file(
+	SmartPtr<CVmConfiguration> output = CVzHelper::get_env_config_from_file(
 			s, e, ::Ct::Config::LoadOps().
 				setLayout(VZCTL_LAYOUT_5).setRelative());
-	if (!p)
+	if (!output.isValid())
 		return e;
-	return p;
+
+	return output;
 }
 
 Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> Loader::operator()(const Vm&) const
 {
-	QString s = QString("%1/" VMDIR_DEFAULT_VM_CONFIG_FILE).arg(m_path);
-	SmartPtr<CVmConfiguration> p = SmartPtr<CVmConfiguration>(new CVmConfiguration());
-	PRL_RESULT code = CDspService::instance()->getVmConfigManager().loadConfig(
-				p, s, m_client, false, true);
-	if (PRL_FAILED(code))
-		return code;
-	return p;
+	return (*this)(VMDIR_DEFAULT_VM_CONFIG_FILE);
 }
 
 namespace Acronis
