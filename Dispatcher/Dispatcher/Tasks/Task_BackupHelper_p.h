@@ -439,6 +439,8 @@ struct Loader : boost::static_visitor<Prl::Expected<SmartPtr<CVmConfiguration>, 
 	Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> operator()(const Vm&) const;
 
 private:
+	Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> operator()(const char* ) const;
+
 	QString m_path;
 	SmartPtr<CDspClient> m_client;
 };
