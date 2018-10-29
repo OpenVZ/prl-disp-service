@@ -1646,7 +1646,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewCt(const QString &sDefaultCtFol
 	bool registered = false;
 
 	ctId = m_pVmConfig->getVmIdentification()->getCtId();
-	if (ctId.isEmpty()) {
+	if (ctId.isEmpty() || m_sVmUuid != m_sOriginVmUuid) {
 		ctId = CVzHelper::build_ctid_from_uuid(m_sVmUuid);
 	}
 
