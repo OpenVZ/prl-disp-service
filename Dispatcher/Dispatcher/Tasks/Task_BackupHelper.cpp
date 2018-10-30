@@ -394,10 +394,7 @@ Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> Loader::operator()(const c
 	if (PRL_FAILED(e))
 		return e;
 
-	if (output->getVmIdentification()->getHomePath().endsWith(VMDIR_DEFAULT_VM_CONFIG_FILE))
-		output->setRelativePath();
-	else
-		output->setRelativePath(output->getVmIdentification()->getHomePath());
+	output->setRelativePath(output->getVmIdentification()->getHomePath());
 
 	return output;
 }
