@@ -250,13 +250,62 @@ PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics:
 	return PRL_ERR_SUCCESS;
 }
 
+namespace Network
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Ips
+// struct Builder
 
-QList<QString> Ips::operator()(const QList<Libvirt::Domain::Xml::Ip>& ips_)
+Builder::Builder(int index_)
+{
+	m_result.setItemId(index_);
+	m_result.setIndex(index_);
+	m_result.setConnected();
+	m_result.setEnabled(PVE::DeviceEnabled);
+}
+
+void Builder::setModel(const boost::optional<QString>& value_)
+{
+	if (!value_)
+		return;
+
+	if (value_.get() == "rtl8139")
+		m_result.setAdapterType(PNT_RTL);
+	else if (value_.get() == "e1000")
+		m_result.setAdapterType(PNT_E1000);
+	else if (value_.get() == "virtio")
+		m_result.setAdapterType(PNT_VIRTIO);
+	else if (value_.get() == "hv-net")
+		m_result.setAdapterType(PNT_HYPERV);
+	else
+		m_result.setAdapterType(PNT_UNDEFINED);
+}
+
+void Builder::setMac(const boost::optional<QString>& value_)
+{
+	if (value_)
+		m_result.setMacAddress(HostUtils::parseMacAddress(value_.get()));
+}
+
+void Builder::setTarget(const boost::optional<QString>& value_)
+{
+	if (value_)
+		m_result.setHostInterfaceName(value_.get());
+}
+
+void Builder::setFilter(const boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes>& value_)
+{
+	QString filter = value_ ? value_->getFilter() : QString();
+	CNetPktFilter* f = new CNetPktFilter();
+	f->setPreventIpSpoof(filter.contains("no-ip-spoofing"));
+	f->setPreventMacSpoof(filter.contains("no-mac-spoofing"));
+	f->setPreventPromisc(filter.contains("no-promisc"));
+	m_result.setPktFilter(f);
+}
+
+void Builder::setIps(const QList<Libvirt::Domain::Xml::Ip>& value_)
 {
 	QList<QString> ips;
-	foreach (const Libvirt::Domain::Xml::Ip& ip, ips_)
+	foreach (const Libvirt::Domain::Xml::Ip& ip, value_)
 	{
 		QString a = boost::apply_visitor(Visitor::Address::String::Conductor(), ip.getAddress());
 		QString res = QString("%1/%2").arg(a), m;
@@ -288,147 +337,85 @@ QList<QString> Ips::operator()(const QList<Libvirt::Domain::Xml::Ip>& ips_)
 		}
 		ips << res.arg(m);
 	}
-	return ips;
+	m_result.setNetAddresses(ips);
+}
+
+void Builder::setConnected(const boost::optional<Libvirt::Domain::Xml::EState >& value_)
+{
+	if (value_ && value_.get() == Libvirt::Domain::Xml::EStateDown)
+		m_result.setConnected(PVE::DeviceDisconnected);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Network
+// struct Unit
 
-PRL_VM_NET_ADAPTER_TYPE Network::parseAdapterType(const QString& type)
+template<class T>
+CVmGenericNetworkAdapter& Unit::prepare(const T& variant_) const
 {
-	if (type == "rtl8139")
-		return PNT_RTL;
-	else if (type == "e1000")
-		return PNT_E1000;
-	else if (type == "virtio")
-		return PNT_VIRTIO;
-	else if (type == "hv-net")
-		return PNT_HYPERV;
-	return PNT_UNDEFINED;
+	Builder b(m_hardware->m_lstNetworkAdapters.size());
+	b.setModel(variant_.getModel());
+	b.setMac(variant_.getMac());
+	b.setTarget(variant_.getTarget());
+	b.setFilter(variant_.getFilterref());
+	b.setIps(variant_.getIpList());
+	b.setConnected(variant_.getLink());
+
+	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter(b.getResult()));
+	m_clip->getBootSlot(variant_.getBoot())
+		.set(a->getDeviceType(), a->getIndex());
+
+	m_hardware->addNetworkAdapter(a.take());
+
+	return *m_hardware->m_lstNetworkAdapters.back();
 }
 
-CNetPktFilter* Network::buildFilter(
-		const boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes>& filterref)
+PRL_RESULT Unit::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 0>::type& bridge_) const
 {
-	QString filter = filterref ? filterref->getFilter() : QString();
-	CNetPktFilter* f = new CNetPktFilter();
-	f->setPreventIpSpoof(filter.contains("no-ip-spoofing"));
-	f->setPreventMacSpoof(filter.contains("no-mac-spoofing"));
-	f->setPreventPromisc(filter.contains("no-promisc"));
-	return f;
-}
-
-PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 0>::type& bridge_) const
-{
-	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter());
-	a->setItemId(m_hardware->m_lstNetworkAdapters.size());
-	a->setIndex(m_hardware->m_lstNetworkAdapters.size());
-	a->setConnected();
-	a->setEnabled(PVE::DeviceEnabled);
-	a->setEmulatedType(PNA_BRIDGE);
-	if (bridge_.getValue().getModel())
-	{
-		a->setAdapterType(parseAdapterType(bridge_.getValue().getModel().get()));
-	}
+	CVmGenericNetworkAdapter& a = prepare(bridge_.getValue());
+	a.setEmulatedType(PNA_BRIDGE);
 	if (bridge_.getValue().getSource())
 	{
 		const QString& n = bridge_.getValue().getSource().get().getInterfaceBridgeAttributes().getBridge();
 		if (n == QString("host-routed"))
-			a->setEmulatedType(PNA_ROUTED);
-		a->setVirtualNetworkID(n);
-		a->setSystemName(n);
+			a.setEmulatedType(PNA_ROUTED);
+		a.setVirtualNetworkID(n);
+		a.setSystemName(n);
 	}
-	if (bridge_.getValue().getMac())
-	{
-		a->setMacAddress(HostUtils::parseMacAddress(bridge_.getValue().getMac().get()));
-	}
-	if (bridge_.getValue().getTarget())
-	{
-		a->setHostInterfaceName(bridge_.getValue().getTarget().get());
-	}
-	a->setPktFilter(buildFilter(bridge_.getValue().getFilterref()));
 
-	a->setNetAddresses(Ips()(bridge_.getValue().getIpList()));
-
-	m_clip->getBootSlot(bridge_.getValue().getBoot())
-		.set(a->getDeviceType(), a->getIndex());
-	if (bridge_.getValue().getLink()
-			&& bridge_.getValue().getLink().get() == Libvirt::Domain::Xml::EStateDown)
-		a->setConnected(PVE::DeviceDisconnected);
-
-	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 3>::type& network_) const
+PRL_RESULT Unit::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 1>::type& ethernet_) const
 {
-	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter());
-	a->setItemId(m_hardware->m_lstNetworkAdapters.size());
-	a->setIndex(m_hardware->m_lstNetworkAdapters.size());
-	a->setConnected();
-	a->setEnabled(PVE::DeviceEnabled);
-	a->setEmulatedType(PNA_BRIDGED_NETWORK);
-	if (network_.getValue().getModel())
-	{
-		a->setAdapterType(parseAdapterType(network_.getValue().getModel().get()));
-	}
-	a->setVirtualNetworkID(network_.getValue().getSource().getInterfaceNetworkAttributes().getNetwork());
-	if (network_.getValue().getMac())
-	{
-		a->setMacAddress(HostUtils::parseMacAddress(network_.getValue().getMac().get()));
-	}
-	if (network_.getValue().getTarget())
-	{
-		a->setHostInterfaceName(network_.getValue().getTarget().get());
-	}
-	a->setPktFilter(buildFilter(network_.getValue().getFilterref()));
+	if (!ethernet_.getValue().getScript() ||
+		ethernet_.getValue().getScript()->compare("/bin/true") != 0)
+		return PRL_ERR_INVALID_ARG;
 
-	a->setNetAddresses(Ips()(network_.getValue().getIpList()));
+	CVmGenericNetworkAdapter& a = prepare(ethernet_.getValue());
+	a.setEmulatedType(PNA_ROUTED);
 
-	m_clip->getBootSlot(network_.getValue().getBoot())
-		.set(a->getDeviceType(), a->getIndex());
-	if (network_.getValue().getLink()
-			&& network_.getValue().getLink().get() == Libvirt::Domain::Xml::EStateDown)
-		a->setConnected(PVE::DeviceDisconnected);
-
-	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Network::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 4>::type& direct_) const
+PRL_RESULT Unit::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 3>::type& network_) const
 {
-	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter());
-	a->setItemId(m_hardware->m_lstNetworkAdapters.size());
-	a->setIndex(m_hardware->m_lstNetworkAdapters.size());
-	a->setConnected();
-	a->setEnabled(PVE::DeviceEnabled);
-	a->setEmulatedType(PNA_DIRECT_ASSIGN);
-	if (direct_.getValue().getModel())
-	{
-		a->setAdapterType(parseAdapterType(direct_.getValue().getModel().get()));
-	}
-	a->setSystemName(direct_.getValue().getSource().getDev());
-	if (direct_.getValue().getMac())
-	{
-		a->setMacAddress(HostUtils::parseMacAddress(direct_.getValue().getMac().get()));
-	}
-	if (direct_.getValue().getTarget())
-	{
-		a->setHostInterfaceName(direct_.getValue().getTarget().get());
-	}
-	a->setPktFilter(buildFilter(direct_.getValue().getFilterref()));
+	CVmGenericNetworkAdapter& a = prepare(network_.getValue());
+	a.setEmulatedType(PNA_BRIDGED_NETWORK);
+	a.setVirtualNetworkID(network_.getValue().getSource().getInterfaceNetworkAttributes().getNetwork());
 
-	a->setNetAddresses(Ips()(direct_.getValue().getIpList()));
-
-	m_clip->getBootSlot(direct_.getValue().getBoot())
-		.set(a->getDeviceType(), a->getIndex());
-	if (direct_.getValue().getLink()
-			&& direct_.getValue().getLink().get() == Libvirt::Domain::Xml::EStateDown)
-		a->setConnected(PVE::DeviceDisconnected);
-
-	m_hardware->addNetworkAdapter(a.take());
 	return PRL_ERR_SUCCESS;
 }
+
+PRL_RESULT Unit::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 4>::type& direct_) const
+{
+	CVmGenericNetworkAdapter& a = prepare(direct_.getValue());
+	a.setEmulatedType(PNA_DIRECT_ASSIGN);
+	a.setSystemName(direct_.getValue().getSource().getDev());
+
+	return PRL_ERR_SUCCESS;
+}
+
+} // namespace Network
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct DiskForm
@@ -464,7 +451,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::
 	if (NULL == h)
 		return PRL_ERR_UNEXPECTED;
 
-	return boost::apply_visitor(Network(*h, *m_clip), interface_.getValue());
+	return boost::apply_visitor(Network::Unit(*h, *m_clip), interface_.getValue());
 }
 
 PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 5>::type& input_) const
