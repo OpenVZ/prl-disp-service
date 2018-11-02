@@ -406,41 +406,61 @@ private:
 	CVmConfiguration* m_vm;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Ips
-
-struct Ips
+namespace Network
 {
-	QList<QString> operator()(const QList<Libvirt::Domain::Xml::Ip>& ips_);
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+struct Builder
+{
+	explicit Builder(int index_);
+
+	void setModel(const boost::optional<QString>& value_);
+	void setMac(const boost::optional<QString>& value_);
+	void setTarget(const boost::optional<QString>& value_);
+	void setFilter(const boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes>& value_);
+	void setIps(const QList<Libvirt::Domain::Xml::Ip>& value_);
+	void setConnected(const boost::optional<Libvirt::Domain::Xml::EState >& value_);
+	
+	const CVmGenericNetworkAdapter& getResult() const
+	{
+		return m_result;
+	}
+
+private:
+	CVmGenericNetworkAdapter m_result;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Network
+// struct Unit
 
-struct Network: boost::static_visitor<PRL_RESULT>
+struct Unit: boost::static_visitor<PRL_RESULT>
 {
-	Network(CVmHardware& hardware_, Clip& clip_):
+	Unit(CVmHardware& hardware_, Clip& clip_):
 		m_hardware(&hardware_), m_clip(&clip_)
 	{
 	}
 
 	template<class T>
-	PRL_RESULT operator()(const T& ) const
+	PRL_RESULT operator()(const T& variant_) const
 	{
+		Q_UNUSED(variant_);
 		return PRL_ERR_UNIMPLEMENTED;
-	}
+        }
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 0>::type& bridge_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 1>::type& ethernet_) const;
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 3>::type& network_) const;
 	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::types, 4>::type& direct_) const;
 
 private:
-	static PRL_VM_NET_ADAPTER_TYPE parseAdapterType(const QString& type);
-	static CNetPktFilter* buildFilter(
-			const boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> &filterref);
+	template<class T>
+	CVmGenericNetworkAdapter& prepare(const T& variant_) const;
 
 	CVmHardware* m_hardware;
 	Clip* m_clip;
 };
+
+} // namespace Network
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct DiskForm

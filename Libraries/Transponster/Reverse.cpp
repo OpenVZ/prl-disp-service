@@ -847,6 +847,17 @@ Libvirt::Domain::Xml::Interface658 Adapter<0>::prepare(const CVmGenericNetworkAd
 }
 
 template<>
+Libvirt::Domain::Xml::Interface660 Adapter<1>::prepare(const CVmGenericNetworkAdapter& network_)
+{
+	Libvirt::Domain::Xml::Interface660 output;
+	output.setScript(QString("/bin/true"));
+	output.setIpList(Ips()(network_.getNetAddresses()));
+	output.setModel(View(network_).getAdapterType());
+	output.setTarget(network_.getHostInterfaceName());
+	return output;
+}
+
+template<>
 Libvirt::Domain::Xml::Interface665 Adapter<3>::prepare(const CVmGenericNetworkAdapter& network_)
 {
 	Libvirt::Domain::Xml::Interface665 output;
@@ -889,12 +900,7 @@ Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
 	case PNA_DIRECT_ASSIGN:
 		return Adapter<4>()(network_, boot_);
 	case PNA_ROUTED:
-	{
-		CVmGenericNetworkAdapter routed(network_);
-		routed.setSystemName(QString("host-routed"));
-		routed.setVirtualNetworkID(QString("host-routed"));
-		return Adapter<0>()(routed, boot_);
-	}
+		return Adapter<1>()(network_, boot_);
 	default:
 		return ::Error::Simple(PRL_ERR_UNIMPLEMENTED);
 	}

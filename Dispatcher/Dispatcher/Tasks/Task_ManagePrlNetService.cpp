@@ -1248,20 +1248,6 @@ void Task_ManagePrlNetService::updateAdapter(const CVmGenericNetworkAdapter& pAd
 	{
 		if (bEnable)
 		{
-			if (!PrlNet::releaseInterface(vnic_name))
-			{
-				WRITE_TRACE(DBG_FATAL, "Unable to remove interface '%s' from its bridge",
-					qPrintable(vnic_name));
-				return;
-			}
-
-			if (!PrlNet::setIfFlags(vnic_name.toAscii(), IFF_UP, 0))
-			{
-				WRITE_TRACE(DBG_FATAL, "Error enabling adapter '%s': setIfFlags()",
-						QSTR2UTF8(vnic_name));
-				return;
-			}
-
 			PrlNet::setAdapterIpAddress(vnic_name, DEFAULT_HOSTROUTED_GATEWAY);
 			PrlNet::setAdapterIpAddress(vnic_name, DEFAULT_HOSTROUTED_GATEWAY6);
 			QFile f(QString("/proc/sys/net/ipv4/conf/%1/proxy_arp").arg(vnic_name));
