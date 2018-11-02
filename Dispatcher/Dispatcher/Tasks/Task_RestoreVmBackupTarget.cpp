@@ -1714,13 +1714,13 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewCt(const QString &sDefaultCtFol
 
 		CVzHelper::update_ctid_map(m_sVmUuid, ctId);
 		if (m_nFlags & PBT_RESTORE_TO_COPY) {
-			nRetCode = m_VzOpHelper.apply_env_config(pConfig, m_pVmConfig, 0);
-			if (PRL_FAILED(nRetCode)) {
-				WRITE_TRACE(DBG_FATAL, "apply_env_config() exited with error %#x, %s",
-						nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
+			m_pVmConfig->getVmIdentification()->setVmName(sCtName);
+			m_pVmConfig->setRelativePath(m_pVmConfig->getVmIdentification()->getHomePath());
+
+			QFile f(QFileInfo(m_sTargetPath, VZ_CT_XML_CONFIG_FILE).absoluteFilePath());
+			nRetCode = m_pVmConfig->saveToFile(&f, true, true);
+			if (PRL_FAILED(nRetCode))
 				break;
-			}
-			pConfig = m_pVmConfig;
 		}
 
 		nRetCode = CDspService::instance()->getVzHelper()->insertVmDirectoryItem(pConfig);
