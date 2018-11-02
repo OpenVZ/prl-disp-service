@@ -1714,7 +1714,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewCt(const QString &sDefaultCtFol
 
 		CVzHelper::update_ctid_map(m_sVmUuid, ctId);
 		if (m_nFlags & PBT_RESTORE_TO_COPY) {
-			nRetCode = m_VzOpHelper.apply_env_config(m_pVmConfig, pConfig, 0);
+			nRetCode = m_VzOpHelper.apply_env_config(pConfig, m_pVmConfig, 0);
 			if (PRL_FAILED(nRetCode)) {
 				WRITE_TRACE(DBG_FATAL, "apply_env_config() exited with error %#x, %s",
 						nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
