@@ -348,6 +348,20 @@ result_type Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 		usb->setXhcEnabled(true);
 	}
 
+	// Create USB controller if it is missing
+	// It's necessary to ensure we have USB tablet device after
+	// conversion so pointer works properly in VNC.
+	const QList<CVmUsbDevice*>& usbList = pVmHardware->m_lstUsbDevices;
+	if (std::find_if(usbList.begin(), usbList.end(),
+		boost::bind(&CVmUsbDevice::getUsbType, _1) == PUDT_OTHER)
+		== usbList.end())
+	{
+		CVmUsbDevice* usbDev = new(CVmUsbDevice);
+		usbDev->setEnabled(PVE::DeviceEnabled);
+		usbDev->setUsbType(PUDT_OTHER);
+		pVmHardware->addUsbDevice(usbDev);
+	}
+
 	cfg->getVmSettings()->getVmRuntimeOptions()->getOnCrash()->setMode(POCA_PAUSE);
 
 	bool noSCSI = isWin && IS_WIN_VER_BELOW(os, PVS_GUEST_VER_WIN_VISTA);
