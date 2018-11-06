@@ -390,7 +390,7 @@ Prl::Expected<SmartPtr<CVmConfiguration>, PRL_RESULT> Loader::operator()(const c
 {
 	QFile f(QFileInfo(m_path, basename_).absoluteFilePath());
 	SmartPtr<CVmConfiguration> output = SmartPtr<CVmConfiguration>(new CVmConfiguration());
-	PRL_RESULT e = output->loadFromFile(&f, true);
+	PRL_RESULT e = output->loadFromFile(&f, false);
 	if (PRL_FAILED(e))
 		return e;
 
