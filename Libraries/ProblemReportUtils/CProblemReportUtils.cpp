@@ -349,10 +349,7 @@ bool executeShellCommandSync( const QString & strCommand, QString & strOut )
 	if (HostUtils::RunCmdLineUtility(strCommand, strOut, 3 * 60 * 1000, &proc, 0)) // 3 minutes
 		return !strOut.isEmpty();
 
-	if (proc.exitCode() != 0)
-		return false;
-
-	if (!proc.waitForFinished(1))
+	if (QProcess::NotRunning != proc.state())
 	{
 		WRITE_TRACE(DBG_FATAL, "Command '%s' not finished in time, will"
 			" be terminated", QSTR2UTF8(strCommand) );
