@@ -250,7 +250,7 @@ PRL_RESULT Unit::write(const SmartPtr<char>& data_, quint32 size_)
 void Unit::kill()
 {
 	QMutexLocker g(&m_mutex);
-	if (NULL != m_driver)
+	if (NULL != m_driver && m_driver->state() != QProcess::NotRunning)
 		m_driver->terminate();
 
 	m_channel.clear();
