@@ -53,7 +53,7 @@ public:
 	CUnixSignalHandlerPrivate( CUnixSignalHandler* owner, int signum );
 	~CUnixSignalHandlerPrivate();
 
-	static void signalHandler( int signum );
+	static void signalHandler(int signal_, siginfo_t* info_, void* );
 
 	bool setupSockets();
 	bool setupHandler();
@@ -100,13 +100,14 @@ CUnixSignalHandlerPrivate::~CUnixSignalHandlerPrivate()
 	}
 }
 
-void CUnixSignalHandlerPrivate::signalHandler( int signum )
+void CUnixSignalHandlerPrivate::signalHandler(int signal_, siginfo_t* info_, void* )
 {
-	CUnixSignalHandler* handler = m_handlers.value( signum );
-	if ( handler ) {
+	CUnixSignalHandler* handler = m_handlers.value(signal_);
+	if (NULL != handler)
+	{
 		int fd = handler->d->m_fd[0];
-		char a = 1;
-		ssize_t nb = ::write( fd, &a, sizeof(a) );
+		pid_t a = NULL == info_ ? -1 : info_->si_pid;
+		ssize_t nb = ::write(fd, &a, sizeof(a));
 		Q_UNUSED(nb)
 	}
 }
@@ -125,10 +126,9 @@ bool CUnixSignalHandlerPrivate::setupHandler()
 {
 	struct sigaction newAction;
 
-	newAction.sa_handler = CUnixSignalHandlerPrivate::signalHandler;
+	newAction.sa_sigaction = CUnixSignalHandlerPrivate::signalHandler;
 	sigemptyset( &newAction.sa_mask );
-	newAction.sa_flags = 0;
-	newAction.sa_flags |= SA_RESTART;
+	newAction.sa_flags = SA_RESTART | SA_SIGINFO;
 
 	if ( sigaction( m_signum, &newAction, &m_prevAction ) > 0 )
 		return false;
@@ -140,13 +140,14 @@ bool CUnixSignalHandlerPrivate::setupHandler()
 void CUnixSignalHandlerPrivate::onSignal()
 {
 	m_notifier->setEnabled(false);
-	char tmp = 0;
-	if ( ::read( m_fd[1], &tmp, sizeof(tmp) ) == (ssize_t) sizeof(tmp) && tmp == 1 ) {
+	pid_t tmp = 0;
+	if (::read(m_fd[1], &tmp, sizeof(tmp)) == (ssize_t) sizeof(tmp)) {
+		WRITE_TRACE(DBG_FATAL, "Signal %d sender pid is %d", m_signum, tmp);
 		emit m_owner->signalReceived();
-		emit m_owner->signalReceived( m_signum );
+		emit m_owner->signalReceived(m_signum);
 	}
 	else {
-		WRITE_TRACE( DBG_FATAL, "Error on read from socket" );
+		WRITE_TRACE(DBG_FATAL, "Error on read from socket");
 	}
 
 	m_notifier->setEnabled(true);
