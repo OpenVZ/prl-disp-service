@@ -71,17 +71,15 @@ public:
 	QSocketNotifier* m_notifier;
 	bool m_actionInstalled;
 	struct sigaction m_prevAction;
+	pid_t m_provenance;
 };
 
 QHash<int, CUnixSignalHandler*> CUnixSignalHandlerPrivate::m_handlers;
 QMutex CUnixSignalHandlerPrivate::m_mutex;
 
-CUnixSignalHandlerPrivate::CUnixSignalHandlerPrivate( CUnixSignalHandler* owner, int signum )
-	: QObject( owner )
-	, m_owner( owner )
-	, m_signum( signum )
-	, m_notifier( 0 )
-	, m_actionInstalled( false )
+CUnixSignalHandlerPrivate::CUnixSignalHandlerPrivate(CUnixSignalHandler* owner, int signum)
+	: QObject(owner), m_owner(owner), m_signum(signum), m_notifier(0),
+	m_actionInstalled(false), m_provenance(getpid())
 {
 }
 
@@ -103,7 +101,7 @@ CUnixSignalHandlerPrivate::~CUnixSignalHandlerPrivate()
 void CUnixSignalHandlerPrivate::signalHandler(int signal_, siginfo_t* info_, void* )
 {
 	CUnixSignalHandler* handler = m_handlers.value(signal_);
-	if (NULL != handler)
+	if (NULL != handler && handler->d->m_provenance == getpid())
 	{
 		int fd = handler->d->m_fd[0];
 		pid_t a = NULL == info_ ? -1 : info_->si_pid;
