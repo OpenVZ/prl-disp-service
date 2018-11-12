@@ -168,6 +168,41 @@ struct Chain: base_type
 };
 
 } // namespace Hardware
+
+namespace Reply
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Efiw2k8
+
+struct Efiw2k8: Instrument::Chain::Unit<request_type>
+{
+	explicit Efiw2k8(int version_, const redo_type& redo_):
+		Instrument::Chain::Unit<request_type>(redo_), m_version(version_)
+	{
+	}
+
+	result_type operator()(const request_type& request_);
+
+private:
+	int m_version;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Interpreter
+
+struct Interpreter
+{
+	explicit Interpreter(const QStringList& object_): m_object(object_)
+	{
+	}
+
+	Efiw2k8::result_type operator()(const request_type& request_) const;
+
+private:
+	const QStringList m_object;
+};
+
+} // namespace Reply
 } // namespace Inspection
 
 namespace Shadow

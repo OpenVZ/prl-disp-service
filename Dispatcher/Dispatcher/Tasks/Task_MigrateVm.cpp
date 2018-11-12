@@ -251,6 +251,60 @@ Chain::result_type Chain::operator()(const request_type& request_)
 }
 
 } // namespace Hardware
+
+namespace Reply
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Efiw2k8
+
+Efiw2k8::result_type Efiw2k8::operator()(const request_type& request_)
+{
+	const CVmSettings* x = NULL;
+	if (NULL != request_.first->getVmConfig())
+		x = request_.first->getVmConfig()->getVmSettings();
+	if (MIGRATE_DISP_PROTO_V8 > m_version && x != NULL &&
+		x->getVmStartupOptions()->getBios()->isEfiEnabled() &&
+		x->getVmCommonOptions()->getOsVersion() <= PVS_GUEST_VER_WIN_2008)
+	{
+		request_.second->account(PRL_ERR_VMCONF_EFI_UNSUPPORTED_GUEST);
+	}
+
+	return Instrument::Chain::Unit<request_type>::operator()(request_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Interpreter
+
+Efiw2k8::result_type Interpreter::operator()(const request_type& request_) const
+{
+	QStringList x;
+	foreach (const QString& i, m_object)
+	{
+		switch (CVmEvent(i).getEventCode())
+		{
+		case PRL_INFO_VM_MIGRATE_STORAGE_IS_SHARED:
+			request_.first->setSharedStorage();
+			break;
+		case PRL_ERR_VM_MIGRATE_NON_COMPATIBLE_CPU_ON_TARGET:
+			if (VMS_STOPPED == request_.first->getOldState() ||
+				request_.first->getFlags() & PVM_DONT_RESUME_VM)
+			{
+				// error with CPUs incompatibility
+				// so ignore it
+				// If another error will be encountered in this loop, it will be added
+				// to m_lstCheckPrecondsErrors and checked below...
+				break;
+			}
+		default:
+			x << i;
+		}
+	}
+	request_.second->account(x);
+
+	return PRL_ERR_SUCCESS;
+}
+
+} // namespace Reply
 } // namespace Inspection
 
 namespace Shadow
@@ -1836,12 +1890,6 @@ PRL_RESULT Task_MigrateVmSource::CheckVmMigrationPreconditions()
 
 PRL_RESULT Task_MigrateVmSource::reactCheckReply(const SmartPtr<IOPackage>& package)
 {
-	if (package->header.type != VmMigrateCheckPreconditionsReply)
-	{
-		WRITE_TRACE(DBG_FATAL, "Unexpected package type: %d.", package->header.type);
-		return PRL_ERR_OPERATION_FAILED;
-	}
-
 	CDispToDispCommandPtr pCmd =
 		CDispToDispProtoSerializer::ParseCommand(
 			DispToDispResponseCmd,
@@ -1863,43 +1911,15 @@ PRL_RESULT Task_MigrateVmSource::reactCheckReply(const SmartPtr<IOPackage>& pack
 	if (m_nRemoteVersion >= MIGRATE_DISP_PROTO_V4)
 		m_lstNonSharedDisks = pResponseCmd->GetNonSharedDisks();
 
-	if (!lstErrors.isEmpty()) {
-		//Let analyse them
-		m_lstCheckPrecondsErrors.clear();
-		foreach(QString sError, lstErrors)
-		{
-			CVmEvent _error(sError);
-			if (_error.getEventCode() == PRL_INFO_VM_MIGRATE_STORAGE_IS_SHARED)
-			{
-				m_nReservedFlags |= PVM_DONT_COPY_VM;
-
-				if (!m_pVmConfig->getVmSettings()->getHighAvailability()->isEnabled())
-					continue;
-
-				QString ha;
-				CDspService::instance()->getHaClusterHelper()->getHaClusterID(ha);
-				m_nReservedFlags |= ((!ha.isEmpty()) * PVM_HA_MOVE_VM);
-				continue;
-			}
-
-			if (_error.getEventCode() == PRL_ERR_VM_MIGRATE_NON_COMPATIBLE_CPU_ON_TARGET)
-			{
-				if (	(VMS_STOPPED ==  m_nPrevVmState) ||
-					(m_nMigrationFlags & PVM_DONT_RESUME_VM))
-				{
-					// error with CPUs incompatibility
-					//so ignore it
-					// If another error will be encountered in this loop, it will be added
-					// to m_lstCheckPrecondsErrors and checked below...
-					continue;
-				}
-			}
-			m_lstCheckPrecondsErrors.append(sError);
-		} // foreach
-		if (m_lstCheckPrecondsErrors.size())
-			return PRL_ERR_VM_MIGRATE_CHECKING_PRECONDITIONS_FAILED;
+	namespace in = Migrate::Vm::Source::Inspection;
+	in::Report x;
+	in::Reply::Efiw2k8(m_nRemoteVersion,
+		in::Reply::Interpreter(lstErrors))(qMakePair(this, &x));
+	if (!x.getResult().isEmpty())
+	{
+		m_lstCheckPrecondsErrors = x.getResult();
+		return PRL_ERR_VM_MIGRATE_CHECKING_PRECONDITIONS_FAILED;
 	}
-
 	return prepareStart();
 }
 
@@ -1935,5 +1955,17 @@ QList<CVmHardDisk* > Task_MigrateVmSource::getVmUnsharedDisks() const
 		}
 	}
 	return output;
+}
+
+void Task_MigrateVmSource::setSharedStorage()
+{
+	m_nReservedFlags |= PVM_DONT_COPY_VM;
+	if (m_pVmConfig.isValid() &&
+		m_pVmConfig->getVmSettings()->getHighAvailability()->isEnabled())
+	{
+		QString ha;
+		CDspService::instance()->getHaClusterHelper()->getHaClusterID(ha);
+		m_nReservedFlags |= ((!ha.isEmpty()) * PVM_HA_MOVE_VM);
+	}
 }
 

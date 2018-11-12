@@ -114,6 +114,7 @@ public:
 	PRL_RESULT confirmFinish();
 	QList<CVmHardDisk* > getVmUnsharedDisks() const;
 	Migrate::Vm::Source::Content::Copier* createCopier();
+	void setSharedStorage();
 
 protected:
 	virtual PRL_RESULT prepareTask();
