@@ -117,9 +117,19 @@ namespace Index
 template<>
 bool Match<CVmHardDisk>::operator()(const CVmHardDisk* item_)
 {
-	return (item_->getSystemName() == m_needle->getSystemName() ||
-		(!item_->getSerialNumber().isEmpty() && 
-		(item_->getSerialNumber() == m_needle->getSerialNumber())));
+	if (NULL == item_)
+		return false;
+
+	if (item_->getSystemName() == m_needle->getSystemName())
+		return true;
+
+	if (item_->getSerialNumber().isEmpty())
+	{
+		return !item_->getTargetDeviceName().isEmpty() &&
+			(item_->getTargetDeviceName() == m_needle->getTargetDeviceName());
+	}
+
+	return item_->getSerialNumber() == m_needle->getSerialNumber();
 }
 
 template<>
