@@ -144,20 +144,10 @@ template<class T> SmartPtr<T> Cache<T>::getFromCache( const QString& strFileName
 	typename QHash<CacheKey, ConfigInfo>::const_iterator cIt = m_hashConfigs.constFind(key);
 	if(cIt != m_hashConfigs.constEnd())
 	{
-		FileTimestamp ts( strFileName );
-		if( cIt->dtChangeTime != ts )
-		{
-			LOG_MESSAGE( DBG_FATAL, "xxx ZZZ-1: Config file was changed on the disk. "
-					"TimeStamps: cached: %s, current %s,  path = %s"
-				, QSTR2UTF8(cIt->dtChangeTime.toString()), QSTR2UTF8(ts.toString()), QSTR2UTF8(strFileName) );
-		}
-		else
-		{
-			LOG_MESSAGE( DBG_FATAL, "xxx ZZZ-2: Config was got from cache. path = %s", QSTR2UTF8(strFileName) );
-			cIt->lastAccess = PrlGetTickCount64();
-			SmartPtr<T> pConfig( new T( cIt->pConfig.getImpl() ) );
-			return pConfig;
-		}
+		LOG_MESSAGE( DBG_FATAL, "xxx ZZZ-2: Config was got from cache. path = %s", QSTR2UTF8(strFileName) );
+		cIt->lastAccess = PrlGetTickCount64();
+		SmartPtr<T> pConfig( new T( cIt->pConfig.getImpl() ) );
+		return pConfig;
 	}
 	LOG_MESSAGE( DBG_FATAL, "xxx WWW: Config was NOT got from cache. path = %s", QSTR2UTF8(strFileName) );
 
