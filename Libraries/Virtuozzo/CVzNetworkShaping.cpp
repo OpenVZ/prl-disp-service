@@ -27,32 +27,25 @@
 
 #include <stdlib.h>
 #include "CVzNetworkShaping.h"
+#include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Logging/Logging.h>
 
 #define NETWORK_SHAPING_CONF	"/etc/vz/vz.conf"
 #define NETWORK_CLASSES_CONF	"/etc/vz/conf/networks_classes"
 
-#define PRL_CMD_WORK_TIMEOUT 5 * 1000
+#define PRL_CMD_WORK_TIMEOUT 5 * 60 * 1000
 static PRL_RESULT run_prg(const char *name, const QStringList &lstArgs)
 {
 	QProcess proc;
-	WRITE_TRACE(DBG_INFO, "%s %s", name, lstArgs.join(" ").toUtf8().constData());
-	proc.start(name, lstArgs);
-	if (!proc.waitForFinished(PRL_CMD_WORK_TIMEOUT))
-	{
-		WRITE_TRACE(DBG_FATAL, "%s tool not responding. Terminate it now.", name);
-		proc.kill();
-		return PRL_ERR_OPERATION_FAILED;
-	}
+	QString out, cmd;
 
-	if (0 != proc.exitCode())
-	{
-		WRITE_TRACE(DBG_FATAL, "%s utility failed: %s %s [%d]\nout=%s\nerr=%s",
-				name, name,
-				lstArgs.join(" ").toUtf8().constData(),
-				proc.exitCode(),
-				proc.readAllStandardOutput().data(),
-				proc.readAllStandardError().data());
+	cmd = QString(name) + QString(" ") + lstArgs.join(" ");
+	WRITE_TRACE(DBG_INFO, "%s %s", name, qPrintable(cmd));
+	if (!HostUtils::RunCmdLineUtility(cmd, out, PRL_CMD_WORK_TIMEOUT, &proc)) {
+		WRITE_TRACE(DBG_FATAL, "%s utility failed: %s [%d]\nout=%s\nerr=%s",
+				name, qPrintable(cmd), proc.exitCode(),
+				qPrintable(out),
+				qPrintable(proc.readAllStandardError()));
 		return PRL_ERR_OPERATION_FAILED;
 	}
 	return PRL_ERR_SUCCESS;
