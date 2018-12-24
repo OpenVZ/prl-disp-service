@@ -1134,6 +1134,10 @@ PRL_RESULT Task_VzManager::clone_env()
 
 	get_op_helper()->apply_env_config(pNewConfig, pOldConfig, PVCF_DESTROY_HDD_BUNDLE);
 
+	// Invalidate cache
+	CDspService::instance()->getVzHelper()->getConfigCache().
+		remove(pConfig->getVmIdentification()->getHomePath());
+
 	getResponseCmd()->SetVmConfig(pNewConfig->toString());
 	{
 	       CVmEvent event(PET_DSP_EVT_VM_ADDED,
