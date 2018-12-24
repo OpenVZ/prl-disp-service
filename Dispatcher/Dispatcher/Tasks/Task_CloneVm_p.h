@@ -899,18 +899,8 @@ struct Flavor<T, typename EnableIf<IsSame<T, Vm::General>::value ||
 		grub_->getVmIdentification()->setServerUuid(CDspService::instance()
 			->getDispConfigGuard().getDispConfig()
 			->getVmServerIdentification()->getServerUuid());
-		HostUtils::MacPrefixType prefix = HostUtils::MAC_PREFIX_VM;
-		if (PVT_CT == grub_->getVmType())
-			prefix = HostUtils::MAC_PREFIX_CT;
 
-		foreach(CVmGenericNetworkAdapter* a, grub_->getVmHardwareList()->m_lstNetworkAdapters)
-		{
-			// regenerate mac address for cloned VM or CT
-			a->setMacAddress(HostUtils::generateMacAddress(prefix));
-			a->setHostInterfaceName
-				(HostUtils::generateHostInterfaceName(a->getMacAddress()));
-		}
-		CDspVmNetworkHelper::updateHostMacAddresses(grub_, NULL, HMU_CHECK_NONEMPTY);
+		Task_CloneVm::ResetNetSettings(grub_);
 	}
 	static SmartPtr<CVmConfiguration> getGrub(Task_CloneVm& task_)
 	{

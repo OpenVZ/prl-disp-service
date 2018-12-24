@@ -73,6 +73,7 @@ class CDspVmNetworkHelper
 		static void extractMacAddressesFromVMConfiguration(SmartPtr<CVmConfiguration> config,
 															QSet<QString>& macs,
 															bool hostAddresses);
+		static QMultiMap<QString, QString> extractAllVmMacAddresses(bool hostAddresses);
 		static bool extractAllVmMacAddresses(QSet<QString>& macs, bool hostAddresses);
 
 		/// returns true if mac-address conflicts with some interface in the list/vm mac.

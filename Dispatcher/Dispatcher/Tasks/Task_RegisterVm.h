@@ -191,8 +191,7 @@ private:
 
 	// function generates a new MAC for all adapters in the VmConfiguratioin that aren't static
 	// or for MAC that are present in the duplicates.
-	void createMACAddress(SmartPtr<CVmConfiguration> config,
-			QSet<QString> duplicates = QSet<QString>(), bool bCheckEmpty = false);
+	void createMACAddress(SmartPtr<CVmConfiguration> config, bool bCheckEmpty = false);
 
 	// Check appliance registration
 	bool isApplianceRegistered() const { return ! m_strApplianceId.isEmpty(); }

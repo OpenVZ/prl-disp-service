@@ -1812,12 +1812,17 @@ void Task_CloneVm::ResetNetSettings( SmartPtr<CVmConfiguration> pVmConfig )
 		break;
 	}
 
+        QSet<QString> u;
+        CDspVmNetworkHelper::extractAllVmMacAddresses(u, false);
 	foreach(CVmGenericNetworkAdapter *pNetAdapter, pVmConfig->getVmHardwareList()->m_lstNetworkAdapters)
 	{
+		QString a;
+		CDspVmNetworkHelper::checkAndMakeUniqueMacAddr(a, u, prefix);
+		u << a;
 		// regenerate mac address for cloned VM or CT
-		pNetAdapter->setMacAddress(HostUtils::generateMacAddress(prefix));
-		pNetAdapter->setHostInterfaceName
-			(HostUtils::generateHostInterfaceName(pNetAdapter->getMacAddress()));
+		pNetAdapter->setMacAddress(a);
+		pNetAdapter->setStaticAddress(false);
+		pNetAdapter->setHostInterfaceName(HostUtils::generateHostInterfaceName(a));
 
 		// reset IP addresses for templates
 		if ( bCreateTemplate )

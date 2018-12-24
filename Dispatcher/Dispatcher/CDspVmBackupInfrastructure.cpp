@@ -38,6 +38,7 @@
 #endif
 #include "CDspLibvirtExec.h"
 #include "CDspVmManager_p.h"
+#include <Tasks/Task_CloneVm.h>
 #include <Tasks/Task_CloneVm_p.h>
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #include "CDspVmBackupInfrastructure.h"

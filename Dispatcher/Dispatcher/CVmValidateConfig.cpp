@@ -44,6 +44,7 @@
 #include "CVmValidateConfig.h"
 #include "CVmValidateConfig_p.h"
 #include "CDspService.h"
+#include "CDspVmNetworkHelper.h"
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/PrlCommonUtilsBase/OsInfo.h>
@@ -494,6 +495,7 @@ bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
 		case PRL_ERR_VMCONF_VM_NAME_HAS_INVALID_SYMBOL:
 		case PRL_ERR_INVALID_MEMORY_GUARANTEE:
 		case PRL_ERR_VMCONF_HARD_DISK_SERIAL_IS_NOT_VALID:
+		case PRL_ERR_VMCONF_NETWORK_ADAPTER_DUPLICATE_MAC_ADDRESS:
 		{
 			evtResult.setEventType(PET_DSP_EVT_ERROR_MESSAGE);
 			evtResult.setEventCode(m_lstResults[i]);
@@ -1650,6 +1652,7 @@ void CVmValidateConfig::CheckNetworkAdapter()
 
 	QList<QString > lstMacAddresses;
 	QList<QHostAddress > lstIPAddresses;
+	QMultiMap<QString, QString> m = CDspVmNetworkHelper::extractAllVmMacAddresses(false);
 
 	unsigned int nOsVersion = m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsVersion();
 
@@ -1694,7 +1697,9 @@ void CVmValidateConfig::CheckNetworkAdapter()
 
 		// NOTE: if this error will ever need a parameter, move it upper before
 		// if and use the errCode var like above
-		if (lstMacAddresses.contains(sMacAddress))
+		if (lstMacAddresses.contains(sMacAddress) ||
+			(!pNetAdapter->isStaticAddress() && m.contains(sMacAddress) &&
+				!m.contains(sMacAddress, m_pVmConfig->getVmIdentification()->getVmUuid())))
 		{
 			m_lstResults += PRL_ERR_VMCONF_NETWORK_ADAPTER_DUPLICATE_MAC_ADDRESS;
 			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
