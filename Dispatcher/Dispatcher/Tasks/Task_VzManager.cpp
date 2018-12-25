@@ -1136,7 +1136,7 @@ PRL_RESULT Task_VzManager::clone_env()
 
 	// Invalidate cache
 	CDspService::instance()->getVzHelper()->getConfigCache().
-		remove(pConfig->getVmIdentification()->getHomePath());
+		remove(pNewConfig->getVmIdentification()->getHomePath());
 
 	getResponseCmd()->SetVmConfig(pNewConfig->toString());
 	{
