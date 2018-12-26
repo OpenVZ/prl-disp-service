@@ -1957,6 +1957,31 @@ struct Traits<Snapshot::Xml::PWriteIopsSec1>
 
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PSizeIopsSec
+
+namespace Snapshot
+{
+namespace Xml
+{
+struct PSizeIopsSec
+{
+	typedef ulong value_type;
+};
+
+} // namespace Xml
+} // namespace Snapshot
+
+template<>
+struct Traits<Snapshot::Xml::PSizeIopsSec>
+{
+	static bool parse(const QString& src_, Snapshot::Xml::PSizeIopsSec::value_type& dst_);
+
+	static QString generate(Snapshot::Xml::PSizeIopsSec::value_type src_);
+
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PRetries
 
 namespace Snapshot

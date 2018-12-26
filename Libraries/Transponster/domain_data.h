@@ -1957,6 +1957,31 @@ struct Traits<Domain::Xml::PWriteIopsSec1>
 
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PSizeIopsSec
+
+namespace Domain
+{
+namespace Xml
+{
+struct PSizeIopsSec
+{
+	typedef ulong value_type;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+template<>
+struct Traits<Domain::Xml::PSizeIopsSec>
+{
+	static bool parse(const QString& src_, Domain::Xml::PSizeIopsSec::value_type& dst_);
+
+	static QString generate(Domain::Xml::PSizeIopsSec::value_type src_);
+
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PRetries
 
 namespace Domain

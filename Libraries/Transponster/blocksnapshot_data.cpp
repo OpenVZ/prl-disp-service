@@ -1215,6 +1215,21 @@ QString Traits<Blocksnapshot::Xml::PWriteIopsSec1>::generate(Blocksnapshot::Xml:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PSizeIopsSec
+
+bool Traits<Blocksnapshot::Xml::PSizeIopsSec>::parse(const QString& src_, Blocksnapshot::Xml::PSizeIopsSec::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toULong(&output);
+	return output;
+}
+
+QString Traits<Blocksnapshot::Xml::PSizeIopsSec>::generate(Blocksnapshot::Xml::PSizeIopsSec::value_type src_)
+{
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PRetries
 
 bool Traits<Blocksnapshot::Xml::PRetries>::parse(const QString& src_, Blocksnapshot::Xml::PRetries::value_type& dst_)
