@@ -3576,7 +3576,9 @@ static QString g_text[] = {
 	QString("mdev"),
 	QString("capability3550"),
 	QString("capability3551"),
-	QString("")
+	QString(""),
+	QString("size_iops_sec"),
+	QString("group_name")
 };
 
 const QString& getText(quint32 index_)

@@ -514,6 +514,7 @@ void Hdd::setIoLimit(const CVmIoLimit* global_)
 	{
 		mpl::at_c<Libvirt::Domain::Xml::VChoice1106::types, 0>::type y;
 		y.setValue(p);
+		t.setGroupName(QString("virtuozzo"));
 		t.setChoice1106(Libvirt::Domain::Xml::VChoice1106(y));
 	}
 
@@ -533,6 +534,7 @@ void Hdd::setIopsLimit(const CVmRunTimeOptions& runtime_)
 	{
 		mpl::at_c<Libvirt::Domain::Xml::VChoice1110::types, 0>::type y;
 		y.setValue(p);
+		t.setGroupName(QString("virtuozzo"));
 		t.setChoice1110(Libvirt::Domain::Xml::VChoice1110(y));
 	}
 

@@ -1957,6 +1957,31 @@ struct Traits<Blockexport::Xml::PWriteIopsSec1>
 
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PSizeIopsSec
+
+namespace Blockexport
+{
+namespace Xml
+{
+struct PSizeIopsSec
+{
+	typedef ulong value_type;
+};
+
+} // namespace Xml
+} // namespace Blockexport
+
+template<>
+struct Traits<Blockexport::Xml::PSizeIopsSec>
+{
+	static bool parse(const QString& src_, Blockexport::Xml::PSizeIopsSec::value_type& dst_);
+
+	static QString generate(Blockexport::Xml::PSizeIopsSec::value_type src_);
+
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PRetries
 
 namespace Blockexport

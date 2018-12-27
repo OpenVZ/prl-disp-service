@@ -5417,6 +5417,8 @@ int Traits<Domain::Xml::Iotune>::parse(Domain::Xml::Iotune& dst_, QStack<QDomEle
 	{
 		dst_.setChoice1106(m.get<0>().getValue());
 		dst_.setChoice1110(m.get<1>().getValue());
+		dst_.setSizeIopsSec(m.get<2>().getValue());
+		dst_.setGroupName(m.get<3>().getValue());
 	}
 	return output;
 }
@@ -5427,6 +5429,10 @@ int Traits<Domain::Xml::Iotune>::generate(const Domain::Xml::Iotune& src_, QDomE
 	if (0 > Details::Marshal::assign(src_.getChoice1106(), m.get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getChoice1110(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getSizeIopsSec(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getGroupName(), m.get<3>()))
 		return -1;
 
 	return m.produce(dst_);

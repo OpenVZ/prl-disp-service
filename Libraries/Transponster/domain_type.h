@@ -4719,6 +4719,22 @@ struct Iotune
 	{
 		m_choice1110 = value_;
 	}
+	const boost::optional<PSizeIopsSec::value_type >& getSizeIopsSec() const
+	{
+		return m_sizeIopsSec;
+	}
+	void setSizeIopsSec(const boost::optional<PSizeIopsSec::value_type >& value_)
+	{
+		m_sizeIopsSec = value_;
+	}
+	const boost::optional<QString >& getGroupName() const
+	{
+		return m_groupName;
+	}
+	void setGroupName(const boost::optional<QString >& value_)
+	{
+		m_groupName = value_;
+	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
 	bool save(QDomDocument& ) const;
@@ -4726,6 +4742,8 @@ struct Iotune
 private:
 	VChoice1106 m_choice1106;
 	VChoice1110 m_choice1110;
+	boost::optional<PSizeIopsSec::value_type > m_sizeIopsSec;
+	boost::optional<QString > m_groupName;
 };
 
 } // namespace Xml
@@ -14121,7 +14139,7 @@ struct Traits<Domain::Xml::Variant1109>
 template<>
 struct Traits<Domain::Xml::Iotune>
 {
-	typedef Unordered<mpl::vector<Domain::Xml::VChoice1106Impl, Domain::Xml::VChoice1110Impl > > marshal_type;
+	typedef Unordered<mpl::vector<Domain::Xml::VChoice1106Impl, Domain::Xml::VChoice1110Impl, Optional<Element<Text<Domain::Xml::PSizeIopsSec >, Name::Strict<3554> > >, Optional<Element<Text<QString >, Name::Strict<3555> > > > > marshal_type;
 
 	static int parse(Domain::Xml::Iotune& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Iotune& , QDomElement& );
