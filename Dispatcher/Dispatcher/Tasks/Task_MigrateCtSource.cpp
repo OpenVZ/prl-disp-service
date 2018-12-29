@@ -201,6 +201,9 @@ PRL_RESULT Task_MigrateCtSource::run_body()
 	if (m_nMigrationFlags & PVM_FORCE)
 		lstArgs.append("-f");
 
+	if (m_nMigrationFlags & PVMT_UNCOMPRESSED)
+		lstArgs.append("--nocompress");
+
 	if (!m_sTargetServerCtName.isEmpty())
 		lstArgs.append(QString("--new-name=%1").arg(m_sTargetServerCtName));
 
