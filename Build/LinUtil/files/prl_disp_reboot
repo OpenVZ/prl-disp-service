@@ -24,6 +24,7 @@
 
 import subprocess32 as subprocess
 import sys
+import os
 import logging
 import threading
 import prlsdkapi
@@ -126,6 +127,16 @@ fh = logging.FileHandler("/var/log/%s.log" % progname)
 fh.setLevel(defloglevel)
 fh.setFormatter(logging.Formatter(logformat))
 logger.addHandler(fh)
+
+# Detect that we're started from cronjob as intermediate list creator
+if os.path.basename(sys.argv[0]) == "prl_disp_autostart_list_update":
+    logger.info("Started as autostart list updater")
+    try:
+        prepare_to_reboot()
+    except Exception, err:
+        error(repr(err))
+    logger.info("All done!")
+    sys.exit(0)
 
 # Detect that we're going to reboot/shutdown
 proc = subprocess.Popen("/usr/bin/systemctl -q --no-legend list-jobs",

@@ -1,0 +1,8 @@
+#!/bin/sh
+PRL_CMD="/usr/libexec/prl_disp_autostart_list_update"
+
+if test -x $PRL_CMD; then
+	$PRL_CMD
+fi
+
+exit 0
