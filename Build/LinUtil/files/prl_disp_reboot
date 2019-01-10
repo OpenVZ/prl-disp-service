@@ -33,7 +33,7 @@ def error(mess):
     logger.error(mess)
     sys.exit(1)
 
-def prepare_to_reboot(timeout = 60 * 1000):
+def process_vms(timeout = 60 * 1000, do_stop = True):
     threads = []
     # Connect to dispatcher
     logger.info("SDK init...")
@@ -73,6 +73,9 @@ def prepare_to_reboot(timeout = 60 * 1000):
                     prlsdkapi.consts.VMS_SUSPENDING, prlsdkapi.consts.VMS_SUSPENDED)):
                 continue
 
+            if not do_stop:
+                continue
+
             # Suspend or Stop VMs based on Autostop configuration
             stopmode = rescfg.get_auto_stop()
             if stopmode == prlsdkapi.consts.PAO_VM_SUSPEND:
@@ -109,6 +112,12 @@ def prepare_to_reboot(timeout = 60 * 1000):
     logger.info("SDK deinit...")
     prlsdkapi.deinit_sdk()
 
+def prepare_to_reboot(do_stop = True):
+    try:
+        process_vms(do_stop = do_stop)
+    except Exception, err:
+        error(repr(err))
+
 # Redirect messages to /dev/null
 devnull = open("/dev/null", 'w')
 sys.stdout.flush()
@@ -131,10 +140,7 @@ logger.addHandler(fh)
 # Detect that we're started from cronjob as intermediate list creator
 if os.path.basename(sys.argv[0]) == "prl_disp_autostart_list_update":
     logger.info("Started as autostart list updater")
-    try:
-        prepare_to_reboot()
-    except Exception, err:
-        error(repr(err))
+    prepare_to_reboot(do_stop = False)
     logger.info("All done!")
     sys.exit(0)
 
@@ -156,11 +162,7 @@ for line in output.splitlines():
         if not line.split(" ")[1] in ("reboot.target", "shutdown.target"):
             logger.info("Not in reboot or shutdown state!")
             continue
-        try:
-            prepare_to_reboot()
-            break
-        except Exception, err:
-            error(repr(err))
+        prepare_to_reboot()
     except IndexError:
         pass
 
