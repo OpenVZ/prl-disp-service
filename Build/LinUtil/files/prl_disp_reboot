@@ -163,6 +163,7 @@ for line in output.splitlines():
             logger.info("Not in reboot or shutdown state!")
             continue
         prepare_to_reboot()
+        break
     except IndexError:
         pass
 
