@@ -679,9 +679,10 @@ struct Factory<CVmGenericNetworkAdapter>: Generic<CVmGenericNetworkAdapter>
 // struct Driver
 
 typedef boost::mpl::vector<ChangeableMedia<CVmOpticalDisk>, ChangeableMedia<CVmFloppyDisk>,
-		Adapter, Hotplug::Factory<CVmSerialPort>, Hotplug::Factory<CVmHardDisk>,
+		Adapter, Network::Factory,
+		Hotplug::Factory<CVmSerialPort>, Hotplug::Factory<CVmHardDisk>,
 		Hotplug::Factory<CVmGenericNetworkAdapter>, Disk, Blkiotune,
-		Network::Factory, Vcmmd, Cpu::Factory> probeList_type;
+		Vcmmd, Cpu::Factory> probeList_type;
 
 struct Driver: Gear<Driver, probeList_type>
 {
