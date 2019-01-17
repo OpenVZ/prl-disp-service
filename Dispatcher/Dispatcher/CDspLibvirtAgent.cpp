@@ -461,7 +461,7 @@ Migration::Agent State::migrate(const QString &uri_)
 Result Maintenance::updateQemu()
 {
 	Result output = do_(getDomain().data(), boost::bind(&virDomainMigrateToURI3, _1,
-			(const char *)NULL, (virTypedParameterPtr) NULL, 0, 
+			(const char *)NULL, (virTypedParameterPtr) NULL, 0,
 			VIR_MIGRATE_PEER2PEER | VIR_MIGRATE_LOCAL |
 			VIR_MIGRATE_LIVE | VIR_MIGRATE_POSTCOPY |
 			VIR_MIGRATE_POSTCOPY_START | VIR_MIGRATE_RELEASE_RAM));
@@ -491,28 +491,6 @@ Result Unit::rename(const QString& to_)
 {
 	return do_(getDomain().data(), boost::bind(&virDomainRename, _1,
 		qPrintable(to_), 0));
-}
-
-QSharedPointer<Exec::AuxChannel>
-	Unit::getChannel(const QString& path_) const
-{
-	virStreamPtr stream = virStreamNew(getLink().data(), VIR_STREAM_NONBLOCK);
-	if (!stream)
-		return QSharedPointer<Exec::AuxChannel>();
-
-	int ret = virDomainOpenChannel(getDomain().data(), QSTR2UTF8(path_), stream, 0);
-	if (ret) {
-		virStreamFree(stream);
-		return QSharedPointer<Exec::AuxChannel>();
-	}
-	QSharedPointer<Exec::AuxChannel> output(new Exec::AuxChannel(stream));
-	Exec::Callback* b = new Exec::Callback();
-	b->setTarget(output);
-	virStreamEventAddCallback(stream,
-		VIR_STREAM_EVENT_HANGUP | VIR_STREAM_EVENT_ERROR | VIR_STREAM_EVENT_READABLE,
-		&Exec::Callback::react, b, Libvirt::Callback::Plain::delete_<Exec::Callback>);
-	
-	return output;
 }
 
 Result Unit::getConfig(CVmConfiguration& dst_, bool runtime_) const
@@ -1004,7 +982,7 @@ Prl::Expected< QList<boost::tuple<quint64,quint64,QString,QString,QString> >, ::
 Guest::getFsInfo()
 {
 	Prl::Expected<QString, Libvirt::Agent::Failure> r =
-		Exec::Exec(m_domain).executeInAgent(QString("{\"execute\":\"guest-get-fsinfo\"}"));
+		executeInAgent(QString("{\"execute\":\"guest-get-fsinfo\"}"));
 	if (r.isFailed())
 		return r.error();
 	std::istringstream is(r.value().toUtf8().data());
@@ -1028,14 +1006,14 @@ Guest::getFsInfo()
 
 Result Guest::checkAgent()
 {
-       return Exec::Exec(m_domain).executeInAgent(QString("{\"execute\":\"guest-ping\"}"));
+       return executeInAgent(QString("{\"execute\":\"guest-ping\"}"));
 }
 
 Prl::Expected<QString, Libvirt::Agent::Failure>
 Guest::getAgentVersion(int retries)
 {
 	Prl::Expected<QString, Libvirt::Agent::Failure> r =
-		Exec::Exec(m_domain).executeInAgent(QString("{\"execute\":\"guest-info\"}"), retries);
+		executeInAgent(QString("{\"execute\":\"guest-info\"}"), retries);
 	if (r.isFailed())
 		return r.error();
 
@@ -1068,194 +1046,40 @@ Guest::execute(const QString& cmd, bool isHmp)
 	return reply;
 }
 
-Prl::Expected<Exec::Future, Error::Simple>
-Guest::startProgram(const Exec::Request& req)
+Prl::Expected<QSharedPointer<Exec::Unit>, Error::Simple>
+Guest::getExec() const
 {
-	Exec::Exec e(m_domain);
-	Prl::Expected<int, Error::Simple> r = e.runCommand(req);
-	if (r.isFailed())
-		return r.error();
-	return Exec::Future(m_domain, r.value());
+	if (m_domain.isNull())
+		return Error::Simple(PRL_ERR_UNINITIALIZED);
+
+	return QSharedPointer<Exec::Unit>(new Exec::Unit(m_domain));
 }
 
-Prl::Expected<Exec::Result, Error::Simple>
-Guest::runProgram(const Exec::Request& req)
+Prl::Expected<Guest::result_type, Error::Simple>
+Guest::runProgram(const Exec::Request& request_)
 {
-	Prl::Expected<Exec::Future, Error::Simple> f = startProgram(req);
-	if (f.isFailed())
-		return f.error();
-	Result r = f.value().wait();
-	if (r.isFailed())
-		return r.error();
-	return f.value().getResult().get();
-}
+	Libvirt::Result e;
+	Exec::Unit x(m_domain);
+	e = x.start(request_);
+	if (e.isFailed())
+		return e.error();
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Exec
+	e = x.wait();
+	if (e.isFailed())
+		return e.error();
 
-Prl::Expected<boost::optional<Exec::Result>, Libvirt::Agent::Failure>
-Exec::Exec::getCommandStatus(int pid)
-{
-	boost::property_tree::ptree cmd, params;
+	if (x.getResult().isFailed())
+		return Error::Simple(x.getResult().error());
 
-	params.put("pid", "pid-value"); // replace placeholder later
-
-	cmd.put("execute", "guest-exec-status");
-	cmd.add_child("arguments", params);
-
-	std::stringstream ss;
-	boost::property_tree::json_parser::write_json(ss, cmd, false);
-
-	// boost json has no int varant, so...
-	std::string s = ss.str();
-	boost::replace_all<std::string>(s, "\"pid-value\"", boost::lexical_cast<std::string>(pid));
-
-	Prl::Expected<QString, Libvirt::Agent::Failure> r =
-		executeInAgent(QString::fromUtf8(s.c_str()));
-	if (r.isFailed())
-		return r.error();
-
-	std::istringstream is(r.value().toUtf8().data());
-
-	// read_json is not thread safe
-	QMutexLocker locker(getBoostJsonLock());
-	boost::property_tree::ptree result;
-	try {
-		boost::property_tree::json_parser::read_json(is, result);
-		if (!result.get<bool>("return.exited"))
-			return boost::optional<Result>();
-
-		Result st;
-		st.exitcode = result.get<int>("return.signal", -1);
-		if (st.exitcode != -1) {
-			st.signaled = true;
-		} else {
-			st.exitcode = result.get<int>("return.exitcode", -1);
-		}
-
-		std::string s;
-		s = result.get<std::string>("return.out-data", "");
-		st.stdOut = QByteArray::fromBase64(s.c_str());
-		s = result.get<std::string>("return.err-data", "");
-		st.stdErr = QByteArray::fromBase64(s.c_str());
-
-		return boost::optional<Result>(st);
-	} catch (const std::exception&) {
-		return Libvirt::Agent::Failure(PRL_ERR_FAILURE);
-	}
-}
-
-Prl::Expected<void, Libvirt::Agent::Failure>
-Exec::Exec::terminate(int pid)
-{
-	boost::property_tree::ptree cmd, params;
-
-	params.put("pid", "pid-value"); // replace placeholder later
-
-	cmd.put("execute", "guest-exec-terminate");
-	cmd.add_child("arguments", params);
-
-	std::stringstream ss;
-	boost::property_tree::json_parser::write_json(ss, cmd, false);
-
-	// boost json has no int varant, so...
-	std::string s = ss.str();
-	boost::replace_all<std::string>(s, "\"pid-value\"", boost::lexical_cast<std::string>(pid));
-
-	return executeInAgent(QString::fromUtf8(s.c_str()));
-}
-
-Prl::Expected<int, Libvirt::Agent::Failure>
-Exec::Exec::runCommand(const Libvirt::Instrument::Agent::Vm::Exec::Request& req)
-{
-	Prl::Expected<QString, Libvirt::Agent::Failure> r = 
-		executeInAgent(req.getJson());
-	if (r.isFailed())
-		return r.error();
-
-	const char * s = r.value().toUtf8().data();
-	std::istringstream is(s);
-
-	// read_json is not thread safe
-	QMutexLocker locker(getBoostJsonLock());
-	try {
-		boost::property_tree::ptree result;
-		boost::property_tree::json_parser::read_json(is, result);
-		return result.get<int>("return.pid");
-	} catch (const std::exception&) {
-		return Libvirt::Agent::Failure(PRL_ERR_FAILURE);
-	}
-
-}
-
-QString Exec::Request::getJson() const
-{
-	boost::property_tree::ptree cmd, argv, env, params;
-
-	params.put("path", QSTR2UTF8(m_path));
-	params.put("capture-output", "capture-output-value"); // replace placeholder later
-	params.put("execute-in-shell", "execute-in-shell-value"); // replace placeholder later
-
-	if (m_channels.size() > 0) {
-		QPair<int, int> c;
-		foreach (c, m_channels) {
-			if (c.first == 0)
-				params.put("cid-in", "cid-in-value");
-			else if (c.first == 1)
-				params.put("cid-out", "cid-out-value");
-			else if (c.first == 2)
-				params.put("cid-err", "cid-err-value");
-		}
-	}
-
-	if (m_env.size() > 0) {
-		foreach (const QString& a, m_env) {
-			boost::property_tree::ptree e;
-			e.put_value(a.toStdString());
-			env.push_back(std::make_pair("", e));
-		}
-		params.add_child("env", env);
-	}
-
-	if (m_args.size() > 0) {
-		foreach (const QString& a, m_args) {
-			boost::property_tree::ptree e;
-			e.put_value(a.toStdString());
-			argv.push_back(std::make_pair("", e));
-		}
-		params.add_child("arg", argv);
-	}
-
-	cmd.put("execute", "guest-exec");
-	cmd.add_child("arguments", params);
-
-	std::stringstream ss;
-	boost::property_tree::json_parser::write_json(ss, cmd, false);
-
-	// boost json has no int varant, so...
-	std::string s = ss.str();
-	boost::replace_all<std::string>(s, "\"capture-output-value\"", "true");
-	boost::replace_all<std::string>(s, "\"execute-in-shell-value\"", m_runInShell ? "true" : "false");
-	if (m_channels.size() > 0) {
-		QPair<int, int> c;
-		foreach (c, m_channels) {
-			std::string k;
-			if (c.first == 0)
-				k = "\"cid-in-value\"";
-			else if (c.first == 1)
-				k = "\"cid-out-value\"";
-			else if (c.first == 2)
-				k = "\"cid-err-value\"";
-			boost::replace_all<std::string>(s, k,  QString::number(c.second).toStdString());
-		}
-	}
-
-
-	return QString::fromStdString(s);
+	result_type output(x.getResult().value());
+	output.stdOut = x.getStdout()->readAll();
+	output.stdErr = x.getStderr()->readAll();
+	
+	return output;
 }
 
 Prl::Expected<QString, Libvirt::Agent::Failure>
-Exec::Exec::executeInAgent(const QString& cmd, int retries)
+Guest::executeInAgent(const QString& cmd, int retries)
 {
 	if (m_domain.isNull())
 		return Libvirt::Agent::Failure(PRL_ERR_UNINITIALIZED);
@@ -1282,7 +1106,7 @@ Exec::Exec::executeInAgent(const QString& cmd, int retries)
 		if (!r.isTransient())
 			return r;
 
-		if (retries != Exec::INFINITE && ++i > retries)
+		if (retries != INFINITE && ++i > retries)
 			return r;
 
 		HostUtils::Sleep(1000);
@@ -1293,111 +1117,47 @@ Exec::Exec::executeInAgent(const QString& cmd, int retries)
 	return reply;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Future
-
-int Exec::Future::calculateTimeout(int i) const
-{
-	switch (i / 10) {
-		case 0:
-			return 100;
-		case 1:
-			return 1000;
-		default:
-			return 10000;
-	}
-}
-
-Libvirt::Result
-Exec::Future::wait(int timeout)
-{
-	if (m_status)
-		return Libvirt::Result();
-
-	Waiter waiter;
-	int msecs, total = 0;
-	for (int i=0; ; i++) {
-		Prl::Expected<boost::optional<Result>, Libvirt::Agent::Failure>
-			st = Exec(m_domain).getCommandStatus(m_pid);
-		if (st.isFailed()) {
-			if (!st.error().isTransient() ||
-			    ++m_failcnt >= MAX_TRANSIENT_FAILS)
-				return st.error();
-		} else {
-			m_failcnt = 0;
-			if (st.value()) {
-				m_status = st.value();
-				return Libvirt::Result();
-			}
-		}
-		if (timeout == 0)
-			return Error::Simple(PRL_ERR_TIMEOUT);
-		msecs = calculateTimeout(i);
-		waiter.wait(msecs);
-		total += msecs;
-		if (timeout != -1 && timeout > total)
-			return Error::Simple(PRL_ERR_TIMEOUT);
-	}
-}
-
-void Exec::Future::cancel()
-{
-	if (m_status)
-		return;
-
-	if (m_pid) {
-		WRITE_TRACE(DBG_FATAL, "Trying to cancel the guest process %d", m_pid);
-		Exec(m_domain).terminate(m_pid);
-	}
-}
-
 namespace Exec
 {
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Device
-
-Device::Device(QSharedPointer<AuxChannel> aux_)
-	: m_client(0), m_channel(aux_)
-{
-	Prl::Expected<AuxChannel::ioChannel_type, PRL_RESULT> c =
-		m_channel->addIoChannel(*this);
-	if (c.isSucceed())
-		m_client = c.value();
-}
-
-bool Device::open(QIODevice::OpenMode mode_)
-{
-	if (0 == m_client)
-		return false;
-
-	if (!m_channel->isOpen()) {
-		invalidate();
-		return false;
-	}
-
-	return QIODevice::open(mode_);
-}
-
-void Device::invalidate()
-{
-	int x = 0;
-	std::swap(x, m_client);
-	if (0 != x)
-		m_channel->removeIoChannel(AuxChannel::ioChannel_type(x));
-}
-
-void Device::close()
-{
-	if (0 != m_client)
-	{
-		invalidate();
-		QIODevice::close();
-	}
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct ReadDevice
+
+ReadDevice::ReadDevice(virStreamPtr stream_):
+	m_finished(NULL == stream_), m_stream(stream_, &virStreamFree)
+{
+}
+
+void ReadDevice::close()
+{
+	{
+		QMutexLocker l(&m_lock);
+		if (!m_stream.isNull())
+		{
+			virStreamEventRemoveCallback(m_stream.data());
+			virStreamAbort(m_stream.data());
+			m_stream.clear();
+		}
+	}
+	setEof();
+	QIODevice::close();
+}
+
+void ReadDevice::setEof()
+{
+	bool e = false;
+	{
+		QMutexLocker l(&m_lock);
+		m_finished = true;
+		if ((e = !m_stream.isNull()))
+		{
+			virStreamEventRemoveCallback(m_stream.data());
+			virStreamFinish(m_stream.data());
+			m_stream.clear();
+		}
+	}
+	if (e)
+		emit readChannelFinished();
+}
 
 bool ReadDevice::open(QIODevice::OpenMode mode_)
 {
@@ -1405,21 +1165,7 @@ bool ReadDevice::open(QIODevice::OpenMode mode_)
 		return false;
 
 	QMutexLocker l(&m_lock);
-	return Device::open(mode_);
-}
-
-void ReadDevice::close()
-{
-	setEof();
-	Device::close();
-}
-
-void ReadDevice::setEof()
-{
-	QMutexLocker l(&m_lock);
-	m_finished = true;
-	l.unlock();
-	emit readChannelFinished();
+	return QIODevice::open(mode_);
 }
 
 bool ReadDevice::atEnd()
@@ -1445,10 +1191,10 @@ void ReadDevice::appendData(const QByteArray &data_)
 qint64 ReadDevice::readData(char *data_, qint64 maxSize_)
 {
 	QMutexLocker l(&m_lock);
-	quint64 c = (maxSize_ > m_data.size()) ? m_data.size() : maxSize_;
-	::memcpy(data_, m_data.constData(), c);
-	m_data.remove(0, c);
-	return c;
+	quint64 output = qMin<quint64>(maxSize_, m_data.size());
+	::memcpy(data_, m_data.constData(), output);
+	m_data.remove(0, output);
+	return output;
 }
 
 qint64 ReadDevice::writeData(const char *data_, qint64 len_)
@@ -1458,24 +1204,40 @@ qint64 ReadDevice::writeData(const char *data_, qint64 len_)
 	return -1;
 }
 
+Libvirt::Result ReadDevice::track(Callback* tracker_)
+{
+	if (NULL == tracker_)
+		return Error::Simple(PRL_ERR_INVALID_ARG);
+
+	QMutexLocker l(&m_lock);
+	return do_(m_stream.data(), boost::bind(&virStreamEventAddCallback, _1,
+		VIR_STREAM_EVENT_HANGUP | VIR_STREAM_EVENT_ERROR | VIR_STREAM_EVENT_READABLE,
+		&Callback::react, tracker_, &Libvirt::Callback::Plain::delete_<Callback>));
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct WriteDevice
+
+WriteDevice::WriteDevice(virStreamPtr stream_): m_stream(stream_, &virStreamFree)
+{
+}
 
 bool WriteDevice::open(QIODevice::OpenMode mode_)
 {
 	if (mode_ & QIODevice::ReadOnly)
 		return false;
 
-	return Device::open(mode_);
+	return QIODevice::open(mode_);
 }
 
 void WriteDevice::close()
 {
-	if (getChannel().isOpen()) {
-		// write EOF
-		getChannel().writeMessage(QByteArray(), getClient());
+	if (!m_stream.isNull())
+	{
+		virStreamFinish(m_stream.data());
+		m_stream.clear();
 	}
-	Device::close();
+	QIODevice::close();
 }
 
 qint64 WriteDevice::readData(char *data_, qint64 maxSize_)
@@ -1487,237 +1249,258 @@ qint64 WriteDevice::readData(char *data_, qint64 maxSize_)
 
 qint64 WriteDevice::writeData(const char *data_, qint64 len_)
 {
-	QByteArray s = QByteArray(data_, len_);
-	return getChannel().writeMessage(s, getClient());
-}
+	if (m_stream.isNull())
+		return -1;
 
-///////////////////////////////////////////////////////////////////////////////
-// struct CidGenerator
-
-bool CidGenerator::release(int id_)
-{
-	QMutexLocker l(&m_mutex);
-	return m_set.remove(id_);
-}
-
-boost::optional<int> CidGenerator::acquire()
-{
-	QMutexLocker l(&m_mutex);
-	int i = m_last;
-	while (++i != m_last)
+	qint64 output = 0;
+	for (qint32 n = 0; output < len_; output += n)
 	{
-		if (!m_set.contains(i)
-			&& m_set.insert(i) != m_set.constEnd())
-			return m_last = i;
-
-		if (i == INT_MAX)
-			i = 0;
-	}
-	return boost::none;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct AuxChannel
-
-enum {
-	AUX_MAGIC_NUMBER = 0x4B58B9CA
-};
-
-AuxChannel::AuxChannel(virStreamPtr stream_): m_stream(stream_), m_read()
-{
-}
-
-void AuxChannel::readMessage(const QByteArray& data_)
-{
-	if (m_read < (int)sizeof(AuxMessageHeader)) {
-		if (!data_.size())
-			return;
-
-		// fill in header first
-		int l = qMin((uint32_t)data_.size(), (uint32_t)sizeof(AuxMessageHeader) - m_read);
-		memcpy((char *)&m_readHdr + m_read, data_.constData(), l);
-		m_read += l;
-		return readMessage(data_.mid(l));
-	}
-
-	if (m_readHdr.magic != AUX_MAGIC_NUMBER) {
-		// trash in the channel, skip till valid header
-		return skipTrash(data_);
-	}
-
-	ReadDevice *d = static_cast<ReadDevice *>(m_ioChannels.value(m_readHdr.cid));
-	if (!d) {
-		WRITE_TRACE(DBG_FATAL, "Unknown channel id (%d), dropping header",
-				m_readHdr.cid);
-		restartRead();
-		return readMessage(data_);
-	}
-
-	if (!m_readHdr.length) {
-		d->setEof(); // eof
-		restartRead();
-		return readMessage(data_);
-	}
-
-	int l = qMin((uint32_t)data_.size(), m_readHdr.length -
-				m_read + (uint32_t)sizeof(AuxMessageHeader));
-	d->appendData(data_.left(l));
-	m_read += l;
-	if (m_read == m_readHdr.length + (uint32_t)sizeof(AuxMessageHeader))
-		restartRead();
-	if (l < data_.size())
-		readMessage(data_.mid(l));
-}
-
-void AuxChannel::reactEvent(virStreamPtr st_, int events_, void *opaque_)
-{
-	Q_UNUSED(st_);
-	AuxChannel* c = (AuxChannel *)opaque_;
-	c->processEvent(events_);
-}
-
-void AuxChannel::processEvent(int events_)
-{
-	if (events_ & (VIR_STREAM_EVENT_HANGUP | VIR_STREAM_EVENT_ERROR)) {
-		close();
-		return;
-	}
-	if (events_ & VIR_STREAM_EVENT_READABLE) {
-		char buf[1024];
-		int got = 0;
-		do {
-			QMutexLocker l(&m_lock);
-			got = virStreamRecv(m_stream, buf, sizeof(buf));
-			if (got > 0) {
-				readMessage(QByteArray(buf, got));
-			} else if (got == 0 || got == -1) {
-				l.unlock();
-				close();
-				return;
-			}
-		} while (got == sizeof(buf));
-	}
-}
-
-void AuxChannel::restartRead()
-{
-	m_read = 0;
-}
-
-Prl::Expected<AuxChannel::ioChannel_type, PRL_RESULT>
-	AuxChannel::addIoChannel(Device& device_)
-{
-	QMutexLocker l(&m_lock);
-
-	if (m_cidGenerator.isNull())
-		return PRL_ERR_UNINITIALIZED;
-
-	boost::optional<int> i = m_cidGenerator->acquire();
-	if (!i)
-	{
-		WRITE_TRACE(DBG_FATAL, "too many execs in progress");
-		return PRL_ERR_INVALID_HANDLE;
-	}
-	m_ioChannels.insert(i.get(), &device_);
-
-	return ioChannel_type(i.get());
-}
-
-void AuxChannel::removeIoChannel(ioChannel_type id_)
-{
-	if (m_cidGenerator.isNull() || !m_cidGenerator->release(id_))
-		return;
-
-	QMutexLocker l(&m_lock);
-	m_ioChannels.remove(id_);
-	if ((int)m_readHdr.cid == id_)
-		restartRead();
-}
-
-bool AuxChannel::isOpen()
-{
-	return (m_stream != NULL);
-}
-
-void AuxChannel::close()
-{
-	QMutexLocker l(&m_lock);
-	virStreamEventRemoveCallback(m_stream);
-	virStreamFinish(m_stream);
-	virStreamFree(m_stream);
-	m_stream = NULL;
-	if (!m_cidGenerator.isNull())
-	{
-		foreach (int cid, m_ioChannels.keys())
+		n = virStreamSend(m_stream.data(), data_ + output, len_ - output);
+		if (n < 0)
 		{
-			if (m_cidGenerator->release(cid))
-				m_ioChannels.value(cid)->close();
+			virStreamAbort(m_stream.data());
+			m_stream.clear();
+			return n;
 		}
-		m_ioChannels.clear();
+	}
+
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Workbench
+
+int Workbench::calculateTimeout(int index_) const
+{
+	switch (index_ / 10)
+	{
+	case 0: 
+		return 100;
+	case 1: 
+		return 1000;
+	default:
+		return 10000;
 	}
 }
 
-void AuxChannel::skipTrash(const QByteArray& data_)
+const char** Workbench::translate(const QStringList& src_, QVector<char* >& dst_) const
 {
-	unsigned int p = AUX_MAGIC_NUMBER;
-	QByteArray x((const char *)&p, (int)sizeof(unsigned int));
-	QByteArray d((char *)&m_readHdr, (int)sizeof(AuxMessageHeader));
-	d.append(data_);
+	if (src_.isEmpty())
+		return NULL;
 
-	int y = d.indexOf(x);
-	if (y == -1) {
-		// as magic is multibyte, preserve data which 1-byte off
-		// comparing to its length.
-		m_read = (int)sizeof(AuxMessageHeader) - 1;
-		::memcpy((char *)&m_readHdr, d.right(m_read).constData(), m_read);
-	} else {
-		restartRead();
-		readMessage(d.mid(y));
+	dst_.resize(src_.size() + 1);
+	for (int i = 0; i < src_.size(); ++i)
+	{
+		dst_[i] = strdup(qPrintable(src_.at(i)));
+	}
+	return (const char** )dst_.data();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Launcher
+
+Launcher::Launcher(const QSharedPointer<virDomain>& domain_):
+	m_stdin(), m_stdout(), m_stderr(), m_domain(domain_)
+{
+}
+
+Prl::Expected<int, Libvirt::Agent::Failure>
+Launcher::operator()(const Request& request_) const
+{
+	quint32 f = 0;
+	if (request_.getRunInShell())
+		f |= VIR_DOMAIN_COMMAND_X_EXEC_SHELL;
+
+	Workbench w;
+	QVector<char* > a, e;
+	int output = virDomainCommandXExec(m_domain.data(),
+			qPrintable(request_.getPath()),
+			w.translate(request_.getArgs(), a),
+			request_.getArgs().size(),
+			w.translate(request_.getEnv(), e),
+			request_.getEnv().size(), NULL, 0,
+			m_stdin, m_stdout, m_stderr, f);
+	std::for_each(a.begin(), a.end(), &free);
+	std::for_each(e.begin(), e.end(), &free);
+	if (0 > output)
+		return Libvirt::Agent::Failure(PRL_ERR_FAILURE);
+
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+Unit::Unit(const QSharedPointer<virDomain>& domain_):
+	m_waitFailures(), m_result(PRL_ERR_INVALID_HANDLE), m_domain(domain_)
+{
+	virConnectPtr c = virDomainGetConnect(m_domain.data());
+	virStreamPtr i = virStreamNew(c, 0);
+	if (NULL == i)
+		return;
+
+	virStreamPtr o = virStreamNew(c, VIR_STREAM_NONBLOCK);
+	if (NULL == o)
+	{
+		virStreamFree(i);
+		return;
+	}
+	virStreamPtr e = virStreamNew(c, VIR_STREAM_NONBLOCK);
+	if (NULL == e)
+	{
+		virStreamFree(i);
+		virStreamFree(o);
+		return;
+	}
+	m_launcher = Launcher(m_domain).setStdin(i).setStdout(o).setStderr(e);
+	m_stdin = QSharedPointer<WriteDevice>(new WriteDevice(i));
+	m_stdout = QSharedPointer<ReadDevice>(new ReadDevice(o));
+	m_stderr = QSharedPointer<ReadDevice>(new ReadDevice(e));
+	m_result = result_type(PRL_ERR_UNINITIALIZED);
+}
+
+Libvirt::Result Unit::start(const Request& request_)
+{
+	if (!m_launcher)
+		return Error::Simple(PRL_ERR_INVALID_HANDLE);
+
+	if (!m_stdin->isOpen() && !m_stdin->open(QIODevice::WriteOnly))
+		return Error::Simple(PRL_ERR_OPEN_FAILED);
+
+	if (!m_stdout->isOpen() && !m_stdout->open(QIODevice::ReadOnly))
+		return Error::Simple(PRL_ERR_OPEN_FAILED);
+
+	if (!m_stderr->isOpen() && !m_stderr->open(QIODevice::ReadOnly))
+		return Error::Simple(PRL_ERR_OPEN_FAILED);
+
+	Prl::Expected<int, Libvirt::Agent::Failure> x((*m_launcher)(request_));
+	if (x.isFailed())
+		return x.error();
+
+	m_pid = x.value();
+	m_launcher = boost::none;
+	m_stdout->track(new Callback(m_stdout));
+	m_stderr->track(new Callback(m_stderr));
+
+	return Libvirt::Result();
+}
+
+Libvirt::Result Unit::wait(int timeout_)
+{
+	if (m_result.isSucceed())
+		return Libvirt::Result();
+
+	if (!m_pid)
+		return Error::Simple(PRL_ERR_INVALID_HANDLE);
+
+	enum { MAX_TRANSIENT_FAILS = 10 };
+
+	Waiter w;
+	for (int i = 0, t = 0;; ++i)
+	{
+		Prl::Expected<void, Libvirt::Agent::Failure> x = query();
+		if (x.isFailed())
+		{
+			if (!x.error().isTransient() ||
+			    ++m_waitFailures >= MAX_TRANSIENT_FAILS)
+				return x.error();
+		}
+		else
+		{
+			m_waitFailures = 0;
+			if (m_result.isSucceed())
+				return Libvirt::Result();
+		}
+		if (timeout_ == 0)
+			return Error::Simple(PRL_ERR_TIMEOUT);
+
+		int y = calculateTimeout(i);
+		w.wait(y);
+		t += y;
+		if (timeout_ != -1 && timeout_ > t)
+			return Error::Simple(PRL_ERR_TIMEOUT);
 	}
 }
 
-int AuxChannel::writeMessage(const QByteArray& data_, int client_)
+void Unit::cancel()
 {
-	AuxMessageHeader h;
-	h.magic = AUX_MAGIC_NUMBER;
-	h.cid = client_;
-	h.length = data_.size();
-
-	QByteArray d((const char *)&h, sizeof(AuxMessageHeader));
-	d.append(data_);
-
-	QMutexLocker l(&m_lock);
-	int sent = virStreamSend(m_stream, d.constData(), d.size());
-	if (sent < 0) {
-		l.unlock();
-		close();
-		// log libvirt error
-		return Libvirt::Agent::Failure(PRL_ERR_WRITE_FAILED).code();
+	if (m_pid)
+	{
+		do_(m_domain.data(), boost::bind(&virDomainCommandXTerminate,
+			_1, m_pid.get(), 0));
 	}
-	return sent;
 }
 
-AuxChannel::~AuxChannel()
+Prl::Expected<void, ::Libvirt::Agent::Failure> Unit::query()
 {
-	close();
+	virDomainCommandXStatus s;
+	Instrument::Agent::doResult_type output = do_(m_domain.data(),
+		boost::bind(&virDomainCommandXGetStatus, _1, m_pid.get(), &s, 0));
+	if (output.isSucceed() && s.exited)
+	{
+		Result x;
+		if (-1 != s.signal)
+		{
+			x.exitcode = s.signal;
+			x.exitStatus = QProcess::CrashExit;
+		}
+		else if (-1 != s.code)
+		{
+			x.exitcode = s.code;
+			x.exitStatus = QProcess::NormalExit;
+		}
+		m_pid = boost::none;
+		m_result = result_type(x);
+		m_stdin->close();
+	}
+
+	return output;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Callback
 
-void Callback::operator()(int events_)
+void Callback::operator()(virStreamPtr stream_, int events_)
 {
-	QSharedPointer<AuxChannel> t = m_target.toStrongRef();
+	QSharedPointer<ReadDevice> t = m_target.toStrongRef();
 	if (t.isNull())
+	{
 		WRITE_TRACE(DBG_FATAL, "The channel target is disconnected");
-	else
-		t->processEvent(events_);
+		return;
+	}
+	if (events_ & (VIR_STREAM_EVENT_HANGUP | VIR_STREAM_EVENT_ERROR))
+	{
+		t->close();
+		return;
+	}
+	if (0 == (events_ & VIR_STREAM_EVENT_READABLE))
+		return;
+
+	forever
+	{
+		char b[1024];
+		int x = virStreamRecv(stream_, b, sizeof(b));
+		// NB: -2 is a magical constant which means no data
+		if (-2 == x)
+			return;
+		if (0 < x)
+		{
+			t->appendData(QByteArray(b, x));
+			if (int(sizeof(b)) > x)
+				return;
+
+			continue;
+		}
+		if (0 == x)
+			return t->setEof();
+
+		return t->close();
+	}
 }
 
 void Callback::react(virStreamPtr stream_, int events_, void *opaque_)
 {
-	Q_UNUSED(stream_);
-	(*(Callback* )opaque_)(events_);
+	(*(Callback* )opaque_)(stream_, events_);
 }
 
 }; //namespace Exec
@@ -3518,40 +3301,13 @@ Prl::Expected<QList<CHwGenericPciDevice>, ::Error::Simple>
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hub
 
-Hub::Hub(): m_cidGenerator(new Vm::Exec::CidGenerator())
+Hub::Hub()
 {
 }
 
 void Hub::setLink(QSharedPointer<virConnect> value_)
 {
 	m_link = value_.toWeakRef();
-	m_execs.clear();
-}
-
-QSharedPointer<Vm::Exec::AuxChannel> Hub::addAsyncExec(const Vm::Unit &unit_)
-{
-	QString u;
-	if (unit_.getUuid(u).isFailed())
-		return QSharedPointer<Vm::Exec::AuxChannel>(NULL);
-
-	QMutexLocker l(&m_mutex);
-
-	if (m_execs.contains(u))
-	{
-		QSharedPointer<Vm::Exec::AuxChannel> c = m_execs.value(u).toStrongRef();
-		if (c)
-			return c;
-		m_execs.remove(u);
-	}
-
-	QSharedPointer<Vm::Exec::AuxChannel> p(
-			unit_.getChannel(QString("org.qemu.guest_agent.1")));
-	if (p)
-	{
-		p->setGenerator(m_cidGenerator);
-		m_execs.insert(u, p.toWeakRef());
-	}
-	return p;
 }
 
 } // namespace Agent

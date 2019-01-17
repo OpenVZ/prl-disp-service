@@ -102,11 +102,11 @@ struct Ct {
 	~Ct();
 
 	int sendStdData(Task_ExecVm*, int &fd, int type);
-	PRL_RESULT processStd(Task_ExecVm*);
 	PRL_RESULT runCommand(
 		CProtoVmGuestRunProgramCommand* req, const QString& uuid, int flags);
 	void closeStdin();
-	PRL_RESULT processStdinData(const char * data, size_t size);
+	PRL_RESULT processStdin(const char * data, size_t size);
+	PRL_RESULT processStdout(Task_ExecVm*);
 	CVzExecHelper& getExecer()
 	{
 		return m_exec;
@@ -141,11 +141,11 @@ private:
 
 struct Poller: QObject
 {
-	typedef Libvirt::Instrument::Agent::Vm::Exec::Future
-		future_type;
+	typedef Libvirt::Instrument::Agent::Vm::Exec::Unit
+		exec_type;
 
-	explicit Poller(QEventLoop& loop_, future_type& exec_)
-		: m_loop(loop_), m_exec(exec_) {}
+	explicit Poller(QEventLoop& loop_, exec_type& exec_)
+		: m_loop(loop_), m_exec(exec_), m_sign(m_exec.getResult()) {}
 
 protected:
 	void timerEvent(QTimerEvent *event);
@@ -154,16 +154,18 @@ private:
 	Q_OBJECT
 
 	QEventLoop& m_loop;
-	future_type& m_exec;
-	future_type::result_type m_sign;
+	exec_type& m_exec;
+	exec_type::result_type m_sign;
 };
+
+namespace vm = Libvirt::Instrument::Agent::Vm;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Mediator - mediator between devices and Task_ExecVm. Forwards data to client.
 
 struct Mediator: QObject
 {
-	Mediator(Task_ExecVm& task_, QObject *object_, int type_)
+	Mediator(Task_ExecVm& task_, vm::Exec::ReadDevice *object_, int type_)
 		: m_task(&task_), m_iotype(type_), m_object(object_)
 	{
 		bool x = QObject::connect(object_, SIGNAL(readyRead()), this, SLOT(slotSendData()),
@@ -185,39 +187,31 @@ private:
 	Q_OBJECT
 	Task_ExecVm* m_task;
 	int m_iotype;
-	QObject *m_object;
+	vm::Exec::ReadDevice *m_object;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
-namespace vm = Libvirt::Instrument::Agent::Vm;
-
 struct Vm
 {
-	typedef Libvirt::Instrument::Agent::Vm::Exec::Future
-		future_type;
+	typedef vm::Exec::Unit exec_type;
 
 	Vm() : m_exec(NULL) { }
+
+	Prl::Expected<vm::Exec::Result, PRL_RESULT>
+		handle(const vm::Exec::Request& request_, Task_ExecVm& task_);
+	PRL_RESULT processStdin(const char * data, size_t size);
+	PRL_RESULT processStdout(Task_ExecVm& task_);
 	void closeStdin();
-	PRL_RESULT prepare(Task_ExecVm& task_, vm::Exec::Request& request_, Join& join_);
-	PRL_RESULT processStdinData(const char * data, size_t size);
-	PRL_RESULT openStd(Task_ExecVm& task_);
-	PRL_RESULT processStd(QEventLoop& loop_);
 	void cancel()
 	{
 		if (m_exec)
 			m_exec->cancel();
 	}
-	void setExecer(future_type& f)
-	{
-		m_exec = &f;
-	}
 
 private:
-	QSharedPointer<vm::Exec::ReadDevice> m_stdout, m_stderr;
-	QSharedPointer<vm::Exec::WriteDevice> m_stdin;
-	future_type *m_exec;
+	exec_type *m_exec;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

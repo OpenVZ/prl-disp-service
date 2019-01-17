@@ -93,7 +93,7 @@ PRL_RESULT Stdin::operator()(T& mode_) const
 				QSTR2UTF8(Uuid::toString(m_package->header.parentUuid)),
 				QSTR2UTF8(m_task->getSessionUuid()), size);
 
-		return mode_.processStdinData(data.getImpl(), size);
+		return mode_.processStdin(data.getImpl(), size);
 	}
 	return PRL_ERR_SUCCESS;
 }
@@ -115,7 +115,7 @@ PRL_RESULT Run::operator()(Exec::Ct& variant_) const
 	if (flags & PFD_STDIN)
 		m_task->sendEvent(PET_IO_READY_TO_ACCEPT_STDIN_PKGS);
 
-	ret = variant_.processStd(m_task);
+	ret = variant_.processStdout(m_task);
 	if (PRL_FAILED(ret))
 		return ret;
 
@@ -171,12 +171,6 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 	CProtoVmGuestRunProgramCommand* cmd = CProtoSerializer::CastToProtoCommand<CProtoVmGuestRunProgramCommand>(d);
 
 	vm::Exec::Request r(cmd->GetProgramName(), cmd->GetProgramArguments());
-	QEventLoop l;
-	Join j(l);
-	PRL_RESULT ret = variant_.prepare(*m_task, r, j);
-	if (PRL_FAILED(ret))
-		return ret;
-
 	// check that the task is not cancelled
 	if (PRL_FAILED(m_task->getLastErrorCode()))
 		return m_task->getLastErrorCode();
@@ -184,30 +178,14 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 	r.setRunInShell(m_task->getRequestFlags() & PRPM_RUN_PROGRAM_IN_SHELL);
 	r.setEnvironment(cmd->GetProgramEnvVars());
 
-	Prl::Expected<Vm::future_type, Error::Simple> f =
-		Libvirt::Kit.vms().at(m_task->getVmUuid()).getGuest().startProgram(r);
-
-	if (f.isFailed())
-		return CDspTaskFailure(*m_task)(f.error().convertToEvent());
-	variant_.setExecer(f.value());
-
-	ret = variant_.openStd(*m_task);
-	if (PRL_FAILED(ret))
-		return ret;
-
-	if (m_task->getRequestFlags() & PFD_STDIN)
-		m_task->sendEvent(PET_IO_READY_TO_ACCEPT_STDIN_PKGS);
-
-	variant_.processStd(l);
-
-	Libvirt::Result e = f.value().wait();
-	if (e.isFailed())
-		return e.error().code();
+	Prl::Expected<vm::Exec::Result, PRL_RESULT> x = variant_.handle(r, *m_task);
+	if (x.isFailed())
+		return x.error();
 
 	if (m_task->operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	return processVmResult(f.value().getResult().get());
+	return processVmResult(x.value());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -291,7 +269,7 @@ PRL_RESULT Ct::sendStdData(Task_ExecVm* task, int &fd, int type)
 	return task->sendToClient(type, buf, len);
 }
 
-PRL_RESULT Ct::processStd(Task_ExecVm* task)
+PRL_RESULT Ct::processStdout(Task_ExecVm* task)
 {
 	int n;
 
@@ -348,7 +326,7 @@ PRL_RESULT Ct::processStd(Task_ExecVm* task)
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Ct::processStdinData(const char * data, size_t size)
+PRL_RESULT Ct::processStdin(const char * data, size_t size)
 {
 	if (write(m_stdinfd[1], data, size) != (ssize_t)size) {
 		WRITE_TRACE(DBG_FATAL, "Failed to write %d bytes to stdin (fd=%d): %m",
@@ -367,84 +345,12 @@ void Ct::closeStdin()
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
-PRL_RESULT Vm::prepare(Task_ExecVm& task_, vm::Exec::Request& request_, Join& join_)
+PRL_RESULT Vm::processStdin(const char * data, size_t size)
 {
-	vm::Unit u = Libvirt::Kit.vms().at(task_.getVmUuid());
-	QSharedPointer<vm::Exec::AuxChannel> c(Libvirt::Kit.addAsyncExec(u));
-
-	if (c == NULL) {
-		return PRL_ERR_FAILURE;
-	}
-
-	m_stdout = QSharedPointer<vm::Exec::ReadDevice>(new vm::Exec::ReadDevice(c));
-	m_stderr = QSharedPointer<vm::Exec::ReadDevice>(new vm::Exec::ReadDevice(c));
-	if (m_stdout.isNull() || m_stderr.isNull() ||
-	    !m_stdout->getClient() || !m_stderr->getClient()) {
-		WRITE_TRACE(DBG_FATAL, "Failed to initialize exec stdout/stderr channel!");
-		return PRL_ERR_FAILURE;
-	}
-
-	join_.add(new Mediator(task_, m_stdout.data(), PET_IO_STDOUT_PORTION));
-	join_.add(new Mediator(task_, m_stderr.data(), PET_IO_STDERR_PORTION));
-
-	if (task_.getRequestFlags() & PFD_STDIN) {
-		m_stdin = QSharedPointer<vm::Exec::WriteDevice>(new vm::Exec::WriteDevice(c));
-		if (m_stdin.isNull() || !m_stdin->getClient()) {
-			WRITE_TRACE(DBG_FATAL, "Failed to initialize exec stdin channel!");
-			return PRL_ERR_FAILURE;
-		}
-	}
-
-	QList< QPair<int, int> > cls;
-	cls << qMakePair(1, m_stdout->getClient())
-		<< qMakePair(2, m_stderr->getClient());
-	if (task_.getRequestFlags() & PFD_STDIN)
-		cls << qMakePair(0, m_stdin->getClient());
-	request_.setChannels(cls);
-
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Vm::openStd(Task_ExecVm& task_)
-{
-	if (!m_stdout->open(QIODevice::ReadOnly)
-		|| !m_stderr->open(QIODevice::ReadOnly)) {
-		WRITE_TRACE(DBG_FATAL, "Failed to open exec stdout/stderr channel!");
-		return PRL_ERR_VM_EXEC_GUEST_TOOL_NOT_AVAILABLE;
-	}
-
-	if (task_.getRequestFlags() & PFD_STDIN) {
-		if (!m_stdin->open(QIODevice::WriteOnly)) {
-			WRITE_TRACE(DBG_FATAL, "Failed to open exec stdin channel!");
-			return PRL_ERR_VM_EXEC_GUEST_TOOL_NOT_AVAILABLE;
-		}
-	}
-
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Vm::processStd(QEventLoop& loop_)
-{
-	if (m_stdout.isNull() || m_stderr.isNull())
-		return PRL_ERR_SUCCESS;
-
-	Poller p(loop_, *m_exec);
-	p.startTimer(10000);
-
-	loop_.exec();
-
-	m_stdout->close();
-	m_stderr->close();
-
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Vm::processStdinData(const char * data, size_t size)
-{
-	if (!m_stdin)
+	if (NULL == m_exec)
 		return PRL_ERR_FAILURE;
 
-	if (m_stdin->write(data, size) < 0)
+	if (m_exec->getStdin()->write(data, size) < 0)
 		return PRL_ERR_VM_GUEST_SESSION_EXPIRED;
 
 	return PRL_ERR_SUCCESS;
@@ -452,8 +358,46 @@ PRL_RESULT Vm::processStdinData(const char * data, size_t size)
 
 void Vm::closeStdin()
 {
-	if (m_stdin)
-		m_stdin->close();
+	if (NULL != m_exec)
+		m_exec->getStdin()->close();
+}
+
+Prl::Expected<vm::Exec::Result, PRL_RESULT>
+	Vm::handle(const vm::Exec::Request& request_, Task_ExecVm& task_)
+{
+	Prl::Expected<QSharedPointer<Vm::exec_type>, Error::Simple> x =
+		Libvirt::Kit.vms().at(task_.getVmUuid()).getGuest().getExec();
+	if (x.isFailed())
+		return x.error().code();
+
+	QEventLoop l;
+	m_exec = x.value().data();
+
+	Join j(l);
+	j.add(new Mediator(task_, m_exec->getStdout(), PET_IO_STDOUT_PORTION));
+	j.add(new Mediator(task_, m_exec->getStderr(), PET_IO_STDERR_PORTION));
+
+	Libvirt::Result e = m_exec->start(request_);
+	if (e.isFailed())
+		return CDspTaskFailure(task_)(e.error().convertToEvent());
+
+	if (task_.getRequestFlags() & PFD_STDIN)
+		task_.sendEvent(PET_IO_READY_TO_ACCEPT_STDIN_PKGS);
+
+	Poller p(l, *m_exec);
+	p.startTimer(10000);
+
+	l.exec();
+
+	m_exec->getStdout()->close();
+	m_exec->getStderr()->close();
+
+	e = m_exec->wait();
+	m_exec = NULL;
+	if (e.isFailed())
+		return e.error().code();
+
+	return x.value()->getResult();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -491,7 +435,7 @@ void Poller::timerEvent(QTimerEvent *event)
 		if (PRL_ERR_TIMEOUT != r.error().code())
 			m_loop.quit();
 	}
-	else if (m_sign)
+	else if (m_sign.isSucceed())
 		m_loop.quit();
 	else
 		m_sign = m_exec.getResult();
@@ -502,16 +446,14 @@ void Poller::timerEvent(QTimerEvent *event)
 
 void Mediator::slotSendData()
 {
-	vm::Exec::ReadDevice *d = (vm::Exec::ReadDevice *)m_object;
-
 	forever {
-		QByteArray a = d->readAll();
-		if (a.size() == 0)
+		QByteArray a = m_object->readAll();
+		if (a.isEmpty())
 			break;
 		m_task->sendToClient(m_iotype, a.constData(), a.size());
 	}
 
-	if (m_task->operationIsCancelled() || d->atEnd())
+	if (m_task->operationIsCancelled() || m_object->atEnd())
 		emit finished();
 }
 
