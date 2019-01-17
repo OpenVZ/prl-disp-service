@@ -48,9 +48,6 @@ typedef virStream *virStreamPtr;
 
 namespace Libvirt
 {
-
-typedef Prl::Expected<void, ::Error::Simple> Result;
-
 namespace Agent
 {
 
@@ -66,6 +63,51 @@ namespace Vm
 {
 namespace Exec
 {
+struct Callback;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct ReadDevice - subclass of QIODevice representing read-only pipe end of
+// a program running inside guest. Data is transferred via aux channel.
+
+struct ReadDevice: QIODevice {
+	explicit ReadDevice(virStreamPtr stream_);
+		
+	void setEof();
+	void appendData(const QByteArray &data_);
+	Libvirt::Result track(Callback* tracker_);
+
+	// QIODevice interface
+	virtual bool open(QIODevice::OpenMode mode_);
+	virtual void close();
+	virtual bool atEnd();
+	virtual qint64 bytesAvailable();
+	virtual qint64 readData(char *data_, qint64 maxSize_);
+	virtual qint64 writeData(const char *data_, qint64 len_);
+
+private:
+	QMutex m_lock;
+	bool m_finished;
+	QByteArray m_data;
+	QSharedPointer<virStream> m_stream;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct WriteDevice - subclass of QIODevice representing write-only pipe end of
+// a program running inside guest. Data is transferred via aux channel.
+
+struct WriteDevice: QIODevice {
+	explicit WriteDevice(virStreamPtr stream_);
+
+	// QIODevice interface
+	virtual bool open(QIODevice::OpenMode mode_);
+	virtual void close();
+	virtual qint64 readData(char *data_, qint64 maxSize_);
+	virtual qint64 writeData(const char *data_, qint64 len_);
+
+private:
+	QSharedPointer<virStream> m_stream;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Waiter
 
@@ -93,37 +135,9 @@ private:
 
 struct Result {
 	int exitcode;
-	bool signaled;
+	QProcess::ExitStatus exitStatus;
 	QByteArray stdOut;
 	QByteArray stdErr;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Future
-
-struct Future {
-	enum { MAX_TRANSIENT_FAILS = 10 };
-
-	typedef boost::optional<Result> result_type;
-	Future(const QSharedPointer<virDomain>& domain_, int pid_):
-		m_domain(domain_), m_pid(pid_), m_failcnt(0)
-	{
-	}
-
-	Libvirt::Result wait(int timeout = -1);
-	void cancel();
-	const result_type& getResult() const
-	{
-		return m_status;
-	}
-
-private:
-	int calculateTimeout(int i) const;
-
-	QSharedPointer<virDomain> m_domain;
-	int m_pid;
-	int m_failcnt;
-	result_type m_status;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -134,6 +148,7 @@ struct Request {
 		: m_path(path), m_args(args), m_runInShell(false)
 	{
 	}
+
 	void setEnvironment(const QList<QString>& env)
 	{
 		m_env = env;
@@ -142,13 +157,10 @@ struct Request {
 	{
 		m_runInShell = val;
 	}
-	void setChannels(const QList< QPair<int, int> >& chs)
-	{
-		m_channels = chs;
-	}
-	QString getJson() const;
 
-	const QString& getPath() const { return m_path; }
+	bool getRunInShell() const { return m_runInShell; }
+
+	const QString& getPath()     const { return m_path; }
 	const QStringList& getArgs() const { return m_args; }
 	const QStringList& getEnv()  const { return m_env; }
 
@@ -156,173 +168,98 @@ private:
 	QString m_path;
 	QStringList m_args;
 	QStringList m_env;
-	QList< QPair<int, int> > m_channels;
 	bool m_runInShell;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Exec
+// struct Workbench
 
-struct Exec {
-	enum { 
-		RETRIES = 30,
-		INFINITE = -1
-	};
+struct Workbench
+{
+	int calculateTimeout(int index_) const;
 
-	explicit Exec(const  QSharedPointer<virDomain>& domain_)
-		: m_domain(domain_)
+	const char** translate(const QStringList& src_, QVector<char* >& dst_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Launcher
+// NB: virDomainCommandXExec function has 13 arguments while boost::bind
+// supports no more than 9. shame on designer of the libvirt api. thus we have
+// to introduce this type to carry part of the function parameters before a
+// call
+
+struct Launcher
+{
+	explicit Launcher(const QSharedPointer<virDomain>& domain_);
+
+	Launcher& setStdin(virStreamPtr value_)
 	{
+		m_stdin = value_;
+		return *this;
+	}
+	Launcher& setStdout(virStreamPtr value_)
+	{
+		m_stdout = value_;
+		return *this;
+	}
+	Launcher& setStderr(virStreamPtr value_)
+	{
+		m_stderr = value_;
+		return *this;
 	}
 	Prl::Expected<int, Libvirt::Agent::Failure>
-		runCommand(const Request& r);
-
-	Prl::Expected<boost::optional<Result>, Libvirt::Agent::Failure>
-		getCommandStatus(int pid);
-
-	Prl::Expected<void, Libvirt::Agent::Failure>
-		terminate(int pid);
-
-	Prl::Expected<QString, Libvirt::Agent::Failure>
-		executeInAgent(const QString& cmd, int retries = RETRIES);
+		operator()(const Request& request_) const;
 
 private:
+	virStreamPtr m_stdin;
+	virStreamPtr m_stdout;
+	virStreamPtr m_stderr;
 	QSharedPointer<virDomain> m_domain;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Device - subclass of QIODevice representing pipe end of a program
-// running inside guest. Data is transferred via aux channel.
+// struct Unit
+// NB: there cannot be 2 copies of an exec thus noncopyable
 
-struct AuxChannel;
-
-struct Device: QIODevice {
-	explicit Device(QSharedPointer<AuxChannel> aux_);
-	~Device()
-	{
-		close();
-	}
-
-	int getClient() const
-	{
-		return m_client;
-	}
-
-	// QIODevice interface
-	virtual bool open(QIODevice::OpenMode mode_);
-	virtual void close();
-
-protected:
-	AuxChannel& getChannel() const
-	{
-		return *m_channel;
-	}
-	void invalidate();
-
-private:
-	int m_client;
-	QSharedPointer<AuxChannel> m_channel;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct ReadDevice - subclass of QIODevice representing read-only pipe end of
-// a program running inside guest. Data is transferred via aux channel.
-
-struct ReadDevice: Device {
-	explicit ReadDevice(QSharedPointer<AuxChannel> aux_)
-		: Device(aux_), m_finished(false) { }
-
-	void setEof();
-	void appendData(const QByteArray &data_);
-
-	// QIODevice interface
-	virtual bool open(QIODevice::OpenMode mode_);
-	virtual void close();
-	virtual bool atEnd();
-	virtual qint64 bytesAvailable();
-	virtual qint64 readData(char *data_, qint64 maxSize_);
-	virtual qint64 writeData(const char *data_, qint64 len_);
-
-private:
-	QMutex m_lock;
-	bool m_finished;
-	QByteArray m_data;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct WriteDevice - subclass of QIODevice representing write-only pipe end of
-// a program running inside guest. Data is transferred via aux channel.
-
-struct WriteDevice: Device {
-	explicit WriteDevice(QSharedPointer<AuxChannel> aux_)
-		: Device(aux_) { }
-
-	// QIODevice interface
-	virtual bool open(QIODevice::OpenMode mode_);
-	virtual void close();
-	virtual qint64 readData(char *data_, qint64 maxSize_);
-	virtual qint64 writeData(const char *data_, qint64 len_);
-};
-
-struct CidGenerator
+struct Unit: boost::noncopyable, private Workbench
 {
-	CidGenerator(): m_last(0)
-	{
-	}
+	typedef Prl::Expected<Result, PRL_RESULT> result_type;
 
-	bool release(int id_);
-	boost::optional<int> acquire();
+	explicit Unit(const QSharedPointer<virDomain>& domain_);
+
+	const result_type& getResult() const
+	{
+		return m_result;
+	}
+	ReadDevice* getStderr() const
+	{
+		return m_stderr.data();
+	}
+	ReadDevice* getStdout() const
+	{
+		return m_stdout.data();
+	}
+	WriteDevice* getStdin() const
+	{
+		return m_stdin.data();
+	}
+	Libvirt::Result start(const Request& request_);
+	Libvirt::Result wait(int timeout_ = -1);
+	void cancel();
 
 private:
-	QMutex m_mutex;
-	QSet<int> m_set;
-	int m_last;
-};
+	typedef boost::optional<Launcher> launcher_type;
 
-///////////////////////////////////////////////////////////////////////////////
-// struct AuxChannel - wrapper over libvirt's Stream interface over aux channel
-// for communication with guest's programs
+	Prl::Expected<void, ::Libvirt::Agent::Failure> query();
 
-struct AuxChannel : QObject {
-
-	BOOST_STRONG_TYPEDEF(int, ioChannel_type);
-	typedef struct AuxMessageHeader
-	{
-		quint32 magic;
-		quint32 cid;
-		quint32 length;
-	} AuxMessageHeader;
-
-	explicit AuxChannel(virStreamPtr stream_);
-	~AuxChannel();
-
-	void setGenerator(const QSharedPointer<CidGenerator>& generator_)
-	{
-		m_cidGenerator = generator_;
-	}
-
-	bool isOpen();
-	void close();
-
-	static void reactEvent(virStreamPtr st_, int events_, void *opaque_);
-	void processEvent(int events_);
-
-	Prl::Expected<ioChannel_type, PRL_RESULT> addIoChannel(Device& device_);
-	void removeIoChannel(ioChannel_type id_);
-
-	int writeMessage(const QByteArray& data_, int client_);
-
-private:
-	Q_OBJECT
-	void readMessage(const QByteArray& data_);
-	void skipTrash(const QByteArray& data_);
-	void restartRead();
-
-	QMutex m_lock;
-	virStreamPtr m_stream;
-	AuxMessageHeader m_readHdr;
-	quint32 m_read;
-	QSharedPointer<CidGenerator> m_cidGenerator;
-	QMap<int, Device *> m_ioChannels;
+	int m_waitFailures;
+	result_type m_result;
+	launcher_type m_launcher;
+	boost::optional<int> m_pid;
+	QSharedPointer<virDomain> m_domain;
+	QSharedPointer<ReadDevice> m_stdout;
+	QSharedPointer<ReadDevice> m_stderr;
+	QSharedPointer<WriteDevice> m_stdin;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -330,23 +267,24 @@ private:
 
 struct Callback
 {
-	void setTarget(QWeakPointer<AuxChannel> value_)
+	typedef QWeakPointer<ReadDevice> target_type;
+
+	explicit Callback(const target_type& target_): m_target(target_)
 	{
-		m_target = value_;
 	}
-	void operator()(int events_);
+
+	void operator()(virStreamPtr stream_, int events_);
 
 	static void react(virStreamPtr stream_, int events_, void *opaque_);
 
 private:
-	QWeakPointer<AuxChannel> m_target;
+	target_type m_target;
 };
 
 } //namespace Exec
 
 namespace Command
 {
-
 struct Future;
 
 } // namespace Command
@@ -377,6 +315,10 @@ private:
 struct Unit;
 struct Guest
 {
+	enum { 
+		RETRIES = 30,
+		INFINITE = -1
+	};
 	explicit Guest(const QSharedPointer<virDomain>& domain_): m_domain(domain_)
 	{
 	}
@@ -393,13 +335,20 @@ struct Guest
 	Prl::Expected< QList<boost::tuple<quint64,quint64,QString,QString,QString> >, ::Error::Simple>
 		getFsInfo();
 	Result checkAgent();
-	Prl::Expected<QString, Libvirt::Agent::Failure> getAgentVersion(int retries = Exec::Exec::RETRIES);
-	Prl::Expected<Exec::Future, Error::Simple> startProgram(const Exec::Request& r);
-	Prl::Expected<Exec::Result, Error::Simple> runProgram(const Exec::Request& r);
+	Prl::Expected<QString, Libvirt::Agent::Failure> getAgentVersion(int retries = RETRIES);
 	Prl::Expected<QString, Error::Simple>
 		execute(const QString& cmd, bool isHmp = true);
 
+	typedef Exec::Result result_type;
+
+	Prl::Expected<QSharedPointer<Exec::Unit>, Error::Simple>
+		getExec() const;
+	Prl::Expected<result_type, Error::Simple> runProgram(const Exec::Request& r);
+
 private:
+	Prl::Expected<QString, Libvirt::Agent::Failure>
+		executeInAgent(const QString& cmd, int retries = RETRIES);
+
 	QSharedPointer<virDomain> m_domain;
 };
 
