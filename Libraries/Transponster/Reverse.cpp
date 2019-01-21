@@ -1663,6 +1663,49 @@ Prl::Expected<QString, ::Error::Simple>
 	return getPlugXml(model_);
 }
 
+Libvirt::Domain::Xml::Hostdev
+	Device<CHwUsbDevice>::getView(const CHwUsbDevice& model_)
+{
+	Libvirt::Domain::Xml::Address a;
+	QString u = USB_SYS_PATH(model_.getDeviceId());
+
+	a.setBus(u.section('-', 0, 0));
+	a.setDevice(u.section('-', 1, 1));
+
+	mpl::at_c<Libvirt::Domain::Xml::VSource1::types, 1>::type b;
+	b.setValue(a);
+
+	Libvirt::Domain::Xml::Source14 c;
+	c.setSource(b);
+
+	mpl::at_c<Libvirt::Domain::Xml::VHostdevsubsys::types, 1>::type f;
+	f.setValue(c);
+
+	Libvirt::Domain::Xml::Hostdevsubsys g;
+	g.setHostdevsubsys(f);
+
+	mpl::at_c<Libvirt::Domain::Xml::VChoice917::types, 0>::type h;
+	h.setValue(g);
+
+	Libvirt::Domain::Xml::Hostdev output;
+	output.setAlias(getAlias(model_));
+	output.setChoice917(h);
+
+	return output;
+}
+
+QString Device<CHwUsbDevice>::getPlugXml(const CHwUsbDevice& model_)
+{
+	QDomDocument x;
+	getView(model_).save(x);
+	return x.toString();
+}
+
+QString Device<CHwUsbDevice>::getAlias(const CHwUsbDevice& model_)
+{
+	return QString("ua-vz-usb-").append(USB_SYS_PATH(model_.getDeviceId()));
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Builder
 
@@ -2200,31 +2243,8 @@ PRL_RESULT Operator::plug(Pipeline::object_type& object_)
 	if (!d)
 		return PRL_ERR_INVALID_ARG;
 
-	Libvirt::Domain::Xml::Address a;
-	QString u = USB_SYS_PATH(m_model->getDeviceId());
-	a.setBus(QString("0x").append(u.section('-', 0, 0)));
-	a.setDevice(QString("0x").append(u.section('-', 1, 1)));
-
-	mpl::at_c<Libvirt::Domain::Xml::VSource1::types, 1>::type b;
-	b.setValue(a);
-
-	Libvirt::Domain::Xml::Source14 c;
-	c.setSource(b);
-
-	mpl::at_c<Libvirt::Domain::Xml::VHostdevsubsys::types, 1>::type f;
-	f.setValue(c);
-
-	Libvirt::Domain::Xml::Hostdevsubsys g;
-	g.setHostdevsubsys(f);
-
-	mpl::at_c<Libvirt::Domain::Xml::VChoice917::types, 0>::type h;
-	h.setValue(g);
-
-	Libvirt::Domain::Xml::Hostdev i;
-	i.setChoice917(h);
-
 	mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 7>::type j;
-	j.setValue(i);
+	j.setValue(Device<CHwUsbDevice>::getView(*m_model));
 
 	Transponster::Device::deviceList_type k = d->getChoice985List();
 	k.prepend(j);

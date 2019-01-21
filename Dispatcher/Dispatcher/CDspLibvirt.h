@@ -187,16 +187,15 @@ private:
 
 struct Hotplug
 {
-	explicit Hotplug(const QSharedPointer<virDomain>& domain_):
-		m_domain(domain_)
-	{
-	}
+	explicit Hotplug(const QSharedPointer<virDomain>& domain_);
 
+	Hotplug& setApplyConfig(bool value_);
 	Result attach(const QString& device_);
 	Result detach(const QString& device_);
 	Result update(const QString& device_);
 
 private:
+	quint32 m_flags;
 	QSharedPointer<virDomain> m_domain;
 };
 
@@ -692,6 +691,9 @@ struct Editor: private Limb::Abstract
 	Result update(const T& device_);
 
 private:
+	template<class T>
+	Result plugAndWait(const T& device_);
+	Result unplugAndWait(const QString& xml_, const QString& alias_);
 	Result setCpuLimit(quint32 globalLimit_, quint32 limit_, quint32 period_);
 	Result setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_);
 

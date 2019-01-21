@@ -1508,30 +1508,42 @@ void Callback::react(virStreamPtr stream_, int events_, void *opaque_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hotplug
 
+Hotplug::Hotplug(const QSharedPointer<virDomain>& domain_):
+	m_flags(VIR_DOMAIN_AFFECT_CURRENT | VIR_DOMAIN_AFFECT_LIVE),
+	m_domain(domain_)
+{
+}
+
 Result Hotplug::attach(const QString& device_)
 {
 	WRITE_TRACE(DBG_DEBUG, "attach device: \n%s", qPrintable(device_));
 	return do_(m_domain.data(), boost::bind(virDomainAttachDeviceFlags, _1,
-			qPrintable(device_), VIR_DOMAIN_AFFECT_CURRENT |
-			VIR_DOMAIN_AFFECT_LIVE));
+			qPrintable(device_), m_flags));
 }
 
 Result Hotplug::detach(const QString& device_)
 {
 	WRITE_TRACE(DBG_DEBUG, "detach device: \n%s", qPrintable(device_));
 	return do_(m_domain.data(), boost::bind(virDomainDetachDeviceFlags, _1,
-			qPrintable(device_), VIR_DOMAIN_AFFECT_CURRENT |
-			VIR_DOMAIN_AFFECT_LIVE));
+			qPrintable(device_), m_flags));
 }
 
 Result Hotplug::update(const QString& device_)
 {
 	WRITE_TRACE(DBG_DEBUG, "update device: \n%s", qPrintable(device_));
 	return do_(m_domain.data(), boost::bind(virDomainUpdateDeviceFlags, _1,
-			qPrintable(device_),
-			VIR_DOMAIN_AFFECT_CURRENT |
-			VIR_DOMAIN_AFFECT_LIVE |
+			qPrintable(device_), m_flags |
 			VIR_DOMAIN_DEVICE_MODIFY_FORCE));
+}
+
+Hotplug& Hotplug::setApplyConfig(bool value_)
+{
+	if (value_)
+		m_flags |= VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+	else
+		m_flags &= ~VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+
+	return *this;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1671,7 +1683,7 @@ Result Editor::setNodeMask(const QString& mask_)
 }
 
 template<class T>
-Result Editor::plug(const T& device_)
+Result Editor::plugAndWait(const T& device_)
 {
 	Prl::Expected<QString, ::Error::Simple> x =
 		Transponster::Vm::Reverse::Device<T>
@@ -1698,6 +1710,12 @@ Result Editor::plug(const T& device_)
 	virConnectDomainEventDeregisterAny(getLink().data(), m);
 	return output;
 }
+
+template<class T>
+Result Editor::plug(const T& device_)
+{
+	return plugAndWait<T>(device_);
+}
 template Result Editor::plug<CVmHardDisk>(const CVmHardDisk& device_);
 template Result Editor::plug<CVmSerialPort>(const CVmSerialPort& device_);
 template Result Editor::plug<CVmGenericNetworkAdapter>(const CVmGenericNetworkAdapter& device_);
@@ -1719,8 +1737,41 @@ Result Editor::plug<CHwUsbDevice>(const CHwUsbDevice& device_)
 {
 	typedef Transponster::Vm::Reverse::Usb::Operator transformer_type;
 	transformer_type t(device_);
-	return Config(getDomain(), getLink(), VIR_DOMAIN_XML_INACTIVE)
+	Result e = Config(getDomain(), getLink(), VIR_DOMAIN_XML_INACTIVE)
 		.alter(boost::bind(&transformer_type::plug, &t, _1));
+	if (e.isFailed())
+		return e;
+
+	e = plugAndWait<CHwUsbDevice>(device_);
+	if (e.isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot connect USB device %s to VM %s",
+			qPrintable(device_.getDeviceId()),
+			virDomainGetName(getDomain().data()));
+	}
+	return Result();
+}
+
+Result Editor::unplugAndWait(const QString& xml_, const QString& alias_)
+{
+	Vm::Completion::Hotplug::feedback_type p(new boost::promise<void>());
+	boost::future<void> w = p->get_future();
+	QScopedPointer<Vm::Completion::Hotplug> g(new Vm::Completion::Hotplug
+		(getDomain().data(), alias_, p));
+	int m = virConnectDomainEventRegisterAny(getLink().data(),
+		getDomain().data(), VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED,
+		VIR_DOMAIN_EVENT_CALLBACK(Vm::Completion::Hotplug::react),
+		g.data(), &Callback::Plain::delete_<Vm::Completion::Hotplug>);
+	if (-1 == m)
+		return Failure(PRL_ERR_FAILURE);
+
+	g.take();
+	Result output = Hotplug(getDomain()).detach(xml_);
+	if (output.isSucceed())
+		w.get();
+
+	virConnectDomainEventDeregisterAny(getLink().data(), m);
+	return output;
 }
 
 template<class T>
@@ -1732,24 +1783,7 @@ Result Editor::unplug(const T& device_)
 	if (x.isFailed())
 		return x.error();
 
-	QString a = device_.getAlias();
-	Vm::Completion::Hotplug::feedback_type p(new boost::promise<void>());
-	boost::future<void> w = p->get_future();
-	QScopedPointer<Vm::Completion::Hotplug> g(new Vm::Completion::Hotplug(getDomain().data(), a, p));
-	int m = virConnectDomainEventRegisterAny(getLink().data(),
-		getDomain().data(), VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED,
-		VIR_DOMAIN_EVENT_CALLBACK(Vm::Completion::Hotplug::react),
-		g.data(), &Callback::Plain::delete_<Vm::Completion::Hotplug>);
-	if (-1 == m)
-		return Failure(PRL_ERR_FAILURE);
-
-	g.take();
-	Result output = Hotplug(getDomain()).detach(x.value());
-	if (output.isSucceed())
-		w.get();
-
-	virConnectDomainEventDeregisterAny(getLink().data(), m);
-	return output;
+	return unplugAndWait(x.value(), device_.getAlias());
 }
 template Result Editor::unplug<CVmHardDisk>(const CVmHardDisk& device_);
 template Result Editor::unplug<CVmSerialPort>(const CVmSerialPort& device_);
@@ -1758,6 +1792,14 @@ template Result Editor::unplug<CVmGenericNetworkAdapter>(const CVmGenericNetwork
 template<>
 Result Editor::unplug<CHwUsbDevice>(const CHwUsbDevice& device_)
 {
+	Result e = unplugAndWait(Transponster::Vm::Reverse::Device<CHwUsbDevice>::getPlugXml(device_),
+			Transponster::Vm::Reverse::Device<CHwUsbDevice>::getAlias(device_));
+	if (e.isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot disconnect USB device %s from VM %s",
+			qPrintable(device_.getDeviceId()),
+			virDomainGetName(getDomain().data()));
+	}
 	typedef Transponster::Vm::Reverse::Usb::Operator transformer_type;
 	transformer_type t(device_);
 	return Config(getDomain(), getLink(), VIR_DOMAIN_XML_INACTIVE)
