@@ -863,7 +863,12 @@ void CDspHostInfo::GetUSBList()
 		if (memcmp(de->d_name, "usb", 3) == 0)
 			continue;
 
-		if (sscanf(de->d_name, "%d-", &busnum) != 1)
+		busnum = get_int_attr(de->d_name, "busnum");
+		if (busnum < 0)
+			continue;
+
+		devnum = get_int_attr(de->d_name, "devnum");
+		if (devnum < 0)
 			continue;
 
 		if (0 == make_location(de->d_name, busnum))
@@ -918,7 +923,8 @@ void CDspHostInfo::GetUSBList()
 		QString sProduct = get_qstring_attr(de->d_name, "product");
 
 		QString sSystemName =
-			CreateUsbSystemName (QString(de->d_name), vendor, product, sDevSpeed, sSuffix, sNumber);
+			CreateUsbSystemName (QString("%1-%2").arg(busnum).arg(devnum),
+				vendor, product, sDevSpeed, sSuffix, sNumber);
 
 		QString sFriendlyName;
 		if (sManufacturer.isEmpty() || sProduct.isEmpty()) {
@@ -929,11 +935,6 @@ void CDspHostInfo::GetUSBList()
 				sProduct = sFriendlyName.section(" - ", 1, 1);
 		}
 		sFriendlyName = QString("%1 - %2").arg(sManufacturer).arg(sProduct);
-
-		/* Get devnum */
-		devnum = get_int_attr(de->d_name, "devnum");
-		if (devnum < 0)
-			continue;
 
 		if (devnum == 0) {
 			BOOL was_there = FALSE;

@@ -179,6 +179,14 @@ struct Device<CVmGenericNetworkAdapter>
 		getUpdateXml(const CVmGenericNetworkAdapter& model_);
 };
 
+template<>
+struct Device<CHwUsbDevice>
+{
+	static QString getAlias(const CHwUsbDevice& model_);
+	static QString getPlugXml(const CHwUsbDevice& model_);
+	static Libvirt::Domain::Xml::Hostdev getView(const CHwUsbDevice& model_);
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Builder
 
