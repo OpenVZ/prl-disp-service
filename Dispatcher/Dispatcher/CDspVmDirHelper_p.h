@@ -331,6 +331,8 @@ struct State: Chain
 	result_type handle(const CVmDirectoryItem& item_);
 
 private:
+	result_type& trim(result_type &output);
+
 	session_type m_session;
 };
 
