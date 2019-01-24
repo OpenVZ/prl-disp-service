@@ -251,7 +251,8 @@ CDspAccessManager::getAccessRightsToVm(SmartPtr<CDspClient> pSession, const CVmD
 	else
 		return mode;
 
-	if ( !CFileHelper::isFsSupportPermsAndOwner( strVmConfigPath ) )
+	if ( pSession->getAuthHelper().isLocalAdministrator() ||
+		!CFileHelper::isFsSupportPermsAndOwner( strVmConfigPath ) )
 		/*
 		  See https://bugzilla.sw.ru/show_bug.cgi?id=269013
 		  and https://jira.sw.ru/browse/PSBM-9040
@@ -262,7 +263,6 @@ CDspAccessManager::getAccessRightsToVm(SmartPtr<CDspClient> pSession, const CVmD
 				CDspAccessManager::VmAccessRights::arCanRead |
 				CDspAccessManager::VmAccessRights::arCanWrite |
 				CDspAccessManager::VmAccessRights::arCanExecute);
-
 
 	// set READ flag
 	if ( CFileHelper::FileCanRead( strVmConfigPath, &pSession->getAuthHelper() )
