@@ -1097,8 +1097,10 @@ Guest::executeInAgent(const QString& cmd, int retries)
 	 * Requires patched libvirt (with VIR_ERR_AGENT_UNSYNCED err code).
 	 */
 	for (int i = 0; ;) {
+		WRITE_TRACE(DBG_INFO, "executeInAgent: %s", qPrintable(cmd));
+
 		s = virDomainQemuAgentCommand(m_domain.data(),
-				cmd.toUtf8().constData(), 30, 0);
+				qPrintable(cmd), 30, 0);
 		if (s != NULL)
 			break;
 

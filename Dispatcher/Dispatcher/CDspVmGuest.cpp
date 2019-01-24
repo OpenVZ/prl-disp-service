@@ -135,8 +135,11 @@ void Watcher::timerEvent(QTimerEvent *ev_)
 void Watcher::adopt(PRL_VM_TOOLS_STATE state_, const QString& version_)
 {
 	QSharedPointer<QAtomicInt> ref = m_incarnation.toStrongRef();
-	if (!ref || m_ourIncarnation != *ref)
+	if (!ref || m_ourIncarnation != *ref) {
+		WRITE_TRACE(DBG_INFO, "watcher::adopt wrong incarnation, our %d, caller %d",
+			m_ourIncarnation, ref ? int(*ref) : -1);
 		return;
+	}
 
 	const QString& u = m_ident.first;
 	Libvirt::Kit.vms().at(u).getMaintenance().emitAgentCorollary(state_);
@@ -171,6 +174,8 @@ void Spin::run()
 	if (r.isSucceed())
 	{
 		// emit or smth.
+		WRITE_TRACE(DBG_INFO, "%s spin tools installed %s",
+			qPrintable(m_ident.first), qPrintable(r.value()));
 		m_watcher->adopt(PTS_INSTALLED, r.value());
 	}
 	else
@@ -180,11 +185,17 @@ void Spin::run()
 		{
 		case VIR_ERR_OPERATION_INVALID:
 			// domain is not running
+			WRITE_TRACE(DBG_INFO, "%s Spin::run domain is not running",
+				qPrintable(m_ident.first));
 			break;
 		case VIR_ERR_AGENT_UNRESPONSIVE:
 			// agent is not started - retry 10 minutes with 20 secs interval
+			WRITE_TRACE(DBG_INFO, "%s Spin::run agent not responed",
+				qPrintable(m_ident.first));
 			s = PTS_POSSIBLY_INSTALLED;
 		default:
+			WRITE_TRACE(DBG_INFO, "%s Spin::run retry %d errcode %d",
+				qPrintable(m_ident.first), m_watcher->getRetries(), r.error().getMainCode());
 			if (0 >= m_watcher->getRetries())
 			{
 				m_watcher->adopt(s);
