@@ -191,7 +191,7 @@ CAuthHelper::OwnerWrapper::OwnerWrapper( const QString& sOwnersFileName )
 **/
 bool CAuthHelper::isLocalAdministrator()
 {
-	if (m_strUserName.isEmpty())
+	if (m_strUserName.isEmpty() || m_strUserName == "root")
 		return true;
 
 	bool is = false;
