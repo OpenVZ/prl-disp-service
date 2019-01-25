@@ -98,9 +98,12 @@ public:
 	Watcher(const CVmIdent& ident_, QWeakPointer<QAtomicInt> incarnation_) :
 		m_retries(), m_ident(ident_), m_incarnation(incarnation_), m_ourIncarnation(0)
 	{
+		WRITE_TRACE(DBG_INFO, "%s new watcher", qPrintable(ident_.first));
 		QSharedPointer<QAtomicInt> ref = incarnation_.toStrongRef();
-		if (ref)
+		if (ref) {
+			WRITE_TRACE(DBG_INFO, "%s watcher incarnation %d", qPrintable(ident_.first), int(*ref));
 			m_ourIncarnation = *ref;
+		}
 	}
 
 	void setRetries(quint32 value_)
