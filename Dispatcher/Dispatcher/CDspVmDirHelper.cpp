@@ -3904,6 +3904,48 @@ Default::value_type Default::craft(PRL_RESULT code_, const QString& uid_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct State
 
+State::result_type& State::trim(result_type &output)
+{
+	const value_type& r = output.value();
+
+	// Preserve network adapters with static ip addresses
+	QList<CVmGenericNetworkAdapter* > na;
+	foreach (const CVmGenericNetworkAdapter* a, r->getVmHardwareList()->m_lstNetworkAdapters)
+	{
+		if (!a->getNetAddresses().isEmpty())
+			na.append(new CVmGenericNetworkAdapter(a));
+	}
+
+	// Preserve state
+	CVmEvent *e = new CVmEvent(r->getVmSettings()->getVmRuntimeOptions()->getInternalVmInfo()->getParallelsEvent());
+	InternalVmInfo *ii = new InternalVmInfo();
+	ii->ClearLists();
+	ii->setParallelsEvent(e);
+	CVmRunTimeOptions *ro = new CVmRunTimeOptions();
+	ro->ClearLists();
+	ro->setInternalVmInfo(ii);
+	CVmCommonOptions *co = new CVmCommonOptions();
+	co->ClearLists();
+	CVmSettings *vs = new CVmSettings();
+	vs->ClearLists();
+	vs->setVmRuntimeOptions(ro);
+	vs->setVmCommonOptions(co);
+
+	// preserve Identification
+	CVmIdentification *i = new CVmIdentification(r->getVmIdentification());
+
+	r->ClearLists();
+	r->setVmIdentification(i);
+	r->setVmSettings(vs);
+
+	CVmHardware* h = new CVmHardware();
+	h->ClearLists();
+	h->m_lstNetworkAdapters = na;
+	r->setVmHardwareList(h);
+
+	return output;
+}
+
 State::result_type State::handle(const CVmDirectoryItem& item_)
 {
 	result_type output = Chain::handle(item_);
@@ -3920,7 +3962,7 @@ State::result_type State::handle(const CVmDirectoryItem& item_)
 		EVT_PARAM_VMINFO_VM_STATE));
 	r->getVmSettings()->getVmRuntimeOptions()->getInternalVmInfo()->setParallelsEvent(e);
 
-	return output;
+	return trim(output);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
