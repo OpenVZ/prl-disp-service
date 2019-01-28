@@ -41,6 +41,8 @@
 #include <prlxmlmodel/VtInfo/VtInfo.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
+class CHwUsbDevice;
+
 namespace Transponster
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -119,6 +121,20 @@ namespace Device
 struct List;
 typedef QList<Libvirt::Domain::Xml::VChoice985 > deviceList_type;
 typedef Boot::Reverse::order_type boot_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Alias
+
+struct Alias
+{
+	bool feature(const QString& value_) const;
+
+	QString operator()(const CHwUsbDevice& model_) const;
+	QString operator()(const CVmGenericPciDevice model_) const;
+
+private:
+	static const QString s_PREFIX;
+};
 
 namespace Clustered
 {

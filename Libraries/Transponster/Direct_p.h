@@ -1137,7 +1137,9 @@ struct Device: boost::static_visitor<void>
 	}
 	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 7>::type& passthrough_)
 	{
-		m_result << passthrough_;
+		const boost::optional<QString>& a = passthrough_.getValue().getAlias();
+		if (!a || !Transponster::Device::Alias().feature(a.get()))
+			m_result << passthrough_;
 	}
 	const QList<Libvirt::Domain::Xml::VChoice985>& getResult() const
 	{

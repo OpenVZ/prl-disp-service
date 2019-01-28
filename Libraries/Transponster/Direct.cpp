@@ -22,8 +22,8 @@
  */
 
 #include "Direct.h"
-#include "Direct_p.h"
 #include "Reverse_p.h"
+#include "Direct_p.h"
 #include <prlsdk/PrlOses.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 
@@ -705,9 +705,9 @@ Nodedev::result_type Nodedev::operator()
 {
 	const Libvirt::Domain::Xml::Pciaddress& a = alternative_.getValue().getSource().getAddress();
 	QString x = QString("%1:%2:%3")
-		.arg(a.getBus().toUInt(NULL, 16))
-		.arg(a.getSlot().toUInt(NULL, 16))
-		.arg(a.getFunction().toUInt(NULL, 16));
+		.arg(QString::number(a.getBus().toUInt(NULL, 16), 16))
+		.arg(QString::number(a.getSlot().toUInt(NULL, 16), 16))
+		.arg(QString::number(a.getFunction().toUInt(NULL, 16), 16));
 	CVmGenericPciDevice* d = new CVmGenericPciDevice();
 	d->setIndex(m_sink->m_lstGenericPciDevices.size());
 	d->setEnabled(PVE::DeviceEnabled);
@@ -753,9 +753,6 @@ bool Pci::operator()(const mpl::at_c<Libvirt::Nodedev::Xml::VCapability::types, 
 {
 	const mpl::at_c<Libvirt::Nodedev::Xml::VCapability::types, 1>::type::value_type& v = 
 		pci_.getValue();
-
-	if (!v.getCapability())
-		return false;
 
 	CHwGenericPciDevice d;
 	d.setDeviceName(v.getProduct().getOwnValue());
