@@ -436,6 +436,28 @@ Libvirt::Domain::Xml::Commandline CommandLine::takeResult()
 
 namespace Device
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Alias
+
+const QString Alias::s_PREFIX("ua-vz-");
+
+bool Alias::feature(const QString& value_) const
+{
+	return value_.startsWith(s_PREFIX);
+}
+
+QString Alias::operator()(const CHwUsbDevice& model_) const
+{
+	return QString(s_PREFIX).append("usb-")
+		.append(USB_SYS_PATH(model_.getDeviceId()));
+}
+
+QString Alias::operator()(const CVmGenericPciDevice model_) const
+{
+	QStringList u(model_.getSystemName().split(":"));
+	return QString(s_PREFIX).append("pci-")
+		.append(u[0]).append('-').append(u[1]).append('-').append(u[2]);
+}
 
 namespace Clustered
 {
@@ -1190,6 +1212,7 @@ void List::add(const CVmGenericPciDevice* pci_)
 
 	Libvirt::Domain::Xml::Hostdev i;
 	i.setChoice917(h);
+	i.setAlias(Alias()(*pci_));
 
 	add<7>(i);
 }
@@ -1703,7 +1726,7 @@ QString Device<CHwUsbDevice>::getPlugXml(const CHwUsbDevice& model_)
 
 QString Device<CHwUsbDevice>::getAlias(const CHwUsbDevice& model_)
 {
-	return QString("ua-vz-usb-").append(USB_SYS_PATH(model_.getDeviceId()));
+	return Transponster::Device::Alias()(model_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
