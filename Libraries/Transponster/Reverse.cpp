@@ -1206,6 +1206,7 @@ void List::add(const CVmGenericPciDevice* pci_)
 
 	Libvirt::Domain::Xml::Hostdevsubsys g;
 	g.setHostdevsubsys(f);
+	g.setManaged(Libvirt::Domain::Xml::EVirYesNoYes);
 
 	mpl::at_c<Libvirt::Domain::Xml::VChoice917::types, 0>::type h;
 	h.setValue(g);
