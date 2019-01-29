@@ -197,8 +197,6 @@ struct Vm
 {
 	typedef vm::Exec::Unit exec_type;
 
-	Vm() : m_exec(NULL) { }
-
 	Prl::Expected<vm::Exec::Result, PRL_RESULT>
 		handle(const vm::Exec::Request& request_, Task_ExecVm& task_);
 	PRL_RESULT processStdin(const char * data, size_t size);
@@ -206,12 +204,12 @@ struct Vm
 	void closeStdin();
 	void cancel()
 	{
-		if (m_exec)
+		if (!m_exec.isNull())
 			m_exec->cancel();
 	}
 
 private:
-	exec_type *m_exec;
+	QSharedPointer<exec_type> m_exec;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

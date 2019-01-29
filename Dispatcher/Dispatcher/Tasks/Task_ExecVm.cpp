@@ -358,7 +358,7 @@ PRL_RESULT Vm::processStdin(const char * data, size_t size)
 
 void Vm::closeStdin()
 {
-	if (NULL != m_exec)
+	if (!m_exec.isNull())
 		m_exec->getStdin()->close();
 }
 
@@ -371,7 +371,7 @@ Prl::Expected<vm::Exec::Result, PRL_RESULT>
 		return x.error().code();
 
 	QEventLoop l;
-	m_exec = x.value().data();
+	m_exec = x.value();
 
 	Join j(l);
 	j.add(new Mediator(task_, m_exec->getStdout(), PET_IO_STDOUT_PORTION));
@@ -393,7 +393,6 @@ Prl::Expected<vm::Exec::Result, PRL_RESULT>
 	m_exec->getStderr()->close();
 
 	e = m_exec->wait();
-	m_exec = NULL;
 	if (e.isFailed())
 		return e.error().code();
 

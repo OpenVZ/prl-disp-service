@@ -529,9 +529,6 @@ private:
 namespace Exec
 {
 
-struct AuxChannel;
-struct CidGenerator;
-
 } // namespace Exec
 
 namespace Migration
@@ -722,8 +719,6 @@ struct Unit: private Limb::Abstract
 	Snapshot::List getSnapshot() const;
 	Editor getRuntime() const;
 	Editor getEditor() const;
-	QSharedPointer<Exec::AuxChannel>
-		getChannel(const QString& path_) const;
 
 	Limb::State getState() const;
 	Limb::Maintenance getMaintenance() const;
@@ -943,13 +938,10 @@ struct Hub
 	{
 		return Host(m_link);
 	}
-	QSharedPointer<Vm::Exec::AuxChannel> addAsyncExec(const Vm::Unit& unit_);
 
 private:
 	QMutex m_mutex;
 	QWeakPointer<virConnect> m_link;
-	QSharedPointer<Vm::Exec::CidGenerator> m_cidGenerator;
-	QMap<QString, QWeakPointer<Vm::Exec::AuxChannel> > m_execs;
 };
 
 } // namespace Agent
