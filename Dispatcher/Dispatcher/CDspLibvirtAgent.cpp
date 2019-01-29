@@ -1131,34 +1131,34 @@ ReadDevice::ReadDevice(virStreamPtr stream_):
 
 void ReadDevice::close()
 {
+	QSharedPointer<virStream> s;
 	{
 		QMutexLocker l(&m_lock);
-		if (!m_stream.isNull())
-		{
-			virStreamEventRemoveCallback(m_stream.data());
-			virStreamAbort(m_stream.data());
-			m_stream.clear();
-		}
+		m_finished = true;
+		m_stream.swap(s);
+		QIODevice::close();
 	}
-	setEof();
-	QIODevice::close();
+	if (!s.isNull())
+	{
+		virStreamEventRemoveCallback(s.data());
+		virStreamAbort(s.data());
+	}
 }
 
 void ReadDevice::setEof()
 {
-	bool e = false;
+	QSharedPointer<virStream> s;
 	{
 		QMutexLocker l(&m_lock);
 		m_finished = true;
-		if ((e = !m_stream.isNull()))
-		{
-			virStreamEventRemoveCallback(m_stream.data());
-			virStreamFinish(m_stream.data());
-			m_stream.clear();
-		}
+		m_stream.swap(s);
 	}
-	if (e)
+	if (!s.isNull())
+	{
+		virStreamEventRemoveCallback(s.data());
+		virStreamFinish(s.data());
 		emit readChannelFinished();
+	}
 }
 
 bool ReadDevice::open(QIODevice::OpenMode mode_)
@@ -1229,17 +1229,19 @@ bool WriteDevice::open(QIODevice::OpenMode mode_)
 	if (mode_ & QIODevice::ReadOnly)
 		return false;
 
+	QMutexLocker l(&m_lock);
 	return QIODevice::open(mode_);
 }
 
 void WriteDevice::close()
 {
-	if (!m_stream.isNull())
+	QSharedPointer<virStream> s;
 	{
-		virStreamFinish(m_stream.data());
-		m_stream.clear();
+		QMutexLocker l(&m_lock);
+		m_stream.swap(s);
+		QIODevice::close();
 	}
-	QIODevice::close();
+	virStreamFinish(s.data());
 }
 
 qint64 WriteDevice::readData(char *data_, qint64 maxSize_)
@@ -1251,17 +1253,18 @@ qint64 WriteDevice::readData(char *data_, qint64 maxSize_)
 
 qint64 WriteDevice::writeData(const char *data_, qint64 len_)
 {
-	if (m_stream.isNull())
-		return -1;
-
 	qint64 output = 0;
 	for (qint32 n = 0; output < len_; output += n)
 	{
-		n = virStreamSend(m_stream.data(), data_ + output, len_ - output);
+		QSharedPointer<virStream> s;
+		{
+			QMutexLocker l(&m_lock);
+			s = m_stream;
+		}
+		n = virStreamSend(s.data(), data_ + output, len_ - output);
 		if (n < 0)
 		{
-			virStreamAbort(m_stream.data());
-			m_stream.clear();
+			virStreamAbort(s.data());
 			return n;
 		}
 	}

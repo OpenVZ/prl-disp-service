@@ -105,6 +105,7 @@ struct WriteDevice: QIODevice {
 	virtual qint64 writeData(const char *data_, qint64 len_);
 
 private:
+	QMutex m_lock;
 	QSharedPointer<virStream> m_stream;
 };
 
