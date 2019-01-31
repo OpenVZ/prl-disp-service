@@ -101,9 +101,6 @@ private:
 
 	quint64 m_delayedRefreshFlags;
 
-	QMutex m_pciGuard;
-	QList<CHwGenericPciDevice> m_pciList;
-
 private:
 	/** Notify connected clients */
 	void notifyClients();
@@ -156,8 +153,6 @@ private:
 	void processPrinterChange( const SmartPtr< CHostHardwareInfo >& pHostInfo );
 
 	bool hasConnectedClientsOrRunningVMs() const;
-
-	void pullPci();
 };
 
 #endif//_DSP_HW_MONITOR_NOTIFIER_H_

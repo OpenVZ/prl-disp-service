@@ -42,6 +42,7 @@
 #include <Libraries/Transponster/Direct.h>
 #include <Libraries/Transponster/Reverse.h>
 #include <Libraries/Transponster/Reverse_p.h>
+#include <boost/functional/value_factory.hpp>
 #include "CDspLibvirt_p.h"
 
 namespace Libvirt
@@ -564,10 +565,11 @@ void Host::syncNetwork(const QFileInfo& config_)
 	CVirtualNetworks* s = f.getVirtualNetworks();
 	if (NULL != s)
 	{
+		::Network::Dao d(*m_hub);
 		foreach (CVirtualNetwork* k, s->m_lstVirtualNetwork)
 		{
 			if (NULL != k && k->isEnabled())
-				::Network::Dao(*m_hub).create(*k);
+				d.create(*k);
 		}
 	}
 	if (!QFile::rename(t.fileName(), p))
@@ -582,19 +584,22 @@ void Host::syncNetwork(const QFileInfo& config_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Subject
 
-Subject::Subject(QSharedPointer<virConnect> libvirtd_, QSharedPointer<Model::System> view_,
-	Registry::Actual& registry_): m_vm(view_, registry_)
+Subject::Subject(QSharedPointer<virConnect> link_, QSharedPointer<Model::System> view_,
+	Registry::Actual& registry_): m_vm(view_, registry_),
+	m_target(view_->thread()), m_link(link_)
 {
-	m_hub.setLink(libvirtd_);
-	CDspService::instance()->getHwMonitorThread().forceCheckHwChanges();
 }
 
 void Subject::run()
 {
-	Host h(m_hub);
-	h.pullPci();
+	Monitor::Hardware::Launcher x(m_target);
+	x(m_link.toWeakRef());
+
+	Agent::Hub u;
+	u.setLink(m_link);
+	Host h(u);
 	h.syncNetwork(ParallelsDirs::getNetworkConfigFilePath());
-	m_vm(m_hub);
+	m_vm(u);
 	QProcess::startDetached("/usr/libexec/vz_systemd");
 }
 
@@ -1628,6 +1633,15 @@ void Coarse::updateInterfaces(virNetworkPtr net_)
 
 namespace Monitor
 {
+namespace Hardware
+{
+namespace
+{
+void reactLifecycle(virConnectPtr link_, virNodeDevicePtr device_, int event_, int detail_, void* opaque_);
+
+} // namespace
+} // namespace Hardware
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Link
 
@@ -1686,7 +1700,8 @@ Domains::Domains(Registry::Actual& registry_):
 	m_eventState(-1), m_eventReboot(-1),
 	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
 	m_eventTrayChange(-1), m_eventRtcChange(-1), m_eventAgent(-1),
-	m_eventNetworkLifecycle(-1), m_registry(&registry_)
+	m_eventNetworkLifecycle(-1), m_eventHardwareLifecycle(-1),
+	m_registry(&registry_)
 {
 }
 
@@ -1752,6 +1767,12 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 							VIR_NETWORK_EVENT_CALLBACK(Callback::Plain::networkLifecycle),
 							new Model::Coarse(v),
 							&Callback::Plain::delete_<Model::Coarse>);
+	m_eventHardwareLifecycle = virConnectNodeDeviceEventRegisterAny(libvirtd_.data(),
+							NULL,
+							VIR_NODE_DEVICE_EVENT_ID_LIFECYCLE,
+							VIR_NODE_DEVICE_EVENT_CALLBACK(Hardware::reactLifecycle),
+							new Hardware::Usb(*CDspService::instance()),
+							&Callback::Plain::delete_<Hardware::Usb>);
 	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, v, *m_registry);
 	q->setAutoDelete(true);
 	QThreadPool::globalInstance()->start(q);
@@ -1780,6 +1801,8 @@ void Domains::setDisconnected()
 	m_eventAgent = -1;
 	virConnectNetworkEventDeregisterAny(x.data(), m_eventNetworkLifecycle);
 	m_eventNetworkLifecycle = -1;
+	virConnectNetworkEventDeregisterAny(x.data(), m_eventHardwareLifecycle);
+	m_eventHardwareLifecycle = -1;
 	Callback::g_access.setOpaque(Callback::Mock::ID, new Callback::Transport::Model());
 	m_libvirtd.clear();
 }
@@ -1861,6 +1884,173 @@ void Task::run()
 }
 
 } // namespace Performance
+
+namespace Hardware
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Pci
+
+Pci::Pci(const QWeakPointer<virConnect>& link_, CDspService& service_):
+	m_service(&service_), m_link(link_)
+{
+	CDspLockedPointer<CDspHostInfo> i = m_service->getHostInfo();
+	i->adopt(boost::bind(boost::value_factory<CDspHostInfo::pciBin_type>(),
+		&m_sentinel, &m_list));
+}
+
+Pci::~Pci()
+{
+	CDspLockedPointer<CDspHostInfo> i = m_service->getHostInfo();
+	i->adopt(CDspHostInfo::pciStrategy_type());
+}
+
+void Pci::run()
+{
+	Prl::Expected<QList<CHwGenericPciDevice>, Error::Simple> f =
+		Libvirt::Instrument::Agent::Host(m_link.toStrongRef())
+			.getAssignablePci();
+	if (f.isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot read host PCI devices: %s",
+			PRL_RESULT_TO_STRING(f.error().code()));
+	}
+	else
+	{
+		QMutexLocker g(&m_sentinel);
+		m_list = f.value();
+	}
+	m_service->getHostInfo()->refresh(CDspHostInfo::uhiPci);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Usb
+
+void Usb::run()
+{
+	CUsbAuthenticNameList x;
+	{
+		CDspLockedPointer<CDspHostInfo> i = m_service->getHostInfo();
+		i->refresh(CDspHostInfo::uhiUsb);
+		x.SetUsbPreferences(i->getUsbAuthentic()->GetUsbPreferences());
+	}
+	m_service->updateCommonPreferences(boost::bind<PRL_RESULT>
+		(*this, boost::cref(x), _1));
+}
+
+PRL_RESULT Usb::operator()(const CUsbAuthenticNameList& update_, CDispCommonPreferences& dst_) const
+{
+	CDispUsbPreferences w(dst_.getUsbPreferences());
+	QHash<QString, QList<CDispUsbAssociation* > > m;
+	foreach(CDispUsbIdentity* i, w.m_lstAuthenticUsbMap)
+	{
+		if (!i->m_lstAssociations.isEmpty())
+		{
+			m[i->getSystemName()].append(i->m_lstAssociations);
+			i->m_lstAssociations.clear();
+		}
+	}
+	CDispUsbPreferences u(update_.GetUsbPreferences());
+	foreach(CDispUsbIdentity* i, u.m_lstAuthenticUsbMap)
+	{
+		i->ClearList(i->m_lstAssociations);
+		QList<QString> k = m.keys();
+		// Check if we have stored any associations for i->getSystemName;
+		QList<QString>::const_iterator e = k.end(), p = k.begin();
+		p = std::find_if(p, e, boost::bind(&CUsbAuthenticNameList::IsTheSameDevice,
+			&update_, boost::cref(i->getSystemName()), _1));
+		if (e != p)
+			i->m_lstAssociations = m.take(*p);
+
+	}
+	if (!m.isEmpty())
+		return PRL_ERR_UNEXPECTED;
+
+	dst_.getUsbPreferences()->fromString(u.toString());
+
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+Unit::Unit(const QWeakPointer<virConnect>& link_): m_link(link_)
+{
+	d_ptr->sendChildEvents = false;
+}
+
+Unit::Unit(const QWeakPointer<virConnect>& link_, CDspService& service_):
+	m_pci(new Pci(link_, service_)), m_link(link_)
+{
+	m_pci->setAutoDelete(false);
+	d_ptr->sendChildEvents = false;
+}
+
+Unit* Unit::clone() const
+{
+	Unit* output = new Unit(m_link);
+	output->m_pci = m_pci;
+
+	return output;
+}
+
+void Unit::react()
+{
+	QSharedPointer<virConnect> x = m_link.toStrongRef();
+	if (!x.isNull())
+	{
+		QThreadPool::globalInstance()->start(m_pci.data());
+		Launcher(this->thread())(*this);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Launcher
+
+void Launcher::operator()(const QWeakPointer<virConnect>& link_) const
+{
+	Unit* m = new Unit(link_, *CDspService::instance());
+	do_(*m, 0);
+}
+
+void Launcher::operator()(const Unit& monitor_) const
+{
+	Unit* m = monitor_.clone();
+	if (NULL != m)
+		do_(*m, 5 * 60 * 1000);
+}
+
+void Launcher::do_(Unit& object_, int timeout_) const
+{
+	QTimer* t = new QTimer();
+	t->moveToThread(m_target);
+	t->setInterval(timeout_);
+
+	object_.moveToThread(m_target);
+	object_.setParent(t);
+	object_.connect(t, SIGNAL(timeout()), SLOT(react()));
+	t->connect(t, SIGNAL(timeout()), SLOT(deleteLater()));
+	QMetaObject::invokeMethod(t, "start", Qt::QueuedConnection);
+}
+
+namespace
+{
+void reactLifecycle(virConnectPtr link_, virNodeDevicePtr device_, int event_, int detail_, void* opaque_)
+{
+	Q_UNUSED(link_);
+	Q_UNUSED(event_);
+	Q_UNUSED(detail_);
+
+	const char* n = virNodeDeviceGetName(device_);
+	if (NULL != n && QString(n).startsWith("usb_"))
+	{
+		Usb* r = (Usb* )opaque_;
+		r->setAutoDelete(false);
+		QThreadPool::globalInstance()->start(r);
+	}
+}
+
+} // namespace
+} // namespace Hardware
 } // namespace Monitor
 
 ///////////////////////////////////////////////////////////////////////////////
