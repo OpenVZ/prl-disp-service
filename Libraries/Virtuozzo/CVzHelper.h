@@ -358,6 +358,9 @@ public:
 
 	static QString parse_ctid(const QString& src);
 	static QString build_ctid_from_uuid(const QString& uuid);
+	static SmartPtr<CVmConfiguration> &fix_env_config(
+			SmartPtr<CVmConfiguration> &orig,
+			SmartPtr<CVmConfiguration> &copy);
 
 private:
 
