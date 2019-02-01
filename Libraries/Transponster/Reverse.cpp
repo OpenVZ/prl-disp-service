@@ -1276,23 +1276,16 @@ void List::addMouse()
 // struct Indicator
 
 Indicator::Indicator(const QString& name_):
-	m_bus(USB_SYS_PATH(name_).section('-', 0, 0).toUInt(NULL, 10)),
-	m_device(USB_SYS_PATH(name_).section('-', 1, 1).toUInt(NULL, 10))
+	m_pid(QString("0x").append(USB_PID(name_))),
+	m_vid(QString("0x").append(USB_VID(name_)))
 {
 }
 
-bool Indicator::operator()(const mpl::at_c<Libvirt::Domain::Xml::VSource1::types, 1>::type& variant_) const
+bool Indicator::operator()(const mpl::at_c<Libvirt::Domain::Xml::VSource1::types, 0>::type& variant_) const
 {
-	bool k = false;
-	const Libvirt::Domain::Xml::Address& u = variant_.getValue();
-	uint b = u.getBus().toUInt(&k, 16);
-	if (!k)
-		return false;
-	uint d = u.getDevice().toUInt(&k, 16);
-	if (!k)
-		return false;
-
-	return b == m_bus && m_device == d;
+	const Libvirt::Domain::Xml::Source932& u = variant_.getValue();
+	return m_vid == u.getUsbproduct().getVendor() &&
+		u.getUsbproduct().getProduct() == m_pid;
 }
 
 } // namespace Usb
@@ -1690,13 +1683,14 @@ Prl::Expected<QString, ::Error::Simple>
 Libvirt::Domain::Xml::Hostdev
 	Device<CHwUsbDevice>::getView(const CHwUsbDevice& model_)
 {
-	Libvirt::Domain::Xml::Address a;
-	QString u = USB_SYS_PATH(model_.getDeviceId());
+	Libvirt::Domain::Xml::Usbproduct p;
+	p.setVendor(QString("0x").append(USB_VID(model_.getDeviceId())));
+	p.setProduct(QString("0x").append(USB_PID(model_.getDeviceId())));
 
-	a.setBus(u.section('-', 0, 0));
-	a.setDevice(u.section('-', 1, 1));
-
-	mpl::at_c<Libvirt::Domain::Xml::VSource1::types, 1>::type b;
+	Libvirt::Domain::Xml::Source932 a;
+	a.setUsbproduct(p);
+	
+	mpl::at_c<Libvirt::Domain::Xml::VSource1::types, 0>::type b;
 	b.setValue(a);
 
 	Libvirt::Domain::Xml::Source14 c;

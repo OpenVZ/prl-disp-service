@@ -46,6 +46,9 @@
 #include <libvirt/virterror.h>
 #include <libvirt/libvirt-qemu.h>
 
+class CUsbAuthenticNameList;
+class CDispCommonPreferences;
+
 namespace Libvirt
 {
 namespace Domain
@@ -669,6 +672,7 @@ private:
 	int m_eventRtcChange;
 	int m_eventAgent;
 	int m_eventNetworkLifecycle;
+	int m_eventHardwareLifecycle;
 	Registry::Actual* m_registry;
 	QWeakPointer<virConnect> m_libvirtd;
 };
@@ -738,6 +742,83 @@ private:
 };
 
 } // namespace Performance
+
+namespace Hardware
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Pci
+
+struct Pci: QRunnable, boost::noncopyable
+{
+	Pci(const QWeakPointer<virConnect>& link_, CDspService& service_);
+	~Pci();
+
+	void run();
+
+private:
+	QMutex m_sentinel;
+	CDspService* m_service;
+	QWeakPointer<virConnect> m_link;
+	QList<CHwGenericPciDevice> m_list;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Usb
+
+struct Usb: QRunnable
+{
+	explicit Usb(CDspService& service_): m_service(&service_)
+	{
+	}
+
+	void run();
+	PRL_RESULT operator()(const CUsbAuthenticNameList& update_,
+		CDispCommonPreferences& dst_) const;
+
+private:
+	CDspService* m_service;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+struct Unit: QObject
+{
+	Unit(const QWeakPointer<virConnect>& link_, CDspService& service_);
+
+	Unit* clone() const;
+
+public slots:
+	void react();
+
+private:
+	Q_OBJECT
+
+	explicit Unit(const QWeakPointer<virConnect>& link_);
+
+	QSharedPointer<Pci> m_pci;
+	QWeakPointer<virConnect> m_link;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Launcher
+
+struct Launcher
+{
+	explicit Launcher(QThread* target_): m_target(target_)
+	{
+	}
+
+	void operator()(const QWeakPointer<virConnect>& link_) const;
+	void operator()(const Unit& monitor_) const;
+
+private:
+	void do_(Unit& object_, int timeout_) const;
+
+	QThread* m_target;
+};
+
+} // namespace Hardware
 } // namespace Monitor
 
 namespace Instrument
@@ -1264,7 +1345,8 @@ struct Subject: QRunnable
 
 private:
 	Vm m_vm;
-	Agent::Hub m_hub;
+	QThread* m_target;
+	QSharedPointer<virConnect> m_link;
 };
 
 } // namespace Breeding

@@ -863,12 +863,7 @@ void CDspHostInfo::GetUSBList()
 		if (memcmp(de->d_name, "usb", 3) == 0)
 			continue;
 
-		busnum = get_int_attr(de->d_name, "busnum");
-		if (busnum < 0)
-			continue;
-
-		devnum = get_int_attr(de->d_name, "devnum");
-		if (devnum < 0)
+		if (sscanf(de->d_name, "%d-", &busnum) != 1)
 			continue;
 
 		if (0 == make_location(de->d_name, busnum))
@@ -884,9 +879,7 @@ void CDspHostInfo::GetUSBList()
 		quint16 vendor = get_hex_attr(de->d_name, "idVendor");
 		quint16 product = get_hex_attr(de->d_name, "idProduct");
 
-		QString sNumber = get_qstring_attr(de->d_name, "serial");
-		if (sNumber.isEmpty())
-			sNumber = USB_NUM_EMPTY;
+		QString sNumber = USB_NUM_EMPTY;
 
 		PRL_USB_DEVICE_TYPE pudt = PUDT_OTHER;
 
@@ -923,8 +916,7 @@ void CDspHostInfo::GetUSBList()
 		QString sProduct = get_qstring_attr(de->d_name, "product");
 
 		QString sSystemName =
-			CreateUsbSystemName (QString("%1-%2").arg(busnum).arg(devnum),
-				vendor, product, sDevSpeed, sSuffix, sNumber);
+			CreateUsbSystemName (QString(de->d_name), vendor, product, sDevSpeed, sSuffix, sNumber);
 
 		QString sFriendlyName;
 		if (sManufacturer.isEmpty() || sProduct.isEmpty()) {
@@ -935,6 +927,11 @@ void CDspHostInfo::GetUSBList()
 				sProduct = sFriendlyName.section(" - ", 1, 1);
 		}
 		sFriendlyName = QString("%1 - %2").arg(sManufacturer).arg(sProduct);
+
+		/* Get devnum */
+		devnum = get_int_attr(de->d_name, "devnum");
+		if (devnum < 0)
+			continue;
 
 		if (devnum == 0) {
 			BOOL was_there = FALSE;
@@ -967,16 +964,6 @@ void CDspHostInfo::GetUSBList()
 				rescan_required = TRUE;
 				continue;
 			}
-		} else {
-			/* Generate unique name for each new reconnection, when
-			 * prl_usb_connect is not available. Autoconnect logic
-			 * in CDspHwMonitorNotifier.cpp implies that autoconnect
-			 * is disabled, when device is connected to VM and reenabled
-			 * only on the second reconnection of device with the same name.
-			 * Could be repaired there but does not worth it.
-			 */
-			if (prl_usb_connector < 0)
-				sSystemName += QString("|%1").arg(devnum, 0, 10);
 		}
 		// Loockup or create device element, and append it to new list
 		LookupOrCreateUSBDevice(old_dev_lst, p_HostHwInfo->m_lstUsbDevices, sSystemName, sFriendlyName, pudt);

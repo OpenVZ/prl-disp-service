@@ -931,14 +931,14 @@ struct Indicator: boost::static_visitor<bool>
 	{
 		return boost::apply_visitor(*this, variant_.getValue().getSource());
 	}
-	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VSource1::types, 1>::type& variant_) const;
+	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VSource1::types, 0>::type& variant_) const;
 	bool operator()(Libvirt::Domain::Xml::VChoice985& device_) const
 	{
 		return boost::apply_visitor(*this, device_);
 	}
 
 private:
-        uint m_bus, m_device;
+        QString m_pid, m_vid;
 };
 
 } // namespace Usb
