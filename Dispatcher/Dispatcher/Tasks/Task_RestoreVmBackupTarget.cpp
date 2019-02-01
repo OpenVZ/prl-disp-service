@@ -1714,11 +1714,8 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewCt(const QString &sDefaultCtFol
 
 		CVzHelper::update_ctid_map(m_sVmUuid, ctId);
 		if (m_nFlags & PBT_RESTORE_TO_COPY) {
-			m_pVmConfig->getVmIdentification()->setVmName(sCtName);
-			m_pVmConfig->setRelativePath(m_pVmConfig->getVmIdentification()->getHomePath());
-
-			QFile f(QFileInfo(m_sTargetPath, VZ_CT_XML_CONFIG_FILE).absoluteFilePath());
-			nRetCode = m_pVmConfig->saveToFile(&f, true, true);
+			nRetCode = m_VzOpHelper.apply_env_config(
+				CVzHelper::fix_env_config(m_pVmConfig, pConfig), pConfig, 0);
 			if (PRL_FAILED(nRetCode))
 				break;
 		}

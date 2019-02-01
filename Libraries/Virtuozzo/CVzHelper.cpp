@@ -3866,3 +3866,18 @@ Ct::Statistics::Aggregate *CVzHelper::get_env_stat(const QString& uuid)
 
 	return a.take();
 }
+
+SmartPtr<CVmConfiguration> &CVzHelper::fix_env_config(SmartPtr<CVmConfiguration> &orig,
+                SmartPtr<CVmConfiguration> &copy)
+{
+	foreach(CVmHardDisk* d, copy->getVmHardwareList()->m_lstHardDisks) {
+		if (d->getMountPoint() == "/") {
+			CVmHardDisk *x = findDiskInList(d, orig->getVmHardwareList()->m_lstHardDisks);
+			if (x)
+				x->setMountPoint("/");
+			break;
+		}
+	}
+	return orig;
+}
+
