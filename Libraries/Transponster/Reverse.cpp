@@ -2560,7 +2560,10 @@ struct Visitor
 	}
 	QHostAddress getAddress(const Address::IPv6& ) const
 	{
-		return m_model->getHostIP6Address();
+		QHostAddress output = m_model->getHostIP6Address();
+		output.setScopeId(QString());
+
+		return output;
 	}
 	CDHCPServer* getDhcp(const Address::IPv6& ) const
 	{
@@ -2576,6 +2579,9 @@ private:
 
 PRL_RESULT Reverse::setHostOnly()
 {
+	if (PVN_BRIDGED_ETHERNET == m_input.getNetworkType())
+		return PRL_ERR_SUCCESS;
+
 	CHostOnlyNetwork* n = m_input.getHostOnlyNetwork();
 	if (NULL == n)
 		return PRL_ERR_SUCCESS;
