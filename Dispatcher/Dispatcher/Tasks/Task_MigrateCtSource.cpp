@@ -190,6 +190,8 @@ PRL_RESULT Task_MigrateCtSource::run_body()
 	pPackage = DispatcherPackage::createInstance(PVE::DspVmEvent, pEvent->toString());
 	CDspService::instance()->getClientManager().sendPackageToAllClients(pPackage);
 
+	if (GetLogLevel() > DBG_WARNING)
+		lstArgs.append("-v");
 	if (m_nMigrationFlags & PVMT_CLONE_MODE)
 		lstArgs.append("--keep-src");
 
