@@ -2570,15 +2570,16 @@ void Usb::react(const SmartPtr<CDispCommonPreferences> old_,
 	{
 		m[i->getDeviceId()] = i;
 	}
-	foreach (set_type::const_reference i, n.subtract(o))
+	foreach (set_type::const_reference i, set_type(n).subtract(o))
 	{
 		if (m.contains(i.first))
 			Libvirt::Kit.vms().at(i.second).getEditor().plug(*m[i.first]);
 	}
-	foreach (set_type::const_reference i, o.subtract(n))
+	foreach (set_type::const_reference i, set_type(o).subtract(n))
 	{
-		if (m.contains(i.first))
-			Libvirt::Kit.vms().at(i.second).getEditor().unplug(*m[i.first]);
+		CHwUsbDevice d;
+		d.setDeviceId(i.first);
+		Libvirt::Kit.vms().at(i.second).getEditor().unplug(d);
 	}
 }
 
