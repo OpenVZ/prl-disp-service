@@ -1312,10 +1312,6 @@ Launcher::Launcher(const QSharedPointer<virDomain>& domain_):
 Prl::Expected<int, Libvirt::Agent::Failure>
 Launcher::operator()(const Request& request_) const
 {
-	quint32 f = 0;
-	if (request_.getRunInShell())
-		f |= VIR_DOMAIN_COMMAND_X_EXEC_SHELL;
-
 	Workbench w;
 	QVector<char* > a, e;
 	int output = virDomainCommandXExec(m_domain.data(),
@@ -1324,7 +1320,8 @@ Launcher::operator()(const Request& request_) const
 			request_.getArgs().size(),
 			w.translate(request_.getEnv(), e),
 			request_.getEnv().size(), NULL, 0,
-			m_stdin, m_stdout, m_stderr, f);
+			m_stdin, m_stdout, m_stderr,
+			request_.getFlags());
 	std::for_each(a.begin(), a.end(), &free);
 	std::for_each(e.begin(), e.end(), &free);
 	if (0 > output)
