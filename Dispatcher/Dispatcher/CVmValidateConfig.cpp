@@ -336,6 +336,8 @@ QList<PRL_RESULT > CVmValidateConfig::CheckVmConfig(PRL_VM_CONFIG_SECTIONS nSect
 	{
 		CheckSataDevices();
 	}
+	if (nSection == PVC_ALL || nSection == PVC_GENERIC_PCI)
+		CheckGenericPci();
 
 	if (nSection == PVC_ALL
 		|| nSection == PVC_CD_DVD_ROM
@@ -496,6 +498,7 @@ bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
 		case PRL_ERR_INVALID_MEMORY_GUARANTEE:
 		case PRL_ERR_VMCONF_HARD_DISK_SERIAL_IS_NOT_VALID:
 		case PRL_ERR_VMCONF_NETWORK_ADAPTER_DUPLICATE_MAC_ADDRESS:
+		case PRL_ERR_VMCONF_GENERIC_PCI_DEVICE_DUPLICATE_IN_ANOTHER_VM:
 		{
 			evtResult.setEventType(PET_DSP_EVT_ERROR_MESSAGE);
 			evtResult.setEventCode(m_lstResults[i]);
@@ -2178,6 +2181,109 @@ QString CVmValidateConfig::GetPCIDeviceSysNameMainPart(const QString& qsDeviceId
 		return qsDeviceId;
 
 	return lstDev[0] + ":" + lstDev[1] + ":" + lstDev[2];
+}
+
+void CVmValidateConfig::CheckGenericPci()
+{       
+	QMap<QString, PRL_GENERIC_DEVICE_STATE> mapDevStates;
+	QMap<QString, QString> mapFriendlyNames;
+	QMap<QString, PRL_GENERIC_PCI_DEVICE_CLASS> mapPciClasses;
+	{
+		CDspLockedPointer<CDspHostInfo> pDspHostInfo = CDspService::instance()->getHostInfo();
+		if (!pDspHostInfo.isValid())
+			return;
+										  
+		CHostHardwareInfo* pHostInfo = pDspHostInfo->data();
+		if (!pHostInfo)
+			return;
+
+		foreach(CHwGenericPciDevice* pDev, pHostInfo->getGenericPciDevices()->m_lstGenericPciDevice)
+		{                                                                  
+			QString qsSysName = GetPCIDeviceSysNameMainPart(pDev->getDeviceId());
+
+			mapDevStates.insert(qsSysName, GetMergedPciDevState(pDev));
+			mapFriendlyNames.insert(qsSysName, pDev->getDeviceName());
+			mapPciClasses.insert(qsSysName, pDev->getType());
+		}
+	}
+
+	QSet<QString > setSysNames;
+	CVmHardware* pHwList = m_pVmConfig->getVmHardwareList();
+	QList<CVmDevice*> lstPciDevices = *((QList<CVmDevice*>* )&pHwList->m_lstGenericPciDevices);
+
+	foreach (CVmDevice* pPciDev, lstPciDevices)
+	{
+		if (pPciDev->getEnabled() != PVE::DeviceEnabled)
+			continue;
+
+		QSet<QString> setIds = E_SET << pPciDev->getFullItemId()
+			<< pPciDev->getEnabled_id() << pPciDev->getSystemName_id();
+		QString qsSysName = GetPCIDeviceSysNameMainPart(pPciDev->getSystemName());
+		if (mapDevStates.contains(qsSysName))
+		{
+			if (mapPciClasses.value(qsSysName) != PGD_PCI_SOUND
+				&& mapPciClasses.value(qsSysName) != PGD_PCI_OTHER)
+			{
+				m_lstResults += PRL_ERR_VMCONF_GENERIC_PCI_WRONG_DEVICE;
+
+				QStringList lstParams;
+				lstParams << qsSysName << mapFriendlyNames.value(qsSysName);
+				m_mapParameters.insert(m_lstResults.size(), lstParams);
+				m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pPciDev->getIndex(), pPciDev->getItemId()));
+				m_mapPciDevClasses.insert(m_lstResults.size(), mapPciClasses.value(qsSysName));
+				ADD_FID(setIds);
+			}
+		}
+		else
+		{
+			QMap<PRL_DEVICE_TYPE, PRL_GENERIC_PCI_DEVICE_CLASS> mapCfgTypeToHwType;
+			mapCfgTypeToHwType.insert(PDE_GENERIC_NETWORK_ADAPTER, PGD_PCI_NETWORK);
+			mapCfgTypeToHwType.insert(PDE_PCI_VIDEO_ADAPTER, PGD_PCI_DISPLAY);
+			mapCfgTypeToHwType.insert(PDE_GENERIC_PCI_DEVICE, PGD_PCI_OTHER);
+
+			m_lstResults += PRL_ERR_VMCONF_GENERIC_PCI_DEVICE_NOT_FOUND;
+
+			QStringList lstParams;
+			lstParams << pPciDev->getUserFriendlyName();
+			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pPciDev->getIndex(), pPciDev->getItemId()));
+			m_mapPciDevClasses.insert(m_lstResults.size(), mapCfgTypeToHwType.value(pPciDev->getDeviceType()));
+			ADD_FID(setIds);
+		}
+		if (setSysNames.contains(qsSysName))
+		{
+			m_lstResults += PRL_ERR_VMCONF_GENERIC_PCI_DUPLICATE_SYS_NAME;
+
+			QStringList lstParams;
+			lstParams << qsSysName << mapFriendlyNames.value(qsSysName);
+			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pPciDev->getIndex(), pPciDev->getItemId()));
+			m_mapPciDevClasses.insert(m_lstResults.size(), mapPciClasses.value(qsSysName));
+			ADD_FID(setIds);
+		}
+		else
+			setSysNames.insert(qsSysName);
+
+		bool bHasRunningAnotherVm = false;
+		if (IsDeviceInAnotherVm(pPciDev->getDeviceType(),
+					 qsSysName,
+					 m_pVmConfig->getVmIdentification()->getVmUuid(),
+					 bHasRunningAnotherVm))
+		{
+			// Note: Only for existing PCI device bHasRunningAnotherVm may be true
+			bHasRunningAnotherVm = mapDevStates.contains(qsSysName) && bHasRunningAnotherVm;
+
+			m_lstResults += PRL_ERR_VMCONF_GENERIC_PCI_DEVICE_DUPLICATE_IN_ANOTHER_VM;
+
+			QStringList lstParams;
+			lstParams << qsSysName << mapFriendlyNames.value(qsSysName)
+				<< (bHasRunningAnotherVm ? "1" : "0");
+			m_mapParameters.insert(m_lstResults.size(), lstParams);
+			m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pPciDev->getIndex(), pPciDev->getItemId()));
+			m_mapPciDevClasses.insert(m_lstResults.size(), mapPciClasses.value(qsSysName));
+			ADD_FID(setIds);
+		}
+	}
 }
 
 void CVmValidateConfig::CheckNetworkShapingRates()
