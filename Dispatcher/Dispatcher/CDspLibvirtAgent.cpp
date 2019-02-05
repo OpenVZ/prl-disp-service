@@ -1122,6 +1122,19 @@ Guest::executeInAgent(const QString& cmd, int retries)
 namespace Exec
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Request
+
+void Request::setRunInShell()
+{
+	m_flags |= VIR_DOMAIN_COMMAND_X_EXEC_SHELL;
+}
+
+void Request::setRunInTerminal()
+{
+	m_flags |= VIR_DOMAIN_COMMAND_X_EXEC_TERMINAL;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct ReadDevice
 
 ReadDevice::ReadDevice(virStreamPtr stream_):

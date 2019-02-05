@@ -41,7 +41,6 @@
 #include <boost/tuple/tuple.hpp>
 #include "CDspLibvirt.h"
 #include <boost/serialization/strong_typedef.hpp>
-#include <libvirt/libvirt.h>
 
 struct _virStream;
 typedef struct _virStream virStream;
@@ -155,20 +154,24 @@ struct Request {
 	{
 		m_env = env;
 	}
-	void setRunInShell()
+	void setRunInShell();
+	void setRunInTerminal();
+	int getFlags() const
 	{
-		m_flags |= VIR_DOMAIN_COMMAND_X_EXEC_SHELL;
+		return m_flags;
 	}
-	void setRunInTerminal()
+	const QString& getPath() const
 	{
-		m_flags |= VIR_DOMAIN_COMMAND_X_EXEC_TERMINAL;
+		return m_path;
 	}
-
-	int getFlags() const { return m_flags; }
-
-	const QString& getPath()     const { return m_path; }
-	const QStringList& getArgs() const { return m_args; }
-	const QStringList& getEnv()  const { return m_env; }
+	const QStringList& getArgs() const
+	{
+		return m_args;
+	}
+	const QStringList& getEnv() const
+	{
+		return m_env;
+	}
 
 private:
 	QString m_path;
