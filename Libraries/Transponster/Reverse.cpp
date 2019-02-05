@@ -1696,6 +1696,7 @@ Libvirt::Domain::Xml::Hostdev
 
 	Libvirt::Domain::Xml::Source14 c;
 	c.setSource(b);
+	c.setStartupPolicy(Libvirt::Domain::Xml::EStartupPolicyOptional);
 
 	mpl::at_c<Libvirt::Domain::Xml::VHostdevsubsys::types, 1>::type f;
 	f.setValue(c);
