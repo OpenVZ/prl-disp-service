@@ -785,7 +785,7 @@ private:
 
 		vm::Exec::Request output("%programfiles%\\Qemu-ga\\prl_nettool.exe",
 				QList<QString>());
-		output.setRunInShell(true);
+		output.setRunInShell();
 		return output;
 	}
 };

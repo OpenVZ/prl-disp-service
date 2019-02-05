@@ -339,7 +339,7 @@ PRL_RESULT Task_ChangeSID::run_changeSID_cmd(Libvirt::Instrument::Agent::Vm::Uni
 {
 	Libvirt::Instrument::Agent::Vm::Exec::Request request("%programfiles%\\Qemu-ga\\prl_newsid.exe",  
 		QList<QString>());
-	request.setRunInShell(true);
+	request.setRunInShell();
 	Prl::Expected
 		<Libvirt::Instrument::Agent::Vm::Exec::Result, Error::Simple> e =
 			u.getGuest().runProgram(request);

@@ -3164,7 +3164,8 @@ Action* Factory::operator()(const Request& input_) const
 
 	QString c = d.takeFirst();
 	Libvirt::Instrument::Agent::Vm::Exec::Request request(c, d);
-	request.setRunInShell(t == PVS_GUEST_TYPE_WINDOWS);
+	if (t == PVS_GUEST_TYPE_WINDOWS)
+		request.setRunInShell();
 	QString uuid = input_.getFinal().getVmIdentification()->getVmUuid();
 
 	return new Action(boost::bind

@@ -64,7 +64,8 @@ void Actor::configureNetwork(CVmConfiguration& c_, QString& uuid,
 	if (!cmd.isEmpty()) {
 		QString c = cmd.takeFirst();
 		r.reset(new Libvirt::Instrument::Agent::Vm::Exec::Request(c, cmd));
-		r->setRunInShell(type == PVS_GUEST_TYPE_WINDOWS);
+		if (type == PVS_GUEST_TYPE_WINDOWS)
+			r->setRunInShell();
 		uuid = c_.getVmIdentification()->getVmUuid();
 	}
 }
