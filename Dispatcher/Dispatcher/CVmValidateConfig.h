@@ -176,6 +176,7 @@ private:
 	void CheckIdeDevices();
 	void CheckSataDevices();
 	void CheckScsiDevices();
+	void CheckGenericPci();
 	void CheckVirtioBlockDevices();
 	void CheckNetworkShapingRates();
 

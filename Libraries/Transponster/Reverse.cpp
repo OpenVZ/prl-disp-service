@@ -1197,7 +1197,6 @@ void List::add(const CVmGenericPciDevice* pci_)
 
 	Libvirt::Domain::Xml::Source13 c;
 	c.setAddress(a);
-	c.setStartupPolicy(Libvirt::Domain::Xml::EStartupPolicyOptional);
 
 	Libvirt::Domain::Xml::Hostdevsubsyspci d;
 	d.setSource(c);
