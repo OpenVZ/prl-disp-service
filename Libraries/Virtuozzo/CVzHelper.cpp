@@ -3871,12 +3871,9 @@ SmartPtr<CVmConfiguration> &CVzHelper::fix_env_config(SmartPtr<CVmConfiguration>
                 SmartPtr<CVmConfiguration> &copy)
 {
 	foreach(CVmHardDisk* d, copy->getVmHardwareList()->m_lstHardDisks) {
-		if (d->getMountPoint() == "/") {
-			CVmHardDisk *x = findDiskInList(d, orig->getVmHardwareList()->m_lstHardDisks);
-			if (x)
-				x->setMountPoint("/");
-			break;
-		}
+		CVmHardDisk *x = findDiskInList(d, orig->getVmHardwareList()->m_lstHardDisks);
+		if (x)
+			x->setMountPoint(d->getMountPoint());
 	}
 	return orig;
 }
