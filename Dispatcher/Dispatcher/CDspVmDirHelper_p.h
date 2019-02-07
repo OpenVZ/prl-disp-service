@@ -355,6 +355,24 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Filter
+
+struct Filter: Chain
+{
+	Filter(PRL_UINT32 flags_):
+		m_flags(flags_)
+	{
+	}
+
+	result_type handle(const CVmDirectoryItem& item_);
+
+private:
+	result_type& do_(result_type &output);
+
+	PRL_UINT32 m_flags;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
 struct Factory
