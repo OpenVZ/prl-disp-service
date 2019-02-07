@@ -592,8 +592,7 @@ Subject::Subject(QSharedPointer<virConnect> link_, QSharedPointer<Model::System>
 
 void Subject::run()
 {
-	Monitor::Hardware::Launcher x(m_target);
-	x(m_link.toWeakRef());
+	(Monitor::Hardware::Launcher(m_target))(m_link.toWeakRef());
 
 	Agent::Hub u;
 	u.setLink(m_link);
