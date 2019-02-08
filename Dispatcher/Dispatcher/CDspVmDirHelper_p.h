@@ -331,8 +331,6 @@ struct State: Chain
 	result_type handle(const CVmDirectoryItem& item_);
 
 private:
-	result_type& trim(result_type &output);
-
 	session_type m_session;
 };
 
@@ -354,22 +352,20 @@ private:
 	session_type m_session;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Filter
-
 struct Filter: Chain
 {
-	Filter(PRL_UINT32 flags_):
-		m_flags(flags_)
-	{
-	}
+	typedef boost::function<bool (const CVmGenericNetworkAdapter*)> predicate_type;
 
+	void setPredicate(const predicate_type& predicate_)
+	{
+		m_predicate = predicate_;
+	}
 	result_type handle(const CVmDirectoryItem& item_);
 
 private:
 	result_type& do_(result_type &output);
 
-	PRL_UINT32 m_flags;
+	predicate_type m_predicate;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
