@@ -352,6 +352,9 @@ private:
 	session_type m_session;
 };
 
+///////////////////////////////////////////////////////////////////////////
+// struct Filter
+
 struct Filter: Chain
 {
 	typedef boost::function<bool (const CVmGenericNetworkAdapter*)> predicate_type;
