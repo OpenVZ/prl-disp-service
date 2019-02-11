@@ -177,8 +177,6 @@ PRL_RESULT Run::operator()(Exec::Vm& variant_) const
 
 	if (m_task->getRequestFlags() & PRPM_RUN_PROGRAM_IN_SHELL)
 		r.setRunInShell();
-	if (m_task->getRequestFlags() & PRPM_RUN_PROGRAM_ENTER)
-		r.setRunInTerminal();
 	r.setEnvironment(cmd->GetProgramEnvVars());
 
 	Prl::Expected<vm::Exec::Result, PRL_RESULT> x = variant_.handle(r, *m_task);
