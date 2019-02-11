@@ -247,6 +247,7 @@ typedef boost::variant<Exec::Vm, Exec::Ct> Mode;
 
 class Task_ExecVm : public CDspTaskHelper
 {
+	Q_OBJECT
 public:
 	Task_ExecVm(const SmartPtr<CDspClient>& pClient,
 		const SmartPtr<IOPackage>& p, Exec::Mode mode);
@@ -283,6 +284,9 @@ private:
 	QString m_sGuestSessionUuid;
 	int m_exitcode;
 	Exec::Mode m_mode;
+
+private slots:
+	void reactDisconnected(IOSender::Handle handle);
 };
 
 #endif	// __Task_ExecVm_H__
