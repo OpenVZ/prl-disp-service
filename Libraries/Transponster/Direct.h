@@ -318,6 +318,9 @@ struct Pci: Libvirt::Details::Value::Bin<boost::optional<CHwGenericPciDevice> >
 	typedef Libvirt::Nodedev::Xml::Device object_type;
 
 	PRL_RESULT operator()(const object_type& object_);
+
+private:
+	static PRL_GENERIC_PCI_DEVICE_CLASS guess(const boost::optional<QString>& path_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
