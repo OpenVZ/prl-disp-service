@@ -21,6 +21,7 @@
  * Schaffhausen, Switzerland.
  */
 
+#include <fstream>
 #include "Direct.h"
 #include "Reverse_p.h"
 #include "Direct_p.h"
@@ -1722,16 +1723,61 @@ namespace Host
 ///////////////////////////////////////////////////////////////////////////////
 // struct Pci
 
+PRL_GENERIC_PCI_DEVICE_CLASS Pci::guess(const boost::optional<QString>& path_)
+{
+	if (!path_)
+		return PGD_PCI_OTHER;
+
+	std::ifstream f(qPrintable(QDir(path_.get()).absoluteFilePath("class")));
+	if (!f)
+		return PGD_PCI_OTHER;
+
+	union
+	{
+		quint32 raw;
+		struct
+		{
+			quint8 progIf;
+			quint8 subclazz;
+			quint8 clazz;
+			quint8 zero;
+		} parsed;
+	} x;
+	f >> std::hex >> x.raw;
+	f.close();
+	switch (x.parsed.clazz)
+	{
+	case 0x2:
+		return PGD_PCI_NETWORK;
+	case 0x3:
+		return PGD_PCI_DISPLAY;
+	case 0x4:
+		switch (x.parsed.subclazz)
+		{
+		case 0x1:
+		case 0x3:
+			return PGD_PCI_SOUND;
+		}
+	default:
+		return PGD_PCI_OTHER;
+	}
+}
+
 PRL_RESULT Pci::operator()(const object_type& object_)
 {
 	foreach (const Libvirt::Nodedev::Xml::VCapability& c, object_.getCapabilityList())
 	{
 		Visitor::Controller::Pci::bin_type b;
-		if (boost::apply_visitor(Visitor::Controller::Pci(b), c))
+		if (!boost::apply_visitor(Visitor::Controller::Pci(b), c))
+			continue;
+
+		PRL_GENERIC_PCI_DEVICE_CLASS z = guess(object_.getPath());
+		if (PGD_PCI_DISPLAY != z)
 		{
+			b.setType(z);
 			setValue(b);
-			break;
 		}
+		break;
 	}
 
 	return PRL_ERR_SUCCESS;
