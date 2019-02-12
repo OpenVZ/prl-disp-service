@@ -1074,7 +1074,7 @@ Guest::runProgram(const Exec::Request& request_)
 	result_type output(x.getResult().value());
 	output.stdOut = x.getStdout()->readAll();
 	output.stdErr = x.getStderr()->readAll();
-	
+
 	return output;
 }
 
@@ -1371,6 +1371,7 @@ Unit::Unit(const QSharedPointer<virDomain>& domain_):
 	m_stdin = QSharedPointer<WriteDevice>(new WriteDevice(i));
 	m_stdout = QSharedPointer<ReadDevice>(new ReadDevice(o));
 	m_stderr = QSharedPointer<ReadDevice>(new ReadDevice(e));
+	m_finished = QSharedPointer<QSemaphore>(new QSemaphore());
 	m_result = result_type(PRL_ERR_UNINITIALIZED);
 }
 
@@ -1394,8 +1395,8 @@ Libvirt::Result Unit::start(const Request& request_)
 
 	m_pid = x.value();
 	m_launcher = boost::none;
-	m_stdout->track(new Callback(m_stdout));
-	m_stderr->track(new Callback(m_stderr));
+	m_stdout->track(new Callback(m_stdout, m_finished));
+	m_stderr->track(new Callback(m_stderr, m_finished));
 
 	return Libvirt::Result();
 }
@@ -1409,6 +1410,8 @@ Libvirt::Result Unit::wait(int timeout_)
 		return Error::Simple(PRL_ERR_INVALID_HANDLE);
 
 	enum { MAX_TRANSIENT_FAILS = 10 };
+
+	m_finished->acquire(2);
 
 	Waiter w;
 	for (int i = 0, t = 0;; ++i)
@@ -1478,7 +1481,8 @@ Prl::Expected<void, ::Libvirt::Agent::Failure> Unit::query()
 void Callback::operator()(virStreamPtr stream_, int events_)
 {
 	QSharedPointer<ReadDevice> t = m_target.toStrongRef();
-	if (t.isNull())
+	QSharedPointer<QSemaphore> s = m_sem.toStrongRef();
+	if (t.isNull() || s.isNull())
 	{
 		WRITE_TRACE(DBG_FATAL, "The channel target is disconnected");
 		return;
@@ -1486,6 +1490,7 @@ void Callback::operator()(virStreamPtr stream_, int events_)
 	if (events_ & (VIR_STREAM_EVENT_HANGUP | VIR_STREAM_EVENT_ERROR))
 	{
 		t->close();
+		s->release();
 		return;
 	}
 	if (0 == (events_ & VIR_STREAM_EVENT_READABLE))
@@ -1493,7 +1498,7 @@ void Callback::operator()(virStreamPtr stream_, int events_)
 
 	forever
 	{
-		char b[1024];
+		char b[4096];
 		int x = virStreamRecv(stream_, b, sizeof(b));
 		// NB: -2 is a magical constant which means no data
 		if (-2 == x)
@@ -1506,10 +1511,13 @@ void Callback::operator()(virStreamPtr stream_, int events_)
 
 			continue;
 		}
-		if (0 == x)
-			return t->setEof();
 
-		return t->close();
+		if (0 == x)
+			t->setEof();
+		else
+			t->close();
+
+		return s->release();
 	}
 }
 
