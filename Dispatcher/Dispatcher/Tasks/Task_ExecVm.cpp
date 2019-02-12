@@ -484,6 +484,11 @@ Task_ExecVm::Task_ExecVm(const SmartPtr<CDspClient>& pClient,
 	m_stageFinished(false),
 	m_mode(mode)
 {
+	bool x = QObject::connect(&CDspService::instance()->getIOServer(),
+			SIGNAL(onClientDisconnected(IOSender::Handle)),
+			SLOT(reactDisconnected(IOSender::Handle)),
+			Qt::DirectConnection);
+	PRL_ASSERT(x);
 	m_nTimeout = CDspService::instance()->getDispConfigGuard().
 		getDispToDispPrefs()->getSendReceiveTimeout() * 1000;
 }
@@ -496,6 +501,16 @@ Task_ExecVm::~Task_ExecVm()
 			m_sSessionUuid, m_sGuestSessionUuid);
 }
 
+void Task_ExecVm::reactDisconnected(IOSender::Handle h)
+{
+	SmartPtr<CDspClient> p = getClient();
+	if (!p.isValid())
+		return;
+	if (p->getClientHandle() != h)
+		return;
+	cancelOperation(p, getRequestPackage());
+}
+
 CProtoCommandDspWsResponse *Task_ExecVm::getResponseCmd()
 {
 	return CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>(m_pResponseCmd);
@@ -503,6 +518,9 @@ CProtoCommandDspWsResponse *Task_ExecVm::getResponseCmd()
 
 void Task_ExecVm::cancelOperation(SmartPtr<CDspClient> pUserSession, const SmartPtr<IOPackage> &p)
 {
+	if (operationIsCancelled())
+		return;
+
 	CDspTaskHelper::cancelOperation(pUserSession, p);
 
 	boost::apply_visitor(Exec::Cancel(), m_mode);
@@ -538,8 +556,10 @@ PRL_RESULT Task_ExecVm::sendEvent(int type)
 
 PRL_RESULT Task_ExecVm::sendToClient(int type, const char *data, int size)
 {
-	if (!m_ioClient.isValid())
-		return PRL_ERR_SUCCESS;
+	if (!m_ioClient.isValid()) {
+		cancelOperation(getClient(), getRequestPackage());
+		return PRL_ERR_OPERATION_FAILED;
+	}
 
 	if (NULL == data)
 		size = 0;
@@ -562,6 +582,7 @@ PRL_RESULT Task_ExecVm::sendToClient(int type, const char *data, int size)
 		IOSendJob::Handle job = m_ioClient->sendPackage(p);
 		if (CDspService::instance()->getIOServer().waitForSend(job, m_nTimeout) != IOSendJob::Success) {
 			WRITE_TRACE(DBG_FATAL, "Task_ExecVm: package type=%d sending failure", type);
+			cancelOperation(getClient(), getRequestPackage());
 			return PRL_ERR_OPERATION_FAILED;
 		}
 	} while(0 < size);
@@ -670,6 +691,12 @@ bool Task_ExecVm::waitForStage(const char* what, unsigned int timeout)
 
 void Task_ExecVm::finalizeTask()
 {
+	QObject::disconnect(
+			&CDspService::instance()->getIOServer(),
+			SIGNAL(onClientDisconnected(IOSender::Handle)),
+			this,
+			SLOT(reactDisconnected(IOSender::Handle)));
+
 	PRL_RESULT res = getLastErrorCode();
 	// Send response
 	if ( PRL_FAILED( res ) ) {
