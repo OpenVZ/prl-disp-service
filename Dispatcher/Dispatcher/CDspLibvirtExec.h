@@ -34,6 +34,7 @@
 
 #include <QObject>
 #include <QEventLoop>
+#include <QSemaphore>
 #include <prlsdk/PrlTypes.h>
 #include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
@@ -269,6 +270,7 @@ private:
 	QSharedPointer<ReadDevice> m_stdout;
 	QSharedPointer<ReadDevice> m_stderr;
 	QSharedPointer<WriteDevice> m_stdin;
+	QSharedPointer<QSemaphore> m_finished;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -277,8 +279,10 @@ private:
 struct Callback
 {
 	typedef QWeakPointer<ReadDevice> target_type;
+	typedef QWeakPointer<QSemaphore> sem_type;
 
-	explicit Callback(const target_type& target_): m_target(target_)
+	explicit Callback(const target_type& target_, const sem_type& sem_):
+		m_target(target_), m_sem(sem_)
 	{
 	}
 
@@ -288,6 +292,7 @@ struct Callback
 
 private:
 	target_type m_target;
+	sem_type m_sem;
 };
 
 } //namespace Exec
