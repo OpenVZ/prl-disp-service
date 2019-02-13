@@ -1416,7 +1416,7 @@ Libvirt::Result Unit::wait(int timeout_)
 	if (!m_finished->tryAcquire(2, timeout_))
 		return Error::Simple(PRL_ERR_TIMEOUT);
 	if (timeout_ > 0)
-		timeout_ = qMax(0, timeout_ - timer.elapsed());
+		timeout_ = qMax<int>(0, timeout_ - timer.elapsed());
 
 	Waiter w;
 	for (int i = 0, t = 0;; ++i)
