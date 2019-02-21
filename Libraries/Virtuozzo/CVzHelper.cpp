@@ -560,7 +560,9 @@ int CVzHelper::get_env_status_by_ctid(const QString &ctid, VIRTUAL_MACHINE_STATE
 		return PRL_ERR_OPERATION_FAILED;
 	}
 
-	if (status.mask & ENV_STATUS_RUNNING)
+	if (!strcmp(status.transition, VZCTL_TRANSITION_MIGRATING))
+		nState = VMS_MIGRATING;
+	else if (status.mask & ENV_STATUS_RUNNING)
 		nState = status.mask & ENV_STATUS_CPT_SUSPENDED ? VMS_PAUSED : VMS_RUNNING;
 	else if (status.mask & ENV_STATUS_SUSPENDED)
 		nState = VMS_SUSPENDED;
