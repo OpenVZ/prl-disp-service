@@ -3578,7 +3578,11 @@ static QString g_text[] = {
 	QString("capability3551"),
 	QString(""),
 	QString("size_iops_sec"),
-	QString("group_name")
+	QString("group_name"),
+	QString(""),
+	QString("qusb1"),
+	QString("qusb2"),
+	QString("qemu-xhci")
 };
 
 const QString& getText(quint32 index_)

@@ -691,7 +691,10 @@ Enum<Domain::Xml::EModel1>::data_type Enum<Domain::Xml::EModel1>::getData()
 			(data_type::value_type(Domain::Xml::EModel1Vt82c686bUhci, "vt82c686b-uhci"))
 			(data_type::value_type(Domain::Xml::EModel1PciOhci, "pci-ohci"))
 			(data_type::value_type(Domain::Xml::EModel1NecXhci, "nec-xhci"))
-			(data_type::value_type(Domain::Xml::EModel1None, "none"));
+			(data_type::value_type(Domain::Xml::EModel1None, "none"))
+			(data_type::value_type(Domain::Xml::EModel1Qusb1, "qusb1"))
+			(data_type::value_type(Domain::Xml::EModel1Qusb2, "qusb2"))
+			(data_type::value_type(Domain::Xml::EModel1QemuXhci, "qemu-xhci"));
 }
 
 template<>

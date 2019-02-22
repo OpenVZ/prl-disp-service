@@ -449,7 +449,7 @@ bool Alias::feature(const QString& value_) const
 QString Alias::operator()(const CHwUsbDevice& model_) const
 {
 	return QString(s_PREFIX).append("usb-")
-		.append(USB_SYS_PATH(model_.getDeviceId()));
+		.append(USB_SYS_PATH(model_.getDeviceId()).replace('.', '_'));
 }
 
 QString Alias::operator()(const CVmGenericPciDevice model_) const
