@@ -553,7 +553,10 @@ enum EModel1
 	EModel1Vt82c686bUhci,
 	EModel1PciOhci,
 	EModel1NecXhci,
-	EModel1None
+	EModel1None,
+	EModel1Qusb1,
+	EModel1Qusb2,
+	EModel1QemuXhci
 };
 
 enum EName3

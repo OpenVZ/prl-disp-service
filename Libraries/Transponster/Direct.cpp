@@ -740,6 +740,7 @@ void Usb::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice625::types, 2>
 		m_settings->setEhcEnabled(true);
 		break;
 	case Libvirt::Domain::Xml::EModel1NecXhci:
+	case Libvirt::Domain::Xml::EModel1QemuXhci:
 		m_settings->setXhcEnabled(true);
 		break;
 	default:
