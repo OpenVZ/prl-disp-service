@@ -1581,7 +1581,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 		return nRetCode;
 	}
 
-	int lockfd = CVzHelper::lock_env(m_sVmUuid, "Restoring");
+	int lockfd = CVzHelper::lock_env(m_sVmUuid, VZCTL_TRANSITION_RESTORING);
 	if (lockfd < 0) {
 		WRITE_TRACE(DBG_FATAL, "Can't lock Container");
 		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
