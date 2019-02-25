@@ -562,6 +562,8 @@ int CVzHelper::get_env_status_by_ctid(const QString &ctid, VIRTUAL_MACHINE_STATE
 
 	if (!strcmp(status.transition, VZCTL_TRANSITION_MIGRATING))
 		nState = VMS_MIGRATING;
+	else if (!strcmp(status.transition, VZCTL_TRANSITION_RESTORING))
+		nState = VMS_RESTORING;
 	else if (status.mask & ENV_STATUS_RUNNING)
 		nState = status.mask & ENV_STATUS_CPT_SUSPENDED ? VMS_PAUSED : VMS_RUNNING;
 	else if (status.mask & ENV_STATUS_SUSPENDED)
