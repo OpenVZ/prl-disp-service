@@ -1411,12 +1411,16 @@ Libvirt::Result Unit::wait(int timeout_)
 
 	enum { MAX_TRANSIENT_FAILS = 10 };
 
-	QElapsedTimer timer;
-	timer.start();
-	if (!m_finished->tryAcquire(2, timeout_))
-		return Error::Simple(PRL_ERR_TIMEOUT);
-	if (timeout_ > 0)
-		timeout_ = qMax<int>(0, timeout_ - timer.elapsed());
+	if (!m_finished.isNull()) 
+	{
+		QElapsedTimer timer;
+		timer.start();
+		if (!m_finished->tryAcquire(2, timeout_))
+			return Error::Simple(PRL_ERR_TIMEOUT);
+		m_finished.clear();
+		if (timeout_ > 0)
+			timeout_ = qMax<int>(0, timeout_ - timer.elapsed());
+	}
 
 	Waiter w;
 	for (int i = 0, t = 0;; ++i)
