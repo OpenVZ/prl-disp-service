@@ -102,6 +102,55 @@ PRL_RESULT Workerv3::operator()()
 	return e;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Archive
+
+void Archive::disconnect()
+{
+	if (1 == m_bin.which())
+		boost::get<nbd_type>(m_bin)->stop();
+
+	m_bin = boost::blank();
+}
+
+const QString Archive::getUrl() const
+{
+	switch (m_bin.which())
+	{
+	case 1: 
+		return boost::get<nbd_type>(m_bin)->getUrl();
+	case 2: 
+		return boost::get<QString>(m_bin);
+	default:
+		return QString();
+	}
+}
+
+PRL_RESULT Archive::connect(const QString& address_, quint32 protocol_,
+	const Task_RestoreVmBackupSource& task_)
+{
+	if (0 != m_bin.which())
+		return PRL_ERR_DOUBLE_INIT;
+
+	if (((PVM_LOCAL_BACKUP | PVM_CT_PLOOP_BACKUP) & task_.getInternalFlags()) &&
+		protocol_ >= BACKUP_PROTO_V5)
+	{
+		m_bin = QUrl::fromLocalFile(address_).toString();
+		return PRL_ERR_SUCCESS;
+	}
+
+	::Backup::Storage::Image i(address_);
+	nbd_type b(new ::Backup::Storage::Nbd());
+	if (BACKUP_PROTO_V5 <= protocol_)
+		b->setExportName(QFileInfo(address_).fileName());
+
+	PRL_RESULT output = b->start(i, task_.getFlags());
+	if (PRL_SUCCEEDED(output))
+		m_bin = b;
+
+	return output;
+}
+
 } // namespace Source
 } // namespace Restore
 
@@ -126,9 +175,11 @@ m_bBackupLocked(false)
 	m_nBackupNumber = PRL_BASE_BACKUP_NUMBER;
 	m_nFlags = pCmd->GetFlags();
 	m_nTotalSize = 0;
+	m_nRemoteVersion = pCmd->GetVersion();
 	m_hHandle = m_pDispConnection->GetConnectionHandle();
 	m_nInternalFlags = 0;
-	m_nRemoteVersion = pCmd->GetVersion();
+	if (CDspService::instance()->getShellServiceHelper().isLocalAddress(m_pDispConnection->getUserSession()->getUserHostAddress()))
+		m_nInternalFlags = PVM_LOCAL_BACKUP;
 }
 
 PRL_RESULT Task_RestoreVmBackupSource::prepareTask()
@@ -262,7 +313,7 @@ void Task_RestoreVmBackupSource::finalizeTask()
 	m_cABackupServer.kill();
 
 	foreach(const archive_type& f, m_nbds)
-		f.second->stop();
+		f.second->disconnect();
 
 	if (m_bBackupLocked)
 		getMetadataLock().releaseShared(m_sBackupUuid);
@@ -453,20 +504,16 @@ void Task_RestoreVmBackupSource::mountImage(const SmartPtr<IOPackage>& package_)
 	if (!g.isLocked())
 		return;
 
-	QString a = UTF8_2QSTR(package_->buffers[0].getImpl());
-	::Backup::Storage::Image i(a);
-	QSharedPointer< ::Backup::Storage::Nbd> n(new ::Backup::Storage::Nbd());
-	if (BACKUP_PROTO_V5 <= m_nRemoteVersion)
-		n->setExportName(QFileInfo(a).fileName());
-
-	PRL_RESULT e = n->start(i, m_nFlags);
 	IOSendJob::Handle j;
+	QString a = UTF8_2QSTR(package_->buffers[0].getImpl());
+	QSharedPointer< ::Restore::Source::Archive> A(new ::Restore::Source::Archive());
+	PRL_RESULT e = A->connect(a, m_nRemoteVersion, *this);
 	if (PRL_FAILED(e))
 		j = m_pDispConnection->sendSimpleResponse(package_, e);
 	else {
-		m_nbds << qMakePair(a, n);
+		m_nbds << qMakePair(a, A);
 
-		QByteArray url(n->getUrl().toUtf8());
+		QByteArray url(A->getUrl().toUtf8());
 		SmartPtr<IOPackage> r = IOPackage::createInstance(VmBackupRestoreImage, 1, package_);
 		r->fillBuffer(0, IOPackage::RawEncoding, url.constData(), url.size()+1);
 		j = m_pDispConnection->sendPackage(r);

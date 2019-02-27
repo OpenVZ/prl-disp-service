@@ -85,6 +85,11 @@ private:
 	QStringList m_trash;
 };
 
+namespace Source
+{
+struct Archive;
+
+} // namespace Source
 } // namespace Restore
 
 class Task_RestoreVmBackupSource : public Task_BackupHelper
@@ -92,7 +97,7 @@ class Task_RestoreVmBackupSource : public Task_BackupHelper
 	Q_OBJECT
 
 	typedef QPair< QString,
-		QSharedPointer< ::Backup::Storage::Nbd> > archive_type;
+		QSharedPointer< ::Restore::Source::Archive> > archive_type;
 
 public:
 	Task_RestoreVmBackupSource(
@@ -119,7 +124,6 @@ private:
 	SmartPtr<CVmFileListCopySender> m_pSender;
 	bool m_bBackupLocked;
 	QString m_sBackupRootPath;
-	quint32 m_nInternalFlags;
  
 	WaiterTillHandlerUsingObject m_waiter;
 
@@ -206,7 +210,6 @@ private:
 	//VM uptime values before restore
 	quint64 m_nCurrentVmUptime;
 	QDateTime m_current_vm_uptime_start_date;
-	quint32 m_nInternalFlags;
 	SmartPtr<IOPackage> m_pReply;
 
 #ifdef _CT_
