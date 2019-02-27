@@ -410,6 +410,24 @@ private:
 	Backup::Process::Unit* m_process;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Archive
+
+struct Archive
+{
+	void disconnect();
+	const QString getUrl() const;
+	PRL_RESULT connect(const QString& address_, quint32 protocol_,
+		const Task_RestoreVmBackupSource& task_);
+
+private:
+	typedef QSharedPointer< ::Backup::Storage::Nbd>
+		nbd_type;
+	typedef boost::variant<boost::blank, nbd_type, QString> bin_type;
+
+	bin_type m_bin;
+};
+
 } // namespace Source
 } // namespace Restore
 

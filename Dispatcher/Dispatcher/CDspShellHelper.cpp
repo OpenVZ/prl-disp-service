@@ -1370,7 +1370,8 @@ void CDspShellHelper::sendDiskFreeSpace(SmartPtr<CDspClient>& pUser, const Smart
 
 bool CDspShellHelper::isLocalAddress(const QString &sHost)
 {
-	if (sHost == "localhost")
+	if (0 == sHost.compare(QString("localhost"), Qt::CaseInsensitive) ||
+		sHost.compare(QString("localhost.AF_LOCAL"), Qt::CaseInsensitive) == 0)
 		return true;
 
 	// is sHost full or short hostname ?
