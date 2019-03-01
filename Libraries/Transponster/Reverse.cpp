@@ -1821,8 +1821,7 @@ PRL_RESULT Builder::setSettings()
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
 	QString d = o->getVmDescription();
-	if (!d.isEmpty())
-		m_result->setDescription(d);
+	m_result->setDescription(d);
 
 	CVmRunTimeOptions* r(s->getVmRuntimeOptions());
 	if (NULL == r)
