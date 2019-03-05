@@ -863,6 +863,28 @@ struct Essence<PVE::DspCmdVmResume>: Start
 	}
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct HaSync
+
+template<class T>
+struct HaSync: T
+{
+	Libvirt::Result operator()()
+	{
+		SmartPtr<CVmConfiguration> c = this->getConfig();
+		const CVmHighAvailability *ha = c->getVmSettings()->getHighAvailability();
+		QString h = QFileInfo(c->getVmIdentification()->getHomePath()).absolutePath();
+
+		if (ha->isEnabled() && CFileHelper::isSharedFS(h))
+		{
+			QtConcurrent::run(CDspHaClusterHelper::addClusterResource,
+					c->getVmIdentification()->getVmName(), ha, h);
+		}
+
+		return T::operator()();
+	}
+};
+
 #else // _LIBVIRT_
 template<PVE::IDispatcherCommands X>
 struct Essence
@@ -1829,22 +1851,22 @@ void Body<Tag::Special<PVE::DspCmdVmCreateSnapshot> >::run(Context& context_)
 template<>
 struct Body<Tag::Special<PVE::DspCmdVmStart> >
 {
-	template<PVE::IDispatcherCommands X>
+	template<PVE::IDispatcherCommands X, class Y = HaSync<Essence<X> > >
 	struct Core
 	{
 		typedef Tag::State
 		<
-			Essence<X>,
+			Y,
 			Vm::Fork::State::Strict<VMS_RUNNING>
 		> type;
 	};
 
-	template<PVE::IDispatcherCommands X>
+	template<PVE::IDispatcherCommands X, class Y = HaSync<Essence<X> > >
 	struct Restrict
 	{
 		typedef Tag::Timeout
 		<
-			typename Core<X>::type,
+			typename Core<X, Y>::type,
 			Tag::Libvirt<X>
 		> type;
 	};
@@ -1860,7 +1882,7 @@ struct Body<Tag::Special<PVE::DspCmdVmStart> >
 		switch (CDspVm::getVmState(context_.getIdent().first, context_.getIdent().second))
 		{
 		case VMS_PAUSED:
-			return Decorate<PVE::DspCmdVmResume, Restrict<PVE::DspCmdVmResume> >::type::run(context_);
+			return Decorate<PVE::DspCmdVmResume, Restrict<PVE::DspCmdVmResume, Essence<PVE::DspCmdVmResume> > >::type::run(context_);
 		case VMS_RUNNING:
 			context_.reportStart();
 			return context_.reply(Error::Simple(PRL_ERR_FAILURE, "VM is already running"));

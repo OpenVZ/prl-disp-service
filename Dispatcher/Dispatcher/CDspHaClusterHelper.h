@@ -39,7 +39,7 @@ public:
 
 public:
 	PRL_UINT32 getStartCommandFlags(CProtoCommandPtr pCmd);
-	PRL_RESULT addClusterResource(const QString & sName, CVmHighAvailability *ha, const QString & sPath);
+	static PRL_RESULT addClusterResource(const QString & sName, const CVmHighAvailability *ha, const QString & sPath);
 	PRL_RESULT renameClusterResource(const QString & oldName,
 			CVmHighAvailability *oldHa, const QString & newName, const QString & newPath);
 	PRL_RESULT updateClusterResourceParams(const QString & sName,
@@ -55,9 +55,9 @@ public:
 	static QFileInfoList getReport();
 	PRL_RESULT updateClusterResourcePath(const QString& name, const QString& path);
 private:
-	PRL_RESULT runProgram(const QString & sPath, const QStringList & lstArgs, QProcess & proc);
-	PRL_RESULT runHaman(const QStringList & args, QProcess & proc);
-	QString getResourcePrefix(PRL_VM_TYPE vmType = PVT_VM);
+	static PRL_RESULT runProgram(const QString & sPath, const QStringList & lstArgs, QProcess & proc);
+	static PRL_RESULT runHaman(const QStringList & args, QProcess & proc);
+	static QString getResourcePrefix(PRL_VM_TYPE vmType = PVT_VM);
 };
 
 #endif // __CDspHaClusterHelper_H_

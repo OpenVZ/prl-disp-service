@@ -77,7 +77,7 @@ PRL_UINT32 CDspHaClusterHelper::getStartCommandFlags(CProtoCommandPtr pCmd)
 }
 
 PRL_RESULT CDspHaClusterHelper::addClusterResource(const QString & sName,
-		CVmHighAvailability *ha, const QString & sPath)
+		const CVmHighAvailability *ha, const QString & sPath)
 {
 	PRL_ASSERT(ha);
 
@@ -96,6 +96,7 @@ PRL_RESULT CDspHaClusterHelper::addClusterResource(const QString & sName,
 	args += QString("%1").arg(ha->getPriority());
 	args += QString("--path");
 	args += sPath;
+	args += QString("--force");
 
 	PRL_RESULT res = runHaman(args, proc);
 	if (PRL_FAILED(res))
@@ -216,6 +217,7 @@ PRL_RESULT CDspHaClusterHelper::moveToClusterResource(const QString & sName, con
 
 PRL_RESULT CDspHaClusterHelper::runProgram(const QString & sPath, const QStringList & lstArgs, QProcess & proc)
 {
+	WRITE_TRACE(DBG_INFO, "run %s %s", qPrintable(sPath), qPrintable(lstArgs.join(" ")));
 	proc.start(sPath, lstArgs);
 	if (!proc.waitForStarted(HAMAN_START_TMO)) {
 		WRITE_TRACE(DBG_FATAL, "Failed to run %s : %s",
