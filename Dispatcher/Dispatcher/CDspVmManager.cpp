@@ -796,31 +796,59 @@ struct Essence<PVE::DspCmdVmDeleteSnapshot>: Need::Agent,
 {
 	Libvirt::Result operator()()
 	{
-		Libvirt::Result output = do_();
-		if (output.isSucceed())
+		Prl::Expected<QStringList, Error::Simple> x = do_();
+		if (x.isFailed())
+			return x.error();
+
+		foreach (const QString& i, x.value())
 		{
-			// TODO should clean child snapshot data too
-			Libvirt::Snapshot::Stash z(getConfig(),
-				getCommand()->GetSnapshotUuid());
-			Q_UNUSED(z);
-			sendEvent(PET_DSP_EVT_VM_STATE_DELETED, PIE_DISPATCHER);
-			sendEvent(PET_DSP_EVT_VM_SNAPSHOTS_TREE_CHANGED, PIE_DISPATCHER);
+			Libvirt::Snapshot::Stash(getConfig(), i).dismantle();
 		}
-		return output;
+
+		sendEvent(PET_DSP_EVT_VM_STATE_DELETED, PIE_DISPATCHER);
+		sendEvent(PET_DSP_EVT_VM_SNAPSHOTS_TREE_CHANGED, PIE_DISPATCHER);
+
+		return Libvirt::Result();
 	}
 
 private:
-	Libvirt::Result do_()
+	Prl::Expected<QStringList, Error::Simple> do_()
 	{
-		if (getCommand()->GetChild())
+		Libvirt::Result e;
+		QStringList output(getCommand()->GetSnapshotUuid());
+		if (!getCommand()->GetChild())
 		{
-			return getAgent().getSnapshot()
-				.at(getCommand()->GetSnapshotUuid())
-				.undefineRecursive();
+			e = getAgent().getSnapshot()
+				.at(output.first()).undefine();
+			if (e.isFailed())
+				return e.error();
+
+			return output;
 		}
-		return getAgent().getSnapshot()
-			.at(getCommand()->GetSnapshotUuid())
-			.undefine();
+		QList<Libvirt::Instrument::Agent::Vm::Snapshot::Unit> a;
+		e = getAgent().getSnapshot().all(a);
+		if (e.isFailed())
+			return e.error();
+
+		foreach (const Libvirt::Instrument::Agent::Vm::Snapshot::Unit& u, a)
+		{
+			QString i;
+			e = u.getParent().getUuid(i);
+			if (!output.contains(i))
+				continue;
+
+			e = u.getUuid(i);
+			if (e.isFailed())
+				return e.error();
+		
+			output << i;
+		}
+		e = getAgent().getSnapshot().at(output.first())
+			.undefineRecursive();
+		if (e.isFailed())
+			return e.error();
+
+		return output;
 	}
 };
 
@@ -1882,7 +1910,15 @@ struct Body<Tag::Special<PVE::DspCmdVmStart> >
 		switch (CDspVm::getVmState(context_.getIdent().first, context_.getIdent().second))
 		{
 		case VMS_PAUSED:
-			return Decorate<PVE::DspCmdVmResume, Restrict<PVE::DspCmdVmResume, Essence<PVE::DspCmdVmResume> > >::type::run(context_);
+			return Decorate
+				<
+					PVE::DspCmdVmResume,
+					Restrict
+					<
+						PVE::DspCmdVmResume,
+						Essence<PVE::DspCmdVmResume>
+					>
+				>::type::run(context_);
 		case VMS_RUNNING:
 			context_.reportStart();
 			return context_.reply(Error::Simple(PRL_ERR_FAILURE, "VM is already running"));
