@@ -132,7 +132,11 @@ PRL_RESULT Archive::connect(const QString& address_, quint32 protocol_,
 	if (0 != m_bin.which())
 		return PRL_ERR_DOUBLE_INIT;
 
-	if (((PVM_LOCAL_BACKUP | PVM_CT_PLOOP_BACKUP) & task_.getInternalFlags()) &&
+	enum
+	{
+		FILE = (PVM_LOCAL_BACKUP | PVM_CT_PLOOP_BACKUP)
+	};
+	if (FILE == (FILE & task_.getInternalFlags()) &&
 		protocol_ >= BACKUP_PROTO_V5)
 	{
 		m_bin = QUrl::fromLocalFile(address_).toString();
