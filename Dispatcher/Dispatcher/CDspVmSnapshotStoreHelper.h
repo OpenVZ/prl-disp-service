@@ -72,6 +72,7 @@ struct Stash {
 
 	bool add(const QStringList& file_);
 	bool restore(const QStringList& file_);
+	PRL_RESULT dismantle();
 	SmartPtr<CVmConfiguration> restoreConfig(const QString& file_);
 	bool hasFile(const QString file_)
 	{

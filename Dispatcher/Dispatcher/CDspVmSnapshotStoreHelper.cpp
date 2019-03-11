@@ -261,6 +261,22 @@ void Stash::commit()
 	m_files.clear();
 }
 
+PRL_RESULT Stash::dismantle()
+{
+	const QString p(m_dir.absolutePath());
+	if (!m_dir.exists())
+	{
+		WRITE_TRACE(DBG_FATAL, "Directory %s is absent", qPrintable(p));
+		return PRL_ERR_FAILURE;
+	}
+	if (!CFileHelper::ClearAndDeleteDir(p))
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot remove directory %s", qPrintable(p));
+		return PRL_ERR_CANT_REMOVE_ENTRY;
+	}
+	return PRL_ERR_SUCCESS;
+}
+
 } // namespace Snapshot
 } // namespace Libvirt
 
