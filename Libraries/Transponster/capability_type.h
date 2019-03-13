@@ -702,6 +702,83 @@ private:
 } // namespace Capability
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Anonymous1186
+
+namespace Capability
+{
+namespace Xml
+{
+struct Anonymous1186
+{
+	Anonymous1186();
+
+	PCbitpos::value_type getCbitpos() const
+	{
+		return m_cbitpos;
+	}
+	void setCbitpos(PCbitpos::value_type value_)
+	{
+		m_cbitpos = value_;
+	}
+	PReducedPhysBits::value_type getReducedPhysBits() const
+	{
+		return m_reducedPhysBits;
+	}
+	void setReducedPhysBits(PReducedPhysBits::value_type value_)
+	{
+		m_reducedPhysBits = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+
+private:
+	PCbitpos::value_type m_cbitpos;
+	PReducedPhysBits::value_type m_reducedPhysBits;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Sev
+
+namespace Capability
+{
+namespace Xml
+{
+struct Sev
+{
+	Sev();
+
+	EVirYesNo getSupported() const
+	{
+		return m_supported;
+	}
+	void setSupported(EVirYesNo value_)
+	{
+		m_supported = value_;
+	}
+	const boost::optional<Anonymous1186 >& getAnonymous1186() const
+	{
+		return m_anonymous1186;
+	}
+	void setAnonymous1186(const boost::optional<Anonymous1186 >& value_)
+	{
+		m_anonymous1186 = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_supported;
+	boost::optional<Anonymous1186 > m_anonymous1186;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Features
 
 namespace Capability
@@ -728,6 +805,22 @@ struct Features
 	{
 		m_vmcoreinfo = value_;
 	}
+	EVirYesNo getGenid() const
+	{
+		return m_genid;
+	}
+	void setGenid(EVirYesNo value_)
+	{
+		m_genid = value_;
+	}
+	const Sev& getSev() const
+	{
+		return m_sev;
+	}
+	void setSev(const Sev& value_)
+	{
+		m_sev = value_;
+	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
 	bool save(QDomDocument& ) const;
@@ -735,6 +828,8 @@ struct Features
 private:
 	Gic m_gic;
 	EVirYesNo m_vmcoreinfo;
+	EVirYesNo m_genid;
+	Sev m_sev;
 };
 
 } // namespace Xml
@@ -789,6 +884,14 @@ struct DomainCapabilities
 	{
 		m_vcpu = value_;
 	}
+	const boost::optional<EVirYesNo >& getIothreads() const
+	{
+		return m_iothreads;
+	}
+	void setIothreads(const boost::optional<EVirYesNo >& value_)
+	{
+		m_iothreads = value_;
+	}
 	const boost::optional<Os >& getOs() const
 	{
 		return m_os;
@@ -831,6 +934,7 @@ private:
 	boost::optional<QString > m_machine;
 	QString m_arch;
 	boost::optional<PUnsignedInt::value_type > m_vcpu;
+	boost::optional<EVirYesNo > m_iothreads;
 	boost::optional<Os > m_os;
 	boost::optional<Cpu > m_cpu;
 	boost::optional<Devices > m_devices;
@@ -1033,12 +1137,36 @@ struct Traits<Capability::Xml::Gic>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Anonymous1186 traits
+
+template<>
+struct Traits<Capability::Xml::Anonymous1186>
+{
+	typedef Ordered<mpl::vector<Element<Text<Capability::Xml::PCbitpos >, Name::Strict<3564> >, Element<Text<Capability::Xml::PReducedPhysBits >, Name::Strict<3565> > > > marshal_type;
+
+	static int parse(Capability::Xml::Anonymous1186& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Anonymous1186& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Sev traits
+
+template<>
+struct Traits<Capability::Xml::Sev>
+{
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Optional<Fragment<Capability::Xml::Anonymous1186 > > > > marshal_type;
+
+	static int parse(Capability::Xml::Sev& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Sev& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Features traits
 
 template<>
 struct Traits<Capability::Xml::Features>
 {
-	typedef Unordered<mpl::vector<Element<Capability::Xml::Gic, Name::Strict<1001> >, Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<1004> > > > marshal_type;
+	typedef Unordered<mpl::vector<Element<Capability::Xml::Gic, Name::Strict<1001> >, Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<1004> >, Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<3563> >, Element<Capability::Xml::Sev, Name::Strict<3562> > > > marshal_type;
 
 	static int parse(Capability::Xml::Features& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Features& , QDomElement& );
@@ -1050,7 +1178,7 @@ struct Traits<Capability::Xml::Features>
 template<>
 struct Traits<Capability::Xml::DomainCapabilities>
 {
-	typedef Unordered<mpl::vector<Element<Text<Capability::Xml::PAbsFilePath >, Name::Strict<355> >, Element<Text<QString >, Name::Strict<1> >, Optional<Element<Text<QString >, Name::Strict<286> > >, Element<Text<QString >, Name::Strict<285> >, Optional<Element<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1880> >, Name::Strict<338> > >, Optional<Element<Capability::Xml::Os, Name::Strict<222> > >, Optional<Element<Capability::Xml::Cpu, Name::Strict<220> > >, Optional<Element<Capability::Xml::Devices, Name::Strict<228> > >, Optional<Element<Capability::Xml::Features, Name::Strict<155> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Element<Text<Capability::Xml::PAbsFilePath >, Name::Strict<355> >, Element<Text<QString >, Name::Strict<1> >, Optional<Element<Text<QString >, Name::Strict<286> > >, Element<Text<QString >, Name::Strict<285> >, Optional<Element<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<1880> >, Name::Strict<338> > >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<347> > >, Optional<Element<Capability::Xml::Os, Name::Strict<222> > >, Optional<Element<Capability::Xml::Cpu, Name::Strict<220> > >, Optional<Element<Capability::Xml::Devices, Name::Strict<228> > >, Optional<Element<Capability::Xml::Features, Name::Strict<155> > > > > marshal_type;
 
 	static int parse(Capability::Xml::DomainCapabilities& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::DomainCapabilities& , QDomElement& );

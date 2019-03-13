@@ -38,7 +38,7 @@ our $license = <<'LICENSE';
  */
 LICENSE
 our @history_;
-our @historyCursors = ();
+our @historyCursors = (1);
 
 sub reverse($$)
 {
@@ -74,7 +74,7 @@ sub generate($$)
 	{
 		my $t = $n.($c - 1);
 		@history_ < $c and return $_[0]->reverse($t);
-		$history_[$c] eq $t and return $_[0]->reverse($t);
+		(defined($history_[$c]) && $history_[$c] eq $t) and return $_[0]->reverse($t);
 	}
 }
 

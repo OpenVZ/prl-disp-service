@@ -1240,6 +1240,56 @@ struct Validatable<Capability::Xml::PFeatureName>: mpl::true_
 
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct PCbitpos
+
+namespace Capability
+{
+namespace Xml
+{
+struct PCbitpos
+{
+	typedef quint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+template<>
+struct Traits<Capability::Xml::PCbitpos>
+{
+	static bool parse(const QString& src_, Capability::Xml::PCbitpos::value_type& dst_);
+
+	static QString generate(Capability::Xml::PCbitpos::value_type src_);
+
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PReducedPhysBits
+
+namespace Capability
+{
+namespace Xml
+{
+struct PReducedPhysBits
+{
+	typedef quint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+template<>
+struct Traits<Capability::Xml::PReducedPhysBits>
+{
+	static bool parse(const QString& src_, Capability::Xml::PReducedPhysBits::value_type& dst_);
+
+	static QString generate(Capability::Xml::PReducedPhysBits::value_type src_);
+
+};
+
+
 } // namespace Libvirt
 
 #endif // __CAPABILITY_DATA_H__

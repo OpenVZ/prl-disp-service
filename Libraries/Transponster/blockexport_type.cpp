@@ -137,7 +137,7 @@ int Traits<Blockexport::Xml::Disk>::parse(Blockexport::Xml::Disk& dst_, QStack<Q
 		dst_.setName(m.get<0>().getValue());
 		dst_.setExportname(m.get<1>().getValue());
 		dst_.setSnapshot(m.get<2>().getValue());
-		dst_.setChoice3195(m.get<3>().getValue());
+		dst_.setChoice3750(m.get<3>().getValue());
 		dst_.setReadonly(m.get<4>().getValue());
 	}
 	return output;
@@ -152,7 +152,7 @@ int Traits<Blockexport::Xml::Disk>::generate(const Blockexport::Xml::Disk& src_,
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getSnapshot(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice3195(), m.get<3>()))
+	if (0 > Details::Marshal::assign(src_.getChoice3750(), m.get<3>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getReadonly(), m.get<4>()))
 		return -1;
