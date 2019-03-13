@@ -1039,13 +1039,128 @@ int Traits<Capability::Xml::Gic>::generate(const Capability::Xml::Gic& src_, QDo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Anonymous1186
+
+namespace Capability
+{
+namespace Xml
+{
+Anonymous1186::Anonymous1186(): m_cbitpos(), m_reducedPhysBits()
+{
+}
+
+bool Anonymous1186::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	k.push(src_.firstChildElement());
+	return 0 <= Traits<Anonymous1186>::parse(*this, k);
+}
+
+bool Anonymous1186::save(QDomElement& dst_) const
+{
+	return 0 <= Traits<Anonymous1186>::generate(*this, dst_);
+}
+
+
+} // namespace Xml
+} // namespace Capability
+
+int Traits<Capability::Xml::Anonymous1186>::parse(Capability::Xml::Anonymous1186& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setCbitpos(m.get<0>().getValue());
+		dst_.setReducedPhysBits(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Capability::Xml::Anonymous1186>::generate(const Capability::Xml::Anonymous1186& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getCbitpos(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getReducedPhysBits(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Sev
+
+namespace Capability
+{
+namespace Xml
+{
+Sev::Sev(): m_supported()
+{
+}
+
+bool Sev::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Sev, Name::Strict<3562> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Sev::save(QDomElement& dst_) const
+{
+	Element<Sev, Name::Strict<3562> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Sev::save(QDomDocument& dst_) const
+{
+	Element<Sev, Name::Strict<3562> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Capability
+
+int Traits<Capability::Xml::Sev>::parse(Capability::Xml::Sev& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setSupported(m.get<0>().getValue());
+		dst_.setAnonymous1186(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Capability::Xml::Sev>::generate(const Capability::Xml::Sev& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getSupported(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getAnonymous1186(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Features
 
 namespace Capability
 {
 namespace Xml
 {
-Features::Features(): m_vmcoreinfo()
+Features::Features(): m_vmcoreinfo(), m_genid()
 {
 }
 
@@ -1087,6 +1202,8 @@ int Traits<Capability::Xml::Features>::parse(Capability::Xml::Features& dst_, QS
 	{
 		dst_.setGic(m.get<0>().getValue());
 		dst_.setVmcoreinfo(m.get<1>().getValue());
+		dst_.setGenid(m.get<2>().getValue());
+		dst_.setSev(m.get<3>().getValue());
 	}
 	return output;
 }
@@ -1097,6 +1214,10 @@ int Traits<Capability::Xml::Features>::generate(const Capability::Xml::Features&
 	if (0 > Details::Marshal::assign(src_.getGic(), m.get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getVmcoreinfo(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getGenid(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getSev(), m.get<3>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1150,10 +1271,11 @@ int Traits<Capability::Xml::DomainCapabilities>::parse(Capability::Xml::DomainCa
 		dst_.setMachine(m.get<2>().getValue());
 		dst_.setArch(m.get<3>().getValue());
 		dst_.setVcpu(m.get<4>().getValue());
-		dst_.setOs(m.get<5>().getValue());
-		dst_.setCpu(m.get<6>().getValue());
-		dst_.setDevices(m.get<7>().getValue());
-		dst_.setFeatures(m.get<8>().getValue());
+		dst_.setIothreads(m.get<5>().getValue());
+		dst_.setOs(m.get<6>().getValue());
+		dst_.setCpu(m.get<7>().getValue());
+		dst_.setDevices(m.get<8>().getValue());
+		dst_.setFeatures(m.get<9>().getValue());
 	}
 	return output;
 }
@@ -1171,13 +1293,15 @@ int Traits<Capability::Xml::DomainCapabilities>::generate(const Capability::Xml:
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getVcpu(), m.get<4>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getOs(), m.get<5>()))
+	if (0 > Details::Marshal::assign(src_.getIothreads(), m.get<5>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getCpu(), m.get<6>()))
+	if (0 > Details::Marshal::assign(src_.getOs(), m.get<6>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getDevices(), m.get<7>()))
+	if (0 > Details::Marshal::assign(src_.getCpu(), m.get<7>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getFeatures(), m.get<8>()))
+	if (0 > Details::Marshal::assign(src_.getDevices(), m.get<8>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getFeatures(), m.get<9>()))
 		return -1;
 
 	return m.produce(dst_);

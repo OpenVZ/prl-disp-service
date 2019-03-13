@@ -774,4 +774,34 @@ bool Validatable<Capability::Xml::PFeatureName>::validate(const Capability::Xml:
 	return true;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct PCbitpos
+
+bool Traits<Capability::Xml::PCbitpos>::parse(const QString& src_, Capability::Xml::PCbitpos::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toUInt(&output);
+	return output;
+}
+
+QString Traits<Capability::Xml::PCbitpos>::generate(Capability::Xml::PCbitpos::value_type src_)
+{
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PReducedPhysBits
+
+bool Traits<Capability::Xml::PReducedPhysBits>::parse(const QString& src_, Capability::Xml::PReducedPhysBits::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toUInt(&output);
+	return output;
+}
+
+QString Traits<Capability::Xml::PReducedPhysBits>::generate(Capability::Xml::PReducedPhysBits::value_type src_)
+{
+	return QString::number(src_);
+}
+
 } // namespace Libvirt

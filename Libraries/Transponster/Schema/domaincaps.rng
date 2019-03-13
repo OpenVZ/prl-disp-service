@@ -29,6 +29,9 @@
           <ref name='vcpu'/>
         </optional>
         <optional>
+          <ref name='iothreads'/>
+        </optional>
+        <optional>
           <ref name='os'/>
         </optional>
         <optional>
@@ -49,6 +52,13 @@
       <attribute name='max'>
         <ref name='unsignedInt'/>
       </attribute>
+      <empty/>
+    </element>
+  </define>
+
+  <define name='iothreads'>
+    <element name='iothreads'>
+      <ref name='supported'/>
       <empty/>
     </element>
   </define>
@@ -173,7 +183,9 @@
     <element name='features'>
       <interleave>
         <ref name='gic'/>
-	<ref name='vmcoreinfo'/>
+        <ref name='vmcoreinfo'/>
+        <ref name='vmgenid'/>
+        <ref name='sev'/>
       </interleave>
     </element>
   </define>
@@ -188,6 +200,26 @@
   <define name='vmcoreinfo'>
     <element name='vmcoreinfo'>
       <ref name='supported'/>
+    </element>
+  </define>
+
+  <define name='vmgenid'>
+    <element name='genid'>
+      <ref name='supported'/>
+    </element>
+  </define>
+
+  <define name='sev'>
+    <element name='sev'>
+      <ref name='supported'/>
+      <optional>
+        <element name='cbitpos'>
+          <data type='unsignedInt'/>
+        </element>
+        <element name='reducedPhysBits'>
+          <data type='unsignedInt'/>
+        </element>
+      </optional>
     </element>
   </define>
 
