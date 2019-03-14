@@ -1160,7 +1160,7 @@ namespace Capability
 {
 namespace Xml
 {
-Features::Features(): m_vmcoreinfo(), m_genid()
+Features::Features(): m_vmcoreinfo()
 {
 }
 

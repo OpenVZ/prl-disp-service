@@ -805,19 +805,19 @@ struct Features
 	{
 		m_vmcoreinfo = value_;
 	}
-	EVirYesNo getGenid() const
+	const boost::optional<EVirYesNo >& getGenid() const
 	{
 		return m_genid;
 	}
-	void setGenid(EVirYesNo value_)
+	void setGenid(const boost::optional<EVirYesNo >& value_)
 	{
 		m_genid = value_;
 	}
-	const Sev& getSev() const
+	const boost::optional<Sev >& getSev() const
 	{
 		return m_sev;
 	}
-	void setSev(const Sev& value_)
+	void setSev(const boost::optional<Sev >& value_)
 	{
 		m_sev = value_;
 	}
@@ -828,8 +828,8 @@ struct Features
 private:
 	Gic m_gic;
 	EVirYesNo m_vmcoreinfo;
-	EVirYesNo m_genid;
-	Sev m_sev;
+	boost::optional<EVirYesNo > m_genid;
+	boost::optional<Sev > m_sev;
 };
 
 } // namespace Xml
@@ -1166,7 +1166,7 @@ struct Traits<Capability::Xml::Sev>
 template<>
 struct Traits<Capability::Xml::Features>
 {
-	typedef Unordered<mpl::vector<Element<Capability::Xml::Gic, Name::Strict<1001> >, Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<1004> >, Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<3563> >, Element<Capability::Xml::Sev, Name::Strict<3562> > > > marshal_type;
+	typedef Unordered<mpl::vector<Element<Capability::Xml::Gic, Name::Strict<1001> >, Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<1004> >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<3563> > >, Optional<Element<Capability::Xml::Sev, Name::Strict<3562> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Features& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Features& , QDomElement& );

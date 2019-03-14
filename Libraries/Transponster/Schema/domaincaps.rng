@@ -184,8 +184,12 @@
       <interleave>
         <ref name='gic'/>
         <ref name='vmcoreinfo'/>
-        <ref name='vmgenid'/>
-        <ref name='sev'/>
+        <optional>
+          <ref name='vmgenid'/>
+        </optional>
+        <optional>
+          <ref name='sev'/>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -210,7 +214,7 @@
   </define>
 
   <define name='sev'>
-    <element name='sev'>
+    <element name='seev'>
       <ref name='supported'/>
       <optional>
         <element name='cbitpos'>
