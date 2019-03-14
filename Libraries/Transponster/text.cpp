@@ -3777,7 +3777,8 @@ static QString g_text[] = {
 	QString("choice3750"),
 	QString("data3751"),
 	QString("name3752"),
-	QString("name3753")
+	QString("name3753"),
+	QString("")
 };
 
 const QString& getText(quint32 index_)
