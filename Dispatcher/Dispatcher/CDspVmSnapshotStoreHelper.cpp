@@ -1020,43 +1020,36 @@ void CDspVmSnapshotStoreHelper::updateSnapshotData(SmartPtr<CDspClient> user, co
 	QString sVmUuid = pCmd->GetVmUuid();
 	QString sSnapshotUuid = pCmdUpdate->GetSnapshotUuid();
 
-	QString sSnapshotsTreePath = getPathToSnapshotsXml( user->getVmIdent( sVmUuid ) );
-	if( sSnapshotsTreePath.isEmpty() )
+	PRL_RESULT e;
+	SmartPtr<CVmConfiguration> c = CDspService::instance()->getVmDirHelper()
+		.getVmConfigByUuid(user->getVmIdent(sVmUuid), e);
+	if (PRL_FAILED(e))
 	{
 		user->sendSimpleResponse(pkg, PRL_ERR_VM_UPDATE_SNAPSHOT_DATA_FAILED);
 		return;
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// Work under internal lock
-	//////////////////////////////////////////////////////////////////////////
-	QMutexLocker locker( &m_mutex );
-
-	// Load snapshots tree
-	CSavedStateStore cSavedStateStore("");
-	cSavedStateStore.Load(sSnapshotsTreePath);
-
-	// Find snapshot and update data
-	PRL_RESULT res = PRL_ERR_SUCCESS;
-	CSavedStateTree *pTree = cSavedStateStore.GetSavedStateTree();
-	if (pTree)
+	Libvirt::Snapshot::Stash s(c, sSnapshotUuid);
+	Prl::Expected<CSavedStateTree, PRL_RESULT> m(s.getMetadata());
+	if (m.isFailed())
 	{
-		CSavedStateTree *lpcNode = pTree->FindByUuid(sSnapshotUuid);
-		if (lpcNode)
-		{
-			lpcNode->SetDescription( pCmdUpdate->GetDescription() );
-			lpcNode->SetName( pCmdUpdate->GetName() );
-
-			cSavedStateStore.Save();
-
-			// Notify all users: snapshot tree changed
-			notifyVmClientsTreeChanged(pkg, user->getVmDirectoryUuid(), sVmUuid);
-		}
-		else
-			res = PRL_ERR_VM_UPDATE_SNAPSHOT_DATA_FAILED;
+		user->sendSimpleResponse(pkg, m.error());
+		return;
 	}
-	// Send response
-	user->sendSimpleResponse(pkg, res);
+
+	m.value().SetDescription(pCmdUpdate->GetDescription());
+	m.value().SetName(pCmdUpdate->GetName());
+
+	e = PRL_ERR_VM_UPDATE_SNAPSHOT_DATA_FAILED;
+	if (s.setMetadata(m.value()))
+	{
+		s.commit();
+
+		// Notify all users: snapshot tree changed
+		notifyVmClientsTreeChanged(pkg, user->getVmDirectoryUuid(), sVmUuid);
+		e = PRL_ERR_SUCCESS;
+	}
+	user->sendSimpleResponse(pkg, e);
 }
 
 /**
