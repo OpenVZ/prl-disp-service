@@ -700,7 +700,6 @@ public slots:
 
 private:
 	Q_OBJECT
-	void timerEvent(QTimerEvent *event);
 
 	QMutex m_lock;
 	boost::optional< ::Backup::Snapshot::Vm::Object> m_object;
