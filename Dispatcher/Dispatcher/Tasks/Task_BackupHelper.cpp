@@ -679,9 +679,16 @@ SmartPtr<Chain> Frozen::decorate(SmartPtr<Chain> chain_)
 		return chain_;
 
 	Thaw* t = new Thaw(m_object);
-	t->startTimer(20 * 1000);
 	t->next(chain_);
 	t->moveToThread(QCoreApplication::instance()->thread());
+
+	QTimer* T = new QTimer();
+	T->moveToThread(t->thread());
+	T->setInterval(20 * 1000);
+	t->connect(T, SIGNAL(timeout()), SLOT(release()));
+	T->connect(T, SIGNAL(timeout()), SLOT(deleteLater()));
+	QMetaObject::invokeMethod(T, "start", Qt::QueuedConnection);
+
 	return SmartPtr<Chain>(t);
 }
 
@@ -698,12 +705,6 @@ void Thaw::release()
 	QMutexLocker l(&m_lock);
 	if (m_object && PRL_SUCCEEDED(m_object->thaw()))
 		m_object = boost::none;
-}
-
-void Thaw::timerEvent(QTimerEvent *event_)
-{
-	killTimer(event_->timerId());
-	release();
 }
 
 PRL_RESULT Thaw::do_(SmartPtr<IOPackage> request_, process_type& dst_)
