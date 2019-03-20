@@ -984,7 +984,7 @@ PRL_RESULT Task_VzManager::unregister_env()
 			.lockExclusiveVmParameters(m_sVzDirUuid, &vmInfo);
 	if (PRL_SUCCEEDED(res)) {
 		res = get_op_helper()->unregister_env(uuid, 0);
-		if (PRL_SUCCEEDED(res)) {
+		if (PRL_SUCCEEDED(res) || res == PRL_ERR_NO_VM_DIR_CONFIG_FOUND) {
 			Backup::Device::Service(pConfig).disable();
 
 			ret = CDspService::instance()->getVmDirHelper()
@@ -993,6 +993,7 @@ PRL_RESULT Task_VzManager::unregister_env()
 				WRITE_TRACE(DBG_FATAL, "Can't delete Container %s from VmDirectory by error: %s",
 						QSTR2UTF8(uuid), PRL_RESULT_TO_STRING(ret));
 			sendEvent(PET_DSP_EVT_VM_DELETED, uuid);
+			res = PRL_ERR_SUCCESS;
 		}
 		// delete temporary registration
 		CDspService::instance()->getVmDirManager()
