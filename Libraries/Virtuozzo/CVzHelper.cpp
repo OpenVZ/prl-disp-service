@@ -381,6 +381,7 @@ static int vz2prl_err(int vzret)
 		int vzerr;
 		int prlerr;
 	} prl_error_map[] = {
+		{14, PRL_ERR_NO_VM_DIR_CONFIG_FOUND},
 		{91, PRL_ERR_VZ_OSTEMPLATE_NOT_FOUND},
 		{32, PRL_ERR_CT_IS_RUNNING}
 	};
@@ -2271,7 +2272,10 @@ int CVzOperationHelper::unregister_env(const QString &ctid)
 	args += "unregister";
 	args += ctid;
 
-	return run_prg(BIN_VZCTL, args);
+	if (PRL_FAILED(run_prg(BIN_VZCTL, args)))
+		return vz2prl_err(get_rc());
+
+	return PRL_ERR_SUCCESS;
 }
 
 int CVzOperationHelper::unregister_env(const QString &uuid, int flags)
