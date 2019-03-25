@@ -1440,9 +1440,17 @@ void Fallback::react()
 		*m_sink = u.getValue(s);
 		x = (m_sink->isSucceed() && s != m_exception.get());
 	}
-	if (x)  
-		*m_sink = u.kill();
+	if (x)
+	{
+		Libvirt::Result e = u.kill();
+		// NB. we have a race here when the kill gets called and the
+		// VM has already been stopped. libvirt uses an error code to indicate
+		// the problem. let's say it's ok
+		if (e.isFailed() && e.error().code() == PRL_ERR_INVALID_ACTION_REQUESTED)
+			e = Libvirt::Result();
 
+		*m_sink = e;
+	}
 	emit finish();
 }
 
