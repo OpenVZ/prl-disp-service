@@ -707,7 +707,7 @@ struct Visitor : boost::static_visitor<void>
 		static const char *f[] = {
 			"", "", "", "", "", "", "", "", "", "",
 			"", "", "", "", "", "", "", "", "", "",
-			"", "", "", "", "", "", "spec-ctrl", "stibp", "", "arch-facilities",
+			"", "", "", "", "", "", "spec-ctrl", "stibp", "", "",
 			"", "ssbd",
 			NULL
 		};
