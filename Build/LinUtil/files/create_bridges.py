@@ -34,7 +34,7 @@ CONFIG_PATH = "/etc/sysconfig/network-scripts"
 SECTION_NAME = "section"
 BACKUP_PREFIX = "vz_preserved-"
 BLACKLIST_PARAMS = ["DEVICE", "HWADDR", "UUID", "BRIDGE", "TYPE", "DEVICETYPE", "NAME", "VLAN",
-                    "VLAN_ID", "PHYSDEV", "REORDER_HDR", "GVRP", "MVRP"]
+                    "VLAN_ID", "PHYSDEV", "REORDER_HDR", "GVRP", "MVRP", "USERS"]
 
 
 class FakeSection(object):
@@ -219,6 +219,9 @@ def need_bridge(iface, cp):
         print "Interface %s is a slave of %s" % \
             (iface, dequote(cp.get("TEAM_MASTER", "")))
         return False
+    elif "prohibit_libvirt_bridge" in dequote(cp.get("USERS", "").lower()).split(' '):
+        print "Interface %s is prohibited" % iface
+        return False
     return True
 
 def create_bridge(iface, cp, bridge_id, to_write):
@@ -324,6 +327,8 @@ def proceed_devices():
         if need_bridge(iface, cp):
             filename, backup = create_bridge(iface, cp, current_bridge_id, to_write)
             current_bridge_id += 1
+        if dequote(cp.get("USERS", "").lower()):
+            cp.delete("USERS")
         if filename:
             to_write.append((cp, filename, backup))
 
