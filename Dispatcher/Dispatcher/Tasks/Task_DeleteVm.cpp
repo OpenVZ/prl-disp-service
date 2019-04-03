@@ -219,38 +219,6 @@ void Task_DeleteVm::finalizeTask()
 	if (PRL_SUCCEEDED(getLastErrorCode()))
 		CDspBugPatcherLogic::cleanVmPatchMarks(m_vmDirectoryUuid, sVmUuid);
 
-	if( doUnregisterOnly() && !(m_flags & PVD_NOT_MODIFY_VM_CONFIG) && PRL_SUCCEEDED(getLastErrorCode()) )
-	{
-		CDspVmDirManager::VmDirItemsHash
-			sharedVmHash = CDspService::instance()->getVmDirManager()
-				.findVmDirItemsInCatalogue( sVmUuid ,m_sVmHomePath );
-
-		QString server_id(m_pVmConfig->getVmIdentification()->getServerUuid());
-		QString local_id(CDspService::instance()->getDispConfigGuard().getDispConfig()->getVmServerIdentification()->getServerUuid());
-		if(Uuid(server_id) == Uuid(local_id) && sharedVmHash.isEmpty() )
-		{
-			m_pVmConfig->getVmIdentification()->setServerUuid();
-
-			// fix #121634, #121636 - Skip Copy/Move message when VM already registered on same server
-			m_pVmConfig->getVmIdentification()->setLastServerUuid(local_id);
-		}
-
-		// if vm is in invalid state do not save it
-		PRL_RESULT validRc = (PRL_RESULT)m_pVmConfig->getValidRc();
-		if ( 	validRc != PRL_ERR_PARSE_VM_CONFIG
-			&& validRc != PRL_ERR_VM_CONFIG_DOESNT_EXIST
-			&& validRc != PRL_ERR_ACCESS_TO_VM_DENIED // #427453
-		)
-		{
-			m_pVmConfig->setValidRc( PRL_ERR_SUCCESS );
-			CDspService::instance()->getVmConfigManager().saveConfig(m_pVmConfig,
-				m_sVmHomePath,
-				getClient(),
-				true,
-				true);
-		}
-	}
-
 	if( PRL_SUCCEEDED(getLastErrorCode()) )
 	{
 		CDspService::instance()->getVmConfigManager().getHardDiskConfigCache().remove( m_pVmConfig );
