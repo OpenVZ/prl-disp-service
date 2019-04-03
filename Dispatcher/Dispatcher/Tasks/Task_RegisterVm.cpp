@@ -449,23 +449,13 @@ void Task_RegisterVm::checkDynamicMACAddress()
 	}
 }
 
-void Task_RegisterVm::checkVMOnOtherServerUuid( bool *pbServerUuidWasChanged /* out */ )
+void Task_RegisterVm::checkVMOnOtherServerUuid()
 {
-	PRL_ASSERT( pbServerUuidWasChanged );
-	*pbServerUuidWasChanged = true;
-
 	// retrieve server UUID to check if VM is used on another server, ask user to override it.
 	QString server_id
 		= m_pVmConfig->getVmIdentification()->getServerUuid();
-	// fix #121634, #121636 - Skip Copy/Move message when VM already registered on same server
-	QString lastServer_id
-		= m_pVmConfig->getVmIdentification()->getLastServerUuid();
 	QString local_id
 		= CDspService::instance()->getDispConfigGuard().getDispConfig()->getVmServerIdentification()->getServerUuid();
-
-	*pbServerUuidWasChanged =
-		( server_id.isEmpty() && Uuid(lastServer_id)!=Uuid(local_id) )
-		|| ( !server_id.isEmpty() && Uuid(server_id) != Uuid(local_id) );
 
 	// note: CVmIdentification::setDefaults() creates fake uuid. be sure that incoming config
 	// (from VPS file or from GUI) contains right server uuid).
@@ -784,8 +774,7 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 
 		m_flgLockRegistred=true;
 
-		bool bServerUuidWasChanged = true;
-		checkVMOnOtherServerUuid( &bServerUuidWasChanged );
+		checkVMOnOtherServerUuid();
 		checkOperationPermission();
 		checkWhereFromRegisteredVm();
 		checkDynamicMACAddress( );

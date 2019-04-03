@@ -138,11 +138,9 @@ private:
 
 	/**
 	* Checks if vm was registered early by another server.
-	* set flag when server_uuid  was changed in configuration
-	* @param [out] pointer to bool flag pbServerUuidWasChanged
 	* @note throw PRL_RESULT if errors
 	*/
-	void checkVMOnOtherServerUuid( bool *pbServerUuidWasChanged /* out */ );
+	void checkVMOnOtherServerUuid();
 
 	/**
 	* Checks if vm has dynamic MAC addreeses
