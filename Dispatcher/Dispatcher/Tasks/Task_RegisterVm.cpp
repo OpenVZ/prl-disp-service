@@ -563,7 +563,7 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 					QSTR2UTF8(m_sCustomVmUuid), m_nFlags, m_nInternalParamsAsMasks);
 				throw PRL_ERR_INVALID_ARG;
 			}
-			m_pVmConfig->getVmIdentification()->setVmUuid(m_sCustomVmUuid);
+			setVmUuid(m_sCustomVmUuid);
 		}
 
 		//https://bugzilla.sw.ru/show_bug.cgi?id=267152
@@ -782,6 +782,7 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 		patchNewConfiguration();
 		if( m_nFlags & PRVF_REGENERATE_VM_UUID )
 			regenerateVmUuid();
+
 		if( m_nFlags & PRVF_REGENERATE_SRC_VM_UUID )
 			regenerateSrcVmUuid();
 
@@ -1949,6 +1950,26 @@ void Task_RegisterVm::patchNewConfiguration()
 	m_pVmConfig->getVmHardwareList()->setClock(c.take());
 }
 
+void Task_RegisterVm::setVmUuid(const QString& value_)
+{
+	if (doRegisterOnly() && (m_nFlags & PRVF_REGENERATE_VM_UUID) != 0)
+	{
+		CStatesHelper h(QDir(m_strPathToVmDirToRegister)
+			.absoluteFilePath(VMDIR_DEFAULT_VM_CONFIG_FILE));
+		if (h.savFileExists())
+		{
+			throw CDspTaskFailure(*this)
+				(Error::Simple(PRL_ERR_FAILURE,
+					QString("Suspended state %1 exists, registration with a different UUID is prohibited")
+						.arg(h.getSavFileName()))
+					.convertToEvent());
+		}
+	}
+	m_pVmConfig->getVmIdentification()->setVmUuid(value_);
+	if (m_pVmInfo)
+		m_pVmInfo->vmUuid = value_;// update vm uuid to register
+}
+
 QString Task_RegisterVm::regenerateVmUuid()
 {
 	QString vm_uuid = Uuid::createUuid().toString();
@@ -1958,11 +1979,7 @@ QString Task_RegisterVm::regenerateVmUuid()
 		, QSTR2UTF8( vm_uuid )
 		);
 
-	m_pVmConfig->getVmIdentification()->setVmUuid( vm_uuid );
-
-	if(m_pVmInfo)
-		m_pVmInfo->vmUuid = vm_uuid;// update vm uuid to register
-
+	setVmUuid(vm_uuid);
 	return vm_uuid;
 }
 
