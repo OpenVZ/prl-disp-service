@@ -175,6 +175,7 @@ private:
 	* @return new vm_uuid
 	*/
 	QString regenerateVmUuid();
+	void setVmUuid(const QString& value_);
 
 	/**
 	* Regenerate source_vm_uuid and return it.
