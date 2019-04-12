@@ -26,9 +26,9 @@
 namespace Libvirt
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Parent3467
+// struct Parent3756
 
-int Traits<Nodedev::Xml::Parent3467>::parse(Nodedev::Xml::Parent3467& dst_, QStack<QDomElement>& stack_)
+int Traits<Nodedev::Xml::Parent3756>::parse(Nodedev::Xml::Parent3756& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -40,7 +40,7 @@ int Traits<Nodedev::Xml::Parent3467>::parse(Nodedev::Xml::Parent3467& dst_, QSta
 	return output;
 }
 
-int Traits<Nodedev::Xml::Parent3467>::generate(const Nodedev::Xml::Parent3467& src_, QDomElement& dst_)
+int Traits<Nodedev::Xml::Parent3756>::generate(const Nodedev::Xml::Parent3756& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getWwnn(), m.get<0>()))
@@ -734,19 +734,20 @@ int Traits<Nodedev::Xml::Cappcidev>::parse(Nodedev::Xml::Cappcidev& dst_, QStack
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setDomain(m.get<1>().getValue());
-		dst_.setBus(m.get<2>().getValue());
-		dst_.setSlot(m.get<3>().getValue());
-		dst_.setFunction(m.get<4>().getValue());
-		dst_.setProduct(m.get<5>().getValue());
-		dst_.setVendor(m.get<6>().getValue());
-		dst_.setCapability(m.get<7>().getValue());
-		dst_.setCapability2(m.get<8>().getValue());
-		dst_.setCapability3(m.get<9>().getValue());
-		dst_.setCapability4(m.get<10>().getValue());
-		dst_.setIommuGroup(m.get<11>().getValue());
-		dst_.setNuma(m.get<12>().getValue());
-		dst_.setPciExpress(m.get<13>().getValue());
+		dst_.setClass(m.get<1>().getValue());
+		dst_.setDomain(m.get<2>().getValue());
+		dst_.setBus(m.get<3>().getValue());
+		dst_.setSlot(m.get<4>().getValue());
+		dst_.setFunction(m.get<5>().getValue());
+		dst_.setProduct(m.get<6>().getValue());
+		dst_.setVendor(m.get<7>().getValue());
+		dst_.setCapability(m.get<8>().getValue());
+		dst_.setCapability2(m.get<9>().getValue());
+		dst_.setCapability3(m.get<10>().getValue());
+		dst_.setCapability4(m.get<11>().getValue());
+		dst_.setIommuGroup(m.get<12>().getValue());
+		dst_.setNuma(m.get<13>().getValue());
+		dst_.setPciExpress(m.get<14>().getValue());
 	}
 	return output;
 }
@@ -754,31 +755,33 @@ int Traits<Nodedev::Xml::Cappcidev>::parse(Nodedev::Xml::Cappcidev& dst_, QStack
 int Traits<Nodedev::Xml::Cappcidev>::generate(const Nodedev::Xml::Cappcidev& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getDomain(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getClass(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBus(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getDomain(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getSlot(), m.get<3>()))
+	if (0 > Details::Marshal::assign(src_.getBus(), m.get<3>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getFunction(), m.get<4>()))
+	if (0 > Details::Marshal::assign(src_.getSlot(), m.get<4>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getProduct(), m.get<5>()))
+	if (0 > Details::Marshal::assign(src_.getFunction(), m.get<5>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getVendor(), m.get<6>()))
+	if (0 > Details::Marshal::assign(src_.getProduct(), m.get<6>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getCapability(), m.get<7>()))
+	if (0 > Details::Marshal::assign(src_.getVendor(), m.get<7>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getCapability2(), m.get<8>()))
+	if (0 > Details::Marshal::assign(src_.getCapability(), m.get<8>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getCapability3(), m.get<9>()))
+	if (0 > Details::Marshal::assign(src_.getCapability2(), m.get<9>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getCapability4(), m.get<10>()))
+	if (0 > Details::Marshal::assign(src_.getCapability3(), m.get<10>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getIommuGroup(), m.get<11>()))
+	if (0 > Details::Marshal::assign(src_.getCapability4(), m.get<11>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getNuma(), m.get<12>()))
+	if (0 > Details::Marshal::assign(src_.getIommuGroup(), m.get<12>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getPciExpress(), m.get<13>()))
+	if (0 > Details::Marshal::assign(src_.getNuma(), m.get<13>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getPciExpress(), m.get<14>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1056,30 +1059,30 @@ int Traits<Nodedev::Xml::Link1>::generate(const Nodedev::Xml::Link1& src_, QDomE
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability3550
+// struct Capability3781
 
-int Traits<Nodedev::Xml::Capability3550>::parse(Nodedev::Xml::Capability3550& , QStack<QDomElement>& stack_)
+int Traits<Nodedev::Xml::Capability3781>::parse(Nodedev::Xml::Capability3781& , QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	return m.consume(stack_);
 }
 
-int Traits<Nodedev::Xml::Capability3550>::generate(const Nodedev::Xml::Capability3550& , QDomElement& dst_)
+int Traits<Nodedev::Xml::Capability3781>::generate(const Nodedev::Xml::Capability3781& , QDomElement& dst_)
 {
 	marshal_type m;
 	return m.produce(dst_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability3551
+// struct Capability3782
 
-int Traits<Nodedev::Xml::Capability3551>::parse(Nodedev::Xml::Capability3551& , QStack<QDomElement>& stack_)
+int Traits<Nodedev::Xml::Capability3782>::parse(Nodedev::Xml::Capability3782& , QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	return m.consume(stack_);
 }
 
-int Traits<Nodedev::Xml::Capability3551>::generate(const Nodedev::Xml::Capability3551& , QDomElement& dst_)
+int Traits<Nodedev::Xml::Capability3782>::generate(const Nodedev::Xml::Capability3782& , QDomElement& dst_)
 {
 	marshal_type m;
 	return m.produce(dst_);

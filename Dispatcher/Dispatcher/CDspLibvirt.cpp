@@ -445,6 +445,8 @@ void Vm::operator()(Agent::Hub& hub_)
 		WRITE_TRACE(DBG_FATAL, "Cannot list VMs");
 		return;
 	}
+	WRITE_TRACE(DBG_FATAL, "Got %d VMs", a.size());
+
 	QHash<QString, Agent::Vm::Unit> b, c;
 	foreach (Agent::Vm::Unit m, a)
 	{
@@ -469,6 +471,8 @@ void Vm::operator()(Agent::Hub& hub_)
 	}
 	foreach (const QString& u, s)
 	{
+		WRITE_TRACE(DBG_FATAL, "VM %s disappeared", qPrintable(u));
+
 		// in order to properly remove the directory item, first we need to
 		// add the VM to the registry and then remove it from there
 		m_registry->define(u);
