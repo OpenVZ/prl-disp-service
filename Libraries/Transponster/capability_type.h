@@ -740,15 +740,15 @@ private:
 } // namespace Capability
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Sev
+// struct Seev
 
 namespace Capability
 {
 namespace Xml
 {
-struct Sev
+struct Seev
 {
-	Sev();
+	Seev();
 
 	EVirYesNo getSupported() const
 	{
@@ -813,13 +813,13 @@ struct Features
 	{
 		m_genid = value_;
 	}
-	const boost::optional<Sev >& getSev() const
+	const boost::optional<Seev >& getSeev() const
 	{
-		return m_sev;
+		return m_seev;
 	}
-	void setSev(const boost::optional<Sev >& value_)
+	void setSeev(const boost::optional<Seev >& value_)
 	{
-		m_sev = value_;
+		m_seev = value_;
 	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
@@ -829,7 +829,7 @@ private:
 	Gic m_gic;
 	EVirYesNo m_vmcoreinfo;
 	boost::optional<EVirYesNo > m_genid;
-	boost::optional<Sev > m_sev;
+	boost::optional<Seev > m_seev;
 };
 
 } // namespace Xml
@@ -1149,15 +1149,15 @@ struct Traits<Capability::Xml::Anonymous1186>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Sev traits
+// struct Seev traits
 
 template<>
-struct Traits<Capability::Xml::Sev>
+struct Traits<Capability::Xml::Seev>
 {
 	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Optional<Fragment<Capability::Xml::Anonymous1186 > > > > marshal_type;
 
-	static int parse(Capability::Xml::Sev& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Sev& , QDomElement& );
+	static int parse(Capability::Xml::Seev& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Seev& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1166,7 +1166,7 @@ struct Traits<Capability::Xml::Sev>
 template<>
 struct Traits<Capability::Xml::Features>
 {
-	typedef Unordered<mpl::vector<Element<Capability::Xml::Gic, Name::Strict<1001> >, Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<1004> >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<3563> > >, Optional<Element<Capability::Xml::Sev, Name::Strict<3562> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Element<Capability::Xml::Gic, Name::Strict<1001> >, Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<1004> >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<3563> > >, Optional<Element<Capability::Xml::Seev, Name::Strict<3756> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Features& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Features& , QDomElement& );
