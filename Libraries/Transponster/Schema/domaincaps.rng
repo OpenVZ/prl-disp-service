@@ -188,7 +188,7 @@
           <ref name='vmgenid'/>
         </optional>
         <optional>
-          <ref name='sev'/>
+          <ref name='seev'/>
         </optional>
       </interleave>
     </element>
@@ -213,8 +213,8 @@
     </element>
   </define>
 
-  <define name='sev'>
-    <element name='seev'>
+  <define name='seev'>
+    <element name='sev'>
       <ref name='supported'/>
       <optional>
         <element name='cbitpos'>
