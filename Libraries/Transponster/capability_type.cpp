@@ -1090,21 +1090,21 @@ int Traits<Capability::Xml::Anonymous1186>::generate(const Capability::Xml::Anon
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Seev
+// struct Sev
 
 namespace Capability
 {
 namespace Xml
 {
-Seev::Seev(): m_supported()
+Sev::Sev(): m_supported()
 {
 }
 
-bool Seev::load(const QDomElement& src_)
+bool Sev::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Seev, Name::Strict<3756> > m;
+	Element<Sev, Name::Strict<3562> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1112,16 +1112,16 @@ bool Seev::load(const QDomElement& src_)
 	return true;
 }
 
-bool Seev::save(QDomElement& dst_) const
+bool Sev::save(QDomElement& dst_) const
 {
-	Element<Seev, Name::Strict<3756> > m;
+	Element<Sev, Name::Strict<3562> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
-bool Seev::save(QDomDocument& dst_) const
+bool Sev::save(QDomDocument& dst_) const
 {
-	Element<Seev, Name::Strict<3756> > m;
+	Element<Sev, Name::Strict<3562> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1130,7 +1130,7 @@ bool Seev::save(QDomDocument& dst_) const
 } // namespace Xml
 } // namespace Capability
 
-int Traits<Capability::Xml::Seev>::parse(Capability::Xml::Seev& dst_, QStack<QDomElement>& stack_)
+int Traits<Capability::Xml::Sev>::parse(Capability::Xml::Sev& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -1142,7 +1142,7 @@ int Traits<Capability::Xml::Seev>::parse(Capability::Xml::Seev& dst_, QStack<QDo
 	return output;
 }
 
-int Traits<Capability::Xml::Seev>::generate(const Capability::Xml::Seev& src_, QDomElement& dst_)
+int Traits<Capability::Xml::Sev>::generate(const Capability::Xml::Sev& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSupported(), m.get<0>()))
@@ -1203,7 +1203,7 @@ int Traits<Capability::Xml::Features>::parse(Capability::Xml::Features& dst_, QS
 		dst_.setGic(m.get<0>().getValue());
 		dst_.setVmcoreinfo(m.get<1>().getValue());
 		dst_.setGenid(m.get<2>().getValue());
-		dst_.setSeev(m.get<3>().getValue());
+		dst_.setSev(m.get<3>().getValue());
 	}
 	return output;
 }
@@ -1217,7 +1217,7 @@ int Traits<Capability::Xml::Features>::generate(const Capability::Xml::Features&
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getGenid(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getSeev(), m.get<3>()))
+	if (0 > Details::Marshal::assign(src_.getSev(), m.get<3>()))
 		return -1;
 
 	return m.produce(dst_);
