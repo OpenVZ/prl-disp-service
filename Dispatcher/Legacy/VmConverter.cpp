@@ -324,11 +324,11 @@ result_type Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	// to employ the structure for holding QEMU machine type values.
 	// type 1 is treated as a discriminator for the i440fx machine types
 	// family and 3 denotes 7.6 machine type. it was decided to assign
-	// minimum 7.7 machine type for new VMs thus the chipset version value
-	// should be not less than 4 for the i440fx machine type.
+	// minimum 7.8 machine type for new VMs thus the chipset version value
+	// should be not less than 5 for the i440fx machine type.
 	::Chipset* c = pVmHardware->getChipset();
-	if (NULL != c && c->getType() == 1)
-		c->setVersion(qMax(c->getVersion(), 4u));
+	if (NULL != c && c->getType() == CDspVm::CHIP_PCI440FX)
+		c->setVersion(qMax<quint32>(c->getVersion(), CDspVm::PCI440FX_DEFAULT));
 
 	unsigned os = cfg->getVmSettings()->getVmCommonOptions()->getOsVersion();
 	bool isWin = cfg->getVmSettings()->getVmCommonOptions()->getOsType() ==
