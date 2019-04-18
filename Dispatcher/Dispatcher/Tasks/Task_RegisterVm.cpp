@@ -1928,10 +1928,10 @@ void Task_RegisterVm::patchNewConfiguration()
 		// to employ the structure for holding QEMU machine type values.
 		// type 1 is treated as a discriminator for the i440fx machine types
 		// family and 3 denotes 7.6 machine type. it was decided to assign
-		// minimum 7.7 machine type for new VMs thus the chipset version value
-		// should be not less than 4 for the i440fx machine type.
-		if (NULL != c && c->getType() == 1)
-			c->setVersion(qMax(c->getVersion(), 4u));
+		// minimum 7.8 machine type for new VMs thus the chipset version value
+		// should be not less than 5 for the i440fx machine type.
+		if (NULL != c && c->getType() == CDspVm::CHIP_PCI440FX)
+			c->setVersion(qMax<quint32>(c->getVersion(), CDspVm::PCI440FX_DEFAULT));
 	}
 	if (m_pVmConfig->getVmHardwareList()->getClock() != NULL &&
 		m_pVmConfig->getVmHardwareList()->getClock()->getTimeShift() != 0)
