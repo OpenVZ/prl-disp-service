@@ -469,6 +469,8 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Vm::Target::Conne
 			essenceState_type::entry_pt<essence_type::Entry> >,
 		a_row<essenceState_type
 			::exit_pt<Success>,    msmf::none,  Success, &Frontend::synch>,
+		msmf::Row<essenceState_type,   qemuDisk_type::Down, msmf::none>,
+		msmf::Row<essenceState_type,   qemuState_type::Down, msmf::none>,
 		msmf::Row<essenceState_type
 			::exit_pt<Flop::State>,Flop::Event, Flop::State>
 	>
