@@ -645,7 +645,7 @@ private:
 struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 {
 	typedef QSharedPointer<QTcpSocket> client_type;
-	typedef Libvirt::State::serverList_type serverList_type;
+	typedef QHash<QString, Libvirt::State::serverList_type::value_type> listenerMap_type;
 	typedef Pump::Frontend<Machine_type, Vm::Tunnel::libvirtChunk_type::s_command>
 		libvirt_type;
 	typedef Qemu::Hub
@@ -691,12 +691,18 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 
 	void accept(const client_type& connection_);
 
+	void closeDiskListener(const qemuDisk_type::Down& event_);
+
+	void closeStateListener(const qemuState_type::Down& event_);
+
 	struct transition_table : boost::mpl::vector<
 		msmf::Row<initial_state,       Flop::Event,      Flop::State>,
 		a_irow<initial_state,          client_type,      &Frontend::accept>,
 		msmf::Row<initial_state,       Vm::Pump::Launch_type,
 			pumpingState_type::entry_pt<essence_type::Entry> >,
 		a_irow<pumpingState_type,      client_type,      &Frontend::accept>,
+		a_irow<pumpingState_type,      qemuDisk_type::Down, &Frontend::closeDiskListener>,
+		a_irow<pumpingState_type,      qemuState_type::Down, &Frontend::closeStateListener>,
 		msmf::Row<pumpingState_type
 			::exit_pt<Success>,    msmf::none,       Success>,
 		msmf::Row<pumpingState_type
@@ -708,8 +714,10 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 private:
 	bool setup(const char* method_);
 
+	void closeListener(const char* alias_);
+
 	IO* m_service;
-	serverList_type m_servers;
+	listenerMap_type m_listenerMap;
 	QList<QSharedPointer<QTcpSocket> > m_clients;
 };
 
