@@ -4228,6 +4228,9 @@
       <optional>
         <ref name="cpuMatch"/>
       </optional>
+      <optional>
+        <ref name="cpuCheck"/>
+      </optional>
       <interleave>
         <optional>
           <ref name="cpuModel"/>
@@ -4264,6 +4267,16 @@
         <value>minimum</value>
         <value>exact</value>
         <value>strict</value>
+      </choice>
+    </attribute>
+  </define>
+
+  <define name="cpuCheck">
+    <attribute name="check">
+      <choice>
+        <value>none</value>
+        <value>partial</value>
+        <value>full</value>
       </choice>
     </attribute>
   </define>
