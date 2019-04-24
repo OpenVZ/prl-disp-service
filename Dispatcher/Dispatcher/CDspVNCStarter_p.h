@@ -386,6 +386,7 @@ struct Sweeper: QObject
 public slots:
 	void reactRipped()
 	{
+		WRITE_TRACE(DBG_DEBUG, "a VNC tunnel has been ripped");
 		QtConcurrent::run(m_commit, 0);
 	}
 
