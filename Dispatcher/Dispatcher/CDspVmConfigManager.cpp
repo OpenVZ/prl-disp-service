@@ -971,8 +971,11 @@ PRL_RESULT Unlocked::operator()(const action_type& action_)
 	CDspVmDirHelper& h = m_service->getVmDirHelper();
 	SmartPtr<CVmConfiguration> x = h.getVmConfigByUuid(d, m_uuid, e);
 	if (!x.isValid())
+	{
+		WRITE_TRACE(DBG_FATAL, "cannot get VM %s config: %s",
+			qPrintable(m_uuid), PRL_RESULT_TO_STRING(e));
 		return PRL_FAILED(e) ? e : PRL_ERR_FILE_NOT_FOUND;
-
+	}
 	const IOSender::Handle f = QString("%1-%2").arg(d).arg(m_uuid);
 
 	CMultiEditMergeVmConfig* m = h.getMultiEditDispatcher();
@@ -986,8 +989,11 @@ PRL_RESULT Unlocked::operator()(const action_type& action_)
 	e = m_service->getVmConfigManager()
 		.saveConfig(x, x->getVmIdentification()->getHomePath(), m_actor, true, true);
 	if (PRL_FAILED(e))
+	{
+		WRITE_TRACE(DBG_FATAL, "cannot save VM %s config: %s",
+			qPrintable(m_uuid), PRL_RESULT_TO_STRING(e));
 		return e;
-
+	}
 	m->registerCommit(m_uuid, f);
 	return PRL_ERR_SUCCESS;
 }
@@ -1012,6 +1018,13 @@ PRL_RESULT Atomic::operator()(const action_type& action_)
 		g.unlock();
 		h.unregisterExclusiveVmOperation
 			(m_decorated.getUuid(), d, PVE::DspCmdCtlApplyVmConfig, a);
+	}
+	else
+	{
+		WRITE_TRACE(DBG_FATAL, "cannot register DspCmdCtlApplyVmConfig "
+			"exclusive operation for VM %s: %s",
+			qPrintable(m_decorated.getUuid()),
+			PRL_RESULT_TO_STRING(output));
 	}
 	return output;
 }
@@ -1295,6 +1308,7 @@ PRL_RESULT CDspVmConfigManager::saveConfig( SmartPtr<CVmConfiguration> pConfig,
 
 	Vm::Config::Access::Work w(config_file, pUserSession);
 	w.setConfig(pConfig);
+	WRITE_TRACE(DBG_DEBUG, "about to save VM config into %s", qPrintable(config_file));
 	QWriteLocker locker(&m_mtxAccessLocker);
 	return m_trie->get(config_file).save(w, do_replace, BNeedToSaveRelativePath);
 }

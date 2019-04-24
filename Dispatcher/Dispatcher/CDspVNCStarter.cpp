@@ -321,10 +321,14 @@ void Sweeper::cleanup(QTcpSocket* victim_)
 
 PRL_RESULT SetPort::operator()(quint16 port_)
 {
+	WRITE_TRACE(DBG_DEBUG, "about to save VNC port %d into VM config", port_);
 	PRL_RESULT e = m_commit(boost::bind(m_configure, port_, _1));
 	if (PRL_FAILED(e))
+	{
+		WRITE_TRACE(DBG_FATAL, "cannot save VNC port %d into VM config: %s",
+			port_, PRL_RESULT_TO_STRING(e));
 		return e;
-
+	}
 	m_service->getVmDirHelper()
 		.sendVmConfigChangedEvent(m_commit.getObject(), SmartPtr<IOPackage>());
 
@@ -397,7 +401,10 @@ Tunnel* Subject::getResult()
 void Feedback::generate(Tunnel* result_)
 {
 	if (NULL == result_)
+	{
+		WRITE_TRACE(DBG_FATAL, "cannot start a VNC tunnel: feedback is negative");
 		emit abort();
+	}
 	else
 	{
 		result_->connect(result_, SIGNAL(ripped()), SLOT(deleteLater()));
