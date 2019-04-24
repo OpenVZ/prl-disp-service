@@ -66,6 +66,15 @@ Enum<Domain::Xml::EMatch>::data_type Enum<Domain::Xml::EMatch>::getData()
 }
 
 template<>
+Enum<Domain::Xml::ECheck>::data_type Enum<Domain::Xml::ECheck>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::ECheckNone, "none"))
+			(data_type::value_type(Domain::Xml::ECheckPartial, "partial"))
+			(data_type::value_type(Domain::Xml::ECheckFull, "full"));
+}
+
+template<>
 Enum<Domain::Xml::EFallback>::data_type Enum<Domain::Xml::EFallback>::getData()
 {
 	return ba::list_of<data_type::relation>

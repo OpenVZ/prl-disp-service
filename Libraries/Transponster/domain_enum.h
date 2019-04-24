@@ -63,6 +63,13 @@ enum EMatch
 	EMatchStrict
 };
 
+enum ECheck
+{
+	ECheckNone,
+	ECheckPartial,
+	ECheckFull
+};
+
 enum EFallback
 {
 	EFallbackAllow,
