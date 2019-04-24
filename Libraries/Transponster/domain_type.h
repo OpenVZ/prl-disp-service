@@ -300,6 +300,14 @@ struct Cpu
 	{
 		m_match = value_;
 	}
+	const boost::optional<ECheck >& getCheck() const
+	{
+		return m_check;
+	}
+	void setCheck(const boost::optional<ECheck >& value_)
+	{
+		m_check = value_;
+	}
 	const boost::optional<Model >& getModel() const
 	{
 		return m_model;
@@ -347,6 +355,7 @@ struct Cpu
 private:
 	boost::optional<EMode > m_mode;
 	boost::optional<EMatch > m_match;
+	boost::optional<ECheck > m_check;
 	boost::optional<Model > m_model;
 	boost::optional<QString > m_vendor;
 	boost::optional<Topology > m_topology;
@@ -13059,7 +13068,7 @@ struct Traits<Domain::Xml::Cell>
 template<>
 struct Traits<Domain::Xml::Cpu>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::EMode, Name::Strict<379> > >, Optional<Attribute<Domain::Xml::EMatch, Name::Strict<1015> > >, Unordered<mpl::vector<Optional<Element<Domain::Xml::Model, Name::Strict<231> > >, Optional<Element<Text<QString >, Name::Strict<459> > >, Optional<Element<Domain::Xml::Topology, Name::Strict<1028> > >, ZeroOrMore<Element<Domain::Xml::Feature, Name::Strict<1022> > >, Optional<Element<OneOrMore<Element<Domain::Xml::Cell, Name::Strict<1033> > >, Name::Strict<1031> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::EMode, Name::Strict<379> > >, Optional<Attribute<Domain::Xml::EMatch, Name::Strict<1015> > >, Optional<Attribute<Domain::Xml::ECheck, Name::Strict<1871> > >, Unordered<mpl::vector<Optional<Element<Domain::Xml::Model, Name::Strict<231> > >, Optional<Element<Text<QString >, Name::Strict<459> > >, Optional<Element<Domain::Xml::Topology, Name::Strict<1028> > >, ZeroOrMore<Element<Domain::Xml::Feature, Name::Strict<1022> > >, Optional<Element<OneOrMore<Element<Domain::Xml::Cell, Name::Strict<1033> > >, Name::Strict<1031> > > > > > > marshal_type;
 
 	static int parse(Domain::Xml::Cpu& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Cpu& , QDomElement& );

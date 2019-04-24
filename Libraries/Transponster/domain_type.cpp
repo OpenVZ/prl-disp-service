@@ -384,11 +384,12 @@ int Traits<Domain::Xml::Cpu>::parse(Domain::Xml::Cpu& dst_, QStack<QDomElement>&
 	{
 		dst_.setMode(m.get<0>().getValue());
 		dst_.setMatch(m.get<1>().getValue());
-		dst_.setModel(m.get<2>().get<0>().getValue());
-		dst_.setVendor(m.get<2>().get<1>().getValue());
-		dst_.setTopology(m.get<2>().get<2>().getValue());
-		dst_.setFeatureList(m.get<2>().get<3>().getValue());
-		dst_.setNuma(m.get<2>().get<4>().getValue());
+		dst_.setCheck(m.get<2>().getValue());
+		dst_.setModel(m.get<3>().get<0>().getValue());
+		dst_.setVendor(m.get<3>().get<1>().getValue());
+		dst_.setTopology(m.get<3>().get<2>().getValue());
+		dst_.setFeatureList(m.get<3>().get<3>().getValue());
+		dst_.setNuma(m.get<3>().get<4>().getValue());
 	}
 	return output;
 }
@@ -400,15 +401,17 @@ int Traits<Domain::Xml::Cpu>::generate(const Domain::Xml::Cpu& src_, QDomElement
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getMatch(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getModel(), m.get<2>().get<0>()))
+	if (0 > Details::Marshal::assign(src_.getCheck(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getVendor(), m.get<2>().get<1>()))
+	if (0 > Details::Marshal::assign(src_.getModel(), m.get<3>().get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTopology(), m.get<2>().get<2>()))
+	if (0 > Details::Marshal::assign(src_.getVendor(), m.get<3>().get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getFeatureList(), m.get<2>().get<3>()))
+	if (0 > Details::Marshal::assign(src_.getTopology(), m.get<3>().get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getNuma(), m.get<2>().get<4>()))
+	if (0 > Details::Marshal::assign(src_.getFeatureList(), m.get<3>().get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getNuma(), m.get<3>().get<4>()))
 		return -1;
 
 	return m.produce(dst_);
