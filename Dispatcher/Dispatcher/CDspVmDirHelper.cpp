@@ -1078,9 +1078,8 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 
 	::List::Directory::Factory::ephemeral_type e = m_ephemeral->snapshot();
 
-	QStringList dirUuids;
-	dirUuids.append(pUserSession->getVmDirectoryUuidList());
-	dirUuids.append(e.toList());
+	QStringList dirUuids(pUserSession->getVmDirectoryUuidList()), eUuids(e.toList());
+	dirUuids.append(eUuids);
 
 	QStringList lstVmConfigurations;
 	QScopedPointer< ::List::Directory::Chain> x
@@ -1093,6 +1092,9 @@ bool CDspVmDirHelper::sendVmList(const IOSender::Handle& sender,
 				d = s->getVmDirManager().getVmDirectory(u);
 			if (!d.isValid())
 			{
+				if (eUuids.contains(u))
+					continue;
+
 				WRITE_TRACE(DBG_FATAL, "No VM Directory assigned for "
 					PRODUCT_NAME_SHORT " user with sessionId = [%s] ",
 					qPrintable(pUserSession->getClientHandle()));
