@@ -1011,6 +1011,19 @@ quint32 Reactor<PVE::DspCmdVmDevDisconnect>::getInterval() const
 namespace State
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Policy
+
+const char* Policy::getSenderSlot()
+{
+	return SLOT(react(unsigned, unsigned, QString, QString));
+}
+
+const char* Policy::getSenderSignal()
+{
+	return SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString));
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Detector
 
 void Detector::react(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_)
@@ -1022,16 +1035,6 @@ void Detector::react(unsigned oldState_, unsigned newState_, QString vmUuid_, QS
 		sender()->disconnect(this);
 		emit detected();
 	}
-}
-
-const char* Detector::getSenderSlot()
-{
-	return SLOT(react(unsigned, unsigned, QString, QString));
-}
-
-const char* Detector::getSenderSignal()
-{
-	return SIGNAL(signalVmStateChanged(unsigned, unsigned, QString, QString));
 }
 
 namespace Snapshot
@@ -1102,22 +1105,25 @@ Libvirt::Result Create::operator()()
 namespace Config
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Policy
+
+const char* Policy::getSenderSlot()
+{
+	return SLOT(react(QString, QString));
+}
+
+const char* Policy::getSenderSignal()
+{
+	return SIGNAL(signalSendVmConfigChanged(QString, QString));
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Detector
 
 void Detector::react(QString, QString uid_)
 {
 	if (m_uid == uid_ && (m_extra.empty() || m_extra()))
 		emit detected();
-}
-
-const char* Detector::getSenderSlot()
-{
-	return SLOT(react(QString, QString));
-}
-
-const char* Detector::getSenderSignal()
-{
-	return SIGNAL(signalSendVmConfigChanged(QString, QString));
 }
 
 } // namespace Config
@@ -1276,22 +1282,11 @@ Libvirt::Result Extra::operator()(quint32 timeout_, Fork::Timeout::Handler* reac
 }
 
 template<class T>
-typename boost::enable_if
-<
-	boost::is_base_of<Fork::Detector, T>,
-	Libvirt::Result
->::type Extra::operator()(T* detector_, Fork::Reactor* reactor_)
+Libvirt::Result Extra::operator()(Fork::Translator<T>* translator_, Fork::Reactor* reactor_)
 {
-	if (NULL == detector_)
-		return Error::Simple(PRL_ERR_INVALID_ARG);
-
-	QScopedPointer<T> a(detector_);
-	QScopedPointer<Fork::Reactor> b(reactor_);
-	if (!b.isNull() && !b->connect(a.data(), SIGNAL(detected()), SLOT(react()), Qt::DirectConnection))
-		return Error::Simple(PRL_ERR_FAILURE);
-
-	if (!m_loop->connect(a.data(), SIGNAL(detected()), SLOT(quit()), Qt::DirectConnection))
-		return Error::Simple(PRL_ERR_FAILURE);
+	Libvirt::Result x = (*this)((Fork::Detector* )translator_, reactor_);
+	if (x.isFailed())
+		return x;
 
 	CDspLockedPointer<CDspVmStateSender> s = CDspService::instance()->getVmStateSender();
 	if (!s.isValid())
@@ -1300,11 +1295,27 @@ typename boost::enable_if
 	// NB. one needs to take some extra measures to handle cases when
 	// required event doesn't fire. for instance, abort waiting by timeout
 	// or wait for another state simultaneously.
-	if (!a->connect(s.getPtr(), T::getSenderSignal(), T::getSenderSlot(),
+	if (!translator_->connect(s.getPtr(), T::getSenderSignal(), T::getSenderSlot(),
 		Qt::QueuedConnection))
 		return Error::Simple(PRL_ERR_FAILURE);
 
-	s.unlock();
+	return Libvirt::Result();
+}
+
+Libvirt::Result Extra::operator()(Fork::Detector* detector_, Fork::Reactor* reactor_)
+{
+	if (NULL == detector_)
+		return Error::Simple(PRL_ERR_INVALID_ARG);
+
+	QScopedPointer<Fork::Detector> a(detector_);
+	QScopedPointer<Fork::Reactor> b(reactor_);
+	if (!b.isNull() && !b->connect(a.data(), SIGNAL(detected()), SLOT(react()),
+		Qt::DirectConnection))
+		return Error::Simple(PRL_ERR_FAILURE);
+
+	if (!m_loop->connect(a.data(), SIGNAL(detected()), SLOT(quit()), Qt::DirectConnection))
+		return Error::Simple(PRL_ERR_FAILURE);
+
 	m_tracker->add(a.take());
 	m_tracker->add(b.take());
 
