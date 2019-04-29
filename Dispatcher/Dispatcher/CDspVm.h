@@ -121,7 +121,8 @@ public:
 	enum I440fxVersion
 	{
 		PCI440FX_78 = 5u,
-		PCI440FX_DEFAULT = PCI440FX_78
+		PCI440FX_710 = 7u,
+		PCI440FX_DEFAULT = PCI440FX_710
 	};
 
 	enum VmPowerState { vpsNormal=0, vpsPausedByHostSleep=1, vpsPausedByVmFrozen=2 };
