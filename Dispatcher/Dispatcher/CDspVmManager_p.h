@@ -342,6 +342,8 @@ namespace Fork
 {
 struct Reactor;
 struct Detector;
+template<class T>
+struct Translator;
 
 namespace State
 {
@@ -509,10 +511,9 @@ struct Extra
 	Libvirt::Result operator()(PVE::IDispatcherCommands name_, const CVmIdent& ident_,
 		const SmartPtr<CDspClient>& session_);
 	Libvirt::Result operator()(quint32 timeout_, Fork::Timeout::Handler* reactor_);
-
+	Libvirt::Result operator()(Fork::Detector* detector_, Fork::Reactor* reactor_);
 	template<class T>
-	typename boost::enable_if<boost::is_base_of<Fork::Detector, T>, Libvirt::Result>::type
-		operator()(T* detector_, Fork::Reactor* reactor_);
+	Libvirt::Result operator()(Fork::Translator<T>* detector_, Fork::Reactor* reactor_);
 
 private:
 	QEventLoop* m_loop;
@@ -562,6 +563,14 @@ private:
 	QEventLoop* m_loop;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Translator
+
+template<class T>
+struct Translator: Detector
+{
+};
+
 namespace State
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -587,17 +596,23 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Policy
+
+struct Policy
+{
+	static const char* getSenderSlot();
+	static const char* getSenderSignal();
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Detector
 
-struct Detector: Fork::Detector
+struct Detector: Fork::Translator<Policy>
 {
 	Detector(const QString& uuid_, const boost::function1<bool, unsigned>& predicate_):
 		m_uuid(uuid_), m_predicate(predicate_)
 	{
 	}
-
-	static const char* getSenderSlot();
-	static const char* getSenderSignal();
 
 public slots:
 	void react(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_);
@@ -776,9 +791,18 @@ private:
 namespace Config
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Policy
+
+struct Policy
+{
+	static const char* getSenderSlot();
+	static const char* getSenderSignal();
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Detector
 
-struct Detector: Fork::Detector
+struct Detector: Fork::Translator<Policy>
 {
 	typedef boost::function<bool ()> predicate_type;
 
@@ -790,9 +814,6 @@ struct Detector: Fork::Detector
 	{
 		m_extra = value_;
 	}
-
-	static const char* getSenderSlot();
-	static const char* getSenderSignal();
 
 public slots:
 	void react(QString, QString uid_);
