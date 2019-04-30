@@ -120,7 +120,7 @@ struct Event
 	explicit Event(QMutex& mutex_);
 
 	void set();
-	boost::logic::tribool wait();
+	PRL_RESULT wait();
 
 private:
 	QMutex* m_mutex;
