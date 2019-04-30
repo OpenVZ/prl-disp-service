@@ -713,11 +713,11 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 	const IOSender::Handle &hSession,
 	const QString &sTaskId )
 {
-	LOG_MESSAGE( DBG_DEBUG, "REGISTER: cmd %s[%#x] for Vm%s by session '%s'",
+	WRITE_TRACE( DBG_DEBUG, "REGISTER: cmd %s[%#x] for Vm%s by session '%s' and task '%s'",
 		PVE::DispatcherCommandToString(cmd),
 		cmd,
 		QSTR2UTF8( vmUuid + vmDirUuid ),
-		QSTR2UTF8( hSession )
+		QSTR2UTF8( hSession ), qPrintable(sTaskId)
 		);
 
 	switch ( cmd )
@@ -762,7 +762,8 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 	}//switch
 
 	QString key = makeKey( vmUuid, vmDirUuid );
-	QTime b = QTime::currentTime().addMSecs(2*Task::Vm::Exclusive::Event::TIMEOUT);
+	QElapsedTimer b;
+	b.start();
 	forever
 	{
 		QMutexLocker lock(&m_mutex);
@@ -778,14 +779,14 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 		if (x.isNull())
 			return PRL_ERR_SUCCESS;
 
-		if (b <= QTime::currentTime())
+		if ((2*Task::Vm::Exclusive::Event::TIMEOUT) <= b.elapsed())
 			return x->getResult();
 
 		PRL_RESULT e = (*x)();
 		switch (e)
 		{
-		case PRL_ERR_SUCCESS:
 		case PRL_ERR_TIMEOUT:
+		case PRL_ERR_SUCCESS:
 		case PRL_ERR_OPERATION_PENDING:
 			break;
 		default:
