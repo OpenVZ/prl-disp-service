@@ -554,15 +554,15 @@ void Event::set()
 	m_condition->second.wakeAll();
 }
 
-boost::logic::tribool Event::wait()
+PRL_RESULT Event::wait()
 {
 	if (!m_condition->second.wait(m_mutex, TIMEOUT))
-		return false;
+		return PRL_ERR_TIMEOUT;
 	if (!m_condition->first)
-		return boost::logic::indeterminate;
+		return PRL_ERR_OPERATION_PENDING;
 
 	m_condition->first = false;
-	return true;
+	return PRL_ERR_SUCCESS;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -641,13 +641,7 @@ PRL_RESULT Conflict::operator()()
 		m_pending.getTaskId() == m_running.getTaskId())
 		return getResult();
 
-	boost::logic::tribool w = m_resolved.wait();
-	if (boost::logic::indeterminate(w))
-		return PRL_ERR_OPERATION_PENDING;
-	if (w)
-		return PRL_ERR_SUCCESS;
-
-	return getResult();
+	return m_resolved.wait();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -788,10 +782,15 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 			return x->getResult();
 
 		PRL_RESULT e = (*x)();
-		if (PRL_ERR_OPERATION_PENDING == e)
-			continue;
-		if (PRL_FAILED(e))
+		switch (e)
+		{
+		case PRL_ERR_SUCCESS:
+		case PRL_ERR_TIMEOUT:
+		case PRL_ERR_OPERATION_PENDING:
+			break;
+		default:
 			return e;
+		}
 	}
 }
 
