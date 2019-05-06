@@ -641,7 +641,16 @@ PRL_RESULT Conflict::operator()()
 		m_pending.getTaskId() == m_running.getTaskId())
 		return getResult();
 
-	return m_resolved.wait();
+	PRL_RESULT e = m_resolved.wait();
+	if (PRL_FAILED(e))
+	{
+		WRITE_TRACE(DBG_FATAL, "waiting for the conflict resolution between "
+			"a running task %s and a pending one %s has failed: %s",
+			PVE::DispatcherCommandToString(m_pending.getCommand()),
+			PVE::DispatcherCommandToString(m_running.getCommand()),
+			PRL_RESULT_TO_STRING(e));
+	}
+	return PRL_ERR_SUCCESS;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -783,15 +792,8 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 			return x->getResult();
 
 		PRL_RESULT e = (*x)();
-		switch (e)
-		{
-		case PRL_ERR_TIMEOUT:
-		case PRL_ERR_SUCCESS:
-		case PRL_ERR_OPERATION_PENDING:
-			break;
-		default:
+		if (PRL_FAILED(e))
 			return e;
-		}
 	}
 }
 
