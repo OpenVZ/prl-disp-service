@@ -1001,7 +1001,7 @@ void Frontend::accept(const client_type& connection_)
 bool Frontend::setup(const char* method_)
 {
 	bool x;
-	serverList_type::value_type s(new QTcpServer());
+	listenerMap_type::mapped_type s(new QTcpServer());
 	x = getConnector()->connect(s.data(), SIGNAL(newConnection()), method_);
 	if (!x)
 	{
@@ -1014,7 +1014,7 @@ bool Frontend::setup(const char* method_)
 		WRITE_TRACE(DBG_FATAL, "can't listen");
 		return false;
 	}
-	m_servers << s;
+	m_listenerMap[method_] = s;
 	return true;
 }
 
@@ -1025,7 +1025,7 @@ void Frontend::on_entry(const Event& event_, FSM& fsm_)
 	getConnector()->setService(m_service);
 	if (setup(SLOT(acceptLibvirt())) && setup(SLOT(acceptQemuState()))
 		&& setup(SLOT(acceptQemuDisk())))
-		return getConnector()->handle(m_servers);
+		return getConnector()->handle(m_listenerMap.values());
 
 	fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
 }
@@ -1034,19 +1034,44 @@ template <typename Event, typename FSM>
 void Frontend::on_exit(const Event& event_, FSM& fsm_)
 {
 	vsd::Frontend<Frontend>::on_exit(event_, fsm_);
-	foreach (const QSharedPointer<QTcpServer>& s, m_servers)
+	foreach (const QString& alias_, m_listenerMap.keys())
 	{
-		s->disconnect(SIGNAL(newConnection()),
-				getConnector());
-		s->close();
+		closeListener(qPrintable(alias_));
 	}
 	foreach (const client_type& c, m_clients)
 	{
 		c->close();
 	}
 	m_clients.clear();
-	m_servers.clear();
+	m_listenerMap.clear();
 	getConnector()->setService(NULL);
+}
+
+void Frontend::closeListener(const char* alias_)
+{
+	QString k(alias_);
+	if (!m_listenerMap.contains(k))
+		return;
+
+	listenerMap_type::mapped_type s = m_listenerMap.value(k);
+	if (!s.isNull() && s->isListening())
+	{
+		s->disconnect(SIGNAL(newConnection()),
+				getConnector());
+		s->close();
+	}
+}
+
+void Frontend::closeDiskListener(const qemuDisk_type::Down& event_)
+{
+	Q_UNUSED(event_);
+	closeListener(SLOT(acceptQemuDisk()));
+}
+
+void Frontend::closeStateListener(const qemuState_type::Down& event_)
+{
+	Q_UNUSED(event_);
+	closeListener(SLOT(acceptQemuState()));
 }
 
 } // namespace Tunnel

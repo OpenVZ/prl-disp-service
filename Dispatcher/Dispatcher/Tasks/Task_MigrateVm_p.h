@@ -1358,6 +1358,9 @@ struct Unit: vsd::Trace<T>, Vm::Connector::Mixin<typename U::machine_type>
 	struct Good
 	{
 	};
+	struct Down
+	{
+	};
 	struct Action
 	{
 		template<class M>
@@ -1385,7 +1388,10 @@ struct Unit: vsd::Trace<T>, Vm::Connector::Mixin<typename U::machine_type>
 			p->stop();
 			state_.m_pumpMap.remove(k);
 			if (state_.m_pumpMap.isEmpty())
+			{
 				fsm_.process_event(Good());
+				state_.getMachine().process_event(Down());
+			}
 		}
 	};
 
