@@ -1415,11 +1415,10 @@ PRL_RESULT Cpu::setLimit()
 	if (!v)
 		return PRL_ERR_UNINITIALIZED;
 
-	quint32 q;
-	if (m_input.getCpuLimitType() == PRL_CPULIMIT_PERCENTS)
-		q = v->getDefaultPeriod() * l / 100;
-	else
-		q = v->getDefaultPeriod() * l / v->getMhz();
+	quint64 d = m_input.getCpuLimitType() == PRL_CPULIMIT_PERCENTS ?
+		100ull : v->getMhz();
+	quint64 p = static_cast<quint64>(l) * v->getDefaultPeriod();
+	quint32 q = (p + d - 1) / d;
 
 	if (m_vt.isGlobalCpuLimit())
 		m_tune->setGlobalQuota(q);
