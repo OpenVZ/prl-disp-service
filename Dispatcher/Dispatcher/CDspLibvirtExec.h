@@ -352,6 +352,8 @@ struct Guest
 	Prl::Expected<QString, Libvirt::Agent::Failure> getAgentVersion(int retries = RETRIES);
 	Prl::Expected<QString, Error::Simple>
 		execute(const QString& cmd, bool isHmp = true);
+	Prl::Expected<std::pair<bool,bool>, ::Error::Simple>
+		authenticate(const QString&, const QString&);
 
 	typedef Exec::Result result_type;
 
