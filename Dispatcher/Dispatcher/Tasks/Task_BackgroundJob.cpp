@@ -45,6 +45,7 @@
 #include <prlcommon/Std/PrlTime.h>
 #include "CDspVmManager.h"
 #include "CDspTestConfig.h"
+#include "CDspLibvirtExec.h"
 
 #include <QStringList>
 #include <QHostAddress>
@@ -220,6 +221,18 @@ PRL_RESULT Task_AuthUserWithGuestSecurityDb::ConcreteDoBackgroundJob()
 
 		QString sVmUuid = pAuthCmd->GetVmUuid();
 
+		Prl::Expected<std::pair<bool,bool>, ::Error::Simple> r =
+			Libvirt::Kit.vms().at(sVmUuid).getGuest().authenticate(
+					pAuthCmd->GetUserLoginName(),
+					pAuthCmd->GetUserPassword());
+		if (r.isSucceed() && !r.value().first) {
+			WRITE_TRACE(DBG_FATAL, "Vm user authentication failed");
+			throw PRL_ERR_VM_USER_AUTHENTICATION_FAILED;
+		}
+
+		if (r.isFailed())
+		{
+
 		PRL_RESULT err = PRL_ERR_FIXME;
 		SmartPtr<CVmConfiguration> pVmConfig = CDspService::instance()->getVmDirHelper().getVmConfigByUuid(
 			getClient()
@@ -283,6 +296,8 @@ PRL_RESULT Task_AuthUserWithGuestSecurityDb::ConcreteDoBackgroundJob()
 		{
 			WRITE_TRACE(DBG_FATAL, "VM auth utility failed with code: %d", _vm_auth_proc.exitCode());
 			throw PRL_ERR_VM_USER_AUTHENTICATION_FAILED;
+		}
+
 		}
 	}
 	catch (PRL_RESULT code)

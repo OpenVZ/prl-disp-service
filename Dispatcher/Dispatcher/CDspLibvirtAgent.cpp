@@ -957,13 +957,13 @@ Guest::dumpState(const QString& path_)
 	return Command::Future(m_domain, std::string("finish-migrate"));
 }
 
-Result Guest::setUserPasswd(const QString& user_, const QString& passwd_, bool crypted_)
+Result Guest::setUserPasswd(const QString& username_, const QString& password_, bool crypted_)
 {
 	unsigned int f = (crypted_) ? VIR_DOMAIN_CREATE_USER | VIR_DOMAIN_PASSWORD_ENCRYPTED :
 					VIR_DOMAIN_CREATE_USER;
 	return do_(m_domain.data(), boost::bind
-		(&virDomainSetUserPassword, _1, user_.toUtf8().constData(),
-			passwd_.toUtf8().constData(), f));
+		(&virDomainSetUserPassword, _1, username_.toUtf8().constData(),
+			password_.toUtf8().constData(), f));
 }
 
 Result Guest::freezeFs()
@@ -976,6 +976,38 @@ Result Guest::thawFs()
 {
 	return do_(m_domain.data(), boost::bind
 		(&virDomainFSThaw, _1, (const char **)NULL, 0, 0));
+}
+
+Prl::Expected<std::pair<bool,bool>, ::Error::Simple>
+Guest::authenticate(const QString& username_, const QString& password_)
+{
+	using namespace boost::property_tree;
+	ptree c, a;
+
+	a.put("username", qPrintable(username_));
+	a.put("password", qPrintable(password_));
+	c.put("execute", "guest-auth-user");
+	c.add_child("arguments", a);
+
+	std::ostringstream os;
+	json_parser::write_json(os, c);
+	
+	Prl::Expected<QString, Libvirt::Agent::Failure> r =
+		executeInAgent(os.str().c_str());
+	if (r.isFailed())
+		return r.error();
+	std::istringstream is(r.value().toUtf8().data());
+	try {
+		ptree pt;
+		json_parser::read_json(is, pt);
+
+		bool a = pt.get<bool>("return.authenticated");
+		bool b = pt.get<bool>("return.is-admin");
+
+		return std::make_pair(a, b);
+	} catch (const std::exception &) {
+		return Failure(PRL_ERR_FAILURE);
+	}
 }
 
 Prl::Expected< QList<boost::tuple<quint64,quint64,QString,QString,QString> >, ::Error::Simple>
