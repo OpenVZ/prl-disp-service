@@ -38,12 +38,12 @@
 #include "prlcommon/Interfaces/ParallelsQt.h"
 #include "prlcommon/Interfaces/ParallelsNamespace.h"
 #include "prlcommon/HostUtils/HostUtils.h"
-#include "Task_RestoreVmBackup_p.h"
 #include "prlcommon/Logging/Logging.h"
 #include "prlcommon/PrlUuid/Uuid.h"
 
 #include "Task_RestoreVmBackup.h"
 #include "Task_BackupHelper_p.h"
+#include "Task_RestoreVmBackup_p.h"
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "CDspService.h"
 #include "prlcommon/Std/PrlAssert.h"

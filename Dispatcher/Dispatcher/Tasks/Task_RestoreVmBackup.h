@@ -48,6 +48,8 @@
 #include "CDspVzHelper.h"
 #include "Legacy/VmConverter.h"
 
+class Task_RestoreVmBackupTarget;
+
 namespace Backup
 {
 namespace Tunnel
@@ -69,20 +71,26 @@ struct Converter;
 
 struct Assembly
 {
-	explicit Assembly(CAuthHelper& auth_): m_auth(&auth_)
-	{
-	}
+	typedef boost::function<void (const QString& )> trashPolicy_type;
+
+	explicit Assembly(CAuthHelper& auth_);
 	~Assembly();
 
 	PRL_RESULT do_();
 	void revert();
 	void addExternal(const QFileInfo& src_, const QString& dst_);
 	void addEssential(const QString& src_, const QString& dst_);
+	void adopt(const trashPolicy_type& trashPolicy_)
+	{
+		m_trashPolicy = trashPolicy_;
+	}
+
 private:
 	CAuthHelper* m_auth;
 	QList<Move* > m_ready;
 	QList<Move* > m_pending;
 	QStringList m_trash;
+	trashPolicy_type m_trashPolicy;
 };
 
 namespace Source
@@ -90,6 +98,171 @@ namespace Source
 struct Archive;
 
 } // namespace Source
+
+namespace Target
+{
+namespace Activity
+{
+typedef SmartPtr<CVmConfiguration> config_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Product
+
+struct Product: private boost::tuple<QString, QString, QString, config_type>
+{
+	typedef boost::function<bool ()> new_type;
+	typedef boost::function<const QString& ()> uuid_type;
+
+	Product(const uuid_type& uuid_, const new_type& new_): m_new(new_), m_uuid(uuid_)
+	{
+	}
+
+	bool isNew() const
+	{
+		return !(m_new.empty() || m_new());
+	}
+	const QString& getHome() const
+	{
+		return get<0>();
+	}
+	void setHome(const QString& value_)
+	{
+		get<0>() = value_;
+	}
+	const QString& getName() const
+	{
+		return get<1>();
+	}
+	void setName(const QString& value_)
+	{
+		get<1>() = value_;
+	}
+	const QString& getUuid() const
+	{
+		return m_uuid();
+	}
+	const config_type& getConfig() const
+	{
+		return get<3>();
+	}
+	void setConfig(const config_type& value_)
+	{
+		get<3>() = value_;
+	}
+	void cloneConfig(const QString& name_);
+
+private:
+	new_type m_new;
+	uuid_type m_uuid;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+struct Unit: private Product
+{
+	typedef Task_RestoreVmBackupTarget context_type;
+	
+	Unit(const Product& product_, context_type& context_):
+		Product(product_), m_context(&context_)
+	{
+	}
+
+	context_type& getContext() const
+	{
+		return *m_context;
+	}
+	const Product& getProduct() const
+	{
+		return *this;
+	}
+	const QString& getObjectUuid() const;
+	Activity::config_type getObjectConfig() const;
+	PRL_RESULT saveProductConfig(const QString& folder_);
+
+private:
+	context_type* m_context;
+};
+
+} // namespace Activity
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Driver
+
+struct Driver: private Activity::Unit
+{
+	explicit Driver(const Activity::Unit& activity_): Activity::Unit(activity_)
+	{
+	}
+
+	PRL_RESULT define(const Activity::config_type& object_);
+	void undefine();
+	PRL_RESULT start();
+	void stop();
+	PRL_RESULT rebase();
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Enrollment
+
+struct Enrollment: private Activity::Unit
+{
+	Enrollment(const Activity::Unit& activity_, Registry::Public& registry_):
+		Activity::Unit(activity_), m_registry(&registry_)
+	{
+	}
+
+	PRL_RESULT execute();
+	PRL_RESULT rollback();
+
+private:
+	Registry::Public* m_registry;	
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+struct Factory
+{
+	typedef boost::function<PRL_RESULT ()> escort_type;
+	typedef Target::Driver driver_type;
+	typedef Activity::Unit activity_type;
+	typedef Enrollment enrollment_type;
+
+	virtual ~Factory();
+
+	virtual escort_type craftEscort() = 0;
+	virtual driver_type craftDriver() = 0;
+	virtual activity_type craftActivity() = 0;
+	virtual enrollment_type craftEnrollment() = 0;
+};
+
+namespace Escort
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Gear
+
+struct Gear: QObject
+{
+	typedef SmartPtr<CVmFileListCopyTarget> transport_type;
+
+	Gear(const transport_type& transport_, IOClient& io_);
+
+	PRL_RESULT operator()();
+
+private slots:
+	void react(const SmartPtr<IOPackage> package_);
+
+private:
+	Q_OBJECT
+
+	IOClient* m_io;
+	QEventLoop m_loop;
+	SmartPtr<CVmFileListCopyTarget> m_transport;
+};
+
+} // namespace Escort
+} // namespace Target
 } // namespace Restore
 
 class Task_RestoreVmBackupSource : public Task_BackupHelper
@@ -143,7 +316,7 @@ private slots:
 	void handleVBackupPackage(IOSender::Handle h, const SmartPtr<IOPackage> p);
 };
 
-class Task_RestoreVmBackupTarget : public Task_BackupHelper
+class Task_RestoreVmBackupTarget : public Task_BackupHelper, Restore::Target::Factory
 {
 	Q_OBJECT
 
@@ -157,6 +330,10 @@ public:
 
 	::Backup::Tunnel::Source::Factory craftTunnel();
 	Prl::Expected<QString, PRL_RESULT> sendMountImageRequest(const QString&);
+	const QString& getOriginVmUuid() const
+	{
+		return m_sOriginVmUuid;
+	}
 
 protected:
 	virtual PRL_RESULT prepareTask();
@@ -167,8 +344,6 @@ private:
 	PRL_RESULT getFiles(bool bVmExist_);
 	PRL_RESULT sendStartRequest();
 	PRL_RESULT saveVmConfig();
-	PRL_RESULT registerVm();
-	PRL_RESULT unregisterVm();
 	virtual void cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& pkg);
 	PRL_RESULT fixHardWareList();
 	PRL_RESULT doV2V();
@@ -183,28 +358,28 @@ private:
 	PRL_RESULT restoreCtOverExisting(const SmartPtr<CVmConfiguration> &pConfig);
 	PRL_RESULT restoreNewCt(const QString &sDefaultCtFolder);
 	PRL_RESULT restoreCtToTargetPath(
-			const QString &sCtName,
 			bool bIsRealMountPoint,
 			std::auto_ptr<Restore::Assembly>& dst_);
 #endif
 	PRL_RESULT lockExclusiveVmParameters(SmartPtr<CVmDirectory::TemporaryCatalogueItem> pInfo);
 
 private:
+	// Restore::Target::Factory part
+	escort_type craftEscort();
+	driver_type craftDriver();
+	activity_type craftActivity();
+	enrollment_type craftEnrollment();
+	
+private:
 	Registry::Public& m_registry;
-	SmartPtr<CVmConfiguration> m_pVmConfig;
 	QString m_sOriginVmUuid;
 	QString m_sBackupId;
-	QString m_sBackupUuid;
-	quint32 m_nBackupNumber;
 	SmartPtr<CVmFileListCopyTarget> m_pVmCopyTarget;
 	SmartPtr<CVmFileListCopySender> m_pSender;
 	bool m_bVmExist;
 	QString m_sTargetPath;
-	QString m_sTargetVmHomePath;
-	QString m_sTargetVmName;
+	Restore::Target::Activity::Product m_product;
 	QString m_sTargetStorageId;
-	QString m_sBackupRootPath;
-	quint64 m_nOriginalSize;
 	quint32 m_nBundlePermissions;
 	//https://bugzilla.sw.ru/show_bug.cgi?id=464218
 	//VM uptime values before restore
@@ -222,7 +397,6 @@ private:
 	std::auto_ptr<Legacy::Vm::Converter> m_converter;
 
 private slots:
-	void handlePackage(const SmartPtr<IOPackage> p);
 	void runV2V();
 };
 

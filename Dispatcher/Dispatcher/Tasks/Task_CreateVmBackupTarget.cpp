@@ -211,12 +211,11 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
 	for (int i = 0; i < l.size(); ++i) {
 		QFileInfo f(l.at(i).second.toLocalFile());
 		::Backup::Storage::Image a(f.absoluteFilePath());
-		QString base((x.size() ? 
-			f.absoluteDir().relativeFilePath(x.at(i).second.toLocalFile()) : 
-			""));
+		::Backup::Storage::Builder b = a.build().withCompression();
+		if (!x.isEmpty())
+			b.withBaseFile(f.absoluteDir().relativeFilePath(x.at(i).second.toLocalFile()));
 
-		PRL_RESULT e = a.build(l.at(i).first.getDeviceSizeInBytes(),
-					base);
+		PRL_RESULT e = b(l.at(i).first.getDeviceSizeInBytes());
 		if (PRL_FAILED(e))
 			return e;
 		if (!CFileHelper::setOwner(a.getPath(), &getClient()->getAuthHelper(), false))

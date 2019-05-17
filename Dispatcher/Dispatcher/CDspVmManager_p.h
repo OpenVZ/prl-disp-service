@@ -36,6 +36,8 @@
 #include "CDspLibvirt.h"
 #include "CDspRegistry.h"
 #include "CDspTaskTrace.h"
+#include "CDspInstrument.h"
+#include "CVcmmdInterface.h"
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/fold.hpp>
 #include <boost/mpl/pair.hpp>
@@ -53,28 +55,58 @@ class CDspVmDirHelper;
 namespace Command
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Context
+// struct Scope
 
-struct Context
+struct Scope
 {
-	Context(const SmartPtr<CDspClient>& session_, const SmartPtr<IOPackage>& package_);
+	typedef SmartPtr<CDspClient> session_type;
+	typedef boost::function<session_type ()> callable_type;
 
-	const CVmIdent& getIdent() const
+	Scope()
 	{
-		return m_ident;
 	}
+	Scope(const QString& uuid_)
+	{
+		setVmUuid(uuid_);
+	}
+	Scope(const callable_type& session_, const QString& uuid_):
+		m_session(session_)
+	{
+		setVmUuid(uuid_);
+	}
+	Scope(const session_type& session_, const QString& uuid_);
+
+	const CVmIdent& getIdent() const;
 	const QString& getVmUuid() const
 	{
 		return m_ident.first;
 	}
 	const QString& getDirectoryUuid() const
 	{
-		return m_ident.second;
+		return getIdent().second;
 	}
-	const SmartPtr<CDspClient>& getSession() const
+	session_type getSession() const
 	{
-		return m_session;
+		return m_session.empty() ? session_type() : m_session();
 	}
+
+private:
+	void setVmUuid(const QString& value_)
+	{
+		m_ident.first = value_;
+	}
+
+	mutable CVmIdent m_ident;
+	callable_type m_session;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Context
+
+struct Context: Scope
+{
+	Context(const SmartPtr<CDspClient>& session_, const SmartPtr<IOPackage>& package_);
+
 	const SmartPtr<IOPackage>& getPackage() const
 	{
 		return m_package;
@@ -94,10 +126,8 @@ struct Context
 	void reply(const CProtoCommandPtr& result_) const;
 
 private:
-	SmartPtr<CDspClient> m_session;
 	SmartPtr<IOPackage> m_package;
 	CProtoCommandPtr m_request;
-	CVmIdent m_ident;
 	Task::Trace m_trace;
 };
 
@@ -236,6 +266,7 @@ class Agent
 	typedef Libvirt::Instrument::Agent::Vm::Unit value_type;
 
 public:
+	static value_type craft(const ::Command::Scope& context_);
 	static Libvirt::Result meetRequirements(const ::Command::Context& context_, Agent& dst_);
 
 protected:
@@ -256,7 +287,7 @@ class Config
 	typedef SmartPtr<CVmConfiguration> value_type;
 
 public:
-	static Libvirt::Result meetRequirements(const ::Command::Context& context_, Config& dst_);
+	static Libvirt::Result meetRequirements(const ::Command::Scope& context_, Config& dst_);
 
 protected:
 	const value_type& getConfig() const
@@ -321,16 +352,6 @@ private:
 } // namespace Need
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Start
-
-struct Start: Need::Agent, Need::Config
-{
-protected:
-	template<class T>
-	Libvirt::Result do_(T policy_);
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Essence
 
 template<PVE::IDispatcherCommands X>
@@ -352,6 +373,7 @@ struct Detector;
 
 namespace Config
 {
+struct Carrier;
 struct Detector;
 } // namespace Config
 
@@ -539,8 +561,13 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Detector
 
-struct Detector: QObject
+struct Detector: Reactor
 {
+	void react()
+	{
+		emit detected();
+	}
+
 signals:
 	void detected();
 
@@ -648,7 +675,7 @@ private:
 template<typename L>
 struct Plural
 {
-	static Detector* craftDetector(const Context& context_)
+	static Detector* craftDetector(const Scope& context_)
 	{
 		return craftDetector(context_.getVmUuid());
 	}
@@ -790,6 +817,35 @@ private:
 
 namespace Config
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Carrier
+
+struct Carrier: Scope
+{
+	typedef SmartPtr<CVmConfiguration> config_type;
+
+	explicit Carrier(const config_type& cargo_):
+		Scope(cargo_->getVmIdentification()->getVmUuid()), m_cargo(cargo_)
+	{
+	}
+	Carrier(const session_type& session_, const config_type& cargo_):
+		Scope(session_, cargo_->getVmIdentification()->getVmUuid()), m_cargo(cargo_)
+	{
+	}
+	Carrier(const Scope& scope_, const config_type& cargo_):
+		Scope(scope_), m_cargo(cargo_)
+	{
+	}
+
+	const config_type& getConfig() const
+	{
+		return m_cargo;
+	}
+
+private:
+	config_type m_cargo;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Policy
 
@@ -1071,6 +1127,110 @@ private:
 	SmartPtr<CDspClient> m_session;
 };
 
+namespace Start
+{
+typedef Fork::Config::Carrier request_type;
+
+namespace Atom
+{
+typedef Instrument::Chain::Unit<request_type> chain_type;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Ha
+
+struct Ha: chain_type
+{
+	explicit Ha(const redo_type& redo_): chain_type(redo_)
+	{
+	}
+
+	PRL_RESULT operator()(const request_type& request_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vcmmd
+
+struct Vcmmd: chain_type
+{
+	typedef ::Vcmmd::Frontend< ::Vcmmd::Unregistered> frontend_type;
+
+	explicit Vcmmd(const redo_type& redo_): chain_type(redo_)
+	{
+	}
+
+	PRL_RESULT operator()(const request_type& request_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Adapter
+
+struct Adapter
+{
+	typedef boost::function<Libvirt::Result (const request_type& request_)> redo_type;
+
+	Adapter(const redo_type& redo_, Libvirt::Result* bin_ = NULL):
+		m_redo(redo_), m_bin(bin_)
+	{
+	}
+
+	PRL_RESULT operator()(const request_type& request_);
+
+private:
+	redo_type m_redo;
+	Libvirt::Result* m_bin;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Generic
+
+struct Generic
+{
+	typedef Libvirt::Result result_type;
+	typedef Libvirt::Instrument::Agent::Vm::Limb::State agent_type;
+	typedef boost::function<result_type (agent_type)> policy_type;
+
+	explicit Generic(const policy_type& policy_): m_policy(policy_)
+	{
+	}
+
+	result_type operator()(const request_type& request_);
+
+private:
+	policy_type m_policy;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Rise
+
+struct Rise: Generic
+{
+	Rise();
+
+	result_type operator()(const request_type& request_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unpause
+
+struct Unpause: Generic
+{
+	Unpause();
+};
+
+} // namespace Atom
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Combine
+
+struct Combine
+{
+	typedef Libvirt::Result result_type;
+
+	result_type operator()(const Atom::chain_type::request_type& request_);
+};
+
+} // namespace Start
+
 namespace Shutdown
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -1108,6 +1268,10 @@ struct Fallback: Fork::Timeout::Handler
 		m_exception = value_;
 	}
 	static quint32 getTimeout();
+	static Fallback* craft(const Scope& context_, Libvirt::Result& sink_)
+	{
+		return craft(context_.getVmUuid(), sink_);
+	}
 	static Fallback* craft(const QString& uuid_, Libvirt::Result& sink_)
 	{
 		return new Fallback(uuid_, sink_);

@@ -249,7 +249,7 @@ struct Unit
 	Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> getProgress() const;
 	Result copy(const CVmHardDisk& target_) const;
 	Result commit() const;
-	Result rebase(const QString& base_) const;
+	Result rebase(const QString& base_, bool compress_) const;
 	Result resize(quint64 bytes_) const;
 
 	Result abort() const;
