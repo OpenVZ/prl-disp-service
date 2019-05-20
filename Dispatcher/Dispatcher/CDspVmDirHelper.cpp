@@ -376,6 +376,7 @@ boost::logic::tribool Newcomer::isReconciled(const Native& native_) const
 	switch (getCommand())
 	{
 	case PVE::DspCmdVmLock:
+	case PVE::DspCmdVmStop:
 		switch (x)
 		{
 		case PVE::DspCmdVmStartEx:
@@ -400,7 +401,6 @@ boost::logic::tribool Newcomer::isReconciled(const Native& native_) const
 		case PVE::DspCmdVmLock:
 		case PVE::DspCmdDirVmMove:
 		case PVE::DspCmdDirVmMigrate:
-		case PVE::DspCmdRestoreVmBackup:
 			return false;
 		default:
 			return true;
@@ -737,6 +737,7 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 	case PVE::DspCmdDirVmMigrateClone:
 	case PVE::DspCmdDirVmDelete:
 	case PVE::DspCmdDirUnregVm:
+	case PVE::DspCmdVmStop:
 	case PVE::DspCmdVmStart:
 	case PVE::DspCmdVmStartEx:
 	case PVE::DspCmdDirVmEditCommit:

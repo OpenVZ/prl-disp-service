@@ -868,21 +868,45 @@ Prl::Expected<QStringList, PRL_RESULT> Getter::operator()(
 namespace Storage
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Image
+// struct Builder
 
-PRL_RESULT Image::build(quint64 size_, const QString& base_)
+Builder::Builder(const QString& path_): m_path(path_)
 {
-	VirtualDisk::qcow2PolicyList_type p(1, VirtualDisk::Policy::Qcow2::size_type(size_));
-	if (!base_.isEmpty())
-		p.push_back(VirtualDisk::Policy::Qcow2::base_type(base_));
+}
+
+Builder& Builder::withBaseNbd(const QString& url_)
+{
+	m_policyList.push_back(VirtualDisk::Policy::Qcow2::base_type(url_, "nbd"));
+	return *this;
+}
+
+Builder& Builder::withBaseFile(const QString& path_)
+{
+	m_policyList.push_back(VirtualDisk::Policy::Qcow2::base_type(path_));
+	return *this;
+}
+
+Builder& Builder::withCompression()
+{
 	/* Was requested by den@ #PSBM-63826
 	 * compressed writes will work only if they are aligned by cluster-size
 	 * and here writes to backup by 256k. so, they can't work with 1m
 	 * cluster size
 	 */
-	p.push_back(VirtualDisk::Policy::Qcow2::clusterSize_type(64*1024));
+	m_policyList.push_back(VirtualDisk::Policy::Qcow2::clusterSize_type(64*1024));
+	return *this;
+}
+
+PRL_RESULT Builder::operator()(quint64 size_)
+{
+	VirtualDisk::qcow2PolicyList_type p(m_policyList);
+	p.push_back(VirtualDisk::Policy::Qcow2::size_type(size_));
+
 	return VirtualDisk::Qcow2::create(m_path, p);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Image
 
 void Image::remove() const
 {

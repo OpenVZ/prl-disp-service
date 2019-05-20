@@ -38,17 +38,18 @@
 #include "prlcommon/Interfaces/ParallelsQt.h"
 #include "prlcommon/Interfaces/ParallelsNamespace.h"
 #include "prlcommon/Interfaces/ApiDevNums.h"
-#include "Task_RestoreVmBackup_p.h"
 #include "prlcommon/Logging/Logging.h"
 #include "prlcommon/PrlUuid/Uuid.h"
 #include "CDspClientManager.h"
 #include "Task_RestoreVmBackup.h"
 #include "Task_BackupHelper_p.h"
+#include "Task_RestoreVmBackup_p.h"
 #include "Tasks/Task_RegisterVm.h"
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "CDspService.h"
 #include "CDspVmNetworkHelper.h"
 #include "prlcommon/Std/PrlAssert.h"
+#include <boost/smart_ptr/make_shared.hpp>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "prlxmlmodel/BackupTree/VmItem.h"
 #include "Libraries/Virtuozzo/CVzHelper.h"
@@ -149,6 +150,11 @@ bool Move::revert()
 ///////////////////////////////////////////////////////////////////////////////
 // struct Assembly
 
+Assembly::Assembly(CAuthHelper& auth_): m_auth(&auth_),
+	m_trashPolicy(boost::bind(&Toolkit::unlink, Toolkit(auth_), _1))
+{
+}
+
 Assembly::~Assembly()
 {
 	if (m_pending.isEmpty())
@@ -162,10 +168,12 @@ Assembly::~Assembly()
 	else
 		revert();
 
-	Toolkit k(*m_auth);
-	foreach(const QString& x, m_trash)
+	if (!m_trashPolicy.empty())
 	{
-		k.unlink(x);
+		foreach(const QString& x, m_trash)
+		{
+			m_trashPolicy(x);
+		}
 	}
 }
 
@@ -474,31 +482,16 @@ PRL_RESULT Assistant::operator()(const QStringList& argv_, SmartPtr<Chain> custo
 PRL_RESULT Assistant::operator()(const QString& image_, const QString& archive_,
 			const QString& format_) const
 {
-	Prl::Expected<QString, PRL_RESULT> e = m_task->sendMountImageRequest(archive_);
+	Target::Stream s(*m_task);
+	Prl::Expected<QString, PRL_RESULT> e = s.addStrand(archive_);
 	if (e.isFailed())
 		return e.error();
 
-	QString u = e.value();;
-	::Backup::Tunnel::Source::Factory::result_type t =
-		m_task->craftTunnel()(m_task->getFlags());
-	
-	if (t.isFailed())
-		return t.error();
-	else if (t.value().isNull())
-		u = m_task->patch(u);
-	else
-	{
-		Prl::Expected<QUrl, PRL_RESULT> x = t.value()->addStrand(u);
-		if (x.isFailed())
-			return x.error();
-
-		u = x.value().toString();
-	}
 	QStringList cmdline = QStringList() << QEMU_IMG << "convert" << "-O" << format_
 			<< "-S" << "64k" << "-t" << "none";
 	if (format_ == "qcow2")
 		cmdline << "-o" << "cluster_size=1M,lazy_refcounts=on"; 
-	cmdline << u << image_;
+	cmdline << e.value() << image_;
 
 	Program::result_type q = Program::execute(cmdline, *m_task);
 	if (q.isFailed())
@@ -893,7 +886,645 @@ PRL_RESULT Flavor::restore(const Assistant& assist_, quint32 version_)
 	}
 	return PRL_ERR_SUCCESS;
 }
+
 } // namespace Ploop
+
+namespace Activity
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Product
+
+void Product::cloneConfig(const QString& name_)
+{
+	setConfig( ::Backup::Perspective(getConfig()).clone(getUuid(), name_));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+const QString& Unit::getObjectUuid() const
+{
+	return m_context->getOriginVmUuid();
+}
+
+Activity::config_type Unit::getObjectConfig() const
+{
+	Activity::config_type output;
+	SmartPtr<CDspClient> s = m_context->getClient();
+	PRL_RESULT e = ::Backup::Task::Vm::Object(
+		MakeVmIdent(getObjectUuid(), s->getVmDirectoryUuid()),
+		s, CDspService::instance()->getVmDirHelper()).getConfig(output);
+	if (PRL_FAILED(e))
+	{
+		output = Activity::config_type();
+		WRITE_TRACE(DBG_FATAL, "cannot load VM config: %s",
+			PRL_RESULT_TO_STRING(e));
+	}
+
+	return output;
+}
+
+PRL_RESULT Unit::saveProductConfig(const QString& folder_)
+{
+	// we force restoring to a stopped vm. set the cluster options
+	// accordingly.
+	getConfig()->getVmSettings()->getClusterOptions()->setRunning(false);
+	QString p(QDir(folder_).absoluteFilePath(VMDIR_DEFAULT_VM_CONFIG_FILE));
+	PRL_RESULT output = CDspService::instance()->getVmConfigManager().saveConfig(
+			getConfig(), p, m_context->getClient(), true);
+	if (PRL_FAILED(output))
+	{
+		WRITE_TRACE(DBG_FATAL, "save Vm config %s failed: %s",
+				qPrintable(p), PRL_RESULT_TO_STRING(output));
+	}
+
+	return output;
+}
+
+} // namespace Activity
+
+namespace Rebase
+{
+namespace mb = ::Libvirt::Instrument::Agent::Vm::Block;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Work
+
+Work::Work(mb::Launcher agent_, const ::Backup::Product::componentList_type& object_)
+{
+	mb::Launcher::imageList_type x;
+	foreach (const ::Backup::Product::component_type& d, object_)
+	{
+		x << d.first.getDevice();
+		x.back().setAutoCompressEnabled(false);
+	}
+	m_launcher = boost::bind(&mb::Launcher::rebase, agent_, x, _1);
+}
+
+::Libvirt::Result Work::start(mb::Completion& signaler_)
+{
+	if (m_pending)
+		return Error::Simple(PRL_ERR_DOUBLE_INIT);
+
+	m_pending = m_launcher(signaler_);
+
+	return ::Libvirt::Result();
+}
+
+PRL_RESULT Work::stop()
+{
+	if (!m_pending)
+		return PRL_ERR_UNINITIALIZED;
+
+	boost::optional<mb::Activity> b;
+	b.swap(m_pending);
+
+	return b.get().stop();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Adapter
+
+::Libvirt::Result Adapter::operator()(const argument_type& argument_)
+{
+	if (NULL == argument_.first.get())
+		return Error::Simple(PRL_ERR_INVALID_ARG);
+
+	return argument_.first->start(argument_.second);
+}
+
+Adapter::detector_type* Adapter::craftDetector(const argument_type& argument_)
+{
+	QScopedPointer<detector_type> d(new detector_type());
+	if (!d->connect(&argument_.second, SIGNAL(done()),
+		SLOT(react()), Qt::QueuedConnection))
+		return NULL;
+
+	return d.take();
+}
+
+} // namespace Rebase
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+Factory::~Factory()
+{
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Enrollment
+
+PRL_RESULT Enrollment::execute()
+{
+	const QString& h = getProduct().getHome();
+	CProtoCommandPtr r =
+		CProtoSerializer::CreateProtoCommandWithOneStrParam(
+			PVE::DspCmdDirRegVm, h, false, PRVF_KEEP_OTHERS_PERMISSIONS);
+	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspCmdDirRegVm, r);
+
+	// do not call checkAndLockNotExistsExclusiveVmParameters
+	CVmEvent e;
+	SmartPtr<CDspClient> c = getContext().getClient();
+	CDspService::instance()->getTaskManager().schedule(new Task_RegisterVm(*m_registry,
+		c, p, h, PACF_NON_INTERACTIVE_MODE, QString(), QString(),
+		REG_SKIP_VM_PARAMS_LOCK)).wait().getResult(&e);
+
+	// wait finishing thread and return task result
+	PRL_RESULT output = e.getEventCode();
+	if (PRL_FAILED(output))
+	{
+		WRITE_TRACE(DBG_FATAL,
+			"Error occurred while register Vm %s from backup %s with code [%#x][%s]",
+			QSTR2UTF8(getProduct().getUuid()),
+			QSTR2UTF8(getContext().getBackupUuid()),
+			output, PRL_RESULT_TO_STRING(output));
+		output = CDspTaskFailure(getContext()).setCode(PRL_ERR_BACKUP_REGISTER_VM_FAILED)
+			(getProduct().getName(), PRL_RESULT_TO_STRING(output));
+	}
+
+	return output;
+}
+
+PRL_RESULT Enrollment::rollback()
+{
+	QString u = getProduct().getUuid();
+	CProtoCommandPtr r = CProtoSerializer::CreateProtoBasicVmCommand(
+		PVE::DspCmdDirUnregVm, u);
+	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspCmdDirUnregVm, r);
+
+	// do not call checkAndLockNotExistsExclusiveVmParameters
+	CVmEvent e;
+	SmartPtr<CDspClient> c = getContext().getClient();
+	CDspService::instance()->getTaskManager().schedule(new Task_DeleteVm(
+		c, p, getProduct().getConfig()->toString(),
+		PVD_UNREGISTER_ONLY | PVD_SKIP_VM_OPERATION_LOCK)).wait().getResult(&e);
+
+	PRL_RESULT output = e.getEventCode();
+	if (PRL_FAILED(output))
+	{
+		WRITE_TRACE(DBG_FATAL,
+			"Error occurred while unregister Vm %s with code [%#x][%s]",
+			qPrintable(u), output, PRL_RESULT_TO_STRING(output));
+	}
+
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Driver
+
+PRL_RESULT Driver::define(const Activity::config_type& object_)
+{
+	if (!object_.isValid())
+		return PRL_ERR_INVALID_ARG;
+
+	::Libvirt::Result e = ::Libvirt::Kit.vms().getGrub(*object_)
+		.spawnPersistent();
+	if (e.isFailed())
+		return e.error().code();
+
+	return PRL_ERR_SUCCESS;
+}
+
+void Driver::undefine()
+{
+	::Libvirt::Kit.vms().at(getProduct().getUuid()).getState().undefine();
+}
+
+PRL_RESULT Driver::start()
+{
+	::Libvirt::Result e = ::Command::Vm::Gear
+		<
+			::Command::Tag::State
+			<
+				::Command::Vm::Start::Combine,
+				::Command::Vm::Fork::State::Strict<VMS_RUNNING>
+			>
+		>::run(::Command::Vm::Start::request_type(
+			getContext().getClient(), getProduct().getConfig()));
+
+	if (e.isSucceed())
+		return PRL_ERR_SUCCESS;
+
+	return CDspTaskFailure(getContext())(e.error().convertToEvent());
+}
+
+void Driver::stop()
+{
+	::Command::Vm::Gear
+		<
+			::Command::Tag::State
+			<
+				::Command::Vm::Shutdown::Killer,
+				::Command::Vm::Fork::State::Strict<VMS_STOPPED>
+			>
+		>::run(getProduct().getUuid());
+}
+
+PRL_RESULT Driver::rebase()
+{
+	::Backup::Object::Model m(getProduct().getConfig());
+	::Backup::Product::Model p(m, getProduct().getHome());
+	p.setSuffix(::Backup::Suffix(getContext().getBackupNumber())());
+
+	Rebase::mb::Completion c;
+	boost::shared_ptr<Rebase::Work> w(boost::make_shared<Rebase::Work>
+		(::Libvirt::Kit.vms().at(getProduct().getUuid()).getVolume(), p.getVmTibs()));
+
+	::Libvirt::Result e = ::Command::Vm::Gear
+		<
+			boost::mpl::pair
+			<
+				Rebase::Adapter,
+				Rebase::Adapter
+			>
+		>::run(Rebase::Adapter::argument_type(w, c));
+
+	if (e.isFailed())
+	{
+		w->stop();
+		WRITE_TRACE(DBG_FATAL, "rebase has failed: %s",
+			PRL_RESULT_TO_STRING(e.error().code()));
+		return e.error().code();
+	}
+	return w->stop();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Stream
+
+Prl::Expected<QString, PRL_RESULT> Stream::addStrand(const QString& value_)
+{
+	if (!m_cargo)
+	{
+		factory_type::result_type r = m_context->craftTunnel()(m_context->getFlags());
+		if (r.isFailed())
+			return r.error();
+
+		m_cargo = r.value();
+	}
+	QString output = value_;
+	if (m_cargo.get().isNull())
+		output = m_context->patch(output);
+	else
+	{
+		Prl::Expected<QUrl, PRL_RESULT> x =
+			m_cargo.get()->addStrand(output);
+		if (x.isFailed())
+			return x.error();
+
+		output = x.value().toString();
+	}
+	return output;
+}
+
+namespace Online
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Image
+
+PRL_RESULT Image::execute()
+{
+	if (!m_2unlink.isEmpty())
+		return PRL_ERR_DOUBLE_INIT;
+
+	Prl::Expected<QString, PRL_RESULT> u = getContext().
+		sendMountImageRequest(m_component.second.toLocalFile());
+	if (u.isFailed())
+		return u.error();
+
+	u = m_stream->addStrand(u.value());
+	if (u.isFailed())
+		return u.error();
+
+	Toolkit k(getContext().getClient());
+	QFileInfo f(m_component.first.getRestorePath());
+	QString F(f.absolutePath());
+	if (PRL_SUCCEEDED(k.mkdir(F)))
+		m_2unlink = F;
+
+	::Backup::Storage::Image i(f.absoluteFilePath());
+	PRL_RESULT output = i.build().withBaseNbd(u.value())
+		(m_component.first.getDeviceSizeInBytes());
+	if (PRL_FAILED(output))
+	{
+		WRITE_TRACE(DBG_FATAL, "cannot create image at %s: %s",
+			qPrintable(i.getPath()), PRL_RESULT_TO_STRING(output));
+		rollback();
+	}
+	else if (m_2unlink.isEmpty())
+		m_2unlink = i.getPath();
+
+	return output;
+}
+
+void Image::rollback()
+{
+	QString x;
+	x.swap(m_2unlink);
+	if (!x.isEmpty())
+		Toolkit(getContext().getClient()).unlink(x);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+void Builder::addBackupObject()
+{
+	m_componentList.clear();
+	Activity::Unit a(m_factory.craftActivity());
+	Activity::config_type c = a.getObjectConfig();
+	const QFileInfo x(c->getVmIdentification()->getHomePath());
+	QString s = x.absolutePath(), u(Uuid::createUuid().toString());
+
+	typedef Restore::Assembly assembly_type;
+	SmartPtr<CDspClient> S = a.getContext().getClient();
+	boost::shared_ptr<assembly_type> A(new assembly_type(S->getAuthHelper()));
+	foreach (CVmHardDisk* d, ::Backup::Object::Model(c).getImages())
+	{
+		QString n(d->getSystemName());
+		QFileInfo f(n);
+		if (f.isAbsolute() && !n.startsWith(s))
+		{
+			m_componentList << n.append(".").append(u);
+			A->addExternal(f, m_componentList.back());
+		}
+	}
+	m_componentList << QString(s).append(".").append(u);
+	A->addEssential(s, m_componentList.back());
+	A->adopt(assembly_type::trashPolicy_type());
+
+	m_result.addItem(boost::bind(&assembly_type::do_, A),
+		boost::bind(&assembly_type::revert, A));
+}
+
+PRL_RESULT Builder::addPrepare()
+{
+	Activity::Unit a(m_factory.craftActivity());
+	const Activity::config_type& c = a.getProduct().getConfig();
+	if (c->getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled())
+	{
+		return CDspTaskFailure(a.getContext())
+			(Error::Simple(PRL_ERR_UNSUPPORTED_DEVICE_TYPE,
+				"Online restore of VMs with EFI bios is not supported")
+					.convertToEvent());
+	}
+
+	typedef void (Toolkit:: *nice_type)(const QFileInfo&);
+	Toolkit k(a.getContext().getClient());
+	m_result.addItem(boost::bind(&Toolkit::mkdir, k, a.getProduct().getHome()),
+		boost::bind(reinterpret_cast<nice_type>(&Toolkit::unlink),
+			k, a.getProduct().getHome()));
+
+	return PRL_ERR_SUCCESS;
+}
+
+void Builder::addEscort()
+{
+	m_result.addItem(m_factory.craftEscort());
+}
+
+void Builder::addCraftImages()
+{
+	Activity::Unit a(m_factory.craftActivity());
+	const QString& h = a.getProduct().getHome();
+	::Backup::Object::Model m(a.getProduct().getConfig());
+	::Backup::Product::Model p(m, h);
+
+	p.setStore(a.getContext().getBackupRoot());
+	p.setSuffix(::Backup::Suffix(a.getContext().getBackupNumber())());
+	boost::shared_ptr<Stream> s(new Stream(a.getContext()));
+	foreach (const ::Backup::Product::component_type& d, p.getVmTibs())
+	{
+		boost::shared_ptr<Image> i(boost::make_shared<Image>(a, s, d));
+		m_result.addItem(boost::bind(&Image::execute, i),
+			boost::bind(&Image::rollback, i));
+	}
+}
+
+void Builder::addDefine()
+{
+	Driver x = m_factory.craftDriver();
+	Activity::Unit y(m_factory.craftActivity());
+
+	typedef void (Driver:: *nice_type)(const Activity::config_type&);
+	m_result.addItem(boost::bind(&Driver::define, x, y.getProduct().getConfig()),
+		boost::bind(reinterpret_cast<nice_type>(&Driver::define), x, y.getObjectConfig()));
+}
+
+void Builder::addEnroll()
+{
+	Enrollment x = m_factory.craftEnrollment();
+	Activity::Unit a(m_factory.craftActivity());
+
+	typedef void (Enrollment:: *nice_type)();
+	m_result.addItem(boost::bind(&Activity::Unit::saveProductConfig, a,
+		a.getProduct().getHome()));
+	m_result.addItem(boost::bind(&Enrollment::execute, x),
+		boost::bind(reinterpret_cast<nice_type>(&Enrollment::rollback), x));
+}
+
+void Builder::addStart()
+{
+	Driver x = m_factory.craftDriver();
+	m_result.addItem(boost::bind(&Driver::start, x),
+		boost::bind(&Driver::stop, x));
+}
+
+void Builder::addRebase()
+{
+	Driver x = m_factory.craftDriver();
+	m_result.addItem(boost::bind(&Driver::rebase, x));
+	Toolkit k(m_factory.craftActivity().getContext().getClient());
+	foreach (const QString& c, m_componentList)
+	{
+		m_result.addItem(boost::bind(&Toolkit::unlink, k, c));
+	}
+}
+
+} // namespace Online
+
+namespace Chain
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Online
+
+bool Online::filter(argument_type request_) const
+{
+	return (PBT_RESTORE_RUNNING == (request_.getContext().getFlags() & PBT_RESTORE_RUNNING))
+		&& !request_.getProduct().getConfig()->
+			getVmSettings()->getVmCommonOptions()->isTemplate();
+}
+
+Online::result_type Online::handle(argument_type request_) const
+{
+	Target::Online::Builder b(*m_factory);
+	if (!request_.getProduct().isNew())
+		b.addBackupObject();
+
+	result_type e = b.addPrepare();
+	if (PRL_FAILED(e))
+		return e;
+
+	b.addEscort();
+	b.addCraftImages();
+	if (request_.getProduct().isNew())
+		b.addEnroll();
+	else
+		b.addDefine();
+
+	b.addStart();
+	b.addRebase();
+
+	Instrument::Command::Batch B(b.getResult());
+	return B.execute();
+}
+
+namespace Vm
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Mint
+
+Mint::result_type Mint::handle(argument_type request_) const
+{
+	const Activity::Product& p = request_.getProduct();
+	m_product->setName(p.getName());
+	if (m_product->getName().isEmpty())
+		m_product->setName(p.getConfig()->getVmIdentification()->getVmName());
+
+	if (request_.getContext().getFlags() & PBT_RESTORE_TO_COPY)
+	{
+		m_product->cloneConfig(m_product->getName());
+		if (!m_product->getConfig().isValid())
+			return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
+	}
+	m_product->setHome(p.getHome());
+	if (m_product->getHome().isEmpty())
+	{
+		m_product->setHome(QDir(request_.getContext().getClient()->getUserDefaultVmDirPath())
+			.absoluteFilePath( ::Vm::Config::getVmHomeDirName(p.getUuid())));
+	}
+
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Refurbished
+
+Mint::result_type Refurbished::operator()(Mint::argument_type request_) const
+{
+	if (!request_.getProduct().getHome().isEmpty())
+	{
+		WRITE_TRACE(DBG_FATAL, "It is't possible to set target private for restore existing VM");
+		return PRL_ERR_BACKUP_RESTORE_EXISTING_SET_PRIVATE;
+	}
+	CDspService* S = CDspService::instance();
+	SmartPtr<CDspClient> C(request_.getContext().getClient());
+	QString d(C->getVmDirectoryUuid()), u(request_.getProduct().getUuid()), n;
+	{
+		CDspLockedPointer<CVmDirectoryItem> i(S->getVmDirManager().getVmDirItemByUuid(d, u));
+		if (!i.isValid())
+		{   
+			WRITE_TRACE(DBG_FATAL, "CDspVmDirManager::getVmDirItemByUuid(%s, %s) error",
+				qPrintable(d), qPrintable(u));
+			return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
+		}
+		m_product->setHome(CFileHelper::GetFileRoot(i->getVmHome()));
+		n = i->getVmName();
+	}
+	// do not change name of existing Vm - but PMC always send name
+	m_product->setName(request_.getProduct().getName());
+	if (m_product->getName().isEmpty())
+		m_product->setName(n);
+
+	if (n != m_product->getName())
+	{
+		WRITE_TRACE(DBG_FATAL, "It is't possible to set name for restore existing VM");
+		return PRL_ERR_BAD_PARAMETERS;
+	}
+	switch (CDspVm::getVmState(u, d))
+	{
+	case VMS_PAUSED:
+	case VMS_RUNNING:
+		WRITE_TRACE(DBG_FATAL, "VM %s already exists and is running or paused",
+			qPrintable(u));
+		return CDspTaskFailure(request_.getContext())(PRL_ERR_BACKUP_RESTORE_VM_RUNNING, n);
+	default:;
+	}
+	PRL_RESULT e = S->getAccessManager().checkAccess(C, PVE::DspCmdRestoreVmBackup, u, NULL);
+	if (PRL_FAILED(e) && e != PRL_ERR_VM_CONFIG_DOESNT_EXIST)
+	{
+		WRITE_TRACE(DBG_FATAL, "Access check failed for user {%s} "
+			"when accessing VM {%s}. Reason: %#x (%s)", qPrintable(C->getClientHandle()),
+			qPrintable(u), e, PRL_RESULT_TO_STRING(e));
+		return CDspTaskFailure(request_.getContext()).setCode(PRL_ERR_BACKUP_ACCESS_TO_VM_DENIED)
+			(n.isEmpty() ? u : n, PRL_RESULT_TO_STRING(e));
+	}
+
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Brew
+
+Brew::result_type Brew::operator()(const request_type& request_)
+{
+	if (request_.getContext().operationIsCancelled())
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	Activity::Product t(request_.getProduct());
+	result_type e = Mint(t, Refurbished(t))(request_);
+	if (PRL_FAILED(e))
+		return e;
+
+	(request_.getContext().*m_property) = t;
+	return Instrument::Chain::Unit<request_type>::operator()
+		(request_type(t, request_.getContext()));
+}
+
+} // namespace Vm
+} // namespace Chain
+
+namespace Escort
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Gear
+
+Gear::Gear(const transport_type& transport_, IOClient& io_):
+	m_io(&io_), m_transport(transport_)
+{
+	if (!connect(m_io, SIGNAL(onPackageReceived(const SmartPtr<IOPackage>)),
+		SLOT(react(const SmartPtr<IOPackage>))))
+	{
+		WRITE_TRACE(DBG_FATAL, "connect has failed");
+		m_io = NULL;
+	}
+}
+
+PRL_RESULT Gear::operator()()
+{
+	if (NULL == m_io)
+		return PRL_ERR_UNEXPECTED;
+
+	return m_loop.exec();
+}
+
+void Gear::react(const SmartPtr<IOPackage> package_)
+{
+	if (!m_transport.isValid())
+	{
+		WRITE_TRACE(DBG_FATAL,
+			"handler of FileCopy package (type=%d) is NULL", package_->header.type);
+		m_loop.exit(PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR);
+	}
+	bool q = false;
+	PRL_RESULT s = m_transport->handlePackage(package_, &q);
+	if (q)
+		m_loop.exit(s);
+}
+
+} // namespace Escort
 } // namespace Target
 } // namespace Restore
 
@@ -948,6 +1579,8 @@ Task_RestoreVmBackupTarget::Task_RestoreVmBackupTarget(
 :Task_BackupHelper(client, p),
 m_registry(registry_),
 m_bVmExist(false),
+m_product(boost::bind(&Task_RestoreVmBackupTarget::m_sVmUuid, this),
+	boost::bind(&Task_RestoreVmBackupTarget::m_bVmExist, this)),
 m_nCurrentVmUptime(0)
 {
 	CProtoRestoreVmBackupCommand *pCmd =
@@ -957,9 +1590,9 @@ m_nCurrentVmUptime(0)
 	m_sBackupId = pCmd->GetBackupUuid();
 	m_sServerHostname = pCmd->GetServerHostname();
 	if (!pCmd->GetTargetVmHomePath().isEmpty())
-		m_sTargetVmHomePath = QDir(pCmd->GetTargetVmHomePath()).absolutePath();
-	m_sTargetVmName = pCmd->GetTargetVmName();
-//	m_sTargetStorageId = pCmd->GetTargetStorageId();
+		m_product.setHome(QDir(pCmd->GetTargetVmHomePath()).absolutePath());
+
+	m_product.setName(pCmd->GetTargetVmName());
 	m_nServerPort = pCmd->GetServerPort();
 	m_sServerSessionUuid = pCmd->GetServerSessionUuid();
 	m_nFlags = pCmd->GetFlags();
@@ -996,7 +1629,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::prepareTask()
 			m_sVmUuid = Uuid::createUuid().toString();
 	}
 	else if (m_sVmUuid.isEmpty())
-		m_sVmUuid = m_pVmConfig->getVmIdentification()->getVmUuid();
+		m_sVmUuid = m_product.getConfig()->getVmIdentification()->getVmUuid();
 
 	if (m_sVmUuid.isEmpty()) {
 		nRetCode = CDspTaskFailure(*this)
@@ -1039,11 +1672,12 @@ void Task_RestoreVmBackupTarget::finalizeTask()
 		//https://bugzilla.sw.ru/show_bug.cgi?id=267152
 		CAuthHelperImpersonateWrapper _impersonate( &getClient()->getAuthHelper() );
 		/* send finish event to existing vm, https://jira.sw.ru/browse/PSBM-6694 */
+		const QString& u = m_product.getUuid();
 		if ( m_bVmExist ) {
-			CVmEvent event(PET_DSP_EVT_RESTORE_BACKUP_FINISHED, m_sVmUuid, PIE_DISPATCHER);
+			CVmEvent event(PET_DSP_EVT_RESTORE_BACKUP_FINISHED, u, PIE_DISPATCHER);
 			pPackage = DispatcherPackage::createInstance(PVE::DspVmEvent, event, getRequestPackage());
 			CDspService::instance()->getClientManager().sendPackageToVmClients(
-					pPackage, getClient()->getVmDirectoryUuid(), m_sVmUuid);
+					pPackage, getClient()->getVmDirectoryUuid(), u);
 		} else {
 			CVmEvent event(
 				PET_DSP_EVT_RESTORE_BACKUP_FINISHED, m_sOriginVmUuid, PIE_DISPATCHER);
@@ -1051,16 +1685,16 @@ void Task_RestoreVmBackupTarget::finalizeTask()
 			CDspService::instance()->getIOServer().sendPackage(getClient()->getClientHandle(), pPackage);
 		}
 
-		CVmEvent event2(PET_DSP_EVT_VM_CONFIG_CHANGED, m_sVmUuid, PIE_DISPATCHER);
+		CVmEvent event2(PET_DSP_EVT_VM_CONFIG_CHANGED, u, PIE_DISPATCHER);
 		pPackage = DispatcherPackage::createInstance(PVE::DspVmEvent, event2, getRequestPackage());
 		CDspService::instance()->getClientManager().sendPackageToVmClients(pPackage,
-				getClient()->getVmDirectoryUuid(), m_sVmUuid);
+				getClient()->getVmDirectoryUuid(), u);
 
 		CProtoCommandPtr pResponse =
 			CProtoSerializer::CreateDspWsResponseCommand(getRequestPackage(), PRL_ERR_SUCCESS);
 		CProtoCommandDspWsResponse *pDspWsResponseCmd =
 			CProtoSerializer::CastToProtoCommand<CProtoCommandDspWsResponse>(pResponse);
-		pDspWsResponseCmd->AddStandardParam(m_sVmUuid);
+		pDspWsResponseCmd->AddStandardParam(u);
 		if (m_nBackupNumber == PRL_BASE_BACKUP_NUMBER)
 			pDspWsResponseCmd->AddStandardParam(m_sBackupUuid);
 		else
@@ -1076,20 +1710,13 @@ void Task_RestoreVmBackupTarget::finalizeTask()
 
 PRL_RESULT Task_RestoreVmBackupTarget::restoreVm()
 {
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	/* rewrote ServerUuid in Vm config to avoid Task_RegisterVm failure during restore on alien server (#435666) */
-	QString sServerUuid = CDspService::instance()->getDispConfigGuard().getDispConfig()->
-					getVmServerIdentification()->getServerUuid();
-	m_pVmConfig->getVmIdentification()->setServerUuid(sServerUuid);
-
-	/* after first request - for unspecified Vm uuid case */
-	nRetCode = CDspService::instance()->getVmDirHelper().registerExclusiveVmOperation(
-		m_sVmUuid, getClient()->getVmDirectoryUuid(), PVE::DspCmdRestoreVmBackup, getClient(),
-		this->getJobUuid());
+	// after first request - for unspecified Vm uuid case
+	QString d(getClient()->getVmDirectoryUuid());
+	PRL_RESULT nRetCode = CDspService::instance()->getVmDirHelper().registerExclusiveVmOperation(
+		m_product.getUuid(), d, PVE::DspCmdRestoreVmBackup, getClient(), this->getJobUuid());
 	if (PRL_FAILED(nRetCode)) {
 		WRITE_TRACE(DBG_FATAL, "registerExclusiveVmOperation failer. Reason: %#x (%s)",
 			nRetCode, PRL_RESULT_TO_STRING(nRetCode));
@@ -1102,125 +1729,67 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVm()
 		// #443839 in brackets to prevent deadlock with CDspVm::GetVmInstanceByUuid() mutexes
 		CDspLockedPointer<CVmDirectoryItem> pVmDirItem
 			= CDspService::instance()->getVmDirManager().getVmDirItemByUuid(
-				getClient()->getVmDirectoryUuid(), m_sVmUuid);
+				getClient()->getVmDirectoryUuid(), m_product.getUuid());
 		if ( pVmDirItem )
 			m_bVmExist = true;
 	}
-
-	if ( m_bVmExist ) {
-		nRetCode = restoreVmOverExisting();
-	} else {
-		nRetCode = restoreNewVm();
-	}
+	namespace tc = Restore::Target::Chain;
+	nRetCode = tc::Vm::Brew(&Task_RestoreVmBackupTarget::m_product,
+				tc::Vm::Sandbox(&Task_RestoreVmBackupTarget::m_sTargetPath,
+					tc::Online(*this,
+						tc::Novel(&Task_RestoreVmBackupTarget::restoreNewVm,
+							boost::bind(&Task_RestoreVmBackupTarget::restoreVmOverExisting, this)))))
+								(craftActivity());
 
 	CDspService::instance()->getVmDirHelper().unregisterExclusiveVmOperation(
-		m_sVmUuid, getClient()->getVmDirectoryUuid(), PVE::DspCmdRestoreVmBackup, getClient());
+		m_product.getUuid(), d, PVE::DspCmdRestoreVmBackup, getClient());
 
 	return nRetCode;
 }
 
 PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 {
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	PRL_RESULT code;
-	CDispToDispCommandPtr pCmd;
-	SmartPtr<IOPackage> pPackage;
-	QString sVmName;
-	QString sPathToVmConfig;
-	QString sTmpPath, sVzCacheTmpPath;
-
-	if (operationIsCancelled())
-		return PRL_ERR_OPERATION_WAS_CANCELED;
-
-	/* name, bundle : use values of existing CT, ignore m_sTargetVmHomePath & m_sTargetVmName from command
-	   and values from backuped Vm config */
-
-	/* do not change bundle of existing Vm */
-	if (m_sTargetVmHomePath.size()) {
-		WRITE_TRACE(DBG_FATAL, "It is't possible to set target private for restore existing VM");
-		return PRL_ERR_BACKUP_RESTORE_EXISTING_SET_PRIVATE;
-	}
-
-	{
-		CDspLockedPointer<CVmDirectoryItem> pVmDirItem
-			= CDspService::instance()->getVmDirManager().getVmDirItemByUuid(
-				getClient()->getVmDirectoryUuid(), m_sVmUuid);
-		if ( !pVmDirItem ) {
-			WRITE_TRACE(DBG_FATAL, "[%s] CDspVmDirManager::getVmDirItemByUuid(%s, %s) error",
-				__FUNCTION__, QSTR2UTF8(getClient()->getVmDirectoryUuid()), QSTR2UTF8(m_sVmUuid));
-			return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
-		}
-		sPathToVmConfig = pVmDirItem->getVmHome();
-		m_sTargetVmHomePath = CFileHelper::GetFileRoot(pVmDirItem->getVmHome());
-		sVmName = pVmDirItem->getVmName();
-	}
-
-	/* do not change name of existing Vm - but PMC always send name */
-	if (m_sTargetVmName.size() && (m_sTargetVmName != sVmName)) {
-		WRITE_TRACE(DBG_FATAL, "It is't possible to set name for restore existing VM");
-		return PRL_ERR_BAD_PARAMETERS;
-	}
-
-	VIRTUAL_MACHINE_STATE state = CDspVm::getVmState(m_sVmUuid, getClient()->getVmDirectoryUuid());
-	if ((state == VMS_RUNNING) || (state == VMS_PAUSED)) {
-		nRetCode = CDspTaskFailure(*this)
-			(PRL_ERR_BACKUP_RESTORE_VM_RUNNING, sVmName);
-		WRITE_TRACE(DBG_FATAL, "[%s] VM %s already exists and is running or paused",
-				__FUNCTION__, QSTR2UTF8(m_sVmUuid));
-		return nRetCode;
-	}
-
-	/* AccessCheck */
-	bool bSetNotValid = false;
-	code = CDspService::instance()->getAccessManager()
-			.checkAccess(getClient(), PVE::DspCmdRestoreVmBackup, m_sVmUuid, &bSetNotValid);
-	if (PRL_FAILED(code) && code != PRL_ERR_VM_CONFIG_DOESNT_EXIST) {
-		nRetCode = CDspTaskFailure(*this).setCode(PRL_ERR_BACKUP_ACCESS_TO_VM_DENIED)
-			(sVmName.isEmpty() ? m_sVmUuid : sVmName, PRL_RESULT_TO_STRING(code));
-		WRITE_TRACE(DBG_FATAL, "[%s] Access check failed for user {%s} when accessing VM {%s}. Reason: %#x (%s)",
-			__FUNCTION__, QSTR2UTF8(getClient()->getClientHandle()),
-			QSTR2UTF8(m_sVmUuid), code, PRL_RESULT_TO_STRING(code));
-		return nRetCode;
-	}
-
 	//https://bugzilla.sw.ru/show_bug.cgi?id=464218
 	//Store current VM uptime
+	QString c(QDir(m_product.getHome()).absoluteFilePath(VMDIR_DEFAULT_VM_CONFIG_FILE));
 	SmartPtr<CVmConfiguration> pVmConfig(new CVmConfiguration());
-	nRetCode = CDspService::instance()->getVmConfigManager().loadConfig(pVmConfig, sPathToVmConfig, getClient());
+	PRL_RESULT nRetCode = CDspService::instance()->getVmConfigManager().loadConfig(pVmConfig, c, getClient());
 	if ( PRL_FAILED(nRetCode) )
 	{
 		WRITE_TRACE(DBG_FATAL, "Failed to load VM '%s' configuration from '%s' with error: %.8X '%s'",
-			QSTR2UTF8(m_sVmUuid), QSTR2UTF8(sPathToVmConfig), nRetCode, PRL_RESULT_TO_STRING(nRetCode));
+			QSTR2UTF8(m_sVmUuid), QSTR2UTF8(c), nRetCode, PRL_RESULT_TO_STRING(nRetCode));
 	}
 	else
 	{
 		m_nCurrentVmUptime = pVmConfig->getVmIdentification()->getVmUptimeInSeconds();
 		m_current_vm_uptime_start_date = pVmConfig->getVmIdentification()->getVmUptimeStartDateTime();
 		WRITE_TRACE(DBG_FATAL, "VM '%s' uptime values before restore: %llu '%s'",
-			QSTR2UTF8(m_sVmUuid), m_nCurrentVmUptime,
+			QSTR2UTF8(m_product.getUuid()), m_nCurrentVmUptime,
 			QSTR2UTF8(m_current_vm_uptime_start_date.toString(XML_DATETIME_FORMAT)));
 	}
 
 	/* create temporary directory */
-	m_sTargetPath = QString("%1.%2.restore").arg(m_sTargetVmHomePath).arg(Uuid::createUuid().toString());
+	m_sTargetPath = QString("%1.%2.restore").arg(m_product.getHome()).arg(Uuid::createUuid().toString());
 
 	std::auto_ptr<Restore::Assembly> a;
 	if (PRL_FAILED(nRetCode = restoreVmToTargetPath(a)))
 		return nRetCode;
 	//https://bugzilla.sw.ru/show_bug.cgi?id=464218
 	//Process VM uptime
-	m_pVmConfig->getVmIdentification()->setVmUptimeInSeconds(m_nCurrentVmUptime);
-	m_pVmConfig->getVmIdentification()->setVmUptimeStartDateTime(m_current_vm_uptime_start_date);
+	pVmConfig = m_product.getConfig();
+	pVmConfig->getVmIdentification()->setVmUptimeInSeconds(m_nCurrentVmUptime);
+	pVmConfig->getVmIdentification()->setVmUptimeStartDateTime(m_current_vm_uptime_start_date);
 	// VM name should not change!
 	// https://jira.sw.ru/browse/PSBM-20397
-	m_pVmConfig->getVmIdentification()->setVmName(sVmName);
+	pVmConfig->getVmIdentification()->setVmName(m_product.getName());
 
 	// set current VM home path to the restored config
-	m_pVmConfig->getVmIdentification()->setHomePath(sPathToVmConfig);
+	pVmConfig->getVmIdentification()->setHomePath(c);
 
 	// TODO Should we use CDspBugPatcherLogic here?
 	// #PSBM-13394
-	CDspVmNetworkHelper::updateHostMacAddresses(m_pVmConfig, NULL, HMU_NONE);
+	CDspVmNetworkHelper::updateHostMacAddresses(pVmConfig, NULL, HMU_NONE);
+	m_product.setConfig(pVmConfig);
 	// save config : Task_RegisterVm read config from file system
 	if (PRL_FAILED(nRetCode = saveVmConfig()))
 		return nRetCode;
@@ -1228,12 +1797,12 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 		return nRetCode;
 	// Our config is incorrect after moving. Reload it.
 	if (PRL_FAILED(nRetCode = CDspService::instance()->getVmConfigManager().loadConfig(
-			m_pVmConfig, m_pVmConfig->getVmIdentification()->getHomePath(),
-			getClient(), true, true)))
+			pVmConfig, c, getClient(), true, true)))
 		return nRetCode;
 
+	m_product.setConfig(pVmConfig);
 	Libvirt::Instrument::Agent::Vm::Grub::result_type r =
-		Libvirt::Kit.vms().getGrub(*m_pVmConfig).spawnPersistent();
+		Libvirt::Kit.vms().getGrub(*m_product.getConfig()).spawnPersistent();
 	if (r.isFailed())
 	{
 		a->revert();
@@ -1244,9 +1813,9 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	{
 		CDspLockedPointer<CVmDirectoryItem> pVmDirItem
 			= CDspService::instance()->getVmDirManager().getVmDirItemByUuid(
-				getClient()->getVmDirectoryUuid(), m_sVmUuid);
+				getClient()->getVmDirectoryUuid(), m_product.getUuid());
 		if ( pVmDirItem )
-			pVmDirItem->setTemplate( m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate() );
+			pVmDirItem->setTemplate(m_product.getConfig()->getVmSettings()->getVmCommonOptions()->isTemplate());
 	}
 
 	return PRL_ERR_SUCCESS;
@@ -1255,38 +1824,10 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 PRL_RESULT Task_RestoreVmBackupTarget::restoreNewVm()
 {
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	QString sVmName;
-	SmartPtr<CVmDirectory::TemporaryCatalogueItem> pVmInfo;
 
-	if (operationIsCancelled())
-		return PRL_ERR_OPERATION_WAS_CANCELED;
-
-	if (m_sTargetVmName.size())
-		sVmName = m_sTargetVmName;
-	else
-		sVmName = m_pVmConfig->getVmIdentification()->getVmName();
-
-	if (m_nFlags & PBT_RESTORE_TO_COPY)
-	{
-		m_pVmConfig = ::Backup::Perspective(m_pVmConfig).clone(m_sVmUuid, sVmName);
-		if (!m_pVmConfig.isValid())
-			return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
-	}
-	/* ! only after sendStartRequest() - to get m_pVmConfig */
-	if (m_sTargetVmHomePath.isEmpty())
-	{
-		m_sTargetVmHomePath = QFileInfo(
-				QString("%1/%2")
-				.arg(getClient()->getUserDefaultVmDirPath())
-				.arg(Vm::Config::getVmHomeDirName(
-					m_pVmConfig->getVmIdentification()->getVmUuid())))
-				.absoluteFilePath();
-	}
-	m_sTargetPath = m_sTargetVmHomePath;
-
-	/* lock register uuid, private & name */
-	pVmInfo = SmartPtr<CVmDirectory::TemporaryCatalogueItem>(new CVmDirectory::TemporaryCatalogueItem(
-						m_sVmUuid, m_sTargetPath, sVmName));
+	// lock register uuid, private & name
+	SmartPtr<CVmDirectory::TemporaryCatalogueItem> pVmInfo(new CVmDirectory::TemporaryCatalogueItem(
+						m_product.getUuid(), m_sTargetPath, m_product.getName()));
 	if (PRL_FAILED(nRetCode = lockExclusiveVmParameters(pVmInfo)))
 		return nRetCode;
 	do
@@ -1294,15 +1835,14 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewVm()
 		std::auto_ptr<Restore::Assembly> a;
 		if (PRL_FAILED(nRetCode = restoreVmToTargetPath(a)))
 			break;
-		//Reset VM uptime values
-		m_pVmConfig->getVmIdentification()->setVmUptimeInSeconds();
-		m_pVmConfig->getVmIdentification()->setVmUptimeStartDateTime();
 		// save config : Task_RegisterVm read config from file system
 		if (PRL_FAILED(nRetCode = saveVmConfig()))
 			break;
 		if (PRL_FAILED(nRetCode = a->do_()))
 			break;
-		if (PRL_FAILED(nRetCode = registerVm()))
+		
+		enrollment_type E(craftEnrollment());
+		if (PRL_FAILED(nRetCode = E.execute()))
 		{
 			a->revert();
 			break;
@@ -1311,7 +1851,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewVm()
 			&& nRetCode != PRL_ERR_FIXME)
 		{
 			CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(pVmInfo.getImpl());
-			unregisterVm();
+			E.rollback();
 			a->revert();
 		}
 
@@ -1329,7 +1869,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::getFiles(bool bVmExist_)
 		m_pVmCopyTarget = SmartPtr<CVmFileListCopyTarget>(
 			new CVmFileListCopyTarget(
 				m_pSender.getImpl(),
-				m_sVmUuid,
+				m_product.getUuid(),
 				m_sTargetPath,
 				getLastError(),
 				m_nTimeout)
@@ -1349,13 +1889,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::getFiles(bool bVmExist_)
 	m_pVmCopyTarget->SetRequest(getRequestPackage());
 	m_pVmCopyTarget->SetVmDirectoryUuid(getClient()->getVmDirectoryUuid());
 
-	/* set FileCopy* packages handler.
-	   Attn: disconnect() on success and on failure both */
-	bool bConnected = QObject::connect(m_pIoClient.getImpl(),
-		SIGNAL(onPackageReceived(const SmartPtr<IOPackage>)),
-		SLOT(handlePackage(const SmartPtr<IOPackage>)),
-		Qt::DirectConnection);
-	PRL_ASSERT(bConnected);
+	Restore::Target::Escort::Gear g(m_pVmCopyTarget, *m_pIoClient.getImpl());
 
 	/* Target is ready - give source a kick to start file copy */
 	CDispToDispCommandPtr pCmd =
@@ -1365,11 +1899,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::getFiles(bool bVmExist_)
 	PRL_RESULT nRetCode = SendPkg(pPackage);
 	if (PRL_SUCCEEDED(nRetCode))
 		/* and start to process incoming FileCopy* packages */
-		nRetCode = exec();
-	QObject::disconnect(m_pIoClient.getImpl(),
-		SIGNAL(onPackageReceived(const SmartPtr<IOPackage>)),
-		this,
-		SLOT(handlePackage(const SmartPtr<IOPackage>)));
+		nRetCode = g();
 
 	if (PRL_FAILED(nRetCode))
 		return nRetCode;
@@ -1394,12 +1924,13 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 
 	PRL_RESULT nRetCode;
 	Legacy::Vm::result_type res;
+	Restore::Target::Activity::config_type C(m_product.getConfig());
 	// Check resulting config before restoring disks.
 	if (m_converter.get() != NULL &&
-		(res = m_converter->convertHardware(m_pVmConfig)).isFailed())
+		(res = m_converter->convertHardware(C)).isFailed())
 		return CDspTaskFailure(*this)(*res.error());
 
-	::Backup::Object::Model m(m_pVmConfig);
+	::Backup::Object::Model m(C);
 	if (m.isBad())
 		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
 	::Backup::Product::Model p(m, m_sTargetPath);
@@ -1408,7 +1939,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 		p.setSuffix(::Backup::Suffix(m_nBackupNumber)());
 	Restore::Target::Vm u(m_nBackupNumber, m_sTargetPath, m_sBackupRootPath,
 			Restore::Assistant(*this,
-				Restore::AClient::Unit(*this, m_sOriginVmUuid, *m_pVmConfig)));
+				Restore::AClient::Unit(*this, m_sOriginVmUuid, *C)));
 	if (PRL_FAILED(nRetCode = u.createHome()))
 		return nRetCode;
 	foreach (const ::Backup::Product::component_type& d, p.getVmTibs())
@@ -1429,7 +1960,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
         }
 	// NB. the protocol requires the getFiles goes first. otherwise
 	// the source side hangs.
-	if (PRL_FAILED(nRetCode = getFiles(m_bVmExist)))
+	if (PRL_FAILED(nRetCode = craftEscort()()))
 		return nRetCode;
 
 	Restore::Target::Vm::noSpace_type y;
@@ -1455,16 +1986,16 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 	if (PRL_FAILED(nRetCode = fixHardWareList()))
 		return nRetCode;
 
-	if (m_pVmConfig->getVmIdentification()->getHomePath().isEmpty())
+	if (C->getVmIdentification()->getHomePath().isEmpty())
 	{
-		m_pVmConfig->getVmIdentification()->setHomePath(
-				QString("%1/" VMDIR_DEFAULT_VM_CONFIG_FILE).arg(m_sTargetVmHomePath));
+		C->getVmIdentification()->setHomePath(QDir(m_product.getHome())
+			.absoluteFilePath(VMDIR_DEFAULT_VM_CONFIG_FILE));
 	}
 	// Update cpu features on pcs6 restore
 	if (m_converter.get() != NULL)
-		CCpuHelper::update(*m_pVmConfig);
+		CCpuHelper::update(*C);
 
-	dst_.reset(u.assemble(m_sTargetVmHomePath));
+	dst_.reset(u.assemble(m_product.getHome()));
 	return NULL == dst_.get() ? PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR : PRL_ERR_SUCCESS;
 }
 
@@ -1504,7 +2035,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCt()
 	}
 
 	nRetCode = CDspService::instance()->getVmDirHelper().registerExclusiveVmOperation(
-		m_sVmUuid, sVzDirUuid, PVE::DspCmdRestoreVmBackup, getClient(), this->getJobUuid());
+		m_product.getUuid(), sVzDirUuid, PVE::DspCmdRestoreVmBackup, getClient(), this->getJobUuid());
 	if (PRL_FAILED(nRetCode)) {
 		WRITE_TRACE(DBG_FATAL, "registerExclusiveVmOperation failed. Reason: %#x (%s)",
 			nRetCode, PRL_RESULT_TO_STRING(nRetCode));
@@ -1514,7 +2045,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCt()
 	/* flag PBT_RESTORE_TO_COPY - create new CT and ignore existing CT */
 	if (!(m_nFlags & PBT_RESTORE_TO_COPY)) {
 		/* does this Ct already exists? */
-		pConfig = CVzHelper::get_env_config(m_sVmUuid);
+		pConfig = CVzHelper::get_env_config(m_product.getUuid());
 	}
 	if (pConfig) {
 		m_bVmExist = true;
@@ -1524,7 +2055,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCt()
 	}
 
 	CDspService::instance()->getVmDirHelper().unregisterExclusiveVmOperation(
-		m_sVmUuid, sVzDirUuid, PVE::DspCmdRestoreVmBackup, getClient());
+		m_product.getUuid(), sVzDirUuid, PVE::DspCmdRestoreVmBackup, getClient());
 
 	sync();
 	return nRetCode;
@@ -1539,7 +2070,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 	   and values from backuped CT config */
 
 	/* do not change bundle of existing Vm */
-	if (m_sTargetVmHomePath.size()) {
+	if (!m_product.getHome().isEmpty()) {
 		WRITE_TRACE(DBG_FATAL, "It is't possible to set target private for restore existing VM");
 		return PRL_ERR_BACKUP_RESTORE_EXISTING_SET_PRIVATE;
 	}
@@ -1547,17 +2078,20 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 	QString ctId = pConfig->getVmIdentification()->getCtId();
 	/* attn : this function restore real name or ct id */
 	sCtName = pConfig->getVmIdentification()->getVmName();
-	m_sTargetVmHomePath = pConfig->getVmIdentification()->getHomePath();
+	m_product.setHome(pConfig->getVmIdentification()->getHomePath());
 	/* check */
-	if (ctId.isEmpty() || sCtName.isEmpty() || m_sTargetVmHomePath.isEmpty()) {
+	if (ctId.isEmpty() || sCtName.isEmpty() || m_product.getHome().isEmpty()) {
 		WRITE_TRACE(DBG_FATAL, "[%s] ctId = %s, sCtName = '%s', m_sTargetVmHomePath = '%s'",
 				__FUNCTION__, QSTR2UTF8(ctId), QSTR2UTF8(sCtName),
-				QSTR2UTF8(m_sTargetVmHomePath));
+				QSTR2UTF8(m_product.getHome()));
 		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
 	}
 
 	/* do not change name of existing Vm - but PMC always send name */
-	if (m_sTargetVmName.size() && (m_sTargetVmName != sCtName)) {
+	if (m_product.getName().isEmpty())
+		m_product.setName(sCtName);
+
+	if (m_product.getName() != sCtName) {
 		WRITE_TRACE(DBG_FATAL, "It is't possible to set name for restore existing VM");
 		return PRL_ERR_BAD_PARAMETERS;
 	}
@@ -1566,7 +2100,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 
 	/* check existing Ct state */
 	VIRTUAL_MACHINE_STATE state;
-	nRetCode = VzHelper.get_env_status(m_sVmUuid, state);
+	nRetCode = VzHelper.get_env_status(m_product.getUuid(), state);
 	if (PRL_FAILED(nRetCode)) {
 		WRITE_TRACE(DBG_FATAL, "get_env_status() failer. Reason: %#x (%s)",
 				nRetCode, PRL_RESULT_TO_STRING(nRetCode));
@@ -1575,32 +2109,32 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 	}
 
 	if (state == VMS_RUNNING || state == VMS_MOUNTED) {
-		nRetCode = CDspTaskFailure(*this)(PRL_ERR_BACKUP_RESTORE_VM_RUNNING, sCtName);
+		nRetCode = CDspTaskFailure(*this)(PRL_ERR_BACKUP_RESTORE_VM_RUNNING, m_product.getName());
 		WRITE_TRACE(DBG_FATAL, "[%s] VM %s already exists and is running or mounted",
-				__FUNCTION__, QSTR2UTF8(m_sVmUuid));
+				__FUNCTION__, QSTR2UTF8(m_product.getUuid()));
 		return nRetCode;
 	}
 
-	int lockfd = CVzHelper::lock_env(m_sVmUuid, VZCTL_TRANSITION_RESTORING);
+	int lockfd = CVzHelper::lock_env(m_product.getUuid(), VZCTL_TRANSITION_RESTORING);
 	if (lockfd < 0) {
 		WRITE_TRACE(DBG_FATAL, "Can't lock Container");
 		return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
 	}
 
 	/* will restore over existing home - to create temporary directory */
-	m_sTargetPath = QString("%1.%2.restore").arg(m_sTargetVmHomePath).arg(Uuid::createUuid().toString());
+	m_sTargetPath = QString("%1.%2.restore").arg(m_product.getHome()).arg(Uuid::createUuid().toString());
 
 	/* Store current VM uptime */
 	m_nCurrentVmUptime = pConfig->getVmIdentification()->getVmUptimeInSeconds();
 	m_current_vm_uptime_start_date = pConfig->getVmIdentification()->getVmUptimeStartDateTime();
 	WRITE_TRACE(DBG_FATAL, "VM '%s' uptime values before restore: %llu '%s'",
-			QSTR2UTF8(m_sVmUuid), m_nCurrentVmUptime,
+			QSTR2UTF8(m_product.getUuid()), m_nCurrentVmUptime,
 			QSTR2UTF8(m_current_vm_uptime_start_date.toString(XML_DATETIME_FORMAT)));
 
 	std::auto_ptr<Restore::Assembly> x;
 
 	do {
-		if (PRL_FAILED(nRetCode = restoreCtToTargetPath(sCtName, false, x)))
+		if (PRL_FAILED(nRetCode = restoreCtToTargetPath(false, x)))
 			break;
 		/* replace original private */
 		nRetCode = x->do_();
@@ -1614,7 +2148,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 		}
 
 		/* restore uptime */
-		nRetCode = VzHelper.set_env_uptime(m_sVmUuid, m_nCurrentVmUptime,
+		nRetCode = VzHelper.set_env_uptime(m_product.getUuid(), m_nCurrentVmUptime,
 				m_current_vm_uptime_start_date);
 		if (PRL_FAILED(nRetCode)) {
 			WRITE_TRACE(DBG_FATAL, "Restore uptime failed with error %#x, %s",
@@ -1623,7 +2157,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 		}
 		/* invalidate config */
 		CDspService::instance()->getVzHelper()->getConfigCache().
-				remove(m_sTargetVmHomePath);
+				remove(m_product.getHome());
 	} while(0);
 
 	if (PRL_FAILED(nRetCode) && x.get()) {
@@ -1631,47 +2165,47 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtOverExisting(const SmartPtr<CVmC
 		CFileHelper::ClearAndDeleteDir(m_sTargetPath);
 	}
 
-	CVzHelper::unlock_env(m_sVmUuid, lockfd);
+	CVzHelper::unlock_env(m_product.getUuid(), lockfd);
 
 	return nRetCode;
 }
 
 PRL_RESULT Task_RestoreVmBackupTarget::restoreNewCt(const QString &sDefaultCtFolder)
 {
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	QString ctId;
-	QString sCtName;
 	VIRTUAL_MACHINE_STATE nState;
 	SmartPtr<CVmConfiguration> pConfig;
 	bool registered = false;
 
-	ctId = m_pVmConfig->getVmIdentification()->getCtId();
-	if (ctId.isEmpty() || m_sVmUuid != m_sOriginVmUuid) {
-		ctId = CVzHelper::build_ctid_from_uuid(m_sVmUuid);
+	Restore::Target::Activity::config_type C(m_product.getConfig());
+	QString ctId = C->getVmIdentification()->getCtId();
+	if (ctId.isEmpty() || m_product.getUuid() != m_sOriginVmUuid) {
+		ctId = CVzHelper::build_ctid_from_uuid(m_product.getUuid());
 	}
 
-	if (m_sTargetVmName.isEmpty())
-		sCtName = m_pVmConfig->getVmIdentification()->getVmName();
-	else
-		sCtName = m_sTargetVmName;
+	if (m_product.getName().isEmpty())
+		m_product.setName(C->getVmIdentification()->getVmName());
 
-	if (m_sTargetVmHomePath.isEmpty())
-		m_sTargetVmHomePath = QString("%1/%2").arg(sDefaultCtFolder).arg(ctId);
+	if (m_product.getHome().isEmpty())
+		m_product.setHome(QDir(sDefaultCtFolder).absoluteFilePath(ctId));
+
 	/* will restore to target directory */
-	m_sTargetPath = m_sTargetVmHomePath;
+	m_sTargetPath = m_product.getHome();
 
 	if (m_nFlags & PBT_RESTORE_TO_COPY)
 	{
-		QString n = sCtName.isEmpty() ? ctId : sCtName;
-		m_pVmConfig = ::Backup::Perspective(m_pVmConfig).clone(m_sVmUuid, n);
-		if (!m_pVmConfig.isValid())
+		QString n = m_product.getName().isEmpty() ? ctId : m_product.getName();
+		m_product.cloneConfig(n);
+		C = m_product.getConfig();
+		if (!C.isValid())
 			return PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
-		m_pVmConfig->getVmIdentification()->setCtId(ctId);
-		m_pVmConfig->getVmIdentification()->setHomePath(m_sTargetPath);
+
+		C->getVmIdentification()->setCtId(ctId);
+		C->getVmIdentification()->setHomePath(m_sTargetPath);
+		m_product.setConfig(C);
 	}
 
 	/* check env id */
-	nRetCode = CVzHelper::get_env_status_by_ctid(ctId, nState);
+	PRL_RESULT nRetCode = CVzHelper::get_env_status_by_ctid(ctId, nState);
 	if (PRL_FAILED(nRetCode)) {
 		WRITE_TRACE(DBG_FATAL, "CVzTemplateHelper::get_env_status() failed. Reason: %#x (%s)",
 			nRetCode, PRL_RESULT_TO_STRING(nRetCode));
@@ -1689,22 +2223,21 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewCt(const QString &sDefaultCtFol
 	SmartPtr<CVmDirectory::TemporaryCatalogueItem>pCtInfo =
 		SmartPtr<CVmDirectory::TemporaryCatalogueItem>(
 			new CVmDirectory::TemporaryCatalogueItem(
-				m_sVmUuid, m_sTargetPath, sCtName));
+				m_product.getUuid(), m_sTargetPath, m_product.getName()));
 	nRetCode = lockExclusiveVmParameters(pCtInfo);
 	if (PRL_FAILED(nRetCode))
 		return nRetCode;
 
 	std::auto_ptr<Restore::Assembly> x;
 	do {
-		if (PRL_FAILED(nRetCode = restoreCtToTargetPath(sCtName, true, x)))
+		if (PRL_FAILED(nRetCode = restoreCtToTargetPath(true, x)))
 			break;
 
 		if (PRL_FAILED(nRetCode = x->do_()))
 			break;
 
 		nRetCode = m_VzOpHelper.register_env(m_sTargetPath, ctId,
-				m_pVmConfig->getVmIdentification()->getVmUuid(),
-				sCtName, PRCF_FORCE, pConfig);
+				m_product.getUuid(), m_product.getName(), PRCF_FORCE, pConfig);
 		if (PRL_FAILED(nRetCode)) {
 			WRITE_TRACE(DBG_FATAL, "register_env() exited with error %#x, %s",
 					nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
@@ -1712,10 +2245,11 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewCt(const QString &sDefaultCtFol
 		}
 		registered = true;
 
-		CVzHelper::update_ctid_map(m_sVmUuid, ctId);
+		CVzHelper::update_ctid_map(m_product.getUuid(), ctId);
 		if (m_nFlags & PBT_RESTORE_TO_COPY) {
 			nRetCode = m_VzOpHelper.apply_env_config(
-				CVzHelper::fix_env_config(m_pVmConfig, pConfig), pConfig, 0);
+				CVzHelper::fix_env_config(C, pConfig),
+					pConfig, 0);
 			if (PRL_FAILED(nRetCode))
 				break;
 		}
@@ -1727,7 +2261,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewCt(const QString &sDefaultCtFol
 			break;
 		}
 
-		if (PRL_FAILED(CVzHelper::reset_env_uptime(m_sVmUuid))) {
+		if (PRL_FAILED(CVzHelper::reset_env_uptime(m_product.getUuid()))) {
 			WRITE_TRACE(DBG_FATAL, "Reset uptime failed with error %#x, %s",
 				nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
 		}
@@ -1737,7 +2271,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewCt(const QString &sDefaultCtFol
 		if (x.get())
 			x->revert();
 		if (registered)
-			m_VzOpHelper.unregister_env(m_sVmUuid, PRCF_FORCE | PRCF_UNREG_PRESERVE);
+			m_VzOpHelper.unregister_env(m_product.getUuid(), PRCF_FORCE | PRCF_UNREG_PRESERVE);
 	}
 
 	CDspService::instance()->getVmDirManager().unlockExclusiveVmParameters(pCtInfo.getImpl());
@@ -1746,14 +2280,13 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreNewCt(const QString &sDefaultCtFol
 }
 
 PRL_RESULT Task_RestoreVmBackupTarget::restoreCtToTargetPath(
-			const QString &sCtName,
 			bool bIsRealMountPoint,
 			std::auto_ptr<Restore::Assembly>& dst_)
 {
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	Restore::Assistant a(*this, Restore::AClient::Unit(*this, m_sOriginVmUuid, sCtName));
+	Restore::Assistant a(*this, Restore::AClient::Unit(*this, m_sOriginVmUuid, m_product.getName()));
 	PRL_RESULT output = a.make(m_sTargetPath, true);
 	if (PRL_FAILED(output))
 		return output;
@@ -1765,7 +2298,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtToTargetPath(
 		if (PRL_SUCCEEDED(output = getFiles(bIsRealMountPoint)))
 		{
 			Restore::Query::Work w(api, getIoClient(), m_nBackupTimeout);
-			Backup::Product::Model p(Backup::Object::Model(m_pVmConfig), m_sTargetPath);
+			Backup::Product::Model p(Backup::Object::Model(m_product.getConfig()), m_sTargetPath);
 			p.setStore(m_sBackupRootPath);
 			Backup::Product::componentList_type l = p.getCtTibs();
 			if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
@@ -1773,7 +2306,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCtToTargetPath(
 				l = p.getVmTibs();
 			}
 			Restore::Target::Ploop::Flavor f(m_sTargetPath, l, w);
-			dst_.reset(t(f, m_sTargetVmHomePath, m_nRemoteVersion));
+			dst_.reset(t(f, m_product.getHome(), m_nRemoteVersion));
 		}
 	}
 	else if (m_nInternalFlags & PVM_CT_VZFS_BACKUP)
@@ -1834,7 +2367,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::sendStartRequest()
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	QString u = (m_nFlags & PBT_RESTORE_TO_COPY) && !m_sBackupId.isEmpty() ? QString() : m_sVmUuid;
+	QString u = (m_nFlags & PBT_RESTORE_TO_COPY) && !m_sBackupId.isEmpty() ? QString() : m_product.getUuid();
 	pStartCmd = CDispToDispProtoSerializer::CreateVmBackupRestoreCommand(u, m_sBackupId, m_nFlags);
 
 	pPackage = DispatcherPackage::createInstance(
@@ -1868,9 +2401,16 @@ PRL_RESULT Task_RestoreVmBackupTarget::sendStartRequest()
 	CVmBackupRestoreFirstReply *pFirstReply =
 		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmBackupRestoreFirstReply>(pCmd);
 
-	m_pVmConfig = SmartPtr<CVmConfiguration>(new CVmConfiguration());
-	if (PRL_FAILED(nRetCode = m_pVmConfig->fromString(pFirstReply->GetVmConfig())))
+	Restore::Target::Activity::config_type C(new CVmConfiguration());
+	if (PRL_FAILED(nRetCode = C->fromString(pFirstReply->GetVmConfig())))
 		return nRetCode;
+
+	C->getVmIdentification()->setVmUptimeInSeconds();
+	C->getVmIdentification()->setVmUptimeStartDateTime();
+	C->getVmIdentification()->setServerUuid(CDspService::instance()->getDispConfigGuard().getDispConfig()->
+					getVmServerIdentification()->getServerUuid());
+
+	m_product.setConfig(C);
 	m_nRemoteVersion = pFirstReply->GetVersion();
 	if (m_nRemoteVersion <= BACKUP_PROTO_V3)
 		m_converter.reset(new Legacy::Vm::Converter());
@@ -1919,37 +2459,16 @@ Prl::Expected<QString, PRL_RESULT> Task_RestoreVmBackupTarget::sendMountImageReq
 	return output;
 }
 
-void Task_RestoreVmBackupTarget::handlePackage(const SmartPtr<IOPackage> p)
-{
-	PRL_RESULT nRetCode;
-	bool bExit;
-
-	// #439777 to protect call handler for destroying object
-	WaiterTillHandlerUsingObject::AutoUnlock lock( m_waiter );
-	if( !lock.isLocked() )
-		return;
-
-	if (!m_pVmCopyTarget) {
-		WRITE_TRACE(DBG_FATAL,
-			"handler of FileCopy package (type=%d) is NULL", p->header.type);
-		exit(PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR);
-	}
-
-	nRetCode = m_pVmCopyTarget->handlePackage(p, &bExit);
-	if (bExit)
-		exit(nRetCode);
-}
-
 PRL_RESULT Task_RestoreVmBackupTarget::fixHardWareList()
 {
 	QFileInfo fileInfo;
-	QDir dir(m_sTargetVmHomePath);
+	QDir dir(m_product.getHome());
 	CVmHardware *pVmHardware;
 
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	if ((pVmHardware = m_pVmConfig->getVmHardwareList()) == NULL) {
+	if ((pVmHardware = m_product.getConfig()->getVmHardwareList()) == NULL) {
 		WRITE_TRACE(DBG_FATAL, "[%s] Can not get Vm hardware list", __FUNCTION__);
 		return PRL_ERR_SUCCESS;
 	}
@@ -1987,79 +2506,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::fixHardWareList()
 
 PRL_RESULT Task_RestoreVmBackupTarget::saveVmConfig()
 {
-	// we force restoring to a stopped vm. set the cluster options
-	// accordingly.
-	m_pVmConfig->getVmSettings()->getClusterOptions()->setRunning(false);
-	QString vmConfigPath = QString("%1/%2").arg(m_sTargetPath).arg(VMDIR_DEFAULT_VM_CONFIG_FILE);
-	PRL_RESULT nRetCode = CDspService::instance()->getVmConfigManager().saveConfig(
-			m_pVmConfig, vmConfigPath, getClient(), true);
-	if (PRL_FAILED(nRetCode))
-	{
-		WRITE_TRACE(DBG_FATAL, "save Vm config %s failed: %s",
-				QSTR2UTF8(vmConfigPath),
-				PRL_RESULT_TO_STRING(nRetCode));
-		return nRetCode;
-	}
-	return PRL_ERR_SUCCESS;
-}
-
-PRL_RESULT Task_RestoreVmBackupTarget::unregisterVm()
-{
-	SmartPtr<CDspClient> client = getClient();
-	CVmEvent evt;
-
-	CProtoCommandPtr pRequest =
-		CProtoSerializer::CreateProtoBasicVmCommand(
-			PVE::DspCmdDirUnregVm, m_sVmUuid);
-	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspCmdDirUnregVm, pRequest);
-
-	/* do not call checkAndLockNotExistsExclusiveVmParameters */
-	CDspService::instance()->getTaskManager().schedule(new Task_DeleteVm(
-		client, pPackage, m_pVmConfig->toString(),
-		PVD_UNREGISTER_ONLY | PVD_SKIP_VM_OPERATION_LOCK)).wait().getResult(&evt);
-
-	// wait finishing thread and return task result
-	if (PRL_FAILED(evt.getEventCode())) {
-		WRITE_TRACE(DBG_FATAL,
-			"Error occurred while unregister Vm %s with code [%#x][%s]",
-			qPrintable(m_sVmUuid),
-			evt.getEventCode(),
-			PRL_RESULT_TO_STRING(evt.getEventCode()));
-	}
-
-	return evt.getEventCode();
-}
-
-PRL_RESULT Task_RestoreVmBackupTarget::registerVm()
-{
-	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	SmartPtr<CDspClient> client = getClient();
-	CVmEvent evt;
-
-	CProtoCommandPtr pRequest =
-		CProtoSerializer::CreateProtoCommandWithOneStrParam(
-			PVE::DspCmdDirRegVm, m_sTargetVmHomePath, false, PRVF_KEEP_OTHERS_PERMISSIONS);
-	SmartPtr<IOPackage> pPackage = DispatcherPackage::createInstance(PVE::DspCmdDirRegVm, pRequest);
-
-	/* do not call checkAndLockNotExistsExclusiveVmParameters */
-	CDspService::instance()->getTaskManager().schedule(new Task_RegisterVm(m_registry,
-		client, pPackage, m_sTargetVmHomePath, PACF_NON_INTERACTIVE_MODE,
-			QString(), QString(), REG_SKIP_VM_PARAMS_LOCK)).wait().getResult(&evt);
-
-	// wait finishing thread and return task result
-	if (PRL_FAILED(evt.getEventCode())) {
-		nRetCode = CDspTaskFailure(*this).setCode(PRL_ERR_BACKUP_REGISTER_VM_FAILED)
-			(m_pVmConfig->getVmIdentification()->getVmName(), PRL_RESULT_TO_STRING(evt.getEventCode()));
-		WRITE_TRACE(DBG_FATAL,
-			"[%s] Error occurred while register Vm %s from backup %s with code [%#x][%s]",
-			__FUNCTION__,
-			QSTR2UTF8(m_sVmUuid),
-			QSTR2UTF8(m_sBackupUuid),
-			evt.getEventCode(),
-			PRL_RESULT_TO_STRING(evt.getEventCode()));
-	}
-
-	return nRetCode;
+	return craftActivity().saveProductConfig(m_sTargetPath);
 }
 
 void Task_RestoreVmBackupTarget::cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& p)
@@ -2091,13 +2538,13 @@ PRL_RESULT Task_RestoreVmBackupTarget::doV2V()
 void Task_RestoreVmBackupTarget::runV2V()
 {
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
-	boost::optional<Legacy::Vm::V2V> v2v = m_converter->getV2V(*m_pVmConfig);
+	boost::optional<Legacy::Vm::V2V> v2v = m_converter->getV2V(*m_product.getConfig());
 
 	do {
 		if (!v2v)
 			break;
 		//Substitute NVRAM
-		Legacy::Vm::result_type res = m_converter->convertBios(m_pVmConfig);
+		Legacy::Vm::result_type res = m_converter->convertBios(m_product.getConfig());
 		if (res.isFailed())
 		{
 			nRetCode = res.error()->getEventCode();
@@ -2116,5 +2563,26 @@ void Task_RestoreVmBackupTarget::runV2V()
 ::Backup::Tunnel::Source::Factory Task_RestoreVmBackupTarget::craftTunnel()
 {
 	return ::Backup::Tunnel::Source::Factory(m_sServerHostname, getIoClient());
+}
+
+Task_RestoreVmBackupTarget::escort_type Task_RestoreVmBackupTarget::craftEscort()
+{
+	return boost::bind(&Task_RestoreVmBackupTarget::getFiles, this,
+		boost::bind(&Task_RestoreVmBackupTarget::m_bVmExist, this));
+}
+
+Task_RestoreVmBackupTarget::driver_type Task_RestoreVmBackupTarget::craftDriver()
+{
+	return driver_type(craftActivity());
+}
+
+Task_RestoreVmBackupTarget::activity_type Task_RestoreVmBackupTarget::craftActivity()
+{
+	return activity_type(m_product, *this);
+}
+
+Task_RestoreVmBackupTarget::enrollment_type Task_RestoreVmBackupTarget::craftEnrollment()
+{
+	return enrollment_type(craftActivity(), m_registry);
 }
 

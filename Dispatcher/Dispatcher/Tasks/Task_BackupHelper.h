@@ -133,13 +133,33 @@ private:
 namespace Storage
 {
 ///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+struct Builder
+{
+	explicit Builder(const QString& path_);
+
+	Builder& withBaseNbd(const QString& url_);
+	Builder& withBaseFile(const QString& path_);
+	Builder& withCompression();
+	PRL_RESULT operator()(quint64 size_);
+
+private:
+	QString m_path;
+	VirtualDisk::qcow2PolicyList_type m_policyList;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Image
 
 struct Image
 {
 	explicit Image(const QString& path_) : m_path(path_) {}
 
-	PRL_RESULT build(quint64 size_, const QString& base_);
+	Builder build() const
+	{
+		return Builder(m_path);
+	}
 	void remove() const;
 	const QString& getPath() const
 	{

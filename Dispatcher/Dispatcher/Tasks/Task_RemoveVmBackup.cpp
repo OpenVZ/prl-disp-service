@@ -577,6 +577,7 @@ PRL_RESULT Unit::operator()()
 	foreach (CVmHardDisk* d, x.getVmHardwareList()->m_lstHardDisks)
 	{
 		y << *d;
+		y.back().setAutoCompressEnabled(true);
 	}
 	mb::Completion c;
 	// rebase can fail. add a handler.

@@ -32,7 +32,7 @@
 #ifndef __Task_RestoreVmBackup_p_H_
 #define __Task_RestoreVmBackup_p_H_
 #include <memory>
-#include <boost/function.hpp>
+#include "CDspVmManager_p.h"
 #include "CDspVmBackupInfrastructure_p.h"
 #include "Task_BackupHelper.h"
 #include <prlcommon/Std/noncopyable.h>
@@ -371,11 +371,247 @@ private:
 };
 
 } // namespace Ploop
+
+namespace Rebase
+{
+namespace mb = ::Libvirt::Instrument::Agent::Vm::Block;
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Work
+
+struct Work
+{
+	Work(mb::Launcher agent_, const ::Backup::Product::componentList_type& object_);
+
+	::Libvirt::Result start(mb::Completion& signaler_);
+	PRL_RESULT stop();
+
+private:
+	boost::optional<mb::Activity> m_pending;
+	boost::function<mb::Activity (mb::Completion& )> m_launcher;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Adapter
+
+struct Adapter
+{
+	typedef boost::shared_ptr<Work> work_type;
+	typedef ::Command::Vm::Fork::Detector detector_type;
+	typedef std::pair<work_type, mb::Completion& > argument_type;
+
+	::Libvirt::Result operator()(const argument_type& argument_);
+	static detector_type* craftDetector(const argument_type& argument_);
+};
+
+} // namespace Rebase
+
+struct Factory;
+///////////////////////////////////////////////////////////////////////////////
+// struct Stream
+
+struct Stream
+{
+	typedef ::Backup::Tunnel::Source::Factory factory_type;
+	typedef factory_type::value_type cargo_type;
+	typedef Task_RestoreVmBackupTarget context_type;
+
+	explicit Stream(context_type& context_): m_context(&context_)
+	{
+	}
+
+	Prl::Expected<QString, PRL_RESULT> addStrand(const QString& value_);
+
+private:
+	context_type* m_context;
+	boost::optional<cargo_type> m_cargo;
+};
+
+namespace Online
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Image
+
+struct Image: private Activity::Unit
+{
+	typedef boost::shared_ptr<Stream> stream_type;
+	typedef ::Backup::Product::component_type component_type;
+
+	Image(const Activity::Unit& activity_, const stream_type& stream_,
+		const component_type& component_): Activity::Unit(activity_),
+		m_stream(stream_), m_component(component_)
+	{
+	}
+
+	PRL_RESULT execute();
+	void rollback();
+
+private:
+	QString m_2unlink;
+	stream_type m_stream;
+	component_type m_component;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+struct Builder
+{
+	explicit Builder(Factory& factory_): m_factory(factory_)
+	{
+	}
+
+	void addBackupObject();
+	PRL_RESULT addPrepare();
+	void addEscort();
+	void addCraftImages();
+	void addDefine();
+	void addEnroll();
+	void addStart();
+	void addRebase();
+	const Instrument::Command::Batch& getResult() const
+	{
+		return m_result;
+	}
+
+private:
+	Factory& m_factory;
+	QStringList m_componentList;
+	Instrument::Command::Batch m_result;
+};
+
+} // namespace Online
+
+namespace Chain
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Novel
+
+struct Novel: Instrument::Chain::Lsp<Novel, Activity::Unit>
+{
+	typedef Activity::Unit::context_type context_type;
+	typedef PRL_RESULT (context_type::* handler_type)();
+
+	Novel(handler_type handler_, const redo_type& redo_):
+		Instrument::Chain::Lsp<Novel, Activity::Unit>(redo_),
+		m_handler(handler_)
+	{
+	}
+
+	bool filter(argument_type request_) const
+	{
+		return request_.getProduct().isNew();
+	}
+	result_type handle(argument_type request_) const
+	{
+		return (request_.getContext().*m_handler)();
+	}
+
+private:
+	handler_type m_handler;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Online
+
+struct Online: Instrument::Chain::Lsp<Online, Activity::Unit>
+{
+	Online(Factory& factory_, const redo_type& redo_):
+		Instrument::Chain::Lsp<Online, Activity::Unit>(redo_),
+		m_factory(&factory_)
+	{
+	}
+
+	bool filter(argument_type request_) const;
+	result_type handle(argument_type request_) const;
+
+private:
+	Factory* m_factory;
+};
+
+namespace Vm
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Mint
+
+struct Mint: Instrument::Chain::Lsp<Mint, Activity::Unit>
+{
+	Mint(Activity::Product& product_, const redo_type& redo_):
+		Instrument::Chain::Lsp<Mint, Activity::Unit>(redo_), m_product(&product_)
+	{
+	}
+
+	bool filter(argument_type request_) const
+	{
+		return request_.getProduct().isNew();
+	}
+	result_type handle(argument_type request_) const;
+
+private:
+	Activity::Product* m_product;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Refurbished
+
+struct Refurbished
+{
+	explicit Refurbished(Activity::Product& product_): m_product(&product_)
+	{
+	}
+
+	Mint::result_type operator()(Mint::argument_type request_) const;
+
+private:
+	Activity::Product* m_product;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Sandbox
+
+struct Sandbox: Instrument::Chain::Unit<Activity::Unit>
+{
+	typedef QString (Activity::Unit::context_type::* property_type);
+
+	Sandbox(property_type property_, const redo_type& redo_):
+		Instrument::Chain::Unit<Activity::Unit>(redo_), m_property(property_)
+	{
+	}
+
+	result_type operator()(const request_type& request_)
+	{
+		(request_.getContext().*m_property) = request_.getProduct().getHome();
+		return Instrument::Chain::Unit<Activity::Unit>::operator()(request_);
+	}
+
+private:
+	property_type m_property;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Brew
+
+struct Brew: Instrument::Chain::Unit<Activity::Unit>
+{
+	typedef Activity::Product (Activity::Unit::context_type::* property_type);
+
+	Brew(property_type property_, const redo_type& redo_):
+		Instrument::Chain::Unit<Activity::Unit>(redo_), m_property(property_)
+	{
+	}
+
+	result_type operator()(const request_type& request_);
+
+private:
+	property_type m_property;
+};
+
+} // namespace Vm
+} // namespace Chain
 } // namespace Target
 
 namespace Source
 {
-
 typedef boost::function0<PRL_RESULT> sendFiles_type;
 
 ///////////////////////////////////////////////////////////////////////////////
