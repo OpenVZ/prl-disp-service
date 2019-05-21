@@ -290,15 +290,19 @@ PRL_RESULT Task_DiskImageResizer::run_body()
 				e = ::Error::Simple(PRL_ERR_VM_REQUEST_NOT_SUPPORTED,
 					"The only supported operation for an online VM is image resize.");
 			}
-			else if (PVE::DeviceEnabled == m_disk->getEnabled() &&
-				m_disk->getConnected() == PVE::DeviceConnected)
+			else if (!(PVE::DeviceEnabled == m_disk->getEnabled() &&
+				m_disk->getConnected() == PVE::DeviceConnected))
+				ret = PRL_ERR_INVALID_HANDLE;
+			else if (m_disk->getSize() > m_NewSize)
+			{
+				e = ::Error::Simple(PRL_ERR_VM_REQUEST_NOT_SUPPORTED,
+					"Online shrink of a VM image is prohibited.");
+			}
+			else
 			{
 				e = Libvirt::Kit.vms().at(i.first)
 					.getRuntime().setImageSize(*m_disk, m_NewSize << 20);
 			}
-			else
-				ret = PRL_ERR_INVALID_HANDLE;
-
 			if (e.isFailed())
 				ret = CDspTaskFailure(*this)(e.error().convertToEvent());
 			break;
