@@ -1516,7 +1516,7 @@ void Gear::react(const SmartPtr<IOPackage> package_)
 	{
 		WRITE_TRACE(DBG_FATAL,
 			"handler of FileCopy package (type=%d) is NULL", package_->header.type);
-		m_loop.exit(PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR);
+		return m_loop.exit(PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR);
 	}
 	bool q = false;
 	PRL_RESULT s = m_transport->handlePackage(package_, &q);
@@ -2020,6 +2020,9 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreCt()
         name - error
 	CTID - error if m_sTargetVmName is numeric, if m_sTargetVmName is non-numeric, will generate new CTID
 */
+
+	if (m_nFlags & PBT_RESTORE_RUNNING)
+		return PRL_ERR_UNIMPLEMENTED;
 
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
