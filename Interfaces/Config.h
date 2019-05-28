@@ -10,6 +10,7 @@
 /// included here
 ///
 /// Copyright (c) 2006-2017, Parallels International GmbH
+/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core Libraries. Virtuozzo Core
 /// Libraries is free software; you can redistribute it and/or modify it
@@ -27,7 +28,7 @@
 /// <http://www.gnu.org/licenses/> or write to Free Software Foundation,
 /// 51 Franklin Street, Fifth Floor Boston, MA 02110, USA.
 ///
-/// Our contact details: Parallels International GmbH, Vordergasse 59, 8200
+/// Our contact details: Virtuozzo International GmbH, Vordergasse 59, 8200
 /// Schaffhausen, Switzerland.
 ///
 //////////////////////////////////////////////////////////////////////////
