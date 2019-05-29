@@ -5,9 +5,10 @@
 # ==================================================================
 #
 # Copyright (c) 2005-2017, Parallels International GmbH
+# Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
 # All Rights Reserved.
 #
-# Our contact details: Parallels International GmbH, Vordergasse 59, 8200
+# Our contact details: Virtuozzo International GmbH, Vordergasse 59, 8200
 # Schaffhausen, Switzerland.
 #
 # This Module is a part of Parallels unit tests system.
