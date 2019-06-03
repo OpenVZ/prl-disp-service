@@ -483,8 +483,12 @@ PRL_RESULT Assistant::operator()(const QStringList& argv_, SmartPtr<Chain> custo
 PRL_RESULT Assistant::operator()(const QString& image_, const QString& archive_,
 			const QString& format_) const
 {
+	Prl::Expected<QString, PRL_RESULT> e = m_task->sendMountImageRequest(archive_);
+	if (e.isFailed())
+		return e.error();
+
 	Target::Stream s(*m_task);
-	Prl::Expected<QString, PRL_RESULT> e = s.addStrand(archive_);
+	e = s.addStrand(e.value());
 	if (e.isFailed())
 		return e.error();
 
