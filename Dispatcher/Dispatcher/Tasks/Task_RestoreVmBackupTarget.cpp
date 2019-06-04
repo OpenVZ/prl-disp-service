@@ -1448,15 +1448,6 @@ Mint::result_type Refurbished::operator()(Mint::argument_type request_) const
 		WRITE_TRACE(DBG_FATAL, "It is't possible to set name for restore existing VM");
 		return PRL_ERR_BAD_PARAMETERS;
 	}
-	switch (CDspVm::getVmState(u, d))
-	{
-	case VMS_PAUSED:
-	case VMS_RUNNING:
-		WRITE_TRACE(DBG_FATAL, "VM %s already exists and is running or paused",
-			qPrintable(u));
-		return CDspTaskFailure(request_.getContext())(PRL_ERR_BACKUP_RESTORE_VM_RUNNING, n);
-	default:;
-	}
 	PRL_RESULT e = S->getAccessManager().checkAccess(C, PVE::DspCmdRestoreVmBackup, u, NULL);
 	if (PRL_FAILED(e) && e != PRL_ERR_VM_CONFIG_DOESNT_EXIST)
 	{
@@ -1718,8 +1709,16 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVm()
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	// after first request - for unspecified Vm uuid case
 	QString d(getClient()->getVmDirectoryUuid());
+	switch (CDspVm::getVmState(m_product.getUuid(), d)) {
+	case VMS_PAUSED:
+	case VMS_RUNNING:
+		return CDspTaskFailure(*this)(PRL_ERR_BACKUP_RESTORE_VM_RUNNING, m_product.getUuid());
+	default:
+		break;
+	}
+
+	// after first request - for unspecified Vm uuid case
 	PRL_RESULT nRetCode = CDspService::instance()->getVmDirHelper().registerExclusiveVmOperation(
 		m_product.getUuid(), d, PVE::DspCmdRestoreVmBackup, getClient(), this->getJobUuid());
 	if (PRL_FAILED(nRetCode)) {
