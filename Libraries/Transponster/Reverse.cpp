@@ -1435,7 +1435,7 @@ PRL_RESULT Cpu::setNumber()
 		return PRL_ERR_UNINITIALIZED;
 
 	quint32 x = m_input.getNumber() * m_input.getSockets();
-	m_vcpu->setOwnValue(m_input.isEnableHotplug() ? 32 : x);
+	m_vcpu->setOwnValue(m_input.isEnableHotplug() ? 64 : x);
 	m_vcpu->setCurrent(x);
 
 	return PRL_ERR_SUCCESS;
