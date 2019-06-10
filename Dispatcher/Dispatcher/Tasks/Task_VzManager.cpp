@@ -847,8 +847,11 @@ PRL_RESULT Task_VzManager::editConfig()
 		return res;
 
 	res = get_op_helper()->apply_env_config(pConfig, pOldConfig, cmd->GetCommandFlags());
-	if (PRL_FAILED(res))
+	if (PRL_FAILED(res)) {
+		CDspService::instance()->getVzHelper()->getConfigCache().
+			remove(pConfig->getVmIdentification()->getHomePath());
 		return res;
+	}
 
 	res = t.remove();
 	if (PRL_FAILED(res))
