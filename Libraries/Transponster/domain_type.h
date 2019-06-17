@@ -10237,7 +10237,7 @@ namespace Domain
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Ordered<mpl::vector<Attribute<mpl::int_<111>, Name::Strict<105> >, Attribute<Domain::Xml::PAddrIPorName, Name::Strict<111> > > >, Listen777 > > VListenImpl;
+typedef Choice<mpl::vector<Ordered<mpl::vector<Attribute<mpl::int_<111>, Name::Strict<105> >, Optional<Attribute<Domain::Xml::PAddrIPorName, Name::Strict<111> > > > >, Listen777 > > VListenImpl;
 typedef VListenImpl::value_type VListen;
 
 } // namespace Xml
