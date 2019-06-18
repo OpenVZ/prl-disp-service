@@ -32,6 +32,7 @@
 #include "Stat/CDspStatStorage.h"
 #include <boost/bind/protect.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/phoenix/statement.hpp>
 #include "Tasks/Task_CreateProblemReport.h"
 #include "Tasks/Task_BackgroundJob.h"
 #include "Tasks/Task_ManagePrlNetService.h"
@@ -45,6 +46,7 @@
 #include <Libraries/Transponster/Reverse_p.h>
 #include <boost/functional/value_factory.hpp>
 #include "CDspLibvirt_p.h"
+#include <boost/phoenix/bind/bind_function_object.hpp>
 
 namespace Libvirt
 {
@@ -1622,9 +1624,12 @@ void Coarse::updateConnected(virDomainPtr domain_, const QString& alias_,
 
 void Coarse::adjustClock(virDomainPtr domain_, qint64 offset_)
 {
+	namespace vm = Instrument::Agent::Vm;
+
 	virDomainRef(domain_);
-	Instrument::Agent::Vm::Unit a(domain_);
-	a.getMaintenance().adjustClock(offset_);
+	boost::function<Result ()> x(boost::bind(&vm::Limb::Maintenance::adjustClock,
+		vm::Unit(domain_).getMaintenance(), offset_));
+	show(domain_, boost::phoenix::bind(x));
 }
 
 void Coarse::updateInterfaces(virNetworkPtr net_)
