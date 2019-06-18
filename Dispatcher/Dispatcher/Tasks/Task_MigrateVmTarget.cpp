@@ -426,6 +426,11 @@ target_type Queue::dequeue()
 	target_type output = dequeue();
 	if (output.isSucceed() && !isEmpty())
 	{
+		// NB. the queue was empty, we cleared the collector
+		// but the dequeue call didn't send anything thus
+		// we remove the head item and revert m_collector
+		// usage to the item size to retry on a next dequeue
+		// call.
 		m_collector.data_ptr()->size = m_packer.getFormat()
 			.getDataSize(Vm::Pump::Queue::dequeue());
 	}
