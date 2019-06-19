@@ -74,7 +74,7 @@ sub generate($$)
 	foreach my $c (@historyCursors)
 	{
 		my $t = $n.($c - 1);
-		@history_ < $c and return $_[0]->reverse($t);
+		$#history_ < $c and return $_[0]->reverse($t);
 		(defined($history_[$c]) && $history_[$c] eq $t) and return $_[0]->reverse($t);
 	}
 }

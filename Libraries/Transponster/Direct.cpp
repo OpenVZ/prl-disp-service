@@ -1611,14 +1611,14 @@ Vm::Vm(char* xml_)
 	if (snapshot.isNull())
 		return;
 
-	if (!snapshot->getChoice2916())
+	if (!snapshot->getChoice4011())
 		return;
 
-	if (1 == snapshot->getChoice2916()->which())
+	if (1 == snapshot->getChoice4011()->which())
 	{
 		const Libvirt::Domain::Xml::Domain& d =
-			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice2916::types, 1>::type>
-				(snapshot->getChoice2916().get()).getValue();
+			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice4011::types, 1>::type>
+				(snapshot->getChoice4011().get()).getValue();
 		m_input.reset(new Libvirt::Domain::Xml::Domain(d));
 	}
 }

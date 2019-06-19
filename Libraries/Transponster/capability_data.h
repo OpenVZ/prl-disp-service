@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
+ * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -17,7 +18,7 @@
  * <http://www.gnu.org/licenses/> or write to Free Software Foundation,
  * 51 Franklin Street, Fifth Floor Boston, MA 02110, USA.
  *
- * Our contact details: Parallels International GmbH, Vordergasse 59, 8200
+ * Our contact details: Virtuozzo International GmbH, Vordergasse 59, 8200
  * Schaffhausen, Switzerland.
  */
 
@@ -154,13 +155,13 @@ struct Traits<Capability::Xml::POctalMode>
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2928
+// struct PData3970
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData2928
+struct PData3970
 {
 	typedef QString value_type;
 };
@@ -169,20 +170,20 @@ struct PData2928
 } // namespace Capability
 
 template<>
-struct Validatable<Capability::Xml::PData2928>: mpl::true_
+struct Validatable<Capability::Xml::PData3970>: mpl::true_
 {
-	static bool validate(const Capability::Xml::PData2928::value_type& value_);
+	static bool validate(const Capability::Xml::PData3970::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2930
+// struct PData4024
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData2930
+struct PData4024
 {
 	typedef qint32 value_type;
 };
@@ -191,29 +192,29 @@ struct PData2930
 } // namespace Capability
 
 template<>
-struct Traits<Capability::Xml::PData2930>
+struct Traits<Capability::Xml::PData4024>
 {
-	static bool parse(const QString& src_, Capability::Xml::PData2930::value_type& dst_);
+	static bool parse(const QString& src_, Capability::Xml::PData4024::value_type& dst_);
 
-	static QString generate(Capability::Xml::PData2930::value_type src_);
+	static QString generate(Capability::Xml::PData4024::value_type src_);
 
 };
 
 template<>
-struct Validatable<Capability::Xml::PData2930>: mpl::true_
+struct Validatable<Capability::Xml::PData4024>: mpl::true_
 {
-	static bool validate(Capability::Xml::PData2930::value_type value_);
+	static bool validate(Capability::Xml::PData4024::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2932
+// struct PData4026
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData2932
+struct PData4026
 {
 	typedef QString value_type;
 };
@@ -222,20 +223,20 @@ struct PData2932
 } // namespace Capability
 
 template<>
-struct Validatable<Capability::Xml::PData2932>: mpl::true_
+struct Validatable<Capability::Xml::PData4026>: mpl::true_
 {
-	static bool validate(const Capability::Xml::PData2932::value_type& value_);
+	static bool validate(const Capability::Xml::PData4026::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2934
+// struct PData4028
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData2934
+struct PData4028
 {
 	typedef qint32 value_type;
 };
@@ -244,29 +245,29 @@ struct PData2934
 } // namespace Capability
 
 template<>
-struct Traits<Capability::Xml::PData2934>
+struct Traits<Capability::Xml::PData4028>
 {
-	static bool parse(const QString& src_, Capability::Xml::PData2934::value_type& dst_);
+	static bool parse(const QString& src_, Capability::Xml::PData4028::value_type& dst_);
 
-	static QString generate(Capability::Xml::PData2934::value_type src_);
+	static QString generate(Capability::Xml::PData4028::value_type src_);
 
 };
 
 template<>
-struct Validatable<Capability::Xml::PData2934>: mpl::true_
+struct Validatable<Capability::Xml::PData4028>: mpl::true_
 {
-	static bool validate(Capability::Xml::PData2934::value_type value_);
+	static bool validate(Capability::Xml::PData4028::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2936
+// struct PData4030
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData2936
+struct PData4030
 {
 	typedef QString value_type;
 };
@@ -275,20 +276,20 @@ struct PData2936
 } // namespace Capability
 
 template<>
-struct Validatable<Capability::Xml::PData2936>: mpl::true_
+struct Validatable<Capability::Xml::PData4030>: mpl::true_
 {
-	static bool validate(const Capability::Xml::PData2936::value_type& value_);
+	static bool validate(const Capability::Xml::PData4030::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2938
+// struct PData4032
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData2938
+struct PData4032
 {
 	typedef qint32 value_type;
 };
@@ -297,29 +298,29 @@ struct PData2938
 } // namespace Capability
 
 template<>
-struct Traits<Capability::Xml::PData2938>
+struct Traits<Capability::Xml::PData4032>
 {
-	static bool parse(const QString& src_, Capability::Xml::PData2938::value_type& dst_);
+	static bool parse(const QString& src_, Capability::Xml::PData4032::value_type& dst_);
 
-	static QString generate(Capability::Xml::PData2938::value_type src_);
+	static QString generate(Capability::Xml::PData4032::value_type src_);
 
 };
 
 template<>
-struct Validatable<Capability::Xml::PData2938>: mpl::true_
+struct Validatable<Capability::Xml::PData4032>: mpl::true_
 {
-	static bool validate(Capability::Xml::PData2938::value_type value_);
+	static bool validate(Capability::Xml::PData4032::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2940
+// struct PData4034
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData2940
+struct PData4034
 {
 	typedef QString value_type;
 };
@@ -328,20 +329,20 @@ struct PData2940
 } // namespace Capability
 
 template<>
-struct Validatable<Capability::Xml::PData2940>: mpl::true_
+struct Validatable<Capability::Xml::PData4034>: mpl::true_
 {
-	static bool validate(const Capability::Xml::PData2940::value_type& value_);
+	static bool validate(const Capability::Xml::PData4034::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2942
+// struct PData4036
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData2942
+struct PData4036
 {
 	typedef QString value_type;
 };
@@ -350,9 +351,9 @@ struct PData2942
 } // namespace Capability
 
 template<>
-struct Validatable<Capability::Xml::PData2942>: mpl::true_
+struct Validatable<Capability::Xml::PData4036>: mpl::true_
 {
-	static bool validate(const Capability::Xml::PData2942::value_type& value_);
+	static bool validate(const Capability::Xml::PData4036::value_type& value_);
 
 };
 
@@ -903,13 +904,13 @@ struct Validatable<Capability::Xml::PWwn>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2952
+// struct PData4046
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData2952
+struct PData4046
 {
 	typedef QString value_type;
 };
@@ -918,20 +919,20 @@ struct PData2952
 } // namespace Capability
 
 template<>
-struct Validatable<Capability::Xml::PData2952>: mpl::true_
+struct Validatable<Capability::Xml::PData4046>: mpl::true_
 {
-	static bool validate(const Capability::Xml::PData2952::value_type& value_);
+	static bool validate(const Capability::Xml::PData4046::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2954
+// struct PData4048
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData2954
+struct PData4048
 {
 	typedef QString value_type;
 };
@@ -940,20 +941,20 @@ struct PData2954
 } // namespace Capability
 
 template<>
-struct Validatable<Capability::Xml::PData2954>: mpl::true_
+struct Validatable<Capability::Xml::PData4048>: mpl::true_
 {
-	static bool validate(const Capability::Xml::PData2954::value_type& value_);
+	static bool validate(const Capability::Xml::PData4048::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2956
+// struct PData4050
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData2956
+struct PData4050
 {
 	typedef qint32 value_type;
 };
@@ -962,18 +963,18 @@ struct PData2956
 } // namespace Capability
 
 template<>
-struct Traits<Capability::Xml::PData2956>
+struct Traits<Capability::Xml::PData4050>
 {
-	static bool parse(const QString& src_, Capability::Xml::PData2956::value_type& dst_);
+	static bool parse(const QString& src_, Capability::Xml::PData4050::value_type& dst_);
 
-	static QString generate(Capability::Xml::PData2956::value_type src_);
+	static QString generate(Capability::Xml::PData4050::value_type src_);
 
 };
 
 template<>
-struct Validatable<Capability::Xml::PData2956>: mpl::true_
+struct Validatable<Capability::Xml::PData4050>: mpl::true_
 {
-	static bool validate(Capability::Xml::PData2956::value_type value_);
+	static bool validate(Capability::Xml::PData4050::value_type value_);
 
 };
 
@@ -1000,13 +1001,13 @@ struct Validatable<Capability::Xml::PCcwSsidRange>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2958
+// struct PData4052
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData2958
+struct PData4052
 {
 	typedef QString value_type;
 };
@@ -1015,20 +1016,20 @@ struct PData2958
 } // namespace Capability
 
 template<>
-struct Validatable<Capability::Xml::PData2958>: mpl::true_
+struct Validatable<Capability::Xml::PData4052>: mpl::true_
 {
-	static bool validate(const Capability::Xml::PData2958::value_type& value_);
+	static bool validate(const Capability::Xml::PData4052::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2960
+// struct PData4054
 
 namespace Capability
 {
 namespace Xml
 {
-struct PData2960
+struct PData4054
 {
 	typedef qint32 value_type;
 };
@@ -1037,18 +1038,18 @@ struct PData2960
 } // namespace Capability
 
 template<>
-struct Traits<Capability::Xml::PData2960>
+struct Traits<Capability::Xml::PData4054>
 {
-	static bool parse(const QString& src_, Capability::Xml::PData2960::value_type& dst_);
+	static bool parse(const QString& src_, Capability::Xml::PData4054::value_type& dst_);
 
-	static QString generate(Capability::Xml::PData2960::value_type src_);
+	static QString generate(Capability::Xml::PData4054::value_type src_);
 
 };
 
 template<>
-struct Validatable<Capability::Xml::PData2960>: mpl::true_
+struct Validatable<Capability::Xml::PData4054>: mpl::true_
 {
-	static bool validate(Capability::Xml::PData2960::value_type value_);
+	static bool validate(Capability::Xml::PData4054::value_type value_);
 
 };
 
