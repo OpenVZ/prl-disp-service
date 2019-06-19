@@ -608,22 +608,13 @@ struct Addressing: boost::static_visitor<void>
 		consume(group_.getValue().getProtocol());
 		consume(group_.getValue().getProtocol2());
 	}
-	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice2470::types, 0>::type& ) const
-	{
-		m_sink->setConfigureWithDhcp(true);
-	}
-	void operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice2470::types, 1>::type& ) const
-	{
-		m_sink->setConfigureWithDhcp(false);
-	}
 
 private:
-	void consume(const boost::optional<Libvirt::Iface::Xml::VChoice2470 >& ipv4_) const
+	void consume(const boost::optional<Libvirt::Iface::Xml::Protocol >& ipv4_) const
 	{
-		if (ipv4_)
-			boost::apply_visitor(*this, ipv4_.get());
+		m_sink->setConfigureWithDhcp(ipv4_ && ipv4_.get().getDhcp());
 	}
-	void consume(const boost::optional<Libvirt::Iface::Xml::Protocol >& ipv6_) const
+	void consume(const boost::optional<Libvirt::Iface::Xml::Protocol1 >& ipv6_) const
 	{
 		m_sink->setConfigureWithDhcpIPv6(ipv6_ && ipv6_.get().getDhcp());
 	}

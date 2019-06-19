@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
+ * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -17,7 +18,7 @@
  * <http://www.gnu.org/licenses/> or write to Free Software Foundation,
  * 51 Franklin Street, Fifth Floor Boston, MA 02110, USA.
  *
- * Our contact details: Parallels International GmbH, Vordergasse 59, 8200
+ * Our contact details: Virtuozzo International GmbH, Vordergasse 59, 8200
  * Schaffhausen, Switzerland.
  */
 
@@ -559,9 +560,9 @@ bool Validatable<Blockexport::Xml::PWwn>::validate(const Blockexport::Xml::PWwn:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData2972
+// struct PData4066
 
-bool Validatable<Blockexport::Xml::PData2972>::validate(const Blockexport::Xml::PData2972::value_type& value_)
+bool Validatable<Blockexport::Xml::PData4066>::validate(const Blockexport::Xml::PData4066::value_type& value_)
 {
 	QRegExp q("0x[0-9a-eA-E][0-9a-fA-F]?");
 	if (!q.exactMatch(value_))
@@ -571,9 +572,9 @@ bool Validatable<Blockexport::Xml::PData2972>::validate(const Blockexport::Xml::
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData3785
+// struct PData4068
 
-bool Validatable<Blockexport::Xml::PData3785>::validate(const Blockexport::Xml::PData3785::value_type& value_)
+bool Validatable<Blockexport::Xml::PData4068>::validate(const Blockexport::Xml::PData4068::value_type& value_)
 {
 	QRegExp q("0x[fF][0-9a-eA-E]?");
 	if (!q.exactMatch(value_))
@@ -583,21 +584,21 @@ bool Validatable<Blockexport::Xml::PData3785>::validate(const Blockexport::Xml::
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData3787
+// struct PData4070
 
-bool Traits<Blockexport::Xml::PData3787>::parse(const QString& src_, Blockexport::Xml::PData3787::value_type& dst_)
+bool Traits<Blockexport::Xml::PData4070>::parse(const QString& src_, Blockexport::Xml::PData4070::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Blockexport::Xml::PData3787>::generate(Blockexport::Xml::PData3787::value_type src_)
+QString Traits<Blockexport::Xml::PData4070>::generate(Blockexport::Xml::PData4070::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Blockexport::Xml::PData3787>::validate(Blockexport::Xml::PData3787::value_type value_)
+bool Validatable<Blockexport::Xml::PData4070>::validate(Blockexport::Xml::PData4070::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -621,9 +622,9 @@ bool Validatable<Blockexport::Xml::PCcwSsidRange>::validate(const Blockexport::X
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData3789
+// struct PData4072
 
-bool Validatable<Blockexport::Xml::PData3789>::validate(const Blockexport::Xml::PData3789::value_type& value_)
+bool Validatable<Blockexport::Xml::PData4072>::validate(const Blockexport::Xml::PData4072::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,4}");
 	if (!q.exactMatch(value_))
@@ -633,21 +634,21 @@ bool Validatable<Blockexport::Xml::PData3789>::validate(const Blockexport::Xml::
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData3791
+// struct PData4074
 
-bool Traits<Blockexport::Xml::PData3791>::parse(const QString& src_, Blockexport::Xml::PData3791::value_type& dst_)
+bool Traits<Blockexport::Xml::PData4074>::parse(const QString& src_, Blockexport::Xml::PData4074::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Blockexport::Xml::PData3791>::generate(Blockexport::Xml::PData3791::value_type src_)
+QString Traits<Blockexport::Xml::PData4074>::generate(Blockexport::Xml::PData4074::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Blockexport::Xml::PData3791>::validate(Blockexport::Xml::PData3791::value_type value_)
+bool Validatable<Blockexport::Xml::PData4074>::validate(Blockexport::Xml::PData4074::value_type value_)
 {
 	if (0 > value_)
 		return false;

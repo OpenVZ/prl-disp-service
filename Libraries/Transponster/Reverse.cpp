@@ -2646,11 +2646,8 @@ PRL_RESULT Reverse::setBridge()
 
 		Libvirt::Iface::Xml::Protocol p;
 		p.setDhcp(Libvirt::Iface::Xml::Dhcp());
-		h.setProtocol2(p);
+		h.setProtocol(p);
 	}
-	mpl::at_c<Libvirt::Iface::Xml::VChoice2470::types, 0>::type a;
-	a.setValue(Libvirt::Iface::Xml::Dhcp());
-	h.setProtocol(Libvirt::Iface::Xml::VChoice2470(a));
 	mpl::at_c<Libvirt::Iface::Xml::VInterfaceAddressing::types, 0>::type v;
 	v.setValue(h);
 	m_result.setInterfaceAddressing(v);
@@ -2725,7 +2722,7 @@ QList<Libvirt::Snapshot::Xml::Disk> getAbsentee(const QList<T* >& list_)
 		mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 		a.setValue(Device::Clustered::Model<T>(*d).getTargetName());
 		mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 0>::type b;
-		b.setValue(Libvirt::Snapshot::Xml::Disk2926());
+		b.setValue(Libvirt::Snapshot::Xml::Disk4021());
 		Libvirt::Snapshot::Xml::Disk x;
 		x.setName(Libvirt::Snapshot::Xml::VName(a));
 		x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
@@ -2745,7 +2742,7 @@ boost::optional<Libvirt::Snapshot::Xml::Disk> Internal::operator()(const CVmHard
 	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 	a.setValue(Device::Clustered::Model<CVmHardDisk>(disk_).getTargetName());
 	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 1>::type b;
-	b.setValue(Libvirt::Snapshot::Xml::Disk2927());
+	b.setValue(Libvirt::Snapshot::Xml::Disk4022());
 	x.setName(Libvirt::Snapshot::Xml::VName(a));
 	x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
 	return x;
@@ -2762,15 +2759,15 @@ boost::optional<Libvirt::Snapshot::Xml::Disk> External::operator()(const CVmHard
 	Libvirt::Snapshot::Xml::Disk x;
 	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 	Libvirt::Snapshot::Xml::Source s;
-	Libvirt::Snapshot::Xml::Variant2921 o;
-	mpl::at_c<Libvirt::Snapshot::Xml::VChoice2924::types, 0>::type p;
+	Libvirt::Snapshot::Xml::Variant4016 o;
+	mpl::at_c<Libvirt::Snapshot::Xml::VChoice4019::types, 0>::type p;
 	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 2>::type q;
 
 	a.setValue(Device::Clustered::Model<CVmHardDisk>(disk_).getTargetName());
 	s.setFile(disk_.getSystemName() + "." + m_snapshot);
 	o.setSource(s);
 	p.setValue(o);
-	q.setValue(Libvirt::Snapshot::Xml::VChoice2924(p));
+	q.setValue(Libvirt::Snapshot::Xml::VChoice4019(p));
 
 	x.setName(Libvirt::Snapshot::Xml::VName(a));
 	x.setDisk(Libvirt::Snapshot::Xml::VDisk(q));
@@ -2901,9 +2898,9 @@ PRL_RESULT Request::operator()(const object_type& object_)
 		n.setValue(d.get<1>());
 		y.setName(n);
 
-		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice3969::types, 1>::type c;
+		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice4248::types, 1>::type c;
 		c.setValue(Libvirt::Blockexport::Xml::EVirYesNoYes);
-		y.setChoice3969(Libvirt::Blockexport::Xml::VChoice3969(c));
+		y.setChoice4248(Libvirt::Blockexport::Xml::VChoice4248(c));
 
 		x << y;
 	}

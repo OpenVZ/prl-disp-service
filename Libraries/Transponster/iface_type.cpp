@@ -204,26 +204,63 @@ int Traits<Iface::Xml::Ip>::generate(const Iface::Xml::Ip& src_, QDomElement& ds
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant2469
+// struct Protocol
 
-int Traits<Iface::Xml::Variant2469>::parse(Iface::Xml::Variant2469& dst_, QStack<QDomElement>& stack_)
+namespace Iface
+{
+namespace Xml
+{
+bool Protocol::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Protocol, Name::Strict<203> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Protocol::save(QDomElement& dst_) const
+{
+	Element<Protocol, Name::Strict<203> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Protocol::save(QDomDocument& dst_) const
+{
+	Element<Protocol, Name::Strict<203> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Iface
+
+int Traits<Iface::Xml::Protocol>::parse(Iface::Xml::Protocol& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setIp(m.get<0>().getValue());
-		dst_.setRoute(m.get<1>().getValue());
+		dst_.setDhcp(m.get<1>().get<0>().getValue());
+		dst_.setIpList(m.get<1>().get<1>().getValue());
+		dst_.setRoute(m.get<1>().get<2>().getValue());
 	}
 	return output;
 }
 
-int Traits<Iface::Xml::Variant2469>::generate(const Iface::Xml::Variant2469& src_, QDomElement& dst_)
+int Traits<Iface::Xml::Protocol>::generate(const Iface::Xml::Protocol& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getIp(), m.get<0>()))
+	if (0 > Details::Marshal::assign(src_.getDhcp(), m.get<1>().get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getRoute(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<1>().get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getRoute(), m.get<1>().get<2>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -290,21 +327,21 @@ int Traits<Iface::Xml::Ip1>::generate(const Iface::Xml::Ip1& src_, QDomElement& 
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Protocol
+// struct Protocol1
 
 namespace Iface
 {
 namespace Xml
 {
-Protocol::Protocol(): m_autoconf()
+Protocol1::Protocol1(): m_autoconf()
 {
 }
 
-bool Protocol::load(const QDomElement& src_)
+bool Protocol1::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Protocol, Name::Strict<203> > m;
+	Element<Protocol1, Name::Strict<203> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -312,16 +349,16 @@ bool Protocol::load(const QDomElement& src_)
 	return true;
 }
 
-bool Protocol::save(QDomElement& dst_) const
+bool Protocol1::save(QDomElement& dst_) const
 {
-	Element<Protocol, Name::Strict<203> > m;
+	Element<Protocol1, Name::Strict<203> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
-bool Protocol::save(QDomDocument& dst_) const
+bool Protocol1::save(QDomDocument& dst_) const
 {
-	Element<Protocol, Name::Strict<203> > m;
+	Element<Protocol1, Name::Strict<203> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -330,7 +367,7 @@ bool Protocol::save(QDomDocument& dst_) const
 } // namespace Xml
 } // namespace Iface
 
-int Traits<Iface::Xml::Protocol>::parse(Iface::Xml::Protocol& dst_, QStack<QDomElement>& stack_)
+int Traits<Iface::Xml::Protocol1>::parse(Iface::Xml::Protocol1& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -344,7 +381,7 @@ int Traits<Iface::Xml::Protocol>::parse(Iface::Xml::Protocol& dst_, QStack<QDomE
 	return output;
 }
 
-int Traits<Iface::Xml::Protocol>::generate(const Iface::Xml::Protocol& src_, QDomElement& dst_)
+int Traits<Iface::Xml::Protocol1>::generate(const Iface::Xml::Protocol1& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getAutoconf(), m.get<1>().get<0>()))
