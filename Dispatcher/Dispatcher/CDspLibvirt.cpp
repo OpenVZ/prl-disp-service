@@ -889,6 +889,146 @@ void Sweeper::timerEvent(QTimerEvent* event_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// supplementary function to decode libvirt events
+
+const char * humanReadableEvent(int event_, int subtype_)
+{
+	switch(event_)
+	{
+		case VIR_DOMAIN_EVENT_DEFINED:
+			switch (subtype_)
+			{
+				case VIR_DOMAIN_EVENT_DEFINED_ADDED:
+					return "Defined/newConfigFile";
+				case VIR_DOMAIN_EVENT_DEFINED_UPDATED:
+					return "Defined/changedConfigFile";
+				case VIR_DOMAIN_EVENT_DEFINED_RENAMED:
+					return "Defined/domainRenamed";
+				case VIR_DOMAIN_EVENT_DEFINED_FROM_SNAPSHOT:
+					return "Defined/configRestoredFromSnapshot";
+				default:
+					return "Defined/unknown";
+			}
+		case VIR_DOMAIN_EVENT_UNDEFINED:
+			switch (subtype_)
+			{
+				case VIR_DOMAIN_EVENT_UNDEFINED_REMOVED:
+					return "Undefined/deletedConfigFile";
+				case VIR_DOMAIN_EVENT_UNDEFINED_RENAMED:
+					return "Undefined/domainRenamed";
+				default:
+					return "Undefined/unknown";
+			}
+		case VIR_DOMAIN_EVENT_STARTED:
+			switch(subtype_)
+			{
+				case VIR_DOMAIN_EVENT_STARTED_BOOTED:
+					return "Started/normalBoot";
+				case VIR_DOMAIN_EVENT_STARTED_MIGRATED:
+					return "Started/incomingMigration";
+				case VIR_DOMAIN_EVENT_STARTED_RESTORED:
+					return "Started/restoredFromStateFile";
+				case VIR_DOMAIN_EVENT_STARTED_FROM_SNAPSHOT:
+					return "Started/restoredFromSnapshot";
+				case VIR_DOMAIN_EVENT_STARTED_WAKEUP:
+					return "Started/startedDueToWakeup";
+				default:
+					return "Started/unknown";
+			}
+		case VIR_DOMAIN_EVENT_SUSPENDED:
+			switch(subtype_)
+			{
+				case VIR_DOMAIN_EVENT_SUSPENDED_PAUSED:
+					return "Suspended/suspendedNormallyAdminPause";
+				case VIR_DOMAIN_EVENT_SUSPENDED_MIGRATED:
+					return "Suspended/suspendedOfflineMigration";
+				case VIR_DOMAIN_EVENT_SUSPENDED_IOERROR:
+					return "Suspended/suspendedDiskIoError";
+				case VIR_DOMAIN_EVENT_SUSPENDED_WATCHDOG:
+					return "Suspended/suspendedWatchdog";
+				case VIR_DOMAIN_EVENT_SUSPENDED_RESTORED:
+					return "Suspended/restoredFromStateFile";
+				case VIR_DOMAIN_EVENT_SUSPENDED_FROM_SNAPSHOT:
+					return "Suspended/restoredFromSnapshot";
+				case VIR_DOMAIN_EVENT_SUSPENDED_API_ERROR:
+					return "Suspended/suspendedDueToLibvirtApiError";
+				case VIR_DOMAIN_EVENT_SUSPENDED_POSTCOPY:
+					return "Suspended/suspendedForPostCopyMigration";
+				case VIR_DOMAIN_EVENT_SUSPENDED_POSTCOPY_FAILED:
+					return "Suspended/suspendedAfterFailedPostCopy";
+				default:
+					return "Suspended/unknown";
+			}
+		case VIR_DOMAIN_EVENT_RESUMED:
+			switch(subtype_)
+			{
+				case VIR_DOMAIN_EVENT_RESUMED_UNPAUSED:
+					return "Resumed/normalAdminUnpause";
+				case VIR_DOMAIN_EVENT_RESUMED_MIGRATED:
+					return "Resumed/resumedMigrationCompletion";
+				case VIR_DOMAIN_EVENT_RESUMED_FROM_SNAPSHOT:
+					return "Resumed/resumedFromSnapshot";
+				case VIR_DOMAIN_EVENT_RESUMED_POSTCOPY:
+					return "Resumed/resumedWhilePostCopyMigrationRunning";
+				default:
+					return "Resumed/unknown";
+			}
+		case VIR_DOMAIN_EVENT_STOPPED:
+			switch(subtype_)
+			{
+				case VIR_DOMAIN_EVENT_STOPPED_SHUTDOWN:
+					return "Stopped/normalShutdown";
+				case VIR_DOMAIN_EVENT_STOPPED_DESTROYED:
+					return "Stopped/forcedPoweroffFromHost";
+				case VIR_DOMAIN_EVENT_STOPPED_CRASHED:
+					return "Stopped/guestCrashed";
+				case VIR_DOMAIN_EVENT_STOPPED_MIGRATED:
+					return "Stopped/migratedToAnotherHost";
+				case VIR_DOMAIN_EVENT_STOPPED_SAVED:
+					return "Stopped/savedToStateFile";
+				case VIR_DOMAIN_EVENT_STOPPED_FAILED:
+					return "Stopped/hostEmulatorFailed";
+				case VIR_DOMAIN_EVENT_STOPPED_FROM_SNAPSHOT:
+					return "Stopped/offlineSnapshotLoaded";
+				default:
+					return "Stopped/unknown";
+			}
+		case VIR_DOMAIN_EVENT_SHUTDOWN:
+			switch(subtype_)
+			{
+				case VIR_DOMAIN_EVENT_SHUTDOWN_FINISHED:
+					return "Shutdown/guestFinishedShutdown";
+				case VIR_DOMAIN_EVENT_SHUTDOWN_GUEST:
+					return "Shutdown/domainFinishedShutdownAfterRequestFromGuest";
+				case VIR_DOMAIN_EVENT_SHUTDOWN_HOST:
+					return "Shutdown/domainFinishedShutdownAfterRequestFromHost";
+				default:
+					return "/unknown";
+			}
+		case VIR_DOMAIN_EVENT_PMSUSPENDED:
+			switch(subtype_)
+			{
+				case VIR_DOMAIN_EVENT_PMSUSPENDED_MEMORY:
+					return "PmSuspended/guestPmSuspendedToMemory";
+				case VIR_DOMAIN_EVENT_PMSUSPENDED_DISK:
+					return "PmSuspended/guestPmSuspendedToDisk";
+				default:
+					return "PmSuspended/unknown";
+			}
+		case VIR_DOMAIN_EVENT_CRASHED:
+			switch(subtype_)
+			{
+				case VIR_DOMAIN_EVENT_CRASHED_PANICKED:
+					return "Crashed/guestPanicked";
+				default:
+					return "Crashed/unknown";
+			}
+		default:
+			return "Unknown";
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct State
 
 int State::react(virConnectPtr, virDomainPtr domain_, int event_,
@@ -896,8 +1036,8 @@ int State::react(virConnectPtr, virDomainPtr domain_, int event_,
 {
 	QSharedPointer<Model::System::entry_type> d;
 	Model::Coarse* v = (Model::Coarse* )opaque_;
-	WRITE_TRACE(DBG_FATAL, "from libvirt: VM \"%s\" lifecycle event %d(event_) %d(subtype_)",
-		virDomainGetName(domain_), event_, subtype_);
+	WRITE_TRACE(DBG_FATAL, "libvirtEvent: VM \"%s\" received (%d/%d) %s",
+		virDomainGetName(domain_), event_, subtype_, humanReadableEvent(event_, subtype_));
 	switch (event_)
 	{
 	case VIR_DOMAIN_EVENT_DEFINED:
