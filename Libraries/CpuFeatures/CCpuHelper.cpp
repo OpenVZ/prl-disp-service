@@ -32,11 +32,12 @@
 #include <boost/variant/static_visitor.hpp>
 #include <boost/mpl/for_each.hpp>
 #include <boost/mpl/range_c.hpp>
-
+#include <boost/assign/list_of.hpp>
 #include <prlcommon/HostUtils/HostUtils.h>
 
 namespace
 {
+Q_GLOBAL_STATIC(CCpuHelper, getHelper);
 
 static const char CPUFEATURES_BINARY[] = "/usr/sbin/cpufeatures";
 /* TODO move to some hidden place */
@@ -567,14 +568,16 @@ struct Config
 
 struct Register
 {
-	typedef std::map<const char*, int> map_type;
+	typedef std::map<QString, int> map_type;
 
-	Register(const char *features[], Config::getter_type getter) : m_get(getter)
+	Register(const std::vector<QString>& features_, Config::getter_type getter) : m_get(getter)
 	{
-		for (unsigned int i = 0; features[i] != NULL; ++i)
+		int i = 0;
+		foreach (const QString& f, features_)
 		{
-			if (*features[i] != 0)
-				m_features.insert(map_type::value_type(features[i], i));
+			if (!f.isEmpty())
+				m_features.insert(map_type::value_type(f, i));
+			++i;
 		}
 	}
 
@@ -585,7 +588,7 @@ struct Register
 		foreach(const map_type::value_type& v, m_features)
 		{
 			if (((1UL << v.second) & m) == 0)
-				features.insert(QString(v.first));
+				features.insert(v.first);
 		}
 	}
 
@@ -624,114 +627,68 @@ private:
 
 struct Visitor : boost::static_visitor<void>
 {
-	Visitor(List::type &list) : m_list(&list)
+	Visitor(const CCpuHelper::catalog_type& catalog_, List::type &list):
+		m_list(&list), m_catalog(catalog_)
 	{
 	}
 
-	void operator()(boost::mpl::int_<PCFE_FEATURES>)
+	void operator()(boost::mpl::int_<PCFE_FEATURES> eax_)
 	{
-		static const char *f[] = {
-			"fpu", "vme", "de", "pse", "tsc", "msr", "pae", "mce", "cx8", "apic", "", "sep",
-			"mtrr",	"pge", "mca", "cmov", "pat", "pse36", "pn", "clflush", "", "ds", "acpi",
-			"mmx", "fxsr", "sse", "sse2", "ss", "ht", "tm", "ia64", "pbe", NULL
-		};
-
-		m_list->push_back(Register(f, &Config::type::getFEATURES_MASK));
+		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
+			&Config::type::getFEATURES_MASK));
 	}
 
-	void operator()(boost::mpl::int_<PCFE_EXT_FEATURES>)
+	void operator()(boost::mpl::int_<PCFE_EXT_FEATURES> eax_)
 	{
-		static const char *f[] = {
-			"pni", "pclmuldq", "dtes64", "monitor", "ds_cpl", "vmx", "smx", "est",	"tm2",
-			"ssse3", "cid",	"",	"fma", "cx16", "xtpr", "pdcm",	"",	"pcid",	"dca", "sse4.1",
-			"sse4.2", "x2apic",	"movbe", "popcnt", "tsc-deadline", "aes",	"xsave",
-			"osxsave", "avx", "f16c", "rdrand", "hypervisor", NULL
-		};
-
-		m_list->push_back(Register(f, &Config::type::getEXT_FEATURES_MASK));
+		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
+			&Config::type::getEXT_FEATURES_MASK));
 	}
 
-	void operator()(boost::mpl::int_<PCFE_EXT_00000007_EBX>)
+	void operator()(boost::mpl::int_<PCFE_EXT_00000007_EBX> eax_)
 	{
-		static const char *f[] = {
-			"fsgsbase", "tsc_adjust", "", "bmi1", "hle", "avx2",	"",	"smep",	"bmi2",
-			"erms", "invpcid", "rtm", "", "", "mpx", "", "avx512f", "",
-			"rdseed", "adx", "smap", "", "pcommit", "clflushopt", "", "", "avx512pf",	"avx512er",
-			"avx512cd",	"", "", "", NULL
-		};
-
-		m_list->push_back(Register(f, &Config::type::getEXT_00000007_EBX_MASK));
+		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
+			&Config::type::getEXT_00000007_EBX_MASK));
 	}
 
-	void operator()(boost::mpl::int_<PCFE_EXT_80000001_ECX>)
+	void operator()(boost::mpl::int_<PCFE_EXT_80000001_ECX> eax_)
 	{
-		static const char *f[] = {
-			"lahf_lm", "cmp_legacy", "svm",	"extapic", "cr8legacy", "abm", "sse4a",
-			"misalignsse", "3dnowprefetch",	"osvw",	"ibs", "xop", "skinit",	"wdt", "", "lwp",
-			"fma4", "tce", "", "nodeid_msr", "", "tbm",	"topoext", "perfctr_core", "perfctr_nb",
-			NULL
-/*
-			"", "dbx", "perftsc", "pcx_l2i", "mwaitext", NULL
-*/
-		};
-
-		m_list->push_back(Register(f, &Config::type::getEXT_80000001_ECX_MASK));
+		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
+			&Config::type::getEXT_80000001_ECX_MASK));
 	}
 
-	void operator()(boost::mpl::int_<PCFE_EXT_80000001_EDX>)
+	void operator()(boost::mpl::int_<PCFE_EXT_80000001_EDX> eax_)
 	{
-		static const char *f[] = {
-			"", "", "",	"", "", "", "", "", "", "", "", "syscall",
-			"", "", "", "", "", "", "", "", "nx", "", "mmxext", "",
-			"", "fxsr_opt", "pdpe1gb", "rdtscp", "", "lm", "3dnowext", "3dnow", NULL
-		};
-
-		m_list->push_back(Register(f, &Config::type::getEXT_80000001_EDX_MASK));
+		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
+			&Config::type::getEXT_80000001_EDX_MASK));
 	}
 
-	void operator()(boost::mpl::int_<PCFE_EXT_80000007_EDX>)
+	void operator()(boost::mpl::int_<PCFE_EXT_80000007_EDX> eax_)
 	{
-		static const char *f[] = {NULL};
-/*	libvirt does not like CPU features from this register /usr/share/libvirt/cpu_map.xml
-		static const char *f[] = {
-			"ts", "fid", "vid", "ttp", "tm", "stc", "mul100", "hwps",
-			"itsc", "cpb", "efro", "pfi", "pa", "cs", "rapl",
-			NULL
-		};
-*/
-
-		m_list->push_back(Register(f, &Config::type::getEXT_80000007_EDX_MASK));
+		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
+			&Config::type::getEXT_80000007_EDX_MASK));
 	}
 
-	void operator()(boost::mpl::int_<PCFE_EXT_00000007_EDX>)
+	void operator()(boost::mpl::int_<PCFE_EXT_00000007_EDX> eax_)
 	{
-		static const char *f[] = {
-			"", "", "", "", "", "", "", "", "", "",
-			"md-clear", "", "", "", "", "", "", "", "", "",
-			"", "", "", "", "", "", "spec-ctrl", "stibp", "", "",
-			"", "ssbd",
-			NULL
-		};
-
-		m_list->push_back(Register(f, &Config::type::getEXT_00000007_EDX_MASK));
+		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
+			&Config::type::getEXT_00000007_EDX_MASK));
 	}
 
-	void operator()(boost::mpl::int_<PCFE_EXT_80000008_EAX>)
+	void operator()(boost::mpl::int_<PCFE_EXT_80000008_EAX> eax_)
 	{
-		static const char *f[] = {NULL};
-
-		m_list->push_back(Register(f, &Config::type::getEXT_80000008_EAX));
+		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
+			&Config::type::getEXT_80000008_EAX));
 	}
 
-	void operator()(boost::mpl::int_<PCFE_EXT_0000000D_EAX>)
+	void operator()(boost::mpl::int_<PCFE_EXT_0000000D_EAX> eax_)
 	{
-		static const char *f[] = {"xsaveopt", "xsavec", "xgetbv1", "xsaves", NULL};
-
-		m_list->push_back(Register(f, &Config::type::getEXT_0000000D_EAX_MASK));
+		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
+			&Config::type::getEXT_0000000D_EAX_MASK));
 	}
 
 private:
 	List::type *m_list;
+	CCpuHelper::catalog_type m_catalog;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -741,7 +698,7 @@ List::List()
 {
 	typedef boost::mpl::range_c<int, PCFE_FEATURES, PCFE_MAX> range_type;
 
-	Visitor v(m_registers);
+	Visitor v(getHelper()->getCatalog(), m_registers);
 	boost::mpl::for_each<range_type, IntegralToInt<boost::mpl::_1> >(boost::ref(v));
 }
 
@@ -758,6 +715,58 @@ QSet<QString> List::getDisabled(const Config::type &input)
 Q_GLOBAL_STATIC(List, getRegisters);
 
 }// anonyomus namespace
+
+///////////////////////////////////////////////////////////////////////////////
+// struct CCpuHelper
+
+CCpuHelper::CCpuHelper()
+{
+	m_catalog[PCFE_FEATURES] = boost::assign::list_of<QString>
+		("fpu")("vme")("de")("pse")("tsc")("msr")("pae")("mce")("cx8")
+		("apic")("")("sep")("mtrr")("pge")("mca")("cmov")("pat")("pse36")
+		("pn")("clflush")("")("ds")("acpi")("mmx")("fxsr")("sse")("sse2")
+		("ss")("ht")("tm")("ia64")("pbe");
+	m_catalog[PCFE_EXT_FEATURES] = boost::assign::list_of<QString>
+		("pni")("pclmuldq")("dtes64")("monitor")("ds_cpl")("vmx")("smx")
+		("est")("tm2")("ssse3")("cid")("")("fma")("cx16")("xtpr")("pdcm")
+		("")("pcid")("dca")("sse4.1")("sse4.2")("x2apic")("movbe")("popcnt")
+		("tsc-deadline")("aes")("xsave")("osxsave")("avx")("f16c")
+		("rdrand")("hypervisor");
+	m_catalog[PCFE_EXT_00000007_EBX] = boost::assign::list_of<QString>
+		("fsgsbase")("tsc_adjust")("")("bmi1")("hle")("avx2")("")("smep")
+		("bmi2")("erms")("invpcid")("rtm")("")("")("mpx")("")("avx512f")
+		("")("rdseed")("adx")("smap")("")("pcommit")("clflushopt")("")
+		("")("avx512pf")("avx512er")("avx512cd")("")("")("");
+	m_catalog[PCFE_EXT_80000001_ECX] = boost::assign::list_of<QString>
+		("lahf_lm")("cmp_legacy")("svm")("extapic")("cr8legacy")("abm")
+		("sse4a")("misalignsse")("3dnowprefetch")("osvw")("ibs")("xop")
+		("skinit")("wdt")("")("lwp")("fma4")("tce")("")("nodeid_msr")
+		("")("tbm")("topoext")("perfctr_core")("perfctr_nb");
+	m_catalog[PCFE_EXT_80000001_EDX] = boost::assign::list_of<QString>
+		("")("")("")("")("")("")("")("")("")("")("")("syscall")("")
+		("")("")("")("")("")("")("")("nx")("")("mmxext")("")("")
+		("fxsr_opt")("pdpe1gb")("rdtscp")("")("lm")("3dnowext")("3dnow");
+	(void)m_catalog[PCFE_EXT_80000007_EDX];
+	m_catalog[PCFE_EXT_00000007_EDX] = boost::assign::list_of<QString>
+		("")("")("")("")("")("")("")("")("")("")("md-clear")("")("")
+		("")("")("")("")("")("")("")("")("")("")("")("")("")
+		("spec-ctrl")("stibp")("")("")("")("ssbd");
+	(void)m_catalog[PCFE_EXT_80000008_EAX];
+	m_catalog[PCFE_EXT_0000000D_EAX] = boost::assign::list_of<QString>
+		("xsaveopt")("xsavec")("xgetbv1")("xsaves");
+}
+
+void CCpuHelper::setCatalog(const catalog_type& value_)
+{
+	QMutexLocker g(&getHelper()->m_guard);
+	getHelper()->m_catalog = value_;
+}
+
+CCpuHelper::catalog_type CCpuHelper::getCatalog()
+{
+	QMutexLocker g(&getHelper()->m_guard);
+	return getHelper()->m_catalog;
+}
 
 PRL_RESULT CCpuHelper::execFeaturesCmd(const QString &cmdline)
 {

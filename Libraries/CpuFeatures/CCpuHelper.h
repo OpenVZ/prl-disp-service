@@ -31,8 +31,14 @@
 #include <prlxmlmodel/CpuFeatures/CCpuPool.h>
 #include <prlcommon/Std/SmartPtr.h>
 
-class CCpuHelper {
-public:
+///////////////////////////////////////////////////////////////////////////////
+// struct CCpuHelper
+
+struct CCpuHelper {
+	typedef QHash<PRL_CPU_FEATURES_EX, std::vector<QString> > catalog_type;
+
+	CCpuHelper();
+
 	static CDispCpuPreferences *get_cpu_mask();
 	static PRL_RESULT maskUpdate(CDispCpuPreferences new_mask);
 	static bool update(CVmConfiguration &conf);
@@ -48,9 +54,14 @@ public:
 	static QSet<QString> getDisabledFeatures(const CVmConfiguration &conf);
 
 	static bool sync();
+	static void setCatalog(const catalog_type& value_);
+	static catalog_type getCatalog();
 
 private:
 	static PRL_RESULT execFeaturesCmd(const QString &cmdline);
+
+	QMutex m_guard;
+	catalog_type m_catalog;
 };
 
 #endif// __CCPUHELPER_H__
