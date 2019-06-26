@@ -22,8 +22,10 @@
  * Schaffhausen, Switzerland.
  */
 
+#include <QXmlQuery>
 #include <QHostAddress>
 #include "CDspService.h"
+#include <QXmlResultItems>
 #include "CDspVmManager_p.h"
 #include <QtCore/qmetatype.h>
 #include "CDspVmStateSender.h"
@@ -516,10 +518,12 @@ bool Vm::validate(const QString& uuid_)
 	return y->getServerUuid() == m_registry->getServerUuid();
 }
 
+namespace Host
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Host
+// struct Script
 
-void Host::pullPci()
+void Script::pullPci()
 {
 	Prl::Expected<QList<CHwGenericPciDevice>, Error::Simple> f =
 		m_hub->host().getAssignablePci();
@@ -540,7 +544,7 @@ void Host::pullPci()
 	}
 }
 
-void Host::syncNetwork(const QFileInfo& config_)
+void Script::syncNetwork(const QFileInfo& config_)
 {
 	QFileInfo d(config_.absoluteDir(), QString("digested.").append(config_.fileName()));
 	if (d.exists())
@@ -588,6 +592,126 @@ void Host::syncNetwork(const QFileInfo& config_)
 	t.setAutoRemove(false);
 }
 
+PRL_RESULT Script::syncCpu(const QString& config_)
+{
+	QFile f(config_);
+	if (!f.open(QIODevice::ReadOnly))
+	{                       
+		WRITE_TRACE(DBG_FATAL, "cannot open %s",
+			qPrintable(config_));
+		return PRL_ERR_FILE_READ_ERROR;
+	}
+	QXmlQuery q;
+	if (!q.setFocus(&f))
+	{
+		WRITE_TRACE(DBG_FATAL, "cannot parse the XML file %s",
+			qPrintable(config_));
+		return PRL_ERR_READ_XML_CONTENT;
+	}
+	QXmlResultItems m;
+	q.setQuery("cpus/arch[1]/feature[cpuid]");
+	q.evaluateTo(&m);
+
+	Cpu b;
+	forever
+	{
+		QXmlItem i(m.next());
+		if (i.isNull())
+			break;
+		if (i.isNode())
+		{
+			q.setFocus(i);
+			b(q);
+		}
+	}
+	CCpuHelper::setCatalog(b.getResult());
+
+	return PRL_ERR_SUCCESS;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
+
+void Cpu::operator()(QXmlQuery& query_)
+{
+	static const char* a[] = {"eax", "ebx", "ecx", "edx"};
+	quint32 i = 0, X = 0;
+	for (quint32 c = boost::size(a); i < c; ++i)
+	{
+		QString x = evaluate(query_, QString("string(cpuid/@%1)").arg(a[i]));
+		if (!x.isEmpty())
+		{
+			X = quint32(ffs(x.toUInt(NULL, 16)));
+			if (0 < X)
+				break;
+		}
+	}
+	PRL_CPU_FEATURES_EX k = translate(i, query_);
+	if (PCFE_MAX == k)
+		return;
+
+	mapped_type& m = (*this)[k];
+	while (m.size() < X)
+	{
+		m.push_back(QString());
+	}
+	m[X - 1] = evaluate(query_, "string(@name)");
+}
+
+QString Cpu::evaluate(QXmlQuery& query_, const QString& xpath_)
+{
+	QString x;
+	query_.setQuery(xpath_);
+	query_.evaluateTo(&x);
+
+	return x.trimmed();
+}
+
+PRL_CPU_FEATURES_EX Cpu::translate(int register_, QXmlQuery& query_)
+{
+	quint32 a = evaluate(query_, "string(cpuid/@eax_in)").toUInt(NULL, 16);
+	switch (register_)
+	{
+	case 0: 
+		switch (a)
+		{
+		case 0x0d:
+			return PCFE_EXT_0000000D_EAX;
+		}
+		break;
+	case 1: 
+		switch (a)
+		{
+		case 0x07:
+			return PCFE_EXT_00000007_EBX;
+		}
+		break;
+	case 2: 
+		switch (a)
+		{
+		case 0x01:
+			return PCFE_EXT_FEATURES;
+		case 0x80000001:
+			return PCFE_EXT_80000001_ECX;
+		}
+		break;
+	case 3: 
+		switch (a)
+		{
+		case 0x01:
+			return PCFE_FEATURES;
+		case 0x07:
+			return PCFE_EXT_80000007_EDX;
+		case 0x80000001:
+			return PCFE_EXT_80000001_EDX;
+		}
+		break;
+	}
+	return PCFE_MAX;
+}
+
+} // namespace Host
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Subject
 
@@ -603,7 +727,8 @@ void Subject::run()
 
 	Agent::Hub u;
 	u.setLink(m_link);
-	Host h(u);
+	Host::Script h(u);
+	h.syncCpu("/usr/share/libvirt/cpu_map.xml");
 	h.syncNetwork(ParallelsDirs::getNetworkConfigFilePath());
 	m_vm(u);
 	QProcess::startDetached("/usr/libexec/vz_systemd");

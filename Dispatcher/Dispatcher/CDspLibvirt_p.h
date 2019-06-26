@@ -46,7 +46,9 @@
 #include <libvirt/libvirt.h>
 #include <libvirt/virterror.h>
 #include <libvirt/libvirt-qemu.h>
+#include <Libraries/CpuFeatures/CCpuHelper.h>
 
+class QXmlQuery;
 class CUsbAuthenticNameList;
 class CDispCommonPreferences;
 
@@ -1318,21 +1320,44 @@ private:
 	QSharedPointer<Model::System> m_view;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Host
-
-struct Host
+namespace Host
 {
-	explicit Host(Agent::Hub& hub_): m_hub(&hub_)
+///////////////////////////////////////////////////////////////////////////////
+// struct Script
+
+struct Script
+{
+	explicit Script(Agent::Hub& hub_): m_hub(&hub_)
 	{
 	}
 
 	void pullPci();
 	void syncNetwork(const QFileInfo& config_);
+	PRL_RESULT syncCpu(const QString& config_);
 
 private:
 	Agent::Hub* m_hub;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Cpu
+
+struct Cpu: private CCpuHelper::catalog_type
+{
+	typedef CCpuHelper::catalog_type result_type;
+
+	void operator()(QXmlQuery& query_);
+	const result_type& getResult() const
+	{
+		return *this;
+	}
+
+private:
+	static QString evaluate(QXmlQuery& query_, const QString& xpath_);
+	static PRL_CPU_FEATURES_EX translate(int register_, QXmlQuery& query_);
+};
+
+} // namespace Host
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Subject
