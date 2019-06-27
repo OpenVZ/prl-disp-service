@@ -634,59 +634,56 @@ struct Visitor : boost::static_visitor<void>
 
 	void operator()(boost::mpl::int_<PCFE_FEATURES> eax_)
 	{
-		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
-			&Config::type::getFEATURES_MASK));
+		do_(eax_.value, &Config::type::getFEATURES_MASK);
 	}
 
 	void operator()(boost::mpl::int_<PCFE_EXT_FEATURES> eax_)
 	{
-		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
-			&Config::type::getEXT_FEATURES_MASK));
+		do_(eax_.value, &Config::type::getEXT_FEATURES_MASK);
 	}
 
 	void operator()(boost::mpl::int_<PCFE_EXT_00000007_EBX> eax_)
 	{
-		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
-			&Config::type::getEXT_00000007_EBX_MASK));
+		do_(eax_.value, &Config::type::getEXT_00000007_EBX_MASK);
 	}
 
 	void operator()(boost::mpl::int_<PCFE_EXT_80000001_ECX> eax_)
 	{
-		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
-			&Config::type::getEXT_80000001_ECX_MASK));
+		do_(eax_.value, &Config::type::getEXT_80000001_ECX_MASK);
 	}
 
 	void operator()(boost::mpl::int_<PCFE_EXT_80000001_EDX> eax_)
 	{
-		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
-			&Config::type::getEXT_80000001_EDX_MASK));
+		do_(eax_.value, &Config::type::getEXT_80000001_EDX_MASK);
 	}
 
 	void operator()(boost::mpl::int_<PCFE_EXT_80000007_EDX> eax_)
 	{
-		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
-			&Config::type::getEXT_80000007_EDX_MASK));
+		do_(eax_.value, &Config::type::getEXT_80000007_EDX_MASK);
 	}
 
 	void operator()(boost::mpl::int_<PCFE_EXT_00000007_EDX> eax_)
 	{
-		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
-			&Config::type::getEXT_00000007_EDX_MASK));
+		do_(eax_.value, &Config::type::getEXT_00000007_EDX_MASK);
 	}
 
 	void operator()(boost::mpl::int_<PCFE_EXT_80000008_EAX> eax_)
 	{
-		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
-			&Config::type::getEXT_80000008_EAX));
+		do_(eax_.value, &Config::type::getEXT_80000008_EAX);
 	}
 
 	void operator()(boost::mpl::int_<PCFE_EXT_0000000D_EAX> eax_)
 	{
-		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(eax_.value)],
-			&Config::type::getEXT_0000000D_EAX_MASK));
+		do_(eax_.value, &Config::type::getEXT_0000000D_EAX_MASK);
 	}
 
 private:
+	void do_(int catalog_, Config::getter_type getter_)
+	{
+		m_list->push_back(Register(m_catalog[PRL_CPU_FEATURES_EX(catalog_)],
+			getter_));
+	}
+
 	List::type *m_list;
 	CCpuHelper::catalog_type m_catalog;
 };
