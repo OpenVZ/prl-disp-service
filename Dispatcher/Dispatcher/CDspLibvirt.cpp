@@ -700,7 +700,7 @@ PRL_CPU_FEATURES_EX Cpu::translate(int register_, QXmlQuery& query_)
 		case 0x01:
 			return PCFE_FEATURES;
 		case 0x07:
-			return PCFE_EXT_80000007_EDX;
+			return PCFE_EXT_00000007_EDX;
 		case 0x80000001:
 			return PCFE_EXT_80000001_EDX;
 		}
