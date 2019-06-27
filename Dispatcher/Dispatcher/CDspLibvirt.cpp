@@ -642,8 +642,7 @@ void Cpu::operator()(QXmlQuery& query_)
 		if (!x.isEmpty())
 		{
 			X = quint32(ffs(x.toUInt(NULL, 16)));
-			if (0 < X)
-				break;
+			break;
 		}
 	}
 	PRL_CPU_FEATURES_EX k = translate(i, query_);
