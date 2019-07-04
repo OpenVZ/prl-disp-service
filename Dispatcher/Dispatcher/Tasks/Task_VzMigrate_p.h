@@ -82,6 +82,10 @@ struct Pump: QObject
 	}
 
 	void reactReceipt(const mvp::Fragment::bin_type& package_);
+	quint32 getPending() const
+	{
+		return m_queue.size();
+	}
 
 public slots:
 	void reactBytesWritten(qint64 value_);
@@ -111,8 +115,24 @@ struct Hub: QObject
 	void stopPump(int alias_);
 	void startPump(int alias_, int socket_);
 	result_type operator()(const mvp::Fragment::bin_type& package_);
+	quint32 getPending() const
+	{
+		return m_pending;
+	}
+	bool isVacant() const;
+
+public slots:
+	void reactBytesWritten(qint64 value_);
+
+signals:
+	void vacant();
 
 private:
+	Q_OBJECT
+
+	void recalculate();
+
+	quint32 m_pending;
 	pumps_type m_pumps;
 };
 
@@ -177,6 +197,7 @@ struct Task_HandleDispPackage: QThread
 
 public slots:
 	void spin();
+	void read();
 
 signals:
 	void onDispPackageHandlerFailed(PRL_RESULT nRetCode, const QString &sErrInfo);

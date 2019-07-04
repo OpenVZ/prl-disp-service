@@ -1102,6 +1102,7 @@ struct Queue: private Vm::Pump::Queue
 	}
 
 	target_type dequeue();
+	using Vm::Pump::Queue::size;
 	using Vm::Pump::Queue::enqueue;
 
 private:

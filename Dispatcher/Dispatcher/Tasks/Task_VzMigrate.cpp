@@ -744,6 +744,7 @@ Task_HandleDispPackage::Task_HandleDispPackage(
 	m_bActiveFd(nFd.size(), true), m_watcher()
 {
 	m_hub.setParent(this);
+	connect(&m_hub, SIGNAL(vacant()), SLOT(read()));
 }
 
 void Task_HandleDispPackage::run()
@@ -788,13 +789,7 @@ void Task_HandleDispPackage::run()
 
 void Task_HandleDispPackage::spin()
 {
-	QList<SmartPtr<IOPackage> > h;
-	if (NULL == m_watcher)
-	{
-		m_watcher = new QFutureWatcher<Prl::Expected<IOSendJob::Response, PRL_RESULT> >(this);
-		this->connect(m_watcher, SIGNAL(finished()), SLOT(spin()));
-	}
-	else
+	if (NULL != m_watcher)
 	{
 		Prl::Expected<IOSendJob::Response, PRL_RESULT> x = m_watcher->result();
 		if (x.isFailed())
@@ -802,13 +797,10 @@ void Task_HandleDispPackage::spin()
 			emit onDispPackageHandlerFailed(x.error(), QString());
 			return exit(PRL_ERR_SUCCESS);
 		}
-		h = x.value().responsePackages;
-	}
-	m_watcher->setFuture(QtConcurrent::run(boost::bind
-		(Task_HandleDispPackage::pull, m_pSendJobInterface, m_hJob)));
-	if (!h.isEmpty())
-	{
-		foreach (const SmartPtr<IOPackage>& p, h)
+		m_watcher->deleteLater();
+		m_watcher = NULL;
+
+		foreach (const SmartPtr<IOPackage>& p, x.value().responsePackages)
 		{
 			Migrate::Ct::Hub::result_type y = m_hub(p);
 			if (y.isFailed())
@@ -818,6 +810,21 @@ void Task_HandleDispPackage::spin()
 				return exit(PRL_ERR_SUCCESS);
 			}
 		}
+	}
+	read();
+}
+
+void Task_HandleDispPackage::read()
+{
+	if (!m_hub.isVacant())
+		return;
+
+	if (NULL == m_watcher)
+	{
+		m_watcher = new QFutureWatcher<Prl::Expected<IOSendJob::Response, PRL_RESULT> >(this);
+		this->connect(m_watcher, SIGNAL(finished()), SLOT(spin()));
+		m_watcher->setFuture(QtConcurrent::run(boost::bind
+			(&Task_HandleDispPackage::pull, m_pSendJobInterface, m_hJob)));
 	}
 }
 
@@ -952,9 +959,14 @@ Fragment::result_type Fragment::handle(argument_type request_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hub
 
-Hub::Hub()
+Hub::Hub(): m_pending()
 {
 	d_ptr->sendChildEvents = false;
+}
+
+bool Hub::isVacant() const
+{
+	return m_pumps.isEmpty() || quint32(m_pumps.size()) > m_pending;
 }
 
 void Hub::stopPump(int alias_)
@@ -964,13 +976,15 @@ void Hub::stopPump(int alias_)
 
 	pump_type p = m_pumps[alias_];
 	::shutdown(p.first->socketDescriptor(), SHUT_RDWR);
-	p.first->disconnect(SIGNAL(bytesWritten(qint64)),
-		p.second, SLOT(reactBytesWritten(qint64)));
+	p.second->disconnect(SIGNAL(bytesWritten(qint64)),
+		this, SLOT(reactBytesWritten(qint64)));
 	p.first->close();
 
 	m_pumps.remove(alias_);
 	p.first->deleteLater();
 	p.second->deleteLater();
+
+	recalculate();
 }
 
 void Hub::startPump(int alias_, int socket_)
@@ -986,7 +1000,7 @@ void Hub::startPump(int alias_, int socket_)
 	p->setParent(this);
 	m_pumps[alias_] = qMakePair(d, p);
 
-	p->connect(d, SIGNAL(bytesWritten(qint64)),
+	this->connect(d, SIGNAL(bytesWritten(qint64)),
 		SLOT(reactBytesWritten(qint64)), Qt::QueuedConnection);
 }
 
@@ -999,7 +1013,47 @@ Hub::result_type Hub::operator()(const mvp::Fragment::bin_type& package_)
 	if (PRL_FAILED(e))
 		return qMakePair(e, t);
 
+	recalculate();
 	return result_type();
+}
+
+void Hub::reactBytesWritten(qint64 value_)
+{
+	QLocalSocket* d = static_cast<QLocalSocket* >(sender());
+	if (NULL == d)
+		return;
+
+	Pump* p = NULL;
+	foreach (const pumps_type::mapped_type& m, m_pumps.values())
+	{
+		if (m.first == d)
+		{
+			p = m.second;
+			break;
+		}
+	}
+	if (NULL == p)
+		return;
+		
+	quint32 x = p->getPending();
+	p->reactBytesWritten(value_);
+	quint32 y = p->getPending();
+	if (y < x)
+	{
+		bool V = isVacant();
+		m_pending += y - x;
+		if (V != isVacant())
+			emit vacant();
+	}
+}
+
+void Hub::recalculate()
+{
+	m_pending = 0;
+	foreach (const pumps_type::mapped_type& m, m_pumps.values())
+	{
+		m_pending += m.second->getPending();
+	}
 }
 
 } // namespace Ct
