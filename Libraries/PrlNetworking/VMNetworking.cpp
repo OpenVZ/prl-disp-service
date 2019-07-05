@@ -288,6 +288,7 @@ QString PrlNet::Filter::Routed::operator()(const QNetworkInterface& iface) const
 {
 	if (!QFileInfo(QString("/sys/class/net/%1/device").arg(iface.name())).exists() &&
 		!QFileInfo(QString("/sys/class/net/%1/bridge").arg(iface.name())).exists() &&
+		!QFileInfo(QString("/proc/net/vlan/%1").arg(iface.name())).exists() &&
 		!iface.name().startsWith("bond"))
 		return QString();
 
