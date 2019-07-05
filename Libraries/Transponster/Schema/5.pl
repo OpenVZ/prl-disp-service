@@ -209,6 +209,11 @@ sub build_
 	return $output;
 }
 
+sub getNamespace($)
+{
+	return $namespace;
+}
+
 sub buildComplexType($$$$)
 {
 	my ($z, $a, $b, $c) = @_;
@@ -481,7 +486,9 @@ sub setup($$)
 
 sub addDependency($$)
 {
-	push @dependencies, $_[1];
+	my $x = $_[1];
+	my $t = $x->getNamespace()->header('type');
+	push @dependencies, $x unless grep {$t eq $_->getNamespace()->header('type')} @dependencies;
 }
 
 package PlainDecorator;
@@ -1335,18 +1342,19 @@ sub getDeclaration($)
 		{
 			my $n = $m->{name};
 			my $t = $m->{cppType};
+			my $s = $m->{namespace};
 			if ($m->{forward})
 			{
-				push @output, "\t@{[$t->getResultType()]} get$n() const;";
-				push @output, "\tvoid set$n(@{[$t->getParamType()]} value_);";
+				push @output, "\t@{[$t->getResultType($s)]} get$n() const;";
+				push @output, "\tvoid set$n(@{[$t->getParamType($s)]} value_);";
 			}
 			else
 			{
-				push @output, "\t@{[$t->getResultType()]} get$n() const";
+				push @output, "\t@{[$t->getResultType($s)]} get$n() const";
 				push @output, "\t{";
 				push @output, "\t\treturn $m->{variable};";
 				push @output, "\t}";
-				push @output, "\tvoid set$n(@{[$t->getParamType()]} value_)";
+				push @output, "\tvoid set$n(@{[$t->getParamType($s)]} value_)";
 				push @output, "\t{";
 				push @output, "\t\t$m->{variable} = value_;";
 				push @output, "\t}";
@@ -1366,7 +1374,7 @@ sub getDeclaration($)
 		foreach my $m (map {$_->{member}} $self->members_())
 		{
 			my $n = $m->{name};
-			push @output, "\t@{[$m->{cppType}->getValueType()]} $m->{variable};";
+			push @output, "\t@{[$m->{cppType}->getValueType($m->{namespace})]} $m->{variable};";
 		}
 	}
 	push @output, "};";
@@ -1617,10 +1625,10 @@ sub generate($)
 
 sub getMember($)
 {
-	my ($self, $m) = @_;
-	$m = $self->{inline}->getMember();
-	my $t = ValueType->new($m->{cppType}, 'OptionalDecorator');
-	return {name => $m->{name}, cppType => $t};
+	my ($self) = @_;
+	my %output = %{$self->{inline}->getMember()};
+	$output{cppType} = ValueType->new($output{cppType}, 'OptionalDecorator');
+	return \%output;
 }
 
 sub getMarshal($;$)
@@ -2263,7 +2271,9 @@ sub getMember($)
 		if ($f->can('getMember'))
 		{
 			my $m = $f->getMember() or return undef;
+			my $s = $m->{namespace};
 			$output->{cppType} = $m->{cppType};
+			$output->{namespace} = $s if $s && Factory->getNamespace() ne $s;
 		}
 		else
 		{
@@ -2272,7 +2282,10 @@ sub getMember($)
 	}
 	else
 	{
-		$output->{cppType} = $b->getType()->getCppType();
+		my $t = $b->getType();
+		my $s = $t->getNamespace();
+		$output->{cppType} = $t->getCppType();
+		$output->{namespace} = $s if Factory->getNamespace() ne $s;
 	}
 	return $output;
 }
@@ -2947,6 +2960,11 @@ sub parseElement($)
 			push @{$output->{children}}, Ng::Text->new(Ng::Constant->new(parseValue($n)));
 		} elsif ('data' eq $n->nodeName) {
 			push @{$output->{children}}, Ng::Text->new(parseData($n, $a));
+		} elsif ('grammar' eq $n->nodeName) {
+			my $d = parseGrammar($n);
+			my $i = $d->getInline();
+			push @{$output->{children}}, $i;
+			Factory->addDependency($i->{block}->getType());
 		} else {
 			die "Unsupported element child! ".$n->nodeName;
 		}

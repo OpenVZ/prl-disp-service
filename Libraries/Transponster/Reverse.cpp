@@ -2898,9 +2898,9 @@ PRL_RESULT Request::operator()(const object_type& object_)
 		n.setValue(d.get<1>());
 		y.setName(n);
 
-		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice4248::types, 1>::type c;
+		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice4700::types, 1>::type c;
 		c.setValue(Libvirt::Blockexport::Xml::EVirYesNoYes);
-		y.setChoice4248(Libvirt::Blockexport::Xml::VChoice4248(c));
+		y.setChoice4700(Libvirt::Blockexport::Xml::VChoice4700(c));
 
 		x << y;
 	}

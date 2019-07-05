@@ -560,9 +560,9 @@ bool Validatable<Blockexport::Xml::PWwn>::validate(const Blockexport::Xml::PWwn:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData4066
+// struct PData4515
 
-bool Validatable<Blockexport::Xml::PData4066>::validate(const Blockexport::Xml::PData4066::value_type& value_)
+bool Validatable<Blockexport::Xml::PData4515>::validate(const Blockexport::Xml::PData4515::value_type& value_)
 {
 	QRegExp q("0x[0-9a-eA-E][0-9a-fA-F]?");
 	if (!q.exactMatch(value_))
@@ -572,9 +572,9 @@ bool Validatable<Blockexport::Xml::PData4066>::validate(const Blockexport::Xml::
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData4068
+// struct PData4517
 
-bool Validatable<Blockexport::Xml::PData4068>::validate(const Blockexport::Xml::PData4068::value_type& value_)
+bool Validatable<Blockexport::Xml::PData4517>::validate(const Blockexport::Xml::PData4517::value_type& value_)
 {
 	QRegExp q("0x[fF][0-9a-eA-E]?");
 	if (!q.exactMatch(value_))
@@ -584,21 +584,21 @@ bool Validatable<Blockexport::Xml::PData4068>::validate(const Blockexport::Xml::
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData4070
+// struct PData4519
 
-bool Traits<Blockexport::Xml::PData4070>::parse(const QString& src_, Blockexport::Xml::PData4070::value_type& dst_)
+bool Traits<Blockexport::Xml::PData4519>::parse(const QString& src_, Blockexport::Xml::PData4519::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Blockexport::Xml::PData4070>::generate(Blockexport::Xml::PData4070::value_type src_)
+QString Traits<Blockexport::Xml::PData4519>::generate(Blockexport::Xml::PData4519::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Blockexport::Xml::PData4070>::validate(Blockexport::Xml::PData4070::value_type value_)
+bool Validatable<Blockexport::Xml::PData4519>::validate(Blockexport::Xml::PData4519::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -622,9 +622,9 @@ bool Validatable<Blockexport::Xml::PCcwSsidRange>::validate(const Blockexport::X
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData4072
+// struct PData4521
 
-bool Validatable<Blockexport::Xml::PData4072>::validate(const Blockexport::Xml::PData4072::value_type& value_)
+bool Validatable<Blockexport::Xml::PData4521>::validate(const Blockexport::Xml::PData4521::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,4}");
 	if (!q.exactMatch(value_))
@@ -634,21 +634,21 @@ bool Validatable<Blockexport::Xml::PData4072>::validate(const Blockexport::Xml::
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData4074
+// struct PData4523
 
-bool Traits<Blockexport::Xml::PData4074>::parse(const QString& src_, Blockexport::Xml::PData4074::value_type& dst_)
+bool Traits<Blockexport::Xml::PData4523>::parse(const QString& src_, Blockexport::Xml::PData4523::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Blockexport::Xml::PData4074>::generate(Blockexport::Xml::PData4074::value_type src_)
+QString Traits<Blockexport::Xml::PData4523>::generate(Blockexport::Xml::PData4523::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Blockexport::Xml::PData4074>::validate(Blockexport::Xml::PData4074::value_type value_)
+bool Validatable<Blockexport::Xml::PData4523>::validate(Blockexport::Xml::PData4523::value_type value_)
 {
 	if (0 > value_)
 		return false;

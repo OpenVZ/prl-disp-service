@@ -209,13 +209,13 @@ private:
 } // namespace Snapshot
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Host2563
+// struct Host4383
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct Host2563
+struct Host4383
 {
 	const boost::optional<ETransport >& getTransport() const
 	{
@@ -258,7 +258,7 @@ namespace Snapshot
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Host2563, Ordered<mpl::vector<Attribute<mpl::int_<520>, Name::Strict<514> >, Attribute<Snapshot::Xml::PAbsFilePath, Name::Strict<521> > > > > > VHostImpl;
+typedef Choice<mpl::vector<Host4383, Ordered<mpl::vector<Attribute<mpl::int_<520>, Name::Strict<514> >, Attribute<Snapshot::Xml::PAbsFilePath, Name::Strict<521> > > > > > VHostImpl;
 typedef VHostImpl::value_type VHost;
 
 } // namespace Xml
@@ -461,6 +461,14 @@ struct Domainsnapshot
 	{
 		m_choice4011 = value_;
 	}
+	const boost::optional<Domain::Xml::Domain >& getXPersistent() const
+	{
+		return m_xPersistent;
+	}
+	void setXPersistent(const boost::optional<Domain::Xml::Domain >& value_)
+	{
+		m_xPersistent = value_;
+	}
 	const boost::optional<QString >& getParent() const
 	{
 		return m_parent;
@@ -490,6 +498,7 @@ private:
 	boost::optional<QList<Disk > > m_disks;
 	boost::optional<EActive > m_active;
 	boost::optional<VChoice4011 > m_choice4011;
+	boost::optional<Domain::Xml::Domain > m_xPersistent;
 	boost::optional<QString > m_parent;
 	boost::optional<QList<QDomElement > > m_cookie;
 };
@@ -570,15 +579,15 @@ struct Traits<Snapshot::Xml::Variant4017>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Host2563 traits
+// struct Host4383 traits
 
 template<>
-struct Traits<Snapshot::Xml::Host2563>
+struct Traits<Snapshot::Xml::Host4383>
 {
 	typedef Ordered<mpl::vector<Optional<Attribute<Snapshot::Xml::ETransport, Name::Strict<514> > >, Attribute<Snapshot::Xml::VName1, Name::Strict<107> >, Optional<Attribute<Snapshot::Xml::PUnsignedInt, Name::Strict<212> > > > > marshal_type;
 
-	static int parse(Snapshot::Xml::Host2563& , QStack<QDomElement>& );
-	static int generate(const Snapshot::Xml::Host2563& , QDomElement& );
+	static int parse(Snapshot::Xml::Host4383& , QStack<QDomElement>& );
+	static int generate(const Snapshot::Xml::Host4383& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -611,7 +620,7 @@ struct Traits<Snapshot::Xml::Disk>
 template<>
 struct Traits<Snapshot::Xml::Domainsnapshot>
 {
-	typedef Unordered<mpl::vector<Optional<Element<Text<QString >, Name::Strict<107> > >, Optional<Element<Text<QString >, Name::Strict<216> > >, Optional<Element<Text<Snapshot::Xml::EState >, Name::Strict<126> > >, Optional<Element<Text<QString >, Name::Strict<1584> > >, Optional<Element<Snapshot::Xml::VMemoryImpl, Name::Strict<326> > >, Optional<Element<ZeroOrMore<Element<Snapshot::Xml::Disk, Name::Strict<472> > >, Name::Strict<1587> > >, Optional<Element<Text<Snapshot::Xml::EActive >, Name::Strict<1342> > >, Optional<Snapshot::Xml::VChoice4011Impl >, Optional<Element<Element<Text<QString >, Name::Strict<107> >, Name::Strict<116> > >, Optional<Element<ZeroOrMore<Pod >, Name::Strict<1817> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Optional<Element<Text<QString >, Name::Strict<107> > >, Optional<Element<Text<QString >, Name::Strict<216> > >, Optional<Element<Text<Snapshot::Xml::EState >, Name::Strict<126> > >, Optional<Element<Text<QString >, Name::Strict<1584> > >, Optional<Element<Snapshot::Xml::VMemoryImpl, Name::Strict<326> > >, Optional<Element<ZeroOrMore<Element<Snapshot::Xml::Disk, Name::Strict<472> > >, Name::Strict<1587> > >, Optional<Element<Text<Snapshot::Xml::EActive >, Name::Strict<1342> > >, Optional<Snapshot::Xml::VChoice4011Impl >, Optional<Element<Element<Domain::Xml::Domain, Name::Strict<1> >, Name::Strict<4295> > >, Optional<Element<Element<Text<QString >, Name::Strict<107> >, Name::Strict<116> > >, Optional<Element<ZeroOrMore<Pod >, Name::Strict<1817> > > > > marshal_type;
 
 	static int parse(Snapshot::Xml::Domainsnapshot& , QStack<QDomElement>& );
 	static int generate(const Snapshot::Xml::Domainsnapshot& , QDomElement& );
