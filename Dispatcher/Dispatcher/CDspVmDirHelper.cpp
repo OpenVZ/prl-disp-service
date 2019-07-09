@@ -48,7 +48,7 @@
 #include <QProcess>
 #include <prlcommon/Interfaces/ParallelsQt.h>
 #include "CDspVmDirHelper.h"
-
+#include "Build/Current.ver"
 #include "CDspCommon.h"
 #include "CDspVmManager.h"
 #include "CDspService.h"

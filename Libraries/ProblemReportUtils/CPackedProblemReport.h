@@ -29,7 +29,7 @@
 #define CPACKED_PROBLEMREPORT_H
 
 #include <QString>
-
+#include "Build/Current.ver"
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlxmlmodel/ProblemReport/CProblemReport.h>
 #include <prlsdk/PrlErrors.h>

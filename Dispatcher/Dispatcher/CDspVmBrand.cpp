@@ -32,6 +32,7 @@
 
 #include "CDspClient.h"
 #include "CDspVmBrand.h"
+#include "Build/Current.ver"
 #include <boost/foreach.hpp>
 #include <prlcommon/Logging/Logging.h>
 #include <Libraries/PrlCommonUtils/CFileHelper.h>

@@ -26,6 +26,7 @@
 #include <QHostAddress>
 #include "CDspService.h"
 #include <QXmlResultItems>
+#include "Build/Current.ver"
 #include "CDspVmManager_p.h"
 #include <QtCore/qmetatype.h>
 #include "CDspVmStateSender.h"
@@ -48,6 +49,7 @@
 #include <Libraries/Transponster/Reverse_p.h>
 #include <boost/functional/value_factory.hpp>
 #include "CDspLibvirt_p.h"
+#include <prlxmlmodel/ProblemReport/CProblemReport.h>
 #include <boost/phoenix/bind/bind_function_object.hpp>
 
 namespace Libvirt

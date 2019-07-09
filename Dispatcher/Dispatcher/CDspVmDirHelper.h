@@ -62,7 +62,6 @@
 #include <prlcommon/Std/SmartPtr.h>
 
 #include "CDspSync.h"
-#include <prlxmlmodel/ProblemReport/CProblemReport.h>
 #include "CDspVmDirHelper_p.h"
 #include "Tasks/Task_DeleteVm.h"
 
