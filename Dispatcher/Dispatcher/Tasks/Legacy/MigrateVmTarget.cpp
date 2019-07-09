@@ -35,7 +35,7 @@
 #include <prlcommon/Logging/Logging.h>
 #include "Libraries/StatesStore/SavedStateTree.h"
 #include <prlcommon/Std/PrlTime.h>
-
+#include "Build/Current.ver"
 #include "CDspVmDirHelper.h"
 #include "MigrateVmTarget.h"
 #include "Legacy/MigrationHandler.h"

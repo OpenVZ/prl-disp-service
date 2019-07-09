@@ -32,7 +32,6 @@
 #include <QString>
 #include <QSet>
 #include <prlsdk/PrlEnums.h>
-#include <prlxmlmodel/ProblemReport/CProblemReport.h>
 
 
 namespace BinDumpPatterns {
@@ -66,7 +65,7 @@ class CRepAutoStatisticInfo;
 
 #define PRL_PROBLEM_REPORT_REQUEST_BOUNDARY QByteArray("MTruJQUcTEHprBtYzmJJrCySniIaLnl")
 
-
+class CProblemReport;
 namespace CProblemReportUtils
 {
 	enum ReportVersion
