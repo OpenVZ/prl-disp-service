@@ -533,6 +533,10 @@ QStringList Vm::craftProlog(Task_BackupHelper& context_)
 {
 	QStringList a;
 	a << QString((context_.getFlags() & PBT_INCREMENTAL) ? "append" : "create");
+	QString d = CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()->
+		getBackupSourcePreferences()->getTmpDir();
+	if (!(context_.getFlags() & PBT_DIRECT_DELTA) && !d.isEmpty())
+		a << "--cached" << "--backup-dir" << d;
 	return a << "-n" << context_.getProduct()->getObject()
 		.getConfig()->getVmIdentification()->getVmName();
 }
