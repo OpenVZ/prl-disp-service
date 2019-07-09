@@ -41,6 +41,7 @@
 #include "CDspVm.h"
 
 class CProblemReport;
+class CRepVersionMatrix;
 
 class CDspProblemReportHelper
 {
