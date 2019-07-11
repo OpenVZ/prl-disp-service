@@ -1380,7 +1380,8 @@ Launcher::operator()(const Request& request_) const
 // struct Unit
 
 Unit::Unit(const QSharedPointer<virDomain>& domain_):
-	m_waitFailures(), m_result(PRL_ERR_INVALID_HANDLE), m_domain(domain_)
+	m_waitFailures(), m_pid(-1), m_result(PRL_ERR_INVALID_HANDLE),
+	m_domain(domain_)
 {
 	virConnectPtr c = virDomainGetConnect(m_domain.data());
 	virStreamPtr i = virStreamNew(c, 0);
@@ -1439,7 +1440,7 @@ Libvirt::Result Unit::wait(int timeout_)
 	if (m_result.isSucceed())
 		return Libvirt::Result();
 
-	if (!m_pid)
+	if (-1 == m_pid.operator int())
 		return Error::Simple(PRL_ERR_INVALID_HANDLE);
 
 	enum { MAX_TRANSIENT_FAILS = 10 };
@@ -1484,10 +1485,11 @@ Libvirt::Result Unit::wait(int timeout_)
 
 void Unit::cancel()
 {
-	if (m_pid)
+	int p = m_pid;
+	if (-1 != p)
 	{
 		do_(m_domain.data(), boost::bind(&virDomainCommandXTerminate,
-			_1, m_pid.get(), 0));
+			_1, p, 0));
 	}
 }
 
@@ -1495,7 +1497,7 @@ Prl::Expected<void, ::Libvirt::Agent::Failure> Unit::query()
 {
 	virDomainCommandXStatus s;
 	Instrument::Agent::doResult_type output = do_(m_domain.data(),
-		boost::bind(&virDomainCommandXGetStatus, _1, m_pid.get(), &s, 0));
+		boost::bind(&virDomainCommandXGetStatus, _1, m_pid.operator int(), &s, 0));
 	if (output.isSucceed() && s.exited)
 	{
 		Result x;
@@ -1509,7 +1511,7 @@ Prl::Expected<void, ::Libvirt::Agent::Failure> Unit::query()
 			x.exitcode = s.code;
 			x.exitStatus = QProcess::NormalExit;
 		}
-		m_pid = boost::none;
+		m_pid = -1;
 		m_result = result_type(x);
 		m_stdin->close();
 	}
