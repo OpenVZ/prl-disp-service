@@ -264,9 +264,9 @@ private:
 	Prl::Expected<void, ::Libvirt::Agent::Failure> query();
 
 	int m_waitFailures;
+	QAtomicInt m_pid;
 	result_type m_result;
 	launcher_type m_launcher;
-	boost::optional<int> m_pid;
 	QSharedPointer<virDomain> m_domain;
 	QSharedPointer<ReadDevice> m_stdout;
 	QSharedPointer<ReadDevice> m_stderr;
