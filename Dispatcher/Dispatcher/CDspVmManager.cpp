@@ -1389,8 +1389,14 @@ Libvirt::Result Hotplug::unplug(const CVmHardDisk& disk_)
 	Libvirt::Result output = m_runtime.unplug(disk_);
 	if (output.isSucceed() && bd::Details::Finding(disk_).isKindOf())
 	{
-		bd::Event::Disconnector()(bd::Event::Disable
+		PRL_RESULT r = bd::Event::Disconnector()(bd::Event::Disable
 			(m_ident.getVmUuid(), m_ident.getHomePath(), disk_));
+		if (PRL_FAILED(r))
+		{
+			WRITE_TRACE(DBG_FATAL, "Failed to unplug backup %s: %s [%x]",
+				qPrintable(disk_.getUserFriendlyName()),
+				PRL_RESULT_TO_STRING(r), r);
+		}
 	}
 	return output;
 }
