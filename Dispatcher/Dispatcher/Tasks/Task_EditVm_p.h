@@ -402,16 +402,33 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Layout
+
+struct Layout
+{
+	explicit Layout(const CVmConfiguration& vm_);
+
+	QString getHome() const;
+	const QString& getConfig() const
+	{
+		return m_home;
+	}
+	QString getItemPath(const QString& item_) const;
+
+private:
+	QString m_home;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Patch
 
-struct Patch: Action
+struct Patch: Action, private Layout
 {
 	explicit Patch(const Request& input_);
 
 	bool execute(CDspTaskFailure& feedback_);
 
 private:
-	QString m_home;
 	QString m_name;
 	QString m_editor;
 	CVmIdent m_ident;
@@ -439,10 +456,10 @@ struct Nvram
 // struct Action
 
 template <class T>
-struct Action: Vm::Action
+struct Action: Vm::Action, private Layout
 {
-	Action(const T& data_, const CVmConfiguration& config_)
-	: m_data(data_), m_path(QFileInfo(config_.getVmIdentification()->getHomePath()).absolutePath())
+	Action(const T& data_, const CVmConfiguration& config_):
+		Layout(config_), m_data(data_)
 	{
 	}
 
@@ -451,7 +468,6 @@ struct Action: Vm::Action
 
 private:
 	T m_data;
-	QString m_path;
 };
 
 } // namespace Create
