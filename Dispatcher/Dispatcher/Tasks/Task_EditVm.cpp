@@ -2741,10 +2741,30 @@ bool Transfer::execute(CDspTaskFailure& feedback_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Layout
+
+Layout::Layout(const CVmConfiguration& vm_):
+	m_home(vm_.getVmIdentification()->getHomePath())
+{
+}
+
+QString Layout::getHome() const
+{
+	return QFileInfo(m_home).absolutePath();
+}
+
+QString Layout::getItemPath(const QString& item_) const
+{
+	if (QFileInfo(item_).isRelative())
+		return QDir(getHome()).absoluteFilePath(item_);
+
+	return item_;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Patch
 
-Patch::Patch(const Request& input_):
-	m_home(input_.getFinal().getVmIdentification()->getHomePath()),
+Patch::Patch(const Request& input_): Layout(input_.getFinal()),
 	m_name(input_.getFinal().getVmIdentification()->getVmName()),
 	m_ident(input_.getObject())
 {
@@ -2777,14 +2797,14 @@ bool Patch::execute(CDspTaskFailure& feedback_)
 			dirSharedItem->setChangedBy(m_editor);
 			dirSharedItem->setChangeDateTime(QDateTime::currentDateTime());
 			dirSharedItem->setVmName(m_name);
-			dirSharedItem->setVmHome(m_home);
+			dirSharedItem->setVmHome(getConfig());
 
 			/* old code
 			pVmDirSharedItem->getLockedOperationsList()->setLockedOperations(lstNewLockedOperations);
 			pVmDirSharedItem->getLockDown()->setEditingPasswordHash(newLockDownHash);
 			*/
 		}
-		dirItem->setVmHome(m_home);
+		dirItem->setVmHome(getConfig());
 		dirItem->setVmName(m_name);
 
 		PRL_RESULT ret = dirManager.updateVmDirItem(dirItem);
@@ -2863,11 +2883,7 @@ Vm::Action* Nvram::operator()(const Request& input_) const
 template <>
 PRL_RESULT Action<CVmStartupBios>::execute()
 {
-	QString file = m_data.getNVRAM();
-
-	if (QFileInfo(file).isRelative())
-		file = QDir(m_path).absoluteFilePath(file);
-
+	QString file = this->getItemPath(m_data.getNVRAM());
 	if (QFile::exists(file))
 		return PRL_ERR_SUCCESS;
 
@@ -2889,7 +2905,8 @@ bool Action<CVmStartupBios>::execute(CDspTaskFailure& feedback_)
 	if (PRL_SUCCEEDED(r))
 		return Vm::Action::execute(feedback_);
 
-	feedback_(r);
+	feedback_.setCode(r)("/usr/share/OVMF/OVMF_VARS.fd",
+		this->getItemPath(m_data.getNVRAM()));
 	return false;
 }
 
