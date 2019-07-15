@@ -24,7 +24,6 @@ DEFINES += BOOST_THREAD_PROVIDES_FUTURE BOOST_THREAD_PROVIDES_FUTURE_CONTINUATIO
 INCLUDEPATH *= \
 	Dispatcher \
 	LostConfigSearcher \
-	$$SRC_LEVEL/VI/Interfaces \
 	$$SRC_LEVEL/Dispatcher/Libraries \
 	$$EXT_LEVEL/Virtuozzo/include
 
@@ -281,8 +280,7 @@ SOURCES += \
 	\
 
 linux-* {
-	INCLUDEPATH *= \
-		$$SRC_LEVEL/VI/Sources/Explorer/Includes
+	INCLUDEPATH *=
 
 	HEADERS += \
 		CDspBackupDevice.h \

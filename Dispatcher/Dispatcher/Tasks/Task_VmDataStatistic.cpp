@@ -32,9 +32,7 @@
 
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-//#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
 #include <prlcommon/HostUtils/HostUtils.h>
-//#include "VI/Sources/ImageTool/resizer/StringTable.h"
 #include "Task_VmDataStatistic.h"
 #include "CDspService.h"
 
