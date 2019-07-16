@@ -462,13 +462,13 @@ void Vm::operator()(Agent::Hub& hub_)
 		WRITE_TRACE(DBG_DEBUG, "persistent UUID %s", qPrintable(u));
 		b[u] = m;
 	}
-	QStringList s = m_registry->snapshot();
+	QStringList s = m_view->getHost().getRegistry().snapshot();
 	foreach (const QString& u, s)
 	{
 		if (!validate(u))
 			c[u] = b.take(u);
 	}
-	m_registry->reset();
+	m_view->getHost().getRegistry().reset();
 	foreach (const QString& u, b.keys())
 	{
 		if (m_view->add(u).isNull())
@@ -482,11 +482,11 @@ void Vm::operator()(Agent::Hub& hub_)
 
 		// in order to properly remove the directory item, first we need to
 		// add the VM to the registry and then remove it from there
-		m_registry->define(u);
+		m_view->getHost().getRegistry().define(u);
 		// at this point VM is not registered in m_view->m_domainMap
 		// thus we need to manually remove the corresponding
 		// directory item from Dispatcher
-		m_registry->undefine(u);
+		m_view->getHost().getRegistry().undefine(u);
 	}
 	foreach (const QString& u, c.keys())
 	{
@@ -495,14 +495,14 @@ void Vm::operator()(Agent::Hub& hub_)
 	foreach (const QString& u, b.keys())
 	{
 		WRITE_TRACE(DBG_DEBUG, "update UUID %s", qPrintable(u));
-		Registry::Access a = m_registry->find(u);
+		Registry::Access a = m_view->getHost().getRegistry().find(u);
 		Callback::Reactor::Domain(b[u]).update(a);
 	}
 }
 
 bool Vm::validate(const QString& uuid_)
 {
-	Registry::Access a = m_registry->find(uuid_);
+	Registry::Access a = m_view->getHost().getRegistry().find(uuid_);
 	boost::optional<CVmConfiguration> c = a.getConfig();
 	if (!c)
 		return true;
@@ -517,7 +517,7 @@ bool Vm::validate(const QString& uuid_)
 	// - The VM is registered both in libvirt and Dispatcher.
 	// - Server UUID of the VM differs from our server UUID.
 	// Need to unregister the VM from this node.
-	return y->getServerUuid() == m_registry->getServerUuid();
+	return y->getServerUuid() == m_view->getHost().getRegistry().getServerUuid();
 }
 
 namespace Host
@@ -716,15 +716,14 @@ PRL_CPU_FEATURES_EX Cpu::translate(int register_, QXmlQuery& query_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Subject
 
-Subject::Subject(QSharedPointer<virConnect> link_, QSharedPointer<Model::System> view_,
-	Registry::Actual& registry_): m_vm(view_, registry_),
-	m_target(view_->thread()), m_link(link_)
+Subject::Subject(QSharedPointer<virConnect> link_, QSharedPointer<Model::System> view_):
+	m_vm(view_), m_target(view_->thread()), m_link(link_), m_system(view_)
 {
 }
 
 void Subject::run()
 {
-	(Monitor::Hardware::Launcher(m_target))(m_link.toWeakRef());
+	(Monitor::Hardware::Launcher(m_target))(m_link.toWeakRef(), m_system->getHost());
 
 	Agent::Hub u;
 	u.setLink(m_link);
@@ -1638,7 +1637,7 @@ void Shell::operator()(Registry::Access& access_)
 	QRunnable* q = new Secondary(c->getVmIdentification()->getVmUuid(),
 		c->getVmSettings()->getVmRuntimeOptions()->getOnCrash());
 	q->setAutoDelete(true);
-	QThreadPool::globalInstance()->start(q);
+	m_bench->getPool().start(q);
 }
 
 } // namespace Crash
@@ -1674,8 +1673,9 @@ void Shell::run()
 ///////////////////////////////////////////////////////////////////////////////
 // struct Demonstrator
 
-Demonstrator::Demonstrator(const Registry::Access& access_):
-	m_access(access_), m_queue(new Shell::queue_type()), m_crash(new crash_type())
+Demonstrator::Demonstrator(const Registry::Access& access_, Workbench& bench_):
+	m_bench(&bench_), m_access(access_), m_queue(new Shell::queue_type()),
+	m_crash(new crash_type())
 {
 }
 
@@ -1689,12 +1689,12 @@ void Demonstrator::show(const Shell::reaction_type& reaction_)
 
 	QRunnable* q = new Shell(m_queue, m_access);
 	q->setAutoDelete(true);
-	QThreadPool::globalInstance()->start(q);
+	m_bench->getPool().start(q);
 }
 
 void Demonstrator::showCrash()
 {
-	show(Callback::Reactor::Crash::Shell(m_crash.toWeakRef()));
+	show(Callback::Reactor::Crash::Shell(m_crash.toWeakRef(), *m_bench));
 }
 
 } // namespace Reaction
@@ -1704,8 +1704,8 @@ namespace Model
 ///////////////////////////////////////////////////////////////////////////////
 // struct Entry
 
-Entry::Entry(const Registry::Access& access_):
-	Reaction::Demonstrator(access_), m_last(VMS_UNKNOWN)
+Entry::Entry(const Registry::Access& access_, Workbench& bench_):
+	Reaction::Demonstrator(access_, bench_), m_last(VMS_UNKNOWN)
 {
 }
 
@@ -1733,7 +1733,7 @@ void Entry::setState(VIRTUAL_MACHINE_STATE value_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct System
 
-System::System(Registry::Actual& registry_): m_registry(registry_)
+System::System(Workbench& bench_): m_bench(&bench_)
 {
 }
 
@@ -1746,7 +1746,7 @@ void System::remove(const QString& uuid_)
 
 	domainMap_type::mapped_type x = p.value();
 	x->setState(VMS_UNKNOWN);
-	x->show(boost::bind(&Registry::Actual::undefine, &m_registry, uuid_));
+	x->show(boost::bind(&Registry::Actual::undefine, &m_bench->getRegistry(), uuid_));
 
 	m_domainMap.erase(p);
 }
@@ -1757,12 +1757,12 @@ QSharedPointer<System::entry_type> System::add(const QString& uuid_)
 	if (uuid_.isEmpty() || m_domainMap.contains(uuid_))
 		return QSharedPointer<System::entry_type>();
 
-	Prl::Expected<Registry::Access, Error::Simple> a = m_registry.define(uuid_);
+	Prl::Expected<Registry::Access, Error::Simple> a = m_bench->getRegistry().define(uuid_);
 	if (a.isFailed())
 		return QSharedPointer<System::entry_type>();
 
 	WRITE_TRACE(DBG_FATAL, "ADD2 %s %p %d", qPrintable(uuid_), this, m_domainMap.size());
-	QSharedPointer<System::entry_type> x(new System::entry_type(a.value()));
+	QSharedPointer<System::entry_type> x(new System::entry_type(a.value(), *m_bench));
 	return m_domainMap[uuid_] = x;
 }
 
@@ -1900,7 +1900,7 @@ void Coarse::adjustClock(virDomainPtr domain_, qint64 offset_)
 
 void Coarse::updateInterfaces(virNetworkPtr net_)
 {
-	QThreadPool::globalInstance()->start
+	m_fine->getHost().getPool().start
 		(new Instrument::Pull::Network(virNetworkGetName(net_), m_fine));
 }
 
@@ -1908,15 +1908,6 @@ void Coarse::updateInterfaces(virNetworkPtr net_)
 
 namespace Monitor
 {
-namespace Hardware
-{
-namespace
-{
-void reactLifecycle(virConnectPtr link_, virNodeDevicePtr device_, int event_, int detail_, void* opaque_);
-
-} // namespace
-} // namespace Hardware
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Link
 
@@ -1971,18 +1962,17 @@ void Link::disconnect(virConnectPtr libvirtd_, int reason_, void* opaque_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Domains
 
-Domains::Domains(Registry::Actual& registry_):
+Domains::Domains(Workbench& bench_):
 	m_eventState(-1), m_eventReboot(-1),
 	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
 	m_eventTrayChange(-1), m_eventRtcChange(-1), m_eventAgent(-1),
-	m_eventNetworkLifecycle(-1), m_eventHardwareLifecycle(-1),
-	m_registry(&registry_)
+	m_eventNetworkLifecycle(-1), m_eventHardwareLifecycle(-1), m_bench(&bench_)
 {
 }
 
 void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 {
-	Callback::Mock::model_type v(new Model::System(*m_registry));
+	Callback::Mock::model_type v(new Model::System(*m_bench));
 	m_libvirtd = libvirtd_.toWeakRef();
 	Callback::g_access.setOpaque(Callback::Mock::ID, new Callback::Transport::Model(v));
 	Kit.setLink(libvirtd_);
@@ -2039,18 +2029,18 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 	m_eventNetworkLifecycle = virConnectNetworkEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_NETWORK_EVENT_ID_LIFECYCLE,
-							VIR_NETWORK_EVENT_CALLBACK(Callback::Plain::networkLifecycle),
+							VIR_NETWORK_EVENT_CALLBACK(&Callback::Plain::networkLifecycle),
 							new Model::Coarse(v),
 							&Callback::Plain::delete_<Model::Coarse>);
 	m_eventHardwareLifecycle = virConnectNodeDeviceEventRegisterAny(libvirtd_.data(),
 							NULL,
 							VIR_NODE_DEVICE_EVENT_ID_LIFECYCLE,
-							VIR_NODE_DEVICE_EVENT_CALLBACK(Hardware::reactLifecycle),
-							new Hardware::Usb(*CDspService::instance()),
-							&Callback::Plain::delete_<Hardware::Usb>);
-	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, v, *m_registry);
+							VIR_NODE_DEVICE_EVENT_CALLBACK(&Hardware::Usb::Shell::react),
+							new Hardware::Usb::Shell(*m_bench),
+							&Callback::Plain::delete_<Hardware::Usb::Shell>);
+	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, v);
 	q->setAutoDelete(true);
-	QThreadPool::globalInstance()->start(q);
+	m_bench->getPool().start(q);
 }
 
 void Domains::setDisconnected()
@@ -2080,6 +2070,7 @@ void Domains::setDisconnected()
 	m_eventHardwareLifecycle = -1;
 	Callback::g_access.setOpaque(Callback::Mock::ID, new Callback::Transport::Model());
 	m_libvirtd.clear();
+	m_bench->getPool().waitForDone();
 }
 
 namespace Performance
@@ -2133,9 +2124,13 @@ Miner* Miner::clone() const
 void Miner::timerEvent(QTimerEvent* event_)
 {
 	killTimer(event_->timerId());
+	QSharedPointer<Model::System> x = m_view.toStrongRef();
+	if (x.isNull())
+		return;
+
 	QRunnable* q = new Task(this);
 	q->setAutoDelete(true);
-	QThreadPool::globalInstance()->start(q);
+	x->getHost().getPool().start(q);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2162,45 +2157,12 @@ void Task::run()
 
 namespace Hardware
 {
+namespace Usb
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Pci
+// struct Job
 
-Pci::Pci(const QWeakPointer<virConnect>& link_, CDspService& service_):
-	m_service(&service_), m_link(link_)
-{
-	CDspLockedPointer<CDspHostInfo> i = m_service->getHostInfo();
-	i->adopt(boost::bind(boost::value_factory<CDspHostInfo::pciBin_type>(),
-		&m_sentinel, &m_list));
-}
-
-Pci::~Pci()
-{
-	CDspLockedPointer<CDspHostInfo> i = m_service->getHostInfo();
-	i->adopt(CDspHostInfo::pciStrategy_type());
-}
-
-void Pci::run()
-{
-	Prl::Expected<QList<CHwGenericPciDevice>, Error::Simple> f =
-		Libvirt::Instrument::Agent::Host(m_link.toStrongRef())
-			.getAssignablePci();
-	if (f.isFailed())
-	{
-		WRITE_TRACE(DBG_FATAL, "Cannot read host PCI devices: %s",
-			PRL_RESULT_TO_STRING(f.error().code()));
-	}
-	else
-	{
-		QMutexLocker g(&m_sentinel);
-		m_list = f.value();
-	}
-	m_service->getHostInfo()->refresh(CDspHostInfo::uhiPci);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Usb
-
-void Usb::run()
+void Job::run()
 {
 	CUsbAuthenticNameList x;
 	{
@@ -2212,7 +2174,7 @@ void Usb::run()
 		(*this, boost::cref(x), _1));
 }
 
-PRL_RESULT Usb::operator()(const CUsbAuthenticNameList& update_, CDispCommonPreferences& dst_) const
+PRL_RESULT Job::operator()(const CUsbAuthenticNameList& update_, CDispCommonPreferences& dst_) const
 {
 	CDispUsbPreferences w(dst_.getUsbPreferences());
 	QHash<QString, QList<CDispUsbAssociation* > > m;
@@ -2246,15 +2208,73 @@ PRL_RESULT Usb::operator()(const CUsbAuthenticNameList& update_, CDispCommonPref
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Shell
+
+void Shell::react(virConnectPtr link_, virNodeDevicePtr device_, int event_, int detail_, void* opaque_)
+{
+	Q_UNUSED(link_);
+	Q_UNUSED(event_);
+	Q_UNUSED(detail_);
+
+	const char* n = virNodeDeviceGetName(device_);
+	if (NULL != n && QString(n).startsWith("usb_"))
+		((Shell* )opaque_)->operator()();
+}
+
+void Shell::operator()()
+{
+	Job* j = new Job(m_bench->getContainer());
+	j->setAutoDelete(true);
+	m_bench->getPool().start(j);
+}
+
+} // namespace Usb
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Pci
+
+Pci::Pci(const QWeakPointer<virConnect>& link_, Workbench& bench_):
+	m_bench(&bench_), m_link(link_)
+{
+	CDspLockedPointer<CDspHostInfo> i = m_bench->getContainer().getHostInfo();
+	i->adopt(boost::bind(boost::value_factory<CDspHostInfo::pciBin_type>(),
+		&m_sentinel, &m_list));
+}
+
+Pci::~Pci()
+{
+	CDspLockedPointer<CDspHostInfo> i = m_bench->getContainer().getHostInfo();
+	i->adopt(CDspHostInfo::pciStrategy_type());
+}
+
+void Pci::run()
+{
+	Prl::Expected<QList<CHwGenericPciDevice>, Error::Simple> f =
+		Libvirt::Instrument::Agent::Host(m_link.toStrongRef())
+			.getAssignablePci();
+	if (f.isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot read host PCI devices: %s",
+			PRL_RESULT_TO_STRING(f.error().code()));
+	}
+	else
+	{
+		QMutexLocker g(&m_sentinel);
+		m_list = f.value();
+	}
+	m_bench->getContainer().getHostInfo()->refresh(CDspHostInfo::uhiPci);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
-Unit::Unit(const QWeakPointer<virConnect>& link_): m_link(link_)
+Unit::Unit(const QWeakPointer<virConnect>& link_): m_bench(), m_link(link_)
 {
 	d_ptr->sendChildEvents = false;
 }
 
-Unit::Unit(const QWeakPointer<virConnect>& link_, CDspService& service_):
-	m_pci(new Pci(link_, service_)), m_link(link_)
+Unit::Unit(const QWeakPointer<virConnect>& link_, Workbench& bench_):
+	m_bench(&bench_), m_pci(new Pci(link_, bench_)), m_link(link_)
 {
 	m_pci->setAutoDelete(false);
 	d_ptr->sendChildEvents = false;
@@ -2264,6 +2284,7 @@ Unit* Unit::clone() const
 {
 	Unit* output = new Unit(m_link);
 	output->m_pci = m_pci;
+	output->m_bench = m_bench;
 
 	return output;
 }
@@ -2273,7 +2294,7 @@ void Unit::react()
 	QSharedPointer<virConnect> x = m_link.toStrongRef();
 	if (!x.isNull())
 	{
-		QThreadPool::globalInstance()->start(m_pci.data());
+		m_bench->getPool().start(m_pci.data());
 		Launcher(this->thread())(*this);
 	}
 }
@@ -2281,9 +2302,9 @@ void Unit::react()
 ///////////////////////////////////////////////////////////////////////////////
 // struct Launcher
 
-void Launcher::operator()(const QWeakPointer<virConnect>& link_) const
+void Launcher::operator()(const QWeakPointer<virConnect>& link_, Workbench& bench_) const
 {
-	Unit* m = new Unit(link_, *CDspService::instance());
+	Unit* m = new Unit(link_, bench_);
 	do_(*m, 0);
 }
 
@@ -2307,34 +2328,25 @@ void Launcher::do_(Unit& object_, int timeout_) const
 	QMetaObject::invokeMethod(t, "start", Qt::QueuedConnection);
 }
 
-namespace
-{
-void reactLifecycle(virConnectPtr link_, virNodeDevicePtr device_, int event_, int detail_, void* opaque_)
-{
-	Q_UNUSED(link_);
-	Q_UNUSED(event_);
-	Q_UNUSED(detail_);
-
-	const char* n = virNodeDeviceGetName(device_);
-	if (NULL != n && QString(n).startsWith("usb_"))
-	{
-		Usb* r = (Usb* )opaque_;
-		r->setAutoDelete(false);
-		QThreadPool::globalInstance()->start(r);
-	}
-}
-
-} // namespace
 } // namespace Hardware
 } // namespace Monitor
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Workbench
+
+Workbench::Workbench(CDspService& container_, Registry::Actual& registry_):
+	m_container(&container_), m_registry(&registry_), m_pool(new QThreadPool())
+{
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Host
 
 void Host::run()
 {
+	Workbench B(*CDspService::instance(), *m_registry);
 	Monitor::Link a;
-	Monitor::Domains b(m_registry);
+	Monitor::Domains b(B);
 	b.connect(&a, SIGNAL(disconnected()), SLOT(setDisconnected()));
 	b.connect(&a, SIGNAL(connected(QSharedPointer<virConnect>)),
 		SLOT(setConnected(QSharedPointer<virConnect>)));
@@ -2350,6 +2362,7 @@ void Host::run()
 			&Callback::Plain::remove);
 	exec();
 	a.setClosed();
+	B.getPool().waitForDone();
 }
 
 namespace Instrument

@@ -69,6 +69,32 @@ struct System;
 
 } // namespace Model
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Workbench
+
+struct Workbench
+{
+	Workbench(CDspService& container_, Registry::Actual& registry_);
+
+	QThreadPool& getPool() const
+	{
+		return *m_pool;
+	}
+	Registry::Actual& getRegistry() const
+	{
+		return *m_registry;
+	}
+	CDspService& getContainer() const
+	{
+		return *m_container;
+	}
+
+private:
+	CDspService* m_container;
+	Registry::Actual* m_registry;
+	QScopedPointer<QThreadPool> m_pool;
+};
+
 namespace Callback
 {
 namespace Plain
@@ -489,13 +515,15 @@ private:
 
 struct Shell
 {
-	explicit Shell(const QWeakPointer<Primary>& primary_): m_primary(primary_)
+	Shell(const QWeakPointer<Primary>& primary_, Workbench& bench_):
+		m_bench(&bench_), m_primary(primary_)
 	{
 	}
 
 	void operator()(Registry::Access& access_);
 
 private:
+	Workbench* m_bench;
 	QWeakPointer<Primary> m_primary;
 };
 
@@ -532,7 +560,7 @@ private:
 
 struct Demonstrator
 {
-	explicit Demonstrator(const Registry::Access& access_);
+	Demonstrator(const Registry::Access& access_, Workbench& bench_);
 
 	void show(const Shell::reaction_type& reaction_);
 	void showCrash();
@@ -540,6 +568,7 @@ struct Demonstrator
 private:
 	typedef Callback::Reactor::Crash::Primary crash_type;
 
+	Workbench* m_bench;
 	Registry::Access m_access;
 	Shell::queuePointer_type m_queue;
 	QSharedPointer<crash_type> m_crash;
@@ -554,7 +583,7 @@ namespace Model
 
 struct Entry: Reaction::Demonstrator
 {
-	explicit Entry(const Registry::Access& access_);
+	Entry(const Registry::Access& access_, Workbench& bench_);
 
 	void setState(VIRTUAL_MACHINE_STATE value_);
 	VIRTUAL_MACHINE_STATE getLast() const
@@ -573,18 +602,23 @@ struct System: QObject
 {
 	typedef Entry entry_type;
 
-	explicit System(Registry::Actual& registry_);
+	explicit System(Workbench& bench_);
 
 	void remove(const QString& uuid_);
 	QSharedPointer<entry_type> add(const QString& uuid_);
 	QSharedPointer<entry_type> find(const QString& uuid_);
+	Workbench&  getHost() const
+	{
+		return *m_bench;
+	}
 
 private:
 	Q_OBJECT
 
 	typedef QHash<QString, QSharedPointer<entry_type> > domainMap_type;
+
+	Workbench* m_bench;
 	domainMap_type m_domainMap;
-	Registry::Actual& m_registry;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -657,7 +691,7 @@ private:
 
 struct Domains: QObject
 {
-	explicit Domains(Registry::Actual& registry_);
+	explicit Domains(Workbench& bench_);
 
 public slots:
 	void setConnected(QSharedPointer<virConnect>);
@@ -676,7 +710,7 @@ private:
 	int m_eventAgent;
 	int m_eventNetworkLifecycle;
 	int m_eventHardwareLifecycle;
-	Registry::Actual* m_registry;
+	Workbench* m_bench;
 	QWeakPointer<virConnect> m_libvirtd;
 };
 
@@ -748,29 +782,14 @@ private:
 
 namespace Hardware
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Pci
-
-struct Pci: QRunnable, boost::noncopyable
+namespace Usb
 {
-	Pci(const QWeakPointer<virConnect>& link_, CDspService& service_);
-	~Pci();
-
-	void run();
-
-private:
-	QMutex m_sentinel;
-	CDspService* m_service;
-	QWeakPointer<virConnect> m_link;
-	QList<CHwGenericPciDevice> m_list;
-};
-
 ///////////////////////////////////////////////////////////////////////////////
-// struct Usb
+// struct Job
 
-struct Usb: QRunnable
+struct Job: QRunnable
 {
-	explicit Usb(CDspService& service_): m_service(&service_)
+	explicit Job(CDspService& service_): m_service(&service_)
 	{
 	}
 
@@ -783,11 +802,46 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Shell
+
+struct Shell
+{
+	explicit Shell(Workbench& bench_): m_bench(&bench_)
+	{
+	}
+
+	void operator()();
+	static void react(virConnectPtr , virNodeDevicePtr , int , int , void* );
+
+private:
+	Workbench* m_bench;
+};
+
+} // namespace Usb
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Pci
+
+struct Pci: QRunnable, boost::noncopyable
+{
+	Pci(const QWeakPointer<virConnect>& link_, Workbench& bench_);
+	~Pci();
+
+	void run();
+
+private:
+	QMutex m_sentinel;
+	Workbench* m_bench;
+	QWeakPointer<virConnect> m_link;
+	QList<CHwGenericPciDevice> m_list;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
 struct Unit: QObject
 {
-	Unit(const QWeakPointer<virConnect>& link_, CDspService& service_);
+	Unit(const QWeakPointer<virConnect>& link_, Workbench& bench_);
 
 	Unit* clone() const;
 
@@ -799,6 +853,7 @@ private:
 
 	explicit Unit(const QWeakPointer<virConnect>& link_);
 
+	Workbench* m_bench;
 	QSharedPointer<Pci> m_pci;
 	QWeakPointer<virConnect> m_link;
 };
@@ -812,7 +867,7 @@ struct Launcher
 	{
 	}
 
-	void operator()(const QWeakPointer<virConnect>& link_) const;
+	void operator()(const QWeakPointer<virConnect>& link_, Workbench& bench_) const;
 	void operator()(const Unit& monitor_) const;
 
 private:
@@ -1307,8 +1362,7 @@ namespace Breeding
 
 struct Vm
 {
-	Vm(const QSharedPointer<Model::System>& view_, Registry::Actual& registry_):
-		m_registry(&registry_), m_view(view_)
+	explicit Vm(const QSharedPointer<Model::System>& view_): m_view(view_)
 	{
 	}
 
@@ -1316,7 +1370,6 @@ struct Vm
 private:
 	bool validate(const QString& uuid_);
 
-	Registry::Actual* m_registry;
 	QSharedPointer<Model::System> m_view;
 };
 
@@ -1364,8 +1417,7 @@ private:
 
 struct Subject: QRunnable
 {
-	Subject(QSharedPointer<virConnect> , QSharedPointer<Model::System> ,
-		Registry::Actual& );
+	Subject(QSharedPointer<virConnect> , QSharedPointer<Model::System> );
 
 	void run();
 
@@ -1373,6 +1425,7 @@ private:
 	Vm m_vm;
 	QThread* m_target;
 	QSharedPointer<virConnect> m_link;
+	QSharedPointer<Model::System> m_system;
 };
 
 } // namespace Breeding

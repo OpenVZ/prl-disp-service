@@ -84,6 +84,7 @@ struct _virDomainBlockSnapshotX;
 typedef struct _virDomainBlockSnapshotX virDomainBlockSnapshotX;
 typedef virDomainBlockSnapshotX* virDomainBlockSnapshotXPtr;
 
+class CDspService;
 class CSavedStateTree;
 
 namespace Registry
@@ -955,8 +956,7 @@ extern Instrument::Agent::Hub Kit;
 
 struct Host: QThread
 {
-	explicit Host(Registry::Actual& registry_):
-		QThread(), m_registry(registry_)
+	explicit Host(Registry::Actual& registry_): m_registry(&registry_)
 	{
 	}
 
@@ -966,7 +966,7 @@ protected:
 private:
 	Q_OBJECT
 
-	Registry::Actual& m_registry;
+	Registry::Actual* m_registry;
 };
 
 } // namespace Libvirt
