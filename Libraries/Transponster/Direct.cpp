@@ -166,14 +166,14 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	if (alias)
 		d->setAlias(*alias);
 	d->setPassthrough(1 == disk_.getDisk().which());
-	Libvirt::Domain::Xml::VDiskBackingChain c = disk_.getDiskBackingChain();
-	while (0 == c.which())
+	const Libvirt::Domain::Xml::VDiskBackingChain* c = &disk_.getDiskBackingChain();
+	while (0 == c->which())
 	{
 		typedef mpl::at_c<Libvirt::Domain::Xml::VDiskBackingChain::types, 0>::type
 			chain_type;
-		chain_type& w = boost::get<chain_type>(c);
-		boost::apply_visitor(BackingChain(*d), w.getValue().getDiskSource());
-		c = w.getValue().getDiskBackingChain()->value;
+		const chain_type* w = boost::get<const chain_type>(c);
+		boost::apply_visitor(BackingChain(*d), w->getValue().getDiskSource());
+		c = &(w->getValue().getDiskBackingChain()->value);
 	}
 	return PRL_ERR_SUCCESS;
 }
