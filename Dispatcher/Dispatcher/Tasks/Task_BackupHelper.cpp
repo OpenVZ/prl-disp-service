@@ -1418,7 +1418,6 @@ void Frontend::on_exit(const Event& event_, FSM& fsm_)
 		s->close();
 		s->disconnect(SIGNAL(newConnection()), getConnector());
 	}
-	m_clients.clear();
 	m_servers.clear();
 	getConnector()->setService(NULL);
 }
