@@ -150,6 +150,11 @@ QString Memory::getMajorFault()
 	return "mem.guest_major_fault";
 }
 
+QString Memory::getAvailable()
+{
+	return "mem.guest_available";
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Interface
 

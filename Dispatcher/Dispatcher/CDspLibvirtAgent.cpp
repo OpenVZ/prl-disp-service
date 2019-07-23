@@ -770,21 +770,29 @@ Stat::CounterList_type Unit::getMemory() const
 		output.append(Stat::Counter_type(
 			::Stat::Name::Memory::getMajorFault(), v));
 	}
-	quint64 a = 0;
-	if (getValue("balloon.maximum", a))
+	quint64 total = 0;
+	if (getValue("balloon.maximum", total))
 	{
 		output.append(Stat::Counter_type(
-			::Stat::Name::Memory::getTotal(), a));
+			::Stat::Name::Memory::getTotal(), total));
 	}
-	quint64 u = 0;
-	getValue("balloon.rss", u = 0);
+	if (getValue("balloon.usable", v = 0))
+	{
+		output.append(Stat::Counter_type(
+			::Stat::Name::Memory::getAvailable(), v));
+	}
 	if (getValue("balloon.unused", v = 0))
-		u = a - v;
-	else if (a)
-		u = std::min(u, a);
-
-	output.append(Stat::Counter_type(
-		::Stat::Name::Memory::getUsed(), u));
+	{
+		// new balloon: used = maximum - unused
+		output.append(Stat::Counter_type(
+			::Stat::Name::Memory::getUsed(), total - v));
+	}
+	else if (getValue("balloon.rss", v = 0))
+	{
+		// old balloon: used = rss
+		output.append(Stat::Counter_type(
+			::Stat::Name::Memory::getUsed(), v));
+	}
 	return output;
 }
 

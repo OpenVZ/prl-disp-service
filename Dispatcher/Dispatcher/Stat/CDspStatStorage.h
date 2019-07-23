@@ -97,6 +97,8 @@ struct Memory
 
 	static QString getBalloonActual();
 
+	static QString getAvailable();
+
 	static QString getSwapIn();
 
 	static QString getSwapOut();
