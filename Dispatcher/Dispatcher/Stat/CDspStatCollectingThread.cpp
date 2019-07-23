@@ -1171,6 +1171,27 @@ struct BalloonActual
 		return GetPerfCounter(c, Stat::Name::Memory::getBalloonActual()) << 10;
 	}
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Available
+
+struct Available
+{
+	typedef const QWeakPointer<Stat::Storage> source_type;
+	typedef quint64 value_type;
+
+	static const char *getName()
+	{
+		return PRL_GUEST_RAM_AVAILABLE;
+	}
+
+	static value_type extract(source_type &c)
+	{
+		// kb to bytes
+		return GetPerfCounter(c, Stat::Name::Memory::getAvailable()) << 10;
+	}
+};
+
 } // namespace Flavor
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1188,6 +1209,7 @@ typedef SingleCounter<Flavor::Used, MemoryConversion> Used;
 typedef SingleCounter<Flavor::Cached, MemoryConversion> Cached;
 typedef SingleCounter<Flavor::Total, MemoryConversion> Total;
 typedef SingleCounter<Flavor::BalloonActual, MemoryConversion> BalloonActual;
+typedef SingleCounter<Flavor::Available, MemoryConversion> Available;
 
 } // namespace Memory
 
@@ -2168,6 +2190,7 @@ void Collector::collectVm(const QString &uuid, const CVmConfiguration &config)
 	collect(vmc::Memory::Cached(p));
 	collect(vmc::Memory::Total(p));
 	collect(vmc::Memory::BalloonActual(p));
+	collect(vmc::Memory::Available(p));
 	collect(vmc::SwapIn(p));
 	collect(vmc::SwapOut(p));
 	collect(vmc::MinorFault(p));
