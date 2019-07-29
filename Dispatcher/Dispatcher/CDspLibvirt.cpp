@@ -716,21 +716,27 @@ PRL_CPU_FEATURES_EX Cpu::translate(int register_, QXmlQuery& query_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Subject
 
-Subject::Subject(QSharedPointer<virConnect> link_, QSharedPointer<Model::System> view_):
-	m_vm(view_), m_target(view_->thread()), m_link(link_), m_system(view_)
+Subject::Subject(QSharedPointer<virConnect> link_, QWeakPointer<Model::System> view_):
+	m_link(link_), m_system(view_)
 {
 }
 
 void Subject::run()
 {
-	(Monitor::Hardware::Launcher(m_target))(m_link.toWeakRef(), m_system->getHost());
+	QSharedPointer<Model::System> v(m_system.toStrongRef());
+	if (v.isNull())
+	{
+		WRITE_TRACE(DBG_FATAL, "shutdown! nothing to sync");
+		return;
+	}
+	(Monitor::Hardware::Launcher(m_system))(m_link.toWeakRef());
 
 	Agent::Hub u;
 	u.setLink(m_link);
 	Host::Script h(u);
 	h.syncCpu("/usr/share/libvirt/cpu_map.xml");
 	h.syncNetwork(ParallelsDirs::getNetworkConfigFilePath());
-	m_vm(u);
+	(Vm(v))(u);
 	QProcess::startDetached("/usr/libexec/vz_systemd");
 }
 
@@ -2038,7 +2044,7 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 							VIR_NODE_DEVICE_EVENT_CALLBACK(&Hardware::Usb::Shell::react),
 							new Hardware::Usb::Shell(*m_bench),
 							&Callback::Plain::delete_<Hardware::Usb::Shell>);
-	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, v);
+	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, v.toWeakRef());
 	q->setAutoDelete(true);
 	m_bench->getPool().start(q);
 }
@@ -2268,13 +2274,15 @@ void Pci::run()
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
-Unit::Unit(const QWeakPointer<virConnect>& link_): m_bench(), m_link(link_)
+Unit::Unit(const QWeakPointer<virConnect>& link_): m_link(link_)
 {
 	d_ptr->sendChildEvents = false;
 }
 
-Unit::Unit(const QWeakPointer<virConnect>& link_, Workbench& bench_):
-	m_bench(&bench_), m_pci(new Pci(link_, bench_)), m_link(link_)
+Unit::Unit(const QWeakPointer<virConnect>& link_,
+	const QSharedPointer<Model::System>& system_):
+	m_pci(new Pci(link_, system_->getHost())), m_link(link_),
+	m_system(system_.toWeakRef())
 {
 	m_pci->setAutoDelete(false);
 	d_ptr->sendChildEvents = false;
@@ -2282,30 +2290,38 @@ Unit::Unit(const QWeakPointer<virConnect>& link_, Workbench& bench_):
 
 Unit* Unit::clone() const
 {
+	QSharedPointer<virConnect> x = m_link.toStrongRef();
+	if (x.isNull())
+		return NULL;
+
 	Unit* output = new Unit(m_link);
 	output->m_pci = m_pci;
-	output->m_bench = m_bench;
+	output->m_system = m_system;
 
 	return output;
 }
 
 void Unit::react()
 {
-	QSharedPointer<virConnect> x = m_link.toStrongRef();
-	if (!x.isNull())
+	QSharedPointer<Model::System> v(m_system.toStrongRef());
+	if (!v.isNull())
 	{
-		m_bench->getPool().start(m_pci.data());
-		Launcher(this->thread())(*this);
+		v->getHost().getPool().start(m_pci.data());
+		(Launcher(m_system))(*this);
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Launcher
 
-void Launcher::operator()(const QWeakPointer<virConnect>& link_, Workbench& bench_) const
+void Launcher::operator()(const QWeakPointer<virConnect>& link_) const
 {
-	Unit* m = new Unit(link_, bench_);
-	do_(*m, 0);
+	QSharedPointer<Model::System> v(m_system.toStrongRef());
+	if (!v.isNull())
+	{
+		Unit* m = new Unit(link_, v);
+		do_(*m, 0);
+	}
 }
 
 void Launcher::operator()(const Unit& monitor_) const
@@ -2317,11 +2333,17 @@ void Launcher::operator()(const Unit& monitor_) const
 
 void Launcher::do_(Unit& object_, int timeout_) const
 {
+	QSharedPointer<Model::System> v(m_system.toStrongRef());
+	if (v.isNull())
+	{
+		WRITE_TRACE(DBG_FATAL, "shutdown! nothing to sync");
+		return;
+	}
 	QTimer* t = new QTimer();
-	t->moveToThread(m_target);
+	t->moveToThread(v->thread());
 	t->setInterval(timeout_);
 
-	object_.moveToThread(m_target);
+	object_.moveToThread(t->thread());
 	object_.setParent(t);
 	object_.connect(t, SIGNAL(timeout()), SLOT(react()));
 	t->connect(t, SIGNAL(timeout()), SLOT(deleteLater()));

@@ -841,7 +841,7 @@ private:
 
 struct Unit: QObject
 {
-	Unit(const QWeakPointer<virConnect>& link_, Workbench& bench_);
+	Unit(const QWeakPointer<virConnect>& , const QSharedPointer<Model::System>& );
 
 	Unit* clone() const;
 
@@ -853,9 +853,9 @@ private:
 
 	explicit Unit(const QWeakPointer<virConnect>& link_);
 
-	Workbench* m_bench;
 	QSharedPointer<Pci> m_pci;
 	QWeakPointer<virConnect> m_link;
+	QWeakPointer<Model::System> m_system;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -863,17 +863,18 @@ private:
 
 struct Launcher
 {
-	explicit Launcher(QThread* target_): m_target(target_)
+	explicit Launcher(const QWeakPointer<Model::System>& system_):
+		m_system(system_)
 	{
 	}
 
-	void operator()(const QWeakPointer<virConnect>& link_, Workbench& bench_) const;
+	void operator()(const QWeakPointer<virConnect>& link_) const;
 	void operator()(const Unit& monitor_) const;
 
 private:
 	void do_(Unit& object_, int timeout_) const;
 
-	QThread* m_target;
+	QWeakPointer<Model::System> m_system;
 };
 
 } // namespace Hardware
@@ -1417,15 +1418,13 @@ private:
 
 struct Subject: QRunnable
 {
-	Subject(QSharedPointer<virConnect> , QSharedPointer<Model::System> );
+	Subject(QSharedPointer<virConnect> , QWeakPointer<Model::System> );
 
 	void run();
 
 private:
-	Vm m_vm;
-	QThread* m_target;
 	QSharedPointer<virConnect> m_link;
-	QSharedPointer<Model::System> m_system;
+	QWeakPointer<Model::System> m_system;
 };
 
 } // namespace Breeding
