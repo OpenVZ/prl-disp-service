@@ -694,16 +694,11 @@ SmartPtr<Chain> Frozen::decorate(SmartPtr<Chain> chain_)
 	T->connect(T, SIGNAL(timeout()), SLOT(deleteLater()));
 	QMetaObject::invokeMethod(T, "start", Qt::QueuedConnection);
 
-	return SmartPtr<Chain>(t);
+	return SmartPtr<Chain>(t, Emancipator(t));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Thaw
-
-Thaw::~Thaw()
-{
-	release();
-}
 
 void Thaw::release()
 {
@@ -716,6 +711,23 @@ PRL_RESULT Thaw::do_(SmartPtr<IOPackage> request_, process_type& dst_)
 {
 	release();
 	return forward(request_, dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Emancipator
+
+void Emancipator::operator()(Chain* object_)
+{
+	if (NULL == object_)
+		return;
+
+	if (m_object != object_)
+		return;
+
+	m_object->next(SmartPtr<Chain>());
+	m_object->release();
+	m_object->deleteLater();
+	m_object = NULL;
 }
 
 typedef ::Command::Tag::State< ::Command::Vm::Frankenstein,

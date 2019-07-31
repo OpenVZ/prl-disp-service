@@ -691,8 +691,9 @@ private:
 
 struct Thaw: QObject, Chain
 {
-	Thaw(const ::Backup::Snapshot::Vm::Object& object_) : m_object(object_) {}
-	~Thaw();
+	explicit Thaw(const ::Backup::Snapshot::Vm::Object& object_): m_object(object_)
+	{
+	}
 
 	PRL_RESULT do_(SmartPtr<IOPackage> request_, process_type& dst_);
 
@@ -704,6 +705,21 @@ private:
 
 	QMutex m_lock;
 	boost::optional< ::Backup::Snapshot::Vm::Object> m_object;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Emancipator
+
+struct Emancipator
+{
+	explicit Emancipator(Thaw* object_): m_object(object_)
+	{
+	}
+
+	void operator()(Chain* object_);
+
+private:
+	Thaw* m_object;
 };
 
 namespace Bitmap
