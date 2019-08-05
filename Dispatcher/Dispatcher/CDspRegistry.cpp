@@ -645,7 +645,8 @@ void Actual::reset()
 	::Vm::Directory::Dao::Locked d(m_service->getVmDirManager());
 	foreach (const ::Vm::Directory::Item::List::value_type& i, d.getItemList())
 	{
-		if (!i.second->getCtId().isEmpty())
+		if (!i.second->getCtId().isEmpty() || i.second->isTemplate() ||
+			i.first == CDspVmDirManager::getTemplatesDirectoryUuid())
 			continue;
 
 		QString u = i.second->getVmUuid();
