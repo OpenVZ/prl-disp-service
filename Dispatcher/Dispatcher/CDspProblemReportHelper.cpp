@@ -1080,6 +1080,14 @@ bool CDspProblemReportHelper::getProblemReport(SmartPtr<CDspClient> pUser,
         newPackage =
             CDspProblemReportHelper::createProblemReportOldFormatEventPackage( *pOldReport.getImpl(), p );
     }
+    if (!newPackage.isValid())
+    {
+        pUser->sendResponseError(Error::Simple(PRL_ERR_FAILURE,
+		"Unable to send report due to insufficient resources")
+			.convertToEvent(), p);
+        WRITE_TRACE(DBG_FATAL, "Unable to send report due to insufficient resources");
+        return false;
+    }
     pUser->sendPackage(newPackage);
     WRITE_TRACE(DBG_FATAL, " problem report %s was posted to client %s",
         bSendByTimeout?"by timeout":"",
