@@ -702,9 +702,28 @@ SmartPtr<Chain> Frozen::decorate(SmartPtr<Chain> chain_)
 
 void Thaw::release()
 {
-	QMutexLocker l(&m_lock);
-	if (m_object && PRL_SUCCEEDED(m_object->thaw()))
-		m_object = boost::none;
+	if (QThread::currentThread() == thread())
+	{
+		// NB. timeout case
+		if (!m_lock.tryLock())
+		{
+			WRITE_TRACE(DBG_FATAL, "Another thaw is pending. Do nothing");
+			return;
+		}
+		if (m_object)
+		{
+			QtConcurrent::run(boost::bind(&::Backup::Snapshot::Vm::Object::thaw,
+				m_object.get()));
+			m_object = boost::none;
+		}
+		m_lock.unlock();
+	}
+	else
+	{
+		QMutexLocker l(&m_lock);
+		if (m_object && PRL_SUCCEEDED(m_object->thaw()))
+			m_object = boost::none;
+	}
 }
 
 PRL_RESULT Thaw::do_(SmartPtr<IOPackage> request_, process_type& dst_)
