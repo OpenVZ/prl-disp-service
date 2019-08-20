@@ -1448,9 +1448,6 @@ void CpuFeaturesMask::getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &
 {
 	CpuFeatures* u = vt_.getCpuFeatures();
 	QSet<QString> features = CCpuHelper::getDisabledFeatures(*m_input);
-	if (NULL != u)
-		features.unite(u->getDisabled().toSet());
-
 	/* FIXME arat feature will be implemented in Update3. It should be disabled
 	 to keep libvirt migration work. It is not working in update1 QEMU.
 	 #PSBM-52808 #PSBM-51001 #PSBM-52852 #PSBM-65816 */
@@ -1461,6 +1458,7 @@ void CpuFeaturesMask::getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &
 	QList<Libvirt::Domain::Xml::Feature> l;
 	if (NULL != u)
 	{
+		features.unite(u->getDisabled().toSet());
 		foreach(const QString& name, u->getRequired())
 		{
 			if (features.contains(name))
