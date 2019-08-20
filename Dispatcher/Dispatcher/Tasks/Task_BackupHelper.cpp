@@ -72,10 +72,6 @@
 #include <time.h>
 #include <vzctl/libvzctl.h>
 
-
-// milliseconds sleep for read from subprocess
-#define SLEEP_INTERVAL	1000
-
 namespace Backup
 {
 namespace Process
@@ -1612,25 +1608,16 @@ Task_BackupHelper::Task_BackupHelper(const SmartPtr<CDspClient> &client, const S
 Task_DispToDispConnHelper(getLastError()),
 m_pVmConfig(new CVmConfiguration()),
 m_nInternalFlags(0),
-m_nSteps(0),
-m_product(NULL),
-m_service(NULL)
+// will assume first backup proto version on dst side by default
+m_nRemoteVersion(BACKUP_PROTO_V1), m_nBackupNumber(),
+m_service(NULL), m_cABackupClient(), m_bKillCalled(),
+/* block size + our header size */
+m_nBufSize(IOPACKAGESIZE(1) + PRL_DISP_IO_BUFFER_SIZE)
 {
-	/* block size + our header size */
-	m_nBufSize = IOPACKAGESIZE(1) + PRL_DISP_IO_BUFFER_SIZE;
 	m_pBuffer = SmartPtr<char>(new char[m_nBufSize], SmartPtrPolicy::ArrayStorage);
-	m_cABackupClient = NULL;
-	m_bKillCalled = false;
-	// will assume first backup proto version on dst side by default
-	m_nRemoteVersion = BACKUP_PROTO_V1;
 	// set backup client/server interface timeout (https://jira.sw.ru/browse/PSBM-10020)
 	m_nBackupTimeout = CDspService::instance()->getDispConfigGuard().
 			getDispCommonPrefs()->getBackupSourcePreferences()->getTimeout(); // in secs
-	m_nBackupNumber = 0;
-}
-
-Task_BackupHelper::~Task_BackupHelper()
-{
 }
 
 PRL_RESULT Task_BackupHelper::getEntryLists(const QString &sStartPath, bool (*excludeFunc)(const QString &))
@@ -2101,37 +2088,6 @@ PRL_RESULT Task_BackupHelper::GetBackupTreeRequest(const QString &sVmUuid, QStri
 	sBackupTree = pTreeReply->GetBackupTree();
 
 	return nRetCode;
-}
-
-PRL_RESULT Task_BackupHelper::CloneHardDiskState(const QString &sDiskImage,
-	const QString &sSnapshotUuid, const QString &sDstDirectory)
-{
-/*
-	CDSManager DSManager;
-	PRL_RESULT RetVal;
-
-	IDisk *pDisk = IDisk::OpenDisk(sDiskImage, PRL_DISK_READ |
-			PRL_DISK_NO_ERROR_CHECKING | PRL_DISK_FAKE_OPEN, &RetVal);
-	if (!pDisk) {
-		WRITE_TRACE(DBG_FATAL, "Can't open disk for clone, ret = %#x (%s)",
-				RetVal, PRL_RESULT_TO_STRING(RetVal));
-		return RetVal;
-	}
-	DSManager.AddDisk( pDisk );
-
-	PRL_RESULT nRetCode = DSManager.CloneState( Uuid( sSnapshotUuid ),
-			QStringList() << sDstDirectory, NULL, NULL );
-
-	DSManager.WaitForCompletion();
-	DSManager.Clear();
-	pDisk->Release();
-
-	return nRetCode;
-*/
-	Q_UNUSED(sDiskImage);
-	Q_UNUSED(sSnapshotUuid);
-	Q_UNUSED(sDstDirectory);
-	return PRL_ERR_UNIMPLEMENTED;
 }
 
 QString Task_BackupHelper::patch(QUrl url_) const
