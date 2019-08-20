@@ -101,7 +101,6 @@ public:
 		const CProtoCommandPtr,
 		const SmartPtr<IOPackage> &,
 		Backup::Activity::Service& );
-	virtual ~Task_CreateVmBackupSource();
 
 protected:
 	virtual PRL_RESULT prepareTask();
@@ -127,7 +126,6 @@ public:
 		const CProtoCommandPtr,
 		const SmartPtr<IOPackage> &,
 		Backup::Activity::Service& );
-	virtual ~Task_CreateCtBackupSource();
 
 protected:
 	virtual PRL_RESULT prepareTask();

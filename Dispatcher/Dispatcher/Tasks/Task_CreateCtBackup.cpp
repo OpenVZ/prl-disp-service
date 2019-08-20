@@ -76,10 +76,6 @@ Task_CreateCtBackupSource::Task_CreateCtBackupSource(
 	m_service = &service_;
 }
 
-Task_CreateCtBackupSource::~Task_CreateCtBackupSource()
-{
-}
-
 PRL_RESULT Task_CreateCtBackupSource::prepareTask()
 {
 	// check params in existing VM
