@@ -33,17 +33,10 @@
 #ifndef __Task_BackupHelper_H_
 #define __Task_BackupHelper_H_
 
-#include <QString>
-
 #include "CDspTaskHelper.h"
 #include "Task_DispToDispConnHelper.h"
-#include "CDspClient.h"
-#include "prlcommon/IOService/IOCommunication/IOClient.h"
 #include "prlcommon/VirtualDisk/Qcow2Disk.h"
-#include "Libraries/VmFileList/CVmFileListCopy.h"
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
-#include "prlxmlmodel/BackupTree/VmItem.h"
-#include "Dispatcher/Dispatcher/CDspDispConnection.h"
 #include "CDspVmBackupInfrastructure.h"
 #include "CDspVmBackupInfrastructure_p.h"
 
@@ -68,11 +61,6 @@
 #endif
 
 #define PRL_CT_BACKUP_TIB_FILE_NAME "private.tib"
-
-// vzwin: zip archive of miscellaneous CT files from private
-#define PRL_CT_BACKUP_ZIP_FILE_NAME "private.zip"
-// vzwin: milliseconds wait for zip/unzip  misc files in CT private dir
-#define ZIP_WORK_TIMEOUT (10*60*1000)
 
 enum BackupCheckMode {
 	PRL_BACKUP_CHECK_MODE_READ,
@@ -191,10 +179,6 @@ private:
 
 } // namespace Storage
 } // namespace Backup
-
-enum _PRL_BACKUP_STEP {
-	BACKUP_REGISTER_EX_OP	= (1 << 0),
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Chain
@@ -403,7 +387,6 @@ public:
 
 protected:
 	Task_BackupHelper(const SmartPtr<CDspClient> &client, const SmartPtr<IOPackage> &p);
-	virtual ~Task_BackupHelper();
 
 	PRL_RESULT connect();
 
@@ -443,11 +426,6 @@ protected:
 	*/
 	virtual bool providedAdditionState(){return true;}
 
-	/* prepare new DiskDescriptor with linked clone to the original disk
-	 * except current delta */
-	PRL_RESULT CloneHardDiskState(const QString &sDiskImage,
-			const QString &sSnapshotUuid, const QString &sDstDirectory);
-
 	Backup::Metadata::Lock& getMetadataLock();
 	Backup::Metadata::Catalog getCatalog(const QString& vm_);
 
@@ -463,7 +441,6 @@ protected:
 	QString m_sServerSessionUuid;
 	quint32 m_nFlags;
 	quint32 m_nInternalFlags;
-	quint32 m_nSteps;
 	quint32 m_nBackupTimeout;
 	quint32 m_nRemoteVersion;
 	QString m_sBackupUuid;
