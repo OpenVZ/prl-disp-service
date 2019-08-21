@@ -364,12 +364,6 @@ protected:
 
 	PRL_RESULT connect();
 
-	/* To get directory and file lists for start path with excludes.
-	   This function does not clean directory and file lists before.
-	   excludeFunc will get relative path and should return 'true' to
-           exclude obj from dirList or fileList */
-	PRL_RESULT getEntryLists(const QString &sStartPath, bool (*excludeFunc)(const QString &));
-
 	/* find Vm uuid for backup uuid in backup directory */
 	PRL_RESULT findVmUuidForBackupUuid(const QString &sBackupUuid, QString &sVmUuid);
 
