@@ -38,7 +38,6 @@
 #include <boost/noncopyable.hpp>
 #include <CDspDispConfigGuard.h>
 #include <Libraries/Virtuozzo/CVzHelper.h>
-//#include <Libraries/VirtualDisk/VirtualDisk.h>
 #include <prlcommon/VirtualDisk/VirtualDisk.h>
 #include <Libraries/PrlCommonUtils/CFileHelper.h>
 

@@ -901,7 +901,7 @@ namespace Activity
 
 void Product::cloneConfig(const QString& name_)
 {
-	setConfig( ::Backup::Perspective(getConfig()).clone(getUuid(), name_));
+	setConfig( ::Backup::Object::Model(getConfig()).clone(getUuid(), name_).getConfig());
 }
 
 ///////////////////////////////////////////////////////////////////////////////

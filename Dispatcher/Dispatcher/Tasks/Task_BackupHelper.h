@@ -38,7 +38,6 @@
 #include "prlcommon/VirtualDisk/Qcow2Disk.h"
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "CDspVmBackupInfrastructure.h"
-#include "CDspVmBackupInfrastructure_p.h"
 
 #define GUEST_FS_SUSPEND_TIMEOUT_SEC 300  // 5 minutes
 #define GUEST_FS_SUSPEND_TIMEOUT_WAIT_MSEC 10  // 10 miliseconds
@@ -221,29 +220,6 @@ class Task_BackupHelper;
 
 namespace Backup
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Perspective
-//
-
-struct Perspective
-{
-	typedef QList<CVmHardDisk* > imageList_type;
-	typedef SmartPtr<CVmConfiguration> config_type;
-
-	explicit Perspective(const config_type& config_);
-
-	bool bad() const
-	{
-		return !m_config.isValid() || m_config->getVmHardwareList() == NULL;
-	}
-	imageList_type getImages() const;
-	config_type clone(const QString& uuid_, const QString& name_) const;
-private:
-	static QString getName(const QString& name_, const QStringList& met_);
-
-	config_type m_config;
-};
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct AClient
 //
