@@ -310,6 +310,11 @@ private:
 	PRL_RESULT sendFiles(IOSendJob::Handle& job_);
 	PRL_RESULT sendStartReply(const SmartPtr<CVmConfiguration>& ve_, IOSendJob::Handle& job_);
 	PRL_RESULT getBackupParams(quint64 &nSize, quint32 &nBundlePermissions);
+	/* To get directory and file lists for start path with excludes.
+	   This function does not clean directory and file lists before.
+	   excludeFunc will get relative path and should return 'true' to
+           exclude obj from dirList or fileList */
+	PRL_RESULT getEntryLists();
 
 private slots:
 	void mountImage(const SmartPtr<IOPackage>& package_);

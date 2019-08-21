@@ -288,13 +288,6 @@ exit:
 	return nRetCode;
 }
 
-static bool excludeFunc(const QString &sRelPath)
-{
-	if (sRelPath == PRL_BACKUP_METADATA)
-		return true; /* skip metadata */
-	return false;
-}
-
 PRL_RESULT Task_RestoreVmBackupSource::run_body()
 {
 	//https://bugzilla.sw.ru/show_bug.cgi?id=267152
@@ -331,6 +324,72 @@ void Task_RestoreVmBackupSource::finalizeTask()
 		m_pDispConnection->sendResponseError(getLastError(), getRequestPackage());
 }
 
+PRL_RESULT Task_RestoreVmBackupSource::getEntryLists()
+{
+	QFileInfo dirInfo;
+	QFileInfoList entryList;
+	QDir startDir, dir;
+	int i, j;
+	QString relativePath;
+
+	if (operationIsCancelled())
+		return PRL_ERR_OPERATION_WAS_CANCELED;
+
+	dirInfo.setFile(m_sBackupPath);
+	if (!dirInfo.exists()) {
+		WRITE_TRACE(DBG_FATAL, "Directory %s does not exist", QSTR2UTF8(m_sBackupPath));
+		return (PRL_ERR_VMDIR_INVALID_PATH);
+	}
+	startDir.setPath(m_sBackupPath);
+	m_DirList.append(qMakePair(dirInfo, QString(".")));
+	for (i = 0; i < m_DirList.size(); ++i) {
+		/* CDir::absoluteDir() is equal CDir::dir() : return parent directory */
+		dir.setPath(m_DirList.at(i).first.absoluteFilePath());
+
+		entryList = dir.entryInfoList(QDir::NoDotAndDotDot | QDir::Files | QDir::Dirs | QDir::Hidden);
+
+		LOG_MESSAGE(DBG_DEBUG, "Directory %s", QSTR2UTF8(m_DirList.at(i).first.absoluteFilePath()));
+
+		for (j = 0; j < entryList.size(); ++j) {
+			const QFileInfo& fileInfo = entryList.at(j);
+
+			// #431558 compare paths by spec way to prevent errors with symlinks, unexisting files, ...
+			if (CFileHelper::IsPathsEqual(dirInfo.absoluteFilePath(), fileInfo.absoluteFilePath())) {
+				WRITE_TRACE(DBG_FATAL, "Infinite recursion in : %s", QSTR2UTF8(dirInfo.absoluteFilePath()));
+				return (PRL_ERR_FAILURE);
+			}
+			QFileInfo startInfo(m_sBackupPath);
+			if (!fileInfo.absoluteFilePath().startsWith(startInfo.absoluteFilePath())) {
+				WRITE_TRACE(DBG_FATAL, "Path %s does not starts from VM home dir (%s)",
+					QSTR2UTF8(fileInfo.absoluteFilePath()),
+					QSTR2UTF8(startInfo.absoluteFilePath()));
+				return PRL_ERR_FAILURE;
+			}
+			relativePath = startDir.relativeFilePath(fileInfo.absoluteFilePath());
+			if (PRL_BACKUP_METADATA == relativePath)
+			{
+				LOG_MESSAGE(DBG_DEBUG, "%s skipped due to excludes",
+					QSTR2UTF8(fileInfo.absoluteFilePath()));
+				continue;
+			}
+			if (fileInfo.isDir())
+				m_DirList.append(qMakePair(fileInfo, relativePath));
+			else
+				m_FileList.append(qMakePair(fileInfo, relativePath));
+			LOG_MESSAGE(DBG_DEBUG, "%x\t%s.%s\t%s",
+				int(fileInfo.permissions()),
+				QSTR2UTF8(fileInfo.owner()),
+				QSTR2UTF8(fileInfo.group()),
+				QSTR2UTF8(fileInfo.absoluteFilePath()));
+		}
+		entryList.clear();
+	}
+	/* remove start directory */
+	m_DirList.removeFirst();
+
+	return (PRL_ERR_SUCCESS);
+}
+
 PRL_RESULT Task_RestoreVmBackupSource::sendFiles(IOSendJob::Handle& job_)
 {
 	/* wait client's reply for syncronization */
@@ -342,7 +401,7 @@ PRL_RESULT Task_RestoreVmBackupSource::sendFiles(IOSendJob::Handle& job_)
 	if (operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
-	PRL_RESULT nRetCode = getEntryLists(m_sBackupPath, excludeFunc);
+	PRL_RESULT nRetCode = getEntryLists();
 	if (PRL_FAILED(nRetCode))
 		return nRetCode;
 
