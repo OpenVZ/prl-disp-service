@@ -1280,69 +1280,6 @@ PRL_RESULT Client::result(bool cancelled_, CVmEvent* event_)
 namespace Backup
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Perspective
-//
-
-Perspective::Perspective(const config_type& config_):
-	m_config(config_)
-{
-	if (bad())
-	{
- 		WRITE_TRACE(DBG_FATAL, "[%s] Cannot get a VE hardware list",
-					__FUNCTION__);
-	}
-}
-
-Perspective::imageList_type Perspective::getImages() const
-{
-	imageList_type output;
-	if (!bad())
-	{
-		foreach (CVmHardDisk* d, m_config->getVmHardwareList()->m_lstHardDisks)
-		{
-			if (d->getEnabled() && (
-				d->getEmulatedType() == PVE::HardDiskImage ||
-				d->getEmulatedType() == PVE::ContainerHardDisk))
-				output.push_back(d);
-		}
-	}
-	return output;
-}
-
-QString Perspective::getName(const QString& name_, const QStringList& met_)
-{
-	QString output = QFileInfo(name_).fileName().append(".tib");
-	while (met_.contains(output))
-		output.prepend("_");
-
-	return output;
-}
-
-Perspective::config_type Perspective::clone(const QString& uuid_, const QString& name_) const
-{
-	if (bad())
-		return config_type();
-
-	config_type output(new CVmConfiguration(m_config.getImpl()));
-	if (PRL_FAILED(output->m_uiRcInit))
-	{
-		WRITE_TRACE(DBG_FATAL, "Cannot copy a VE config");
-		return config_type();
-	}
-	output->getVmIdentification()->setVmUuid(uuid_);
-	output->getVmIdentification()->setVmName(name_);
-	Clone::Sink::Flavor<Clone::Sink::Vm::General>::prepare(output);
-	foreach (CVmHardDisk* d, Perspective(output).getImages())
-	{
-		using namespace Clone::HardDisk;
-		QFileInfo n(Flavor::getLocation(*d));
-		if (n.isAbsolute())
-			Flavor::update(*d, Flavor::getExternal(*d, name_));
-	}
-	return output;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Suffix
 //
 
