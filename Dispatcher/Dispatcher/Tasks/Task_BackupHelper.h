@@ -358,8 +358,6 @@ public:
 		const QString &sNotificationVmUuid, unsigned int nDiskIdx);
 	PRL_RESULT startABackupClient(const QString& sVmName_, const QStringList& args_,
 		SmartPtr<Chain> custom_);
-	/* updates an id of the last successful incremental backup */
-	PRL_RESULT updateLastPartialNumber(const QString &ve_, const QString &uuid_, unsigned number_);
 
 protected:
 	Task_BackupHelper(const SmartPtr<CDspClient> &client, const SmartPtr<IOPackage> &p);
@@ -380,8 +378,6 @@ protected:
 
  	/* get last full backup item for vm uuid */
 	BackupItem* getLastBaseBackup(const QString &sVmUuid, CAuthHelper *pAuthHelper, BackupCheckMode mode);
- 	/* get next partial backup number */
- 	unsigned getNextPartialBackup(const QString &sVmUuid, const QString &sBackupUuid);
  	/* parse BackupUuid[.BackupNumber] */
  	PRL_RESULT parseBackupId(const QString &sBackupId, QString &sBackupUuid, unsigned &nBackupNumber);
 
@@ -391,8 +387,6 @@ protected:
 			UINT32 tmo);
 	PRL_RESULT GetBackupTreeRequest(const QString &sVmUuid, QString &sBackupTree);
 	void killABackupClient();
-	PRL_RESULT getBackupParams(const QString &sVmUuid, const QString &sBackupUuid,
-		unsigned nBackupNumber, quint64 &nSize, quint32 &nBundlePermissions);
 	PRL_RESULT checkFreeDiskSpace(quint64 nRequiredSize, quint64 nAvailableSize, bool bIsCreateOp);
 
 	virtual bool isCancelled() { return operationIsCancelled(); }

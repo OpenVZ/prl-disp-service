@@ -309,6 +309,7 @@ private:
 	PRL_RESULT restoreVmVBackup(SmartPtr<CVmConfiguration> ve_);
 	PRL_RESULT sendFiles(IOSendJob::Handle& job_);
 	PRL_RESULT sendStartReply(const SmartPtr<CVmConfiguration>& ve_, IOSendJob::Handle& job_);
+	PRL_RESULT getBackupParams(quint64 &nSize, quint32 &nBundlePermissions);
 
 private slots:
 	void mountImage(const SmartPtr<IOPackage>& package_);

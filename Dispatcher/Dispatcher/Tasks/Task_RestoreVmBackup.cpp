@@ -365,12 +365,44 @@ PRL_RESULT Task_RestoreVmBackupSource::sendFiles(IOSendJob::Handle& job_)
 	return PRL_ERR_SUCCESS;
 }
 
+PRL_RESULT Task_RestoreVmBackupSource::getBackupParams(quint64 &nSize, quint32 &nBundlePermissions)
+{
+	PRL_RESULT output = getMetadataLock().grabShared(getBackupUuid());
+	if (PRL_FAILED(output))
+		return output;
+
+	Backup::Metadata::Sequence s = getCatalog(getVmUuid()).getSequence(getBackupUuid());
+	if (getBackupNumber() == s.getIndex().first())
+	{
+		Prl::Expected<BackupItem, PRL_RESULT> b = s.getHeadItem(getBackupNumber());
+		if (b.isFailed())
+			output = b.error();
+		else
+		{
+			nSize = b.value().getOriginalSize();
+			nBundlePermissions = b.value().getBundlePermissions();
+		}
+	}
+	else
+	{
+		Prl::Expected<PartialBackupItem, PRL_RESULT> p = s.getTailItem(getBackupNumber());
+		if (p.isFailed())
+			output = p.error();
+		else
+		{
+			nSize = p.value().getOriginalSize();
+			nBundlePermissions = p.value().getBundlePermissions();
+		}
+	}
+	getMetadataLock().releaseShared(getBackupUuid());
+	return output;
+}
+
 PRL_RESULT Task_RestoreVmBackupSource::sendStartReply(const SmartPtr<CVmConfiguration>& ve_, IOSendJob::Handle& job_)
 {
 	qulonglong nOriginalSize = 0;
 	quint32 nBundlePermissions = 0;
-	PRL_RESULT code = Task_BackupHelper::getBackupParams(
-		m_sVmUuid, m_sBackupUuid, m_nBackupNumber, nOriginalSize, nBundlePermissions);
+	PRL_RESULT code = getBackupParams(nOriginalSize, nBundlePermissions);
 	if (PRL_FAILED(code))
 	{
 		WRITE_TRACE(DBG_FATAL, "Unable to get backup OriginalSize %x", code);

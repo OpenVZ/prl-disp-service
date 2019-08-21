@@ -1704,62 +1704,6 @@ BackupItem* Task_BackupHelper::getLastBaseBackup(const QString &sVmUuid,
 	return a.release();
 }
 
-PRL_RESULT Task_BackupHelper::updateLastPartialNumber(const QString &ve_,
-		const QString &uuid_, unsigned number_)
-{
-	Backup::Metadata::Sequence s = getCatalog(ve_).getSequence(uuid_);
-	quint32 h = s.getIndex().first();
-	Prl::Expected<BackupItem, PRL_RESULT> b = s.getHeadItem(h);
-	if (b.isFailed())
-		return b.error();
-
-	b.value().setLastNumber(number_);
-	return s.save(b.value(), h);
-}
-
-unsigned Task_BackupHelper::getNextPartialBackup(const QString &sVmUuid, const QString &sBackupUuid)
-{
-	QList<quint32> lstBackupNumber = getCatalog(sVmUuid).getSequence(sBackupUuid).getIndex();
-	if (lstBackupNumber.isEmpty())
-		return PRL_BASE_BACKUP_NUMBER;
-
-	return lstBackupNumber.last() + 1;
-}
-
-PRL_RESULT Task_BackupHelper::getBackupParams(const QString &sVmUuid, const QString &sBackupUuid,
-		unsigned nBackupNumber, quint64 &nSize, quint32 &nBundlePermissions)
-{
-	PRL_RESULT output = getMetadataLock().grabShared(sBackupUuid);
-	if (PRL_FAILED(output))
-		return output;
-
-	Backup::Metadata::Sequence s = getCatalog(sVmUuid).getSequence(sBackupUuid);
-	if (nBackupNumber == s.getIndex().first())
-	{
-		Prl::Expected<BackupItem, PRL_RESULT> b = s.getHeadItem(nBackupNumber);
-		if (b.isFailed())
-			output = b.error();
-		else
-		{
-			nSize = b.value().getOriginalSize();
-			nBundlePermissions = b.value().getBundlePermissions();
-		}
-	}
-	else
-	{
-		Prl::Expected<PartialBackupItem, PRL_RESULT> p = s.getTailItem(nBackupNumber);
-		if (p.isFailed())
-			output = p.error();
-		else
-		{
-			nSize = p.value().getOriginalSize();
-			nBundlePermissions = p.value().getBundlePermissions();
-		}
-	}
-	getMetadataLock().releaseShared(sBackupUuid);
-	return output;
-}
-
 PRL_RESULT Task_BackupHelper::checkFreeDiskSpace(
 	quint64 nRequiredSize, quint64 nAvailableSize, bool bIsCreateOp)
 {

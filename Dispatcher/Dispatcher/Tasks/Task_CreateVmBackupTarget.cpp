@@ -139,8 +139,10 @@ PRL_RESULT Task_CreateVmBackupTarget::validateBackupDir(const QString &sPath)
 
 PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 {
+	namespace bm = Backup::Metadata;
+
 	bool f = 0 != (m_nFlags & PBT_FULL);
-	Backup::Metadata::Carcass c(getBackupDirectory(), m_sVmUuid);
+	bm::Carcass c(getBackupDirectory(), m_sVmUuid);
 	do {
 		if (f) {
 			break;
@@ -152,7 +154,8 @@ PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 			break;
 		}
 		m_sBackupUuid = m_lastBase->getUuid();
-		m_nBackupNumber = getNextPartialBackup(m_sVmUuid, m_sBackupUuid);
+		QList<quint32> I = bm::Catalog(c).getSequence(m_sBackupUuid).getIndex();
+		m_nBackupNumber = I.isEmpty() ? unsigned(bm::Sequence::BASE) : (I.last() + 1);
 		if ((f = (m_lastBase->getLastNumber() &&
 			m_nBackupNumber != m_lastBase->getLastNumber() + 1))) {
 			WRITE_TRACE(DBG_FATAL, "The last incremental backup of this Vm "
@@ -178,7 +181,7 @@ PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 		m_nFlags |= PBT_FULL;
 		/* create new base backup */
 		m_sBackupUuid = Uuid::createUuid().toString();
-		m_nBackupNumber = Backup::Metadata::Sequence::BASE;
+		m_nBackupNumber = bm::Sequence::BASE;
 		setBackupRoot(c.getSequence(m_sBackupUuid).absolutePath());
 	}
 	m_sTargetPath = c.getItem(m_sBackupUuid, m_nBackupNumber).absolutePath();
