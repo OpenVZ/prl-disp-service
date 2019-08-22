@@ -33,38 +33,10 @@
 //#define LOGGING_ON
 //#define FORCE_LOGGING_LEVEL DBG_DEBUG
 
-#include <memory>
-
 #include <QTemporaryFile>
 #include "CDspClientManager.h"
-#include "prlcommon/Interfaces/ParallelsQt.h"
-#include "prlcommon/Interfaces/ParallelsNamespace.h"
-
-#include "prlcommon/Logging/Logging.h"
-#include "Libraries/StatesStore/SavedStateTree.h"
-#include "prlcommon/Std/PrlTime.h"
-
 #include "Task_CreateVmBackup.h"
 #include "Task_BackupHelper_p.h"
-#include "Libraries/DispToDispProtocols/CVmBackupProto.h"
-#include "CDspService.h"
-#include "prlcommon/Std/PrlAssert.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "prlxmlmodel/BackupTree/VmItem.h"
-#include "prlxmlmodel/BackupTree/BackupItem.h"
-#include "prlxmlmodel/DiskDescriptor/CDiskXML.h"
-#include "CDspVzHelper.h"
-#include "CDspVmSnapshotStoreHelper.h"
-#include "CDspVmBackupInfrastructure.h"
-
-#ifdef _LIN_
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <linux/fs.h>
-#include <sys/ioctl.h>
-#include "CDspBackupDevice.h"
-#include "vzctl/libvzctl.h"
-#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // class Task_CreateVmBackup

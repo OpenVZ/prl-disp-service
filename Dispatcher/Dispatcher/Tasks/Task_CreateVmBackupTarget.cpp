@@ -30,16 +30,6 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "prlcommon/Interfaces/ParallelsQt.h"
-#include "prlcommon/Interfaces/ParallelsNamespace.h"
-#include "prlcommon/Logging/Logging.h"
-
-#include "CDspService.h"
-#include "Libraries/DispToDispProtocols/CVmBackupProto.h"
-#ifdef _LIN_
-#include "CDspBackupDevice.h"
-#include "vzctl/libvzctl.h"
-#endif
 #include "Task_CreateVmBackup.h"
 #include "Task_BackupHelper_p.h"
 
