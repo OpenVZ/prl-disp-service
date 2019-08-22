@@ -34,31 +34,17 @@
 //#define FORCE_LOGGING_LEVEL DBG_DEBUG
 
 #include "CDspTaskTrace.h"
-#include "Interfaces/Debug.h"
-#include <prlcommon/Interfaces/ParallelsQt.h>
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include "CDspClientManager.h"
-#include <prlcommon/Logging/Logging.h>
-#include "Libraries/StatesStore/SavedStateTree.h"
-#include <prlcommon/Std/PrlTime.h>
 #include "CDspVmBrand.h"
 #include "CVcmmdInterface.h"
-#include "CDspVmDirHelper.h"
-#include "CDspVmStateSender.h"
 #include "Task_MigrateVm.h"
 #include "Task_CloneVm.h"
 #include "Task_ChangeSID.h"
 #include "CDspService.h"
-#include "CDspBugPatcherLogic.h"
-#include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
-#ifdef _LIN_
-#include "Libraries/Virtuozzo/CVzHelper.h"
-#endif
 #include "Libraries/StatesUtils/StatesHelper.h"
 #include "Libraries/PrlCommonUtils/CVmMigrateHelper.h"
-#include <prlcommon/Messaging/CVmEventParameterList.h>
 #include "Task_MigrateVmSource_p.h"
 #include <boost/functional/factory.hpp>
 
