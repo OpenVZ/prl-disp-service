@@ -1899,68 +1899,6 @@ PRL_RESULT Task_MigrateVmTarget::saveVmConfig()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Task_MigrateVmTarget::adjustStartVmCommand(SmartPtr<IOPackage> &pPackage)
-{
-	CVmMigrateStartCommand *pStartCmd;
-	CVmEventParameter *pEventParam;
-
-	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(m_pStartPackage);
-	if ( !pCmd->IsValid() )
-	{
-		WRITE_TRACE(DBG_FATAL, "Wrong start migration package was received: [%s]",
-			m_pStartPackage->buffers[0].getImpl());
-		return PRL_ERR_FAILURE;
-	}
-
-	pStartCmd = CDispToDispProtoSerializer::CastToDispToDispCommand<CVmMigrateStartCommand>(pCmd);
-	if ( NULL == pStartCmd )
-	{
-		WRITE_TRACE(DBG_FATAL, "Wrong start migration package was received: [%s]",
-			m_pStartPackage->buffers[0].getImpl());
-		return PRL_ERR_FAILURE;
-	}
-
-	/* to set path where Vm home directory will be create */
-	pEventParam = pStartCmd->GetCommand()->getEventParameter(EVT_PARAM_MIGRATE_CMD_TARGET_VM_HOME_PATH);
-	if (pEventParam)
-		pEventParam->setParamValue(m_sVmDirPath);
-
-	/* will send to Vm config from StartCmd, not from CheckCmd,
-	   so it's config with valid runtime params (https://jira.sw.ru/browse/PSBM-11335) */
-	QString sVmConfig = pStartCmd->GetVmRuntimeConfig();
-	if (!sVmConfig.length())
-	{
-		WRITE_TRACE(DBG_WARNING, "source node didn't send us runtime config "
-			"(old version of software on the source node)");
-		WRITE_TRACE(DBG_WARNING, "it is not an error, but you may experience migration "
-			"failures when on-disk VM config and runtime one are not in sync");
-		sVmConfig = pStartCmd->GetVmConfig();
-	}
-	SmartPtr<CVmConfiguration> pVmConfig = SmartPtr<CVmConfiguration>(new CVmConfiguration(sVmConfig));
-	/* rewrote request with config with real pathes */
-	pVmConfig->getVmIdentification()->setHomePath(m_sVmConfigPath);
-	pVmConfig->getVmHardwareList()->RevertDevicesPathToAbsolute(m_sTargetVmHomePath);
-
-	pEventParam = pStartCmd->GetCommand()->getEventParameter(EVT_PARAM_MIGRATE_CMD_VM_CONFIG);
-	if (pEventParam)
-		pEventParam->setParamValue(pVmConfig->toString());
-
-	/* add network config into request */
-	pEventParam = pStartCmd->GetCommand()->getEventParameter(EVT_PARAM_MIGRATE_CMD_NETWORK_CONFIG);
-	if (pEventParam)
-		pEventParam->setParamValue(CDspService::instance()->getNetworkConfig()->toString());
-
-	/* to add dispatcher config */
-	pEventParam = pStartCmd->GetCommand()->getEventParameter(EVT_PARAM_MIGRATE_CMD_DISPATCHER_CONFIG);
-	if (pEventParam)
-		pEventParam->setParamValue(
-			CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()->toString());
-
-	pPackage = DispatcherPackage::duplicateInstance(m_pStartPackage, pStartCmd->GetCommand()->toString());
-
-	return PRL_ERR_SUCCESS;
-}
-
 // add/move resource on HA cluster
 PRL_RESULT Task_MigrateVmTarget::registerHaClusterResource()
 {
