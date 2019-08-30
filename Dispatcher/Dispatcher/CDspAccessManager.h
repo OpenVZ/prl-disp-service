@@ -96,20 +96,20 @@ public:
 	 *			and etc. will be stored here if operation'll fail)
 	**/
 	PRL_RESULT checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherCommands cmd
-		, const QString& vmUuid, bool *bSetNotValid = NULL, CVmEvent *pErrorInfo = NULL );
+		, const QString& vmUuid, bool *bSetNotValid = NULL, CVmEvent *pErrorInfo = NULL ) const;
 	PRL_RESULT checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherCommands cmd
-		, CVmDirectoryItem* pVmDirItem, bool *bSetNotValid = NULL, CVmEvent *pErrorInfo = NULL );
+		, CVmDirectoryItem* pVmDirItem, bool *bSetNotValid = NULL, CVmEvent *pErrorInfo = NULL ) const;
 
 	// check access for non vm operations and for all vm confirmations
-	PRL_RESULT checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherCommands cmd );
+	PRL_RESULT checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherCommands cmd ) const;
 
 	/**
 	* @brief return AccessRights for user to VM
 	* @param pSession	- user session object
 	* @param vmUuid		- Vm Uuid
 	**/
-	VmAccessRights getAccessRightsToVm( SmartPtr<CDspClient> pSession, const QString& vmUuid );
-	VmAccessRights getAccessRightsToVm( SmartPtr<CDspClient> pSession, const CVmDirectoryItem* pVmDirItem );
+	VmAccessRights getAccessRightsToVm( SmartPtr<CDspClient> pSession, const QString& vmUuid ) const;
+	VmAccessRights getAccessRightsToVm( SmartPtr<CDspClient> pSession, const CVmDirectoryItem* pVmDirItem ) const;
 
 	/**
 	* @brief return list of allowed commands for user to VM
@@ -118,7 +118,7 @@ public:
 	**/
 	QList< PRL_ALLOWED_VM_COMMAND > getAllowedVmCommands(
 		SmartPtr<CDspClient> pSession,
-		const CVmDirectoryItem* pVmDirItem  );
+		const CVmDirectoryItem* pVmDirItem  ) const;
 
 	/**
 	* Method return access rights to VM for owner and others users
@@ -193,7 +193,7 @@ public:
 	* @param pSession	- [in] user session object
 	* @param pVmDirItem		[in]- VmDirItem
 	**/
-	bool isOwnerOfVm( SmartPtr<CDspClient> pSession, const CVmDirectoryItem* pVmDirItem  );
+	bool isOwnerOfVm( SmartPtr<CDspClient> pSession, const CVmDirectoryItem* pVmDirItem  ) const;
 
 private:
 	void	initAccessRights();

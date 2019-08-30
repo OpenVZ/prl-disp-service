@@ -210,7 +210,7 @@ void CDspAccessManager::initAccessRights()
 }
 
 CDspAccessManager::VmAccessRights
-CDspAccessManager::getAccessRightsToVm(SmartPtr<CDspClient> pSession_, const QString& vmUuid_)
+CDspAccessManager::getAccessRightsToVm(SmartPtr<CDspClient> pSession_, const QString& vmUuid_) const
 {
 	PRL_ASSERT(pSession_);
 	if(!pSession_)
@@ -228,7 +228,7 @@ CDspAccessManager::getAccessRightsToVm(SmartPtr<CDspClient> pSession_, const QSt
 }
 
 CDspAccessManager::VmAccessRights
-CDspAccessManager::getAccessRightsToVm(SmartPtr<CDspClient> pSession, const CVmDirectoryItem* pVmDirItem)
+CDspAccessManager::getAccessRightsToVm(SmartPtr<CDspClient> pSession, const CVmDirectoryItem* pVmDirItem) const
 {
 	PRL_SEC_AM mode = CDspAccessManager::VmAccessRights::arCanNone;
 
@@ -300,7 +300,7 @@ CDspAccessManager::getAccessRightsToVm(SmartPtr<CDspClient> pSession, const CVmD
 
 PRL_RESULT
 CDspAccessManager::checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherCommands cmd
-							   , const QString& vmUuid, bool *bSetNotValid, CVmEvent *pErrorInfo )
+							   , const QString& vmUuid, bool *bSetNotValid, CVmEvent *pErrorInfo ) const
 {
 	PRL_ASSERT(pSession);
 	try
@@ -328,7 +328,7 @@ CDspAccessManager::checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherC
 
 PRL_RESULT
 CDspAccessManager::checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherCommands cmd
-	, CVmDirectoryItem* pVmDirItem, bool *bSetNotValid, CVmEvent *pErrorInfo)
+	, CVmDirectoryItem* pVmDirItem, bool *bSetNotValid, CVmEvent *pErrorInfo) const
 {
 	PRL_ASSERT( pSession );
 	PRL_ASSERT( pVmDirItem );
@@ -471,7 +471,7 @@ CDspAccessManager::checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherC
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT CDspAccessManager::checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherCommands cmd )
+PRL_RESULT CDspAccessManager::checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherCommands cmd ) const
 {
 	PRL_ASSERT( pSession );
 	if( !pSession )
@@ -492,7 +492,7 @@ PRL_RESULT CDspAccessManager::checkAccess( SmartPtr<CDspClient> pSession, PVE::I
 }
 
 QList< PRL_ALLOWED_VM_COMMAND >
-CDspAccessManager::getAllowedVmCommands( SmartPtr<CDspClient> pSession, const CVmDirectoryItem* pVmDirItem )
+CDspAccessManager::getAllowedVmCommands( SmartPtr<CDspClient> pSession, const CVmDirectoryItem* pVmDirItem ) const
 {
 	QList< PRL_ALLOWED_VM_COMMAND > lstAllowed;
 	VmAccessRights accessRights = getAccessRightsToVm( pSession, pVmDirItem );
@@ -895,7 +895,7 @@ QString CDspAccessManager::getOwnerOfVm( const CVmDirectoryItem* pVmDirItem )
 	return CFileHelper::getOwner( pVmDirItem->getVmHome() );
 }
 
-bool CDspAccessManager::isOwnerOfVm( SmartPtr<CDspClient> pSession, const CVmDirectoryItem* pVmDirItem )
+bool CDspAccessManager::isOwnerOfVm( SmartPtr<CDspClient> pSession, const CVmDirectoryItem* pVmDirItem ) const
 {
 	//////////////////////////////////////////////////////////////////////////
 	// 1. check owner of vm config
