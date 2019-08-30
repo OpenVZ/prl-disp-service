@@ -365,7 +365,7 @@ CDspAccessManager::checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherC
 		}
 
 		VmAccessRights rightsToVm = getAccessRightsToVm( pSession, pVmDirItem );
-		PRL_SEC_AM access_rights = m_accessRights[cmd].first;
+		PRL_SEC_AM access_rights = m_accessRights.value(cmd).first;
 
 		if ( ( access_rights & rightsToVm.getVmAccessRights() ) != (access_rights) )
 		{
@@ -444,7 +444,7 @@ CDspAccessManager::checkAccess( SmartPtr<CDspClient> pSession, PVE::IDispatcherC
 
 		//////////////////////////////////////////////////////////////////////////
 		// check confirmation logic
-		if( pSession->isConfirmationEnabled() && m_accessRights.contains( cmd ) )
+		if(pSession->isConfirmationEnabled())
 		{
 			PRL_ALLOWED_VM_COMMAND sdkCmd = m_accessRights.value( cmd ).second;
 
@@ -497,19 +497,18 @@ CDspAccessManager::getAllowedVmCommands( SmartPtr<CDspClient> pSession, const CV
 	QList< PRL_ALLOWED_VM_COMMAND > lstAllowed;
 	VmAccessRights accessRights = getAccessRightsToVm( pSession, pVmDirItem );
 
-	QHashIterator< PVE::IDispatcherCommands, AccessRigthsPair > it( m_accessRights );
-	while( it.hasNext() )
+	typedef QHash<PVE::IDispatcherCommands, AccessRigthsPair >::const_iterator iterator_type;
+	iterator_type i = m_accessRights.constBegin(), e = m_accessRights.constEnd();
+	for (; i != e; ++i)
 	{
-		it.next();
-
 		LOG_MESSAGE( DBG_DEBUG, "key = %#x(%s), val = (%d, %d)"
-			,it.key()
-			, PVE::DispatcherCommandToString( it.key() )
-			, it.value().first
-			, it.value().second
+			,i.key()
+			, PVE::DispatcherCommandToString( i.key() )
+			, i.value().first
+			, i.value().second
 			);
 
-		PRL_SEC_AM accessToCmd = it.value().first;
+		PRL_SEC_AM accessToCmd = i.value().first;
 
 		if (accessRights.isExists())
 		{
@@ -520,12 +519,11 @@ CDspAccessManager::getAllowedVmCommands( SmartPtr<CDspClient> pSession, const CV
 		{
 			// VM is unexist but its information present in vmdirectory.
 			// operation possible for client.
-			if (it.key() != PVE::DspCmdDirUnregVm && it.key() != PVE::DspCmdVmStop)
+			if (i.key() != PVE::DspCmdDirUnregVm && i.key() != PVE::DspCmdVmStop)
 				continue;
 		}
-		lstAllowed.append( it.value().second );
-	}//while
-
+		lstAllowed.append( i.value().second );
+	}
 	if( isOwnerOfVm( pSession, pVmDirItem ) || pSession->getAuthHelper().isLocalAdministrator() )
 	{
 		lstAllowed.append( PAR_VM_UPDATE_SECURITY_ACCESS );
