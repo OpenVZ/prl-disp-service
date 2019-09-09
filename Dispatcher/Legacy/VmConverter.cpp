@@ -74,6 +74,19 @@ QString getHostOnlyBridge()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Order
+
+template<class T>
+struct Order
+{
+	bool operator()(const T* first_, const T* second_) const
+	{
+		return std::make_pair(first_->getInterfaceType(), first_->getStackIndex())
+			< std::make_pair(second_->getInterfaceType(), second_->getStackIndex());
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Helper
 
 struct Helper
@@ -224,18 +237,24 @@ result_type Helper::do_()
 	result_type res;
 
 	// Convert Cdrom devices to IDE since SATA is unsupported.
-	foreach(CVmOpticalDisk* pDevice, m_hardware.m_lstOpticalDisks) {
+	std::list<CVmOpticalDisk* > o = m_hardware.m_lstOpticalDisks.toStdList();
+	o.sort(Order<CVmOpticalDisk>());
+	foreach(CVmOpticalDisk* pDevice, o) {
 		if ((res = do_(pDevice)).isFailed())
 			return res;
 	}
 
-	foreach(CVmHardDisk *pDevice, m_hardware.m_lstHardDisks) {
+	std::list<CVmHardDisk* > d = m_hardware.m_lstHardDisks.toStdList();
+	d.sort(Order<CVmHardDisk>());
+	foreach(CVmHardDisk *pDevice, d) {
 		if ((res = do_(pDevice)).isFailed())
 			return res;
 	}
 
 	// Convert network interfaces to virtio-net
-	foreach(CVmGenericNetworkAdapter *pDevice, m_hardware.m_lstNetworkAdapters) {
+	std::list<CVmGenericNetworkAdapter* > n = m_hardware.m_lstNetworkAdapters.toStdList();
+	n.sort(Order<CVmGenericNetworkAdapter>());
+	foreach(CVmGenericNetworkAdapter *pDevice, n) {
 		if ((res = do_(pDevice)).isFailed())
 			return res;
 	}
