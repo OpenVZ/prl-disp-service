@@ -2075,6 +2075,9 @@ Mixer::Mixer(const CVmConfiguration& input_, char* xml_): Builder(input_)
 
 PRL_RESULT Mixer::setBlank()
 {
+	if (m_result.isNull())
+		return PRL_ERR_READ_XML_CONTENT;
+
 	Libvirt::Domain::Xml::VOs b = m_result->getOs();
 	PRL_RESULT r = Builder::setBlank();
 	m_result->setCommandline(CommandLine(m_input).seed(m_result->getCommandline())
@@ -2085,6 +2088,9 @@ PRL_RESULT Mixer::setBlank()
 
 PRL_RESULT Mixer::setDevices()
 {
+	if (m_result.isNull())
+		return PRL_ERR_READ_XML_CONTENT;
+
 	QList<Libvirt::Domain::Xml::VChoice985 > h;
 	boost::optional<Libvirt::Domain::Xml::Devices> d = m_result->getDevices();
 	if (d)
@@ -2110,11 +2116,14 @@ PRL_RESULT Mixer::setDevices()
 
 PRL_RESULT Mixer::setIdentification()
 {
-	return PRL_ERR_SUCCESS;
+	return m_result.isNull() ? PRL_ERR_READ_XML_CONTENT : PRL_ERR_SUCCESS;
 }
 
 PRL_RESULT Mixer::setResources(const VtInfo& info_)
 {
+	if (m_result.isNull())
+		return PRL_ERR_READ_XML_CONTENT;
+
 	// we don't need to rewrite clock and cpu model
 	boost::optional<Libvirt::Domain::Xml::Cpu> u = m_result->getCpu();
 	boost::optional<Libvirt::Domain::Xml::Clock> t = m_result->getClock();
