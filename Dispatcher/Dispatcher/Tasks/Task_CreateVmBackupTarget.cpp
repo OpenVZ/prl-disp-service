@@ -52,13 +52,16 @@ m_bBackupLocked(false)
 	pStartCommand = CDispToDispProtoSerializer::CastToDispToDispCommand<CVmBackupCreateCommand>(pCmd);
 	m_sVmUuid = pStartCommand->GetVmUuid();
 	m_sVmName = pStartCommand->GetVmName();
-	m_sSourceHost = pStartCommand->GetHost();
+	m_hConnHandle = pDispConnection->GetConnectionHandle();
+	m_sSourceHost = CDspService::instance()->getIOServer().clientHostName(m_hConnHandle);
+	if (m_sSourceHost.isEmpty())
+		m_sSourceHost = pStartCommand->GetHost();
+
 	m_sServerUuid = pStartCommand->GetServerUuid();
 	m_sDescription = pStartCommand->GetDescription();
 	m_nFlags = pStartCommand->GetFlags();
 	m_nOriginalSize = pStartCommand->GetOriginalSize();
 	setInternalFlags(pStartCommand->GetInternalFlags());
-	m_hConnHandle = pDispConnection->GetConnectionHandle();
 	m_nFreeDiskSpace = ~0;
 	m_bABackupFirstPacket = true;
 	m_bStorageRegistered = false;
