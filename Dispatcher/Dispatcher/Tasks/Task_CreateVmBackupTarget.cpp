@@ -53,9 +53,7 @@ m_bBackupLocked(false)
 	m_sVmUuid = pStartCommand->GetVmUuid();
 	m_sVmName = pStartCommand->GetVmName();
 	m_hConnHandle = pDispConnection->GetConnectionHandle();
-	m_sSourceHost = CDspService::instance()->getIOServer().clientHostName(m_hConnHandle);
-	if (m_sSourceHost.isEmpty())
-		m_sSourceHost = pStartCommand->GetHost();
+	m_sSourceHost = pStartCommand->GetHost();
 
 	m_sServerUuid = pStartCommand->GetServerUuid();
 	m_sDescription = pStartCommand->GetDescription();
@@ -226,7 +224,8 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
 
 	// local VMs backup optimization (due to bad qemu -> nbd performance on zero pages
 	// PSBM-51258
-	if (CDspService::instance()->getShellServiceHelper().isLocalAddress(m_sSourceHost) &&
+	QString h = CDspService::instance()->getIOServer().clientHostName(m_hConnHandle);
+	if (CDspService::instance()->getShellServiceHelper().isLocalAddress(h.isEmpty() ? m_sSourceHost : h) &&
 			!(getInternalFlags() & PVM_CT_PLOOP_BACKUP))
 		return PRL_ERR_SUCCESS;
 
