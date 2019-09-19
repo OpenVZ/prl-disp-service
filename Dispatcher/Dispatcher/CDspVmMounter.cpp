@@ -33,11 +33,13 @@
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <QSet>
+#include <dlfcn.h>
 #include <guestfs.h>
-
 #include "CDspVmMounter.h"
 #include "CDspService.h"
 #include "CDspVmStateSender.h"
+#include <boost/preprocessor/tuple/elem.hpp>
+#include <boost/preprocessor/seq/for_each.hpp>
 
 namespace
 {
@@ -45,6 +47,74 @@ namespace
 const char GUESTUNMOUNT[] = "/usr/bin/guestunmount";
 const char FINDMNT[] = "/usr/bin/findmnt";
 enum {GFS_PROGRAM_ERROR = 1, GFS_CANNOT_UNMOUNT = 2, GFS_NOT_MOUNTED = 3};
+
+#define GUESTFS_API \
+((int, guestfs_mount_local_run, (guestfs_h *g))) \
+((int, guestfs_add_drive_ro, (guestfs_h *g, const char *filename))) \
+((int, guestfs_add_drive, (guestfs_h *g, const char *filename))) \
+((int, guestfs_launch, (guestfs_h *g))) \
+((char**, guestfs_list_filesystems, (guestfs_h *g))) \
+((int, guestfs_mkmountpoint, (guestfs_h *g, const char *exemptpath))) \
+((int, guestfs_mount, (guestfs_h *g, const char *mountable, const char *mountpoint))) \
+((int, guestfs_mount_local, (guestfs_h *g, const char *localmountpoint, ...))) \
+((int, guestfs_umount_local, (guestfs_h *g, ...))) \
+((struct guestfs_statvfs*, guestfs_statvfs, (guestfs_h *g, const char *path))) \
+((void, guestfs_free_statvfs, (struct guestfs_statvfs *))) \
+((int, guestfs_close, (guestfs_h *g))) \
+((int, guestfs_shutdown, (guestfs_h *g))) \
+((guestfs_h*, guestfs_create, (void)))
+
+#define GUESTFS_NAME(elem) BOOST_PP_TUPLE_ELEM(3, 1, elem)
+
+///////////////////////////////////////////////////////////////////////////////
+// struct CAPI_
+
+#define GUESTFS_DECLARE(r, data, elem) \
+BOOST_PP_TUPLE_ELEM(3, 0, elem) (*GUESTFS_NAME(elem))BOOST_PP_TUPLE_ELEM(3, 2, elem);
+
+struct __attribute__ ((visibility ("hidden"))) CAPI_
+{
+        BOOST_PP_SEQ_FOR_EACH(GUESTFS_DECLARE, (), GUESTFS_API)
+} CAPI;
+
+#undef GUESTFS_DECLARE
+
+void* g_libguestfs;
+
+#define GUESTFS_UNSET(r, data, elem) CAPI.GUESTFS_NAME(elem) = NULL;
+__attribute__((destructor)) void fini()
+{
+	if (NULL == g_libguestfs)
+		return;
+	BOOST_PP_SEQ_FOR_EACH(GUESTFS_UNSET, (), GUESTFS_API)
+	::dlclose(g_libguestfs);
+	g_libguestfs = NULL;
+}
+#undef GUESTFS_UNSET
+
+#define GUESTFS_DEFINE(r, data, elem) \
+CAPI.GUESTFS_NAME(elem) = \
+	(BOOST_PP_TUPLE_ELEM(3, 0, elem) (*)BOOST_PP_TUPLE_ELEM(3, 2, elem))\
+		::dlsym(g_libguestfs, BOOST_PP_STRINGIZE(GUESTFS_NAME(elem)));\
+if (NULL == CAPI.GUESTFS_NAME(elem))\
+{\
+        WRITE_TRACE(DBG_FATAL, "Cannot find symbol '"BOOST_PP_STRINGIZE(GUESTFS_NAME(elem))"' in GuestFS API");\
+}
+
+__attribute__((constructor)) void init()
+{
+	g_libguestfs = ::dlmopen(LM_ID_BASE, "libguestfs.so.0", RTLD_LAZY|RTLD_LOCAL);
+	if (NULL == g_libguestfs)
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot load '%s': %s",
+			"libguestfs.so.0", ::dlerror());
+	}
+	else
+	{
+		BOOST_PP_SEQ_FOR_EACH(GUESTFS_DEFINE, (), GUESTFS_API)
+	}
+}       
+#undef GUESTFS_DEFINE
 
 } // namespace
 
@@ -54,7 +124,7 @@ enum {GFS_PROGRAM_ERROR = 1, GFS_CANNOT_UNMOUNT = 2, GFS_NOT_MOUNTED = 3};
 void MounterThread::run()
 {
 	// It hangs here until guestfs_umount_local is called.
-	if (guestfs_mount_local_run(m_gfsHandle)) {
+	if (CAPI.guestfs_mount_local_run(m_gfsHandle)) {
 		WRITE_TRACE(DBG_FATAL, "FUSE loop error in guestfs");
 		m_result = PRL_ERR_FAILURE;
 	} else
@@ -72,9 +142,9 @@ PRL_RESULT GuestFS::addDrive(const CVmHardDisk &hardDisk, bool readOnly)
 		WRITE_TRACE(DBG_FATAL, "Too many disks");
 		return PRL_ERR_FAILURE;
 	}
-	if ((readOnly && guestfs_add_drive_ro(
+	if ((readOnly && CAPI.guestfs_add_drive_ro(
 					m_gfsHandle, QSTR2UTF8(hardDisk.getUserFriendlyName()))) ||
-		(!readOnly && guestfs_add_drive(
+		(!readOnly && CAPI.guestfs_add_drive(
 					m_gfsHandle, QSTR2UTF8(hardDisk.getUserFriendlyName())))) {
 		return PRL_ERR_FAILURE;
 	}
@@ -88,7 +158,7 @@ PRL_RESULT GuestFS::addDrive(const CVmHardDisk &hardDisk, bool readOnly)
 
 PRL_RESULT GuestFS::launch() const
 {
-	if (guestfs_launch(m_gfsHandle)) {
+	if (CAPI.guestfs_launch(m_gfsHandle)) {
 		WRITE_TRACE(DBG_FATAL, "Failed to launch guestfs appliance");
 		return PRL_ERR_FAILURE;
 	}
@@ -98,7 +168,7 @@ PRL_RESULT GuestFS::launch() const
 PRL_RESULT GuestFS::getMountablePartitions(QStringList &partitions)
 {
 	partitions.clear();
-	char **fs = guestfs_list_filesystems(m_gfsHandle);
+	char **fs = CAPI.guestfs_list_filesystems(m_gfsHandle);
 	if (fs == NULL) {
 		// Error
 		WRITE_TRACE(DBG_FATAL, "Failed to list filesystems");
@@ -160,7 +230,7 @@ PRL_RESULT GuestFS::makeMountpoint(const QString &mountpoint)
 	for (int i = 0; i < parts.length(); ++i) {
 		currentPath += "/" + parts[i];
 		if (!m_createdMountpoints.contains(currentPath)) {
-			if (guestfs_mkmountpoint(m_gfsHandle, QSTR2UTF8(currentPath))) {
+			if (CAPI.guestfs_mkmountpoint(m_gfsHandle, QSTR2UTF8(currentPath))) {
 				WRITE_TRACE(DBG_FATAL, "Unable to make mountpoint '%s'",
 							QSTR2UTF8(currentPath));
 				return PRL_ERR_FAILURE;
@@ -177,7 +247,7 @@ PRL_RESULT GuestFS::mountPartition(const QString &partition)
 	if (PRL_FAILED(res = createMountpoint(partition)))
 		return res;
 
-	if (guestfs_mount(m_gfsHandle, QSTR2UTF8(partition),
+	if (CAPI.guestfs_mount(m_gfsHandle, QSTR2UTF8(partition),
 					  QSTR2UTF8(m_partToMountpoint[partition]))) {
 		WRITE_TRACE(DBG_FATAL, "Unable to mount filesystem '%s' at '%s'",
 					QSTR2UTF8(partition), QSTR2UTF8(m_partToMountpoint[partition]));
@@ -188,7 +258,7 @@ PRL_RESULT GuestFS::mountPartition(const QString &partition)
 
 PRL_RESULT GuestFS::mountLocal(const QString &mountpoint, bool readOnly)
 {
-	if (guestfs_mount_local(m_gfsHandle, QSTR2UTF8(mountpoint),
+	if (CAPI.guestfs_mount_local(m_gfsHandle, QSTR2UTF8(mountpoint),
 							GUESTFS_MOUNT_LOCAL_READONLY, (int)readOnly,
 							GUESTFS_MOUNT_LOCAL_OPTIONS, "allow_other,kernel_cache",
 							-1)) {
@@ -201,7 +271,7 @@ PRL_RESULT GuestFS::mountLocal(const QString &mountpoint, bool readOnly)
 
 void GuestFS::umountLocal()
 {
-	guestfs_umount_local(m_gfsHandle, -1);
+	CAPI.guestfs_umount_local(m_gfsHandle, -1);
 }
 
 PRL_RESULT GuestFS::getMountInfo(const QString &partition, QString &info) const
@@ -223,7 +293,7 @@ PRL_RESULT GuestFS::getMountInfo(const QString &partition, QString &info) const
 		path = m_hddToPath[it.value()];
 	}
 
-	struct guestfs_statvfs *stat = guestfs_statvfs(
+	struct guestfs_statvfs *stat = CAPI.guestfs_statvfs(
 			m_gfsHandle, QSTR2UTF8(m_partToMountpoint[partition]));
 	if (!stat)
 		return PRL_ERR_FAILURE;
@@ -235,21 +305,21 @@ PRL_RESULT GuestFS::getMountInfo(const QString &partition, QString &info) const
 			m_partToFilesystem[partition],
 			stat->blocks * stat->frsize, stat->bfree * stat->frsize);
 
-	guestfs_free_statvfs(stat);
+	CAPI.guestfs_free_statvfs(stat);
 	return PRL_ERR_SUCCESS;
 }
 
 void GuestFS::close()
 {
 	if (m_gfsHandle)
-		guestfs_close(m_gfsHandle);
+		CAPI.guestfs_close(m_gfsHandle);
 	m_gfsHandle = NULL;
 }
 
 void GuestFS::shutdown()
 {
 	if (m_gfsHandle) {
-		if (guestfs_shutdown(m_gfsHandle))
+		if (CAPI.guestfs_shutdown(m_gfsHandle))
 			WRITE_TRACE(DBG_FATAL, "guestfs_shutdown failed");
 		close();
 	}
@@ -329,7 +399,7 @@ Prl::Expected<SmartPtr<CDspVmMount>, PRL_RESULT> mountVm(
 		const SmartPtr<CVmConfiguration> &pVmConfig,
 		const QString &dirUuid, const QString &mountPoint, bool readOnly)
 {
-	guestfs_h *gfsHandle = guestfs_create();
+	guestfs_h *gfsHandle = CAPI.guestfs_create();
 	if (!gfsHandle)
 		return PRL_ERR_FAILURE;
 
