@@ -1000,6 +1000,28 @@ void CDspProblemReportHelper::FillProblemReportData
 	addSystemLog(cReport, QFileInfo("/var/log/libvirt/libvirt.log"));
 	addSystemLog(cReport, QFileInfo("/var/log/vcmmd.log"));
 
+	// Process full report generation ("--full" option)
+	if (cReport.isFullReport())
+	{
+		QStringList fullLogsFilter;
+
+		// Collect rotated prl-disp and phaul logs
+		fullLogsFilter.append("prl-disp.log?*");
+		fullLogsFilter.append("phaul*.log?*");
+
+		QDir varLogDir("/var/log/");
+		QFileInfoList fullLogsFileList = varLogDir.entryInfoList(fullLogsFilter,
+			QDir::Files | QDir::NoSymLinks | QDir::Hidden, QDir::Time);
+
+		foreach (const QFileInfo& fdf, fullLogsFileList)
+		{
+			cReport.appendSystemLog(fdf.filePath(), fdf.fileName());
+		}
+
+		// Collect migration-related CRIU logs
+		cReport.appendLogDir("/vz/dump/");
+	}
+
 	// gather vz report
 
 	QString sReportFile;
@@ -1173,6 +1195,8 @@ SmartPtr<CPackedProblemReport> CDspProblemReportHelper::getProblemReportObj(
 			->getRequestToVmHandler().getPerfCountersInfo(Uuid::toString(p->header.uuid));
 
 		pReport->setPerformanceCounters( qsPerfCountersInfo ); */
+
+	pReport->setFullReport(cmd->GetCommandFlags() & PPRF_DUMP_FULL_REPORT);
 
 	CDspProblemReportHelper::FillProblemReportData(*pReport.getImpl(), pUser, pUser->getVmDirectoryUuid());
 	// set report type

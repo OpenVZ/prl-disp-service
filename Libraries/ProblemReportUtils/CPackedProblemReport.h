@@ -119,6 +119,8 @@ public:
 	virtual void appendSystemLog( const QString & strPathFrom,
 									const QString &strCustomName );
 
+	void appendLogDir(const QString& strPath);
+
 	void appendTemplateSystemLog( const QString& strPathFrom,
 							const QString& strCustomName,
 							int iLogsCount );
@@ -190,6 +192,9 @@ public:
 
 	void setPackedReportSide( CPackedProblemReport::packedReportSide side){m_Side = side;}
 
+	void setFullReport( bool bValue ) {m_maxSizeToReadFromLog = bValue ? INT_MAX : 16*1024*1024;}
+	bool isFullReport() const {return m_maxSizeToReadFromLog == INT_MAX;}
+
 	int fromBaseReport( const QString & strBaseReport );
 
 	QString getVmConfigFromArchive() const;
@@ -231,6 +236,7 @@ private:
 	QString				m_strArchPath;
 	QString				m_strTempDirPath;
 	packedReportSide	m_Side;
+	int 				m_maxSizeToReadFromLog;
 };
 
 #endif //CPACKED_PROBLEMREPORT_H

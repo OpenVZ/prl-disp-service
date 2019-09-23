@@ -330,6 +330,44 @@ QString CPackedProblemReport::getPathToSave( packedReportSide side, const QStrin
 	return strPath;
 }
 
+void CPackedProblemReport::appendLogDir(const QString& strPath)
+{
+	QDir srcDir(strPath);
+	if (!srcDir.exists())
+	{
+		WRITE_TRACE( DBG_FATAL, "Cannot copy \"%s\" directory to report,"
+			" directory does not exist!", qPrintable(strPath));
+		return;
+	}
+
+	QString dPath = QDir(m_strTempDirPath).absoluteFilePath(srcDir.dirName());
+	if (QDir(dPath).exists())
+	{
+		WRITE_TRACE( DBG_FATAL, "Cannot copy \"%s\" directory to report,"
+			" target directory already exists!", qPrintable(strPath));
+		return;
+	}
+
+	// cdUp to make sure relative path includes directory name
+	srcDir.cdUp();
+
+	// Iterate over files and directories, recreate subreictory tree, append files
+	QDirIterator it(strPath,  QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot | QDir::NoSymLinks,
+		QDirIterator::Subdirectories);
+	while (it.hasNext())
+	{
+		QFileInfo itFile = it.next();
+		QString srcName = itFile.filePath();
+		QString relPath =  srcDir.relativeFilePath(srcName);
+
+		if (itFile.isDir()) {
+			QDir(m_strTempDirPath).mkpath(relPath);
+		} else {
+			appendSystemLog(srcName, relPath);
+		}
+	}
+}
+
 bool CPackedProblemReport::appendScreenshot(const QString& image_, const QString& name_)
 {
 	if (!QFile::exists(image_))
@@ -427,8 +465,10 @@ void CPackedProblemReport::appendSystemLog( const QString& strPathFrom,
 	}
 
 	// No file - nothing to add
-	if( !QFile::exists( strPathFrom) )
+	if( !QFile::exists( strPathFrom) ) {
+		WRITE_TRACE(DBG_FATAL, "appendSystemLog: File %s does not exist!", qPrintable(strPathFrom) );
 		return;
+	}
 
 	QString strPathInTemp = m_strTempDirPath + QString("/") + strCustomName;
 
@@ -444,8 +484,8 @@ void CPackedProblemReport::appendSystemLog( const QString& strPathFrom,
 		return;
 	}
 
-	if( fileForRead.size() > g_maxSizeToReadFromLog )
-		fileForRead.seek( fileForRead.size() - g_maxSizeToReadFromLog );
+	if( fileForRead.size() > m_maxSizeToReadFromLog )
+		fileForRead.seek( fileForRead.size() - m_maxSizeToReadFromLog );
 
 	QFile fileForWrite( strPathInTemp );
 	if( !fileForWrite.open( QIODevice::WriteOnly ) )
@@ -456,7 +496,7 @@ void CPackedProblemReport::appendSystemLog( const QString& strPathFrom,
 	}
 
 	// get last read size
-	int uiLastReadSize = g_maxSizeToReadFromLog % PRL_REPORT_READ_FILE_BUFFER_SIZE;
+	int uiLastReadSize = m_maxSizeToReadFromLog % PRL_REPORT_READ_FILE_BUFFER_SIZE;
 	int uiReadedSize = 0;
 	QByteArray buffer;
 	while ( 1 )
@@ -467,7 +507,7 @@ void CPackedProblemReport::appendSystemLog( const QString& strPathFrom,
 
 		uiReadedSize += buffer.size();
 
-		if( uiReadedSize > g_maxSizeToReadFromLog )
+		if( uiReadedSize > m_maxSizeToReadFromLog )
 		{
 			fileForWrite.write( buffer.data(), ( buffer.size() < uiLastReadSize ) ? buffer.size() : uiLastReadSize );
 			break;
@@ -572,7 +612,7 @@ void CPackedProblemReport::appendTemplateSystemLog( const QString& strPathFrom,
 		{
 			// skip to add compressed log backup when it's size too big to
 			// avoid compressed file truncation.
-			if (QFileInfo(fullFile).size() >= g_maxSizeToReadFromLog)
+			if (QFileInfo(fullFile).size() >= m_maxSizeToReadFromLog)
 				continue;
 		}
 
@@ -707,9 +747,12 @@ PRL_RESULT CPackedProblemReport::packReport()
 		return PRL_ERR_FAILURE;
 	}
 
+	// Use parent directory object to construct proper relative filepaths
+	QDir reportParentDir(m_strTempDirPath);
+	reportParentDir.cdUp();
 	foreach(const QString& f, lstFiles)
 	{
-		QString p = QDir(QFileInfo(m_strTempDirPath).fileName()).filePath(QFileInfo(f).fileName());
+		QString p = reportParentDir.relativeFilePath(QFileInfo(f).filePath());
 		if (PRL_FAILED(w->append(f, p)))
 			WRITE_TRACE(DBG_FATAL, "unable to write file '%s' to problem report", qPrintable(f));
 	}
