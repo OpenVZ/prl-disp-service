@@ -879,15 +879,16 @@ enum EModel5
 	EModel5Virtio
 };
 
-enum EChoice1076
-{
-	EChoice1076DevRandom,
-	EChoice1076DevHwrng
-};
-
 enum EModel6
 {
-	EModel6TpmTis
+	EModel6TpmTis,
+	EModel6TpmCrb
+};
+
+enum EVersion
+{
+	EVersion12,
+	EVersion20
 };
 
 enum EModel7

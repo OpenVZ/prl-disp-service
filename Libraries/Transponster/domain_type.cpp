@@ -4874,9 +4874,9 @@ int Traits<Domain::Xml::Anonymous2357>::generate(const Domain::Xml::Anonymous235
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Mirror1090
+// struct Mirror4765
 
-int Traits<Domain::Xml::Mirror1090>::parse(Domain::Xml::Mirror1090& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Mirror4765>::parse(Domain::Xml::Mirror4765& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -4890,7 +4890,7 @@ int Traits<Domain::Xml::Mirror1090>::parse(Domain::Xml::Mirror1090& dst_, QStack
 	return output;
 }
 
-int Traits<Domain::Xml::Mirror1090>::generate(const Domain::Xml::Mirror1090& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Mirror4765>::generate(const Domain::Xml::Mirror4765& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getFile(), m.get<0>()))
@@ -4906,13 +4906,13 @@ int Traits<Domain::Xml::Mirror1090>::generate(const Domain::Xml::Mirror1090& src
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Mirror1092
+// struct Mirror4766
 
 namespace Domain
 {
 namespace Xml
 {
-Mirror1092::Mirror1092(): m_job()
+Mirror4766::Mirror4766(): m_job()
 {
 }
 
@@ -4920,7 +4920,7 @@ Mirror1092::Mirror1092(): m_job()
 } // namespace Xml
 } // namespace Domain
 
-int Traits<Domain::Xml::Mirror1092>::parse(Domain::Xml::Mirror1092& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Mirror4766>::parse(Domain::Xml::Mirror4766& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -4933,7 +4933,7 @@ int Traits<Domain::Xml::Mirror1092>::parse(Domain::Xml::Mirror1092& dst_, QStack
 	return output;
 }
 
-int Traits<Domain::Xml::Mirror1092>::generate(const Domain::Xml::Mirror1092& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Mirror4766>::generate(const Domain::Xml::Mirror4766& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getJob(), m.get<0>()))
@@ -5325,9 +5325,9 @@ int Traits<Domain::Xml::Encryption>::generate(const Domain::Xml::Encryption& src
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant1105
+// struct Variant4770
 
-int Traits<Domain::Xml::Variant1105>::parse(Domain::Xml::Variant1105& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Variant4770>::parse(Domain::Xml::Variant4770& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -5339,7 +5339,7 @@ int Traits<Domain::Xml::Variant1105>::parse(Domain::Xml::Variant1105& dst_, QSta
 	return output;
 }
 
-int Traits<Domain::Xml::Variant1105>::generate(const Domain::Xml::Variant1105& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Variant4770>::generate(const Domain::Xml::Variant4770& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getReadBytesSec(), m.get<0>().get<0>()))
@@ -5351,9 +5351,9 @@ int Traits<Domain::Xml::Variant1105>::generate(const Domain::Xml::Variant1105& s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant1109
+// struct Variant4773
 
-int Traits<Domain::Xml::Variant1109>::parse(Domain::Xml::Variant1109& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Variant4773>::parse(Domain::Xml::Variant4773& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -5365,7 +5365,7 @@ int Traits<Domain::Xml::Variant1109>::parse(Domain::Xml::Variant1109& dst_, QSta
 	return output;
 }
 
-int Traits<Domain::Xml::Variant1109>::generate(const Domain::Xml::Variant1109& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Variant4773>::generate(const Domain::Xml::Variant4773& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getReadIopsSec(), m.get<0>().get<0>()))
@@ -5419,8 +5419,8 @@ int Traits<Domain::Xml::Iotune>::parse(Domain::Xml::Iotune& dst_, QStack<QDomEle
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setChoice1106(m.get<0>().getValue());
-		dst_.setChoice1110(m.get<1>().getValue());
+		dst_.setChoice4771(m.get<0>().getValue());
+		dst_.setChoice4774(m.get<1>().getValue());
 		dst_.setSizeIopsSec(m.get<2>().getValue());
 		dst_.setGroupName(m.get<3>().getValue());
 	}
@@ -5430,9 +5430,9 @@ int Traits<Domain::Xml::Iotune>::parse(Domain::Xml::Iotune& dst_, QStack<QDomEle
 int Traits<Domain::Xml::Iotune>::generate(const Domain::Xml::Iotune& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getChoice1106(), m.get<0>()))
+	if (0 > Details::Marshal::assign(src_.getChoice4771(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice1110(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getChoice4774(), m.get<1>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getSizeIopsSec(), m.get<2>()))
 		return -1;
@@ -11731,13 +11731,28 @@ int Traits<Domain::Xml::Usbdev>::generate(const Domain::Xml::Usbdev& src_, QDomE
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Backend1079
+// struct Backend4753
+
+int Traits<Domain::Xml::Backend4753>::parse(Domain::Xml::Backend4753& , QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	return m.consume(stack_);
+}
+
+int Traits<Domain::Xml::Backend4753>::generate(const Domain::Xml::Backend4753& , QDomElement& dst_)
+{
+	marshal_type m;
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Backend4754
 
 namespace Domain
 {
 namespace Xml
 {
-Backend1079::Backend1079(): m_type()
+Backend4754::Backend4754(): m_type()
 {
 }
 
@@ -11745,7 +11760,7 @@ Backend1079::Backend1079(): m_type()
 } // namespace Xml
 } // namespace Domain
 
-int Traits<Domain::Xml::Backend1079>::parse(Domain::Xml::Backend1079& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Backend4754>::parse(Domain::Xml::Backend4754& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -11757,7 +11772,7 @@ int Traits<Domain::Xml::Backend1079>::parse(Domain::Xml::Backend1079& dst_, QSta
 	return output;
 }
 
-int Traits<Domain::Xml::Backend1079>::generate(const Domain::Xml::Backend1079& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Backend4754>::generate(const Domain::Xml::Backend4754& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getType(), m.get<1>()))
@@ -11957,6 +11972,81 @@ int Traits<Domain::Xml::Device1>::generate(const Domain::Xml::Device1& src_, QDo
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getPath(), m.get<0>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Backend4749
+
+int Traits<Domain::Xml::Backend4749>::parse(Domain::Xml::Backend4749& , QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	return m.consume(stack_);
+}
+
+int Traits<Domain::Xml::Backend4749>::generate(const Domain::Xml::Backend4749& , QDomElement& dst_)
+{
+	marshal_type m;
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Backend1
+
+namespace Domain
+{
+namespace Xml
+{
+bool Backend1::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Backend1, Name::Strict<693> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Backend1::save(QDomElement& dst_) const
+{
+	Element<Backend1, Name::Strict<693> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Backend1::save(QDomDocument& dst_) const
+{
+	Element<Backend1, Name::Strict<693> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Domain
+
+int Traits<Domain::Xml::Backend1>::parse(Domain::Xml::Backend1& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setBackend(m.get<0>().getValue());
+		dst_.setVersion(m.get<1>().get<0>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::Backend1>::generate(const Domain::Xml::Backend1& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getBackend(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVersion(), m.get<1>().get<0>()))
 		return -1;
 
 	return m.produce(dst_);

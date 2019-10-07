@@ -104,12 +104,12 @@ PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Iotune
 
-void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1110::types, 0>::type& iopsLimit_) const
+void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice4774::types, 0>::type& iopsLimit_) const
 {
 	m_disk->setIopsLimit(iopsLimit_.getValue());
 }
 
-void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1106::types, 0>::type& ioLimit_) const
+void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice4771::types, 0>::type& ioLimit_) const
 {
 	m_disk->setIoLimit(new CVmIoLimit(PRL_IOLIMIT_BS, ioLimit_.getValue()));
 }
@@ -156,8 +156,8 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	if (t)
 	{
 		Iotune v(d);
-		boost::apply_visitor(v, (*t).getChoice1106());
-		boost::apply_visitor(v, (*t).getChoice1110());
+		boost::apply_visitor(v, (*t).getChoice4771());
+		boost::apply_visitor(v, (*t).getChoice4774());
 	}
 	d->setTargetDeviceName(disk_.getTarget().getDev());
 	if (disk_.getSerial())
@@ -1801,7 +1801,7 @@ CpuFeatures* Capabilities::getCpuFeatures() const
 
 	QList<QString> d, r;
 	foreach (const Libvirt::Capability::Xml::Feature& f,
-		getValue().getCpu()->getMode2().getAnonymous1185()->getFeatureList())
+		getValue().getCpu()->getMode2().getAnonymous4763()->getFeatureList())
 	{
 		switch (f.getPolicy())
 		{
@@ -1822,7 +1822,7 @@ CpuFeatures* Capabilities::getCpuFeatures() const
 
 QString Capabilities::getCpuModel() const
 {
-	return getValue().getCpu()->getMode2().getAnonymous1185()
+	return getValue().getCpu()->getMode2().getAnonymous4763()
 		->getModel().getOwnValue();
 }
 
@@ -1830,7 +1830,7 @@ bool Capabilities::isValid() const
 {
 	return getValue().getCpu() &&
 		getValue().getCpu()->getMode2().getSupported() == Libvirt::Capability::Xml::EVirYesNoYes &&
-		getValue().getCpu()->getMode2().getAnonymous1185();
+		getValue().getCpu()->getMode2().getAnonymous4763();
 }
 
 } // namespace Host

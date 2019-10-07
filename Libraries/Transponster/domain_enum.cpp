@@ -1104,18 +1104,19 @@ Enum<Domain::Xml::EModel5>::data_type Enum<Domain::Xml::EModel5>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EChoice1076>::data_type Enum<Domain::Xml::EChoice1076>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EChoice1076DevRandom, "/dev/random"))
-			(data_type::value_type(Domain::Xml::EChoice1076DevHwrng, "/dev/hwrng"));
-}
-
-template<>
 Enum<Domain::Xml::EModel6>::data_type Enum<Domain::Xml::EModel6>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EModel6TpmTis, "tpm-tis"));
+			(data_type::value_type(Domain::Xml::EModel6TpmTis, "tpm-tis"))
+			(data_type::value_type(Domain::Xml::EModel6TpmCrb, "tpm-crb"));
+}
+
+template<>
+Enum<Domain::Xml::EVersion>::data_type Enum<Domain::Xml::EVersion>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EVersion12, "1.2"))
+			(data_type::value_type(Domain::Xml::EVersion20, "2.0"));
 }
 
 template<>

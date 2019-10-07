@@ -155,13 +155,13 @@ struct Traits<Blockexport::Xml::POctalMode>
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1187
+// struct PData4066
 
 namespace Blockexport
 {
 namespace Xml
 {
-struct PData1187
+struct PData4066
 {
 	typedef QString value_type;
 };
@@ -170,20 +170,20 @@ struct PData1187
 } // namespace Blockexport
 
 template<>
-struct Validatable<Blockexport::Xml::PData1187>: mpl::true_
+struct Validatable<Blockexport::Xml::PData4066>: mpl::true_
 {
-	static bool validate(const Blockexport::Xml::PData1187::value_type& value_);
+	static bool validate(const Blockexport::Xml::PData4066::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1189
+// struct PData4763
 
 namespace Blockexport
 {
 namespace Xml
 {
-struct PData1189
+struct PData4763
 {
 	typedef qint32 value_type;
 };
@@ -192,29 +192,29 @@ struct PData1189
 } // namespace Blockexport
 
 template<>
-struct Traits<Blockexport::Xml::PData1189>
+struct Traits<Blockexport::Xml::PData4763>
 {
-	static bool parse(const QString& src_, Blockexport::Xml::PData1189::value_type& dst_);
+	static bool parse(const QString& src_, Blockexport::Xml::PData4763::value_type& dst_);
 
-	static QString generate(Blockexport::Xml::PData1189::value_type src_);
+	static QString generate(Blockexport::Xml::PData4763::value_type src_);
 
 };
 
 template<>
-struct Validatable<Blockexport::Xml::PData1189>: mpl::true_
+struct Validatable<Blockexport::Xml::PData4763>: mpl::true_
 {
-	static bool validate(Blockexport::Xml::PData1189::value_type value_);
+	static bool validate(Blockexport::Xml::PData4763::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1191
+// struct PData47631
 
 namespace Blockexport
 {
 namespace Xml
 {
-struct PData1191
+struct PData47631
 {
 	typedef QString value_type;
 };
@@ -223,137 +223,9 @@ struct PData1191
 } // namespace Blockexport
 
 template<>
-struct Validatable<Blockexport::Xml::PData1191>: mpl::true_
+struct Validatable<Blockexport::Xml::PData47631>: mpl::true_
 {
-	static bool validate(const Blockexport::Xml::PData1191::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData1193
-
-namespace Blockexport
-{
-namespace Xml
-{
-struct PData1193
-{
-	typedef qint32 value_type;
-};
-
-} // namespace Xml
-} // namespace Blockexport
-
-template<>
-struct Traits<Blockexport::Xml::PData1193>
-{
-	static bool parse(const QString& src_, Blockexport::Xml::PData1193::value_type& dst_);
-
-	static QString generate(Blockexport::Xml::PData1193::value_type src_);
-
-};
-
-template<>
-struct Validatable<Blockexport::Xml::PData1193>: mpl::true_
-{
-	static bool validate(Blockexport::Xml::PData1193::value_type value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData1195
-
-namespace Blockexport
-{
-namespace Xml
-{
-struct PData1195
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Blockexport
-
-template<>
-struct Validatable<Blockexport::Xml::PData1195>: mpl::true_
-{
-	static bool validate(const Blockexport::Xml::PData1195::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData1197
-
-namespace Blockexport
-{
-namespace Xml
-{
-struct PData1197
-{
-	typedef qint32 value_type;
-};
-
-} // namespace Xml
-} // namespace Blockexport
-
-template<>
-struct Traits<Blockexport::Xml::PData1197>
-{
-	static bool parse(const QString& src_, Blockexport::Xml::PData1197::value_type& dst_);
-
-	static QString generate(Blockexport::Xml::PData1197::value_type src_);
-
-};
-
-template<>
-struct Validatable<Blockexport::Xml::PData1197>: mpl::true_
-{
-	static bool validate(Blockexport::Xml::PData1197::value_type value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData1199
-
-namespace Blockexport
-{
-namespace Xml
-{
-struct PData1199
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Blockexport
-
-template<>
-struct Validatable<Blockexport::Xml::PData1199>: mpl::true_
-{
-	static bool validate(const Blockexport::Xml::PData1199::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData1201
-
-namespace Blockexport
-{
-namespace Xml
-{
-struct PData1201
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Blockexport
-
-template<>
-struct Validatable<Blockexport::Xml::PData1201>: mpl::true_
-{
-	static bool validate(const Blockexport::Xml::PData1201::value_type& value_);
+	static bool validate(const Blockexport::Xml::PData47631::value_type& value_);
 
 };
 
@@ -904,13 +776,13 @@ struct Validatable<Blockexport::Xml::PWwn>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData4515
+// struct PData4068
 
 namespace Blockexport
 {
 namespace Xml
 {
-struct PData4515
+struct PData4068
 {
 	typedef QString value_type;
 };
@@ -919,42 +791,20 @@ struct PData4515
 } // namespace Blockexport
 
 template<>
-struct Validatable<Blockexport::Xml::PData4515>: mpl::true_
+struct Validatable<Blockexport::Xml::PData4068>: mpl::true_
 {
-	static bool validate(const Blockexport::Xml::PData4515::value_type& value_);
+	static bool validate(const Blockexport::Xml::PData4068::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData4517
+// struct PData4070
 
 namespace Blockexport
 {
 namespace Xml
 {
-struct PData4517
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Blockexport
-
-template<>
-struct Validatable<Blockexport::Xml::PData4517>: mpl::true_
-{
-	static bool validate(const Blockexport::Xml::PData4517::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData4519
-
-namespace Blockexport
-{
-namespace Xml
-{
-struct PData4519
+struct PData4070
 {
 	typedef qint32 value_type;
 };
@@ -963,18 +813,18 @@ struct PData4519
 } // namespace Blockexport
 
 template<>
-struct Traits<Blockexport::Xml::PData4519>
+struct Traits<Blockexport::Xml::PData4070>
 {
-	static bool parse(const QString& src_, Blockexport::Xml::PData4519::value_type& dst_);
+	static bool parse(const QString& src_, Blockexport::Xml::PData4070::value_type& dst_);
 
-	static QString generate(Blockexport::Xml::PData4519::value_type src_);
+	static QString generate(Blockexport::Xml::PData4070::value_type src_);
 
 };
 
 template<>
-struct Validatable<Blockexport::Xml::PData4519>: mpl::true_
+struct Validatable<Blockexport::Xml::PData4070>: mpl::true_
 {
-	static bool validate(Blockexport::Xml::PData4519::value_type value_);
+	static bool validate(Blockexport::Xml::PData4070::value_type value_);
 
 };
 
@@ -1001,13 +851,13 @@ struct Validatable<Blockexport::Xml::PCcwSsidRange>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData4521
+// struct PData4072
 
 namespace Blockexport
 {
 namespace Xml
 {
-struct PData4521
+struct PData4072
 {
 	typedef QString value_type;
 };
@@ -1016,20 +866,20 @@ struct PData4521
 } // namespace Blockexport
 
 template<>
-struct Validatable<Blockexport::Xml::PData4521>: mpl::true_
+struct Validatable<Blockexport::Xml::PData4072>: mpl::true_
 {
-	static bool validate(const Blockexport::Xml::PData4521::value_type& value_);
+	static bool validate(const Blockexport::Xml::PData4072::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData4523
+// struct PData4074
 
 namespace Blockexport
 {
 namespace Xml
 {
-struct PData4523
+struct PData4074
 {
 	typedef qint32 value_type;
 };
@@ -1038,18 +888,18 @@ struct PData4523
 } // namespace Blockexport
 
 template<>
-struct Traits<Blockexport::Xml::PData4523>
+struct Traits<Blockexport::Xml::PData4074>
 {
-	static bool parse(const QString& src_, Blockexport::Xml::PData4523::value_type& dst_);
+	static bool parse(const QString& src_, Blockexport::Xml::PData4074::value_type& dst_);
 
-	static QString generate(Blockexport::Xml::PData4523::value_type src_);
+	static QString generate(Blockexport::Xml::PData4074::value_type src_);
 
 };
 
 template<>
-struct Validatable<Blockexport::Xml::PData4523>: mpl::true_
+struct Validatable<Blockexport::Xml::PData4074>: mpl::true_
 {
-	static bool validate(Blockexport::Xml::PData4523::value_type value_);
+	static bool validate(Blockexport::Xml::PData4074::value_type value_);
 
 };
 

@@ -155,13 +155,13 @@ struct Traits<Nodedev::Xml::POctalMode>
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData4705
+// struct PData4763
 
 namespace Nodedev
 {
 namespace Xml
 {
-struct PData4705
+struct PData4763
 {
 	typedef QString value_type;
 };
@@ -170,20 +170,20 @@ struct PData4705
 } // namespace Nodedev
 
 template<>
-struct Validatable<Nodedev::Xml::PData4705>: mpl::true_
+struct Validatable<Nodedev::Xml::PData4763>: mpl::true_
 {
-	static bool validate(const Nodedev::Xml::PData4705::value_type& value_);
+	static bool validate(const Nodedev::Xml::PData4763::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData4707
+// struct PData47631
 
 namespace Nodedev
 {
 namespace Xml
 {
-struct PData4707
+struct PData47631
 {
 	typedef qint32 value_type;
 };
@@ -192,168 +192,18 @@ struct PData4707
 } // namespace Nodedev
 
 template<>
-struct Traits<Nodedev::Xml::PData4707>
+struct Traits<Nodedev::Xml::PData47631>
 {
-	static bool parse(const QString& src_, Nodedev::Xml::PData4707::value_type& dst_);
+	static bool parse(const QString& src_, Nodedev::Xml::PData47631::value_type& dst_);
 
-	static QString generate(Nodedev::Xml::PData4707::value_type src_);
+	static QString generate(Nodedev::Xml::PData47631::value_type src_);
 
 };
 
 template<>
-struct Validatable<Nodedev::Xml::PData4707>: mpl::true_
+struct Validatable<Nodedev::Xml::PData47631>: mpl::true_
 {
-	static bool validate(Nodedev::Xml::PData4707::value_type value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData4709
-
-namespace Nodedev
-{
-namespace Xml
-{
-struct PData4709
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Nodedev
-
-template<>
-struct Validatable<Nodedev::Xml::PData4709>: mpl::true_
-{
-	static bool validate(const Nodedev::Xml::PData4709::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData4711
-
-namespace Nodedev
-{
-namespace Xml
-{
-struct PData4711
-{
-	typedef qint32 value_type;
-};
-
-} // namespace Xml
-} // namespace Nodedev
-
-template<>
-struct Traits<Nodedev::Xml::PData4711>
-{
-	static bool parse(const QString& src_, Nodedev::Xml::PData4711::value_type& dst_);
-
-	static QString generate(Nodedev::Xml::PData4711::value_type src_);
-
-};
-
-template<>
-struct Validatable<Nodedev::Xml::PData4711>: mpl::true_
-{
-	static bool validate(Nodedev::Xml::PData4711::value_type value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData4713
-
-namespace Nodedev
-{
-namespace Xml
-{
-struct PData4713
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Nodedev
-
-template<>
-struct Validatable<Nodedev::Xml::PData4713>: mpl::true_
-{
-	static bool validate(const Nodedev::Xml::PData4713::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData4715
-
-namespace Nodedev
-{
-namespace Xml
-{
-struct PData4715
-{
-	typedef qint32 value_type;
-};
-
-} // namespace Xml
-} // namespace Nodedev
-
-template<>
-struct Traits<Nodedev::Xml::PData4715>
-{
-	static bool parse(const QString& src_, Nodedev::Xml::PData4715::value_type& dst_);
-
-	static QString generate(Nodedev::Xml::PData4715::value_type src_);
-
-};
-
-template<>
-struct Validatable<Nodedev::Xml::PData4715>: mpl::true_
-{
-	static bool validate(Nodedev::Xml::PData4715::value_type value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData4717
-
-namespace Nodedev
-{
-namespace Xml
-{
-struct PData4717
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Nodedev
-
-template<>
-struct Validatable<Nodedev::Xml::PData4717>: mpl::true_
-{
-	static bool validate(const Nodedev::Xml::PData4717::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData4719
-
-namespace Nodedev
-{
-namespace Xml
-{
-struct PData4719
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Nodedev
-
-template<>
-struct Validatable<Nodedev::Xml::PData4719>: mpl::true_
-{
-	static bool validate(const Nodedev::Xml::PData4719::value_type& value_);
+	static bool validate(Nodedev::Xml::PData47631::value_type value_);
 
 };
 
@@ -904,81 +754,6 @@ struct Validatable<Nodedev::Xml::PWwn>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData4729
-
-namespace Nodedev
-{
-namespace Xml
-{
-struct PData4729
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Nodedev
-
-template<>
-struct Validatable<Nodedev::Xml::PData4729>: mpl::true_
-{
-	static bool validate(const Nodedev::Xml::PData4729::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData4731
-
-namespace Nodedev
-{
-namespace Xml
-{
-struct PData4731
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Nodedev
-
-template<>
-struct Validatable<Nodedev::Xml::PData4731>: mpl::true_
-{
-	static bool validate(const Nodedev::Xml::PData4731::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData4733
-
-namespace Nodedev
-{
-namespace Xml
-{
-struct PData4733
-{
-	typedef qint32 value_type;
-};
-
-} // namespace Xml
-} // namespace Nodedev
-
-template<>
-struct Traits<Nodedev::Xml::PData4733>
-{
-	static bool parse(const QString& src_, Nodedev::Xml::PData4733::value_type& dst_);
-
-	static QString generate(Nodedev::Xml::PData4733::value_type src_);
-
-};
-
-template<>
-struct Validatable<Nodedev::Xml::PData4733>: mpl::true_
-{
-	static bool validate(Nodedev::Xml::PData4733::value_type value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct PCcwSsidRange
 
 namespace Nodedev
@@ -997,59 +772,6 @@ template<>
 struct Validatable<Nodedev::Xml::PCcwSsidRange>: mpl::true_
 {
 	static bool validate(const Nodedev::Xml::PCcwSsidRange::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData4735
-
-namespace Nodedev
-{
-namespace Xml
-{
-struct PData4735
-{
-	typedef QString value_type;
-};
-
-} // namespace Xml
-} // namespace Nodedev
-
-template<>
-struct Validatable<Nodedev::Xml::PData4735>: mpl::true_
-{
-	static bool validate(const Nodedev::Xml::PData4735::value_type& value_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData4737
-
-namespace Nodedev
-{
-namespace Xml
-{
-struct PData4737
-{
-	typedef qint32 value_type;
-};
-
-} // namespace Xml
-} // namespace Nodedev
-
-template<>
-struct Traits<Nodedev::Xml::PData4737>
-{
-	static bool parse(const QString& src_, Nodedev::Xml::PData4737::value_type& dst_);
-
-	static QString generate(Nodedev::Xml::PData4737::value_type src_);
-
-};
-
-template<>
-struct Validatable<Nodedev::Xml::PData4737>: mpl::true_
-{
-	static bool validate(Nodedev::Xml::PData4737::value_type value_);
 
 };
 
@@ -1330,7 +1052,7 @@ namespace Nodedev
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<PData4717, PData4719 > > VUUIDImpl;
+typedef Choice<mpl::vector<PData4763, PData4763 > > VUUIDImpl;
 typedef VUUIDImpl::value_type VUUID;
 
 } // namespace Xml
@@ -1352,7 +1074,7 @@ namespace Nodedev
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<PData4729, PData4731, PData4733 > > VCcwCssidRangeImpl;
+typedef Choice<mpl::vector<PData4763, PData4763, PData47631 > > VCcwCssidRangeImpl;
 typedef VCcwCssidRangeImpl::value_type VCcwCssidRange;
 
 } // namespace Xml
@@ -1374,7 +1096,7 @@ namespace Nodedev
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<PData4735, PData4737 > > VCcwDevnoRangeImpl;
+typedef Choice<mpl::vector<PData4763, PData47631 > > VCcwDevnoRangeImpl;
 typedef VCcwDevnoRangeImpl::value_type VCcwDevnoRange;
 
 } // namespace Xml

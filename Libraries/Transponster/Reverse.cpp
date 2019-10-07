@@ -535,10 +535,10 @@ void Hdd::setIoLimit(const CVmIoLimit* global_)
 
 	if (p != 0)
 	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice1106::types, 0>::type y;
+		mpl::at_c<Libvirt::Domain::Xml::VChoice4771::types, 0>::type y;
 		y.setValue(p);
 		t.setGroupName(QString("virtuozzo"));
-		t.setChoice1106(Libvirt::Domain::Xml::VChoice1106(y));
+		t.setChoice4771(Libvirt::Domain::Xml::VChoice4771(y));
 	}
 
 	getResult().setIotune(t);
@@ -555,10 +555,10 @@ void Hdd::setIopsLimit(const CVmRunTimeOptions& runtime_)
 
 	if (p != 0)
 	{
-		mpl::at_c<Libvirt::Domain::Xml::VChoice1110::types, 0>::type y;
+		mpl::at_c<Libvirt::Domain::Xml::VChoice4774::types, 0>::type y;
 		y.setValue(p);
 		t.setGroupName(QString("virtuozzo"));
-		t.setChoice1110(Libvirt::Domain::Xml::VChoice1110(y));
+		t.setChoice4774(Libvirt::Domain::Xml::VChoice4774(y));
 	}
 
 	getResult().setIotune(t);
@@ -2904,9 +2904,9 @@ PRL_RESULT Request::operator()(const object_type& object_)
 		n.setValue(d.get<1>());
 		y.setName(n);
 
-		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice4700::types, 1>::type c;
+		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice4763::types, 1>::type c;
 		c.setValue(Libvirt::Blockexport::Xml::EVirYesNoYes);
-		y.setChoice4700(Libvirt::Blockexport::Xml::VChoice4700(c));
+		y.setChoice4763(Libvirt::Blockexport::Xml::VChoice4763(c));
 
 		x << y;
 	}

@@ -324,8 +324,8 @@ struct Iotune: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1110::types, 0>::type& iopsLimit_) const;
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice1106::types, 0>::type& ioLimit_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice4774::types, 0>::type& iopsLimit_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice4771::types, 0>::type& ioLimit_) const;
 
 private:
 	CVmHardDisk* m_disk;

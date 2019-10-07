@@ -112,9 +112,9 @@ QString Traits<Network::Xml::POctalMode>::generate(Network::Xml::POctalMode::val
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1163
+// struct PData3974
 
-bool Validatable<Network::Xml::PData1163>::validate(const Network::Xml::PData1163::value_type& value_)
+bool Validatable<Network::Xml::PData3974>::validate(const Network::Xml::PData3974::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,2}");
 	if (!q.exactMatch(value_))
@@ -572,9 +572,9 @@ bool Validatable<Network::Xml::PData2382>::validate(const Network::Xml::PData238
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1165
+// struct PData3785
 
-bool Validatable<Network::Xml::PData1165>::validate(const Network::Xml::PData1165::value_type& value_)
+bool Validatable<Network::Xml::PData3785>::validate(const Network::Xml::PData3785::value_type& value_)
 {
 	QRegExp q("0x[fF][0-9a-eA-E]?");
 	if (!q.exactMatch(value_))
@@ -584,21 +584,21 @@ bool Validatable<Network::Xml::PData1165>::validate(const Network::Xml::PData116
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1167
+// struct PData3787
 
-bool Traits<Network::Xml::PData1167>::parse(const QString& src_, Network::Xml::PData1167::value_type& dst_)
+bool Traits<Network::Xml::PData3787>::parse(const QString& src_, Network::Xml::PData3787::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Network::Xml::PData1167>::generate(Network::Xml::PData1167::value_type src_)
+QString Traits<Network::Xml::PData3787>::generate(Network::Xml::PData3787::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Network::Xml::PData1167>::validate(Network::Xml::PData1167::value_type value_)
+bool Validatable<Network::Xml::PData3787>::validate(Network::Xml::PData3787::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -622,9 +622,9 @@ bool Validatable<Network::Xml::PCcwSsidRange>::validate(const Network::Xml::PCcw
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1169
+// struct PData3789
 
-bool Validatable<Network::Xml::PData1169>::validate(const Network::Xml::PData1169::value_type& value_)
+bool Validatable<Network::Xml::PData3789>::validate(const Network::Xml::PData3789::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,4}");
 	if (!q.exactMatch(value_))
@@ -634,21 +634,21 @@ bool Validatable<Network::Xml::PData1169>::validate(const Network::Xml::PData116
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData1171
+// struct PData3791
 
-bool Traits<Network::Xml::PData1171>::parse(const QString& src_, Network::Xml::PData1171::value_type& dst_)
+bool Traits<Network::Xml::PData3791>::parse(const QString& src_, Network::Xml::PData3791::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Network::Xml::PData1171>::generate(Network::Xml::PData1171::value_type src_)
+QString Traits<Network::Xml::PData3791>::generate(Network::Xml::PData3791::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Network::Xml::PData1171>::validate(Network::Xml::PData1171::value_type value_)
+bool Validatable<Network::Xml::PData3791>::validate(Network::Xml::PData3791::value_type value_)
 {
 	if (0 > value_)
 		return false;

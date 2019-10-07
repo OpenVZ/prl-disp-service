@@ -3618,6 +3618,7 @@
         <attribute name="model">
           <choice>
             <value>tpm-tis</value>
+            <value>tpm-crb</value>
           </choice>
         </attribute>
       </optional>
@@ -3630,14 +3631,31 @@
 
   <define name="tpm-backend">
     <element name="backend">
-       <choice>
-         <group>
-           <attribute name="type">
-              <value>passthrough</value>
+      <choice>
+        <group>
+          <attribute name="type">
+            <value>passthrough</value>
+          </attribute>
+          <ref name="tpm-passthrough-device"/>
+        </group>
+        <group>
+          <attribute name="type">
+             <value>emulator</value>
+          </attribute>
+        </group>
+      </choice>
+      <choice>
+        <group>
+          <optional>
+            <attribute name="version">
+              <choice>
+                <value>1.2</value>
+                <value>2.0</value>
+              </choice>
            </attribute>
-           <ref name="tpm-passthrough-device"/>
-         </group>
-       </choice>
+          </optional>
+        </group>
+      </choice>
     </element>
   </define>
 
@@ -4666,8 +4684,7 @@
             <value>random</value>
           </attribute>
           <choice>
-            <value>/dev/random</value>
-            <value>/dev/hwrng</value>
+            <ref name='absFilePath'/>
             <empty/>
           </choice>
         </group>
