@@ -614,6 +614,8 @@ static unsigned int Ostemplate2Dist(const char *str)
 		str++;
 	dist = str;
 
+	if (dist.startsWith("redhat-el8"))
+		return PVS_GUEST_VER_LIN_REDHAT_8;
 	if (dist.startsWith("redhat-el7"))
 		return PVS_GUEST_VER_LIN_REDHAT_7;
 	else if (dist.startsWith("redhat"))
@@ -632,6 +634,8 @@ static unsigned int Ostemplate2Dist(const char *str)
 		return PVS_GUEST_VER_LIN_XANDROS;
 	if (dist.startsWith("ubuntu"))
 		return PVS_GUEST_VER_LIN_UBUNTU;
+	if (dist.startsWith("centos-8"))
+		return PVS_GUEST_VER_LIN_CENTOS_8;
 	if (dist.startsWith("centos-7"))
 		return PVS_GUEST_VER_LIN_CENTOS_7;
 	else if (dist.startsWith("centos"))

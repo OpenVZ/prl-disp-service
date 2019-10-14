@@ -143,7 +143,9 @@ PRL_UINT32 CVzTemplateHelper::convert_os_ver(const char *osname, const char *osv
 	else if (!strcmp(osname, "sles"))
 		return PVS_GUEST_VER_LIN_SUSE;
 	else if (!strcmp(osname, "centos")) {
-		if (!strcmp(osver, "7"))
+		if (!strcmp(osver, "8"))
+			return PVS_GUEST_VER_LIN_CENTOS_8;
+		else if (!strcmp(osver, "7"))
 			return PVS_GUEST_VER_LIN_CENTOS_7;
 		else
 			return PVS_GUEST_VER_LIN_CENTOS;
@@ -155,7 +157,9 @@ PRL_UINT32 CVzTemplateHelper::convert_os_ver(const char *osname, const char *osv
 			return PVS_GUEST_VER_LIN_VZLINUX;
 	}
 	else if (!strcmp(osname, "redhat")) {
-		if (!strcmp(osver, "el7"))
+		if (!strcmp(osver, "el8"))
+			return PVS_GUEST_VER_LIN_REDHAT_8;
+		else if (!strcmp(osver, "el7"))
 			return PVS_GUEST_VER_LIN_REDHAT_7;
 		else
 			return PVS_GUEST_VER_LIN_REDHAT;
