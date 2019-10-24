@@ -930,7 +930,7 @@ struct Indicator: boost::static_visitor<bool>
 	}
 	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VHostdevsubsys::types, 1>::type& variant_) const
 	{
-		return boost::apply_visitor(*this, variant_.getValue().getSource());
+		return boost::apply_visitor(*this, variant_.getValue().getSource().getSource());
 	}
 	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VSource1::types, 0>::type& variant_) const;
 	bool operator()(Libvirt::Domain::Xml::VChoice985& device_) const

@@ -124,21 +124,21 @@ bool Validatable<Blockexport::Xml::PData4066>::validate(const Blockexport::Xml::
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData4763
+// struct PData4938
 
-bool Traits<Blockexport::Xml::PData4763>::parse(const QString& src_, Blockexport::Xml::PData4763::value_type& dst_)
+bool Traits<Blockexport::Xml::PData4938>::parse(const QString& src_, Blockexport::Xml::PData4938::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Blockexport::Xml::PData4763>::generate(Blockexport::Xml::PData4763::value_type src_)
+QString Traits<Blockexport::Xml::PData4938>::generate(Blockexport::Xml::PData4938::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Blockexport::Xml::PData4763>::validate(Blockexport::Xml::PData4763::value_type value_)
+bool Validatable<Blockexport::Xml::PData4938>::validate(Blockexport::Xml::PData4938::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -150,11 +150,99 @@ bool Validatable<Blockexport::Xml::PData4763>::validate(Blockexport::Xml::PData4
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData47631
+// struct PData4940
 
-bool Validatable<Blockexport::Xml::PData47631>::validate(const Blockexport::Xml::PData47631::value_type& value_)
+bool Validatable<Blockexport::Xml::PData4940>::validate(const Blockexport::Xml::PData4940::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,2}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData4942
+
+bool Traits<Blockexport::Xml::PData4942>::parse(const QString& src_, Blockexport::Xml::PData4942::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toInt(&output);
+	return output;
+}
+
+QString Traits<Blockexport::Xml::PData4942>::generate(Blockexport::Xml::PData4942::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Blockexport::Xml::PData4942>::validate(Blockexport::Xml::PData4942::value_type value_)
+{
+	if (0 > value_)
+		return false;
+
+	if (255 < value_)
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData4944
+
+bool Validatable<Blockexport::Xml::PData4944>::validate(const Blockexport::Xml::PData4944::value_type& value_)
+{
+	QRegExp q("0x[0-9a-fA-F]{1,6}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData4946
+
+bool Traits<Blockexport::Xml::PData4946>::parse(const QString& src_, Blockexport::Xml::PData4946::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toInt(&output);
+	return output;
+}
+
+QString Traits<Blockexport::Xml::PData4946>::generate(Blockexport::Xml::PData4946::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Blockexport::Xml::PData4946>::validate(Blockexport::Xml::PData4946::value_type value_)
+{
+	if (0 > value_)
+		return false;
+
+	if (16777215 < value_)
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData4948
+
+bool Validatable<Blockexport::Xml::PData4948>::validate(const Blockexport::Xml::PData4948::value_type& value_)
+{
+	QRegExp q("[a-fA-F0-9]{32}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData4950
+
+bool Validatable<Blockexport::Xml::PData4950>::validate(const Blockexport::Xml::PData4950::value_type& value_)
+{
+	QRegExp q("[a-fA-F0-9]{8}\\-([a-fA-F0-9]{4}\\-){3}[a-fA-F0-9]{12}");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -465,6 +553,18 @@ bool Validatable<Blockexport::Xml::PPciFunc>::validate(const Blockexport::Xml::P
 bool Validatable<Blockexport::Xml::PWwn>::validate(const Blockexport::Xml::PWwn::value_type& value_)
 {
 	QRegExp q("(0x)?[0-9a-fA-F]{16}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData4960
+
+bool Validatable<Blockexport::Xml::PData4960>::validate(const Blockexport::Xml::PData4960::value_type& value_)
+{
+	QRegExp q("0x[0-9a-eA-E][0-9a-fA-F]?");
 	if (!q.exactMatch(value_))
 		return false;
 

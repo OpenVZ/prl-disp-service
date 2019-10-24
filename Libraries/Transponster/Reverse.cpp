@@ -1697,8 +1697,12 @@ Libvirt::Domain::Xml::Hostdev
 	c.setSource(b);
 	c.setStartupPolicy(Libvirt::Domain::Xml::EStartupPolicyOptional);
 
+	Libvirt::Domain::Xml::Hostdevsubsysusb u;
+	u.setSource(c);
+	u.setReplug(Libvirt::Domain::Xml::EVirYesNoYes);
+
 	mpl::at_c<Libvirt::Domain::Xml::VHostdevsubsys::types, 1>::type f;
-	f.setValue(c);
+	f.setValue(u);
 
 	Libvirt::Domain::Xml::Hostdevsubsys g;
 	g.setHostdevsubsys(f);
@@ -2904,9 +2908,9 @@ PRL_RESULT Request::operator()(const object_type& object_)
 		n.setValue(d.get<1>());
 		y.setName(n);
 
-		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice4763::types, 1>::type c;
+		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice4992::types, 1>::type c;
 		c.setValue(Libvirt::Blockexport::Xml::EVirYesNoYes);
-		y.setChoice4763(Libvirt::Blockexport::Xml::VChoice4763(c));
+		y.setChoice4992(Libvirt::Blockexport::Xml::VChoice4992(c));
 
 		x << y;
 	}

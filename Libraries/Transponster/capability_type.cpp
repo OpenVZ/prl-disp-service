@@ -345,30 +345,30 @@ int Traits<Capability::Xml::Feature>::generate(const Capability::Xml::Feature& s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous4763
+// struct Anonymous4935
 
 namespace Capability
 {
 namespace Xml
 {
-bool Anonymous4763::load(const QDomElement& src_)
+bool Anonymous4935::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
 	k.push(src_.firstChildElement());
-	return 0 <= Traits<Anonymous4763>::parse(*this, k);
+	return 0 <= Traits<Anonymous4935>::parse(*this, k);
 }
 
-bool Anonymous4763::save(QDomElement& dst_) const
+bool Anonymous4935::save(QDomElement& dst_) const
 {
-	return 0 <= Traits<Anonymous4763>::generate(*this, dst_);
+	return 0 <= Traits<Anonymous4935>::generate(*this, dst_);
 }
 
 
 } // namespace Xml
 } // namespace Capability
 
-int Traits<Capability::Xml::Anonymous4763>::parse(Capability::Xml::Anonymous4763& dst_, QStack<QDomElement>& stack_)
+int Traits<Capability::Xml::Anonymous4935>::parse(Capability::Xml::Anonymous4935& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -381,7 +381,7 @@ int Traits<Capability::Xml::Anonymous4763>::parse(Capability::Xml::Anonymous4763
 	return output;
 }
 
-int Traits<Capability::Xml::Anonymous4763>::generate(const Capability::Xml::Anonymous4763& src_, QDomElement& dst_)
+int Traits<Capability::Xml::Anonymous4935>::generate(const Capability::Xml::Anonymous4935& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getModel(), m.get<0>()))
@@ -442,7 +442,7 @@ int Traits<Capability::Xml::Mode>::parse(Capability::Xml::Mode& dst_, QStack<QDo
 	if (0 <= output)
 	{
 		dst_.setSupported(m.get<1>().getValue());
-		dst_.setAnonymous4763(m.get<2>().getValue());
+		dst_.setAnonymous4935(m.get<2>().getValue());
 	}
 	return output;
 }
@@ -452,7 +452,7 @@ int Traits<Capability::Xml::Mode>::generate(const Capability::Xml::Mode& src_, Q
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSupported(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAnonymous4763(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getAnonymous4935(), m.get<2>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1040,34 +1040,34 @@ int Traits<Capability::Xml::Gic>::generate(const Capability::Xml::Gic& src_, QDo
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous47631
+// struct Anonymous4936
 
 namespace Capability
 {
 namespace Xml
 {
-Anonymous47631::Anonymous47631(): m_cbitpos(), m_reducedPhysBits()
+Anonymous4936::Anonymous4936(): m_cbitpos(), m_reducedPhysBits()
 {
 }
 
-bool Anonymous47631::load(const QDomElement& src_)
+bool Anonymous4936::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
 	k.push(src_.firstChildElement());
-	return 0 <= Traits<Anonymous47631>::parse(*this, k);
+	return 0 <= Traits<Anonymous4936>::parse(*this, k);
 }
 
-bool Anonymous47631::save(QDomElement& dst_) const
+bool Anonymous4936::save(QDomElement& dst_) const
 {
-	return 0 <= Traits<Anonymous47631>::generate(*this, dst_);
+	return 0 <= Traits<Anonymous4936>::generate(*this, dst_);
 }
 
 
 } // namespace Xml
 } // namespace Capability
 
-int Traits<Capability::Xml::Anonymous47631>::parse(Capability::Xml::Anonymous47631& dst_, QStack<QDomElement>& stack_)
+int Traits<Capability::Xml::Anonymous4936>::parse(Capability::Xml::Anonymous4936& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -1079,7 +1079,7 @@ int Traits<Capability::Xml::Anonymous47631>::parse(Capability::Xml::Anonymous476
 	return output;
 }
 
-int Traits<Capability::Xml::Anonymous47631>::generate(const Capability::Xml::Anonymous47631& src_, QDomElement& dst_)
+int Traits<Capability::Xml::Anonymous4936>::generate(const Capability::Xml::Anonymous4936& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getCbitpos(), m.get<0>()))
@@ -1138,7 +1138,7 @@ int Traits<Capability::Xml::Sev>::parse(Capability::Xml::Sev& dst_, QStack<QDomE
 	if (0 <= output)
 	{
 		dst_.setSupported(m.get<0>().getValue());
-		dst_.setAnonymous47631(m.get<1>().getValue());
+		dst_.setAnonymous4936(m.get<1>().getValue());
 	}
 	return output;
 }
@@ -1148,7 +1148,7 @@ int Traits<Capability::Xml::Sev>::generate(const Capability::Xml::Sev& src_, QDo
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSupported(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAnonymous47631(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getAnonymous4936(), m.get<1>()))
 		return -1;
 
 	return m.produce(dst_);

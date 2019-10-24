@@ -3847,6 +3847,11 @@
     <attribute name="type">
       <value>usb</value>
     </attribute>
+    <optional>
+      <attribute name="replug">
+        <ref name="virYesNo"/>
+      </attribute>
+    </optional>
     <element name="source">
       <optional>
         <ref name="startupPolicy"/>

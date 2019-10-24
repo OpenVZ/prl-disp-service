@@ -243,13 +243,13 @@ private:
 } // namespace Capability
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous4763
+// struct Anonymous4935
 
 namespace Capability
 {
 namespace Xml
 {
-struct Anonymous4763
+struct Anonymous4935
 {
 	const Model& getModel() const
 	{
@@ -306,13 +306,13 @@ struct Mode
 	{
 		m_supported = value_;
 	}
-	const boost::optional<Anonymous4763 >& getAnonymous4763() const
+	const boost::optional<Anonymous4935 >& getAnonymous4935() const
 	{
-		return m_anonymous4763;
+		return m_anonymous4935;
 	}
-	void setAnonymous4763(const boost::optional<Anonymous4763 >& value_)
+	void setAnonymous4935(const boost::optional<Anonymous4935 >& value_)
 	{
-		m_anonymous4763 = value_;
+		m_anonymous4935 = value_;
 	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
@@ -320,7 +320,7 @@ struct Mode
 
 private:
 	EVirYesNo m_supported;
-	boost::optional<Anonymous4763 > m_anonymous4763;
+	boost::optional<Anonymous4935 > m_anonymous4935;
 };
 
 } // namespace Xml
@@ -703,15 +703,15 @@ private:
 } // namespace Capability
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous47631
+// struct Anonymous4936
 
 namespace Capability
 {
 namespace Xml
 {
-struct Anonymous47631
+struct Anonymous4936
 {
-	Anonymous47631();
+	Anonymous4936();
 
 	PCbitpos::value_type getCbitpos() const
 	{
@@ -759,13 +759,13 @@ struct Sev
 	{
 		m_supported = value_;
 	}
-	const boost::optional<Anonymous47631 >& getAnonymous47631() const
+	const boost::optional<Anonymous4936 >& getAnonymous4936() const
 	{
-		return m_anonymous47631;
+		return m_anonymous4936;
 	}
-	void setAnonymous47631(const boost::optional<Anonymous47631 >& value_)
+	void setAnonymous4936(const boost::optional<Anonymous4936 >& value_)
 	{
-		m_anonymous47631 = value_;
+		m_anonymous4936 = value_;
 	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
@@ -773,7 +773,7 @@ struct Sev
 
 private:
 	EVirYesNo m_supported;
-	boost::optional<Anonymous47631 > m_anonymous47631;
+	boost::optional<Anonymous4936 > m_anonymous4936;
 };
 
 } // namespace Xml
@@ -1006,15 +1006,15 @@ struct Traits<Capability::Xml::Feature>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous4763 traits
+// struct Anonymous4935 traits
 
 template<>
-struct Traits<Capability::Xml::Anonymous4763>
+struct Traits<Capability::Xml::Anonymous4935>
 {
 	typedef Ordered<mpl::vector<Element<Capability::Xml::Model, Name::Strict<231> >, Optional<Element<Text<QString >, Name::Strict<459> > >, ZeroOrMore<Element<Capability::Xml::Feature, Name::Strict<1022> > > > > marshal_type;
 
-	static int parse(Capability::Xml::Anonymous4763& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Anonymous4763& , QDomElement& );
+	static int parse(Capability::Xml::Anonymous4935& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Anonymous4935& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1023,7 +1023,7 @@ struct Traits<Capability::Xml::Anonymous4763>
 template<>
 struct Traits<Capability::Xml::Mode>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<1013>, Name::Strict<107> >, Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Optional<Fragment<Capability::Xml::Anonymous4763 > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<1013>, Name::Strict<107> >, Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Optional<Fragment<Capability::Xml::Anonymous4935 > > > > marshal_type;
 
 	static int parse(Capability::Xml::Mode& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Mode& , QDomElement& );
@@ -1138,15 +1138,15 @@ struct Traits<Capability::Xml::Gic>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous47631 traits
+// struct Anonymous4936 traits
 
 template<>
-struct Traits<Capability::Xml::Anonymous47631>
+struct Traits<Capability::Xml::Anonymous4936>
 {
 	typedef Ordered<mpl::vector<Element<Text<Capability::Xml::PCbitpos >, Name::Strict<3564> >, Element<Text<Capability::Xml::PReducedPhysBits >, Name::Strict<3565> > > > marshal_type;
 
-	static int parse(Capability::Xml::Anonymous47631& , QStack<QDomElement>& );
-	static int generate(const Capability::Xml::Anonymous47631& , QDomElement& );
+	static int parse(Capability::Xml::Anonymous4936& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Anonymous4936& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1155,7 +1155,7 @@ struct Traits<Capability::Xml::Anonymous47631>
 template<>
 struct Traits<Capability::Xml::Sev>
 {
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Optional<Fragment<Capability::Xml::Anonymous47631 > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Optional<Fragment<Capability::Xml::Anonymous4936 > > > > marshal_type;
 
 	static int parse(Capability::Xml::Sev& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Sev& , QDomElement& );

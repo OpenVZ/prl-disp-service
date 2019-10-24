@@ -9876,6 +9876,32 @@ int Traits<Domain::Xml::Source14>::generate(const Domain::Xml::Source14& src_, Q
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Hostdevsubsysusb
+
+int Traits<Domain::Xml::Hostdevsubsysusb>::parse(Domain::Xml::Hostdevsubsysusb& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setReplug(m.get<1>().getValue());
+		dst_.setSource(m.get<2>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::Hostdevsubsysusb>::generate(const Domain::Xml::Hostdevsubsysusb& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getReplug(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getSource(), m.get<2>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Parentaddr
 
 namespace Domain

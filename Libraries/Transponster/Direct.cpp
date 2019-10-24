@@ -1801,7 +1801,7 @@ CpuFeatures* Capabilities::getCpuFeatures() const
 
 	QList<QString> d, r;
 	foreach (const Libvirt::Capability::Xml::Feature& f,
-		getValue().getCpu()->getMode2().getAnonymous4763()->getFeatureList())
+		getValue().getCpu()->getMode2().getAnonymous4935()->getFeatureList())
 	{
 		switch (f.getPolicy())
 		{
@@ -1822,7 +1822,7 @@ CpuFeatures* Capabilities::getCpuFeatures() const
 
 QString Capabilities::getCpuModel() const
 {
-	return getValue().getCpu()->getMode2().getAnonymous4763()
+	return getValue().getCpu()->getMode2().getAnonymous4935()
 		->getModel().getOwnValue();
 }
 
@@ -1830,7 +1830,7 @@ bool Capabilities::isValid() const
 {
 	return getValue().getCpu() &&
 		getValue().getCpu()->getMode2().getSupported() == Libvirt::Capability::Xml::EVirYesNoYes &&
-		getValue().getCpu()->getMode2().getAnonymous4763();
+		getValue().getCpu()->getMode2().getAnonymous4935();
 }
 
 } // namespace Host

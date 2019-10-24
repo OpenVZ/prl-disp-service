@@ -9579,6 +9579,40 @@ private:
 } // namespace Domain
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Hostdevsubsysusb
+
+namespace Domain
+{
+namespace Xml
+{
+struct Hostdevsubsysusb
+{
+	const boost::optional<EVirYesNo >& getReplug() const
+	{
+		return m_replug;
+	}
+	void setReplug(const boost::optional<EVirYesNo >& value_)
+	{
+		m_replug = value_;
+	}
+	const Source14& getSource() const
+	{
+		return m_source;
+	}
+	void setSource(const Source14& value_)
+	{
+		m_source = value_;
+	}
+
+private:
+	boost::optional<EVirYesNo > m_replug;
+	Source14 m_source;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Parentaddr
 
 namespace Domain
@@ -9927,7 +9961,7 @@ namespace Domain
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Hostdevsubsyspci, Ordered<mpl::vector<Attribute<mpl::int_<531>, Name::Strict<105> >, Element<Domain::Xml::Source14, Name::Strict<501> > > >, Hostdevsubsysscsi > > VHostdevsubsysImpl;
+typedef Choice<mpl::vector<Hostdevsubsyspci, Hostdevsubsysusb, Hostdevsubsysscsi > > VHostdevsubsysImpl;
 typedef VHostdevsubsysImpl::value_type VHostdevsubsys;
 
 } // namespace Xml
@@ -15167,6 +15201,18 @@ struct Traits<Domain::Xml::Source14>
 
 	static int parse(Domain::Xml::Source14& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Source14& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hostdevsubsysusb traits
+
+template<>
+struct Traits<Domain::Xml::Hostdevsubsysusb>
+{
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<531>, Name::Strict<105> >, Optional<Attribute<Domain::Xml::EVirYesNo, Name::Strict<4929> > >, Element<Domain::Xml::Source14, Name::Strict<501> > > > marshal_type;
+
+	static int parse(Domain::Xml::Hostdevsubsysusb& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Hostdevsubsysusb& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
