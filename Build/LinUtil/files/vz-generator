@@ -80,7 +80,6 @@ class Systemd_unit(object):
         self.uuid = config.get_uuid()
         self.service_prefix = "vz_"
         self.deftarget = deftarget
-        self.lock = started_dir + "/" + self.nobr_uuid
         self.description = " ".join((get_vmtype(config.get_vm_type()), self.uuid, get_classtype(self)))
 
     @property
@@ -114,13 +113,12 @@ class Systemd_service(Systemd_unit):
 "[Unit]\n" \
 "Description={self.description}\n" \
 "After={self.deftarget} prl-disp.service vz.service\n" \
-"ConditionPathExists=!{self.lock}\n" \
 "\n" \
 "[Service]\n" \
 "ExecStart=/bin/prlctl start {self.uuid}\n" \
-"ExecStartPost=/bin/touch {self.lock}\n" \
-"Type=oneshot\n" \
-"RemainAfterExit=yes\n" \
+"Type=simple\n" \
+"RestartSec=60s\n" \
+"RestartForceExitStatus=253\n" \
 "\n".format(**locals())
 
 class Systemd_timer(Systemd_unit):
