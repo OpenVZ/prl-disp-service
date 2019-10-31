@@ -112,6 +112,10 @@ public:
 	{
 		return m_nPrevVmState;
 	}
+	quint32 getRemoteVersion() const
+	{
+		return m_nRemoteVersion;
+	}
 	PRL_RESULT confirmFinish();
 	QList<CVmHardDisk* > getVmUnsharedDisks() const;
 	Migrate::Vm::Source::Content::Copier* createCopier();

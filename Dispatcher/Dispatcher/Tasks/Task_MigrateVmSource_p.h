@@ -445,8 +445,8 @@ struct Separatist
 	}
 
 	QString getNVRAM() const;
-	QList<CVmHardDisk*> getDisks() const;
 	QList<CVmSerialPort*> getSerialPorts() const;
+	QPair<QList<CVmHardDisk*>, QList<CVmHardDisk*> > getDisks(Task_MigrateVmSource& task_) const;
 
 private:
 	template<class T>
@@ -461,10 +461,11 @@ private:
 struct Component: Unit
 {
 	typedef Carrier* bus_type;
-	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Online agent_type;
+	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Online::Agent
+		agent_type;
+	typedef boost::function<agent_type::result_type()> work_type;
 
-	Component(const agent_type& agent_, const CVmConfiguration& target_,
-		bus_type bus_): m_bus(bus_), m_agent(agent_), m_target(target_)
+	Component(const work_type& work_, bus_type bus_): m_bus(bus_), m_work(work_)
 	{
 	}
 
@@ -472,8 +473,7 @@ struct Component: Unit
 
 private:
 	bus_type m_bus;
-	agent_type m_agent;
-	CVmConfiguration m_target;
+	work_type m_work;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

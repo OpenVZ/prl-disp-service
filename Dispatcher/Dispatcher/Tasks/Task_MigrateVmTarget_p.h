@@ -219,12 +219,13 @@ struct Connector: Connector_, Vm::Connector::Base<Machine_type>
 
 struct Perform: vsd::Trace<Perform>, Vm::Connector::Mixin<Connector>
 {
-	Perform(CVmConfiguration& config_, const QStringList& checkFiles_,
-			VIRTUAL_MACHINE_STATE state_):
-		m_config(&config_), m_check(checkFiles_), m_state(state_)
+	typedef Migrate::Vm::Target::Libvirt::Pstorage helper_type;
+
+	Perform(CVmConfiguration& config_, helper_type* helper_):
+		m_helper(helper_), m_config(&config_)
 	{
 	}
-	Perform(): m_config(), m_state()
+	Perform(): m_helper(), m_config()
 	{
 	}
 
@@ -239,14 +240,12 @@ struct Perform: vsd::Trace<Perform>, Vm::Connector::Mixin<Connector>
 	void on_exit(const Event&, FSM&);
 
 private:
-	typedef Migrate::Vm::Target::Libvirt::Pstorage helper_type;
 	typedef ::Libvirt::Instrument::Agent::Vm::Block::Activity merge_type;
 	typedef ::Libvirt::Instrument::Agent::Vm::Block::Completion receiver_type;
 
 	merge_type m_merge;
+	helper_type* m_helper;
 	CVmConfiguration* m_config;
-	QStringList m_check;
-	VIRTUAL_MACHINE_STATE m_state;
 	QSharedPointer<receiver_type> m_receiver;
 };
 

@@ -568,35 +568,6 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Online
-
-struct Online: Agent
-{
-	typedef Prl::Expected<quint64, ::Error::Simple> result_type;
-
-	explicit Online(const Agent& agent_);
-
-	void setQemuState(qint32 port_);
-	void setQemuDisk(const QList<CVmHardDisk* >& list_, qint32 port_);
-	void setQemuDisk(const QList<CVmHardDisk* >& list_);
-	void setUncompressed()
-	{
-		m_compression.clear();
-	}
-	void setBandwidth(quint64 value_);
-
-	result_type operator()(const CVmConfiguration& config_);
-
-private:
-	Result migrate(const CVmConfiguration& config_);
-
-	QSharedPointer<Qemu::Disk> m_qemuDisk;
-	QSharedPointer<Qemu::State> m_qemuState;
-	QSharedPointer<Compression> m_compression;
-	QSharedPointer<Bandwidth> m_bandwidth;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Offline
 
 struct Offline: Agent
@@ -608,6 +579,57 @@ struct Offline: Agent
 	Result operator()(const CVmConfiguration& config_);
 };
 
+namespace Online
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Flavor
+
+struct Flavor
+{
+	Flavor(): m_custom()
+	{
+	}
+
+	void setDeep();
+	void setShallow();
+	void setSnapshotless();
+	quint32 getResult() const;
+
+private:
+	quint32 m_custom;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Agent
+
+struct Agent: Migration::Agent
+{
+	typedef Flavor flavor_type;
+	typedef Prl::Expected<quint64, ::Error::Simple> result_type;
+
+	explicit Agent(const Migration::Agent& agent_);
+
+	void setQemuState(qint32 port_);
+	void setQemuDisk(const QList<CVmHardDisk* >& list_, qint32 port_);
+	void setQemuDisk(const QList<CVmHardDisk* >& list_);
+	void setUncompressed()
+	{
+		m_compression.clear();
+	}
+	void setBandwidth(quint64 value_);
+
+	result_type operator()(const CVmConfiguration& config_, const flavor_type& flavor_);
+
+private:
+	Result migrate(const CVmConfiguration& config_, const flavor_type& flavor_);
+
+	QSharedPointer<Qemu::Disk> m_qemuDisk;
+	QSharedPointer<Qemu::State> m_qemuState;
+	QSharedPointer<Compression> m_compression;
+	QSharedPointer<Bandwidth> m_bandwidth;
+};
+
+} // namespace Online
 } // namespace Migration
 
 namespace Limb

@@ -221,47 +221,70 @@ Result Offline::operator()(const CVmConfiguration& config_)
 			VIR_MIGRATE_OFFLINE, b);
 }
 
+namespace Online
+{
 ///////////////////////////////////////////////////////////////////////////////
-// struct Online
+// struct Flavor
 
-Online::Online(const Agent& agent_): Agent(agent_), m_compression(new Compression())
+void Flavor::setDeep()
+{
+	m_custom = m_custom & ~VIR_MIGRATE_NON_SHARED_INC;
+	m_custom = m_custom | VIR_MIGRATE_NON_SHARED_DISK;
+}
+
+void Flavor::setShallow()
+{
+	m_custom = m_custom & ~(VIR_MIGRATE_SHARED_WORKAROUND | VIR_MIGRATE_NON_SHARED_DISK);
+	m_custom = m_custom | VIR_MIGRATE_NON_SHARED_INC;
+}
+
+void Flavor::setSnapshotless()
+{
+	m_custom = m_custom & ~VIR_MIGRATE_NON_SHARED_INC;
+	m_custom = m_custom | VIR_MIGRATE_SHARED_WORKAROUND;
+}
+
+quint32 Flavor::getResult() const
+{
+	return VIR_MIGRATE_PERSIST_DEST | VIR_MIGRATE_CHANGE_PROTECTION |
+		VIR_MIGRATE_LIVE | VIR_MIGRATE_AUTO_CONVERGE | m_custom;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Agent
+
+Agent::Agent(const Migration::Agent& agent_): Migration::Agent(agent_),
+	m_compression(new Compression())
 {
 }
 
-void Online::setQemuState(qint32 port_)
+void Agent::setQemuState(qint32 port_)
 {
 	m_qemuState = QSharedPointer<Qemu::State>(new Qemu::State(port_));
 }
 
-void Online::setQemuDisk(const QList<CVmHardDisk* >& list_, qint32 port_)
+void Agent::setQemuDisk(const QList<CVmHardDisk* >& list_, qint32 port_)
 {
 	m_qemuDisk = QSharedPointer<Qemu::Disk>(new Qemu::Disk(port_, list_));
 }
 
-void Online::setQemuDisk(const QList<CVmHardDisk* >& list_)
+void Agent::setQemuDisk(const QList<CVmHardDisk* >& list_)
 {
 	m_qemuDisk = QSharedPointer<Qemu::Disk>(new Qemu::Disk(list_));
 }
 
-void Online::setBandwidth(quint64 value_)
+void Agent::setBandwidth(quint64 value_)
 {
 	m_bandwidth = QSharedPointer<Bandwidth>(new Bandwidth(value_));
 }
 
-Result Online::migrate(const CVmConfiguration& config_)
+Result Agent::migrate(const CVmConfiguration& config_, const flavor_type& flavor_)
 {
-	unsigned int f = VIR_MIGRATE_PERSIST_DEST |
-			VIR_MIGRATE_CHANGE_PROTECTION |
-			VIR_MIGRATE_LIVE |
-			VIR_MIGRATE_AUTO_CONVERGE;
-
 	typedef QList<boost::function1<Result, Parameters::Builder&> > directorList_type;
 	directorList_type d;
 	if (!m_qemuDisk.isNull())
-	{
-		f |= VIR_MIGRATE_NON_SHARED_INC;
 		d << boost::bind<Result>(boost::ref(*m_qemuDisk.data()), _1);
-	}
+
 	if (!m_qemuState.isNull())
 		d << boost::bind<Result>(boost::ref(*m_qemuState.data()), _1);
 
@@ -283,10 +306,10 @@ Result Online::migrate(const CVmConfiguration& config_)
 	if (e.isFailed())
 		return e.error();
 
-	return Agent::migrate(config_, f, b);
+	return Migration::Agent::migrate(config_, flavor_.getResult(), b);
 }
 
-Online::result_type Online::operator()(const CVmConfiguration& config_)
+Agent::result_type Agent::operator()(const CVmConfiguration& config_, const flavor_type& flavor_)
 {
 	Vm::Completion::Migration::feedback_type p(new boost::promise<quint64>());
 	boost::future<quint64> v = p->get_future();
@@ -299,7 +322,7 @@ Online::result_type Online::operator()(const CVmConfiguration& config_)
 		return Failure(PRL_ERR_FAILURE);
 
 	g.take();
-	Result e = migrate(config_);
+	Result e = migrate(config_, flavor_);
 	if (e.isFailed())
 	{
 		virConnectDomainEventDeregisterAny(getLink().data(), s);
@@ -310,6 +333,7 @@ Online::result_type Online::operator()(const CVmConfiguration& config_)
 	return output;
 };
 
+} // namespace Online
 } // namespace Migration
 
 namespace Limb

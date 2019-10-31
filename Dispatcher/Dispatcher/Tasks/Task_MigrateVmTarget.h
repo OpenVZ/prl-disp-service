@@ -51,6 +51,27 @@ enum _PRL_VM_MIGRATE_TARGET_STEP {
 	MIGRATE_HA_RESOURCE_REGISTERED	= (1 << 4),
 };
 
+namespace Migrate
+{
+namespace Vm
+{
+namespace Target
+{
+namespace Libvirt
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Pstorage forward declaration
+
+struct Pstorage;
+
+} // namespace Libvirt
+} // namespace Target
+} // namespace Vm
+} // namespace Migrate
+
+///////////////////////////////////////////////////////////////////////////////
+// class Task_MigrateVmTarget
+
 class Task_MigrateVmTarget : public CDspTaskHelper, public Task_DispToDispConnHelper
 {
 	Q_OBJECT
@@ -101,6 +122,7 @@ private:
 
 private:
 	typedef ::Vcmmd::Frontend< ::Vcmmd::Unregistered> vcmmd_type;
+	typedef ::Migrate::Vm::Target::Libvirt::Pstorage pstorage_type;
 
 	Registry::Public& m_registry;
 	/* from old servers Check & Start commands send from differents connections */
@@ -139,6 +161,7 @@ private:
 
 	SmartPtr<CVmDirectory::TemporaryCatalogueItem> m_pVmInfo;
 	QScopedPointer<vcmmd_type> m_vcmmd;
+	QScopedPointer<pstorage_type> m_pstorage;
 
 	PRL_RESULT reactStart(const SmartPtr<IOPackage> &package);
 	PRL_RESULT preconditionsReply();

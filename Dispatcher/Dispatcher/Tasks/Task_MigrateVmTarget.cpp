@@ -519,7 +519,7 @@ target_type Ready::operator()
 target_type Ready::operator()
 	(const boost::mpl::at_c<state_type::types, 1>::type& value_) const
 {
-	if (31 < m_queue->size())
+	if (5 < m_queue->size())
 		return target_type(state_type(Obstruction()));
 
 	Prl::Expected<void, Flop::Event> x = m_queue->enqueueData();
@@ -782,7 +782,7 @@ template <typename Event, typename FSM>
 void Perform::on_entry(const Event& event_, FSM& fsm_)
 {
 	Trace<Perform>::on_entry(event_, fsm_);
-	if (m_state != VMS_RUNNING && m_state != VMS_PAUSED)
+	if (NULL == m_helper)
 	{
 		fsm_.process_event(Done());
 		return;
@@ -795,7 +795,7 @@ void Perform::on_entry(const Event& event_, FSM& fsm_)
 	if (getConnector()->connect(m_receiver.data(),
 			SIGNAL(done()),
 			SLOT(reactFinished())))
-		m_merge = s.merge(helper_type(m_check).getDisks(*m_config), *m_receiver);
+		m_merge = s.merge(m_helper->getDisks(*m_config), *m_receiver);
 	else
 	{
 		WRITE_TRACE(DBG_FATAL, "can't connect commit future");
@@ -1350,8 +1350,13 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 		nRetCode = PRL_ERR_OPERATION_WAS_CANCELED;
 		goto exit;
 	}
-	if ((m_nPrevVmState == VMS_RUNNING || m_nPrevVmState == VMS_PAUSED) && !isTemplate())
-		m_vcmmd.reset(new vcmmd_type(m_sVmUuid));
+	if (m_nPrevVmState == VMS_RUNNING || m_nPrevVmState == VMS_PAUSED)
+	{
+		if (!isTemplate())
+			m_vcmmd.reset(new vcmmd_type(m_sVmUuid));
+		if (MIGRATE_DISP_PROTO_V9 > m_nVersion)
+			m_pstorage.reset(new pstorage_type(m_lstCheckFilesExt));
+	}
 
 exit:
 	setLastErrorCode(nRetCode);
@@ -1531,8 +1536,8 @@ void Task_MigrateVmTarget::finalizeTask()
 	}
 	else
 	{
-		if (m_pVmConfig.isValid() && (m_nPrevVmState == VMS_RUNNING || m_nPrevVmState == VMS_PAUSED))
-			Migrate::Vm::Target::Libvirt::Pstorage(m_lstCheckFilesExt).cleanup(*m_pVmConfig);
+		if (m_pVmConfig.isValid() && !m_pstorage.isNull())
+			m_pstorage->cleanup(*m_pVmConfig);
 		/* It is not possible to get Vm client list after deleteVmDirectoryItem(), and
 		   sendPackageToVmClients() does not work. Get list right now and will use
 		   sendPackageToClientList() call (https://jira.sw.ru/browse/PSBM-9159) */
@@ -1935,29 +1940,22 @@ void Task_MigrateVmTarget::unregisterHaClusterResource()
 
 PRL_RESULT Task_MigrateVmTarget::preconditionsReply()
 {
-	PRL_RESULT r;
-
-	Migrate::Vm::Target::Libvirt::Pstorage p(m_lstCheckFilesExt);
-	if ((m_nPrevVmState == VMS_RUNNING || m_nPrevVmState == VMS_PAUSED) &&
-		!p.monkeyPatch(*m_pVmConfig))
+	if (!m_pstorage.isNull() && !m_pstorage->monkeyPatch(*m_pVmConfig))
 	{
 		setLastErrorCode(PRL_ERR_OPERATION_FAILED);
 		return PRL_ERR_OPERATION_FAILED;
 	}
 
-	QScopedPointer<CVmMigrateCheckPreconditionsReply> cmd(
-			new CVmMigrateCheckPreconditionsReply(
-				m_lstCheckPrecondsErrors, m_lstNonSharedDisks, m_nFlags));
-	cmd->SetConfig(m_pVmConfig->toString());
+	CVmMigrateCheckPreconditionsReply c(m_lstCheckPrecondsErrors, m_lstNonSharedDisks, m_nFlags);
+	c.SetConfig(m_pVmConfig->toString());
 
 	WRITE_TRACE(DBG_DEBUG, "hardware config that was recieved from the target:\n %s",
 		qPrintable(m_pVmConfig->getVmHardwareList()->toString()));
 
 	SmartPtr<IOPackage> package = DispatcherPackage::createInstance(
-			cmd->GetCommandId(), cmd->GetCommand()->toString(), m_pCheckPackage);
-	r = m_dispConnection->sendPackageResult(package);
-	setLastErrorCode(r);
-	return r;
+			c.GetCommandId(), c.GetCommand()->toString(), m_pCheckPackage);
+	setLastErrorCode(m_dispConnection->sendPackageResult(package));
+	return getLastErrorCode();
 }
 
 PRL_RESULT Task_MigrateVmTarget::run_body()
@@ -1986,7 +1984,7 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 		<< moveStep
 		<< syncingStep
 		<< backend_type::Tuning(boost::ref(*this), m_nPrevVmState)
-		<< backend_type::Commiting(boost::ref(*m_pVmConfig), boost::cref(m_lstCheckFilesExt), m_nPrevVmState)
+		<< backend_type::Commiting(boost::ref(*m_pVmConfig), m_pstorage.data())
 		<< backend_type::Synch::State(~0),
 		boost::ref(*this), boost::ref(io), boost::ref(*m_pVmConfig)
 		);
