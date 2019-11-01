@@ -1156,7 +1156,7 @@ void List::add(const CVmRemoteDisplay* vnc_)
 	add<8>(Libvirt::Domain::Xml::VGraphics(z));
 }
 
-void List::add(const CVmVideo* video_)
+void List::add(const CVmVideo* video_, const CVmCommonOptions* options_)
 {
 	if (NULL == video_)
 		return;
@@ -1169,6 +1169,11 @@ void List::add(const CVmVideo* video_)
 		a.setAccel2d(Libvirt::Domain::Xml::EVirYesNoNo);
 		a.setAccel3d(Libvirt::Domain::Xml::EVirYesNoYes);
 		m.setAcceleration(a);
+	}
+	if (NULL != options_ && IS_LINUX(options_->getOsVersion()))
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VModel::types, 1>::type M;
+		m.setModel(Libvirt::Domain::Xml::VModel(M));
 	}
 	Libvirt::Domain::Xml::Video v;
 	v.setModel(m);
@@ -1868,7 +1873,7 @@ PRL_RESULT Builder::setDevices()
 	b.add(s->getVmRemoteDisplay());
 	foreach (const CVmVideo* d, h->m_lstVideo)
 	{
-		b.add(d);
+		b.add(d, s->getVmCommonOptions());
 	}
 	foreach (const CVmSerialPort* d, h->m_lstSerialPorts)
 	{
