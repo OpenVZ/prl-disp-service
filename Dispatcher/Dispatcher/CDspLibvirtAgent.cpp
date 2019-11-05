@@ -1694,20 +1694,18 @@ Result Editor::setIopsLimit(const CVmHardDisk& disk_, quint32 limit_)
 
 Result Editor::setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_)
 {
-	virTypedParameterPtr p = NULL;
-	qint32 s = 0;
-	qint32 m = 0;
+	Parameters::Builder b;
 
-	if (do_(&p, boost::bind(&virTypedParamsAddULLong, _1,
-					&s, &m, param_, limit_)).isFailed())
+	if (!b.add(param_, static_cast<quint64>(limit_)))
+		return Failure(PRL_ERR_SET_IOLIMIT);
+	if (!b.add(VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME, "virtuozzo"))
 		return Failure(PRL_ERR_SET_IOLIMIT);
 
-	Result r = do_(getDomain().data(), boost::bind(&virDomainSetBlockIoTune, _1,
-							QSTR2UTF8(disk_.getTargetDeviceName()),
-							p, s, VIR_DOMAIN_AFFECT_CURRENT |
-							VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE));
-	virTypedParamsFree(p, s);
-	return r;
+	Parameters::Result_type p(b.extract());
+	return Result(do_(getDomain().data(), boost::bind(&virDomainSetBlockIoTune, _1,
+			qPrintable(disk_.getTargetDeviceName()),
+			p.first.data(), p.second, VIR_DOMAIN_AFFECT_CURRENT |
+				VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE)));
 }
 
 Result Editor::setIoPriority(quint32 ioprio_)
