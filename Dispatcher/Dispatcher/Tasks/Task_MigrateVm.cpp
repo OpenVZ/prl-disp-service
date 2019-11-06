@@ -604,28 +604,9 @@ QString Separatist::getNVRAM() const
 	return QString();
 }
 
-QPair<QList<CVmHardDisk*>, QList<CVmHardDisk*> >
-Separatist::getDisks(Task_MigrateVmSource& task_) const
+QList<CVmHardDisk*> Separatist::getDisks() const
 {
-	QList<CVmHardDisk*> m = task_.getVmUnsharedDisks();
-	QList<CVmHardDisk*> s = refine(m_source->getVmHardwareList()->m_lstHardDisks);
-	if (m.isEmpty())
-		WRITE_TRACE(DBG_DEBUG, "there are no unshared disks to migrate");
-
-	if (!s.isEmpty())
-	{
-		WRITE_TRACE(DBG_DEBUG, "there are disks on vstorage to migrate");
-		s = s.toSet().subtract(m.toSet()).toList();
-		if (MIGRATE_DISP_PROTO_V9 > task_.getRemoteVersion())
-		{
-			WRITE_TRACE(DBG_DEBUG, "some disks will be migrated using snapshots");
-			m << s;
-		}
-	}
-	if (m.isEmpty())
-		WRITE_TRACE(DBG_DEBUG, "there is no disk to migrate");
-
-	return qMakePair(m, s);
+	return refine(m_source->getVmHardwareList()->m_lstHardDisks);
 }
 
 QList<CVmSerialPort*> Separatist::getSerialPorts() const
@@ -666,6 +647,36 @@ QList<T*> Separatist::refine(const QList<T*>& mix_)
 }
  
 ///////////////////////////////////////////////////////////////////////////////
+// struct Plan
+
+Plan::Plan(const Separatist& separatist_, Task_MigrateVmSource& context_):
+	Separatist(separatist_)
+{
+	m_diskList = context_.getVmUnsharedDisks();
+	diskList_type s = Separatist::getDisks();
+	if (m_diskList.isEmpty())
+		WRITE_TRACE(DBG_DEBUG, "there are no unshared disks to migrate");
+	else
+		m_flavor.setDeep();
+
+	if (!s.isEmpty())
+	{
+		WRITE_TRACE(DBG_DEBUG, "there are disks on vstorage to migrate");
+		s = s.toSet().subtract(m_diskList.toSet()).toList();
+		if (MIGRATE_DISP_PROTO_V9 > context_.getRemoteVersion())
+		{
+			WRITE_TRACE(DBG_DEBUG, "some disks will be migrated using snapshots");
+			m_diskList << (m_diskToSnapshotList = s);
+			m_flavor.setShallow();
+		}
+		else
+			m_flavor.setSnapshotless();
+	}
+	if (m_diskList.isEmpty())
+		WRITE_TRACE(DBG_DEBUG, "there is no disk to migrate");
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Hatchery
 
 Unit* Hatchery::operator()(const agent_type& agent_, const CVmConfiguration& target_)
@@ -674,18 +685,6 @@ Unit* Hatchery::operator()(const agent_type& agent_, const CVmConfiguration& tar
 	if (NULL == config)
 		return NULL;
 
-	Component::agent_type::flavor_type f;
-	f.setDeep();
-
-	Separatist u(*config);
-	QPair<QList<CVmHardDisk*>, QList<CVmHardDisk*> > d = u.getDisks(*m_task);
-	if (!d.second.isEmpty())
-	{
-		if (MIGRATE_DISP_PROTO_V9 > m_task->getRemoteVersion())
-			f.setShallow();
-		else
-			f.setSnapshotless();
-	}
 	Component::agent_type o(agent_);
 	if (m_task->getFlags() & PVMT_UNCOMPRESSED)
 		o.setUncompressed();
@@ -693,24 +692,27 @@ Unit* Hatchery::operator()(const agent_type& agent_, const CVmConfiguration& tar
 	if (m_ports)
 		o.setQemuState(m_ports->first);
 
-	if (!d.first.isEmpty())
-		m_ports ? o.setQemuDisk(d.first, m_ports->second) : o.setQemuDisk(d.first);
+	Plan P(Separatist(*config), *m_task);
+	if (!P.getDisks().isEmpty())
+		m_ports ? o.setQemuDisk(P.getDisks(), m_ports->second) : o.setQemuDisk(P.getDisks());
 
 	quint64 bw = m_task->getDegree();
 	if (bw > 0)
 		o.setBandwidth(bw);
 
-	Unit* output = new Component(boost::bind(o, target_, f), m_bus);
+	Unit* output = new Component(boost::bind(o, target_, P.getFlavor()), m_bus);
 	if (m_task->getOldState() == VMS_RUNNING)
 		output = new Vcmmd(m_task->getVmUuid(), output);
 
-	if (!d.second.isEmpty() && m_task->getRemoteVersion() < MIGRATE_DISP_PROTO_V9)
-		output = new Disks(d.second, ::Libvirt::Kit.vms().at(m_task->getVmUuid()), output);
-
-	foreach(CVmSerialPort* p, u.getSerialPorts())
+	if (!P.getDisksToSnapshot().isEmpty())
+	{
+		output = new Disks(P.getDisksToSnapshot(),
+			::Libvirt::Kit.vms().at(m_task->getVmUuid()), output);
+	}
+	foreach(CVmSerialPort* p, P.getSerialPorts())
 		output = new File(p->getSystemName(), output);
 
-	QString r = u.getNVRAM();
+	QString r = P.getNVRAM();
 	if (!r.isEmpty())
 		output = new File(r, output);
 

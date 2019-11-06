@@ -191,23 +191,29 @@ Result Agent::migrate(const CVmConfiguration& config_, unsigned int flags_,
 	if (e.isFailed())
 		return e;
 
-	// shared to use cleanup callback only
-	QSharedPointer<virConnect> c(virConnectOpen(QSTR2UTF8(m_uri)),
-			virConnectClose);
-	if (c.isNull())
-		return Failure(PRL_ERR_FAILURE);
-
 	if (getDomain().isNull())
 		return Result(Error::Simple(PRL_ERR_UNINITIALIZED));
 
 	Parameters::Result_type p = parameters_.extract();
-	virDomainPtr d = virDomainMigrate3(getDomain().data(), c.data(),
-				p.first.data(), p.second, flags_);
-	if (NULL == d)
-		return Failure(PRL_ERR_FAILURE);
+	if (0 == (VIR_MIGRATE_PEER2PEER & flags_))
+	{
+		// shared to use cleanup callback only
+		QSharedPointer<virConnect> c(virConnectOpen(qPrintable(m_uri)),
+				virConnectClose);
+		if (c.isNull())
+			return Failure(PRL_ERR_FAILURE);
 
-	virDomainFree(d);
-	return Result();
+		virDomainPtr d = virDomainMigrate3(getDomain().data(), c.data(),
+					p.first.data(), p.second, flags_);
+		if (NULL == d)
+			return Failure(PRL_ERR_FAILURE);
+
+		virDomainFree(d);
+
+		return Result();
+	}
+	return do_(getDomain().data(), boost::bind(&virDomainMigrateToURI3, _1,
+		qPrintable(m_uri),p.first.data(), p.second, flags_));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -234,14 +240,15 @@ void Flavor::setDeep()
 
 void Flavor::setShallow()
 {
-	m_custom = m_custom & ~(VIR_MIGRATE_SHARED_WORKAROUND | VIR_MIGRATE_NON_SHARED_DISK);
+	m_custom = m_custom & ~(VIR_MIGRATE_SHARED_WORKAROUND | VIR_MIGRATE_NON_SHARED_DISK |
+		VIR_MIGRATE_PEER2PEER);
 	m_custom = m_custom | VIR_MIGRATE_NON_SHARED_INC;
 }
 
 void Flavor::setSnapshotless()
 {
 	m_custom = m_custom & ~VIR_MIGRATE_NON_SHARED_INC;
-	m_custom = m_custom | VIR_MIGRATE_SHARED_WORKAROUND;
+	m_custom = m_custom | VIR_MIGRATE_SHARED_WORKAROUND | VIR_MIGRATE_PEER2PEER;
 }
 
 quint32 Flavor::getResult() const

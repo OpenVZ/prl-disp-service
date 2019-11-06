@@ -445,8 +445,8 @@ struct Separatist
 	}
 
 	QString getNVRAM() const;
+	QList<CVmHardDisk*> getDisks() const;
 	QList<CVmSerialPort*> getSerialPorts() const;
-	QPair<QList<CVmHardDisk*>, QList<CVmHardDisk*> > getDisks(Task_MigrateVmSource& task_) const;
 
 private:
 	template<class T>
@@ -474,6 +474,36 @@ struct Component: Unit
 private:
 	bus_type m_bus;
 	work_type m_work;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Plan
+
+struct Plan: private Separatist
+{
+	typedef QList<CVmHardDisk*> diskList_type;
+
+	Plan(const Separatist& separatist_, Task_MigrateVmSource& context_);
+
+	using Separatist::getNVRAM;
+	using Separatist::getSerialPorts;
+	const diskList_type& getDisks() const
+	{
+		return m_diskList;
+	}
+	const diskList_type& getDisksToSnapshot() const
+	{
+		return m_diskToSnapshotList;
+	}
+	const Component::agent_type::flavor_type& getFlavor() const
+	{
+		return m_flavor;
+	}
+
+private:
+	diskList_type m_diskList;
+	diskList_type m_diskToSnapshotList;
+	Component::agent_type::flavor_type m_flavor;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
