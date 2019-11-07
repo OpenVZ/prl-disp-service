@@ -241,25 +241,25 @@
 
   <define name="filePath">
     <data type="string">
-      <param name="pattern">[a-zA-Z0-9_\.\+\-\\&amp;&quot;{}&apos;&lt;&gt;/%:&#x20;]+</param>
+      <param name="pattern">[a-zA-Z0-9_\.\+\-\\&amp;&quot;{}&apos;&lt;&gt;/%:&#x20;()]+</param>
     </data>
   </define>
 
   <define name="dirPath">
     <data type="string">
-      <param name="pattern">[a-zA-Z0-9_\.\+\-\\&amp;&quot;{}&apos;&lt;&gt;/%:&#x20;]+</param>
+      <param name="pattern">[a-zA-Z0-9_\.\+\-\\&amp;&quot;{}&apos;&lt;&gt;/%:&#x20;()]+</param>
     </data>
   </define>
 
   <define name="absFilePath">
     <data type="string">
-      <param name="pattern">/[a-zA-Z0-9_\.\+\-\\&amp;&quot;{}&apos;&lt;&gt;/%,:&#x20;]+</param>
+      <param name="pattern">/[a-zA-Z0-9_\.\+\-\\&amp;&quot;{}&apos;&lt;&gt;/%,:&#x20;()]+</param>
     </data>
   </define>
 
   <define name="absDirPath">
     <data type="string">
-      <param name="pattern">/[a-zA-Z0-9_\.\+\-\\&amp;&quot;{}&apos;&lt;&gt;/%:&#x20;]*</param>
+      <param name="pattern">/[a-zA-Z0-9_\.\+\-\\&amp;&quot;{}&apos;&lt;&gt;/%:&#x20;()]*</param>
     </data>
   </define>
 

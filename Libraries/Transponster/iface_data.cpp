@@ -444,7 +444,7 @@ bool Validatable<Iface::Xml::PDeviceName>::validate(const Iface::Xml::PDeviceNam
 
 bool Validatable<Iface::Xml::PFilePath>::validate(const Iface::Xml::PFilePath::value_type& value_)
 {
-	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ]+");
+	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ()]+");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -456,7 +456,7 @@ bool Validatable<Iface::Xml::PFilePath>::validate(const Iface::Xml::PFilePath::v
 
 bool Validatable<Iface::Xml::PDirPath>::validate(const Iface::Xml::PDirPath::value_type& value_)
 {
-	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ]+");
+	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ()]+");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -468,7 +468,7 @@ bool Validatable<Iface::Xml::PDirPath>::validate(const Iface::Xml::PDirPath::val
 
 bool Validatable<Iface::Xml::PAbsFilePath>::validate(const Iface::Xml::PAbsFilePath::value_type& value_)
 {
-	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%,: ]+");
+	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%,: ()]+");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -480,7 +480,7 @@ bool Validatable<Iface::Xml::PAbsFilePath>::validate(const Iface::Xml::PAbsFileP
 
 bool Validatable<Iface::Xml::PAbsDirPath>::validate(const Iface::Xml::PAbsDirPath::value_type& value_)
 {
-	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ]*");
+	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ()]*");
 	if (!q.exactMatch(value_))
 		return false;
 

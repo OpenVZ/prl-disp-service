@@ -444,7 +444,7 @@ bool Validatable<Blocksnapshot::Xml::PDeviceName>::validate(const Blocksnapshot:
 
 bool Validatable<Blocksnapshot::Xml::PFilePath>::validate(const Blocksnapshot::Xml::PFilePath::value_type& value_)
 {
-	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ]+");
+	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ()]+");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -456,7 +456,7 @@ bool Validatable<Blocksnapshot::Xml::PFilePath>::validate(const Blocksnapshot::X
 
 bool Validatable<Blocksnapshot::Xml::PDirPath>::validate(const Blocksnapshot::Xml::PDirPath::value_type& value_)
 {
-	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ]+");
+	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ()]+");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -468,7 +468,7 @@ bool Validatable<Blocksnapshot::Xml::PDirPath>::validate(const Blocksnapshot::Xm
 
 bool Validatable<Blocksnapshot::Xml::PAbsFilePath>::validate(const Blocksnapshot::Xml::PAbsFilePath::value_type& value_)
 {
-	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%,: ]+");
+	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%,: ()]+");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -480,7 +480,7 @@ bool Validatable<Blocksnapshot::Xml::PAbsFilePath>::validate(const Blocksnapshot
 
 bool Validatable<Blocksnapshot::Xml::PAbsDirPath>::validate(const Blocksnapshot::Xml::PAbsDirPath::value_type& value_)
 {
-	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ]*");
+	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ()]*");
 	if (!q.exactMatch(value_))
 		return false;
 
