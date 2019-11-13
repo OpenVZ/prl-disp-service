@@ -611,9 +611,13 @@ struct Frontend: Details::Frontend<Frontend>
 
 	msmf::Row<Stopped,    Conventional<VMS_MOUNTED>,    Mounted,    Notification >,
 
+	msmf::Row<Stopped,    Conventional<VMS_UNKNOWN>,    Unknown,    Notification >,
+
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
+	msmf::Row<Suspended,  Conventional<VMS_UNKNOWN>,    Unknown,    Notification >,
+
 	msmf::Row<Suspended,  Conventional<VMS_STOPPED>,    Stopped,    Notification >,
 
 	msmf::Row<Suspended,  Conventional<VMS_PAUSED>,     Paused::Ordinary,
@@ -634,6 +638,9 @@ struct Frontend: Details::Frontend<Frontend>
 	msmf::Row<Running,    Conventional<VMS_PAUSED>,     Paused::Ordinary,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Cluster, Notification> > >,
 
+	msmf::Row<Running,    Conventional<VMS_UNKNOWN>,    Unknown,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, Unlock, Cluster, BackupDisable, Notification> > >,
+
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
@@ -643,10 +650,16 @@ struct Frontend: Details::Frontend<Frontend>
 	msmf::Row<Paused::Ordinary,     Conventional<VMS_SUSPENDED>,  Suspended,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Unlock, Notification> > >,
 
+	msmf::Row<Paused::Ordinary,     Conventional<VMS_UNKNOWN>,  Unknown,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Unlock, Notification> > >,
+
 	msmf::Row<Paused::Ordinary,     Conventional<VMS_RUNNING>,    Running::entry_pt<Running::Already>,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, Cluster, Notification> > >,
 
 	msmf::Row<Paused::Unknown,     Conventional<VMS_STOPPED>,    Stopped,
+		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Unlock, Notification> > >,
+
+	msmf::Row<Paused::Unknown,     Conventional<VMS_UNKNOWN>,    Unknown,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, RoutesDown, BackupDisable, Unlock, Notification> > >,
 
 	msmf::Row<Paused::Unknown,     Conventional<VMS_SUSPENDED>,  Suspended,
@@ -659,6 +672,7 @@ struct Frontend: Details::Frontend<Frontend>
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
 	msmf::Row<Mounted,    Conventional<VMS_STOPPED>,    Stopped,    Notification >,
+	msmf::Row<Mounted,    Conventional<VMS_UNKNOWN>,    Unknown,    Notification >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
