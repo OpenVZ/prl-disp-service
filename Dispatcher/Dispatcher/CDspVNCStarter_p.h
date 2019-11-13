@@ -322,8 +322,11 @@ typedef ::Vm::Config::Edit::Atomic commit_type;
 
 struct Liquidator: QObject
 {
-	explicit Liquidator(QObject& parent_): QObject(&parent_)
+	explicit Liquidator(QObject& parent_)
 	{
+		d_ptr->sendChildEvents = false;
+		moveToThread(parent_.thread());
+		setParent(&parent_);
 	}
 
 public slots:
