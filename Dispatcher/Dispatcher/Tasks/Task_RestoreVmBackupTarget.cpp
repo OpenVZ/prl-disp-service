@@ -1061,10 +1061,9 @@ PRL_RESULT Enrollment::rollback()
 	// do not call checkAndLockNotExistsExclusiveVmParameters
 	CVmEvent e;
 	SmartPtr<CDspClient> c = getContext().getClient();
-	CDspService::instance()->getTaskManager().schedule(new Task_DeleteVm(
-		c, p, getProduct().getConfig()->toString(),
-		PVD_UNREGISTER_ONLY | PVD_SKIP_VM_OPERATION_LOCK)).wait().getResult(&e);
-
+	CDspService::instance()->getVmDirHelper()
+		.unregOrDeleteVm(c, p, getProduct().getConfig()->toString(),
+		PVD_UNREGISTER_ONLY | PVD_SKIP_VM_OPERATION_LOCK).wait().getResult(&e);
 	PRL_RESULT output = e.getEventCode();
 	if (PRL_FAILED(output))
 	{
