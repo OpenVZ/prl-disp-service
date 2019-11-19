@@ -726,7 +726,7 @@ QStringList Address::operator()(const Routed& mode_)
 		// host is able to route packets to/from other destinations
 		foreach(const QString &ip, m_v6)
 		{
-			// we should not install /128 prefix since it override on-link #PSBM-99432
+			// we should not install /128 prefix since it overrides on-link #PSBM-99432
 			// traffic for on-link ipv6 interface address should stay in guest
 			if (!ip.endsWith("/128"))
 				r += QString("%1=%2m100 ").arg(ip, mode_.getIp6DefaultGateway());
