@@ -234,6 +234,7 @@ struct Frontend: Details::Frontend<Frontend>
 	typedef Generic<VMS_SUSPENDED> Suspended;
 	typedef Generic<VMS_MOUNTED> Mounted;
 	typedef Generic<VMS_UNKNOWN> Unknown;
+	typedef Generic<VMS_DELETING_STATE> Deleting;
 
 	// Running_
 	struct Running_: Details::Frontend<Running_>, boost::mpl::integral_c<VIRTUAL_MACHINE_STATE, VMS_RUNNING>
@@ -444,6 +445,13 @@ struct Frontend: Details::Frontend<Frontend>
 					fsm_.m_user->getVmDirectoryUuid(), false);
 			}
 		}
+		template<class Event, class FromState>
+		void operator()(const Event&, Frontend& fsm_, FromState&, Unknown&)
+		{
+			fsm_.getService().getVmDirHelper().sendVmRemovedEvent(
+				MakeVmIdent(fsm_.getUuid(), fsm_.m_user->getVmDirectoryUuid()),
+				PET_DSP_EVT_VM_UNREGISTERED);
+		}
 	};
 
 	// Action
@@ -609,6 +617,8 @@ struct Frontend: Details::Frontend<Frontend>
 	msmf::Row<Stopped,    Conventional<VMS_RUNNING>,    Running,
 		msmf::ActionSequence_<boost::mpl::vector<Guarantee, Traffic, RoutesUp, Runtime, Lock, Notification> > >,
 
+	msmf::Row<Stopped,    Conventional<VMS_DELETING_STATE>, Deleting>,
+
 	msmf::Row<Stopped,    Conventional<VMS_MOUNTED>,    Mounted,    Notification >,
 
 	msmf::Row<Stopped,    Conventional<VMS_UNKNOWN>,    Unknown,    Notification >,
@@ -616,7 +626,16 @@ struct Frontend: Details::Frontend<Frontend>
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
+	msmf::Row<Deleting,    Conventional<VMS_STOPPED>,   Stopped>,
+
+	msmf::Row<Deleting,    Conventional<VMS_SUSPENDED>, Suspended>,
+
+	//      +-----------+----------------------+-----------+--------+
+	//        Start       Event                  Target      Action
+	//      +-----------+----------------------+-----------+--------+
 	msmf::Row<Suspended,  Conventional<VMS_UNKNOWN>,    Unknown,    Notification >,
+
+	msmf::Row<Suspended,  Conventional<VMS_DELETING_STATE>, Deleting>,
 
 	msmf::Row<Suspended,  Conventional<VMS_STOPPED>,    Stopped,    Notification >,
 

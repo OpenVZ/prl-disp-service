@@ -1717,7 +1717,7 @@ Entry::Entry(const Registry::Access& access_, Workbench& bench_):
 
 void Entry::setState(VIRTUAL_MACHINE_STATE value_)
 {
-	if (value_ == m_last)
+	if (VMS_UNKNOWN != m_last && value_ == m_last)
 	{
 		WRITE_TRACE(DBG_FATAL, "duplicate status %s is detected for a VM. ignore",
 			PRL_VM_STATE_TO_STRING(value_));

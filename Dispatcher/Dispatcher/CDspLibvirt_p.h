@@ -607,7 +607,7 @@ struct System: QObject
 	void remove(const QString& uuid_);
 	QSharedPointer<entry_type> add(const QString& uuid_);
 	QSharedPointer<entry_type> find(const QString& uuid_);
-	Workbench&  getHost() const
+	Workbench& getHost() const
 	{
 		return *m_bench;
 	}
