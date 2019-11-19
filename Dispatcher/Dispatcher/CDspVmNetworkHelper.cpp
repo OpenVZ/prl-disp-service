@@ -721,9 +721,16 @@ QStringList Address::operator()(const Routed& mode_)
 	{
 		a << m_v6;
 		g += mode_.getIp6Gateway();
-		// Install rules with metric lower than auto-installed
+		// Install rules with metric lower than auto-installed #PSBM-44285
+		// we need it on routed interface for forwarding on-link traffic to host device
+		// host is able to route packets to/from other destinations
 		foreach(const QString &ip, m_v6)
-			r += QString("%1=%2m100 ").arg(ip, mode_.getIp6DefaultGateway());
+		{
+			// we should not install /128 prefix since it override on-link #PSBM-99432
+			// traffic for on-link ipv6 interface address should stay in guest
+			if (!ip.endsWith("/128"))
+				r += QString("%1=%2m100 ").arg(ip, mode_.getIp6DefaultGateway());
+		}
 	}
 	if (a.isEmpty())
 	{
