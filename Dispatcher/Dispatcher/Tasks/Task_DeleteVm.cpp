@@ -50,6 +50,9 @@
 #include "Libraries/StatesUtils/StatesHelper.h"
 #include "CDspBackupDevice.h"
 #include "CDspVm_p.h"
+#include <boost/foreach.hpp>
+#include <boost/lambda/bind.hpp>
+#include <boost/lambda/lambda.hpp>
 
 using namespace Parallels;
 
@@ -59,17 +62,15 @@ using namespace Parallels;
 Task_DeleteVm::Task_DeleteVm (
 	SmartPtr<CDspClient>& client,
 	const SmartPtr<IOPackage>& p,
-	const QString& vm_config,
-	PRL_UINT32 flags,
-	const QStringList & strFilesToDelete):
+	const QString& vm_config):
 
 	CDspTaskHelper(client, p),
-	m_flags(flags),
-	m_flgVmWasDeletedFromSystemTables(false),
-	m_flgExclusiveOperationWasRegistred( false ),
-	m_flgLockRegistred(false)
+	m_flags(),
+	m_flgVmWasDeletedFromSystemTables(),
+	m_flgExclusiveOperationWasRegistred(),
+	m_flgLockRegistred(), m_registry(),
+	m_script(new Instrument::Command::Delete::Script())
 {
-	m_strListToDelete = strFilesToDelete;
 	m_pVmConfig = SmartPtr<CVmConfiguration>(new CVmConfiguration( vm_config ));
 
 	//////////////////////////////////////////////////////////////////////////
@@ -124,6 +125,14 @@ PRL_RESULT Task_DeleteVm::prepareTask()
 			Libvirt::Result r = Libvirt::Kit.vms().at(vm_uuid).getState().getValue(s);
 			if (r.isSucceed() && s != VMS_STOPPED && s != VMS_SUSPENDED)
 				return f(PRL_ERR_DISP_VM_IS_NOT_STOPPED, getVmUuid());
+
+			if (NULL == m_registry)
+			{
+				m_script->with(s, Registry::Access
+					(vm_uuid, QWeakPointer<Registry::Vm>()));
+			}
+			else
+				m_script->with(s, m_registry->find(vm_uuid));
 		}
 		if (!(m_flags & PVD_SKIP_VM_OPERATION_LOCK))
 		{
@@ -289,17 +298,15 @@ PRL_RESULT Task_DeleteVm::run_body()
 
 	ic::Delete::Request x(m_pVmConfig, m_strListToDelete);
 	if (doUnregisterOnly())
-	{
-		setLastErrorCode(ic::Unregister::Template(
-			ic::Unregister::Vm(*this))(x));
-	}
+		setLastErrorCode(ic::Unregister(*m_script)(x));
 	else
 	{
 		namespace dc = ic::Delete;
+		m_script->with(Instrument::Command::Delete::Guise(getClient()->getAuthHelper()))
+			.with(Instrument::Command::Delete::Content(x.getHome(), *this), m_strListToDelete);
 		setLastErrorCode(dc::Template::Shared(getClient()->getAuthHelper(),
-			dc::Template::Regular(*this,
-			dc::Vm::List(*this,
-			dc::Vm::Home(*this))))(x));
+			dc::Template::Regular(*m_script,
+			dc::Vm(*m_script)))(x));
 	}
 	if (PRL_FAILED(getLastErrorCode()))
 	{
@@ -476,6 +483,91 @@ PRL_RESULT Content::operator()(const QStringList& list_)
 	return f(PRL_ERR_NOT_ALL_FILES_WAS_DELETED);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+void Builder::addGuise(const Guise& guise_)
+{
+	result_type b;
+	b.addItem(boost::bind(&Guise::enable, guise_),
+		boost::bind(reinterpret_cast<void (Guise::*)()>
+			(&Guise::disable), guise_));
+	b.addItem(m_result);
+	b.addItem(boost::bind(&Guise::disable, guise_));
+	m_result = b;
+}
+
+void Builder::addLibvirt(origin_type origin_, const access_type& access_)
+{
+	result_type b;
+	if (VMS_UNKNOWN != origin_)
+	{
+		typedef Registry::Reactor conductor_type;
+		namespace bl = boost::lambda;
+
+		conductor_type c(access_.getReactor());
+		boost::function<void (origin_type)> F(boost::bind(&conductor_type::proceed, c, _1));
+		result_type::redo_type f = (bl::bind(F, VMS_DELETING_STATE), PRL_ERR_SUCCESS);
+		b.addItem(f, boost::bind(&conductor_type::proceed, c, origin_));
+	}
+	b.addItem(Command::Delete::Libvirt(access_.getUuid()));
+	b.addItem(m_result);
+	m_result = b;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Script
+
+Script& Script::with(const Guise& guise_)
+{
+	m_batch[2] = boost::bind(&Builder::addGuise, _1, guise_);
+	return *this;
+}
+
+Script& Script::withDisable(const Backup& backup_)
+{
+	batch_type::redo_type i(boost::bind(&Backup::disable, backup_));
+	m_batch[0] = boost::bind(&Builder::addItem, _1, i);
+	return *this;
+}
+
+Script& Script::withTeardown(const Backup& backup_)
+{
+	batch_type::redo_type i(boost::bind(&Backup::teardown, backup_));
+	m_batch[0] = boost::bind(&Builder::addItem, _1, i);
+	return *this;
+}
+
+Script& Script::with(const Content& command_, const QStringList& filter_)
+{
+	result_type::redo_type x;
+	if (filter_.isEmpty())
+		x = command_;
+	else
+		x = boost::bind(command_, filter_);
+
+	m_batch[1] = boost::bind(&Builder::addItem, _1, x);
+	return *this;
+}
+
+Script& Script::with(Builder::origin_type origin_, const Builder::access_type& access_)
+{
+	m_batch[3] = boost::bind(&Builder::addLibvirt, _1, origin_, access_);
+	return *this;
+}
+
+Script::result_type Script::operator()() const
+{
+	Builder x;
+	BOOST_FOREACH(const chain_type& c, m_batch)
+	{
+		if (!c.empty())
+			c(boost::ref(x));
+	}
+
+	return x.getResult();
+}
+
 } // namespace Delete
 } // namespace Command
 
@@ -533,87 +625,10 @@ Regular::result_type Regular::operator()(const request_type& request_)
 	if (!request_.isTemplate())
 		return base_type::operator()(request_);
 
-	Command::Batch b;
-	Command::Delete::Guise g(m_task->getClient()->getAuthHelper());
-	b.addItem(boost::bind(&Command::Delete::Guise::enable, g),
-		boost::bind(reinterpret_cast<void (Command::Delete::Guise::*)()>
-			(&Command::Delete::Guise::disable), g));
-
-	Command::Delete::Content w(request_.getHome(), *m_task);
-	if (request_.getItems().isEmpty())
-		b.addItem(boost::bind(w));
-	else
-		b.addItem(boost::bind(w, request_.getItems()));
-
-	b.addItem(boost::bind(&Command::Delete::Guise::disable, g));
-	return b.execute();
+	return getScript()().execute();
 }
 
 } // namespace Template
-
-namespace Vm
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Home
-
-Home::result_type Home::operator()(const request_type& request_)
-{
-	if (request_.isTemplate())
-		return PRL_ERR_UNEXPECTED;
-
-	Command::Batch b;
-	b.addItem(Command::Delete::Libvirt(m_task->getVmUuid()));
-	Command::Delete::Guise g(m_task->getClient()->getAuthHelper());
-	b.addItem(boost::bind(&Command::Delete::Guise::enable, g),
-		boost::bind(reinterpret_cast<void (Command::Delete::Guise::*)()>
-			(&Command::Delete::Guise::disable), g));
-	b.addItem(boost::bind(&Command::Delete::Backup::teardown,
-		Command::Delete::Backup(request_.getHome(), request_.getVm())));
-	b.addItem(boost::bind(Command::Delete::Content(request_.getHome(), *m_task)));
-	b.addItem(boost::bind(&Command::Delete::Guise::disable, g));
-
-	return b.execute();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct List
-
-List::result_type List::operator()(const request_type& request_)
-{
-	if (request_.isTemplate())
-		return PRL_ERR_UNEXPECTED;
-
-	if (request_.getItems().isEmpty())
-		return base_type::operator()(request_);
-
-	Command::Batch b;
-	b.addItem(Command::Delete::Libvirt(m_task->getVmUuid()));
-	Command::Delete::Guise g(m_task->getClient()->getAuthHelper());
-	b.addItem(boost::bind(&Command::Delete::Guise::enable, g),
-		boost::bind(reinterpret_cast<void (Command::Delete::Guise::*)()>
-			(&Command::Delete::Guise::disable), g));
-	b.addItem(boost::bind(Command::Delete::Content(request_.getHome(), *m_task),
-		request_.getItems()));
-	b.addItem(boost::bind(&Command::Delete::Guise::disable, g));
-
-	return b.execute();
-}
-
-} // namespace Vm
-} // namespace Delete
-
-namespace Unregister
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Template
-
-Template::result_type Template::operator()(const request_type& request_)
-{
-	if (request_.isTemplate())
-		return PRL_ERR_SUCCESS;
-
-	return Delete::base_type::operator()(request_);
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
@@ -623,13 +638,30 @@ Vm::result_type Vm::operator()(const request_type& request_)
 	if (request_.isTemplate())
 		return PRL_ERR_UNEXPECTED;
 
-	Command::Batch b;
-	b.addItem(Command::Delete::Libvirt(m_task->getVmUuid()));
-	b.addItem(boost::bind(&Command::Delete::Backup::disable,
-		Command::Delete::Backup(request_.getHome(), request_.getVm())));
-	return b.execute();
+	if (request_.getItems().isEmpty())
+	{
+		getScript()
+			.withTeardown(Command::Delete::Backup
+				(request_.getHome(), request_.getVm()));
+	}
+
+	return getScript()().execute();
 }
 
-} // namespace Unregister
+} // namespace Delete
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unregister
+
+Unregister::result_type Unregister::operator()(const request_type& request_)
+{
+	if (request_.isTemplate())
+		return PRL_ERR_SUCCESS;
+
+	return getScript()
+		.withDisable(Command::Delete::Backup
+			(request_.getHome(), request_.getVm()))().execute();
+}
+
 } // namespace Chain
 } // namespace Instrument

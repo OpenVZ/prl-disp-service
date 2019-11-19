@@ -466,6 +466,8 @@ void Reactor::proceed(VIRTUAL_MACHINE_STATE destination_)
 		return forward(::Vm::State::Conventional<VMS_MOUNTED>());
 	case VMS_SUSPENDED:
 		return forward(::Vm::State::Conventional<VMS_SUSPENDED>());
+	case VMS_DELETING_STATE:
+		return forward(::Vm::State::Conventional<VMS_DELETING_STATE>());
 	default:
 		return forward(::Vm::State::Conventional<VMS_UNKNOWN>());
 	}
