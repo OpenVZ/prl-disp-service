@@ -40,7 +40,6 @@
 #define __Task_DeleteVm_H_
 
 #include "Dispatcher/Dispatcher/CDspTaskHelper.h"
-//#include "CDspTaskHelper.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
 typedef enum _PRL_VM_DELETE_FLAGS
@@ -51,19 +50,55 @@ typedef enum _PRL_VM_DELETE_FLAGS
 	PVD_SKIP_HA_CLUSTER		= (1 << 4),
 } PRL_VM_DELETE_FLAGS;
 
+namespace Registry
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Public forward declaration
+
+struct Public;
+
+} // namespace Registry
+
+namespace Instrument
+{
+namespace Command
+{
+namespace Delete
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Script forward declaration
+
+struct Script;
+
+} // namespace Delete
+} // namespace Command
+} // namespace Instrument
+
 class Task_DeleteVm: public CDspTaskHelper
 {
 	Q_OBJECT
 public:
-	Task_DeleteVm ( SmartPtr<CDspClient>&,
-					const SmartPtr<IOPackage>&,
-					const QString& vm_config,
-					PRL_UINT32 flags,
-					const QStringList & strFilesToDelete = QStringList());
+	Task_DeleteVm(SmartPtr<CDspClient>&, const SmartPtr<IOPackage>&,
+					const QString& vm_config);
 
 	virtual QString getVmUuid();
 
 	bool doUnregisterOnly();
+
+	void setFlags(PRL_UINT32 value_)
+	{
+		m_flags = value_;
+	}
+
+	void setRegistry(Registry::Public* value_)
+	{
+		m_registry = value_;
+	}
+
+	void setItemsToDelete(const QStringList& value_)
+	{
+		m_strListToDelete = value_;
+	}
 
 protected:
 	virtual PRL_RESULT prepareTask();
@@ -102,6 +137,8 @@ private:
 
 	QString m_sVmHomePath;
 	QString m_vmDirectoryUuid;
+	Registry::Public* m_registry;
+	std::auto_ptr<Instrument::Command::Delete::Script> m_script;
 };
 
 

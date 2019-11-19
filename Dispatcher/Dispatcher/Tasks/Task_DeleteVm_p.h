@@ -114,6 +114,52 @@ private:
 	Task_DeleteVm* m_task;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Builder
+
+struct Builder
+{
+	typedef Registry::Access access_type;
+	typedef VIRTUAL_MACHINE_STATE origin_type;
+	typedef Instrument::Command::Batch result_type;
+
+	void addItem(const result_type::redo_type& item_)
+	{
+		m_result.addItem(item_);
+	}
+	void addGuise(const Guise& guise_);
+	void addLibvirt(origin_type origin_, const access_type& access_);
+
+	const result_type& getResult() const
+	{
+		return m_result;
+	}
+
+private:
+	result_type m_result;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Script
+
+struct Script
+{
+	typedef boost::function<void (Builder& )> chain_type;
+	typedef Instrument::Command::Batch batch_type;
+	typedef batch_type result_type;
+
+	Script& with(const Guise& guise_);
+	Script& withDisable(const Backup& guise_);
+	Script& withTeardown(const Backup& guise_);
+	Script& with(Builder::origin_type origin_, const Builder::access_type& access_);
+	Script& with(const Content& command_, const QStringList& filter_);
+
+	result_type operator()() const;
+
+private:
+	chain_type m_batch[4];
+};
+
 } // namespace Delete
 } // namespace Command
 
@@ -151,6 +197,27 @@ private:
 };
 typedef Unit<Request> base_type;
 
+///////////////////////////////////////////////////////////////////////////////
+// struct Mixin
+
+struct Mixin
+{
+	typedef Command::Delete::Script script_type;
+
+	explicit Mixin(const script_type& script_): m_script(script_)
+	{
+	}
+
+protected:
+	script_type& getScript()
+	{
+		return m_script;
+	}
+
+private:
+	script_type m_script;
+};
+
 namespace Template
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -172,87 +239,44 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Regular
 
-struct Regular: base_type
+struct Regular: base_type, Mixin
 {
-	Regular(Task_DeleteVm& task_, const redo_type& redo_):
-		base_type(redo_), m_task(&task_)
+	Regular(const script_type& script_, const redo_type& redo_):
+		base_type(redo_), Mixin(script_)
 	{
 	}
 
 	result_type operator()(const request_type& request_);
-
-private:
-	Task_DeleteVm* m_task;
 };
 
 } // namespace Template
 
-namespace Vm
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Home
-
-struct Home: base_type
-{
-	explicit Home(Task_DeleteVm& task_): m_task(&task_)
-	{
-	}
-
-	result_type operator()(const request_type& request_);
-
-private:
-	Task_DeleteVm* m_task;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct List
-
-struct List: base_type
-{
-	List(Task_DeleteVm& task_, const redo_type& redo_):
-		base_type(redo_), m_task(&task_)
-	{
-	}
-
-	result_type operator()(const request_type& request_);
-
-private:
-	Task_DeleteVm* m_task;
-};
-
-} // namespace Vm
-} // namespace Delete
-
-namespace Unregister
-{
-///////////////////////////////////////////////////////////////////////////////
-// struct Template
-
-struct Template: Delete::base_type
-{
-	explicit Template(const redo_type& redo_): Delete::base_type(redo_)
-	{
-	}
-
-	result_type operator()(const request_type& request_);
-};
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
-struct Vm: Delete::base_type
+struct Vm: base_type, Mixin
 {
-	explicit Vm(Task_DeleteVm& task_): m_task(&task_)
+	explicit Vm(const script_type& script_): Mixin(script_)
 	{
 	}
 
 	result_type operator()(const request_type& request_);
-
-private:
-	Task_DeleteVm* m_task;
 };
 
-} // namespace Unregister
+} // namespace Delete
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unregister
+
+struct Unregister: Delete::base_type, Delete::Mixin
+{
+	explicit Unregister(const script_type& script_): Delete::Mixin(script_)
+	{
+	}
+
+	result_type operator()(const request_type& request_);
+};
+
 } // namespace Chain
 } // namespace Instrument
 

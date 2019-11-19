@@ -2835,8 +2835,13 @@ CDspTaskFuture<Task_DeleteVm> CDspVmDirHelper::unregOrDeleteVm( SmartPtr<CDspCli
 									  PRL_UINT32 flags,
 									  const QStringList & strFilesToDelete)
 {
-	return CDspService::instance()->getTaskManager()
-		.schedule(new Task_DeleteVm(pUserSession, pkg, vm_config, flags, strFilesToDelete));
+	Task_DeleteVm* t = new Task_DeleteVm(pUserSession, pkg, vm_config);
+	t->setFlags(flags);
+	t->setRegistry(&m_registry);
+	if (!strFilesToDelete.isEmpty())
+		t->setItemsToDelete(strFilesToDelete);
+
+	return CDspService::instance()->getTaskManager().schedule(t);
 }
 
 
