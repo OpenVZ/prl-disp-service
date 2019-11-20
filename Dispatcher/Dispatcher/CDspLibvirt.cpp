@@ -496,7 +496,7 @@ void Vm::operator()(Agent::Hub& hub_)
 	{
 		WRITE_TRACE(DBG_DEBUG, "update UUID %s", qPrintable(u));
 		Registry::Access a = m_view->getHost().getRegistry().find(u);
-		Callback::Reactor::Domain(b[u]).update(a);
+		Callback::Reactor::Domain(b[u]).update(a, m_view->find(u));
 	}
 }
 
@@ -1519,17 +1519,18 @@ void Domain::updateConfig(Registry::Access& access_)
 		x->onVmConfigChanged(QString(), access_.getUuid());
 }
 
-void Domain::update(Registry::Access& access_)
+void Domain::update(Registry::Access& access_, const entry_type& model_)
 {
 	updateConfig(access_);
-	m_state(access_);
+	if (!model_.isNull())
+		model_->setState(m_state);
 }
 
-void Domain::insert(Registry::Access& access_)
+void Domain::insert(Registry::Access& access_, const entry_type& model_)
 {
 	boost::optional<CVmConfiguration> c = access_.getConfig();
 	if (c)
-		return update(access_);
+		return update(access_, model_);
 
 	updateConfig(access_);
 	c = access_.getConfig();
@@ -1542,7 +1543,8 @@ void Domain::insert(Registry::Access& access_)
 				qPrintable(e.error().convertToEvent().toString()));
 		}
 	}
-	m_state(access_);
+	if (!model_.isNull())
+		model_->setState(m_state);
 }
 
 void Domain::switch_(Registry::Access& access_)
@@ -1717,23 +1719,36 @@ Entry::Entry(const Registry::Access& access_, Workbench& bench_):
 
 void Entry::setState(VIRTUAL_MACHINE_STATE value_)
 {
-	if (VMS_UNKNOWN != m_last && value_ == m_last)
+	if (value_ == getLast())
 	{
-		WRITE_TRACE(DBG_FATAL, "duplicate status %s is detected for a VM. ignore",
+		WRITE_TRACE(DBG_FATAL, "duplicate status %s is detected for the VM. ignore",
 			PRL_VM_STATE_TO_STRING(value_));
 	}
 	else
 	{
-		switch (m_last = value_)
+		switch (value_)
 		{
 		case VMS_RESTORING:
+			m_last = value_;
 			return show(Callback::Reactor::Show(
 				boost::bind(&Registry::Reactor::prepareToSwitch, _1)));
 
 		default:
-			show(Callback::Reactor::State(value_));
+			setState(Callback::Reactor::State(value_));
 		}
 	}
+}
+
+void Entry::setState(const Callback::Reactor::State& value_)
+{
+	VIRTUAL_MACHINE_STATE x = value_.getValue();
+	if (x == m_last.fetchAndStoreOrdered(x))
+	{
+		WRITE_TRACE(DBG_FATAL, "duplicate status %s is detected for the VM. ignore",
+			PRL_VM_STATE_TO_STRING(x));
+	}
+	else
+		show(value_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1878,7 +1893,7 @@ void Coarse::pullInfo(virDomainPtr domain_)
 			WRITE_TRACE(DBG_DEBUG, "Unable to add new domain to the list");
 			return;
 		}
-		d->show(boost::bind(&Callback::Reactor::Domain::insert, r, _1));
+		d->show(boost::bind(&Callback::Reactor::Domain::insert, r, _1, d));
 	}
 }
 

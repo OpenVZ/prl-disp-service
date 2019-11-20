@@ -66,6 +66,7 @@ namespace Model
 {
 struct Coarse;
 struct System;
+struct Entry;
 
 } // namespace Model
 
@@ -449,13 +450,15 @@ private:
 
 struct Domain
 {
+	typedef QSharedPointer<Model::Entry> entry_type;
+
 	explicit Domain(const State::agent_type& agent_): m_agent(agent_)
 	{
 	}
 
-	void update(Registry::Access& access_);
+	void update(Registry::Access& access_, const entry_type& model_);
 	void updateConfig(Registry::Access& access_);
-	void insert(Registry::Access& access_);
+	void insert(Registry::Access& access_, const entry_type& model_);
 	void switch_(Registry::Access& access_);
 
 private:
@@ -586,13 +589,14 @@ struct Entry: Reaction::Demonstrator
 	Entry(const Registry::Access& access_, Workbench& bench_);
 
 	void setState(VIRTUAL_MACHINE_STATE value_);
+	void setState(const Callback::Reactor::State& value_);
 	VIRTUAL_MACHINE_STATE getLast() const
 	{
-		return m_last;
+		return static_cast<VIRTUAL_MACHINE_STATE>(m_last.operator int());
 	}
 
 private:
-	VIRTUAL_MACHINE_STATE m_last;
+	QAtomicInt m_last;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
