@@ -353,6 +353,9 @@ Queue::enqueue_type Queue::enqueueData()
 	const Fragment::Format& f = m_packer.getFormat();
 	int a = m_collector.capacity() - m_collector.size();
 	int d = f.getDataSize(b);
+	if (Vm::Tunnel::libvirtChunk_type::s_command == b->header.type)
+		WRITE_TRACE(DBG_FATAL, "Got a chunk from libvirt of size %d", d);
+
 	int z = qMin(a, d);
 	QBuffer u;
 	u.setBuffer(&m_collector);
@@ -393,6 +396,11 @@ target_type Queue::dequeue()
 		if (!j.isValid())
 			return Flop::Event(PRL_ERR_FAILURE);
 
+		if (Vm::Tunnel::libvirtChunk_type::s_command == head()->header.type)
+		{
+			WRITE_TRACE(DBG_FATAL, "Write a libvirt chunk of size %d",
+				m_packer.getFormat().getDataSize(head()));
+		}
 		if (IOSendJob::SendQueueIsFull == m_service->getSendResult(j))
 			return state_type(Sending());
 
