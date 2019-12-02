@@ -1376,8 +1376,20 @@ PRL_RESULT Task_RegisterVm::saveVmConfig( )
 			m_registry.declare(CVmIdent(getVmUuid(), getClient()->getVmDirectoryUuid()),
 				m_pVmInfo->vmXmlPath);
 			Libvirt::Result r(Command::Vm::Gear<Command::Tag::State
-				<Command::Vm::Registrator, Command::Vm::Fork::State::Plural
-					<boost::mpl::vector_c<unsigned, VMS_STOPPED, VMS_SUSPENDED> > > >::run(*m_pVmConfig));
+				<
+					Command::Vm::Registrator,
+					Command::Vm::Fork::State::Plural
+					<
+						boost::mpl::vector_c
+						<
+							unsigned,
+							VMS_STOPPED,
+							VMS_SUSPENDED,
+							VMS_PAUSED,
+							VMS_RUNNING
+						>
+					>
+				> >::run(*m_pVmConfig));
 			ret = (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
 #endif // _LIBVIRT_
 			break;
