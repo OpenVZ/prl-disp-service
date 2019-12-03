@@ -1643,38 +1643,10 @@ QList<CVmHardDisk> Task_MigrateVmTarget::getImagesToCreate()
 	return output;
 }
 
-void Task_MigrateVmTarget::handleVmMigrateEvent(const QString &sVmUuid, const SmartPtr<IOPackage> &p)
-{
-	if (operationIsCancelled())
-		return;
-
-	if (sVmUuid != m_sVmUuid)
-		return;
-
-	if (p->header.type != PVE::DspVmEvent) {
-		WRITE_TRACE(DBG_FATAL, "Unexpected package with type %d, ignored", p->header.type);
-		return;
-	}
-
-	CVmEvent event(UTF8_2QSTR(p->buffers[0].getImpl()));
-	switch (event.getEventType())
-	{
-	case PET_DSP_EVT_VM_MIGRATE_CANCELLED_DISP:
-		exit(PRL_ERR_FAILURE);
-		break;
-	case PET_DSP_EVT_VM_MIGRATE_FINISHED_DISP:
-		exit(PRL_ERR_SUCCESS);
-		break;
-	default:
-		WRITE_TRACE(DBG_FATAL, "Unexpected event with type %d, ignored", event.getEventType());
-		break;
-	}
-}
-
 // cancel command
 void Task_MigrateVmTarget::cancelOperation(SmartPtr<CDspClient> pUser, const SmartPtr<IOPackage>& p)
 {
-	WRITE_TRACE(DBG_FATAL, "%s", __FUNCTION__);
+	WRITE_TRACE(DBG_FATAL, __FUNCTION__);
 	CancelOperationSupport::cancelOperation(pUser, p);
 	emit cancel();
 }

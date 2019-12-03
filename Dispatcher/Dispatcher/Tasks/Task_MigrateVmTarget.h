@@ -168,9 +168,6 @@ private:
 
 signals:
 	void cancel();
-
-private slots:
-	void handleVmMigrateEvent(const QString &sVmUuid, const SmartPtr<IOPackage> &p);
 };
 
 #endif //__Task_MigrateVm_H_
