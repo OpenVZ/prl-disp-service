@@ -568,6 +568,12 @@ struct Demonstrator
 	void show(const Shell::reaction_type& reaction_);
 	void showCrash();
 
+protected:
+	Registry::Access& getAccess()
+	{
+		return m_access;
+	}
+
 private:
 	typedef Callback::Reactor::Crash::Primary crash_type;
 
@@ -589,13 +595,15 @@ struct Entry: Reaction::Demonstrator
 	Entry(const Registry::Access& access_, Workbench& bench_);
 
 	void setState(VIRTUAL_MACHINE_STATE value_);
-	void setState(const Callback::Reactor::State& value_);
+	void setState(Callback::Reactor::State value_);
 	VIRTUAL_MACHINE_STATE getLast() const
 	{
 		return static_cast<VIRTUAL_MACHINE_STATE>(m_last.operator int());
 	}
 
 private:
+	void changeAndExecute(VIRTUAL_MACHINE_STATE value_, const boost::function<void ()>& action_);
+
 	QAtomicInt m_last;
 };
 

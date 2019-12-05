@@ -1695,7 +1695,7 @@ void Demonstrator::show(const Shell::reaction_type& reaction_)
 	if (!x) 
 		return;
 
-	QRunnable* q = new Shell(m_queue, m_access);
+	QRunnable* q = new Shell(m_queue, getAccess());
 	q->setAutoDelete(true);
 	m_bench->getPool().start(q);
 }
@@ -1734,21 +1734,26 @@ void Entry::setState(VIRTUAL_MACHINE_STATE value_)
 				boost::bind(&Registry::Reactor::prepareToSwitch, _1)));
 
 		default:
-			setState(Callback::Reactor::State(value_));
+			changeAndExecute(value_, boost::bind(&Entry::show, this,
+				Reaction::Shell::reaction_type(Callback::Reactor::State(value_))));
 		}
 	}
 }
 
-void Entry::setState(const Callback::Reactor::State& value_)
+void Entry::setState(Callback::Reactor::State value_)
 {
-	VIRTUAL_MACHINE_STATE x = value_.getValue();
-	if (x == m_last.fetchAndStoreOrdered(x))
+	changeAndExecute(value_.getValue(), boost::bind<void>(value_, boost::ref(getAccess())));
+}
+
+void Entry::changeAndExecute(VIRTUAL_MACHINE_STATE value_, const boost::function<void ()>& action_)
+{
+	if (value_ == m_last.fetchAndStoreOrdered(value_))
 	{
 		WRITE_TRACE(DBG_FATAL, "duplicate status %s is detected for the VM. ignore",
-			PRL_VM_STATE_TO_STRING(x));
+			PRL_VM_STATE_TO_STRING(value_));
 	}
 	else
-		show(value_);
+		action_();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
