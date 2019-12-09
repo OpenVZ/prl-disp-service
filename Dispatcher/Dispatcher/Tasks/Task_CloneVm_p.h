@@ -925,55 +925,24 @@ struct Flavor<T, typename EnableIf<IsSame<T, Vm::General>::value ||
 
 	PRL_RESULT operator()(Dress dress_)
 	{
-		PRL_RESULT e;
-		stepList_type x = getSteps();
-		stepList_type::const_iterator i = x.begin(), f = x.end();
-		for (; i != f; ++i)
-		{
-			e = (dress_.*(i->first))();
-			if (PRL_FAILED(e))
-				goto undo;
-		}
-		return PRL_ERR_SUCCESS;
-undo:
-		f = x.begin();
-		do
-		{
-			if (NULL != i->second)
-				(dress_.*(i->second))();
-		} while(f != i--);
-		return e;
+		Instrument::Command::Batch b;
+		b.addItem(boost::bind(&Dress::declareVm, &dress_),
+				boost::bind(&Dress::undeclareVm, &dress_));
+		b.addItem(boost::bind(&Dress::addLibvirtDomain, &dress_),
+				boost::bind(&Dress::undoLibvirtDomain, &dress_));
+		b.addItem(boost::bind(&Dress::addClusterResource, &dress_),
+				boost::bind(&Dress::undoClusterResource, &dress_));
+		b.addItem(boost::bind(&Dress::setDirectoryItem, &dress_),
+				boost::bind(&Dress::undoDirectoryItem, &dress_));
+		if (this->getBootcamps())
+			b.addItem(boost::bind(&Dress::importBootcamps, &dress_));
+
+		if (m_sid)
+			b.addItem(boost::bind(&Dress::changeSid, &dress_));
+
+		return b.execute();
 	}
 private:
-	typedef PRL_RESULT (Dress::* do_type)();
-	typedef void (Dress::* undo_type)();
-	typedef QPair<do_type, undo_type> step_type;
-	typedef QList<step_type> stepList_type;
-
-	stepList_type getSteps() const
-	{
-		stepList_type output;
-		output.push_back(step_type(&Dress::declareVm,
-					&Dress::undeclareVm));
-		output.push_back(step_type(&Dress::addLibvirtDomain,
-					&Dress::undoLibvirtDomain));
-		output.push_back(step_type(&Dress::addClusterResource,
-					&Dress::undoClusterResource));
-		output.push_back(step_type(&Dress::setDirectoryItem,
-					&Dress::undoDirectoryItem));
-		if (this->getBootcamps())
-		{
-			output.push_back(
-				step_type(&Dress::importBootcamps, NULL));
-		}
-		if (m_sid)
-		{
-			output.push_back(
-				step_type(&Dress::changeSid, NULL));
-		}
-		return output;
-	}
-
 	bool m_sid;
 };
 
