@@ -549,15 +549,6 @@ Pstorage::Pstorage(const QStringList& files_)
 	}
 }
 
-Pstorage::~Pstorage()
-{
-	while (!m_patchedDisks.isEmpty())
-	{
-		PRL_ASSERT(!m_savedSystemNames.isEmpty());
-		m_patchedDisks.takeLast()->setSystemName(m_savedSystemNames.takeLast());
-	}
-}
-
 bool Pstorage::monkeyPatch(CVmConfiguration& config_)
 {
 	// patch enabled shared disks on pstorage
@@ -584,9 +575,6 @@ bool Pstorage::patch(CVmHardDisk& disk_)
 	disk_.setUserFriendlyName(patchedPath);
 
 	WRITE_TRACE(DBG_DEBUG, "patched path %s", qPrintable(patchedPath));
-	m_savedSystemNames << path;
-	m_patchedDisks << &disk_;
-
 	return true;
 }
 
@@ -1940,17 +1928,21 @@ void Task_MigrateVmTarget::unregisterHaClusterResource()
 
 PRL_RESULT Task_MigrateVmTarget::preconditionsReply()
 {
-	if (!m_pstorage.isNull() && !m_pstorage->monkeyPatch(*m_pVmConfig))
-	{
-		setLastErrorCode(PRL_ERR_OPERATION_FAILED);
-		return PRL_ERR_OPERATION_FAILED;
-	}
-
+	SmartPtr<CVmConfiguration> C(m_pVmConfig);
 	CVmMigrateCheckPreconditionsReply c(m_lstCheckPrecondsErrors, m_lstNonSharedDisks, m_nFlags);
-	c.SetConfig(m_pVmConfig->toString());
+	if (!m_pstorage.isNull())
+	{
+		C = SmartPtr<CVmConfiguration>(new CVmConfiguration(m_pVmConfig.getImpl()));
+		if (!m_pstorage->monkeyPatch(*C))
+		{
+			setLastErrorCode(PRL_ERR_OPERATION_FAILED);
+			return PRL_ERR_OPERATION_FAILED;
+		}
+	}
+	c.SetConfig(C->toString());
 
 	WRITE_TRACE(DBG_DEBUG, "hardware config that was recieved from the target:\n %s",
-		qPrintable(m_pVmConfig->getVmHardwareList()->toString()));
+		qPrintable(C->getVmHardwareList()->toString()));
 
 	SmartPtr<IOPackage> package = DispatcherPackage::createInstance(
 			c.GetCommandId(), c.GetCommand()->toString(), m_pCheckPackage);
