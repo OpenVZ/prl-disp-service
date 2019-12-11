@@ -65,7 +65,6 @@ namespace Libvirt
 struct Pstorage
 {
 	explicit Pstorage(const QStringList& files_);
-	~Pstorage();
 
 	bool monkeyPatch(CVmConfiguration& config_);
 	QList<CVmHardDisk> getDisks(const CVmConfiguration& config_) const;
@@ -83,8 +82,6 @@ private:
 	bool createBackedImage(const CVmHardDisk& disk_, const QString& path_) const;
 
 	QStringList m_sharedDirs;
-	QList<CVmHardDisk*> m_patchedDisks;
-	QStringList m_savedSystemNames;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
