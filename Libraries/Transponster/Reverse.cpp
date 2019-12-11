@@ -540,8 +540,8 @@ void Hdd::setIoLimit(const CVmIoLimit* global_)
 		t.setGroupName(QString("virtuozzo"));
 		t.setChoice4771(Libvirt::Domain::Xml::VChoice4771(y));
 	}
-
-	getResult().setIotune(t);
+	if (t.getGroupName())
+		getResult().setIotune(t);
 }
 
 void Hdd::setIopsLimit(const CVmRunTimeOptions& runtime_)
@@ -560,8 +560,8 @@ void Hdd::setIopsLimit(const CVmRunTimeOptions& runtime_)
 		t.setGroupName(QString("virtuozzo"));
 		t.setChoice4774(Libvirt::Domain::Xml::VChoice4774(y));
 	}
-
-	getResult().setIotune(t);
+	if (t.getGroupName())
+		getResult().setIotune(t);
 }
 
 void Hdd::setSerial(const QString& serial_)
