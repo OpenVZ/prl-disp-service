@@ -3107,7 +3107,7 @@ Vm::Action* Disk::operator()(const Request& input_) const
 		CVmIoLimit* l(d->getIoLimit());
 		if (l != NULL) {
 			CVmIoLimit* p((*x)->getIoLimit());
-			if (p == NULL || l->getIoLimitValue() != p->getIoLimitValue())
+			if (NULL == p ? l->getIoLimitValue() > 0 : l->getIoLimitValue() != p->getIoLimitValue())
 			{
 				Action* a(f.craftRuntime(boost::bind
 					(&vm::Editor::setIoLimit, _1, d, l->getIoLimitValue())));
