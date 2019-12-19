@@ -1481,11 +1481,15 @@ Rise::Rise(): Generic(boost::bind(&agent_type::start, _1))
 
 Rise::result_type Rise::operator()(const request_type& request_)
 {
-	Backup::Device::Service(request_.getConfig())
-		.setContext(Backup::Device::Agent::Unit(request_.getSession()))
+	Backup::Device::Service b(request_.getConfig());
+	b.setContext(Backup::Device::Agent::Unit(request_.getSession()))
 		.enable();
 
-	return Generic::operator()(request_);
+	result_type output = Generic::operator()(request_);
+	if (output.isFailed())
+		b.disable();
+
+	return output;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -399,21 +399,21 @@ PRL_RESULT Task_VzManager::start_env()
 			return PRL_ERR_SUCCESS;
 	}
 
-	Backup::Device::Service(pConfig).setContext(*this).enable();
+	Backup::Device::Service b(pConfig);
+	b.setContext(*this).enable();
 
 	res = get_op_helper()->start_env(
 		sUuid, CDspService::instance()->getHaClusterHelper()->getStartCommandFlags(pCmd));
 	if (PRL_FAILED(res))
-		return res;
-
-	if (nState == VMS_PAUSED)
+		b.disable();
+	else if (nState == VMS_PAUSED)
 	{
 		CDspService::instance()->getVmStateSender()->
 			onVmStateChanged(VMS_PAUSED, VMS_RUNNING, sUuid,
 					m_sVzDirUuid, false);
 	}
 
-	return PRL_ERR_SUCCESS;
+	return res;
 }
 
 PRL_RESULT Task_VzManager::pause_env()
@@ -611,9 +611,14 @@ PRL_RESULT Task_VzManager::resume_env()
 	if (PRL_FAILED(res))
 		return res;
 
-	Backup::Device::Service(pConfig).setContext(*this).enable();
+	Backup::Device::Service b(pConfig);
+	b.setContext(*this).enable();
 
-	return get_op_helper()->resume_env(sUuid, pCmd->GetCommandFlags());
+	res = get_op_helper()->resume_env(sUuid, pCmd->GetCommandFlags());
+	if (PRL_FAILED(res))
+		b.disable();
+
+	return res;
 }
 
 PRL_RESULT Task_VzManager::delete_env()
