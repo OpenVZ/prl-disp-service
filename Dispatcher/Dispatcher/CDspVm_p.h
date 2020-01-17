@@ -47,7 +47,6 @@
 #include <prlcommon/IOService/IOCommunication/IOClient.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "CDspDispConnection.h"
-#include "CDspVmSuspendHelper.h"
 #include <prlxmlmodel/DispConfig/CDispCpuPreferences.h>
 
 
@@ -198,8 +197,6 @@ struct Details: noncopyable
 	QWaitCondition m_applyConfigCondition;
 
 	bool m_bVmCmdWasExclusiveRegistered;
-
-	SmartPtr<CDspVmSuspendMounter> m_pSuspendMounter;
 
 	Details(const CVmIdent& id_, const SmartPtr<CDspClient>& client_,
 		PVE::IDispatcherCommands command_, VIRTUAL_MACHINE_STATE state_);

@@ -2403,12 +2403,6 @@ bool CDspVmManager::checkFastReboot(void) const
 	return bFastReboot;
 }
 
-CDspLockedPointer< CDspVmSuspendHelper >
-CDspVmManager::getSuspendHelper()
-{
-	return CDspLockedPointer< CDspVmSuspendHelper > (&m_suspendHelperMutex, &m_suspendHelper );
-}
-
 bool CDspVmManager::haveInteractiveSessions(const QList< SmartPtr<CDspClient> >& lstSessions) const
 {
 	foreach( SmartPtr<CDspClient> pSession, lstSessions )

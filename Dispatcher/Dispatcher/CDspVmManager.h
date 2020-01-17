@@ -90,11 +90,6 @@ struct CDspVmManager: QObject, CDspHandler
 	 */
 	void syncVMsUptime();
 
-	/**
-	 * get CDspVmSuspendHelper
-	 */
-	CDspLockedPointer<CDspVmSuspendHelper> getSuspendHelper();
-
 private:
 	/**
 	 * Handle command, extension for handleFromDispatcherPackage
@@ -142,8 +137,6 @@ private:
 	QHash< IOSender::Handle, SmartPtr<CDspVm> > m_vms;
 
 	QMutex	m_suspendHelperMutex;
-	CDspVmSuspendHelper m_suspendHelper;
-
 	Q_OBJECT
 };
 

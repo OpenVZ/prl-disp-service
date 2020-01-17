@@ -76,7 +76,6 @@ HEADERS += \
 	CDspBugPatcherLogic.h \
 	CDspProblemReportHelper.h \
 	CDspVmInfoDatabase.h \
-	CDspVmSuspendHelper.h \
 	CDspHostSettingsHelper.h \
 	CDspHaClusterHelper.h \
 	CDspVm_p.h \
@@ -207,7 +206,6 @@ SOURCES += \
 	CDspBugPatcherLogic.cpp \
 	CDspProblemReportHelper.cpp \
 	CDspVmInfoDatabase.cpp \
-	CDspVmSuspendHelper.cpp \
 	CDspHostSettingsHelper.cpp \
 	CDspHaClusterHelper.cpp \
 	CDspVm_p.cpp \

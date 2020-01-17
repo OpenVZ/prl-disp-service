@@ -44,7 +44,6 @@
 #include <prlcommon/IOService/IOCommunication/IOClient.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "CDspDispConnection.h"
-#include "CDspVmSuspendHelper.h"
 #include <prlxmlmodel/DispConfig/CDispCpuPreferences.h>
 
 using namespace IOService;
@@ -394,8 +393,6 @@ public://Convenient global methods
 	 * Store sign to restore Vm to the previous state before reboot
 	 */
 	void storeFastRebootState(bool bFastReboot, SmartPtr<CDspClient> pUserSession = SmartPtr<CDspClient>());
-
-	QString prepareFastReboot(bool suspend);
 
 	PRL_UINT32 getVNCPort();
 

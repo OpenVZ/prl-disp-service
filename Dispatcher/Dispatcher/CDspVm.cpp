@@ -1638,33 +1638,6 @@ bool CDspVm::waitForApplyConfig(unsigned long timeout)
 	return d().m_applyConfigCondition.wait( &d().m_applyConfigMutex, timeout );
 }
 
-QString CDspVm::prepareFastReboot(bool suspend)
-{
-	PRL_RESULT nRetCode = PRL_ERR_UNINITIALIZED;
-	SmartPtr<CVmConfiguration> pVmConfig = getVmConfig(SmartPtr<CDspClient>(0), nRetCode);
-	if ( !pVmConfig || PRL_FAILED(nRetCode) )
-		return QString();
-
-	PRL_ASSERT( ! d().m_pSuspendMounter );
-
-	d().m_pSuspendMounter.reset();
-	CDspVmManager *pVmManager = &CDspService::instance()->getVmManager();
-	if (suspend)
-		d().m_pSuspendMounter = pVmManager->getSuspendHelper()->prepareVmFastReboot(pVmConfig);
-	else //resume
-	{
-		d().m_pSuspendMounter = pVmManager->getSuspendHelper()->fastRebootMount(false);
-		//set fake path
-		if (d().m_pSuspendMounter)
-			d().m_pSuspendMounter->setPath("mounted");
-	}
-
-	if (d().m_pSuspendMounter)
-		return d().m_pSuspendMounter->getPath();
-
-	return QString();
-}
-
 PRL_RESULT CDspVm::changeVmStateToCompacting()
 {
 	QWriteLocker _wLock( &d().m_rwLock );
