@@ -2,7 +2,19 @@ TARGET = prl_disp_service
 PROJ_PATH = $$PWD
 include(../Build/qmake/build_target.pri)
 
-LIBS += -lprlcommon -lprl_xml_model -lboost_thread-mt -lboost_filesystem-mt -lboost_system-mt -lboost_chrono -lvcmmd
+LIBS += -lprlcommon -lprl_xml_model -lboost_chrono -lvcmmd
+
+linux-g++* {
+	system(ld -lboost_thread-mt) {
+		message( boost-with-mt )
+		CONFIG += boost-with-mt
+	} else {
+		system(ld -lboost_thread) {
+			message( boost-without-mt )
+			CONFIG += boost-without-mt
+		}
+	}
+}
 
 include($$LIBS_LEVEL/HostInfo/CHostInfo.pri)
 include($$LIBS_LEVEL/DispToDispProtocols/DispToDispProtocols.pri)
@@ -27,4 +39,10 @@ win32 {
 libvirt {
 	include($$LIBS_LEVEL/Transponster/Transponster.pri)
 	LIBS += -lvirt -lvirt-qemu
+}
+boost-with-mt {
+	LIBS += -lboost_thread-mt -lboost_filesystem-mt -lboost_system-mt
+}
+boost-without-mt {
+	LIBS += -lboost_thread -lboost_filesystem -lboost_system
 }

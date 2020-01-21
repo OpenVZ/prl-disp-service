@@ -131,7 +131,7 @@ Task_GetBackupTreeSource::Task_GetBackupTreeSource(
 		const SmartPtr<CDspClient>& client,
 		const CProtoCommandPtr cmd,
 		const SmartPtr<IOPackage>& p)
-:Task_BackupHelper(client, p),
+:Task_BackupHelper<CDspTaskHelper>(client, p),
  m_sUuid(m_sVmUuid)
 {
 	CProtoGetBackupTreeCommand *pCmd = CProtoSerializer::CastToProtoCommand<CProtoGetBackupTreeCommand>(cmd);
@@ -178,7 +178,7 @@ PRL_RESULT Task_GetBackupTreeSource::run_body()
 	QFileInfoList dirList;
 	QFileInfoList fileList;
 
-	if (PRL_FAILED(nRetCode = connect()))
+	if (PRL_FAILED(nRetCode = Task_BackupMixin::connect()))
 		goto exit;
 
 	if (PRL_FAILED(nRetCode = GetBackupTreeRequest(m_sUuid, m_sBackupTree)))
@@ -218,7 +218,7 @@ Task_GetBackupTreeTarget::Task_GetBackupTreeTarget(
 		SmartPtr<CDspDispConnection> &pDispConnection,
 		CDispToDispCommandPtr pCmd,
 		const SmartPtr<IOPackage> &p)
-:Task_BackupHelper(pDispConnection->getUserSession(), p),
+:Task_BackupHelper<CDspTaskHelper>(pDispConnection->getUserSession(), p),
 m_pDispConnection(pDispConnection),
 m_sUuid(m_sVmUuid)
 {

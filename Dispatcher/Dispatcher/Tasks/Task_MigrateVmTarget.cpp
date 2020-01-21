@@ -398,7 +398,7 @@ target_type Queue::dequeue()
 
 		if (Vm::Tunnel::libvirtChunk_type::s_command == head()->header.type)
 		{
-			WRITE_TRACE(DBG_FATAL, "Write a libvirt chunk of size %d",
+			WRITE_TRACE(DBG_FATAL, "Write a libvirt chunk of size %lld",
 				m_packer.getFormat().getDataSize(head()));
 		}
 		if (IOSendJob::SendQueueIsFull == m_service->getSendResult(j))
@@ -629,6 +629,103 @@ void Pstorage::cleanup(const CVmConfiguration& config_) const
 	}
 }
 
+} // namespace Libvirt
+
+namespace Tunnel
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct IO
+
+IO::IO(CDspDispConnection& io_): m_io(&io_)
+{
+	bool x;
+	x = this->connect(
+		m_io,
+		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
+		SLOT(reactReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
+		Qt::QueuedConnection);
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+	x = this->connect(
+		&CDspService::instance()->getIOServer(),
+		SIGNAL(onClientDisconnected(IOSender::Handle)),
+		SLOT(reactDisconnected(IOSender::Handle)));
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+	x = this->connect(
+		&CDspService::instance()->getIOServer(),
+		SIGNAL(onAfterSend(IOServerInterface*, IOSender::Handle,
+			    IOSendJob::Result, const SmartPtr<IOPackage>)),
+		SLOT(reactSend(IOServerInterface*, IOSender::Handle,
+			    IOSendJob::Result, const SmartPtr<IOPackage>)),
+		Qt::QueuedConnection);
+	if (!x)
+		WRITE_TRACE(DBG_FATAL, "can't connect");
+}
+
+IO::~IO()
+{
+	m_io->disconnect(SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
+		this, SLOT(reactReceived(IOSender::Handle, const SmartPtr<IOPackage>)));
+	CDspService::instance()->getIOServer().disconnect(
+		SIGNAL(onClientDisconnected(IOSender::Handle)),
+		this, SLOT(reactDisconnected(IOSender::Handle)));
+	CDspService::instance()->getIOServer().disconnect(
+		SIGNAL(onAfterSend(IOServerInterface*, IOSender::Handle,
+			    IOSendJob::Result, const SmartPtr<IOPackage>)), this,
+		SLOT(reactSend(IOServerInterface*, IOSender::Handle,
+			    IOSendJob::Result, const SmartPtr<IOPackage>))
+		);
+}
+
+IOSendJob::Handle IO::sendPackage(const SmartPtr<IOPackage>& package_)
+{
+	return m_io->sendPackage(package_);
+}
+
+IOSendJob::Result IO::getSendResult(const IOSendJob::Handle& job_)
+{
+	return CDspService::instance()->getIOServer().getSendResult(job_);
+}
+
+void IO::reactReceived(IOSender::Handle handle_, const SmartPtr<IOPackage>& package_)
+{
+	if (handle_ == m_io->GetConnectionHandle())
+		emit onReceived(package_);
+}
+
+void IO::reactDisconnected(IOSender::Handle handle_)
+{
+	if (handle_ == m_io->GetConnectionHandle())
+		emit disconnected();
+}
+
+void IO::reactSend(IOServerInterface*, IOSender::Handle handle_,
+	    IOSendJob::Result, const SmartPtr<IOPackage> package_)
+{
+	if (handle_ == m_io->GetConnectionHandle())
+		emit onSent(package_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Socket<QTcpSocket>
+
+bool Socket<QTcpSocket>::isConnected(const type& socket_)
+{
+	return socket_.state() == QAbstractSocket::ConnectedState;
+}
+
+void Socket<QTcpSocket>::disconnect(type& socket_)
+{
+	socket_.disconnectFromHost();
+}
+
+} // namespace Tunnel
+
+#ifdef __USE_ISOCXX11
+#else // __USE_ISOCXX11
+namespace Libvirt
+{
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
@@ -668,6 +765,7 @@ void Tentative::on_exit(const Event&, FSM&)
 }
 
 } // namespace Libvirt
+
 namespace Content
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -863,80 +961,6 @@ void Frontend::create(const CVmHardDisk& event_)
 namespace Tunnel
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct IO
-
-IO::IO(CDspDispConnection& io_): m_io(&io_)
-{
-	bool x;
-	x = this->connect(
-		m_io,
-		SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
-		SLOT(reactReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
-		Qt::QueuedConnection);
-	if (!x)
-		WRITE_TRACE(DBG_FATAL, "can't connect");
-	x = this->connect(
-		&CDspService::instance()->getIOServer(),
-		SIGNAL(onClientDisconnected(IOSender::Handle)),
-		SLOT(reactDisconnected(IOSender::Handle)));
-	if (!x)
-		WRITE_TRACE(DBG_FATAL, "can't connect");
-	x = this->connect(
-		&CDspService::instance()->getIOServer(),
-		SIGNAL(onAfterSend(IOServerInterface*, IOSender::Handle,
-			    IOSendJob::Result, const SmartPtr<IOPackage>)),
-		SLOT(reactSend(IOServerInterface*, IOSender::Handle,
-			    IOSendJob::Result, const SmartPtr<IOPackage>)),
-		Qt::QueuedConnection);
-	if (!x)
-		WRITE_TRACE(DBG_FATAL, "can't connect");
-}
-
-IO::~IO()
-{
-	m_io->disconnect(SIGNAL(onPackageReceived(IOSender::Handle, const SmartPtr<IOPackage>)),
-		this, SLOT(reactReceived(IOSender::Handle, const SmartPtr<IOPackage>)));
-	CDspService::instance()->getIOServer().disconnect(
-		SIGNAL(onClientDisconnected(IOSender::Handle)),
-		this, SLOT(reactDisconnected(IOSender::Handle)));
-	CDspService::instance()->getIOServer().disconnect(
-		SIGNAL(onAfterSend(IOServerInterface*, IOSender::Handle,
-			    IOSendJob::Result, const SmartPtr<IOPackage>)), this,
-		SLOT(reactSend(IOServerInterface*, IOSender::Handle,
-			    IOSendJob::Result, const SmartPtr<IOPackage>))
-		);
-}
-
-IOSendJob::Handle IO::sendPackage(const SmartPtr<IOPackage>& package_)
-{
-	return m_io->sendPackage(package_);
-}
-
-IOSendJob::Result IO::getSendResult(const IOSendJob::Handle& job_)
-{
-	return CDspService::instance()->getIOServer().getSendResult(job_);
-}
-
-void IO::reactReceived(IOSender::Handle handle_, const SmartPtr<IOPackage>& package_)
-{
-	if (handle_ == m_io->GetConnectionHandle())
-		emit onReceived(package_);
-}
-
-void IO::reactDisconnected(IOSender::Handle handle_)
-{
-	if (handle_ == m_io->GetConnectionHandle())
-		emit disconnected();
-}
-
-void IO::reactSend(IOServerInterface*, IOSender::Handle handle_,
-	    IOSendJob::Result, const SmartPtr<IOPackage> package_)
-{
-	if (handle_ == m_io->GetConnectionHandle())
-		emit onSent(package_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Socket<QLocalSocket>
 
 bool Socket<QLocalSocket>::isConnected(const type& socket_)
@@ -964,19 +988,6 @@ QSharedPointer<QLocalSocket> Socket<QLocalSocket>::craft(connector_type& connect
 		WRITE_TRACE(DBG_FATAL, "can't connect local socket disconnect");
 
 	return output;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Socket<QTcpSocket>
-
-bool Socket<QTcpSocket>::isConnected(const type& socket_)
-{
-	return socket_.state() == QAbstractSocket::ConnectedState;
-}
-
-void Socket<QTcpSocket>::disconnect(type& socket_)
-{
-	socket_.disconnectFromHost();
 }
 
 namespace Libvirt
@@ -1097,6 +1108,7 @@ bool Frontend::isSwitched(const msmf::none&)
 {
 	return m_task->getRequestFlags() & PVMT_SWITCH_TEMPLATE;
 }
+#endif // __USE_ISOCXX11
 
 } // namespace Target
 } // namespace Vm
@@ -1932,6 +1944,8 @@ PRL_RESULT Task_MigrateVmTarget::preconditionsReply()
 
 PRL_RESULT Task_MigrateVmTarget::run_body()
 {
+#ifdef __USE_ISOCXX11
+#else // __USE_ISOCXX11
 	namespace mvt = Migrate::Vm::Target;
 	typedef boost::msm::back::state_machine<mvt::Frontend> backend_type;
 
@@ -1967,6 +1981,7 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 		exec();
 
 	machine.stop();
+#endif // __USE_ISOCXX11
 
 	return getLastErrorCode();
 }

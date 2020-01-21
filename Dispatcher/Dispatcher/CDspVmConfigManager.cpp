@@ -37,6 +37,7 @@
 #include <QWriteLocker>
 #include "CDspVmDirManager.h"
 #include "CDspService.h"
+#include "CDspVmDirHelper.h"
 #include "CDspVNCStarter_p.h"
 #include "Tasks/Task_EditVm.h"
 #include <prlxmlmodel/VmConfig/CVmHardDisk.h>

@@ -722,35 +722,38 @@ CCpuHelper::CCpuHelper()
 		("fpu")("vme")("de")("pse")("tsc")("msr")("pae")("mce")("cx8")
 		("apic")("")("sep")("mtrr")("pge")("mca")("cmov")("pat")("pse36")
 		("pn")("clflush")("")("ds")("acpi")("mmx")("fxsr")("sse")("sse2")
-		("ss")("ht")("tm")("ia64")("pbe");
+		("ss")("ht")("tm")("ia64")("pbe").operator std::vector<QString>();
 	m_catalog[PCFE_EXT_FEATURES] = boost::assign::list_of<QString>
 		("pni")("pclmuldq")("dtes64")("monitor")("ds_cpl")("vmx")("smx")
 		("est")("tm2")("ssse3")("cid")("")("fma")("cx16")("xtpr")("pdcm")
 		("")("pcid")("dca")("sse4.1")("sse4.2")("x2apic")("movbe")("popcnt")
 		("tsc-deadline")("aes")("xsave")("osxsave")("avx")("f16c")
-		("rdrand")("hypervisor");
+		("rdrand")("hypervisor").operator std::vector<QString>();
 	m_catalog[PCFE_EXT_00000007_EBX] = boost::assign::list_of<QString>
 		("fsgsbase")("tsc_adjust")("")("bmi1")("hle")("avx2")("")("smep")
 		("bmi2")("erms")("invpcid")("rtm")("")("")("mpx")("")("avx512f")
 		("")("rdseed")("adx")("smap")("")("pcommit")("clflushopt")("")
-		("")("avx512pf")("avx512er")("avx512cd")("")("")("");
+		("")("avx512pf")("avx512er")("avx512cd")("")("")("").operator std::vector<QString>();
 	m_catalog[PCFE_EXT_80000001_ECX] = boost::assign::list_of<QString>
 		("lahf_lm")("cmp_legacy")("svm")("extapic")("cr8legacy")("abm")
 		("sse4a")("misalignsse")("3dnowprefetch")("osvw")("ibs")("xop")
 		("skinit")("wdt")("")("lwp")("fma4")("tce")("")("nodeid_msr")
-		("")("tbm")("topoext")("perfctr_core")("perfctr_nb");
+		("")("tbm")("topoext")("perfctr_core")("perfctr_nb").operator std::vector<QString>();
 	m_catalog[PCFE_EXT_80000001_EDX] = boost::assign::list_of<QString>
 		("")("")("")("")("")("")("")("")("")("")("")("syscall")("")
 		("")("")("")("")("")("")("")("nx")("")("mmxext")("")("")
-		("fxsr_opt")("pdpe1gb")("rdtscp")("")("lm")("3dnowext")("3dnow");
+		("fxsr_opt")("pdpe1gb")("rdtscp")("")("lm")("3dnowext")("3dnow")
+		.operator std::vector<QString>();
 	(void)m_catalog[PCFE_EXT_80000007_EDX];
 	m_catalog[PCFE_EXT_00000007_EDX] = boost::assign::list_of<QString>
 		("")("")("")("")("")("")("")("")("")("")("md-clear")("")("")
 		("")("")("")("")("")("")("")("")("")("")("")("")("")
-		("spec-ctrl")("stibp")("")("")("")("ssbd");
+		("spec-ctrl")("stibp")("")("")("")("ssbd")
+		.operator std::vector<QString>();
 	(void)m_catalog[PCFE_EXT_80000008_EAX];
 	m_catalog[PCFE_EXT_0000000D_EAX] = boost::assign::list_of<QString>
-		("xsaveopt")("xsavec")("xgetbv1")("xsaves");
+		("xsaveopt")("xsavec")("xgetbv1")("xsaves")
+		.operator std::vector<QString>();
 }
 
 void CCpuHelper::setCatalog(const catalog_type& value_)
@@ -774,7 +777,7 @@ PRL_RESULT CCpuHelper::execFeaturesCmd(const QString &cmdline)
 
 CDispCpuPreferences *CCpuHelper::get_cpu_mask()
 {
-	std::auto_ptr<CDispCpuPreferences> mask(new CDispCpuPreferences);
+	QScopedPointer<CDispCpuPreferences> mask(new CDispCpuPreferences);
 	FeaturesSetIn<MaskTag> fm(*mask);
 
 	mask->setCpuFeaturesMaskValid(true);
@@ -787,7 +790,7 @@ CDispCpuPreferences *CCpuHelper::get_cpu_mask()
 		if (!fillCpuDump(fm, "--mask"))
 			mask.reset();
 	}
-	return mask.release();
+	return mask.take();
 }
 
 void CCpuHelper::fill_cpu_info(CHwCpu &cpu)
@@ -814,8 +817,8 @@ PRL_RESULT CCpuHelper::maskUpdate(CDispCpuPreferences new_mask)
 
 bool CCpuHelper::update(CVmConfiguration &conf)
 {
-	std::auto_ptr<CDispCpuPreferences> m(CCpuHelper::get_cpu_mask());
-	if (!m.get())
+	QScopedPointer<CDispCpuPreferences> m(CCpuHelper::get_cpu_mask());
+	if (m.isNull())
 		return false;
 
 	update(conf, *m);
@@ -850,20 +853,20 @@ bool CCpuHelper::sync()
 
 CCpuPoolInfo *CCpuHelper::getPoolInfo()
 {
-	std::auto_ptr<CCpuPoolInfo> info(new CCpuPoolInfo());
+	QScopedPointer<CCpuPoolInfo> info(new CCpuPoolInfo());
 
 	info->setName("");
 	info->setVendor("");
 
 	if (!checkBinaryExists(CPUPOOLS_BINARY))
-		return info.release();
+		return info.take();
 
 	QProcess process;
 	QString cmd = QString("%1 --quiet dump-pool --info").arg(CPUPOOLS_BINARY);
 
-	DumpInfoHandler handler(process, cmd, *info.get());
+	DumpInfoHandler handler(process, cmd, *info.data());
 	if (HostUtils::RunCmdLineUtilityEx(cmd, process, 60 * 1000)(handler).isSuccess())
-		return info.release();
+		return info.take();
 	else
 		return NULL;
 

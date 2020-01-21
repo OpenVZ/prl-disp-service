@@ -476,12 +476,6 @@ CDspService* CDspService::instance ()
 namespace{
 	bool g_bSIGTERM_was_received = false;
 
-bool waitUntilDriversLoaded( int timeoutMsecs )
-{
-	(void) timeoutMsecs;
-	return true;
-}
-
 } // namespace
 
 CDspService::CDspService () :
@@ -509,6 +503,7 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 	qRegisterMetaType<VIRTUAL_MACHINE_STATE >("VIRTUAL_MACHINE_STATE");
 	qRegisterMetaType<SmartPtr<CDispCommonPreferences> >("SmartPtr<CDispCommonPreferences>");
 
+	m_backup.reset(new Backup::Activity::Service());
 	m_registry.reset(new Registry::Actual(*this));
 	::Vm::Directory::Ephemeral* p = new ::Vm::Directory::Ephemeral(*this);
 	m_shellHelper.reset(new CDspShellHelper(*m_registry));
@@ -517,7 +512,7 @@ m_strHostOsVersion ( CDspHostInfo::GetOsVersionStringRepresentation() )
 	m_pReconnectTimer = new QTimer(this);
 	m_pReconnectTimer->setSingleShot(true);
 
-	Backup::Task::Launcher b(*m_registry, m_pTaskManager, m_backup);
+	Backup::Task::Launcher b(*m_registry, m_pTaskManager, *m_backup);
 	m_AppSettings.init(QCoreApplication::applicationName());
 	m_vmDirManager.reset(new CDspVmDirManager(*p));
 	m_clientManager.reset(new CDspClientManager(*this, b));
@@ -2734,7 +2729,7 @@ void CDspService::createIOServers ( quint32 listenPort, PRL_SECURITY_LEVEL secur
 	PRL_ASSERT(bConnected);
 
         // Signal connect
-	bConnected = m_backup.connect(m_ioServerPool.getImpl(),
+	bConnected = m_backup->connect(m_ioServerPool.getImpl(),
 		SIGNAL(onClientDisconnected(IOSender::Handle)),
 		SLOT(abort(IOSender::Handle)),
 		Qt::DirectConnection);

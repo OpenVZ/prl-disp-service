@@ -389,7 +389,7 @@ PRL_RESULT Task_CreateVmBackupSource::prepareTask()
 	   during snapshot creation (#460207), but in this case session UUID will invalid
 	   and we cant to connect to dispather after snapshot creation
 	*/
-	if (PRL_FAILED(nRetCode = connect()))
+	if (PRL_FAILED(nRetCode = Task_BackupMixin::connect()))
 		goto exit;
 
 	if (PRL_FAILED(nRetCode = d(b)))

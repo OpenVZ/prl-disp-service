@@ -147,7 +147,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Timeout
 
-struct Timeout: QObject, Base
+struct Timeout: Abstract::Timeout, Base
 {
 	Timeout(virEventTimeoutCallback impl_, int id_);
 	~Timeout();
@@ -157,13 +157,9 @@ struct Timeout: QObject, Base
 	{
 		enable(-1);
 	}
-
-public slots:
 	void handle();
 
 private:
-	Q_OBJECT
-
 	QTimer m_timer;
 	virEventTimeoutCallback m_impl;
 };
@@ -171,22 +167,18 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Socket
 
-struct Socket: QObject, Base
+struct Socket: Abstract::Socket, Base
 {
 	Socket(int socket_, virEventHandleCallback impl_, int id_);
 	~Socket();
 
 	void enable(int events_);
 	void disable();
-
-public slots:
 	void read(int socket_);
 	void error(int socket_);
 	void write(int socket_);
 
 private:
-	Q_OBJECT
-
 	virEventHandleCallback m_impl;
 	QSocketNotifier m_read;
 	QSocketNotifier m_write;
@@ -238,8 +230,6 @@ protected:
 	void timerEvent(QTimerEvent* );
 
 private:
-	Q_OBJECT
-
 	int m_id;
 	QScopedPointer<Socket> m_pet1;
 	QScopedPointer<Timeout> m_pet2;
@@ -289,18 +279,16 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hub
 
-struct Hub: QObject
+struct Hub: Abstract::Hub
 {
-	Q_INVOKABLE void add(int id_, virEventTimeoutCallback callback_);
-	Q_INVOKABLE void add(int id_, int socket_, virEventHandleCallback callback_);
-	Q_INVOKABLE void remove(int id_);
-	Q_INVOKABLE void setEvents(int id_, int value_);
-	Q_INVOKABLE void setInterval(int id_, int value_);
-	Q_INVOKABLE void setOpaque(int id_, Transport::Visitor* value_);
+	void add(int id_, virEventTimeoutCallback callback_);
+	void add(int id_, int socket_, virEventHandleCallback callback_);
+	void remove(int id_);
+	void setEvents(int id_, int value_);
+	void setInterval(int id_, int value_);
+	void setOpaque(int id_, Transport::Visitor* value_);
 
 private:
-	Q_OBJECT
-
 	Mock m_mock;
 	boost::ptr_map<int, Socket> m_socketMap;
 	boost::ptr_map<int, Timeout> m_timeoutMap;
@@ -385,7 +373,7 @@ private:
 
 struct Show
 {
-	typedef boost::function<void(Registry::Reactor)> reaction_type;
+	typedef boost::function<void(Registry::Reactor& )> reaction_type;
 
 	explicit Show(const reaction_type& reaction_): m_reaction(reaction_)
 	{
@@ -393,7 +381,8 @@ struct Show
 
 	void operator()(Registry::Access& access_)
 	{
-		m_reaction(access_.getReactor());
+		Registry::Reactor r(access_.getReactor());
+		m_reaction(boost::ref(r));
 	}
 
 private:
@@ -625,8 +614,6 @@ struct System: QObject
 	}
 
 private:
-	Q_OBJECT
-
 	typedef QHash<QString, QSharedPointer<entry_type> > domainMap_type;
 
 	Workbench* m_bench;
@@ -677,21 +664,14 @@ enum
 ///////////////////////////////////////////////////////////////////////////////
 // struct Link
 
-struct Link: QObject
+struct Link: Abstract::Link
 {
 	explicit Link(int timeout_ = RECONNECT_TIMEOUT);
 
-public slots:
 	void setOpen();
 	void setClosed();
 
-signals:
-	void connected(QSharedPointer<virConnect>);
-	void disconnected();
-
 private:
-	Q_OBJECT
-
 	static void disconnect(virConnectPtr , int , void* );
 
 	QTimer m_timer;
@@ -701,17 +681,14 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Domains
 
-struct Domains: QObject
+struct Domains: Abstract::Domains
 {
 	explicit Domains(Workbench& bench_);
 
-public slots:
 	void setConnected(QSharedPointer<virConnect>);
 	void setDisconnected();
 
 private:
-	Q_OBJECT
-
 	int m_eventState;
 	int m_eventReboot;
 	int m_eventWakeUp;
@@ -731,7 +708,7 @@ namespace Performance
 ///////////////////////////////////////////////////////////////////////////////
 // struct Broker
 
-struct Broker: QObject
+struct Broker: Abstract::Broker
 {
 	typedef Instrument::Agent::Vm::Performance::Unit unit_type;
 	typedef QList<unit_type> list_type;
@@ -742,12 +719,9 @@ struct Broker: QObject
 	{
 	}
 
-public slots:
 	void despatch();
 
 private:
-	Q_OBJECT
-	
 	list_type m_list;
 	view_type m_view;
 };
@@ -769,8 +743,6 @@ protected:
 	void timerEvent(QTimerEvent* );
 
 private:
-	Q_OBJECT
-
 	Instrument::Agent::Vm::List m_agent;
 	QWeakPointer<Model::System> m_view;
 };
@@ -851,18 +823,14 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
-struct Unit: QObject
+struct Unit: Abstract::Unit
 {
 	Unit(const QWeakPointer<virConnect>& , const QSharedPointer<Model::System>& );
 
 	Unit* clone() const;
-
-public slots:
 	void react();
 
 private:
-	Q_OBJECT
-
 	explicit Unit(const QWeakPointer<virConnect>& link_);
 
 	QSharedPointer<Pci> m_pci;
@@ -985,7 +953,7 @@ struct Hotplug
 	Hotplug(virDomainPtr match_, const QString& device_,
 		const feedback_type& feedback_);
 
-	void operator()(Registry::Reactor&);
+	void operator()(Registry::Reactor);
 	void operator()(Model::Coarse* model_, domain_type domain_);
 	static int react(virConnectPtr, virDomainPtr domain_,
 		const char* device_, void* opaque_);

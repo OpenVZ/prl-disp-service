@@ -43,6 +43,7 @@
 #include <prlcommon/Std/noncopyable.h>
 #include "Tasks/Task_AttachVmBackup.h"
 #include <boost/function.hpp>
+#include "Tasks/Task_BackupQObject_p.h"
 
 namespace Backup
 {
@@ -358,25 +359,6 @@ private:
 
 namespace Deferred
 {
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Base
-
-// XXX: QObject-based class could not be a template class at the same time.
-//      To workaround this obstacle, we'll inherit our template class from
-//      a QObject-based class with pure virtual functions.
-struct Base : QObject
-{
-	virtual ~Base()
-	{
-	}
-
-public slots:
-	virtual void execute(QString uuid_, QString deviceAlias_) = 0;
-
-private:
-	Q_OBJECT
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Action

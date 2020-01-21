@@ -77,7 +77,6 @@ public:
 	SmartPtr<CDspClient >		m_pAnswerClient;
 };
 
-
 class CDspClient
 {
 public:
@@ -253,6 +252,18 @@ private:
 
 	// Contains different information about session
 	SmartPtr<SessionInfo >	m_pSessionInfo;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct CDspClientDisconnectReactor
+
+struct CDspClientDisconnectReactor: QObject
+{
+public slots:
+	virtual void abort(IOSender::Handle actor_) = 0;
+
+private:
+	Q_OBJECT
 };
 
 #endif //CDSPCLIENT_H

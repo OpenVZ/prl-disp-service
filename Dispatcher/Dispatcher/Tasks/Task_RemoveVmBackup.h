@@ -45,10 +45,8 @@
 #include "CDspDispConnection.h"
 #include "Task_BackupHelper.h"
 
-class Task_RemoveVmBackupSource : public Task_BackupHelper
+class Task_RemoveVmBackupSource : public Task_BackupHelper<CDspTaskHelper>
 {
-	Q_OBJECT
-
 public:
 	Task_RemoveVmBackupSource(
 		SmartPtr<CDspClient> &,
@@ -64,10 +62,8 @@ private:
 	QString m_sBackupId;
 };
 
-class Task_RemoveVmBackupTarget : public Task_BackupHelper
+class Task_RemoveVmBackupTarget : public Task_BackupHelper<CDspTaskHelper>
 {
-	Q_OBJECT
-
 	typedef Instrument::Command::Batch batch_type;
 public:
 	Task_RemoveVmBackupTarget(

@@ -480,7 +480,7 @@ void Cancel::operator()(Exec::Vm& variant_) const
 
 Task_ExecVm::Task_ExecVm(const SmartPtr<CDspClient>& pClient,
 		const SmartPtr<IOPackage>& p, Exec::Mode mode) :
-	CDspTaskHelper(pClient, p),
+	Exec::Abstract::Task::Main(pClient, p),
 	m_pResponseCmd(CProtoSerializer::CreateDspWsResponseCommand(getRequestPackage(), PRL_ERR_SUCCESS)),
 	m_stageFinished(false),
 	m_mode(mode)
@@ -718,7 +718,7 @@ void Task_ExecVm::finalizeTask()
 /***************************************************************/
 Task_ResponseProcessor::Task_ResponseProcessor(const SmartPtr<CDspClient>& pClient,
 		const SmartPtr<IOPackage>& p, Task_ExecVm *pExec) :
-	CDspTaskHelper(pClient, p),
+	Exec::Abstract::Task::Auxiliary(pClient, p),
 	m_bStarted(false),
 	m_sSessionUuid(pExec->getSessionUuid()),
 	m_sGuestSessionUuid(pExec->getGuestSessionUuid()),

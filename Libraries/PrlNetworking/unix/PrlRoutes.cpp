@@ -180,7 +180,11 @@ bool PrlNet::SetRouteToDevice(const QString &ip, const QString &devName, bool ad
 	WRITE_TRACE(DBG_INFO, "route %s ip=%s device='%s' index=%d ",
 			add ? "add" : "del", qPrintable(ip), qPrintable(devName), idx);
 
+#ifdef RTNL_HANDLE_F_SUPPRESS_NLERR
+        int rc = rtnl_talk(&rth, &req.n, NULL);
+#else // RTNL_HANDLE_F_SUPPRESS_NLERR
         int rc = rtnl_talk(&rth, &req.n, NULL, 0);
+#endif // RTNL_HANDLE_F_SUPPRESS_NLERR
 
 	rtnl_close(&rth);
 
@@ -241,7 +245,11 @@ bool PrlNet::SetArpToDevice(const QString &ip, const QString &devName, bool add)
 	WRITE_TRACE(DBG_DEBUG, "arp %s proxy ip=%s device='%s' index=%d ",
 			add ? "add" : "del", qPrintable(ip), qPrintable(devName), devIndex);
 
-	int rc = rtnl_talk(&rth, &req.n, NULL, 0);
+#ifdef RTNL_HANDLE_F_SUPPRESS_NLERR
+        int rc = rtnl_talk(&rth, &req.n, NULL);
+#else // RTNL_HANDLE_F_SUPPRESS_NLERR
+        int rc = rtnl_talk(&rth, &req.n, NULL, 0);
+#endif // RTNL_HANDLE_F_SUPPRESS_NLERR
 
 	rtnl_close(&rth);
 

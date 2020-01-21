@@ -46,6 +46,7 @@
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/vector_c.hpp>
 #include <boost/mpl/inserter.hpp>
+#include "CDspVmManagerQObject_p.h"
 #include <boost/signals2/signal.hpp>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
@@ -548,35 +549,6 @@ private:
 namespace Fork
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Reactor
-
-struct Reactor: QObject
-{
-public slots:
-	virtual void react() = 0;
-
-private:
-	Q_OBJECT
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Detector
-
-struct Detector: Reactor
-{
-	void react()
-	{
-		emit detected();
-	}
-
-signals:
-	void detected();
-
-private:
-	Q_OBJECT
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Gear
 
 struct Gear
@@ -595,7 +567,7 @@ private:
 // struct Translator
 
 template<class T>
-struct Translator: Detector
+struct Translator: T::detector_type
 {
 };
 
@@ -628,6 +600,8 @@ private:
 
 struct Policy
 {
+	typedef Abstract::Detector detector_type;
+
 	static const char* getSenderSlot();
 	static const char* getSenderSignal();
 };
@@ -642,12 +616,9 @@ struct Detector: Fork::Translator<Policy>
 	{
 	}
 
-public slots:
 	void react(unsigned oldState_, unsigned newState_, QString vmUuid_, QString dirUuid_);
 
 private:
-	Q_OBJECT
-
 	const QString m_uuid;
 	boost::function1<bool, unsigned> m_predicate;
 };
@@ -852,6 +823,8 @@ private:
 
 struct Policy
 {
+	typedef Abstract::Detector detector_type;
+
 	static const char* getSenderSlot();
 	static const char* getSenderSignal();
 };
@@ -872,12 +845,9 @@ struct Detector: Fork::Translator<Policy>
 		m_extra = value_;
 	}
 
-public slots:
 	void react(QString, QString uid_);
 
 private:
-	Q_OBJECT
-
 	const QString m_uid;
 	predicate_type m_extra;
 };
@@ -886,18 +856,6 @@ private:
 
 namespace Timeout
 {
-///////////////////////////////////////////////////////////////////////////////
-// struct Handler
-
-struct Handler: Fork::Reactor
-{
-signals:
-	void finish();
-
-private:
-	Q_OBJECT
-};
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reactor
 
@@ -1188,7 +1146,7 @@ struct Generic
 {
 	typedef Libvirt::Result result_type;
 	typedef Libvirt::Instrument::Agent::Vm::Limb::State agent_type;
-	typedef boost::function<result_type (agent_type)> policy_type;
+	typedef boost::function<result_type (agent_type& )> policy_type;
 
 	explicit Generic(const policy_type& policy_): m_policy(policy_)
 	{
@@ -1416,7 +1374,7 @@ struct Gear
 {
 	typedef Libvirt::Instrument::Agent::Vm::Unit unit_type;
 	typedef boost::signals2::signal<void (CVmConfiguration& )> signal_type;
-	typedef boost::function2<Libvirt::Result, unit_type, const CVmConfiguration& >
+	typedef boost::function<Libvirt::Result (unit_type&, const CVmConfiguration&)>
 		configure_type;
 
 	Gear(const QSharedPointer<signal_type>& signal_, const configure_type& configure_)
@@ -1453,7 +1411,7 @@ namespace Cpu
 {
 namespace Limit
 {
-typedef boost::function<Libvirt::Result (Libvirt::Instrument::Agent::Vm::Editor, quint64, quint64)> setter_type;
+typedef boost::function<Libvirt::Result (Libvirt::Instrument::Agent::Vm::Editor&, quint64, quint64)> setter_type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Percents
@@ -1549,7 +1507,7 @@ namespace Applying
 ///////////////////////////////////////////////////////////////////////////////
 // struct Cpu
 
-struct Cpu: QObject
+struct Cpu: Reactor
 {
 	typedef Registry::Public registry_type;
 
@@ -1557,27 +1515,20 @@ struct Cpu: QObject
 	{
 	}
 
-public slots:
 	void react(const SmartPtr<CDispCommonPreferences> old_,
 		const SmartPtr<CDispCommonPreferences> new_);
 
 private:
-	Q_OBJECT
-
 	registry_type* m_registry;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Usb
 
-struct Usb: QObject
+struct Usb: Reactor
 {
-public slots:
 	void react(const SmartPtr<CDispCommonPreferences> old_,
 		const SmartPtr<CDispCommonPreferences> new_);
-
-private:
-	Q_OBJECT
 };
 
 } // namespace Applying

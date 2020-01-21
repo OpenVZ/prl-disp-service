@@ -30,11 +30,10 @@
 ///
 /////////////////////////////////////////////////////////////////////////////////
 
-#ifndef __CVMGUEST_H__
-#define __CVMGUEST_H__
+#ifndef __CDSPVMGUEST_H__
+#define __CDSPVMGUEST_H__
 
-#include <QObject>
-#include <QString>
+#include "CDspVmGuest_p.h"
 
 #include <prlsdk/PrlEnums.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
@@ -52,21 +51,13 @@
 
 namespace Vm
 {
-namespace State
-{
-struct Frontend;
-
-} // namespace State
-
 namespace Guest
 {
 ///////////////////////////////////////////////////////////////////////////////
 // class Actor
 
-class Actor: public QObject
+class Actor: public Abstract::Actor
 {
-	Q_OBJECT
-
 public:
 	explicit Actor(const Config::Edit::Atomic& editor_) : m_editor(editor_)
 	{
@@ -80,7 +71,6 @@ public:
 		const QString& uuid_,
 		const Libvirt::Instrument::Agent::Vm::Exec::Request&);
 
-public slots:
 	void setToolsVersionSlot(const QString v_);
 	void configureNetworkSlot(const QString v_);
 
@@ -91,10 +81,8 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // class Watcher
 
-class Watcher: public QObject
+class Watcher: public Abstract::Watcher
 {
-	Q_OBJECT
-
 public:
 	Watcher(const CVmIdent& ident_, QWeakPointer<QAtomicInt> incarnation_) :
 		m_retries(), m_ident(ident_), m_incarnation(incarnation_), m_ourIncarnation(0)
@@ -116,11 +104,7 @@ public:
 		return m_retries;
 	}
 	void adopt(PRL_VM_TOOLS_STATE state_, const QString& version_ = QString());
-	Q_INVOKABLE void respin();
-
-signals:
-	void guestToolsStarted(const QString v_);
-	
+	void respin();
 
 protected:
 	virtual void timerEvent(QTimerEvent*);
@@ -172,4 +156,4 @@ private:
 } //namespace Guest
 } //namespace Vm
 
-#endif // __DSPVMGUESTPERSONALITY_H__
+#endif // __CDSPVMGUEST_H__

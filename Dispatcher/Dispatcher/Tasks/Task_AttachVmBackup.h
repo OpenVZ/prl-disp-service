@@ -360,9 +360,8 @@ private:
 /**
  * Common routines for backup attaching tasks
  */
-class Task_AttachVmBackupHelper : public Task_BackupHelper
+class Task_AttachVmBackupHelper : public Task_BackupHelper<CDspTaskHelper>
 {
-	Q_OBJECT
 public:
 	Task_AttachVmBackupHelper(SmartPtr<CDspClient>& client, const SmartPtr<IOPackage>& p);
 
@@ -390,7 +389,6 @@ protected:
  */
 class Task_AttachVmBackup : public Task_AttachVmBackupHelper
 {
-	Q_OBJECT
 public:
 	Task_AttachVmBackup(SmartPtr<CDspClient>& client, const SmartPtr<IOPackage>& p);
 
@@ -418,7 +416,6 @@ private:
  */
 class Task_ConnectVmBackupSource : public Task_AttachVmBackupHelper
 {
-	Q_OBJECT
 public:
 	Task_ConnectVmBackupSource(SmartPtr<CDspClient>& client, const SmartPtr<IOPackage>& p);
 

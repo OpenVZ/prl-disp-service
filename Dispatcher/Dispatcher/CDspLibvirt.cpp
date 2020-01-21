@@ -166,7 +166,7 @@ Hotplug::Hotplug(virDomainPtr match_, const QString& device_,
 {
 }
 
-void Hotplug::operator()(Registry::Reactor&)
+void Hotplug::operator()(Registry::Reactor)
 {
 	m_feedback->set_value();
 }
@@ -2218,9 +2218,10 @@ PRL_RESULT Job::operator()(const CUsbAuthenticNameList& update_, CDispCommonPref
 		i->ClearList(i->m_lstAssociations);
 		QList<QString> k = m.keys();
 		// Check if we have stored any associations for i->getSystemName;
+		QString N(i->getSystemName());
 		QList<QString>::const_iterator e = k.end(), p = k.begin();
 		p = std::find_if(p, e, boost::bind(&CUsbAuthenticNameList::IsTheSameDevice,
-			&update_, boost::cref(i->getSystemName()), _1));
+			&update_, boost::cref(N), _1));
 		if (e != p)
 			i->m_lstAssociations = m.take(*p);
 

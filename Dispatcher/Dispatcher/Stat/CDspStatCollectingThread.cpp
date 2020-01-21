@@ -2924,7 +2924,7 @@ SmartPtr<CVmEvent> CDspStatCollectingThread::GetPerformanceStatistics(const CVmI
 
 	boost::optional<PRL_VM_TYPE> t;
 
-	if (t = CDspService::instance()->getVmDirManager().getVmTypeByIdent(id))
+	if ((t = CDspService::instance()->getVmDirManager().getVmTypeByIdent(id)))
 		r = PVT_CT == t.get() ? GetPerformanceStatisticsCt(id, c) : GetPerformanceStatisticsVm(id, c);
 	else
 	{

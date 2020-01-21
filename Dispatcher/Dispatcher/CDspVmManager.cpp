@@ -2582,8 +2582,9 @@ Libvirt::Result Percents::operator()(const vm::Editor& agent_) const
 	if (v.isFailed())
 		return v.error();
 
+	vm::Editor a(agent_);
 	quint32 p(v.value().getQemuKvm()->getVCpuInfo()->getDefaultPeriod());
-	return m_setter(agent_, m_value * p / 100, p);
+	return m_setter(boost::ref(a), m_value * p / 100, p);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2595,11 +2596,12 @@ Libvirt::Result Mhz::operator()(const vm::Editor& agent_) const
 	if (v.isFailed())
 		return v.error();
 
+	vm::Editor a(agent_);
 	/* get cpu limit*/
 	quint32 p(v.value().getQemuKvm()->getVCpuInfo()->getDefaultPeriod());
 	quint32 l = ceilDiv(static_cast<quint64>(m_value) * p,
 			v.value().getQemuKvm()->getVCpuInfo()->getMhz());
-	return m_setter(agent_, l, p);
+	return m_setter(boost::ref(a), l, p);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

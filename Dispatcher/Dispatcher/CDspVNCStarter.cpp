@@ -40,7 +40,7 @@
 
 #include <QCoreApplication>
 #include <QStringList>
-
+#include "CDspVmDirHelper.h"
 #include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
 #include "CDspVNCStarter.h"

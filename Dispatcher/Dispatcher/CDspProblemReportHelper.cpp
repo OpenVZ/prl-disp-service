@@ -567,7 +567,7 @@ static void addDiskDescriptors( CRepAdvancedVmInfo *const pAdvancedVmInfo,
 
 		pHdd->setIndex(QString::number(pHardDisk->getIndex()));
 		QString qsDiskDescriptor = QFileInfo( pHardDisk->getSystemName() ).filePath()
-			+ "/"DISK_DESCRIPTOR_XML;
+			+ "/" DISK_DESCRIPTOR_XML;
 		QFile file(qsDiskDescriptor);
 		if (file.open(QIODevice::ReadOnly))
 		{

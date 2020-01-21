@@ -33,6 +33,7 @@
 #ifndef __CDspVmBackupInfrastructure_p_H_
 #define __CDspVmBackupInfrastructure_p_H_
 
+#include "CDspLibvirt.h"
 #include <CDspTaskHelper.h>
 #include <CDspVmDirHelper.h>
 #include <boost/noncopyable.hpp>

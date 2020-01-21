@@ -1013,11 +1013,6 @@ QString Bundle::buildPath(const QString &location) const
 	return location + QDir::separator() + name;
 }
 
-QString Bundle::buildPath(const QPair<QString, QString> &parts) const
-{
-	return parts.first + QDir::separator() + name + QDir::separator() + parts.second;
-}
-
 QString Bundle::getLocation(const QString &path) const
 {
 	return splitComponent(path).first;
@@ -1037,123 +1032,12 @@ QPair<QString, QString> Bundle::splitComponent(const QString &path) const
 	return r;
 }
 
-QString Bundle::getVmName() const
-{
-	QString s(name);
-	if (s.endsWith(VMDIR_DEFAULT_BUNDLE_SUFFIX))
-		s.resize(s.size() - QString(VMDIR_DEFAULT_BUNDLE_SUFFIX).size());
-	return s;
-}
-
-QString buildExtDevicePath(const QString &sDevicePath, const QString &sOldVmHomePath, const QString &sNewVmHomePath)
-{
-	Bundle b = Bundle::createFromPath(sOldVmHomePath);
-
-	if (!b.isComponent(sDevicePath))
-		return sDevicePath;
-
-	Bundle n = Bundle::createFromPath(sNewVmHomePath);
-	return n.buildPath(b.splitComponent(sDevicePath));
-}
-
-class ExternalDiskBundlesRenamer
-{
-
-public:
-	ExternalDiskBundlesRenamer(CAuthHelper *authHelper);
-	void addDisk(const QString & path);
-	PRL_RESULT rename(const Bundle &oldBundle, const Bundle &newBundle, CVmEvent &error);
-	void rollback();
-
-private:
-
-	// hold absolute paths of disks
-	QStringList m_allDisks;
-	// hold absolute paths of bundles
-	QList<QPair<QString, QString> > m_renamedBundles;
-	CAuthHelper *m_authHelper;
-};
-
-ExternalDiskBundlesRenamer::ExternalDiskBundlesRenamer(CAuthHelper *authHelper) :
-	m_authHelper(authHelper)
-{
-}
-
-void ExternalDiskBundlesRenamer::addDisk(const QString &path)
-{
-	m_allDisks.append(path);
-}
-
-PRL_RESULT ExternalDiskBundlesRenamer::rename(const Bundle &oldBundle, const Bundle &newBundle, CVmEvent &error)
-{
-	QSet<QString> bundleParents;
-
-	// create list of external disks bundle parents
-	foreach(const QString &diskPath, m_allDisks)
-	{
-		if (oldBundle.isComponent(diskPath))
-			bundleParents.insert(oldBundle.getLocation(diskPath));
-	}
-	m_allDisks.clear();
-
-	// for every parent check that bundle with new vm name is not occupied
-	foreach(const QString &bp, bundleParents)
-	{
-		QString newPath = newBundle.buildPath(bp);
-		if (CFileHelper::DirectoryExists(newPath, m_authHelper))
-		{
-			error.addEventParameter(
-				new CVmEventParameter( PVE::String, oldBundle.getVmName(), EVT_PARAM_MESSAGE_PARAM_0));
-			error.addEventParameter(
-				new CVmEventParameter( PVE::String, newPath, EVT_PARAM_MESSAGE_PARAM_1));
-			return PRL_ERR_EXT_DISK_ALREADY_EXISTS;
-		}
-	}
-
-	// rename bundles
-	foreach(const QString &bp, bundleParents)
-	{
-		QString oldPath = oldBundle.buildPath(bp);
-		QString newPath = newBundle.buildPath(bp);
-		if (!CFileHelper::RenameEntry(oldPath, newPath, m_authHelper))
-		{
-			error.addEventParameter(
-				new CVmEventParameter( PVE::String, oldPath, EVT_PARAM_MESSAGE_PARAM_0));
-			error.addEventParameter(
-				new CVmEventParameter( PVE::String, newPath, EVT_PARAM_MESSAGE_PARAM_1));
-			return PRL_ERR_EXT_DISK_CANT_RENAME;
-		}
-		m_renamedBundles.append(qMakePair(oldPath, newPath));
-	}
-
-	return PRL_ERR_SUCCESS;
-}
-
-void ExternalDiskBundlesRenamer::rollback()
-{
-	typedef QPair<QString, QString> RenamePair;
-	foreach(const RenamePair &bp, m_renamedBundles)
-	{
-		const QString& oldPath = bp.first;
-		const QString& newPath = bp.second;
-
-		if (!CFileHelper::RenameEntry(newPath, oldPath, m_authHelper))
-		{
-			WRITE_TRACE(DBG_FATAL,
-				"CDspVmDirHelper::editVm() : Cannot rollback renaming [%s] to [%s]",
-				QSTR2UTF8(oldPath), QSTR2UTF8(newPath) );
-		}
-	}
-	m_renamedBundles.clear();
-}
-
 void CorrectDevicePathsInVmConfigCommon(
 	CVmConfiguration *pVmConfig,
 	const QString &sOldVmHomePath,
 	const QString &sNewVmHomePath);
 
 void CorrectDevicePaths(CVmDevice &vmDevice, const QString &sOldVmHomePath, const QString &sNewVmHomePath);
-void CorrectHddPaths(CVmHardDisk &hardDisk, const QString &sOldVmHomePath, const QString &sNewVmHomePath);
 
 PRL_RESULT UpdateClusterResourceVm(
 	SmartPtr<CVmConfiguration> &pVmConfigOld,
@@ -1206,7 +1090,6 @@ PRL_RESULT Task_EditVm::editVm()
 	QString qsOldDirName;
 	QString qsNewDirName;
 	bool bVmWasRenamed = false;
-	ExternalDiskBundlesRenamer diskRenamer(&getClient()->getAuthHelper());
 
 	getLastError()->setEventType( PET_DSP_EVT_ERROR_MESSAGE );
 
@@ -2439,24 +2322,6 @@ namespace {
 							sOldVmHomePath, sNewVmHomePath));
 
 			vmDevice.setSystemName(BuildDevicePath(vmDevice.getSystemName(), sOldVmHomePath, sNewVmHomePath));
-		}
-	}
-
-	void CorrectHddPaths(CVmHardDisk &hardDisk, const QString &sOldVmHomePath, const QString &sNewVmHomePath)
-	{
-		if (hardDisk.getEmulatedType() == PVE::HardDiskImage)
-		{
-			QString newPath;
-			if (hardDisk.getUserFriendlyName().startsWith(sOldVmHomePath))
-				newPath = BuildDevicePath(hardDisk.getUserFriendlyName(), sOldVmHomePath, sNewVmHomePath);
-			else
-				newPath = buildExtDevicePath(hardDisk.getUserFriendlyName(), sOldVmHomePath, sNewVmHomePath);
-			hardDisk.setUserFriendlyName(newPath);
-			hardDisk.setSystemName(newPath);
-		}
-		else
-		{
-			CorrectDevicePaths(hardDisk, sOldVmHomePath, sNewVmHomePath);
 		}
 	}
 

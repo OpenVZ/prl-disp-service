@@ -46,10 +46,9 @@ typedef struct guestfs_h guestfs_h;
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
-
+#include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "CVmIdent.h"
-#include "CDspLibvirt.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // MounterThread
@@ -252,7 +251,7 @@ public:
 	CDspVmMountRegistry();
 	~CDspVmMountRegistry();
 
-	Libvirt::Result mount(
+	Prl::Expected<void, ::Error::Simple> mount(
 			const SmartPtr<CVmConfiguration> &pVmConfig,
 			const QString &dirUuid, const QString &mountPoint,
 			bool readOnly);
@@ -263,7 +262,7 @@ public:
 		return m_storage.getInfo(uuid);
 	}
 
-	Libvirt::Result umount(const QString &uuid);
+	Prl::Expected<void, ::Error::Simple> umount(const QString &uuid);
 
 public slots:
 	void umountForce(const QString &uuid);

@@ -44,13 +44,18 @@
 
 #include <prlxmlmodel/NetworkConfig/CParallelsNetworkConfig.h>
 #include <prlxmlmodel/VmConfig/CVmGenericNetworkAdapter.h>
+#include <prlxmlmodel/DispConfig/CDispCommonPreferences.h>
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
-#include "Dispatcher/Dispatcher/CDspVzHelper.h"
-#include "CDspRegistry.h"
 
 class CDispNetworkPreferences;
 class CDispNetAdapter;
+
+namespace Registry
+{
+struct Public;
+
+} // namespace Registry
 
 namespace Network
 {
@@ -83,7 +88,6 @@ private:
 
 class Task_ManagePrlNetService : public  CDspTaskHelper
 {
-   Q_OBJECT
 public:
 	Task_ManagePrlNetService(SmartPtr<CDspClient>&,
 				const SmartPtr<IOPackage>&);

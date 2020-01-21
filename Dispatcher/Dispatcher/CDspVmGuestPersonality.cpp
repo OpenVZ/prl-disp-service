@@ -31,6 +31,7 @@
 ///
 /////////////////////////////////////////////////////////////////////////////////
 
+#include "CDspVmDirHelper.h"
 #include "CDspVmGuestPersonality.h"
 #include "CDspVmConfigManager.h"
 #include "CDspService.h"

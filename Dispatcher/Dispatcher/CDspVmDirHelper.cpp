@@ -1601,24 +1601,6 @@ void CDspVmDirHelper::createNewVm(const IOSender::Handle& sender,
 		(new Task_RegisterVm(m_registry, pUserSession, pkg, vm_config,  vm_rootDir, bForceQuestionsSign));
 }
 
-namespace {
-	/**
-	* Searches for a VM configuration file at specified VM home dir
-	* @param VM home dir path
-	* @param path to the found VM configuration file
-	*/
-	QString FoundPvsFileAtVmDir(const QString &sVmDirPath)
-	{
-		QDir _vm_dir(sVmDirPath);
-		QFileInfoList _dir_entries = _vm_dir.entryInfoList(QDir::NoSymLinks | QDir::NoDotAndDotDot | QDir::Files);
-		foreach(QFileInfo _entry, _dir_entries)
-			if (_entry.suffix() == "pvs")
-				return (_entry.absoluteFilePath());
-		return ("");
-	}
-
-}
-
 /**
 * @brief Register existing Vm in catalog.
 * @param pRequestParams
@@ -3505,15 +3487,6 @@ PRL_RESULT CDspVmDirHelper::updateVmSecurityInfo ( SmartPtr<CDspClient> pUserSes
 	}
 
 	return ret;
-}
-
-namespace
-{
-	void SafeDeleteKeyInQSetting( CDspLockedPointer<QSettings>& pSettings, const QString& key )
-	{
-		if( pSettings->contains( key ) )
-			pSettings->remove( key );
-	}
 }
 
 void CDspVmDirHelper::sendEventVmSecurityChangedToUser( SmartPtr<CDspClient> pUserSession,

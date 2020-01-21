@@ -526,7 +526,7 @@ void Task_ConvertDisks::deleteSnapshotsData()
 
 	// Delete snapshot files
 
-	QString qsSnapshotsDataPath = m_pVmConfig->getConfigDirectory() + "/"VM_GENERATED_WINDOWS_SNAPSHOTS_DIR;
+	QString qsSnapshotsDataPath = m_pVmConfig->getConfigDirectory() + "/" VM_GENERATED_WINDOWS_SNAPSHOTS_DIR;
 	QStringList lstFilters = QStringList()
 		<< "*.mem" << "*.sav" << "*.pvc" << "*.png" << "*.mem.trc" << "*.dat" << QString("*%1")
 												.arg(VM_INFO_FILE_SUFFIX);

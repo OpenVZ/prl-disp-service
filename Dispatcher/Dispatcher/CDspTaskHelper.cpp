@@ -45,7 +45,7 @@
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include <prlcommon/ProtoSerializer/CProtoCommands.h>
-
+#include "Libraries/Virtuozzo/CVzHelper.h"
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/Interfaces/ParallelsQt.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>

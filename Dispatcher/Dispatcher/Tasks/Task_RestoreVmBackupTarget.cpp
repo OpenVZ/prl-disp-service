@@ -1571,7 +1571,7 @@ Task_RestoreVmBackupTarget::Task_RestoreVmBackupTarget(
 		SmartPtr<CDspClient> &client,
 		CProtoCommandPtr cmd,
 		const SmartPtr<IOPackage> &p)
-:Task_BackupHelper(client, p),
+:Task_BackupHelper<Restore::Task::Abstract::Target>(client, p),
 m_registry(registry_),
 m_bVmExist(false),
 m_product(boost::bind(&Task_RestoreVmBackupTarget::m_sVmUuid, this),
@@ -1612,7 +1612,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::prepareTask()
 		nRetCode = PRL_ERR_UNIMPLEMENTED;
 	}
 
-	if (PRL_FAILED(nRetCode = connect()))
+	if (PRL_FAILED(nRetCode = Task_BackupMixin::connect()))
 		goto exit;
 
 	if (PRL_FAILED(nRetCode = sendStartRequest()))
@@ -1969,7 +1969,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmToTargetPath(std::auto_ptr<Resto
 	Restore::Target::Vm::noSpace_type y;
 	if (u.isNoSpace(y))
 	{
-		nRetCode = Task_BackupHelper::checkFreeDiskSpace(y.second, y.first, false);
+		nRetCode = checkFreeDiskSpace(y.second, y.first, false);
 		if (PRL_FAILED(nRetCode))
 			return nRetCode;
 	}

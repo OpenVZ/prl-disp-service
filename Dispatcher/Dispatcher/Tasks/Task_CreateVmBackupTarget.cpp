@@ -43,7 +43,7 @@ Task_CreateVmBackupTarget::Task_CreateVmBackupTarget(
 		CDispToDispCommandPtr pCmd,
 		const SmartPtr<IOPackage> &p,
 		::Backup::Activity::Service& service_)
-:Task_BackupHelper(pDispConnection->getUserSession(), p),
+:Task_BackupHelper<Backup::Task::Abstract::Target>(pDispConnection->getUserSession(), p),
 m_pDispConnection(pDispConnection),
 m_bBackupLocked(false)
 {
@@ -429,11 +429,11 @@ PRL_RESULT Task_CreateVmBackupTarget::run_body()
 		args.prepend(QString(PRL_ABACKUP_SERVER));
 
 		/* Target side - preserve old arguments processing */
-		if (PRL_FAILED(nRetCode = m_cABackupServer.start(args, BACKUP_PROTO_V3)))
+		if (PRL_FAILED(nRetCode = m_cABackupServer->start(args, BACKUP_PROTO_V3)))
 			goto exit;
 		locker.unlock();
 
-		nRetCode = m_cABackupServer.waitForFinished();
+		nRetCode = m_cABackupServer->waitForFinished();
 		loadTibFiles();
 	}
 	else
@@ -467,7 +467,7 @@ void Task_CreateVmBackupTarget::finalizeTask()
 
 	IOSendJob::Handle hJob;
 
-	m_cABackupServer.kill();
+	m_cABackupServer->kill();
 
 	if (m_bBackupLocked) {
 		if (m_nFlags & PBT_FULL)
@@ -548,8 +548,8 @@ void Task_CreateVmBackupTarget::handlePackage(IOSender::Handle h, const SmartPtr
 				return;
 		}
 
-		if (PRL_FAILED(Task_BackupHelper::handleABackupPackage(m_pDispConnection, p, m_nBackupTimeout)))
-			m_cABackupServer.kill();
+		if (PRL_FAILED(Task_BackupMixin::handleABackupPackage(m_pDispConnection, p, m_nBackupTimeout)))
+			m_cABackupServer->kill();
 	}
 }
 
@@ -659,7 +659,7 @@ void Task_CreateVmBackupTarget::clientDisconnected(IOSender::Handle h)
 	if (m_pVmCopyTarget.isValid())
 		m_pVmCopyTarget->cancelOperation();
 
-	m_cABackupServer.kill();
+	m_cABackupServer->kill();
 	// quit event loop
 	QThread::exit(PRL_ERR_OPERATION_WAS_CANCELED);
 }

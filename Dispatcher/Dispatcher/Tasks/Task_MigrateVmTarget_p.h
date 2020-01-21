@@ -52,11 +52,6 @@ namespace Vm
 {
 namespace Target
 {
-struct Frontend;
-typedef boost::msm::back::state_machine<Frontend> Machine_type;
-typedef Vm::Pump::Event<Parallels::VmMigrateStartCmd> StartCommand_type;
-typedef Vm::Pump::Event<Parallels::FileCopyRangeStart> CopyCommand_type;
-
 namespace Libvirt
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -84,6 +79,17 @@ private:
 	QStringList m_sharedDirs;
 };
 
+} // namespace Libvirt
+
+#ifdef __USE_ISOCXX11
+#else // __USE_ISOCXX11
+struct Frontend;
+typedef boost::msm::back::state_machine<Frontend> Machine_type;
+typedef Vm::Pump::Event<Parallels::VmMigrateStartCmd> StartCommand_type;
+typedef Vm::Pump::Event<Parallels::FileCopyRangeStart> CopyCommand_type;
+
+namespace Libvirt
+{
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
@@ -575,6 +581,7 @@ private:
 	Task_MigrateVmTarget *m_task;
 	CVmConfiguration* m_config;
 };
+#endif // __USE_ISOCXX11
 
 } // namespace Target
 } // namespace Vm

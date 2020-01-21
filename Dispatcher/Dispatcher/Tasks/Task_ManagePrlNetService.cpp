@@ -38,6 +38,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "../CDspService.h"
+#include "CDspRegistry.h"
 #include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
 #include <prlxmlmodel/DispConfig/CDispNetAdapter.h>
 #include <prlcommon/Messaging/CVmEventParameter.h>

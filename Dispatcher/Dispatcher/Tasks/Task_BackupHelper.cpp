@@ -327,7 +327,7 @@ namespace Work
 ///////////////////////////////////////////////////////////////////////////////
 // struct Ct
 
-Ct::Ct(Task_BackupHelper& task_) : m_context(&task_)
+Ct::Ct(Task_BackupMixin& task_) : m_context(&task_)
 {
 }
 
@@ -351,7 +351,7 @@ QStringList Ct::buildArgs(const Product::component_type& t_, const QFileInfo* f_
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
-Vm::Vm(Task_BackupHelper& task_) : m_context(&task_)
+Vm::Vm(Task_BackupMixin& task_) : m_context(&task_)
 {
 }
 
@@ -495,7 +495,7 @@ namespace Flavor
 ///////////////////////////////////////////////////////////////////////////////
 // struct Basic
 
-QStringList Basic::craftEpilog(Task_BackupHelper& context_)
+QStringList Basic::craftEpilog(Task_BackupMixin& context_)
 {
 	QStringList output;
 	output << "-p" << context_.getBackupUuid();
@@ -510,7 +510,7 @@ QStringList Basic::craftEpilog(Task_BackupHelper& context_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Ct
 
-QString Ct::craftProlog(Task_BackupHelper& context_)
+QString Ct::craftProlog(Task_BackupMixin& context_)
 {
 	return (context_.getFlags() & PBT_INCREMENTAL) ? "append_ct" : "create_ct";
 }
@@ -525,7 +525,7 @@ QString Ct::craftImage(const component_type& component_, const QString& url_) co
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
-QStringList Vm::craftProlog(Task_BackupHelper& context_)
+QStringList Vm::craftProlog(Task_BackupMixin& context_)
 {
 	QStringList a;
 	a << QString((context_.getFlags() & PBT_INCREMENTAL) ? "append" : "create");
@@ -674,8 +674,8 @@ PRL_RESULT Visitor::operator()(Frozen& variant_) const
 
 SmartPtr<Chain> Frozen::decorate(SmartPtr<Chain> chain_)
 {
-	::Backup::Task::Reporter r(*m_context, m_uuid);
-	::Backup::Task::Workbench w(*m_context, r, CDspService::instance()->getDispConfigGuard());
+	::Backup::Task::Reporter r(m_context->getTask(), m_uuid);
+	::Backup::Task::Workbench w(m_context->getTask(), r, CDspService::instance()->getDispConfigGuard());
 	if (PRL_FAILED(m_object.freeze(w)))
 		return chain_;
 
@@ -1536,30 +1536,33 @@ void Frontend::spin(const qemuDisk_type::Good&)
 } // namespace Backup
 
 ///////////////////////////////////////////////////////////////////////////////
-// class Task_BackupHelper
+// struct Task_BackupMixin
 
-Backup::Metadata::Lock Task_BackupHelper::s_metadataLock;
+Backup::Metadata::Lock Task_BackupMixin::s_metadataLock;
 
-Task_BackupHelper::Task_BackupHelper(const SmartPtr<CDspClient> &client, const SmartPtr<IOPackage> &p)
-:CDspTaskHelper(client, p),
-Task_DispToDispConnHelper(getLastError()),
-m_pVmConfig(new CVmConfiguration()),
-m_nInternalFlags(0),
-// will assume first backup proto version on dst side by default
-m_nRemoteVersion(BACKUP_PROTO_V1), m_nBackupNumber(),
-m_service(NULL), m_cABackupClient(), m_bKillCalled(),
-/* block size + our header size */
-m_nBufSize(IOPACKAGESIZE(1) + PRL_DISP_IO_BUFFER_SIZE)
+Task_BackupMixin::Task_BackupMixin(CDspTaskHelper& task_):
+	Task_DispToDispConnHelper(task_.getLastError()),
+	m_pVmConfig(new CVmConfiguration()), m_nInternalFlags(),
+	// will assume first backup proto version on dst side by default
+	m_nRemoteVersion(BACKUP_PROTO_V1), m_nBackupNumber(), m_service(NULL),
+	m_cABackupClient(), m_bKillCalled(),
+	/* block size + our header size */
+	m_nBufSize(IOPACKAGESIZE(1) + PRL_DISP_IO_BUFFER_SIZE), m_task(&task_)
 {
 	m_pBuffer = SmartPtr<char>(new char[m_nBufSize], SmartPtrPolicy::ArrayStorage);
+	m_cABackupServer.reset(new Backup::Process::Unit());
 	// set backup client/server interface timeout (https://jira.sw.ru/browse/PSBM-10020)
 	m_nBackupTimeout = CDspService::instance()->getDispConfigGuard().
 			getDispCommonPrefs()->getBackupSourcePreferences()->getTimeout(); // in secs
 }
 
-PRL_RESULT Task_BackupHelper::connect()
+Task_BackupMixin::~Task_BackupMixin()
 {
-	if (operationIsCancelled())
+}
+
+PRL_RESULT Task_BackupMixin::connect()
+{
+	if (m_task->operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
 	QString sLogin;
@@ -1578,7 +1581,7 @@ PRL_RESULT Task_BackupHelper::connect()
 				m_sServerHostname = "127.0.0.1";
 				m_nServerPort = CDspService::getDefaultListenPort();
 				//local backup. use current session
-				SmartPtr<CDspClient> client = getActualClient();
+				SmartPtr<CDspClient> client = m_task->getClient();
 				m_sServerSessionUuid = client->getClientHandle();
 			}
 			else
@@ -1605,7 +1608,7 @@ PRL_RESULT Task_BackupHelper::connect()
 			m_nFlags);
 }
 
-BackupItem* Task_BackupHelper::getLastBaseBackup(const QString &sVmUuid,
+BackupItem* Task_BackupMixin::getLastBaseBackup(const QString &sVmUuid,
 			CAuthHelper *pAuthHelper, BackupCheckMode mode)
 {
 
@@ -1637,7 +1640,7 @@ BackupItem* Task_BackupHelper::getLastBaseBackup(const QString &sVmUuid,
 	return a.release();
 }
 
-PRL_RESULT Task_BackupHelper::checkFreeDiskSpace(
+PRL_RESULT Task_BackupMixin::checkFreeDiskSpace(
 	quint64 nRequiredSize, quint64 nAvailableSize, bool bIsCreateOp)
 {
 	if (nRequiredSize == 0)
@@ -1654,7 +1657,7 @@ PRL_RESULT Task_BackupHelper::checkFreeDiskSpace(
 		QString strSize;
 		strSize.sprintf("%.1f", (float)nRequiredSize / 1024.0 / 1024.0 / 1024.0);
 
-		nRetCode = CDspTaskFailure(*this)
+		nRetCode = CDspTaskFailure(*m_task)
 				.setCode(bIsCreateOp ? PRL_ERR_BACKUP_CREATE_NOT_ENOUGH_FREE_DISK_SPACE :
 					PRL_ERR_BACKUP_RESTORE_NOT_ENOUGH_FREE_DISK_SPACE)
 				(strSize, strFree);
@@ -1665,7 +1668,7 @@ PRL_RESULT Task_BackupHelper::checkFreeDiskSpace(
 	return nRetCode;
 }
 
-PRL_RESULT Task_BackupHelper::parseBackupId(const QString &sBackupId, QString &sBackupUuid, unsigned &nBackupNumber)
+PRL_RESULT Task_BackupMixin::parseBackupId(const QString &sBackupId, QString &sBackupUuid, unsigned &nBackupNumber)
 {
 	int nIndex;
 
@@ -1687,13 +1690,13 @@ PRL_RESULT Task_BackupHelper::parseBackupId(const QString &sBackupId, QString &s
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Task_BackupHelper::findVmUuidForBackupUuid(const QString &sBackupUuid, QString &sVmUuid)
+PRL_RESULT Task_BackupMixin::findVmUuidForBackupUuid(const QString &sBackupUuid, QString &sVmUuid)
 {
 	QDir dir, dirVm;
 	QFileInfoList listVm, listBackup;
 	int i, j;
 
-	if (operationIsCancelled())
+	if (m_task->operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
 	dir.setPath(getBackupDirectory());
@@ -1719,7 +1722,7 @@ PRL_RESULT Task_BackupHelper::findVmUuidForBackupUuid(const QString &sBackupUuid
 	return PRL_ERR_FAILURE;
 }
 
-QString Task_BackupHelper::getBackupDirectory()
+QString Task_BackupMixin::getBackupDirectory()
 {
 	CDspLockedPointer<CDispatcherConfig> pLockedDispConfig =
 		CDspService::instance()->getDispConfigGuard().getDispConfig();
@@ -1733,7 +1736,7 @@ QString Task_BackupHelper::getBackupDirectory()
 		return sBackupDirectory;
 }
 
-PRL_RESULT Task_BackupHelper::handleABackupPackage(
+PRL_RESULT Task_BackupMixin::handleABackupPackage(
 				const SmartPtr<CDspDispConnection> &pDispConnection,
 				const SmartPtr<IOPackage> &pRequest,
 				UINT32 tmo)
@@ -1758,18 +1761,18 @@ PRL_RESULT Task_BackupHelper::handleABackupPackage(
 	else if (pRequest->header.type == ABackupProxyCancelCmd)
 		WRITE_TRACE(DBG_FATAL, "receive ABackupProxyCancelCmd command");
 	/* write request to process */
-	if (PRL_FAILED(nRetCode = m_cABackupServer.write((char *)&uSize, sizeof(uSize))))
+	if (PRL_FAILED(nRetCode = m_cABackupServer->write((char *)&uSize, sizeof(uSize))))
 		return nRetCode;
-	if (PRL_FAILED(nRetCode = m_cABackupServer.write(pBuffer, uSize)))
+	if (PRL_FAILED(nRetCode = m_cABackupServer->write(pBuffer, uSize)))
 		return nRetCode;
 	/* and read reply */
-	if (PRL_FAILED(nRetCode = m_cABackupServer.read((char *)&nSize, sizeof(nSize), tmo)))
+	if (PRL_FAILED(nRetCode = m_cABackupServer->read((char *)&nSize, sizeof(nSize), tmo)))
 		return nRetCode;
 	if (m_nBufSize < nSize) {
 		WRITE_TRACE(DBG_FATAL, "Too small read buffer: %ld, requires: %ld", (long)m_nBufSize, (long)nSize);
 		return PRL_ERR_BACKUP_INTERNAL_ERROR;
 	}
-	if (PRL_FAILED(nRetCode = m_cABackupServer.read(m_pBuffer.getImpl(), nSize, tmo)))
+	if (PRL_FAILED(nRetCode = m_cABackupServer->read(m_pBuffer.getImpl(), nSize, tmo)))
 		return nRetCode;
 
 	// send reply to client
@@ -1786,7 +1789,7 @@ PRL_RESULT Task_BackupHelper::handleABackupPackage(
 	return PRL_ERR_SUCCESS;
 }
 
-void Task_BackupHelper::killABackupClient()
+void Task_BackupMixin::killABackupClient()
 {
 	if (m_cABackupClient) {
 		m_bKillCalled = true;
@@ -1794,10 +1797,10 @@ void Task_BackupHelper::killABackupClient()
 	}
 }
 
-PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const QStringList& args_,
+PRL_RESULT Task_BackupMixin::startABackupClient(const QString& sVmName_, const QStringList& args_,
 		SmartPtr<Chain> custom_)
 {
-	if (operationIsCancelled())
+	if (m_task->operationIsCancelled())
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
 	SmartPtr<Chain> y = custom_;
@@ -1819,7 +1822,7 @@ PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const 
                         QString(PRL_ABACKUP_CLIENT) : QString(VZ_BACKUP_CLIENT));
 	a << "--timeout" << QString::number(m_nBackupTimeout);
 	Client x(m_cABackupClient = new Backup::Process::Unit(boost::bind<void>(
-		Backup::Process::Flop(sVmName_, *this), _1, _2, _3)), a);
+		Backup::Process::Flop(sVmName_, *m_task), _1, _2, _3)), a);
 	while (b->no())
 	{
 		SmartPtr<IOPackage> q = x.pull(m_nRemoteVersion, m_pBuffer, m_nBufSize);
@@ -1831,7 +1834,7 @@ PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const 
 			break;
 		}
 	}
-	PRL_RESULT output = x.result(m_bKillCalled, getLastError());
+	PRL_RESULT output = x.result(m_bKillCalled, m_task->getLastError());
 	if (!m_bKillCalled && !isConnected())
 		output = PRL_ERR_IO_NO_CONNECTION;
 
@@ -1840,26 +1843,26 @@ PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const 
 	return output;
 }
 
-Chain * Task_BackupHelper::prepareABackupChain(const QStringList& args_,
+Chain * Task_BackupMixin::prepareABackupChain(const QStringList& args_,
 		const QString &sNotificationVmUuid, unsigned int nDiskIdx)
 {
 	bool bRestore = (args_.at(0) == "restore" || args_.at(0) == "restore_ct");
 	PRL_EVENT_TYPE event_type = bRestore ? PET_DSP_EVT_RESTORE_PROGRESS_CHANGED : PET_DSP_EVT_BACKUP_PROGRESS_CHANGED;
 	CVmEvent e(event_type, sNotificationVmUuid, PIE_DISPATCHER);
-	Chain *p = new Progress(e, nDiskIdx, getRequestPackage());
+	Chain *p = new Progress(e, nDiskIdx, m_task->getRequestPackage());
 	if (args_.indexOf("--local") == -1)
 		p->next(SmartPtr<Chain>(new Forward(m_pIoClient, m_nBackupTimeout)));
 	return p;
 }
 
-PRL_RESULT Task_BackupHelper::startABackupClient(const QString& sVmName_, const QStringList& args_,
+PRL_RESULT Task_BackupMixin::startABackupClient(const QString& sVmName_, const QStringList& args_,
 		const QString &sNotificationVmUuid, unsigned int nDiskIdx)
 {
 	Chain *p = prepareABackupChain(args_, sNotificationVmUuid, nDiskIdx);
 	return startABackupClient(sVmName_, args_, SmartPtr<Chain>(p));
 }
 
-PRL_RESULT Task_BackupHelper::GetBackupTreeRequest(const QString &sVmUuid, QString &sBackupTree)
+PRL_RESULT Task_BackupMixin::GetBackupTreeRequest(const QString &sVmUuid, QString &sBackupTree)
 {
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	CDispToDispCommandPtr pCmd;
@@ -1891,7 +1894,7 @@ PRL_RESULT Task_BackupHelper::GetBackupTreeRequest(const QString &sVmUuid, QStri
 			CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispResponseCommand>(pDspReply);
 
 		if (PRL_FAILED(nRetCode = pResponseCmd->GetRetCode())) {
-			getLastError()->fromString(pResponseCmd->GetErrorInfo()->toString());
+			m_task->getLastError()->fromString(pResponseCmd->GetErrorInfo()->toString());
 			return nRetCode;
 		}
 		return PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR;
@@ -1904,7 +1907,7 @@ PRL_RESULT Task_BackupHelper::GetBackupTreeRequest(const QString &sVmUuid, QStri
 	return nRetCode;
 }
 
-QString Task_BackupHelper::patch(QUrl url_) const
+QString Task_BackupMixin::patch(QUrl url_) const
 {
 	if (url_.scheme() == "nbd") {
 		// replace INADDR_ANY by a real remote server hostname
@@ -1913,12 +1916,12 @@ QString Task_BackupHelper::patch(QUrl url_) const
 	return url_.toString();
 }
 
-Backup::Metadata::Lock& Task_BackupHelper::getMetadataLock()
+Backup::Metadata::Lock& Task_BackupMixin::getMetadataLock()
 {
 	return s_metadataLock;
 }
 
-Backup::Metadata::Catalog Task_BackupHelper::getCatalog(const QString& vm_)
+Backup::Metadata::Catalog Task_BackupMixin::getCatalog(const QString& vm_)
 {
 	return Backup::Metadata::Catalog(Backup::Metadata::Carcass
 		(getBackupDirectory(), vm_));

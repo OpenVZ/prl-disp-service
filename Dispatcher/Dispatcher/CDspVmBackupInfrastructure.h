@@ -75,10 +75,8 @@ struct Vm
 ///////////////////////////////////////////////////////////////////////////////
 // class Service
 
-class Service: public QObject
+class Service: public CDspClientDisconnectReactor
 {
-	Q_OBJECT
-
 public:
 	template<class T>
 	PRL_RESULT start(Task::Ct::Object ct_, Task::Subject<Task::Ct::Subject<T> > task_)
@@ -117,7 +115,6 @@ public:
 	PRL_RESULT finish(const CVmIdent& ident_, const actor_type& actor_);
 	PRL_RESULT abort(const CVmIdent& ident_, const actor_type& actor_);
 
-public slots:
 	void abort(IOSender::Handle actor_);
 
 private:

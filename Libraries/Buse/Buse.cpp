@@ -292,8 +292,8 @@ Entry *Buse::create(const QString& name, CVmEvent *evt)
 		return NULL;
 	}
 
-	std::auto_ptr<Entry> e(new(std::nothrow) Entry(name, m_mountpoint, evt));
-	if (!e.get()) {
+	QScopedPointer<Entry> e(new(std::nothrow) Entry(name, m_mountpoint, evt));
+	if (e.isNull()) {
 		m_failure(PRL_ERR_OUT_OF_MEMORY);
 		return NULL;
 	}
@@ -313,7 +313,7 @@ Entry *Buse::create(const QString& name, CVmEvent *evt)
 	}
 
 	WRITE_TRACE(DBG_DEBUG, "created BUSE entry '%s'", QSTR2UTF8(path));
-	return e.release();
+	return e.take();
 }
 
 /**

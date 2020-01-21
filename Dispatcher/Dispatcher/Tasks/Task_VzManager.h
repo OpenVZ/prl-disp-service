@@ -44,7 +44,6 @@ using namespace Parallels;
 
 class Task_VzManager : public CDspTaskHelper
 {
-	Q_OBJECT
 public:
 
 	Task_VzManager(const SmartPtr<CDspClient>& pClient,

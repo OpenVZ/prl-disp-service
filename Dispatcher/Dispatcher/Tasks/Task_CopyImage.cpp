@@ -30,9 +30,8 @@
 ///
 /////////////////////////////////////////////////////////////////////////////////
 
-//#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
+#include "CDspVmDirHelper.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-//#include "Libraries/DiskImage/DiskImage.h"  // DiskImage commented out by request from CP team
 #include "CFileHelperDepPart.h"
 #include "CDspService.h"
 #include "Task_CopyImage.h"

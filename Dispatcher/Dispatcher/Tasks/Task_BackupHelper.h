@@ -33,9 +33,11 @@
 #ifndef __Task_BackupHelper_H_
 #define __Task_BackupHelper_H_
 
-#include "CDspTaskHelper.h"
+#include "Task_BackupQObject_p.h"
+#include <boost/utility/enable_if.hpp>
 #include "Task_DispToDispConnHelper.h"
 #include "prlcommon/VirtualDisk/Qcow2Disk.h"
+#include <boost/type_traits/is_fundamental.hpp>
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "CDspVmBackupInfrastructure.h"
 
@@ -71,50 +73,7 @@ namespace Backup
 namespace Process
 {
 struct Driver;
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Unit
-
-struct Unit: QObject
-{
-	typedef boost::function3<void, const QString&, int, const QString&>
-		callback_type;
-
-	Unit(): m_driver()
-	{
-	}
-	explicit Unit(const callback_type& callback_): m_driver(), m_callback(callback_)
-	{
-	}
-	~Unit()
-	{
-		reset();
-	}
-
-	PRL_RESULT start(QStringList args_, int version_);
-	PRL_RESULT waitForFinished();
-	void kill();
-	PRL_RESULT read(char *buffer, qint32 size, UINT32 tmo = 0);
-	PRL_RESULT write(char* data_, quint32 size_);
-	PRL_RESULT write(const SmartPtr<char>& data_, quint32 size_);
-
-private slots:
-	void reactFinish(int code_, QProcess::ExitStatus status_);
-
-private:
-	Q_OBJECT
-
-	void reset();
-	static Prl::Expected<QPair<char*, qint32>, PRL_RESULT>
-		read_(const QSharedPointer<QLocalSocket>& channel_, char* buffer_, qint32 capacity_);
-
-	QMutex m_mutex;
-	Driver* m_driver;
-	QString m_program;
-	QWaitCondition m_event;
-	callback_type m_callback;
-	QSharedPointer<QLocalSocket> m_channel;
-};
+struct Unit;
 
 } // namespace Process
 
@@ -216,7 +175,7 @@ private:
 	SmartPtr<IOClient> m_client;
 };
 
-class Task_BackupHelper;
+struct Task_BackupMixin;
 
 namespace Backup
 {
@@ -269,13 +228,13 @@ private:
 
 struct Ct
 {
-	explicit Ct(Task_BackupHelper& task_);
+	explicit Ct(Task_BackupMixin& task_);
 
 	QStringList buildArgs(const Product::component_type& t_,
 		const QFileInfo* f_) const;
 
 private:
-	Task_BackupHelper *m_context;
+	Task_BackupMixin *m_context;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -283,13 +242,13 @@ private:
 
 struct Vm
 {
-	explicit Vm(Task_BackupHelper& task_);
+	explicit Vm(Task_BackupMixin& task_);
 
 	QStringList buildArgs(const QString& snapshot_, const Product::component_type& t_,
 			const QFileInfo* f_) const;
 
 private:
-	Task_BackupHelper *m_context;
+	Task_BackupMixin *m_context;
 };
 
 typedef boost::variant<Ct, Vm> object_type;
@@ -298,15 +257,11 @@ typedef boost::variant<Ct, Vm> object_type;
 } // namespace Backup
 
 ///////////////////////////////////////////////////////////////////////////////
-// class Task_BackupHelper
+// struct Task_BackupMixin
 
-class Task_BackupHelper: public CDspTaskHelper, public Task_DispToDispConnHelper,
-			protected Backup::AClient, public Toll::Choke
+struct Task_BackupMixin: Task_DispToDispConnHelper, protected Backup::AClient, Toll::Choke
 {
-	Q_OBJECT
-
-public:
-	virtual QString  getVmUuid() { return m_sVmUuid; }
+	~Task_BackupMixin();
 
 	quint32 getFlags() const
 	{
@@ -350,6 +305,11 @@ public:
 		return m_product;
 	}
 
+	CDspTaskHelper& getTask() const
+	{
+		return *m_task;
+	}
+
 	QString patch(QUrl url_) const;
 
 	Chain * prepareABackupChain(const QStringList& args_, const QString &sNotificationVmUuid,
@@ -360,7 +320,7 @@ public:
 		SmartPtr<Chain> custom_);
 
 protected:
-	Task_BackupHelper(const SmartPtr<CDspClient> &client, const SmartPtr<IOPackage> &p);
+	explicit Task_BackupMixin(CDspTaskHelper& task_);
 
 	PRL_RESULT connect();
 
@@ -382,13 +342,6 @@ protected:
 	PRL_RESULT GetBackupTreeRequest(const QString &sVmUuid, QString &sBackupTree);
 	void killABackupClient();
 	PRL_RESULT checkFreeDiskSpace(quint64 nRequiredSize, quint64 nAvailableSize, bool bIsCreateOp);
-
-	virtual bool isCancelled() { return operationIsCancelled(); }
-
-	/**
-	* reimpl
-	*/
-	virtual bool providedAdditionState(){return true;}
 
 	Backup::Metadata::Lock& getMetadataLock();
 	Backup::Metadata::Catalog getCatalog(const QString& vm_);
@@ -419,7 +372,7 @@ protected:
 	QList<QPair<QFileInfo, QString> > m_DirList;
 	/* list of files for plain copy : file info and relative path from Vm home directory */
 	QList<QPair<QFileInfo, QString> > m_FileList;
-	Backup::Process::Unit m_cABackupServer;
+	QScopedPointer<Backup::Process::Unit> m_cABackupServer;
 	::Backup::Activity::Object::componentList_type m_urls;
 
 private:
@@ -429,6 +382,41 @@ private:
 	bool m_bKillCalled;
 	SmartPtr<char> m_pBuffer;
 	qint64 m_nBufSize;
+	CDspTaskHelper* m_task;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class Task_BackupHelper
+
+template<class T, class Enabled = void>
+class Task_BackupHelper
+{
+};
+
+template<class T>
+struct Task_BackupHelper<T, typename boost::enable_if<boost::is_base_of<CDspTaskHelper, T> >::type>:
+	T, Task_BackupMixin
+{
+	virtual QString getVmUuid()
+	{
+		return this->m_sVmUuid;
+	}
+
+protected:
+	Task_BackupHelper(const SmartPtr<CDspClient>& client_, const SmartPtr<IOPackage>& request_):
+		T(client_, request_), Task_BackupMixin(static_cast<CDspTaskHelper& >(*this))
+	{
+	}
+
+	virtual bool isCancelled()
+	{
+		return this->operationIsCancelled();
+	}
+
+	virtual bool providedAdditionState()
+	{
+		return true;
+	}
 };
 
 #endif //__Task_BackupHelper_H_

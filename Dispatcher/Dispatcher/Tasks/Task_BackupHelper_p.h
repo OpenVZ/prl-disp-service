@@ -31,7 +31,6 @@
 #ifndef __Task_BackupHelper_p_H_
 #define __Task_BackupHelper_p_H_
 
-#include <QObject>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 
@@ -52,7 +51,7 @@ typedef boost::msm::back::state_machine<Frontend> backend_type;
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
-struct Connector: QObject, Migrate::Vm::Connector::Base<backend_type>
+struct Connector: Abstract::Connector, Migrate::Vm::Connector::Base<backend_type>
 {
 	Connector(): m_service()
 	{
@@ -63,7 +62,6 @@ struct Connector: QObject, Migrate::Vm::Connector::Base<backend_type>
 		m_service = value_;
 	}
 
-public slots:
 	void reactReceive(const SmartPtr<IOPackage>& package_);
 
 	void reactAccept();
@@ -71,8 +69,6 @@ public slots:
 	void reactDisconnect();
 
 private:
-	Q_OBJECT
-
 	Migrate::Vm::Source::Tunnel::IO* m_service;
 };
 
@@ -177,18 +173,16 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Agent
 
-struct Agent: QObject
+struct Agent: Abstract::Agent
 {
 	explicit Agent(backend_type& backend_): m_backend(&backend_)
 	{
 	}
 
-	Q_INVOKABLE void cancel();
-	Q_INVOKABLE qint32 addStrand(quint16 spice_);
+	void cancel();
+	qint32 addStrand(quint16 spice_);
 
 private:
-	Q_OBJECT
-
 	backend_type* m_backend;
 };
 
@@ -258,13 +252,9 @@ typedef boost::msm::back::state_machine<Frontend> backend_type;
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
-struct Connector: QObject, Migrate::Vm::Connector::Base<backend_type>
+struct Connector: Abstract::Connector, Migrate::Vm::Connector::Base<backend_type>
 {
-public slots:
 	void reactReceive(const SmartPtr<IOPackage>& package_);
-
-private:
-	Q_OBJECT
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -417,14 +407,14 @@ namespace Work
 
 struct Command
 {
-	Command(Task_BackupHelper& task_, const Activity::Object::Model& activity_)
+	Command(Task_BackupMixin& task_, const Activity::Object::Model& activity_)
 		: m_context(&task_), m_activity(activity_) {}
 
 	static const QUrl * findArchive(const Product::component_type& t_,
 		const Activity::Object::Model& a_);
 
 protected:
-	Task_BackupHelper *m_context;
+	Task_BackupMixin *m_context;
 	const Activity::Object::Model& m_activity;
 };
 
@@ -487,9 +477,9 @@ struct ACommand : Command, boost::static_visitor<PRL_RESULT>
 {
 	typedef boost::function2<PRL_RESULT, const QStringList&, unsigned int> worker_type;
 
-	ACommand(Task_BackupHelper& task_, const Activity::Object::Model& activity_)
+	ACommand(Task_BackupMixin& task_, const Activity::Object::Model& activity_)
 		: Command(task_, activity_)
-		, m_worker(boost::bind(&Task_BackupHelper::startABackupClient
+		, m_worker(boost::bind(&Task_BackupMixin::startABackupClient
 			, m_context
 			, m_context->getProduct()->getObject()
 					.getConfig()->getVmIdentification()->getVmName()
@@ -521,7 +511,7 @@ struct Basic
 {
 	typedef Product::component_type component_type;
 
-	static QStringList craftEpilog(Task_BackupHelper& context_);
+	static QStringList craftEpilog(Task_BackupMixin& context_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -533,7 +523,7 @@ struct Ct: Basic
 	{
 	}
 
-	static QString craftProlog(Task_BackupHelper& context_);
+	static QString craftProlog(Task_BackupMixin& context_);
 
 	QString craftImage(const component_type& component_, const QString& url_) const;
 
@@ -546,7 +536,7 @@ private:
 
 struct Vm: Basic
 {
-	static QStringList craftProlog(Task_BackupHelper& context_);
+	static QStringList craftProlog(Task_BackupMixin& context_);
 
 	static QString craftImage(const component_type& component_, const QString& url_);
 };
@@ -558,7 +548,7 @@ struct Vm: Basic
 
 struct Builder : boost::static_visitor<QStringList>
 {
-	Builder(Task_BackupHelper& context_, const Activity::Object::Model& activity_):
+	Builder(Task_BackupMixin& context_, const Activity::Object::Model& activity_):
 		m_context(&context_), m_activity(&activity_)
 	{
 	}
@@ -571,7 +561,7 @@ private:
 	template<class T>
 	QStringList craft(T subject_) const;
 
-	Task_BackupHelper* m_context;
+	Task_BackupMixin* m_context;
 	QHash<QString, QUrl> m_map;
 	const Activity::Object::Model* m_activity;
 };
@@ -595,14 +585,14 @@ private:
 
 struct Frozen
 {
-	Frozen(Task_BackupHelper *context_, const QString& uuid_)
+	Frozen(Task_BackupMixin *context_, const QString& uuid_)
 		: m_context(context_), m_uuid(uuid_)
-		, m_object(uuid_, context_->getClient()) {}
+		, m_object(uuid_, context_->getTask().getClient()) {}
 
 	SmartPtr<Chain> decorate(SmartPtr<Chain> chain_);
 
 private:
-	Task_BackupHelper *m_context;
+	Task_BackupMixin *m_context;
 	QString m_uuid;
 	::Backup::Snapshot::Vm::Object m_object;
 };
@@ -614,7 +604,7 @@ typedef boost::variant<boost::blank, Frozen, Stopped> mode_type;
 
 struct Mode : boost::static_visitor<Prl::Expected<mode_type, PRL_RESULT> >
 {
-	Mode(const QString& uuid_, Task_BackupHelper *context_)
+	Mode(const QString& uuid_, Task_BackupMixin *context_)
 		: m_uuid(uuid_), m_context(context_) {}
 
 	Prl::Expected<mode_type, PRL_RESULT> operator()(Ct& variant_) const;
@@ -622,7 +612,7 @@ struct Mode : boost::static_visitor<Prl::Expected<mode_type, PRL_RESULT> >
 
 private:
 	QString m_uuid;
-	Task_BackupHelper *m_context;
+	Task_BackupMixin *m_context;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -635,13 +625,13 @@ struct VCommand : Command
 	typedef ::Backup::Activity::Object::componentList_type componentList_type;
 	typedef boost::function2<PRL_RESULT, const QStringList&, SmartPtr<Chain> > worker_type;
 
-	VCommand(Task_BackupHelper& task_, const Activity::Object::Model& activity_)
+	VCommand(Task_BackupMixin& task_, const Activity::Object::Model& activity_)
 		: Command(task_, activity_)
 		, m_uuid(m_context->getProduct()->getObject()
 			.getConfig()->getVmIdentification()->getVmUuid())
-		, m_builder(boost::bind(&Task_BackupHelper::prepareABackupChain
+		, m_builder(boost::bind(&Task_BackupMixin::prepareABackupChain
 			, m_context, _1, m_uuid, 0))
-		, m_worker(boost::bind(&Task_BackupHelper::startABackupClient
+		, m_worker(boost::bind(&Task_BackupMixin::startABackupClient
 			, m_context
 			, m_context->getProduct()->getObject()
 				.getConfig()->getVmIdentification()->getVmName()
@@ -689,7 +679,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Thaw
 
-struct Thaw: QObject, Chain
+struct Thaw: Abstract::Thaw, Chain
 {
 	explicit Thaw(const ::Backup::Snapshot::Vm::Object& object_): m_object(object_)
 	{
@@ -697,12 +687,9 @@ struct Thaw: QObject, Chain
 
 	PRL_RESULT do_(SmartPtr<IOPackage> request_, process_type& dst_);
 
-public slots:
 	void release();
 
 private:
-	Q_OBJECT
-
 	QMutex m_lock;
 	boost::optional< ::Backup::Snapshot::Vm::Object> m_object;
 };
@@ -762,7 +749,7 @@ private:
 
 struct Getter
 {
-	Getter(Task_BackupHelper &task_, SmartPtr<CVmConfiguration> ve_)
+	Getter(Task_BackupMixin &task_, SmartPtr<CVmConfiguration> ve_)
 		: m_context(&task_), m_config(ve_) {}
 
 	static PRL_RESULT run(const QStringList& args_, QString& output_);
@@ -772,7 +759,7 @@ struct Getter
 		const Activity::Object::Model& activity_, object_type& variant_);
 
 private:
-	Task_BackupHelper *m_context;
+	Task_BackupMixin *m_context;
 	SmartPtr<CVmConfiguration> m_config;
 };
 
@@ -802,19 +789,59 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Driver
 
-struct Driver: QProcess
+struct Driver: Abstract::Driver
 {
 	explicit Driver(int channel_);
 
-	Q_INVOKABLE void write_(SmartPtr<char> data_, quint32 size_);
+	void write_(SmartPtr<char> data_, quint32 size_);
 
 protected:
 	void setupChildProcess();
 
 private:
-	Q_OBJECT
-
 	int m_channel;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+struct Unit: Abstract::Unit
+{
+	typedef boost::function3<void, const QString&, int, const QString&>
+		callback_type;
+
+	Unit(): m_driver()
+	{
+	}
+	explicit Unit(const callback_type& callback_): m_driver(), m_callback(callback_)
+	{
+	}
+	~Unit()
+	{
+		reset();
+	}
+
+	PRL_RESULT start(QStringList args_, int version_);
+	PRL_RESULT waitForFinished();
+	void kill();
+	PRL_RESULT read(char *buffer, qint32 size, UINT32 tmo = 0);
+	PRL_RESULT write(char* data_, quint32 size_);
+	PRL_RESULT write(const SmartPtr<char>& data_, quint32 size_);
+
+protected:
+	void reactFinish(int code_, QProcess::ExitStatus status_);
+
+private:
+	void reset();
+	static Prl::Expected<QPair<char*, qint32>, PRL_RESULT>
+		read_(const QSharedPointer<QLocalSocket>& channel_, char* buffer_, qint32 capacity_);
+
+	QMutex m_mutex;
+	Driver* m_driver;
+	QString m_program;
+	QWaitCondition m_event;
+	callback_type m_callback;
+	QSharedPointer<QLocalSocket> m_channel;
 };
 
 } // namespace Process

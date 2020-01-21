@@ -117,9 +117,9 @@ static QString get_RATE_string(const CNetworkShapingConfig &conf)
 int CVzNetworkShaping::update_network_shaping_config(const CNetworkShapingConfig &conf)
 {
 	FILE *rfp, *wfp;
-	char buf[4096];
+	char buf[8192];
 	char r_path[PATH_MAX];
-	char tmp_path[4096], orig_path[4096];
+	char tmp_path[8192], orig_path[8192];
 	bool bandwidth_printed = false;
 	bool totalrate_printed = false;
 	bool ratempu_printed = false;

@@ -37,6 +37,7 @@
 
 #include "CDspLibvirt.h"
 #include "CDspInstrument.h"
+#include <boost/function.hpp>
 #include "Task_MigrateVmTunnel_p.h"
 #include <prlcommon/HostUtils/PCSUtils.h>
 #include <boost/msm/back/state_machine.hpp>
@@ -336,6 +337,30 @@ private:
 
 namespace Libvirt
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Progress
+
+struct Progress: QObject
+{
+	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Agent agent_type;
+	typedef boost::function1<void, int> reporter_type;
+	
+	Progress(const agent_type& agent_, const reporter_type& reporter_):
+		m_last(~0), m_agent(agent_), m_reporter(reporter_)
+	{
+	}
+
+	void report(quint16 value_);
+
+protected:
+	void timerEvent(QTimerEvent* event_);
+
+private:
+	quint16 m_last;
+	agent_type m_agent;
+	reporter_type m_reporter;
+};
+
 namespace Trick
 {
 ///////////////////////////////////////////////////////////////////////////////

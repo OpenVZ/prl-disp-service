@@ -384,20 +384,20 @@ SnapshotParser::SnapshotReturnCode CSavedStateStore::Load(const QString sXmlFile
 
 	m_sXmlFileName = sXmlFileName;
 	QDomDocument doc;
-    QFile file(sXmlFileName);
+	QFile file(sXmlFileName);
 
-    if (!file.open(QIODevice::ReadOnly))
-        return SnapshotParser::BadFileName;
+	if (!file.open(QIODevice::ReadOnly))
+		return SnapshotParser::BadFileName;
 
 	// Set content of xml model
 	if (!doc.setContent(&file))
 	{
-        file.close();
-        return SnapshotParser::BadFileName;
-    }
-    file.close();
+		file.close();
+		return SnapshotParser::BadFileName;
+	}
+	file.close();
 
-    QDomElement docElem = doc.documentElement();
+	QDomElement docElem = doc.documentElement();
 
 	// Root element have to have special name
 	if (docElem.tagName() != XML_SS_CONFIG_EL_ROOT)

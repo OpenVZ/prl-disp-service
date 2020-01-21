@@ -243,7 +243,7 @@ namespace Escort
 ///////////////////////////////////////////////////////////////////////////////
 // struct Gear
 
-struct Gear: QObject
+struct Gear: Abstract::Gear
 {
 	typedef SmartPtr<CVmFileListCopyTarget> transport_type;
 
@@ -251,12 +251,10 @@ struct Gear: QObject
 
 	PRL_RESULT operator()();
 
-private slots:
+protected:
 	void react(const SmartPtr<IOPackage> package_);
 
 private:
-	Q_OBJECT
-
 	IOClient* m_io;
 	QEventLoop m_loop;
 	SmartPtr<CVmFileListCopyTarget> m_transport;
@@ -266,10 +264,8 @@ private:
 } // namespace Target
 } // namespace Restore
 
-class Task_RestoreVmBackupSource : public Task_BackupHelper
+class Task_RestoreVmBackupSource : public Task_BackupHelper<Restore::Task::Abstract::Source>
 {
-	Q_OBJECT
-
 	typedef QPair< QString,
 		QSharedPointer< ::Restore::Source::Archive> > archive_type;
 
@@ -316,17 +312,15 @@ private:
            exclude obj from dirList or fileList */
 	PRL_RESULT getEntryLists();
 
-private slots:
 	void mountImage(const SmartPtr<IOPackage>& package_);
 	void clientDisconnected(IOSender::Handle h);
 	void handleABackupPackage(IOSender::Handle h, const SmartPtr<IOPackage> p);
 	void handleVBackupPackage(IOSender::Handle h, const SmartPtr<IOPackage> p);
 };
 
-class Task_RestoreVmBackupTarget : public Task_BackupHelper, Restore::Target::Factory
+class Task_RestoreVmBackupTarget:
+	public Task_BackupHelper<Restore::Task::Abstract::Target>, Restore::Target::Factory
 {
-	Q_OBJECT
-
 public:
 	Task_RestoreVmBackupTarget(
 		Registry::Public&,
@@ -403,7 +397,6 @@ private:
 	WaiterTillHandlerUsingObject m_waiter;
 	std::auto_ptr<Legacy::Vm::Converter> m_converter;
 
-private slots:
 	void runV2V();
 };
 

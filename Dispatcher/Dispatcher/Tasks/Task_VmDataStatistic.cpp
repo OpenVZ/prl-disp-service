@@ -30,6 +30,7 @@
 ///
 /////////////////////////////////////////////////////////////////////////////////
 
+#include "CDspVmDirHelper.h"
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/HostUtils/HostUtils.h>
@@ -321,7 +322,7 @@ PRL_RESULT Task_VmDataStatistic::snapshotsDiskSpaceUsage()
 {
 	quint64 nSnapshotsSize = 0;
 
-	QFileInfo fiSnapshots( m_fiVmHomePath.canonicalFilePath() + "/"VM_GENERATED_WINDOWS_SNAPSHOTS_DIR );
+	QFileInfo fiSnapshots( m_fiVmHomePath.canonicalFilePath() + "/" VM_GENERATED_WINDOWS_SNAPSHOTS_DIR );
 	if (fiSnapshots.exists())
 		CSimpleFileHelper::GetDirSize(fiSnapshots.canonicalFilePath(), &nSnapshotsSize);
 
@@ -441,7 +442,7 @@ QStringList Task_VmDataStatistic::getLostSnapshotFiles()
 	// Search all snapshot files
 
 	QFileInfoList filSnapshots
-		= QDir( m_fiVmHomePath.canonicalFilePath() + "/"VM_GENERATED_WINDOWS_SNAPSHOTS_DIR )
+		= QDir( m_fiVmHomePath.canonicalFilePath() + "/" VM_GENERATED_WINDOWS_SNAPSHOTS_DIR )
 			.entryInfoList(QStringList("{*}.*"), QDir::Files | QDir::NoSymLinks | QDir::Hidden);
 	foreach(QFileInfo fiSnapshot, filSnapshots)
 	{
@@ -472,7 +473,7 @@ QStringList Task_VmDataStatistic::getLostSnapshotFiles()
 	foreach(QString qsFileName, lstReclaimFiles)
 	{
 		QFileInfo fiReclaim = m_fiVmHomePath.canonicalFilePath()
-								+  "/"VM_GENERATED_WINDOWS_SNAPSHOTS_DIR"/" + qsFileName;
+								+  "/" VM_GENERATED_WINDOWS_SNAPSHOTS_DIR "/" + qsFileName;
 		if ( ! fiReclaim.exists() )
 			continue;
 

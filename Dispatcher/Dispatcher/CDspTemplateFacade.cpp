@@ -31,6 +31,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CDspService.h"
+#include "CDspVmDirHelper.h"
 #include "CDspTemplateFacade.h"
 
 namespace Template

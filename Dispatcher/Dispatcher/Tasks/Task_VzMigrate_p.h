@@ -33,6 +33,7 @@
 #include <QVector>
 #include <QProcess>
 #include "CDspInstrument.h"
+#include "Task_VzMigrateQObject_p.h"
 #include <prlcommon/Logging/Logging.h>
 #include "Task_MigrateVmTunnel_p.h"
 #include <prlcommon/Std/noncopyable.h>
@@ -74,7 +75,7 @@ struct Visitor: boost::static_visitor<PRL_RESULT>
 ///////////////////////////////////////////////////////////////////////////////
 // struct Pump
 
-struct Pump: QObject
+struct Pump: Abstract::Pump
 {
 	Pump(const mvpp::Queue& queue_, const mvppv::Dispatch& dispatch_):
 		m_queue(queue_), m_dispatch(dispatch_)
@@ -87,12 +88,9 @@ struct Pump: QObject
 		return m_queue.size();
 	}
 
-public slots:
 	void reactBytesWritten(qint64 value_);
 
 private:
-	Q_OBJECT
-
 	void setState(const mvpp::target_type& value_);
 
 	mvpp::Queue m_queue;
@@ -103,7 +101,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hub
 
-struct Hub: QObject
+struct Hub: Abstract::Hub
 {
 	typedef QPair<QLocalSocket* , Pump* > pump_type;
 	typedef QHash<int, pump_type> pumps_type;
@@ -120,16 +118,9 @@ struct Hub: QObject
 		return m_pending;
 	}
 	bool isVacant() const;
-
-public slots:
 	void reactBytesWritten(qint64 value_);
 
-signals:
-	void vacant();
-
 private:
-	Q_OBJECT
-
 	void recalculate();
 
 	quint32 m_pending;
@@ -181,7 +172,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Task_HandleDispPackage
 
-struct Task_HandleDispPackage: QThread
+struct Task_HandleDispPackage: Migrate::Ct::Abstract::Task
 {
 	Task_HandleDispPackage(
 		IOSendJobInterface *pSendJobInterface,
@@ -195,16 +186,10 @@ struct Task_HandleDispPackage: QThread
 		return m_pSendJobInterface->urgentResponseWakeUp(m_hJob);
 	}
 
-public slots:
 	void spin();
 	void read();
 
-signals:
-	void onDispPackageHandlerFailed(PRL_RESULT nRetCode, const QString &sErrInfo);
-
 private:
-	Q_OBJECT
-
 	static Prl::Expected<IOSendJob::Response, PRL_RESULT>
 		pull(IOSendJobInterface* gateway_, IOSendJob::Handle strand_);
 

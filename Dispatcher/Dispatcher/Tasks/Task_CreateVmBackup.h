@@ -33,10 +33,6 @@
 #ifndef __Task_CreateVmBackup_H_
 #define __Task_CreateVmBackup_H_
 
-#include <QString>
-
-#include "CDspTaskHelper.h"
-#include "CDspClient.h"
 #include "prlxmlmodel/VmConfig/CVmConfiguration.h"
 #include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include "prlcommon/IOService/IOCommunication/IOClient.h"
@@ -65,13 +61,11 @@ struct Model;
 ///////////////////////////////////////////////////////////////////////////////
 // class Task_CreateVmBackup
 
-class Task_CreateVmBackup : public Task_BackupHelper
+class Task_CreateVmBackup : public Task_BackupHelper<CDspTaskHelper>
 {
-	Q_OBJECT
-
 public:
 	Task_CreateVmBackup(const SmartPtr<CDspClient>& c_, const SmartPtr<IOPackage>& p_)
-		: Task_BackupHelper(c_, p_) {}
+		: Task_BackupHelper<CDspTaskHelper>(c_, p_) {}
 
 protected:
 	PRL_RESULT sendStartRequest(const ::Backup::Activity::Object::Model& activity_,
@@ -93,8 +87,6 @@ protected:
 
 class Task_CreateVmBackupSource : public Task_CreateVmBackup
 {
-	Q_OBJECT
-
 public:
 	Task_CreateVmBackupSource(
 		const SmartPtr<CDspClient> &,
@@ -118,8 +110,6 @@ private:
 
 class Task_CreateCtBackupSource : public Task_CreateVmBackup
 {
-	Q_OBJECT
-
 public:
 	Task_CreateCtBackupSource(
 		const SmartPtr<CDspClient> &,
@@ -142,12 +132,10 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // class Task_CreateVmBackupTarget
 
-class Task_CreateVmBackupTarget : public Task_BackupHelper
+class Task_CreateVmBackupTarget : public Task_BackupHelper<Backup::Task::Abstract::Target>
 {
 	typedef QPair< ::Backup::Storage::Image,
 			QSharedPointer< ::Backup::Storage::Nbd> > archive_type;
-
-	Q_OBJECT
 
 private:
 	quint64 getBackupSize();
@@ -169,6 +157,8 @@ protected:
 	virtual PRL_RESULT prepareTask();
 	virtual PRL_RESULT run_body();
 	virtual void finalizeTask();
+	void handlePackage(IOSender::Handle h, const SmartPtr<IOPackage> p);
+	void clientDisconnected(IOSender::Handle h);
 
 private:
 	SmartPtr<CDspDispConnection> m_pDispConnection;
@@ -195,9 +185,6 @@ private:
 	bool m_bABackupFirstPacket;
 	QList<archive_type> m_createdTibs;
 
-private slots:
-	void handlePackage(IOSender::Handle h, const SmartPtr<IOPackage> p);
-	void clientDisconnected(IOSender::Handle h);
 
 };
 

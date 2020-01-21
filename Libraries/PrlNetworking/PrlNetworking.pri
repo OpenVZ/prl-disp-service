@@ -4,7 +4,12 @@ QTCONFIG = xml core network
 !include(../../Build/qmake/staticlib.pri): error(include error)
 
 linux-*: include($$LIBS_LEVEL/Virtuozzo/Virtuozzo.pri)
-linux-*: LIBS += -lnetlink
+linux-* {
+	LIBS += -lnetlink
+	system(ld -lmnl) {
+		LIBS += -lmnl
+	}
+} 
 
 INCLUDEPATH += $$SRC_LEVEL/System/Network/drivers/common
 linux-*:	INCLUDEPATH += $$SRC_LEVEL/System/Network/drivers/lin/pvsnet

@@ -34,6 +34,7 @@
 
 #include "CDspVmNetworkHelper.h"
 #include "CDspService.h"
+#include "CDspVmDirHelper.h"
 #include "Tasks/Task_ManagePrlNetService.h"
 
 #include <prlcommon/HostUtils/HostUtils.h>
@@ -69,6 +70,7 @@ void Accounting::operator()(const QString& device_)
 			QSTR2UTF8(m_control.errorString()));
 		return;
 	}
+#ifdef TUNSETACCTID
 	struct ifreq x;
 	qstrncpy(x.ifr_name, QSTR2UTF8(device_), sizeof(x.ifr_name));
 	x.ifr_acctid = m_id;
@@ -77,6 +79,9 @@ void Accounting::operator()(const QString& device_)
 		WRITE_TRACE(DBG_FATAL, "ioctl(TUNSETACCTID, %s, %u) failed: %m",
 			x.ifr_name, x.ifr_acctid);
 	}
+#else // TUNSETACCTID
+	Q_UNUSED(device_);
+#endif // TUNSETACCTID
 }
 
 } // namespace Traffic

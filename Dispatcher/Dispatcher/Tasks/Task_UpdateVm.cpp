@@ -35,6 +35,7 @@
 #include "CDspService.h"
 #include "CDspLibvirt.h"
 #include "Task_UpdateVm.h"
+#include "CDspVmDirHelper.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // class Task_UpdateVm

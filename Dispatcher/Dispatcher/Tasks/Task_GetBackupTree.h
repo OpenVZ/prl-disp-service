@@ -77,10 +77,8 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // class Task_GetBackupTreeSource
 
-class Task_GetBackupTreeSource : public Task_BackupHelper
+class Task_GetBackupTreeSource : public Task_BackupHelper<CDspTaskHelper>
 {
-	Q_OBJECT
-
 public:
 	Task_GetBackupTreeSource(
 		const SmartPtr<CDspClient> &,
@@ -102,10 +100,8 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // class Task_GetBackupTreeTarget
 
-class Task_GetBackupTreeTarget : public Task_BackupHelper
+class Task_GetBackupTreeTarget : public Task_BackupHelper<CDspTaskHelper>
 {
-	Q_OBJECT
-
 public:
 	Task_GetBackupTreeTarget(
 		SmartPtr<CDspDispConnection> &,

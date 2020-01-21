@@ -2098,11 +2098,11 @@ void Meter<T>::account_(QString one_, PRL_RESULT status_)
 		typedef typename journal_type::key_type key_type;
 		foreach(const key_type& k, m_journal.keys())
 		{
-			Counter::account_(k);
+			Counter::account__(k);
 		}
 	}
 	else
-		Counter::account_(one_);
+		Counter::account__(one_);
 }
 
 namespace Strategy
@@ -2417,7 +2417,7 @@ Counter::product_type Counter::read()
 	return output;
 }
 
-void Counter::account_(QString one_)
+void Counter::account__(QString one_)
 {
 	if (!m_pending.remove(one_))
 		return;
@@ -2434,7 +2434,7 @@ void Counter::reset_()
 	QSet<QString> a = m_pending;
 	foreach (const QString& b, a)
 	{
-		account_(b, PRL_ERR_OPERATION_WAS_CANCELED);
+		this->account_(b, PRL_ERR_OPERATION_WAS_CANCELED);
 	}
 }
 

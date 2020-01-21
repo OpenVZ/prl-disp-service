@@ -7,8 +7,8 @@
 # //////////////////////////////////////////////////////////////////////////////////////
 
 
-QMAKE_CFLAGS += -Werror
+QMAKE_CFLAGS += -Werror -Wno-implicit-fallthrough
 macx:QMAKE_CFLAGS += -Wno-deprecated-declarations
-QMAKE_CXXFLAGS += -Werror
+QMAKE_CXXFLAGS += -Werror -Wno-implicit-fallthrough -Wno-deprecated-declarations -Wno-cast-function-type
 macx:QMAKE_CXXFLAGS += -Wno-deprecated-declarations
 

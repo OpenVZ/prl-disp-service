@@ -926,7 +926,7 @@ void Mangle::operator()(T& format_) const
 
 Task_AttachVmBackupHelper::Task_AttachVmBackupHelper(SmartPtr<CDspClient>& client,
 	const SmartPtr<IOPackage>& p)
-	:Task_BackupHelper(client, p)
+	:Task_BackupHelper<CDspTaskHelper>(client, p)
 {
 	m_nFlags = 0;
 	m_nServerPort = 0;

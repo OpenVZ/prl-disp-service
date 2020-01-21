@@ -37,7 +37,6 @@
 
 class Task_ChangeSID : public CDspTaskHelper
 {
-	Q_OBJECT
 public:
 	Task_ChangeSID(const SmartPtr<CDspClient> &user,
 			const SmartPtr<IOPackage> &p,

@@ -37,6 +37,7 @@
 #include <prlxmlmodel/VmDirectory/CVmDirectory.h>
 #include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include "CDspLibvirtExec.h"
+#include "Task_ExecVmQObject_p.h"
 
 #include <boost/variant.hpp>
 
@@ -46,10 +47,8 @@ class Task_ExecVm;
 ///////////////////////////////////////////////////////////////////////////////
 // class Task_ResponseProcessor
 
-class Task_ResponseProcessor : public CDspTaskHelper
+class Task_ResponseProcessor : public Exec::Abstract::Task::Auxiliary
 {
-	Q_OBJECT
-
 public:
 	Task_ResponseProcessor(const SmartPtr<CDspClient>& pClient,
 			const SmartPtr<IOPackage>& p, Task_ExecVm *pExec);
@@ -60,8 +59,6 @@ private:
 	virtual PRL_RESULT prepareTask();
 	virtual PRL_RESULT run_body();
 	virtual void cancelOperation(SmartPtr<CDspClient>, const SmartPtr<IOPackage> &);
-
-public slots:
 	void slotProcessStdin(const SmartPtr<IOPackage>& p);
 	void slotProcessFin();
 
@@ -123,16 +120,13 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Join - exits loop when all added objects finished their job
 
-struct Join: QObject
+struct Join: Abstract::Join
 {
 	explicit Join(QEventLoop& loop_) : m_loop(loop_) {}
 	void add(QObject *object_);
-
-public slots:
 	void slotFinished();
 
 private:
-	Q_OBJECT
 	QList<QSharedPointer<QObject> > m_objects;
 	QEventLoop& m_loop;
 };
@@ -152,8 +146,6 @@ protected:
 	void timerEvent(QTimerEvent *event);
 
 private:
-	Q_OBJECT
-
 	QEventLoop& m_loop;
 	exec_type& m_exec;
 	exec_type::result_type m_sign;
@@ -164,7 +156,7 @@ namespace vm = Libvirt::Instrument::Agent::Vm;
 ///////////////////////////////////////////////////////////////////////////////
 // struct Mediator - mediator between devices and Task_ExecVm. Forwards data to client.
 
-struct Mediator: QObject
+struct Mediator: Abstract::Mediator
 {
 	Mediator(Task_ExecVm& task_, vm::Exec::ReadDevice *object_, int type_)
 		: m_task(&task_), m_iotype(type_), m_object(object_)
@@ -177,15 +169,10 @@ struct Mediator: QObject
 		PRL_ASSERT(x);
 	}
 
-signals:
-	void finished();
-
-public slots:
 	void slotSendData();
 	void slotEof();
 
 private:
-	Q_OBJECT
 	Task_ExecVm* m_task;
 	int m_iotype;
 	vm::Exec::ReadDevice *m_object;
@@ -246,9 +233,8 @@ typedef boost::variant<Exec::Vm, Exec::Ct> Mode;
 ///////////////////////////////////////////////////////////////////////////////
 // class Task_ExecVm
 
-class Task_ExecVm : public CDspTaskHelper
+class Task_ExecVm : public Exec::Abstract::Task::Main
 {
-	Q_OBJECT
 public:
 	Task_ExecVm(const SmartPtr<CDspClient>& pClient,
 		const SmartPtr<IOPackage>& p, Exec::Mode mode);
@@ -286,7 +272,7 @@ private:
 	int m_exitcode;
 	Exec::Mode m_mode;
 
-private slots:
+protected:
 	void reactDisconnected(IOSender::Handle handle);
 };
 

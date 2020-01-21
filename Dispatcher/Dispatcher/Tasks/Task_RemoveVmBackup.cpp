@@ -62,7 +62,7 @@ Task_RemoveVmBackupSource::Task_RemoveVmBackupSource(
 		SmartPtr<CDspClient> &client,
 		CProtoCommandPtr cmd,
 		const SmartPtr<IOPackage> &p)
-:Task_BackupHelper(client, p)
+:Task_BackupHelper<CDspTaskHelper>(client, p)
 {
 	CProtoRemoveVmBackupCommand *pCmd = CProtoSerializer::CastToProtoCommand<CProtoRemoveVmBackupCommand>(cmd);
 	m_sVmUuid = pCmd->GetVmUuid();
@@ -82,7 +82,7 @@ PRL_RESULT Task_RemoveVmBackupSource::run_body()
 	CDispToDispCommandPtr pResponce;
 	CDispToDispResponseCommand *pResponseCmd;
 
-	if (PRL_FAILED(nRetCode = connect()))
+	if (PRL_FAILED(nRetCode = Task_BackupMixin::connect()))
 		goto exit;
 
 	if (operationIsCancelled())
@@ -295,7 +295,7 @@ qulonglong Meta::getSize() const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Flavor
 
-Flavor::Flavor(Task_BackupHelper& context_): m_failure(context_)
+Flavor::Flavor(CDspTaskHelper& context_): m_failure(context_)
 {
 }
 
@@ -550,13 +550,16 @@ Prl::Expected<batch_type, PRL_RESULT> Confectioner::operator()(quint32 item_)
 	if (u.isFailed())
 		return u.error().code();
 
+	batch_type output;
+	output.addItem(Unit(u.value()));
+#ifdef __USE_ISOCXX11
+#else // __USE_ISOCXX11
 	PRL_RESULT (*f)(const Remove::Meta&, Remove::item_type&, Remove::item_type&) =
 		&boost::apply_visitor<Remove::Meta, Remove::item_type, Remove::item_type>;
 
-	batch_type output;
-	output.addItem(Unit(u.value()));
 	output.addItem(boost::bind(f, Remove::Meta(l.value(), m_sequence),
 		v.value().getData(), l.value().getData()));
+#endif // __USE_ISOCXX11
 	output.addItem(Remove::Flavor(*m_context)(v.value()));
 
 	return output;
@@ -602,7 +605,7 @@ Task_RemoveVmBackupTarget::Task_RemoveVmBackupTarget(
 		SmartPtr<CDspDispConnection> &pDispConnection,
 		CDispToDispCommandPtr cmd,
 		const SmartPtr<IOPackage> &p)
-:Task_BackupHelper(pDispConnection->getUserSession(), p),
+:Task_BackupHelper<CDspTaskHelper>(pDispConnection->getUserSession(), p),
 m_pDispConnection(pDispConnection)
 {
 	CVmBackupRemoveCommand *pCmd =

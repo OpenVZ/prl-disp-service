@@ -54,7 +54,6 @@ HEADERS += \
 	CDspVmDirHelper.h \
 	CDspVmDirHelper_p.h \
 	CDspVmManager.h \
-	CDspVmManager_p.h \
 	CDspVmMounter.h \
 	CDspVmGuestPersonality.h \
 	CDspVmNetworkHelper.h \
@@ -86,6 +85,7 @@ HEADERS += \
 	CDspAsyncRequest.h \
 	CVcmmdInterface.h \
 	CDspVzLicense.h \
+	CDspVmGuest_p.h \
 	CDspVmGuest.h \
 	CDspDBusHub.h \
 	CDspVmBrand.h \
@@ -119,21 +119,13 @@ HEADERS += \
 	Tasks/Task_FileSystemEntriesOperations.h \
 	Tasks/Task_GetFileSystemEntries.h \
 	Tasks/Task_GetInfoFromParallelsUtils.h \
-	Tasks/Task_ManagePrlNetService.h \
 	Tasks/Task_RegisterVm.h \
 	Tasks/Task_SearchLostConfigs.h \
 	Tasks/Task_UpdateCommonPrefs.h \
 	Tasks/Task_BackgroundJob.h \
-	Tasks/Task_CreateVmBackup.h \
-	Tasks/Task_RestoreVmBackup.h \
 	Tasks/Task_RestoreVmBackup_p.h \
-	Tasks/Task_GetBackupTree.h \
-	Tasks/Task_RemoveVmBackup.h \
 	Tasks/Task_RemoveVmBackup_p.h \
-	Tasks/Task_BackupHelper.h \
-	Tasks/Task_BackupHelper_p.h \
 	Tasks/Task_DiskImageResizer.h \
-	Tasks/Task_ChangeSID.h \
 	Tasks/Task_CreateProblemReport.h \
 	Tasks/Task_SyncVmsUptime.h \
 	Tasks/Task_MigrateVm.h \
@@ -153,6 +145,17 @@ HEADERS += \
 	Tasks/Task_MigrateVmSource_p.h \
 	Tasks/Task_MigrateVmQObject_p.h \
 	Tasks/Task_UpdateVm.h \
+	Tasks/Task_ChangeSID.h \
+	Tasks/Task_GetBackupTree.h \
+	Tasks/Task_RemoveVmBackup.h \
+	Tasks/Task_BackupQObject_p.h \
+	Tasks/Task_BackupHelper_p.h \
+	Tasks/Task_BackupHelper.h \
+	Tasks/Task_CreateVmBackup.h \
+	Tasks/Task_RestoreVmBackup.h \
+	Tasks/Task_ManagePrlNetService.h \
+	CDspVmManagerQObject_p.h \
+	CDspVmManager_p.h \
 	\
 	HwMonitor/CDspHwMonitorNotifier.h \
 	HwMonitor/CDspHwMonitorHandler.h \
@@ -314,10 +317,12 @@ contains(DEFINES, _CT_) {
 		HEADERS += \
 			Tasks/Task_VzMigrate.h \
 			Tasks/Task_VzMigrate_p.h \
+			Tasks/Task_VzMigrateQObject_p.h \
 			Tasks/Task_MigrateCtSource.h \
 			Tasks/Task_MigrateCtTarget.h \
 			Tasks/Task_CopyCtTemplate.h \
-			Tasks/Task_ExecVm.h
+			Tasks/Task_ExecVm.h \
+			Tasks/Task_ExecVmQObject_p.h
 
 		SOURCES += \
 			Tasks/Task_VzMigrate.cpp \
@@ -340,6 +345,7 @@ contains(DEFINES, _CT_) {
 
 libvirt {
 	HEADERS += \
+		CDspLibvirtQObject_p.h \
 		CDspLibvirt.h \
 		CDspLibvirtExec.h \
 		CDspLibvirt_p.h

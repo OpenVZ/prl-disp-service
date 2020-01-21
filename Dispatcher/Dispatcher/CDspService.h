@@ -36,7 +36,6 @@
 #include <QCoreApplication>
 #include <QAtomicInt>
 #include <QList>
-
 #include <prlcommon/Interfaces/ParallelsNamespace.h>
 #include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
 #include "CDspDispConfigGuard.h"
@@ -44,22 +43,15 @@
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
 #include "CDspUserHelper.h"
 #include "CDspShellHelper.h"
-#include "CDspVmDirHelper.h"
-#include "CDspVmSnapshotStoreHelper.h"
-#include "CDspVmDirManager.h"
-#include "CDspAccessManager.h"
 #include "CDspSync.h"
 #include "DspMonitor.h"
-#include "CDspVmMigrateHelper.h"
-#include "CDspVmConfigManager.h"
+#include "CDspAccessManager.h"
 #include "CDspIOClientHandler.h"
 #include "CDspIOCtClientHandler.h"
 #include "CDspHaClusterHelper.h"
 #include "CDspSettingsWrap.h"
-#include "CDspBackupHelper.h"
-#ifdef _LIBVIRT_
-#include "CDspLibvirt.h"
-#endif // _LIBVIRT_
+#include "CDspVmMigrateHelper.h"
+#include "CDspVmSnapshotStoreHelper.h"
 #include "Stat/CDspStatCollectingThread.h"
 
 #include "HwMonitor/CDspHwMonitorThread.h"
@@ -89,6 +81,8 @@ using Parallels::CDispToDispCommandPtr;
 class CDspClientManager;
 class CDspVmManager;
 class CDspHandler;
+class CDspShellHelper;
+class CDspVmDirHelper;
 class CDspRecognitionMetadataMgr;
 class CDspVmStateSender;
 class CDspVmStateSenderThread;
@@ -98,10 +92,23 @@ class CDspAsyncRequest;
 class CDspDispConnectionsManager;
 class CDspDBusHub;
 
+namespace Libvirt
+{
+struct Host;
+} // namespace Libvirt
+
 namespace Registry
 {
 struct Actual;
 } // namespace Registry
+
+namespace Backup
+{
+namespace Activity
+{
+struct Service;
+} // namespace Activity
+} // namespace Backup
 
 class CDspService : public QObject
 {
@@ -523,7 +530,7 @@ private:
 	QScopedPointer<Libvirt::Host> m_hypervisor;
 #endif // _LIBVIRT_
 	QScopedPointer<Registry::Actual> m_registry;
-	Backup::Activity::Service m_backup;
+	QScopedPointer<Backup::Activity::Service> m_backup;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -691,7 +691,7 @@ void CDspShellHelper::sendGuestStatistics (
 							CDspService::instance()->getVmDirManager().getVmHomeByUuid( vmIdent )
 							).path();
 
-		SmartPtr<CVmInfo> pVmInfo = CDspVmInfoDatabase::readVmInfo(qsVmPath + "/"VM_INFO_FILE_NAME );
+		SmartPtr<CVmInfo> pVmInfo = CDspVmInfoDatabase::readVmInfo(qsVmPath + "/" VM_INFO_FILE_NAME );
 		if ( ! pVmInfo )
 		{
 			pUser->sendSimpleResponse(p, PRL_ERR_FAILURE);

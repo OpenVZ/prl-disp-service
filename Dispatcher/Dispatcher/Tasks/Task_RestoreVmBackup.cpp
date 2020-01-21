@@ -168,7 +168,7 @@ Task_RestoreVmBackupSource::Task_RestoreVmBackupSource(
 		SmartPtr<CDspDispConnection> &pDispConnection,
 		const CDispToDispCommandPtr cmd,
 		const SmartPtr<IOPackage>& p)
-:Task_BackupHelper(pDispConnection->getUserSession(), p),
+:Task_BackupHelper<Restore::Task::Abstract::Source>(pDispConnection->getUserSession(), p),
 m_pDispConnection(pDispConnection),
 m_ioServer(CDspService::instance()->getIOServer()),
 m_bBackupLocked(false)
@@ -308,7 +308,7 @@ void Task_RestoreVmBackupSource::finalizeTask()
 {
 	CDspService::instance()->getIOServer()
 		.disconnect(this, SLOT(clientDisconnected(IOSender::Handle)));
-	m_cABackupServer.kill();
+	m_cABackupServer->kill();
 
 	foreach(const archive_type& f, m_nbds)
 		f.second->disconnect();
@@ -524,7 +524,7 @@ PRL_RESULT Task_RestoreVmBackupSource::restore(const ::Backup::Work::object_type
 	if (e.isFailed()) {
 		nRetCode = PRL_ERR_BACKUP_RESTORE_INTERNAL_ERROR;
 		WRITE_TRACE(DBG_FATAL, "Error occurred while VE config at \"%s\" loading with code [%#x][%s]",
-			__FUNCTION__, QSTR2UTF8(m_sBackupPath), e.error(), PRL_RESULT_TO_STRING(e.error()));
+			QSTR2UTF8(m_sBackupPath), e.error(), PRL_RESULT_TO_STRING(e.error()));
 		goto exit_0;
 	}
 
@@ -542,7 +542,7 @@ PRL_RESULT Task_RestoreVmBackupSource::restore(const ::Backup::Work::object_type
 
 		nRetCode = Restore::Source::Workerv3(
 			boost::bind(&Task_RestoreVmBackupSource::sendFiles, this, job),
-			&m_cABackupServer)();
+			m_cABackupServer.data())();
 	}
 	else
 	{
@@ -587,8 +587,8 @@ void Task_RestoreVmBackupSource::handleABackupPackage(IOSender::Handle h, const 
 	if (h != m_pDispConnection->GetConnectionHandle())
 		return;
 
-	if (PRL_FAILED(Task_BackupHelper::handleABackupPackage(m_pDispConnection, p, m_nBackupTimeout)))
-		m_cABackupServer.kill();
+	if (PRL_FAILED(Task_BackupMixin::handleABackupPackage(m_pDispConnection, p, m_nBackupTimeout)))
+		m_cABackupServer->kill();
 }
 
 void Task_RestoreVmBackupSource::mountImage(const SmartPtr<IOPackage>& package_)

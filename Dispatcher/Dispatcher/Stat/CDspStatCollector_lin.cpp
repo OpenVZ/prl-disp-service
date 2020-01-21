@@ -135,7 +135,7 @@ void CDspStatCollector::GetProcsStatInfo(SmartPtr<CProcsStatInfo> pProcsStatInfo
 	DIR *proc;
 	FILE *fp;
 	int pid;
-	char name[64];
+	char name[512];
 	struct dirent *pde;
 	unsigned long long user, system, starttime, vsize, rsize;
 

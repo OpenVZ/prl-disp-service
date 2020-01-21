@@ -31,6 +31,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "CDspVm_p.h"
+#include "CDspVmDirHelper.h"
 #include "CVmValidateConfig.h"
 #include <prlcommon/PrlCommonUtilsBase/Common.h>
 #include <prlcommon/HostUtils/HostUtils.h>

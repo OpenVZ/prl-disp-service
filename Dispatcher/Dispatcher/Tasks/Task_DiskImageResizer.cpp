@@ -247,7 +247,7 @@ void Task_DiskImageResizer::finalizeTask()
 	{
 		if (NULL != m_disk)
 		{
-			WRITE_TRACE(DBG_FATAL, "Error occurred on DiskResizer diskimage='%s' size=%d [%#x][%s]",
+			WRITE_TRACE(DBG_FATAL, "Error occurred on DiskResizer diskimage='%s' size=%llu [%#x][%s]",
 				QSTR2UTF8(m_disk->getSystemName()), m_NewSize,
 				ret, PRL_RESULT_TO_STRING( ret ) );
 		}

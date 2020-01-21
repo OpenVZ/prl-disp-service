@@ -34,9 +34,7 @@
 #define __TASK_MIGRATEVMQOBJECT_P_H__
 
 #include <QObject>
-#include "CDspLibvirt.h"
 #include "CDspService.h"
-#include "boost/function.hpp"
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/IOService/IOCommunication/IOClient.h>
 #include <prlcommon/IOService/IOCommunication/IOSendJob.h>
@@ -212,33 +210,6 @@ private:
 
 } // namespace Online
 } // namespace Trick
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Progress
-
-struct Progress: QObject
-{
-	typedef ::Libvirt::Instrument::Agent::Vm::Migration::Agent agent_type;
-	typedef boost::function1<void, int> reporter_type;
-	
-	Progress(const agent_type& agent_, const reporter_type& reporter_):
-		m_last(~0), m_agent(agent_), m_reporter(reporter_)
-	{
-	}
-
-	void report(quint16 value_);
-
-protected:
-	void timerEvent(QTimerEvent* event_);
-
-private:
-	Q_OBJECT
-
-	quint16 m_last;
-	agent_type m_agent;
-	reporter_type m_reporter;
-};
-
 } // namespace Libvirt
 
 namespace Tunnel

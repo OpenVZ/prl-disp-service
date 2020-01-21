@@ -35,6 +35,7 @@
 #include <CDspBackupDevice.h>
 #endif
 #if defined(_CT_)
+#include "CDspVzHelper.h"
 #include <vzctl/libvzctl.h>
 #endif
 #include "CDspLibvirtExec.h"

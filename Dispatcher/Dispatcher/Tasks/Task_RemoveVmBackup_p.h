@@ -39,8 +39,6 @@
 #include <prlxmlmodel/BackupTree/VmItem.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 
-class Task_BackupHelper;
-
 namespace Backup
 {
 typedef Instrument::Command::Batch batch_type;
@@ -118,7 +116,7 @@ struct Flavor
 {
 	typedef QList<QSharedPointer<Item> > list_type;
 
-	explicit Flavor(Task_BackupHelper& context_);
+	explicit Flavor(CDspTaskHelper& context_);
 
 	batch_type operator()(const Item& item_);
 	PRL_RESULT operator()(const QString& folder_);
@@ -202,7 +200,7 @@ struct Confectioner
 {
 	typedef Setup::sequence_type sequence_type;
 
-	Confectioner(Task_BackupHelper& context_, const sequence_type& sequence_):
+	Confectioner(CDspTaskHelper& context_, const sequence_type& sequence_):
 		m_sequence(sequence_), m_context(&context_)
 	{
 	}
@@ -211,7 +209,7 @@ struct Confectioner
 
 private:
 	sequence_type m_sequence;
-	Task_BackupHelper *m_context;
+	CDspTaskHelper *m_context;
 };
 
 } // namespace Coalesce

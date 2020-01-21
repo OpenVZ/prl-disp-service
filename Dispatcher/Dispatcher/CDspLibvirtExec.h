@@ -41,6 +41,7 @@
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <boost/tuple/tuple.hpp>
+#include "CDspLibvirtQObject_p.h"
 #include "CDspLibvirt.h"
 #include <boost/serialization/strong_typedef.hpp>
 
@@ -109,28 +110,6 @@ struct WriteDevice: QIODevice {
 private:
 	QMutex m_lock;
 	QSharedPointer<virStream> m_stream;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Waiter
-
-struct Waiter : QObject {
-private slots:
-	void stop()
-	{
-		m_loop.quit();
-	}
-
-public:
-	void wait(int msecs)
-	{
-		QTimer::singleShot(msecs, this, SLOT(stop()));
-		m_loop.exec();
-	}
-
-private:
-	Q_OBJECT
-	QEventLoop m_loop;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -35,8 +35,10 @@
 #include <QSet>
 #include <dlfcn.h>
 #include <guestfs.h>
+#include "CDspLibvirt.h"
 #include "CDspVmMounter.h"
 #include "CDspService.h"
+#include "CDspVmDirHelper.h"
 #include "CDspVmStateSender.h"
 #include <boost/preprocessor/tuple/elem.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
@@ -98,7 +100,7 @@ CAPI.GUESTFS_NAME(elem) = \
 		::dlsym(g_libguestfs, BOOST_PP_STRINGIZE(GUESTFS_NAME(elem)));\
 if (NULL == CAPI.GUESTFS_NAME(elem))\
 {\
-        WRITE_TRACE(DBG_FATAL, "Cannot find symbol '"BOOST_PP_STRINGIZE(GUESTFS_NAME(elem))"' in GuestFS API");\
+        WRITE_TRACE(DBG_FATAL, "Cannot find symbol '" BOOST_PP_STRINGIZE(GUESTFS_NAME(elem)) "' in GuestFS API");\
 }
 
 __attribute__((constructor)) void init()

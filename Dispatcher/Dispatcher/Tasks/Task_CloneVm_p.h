@@ -38,6 +38,7 @@
 
 #include "CDspService.h"
 #include "CDspTaskHelper.h"
+#include "CDspVmDirHelper.h"
 #include <boost/variant.hpp>
 #include <boost/function.hpp>
 #include "CDspTemplateStorage.h"

@@ -102,7 +102,7 @@ PRL_RESULT Task_CreateCtBackupSource::prepareTask()
 		m_sVmDirUuid = d->getUuid();
 	}
 
-	if (PRL_FAILED(nRetCode = connect()))
+	if (PRL_FAILED(nRetCode = Task_BackupMixin::connect()))
 		goto exit;
 
 	m_pVmConfig = s->getVzHelper()->getCtConfig(client, m_sVmUuid, QString(), true);

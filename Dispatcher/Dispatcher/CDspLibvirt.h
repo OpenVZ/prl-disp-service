@@ -40,6 +40,7 @@
 #include <boost/optional.hpp>
 #include <boost/function.hpp>
 #include <boost/tuple/tuple.hpp>
+#include "CDspLibvirtQObject_p.h"
 #include <boost/thread/future.hpp>
 #include <boost/signals2/signal.hpp>
 #include <prlxmlmodel/VtInfo/VtInfo.h>
@@ -267,7 +268,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Completion
 
-struct Completion: QObject
+struct Completion: Abstract::Completion
 {
 	Completion()
 	{
@@ -284,12 +285,7 @@ struct Completion: QObject
 		emit done();
 	}
 
-signals:
-	void done();
-
 private:
-	Q_OBJECT
-
 	boost::future<void> m_future;
 	boost::promise<void> m_promise;
 };
@@ -297,10 +293,8 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Counter
 
-struct Counter: QObject
+struct Counter: Abstract::Counter
 {
-	typedef boost::function<PRL_RESULT ()> product_type;
-
 	template<class T>
 	Counter(const QList<T>& componentList_, Completion& receiver_):
 		m_receiver(&receiver_)
@@ -318,15 +312,10 @@ struct Counter: QObject
 	product_type read();
 
 protected:
-	void account_(QString one_);
-	Q_INVOKABLE virtual product_type read_() = 0;
-	Q_INVOKABLE virtual void account_(QString one_, PRL_RESULT status_) = 0;
-	Q_INVOKABLE void reset_();
+	void account__(QString one_);
+	void reset_();
 
 private:
-	Q_OBJECT
-
-
 	Completion* m_receiver;
 	QSet<QString> m_pending;
 };
@@ -986,8 +975,6 @@ protected:
 	void run();
 
 private:
-	Q_OBJECT
-
 	Registry::Actual* m_registry;
 };
 
