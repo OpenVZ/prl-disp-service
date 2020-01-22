@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 #
 # Copyright (c) 2015-2017, Parallels International GmbH
 # Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.

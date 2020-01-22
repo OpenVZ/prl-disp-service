@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 #
 # This program converts virtuozzo virtual machines
 # personal data into cloud-init format file
