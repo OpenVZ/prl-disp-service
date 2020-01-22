@@ -723,7 +723,7 @@ static BOOL check_km_intf(const char * dev)
 	int inum = get_hex_attr(dev, "bNumInterfaces");
 
 	for (int i = 0; i < inum; i++) {
-		char name[256];
+		char name[4096];
 
 		snprintf(name, sizeof(name)-1, "%s:%d.%d", dev, iconfig, i);
 
@@ -747,7 +747,7 @@ static BOOL check_msc_intf(const char * dev)
 	int inum = get_hex_attr(dev, "bNumInterfaces");
 
 	for (int i = 0; i < inum; i++) {
-		char name[256];
+		char name[4096];
 
 		snprintf(name, sizeof(name)-1, "%s:%d.%d", dev, iconfig, i);
 

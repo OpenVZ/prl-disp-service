@@ -4,6 +4,7 @@ CONFIG += staticlib
 include(Transponster.pri)
 
 DEFINES += BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS BOOST_MPL_LIMIT_VECTOR_SIZE=40
+QMAKE_CXXFLAGS += -Wno-maybe-uninitialized
 
 HEADERS += \
 	base.h \

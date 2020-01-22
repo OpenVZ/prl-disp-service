@@ -594,7 +594,10 @@ Offline::result_type Offline::operator()(const request_type& request_)
 	QString s = request_.getSourcePrivate();
 	QString t = request_.getTargetPrivate();
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 	Command::Move::Copy x(request_.getContext());
+#pragma GCC diagnostic pop
 	if (m_attribute)
 	{
 		x.setAttribute(Command::Move::Attribute

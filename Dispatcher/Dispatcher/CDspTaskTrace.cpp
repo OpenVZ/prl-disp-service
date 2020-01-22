@@ -81,7 +81,10 @@ void Trace::report(const boost::property_tree::ptree& progress_) const
 
 	std::stringstream s;
 	boost::property_tree::json_parser::write_json(s, t, false);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-security"
 	syslog(LOG_INFO, s.str().c_str());
+#pragma GCC diagnostic pop
 }
 
 void Trace::raze()
