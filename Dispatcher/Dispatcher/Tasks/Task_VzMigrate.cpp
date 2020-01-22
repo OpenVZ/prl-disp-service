@@ -516,8 +516,8 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 		m_pHandleDispPackageTask = new Task_HandleDispPackage(pSendJobInterface, hJob, m_nFd);
 		m_pHandleDispPackageTask->moveToThread(m_pHandleDispPackageTask);
 		bool bConnected = QObject::connect(m_pHandleDispPackageTask,
-				SIGNAL(onDispPackageHandlerFailed(PRL_RESULT, const QString &)),
-				SLOT(handleDispPackageHandlerFailed(PRL_RESULT, const QString &)),
+				SIGNAL(onDispPackageHandlerFailed(PRL_RESULT, QString)),
+				SLOT(handleDispPackageHandlerFailed(PRL_RESULT, QString)),
 				Qt::DirectConnection);
 		PRL_ASSERT(bConnected);
 		m_pHandleDispPackageTask->start();
@@ -671,9 +671,9 @@ void Task_VzMigrate::terminateHandleDispPackageTask()
 	m_pHandleDispPackageTask = NULL;
 
 	QObject::disconnect(pHandleDispPackageTask,
-		SIGNAL(onDispPackageHandlerFailed(PRL_RESULT, const QString &)),
+		SIGNAL(onDispPackageHandlerFailed(PRL_RESULT, QString)),
 		this,
-		SLOT(handleDispPackageHandlerFailed(PRL_RESULT, const QString &)));
+		SLOT(handleDispPackageHandlerFailed(PRL_RESULT, QString)));
 
 	pHandleDispPackageTask->urgentResponseWakeUp();
 	if (!pHandleDispPackageTask->wait(m_nTimeout)) {

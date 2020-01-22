@@ -779,7 +779,7 @@ PRL_RESULT Task_ResponseProcessor::prepareTask()
 		bConnected = QObject::connect(hResponse.getImpl(),
 				SIGNAL(onStdinPackageReceived(SmartPtr<IOPackage>)),
 				this,
-				SLOT(slotProcessStdin(const SmartPtr<IOPackage> &)),
+				SLOT(slotProcessStdin(SmartPtr<IOPackage>)),
 				Qt::QueuedConnection);
 		PRL_ASSERT(bConnected);
 		if (!bConnected)
