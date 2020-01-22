@@ -18,7 +18,26 @@ SOURCES += \
 	CVmMigrationProtoTest.cpp \
 	Main.cpp
 
-LIBS += -lprlcommon -lboost_filesystem-mt -lboost_system-mt
+linux-g++* {
+	system(ld -lboost_thread-mt) {
+		message( boost-with-mt )
+		CONFIG += boost-with-mt
+	} else {
+		system(ld -lboost_thread) {
+			message( boost-without-mt )
+			CONFIG += boost-without-mt
+		}
+	}
+}
+
+LIBS += -lprlcommon
+
+boost-with-mt {
+	LIBS += -lboost_filesystem-mt -lboost_system-mt
+}
+boost-without-mt {
+	LIBS += -lboost_filesystem -lboost_system
+}
 
 # It is important to have "File Info" embedded in the
 # windows binaries - which means we need windows resource file
