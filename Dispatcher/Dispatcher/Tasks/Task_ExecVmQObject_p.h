@@ -69,18 +69,20 @@ private:
 
 namespace Task
 {
+using IOService::IOPackage;
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Auxiliary
 
 struct Auxiliary: CDspTaskHelper
 {
-	Auxiliary(const SmartPtr<CDspClient>& client_, const SmartPtr<IOService::IOPackage>& request_):
+	Auxiliary(const SmartPtr<CDspClient>& client_, const SmartPtr<IOPackage>& request_):
 		CDspTaskHelper(client_, request_)
 	{
 	}
 
 public slots:
-	virtual void slotProcessStdin(const SmartPtr<IOService::IOPackage>& p) = 0;
+	virtual void slotProcessStdin(const SmartPtr<IOPackage>& p) = 0;
 	virtual void slotProcessFin() = 0;
 
 private:
@@ -92,7 +94,7 @@ private:
 
 struct Main: CDspTaskHelper
 {
-	Main(const SmartPtr<CDspClient>& client_, const SmartPtr<IOService::IOPackage>& request_):
+	Main(const SmartPtr<CDspClient>& client_, const SmartPtr<IOPackage>& request_):
 		CDspTaskHelper(client_, request_)
 	{
 	}

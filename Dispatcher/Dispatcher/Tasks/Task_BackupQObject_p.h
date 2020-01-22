@@ -42,6 +42,8 @@ class CDspClient;
 
 namespace Backup
 {
+using IOService::IOPackage;
+
 namespace Tunnel
 {
 namespace Source
@@ -54,7 +56,7 @@ namespace Abstract
 struct Connector: QObject
 {
 public slots:
-	virtual void reactReceive(const SmartPtr<IOService::IOPackage>& package_) = 0;
+	virtual void reactReceive(const SmartPtr<IOPackage>& package_) = 0;
 
 	virtual void reactAccept() = 0;
 
@@ -89,7 +91,7 @@ namespace Abstract
 struct Connector: QObject
 {
 public slots:
-	virtual void reactReceive(const SmartPtr<IOService::IOPackage>& package_) = 0;
+	virtual void reactReceive(const SmartPtr<IOPackage>& package_) = 0;
 
 private:
 	Q_OBJECT
@@ -160,13 +162,13 @@ namespace Abstract
 
 struct Target: CDspTaskHelper
 {
-	Target(const SmartPtr<CDspClient>& client_, const SmartPtr<IOService::IOPackage>& request_):
+	Target(const SmartPtr<CDspClient>& client_, const SmartPtr<IOPackage>& request_):
 		CDspTaskHelper(client_, request_)
 	{
 	}
 
 protected slots:
-	virtual void handlePackage(IOSender::Handle h, const SmartPtr<IOService::IOPackage> p) = 0;
+	virtual void handlePackage(IOSender::Handle h, const SmartPtr<IOPackage> p) = 0;
 	virtual void clientDisconnected(IOSender::Handle h) = 0;
 
 private:
@@ -216,7 +218,7 @@ namespace Abstract
 struct Gear: QObject
 {
 protected slots:
-	virtual void react(const SmartPtr<IOService::IOPackage> package_) = 0;
+	virtual void react(const SmartPtr<IOPackage> package_) = 0;
 
 private:
 	Q_OBJECT
@@ -235,16 +237,16 @@ namespace Abstract
 
 struct Source: CDspTaskHelper
 {
-	Source(const SmartPtr<CDspClient>& client_, const SmartPtr<IOService::IOPackage>& request_):
+	Source(const SmartPtr<CDspClient>& client_, const SmartPtr<IOPackage>& request_):
 		CDspTaskHelper(client_, request_)
 	{
 	}
 
 protected slots:
-	virtual void mountImage(const SmartPtr<IOService::IOPackage>& package_) = 0;
+	virtual void mountImage(const SmartPtr<IOPackage>& package_) = 0;
 	virtual void clientDisconnected(IOSender::Handle h) = 0;
-	virtual void handleABackupPackage(IOSender::Handle h, const SmartPtr<IOService::IOPackage> p) = 0;
-	virtual void handleVBackupPackage(IOSender::Handle h, const SmartPtr<IOService::IOPackage> p) = 0;
+	virtual void handleABackupPackage(IOSender::Handle h, const SmartPtr<IOPackage> p) = 0;
+	virtual void handleVBackupPackage(IOSender::Handle h, const SmartPtr<IOPackage> p) = 0;
 
 private:
 	Q_OBJECT
@@ -255,7 +257,7 @@ private:
 
 struct Target: CDspTaskHelper
 {
-	Target(const SmartPtr<CDspClient>& client_, const SmartPtr<IOService::IOPackage>& request_):
+	Target(const SmartPtr<CDspClient>& client_, const SmartPtr<IOPackage>& request_):
 		CDspTaskHelper(client_, request_)
 	{
 	}
