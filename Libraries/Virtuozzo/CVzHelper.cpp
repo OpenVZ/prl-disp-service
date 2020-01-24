@@ -3525,9 +3525,17 @@ int CVzExecHelper::wait()
 
 void CVzExecHelper::cancel()
 {
-	if (m_pid > 0) {
-		WRITE_TRACE(DBG_FATAL, "Trying to cancel the process %d", m_pid);
-		kill(m_pid, SIGTERM);
+	int p = m_pid;
+	if (p > 0) {
+		WRITE_TRACE(DBG_FATAL, "Trying to cancel the process %d", p);
+		int P = m_pid;
+		if (p == P)
+		{
+			if (0 != kill(P, SIGTERM))
+				WRITE_TRACE(DBG_FATAL, "Unable to terminate the process %d: %m", P);
+		}
+		else
+			WRITE_TRACE(DBG_FATAL, "The process %d has disappeared", p);
 	}
 }
 
