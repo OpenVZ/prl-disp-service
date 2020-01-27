@@ -1,0 +1,13 @@
+[Unit]
+Description=Dispatcher supplementary create bridges
+Before=network.target
+Requires=local-fs.target
+ConditionPathExists=!/var/opt/create_bridges
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/create_bridges.py
+ExecStartPost=/bin/touch /var/opt/create_bridges
+
+[Install]
+WantedBy=multi-user.target
