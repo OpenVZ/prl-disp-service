@@ -797,7 +797,7 @@ struct List
 	void add(const CVmParallelPort* port_);
 	void add(const CVmSerialPort* port_);
 	void add(const CVmSoundDevice* sound_);
-	void add(const CVmVideo* video_, const CVmCommonOptions* options_);
+	void add(const CVmVideo* video_);
 	void add(const CVmGenericPciDevice* pci_);
 
 private:
