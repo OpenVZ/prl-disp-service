@@ -190,6 +190,7 @@ PRL_RESULT CDspVzHelper::fillVzDirectory(CVmDirectory *pDir)
 		pItem->setRegistered(PVE::VmRegistered);
 		pItem->setVmName(pConfig->getVmIdentification()->getVmName());
 		pItem->setVmHome(pConfig->getVmIdentification()->getHomePath());
+		pItem->setTemplate(pConfig->getVmSettings()->getVmCommonOptions()->isTemplate());
 
 		pDir->addVmDirectoryItem(pItem);
 	}
