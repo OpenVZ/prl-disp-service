@@ -137,6 +137,14 @@ struct Os
 	{
 		m_supported = value_;
 	}
+	const QList<Enum >& getEnumList() const
+	{
+		return m_enumList;
+	}
+	void setEnumList(const QList<Enum >& value_)
+	{
+		m_enumList = value_;
+	}
 	const boost::optional<Loader >& getLoader() const
 	{
 		return m_loader;
@@ -151,6 +159,7 @@ struct Os
 
 private:
 	EVirYesNo m_supported;
+	QList<Enum > m_enumList;
 	boost::optional<Loader > m_loader;
 };
 
@@ -617,35 +626,35 @@ namespace Xml
 {
 struct Devices
 {
-	const Disk& getDisk() const
+	const boost::optional<Disk >& getDisk() const
 	{
 		return m_disk;
 	}
-	void setDisk(const Disk& value_)
+	void setDisk(const boost::optional<Disk >& value_)
 	{
 		m_disk = value_;
 	}
-	const Graphics& getGraphics() const
+	const boost::optional<Graphics >& getGraphics() const
 	{
 		return m_graphics;
 	}
-	void setGraphics(const Graphics& value_)
+	void setGraphics(const boost::optional<Graphics >& value_)
 	{
 		m_graphics = value_;
 	}
-	const Video& getVideo() const
+	const boost::optional<Video >& getVideo() const
 	{
 		return m_video;
 	}
-	void setVideo(const Video& value_)
+	void setVideo(const boost::optional<Video >& value_)
 	{
 		m_video = value_;
 	}
-	const Hostdev& getHostdev() const
+	const boost::optional<Hostdev >& getHostdev() const
 	{
 		return m_hostdev;
 	}
-	void setHostdev(const Hostdev& value_)
+	void setHostdev(const boost::optional<Hostdev >& value_)
 	{
 		m_hostdev = value_;
 	}
@@ -654,10 +663,10 @@ struct Devices
 	bool save(QDomDocument& ) const;
 
 private:
-	Disk m_disk;
-	Graphics m_graphics;
-	Video m_video;
-	Hostdev m_hostdev;
+	boost::optional<Disk > m_disk;
+	boost::optional<Graphics > m_graphics;
+	boost::optional<Video > m_video;
+	boost::optional<Hostdev > m_hostdev;
 };
 
 } // namespace Xml
@@ -788,21 +797,19 @@ namespace Xml
 {
 struct Features
 {
-	Features();
-
-	const Gic& getGic() const
+	const boost::optional<Gic >& getGic() const
 	{
 		return m_gic;
 	}
-	void setGic(const Gic& value_)
+	void setGic(const boost::optional<Gic >& value_)
 	{
 		m_gic = value_;
 	}
-	EVirYesNo getVmcoreinfo() const
+	const boost::optional<EVirYesNo >& getVmcoreinfo() const
 	{
 		return m_vmcoreinfo;
 	}
-	void setVmcoreinfo(EVirYesNo value_)
+	void setVmcoreinfo(const boost::optional<EVirYesNo >& value_)
 	{
 		m_vmcoreinfo = value_;
 	}
@@ -827,8 +834,8 @@ struct Features
 	bool save(QDomDocument& ) const;
 
 private:
-	Gic m_gic;
-	EVirYesNo m_vmcoreinfo;
+	boost::optional<Gic > m_gic;
+	boost::optional<EVirYesNo > m_vmcoreinfo;
 	boost::optional<EVirYesNo > m_genid;
 	boost::optional<Sev > m_sev;
 };
@@ -975,7 +982,7 @@ struct Traits<Capability::Xml::Loader>
 template<>
 struct Traits<Capability::Xml::Os>
 {
-	typedef Unordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Optional<Element<Capability::Xml::Loader, Name::Strict<273> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1882> > >, Optional<Element<Capability::Xml::Loader, Name::Strict<273> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Os& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Os& , QDomElement& );
@@ -1119,7 +1126,7 @@ struct Traits<Capability::Xml::Hostdev>
 template<>
 struct Traits<Capability::Xml::Devices>
 {
-	typedef Unordered<mpl::vector<Element<Capability::Xml::Disk, Name::Strict<472> >, Element<Capability::Xml::Graphics, Name::Strict<712> >, Element<Capability::Xml::Video, Name::Strict<779> >, Element<Capability::Xml::Hostdev, Name::Strict<676> > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Element<Capability::Xml::Disk, Name::Strict<472> > >, Optional<Element<Capability::Xml::Graphics, Name::Strict<712> > >, Optional<Element<Capability::Xml::Video, Name::Strict<779> > >, Optional<Element<Capability::Xml::Hostdev, Name::Strict<676> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Devices& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Devices& , QDomElement& );
@@ -1167,7 +1174,7 @@ struct Traits<Capability::Xml::Sev>
 template<>
 struct Traits<Capability::Xml::Features>
 {
-	typedef Unordered<mpl::vector<Element<Capability::Xml::Gic, Name::Strict<1001> >, Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<1004> >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<3563> > >, Optional<Element<Capability::Xml::Sev, Name::Strict<3562> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Element<Capability::Xml::Gic, Name::Strict<1001> > >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<1004> > >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<3563> > >, Optional<Element<Capability::Xml::Sev, Name::Strict<3562> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Features& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Features& , QDomElement& );

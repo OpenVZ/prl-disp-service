@@ -292,7 +292,39 @@
           </zeroOrMore>
         </element>
       </oneOrMore>
+      <optional>
+        <ref name='cpuMonitor'/>
+      </optional>
     </element>
+  </define>
+
+  <define name='cpuMonitor'>
+    <element name='monitor'>
+      <optional>
+        <attribute name='level'>
+          <ref name='unsignedInt'/>
+        </attribute>
+        <attribute name='reuseThreshold'>
+          <ref name='unsignedInt'/>
+        </attribute>
+      </optional>
+      <attribute name='maxMonitors'>
+        <ref name='unsignedInt'/>
+      </attribute>
+      <oneOrMore>
+        <element name='feature'>
+          <attribute name='name'>
+            <ref name='monitorFeature'/>
+          </attribute>
+        </element>
+      </oneOrMore>
+    </element>
+  </define>
+
+  <define name='monitorFeature'>
+    <data type='string'>
+      <param name='pattern'>(llc_|mbm_)[a-zA-Z0-9\-_]+</param>
+    </data>
   </define>
 
   <define name='cacheType'>

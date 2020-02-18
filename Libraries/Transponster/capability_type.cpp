@@ -201,7 +201,8 @@ int Traits<Capability::Xml::Os>::parse(Capability::Xml::Os& dst_, QStack<QDomEle
 	if (0 <= output)
 	{
 		dst_.setSupported(m.get<0>().getValue());
-		dst_.setLoader(m.get<1>().getValue());
+		dst_.setEnumList(m.get<1>().getValue());
+		dst_.setLoader(m.get<2>().getValue());
 	}
 	return output;
 }
@@ -211,7 +212,9 @@ int Traits<Capability::Xml::Os>::generate(const Capability::Xml::Os& src_, QDomE
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSupported(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getLoader(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getEnumList(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getLoader(), m.get<2>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1161,10 +1164,6 @@ namespace Capability
 {
 namespace Xml
 {
-Features::Features(): m_vmcoreinfo()
-{
-}
-
 bool Features::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
