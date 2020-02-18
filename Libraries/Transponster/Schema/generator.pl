@@ -1,5 +1,16 @@
 #!/usr/bin/perl -w
 
+=for comment 
+Usage:
+perl generator.pl ../text.cpp domain.rng:domain:domain network.rng:network:network \
+interface.rng:ethernet-interface,bridge-interface,vlan-interface:iface \
+domainsnapshot.rng:domainsnapshot:snapshot domaincaps.rng:domainCapabilities:capability \
+domainblockexport.rng:domainblockexport:blockExport \
+domainblocksnapshot.rng:domainblocksnapshot:blockSnapshot \
+nodedev.rng:device:nodedev
+
+=cut
+
 use strict;
 use File::Spec;
 use XML::LibXML;
