@@ -340,7 +340,7 @@ PRL_RESULT Task_VzManager::create_env()
 
 	if (PRL_SUCCEEDED(res)) {
 		getResponseCmd()->SetVmConfig(pConfig->toString());
-		sendEvent(PET_DSP_EVT_VM_CREATED, vm_uuid);
+		sendEvent(PET_DSP_EVT_VM_ADDED, vm_uuid);
 	}
 
 	return res;
@@ -905,6 +905,12 @@ PRL_RESULT Task_VzManager::editConfig()
 
 ok:
 	if (PRL_SUCCEEDED(res)) {
+		if (pOldConfig->getVmSettings()->getVmCommonOptions()->isTemplate() !=
+			pConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+		{
+			sendEvent(PET_DSP_EVT_VM_UNREGISTERED, sUuid);
+			sendEvent(PET_DSP_EVT_VM_ADDED, sUuid);
+		}
 		SmartPtr<CVmConfiguration> pNewConfig = getVzHelper()->getCtConfig(getClient(), sUuid);
 		QStringList lstParams(pNewConfig ?
 				pNewConfig->toString() : pConfig->toString());
@@ -953,14 +959,15 @@ PRL_RESULT Task_VzManager::register_env()
 		if (PRL_FAILED(res))
 			get_op_helper()->unregister_env(
 					pConfig->getVmIdentification()->getVmUuid(), 0);
-		sendEvent(PET_DSP_EVT_VM_ADDED, sUuid);
 	}
 	// delete temporary registration
 	CDspService::instance()->getVmDirManager()
 		.unlockExclusiveVmParameters(&vmInfo);
 
-	if (PRL_SUCCEEDED(res))
+	if (PRL_SUCCEEDED(res)) {
 		getResponseCmd()->SetVmConfig(pConfig->toString());
+		sendEvent(PET_DSP_EVT_VM_ADDED, sUuid);
+	}
 
 	return res;
 }

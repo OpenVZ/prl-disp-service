@@ -1780,6 +1780,16 @@ void CDspVmDirHelper::sendVmRemovedEvent(const CVmIdent& vmIdent, PRL_EVENT_TYPE
 		.sendPackageToClientList(p, allVmDirClients);
 }
 
+void CDspVmDirHelper::sendVmEventToAll(const CVmIdent& vmIdent, PRL_EVENT_TYPE type_,
+		const SmartPtr<IOPackage> &pRequest)
+{
+	CVmEvent event(type_, vmIdent.first, PIE_DISPATCHER);
+	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, event, pRequest);
+
+	CDspService::instance()->getClientManager()
+		.sendPackageToAllClients(p);
+}
+
 void CDspVmDirHelper::sendVmConfigChangedEvent(const CVmIdent& vmIdent, const SmartPtr<IOPackage> &pRequest)
 {
 	CVmEvent event( PET_DSP_EVT_VM_CONFIG_CHANGED, vmIdent.first, PIE_DISPATCHER );

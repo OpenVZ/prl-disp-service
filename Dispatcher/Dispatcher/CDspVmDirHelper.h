@@ -515,6 +515,8 @@ public:
 
 	static void sendVmRemovedEvent(const CVmIdent& vmIdent, PRL_EVENT_TYPE type_
 		, const SmartPtr<IOPackage> &pRequest = SmartPtr<IOPackage>(0));
+	static void sendVmEventToAll(const CVmIdent& vmIdent, PRL_EVENT_TYPE type_
+		, const SmartPtr<IOPackage> &pRequest = SmartPtr<IOPackage>(0));
 	static void sendVmConfigChangedEvent(const CVmIdent& vmIdent
 		, const SmartPtr<IOPackage> &pRequest = SmartPtr<IOPackage>(0));
 

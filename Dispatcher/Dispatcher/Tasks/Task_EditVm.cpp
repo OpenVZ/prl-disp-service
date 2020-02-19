@@ -2590,6 +2590,8 @@ bool Transfer::execute(CDspTaskFailure& feedback_)
 		WRITE_TRACE(DBG_FATAL, "Unable to remove directory item (%s)", PRL_RESULT_TO_STRING(res));
 		return Action::execute(feedback_);
 	}
+	DspVm::vdh().sendVmEventToAll(m_object, PET_DSP_EVT_VM_UNREGISTERED);
+
 	t->setCtId(m_target == DspVm::vdm().getTemplatesDirectoryUuid() ? m_target : QString());
 	t->setTemplate(m_target == DspVm::vdm().getTemplatesDirectoryUuid());
 	res = DspVm::vdh().insertVmDirectoryItem(m_target, t.data());
@@ -2600,7 +2602,7 @@ bool Transfer::execute(CDspTaskFailure& feedback_)
 
 	t.take();
 
-	DspVm::vdh().sendVmRemovedEvent(m_object, PET_DSP_EVT_VM_CONFIG_CHANGED);
+	DspVm::vdh().sendVmEventToAll(m_object, PET_DSP_EVT_VM_ADDED);
 
 	return Action::execute(feedback_);
 }

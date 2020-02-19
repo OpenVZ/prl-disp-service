@@ -448,6 +448,9 @@ struct Frontend: Details::Frontend<Frontend>
 		template<class Event, class FromState>
 		void operator()(const Event&, Frontend& fsm_, FromState&, Unknown&)
 		{
+			boost::optional<CVmConfiguration> y = fsm_.getConfig();
+			if (y && y->getVmSettings()->getVmCommonOptions()->isTemplate())
+				return;
 			fsm_.getService().getVmDirHelper().sendVmRemovedEvent(
 				MakeVmIdent(fsm_.getUuid(), fsm_.m_user->getVmDirectoryUuid()),
 				PET_DSP_EVT_VM_UNREGISTERED);
