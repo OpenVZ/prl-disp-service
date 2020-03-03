@@ -908,6 +908,14 @@ ok:
 		if (pOldConfig->getVmSettings()->getVmCommonOptions()->isTemplate() !=
 			pConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
 		{
+			CDspLockedPointer< CVmDirectoryItem >
+				pVmDirItem = CDspService::instance()->getVmDirManager()
+				.getVmDirItemByUuid(m_sVzDirUuid, sUuid);
+
+			if (pVmDirItem) {
+				pVmDirItem->setTemplate(pConfig->getVmSettings()->getVmCommonOptions()->isTemplate());
+				CDspService::instance()->getVmDirManager().updateVmDirItem(pVmDirItem);
+			}	
 			sendEvent(PET_DSP_EVT_VM_UNREGISTERED, sUuid);
 			sendEvent(PET_DSP_EVT_VM_ADDED, sUuid);
 		}
