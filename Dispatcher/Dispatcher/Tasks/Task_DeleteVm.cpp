@@ -360,12 +360,11 @@ void Task_DeleteVm::postVmDeletedEvent()
 {
 	if (m_flgVmWasDeletedFromSystemTables ) //&& sharedVmHash.isEmpty() )
 	{
-		DspVm::vdh().sendVmRemovedEvent(
+		DspVm::vdh().sendVmEventToAll(
 			MakeVmIdent(m_pVmConfig->getVmIdentification()->getVmUuid(), m_vmDirectoryUuid),
 			(doUnregisterOnly()) ? PET_DSP_EVT_VM_UNREGISTERED : PET_DSP_EVT_VM_DELETED,
 			 getRequestPackage());
 	}
-
 }
 
 namespace Instrument
