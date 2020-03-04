@@ -302,7 +302,8 @@ PRL_RESULT Folder::settle(const CVmConfiguration& entry_)
 	{
 		r.commit();
 		getService().getVmStateSender()
-			->onVmRegistered(m_id, i.getVmUuid(), i.getVmName());
+			->onVmRegistered(m_id, i.getVmUuid(), i.getVmName(),
+				entry_.getVmSettings()->getVmCommonOptions()->isTemplate());
 	}
 	else
 		r.rollback();

@@ -1028,7 +1028,8 @@ void Task_RegisterVm::finalizeTask()
 		n = m_pVmInfo->vmName;
 
 	CDspService::instance()->getVmStateSender()
-		->onVmRegistered(m_dirUuid, m_pVmInfo->vmUuid, n);
+		->onVmRegistered(m_dirUuid, m_pVmInfo->vmUuid, n,
+			m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate());
 
 	// send response
 	CProtoCommandPtr pCmd

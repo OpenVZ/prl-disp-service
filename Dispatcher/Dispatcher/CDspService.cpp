@@ -1474,8 +1474,8 @@ void CDspService::initVmStateSender()
 		SLOT(react(QString, QString)), Qt::DirectConnection);
 	PRL_ASSERT(f);
 
-	f = a->connect(x, SIGNAL(signalVmRegistered(QString, QString, QString)),
-		SLOT(reactRegistered(QString, QString, QString)), Qt::DirectConnection);
+	f = a->connect(x, SIGNAL(signalVmRegistered(QString, QString, QString, bool)),
+		SLOT(reactRegistered(QString, QString, QString, bool)), Qt::DirectConnection);
 	PRL_ASSERT(f);
 
 	f = c->connect(x, SIGNAL(signalSendVmPersonalityChanged(QString, QString)),

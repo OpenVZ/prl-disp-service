@@ -139,9 +139,10 @@ void CDspVmStateSender::onVmCreated
 }
 
 void CDspVmStateSender::onVmRegistered
-	(const QString& directory_, const QString& uuid_, const QString& name_)
+	(const QString& directory_, const QString& uuid_,
+	const QString& name_, bool broadcast_)
 {
-	emit signalVmRegistered(directory_, uuid_, name_);
+	emit signalVmRegistered(directory_, uuid_, name_, broadcast_);
 }
 
 CDspVmStateSenderThread::CDspVmStateSenderThread(CDspVmStateSender* ready_)
@@ -241,7 +242,8 @@ namespace Vm
 ///////////////////////////////////////////////////////////////////////////////
 // struct Proclamation
 
-void Proclamation::reactRegistered(QString directory_, QString uuid_, QString name_)
+void Proclamation::reactRegistered(QString directory_, QString uuid_,
+		QString name_, bool broadcast_ )
 {
 	// Generate "VM added" event
 	CVmEvent e(PET_DSP_EVT_VM_ADDED, uuid_, PIE_DISPATCHER);
@@ -252,7 +254,10 @@ void Proclamation::reactRegistered(QString directory_, QString uuid_, QString na
 			new CVmEventParameter(PVE::String, name_, EVT_PARAM_GENERATED_VM_NAME));
 	}
 	SmartPtr<IOPackage> p = DispatcherPackage::createInstance(PVE::DspVmEvent, e);
-	m_driver->sendPackageToVmClients(p, directory_, uuid_);
+	if (broadcast_)
+		m_driver->sendPackageToAllClients(p);
+	else
+		m_driver->sendPackageToVmClients(p, directory_, uuid_);
 }
 
 } // namespace Vm

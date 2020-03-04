@@ -69,7 +69,8 @@ public:
 	void onVmPersonalityChanged(QString vmDirUuid_, QString vmUuid_);
 	void onVmDeviceDetached(QString vmUuid_, QString device_);
 	void onVmCreated(const QString& directory_, const QString& uuid_);
-	void onVmRegistered(const QString& directory_, const QString& uuid_, const QString& name_);
+	void onVmRegistered(const QString& directory_, const QString& uuid_,
+			const QString& name_, bool broadcast_);
 
 signals:
 	void signalVmStateChanged( unsigned int nVmOldState, unsigned int nVmNewState,
@@ -80,7 +81,7 @@ signals:
 	void signalSendVmPersonalityChanged(QString, QString);
 	void signalVmDeviceDetached(QString vmUuid, QString device);
 	void signalVmCreated(QString directory_, QString uuid_);
-	void signalVmRegistered(QString directory_, QString uuid_, QString name_);
+	void signalVmRegistered(QString directory_, QString uuid_, QString name_, bool broadcast_);
 
 public slots:
 	void slotSendVmStateChanged( unsigned int nVmState, QString vmUuid, QString dirUuid, bool notifyVm );
@@ -124,7 +125,8 @@ struct Proclamation: QObject
 	}
 
 public slots:
-	void reactRegistered(QString directory_, QString uuid_, QString name_);
+	void reactRegistered(QString directory_, QString uuid_, QString name_,
+			bool broadcast_);
 
 private:
 	Q_OBJECT
