@@ -1016,7 +1016,7 @@ PRL_RESULT Task_VzManager::unregister_env()
 			if (PRL_FAILED(ret) && ret != PRL_ERR_ENTRY_DOES_NOT_EXIST)
 				WRITE_TRACE(DBG_FATAL, "Can't delete Container %s from VmDirectory by error: %s",
 						QSTR2UTF8(uuid), PRL_RESULT_TO_STRING(ret));
-			sendEvent(PET_DSP_EVT_VM_DELETED, uuid);
+			sendEvent(PET_DSP_EVT_VM_UNREGISTERED, uuid);
 			res = PRL_ERR_SUCCESS;
 		}
 		// delete temporary registration
