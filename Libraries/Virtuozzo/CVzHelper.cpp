@@ -682,6 +682,15 @@ static void set_encryption_keyid(CVmHardDisk *hdd, const QString &keyid)
 	enc->setKeyId(keyid);
 }
 
+static int get_free_index(QSet<int> &used, int &idx)
+{
+	while (used.contains(idx))
+		idx++;
+	used.insert(idx);
+
+	return idx;
+}
+
 static int merge_params(const SmartPtr<CVmConfiguration> &pConfig,
 		const QString &dir = QString())
 {
@@ -724,21 +733,28 @@ static int merge_params(const SmartPtr<CVmConfiguration> &pConfig,
 	pConfig->getVmSettings()->setVmRemoteDisplay(pRemoteDisplay);
 
 	/* updete hdd indexes */
-	foreach(CVmHardDisk *pVmHdd, pVmConfig->getVmHardwareList()->m_lstHardDisks) {
-		CVmHardDisk *pHdd;
-
-		if ((pHdd = findDiskInList(pVmHdd, pConfig->getVmHardwareList()->m_lstHardDisks))) {
+	QSet<int> used;
+	foreach (CVmHardDisk *d, pVmConfig->getVmHardwareList()->m_lstHardDisks)
+		used.insert(d->getIndex());
+	int idx = 0;
+	foreach (CVmHardDisk *pHdd, pConfig->getVmHardwareList()->m_lstHardDisks) {
+		CVmHardDisk *pVmHdd;
+		if ((pVmHdd = findDiskInList(pHdd, pVmConfig->getVmHardwareList()->m_lstHardDisks))) {
 			pHdd->setIndex(pVmHdd->getIndex());
 			pHdd->setStackIndex(pVmHdd->getStackIndex());
 			pHdd->setInterfaceType(pVmHdd->getInterfaceType());
 			pHdd->setSerialNumber(pVmHdd->getSerialNumber());
 			pHdd->setSizeInBytes(pVmHdd->getSizeInBytes());
-
-			CVmHddEncryption* enc = pVmHdd->getEncryption();
-			if (enc)
-				set_encryption_keyid(pHdd, enc->getKeyId());
+		} else {
+			pHdd->setIndex(get_free_index(used, idx));
+			idx++;
 		}
 	}
+
+	std::sort(pConfig->getVmHardwareList()->m_lstHardDisks.begin(),
+			pConfig->getVmHardwareList()->m_lstHardDisks.end(),
+			boost::bind(&CVmHardDisk::getIndex, _1) < boost::bind(&CVmHardDisk::getIndex, _2));
+
 	pConfig->getVmSettings()->getVmStartupOptions()->setAutoStartDelay
 		(pVmConfig->getVmSettings()->getVmStartupOptions()->getAutoStartDelay());
 
