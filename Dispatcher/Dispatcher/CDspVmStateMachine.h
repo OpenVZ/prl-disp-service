@@ -244,17 +244,21 @@ struct Frontend: Details::Frontend<Frontend>
 		Running_(): m_big()
 		{
 		}
+
 		explicit Running_(State::Frontend& big_): m_big(&big_)
 		{
 		}
 
 		void apply(const Configuration::update_type& update_)
 		{
-			m_big->getConfigEditor()(update_);
+			if (m_big)
+				m_big->getConfigEditor()(update_);
 		}
 
 		void upgrade(const Upgrade&)
 		{
+			if (m_big == NULL)
+				return;
 			CVmConfiguration runtime;
 			Libvirt::Instrument::Agent::Vm::Unit v = Libvirt::Kit.vms().at(m_big->getUuid());
 			if (v.getConfig(runtime, true).isFailed())
