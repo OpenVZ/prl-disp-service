@@ -750,11 +750,6 @@ static int merge_params(const SmartPtr<CVmConfiguration> &pConfig,
 			idx++;
 		}
 	}
-
-	std::sort(pConfig->getVmHardwareList()->m_lstHardDisks.begin(),
-			pConfig->getVmHardwareList()->m_lstHardDisks.end(),
-			boost::bind(&CVmHardDisk::getIndex, _1) < boost::bind(&CVmHardDisk::getIndex, _2));
-
 	pConfig->getVmSettings()->getVmStartupOptions()->setAutoStartDelay
 		(pVmConfig->getVmSettings()->getVmStartupOptions()->getAutoStartDelay());
 
