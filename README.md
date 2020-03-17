@@ -13,3 +13,20 @@ physical machine.
 
 * [How to submit a patch](https://openvz.org/How_to_submit_patches)
 * [How to contribute to OpenVZ](https://openvz.org/Contribute)
+
+### How to build
+To build dispatcher
+```
+./Gen.py
+cd Dispatcher
+qmake-qt4
+make -j<N> debug
+```
+where is \<N\> - a number of CPU cores on the build node + 2.
+
+To build tests:
+```
+cd Tests
+qmake-qt4
+make
+```
