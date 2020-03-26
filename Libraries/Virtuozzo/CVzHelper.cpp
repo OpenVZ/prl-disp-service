@@ -735,7 +735,8 @@ static int merge_params(const SmartPtr<CVmConfiguration> &pConfig,
 	/* updete hdd indexes */
 	QSet<int> used;
 	foreach (CVmHardDisk *d, pVmConfig->getVmHardwareList()->m_lstHardDisks)
-		used.insert(d->getIndex());
+		if (findDiskInList(d, pConfig->getVmHardwareList()->m_lstHardDisks) != NULL)
+			used.insert(d->getIndex());
 	int idx = 0;
 	foreach (CVmHardDisk *pHdd, pConfig->getVmHardwareList()->m_lstHardDisks) {
 		CVmHardDisk *pVmHdd;
