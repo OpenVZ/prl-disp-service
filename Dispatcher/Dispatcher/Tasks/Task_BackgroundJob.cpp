@@ -50,12 +50,12 @@
 
 #include <QStringList>
 #include <QHostAddress>
-#include <prlcommon/Interfaces/ParallelsTypes.h>
+#include <prlcommon/Interfaces/VirtuozzoTypes.h>
 #include <Libraries/PrlNetworking/netconfig.h>
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 #include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirsDefs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirsDefs.h>
 
 #include "CDspVzHelper.h"
 
@@ -67,7 +67,7 @@ inline void doTraceError(PRL_RESULT _code)
 		, PRL_RESULT_TO_STRING( _code ) );
 }
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 Task_BackgroundJob::Task_BackgroundJob(
 	const SmartPtr<CDspClient> &pUser,
@@ -333,7 +333,7 @@ m_bPauseMode(bPauseMode)
 #define PRL_CMD_WORK_TIMEOUT  60*1000
 namespace {
 
-QString GetAdapterSysName(CParallelsNetworkConfig *pNetworkConfig,
+QString GetAdapterSysName(CVirtuozzoNetworkConfig *pNetworkConfig,
 		PrlNet::EthAdaptersList &ethList, const CVmGenericNetworkAdapter &vmAdapter, PRL_RESULT &nRetCode )
 {
 	PrlNet::EthAdaptersList::Iterator itAdapter;
@@ -375,7 +375,7 @@ PRL_RESULT announceMacAddresses(SmartPtr<CVmConfiguration> &pVmConfig)
 		QString sAdapterSysName;
 		PRL_NET_VIRTUAL_NETWORK_TYPE nNetType;
 		{
-			CDspLockedPointer<CParallelsNetworkConfig>
+			CDspLockedPointer<CVirtuozzoNetworkConfig>
 				pNetworkConfig = CDspService::instance()->getNetworkConfig();
 			nResult = PrlNet::GetNetworkTypeForAdapter(pNetworkConfig.getPtr(), adapter, &nNetType);
 			if (PRL_FAILED(nResult))

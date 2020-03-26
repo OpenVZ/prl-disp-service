@@ -301,7 +301,7 @@ PRL_RESULT GuestFS::getMountInfo(const QString &partition, QString &info) const
 		return PRL_ERR_FAILURE;
 
 	// TODO: Total/free space.
-	info = Parallels::formatMountInfo(
+	info = Virtuozzo::formatMountInfo(
 			m_partToMountpoint[partition], path,
 			QDir::cleanPath(m_localMountpoint + '/' + m_partToMountpoint[partition]),
 			m_partToFilesystem[partition],

@@ -42,11 +42,11 @@
 #include <QMutex>
 #include "CDspTaskHelper.h"
 
-#include <prlxmlmodel/NetworkConfig/CParallelsNetworkConfig.h>
+#include <prlxmlmodel/NetworkConfig/CVirtuozzoNetworkConfig.h>
 #include <prlxmlmodel/VmConfig/CVmGenericNetworkAdapter.h>
 #include <prlxmlmodel/DispConfig/CDispCommonPreferences.h>
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 
 class CDispNetworkPreferences;
 class CDispNetAdapter;
@@ -98,8 +98,8 @@ public:
 
 	PVE::IDispatcherCommands	getCmdNumber();
 
-	/// convert CParallelsNetworkConfig to CDispNetworkPreferences
-	static SmartPtr<CDispNetworkPreferences> convertNetworkConfig( SmartPtr<CParallelsNetworkConfig> pNetworkConfig );
+	/// convert CVirtuozzoNetworkConfig to CDispNetworkPreferences
+	static SmartPtr<CDispNetworkPreferences> convertNetworkConfig( SmartPtr<CVirtuozzoNetworkConfig> pNetworkConfig );
 
 #ifdef _LIN_
 	/// set nessary settings on host for particular vm network adapter
@@ -168,13 +168,13 @@ private:
 
 	/// Helper function.
 	/// Restart and reconfigure Adapter if it doesn't started yet.
-	PRL_RESULT restartParallelsAdapter(
+	PRL_RESULT restartVirtuozzoAdapter(
 	    CVirtualNetwork *pOldConfig,
 	    CVirtualNetwork *pNewConfig,
 	    PrlNet::EthAdaptersList &prlAdaptersList);
 
 	PRL_RESULT addHostOnlyVirtualNetwork(CVirtualNetwork *pVirtualNetwork,
-			CDspLockedPointer<CParallelsNetworkConfig>& pNetworkConfig);
+			CDspLockedPointer<CVirtuozzoNetworkConfig>& pNetworkConfig);
 	PRL_RESULT updateVmNetwork(
 			const QString sVmUuid,
 			const QString svmDirUuid,
@@ -186,7 +186,7 @@ private:
 			const QString &sOldVirtualNetworkID);
 	PRL_RESULT cmdUpdateVirtualNetwork( CVirtualNetwork* pNewVirtualNetwork,
 					CVirtualNetwork* pOldVirtualNetwork,
-					CDspLockedPointer<CParallelsNetworkConfig>& pNetworkConfig);
+					CDspLockedPointer<CVirtuozzoNetworkConfig>& pNetworkConfig);
 	void convertDispAdapterToVirtualNetwork( CDispNetAdapter* pOldNetAdapter, CVirtualNetwork* pVirtualNetwork );
 	PRL_RESULT validateIPPrivateNetwork(CPrivateNetwork *pNetwork);
 private:

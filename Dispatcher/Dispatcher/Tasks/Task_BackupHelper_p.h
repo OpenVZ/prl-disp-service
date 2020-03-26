@@ -108,8 +108,8 @@ struct Frontend: ::Vm::State::Details::Frontend<Frontend>,
 		Migrate::Vm::Tunnel::Hub::Traits
 		<
 			backend_type,
-			Parallels::VmMigrateConnectQemuDiskCmd,
-			Parallels::VmMigrateQemuDiskTunnelChunk
+			Virtuozzo::VmMigrateConnectQemuDiskCmd,
+			Virtuozzo::VmMigrateQemuDiskTunnelChunk
 		>
 	> qemuDisk_type;
 	typedef qemuDisk_type initial_state;
@@ -304,8 +304,8 @@ struct Frontend: ::Vm::State::Details::Frontend<Frontend>,
 		Migrate::Vm::Tunnel::Hub::Traits
 		<
 			backend_type,
-			Parallels::VmMigrateConnectQemuDiskCmd,
-			Parallels::VmMigrateQemuDiskTunnelChunk
+			Virtuozzo::VmMigrateConnectQemuDiskCmd,
+			Virtuozzo::VmMigrateQemuDiskTunnelChunk
 		>
 	> qemuDisk_type;
 	typedef Migrate::Vm::Tunnel::Prime initial_state;

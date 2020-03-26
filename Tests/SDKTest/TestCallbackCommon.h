@@ -34,7 +34,7 @@
 #define __TEST_CALLBACK_COMMON_H__
 
 #include <prlsdk/helpers/SdkWrap/SdkHandleWrap.h>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #define CALLBACK_CHECK_SDK_CALL(call)                                   \
     {                                                                   \

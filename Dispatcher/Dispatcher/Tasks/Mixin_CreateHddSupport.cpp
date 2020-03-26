@@ -50,10 +50,10 @@
 #include "Interfaces/Debug.h"
 
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 /**
-* @brief Helper for Callback functions, called from CreateParallelsDisk
+* @brief Helper for Callback functions, called from CreateVirtuozzoDisk
 * @param iDone
 * @param iTotal
 * @param pTaskHelper

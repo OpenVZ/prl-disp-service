@@ -40,7 +40,7 @@
 
 #include <QtTest>
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #include "SDK/Handles/PveControl.h"
 #include <prlxmlmodel/DispConfig/CDispatcherConfig.h>

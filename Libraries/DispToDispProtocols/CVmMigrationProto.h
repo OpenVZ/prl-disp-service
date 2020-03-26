@@ -38,7 +38,7 @@
 
 #define DISK_MGRT_PARAM_ID "MigrationInstanceId"
 
-namespace Parallels
+namespace Virtuozzo
 {
 
 #include <prlcommon/Interfaces/packed.h>
@@ -58,7 +58,7 @@ typedef struct
 class CVmMigrateProto : public CDispToDispCommand
 {
 public:
-	CVmMigrateProto(Parallels::IDispToDispCommands nCmdIdentifier, quint32 nFlags = 0);
+	CVmMigrateProto(Virtuozzo::IDispToDispCommands nCmdIdentifier, quint32 nFlags = 0);
 	quint32 GetVersion();
 	bool IsValid();
 };
@@ -81,7 +81,7 @@ public:
 	/**
 	 * Class default constructor.
 	 */
-	CVmMigrateCommand(Parallels::IDispToDispCommands nCmdIdentifier)
+	CVmMigrateCommand(Virtuozzo::IDispToDispCommands nCmdIdentifier)
 	: CVmMigrateProto(nCmdIdentifier)
 	{}
 	/**
@@ -93,7 +93,7 @@ public:
 	 * @param reserved flags
 	 */
 	CVmMigrateCommand(
-		Parallels::IDispToDispCommands nCmdIdentifier,
+		Virtuozzo::IDispToDispCommands nCmdIdentifier,
 		const QString &sVmConfiguration,
 		const QString &sTargetVmHomePath,
 		quint32 nMigrationFlags,
@@ -268,6 +268,6 @@ public:
 	QString GetMemFilePath();
 };
 
-}//namespace Parallels
+}//namespace Virtuozzo
 
 #endif

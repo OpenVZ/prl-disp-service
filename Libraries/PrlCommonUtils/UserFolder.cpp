@@ -42,7 +42,7 @@
 #elif defined _LIN_
 #endif
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlcommon/Logging/Logging.h>
 #include <Libraries/PrlCommonUtils/UserFolder.h>
 

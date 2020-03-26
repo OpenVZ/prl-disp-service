@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<ParallelsVirtualMachine schemaVersion="1.0" appVersion="4.0.1225" >
+<VirtuozzoVirtualMachine schemaVersion="1.0" appVersion="4.0.1225" >
  <Identification>
   <VmUuid>{2218c64b-9775-45a2-a9ff-fe84203621d5}</VmUuid>
   <VmName>machine1</VmName>
@@ -91,5 +91,5 @@
    <RAM>256</RAM>
   </Memory>
  </Hardware>
-</ParallelsVirtualMachine>
+</VirtuozzoVirtualMachine>
 

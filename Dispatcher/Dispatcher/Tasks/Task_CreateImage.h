@@ -95,9 +95,9 @@ private:
 	PRL_RESULT hddStep2_CheckConditions( const CVmHardDisk& hard_disk );
 // VirtualDisk commented out by request from CP team
 //	PRL_RESULT hddStep3_PrepareParameters( const CVmHardDisk& hard_disk
-//		, PARALLELS_DISK_PARAMETERS& outDiskParameters );
+//		, VIRTUOZZO_DISK_PARAMETERS& outDiskParameters );
 //	PRL_RESULT hddStep4_CreateImage( const CVmHardDisk& hard_disk
-//		, const PARALLELS_DISK_PARAMETERS& diskParameters );
+//		, const VIRTUOZZO_DISK_PARAMETERS& diskParameters );
 
 	PRL_IMAGE_TYPE getHddDiskType( const CVmHardDisk& hard_disk );
 	// Get padding value for disk

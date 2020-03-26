@@ -35,7 +35,7 @@
 #include <QMutableListIterator>
 #include <QDBusInterface>
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "CDspService.h"
 #include "CDspRouter.h"
@@ -44,7 +44,7 @@
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 #include <prlcommon/IOService/IOCommunication/IOSSLInterface.h>
 #include "CDspHandlerRegistrator.h"
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 #include "Libraries/PrlCommonUtils/PrlQSettings.h"
 #include "Libraries/ProblemReportUtils/CPackedProblemReport.h"
 #include "CDspVm_p.h"
@@ -121,7 +121,7 @@
 #include "Libraries/PrlCommonUtils/RLimits.h"
 #endif
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 
 #define QSETTINGS_TAG_MODE_SERVER	"server"
@@ -129,7 +129,7 @@ using namespace Parallels;
 
 // #429897  This names should be used because paths in QSettings are based of its.
 // It need to provide compatibility with qsettings which created in our old products
-//	( Paralles Workstastion Extreme / Parallels Desktop / Parallels Server for Mac ).
+//	( Paralles Workstastion Extreme / Virtuozzo Desktop / Virtuozzo Server for Mac ).
 //	( before this patch for #429897 )
 // TODO: Need implement mirgating this settings to new names in future.
 
@@ -282,12 +282,12 @@ CMainDspService::~CMainDspService ()
 
 #ifdef _DEBUG
 
-	QString tmpDir = ParallelsDirs::getSystemTempDir();
+	QString tmpDir = VirtuozzoDirs::getSystemTempDir();
 
 	if ( ! tmpDir.isEmpty() )
 	{
 		// need to test bug #2293 [Dispatcher crashes on stop]
-		QString strFinishFileName = QString( "%1/%2" ).arg( tmpDir ).arg( QString( "parallels.finish.info" ) );
+		QString strFinishFileName = QString( "%1/%2" ).arg( tmpDir ).arg( QString( "virtuozzo.finish.info" ) );
 		// to prevent using this file as exploit ( bug #8267 )
 		if( ! QFileInfo( strFinishFileName ).isSymLink() )
 		{
@@ -302,7 +302,7 @@ CMainDspService::~CMainDspService ()
 	// get server product version
 	WRITE_TRACE(DBG_FATAL, "Dispatcher service deinited. [ version = %s [ mode = %s ] ]"
 		, QSTR2UTF8( CVmConfiguration::makeAppVersion() )
-		, ParallelsDirs::getAppExecuteModeAsCString() );
+		, VirtuozzoDirs::getAppExecuteModeAsCString() );
 }
 
 CDspService* CMainDspService::serviceInstance ()
@@ -324,13 +324,13 @@ void CMainDspService::start ()
 	// First of all we need to reset logging file on Dispatcher startup
 	Logger::ResetLogFile();
 
-	if ( PAM_UNKNOWN == ParallelsDirs::getAppExecuteMode() )
+	if ( PAM_UNKNOWN == VirtuozzoDirs::getAppExecuteMode() )
 	{
 		WRITE_TRACE(DBG_FATAL, "Wrong execute mode for application.");
 				goto Error;
 	}
 
-	WRITE_TRACE(DBG_FATAL, "Execute mode is %s.", ParallelsDirs::getAppExecuteModeAsCString() );
+	WRITE_TRACE(DBG_FATAL, "Execute mode is %s.", VirtuozzoDirs::getAppExecuteModeAsCString() );
 
 #ifndef _WIN_
 	// #PDFM-23800 [Dispatcher Service should be started as ROOT to prevent startup problems]
@@ -451,12 +451,12 @@ void CMainDspService::processCommandLineArgs (
 
 	if ( value == CommandLine::g_strCommonValue_ModeName_PS )
 	{
-		ParallelsDirs::Init( PAM_SERVER );
+		VirtuozzoDirs::Init( PAM_SERVER );
 		QCoreApplication::setApplicationName( DISP_APPLICATION_NAME_SERVER );
 	}
 	else
 	{
-		ParallelsDirs::Init( PAM_UNKNOWN );
+		VirtuozzoDirs::Init( PAM_UNKNOWN );
 	}
 
 	CMainDspService::g_bSkipVmVersionCheck = parser.hasKey( CommandLine::g_strSkipVmVersionCheck );
@@ -653,9 +653,9 @@ CFeaturesMatrix CDspService::getFeaturesMatrix()
 	return m_FeaturesMatrix;
 }
 
-CDspLockedPointer<CParallelsNetworkConfig> CDspService::getNetworkConfig()
+CDspLockedPointer<CVirtuozzoNetworkConfig> CDspService::getNetworkConfig()
 {
-	return CDspLockedPointer< CParallelsNetworkConfig > (& m_networkConfigMutex, &m_networkConfig );
+	return CDspLockedPointer< CVirtuozzoNetworkConfig > (& m_networkConfigMutex, &m_networkConfig );
 
 }
 
@@ -1519,7 +1519,7 @@ PRL_RESULT CDspService::initNetworkPreferences(CDispCommonPreferences& config_)
 void CDspService::initPrivateNetworks()
 {
 #ifdef _CT_
-	CDspLockedPointer<CParallelsNetworkConfig> pNetCfg = CDspService::instance()->getNetworkConfig();
+	CDspLockedPointer<CVirtuozzoNetworkConfig> pNetCfg = CDspService::instance()->getNetworkConfig();
 	if ( ! pNetCfg.isValid() )
 	{
 		WRITE_TRACE(DBG_FATAL, "Network config doesn't exist!" );
@@ -1567,10 +1567,10 @@ void CDspService::initSyncVmUptimeTask()
 
 bool CDspService::setupDispEnv ()
 {
-	QString strDispConfigDir = ParallelsDirs::getDispatcherConfigDir();
+	QString strDispConfigDir = VirtuozzoDirs::getDispatcherConfigDir();
 	QString strDefaultCommonVmCatalogueDir
-		= ParallelsDirs::getCommonDefaultVmCatalogue();
-	QString strDefaultSwapPathForVMOnNetworkShares = ParallelsDirs::getDefaultSwapPathForVMOnNetworkShares();
+		= VirtuozzoDirs::getCommonDefaultVmCatalogue();
+	QString strDefaultSwapPathForVMOnNetworkShares = VirtuozzoDirs::getDefaultSwapPathForVMOnNetworkShares();
 
 	// Helper for root users.
 	CAuthHelper rootAuth;
@@ -1687,7 +1687,7 @@ bool CDspService::initAllConfigs()
 			if ( swapPath.isEmpty() ){
 
 				QString strDefaultSwapPathForVMOnNetworkShares =
-									ParallelsDirs::getDefaultSwapPathForVMOnNetworkShares();
+									VirtuozzoDirs::getDefaultSwapPathForVMOnNetworkShares();
 
 				WRITE_TRACE(DBG_FATAL, "SwapPathForVMOnNetworkShares is empty in dispatcher config,"
 					" inited to default." );
@@ -1715,8 +1715,8 @@ bool CDspService::recoverAllConfigs()
 	//	http://bugzilla/show_bug.cgi?id=5898
 	// TODO: Implement as defined in bug #3201 http://bugzilla/show_bug.cgi?id=3201
 
-	QString strDispConfigFile = ParallelsDirs::getDispatcherConfigFilePath();
-	QString strVmDirCatalogueFile = ParallelsDirs::getDispatcherVmCatalogueFilePath();
+	QString strDispConfigFile = VirtuozzoDirs::getDispatcherConfigFilePath();
+	QString strVmDirCatalogueFile = VirtuozzoDirs::getDispatcherVmCatalogueFilePath();
 
 	QString backupSuffix = makeBackupSuffix();
 
@@ -1848,7 +1848,7 @@ bool CDspService::initDispConfig ()
 	// where $DISPATCHER_CONFIG_DIR is the environment variable, which points
 	// to the home directory. If $DISPATCHER_CONFIG_DIR is not set,
 	// or/and assume default path, as it
-	// is returned by ParallelsDirs::getDispatcherConfigDir() + DISPATCHER_DIR_NAME.
+	// is returned by VirtuozzoDirs::getDispatcherConfigDir() + DISPATCHER_DIR_NAME.
 	//
 	////////////////////////////////////////////////////////////////////////
 
@@ -1860,7 +1860,7 @@ bool CDspService::initDispConfig ()
 	{
 		// disp config file name
 		QString strDispConfigFile =
-			ParallelsDirs::getDispatcherConfigFilePath();
+			VirtuozzoDirs::getDispatcherConfigFilePath();
 
 		// check Dispatcher's config XML exists
 		QFile f_in_cfg( strDispConfigFile );
@@ -1974,7 +1974,7 @@ bool CDspService::initVmDirCatalogue ()
 	try
 	{
 		// get VmDirCatalogue file name
-		QString strVmDirCatalogueFile = ParallelsDirs::getDispatcherVmCatalogueFilePath();
+		QString strVmDirCatalogueFile = VirtuozzoDirs::getDispatcherVmCatalogueFilePath();
 
 		//////////////////////////////////////////////////////////////////////
 		// create  vm directory list config.
@@ -2063,7 +2063,7 @@ bool CDspService::initVmDirCatalogue ()
 
 			CVmDirectory* pVmDir = new CVmDirectory(
 				vmDirUuid
-				, ParallelsDirs::getCommonDefaultVmCatalogue()
+				, VirtuozzoDirs::getCommonDefaultVmCatalogue()
 				, "Default"
 				);
 
@@ -2244,14 +2244,14 @@ bool CDspService::createDispConfig ()
 
 	// Setup default backup path
 	pPreferences->getBackupTargetPreferences()->setDefaultBackupDirectory(
-			ParallelsDirs::getDefaultBackupDir());
+			VirtuozzoDirs::getDefaultBackupDir());
 
 	// Max reserved memory limit is calculated for maximum VMM size allowed for this
 	// platform (i.e. if platform supports both 32 and 64 bit VMMs, calculate reserved
 	// memory by using 64 bit VMM).
 	// It's switched off because this is valid only for VMs
 
-	QString strDispConfigFile = ParallelsDirs::getDispatcherConfigFilePath();
+	QString strDispConfigFile = VirtuozzoDirs::getDispatcherConfigFilePath();
 
 	// Try to save new configuration file
 	CDispNetworkPreferences*
@@ -2367,7 +2367,7 @@ bool CDspService::updateDispConfig ()
 	////////////////////////////////////////////////////////////////////////
 	WRITE_TRACE( DBG_FATAL, "Dispacther config was successfully updated." );
 
-	QString strDispConfigFile = ParallelsDirs::getDispatcherConfigFilePath();
+	QString strDispConfigFile = VirtuozzoDirs::getDispatcherConfigFilePath();
 
 	PRL_RESULT save_rc = getDispConfigGuard().saveConfig( strDispConfigFile );
 	if( PRL_FAILED( save_rc ) )
@@ -2653,7 +2653,7 @@ void CDspService::createIOServers ( quint32 listenPort, PRL_SECURITY_LEVEL secur
 	m_ioLocalUnixListeningServer = SmartPtr<IOServerInterface>(setup(new IOServer(
 		IORoutingTableHelper::GetServerRoutingTable(securityLevel),
 		IOSender::Dispatcher,
-		ParallelsDirs::getDispatcherLocalSocketPath(),
+		VirtuozzoDirs::getDispatcherLocalSocketPath(),
 		0, true )));
 	m_ioLocalUnixListeningServer->setUserConnectionLimit(getDispConfigGuard()
                 .getDispWorkSpacePrefs()->getLimits()->getMaxLogonActions());
@@ -2798,7 +2798,7 @@ PRL_RESULT CDspService::updateCommonPreferences(const boost::function<PRL_RESULT
 	WRITE_TRACE(DBG_DEBUG, "\n%s", qPrintable(n->getNetworkPreferences()->toString()));
 
 	WRITE_TRACE(DBG_INFO, "Dispacther config has been updated.");
-	QString strDispConfigFile = ParallelsDirs::getDispatcherConfigFilePath();
+	QString strDispConfigFile = VirtuozzoDirs::getDispatcherConfigFilePath();
 	output = getDispConfigGuard().saveConfig(strDispConfigFile);
 	if(PRL_FAILED(output))
 	{

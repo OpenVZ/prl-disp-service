@@ -35,7 +35,7 @@
 #include "CDspDispConfigGuard.h"
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
@@ -62,7 +62,7 @@ void CDspDispConfigGuard::enableCrashSafeMech()
 
 PRL_RESULT  CDspDispConfigGuard::saveConfig( bool bNoSaveNetwork )
 {
-	QString path = ParallelsDirs::getDispatcherConfigFilePath();
+	QString path = VirtuozzoDirs::getDispatcherConfigFilePath();
 	return saveConfig( path, bNoSaveNetwork );
 }
 

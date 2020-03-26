@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ParallelsVirtualMachine schemaVersion="1.0" appVersion="3.0.1541" >
+<VirtuozzoVirtualMachine schemaVersion="1.0" appVersion="3.0.1541" >
    <Identification>
       <VmUuid>{2e5c5dec-8cb4-3d1f-b442-311ca915a23b}</VmUuid>
       <VmName>SDKTest_vm_with_devices</VmName>
@@ -140,5 +140,5 @@
          <Relative>0</Relative>
       </Serial>
    </Hardware>
-</ParallelsVirtualMachine>
+</VirtuozzoVirtualMachine>
 

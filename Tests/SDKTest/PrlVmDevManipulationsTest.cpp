@@ -4534,7 +4534,7 @@ void PrlVmDevManipulationsTest::testCopyImage()
 	hJob.reset(PrlVm_Commit(m_VmHandle));
 	CHECK_JOB_RET_CODE(hJob);
 ////
-	m_qsTestPath = ParallelsDirs::getSystemTempDir();
+	m_qsTestPath = VirtuozzoDirs::getSystemTempDir();
 	hJob.reset(PrlVmDev_CopyImage(hHdd, "copied_vm_hdd", QSTR2UTF8(m_qsTestPath), 0));
 	CHECK_JOB_RET_CODE(hJob);
 

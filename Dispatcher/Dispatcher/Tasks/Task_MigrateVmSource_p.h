@@ -55,9 +55,9 @@ namespace Source
 {
 struct Frontend;
 typedef boost::msm::back::state_machine<Frontend> Machine_type;
-typedef Vm::Pump::Event<Parallels::VmMigrateCheckPreconditionsReply> CheckReply;
-typedef Vm::Pump::Event<Parallels::VmMigrateReply> StartReply;
-typedef Vm::Pump::Event<Parallels::DispToDispResponseCmd> PeerFinished;
+typedef Vm::Pump::Event<Virtuozzo::VmMigrateCheckPreconditionsReply> CheckReply;
+typedef Vm::Pump::Event<Virtuozzo::VmMigrateReply> StartReply;
+typedef Vm::Pump::Event<Virtuozzo::DispToDispResponseCmd> PeerFinished;
 
 namespace Inspection
 {
@@ -709,8 +709,8 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 			Vm::Tunnel::Hub::Traits
 			<
 				Machine_type,
-				Parallels::VmMigrateConnectQemuStateCmd,
-				Parallels::VmMigrateQemuStateTunnelChunk
+				Virtuozzo::VmMigrateConnectQemuStateCmd,
+				Virtuozzo::VmMigrateQemuStateTunnelChunk
 			>
 		> qemuState_type;
 	typedef Qemu::Hub
@@ -718,8 +718,8 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Connector>
 			Vm::Tunnel::Hub::Traits
 			<
 				Machine_type,
-				Parallels::VmMigrateConnectQemuDiskCmd,
-				Parallels::VmMigrateQemuDiskTunnelChunk
+				Virtuozzo::VmMigrateConnectQemuDiskCmd,
+				Virtuozzo::VmMigrateQemuDiskTunnelChunk
 			>
 		> qemuDisk_type;
 	typedef Vm::Tunnel::Essence

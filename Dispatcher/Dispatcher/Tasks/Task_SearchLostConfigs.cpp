@@ -44,7 +44,7 @@
 // ConfigConverter commented out by request from CP team
 //#include "Libraries/ConfigConverter/ConfigConverter.h"
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
@@ -187,12 +187,12 @@ void Task_SearchLostConfigs::processSearchPath(const QString &sSearchPath)
 				bool isTemplate = false;
 				SmartPtr<CVmConfiguration> pVmConfig(new CVmConfiguration);
 // ConfigConverter commented out by request from CP team
-//				SmartPtr<Parallels::ConfigFile> pOldCfgFile( new Parallels::ConfigFile(sVmConfigPath) );
+//				SmartPtr<Virtuozzo::ConfigFile> pOldCfgFile( new Virtuozzo::ConfigFile(sVmConfigPath) );
 //				if (pOldCfgFile->IsValid())
 //				{
 //					isOldConfig = true;
 //					//Convert old config now
-//					SmartPtr<Parallels::CConfigConverter> pConfigConverter( new Parallels::CConfigConverter );
+//					SmartPtr<Virtuozzo::CConfigConverter> pConfigConverter( new Virtuozzo::CConfigConverter );
 //					pConfigConverter->ConvertConfiguration(pOldCfgFile.getImpl(), *pVmConfig.getImpl(), CDspService::instance()->getHostInfo()->data());
 //					// maybe need check that old config was correctly converted?
 //				}

@@ -911,7 +911,7 @@ struct Flavor<T, typename EnableIf<IsSame<T, Vm::General>::value ||
 		SmartPtr<CVmConfiguration> output = Source::Config(f).expel();
 		// PWE-3866
 /*
-		if ( PAM_WORKSTATION_EXTREME == ParallelsDirs::getAppExecuteMode() )
+		if ( PAM_WORKSTATION_EXTREME == VirtuozzoDirs::getAppExecuteMode() )
 		{
 			CVmCommonOptions* o = output->getVmSettings()->getVmCommonOptions();
 			o->setVmColor(CDspService::instance()->getVmDirHelper().getUniqueVmColor(

@@ -25,8 +25,8 @@
 /********************************************************************
  * created:	2006/06/06
  * created:	6:6:2006   18:55
- * filename: 	C:\Projects\MainCC\artemr_ParallelsR3\PVSVob\a-Platform\Dispatcher\CAuth\CAuth\CAuth_win32.cpp
- * file path:	C:\Projects\MainCC\artemr_ParallelsR3\PVSVob\a-Platform\Dispatcher\CAuth\CAuth
+ * filename: 	C:\Projects\MainCC\artemr_VirtuozzoR3\PVSVob\a-Platform\Dispatcher\CAuth\CAuth\CAuth_win32.cpp
+ * file path:	C:\Projects\MainCC\artemr_VirtuozzoR3\PVSVob\a-Platform\Dispatcher\CAuth\CAuth
  * file base:	CAuth_win32
  * file ext:	cpp
  * author:		artemr
@@ -52,7 +52,7 @@
 #include <QFileInfoList>
 #include <QDir>
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include "CAuth.h"
 #include "aclApi.h"
 #include "AccCtrl.h"

@@ -47,7 +47,7 @@ Trace::Trace(const SmartPtr<IOService::IOPackage>& request_)
 		return;
 
 	m_uuid = Uuid::toString(request_->header.uuid);
-	Parallels::CProtoCommandPtr d = Parallels::CProtoSerializer::ParseCommand(request_);
+	Virtuozzo::CProtoCommandPtr d = Virtuozzo::CProtoSerializer::ParseCommand(request_);
 	if (!d.isValid())
 		return;
 

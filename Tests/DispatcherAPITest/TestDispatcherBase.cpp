@@ -38,7 +38,7 @@
 #include "TestDispatcherBase.h"
 #include <QtTest/QtTest>
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #include "SDK/Handles/PveControl.h"
 #include <prlcommon/Messaging/CVmEvent.h>
@@ -49,7 +49,7 @@
 #include <prlxmlmodel/VmDirectory/CVmDirectories.h>
 #include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
 
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 
 
 #include "Tests/CommonTestsUtils.h"
@@ -118,7 +118,7 @@ SmartPtr<CVmDirectory> TestDispatcherBase::GetUserVmDirectory()
 	SmartPtr<CVmDirectory> pVmDir;
 	try
 	{
-		QFile fileVmDirs( ParallelsDirs::getDispatcherVmCatalogueFilePath() );
+		QFile fileVmDirs( VirtuozzoDirs::getDispatcherVmCatalogueFilePath() );
 		CVmDirectories vmDirs ( &fileVmDirs );
 		if ( PRL_FAILED( vmDirs.m_uiRcInit ) )
 		{
@@ -126,7 +126,7 @@ SmartPtr<CVmDirectory> TestDispatcherBase::GetUserVmDirectory()
 			throw PRL_RESULT_TO_STRING( vmDirs.m_uiRcInit );
 		}
 
-		QFile fileDispConfig( ParallelsDirs::getDispatcherConfigFilePath() );
+		QFile fileDispConfig( VirtuozzoDirs::getDispatcherConfigFilePath() );
 		CDispatcherConfig dispConf ( &fileDispConfig );
 		if ( PRL_FAILED( dispConf.m_uiRcInit ) )
 		{

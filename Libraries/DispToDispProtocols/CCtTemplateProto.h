@@ -36,13 +36,13 @@
 
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 
-namespace Parallels
+namespace Virtuozzo
 {
 
 class CCtTemplateProto : public CDispToDispCommand
 {
 public:
-	CCtTemplateProto(Parallels::IDispToDispCommands nCmdIdentifier, quint32 nFlags = 0);
+	CCtTemplateProto(Virtuozzo::IDispToDispCommands nCmdIdentifier, quint32 nFlags = 0);
 	bool IsValid();
 	quint32 GetVersion();
 };
@@ -93,6 +93,6 @@ public:
 	{}
 };
 
-}//namespace Parallels
+}//namespace Virtuozzo
 
 #endif

@@ -41,8 +41,8 @@
 #include <QCoreApplication>
 #include <QStringList>
 #include "CDspVmDirHelper.h"
-#include <prlcommon/Interfaces/ParallelsQt.h>
-#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
+#include <prlcommon/Interfaces/VirtuozzoSdkPrivate.h>
 #include "CDspVNCStarter.h"
 #include "CDspService.h"
 #include "CDspVNCStarter_p.h"

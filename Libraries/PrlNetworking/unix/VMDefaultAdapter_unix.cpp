@@ -63,7 +63,7 @@
 #include <memory>
 #include <boost/bind.hpp>
 #include <prlcommon/Logging/Logging.h>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #ifdef _DEBUG
 #include <iostream>
@@ -163,7 +163,7 @@ PrlNetInternal::getDefaultBridgedAdapter(
 static EthIfaceList::const_iterator
 getPrimaryIface(const EthIfaceList &ethList)
 {
-	SCDynamicStoreRef store = SCDynamicStoreCreate(0, CFSTR("Parallels"), 0, 0);
+	SCDynamicStoreRef store = SCDynamicStoreCreate(0, CFSTR("Virtuozzo"), 0, 0);
 	if (NULL == store) {
 		WRITE_TRACE(DBG_FATAL, "getPrimaryIface: SCDynamicStoreCreate() Failed");
 		return ethList.end();

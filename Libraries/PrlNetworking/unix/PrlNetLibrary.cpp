@@ -39,7 +39,7 @@
 
 using namespace PrlNet_Private;
 
-#define PARALLELS_NAT_IS_RUNNING "ps -A 2>&1 | grep prl_naptd >/dev/null"
+#define VIRTUOZZO_NAT_IS_RUNNING "ps -A 2>&1 | grep prl_naptd >/dev/null"
 
 static unsigned int s_LastSystemError;
 void PrlNet_Private::MODULE_STORE_SYSTEM_ERROR()
@@ -50,7 +50,7 @@ void PrlNet_Private::MODULE_STORE_SYSTEM_ERROR()
 
 int	PrlNet::getMaximumAdapterIndex()
 {
-	return PARALLELS_MAXIMUM_ADAPTER_INDEX;
+	return VIRTUOZZO_MAXIMUM_ADAPTER_INDEX;
 }
 
 
@@ -120,7 +120,7 @@ PRL_RESULT PrlNet::makePrlAdaptersList( PrlNet::EthAdaptersList &adaptersList )
 		ethAdapter._systemName = it->_name;
 		ethAdapter._adapterIndex = it->_nAdapter;
 		ethAdapter._bEnabled = (it->_ifaceFlags&IFF_UP) ? true : false;
-		ethAdapter._bParallelsAdapter = true;
+		ethAdapter._bVirtuozzoAdapter = true;
 		ethAdapter._vlanTag = PRL_INVALID_VLAN_TAG;
 		memcpy( ethAdapter._macAddr, it->_macAddr, 6 );
 
@@ -253,9 +253,9 @@ QString PrlNet::getSysErrorText()
 }
 
 
-PRL_RESULT PrlNet::installPrlService( const QString &parallelsDir )
+PRL_RESULT PrlNet::installPrlService( const QString &virtuozzoDir )
 {
-	UNUSED_PARAM(parallelsDir);
+	UNUSED_PARAM(virtuozzoDir);
 	return PRL_ERR_SUCCESS; // do nothing for MAC and linux
 }
 
@@ -280,12 +280,12 @@ void	PrlNet::getDefaultDhcpParams(
 }
 
 
-PRL_RESULT PrlNet::stopNetworking(const QString &parallelsDir)
+PRL_RESULT PrlNet::stopNetworking(const QString &virtuozzoDir)
 {
-	Q_UNUSED(parallelsDir);
+	Q_UNUSED(virtuozzoDir);
 #if !defined(EXTERNALLY_AVAILABLE_BUILD)
 	// read system-flags
-	CParallelsNetworkConfig networkConfig;
+	CVirtuozzoNetworkConfig networkConfig;
 	PRL_RESULT prlResult = PrlNet::ReadNetworkConfig( networkConfig );
 	if (PRL_FAILED(prlResult))
 		return PRL_ERR_SUCCESS;
@@ -301,7 +301,7 @@ PRL_RESULT PrlNet::stopNetworking(const QString &parallelsDir)
 }
 
 #if 0
-PRL_RESULT PrlNet::VZSyncConfig(CParallelsNetworkConfig *pConfig, bool *pbConfigChanged)
+PRL_RESULT PrlNet::VZSyncConfig(CVirtuozzoNetworkConfig *pConfig, bool *pbConfigChanged)
 {
 	*pbConfigChanged = false;
 
@@ -343,7 +343,7 @@ PRL_RESULT PrlNet::VZSyncConfig(CParallelsNetworkConfig *pConfig, bool *pbConfig
 #endif
 
 #if !defined(_WIN_) && !defined(EXTERNALLY_AVAILABLE_BUILD)
-static void startTapNetworking(const CParallelsNetworkConfig &networkConfig)
+static void startTapNetworking(const CVirtuozzoNetworkConfig &networkConfig)
 {
 	(void)networkConfig;
 	int r = ::system("/vz/tapnet_start_net.sh");
@@ -352,14 +352,14 @@ static void startTapNetworking(const CParallelsNetworkConfig &networkConfig)
 #endif
 
 /// Starts networking adapters configured in Dispatcher.xml
-PRL_RESULT PrlNet::startNetworking( const QString &parallelsDir, const QString &prlDriversDir )
+PRL_RESULT PrlNet::startNetworking( const QString &virtuozzoDir, const QString &prlDriversDir )
 {
 	//
 	// Load and process configuration.
 	//
 	Q_UNUSED(prlDriversDir);
-	Q_UNUSED(parallelsDir);
-	CParallelsNetworkConfig networkConfig;
+	Q_UNUSED(virtuozzoDir);
+	CVirtuozzoNetworkConfig networkConfig;
 	bool bConfigurationRestored = false;
 	PRL_RESULT prlResult = InitNetworkConfig(networkConfig, bConfigurationRestored);
 	if (!PRL_SUCCEEDED(prlResult))
@@ -412,10 +412,10 @@ PRL_RESULT PrlNet::startNetworking( const QString &parallelsDir, const QString &
 
 
 // returns names of the Prl NATD
-void PrlNet_Private::getPrlNatdNames( const QString &parallelsDir, QString &cmd, QString &arg0 )
+void PrlNet_Private::getPrlNatdNames( const QString &virtuozzoDir, QString &cmd, QString &arg0 )
 {
 	arg0 = "prl_naptd";
-	cmd = "\"" + parallelsDir + "/" + arg0 + "\"";
+	cmd = "\"" + virtuozzoDir + "/" + arg0 + "\"";
 }
 
 

@@ -52,7 +52,7 @@
 #include <prlxmlmodel/HostHardwareInfo/CSystemStatistics.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlxmlmodel/NetworkConfig/CVirtualNetwork.h>
-#include <prlxmlmodel/NetworkConfig/CParallelsNetworkConfig.h>
+#include <prlxmlmodel/NetworkConfig/CVirtuozzoNetworkConfig.h>
 #include <prlxmlmodel/VmDataStatistic/CVmDataStatistic.h>
 
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
@@ -65,12 +65,12 @@
 #include "Libraries/StatesStore/SavedStateTree.h"
 #include "Libraries/PrlNetworking/netconfig.h"
 
-#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
+#include <prlcommon/Interfaces/VirtuozzoSdkPrivate.h>
 #ifdef _MAC_
 #include "Libraries/TimeMachineHelper/CTimeMachineHelper.h"
 #endif
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 #define SKIP_TEST_IN_CT_MODE \
 	if (TestConfig::isCtMode()) \
@@ -3615,7 +3615,7 @@ void PrlVmManipulationsTest::testVmEventProcessing1()
 	CHECK_EVENT_PARAMETER2("vm_message", PFD_UINT32, "1002")
 	CHECK_EVENT_PARAMETER2("vm_message_choice_0", PFD_UINT32, "2002")
 	CHECK_EVENT_PARAMETER2("vm_message_choice_1", PFD_UINT32, "2003")
-	CHECK_EVENT_PARAMETER2("vm_message_param_0", PFD_STRING, "C:\\Parallels Virtual Machines\\DOS\\lpt.txt")
+	CHECK_EVENT_PARAMETER2("vm_message_param_0", PFD_STRING, "C:\\Virtuozzo Virtual Machines\\DOS\\lpt.txt")
 	CHECK_EVENT_PARAMETER2("executive_server", PFD_STRING, "localhost")
 }
 
@@ -7434,9 +7434,9 @@ void PrlVmManipulationsTest::testSetAppTemplateListOnWrongParams()
 
 void PrlVmManipulationsTest::testAutoVirtualNetworksConfigureDuringVmCreation()
 {
-	QFile _file( ParallelsDirs::getNetworkConfigFilePath() );
+	QFile _file( VirtuozzoDirs::getNetworkConfigFilePath() );
 	QVERIFY(_file.open( QIODevice::ReadOnly ));
-	CParallelsNetworkConfig _netcfg( &_file );
+	CVirtuozzoNetworkConfig _netcfg( &_file );
 	CHECK_RET_CODE_EXP(_netcfg.m_uiRcInit)
 	_file.close();
 
@@ -7484,9 +7484,9 @@ void PrlVmManipulationsTest::testAutoVirtualNetworksConfigureDuringVmCreation()
 
 void PrlVmManipulationsTest::testAutoVirtualNetworksConfigureDuringVmRegistration()
 {
-	QFile _file( ParallelsDirs::getNetworkConfigFilePath() );
+	QFile _file( VirtuozzoDirs::getNetworkConfigFilePath() );
 	QVERIFY(_file.open( QIODevice::ReadOnly ));
-	CParallelsNetworkConfig _netcfg( &_file );
+	CVirtuozzoNetworkConfig _netcfg( &_file );
 	CHECK_RET_CODE_EXP(_netcfg.m_uiRcInit)
 	_file.close();
 
@@ -7505,7 +7505,7 @@ void PrlVmManipulationsTest::testAutoVirtualNetworksConfigureDuringVmRegistratio
 
 	CAuthHelper _auth( TestConfig::getUserLogin() );
 	QVERIFY(_auth.AuthUser( TestConfig::getUserPassword() ));
-	QString sVmHomePath = ParallelsDirs::getSystemTempDir() + '/' + QTest::currentTestFunction();
+	QString sVmHomePath = VirtuozzoDirs::getSystemTempDir() + '/' + QTest::currentTestFunction();
 	QVERIFY(CFileHelper::WriteDirectory( sVmHomePath, &_auth ));
 	QString sVmConfigPath = QString( "%1/%2" ).arg( sVmHomePath ).arg( VMDIR_DEFAULT_VM_CONFIG_FILE );
 	QVERIFY(CFileHelper::CreateBlankFile( sVmConfigPath, &_auth ));

@@ -34,7 +34,7 @@
 #include "PrlSataDevicesHotPlugTest.h"
 #include "SimpleServerWrapper.h"
 #include "Tests/CommonTestsUtils.h"
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 
 #include <QFile>

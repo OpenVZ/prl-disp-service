@@ -10,7 +10,7 @@
    </rect>
   </property>
   <property name="windowTitle" >
-   <string>Parallels Web Services Test</string>
+   <string>Virtuozzo Web Services Test</string>
   </property>
   <widget class="QWidget" name="centralWidget" >
    <layout class="QGridLayout" >

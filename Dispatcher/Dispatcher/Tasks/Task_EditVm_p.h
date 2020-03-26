@@ -43,7 +43,7 @@
 #include <boost/function.hpp>
 #include "CDspVmGuestPersonality.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
-#include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
+#include <prlxmlmodel/VirtuozzoObjects/CXmlModelHelper.h>
 
 class Task_EditVm;
 namespace Edit

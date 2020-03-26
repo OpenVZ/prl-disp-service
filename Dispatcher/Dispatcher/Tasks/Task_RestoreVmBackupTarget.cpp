@@ -36,8 +36,8 @@
 #include <QProcess>
 #include "CDspVmBrand.h"
 #include "Interfaces/Debug.h"
-#include "prlcommon/Interfaces/ParallelsQt.h"
-#include "prlcommon/Interfaces/ParallelsNamespace.h"
+#include "prlcommon/Interfaces/VirtuozzoQt.h"
+#include "prlcommon/Interfaces/VirtuozzoNamespace.h"
 #include "prlcommon/Interfaces/ApiDevNums.h"
 #include "prlcommon/Logging/Logging.h"
 #include "prlcommon/PrlUuid/Uuid.h"
@@ -2392,7 +2392,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::sendStartRequest()
 	}
 
 	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(
-		(Parallels::IDispToDispCommands)m_pReply->header.type, UTF8_2QSTR(m_pReply->buffers[0].getImpl()));
+		(Virtuozzo::IDispToDispCommands)m_pReply->header.type, UTF8_2QSTR(m_pReply->buffers[0].getImpl()));
 
 	if (m_pReply->header.type == DispToDispResponseCmd) {
 		CDispToDispResponseCommand *pResponseCmd =
@@ -2457,7 +2457,7 @@ Prl::Expected<QString, PRL_RESULT> Task_RestoreVmBackupTarget::sendMountImageReq
 
 	CDispToDispResponseCommand *rc =
 		CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispResponseCommand>(
-			CDispToDispProtoSerializer::ParseCommand((Parallels::IDispToDispCommands)r->header.type,
+			CDispToDispProtoSerializer::ParseCommand((Virtuozzo::IDispToDispCommands)r->header.type,
 			UTF8_2QSTR(r->buffers[0].getImpl())));
 
 	if (PRL_FAILED(output = rc->GetRetCode()))

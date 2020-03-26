@@ -44,7 +44,7 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
@@ -362,7 +362,7 @@ PRL_RESULT Task_DiskImageResizer::run_disk_tool()
 
 	// Taking application path as 'current'
 	QDir pwd = QDir( (QCoreApplication::instance())->applicationDirPath() );
-	QString resizer_cmd = ParallelsDirs::getDiskToolPath( pwd );
+	QString resizer_cmd = VirtuozzoDirs::getDiskToolPath( pwd );
 
 	if (!QFile::exists(resizer_cmd))
 	{

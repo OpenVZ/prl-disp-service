@@ -25,8 +25,8 @@
 #include "CFileHelper.h"
 #include "CVmMigrateHelper.h"
 #include <prlcommon/Logging/Logging.h>
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #include <QDir>
 
@@ -121,7 +121,7 @@ PRL_RESULT CVmMigrateHelper::GetEntryListsVmHome(const QString & home, EntryList
 	QDir homeDir(home);
 	fl.removeOne(QFileInfo(home, VMDIR_DEFAULT_VM_CONFIG_FILE));
 	fl.removeOne(QFileInfo(home, VMDIR_DEFAULT_VM_CONFIG_FILE VMDIR_DEFAULT_VM_BACKUP_SUFFIX));
-	fl.removeOne(QFileInfo(home, "parallels.log"));
+	fl.removeOne(QFileInfo(home, "virtuozzo.log"));
 
 	// copy statistic file to different path on remote side
 	QFileInfo statlog(home, PRL_VMTIMING_LOGFILENAME);

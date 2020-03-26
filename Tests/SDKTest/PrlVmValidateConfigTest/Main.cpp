@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA.
  *
- * Our contact details: Parallels International GmbH, Vordergasse 59, 8200
+ * Our contact details: Virtuozzo International GmbH, Vordergasse 59, 8200
  * Schaffhausen, Switzerland.
  */
 
@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
         QCoreApplication app(argc, argv);
         PrlVmValidateConfigTest test;
 
-	PrlApi_InitEx(PARALLELS_API_VER, PAM_SERVER, 0, 0);
+	PrlApi_InitEx(VIRTUOZZO_API_VER, PAM_SERVER, 0, 0);
 
         QTest::qExec(&test, argc, argv);
 	PrlApi_Deinit();

@@ -39,7 +39,7 @@
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/PrlCommonUtilsBase/Common.h>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #define EFS_MAX_KEY_LENGTH 255
 
@@ -133,11 +133,11 @@ bool EfsUsersDetector::getUsersOfEncryptedFileSystem( EfsUsersDetector::UserList
 		return false;
 	outEfsUsers.clear();
 
-	QString sParallelsTmpPrefix = "ParallelsTmp_";
+	QString sVirtuozzoTmpPrefix = "VirtuozzoTmp_";
 
-	HKUAutoLoader autoLoader(sParallelsTmpPrefix);
+	HKUAutoLoader autoLoader(sVirtuozzoTmpPrefix);
 	Q_UNUSED(autoLoader);
-	return enumUsers( outEfsUsers, sParallelsTmpPrefix );
+	return enumUsers( outEfsUsers, sVirtuozzoTmpPrefix );
 }
 
 

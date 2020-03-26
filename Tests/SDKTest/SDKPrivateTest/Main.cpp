@@ -33,7 +33,7 @@
 #include <QCoreApplication>
 #include <QtTest/QtTest>
 
-#include <prlsdk/Parallels.h>
+#include <prlsdk/Virtuozzo.h>
 
 #include <prlcommon/Logging/Logging.h>
 #include "Tests/CommonTestsUtils.h"
@@ -50,7 +50,7 @@
 
 int main(int argc, char *argv[])
 {
-	PrlApi_Init(PARALLELS_API_VER);
+	PrlApi_Init(VIRTUOZZO_API_VER);
 
 	int nRet = 0;
 	EXECUTE_TESTS_SUITE(PrlHandleSmartPtrTest)

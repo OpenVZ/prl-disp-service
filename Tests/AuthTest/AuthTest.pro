@@ -4,7 +4,7 @@ CONFIG		+= console
 QT			-= gui
 
 LEVEL = ../../..
-include($$LEVEL/Sources/Parallels.pri)
+include($$LEVEL/Sources/Virtuozzo.pri)
 
 INCLUDEPATH +=  $$LEVEL/Sources
 

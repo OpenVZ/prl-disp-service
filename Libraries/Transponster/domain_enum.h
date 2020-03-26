@@ -46,7 +46,7 @@ enum EType
 	ETypeHyperv,
 	ETypeVbox,
 	ETypePhyp,
-	ETypeParallels,
+	ETypeVirtuozzo,
 	ETypeBhyve
 };
 

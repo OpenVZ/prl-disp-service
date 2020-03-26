@@ -34,7 +34,7 @@
 #include <winsock2.h>
 #include <WS2tcpip.h>
 #include "Libraries/PrlNetEnum/prl_net_enum.h"
-#include "System/Network/services/ParallelsNetDaemon.h" // for WIN32_PARALLELS_NETSERVICE_NAME and WIN32_SERVICE_FILE_NAME
+#include "System/Network/services/VirtuozzoNetDaemon.h" // for WIN32_VIRTUOZZO_NETSERVICE_NAME and WIN32_SERVICE_FILE_NAME
 #include "ServiceControl.h"
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Std/scoped_array.h>
@@ -52,14 +52,14 @@
 #include <cassert>
 #include <set>
 
-#define PARALLELS_NET_INSTALL_NAME "prl_net_inst.exe"
-#define PARALLELS_VNIC_INF_FILE "prl_vnic.inf"
-#define PARALLELS_VNIC_CONNECTION_NAME L"Parallels Virtual Adapter %d"
-#define PARALLELS_NETSERVICE_NAME L"Parallels Networking Service"
-#define PARALLELS_NETBRIDGE_INF_FILE "prl_net.inf"
+#define VIRTUOZZO_NET_INSTALL_NAME "prl_net_inst.exe"
+#define VIRTUOZZO_VNIC_INF_FILE "prl_vnic.inf"
+#define VIRTUOZZO_VNIC_CONNECTION_NAME L"Virtuozzo Virtual Adapter %d"
+#define VIRTUOZZO_NETSERVICE_NAME L"Virtuozzo Networking Service"
+#define VIRTUOZZO_NETBRIDGE_INF_FILE "prl_net.inf"
 #define PARALLLELS_NETBRIDGE_HARDW_ID "PARALLLELS_PVSNET"
-#define WIN32_PARALLELS_NETBRIDGE_SERVICE_NAME L"pvsnet"
-#define PARALLELS_MAXIMUM_ADAPTER_INDEX 6
+#define WIN32_VIRTUOZZO_NETBRIDGE_SERVICE_NAME L"pvsnet"
+#define VIRTUOZZO_MAXIMUM_ADAPTER_INDEX 6
 
 // 30 secs of timeout to give time to the Process finished in startProcess()
 #define PRL_PROCESS_EXECUTE_TIMEOUT 30000
@@ -74,7 +74,7 @@ static void inline MODULE_STORE_SYSTEM_ERROR()
 
 int		   PrlNet::getMaximumAdapterIndex()
 {
-	return PARALLELS_MAXIMUM_ADAPTER_INDEX;
+	return VIRTUOZZO_MAXIMUM_ADAPTER_INDEX;
 }
 
 
@@ -172,7 +172,7 @@ PRL_RESULT PrlNet::makePrlAdaptersList( PrlNet::EthAdaptersList &adaptersList )
 			ethAdapter._adapterIndex = idx | PRL_ADAPTER_START_INDEX;
 			ethAdapter._adapterGuid = "{does-not-matter}";
 			ethAdapter._bEnabled = bAdapterEnabled ? true:false;
-			ethAdapter._bParallelsAdapter = true;
+			ethAdapter._bVirtuozzoAdapter = true;
 			ethAdapter._vlanTag = PRL_INVALID_VLAN_TAG;
 			memset( ethAdapter._macAddr, 0, 6 );
 			adaptersList.push_back(ethAdapter);
@@ -331,25 +331,25 @@ static BOOL prlIsWow64Process()
 	return bIsWow64;
 
 }
-// returns path to the PARALLELS_NET_INSTALL
+// returns path to the VIRTUOZZO_NET_INSTALL
 static bool getPrlNetInstallPath(const QString &prlDriversDir, QString &prl_net_install)
 {
-	// find out correct path to the PARALLELS_NET_INSTALL_NAME
-	prl_net_install = prlDriversDir + "\\" + PARALLELS_NET_INSTALL_NAME;
+	// find out correct path to the VIRTUOZZO_NET_INSTALL_NAME
+	prl_net_install = prlDriversDir + "\\" + VIRTUOZZO_NET_INSTALL_NAME;
 	if( !prlIsWow64Process() )
 	{
-		prl_net_install = prlDriversDir + "\\" + PARALLELS_NET_INSTALL_NAME;
+		prl_net_install = prlDriversDir + "\\" + VIRTUOZZO_NET_INSTALL_NAME;
 		return QFile::exists(prl_net_install);
 	}
 
 	// we are running on the 64-bit machine.
 	// since we don't know whether end-user version or development version is running now,
 	// we must find out correct way to the prl_net_install.
-	prl_net_install = prlDriversDir + "\\AMD64\\" + PARALLELS_NET_INSTALL_NAME;
+	prl_net_install = prlDriversDir + "\\AMD64\\" + VIRTUOZZO_NET_INSTALL_NAME;
 	bool bFileExists = QFile::exists(prl_net_install);
 	if( !bFileExists )
 	{
-		prl_net_install = prlDriversDir + "\\" + PARALLELS_NET_INSTALL_NAME;
+		prl_net_install = prlDriversDir + "\\" + VIRTUOZZO_NET_INSTALL_NAME;
 		bFileExists = QFile::exists(prl_net_install);
 	}
 
@@ -507,14 +507,14 @@ static PRL_RESULT startProcessWithCmdLine(
 
 static PRL_RESULT installPrlNetbridgeDriver( const QString &prlDriversDir )
 {
-	// find out correct path to the PARALLELS_NET_INSTALL_NAME
+	// find out correct path to the VIRTUOZZO_NET_INSTALL_NAME
 	QString prl_net_install;
 	if( !getPrlNetInstallPath(prlDriversDir, prl_net_install) )
 	{
 		return PRL_ERR_INSTALLATION_PROBLEM;
 	}
 
-	QString prlNetbridgeInfFile = prlDriversDir + "\\" + PARALLELS_NETBRIDGE_INF_FILE;
+	QString prlNetbridgeInfFile = prlDriversDir + "\\" + VIRTUOZZO_NETBRIDGE_INF_FILE;
 	QStringList args;
 	args<<"-InstallNet"<<prlNetbridgeInfFile<<PARALLLELS_NETBRIDGE_HARDW_ID;
 
@@ -542,7 +542,7 @@ static PRL_RESULT installPrlNetbridgeDriver( const QString &prlDriversDir )
 		return PRL_NET_WINSCM_OPEN_ERROR;
 	}
 
-	scm.StartService( WIN32_PARALLELS_NETBRIDGE_SERVICE_NAME );
+	scm.StartService( WIN32_VIRTUOZZO_NETBRIDGE_SERVICE_NAME );
 
 	return PRL_ERR_SUCCESS;
 }
@@ -556,14 +556,14 @@ PRL_RESULT PrlNet::installPrlAdapter(
 	PrlNet::EthernetAdapter &adapter)
 {
 	UNUSED_PARAM(bHiddenAdapter);
-	// find out correct path to the PARALLELS_NET_INSTALL_NAME
+	// find out correct path to the VIRTUOZZO_NET_INSTALL_NAME
 	QString prl_net_install;
 	if( !getPrlNetInstallPath(prlDriversDir, prl_net_install) )
 	{
 		return PRL_ERR_INSTALLATION_PROBLEM;
 	}
 
-	QString prlVNicInfFile = prlDriversDir + "\\" + PARALLELS_VNIC_INF_FILE;
+	QString prlVNicInfFile = prlDriversDir + "\\" + VIRTUOZZO_VNIC_INF_FILE;
 	QString adapterId;
 	adapterId.sprintf("*prlvnic%d", GET_PRL_ADAPTER_NUMBER(adapterIndex));
 
@@ -605,14 +605,14 @@ PRL_RESULT PrlNet::installPrlAdapter(
 
 PRL_RESULT PrlNet::uninstallPrlAdapter( const QString &prlDriversDir, int adapterIndex )
 {
-	// find out correct path to the PARALLELS_NET_INSTALL_NAME
+	// find out correct path to the VIRTUOZZO_NET_INSTALL_NAME
 	QString prl_net_install;
 	if( !getPrlNetInstallPath(prlDriversDir, prl_net_install) )
 	{
 		return PRL_ERR_INSTALLATION_PROBLEM;
 	}
 
-	QString prlVNicInfFile = prlDriversDir + "\\" + PARALLELS_VNIC_INF_FILE;
+	QString prlVNicInfFile = prlDriversDir + "\\" + VIRTUOZZO_VNIC_INF_FILE;
 	QString adapterId;
 	adapterId.sprintf("*prlvnic%d", GET_PRL_ADAPTER_NUMBER(adapterIndex));
 
@@ -641,7 +641,7 @@ PRL_RESULT PrlNet::uninstallPrlAdapter( const QString &prlDriversDir, int adapte
 //
 
 
-PRL_RESULT PrlNet::installPrlService( const QString &parallelsDir )
+PRL_RESULT PrlNet::installPrlService( const QString &virtuozzoDir )
 {
 	CServiceControl scm;
 	if( !scm )
@@ -654,9 +654,9 @@ PRL_RESULT PrlNet::installPrlService( const QString &parallelsDir )
 	}
 
 	// form name
-	std::wstring serviceFile = parallelsDir.toStdWString();
+	std::wstring serviceFile = virtuozzoDir.toStdWString();
 	serviceFile += L"\\";
-	serviceFile += WIN32_PARALLELS_NETSERVICE_FILE_NAME;
+	serviceFile += WIN32_VIRTUOZZO_NETSERVICE_FILE_NAME;
 
 	// silently ignore start/install request if file does not exists:
 	// dispatcher is installed standalone to work with CT only - VZWIN
@@ -664,9 +664,9 @@ PRL_RESULT PrlNet::installPrlService( const QString &parallelsDir )
 		return PRL_ERR_SUCCESS;
 
 	BOOL bRes = scm.InstallService(
-		WIN32_PARALLELS_NETSERVICE_NAME,
+		WIN32_VIRTUOZZO_NETSERVICE_NAME,
 		serviceFile.c_str(),
-		WIN32_PARALLELS_NETSERVICE_DESCRIPTION,
+		WIN32_VIRTUOZZO_NETSERVICE_DESCRIPTION,
 		SERVICE_WIN32_OWN_PROCESS,
 		SERVICE_AUTO_START );
 
@@ -680,8 +680,8 @@ PRL_RESULT PrlNet::installPrlService( const QString &parallelsDir )
 	}
 	else
 	{
-		scm.RegisterApplicationLog( WIN32_PARALLELS_NETSERVICE_NAME, serviceFile.c_str() );
-		scm.StartService(WIN32_PARALLELS_NETSERVICE_NAME);
+		scm.RegisterApplicationLog( WIN32_VIRTUOZZO_NETSERVICE_NAME, serviceFile.c_str() );
+		scm.StartService(WIN32_VIRTUOZZO_NETSERVICE_NAME);
 	}
 
 	return PRL_ERR_SUCCESS;
@@ -700,17 +700,17 @@ PRL_RESULT PrlNet::uninstallPrlService( )
 		return PRL_NET_WINSCM_OPEN_ERROR;
 	}
 
-	scm.StopService(WIN32_PARALLELS_NETSERVICE_NAME);
-	scm.DeregisterApplicationLog(WIN32_PARALLELS_NETSERVICE_NAME);
-	scm.RemoveService(WIN32_PARALLELS_NETSERVICE_NAME);
+	scm.StopService(WIN32_VIRTUOZZO_NETSERVICE_NAME);
+	scm.DeregisterApplicationLog(WIN32_VIRTUOZZO_NETSERVICE_NAME);
+	scm.RemoveService(WIN32_VIRTUOZZO_NETSERVICE_NAME);
 
 	return PRL_ERR_SUCCESS;
 }
 
 
-PRL_RESULT PrlNet::startPrlNetService(const QString &parallelsDir,  PrlNet::SrvAction::Action action )
+PRL_RESULT PrlNet::startPrlNetService(const QString &virtuozzoDir,  PrlNet::SrvAction::Action action )
 {
-	UNUSED_PARAM(parallelsDir);
+	UNUSED_PARAM(virtuozzoDir);
 
 	CServiceControl scm;
 	if( !scm )
@@ -734,18 +734,18 @@ PRL_RESULT PrlNet::startPrlNetService(const QString &parallelsDir,  PrlNet::SrvA
 	case PrlNet::SrvAction::Start:
 		if( PrlNet::SrvStatus::Stopped == srvStatus )
 		{
-			scm.StartService(WIN32_PARALLELS_NETSERVICE_NAME);
+			scm.StartService(WIN32_VIRTUOZZO_NETSERVICE_NAME);
 		}
 		else if (PrlNet::SrvStatus::NotInstalled == srvStatus )
 		{
-			prlResult = PrlNet::installPrlService(parallelsDir);
+			prlResult = PrlNet::installPrlService(virtuozzoDir);
 		}
 		break;
 
 	case PrlNet::SrvAction::Stop:
 		if( PrlNet::SrvStatus::Stopped == srvStatus || PrlNet::SrvStatus::Started == srvStatus )
 		{
-			scm.StopService(WIN32_PARALLELS_NETSERVICE_NAME);
+			scm.StopService(WIN32_VIRTUOZZO_NETSERVICE_NAME);
 		}
 		break;
 
@@ -775,7 +775,7 @@ PRL_RESULT PrlNet::getPrlNetServiceStatus(PrlNet::SrvStatus::Status *pStatus)
 	}
 
 	::SERVICE_STATUS serviceStatus;
-	if( !scm.QueryServiceStatus(WIN32_PARALLELS_NETSERVICE_NAME, &serviceStatus) )
+	if( !scm.QueryServiceStatus(WIN32_VIRTUOZZO_NETSERVICE_NAME, &serviceStatus) )
 	{
 		*pStatus = PrlNet::SrvStatus::NotInstalled;
 		return PRL_ERR_SUCCESS;
@@ -799,9 +799,9 @@ PRL_RESULT PrlNet::getPrlNetServiceStatus(PrlNet::SrvStatus::Status *pStatus)
 }
 
 
-PRL_RESULT PrlNet::notifyPrlNetService(const QString &parallelsDir)
+PRL_RESULT PrlNet::notifyPrlNetService(const QString &virtuozzoDir)
 {
-	UNUSED_PARAM(parallelsDir);
+	UNUSED_PARAM(virtuozzoDir);
 	CServiceControl scm;
 	if( !scm )
 	{
@@ -821,7 +821,7 @@ PRL_RESULT PrlNet::notifyPrlNetService(const QString &parallelsDir)
 
 	if( PrlNet::SrvStatus::Started == srvStatus )
 	{
-		if( !scm.ControlService(WIN32_PARALLELS_NETSERVICE_NAME, WIN32_PARALLELS_NETSERVICE_NOTIFY_CODE) )
+		if( !scm.ControlService(WIN32_VIRTUOZZO_NETSERVICE_NAME, WIN32_VIRTUOZZO_NETSERVICE_NOTIFY_CODE) )
 		{
 			MODULE_STORE_SYSTEM_ERROR();
 
@@ -834,7 +834,7 @@ PRL_RESULT PrlNet::notifyPrlNetService(const QString &parallelsDir)
 	}
 	else
 	{
-		return PrlNet::startPrlNetService(parallelsDir, PrlNet::SrvAction::Start);
+		return PrlNet::startPrlNetService(virtuozzoDir, PrlNet::SrvAction::Start);
 	}
 }
 
@@ -879,9 +879,9 @@ void	PrlNet::getDefaultDhcpParams(
 }
 
 
-PRL_RESULT PrlNet::stopNetworking(const QString &parallelsDir)
+PRL_RESULT PrlNet::stopNetworking(const QString &virtuozzoDir)
 {
-	UNUSED_PARAM(parallelsDir);
+	UNUSED_PARAM(virtuozzoDir);
 	return PRL_ERR_SUCCESS;
 }
 
@@ -1144,7 +1144,7 @@ PRL_RESULT PrlNet::delPrlAdapterIpAddresses(int adapterIndex,
 }
 
 
-PRL_RESULT PrlNet::VZSyncConfig(CParallelsNetworkConfig *pConfig, bool *pbConfigChanged)
+PRL_RESULT PrlNet::VZSyncConfig(CVirtuozzoNetworkConfig *pConfig, bool *pbConfigChanged)
 {
     *pbConfigChanged = false;
     UNUSED_PARAM(pConfig);

@@ -5,7 +5,7 @@
 /// Class helper for the question mech definition
 ///
 /// Wiki documentation:
-/// http://wiki.parallels.com/index.php/Sync_Requests_Queue
+/// http://wiki.virtuozzo.com/index.php/Sync_Requests_Queue
 ///
 /// @author avagin@
 ///

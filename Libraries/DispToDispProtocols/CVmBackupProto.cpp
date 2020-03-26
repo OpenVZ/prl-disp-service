@@ -31,10 +31,10 @@
 
 #include "CVmBackupProto.h"
 
-namespace Parallels {
+namespace Virtuozzo {
 
 CVmBackupProto::CVmBackupProto(
-	Parallels::IDispToDispCommands nCmdIdentifier,
+	Virtuozzo::IDispToDispCommands nCmdIdentifier,
 	quint32 nFlags,
 	quint32 nInternalFlags,
 	quint32 nVersion)
@@ -65,7 +65,7 @@ bool CVmBackupProto::IsValid()
 }
 
 CVmBackupCommand::CVmBackupCommand(
-	Parallels::IDispToDispCommands nCmdIdentifier,
+	Virtuozzo::IDispToDispCommands nCmdIdentifier,
 	const QString &sVmUuid,
 	quint32 nFlags,
 	quint32 nInternalFlags,
@@ -118,7 +118,7 @@ CVmBackupCreateCommand::CVmBackupCreateCommand(
 }
 
 CVmBackupCreateCommand::CVmBackupCreateCommand(
-	Parallels::IDispToDispCommands nCmdIdentifier,
+	Virtuozzo::IDispToDispCommands nCmdIdentifier,
 	const QString &sVmUuid,
 	const QString &sVmName,
 	const QString &sHost,
@@ -462,4 +462,4 @@ QString CVmBackupConnectSourceCommand::GetDiskConfig()
 	return (GetStringParamValue(EVT_PARAM_CONNECT_VM_BACKUP_SOURCE_DISK_CONFIG));
 }
 
-} //parallels namespace
+} //virtuozzo namespace

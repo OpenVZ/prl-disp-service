@@ -36,7 +36,7 @@
 #include <QCoreApplication>
 #include <QAtomicInt>
 #include <QList>
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 #include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
 #include "CDspDispConfigGuard.h"
 #include "CDspTaskManager.h"
@@ -64,7 +64,7 @@
 #include <prlcommon/PrlCommonUtilsBase/CFeaturesMatrix.h>
 
 #include <prlxmlmodel/VmDirectory/CVmDirectories.h>
-#include <prlxmlmodel/NetworkConfig/CParallelsNetworkConfig.h>
+#include <prlxmlmodel/NetworkConfig/CVirtuozzoNetworkConfig.h>
 
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
@@ -73,10 +73,10 @@
 Q_DECLARE_METATYPE(VIRTUAL_MACHINE_STATE)
 
 using namespace IOService;
-using Parallels::CProtoCommand;
-using Parallels::CProtoCommandPtr;
-using Parallels::CDispToDispCommand;
-using Parallels::CDispToDispCommandPtr;
+using Virtuozzo::CProtoCommand;
+using Virtuozzo::CProtoCommandPtr;
+using Virtuozzo::CDispToDispCommand;
+using Virtuozzo::CDispToDispCommandPtr;
 
 class CDspClientManager;
 class CDspVmManager;
@@ -197,7 +197,7 @@ public:
 	CDspDispConfigGuard& getDispConfigGuard ();
 
 	/** Returns locked pointer to network config object */
-	CDspLockedPointer<CParallelsNetworkConfig> getNetworkConfig();
+	CDspLockedPointer<CVirtuozzoNetworkConfig> getNetworkConfig();
 
 	/** Returns locked pointer to dispatcher QSettings object */
 	/*  NOTE: Don't forget call sync() method to save your changes !; */
@@ -461,7 +461,7 @@ private:
 	CDspSettingsWrap m_AppSettings;
 
 	QMutex	m_networkConfigMutex;
-	CParallelsNetworkConfig m_networkConfig;
+	CVirtuozzoNetworkConfig m_networkConfig;
 
 	SmartPtr<ConnectionsStatisticsManager> m_pConnectionsStatManager;
 

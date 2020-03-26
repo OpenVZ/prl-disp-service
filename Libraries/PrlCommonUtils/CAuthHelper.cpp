@@ -34,7 +34,7 @@
     #define FORCE_UNICODE
 #endif
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #include "CAuthHelper.h"
 #include "CFileHelper.h"
@@ -496,9 +496,9 @@ bool CAuthHelper::RevertToSelf()
 	return result;
 }
 
-ParallelsDirs::UserInfo CAuthHelper::getParallelsDirUserInfo()
+VirtuozzoDirs::UserInfo CAuthHelper::getVirtuozzoDirUserInfo()
 {
-ParallelsDirs::UserInfo userInfo(
+VirtuozzoDirs::UserInfo userInfo(
 #   ifdef _WIN_
         GetAuth()->GetTokenHandle(),
 #   else

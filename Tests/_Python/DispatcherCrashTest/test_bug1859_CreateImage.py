@@ -11,7 +11,7 @@
 # Our contact details: Virtuozzo International GmbH, Vordergasse 59, 8200
 # Schaffhausen, Switzerland.
 #
-# This Module is a part of Parallels Automated test system.
+# This Module is a part of Virtuozzo Automated test system.
 #
 # ==================================================================
 #

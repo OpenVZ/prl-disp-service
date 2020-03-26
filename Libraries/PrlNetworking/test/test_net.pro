@@ -4,7 +4,7 @@ CONFIG += console
 
 LEVEL=../../../..
 
-include($$LEVEL/Sources/Parallels.pri)
+include($$LEVEL/Sources/Virtuozzo.pri)
 include(../PrlNetworking.pri)
 
 

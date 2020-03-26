@@ -358,7 +358,7 @@ struct Essence<PVE::DspCmdVmInstallTools>: Need::Agent, Need::Config, Need::Cont
 {
 	Libvirt::Result operator()()
 	{
-		QString x = ParallelsDirs::getToolsImage(ParallelsDirs::getAppExecuteMode(),
+		QString x = VirtuozzoDirs::getToolsImage(VirtuozzoDirs::getAppExecuteMode(),
 				getConfig()->getVmSettings()->getVmCommonOptions()->getOsVersion());
 		if (x.isEmpty())
 			return Error::Simple(PRL_ERR_TOOLS_UNSUPPORTED_GUEST);
@@ -2239,7 +2239,7 @@ Q_GLOBAL_STATIC(Dispatcher, getDispatcher);
 
 } // namespace Command
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 REGISTER_HANDLER( IOService::IOSender::Vm,
 				  "VmHandler",

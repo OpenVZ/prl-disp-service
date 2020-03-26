@@ -65,7 +65,7 @@ public:
 /**
  * XML tree basic elements
  */
-#define XML_SS_CONFIG_EL_ROOT			"ParallelsSavedStates"
+#define XML_SS_CONFIG_EL_ROOT			"VirtuozzoSavedStates"
 #define XML_SS_CONFIG_EL_ITEM			"SavedStateItem"
 #define XML_SS_CONFIG_EL_NAME			"Name"
 #define XML_SS_CONFIG_EL_CREATETIME		"DateTime"

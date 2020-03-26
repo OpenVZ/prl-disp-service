@@ -39,7 +39,7 @@
 
 #include "CDspService.h"
 #include "CDspVmInfoDatabase.h"
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlxmlmodel/VmInfo/CVmInfo.h>
 #include "CDspVmSnapshotInfrastructure.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
@@ -145,7 +145,7 @@ namespace Command
 
 Destroy::Destroy(const QString& vm_, const QString& uuid_, quint32 flags_, bool child_)
 {
-	m_command = Parallels::CProtoSerializer::CreateDeleteSnapshotProtoCommand
+	m_command = Virtuozzo::CProtoSerializer::CreateDeleteSnapshotProtoCommand
 			(vm_, uuid_, child_, flags_);
 }
 
@@ -157,7 +157,7 @@ PRL_RESULT Destroy::operator()(SmartPtr<IOPackage>& dst_) const
 	CVmEvent v(m_command->GetCommand()->toString());
 	v.addEventParameter(new CVmEventParameter(PVE::String,
 		m_config->toString(), EVT_PARAM_VM_CONFIG));
-	dst_ = Parallels::DispatcherPackage::createInstance(name(), v.toString());
+	dst_ = Virtuozzo::DispatcherPackage::createInstance(name(), v.toString());
 	return PRL_ERR_SUCCESS;
 }
 
@@ -176,10 +176,10 @@ void Destroy::steps(quint32 value_)
 	cast().SetStepsCount(value_);
 }
 
-Parallels::CProtoDeleteSnapshotCommand& Destroy::cast()
+Virtuozzo::CProtoDeleteSnapshotCommand& Destroy::cast()
 {
-	return *Parallels::CProtoSerializer::CastToProtoCommand
-			<Parallels::CProtoDeleteSnapshotCommand>(m_command);
+	return *Virtuozzo::CProtoSerializer::CastToProtoCommand
+			<Virtuozzo::CProtoDeleteSnapshotCommand>(m_command);
 }
 
 } // namespace Command
@@ -305,7 +305,7 @@ static inline PRL_RESULT log(PRL_RESULT result_)
 PRL_RESULT Unit::create()
 {
 /*	Answer::Unit<PRL_ERR_VM_CREATE_SNAPSHOT_FAILED> a;
-	SmartPtr<IOPackage> x = Parallels::DispatcherPackage::createInstance(
+	SmartPtr<IOPackage> x = Virtuozzo::DispatcherPackage::createInstance(
 				PVE::DspCmdVmCreateSnapshot,
 				UTF8_2QSTR(m_task->getRequestPackage()->buffers[0].getImpl()));
 	PRL_RESULT e = log(wait(m_vm->sendPackageToVmEx(log(x), m_state), a));

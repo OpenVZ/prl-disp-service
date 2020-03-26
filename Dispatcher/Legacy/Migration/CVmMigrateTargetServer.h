@@ -31,7 +31,7 @@
 
 #include <prlcommon/IOService/IOCommunication/IOServer.h>
 #include <Libraries/VmFileList/CVmFileListCopy.h>
-#include <prlxmlmodel/NetworkConfig/CParallelsNetworkConfig.h>
+#include <prlxmlmodel/NetworkConfig/CVirtuozzoNetworkConfig.h>
 #include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
 
 #include <CVmMigrateTargetDisk.h>

@@ -37,8 +37,8 @@
 #include <boost/bind.hpp>
 #include <boost/tuple/tuple.hpp>
 
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
@@ -64,8 +64,8 @@
 #define DEFAULT_DHCP6_SUBNET_MASK "ffff:ffff:ffff:ffff:0:0:0:0"
 
 
-#define PRLNET_DEFAULT_HOST_ONLY_ADAPTER_NAME		"Parallels Host-Only"
-#define PRLNET_DEFAULT_SHARED_ADAPTER_NAME		"Parallels Shared"
+#define PRLNET_DEFAULT_HOST_ONLY_ADAPTER_NAME		"Virtuozzo Host-Only"
+#define PRLNET_DEFAULT_SHARED_ADAPTER_NAME		"Virtuozzo Shared"
 
 #define PRLNET_DEFAULT_NETWORK_ID			"Host-Only"
 #define PRLNET_DEFAULT_NETWORK_DESCRIPTION	"Host Only Network"
@@ -218,11 +218,11 @@ void PrlNet::FillDefaultVirtualNetworkParams(
 	pHostOnlyNetworkParams->setHostIP6Address( QHostAddress(hostIp6 ) );
 	pHostOnlyNetworkParams->setIP6NetMask( QHostAddress(dhcp6ScopeMask) );
 
-	CParallelsAdapter *pAdapter = pHostOnlyNetworkParams->getParallelsAdapter();
+	CVirtuozzoAdapter *pAdapter = pHostOnlyNetworkParams->getVirtuozzoAdapter();
 	if (!pAdapter)
 	{
-		pAdapter = new CParallelsAdapter;
-		pHostOnlyNetworkParams->setParallelsAdapter(pAdapter);
+		pAdapter = new CVirtuozzoAdapter;
+		pHostOnlyNetworkParams->setVirtuozzoAdapter(pAdapter);
 	}
 
 	QString adapterName = PrlNet::GetDefaultAdapterName(nAdapterIndex, bSharedEnabled);
@@ -279,7 +279,7 @@ void PrlNet::FillDefaultNetworks(CVirtualNetworks *pNetworks)
 
 	if (isSharedEnabled())
 	{
-		CVirtualNetwork *pSharedNetwork = PrlNet::GetNetworkByParallelsAdapter(pNetworks, index);
+		CVirtualNetwork *pSharedNetwork = PrlNet::GetNetworkByVirtuozzoAdapter(pNetworks, index);
 		if (!pSharedNetwork)
 		{
 			pSharedNetwork = new CVirtualNetwork;
@@ -290,7 +290,7 @@ void PrlNet::FillDefaultNetworks(CVirtualNetworks *pNetworks)
 		index++;
 	}
 
-	CVirtualNetwork *pHostOnlyNetwork = PrlNet::GetNetworkByParallelsAdapter(pNetworks, index);
+	CVirtualNetwork *pHostOnlyNetwork = PrlNet::GetNetworkByVirtuozzoAdapter(pNetworks, index);
 	if (!pHostOnlyNetwork)
 	{
 		pHostOnlyNetwork = new CVirtualNetwork;
@@ -298,7 +298,7 @@ void PrlNet::FillDefaultNetworks(CVirtualNetworks *pNetworks)
 	}
 	PrlNet::FillDefaultVirtualNetworkParams(pHostOnlyNetwork, index, isSharedEnabled());
 
-	PRL_APPLICATION_MODE appMode = ParallelsDirs::getAppExecuteMode();
+	PRL_APPLICATION_MODE appMode = VirtuozzoDirs::getAppExecuteMode();
 
 	// Nothing to do for now for non-server mode since
 	// vnets are supported only in server
@@ -368,7 +368,7 @@ void PrlNet::FillDefaultNetworks(CVirtualNetworks *pNetworks)
 }
 
 
-void PrlNet::FillDefaultConfiguration(CParallelsNetworkConfig *pNetworkConfig)
+void PrlNet::FillDefaultConfiguration(CVirtuozzoNetworkConfig *pNetworkConfig)
 {
 	CVirtualNetworks *pNetworks = new CVirtualNetworks;
 	pNetworkConfig->setVirtualNetworks(pNetworks);
@@ -376,7 +376,7 @@ void PrlNet::FillDefaultConfiguration(CParallelsNetworkConfig *pNetworkConfig)
 }
 
 
-void PrlNet::FillDefaultRuntimeNetworks(CParallelsNetworkConfig *pNetworkConfig,
+void PrlNet::FillDefaultRuntimeNetworks(CVirtuozzoNetworkConfig *pNetworkConfig,
 	SmartPtr<CHostHardwareInfo> pHostHwInfo)
 {
 	NetworkAdapters *pNetworkAdapters = pHostHwInfo->getNetworkAdapters();
@@ -421,10 +421,10 @@ void PrlNet::FillDefaultRuntimeNetworks(CParallelsNetworkConfig *pNetworkConfig,
 	return;
 }
 
-bool PrlNet::PatchConfig(CParallelsNetworkConfig *pNetworkConfig)
+bool PrlNet::PatchConfig(CVirtuozzoNetworkConfig *pNetworkConfig)
 {
 
-	if (ParallelsDirs::getAppExecuteMode() != PAM_SERVER)
+	if (VirtuozzoDirs::getAppExecuteMode() != PAM_SERVER)
 		return false;
 
 	CVirtualNetworks *pVirtualNetworks = pNetworkConfig->getVirtualNetworks();
@@ -522,7 +522,7 @@ CVirtualNetwork *PrlNet::GetVirtualNetworkByID(const CVirtualNetworks *pNetworks
 	return NULL;
 }
 
-CVirtualNetwork *PrlNet::GetVirtualNetworkByUuid(CParallelsNetworkConfig *pNetworkConfig, const QString &sUuid)
+CVirtualNetwork *PrlNet::GetVirtualNetworkByUuid(CVirtuozzoNetworkConfig *pNetworkConfig, const QString &sUuid)
 {
 	CVirtualNetworks *pNetworks = pNetworkConfig->getVirtualNetworks();
 	if (NULL == pNetworks)
@@ -537,7 +537,7 @@ CVirtualNetwork *PrlNet::GetVirtualNetworkByUuid(CParallelsNetworkConfig *pNetwo
 	return NULL;
 }
 
-void PrlNet::DeleteVirtualNetwork(CParallelsNetworkConfig *pNetworkConfig, CVirtualNetwork* pVirtualNetwork)
+void PrlNet::DeleteVirtualNetwork(CVirtuozzoNetworkConfig *pNetworkConfig, CVirtualNetwork* pVirtualNetwork)
 {
 	CVirtualNetworks *pNetworks = pNetworkConfig->getVirtualNetworks();
 	if (NULL == pNetworks || ! pVirtualNetwork)
@@ -548,7 +548,7 @@ void PrlNet::DeleteVirtualNetwork(CParallelsNetworkConfig *pNetworkConfig, CVirt
 }
 
 // Create list of host only networks sorted by Prl Adapter number (both enabled and disabled)
-QList<CVirtualNetwork *>  PrlNet::MakeHostOnlyNetworksList(const CParallelsNetworkConfig *pNetworkConfig)
+QList<CVirtualNetwork *>  PrlNet::MakeHostOnlyNetworksList(const CVirtuozzoNetworkConfig *pNetworkConfig)
 {
 	CVirtualNetworks *pNetworks = pNetworkConfig->getVirtualNetworks();
 	if (NULL == pNetworks)
@@ -565,20 +565,20 @@ QList<CVirtualNetwork *>  PrlNet::MakeHostOnlyNetworksList(const CParallelsNetwo
 		if ( !pHostOnlyNetwork )
 			continue;
 
-		CParallelsAdapter *pParallelsAdapter = pHostOnlyNetwork->getParallelsAdapter();
-		if (!pParallelsAdapter)
+		CVirtuozzoAdapter *pVirtuozzoAdapter = pHostOnlyNetwork->getVirtuozzoAdapter();
+		if (!pVirtuozzoAdapter)
 			continue;
 
-		mapHostOnlyNetworks.insert(pParallelsAdapter->getPrlAdapterIndex(), pNetwork);
+		mapHostOnlyNetworks.insert(pVirtuozzoAdapter->getPrlAdapterIndex(), pNetwork);
 	}
 
 	return mapHostOnlyNetworks.values();
 }
 
 
-QList<CParallelsAdapter *> PrlNet::MakeParallelsAdaptersList(const CParallelsNetworkConfig *pNetworkConfig)
+QList<CVirtuozzoAdapter *> PrlNet::MakeVirtuozzoAdaptersList(const CVirtuozzoNetworkConfig *pNetworkConfig)
 {
-	QList<CParallelsAdapter *> adaptersList;
+	QList<CVirtuozzoAdapter *> adaptersList;
 
 	QList<CVirtualNetwork *> pNetworks = PrlNet::MakeHostOnlyNetworksList(pNetworkConfig);
 	foreach( CVirtualNetwork *pNetwork, pNetworks )
@@ -593,7 +593,7 @@ QList<CParallelsAdapter *> PrlNet::MakeParallelsAdaptersList(const CParallelsNet
 			continue;
 		}
 
-		CParallelsAdapter *pAdapter = pHostOnlyNetwork->getParallelsAdapter();
+		CVirtuozzoAdapter *pAdapter = pHostOnlyNetwork->getVirtuozzoAdapter();
 		if (NULL == pAdapter)
 		{
 			continue;
@@ -607,11 +607,11 @@ QList<CParallelsAdapter *> PrlNet::MakeParallelsAdaptersList(const CParallelsNet
 
 /************************************************************************/
 
-CVirtualNetwork *PrlNet::GetHostOnlyNetwork(const CParallelsNetworkConfig *pNetworkConfig, UINT adapter_index)
+CVirtualNetwork *PrlNet::GetHostOnlyNetwork(const CVirtuozzoNetworkConfig *pNetworkConfig, UINT adapter_index)
 {
 	// In desktop mode adapter 0 is SharedNetworking. GetHostOnlyNetwork() never returns shared-networking.
 	// For server there is not shared networking at all.
-	if (ParallelsDirs::getAppExecuteMode() == PAM_SERVER) {
+	if (VirtuozzoDirs::getAppExecuteMode() == PAM_SERVER) {
 		if (PRL_DEFAULT_HOSTONLY_INDEX == adapter_index)
 			adapter_index = 0;
 	} else {
@@ -626,11 +626,11 @@ CVirtualNetwork *PrlNet::GetHostOnlyNetwork(const CParallelsNetworkConfig *pNetw
 	}
 
 	adapter_index = GET_PRL_ADAPTER_NUMBER(adapter_index);
-	return PrlNet::GetNetworkByParallelsAdapter(pVirtualNetworks, (int)adapter_index);
+	return PrlNet::GetNetworkByVirtuozzoAdapter(pVirtualNetworks, (int)adapter_index);
 }
 
 
-CVirtualNetwork *PrlNet::GetSharedNetwork(const CParallelsNetworkConfig *pNetworkConfig)
+CVirtualNetwork *PrlNet::GetSharedNetwork(const CVirtuozzoNetworkConfig *pNetworkConfig)
 {
 	QList<CVirtualNetwork *> lstNet = MakeHostOnlyNetworksList(pNetworkConfig);
 	foreach(CVirtualNetwork *pNetwork, lstNet)
@@ -649,7 +649,7 @@ CVirtualNetwork *PrlNet::GetSharedNetwork(const CParallelsNetworkConfig *pNetwor
 	return NULL;
 }
 
-CVirtualNetwork *PrlNet::GetBridgedNetwork(const CParallelsNetworkConfig *pNetworkConfig)
+CVirtualNetwork *PrlNet::GetBridgedNetwork(const CVirtuozzoNetworkConfig *pNetworkConfig)
 {
 	CVirtualNetworks *pNetworks = pNetworkConfig->getVirtualNetworks();
 	if (NULL == pNetworks)
@@ -730,7 +730,7 @@ bool PrlNet::ContainsIPReservation(const CIPReservations* pIPReservations,
 	return false;
 }
 
-CVirtualNetwork *PrlNet::GetVirtualNetworkForAdapter(CParallelsNetworkConfig *networkConfig,
+CVirtualNetwork *PrlNet::GetVirtualNetworkForAdapter(CVirtuozzoNetworkConfig *networkConfig,
 				PRL_NET_ADAPTER_EMULATED_TYPE emulatedType, QString virtualNetworkID )
 {
 	CVirtualNetwork *pVirtNetworking = NULL;
@@ -756,7 +756,7 @@ CVirtualNetwork *PrlNet::GetVirtualNetworkForAdapter(CParallelsNetworkConfig *ne
 }
 
 
-PRL_RESULT PrlNet::GetNetworkTypeForAdapter(CParallelsNetworkConfig *networkConfig, const CVmGenericNetworkAdapter *adapter,
+PRL_RESULT PrlNet::GetNetworkTypeForAdapter(CVirtuozzoNetworkConfig *networkConfig, const CVmGenericNetworkAdapter *adapter,
 				PRL_NET_VIRTUAL_NETWORK_TYPE *nVNetType)
 {
 	CVirtualNetwork *pVirtNetworking;
@@ -810,7 +810,7 @@ CVmGenericNetworkAdapter PrlNet::fixMacFilter(
 	return copy;
 }
 
-CVirtualNetwork *PrlNet::GetNetworkByParallelsAdapter(
+CVirtualNetwork *PrlNet::GetNetworkByVirtuozzoAdapter(
 	CVirtualNetworks *pNetworks,
 	int nAdapterIndex)
 {
@@ -826,11 +826,11 @@ CVirtualNetwork *PrlNet::GetNetworkByParallelsAdapter(
 		if ( !pHostOnlyNetwork )
 			continue;
 
-		CParallelsAdapter *pParallelsAdapter = pHostOnlyNetwork->getParallelsAdapter();
-		if (!pParallelsAdapter)
+		CVirtuozzoAdapter *pVirtuozzoAdapter = pHostOnlyNetwork->getVirtuozzoAdapter();
+		if (!pVirtuozzoAdapter)
 			continue;
 
-		if (pParallelsAdapter->getPrlAdapterIndex() == nAdapterIndex)
+		if (pVirtuozzoAdapter->getPrlAdapterIndex() == nAdapterIndex)
 			return pNetwork;
 	}
 
@@ -905,7 +905,7 @@ PRL_RESULT PrlNet::GetAdapterForNetwork(
 	}
 	else
 	{
-		// Should search for parallels adapter with specified index.
+		// Should search for virtuozzo adapter with specified index.
 		CHostOnlyNetwork *pHostOnlyParams = pNetwork->getHostOnlyNetwork();
 		if (NULL == pHostOnlyParams)
 		{
@@ -914,7 +914,7 @@ PRL_RESULT PrlNet::GetAdapterForNetwork(
 			return PRL_NET_VMDEVICE_VIRTUAL_NETWORK_CONFIG_ERROR;
 		}
 
-		CParallelsAdapter *pAdapter = pHostOnlyParams->getParallelsAdapter();
+		CVirtuozzoAdapter *pAdapter = pHostOnlyParams->getVirtuozzoAdapter();
 		if (pAdapter == NULL)
 		{
 			WRITE_TRACE(DBG_FATAL, "Prl Adapter for network %s are not configured.",
@@ -927,7 +927,7 @@ PRL_RESULT PrlNet::GetAdapterForNetwork(
 			it != adaptersList.end();
 			++it )
 		{
-			if (it->_bParallelsAdapter
+			if (it->_bVirtuozzoAdapter
 				&& GET_PRL_ADAPTER_NUMBER(it->_adapterIndex) == GET_PRL_ADAPTER_NUMBER(nAdapterIndex) )
 			{
 				itAdapter = it;
@@ -947,7 +947,7 @@ PRL_RESULT PrlNet::GetAdapterForNetwork(
 // returns ethernet adapter for VMConfiguration.
 PRL_RESULT PrlNet::GetAdapterForVM(
 						   PrlNet::EthAdaptersList &adaptersList,
-						   CParallelsNetworkConfig *pNetworkConfig,
+						   CVirtuozzoNetworkConfig *pNetworkConfig,
 						   const CVmGenericNetworkAdapter& vmAdapter,
 						   PrlNet::EthAdaptersList::Iterator &itAdapter)
 {
@@ -957,7 +957,7 @@ PRL_RESULT PrlNet::GetAdapterForVM(
 
 	QString networkID = vmAdapter.getVirtualNetworkID();
 	if (!networkID.isEmpty() &&
-			ParallelsDirs::getAppExecuteMode() == PAM_SERVER) {
+			VirtuozzoDirs::getAppExecuteMode() == PAM_SERVER) {
 		CVirtualNetwork *pNetwork = PrlNet::GetVirtualNetworkByID(
 			pNetworkConfig->getVirtualNetworks(),
 			networkID);
@@ -1001,7 +1001,7 @@ PRL_RESULT PrlNet::GetAdapterForVM(
 			it != adaptersList.end();
 			++it )
 		{
-			if( IS_PRL_ADAPTER_INDEX(adapterIndex) && it->_bParallelsAdapter)
+			if( IS_PRL_ADAPTER_INDEX(adapterIndex) && it->_bVirtuozzoAdapter)
 			{
 				if (GET_PRL_ADAPTER_NUMBER(adapterIndex)
 					== GET_PRL_ADAPTER_NUMBER(it->_adapterIndex))
@@ -1058,11 +1058,11 @@ PRL_RESULT PrlNet::GetAdapterForVM(
 
 
 // Read networking configuration from config file.
-static PRL_RESULT readNetworkConfig(CParallelsNetworkConfig &networkConfig, PRL_APPLICATION_MODE appMode )
+static PRL_RESULT readNetworkConfig(CVirtuozzoNetworkConfig &networkConfig, PRL_APPLICATION_MODE appMode )
 {
 	QString strConfigFile = (PAM_UNKNOWN == appMode)
-		? ParallelsDirs::getNetworkConfigFilePath()
-		: ParallelsDirs::getNetworkConfigFilePath( appMode );
+		? VirtuozzoDirs::getNetworkConfigFilePath()
+		: VirtuozzoDirs::getNetworkConfigFilePath( appMode );
 
 	QFile f_in_cfg( strConfigFile );
 
@@ -1094,7 +1094,7 @@ static PRL_RESULT readNetworkConfig(CParallelsNetworkConfig &networkConfig, PRL_
 }
 
 
-static PRL_RESULT tryToRecoverNetworkConfig(CParallelsNetworkConfig &networkConfig)
+static PRL_RESULT tryToRecoverNetworkConfig(CVirtuozzoNetworkConfig &networkConfig)
 {
 	// #133154  compatibility issues:
 	//		desktop: Load from network.xml and copy to network.desktop.xml
@@ -1111,15 +1111,15 @@ static PRL_RESULT tryToRecoverNetworkConfig(CParallelsNetworkConfig &networkConf
 }
 
 
-PRL_RESULT PrlNet::ReadNetworkConfig( CParallelsNetworkConfig &networkConfig )
+PRL_RESULT PrlNet::ReadNetworkConfig( CVirtuozzoNetworkConfig &networkConfig )
 {
 	return ::readNetworkConfig( networkConfig, PAM_UNKNOWN );
 }
 
 
-PRL_RESULT PrlNet::WriteNetworkConfig(CParallelsNetworkConfig &networkConfig)
+PRL_RESULT PrlNet::WriteNetworkConfig(CVirtuozzoNetworkConfig &networkConfig)
 {
-	QString strConfigFile = ParallelsDirs::getNetworkConfigFilePath();
+	QString strConfigFile = VirtuozzoDirs::getNetworkConfigFilePath();
 	QFile cfgFile(strConfigFile);
 
 	PRL_RESULT rc = networkConfig.saveToFile( &cfgFile );
@@ -1168,13 +1168,13 @@ bool PrlNet::PatchBridgedNetwork(const CHostHardwareInfo &hostInfo, CVirtualNetw
 }
 
 PRL_RESULT PrlNet::InitNetworkConfig(
-	CParallelsNetworkConfig &networkConfig
+	CVirtuozzoNetworkConfig &networkConfig
 	, bool &bConfigurationRestored)
 {
 	bConfigurationRestored = false;
 	//////////////////////////////////////////////////////////////////////
 	// load  config
-	QString strConfigFile = ParallelsDirs::getNetworkConfigFilePath();
+	QString strConfigFile = VirtuozzoDirs::getNetworkConfigFilePath();
 
 	PRL_RESULT prlResult = PrlNet::ReadNetworkConfig( networkConfig );
 	if (prlResult == PRL_ERR_FILE_NOT_FOUND)
@@ -1380,7 +1380,7 @@ CVirtualNetwork *PrlNet::CreateVirtualNetworkForAdapter(
 }
 
 
-UINT16 PrlNet::GetOffmgmtPortByService(const CParallelsNetworkConfig *pNetworkConfig, const QString &srvName)
+UINT16 PrlNet::GetOffmgmtPortByService(const CVirtuozzoNetworkConfig *pNetworkConfig, const QString &srvName)
 {
 	COffmgmtServices *services = pNetworkConfig->getOffmgmtServices();
 	if (!services) {
@@ -1395,7 +1395,7 @@ UINT16 PrlNet::GetOffmgmtPortByService(const CParallelsNetworkConfig *pNetworkCo
 }
 
 
-QString PrlNet::GetOffmgmtServiceByPort(const CParallelsNetworkConfig *pNetworkConfig, UINT16 port)
+QString PrlNet::GetOffmgmtServiceByPort(const CVirtuozzoNetworkConfig *pNetworkConfig, UINT16 port)
 {
 	COffmgmtServices *services = pNetworkConfig->getOffmgmtServices();
 	if (!services) {
@@ -1525,7 +1525,7 @@ bool PrlNet::isIPv6Enabled()
 bool PrlNet::isSharedEnabled()
 {
 #if defined(_LIN_)
-	if (ParallelsDirs::getAppExecuteMode() == PAM_SERVER)
+	if (VirtuozzoDirs::getAppExecuteMode() == PAM_SERVER)
 		return false;
 #endif
 	return true;
@@ -1551,7 +1551,7 @@ bool PrlNet::isTapEnabled()
 }
 
 
-void PrlNet::InitConfigLibrary(const CParallelsNetworkConfig *pNetworkConfig)
+void PrlNet::InitConfigLibrary(const CVirtuozzoNetworkConfig *pNetworkConfig)
 {
 	PrlNet::setIPv6Enabled(pNetworkConfig->isIPv6Enabled());
 }

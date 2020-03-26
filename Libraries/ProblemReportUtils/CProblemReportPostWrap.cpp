@@ -37,7 +37,7 @@
 
 #include "CProblemReportPostWrap.h"
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlsdk/PrlErrors.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/ProblemReportUtils/CProblemReportUtils.h"
@@ -484,7 +484,7 @@ void CProblemReportPostWrap::ignoreSslErrors( QNetworkReply * reply, const QList
 {
 #if defined(_WIN_) && defined(QT_NO_OPENSSL)
 	(void) list;
-#pragma message("ATTENTION: Compiling CParallelsProblemReportMailProgress without SSL support!")
+#pragma message("ATTENTION: Compiling CVirtuozzoProblemReportMailProgress without SSL support!")
 #else
 	bool bIgnore = true;
 	for( int i = 0 ; i < list.size() ; i++ )

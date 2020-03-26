@@ -44,7 +44,7 @@
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/VmConfig/CVmSoundInputs.h>
 #include <prlxmlmodel/VmConfig/CVmSoundOutputs.h>
-#include <prlxmlmodel/ParallelsObjects/CVmProfileHelper.h>
+#include <prlxmlmodel/VirtuozzoObjects/CVmProfileHelper.h>
 
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Std/PrlAssert.h>
@@ -53,7 +53,7 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/PrlCommonUtilsBase/CHardDiskHelper.h>
 
-#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
+#include <prlcommon/Interfaces/VirtuozzoSdkPrivate.h>
 
 #include "Tasks/Mixin_CreateHddSupport.h"
 #include "Tasks/Task_ManagePrlNetService.h"
@@ -376,7 +376,7 @@ void CDspBugPatcherLogic::patchDefaultVmDirectoryPath()
 	// 1. replace default path for default vm directory
 	// 2. fix default path in users vm directories if they have path which equals path to common vm directory
 
-	QString sDefaultSharedVmCataloguePath =  ParallelsDirs::getCommonDefaultVmCatalogue();
+	QString sDefaultSharedVmCataloguePath =  VirtuozzoDirs::getCommonDefaultVmCatalogue();
 	//////////////////////////////////////////////////////////////////////////
 	// 1. set default path for default vm directory
 	QString sDirUuid = CDspService::instance()->getDispConfigGuard()

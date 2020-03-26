@@ -11,7 +11,7 @@
 # Our contact details: Virtuozzo International GmbH, Vordergasse 59, 8200
 # Schaffhausen, Switzerland.
 #
-# This Module is a part of Parallels Automated test system.
+# This Module is a part of Virtuozzo Automated test system.
 #
 # ==================================================================
 #
@@ -37,8 +37,8 @@ if __full_file_path__ == '':
 
 sys.path.append( os.path.abspath( os.path.join( __full_file_path__, sources_root +  'SDK/Python' ) ) )
 
-import Parallels
-Parallels.init_module()
+import Virtuozzo
+Virtuozzo.init_module()
 
 
 # ---------------------------------------------------------
@@ -46,7 +46,7 @@ Parallels.init_module()
 # ---------------------------------------------------------
 def test_IsGuestOs():
 
-    common = Parallels.Common()
+    common = Virtuozzo.Common()
     isGuestOs = common.IsGuestOs()
 
     if isGuestOs:
@@ -61,6 +61,6 @@ if ( __name__ == '__main__' ):
 
     test_IsGuestOs()
 
-	Parallels.Deinit()
+	Virtuozzo.Deinit()
 
     sys.exit( 0 )

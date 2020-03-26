@@ -45,7 +45,7 @@
 #include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 #define TIMEOUT_CLIENT_MSEC		100
 

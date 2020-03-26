@@ -41,7 +41,7 @@
 
 #include <boost/variant.hpp>
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 class Task_ExecVm;
 ///////////////////////////////////////////////////////////////////////////////

@@ -289,7 +289,7 @@ struct Model
 	QString getTargetName() const
 	{
 		return getTarget()
-			+ Parallels::toBase26(m_dataSource->getStackIndex());
+			+ Virtuozzo::toBase26(m_dataSource->getStackIndex());
 	}
 	quint32 getIndex() const
 	{

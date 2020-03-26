@@ -34,7 +34,7 @@
 #ifndef CDispToDispCommonProto_H
 #define CDispToDispCommonProto_H
 
-#include <prlcommon/Interfaces/ParallelsDispToDispProto.h>
+#include <prlcommon/Interfaces/VirtuozzoDispToDispProto.h>
 #include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 #include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
@@ -44,7 +44,7 @@
 #include <windows.h>
 #endif
 
-namespace Parallels
+namespace Virtuozzo
 {
 using namespace IOService;
 
@@ -502,6 +502,6 @@ inline SmartPtr<IOService::IOPackage> createInstance (
 
 }//DispatcherPackage
 
-}//namespace Parallels
+}//namespace Virtuozzo
 
 #endif

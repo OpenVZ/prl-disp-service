@@ -53,18 +53,18 @@ struct in6_ifreq {
 
 using namespace PrlNet_Private;
 
-#define PARALLELS_MOD_UNLOAD_CMD		"/sbin/rmmod prl_vnic"
-#define PARALLELS_MOD_PVSNET_UNLOAD_CMD "/sbin/rmmod prl_netbridge"
-#define PARALLELS_MOD_IS_PRLVNIC_LOADED_CMD	"/sbin/lsmod 2>&1 | grep prl_vnic >/dev/null"
-#define PARALLELS_MOD_IS_PVSNET_LOADED_CMD "/sbin/lsmod 2>&1 | grep prl_netbridge >/dev/null"
-#define PARALLELS_MOD_LOAD_CMD			"/sbin/insmod"
-#define PARALLELS_MOD_KEXT_NAME			"prl_vnic.ko"
-#define PARALLELS_DHCP30_STARTED		"ps -A 2>&1 | grep prl_dhcpd >/dev/null"
-#define PARALLELS_KILL_DHCP30			"killall -9 prl_dhcpd"
+#define VIRTUOZZO_MOD_UNLOAD_CMD		"/sbin/rmmod prl_vnic"
+#define VIRTUOZZO_MOD_PVSNET_UNLOAD_CMD "/sbin/rmmod prl_netbridge"
+#define VIRTUOZZO_MOD_IS_PRLVNIC_LOADED_CMD	"/sbin/lsmod 2>&1 | grep prl_vnic >/dev/null"
+#define VIRTUOZZO_MOD_IS_PVSNET_LOADED_CMD "/sbin/lsmod 2>&1 | grep prl_netbridge >/dev/null"
+#define VIRTUOZZO_MOD_LOAD_CMD			"/sbin/insmod"
+#define VIRTUOZZO_MOD_KEXT_NAME			"prl_vnic.ko"
+#define VIRTUOZZO_DHCP30_STARTED		"ps -A 2>&1 | grep prl_dhcpd >/dev/null"
+#define VIRTUOZZO_KILL_DHCP30			"killall -9 prl_dhcpd"
 
-#define PARALLELS_MOD_KEXT_PVSNET_NAME	"prl_netbridge.*"
+#define VIRTUOZZO_MOD_KEXT_PVSNET_NAME	"prl_netbridge.*"
 
-#define PARALLELS_NAT_DAEMON				"prl_naptd"
+#define VIRTUOZZO_NAT_DAEMON				"prl_naptd"
 
 // Don't accept ipv6 router advertisements on vnic
 PRL_RESULT PrlNet::DisablePrlIPv6RouterDiscovery(int adapterIndex)
@@ -458,7 +458,7 @@ bool PrlNet::updateArp(const QString &ip, const QString &src_hwaddr, const QStri
 
 
 #if 0
-void PrlNet::startVmeNetworking(const CParallelsNetworkConfig &networkConfig)
+void PrlNet::startVmeNetworking(const CVirtuozzoNetworkConfig &networkConfig)
 {
 	CVirtualNetworks *pNetworks = networkConfig.getVirtualNetworks();
 

@@ -61,7 +61,7 @@
 #include <prlxmlmodel/DispConfig/CDispCommonPreferences.h>
 
 #include <prlsdk/PrlApiDeprecated.h>
-#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
+#include <prlcommon/Interfaces/VirtuozzoSdkPrivate.h>
 
 #include <time.h>
 #include <errno.h>
@@ -355,7 +355,7 @@ void DispFunctionalityTest::test_bug126119_CreateAlreadyRegistredVm()
 
 #define GENERATE_PATH_TO_TEMP_DIR() \
 	QString( "%1/%2.%3" ) \
-	.arg( ParallelsDirs::getSystemTempDir() ) \
+	.arg( VirtuozzoDirs::getSystemTempDir() ) \
 	.arg( QTest::currentTestFunction() ).arg( qrand() );
 
 #define MAKE_VM_ROOT_DIR_FOR_BUG127473 GENERATE_PATH_TO_TEMP_DIR()
@@ -2044,7 +2044,7 @@ void DispFunctionalityTest::testGetVmConfig_FromOldVmEditCommitResponse()
 	CHECK_RET_CODE_EXP(PrlJob_Wait(hJob, PRL_JOB_WAIT_TIMEOUT));
 	CHECK_RET_CODE_EXP(PrlJob_GetResult(hJob, hResult.GetHandlePtr()));
 
-	using namespace Parallels;
+	using namespace Virtuozzo;
 	CProtoCommandPtr pCmd
 		= CProtoSerializer::CreateDspWsResponseCommand( PVE::DspCmdDirVmEditCommit, PRL_ERR_SUCCESS );
 	CHECK_RET_CODE_EXP( PrlResult_FromString( hResult, QSTR2UTF8(pCmd->GetCommand()->toString()) ) );
@@ -2107,7 +2107,7 @@ void DispFunctionalityTest::testLicenseInfo_FromUpdateLicenseResponseOld()
 	CHECK_RET_CODE_EXP(PrlJob_Wait(hJob, PRL_JOB_WAIT_TIMEOUT));
 	CHECK_RET_CODE_EXP(PrlJob_GetResult(hJob, hResult.GetHandlePtr()));
 
-	using namespace Parallels;
+	using namespace Virtuozzo;
 	CProtoCommandPtr pCmd
 		= CProtoSerializer::CreateDspWsResponseCommand(PVE::DspCmdUserUpdateLicense, PRL_ERR_SUCCESS );
 	CHECK_RET_CODE_EXP( PrlResult_FromString( hResult, QSTR2UTF8(pCmd->GetCommand()->toString()) ) );
@@ -3105,7 +3105,7 @@ void DispFunctionalityTest::testCloneVm_withExternalHdd()
 
 void DispFunctionalityTest::testGetServerAppMode_fromLoginResponse()
 {
-	PRL_APPLICATION_MODE nCliMode = ParallelsDirs::getAppExecuteMode();
+	PRL_APPLICATION_MODE nCliMode = VirtuozzoDirs::getAppExecuteMode();
 
 	// login local
 	SimpleServerWrapper session(0);

@@ -32,7 +32,7 @@
 
 #include <QPair>
 #include <boost/foreach.hpp>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include "CDspStatStorage.h"
 
 namespace Stat

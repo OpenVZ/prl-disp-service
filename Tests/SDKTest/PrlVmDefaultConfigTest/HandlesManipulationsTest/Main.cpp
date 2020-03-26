@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
         QCoreApplication app(argc, argv);
         HandlesManipulationsTest test;
 
-	PrlApi_InitEx(PARALLELS_API_VER, PAM_SERVER, 0, 0);
+	PrlApi_InitEx(VIRTUOZZO_API_VER, PAM_SERVER, 0, 0);
 
         QTest::qExec(&test, argc, argv);
 	PrlApi_Deinit();

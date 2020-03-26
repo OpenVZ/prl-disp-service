@@ -93,7 +93,7 @@ struct Destroy
 		return PVE::DspCmdVmDeleteSnapshot;
 	}
 private:
-	Parallels::CProtoDeleteSnapshotCommand& cast();
+	Virtuozzo::CProtoDeleteSnapshotCommand& cast();
 
 	CProtoCommandPtr m_command;
 	SmartPtr<CVmConfiguration> m_config;
@@ -135,12 +135,12 @@ struct Unit
 		return PRL_ERR_SUCCESS;
 	}
 
-	Parallels::CProtoCommandDspWsResponse* command() const
+	Virtuozzo::CProtoCommandDspWsResponse* command() const
 	{
 		if (NULL == m_result.getImpl())
 			return NULL;
-		return Parallels::CProtoSerializer::CastToProtoCommand
-				<Parallels::CProtoCommandDspWsResponse>(m_command);
+		return Virtuozzo::CProtoSerializer::CastToProtoCommand
+				<Virtuozzo::CProtoCommandDspWsResponse>(m_command);
 	}
 
 	SmartPtr<IOPackage> package() const
@@ -172,7 +172,7 @@ struct Unit
 
 		if (NULL == value_.getImpl())
 			return;
-		m_command = Parallels::CProtoSerializer::ParseCommand(PVE::DspWsResponse,
+		m_command = Virtuozzo::CProtoSerializer::ParseCommand(PVE::DspWsResponse,
 					UTF8_2QSTR(value_->buffers[0].getImpl()));
 	}
 private:

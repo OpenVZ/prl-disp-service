@@ -33,7 +33,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // includes
 #include <windows.h>
-#include <prlcommon/Std/ParallelsErrors.h>
+#include <prlcommon/Std/VirtuozzoErrors.h>
 #include "wstr2utf8.h"
 
 

@@ -39,9 +39,9 @@
 
 #include <QMutexLocker>
 #include <QFile>
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 #include <prlcommon/Logging/Logging.h>
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 #include "CDspVmInfoDatabase.h"
 
 
@@ -83,13 +83,13 @@ bool CDspVmInfoDatabase::writeTisBackup( const QString& sVmHomeDir, const QStrin
 	}
 
 	SmartPtr<CVmInfo> pVmInfo ( new CVmInfo() );
-	int iRes = pVmInfo->loadFromFile( ParallelsDirs::getVmInfoPath( sVmHomeDir ) );
+	int iRes = pVmInfo->loadFromFile( VirtuozzoDirs::getVmInfoPath( sVmHomeDir ) );
 	if ( iRes != PRL_ERR_SUCCESS )
 	{
 		pVmInfo = SmartPtr<CVmInfo> ( new CVmInfo() );
 	}
 
-	QFile fVmInfo( ParallelsDirs::getVmInfoPath( sVmHomeDir ) );
+	QFile fVmInfo( VirtuozzoDirs::getVmInfoPath( sVmHomeDir ) );
 	pVmInfo->setGuestOsInformation( pVmGuestOsInfo );
 	return ( pVmInfo->saveToFile( &fVmInfo, true, true ) == PRL_ERR_SUCCESS );
 }
@@ -99,7 +99,7 @@ bool CDspVmInfoDatabase::saveVmInfoToSnapshot( const QString &strVmDir,
 											   const QString &sSnapshotUuid )
 {
 	QMutexLocker locker( &ms_VmInfoMutex );
-	QString strSourceFile = ParallelsDirs::getVmInfoPath( strVmDir );
+	QString strSourceFile = VirtuozzoDirs::getVmInfoPath( strVmDir );
 	QString strDestFile = QString( "%1/%2/%3%4" )
 							.arg( strVmDir )
 							.arg( VM_GENERATED_WINDOWS_SNAPSHOTS_DIR )
@@ -124,7 +124,7 @@ bool CDspVmInfoDatabase::restoreVmInfoFromSnapshot( const QString &strVmDir,
 							.arg( VM_GENERATED_WINDOWS_SNAPSHOTS_DIR )
 							.arg( sSnapshotUuid )
 							.arg( VM_INFO_FILE_SUFFIX );
-	QString strDestFile = ParallelsDirs::getVmInfoPath( strVmDir );
+	QString strDestFile = VirtuozzoDirs::getVmInfoPath( strVmDir );
 
 	// Delete dest file if it exists
 	if ( QFile::exists( strDestFile ) )

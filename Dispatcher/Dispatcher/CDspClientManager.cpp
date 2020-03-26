@@ -51,7 +51,7 @@
 #include "CDspVzHelper.h"
 #include "CVmValidateConfig.h"
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 /*****************************************************************************/
 

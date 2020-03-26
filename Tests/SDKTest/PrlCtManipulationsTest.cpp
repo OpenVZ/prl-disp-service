@@ -56,7 +56,7 @@
 #include <prlxmlmodel/DispConfig/CDispCommonPreferences.h>
 
 #include <prlsdk/PrlApiDeprecated.h>
-#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
+#include <prlcommon/Interfaces/VirtuozzoSdkPrivate.h>
 
 
 

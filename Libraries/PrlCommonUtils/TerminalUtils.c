@@ -32,9 +32,9 @@
 #include <string.h>
 
 void PackTermios(struct termios *t,
-	struct parallels_termios *p)
+	struct virtuozzo_termios *p)
 {
-	memset(p, 0, sizeof(struct parallels_termios));
+	memset(p, 0, sizeof(struct virtuozzo_termios));
 #define PACK_FLAG(field, src_flag, dst_flag) \
 	if (t->field & src_flag)	\
 		p->field |= dst_flag
@@ -106,7 +106,7 @@ void PackTermios(struct termios *t,
 	p->c_ospeed = (unsigned int)t->c_ospeed;
 }
 
-void UnpackTermios(struct parallels_termios *p,
+void UnpackTermios(struct virtuozzo_termios *p,
 	struct termios *t)
 {
 	memset(t, 0, sizeof(struct termios));

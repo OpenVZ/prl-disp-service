@@ -33,10 +33,10 @@
 
 #include "CVmMigrationProto.h"
 
-namespace Parallels {
+namespace Virtuozzo {
 
 //**************************************************************************
-CVmMigrateProto::CVmMigrateProto(Parallels::IDispToDispCommands nCmdIdentifier, quint32 nFlags)
+CVmMigrateProto::CVmMigrateProto(Virtuozzo::IDispToDispCommands nCmdIdentifier, quint32 nFlags)
 :CDispToDispCommand(nCmdIdentifier, false, nFlags)
 {
 	SetUnsignedIntParamValue(MIGRATE_DISP_PROTO_VERSION, EVT_PARAM_MIGRATE_PROTO_VERSION);
@@ -55,7 +55,7 @@ quint32 CVmMigrateProto::GetVersion()
 
 //*************************** Base migrate command *************************
 CVmMigrateCommand::CVmMigrateCommand(
-	Parallels::IDispToDispCommands nCmdIdentifier,
+	Virtuozzo::IDispToDispCommands nCmdIdentifier,
 	const QString &sVmConfiguration,
 	const QString &sTargetVmHomePath,
 	quint32 nMigrationFlags,
@@ -313,4 +313,4 @@ QString CVmMigrateReply::GetMemFilePath()
 	return (GetStringParamValue(EVT_PARAM_MIGRATE_MEMORY_FILE_PATH));
 }
 
-}//namespace Parallels
+}//namespace Virtuozzo

@@ -47,7 +47,7 @@
 
 #include "CDspVzHelper.h"
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 namespace
 {

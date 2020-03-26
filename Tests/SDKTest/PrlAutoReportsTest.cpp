@@ -233,7 +233,7 @@ do{ \
 			break;
 		case dlUser:
 			dirTo= QString("%1/%2")
-				.arg(ParallelsDirs::getCurrentUserHomeDir() )
+				.arg(VirtuozzoDirs::getCurrentUserHomeDir() )
 				.arg(sTail);
 			CHECK_DIR_AND_CREATE( dirTo, "", "" );
 			break;

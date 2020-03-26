@@ -81,7 +81,7 @@ private slots:
 	void test_VmUptime();
 
 	// https://bugzilla.sw.ru/show_bug.cgi?id=424340
-	// https://svn.parallels.com/viewvc?view=rev&revision=352888
+	// https://svn.virtuozzo.com/viewvc?view=rev&revision=352888
 	void testCommonPrefsSetReadOnlyValues();
 
 	// https://bugzilla.sw.ru/show_bug.cgi?id=430586

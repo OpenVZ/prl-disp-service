@@ -62,7 +62,7 @@ void CDspStatCollector::GetDispatcherUsersSessions(SmartPtr<CUsersStatInfo> pUse
 		SmartPtr<CDspClient> pUser = itSessions.next().value();
 		SmartPtr<CUserStatInfo> pUserStatInfo( new CUserStatInfo );
 		pUserStatInfo->m_sUserName = pUser->getAuthHelper().getUserName();
-		pUserStatInfo->m_sServiceName = UTF8_2QSTR("Parallels dispatcher service");
+		pUserStatInfo->m_sServiceName = UTF8_2QSTR("Virtuozzo dispatcher service");
 		pUserStatInfo->m_sHostName = pUser->getUserHostAddress();
 		pUserStatInfo->m_nDurationTime = pUser->getSessionUptimeInSec();
 		pUsersStatInfo->m_lstUsersStatInfo.append(pUserStatInfo);

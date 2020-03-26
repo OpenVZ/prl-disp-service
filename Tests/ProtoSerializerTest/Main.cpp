@@ -2,7 +2,7 @@
 ///
 ///	@file Main.cpp
 ///
-///	This file is the part of parallels protocols serialization tests suite.
+///	This file is the part of virtuozzo protocols serialization tests suite.
 ///	Protocols serialization tests entry point.
 ///
 ///	@author sandro

@@ -124,7 +124,7 @@ PRL_RESULT Task_ConvertDisks::prepareTask()
 		// Check disk tool
 
 		QDir pwd = QDir( (QCoreApplication::instance())->applicationDirPath() );
-		m_qsDTName = ParallelsDirs::getDiskToolPath( pwd );
+		m_qsDTName = VirtuozzoDirs::getDiskToolPath( pwd );
 
 		if ( ! QFile::exists(m_qsDTName) )
 		{

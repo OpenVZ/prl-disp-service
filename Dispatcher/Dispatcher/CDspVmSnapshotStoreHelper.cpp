@@ -39,7 +39,7 @@
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include "CDspVmSnapshotStoreHelper.h"
 
 #include "CDspService.h"
@@ -65,7 +65,7 @@
 
 #include <prlsdk/PrlEnums.h>
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 namespace
 {

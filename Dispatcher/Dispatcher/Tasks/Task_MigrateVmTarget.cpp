@@ -1597,7 +1597,7 @@ PRL_RESULT Task_MigrateVmTarget::sendStartConfirmation()
 	{
 		quint64 m = m_pVmConfig->getVmHardwareList()->getMemory()->getRamSize();
 		quint64 v = m_pVmConfig->getVmHardwareList()->getVideo()->getMemorySize();
-		p = ParallelsDirs::getVmMemoryFileLocation(
+		p = VirtuozzoDirs::getVmMemoryFileLocation(
 			m_sVmUuid, m_sTargetVmHomePath,
 			m_pVmConfig->getVmSettings()->getVmCommonOptions()->getSwapDir(),
 			CDspService::instance()->getDispConfigGuard().getDispWorkSpacePrefs()->getSwapPathForVMOnNetworkShares(),

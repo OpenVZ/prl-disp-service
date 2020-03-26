@@ -552,7 +552,7 @@ void Script::syncNetwork(const QFileInfo& config_)
 	if (d.exists())
 		return;
 
-	CParallelsNetworkConfig f;
+	CVirtuozzoNetworkConfig f;
 	PRL_RESULT e = PrlNet::ReadNetworkConfig(f);
 	if (PRL_ERR_FILE_NOT_FOUND == e)
 		PrlNet::FillDefaultConfiguration(&f);
@@ -735,7 +735,7 @@ void Subject::run()
 	u.setLink(m_link);
 	Host::Script h(u);
 	h.syncCpu("/usr/share/libvirt/cpu_map.xml");
-	h.syncNetwork(ParallelsDirs::getNetworkConfigFilePath());
+	h.syncNetwork(VirtuozzoDirs::getNetworkConfigFilePath());
 	(Vm(v))(u);
 	QProcess::startDetached("/usr/libexec/vz_systemd");
 }

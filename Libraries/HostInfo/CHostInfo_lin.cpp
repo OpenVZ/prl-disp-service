@@ -68,7 +68,7 @@
 #include <dlfcn.h>
 
 #include "Libraries/Virtuozzo/CVzHelper.h"
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 #include <prlcommon/Std/PrlAssert.h>
 
 /* base proc/dev filesystems path */
@@ -801,7 +801,7 @@ static QString get_os_type(void)
 		const char * fname;
 	} release_info[] =
 	{
-		{fopen, fclose, "/etc/parallels-release"},
+		{fopen, fclose, "/etc/virtuozzo-release"},
 		{fopen, fclose, "/etc/redhat-release"},
 		{fopen, fclose, "/etc/SuSE-release"},
 		{popen, pclose, "/usr/bin/lsb_release -ds"},
@@ -1197,7 +1197,7 @@ void CDspHostInfo::GetCpu()
 		}
 	}
 	// Get Max freq from /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq
-	if (ParallelsDirs::getAppExecuteMode() == PAM_SERVER)
+	if (VirtuozzoDirs::getAppExecuteMode() == PAM_SERVER)
 	{
 		QFile file_max_freq("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq");
 		if ( file_max_freq.open(QIODevice::ReadOnly) )

@@ -39,7 +39,7 @@
 #include <QMap>
 #include <QtAlgorithms>
 #include "CDspClientManager.h"
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 #include <prlsdk/PrlEventsValues.h>
 #include <prlsdk/PrlEnums.h>
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
@@ -62,7 +62,7 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/PrlCommonUtilsBase/CSimpleFileHelper.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirsDefs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirsDefs.h>
 
 #ifdef _WIN_
 #include <prlcommon/PrlCommonUtilsBase/countof.h>
@@ -655,7 +655,7 @@ static void addSysrqTriggerToReport( CProblemReport & cReport )
 #endif // 0
 
 static void addCrashDumpsToReport( CProblemReport & cReport,
-								  const ParallelsDirs::UserInfo* pUserInfo,
+								  const VirtuozzoDirs::UserInfo* pUserInfo,
 								  unsigned maxDumpsCount)
 {
 	unsigned dumpsAdded = 0;
@@ -664,7 +664,7 @@ static void addCrashDumpsToReport( CProblemReport & cReport,
 		QStringList crashDirList;
 
 		(void)pUserInfo;
-		crashDirList << ParallelsDirs::getCrashDumpsPath();
+		crashDirList << VirtuozzoDirs::getCrashDumpsPath();
 		QStringList strLogs = CDspVmDirHelper::getListOfLastCrashedLogs( crashDirList );
 
 		for (int i = 0 ; i < strLogs.size() ; i++)
@@ -783,9 +783,9 @@ void CDspProblemReportHelper::FillVmProblemReportData
 	PRL_ASSERT( !strVmHome.isEmpty() );
 	QString strVmDir = CFileHelper::GetFileRoot( strVmHome );
 
-	QString strParallelsLogPath = getVmLogPath( strVmDir );
+	QString strVirtuozzoLogPath = getVmLogPath( strVmDir );
 	WRITE_REPORT_PROFILER_STRING( "addVmLog" );
-	cReport.appendTemplateSystemLog( strParallelsLogPath, "vm.log", 2 );
+	cReport.appendTemplateSystemLog( strVirtuozzoLogPath, "vm.log", 2 );
 
 	QString strReconfigLogPath = getVmReconfigLogPath( strVmDir );
 	WRITE_REPORT_PROFILER_STRING( "addVmReconfigLog" );
@@ -829,7 +829,7 @@ void CDspProblemReportHelper::FillVmProblemReportData
 	// Add Guest Os Information
 	//
 	CVmGuestOsInformation vmGuestOsInfo;
-	const QString sPath = ParallelsDirs::getVmInfoPath( CFileHelper::GetFileRoot( strVmHome ) );
+	const QString sPath = VirtuozzoDirs::getVmInfoPath( CFileHelper::GetFileRoot( strVmHome ) );
 	SmartPtr<CVmInfo> pVmInfo = CDspVmInfoDatabase::readVmInfo( sPath );
 	if ( pVmInfo && pVmInfo->getGuestOsInformation() )
 		vmGuestOsInfo = *(pVmInfo->getGuestOsInformation());
@@ -871,14 +871,14 @@ void CDspProblemReportHelper::FillProblemReportData
 	INIT_PROBLEM_REPORT_PROFILER_TIME
 
 	CAuthHelperImpersonateWrapperPtr pImpersonate;
-	ParallelsDirs::UserInfo info, *pUserInfo = 0;
+	VirtuozzoDirs::UserInfo info, *pUserInfo = 0;
 
 	const bool bVerboseLog = CDspService::instance()->getDispConfigGuard().
 		getDispCommonPrefs()->getDebug()->isVerboseLogEnabled();
 
 	if ( pUser.isValid() )
 	{
-		pUserInfo = &(info = pUser->getAuthHelper().getParallelsDirUserInfo());
+		pUserInfo = &(info = pUser->getAuthHelper().getVirtuozzoDirUserInfo());
 		pImpersonate = CAuthHelperImpersonateWrapper::create( &pUser->getAuthHelper() );
 	}
 
@@ -1129,7 +1129,7 @@ SmartPtr<CPackedProblemReport> CDspProblemReportHelper::getProblemReportObj(
 		pUser->sendSimpleResponse(p, PRL_ERR_FAILURE);
 		return SmartPtr<CPackedProblemReport>();
 	}
-	QString c = ParallelsDirs::getCommonDefaultVmCatalogue();
+	QString c = VirtuozzoDirs::getCommonDefaultVmCatalogue();
 	if (!CFileHelper::WriteDirectory(c, &pUser->getAuthHelper()))
 	{
 		pUser->sendSimpleResponse(p, PRL_ERR_FAILURE);
@@ -1319,7 +1319,7 @@ void CDspProblemReportHelper::AddGuestCrashDumps( CProblemReport & cReport, cons
 	if ( sVmHome.isEmpty() )
 		return;
 
-	const QString dumpsDirPath = ParallelsDirs::getVmGuestCrashDumpsDir( sVmHome );
+	const QString dumpsDirPath = VirtuozzoDirs::getVmGuestCrashDumpsDir( sVmHome );
 	WRITE_TRACE( DBG_DEBUG, "Searching guest crash dumps in \"%s\"",
 				 QSTR2UTF8( dumpsDirPath ) );
 	const QDir::Filters dumpsFilter = QDir::Files | QDir::NoSymLinks | QDir::Hidden;
@@ -1389,7 +1389,7 @@ void CDspProblemReportHelper::AddProcsMiniDumps(CProblemReport & cReport,
 
 #ifdef _WIN_
 
-	QString tmpPath = ParallelsDirs::getSystemTempDir();
+	QString tmpPath = VirtuozzoDirs::getSystemTempDir();
 	PRL_ASSERT(!tmpPath.isEmpty());
 	PRL_ASSERT(QDir(tmpPath).exists());
 
@@ -1410,7 +1410,7 @@ void CDspProblemReportHelper::AddProcsMiniDumps(CProblemReport & cReport,
 				break;
 
 			DWORD dwPid = (DWORD)pid.toULong();
-			QString procDumpTool = ParallelsDirs::getProcDumpToolPath(WinDbgUtils::Is64BitProc(dwPid));
+			QString procDumpTool = VirtuozzoDirs::getProcDumpToolPath(WinDbgUtils::Is64BitProc(dwPid));
 			QString dumpFilepath = QString("%1\\%2_%3.dmp").arg(tmpPath).arg(procName).arg(pid);
 
 			if (!QFile::exists(procDumpTool))

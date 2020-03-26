@@ -549,7 +549,7 @@ void PrlApiBasicsTest::testApiGetVersion()
 {
 	PRL_UINT32 nVersion = 0;
 	CHECK_RET_CODE_EXP(PrlApi_GetVersion(&nVersion))
-	QCOMPARE(quint32(nVersion), quint32(PARALLELS_API_VER));
+	QCOMPARE(quint32(nVersion), quint32(VIRTUOZZO_API_VER));
 }
 
 void PrlApiBasicsTest::testApiGetVersionOnNullPointer()

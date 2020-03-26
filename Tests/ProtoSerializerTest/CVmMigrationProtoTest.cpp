@@ -39,7 +39,7 @@
 #include <prlcommon/Messaging/CVmEventParameterList.h>
 #include "Tests/CommonTestsUtils.h"
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 #define CHECK_PRECONDS_CMD_PARAMS_DECLARE\
 	QString sVmConfiguration = Uuid::createUuid().toString();\

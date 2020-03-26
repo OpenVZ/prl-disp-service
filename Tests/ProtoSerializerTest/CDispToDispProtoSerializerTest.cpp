@@ -36,7 +36,7 @@
 #include <prlcommon/Messaging/CVmEventParameterList.h>
 #include "Tests/CommonTestsUtils.h"
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 #define AUTHORIZE_CMD_PARAMS_DECLARE\
 	QString sUserSessionUuid = "some user session UUID";

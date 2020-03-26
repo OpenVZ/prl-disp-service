@@ -59,9 +59,9 @@
 #endif
 
 #ifdef _WIN_
-	#define PARALLELS_DIR_PREFIX "c:/Parallels Virtual Machines/"
+	#define VIRTUOZZO_DIR_PREFIX "c:/Virtuozzo Virtual Machines/"
 #else
-	#define PARALLELS_DIR_PREFIX "/usr/lib/Parallels Virtual Machines/"
+	#define VIRTUOZZO_DIR_PREFIX "/usr/lib/Virtuozzo Virtual Machines/"
 #endif
 
 static CWsTest* pSelf = NULL;
@@ -84,7 +84,7 @@ CWsTest::CWsTest(int &argc, char **argv) : QApplication(argc, argv)
 {
 	m_strOutputText = "";
 	m_strRequestUuid = "";
-	m_strLastDirectory = QString(PARALLELS_DIR_PREFIX);
+	m_strLastDirectory = QString(VIRTUOZZO_DIR_PREFIX);
 	pVmConfig = NULL;
 	m_strLastVmConfig = "";
 	m_strLastVmUuid = "";
@@ -95,7 +95,7 @@ CWsTest::CWsTest(int &argc, char **argv) : QApplication(argc, argv)
 	m_hVm = PRL_INVALID_HANDLE;
 
 	// Initialize API library
-	PrlApi_Init(PARALLELS_API_VER);
+	PrlApi_Init(VIRTUOZZO_API_VER);
 }
 
 CWsTest::~CWsTest()
@@ -227,9 +227,9 @@ void CWsTest::setupGui()
    m_pWndUI->edtWebServicesHost->setText("localhost:64002");
 //   m_pWndUI->edtCallArguments->setText( "guest 1q2w3e 111" );
 
-   QCoreApplication::setOrganizationName( "Parallels Software" );
-   QCoreApplication::setOrganizationDomain( "parallels.com" );
-   QCoreApplication::setApplicationName( "Parallels Server" );
+   QCoreApplication::setOrganizationName( "Virtuozzo Software" );
+   QCoreApplication::setOrganizationDomain( "virtuozzo.com" );
+   QCoreApplication::setApplicationName( "Virtuozzo Server" );
    QSettings prefSettings;
 
    QString argBuff=prefSettings.value( "tempLogin" ).toString() + QString(" ") + prefSettings.value( "tempPassword" ).toString() + " 1111";

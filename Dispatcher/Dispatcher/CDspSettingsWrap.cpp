@@ -33,8 +33,8 @@
 
 #include "CDspSettingsWrap.h"
 
-#include <prlcommon/Interfaces/ParallelsTypes.h>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoTypes.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <Libraries/PrlCommonUtils/PrlQSettings.h>
 #include <prlcommon/Std/PrlAssert.h>
 

@@ -4,7 +4,7 @@
 # https://bugzilla.sw.ru/show_bug.cgi?id=109374
 #
 # State machine spec: 
-# http://wiki.parallels.com/images/5/5e/Vm-state-machine.xls
+# http://wiki.virtuozzo.com/images/5/5e/Vm-state-machine.xls
 #
 ###########################
 # How use it:

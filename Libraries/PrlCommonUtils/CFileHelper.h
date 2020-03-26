@@ -42,8 +42,8 @@
 #include <QDateTime>
 #include <QStringList>
 
-#include <prlcommon/Interfaces/ParallelsDomModel.h>
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoDomModel.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 
 #ifndef _WIN_
 #include <sys/stat.h>

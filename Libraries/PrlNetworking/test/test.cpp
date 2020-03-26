@@ -24,7 +24,7 @@
 
 #include <QCoreApplication>
 #include <QDir>
-//#include <prlcommon/Interfaces/ParallelsDirs.h>
+//#include <prlcommon/Interfaces/VirtuozzoDirs.h>
 
 #include <iostream>
 
@@ -34,8 +34,8 @@
 
 #include "../win/ethlist.h"
 
-#include <prlcommon/Interfaces/ParallelsPlatform.h>
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/Interfaces/VirtuozzoPlatform.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 
 #include <net/if.h>
 #include <net/if_dl.h>
@@ -43,15 +43,15 @@
 
 #include "../unix/MacConfigureAdapter.h"
 
-QString ParallelsInstallDir;
-QString ParallelsDriversDir;
+QString VirtuozzoInstallDir;
+QString VirtuozzoDriversDir;
 
 
 int main( int argc, char *argv[] )
 {
 	QCoreApplication app( argc, argv);
 
-	// Mac_SetAdapterName( 0, "Parallels Shared Networking" );
+	// Mac_SetAdapterName( 0, "Virtuozzo Shared Networking" );
 
 	CHostOnlyNetwork Net;
 	Net.setHostIPAddress(0x0d0c0b0a);

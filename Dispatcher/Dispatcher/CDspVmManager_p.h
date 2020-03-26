@@ -437,7 +437,7 @@ public:
 	template<class U>
 	static Libvirt::Result meetRequirements(const Context& context_, Need::Command<U>& dst_)
 	{
-		U* x = Parallels::CProtoSerializer::CastToProtoCommand<U>
+		U* x = Virtuozzo::CProtoSerializer::CastToProtoCommand<U>
 			(context_.getRequest());
 		if (NULL == x)
 			return Error::Simple(PRL_ERR_UNRECOGNIZED_REQUEST);
@@ -710,7 +710,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Switch
 
-struct Switch: Need::Agent, Need::Config, Need::Context, Need::Command<Parallels::CProtoSwitchToSnapshotCommand>
+struct Switch: Need::Agent, Need::Config, Need::Context, Need::Command<Virtuozzo::CProtoSwitchToSnapshotCommand>
 {
 	Switch(VIRTUAL_MACHINE_STATE& state_): m_state(&state_)
 	{
@@ -730,7 +730,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Response
 
-struct Response: Need::Context, Need::Command<Parallels::CProtoCreateSnapshotCommand>
+struct Response: Need::Context, Need::Command<Virtuozzo::CProtoCreateSnapshotCommand>
 {
 	Libvirt::Result operator()()
 	{
@@ -1253,7 +1253,7 @@ namespace Device
 // struct Wish
 
 template<class T>
-struct Wish: Need::Command<Parallels::CProtoVmDeviceCommand>
+struct Wish: Need::Command<Virtuozzo::CProtoVmDeviceCommand>
 {
 protected:
 	T getModel() const
@@ -1352,7 +1352,7 @@ private:
 // struct Despatch
 
 template<PVE::IDispatcherCommands X>
-struct Despatch: Need::Command<Parallels::CProtoVmDeviceCommand>
+struct Despatch: Need::Command<Virtuozzo::CProtoVmDeviceCommand>
 {
 	static void run(Context& context_);
 };

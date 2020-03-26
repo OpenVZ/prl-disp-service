@@ -3,9 +3,9 @@
 #define VER_FILETYPE                VFT_DLL
 #define VER_FILESUBTYPE             VFT2_UNKNOWN
 
-#define VER_FILEDESCRIPTION_STR     "Parallels Unit Test"
-#define VER_INTERNALNAME_STR        "Parallels Unit Test"
-#define VER_ORIGINALFILENAME_STR    "Parallels Unit Test"
+#define VER_FILEDESCRIPTION_STR     "Virtuozzo Unit Test"
+#define VER_INTERNALNAME_STR        "Virtuozzo Unit Test"
+#define VER_ORIGINALFILENAME_STR    "Virtuozzo Unit Test"
 
 // On Windows Explorer associates with the binary first icon of its
 // embeded resources - so keeping application icon in the front :)

@@ -133,7 +133,7 @@ PRL_RESULT Task_CreateVmBackup::sendStartRequest(const ::Backup::Activity::Objec
 	}
 
 	CDispToDispCommandPtr pDspReply = CDispToDispProtoSerializer::ParseCommand(
-		(Parallels::IDispToDispCommands)pReply->header.type, UTF8_2QSTR(pReply->buffers[0].getImpl()));
+		(Virtuozzo::IDispToDispCommands)pReply->header.type, UTF8_2QSTR(pReply->buffers[0].getImpl()));
 
 	if (pReply->header.type == DispToDispResponseCmd) {
 		CDispToDispResponseCommand *pResponseCmd =

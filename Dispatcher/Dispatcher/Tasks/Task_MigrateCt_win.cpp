@@ -34,8 +34,8 @@
 //#define FORCE_LOGGING_LEVEL DBG_DEBUG
 
 #include "Interfaces/Debug.h"
-#include <prlcommon/Interfaces/ParallelsQt.h>
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Std/PrlTime.h>
@@ -85,7 +85,7 @@ static PRL_RESULT GetEntryLists(
 
 	config.setFile(VmHomeDir, VMDIR_DEFAULT_VM_CONFIG_FILE);
 	config_backup.setFile(VmHomeDir, VMDIR_DEFAULT_VM_CONFIG_FILE VMDIR_DEFAULT_VM_BACKUP_SUFFIX);
-	log.setFile(VmHomeDir, "parallels.log");
+	log.setFile(VmHomeDir, "virtuozzo.log");
 	statlog.setFile(VmHomeDir, PRL_VMTIMING_LOGFILENAME);
 
 	dirInfo.setFile(VmHomeDir);
@@ -550,7 +550,7 @@ PRL_RESULT Task_MigrateCtSource::SendStartRequest()
 	}
 
 	pCmd = CDispToDispProtoSerializer::ParseCommand(
-			(Parallels::IDispToDispCommands)m_pReply->header.type,
+			(Virtuozzo::IDispToDispCommands)m_pReply->header.type,
 			UTF8_2QSTR(m_pReply->buffers[0].getImpl()));
 
 	if (m_pReply->header.type == DispToDispResponseCmd) {

@@ -313,7 +313,7 @@ void PrlApiEventsTest::testEventParamSubstitution()
 
     //------------ check starting from param subst --------------
     {
-    static const PRL_RESULT err_code_start = PRL_ERR_INVALID_PARALLELS_DISK ;
+    static const PRL_RESULT err_code_start = PRL_ERR_INVALID_VIRTUOZZO_DISK ;
     static const PRL_BOOL brief_start = PRL_TRUE ;
 
     event_data = SmartPtr<CVmEvent>(new CVmEvent());

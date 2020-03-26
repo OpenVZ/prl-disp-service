@@ -52,7 +52,7 @@ void PrlHandleVmTest::cleanup()
 #define CLEANUP_VM_EVENT_UNIQUE_FIELDS_BEFORE_COMPARE( _vmConfig ) \
 { \
 	CVmEvent* pVmEvent = _vmConfig.getVmSettings() \
-		->getVmRuntimeOptions()->getInternalVmInfo()->getParallelsEvent();\
+		->getVmRuntimeOptions()->getInternalVmInfo()->getVirtuozzoEvent();\
 	pVmEvent->setInitRequestId(); \
 	pVmEvent->setEventIssuerId(); \
 	_vmConfig.getVmIdentification()->setVmUptimeStartDateTime(); \

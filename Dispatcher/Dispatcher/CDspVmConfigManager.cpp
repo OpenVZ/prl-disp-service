@@ -45,9 +45,9 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/HostUtils/HostUtils.h>
-#include <prlcommon/Interfaces/ParallelsDomModel.h>
+#include <prlcommon/Interfaces/VirtuozzoDomModel.h>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
-#include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
+#include <prlxmlmodel/VirtuozzoObjects/CXmlModelHelper.h>
 
 #include "Dispatcher/Dispatcher/Cache/CacheImpl.h"
 
@@ -145,7 +145,7 @@ template<>
 bool Match<CVmFloppyDisk>::operator()(const CVmFloppyDisk* item_)
 {
 	return item_->getIndex() ==
-		Parallels::fromBase26(m_needle->getTargetDeviceName().remove(0, 2));
+		Virtuozzo::fromBase26(m_needle->getTargetDeviceName().remove(0, 2));
 }
 
 template<>
@@ -1124,7 +1124,7 @@ void Reconfiguration::react(QString directory_, QString uuid_)
 	if (!IS_WINDOWS(t))
 		return;
 
-	QString i = ParallelsDirs::getWindowsUnattendedFloppy(t);
+	QString i = VirtuozzoDirs::getWindowsUnattendedFloppy(t);
 	if (i.isEmpty())
 		return;
 

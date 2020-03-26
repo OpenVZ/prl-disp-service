@@ -91,7 +91,7 @@
 
 #include <prlsdk/PrlApiDeprecated.h>
 
-#include <prlcommon/Interfaces/ParallelsSdk.h>
+#include <prlcommon/Interfaces/VirtuozzoSdk.h>
 
 #include <QMap>
 #include <QMutex>
@@ -104,7 +104,7 @@
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 CDspShellHelper::~CDspShellHelper()
 {
@@ -137,7 +137,7 @@ PRL_RESULT LaunchOnBehalfOfSystem(const QString& launchString, HANDLE userHandle
 		return PRL_ERR_FILE_NOT_FOUND;
 
 	DWORD error;
-	if (!CheckCertificateValidity(QSTR2UTF16(filePath), c_sParallelsSigner, &error))
+	if (!CheckCertificateValidity(QSTR2UTF16(filePath), c_sVirtuozzoSigner, &error))
 	{
 		WRITE_TRACE(DBG_WARNING, "The file %s is not signed with correct certificate (error = %d)",
 			QSTR2UTF8(filePath), error);
@@ -544,7 +544,7 @@ void CDspShellHelper::generateFsEntryName (
 	QDir::Filters filters = QDir::Files | QDir::Dirs | QDir::Hidden | QDir::NoDotAndDotDot;
 	QStringList _dir_entries = QDir(sDirPath).entryList( filters );
 
-	QString sGeneratedEntryName = Parallels::GenerateFilename(
+	QString sGeneratedEntryName = Virtuozzo::GenerateFilename(
 										_dir_entries,
 										sFilenamePrefix,
 										sFilenameSuffix,
@@ -610,8 +610,8 @@ void CDspShellHelper::sendHostCommonInfo (
 	//clean password in backup prefs
 	pCommonPrefs->getBackupSourcePreferences()->setPassword(QString());
 
-	SmartPtr<CParallelsNetworkConfig>
-		pNetworkConfig( new CParallelsNetworkConfig(
+	SmartPtr<CVirtuozzoNetworkConfig>
+		pNetworkConfig( new CVirtuozzoNetworkConfig(
 			CDspService::instance()->getNetworkConfig().getPtr() )
 			);
 
@@ -927,7 +927,7 @@ void CDspShellHelper::sendNetworkClassesConfig(SmartPtr<CDspClient>& pUser, cons
 {
 	CNetworkClassesConfig *pClassesCfg;
 
-	CDspLockedPointer<CParallelsNetworkConfig> pNetCfg = CDspService::instance()->getNetworkConfig();
+	CDspLockedPointer<CVirtuozzoNetworkConfig> pNetCfg = CDspService::instance()->getNetworkConfig();
 	if ( ! pNetCfg.isValid() )
 	{
 		WRITE_TRACE(DBG_FATAL, "Network config doesn't exist!" );
@@ -955,7 +955,7 @@ void CDspShellHelper::sendNetworkClassesConfig(SmartPtr<CDspClient>& pUser, cons
 void CDspShellHelper::sendNetworkShapingConfig(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p)
 {
 	CNetworkShapingConfig *pShapingCfg;
-	CDspLockedPointer<CParallelsNetworkConfig> pNetCfg = CDspService::instance()->getNetworkConfig();
+	CDspLockedPointer<CVirtuozzoNetworkConfig> pNetCfg = CDspService::instance()->getNetworkConfig();
 	if ( ! pNetCfg.isValid() )
 	{
 		WRITE_TRACE(DBG_FATAL, "Network config doesn't exist!" );
@@ -982,7 +982,7 @@ void CDspShellHelper::sendNetworkShapingConfig(SmartPtr<CDspClient>& pUser, cons
 
 void CDspShellHelper::sendIPPrivateNetworksList(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p)
 {
-	CDspLockedPointer<CParallelsNetworkConfig> pNetCfg = CDspService::instance()->getNetworkConfig();
+	CDspLockedPointer<CVirtuozzoNetworkConfig> pNetCfg = CDspService::instance()->getNetworkConfig();
 	if ( ! pNetCfg.isValid() )
 	{
 		WRITE_TRACE(DBG_FATAL, "Network config doesn't exist!" );

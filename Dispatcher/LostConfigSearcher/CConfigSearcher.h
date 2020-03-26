@@ -33,7 +33,7 @@
  * purpose:	Header for config searcher object
  *********************************************************************/
 
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 class QString;
 class QStringList;
 #ifdef _WIN_

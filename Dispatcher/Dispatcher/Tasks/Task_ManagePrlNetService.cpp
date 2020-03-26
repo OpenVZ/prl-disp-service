@@ -32,8 +32,8 @@
 ///	This class implements long running tasks helper class
 ///
 /// @author sergeyt
-///	sdmitry@parallels.com
-///	SergeyT@parallels.com
+///	sdmitry@virtuozzo.com
+///	SergeyT@virtuozzo.com
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -49,7 +49,7 @@
 #include "Task_ManagePrlNetService.h"
 #include "Task_BackgroundJob.h"
 #include <prlcommon/Logging/Logging.h>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <prlcommon/HostUtils/HostUtils.h>
@@ -207,25 +207,25 @@ void Watcher::updateRates()
 } // namespace Config
 } // namespace Network
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 static int getPrlAdapterIdx(CVirtualNetwork* pVirtualNetwork)
 {
 	if (   ! pVirtualNetwork->isEnabled()
 		|| pVirtualNetwork->getNetworkType() == PVN_BRIDGED_ETHERNET
-		|| ! pVirtualNetwork->getHostOnlyNetwork()->getParallelsAdapter()->isEnabled()
+		|| ! pVirtualNetwork->getHostOnlyNetwork()->getVirtuozzoAdapter()->isEnabled()
 		)
 	{
 		return PAI_INVALID_ADAPTER;
 	}
 	int nAdapterIndex = pVirtualNetwork->getHostOnlyNetwork()->
-		getParallelsAdapter()->getPrlAdapterIndex();
+		getVirtuozzoAdapter()->getPrlAdapterIndex();
 	if (nAdapterIndex < 0)
 		return nAdapterIndex;
 	return GET_PRL_ADAPTER_NUMBER(nAdapterIndex);
 }
 
-static int generatePrlAdapterIdx(CParallelsNetworkConfig* pNetworkConfig, bool bShared)
+static int generatePrlAdapterIdx(CVirtuozzoNetworkConfig* pNetworkConfig, bool bShared)
 {
 	QByteArray baVacants(PrlNet::getMaximumAdapterIndex() + 1, 0);
 
@@ -375,11 +375,11 @@ PRL_RESULT Task_ManagePrlNetService::run_body()
 PRL_RESULT Task_ManagePrlNetService::cmdNetPrlNetworkServiceRestoreDefaults()
 {
 #if 0
-	QString ParallelsDriversDir = ParallelsDirs::getParallelsDriversDir();
+	QString VirtuozzoDriversDir = VirtuozzoDirs::getVirtuozzoDriversDir();
 
 #if !defined(_WIN_)
 	// Unconditionally try to load prl_netbridge.
-	int err = PrlNet::loadPrlNetbridgeKext( ParallelsDriversDir );
+	int err = PrlNet::loadPrlNetbridgeKext( VirtuozzoDriversDir );
 	if (err)
 	{
 		WRITE_TRACE(DBG_FATAL, "[PrlNet] Failed to load Networking driver %d.", err );
@@ -398,13 +398,13 @@ PRL_RESULT Task_ManagePrlNetService::cmdNetPrlNetworkServiceRestoreDefaults()
 		return prlResult;
 #else
 		WRITE_TRACE(DBG_FATAL, "[RestoreDefaults]: Trying to restart network.");
-		QString ParallelsInstallDir = QString(getenv(PVS_VM_EXECUTABLE_ENV));
-		if( ParallelsInstallDir.isEmpty() )
+		QString VirtuozzoInstallDir = QString(getenv(PVS_VM_EXECUTABLE_ENV));
+		if( VirtuozzoInstallDir.isEmpty() )
 		{
-			ParallelsInstallDir = QCoreApplication::applicationDirPath();
+			VirtuozzoInstallDir = QCoreApplication::applicationDirPath();
 		}
 
-		prlResult = PrlNet::startNetworking(ParallelsInstallDir, ParallelsDriversDir);
+		prlResult = PrlNet::startNetworking(VirtuozzoInstallDir, VirtuozzoDriversDir);
 		if (PRL_FAILED(prlResult))
 		{
 			WRITE_TRACE(DBG_FATAL, "[RestoreDefaults] Failed to start networking: error 0x%08x", prlResult);
@@ -420,10 +420,10 @@ PRL_RESULT Task_ManagePrlNetService::cmdNetPrlNetworkServiceRestoreDefaults()
 	}
 
 	// Get networking configuration pointer.
-	CDspLockedPointer<CParallelsNetworkConfig>
+	CDspLockedPointer<CVirtuozzoNetworkConfig>
 		pNetworkConfig = CDspService::instance()->getNetworkConfig();
 	// Remember old config
-	CParallelsNetworkConfig oldNetworkConfig = *pNetworkConfig.getPtr();
+	CVirtuozzoNetworkConfig oldNetworkConfig = *pNetworkConfig.getPtr();
 
 	// Fill networking params.
 	QStringList RemovedNetworksIDs;
@@ -540,12 +540,12 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateNetAdapter()
 	LOG_MESSAGE( DBG_WARNING, "Incoming params: %s", QSTR2UTF8( sParam ) );
 
 	//get new network representation
-	CDspLockedPointer<CParallelsNetworkConfig>
+	CDspLockedPointer<CVirtuozzoNetworkConfig>
 		pNetworkConfig = CDspService::instance()->getNetworkConfig();
 
 	////////////////////////////
 	//search virtual network by adapter
-	CVirtualNetwork* pVirtualNetwork = PrlNet::GetNetworkByParallelsAdapter(
+	CVirtualNetwork* pVirtualNetwork = PrlNet::GetNetworkByVirtuozzoAdapter(
 		pNetworkConfig->getVirtualNetworks(), (unsigned int)GET_PRL_ADAPTER_NUMBER(oldNetAdapter.getIndex()));
 
 	if( !pVirtualNetwork )
@@ -566,7 +566,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateNetAdapter()
 
 PRL_RESULT Task_ManagePrlNetService::addHostOnlyVirtualNetwork(
 	CVirtualNetwork *pVirtualNetwork,
-	CDspLockedPointer<CParallelsNetworkConfig>& pNetworkConfig)
+	CDspLockedPointer<CVirtuozzoNetworkConfig>& pNetworkConfig)
 {
 	// index of new Adapter
 	int nAdapterIndex = getPrlAdapterIdx(pVirtualNetwork);
@@ -575,12 +575,12 @@ PRL_RESULT Task_ManagePrlNetService::addHostOnlyVirtualNetwork(
 	//search virtual network by adapter
 	CVirtualNetworks *pNetworks = pNetworkConfig->getVirtualNetworks();
 	if (nAdapterIndex >= 0) {
-		CVirtualNetwork *pTmp = PrlNet::GetNetworkByParallelsAdapter(
+		CVirtualNetwork *pTmp = PrlNet::GetNetworkByVirtuozzoAdapter(
 				pNetworks, GET_PRL_ADAPTER_NUMBER(nAdapterIndex));
 		if (pTmp)
 		{
 			QString qsAdapterName = pVirtualNetwork->getHostOnlyNetwork()
-				->getParallelsAdapter()->getName();
+				->getVirtuozzoAdapter()->getName();
 			WRITE_TRACE(DBG_FATAL, "Unable to bind the network to"
 				" Adapter %d because Virtual Network"
 				" %s already uses this adapter.",
@@ -605,7 +605,7 @@ PRL_RESULT Task_ManagePrlNetService::addHostOnlyVirtualNetwork(
 		nAdapterIndex = generatePrlAdapterIdx(pNetworkConfig.getPtr(), bShared);
 		if (nAdapterIndex != PAI_INVALID_ADAPTER)
 		{
-			pHostOnlyNet->getParallelsAdapter()->setPrlAdapterIndex((unsigned int)nAdapterIndex);
+			pHostOnlyNet->getVirtuozzoAdapter()->setPrlAdapterIndex((unsigned int)nAdapterIndex);
 			PrlNet::FillDefaultVirtualNetworkParams(pVirtualNetwork,
 				(unsigned int)nAdapterIndex, PrlNet::isSharedEnabled());
 		}
@@ -714,12 +714,12 @@ void Task_ManagePrlNetService::convertDispAdapterToVirtualNetwork(CDispNetAdapte
 	PRL_ASSERT(pVirtualNetwork);
 
 	CHostOnlyNetwork* pHostOnlyNet = pVirtualNetwork->getHostOnlyNetwork();
-	CParallelsAdapter* pParallelsAdapter = pHostOnlyNet->getParallelsAdapter();
+	CVirtuozzoAdapter* pVirtuozzoAdapter = pHostOnlyNet->getVirtuozzoAdapter();
 
 	QString adapterName = pOldNetAdapter->getName();
-	pParallelsAdapter->setName(adapterName);
+	pVirtuozzoAdapter->setName(adapterName);
 	//https://bugzilla.sw.ru/show_bug.cgi?id=438037
-	pParallelsAdapter->setHiddenAdapter( pOldNetAdapter->isHiddenAdapter() );
+	pVirtuozzoAdapter->setHiddenAdapter( pOldNetAdapter->isHiddenAdapter() );
 
 	// IPv4
 	CDispDhcpPreferences* pDhcp = pOldNetAdapter->getDhcpPreferences();
@@ -947,7 +947,7 @@ PRL_RESULT Task_ManagePrlNetService::updateVmNetworkSettings(
 PRL_RESULT Task_ManagePrlNetService::cmdUpdateVirtualNetwork(
 			CVirtualNetwork* pNewVirtualNetwork,
 			CVirtualNetwork* pOldVirtualNetwork,
-			CDspLockedPointer<CParallelsNetworkConfig>& pNetworkConfig)
+			CDspLockedPointer<CVirtuozzoNetworkConfig>& pNetworkConfig)
 {
 	Q_UNUSED(pNetworkConfig);
 	PRL_ASSERT(pNewVirtualNetwork);
@@ -983,7 +983,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateVirtualNetwork(
 		if (nNewAdapterIndex != PAI_INVALID_ADAPTER)
 		{
 			pNewVirtualNetwork->getHostOnlyNetwork()
-				->getParallelsAdapter()->setPrlAdapterIndex((unsigned int)nNewAdapterIndex);
+				->getVirtuozzoAdapter()->setPrlAdapterIndex((unsigned int)nNewAdapterIndex);
 			PrlNet::FillDefaultVirtualNetworkParams(pNewVirtualNetwork,
 					(unsigned int)nNewAdapterIndex, PrlNet::isSharedEnabled());
 		}
@@ -1004,7 +1004,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateVirtualNetwork(
 			if (nNewAdapterIndex != PAI_INVALID_ADAPTER)
 			{
 				pNewVirtualNetwork->getHostOnlyNetwork()
-					->getParallelsAdapter()->setPrlAdapterIndex((unsigned int)nNewAdapterIndex);
+					->getVirtuozzoAdapter()->setPrlAdapterIndex((unsigned int)nNewAdapterIndex);
 				PrlNet::FillDefaultVirtualNetworkParams(pNewVirtualNetwork,
 					(unsigned int)nNewAdapterIndex, PrlNet::isSharedEnabled());
 			}
@@ -1074,7 +1074,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateVirtualNetwork(
 	if (nOldAdapterIndex >= 0 &&
 		pNewVirtualNetwork->getNetworkType() == PVN_BRIDGED_ETHERNET)
 		pNewVirtualNetwork->getHostOnlyNetwork()
-			->getParallelsAdapter()->setPrlAdapterIndex((unsigned)PAI_GENERATE_INDEX);
+			->getVirtuozzoAdapter()->setPrlAdapterIndex((unsigned)PAI_GENERATE_INDEX);
 
 	///////////////////
 	// save
@@ -1138,7 +1138,7 @@ static CDispPortForwarding *ConvertPortForwarding(const CPortForwarding *src)
 
 
 SmartPtr<CDispNetworkPreferences> Task_ManagePrlNetService::convertNetworkConfig(
-	SmartPtr<CParallelsNetworkConfig> pNetworkConfig )
+	SmartPtr<CVirtuozzoNetworkConfig> pNetworkConfig )
 {
 	PRL_ASSERT( pNetworkConfig );
 	if( !pNetworkConfig )
@@ -1156,7 +1156,7 @@ SmartPtr<CDispNetworkPreferences> Task_ManagePrlNetService::convertNetworkConfig
 		if (NULL == pHostOnlyParams)
 			continue;
 
-		CParallelsAdapter *pAdapter = pHostOnlyParams->getParallelsAdapter();
+		CVirtuozzoAdapter *pAdapter = pHostOnlyParams->getVirtuozzoAdapter();
 		if (!pAdapter)
 			continue;
 
@@ -1318,7 +1318,7 @@ void Task_ManagePrlNetService::updateVmNetworking(SmartPtr<CVmConfiguration> pVm
 
 void Task_ManagePrlNetService::addVmIPAddress(SmartPtr<CVmConfiguration> pVmConfig)
 {
-	CDspLockedPointer<CParallelsNetworkConfig>
+	CDspLockedPointer<CVirtuozzoNetworkConfig>
 				pNetworkConfig = CDspService::instance()->getNetworkConfig();
 
 	if (!pNetworkConfig || !pVmConfig)
@@ -1408,7 +1408,7 @@ void Task_ManagePrlNetService::addVmIPAddress(SmartPtr<CVmConfiguration> pVmConf
 void Task_ManagePrlNetService::removeVmIPAddress(SmartPtr<CVmConfiguration> pVmConfig)
 
 {
-	CDspLockedPointer<CParallelsNetworkConfig>
+	CDspLockedPointer<CVirtuozzoNetworkConfig>
 				pNetworkConfig = CDspService::instance()->getNetworkConfig();
 
 	if (!pNetworkConfig || !pVmConfig)
@@ -1537,7 +1537,7 @@ QSet<QString> Task_ManagePrlNetService::extractIPAddressesFromVMConfiguration(Sm
 	if (!config->getVmHardwareList())
 		return (lstNetAddresses);
 
-	CDspLockedPointer<CParallelsNetworkConfig>
+	CDspLockedPointer<CVirtuozzoNetworkConfig>
 		pNetworkConfig = CDspService::instance()->getNetworkConfig();
 	QListIterator<CVmGenericNetworkAdapter*> itN(config->getVmHardwareList()->m_lstNetworkAdapters);
 	while (itN.hasNext())
@@ -1581,7 +1581,7 @@ QSet<QString> Task_ManagePrlNetService::extractRoutedIPAddressesFromVMConfigurat
 	if (!config->getVmHardwareList())
 		return (lstNetAddresses);
 
-	CDspLockedPointer<CParallelsNetworkConfig>
+	CDspLockedPointer<CVirtuozzoNetworkConfig>
 		pNetworkConfig = CDspService::instance()->getNetworkConfig();
 	QListIterator<CVmGenericNetworkAdapter*> itN(config->getVmHardwareList()->m_lstNetworkAdapters);
 	while (itN.hasNext())
@@ -1709,7 +1709,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdAddIPPrivateNetwork()
 	if (PRL_FAILED(prlResult))
 		return prlResult;
 
-	CDspLockedPointer<CParallelsNetworkConfig>
+	CDspLockedPointer<CVirtuozzoNetworkConfig>
 		pNetworkConfig = CDspService::instance()->getNetworkConfig();
 	if (pNetworkConfig.getPtr() == NULL)
 		return PRL_ERR_UNEXPECTED;
@@ -1792,7 +1792,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdUpdateIPPrivateNetwork()
 		return PRL_ERR_INVALID_ARG;
 	}
 
-	CDspLockedPointer<CParallelsNetworkConfig>
+	CDspLockedPointer<CVirtuozzoNetworkConfig>
 		pNetworkConfig = CDspService::instance()->getNetworkConfig();
 	if (pNetworkConfig.getPtr() == NULL)
 		return PRL_ERR_UNEXPECTED;
@@ -1879,7 +1879,7 @@ PRL_RESULT Task_ManagePrlNetService::cmdRemoveIPPrivateNetwork()
 		return PRL_ERR_INVALID_ARG;
 	}
 
-	CDspLockedPointer<CParallelsNetworkConfig> pNetworkConfig =
+	CDspLockedPointer<CVirtuozzoNetworkConfig> pNetworkConfig =
 					CDspService::instance()->getNetworkConfig();
 	if (!pNetworkConfig.getPtr())
 		return PRL_ERR_UNEXPECTED;

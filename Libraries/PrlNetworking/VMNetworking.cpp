@@ -30,9 +30,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 #include <Build/Current.ver>
 #include "PrlNetLibrary.h"
-#include <prlcommon/Interfaces/ParallelsQt.h>
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
 //#include <prlxmlmodel/DispConfig/CDispDhcpPreferences.h>
@@ -101,7 +101,7 @@ static void EthIface2EthAdapter( const EthIface &ethIface, PrlNet::EthernetAdapt
 	ethAdapter._adapterGuid = ethIface._adapterGuid;
 #endif
 
-	ethAdapter._bParallelsAdapter = IsPrlAdapter(ethAdapter);
+	ethAdapter._bVirtuozzoAdapter = IsPrlAdapter(ethAdapter);
 
 #if defined(_WIN_)
 	ethAdapter._bEnabled = true; // Adapter can't be disabled in Windows

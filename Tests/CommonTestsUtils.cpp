@@ -39,11 +39,11 @@
 #include <QDateTime>
 
 #include "Build/Current.ver"
-#include <prlcommon/Interfaces/ParallelsQt.h>
-#include <prlcommon/Interfaces/ParallelsDomModel.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
+#include <prlcommon/Interfaces/VirtuozzoDomModel.h>
 #include "CommonTestsUtils.h"
 #include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 #include <prlcommon/Logging/Logging.h>
 
 #include <prlcommon/Std/PrlAssert.h>
@@ -69,7 +69,7 @@ namespace {
 PRL_APPLICATION_MODE TestConfig::g_executeMode = PAM_UNKNOWN;
 bool TestConfig::g_CtMode = false;
 namespace{
-	ParallelsDirs::InitOptions g_nInitOptions	= 0;
+	VirtuozzoDirs::InitOptions g_nInitOptions	= 0;
 }
 
 
@@ -80,12 +80,12 @@ TestConfig::InitRandom::InitRandom()
 
 void TestConfig::readTestParameters()
 {
-	TestConfig::g_executeMode = ParallelsDirs::getBuildExecutionMode();
+	TestConfig::g_executeMode = VirtuozzoDirs::getBuildExecutionMode();
 	if( PAM_UNKNOWN != TestConfig::g_executeMode )
 	{
 		WRITE_TRACE(DBG_INFO, "Run in execute mode: %s",
-				ParallelsDirs::getAppExecuteModeAsCString( TestConfig::g_executeMode ) );
-		PRL_ASSERT( ParallelsDirs::Init( TestConfig::g_executeMode, g_nInitOptions ) );
+				VirtuozzoDirs::getAppExecuteModeAsCString( TestConfig::g_executeMode ) );
+		PRL_ASSERT( VirtuozzoDirs::Init( TestConfig::g_executeMode, g_nInitOptions ) );
 		return;
 	}
 
@@ -110,7 +110,7 @@ PRL_APPLICATION_MODE TestConfig::getApplicationMode()
 PRL_UINT32	TestConfig::getSdkInitFlags()
 {
 	PRL_UINT32 nFlags = 0;
-	if( g_nInitOptions & ParallelsDirs::smAppStoreMode )
+	if( g_nInitOptions & VirtuozzoDirs::smAppStoreMode )
 		nFlags |= PAIF_INIT_AS_APPSTORE_CLIENT;
 	return nFlags;
 }
@@ -151,7 +151,7 @@ char* TestConfig::getLocalHostName()
 
 QString TestConfig::getPathToDispatcherConfig()
 {
-	QString path=ParallelsDirs::getDispatcherConfigFilePath();
+	QString path=VirtuozzoDirs::getDispatcherConfigFilePath();
 	if ( path.isEmpty() )
 		WRITE_TRACE(DBG_FATAL, "Can't get dispatcher config dir");
 

@@ -64,7 +64,7 @@ private:
 			}
 
 			QMutexLocker _lock(&m_mutex);
-			PrlApi_InitEx(PARALLELS_API_VER, TestConfig::getApplicationMode(), TestConfig::getSdkInitFlags(), 0);
+			PrlApi_InitEx(VIRTUOZZO_API_VER, TestConfig::getApplicationMode(), TestConfig::getSdkInitFlags(), 0);
 			CHECK_EXPRESSION(PrlSrv_Create(hServer.GetHandlePtr()))
 			hLoginLocalJob.reset(PrlSrv_LoginLocal(hServer, "", 0, PSL_HIGH_SECURITY));
 			CHECK_EXPRESSION(PrlJob_Wait(hLoginLocalJob, PRL_JOB_WAIT_TIMEOUT))

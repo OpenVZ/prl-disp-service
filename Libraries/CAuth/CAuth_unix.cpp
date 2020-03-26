@@ -27,7 +27,7 @@
  * CAuth class. (Unix realization)
  */
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 // System specific functions
 

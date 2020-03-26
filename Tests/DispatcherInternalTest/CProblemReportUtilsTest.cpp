@@ -206,13 +206,13 @@ void CProblemReportUtilsTest::testParseDrvVersion_fromMacPanicReport()
 	}while(0);
 
 	CHECK_VER( true, "11828", "615184" \
-		, "com.parallels.kext.prl_vnic	6.0 11828.615184" );
+		, "com.virtuozzo.kext.prl_vnic	6.0 11828.615184" );
 
 	CHECK_VER( true, "12094", "676494" \
-		, "com.parallels.kext.prl_hid_hook	6.0 12094.676494" );
+		, "com.virtuozzo.kext.prl_hid_hook	6.0 12094.676494" );
 
 	CHECK_VER( true, "23456", "" \
-		, "com.parallels.kext.prl_hid_hook	10.0.0 23456" );
+		, "com.virtuozzo.kext.prl_hid_hook	10.0.0 23456" );
 }
 
 void CProblemReportUtilsTest::testParseLowMemoryDumpOfMobileApp_isJettisoned()

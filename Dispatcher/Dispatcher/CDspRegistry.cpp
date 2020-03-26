@@ -43,7 +43,7 @@
 #include <boost/functional/factory.hpp>
 #include <boost/phoenix/core/argument.hpp>
 #include <boost/phoenix/core/reference.hpp>
-#include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
+#include <prlxmlmodel/VirtuozzoObjects/CXmlModelHelper.h>
 #include "CDspVmGuestPersonality.h"
 #ifdef _LIBVIRT_
 #include "CDspLibvirt.h"

@@ -43,7 +43,7 @@
 #include <prlcommon/Std/PrlAssert.h>
 //#include <prlcommon/ProtoSerializer/CProtoCommands.h>
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"

@@ -393,7 +393,7 @@ void Process::setMode(const CVmConfiguration& config_)
 	PVE::VmBinaryMode m =  PVE::VBMODE_DEFAULT;
 	// Check if 64-bit executable exists and OS supports 64-bit apps
 	bool bX64 = true;
-	if (QFile::exists(ParallelsDirs::getVmAppPath(bX64)) &&
+	if (QFile::exists(VirtuozzoDirs::getVmAppPath(bX64)) &&
 	    osInfo_getArchitecture() == OSINFO_ARCHITECTURE_64_BIT)
 		m = PVE::VBMODE_64BIT;
 	// Force using of 32-bit or 64-bit VM binary
@@ -426,14 +426,14 @@ QStringList Process::getEnvironment() const
 QStringList Process::getArguments() const
 {
 	QString strExecuteMode;
-	switch( ParallelsDirs::getAppExecuteMode() )
+	switch( VirtuozzoDirs::getAppExecuteMode() )
 	{
 	case PAM_SERVER:
 		strExecuteMode = CommandLine::g_strCommonValue_ModeName_PS;
 		break;
 	default:
 		WRITE_TRACE(DBG_FATAL, "Unsupported app executed mode %d",
-			ParallelsDirs::getAppExecuteMode());
+			VirtuozzoDirs::getAppExecuteMode());
 		throw PRL_ERR_UNIMPLEMENTED;
 	}//switch
 
@@ -451,7 +451,7 @@ QStringList Process::getArguments() const
 
 QString Process::getBinary() const
 {
-	return ParallelsDirs::getVmAppPath(m_mode == PVE::VBMODE_64BIT);
+	return VirtuozzoDirs::getVmAppPath(m_mode == PVE::VBMODE_64BIT);
 }
 
 QString Process::getWorkingDir() const

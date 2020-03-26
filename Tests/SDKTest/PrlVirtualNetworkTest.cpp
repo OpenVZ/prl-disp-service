@@ -32,7 +32,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #include "PrlVirtualNetworkTest.h"
 #include "Tests/CommonTestsUtils.h"
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlxmlmodel/NetworkConfig/CVirtualNetwork.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 
@@ -248,7 +248,7 @@ void PrlVirtualNetworkTest::testAdapterName()
 	testCreateVirtualNetwork();
 
 	VIRTUAL_NETWORK_TO_XML_OBJECT;
-	virt_net.getHostOnlyNetwork()->getParallelsAdapter()->setName("adapter 1");
+	virt_net.getHostOnlyNetwork()->getVirtuozzoAdapter()->setName("adapter 1");
 	VIRTUAL_NETWORK_FROM_XML_OBJECT;
 
 	QString qsAdapterName = "not empty";
@@ -291,7 +291,7 @@ void PrlVirtualNetworkTest::testAdapterIndex()
 	testCreateVirtualNetwork();
 
 	VIRTUAL_NETWORK_TO_XML_OBJECT;
-	virt_net.getHostOnlyNetwork()->getParallelsAdapter()->setPrlAdapterIndex(20);
+	virt_net.getHostOnlyNetwork()->getVirtuozzoAdapter()->setPrlAdapterIndex(20);
 	VIRTUAL_NETWORK_FROM_XML_OBJECT;
 
 	PRL_UINT32 nAdapterIndex = 10;
@@ -859,7 +859,7 @@ void PrlVirtualNetworkTest::testAdapterEnabled()
 	testCreateVirtualNetwork();
 
 	VIRTUAL_NETWORK_TO_XML_OBJECT;
-	virt_net.getHostOnlyNetwork()->getParallelsAdapter()->setEnabled(true);
+	virt_net.getHostOnlyNetwork()->getVirtuozzoAdapter()->setEnabled(true);
 	VIRTUAL_NETWORK_FROM_XML_OBJECT;
 
 	PRL_BOOL bEnabled = PRL_FALSE;

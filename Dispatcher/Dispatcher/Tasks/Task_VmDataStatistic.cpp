@@ -37,7 +37,7 @@
 #include "Task_VmDataStatistic.h"
 #include "CDspService.h"
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 
 Task_VmDataStatistic::Task_VmDataStatistic( const SmartPtr<CDspClient>& pClient,
@@ -95,7 +95,7 @@ PRL_RESULT Task_VmDataStatistic::prepareTask()
 			throw ret;
 
 		QDir pwd = QDir( (QCoreApplication::instance())->applicationDirPath() );
-		m_qsDTName = ParallelsDirs::getDiskToolPath( pwd );
+		m_qsDTName = VirtuozzoDirs::getDiskToolPath( pwd );
 		if ( ! QFile::exists(m_qsDTName) )
 		{
 			WRITE_TRACE(DBG_FATAL, "VM data statistic: configuration tool '%s' not found",

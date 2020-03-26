@@ -58,7 +58,7 @@
 #include <prlxmlmodel/VmDirectory/CVmDirectory.h>
 #include <prlxmlmodel/VmDirectory/CVmDirectoryItem.h>
 #include "CDspVmDirHelper.h"
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include "CDspSync.h"
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>

@@ -33,14 +33,14 @@
 #include "PrlVmDefaultConfigTest.h"
 #include "Tests/CommonTestsUtils.h"
 
-#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
+#include <prlcommon/Interfaces/VirtuozzoSdkPrivate.h>
 #include <prlcommon/Interfaces/ApiDevNums.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 
 #include <prlcommon/ProtoSerializer/CProtoCommands.h>
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 #define READ_VM_CONFIG_INTO_BUF(vm_config_path)\
 	QFile _file(vm_config_path);\

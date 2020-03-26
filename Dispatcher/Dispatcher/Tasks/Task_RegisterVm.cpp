@@ -62,7 +62,7 @@
 
 #include <Libraries/PrlNetworking/netconfig.h>
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
@@ -80,7 +80,7 @@ const quint64 SIZE_32GB = 32ULL*1024*1024*1024;		// 32 Gb
 	} while(0)
 
 /**
- * @brief Callback function, called from CreateParallelsDisk
+ * @brief Callback function, called from CreateVirtuozzoDisk
  * @param iDone
  * @param iTotal
  * @param pUserData
@@ -302,7 +302,7 @@ QString Task_RegisterVm::getUniqueVmName(const QString& sVmNamePattern, const QS
 
 	lstVmNames += sVmNamePattern + " ()";	// exclude name without index
 
-	QString sVmName = Parallels::GenerateFilename(lstVmNames, sVmNamePattern,
+	QString sVmName = Virtuozzo::GenerateFilename(lstVmNames, sVmNamePattern,
 											  QString(), QString());
 	if (sVmName == sVmNamePattern)
 	{
@@ -310,7 +310,7 @@ QString Task_RegisterVm::getUniqueVmName(const QString& sVmNamePattern, const QS
 	}
 
 	// Generate unique VM name like file name
-	return Parallels::GenerateFilename(lstVmNames, sVmNamePattern + " (",
+	return Virtuozzo::GenerateFilename(lstVmNames, sVmNamePattern + " (",
 										  QString(")"), QString());
 }
 
@@ -831,7 +831,7 @@ PRL_RESULT Task_RegisterVm::prepareTask()
 
 void Task_RegisterVm::PatchNetworkAdapters()
 {
-	CDspLockedPointer<CParallelsNetworkConfig>
+	CDspLockedPointer<CVirtuozzoNetworkConfig>
 		pNetworkConfig = CDspService::instance()->getNetworkConfig();
 	CVirtualNetwork *pHostOnlyNet = PrlNet::GetHostOnlyNetwork(
 					pNetworkConfig.getPtr(), PRL_DEFAULT_HOSTONLY_INDEX );
@@ -1456,15 +1456,15 @@ PRL_RESULT	Task_RegisterVm::createFloppyDisks()
 			if ( doRegisterOnly() )
 				continue;
 
-			// we have only base name ParallelsDirs::getFddToolsImageBaseName( );
+			// we have only base name VirtuozzoDirs::getFddToolsImageBaseName( );
 			// replace  it on server side to correct installation os\2 oses
 			if ( m_pVmConfig->getVmSettings()->getVmCommonOptions()->getOsType() == PVS_GUEST_TYPE_OS2
-				 && strFullPath.contains(ParallelsDirs::getFddToolsImageBaseName(PVS_GUEST_TYPE_OS2))
+				 && strFullPath.contains(VirtuozzoDirs::getFddToolsImageBaseName(PVS_GUEST_TYPE_OS2))
 				)
 			{
 				// get exec mode
 				strFullPath =
-					ParallelsDirs::getFddToolsImage( ParallelsDirs::getAppExecuteMode(), PVS_GUEST_TYPE_OS2 );
+					VirtuozzoDirs::getFddToolsImage( VirtuozzoDirs::getAppExecuteMode(), PVS_GUEST_TYPE_OS2 );
 				pFloppyDisk->setSystemName( strFullPath );
 				pFloppyDisk->setUserFriendlyName( strFullPath );
 
@@ -1650,7 +1650,7 @@ PRL_RESULT	Task_RegisterVm::createHardDisks()
 		// LOG_MESSAGE( DBG_FATAL,"########## Current disk [%s]", pHardDisk->getUserFriendlyName().toUtf8().data());
 
 		if (pHardDisk->getSerialNumber().isEmpty())
-			pHardDisk->setSerialNumber(Parallels::generateDiskSerialNumber());
+			pHardDisk->setSerialNumber(Virtuozzo::generateDiskSerialNumber());
 		// FIXME: Validate HardDisk full path
 		QString strFullPath;
 		if ( doRegisterOnly() )

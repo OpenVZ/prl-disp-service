@@ -45,8 +45,8 @@
 #include "Libraries/CpuFeatures/CCpuHelper.h"
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>
-#include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
-#include <prlxmlmodel/ParallelsObjects/CVmProfileHelper.h>
+#include <prlxmlmodel/VirtuozzoObjects/CXmlModelHelper.h>
+#include <prlxmlmodel/VirtuozzoObjects/CVmProfileHelper.h>
 #ifdef _LIBVIRT_
 #include "CDspLibvirt.h"
 #include "CDspLibvirtExec.h"
@@ -853,7 +853,7 @@ PRL_RESULT Task_EditVm::mergeSampleConfig(
 {
 	PRL_RESULT res;
 
-	QString sFile = ParallelsDirs::getVmConfigurationSamplePath(
+	QString sFile = VirtuozzoDirs::getVmConfigurationSamplePath(
 			pConfigNew->getVmSettings()->getVmCommonOptions()->getConfigSampleName());
 
 	if (!QFile::exists(sFile))
@@ -1523,7 +1523,7 @@ PRL_RESULT Task_EditVm::editVm()
 									CVmHardDisk *d = dynamic_cast<CVmHardDisk*>(pNewDevice);
 									PRL_ASSERT(d);
 									if (d && d->getSerialNumber().isEmpty() && d->getPassthrough() != PVE::PassthroughEnabled)
-										d->setSerialNumber(Parallels::generateDiskSerialNumber());
+										d->setSerialNumber(Virtuozzo::generateDiskSerialNumber());
 
 									// VIRTIO and SCSI devices can be added either on running VM or stopped
 									if (PMS_VIRTIO_BLOCK_DEVICE == d->getInterfaceType() ||
@@ -2454,10 +2454,10 @@ bool Reconnect::execute(CDspTaskFailure& feedback_)
 		return false;
 	}
 
-	// need network's bridge name CParallelsAdapter::getName()
-	CParallelsAdapter* a;
+	// need network's bridge name CVirtuozzoAdapter::getName()
+	CVirtuozzoAdapter* a;
 	if (NULL == n.getHostOnlyNetwork()
-		|| (a = n.getHostOnlyNetwork()->getParallelsAdapter()) == NULL)
+		|| (a = n.getHostOnlyNetwork()->getVirtuozzoAdapter()) == NULL)
 	{
 		feedback_(PRL_NET_VIRTUAL_NETWORK_NOT_FOUND);
 		return false;

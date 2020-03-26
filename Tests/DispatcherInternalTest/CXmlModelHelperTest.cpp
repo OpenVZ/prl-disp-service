@@ -39,7 +39,7 @@
 #include <prlxmlmodel/VmConfig/CVmHardDisk.h>
 #include <prlxmlmodel/VmConfig/CVmHardware.h>
 #include "CXmlModelHelperTest.h"
-#include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
+#include <prlxmlmodel/VirtuozzoObjects/CXmlModelHelper.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include "Tests/CommonTestsUtils.h"

@@ -73,7 +73,7 @@
  */
 #define STAT_COLLECTING_TIMEOUT 1000
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 namespace
 {
@@ -3013,7 +3013,7 @@ static bool GetTotalVmRamSizeFast(SmartPtr<CDspVm> &pVm, quint64 &totalRamSize)
 	char buf[256];
 	FILE *fp;
 
-	fp = fopen(QSTR2UTF8(QString("/proc/parallels/vm/%1/meminfo").arg(pVm->getVmUuid())), "r");
+	fp = fopen(QSTR2UTF8(QString("/proc/virtuozzo/vm/%1/meminfo").arg(pVm->getVmUuid())), "r");
 	if (!fp)
 		return res;
 

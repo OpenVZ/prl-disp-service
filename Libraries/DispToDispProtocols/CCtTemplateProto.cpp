@@ -33,10 +33,10 @@
 
 #include "CCtTemplateProto.h"
 
-namespace Parallels {
+namespace Virtuozzo {
 
 //**************************************************************************
-CCtTemplateProto::CCtTemplateProto(Parallels::IDispToDispCommands nCmdIdentifier, quint32 nFlags)
+CCtTemplateProto::CCtTemplateProto(Virtuozzo::IDispToDispCommands nCmdIdentifier, quint32 nFlags)
 :CDispToDispCommand(nCmdIdentifier, false, nFlags)
 {
 	SetUnsignedIntParamValue(COPY_CT_TMPL_PROTO_VERSION, EVT_PARAM_COPY_CT_TMPL_PROTO_VERSION);
@@ -89,4 +89,4 @@ quint32 CCopyCtTemplateCommand::GetReservedFlags()
 	return GetUnsignedIntParamValue(EVT_PARAM_COPY_CT_TMPL_RESERVED_FLAGS);
 }
 
-}//namespace Parallels
+}//namespace Virtuozzo

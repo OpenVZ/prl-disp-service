@@ -44,7 +44,7 @@ Enum<Domain::Xml::EType>::data_type Enum<Domain::Xml::EType>::getData()
 			(data_type::value_type(Domain::Xml::ETypeHyperv, "hyperv"))
 			(data_type::value_type(Domain::Xml::ETypeVbox, "vbox"))
 			(data_type::value_type(Domain::Xml::ETypePhyp, "phyp"))
-			(data_type::value_type(Domain::Xml::ETypeParallels, "parallels"))
+			(data_type::value_type(Domain::Xml::ETypeVirtuozzo, "virtuozzo"))
 			(data_type::value_type(Domain::Xml::ETypeBhyve, "bhyve"));
 }
 

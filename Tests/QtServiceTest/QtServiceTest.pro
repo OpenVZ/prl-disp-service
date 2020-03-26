@@ -5,7 +5,7 @@ QT -= gui
 TARGET = test_qtservice
 
 LEVEL = ./../../../
-include($$LEVEL/Sources/Parallels.pri)
+include($$LEVEL/Sources/Virtuozzo.pri)
 include($$LEVEL/Build/Debug.pri)
 include($$LEVEL/Sources/XmlModel/XmlModel.pri)
 include($$LEVEL/Sources/Dispatcher/CAuth/CAuth/CAuth.pri)

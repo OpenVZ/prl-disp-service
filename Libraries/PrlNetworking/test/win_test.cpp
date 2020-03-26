@@ -26,7 +26,7 @@
 #include <QDir>
 #include <windows.h>
 
-//#include <prlcommon/Interfaces/ParallelsDirs.h>
+//#include <prlcommon/Interfaces/VirtuozzoDirs.h>
 
 #include <iostream>
 
@@ -37,8 +37,8 @@
 #include "../win/ethlist.h"
 #include "../prlnet.h"
 
-#include <prlcommon/Interfaces/ParallelsPlatform.h>
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/Interfaces/VirtuozzoPlatform.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 
 
 using namespace PrlNet;
