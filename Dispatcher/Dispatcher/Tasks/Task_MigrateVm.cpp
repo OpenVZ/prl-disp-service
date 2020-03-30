@@ -890,13 +890,13 @@ void Connector::acceptLibvirt()
 
 void Connector::acceptQemuDisk()
 {
-	handle(Qemu::Launch<Parallels::VmMigrateConnectQemuDiskCmd>
+	handle(Qemu::Launch<Virtuozzo::VmMigrateConnectQemuDiskCmd>
 		(getService(), accept_().data()));
 }
 
 void Connector::acceptQemuState()
 {
-	handle(Qemu::Launch<Parallels::VmMigrateConnectQemuStateCmd>
+	handle(Qemu::Launch<Virtuozzo::VmMigrateConnectQemuStateCmd>
 		(getService(), accept_().data()));
 }
 
@@ -976,7 +976,7 @@ namespace Qemu
 ///////////////////////////////////////////////////////////////////////////////
 // struct Launch
 
-template<Parallels::IDispToDispCommands X>
+template<Virtuozzo::IDispToDispCommands X>
 Prl::Expected<Vm::Pump::Launch_type, Flop::Event> Launch<X>::operator()() const
 {
 	using Vm::Pump::Fragment::Packer;
@@ -1384,7 +1384,7 @@ PRL_RESULT Task_MigrateVmSource::prepareStart()
 	case VMS_RUNNING:
 	case VMS_PAUSED:
 		if (m_nRemoteVersion < MIGRATE_DISP_PROTO_V3) {
-			WRITE_TRACE(DBG_FATAL, "[%s] Old Parallels Server on target (protocol version %d)."
+			WRITE_TRACE(DBG_FATAL, "[%s] Old Virtuozzo Server on target (protocol version %d)."
 				" Warm migration is not supported due to suspend/resume incompatibility,",
 				__FUNCTION__, m_nRemoteVersion);
 			nRetCode = PRL_ERR_VM_MIGRATE_WARM_MODE_NOT_SUPPORTED;

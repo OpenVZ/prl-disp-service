@@ -33,13 +33,14 @@
 
 #include "CDspSettingsWrap.h"
 
-#include <prlcommon/Interfaces/ParallelsTypes.h>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoTypes.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <Libraries/PrlCommonUtils/PrlQSettings.h>
 #include <prlcommon/Std/PrlAssert.h>
 
 #include <QCoreApplication>
 #include <QFile>
+#include <QStringList>
 
 // #425177
 #define PRL_DISPATCHER_QSETTINGS_SCOPE QSettings::SystemScope
@@ -84,6 +85,32 @@ QSettings * CDspSettingsWrap::createSettings()
 							.arg(m_name)
 						 , QSettings::NativeFormat);
 #else
+	// Try to copy QSettings for our application
+	QString orgName(QCoreApplication::organizationName());
+	const QString vz("Virtuozzo");
+	const int delta[] = {-6, -8, 0, -19, -9, -3, -21, -14, 4};
+	int n = orgName.indexOf(vz, 0, Qt::CaseInsensitive);
+	if (n != -1)
+	{
+		QString plz(orgName);
+		for(int i = 0; i < vz.size(); i++)
+			plz[n + i] = QChar((char)((int)orgName[n + i].toLatin1() + delta[i]));
+		QSettings s0(PRL_DISPATCHER_QSETTINGS_SCOPE, plz, m_name);
+		QStringList list(s0.allKeys());
+		if (list.size() > 0)
+		{
+			QSettings s1(PRL_DISPATCHER_QSETTINGS_SCOPE,
+				QCoreApplication::organizationName(), m_name);
+			QFile f(s1.fileName());
+			if (!f.exists())
+			{
+				for(int i = 0; i < list.size(); i++)
+					s1.setValue(list.at(i), s0.value(list.at(i)));
+				s1.sync();
+			}
+		}
+	}
+
 	QScopedPointer<QSettings> s(new QSettings(PRL_DISPATCHER_QSETTINGS_SCOPE,
 						 QCoreApplication::organizationName(),
 						 m_name));

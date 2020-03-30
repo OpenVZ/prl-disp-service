@@ -34,13 +34,13 @@
 #include <QDateTime>
 #include <QDir>
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 
 #include "PrlQSettings.h"
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 
 bool PrlQSettings::backupAndRemoveQSettingsIfItsNotValid( QSettings& qSettings )
 {

@@ -31,7 +31,7 @@
 #include "CDspVmConfigManager.h"
 #include "Libraries/PrlNetworking/netconfig.h"
 #include <prlcommon/HostUtils/HostUtils.h>
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 #include "prlcommon/Interfaces/ApiDevNums.h"
 #include <prlsdk/PrlOses.h>
 #include <boost/range/irange.hpp>
@@ -65,9 +65,9 @@ QString getHostOnlyBridge()
 	if (r.isFailed())
 		return QString();
 
-	CParallelsAdapter* a;
+	CVirtuozzoAdapter* a;
 	if (NULL == n.getHostOnlyNetwork() ||
-		(a = n.getHostOnlyNetwork()->getParallelsAdapter()) == NULL)
+		(a = n.getHostOnlyNetwork()->getVirtuozzoAdapter()) == NULL)
 		return QString();
 
 	return a->getName();
@@ -392,7 +392,7 @@ result_type Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	if ((res = h.do_()).isFailed())
 		return res;
 
-	return h.insertTools(ParallelsDirs::getToolsImage(PAM_SERVER, os),
+	return h.insertTools(VirtuozzoDirs::getToolsImage(PAM_SERVER, os),
 	                     cfg->getVmSettings()->getVmStartupOptions());
 }
 
@@ -444,7 +444,7 @@ boost::optional<V2V> Converter::getV2V(const CVmConfiguration &cfg) const
 PRL_RESULT V2V::do_() const
 {
 	// Get windows driver ISO.
-	QString winDriver = ParallelsDirs::getToolsImage(PAM_SERVER, PVS_GUEST_VER_WIN_2K);
+	QString winDriver = VirtuozzoDirs::getToolsImage(PAM_SERVER, PVS_GUEST_VER_WIN_2K);
 	if (!QFile(winDriver).exists())
 	{
 		WRITE_TRACE(DBG_WARNING, "Windows drivers image does not exist: %s\n"

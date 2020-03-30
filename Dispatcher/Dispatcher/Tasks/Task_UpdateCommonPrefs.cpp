@@ -18,7 +18,7 @@
 /// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 /// 02110-1301, USA.
 ///
-/// Our contact details: Parallels International GmbH, Vordergasse 59, 8200
+/// Our contact details: Virtuozzo International GmbH, Vordergasse 59, 8200
 /// Schaffhausen, Switzerland.
 ///
 /// @file
@@ -52,12 +52,12 @@
 
 #include <prlsdk/PrlErrors.h>
 
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 
 #include <QUrl>
 
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"

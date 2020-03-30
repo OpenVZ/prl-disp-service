@@ -37,7 +37,7 @@
 #include "CDspTaskHelper.h"
 #include "CDspVm.h"
 
-class CParallelsNetworkConfig;
+class CVirtuozzoNetworkConfig;
 
 class Task_BackgroundJob : public  CDspTaskHelper
 {

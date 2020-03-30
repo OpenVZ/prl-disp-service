@@ -29,10 +29,10 @@
 /// Schaffhausen, Switzerland.
 ///
 ///////////////////////////////////////////////////////////////////////////////
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #include "CDspTestConfig.h"
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 #include <prlcommon/Logging/Logging.h>
 
 #include <QFile>
@@ -79,9 +79,9 @@ CDspLockedPointer<TestConfig> TestConfig::instance2()
 
 bool TestConfig::reload()
 {
-	QFile testerConfig( ParallelsDirs::getPathToDispatcherTesterConfig() );
+	QFile testerConfig( VirtuozzoDirs::getPathToDispatcherTesterConfig() );
 
-	WRITE_TRACE(DBG_FATAL, "path=%s", QSTR2UTF8( ParallelsDirs::getPathToDispatcherTesterConfig()  ) );
+	WRITE_TRACE(DBG_FATAL, "path=%s", QSTR2UTF8( VirtuozzoDirs::getPathToDispatcherTesterConfig()  ) );
 	if( !testerConfig.exists() || ! testerConfig.open(QIODevice::ReadOnly) )
 	{
 		if( m_lstPairs.size() > 0 )
@@ -130,7 +130,7 @@ bool TestConfig::reload()
 
 bool TestConfig::isPresent()
 {
-	 return QFile( ParallelsDirs::getPathToDispatcherTesterConfig() ).exists();
+	 return QFile( VirtuozzoDirs::getPathToDispatcherTesterConfig() ).exists();
 }
 
 bool TestConfig::getParamByName( const QString& param, QString& out_val )

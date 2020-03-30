@@ -34,7 +34,7 @@
 
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 
-namespace Parallels
+namespace Virtuozzo
 {
 
 typedef enum _PRL_BACKUP_INTERNAL_FLAGS
@@ -55,7 +55,7 @@ class CVmBackupProto : public CDispToDispCommand
 {
 public:
 	CVmBackupProto(
-		Parallels::IDispToDispCommands nCmdIdentifier,
+		Virtuozzo::IDispToDispCommands nCmdIdentifier,
 		quint32 nFlags = 0,
 		quint32 nInternalFlags = 0,
 		quint32 nVersion = BACKUP_PROTO_VERSION);
@@ -74,7 +74,7 @@ class CVmBackupCommand : public CVmBackupProto
 {
 public:
 	CVmBackupCommand(
-		Parallels::IDispToDispCommands nCmdIdentifier,
+		Virtuozzo::IDispToDispCommands nCmdIdentifier,
 		const QString &sVmUuid,
 		quint32 nFlags,
 		quint32 nInternalFlags = 0,
@@ -109,7 +109,7 @@ public:
 				and client can not see this flags)
 	 */
 	CVmBackupCreateCommand(
-		Parallels::IDispToDispCommands nCmdIdentifier,
+		Virtuozzo::IDispToDispCommands nCmdIdentifier,
 		const QString &sVmUuid,
 		const QString &sVmName,
 		const QString &sHost,
@@ -380,5 +380,5 @@ public:
 	QString GetDiskConfig();
 };
 
-} //Parallels
+} //Virtuozzo
 #endif // CVmBackupProto_H

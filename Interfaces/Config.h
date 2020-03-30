@@ -66,7 +66,7 @@ enum DefaultMaxValues { VM_MAX_MEM = (4 * 1024 * 1024), VM_MAX_VCPU = 256 };
 #define VM_MIN_VIDEO_MEM		2
 #define VM_MAX_VIDEO_MEM		1024
 
-#include <prlcommon/Interfaces/ParallelsTypes.h>
+#include <prlcommon/Interfaces/VirtuozzoTypes.h>
 
 // Align size "var" at specified "align"
 #define ALIGNAT(var,align) ( ( ((var) + (align) - 1)/(align) ) * (align) )

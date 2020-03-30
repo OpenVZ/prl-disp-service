@@ -378,7 +378,7 @@ PRL_RESULT Hdd::save(CVmHardDisk& disk)
 	// Mark the attached backups with a well known prefix. This prefix is used
 	// to distinguish attached backups from ordinary disks inside guest.
 	const QString x("__bckp_");
-	disk.setSerialNumber(Parallels::generateDiskSerialNumber()
+	disk.setSerialNumber(Virtuozzo::generateDiskSerialNumber()
 		.replace(0, x.length(), x));
 	return PRL_ERR_SUCCESS;
 }

@@ -38,7 +38,7 @@
 #include <boost/scope_exit.hpp>
 #include <prlcommon/Messaging/CVmEventParameterList.h>
 
-namespace Parallels
+namespace Virtuozzo
 {
 
 //*****************************************CDispToDispProtoSerializer implementation***********************************
@@ -559,4 +559,4 @@ QStringList CDispToDispResponseCommand::GetParams()
 	return (QStringList());
 }
 
-}//namespace Parallels
+}//namespace Virtuozzo

@@ -26,7 +26,7 @@
 ///
 /////////////////////////////////////////////////////////////////////////////////
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlsdk/PrlErrors.h>
 #include <prlsdk/PrlEnums.h>
 #include <CVmMigrateTargetDisk.h>

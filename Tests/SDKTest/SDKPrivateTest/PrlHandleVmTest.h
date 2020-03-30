@@ -34,7 +34,7 @@
 #define PrlHandleVmTest_H
 
 #include <QtTest/QtTest>
-#include <prlsdk/Parallels.h>
+#include <prlsdk/Virtuozzo.h>
 #include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
 
 class PrlHandleVmTest : public QObject

@@ -31,7 +31,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "PrlUserProfileTest.h"
-#include <prlcommon/Interfaces/ParallelsLogging.h>
+#include <prlcommon/Interfaces/VirtuozzoLogging.h>
 
 #include <prlxmlmodel/DispConfig/CDispUser.h>
 

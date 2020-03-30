@@ -56,7 +56,7 @@
 #include "CVzHelper.h"
 #include "CVzNetworkShaping.h"
 #include "Libraries/HostInfo/CHostInfo.h"
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlxmlmodel/HostHardwareInfo/CHwNetAdapter.h>
 #include <prlcommon/HostUtils/HostUtils.h>
@@ -1739,7 +1739,7 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 		
 
 		if (pHdd->getSerialNumber() != pOldHdd->getSerialNumber() &&
-		    !Parallels::IsSerialNumberValid(pHdd->getSerialNumber()))
+		    !Virtuozzo::IsSerialNumberValid(pHdd->getSerialNumber()))
 			return PRL_ERR_VMCONF_HARD_DISK_SERIAL_IS_NOT_VALID;
 
 		if (pHdd->getMountPoint() != pOldHdd->getMountPoint() ||
@@ -2780,7 +2780,7 @@ Prl::Expected<QString, PRL_RESULT> CVzOperationHelper::get_env_mount_info(
 
 		QString fstype, mountpoint;
 		get_device_mount_info(fs.device + "p1", fstype, mountpoint);
-		lstMounts << Parallels::formatMountInfo(
+		lstMounts << Virtuozzo::formatMountInfo(
 				fs.device, image, mountpoint, fstype, fs.total, fs.free);
 	}
 	return lstMounts.join("\n");

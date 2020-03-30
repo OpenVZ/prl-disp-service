@@ -20,13 +20,13 @@
 /// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 /// 02110-1301, USA.
 ///
-/// Our contact details: Parallels International GmbH, Vordergasse 59, 8200
+/// Our contact details: Virtuozzo International GmbH, Vordergasse 59, 8200
 /// Schaffhausen, Switzerland.
 ///
 //////////////////////////////////////////////////////////////////////////////
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 #include <prlsdk/PrlErrorsValues.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Std/PrlAssert.h>

@@ -56,7 +56,7 @@
 #include <prlxmlmodel/HostHardwareInfo/CHwMemorySettings.h>
 #include "Config.h"
 
-#include <prlcommon/Interfaces/ParallelsPlatform.h>
+#include <prlcommon/Interfaces/VirtuozzoPlatform.h>
 
 #include <prlcommon/Logging/Logging.h>
 #include "Libraries/VtdSetup/VtdSetup.h"
@@ -409,7 +409,7 @@ void CDspHostInfo::GetUSBList()
 			UINT8 deviceClass	= UsbDev.GetDeviceClass();
 			QString sSuffix("--");
 
-			// Check if device is served by parallels driver
+			// Check if device is served by virtuozzo driver
 			QString sDevVidPid = iterDevCfg.GetDeviceId().mid(4, 17);
 			if (sDevVidPid.contains("vid_fffe&pid_0001", Qt::CaseInsensitive)) {
 				// Check is device started

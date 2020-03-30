@@ -34,7 +34,7 @@
 #define __IA32_H__
 
 // We need some standard types definitions here
-#include <prlcommon/Interfaces/ParallelsTypes.h>
+#include <prlcommon/Interfaces/VirtuozzoTypes.h>
 
 #include <prlcommon/Interfaces/packed.h>
 

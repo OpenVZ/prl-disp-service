@@ -27,7 +27,7 @@
 #include "CDspService.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
@@ -700,7 +700,7 @@ PRL_RESULT CDspVmDirManager::initTemplatesDirCatalogue()
 	{
 		CVmDirectory* templatesDir(new CVmDirectory(
 			getTemplatesDirectoryUuid(),
-			ParallelsDirs::getCommonDefaultVmCatalogue(),
+			VirtuozzoDirs::getCommonDefaultVmCatalogue(),
 			PRODUCT_NAME_SHORT " VM Templates"));
 		catalogue->addVmDirectory(templatesDir);
 		return saveVmDirCatalogue();

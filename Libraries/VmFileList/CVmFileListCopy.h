@@ -47,7 +47,7 @@
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 
 using namespace IOService;
-using namespace Parallels;
+using namespace Virtuozzo;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Throttle

@@ -1,6 +1,6 @@
 LEVEL = ../..
 
-include($$LEVEL/Sources/Parallels.pri)
+include($$LEVEL/Sources/Virtuozzo.pri)
 include($$LEVEL/Sources/Libraries/CAuth/CAuth.pri)
 include($$LEVEL/Sources/Libraries/PrlCommonUtils/PrlCommonUtils.pri)
 include($$LEVEL/Sources/Libraries/Std/Std.pri)

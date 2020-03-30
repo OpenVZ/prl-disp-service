@@ -23,31 +23,31 @@
 /// Schaffhausen, Switzerland.
 ///
 /// @file
-///	Task_GetInfoFromParallelsUtils.h
+///	Task_GetInfoFromVirtuozzoUtils.h
 ///
 /// @brief
-///	Definition of the class Task_GetInfoFromParallelsUtils
+///	Definition of the class Task_GetInfoFromVirtuozzoUtils
 ///
 /// @brief
-///	This class implements Parallels Utitlites functions Information requests
+///	This class implements Virtuozzo Utitlites functions Information requests
 ///
 /// @author sergeyt
 ///	Artemr@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef __Task_GetInfoFromParallelsUtils_H_
-#define __Task_GetInfoFromParallelsUtils_H_
+#ifndef __Task_GetInfoFromVirtuozzoUtils_H_
+#define __Task_GetInfoFromVirtuozzoUtils_H_
 
 #include "CDspTaskHelper.h"
 class CVmHardDisk;
-class Task_GetInfoFromParallelsUtils : public  CDspTaskHelper
+class Task_GetInfoFromVirtuozzoUtils : public  CDspTaskHelper
 {
 public:
-	Task_GetInfoFromParallelsUtils(SmartPtr<CDspClient>&,
+	Task_GetInfoFromVirtuozzoUtils(SmartPtr<CDspClient>&,
 				  const SmartPtr<IOPackage>&);
 
-	virtual ~Task_GetInfoFromParallelsUtils();
+	virtual ~Task_GetInfoFromVirtuozzoUtils();
 	static PRL_RESULT GetDiskImageInformation(/*in */const QString & strPathToFile,
 			/* out */CVmHardDisk & cHardDisk, SmartPtr<CDspClient> pUserSession);
 
@@ -59,4 +59,4 @@ private:
 
 
 
-#endif //__Task_GetInfoFromParallelsUtils_H_
+#endif //__Task_GetInfoFromVirtuozzoUtils_H_

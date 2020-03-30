@@ -283,7 +283,7 @@ static QString g_text[] = {
 	QString("hyperv"),
 	QString("vbox"),
 	QString("phyp"),
-	QString("parallels"),
+	QString("virtuozzo"),
 	QString("bhyve"),
 	QString("osxen"),
 	QString("os261"),

@@ -43,7 +43,7 @@
 
 #include "CHostInfo.h"
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #include <stack>
 #include <QMutexLocker>
@@ -822,7 +822,7 @@ bool CDspHostInfo::CheckUsbFriendlyName(const QString &sFriendlyName)
 	return  (!sFriendlyName.isEmpty() &&
 			!sFriendlyName.contains("composite device", Qt::CaseInsensitive) &&
 			!sFriendlyName.contains("port_#", Qt::CaseInsensitive) &&
-			!sFriendlyName.contains("parallels usb device", Qt::CaseInsensitive));
+			!sFriendlyName.contains("virtuozzo usb device", Qt::CaseInsensitive));
 }
 
 /**

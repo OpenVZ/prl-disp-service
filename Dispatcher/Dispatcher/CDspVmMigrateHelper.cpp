@@ -44,7 +44,7 @@
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
 
 SmartPtr<CDspTaskHelper> CDspVmMigrateHelper::findTask(QString sVmUuid)

@@ -2,7 +2,7 @@
 ///
 ///	@file PrlVmValidateConfigTest.cpp
 ///
-///	This file is the part of parallels public SDK library tests suite.
+///	This file is the part of virtuozzo public SDK library tests suite.
 ///	Tests fixture class for testing VM manipulating SDK API.
 ///
 ///	@author myakhin
@@ -25,7 +25,7 @@
 /// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 /// 02110-1301, USA.
 ///
-/// Our contact details: Parallels International GmbH, Vordergasse 59, 8200
+/// Our contact details: Virtuozzo International GmbH, Vordergasse 59, 8200
 /// Schaffhausen, Switzerland.
 ///
 /////////////////////////////////////////////////////////////////////////////

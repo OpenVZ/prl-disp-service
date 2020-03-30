@@ -40,7 +40,7 @@
 #include <prlcommon/Std/SmartPtr.h>
 #include "Libraries/CAuth/CAuth.h"
 
-namespace Parallels {
+namespace Virtuozzo {
 
 namespace CAclHelper {
 
@@ -265,6 +265,6 @@ CAuth::AccessMode GetEffectiveRightsForUser(const QString &sFilePath, const QStr
 using CAclHelper::CAclInfo;
 using CAclHelper::CAclSet;
 
-}//namespace Parallels
+}//namespace Virtuozzo
 
 #endif

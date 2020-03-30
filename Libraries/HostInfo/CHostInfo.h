@@ -48,9 +48,9 @@
 #include <map>
 #include <boost/function.hpp>
 #include <prlcommon/Std/LockedPtr.h>
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
-#include <prlcommon/Interfaces/ParallelsTypes.h>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoTypes.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #include <prlsdk/PrlOses.h>
 

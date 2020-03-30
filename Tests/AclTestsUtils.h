@@ -36,8 +36,8 @@
 #define AclTestsUtils_H
 
 #include "Libraries/CAuth/CAclHelper.h"
-#include <prlcommon/Interfaces/ParallelsQt.h>
-using namespace Parallels;
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
+using namespace Virtuozzo;
 
 #define ALLOW true
 #define DENY false

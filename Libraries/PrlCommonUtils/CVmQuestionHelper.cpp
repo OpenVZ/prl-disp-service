@@ -35,10 +35,10 @@
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 
 using namespace IOService;
-using namespace Parallels;
+using namespace Virtuozzo;
 
 SmartPtr<IOPackage> CVmQuestionHelper::getDefaultAnswerToVm(CVmConfiguration *pVmConfig, \
 														const SmartPtr<IOPackage>& pQuestionPacket)
@@ -83,7 +83,7 @@ SmartPtr<IOPackage> CVmQuestionHelper::getDefaultAnswerToVm(CVmConfiguration *pV
 	if (nAnswer == PRL_ERR_INVALID_ARG)
 	{
 		nAnswer = CQuestionHelper::getDefaultAnswer( eventQuestion.getEventCode(),
-														ParallelsDirs::getAppExecuteMode(),
+														VirtuozzoDirs::getAppExecuteMode(),
 														nAutoStopOpt);
 	}
 

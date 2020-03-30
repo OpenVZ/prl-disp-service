@@ -240,7 +240,7 @@ class worker:
 
 		self.vm_dir = os.path.join(vm_dir, str(vmid))
 		self.cfg = os.path.join(self.vm_dir, 'config.pvs')
-		self.log = os.path.join(self.vm_dir, 'parallels.log')
+		self.log = os.path.join(self.vm_dir, 'virtuozzo.log')
 		self.sav = os.path.join(self.vm_dir, 'config.sav')
 		self.mem = os.path.join(self.vm_dir, worker.swap_name)
 

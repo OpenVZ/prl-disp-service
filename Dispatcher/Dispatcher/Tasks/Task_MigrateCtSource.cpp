@@ -34,8 +34,8 @@
 //#define FORCE_LOGGING_LEVEL DBG_DEBUG
 
 #include "Interfaces/Debug.h"
-#include <prlcommon/Interfaces/ParallelsQt.h>
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 #include "CDspClientManager.h"
 #include <prlcommon/Logging/Logging.h>
 
@@ -493,7 +493,7 @@ PRL_RESULT Task_MigrateCtSource::SendStartRequest()
 	}
 
 	pCmd = CDispToDispProtoSerializer::ParseCommand(
-			(Parallels::IDispToDispCommands)m_pReply->header.type,
+			(Virtuozzo::IDispToDispCommands)m_pReply->header.type,
 			UTF8_2QSTR(m_pReply->buffers[0].getImpl()));
 
 	if (m_pReply->header.type == DispToDispResponseCmd) {

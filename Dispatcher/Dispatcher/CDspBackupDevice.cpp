@@ -35,11 +35,11 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "prlxmlmodel/VmConfig/CVmConfiguration.h"
-#include "prlxmlmodel/ParallelsObjects/CXmlModelHelper.h"
-#include <prlcommon/Interfaces/ParallelsDispToDispProto.h>
+#include "prlxmlmodel/VirtuozzoObjects/CXmlModelHelper.h"
+#include <prlcommon/Interfaces/VirtuozzoDispToDispProto.h>
 #include "Libraries/Buse/Buse.h"
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 namespace Backup
 {

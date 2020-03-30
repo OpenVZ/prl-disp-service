@@ -35,7 +35,7 @@
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <QMutex>
 
-#define UUID_MAP_FILE	"/etc/parallels/uuid.map"
+#define UUID_MAP_FILE	"/etc/virtuozzo/uuid.map"
 
 static int fd_uuidmap = -1;
 static QMutex uuidmap_mutex;

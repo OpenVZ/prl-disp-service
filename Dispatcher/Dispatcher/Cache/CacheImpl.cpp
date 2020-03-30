@@ -39,7 +39,7 @@
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>
-#include <prlcommon/Interfaces/ParallelsDomModel.h>
+#include <prlcommon/Interfaces/VirtuozzoDomModel.h>
 
 
 template<class T> Cache<T>::FileTimestamp::FileTimestamp ( const QString& sPath )

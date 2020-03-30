@@ -38,7 +38,7 @@
 #include "CDspClient.h"
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 class CDspDispConnection : public QObject
 {

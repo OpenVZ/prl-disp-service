@@ -53,7 +53,7 @@ namespace Pump
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-template<class T, Parallels::IDispToDispCommands X>
+template<class T, Virtuozzo::IDispToDispCommands X>
 struct Frontend: vsd::Frontend<Frontend<T, X> >
 {
 	typedef vsd::Frontend<Frontend<T, X> > def_type;
@@ -105,7 +105,7 @@ namespace Qemu
 ///////////////////////////////////////////////////////////////////////////////
 // struct Launch
 
-template<Parallels::IDispToDispCommands X>
+template<Virtuozzo::IDispToDispCommands X>
 struct Launch
 {
 	typedef boost::tuples::element<0, Vm::Pump::Launch_type>::type service_type;
@@ -182,7 +182,7 @@ namespace Pump
 ///////////////////////////////////////////////////////////////////////////////
 // struct Frontend
 
-template<class T, Parallels::IDispToDispCommands X>
+template<class T, Virtuozzo::IDispToDispCommands X>
 struct Frontend: vsd::Frontend<Frontend<T, X> >
 {
 	typedef Vm::Pump::Push::Pump<T, X> pushState_type;
@@ -315,7 +315,7 @@ struct Socket<QTcpSocket>
 ///////////////////////////////////////////////////////////////////////////////
 // struct Haul
 
-template<class T, class U, Parallels::IDispToDispCommands X, class V>
+template<class T, class U, Virtuozzo::IDispToDispCommands X, class V>
 struct Haul: vsd::Frontend<U>, Vm::Connector::Mixin<typename Socket<T>::function_type::template apply<V>::type>
 {
 	typedef vsd::Frontend<U> def_type;

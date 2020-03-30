@@ -35,7 +35,7 @@
 #include "PrlCommonUtilsTest.h"
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 void PrlCommonUtilsTest::testGenerateFilenameTargetPresentsAtEntries()
 {

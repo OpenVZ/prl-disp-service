@@ -45,7 +45,7 @@
 #include <QObject>
 #include <memory>
 #include <CDspVmConfigManager.h>
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 #include <prlxmlmodel/VmConfig/CVmRemoteDisplay.h>
 #include <boost/optional.hpp>
 #include <boost/noncopyable.hpp>

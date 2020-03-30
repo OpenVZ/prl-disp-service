@@ -31,7 +31,7 @@
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/IOService/IOCommunication/IORoutingTableHelper.h>
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 #include <prlsdk/PrlDisk.h>
 #include <prlxmlmodel/DiskDescriptor/CDiskXML.h>
 #include <prlcommon/HostUtils/HostUtils.h>
@@ -367,7 +367,7 @@ bool CVmMigrateTargetServer::connectToDisp()
 	m_client.reset(new IOClient(
 			       IORoutingTableHelper::GetClientRoutingTable(PSL_HIGH_SECURITY),
 			       IOSender::VmConverter,
-			       ParallelsDirs::getDispatcherLocalSocketPath(),
+			       VirtuozzoDirs::getDispatcherLocalSocketPath(),
 			       0,
 			       true));
 

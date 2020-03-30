@@ -2992,7 +2992,7 @@ Prl::Expected<CVirtualNetwork, ::Error::Simple>
 		Prl::Expected<Libvirt::Instrument::Agent::Interface::Bridge, ::Error::Simple>
 			b = bridges_.findByName(z->getBridgeName());
 		output.getHostOnlyNetwork()->
-			getParallelsAdapter()->setName(z->getBridgeName());
+			getVirtuozzoAdapter()->setName(z->getBridgeName());
 		if (b.isSucceed())
 		{
 			output.setBoundCardMac(b.value().getMaster().getMacAddress());

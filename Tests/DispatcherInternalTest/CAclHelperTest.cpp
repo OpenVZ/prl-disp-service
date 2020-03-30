@@ -40,7 +40,7 @@
 #include "Tests/AclTestsUtils.h"
 
 #include <prlcommon/PrlUuid/Uuid.h>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
 

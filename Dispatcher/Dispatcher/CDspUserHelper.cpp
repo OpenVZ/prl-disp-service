@@ -44,9 +44,9 @@
 #include <QDir>
 #include <QTimer>
 #include <boost/scope_exit.hpp>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include <prlcommon/ProtoSerializer/CProtoCommands.h>
@@ -65,7 +65,7 @@
 #include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlxmlmodel/HostHardwareInfo/CHwOsVersion.h>
-#include <prlxmlmodel/UserInformation/ParallelsUserInformation.h>
+#include <prlxmlmodel/UserInformation/VirtuozzoUserInformation.h>
 #include <prlxmlmodel/DispConfig/CDispUserSettings.h>
 #include <prlcommon/Messaging/CVmBinaryEventParameter.h>
 
@@ -76,12 +76,12 @@
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"
 
-#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
+#include <prlcommon/Interfaces/VirtuozzoSdkPrivate.h>
 #include <boost/optional.hpp>
 
 #define LOGIN_LOCAL_TIMEOUT_SEC 30
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -117,9 +117,9 @@ bool CDspUserHelper::setupUserDefaults ( CDispUser* pDispUser,
             pDispUserWorkspace->setVmDirectory(pDispPreferences->getDefaultVmDirectory());
         else
         {
-            ParallelsDirs::UserInfo info = authHelper.getParallelsDirUserInfo();
+            VirtuozzoDirs::UserInfo info = authHelper.getVirtuozzoDirUserInfo();
 
-            QString vmdir=ParallelsDirs::getUserDefaultVmCatalogue(&info);
+            QString vmdir=VirtuozzoDirs::getUserDefaultVmCatalogue(&info);
 
 			// try to create when last dir in the path does not exists
 			if( vmdir.isEmpty() || !CFileHelper::DirectoryExists(vmdir, &authHelper) )
@@ -233,8 +233,8 @@ bool CDspUserHelper::fillUserPreferences (
 
 			if( pCommonVmDir->getDefaultVmFolder() != pUserVmDir->getDefaultVmFolder() )
 			{
-				ParallelsDirs::UserInfo info = p_NewUser->getAuthHelper().getParallelsDirUserInfo();
-				QString newVmDirPath = ParallelsDirs::getUserDefaultVmCatalogue(&info);
+				VirtuozzoDirs::UserInfo info = p_NewUser->getAuthHelper().getVirtuozzoDirUserInfo();
+				QString newVmDirPath = VirtuozzoDirs::getUserDefaultVmCatalogue(&info);
 				if( !newVmDirPath.isEmpty() && newVmDirPath != pUserVmDir->getDefaultVmFolder() )
 				{
 					WRITE_TRACE( DBG_FATAL, "Patch path for user vm catalogue (%s):\n"
@@ -1014,7 +1014,7 @@ void CDspUserHelper::userProfileCommit (
 			pLockedDispConfig->fromString(pDispConfigNew->toString());
 
 			// TODO: Need hide this dispFilePath (DispConfig->save( dispFilePath ) ) into DispConfigGuard.
-			QString dispFilePath = ParallelsDirs::getDispatcherConfigFilePath();
+			QString dispFilePath = VirtuozzoDirs::getDispatcherConfigFilePath();
 
 			// Save dispatcher config file
 			PRL_RESULT save_rc = CDspService::instance()->getDispConfigGuard().saveConfig();
@@ -1123,7 +1123,7 @@ SmartPtr<IOPackage> CDspUserHelper::makeLoginResponsePacket(
 		, QString("%1").arg( pSession->isConfirmationEnabled() )
 		, EVT_PARAM_PRL_SERVER_INFO_CONFIRMATION_MODE ) );
 	loginResponse.addEventParameter( new CVmEventParameter( PVE::String
-		, QString("%1").arg( (quint32)ParallelsDirs::getAppExecuteMode() )
+		, QString("%1").arg( (quint32)VirtuozzoDirs::getAppExecuteMode() )
 		, EVT_PARAM_PRL_SERVER_INFO_APP_EXECUTE_MODE ) );
 	loginResponse.addEventParameter( new CVmEventParameter( PVE::String
 		, QString("%1").arg( CDspService::instance()->getServiceStartTime() )

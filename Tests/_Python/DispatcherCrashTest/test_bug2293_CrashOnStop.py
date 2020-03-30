@@ -11,7 +11,7 @@
 # Our contact details: Virtuozzo International GmbH, Vordergasse 59, 8200
 # Schaffhausen, Switzerland.
 #
-# This Module is a part of Parallels Automated test system.
+# This Module is a part of Virtuozzo Automated test system.
 #
 # ==================================================================
 #
@@ -58,7 +58,7 @@ CommonTestsUtils.init_sdk(prlsdkapi)
 
 max_wait_timeout = 20*1000 # 20 sec is max wait timeout
 
-disp_finish_info_file = "parallels.finish.info"
+disp_finish_info_file = "virtuozzo.finish.info"
 
 # ---------------------------------------------------------
 # Test response of vm requestes
@@ -81,7 +81,7 @@ def test_CrashOnStop():
 			try:
 				try:
 					scmhandle = ws.OpenSCManager(None, None, ws.SC_MANAGER_ALL_ACCESS)
-					svchandle = ws.OpenService(scmhandle, "Parallels Dispatcher Service", ws.SERVICE_ALL_ACCESS)
+					svchandle = ws.OpenService(scmhandle, "Virtuozzo Dispatcher Service", ws.SERVICE_ALL_ACCESS)
 					ws.ControlService(svchandle, ws.SERVICE_CONTROL_STOP)
 				except:
 					print( 'Failed to stop service' )

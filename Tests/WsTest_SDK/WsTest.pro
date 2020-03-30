@@ -5,7 +5,7 @@ QT += network core xml
 
 LEVEL = ../../..
 
-include($$LEVEL/Sources/Parallels.pri)
+include($$LEVEL/Sources/Virtuozzo.pri)
 include($$LEVEL/Build/Debug.pri)
 include($$LEVEL/Sources/Libraries/CComm/pvsCComm/pvsCComm.pri)
 include(../../XmlModel/XmlModel.pri)
@@ -16,7 +16,7 @@ INCLUDEPATH +=	../../XmlModel/Messaging \
 		../../XmlModel/HostHardwareInfo \
 		../../XmlModel/DispConfig \
 		../../XmlModel/ProblemReport \
-		../../XmlModel/ParallelsObjects \
+		../../XmlModel/VirtuozzoObjects \
 		../../GUI/Server \
 		../../ \
 		../../Interfaces \

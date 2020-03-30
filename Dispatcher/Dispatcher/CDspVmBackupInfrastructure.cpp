@@ -1676,7 +1676,7 @@ void Vm::collect(const QDir& home_)
 	QDir h(home_);
 	foreach(const QFileInfo& i, h.entryInfoList(QDir::NoDotAndDotDot|QDir::Files|QDir::NoSymLinks))
 	{
-		if (i.fileName().startsWith("parallels.log"))
+		if (i.fileName().startsWith("virtuozzo.log"))
 			x << qMakePair(i, i.fileName());
 	}
 

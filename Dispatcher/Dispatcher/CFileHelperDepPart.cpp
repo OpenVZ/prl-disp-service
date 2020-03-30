@@ -33,7 +33,7 @@
 
 #include "CFileHelperDepPart.h"
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #include "CDspTaskHelper.h"
 #include "CDspAccessManager.h"
@@ -55,7 +55,7 @@
 # include <malloc.h>
 #endif
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 // By adding this interface we enable allocations tracing in the module
 #include "Interfaces/Debug.h"

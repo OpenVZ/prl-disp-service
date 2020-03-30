@@ -44,7 +44,7 @@
 #define HH_DspLogicGuard_HH
 
 #include <QList>
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 #include "Guards/SentryBase.h"
 
 

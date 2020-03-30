@@ -48,7 +48,7 @@
 #include <boost/phoenix/core/value.hpp>
 #include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
-#include <prlcommon/Interfaces/ParallelsDispToDispProto.h>
+#include <prlcommon/Interfaces/VirtuozzoDispToDispProto.h>
 
 namespace Migrate
 {
@@ -584,7 +584,7 @@ typedef boost::tuple<IO*, QIODevice*, boost::optional<QString> > Launch_type;
 ///////////////////////////////////////////////////////////////////////////////
 // struct Event
 
-template<Parallels::IDispToDispCommands X>
+template<Virtuozzo::IDispToDispCommands X>
 struct Event
 {
 	explicit Event(const SmartPtr<IOPackage>& package_):
@@ -597,24 +597,24 @@ struct Event
 		return m_package;
 	}
 
-	static const Parallels::IDispToDispCommands s_command;
+	static const Virtuozzo::IDispToDispCommands s_command;
 
 private:
 	SmartPtr<IOPackage> m_package;
 };
 
-template<Parallels::IDispToDispCommands X>
-const Parallels::IDispToDispCommands Event<X>::s_command = X;
+template<Virtuozzo::IDispToDispCommands X>
+const Virtuozzo::IDispToDispCommands Event<X>::s_command = X;
 
 // NB. target side needs a handshake on finish because it doesn't know if the
 // overall process fails. thus it waits for a finish reply from the source to
 // complete with ok or for cancel to clean up and fail.
-typedef Event<Parallels::VmMigrateFinishCmd> FinishCommand_type;
+typedef Event<Virtuozzo::VmMigrateFinishCmd> FinishCommand_type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Quit
 
-template<Parallels::IDispToDispCommands X>
+template<Virtuozzo::IDispToDispCommands X>
 struct Quit
 {
 	explicit Quit(const QString& ticket_): m_ticket(ticket_)
@@ -658,7 +658,7 @@ struct Format
 ///////////////////////////////////////////////////////////////////////////////
 // struct Flavor<X>
 
-template<Parallels::IDispToDispCommands X>
+template<Virtuozzo::IDispToDispCommands X>
 struct Flavor: Format
 {
 	const char* getData(const bin_type& bin_) const
@@ -718,7 +718,7 @@ struct Flavor<CtMigrateCmd>: Format
 
 struct Packer
 {
-	template<Parallels::IDispToDispCommands X>
+	template<Virtuozzo::IDispToDispCommands X>
 	explicit Packer(const Flavor<X>& format_): m_format(new Flavor<X>(format_))
 	{
 	}
@@ -896,7 +896,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
-template<class T, Parallels::IDispToDispCommands X>
+template<class T, Virtuozzo::IDispToDispCommands X>
 struct Connector: Vm::Connector::Base<T>, Slot
 {
 	void setQueue(Queue* value_)
@@ -971,7 +971,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Pump
 
-template<class T, Parallels::IDispToDispCommands X>
+template<class T, Virtuozzo::IDispToDispCommands X>
 struct Pump: vsd::Trace<Pump<T, X> >, Vm::Connector::Mixin<Connector<T, X> >
 {
 	Pump(): m_ioservice(), m_iodevice()
@@ -1094,7 +1094,7 @@ typedef Prl::Expected<state_type, Flop::Event> target_type;
 
 struct Queue: private Vm::Pump::Queue
 {
-	template<Parallels::IDispToDispCommands X>
+	template<Virtuozzo::IDispToDispCommands X>
 	Queue(const Fragment::Flavor<X>& format_, QIODevice& device_):
 		m_device(&device_), m_format(new Fragment::Flavor<X>(format_))
 	{
@@ -1185,7 +1185,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Connector
 
-template<class T, Parallels::IDispToDispCommands X>
+template<class T, Virtuozzo::IDispToDispCommands X>
 struct Connector: Vm::Connector::Base<T>, Slot
 {
 	void setQueue(Queue* value_)
@@ -1232,7 +1232,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // struct Pump
 
-template<class T, Parallels::IDispToDispCommands X>
+template<class T, Virtuozzo::IDispToDispCommands X>
 struct Pump: vsd::Trace<Pump<T, X> >, Vm::Connector::Mixin<Connector<T, X> >
 {
 	Pump(): m_iodevice()
@@ -1288,7 +1288,7 @@ private:
 
 namespace Tunnel
 {
-typedef Pump::Event<Parallels::VmMigrateLibvirtTunnelChunk> libvirtChunk_type;
+typedef Pump::Event<Virtuozzo::VmMigrateLibvirtTunnelChunk> libvirtChunk_type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Dummy
@@ -1316,7 +1316,7 @@ namespace Hub
 ///////////////////////////////////////////////////////////////////////////////
 // struct Traits
 
-template<class T, Parallels::IDispToDispCommands X, Parallels::IDispToDispCommands Y>
+template<class T, Virtuozzo::IDispToDispCommands X, Virtuozzo::IDispToDispCommands Y>
 struct Traits
 {
 	typedef T machine_type;

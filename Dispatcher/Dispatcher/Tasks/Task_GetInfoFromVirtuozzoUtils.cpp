@@ -23,10 +23,10 @@
 /// Schaffhausen, Switzerland.
 ///
 /// @file
-///	Task_GetInfoFromParallelsUtils.cpp
+///	Task_GetInfoFromVirtuozzoUtils.cpp
 ///
 /// @brief
-///	Implementation of the class Task_GetInfoFromParallelsUtils
+///	Implementation of the class Task_GetInfoFromVirtuozzoUtils
 ///
 /// @brief
 ///	This class implements Utitlites functions Information requests
@@ -35,7 +35,7 @@
 ///	Artemr@
 ///
 ////////////////////////////////////////////////////////////////////////////////
-#include "Task_GetInfoFromParallelsUtils.h"
+#include "Task_GetInfoFromVirtuozzoUtils.h"
 
 #include <prlcommon/Std/PrlAssert.h>
 //#include "Libraries/VirtualDisk/VirtualDisk.h"  // VirtualDisk commented out by request from CP team
@@ -44,7 +44,7 @@
 #include "Task_CommonHeaders.h"
 #include "CDspVmConfigManager.h"
 
-Task_GetInfoFromParallelsUtils::Task_GetInfoFromParallelsUtils(
+Task_GetInfoFromVirtuozzoUtils::Task_GetInfoFromVirtuozzoUtils(
 	SmartPtr<CDspClient>& pUser,
 	const SmartPtr<IOPackage>& pkg)
 :CDspTaskHelper( pUser, pkg )
@@ -52,22 +52,22 @@ Task_GetInfoFromParallelsUtils::Task_GetInfoFromParallelsUtils(
 
 }
 
-Task_GetInfoFromParallelsUtils::~Task_GetInfoFromParallelsUtils()
+Task_GetInfoFromVirtuozzoUtils::~Task_GetInfoFromVirtuozzoUtils()
 {
 
 }
 
-PRL_RESULT Task_GetInfoFromParallelsUtils::GetDiskImageInformation(
+PRL_RESULT Task_GetInfoFromVirtuozzoUtils::GetDiskImageInformation(
 		const QString & strPathToFile,
 		CVmHardDisk & cHardDisk,
 		SmartPtr<CDspClient> pUserSession)
 {
 // VirtualDisk commented out by request from CP team
-//	PARALLELS_DISK_PARAMETERS DiskParameters;
+//	VIRTUOZZO_DISK_PARAMETERS DiskParameters;
 //	PRL_RESULT nRetVal = PRL_ERR_SUCCESS;
 
 	LOG_MESSAGE(DBG_DEBUG,
-				"Task_GetInfoFromParallelsUtils::GetDiskImageInformation(%s)",
+				"Task_GetInfoFromVirtuozzoUtils::GetDiskImageInformation(%s)",
 				strPathToFile.toUtf8().data());
 
 	// Pointer to argument is not valid

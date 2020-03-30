@@ -1114,7 +1114,7 @@ void CDspVzHelper::appendAdvancedParamsToCtConfig(
 	CVmEvent *evt = new CVmEvent;
 	fillCtInfo(pUserSession, pOutConfig, *evt);
 	pOutConfig->getVmSettings()->getVmRuntimeOptions()
-		->getInternalVmInfo()->setParallelsEvent(evt);
+		->getInternalVmInfo()->setVirtuozzoEvent(evt);
 	UpdateHardDiskInformation(pOutConfig);
 
 	/* update VNC port */

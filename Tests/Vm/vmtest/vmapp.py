@@ -18,7 +18,7 @@ class VmApp:
 
 		debug("starting %r", cmd)
 		# discard std{out,err} from vm_app and keep our output clean;
-		# those messages are logged to parallels.log by vm_app
+		# those messages are logged to virtuozzo.log by vm_app
 		self.p = subprocess.Popen(cmd, stdin = subprocess.PIPE,
 				stdout = nullfd, stderr = subprocess.STDOUT)
 		debug("started pid %d", self.p.pid)

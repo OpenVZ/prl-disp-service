@@ -51,8 +51,8 @@
 #include "CDspClient.h"
 #include  "CDspSync.h"
 
-#include <prlcommon/Interfaces/ParallelsDomModel.h>
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoDomModel.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 #include <prlxmlmodel/VmDirectory/CVmDirectory.h>
 #include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/PrlUuid/Uuid.h>

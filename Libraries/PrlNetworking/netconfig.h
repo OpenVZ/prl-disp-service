@@ -32,8 +32,8 @@
 #ifndef prl_netconfig_h__
 #define prl_netconfig_h__
 
-#include <prlcommon/Interfaces/ParallelsTypes.h>
-#include <prlxmlmodel/NetworkConfig/CParallelsNetworkConfig.h>
+#include <prlcommon/Interfaces/VirtuozzoTypes.h>
+#include <prlxmlmodel/NetworkConfig/CVirtuozzoNetworkConfig.h>
 #include <prlxmlmodel/VmConfig/CVmGenericNetworkAdapter.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <Libraries/PrlNetworking/PrlNetLibrary.h>
@@ -89,35 +89,35 @@ void FillDefaultVirtualNetworkParams( CVirtualNetwork* pVirtualNetwork,
 void FillDefaultNetworks(CVirtualNetworks *pNetworks);
 
 // Fills run-time virtual networks configuration.
-void FillDefaultRuntimeNetworks(CParallelsNetworkConfig *pNetworkConfig,
+void FillDefaultRuntimeNetworks(CVirtuozzoNetworkConfig *pNetworkConfig,
 		SmartPtr<CHostHardwareInfo> pHostHwInfo);
 
 // Reset network configuration.
 // This function removes all present virtual networks from configuration
 // The function behaves differently depending on current execute-mode
-// (see ParallelsDirs::getAppExecuteMode())
-void FillDefaultConfiguration(CParallelsNetworkConfig *pNetworkConfig);
+// (see VirtuozzoDirs::getAppExecuteMode())
+void FillDefaultConfiguration(CVirtuozzoNetworkConfig *pNetworkConfig);
 
 // Patches read config for product's specifics.
 // * Changes network assignment from run-time DefaultAdapter to default adapter at
 //   the moment of function call.
 // * Disable NATServer for server product in run-time.
-bool PatchConfig(CParallelsNetworkConfig *pNetworkConfig);
+bool PatchConfig(CVirtuozzoNetworkConfig *pNetworkConfig);
 
 /************************************************************************/
 
 // Get Virtual Network by networkID
 CVirtualNetwork *GetVirtualNetworkByID(const CVirtualNetworks *pNetworks, const QString &networkID);
 // Get Virtual Network by uuid
-CVirtualNetwork *GetVirtualNetworkByUuid(CParallelsNetworkConfig *pNetworkConfig, const QString &sUuid);
+CVirtualNetwork *GetVirtualNetworkByUuid(CVirtuozzoNetworkConfig *pNetworkConfig, const QString &sUuid);
 
 // pNetworkConfig current network config
 // pVirtualNetwork deleting virtual network object
 // NOTE: After deleting the pointer pVirtualNetwork is not valid !!!
-void DeleteVirtualNetwork(CParallelsNetworkConfig *pNetworkConfig, CVirtualNetwork* pVirtualNetwork);
+void DeleteVirtualNetwork(CVirtuozzoNetworkConfig *pNetworkConfig, CVirtualNetwork* pVirtualNetwork);
 
-// return VirtualNetwork that have specified Parallels adapter.
-CVirtualNetwork *GetNetworkByParallelsAdapter(
+// return VirtualNetwork that have specified Virtuozzo adapter.
+CVirtualNetwork *GetNetworkByVirtuozzoAdapter(
 	CVirtualNetworks *pNetworks,
 	int nAdapterIndex);
 // return VirtualNetwork that have specified MAC address and VLAN tag.
@@ -131,9 +131,9 @@ CVirtualNetwork *GetNetworkByBoundCardMacAndVLANTag(
 // Note: network 0 is always shared-networking for desktop.
 // for desktop-mode GetHostOnlyNetwork() treats 0
 // also as default host-only.
-CVirtualNetwork *GetHostOnlyNetwork(const CParallelsNetworkConfig *pNetworkConfig, UINT adapter_index);
-CVirtualNetwork *GetSharedNetwork(const CParallelsNetworkConfig *pNetworkConfig);
-CVirtualNetwork *GetBridgedNetwork(const CParallelsNetworkConfig *pNetworkConfig);
+CVirtualNetwork *GetHostOnlyNetwork(const CVirtuozzoNetworkConfig *pNetworkConfig, UINT adapter_index);
+CVirtualNetwork *GetSharedNetwork(const CVirtuozzoNetworkConfig *pNetworkConfig);
+CVirtualNetwork *GetBridgedNetwork(const CVirtuozzoNetworkConfig *pNetworkConfig);
 CIPReservations *GetSafeDHCPIPReservations(CVirtualNetwork *pNetwork);
 CIPReservations *GetDHCPIPReservations(CVirtualNetwork *pNetwork);
 
@@ -150,13 +150,13 @@ CVmGenericNetworkAdapter fixMacFilter(
 // Warning! This function is rather helper in non-standard situations.
 // Use with care.
 CVirtualNetwork *GetVirtualNetworkForAdapter(
-				CParallelsNetworkConfig *networkConfig,
+				CVirtuozzoNetworkConfig *networkConfig,
 				PRL_NET_ADAPTER_EMULATED_TYPE emulatedType,
 				QString virtualNetworkID);
 
 // Get Virtual Network type by adapter
 PRL_RESULT GetNetworkTypeForAdapter(
-				CParallelsNetworkConfig *networkConfig,
+				CVirtuozzoNetworkConfig *networkConfig,
 				const CVmGenericNetworkAdapter *adapter,
 				PRL_NET_VIRTUAL_NETWORK_TYPE *nVNetType);
 
@@ -169,15 +169,15 @@ bool ContainsIPReservation(const CIPReservations* pIPReservations,
 
 
 // Create list of host only networks sorted by Adapter number.
-QList<CVirtualNetwork *> MakeHostOnlyNetworksList(const CParallelsNetworkConfig *pNetworkConfig);
+QList<CVirtualNetwork *> MakeHostOnlyNetworksList(const CVirtuozzoNetworkConfig *pNetworkConfig);
 
 // Create list of Adapters
-QList<CParallelsAdapter *> MakeParallelsAdaptersList(const CParallelsNetworkConfig *pNetworkConfig);
+QList<CVirtuozzoAdapter *> MakeVirtuozzoAdaptersList(const CVirtuozzoNetworkConfig *pNetworkConfig);
 
 // Return port for offmgmt-service with name srvName
-UINT16 GetOffmgmtPortByService(const CParallelsNetworkConfig *pNetworkConfig, const QString &srvName);
+UINT16 GetOffmgmtPortByService(const CVirtuozzoNetworkConfig *pNetworkConfig, const QString &srvName);
 // Return name for the offmgmt-service on port port
-QString GetOffmgmtServiceByPort(const CParallelsNetworkConfig *pNetworkConfig, UINT16 port);
+QString GetOffmgmtServiceByPort(const CVirtuozzoNetworkConfig *pNetworkConfig, UINT16 port);
 
 
 // returns adapter for virtual network
@@ -193,17 +193,17 @@ PRL_RESULT GetAdapterForNetwork(
 //
 PRL_RESULT GetAdapterForVM(
 	EthAdaptersList &adaptersList,
-	CParallelsNetworkConfig *pNetworkConfig,
+	CVirtuozzoNetworkConfig *pNetworkConfig,
 	const CVmGenericNetworkAdapter& vmAdapter,
 	EthAdaptersList::Iterator &itAdapter);
 
 /************************************************************************/
 
 // Read networking configuration from default config file.
-PRL_RESULT ReadNetworkConfig( CParallelsNetworkConfig &networkConfig );
+PRL_RESULT ReadNetworkConfig( CVirtuozzoNetworkConfig &networkConfig );
 
 // Write network configuration to the default config file location.
-PRL_RESULT WriteNetworkConfig(CParallelsNetworkConfig &networkConfig);
+PRL_RESULT WriteNetworkConfig(CVirtuozzoNetworkConfig &networkConfig);
 
 // Read network configuration from default location.
 // Create default network configuration if file don't exist.
@@ -213,7 +213,7 @@ PRL_RESULT WriteNetworkConfig(CParallelsNetworkConfig &networkConfig);
 //
 // @param bConfigurationRestored Will setup bConfigurationRestored if default configuration was created or
 // existing configuration was restored.
-PRL_RESULT InitNetworkConfig(CParallelsNetworkConfig &networkConfig, bool &bConfigurationRestored);
+PRL_RESULT InitNetworkConfig(CVirtuozzoNetworkConfig &networkConfig, bool &bConfigurationRestored);
 
 /************************************************************************/
 
@@ -250,7 +250,7 @@ PRL_RESULT CreateIp6sBuffer(const QList<QString> &ipList, UINT8 **ppBuffer, unsi
 
 // Initialize library global variables
 // like system-flags, whether IPv6 enabled, whether need to use tap-networking etc.
-void InitConfigLibrary(const CParallelsNetworkConfig *pNetworkConfig);
+void InitConfigLibrary(const CVirtuozzoNetworkConfig *pNetworkConfig);
 
 // Setup whether IPv6 is enabled. This value will be remembered
 // and will be returned by isIPv6Enabled()
@@ -258,7 +258,7 @@ void setIPv6Enabled(bool enabled);
 
 // IPv6 is enabled for desktop
 // The value for this flag has to be calculated separately using
-// CParallelsNetworkConfig and some host settings
+// CVirtuozzoNetworkConfig and some host settings
 bool isIPv6Enabled();
 
 // Disable/Enabled use_tap_networking global var.

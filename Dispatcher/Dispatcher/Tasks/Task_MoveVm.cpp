@@ -53,7 +53,7 @@
 #include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/PrlCommonUtils/CVmMigrateHelper.h"
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 Task_MoveVm::Task_MoveVm(const SmartPtr<CDspClient>& user, const SmartPtr<IOPackage>& p,
 	Vm::Directory::Ephemeral& ephemeral_):

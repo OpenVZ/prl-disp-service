@@ -36,7 +36,7 @@
 #include "Libraries/ProblemReportUtils/CProblemReportUtils.h"
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/IOService/IOCommunication/IOServer.h>
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 #include "CDspClient.h"
 #include "CDspVm.h"
 

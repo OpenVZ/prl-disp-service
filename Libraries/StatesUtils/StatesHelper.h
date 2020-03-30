@@ -34,7 +34,7 @@
 
 #include <QString>
 #include <prlsdk/PrlErrors.h>
-#include <prlcommon/Interfaces/ParallelsTypes.h>
+#include <prlcommon/Interfaces/VirtuozzoTypes.h>
 class CVmConfiguration;
 
 class CStatesHelper

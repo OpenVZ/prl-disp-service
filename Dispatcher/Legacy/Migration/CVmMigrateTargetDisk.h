@@ -38,7 +38,7 @@
 #include <QMutex>
 #include <queue>
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 ///////////////////////////////////////////////////////////////////////////////
 // class CVmMigrateTargetDisk

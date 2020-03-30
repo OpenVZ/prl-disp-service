@@ -30,13 +30,13 @@
 ///
 /// @brief
 ///		Tests fixture class for testing CAuthHelper class functionality.
-/// 		To get more info look at bug 1963 http://bugzilla.parallels.ru/show_bug.cgi?id=1963
+/// 		To get more info look at bug 1963 http://bugzilla.virtuozzo.ru/show_bug.cgi?id=1963
 ///
 /// @brief
 ///		None.
 ///
 /////////////////////////////////////////////////////////////////////////////
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include "CAuthHelperTest.h"
 #include "Libraries/PrlCommonUtils/CAuthHelper.h"
 #include <prlcommon/Logging/Logging.h>

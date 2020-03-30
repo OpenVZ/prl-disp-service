@@ -33,10 +33,10 @@
 
 #include "CAclHelper.h"
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlcommon/Logging/Logging.h>
 
-namespace Parallels {
+namespace Virtuozzo {
 
 namespace CAclHelper {
 
@@ -293,4 +293,4 @@ CAuth::AccessMode GetEffectiveRightsForUser(const QString &sFilePath, const QStr
 
 }//namespace CAclHelper
 
-}//namespace Parallels
+}//namespace Virtuozzo

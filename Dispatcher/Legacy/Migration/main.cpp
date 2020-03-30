@@ -29,16 +29,16 @@
 #include <QCoreApplication>
 #include <CVmMigrateTargetServer.h>
 #include <prlcommon/HostUtils/HostUtils.h>
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 
 int main(int argc, char** argv)
 {
 	QCoreApplication app(argc, argv);
-	ParallelsDirs::Init(PAM_SERVER);
-	QFile f(ParallelsDirs::getDispatcherConfigFilePath());
+	VirtuozzoDirs::Init(PAM_SERVER);
+	QFile f(VirtuozzoDirs::getDispatcherConfigFilePath());
 	CDispatcherConfig c(&f);
 	SetLogFileName(GetDefaultLogFilePath(), "prl-disp.log");
-	WRITE_TRACE(DBG_FATAL, "file %s", qPrintable(ParallelsDirs::getDispatcherConfigFilePath()));
+	WRITE_TRACE(DBG_FATAL, "file %s", qPrintable(VirtuozzoDirs::getDispatcherConfigFilePath()));
 	if (c.getDispatcherSettings()->getCommonPreferences()->getDebug()->isVerboseLogEnabled())
 		SetLogLevel(DBG_DEBUG);	
 	

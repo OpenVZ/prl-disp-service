@@ -177,7 +177,7 @@ PMIB_IFTABLE PrlNetInternal::getIfTable()
 }
 
 
-/// searches Parallels adapter in the adapters list of the whole system
+/// searches Virtuozzo adapter in the adapters list of the whole system
 PRL_RESULT PrlNetInternal::findPrlAdapter(
 	int prlAdapterIndex,
 	PIP_ADAPTER_INFO pAdaptersList,
@@ -190,14 +190,14 @@ PRL_RESULT PrlNetInternal::findPrlAdapter(
 	if (!::makeEthIfacesList(ethList, true)) // only UP adapters
 		return PRL_NET_ETHLIST_CREATE_ERROR;
 
-	// find a Parallels adapter with specified index
+	// find a Virtuozzo adapter with specified index
 	EthIfaceList::const_iterator itPrlAdapter = ethList.begin();
 	for (; itPrlAdapter != ethList.end(); ++itPrlAdapter)
 		if( itPrlAdapter->_nAdapter == prlAdapterIndex )
 			break;
 
 	if (itPrlAdapter == ethList.end()) {
-		WRITE_TRACE(DBG_FATAL, "[PrlNetInternal::findPrlAdapter] Parallels Adapter %d doesn't exist",
+		WRITE_TRACE(DBG_FATAL, "[PrlNetInternal::findPrlAdapter] Virtuozzo Adapter %d doesn't exist",
 			prlAdapterIndex );
 		return PRL_ERR_FAILURE;
 	}

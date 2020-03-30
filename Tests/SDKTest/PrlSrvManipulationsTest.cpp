@@ -70,11 +70,11 @@
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 #include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 
-#include <prlcommon/Interfaces/ParallelsNamespaceTests.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespaceTests.h>
 #include <prlcommon/Interfaces/ApiDevNums.h>
-#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
+#include <prlcommon/Interfaces/VirtuozzoSdkPrivate.h>
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 #ifdef _WIN_
 #include <windows.h>
@@ -4252,7 +4252,7 @@ void PrlSrvManipulationsTest::testRegisterVmOnPathWithEmptyVmName()
 
 
 #define COMPARE_SYNCH_VM_NAMES(qsVmName, vmUuid)\
-	QString qsVmDirectoryList = ParallelsDirs::getDispatcherVmCatalogueFilePath();\
+	QString qsVmDirectoryList = VirtuozzoDirs::getDispatcherVmCatalogueFilePath();\
 \
 	CVmDirectories vmDirs;\
 	QVERIFY(vmDirs.loadFromFile(qsVmDirectoryList) == 0);\

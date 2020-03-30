@@ -85,8 +85,8 @@ private:
 #else // __USE_ISOCXX11
 struct Frontend;
 typedef boost::msm::back::state_machine<Frontend> Machine_type;
-typedef Vm::Pump::Event<Parallels::VmMigrateStartCmd> StartCommand_type;
-typedef Vm::Pump::Event<Parallels::FileCopyRangeStart> CopyCommand_type;
+typedef Vm::Pump::Event<Virtuozzo::VmMigrateStartCmd> StartCommand_type;
+typedef Vm::Pump::Event<Virtuozzo::FileCopyRangeStart> CopyCommand_type;
 
 namespace Libvirt
 {
@@ -425,8 +425,8 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Vm::Target::Conne
 			Vm::Tunnel::Hub::Traits
 			<
 				Machine_type,
-				Parallels::VmMigrateConnectQemuStateCmd,
-				Parallels::VmMigrateQemuStateTunnelChunk
+				Virtuozzo::VmMigrateConnectQemuStateCmd,
+				Virtuozzo::VmMigrateQemuStateTunnelChunk
 			>
 		> qemuState_type;
 	typedef Qemu::Hub
@@ -434,8 +434,8 @@ struct Frontend: vsd::Frontend<Frontend>, Vm::Connector::Mixin<Vm::Target::Conne
 			Vm::Tunnel::Hub::Traits
 			<
 				Machine_type,
-				Parallels::VmMigrateConnectQemuDiskCmd,
-				Parallels::VmMigrateQemuDiskTunnelChunk
+				Virtuozzo::VmMigrateConnectQemuDiskCmd,
+				Virtuozzo::VmMigrateQemuDiskTunnelChunk
 			>
 		> qemuDisk_type;
 	typedef Vm::Tunnel::Essence

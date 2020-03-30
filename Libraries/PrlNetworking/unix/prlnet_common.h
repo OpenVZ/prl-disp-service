@@ -59,7 +59,7 @@
 
 namespace PrlNet_Private {
 
-const int PARALLELS_MAXIMUM_ADAPTER_INDEX = (PRLVNIC_MAX_ADAPTER_NUM - 1);
+const int VIRTUOZZO_MAXIMUM_ADAPTER_INDEX = (PRLVNIC_MAX_ADAPTER_NUM - 1);
 
 // Remember last system error for PrlNet module.
 void MODULE_STORE_SYSTEM_ERROR();
@@ -88,7 +88,7 @@ PRL_RESULT plugPrlAdapter( int adapterIndex );
 PRL_RESULT unplugPrlAdapter( int adapterIndex );
 
 // returns names of the Prl NATD
-void getPrlNatdNames(const QString &parallelsDir, QString &cmd, QString &arg0);
+void getPrlNatdNames(const QString &virtuozzoDir, QString &cmd, QString &arg0);
 
 // execute command in arg0
 PRL_RESULT execDaemon( const QString &path, const QString & arg0, const char *arg1);

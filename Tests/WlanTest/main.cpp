@@ -27,9 +27,9 @@
 #include <string.h>
 #include "Libraries/WifiHelper/CWifiHelper.h"
 #include "Libraries/WifiHelper/CWifiStoreHelper.h"
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 void print_usage(const char *sAppName)
 {

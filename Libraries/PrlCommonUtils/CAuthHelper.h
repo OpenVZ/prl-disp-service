@@ -35,7 +35,7 @@
 #include <QString>
 
 #include "Libraries/CAuth/CAuth.h"
-#include <prlcommon/PrlCommonUtilsBase/ParallelsDirs.h>
+#include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 #include <prlcommon/Std/SmartPtr.h>
 
 /**
@@ -106,7 +106,7 @@ public:
 
 	bool RevertToSelf();
 
-	ParallelsDirs::UserInfo getParallelsDirUserInfo();
+	VirtuozzoDirs::UserInfo getVirtuozzoDirUserInfo();
 
 	/**
 	 * *	on Windows convert strUserName, Domain to lower case

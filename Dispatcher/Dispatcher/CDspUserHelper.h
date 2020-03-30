@@ -48,8 +48,8 @@
 #include <QMutex>
 #include <QHash>
 
-#include <prlcommon/Interfaces/ParallelsDomModel.h>
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoDomModel.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 #include <prlcommon/IOService/IOCommunication/IOProtocol.h>
 #include "CDspClient.h"
 #include "CDspHostSettingsHelper.h"

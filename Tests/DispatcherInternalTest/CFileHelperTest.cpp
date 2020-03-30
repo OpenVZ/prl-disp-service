@@ -45,7 +45,7 @@
 #include <QDir>
 
 #include <prlcommon/PrlUuid/Uuid.h>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #ifndef _WIN_
 #	include <unistd.h>

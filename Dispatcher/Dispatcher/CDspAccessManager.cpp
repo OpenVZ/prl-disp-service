@@ -30,7 +30,7 @@
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/HostUtils/HostUtils.h>
 
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
@@ -710,7 +710,7 @@ CDspAccessManager::setFullAccessRightsToVm( SmartPtr<CDspClient> pSession
 			throw err;
 
 		// set perm to scripts
-		QString scriptsDir = ParallelsDirs::getVmScriptsDir( strVmDirPath );
+		QString scriptsDir = VirtuozzoDirs::getVmScriptsDir( strVmDirPath );
 		if( CFileHelper::DirectoryExists(scriptsDir, &pSession->getAuthHelper()) )
 		{
 			CAuth::AccessMode otherScripts = CAuth::fileMayRead;

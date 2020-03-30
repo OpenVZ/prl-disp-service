@@ -480,7 +480,7 @@ const Libvirt::Domain::Xml::ESnapshot Flavor<CVmFloppyDisk>::snapshot = Libvirt:
 template<>
 QString Model<CVmFloppyDisk>::getTargetName() const
 {
-	return QString("fd") + Parallels::toBase26(m_dataSource->getIndex());
+	return QString("fd") + Virtuozzo::toBase26(m_dataSource->getIndex());
 }
 
 template<>

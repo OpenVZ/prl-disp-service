@@ -60,7 +60,7 @@
 // #define WRITE_BOOTSECTOR_AT_CREATION
 
 /**
- * @brief Callback function, called from CreateParallelsDisk
+ * @brief Callback function, called from CreateVirtuozzoDisk
  * @param iDone
  * @param iTotal
  * @param pUserData
@@ -195,7 +195,7 @@ PRL_RESULT Task_CreateImage::run_body()
 											EVT_PARAM_MESSAGE_PARAM_0));
 					throw PRL_ERR_VMCONF_HARD_DISK_SYS_NAME_HAS_INVALID_SYMBOL;
 				}
-				if (!Parallels::IsSerialNumberValid(hard_disk.getSerialNumber()))
+				if (!Virtuozzo::IsSerialNumberValid(hard_disk.getSerialNumber()))
 					throw CDspTaskFailure(*this)(PRL_ERR_VMCONF_HARD_DISK_SERIAL_IS_NOT_VALID, hard_disk.getSerialNumber());
 
 				PRL_RESULT ret = createHdd( hard_disk );
@@ -397,7 +397,7 @@ PRL_RESULT Task_CreateImage::createFdd( const CVmFloppyDisk& floppy_disk )
         QString strDir = "";
 // VirtualDisk commented out by request from CP team
 //		// Disk parameters
-//		PARALLELS_DISK_PARAMETERS diskParameters;
+//		VIRTUOZZO_DISK_PARAMETERS diskParameters;
 
 
 		/**
@@ -584,7 +584,7 @@ PRL_RESULT Task_CreateImage::createHdd(const CVmHardDisk& dto_)
 //			throw PRL_ERR_DISK_INVALID_FORMAT;
 //		}
 //
-//		PARALLELS_DISK_PARAMETERS hddParameters;
+//		VIRTUOZZO_DISK_PARAMETERS hddParameters;
 //		PRL_RESULT err = IDisk::GetDiskInfo( strFullPath, hddParameters );
 //		if( PRL_SUCCEEDED(err) )
 //		{
@@ -816,7 +816,7 @@ PRL_RESULT Task_CreateImage::hddStep2_CheckConditions( const CVmHardDisk& hard_d
 // VirtualDisk commented out by request from CP team
 //PRL_RESULT Task_CreateImage::hddStep3_PrepareParameters(
 //	const CVmHardDisk& hard_disk
-//	, PARALLELS_DISK_PARAMETERS& diskParameters )
+//	, VIRTUOZZO_DISK_PARAMETERS& diskParameters )
 //{
 //	QString strFullPath = ConvertToFullPath(hard_disk.getUserFriendlyName());
 //
@@ -927,7 +927,7 @@ PRL_RESULT Task_CreateImage::removeImage(const QString& /*strPath*/)
 // VirtualDisk commented out by request from CP team
 //PRL_RESULT Task_CreateImage::hddStep4_CreateImage(
 //	const CVmHardDisk& hard_disk,
-//	const PARALLELS_DISK_PARAMETERS& diskParameters
+//	const VIRTUOZZO_DISK_PARAMETERS& diskParameters
 //	)
 //{
 //	// Error code for disk creation

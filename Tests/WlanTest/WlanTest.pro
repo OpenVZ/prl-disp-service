@@ -1,6 +1,6 @@
 LEVEL = ../../..
 
-include($$LEVEL/Sources/Parallels.pri)
+include($$LEVEL/Sources/Virtuozzo.pri)
 include($$LEVEL/Sources/Libraries/WifiHelper/WifiHelper.pri)
 include($$LEVEL/Sources/Libraries/Std/Std.pri)
 include($$LEVEL/Sources/Libraries/Logging/Logging.pri)

@@ -54,7 +54,7 @@ path = os.environ["PATH"].split(os.pathsep)
 path.append(os.path.join(src, "..", "z-Build", vmappdir))
 os.environ["PATH"] = os.pathsep.join(path)
 
-os.environ["PARALLELS_CRASH_HANDLER"] = "0"
+os.environ["VIRTUOZZO_CRASH_HANDLER"] = "0"
 
 subprocess.check_call(kmod_cmd("load", kmods))
 subprocess.check_call(os.path.join(here, "run.py"))

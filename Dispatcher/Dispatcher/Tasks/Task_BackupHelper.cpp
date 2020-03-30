@@ -41,8 +41,8 @@
 #include "Task_CloneVm.h"
 #include "Task_CloneVm_p.h"
 #include "Interfaces/Debug.h"
-#include "prlcommon/Interfaces/ParallelsQt.h"
-#include "prlcommon/Interfaces/ParallelsNamespace.h"
+#include "prlcommon/Interfaces/VirtuozzoQt.h"
+#include "prlcommon/Interfaces/VirtuozzoNamespace.h"
 
 #include "prlcommon/Logging/Logging.h"
 
@@ -1302,9 +1302,9 @@ void Connector::reactReceive(const SmartPtr<IOPackage>& package_)
 {
 	switch (package_->header.type)
 	{
-	case Parallels::VmMigrateQemuDiskTunnelChunk:
+	case Virtuozzo::VmMigrateQemuDiskTunnelChunk:
 		return handle(Migrate::Vm::Pump::Event
-			<Parallels::VmMigrateQemuDiskTunnelChunk>(package_));
+			<Virtuozzo::VmMigrateQemuDiskTunnelChunk>(package_));
 	default:
 		WRITE_TRACE(DBG_DEBUG, "Unknown package type: %d.", package_->header.type);
 	}
@@ -1321,7 +1321,7 @@ void Connector::reactAccept()
 		a->setProperty("channel", s->property("channel"));
 		handle(a);
 	}
-	handle(Migrate::Vm::Source::Tunnel::Qemu::Launch<Parallels::VmMigrateConnectQemuDiskCmd>
+	handle(Migrate::Vm::Source::Tunnel::Qemu::Launch<Virtuozzo::VmMigrateConnectQemuDiskCmd>
 		(m_service, a.data()));
 }
 
@@ -1509,12 +1509,12 @@ void Connector::reactReceive(const SmartPtr<IOPackage>& package_)
 	WRITE_TRACE(DBG_FATAL, "react package %d.", package_->header.type);
 	switch (package_->header.type)
 	{
-	case Parallels::VmMigrateConnectQemuDiskCmd:
+	case Virtuozzo::VmMigrateConnectQemuDiskCmd:
 		return handle(Migrate::Vm::Pump::Event
-			<Parallels::VmMigrateConnectQemuDiskCmd>(package_));
-	case Parallels::VmMigrateQemuDiskTunnelChunk:
+			<Virtuozzo::VmMigrateConnectQemuDiskCmd>(package_));
+	case Virtuozzo::VmMigrateQemuDiskTunnelChunk:
 		return handle(Migrate::Vm::Pump::Event
-			<Parallels::VmMigrateQemuDiskTunnelChunk>(package_));
+			<Virtuozzo::VmMigrateQemuDiskTunnelChunk>(package_));
 	default:
 		WRITE_TRACE(DBG_DEBUG, "Unknown package type: %d.", package_->header.type);
 	}
@@ -1731,7 +1731,7 @@ QString Task_BackupMixin::getBackupDirectory()
 			->getBackupTargetPreferences()->getDefaultBackupDirectory();
 
 	if (sBackupDirectory.isEmpty())
-		return ParallelsDirs::getDefaultBackupDir();
+		return VirtuozzoDirs::getDefaultBackupDir();
 	else
 		return sBackupDirectory;
 }

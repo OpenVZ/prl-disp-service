@@ -46,7 +46,7 @@
 #include <QMutexLocker>
 #include <QMultiHash>
 #include <QProcess>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include "CDspVmDirHelper.h"
 #include "Build/Current.ver"
 #include "CDspCommon.h"
@@ -82,7 +82,7 @@
 #include "Tasks/Task_DeleteVm.h"
 #include "Tasks/Task_CreateImage.h"
 #include "Tasks/Task_SearchLostConfigs.h"
-#include "Tasks/Task_GetInfoFromParallelsUtils.h"
+#include "Tasks/Task_GetInfoFromVirtuozzoUtils.h"
 #include "Tasks/Task_ManagePrlNetService.h"
 #include "Tasks/Task_DiskImageResizer.h"
 #include "Tasks/Task_MigrateVm.h"
@@ -708,7 +708,7 @@ const Unit* Gang::findFirst(PVE::IDispatcherCommands command_) const
 } // namespace Vm
 } // namespace Task
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 CDspVmDirHelper::ExclusiveVmOperations::ExclusiveVmOperations()
 :m_mutex( QMutex::NonRecursive )
@@ -2950,7 +2950,7 @@ void CDspVmDirHelper::appendAdvancedParamsToVmConfig(
 	else
 	{
 		pOutVmConfig->getVmSettings()->getVmRuntimeOptions()
-			->getInternalVmInfo()->setParallelsEvent( new CVmEvent(&vmInfo) );
+			->getInternalVmInfo()->setVirtuozzoEvent( new CVmEvent(&vmInfo) );
 	}
 
 	// We've started to store default host interface names in config
@@ -3007,7 +3007,7 @@ void CDspVmDirHelper::resetAdvancedParamsFromVmConfig( SmartPtr<CVmConfiguration
 	pEvt->setEventIssuerId();
 	pEvt->setInitRequestId();
 	pOutVmConfig->getVmSettings()->getVmRuntimeOptions()->getInternalVmInfo()
-		->setParallelsEvent( pEvt );
+		->setVirtuozzoEvent( pEvt );
 
 	CVmRemoteDisplay *remDisplay = Vnc::Traits::purify(pOutVmConfig.getImpl());
 	switch (remDisplay->getMode())
@@ -3916,7 +3916,7 @@ State::result_type State::handle(const CVmDirectoryItem& item_)
 	CVmEvent* e = new CVmEvent();
 	e->addEventParameter(new CVmEventParameter(PVE::Integer, QString::number(s),
 		EVT_PARAM_VMINFO_VM_STATE));
-	r->getVmSettings()->getVmRuntimeOptions()->getInternalVmInfo()->setParallelsEvent(e);
+	r->getVmSettings()->getVmRuntimeOptions()->getInternalVmInfo()->setVirtuozzoEvent(e);
 
 	return output;
 }

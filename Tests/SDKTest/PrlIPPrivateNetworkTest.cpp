@@ -32,7 +32,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #include "PrlIPPrivateNetworkTest.h"
 #include "Tests/CommonTestsUtils.h"
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlxmlmodel/NetworkConfig/CPrivateNetwork.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 

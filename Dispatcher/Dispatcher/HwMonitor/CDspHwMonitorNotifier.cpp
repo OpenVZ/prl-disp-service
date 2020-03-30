@@ -48,7 +48,7 @@
 #include <boost/functional/value_factory.hpp>
 #include <Libraries/PowerWatcher/PowerWatcher.h>
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 const quint64 HI_ALL_EVENT_DEVICES =
 		( CDspHostInfo::uhiUsb

@@ -47,7 +47,7 @@
 #include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #include <prlcommon/Std/PrlAssert.h>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/Std/SmartPtr.h>
@@ -62,7 +62,7 @@
 #ifdef _LIN_
 #include <cxxabi.h>
 #endif // _LIN_
-using namespace Parallels;
+using namespace Virtuozzo;
 
 CancelOperationSupport::CancelOperationSupport()
 :m_bOperationCancelled( false ),

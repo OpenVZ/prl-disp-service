@@ -11,7 +11,7 @@
 # Our contact details: Virtuozzo International GmbH, Vordergasse 59, 8200
 # Schaffhausen, Switzerland.
 #
-# This Module is a part of Parallels test system.
+# This Module is a part of Virtuozzo test system.
 #
 # This test implemented Task #1508 ( http://bugzilla/show_bug.cgi?id=1508 )
 # This test check receiving response of request sent to vm through dispatcher.
@@ -40,7 +40,7 @@ sys.path.append( os.path.abspath( os.path.join( __full_file_path__, sources_root
 import BuildUtil
 from BuildUtil import TRACE
 
-import Parallels
+import Virtuozzo
 
 
 max_wait_timeout = 20*1000 # 20 sec is max wait timeout
@@ -54,7 +54,7 @@ def test_ResponseOfVmRequest():
 		vm_config  = BuildUtil.file_to_string( vmconfig_file_name )
 
         # First we need to connect to the server
-        server = Parallels.Server()
+        server = Virtuozzo.Server()
         job = server.LoginLocal()
         job.Wait( max_wait_timeout )
         job.Free()

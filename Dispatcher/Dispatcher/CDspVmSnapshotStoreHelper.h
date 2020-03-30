@@ -40,8 +40,8 @@
 #define __CDspVmSnapshotStoreHelper_H_
 
 #include <QMutex>
-#include <prlcommon/Interfaces/ParallelsDomModel.h>
-#include <prlcommon/Interfaces/ParallelsNamespace.h>
+#include <prlcommon/Interfaces/VirtuozzoDomModel.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 
 #include "CDspClient.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>

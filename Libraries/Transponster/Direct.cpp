@@ -146,7 +146,7 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	d->setItemId(m_hardware->m_lstHardDisks.size());
 	d->setIndex(m_hardware->m_lstHardDisks.size());
 	QString dev = disk_.getTarget().getDev();
-	d->setStackIndex(Parallels::fromBase26(dev.remove(0, 2)));
+	d->setStackIndex(Virtuozzo::fromBase26(dev.remove(0, 2)));
 	boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> m = m_clip->getControllerModel(disk_);
 	if (m)
 		d->setSubType(m.get());
@@ -196,7 +196,7 @@ PRL_RESULT Cdrom::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 	d->setItemId(m_hardware->m_lstOpticalDisks.size());
 	d->setIndex(m_hardware->m_lstOpticalDisks.size());
 	QString dev = disk_.getTarget().getDev();
-	d->setStackIndex(Parallels::fromBase26(dev.remove(0, 2)));
+	d->setStackIndex(Virtuozzo::fromBase26(dev.remove(0, 2)));
 	boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> m = m_clip->getControllerModel(disk_);
 	if (m)
 		d->setSubType(m.get());
@@ -834,7 +834,7 @@ PRL_RESULT DiskForm::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::typ
 	if (dev.isEmpty())
 		return PRL_ERR_FAILURE;
 
-	uint i = Parallels::fromBase26(dev.remove(0, 2));
+	uint i = Virtuozzo::fromBase26(dev.remove(0, 2));
 
 	switch (e)
 	{

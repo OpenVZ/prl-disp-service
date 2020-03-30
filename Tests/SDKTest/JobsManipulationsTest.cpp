@@ -33,8 +33,8 @@
 
 #include "JobsManipulationsTest.h"
 #include "Tests/CommonTestsUtils.h"
-#include <prlcommon/Interfaces/ParallelsDomModel.h>
-#include <prlcommon/Interfaces/ParallelsTypes.h>
+#include <prlcommon/Interfaces/VirtuozzoDomModel.h>
+#include <prlcommon/Interfaces/VirtuozzoTypes.h>
 #include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlxmlmodel/DispConfig/CDispCommonPreferences.h>

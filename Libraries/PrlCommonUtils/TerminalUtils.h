@@ -38,22 +38,22 @@ extern "C" {
 #include <termios.h>
 #endif
 
-#define PARALLELS_NCCS 32
+#define VIRTUOZZO_NCCS 32
 
-struct parallels_termios {
+struct virtuozzo_termios {
 	unsigned int	c_iflag;
 	unsigned int	c_oflag;
 	unsigned int	c_cflag;
 	unsigned int	c_lflag;
 	char		c_line;
-	char		c_cc[PARALLELS_NCCS];
+	char		c_cc[VIRTUOZZO_NCCS];
 	unsigned int	c_ispeed;
 	unsigned int	c_ospeed;
 };
 
 #ifdef _MAC_
-void PackTermios(struct termios *t, struct parallels_termios *p);
-void UnpackTermios(struct parallels_termios *p, struct termios *t);
+void PackTermios(struct termios *t, struct virtuozzo_termios *p);
+void UnpackTermios(struct virtuozzo_termios *p, struct termios *t);
 #endif
 
 #ifdef __cplusplus

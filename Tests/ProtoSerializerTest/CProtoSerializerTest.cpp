@@ -42,11 +42,11 @@
 #include <prlxmlmodel/DispConfig/CDispUser.h>
 #include <prlxmlmodel/DispConfig/CDispCommonPreferences.h>
 #include <prlxmlmodel/HostHardwareInfo/CSystemStatistics.h>
-#include <prlxmlmodel/UserInformation/ParallelsUserInformation.h>
-#include <prlxmlmodel/NetworkConfig/CParallelsNetworkConfig.h>
+#include <prlxmlmodel/UserInformation/VirtuozzoUserInformation.h>
+#include <prlxmlmodel/NetworkConfig/CVirtuozzoNetworkConfig.h>
 #include "Tests/CommonTestsUtils.h"
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 #define LOGIN_CMD_PARAMS_DECLARE\
 	QString sUsername = "somelogin";\
@@ -272,7 +272,7 @@ void CProtoSerializerTest::testCreateDspWsResponseCommandForDspCmdUserGetProfile
 void CProtoSerializerTest::testCreateDspWsResponseCommandForDspCmdGetHostCommonInfo()
 {
 	SmartPtr<CDispCommonPreferences> pDispCommonPreferences( new CDispCommonPreferences );
-	SmartPtr<CParallelsNetworkConfig> pNetworkConfig( new CParallelsNetworkConfig );
+	SmartPtr<CVirtuozzoNetworkConfig> pNetworkConfig( new CVirtuozzoNetworkConfig );
 
 	PVE::IDispatcherCommands nCmdIdentifier = PVE::DspCmdGetHostCommonInfo;
 	PRL_RESULT nErrCode = PRL_ERR_SUCCESS;

@@ -81,7 +81,7 @@ void TestsExecuter::PushTestsExecution()
 #endif
 
 	nRet = 0;
-	PrlApi_InitEx(PARALLELS_API_VER, TestConfig::getApplicationMode(), TestConfig::getSdkInitFlags(), 0);
+	PrlApi_InitEx(VIRTUOZZO_API_VER, TestConfig::getApplicationMode(), TestConfig::getSdkInitFlags(), 0);
 	EXECUTE_TESTS_SUITE(HandlesManipulationsTest)
 	EXECUTE_TESTS_SUITE(PrlSrvManipulationsTest)
 	EXECUTE_TESTS_SUITE(PrlVirtualNetworkTest)

@@ -37,7 +37,7 @@
 #include "SimpleServerWrapper.h"
 #include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/Messaging/CVmEventParameter.h>
-#include <prlcommon/Interfaces/ParallelsNamespaceTests.h>
+#include <prlcommon/Interfaces/VirtuozzoNamespaceTests.h>
 
 #include <fcntl.h>
 #ifdef _WIN_

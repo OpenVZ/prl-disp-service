@@ -61,8 +61,8 @@
 #include "WinJunctions.h"
 #endif
 
-#include <prlcommon/Interfaces/ParallelsTypes.h>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoTypes.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>

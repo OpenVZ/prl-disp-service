@@ -33,7 +33,7 @@
 
 #include "NonInitializedSdkTest.h"
 
-#include <prlcommon/Interfaces/ParallelsTypes.h>
+#include <prlcommon/Interfaces/VirtuozzoTypes.h>
 #include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
 #include <prlcommon/Logging/Logging.h>
 #include "SDK/Wrappers/SdkWrap/SdkWrap.h"

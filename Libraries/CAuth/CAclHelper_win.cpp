@@ -33,7 +33,7 @@
 
 #include "CAclHelper.h"
 
-namespace Parallels {
+namespace Virtuozzo {
 
 namespace CAclHelper {
 
@@ -58,4 +58,4 @@ bool ApplyAclsToFile(const QString &sFilePath, const CAclSet &_acls)
 
 }//namespace CAclHelper
 
-}//namespace Parallels
+}//namespace Virtuozzo

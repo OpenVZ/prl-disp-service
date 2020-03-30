@@ -42,7 +42,7 @@ void ApiInitDeinitTest::test()
 	const int nIterationsNum = 100;
 	for (int i = 0; i < nIterationsNum; ++i)
 	{
-		CHECK_RET_CODE_EXP(PrlApi_InitEx(PARALLELS_API_VER, TestConfig::getApplicationMode(), TestConfig::getSdkInitFlags(), 0))
+		CHECK_RET_CODE_EXP(PrlApi_InitEx(VIRTUOZZO_API_VER, TestConfig::getApplicationMode(), TestConfig::getSdkInitFlags(), 0))
 		{
 			SdkHandleWrap hServer;
 			CHECK_RET_CODE_EXP(PrlSrv_Create(hServer.GetHandlePtr()))

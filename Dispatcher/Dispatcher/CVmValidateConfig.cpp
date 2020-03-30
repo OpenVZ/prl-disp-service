@@ -18,7 +18,7 @@
 /// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 /// 02110-1301, USA.
 ///
-/// Our contact details: Parallels International GmbH, Vordergasse 59, 8200
+/// Our contact details: Virtuozzo International GmbH, Vordergasse 59, 8200
 /// Schaffhausen, Switzerland.
 ///
 /// @file
@@ -57,13 +57,13 @@
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
 #include "Tasks/Task_ManagePrlNetService.h"
-#include <prlxmlmodel/ParallelsObjects/CXmlModelHelper.h>
+#include <prlxmlmodel/VirtuozzoObjects/CXmlModelHelper.h>
 #include "Interfaces/Config.h"
 #include <prlcommon/Interfaces/ApiDevNums.h>
 #include <boost/mpl/quote.hpp>
 #include <boost/mpl/for_each.hpp>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
-#include <prlcommon/Interfaces/ParallelsSdk.h>
+#include <prlcommon/Interfaces/VirtuozzoSdk.h>
 
 static const QStringList g_UrlSchemeList = QStringList()
 	<< "ftp://" << "http://" << "https://" << "smb://" << "nfs://";
@@ -509,7 +509,7 @@ bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
 		case PRL_ERR_VMCONF_NETWORK_ADAPTER_INVALID_MAC_ADDRESS:
 		break;
 		case PRL_ERR_VMCONF_CPU_MASK_INVALID_CPU_NUM:
-			if ( PAM_SERVER == ParallelsDirs::getAppExecuteMode() )
+			if ( PAM_SERVER == VirtuozzoDirs::getAppExecuteMode() )
 			{
 				evtResult.setEventType(PET_DSP_EVT_ERROR_MESSAGE);
 				evtResult.setEventCode(m_lstResults[i]);
@@ -1215,11 +1215,11 @@ void CVmValidateConfig::CheckCpu()
 		}
 
 		QString sMask = pCpu->getCpuMask();
-		if (!sMask.isEmpty() && PAM_SERVER == ParallelsDirs::getAppExecuteMode())
+		if (!sMask.isEmpty() && PAM_SERVER == VirtuozzoDirs::getAppExecuteMode())
 		{
-			char bMask[Parallels::MAX_NCPU];
+			char bMask[Virtuozzo::MAX_NCPU];
 
-			if (Parallels::parseCpuMask(sMask, nHostCpuCount, bMask, sizeof(bMask)))
+			if (Virtuozzo::parseCpuMask(sMask, nHostCpuCount, bMask, sizeof(bMask)))
 			{
 				m_lstResults += PRL_ERR_VMCONF_CPU_MASK_INVALID;
 				ADD_FID(E_SET << pCpu->getCpuMask_id());
@@ -1238,9 +1238,9 @@ void CVmValidateConfig::CheckCpu()
 		QString sNodeMask = pCpu->getNodeMask();
 		if (!sNodeMask.isEmpty())
 		{
-			char bMask[Parallels::MAX_NCPU] = {};
+			char bMask[Virtuozzo::MAX_NCPU] = {};
 
-			if (Parallels::parseNodeMask(sNodeMask, bMask, sizeof(bMask)))
+			if (Virtuozzo::parseNodeMask(sNodeMask, bMask, sizeof(bMask)))
 			{
 				m_lstResults += PRL_ERR_VMCONF_CPU_NODE_MASK_INVALID;
 				ADD_FID(E_SET << pCpu->getNodeMask_id());
@@ -1591,7 +1591,7 @@ void CVmValidateConfig::CheckHardDisk()
 			}
 		}
 
-		if (!Parallels::IsSerialNumberValid(pHardDisk->getSerialNumber()))
+		if (!Virtuozzo::IsSerialNumberValid(pHardDisk->getSerialNumber()))
 		{
 			m_lstResults += PRL_ERR_VMCONF_HARD_DISK_SERIAL_IS_NOT_VALID;
 			m_mapParameters.insert(m_lstResults.size(), QStringList()
@@ -2293,7 +2293,7 @@ void CVmValidateConfig::CheckNetworkShapingRates()
 		return;
 	if (!m_pVmConfig || m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
 		return;
-	CDspLockedPointer<CParallelsNetworkConfig>
+	CDspLockedPointer<CVirtuozzoNetworkConfig>
 		pNetCfg = CDspService::instance()->getNetworkConfig();
 	CNetworkShapingConfig *pCfg = pNetCfg->getNetworkShapingConfig();
 	foreach(CVmNetworkRate *rate, m_pVmConfig->getVmSettings()->getGlobalNetwork()->getNetworkRates()->m_lstNetworkRates)

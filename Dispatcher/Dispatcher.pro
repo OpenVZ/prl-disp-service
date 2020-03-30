@@ -118,7 +118,7 @@ HEADERS += \
 	Tasks/Task_DeleteVm_p.h \
 	Tasks/Task_FileSystemEntriesOperations.h \
 	Tasks/Task_GetFileSystemEntries.h \
-	Tasks/Task_GetInfoFromParallelsUtils.h \
+	Tasks/Task_GetInfoFromVirtuozzoUtils.h \
 	Tasks/Task_RegisterVm.h \
 	Tasks/Task_SearchLostConfigs.h \
 	Tasks/Task_UpdateCommonPrefs.h \
@@ -244,7 +244,7 @@ SOURCES += \
 	Tasks/Task_DeleteVm.cpp \
 	Tasks/Task_FileSystemEntriesOperations.cpp \
 	Tasks/Task_GetFileSystemEntries.cpp \
-	Tasks/Task_GetInfoFromParallelsUtils.cpp \
+	Tasks/Task_GetInfoFromVirtuozzoUtils.cpp \
 	Tasks/Task_ManagePrlNetService.cpp \
 	Tasks/Task_RegisterVm.cpp \
 	Tasks/Task_SearchLostConfigs.cpp \

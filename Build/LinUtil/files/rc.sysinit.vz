@@ -1,7 +1,7 @@
 #!/bin/sh
 
 VTD_MODULE=prl_vtdhook
-VTD_CONFIG=/etc/parallels/vtd.hook
+VTD_CONFIG=/etc/virtuozzo/vtd.hook
 
 if [ -f $VTD_CONFIG ]; then
        modprobe $VTD_MODULE `cat $VTD_CONFIG`

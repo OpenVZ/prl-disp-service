@@ -4,12 +4,12 @@
 /// @author sdmitry
 ///
 /// This library solves next tasks:
-/// - Enumerating existed Parallels adapters
+/// - Enumerating existed Virtuozzo adapters
 /// - Enumerating existing Ethernet adapters
 /// - Starting/Stopping/Pausing network daemons
 /// - Obtaining network daemons status
 /// - Notifying network daemons about changing configuration
-/// - Installing/Uninstalling/Enabling/Disabling Parallels adapters
+/// - Installing/Uninstalling/Enabling/Disabling Virtuozzo adapters
 ///
 /// After all of these function system specific last error is correctly set
 /// and in case of error system-specific text of the error could be obtained
@@ -46,7 +46,7 @@
 #include <QList>
 #include <QHostAddress>
 
-#include <prlcommon/Interfaces/ParallelsTypes.h>
+#include <prlcommon/Interfaces/VirtuozzoTypes.h>
 #include <prlsdk/PrlErrors.h>
 #include <prlxmlmodel/NetworkConfig/CHostOnlyNetwork.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
@@ -54,7 +54,7 @@
 #include <prlcommon/Std/SmartPtr.h>
 #include "PrlNetworkingConstants.h"
 
-class CParallelsNetworkConfig;
+class CVirtuozzoNetworkConfig;
 
 namespace PrlNet
 {
@@ -80,7 +80,7 @@ struct EthernetAdapter
 	int			_adapterIndex;	///< Index of the adapter.
 								///< Note: Prl adapters starts from index 0x80000000
 
-	bool		_bParallelsAdapter; /// true if is a prl adapter.
+	bool		_bVirtuozzoAdapter; /// true if is a prl adapter.
 
 	QString 	_adapterGuid;   ///< Windows GUID of the adapter (Win32 only)
 
@@ -165,7 +165,7 @@ PRL_RESULT renamePrlAdapter(
 /// Note: in unix-systems installation of the service is not required
 /// This function will simple start service
 /// @param PrlDir Directory where Product is installed
-PRL_RESULT installPrlService( const QString &parallelsDir );
+PRL_RESULT installPrlService( const QString &virtuozzoDir );
 
 /// For debugging purposes
 /// Removes Prl network service
@@ -181,7 +181,7 @@ struct SrvAction
 };
 
 /// Starts/stops network service
-PRL_RESULT startPrlNetService( const QString &parallelsDir, SrvAction::Action action );
+PRL_RESULT startPrlNetService( const QString &virtuozzoDir, SrvAction::Action action );
 
 struct SrvStatus
 {
@@ -198,7 +198,7 @@ PRL_RESULT getPrlNetServiceStatus(SrvStatus::Status *pStatus);
 
 /// Notifies network service about changes in configuration
 /// (NIC was installed/uninstalled, DHCP parameters where changed etc)
-PRL_RESULT notifyPrlNetService(const QString &parallelsDir);
+PRL_RESULT notifyPrlNetService(const QString &virtuozzoDir);
 
 /// Returns system last error
 unsigned long getSysError();
@@ -223,10 +223,10 @@ void	getDefaultDhcpParams(
 	quint32 &dhcpScopeMask );
 
 /// Starts networking adapters configured in Dispatcher.xml
-PRL_RESULT startNetworking( const QString &parallelsDir, const QString &prlDriversDir );
+PRL_RESULT startNetworking( const QString &virtuozzoDir, const QString &prlDriversDir );
 
 /// Stops networking adapters (Unix only)
-PRL_RESULT stopNetworking(const QString &parallelsDir);
+PRL_RESULT stopNetworking(const QString &virtuozzoDir);
 
 #if defined(_MAC_)
 /// Removes all Prl interfaces from the SCPreferences

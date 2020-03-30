@@ -40,7 +40,7 @@
 #include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include "Libraries/Virtuozzo/CVzHelper.h"
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 class Task_VzManager : public CDspTaskHelper
 {

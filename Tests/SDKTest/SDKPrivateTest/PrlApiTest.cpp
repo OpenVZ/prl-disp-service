@@ -35,7 +35,7 @@
 #include "Tests/CommonTestsUtils.h"
 
 #include <prlcommon/PrlUuid/Uuid.h>
-#include <prlcommon/Interfaces/ParallelsDomModel.h>
+#include <prlcommon/Interfaces/VirtuozzoDomModel.h>
 
 PrlApiTest::PrlApiTest()
 {}

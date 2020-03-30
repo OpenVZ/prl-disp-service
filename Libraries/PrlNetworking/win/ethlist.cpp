@@ -89,13 +89,13 @@ static int GetVNicNumber(const QString &adapterName)
 	if( len < 1 )
 		return -1;
 
-	int pos = adapterName.indexOf("Parallels Virtual NIC");
+	int pos = adapterName.indexOf("Virtuozzo Virtual NIC");
 	if( pos < 0 )
 	{
 		return -1;
 	}
 
-	pos += sizeof("Parallels Virtual NIC")-1;
+	pos += sizeof("Virtuozzo Virtual NIC")-1;
 	unsigned char s = '#';
 	while( adapterName.at(pos) != 0 )
 	{
@@ -191,7 +191,7 @@ bool makeEthIfacesList( EthIfaceList &ethList, bool unusedParam, bool unusedPara
 #endif
 
 		int nAdapterNum = 0;
-		if( -1 != adapterName.indexOf("Parallels") )
+		if( -1 != adapterName.indexOf("Virtuozzo") )
 		{
 			nAdapterNum = GetVNicNumber(adapterName);
 			if( nAdapterNum < 0 || nAdapterNum > 32 )

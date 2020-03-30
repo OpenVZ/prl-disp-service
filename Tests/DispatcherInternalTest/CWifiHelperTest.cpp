@@ -38,11 +38,11 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/WifiHelper/CWifiStoreHelper.h"
 #include <prlcommon/Logging/Logging.h>
-#include <prlcommon/Interfaces/ParallelsQt.h>
+#include <prlcommon/Interfaces/VirtuozzoQt.h>
 
 #include <QDir>
 
-using namespace Parallels;
+using namespace Virtuozzo;
 
 void CWifiHelperTest::init()
 {

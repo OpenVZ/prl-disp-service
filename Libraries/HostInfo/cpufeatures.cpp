@@ -24,8 +24,8 @@
 /// Schaffhausen, Switzerland.
 ///
 
-#include <prlcommon/Interfaces/ParallelsTypes.h>
-#include <prlcommon/Interfaces/ParallelsCompiler.h>
+#include <prlcommon/Interfaces/VirtuozzoTypes.h>
+#include <prlcommon/Interfaces/VirtuozzoCompiler.h>
 
 #include "cpufeatures.h"
 

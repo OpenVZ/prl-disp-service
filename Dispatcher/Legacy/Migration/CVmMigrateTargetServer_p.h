@@ -512,7 +512,7 @@ private:
 	QString m_log;
 	QString m_home;
 	QString m_uuid;
-	CParallelsNetworkConfig m_network;
+	CVirtuozzoNetworkConfig m_network;
 	config_type m_config;
 	const CDispCommonPreferences* m_dispatcher;
 };

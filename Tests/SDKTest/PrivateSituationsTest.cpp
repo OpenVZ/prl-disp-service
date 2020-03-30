@@ -32,7 +32,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
-#include <prlcommon/Interfaces/ParallelsSdkPrivate.h>
+#include <prlcommon/Interfaces/VirtuozzoSdkPrivate.h>
 #include "PrivateSituationsTest.h"
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <prlcommon/Logging/Logging.h>
@@ -44,7 +44,7 @@
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 
 using std::set;
-using namespace Parallels;
+using namespace Virtuozzo;
 
 namespace {
 PRL_RESULT UserCallback (PRL_HANDLE _handle, void *_data)
@@ -467,7 +467,7 @@ namespace {
 		}\
 	}
 
-PRL_RESULT onParallelsServerFound(PRL_HANDLE hServerInfo, PRL_VOID_PTR pData)
+PRL_RESULT onVirtuozzoServerFound(PRL_HANDLE hServerInfo, PRL_VOID_PTR pData)
 {
 	SdkHandleWrap _handle(hServerInfo);
 	PRL_HANDLE_TYPE _type;
@@ -567,7 +567,7 @@ void PrivateSituationsTest::testGetParamsCountForCallsWithOneStandardParamDataAb
 
 void PrivateSituationsTest::testGetParamsCountForCallsWithMultipleArgs()
 {
-	TEST_PARAMS_COUNT(PVE::DspCmdLookupParallelsServers, SetParamsList(QStringList()<<"item1"), 1)
+	TEST_PARAMS_COUNT(PVE::DspCmdLookupVirtuozzoServers, SetParamsList(QStringList()<<"item1"), 1)
 	TEST_PARAMS_COUNT(PVE::DspCmdDirGetVmList, SetParamsList(QStringList()<<"item1"<<"item2"), 2)
 	TEST_PARAMS_COUNT(PVE::DspCmdStartSearchConfig, SetParamsList(QStringList()<<"item1"<<"item2"<<"item3"), 3)
 	TEST_PARAMS_COUNT(PVE::DspCmdVmSectionValidateConfig, SetParamsList(QStringList()<<"item1"<<"item2"<<"item3"<<"item4"), 4)
@@ -576,7 +576,7 @@ void PrivateSituationsTest::testGetParamsCountForCallsWithMultipleArgs()
 
 void PrivateSituationsTest::testGetParamsCountForCallsWithMultipleArgsDataAbsent()
 {
-	TEST_PARAMS_COUNT(PVE::DspCmdLookupParallelsServers, GetCommand(), 0)
+	TEST_PARAMS_COUNT(PVE::DspCmdLookupVirtuozzoServers, GetCommand(), 0)
 	TEST_PARAMS_COUNT(PVE::DspCmdDirGetVmList, GetCommand(), 0)
 	TEST_PARAMS_COUNT(PVE::DspCmdStartSearchConfig, GetCommand(), 0)
 	TEST_PARAMS_COUNT(PVE::DspCmdVmSectionValidateConfig, GetCommand(), 0)

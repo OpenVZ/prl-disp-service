@@ -35,8 +35,8 @@
 
 #include "Interfaces/Debug.h"
 #include "Task_RemoveVmBackup_p.h"
-#include "prlcommon/Interfaces/ParallelsQt.h"
-#include "prlcommon/Interfaces/ParallelsNamespace.h"
+#include "prlcommon/Interfaces/VirtuozzoQt.h"
+#include "prlcommon/Interfaces/VirtuozzoNamespace.h"
 #include "CDspClientManager.h"
 #include "prlcommon/Logging/Logging.h"
 #include "prlcommon/HostUtils/HostUtils.h"
