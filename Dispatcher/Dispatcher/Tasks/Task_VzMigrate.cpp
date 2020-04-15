@@ -216,7 +216,6 @@ void exec_cmd(const QStringList &args)
 		p[i] = ::strdup(QSTR2UTF8(args[i]));
 
 	::execvp(QSTR2UTF8(args[0]), p.data());
-	WRITE_TRACE(DBG_FATAL, "execvp() error : %m");
 	foreach (char *t, p)
 		::free(t);
 }
@@ -370,6 +369,17 @@ PRL_RESULT Task_VzMigrate::startVzMigrate(const QString &sCmd, const QStringList
 		tmpl_data_socks.isNull() || swap_socks.isNull() || err_pipe.isNull())
 		return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
 
+	QStringList args;
+	args.append(m_sCmd);
+	args.append("-ps");
+	args.append(cmd_socks->child().toString());
+	args.append(data_socks->child().toString());
+	args.append(tmpl_data_socks->child().toString());
+	args.append(swap_socks->child().toString());
+	args.append(lstArgs);
+
+	WRITE_TRACE(DBG_INFO, "Run migration command: '%s'", QSTR2UTF8(args.join(" ")));
+
 	pid_t p = ::fork();
 	if (p < 0) {
 		WRITE_TRACE(DBG_FATAL, "fork() : %m");
@@ -378,20 +388,9 @@ PRL_RESULT Task_VzMigrate::startVzMigrate(const QString &sCmd, const QStringList
 		/* this f..ing child calls kill(0, signum) from signal handler */
 		if (::setpgrp())
 		{
-			WRITE_TRACE(DBG_FATAL, "setpgrp() error: %m");
 			_exit(-1);
 		}
 
-		QStringList args;
-		args.append(m_sCmd);
-		args.append("-ps");
-		args.append(cmd_socks->child().toString());
-		args.append(data_socks->child().toString());
-		args.append(tmpl_data_socks->child().toString());
-		args.append(swap_socks->child().toString());
-		args.append(lstArgs);
-
-		WRITE_TRACE(DBG_INFO, "Run migration command: '%s'", QSTR2UTF8(args.join(" ")));
 
 		/* to close all unused descriptors */
 		int fdnum = 1024;
