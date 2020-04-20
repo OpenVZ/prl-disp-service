@@ -122,7 +122,8 @@ public:
 	{
 		PCI440FX_78 = 5u,
 		PCI440FX_710 = 7u,
-		PCI440FX_DEFAULT = PCI440FX_710
+		PCI440FX_712 = 9u,
+		PCI440FX_DEFAULT = PCI440FX_712
 	};
 
 	enum VmPowerState { vpsNormal=0, vpsPausedByHostSleep=1, vpsPausedByVmFrozen=2 };
