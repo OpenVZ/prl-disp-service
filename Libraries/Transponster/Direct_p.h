@@ -433,6 +433,31 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct VirtualProfile
+
+struct VirtualProfile: boost::static_visitor<void>
+{
+	explicit VirtualProfile(CVmGenericNetworkAdapter &result) :
+		m_result(result)
+	{
+	}
+
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VVirtualPortProfile::types, 0>::type&) const
+	{
+	}	
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VVirtualPortProfile::types, 1>::type&) const
+	{
+	}
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VVirtualPortProfile::types, 2>::type& ovs_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VVirtualPortProfile::types, 3>::type&) const
+	{
+	}
+
+private:
+	CVmGenericNetworkAdapter &m_result;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
 struct Unit: boost::static_visitor<PRL_RESULT>

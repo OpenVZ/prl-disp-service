@@ -349,6 +349,28 @@ void Builder::setConnected(const boost::optional<Libvirt::Domain::Xml::EState >&
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct VirtualProfile
+
+void VirtualProfile::operator()(const mpl::at_c<Libvirt::Domain::Xml::VVirtualPortProfile::types, 2 >::type& ovs_) const
+{
+	const boost::optional<Libvirt::Domain::Xml::Parameters2 >& p = ovs_.getValue();
+	CVmNetVirtualPortType *v = new CVmNetVirtualPortType();
+	v->setType("openvswitch");
+	if (p)
+	{
+		if (p.get().getInterfaceid())
+		{
+			Visitor::Uuid<Libvirt::Domain::Xml::VUUID> u
+				(boost::bind(&CVmNetVirtualPortType::setInterfaceId, v, _1));
+			boost::apply_visitor(u, p.get().getInterfaceid().get());
+		}
+		if (p.get().getProfileid())
+			v->setProfileId(p.get().getProfileid().get());
+	}
+	m_result.setVirtualPort(v);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
 template<class T>
@@ -382,6 +404,12 @@ PRL_RESULT Unit::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::ty
 			a.setEmulatedType(PNA_ROUTED);
 		a.setVirtualNetworkID(n);
 		a.setSystemName(n);
+	}
+	
+	if (bridge_.getValue().getVirtualPortProfile())
+	{
+		boost::apply_visitor(Network::VirtualProfile(a),
+				bridge_.getValue().getVirtualPortProfile().get());
 	}
 
 	return PRL_ERR_SUCCESS;

@@ -599,6 +599,7 @@ struct View
 	QString getAdapterType() const;
 	QString getMac() const;
 	boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> getFilterref() const;
+	boost::optional<Libvirt::Domain::Xml::VVirtualPortProfile> getVVirtualPortProfile() const;
 
 private:
 	QString getFilterName() const;

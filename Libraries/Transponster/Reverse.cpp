@@ -826,6 +826,33 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterre
 	return filterref;
 }
 
+boost::optional<Libvirt::Domain::Xml::VVirtualPortProfile> View::getVVirtualPortProfile() const
+{
+	CVmNetVirtualPortType *v = m_network.getVirtualPort();
+
+	if (!v)
+		return boost::none;
+
+	if (v->getType() != "openvswitch")
+		return boost::none;
+
+	mpl::at_c<Libvirt::Domain::Xml::VVirtualPortProfile::types, 2>::type vv;
+
+	Libvirt::Domain::Xml::Parameters2 p;
+	if (!v->getInterfaceId().isEmpty())
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VUUID::types, 1>::type u;
+		u.setValue(::Uuid(v->getInterfaceId()).toStringWithoutBrackets());
+		p.setInterfaceid(Libvirt::Domain::Xml::VUUID(u));
+	}
+	if (!v->getProfileId().isEmpty())
+		p.setProfileid(v->getProfileId());
+	boost::optional<Libvirt::Domain::Xml::Parameters2> pp = p;
+	vv.setValue(pp);
+
+	return Libvirt::Domain::Xml::VVirtualPortProfile(vv);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Adapter
 
@@ -860,8 +887,13 @@ Libvirt::Domain::Xml::Interface658 Adapter<0>::prepare(const CVmGenericNetworkAd
 {
 	Libvirt::Domain::Xml::Interface658 output;
 	output.setIpList(Ips()(network_.getNetAddresses()));
-	output.setModel(View(network_).getAdapterType());
+
+	View v(network_);
+	output.setModel(v.getAdapterType());
+	output.setVirtualPortProfile(v.getVVirtualPortProfile());
+
 	Libvirt::Domain::Xml::InterfaceBridgeAttributes a;
+
 	if (network_.getVirtualNetworkID().isEmpty())
 		a.setBridge(QString("host-routed"));
 	else
