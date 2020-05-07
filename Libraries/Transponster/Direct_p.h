@@ -442,16 +442,12 @@ struct VirtualProfile: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VVirtualPortProfile::types, 0>::type&) const
-	{
-	}	
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VVirtualPortProfile::types, 1>::type&) const
+	template<class T>
+	void operator()(const T&) const
 	{
 	}
+
 	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VVirtualPortProfile::types, 2>::type& ovs_) const;
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VVirtualPortProfile::types, 3>::type&) const
-	{
-	}
 
 private:
 	CVmGenericNetworkAdapter &m_result;
