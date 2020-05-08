@@ -216,11 +216,13 @@ public:
 	 * @param VM uuid
 	 * @param backup uuid
 	 * @param flags
+	 * @param internal flags
 	 */
 	CVmBackupRestoreCommand(
 		const QString &sVmUuid,
 		const QString &sBackupUuid,
-		quint32 nFlags
+		quint32 nFlags,
+		quint32 nInternalFlags
 	);
 	/** Overridden method that let to determine whether protocol command valid */
 	bool IsValid();

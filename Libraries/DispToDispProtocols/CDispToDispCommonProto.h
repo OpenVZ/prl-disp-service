@@ -260,11 +260,13 @@ class CDispToDispProtoSerializer
 	 * @param Vm uuid
 	 * @param backup uuid
 	 * @param flags
+	 * @param internal flags
 	 */
 	static CDispToDispCommandPtr CreateVmBackupRestoreCommand(
 		const QString &sVmUuid,
 		const QString &sBackupUuid,
-		quint32 nFlags
+		quint32 nFlags,
+		quint32 nInternalFlags
 	);
 
 	/**

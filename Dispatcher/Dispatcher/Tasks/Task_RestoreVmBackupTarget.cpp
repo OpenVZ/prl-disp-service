@@ -2374,7 +2374,9 @@ PRL_RESULT Task_RestoreVmBackupTarget::sendStartRequest()
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 
 	QString u = (m_nFlags & PBT_RESTORE_TO_COPY) && !m_sBackupId.isEmpty() ? QString() : m_product.getUuid();
-	pStartCmd = CDispToDispProtoSerializer::CreateVmBackupRestoreCommand(u, m_sBackupId, m_nFlags);
+	if (CDspService::instance()->getShellServiceHelper().isLocalAddress(m_sServerHostname))
+		m_nInternalFlags |= PVM_LOCAL_BACKUP;
+	pStartCmd = CDispToDispProtoSerializer::CreateVmBackupRestoreCommand(u, m_sBackupId, m_nFlags, m_nInternalFlags);
 
 	pPackage = DispatcherPackage::createInstance(
 			pStartCmd->GetCommandId(),
