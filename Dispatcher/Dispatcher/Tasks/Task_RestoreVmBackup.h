@@ -284,7 +284,6 @@ private:
 	SmartPtr<CDspDispConnection> m_pDispConnection;
 	QString m_sVmName;
 	QString m_sBackupId;
-	QString m_sBackupUuid;
 	QString m_sBackupPath;
 	quint64 m_nTotalSize;
 	quint32 m_nBackupNumber;
