@@ -346,13 +346,15 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupCreateFirstReply
 CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupRestoreCommand(
 	const QString &sVmUuid,
 	const QString &sBackupUuid,
-	quint32 nFlags
+	quint32 nFlags,
+	quint32 nInternalFlags
 )
 {
 	return CDispToDispCommandPtr(new CVmBackupRestoreCommand(
 			sVmUuid,
 			sBackupUuid,
-			nFlags
+			nFlags,
+			nInternalFlags
 		));
 }
 

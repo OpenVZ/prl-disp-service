@@ -183,8 +183,7 @@ m_bBackupLocked(false)
 	m_nRemoteVersion = pCmd->GetVersion();
 	m_hHandle = m_pDispConnection->GetConnectionHandle();
 	m_nInternalFlags = 0;
-	if (CDspService::instance()->getShellServiceHelper().isLocalAddress(m_pDispConnection->getUserSession()->getUserHostAddress()))
-		m_nInternalFlags = PVM_LOCAL_BACKUP;
+	m_nInternalFlags |= pCmd->GetInternalFlags() & PVM_LOCAL_BACKUP;
 }
 
 PRL_RESULT Task_RestoreVmBackupSource::prepareTask()

@@ -282,9 +282,10 @@ bool CVmBackupCreateFirstReply::GetFreeDiskSpace(quint64 &nFreeDiskSpace)
 CVmBackupRestoreCommand::CVmBackupRestoreCommand(
 	const QString &sVmUuid,
 	const QString &sBackupUuid,
-	quint32 nFlags
+	quint32 nFlags,
+	quint32 nInternalFlags
 )
-: CVmBackupCommand(VmBackupRestoreCmd, sVmUuid, nFlags)
+: CVmBackupCommand(VmBackupRestoreCmd, sVmUuid, nFlags, nInternalFlags)
 {
 	SetStringParamValue(sBackupUuid, EVT_PARAM_BACKUP_CMD_BACKUP_UUID);
 }
