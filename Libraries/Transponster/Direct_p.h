@@ -1146,7 +1146,6 @@ struct Device: boost::static_visitor<void>
 {
 	// lease
 	// filesystem 
-	// graphic
 	// console
 	// smartcard
 	// hub
@@ -1186,6 +1185,10 @@ struct Device: boost::static_visitor<void>
 		const boost::optional<QString>& a = passthrough_.getValue().getAlias();
 		if (!a || !Transponster::Device::Alias().feature(a.get()))
 			m_result << passthrough_;
+	}
+	// graphic
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 8>::type&)
+	{
 	}
 	// video
 	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 9>::type&)
