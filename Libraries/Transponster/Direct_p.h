@@ -1144,6 +1144,22 @@ namespace Mixer
 
 struct Device: boost::static_visitor<void>
 {
+	// lease
+	// filesystem 
+	// graphic
+	// console
+	// smartcard
+	// hub
+	// redirdev
+	// redirfilter
+	// rng
+	// tpm
+	// memorydev
+	template <class T>
+	void operator()(const T& device_)
+	{
+		m_result << device_;
+	}
 	// disk
 	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 0>::type&)
 	{
@@ -1151,16 +1167,6 @@ struct Device: boost::static_visitor<void>
 	// controller
 	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 1>::type&)
 	{
-	}
-	// lease
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 2>::type& device_)
-	{
-		m_result << device_;
-	}
-	// filesystem
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 3>::type& device_)
-	{
-		m_result << device_;
 	}
 	// interface
 	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 4>::type&)
@@ -1181,19 +1187,9 @@ struct Device: boost::static_visitor<void>
 		if (!a || !Transponster::Device::Alias().feature(a.get()))
 			m_result << passthrough_;
 	}
-	// graphic
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 8>::type& device_)
-	{
-		m_result << device_;
-	}
 	// video
 	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 9>::type&)
 	{
-	}
-	// console
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 10>::type& device_)
-	{
-		m_result << device_;
 	}
 	// parallel
 	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 11>::type&)
@@ -1206,41 +1202,6 @@ struct Device: boost::static_visitor<void>
 	// channel
 	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 13>::type&)
 	{
-	}
-	// smartcard
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 14>::type& device_)
-	{
-		m_result << device_;
-	}
-	// hub
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 15>::type& device_)
-	{
-		m_result << device_;
-	}
-	// redirdev
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 16>::type& device_)
-	{
-		m_result << device_;
-	}
-	// redirfilter
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 17>::type& device_)
-	{
-		m_result << device_;
-	}
-	// rng
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 18>::type& device_)
-	{
-		m_result << device_;
-	}
-	// tpm
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 19>::type& device_)
-	{
-		m_result << device_;
-	}
-	// memorydev
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 20>::type& device_)
-	{
-		m_result << device_;
 	}
 
 	const QList<Libvirt::Domain::Xml::VChoice985>& getResult() const
