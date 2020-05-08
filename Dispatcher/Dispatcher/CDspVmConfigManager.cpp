@@ -576,6 +576,24 @@ struct Work
 	{
 		dst_.updateCache(m_path, m_config, m_user);
 	}
+	PRL_RESULT saveConfig(const QString& fname, bool replace, bool saveRelativePath) const
+	{
+		bool setOwner = !QFile(fname).exists();
+
+		PRL_RESULT e = m_config->saveToFile(fname, replace, saveRelativePath);
+		if (PRL_FAILED(e))
+			return e;
+
+		if (setOwner && !CDspAccessManager::setOwner(fname, getAuth(), false))
+		{
+			WRITE_TRACE(DBG_FATAL, "Can't set owner for %s", qPrintable(fname));
+			return PRL_ERR_CANT_CHANGE_OWNER_OF_FILE;
+
+		}
+
+		return PRL_ERR_SUCCESS;
+	}
+
 private:
 	QString m_path;
 	SmartPtr<CDspClient> m_user;
@@ -726,8 +744,7 @@ bool Backup::setPermissions() const
 
 void Backup::operator()(bool replace_, bool saveRelative_) const
 {
-	PRL_RESULT e = m_work->getConfig()
-			->saveToFile(m_path, replace_, saveRelative_);
+	PRL_RESULT e = m_work->saveConfig(m_path, replace_, saveRelative_);
 	if (PRL_FAILED(e))
 	{
 		WRITE_TRACE(DBG_FATAL, "Cannot write VM config backup file '%s'! Error: 0x%x",
@@ -849,7 +866,7 @@ PRL_RESULT Restore::prepareSource()
 PRL_RESULT Restore::operator()(CacheBase<CVmConfiguration>& dst_)
 {
 	CAuthHelperImpersonateWrapper _impersonate(m_work.getAuth());
-	PRL_RESULT e = m_work.getConfig()->saveToFile(m_work.getPath(), false, false);
+	PRL_RESULT e = m_work.saveConfig(m_work.getPath(), false, false);
 	if(PRL_FAILED(e))
 		return e;
 
@@ -912,8 +929,7 @@ PRL_RESULT Mixed::save(const Work& src_, bool replace_, bool saveRelative_)
 	if (u.prepareTarget())
 		u(replace_, saveRelative_);
 
-	PRL_RESULT output = src_.getConfig()->saveToFile
-				(src_.getPath(), replace_, saveRelative_);
+	PRL_RESULT output = src_.saveConfig(src_.getPath(), replace_, saveRelative_);
 	if (PRL_SUCCEEDED(output))
 		src_.save(getCache());
 
