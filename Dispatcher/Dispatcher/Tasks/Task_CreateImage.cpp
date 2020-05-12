@@ -547,6 +547,13 @@ PRL_RESULT Task_CreateImage::createHdd(const CVmHardDisk& dto_)
 		e = VirtualDisk::Qcow2::create(strFullPath, p);
 	}
 
+	if (!CDspAccessManager::setOwner(strFullPath, &getClient()->getAuthHelper(), false))
+	{
+		WRITE_TRACE(DBG_FATAL, "Can't change owner of disk image [%s]", qPrintable(strFullPath));
+		QFile(strFullPath).remove();
+		e = PRL_ERR_CANT_CHANGE_OWNER_OF_DISK_IMAGE_FILE;
+	}
+
 	if (PRL_FAILED(e))
 	{
 		getLastError()->addEventParameter(new CVmEventParameter(PVE::String,
