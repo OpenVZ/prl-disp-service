@@ -802,6 +802,7 @@ void Frontend::copy(const CopyCommand_type& event_)
 	}
 	else
 	{
+		m_task->setDefaultVmPermissions();
 		static_cast<boost::msm::back::state_machine<Frontend> &>(*this)
 			.process_event(Good());
 	}
@@ -1481,9 +1482,6 @@ void Task_MigrateVmTarget::finalizeTask()
 
 	if (PRL_SUCCEEDED(getLastErrorCode()))
 	{
-		/* and set logged user by owner to all VM's files */
-		Mixin_CreateVmSupport().setDefaultVmPermissions(getClient(), m_sVmConfigPath, true);
-
 		if (!m_vcmmd.isNull())
 			m_vcmmd->commit();
 
@@ -1747,6 +1745,7 @@ PRL_RESULT Task_MigrateVmTarget::checkSharedStorage()
 	}
 	while(false);
 
+
 	if (PRL_ERR_SUCCESS != output)
 	{
 		//Fill additional error info
@@ -2001,3 +2000,9 @@ std::pair<CVmFileListCopySender*, CVmFileListCopyTarget*> Task_MigrateVmTarget::
 
 	return std::make_pair(sender, copier);
 }
+
+void Task_MigrateVmTarget::setDefaultVmPermissions()
+{
+	Mixin_CreateVmSupport().setDefaultVmPermissions(getClient(), m_sVmConfigPath, true);
+}
+
