@@ -95,6 +95,8 @@ public:
 		return m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate();
 	}
 
+	void setDefaultVmPermissions();
+
 protected:
 	virtual PRL_RESULT prepareTask();
 	virtual PRL_RESULT run_body();
