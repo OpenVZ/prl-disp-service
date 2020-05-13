@@ -709,19 +709,6 @@ CDspAccessManager::setFullAccessRightsToVm( SmartPtr<CDspClient> pSession
 		if( PRL_FAILED( err ) )
 			throw err;
 
-		// set perm to scripts
-		QString scriptsDir = VirtuozzoDirs::getVmScriptsDir( strVmDirPath );
-		if( CFileHelper::DirectoryExists(scriptsDir, &pSession->getAuthHelper()) )
-		{
-			CAuth::AccessMode otherScripts = CAuth::fileMayRead;
-
-			err = CFileHelper::SetSimplePermissionsToFile( scriptsDir
-							, pSession->getAuthHelper(), pOwn, &otherScripts, true );
-
-			if( PRL_FAILED( err ) )
-				throw err;
-		}
-
 		// set perm to config.pvs
 		err = CFileHelper::SetSimplePermissionsToFile( pVmDirItem->getVmHome()
 							, pSession->getAuthHelper(), pOwn, pOth, false );
