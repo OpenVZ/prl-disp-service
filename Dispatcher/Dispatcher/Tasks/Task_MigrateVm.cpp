@@ -1602,9 +1602,6 @@ void Task_MigrateVmSource::finalizeTask()
 		wsResponse->SetError(getLastError()->toString());
 	}
 
-	foreach (const QString &file, m_lstAllCheckFiles)
-		CFileHelper::RemoveEntry(file, &getClient()->getAuthHelper());
-
 	getClient()->sendResponse(pResponse, getRequestPackage());
 }
 
@@ -1943,6 +1940,11 @@ PRL_RESULT Task_MigrateVmSource::reactCheckReply(const SmartPtr<IOPackage>& pack
 	in::Report x;
 	in::Reply::Efiw2k8(m_nRemoteVersion,
 		in::Reply::Interpreter(lstErrors))(qMakePair(this, &x));
+
+	// remove temporary file before migration
+	foreach (const QString &file, m_lstAllCheckFiles)
+		QFile::remove(file);
+
 	if (!x.getResult().isEmpty())
 	{
 		m_lstCheckPrecondsErrors = x.getResult();
