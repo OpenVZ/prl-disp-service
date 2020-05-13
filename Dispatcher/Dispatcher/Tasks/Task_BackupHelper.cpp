@@ -1724,16 +1724,27 @@ PRL_RESULT Task_BackupMixin::findVmUuidForBackupUuid(const QString &sBackupUuid,
 
 QString Task_BackupMixin::getBackupDirectory()
 {
-	CDspLockedPointer<CDispatcherConfig> pLockedDispConfig =
-		CDspService::instance()->getDispConfigGuard().getDispConfig();
-	QString sBackupDirectory =
-		pLockedDispConfig->getDispatcherSettings()->getCommonPreferences()
+	QString sBackupDirectory;
+	PRL_RESULT e;
+	SmartPtr <CVmConfiguration> pVmConfig =
+		CDspService::instance()->getVmDirHelper().getVmConfigByUuid(m_task->getClient(), m_sVmUuid, e);
+
+	if (pVmConfig)
+		sBackupDirectory = pVmConfig->getVmSettings()->getVmCommonOptions()
 			->getBackupTargetPreferences()->getDefaultBackupDirectory();
 
+	if (sBackupDirectory.isEmpty()) {
+		CDspLockedPointer<CDispatcherConfig> pLockedDispConfig =
+			CDspService::instance()->getDispConfigGuard().getDispConfig();
+		sBackupDirectory =
+			pLockedDispConfig->getDispatcherSettings()->getCommonPreferences()
+				->getBackupTargetPreferences()->getDefaultBackupDirectory();
+	}
+
 	if (sBackupDirectory.isEmpty())
-		return VirtuozzoDirs::getDefaultBackupDir();
-	else
-		return sBackupDirectory;
+		sBackupDirectory = VirtuozzoDirs::getDefaultBackupDir();
+
+	return sBackupDirectory;
 }
 
 PRL_RESULT Task_BackupMixin::handleABackupPackage(
