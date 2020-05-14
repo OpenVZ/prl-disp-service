@@ -379,6 +379,15 @@ void OsInfo::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct BackupDirectory
+
+void BackupDirectory::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+{
+	old_.getVmSettings()->getVmCommonOptions()->getBackupTargetPreferences()->setDefaultBackupDirectory
+		(new_.getVmSettings()->getVmCommonOptions()->getBackupTargetPreferences()->getDefaultBackupDirectory());
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct RuntimeOptions
 
 void RuntimeOptions::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
