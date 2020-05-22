@@ -69,6 +69,7 @@ Task_RemoveVmBackupSource::Task_RemoveVmBackupSource(
 	m_sBackupId = pCmd->GetBackupUuid();
 	m_sServerHostname = pCmd->GetServerHostname();
 	m_nServerPort = pCmd->GetServerPort();
+	m_sServerDirectory = pCmd->GetServerBackupDirectory();
 	m_sServerSessionUuid = pCmd->GetServerSessionUuid();
 	m_nFlags = pCmd->GetFlags() | PBT_VM | PBT_CT; // by default for Vm and Ct
 }
@@ -100,7 +101,7 @@ PRL_RESULT Task_RemoveVmBackupSource::run_body()
 		}
 
 		QString sBackupTree;
-		if (PRL_FAILED(nRetCode = GetBackupTreeRequest(m_sVmUuid, sBackupTree)))
+		if (PRL_FAILED(nRetCode = GetBackupTreeRequest(m_sVmUuid, m_sServerDirectory, sBackupTree)))
 		{
 			nRetCode = PRL_ERR_BACKUP_INTERNAL_ERROR;
 			WRITE_TRACE( DBG_FATAL, "Failed to get backup tree");
@@ -146,7 +147,7 @@ PRL_RESULT Task_RemoveVmBackupSource::run_body()
 		}
 	}
 
-	pCommand = CDispToDispProtoSerializer::CreateVmBackupRemoveCommand(m_sVmUuid, m_sBackupId, m_nFlags);
+	pCommand = CDispToDispProtoSerializer::CreateVmBackupRemoveCommand(m_sVmUuid, m_sBackupId, m_sServerDirectory, m_nFlags);
 	pPackage = DispatcherPackage::createInstance(pCommand->GetCommandId(), pCommand->GetCommand()->toString());
 
 	if (PRL_FAILED(nRetCode = SendReqAndWaitReplyLong(pPackage, pReply, ~0U)))
@@ -612,6 +613,7 @@ m_pDispConnection(pDispConnection)
 		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmBackupRemoveCommand>(cmd);
 	m_sVmUuid = pCmd->GetVmUuid();
 	m_sBackupId = pCmd->GetBackupUuid();
+	m_sServerDirectory = pCmd->GetServerBackupDirectory();
 	m_nFlags = pCmd->GetFlags();
 	m_nBackupNumber = 0;
 	m_nLocked = 0;

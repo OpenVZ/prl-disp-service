@@ -176,6 +176,7 @@ m_bBackupLocked(false)
 	CVmBackupRestoreCommand *pCmd =
 		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmBackupRestoreCommand>(cmd);
 	m_sVmUuid = pCmd->GetVmUuid();
+	m_sServerDirectory = pCmd->GetServerBackupDirectory();
 	m_sBackupId = pCmd->GetBackupUuid();
 	m_nBackupNumber = PRL_BASE_BACKUP_NUMBER;
 	m_nFlags = pCmd->GetFlags();

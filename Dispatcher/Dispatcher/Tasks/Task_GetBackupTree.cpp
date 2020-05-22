@@ -138,6 +138,7 @@ Task_GetBackupTreeSource::Task_GetBackupTreeSource(
 	m_sUuid = pCmd->GetVmUuid();
 	m_sServerHostname = pCmd->GetServerHostname();
 	m_nServerPort = pCmd->GetServerPort();
+	m_sServerDirectory = pCmd->GetServerBackupDirectory();
 	m_sServerSessionUuid = pCmd->GetServerSessionUuid();
 	m_nFlags = pCmd->GetFlags();
 	if (!(m_nFlags & PBT_VM) && !(m_nFlags & PBT_CT))
@@ -181,7 +182,7 @@ PRL_RESULT Task_GetBackupTreeSource::run_body()
 	if (PRL_FAILED(nRetCode = Task_BackupMixin::connect()))
 		goto exit;
 
-	if (PRL_FAILED(nRetCode = GetBackupTreeRequest(m_sUuid, m_sBackupTree)))
+	if (PRL_FAILED(nRetCode = GetBackupTreeRequest(m_sUuid, m_sServerDirectory, m_sBackupTree)))
 		goto exit;
 
 
@@ -225,6 +226,7 @@ m_sUuid(m_sVmUuid)
 	CGetBackupTreeCommand *pStartCommand =
 		CDispToDispProtoSerializer::CastToDispToDispCommand<CGetBackupTreeCommand>(pCmd);
 	m_sUuid = pStartCommand->GetVmUuid();
+	m_sServerDirectory = pStartCommand->GetServerBackupDirectory();
 	m_nFlags = pStartCommand->GetFlags();
 	if (!(m_nFlags & PBT_VM) && !(m_nFlags & PBT_CT))
 		/* to show VM by default */

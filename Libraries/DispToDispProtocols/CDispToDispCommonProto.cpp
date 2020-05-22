@@ -279,6 +279,7 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupCreateCommand(
 	const QString &sVmName,
 	const QString &sHost,
 	const QString &sServerUuid,
+	const QString &sBackupDir,
 	const QString &sDescription,
 	const QString &sVmConfig,
 	quint64 nOriginalSize,
@@ -293,6 +294,7 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupCreateCommand(
 			sVmName,
 			sHost,
 			sServerUuid,
+			sBackupDir,
 			sDescription,
 			sVmConfig,
 			nOriginalSize,
@@ -308,6 +310,7 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupCreateLocalComma
 	const QString &sVmName,
 	const QString &sHost,
 	const QString &sServerUuid,
+	const QString &sBackupDir,
 	const QString &sDescription,
 	const QString &sStorage,
 	const QString &sSnapshotUuid,
@@ -322,6 +325,7 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupCreateLocalComma
 			sVmName,
 			sHost,
 			sServerUuid,
+			sBackupDir,
 			sDescription,
 			sStorage,
 			sSnapshotUuid,
@@ -346,6 +350,7 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupCreateFirstReply
 CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupRestoreCommand(
 	const QString &sVmUuid,
 	const QString &sBackupUuid,
+	const QString &sBackupDir,
 	quint32 nFlags,
 	quint32 nInternalFlags
 )
@@ -353,6 +358,7 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupRestoreCommand(
 	return CDispToDispCommandPtr(new CVmBackupRestoreCommand(
 			sVmUuid,
 			sBackupUuid,
+			sBackupDir,
 			nFlags,
 			nInternalFlags
 		));
@@ -383,9 +389,10 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupRestoreFirstRepl
 			nVersion));
 }
 
-CDispToDispCommandPtr CDispToDispProtoSerializer::CreateGetBackupTreeCommand(const QString &sVmUuid, quint32 nFlags)
+CDispToDispCommandPtr CDispToDispProtoSerializer::CreateGetBackupTreeCommand(const QString &sVmUuid,
+	const QString &sBackupDir, quint32 nFlags)
 {
-	return CDispToDispCommandPtr(new CVmBackupCommand(VmBackupGetTreeCmd, sVmUuid, nFlags));
+	return CDispToDispCommandPtr(new CVmBackupCommand(VmBackupGetTreeCmd, sVmUuid, nFlags, sBackupDir));
 }
 
 CDispToDispCommandPtr CDispToDispProtoSerializer::CreateGetBackupTreeReply(const QString &sReply)
@@ -396,12 +403,14 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::CreateGetBackupTreeReply(const
 CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupRemoveCommand(
 	const QString &sVmUuid,
 	const QString &sBackupUuid,
+	const QString &sBackupDir,
 	quint32 nFlags
 )
 {
 	return CDispToDispCommandPtr(new CVmBackupRemoveCommand(
 			sVmUuid,
 			sBackupUuid,
+			sBackupDir,
 			nFlags
 		));
 }
@@ -423,19 +432,21 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::CreateCopyCtTemplateReply()
 
 CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupAttachCommand(
 	const QString &sVmUuid,
+	const QString &sBackupDir,
 	const QString &sDiskConfig,
 	const QString &sDiskDir
 )
 {
-	return (CDispToDispCommandPtr(new CVmBackupAttachCommand(sVmUuid, sDiskConfig, sDiskDir)));
+	return (CDispToDispCommandPtr(new CVmBackupAttachCommand(sVmUuid, sBackupDir, sDiskConfig, sDiskDir)));
 }
 
 CDispToDispCommandPtr CDispToDispProtoSerializer::CreateVmBackupConnectSourceCommand(
 	const QString &sVmUuid,
+	const QString &sBackupDir,
 	const QString &sDiskConfig
 )
 {
-	return (CDispToDispCommandPtr(new CVmBackupConnectSourceCommand(sVmUuid, sDiskConfig)));
+	return (CDispToDispCommandPtr(new CVmBackupConnectSourceCommand(sVmUuid, sBackupDir, sDiskConfig)));
 }
 
 //*****************************************CDispToDispAuthorizeCommand implementation**********************************

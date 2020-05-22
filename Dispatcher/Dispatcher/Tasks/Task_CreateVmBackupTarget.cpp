@@ -54,7 +54,7 @@ m_bBackupLocked(false)
 	m_sVmName = pStartCommand->GetVmName();
 	m_hConnHandle = pDispConnection->GetConnectionHandle();
 	m_sSourceHost = pStartCommand->GetHost();
-
+	m_sServerDirectory = pStartCommand->GetServerBackupDirectory();
 	m_sServerUuid = pStartCommand->GetServerUuid();
 	m_sDescription = pStartCommand->GetDescription();
 	m_nFlags = pStartCommand->GetFlags();

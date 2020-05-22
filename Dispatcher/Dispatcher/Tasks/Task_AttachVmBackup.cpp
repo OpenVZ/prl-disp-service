@@ -936,6 +936,7 @@ template <class Cmd>
 PRL_RESULT Task_AttachVmBackupHelper::prepareTask(Cmd *cmd)
 {
 	m_sVmUuid = cmd->GetVmUuid();
+	m_sServerDirectory = cmd->GetServerBackupDirectory();
 
 	if (!StringToElement<CVmHardDisk*>(&m_disk, cmd->GetDiskConfig())) {
 		WRITE_TRACE(DBG_FATAL, "received invalid hard disk config");
@@ -975,7 +976,7 @@ PRL_RESULT Task_AttachVmBackupHelper::fetchBackupInfo(QString& result)
 		return PRL_ERR_OPERATION_WAS_CANCELED;
 	m_nFlags |= PBT_VM | PBT_CT | PBT_BACKUP_ID;
 	PRL_RESULT res;
-	if (PRL_FAILED(res = GetBackupTreeRequest(m_resource.getBackupId(), result)))
+	if (PRL_FAILED(res = GetBackupTreeRequest(m_resource.getBackupId(), m_sServerDirectory, result)))
 		WRITE_TRACE(DBG_FATAL, "failed to retrieve the backup tree for backup '%s'",
 			QSTR2UTF8(m_resource.getBackupId()));
 	return res == PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR ? PRL_ERR_ATTACH_BACKUP_PROTO_ERROR : res;

@@ -77,12 +77,14 @@ public:
 		Virtuozzo::IDispToDispCommands nCmdIdentifier,
 		const QString &sVmUuid,
 		quint32 nFlags,
+		const QString &sBackupDir = QString(),
 		quint32 nInternalFlags = 0,
 		quint32 nVersion = BACKUP_PROTO_VERSION);
 	~CVmBackupCommand() {}
 	/** Returns flags */
 	quint32 GetFlags();
 	QString GetVmUuid();
+	QString GetServerBackupDirectory();
 	virtual bool IsValid();
 };
 
@@ -114,6 +116,7 @@ public:
 		const QString &sVmName,
 		const QString &sHost,
 		const QString &sServerUuid,
+		const QString &sBackupDir,
 		const QString &sDescription,
 		const QString &sVmConfig,
 		quint64 nOriginalSize,
@@ -125,6 +128,7 @@ public:
 		const QString &sVmName,
 		const QString &sHost,
 		const QString &sServerUuid,
+		const QString &sBackupDir,
 		const QString &sDescription,
 		const QString &sVmConfig,
 		quint64 nOriginalSize,
@@ -154,7 +158,7 @@ class CVmBackupCreateLocalCommand : public CVmBackupCreateCommand
 public:
 	CVmBackupCreateLocalCommand()
 	: CVmBackupCreateCommand(VmBackupCreateLocalCmd,
-		QString(), QString(), QString(), QString(), QString(), QString(), 0, 0, 0)
+		QString(), QString(), QString(), QString(), QString(), QString(), QString(), 0, 0, 0)
 	{}
 
 	CVmBackupCreateLocalCommand(
@@ -162,6 +166,7 @@ public:
 		const QString &sVmName,
 		const QString &sHost,
 		const QString &sServerUuid,
+		const QString &sBackupDir,
 		const QString &sDescription,
 		const QString &sStorage,
 		const QString &sSnapshotUuid,
@@ -221,6 +226,7 @@ public:
 	CVmBackupRestoreCommand(
 		const QString &sVmUuid,
 		const QString &sBackupUuid,
+		const QString &sBackupDir,
 		quint32 nFlags,
 		quint32 nInternalFlags
 	);
@@ -292,6 +298,7 @@ public:
 	CVmBackupRemoveCommand(
 		const QString &sVmUuid,
 		const QString &sBackupUuid,
+		const QString &sBackupDir,
 		quint32 nFlags
 	);
 	/** Overridden method that let to determine whether protocol command valid */
@@ -344,6 +351,7 @@ public:
 	 */
 	CVmBackupAttachCommand(
 		const QString &sVmUuid,
+		const QString &sBackupDir,
 		const QString &sDiskConfig,
 		const QString &sDiskDir
 	);
@@ -374,6 +382,7 @@ public:
 	 */
 	CVmBackupConnectSourceCommand(
 		const QString &sVmUuid,
+		const QString &sBackupDir,
 		const QString &sDiskConfig
 	);
 	/** Overridden method that let to determine whether protocol command valid */

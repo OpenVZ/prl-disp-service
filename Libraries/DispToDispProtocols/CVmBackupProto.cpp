@@ -68,11 +68,13 @@ CVmBackupCommand::CVmBackupCommand(
 	Virtuozzo::IDispToDispCommands nCmdIdentifier,
 	const QString &sVmUuid,
 	quint32 nFlags,
+	const QString &sBackupDir,
 	quint32 nInternalFlags,
 	quint32 nVersion)
 :CVmBackupProto(nCmdIdentifier, nFlags, nInternalFlags, nVersion)
 {
 	SetStringParamValue(sVmUuid, EVT_PARAM_BACKUP_CMD_VM_UUID);
+	SetStringParamValue(sBackupDir, EVT_PARAM_BACKUP_CMD_SERVER_BACKUP_DIRECTORY);
 }
 
 QString CVmBackupCommand::GetVmUuid()
@@ -83,6 +85,11 @@ QString CVmBackupCommand::GetVmUuid()
 quint32 CVmBackupCommand::GetFlags()
 {
 	return GetCommandFlags();
+}
+
+QString CVmBackupCommand::GetServerBackupDirectory()
+{
+	return GetStringParamValue(EVT_PARAM_BACKUP_CMD_SERVER_BACKUP_DIRECTORY);
 }
 
 bool CVmBackupCommand::IsValid()
@@ -97,6 +104,7 @@ CVmBackupCreateCommand::CVmBackupCreateCommand(
 	const QString &sVmName,
 	const QString &sHost,
 	const QString &sServerUuid,
+	const QString &sBackupDir,
 	const QString &sDescription,
 	const QString &sVmConfig,
 	quint64 nOriginalSize,
@@ -105,7 +113,7 @@ CVmBackupCreateCommand::CVmBackupCreateCommand(
 	quint32 nFlags,
 	quint32 nInternalFlags
 )
-: CVmBackupCommand(VmBackupCreateCmd, sVmUuid, nFlags, nInternalFlags)
+: CVmBackupCommand(VmBackupCreateCmd, sVmUuid, nFlags, sBackupDir, nInternalFlags)
 {
 	SetStringParamValue(sVmName, EVT_PARAM_BACKUP_CMD_VM_NAME);
 	SetStringParamValue(sHost, EVT_PARAM_BACKUP_CMD_HOST);
@@ -123,13 +131,14 @@ CVmBackupCreateCommand::CVmBackupCreateCommand(
 	const QString &sVmName,
 	const QString &sHost,
 	const QString &sServerUuid,
+	const QString &sBackupDir,
 	const QString &sDescription,
 	const QString &sVmConfig,
 	quint64 nOriginalSize,
 	quint32 nFlags,
 	quint32 nInternalFlags
 )
-: CVmBackupCommand(nCmdIdentifier, sVmUuid, nFlags, nInternalFlags)
+: CVmBackupCommand(nCmdIdentifier, sVmUuid, nFlags, sBackupDir, nInternalFlags)
 {
 	SetStringParamValue(sVmName, EVT_PARAM_BACKUP_CMD_VM_NAME);
 	SetStringParamValue(sHost, EVT_PARAM_BACKUP_CMD_HOST);
@@ -195,6 +204,7 @@ CVmBackupCreateLocalCommand::CVmBackupCreateLocalCommand(
 	const QString &sVmName,
 	const QString &sHost,
 	const QString &sServerUuid,
+	const QString &sBackupDir,
 	const QString &sDescription,
 	const QString &sStorage,
 	const QString &sSnapshotUuid,
@@ -203,7 +213,7 @@ CVmBackupCreateLocalCommand::CVmBackupCreateLocalCommand(
 	quint32 nFlags,
 	quint32 nInternalFlags
 )
-: CVmBackupCreateCommand(VmBackupCreateLocalCmd, sVmUuid, sVmName, sHost, sServerUuid,
+: CVmBackupCreateCommand(VmBackupCreateLocalCmd, sVmUuid, sVmName, sHost, sServerUuid, sBackupDir,
 			sDescription, sVmConfig, nOriginalSize, nFlags, nInternalFlags)
 {
 	SetStringParamValue(sStorage, EVT_PARAM_ISCSI_STORAGE);
@@ -282,10 +292,11 @@ bool CVmBackupCreateFirstReply::GetFreeDiskSpace(quint64 &nFreeDiskSpace)
 CVmBackupRestoreCommand::CVmBackupRestoreCommand(
 	const QString &sVmUuid,
 	const QString &sBackupUuid,
+	const QString &sBackupDir,
 	quint32 nFlags,
 	quint32 nInternalFlags
 )
-: CVmBackupCommand(VmBackupRestoreCmd, sVmUuid, nFlags, nInternalFlags)
+: CVmBackupCommand(VmBackupRestoreCmd, sVmUuid, nFlags, sBackupDir, nInternalFlags)
 {
 	SetStringParamValue(sBackupUuid, EVT_PARAM_BACKUP_CMD_BACKUP_UUID);
 }
@@ -314,7 +325,7 @@ CVmBackupRestoreFirstReply::CVmBackupRestoreFirstReply(
 	quint32 nInternalFlags,
 	quint32 nVersion
 )
-:CVmBackupCommand(VmBackupRestoreFirstReply, sVmUuid, 0, nInternalFlags, nVersion)
+:CVmBackupCommand(VmBackupRestoreFirstReply, sVmUuid, 0, QString(), nInternalFlags, nVersion)
 {
 	SetStringParamValue(sVmName, EVT_PARAM_BACKUP_CMD_VM_NAME);
 	SetStringParamValue(sVmConfiguration, EVT_PARAM_BACKUP_CMD_VM_CONFIG);
@@ -375,9 +386,10 @@ quint32 CVmBackupRestoreFirstReply::GetBundlePermissions()
 CVmBackupRemoveCommand::CVmBackupRemoveCommand(
 	const QString &sVmUuid,
 	const QString &sBackupUuid,
+	const QString &sBackupDir,
 	quint32 nFlags
 )
-: CVmBackupCommand(VmBackupRemoveCmd, sVmUuid, nFlags)
+: CVmBackupCommand(VmBackupRemoveCmd, sVmUuid, nFlags, sBackupDir)
 {
 	SetStringParamValue(sBackupUuid, EVT_PARAM_BACKUP_CMD_BACKUP_UUID);
 }
@@ -415,10 +427,11 @@ QString CGetBackupTreeReply::GetBackupTree()
 
 CVmBackupAttachCommand::CVmBackupAttachCommand(
 	const QString &sVmUuid,
+	const QString &sBackupDir,
 	const QString &sDiskConfig,
 	const QString &sDiskDir
 )
-: CVmBackupCommand(VmBackupAttachCmd, sVmUuid, 0)
+: CVmBackupCommand(VmBackupAttachCmd, sVmUuid, 0, sBackupDir)
 {
 	SetStringParamValue( sDiskConfig, EVT_PARAM_ATTACH_VM_BACKUP_DISK_CONFIG );
 	SetStringParamValue( sDiskDir, EVT_PARAM_ATTACH_VM_BACKUP_DISK_DIR );
@@ -445,9 +458,10 @@ QString CVmBackupAttachCommand::GetDiskDir()
 
 CVmBackupConnectSourceCommand::CVmBackupConnectSourceCommand(
 	const QString &sVmUuid,
+	const QString &sBackupDir,
 	const QString &sDiskConfig
 )
-: CVmBackupCommand(VmBackupConnectSourceCmd, sVmUuid, 0)
+: CVmBackupCommand(VmBackupConnectSourceCmd, sVmUuid, 0, sBackupDir)
 {
 	SetStringParamValue( sDiskConfig, EVT_PARAM_CONNECT_VM_BACKUP_SOURCE_DISK_CONFIG );
 }

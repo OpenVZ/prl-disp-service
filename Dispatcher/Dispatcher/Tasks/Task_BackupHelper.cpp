@@ -1724,14 +1724,17 @@ PRL_RESULT Task_BackupMixin::findVmUuidForBackupUuid(const QString &sBackupUuid,
 
 QString Task_BackupMixin::getBackupDirectory()
 {
-	QString sBackupDirectory;
-	PRL_RESULT e;
-	SmartPtr <CVmConfiguration> pVmConfig =
-		CDspService::instance()->getVmDirHelper().getVmConfigByUuid(m_task->getClient(), m_sVmUuid, e);
+	QString sBackupDirectory = m_sServerDirectory;
 
-	if (pVmConfig)
-		sBackupDirectory = pVmConfig->getVmSettings()->getVmCommonOptions()
-			->getBackupTargetPreferences()->getDefaultBackupDirectory();
+	if (sBackupDirectory.isEmpty()) {
+		PRL_RESULT e;
+		SmartPtr <CVmConfiguration> pVmConfig =
+			CDspService::instance()->getVmDirHelper().getVmConfigByUuid(m_task->getClient(), m_sVmUuid, e);
+
+		if (pVmConfig)
+			sBackupDirectory = pVmConfig->getVmSettings()->getVmCommonOptions()
+				->getBackupTargetPreferences()->getDefaultBackupDirectory();
+	}
 
 	if (sBackupDirectory.isEmpty()) {
 		CDspLockedPointer<CDispatcherConfig> pLockedDispConfig =
@@ -1743,6 +1746,8 @@ QString Task_BackupMixin::getBackupDirectory()
 
 	if (sBackupDirectory.isEmpty())
 		sBackupDirectory = VirtuozzoDirs::getDefaultBackupDir();
+
+	WRITE_TRACE(DBG_INFO, "vmuuid='%s' backup_dir='%s'", qPrintable(m_sVmUuid), qPrintable(sBackupDirectory));
 
 	return sBackupDirectory;
 }
@@ -1873,14 +1878,14 @@ PRL_RESULT Task_BackupMixin::startABackupClient(const QString& sVmName_, const Q
 	return startABackupClient(sVmName_, args_, SmartPtr<Chain>(p));
 }
 
-PRL_RESULT Task_BackupMixin::GetBackupTreeRequest(const QString &sVmUuid, QString &sBackupTree)
+PRL_RESULT Task_BackupMixin::GetBackupTreeRequest(const QString &sVmUuid, const QString &sBackupDir, QString &sBackupTree)
 {
 	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
 	CDispToDispCommandPtr pCmd;
 	SmartPtr<IOPackage> pPackage;
 	SmartPtr<IOPackage> pReply;
 
-	pCmd = CDispToDispProtoSerializer::CreateGetBackupTreeCommand(sVmUuid, m_nFlags);
+	pCmd = CDispToDispProtoSerializer::CreateGetBackupTreeCommand(sVmUuid, sBackupDir, m_nFlags);
 
 	pPackage = DispatcherPackage::createInstance(
 			pCmd->GetCommandId(),

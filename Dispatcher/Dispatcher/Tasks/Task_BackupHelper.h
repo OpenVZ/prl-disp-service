@@ -339,7 +339,7 @@ protected:
 			const SmartPtr<CDspDispConnection> &pDispConnection,
 			const SmartPtr<IOPackage> &pRequest,
 			UINT32 tmo);
-	PRL_RESULT GetBackupTreeRequest(const QString &sVmUuid, QString &sBackupTree);
+	PRL_RESULT GetBackupTreeRequest(const QString &sVmUuid, const QString &sBackupDir, QString &sBackupTree);
 	void killABackupClient();
 	PRL_RESULT checkFreeDiskSpace(quint64 nRequiredSize, quint64 nAvailableSize, bool bIsCreateOp);
 
@@ -355,6 +355,7 @@ protected:
 	QString m_sDescription;
 	QString m_sServerHostname;
 	quint32 m_nServerPort;
+	QString m_sServerDirectory;
 	QString m_sServerSessionUuid;
 	quint32 m_nFlags;
 	quint32 m_nInternalFlags;

@@ -338,6 +338,7 @@ QString Traits<Setup>::getRequestBody(const Setup& event_)
 {
 	return CDispToDispProtoSerializer::CreateVmBackupAttachCommand(
 			event_.getVmUuid(),
+			QString(),
 			ElementToString<const CVmHardDisk*>(&event_.getModel(), XML_VM_CONFIG_EL_HARD_DISK),
 			event_.getVmHome())->GetCommand()->toString();
 }
@@ -361,6 +362,7 @@ QString Traits<Enable>::getRequestBody(const Enable& event_)
 {
 	return CDispToDispProtoSerializer::CreateVmBackupConnectSourceCommand(
 			event_.getVmUuid(),
+			QString(),
 			ElementToString<const CVmHardDisk*>(&event_.getModel(), XML_VM_CONFIG_EL_HARD_DISK))
 			->GetCommand()->toString();
 }

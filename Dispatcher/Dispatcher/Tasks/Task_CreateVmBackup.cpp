@@ -111,6 +111,7 @@ PRL_RESULT Task_CreateVmBackup::sendStartRequest(const ::Backup::Activity::Objec
 			m_sVmName,
 			QHostInfo::localHostName(),
 			sServerUuid,
+			m_sServerDirectory,
 			m_sDescription,
 			m_pVmConfig->toString(),
 			m_nOriginalSize,
@@ -352,6 +353,7 @@ Task_CreateVmBackupSource::Task_CreateVmBackupSource(
 	m_sDescription = pCmd->GetDescription();
 	m_sServerHostname = pCmd->GetServerHostname();
 	m_nServerPort = pCmd->GetServerPort();
+	m_sServerDirectory = pCmd->GetServerBackupDirectory();
 	m_sServerSessionUuid = pCmd->GetServerSessionUuid();
 	m_nFlags = pCmd->GetFlags();
 	/* if backup type undefined - set as incremental type */

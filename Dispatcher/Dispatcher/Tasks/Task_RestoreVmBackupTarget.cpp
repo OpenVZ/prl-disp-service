@@ -1589,6 +1589,7 @@ m_nCurrentVmUptime(0)
 
 	m_product.setName(pCmd->GetTargetVmName());
 	m_nServerPort = pCmd->GetServerPort();
+	m_sServerDirectory = pCmd->GetServerBackupDirectory();
 	m_sServerSessionUuid = pCmd->GetServerSessionUuid();
 	m_nFlags = pCmd->GetFlags();
 	m_nOriginalSize = 0;
@@ -2376,7 +2377,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::sendStartRequest()
 	QString u = (m_nFlags & PBT_RESTORE_TO_COPY) && !m_sBackupId.isEmpty() ? QString() : m_product.getUuid();
 	if (CDspService::instance()->getShellServiceHelper().isLocalAddress(m_sServerHostname))
 		m_nInternalFlags |= PVM_LOCAL_BACKUP;
-	pStartCmd = CDispToDispProtoSerializer::CreateVmBackupRestoreCommand(u, m_sBackupId, m_nFlags, m_nInternalFlags);
+	pStartCmd = CDispToDispProtoSerializer::CreateVmBackupRestoreCommand(u, m_sBackupId, m_sServerDirectory, m_nFlags, m_nInternalFlags);
 
 	pPackage = DispatcherPackage::createInstance(
 			pStartCmd->GetCommandId(),

@@ -221,6 +221,7 @@ class CDispToDispProtoSerializer
 		const QString &sVmName,
 		const QString &sHost,
 		const QString &sServerUuid,
+		const QString &sBackupDir,
 		const QString &sDescription,
 		const QString &sVmConfig,
 		quint64 nOriginalSize,
@@ -235,6 +236,7 @@ class CDispToDispProtoSerializer
 		const QString &sVmName,
 		const QString &sHost,
 		const QString &sServerUuid,
+		const QString &sBackupDir,
 		const QString &sDescription,
 	        const QString &sStorage,
 	        const QString &sSnapshotUuid,
@@ -265,6 +267,7 @@ class CDispToDispProtoSerializer
 	static CDispToDispCommandPtr CreateVmBackupRestoreCommand(
 		const QString &sVmUuid,
 		const QString &sBackupUuid,
+		const QString &sBackupDir,
 		quint32 nFlags,
 		quint32 nInternalFlags
 	);
@@ -290,10 +293,12 @@ class CDispToDispProtoSerializer
 	/**
 	 * Generates VmBackupGetTree protocol command
 	 * @param Vm Uuid (optional)
+	 * @param path to backup dir (optional)
 	 * @param flags
 	 */
 	static CDispToDispCommandPtr CreateGetBackupTreeCommand(
 		const QString &sVmUuid,
+		const QString &sBackupDir,
 		quint32 nFlags);
 
 	/**
@@ -306,11 +311,13 @@ class CDispToDispProtoSerializer
 	 * Generates VmBackupRemoveCmd protocol command
 	 * @param Vm uuid
 	 * @param backup uuid
+	 * @param path to backup dir (optional)
 	 * @param flags
 	 */
 	static CDispToDispCommandPtr CreateVmBackupRemoveCommand(
 		const QString &sVmUuid,
 		const QString &sBackupUuid,
+		const QString &sBackupDir,
 		quint32 nFlags);
 
 	/**
@@ -332,12 +339,14 @@ class CDispToDispProtoSerializer
 	/**
 	 * Generates VmBackupAttach command
 	 * @param VM UUID
+	 * @param path to backup dir (optional)
 	 * @param disk configuration
 	 * @param directory, where the disk bundle should be created
 	 * @param flags
 	 */
 	static CDispToDispCommandPtr CreateVmBackupAttachCommand(
 		const QString &sVmUuid,
+		const QString &sBackupDir,
 		const QString &sDiskConfig,
 		const QString &sDiskPath
 	);
@@ -345,10 +354,12 @@ class CDispToDispProtoSerializer
 	/**
 	 * Generates VmBackupConnectSource command
 	 * @param VM UUID
+	 * @param path to backup dir (optional)
 	 * @param disk configuration
 	 */
 	static CDispToDispCommandPtr CreateVmBackupConnectSourceCommand(
 		const QString &sVmUuid,
+		const QString &sBackupDir,
 		const QString &sDiskConfig
 	);
 };
