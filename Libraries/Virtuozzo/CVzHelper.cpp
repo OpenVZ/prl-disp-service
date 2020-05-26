@@ -187,7 +187,6 @@ int CVzHelper::init_lib()
 {
 	vzctl2_init_log("prl_disp_service");
 	vzctl2_set_log_quiet(1);
-	vzctl2_set_flags(VZCTL_FLAG_DONT_SEND_EVT);
 	if (vzctl2_lib_init()) {
 		WRITE_TRACE(DBG_FATAL, "vzctl2_lib_init: %s",
 				vzctl2_get_last_error());
@@ -450,8 +449,6 @@ PRL_RESULT CVzOperationHelper::run_prg(const char *name, const QStringList &lstA
 		fcntl(progress_fd[1], F_SETFD, ~FD_CLOEXEC);
 		m_Envs.insert(QString("VZ_PROGRESS_FD"), QString("%1").arg(progress_fd[1]));
 	}
-	if (strcmp(name, BIN_VZCTL) == 0)
-		m_Envs.insert("VZCTL_FLAG_DONT_SEND_EVT", "yes");
 
 	VzProcess proc(progress_fd[1]);
 	if (m_Envs.isEmpty()) {
