@@ -685,7 +685,9 @@ PRL_RESULT Task_VzManager::delete_env()
 		// FIXME: rollback operation
 		res = CDspService::instance()->getVmDirHelper()
 			.deleteVmDirectoryItem(dirUuid, vm_uuid);
-		if (PRL_FAILED(res) && res != PRL_ERR_ENTRY_DOES_NOT_EXIST) {
+		if (res == PRL_ERR_ENTRY_DOES_NOT_EXIST)
+			res = PRL_ERR_SUCCESS;
+		if (PRL_FAILED(res)) {
 			WRITE_TRACE(DBG_FATAL, "Can't delete Container %s from VmDirectory by error: %s",
 					QSTR2UTF8(vm_uuid), PRL_RESULT_TO_STRING(res));
 		}
