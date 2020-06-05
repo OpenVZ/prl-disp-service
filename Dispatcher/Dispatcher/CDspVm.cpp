@@ -56,6 +56,7 @@
 #include "Tasks/Task_EditVm.h"
 #include "Tasks/Task_CloneVm.h"
 #include "Tasks/Task_MoveVm.h"
+#include "Tasks/Task_RestoreVmBackup.h"
 
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 
@@ -653,6 +654,20 @@ VIRTUAL_MACHINE_STATE CDspVm::getVmState( const CVmIdent& vmIdent )
 	return getVmState(vmIdent.first, vmIdent.second);
 }
 
+template <class T>
+VIRTUAL_MACHINE_ADDITION_STATE setVmAdditionState(T pTask,
+		const QString & sVmUuid, const QString & sVmDirUuid,
+		const VIRTUAL_MACHINE_ADDITION_STATE state)
+{
+	if (!pTask)
+		return (VIRTUAL_MACHINE_ADDITION_STATE)0;
+
+	if ((pTask->getVmUuid() == sVmUuid) &&
+			(pTask->getClient()->getVmDirectoryUuid() == sVmDirUuid))
+		return state;
+	return (VIRTUAL_MACHINE_ADDITION_STATE)0;
+}
+
 VIRTUAL_MACHINE_ADDITION_STATE CDspVm::getVmAdditionState( const QString & sVmUuid,
 														 const QString & sVmDirUuid,
 														 const CDspTaskHelper * pTaskToExclude )
@@ -674,26 +689,17 @@ VIRTUAL_MACHINE_ADDITION_STATE CDspVm::getVmAdditionState( const QString & sVmUu
 		switch( cmd )
 		{
 		case PVE::DspCmdDirVmClone:
-			{
-				Task_CloneVm * pClone = dynamic_cast<Task_CloneVm*>( pTask.getImpl() );
-				if( !pClone )
-					break;
-
-				if ( ( pClone->getVmUuid() == sVmUuid ) &&
-					( pClone->getClient()->getVmDirectoryUuid() == sVmDirUuid ) )
-					state |= VMAS_CLONING;
-			}
+			state |= setVmAdditionState(dynamic_cast<Task_CloneVm*>(pTask.getImpl()),
+					sVmUuid, sVmDirUuid, VMAS_CLONING);
 			break;
 		case PVE::DspCmdDirVmMove:
-			{
-				Task_MoveVm * pMove = dynamic_cast<Task_MoveVm*>( pTask.getImpl() );
-				if( !pMove )
-					break;
-
-				if ( ( pMove->getVmUuid() == sVmUuid ) &&
-					( pMove->getClient()->getVmDirectoryUuid() == sVmDirUuid ) )
-					state |= VMAS_MOVING;
-			}
+			state |= setVmAdditionState(dynamic_cast<Task_MoveVm*>(pTask.getImpl()),
+					sVmUuid, sVmDirUuid, VMAS_MOVING);
+			break;
+		case PVE::DspCmdRestoreVmBackup:
+			state |= setVmAdditionState(
+					dynamic_cast<Task_RestoreVmBackupTarget*>(pTask.getImpl()),
+					sVmUuid, sVmDirUuid, VMAS_RESTORING_FROM_BACKUP);
 			break;
 		default:
 			break;
