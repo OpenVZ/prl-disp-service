@@ -54,6 +54,7 @@ public:
 
 public slots:
 	void slotCpuFeaturesSync();
+	void slotReloadFirewall();
 
 private:
 	QDBusConnection m_bus;

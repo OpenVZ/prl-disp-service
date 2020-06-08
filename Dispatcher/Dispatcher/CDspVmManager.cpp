@@ -2493,6 +2493,25 @@ void CDspVmManager::syncVMsUptime()
 }
 
 
+void CDspVmManager::reloadFirewall()
+{
+	QReadLocker locker( &m_rwLock );
+	QList< SmartPtr<CDspVm> > lstVms = m_vms.values();
+	locker.unlock();
+
+	foreach(SmartPtr<CDspVm> pVm, lstVms)
+	{
+		if (!pVm)
+			continue;
+
+		VIRTUAL_MACHINE_STATE state = pVm->getVmState();
+		if (state != VMS_PAUSED && state != VMS_RUNNING)
+			continue;
+		pVm->reloadFirewall();
+	}
+}
+
+
 void CDspVmManager::changeHostTimeSettings( int timeSeconds, int tzIndex )
 {
 	Q_UNUSED( timeSeconds );

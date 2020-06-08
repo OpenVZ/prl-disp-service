@@ -90,6 +90,11 @@ struct CDspVmManager: QObject, CDspHandler
 	 */
 	void syncVMsUptime();
 
+	/**
+	 * Restore firewall rules for running virtual machines
+	 */
+	void reloadFirewall();
+
 private:
 	/**
 	 * Handle command, extension for handleFromDispatcherPackage
