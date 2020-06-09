@@ -159,6 +159,14 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 		boost::apply_visitor(v, (*t).getChoice4771());
 		boost::apply_visitor(v, (*t).getChoice4774());
 	}
+	if (disk_.getDriver() &&
+		disk_.getDriver().get().getDriverFormat() &&
+		disk_.getDriver().get().getDriverFormat().get().getType())
+	{
+		DriverFormatType v(d);
+		boost::apply_visitor(v, disk_.getDriver().get().getDriverFormat().get().getType().get());
+	}
+
 	d->setTargetDeviceName(disk_.getTarget().getDev());
 	if (disk_.getSerial())
 		d->setSerialNumber(disk_.getSerial().get());

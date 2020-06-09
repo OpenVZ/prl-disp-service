@@ -332,6 +332,55 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct StorageFormat
+
+struct StorageFormat: boost::static_visitor<void>
+{
+	StorageFormat(CVmHardDisk* disk_): m_disk(disk_)
+	{
+	}
+
+	template<class T>
+	void operator()(const T& ) const
+	{
+	}
+
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type& format_) const
+	{
+		if (format_.getValue() == Libvirt::Domain::Xml::EStorageFormatRaw)
+			m_disk->setDiskType(PHD_PLAIN_HARD_DISK);
+	}
+
+private:
+	CVmHardDisk* m_disk;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct DriverFormatType
+
+struct DriverFormatType: boost::static_visitor<void>
+{
+	DriverFormatType(CVmHardDisk* disk_): m_disk(disk_)
+	{
+	}
+
+	template<class T>
+	void operator()(const T& ) const
+	{
+	}
+
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VType::types, 1>::type& type_) const
+	{
+		StorageFormat v(m_disk);
+		boost::apply_visitor(v, type_.getValue());
+	}
+
+private:
+	CVmHardDisk* m_disk;
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
 // struct BackingChain
 
 struct BackingChain: boost::static_visitor<void>

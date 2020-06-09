@@ -149,6 +149,7 @@ template<>
 struct Flavor<CVmHardDisk>
 {
 	typedef PVE::HardDiskEmulatedType emulated_type;
+	typedef bool raw_type;
 
 	static const Libvirt::Domain::Xml::EDevice kind;
 	static const emulated_type real = PVE::RealHardDisk;
@@ -164,12 +165,28 @@ struct Flavor<CVmHardDisk>
 	{
 		return "Vz HARDDISK%1";
 	}
-	static mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 1>::type
-		getDriverFormat()
+	static bool isRaw(const CVmHardDisk *disk_)
+	{
+		return disk_->getDiskType() == PHD_PLAIN_HARD_DISK;
+	}
+	static Libvirt::Domain::Xml::VStorageFormat getDriverFormatQcow()
 	{
 		mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 1>::type output;
 		output.setValue(Libvirt::Domain::Xml::EStorageFormatBackingQcow2);
-		return output;
+		return Libvirt::Domain::Xml::VStorageFormat(output);
+	}
+	static Libvirt::Domain::Xml::VStorageFormat getDriverFormatRaw()
+	{
+		WRITE_TRACE(DBG_FATAL, "RAW getDriverFormatRaw()");
+		mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type output;
+		output.setValue(Libvirt::Domain::Xml::EStorageFormatRaw);
+		return Libvirt::Domain::Xml::VStorageFormat(output);
+	}
+	static Libvirt::Domain::Xml::VStorageFormat getDriverFormat(raw_type raw)
+	{
+		if (raw)
+			return getDriverFormatRaw();
+		return getDriverFormatQcow();	
 	}
 	static boost::optional<Libvirt::Domain::Xml::ETray> getTray(int )
 	{
@@ -181,6 +198,7 @@ template<>
 struct Flavor<CVmOpticalDisk>
 {
 	typedef PVE::CdromEmulatedType emulated_type;
+	typedef bool raw_type;
 
 	static const Libvirt::Domain::Xml::EDevice kind;
 	static const emulated_type real = PVE::RealCdRom;
@@ -196,13 +214,17 @@ struct Flavor<CVmOpticalDisk>
 	{
 		return "Vz CD-ROM%1";
 	}
-	static mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type
-		getDriverFormat()
+	static bool isRaw(const CVmOpticalDisk *)
+	{
+		return true;
+	}
+	static Libvirt::Domain::Xml::VStorageFormat getDriverFormat(raw_type)
 	{
 		mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type output;
 		output.setValue(Libvirt::Domain::Xml::EStorageFormatRaw);
-		return output;
+		return Libvirt::Domain::Xml::VStorageFormat(output);
 	}
+
 	static boost::optional<Libvirt::Domain::Xml::ETray> getTray(emulated_type type_)
 	{
 		if (real == type_)
@@ -218,6 +240,7 @@ template<>
 struct Flavor<CVmFloppyDisk>
 {
 	typedef PVE::FloppyEmulatedType emulated_type;
+	typedef bool raw_type;
 
 	static const Libvirt::Domain::Xml::EDevice kind;
 	static const emulated_type real = PVE::RealFloppyDisk;
@@ -233,12 +256,15 @@ struct Flavor<CVmFloppyDisk>
 	{
 		return "Vz FLOPPY%1";
 	}
-	static mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type
-		getDriverFormat()
+	static bool isRaw(const CVmFloppyDisk*)
+	{
+		return true;
+	}
+	static Libvirt::Domain::Xml::VStorageFormat getDriverFormat(raw_type)
 	{
 		mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type output;
 		output.setValue(Libvirt::Domain::Xml::EStorageFormatRaw);
-		return output;
+		return Libvirt::Domain::Xml::VStorageFormat(output);
 	}
 	static boost::optional<Libvirt::Domain::Xml::ETray> getTray(emulated_type type_)
 	{
@@ -315,6 +341,11 @@ struct Model
 	typename Flavor<T>::emulated_type getEmulatedType() const
 	{
 		return m_dataSource->getEmulatedType();
+	}
+
+	bool isRaw() const
+	{
+		return Flavor<T>::isRaw(getDataSource());
 	}
 	boost::optional<Libvirt::Domain::Xml::EBus> getBus() const
 	{
@@ -453,7 +484,7 @@ void Ordinary<T>::setDriver()
 	if (Flavor<T>::image == getModel().getEmulatedType())
 	{
 		mpl::at_c<Libvirt::Domain::Xml::VType::types, 1>::type a;
-		a.setValue(Libvirt::Domain::Xml::VStorageFormat(Flavor<T>::getDriverFormat()));
+		a.setValue(Flavor<T>::getDriverFormat(getModel().isRaw()));
 		Libvirt::Domain::Xml::DriverFormat b;
 		b.setName("qemu");
 		b.setType(Libvirt::Domain::Xml::VType(a));
