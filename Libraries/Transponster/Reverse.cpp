@@ -596,7 +596,7 @@ void Hdd::setBackingChain()
 
 		Libvirt::Domain::Xml::BackingStore y;
 		y.setFormat(Libvirt::Domain::Xml::VStorageFormat
-			(Flavor<CVmHardDisk>::getDriverFormat()));
+			(Flavor<CVmHardDisk>::getDriverFormat(false)));
 
 		Libvirt::Domain::Xml::Source4 z;
 		z.setFile(x->getSystemName());
