@@ -1582,7 +1582,7 @@ void CVmValidateConfig::CheckHardDisk()
 					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
 					ADD_FID((E_SET << qsSN_id << qsET_id << pHardDisk->getRemote_id()) + setIds);
 				}
-				else if (!VirtualDisk::Qcow2::isValid(qsSysName))
+				else if (pHardDisk->getDiskType() == PHD_EXPANDING_HARD_DISK && !VirtualDisk::Qcow2::isValid(qsSysName))
 				{
 					m_lstResults += PRL_ERR_VMCONF_HARD_DISK_IMAGE_IS_NOT_VALID;
 					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pHardDisk->getIndex(), pHardDisk->getItemId()));
