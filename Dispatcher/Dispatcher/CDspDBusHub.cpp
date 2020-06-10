@@ -44,6 +44,8 @@
 
 #include "CDspService.h"
 #include "CDspDBusHub.h"
+#include "CDspVmManager.h"
+#include "CDspVzHelper.h"
 #include <QtDBus>
 #include <QDBusInterface>
 #include <prlcommon/Logging/Logging.h>
@@ -87,9 +89,13 @@ CDspDBusHub::CDspDBusHub()
 
 	if (!m_bus.connect("com.virtuozzo.cpufeatures", "/com/virtuozzo/cpufeatures",
 		"com.virtuozzo.cpufeatures", "Sync", this, SLOT(slotCpuFeaturesSync())))
-	{
 		WRITE_TRACE(DBG_FATAL, "Unable to subscribe on Sync event");
-	}
+	if (!m_bus.connect("", "", "org.freedesktop.DBus", "NameOwnerChanged",
+				this, SLOT(slotReloadFirewall())))
+		WRITE_TRACE(DBG_FATAL, "Unable to subscribe on NameOwnerChanged event");
+	if (!m_bus.connect("", "", "org.fedoraproject.FirewallD1", "Reloaded",
+				this, SLOT(slotReloadFirewall())))
+		WRITE_TRACE(DBG_FATAL, "Unable to subscribe on Reloaded event");
 }
 
 void CDspDBusHub::createDetached()
@@ -107,4 +113,13 @@ void CDspDBusHub::slotCpuFeaturesSync()
 {
 	WRITE_TRACE(DBG_INFO, "CPU features were synced");
 	CDspService::instance()->updateCommonPreferences(SetFeatures());
+}
+
+void CDspDBusHub::slotReloadFirewall()
+{
+	WRITE_TRACE(DBG_INFO, "Reload firewall rules");
+	CDspService::instance()->getVmManager().reloadFirewall();
+#ifdef _LIN_
+	CDspService::instance()->getVzHelper()->reloadFirewall();
+#endif
 }

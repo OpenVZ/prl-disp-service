@@ -50,6 +50,7 @@
 #endif
 #include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include "Libraries/PrlCommonUtils/CFirewallHelper.h"
 
 #include "Dispatcher/Dispatcher/Cache/CacheImpl.h"
 #include "Libraries/Virtuozzo/CVzPloop.h"
@@ -1160,6 +1161,33 @@ void CDspVzHelper::syncCtsUptime()
 
 		if (0 == CVzHelper::sync_env_uptime(t.first))
 			m_configCache.remove(t.second);
+	}
+}
+
+void CDspVzHelper::reloadFirewall()
+{
+	typedef QPair<QString, QString> tuple_type;
+	QList<tuple_type> a;
+	QString u = m_service->getVmDirManager().getVzDirectoryUuid();
+	CDspVmDirManager& m = m_service->getVmDirManager();
+	{
+		CDspLockedPointer<CVmDirectory> d = m.getVmDirectory(u);
+		if (!d.isValid())
+			return;
+		foreach(CVmDirectoryItem* i, d->m_lstVmDirectoryItems)
+		{
+			a.push_back(qMakePair(i->getVmUuid(), i->getVmHome()));
+		}
+	}
+	foreach(const tuple_type& t, a)
+	{
+		tribool_type run = CVzHelper::is_env_running(t.first);
+		if (!run)
+			continue;
+
+		SmartPtr<CVmConfiguration> c = getCtConfig(SmartPtr<CDspClient>(0), t.first);
+		CFirewallHelper fw(c);
+		fw.Execute();
 	}
 }
 #endif // _LIN_

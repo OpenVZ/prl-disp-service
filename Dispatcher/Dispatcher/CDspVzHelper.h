@@ -106,6 +106,7 @@ public:
                 QString vm_uuid );
 #ifdef _LIN_
 	void syncCtsUptime();
+	void reloadFirewall();
 #endif
 	class CConfigCache
 	{
