@@ -611,7 +611,7 @@ PRL_RESULT Script::syncCpu(const QString& config_)
 		return PRL_ERR_READ_XML_CONTENT;
 	}
 	QXmlResultItems m;
-	q.setQuery("cpus/arch[1]/feature[cpuid]");
+	q.setQuery("cpus/feature[cpuid]");
 	q.evaluateTo(&m);
 
 	Cpu b;
@@ -734,7 +734,7 @@ void Subject::run()
 	Agent::Hub u;
 	u.setLink(m_link);
 	Host::Script h(u);
-	h.syncCpu("/usr/share/libvirt/cpu_map.xml");
+	h.syncCpu("/usr/share/libvirt/cpu_map/x86_features.xml");
 	h.syncNetwork(VirtuozzoDirs::getNetworkConfigFilePath());
 	(Vm(v))(u);
 	QProcess::startDetached("/usr/libexec/vz_systemd");
