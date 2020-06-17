@@ -364,6 +364,9 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 		lstArgs.append("--online");
 	/* to force nfs -> non-nfs migration */
 	lstArgs.append("--nonsharedfs");
+	if (m_nMigrationFlags & PVMT_UNCOMPRESSED)
+		lstArgs.append("--nocompress");
+
 
 	lstArgs.append("localhost");
 	lstArgs.append(m_sCtOrigId);
