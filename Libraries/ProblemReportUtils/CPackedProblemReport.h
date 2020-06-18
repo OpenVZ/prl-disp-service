@@ -192,7 +192,7 @@ public:
 
 	void setPackedReportSide( CPackedProblemReport::packedReportSide side){m_Side = side;}
 
-	void setFullReport( bool bValue ) {m_maxSizeToReadFromLog = bValue ? INT_MAX : 16*1024*1024;}
+	void setFullReport( bool bValue ) {m_maxSizeToReadFromLog = bValue ? INT_MAX : 100*1024*1024;}
 	bool isFullReport() const {return m_maxSizeToReadFromLog == INT_MAX;}
 
 	int fromBaseReport( const QString & strBaseReport );

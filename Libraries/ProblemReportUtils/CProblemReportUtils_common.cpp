@@ -335,11 +335,11 @@ void addCommonLogFiles( CProblemReport & cReport )
 	QString strVirtuozzoLogPath = GetLogFileName();
     
 	cReport.appendTemplateSystemLog(strVirtuozzoLogPath,
-			QFileInfo(strVirtuozzoLogPath).fileName(), 2);
+			QFileInfo(strVirtuozzoLogPath).fileName(), 4);
 
 	strVirtuozzoLogPath = VirtuozzoDirs::getSystemLogPath();
 	cReport.appendTemplateSystemLog(strVirtuozzoLogPath,
-			QFileInfo(strVirtuozzoLogPath).fileName(), 2);
+			QFileInfo(strVirtuozzoLogPath).fileName(), 4);
 
 #ifndef _WIN_
     
@@ -349,7 +349,7 @@ void addCommonLogFiles( CProblemReport & cReport )
 	strVirtuozzoLogPath = "/var/log/system.log";
 #	endif
 
-	int iSystemLogFilesCount = 2; // by default
+	int iSystemLogFilesCount = 4; // by default
 	cReport.appendTemplateSystemLog( strVirtuozzoLogPath,
                                     QFileInfo(strVirtuozzoLogPath).fileName(), iSystemLogFilesCount );
     
