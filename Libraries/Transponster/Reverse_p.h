@@ -167,7 +167,7 @@ struct Flavor<CVmHardDisk>
 	}
 	static bool isRaw(const CVmHardDisk *disk_)
 	{
-		return disk_->getDiskType() == PHD_PLAIN_HARD_DISK;
+		return disk_->getDiskType() == PHD_RAW_HARD_DISK;
 	}
 	static Libvirt::Domain::Xml::VStorageFormat getDriverFormatQcow()
 	{

@@ -348,7 +348,7 @@ struct StorageFormat: boost::static_visitor<void>
 	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type& format_) const
 	{
 		if (format_.getValue() == Libvirt::Domain::Xml::EStorageFormatRaw)
-			m_disk->setDiskType(PHD_PLAIN_HARD_DISK);
+			m_disk->setDiskType(PHD_RAW_HARD_DISK);
 	}
 
 private:
