@@ -335,11 +335,11 @@ void addCommonLogFiles( CProblemReport & cReport )
 	QString strParallelsLogPath = GetLogFileName();
     
 	cReport.appendTemplateSystemLog(strParallelsLogPath,
-			QFileInfo(strParallelsLogPath).fileName(), 2);
+			QFileInfo(strParallelsLogPath).fileName(), 4);
 
 	strParallelsLogPath = ParallelsDirs::getSystemLogPath();
 	cReport.appendTemplateSystemLog(strParallelsLogPath,
-			QFileInfo(strParallelsLogPath).fileName(), 2);
+			QFileInfo(strParallelsLogPath).fileName(), 4);
 
 #ifndef _WIN_
     
@@ -349,7 +349,7 @@ void addCommonLogFiles( CProblemReport & cReport )
 	strParallelsLogPath = "/var/log/system.log";
 #	endif
 
-	int iSystemLogFilesCount = 2; // by default
+	int iSystemLogFilesCount = 4; // by default
 	cReport.appendTemplateSystemLog( strParallelsLogPath,
                                     QFileInfo(strParallelsLogPath).fileName(), iSystemLogFilesCount );
     
