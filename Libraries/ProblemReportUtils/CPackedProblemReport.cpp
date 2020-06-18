@@ -70,12 +70,6 @@
 #define PRL_REPORT_READ_FILE_BUFFER_SIZE 1024*1024
 #endif
 
-namespace {
-
-const int g_maxSizeToReadFromLog = 16*1024*1024;
-
-} // anonymous namespace
-
 PRL_RESULT CPackedProblemReport::createInstance( CPackedProblemReport::packedReportSide side ,
 								 CPackedProblemReport ** ppReport,
 								 const QByteArray & data,
@@ -607,7 +601,7 @@ void CPackedProblemReport::appendTemplateSystemLog( const QString& strPathFrom,
 		QString postfix = list[i].right( postfixlen );
 		QString saveName = strCustomName + postfix;
 
-		QRegExp rePostfix("\\.\\d+\\.gz");
+		QRegExp rePostfix(".*\\.gz");
 		if (postfixlen > 0 && rePostfix.exactMatch(postfix))
 		{
 			// skip to add compressed log backup when it's size too big to
