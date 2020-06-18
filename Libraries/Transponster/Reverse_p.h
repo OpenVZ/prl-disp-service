@@ -177,7 +177,6 @@ struct Flavor<CVmHardDisk>
 	}
 	static Libvirt::Domain::Xml::VStorageFormat getDriverFormatRaw()
 	{
-		WRITE_TRACE(DBG_FATAL, "RAW getDriverFormatRaw()");
 		mpl::at_c<Libvirt::Domain::Xml::VStorageFormat::types, 0>::type output;
 		output.setValue(Libvirt::Domain::Xml::EStorageFormatRaw);
 		return Libvirt::Domain::Xml::VStorageFormat(output);
