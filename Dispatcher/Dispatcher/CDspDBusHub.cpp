@@ -90,7 +90,8 @@ CDspDBusHub::CDspDBusHub()
 	if (!m_bus.connect("com.virtuozzo.cpufeatures", "/com/virtuozzo/cpufeatures",
 		"com.virtuozzo.cpufeatures", "Sync", this, SLOT(slotCpuFeaturesSync())))
 		WRITE_TRACE(DBG_FATAL, "Unable to subscribe on Sync event");
-	if (!m_bus.connect("", "", "org.freedesktop.DBus", "NameOwnerChanged",
+	QStringList argMatch = QStringList() << "org.fedoraproject.FirewallD1" << "";
+	if (!m_bus.connect("", "", "org.freedesktop.DBus", "NameOwnerChanged", argMatch, "sss",
 				this, SLOT(slotReloadFirewall())))
 		WRITE_TRACE(DBG_FATAL, "Unable to subscribe on NameOwnerChanged event");
 	if (!m_bus.connect("", "", "org.fedoraproject.FirewallD1", "Reloaded",
