@@ -1542,7 +1542,7 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 	unsigned long oldcount = pOldConfig->getVmHardwareList()->getCpu()->getNumber();
 	unsigned long count = pConfig->getVmHardwareList()->getCpu()->getNumber();
 	if (oldcount != count)
-		vzctl2_env_set_cpu_count(new_param, count);
+		vzctl2_env_set_cpu_count(new_param, count != PRL_CPU_UNLIMITED ? count : 0);
 
 	if (pOldConfig->getVmHardwareList()->getCpu()->getCpuMask() !=
 			pConfig->getVmHardwareList()->getCpu()->getCpuMask())
