@@ -197,8 +197,11 @@ void Task_CreateVmBackup::cancelOperation(SmartPtr<CDspClient> pUser, const Smar
 	SmartPtr<IOClient> x = getIoClient();
 	if (x.isValid())
 	{
+#if 0
+// Disable client disconnect to pervent qemu nbd switch to reconnect mode #PSBM-105227
 		x->urgentResponseWakeUp(m_hJob);
 		x->disconnectClient();
+#endif
 	}
 }
 
