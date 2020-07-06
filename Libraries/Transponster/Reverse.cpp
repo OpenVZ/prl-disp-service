@@ -826,6 +826,47 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterre
 	return filterref;
 }
 
+boost::optional<Libvirt::Domain::Xml::Bandwidth > View::getBandwidth() const
+{
+	if (!m_network.getBandwidth())
+		return boost::none;
+
+	const CVmNetBandwidthInbound *i = m_network.getBandwidth()->getInbound();
+	const CVmNetBandwidthOutbound *o = m_network.getBandwidth()->getOutbound();
+
+	if (!i && !o)
+		return boost::none;
+
+	Libvirt::Domain::Xml::Bandwidth b;
+	if (i)
+	{
+		Libvirt::Domain::Xml::BandwidthAttributes a;
+
+		a.setAverage(i->getAverage());
+		if (i->getBurst())
+			a.setBurst(i->getBurst());
+		if (i->getPeak())
+			a.setPeak(i->getPeak());
+		if (i->getFloor())
+			a.setFloor(i->getFloor());
+		b.setInbound(a);
+	}
+
+	if (o)
+	{
+		Libvirt::Domain::Xml::BandwidthAttributes a;
+
+		a.setAverage(o->getAverage());
+		if (i->getBurst())
+			a.setBurst(o->getBurst());
+		if (i->getPeak())
+			a.setPeak(o->getPeak());
+		b.setInbound(a);
+	}
+
+	return b;
+}
+
 boost::optional<Libvirt::Domain::Xml::VVirtualPortProfile> View::getVVirtualPortProfile() const
 {
 	CVmNetVirtualPortType *v = m_network.getVirtualPort();
@@ -875,6 +916,7 @@ Libvirt::Domain::Xml::VInterface Adapter<N>::operator()
 		i.setMac(m);
 
 	i.setFilterref(view.getFilterref());
+	i.setBandwidth(view.getBandwidth());
 	i.setBoot(boot_);
 
 	access_type output;

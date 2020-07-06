@@ -356,6 +356,44 @@ void Builder::setConnected(const boost::optional<Libvirt::Domain::Xml::EState >&
 		m_result.setConnected(PVE::DeviceDisconnected);
 }
 
+void Builder::setBandwidth(const boost::optional<Libvirt::Domain::Xml::Bandwidth>& value_)
+{
+	if (value_)
+	{
+		const boost::optional<Libvirt::Domain::Xml::BandwidthAttributes> i(value_.get().getInbound());
+		const boost::optional<Libvirt::Domain::Xml::BandwidthAttributes> o(value_.get().getOutbound());
+
+		if (!i && !o)
+			return;
+
+		CVmNetBandwidth *b = new CVmNetBandwidth();
+		if (i)
+		{
+			CVmNetBandwidthInbound *a = new CVmNetBandwidthInbound();
+			a->setAverage(i.get().getAverage());
+			if (i.get().getPeak())
+				a->setPeak(i.get().getPeak().get());
+			if (i.get().getBurst())
+				a->setBurst(i.get().getBurst().get());
+			if (i.get().getFloor())
+				a->setFloor(i.get().getFloor().get());
+			b->setInbound(a);
+		}
+
+		if (o)
+		{
+			CVmNetBandwidthOutbound *a = new CVmNetBandwidthOutbound();
+			a->setAverage(o.get().getAverage());
+			if (o.get().getPeak())
+				a->setPeak(o.get().getPeak().get());
+			if (o.get().getBurst())
+				a->setBurst(o.get().getBurst().get());
+			b->setOutbound(a);
+		}
+		m_result.setBandwidth(b);
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct VirtualProfile
 
@@ -391,6 +429,7 @@ CVmGenericNetworkAdapter& Unit::prepare(const T& variant_) const
 	b.setFilter(variant_.getFilterref());
 	b.setIps(variant_.getIpList());
 	b.setConnected(variant_.getLink());
+	b.setBandwidth(variant_.getBandwidth());
 
 	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter(b.getResult()));
 	m_clip->getBootSlot(variant_.getBoot())

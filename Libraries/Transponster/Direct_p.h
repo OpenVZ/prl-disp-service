@@ -471,6 +471,7 @@ struct Builder
 	void setFilter(const boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes>& value_);
 	void setIps(const QList<Libvirt::Domain::Xml::Ip>& value_);
 	void setConnected(const boost::optional<Libvirt::Domain::Xml::EState >& value_);
+	void setBandwidth(const boost::optional<Libvirt::Domain::Xml::Bandwidth>& value_);
 	
 	const CVmGenericNetworkAdapter& getResult() const
 	{
