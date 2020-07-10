@@ -3107,7 +3107,7 @@ Result List::define(const CVirtualNetwork& config_, Unit* dst_)
 	if (PRL_FAILED(Transponster::Director::network(u)))
 		return Result(Error::Simple(PRL_ERR_BAD_VM_DIR_CONFIG_FILE_SPECIFIED));
 
-	WRITE_TRACE(DBG_DEBUG, "xml:\n%s", u.getResult().toUtf8().data());
+	WRITE_TRACE(DBG_INFO, "xml:\n%s", u.getResult().toUtf8().data());
 	virNetworkPtr n = virNetworkDefineXML(m_link.data(), u.getResult().toUtf8().data());
 	if (NULL == n)
 		return Failure(PRL_ERR_VM_NOT_CREATED);
