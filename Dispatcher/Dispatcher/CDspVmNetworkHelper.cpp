@@ -289,6 +289,7 @@ Libvirt::Result Dao::define(CVirtualNetwork model_)
 Libvirt::Result Dao::create(const CVirtualNetwork& model_)
 {
 	QString x = model_.getNetworkID();
+	WRITE_TRACE(DBG_WARNING, "Create network '%s'", qPrintable(x));
 	if (m_networks.find(x).isSucceed())
 	{
 		WRITE_TRACE(DBG_FATAL, "Duplicated new network ID '%s' !", QSTR2UTF8(x));
@@ -300,13 +301,20 @@ Libvirt::Result Dao::create(const CVirtualNetwork& model_)
 	QList<CVirtualNetwork> a;
 	Libvirt::Result r = m_networks.all(a);
 	if (r.isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot list networks!");
 		return r;
+	}
 
 	foreach(const CVirtualNetwork &n, a)
 	{
 		if (model_.getBoundCardMac() == n.getBoundCardMac() &&
 			model_.getVLANTag() == n.getVLANTag())
+		{
+			WRITE_TRACE(DBG_FATAL, "Failed to create network '%s': interface '%s' already in use",
+					qPrintable(x), qPrintable(model_.getBoundCardMac()));
 			return Error::Simple(PRL_NET_ADAPTER_ALREADY_USED);
+		}
 	}
 
 	return define(model_);
