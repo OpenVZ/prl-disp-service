@@ -548,6 +548,13 @@ void Script::pullPci()
 
 void Script::syncNetwork(const QFileInfo& config_)
 {
+
+	if (QFileInfo(config_.absoluteDir(), QString("prl_disp_disable_network_sync")).exists())
+	{
+		WRITE_TRACE(DBG_FATAL, "Network syncing is disabled");
+		return;
+	}
+
 	QFileInfo d(config_.absoluteDir(), QString("digested.").append(config_.fileName()));
 	if (d.exists())
 		return;
