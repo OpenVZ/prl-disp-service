@@ -2008,7 +2008,7 @@ bool CFileHelper::isFsSupportPermsAndOwner( const QString & strPath )
 {
 	// FIXME : check of fat and fat32 on windows not implemented yet
 
-	if ( isRemotePath(strPath, QStringList() << "nfs") )
+	if ( isRemotePath(strPath, QStringList() << "nfs" << "fuse.vstorage") )
 		return false;
 
 	return isLocalFsSupportsPermsManagment(strPath);
