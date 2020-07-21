@@ -2674,6 +2674,8 @@ int CVzOperationHelper::start_env(const QString &uuid, PRL_UINT32 nFlags)
 	args += ctid;
 	if (nFlags & PNSF_VM_START_WAIT)
 		args += "--wait";
+	if (nFlags & PNSF_VM_START_REPAIR)
+		args += "--repair";
 
 	return run_prg(BIN_VZCTL, args);
 }
