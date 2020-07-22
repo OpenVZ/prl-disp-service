@@ -80,6 +80,7 @@ struct Distiller: Libvirt::Details::Value::Bin<T>
 			return PRL_ERR_SUCCESS;
 		}
 		WRITE_TRACE(DBG_FATAL, "RNG schema validation has failed");
+		PUT_RAW_MESSAGE(xml_.getValue());	
 
 		return PRL_ERR_FAILURE;
 	}
