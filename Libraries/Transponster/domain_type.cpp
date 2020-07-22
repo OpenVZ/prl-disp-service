@@ -5989,9 +5989,6 @@ namespace Domain
 {
 namespace Xml
 {
-BackingStore::BackingStore(): m_index()
-{
-}
 
 const VDiskBackingChainBin* BackingStore::getDiskBackingChain() const
 {

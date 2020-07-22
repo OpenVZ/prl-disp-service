@@ -5227,13 +5227,11 @@ namespace Xml
 {
 struct BackingStore
 {
-	BackingStore();
-
-	PPositiveInteger::value_type getIndex() const
+	const boost::optional<PPositiveInteger::value_type >& getIndex() const
 	{
 		return m_index;
 	}
-	void setIndex(PPositiveInteger::value_type value_)
+	void setIndex(const boost::optional<PPositiveInteger::value_type >& value_)
 	{
 		m_index = value_;
 	}
@@ -5260,7 +5258,7 @@ struct BackingStore
 	bool save(QDomDocument& ) const;
 
 private:
-	PPositiveInteger::value_type m_index;
+	boost::optional<PPositiveInteger::value_type > m_index;
 	VDiskSource m_diskSource;
 	boost::any m_diskBackingChain;
 	VStorageFormat m_format;
@@ -14393,7 +14391,7 @@ struct Traits<Domain::Xml::Blockio>
 template<>
 struct Traits<Domain::Xml::BackingStore>
 {
-	typedef Ordered<mpl::vector<Attribute<Domain::Xml::PPositiveInteger, Name::Strict<488> >, Unordered<mpl::vector<Domain::Xml::VDiskSourceImpl, Domain::Xml::VDiskBackingChainImpl, Element<Attribute<Domain::Xml::VStorageFormat, Name::Strict<105> >, Name::Strict<146> > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::PPositiveInteger, Name::Strict<488> > >, Unordered<mpl::vector<Domain::Xml::VDiskSourceImpl, Domain::Xml::VDiskBackingChainImpl, Element<Attribute<Domain::Xml::VStorageFormat, Name::Strict<105> >, Name::Strict<146> > > > > > marshal_type;
 
 	static int parse(Domain::Xml::BackingStore& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::BackingStore& , QDomElement& );
