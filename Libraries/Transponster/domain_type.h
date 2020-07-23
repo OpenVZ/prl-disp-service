@@ -12508,6 +12508,89 @@ private:
 } // namespace Domain
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Cid
+
+namespace Domain
+{
+namespace Xml
+{
+struct Cid
+{
+	const boost::optional<EVirYesNo >& getAuto() const
+	{
+		return m_auto;
+	}
+	void setAuto(const boost::optional<EVirYesNo >& value_)
+	{
+		m_auto = value_;
+	}
+	const boost::optional<PUnsignedInt::value_type >& getAddress() const
+	{
+		return m_address;
+	}
+	void setAddress(const boost::optional<PUnsignedInt::value_type >& value_)
+	{
+		m_address = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	boost::optional<EVirYesNo > m_auto;
+	boost::optional<PUnsignedInt::value_type > m_address;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vsock
+
+namespace Domain
+{
+namespace Xml
+{
+struct Vsock
+{
+	const boost::optional<Cid >& getCid() const
+	{
+		return m_cid;
+	}
+	void setCid(const boost::optional<Cid >& value_)
+	{
+		m_cid = value_;
+	}
+	const boost::optional<VAddress >& getAddress() const
+	{
+		return m_address;
+	}
+	void setAddress(const boost::optional<VAddress >& value_)
+	{
+		m_address = value_;
+	}
+	const boost::optional<PAliasName::value_type >& getAlias() const
+	{
+		return m_alias;
+	}
+	void setAlias(const boost::optional<PAliasName::value_type >& value_)
+	{
+		m_alias = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	boost::optional<Cid > m_cid;
+	boost::optional<VAddress > m_address;
+	boost::optional<PAliasName::value_type > m_alias;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Devices
 
 namespace Domain
@@ -12572,6 +12655,14 @@ struct Devices
 	{
 		m_xBlockexport = value_;
 	}
+	const boost::optional<Vsock >& getVsock() const
+	{
+		return m_vsock;
+	}
+	void setVsock(const boost::optional<Vsock >& value_)
+	{
+		m_vsock = value_;
+	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
 	bool save(QDomDocument& ) const;
@@ -12584,6 +12675,7 @@ private:
 	boost::optional<Nvram1 > m_nvram;
 	QList<Panic > m_panicList;
 	boost::optional<Domainblockexport_ > m_xBlockexport;
+	boost::optional<Vsock > m_vsock;
 };
 
 } // namespace Xml
@@ -15850,12 +15942,36 @@ struct Traits<Domain::Xml::Domainblockexport_>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Cid traits
+
+template<>
+struct Traits<Domain::Xml::Cid>
+{
+	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::EVirYesNo, Name::Strict<340> > >, Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<111> > > > > marshal_type;
+
+	static int parse(Domain::Xml::Cid& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Cid& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vsock traits
+
+template<>
+struct Traits<Domain::Xml::Vsock>
+{
+	typedef Ordered<mpl::vector<Optional<Attribute<mpl::int_<530>, Name::Strict<231> > >, Unordered<mpl::vector<Optional<Element<Domain::Xml::Cid, Name::Strict<5043> > >, Optional<Element<Domain::Xml::VAddressImpl, Name::Strict<111> > >, Optional<Element<Attribute<Domain::Xml::PAliasName, Name::Strict<107> >, Name::Strict<456> > > > > > > marshal_type;
+
+	static int parse(Domain::Xml::Vsock& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Vsock& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Devices traits
 
 template<>
 struct Traits<Domain::Xml::Devices>
 {
-	typedef Unordered<mpl::vector<Optional<Element<Text<Domain::Xml::PAbsFilePath >, Name::Strict<710> > >, ZeroOrMore<Domain::Xml::VChoice985Impl >, Optional<Element<Domain::Xml::Watchdog, Name::Strict<880> > >, Optional<Element<Domain::Xml::Memballoon, Name::Strict<886> > >, Optional<Element<Domain::Xml::Nvram1, Name::Strict<277> > >, ZeroOrMore<Element<Domain::Xml::Panic, Name::Strict<987> > >, Optional<Element<Domain::Xml::Domainblockexport_, Name::Strict<988> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Optional<Element<Text<Domain::Xml::PAbsFilePath >, Name::Strict<710> > >, ZeroOrMore<Domain::Xml::VChoice985Impl >, Optional<Element<Domain::Xml::Watchdog, Name::Strict<880> > >, Optional<Element<Domain::Xml::Memballoon, Name::Strict<886> > >, Optional<Element<Domain::Xml::Nvram1, Name::Strict<277> > >, ZeroOrMore<Element<Domain::Xml::Panic, Name::Strict<987> > >, Optional<Element<Domain::Xml::Domainblockexport_, Name::Strict<988> > >, Optional<Element<Domain::Xml::Vsock, Name::Strict<5042> > > > > marshal_type;
 
 	static int parse(Domain::Xml::Devices& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Devices& , QDomElement& );

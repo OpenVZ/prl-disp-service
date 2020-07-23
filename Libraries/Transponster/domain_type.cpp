@@ -12791,6 +12791,129 @@ int Traits<Domain::Xml::Domainblockexport_>::generate(const Domain::Xml::Domainb
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Cid
+
+namespace Domain
+{
+namespace Xml
+{
+bool Cid::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Cid, Name::Strict<5043> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Cid::save(QDomElement& dst_) const
+{
+	Element<Cid, Name::Strict<5043> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Cid::save(QDomDocument& dst_) const
+{
+	Element<Cid, Name::Strict<5043> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Domain
+
+int Traits<Domain::Xml::Cid>::parse(Domain::Xml::Cid& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setAuto(m.get<0>().getValue());
+		dst_.setAddress(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::Cid>::generate(const Domain::Xml::Cid& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getAuto(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Vsock
+
+namespace Domain
+{
+namespace Xml
+{
+bool Vsock::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Vsock, Name::Strict<5042> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Vsock::save(QDomElement& dst_) const
+{
+	Element<Vsock, Name::Strict<5042> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Vsock::save(QDomDocument& dst_) const
+{
+	Element<Vsock, Name::Strict<5042> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Domain
+
+int Traits<Domain::Xml::Vsock>::parse(Domain::Xml::Vsock& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setCid(m.get<1>().get<0>().getValue());
+		dst_.setAddress(m.get<1>().get<1>().getValue());
+		dst_.setAlias(m.get<1>().get<2>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::Vsock>::generate(const Domain::Xml::Vsock& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getCid(), m.get<1>().get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>().get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<1>().get<2>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Devices
 
 namespace Domain
@@ -12840,6 +12963,7 @@ int Traits<Domain::Xml::Devices>::parse(Domain::Xml::Devices& dst_, QStack<QDomE
 		dst_.setNvram(m.get<4>().getValue());
 		dst_.setPanicList(m.get<5>().getValue());
 		dst_.setXBlockexport(m.get<6>().getValue());
+		dst_.setVsock(m.get<7>().getValue());
 	}
 	return output;
 }
@@ -12860,6 +12984,8 @@ int Traits<Domain::Xml::Devices>::generate(const Domain::Xml::Devices& src_, QDo
 	if (0 > Details::Marshal::assign(src_.getPanicList(), m.get<5>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getXBlockexport(), m.get<6>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVsock(), m.get<7>()))
 		return -1;
 
 	return m.produce(dst_);
