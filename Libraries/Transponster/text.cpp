@@ -5065,7 +5065,9 @@ static QString g_text[] = {
 	QString("variant5037"),
 	QString("variant5038"),
 	QString("choice5039"),
-	QString("")
+	QString(""),
+	QString("vsock"),
+	QString("cid")
 };
 
 const QString& getText(quint32 index_)

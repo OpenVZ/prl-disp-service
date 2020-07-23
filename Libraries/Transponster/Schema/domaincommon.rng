@@ -3673,6 +3673,38 @@
    </optional>
   </define>
 
+  <define name="vsock">
+    <element name="vsock">
+      <optional>
+        <attribute name="model">
+          <value>virtio</value>
+        </attribute>
+      </optional>
+      <interleave>
+        <optional>
+          <element name="cid">
+            <optional>
+              <attribute name="auto">
+                <ref name="virYesNo"/>
+              </attribute>
+            </optional>
+            <optional>
+              <attribute name="address">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+          </element>
+        </optional>
+        <optional>
+          <ref name="address"/>
+        </optional>
+        <optional>
+          <ref name="alias"/>
+        </optional>
+      </interleave>
+    </element>
+  </define>
+
   <define name="input">
     <element name="input">
       <attribute name="type">
@@ -4141,6 +4173,9 @@
           <element name="x-blockexport">
             <ref name="domainblockexport_"/>
           </element>
+        </optional>
+        <optional>
+          <ref name="vsock"/>
         </optional>
       </interleave>
     </element>
