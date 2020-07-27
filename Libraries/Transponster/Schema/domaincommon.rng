@@ -56,6 +56,9 @@
           <ref name="pm"/>
         </optional>
         <optional>
+          <ref name="perf"/>
+        </optional>
+        <optional>
           <ref name="idmap"/>
         </optional>
         <optional>
@@ -66,6 +69,12 @@
         </zeroOrMore>
         <optional>
           <ref name='qemucmdline'/>
+        </optional>
+        <optional>
+          <ref name='keywrap'/>
+        </optional>
+        <optional>
+          <ref name='launchSecurity'/>
         </optional>
       </interleave>
     </element>
@@ -248,6 +257,14 @@
               </attribute>
             </optional>
             <optional>
+              <attribute name="secure">
+                <choice>
+                  <value>yes</value>
+                  <value>no</value>
+                </choice>
+              </attribute>
+            </optional>
+            <optional>
               <attribute name="type">
                 <choice>
                   <value>rom</value>
@@ -301,6 +318,9 @@
         </optional>
         <optional>
           <ref name="bios"/>
+        </optional>
+        <optional>
+          <ref name="acpiTable"/>
         </optional>
       </interleave>
     </element>
@@ -518,6 +538,104 @@
       </interleave>
     </element>
   </define>
+
+  <define name="keywrap">
+    <element name="keywrap">
+      <oneOrMore>
+        <element name="cipher">
+          <attribute name="name">
+            <choice>
+              <value>aes</value>
+              <value>dea</value>
+            </choice>
+          </attribute>
+          <attribute name="state">
+            <ref name='virOnOff'/>
+          </attribute>
+        </element>
+      </oneOrMore>
+    </element>
+  </define>
+
+  <define name="launchSecurity">
+    <element name="launchSecurity">
+      <attribute name="type">
+        <value>sev</value>
+      </attribute>
+      <interleave>
+        <element name="cbitpos">
+          <data type='unsignedInt'/>
+        </element>
+        <element name="reducedPhysBits">
+          <data type='unsignedInt'/>
+        </element>
+        <element name="policy">
+          <ref name='hexuint'/>
+        </element>
+        <optional>
+          <element name="handle">
+            <ref name='unsignedInt'/>
+          </element>
+        </optional>
+        <optional>
+          <element name="dhCert">
+            <data type="string"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="session">
+            <data type="string"/>
+          </element>
+        </optional>
+      </interleave>
+     </element>
+  </define>
+
+  <!--
+      Enable or disable perf events for the domain. For each
+      of the events the following rules apply:
+      on: the event will be forcefully enabled
+      off: the event will be forcefully disabled
+      not specified: the event will be disabled by default
+  -->
+  <define name="perf">
+    <element name="perf">
+      <oneOrMore>
+        <element name="event">
+          <attribute name="name">
+            <choice>
+              <value>cmt</value>
+              <value>mbmt</value>
+              <value>mbml</value>
+              <value>cpu_cycles</value>
+              <value>instructions</value>
+              <value>cache_references</value>
+              <value>cache_misses</value>
+              <value>branch_instructions</value>
+              <value>branch_misses</value>
+              <value>bus_cycles</value>
+              <value>stalled_cycles_frontend</value>
+              <value>stalled_cycles_backend</value>
+              <value>ref_cpu_cycles</value>
+              <value>cpu_clock</value>
+              <value>task_clock</value>
+              <value>page_faults</value>
+              <value>context_switches</value>
+              <value>cpu_migrations</value>
+              <value>page_faults_min</value>
+              <value>page_faults_maj</value>
+              <value>alignment_faults</value>
+              <value>emulation_faults</value>
+            </choice>
+          </attribute>
+          <attribute name="enabled">
+            <ref name="virYesNo"/>
+          </attribute>
+        </element>
+      </oneOrMore>
+    </element>
+  </define>
+
   <!--
       The Identifiers can be:
       - an optional id attribute with a number on the domain element
@@ -833,6 +951,16 @@
         </optional>
         <optional>
           <element name="emulator_quota">
+            <ref name="cpuquota"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="iothread_period">
+            <ref name="cpuperiod"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="iothread_quota">
             <ref name="cpuquota"/>
           </element>
         </optional>
@@ -2522,6 +2650,16 @@
                 </attribute>
               </optional>
               <optional>
+                <attribute name='rx_queue_size'>
+                  <ref name='positiveInteger'/>
+                </attribute>
+              </optional>
+              <optional>
+                <attribute name='tx_queue_size'>
+                  <ref name='positiveInteger'/>
+                </attribute>
+              </optional>
+              <optional>
                 <attribute name="txmode">
                   <choice>
                     <value>iothread</value>
@@ -3705,6 +3843,38 @@
     </element>
   </define>
 
+  <define name="iommu">
+    <element name="iommu">
+      <attribute name="model">
+        <value>intel</value>
+      </attribute>
+      <optional>
+        <element name="driver">
+          <optional>
+            <attribute name="intremap">
+              <ref name="virOnOff"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="caching_mode">
+              <ref name="virOnOff"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="eim">
+              <ref name="virOnOff"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="iotlb">
+              <ref name="virOnOff"/>
+            </attribute>
+          </optional>
+        </element>
+      </optional>
+    </element>
+  </define>
+
   <define name="input">
     <element name="input">
       <attribute name="type">
@@ -4174,6 +4344,9 @@
             <ref name="domainblockexport_"/>
           </element>
         </optional>
+         <optional>
+          <ref name="iommu"/>
+        </optional>
         <optional>
           <ref name="vsock"/>
         </optional>
@@ -4508,6 +4681,19 @@
     <data type="string">
       <param name='pattern'>[a-zA-Z0-9/\-_\. \(\)]+</param>
     </data>
+  </define>
+
+  <define name="acpiTable">
+    <element name="acpi">
+      <zeroOrMore>
+        <element name="table">
+          <attribute name="type">
+            <value>slic</value>
+          </attribute>
+          <ref name="absFilePath"/>
+        </element>
+      </zeroOrMore>
+    </element>
   </define>
 
   <define name="smbios">

@@ -179,6 +179,12 @@ enum EReadonly
 	EReadonlyNo
 };
 
+enum ESecure
+{
+	ESecureYes,
+	ESecureNo
+};
+
 enum EType2
 {
 	EType2Rom,
@@ -343,6 +349,32 @@ enum ELockfailureOptions
 	ELockfailureOptionsRestart,
 	ELockfailureOptionsPause,
 	ELockfailureOptionsIgnore
+};
+
+enum EName3
+{
+	EName3Cmt,
+	EName3Mbmt,
+	EName3Mbml,
+	EName3CpuCycles,
+	EName3Instructions,
+	EName3CacheReferences,
+	EName3CacheMisses,
+	EName3BranchInstructions,
+	EName3BranchMisses,
+	EName3BusCycles,
+	EName3StalledCyclesFrontend,
+	EName3StalledCyclesBackend,
+	EName3RefCpuCycles,
+	EName3CpuClock,
+	EName3TaskClock,
+	EName3PageFaults,
+	EName3ContextSwitches,
+	EName3CpuMigrations,
+	EName3PageFaultsMin,
+	EName3PageFaultsMaj,
+	EName3AlignmentFaults,
+	EName3EmulationFaults
 };
 
 enum EDevice
@@ -567,17 +599,17 @@ enum EModel1
 	EModel1QemuXhci
 };
 
-enum EName3
+enum EName4
 {
-	EName3SpaprPciHostBridge,
-	EName3PciBridge,
-	EName3I82801b11Bridge,
-	EName3Ioh3420,
-	EName3PcieRootPort,
-	EName3X3130Upstream,
-	EName3Xio3130Downstream,
-	EName3Pxb,
-	EName3PxbPcie
+	EName4SpaprPciHostBridge,
+	EName4PciBridge,
+	EName4I82801b11Bridge,
+	EName4Ioh3420,
+	EName4PcieRootPort,
+	EName4X3130Upstream,
+	EName4Xio3130Downstream,
+	EName4Pxb,
+	EName4PxbPcie
 };
 
 enum EModel2
@@ -624,16 +656,16 @@ enum EState
 	EStateDown
 };
 
-enum EName4
-{
-	EName4Kvm,
-	EName4Vfio
-};
-
 enum EName5
 {
-	EName5Qemu,
-	EName5Vhost
+	EName5Kvm,
+	EName5Vfio
+};
+
+enum EName6
+{
+	EName6Qemu,
+	EName6Vhost
 };
 
 enum ETxmode
@@ -696,11 +728,11 @@ enum EType11
 	EType11Micro
 };
 
-enum EName6
+enum EName7
 {
-	EName6Kvm,
-	EName6Vfio,
-	EName6Xen
+	EName7Kvm,
+	EName7Vfio,
+	EName7Xen
 };
 
 enum ESgio1
@@ -745,16 +777,16 @@ enum EDefaultMode
 	EDefaultModeInsecure
 };
 
-enum EName7
+enum EName8
 {
-	EName7Main,
-	EName7Display,
-	EName7Inputs,
-	EName7Cursor,
-	EName7Playback,
-	EName7Record,
-	EName7Smartcard,
-	EName7Usbredir
+	EName8Main,
+	EName8Display,
+	EName8Inputs,
+	EName8Cursor,
+	EName8Playback,
+	EName8Record,
+	EName8Smartcard,
+	EName8Usbredir
 };
 
 enum EMode7
@@ -853,15 +885,15 @@ enum EType15
 	EType15UsbSerial
 };
 
-enum EName8
+enum EName9
 {
-	EName8IsaSerial,
-	EName8UsbSerial,
-	EName8PciSerial,
-	EName8SpaprVty,
-	EName8Pl011,
-	EName8Sclpconsole,
-	EName8Sclplmconsole
+	EName9IsaSerial,
+	EName9UsbSerial,
+	EName9PciSerial,
+	EName9SpaprVty,
+	EName9Pl011,
+	EName9Sclpconsole,
+	EName9Sclplmconsole
 };
 
 enum EType16
@@ -924,6 +956,12 @@ enum EModel10
 	EModel10Isa,
 	EModel10Pseries,
 	EModel10Hyperv
+};
+
+enum EName10
+{
+	EName10Aes,
+	EName10Dea
 };
 
 

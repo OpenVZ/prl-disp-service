@@ -1126,8 +1126,9 @@ int Traits<Domain::Xml::Loader>::parse(Domain::Xml::Loader& dst_, QStack<QDomEle
 	if (0 <= output)
 	{
 		dst_.setReadonly(m.get<0>().getValue());
-		dst_.setType(m.get<1>().getValue());
-		dst_.setOwnValue(m.get<2>().getValue());
+		dst_.setSecure(m.get<1>().getValue());
+		dst_.setType(m.get<2>().getValue());
+		dst_.setOwnValue(m.get<3>().getValue());
 	}
 	return output;
 }
@@ -1137,9 +1138,11 @@ int Traits<Domain::Xml::Loader>::generate(const Domain::Xml::Loader& src_, QDomE
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getReadonly(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getType(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getSecure(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getOwnValue(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getType(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getOwnValue(), m.get<3>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1383,6 +1386,7 @@ int Traits<Domain::Xml::Os2>::parse(Domain::Xml::Os2& dst_, QStack<QDomElement>&
 		dst_.setBootmenu(m.get<1>().get<4>().getValue());
 		dst_.setSmbios(m.get<1>().get<5>().getValue());
 		dst_.setBios(m.get<1>().get<6>().getValue());
+		dst_.setAcpi(m.get<1>().get<7>().getValue());
 	}
 	return output;
 }
@@ -1405,6 +1409,8 @@ int Traits<Domain::Xml::Os2>::generate(const Domain::Xml::Os2& src_, QDomElement
 	if (0 > Details::Marshal::assign(src_.getSmbios(), m.get<1>().get<5>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getBios(), m.get<1>().get<6>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getAcpi(), m.get<1>().get<7>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -2666,9 +2672,11 @@ int Traits<Domain::Xml::Cputune>::parse(Domain::Xml::Cputune& dst_, QStack<QDomE
 		dst_.setQuota(m.get<4>().getValue());
 		dst_.setEmulatorPeriod(m.get<5>().getValue());
 		dst_.setEmulatorQuota(m.get<6>().getValue());
-		dst_.setVcpupinList(m.get<7>().getValue());
-		dst_.setEmulatorpin(m.get<8>().getValue());
-		dst_.setIothreadpinList(m.get<9>().getValue());
+		dst_.setIothreadPeriod(m.get<7>().getValue());
+		dst_.setIothreadQuota(m.get<8>().getValue());
+		dst_.setVcpupinList(m.get<9>().getValue());
+		dst_.setEmulatorpin(m.get<10>().getValue());
+		dst_.setIothreadpinList(m.get<11>().getValue());
 	}
 	return output;
 }
@@ -2690,11 +2698,15 @@ int Traits<Domain::Xml::Cputune>::generate(const Domain::Xml::Cputune& src_, QDo
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getEmulatorQuota(), m.get<6>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getVcpupinList(), m.get<7>()))
+	if (0 > Details::Marshal::assign(src_.getIothreadPeriod(), m.get<7>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getEmulatorpin(), m.get<8>()))
+	if (0 > Details::Marshal::assign(src_.getIothreadQuota(), m.get<8>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getIothreadpinList(), m.get<9>()))
+	if (0 > Details::Marshal::assign(src_.getVcpupinList(), m.get<9>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getEmulatorpin(), m.get<10>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getIothreadpinList(), m.get<11>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -4014,6 +4026,70 @@ int Traits<Domain::Xml::Pm>::generate(const Domain::Xml::Pm& src_, QDomElement& 
 	if (0 > Details::Marshal::assign(src_.getSuspendToMem(), m.get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getSuspendToDisk(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Event
+
+namespace Domain
+{
+namespace Xml
+{
+Event::Event(): m_name(), m_enabled()
+{
+}
+
+bool Event::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Event, Name::Strict<5054> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Event::save(QDomElement& dst_) const
+{
+	Element<Event, Name::Strict<5054> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Event::save(QDomDocument& dst_) const
+{
+	Element<Event, Name::Strict<5054> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Domain
+
+int Traits<Domain::Xml::Event>::parse(Domain::Xml::Event& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setName(m.get<0>().getValue());
+		dst_.setEnabled(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::Event>::generate(const Domain::Xml::Event& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getName(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getEnabled(), m.get<1>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -5994,7 +6070,7 @@ const VDiskBackingChainBin* BackingStore::getDiskBackingChain() const
 {
 	if (m_diskBackingChain.empty())
 		return NULL;
-	
+
 	return boost::any_cast<VDiskBackingChainBin >(&m_diskBackingChain);
 }
 
@@ -7675,9 +7751,11 @@ int Traits<Domain::Xml::Driver698>::parse(Domain::Xml::Driver698& dst_, QStack<Q
 	{
 		dst_.setName(m.get<0>().getValue());
 		dst_.setQueues(m.get<1>().getValue());
-		dst_.setTxmode(m.get<2>().getValue());
-		dst_.setIoeventfd(m.get<3>().getValue());
-		dst_.setEventIdx(m.get<4>().getValue());
+		dst_.setRxQueueSize(m.get<2>().getValue());
+		dst_.setTxQueueSize(m.get<3>().getValue());
+		dst_.setTxmode(m.get<4>().getValue());
+		dst_.setIoeventfd(m.get<5>().getValue());
+		dst_.setEventIdx(m.get<6>().getValue());
 	}
 	return output;
 }
@@ -7689,11 +7767,15 @@ int Traits<Domain::Xml::Driver698>::generate(const Domain::Xml::Driver698& src_,
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getQueues(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTxmode(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getRxQueueSize(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getIoeventfd(), m.get<3>()))
+	if (0 > Details::Marshal::assign(src_.getTxQueueSize(), m.get<3>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getEventIdx(), m.get<4>()))
+	if (0 > Details::Marshal::assign(src_.getTxmode(), m.get<4>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getIoeventfd(), m.get<5>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getEventIdx(), m.get<6>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -12791,6 +12873,72 @@ int Traits<Domain::Xml::Domainblockexport_>::generate(const Domain::Xml::Domainb
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Driver4
+
+namespace Domain
+{
+namespace Xml
+{
+bool Driver4::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Driver4, Name::Strict<546> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Driver4::save(QDomElement& dst_) const
+{
+	Element<Driver4, Name::Strict<546> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Driver4::save(QDomDocument& dst_) const
+{
+	Element<Driver4, Name::Strict<546> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Domain
+
+int Traits<Domain::Xml::Driver4>::parse(Domain::Xml::Driver4& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setIntremap(m.get<0>().getValue());
+		dst_.setCachingMode(m.get<1>().getValue());
+		dst_.setEim(m.get<2>().getValue());
+		dst_.setIotlb(m.get<3>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::Driver4>::generate(const Domain::Xml::Driver4& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getIntremap(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getCachingMode(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getEim(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getIotlb(), m.get<3>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Cid
 
 namespace Domain
@@ -12963,7 +13111,8 @@ int Traits<Domain::Xml::Devices>::parse(Domain::Xml::Devices& dst_, QStack<QDomE
 		dst_.setNvram(m.get<4>().getValue());
 		dst_.setPanicList(m.get<5>().getValue());
 		dst_.setXBlockexport(m.get<6>().getValue());
-		dst_.setVsock(m.get<7>().getValue());
+		dst_.setIommu(m.get<7>().getValue());
+		dst_.setVsock(m.get<8>().getValue());
 	}
 	return output;
 }
@@ -12985,7 +13134,9 @@ int Traits<Domain::Xml::Devices>::generate(const Domain::Xml::Devices& src_, QDo
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getXBlockexport(), m.get<6>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getVsock(), m.get<7>()))
+	if (0 > Details::Marshal::assign(src_.getIommu(), m.get<7>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVsock(), m.get<8>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -13245,6 +13396,146 @@ int Traits<Domain::Xml::Commandline>::generate(const Domain::Xml::Commandline& s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Cipher
+
+namespace Domain
+{
+namespace Xml
+{
+Cipher::Cipher(): m_name(), m_state()
+{
+}
+
+bool Cipher::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Cipher, Name::Strict<5049> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Cipher::save(QDomElement& dst_) const
+{
+	Element<Cipher, Name::Strict<5049> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Cipher::save(QDomDocument& dst_) const
+{
+	Element<Cipher, Name::Strict<5049> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Domain
+
+int Traits<Domain::Xml::Cipher>::parse(Domain::Xml::Cipher& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setName(m.get<0>().getValue());
+		dst_.setState(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::Cipher>::generate(const Domain::Xml::Cipher& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getName(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getState(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct LaunchSecurity
+
+namespace Domain
+{
+namespace Xml
+{
+LaunchSecurity::LaunchSecurity(): m_cbitpos(), m_reducedPhysBits()
+{
+}
+
+bool LaunchSecurity::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<LaunchSecurity, Name::Strict<5047> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool LaunchSecurity::save(QDomElement& dst_) const
+{
+	Element<LaunchSecurity, Name::Strict<5047> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool LaunchSecurity::save(QDomDocument& dst_) const
+{
+	Element<LaunchSecurity, Name::Strict<5047> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Domain
+
+int Traits<Domain::Xml::LaunchSecurity>::parse(Domain::Xml::LaunchSecurity& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setCbitpos(m.get<1>().get<0>().getValue());
+		dst_.setReducedPhysBits(m.get<1>().get<1>().getValue());
+		dst_.setPolicy(m.get<1>().get<2>().getValue());
+		dst_.setHandle(m.get<1>().get<3>().getValue());
+		dst_.setDhCert(m.get<1>().get<4>().getValue());
+		dst_.setSession(m.get<1>().get<5>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::LaunchSecurity>::generate(const Domain::Xml::LaunchSecurity& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getCbitpos(), m.get<1>().get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getReducedPhysBits(), m.get<1>().get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getPolicy(), m.get<1>().get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getHandle(), m.get<1>().get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getDhCert(), m.get<1>().get<4>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getSession(), m.get<1>().get<5>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Domain
 
 namespace Domain
@@ -13318,10 +13609,13 @@ int Traits<Domain::Xml::Domain>::parse(Domain::Xml::Domain& dst_, QStack<QDomEle
 		dst_.setOnCrash(m.get<2>().get<22>().getValue());
 		dst_.setOnLockfailure(m.get<2>().get<23>().getValue());
 		dst_.setPm(m.get<2>().get<24>().getValue());
-		dst_.setIdmap(m.get<2>().get<25>().getValue());
-		dst_.setDevices(m.get<2>().get<26>().getValue());
-		dst_.setSeclabelList(m.get<2>().get<27>().getValue());
-		dst_.setCommandline(m.get<2>().get<28>().getValue());
+		dst_.setPerf(m.get<2>().get<25>().getValue());
+		dst_.setIdmap(m.get<2>().get<26>().getValue());
+		dst_.setDevices(m.get<2>().get<27>().getValue());
+		dst_.setSeclabelList(m.get<2>().get<28>().getValue());
+		dst_.setCommandline(m.get<2>().get<29>().getValue());
+		dst_.setKeywrap(m.get<2>().get<30>().getValue());
+		dst_.setLaunchSecurity(m.get<2>().get<31>().getValue());
 	}
 	return output;
 }
@@ -13383,13 +13677,19 @@ int Traits<Domain::Xml::Domain>::generate(const Domain::Xml::Domain& src_, QDomE
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getPm(), m.get<2>().get<24>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getIdmap(), m.get<2>().get<25>()))
+	if (0 > Details::Marshal::assign(src_.getPerf(), m.get<2>().get<25>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getDevices(), m.get<2>().get<26>()))
+	if (0 > Details::Marshal::assign(src_.getIdmap(), m.get<2>().get<26>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getSeclabelList(), m.get<2>().get<27>()))
+	if (0 > Details::Marshal::assign(src_.getDevices(), m.get<2>().get<27>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getCommandline(), m.get<2>().get<28>()))
+	if (0 > Details::Marshal::assign(src_.getSeclabelList(), m.get<2>().get<28>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getCommandline(), m.get<2>().get<29>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getKeywrap(), m.get<2>().get<30>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getLaunchSecurity(), m.get<2>().get<31>()))
 		return -1;
 
 	return m.produce(dst_);
