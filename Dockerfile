@@ -2,10 +2,7 @@
 # Build and run as follows:
 # docker build -t prl-disp-service . && docker run -v "$(pwd):/root/src" -it prl-disp-service
 
-# Registry might be changed to DockerHub in the future
-# Until that, docker-internal.virtuozzo.com must be added to "insecure registries"
-# at your Docker daemon.json config
-FROM docker-internal.virtuozzo.com/virtuozzo/vz7-minimal:latest
+FROM virtuozzo/vz7-minimal:latest
 
 RUN printf \
 "\n[factory-sources]\n\
