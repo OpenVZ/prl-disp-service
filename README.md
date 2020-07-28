@@ -18,9 +18,8 @@ physical machine.
 To build dispatcher
 ```
 ./Gen.py
-cd Dispatcher
-qmake-qt4
-make -j<N> debug
+(cd Libraries/Transponster && qmake-qt4 && make debug)
+(cd Dispatcher && qmake-qt4 && make  -j<N> debug)
 ```
 where is \<N\> - a number of CPU cores on the build node + 2.
 
@@ -29,4 +28,10 @@ To build tests:
 cd Tests
 qmake-qt4
 make
+```
+
+To build in Docker container:
+```
+docker build -t prl-disp-service .
+docker run -v "$(pwd):/root/src" -it prl-disp-service
 ```
