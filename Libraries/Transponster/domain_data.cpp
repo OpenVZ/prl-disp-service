@@ -935,6 +935,36 @@ bool Validatable<Domain::Xml::PMachine>::validate(const Domain::Xml::PMachine::v
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PCbitpos
+
+bool Traits<Domain::Xml::PCbitpos>::parse(const QString& src_, Domain::Xml::PCbitpos::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toUInt(&output);
+	return output;
+}
+
+QString Traits<Domain::Xml::PCbitpos>::generate(Domain::Xml::PCbitpos::value_type src_)
+{
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PReducedPhysBits
+
+bool Traits<Domain::Xml::PReducedPhysBits>::parse(const QString& src_, Domain::Xml::PReducedPhysBits::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toUInt(&output);
+	return output;
+}
+
+QString Traits<Domain::Xml::PReducedPhysBits>::generate(Domain::Xml::PReducedPhysBits::value_type src_)
+{
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 bool Traits<Domain::Xml::PReadIopsSec>::parse(const QString& src_, Domain::Xml::PReadIopsSec::value_type& dst_)

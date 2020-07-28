@@ -1460,6 +1460,88 @@ struct Validatable<Domain::Xml::PMachine>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PCbitpos
+
+namespace Domain
+{
+namespace Xml
+{
+struct PCbitpos
+{
+	typedef quint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+template<>
+struct Traits<Domain::Xml::PCbitpos>
+{
+	static bool parse(const QString& src_, Domain::Xml::PCbitpos::value_type& dst_);
+
+	static QString generate(Domain::Xml::PCbitpos::value_type src_);
+
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PReducedPhysBits
+
+namespace Domain
+{
+namespace Xml
+{
+struct PReducedPhysBits
+{
+	typedef quint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+template<>
+struct Traits<Domain::Xml::PReducedPhysBits>
+{
+	static bool parse(const QString& src_, Domain::Xml::PReducedPhysBits::value_type& dst_);
+
+	static QString generate(Domain::Xml::PReducedPhysBits::value_type src_);
+
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PDhCert
+
+namespace Domain
+{
+namespace Xml
+{
+struct PDhCert
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PSession
+
+namespace Domain
+{
+namespace Xml
+{
+struct PSession
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 namespace Domain
