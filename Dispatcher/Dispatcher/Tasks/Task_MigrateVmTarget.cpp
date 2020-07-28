@@ -1930,8 +1930,6 @@ PRL_RESULT Task_MigrateVmTarget::preconditionsReply()
 			return PRL_ERR_OPERATION_FAILED;
 		}
 	}
-	// use compatibility mode in response
-	C->setExtRootTagName(C->getLegacyProductTag(C->getTagName()));
 	c.SetConfig(C->toString());
 
 	WRITE_TRACE(DBG_DEBUG, "hardware config that was recieved from the target:\n %s",
