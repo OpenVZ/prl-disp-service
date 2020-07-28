@@ -173,9 +173,8 @@ QString Api::getOutgoingChain(const QString& device_)
 
 } // namespace
 
-CFirewallHelper::CFirewallHelper(const SmartPtr<CVmConfiguration>& pVmConfig,
-								 bool bDeleteRules)
-: m_pVmConfig(pVmConfig)
+CFirewallHelper::CFirewallHelper(const CVmConfiguration& config_, bool bDeleteRules)
+: m_VmConfig(config_)
 {
 #ifdef _LIN_
 	ComposeIptablesRules(bDeleteRules);
@@ -413,11 +412,7 @@ void CFirewallHelper::DeleteBridgeRules(const QString &veth_name)
 
 void CFirewallHelper::ComposeIptablesRules(bool bDeleteRules)
 {
-	if ( ! m_pVmConfig )
-		// Unexpected error
-		return;
-
-	foreach(CVmGenericNetworkAdapter* pAdapter, m_pVmConfig->getVmHardwareList()->m_lstNetworkAdapters)
+	foreach(CVmGenericNetworkAdapter* pAdapter, m_VmConfig.getVmHardwareList()->m_lstNetworkAdapters)
 	{
 		DeleteRules(pAdapter->getHostInterfaceName());
 		if (!bDeleteRules && pAdapter->getFirewall()->isEnabled())
@@ -427,18 +422,14 @@ void CFirewallHelper::ComposeIptablesRules(bool bDeleteRules)
 
 void CFirewallHelper::ComposeBridgeTablesRules(bool bDeleteRules)
 {
-	if ( ! m_pVmConfig )
-		// Unexpected error
+	/* setup bridge tables for Containers with bridged networking
+	 * only - for VMs necessary filtering is performed by vme device
+	 * code */
+	if (m_VmConfig.getVmType() == PVT_VM)
 		return;
 
-	foreach(CVmGenericNetworkAdapter* pAdapter, m_pVmConfig->getVmHardwareList()->m_lstNetworkAdapters)
+	foreach(CVmGenericNetworkAdapter* pAdapter, m_VmConfig.getVmHardwareList()->m_lstNetworkAdapters)
 	{
-		/* setup bridge tables for Containers with bridged networking
-		 * only - for VMs necessary filtering is performed by vme device
-		 * code */
-		if (m_pVmConfig->getVmType() == PVT_VM)
-			continue;
-
 		/* skip host-routed device */
 		if (pAdapter->isVenetDevice())
 			continue;
@@ -562,3 +553,10 @@ PRL_RESULT CFirewallHelper::Execute()
 
 	return res;
 }
+
+PRL_RESULT CFirewallHelper::Execute(const CVmConfiguration &config_)
+{
+	CFirewallHelper fw(config_);
+	return fw.Execute();
+}
+

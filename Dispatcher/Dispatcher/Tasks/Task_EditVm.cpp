@@ -2384,7 +2384,7 @@ PRL_RESULT Task_EditVm::editFirewall(SmartPtr<CVmConfiguration> pVmConfigNew,
 		return PRL_ERR_SUCCESS;
 	}
 
-	CFirewallHelper fw(pVmConfigNew);
+	CFirewallHelper fw(*pVmConfigNew);
 
 	PRL_RESULT ret = fw.Execute();
 	if (PRL_FAILED(ret))

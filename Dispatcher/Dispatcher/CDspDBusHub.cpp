@@ -44,12 +44,11 @@
 
 #include "CDspService.h"
 #include "CDspDBusHub.h"
-#include "CDspVmManager.h"
-#include "CDspVzHelper.h"
 #include <QtDBus>
 #include <QDBusInterface>
 #include <prlcommon/Logging/Logging.h>
 #include <Libraries/CpuFeatures/CCpuHelper.h>
+#include "Libraries/PrlCommonUtils/CFirewallHelper.h"
 #include "Tasks/Task_UpdateCommonPrefs.h"
 
 namespace
@@ -119,8 +118,5 @@ void CDspDBusHub::slotCpuFeaturesSync()
 void CDspDBusHub::slotReloadFirewall()
 {
 	WRITE_TRACE(DBG_INFO, "Reload firewall rules");
-	CDspService::instance()->getVmManager().reloadFirewall();
-#ifdef _LIN_
-	CDspService::instance()->getVzHelper()->reloadFirewall();
-#endif
+	CDspService::instance()->applyToAllRunning(CFirewallHelper::Execute);
 }

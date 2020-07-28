@@ -278,6 +278,10 @@ public:
 	void notifyConfigChanged(const SmartPtr<CDispCommonPreferences>&, const SmartPtr<CDispCommonPreferences>&);
 	PRL_RESULT initNetworkPreferences(CDispCommonPreferences& config_);
 
+	typedef PRL_RESULT (*allRunningCallerType) (const CVmConfiguration& config_);
+	void applyToAllRunning(allRunningCallerType f);
+
+
 public slots:
 
 	/**

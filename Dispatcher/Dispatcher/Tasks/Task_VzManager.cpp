@@ -348,7 +348,7 @@ PRL_RESULT Task_VzManager::create_env()
 
 PRL_RESULT Task_VzManager::setupFirewall(SmartPtr<CVmConfiguration> &pConfig)
 {
-	CFirewallHelper fw(pConfig);
+	CFirewallHelper fw(*pConfig);
 
 	PRL_RESULT ret = fw.Execute();
 	if (PRL_FAILED(ret))
@@ -1331,20 +1331,20 @@ PRL_RESULT Task_VzManager::process_state()
 		return PRL_ERR_VM_GET_CONFIG_FAILED;
 
 	if ((m_nState == VMS_RUNNING) || (m_nState == VMS_RESUMING)) {
-		CFirewallHelper fw(pConfig);
+		CFirewallHelper fw(*pConfig);
 		res = fw.Execute();
 
 		/* will ignore start VNC server error */
 		start_vnc_server(getVmUuid(), true);
 	} else if ((m_nState == VMS_STOPPED) || (m_nState == VMS_SUSPENDED)) {
-		CFirewallHelper fw(pConfig, true);
+		CFirewallHelper fw(*pConfig, true);
 		res = fw.Execute();
 
 		/* will ignore start VNC server error */
 		stop_vnc_server(getVmUuid(), true);
 	} else if (m_nState == VMS_UNKNOWN) {
 		/* Network configuration changed */
-		CFirewallHelper fw(pConfig);
+		CFirewallHelper fw(*pConfig);
 		res = fw.Execute();
 	}
 

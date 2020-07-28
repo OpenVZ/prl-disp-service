@@ -524,18 +524,6 @@ PRL_RESULT CDspVm::replaceInitDspCmd( PVE::IDispatcherCommands nNewCmd, const Sm
 	return ( nRetCode );
 }
 
-void CDspVm::reloadFirewall()
-{
-	PRL_RESULT nRetCode = PRL_ERR_UNINITIALIZED;
-	SmartPtr<CVmConfiguration> pVmConfig = getVmConfig(SmartPtr<CDspClient>(0), nRetCode);
-
-	if (PRL_SUCCEEDED(nRetCode) && pVmConfig)
-	{
-		CFirewallHelper fw(pVmConfig);
-		fw.Execute();
-	}
-}
-
 void CDspVm::cleanupObject()
 {
 	PRL_RESULT nRetCode = PRL_ERR_UNINITIALIZED;
@@ -549,7 +537,7 @@ void CDspVm::cleanupObject()
 
 	{
 		// Delete firewall
-		CFirewallHelper fw(pVmConfig, true);
+		CFirewallHelper fw(*pVmConfig, true);
 		fw.Execute();
 	}
 

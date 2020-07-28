@@ -270,11 +270,6 @@ public:
 	void updateVmUptime();
 
 	/**
-	 * Restore firewall rules for VM
-	 */
-	void reloadFirewall();
-
-	/**
 	 * Change VM state to VMS_COMPACTING
 	 */
 	PRL_RESULT changeVmStateToCompacting();

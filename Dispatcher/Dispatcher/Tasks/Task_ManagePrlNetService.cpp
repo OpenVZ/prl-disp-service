@@ -167,41 +167,7 @@ void Watcher::updateRates(const SmartPtr<CDispCommonPreferences> old_, const Sma
 
 void Watcher::updateRates()
 {
-	Libvirt::Instrument::Agent::Vm::List l = Libvirt::Kit.vms();
-	QList<Libvirt::Instrument::Agent::Vm::Unit> all;
-	l.all(all);
-
-	foreach (const Libvirt::Instrument::Agent::Vm::Unit& u, all)
-	{
-		VIRTUAL_MACHINE_STATE s(VMS_UNKNOWN);
-		if (u.getState().getValue(s).isFailed())
-			continue;
-
-		if (VMS_RUNNING != s && VMS_PAUSED != s)
-			continue;
-
-		QString uuid;
-		if (u.getUuid(uuid).isFailed())
-			continue;
-
-		boost::optional<CVmConfiguration> c = m_registry.find(uuid).getConfig();
-		if (!c)
-			continue;
-
-		Task_NetworkShapingManagement::setNetworkRate(c.get());
-	}
-
-	QList<SmartPtr<CVmConfiguration> > cts;
-	SmartPtr<CDspClient> user = CDspClient::makeServiceUser(
-			CDspVmDirManager::getVzDirectoryUuid()
-			);
-	CDspService::instance()->getVzHelper()->getCtConfigList(user, 0, cts);
-	foreach(SmartPtr<CVmConfiguration> c, cts)
-	{
-		tribool_type run = CVzHelper::is_env_running(c->getVmIdentification()->getVmUuid());
-		if (run)
-			Task_NetworkShapingManagement::setNetworkRate(*c);
-	}
+	CDspService::instance()->applyToAllRunning(Task_NetworkShapingManagement::setNetworkRate);
 }
 
 } // namespace Config

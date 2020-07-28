@@ -40,9 +40,10 @@ class CFirewallHelper
 {
 public:
 
-	CFirewallHelper(const SmartPtr<CVmConfiguration>& pVmConfig,
+	CFirewallHelper(const CVmConfiguration& pVmConfig,
 					bool bDeleteRules = false);
 
+	static PRL_RESULT Execute(const CVmConfiguration &config_);
 	PRL_RESULT Execute();
 
 	QString GetErrorMessage() const { return m_qsErrorMessage; }
@@ -71,7 +72,7 @@ private:
 	PRL_RESULT ExecuteIptables();
 	PRL_RESULT ExecuteBridgeTables();
 
-	SmartPtr<CVmConfiguration> m_pVmConfig;
+	const CVmConfiguration m_VmConfig;
 	QStringList	m_lstCleanupRules;
 	QStringList	m_lstCleanupBridgeRules;
 	QStringList	m_lstRules;

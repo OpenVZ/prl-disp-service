@@ -362,7 +362,7 @@ bool TestSuite::checkFirewall()
 		return false;
 
 	// Setup firewall
-	CFirewallHelper fw(m_config);
+	CFirewallHelper fw(*m_config);
 	PRL_RESULT e = fw.Execute();
 	if (PRL_SUCCEEDED(e))
 		return true;

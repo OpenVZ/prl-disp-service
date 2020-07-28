@@ -2899,3 +2899,43 @@ bool CDspService::setCredentialsForServers(const IOServerList & lstServers)
 	Q_UNUSED(lstServers);
 	return false;
 }
+
+void CDspService::applyToAllRunning(allRunningCallerType f)
+{
+	Libvirt::Instrument::Agent::Vm::List l = Libvirt::Kit.vms();
+	QList<Libvirt::Instrument::Agent::Vm::Unit> all;
+	l.all(all);
+
+	foreach (const Libvirt::Instrument::Agent::Vm::Unit& u, all)
+	{
+		VIRTUAL_MACHINE_STATE s(VMS_UNKNOWN);
+		if (u.getState().getValue(s).isFailed())
+			continue;
+
+		if (VMS_RUNNING != s && VMS_PAUSED != s)
+			continue;
+
+		QString uuid;
+		if (u.getUuid(uuid).isFailed())
+			continue;
+
+		boost::optional<CVmConfiguration> c = (*m_registry).find(uuid).getConfig();
+		if (!c)
+			continue;
+
+		f(c.get());
+	}
+
+	QList<SmartPtr<CVmConfiguration> > cts;
+	SmartPtr<CDspClient> user = CDspClient::makeServiceUser(
+			CDspVmDirManager::getVzDirectoryUuid()
+			);
+	getVzHelper()->getCtConfigList(user, 0, cts);
+	foreach(SmartPtr<CVmConfiguration> c, cts)
+	{
+		tribool_type run = CVzHelper::is_env_running(c->getVmIdentification()->getVmUuid());
+		if (run)
+			f(*c);
+	}
+}
+
