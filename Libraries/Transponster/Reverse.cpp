@@ -861,7 +861,7 @@ boost::optional<Libvirt::Domain::Xml::Bandwidth > View::getBandwidth() const
 			a.setBurst(o->getBurst());
 		if (i->getPeak())
 			a.setPeak(o->getPeak());
-		b.setInbound(a);
+		b.setOutbound(a);
 	}
 
 	return b;
