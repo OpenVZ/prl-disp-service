@@ -31,7 +31,6 @@
 #include <prlcommon/Logging/Logging.h>
 #include "CDspService.h"
 #include "MigrationHandler.h"
-#include "CVcmmdInterface.h"
 #include "VmConverter.h"
 #include "CDspVmManager_p.h"
 #include "Tasks/Task_EditVm.h"
@@ -82,25 +81,6 @@ result_type Convert::execute()
 		return error_type(PRL_ERR_FIXME, "Unable to convert the migrated VM. It was preserved for investigation");
 
 	return error_type(e, "Failed to convert VM. For more details, see logs on the target node.");
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// struct Vcmmd
-
-result_type Vcmmd::execute()
-{
-	::Vcmmd::Frontend< ::Vcmmd::Unregistered> v(m_uuid);
-	const SmartPtr<CVmConfiguration> config(new CVmConfiguration(m_config));
-	PRL_RESULT e = v(::Vcmmd::Unregistered(config));
-
-	if (PRL_FAILED(e))
-		return error_type(e, "Unable to register VM in VCMMD");
-
-	result_type r = m_next->execute();
-	if (r.isSucceed())
-		v.commit();
-
-	return r;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -182,8 +162,7 @@ bool Convoy::deport()
 void Convoy::release(const IOSender::Handle& handle_, const SmartPtr<IOPackage>& package_)
 {
 	QScopedPointer<Step::Unit> u;
-	u.reset(new Step::Vcmmd(m_uuid, *m_config, new Step::Start(m_uuid)));
-	// TODO: possibly we need to setup vcmmd before the first start too
+	u.reset(new Step::Start(m_uuid));
 	boost::optional<Legacy::Vm::V2V> v2v = Legacy::Vm::Converter().getV2V(*m_config);
 	if (v2v)
 		u.reset(new Step::Convert(*v2v, new Step::FirstStart(*v2v, m_vnc, u.take())));

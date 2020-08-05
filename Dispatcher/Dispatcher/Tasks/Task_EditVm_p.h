@@ -37,7 +37,6 @@
 #include <boost/bind.hpp>
 #include "CDspTaskHelper.h"
 #include "CDspVmManager_p.h"
-#include "CVcmmdInterface.h"
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/for_each.hpp>
 #include <boost/function.hpp>
@@ -127,23 +126,6 @@ struct Reconnect: Action
 private:
 	QString m_adapter;
 	QString m_network;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct VcmmdAction
-
-struct VcmmdAction: Action
-{
-	VcmmdAction(const Vcmmd::Api& api_, const Vcmmd::Config::Vm::Model& patch_):
-			m_api(api_), m_patch(patch_)
-	{
-	}
-
-	bool execute(CDspTaskFailure& feedback_);
-
-private:
-	Vcmmd::Api m_api;
-	Vcmmd::Config::Vm::Model m_patch;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -515,14 +497,6 @@ struct Adapter
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Vcmmd
-
-struct Vcmmd
-{
-	Action* operator()(const Request& input_) const;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
 struct Disk
@@ -699,7 +673,7 @@ typedef boost::mpl::vector<ChangeableMedia<CVmOpticalDisk>, ChangeableMedia<CVmF
 		Adapter, Network::Factory,
 		Hotplug::Factory<CVmSerialPort>, Hotplug::Factory<CVmHardDisk>,
 		Hotplug::Factory<CVmGenericNetworkAdapter>, Disk, Blkiotune,
-		Vcmmd, Cpu::Factory> probeList_type;
+		Cpu::Factory> probeList_type;
 
 struct Driver: Gear<Driver, probeList_type>
 {

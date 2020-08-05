@@ -2474,20 +2474,6 @@ bool Reconnect::execute(CDspTaskFailure& feedback_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VcmmdAction
-
-bool VcmmdAction::execute(CDspTaskFailure& feedback_)
-{
-	PRL_RESULT e = m_api.update(m_patch);
-	if (PRL_FAILED(e))
-	{
-		feedback_(e);
-		return false;
-	}
-	return Action::execute(feedback_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Request
 
 Request::Request(Task_EditVm& task_, const config_type& start_, const config_type& final_)
@@ -2892,52 +2878,6 @@ Action* Adapter::operator()(const Request& input_) const
 		output = a;
 	}
 	return output;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Vcmmd
-
-Action* Vcmmd::operator()(const Request& input_) const
-{
-	CVmMemory* o = input_.getStart().getVmHardwareList()->getMemory();
-	CVmMemory* n = input_.getFinal().getVmHardwareList()->getMemory();
-	if (NULL == n)
-		return NULL;
-
-	::Vcmmd::Api a(input_.getObject().first);
-	// Although vcmmd.update would succeed if we provide the same values
-	// we still want to read configuration first, to get vcmmd status
-	Prl::Expected< ::Vcmmd::Config::Vm::Model, PRL_RESULT> x =
-		a.getConfig();
-	if (x.isFailed())
-	{
-		WRITE_TRACE(DBG_FATAL, "Can't get current vcmmd configuration. Skipping runtime update.");
-
-		// Report an error only if we detect that RAM size change is requested.
-		// Otherwise we would swear on vcmmd status if something unrelated to memory is changed
-		if (o == NULL || n->getRamSize() == o->getRamSize())
-			return NULL;
-		else
-			return new Flop(x.error());
-	}
-	::Vcmmd::Config::Vm::Model p;
-	quint64 l = n->getRamSize(), r = x.value().getRam().get();
-	::Vm::Config::MemGuarantee g(*n);
-	// No use in updating configuration if it doesn't differ from current
-	if (std::make_pair(l, g(l)) != std::make_pair(r, x.value().getGuarantee().get()(r)))
-	{
-		p.setRam(l);
-		p.setGuarantee(g);
-	}
-	if (input_.getStart().getVmHardwareList()->getCpu()->getCpuMask() !=
-			input_.getFinal().getVmHardwareList()->getCpu()->getCpuMask())
-		p.setCpuMask(input_.getFinal().getVmHardwareList()->getCpu()->getCpuMask());
-
-	if (input_.getStart().getVmHardwareList()->getCpu()->getNodeMask() !=
-			input_.getFinal().getVmHardwareList()->getCpu()->getNodeMask())
-		p.setNodeMask(input_.getFinal().getVmHardwareList()->getCpu()->getNodeMask());
-
-	return new VcmmdAction(a, p);
 }
 
 namespace

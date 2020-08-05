@@ -40,7 +40,6 @@
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlcommon/ProtoSerializer/CProtoCommands.h>
 #include "CDspDispConnection.h"
-#include "CVcmmdInterface.h"
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
 
 enum _PRL_VM_MIGRATE_TARGET_STEP {
@@ -123,7 +122,6 @@ private:
 	bool isSharedDisk(const QString& name) const;
 
 private:
-	typedef ::Vcmmd::Frontend< ::Vcmmd::Unregistered> vcmmd_type;
 	typedef ::Migrate::Vm::Target::Libvirt::Pstorage pstorage_type;
 
 	Registry::Public& m_registry;
@@ -162,7 +160,6 @@ private:
 	QString m_sHaClusterId;
 
 	SmartPtr<CVmDirectory::TemporaryCatalogueItem> m_pVmInfo;
-	QScopedPointer<vcmmd_type> m_vcmmd;
 	QScopedPointer<pstorage_type> m_pstorage;
 
 	PRL_RESULT reactStart(const SmartPtr<IOPackage> &package);

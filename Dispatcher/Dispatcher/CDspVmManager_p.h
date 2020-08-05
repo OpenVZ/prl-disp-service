@@ -38,7 +38,6 @@
 #include "CDspRegistry.h"
 #include "CDspTaskTrace.h"
 #include "CDspInstrument.h"
-#include "CVcmmdInterface.h"
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/fold.hpp>
 #include <boost/mpl/pair.hpp>
@@ -1100,20 +1099,6 @@ typedef Instrument::Chain::Unit<request_type> chain_type;
 struct Ha: chain_type
 {
 	explicit Ha(const redo_type& redo_): chain_type(redo_)
-	{
-	}
-
-	PRL_RESULT operator()(const request_type& request_);
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Vcmmd
-
-struct Vcmmd: chain_type
-{
-	typedef ::Vcmmd::Frontend< ::Vcmmd::Unregistered> frontend_type;
-
-	explicit Vcmmd(const redo_type& redo_): chain_type(redo_)
 	{
 	}
 
