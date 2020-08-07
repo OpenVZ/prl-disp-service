@@ -151,7 +151,7 @@ bool Match<CVmFloppyDisk>::operator()(const CVmFloppyDisk* item_)
 template<>
 bool Match<CVmGenericNetworkAdapter>::operator()(const CVmGenericNetworkAdapter* item_)
 {
-	return item_->getHostInterfaceName() == m_needle->getHostInterfaceName();
+	return item_->getHostMacAddress().compare(m_needle->getHostMacAddress(), Qt::CaseInsensitive) == 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
