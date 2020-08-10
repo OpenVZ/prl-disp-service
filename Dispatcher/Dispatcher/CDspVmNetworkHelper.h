@@ -311,6 +311,7 @@ private:
 	Device m_device;
 	boost::optional<QString> m_hostname;
 	boost::optional<SearchDomain> m_searchDomain;
+	QString m_toolsVersion;
 };
 
 } // namespace Difference

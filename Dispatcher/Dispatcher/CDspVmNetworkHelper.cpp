@@ -581,6 +581,8 @@ Vm::Vm(const CVmConfiguration& cfg_)
 		return;
 
 	m_searchDomain = SearchDomain(*a, x);
+	m_toolsVersion = cfg_.getVmSettings()->getVmTools()->getAgentVersion();
+
 	QString h = a->getHostName();
 	if (!h.isEmpty())
 		m_hostname = h;
@@ -592,6 +594,13 @@ QStringList Vm::calculate(const general_type& general_, const Config::Dao& devic
 	if (m_searchDomain)
 	{
 		QStringList x = m_searchDomain.get().calculate(general_, devices_);
+
+		if (!m_toolsVersion.isEmpty() && m_toolsVersion >= "7.15-6.vz7")
+		{
+			if (x.isEmpty())
+				x << "remove";
+		}
+
 		if (!x.isEmpty())
 			a << "--search-domain" << x.join(" ");
 	}
