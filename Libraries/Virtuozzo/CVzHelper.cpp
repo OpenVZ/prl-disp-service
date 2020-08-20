@@ -701,6 +701,10 @@ static int merge_params(const SmartPtr<CVmConfiguration> &pConfig,
 	if (PRL_FAILED(res))
 		return res;
 
+	// Merge backup default dir
+	pConfig->getVmSettings()->getVmCommonOptions()->getBackupTargetPreferences()->setDefaultBackupDirectory(
+               pVmConfig->getVmSettings()->getVmCommonOptions()->getBackupTargetPreferences()->getDefaultBackupDirectory());
+
 	// Merge FireWalls
 	QList<CVmGenericNetworkAdapter* > lstNet = pConfig->getVmHardwareList()->m_lstNetworkAdapters;
 	foreach(CVmGenericNetworkAdapter* pNet, lstNet)

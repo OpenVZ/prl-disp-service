@@ -66,6 +66,7 @@ Task_CreateCtBackupSource::Task_CreateCtBackupSource(
 	m_sDescription = pCmd->GetDescription();
 	m_sServerHostname = pCmd->GetServerHostname();
 	m_nServerPort = pCmd->GetServerPort();
+	m_sServerDirectory = pCmd->GetServerBackupDirectory();
 	m_sServerSessionUuid = pCmd->GetServerSessionUuid();
 	m_nFlags = pCmd->GetFlags();
 	/* if backup type undefined - set as incremental type */
