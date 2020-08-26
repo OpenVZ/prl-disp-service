@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2020 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -763,6 +763,17 @@ QStringList View::getIpv4() const
 	return NetworkUtils::ParseIps(m_network.getNetAddresses()).first;
 }
 
+QStringList View::getIpv6() const
+{
+	return NetworkUtils::ParseIps(m_network.getNetAddresses()).second;
+}
+
+QStringList View::getIps() const
+{
+	return getIpv4() + getIpv6();
+}
+
+
 QString View::getMac() const
 {
 	return normalizeMac(m_network.getMacAddress());
@@ -770,60 +781,46 @@ QString View::getMac() const
 
 QString View::getFilterName() const
 {
-	CNetPktFilter *filter = m_network.getPktFilter();
-	QStringList filters;
-
-	if (filter->isPreventIpSpoof() &&
-		// For enforced static IPs only
-		!m_network.isConfigureWithDhcp() &&
-		!getIpv4().isEmpty())
-		filters << "no-ip-spoofing";
-	if (filter->isPreventMacSpoof())
-		filters << "no-mac-spoofing";
-	if (filter->isPreventPromisc())
-		filters << "no-promisc";
-
-	return filters.join("-");
+	return NetFilter(*(m_network.getPktFilter())).getFilterRef();
 }
 
 boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterref() const
 {
-	QString filter = getFilterName();
-	if (filter.isEmpty())
+	static QString S_IP_PARAMETER_NAME = "IP";
+	static QString S_MAC_PARAMETER_NAME = "MAC";
+
+	NetFilter filter = NetFilter(*(m_network.getPktFilter()));
+	if (filter.getFilterRef().isEmpty())
 		return boost::none;
 
-	Libvirt::Domain::Xml::FilterrefNodeAttributes filterref;
-	filterref.setFilter(filter);
+	if (!filter.isCustomFilter()) {
+		// Disabling Prevention of IpSpoofing for dynamic IPs
+		if (m_network.isConfigureWithDhcp() || getIpv4().isEmpty())
+			filter.setPreventIpSpoof(false);
 
+		QList<NetFilter::ParamPair_t> params;
+		foreach(const QString& ip, getIps())
+			params.append(qMakePair(S_IP_PARAMETER_NAME, ip.split('/').first()));
+
+		params.append(qMakePair(S_MAC_PARAMETER_NAME, getMac()));
+		filter.setParams(params);
+	}
+
+	Libvirt::Domain::Xml::FilterrefNodeAttributes filter_xml;
+	Libvirt::Domain::Xml::Parameter current_param;
 	QList<Libvirt::Domain::Xml::Parameter> params;
-	Libvirt::Domain::Xml::Parameter p;
-	foreach(const CNetPktFilter *filter, m_network.m_lstPktFilter)
-	{
-		QString mac = normalizeMac(filter->getMacAddress());
-		if (mac.isEmpty())
-			continue;
+	typedef QPair<QString, QString> ParamPair_t;
 
-		p.setName("MAC");
-		p.setValue(mac);
-		params << p;
-	}
-	if (params.isEmpty())
-	{
-		p.setName("MAC");
-		p.setValue(getMac());
-		params << p;
+	foreach (ParamPair_t param, filter.getParams()) {
+		current_param.setName(param.first);
+		current_param.setValue(param.second);
+		params.append(current_param);
 	}
 
-	foreach(const QString& e, getIpv4())
-	{
-		// IPv4 only, for now
-		p.setName("IP");
-		p.setValue(e.split('/').first());
-		params << p;
-	}
+	filter_xml.setFilter(filter.getFilterRef());
+	filter_xml.setParameterList(params);
 
-	filterref.setParameterList(params);
-	return filterref;
+	return filter_xml;
 }
 
 boost::optional<Libvirt::Domain::Xml::Bandwidth > View::getBandwidth() const

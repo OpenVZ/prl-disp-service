@@ -39,7 +39,7 @@ HEADERS += \
 	Direct_p.h \
 	Reverse.h \
 	Reverse_p.h \
-	LibvirtFilter.h
+	NetFilter.h
 
 SOURCES	+= \
 	text.cpp \
@@ -69,4 +69,4 @@ SOURCES	+= \
 	nodedev_type.cpp \
 	Direct.cpp \
 	Reverse.cpp \
-	LibvirtFilter.cpp
+	NetFilter.cpp

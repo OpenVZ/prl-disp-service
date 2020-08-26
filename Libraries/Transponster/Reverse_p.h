@@ -7,7 +7,7 @@
 /// @author shrike
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2020 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core Libraries. Virtuozzo Core
 /// Libraries is free software; you can redistribute it and/or modify it
@@ -636,6 +636,8 @@ private:
 	QString getFilterName() const;
 	static QString normalizeMac(const QString &mac_);
 	QStringList getIpv4() const;
+	QStringList getIpv6() const;
+	QStringList getIps() const;
 
 	CVmGenericNetworkAdapter m_network;
 };
