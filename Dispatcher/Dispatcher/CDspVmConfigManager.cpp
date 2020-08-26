@@ -7,7 +7,7 @@
 /// @author Artemr
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2020 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -509,8 +509,9 @@ void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 		a->setSearchDomains(x->getSearchDomains());
 		a->setHostMacAddress(x->getHostMacAddress());
 		// If spoofing protection is disabled, check our config.
-		if (!a->getPktFilter()->isPreventIpSpoof())
-		{
+		if (a->getPktFilter()->getFilterRef().isEmpty() &&
+		 	!a->getPktFilter()->isPreventIpSpoof()
+		   ) {
 			a->getPktFilter()->setPreventIpSpoof(
 					x->getPktFilter()->isPreventIpSpoof());
 		}
