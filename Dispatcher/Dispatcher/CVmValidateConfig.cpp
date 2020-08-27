@@ -1688,10 +1688,12 @@ void CVmValidateConfig::CheckNetworkAdapter()
 
 		// Check if custom and builtin filters are not enabled at the same time 
 		const CNetPktFilter* filter = pNetAdapter->getPktFilter();
-		if (!filter->getFilterRef().isEmpty()) {
+		if (!filter->getFilterRef().isEmpty())
+		{
 			if (filter->isPreventIpSpoof() ||
 				filter->isPreventMacSpoof() ||
-				filter->isPreventPromisc()) {
+				filter->isPreventPromisc())
+				{
 					m_lstResults += PRL_ERR_VMCONF_NETWORK_INCONSISTENT_FILTERS;
 					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
 				}

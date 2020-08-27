@@ -96,8 +96,8 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu& dst_)
 		dst_.setTopology(t);
 	}
 	CVmMemory *m = h->getMemory();
-	if (m->isEnableHotplug()) {
-
+	if (m->isEnableHotplug())
+	{
 		QList<Libvirt::Domain::Xml::Cell > cells;
 		Libvirt::Domain::Xml::Cell cell;
 		boost::optional<unsigned int> id(0);
@@ -740,15 +740,16 @@ namespace Network
 
 QString View::getAdapterType() const
 {
-	switch (m_network.getAdapterType()) {
-	case PNT_RTL:
-		return QString("rtl8139");
-	case PNT_E1000:
-		return QString("e1000");
-	case PNT_HYPERV:
-		return QString("hv-net");
-	default:
-		return QString("virtio");
+	switch (m_network.getAdapterType())
+	{
+		case PNT_RTL:
+			return QString("rtl8139");
+		case PNT_E1000:
+			return QString("e1000");
+		case PNT_HYPERV:
+			return QString("hv-net");
+		default:
+			return QString("virtio");
 	}
 }
 
@@ -793,7 +794,8 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterre
 	if (filter.getFilterRef().isEmpty())
 		return boost::none;
 
-	if (!filter.isCustomFilter()) {
+	if (!filter.isCustomFilter())
+	{
 		// Disabling Prevention of IpSpoofing for dynamic IPs
 		if (m_network.isConfigureWithDhcp() || getIpv4().isEmpty())
 			filter.setPreventIpSpoof(false);
@@ -811,7 +813,8 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterre
 	QList<Libvirt::Domain::Xml::Parameter> params;
 	typedef QPair<QString, QString> ParamPair_t;
 
-	foreach (ParamPair_t param, filter.getParams()) {
+	foreach (ParamPair_t param, filter.getParams())
+	{
 		current_param.setName(param.first);
 		current_param.setValue(param.second);
 		params.append(current_param);
@@ -1467,10 +1470,12 @@ PRL_RESULT Cpu::setUnits()
 
 	if (0 != m_input.getCpuUnits())
 		m_tune->setShares(m_input.getCpuUnits() * 1024 / 1000);
-	if (m_vt.isGlobalCpuLimit()) {
+	if (m_vt.isGlobalCpuLimit())
+	{
 		m_tune->setGlobalPeriod(v->getDefaultPeriod());
 		m_tune->setGlobalQuota(-1);
-	} else {
+	} else
+	{
 		m_tune->setPeriod(v->getDefaultPeriod());
 		m_tune->setQuota(-1);
 	}

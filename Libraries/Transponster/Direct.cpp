@@ -80,7 +80,8 @@ bool Unit<CVmHardDisk>::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSo
 
 PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 {
-	if (!Clustered<CVmFloppyDisk>::operator()(disk_)) {
+	if (!Clustered<CVmFloppyDisk>::operator()(disk_))
+	{
 		// source field can be empty or absent for
 		// disconnected floppies so we force emulated
 		// type to disk image type
@@ -306,16 +307,19 @@ void Builder::setTarget(const boost::optional<QString>& value_)
 void Builder::setFilter(const boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes>& value_)
 {
 	CNetPktFilter* filter = new CNetPktFilter();
-	if (value_) {
+	if (value_)
+	{
 		QString filter_name = value_->getFilter();
 		filter->setFilterRef(filter_name);
-		foreach(const Libvirt::Domain::Xml::Parameter& param, value_->getParameterList()) {
+		foreach(const Libvirt::Domain::Xml::Parameter& param, value_->getParameterList())
+		{
 			CNetPktFilterParam* current_param = new CNetPktFilterParam();
 			current_param->setName(param.getName());
 			current_param->setValue(param.getValue());
 			filter->m_lstParameters.append(current_param);
 		}
-	} else {
+	} else
+	{
 		// By default these values are true,
 		// disabling them, if filter is not true
 		filter->setPreventPromisc(false);
@@ -323,8 +327,9 @@ void Builder::setFilter(const boost::optional<Libvirt::Domain::Xml::FilterrefNod
 		filter->setPreventMacSpoof(false);
 	}
 	NetFilter libvirt_helper(*filter);
-	if (!libvirt_helper.isCustomFilter()) {
-		// removing params, they're inserted in the Reverse.cpp
+	if (!libvirt_helper.isCustomFilter())
+	{
+		// Removing params, they're inserted in the Reverse.cpp
 		filter->ClearLists();
 		filter->setFilterRef(QString());
 	}

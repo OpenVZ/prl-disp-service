@@ -37,60 +37,53 @@ namespace Transponster
 // class NetFilter
 
 const QString NetFilter::S_VZ_FILTER_PREFIX = "vz-filter-";
-const QString NetFilter::S_MAC_PARAM_NAME = "MAC";
 
-bool NetFilter::isBuiltinFilter(BuiltinFilter filter) const {
+bool NetFilter::isBuiltinFilter(BuiltinFilter filter) const
+{
 	return isBuiltinFilter(filter, getFilterMask());
 }
 
-bool NetFilter::isBuiltinFilter(BuiltinFilter filter, FilterMask_t mask) const {
+bool NetFilter::isBuiltinFilter(BuiltinFilter filter, FilterMask_t mask) const
+{
 	return mask & static_cast<FilterMask_t>(filter);
 }
 
-void NetFilter::setBuiltinFilter(BuiltinFilter filter, bool value) {
+void NetFilter::setBuiltinFilter(BuiltinFilter filter, bool value)
+{
 	if (value)
 		setFilterByMask(getFilterMask() | static_cast<FilterMask_t>(filter));
 	else
 		setFilterByMask(getFilterMask() & ~static_cast<FilterMask_t>(filter));
 }
 
-QMap<NetFilter::BuiltinFilter, QString> NetFilter::getFilterNames() {
+QMap<NetFilter::BuiltinFilter, QString> NetFilter::getFilterNames()
+{
 	QMap<BuiltinFilter, QString> filter_names;
 	filter_names.insert(FILTER_IP_SPOOFING,  "no-ip-spoofing");
 	filter_names.insert(FILTER_MAC_SPOOFING, "no-mac-spoofing");
 	filter_names.insert(FILTER_PROMISC,      "no-promisc");
-	filter_names.insert(FILTER_EMPTY,        "empty-filter");
 	return filter_names;
 }
 
-QList<QString> NetFilter::getBuiltinFilters() {
-	QMap<BuiltinFilter, QString> filter_names = getFilterNames();
+QList<QString> NetFilter::getBuiltinFilters()
+{
 	QStringList builtin;
 
-	// combining filters in all (2^n - 1) variants
-	FilterMask_t upper_bound = (1u << S_COMPANIABLE_FILTERS);
-	for (FilterMask_t mask = 1u; mask < upper_bound; ++mask) {
-		QStringList current_companiable_set;
-		for (uint filter_id = 0; filter_id < S_COMPANIABLE_FILTERS; ++filter_id) {
-			// if filter_id bit of mask is true
-			if ((mask >> filter_id) & 1) {
-				uint filter_enum_id = (1u << (filter_id + S_NON_COMPANIABLE_FILTERS));
-				BuiltinFilter filter_enum = static_cast<BuiltinFilter>(filter_enum_id);
-				current_companiable_set.append(filter_names.value(filter_enum));
-			}
-		}
-		builtin.append(current_companiable_set.join("-"));
-	} 
+	builtin.append("no-ip-spoofing");
+	builtin.append("no-ip-spoofing-no-mac-spoofing");
+	builtin.append("no-ip-spoofing-no-mac-spoofing-no-promisc");
+	builtin.append("no-ip-spoofing-no-promisc");
+	builtin.append("no-mac-spoofing");
+	builtin.append("no-mac-spoofing-no-promisc");
+	builtin.append("no-promisc");
 
-	// adding non-combinable filters, except for the custom one
-	builtin.append(filter_names.value(FILTER_EMPTY));
-	
 	return builtin;
 }
 
 QList<QPair<QString, QString> > NetFilter::convertParamsToPairs(
 											QList<CNetPktFilterParam*> params
-																   ) {
+																   )
+{
 	QList<QPair<QString, QString> > result;
 	foreach(const CNetPktFilterParam* param, params)
 		result.append(qMakePair(param->getName(), param->getValue()));
@@ -98,7 +91,8 @@ QList<QPair<QString, QString> > NetFilter::convertParamsToPairs(
 	return result;
 }
 
-bool NetFilter::isCustomFilter() const {
+bool NetFilter::isCustomFilter() const
+{
 	// for the future filter
 	if (getFilterRef().startsWith(S_VZ_FILTER_PREFIX))
 		return false;
@@ -106,35 +100,42 @@ bool NetFilter::isCustomFilter() const {
 	return !getBuiltinFilters().contains(getFilterRef());
 }
 
-NetFilter::FilterMask_t NetFilter::getFilterMask() const {
+NetFilter::FilterMask_t NetFilter::getFilterMask() const
+{
 	if (isCustomFilter())
-		return NetFilter::FILTER_CUSTOM;
+		return FILTER_CUSTOM;
 
-	NetFilter::FilterMask_t mask = 0u;
-	QMap<NetFilter::BuiltinFilter, QString> filter_names = getFilterNames();
-	foreach(const NetFilter::BuiltinFilter& filter_enum, filter_names.keys()) {
+	FilterMask_t mask = 0u;
+	QMap<BuiltinFilter, QString> filter_names = getFilterNames();
+	foreach(const BuiltinFilter& filter_enum, filter_names.keys())
+	{
 		if (getFilterRef().contains(filter_names.value(filter_enum)))
 			mask |= filter_enum;
 	}
 	return mask;
 }
 
-void NetFilter::setFilterByMask(NetFilter::FilterMask_t mask) {
+void NetFilter::setFilterByMask(NetFilter::FilterMask_t mask)
+{
 	QStringList filters;
-	QMap<NetFilter::BuiltinFilter, QString> filter_names = getFilterNames();
-	foreach(const NetFilter::BuiltinFilter& filter_enum, filter_names.keys()) {
+	QMap<BuiltinFilter, QString> filter_names = getFilterNames();
+	foreach(const BuiltinFilter& filter_enum, filter_names.keys())
+	{
 		if (isBuiltinFilter(filter_enum, mask))
 			filters.append(filter_names.value(filter_enum));
 	}
 	setFilterRef(filters.join("-"));
 }
 
-NetFilter::NetFilter(const CNetPktFilter& filter_model) {
-	if (!filter_model.getFilterRef().isEmpty()) {
+NetFilter::NetFilter(const CNetPktFilter& filter_model)
+{
+	if (!filter_model.getFilterRef().isEmpty())
+	{
 		setFilterRef(filter_model.getFilterRef());
 		m_params = convertParamsToPairs(filter_model.m_lstParameters);
-	} else {
-		NetFilter::FilterMask_t mask = 0u;
+	} else
+	{
+		FilterMask_t mask = 0u;
 		mask |= filter_model.isPreventIpSpoof()  ?
 					static_cast<FilterMask_t>(FILTER_IP_SPOOFING)  : 0u;
 		mask |= filter_model.isPreventMacSpoof() ?
@@ -145,61 +146,53 @@ NetFilter::NetFilter(const CNetPktFilter& filter_model) {
 	}
 }
 
-bool NetFilter::isPreventPromisc() const {
-	return isBuiltinFilter(NetFilter::FILTER_PROMISC);
+bool NetFilter::isPreventPromisc() const
+{
+	return isBuiltinFilter(FILTER_PROMISC);
 }
 
-void NetFilter::setPreventPromisc(bool value) {
-	setBuiltinFilter(NetFilter::FILTER_PROMISC, value);
+void NetFilter::setPreventPromisc(bool value)
+{
+	setBuiltinFilter(FILTER_PROMISC, value);
 }
 
-bool NetFilter::isPreventMacSpoof() const {
-	return isBuiltinFilter(NetFilter::FILTER_MAC_SPOOFING);
+bool NetFilter::isPreventMacSpoof() const
+{
+	return isBuiltinFilter(FILTER_MAC_SPOOFING);
 }
 
-void NetFilter::setPreventMacSpoof(bool value) {
-	setBuiltinFilter(NetFilter::FILTER_MAC_SPOOFING, value);
+void NetFilter::setPreventMacSpoof(bool value)
+{
+	setBuiltinFilter(FILTER_MAC_SPOOFING, value);
 }
 
-bool NetFilter::isPreventIpSpoof() const {
-	return isBuiltinFilter(NetFilter::FILTER_IP_SPOOFING);
+bool NetFilter::isPreventIpSpoof() const
+{
+	return isBuiltinFilter(FILTER_IP_SPOOFING);
 }
 
-void NetFilter::setPreventIpSpoof(bool value) {
-	setBuiltinFilter(NetFilter::FILTER_IP_SPOOFING, value);
+void NetFilter::setPreventIpSpoof(bool value)
+{
+	setBuiltinFilter(FILTER_IP_SPOOFING, value);
 }
 
-QString NetFilter::getMacAddress() const {
-	foreach(const ParamPair_t& param, m_params) {
-		if (param.first == S_MAC_PARAM_NAME)
-			return param.second;
-	}
-	return QString();
-}
-
-void NetFilter::setMacAddress(QString value) {
-	for(QList<ParamPair_t>::iterator i = m_params.begin(); i != m_params.end(); ++i) { 
-		if (i->first == S_MAC_PARAM_NAME) {
-			i->second = value;
-			return;
-		}
-	}
-	m_params.append(qMakePair(S_MAC_PARAM_NAME, value));
-}
-
-QString NetFilter::getFilterRef() const {
+QString NetFilter::getFilterRef() const
+{
 	return m_filterref;
 }
 
-void NetFilter::setFilterRef(QString value) {
+void NetFilter::setFilterRef(QString value)
+{
 	m_filterref = value;
 }
 
-QList<NetFilter::ParamPair_t> NetFilter::getParams() const {
+QList<NetFilter::ParamPair_t> NetFilter::getParams() const
+{
 	return m_params;
 }
 
-void NetFilter::setParams(QList<NetFilter::ParamPair_t> value) {
+void NetFilter::setParams(QList<NetFilter::ParamPair_t> value)
+{
 	m_params = value;
 }
 } // namespace Transponster

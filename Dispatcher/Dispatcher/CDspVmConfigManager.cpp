@@ -511,7 +511,8 @@ void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 		// If spoofing protection is disabled, check our config.
 		if (a->getPktFilter()->getFilterRef().isEmpty() &&
 		 	!a->getPktFilter()->isPreventIpSpoof()
-		   ) {
+		   )
+		{
 			a->getPktFilter()->setPreventIpSpoof(
 					x->getPktFilter()->isPreventIpSpoof());
 		}

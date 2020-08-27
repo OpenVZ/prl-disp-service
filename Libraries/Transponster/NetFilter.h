@@ -36,10 +36,12 @@
 
 namespace Transponster
 {
-class NetFilter {
+class NetFilter
+{
 public:
     // First non-combinable, then combinable filters
-    enum BuiltinFilter {
+    enum BuiltinFilter
+    {
         FILTER_CUSTOM       = 0,
         FILTER_EMPTY        = 1u << 0,
         FILTER_IP_SPOOFING  = 1u << 1, // combinable
@@ -60,19 +62,6 @@ public:
     bool isPreventIpSpoof() const;
     void setPreventIpSpoof(bool value = true);
     /**
-     * Get MAC address, if one is set as a parameter of the filter.
-     *
-     * @return MAC address or empty string
-     */
-    QString getMacAddress() const;
-    /**
-     * Updates MAC Address in filter's params.
-     * Creates new parameter if neccessary.
-     *
-     * @param value MAC Address to set.
-     */
-    void setMacAddress(QString value = QString());
-    /**
      * Check if filter is managed by Dispatcher
      *
      * @return true if filter is not managed by Dispatcher
@@ -87,7 +76,6 @@ public:
     static const uint S_NON_COMPANIABLE_FILTERS = 1;
     static const uint S_COMPANIABLE_FILTERS = 3;
     static const QString S_VZ_FILTER_PREFIX;
-    static const QString S_MAC_PARAM_NAME;
 private:
     /**
      * Returns bitwise OR of BuiltinFilter values, 
