@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2020 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -26,6 +26,7 @@
 #include "Direct.h"
 #include "Reverse_p.h"
 #include "Direct_p.h"
+#include "NetFilter.h"
 #include <prlsdk/PrlOses.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 
@@ -79,7 +80,8 @@ bool Unit<CVmHardDisk>::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSo
 
 PRL_RESULT Floppy::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 {
-	if (!Clustered<CVmFloppyDisk>::operator()(disk_)) {
+	if (!Clustered<CVmFloppyDisk>::operator()(disk_))
+	{
 		// source field can be empty or absent for
 		// disconnected floppies so we force emulated
 		// type to disk image type
@@ -304,12 +306,39 @@ void Builder::setTarget(const boost::optional<QString>& value_)
 
 void Builder::setFilter(const boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes>& value_)
 {
-	QString filter = value_ ? value_->getFilter() : QString();
-	CNetPktFilter* f = new CNetPktFilter();
-	f->setPreventIpSpoof(filter.contains("no-ip-spoofing"));
-	f->setPreventMacSpoof(filter.contains("no-mac-spoofing"));
-	f->setPreventPromisc(filter.contains("no-promisc"));
-	m_result.setPktFilter(f);
+	CNetPktFilter* filter = new CNetPktFilter();
+	if (value_)
+	{
+		QString filter_name = value_->getFilter();
+		filter->setFilterRef(filter_name);
+		foreach(const Libvirt::Domain::Xml::Parameter& param, value_->getParameterList())
+		{
+			CNetPktFilterParam* current_param = new CNetPktFilterParam();
+			current_param->setName(param.getName());
+			current_param->setValue(param.getValue());
+			filter->m_lstParameters.append(current_param);
+		}
+	} else
+	{
+		// By default these values are true,
+		// disabling them, if filter is not true
+		filter->setPreventPromisc(false);
+		filter->setPreventIpSpoof(false);
+		filter->setPreventMacSpoof(false);
+	}
+	NetFilter libvirt_helper(*filter);
+	if (!libvirt_helper.isCustomFilter())
+	{
+		// Removing params, they're inserted in the Reverse.cpp
+		filter->ClearLists();
+		filter->setFilterRef(QString());
+	}
+
+	filter->setPreventPromisc(libvirt_helper.isPreventPromisc());
+	filter->setPreventMacSpoof(libvirt_helper.isPreventMacSpoof());
+	filter->setPreventIpSpoof(libvirt_helper.isPreventIpSpoof());
+
+	m_result.setPktFilter(filter);
 }
 
 void Builder::setIps(const QList<Libvirt::Domain::Xml::Ip>& value_)

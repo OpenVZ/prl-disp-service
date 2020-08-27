@@ -63,3 +63,10 @@ XmlModel/VmDataStatistic
 XmlModel/VmDirectory
 XmlModel/VmInfo
 XmlModel/XKeyMaps
+
+Dispatcher/a.out
+
+# IDE configuration files
+
+.vscode
+.idea

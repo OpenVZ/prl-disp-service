@@ -1,6 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
+/// Copyright (c) 2017-2020 Virtuozzo International GmbH. All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -1685,6 +1686,18 @@ void CVmValidateConfig::CheckNetworkAdapter()
 			continue;
 		}
 
+		// Check if custom and builtin filters are not enabled at the same time 
+		const CNetPktFilter* filter = pNetAdapter->getPktFilter();
+		if (!filter->getFilterRef().isEmpty())
+		{
+			if (filter->isPreventIpSpoof() ||
+				filter->isPreventMacSpoof() ||
+				filter->isPreventPromisc())
+				{
+					m_lstResults += PRL_ERR_VMCONF_NETWORK_INCONSISTENT_FILTERS;
+					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
+				}
+		}
 
 		if ( !HostUtils::checkMacAddress(sMacAddress, bCheckPrlAddress ) )
 			errCode = PRL_ERR_VMCONF_NETWORK_ADAPTER_INVALID_MAC_ADDRESS;

@@ -39,6 +39,7 @@ HEADERS += \
 	Direct_p.h \
 	Reverse.h \
 	Reverse_p.h \
+	NetFilter.h
 
 SOURCES	+= \
 	text.cpp \
@@ -67,4 +68,5 @@ SOURCES	+= \
 	nodedev_enum.cpp \
 	nodedev_type.cpp \
 	Direct.cpp \
-	Reverse.cpp
+	Reverse.cpp \
+	NetFilter.cpp
