@@ -791,8 +791,6 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterre
 	static QString S_MAC_PARAMETER_NAME = "MAC";
 
 	NetFilter filter = NetFilter(*(m_network.getPktFilter()));
-	if (filter.getFilterRef().isEmpty())
-		return boost::none;
 
 	if (!filter.isCustomFilter())
 	{
@@ -807,6 +805,9 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterre
 		params.append(qMakePair(S_MAC_PARAMETER_NAME, getMac()));
 		filter.setParams(params);
 	}
+
+	if (filter.getFilterRef().isEmpty())
+		return boost::none;
 
 	Libvirt::Domain::Xml::FilterrefNodeAttributes filter_xml;
 	Libvirt::Domain::Xml::Parameter current_param;
@@ -3018,4 +3019,3 @@ PRL_RESULT Request::operator()(const object_type& object_)
 } // namespace Export
 } // namespace Snapshot
 } // namespace Transponster
-
