@@ -955,11 +955,15 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 
 		struct vzctl_mem_guarantee g;
 		if (vzctl2_env_get_memguarantee(env_param, &g) == 0) {
-			pMem->setMemGuaranteeType(
-				g.type == VZCTL_MEM_GUARANTEE_AUTO ?
-					PRL_MEMGUARANTEE_AUTO :
-					PRL_MEMGUARANTEE_PERCENTS
-				);
+			switch (g.type) {
+			case VZCTL_MEM_GUARANTEE_AUTO:
+				pMem->setMemGuaranteeType(PRL_MEMGUARANTEE_AUTO);
+				break;
+			case VZCTL_MEM_GUARANTEE_BYTES:
+				g.value = pMem->getRamSize() ? g.value * 100 / (pMem->getRamSize() << 20) : 0;
+			default:
+				pMem->setMemGuaranteeType(PRL_MEMGUARANTEE_PERCENTS);
+			}
 			pMem->setMemGuarantee(g.value);
 		}
 		pMem->setEnableHotplug(true);
