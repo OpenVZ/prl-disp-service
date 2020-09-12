@@ -2670,7 +2670,8 @@ int CVzOperationHelper::pause_env(const QString &uuid)
 	return run_prg(BIN_VZCTL, args);
 }
 
-int CVzOperationHelper::start_env(const QString &uuid, PRL_UINT32 nFlags)
+int CVzOperationHelper::start_env(const QString &uuid, PRL_UINT32 nMode,
+		PRL_UINT32 nFlags)
 {
 	QStringList args;
 
@@ -2682,7 +2683,7 @@ int CVzOperationHelper::start_env(const QString &uuid, PRL_UINT32 nFlags)
 	args += ctid;
 	if (nFlags & PNSF_VM_START_WAIT)
 		args += "--wait";
-	if (nFlags & PNSF_CT_START_REPAIR)
+	if (nMode & PSM_VM_START_FOR_REPAIR)
 		args += "--repair";
 
 	return run_prg(BIN_VZCTL, args);

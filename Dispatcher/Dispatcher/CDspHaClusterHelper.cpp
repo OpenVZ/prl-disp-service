@@ -71,7 +71,8 @@ PRL_UINT32 CDspHaClusterHelper::getStartCommandFlags(CProtoCommandPtr pCmd)
 
 	CProtoVmStartExCommand* pCmdEx =
 		CProtoSerializer::CastToProtoCommand<CProtoVmStartExCommand>(pCmd);
-	if ((PRL_VM_START_MODE)pCmdEx->GetStartMode() != PSM_VM_START)
+	if ((PRL_VM_START_MODE)pCmdEx->GetStartMode() != PSM_VM_START &&
+		(PRL_VM_START_MODE)pCmdEx->GetStartMode() != PSM_VM_START_FOR_REPAIR)
 		return 0;
 
 	return pCmdEx->GetReservedParameter();

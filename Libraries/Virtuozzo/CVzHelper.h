@@ -453,7 +453,7 @@ public:
 	void cancel_operation();
 	int create_env(const QString &dst, SmartPtr<CVmConfiguration> &pConfig,
 			PRL_UINT32 flags);
-	int start_env(const QString &uuid, PRL_UINT32 nFlags);
+	int start_env(const QString &uuid, PRL_UINT32 nMode, PRL_UINT32 nFlags);
 	int pause_env(const QString &uuid);
 	int restart_env(const QString &uuid);
 	int stop_env(const QString &uuid, PRL_UINT32 nMode);

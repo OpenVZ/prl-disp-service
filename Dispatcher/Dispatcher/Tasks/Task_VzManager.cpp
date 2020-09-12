@@ -402,8 +402,11 @@ PRL_RESULT Task_VzManager::start_env()
 	Backup::Device::Service b(pConfig);
 	b.setContext(*this).enable();
 
+	CProtoVmStartExCommand* pCmdEx =
+		CProtoSerializer::CastToProtoCommand<CProtoVmStartExCommand>(pCmd);
 	res = get_op_helper()->start_env(
-		sUuid, CDspService::instance()->getHaClusterHelper()->getStartCommandFlags(pCmd));
+		sUuid, pCmdEx->GetStartMode(),
+		CDspService::instance()->getHaClusterHelper()->getStartCommandFlags(pCmd));
 	if (PRL_FAILED(res))
 		b.disable();
 	else if (nState == VMS_PAUSED)
@@ -461,7 +464,7 @@ PRL_RESULT Task_VzManager::reset_env()
 	if (PRL_FAILED(res))
 		return res;
 
-	return get_op_helper()->start_env(sUuid, 0);
+	return get_op_helper()->start_env(sUuid, PSM_VM_START, 0);
 }
 
 PRL_RESULT Task_VzManager::restart_env()
