@@ -903,7 +903,12 @@
       <!-- Minimum amount of memory required to start the VM -->
       <optional>
         <element name="min_guarantee">
-          <ref name='scaledInteger'/>
+          <choice>
+            <attribute name="vz-auto">
+              <ref name="virYesNo"/>
+            </attribute>
+            <ref name='scaledInteger'/>
+          </choice>
         </element>
       </optional>
       <!-- Maximum swap area the VM can use -->

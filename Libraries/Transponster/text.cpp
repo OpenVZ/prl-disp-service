@@ -5217,6 +5217,20 @@ static QString g_text[] = {
 	QString("variant5189"),
 	QString("choice5190"),
 	QString("choice5191"),
+	QString(""),
+	QString("vz-auto"),
+	QString("min_guarantee5194"),
+	QString("min_guarantee5195"),
+	QString("min_guarantee5196"),
+	QString("min_guarantee5197"),
+	QString("min_guarantee5198"),
+	QString("min_guarantee5199"),
+	QString("min_guarantee5200"),
+	QString("min_guarantee5201"),
+	QString("min_guarantee5202"),
+	QString("min_guarantee5203"),
+	QString("min_guarantee5204"),
+	QString("min_guarantee5205"),
 	QString("")
 };
 

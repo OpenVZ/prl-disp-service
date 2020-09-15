@@ -307,6 +307,70 @@ bool Resources::getCurrentMemory(Libvirt::Domain::Xml::ScaledInteger& dst_)
 	return true;
 }
 
+void Resources::setMemGuarantee(const Libvirt::Domain::Xml::Memtune& src_)
+{
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return;
+
+	if (!src_.getMinGuarantee())
+		return;
+
+	CVmMemory* m = new CVmMemory(h->getMemory());
+
+	const mpl::at_c<Libvirt::Domain::Xml::VMinGuarantee::types, 0>::type* v =
+		boost::get<mpl::at_c<Libvirt::Domain::Xml::VMinGuarantee::types, 0>::type>
+		(&src_.getMinGuarantee().get()); 
+
+	if (v && v->getValue() == Libvirt::Domain::Xml::EVirYesNoYes)
+		m->setMemGuaranteeType(PRL_MEMGUARANTEE_AUTO);
+	else
+	{
+		const mpl::at_c<Libvirt::Domain::Xml::VMinGuarantee::types, 1>::type* s =
+			boost::get<mpl::at_c<Libvirt::Domain::Xml::VMinGuarantee::types, 1>::type>
+			(&src_.getMinGuarantee().get()); 
+
+		if (s) 
+		{
+			m->setMemGuaranteeType(PRL_MEMGUARANTEE_PERCENTS);
+			unsigned long r = h->getMemory()->getRamSize() << 10;
+			if (r)
+				m->setMemGuarantee(s->getValue().getOwnValue() * 100 / r);
+			else
+				m->setMemGuarantee(0);
+		}
+	}
+	h->setMemory(m);
+}
+
+bool Resources::getMemGuarantee(Libvirt::Domain::Xml::Memtune& dst_)
+{
+	CVmHardware* h = getHardware();
+	if (NULL == h)
+		return false;
+
+	CVmMemory* m = h->getMemory();
+	if (NULL == m)
+		return false;
+
+	if (m->getMemGuaranteeType() == PRL_MEMGUARANTEE_AUTO)
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VMinGuarantee::types, 0>::type v;
+		v.setValue(Libvirt::Domain::Xml::EVirYesNoYes);
+		dst_.setMinGuarantee(Libvirt::Domain::Xml::VMinGuarantee(v));
+	}
+	else if (m->getMemGuaranteeType() == PRL_MEMGUARANTEE_PERCENTS)
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VMinGuarantee::types, 1>::type v;
+		Libvirt::Domain::Xml::ScaledInteger g;
+		g.setOwnValue((m->getRamSize() << 10) * m->getMemGuarantee() / 100);
+		v.setValue(g);
+		dst_.setMinGuarantee(Libvirt::Domain::Xml::VMinGuarantee(v));
+	}
+
+	return true;
+}
+
 void Resources::setChipset(const Libvirt::Domain::Xml::VOs& src_)
 {
 	CVmHardware* h = getHardware();
@@ -2022,6 +2086,10 @@ PRL_RESULT Builder::setResources(const VtInfo& vt_)
 	Libvirt::Domain::Xml::MaxMemory max_m;
 	if (u.getMaxMemory(max_m))
 		m_result->setMaxMemory(max_m);
+
+	Libvirt::Domain::Xml::Memtune g;
+	if (u.getMemGuarantee(g))
+		m_result->setMemtune(g);
 
 	Libvirt::Domain::Xml::Cpu c;
 	if (u.getCpu(vt_, c))
