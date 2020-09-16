@@ -1360,10 +1360,7 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 		goto exit;
 	}
 	if (m_nPrevVmState == VMS_RUNNING || m_nPrevVmState == VMS_PAUSED)
-	{
-		if (MIGRATE_DISP_PROTO_V9 > m_nVersion)
-			m_pstorage.reset(new pstorage_type(m_lstCheckFilesExt));
-	}
+		m_pstorage.reset(new pstorage_type(m_lstCheckFilesExt));
 
 exit:
 	setLastErrorCode(nRetCode);

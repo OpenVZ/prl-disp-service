@@ -581,7 +581,6 @@ struct Flavor
 
 	void setDeep();
 	void setShallow();
-	void setSnapshotless();
 	quint32 getResult() const;
 
 private:

@@ -644,14 +644,9 @@ Plan::Plan(const Separatist& separatist_, Task_MigrateVmSource& context_):
 	{
 		WRITE_TRACE(DBG_DEBUG, "there are disks on vstorage to migrate");
 		s = s.toSet().subtract(m_diskList.toSet()).toList();
-		if (MIGRATE_DISP_PROTO_V9 > context_.getRemoteVersion())
-		{
-			WRITE_TRACE(DBG_DEBUG, "some disks will be migrated using snapshots");
-			m_diskList << (m_diskToSnapshotList = s);
-			m_flavor.setShallow();
-		}
-		else
-			m_flavor.setSnapshotless();
+		WRITE_TRACE(DBG_DEBUG, "some disks will be migrated using snapshots");
+		m_diskList << (m_diskToSnapshotList = s);
+		m_flavor.setShallow();
 	}
 	if (m_diskList.isEmpty())
 		WRITE_TRACE(DBG_DEBUG, "there is no disk to migrate");

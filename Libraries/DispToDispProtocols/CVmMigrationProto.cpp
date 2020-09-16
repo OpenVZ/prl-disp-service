@@ -39,7 +39,8 @@ namespace Virtuozzo {
 CVmMigrateProto::CVmMigrateProto(Virtuozzo::IDispToDispCommands nCmdIdentifier, quint32 nFlags)
 :CDispToDispCommand(nCmdIdentifier, false, nFlags)
 {
-	SetUnsignedIntParamValue(MIGRATE_DISP_PROTO_VERSION, EVT_PARAM_MIGRATE_PROTO_VERSION);
+	SetUnsignedIntParamValue(MIGRATE_DISP_PROTO_V8, EVT_PARAM_MIGRATE_PROTO_VERSION);
+	SetUnsignedIntParamValue(MIGRATE_DISP_PROTO_VERSION, EVT_PARAM_MIGRATE_PROTO_VERSION_2G);
 }
 
 bool CVmMigrateProto::IsValid()
@@ -50,7 +51,10 @@ bool CVmMigrateProto::IsValid()
 
 quint32 CVmMigrateProto::GetVersion()
 {
-	return (GetUnsignedIntParamValue(EVT_PARAM_MIGRATE_PROTO_VERSION));
+	quint32 v = GetUnsignedIntParamValue(EVT_PARAM_MIGRATE_PROTO_VERSION_2G);
+	if (v == 0)
+		 v = GetUnsignedIntParamValue(EVT_PARAM_MIGRATE_PROTO_VERSION);
+	return v;
 }
 
 //*************************** Base migrate command *************************

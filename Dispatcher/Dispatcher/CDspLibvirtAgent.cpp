@@ -245,12 +245,6 @@ void Flavor::setShallow()
 	m_custom = m_custom | VIR_MIGRATE_NON_SHARED_INC;
 }
 
-void Flavor::setSnapshotless()
-{
-	m_custom = m_custom & ~VIR_MIGRATE_NON_SHARED_INC;
-	m_custom = m_custom | VIR_MIGRATE_SHARED_WORKAROUND | VIR_MIGRATE_PEER2PEER;
-}
-
 quint32 Flavor::getResult() const
 {
 	return VIR_MIGRATE_PERSIST_DEST | VIR_MIGRATE_CHANGE_PROTECTION |
