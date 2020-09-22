@@ -245,6 +245,11 @@ void Flavor::setShallow()
 	m_custom = m_custom | VIR_MIGRATE_NON_SHARED_INC;
 }
 
+void Flavor::setShared()
+{
+	m_custom &= ~VIR_MIGRATE_NON_SHARED_DISK;
+}
+
 quint32 Flavor::getResult() const
 {
 	return VIR_MIGRATE_PERSIST_DEST | VIR_MIGRATE_CHANGE_PROTECTION |

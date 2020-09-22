@@ -503,6 +503,10 @@ struct Plan: private Separatist
 	{
 		return m_diskToSnapshotList;
 	}
+	const diskList_type& getSharedDisks() const
+	{
+		return m_diskSharedList;
+	}
 	const Component::agent_type::flavor_type& getFlavor() const
 	{
 		return m_flavor;
@@ -511,6 +515,7 @@ struct Plan: private Separatist
 private:
 	diskList_type m_diskList;
 	diskList_type m_diskToSnapshotList;
+	diskList_type m_diskSharedList;
 	Component::agent_type::flavor_type m_flavor;
 };
 

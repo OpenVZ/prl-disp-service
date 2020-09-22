@@ -308,6 +308,7 @@ Result Disk::operator()(Parameters::Builder& builder_)
 	{
 		QString t = Transponster::Device::Clustered::Model
 			<CVmHardDisk>(*d).getTargetName();
+		WRITE_TRACE(DBG_DEBUG, "Add '%s' for migration", qPrintable(t));
 		if (!builder_.add(VIR_MIGRATE_PARAM_MIGRATE_DISKS, t))
 			return Failure(PRL_ERR_FAILURE);
 	}
@@ -1387,6 +1388,20 @@ int networkLifecycle(virConnectPtr, virNetworkPtr net_, int event_, int, void* o
 	return 0;
 }
 
+int blockjobCommit(virConnectPtr, virDomainPtr domain_, const char * disk_,
+		int type_, int status_, void * opaque_)
+{
+	if (type_ != VIR_DOMAIN_BLOCK_JOB_TYPE_COMMIT)
+		return 0;
+	if (status_ != VIR_DOMAIN_BLOCK_JOB_COMPLETED)
+		return 0;
+
+	WRITE_TRACE(DBG_DEBUG, "block job event: disk '%s' got status %d", disk_, status_);
+	Model::Coarse* v = (Model::Coarse* )opaque_;
+	v->pullInfo(domain_);
+	return 0;
+}
+
 void error(void* opaque_, virErrorPtr value_)
 {
 	Q_UNUSED(value_);
@@ -1995,7 +2010,7 @@ Domains::Domains(Workbench& bench_):
 	m_eventState(-1), m_eventReboot(-1),
 	m_eventWakeUp(-1), m_eventDeviceConnect(-1), m_eventDeviceDisconnect(-1),
 	m_eventTrayChange(-1), m_eventRtcChange(-1), m_eventAgent(-1),
-	m_eventNetworkLifecycle(-1), m_eventHardwareLifecycle(-1), m_bench(&bench_)
+	m_eventNetworkLifecycle(-1), m_eventHardwareLifecycle(-1), m_eventBJ(-1), m_bench(&bench_)
 {
 }
 
@@ -2067,6 +2082,13 @@ void Domains::setConnected(QSharedPointer<virConnect> libvirtd_)
 							VIR_NODE_DEVICE_EVENT_CALLBACK(&Hardware::Usb::Shell::react),
 							new Hardware::Usb::Shell(*m_bench),
 							&Callback::Plain::delete_<Hardware::Usb::Shell>);
+	m_eventBJ = virConnectDomainEventRegisterAny(libvirtd_.data(),
+							NULL,
+							VIR_DOMAIN_EVENT_ID_BLOCK_JOB_2,
+							VIR_DOMAIN_EVENT_CALLBACK(Callback::Plain::blockjobCommit),
+							new Model::Coarse(v),
+							&Callback::Plain::delete_<Model::Coarse>);
+
 	QRunnable* q = new Instrument::Breeding::Subject(m_libvirtd, v.toWeakRef());
 	q->setAutoDelete(true);
 	m_bench->getPool().start(q);
@@ -2097,6 +2119,9 @@ void Domains::setDisconnected()
 	m_eventNetworkLifecycle = -1;
 	virConnectNetworkEventDeregisterAny(x.data(), m_eventHardwareLifecycle);
 	m_eventHardwareLifecycle = -1;
+	virConnectNetworkEventDeregisterAny(x.data(), m_eventBJ);
+	m_eventBJ = -1;
+
 	Callback::g_access.setOpaque(Callback::Mock::ID, new Callback::Transport::Model());
 	m_libvirtd.clear();
 	m_bench->getPool().waitForDone();

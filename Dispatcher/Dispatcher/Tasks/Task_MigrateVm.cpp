@@ -643,12 +643,18 @@ Plan::Plan(const Separatist& separatist_, Task_MigrateVmSource& context_):
 	if (!s.isEmpty())
 	{
 		WRITE_TRACE(DBG_DEBUG, "there are disks on vstorage to migrate");
-		s = s.toSet().subtract(m_diskList.toSet()).toList();
-		WRITE_TRACE(DBG_DEBUG, "some disks will be migrated using snapshots");
-		m_diskList << (m_diskToSnapshotList = s);
-		m_flavor.setShallow();
+		m_diskSharedList = s.toSet().subtract(m_diskList.toSet()).toList();
+		if (context_.getRemoteVersion() < MIGRATE_DISP_PROTO_V9)
+		{
+			WRITE_TRACE(DBG_DEBUG, "some shared disks will be migrated using snapshots");
+			m_diskToSnapshotList = m_diskSharedList;
+			m_diskList << m_diskSharedList;
+			m_flavor.setShallow();
+		}
+		else if (m_diskList.isEmpty())
+			m_flavor.setShared();
 	}
-	if (m_diskList.isEmpty())
+	if (m_diskList.isEmpty() && m_diskSharedList.isEmpty())
 		WRITE_TRACE(DBG_DEBUG, "there is no disk to migrate");
 }
 
@@ -669,7 +675,7 @@ Unit* Hatchery::operator()(const agent_type& agent_, const CVmConfiguration& tar
 		o.setQemuState(m_ports->first);
 
 	Plan P(Separatist(*config), *m_task);
-	if (!P.getDisks().isEmpty())
+	if (!P.getDisks().isEmpty() || !P.getSharedDisks().isEmpty())
 		m_ports ? o.setQemuDisk(P.getDisks(), m_ports->second) : o.setQemuDisk(P.getDisks());
 
 	quint64 bw = m_task->getDegree();

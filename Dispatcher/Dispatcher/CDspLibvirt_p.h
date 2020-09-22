@@ -699,6 +699,7 @@ private:
 	int m_eventAgent;
 	int m_eventNetworkLifecycle;
 	int m_eventHardwareLifecycle;
+	int m_eventBJ;
 	Workbench* m_bench;
 	QWeakPointer<virConnect> m_libvirtd;
 };

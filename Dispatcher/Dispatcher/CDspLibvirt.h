@@ -581,6 +581,7 @@ struct Flavor
 
 	void setDeep();
 	void setShallow();
+	void setShared();
 	quint32 getResult() const;
 
 private:
