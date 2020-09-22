@@ -3190,9 +3190,14 @@ Backend& Backend::reload()
 	m_all = QList<Bridge>();
 	for (int i = 0; i < z; ++i)
 	{
-		Transponster::Interface::Bridge::Direct u(
-			virInterfaceGetXMLDesc(a[i], VIR_INTERFACE_XML_INACTIVE),
-			0 < virInterfaceIsActive(a[i]));
+		char* xml = virInterfaceGetXMLDesc(a[i], VIR_INTERFACE_XML_INACTIVE);
+		if (!QString::fromUtf8(xml).contains("type='bridge'"))
+		{
+			virInterfaceFree(a[i]);
+			free(xml);
+			continue;
+		}
+		Transponster::Interface::Bridge::Direct u(xml, 0 < virInterfaceIsActive(a[i]));
 		if (PRL_FAILED(Transponster::Director::bridge(u)))
 		{
 			virInterfaceFree(a[i]);
