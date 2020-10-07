@@ -446,6 +446,84 @@ private:
 } // namespace Domain
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Entry2
+
+namespace Domain
+{
+namespace Xml
+{
+struct Entry2
+{
+	Entry2();
+
+	ESysinfoBaseBoardName getName() const
+	{
+		return m_name;
+	}
+	void setName(ESysinfoBaseBoardName value_)
+	{
+		m_name = value_;
+	}
+	const PSysinfoValue::value_type& getOwnValue() const
+	{
+		return m_ownValue;
+	}
+	void setOwnValue(const PSysinfoValue::value_type& value_)
+	{
+		m_ownValue = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	ESysinfoBaseBoardName m_name;
+	PSysinfoValue::value_type m_ownValue;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Entry3
+
+namespace Domain
+{
+namespace Xml
+{
+struct Entry3
+{
+	Entry3();
+
+	ESysinfoChassisName getName() const
+	{
+		return m_name;
+	}
+	void setName(ESysinfoChassisName value_)
+	{
+		m_name = value_;
+	}
+	const PSysinfoValue::value_type& getOwnValue() const
+	{
+		return m_ownValue;
+	}
+	void setOwnValue(const PSysinfoValue::value_type& value_)
+	{
+		m_ownValue = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	ESysinfoChassisName m_name;
+	PSysinfoValue::value_type m_ownValue;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Sysinfo
 
 namespace Domain
@@ -470,6 +548,30 @@ struct Sysinfo
 	{
 		m_system = value_;
 	}
+	const QList<QList<Entry2 > >& getBaseBoardList() const
+	{
+		return m_baseBoardList;
+	}
+	void setBaseBoardList(const QList<QList<Entry2 > >& value_)
+	{
+		m_baseBoardList = value_;
+	}
+	const boost::optional<QList<Entry3 > >& getChassis() const
+	{
+		return m_chassis;
+	}
+	void setChassis(const boost::optional<QList<Entry3 > >& value_)
+	{
+		m_chassis = value_;
+	}
+	const boost::optional<QList<PSysinfoValue::value_type > >& getOemStrings() const
+	{
+		return m_oemStrings;
+	}
+	void setOemStrings(const boost::optional<QList<PSysinfoValue::value_type > >& value_)
+	{
+		m_oemStrings = value_;
+	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
 	bool save(QDomDocument& ) const;
@@ -477,6 +579,9 @@ struct Sysinfo
 private:
 	boost::optional<QList<Entry > > m_bios;
 	boost::optional<QList<Entry1 > > m_system;
+	QList<QList<Entry2 > > m_baseBoardList;
+	boost::optional<QList<Entry3 > > m_chassis;
+	boost::optional<QList<PSysinfoValue::value_type > > m_oemStrings;
 };
 
 } // namespace Xml
@@ -13613,12 +13718,36 @@ struct Traits<Domain::Xml::Entry1>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Entry2 traits
+
+template<>
+struct Traits<Domain::Xml::Entry2>
+{
+	typedef Ordered<mpl::vector<Attribute<Domain::Xml::ESysinfoBaseBoardName, Name::Strict<107> >, Text<Domain::Xml::PSysinfoValue > > > marshal_type;
+
+	static int parse(Domain::Xml::Entry2& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Entry2& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Entry3 traits
+
+template<>
+struct Traits<Domain::Xml::Entry3>
+{
+	typedef Ordered<mpl::vector<Attribute<Domain::Xml::ESysinfoChassisName, Name::Strict<107> >, Text<Domain::Xml::PSysinfoValue > > > marshal_type;
+
+	static int parse(Domain::Xml::Entry3& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Entry3& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Sysinfo traits
 
 template<>
 struct Traits<Domain::Xml::Sysinfo>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<283>, Name::Strict<105> >, Unordered<mpl::vector<Optional<Element<OneOrMore<Element<Domain::Xml::Entry, Name::Strict<1039> > >, Name::Strict<284> > >, Optional<Element<OneOrMore<Element<Domain::Xml::Entry1, Name::Strict<1039> > >, Name::Strict<1042> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<283>, Name::Strict<105> >, Unordered<mpl::vector<Optional<Element<OneOrMore<Element<Domain::Xml::Entry, Name::Strict<1039> > >, Name::Strict<284> > >, Optional<Element<OneOrMore<Element<Domain::Xml::Entry1, Name::Strict<1039> > >, Name::Strict<1042> > >, ZeroOrMore<Element<OneOrMore<Element<Domain::Xml::Entry2, Name::Strict<1039> > >, Name::Strict<5208> > >, Optional<Element<OneOrMore<Element<Domain::Xml::Entry3, Name::Strict<1039> > >, Name::Strict<607> > >, Optional<Element<OneOrMore<Element<Text<Domain::Xml::PSysinfoValue >, Name::Strict<1039> > >, Name::Strict<5211> > > > > > > marshal_type;
 
 	static int parse(Domain::Xml::Sysinfo& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Sysinfo& , QDomElement& );

@@ -5231,7 +5231,13 @@ static QString g_text[] = {
 	QString("min_guarantee5203"),
 	QString("min_guarantee5204"),
 	QString("min_guarantee5205"),
-	QString("")
+	QString(""),
+	QString("baseBoard"),
+	QString("sysinfo-baseBoard-name"),
+	QString("sysinfo-chassis-name"),
+	QString("oemStrings"),
+	QString("asset"),
+	QString("location")
 };
 
 const QString& getText(quint32 index_)

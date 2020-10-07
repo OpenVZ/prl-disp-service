@@ -126,6 +126,29 @@ Enum<Domain::Xml::ESysinfoSystemName>::data_type Enum<Domain::Xml::ESysinfoSyste
 }
 
 template<>
+Enum<Domain::Xml::ESysinfoBaseBoardName>::data_type Enum<Domain::Xml::ESysinfoBaseBoardName>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::ESysinfoBaseBoardNameManufacturer, "manufacturer"))
+			(data_type::value_type(Domain::Xml::ESysinfoBaseBoardNameProduct, "product"))
+			(data_type::value_type(Domain::Xml::ESysinfoBaseBoardNameVersion, "version"))
+			(data_type::value_type(Domain::Xml::ESysinfoBaseBoardNameSerial, "serial"))
+			(data_type::value_type(Domain::Xml::ESysinfoBaseBoardNameAsset, "asset"))
+			(data_type::value_type(Domain::Xml::ESysinfoBaseBoardNameLocation, "location"));
+}
+
+template<>
+Enum<Domain::Xml::ESysinfoChassisName>::data_type Enum<Domain::Xml::ESysinfoChassisName>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::ESysinfoChassisNameManufacturer, "manufacturer"))
+			(data_type::value_type(Domain::Xml::ESysinfoChassisNameVersion, "version"))
+			(data_type::value_type(Domain::Xml::ESysinfoChassisNameSerial, "serial"))
+			(data_type::value_type(Domain::Xml::ESysinfoChassisNameAsset, "asset"))
+			(data_type::value_type(Domain::Xml::ESysinfoChassisNameSku, "sku"));
+}
+
+template<>
 Enum<Domain::Xml::EArch>::data_type Enum<Domain::Xml::EArch>::getData()
 {
 	return ba::list_of<data_type::relation>

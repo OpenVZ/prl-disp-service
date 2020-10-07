@@ -111,6 +111,25 @@ enum ESysinfoSystemName
 	ESysinfoSystemNameFamily
 };
 
+enum ESysinfoBaseBoardName
+{
+	ESysinfoBaseBoardNameManufacturer,
+	ESysinfoBaseBoardNameProduct,
+	ESysinfoBaseBoardNameVersion,
+	ESysinfoBaseBoardNameSerial,
+	ESysinfoBaseBoardNameAsset,
+	ESysinfoBaseBoardNameLocation
+};
+
+enum ESysinfoChassisName
+{
+	ESysinfoChassisNameManufacturer,
+	ESysinfoChassisNameVersion,
+	ESysinfoChassisNameSerial,
+	ESysinfoChassisNameAsset,
+	ESysinfoChassisNameSku
+};
+
 enum EArch
 {
 	EArchI686,
