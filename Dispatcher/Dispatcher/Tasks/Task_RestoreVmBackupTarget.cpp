@@ -7,7 +7,7 @@
 /// @author krasnov@
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2020 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -1805,13 +1805,25 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 		return nRetCode;
 
 	m_product.setConfig(pVmConfig);
-	Libvirt::Instrument::Agent::Vm::Grub::result_type r =
-		Libvirt::Kit.vms().getGrub(*m_product.getConfig()).spawnPersistent();
-	if (r.isFailed())
+	::Libvirt::Instrument::Agent::Filter::List filter_list(::Libvirt::Kit.getLink());
+	Libvirt::Result r1 = filter_list.define(m_product.getConfig()->getVmHardwareList()->m_lstNetworkAdapters,
+										    m_product.getConfig()->getVmIdentification()->getVmUuid());
+
+	if (r1.isFailed())
 	{
 		a->revert();
-		return r.error().code();
+		return r1.error().code();
 	}
+	
+	Libvirt::Result r2 = Libvirt::Kit.vms().getGrub(*m_product.getConfig()).spawnPersistent();
+	
+	if (r2.isFailed())
+	{
+		filter_list.cleanup(m_product.getConfig()->getVmIdentification()->getVmUuid());
+		a->revert();
+		return r2.error().code();
+	}
+
 	if (m_converter.get() != NULL && PRL_FAILED(nRetCode = doV2V()))
 		return nRetCode;
 	{

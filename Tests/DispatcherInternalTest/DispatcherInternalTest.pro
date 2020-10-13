@@ -2,7 +2,15 @@ CONFIG += qtestlib
 QT = xml network core
 
 INCLUDEPATH += /usr/share /usr/include/prlsdk
+DEFINES += BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS BOOST_MPL_LIMIT_VECTOR_SIZE=40 BOOST_SPIRIT_THREADSAFE
+DEFINES += BOOST_THREAD_PROVIDES_FUTURE BOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
 include(DispatcherInternalTest.deps)
+
+copydata.commands = $(COPY_DIR) $$PWD/TransponsterNwfilterTestFixtures $$PWD/../../z-Build/Debug
+first.depends = $(first) copydata
+export(first.depends)
+export(copydata.commands)
+QMAKE_EXTRA_TARGETS += first copydata
 
 HEADERS += \
 	CFileHelperTest.h\
@@ -18,6 +26,7 @@ HEADERS += \
 	CProblemReportUtilsTest.h \
 	CXmlModelHelperTest.h \
 	CFeaturesMatrixTest.h \
+	CTransponsterNwfilterTest.h
 
 SOURCES += \
 	CFileHelperTest.cpp\
@@ -32,6 +41,7 @@ SOURCES += \
 	CProblemReportUtilsTest.cpp \
 	CXmlModelHelperTest.cpp \
 	CFeaturesMatrixTest.cpp \
+	CTransponsterNwfilterTest.cpp
 
 
 win32: SOURCES	+= $$SRC_LEVEL/Dispatcher/Dispatcher/Stat/CDspSystemInfo_win.cpp
@@ -51,7 +61,7 @@ linux-g++* {
 	}
 }
 
-LIBS += -lprlcommon
+LIBS += -lprlcommon -lTransponster -lPrlNetworking -lCpuFeatures -lStatesStore
 
 boost-with-mt {
 	LIBS += -lboost_filesystem-mt -lboost_system-mt

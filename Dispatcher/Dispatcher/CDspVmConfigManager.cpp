@@ -42,6 +42,7 @@
 #include "Tasks/Task_EditVm.h"
 #include <prlxmlmodel/VmConfig/CVmHardDisk.h>
 #include "EditHelpers/CMultiEditMergeVmConfig.h"
+#include "Libraries/Transponster/NetFilter.h"
 #include "Libraries/PrlCommonUtils/CFileHelper.h"
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/HostUtils/HostUtils.h>
@@ -511,13 +512,22 @@ void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 		a->setDnsIPAddresses(x->getDnsIPAddresses());
 		a->setSearchDomains(x->getSearchDomains());
 		a->setHostMacAddress(x->getHostMacAddress());
-		// If spoofing protection is disabled, check our config.
+		// If spoofing protection is disabled, in case of non-custom filter, check our config.
 		if (a->getPktFilter()->getFilterRef().isEmpty() &&
-		 	!a->getPktFilter()->isPreventIpSpoof()
-		   )
+		 	!a->getPktFilter()->isPreventIpSpoof())
 		{
 			a->getPktFilter()->setPreventIpSpoof(
 					x->getPktFilter()->isPreventIpSpoof());
+		}
+		// If vz-filter is enabled, we preserve old PktFilter config
+		if (a->getPktFilter()->getFilterRef().startsWith(Transponster::NetFilter::S_VZ_FILTER_PREFIX))
+		{
+			a->getPktFilter()->setPreventIpSpoof(
+					x->getPktFilter()->isPreventIpSpoof());
+			a->getPktFilter()->setPreventMacSpoof(
+					x->getPktFilter()->isPreventMacSpoof());
+			a->getPktFilter()->setPreventPromisc(
+					x->getPktFilter()->isPreventPromisc());
 		}
 		a->setFirewall(new CVmNetFirewall(x->getFirewall()));
 	}

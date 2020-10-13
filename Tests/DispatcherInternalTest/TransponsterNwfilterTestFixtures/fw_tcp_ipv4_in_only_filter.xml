@@ -1,0 +1,11 @@
+<filter name="vz-filter-{1ca7dd05-07b3-48f3-b8d3-ebe0edc7b4ed}-C4:37:72:0D:FB:3C">
+ <rule direction="in" action="return" priority="0">
+  <all state="ESTABLISHED,RELATED"/>
+ </rule>
+ <rule direction="in" action="drop" priority="1">
+  <tcp dstipaddr="192.168.0.101" srcipaddr="192.168.0.100"/>
+ </rule>
+ <rule direction="out" action="return" priority="2">
+  <all state="ESTABLISHED,RELATED"/>
+ </rule>
+</filter>

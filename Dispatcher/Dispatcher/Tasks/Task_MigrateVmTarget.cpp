@@ -7,7 +7,7 @@
 /// @author krasnov@
 ///
 /// Copyright (c) 2010-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2020 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -853,11 +853,28 @@ void Perform::on_entry(const Event& event_, FSM& fsm_)
 			bp::ref(x) = bp::placeholders::arg1,
 			bp::construct<result_type>()
 		);
-	if (PRL_FAILED((*m_editor)(a)) ||
-		::Libvirt::Kit.vms().getGrub(x).spawnPersistent().isFailed())
-		fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
-}
 
+	if (PRL_FAILED((*m_editor)(a)))
+	{
+		fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
+		return;
+	}
+
+	::Libvirt::Instrument::Agent::Filter::List filter_list(::Libvirt::Kit.getLink());
+	
+	if(filter_list.define(x.getVmHardwareList()->m_lstNetworkAdapters,
+					      x.getVmIdentification()->getVmUuid()).isFailed())
+	{
+		fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
+		return;
+	}
+
+	if(::Libvirt::Kit.vms().getGrub(x).spawnPersistent().isFailed())
+	{
+		filter_list.cleanup(x.getVmIdentification()->getVmUuid());
+		fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
+	}	
+}
 } // namespace Tune
 
 namespace Commit

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2020 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -1376,22 +1376,37 @@ PRL_RESULT Task_RegisterVm::saveVmConfig( )
 #ifdef _LIBVIRT_
 			m_registry.declare(CVmIdent(getVmUuid(), getClient()->getVmDirectoryUuid()),
 				m_pVmInfo->vmXmlPath);
-			Libvirt::Result r(Command::Vm::Gear<Command::Tag::State
-				<
-					Command::Vm::Registrator,
-					Command::Vm::Fork::State::Plural
+
+			Libvirt::Instrument::Agent::Filter::List filter_list(Libvirt::Kit.getLink());
+			Libvirt::Result r1 = filter_list.define(m_pVmConfig->getVmHardwareList()->m_lstNetworkAdapters,
+												    m_pVmConfig->getVmIdentification()->getVmUuid());
+
+			if (r1.isFailed())
+				ret = r1.error().code();
+			else
+			{
+				Libvirt::Result r2 = Command::Vm::Gear<Command::Tag::State
 					<
-						boost::mpl::vector_c
+						Command::Vm::Registrator,
+						Command::Vm::Fork::State::Plural
 						<
-							unsigned,
-							VMS_STOPPED,
-							VMS_SUSPENDED,
-							VMS_PAUSED,
-							VMS_RUNNING
+							boost::mpl::vector_c
+							<
+								unsigned,
+								VMS_STOPPED,
+								VMS_SUSPENDED,
+								VMS_PAUSED,
+								VMS_RUNNING
+							>
 						>
-					>
-				> >::run(*m_pVmConfig));
-			ret = (r.isFailed()? r.error().code(): PRL_ERR_SUCCESS);
+					> >::run(*m_pVmConfig);
+				
+				if (r2.isFailed())
+				{
+					filter_list.cleanup(m_pVmConfig->getVmIdentification()->getVmUuid());
+					ret = r2.error().code();
+				}
+			}
 #endif // _LIBVIRT_
 			break;
 		}

@@ -6,7 +6,7 @@
 /// @author myakhin
 ///
 /// Copyright (c) 2010-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2020 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core Libraries. Virtuozzo Core
 /// Libraries is free software; you can redistribute it and/or modify it
@@ -422,12 +422,6 @@ void CFirewallHelper::ComposeIptablesRules(bool bDeleteRules)
 
 void CFirewallHelper::ComposeBridgeTablesRules(bool bDeleteRules)
 {
-	/* setup bridge tables for Containers with bridged networking
-	 * only - for VMs necessary filtering is performed by vme device
-	 * code */
-	if (m_VmConfig.getVmType() == PVT_VM)
-		return;
-
 	foreach(CVmGenericNetworkAdapter* pAdapter, m_VmConfig.getVmHardwareList()->m_lstNetworkAdapters)
 	{
 		/* skip host-routed device */
@@ -546,6 +540,10 @@ PRL_RESULT CFirewallHelper::ExecuteBridgeTables()
 
 PRL_RESULT CFirewallHelper::Execute()
 {
+	// VM firewall is managed via libvirt
+	if (m_VmConfig.getVmType() == PVT_VM)
+		return PRL_ERR_SUCCESS;
+
 	PRL_RESULT res;
 
 	res = ExecuteIptables();

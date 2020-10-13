@@ -379,10 +379,14 @@ namespace Delete
 PRL_RESULT Libvirt::operator()()
 {
 #ifdef _LIBVIRT_
-	::Libvirt::Result r(::Libvirt::Kit.vms().at(m_uid)
+	::Libvirt::Result r1(::Libvirt::Kit.vms().at(m_uid)
 			.getState().undefine());
-	if (r.isFailed())
-		return r.error().code();
+	if (r1.isFailed())
+		return r1.error().code();
+	::Libvirt::Instrument::Agent::Filter::List filter_list(::Libvirt::Kit.getLink());
+	::Libvirt::Result r2 = filter_list.cleanup(m_uid);
+	if (r2.isFailed())
+		return r2.error().code();
 #endif // _LIBVIRT_
 
 	return PRL_ERR_SUCCESS;

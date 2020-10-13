@@ -39,6 +39,7 @@
 #include "NetFilter.h"
 #include "iface_type.h"
 #include "domain_type.h"
+#include "filter_type.h"
 #include "network_type.h"
 #include "snapshot_type.h"
 #include "blockexport_type.h"
@@ -448,6 +449,103 @@ struct Request: Libvirt::Details::Value::Bin<Libvirt::Blockexport::Xml::Domainbl
 
 } // namespace Export
 } // namespace Snapshot
+
+namespace Filter
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Reverse
+
+struct Reverse
+{
+	explicit Reverse(const CVmGenericNetworkAdapter &adapter,
+	 				 QString host_uuid,
+					 QString *name_dst = NULL);
+
+	void setUuid(const QString &uuid);
+
+	QString getResult();
+
+protected:
+	CVmGenericNetworkAdapter m_adapter;
+	QScopedPointer <Libvirt::Filter::Xml::Filter> m_result;
+
+private:
+	static Libvirt::Filter::Xml::VChoice5120
+	prepareAllowEstablished(Libvirt::Filter::Xml::EDirectionType direction_type,
+						   int priority);
+
+	static QList <Libvirt::Filter::Xml::VChoice5120>
+	prepareDefaultDeny(Libvirt::Filter::Xml::EDirectionType direction_type,
+					   int priority);
+
+	static boost::optional <Libvirt::Filter::Xml::VAddrIP>
+	prepareIp(const QString &value);
+
+	static boost::optional <Libvirt::Filter::Xml::VAddrIPv6>
+	prepareIpv6(const QString &value);
+
+	static boost::optional <Libvirt::Filter::Xml::VUint16range>
+	preparePort(unsigned int value);
+
+	static Libvirt::Filter::Xml::VUint8range
+	prepareIcmpv6Type(unsigned int value);
+
+	static Libvirt::Filter::Xml::VChoice5120
+	prepareRule(const CVmNetFirewallRule &basic_rule,
+				Libvirt::Filter::Xml::EDirectionType direction,
+				Libvirt::Filter::Xml::EActionType action,
+				int priority);
+
+	static Libvirt::Filter::Xml::EActionType
+	prepareAction(PRL_FIREWALL_POLICY policy);
+
+	static QList <Libvirt::Filter::Xml::VChoice5120>
+	prepareFirewall(const CVmNetFirewall &value);
+
+	static QList <Libvirt::Filter::Xml::VChoice5120>
+	prepareNetFilters(const CVmGenericNetworkAdapter &adapter);
+
+	static Libvirt::Filter::Xml::Parameter
+	prepareNetFiltersParam(const Libvirt::Domain::Xml::Parameter &value);
+
+	static QList <Libvirt::Filter::Xml::Tcp>
+	prepareTcp(const Libvirt::Filter::Xml::CommonIpAttributesP1 &ips,
+			   const Libvirt::Filter::Xml::CommonPortAttributes &ports);
+
+	static QList <Libvirt::Filter::Xml::Udp>
+	prepareUdp(const Libvirt::Filter::Xml::CommonIpAttributesP1 &ips,
+			   const Libvirt::Filter::Xml::CommonPortAttributes &ports);
+
+	static QList <Libvirt::Filter::Xml::TcpIpv6>
+	prepareTcpIpv6(const Libvirt::Filter::Xml::CommonIpv6AttributesP1 &ips,
+				   const Libvirt::Filter::Xml::CommonPortAttributes &ports);
+
+	static QList <Libvirt::Filter::Xml::UdpIpv6>
+	prepareUdpIpv6(const Libvirt::Filter::Xml::CommonIpv6AttributesP1 &ips,
+				   const Libvirt::Filter::Xml::CommonPortAttributes &ports);
+
+	static QList <Libvirt::Filter::Xml::Icmpv6>
+	prepareIcmpv6(unsigned int type);
+
+	static QList <Libvirt::Filter::Xml::All>
+	prepareAll(const Libvirt::Filter::Xml::CommonIpAttributesP1 &ips);
+
+	static QList <Libvirt::Filter::Xml::AllIpv6>
+	prepareAllIpv6(const Libvirt::Filter::Xml::CommonIpv6AttributesP1 &ips);
+
+	static QList <Libvirt::Filter::Xml::All>
+	prepareAll(const Libvirt::Filter::Xml::CommonIpAttributesP2 &ips);
+
+	static Libvirt::Filter::Xml::CommonIpAttributesP1
+	prepareIpAttributes(const QString &local_ip, const QString &remote_ip);
+
+	static Libvirt::Filter::Xml::CommonIpv6AttributesP1
+	prepareIpv6Attributes(const QString &local_ip, const QString &remote_ip);
+
+	static Libvirt::Filter::Xml::CommonPortAttributes
+	preparePortAttributes(uint local_port, uint remote_port);
+};
+} // namespace Filter
 } // namespace Transponster
 
 #endif // __REVERSE_H__

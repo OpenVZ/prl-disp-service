@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2020 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -869,17 +869,26 @@ void Dress::undoLibvirtDomain()
 PRL_RESULT Dress::addLibvirtDomain()
 {
 #ifdef _LIBVIRT_
-	Libvirt::Result r(Command::Vm::Gear<Command::Tag::State
-		<Command::Vm::Registrator, Command::Vm::Fork::State::Plural
-			<boost::mpl::vector_c<unsigned, VMS_STOPPED, VMS_SUSPENDED> > > >::run(*m_config));
-	if (r.isSucceed())
-		return PRL_ERR_SUCCESS;
 
-	return Failure(getTask())(r.error().convertToEvent());
+	Libvirt::Instrument::Agent::Filter::List filter_list(Libvirt::Kit.getLink());
+	Libvirt::Result r1 = filter_list.define(m_config->getVmHardwareList()->m_lstNetworkAdapters,
+										    m_config->getVmIdentification()->getVmUuid());
 
-#else // _LIBVIRT_
-	return PRL_ERR_SUCCESS;
+	if (r1.isFailed())
+		return Failure(getTask())(r1.error().convertToEvent());
+
+	Libvirt::Result r2 = Command::Vm::Gear<Command::Tag::State
+			<Command::Vm::Registrator, Command::Vm::Fork::State::Plural
+			<boost::mpl::vector_c<unsigned, VMS_STOPPED, VMS_SUSPENDED> > > >::run(*m_config);	
+
+	if (r2.isFailed())
+	{
+		filter_list.cleanup(m_config->getVmIdentification()->getVmUuid());
+		return Failure(getTask())(r2.error().convertToEvent());
+	}
+
 #endif // _LIBVIRT_
+	return PRL_ERR_SUCCESS;
 }
 
 PRL_RESULT Dress::declareVm()

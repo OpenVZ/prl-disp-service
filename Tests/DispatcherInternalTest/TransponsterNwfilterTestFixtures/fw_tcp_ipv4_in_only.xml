@@ -1,0 +1,55 @@
+<NetworkAdapter id="0" dyn_lists="NetAddress DnsIPAddress SearchDomain VirtualPort 0 Bandwidth 0">
+<Index>0</Index>
+<Enabled>1</Enabled>
+<Connected>1</Connected>
+<EmulatedType>2</EmulatedType>
+<SystemName></SystemName>
+<UserFriendlyName></UserFriendlyName>
+<Remote>0</Remote>
+<AdapterNumber>0</AdapterNumber>
+<AdapterName></AdapterName>
+<MAC>C437720DFB3C</MAC>
+<HostMAC>C4377297C6DF</HostMAC>
+<HostInterfaceName>vmec437720dfb3c</HostInterfaceName>
+<Router>0</Router>
+<DHCPUseHostMac>2</DHCPUseHostMac>
+<ForceHostMacAddress>0</ForceHostMacAddress>
+<VirtualNetworkID>Bridged</VirtualNetworkID>
+<AdapterType>3</AdapterType>
+<StaticAddress>0</StaticAddress>
+<PktFilter dyn_lists="Parameters 0">
+<PreventPromisc>0</PreventPromisc>
+<PreventMacSpoof>0</PreventMacSpoof>
+<PreventIpSpoof>1</PreventIpSpoof>
+<FilterRef></FilterRef>
+</PktFilter>
+<AutoApply>0</AutoApply>
+<ConfigureWithDhcp>0</ConfigureWithDhcp>
+<DefaultGateway></DefaultGateway>
+<ConfigureWithDhcpIPv6>0</ConfigureWithDhcpIPv6>
+<DefaultGatewayIPv6></DefaultGatewayIPv6>
+<Firewall dyn_lists="">
+<Enabled>1</Enabled>
+<Incoming dyn_lists="">
+    <Direction dyn_lists="">
+    <DefaultPolicy>0</DefaultPolicy>
+    <FirewallRules dyn_lists="FirewallRule 1">
+    <FirewallRule id="0" dyn_lists="">
+    <Protocol>tcp</Protocol>
+    <LocalNetAddress>192.168.0.100</LocalNetAddress>
+    <LocalPort>0</LocalPort>
+    <RemoteNetAddress>192.168.0.101</RemoteNetAddress>
+    <RemotePort>0</RemotePort>
+    </FirewallRule>
+    </FirewallRules>
+    </Direction>
+</Incoming>
+<Outgoing dyn_lists="">
+    <Direction dyn_lists="">
+    <DefaultPolicy>0</DefaultPolicy>
+    <FirewallRules dyn_lists="FirewallRule 0"/>
+    </Direction>
+    </Outgoing>
+</Firewall>
+<DeviceDescription></DeviceDescription>
+</NetworkAdapter>
