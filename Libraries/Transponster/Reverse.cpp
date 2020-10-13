@@ -712,9 +712,10 @@ namespace Boot
 ///////////////////////////////////////////////////////////////////////////////
 // struct List
 
-List::List(const CVmSettings& settings_, Device::List& list_):
+List::List(const CVmSettings& settings_, Device::List& list_, QString uuid_):
 	m_boot(settings_.getVmStartupOptions()->getBootDeviceList()),
-	m_deviceList(list_)
+	m_deviceList(list_),
+	m_uuid(uuid_)
 {
 }
 
@@ -762,7 +763,7 @@ void List::add(const CVmGenericNetworkAdapter* network_)
 		return;
 
 	Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple> a =
-		Network::build(*network_, m_boot(*network_));
+		Network::build(*network_, m_uuid, m_boot(*network_));
 
 	if (a.isSucceed())
 		m_deviceList.add(a.value());
@@ -838,10 +839,19 @@ QStringList View::getIps() const
 	return getIpv4() + getIpv6();
 }
 
-
 QString View::getMac() const
 {
 	return normalizeMac(m_network.getMacAddress());
+}
+
+QString View::getHostMac() const
+{
+	return normalizeMac(m_network.getHostMacAddress());
+}
+
+QString View::getUuid() const
+{
+	return uuid;
 }
 
 QString View::getFilterName() const
@@ -849,7 +859,40 @@ QString View::getFilterName() const
 	return NetFilter(*(m_network.getPktFilter())).getFilterRef();
 }
 
+Libvirt::Domain::Xml::FilterrefNodeAttributes View::prepareFilterref(const NetFilter& filter) const
+{
+	Libvirt::Domain::Xml::FilterrefNodeAttributes filter_xml;
+	QList<Libvirt::Domain::Xml::Parameter> params;
+	typedef QPair<QString, QString> ParamPair_t;
+
+	foreach (ParamPair_t param, filter.getParams())
+	{
+		Libvirt::Domain::Xml::Parameter p;
+		p.setName(param.first);
+		p.setValue(param.second);
+		params.append(p);
+	}
+
+	filter_xml.setFilter(filter.getFilterRef());
+	filter_xml.setParameterList(params);
+
+	return filter_xml;
+}
+
 boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterref() const
+{
+	NetFilter filter = NetFilter(*(m_network.getPktFilter()));
+	
+	if (filter.getFilterRef().isEmpty())
+		return boost::none;
+	
+	if (!filter.isCustomFilter())
+		filter.setVzFilter(getUuid(), getMac());
+
+	return prepareFilterref(filter);
+}
+
+boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getPredefinedFilterref() const
 {
 	static QString S_IPV4_PARAMETER_NAME = "IP";
 	static QString S_IPV6_PARAMETER_NAME = "IPV6";
@@ -880,22 +923,7 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterre
 	if (filter.getFilterRef().isEmpty())
 		return boost::none;
 
-	Libvirt::Domain::Xml::FilterrefNodeAttributes filter_xml;
-	Libvirt::Domain::Xml::Parameter current_param;
-	QList<Libvirt::Domain::Xml::Parameter> params;
-	typedef QPair<QString, QString> ParamPair_t;
-
-	foreach (ParamPair_t param, filter.getParams())
-	{
-		current_param.setName(param.first);
-		current_param.setValue(param.second);
-		params.append(current_param);
-	}
-
-	filter_xml.setFilter(filter.getFilterRef());
-	filter_xml.setParameterList(params);
-
-	return filter_xml;
+	return prepareFilterref(filter);
 }
 
 boost::optional<Libvirt::Domain::Xml::Bandwidth > View::getBandwidth() const
@@ -971,7 +999,7 @@ boost::optional<Libvirt::Domain::Xml::VVirtualPortProfile> View::getVVirtualPort
 
 template<int N>
 Libvirt::Domain::Xml::VInterface Adapter<N>::operator()
-	(const CVmGenericNetworkAdapter& network_, const boot_type& boot_)
+	(const CVmGenericNetworkAdapter& network_, QString uuid_, const boot_type& boot_)
 {
 	typename Libvirt::Details::Value::Grab<access_type>::type i = prepare(network_);
 
@@ -982,7 +1010,7 @@ Libvirt::Domain::Xml::VInterface Adapter<N>::operator()
 	if (!a.isEmpty())
 		i.setAlias(a);
 
-	View view(network_);
+	View view(network_, uuid_);
 	QString m = view.getMac();
 	if (!m.isEmpty())
 		i.setMac(m);
@@ -1060,21 +1088,21 @@ Libvirt::Domain::Xml::Interface667 Adapter<4>::prepare(const CVmGenericNetworkAd
 }
 
 Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
-	build(const CVmGenericNetworkAdapter& network_, const boot_type& boot_)
+	build(const CVmGenericNetworkAdapter& network_, QString uuid_, const boot_type& boot_)
 {
 	switch (network_.getEmulatedType())
 	{
 	case PNA_BRIDGE:
-		return Adapter<0>()(network_, boot_);
+		return Adapter<0>()(network_, uuid_, boot_);
 	case PNA_BRIDGED_NETWORK:
 		/* Legacy case before PNA_BRIDGE introduced*/
 		if (network_.getVirtualNetworkID().isEmpty())
-			return Adapter<0>()(network_, boot_);
-		return Adapter<3>()(network_, boot_);
+			return Adapter<0>()(network_, uuid_, boot_);
+		return Adapter<3>()(network_, uuid_, boot_);
 	case PNA_DIRECT_ASSIGN:
-		return Adapter<4>()(network_, boot_);
+		return Adapter<4>()(network_, uuid_, boot_);
 	case PNA_ROUTED:
-		return Adapter<1>()(network_, boot_);
+		return Adapter<1>()(network_, uuid_, boot_);
 	default:
 		return ::Error::Simple(PRL_ERR_UNIMPLEMENTED);
 	}
@@ -2002,7 +2030,7 @@ PRL_RESULT Builder::setDevices()
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
 	Transponster::Device::List b;
-	Transponster::Device::Boot::List t(*s, b);
+	Transponster::Device::Boot::List t(*s, b, m_input.getVmIdentification()->getVmUuid());
 	foreach (const CVmHardDisk* d, h->m_lstHardDisks)
 	{
 		if (d->getConnected() != PVE::DeviceConnected)
@@ -3093,4 +3121,458 @@ PRL_RESULT Request::operator()(const object_type& object_)
 
 } // namespace Export
 } // namespace Snapshot
+
+namespace Filter
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Reverse
+
+Reverse::Reverse(const CVmGenericNetworkAdapter &adapter, QString host_uuid, QString* name_dst) : m_adapter(adapter), m_result(new Libvirt::Filter::Xml::Filter())
+{
+	Libvirt::Filter::Xml::FilterNodeAttributes attributes = m_result->getFilterNodeAttributes();
+	Device::Network::View view(adapter);
+	QString mac_adapater = view.getMac();
+	QString name = NetFilter::S_VZ_FILTER_MASK.arg(host_uuid).arg(mac_adapater);
+	attributes.setName(name);
+	m_result->setFilterNodeAttributes(attributes);
+
+	if (NULL != name_dst)
+		*name_dst = name;
+
+	QList <Libvirt::Filter::Xml::VChoice5120> contents;
+
+	contents.append(prepareNetFilters(adapter));
+
+	CVmNetFirewall *basic_firewall = m_adapter.getFirewall();
+	if (basic_firewall && basic_firewall->isEnabled())
+		contents.append(prepareFirewall(*basic_firewall));
+
+	m_result->setChoice5120List(contents);
+}
+
+QString Reverse::getResult()
+{
+	if (m_result.isNull())
+		return QString();
+
+	QDomDocument x;
+	m_result->save(x);
+	m_result.reset();
+	return x.toString();
+}
+
+void Reverse::setUuid(const QString &uuid)
+{
+	mpl::at_c<Libvirt::Filter::Xml::VUUID::types, 1>::type u;
+	u.setValue(uuid);
+	m_result->setUuid(Libvirt::Filter::Xml::VUUID(u));
+}
+
+boost::optional<Libvirt::Filter::Xml::VAddrIP>
+Reverse::prepareIp(const QString& value)
+{
+	if (value.isEmpty())
+		return boost::none;
+
+	mpl::at_c<Libvirt::Filter::Xml::VAddrIP::types, 1>::type ip_holder;
+	ip_holder.setValue(value);
+	return Libvirt::Filter::Xml::VAddrIP(ip_holder);
+}
+
+boost::optional<Libvirt::Filter::Xml::VAddrIPv6>
+Reverse::prepareIpv6(const QString& value)
+{
+	if (value.isEmpty())
+		return boost::none;
+
+	mpl::at_c<Libvirt::Filter::Xml::VAddrIPv6::types, 1>::type ip_holder;
+	ip_holder.setValue(value);
+	return Libvirt::Filter::Xml::VAddrIPv6(ip_holder);
+}
+
+boost::optional <Libvirt::Filter::Xml::VUint16range>
+Reverse::preparePort(unsigned int value)
+{
+	if (value == 0u)
+		return boost::none;
+
+	mpl::at_c<Libvirt::Filter::Xml::VUint16range::types, 2>::type port_holder;
+	port_holder.setValue((qint32)(value));
+	return boost::optional<Libvirt::Filter::Xml::VUint16range>(
+			Libvirt::Filter::Xml::VUint16range(port_holder));
+}
+
+Libvirt::Filter::Xml::VUint8range
+Reverse::prepareIcmpv6Type(unsigned int value)
+{
+	mpl::at_c<Libvirt::Filter::Xml::VUint8range::types, 1>::type type_holder;
+	type_holder.setValue((qint32)(value));
+	return Libvirt::Filter::Xml::VUint8range(type_holder);
+}
+
+Libvirt::Filter::Xml::VChoice5120
+Reverse::prepareRule(const CVmNetFirewallRule &basic_rule,
+							Libvirt::Filter::Xml::EDirectionType direction,
+							Libvirt::Filter::Xml::EActionType action,
+							int priority
+							)
+{
+	QString proto = basic_rule.getProtocol();
+	QString local_ip = basic_rule.getLocalNetAddress();
+	QString remote_ip = basic_rule.getRemoteNetAddress();
+	uint local_port = basic_rule.getLocalPort();
+	uint remote_port = basic_rule.getRemotePort();
+	static QString S_TCP = "tcp";
+	static QString S_UDP = "udp";
+
+	Libvirt::Filter::Xml::Rule rule;
+	Libvirt::Filter::Xml::RuleNodeAttributes rule_attributes;
+
+	rule_attributes.setPriority(priority);
+	rule_attributes.setDirection(direction);
+	rule_attributes.setAction(action);
+
+	rule.setRuleNodeAttributes(rule_attributes);
+
+	// using libvirt regex to validate IPv6
+	// local_ip and remote_ip should be of same type, so making
+	// decision based on local_ip
+	bool isIPv6 = Libvirt::Validatable<mpl::at_c<Libvirt::Filter::Xml::VAddrIPv6::types, 1>::type::inner_type>::validate(local_ip);
+	bool isBoth = local_ip.isEmpty() && remote_ip.isEmpty();
+
+	Libvirt::Filter::Xml::CommonPortAttributes port_attributes = preparePortAttributes(
+				local_port, remote_port);
+
+	if (isIPv6 || isBoth)
+	{
+		Libvirt::Filter::Xml::CommonIpv6AttributesP1 ip_attributes = prepareIpv6Attributes(
+			local_ip, remote_ip);
+		if (proto == S_TCP)
+			rule.setTcpIpv6List(prepareTcpIpv6(ip_attributes, port_attributes));
+		else if (proto == S_UDP)
+			rule.setUdpIpv6List(prepareUdpIpv6(ip_attributes, port_attributes));
+		else if (proto.isEmpty())
+			rule.setAllIpv6List(prepareAllIpv6(ip_attributes));
+	}
+
+	if (!isIPv6 || isBoth)
+	{
+		Libvirt::Filter::Xml::CommonIpAttributesP1 ip_attributes = prepareIpAttributes(
+				local_ip, remote_ip);
+
+		if (proto == S_TCP)
+			rule.setTcpList(prepareTcp(ip_attributes, port_attributes));
+		else if (proto == S_UDP)
+			rule.setUdpList(prepareUdp(ip_attributes, port_attributes));
+		else if (proto.isEmpty())
+			rule.setAllList(prepareAll(ip_attributes));
+	}
+
+	mpl::at_c<Libvirt::Filter::Xml::VChoice5120::types, 1>::type rule_holder;
+	rule_holder.setValue(rule);
+	return Libvirt::Filter::Xml::VChoice5120(rule_holder);
+}
+
+Libvirt::Filter::Xml::EActionType
+Reverse::prepareAction(PRL_FIREWALL_POLICY policy)
+{
+	switch (policy)
+	{
+		case PFP_ACCEPT:
+			return Libvirt::Filter::Xml::EActionTypeAccept;
+		case PFP_DENY:
+			return Libvirt::Filter::Xml::EActionTypeDrop;
+		default:
+			return Libvirt::Filter::Xml::EActionTypeAccept;
+	}
+}
+
+QList <Libvirt::Filter::Xml::VChoice5120>
+Reverse::prepareFirewall(const CVmNetFirewall &firewall)
+{
+	QList <Libvirt::Filter::Xml::VChoice5120> result;
+	QList <CVmNetFirewallDirection*> directions;
+	QList <Libvirt::Filter::Xml::EDirectionType> direction_types;
+	if (firewall.getIncoming() && firewall.getIncoming()->getDirection())
+	{
+		directions.append(firewall.getIncoming()->getDirection());
+		direction_types.append(Libvirt::Filter::Xml::EDirectionTypeIn);
+	}
+	if (firewall.getOutgoing() && firewall.getOutgoing()->getDirection())
+	{
+		directions.append(firewall.getOutgoing()->getDirection());
+		direction_types.append(Libvirt::Filter::Xml::EDirectionTypeOut);
+	}
+
+	for (int i = 0; i < directions.size(); ++i)
+	{
+		CVmNetFirewallDirection *direction = directions[i];
+		Libvirt::Filter::Xml::EDirectionType direction_type = direction_types[i];
+
+		// Preparing rule for established connections
+		result.append(prepareAllowEstablished(direction_type, result.size()));
+
+		Libvirt::Filter::Xml::EActionType action =
+				direction->getDefaultPolicy() == PFP_ACCEPT
+				? Libvirt::Filter::Xml::EActionTypeDrop
+				: Libvirt::Filter::Xml::EActionTypeReturn;
+		foreach(const CVmNetFirewallRule &basic_rule, direction->getFirewallRules()->m_lstFirewallRules)
+			result.append(prepareRule(basic_rule, direction_type, action, result.size()));
+
+		if (direction->getDefaultPolicy() == PFP_DENY) {
+			result.append(prepareDefaultDeny(direction_type, result.size()));
+		}
+	}
+
+	return result;
+}
+
+Libvirt::Filter::Xml::VChoice5120 Reverse::prepareAllowEstablished(Libvirt::Filter::Xml::EDirectionType direction, int priority) {
+	Libvirt::Filter::Xml::Rule rule;
+	Libvirt::Filter::Xml::RuleNodeAttributes rule_attributes;
+
+	rule_attributes.setPriority(priority++);
+	rule_attributes.setDirection(direction);
+	rule_attributes.setAction(Libvirt::Filter::Xml::EActionTypeReturn);
+
+	rule.setRuleNodeAttributes(rule_attributes);
+
+	Libvirt::Filter::Xml::CommonIpAttributesP2 ip_attributes;
+	ip_attributes.setState(boost::optional<QString>(QString("ESTABLISHED,RELATED")));
+	rule.setAllList(prepareAll(ip_attributes));
+
+	mpl::at_c<Libvirt::Filter::Xml::VChoice5120::types, 1>::type rule_holder;
+	rule_holder.setValue(rule);
+	
+	return Libvirt::Filter::Xml::VChoice5120(rule_holder);
+}
+
+QList<Libvirt::Filter::Xml::VChoice5120> Reverse::prepareDefaultDeny(Libvirt::Filter::Xml::EDirectionType direction, int priority)
+{
+	QList<Libvirt::Filter::Xml::VChoice5120> result;
+	QList<uint> nd_messages_ids;
+	nd_messages_ids.append(133);
+	nd_messages_ids.append(134);
+	nd_messages_ids.append(135);
+	nd_messages_ids.append(136);
+
+	// allow IcmpV6 ND messages
+	foreach(const uint& nd_message_id, nd_messages_ids)
+	{
+		Libvirt::Filter::Xml::Rule rule;
+		Libvirt::Filter::Xml::RuleNodeAttributes rule_attributes;
+
+		rule_attributes.setPriority(priority++);
+		rule_attributes.setDirection(direction);
+		rule_attributes.setAction(Libvirt::Filter::Xml::EActionTypeReturn);
+
+		rule.setRuleNodeAttributes(rule_attributes);
+		rule.setIcmpv6List(prepareIcmpv6(nd_message_id));
+
+		mpl::at_c<Libvirt::Filter::Xml::VChoice5120::types, 1>::type rule_holder;
+		rule_holder.setValue(rule);
+		
+		result.append(Libvirt::Filter::Xml::VChoice5120(rule_holder));
+	}
+
+
+	Libvirt::Filter::Xml::Rule rule;
+	Libvirt::Filter::Xml::RuleNodeAttributes rule_attributes;
+
+	rule_attributes.setPriority(priority++);
+	rule_attributes.setDirection(direction);
+	rule_attributes.setAction(Libvirt::Filter::Xml::EActionTypeDrop);
+
+	rule.setRuleNodeAttributes(rule_attributes);
+
+	Libvirt::Filter::Xml::CommonIpAttributesP1 ip_attrbutes;
+	rule.setAllList(prepareAll(ip_attrbutes));
+
+	mpl::at_c<Libvirt::Filter::Xml::VChoice5120::types, 1>::type rule_holder;
+	rule_holder.setValue(rule);
+	result.append(Libvirt::Filter::Xml::VChoice5120(rule_holder));
+
+	return result;
+}
+
+QList <Libvirt::Filter::Xml::VChoice5120>
+Reverse::prepareNetFilters(const CVmGenericNetworkAdapter &adapter)
+{
+	QList <Libvirt::Filter::Xml::VChoice5120> result;
+
+	boost::optional <Libvirt::Domain::Xml::FilterrefNodeAttributes> filterref_domain =
+			Device::Network::View(adapter).getPredefinedFilterref();
+
+	if (!filterref_domain)
+		return result;
+
+	Libvirt::Filter::Xml::FilterrefNodeAttributes filterref;
+
+	QList <Libvirt::Filter::Xml::Parameter> params;
+	foreach(const Libvirt::Domain::Xml::Parameter &param_domain, filterref_domain->getParameterList())
+		params.append(prepareNetFiltersParam(param_domain));
+
+	filterref.setFilter(filterref_domain->getFilter());
+	filterref.setParameterList(params);
+
+	mpl::at_c<Libvirt::Filter::Xml::VChoice5120::types, 0>::type filterref_holder;
+	filterref_holder.setValue(filterref);
+	filterref.setFilter(filterref_domain->getFilter());
+
+	result.append(Libvirt::Filter::Xml::VChoice5120(filterref_holder));
+	return result;
+}
+
+Libvirt::Filter::Xml::Parameter Reverse::prepareNetFiltersParam(
+		const Libvirt::Domain::Xml::Parameter &value)
+{
+	Libvirt::Filter::Xml::Parameter param;
+	param.setName(value.getName());
+	param.setValue(value.getValue());
+	return param;
+}
+
+QList <Libvirt::Filter::Xml::Tcp> Reverse::prepareTcp(
+		const Libvirt::Filter::Xml::CommonIpAttributesP1 &ip_attributes,
+		const Libvirt::Filter::Xml::CommonPortAttributes &port_attributes)
+{
+	Libvirt::Filter::Xml::Tcp tcp;
+	tcp.setCommonIpAttributesP1(ip_attributes);
+	tcp.setCommonPortAttributes(port_attributes);
+
+	QList <Libvirt::Filter::Xml::Tcp> tcp_list;
+	tcp_list.append(tcp);
+
+	return tcp_list;
+}
+
+QList <Libvirt::Filter::Xml::Udp> Reverse::prepareUdp(
+		const Libvirt::Filter::Xml::CommonIpAttributesP1 &ip_attributes,
+		const Libvirt::Filter::Xml::CommonPortAttributes &port_attributes)
+{
+	Libvirt::Filter::Xml::Udp udp;
+	udp.setCommonIpAttributesP1(ip_attributes);
+	udp.setCommonPortAttributes(port_attributes);
+
+	QList <Libvirt::Filter::Xml::Udp> udp_list;
+	udp_list.append(udp);
+
+	return udp_list;
+}
+
+QList <Libvirt::Filter::Xml::TcpIpv6> Reverse::prepareTcpIpv6(
+		const Libvirt::Filter::Xml::CommonIpv6AttributesP1 &ip_attributes,
+		const Libvirt::Filter::Xml::CommonPortAttributes &port_attributes)
+{
+	Libvirt::Filter::Xml::TcpIpv6 tcp;
+	tcp.setCommonIpv6AttributesP1(ip_attributes);
+	tcp.setCommonPortAttributes(port_attributes);
+
+	QList <Libvirt::Filter::Xml::TcpIpv6> tcp_list;
+	tcp_list.append(tcp);
+
+	return tcp_list;
+}
+
+QList <Libvirt::Filter::Xml::UdpIpv6> Reverse::prepareUdpIpv6(
+		const Libvirt::Filter::Xml::CommonIpv6AttributesP1 &ip_attributes,
+		const Libvirt::Filter::Xml::CommonPortAttributes &port_attributes)
+{
+	Libvirt::Filter::Xml::UdpIpv6 udp;
+	udp.setCommonIpv6AttributesP1(ip_attributes);
+	udp.setCommonPortAttributes(port_attributes);
+
+	QList <Libvirt::Filter::Xml::UdpIpv6> udp_list;
+	udp_list.append(udp);
+
+	return udp_list;
+}
+
+QList<Libvirt::Filter::Xml::Icmpv6> Reverse::prepareIcmpv6(unsigned int type)
+{
+	Libvirt::Filter::Xml::Icmpv6 icmpv6;
+	Libvirt::Filter::Xml::IcmpAttributes icmp_attributes;
+	icmp_attributes.setType(prepareIcmpv6Type(type));
+
+	icmpv6.setIcmpAttributes(icmp_attributes);
+
+	QList <Libvirt::Filter::Xml::Icmpv6> icmpv6_list;
+	icmpv6_list.append(icmpv6);
+
+	return icmpv6_list;
+}
+
+QList <Libvirt::Filter::Xml::All>
+		Reverse::prepareAll(const Libvirt::Filter::Xml::CommonIpAttributesP1 &ip_attributes)
+{
+	Libvirt::Filter::Xml::All all;
+	all.setCommonIpAttributesP1(ip_attributes);
+
+	QList <Libvirt::Filter::Xml::All> all_list;
+	all_list.append(all);
+
+	return all_list;
+}
+
+QList <Libvirt::Filter::Xml::All>
+		Reverse::prepareAll(const Libvirt::Filter::Xml::CommonIpAttributesP2 &ip_attributes)
+{
+	Libvirt::Filter::Xml::All all;
+	all.setCommonIpAttributesP2(ip_attributes);
+
+	QList <Libvirt::Filter::Xml::All> all_list;
+	all_list.append(all);
+
+	return all_list;
+}
+
+QList <Libvirt::Filter::Xml::AllIpv6>
+		Reverse::prepareAllIpv6(const Libvirt::Filter::Xml::CommonIpv6AttributesP1 &ip_attributes)
+{
+	Libvirt::Filter::Xml::AllIpv6 all;
+	all.setCommonIpv6AttributesP1(ip_attributes);
+
+	QList <Libvirt::Filter::Xml::AllIpv6> all_list;
+	all_list.append(all);
+
+	return all_list;
+}
+
+Libvirt::Filter::Xml::CommonIpAttributesP1
+Reverse::prepareIpAttributes(const QString &local_ip,
+								   const QString &remote_ip)
+{
+	Libvirt::Filter::Xml::CommonIpAttributesP1 ip_attributes;
+
+	ip_attributes.setSrcipaddr(prepareIp(local_ip));
+	ip_attributes.setDstipaddr(prepareIp(remote_ip));
+
+	return ip_attributes;
+}
+
+Libvirt::Filter::Xml::CommonIpv6AttributesP1
+	Reverse::prepareIpv6Attributes(const QString &local_ip, const QString &remote_ip)
+{
+	Libvirt::Filter::Xml::CommonIpv6AttributesP1 ip_attributes;
+
+	ip_attributes.setSrcipaddr(prepareIpv6(local_ip));
+	ip_attributes.setDstipaddr(prepareIpv6(remote_ip));
+
+	return ip_attributes;
+}
+
+Libvirt::Filter::Xml::CommonPortAttributes
+Reverse::preparePortAttributes(uint local_port, uint remote_port)
+{
+	Libvirt::Filter::Xml::CommonPortAttributes port_attributes;
+
+	port_attributes.setSrcportstart(preparePort(local_port));
+	port_attributes.setSrcportend(preparePort(local_port));
+
+	port_attributes.setDstportstart(preparePort(remote_port));
+	port_attributes.setDstportend(preparePort(remote_port));
+
+	return port_attributes;
+}
+} // namespace Filter
 } // namespace Transponster

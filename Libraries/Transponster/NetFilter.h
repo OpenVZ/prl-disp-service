@@ -69,6 +69,7 @@ public:
     bool isCustomFilter() const;
     QString getFilterRef() const;
     void setFilterRef(QString value);
+    void setVzFilter(QString uuid, QString mac);
     QList<ParamPair_t> getParams() const;
     void setParams(QList<ParamPair_t> value);
 
@@ -76,6 +77,7 @@ public:
     static const uint S_NON_COMPANIABLE_FILTERS = 1;
     static const uint S_COMPANIABLE_FILTERS = 3;
     static const QString S_VZ_FILTER_PREFIX;
+    static const QString S_VZ_FILTER_MASK;
 private:
     /**
      * Returns bitwise OR of BuiltinFilter values, 

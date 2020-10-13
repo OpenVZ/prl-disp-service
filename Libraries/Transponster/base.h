@@ -320,6 +320,7 @@ template<class T, class Enabled = void>
 struct Access: Details::Value::Ancestor<T>::type
 {
 	typedef typename Details::Value::Ancestor<T>::type base_type;
+	typedef T inner_type;
 
 	using base_type::setValue;
 };
@@ -334,6 +335,7 @@ struct Access<T, typename boost::enable_if<Validatable<T> >::type>:
 	Details::Value::Ancestor<T>::type
 {
 	typedef typename Details::Value::Ancestor<T>::type base_type;
+	typedef T inner_type;
 
 	bool setValue(const typename base_type::value_type& value_)
 	{
