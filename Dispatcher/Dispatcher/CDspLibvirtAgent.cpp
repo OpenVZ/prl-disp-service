@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2020 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core. Virtuozzo Core is free software;
  * you can redistribute it and/or modify it under the terms of the GNU
@@ -26,6 +26,7 @@
 #include "CDspLibvirtExec.h"
 #include "CDspService.h"
 #include "Stat/CDspStatStorage.h"
+#include "Libraries/Transponster/NetFilter.h"
 #include <boost/bind.hpp>
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
@@ -574,12 +575,17 @@ Result Unit::setConfig(const CVmConfiguration& value_)
 	if (x.isFailed())
 		return x.error();
 
-	virDomainPtr d = virDomainDefineXML(link_.data(), x.value().toUtf8().data());
+	Libvirt::Instrument::Agent::Filter::List filter_list(link_);
+	Result ret = filter_list.define(value_.getVmHardwareList()->m_lstNetworkAdapters,
+									value_.getVmIdentification()->getVmUuid());
+
+	virDomainPtr d = virDomainDefineXML(link_.data(), qPrintable(x.value()));
 	if (NULL == d)
 		return Failure(PRL_ERR_VM_APPLY_CONFIG_FAILED);
 
 	setDomain(d);
-	return Result();
+
+	return ret;
 }
 
 Result Unit::completeConfig(CVmConfiguration& config_)
@@ -3122,8 +3128,123 @@ Result List::define(const CVirtualNetwork& config_, Unit* dst_)
 
 	return Result();
 }
-
 } // namespace Network
+
+namespace Filter
+{
+
+Unit::Unit(virNWFilterPtr filter_) : m_filter(filter_, &virNWFilterFree)
+{
+}
+
+Result Unit::undefine()
+{
+	return do_(m_filter.data(), boost::bind(&virNWFilterUndefine, _1));
+}
+
+bool Unit::operator==(const Unit &other) const
+{
+	return m_filter == other.m_filter;
+}
+
+// struct List
+
+Result List::define(const CVmGenericNetworkAdapter &adapter_, QString uuid,
+					Unit *dst_, QString* filter_name_dst)
+{
+	if (m_link.isNull())
+		return Result(Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER));
+
+	QString filter_name;
+	Transponster::Filter::Reverse u(adapter_, uuid, &filter_name);
+
+	if (NULL != filter_name_dst)
+		*filter_name_dst = filter_name;
+
+	virNWFilterPtr existing_filter = virNWFilterLookupByName(m_link.data(),
+															 filter_name.toUtf8().data());
+	if (NULL != existing_filter)
+	{
+		char existing_filter_uuid[VIR_UUID_STRING_BUFLEN];
+		virNWFilterGetUUIDString(existing_filter, existing_filter_uuid);
+		u.setUuid(existing_filter_uuid);
+		virNWFilterFree(existing_filter);
+	}
+
+	virNWFilterPtr n = virNWFilterDefineXML(m_link.data(),
+											qPrintable(u.getResult()));
+	if (NULL == n)
+		return Failure(PRL_ERR_VM_APPLY_FILTER_CONFIG_FAILED);
+
+	Unit m(n);
+
+	if (NULL != dst_)
+		*dst_ = m;
+
+	return Result();
+}
+
+Result List::define(const QList<CVmGenericNetworkAdapter *> &adapters,
+					QString uuid,
+					QList <Libvirt::Instrument::Agent::Filter::Unit> *dst)
+{
+	Result ret;
+	QSet<QString> defined;
+	foreach(const CVmGenericNetworkAdapter *adapter, adapters)
+	{
+		Unit current;
+		QString filter_name;
+		if ((ret = define(*adapter, uuid, &current, &filter_name)).isFailed())
+		{
+			cleanup(uuid);
+			return ret;
+		}
+		defined.insert(filter_name);
+		if (NULL != dst)
+			dst->append(current);
+	}
+
+	cleanup(uuid, defined);
+	return Result();
+}
+
+Result List::cleanup(QString uuid, QSet<QString> ignore)
+{
+	virNWFilterPtr* filters;
+
+	int cnt = virConnectListAllNWFilters(m_link.data(), &filters, 0);
+
+	if (cnt == -1) {
+		return Result(PRL_ERR_VM_APPLY_CONFIG_FAILED);
+	}
+
+	Result ret;
+
+	// deleting all existing filters for this host, ignoring errors
+	for (int i = 0; i < cnt; ++i)
+	{
+		QString name = virNWFilterGetName(filters[i]);
+		if (!ignore.contains(name) &&
+			name.startsWith(Transponster::NetFilter::S_VZ_FILTER_PREFIX)) {
+			QStringList parts = name.split(QRegExp("\\{|\\}"));
+			if (parts.size() >= 2)
+			{
+				QString filter_uuid = QString("{%1}").arg(parts[1]);
+				// if filter belongs to this vm
+				if (filter_uuid == uuid)
+				{
+					if (virNWFilterUndefine(filters[i]) == -1)
+						ret = Result(PRL_ERR_VM_APPLY_CONFIG_FAILED);
+				}
+			}
+		}
+		if (virNWFilterFree(filters[i]) == -1)
+			ret = Result(PRL_ERR_VM_APPLY_CONFIG_FAILED);
+	}
+
+	return ret;
+}
+} // namespace Filter
 
 namespace Interface
 {

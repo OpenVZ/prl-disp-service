@@ -7,7 +7,7 @@
 /// @author shrike
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2020 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -58,6 +58,10 @@ struct _virDomain;
 typedef struct _virDomain virDomain;
 typedef virDomain *virDomainPtr;
 
+struct _virNWFilter;
+typedef struct _virNWFilter virNWFilter;
+typedef virNWFilter *virNWFilterPtr;
+
 struct _virConnect;
 typedef struct _virConnect virConnect;
 typedef virConnect *virConnectPtr;
@@ -106,6 +110,8 @@ private:
 	static PRL_RESULT fabricate(PRL_RESULT result_);
 };
 
+typedef Prl::Expected<void, ::Error::Simple> Result;
+
 namespace Agent
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -131,12 +137,51 @@ private:
 
 } // namespace Agent
 
-typedef Prl::Expected<void, ::Error::Simple> Result;
-
 namespace Instrument
 {
 namespace Agent
 {
+namespace Filter
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Unit
+
+struct Unit
+{
+	Unit() 
+	{
+	}
+
+	Unit(virNWFilterPtr filter_);
+
+	Result undefine();
+
+	bool operator==(const Unit &other) const;
+
+private:
+	QSharedPointer <virNWFilter> m_filter;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct List
+struct List
+{
+	explicit List(QSharedPointer <virConnect> link_) : m_link(link_)
+	{
+	}
+
+	Result define(const CVmGenericNetworkAdapter &config_, 
+				  QString uuid, Unit *dst_ = NULL, QString* filter_name_dst = NULL);
+
+	Result define(const QList<CVmGenericNetworkAdapter *> &adapters, 
+				  QString uuid, QList <Unit> *dst = NULL);
+
+	Result cleanup(QString uuid, QSet<QString> ignore = QSet<QString>());
+
+private:
+	QSharedPointer <virConnect> m_link;
+};
+} // namespace Filter
 namespace Parameters
 {
 struct Builder;
@@ -222,9 +267,18 @@ struct Abstract
 		return m_domain;
 	}
 	void setDomain(virDomainPtr value_);
+	QList<Libvirt::Instrument::Agent::Filter::Unit> getFilters()
+	{
+		return m_filters;
+	}
+	void setFilters(const QList<Libvirt::Instrument::Agent::Filter::Unit>& filters)
+	{
+		m_filters = filters;
+	}
 
 private:
 	QSharedPointer<virDomain> m_domain;
+	QList<Libvirt::Instrument::Agent::Filter::Unit> m_filters;
 };
 
 } // namespace Limb
@@ -947,6 +1001,11 @@ struct Hub
 
 	void setLink(QSharedPointer<virConnect> value_);
 
+	QWeakPointer<virConnect> getLink()
+	{
+		return m_link;
+	}
+
 	Host host()
 	{
 		return Host(m_link);
@@ -981,4 +1040,3 @@ private:
 } // namespace Libvirt
 
 #endif // __CDSPLIBVIRT_H__
-
