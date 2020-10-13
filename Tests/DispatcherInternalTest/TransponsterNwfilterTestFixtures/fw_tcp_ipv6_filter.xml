@@ -1,0 +1,14 @@
+<filter name="vz-filter-{1ca7dd05-07b3-48f3-b8d3-ebe0edc7b4ed}-C4:37:72:0D:FB:3C">
+ <rule direction="in" action="return" priority="0">
+  <all state="ESTABLISHED,RELATED"/>
+ </rule>
+ <rule direction="in" action="drop" priority="1">
+  <tcp-ipv6 dstipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334" srcipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334"/>
+ </rule>
+ <rule direction="out" action="return" priority="2">
+  <all state="ESTABLISHED,RELATED"/>
+ </rule>
+ <rule direction="out" action="drop" priority="3">
+  <tcp-ipv6 dstipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334" srcipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334"/>
+ </rule>
+</filter>

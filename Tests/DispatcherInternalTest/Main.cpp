@@ -46,6 +46,7 @@
 #include "PrlCommonUtilsTest.h"
 #include "CAclHelperTest.h"
 #include "CGuestOsesHelperTest.h"
+#include "CTransponsterNwfilterTest.h"
 #ifdef _WIN_
 #include "CWifiHelperTest.h"
 #endif
@@ -71,6 +72,7 @@ int main(int argc, char *argv[])
 	EXECUTE_TESTS_SUITE( CProblemReportUtilsTest )
 	EXECUTE_TESTS_SUITE( CXmlModelHelperTest )
 	EXECUTE_TESTS_SUITE( CFeaturesMatrixTest )
+	EXECUTE_TESTS_SUITE( CTransponsterNwfilterTest )
 
 	return nRet;
 }
