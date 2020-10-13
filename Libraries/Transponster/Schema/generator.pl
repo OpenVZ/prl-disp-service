@@ -7,7 +7,7 @@ interface.rng:ethernet-interface,bridge-interface,vlan-interface:iface \
 domainsnapshot.rng:domainsnapshot:snapshot domaincaps.rng:domainCapabilities:capability \
 domainblockexport.rng:domainblockexport:blockExport \
 domainblocksnapshot.rng:domainblocksnapshot:blockSnapshot \
-nodedev.rng:device:nodedev
+nodedev.rng:device:nodedev nwfilter.rng:filter:filter
 
 =cut
 
@@ -27,7 +27,7 @@ our @data = ('');
 our $license = <<'LICENSE';
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2020 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it

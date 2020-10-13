@@ -15,6 +15,9 @@ HEADERS += \
 	domain_enum.h \
 	domain_data.h \
 	domain_type.h \
+	filter_enum.h \
+	filter_data.h \
+	filter_type.h \
 	iface_data.h \
 	iface_enum.h \
 	iface_type.h \
@@ -49,6 +52,9 @@ SOURCES	+= \
 	domain_data.cpp \
 	domain_enum.cpp \
 	domain_type.cpp \
+	filter_enum.cpp \
+	filter_data.cpp \
+	filter_type.cpp \
 	iface_data.cpp \
 	iface_enum.cpp \
 	iface_type.cpp \
