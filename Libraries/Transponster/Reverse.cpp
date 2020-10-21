@@ -883,9 +883,6 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterre
 {
 	NetFilter filter = NetFilter(*(m_network.getPktFilter()));
 	
-	if (filter.getFilterRef().isEmpty())
-		return boost::none;
-	
 	if (!filter.isCustomFilter())
 		filter.setVzFilter(getUuid(), getMac());
 
