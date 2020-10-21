@@ -457,9 +457,9 @@ namespace Filter
 
 struct Reverse
 {
-	explicit Reverse(const CVmGenericNetworkAdapter &adapter,
-	 				 QString host_uuid,
-					 QString *name_dst = NULL);
+	explicit Reverse(const CVmGenericNetworkAdapter &adapter);
+
+	static QString getNwfilterName(const CVmGenericNetworkAdapter &adapter);
 
 	void setUuid(const QString &uuid);
 

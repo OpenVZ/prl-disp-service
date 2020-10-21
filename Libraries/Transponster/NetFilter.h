@@ -69,7 +69,7 @@ public:
     bool isCustomFilter() const;
     QString getFilterRef() const;
     void setFilterRef(QString value);
-    void setVzFilter(QString uuid, QString mac);
+    void setVzFilter(QString mac);
     QList<ParamPair_t> getParams() const;
     void setParams(QList<ParamPair_t> value);
 
