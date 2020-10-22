@@ -170,13 +170,19 @@ struct List
 	{
 	}
 
-	Result define(const CVmGenericNetworkAdapter &config_, 
-				  QString uuid, Unit *dst_ = NULL, QString* filter_name_dst = NULL);
+	Unit at(const QString& name_) const;
 
-	Result define(const QList<CVmGenericNetworkAdapter *> &adapters, 
-				  QString uuid, QList <Unit> *dst = NULL);
+	Result define(const CVmGenericNetworkAdapter &config_);
 
-	Result cleanup(QString uuid, QSet<QString> ignore = QSet<QString>());
+	Result define(const QList<CVmGenericNetworkAdapter *> &adapters_);
+
+	Result undefine(const CVmGenericNetworkAdapter &config_);
+
+	Result undefine(const QList<CVmGenericNetworkAdapter *> &adapters_,
+					bool ignore_errors_ = false);
+
+	Result undefine_unused(const QList<CVmGenericNetworkAdapter *> &old_adapters_,
+						   const QList<CVmGenericNetworkAdapter *> &new_adapters_);
 
 private:
 	QSharedPointer <virConnect> m_link;
@@ -267,18 +273,9 @@ struct Abstract
 		return m_domain;
 	}
 	void setDomain(virDomainPtr value_);
-	QList<Libvirt::Instrument::Agent::Filter::Unit> getFilters()
-	{
-		return m_filters;
-	}
-	void setFilters(const QList<Libvirt::Instrument::Agent::Filter::Unit>& filters)
-	{
-		m_filters = filters;
-	}
 
 private:
 	QSharedPointer<virDomain> m_domain;
-	QList<Libvirt::Instrument::Agent::Filter::Unit> m_filters;
 };
 
 } // namespace Limb
