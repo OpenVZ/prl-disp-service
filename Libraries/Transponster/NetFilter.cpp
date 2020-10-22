@@ -70,6 +70,7 @@ QList<QString> NetFilter::getBuiltinFilters()
 {
 	QStringList builtin;
 
+	builtin.append("");
 	builtin.append("no-ip-spoofing");
 	builtin.append("no-ip-spoofing-no-mac-spoofing");
 	builtin.append("no-ip-spoofing-no-mac-spoofing-no-promisc");
@@ -94,7 +95,6 @@ QList<QPair<QString, QString> > NetFilter::convertParamsToPairs(
 
 bool NetFilter::isCustomFilter() const
 {
-	// for the future filter
 	if (getFilterRef().startsWith(S_VZ_FILTER_PREFIX))
 		return false;
 
