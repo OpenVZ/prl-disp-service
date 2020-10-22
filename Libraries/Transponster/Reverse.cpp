@@ -3124,7 +3124,7 @@ namespace Filter
 Reverse::Reverse(const CVmGenericNetworkAdapter &adapter) : m_adapter(adapter), m_result(new Libvirt::Filter::Xml::Filter())
 {
 	Libvirt::Filter::Xml::FilterNodeAttributes attributes = m_result->getFilterNodeAttributes();
-	attributes.setName(getNwfilterName(adapter));
+	attributes.setName(getVzfilterName(adapter));
 	m_result->setFilterNodeAttributes(attributes);
 
 	QList <Libvirt::Filter::Xml::VChoice5120> contents;
@@ -3138,7 +3138,7 @@ Reverse::Reverse(const CVmGenericNetworkAdapter &adapter) : m_adapter(adapter), 
 	m_result->setChoice5120List(contents);
 }
 
-QString Reverse::getNwfilterName(const CVmGenericNetworkAdapter &adapter)
+QString Reverse::getVzfilterName(const CVmGenericNetworkAdapter &adapter)
 {
 	QString mac = Device::Network::View(adapter).getMac();
 	return NetFilter::S_VZ_FILTER_MASK.arg(mac);

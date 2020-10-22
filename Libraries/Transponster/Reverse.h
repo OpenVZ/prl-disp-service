@@ -459,7 +459,7 @@ struct Reverse
 {
 	explicit Reverse(const CVmGenericNetworkAdapter &adapter);
 
-	static QString getNwfilterName(const CVmGenericNetworkAdapter &adapter);
+	static QString getVzfilterName(const CVmGenericNetworkAdapter &adapter);
 
 	void setUuid(const QString &uuid);
 
