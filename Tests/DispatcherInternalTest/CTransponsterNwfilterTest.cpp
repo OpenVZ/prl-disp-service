@@ -39,8 +39,6 @@
 #include "Libraries/Transponster/Reverse.h"
 #include "Libraries/Transponster/Reverse_p.h"
 
-const QString CTransponsterNwfilterTest::S_UUID = "{1ca7dd05-07b3-48f3-b8d3-ebe0edc7b4ed}";
-
 void CTransponsterNwfilterTest::init()
 {
 	static const QString S_FIXTURE_PATH = "./TransponsterNwfilterTestFixtures/%1.xml";
@@ -94,7 +92,7 @@ void CTransponsterNwfilterTest::TestFilter()
 
 void CTransponsterNwfilterTest::TestSingleFixtureFilter(uint id)
 {
-	Transponster::Filter::Reverse u(*m_pAdapters[id], S_UUID);
+	Transponster::Filter::Reverse u(*m_pAdapters[id]);
 	QCOMPARE(u.getResult().toUtf8(), m_Filters[id]);
 }
 
@@ -103,7 +101,7 @@ using Libvirt::Domain::Xml::FilterrefNodeAttributes;
 void CTransponsterNwfilterTest::TestSingleFixtureFilterref(uint id)
 {
 	boost::optional<FilterrefNodeAttributes> filter =
-		Transponster::Device::Network::View(*m_pAdapters[id], S_UUID).getFilterref();
+		Transponster::Device::Network::View(*m_pAdapters[id]).getFilterref();
 
 	QByteArray filter_xml;
 	if (filter)
