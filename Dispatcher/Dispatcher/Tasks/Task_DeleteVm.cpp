@@ -384,7 +384,8 @@ PRL_RESULT Libvirt::operator()()
 	if (r1.isFailed())
 		return r1.error().code();
 	::Libvirt::Instrument::Agent::Filter::List filter_list(::Libvirt::Kit.getLink());
-	::Libvirt::Result r2 = filter_list.cleanup(m_uid);
+	::Libvirt::Result r2 = filter_list.undefine(
+			m_config.getVmHardwareList()->m_lstNetworkAdapters);
 	if (r2.isFailed())
 		return r2.error().code();
 #endif // _LIBVIRT_
@@ -513,7 +514,7 @@ void Builder::addLibvirt(origin_type origin_, const access_type& access_)
 		result_type::redo_type f = (bl::bind(F, VMS_DELETING_STATE), PRL_ERR_SUCCESS);
 		b.addItem(f, boost::bind(&conductor_type::proceed, c, origin_));
 	}
-	b.addItem(Command::Delete::Libvirt(access_.getUuid()));
+	b.addItem(Command::Delete::Libvirt(access_.getUuid(), access_.getConfig().get()));
 	b.addItem(m_result);
 	m_result = b;
 }

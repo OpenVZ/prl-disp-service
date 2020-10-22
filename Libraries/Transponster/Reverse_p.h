@@ -622,15 +622,14 @@ namespace Network
 
 struct View
 {
-	explicit View(const CVmGenericNetworkAdapter &network_, QString uuid_ = QString()):
-		m_network(network_), uuid(uuid_)
+	explicit View(const CVmGenericNetworkAdapter &network_):
+		m_network(network_)
 	{
 	}
 
 	QString getAdapterType() const;
 	QString getMac() const;
 	QString getHostMac() const;
-	QString getUuid() const;
 	boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> getPredefinedFilterref() const;
 	boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> getFilterref() const;
 	boost::optional<Libvirt::Domain::Xml::Bandwidth > getBandwidth() const;
@@ -645,7 +644,6 @@ private:
 	QStringList getIps() const;
 
 	CVmGenericNetworkAdapter m_network;
-	QString uuid;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -655,7 +653,7 @@ template<int N>
 struct Adapter
 {
 	Libvirt::Domain::Xml::VInterface operator()(
-		const CVmGenericNetworkAdapter& network_, QString uuid_, const boot_type& boot_);
+		const CVmGenericNetworkAdapter& network_, const boot_type& boot_);
 
 private:
 	typedef typename mpl::at_c<Libvirt::Domain::Xml::VInterface::types, N>::type
@@ -666,7 +664,7 @@ private:
 };
 
 Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
-	build(const CVmGenericNetworkAdapter& network_, QString uuid_ = QString(),
+	build(const CVmGenericNetworkAdapter& network_,
 	const boot_type& boot_ = boot_type());
 
 } // namespace Network
@@ -860,7 +858,7 @@ namespace Boot
 
 struct List
 {
-	List(const CVmSettings& settings_, Device::List& list_, QString uuid_);
+	List(const CVmSettings& settings_, Device::List& list_);
 
 	const Attachment& getAttachment() const;
 
@@ -876,7 +874,6 @@ private:
 private:
 	Reverse m_boot;
 	Device::List& m_deviceList;
-	QString m_uuid;
 	Attachment m_attachment;
 };
 

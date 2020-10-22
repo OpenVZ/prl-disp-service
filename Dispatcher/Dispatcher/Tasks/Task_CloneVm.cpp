@@ -870,9 +870,10 @@ PRL_RESULT Dress::addLibvirtDomain()
 {
 #ifdef _LIBVIRT_
 
+	const QList<CVmGenericNetworkAdapter* >& adapters =
+		m_config->getVmHardwareList()->m_lstNetworkAdapters;
 	Libvirt::Instrument::Agent::Filter::List filter_list(Libvirt::Kit.getLink());
-	Libvirt::Result r1 = filter_list.define(m_config->getVmHardwareList()->m_lstNetworkAdapters,
-										    m_config->getVmIdentification()->getVmUuid());
+	Libvirt::Result r1 = filter_list.define(adapters);
 
 	if (r1.isFailed())
 		return Failure(getTask())(r1.error().convertToEvent());
@@ -883,7 +884,7 @@ PRL_RESULT Dress::addLibvirtDomain()
 
 	if (r2.isFailed())
 	{
-		filter_list.cleanup(m_config->getVmIdentification()->getVmUuid());
+		filter_list.undefine(adapters, true);
 		return Failure(getTask())(r2.error().convertToEvent());
 	}
 

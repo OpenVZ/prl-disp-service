@@ -860,10 +860,11 @@ void Perform::on_entry(const Event& event_, FSM& fsm_)
 		return;
 	}
 
+	const QList<CVmGenericNetworkAdapter* >& adapters =
+		x.getVmHardwareList()->m_lstNetworkAdapters; 
 	::Libvirt::Instrument::Agent::Filter::List filter_list(::Libvirt::Kit.getLink());
 	
-	if(filter_list.define(x.getVmHardwareList()->m_lstNetworkAdapters,
-					      x.getVmIdentification()->getVmUuid()).isFailed())
+	if(filter_list.define(adapters).isFailed())
 	{
 		fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
 		return;
@@ -871,7 +872,7 @@ void Perform::on_entry(const Event& event_, FSM& fsm_)
 
 	if(::Libvirt::Kit.vms().getGrub(x).spawnPersistent().isFailed())
 	{
-		filter_list.cleanup(x.getVmIdentification()->getVmUuid());
+		filter_list.undefine(adapters, true);
 		fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
 	}	
 }

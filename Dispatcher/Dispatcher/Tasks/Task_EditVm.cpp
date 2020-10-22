@@ -2012,6 +2012,22 @@ PRL_RESULT Task_EditVm::editVm()
 		}
 	}
 
+	// If everything is OK, clenaup unused filters
+#ifdef _LIBVIRT_
+	if (PRL_SUCCEEDED(ret))
+	{
+		::Libvirt::Instrument::Agent::Filter::List filter_list(Libvirt::Kit.getLink());
+		const QList<CVmGenericNetworkAdapter* >& old_adapters =
+			pVmConfigOld->getVmHardwareList()->m_lstNetworkAdapters; 
+		const QList<CVmGenericNetworkAdapter* >& new_adapters =
+			pVmConfigNew->getVmHardwareList()->m_lstNetworkAdapters; 
+
+		::Libvirt::Result filter_ret;
+		if((filter_ret = filter_list.undefine_unused(old_adapters, new_adapters)).isFailed())
+			ret = filter_ret.error().code();
+	}
+#endif // _LIBVIRT_
+
 	return ret;
 }
 

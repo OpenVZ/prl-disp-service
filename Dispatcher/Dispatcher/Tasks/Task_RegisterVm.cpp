@@ -1378,8 +1378,9 @@ PRL_RESULT Task_RegisterVm::saveVmConfig( )
 				m_pVmInfo->vmXmlPath);
 
 			Libvirt::Instrument::Agent::Filter::List filter_list(Libvirt::Kit.getLink());
-			Libvirt::Result r1 = filter_list.define(m_pVmConfig->getVmHardwareList()->m_lstNetworkAdapters,
-												    m_pVmConfig->getVmIdentification()->getVmUuid());
+			const QList<CVmGenericNetworkAdapter* >& adapters =
+				m_pVmConfig->getVmHardwareList()->m_lstNetworkAdapters;
+			Libvirt::Result r1 = filter_list.define(adapters);
 
 			if (r1.isFailed())
 				ret = r1.error().code();
@@ -1403,7 +1404,7 @@ PRL_RESULT Task_RegisterVm::saveVmConfig( )
 				
 				if (r2.isFailed())
 				{
-					filter_list.cleanup(m_pVmConfig->getVmIdentification()->getVmUuid());
+					filter_list.undefine(adapters, true);
 					ret = r2.error().code();
 				}
 			}

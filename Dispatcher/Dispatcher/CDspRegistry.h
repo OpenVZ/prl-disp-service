@@ -113,7 +113,7 @@ struct Access
 		return m_uuid;
 	}
 
-	boost::optional<CVmConfiguration> getConfig();
+	boost::optional<CVmConfiguration> getConfig() const;
 
 	void updateConfig(const CVmConfiguration& value_);
 

@@ -576,8 +576,7 @@ Result Unit::setConfig(const CVmConfiguration& value_)
 		return x.error();
 
 	Libvirt::Instrument::Agent::Filter::List filter_list(link_);
-	Result ret = filter_list.define(value_.getVmHardwareList()->m_lstNetworkAdapters,
-									value_.getVmIdentification()->getVmUuid());
+	Result ret = filter_list.define(value_.getVmHardwareList()->m_lstNetworkAdapters);
 
 	virDomainPtr d = virDomainDefineXML(link_.data(), qPrintable(x.value()));
 	if (NULL == d)
@@ -3149,20 +3148,16 @@ bool Unit::operator==(const Unit &other) const
 
 // struct List
 
-Result List::define(const CVmGenericNetworkAdapter &adapter_, QString uuid,
-					Unit *dst_, QString* filter_name_dst)
+Result List::define(const CVmGenericNetworkAdapter &adapter_)
 {
 	if (m_link.isNull())
 		return Result(Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER));
 
-	QString filter_name;
-	Transponster::Filter::Reverse u(adapter_, uuid, &filter_name);
+	Transponster::Filter::Reverse u(adapter_);
 
-	if (NULL != filter_name_dst)
-		*filter_name_dst = filter_name;
-
+	QString filter_name = Transponster::Filter::Reverse::getVzfilterName(adapter_);
 	virNWFilterPtr existing_filter = virNWFilterLookupByName(m_link.data(),
-															 filter_name.toUtf8().data());
+															 qPrintable(filter_name));
 	if (NULL != existing_filter)
 	{
 		char existing_filter_uuid[VIR_UUID_STRING_BUFLEN];
@@ -3176,73 +3171,70 @@ Result List::define(const CVmGenericNetworkAdapter &adapter_, QString uuid,
 	if (NULL == n)
 		return Failure(PRL_ERR_VM_APPLY_FILTER_CONFIG_FAILED);
 
-	Unit m(n);
-
-	if (NULL != dst_)
-		*dst_ = m;
-
 	return Result();
 }
 
-Result List::define(const QList<CVmGenericNetworkAdapter *> &adapters,
-					QString uuid,
-					QList <Libvirt::Instrument::Agent::Filter::Unit> *dst)
+Result List::define(const QList<CVmGenericNetworkAdapter *> &adapters)
 {
 	Result ret;
-	QSet<QString> defined;
 	foreach(const CVmGenericNetworkAdapter *adapter, adapters)
 	{
-		Unit current;
-		QString filter_name;
-		if ((ret = define(*adapter, uuid, &current, &filter_name)).isFailed())
+		if ((ret = define(*adapter)).isFailed())
 		{
-			cleanup(uuid);
+			undefine(adapters, true);
 			return ret;
 		}
-		defined.insert(filter_name);
-		if (NULL != dst)
-			dst->append(current);
 	}
-
-	cleanup(uuid, defined);
 	return Result();
 }
 
-Result List::cleanup(QString uuid, QSet<QString> ignore)
+Result List::undefine(const CVmGenericNetworkAdapter &config_)
 {
-	virNWFilterPtr* filters;
+	QString name = Transponster::Filter::Reverse::getVzfilterName(config_);
+	return at(name).undefine();
+}
 
-	int cnt = virConnectListAllNWFilters(m_link.data(), &filters, 0);
-
-	if (cnt == -1) {
-		return Result(PRL_ERR_VM_APPLY_CONFIG_FAILED);
-	}
-
+Result List::undefine(const QList<CVmGenericNetworkAdapter *> &adapters,
+					  bool ignore_errors)
+{
+	Result last_ret;
 	Result ret;
-
-	// deleting all existing filters for this host, ignoring errors
-	for (int i = 0; i < cnt; ++i)
+	foreach(const CVmGenericNetworkAdapter *adapter, adapters)
 	{
-		QString name = virNWFilterGetName(filters[i]);
-		if (!ignore.contains(name) &&
-			name.startsWith(Transponster::NetFilter::S_VZ_FILTER_PREFIX)) {
-			QStringList parts = name.split(QRegExp("\\{|\\}"));
-			if (parts.size() >= 2)
-			{
-				QString filter_uuid = QString("{%1}").arg(parts[1]);
-				// if filter belongs to this vm
-				if (filter_uuid == uuid)
-				{
-					if (virNWFilterUndefine(filters[i]) == -1)
-						ret = Result(PRL_ERR_VM_APPLY_CONFIG_FAILED);
-				}
-			}
+		if ((last_ret = undefine(*adapter)).isFailed())
+		{
+			ret = last_ret;
+			if (!ignore_errors)
+				return ret;
 		}
-		if (virNWFilterFree(filters[i]) == -1)
-			ret = Result(PRL_ERR_VM_APPLY_CONFIG_FAILED);
 	}
-
 	return ret;
+}
+
+Result List::undefine_unused(const QList<CVmGenericNetworkAdapter *> &old_adapters,
+							 const QList<CVmGenericNetworkAdapter *> &new_adapters)
+{
+	QSet<QString> used_mac_addresses;
+	foreach(const CVmGenericNetworkAdapter* adapter, new_adapters)
+		used_mac_addresses.insert(Transponster::Filter::Reverse::getVzfilterName(*adapter));
+	
+
+	QList<CVmGenericNetworkAdapter *> unused_adapters;
+
+	for (QList<CVmGenericNetworkAdapter *>::const_iterator adapter = old_adapters.begin();
+		 adapter != old_adapters.end(); ++adapter)
+	{
+		if (!used_mac_addresses.contains(
+				Transponster::Filter::Reverse::getVzfilterName(*adapter)))
+			unused_adapters.append(*adapter);
+	}
+	
+	return undefine(unused_adapters);
+}
+
+Unit List::at(const QString& name_) const
+{
+	return Unit(virNWFilterLookupByName(m_link.data(), qPrintable(name_)));
 }
 } // namespace Filter
 

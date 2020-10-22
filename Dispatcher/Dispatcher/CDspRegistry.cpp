@@ -502,7 +502,7 @@ void Reactor::updateConnected(const QString& device_, PVE::DeviceConnectedState 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Access
 
-boost::optional<CVmConfiguration> Access::getConfig()
+boost::optional<CVmConfiguration> Access::getConfig() const
 {
 	QSharedPointer<Vm> x = m_vm.toStrongRef();
 	if (x.isNull())

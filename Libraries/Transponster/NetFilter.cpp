@@ -37,7 +37,7 @@ namespace Transponster
 // class NetFilter
 
 const QString NetFilter::S_VZ_FILTER_PREFIX = "vz-filter-";
-const QString NetFilter::S_VZ_FILTER_MASK = "vz-filter-%1-%2";
+const QString NetFilter::S_VZ_FILTER_MASK = "vz-filter-%1";
 
 bool NetFilter::isBuiltinFilter(BuiltinFilter filter) const
 {
@@ -188,9 +188,9 @@ void NetFilter::setFilterRef(QString value)
 	m_filterref = value;
 }
 
-void NetFilter::setVzFilter(QString uuid, QString mac)
+void NetFilter::setVzFilter(QString mac)
 {
-	setFilterRef(S_VZ_FILTER_MASK.arg(uuid).arg(mac));
+	setFilterRef(S_VZ_FILTER_MASK.arg(mac));
 }
 
 QList<NetFilter::ParamPair_t> NetFilter::getParams() const

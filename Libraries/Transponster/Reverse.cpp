@@ -712,10 +712,9 @@ namespace Boot
 ///////////////////////////////////////////////////////////////////////////////
 // struct List
 
-List::List(const CVmSettings& settings_, Device::List& list_, QString uuid_):
+List::List(const CVmSettings& settings_, Device::List& list_):
 	m_boot(settings_.getVmStartupOptions()->getBootDeviceList()),
-	m_deviceList(list_),
-	m_uuid(uuid_)
+	m_deviceList(list_)
 {
 }
 
@@ -763,7 +762,7 @@ void List::add(const CVmGenericNetworkAdapter* network_)
 		return;
 
 	Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple> a =
-		Network::build(*network_, m_uuid, m_boot(*network_));
+		Network::build(*network_, m_boot(*network_));
 
 	if (a.isSucceed())
 		m_deviceList.add(a.value());
@@ -849,11 +848,6 @@ QString View::getHostMac() const
 	return normalizeMac(m_network.getHostMacAddress());
 }
 
-QString View::getUuid() const
-{
-	return uuid;
-}
-
 QString View::getFilterName() const
 {
 	return NetFilter(*(m_network.getPktFilter())).getFilterRef();
@@ -884,7 +878,7 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterre
 	NetFilter filter = NetFilter(*(m_network.getPktFilter()));
 	
 	if (!filter.isCustomFilter())
-		filter.setVzFilter(getUuid(), getMac());
+		filter.setVzFilter(getMac());
 
 	return prepareFilterref(filter);
 }
@@ -996,7 +990,7 @@ boost::optional<Libvirt::Domain::Xml::VVirtualPortProfile> View::getVVirtualPort
 
 template<int N>
 Libvirt::Domain::Xml::VInterface Adapter<N>::operator()
-	(const CVmGenericNetworkAdapter& network_, QString uuid_, const boot_type& boot_)
+	(const CVmGenericNetworkAdapter& network_, const boot_type& boot_)
 {
 	typename Libvirt::Details::Value::Grab<access_type>::type i = prepare(network_);
 
@@ -1007,7 +1001,7 @@ Libvirt::Domain::Xml::VInterface Adapter<N>::operator()
 	if (!a.isEmpty())
 		i.setAlias(a);
 
-	View view(network_, uuid_);
+	View view(network_);
 	QString m = view.getMac();
 	if (!m.isEmpty())
 		i.setMac(m);
@@ -1085,21 +1079,21 @@ Libvirt::Domain::Xml::Interface667 Adapter<4>::prepare(const CVmGenericNetworkAd
 }
 
 Prl::Expected<Libvirt::Domain::Xml::VInterface, ::Error::Simple>
-	build(const CVmGenericNetworkAdapter& network_, QString uuid_, const boot_type& boot_)
+	build(const CVmGenericNetworkAdapter& network_, const boot_type& boot_)
 {
 	switch (network_.getEmulatedType())
 	{
 	case PNA_BRIDGE:
-		return Adapter<0>()(network_, uuid_, boot_);
+		return Adapter<0>()(network_, boot_);
 	case PNA_BRIDGED_NETWORK:
 		/* Legacy case before PNA_BRIDGE introduced*/
 		if (network_.getVirtualNetworkID().isEmpty())
-			return Adapter<0>()(network_, uuid_, boot_);
-		return Adapter<3>()(network_, uuid_, boot_);
+			return Adapter<0>()(network_, boot_);
+		return Adapter<3>()(network_, boot_);
 	case PNA_DIRECT_ASSIGN:
-		return Adapter<4>()(network_, uuid_, boot_);
+		return Adapter<4>()(network_, boot_);
 	case PNA_ROUTED:
-		return Adapter<1>()(network_, uuid_, boot_);
+		return Adapter<1>()(network_, boot_);
 	default:
 		return ::Error::Simple(PRL_ERR_UNIMPLEMENTED);
 	}
@@ -2027,7 +2021,7 @@ PRL_RESULT Builder::setDevices()
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
 	Transponster::Device::List b;
-	Transponster::Device::Boot::List t(*s, b, m_input.getVmIdentification()->getVmUuid());
+	Transponster::Device::Boot::List t(*s, b);
 	foreach (const CVmHardDisk* d, h->m_lstHardDisks)
 	{
 		if (d->getConnected() != PVE::DeviceConnected)
@@ -3124,17 +3118,11 @@ namespace Filter
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reverse
 
-Reverse::Reverse(const CVmGenericNetworkAdapter &adapter, QString host_uuid, QString* name_dst) : m_adapter(adapter), m_result(new Libvirt::Filter::Xml::Filter())
+Reverse::Reverse(const CVmGenericNetworkAdapter &adapter) : m_adapter(adapter), m_result(new Libvirt::Filter::Xml::Filter())
 {
 	Libvirt::Filter::Xml::FilterNodeAttributes attributes = m_result->getFilterNodeAttributes();
-	Device::Network::View view(adapter);
-	QString mac_adapater = view.getMac();
-	QString name = NetFilter::S_VZ_FILTER_MASK.arg(host_uuid).arg(mac_adapater);
-	attributes.setName(name);
+	attributes.setName(getVzfilterName(adapter));
 	m_result->setFilterNodeAttributes(attributes);
-
-	if (NULL != name_dst)
-		*name_dst = name;
 
 	QList <Libvirt::Filter::Xml::VChoice5120> contents;
 
@@ -3145,6 +3133,12 @@ Reverse::Reverse(const CVmGenericNetworkAdapter &adapter, QString host_uuid, QSt
 		contents.append(prepareFirewall(*basic_firewall));
 
 	m_result->setChoice5120List(contents);
+}
+
+QString Reverse::getVzfilterName(const CVmGenericNetworkAdapter &adapter)
+{
+	QString mac = Device::Network::View(adapter).getMac();
+	return NetFilter::S_VZ_FILTER_MASK.arg(mac);
 }
 
 QString Reverse::getResult()
