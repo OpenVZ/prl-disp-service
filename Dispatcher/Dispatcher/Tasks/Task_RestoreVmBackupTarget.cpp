@@ -1806,8 +1806,9 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 
 	m_product.setConfig(pVmConfig);
 	::Libvirt::Instrument::Agent::Filter::List filter_list(::Libvirt::Kit.getLink());
-	Libvirt::Result r1 = filter_list.define(m_product.getConfig()->getVmHardwareList()->m_lstNetworkAdapters,
-										    m_product.getConfig()->getVmIdentification()->getVmUuid());
+	const QList<CVmGenericNetworkAdapter* >& adapters =
+				m_pVmConfig->getVmHardwareList()->m_lstNetworkAdapters;
+	Libvirt::Result r1 = filter_list.define(adapters);
 
 	if (r1.isFailed())
 	{
@@ -1819,7 +1820,7 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	
 	if (r2.isFailed())
 	{
-		filter_list.cleanup(m_product.getConfig()->getVmIdentification()->getVmUuid());
+		filter_list.undefine(adapters, true);
 		a->revert();
 		return r2.error().code();
 	}

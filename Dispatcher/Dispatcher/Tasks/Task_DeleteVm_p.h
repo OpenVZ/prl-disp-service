@@ -50,7 +50,8 @@ namespace Delete
 
 struct Libvirt
 {
-	explicit Libvirt(const QString& uid_): m_uid(uid_)
+	explicit Libvirt(const QString& uid_, const CVmConfiguration& config_):
+		m_uid(uid_), m_config(config_)
 	{
 	}
 
@@ -58,6 +59,7 @@ struct Libvirt
 
 private:
 	const QString m_uid;
+	const CVmConfiguration m_config;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
