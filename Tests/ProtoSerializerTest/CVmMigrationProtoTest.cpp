@@ -76,7 +76,7 @@ void CVmMigrationProtoTest::testCreateVmMigrateCheckPreconditionsCommand()
 		);
 	QVERIFY(pCmd->IsValid());
 	SmartPtr<CVmEvent> pEvent = pCmd->GetCommand();
-	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_MIGRATE_PROTO_VERSION, PVE::UnsignedInt,\
+	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_MIGRATE_PROTO_VERSION_2G, PVE::UnsignedInt,\
 		QString("%1").arg(MIGRATE_DISP_PROTO_VERSION))
 	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_MIGRATE_CMD_VM_CONFIG, PVE::String,\
 		sVmConfiguration)
@@ -107,7 +107,7 @@ void CVmMigrationProtoTest::testParseVmMigrateCheckPreconditionsCommand()
 	CHECK_PRECONDS_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmConfiguration,
 							EVT_PARAM_MIGRATE_CMD_VM_CONFIG));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sHostHardwareInfo,
@@ -177,7 +177,7 @@ void CVmMigrationProtoTest::testVmMigrateCheckPreconditionsCommandIsValidFailedO
 	CHECK_PRECONDS_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sHostHardwareInfo,
 							EVT_PARAM_MIGRATE_CMD_HOST_HARDWARE_INFO));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sTargetVmName,
@@ -237,7 +237,7 @@ void CVmMigrationProtoTest::testVmMigrateCheckPreconditionsCommandIsValidFailedO
 	CHECK_PRECONDS_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmConfiguration,
 							EVT_PARAM_MIGRATE_CMD_VM_CONFIG));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sTargetVmName,
@@ -267,7 +267,7 @@ void CVmMigrationProtoTest::testVmMigrateCheckPreconditionsCommandIsValidFailedO
 	CHECK_PRECONDS_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmConfiguration,
 							EVT_PARAM_MIGRATE_CMD_VM_CONFIG));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sTargetVmName,
@@ -301,7 +301,7 @@ void CVmMigrationProtoTest::testVmMigrateCheckPreconditionsCommandIsValidFailedO
 	CHECK_PRECONDS_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmConfiguration,
 							EVT_PARAM_MIGRATE_CMD_VM_CONFIG));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sHostHardwareInfo,
@@ -328,7 +328,7 @@ void CVmMigrationProtoTest::testVmMigrateCheckPreconditionsCommandIsValidFailedO
 	CHECK_PRECONDS_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmConfiguration,
 							EVT_PARAM_MIGRATE_CMD_VM_CONFIG));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sHostHardwareInfo,
@@ -358,7 +358,7 @@ void CVmMigrationProtoTest::testVmMigrateCheckPreconditionsCommandIsValidFailedO
 	CHECK_PRECONDS_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmConfiguration,
 							EVT_PARAM_MIGRATE_CMD_VM_CONFIG));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sHostHardwareInfo,
@@ -386,7 +386,7 @@ void CVmMigrationProtoTest::testVmMigrateCheckPreconditionsCommandIsValidNotFail
 	CHECK_PRECONDS_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmConfiguration,
 							EVT_PARAM_MIGRATE_CMD_VM_CONFIG));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sHostHardwareInfo,
@@ -416,7 +416,7 @@ void CVmMigrationProtoTest::testVmMigrateCheckPreconditionsCommandIsValidNotFail
 	CHECK_PRECONDS_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmConfiguration,
 							EVT_PARAM_MIGRATE_CMD_VM_CONFIG));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sHostHardwareInfo,
@@ -446,7 +446,7 @@ void CVmMigrationProtoTest::testVmMigrateCheckPreconditionsCommandIsValidNotFail
 	CHECK_PRECONDS_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmConfiguration,
 							EVT_PARAM_MIGRATE_CMD_VM_CONFIG));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sHostHardwareInfo,
@@ -502,7 +502,7 @@ void CVmMigrationProtoTest::testCreateVmMigrateStartCommand()
 		);
 	QVERIFY(pCmd->IsValid());
 	SmartPtr<CVmEvent> pEvent = pCmd->GetCommand();
-	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_MIGRATE_PROTO_VERSION, PVE::UnsignedInt,\
+	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_MIGRATE_PROTO_VERSION_2G, PVE::UnsignedInt,\
 		QString("%1").arg(MIGRATE_DISP_PROTO_VERSION))
 	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_MIGRATE_CMD_VM_CONFIG, PVE::String,\
 		sVmConfiguration)
@@ -529,7 +529,7 @@ void CVmMigrationProtoTest::testParseVmMigrateStartCommand()
 	START_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmConfiguration,
 							EVT_PARAM_MIGRATE_CMD_VM_CONFIG));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmRuntimeConfiguration,
@@ -616,7 +616,7 @@ void CVmMigrationProtoTest::testVmMigrateStartCommandIsValidFailedOnVmConfigurat
 	START_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sTargetVmHomePath,
 							EVT_PARAM_MIGRATE_CMD_TARGET_VM_HOME_PATH));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sSnapshotUuid,
@@ -638,7 +638,7 @@ void CVmMigrationProtoTest::testVmMigrateStartCommandIsValidFailedOnTargetServer
 	START_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmConfiguration,
 							EVT_PARAM_MIGRATE_CMD_VM_CONFIG));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sSnapshotUuid,
@@ -664,7 +664,7 @@ void CVmMigrationProtoTest::testVmMigrateStartCommandIsValidFailedOnMigrationFla
 	START_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmConfiguration,
 							EVT_PARAM_MIGRATE_CMD_VM_CONFIG));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, QString("%1").arg(sTargetVmHomePath),
@@ -687,7 +687,7 @@ void CVmMigrationProtoTest::testVmMigrateStartCommandIsValidFailedOnReservedFlag
 	START_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmConfiguration,
 							EVT_PARAM_MIGRATE_CMD_VM_CONFIG));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sTargetVmHomePath,
@@ -709,7 +709,7 @@ void CVmMigrationProtoTest::testVmMigrateStartCommandIsValidFailedOnPrevVmStateA
 	START_CMD_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sVmConfiguration,
 							EVT_PARAM_MIGRATE_CMD_VM_CONFIG));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::String, sTargetVmHomePath,
@@ -740,7 +740,7 @@ void CVmMigrationProtoTest::testCreateVmMigrateCheckPreconditionsReply()
 		CDispToDispProtoSerializer::CreateVmMigrateCheckPreconditionsReply(sCheckResult, sNonShared, nFlags);
 	QVERIFY(pCmd->IsValid());
 	SmartPtr<CVmEvent> pEvent = pCmd->GetCommand();
-	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_MIGRATE_PROTO_VERSION, PVE::UnsignedInt,\
+	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_MIGRATE_PROTO_VERSION_2G, PVE::UnsignedInt,\
 		QString("%1").arg(MIGRATE_DISP_PROTO_VERSION))
 	CVmEventParameter *pParam = pEvent->getEventParameter(EVT_PARAM_MIGRATE_CHECK_PRECONDITIONS_RESULT);
 	QVERIFY(pParam != NULL);
@@ -758,7 +758,7 @@ void CVmMigrationProtoTest::testParseVmMigrateCheckPreconditionsReply()
 	CHECK_PRECONDS_REPLY_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameterList(PVE::String, sCheckResult,
 							EVT_PARAM_MIGRATE_CHECK_PRECONDITIONS_RESULT));
 	_pkg->addEventParameter(new CVmEventParameterList(PVE::String, sNonShared,
@@ -813,7 +813,7 @@ void CVmMigrationProtoTest::testVmMigrateCheckPreconditionsReplyIsValidFailedOnC
 	CHECK_PRECONDS_REPLY_PARAMS_DECLARE
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(nFlags),
 							EVT_PARAM_PROTO_CMD_FLAGS));
 	_pkg->addEventParameter(new CVmEventParameterList(PVE::String, sNonShared,
@@ -835,7 +835,7 @@ void CVmMigrationProtoTest::testCreateVmMigrateReply()
 	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::CreateVmMigrateReply(QString());
 	QVERIFY(pCmd->IsValid());
 	SmartPtr<CVmEvent> pEvent = pCmd->GetCommand();
-	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_MIGRATE_PROTO_VERSION, PVE::UnsignedInt,\
+	CHECK_EVENT_PARAMETER(pEvent, EVT_PARAM_MIGRATE_PROTO_VERSION_2G, PVE::UnsignedInt,\
 		QString("%1").arg(MIGRATE_DISP_PROTO_VERSION))
 }
 
@@ -843,7 +843,7 @@ void CVmMigrationProtoTest::testParseVmMigrateReply()
 {
 	SmartPtr<CVmEvent> _pkg( new CVmEvent );
 	_pkg->addEventParameter(new CVmEventParameter(PVE::UnsignedInt, QString("%1").arg(MIGRATE_DISP_PROTO_VERSION),
-							EVT_PARAM_MIGRATE_PROTO_VERSION));
+							EVT_PARAM_MIGRATE_PROTO_VERSION_2G));
 	CDispToDispCommandPtr pCmd =
 		CDispToDispProtoSerializer::ParseCommand(VmMigrateReply, _pkg->toString());
 	QVERIFY(pCmd->IsValid());
