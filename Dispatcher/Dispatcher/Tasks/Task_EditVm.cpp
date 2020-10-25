@@ -2015,20 +2015,50 @@ PRL_RESULT Task_EditVm::editVm()
 	// If everything is OK, clenaup unused filters
 #ifdef _LIBVIRT_
 	if (PRL_SUCCEEDED(ret))
-	{
-		::Libvirt::Instrument::Agent::Filter::List filter_list(Libvirt::Kit.getLink());
-		const QList<CVmGenericNetworkAdapter* >& old_adapters =
-			pVmConfigOld->getVmHardwareList()->m_lstNetworkAdapters; 
-		const QList<CVmGenericNetworkAdapter* >& new_adapters =
-			pVmConfigNew->getVmHardwareList()->m_lstNetworkAdapters; 
-
-		::Libvirt::Result filter_ret;
-		if((filter_ret = filter_list.undefine_unused(old_adapters, new_adapters)).isFailed())
-			ret = filter_ret.error().code();
-	}
+		ret = updateNetworkFilter(pVmConfigNew, pVmConfigOld);
 #endif // _LIBVIRT_
 
 	return ret;
+}
+
+PRL_RESULT Task_EditVm::updateNetworkFilter(
+	const SmartPtr<CVmConfiguration> pNewVmConfig,
+	const SmartPtr<CVmConfiguration> pOldVmConfig)
+{
+	if ( ! pNewVmConfig || ! pOldVmConfig )
+		return PRL_ERR_SUCCESS;
+
+	if ( pNewVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate() &&
+		pOldVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate() )
+		return PRL_ERR_SUCCESS;
+
+	::Libvirt::Instrument::Agent::Filter::List filter_list(Libvirt::Kit.getLink());
+	const QList<CVmGenericNetworkAdapter* >& old_adapters =
+		pOldVmConfig->getVmHardwareList()->m_lstNetworkAdapters; 
+	const QList<CVmGenericNetworkAdapter* >& new_adapters =
+		pNewVmConfig->getVmHardwareList()->m_lstNetworkAdapters; 
+	::Libvirt::Result filter_ret;
+
+	// undefine all filters when VM is converted to template
+	if ( pNewVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate() )
+	{
+		if((filter_ret = filter_list.undefine(old_adapters)).isFailed())
+			return filter_ret.error().code();
+		return PRL_ERR_SUCCESS;
+	}
+
+	// define all filters when VM is converted from template
+	if ( pOldVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate() )
+	{
+		if ((filter_ret = filter_list.define(new_adapters)).isFailed())
+			return filter_ret.error().code();
+		return PRL_ERR_SUCCESS;
+	}
+
+	// undefine filters for removed adapters
+	if ((filter_ret = filter_list.undefine_unused(old_adapters, new_adapters)).isFailed())
+		return filter_ret.error().code();
+	return PRL_ERR_SUCCESS;
 }
 
 // reset IP addresses for templates

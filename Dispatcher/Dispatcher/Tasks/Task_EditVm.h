@@ -99,6 +99,12 @@ private:
 	static void updateNetworkSettings(const SmartPtr<CVmConfiguration> pNewVmConfig,
 					const SmartPtr<CVmConfiguration> pOldVmConfig);
 
+	/**
+	* Manage network fiters on host
+	*/
+	static PRL_RESULT updateNetworkFilter(const SmartPtr<CVmConfiguration> pNewVmConfig,
+					const SmartPtr<CVmConfiguration> pOldVmConfig);
+
 	// check/create serial/paralells ports output files
 	/**
 	* Check/create serial ports output files.
