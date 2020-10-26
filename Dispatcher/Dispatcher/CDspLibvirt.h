@@ -182,7 +182,8 @@ struct List
 					bool ignore_errors_ = false);
 
 	Result undefine_unused(const QList<CVmGenericNetworkAdapter *> &old_adapters_,
-						   const QList<CVmGenericNetworkAdapter *> &new_adapters_);
+						   const QList<CVmGenericNetworkAdapter *> &new_adapters_,
+						   bool ignore_errors_ = false);
 
 private:
 	QSharedPointer <virConnect> m_link;

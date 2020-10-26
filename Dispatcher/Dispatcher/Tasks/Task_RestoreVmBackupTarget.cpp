@@ -1775,6 +1775,10 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	/* create temporary directory */
 	m_sTargetPath = QString("%1.%2.restore").arg(m_product.getHome()).arg(Uuid::createUuid().toString());
 
+	CVmConfiguration old_config = *pVmConfig;
+	const QList<CVmGenericNetworkAdapter*>& old_adapters = 
+					old_config.getVmHardwareList()->m_lstNetworkAdapters;
+
 	std::auto_ptr<Restore::Assembly> a;
 	if (PRL_FAILED(nRetCode = restoreVmToTargetPath(a)))
 		return nRetCode;
@@ -1806,9 +1810,9 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 
 	m_product.setConfig(pVmConfig);
 	::Libvirt::Instrument::Agent::Filter::List filter_list(::Libvirt::Kit.getLink());
-	const QList<CVmGenericNetworkAdapter* >& adapters =
-				m_pVmConfig->getVmHardwareList()->m_lstNetworkAdapters;
-	Libvirt::Result r1 = filter_list.define(adapters);
+	const QList<CVmGenericNetworkAdapter* >& new_adapters =
+				pVmConfig->getVmHardwareList()->m_lstNetworkAdapters;
+	Libvirt::Result r1 = filter_list.define(new_adapters);
 
 	if (r1.isFailed())
 	{
@@ -1820,7 +1824,9 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 	
 	if (r2.isFailed())
 	{
-		filter_list.undefine(adapters, true);
+		// roll back to old_adapters
+		filter_list.define(old_adapters);
+		filter_list.undefine_unused(new_adapters, old_adapters, true);
 		a->revert();
 		return r2.error().code();
 	}
@@ -1834,6 +1840,10 @@ PRL_RESULT Task_RestoreVmBackupTarget::restoreVmOverExisting()
 		if ( pVmDirItem )
 			pVmDirItem->setTemplate(m_product.getConfig()->getVmSettings()->getVmCommonOptions()->isTemplate());
 	}
+
+	::Libvirt::Result ret;
+	if((ret = filter_list.undefine_unused(old_adapters, new_adapters)).isFailed())
+		return ret.error().code();
 
 	return PRL_ERR_SUCCESS;
 }

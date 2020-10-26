@@ -3212,7 +3212,8 @@ Result List::undefine(const QList<CVmGenericNetworkAdapter *> &adapters,
 }
 
 Result List::undefine_unused(const QList<CVmGenericNetworkAdapter *> &old_adapters,
-							 const QList<CVmGenericNetworkAdapter *> &new_adapters)
+							 const QList<CVmGenericNetworkAdapter *> &new_adapters,
+							 bool ignore_errors_)
 {
 	QSet<QString> used_mac_addresses;
 	foreach(const CVmGenericNetworkAdapter* adapter, new_adapters)
@@ -3229,7 +3230,7 @@ Result List::undefine_unused(const QList<CVmGenericNetworkAdapter *> &old_adapte
 			unused_adapters.append(*adapter);
 	}
 	
-	return undefine(unused_adapters);
+	return undefine(unused_adapters, ignore_errors_);
 }
 
 Unit List::at(const QString& name_) const
