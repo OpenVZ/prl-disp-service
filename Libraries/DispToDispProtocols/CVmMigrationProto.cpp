@@ -45,7 +45,8 @@ CVmMigrateProto::CVmMigrateProto(Virtuozzo::IDispToDispCommands nCmdIdentifier, 
 
 bool CVmMigrateProto::IsValid()
 {
-	return (CheckWhetherParamPresents(EVT_PARAM_MIGRATE_PROTO_VERSION, PVE::UnsignedInt) &&
+	return ((CheckWhetherParamPresents(EVT_PARAM_MIGRATE_PROTO_VERSION_2G, PVE::UnsignedInt) || 
+			(CheckWhetherParamPresents(EVT_PARAM_MIGRATE_PROTO_VERSION, PVE::UnsignedInt))) &&
 		CheckWhetherParamPresents(EVT_PARAM_PROTO_CMD_FLAGS, PVE::UnsignedInt));
 }
 
