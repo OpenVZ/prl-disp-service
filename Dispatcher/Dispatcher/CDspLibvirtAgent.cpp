@@ -3138,7 +3138,10 @@ Unit::Unit(virNWFilterPtr filter_) : m_filter(filter_, &virNWFilterFree)
 
 Result Unit::undefine()
 {
-	return do_(m_filter.data(), boost::bind(&virNWFilterUndefine, _1));
+	doResult_type r = do_(m_filter.data(), boost::bind(&virNWFilterUndefine, _1));
+	if (r.isFailed() && r.error().getMainCode() == VIR_ERR_NO_NWFILTER)
+		return Result();
+	return r;
 }
 
 bool Unit::operator==(const Unit &other) const
