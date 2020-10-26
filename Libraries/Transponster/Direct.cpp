@@ -334,10 +334,6 @@ void Builder::setFilter(const boost::optional<Libvirt::Domain::Xml::FilterrefNod
 		filter->setFilterRef(QString());
 	}
 
-	filter->setPreventPromisc(libvirt_helper.isPreventPromisc());
-	filter->setPreventMacSpoof(libvirt_helper.isPreventMacSpoof());
-	filter->setPreventIpSpoof(libvirt_helper.isPreventIpSpoof());
-
 	m_result.setPktFilter(filter);
 }
 

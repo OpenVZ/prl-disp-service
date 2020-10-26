@@ -512,15 +512,8 @@ void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 		a->setDnsIPAddresses(x->getDnsIPAddresses());
 		a->setSearchDomains(x->getSearchDomains());
 		a->setHostMacAddress(x->getHostMacAddress());
-		// If spoofing protection is disabled, in case of non-custom filter, check our config.
-		if (a->getPktFilter()->getFilterRef().isEmpty() &&
-		 	!a->getPktFilter()->isPreventIpSpoof())
-		{
-			a->getPktFilter()->setPreventIpSpoof(
-					x->getPktFilter()->isPreventIpSpoof());
-		}
 		// If vz-filter is enabled, we preserve old PktFilter config
-		if (a->getPktFilter()->getFilterRef().startsWith(Transponster::NetFilter::S_VZ_FILTER_PREFIX))
+		if (a->getPktFilter()->getFilterRef().isEmpty())
 		{
 			a->getPktFilter()->setPreventIpSpoof(
 					x->getPktFilter()->isPreventIpSpoof());
