@@ -1546,7 +1546,9 @@ void Domain::update(Registry::Access& access_, const entry_type& model_)
 	updateConfig(access_);
 	if (!model_.isNull())
 		model_->setState(m_state);
-	m_agent.setConfig(access_.getConfig().get());
+	boost::optional<CVmConfiguration> config = access_.getConfig();
+	if (config)
+		m_agent.setConfig(config.get());
 }
 
 void Domain::insert(Registry::Access& access_, const entry_type& model_)
