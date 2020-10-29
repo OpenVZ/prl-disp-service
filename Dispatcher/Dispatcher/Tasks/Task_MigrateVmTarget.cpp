@@ -860,21 +860,21 @@ void Perform::on_entry(const Event& event_, FSM& fsm_)
 		return;
 	}
 
-	const QList<CVmGenericNetworkAdapter* >& adapters =
-		x.getVmHardwareList()->m_lstNetworkAdapters; 
 	::Libvirt::Instrument::Agent::Filter::List filter_list(::Libvirt::Kit.getLink());
-	
-	if(filter_list.define(adapters).isFailed())
+	const QList<CVmGenericNetworkAdapter* >& adapters =
+			x.getVmHardwareList()->m_lstNetworkAdapters;
+	// define filters for non-template VMs on offline migration
+	if (!x.getVmSettings()->getVmCommonOptions()->isTemplate())
 	{
-		fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
-		return;
+		if(filter_list.define(adapters).isFailed())
+		{
+			fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
+			return;
+		}
 	}
 
 	if(::Libvirt::Kit.vms().getGrub(x).spawnPersistent().isFailed())
-	{
-		filter_list.undefine(adapters, true);
 		fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
-	}	
 }
 } // namespace Tune
 
@@ -1451,6 +1451,18 @@ PRL_RESULT Task_MigrateVmTarget::reactStart(const SmartPtr<IOPackage> &package)
 	if (isTemplate())
 		return PRL_ERR_SUCCESS;
 
+
+	// define vzfilters for running VMs in case of running VM migration
+	if (m_nPrevVmState == VMS_RUNNING)
+	{
+		const QList<CVmGenericNetworkAdapter* >& adapters =
+					m_pVmConfig->getVmHardwareList()->m_lstNetworkAdapters;
+		::Libvirt::Instrument::Agent::Filter::List filter_list(::Libvirt::Kit.getLink());
+		::Libvirt::Result ret;
+		if ((ret = filter_list.define(adapters)).isFailed())
+			return ret.error().code();
+	}
+
 	WRITE_TRACE(DBG_DEBUG, "declare VM UUID:%s, Dir UUID:%s, Config:%s",
 		qPrintable(m_sVmUuid), qPrintable(m_sVmDirUuid), qPrintable(m_sVmConfigPath));
 	if (PRL_FAILED(nRetCode = m_registry.declare(CVmIdent(m_sVmUuid, m_sVmDirUuid), m_sVmConfigPath)))
@@ -1588,6 +1600,14 @@ void Task_MigrateVmTarget::finalizeTask()
 			CDspService::instance()->getClientManager().sendPackageToClientList(
 					pDelPackage, clientList);
 
+			if (!isTemplate())
+			{
+				// cleanup vz-filters
+				const QList<CVmGenericNetworkAdapter* >& adapters =
+						m_pVmConfig->getVmHardwareList()->m_lstNetworkAdapters; 
+				::Libvirt::Instrument::Agent::Filter::List filter_list(::Libvirt::Kit.getLink());
+				filter_list.undefine(adapters, true);
+			}
 		}
 		/* migration initiator wait event from original Vm uuid */
 		CVmEvent cEvent(PET_DSP_EVT_VM_MIGRATE_CANCELLED, m_sOriginVmUuid, PIE_DISPATCHER);
