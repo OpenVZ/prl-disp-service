@@ -840,7 +840,12 @@ QStringList View::getIps() const
 
 QString View::getMac() const
 {
-	return normalizeMac(m_network.getMacAddress());
+	return normalizeMac(getRawMac());
+}
+
+QString View::getRawMac() const
+{
+	return m_network.getMacAddress();
 }
 
 QString View::getHostMac() const
@@ -878,7 +883,7 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterre
 	NetFilter filter = NetFilter(*(m_network.getPktFilter()));
 	
 	if (!filter.isCustomFilter())
-		filter.setVzFilter(getMac());
+		filter.setVzFilter(getRawMac());
 
 	return prepareFilterref(filter);
 }
@@ -3137,7 +3142,7 @@ Reverse::Reverse(const CVmGenericNetworkAdapter &adapter) : m_adapter(adapter), 
 
 QString Reverse::getVzfilterName(const CVmGenericNetworkAdapter &adapter)
 {
-	QString mac = Device::Network::View(adapter).getMac();
+	QString mac = Device::Network::View(adapter).getRawMac();
 	return NetFilter::S_VZ_FILTER_MASK.arg(mac);
 }
 
