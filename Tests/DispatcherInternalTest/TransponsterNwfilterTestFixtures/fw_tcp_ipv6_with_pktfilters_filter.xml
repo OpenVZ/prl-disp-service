@@ -1,4 +1,4 @@
-<filter name="vz-filter-C4:37:72:0D:FB:3C">
+<filter name="vz-filter-C437720DFB3C">
  <filterref filter="no-ip-spoofing-no-mac-spoofing-no-promisc">
   <parameter value="10.0.186.100" name="IP"/>
   <parameter value="fe80::20c:29ff:fe01:fb08" name="IPV6"/>
