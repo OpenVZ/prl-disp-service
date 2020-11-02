@@ -629,6 +629,7 @@ struct View
 
 	QString getAdapterType() const;
 	QString getMac() const;
+	QString getRawMac() const;
 	QString getHostMac() const;
 	boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> getPredefinedFilterref() const;
 	boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> getFilterref() const;
