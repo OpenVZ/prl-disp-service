@@ -1013,11 +1013,12 @@ PRL_RESULT Stopped::stop_()
 startResult_type Freezing::start(const QDir& tmp_)
 {
 	PRL_RESULT e = m_object.freeze(m_workbench);
-	if (PRL_FAILED(e))
+	if (e == PRL_ERR_OPERATION_WAS_CANCELED)
 		return Libvirt::Failure(e);
 
 	startResult_type output = Online::start(tmp_);
-	m_object.thaw();
+	if (PRL_SUCCEEDED(e))
+		m_object.thaw();
 
 	return output;
 }
