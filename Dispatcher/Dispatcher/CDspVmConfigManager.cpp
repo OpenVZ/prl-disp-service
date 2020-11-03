@@ -83,10 +83,10 @@ quint64 MemGuarantee::operator()(quint64 ramsize_) const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Nvram
 
-void Nvram::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+void Nvram::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
-	old_.getVmSettings()->getVmStartupOptions()->getBios()->setNVRAM
-		(new_.getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM());
+	new_.getVmSettings()->getVmStartupOptions()->getBios()->setNVRAM
+		(old_.getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM());
 }
 
 namespace RemoteDisplay
@@ -364,49 +364,49 @@ void State::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct OsInfo
 
-void OsInfo::do_(CVmConfiguration& old_, const CVmConfiguration& new_) 
+void OsInfo::do_(CVmConfiguration& new_, const CVmConfiguration& old_) 
 {
 	// DEBUG LOGS FOR #PSBM-44712
-	if (new_.getVmSettings() != NULL && new_.getVmSettings()->getVmCommonOptions() != NULL)
+	if (old_.getVmSettings() != NULL && old_.getVmSettings()->getVmCommonOptions() != NULL)
 	{
 		WRITE_TRACE(DBG_DEBUG, "#PSBM-44712 OsType: %d, OsVersion: %d",
-			new_.getVmSettings()->getVmCommonOptions()->getOsType(),
-			new_.getVmSettings()->getVmCommonOptions()->getOsVersion());
+			old_.getVmSettings()->getVmCommonOptions()->getOsType(),
+			old_.getVmSettings()->getVmCommonOptions()->getOsVersion());
 	}
 	else
 		WRITE_TRACE(DBG_DEBUG, "#PSBM-44712 NO OS INFO");
 
-	old_.getVmSettings()->getVmCommonOptions()->setOsType
-		(new_.getVmSettings()->getVmCommonOptions()->getOsType());
-	old_.getVmSettings()->getVmCommonOptions()->setOsVersion
-		(new_.getVmSettings()->getVmCommonOptions()->getOsVersion());
+	new_.getVmSettings()->getVmCommonOptions()->setOsType
+		(old_.getVmSettings()->getVmCommonOptions()->getOsType());
+	new_.getVmSettings()->getVmCommonOptions()->setOsVersion
+		(old_.getVmSettings()->getVmCommonOptions()->getOsVersion());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct BackupDirectory
 
-void BackupDirectory::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+void BackupDirectory::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
-	old_.getVmSettings()->getVmCommonOptions()->getBackupTargetPreferences()->setDefaultBackupDirectory
-		(new_.getVmSettings()->getVmCommonOptions()->getBackupTargetPreferences()->getDefaultBackupDirectory());
+	new_.getVmSettings()->getVmCommonOptions()->getBackupTargetPreferences()->setDefaultBackupDirectory
+		(old_.getVmSettings()->getVmCommonOptions()->getBackupTargetPreferences()->getDefaultBackupDirectory());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct RuntimeOptions
 
-void RuntimeOptions::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+void RuntimeOptions::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
-	old_.getVmSettings()->setVmRuntimeOptions
-		(new CVmRunTimeOptions(new_.getVmSettings()->getVmRuntimeOptions()));
+	new_.getVmSettings()->setVmRuntimeOptions
+		(new CVmRunTimeOptions(old_.getVmSettings()->getVmRuntimeOptions()));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct GlobalNetwork
 
-void GlobalNetwork::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+void GlobalNetwork::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
-	old_.getVmSettings()->setGlobalNetwork(
-		(new CVmGlobalNetwork(new_.getVmSettings()->getGlobalNetwork())));
+	new_.getVmSettings()->setGlobalNetwork(
+		(new CVmGlobalNetwork(old_.getVmSettings()->getGlobalNetwork())));
 }
 
 namespace Cpu
@@ -415,10 +415,10 @@ namespace Cpu
 ///////////////////////////////////////////////////////////////////////////////
 // struct Copy
 
-void Copy::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+void Copy::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
-	old_.getVmHardwareList()->setCpu
-		(new CVmCpu(new_.getVmHardwareList()->getCpu()));
+	new_.getVmHardwareList()->setCpu
+		(new CVmCpu(old_.getVmHardwareList()->getCpu()));
 }
 
 } // namespace Cpu
@@ -524,15 +524,6 @@ void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 		}
 		a->setFirewall(new CVmNetFirewall(x->getFirewall()));
 	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct MemoryOptions
-
-void MemoryOptions::do_(CVmConfiguration& old_, const CVmConfiguration& new_)
-{
-	old_.getVmHardwareList()->setMemory(
-		(new CVmMemory(new_.getVmHardwareList()->getMemory())));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
