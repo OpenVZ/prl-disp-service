@@ -95,7 +95,7 @@ private:
 
 struct Nvram
 {
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
 namespace RemoteDisplay
@@ -289,7 +289,7 @@ struct State
 
 struct OsInfo
 {
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -297,7 +297,7 @@ struct OsInfo
 
 struct BackupDirectory
 {
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -305,7 +305,7 @@ struct BackupDirectory
 
 struct RuntimeOptions
 {
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -313,7 +313,7 @@ struct RuntimeOptions
 
 struct GlobalNetwork
 {
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
 namespace Cpu
@@ -324,44 +324,39 @@ namespace Cpu
 
 struct Copy
 {
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
 } // namespace Cpu
 
 struct Identification
 {
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
 struct HardDisks
 {
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
 struct OpticalDisks
 {
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
 struct NetworkDevices
 {
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
-};
-
-struct MemoryOptions
-{
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
 struct HighAvailability
 {
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
 struct Tools
 {
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_);
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -370,19 +365,19 @@ struct Tools
 template <class N, typename B>
 struct Reviser
 {
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 	{
-		B::do_(old_, new_);
-		N::do_(old_, new_);
+		B::do_(new_, old_);
+		N::do_(new_, old_);
 	}
 };
 
 template<class N>
 struct Reviser<N, void>
 {
-	static void do_(CVmConfiguration& old_, const CVmConfiguration& new_)
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 	{
-		N::do_(old_, new_);
+		N::do_(new_, old_);
 	}
 };
 

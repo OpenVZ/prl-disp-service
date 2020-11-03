@@ -258,6 +258,7 @@ void Resources::setMaxMemory(const Libvirt::Domain::Xml::MaxMemory& src_)
 	CVmMemory* m = new CVmMemory(h->getMemory());
 	m->setMaxRamSize(src_.getScaledInteger().getOwnValue() >> 10);
 	m->setMaxSlots(src_.getSlots());
+	m->setEnableHotplug(true);
 	h->setMemory(m);
 }
 
