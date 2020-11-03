@@ -229,6 +229,12 @@ void Task_DeleteVm::finalizeTask()
 	if (PRL_SUCCEEDED(getLastErrorCode()))
 		CDspBugPatcherLogic::cleanVmPatchMarks(m_vmDirectoryUuid, sVmUuid);
 
+	if (PRL_SUCCEEDED(getLastErrorCode()))
+	{
+		::Libvirt::Instrument::Agent::Filter::List filter_list(::Libvirt::Kit.getLink());
+		filter_list.undefine(m_pVmConfig->getVmHardwareList()->m_lstNetworkAdapters);
+	}
+
 	if( doUnregisterOnly() && !(m_flags & PVD_NOT_MODIFY_VM_CONFIG) && PRL_SUCCEEDED(getLastErrorCode()) )
 	{
 		CDspVmDirManager::VmDirItemsHash
@@ -383,11 +389,6 @@ PRL_RESULT Libvirt::operator()()
 			.getState().undefine());
 	if (r1.isFailed())
 		return r1.error().code();
-	::Libvirt::Instrument::Agent::Filter::List filter_list(::Libvirt::Kit.getLink());
-	::Libvirt::Result r2 = filter_list.undefine(
-			m_config.getVmHardwareList()->m_lstNetworkAdapters);
-	if (r2.isFailed())
-		return r2.error().code();
 #endif // _LIBVIRT_
 
 	return PRL_ERR_SUCCESS;
@@ -514,7 +515,7 @@ void Builder::addLibvirt(origin_type origin_, const access_type& access_)
 		result_type::redo_type f = (bl::bind(F, VMS_DELETING_STATE), PRL_ERR_SUCCESS);
 		b.addItem(f, boost::bind(&conductor_type::proceed, c, origin_));
 	}
-	b.addItem(Command::Delete::Libvirt(access_.getUuid(), access_.getConfig().get()));
+	b.addItem(Command::Delete::Libvirt(access_.getUuid()));
 	b.addItem(m_result);
 	m_result = b;
 }
