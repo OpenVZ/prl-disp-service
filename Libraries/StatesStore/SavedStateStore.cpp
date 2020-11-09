@@ -398,11 +398,6 @@ SnapshotParser::SnapshotReturnCode CSavedStateStore::Load(const QString sXmlFile
 	file.close();
 
 	QDomElement docElem = doc.documentElement();
-
-	// Root element have to have special name
-	if (docElem.tagName() != XML_SS_CONFIG_EL_ROOT)
-		return SnapshotParser::BadSnapshotTree;
-
 	int iRs = SnapshotParser::RcSuccess;
 
 	// Get first child element. This is root element in snapshot tree
@@ -449,10 +444,6 @@ SnapshotParser::SnapshotReturnCode CSavedStateStore::Load(const QString & conten
     	}
 
 	QDomElement docElem = doc.documentElement();
-
-	// Root element have to have special name
-	if (docElem.tagName() != XML_SS_CONFIG_EL_ROOT)
-		return SnapshotParser::BadSnapshotTree;
 
 	int iRs = SnapshotParser::RcSuccess;
 
