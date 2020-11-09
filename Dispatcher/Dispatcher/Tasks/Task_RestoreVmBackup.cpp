@@ -265,9 +265,7 @@ PRL_RESULT Task_RestoreVmBackupSource::prepareTask()
 		m_nInternalFlags |= PVM_CT_PLOOP_BACKUP;
 	else if (x.value().getVmType() == PVBT_CT_VZWIN)
 		m_nInternalFlags |= PVM_CT_VZWIN_BACKUP;
-	m_nRemoteVersion = x.value().getVersion();
-	if (m_nRemoteVersion == 0)
-		m_nRemoteVersion = BACKUP_PROTO_V3;
+	m_nRemoteVersion = getBackupVersion(x.value());
 
 	/* to lock backup */
 	if (PRL_FAILED(nRetCode = getMetadataLock().grabShared(m_sBackupUuid)))
@@ -422,6 +420,26 @@ PRL_RESULT Task_RestoreVmBackupSource::sendFiles(IOSendJob::Handle& job_)
 		return nRetCode;
 	}
 	return PRL_ERR_SUCCESS;
+}
+
+PRL_UINT32 Task_RestoreVmBackupSource::getBackupVersion(const VmItem& item_)
+{
+	PRL_UINT32 v = item_.getVersion();
+	if (v == 0)
+		v = BACKUP_PROTO_V3;
+
+	Prl::Expected<BackupItem, PRL_RESULT> b = getCatalog(m_sVmUuid).
+		getSequence(m_sBackupUuid).getHeadItem();
+	if (!b.isFailed())
+	{
+		foreach (const QString& d, b.value().getTibFileList())
+		{
+			if (d.endsWith(".tib"))
+				return BACKUP_PROTO_V3;
+		}
+	}
+
+	return v;
 }
 
 PRL_RESULT Task_RestoreVmBackupSource::getBackupParams(quint64 &nSize, quint32 &nBundlePermissions)

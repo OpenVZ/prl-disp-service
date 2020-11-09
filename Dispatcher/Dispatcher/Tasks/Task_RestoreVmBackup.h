@@ -315,6 +315,7 @@ private:
 	void clientDisconnected(IOSender::Handle h);
 	void handleABackupPackage(IOSender::Handle h, const SmartPtr<IOPackage> p);
 	void handleVBackupPackage(IOSender::Handle h, const SmartPtr<IOPackage> p);
+	PRL_UINT32 getBackupVersion(const VmItem& item_);
 };
 
 class Task_RestoreVmBackupTarget:
