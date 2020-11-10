@@ -56,7 +56,7 @@ private:
 	QList<QString> m_FixtureNames;
 	QList< SmartPtr<CVmGenericNetworkAdapter> > m_pAdapters;
 	QList<QByteArray> m_Filters;
-	QByteArray m_Filterref;
+	QList<QByteArray> m_Filterref;
 };
 
 #endif // CTransponsterNwfilterTest

@@ -834,11 +834,6 @@ QStringList View::getIpv6() const
 	return NetworkUtils::ParseIps(m_network.getNetAddresses()).second;
 }
 
-QStringList View::getIps() const
-{
-	return getIpv4() + getIpv6();
-}
-
 QString View::getMac() const
 {
 	return normalizeMac(getRawMac());
@@ -882,17 +877,21 @@ Libvirt::Domain::Xml::FilterrefNodeAttributes View::prepareFilterref(const NetFi
 boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterref() const
 {
 	NetFilter filter = NetFilter(*(m_network.getPktFilter()));
-	
-	if (!filter.isCustomFilter())
-		filter.setVzFilter(getRawMac());
 
-	return prepareFilterref(filter);
+	if (filter.isCustomFilter())
+		return prepareFilterref(filter);
+	
+	if (m_network.getFirewall()->isEnabled())
+	{
+		filter.setVzFilter(getRawMac());
+		return prepareFilterref(filter);
+	} else
+		return getPredefinedFilterref();
 }
 
 boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getPredefinedFilterref() const
 {
 	static QString S_IPV4_PARAMETER_NAME = "IP";
-	static QString S_IPV6_PARAMETER_NAME = "IPV6";
 	static QString S_MAC_PARAMETER_NAME = "MAC";
 
 	NetFilter filter = NetFilter(*(m_network.getPktFilter()));
@@ -900,18 +899,12 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getPredefin
 	if (!filter.isCustomFilter())
 	{
 		// Disabling Prevention of IpSpoofing for dynamic IPs
-		//
-		// Change to the following line if libvirt adds support
-		// for the IPv6 anti-spoofing 
-		// if (m_network.isConfigureWithDhcp() || getIps().isEmpty())
 		if (m_network.isConfigureWithDhcp() || getIpv4().isEmpty())
 			filter.setPreventIpSpoof(false);
 
 		QList<NetFilter::ParamPair_t> params;
 		foreach(const QString& ip, getIpv4())
 			params.append(qMakePair(S_IPV4_PARAMETER_NAME, ip.split('/').first()));
-		foreach(const QString& ip, getIpv6())
-			params.append(qMakePair(S_IPV6_PARAMETER_NAME, ip.split('/').first()));
 
 		params.append(qMakePair(S_MAC_PARAMETER_NAME, getMac()));
 		filter.setParams(params);
@@ -3392,41 +3385,119 @@ QList<Libvirt::Filter::Xml::VChoice5120> Reverse::prepareDefaultDeny(Libvirt::Fi
 	return result;
 }
 
+boost::optional<Libvirt::Filter::Xml::VChoice5120>
+Reverse::prepareIpSpoofing(const CVmGenericNetworkAdapter &adapter)
+{
+	static QString S_NO_IP_SPOOFING = "no-ip-spoofing";
+	static QString S_IPV4_PARAMETER_NAME = "IP";
+	Transponster::Device::Network::View view(adapter);
+	if (!adapter.getPktFilter()->isPreventIpSpoof() ||
+				adapter.isConfigureWithDhcp() || view.getIpv4().empty())
+		return boost::none;
+	
+	Libvirt::Filter::Xml::FilterrefNodeAttributes filterref;
+	filterref.setFilter(S_NO_IP_SPOOFING);
+	QList<Libvirt::Filter::Xml::Parameter> plist;
+	Libvirt::Filter::Xml::Parameter p;
+	foreach (const QString& ip, view.getIpv4()) {
+		p.setName(S_IPV4_PARAMETER_NAME);
+		p.setValue(ip.split('/').first());
+		plist.append(p);
+	}
+	filterref.setParameterList(plist);
+	mpl::at_c<Libvirt::Filter::Xml::VChoice5120::types, 0>::type filterref_holder;
+	filterref_holder.setValue(filterref);
+	return Libvirt::Filter::Xml::VChoice5120(filterref_holder);
+}
+
+boost::optional<Libvirt::Filter::Xml::VChoice5120>
+Reverse::prepareIpv6Spoofing(const CVmGenericNetworkAdapter &adapter)
+{
+	static QString S_NO_IPV6_SPOOFING = "no-ipv6-spoofing";
+	static QString S_IPV6_PARAMETER_NAME = "IPV6";
+	Transponster::Device::Network::View view(adapter);
+	if (!adapter.getPktFilter()->isPreventIpSpoof() ||
+			adapter.isConfigureWithDhcpIPv6() || view.getIpv6().empty())
+		return boost::none;
+
+	Libvirt::Filter::Xml::FilterrefNodeAttributes filterref;
+	filterref.setFilter(S_NO_IPV6_SPOOFING);
+	QList<Libvirt::Filter::Xml::Parameter> plist;
+	Libvirt::Filter::Xml::Parameter p;
+	foreach (const QString& ip, view.getIpv6()) {
+		p.setName(S_IPV6_PARAMETER_NAME);
+		p.setValue(ip.split('/').first());
+		plist.append(p);
+	}
+	filterref.setParameterList(plist);
+	mpl::at_c<Libvirt::Filter::Xml::VChoice5120::types, 0>::type filterref_holder;
+	filterref_holder.setValue(filterref);
+	return Libvirt::Filter::Xml::VChoice5120(filterref_holder);		
+}
+
+boost::optional<Libvirt::Filter::Xml::VChoice5120>
+Reverse::prepareMacSpoofing(const CVmGenericNetworkAdapter &adapter)
+{
+	static QString S_NO_MAC_SPOOFING = "no-mac-spoofing";
+	static QString S_MAC_PARAMETER_NAME = "MAC";
+
+	if (!adapter.getPktFilter()->isPreventMacSpoof())
+		return boost::none;
+
+	Transponster::Device::Network::View view(adapter);
+	Libvirt::Filter::Xml::FilterrefNodeAttributes filterref;
+	filterref.setFilter(S_NO_MAC_SPOOFING);
+	QList<Libvirt::Filter::Xml::Parameter> plist;
+	Libvirt::Filter::Xml::Parameter p;
+	p.setName(S_MAC_PARAMETER_NAME);
+	p.setValue(view.getMac());
+	plist.append(p);
+	filterref.setParameterList(plist);
+	mpl::at_c<Libvirt::Filter::Xml::VChoice5120::types, 0>::type filterref_holder;
+	filterref_holder.setValue(filterref);
+	return Libvirt::Filter::Xml::VChoice5120(filterref_holder);
+}
+
+boost::optional<Libvirt::Filter::Xml::VChoice5120>
+Reverse::preparePromisc(const CVmGenericNetworkAdapter &adapter)
+{
+	static QString S_NO_PROMISC = "no-promisc";
+	static QString S_MAC_PARAMETER_NAME = "MAC";
+
+	if (!adapter.getPktFilter()->isPreventPromisc())
+		return boost::none;
+
+	Transponster::Device::Network::View view(adapter);
+	Libvirt::Filter::Xml::FilterrefNodeAttributes filterref;
+	filterref.setFilter(S_NO_PROMISC);
+	QList<Libvirt::Filter::Xml::Parameter> plist;
+	Libvirt::Filter::Xml::Parameter p;
+	p.setName(S_MAC_PARAMETER_NAME);
+	p.setValue(view.getMac());
+	plist.append(p);
+	filterref.setParameterList(plist);
+	mpl::at_c<Libvirt::Filter::Xml::VChoice5120::types, 0>::type filterref_holder;
+	filterref_holder.setValue(filterref);
+	return Libvirt::Filter::Xml::VChoice5120(filterref_holder);
+}
+
+
 QList <Libvirt::Filter::Xml::VChoice5120>
 Reverse::prepareNetFilters(const CVmGenericNetworkAdapter &adapter)
 {
 	QList <Libvirt::Filter::Xml::VChoice5120> result;
+	
+	boost::optional<Libvirt::Filter::Xml::VChoice5120> c;
+	if (c = prepareIpSpoofing(adapter))
+		result.append(c.get());
+	if (c = prepareIpv6Spoofing(adapter)) 
+		result.append(c.get());
+	if (c = prepareMacSpoofing(adapter))
+		result.append(c.get());
+	if (c = preparePromisc(adapter))
+		result.append(c.get());
 
-	boost::optional <Libvirt::Domain::Xml::FilterrefNodeAttributes> filterref_domain =
-			Device::Network::View(adapter).getPredefinedFilterref();
-
-	if (!filterref_domain)
-		return result;
-
-	Libvirt::Filter::Xml::FilterrefNodeAttributes filterref;
-
-	QList <Libvirt::Filter::Xml::Parameter> params;
-	foreach(const Libvirt::Domain::Xml::Parameter &param_domain, filterref_domain->getParameterList())
-		params.append(prepareNetFiltersParam(param_domain));
-
-	filterref.setFilter(filterref_domain->getFilter());
-	filterref.setParameterList(params);
-
-	mpl::at_c<Libvirt::Filter::Xml::VChoice5120::types, 0>::type filterref_holder;
-	filterref_holder.setValue(filterref);
-	filterref.setFilter(filterref_domain->getFilter());
-
-	result.append(Libvirt::Filter::Xml::VChoice5120(filterref_holder));
 	return result;
-}
-
-Libvirt::Filter::Xml::Parameter Reverse::prepareNetFiltersParam(
-		const Libvirt::Domain::Xml::Parameter &value)
-{
-	Libvirt::Filter::Xml::Parameter param;
-	param.setName(value.getName());
-	param.setValue(value.getValue());
-	return param;
 }
 
 QList <Libvirt::Filter::Xml::Tcp> Reverse::prepareTcp(

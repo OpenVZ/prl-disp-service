@@ -42,10 +42,12 @@
 void CTransponsterNwfilterTest::init()
 {
 	static const QString S_FIXTURE_PATH = "./TransponsterNwfilterTestFixtures/%1.xml";
-	static const QString S_FILTER_FORMAT = "./TransponsterNwfilterTestFixtures/%1_filter.xml";
-	static const QString S_FILTERREF_PATH = "./TransponsterNwfilterTestFixtures/filterref.xml";
+	static const QString S_FILTER_PATH = "./TransponsterNwfilterTestFixtures/%1_filter.xml";
+	static const QString S_FILTERREF_PATH = "./TransponsterNwfilterTestFixtures/%1_filterref.xml";
 	
+	m_FixtureNames.clear();
 	m_FixtureNames.append("fw_disabled");
+	m_FixtureNames.append("fw_disabled_with_pktfilters");
 	m_FixtureNames.append("fw_tcp_ipv4_in_only");
 	m_FixtureNames.append("fw_tcp_ipv4_out_only");
 	m_FixtureNames.append("fw_tcp_ipv6");
@@ -62,15 +64,15 @@ void CTransponsterNwfilterTest::init()
 						new CVmGenericNetworkAdapter(&adapter_file)));
 
 		// Loading expected nwfilters
-		QFile filter_file(S_FILTER_FORMAT.arg(fixture));
+		QFile filter_file(S_FILTER_PATH.arg(fixture));
 		QVERIFY(filter_file.open(QIODevice::ReadOnly));
 		m_Filters.append(filter_file.readAll());
-	}
 
-	// Loading expected filterref
-	QFile filterref_file(S_FILTERREF_PATH);
-	QVERIFY(filterref_file.open(QIODevice::ReadOnly));
-	m_Filterref = filterref_file.readAll();
+		// Loading expected filterref
+		QFile filterref_file(S_FILTERREF_PATH.arg(fixture));
+		QVERIFY(filterref_file.open(QIODevice::ReadOnly));
+		m_Filterref.append(filterref_file.readAll());
+	}
 }
 
 void CTransponsterNwfilterTest::cleanup()
@@ -110,5 +112,5 @@ void CTransponsterNwfilterTest::TestSingleFixtureFilterref(uint id)
 		filter->save(result);
 		filter_xml = result.toByteArray();
 	}
-	QCOMPARE(filter_xml, m_Filterref);
+	QCOMPARE(filter_xml, m_Filterref[id]);
 }

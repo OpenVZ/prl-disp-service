@@ -502,11 +502,20 @@ private:
 	static QList <Libvirt::Filter::Xml::VChoice5120>
 	prepareFirewall(const CVmNetFirewall &value);
 
+	static boost::optional<Libvirt::Filter::Xml::VChoice5120>
+	prepareIpSpoofing(const CVmGenericNetworkAdapter &adapter);
+
+	static boost::optional<Libvirt::Filter::Xml::VChoice5120>
+	prepareIpv6Spoofing(const CVmGenericNetworkAdapter &adapter);
+
+	static boost::optional<Libvirt::Filter::Xml::VChoice5120>
+	prepareMacSpoofing(const CVmGenericNetworkAdapter &adapter);
+
+	static boost::optional<Libvirt::Filter::Xml::VChoice5120>
+	preparePromisc(const CVmGenericNetworkAdapter &adapter);
+
 	static QList <Libvirt::Filter::Xml::VChoice5120>
 	prepareNetFilters(const CVmGenericNetworkAdapter &adapter);
-
-	static Libvirt::Filter::Xml::Parameter
-	prepareNetFiltersParam(const Libvirt::Domain::Xml::Parameter &value);
 
 	static QList <Libvirt::Filter::Xml::Tcp>
 	prepareTcp(const Libvirt::Filter::Xml::CommonIpAttributesP1 &ips,
