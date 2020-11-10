@@ -635,14 +635,13 @@ struct View
 	boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> getFilterref() const;
 	boost::optional<Libvirt::Domain::Xml::Bandwidth > getBandwidth() const;
 	boost::optional<Libvirt::Domain::Xml::VVirtualPortProfile> getVVirtualPortProfile() const;
+	QStringList getIpv4() const;
+	QStringList getIpv6() const;
 
 private:
 	static QString normalizeMac(const QString &mac_);
 	Libvirt::Domain::Xml::FilterrefNodeAttributes prepareFilterref(const NetFilter& filter) const;
 	QString getFilterName() const;
-	QStringList getIpv4() const;
-	QStringList getIpv6() const;
-	QStringList getIps() const;
 
 	CVmGenericNetworkAdapter m_network;
 };

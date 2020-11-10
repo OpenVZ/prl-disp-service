@@ -834,11 +834,6 @@ QStringList View::getIpv6() const
 	return NetworkUtils::ParseIps(m_network.getNetAddresses()).second;
 }
 
-QStringList View::getIps() const
-{
-	return getIpv4() + getIpv6();
-}
-
 QString View::getMac() const
 {
 	return normalizeMac(getRawMac());
@@ -882,17 +877,21 @@ Libvirt::Domain::Xml::FilterrefNodeAttributes View::prepareFilterref(const NetFi
 boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getFilterref() const
 {
 	NetFilter filter = NetFilter(*(m_network.getPktFilter()));
-	
-	if (!filter.isCustomFilter())
-		filter.setVzFilter(getRawMac());
 
-	return prepareFilterref(filter);
+	if (filter.isCustomFilter())
+		return prepareFilterref(filter);
+	
+	if (m_network.getFirewall()->isEnabled())
+	{
+		filter.setVzFilter(getRawMac());
+		return prepareFilterref(filter);
+	} else
+		return getPredefinedFilterref();
 }
 
 boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getPredefinedFilterref() const
 {
 	static QString S_IPV4_PARAMETER_NAME = "IP";
-	static QString S_IPV6_PARAMETER_NAME = "IPV6";
 	static QString S_MAC_PARAMETER_NAME = "MAC";
 
 	NetFilter filter = NetFilter(*(m_network.getPktFilter()));
@@ -900,18 +899,12 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getPredefin
 	if (!filter.isCustomFilter())
 	{
 		// Disabling Prevention of IpSpoofing for dynamic IPs
-		//
-		// Change to the following line if libvirt adds support
-		// for the IPv6 anti-spoofing 
-		// if (m_network.isConfigureWithDhcp() || getIps().isEmpty())
 		if (m_network.isConfigureWithDhcp() || getIpv4().isEmpty())
 			filter.setPreventIpSpoof(false);
 
 		QList<NetFilter::ParamPair_t> params;
 		foreach(const QString& ip, getIpv4())
 			params.append(qMakePair(S_IPV4_PARAMETER_NAME, ip.split('/').first()));
-		foreach(const QString& ip, getIpv6())
-			params.append(qMakePair(S_IPV6_PARAMETER_NAME, ip.split('/').first()));
 
 		params.append(qMakePair(S_MAC_PARAMETER_NAME, getMac()));
 		filter.setParams(params);
