@@ -1,0 +1,8 @@
+<filter name="vz-filter-C437720DFB3C">
+ <filterref filter="no-mac-spoofing">
+  <parameter value="C4:37:72:0D:FB:3C" name="MAC"/>
+ </filterref>
+ <filterref filter="no-promisc">
+  <parameter value="C4:37:72:0D:FB:3C" name="MAC"/>
+ </filterref>
+</filter>
