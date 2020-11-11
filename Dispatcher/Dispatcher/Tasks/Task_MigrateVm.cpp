@@ -695,9 +695,11 @@ Unit* Hatchery::operator()(const agent_type& agent_, const CVmConfiguration& tar
 			output = new File(p->getSystemName(), output);
 	}
 
-	QString r = P.getNVRAM();
-	if (!r.isEmpty())
-		output = new File(r, output);
+	if (m_task->getRemoteVersion() < MIGRATE_DISP_PROTO_V10) {
+		QString r = P.getNVRAM();
+		if (!r.isEmpty())
+			output = new File(r, output);
+	}
 
 	return output;
 }
