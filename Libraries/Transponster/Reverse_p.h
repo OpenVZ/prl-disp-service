@@ -1024,7 +1024,7 @@ struct Resources
 	bool getMaxMemory(Libvirt::Domain::Xml::MaxMemory& dst_);
 	void setCurrentMemory(const Libvirt::Domain::Xml::ScaledInteger& src_);
 	bool getCurrentMemory(Libvirt::Domain::Xml::ScaledInteger& dst_);
-	void setMemGuarantee(const Libvirt::Domain::Xml::Memtune& src_);
+	void setMemGuarantee(const boost::optional<Libvirt::Domain::Xml::Memtune>& src_);
 	bool getMemGuarantee(Libvirt::Domain::Xml::Memtune& dst_);
 	void setChipset(const Libvirt::Domain::Xml::VOs& src_);
 	bool getChipset(Libvirt::Domain::Xml::Os2& dst_);
