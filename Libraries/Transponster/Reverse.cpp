@@ -308,20 +308,24 @@ bool Resources::getCurrentMemory(Libvirt::Domain::Xml::ScaledInteger& dst_)
 	return true;
 }
 
-void Resources::setMemGuarantee(const Libvirt::Domain::Xml::Memtune& src_)
+void Resources::setMemGuarantee(const boost::optional<Libvirt::Domain::Xml::Memtune>& src_)
 {
 	CVmHardware* h = getHardware();
 	if (NULL == h)
 		return;
 
-	if (!src_.getMinGuarantee())
+	if (!src_ || !src_.get().getMinGuarantee())
+	{
+		h->getMemory()->setMemGuaranteeType(PRL_MEMGUARANTEE_PERCENTS);
+		h->getMemory()->setMemGuarantee(0);
 		return;
+	}
 
 	CVmMemory* m = new CVmMemory(h->getMemory());
 
 	const mpl::at_c<Libvirt::Domain::Xml::VMinGuarantee::types, 0>::type* v =
 		boost::get<mpl::at_c<Libvirt::Domain::Xml::VMinGuarantee::types, 0>::type>
-		(&src_.getMinGuarantee().get()); 
+		(&src_.get().getMinGuarantee().get()); 
 
 	if (v && v->getValue() == Libvirt::Domain::Xml::EVirYesNoYes)
 		m->setMemGuaranteeType(PRL_MEMGUARANTEE_AUTO);
@@ -329,17 +333,17 @@ void Resources::setMemGuarantee(const Libvirt::Domain::Xml::Memtune& src_)
 	{
 		const mpl::at_c<Libvirt::Domain::Xml::VMinGuarantee::types, 1>::type* s =
 			boost::get<mpl::at_c<Libvirt::Domain::Xml::VMinGuarantee::types, 1>::type>
-			(&src_.getMinGuarantee().get()); 
+			(&src_.get().getMinGuarantee().get()); 
 
+		unsigned long g = 0;
+		m->setMemGuaranteeType(PRL_MEMGUARANTEE_PERCENTS);
 		if (s) 
 		{
-			m->setMemGuaranteeType(PRL_MEMGUARANTEE_PERCENTS);
 			unsigned long r = h->getMemory()->getRamSize() << 10;
 			if (r)
-				m->setMemGuarantee(s->getValue().getOwnValue() * 100 / r);
-			else
-				m->setMemGuarantee(0);
+				g = s->getValue().getOwnValue() * 100 / r;
 		}
+		m->setMemGuarantee(g);
 	}
 	h->setMemory(m);
 }
