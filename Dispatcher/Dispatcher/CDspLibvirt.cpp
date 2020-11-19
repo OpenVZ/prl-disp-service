@@ -141,6 +141,11 @@ bool Builder::add(const char *key_, qint32 value_)
 	return virTypedParamsAddInt(&m_pointer, &m_size, &m_capacity, key_, value_) == 0;
 }
 
+bool Builder::add(const char *key_, bool value_)
+{
+	return virTypedParamsAddBoolean(&m_pointer, &m_size, &m_capacity, key_, value_?1:0) == 0;
+}
+
 Result_type Builder::extract()
 {
 	Result_type r(QSharedPointer<virTypedParameter>(m_pointer, boost::bind(virTypedParamsFree, _1, m_size)),

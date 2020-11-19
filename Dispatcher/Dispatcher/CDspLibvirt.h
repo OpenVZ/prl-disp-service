@@ -744,6 +744,7 @@ struct Editor: private Limb::Abstract
 	Result setCpuCount(quint32 count_);
 	Result setCpuMask(quint32 ncpus_, const QString& mask_);
 	Result setNodeMask(const QString& mask_);
+	Result setMemGuarantee(const CVmMemory& memory_);
 
 	template<class T>
 	Result plug(const T& device_);

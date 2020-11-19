@@ -3001,6 +3001,21 @@ Vm::Action* Blkiotune::operator()(const Request& input_) const
 	return Forge(input_).craftRuntime(boost::bind(&vm::Editor::setIoPriority, _1, n));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct MemGuarantee
+
+Vm::Action* MemGuarantee::operator()(const Request& input_) const
+{
+	const CVmMemory* o = input_.getStart().getVmHardwareList()->getMemory();
+	const CVmMemory* n = input_.getFinal().getVmHardwareList()->getMemory();
+
+	if (n->getMemGuaranteeType() == o->getMemGuaranteeType() &&
+		n->getMemGuarantee() == o->getMemGuarantee())
+		return NULL;
+
+	return Forge(input_).craftRuntime(boost::bind(&vm::Editor::setMemGuarantee, _1, n));
+}
+
 namespace Network
 {
 ///////////////////////////////////////////////////////////////////////////////
