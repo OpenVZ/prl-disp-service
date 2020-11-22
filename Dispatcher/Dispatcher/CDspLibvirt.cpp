@@ -281,9 +281,9 @@ Result Basic::addName()
 
 Result Compression::operator()(Parameters::Builder& builder_)
 {
-	if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "xbzrle"))
+	if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, QString("xbzrle")))
 		return Failure(PRL_ERR_FAILURE);
-	if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, "mt"))
+	if (!builder_.add(VIR_MIGRATE_PARAM_COMPRESSION, QString("mt")))
 		return Failure(PRL_ERR_FAILURE);
 
 	return Result();
