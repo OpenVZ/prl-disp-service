@@ -848,6 +848,20 @@ QString View::getRawMac() const
 	return m_network.getMacAddress();
 }
 
+QStringList View::getMacList() const
+{
+	QStringList r;
+	foreach(const CNetPktFilter *f, m_network.m_lstPktFilter)
+	{
+		QString m = normalizeMac(f->getMacAddress());
+		if (!m.isEmpty())
+			r << m;
+	}
+	if (r.isEmpty())
+		r << getMac();
+	return r;
+}
+
 QString View::getHostMac() const
 {
 	return normalizeMac(m_network.getHostMacAddress());
@@ -910,7 +924,10 @@ boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> View::getPredefin
 		foreach(const QString& ip, getIpv4())
 			params.append(qMakePair(S_IPV4_PARAMETER_NAME, ip.split('/').first()));
 
-		params.append(qMakePair(S_MAC_PARAMETER_NAME, getMac()));
+		foreach(const QString &mac, getMacList())
+		{
+			params.append(qMakePair(S_MAC_PARAMETER_NAME, mac));
+		}
 		filter.setParams(params);
 	}
 
@@ -3453,9 +3470,12 @@ Reverse::prepareMacSpoofing(const CVmGenericNetworkAdapter &adapter)
 	filterref.setFilter(S_NO_MAC_SPOOFING);
 	QList<Libvirt::Filter::Xml::Parameter> plist;
 	Libvirt::Filter::Xml::Parameter p;
-	p.setName(S_MAC_PARAMETER_NAME);
-	p.setValue(view.getMac());
-	plist.append(p);
+	foreach(const QString &mac, view.getMacList())
+	{
+		p.setName(S_MAC_PARAMETER_NAME);
+		p.setValue(mac);
+		plist << p;
+	}
 	filterref.setParameterList(plist);
 	mpl::at_c<Libvirt::Filter::Xml::VChoice5120::types, 0>::type filterref_holder;
 	filterref_holder.setValue(filterref);
