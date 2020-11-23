@@ -3203,7 +3203,8 @@ Result List::define(const QList<CVmGenericNetworkAdapter *> &adapters)
 	Result ret;
 	foreach(const CVmGenericNetworkAdapter *adapter, adapters)
 	{
-		if ((ret = define(*adapter)).isFailed())
+		CVmGenericNetworkAdapter copy = PrlNet::fixMacFilter(*adapter, adapters);
+		if ((ret = define(copy)).isFailed())
 		{
 			undefine(adapters, true);
 			return ret;

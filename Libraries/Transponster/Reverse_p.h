@@ -631,6 +631,7 @@ struct View
 	QString getMac() const;
 	QString getRawMac() const;
 	QString getHostMac() const;
+	QStringList getMacList() const;
 	boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> getPredefinedFilterref() const;
 	boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> getFilterref() const;
 	boost::optional<Libvirt::Domain::Xml::Bandwidth > getBandwidth() const;
