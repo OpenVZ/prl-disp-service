@@ -1709,7 +1709,7 @@ Result Editor::setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quin
 
 	if (!b.add(param_, static_cast<quint64>(limit_)))
 		return Failure(PRL_ERR_SET_IOLIMIT);
-	if (!b.add(VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME, "virtuozzo"))
+	if (!b.add(VIR_DOMAIN_BLOCK_IOTUNE_GROUP_NAME, QString("virtuozzo")))
 		return Failure(PRL_ERR_SET_IOLIMIT);
 
 	Parameters::Result_type p(b.extract());
