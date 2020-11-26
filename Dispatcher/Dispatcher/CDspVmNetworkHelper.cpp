@@ -468,9 +468,25 @@ namespace Difference
 ///////////////////////////////////////////////////////////////////////////////
 // struct SearchDomain
 
-SearchDomain::SearchDomain(const general_type& general_, const Config::Dao& devices_):
-	m_general(general_.getSearchDomains()), m_devices(devices_.getEligible())
+SearchDomain::SearchDomain(const general_type& general_, const Config::Dao& devices_, QString toolsVersion):
+	m_general(general_.getSearchDomains()), m_devices(devices_.getEligible()), m_toolsVersion(toolsVersion)
 {
+}
+
+bool SearchDomain::isRemoveOfSearchDomainSupported() const
+{
+	int maj, min, rev;
+
+	if (m_toolsVersion.isEmpty())
+		return false;
+
+	if (sscanf(qPrintable(m_toolsVersion), "%d.%d-%d.%*s", &maj, &min, &rev) != 3)
+		return false;
+
+	// "remove" is supported by tools version >= 7.15-6.vz7"
+	if (maj > 7 || (maj == 7 && min > 15) || (maj == 7 && min == 15 && rev >= 6))
+		return true;
+	return false;
 }
 
 QStringList SearchDomain::calculate(const general_type& general_, const Config::Dao& devices_)
@@ -489,9 +505,18 @@ QStringList SearchDomain::calculate(const general_type& general_, const Config::
 		x << a->getSearchDomains();
 	}
 
-	// set searchDomains only if something changed
-	if ((y || m_general != general_.getSearchDomains()) && !x.isEmpty())
-		return x;
+	// set searchDomains only if we have something to configure, meaning
+	// it either changed, or there is non-empty config on start
+	if (y || m_general != general_.getSearchDomains())
+	{
+		// searchdomain is not empty
+		if (!x.isEmpty())
+			return x;
+
+		// searchdomain has changed to empty, and tools support "remove"
+		if (isRemoveOfSearchDomainSupported())
+			return QStringList(QString("remove"));
+	}
 
 	return QStringList();
 }
@@ -580,8 +605,7 @@ Vm::Vm(const CVmConfiguration& cfg_)
 	if (a->isAutoApplyIpOnly())
 		return;
 
-	m_searchDomain = SearchDomain(*a, x);
-	m_toolsVersion = cfg_.getVmSettings()->getVmTools()->getAgentVersion();
+	m_searchDomain = SearchDomain(*a, x, cfg_.getVmSettings()->getVmTools()->getAgentVersion());
 
 	QString h = a->getHostName();
 	if (!h.isEmpty())
@@ -594,13 +618,6 @@ QStringList Vm::calculate(const general_type& general_, const Config::Dao& devic
 	if (m_searchDomain)
 	{
 		QStringList x = m_searchDomain.get().calculate(general_, devices_);
-
-		if (!m_toolsVersion.isEmpty() && m_toolsVersion >= "7.15-6.vz7")
-		{
-			if (x.isEmpty())
-				x << "remove";
-		}
-
 		if (!x.isEmpty())
 			a << "--search-domain" << x.join(" ");
 	}
