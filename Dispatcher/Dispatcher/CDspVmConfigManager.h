@@ -349,6 +349,11 @@ struct NetworkDevices
 	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
+struct MemoryOptions
+{
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
+};
+
 struct HighAvailability
 {
 	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
