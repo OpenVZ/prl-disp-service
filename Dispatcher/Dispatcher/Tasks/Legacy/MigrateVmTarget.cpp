@@ -57,6 +57,7 @@
 #include "CDspService.h"
 #include "Libraries/PrlCommonUtils/CVmMigrateHelper.h"
 #include "Libraries/StatesUtils/StatesHelper.h"
+#include "CVcmmdInterface.h"
 #include "Legacy/VmConverter.h"
 #include "CDspVmManager_p.h"
 #include "CDspVm_p.h"

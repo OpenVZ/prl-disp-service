@@ -259,7 +259,12 @@ struct Essence<PVE::DspCmdVmPause>: Need::Agent, Need::Context
 {
 	Libvirt::Result operator()()
 	{
-		return getAgent().getState().pause();
+		Libvirt::Result output = getAgent().getState().pause();
+		if (output.isFailed())
+			return output;
+
+		Vcmmd::Api(getContext().getVmUuid()).deactivate();
+		return output;
 	}
 };
 
@@ -576,6 +581,8 @@ struct Vcmmd: Need::Agent, Need::Context, Need::Config, Need::Command<CProtoSwit
 		if (e.isFailed())
 			return e;
 
+		::Vcmmd::Frontend< ::Vcmmd::Unregistered> v(getContext().getVmUuid());
+
 		switch(t.GetVmState())
 		{
 		case PVE::SnapshotedVmRunning:
@@ -590,15 +597,22 @@ struct Vcmmd: Need::Agent, Need::Context, Need::Config, Need::Command<CProtoSwit
 					return e;
 			}
 
+			if (PRL_SUCCEEDED(v(::Vcmmd::Unregistered(getConfig()))))
+				break;
+
 			return Error::Simple(PRL_ERR_UNABLE_APPLY_MEMORY_GUARANTEE);
 		}
 		case PVE::SnapshotedVmPoweredOff:
 		case PVE::SnapshotedVmSuspended:
 			// no action and no rollback needed;
+			v.commit();
 			break;
 		}
 
 		output = Vm::Prepare::Policy<T>::do_(T(), getContext());
+
+		if (output.isSucceed())
+			v.commit();
 
 		return output;
 	}
@@ -1410,6 +1424,23 @@ PRL_RESULT Ha::operator()(const request_type& request_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Vcmmd
+
+PRL_RESULT Vcmmd::operator()(const request_type& request_)
+{
+	frontend_type f(request_.getConfig()->getVmIdentification()->getVmUuid());
+	PRL_RESULT output = f(::Vcmmd::Unregistered(request_.getConfig()));
+	if (PRL_FAILED(output))
+		return output;
+
+	output = chain_type::operator()(request_);
+	if (PRL_SUCCEEDED(output))
+		f.commit();
+
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Adapter
 
 PRL_RESULT Adapter::operator()(const request_type& request_)
@@ -1476,7 +1507,7 @@ Unpause::Unpause(): Generic(boost::bind(&agent_type::unpause, _1))
 Combine::result_type Combine::operator()(const Atom::chain_type::request_type& request_)
 {
 	result_type x;
-	PRL_RESULT e = Atom::Ha(Atom::Adapter(Atom::Rise(), &x))(request_);
+	PRL_RESULT e = Atom::Ha(Atom::Vcmmd(Atom::Adapter(Atom::Rise(), &x)))(request_);
 	if (x.isFailed())
 		return x;
 	if (PRL_FAILED(e))

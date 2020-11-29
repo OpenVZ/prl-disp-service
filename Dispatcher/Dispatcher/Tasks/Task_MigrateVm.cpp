@@ -36,6 +36,7 @@
 #include "CDspTaskTrace.h"
 #include "CDspClientManager.h"
 #include "CDspVmBrand.h"
+#include "CVcmmdInterface.h"
 #include "Task_MigrateVm.h"
 #include "Task_CloneVm.h"
 #include "Task_ChangeSID.h"
@@ -475,6 +476,24 @@ const char Unit::suffix[] = "pstorage-source";
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Vcmmd
+
+::Libvirt::Result Vcmmd::do_()
+{
+	::Vcmmd::Api(m_uuid).deactivate();
+	return ::Libvirt::Result();
+}
+
+void Vcmmd::cleanup()
+{
+}
+
+void Vcmmd::rollback()
+{
+	::Vcmmd::Api(m_uuid).activate();
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct File
 
 ::Libvirt::Result File::do_()
@@ -683,6 +702,9 @@ Unit* Hatchery::operator()(const agent_type& agent_, const CVmConfiguration& tar
 		o.setBandwidth(bw);
 
 	Unit* output = new Component(boost::bind(o, target_, P.getFlavor()), m_bus);
+	if (m_task->getOldState() == VMS_RUNNING)
+		output = new Vcmmd(m_task->getVmUuid(), output);
+
 	if (!P.getDisksToSnapshot().isEmpty())
 	{
 		output = new Disks(P.getDisksToSnapshot(),

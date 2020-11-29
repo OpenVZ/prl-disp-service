@@ -161,5 +161,128 @@ private:
 
 } // namespace Vm
 } // namespace Config
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Api
+
+struct Api
+{
+	explicit Api(const QString& uuid_);
+
+	PRL_RESULT init(const SmartPtr<CVmConfiguration>& config_);
+	PRL_RESULT update(const Config::Vm::Model& patch_);
+	Prl::Expected<Config::Vm::Model, PRL_RESULT> getConfig() const;
+	void deinit();
+	void activate();
+	void deactivate();
+
+private:
+	QString m_uuid;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Active
+
+struct Active: std::unary_function<Api, void>
+{
+	void operator()(argument_type api_)
+	{
+		api_.deactivate();
+	}
+	static void clean(argument_type api_)
+	{
+		api_.activate();
+	}
+	static void commit(argument_type api_)
+	{
+		api_.deinit();
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Unregistered
+
+struct Unregistered: std::unary_function<Api, PRL_RESULT>
+{
+	Unregistered(const SmartPtr<CVmConfiguration>& config_):
+			m_config(config_)
+	{
+	}
+
+	result_type operator()(argument_type api_)
+	{
+		return api_.init(m_config);
+	}
+	static void clean(argument_type api_)
+	{
+		api_.deinit();
+	}
+
+private:
+	const SmartPtr<CVmConfiguration> m_config;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Traits
+
+template<class T, class Enabled = void>
+struct Traits;
+
+template<class T>
+struct Traits<T, typename boost::enable_if<boost::is_same<void,
+			typename boost::result_of<T(Api )>::type> >::type>
+{
+	static void bind(T flavor_, Api* api_)
+	{
+		if (NULL != api_)
+			flavor_(*api_);
+	}
+};
+
+template<class T>
+struct Traits<T, typename boost::enable_if<boost::is_same<PRL_RESULT,
+			typename boost::result_of<T(Api )>::type> >::type>
+{
+	static PRL_RESULT bind(T flavor_, Api* api_)
+	{
+		return flavor_(*api_);
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+template<class T>
+struct Frontend
+{
+	explicit Frontend(const QString& uuid_): m_api(new Api(uuid_))
+	{
+	}
+	~Frontend()
+	{
+		if (!m_api.isNull())
+			T::clean(*m_api);
+	}
+
+	void commit()
+	{
+		if (!m_api.isNull())
+		{
+			QScopedPointer<Api> a(m_api.take());
+			T::commit(*a);
+		}
+	}
+	typename boost::result_of<T(Api )>::type operator()(T flavor_)
+	{
+		return Traits<T>::bind(flavor_, m_api.data());
+	}
+
+private:
+	QScopedPointer<Api> m_api;
+};
+
+template <>
+void Frontend<Unregistered>::commit();
+
 } // namespace Vcmmd
 

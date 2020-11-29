@@ -87,6 +87,108 @@ PRL_RESULT Status::treat()
 
 namespace Vcmmd
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Api
+
+Api::Api(const QString& uuid_)
+{
+	PrlUuid uuid(uuid_.toUtf8().data());
+	m_uuid = uuid.toString(PrlUuid::WithoutBrackets).data();
+}
+
+PRL_RESULT Api::init(const SmartPtr<CVmConfiguration>& config_)
+{
+	if (!config_.isValid())
+		return PRL_ERR_INVALID_PARAM;
+
+	Config::Vm::Model m;
+	vcmmd_ve_config vcmmdConfig;
+	CVmMemory* memory = config_->getVmHardwareList()->getMemory();
+	m.setRam(quint64(memory->getRamSize()));
+	m.setVideoRam(config_->
+		getVmHardwareList()->getVideo()->getMemorySize());
+	m.setCpuMask(config_->getVmHardwareList()->getCpu()->getCpuMask());
+	m.setNodeMask(config_->getVmHardwareList()->getCpu()->getNodeMask());
+	m.setGuarantee(Config::Vm::Model::guarantee_type(*memory));
+
+	Config::Vm::Marshal(vcmmdConfig).save(m);
+	vcmmd_ve_type_t vmType = VCMMD_VE_VM;
+	switch(config_->getVmSettings()->getVmCommonOptions()->getOsType()){
+		case PVS_GUEST_TYPE_WINDOWS:
+			vmType = VCMMD_VE_VM_WINDOWS;
+			break;
+		case PVS_GUEST_TYPE_LINUX:
+			vmType = VCMMD_VE_VM_LINUX;
+			break;
+	}
+
+	int r = vcmmd_register_ve(qPrintable(m_uuid), vmType, &vcmmdConfig, 0);
+
+	if (VCMMD_ERROR_VE_NAME_ALREADY_IN_USE != r) {
+		vcmmd_ve_config_deinit(&vcmmdConfig);
+		return Status(r).log("vcmmd_register_ve").treat();
+	}
+
+	r = vcmmd_unregister_ve(qPrintable(m_uuid));
+	if (r) {
+		vcmmd_ve_config_deinit(&vcmmdConfig);
+		return Status(r).log("vcmmd_unregister_ve").treat();
+	}
+
+	r = vcmmd_register_ve(qPrintable(m_uuid), vmType, &vcmmdConfig, 0);
+	vcmmd_ve_config_deinit(&vcmmdConfig);
+	return Status(r).log("vcmmd_register_ve").treat();
+}
+
+PRL_RESULT Api::update(const Config::Vm::Model& patch_)
+{
+	vcmmd_ve_config c;
+	Config::Vm::Marshal(c).save(patch_);
+	int r = vcmmd_update_ve(qPrintable(m_uuid), &c, 0);
+	vcmmd_ve_config_deinit(&c);
+	return Status(r).log("vcmmd_update_ve").treat();
+}
+
+Prl::Expected<Config::Vm::Model, PRL_RESULT> Api::getConfig() const
+{
+	struct vcmmd_ve_config config;
+	PRL_RESULT e = Status(vcmmd_get_ve_config(qPrintable(m_uuid), &config))
+				.log("vcmmd_get_ve_config").treat();
+	if (PRL_FAILED(e))
+		return e;
+
+	Config::Vm::Model output;
+	Config::Vm::Marshal(config).load(output);
+	vcmmd_ve_config_deinit(&config);
+	return output;
+}
+
+void Api::deinit()
+{
+	int r = vcmmd_unregister_ve(qPrintable(m_uuid));
+	Status(r).log("vcmmd_unregister_ve", r == VCMMD_ERROR_VE_NOT_REGISTERED ? DBG_WARNING : DBG_FATAL);
+}
+
+void Api::activate()
+{
+	int r = vcmmd_activate_ve(qPrintable(m_uuid), 0);
+	Status(r).log("vcmmd_activate_ve", r == VCMMD_ERROR_VE_ALREADY_ACTIVE ? DBG_WARNING : DBG_FATAL);
+}
+
+void Api::deactivate()
+{
+	int r = vcmmd_deactivate_ve(qPrintable(m_uuid));
+	Status(r).log("vcmmd_deactivate_ve", r == VCMMD_ERROR_VE_NOT_ACTIVE ? DBG_WARNING : DBG_FATAL);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Frontend
+
+template <>
+void Frontend<Unregistered>::commit()
+{
+	m_api.reset();
+}
 
 namespace Config
 {
@@ -205,3 +307,4 @@ void Marshal::save(const Model& ve_)
 } // namespace Vm
 } // namespace Config
 } // namespace Vcmmd
+

@@ -1379,6 +1379,8 @@ PRL_RESULT Task_MigrateVmTarget::prepareTask()
 	}
 	if (m_nPrevVmState == VMS_RUNNING || m_nPrevVmState == VMS_PAUSED)
 	{
+		if (!isTemplate())
+			m_vcmmd.reset(new vcmmd_type(m_sVmUuid));
 		if (m_nVersion < MIGRATE_DISP_PROTO_V9)
 			m_pstorage.reset(new pstorage_type(m_lstCheckFilesExt));
 	}
@@ -1510,6 +1512,9 @@ void Task_MigrateVmTarget::finalizeTask()
 
 	if (PRL_SUCCEEDED(getLastErrorCode()))
 	{
+		if (!m_vcmmd.isNull())
+			m_vcmmd->commit();
+
 		// leave previously running VM in suspended state
 		if (m_nPrevVmState == VMS_RUNNING && (m_nMigrationFlags & PVM_DONT_RESUME_VM))
 			m_nPrevVmState = VMS_SUSPENDED;
@@ -1815,6 +1820,12 @@ PRL_RESULT Task_MigrateVmTarget::registerVmBeforeMigration()
 		if (PRL_FAILED(e = DspVm::vdh().insertVmDirectoryItem(m_sVmDirUuid, pVmDirItem)))
 		{
 			WRITE_TRACE(DBG_FATAL, "Can't insert vm %s into VmDirectory by error %#x, %s",
+				QSTR2UTF8(m_sVmUuid), e, PRL_RESULT_TO_STRING(e));
+			break;
+		}
+		if (!m_vcmmd.isNull() && PRL_FAILED(e = (*m_vcmmd)(::Vcmmd::Unregistered(m_pVmConfig))))
+		{
+			WRITE_TRACE(DBG_FATAL, "Can't register vm %s in vcmmd error %#x, %s",
 				QSTR2UTF8(m_sVmUuid), e, PRL_RESULT_TO_STRING(e));
 			break;
 		}
