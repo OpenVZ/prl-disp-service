@@ -589,7 +589,8 @@ struct Vcmmd: Need::Agent, Need::Context, Need::Config, Need::Command<CProtoSwit
 				if (e.isFailed())
 					return e;
 			}
-			break;
+
+			return Error::Simple(PRL_ERR_UNABLE_APPLY_MEMORY_GUARANTEE);
 		}
 		case PVE::SnapshotedVmPoweredOff:
 		case PVE::SnapshotedVmSuspended:
