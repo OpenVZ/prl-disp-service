@@ -927,7 +927,6 @@ struct Builder: noncopyable
 	bool add(const char *key_, quint64 value_);
 	bool add(const char *key_, qint64 value_);
 	bool add(const char *key_, qint32 value_);
-	bool add(const char *key_, bool value_);
 	Result_type extract();
 
 private:

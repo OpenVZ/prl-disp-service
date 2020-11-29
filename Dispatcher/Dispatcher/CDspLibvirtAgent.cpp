@@ -1790,27 +1790,6 @@ Result Editor::setNodeMask(const QString& mask_)
 			_1, p.first.data(), p.second, VIR_DOMAIN_AFFECT_LIVE));
 }
 
-Result Editor::setMemGuarantee(const CVmMemory& memory_)
-{
-	Libvirt::Instrument::Agent::Parameters::Builder param;
-
-	if (memory_.getMemGuaranteeType() == PRL_MEMGUARANTEE_AUTO)
-	{
-		param.add(VIR_DOMAIN_MEMORY_MIN_GUARANTEE_VZ_AUTO, true);
-	}
-	else
-	{
-		quint64 g = memory_.getRamSize();
-		g = (g << 10) * memory_.getMemGuarantee() / 100;
-		param.add(VIR_DOMAIN_MEMORY_MIN_GUARANTEE, g);
-	}
-
-	Parameters::Result_type p = param.extract();
-	return do_(getDomain().data(), boost::bind(&virDomainSetMemoryParameters,
-			_1, p.first.data(), p.second, VIR_DOMAIN_AFFECT_LIVE));
-
-}
-
 template<class T>
 Result Editor::plugAndWait(const T& device_)
 {

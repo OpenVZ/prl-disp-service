@@ -515,14 +515,6 @@ struct Blkiotune
 	Vm::Action* operator()(const Request& input_) const;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct MemGuarantee
-
-struct MemGuarantee
-{
-	Vm::Action* operator()(const Request& input_) const;
-};
-
 namespace Network
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -681,7 +673,7 @@ typedef boost::mpl::vector<ChangeableMedia<CVmOpticalDisk>, ChangeableMedia<CVmF
 		Adapter, Network::Factory,
 		Hotplug::Factory<CVmSerialPort>, Hotplug::Factory<CVmHardDisk>,
 		Hotplug::Factory<CVmGenericNetworkAdapter>, Disk, Blkiotune,
-		Cpu::Factory, MemGuarantee> probeList_type;
+		Cpu::Factory> probeList_type;
 
 struct Driver: Gear<Driver, probeList_type>
 {
