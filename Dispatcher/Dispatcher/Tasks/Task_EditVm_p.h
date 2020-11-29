@@ -516,9 +516,9 @@ struct Blkiotune
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct MemGuarantee
+// struct Memory
 
-struct MemGuarantee
+struct Memory
 {
 	Vm::Action* operator()(const Request& input_) const;
 };
@@ -681,7 +681,7 @@ typedef boost::mpl::vector<ChangeableMedia<CVmOpticalDisk>, ChangeableMedia<CVmF
 		Adapter, Network::Factory,
 		Hotplug::Factory<CVmSerialPort>, Hotplug::Factory<CVmHardDisk>,
 		Hotplug::Factory<CVmGenericNetworkAdapter>, Disk, Blkiotune,
-		Cpu::Factory, MemGuarantee> probeList_type;
+		Memory, Cpu::Factory> probeList_type;
 
 struct Driver: Gear<Driver, probeList_type>
 {

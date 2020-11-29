@@ -3002,18 +3002,36 @@ Vm::Action* Blkiotune::operator()(const Request& input_) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct MemGuarantee
+// struct Memory
 
-Vm::Action* MemGuarantee::operator()(const Request& input_) const
+Vm::Action* Memory::operator()(const Request& input_) const
 {
 	const CVmMemory* o = input_.getStart().getVmHardwareList()->getMemory();
 	const CVmMemory* n = input_.getFinal().getVmHardwareList()->getMemory();
-
-	if (n->getMemGuaranteeType() == o->getMemGuaranteeType() &&
-		n->getMemGuarantee() == o->getMemGuarantee())
+	if (NULL == n)
 		return NULL;
 
-	return Forge(input_).craftRuntime(boost::bind(&vm::Editor::setMemGuarantee, _1, n));
+	Forge f(input_);
+	Action* output = NULL;
+	bool ram_changed = false;
+	if (n->getRamSize() != o->getRamSize())
+	{
+		Action* a(f.craftRuntime(boost::bind(&vm::Editor::setMemory,
+							_1, n->getRamSize())));
+		a->setNext(output);
+		output = a;
+		ram_changed = true;
+	}
+
+	if (ram_changed || n->getMemGuaranteeType() != o->getMemGuaranteeType() ||
+		n->getMemGuarantee() != o->getMemGuarantee())
+	{
+		Action* a(f.craftRuntime(boost::bind(&vm::Editor::setMemGuarantee, _1, n)));
+		a->setNext(output);
+		output = a;
+	}
+
+	return output;
 }
 
 namespace Network

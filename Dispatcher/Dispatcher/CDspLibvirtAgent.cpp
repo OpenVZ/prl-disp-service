@@ -1793,6 +1793,12 @@ Result Editor::setNodeMask(const QString& mask_)
 			_1, p.first.data(), p.second, VIR_DOMAIN_AFFECT_LIVE));
 }
 
+Result Editor::setMemory(quint64 memory_)
+{
+	return do_(getDomain().data(), boost::bind(&virDomainSetMemoryFlags,
+			_1, memory_ << 10, VIR_DOMAIN_AFFECT_LIVE));
+}
+
 Result Editor::setMemGuarantee(const CVmMemory& memory_)
 {
 	Libvirt::Instrument::Agent::Parameters::Builder param;
