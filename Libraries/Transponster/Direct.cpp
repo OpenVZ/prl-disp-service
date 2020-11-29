@@ -1391,7 +1391,8 @@ PRL_RESULT Vm::setResources(const VtInfo& vt_)
 
 	if (m_input->getMaxMemory())
 		r.setMaxMemory(m_input->getMaxMemory().get());
-	r.setMemGuarantee(m_input->getMemtune());
+	if (m_input->getMemtune())
+		r.setMemGuarantee(m_input->getMemtune().get());
 	if (m_input->getVcpu())
 		r.setCpu(*m_input, vt_);
 
