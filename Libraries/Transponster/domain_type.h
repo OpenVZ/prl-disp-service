@@ -2191,6 +2191,19 @@ private:
 } // namespace Domain
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct VMinGuarantee
+
+namespace Domain
+{
+namespace Xml
+{
+typedef Choice<mpl::vector<Attribute<Domain::Xml::EVirYesNo, Name::Strict<5194> >, ScaledInteger > > VMinGuaranteeImpl;
+typedef VMinGuaranteeImpl::value_type VMinGuarantee;
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Memtune
 
 namespace Domain
@@ -2215,11 +2228,11 @@ struct Memtune
 	{
 		m_softLimit = value_;
 	}
-	const boost::optional<ScaledInteger >& getMinGuarantee() const
+	const boost::optional<VMinGuarantee >& getMinGuarantee() const
 	{
 		return m_minGuarantee;
 	}
-	void setMinGuarantee(const boost::optional<ScaledInteger >& value_)
+	void setMinGuarantee(const boost::optional<VMinGuarantee >& value_)
 	{
 		m_minGuarantee = value_;
 	}
@@ -2238,7 +2251,7 @@ struct Memtune
 private:
 	boost::optional<ScaledInteger > m_hardLimit;
 	boost::optional<ScaledInteger > m_softLimit;
-	boost::optional<ScaledInteger > m_minGuarantee;
+	boost::optional<VMinGuarantee > m_minGuarantee;
 	boost::optional<ScaledInteger > m_swapHardLimit;
 };
 
@@ -14178,7 +14191,7 @@ struct Traits<Domain::Xml::Blkiotune>
 template<>
 struct Traits<Domain::Xml::Memtune>
 {
-	typedef Ordered<mpl::vector<Optional<Element<Domain::Xml::ScaledInteger, Name::Strict<360> > >, Optional<Element<Domain::Xml::ScaledInteger, Name::Strict<361> > >, Optional<Element<Domain::Xml::ScaledInteger, Name::Strict<362> > >, Optional<Element<Domain::Xml::ScaledInteger, Name::Strict<363> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Element<Domain::Xml::ScaledInteger, Name::Strict<360> > >, Optional<Element<Domain::Xml::ScaledInteger, Name::Strict<361> > >, Optional<Element<Domain::Xml::VMinGuaranteeImpl, Name::Strict<362> > >, Optional<Element<Domain::Xml::ScaledInteger, Name::Strict<363> > > > > marshal_type;
 
 	static int parse(Domain::Xml::Memtune& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Memtune& , QDomElement& );
