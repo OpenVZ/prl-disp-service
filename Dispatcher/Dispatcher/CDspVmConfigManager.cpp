@@ -531,8 +531,10 @@ void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 
 void MemoryOptions::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 {
-       old_.getVmHardwareList()->setMemory(
-               (new CVmMemory(new_.getVmHardwareList()->getMemory())));
+       new_.getVmHardwareList()->getMemory()->setMemGuaranteeType(
+		       old_.getVmHardwareList()->getMemory()->getMemGuaranteeType());
+       new_.getVmHardwareList()->getMemory()->setMemGuarantee(
+		       old_.getVmHardwareList()->getMemory()->getMemGuarantee());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
