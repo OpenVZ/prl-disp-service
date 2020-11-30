@@ -270,13 +270,15 @@ namespace Difference
 
 struct SearchDomain
 {
-	SearchDomain(const general_type& general_, const Config::Dao& devices_);
+	SearchDomain(const general_type& general_, const Config::Dao& devices_, QString toolsVersion);
 
 	QStringList calculate(const general_type& general_, const Config::Dao& devices_);
+	bool isRemoveOfSearchDomainSupported() const;
 
 private:
 	QStringList m_general;
 	QList<device_type* > m_devices;
+	QString m_toolsVersion;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -311,7 +313,6 @@ private:
 	Device m_device;
 	boost::optional<QString> m_hostname;
 	boost::optional<SearchDomain> m_searchDomain;
-	QString m_toolsVersion;
 };
 
 } // namespace Difference
