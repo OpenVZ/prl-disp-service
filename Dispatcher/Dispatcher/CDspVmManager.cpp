@@ -259,12 +259,7 @@ struct Essence<PVE::DspCmdVmPause>: Need::Agent, Need::Context
 {
 	Libvirt::Result operator()()
 	{
-		Libvirt::Result output = getAgent().getState().pause();
-		if (output.isFailed())
-			return output;
-
-		Vcmmd::Api(getContext().getVmUuid()).deactivate();
-		return output;
+		return getAgent().getState().pause();
 	}
 };
 

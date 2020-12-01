@@ -385,10 +385,10 @@ struct Frontend: Details::Frontend<Frontend>
 		}
 
 		template<class Event, class FromState>
-		void operator()(const Event&, Frontend& fsm_, FromState&, Paused::Ordinary&)
+		void operator()(const Event& event_, Frontend& fsm_, FromState& source_, Paused::Ordinary&)
 		{
-			WRITE_TRACE(DBG_INFO, "disabling guarantees for VM '%s'", qPrintable(fsm_.m_name));
-			Vcmmd::Api(fsm_.getUuid()).deactivate();
+			Running target;
+			this->operator()(event_, fsm_, source_, target);
 		}
 
 		template<class Event, class FromState>
