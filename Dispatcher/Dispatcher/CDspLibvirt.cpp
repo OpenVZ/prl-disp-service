@@ -1409,7 +1409,6 @@ int blockjobCommit(virConnectPtr, virDomainPtr domain_, const char * disk_,
 
 void error(void* opaque_, virErrorPtr value_)
 {
-	Q_UNUSED(value_);
 	Q_UNUSED(opaque_);
 	WRITE_TRACE(DBG_DEBUG, "connection error: %s", value_->message);
 }
