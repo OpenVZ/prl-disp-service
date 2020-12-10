@@ -725,11 +725,16 @@ bool CVmValidateConfig::HasSysNameInvalidSymbol(const QString& qsSysName)
 
 bool CVmValidateConfig::IsNestedVirtEnabled()
 {
-	QFile f("/sys/module/kvm_intel/parameters/nested");
-	if (!f.open(QIODevice::ReadOnly))
-		return false;
+	QFile f;
+	foreach(const QString& x, QStringList() << "intel" << "amd")
+	{
+		f.setFileName(QString("/sys/module/kvm_%1/parameters/nested").arg(x));
+		if (f.open(QIODevice::ReadOnly))
+			break;
+	}
+
 	QString qsContent = f.readAll();
-	return qsContent.startsWith('Y', Qt::CaseInsensitive);
+	return qsContent.startsWith('Y', Qt::CaseInsensitive) || qsContent.startsWith("1");
 }
 
 QString CVmValidateConfig::GetFileNameFromInvalidPath(const QString& qsSysName)

@@ -1635,6 +1635,11 @@ PRL_RESULT Cpu::setNumber()
 ///////////////////////////////////////////////////////////////////////////////
 // struct CpuFeaturesMask
 
+const QString CpuFeaturesMask::getNestedVtName() const
+{
+	return QFileInfo("/sys/module/kvm_amd").exists() ? "svm" : "vmx";
+}
+
 void CpuFeaturesMask::getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &cpu)
 {
 	CpuFeatures* u = vt_.getCpuFeatures();
@@ -1644,7 +1649,9 @@ void CpuFeaturesMask::getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &
 	 #PSBM-52808 #PSBM-51001 #PSBM-52852 #PSBM-65816 */
 	features.insert("arat");
 	if (!m_input->getVmHardwareList()->getCpu()->isVirtualizedHV())
-		features.insert(QString("vmx"));
+	{
+		features.insert(getNestedVtName());
+	}
 
 	QList<Libvirt::Domain::Xml::Feature> l;
 	if (NULL != u)
@@ -1683,7 +1690,7 @@ void CpuFeaturesMask::setDisabledFeatures(const Libvirt::Domain::Xml::Cpu &cpu)
 {
 	foreach (const Libvirt::Domain::Xml::Feature& f, cpu.getFeatureList())
 	{
-		if (f.getName().compare(QString("vmx"), Qt::CaseInsensitive))
+		if (f.getName().compare(getNestedVtName()), Qt::CaseInsensitive)
 		{
 			if (f.getPolicy() == Libvirt::Domain::Xml::EPolicyDisable)
 				m_input->getVmHardwareList()->getCpu()->setVirtualizedHV(false);

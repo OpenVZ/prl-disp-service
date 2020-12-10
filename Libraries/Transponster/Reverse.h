@@ -103,6 +103,7 @@ struct CpuFeaturesMask
 	{
 	}
 
+	const QString getNestedVtName() const;
 	void getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &cpu);
 	void setDisabledFeatures(const Libvirt::Domain::Xml::Cpu &cpu);
 
