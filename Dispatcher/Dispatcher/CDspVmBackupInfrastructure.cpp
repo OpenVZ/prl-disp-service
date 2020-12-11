@@ -1012,7 +1012,21 @@ PRL_RESULT Stopped::stop_()
 
 startResult_type Freezing::start(const QDir& tmp_)
 {
+	PRL_UINT32 f = 0;
+
+	CProtoCommandPtr a = CProtoSerializer::ParseCommand(
+			m_workbench.getDspTask().getRequestPackage());
+	if (!(a.isValid() && a->IsValid()))
+		return Libvirt::Failure(PRL_ERR_BACKUP_INTERNAL_PROTO_ERROR);
+
+	CProtoCommandWithTwoStrParams* c = CProtoSerializer
+		::CastToProtoCommand<CProtoCommandWithTwoStrParams>(a);
+	if (c)
+		f = c->GetCommandFlags();
+
 	PRL_RESULT e = m_object.freeze(m_workbench);
+	if ((f & PBMBF_FSSYNC) && PRL_FAILED(e))
+		return Libvirt::Failure(e);
 	if (e == PRL_ERR_OPERATION_WAS_CANCELED)
 		return Libvirt::Failure(e);
 
