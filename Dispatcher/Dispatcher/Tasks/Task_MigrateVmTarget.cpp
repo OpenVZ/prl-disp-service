@@ -1582,6 +1582,18 @@ void Task_MigrateVmTarget::finalizeTask()
 		   we can remove 'already existed Vm' */
 		if (m_nSteps & MIGRATE_STARTED)
 		{
+			Libvirt::Instrument::Agent::Vm::Unit u = Libvirt::Kit.vms().at(m_sVmUuid);
+			Libvirt::Instrument::Agent::Vm::Limb::State s = u.getState();
+
+			VIRTUAL_MACHINE_STATE state = VMS_UNKNOWN;
+			Libvirt::Result e = s.getValue(state);
+			if (!e.isFailed() && (state == VMS_RUNNING || state == VMS_PAUSED))
+			{
+				e = s.kill();
+				if (e.isFailed())
+					WRITE_TRACE(DBG_FATAL, "Unable to stop Vm after migration fail");
+			}
+
 			if (!isTemplate()
 				&& PRL_FAILED(m_registry.undeclare(m_sVmUuid)))
 				WRITE_TRACE(DBG_FATAL, "Unable to undeclare VM after migration fail");
