@@ -57,6 +57,7 @@ deftarget = "virtuozzo.target"
 
 started_dir = "/run/vz-generator"
 target_dir = unitsdir + "/" + deftarget + ".wants"
+lockfile = "/run/lock/vz-autostart.lock"
 
 def log(mess):
     with open("/dev/kmsg", "w") as f:
@@ -165,6 +166,11 @@ for _dir in (started_dir, target_dir):
             pass
         else:
             error("Failed to create %s: %s" % (_dir, e))
+
+if os.path.exists(lockfile):
+    error("Autostart in progress")
+# lock file is on tmpfs will be released on node boot
+open(lockfile, 'w').close()
 
 try:
     # Connect to dispatcher
