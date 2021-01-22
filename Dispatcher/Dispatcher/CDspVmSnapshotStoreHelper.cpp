@@ -1053,6 +1053,16 @@ void CDspVmSnapshotStoreHelper::updateSnapshotData(SmartPtr<CDspClient> user, co
 	user->sendSimpleResponse(pkg, e);
 }
 
+PRL_RESULT CDspVmSnapshotStoreHelper::countSnapshotsForVM(const QString& VmUuid, int& snapNum) const
+{
+    Libvirt::Result res = Libvirt::Kit.vms().at(VmUuid).getSnapshot().countSnapshotsNum(snapNum);
+
+	if (res.isFailed())
+		return res.error().code();
+
+	return PRL_ERR_SUCCESS;
+}
+
 /**
 * @brief Notify VM clients: snapshot tree changed
 * @param initial client request

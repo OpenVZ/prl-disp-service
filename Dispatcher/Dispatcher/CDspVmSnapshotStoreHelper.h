@@ -137,6 +137,9 @@ public:
 	// Sets new snapshot name and description
 	void updateSnapshotData(SmartPtr<CDspClient> user, const SmartPtr<IOPackage>& pkg);
 
+    // Count snapshots for current vmUuid
+    PRL_RESULT countSnapshotsForVM(const QString& VmUuid, int& snapNum) const;
+
 	// Set default access rights to snapshot and hdd files
 	static PRL_RESULT SetDefaultAccessRights(const QString& strFullPath
 		, SmartPtr<CDspClient> pSession

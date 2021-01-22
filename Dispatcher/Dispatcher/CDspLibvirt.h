@@ -557,6 +557,8 @@ struct List
 	Prl::Expected<Block, ::Error::Simple>
 		defineBlock(const QString& uuid_, const QList<SnapshotComponent>& disks_);
 	
+	Result countSnapshotsNum(int& res) const;
+	
 private:
 	Prl::Expected<Unit, ::Error::Simple>
 		define_(const QString& uuid_, const Request& req_);

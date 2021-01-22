@@ -2946,6 +2946,16 @@ Result List::createExternal(const QString& uuid_, const QList<CVmHardDisk*>& dis
 	return Result();
 }
 
+Result List::countSnapshotsNum(int& res) const
+{
+	res = virDomainSnapshotNum(m_domain.data(), 0);
+
+	if (res < 0)
+		return Failure(PRL_ERR_INVALID_HANDLE);
+
+	return Result();
+}
+
 } // namespace Snapshot
 } // namespace Vm
 
