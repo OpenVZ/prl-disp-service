@@ -639,6 +639,8 @@ static unsigned int Ostemplate2Dist(const char *str)
 		return PVS_GUEST_VER_LIN_CENTOS;
 	if (dist.startsWith("vzlinux-7"))
 		return PVS_GUEST_VER_LIN_VZLINUX_7;
+	if( dist.startsWith("vzlinux-8"))
+		return PVS_GUEST_VER_LIN_VZLINUX_8;
 	else if (dist.startsWith("vzlinux"))
 		return PVS_GUEST_VER_LIN_VZLINUX;
 	if (dist.startsWith("opensuse"))
