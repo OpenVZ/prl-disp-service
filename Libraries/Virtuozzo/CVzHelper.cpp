@@ -3454,6 +3454,17 @@ void CVzOperationCleaner::kill_process(callback_data *data)
 }
 
 /********************************************************************/
+CVzExecHelper::~CVzExecHelper()
+{
+	if (m_exec) {
+		vzctl2_env_exec_terminate(m_exec);
+
+		struct vzctl_exec_handle *t = m_exec;
+		m_exec = NULL;
+		vzctl2_release_exec_handle(t);
+	}
+}
+
 char **CVzExecHelper::make_argv(const QStringList &lst)
 {
 	char **argv;
@@ -3487,76 +3498,59 @@ int CVzExecHelper::run_cmd(const QString &uuid,
 {
 	(void) Envs;
 	(void) nFlags;
-	QStringList args;
-	int fdnull;
+	int ret;
 	QString ctid = CVzHelper::get_ctid_by_uuid(uuid);
 	if (ctid.isEmpty())
 		return PRL_ERR_CT_NOT_FOUND;
 
+	VzctlHandleWrap h(vzctl2_env_open(QSTR2UTF8(ctid), 0, &ret));
+	if (h == NULL) {
+		WRITE_TRACE(DBG_FATAL, "failed vzctl2_env_open ctid=%s: %s",
+			QSTR2UTF8(uuid), vzctl2_get_last_error());
+		return PRL_ERR_FAILURE;
+	}
 
-	args += BIN_VZCTL;
-	args += "--quiet";
-	args += nFlags & PRPM_RUN_PROGRAM_IN_SHELL ? "exec2" : "exec3";
-	args += ctid;
-	args += sPrg;
-	args += Args;
-
-	char **argv = make_argv(args);
+	char **argv = make_argv(QStringList(sPrg) << Args);
 	if (argv == NULL)
 		return PRL_ERR_OPERATION_FAILED;
 
-	WRITE_TRACE(DBG_DEBUG, "EXEC %s", QSTR2UTF8(args.join(" ")));
+	WRITE_TRACE(DBG_DEBUG, "EXEC %s", QSTR2UTF8(Args.join(" ")));
 
-	m_pid = fork();
-	if (m_pid < 0) {
-		WRITE_TRACE(DBG_FATAL, "fork(): %m");
-		free_argv(argv);
-		return PRL_ERR_OPERATION_FAILED;
-	} else if (m_pid == 0) {
-		fdnull = open("/dev/null", O_RDWR);
-		dup2(stdfd[0] != -1 ? stdfd[0] : fdnull, 0);
-		dup2(stdfd[1] != -1 ? stdfd[1] : fdnull, 1);
-		dup2(stdfd[2] != -1 ? stdfd[2] : fdnull, 2);
-		for(int fd = getdtablesize(); fd > 2; --fd)
-		{
-			int i = fcntl(fd, F_GETFD);
-			if (i >= 0)
-				fcntl(fd, F_SETFD, i | FD_CLOEXEC);
-		}
-
-		execv(argv[0], argv);
-		_exit(1);
-	}
+	ret = vzctl2_env_execve(h, argv, NULL, stdfd,
+		nFlags & PRPM_RUN_PROGRAM_IN_SHELL?MODE_BASH:MODE_EXEC, &m_exec);
 	free_argv(argv);
+	if (ret) {
+		WRITE_TRACE(DBG_FATAL, "vzctl2_env_execve: %s", vzctl2_get_last_error());
+		return PRL_ERR_FAILURE;
+	}
 
-	return 0;
+	return PRL_ERR_SUCCESS;
 }
 
 int CVzExecHelper::wait()
 {
-	int ret;
+	int pid, status;
 
-	ret = vzctl2_env_exec_wait(m_pid, &m_retcode);
-	if (ret == 0)
-		m_pid = -1;
+	pid = vzctl2_env_waitpid(m_exec, 0, &status);
+	if (pid == -1) {
+		WRITE_TRACE(DBG_FATAL, "vzctl2_env_waitpid: %s", vzctl2_get_last_error());
+		return PRL_ERR_FAILURE;
+	}
 
-	return ret;
+	if (WIFEXITED(status)) {
+		m_retcode = WEXITSTATUS(status);
+		return PRL_ERR_SUCCESS;
+	}
+
+	return PRL_ERR_FAILURE;
 }
 
 void CVzExecHelper::cancel()
 {
-	int p = m_pid;
-	if (p > 0) {
-		WRITE_TRACE(DBG_FATAL, "Trying to cancel the process %d", p);
-		int P = m_pid;
-		if (p == P)
-		{
-			if (0 != kill(P, SIGTERM))
-				WRITE_TRACE(DBG_FATAL, "Unable to terminate the process %d: %m", P);
-		}
-		else
-			WRITE_TRACE(DBG_FATAL, "The process %d has disappeared", p);
-	}
+	if (m_exec == NULL)
+		return;
+	WRITE_TRACE(DBG_FATAL, "Trying to cancel the process %d", m_exec->pid);
+	vzctl2_env_exec_terminate(m_exec);
 }
 
 /************************************************************************/

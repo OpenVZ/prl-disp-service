@@ -224,9 +224,13 @@ PRL_RESULT Ct::runCommand(
 	const  QString& uuid,
 	int flags)
 {
+	PRL_RESULT ret;
 	int stdfd[3] = {-1, -1, -1};
 
-	if (pipe(m_stdoutfd) == -1 || pipe(m_stderrfd) == -1 || pipe(m_stdinfd) == -1) {
+	if (pipe2(m_stdinfd, O_CLOEXEC) == -1 ||
+		pipe2(m_stdoutfd, O_CLOEXEC) == -1 ||
+		pipe2(m_stderrfd, O_CLOEXEC) == -1)
+	{
 		WRITE_TRACE(DBG_FATAL, "Task_ExecVm pipe(): %m");
 		return PRL_ERR_OPERATION_FAILED;
 	}
@@ -244,11 +248,16 @@ PRL_RESULT Ct::runCommand(
 		stdfd[2] = m_stderrfd[1];
 	}
 
-	return m_exec.run_cmd(uuid,
+	ret = m_exec.run_cmd(uuid,
 			cmd->GetProgramName(),
 			cmd->GetProgramArguments(),
 			cmd->GetProgramEnvVars(),
 			cmd->GetCommandFlags(), stdfd);
+	close(m_stdinfd[0]);  m_stdinfd[0] = -1;
+	close(m_stdoutfd[1]); m_stdoutfd[1] = -1;
+	close(m_stderrfd[1]); m_stderrfd[1] = -1;
+
+	return ret;
 }
 
 PRL_RESULT Ct::sendStdData(Task_ExecVm* task, int &fd, int type)

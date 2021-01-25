@@ -568,8 +568,9 @@ class CVzExecHelper
 {
 public:
 	CVzExecHelper() :
-		m_pid(-1), m_retcode(0)
+		m_exec(NULL), m_retcode(0)
 	{}
+	~CVzExecHelper();
 private:
 	char **make_argv(const QStringList &lst);
 	void free_argv(char **argv);
@@ -585,7 +586,7 @@ public:
 	int get_retcode() const { return m_retcode; }
 
 private:
-	int m_pid;
+	struct vzctl_exec_handle *m_exec;
 	int m_retcode;
 
 };
