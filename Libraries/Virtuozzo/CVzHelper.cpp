@@ -3456,13 +3456,14 @@ void CVzOperationCleaner::kill_process(callback_data *data)
 /********************************************************************/
 CVzExecHelper::~CVzExecHelper()
 {
-	if (m_exec) {
-		vzctl2_env_exec_terminate(m_exec);
+	if (m_exec == NULL)
+		return;
 
-		struct vzctl_exec_handle *t = m_exec;
-		m_exec = NULL;
-		vzctl2_release_exec_handle(t);
-	}
+	vzctl2_env_exec_terminate(m_exec);
+
+	struct vzctl_exec_handle *t = m_exec;
+	m_exec = NULL;
+	vzctl2_release_exec_handle(t);
 }
 
 char **CVzExecHelper::make_argv(const QStringList &lst)
