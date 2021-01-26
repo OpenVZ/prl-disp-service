@@ -153,6 +153,8 @@ PRL_UINT32 CVzTemplateHelper::convert_os_ver(const char *osname, const char *osv
 	else if (!strcmp(osname, "vzlinux")) {
 		if (!strcmp(osver, "7"))
 			return PVS_GUEST_VER_LIN_VZLINUX_7;
+		else if(!strcmp(osver, "8"))
+			return PVS_GUEST_VER_LIN_VZLINUX_8;
 		else
 			return PVS_GUEST_VER_LIN_VZLINUX;
 	}
