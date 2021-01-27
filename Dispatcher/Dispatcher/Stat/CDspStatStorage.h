@@ -142,6 +142,8 @@ struct Hdd
 
 	static QString getAllocation(const CVmHardDisk& disk_);
 
+	static QString getPhysical(const CVmHardDisk& disk_);
+
 private:
 	static QString generate(const CVmHardDisk& disk_, const QString& stat_);
 

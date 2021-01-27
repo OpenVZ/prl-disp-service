@@ -3058,7 +3058,7 @@ PRL_RESULT CDspVmDirHelper::UpdateHardDiskInformation(SmartPtr<CVmConfiguration>
 	foreach(CVmHardDisk *d, pConfig->getVmHardwareList()->m_lstHardDisks)
 	{
 		::Stat::timedValue_type v;
-		v = s->read(::Stat::Name::Hdd::getAllocation(*d));
+		v = s->read(::Stat::Name::Hdd::getPhysical(*d));
 		if (0 != v.second)
 			d->setSizeOnDisk(v.first >> 20);
 /*

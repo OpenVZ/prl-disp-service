@@ -218,6 +218,11 @@ QString Hdd::getAllocation(const CVmHardDisk& disk_)
 	return generate(disk_, "allocation");
 }
 
+QString Hdd::getPhysical(const CVmHardDisk& disk_)
+{
+	return generate(disk_, "physical");
+}
+
 QString Hdd::generate(const CVmHardDisk& disk_, const QString& stat_)
 {
 	return QString("devices.%1%2.%3").

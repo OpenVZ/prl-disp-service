@@ -600,7 +600,7 @@ Result Unit::completeConfig(CVmConfiguration& config_)
 			&b, 0) == 0)
 		{
 			d->setSize(b.capacity >> 20);
-			d->setSizeOnDisk(b.allocation >> 20);
+			d->setSizeOnDisk(b.physical >> 20);
 		}
 	}
 	return Result();
@@ -772,6 +772,9 @@ Unit::getDisk(const CVmHardDisk& disk_) const
 
 	if (getValue(block.arg("allocation"), value))
 		r.append(Stat::Counter_type(::Stat::Name::Hdd::getAllocation(disk_), value));
+
+	if (getValue(block.arg("physical"), value))
+		r.append(Stat::Counter_type(::Stat::Name::Hdd::getPhysical(disk_), value));
 
 	return r;
 }
