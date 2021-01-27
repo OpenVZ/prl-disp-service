@@ -775,6 +775,11 @@ PRL_RESULT Begin::doConsistent(Object& object_)
 	PRL_RESULT e = object_.freeze(*m_task);
 	switch (e)
 	{
+	default:
+		/* #PSBM-124766 ignore error from freeze
+		 * fs may be freezed even if fsfreeze return err timeout
+		 * In such case we need to call thaw on it
+		 */
 	case PRL_ERR_SUCCESS:
 		e = doTrivial(object_);
 		if (PRL_ERR_OPERATION_WAS_CANCELED == object_.thaw())
@@ -784,8 +789,6 @@ PRL_RESULT Begin::doConsistent(Object& object_)
 		}
 	case PRL_ERR_OPERATION_WAS_CANCELED:
 		return e;
-	default:
-		return doTrivial(object_);
 	}
 }
 
