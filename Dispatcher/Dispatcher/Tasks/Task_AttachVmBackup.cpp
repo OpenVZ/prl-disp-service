@@ -1108,20 +1108,6 @@ PRL_RESULT Task_AttachVmBackup::prepareTask()
 	return res;
 }
 
-VIRTUAL_MACHINE_STATE Task_AttachVmBackup::getVmState()
-{
-	VIRTUAL_MACHINE_STATE state = VMS_UNKNOWN;
-	switch (getVmType(m_sVmUuid)) {
-	case PVT_VM:
-		state = CDspVm::getVmState(m_sVmUuid, getClient()->getVmDirectoryUuid());
-		break;
-	case PVT_CT:
-		CVzHelper::get_env_status(m_sVmUuid, state);
-		break;
-	}
-	return state;
-}
-
 PRL_RESULT Task_AttachVmBackup::run_body()
 {
 	PRL_RESULT res = PRL_ERR_SUCCESS;
@@ -1142,7 +1128,7 @@ PRL_RESULT Task_AttachVmBackup::run_body()
 			break;
 		}
 		m_hdd.reset(f.getResult());
-		if (getVmState() != VMS_RUNNING) {
+		if (CDspVm::getState(m_sVmUuid, getClient()->getVmDirectoryUuid()) != VMS_RUNNING) {
 			m_hdd->disable();
 			image.remove();
 		}

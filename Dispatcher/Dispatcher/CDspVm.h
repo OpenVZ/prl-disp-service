@@ -329,6 +329,13 @@ public://Convenient global methods
 	 * @return actual VM state
 	 */
 	static VIRTUAL_MACHINE_STATE getVmState( const QString &sVmUuid, const QString &sVmDirUuid );
+	/**
+	 * Returns state of specified VM/CT
+	 * @param VM UUID
+	 * @param parent VM dir UUID
+	 * @return actual VM state
+	 */
+	static VIRTUAL_MACHINE_STATE getState( const QString &sVmUuid, const QString &sVmDirUuid );
 
 	/**
 	 * Returns state of specified VM

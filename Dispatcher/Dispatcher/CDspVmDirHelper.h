@@ -354,7 +354,7 @@ public:
 	 * @brief Gets VM list: keys is a vm dir uuid, value is a vm uuid
 	 * @param vmDirUuid
 	 */
-	QMultiHash<QString, SmartPtr<CVmConfiguration> > getAllVmList(const QString& vmDirUuid = QString()) const;
+	QMultiHash<QString, SmartPtr<CVmConfiguration> > getAllVmList(const QString& vmDirUuid = QString(), bool vmOnly = true) const;
 
 	/** @brief Register lock to exclusive operations with vm.
 	* @param VM UUID

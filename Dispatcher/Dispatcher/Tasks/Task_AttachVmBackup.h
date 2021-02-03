@@ -402,9 +402,6 @@ protected:
 	virtual PRL_RESULT run_body();
 
 private:
-	VIRTUAL_MACHINE_STATE getVmState();
-
-private:
 	/** directory, where virtual disk files should be put */
 	QString m_diskDir;
 	/** hard disk wrapper */
