@@ -164,9 +164,21 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Domain& dst_)
 	else if (f)
 		f->setPmu(boost::none);
 
-	Libvirt::Domain::Xml::Vmcoreinfo i;
-	i.setState(Libvirt::Domain::Xml::EVirOnOffOn);
-	f->setVmcoreinfo(i);
+	const Chipset::model_type model = Chipset::Marshal{}.
+			deserialize_(boost::apply_visitor(Visitor::Chipset(), dst_.getOs()));
+	
+	using namespace Transponster::Chipset;
+	
+	if (model.first != Chipset::Chipset_type::UNKNOWN)
+	{
+		if ((model.first == Chipset_type::rhel7 && model.second >= minRhel7Version)
+				|| model.second >= minVz7Version)
+		{
+			Libvirt::Domain::Xml::Vmcoreinfo i;
+			i.setState(Libvirt::Domain::Xml::EVirOnOffOn);
+			f->setVmcoreinfo(i);
+		}
+	}
 
 	dst_.setFeatures(f);
 

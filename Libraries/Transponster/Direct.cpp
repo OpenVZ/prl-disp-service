@@ -1062,14 +1062,14 @@ Image::result_type Image::operator()
 
 namespace Chipset
 {
-typedef QPair<quint32, quint32> model_type;
+typedef QPair<Chipset_type, quint32> model_type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Generic
 
-template<class T>
+template<class T, Chipset_type chipset>
 Prl::Expected<model_type, PRL_RESULT>
-	Generic<T>::deserialize(const QString& text_) const
+	Generic<T, chipset>::deserialize(const QString& text_) const
 {
 	if (!text_.startsWith(T::s_PREFIX))
 		return PRL_ERR_SYMBOL_NOT_FOUND;
@@ -1078,11 +1078,11 @@ Prl::Expected<model_type, PRL_RESULT>
 	std::istringstream s(text_.mid(T::s_PREFIX.length()).toStdString());
 	s >> x;
 
-	return model_type(T::TYPE, x);
+	return model_type(chipset, x);
 }
 
-template<class T>
-QString Generic<T>::serialize(model_type::second_type version_) const
+template<class T, Chipset_type chipset>
+QString Generic<T, chipset>::serialize(model_type::second_type version_) const
 {
 	return QString(T::s_PREFIX).append(QString::number(version_)).append(".0");
 }
@@ -1096,7 +1096,7 @@ Prl::Expected<model_type, PRL_RESULT>
 	i440fx::deserialize(const QString& text_) const
 {
 	Prl::Expected<model_type, PRL_RESULT> x =
-		Generic<i440fx>::deserialize(text_);
+		Generic<i440fx, Chipset_type::i440fx>::deserialize(text_);
 	if (x.isFailed())
 		return x;
 
@@ -1105,7 +1105,7 @@ Prl::Expected<model_type, PRL_RESULT>
 
 QString i440fx::serialize(model_type::second_type version_) const
 {
-	return Generic<i440fx>::serialize(qMax(version_, 3u) + 3u);
+	return Generic<i440fx, Chipset_type::i440fx>::serialize(qMax(version_, 3u) + 3u);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1117,7 +1117,7 @@ Prl::Expected<model_type, PRL_RESULT>
 	Q35::deserialize(const QString& text_) const
 {
 	Prl::Expected<model_type, PRL_RESULT> x =
-		Generic<Q35>::deserialize(text_);
+		Generic<Q35, Chipset_type::Q35>::deserialize(text_);
 	if (x.isFailed())
 		return x;
 	if (7 > x.value().second)
@@ -1129,8 +1129,13 @@ Prl::Expected<model_type, PRL_RESULT>
 
 QString Q35::serialize(model_type::second_type version_) const
 {
-	return Generic<Q35>::serialize(version_ + 6);
+	return Generic<Q35, Chipset_type::Q35>::serialize(version_ + 6);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// struct rhel7
+
+const QString rhel7::s_PREFIX("rhel7.");
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Marshal
@@ -1144,16 +1149,21 @@ model_type Marshal::deserialize_(const QString& text_) const
 	x = Q35().deserialize(text_);
 	if (x.isSucceed())
 		return x.value();
+	x = rhel7{}.deserialize(text_);
+	if(x.isSucceed())
+		return x.value();
 
-	::Chipset y;
-	return model_type(y.getType(), y.getVersion());
+	return model_type{Chipset_type::UNKNOWN, 0};
 }
 
 ::Chipset Marshal::deserialize(const QString& text_) const
 {
 	model_type m = deserialize_(text_);
 	::Chipset output;
-	output.setType(m.first);
+	
+	typedef std::underlying_type<Chipset_type>::type chipInternal_t;
+	
+	output.setType(static_cast<chipInternal_t>(m.first));
 	output.setVersion(m.second);
 	output.setAlias(text_);
 
@@ -1164,10 +1174,12 @@ QString Marshal::serialize(const model_type& object_) const
 {
 	switch (object_.first)
 	{
-	case i440fx::TYPE: 
+	case Chipset_type::i440fx: 
 		return i440fx().serialize(object_.second);
-	case Q35::TYPE: 
+	case Chipset_type::Q35: 
 		return Q35().serialize(object_.second);
+	case Chipset_type::rhel7:
+		return rhel7{}.serialize(object_.second);
 	default:
 		return QString();
 	}
@@ -1178,8 +1190,8 @@ QString Marshal::serialize(const ::Chipset& object_) const
 	QString a = object_.getAlias();
 	if (!a.isEmpty())
 		return a;
-
-	return serialize(model_type(object_.getType(), object_.getVersion()));
+		
+	return serialize(model_type(Chipset_type(object_.getType()), object_.getVersion()));
 }
 
 } // namespace Chipset
