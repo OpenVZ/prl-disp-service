@@ -475,16 +475,17 @@ SearchDomain::SearchDomain(const general_type& general_, const Config::Dao& devi
 
 bool SearchDomain::isRemoveOfSearchDomainSupported() const
 {
-	int maj, min, rev;
+	int maj, min, rel=0, rev;
 
 	if (m_toolsVersion.isEmpty())
 		return false;
 
-	if (sscanf(qPrintable(m_toolsVersion), "%d.%d-%d.%*s", &maj, &min, &rev) != 3)
+	if (sscanf(qPrintable(m_toolsVersion), "%d.%d-%d.%*s", &maj, &min, &rev) != 3 ||
+			sscanf(qPrintable(m_toolsVersion), "%d.%d.%d-%d.%*s", &maj, &min, &rel, &rev) != 4)
 		return false;
 
 	// "remove" is supported by tools version >= 7.15-6.vz7"
-	if (maj > 7 || (maj == 7 && min > 15) || (maj == 7 && min == 15 && rev >= 6))
+	if (maj > 7 || (maj == 7 && min > 15) || (maj == 7 && min == 15 && rel > 0) || (maj == 7 && min == 15 && rel == 0 && rev >= 6))
 		return true;
 	return false;
 }
