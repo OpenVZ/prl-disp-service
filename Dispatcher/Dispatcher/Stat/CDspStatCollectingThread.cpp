@@ -2277,7 +2277,7 @@ Libvirt::Result GetPerformanceStatisticsVm(const CVmIdent &id, Collector &c)
 {
 	VIRTUAL_MACHINE_STATE s = CDspVm::getVmState(id);
 
-	if (VMS_STOPPED == s) {
+	if (VMS_STOPPED == s || VMS_SUSPENDED == s) {
 		c.collectVmOffline(id.first);
 		return Libvirt::Result();
 	} else if (VMS_RUNNING != s) {
