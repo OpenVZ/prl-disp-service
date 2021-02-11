@@ -54,6 +54,7 @@ void CTransponsterNwfilterTest::init()
 	m_FixtureNames.append("fw_tcp_ipv6_ports");
 	m_FixtureNames.append("fw_tcp_ipv6_whitelist");
 	m_FixtureNames.append("fw_tcp_ipv6_with_pktfilters");
+	m_FixtureNames.append("fw_psbm_125586");
 
 	foreach(const QString& fixture, m_FixtureNames)
 	{
