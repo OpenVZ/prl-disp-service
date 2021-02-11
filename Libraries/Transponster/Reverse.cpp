@@ -3221,7 +3221,7 @@ Reverse::preparePort(unsigned int value)
 }
 
 Libvirt::Filter::Xml::VUint8range
-Reverse::prepareIcmpv6Type(unsigned int value)
+Reverse::prepareIcmpType(unsigned int value)
 {
 	mpl::at_c<Libvirt::Filter::Xml::VUint8range::types, 1>::type type_holder;
 	type_holder.setValue((qint32)(value));
@@ -3235,13 +3235,14 @@ Reverse::prepareRule(const CVmNetFirewallRule &basic_rule,
 							int priority
 							)
 {
-	QString proto = basic_rule.getProtocol();
+	QString proto = basic_rule.getProtocol().toLower();
 	QString local_ip = basic_rule.getLocalNetAddress();
 	QString remote_ip = basic_rule.getRemoteNetAddress();
 	uint local_port = basic_rule.getLocalPort();
 	uint remote_port = basic_rule.getRemotePort();
 	static QString S_TCP = "tcp";
 	static QString S_UDP = "udp";
+	static QString S_ICMP = "icmp";
 
 	Libvirt::Filter::Xml::Rule rule;
 	Libvirt::Filter::Xml::RuleNodeAttributes rule_attributes;
@@ -3269,6 +3270,8 @@ Reverse::prepareRule(const CVmNetFirewallRule &basic_rule,
 			rule.setTcpIpv6List(prepareTcpIpv6(ip_attributes, port_attributes));
 		else if (proto == S_UDP)
 			rule.setUdpIpv6List(prepareUdpIpv6(ip_attributes, port_attributes));
+		else if (proto == S_ICMP)
+			rule.setIcmpv6List(prepareIcmpv6(ip_attributes, boost::optional<unsigned int>()));
 		else if (proto.isEmpty())
 			rule.setAllIpv6List(prepareAllIpv6(ip_attributes));
 	}
@@ -3282,6 +3285,8 @@ Reverse::prepareRule(const CVmNetFirewallRule &basic_rule,
 			rule.setTcpList(prepareTcp(ip_attributes, port_attributes));
 		else if (proto == S_UDP)
 			rule.setUdpList(prepareUdp(ip_attributes, port_attributes));
+		else if (proto == S_ICMP)
+			rule.setIcmpList(prepareIcmp(ip_attributes, boost::optional<unsigned int>()));
 		else if (proto.isEmpty())
 			rule.setAllList(prepareAll(ip_attributes));
 	}
@@ -3385,7 +3390,8 @@ QList<Libvirt::Filter::Xml::VChoice5120> Reverse::prepareDefaultDeny(Libvirt::Fi
 		rule_attributes.setAction(Libvirt::Filter::Xml::EActionTypeReturn);
 
 		rule.setRuleNodeAttributes(rule_attributes);
-		rule.setIcmpv6List(prepareIcmpv6(nd_message_id));
+		rule.setIcmpv6List(prepareIcmpv6(Libvirt::Filter::Xml::CommonIpv6AttributesP1(),
+						   				 nd_message_id));
 
 		mpl::at_c<Libvirt::Filter::Xml::VChoice5120::types, 1>::type rule_holder;
 		rule_holder.setValue(rule);
@@ -3559,6 +3565,25 @@ QList <Libvirt::Filter::Xml::Udp> Reverse::prepareUdp(
 	return udp_list;
 }
 
+QList<Libvirt::Filter::Xml::Icmp> Reverse::prepareIcmp(
+	const Libvirt::Filter::Xml::CommonIpAttributesP1 &ips,
+	const boost::optional<unsigned int>& type)
+{
+	Libvirt::Filter::Xml::Icmp icmp;
+
+	icmp.setCommonIpAttributesP1(ips);
+
+	Libvirt::Filter::Xml::IcmpAttributes icmp_attributes;
+	if (type)
+		icmp_attributes.setType(prepareIcmpType(type.get()));
+	icmp.setIcmpAttributes(icmp_attributes);
+
+	QList <Libvirt::Filter::Xml::Icmp> icmp_list;
+	icmp_list.append(icmp);
+
+	return icmp_list;
+}
+
 QList <Libvirt::Filter::Xml::TcpIpv6> Reverse::prepareTcpIpv6(
 		const Libvirt::Filter::Xml::CommonIpv6AttributesP1 &ip_attributes,
 		const Libvirt::Filter::Xml::CommonPortAttributes &port_attributes)
@@ -3587,12 +3612,17 @@ QList <Libvirt::Filter::Xml::UdpIpv6> Reverse::prepareUdpIpv6(
 	return udp_list;
 }
 
-QList<Libvirt::Filter::Xml::Icmpv6> Reverse::prepareIcmpv6(unsigned int type)
+QList<Libvirt::Filter::Xml::Icmpv6> Reverse::prepareIcmpv6(
+	const Libvirt::Filter::Xml::CommonIpv6AttributesP1 &ips,
+	const boost::optional<unsigned int>& type)
 {
 	Libvirt::Filter::Xml::Icmpv6 icmpv6;
-	Libvirt::Filter::Xml::IcmpAttributes icmp_attributes;
-	icmp_attributes.setType(prepareIcmpv6Type(type));
 
+	icmpv6.setCommonIpv6AttributesP1(ips);
+
+	Libvirt::Filter::Xml::IcmpAttributes icmp_attributes;
+	if (type)
+		icmp_attributes.setType(prepareIcmpType(type.get()));
 	icmpv6.setIcmpAttributes(icmp_attributes);
 
 	QList <Libvirt::Filter::Xml::Icmpv6> icmpv6_list;

@@ -1,0 +1,114 @@
+<NetworkAdapter id="1" dyn_lists="NetAddress DnsIPAddress SearchDomain VirtualPort 0 Bandwidth 0">
+<Index>1</Index>
+<Enabled>1</Enabled>
+<Connected>1</Connected>
+<EmulatedType>2</EmulatedType>
+<SystemName></SystemName>
+<UserFriendlyName></UserFriendlyName>
+<Remote>0</Remote>
+<AdapterNumber>0</AdapterNumber>
+<AdapterName></AdapterName>
+<MAC>C43772C4F014</MAC>
+<HostMAC>C4377223B7C1</HostMAC>
+<HostInterfaceName>vmec43772c4f014</HostInterfaceName>
+<Router>0</Router>
+<DHCPUseHostMac>2</DHCPUseHostMac>
+<ForceHostMacAddress>0</ForceHostMacAddress>
+<VirtualNetworkID>Bridged</VirtualNetworkID>
+<AdapterType>3</AdapterType>
+<StaticAddress>0</StaticAddress>
+<PktFilter dyn_lists="Parameters 0">
+<PreventPromisc>1</PreventPromisc>
+<PreventMacSpoof>1</PreventMacSpoof>
+<PreventIpSpoof>1</PreventIpSpoof>
+<FilterRef></FilterRef>
+</PktFilter>
+<AutoApply>1</AutoApply>
+<NetAddress>10.26.47.129/255.255.0.0</NetAddress>
+<ConfigureWithDhcp>0</ConfigureWithDhcp>
+<DefaultGateway>10.26.0.1</DefaultGateway>
+<ConfigureWithDhcpIPv6>0</ConfigureWithDhcpIPv6>
+<DefaultGatewayIPv6></DefaultGatewayIPv6>
+<DnsIPAddress>10.28.0.17</DnsIPAddress>
+<DnsIPAddress>10.28.0.18</DnsIPAddress>
+<Firewall dyn_lists="">
+<Enabled>1</Enabled>
+<Incoming dyn_lists="">
+    <Direction dyn_lists="">
+    <DefaultPolicy>1</DefaultPolicy>
+    <FirewallRules dyn_lists="FirewallRule 23">
+    <FirewallRule id="14" dyn_lists="">
+    <Protocol>TCP</Protocol>
+    <LocalNetAddress></LocalNetAddress>
+    <LocalPort>80</LocalPort>
+    <RemoteNetAddress></RemoteNetAddress>
+    <RemotePort>0</RemotePort>
+    </FirewallRule>
+    <FirewallRule id="15" dyn_lists="">
+    <Protocol>TCP</Protocol>
+    <LocalNetAddress></LocalNetAddress>
+    <LocalPort>443</LocalPort>
+    <RemoteNetAddress></RemoteNetAddress>
+    <RemotePort>0</RemotePort>
+    </FirewallRule>
+    <FirewallRule id="16" dyn_lists="">
+    <Protocol>TCP</Protocol>
+    <LocalNetAddress></LocalNetAddress>
+    <LocalPort>22</LocalPort>
+    <RemoteNetAddress></RemoteNetAddress>
+    <RemotePort>0</RemotePort>
+    </FirewallRule>
+    <FirewallRule id="17" dyn_lists="">
+    <Protocol>TCP</Protocol>
+    <LocalNetAddress></LocalNetAddress>
+    <LocalPort>8443</LocalPort>
+    <RemoteNetAddress></RemoteNetAddress>
+    <RemotePort>0</RemotePort>
+    </FirewallRule>
+    <FirewallRule id="18" dyn_lists="">
+    <Protocol>TCP</Protocol>
+    <LocalNetAddress></LocalNetAddress>
+    <LocalPort>8447</LocalPort>
+    <RemoteNetAddress></RemoteNetAddress>
+    <RemotePort>0</RemotePort>
+    </FirewallRule>
+    <FirewallRule id="19" dyn_lists="">
+    <Protocol>TCP</Protocol>
+    <LocalNetAddress></LocalNetAddress>
+    <LocalPort>0</LocalPort>
+    <RemoteNetAddress></RemoteNetAddress>
+    <RemotePort>0</RemotePort>
+    </FirewallRule>
+    <FirewallRule id="20" dyn_lists="">
+    <Protocol>icmp</Protocol>
+    <LocalNetAddress></LocalNetAddress>
+    <LocalPort>0</LocalPort>
+    <RemoteNetAddress></RemoteNetAddress>
+    <RemotePort>0</RemotePort>
+    </FirewallRule>
+    <FirewallRule id="21" dyn_lists="">
+    <Protocol>icmp</Protocol>
+    <LocalNetAddress>192.168.0.100</LocalNetAddress>
+    <LocalPort></LocalPort>
+    <RemoteNetAddress>192.168.0.101</RemoteNetAddress>
+    <RemotePort></RemotePort>
+    </FirewallRule>
+    <FirewallRule id="22" dyn_lists="">
+    <Protocol>icmp</Protocol>
+    <LocalNetAddress>2001:0db8:85a3:0000:0000:8a2e:0370:7334</LocalNetAddress>
+    <LocalPort>0</LocalPort>
+    <RemoteNetAddress>2001:0db8:85a3:0000:0000:8a2e:0370:7335</RemoteNetAddress>
+    <RemotePort>0</RemotePort>
+    </FirewallRule>
+    </FirewallRules>
+    </Direction>
+</Incoming>
+<Outgoing dyn_lists="">
+    <Direction dyn_lists="">
+    <DefaultPolicy>0</DefaultPolicy>
+    <FirewallRules dyn_lists="FirewallRule 0"/>
+    </Direction>
+</Outgoing>
+</Firewall>
+<DeviceDescription></DeviceDescription>
+</NetworkAdapter>

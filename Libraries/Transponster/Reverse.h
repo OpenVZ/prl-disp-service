@@ -489,7 +489,7 @@ private:
 	preparePort(unsigned int value);
 
 	static Libvirt::Filter::Xml::VUint8range
-	prepareIcmpv6Type(unsigned int value);
+	prepareIcmpType(unsigned int value);
 
 	static Libvirt::Filter::Xml::VChoice5120
 	prepareRule(const CVmNetFirewallRule &basic_rule,
@@ -526,6 +526,10 @@ private:
 	prepareUdp(const Libvirt::Filter::Xml::CommonIpAttributesP1 &ips,
 			   const Libvirt::Filter::Xml::CommonPortAttributes &ports);
 
+	static QList <Libvirt::Filter::Xml::Icmp>
+	prepareIcmp(const Libvirt::Filter::Xml::CommonIpAttributesP1 &ips,
+				const boost::optional<unsigned int>& type);
+
 	static QList <Libvirt::Filter::Xml::TcpIpv6>
 	prepareTcpIpv6(const Libvirt::Filter::Xml::CommonIpv6AttributesP1 &ips,
 				   const Libvirt::Filter::Xml::CommonPortAttributes &ports);
@@ -535,7 +539,8 @@ private:
 				   const Libvirt::Filter::Xml::CommonPortAttributes &ports);
 
 	static QList <Libvirt::Filter::Xml::Icmpv6>
-	prepareIcmpv6(unsigned int type);
+	prepareIcmpv6(const Libvirt::Filter::Xml::CommonIpv6AttributesP1 &ips,
+				  const boost::optional<unsigned int>& type);
 
 	static QList <Libvirt::Filter::Xml::All>
 	prepareAll(const Libvirt::Filter::Xml::CommonIpAttributesP1 &ips);

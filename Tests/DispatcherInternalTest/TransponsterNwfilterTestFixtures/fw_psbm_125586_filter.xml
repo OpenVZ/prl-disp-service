@@ -1,0 +1,66 @@
+<filter name="vz-filter-C43772C4F014">
+ <filterref filter="no-ip-spoofing">
+  <parameter value="10.26.47.129" name="IP"/>
+ </filterref>
+ <filterref filter="no-mac-spoofing">
+  <parameter value="C4:37:72:C4:F0:14" name="MAC"/>
+ </filterref>
+ <filterref filter="no-promisc">
+  <parameter value="C4:37:72:C4:F0:14" name="MAC"/>
+ </filterref>
+ <rule direction="in" action="return" priority="0">
+  <all state="ESTABLISHED,RELATED"/>
+ </rule>
+ <rule direction="in" action="return" priority="1">
+  <tcp srcportend="80" srcportstart="80"/>
+  <tcp-ipv6 srcportend="80" srcportstart="80"/>
+ </rule>
+ <rule direction="in" action="return" priority="2">
+  <tcp srcportend="443" srcportstart="443"/>
+  <tcp-ipv6 srcportend="443" srcportstart="443"/>
+ </rule>
+ <rule direction="in" action="return" priority="3">
+  <tcp srcportend="22" srcportstart="22"/>
+  <tcp-ipv6 srcportend="22" srcportstart="22"/>
+ </rule>
+ <rule direction="in" action="return" priority="4">
+  <tcp srcportend="8443" srcportstart="8443"/>
+  <tcp-ipv6 srcportend="8443" srcportstart="8443"/>
+ </rule>
+ <rule direction="in" action="return" priority="5">
+  <tcp srcportend="8447" srcportstart="8447"/>
+  <tcp-ipv6 srcportend="8447" srcportstart="8447"/>
+ </rule>
+ <rule direction="in" action="return" priority="6">
+  <tcp/>
+  <tcp-ipv6/>
+ </rule>
+ <rule direction="in" action="return" priority="7">
+  <icmp/>
+  <icmpv6/>
+ </rule>
+ <rule direction="in" action="return" priority="8">
+  <icmp dstipaddr="192.168.0.101" srcipaddr="192.168.0.100"/>
+ </rule>
+ <rule direction="in" action="return" priority="9">
+  <icmpv6 dstipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7335" srcipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334"/>
+ </rule>
+ <rule direction="in" action="return" priority="10">
+  <icmpv6 type="133"/>
+ </rule>
+ <rule direction="in" action="return" priority="11">
+  <icmpv6 type="134"/>
+ </rule>
+ <rule direction="in" action="return" priority="12">
+  <icmpv6 type="135"/>
+ </rule>
+ <rule direction="in" action="return" priority="13">
+  <icmpv6 type="136"/>
+ </rule>
+ <rule direction="in" action="drop" priority="14">
+  <all/>
+ </rule>
+ <rule direction="out" action="return" priority="15">
+  <all state="ESTABLISHED,RELATED"/>
+ </rule>
+</filter>
