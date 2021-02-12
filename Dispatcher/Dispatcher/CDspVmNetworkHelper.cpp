@@ -480,7 +480,7 @@ bool SearchDomain::isRemoveOfSearchDomainSupported() const
 	if (m_toolsVersion.isEmpty())
 		return false;
 
-	if (sscanf(qPrintable(m_toolsVersion), "%d.%d-%d.%*s", &maj, &min, &rev) != 3 ||
+	if (sscanf(qPrintable(m_toolsVersion), "%d.%d-%d.%*s", &maj, &min, &rev) != 3 &&
 			sscanf(qPrintable(m_toolsVersion), "%d.%d.%d-%d.%*s", &maj, &min, &rel, &rev) != 4)
 		return false;
 
