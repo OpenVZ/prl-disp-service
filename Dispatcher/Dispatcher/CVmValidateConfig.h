@@ -179,6 +179,7 @@ private:
 	void CheckGenericPci();
 	void CheckVirtioBlockDevices();
 	void CheckNetworkShapingRates();
+	void CheckFirewall(const CVmGenericNetworkAdapter& pNetAdapter);
 
 	void CommonDevicesCheck( PRL_VM_CONFIG_SECTIONS nSection );
 
