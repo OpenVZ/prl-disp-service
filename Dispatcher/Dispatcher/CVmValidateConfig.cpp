@@ -500,6 +500,10 @@ bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
 		case PRL_ERR_VMCONF_HARD_DISK_SERIAL_IS_NOT_VALID:
 		case PRL_ERR_VMCONF_NETWORK_ADAPTER_DUPLICATE_MAC_ADDRESS:
 		case PRL_ERR_VMCONF_GENERIC_PCI_DEVICE_DUPLICATE_IN_ANOTHER_VM:
+		case PRL_ERR_VMCONF_NETWORK_UNSUPPORTED_PROTOCOL:
+		case PRL_ERR_VMCONF_NETWORK_INVALID_PORT_NUMBER:
+		case PRL_ERR_VMCONF_NETWORK_INVALID_IP_ADDRESS:
+		case PRL_ERR_VMCONF_NETWORK_PORT_NOT_USED:
 		{
 			evtResult.setEventType(PET_DSP_EVT_ERROR_MESSAGE);
 			evtResult.setEventCode(m_lstResults[i]);
@@ -1701,8 +1705,14 @@ void CVmValidateConfig::CheckNetworkAdapter()
 				{
 					m_lstResults += PRL_ERR_VMCONF_NETWORK_INCONSISTENT_FILTERS;
 					m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter->getIndex(), pNetAdapter->getItemId()));
+					ADD_FID((E_SET << filter->getFilterRef_id()
+								   << filter->getPreventIpSpoof_id()
+								   << filter->getPreventMacSpoof_id()
+								   << filter->getPreventPromisc_id()) + setIds);
 				}
 		}
+
+		CheckFirewall(pNetAdapter);
 
 		if ( !HostUtils::checkMacAddress(sMacAddress, bCheckPrlAddress ) )
 			errCode = PRL_ERR_VMCONF_NETWORK_ADAPTER_INVALID_MAC_ADDRESS;
@@ -2332,6 +2342,56 @@ void CVmValidateConfig::CheckNetworkShapingRates()
 		}
 	}
 #endif
+}
+
+void CVmValidateConfig::CheckFirewall(const CVmGenericNetworkAdapter& pNetAdapter)
+{
+	auto pushError = [&](PRL_RESULT err, QString id)
+	{
+		m_lstResults += err;
+		m_mapDevInfo.insert(m_lstResults.size(), DeviceInfo(pNetAdapter.getIndex(), pNetAdapter.getItemId()));
+		ADD_FID(E_SET << id
+					  << pNetAdapter.getFullItemId()
+					  << pNetAdapter.getEnabled_id()
+					  << pNetAdapter.getEmulatedType_id());
+	};
+	QList<CVmNetFirewallDirection*> dirs{pNetAdapter.getFirewall()->getIncoming()->getDirection(),
+										 pNetAdapter.getFirewall()->getOutgoing()->getDirection()};
+	foreach (const CVmNetFirewallDirection* dir, dirs)
+	{
+		foreach(const CVmNetFirewallRule* rule, dir->getFirewallRules()->m_lstFirewallRules)
+		{
+			QString proto = rule->getProtocol().toLower();
+			const QString& local_ip = rule->getLocalNetAddress();
+			const QString& remote_ip = rule->getRemoteNetAddress();
+
+			static const QList<QString> allowed_protos{"", "tcp", "udp", "icmp"};
+			static const QList<QString> port_protos{"tcp", "udp"};
+
+			if (!allowed_protos.contains(rule->getProtocol()))
+				pushError(PRL_ERR_VMCONF_NETWORK_UNSUPPORTED_PROTOCOL, rule->getProtocol_id());
+
+			static unsigned int S_MAX_PORT = 65535;
+			if (rule->getLocalPort() > S_MAX_PORT)
+				pushError(PRL_ERR_VMCONF_NETWORK_INVALID_PORT_NUMBER, rule->getLocalNetAddress_id());
+			if (rule->getRemotePort() > S_MAX_PORT)
+				pushError(PRL_ERR_VMCONF_NETWORK_INVALID_PORT_NUMBER, rule->getRemoteNetAddress_id());
+
+			static const QList<QAbstractSocket::NetworkLayerProtocol> ip_protos{
+				QAbstractSocket::IPv4Protocol,
+				QAbstractSocket::IPv6Protocol
+			};
+			if (!local_ip.isEmpty() && !ip_protos.contains(QHostAddress(local_ip).protocol()))
+				pushError(PRL_ERR_VMCONF_NETWORK_INVALID_IP_ADDRESS, rule->getLocalNetAddress_id());
+			if (!remote_ip.isEmpty() && !ip_protos.contains(QHostAddress(remote_ip).protocol()))
+				pushError(PRL_ERR_VMCONF_NETWORK_INVALID_IP_ADDRESS, rule->getRemoteNetAddress_id());
+
+			if (rule->getLocalPort() != 0 && !port_protos.contains(proto))
+				pushError(PRL_ERR_VMCONF_NETWORK_PORT_NOT_USED, rule->getLocalPort_id());
+			if (rule->getRemotePort() != 0 && !port_protos.contains(proto))
+				pushError(PRL_ERR_VMCONF_NETWORK_PORT_NOT_USED, rule->getRemotePort_id());
+		}
+	}
 }
 
 void CVmValidateConfig::CommonDevicesCheck( PRL_VM_CONFIG_SECTIONS nSection )
