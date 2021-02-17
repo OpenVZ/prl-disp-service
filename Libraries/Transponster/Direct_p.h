@@ -91,12 +91,25 @@ private:
 
 namespace Chipset
 {
-typedef QPair<quint32, quint32> model_type;
+
+enum class Chipset_type: unsigned
+{
+	UNKNOWN = 0,
+	i440fx = 1,
+	Q35 = 2,
+	rhel7 = 3
+};
+
+constexpr quint32 minRhel7Version = 3;
+constexpr quint32 minVz7Version = 4;
+
+typedef QPair<Chipset_type, quint32> model_type;
+//			 <chipset_type, machine_type/version>
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Generic
 
-template<class T>
+template<class T, Chipset_type chipset>
 struct Generic
 {
 	Prl::Expected<model_type, PRL_RESULT>
@@ -107,12 +120,8 @@ struct Generic
 ///////////////////////////////////////////////////////////////////////////////
 // struct i440fx
 
-struct i440fx: private Generic<i440fx>
+struct i440fx: private Generic<i440fx, Chipset_type::i440fx>
 {
-	enum
-	{
-		TYPE = 1
-	};
 	static const QString s_PREFIX;
 
 	Prl::Expected<model_type, PRL_RESULT>
@@ -123,17 +132,21 @@ struct i440fx: private Generic<i440fx>
 ///////////////////////////////////////////////////////////////////////////////
 // struct Q35
 
-struct Q35: private Generic<Q35>
+struct Q35: private Generic<Q35, Chipset_type::Q35>
 {
-	enum
-	{
-		TYPE = 2
-	};
 	static const QString s_PREFIX;
 
 	Prl::Expected<model_type, PRL_RESULT>
 		deserialize(const QString& text_) const;
 	QString serialize(model_type::second_type version_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Rhel
+
+struct rhel7: public Generic<rhel7, Chipset_type::rhel7>
+{
+	static const QString s_PREFIX;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
