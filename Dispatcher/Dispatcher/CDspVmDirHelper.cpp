@@ -2480,7 +2480,7 @@ void CDspVmDirHelper::updateVmSecurityInfo ( SmartPtr<CDspClient> pUserSession
 * @brief Gets VM list
 */
 QMultiHash<QString, SmartPtr<CVmConfiguration> >
-CDspVmDirHelper::getAllVmList (const QString& vmDirUuid) const
+CDspVmDirHelper::getAllVmList (const QString& vmDirUuid, bool vmOnly) const
 {
 	QMultiHash<QString, SmartPtr<CVmConfiguration> > vmHash;
 
@@ -2504,7 +2504,7 @@ CDspVmDirHelper::getAllVmList (const QString& vmDirUuid) const
 		foreach( CVmDirectoryItem* pDirectoryItem, d.m_lstVmDirectoryItems )
 		{
 #ifdef _CT_
-			if (pDirectoryItem->getVmType() != PVT_VM)
+			if (vmOnly && pDirectoryItem->getVmType() != PVT_VM)
 				continue;
 #endif
 			PRL_RESULT err = PRL_ERR_SUCCESS;

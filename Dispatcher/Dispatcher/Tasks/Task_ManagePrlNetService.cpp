@@ -59,6 +59,7 @@
 #include "Libraries/Virtuozzo/CVzPrivateNetwork.h"
 #include "Dispatcher/Dispatcher/CDspService.h"
 #include "Dispatcher/Dispatcher/CDspVmNetworkHelper.h"
+#include "Dispatcher/Dispatcher/Tasks/Task_BackgroundJob.h"
 
 #include <prlcommon/Std/PrlAssert.h>
 #include <boost/bind.hpp>
@@ -1594,11 +1595,28 @@ bool Task_ManagePrlNetService::g_restartShaping = false;
 PRL_RESULT Task_ManagePrlNetService::cmdRestartNetworkShaping()
 {
 	PRL_RESULT r = CVzHelper::restart_shaper();
+	if (PRL_FAILED(r))
+		return r;
 
-	if (PRL_SUCCEEDED(r))
-	{
-		r = CDspService::instance()->updateCommonPreferences(boost::bind
+	r = CDspService::instance()->updateCommonPreferences(boost::bind
 			(&CDspService::initNetworkPreferences, CDspService::instance(), _1));
+
+	foreach (const QString& d, getClient()->getVmDirectoryUuidList())
+	{
+		QMultiHash<QString, SmartPtr<CVmConfiguration> > vms =
+			 CDspService::instance()->getVmDirHelper().getAllVmList(d, false);
+		foreach (SmartPtr<CVmConfiguration > c, vms.values())
+		{
+			if (!c.isValid())
+				continue;
+
+			VIRTUAL_MACHINE_STATE state = CDspVm::getState(
+					c->getVmIdentification()->getVmUuid(), d);
+			if (state != VMS_RUNNING)
+				continue;
+
+			Task_NetworkShapingManagement::setNetworkRate(c.getImpl());
+		}
 	}
 
 	return r;

@@ -654,6 +654,24 @@ VIRTUAL_MACHINE_STATE CDspVm::getVmState( const CVmIdent& vmIdent )
 	return getVmState(vmIdent.first, vmIdent.second);
 }
 
+VIRTUAL_MACHINE_STATE CDspVm::getState(const QString& sUuid, const QString& sDirUuid)
+{
+	VIRTUAL_MACHINE_STATE state = VMS_UNKNOWN;
+
+	PRL_VM_TYPE t = PVT_VM;
+	CDspService::instance()->getVmDirManager().getVmTypeByUuid(sUuid, t);
+
+	switch (t) {
+	case PVT_VM:
+		state = getVmState(sUuid, sDirUuid);
+		break;
+	case PVT_CT:
+		CVzHelper::get_env_status(sUuid, state);
+		break;
+	}
+	return state;
+}
+
 template <class T>
 VIRTUAL_MACHINE_ADDITION_STATE setVmAdditionState(T pTask,
 		const QString & sVmUuid, const QString & sVmDirUuid,
