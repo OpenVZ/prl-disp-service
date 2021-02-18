@@ -3195,13 +3195,18 @@ Result List::define(const CVmGenericNetworkAdapter &adapter_)
 	QString filter_name = Transponster::Filter::Reverse::getVzfilterName(adapter_);
 	virNWFilterPtr existing_filter = virNWFilterLookupByName(m_link.data(),
 															 qPrintable(filter_name));
+
+	WRITE_TRACE(DBG_DEBUG, "Checking nwfilter %s presence: possible libvirt not found error, it is OK.",
+				qPrintable(filter_name));
 	if (NULL != existing_filter)
 	{
+		WRITE_TRACE(DBG_DEBUG, "Nwfilter exists: getting uuid.");
 		char existing_filter_uuid[VIR_UUID_STRING_BUFLEN];
 		virNWFilterGetUUIDString(existing_filter, existing_filter_uuid);
 		u.setUuid(existing_filter_uuid);
 		virNWFilterFree(existing_filter);
-	}
+	} else
+		WRITE_TRACE(DBG_DEBUG, "Nwfilter not found, it will be defined shortly.");
 
 	virNWFilterPtr n = virNWFilterDefineXML(m_link.data(),
 											qPrintable(u.getResult()));
@@ -3216,6 +3221,8 @@ Result List::define(const QList<CVmGenericNetworkAdapter *> &adapters)
 	Result ret;
 	foreach(const CVmGenericNetworkAdapter *adapter, adapters)
 	{
+		if (!adapter->getFirewall()->isEnabled())
+			continue;
 		CVmGenericNetworkAdapter copy = PrlNet::fixMacFilter(*adapter, adapters);
 		if ((ret = define(copy)).isFailed())
 		{
@@ -3239,6 +3246,8 @@ Result List::undefine(const QList<CVmGenericNetworkAdapter *> &adapters,
 	Result ret;
 	foreach(const CVmGenericNetworkAdapter *adapter, adapters)
 	{
+		if (!adapter->getFirewall()->isEnabled())
+			continue;
 		if ((last_ret = undefine(*adapter)).isFailed())
 		{
 			ret = last_ret;
