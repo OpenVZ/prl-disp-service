@@ -553,14 +553,12 @@ Prl::Expected<batch_type, PRL_RESULT> Confectioner::operator()(quint32 item_)
 
 	batch_type output;
 	output.addItem(Unit(u.value()));
-#ifdef __USE_ISOCXX11
-#else // __USE_ISOCXX11
+
 	PRL_RESULT (*f)(const Remove::Meta&, Remove::item_type&, Remove::item_type&) =
 		&boost::apply_visitor<Remove::Meta, Remove::item_type, Remove::item_type>;
 
 	output.addItem(boost::bind(f, Remove::Meta(l.value(), m_sequence),
 		v.value().getData(), l.value().getData()));
-#endif // __USE_ISOCXX11
 	output.addItem(Remove::Flavor(*m_context)(v.value()));
 
 	return output;
