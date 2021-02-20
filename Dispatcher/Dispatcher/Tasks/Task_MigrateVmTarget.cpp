@@ -722,8 +722,6 @@ void Socket<QTcpSocket>::disconnect(type& socket_)
 
 } // namespace Tunnel
 
-#ifdef __USE_ISOCXX11
-#else // __USE_ISOCXX11
 namespace Libvirt
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -1127,7 +1125,6 @@ bool Frontend::isSwitched(const msmf::none&)
 {
 	return m_task->getRequestFlags() & PVMT_SWITCH_TEMPLATE;
 }
-#endif // __USE_ISOCXX11
 
 } // namespace Target
 } // namespace Vm
@@ -1984,8 +1981,6 @@ PRL_RESULT Task_MigrateVmTarget::preconditionsReply()
 
 PRL_RESULT Task_MigrateVmTarget::run_body()
 {
-#ifdef __USE_ISOCXX11
-#else // __USE_ISOCXX11
 	namespace mvt = Migrate::Vm::Target;
 	typedef boost::msm::back::state_machine<mvt::Frontend> backend_type;
 
@@ -2021,7 +2016,6 @@ PRL_RESULT Task_MigrateVmTarget::run_body()
 		exec();
 
 	machine.stop();
-#endif // __USE_ISOCXX11
 
 	return getLastErrorCode();
 }

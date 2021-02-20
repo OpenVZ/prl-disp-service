@@ -329,7 +329,6 @@ Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 	::Vm::State::Machine(uuid_, user_, routing_),
 	m_storage(new Stat::Storage(uuid_)), m_routing(routing_)
 {
-#ifdef __USE_ISOCXX11
 	typedef ::Vm::State::Started::factory_type factory_type;
 
 	factory_type f = [this](QWeakPointer<QAtomicInt> incarnation_) -> factory_type::result_type {
@@ -337,13 +336,6 @@ Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 	};
 	::Vm::State::Machine::Running r(boost::msm::back::states_ <<
 		::Vm::State::Started(getConfigEditor(), f));
-#else // __USE_ISOCXX11
-	::Vm::State::Machine::Running r(boost::msm::back::states_ <<
-		::Vm::State::Started(getConfigEditor(),
-			boost::bind(boost::factory< ::Vm::Guest::Connector* >(),
-				getDirectory(), boost::ref(*this), _1)),
-					boost::ref(*this));
-#endif // __USE_ISOCXX11
 
 	set_states(boost::msm::back::states_ << r);
 

@@ -81,8 +81,6 @@ private:
 
 } // namespace Libvirt
 
-#ifdef __USE_ISOCXX11
-#else // __USE_ISOCXX11
 struct Frontend;
 typedef boost::msm::back::state_machine<Frontend> Machine_type;
 typedef Vm::Pump::Event<Virtuozzo::VmMigrateStartCmd> StartCommand_type;
@@ -581,7 +579,6 @@ private:
 	Task_MigrateVmTarget *m_task;
 	CVmConfiguration* m_config;
 };
-#endif // __USE_ISOCXX11
 
 } // namespace Target
 } // namespace Vm
