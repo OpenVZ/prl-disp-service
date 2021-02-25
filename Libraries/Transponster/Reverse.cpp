@@ -2241,7 +2241,7 @@ PRL_RESULT Vm::setDevices()
 	m.setStats(5);
 	m.setAutodeflate(Libvirt::Domain::Xml::EVirOnOffOn);
 	x.setMemballoon(m);
-#if 0 // do not enable vsock by default  #PSBM-107455
+
 	Libvirt::Domain::Xml::Cid c;
 	c.setAuto(Libvirt::Domain::Xml::EVirYesNoYes);
 	Libvirt::Domain::Xml::Pciaddress a;
@@ -2256,7 +2256,7 @@ PRL_RESULT Vm::setDevices()
 	sock.setCid(c);
 	sock.setAddress(Libvirt::Domain::Xml::VAddress(v));
 	x.setVsock(sock);
-#endif
+
 	m_result->setDevices(x);
 	return PRL_ERR_SUCCESS;
 }
