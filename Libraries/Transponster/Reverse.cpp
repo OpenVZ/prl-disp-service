@@ -2242,20 +2242,30 @@ PRL_RESULT Vm::setDevices()
 	m.setAutodeflate(Libvirt::Domain::Xml::EVirOnOffOn);
 	x.setMemballoon(m);
 
-	Libvirt::Domain::Xml::Cid c;
-	c.setAuto(Libvirt::Domain::Xml::EVirYesNoYes);
-	Libvirt::Domain::Xml::Pciaddress a;
-	a.setDomain(QString("0x0000"));
-	a.setBus(QString("0x00"));
-	a.setSlot(QString("0x0a"));
-	a.setFunction(QString("0x0"));
-	mpl::at_c<Libvirt::Domain::Xml::VAddress::types, 0>::type v;
-	v.setValue(a);
+	const Chipset::model_type model = Chipset::Marshal{}.deserialize_(
+			boost::apply_visitor(Visitor::Chipset(), m_result->getOs()));
+	
+	using namespace Transponster::Chipset;
+	
+	if ((model.first == Chipset::Chipset_type::i440fx ||
+			model.first == Chipset::Chipset_type::Q35) &&
+		model.second >= minVz7Version)
+	{
+		Libvirt::Domain::Xml::Cid c;
+		c.setAuto(Libvirt::Domain::Xml::EVirYesNoYes);
+		Libvirt::Domain::Xml::Pciaddress a;
+		a.setDomain(QString("0x0000"));
+		a.setBus(QString("0x00"));
+		a.setSlot(QString("0x0a"));
+		a.setFunction(QString("0x0"));
+		mpl::at_c<Libvirt::Domain::Xml::VAddress::types, 0>::type v;
+		v.setValue(a);
 
-	Libvirt::Domain::Xml::Vsock sock;
-	sock.setCid(c);
-	sock.setAddress(Libvirt::Domain::Xml::VAddress(v));
-	x.setVsock(sock);
+		Libvirt::Domain::Xml::Vsock sock;
+		sock.setCid(c);
+		sock.setAddress(Libvirt::Domain::Xml::VAddress(v));
+		x.setVsock(sock);
+	}
 
 	m_result->setDevices(x);
 	return PRL_ERR_SUCCESS;
