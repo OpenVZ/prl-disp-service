@@ -96,6 +96,8 @@ struct Meta : boost::static_visitor<PRL_RESULT>
 	
 	PRL_RESULT operator()(const BackupItem& from_, const PartialBackupItem& to_) const;
 	PRL_RESULT operator()(const PartialBackupItem& from_, const PartialBackupItem& to_) const;
+	PRL_RESULT operator()(BackupItem&& from_, PartialBackupItem&& to_) const;
+	PRL_RESULT operator()(PartialBackupItem&& from_, BackupItem&& to_) const;
 	template<class T, class Y>
 	PRL_RESULT operator()(const T&, const Y&) const
 	{
