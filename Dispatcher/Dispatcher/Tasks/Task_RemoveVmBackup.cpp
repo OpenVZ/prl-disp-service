@@ -276,12 +276,22 @@ PRL_RESULT Meta::operator()(const BackupItem& from_, const PartialBackupItem& to
 	return m_sequence.save(b, m_item.getNumber());
 }
 
+PRL_RESULT Meta::operator()(BackupItem&& from_, PartialBackupItem&& to_) const
+{
+	return (*this)(const_cast<const BackupItem&>(from_), const_cast<const PartialBackupItem&>(to_));
+}
+
 PRL_RESULT Meta::operator()(const PartialBackupItem& from_, const PartialBackupItem& to_) const
 {
 	Q_UNUSED(from_);
 	PartialBackupItem p(to_);
 	p.setSize(getSize());
 	return m_sequence.update(p, m_item.getNumber());
+}
+
+PRL_RESULT Meta::operator()(PartialBackupItem&& from_, BackupItem&& to_) const
+{
+	return (*this)(const_cast<const PartialBackupItem&>(from_), const_cast<const BackupItem&>(to_));
 }
 
 qulonglong Meta::getSize() const
@@ -554,11 +564,23 @@ Prl::Expected<batch_type, PRL_RESULT> Confectioner::operator()(quint32 item_)
 	batch_type output;
 	output.addItem(Unit(u.value()));
 
+#define BOOST_MINOR_VERSION BOOST_VERSION / 100 % 1000
+#if BOOST_MINOR_VERSION == 53 // boost 1.53
 	PRL_RESULT (*f)(const Remove::Meta&, Remove::item_type&, Remove::item_type&) =
 		&boost::apply_visitor<Remove::Meta, Remove::item_type, Remove::item_type>;
 
 	output.addItem(boost::bind(f, Remove::Meta(l.value(), m_sequence),
 		v.value().getData(), l.value().getData()));
+#else
+	output.addItem([v, l, this]() -> PRL_RESULT {
+		auto v1 = v.value().getData();
+		auto v2 = l.value().getData();
+		return boost::apply_visitor<Remove::Meta, Remove::item_type,
+							Remove::item_type>(
+				Remove::Meta(l.value(), m_sequence),
+				std::move(v1), std::move(v2));
+	});
+#endif
 	output.addItem(Remove::Flavor(*m_context)(v.value()));
 
 	return output;
