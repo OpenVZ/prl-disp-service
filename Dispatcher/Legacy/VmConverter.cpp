@@ -349,6 +349,10 @@ result_type Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	::Chipset* c = pVmHardware->getChipset();
 	if (NULL != c && c->getType() == CDspVm::CHIP_PCI440FX)
 		c->setVersion(qMax<quint32>(c->getVersion(), CDspVm::PCI440FX_DEFAULT));
+	
+	::CVmCpu* cpu = pVmHardware->getCpu();
+	if (cpu != nullptr)
+		cpu->setVirtualizePMU(true);
 
 	unsigned os = cfg->getVmSettings()->getVmCommonOptions()->getOsVersion();
 	bool isWin = cfg->getVmSettings()->getVmCommonOptions()->getOsType() ==
