@@ -33,7 +33,7 @@
 //#define LOGGING_ON
 //#define FORCE_LOGGING_LEVEL DBG_DEBUG
 
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include "Task_RemoveVmBackup_p.h"
 #include "prlcommon/Interfaces/VirtuozzoQt.h"
 #include "prlcommon/Interfaces/VirtuozzoNamespace.h"
@@ -49,7 +49,7 @@
 #include <boost/foreach.hpp>
 #include <boost/range/combine.hpp>
 #include "prlcommon/Std/PrlAssert.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "prlxmlmodel/BackupTree/BackupTree.h"
 #include "Tasks/Task_BackupHelper_p.h"
 

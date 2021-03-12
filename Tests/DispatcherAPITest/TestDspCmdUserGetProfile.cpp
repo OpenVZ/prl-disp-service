@@ -47,7 +47,7 @@
 #include <prlxmlmodel/DispConfig/CDispUsersPreferences.h>
 #include <prlxmlmodel/DispConfig/CDispUser.h>
 #include <prlcommon/Logging/Logging.h>
-#include "Libraries/PrlCommonUtils/CAuthHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CAuthHelper.h>
 
 #include "Tests/CommonTestsUtils.h"
 

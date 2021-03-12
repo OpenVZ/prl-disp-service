@@ -40,7 +40,7 @@
 #include "Task_CloneVm.h"
 #include "Task_ChangeSID.h"
 #include "CDspService.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
 #include "Libraries/StatesUtils/StatesHelper.h"
 #include "Libraries/PrlCommonUtils/CVmMigrateHelper.h"

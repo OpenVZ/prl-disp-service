@@ -76,7 +76,7 @@
 //#include <Devices/Usb/UsbHostDevInfo_Win.h>  // Devices/Usb commented out by request from CP team
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 #define DRIVE_PATH_PATRN 			"%1:\\"
 #define DRIVE_NAME_PATRN 			"%1: "

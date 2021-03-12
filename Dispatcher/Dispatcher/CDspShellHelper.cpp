@@ -83,7 +83,7 @@
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <Libraries/PrlNetworking/netconfig.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>
 
@@ -102,7 +102,7 @@
 #include <boost/foreach.hpp>
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 using namespace Virtuozzo;
 

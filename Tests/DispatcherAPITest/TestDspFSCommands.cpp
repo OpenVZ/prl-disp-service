@@ -47,8 +47,8 @@
 #include <prlxmlmodel/VmDirectory/CVmDirectory.h>
 #include <prlxmlmodel/HostHardwareInfo/CHwFileSystemInfo.h>
 #include <prlcommon/Logging/Logging.h>
-#include "Libraries/PrlCommonUtils/CAuthHelper.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CAuthHelper.h>
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 
 #include "Tests/CommonTestsUtils.h"

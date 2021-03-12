@@ -25,7 +25,7 @@
 #include "CDspVmDirManager.h"
 
 #include "CDspService.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 #include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlcommon/Logging/Logging.h>

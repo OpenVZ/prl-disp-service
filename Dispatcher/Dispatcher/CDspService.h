@@ -40,7 +40,7 @@
 #include <prlcommon/PrlCommonUtilsBase/CommandLine.h>
 #include "CDspDispConfigGuard.h"
 #include "CDspTaskManager.h"
-#include "Libraries/PrlCommonUtils/CAuthHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CAuthHelper.h>
 #include "CDspUserHelper.h"
 #include "CDspShellHelper.h"
 #include "CDspSync.h"

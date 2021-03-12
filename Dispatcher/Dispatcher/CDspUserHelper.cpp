@@ -54,7 +54,7 @@
 #include "CDspClientManager.h"
 #include "CDspUserHelper.h"
 
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 #include <prlxmlmodel/DispConfig/CDispWorkspacePreferences.h>
 #include "CDspCommon.h"
@@ -74,7 +74,7 @@
 #include <prlcommon/PrlCommonUtilsBase/CGuestOsesHelper.h>
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 #include <prlcommon/Interfaces/VirtuozzoSdkPrivate.h>
 #include <boost/optional.hpp>

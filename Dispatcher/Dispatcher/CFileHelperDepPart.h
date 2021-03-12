@@ -35,7 +35,7 @@
 #define CFileHelperDepPart_H
 
 #include <prlsdk/PrlErrors.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 class CDspTaskHelper;
 

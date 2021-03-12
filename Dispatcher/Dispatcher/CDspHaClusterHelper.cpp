@@ -32,7 +32,7 @@
 #include "CDspService.h"
 #include <prlcommon/PrlCommonUtilsBase/Common.h>
 #include <prlsdk/PrlCommandsFlags.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "CDspHaClusterHelper.h"
 

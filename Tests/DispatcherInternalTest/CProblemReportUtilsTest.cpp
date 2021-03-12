@@ -36,7 +36,7 @@
 
 #include "CProblemReportUtilsTest.h"
 #include <prlcommon/PrlUuid/Uuid.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "Libraries/ProblemReportUtils/CProblemReportUtils.h"
 
 void CProblemReportUtilsTest::init()

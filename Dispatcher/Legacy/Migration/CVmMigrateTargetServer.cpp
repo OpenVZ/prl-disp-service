@@ -36,7 +36,7 @@
 #include <prlxmlmodel/DiskDescriptor/CDiskXML.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 typedef SmartPtr<CVmConfiguration> config_type;
 

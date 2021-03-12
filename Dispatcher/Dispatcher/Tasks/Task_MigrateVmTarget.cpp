@@ -35,7 +35,7 @@
 
 #include "CDspVm_p.h"
 #include "CDspVmBrand.h"
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include "CDspTemplateStorage.h"
 #include "CDspClientManager.h"
 #include <prlcommon/HostUtils/PCSUtils.h>
@@ -45,7 +45,7 @@
 #include "Task_CloneVm.h"
 #include "Task_ChangeSID.h"
 #include "CDspService.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
 #include "Libraries/CpuFeatures/CCpuHelper.h"
 #include "Task_ManagePrlNetService.h"

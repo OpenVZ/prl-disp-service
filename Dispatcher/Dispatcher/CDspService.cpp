@@ -36,7 +36,7 @@
 #include <QDBusInterface>
 
 #include <prlcommon/Interfaces/VirtuozzoQt.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "CDspService.h"
 #include "CDspRouter.h"
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
@@ -83,7 +83,7 @@
 #include "Tasks/Task_ManagePrlNetService.h"
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include "Interfaces/Config.h"
 #include <prlcommon/Interfaces/ApiDevNums.h>
 

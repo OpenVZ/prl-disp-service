@@ -52,7 +52,7 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/ProblemReportUtils/CProblemReportUtils.h"
 #include "Libraries/ProblemReportUtils/CPackedProblemReport.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "Libraries/StatesUtils/StatesHelper.h"
 #include <Libraries/PowerWatcher/PowerWatcher.h>
 #include "Libraries/PrlNetworking/netconfig.h"

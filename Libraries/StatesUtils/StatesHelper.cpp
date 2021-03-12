@@ -30,7 +30,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "StatesHelper.h"
-#include "CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <QFileInfo>
 #include <QDir>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>

@@ -42,7 +42,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <prlcommon/Logging/Logging.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 #include "Buse.h"
 

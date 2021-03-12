@@ -7,7 +7,7 @@
 /// @author krasnov@
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2021 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -40,7 +40,7 @@
 #include "CDspClientManager.h"
 #include "Task_CloneVm.h"
 #include "Task_CloneVm_p.h"
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include "prlcommon/Interfaces/VirtuozzoQt.h"
 #include "prlcommon/Interfaces/VirtuozzoNamespace.h"
 
@@ -51,12 +51,13 @@
 #include "CDspService.h"
 #include "prlcommon/Std/PrlAssert.h"
 #include "prlcommon/HostUtils/HostUtils.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "CDspVmStateSender.h"
 #include "CDspVmManager_p.h"
 #include "CDspVzHelper.h"
 #include <sys/resource.h>
 #include "Libraries/Virtuozzo/CVzHelper.h"
+#include "prlcommon/PrlCommonUtilsBase/CRsaHelper.h"
 #include "prlcommon/IOService/IOCommunication/Socket/Socket_p.h"
 #include <limits.h>
 #include <sys/wait.h>
@@ -1574,6 +1575,9 @@ PRL_RESULT Task_BackupMixin::connect()
 
 		CDispBackupSourcePreferences *pBackupSource = dispPref->getBackupSourcePreferences();
 
+		sLogin = pBackupSource->getLogin();
+		sPw = pBackupSource->getPassword();
+
 		if (m_sServerSessionUuid.isEmpty())
 		{
 			if (pBackupSource->getDefaultBackupServer().isEmpty())
@@ -1586,17 +1590,22 @@ PRL_RESULT Task_BackupMixin::connect()
 			}
 			else
 			{
-				if (pBackupSource->getLogin().isEmpty() || !pBackupSource->isUsePassword())
-				{
+				if (sLogin.isEmpty())
 					return PRL_ERR_BACKUP_REQUIRE_LOGIN_PASSWORD;
-				}
 				m_sServerHostname = pBackupSource->getDefaultBackupServer();
 				m_nServerPort = CDspService::getDefaultListenPort();
+
+				if (sPw.isEmpty())
+				{
+					CRsaHelper rsa(CFileHelper::homePath());
+					auto pubKeyResult = rsa.getOpenSshPublicKey();
+					if (pubKeyResult.isFailed())
+						return pubKeyResult.error().code();
+					sPw = pubKeyResult.value();
+					m_nFlags |= PLLF_LOGIN_WITH_RSA_KEYS;
+				}
 			}
 		}
-
-		sLogin = pBackupSource->getLogin();
-		sPw = pBackupSource->getPassword();
 	}
 
 	return Task_DispToDispConnHelper::Connect(

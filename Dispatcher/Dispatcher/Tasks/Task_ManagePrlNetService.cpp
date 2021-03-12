@@ -70,7 +70,7 @@
 #endif /* _LIN_ */
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 #include <memory>
 

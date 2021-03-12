@@ -39,7 +39,7 @@
 using namespace Virtuozzo;
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #define WAITTOOLS_TIMEOUT	(5 * 60 * 1000)
 #define WAITINTERVAL		(2 * 1000)
 

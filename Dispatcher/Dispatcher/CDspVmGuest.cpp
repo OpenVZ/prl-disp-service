@@ -31,7 +31,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 #include "CDspVmStateMachine.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "CDspVmNetworkHelper.h"
 #include <libvirt/virterror.h>

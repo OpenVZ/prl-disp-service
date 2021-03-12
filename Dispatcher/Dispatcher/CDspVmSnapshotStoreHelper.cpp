@@ -44,7 +44,7 @@
 
 #include "CDspService.h"
 #include "CDspClientManager.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "CDspVmInfoDatabase.h"
 #include <boost/foreach.hpp>
 
@@ -61,7 +61,7 @@
 #endif
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 #include <prlsdk/PrlEnums.h>
 

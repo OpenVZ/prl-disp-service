@@ -36,7 +36,7 @@
 #include "CDspVzHelper.h"
 #include "CDspTemplateStorage.h"
 #include <prlcommon/HostUtils/PCSUtils.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 namespace
 {

@@ -37,7 +37,7 @@
 #include <QtTest/QtTest>
 #include <QString>
 
-#include "Libraries/PrlCommonUtils/CAuthHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CAuthHelper.h>
 
 class CProblemReportUtilsTest : public QObject
 {

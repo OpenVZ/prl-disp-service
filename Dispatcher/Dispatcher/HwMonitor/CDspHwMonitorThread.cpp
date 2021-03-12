@@ -40,7 +40,7 @@
 #include "CDspHwMonitorHandler.h"
 
 #include <prlcommon/Std/PrlAssert.h>
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include <Libraries/CpuFeatures/CCpuHelper.h>
 
 #define CHECK_HW_INTERVAL_IN_MSEC  (5 * 60 * 1000)

@@ -35,7 +35,7 @@
 #include "Task_AttachVmBackup_p.h"
 
 #include "CDspService.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "prlxmlmodel/BackupTree/BackupTree.h"
 //#include "Libraries/VirtualDisk/VirtualDisk.h"
 //#include "Libraries/VirtualDisk/PrlDiskDescriptor.h"

@@ -43,7 +43,7 @@
 #include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlcommon/Std/PrlTime.h>
 #include <prlcommon/Std/PrlAssert.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 using namespace Virtuozzo;
 

@@ -35,7 +35,7 @@
 #include "Task_CommonHeaders.h"
 #include "Task_SearchLostConfigs.h"
 #include "CDspService.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <QDir>
 
 #include <prlcommon/Messaging/CVmEventParameter.h>
@@ -47,7 +47,7 @@
 using namespace Virtuozzo;
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 Task_SearchLostConfigs::Task_SearchLostConfigs( SmartPtr<CDspClient> &pUser, const SmartPtr<IOPackage> &pRequestPkg,
 	const QStringList &lstSearchDirs, bool bResultInResponse, bool bPvmDirOnly, int nDepthLimit)

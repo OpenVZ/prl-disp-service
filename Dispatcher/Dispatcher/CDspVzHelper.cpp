@@ -49,7 +49,7 @@
 #include "Tasks/Task_ExecVm.h"
 #endif
 #include <prlcommon/Std/PrlAssert.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 #include "Dispatcher/Dispatcher/Cache/CacheImpl.h"
 #include "Libraries/Virtuozzo/CVzPloop.h"

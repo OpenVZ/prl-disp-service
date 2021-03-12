@@ -37,7 +37,7 @@
 #include <boost/mpl/at.hpp>
 #include <boost/function.hpp>
 #include <prlcommon/Std/SmartPtr.h>
-#include "Libraries/PrlCommonUtils/CAuthHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CAuthHelper.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 

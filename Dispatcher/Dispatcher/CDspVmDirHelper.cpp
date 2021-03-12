@@ -69,7 +69,7 @@
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/VmDirectory/CVmDirectoryItem.h>
 #include <prlxmlmodel/VmConfig/CVmHardware.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "Libraries/CpuFeatures/CCpuHelper.h"
 #include "CVmValidateConfig.h"
 #include "CDspBugPatcherLogic.h"
@@ -124,7 +124,7 @@
 #endif
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 #define PRL_UNKNOWN_NAME	"Unknown name"
 

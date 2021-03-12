@@ -30,7 +30,7 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include "prlcommon/Interfaces/VirtuozzoQt.h"
 #include "prlcommon/Interfaces/VirtuozzoNamespace.h"
 #include <boost/foreach.hpp>
@@ -42,7 +42,7 @@
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "prlcommon/Std/PrlAssert.h"
 #include "prlxmlmodel/BackupTree/BackupTree.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 namespace Backup
 {

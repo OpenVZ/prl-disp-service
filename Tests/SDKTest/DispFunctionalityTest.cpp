@@ -51,8 +51,8 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>
 #include <prlcommon/Std/SmartPtr.h>
-#include "Libraries/PrlCommonUtils/CAuthHelper.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CAuthHelper.h>
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "Libraries/NonQtUtils/CQuestionHelper.h"
 
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>

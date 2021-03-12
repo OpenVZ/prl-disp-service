@@ -34,7 +34,7 @@
 //#define FORCE_LOGGING_LEVEL DBG_DEBUG
 
 #include "CDspVmBrand.h"
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 #include "CDspClientManager.h"
@@ -50,7 +50,7 @@
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
 #include "CDspVzHelper.h"
 #include "Tasks/Task_VzManager.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 #define VM_MIGRATE_START_CMD_WAIT_TIMEOUT 600 * 1000
 

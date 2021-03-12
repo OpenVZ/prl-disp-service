@@ -31,7 +31,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 #include "CDspVmDirHelper.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "CFileHelperDepPart.h"
 #include "CDspService.h"
 #include "Task_CopyImage.h"

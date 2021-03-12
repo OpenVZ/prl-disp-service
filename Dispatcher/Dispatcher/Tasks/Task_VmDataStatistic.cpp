@@ -32,7 +32,7 @@
 
 #include "CDspVmDirHelper.h"
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Task_VmDataStatistic.h"
 #include "CDspService.h"

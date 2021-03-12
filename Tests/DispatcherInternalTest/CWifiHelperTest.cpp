@@ -34,7 +34,7 @@
 #include "CWifiHelperTest.h"
 
 #include <prlcommon/PrlUuid/Uuid.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include "Libraries/WifiHelper/CWifiStoreHelper.h"
 #include <prlcommon/Logging/Logging.h>

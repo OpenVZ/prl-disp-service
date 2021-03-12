@@ -47,7 +47,7 @@
 #include "CDspService.h"
 #include "CDspVmNetworkHelper.h"
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/PrlCommonUtilsBase/OsInfo.h>
 #include <prlcommon/PrlCommonUtilsBase/CHardDiskHelper.h>
 #include <prlcommon/VirtualDisk/Qcow2Disk.h>

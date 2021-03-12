@@ -40,7 +40,7 @@
 #include <CDspDispConfigGuard.h>
 #include <Libraries/Virtuozzo/CVzHelper.h>
 #include <prlcommon/VirtualDisk/VirtualDisk.h>
-#include <Libraries/PrlCommonUtils/CFileHelper.h>
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 class CDspVzHelper;
 

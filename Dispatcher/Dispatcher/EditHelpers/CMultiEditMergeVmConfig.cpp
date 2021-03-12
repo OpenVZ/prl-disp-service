@@ -45,7 +45,7 @@
 #include "Build/Current-locale.ver"
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 
 namespace
