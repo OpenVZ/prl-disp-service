@@ -13,15 +13,12 @@ export(copydata.commands)
 QMAKE_EXTRA_TARGETS += first copydata
 
 HEADERS += \
-	CFileHelperTest.h\
-	CAuthHelperTest.h\
 	$$SRC_LEVEL/Dispatcher/Dispatcher/Stat/CDspStatisticsGuard.h\
 	$$SRC_LEVEL/Dispatcher/Dispatcher/Stat/CDspSystemInfo.h\
 	$$SRC_LEVEL/Tests/CommonTestsUtils.h\
 	$$SRC_LEVEL/Tests/AclTestsUtils.h\
 	CDspStatisticsGuardTest.h\
 	PrlCommonUtilsTest.h \
-	CAclHelperTest.h \
 	CGuestOsesHelperTest.h \
 	CProblemReportUtilsTest.h \
 	CXmlModelHelperTest.h \
@@ -29,14 +26,11 @@ HEADERS += \
 	CTransponsterNwfilterTest.h
 
 SOURCES += \
-	CFileHelperTest.cpp\
-	CAuthHelperTest.cpp\
 	Main.cpp\
 	$$SRC_LEVEL/Dispatcher/Dispatcher/Stat/CDspStatisticsGuard.cpp\
 	$$SRC_LEVEL/Tests/CommonTestsUtils.cpp\
 	CDspStatisticsGuardTest.cpp\
 	PrlCommonUtilsTest.cpp \
-	CAclHelperTest.cpp \
 	CGuestOsesHelperTest.cpp \
 	CProblemReportUtilsTest.cpp \
 	CXmlModelHelperTest.cpp \
