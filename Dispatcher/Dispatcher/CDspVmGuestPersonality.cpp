@@ -36,7 +36,7 @@
 #include "CDspVmConfigManager.h"
 #include "CDspService.h"
 #include "Tasks/Task_EditVm.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #ifdef _LIBVIRT_
 #include "CDspLibvirt.h"

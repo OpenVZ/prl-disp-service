@@ -52,7 +52,7 @@
 #include "CDspVmDirHelper.h"
 #include "CDspUserHelper.h"
 #include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "FloppyHeader.h"
 #include "CConfigSearcher.h"
 #include <prlxmlmodel/VmDirectory/CVmDirectory.h>

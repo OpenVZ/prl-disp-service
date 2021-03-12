@@ -35,7 +35,7 @@
 
 #include <QProcess>
 #include "CDspVmBrand.h"
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include "prlcommon/Interfaces/VirtuozzoQt.h"
 #include "prlcommon/Interfaces/VirtuozzoNamespace.h"
 #include "prlcommon/Interfaces/ApiDevNums.h"
@@ -51,7 +51,7 @@
 #include "CDspVmNetworkHelper.h"
 #include "prlcommon/Std/PrlAssert.h"
 #include <boost/smart_ptr/make_shared.hpp>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "prlxmlmodel/BackupTree/VmItem.h"
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #include "Libraries/Virtuozzo/CVzPloop.h"

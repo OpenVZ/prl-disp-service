@@ -48,7 +48,7 @@
 #include <QString>
 #include <QByteArray>
 #include <prlcommon/Logging/Logging.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlsdk/PrlOses.h>
 #include <prlsdk/PrlIOStructs.h>
 #include <prlcommon/PrlUuid/Uuid.h>

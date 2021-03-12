@@ -42,7 +42,7 @@
 #include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlxmlmodel/VmInfo/CVmInfo.h>
 #include "CDspVmSnapshotInfrastructure.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 
 namespace Snapshot

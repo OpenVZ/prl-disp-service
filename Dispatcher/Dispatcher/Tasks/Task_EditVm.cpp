@@ -37,7 +37,7 @@
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include "Libraries/PrlNetworking/netconfig.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "Libraries/PrlCommonUtils/CFirewallHelper.h"
 #include <prlcommon/PrlCommonUtilsBase/NetworkUtils.h>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>

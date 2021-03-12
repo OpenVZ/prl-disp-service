@@ -38,7 +38,7 @@
 #include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 CDspDispConfigGuard::CDspDispConfigGuard () :
 	m_dispMutex( QMutex::Recursive ),

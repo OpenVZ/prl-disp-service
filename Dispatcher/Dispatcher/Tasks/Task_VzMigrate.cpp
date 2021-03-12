@@ -48,7 +48,7 @@
 #include <poll.h>
 #include <sys/resource.h>
 #include <boost/foreach.hpp>
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 

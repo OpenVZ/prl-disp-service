@@ -45,8 +45,8 @@
 #include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
-#include "Libraries/PrlCommonUtils/CAuthHelper.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CAuthHelper.h>
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 namespace {
 	QString g_sParentDir = "./parent_dir";

@@ -41,7 +41,7 @@
 #include <prlcommon/Std/PrlTime.h>
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 CMultiEditDispatcher::CMultiEditDispatcher()
 :QMutex( QMutex::Recursive )

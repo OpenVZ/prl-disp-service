@@ -7,7 +7,7 @@
 /// @author sandro
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2021 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -44,6 +44,7 @@
 #include <boost/range/algorithm/find.hpp>
 #include "Tasks/Legacy/MigrateVmTarget.h"
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
+#include "prlcommon/PrlCommonUtilsBase/CRsaHelper.h"
 
 #include "CDspVzHelper.h"
 
@@ -180,54 +181,12 @@ void CDspDispConnectionsManager::handleToDispatcherPackage ( const IOSender::Han
 	switch( p->header.type )
 	{
 		case DispToDispAuthorizeCmd:
-		{
-			PRL_RESULT ret;
-			do {
-				BOOST_SCOPE_EXIT(&p)
-				{
-					IOPackage::PODData& d = IODATAMEMBER(p.getImpl())[0];
-					bzero(p->buffers[0].getImpl(), d.bufferSize);
-				}
-				BOOST_SCOPE_EXIT_END;
-				if (m_service->isServerStopping())
-				{
-					WRITE_TRACE(DBG_FATAL, "Dispatcher shutdown is in progress!");
-					ret = PRL_ERR_DISP_SHUTDOWN_IN_PROCESS;
-					break;
-				}
-
-				m_rwLock.lockForRead();
-				bool cliExists = m_dispconns.contains(h);
-				m_rwLock.unlock();
-
-				ret = PRL_ERR_DISP2DISP_SESSION_ALREADY_AUTHORIZED;
-				if ( cliExists )
-					break;
-
-				SmartPtr<CDspDispConnection> pDispConnection =
-					AuthorizeDispatcherConnection( h, p );
-				if (!pDispConnection)
-					// Error response should be sent by AuthorizeDispatcherConnection()
-					//" method, so do nothing, just return!
-					return;
-
-				m_rwLock.lockForWrite();
-				/* We have to recheck connection because lock was dropped. */
-				if (m_dispconns.contains(h)) {
-					m_rwLock.unlock();
-					ret = PRL_ERR_DISP2DISP_SESSION_ALREADY_AUTHORIZED;
-					break;
-				}
-
-				m_dispconns[h] = pDispConnection;
-				m_rwLock.unlock();
-				ret = PRL_ERR_SUCCESS;
-			} while(0);
-			m_service->sendSimpleResponseToDispClient(h, p, ret);
+			if (CDispToDispProtoSerializer::ParseCommand(p)->GetCommandFlags() & PLLF_LOGIN_WITH_RSA_KEYS)
+				processPubKeyAuthorizeCmd(h, p);
+			else
+				processAuthorizeCmd(h, p);
 			return;
-		}
 	}
-
 
 	// Package should be authorized!
 	m_rwLock.lockForRead();
@@ -319,8 +278,10 @@ SmartPtr<CDspDispConnection> CDspDispConnectionsManager::AuthorizeDispatcherConn
 			WRITE_TRACE(DBG_FATAL, "Dispatcher session wasn't authorized with '%s' session UUID",\
 				qPrintable(pAuthorizeCommand->GetUserSessionUuid()));
 
-	}else {
-		//if session uuid is not defined, athorize via login & password (without session uuid)
+	}
+	else
+	{
+		// if session uuid is not defined, authorize via login & password (without session uuid)
 		pUserSession = m_service->getUserHelper().processDispacherLogin(h, p);
 
 		if (!pUserSession.isValid())
@@ -343,6 +304,135 @@ SmartPtr<CDspDispConnection> CDspDispConnectionsManager::AuthorizeDispatcherConn
 			qPrintable(pAuthorizeCommand->GetUserName()));
 
 	return SmartPtr<CDspDispConnection>(new CDspDispConnection(h, pUserSession));
+}
+
+PRL_RESULT CDspDispConnectionsManager::preAuthChecks(
+	const IOSender::Handle& h
+)
+{
+	if (m_service->isServerStopping())
+	{
+		WRITE_TRACE(DBG_FATAL, "Dispatcher shutdown is in progress!");
+		return PRL_ERR_DISP_SHUTDOWN_IN_PROCESS;
+	}
+
+	m_rwLock.lockForRead();
+	bool cliExists = m_dispconns.contains(h);
+	m_rwLock.unlock();
+
+	if (cliExists)
+		return PRL_ERR_DISP2DISP_SESSION_ALREADY_AUTHORIZED;
+	return PRL_ERR_SUCCESS;
+}
+
+void CDspDispConnectionsManager::processAuthorizeCmd(
+	const IOSender::Handle& h,
+	const SmartPtr<IOPackage>& p
+)
+{
+	BOOST_SCOPE_EXIT(&p)
+	{
+		IOPackage::PODData &d = IODATAMEMBER(p.getImpl())[0];
+		bzero(p->buffers[0].getImpl(), d.bufferSize);
+	}
+	BOOST_SCOPE_EXIT_END;
+	PRL_RESULT ret;
+	if ((ret = preAuthChecks(h)) != PRL_ERR_SUCCESS)
+	{
+		m_service->sendSimpleResponseToDispClient(h, p, ret);
+		return;
+	}
+
+	SmartPtr<CDspDispConnection> pDispConnection =
+		AuthorizeDispatcherConnection(h, p);
+	if (!pDispConnection)
+	{
+		// Error response should be sent by AuthorizeDispatcherConnection()
+		//" method, so do nothing, just return!
+		return;
+	}
+
+	m_rwLock.lockForWrite();
+	/* We have to recheck connection because lock was dropped. */
+	if (m_dispconns.contains(h))
+	{
+		m_rwLock.unlock();
+		m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_DISP2DISP_SESSION_ALREADY_AUTHORIZED);
+		return;
+	}
+
+	m_dispconns[h] = pDispConnection;
+	m_rwLock.unlock();
+	m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_SUCCESS);
+}
+
+void CDspDispConnectionsManager::processPubKeyAuthorizeCmd(
+	const IOSender::Handle& h,
+	const SmartPtr<IOPackage>& p
+)
+{
+	BOOST_SCOPE_EXIT(&p)
+	{
+		IOPackage::PODData& d = IODATAMEMBER(p.getImpl())[0];
+		bzero(p->buffers[0].getImpl(), d.bufferSize);
+	}
+	BOOST_SCOPE_EXIT_END;
+	PRL_RESULT ret;
+	if ((ret = preAuthChecks(h)) != PRL_ERR_SUCCESS)
+	{
+		m_service->sendSimpleResponseToDispClient(h, p, ret);
+		return;
+	}
+	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(p);
+	CDispToDispAuthorizeCommand *pAuthorizeCommand =
+		CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispAuthorizeCommand>(pCmd);
+
+	if (!pAuthorizeCommand->IsValid())
+	{
+		WRITE_TRACE(DBG_FATAL, "Wrong public key authorization package was received: [%s]", \
+            p->buffers[0].getImpl());
+		m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_UNRECOGNIZED_REQUEST);
+		return;
+	}
+
+	QString username = pAuthorizeCommand->GetUserName();
+	CRsaHelper rsa(CAuthHelper(username).getHomePath());
+	// Check public key is authorized
+	QString public_key = pAuthorizeCommand->GetPassword();
+	if (!rsa.isAuthorized(public_key))
+	{
+		m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_PUBLIC_KEY_NOT_AUTHORIZED);
+		return;
+	}
+
+	{
+		// Authorize connection
+		auto pClient = SmartPtr<CDspClient>(new CDspClient(h, username, 0));
+		bool res = m_service->getUserHelper().fillUserPreferences(h, p, pClient);
+		if (!res) {
+			// Error response is sent by UserHelper
+			return;
+		}
+		m_rwLock.lockForWrite();
+		/* We have to recheck connection because lock was dropped. */
+		if (m_dispconns.contains(h))
+		{
+			m_rwLock.unlock();
+			m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_DISP2DISP_SESSION_ALREADY_AUTHORIZED);
+			return;
+		}
+		m_dispconns[h] = SmartPtr<CDspDispConnection>(new CDspDispConnection(h, pClient));
+		m_rwLock.unlock();
+	}
+
+	// Encrypt session uuid
+	auto enc_session_uuid = rsa.Encrypt(h, public_key);
+	if (enc_session_uuid.isFailed())
+	{
+		m_service->sendSimpleResponseToDispClient(h, p, enc_session_uuid.error().code());
+		return;
+	}
+	m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_SUCCESS, QStringList{enc_session_uuid.value()});
 }
 
 void CDspDispConnectionsManager::ProcessDispConnectionLogoff(

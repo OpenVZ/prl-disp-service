@@ -34,7 +34,7 @@
 #include <prlcommon/Logging/Logging.h>
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include <stdio.h>
 #include <unistd.h>
 

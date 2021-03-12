@@ -49,14 +49,14 @@
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/Std/SmartPtr.h>
 
 #include "CDspService.h"
 #include "CDspVm.h"
 #include "CDspVmStateSender.h"
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 #include <typeinfo>
 #ifdef _LIN_

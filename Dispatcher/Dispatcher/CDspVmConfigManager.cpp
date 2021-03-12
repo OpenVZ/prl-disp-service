@@ -43,7 +43,7 @@
 #include <prlxmlmodel/VmConfig/CVmHardDisk.h>
 #include "EditHelpers/CMultiEditMergeVmConfig.h"
 #include "Libraries/Transponster/NetFilter.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Interfaces/VirtuozzoDomModel.h>

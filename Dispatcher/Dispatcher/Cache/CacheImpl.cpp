@@ -35,7 +35,7 @@
 #include "CDspVmDirManager.h"
 #include "CDspService.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>

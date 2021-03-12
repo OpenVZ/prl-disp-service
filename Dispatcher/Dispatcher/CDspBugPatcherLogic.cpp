@@ -50,7 +50,7 @@
 #include <prlcommon/Std/PrlAssert.h>
 
 #include "Libraries/HostInfo/CHostInfo.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/PrlCommonUtilsBase/CHardDiskHelper.h>
 
 #include <prlcommon/Interfaces/VirtuozzoSdkPrivate.h>

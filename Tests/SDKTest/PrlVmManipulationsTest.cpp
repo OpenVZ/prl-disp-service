@@ -55,8 +55,8 @@
 #include <prlxmlmodel/NetworkConfig/CVirtuozzoNetworkConfig.h>
 #include <prlxmlmodel/VmDataStatistic/CVmDataStatistic.h>
 
-#include "Libraries/PrlCommonUtils/CAuthHelper.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CAuthHelper.h>
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #ifdef _LIN_
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #endif

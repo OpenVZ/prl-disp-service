@@ -46,7 +46,7 @@
 #endif
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 
 PRL_RESULT CConfigSearcher::Find(bool bAllDrives)

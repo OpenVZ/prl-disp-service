@@ -32,7 +32,7 @@
 
 #include "CDspService.h"
 #include "CDspBackupDevice.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "prlxmlmodel/VmConfig/CVmConfiguration.h"
 #include "prlxmlmodel/VirtuozzoObjects/CXmlModelHelper.h"

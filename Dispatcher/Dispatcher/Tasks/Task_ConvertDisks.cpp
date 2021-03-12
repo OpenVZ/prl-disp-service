@@ -35,7 +35,7 @@
 
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "CDspService.h"
 #include "CDspVmSnapshotStoreHelper.h"
 #include "EditHelpers/CMultiEditMergeVmConfig.h"

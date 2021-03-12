@@ -46,7 +46,7 @@
 using namespace Virtuozzo;
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 Task_GetFileSystemEntries::Task_GetFileSystemEntries (
     SmartPtr<CDspClient>& client,

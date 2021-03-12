@@ -30,7 +30,7 @@
 
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
-#include <Libraries/PrlCommonUtils/CFileHelper.h>
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 
 #include "CDspLibvirt.h"
@@ -41,7 +41,7 @@
 
 using namespace Virtuozzo;
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 
 Task_MountVm::Task_MountVm(

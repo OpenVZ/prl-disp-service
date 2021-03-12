@@ -62,14 +62,14 @@
 #include "Libraries/PrlNetworking/IpStatistics.h"
 #include <prlcommon/PrlCommonUtilsBase/EnumToString.h>
 #include "Libraries/PowerWatcher/PowerWatcher.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 // Atomaticaly generated header needed only for CreateUsbFriendlyName
 #include "UsbFriendlyNames.h"
 #include <prlcommon/Logging/Logging.h>
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include <prlcommon/Interfaces/ApiDevNums.h>
 #include "Interfaces/Config.h"
 

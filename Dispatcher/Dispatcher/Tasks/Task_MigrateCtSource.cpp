@@ -33,7 +33,7 @@
 //#define LOGGING_ON
 //#define FORCE_LOGGING_LEVEL DBG_DEBUG
 
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 #include "CDspClientManager.h"
@@ -42,7 +42,7 @@
 #include "Task_MigrateCtSource.h"
 #include "CDspService.h"
 #include <prlcommon/Std/PrlAssert.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
 #include "CDspVzHelper.h"
 #include <prlcommon/PrlCommonUtilsBase/ErrorSimple.h>

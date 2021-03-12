@@ -35,7 +35,7 @@
 #include "Build/Current.ver"
 #include <boost/foreach.hpp>
 #include <prlcommon/Logging/Logging.h>
-#include <Libraries/PrlCommonUtils/CFileHelper.h>
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 namespace Vm
 {

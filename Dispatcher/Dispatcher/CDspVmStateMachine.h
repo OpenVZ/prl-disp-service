@@ -31,7 +31,7 @@
 #include "CDspBackupDevice.h"
 #include "CDspClientManager.h"
 #include "Tasks/Task_BackgroundJob.h"
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include <Libraries/StatesUtils/StatesHelper.h>
 #include <prlsdk/PrlEnums.h>
 #include <prlcommon/Logging/Logging.h>

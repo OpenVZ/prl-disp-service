@@ -44,8 +44,8 @@
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/Logging/Logging.h>
 
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
-#include "Libraries/PrlCommonUtils/CAuthHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
+#include <prlcommon/PrlCommonUtilsBase/CAuthHelper.h>
 #include "Tests/CommonTestsUtils.h"
 
 #include <prlcommon/Std/SmartPtr.h>

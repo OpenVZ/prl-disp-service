@@ -61,7 +61,7 @@
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/PrlCommonUtilsBase/CSimpleFileHelper.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirsDefs.h>
 
 #ifdef _WIN_

@@ -68,7 +68,7 @@
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/PrlCommonUtilsBase/Common.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
 
 //#include "Vm/CVmMigrateFilesCopyingStubs.h"
@@ -101,7 +101,7 @@ using namespace Virtuozzo;
 #include <prlcommon/Logging/Logging.h>
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 #define CHECK_WHETHER_VM_STARTED \
 {\

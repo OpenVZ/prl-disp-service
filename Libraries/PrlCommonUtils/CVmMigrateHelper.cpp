@@ -22,7 +22,7 @@
  * Schaffhausen, Switzerland.
  */
 
-#include "CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "CVmMigrateHelper.h"
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Interfaces/VirtuozzoNamespace.h>

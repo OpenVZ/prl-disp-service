@@ -39,7 +39,7 @@
 
 #include "CVmIdent.h"
 #include <prlcommon/Interfaces/VirtuozzoNamespace.h>
-#include "Libraries/PrlCommonUtils/CAuthHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CAuthHelper.h>
 #include <prlxmlmodel/DispConfig/CDispUser.h>
 #include <prlxmlmodel/UserInformation/SessionInfo.h>
 #include <prlcommon/IOService/IOCommunication/IOProtocol.h>

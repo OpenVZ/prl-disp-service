@@ -49,7 +49,7 @@
 #include "CDspHaClusterHelper.h"
 #include "CDspVmBackupInfrastructure_p.h"
 #include <prlcommon/HostUtils/PCSUtils.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/Std/PrlAssert.h>
 #include "Libraries/PrlCommonUtils/CVmMigrateHelper.h"
 

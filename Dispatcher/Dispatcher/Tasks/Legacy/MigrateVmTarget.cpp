@@ -28,7 +28,7 @@
 ///
 /////////////////////////////////////////////////////////////////////////////////
 
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlcommon/Interfaces/VirtuozzoNamespace.h>
 #include "CDspClientManager.h"
@@ -45,7 +45,7 @@
 #include "CDspVmStateSender.h"
 #include "CDspService.h"
 #include <prlcommon/Std/PrlAssert.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "Libraries/DispToDispProtocols/CVmMigrationProto.h"
 #ifdef _LIN_
 #include "Libraries/Virtuozzo/CVzHelper.h"

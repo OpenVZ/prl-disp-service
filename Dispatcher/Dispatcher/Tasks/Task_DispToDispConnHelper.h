@@ -7,7 +7,7 @@
 /// @author krasnov@
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2021 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -78,6 +78,8 @@ protected:
 	SmartPtr<IOClient> m_pIoClient;
 	CVmEvent *m_pEvent;
 	quint32 m_nTimeout;
+private:
+	PRL_RESULT ProcessPublicKeyAuth(const SmartPtr<IOPackage> &pReply);
 };
 
 #endif //__Task_DispToDispConnHelper_H_

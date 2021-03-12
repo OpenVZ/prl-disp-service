@@ -8,7 +8,7 @@
 /// @author romanp
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2021 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -45,6 +45,8 @@
 #include "CDspVmManager.h"
 #include <prlcommon/Std/PrlAssert.h>
 #include <prlcommon/PrlCommonUtilsBase/CommandConvHelper.h>
+#include <prlcommon/PrlCommonUtilsBase/CRsaHelper.h>
+#include <prlcommon/PrlCommonUtilsBase/CAuthHelper.h>
 #include "CDspService.h"
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
@@ -255,78 +257,21 @@ void CDspClientManager::handleToDispatcherPackage (
 	{
 		case PVE::DspCmdUserLogin:
 		{
-			if (m_service->isServerStopping())
-			{
-				WRITE_TRACE(DBG_FATAL, "Dispatcher shutdown is in progress!");
-				m_service->sendSimpleResponseToClient( h, p, PRL_ERR_DISP_SHUTDOWN_IN_PROCESS);
-				return;
-			}
-
-			m_rwLock.lockForRead();
-			bool cliExists = m_clients.contains(h);
-			m_rwLock.unlock();
-
-			if ( cliExists )
-				m_service->sendSimpleResponseToClient(h, p, PRL_ERR_USER_IS_ALREADY_LOGGED);
+			if (CProtoSerializer::ParseCommand(p)->GetCommandFlags() & PLLF_LOGIN_WITH_RSA_KEYS)
+				processPubKeyAuthorizeCmd(h, p);
 			else
-			{
-				if (!CaptureLogonClient(h))
-				{
-					WRITE_TRACE(DBG_FATAL, "Client logon actions reached up limit!");
-					m_service->
-						sendSimpleResponseToClient( h, p, PRL_ERR_DISP_LOGON_ACTIONS_REACHED_UP_LIMIT);
-					return;
-				}
-
-				bool bWasPreAuthorized = false;
-				SmartPtr<CDspClient> pClient =
-					m_service->getUserHelper().processUserLogin(h, p, bWasPreAuthorized);
-				if ( pClient )
-				{
-					m_rwLock.lockForWrite();
-					if (m_clients.isEmpty()
- 						/* Check to prevent lock HwInfo mutex before dispatcher init completed */
-						 && m_service->isFirstInitPhaseCompleted()
-					)
-					{
-						m_service->getHwMonitorThread().forceCheckHwChanges();
-					}
-					m_clients[h] = pClient;
-					//Erase client from pre authorized queue if any
-					m_preAuthorizedSessions.remove(h);
-					m_rwLock.unlock();
-
-					SmartPtr<IOPackage> response = m_service->getUserHelper()
-						.makeLoginResponsePacket(pClient, p);
-					pClient->sendPackage( response );
-					WRITE_TRACE(DBG_FATAL, "Session with uuid[ %s ] was started.", QSTR2UTF8( h ) );
-				}
-				else if ( bWasPreAuthorized )
-				{
-					m_rwLock.lockForWrite();
-					m_preAuthorizedSessions.insert(h);
-					m_rwLock.unlock();
-					m_service->sendSimpleResponseToClient(h, p, PRL_ERR_SUCCESS);
-				}
-				else
-				{
-					// Error response should be sent by user helper,
-					// so do nothing!
-				}
-
-				ReleaseLogonClient(h);
-
-				return;
-			}
+				processAuthorizeCmd(h, p);
+			return;
 		}
 		break;
 		case PVE::DspCmdUserEasyLoginLocal:
 			{
 				m_rwLock.lockForRead();
-				bool cliExists = m_clients.contains(h);
+//				bool cliExists = m_clients.contains(h);
 				m_rwLock.unlock();
 
-				if ( cliExists )
+//				if ( cliExists )
+			  if (0)
 					m_service->sendSimpleResponseToClient(h, p, PRL_ERR_USER_IS_ALREADY_LOGGED);
 				else
 				{
@@ -855,6 +800,167 @@ bool CDspClientManager::isPreAuthorized(const IOSender::Handle& h)
 {
 	QReadLocker locker( &m_rwLock );
 	return m_preAuthorizedSessions.contains(h);
+}
+
+PRL_RESULT CDspClientManager::preAuthChecks(
+  const IOSender::Handle& h
+)
+{
+	if (m_service->isServerStopping())
+	{
+		WRITE_TRACE(DBG_FATAL, "Dispatcher shutdown is in progress!");
+		return PRL_ERR_DISP_SHUTDOWN_IN_PROCESS;
+	}
+
+	m_rwLock.lockForRead();
+	bool cliExists = m_clients.contains(h);
+	m_rwLock.unlock();
+
+	if (cliExists)
+		return PRL_ERR_USER_IS_ALREADY_LOGGED;
+
+	if (!CaptureLogonClient(h))
+	{
+		WRITE_TRACE(DBG_FATAL, "Client logon actions reached up limit!");
+		return PRL_ERR_DISP_LOGON_ACTIONS_REACHED_UP_LIMIT;
+	}
+
+	return PRL_ERR_SUCCESS;
+}
+
+void CDspClientManager::processAuthorizeCmd(
+	const IOSender::Handle& h,
+	const SmartPtr<IOPackage>& p)
+{
+	PRL_RESULT ret;
+	if ((ret = preAuthChecks(h)) != PRL_ERR_SUCCESS)
+	{
+		m_service->sendSimpleResponseToClient(h, p, ret);
+		return;
+	}
+
+	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(p);
+	if (!pCmd->IsValid())
+	{
+		m_service->sendSimpleResponseToClient(h, p, PRL_ERR_FAILURE);
+		return;
+	}
+
+	SmartPtr<CDspClient> pClient;
+	bool bWasPreAuthorized = false;
+	pClient = m_service->getUserHelper().processUserLogin(h, p, bWasPreAuthorized);
+	if (pClient)
+	{
+		m_rwLock.lockForWrite();
+		if (m_clients.isEmpty()
+			/* Check to prevent lock HwInfo mutex before dispatcher init completed */
+			&& m_service->isFirstInitPhaseCompleted()
+			)
+		{
+			m_service->getHwMonitorThread().forceCheckHwChanges();
+		}
+		m_clients[h] = pClient;
+		//Erase client from pre authorized queue if any
+		m_preAuthorizedSessions.remove(h);
+		m_rwLock.unlock();
+
+		SmartPtr<IOPackage> response = m_service->getUserHelper()
+			.makeLoginResponsePacket(pClient, p);
+		pClient->sendPackage(response);
+		WRITE_TRACE(DBG_FATAL, "Session with uuid[ %s ] was started.", QSTR2UTF8(h));
+	} else if (bWasPreAuthorized)
+	{
+		m_rwLock.lockForWrite();
+		m_preAuthorizedSessions.insert(h);
+		m_rwLock.unlock();
+		m_service->sendSimpleResponseToClient(h, p, PRL_ERR_SUCCESS);
+	} else
+	{
+		// Error response should be sent by user helper,
+		// so do nothing!
+	}
+
+	ReleaseLogonClient(h);
+}
+
+void CDspClientManager::processPubKeyAuthorizeCmd
+(
+  const IOSender::Handle& h,
+  const SmartPtr<IOPackage>& p)
+{
+	BOOST_SCOPE_EXIT(&p)
+	{
+		IOPackage::PODData &d = IODATAMEMBER(p.getImpl())[0];
+		bzero(p->buffers[0].getImpl(), d.bufferSize);
+	}
+	BOOST_SCOPE_EXIT_END;
+	PRL_RESULT ret;
+	if ((ret = preAuthChecks(h)) != PRL_ERR_SUCCESS)
+	{
+		m_service->sendSimpleResponseToClient(h, p, ret);
+		return;
+	}
+
+	CProtoCommandPtr pCmd = CProtoSerializer::ParseCommand(p);
+	if (!pCmd->IsValid())
+	{
+		m_service->sendSimpleResponseToClient(h, p, PRL_ERR_FAILURE);
+		return;
+	}
+	CProtoCommandDspCmdUserLogin *pAuthorizeCommand =
+		CProtoSerializer::CastToProtoCommand<CProtoCommandDspCmdUserLogin>(pCmd);
+
+	if (!pAuthorizeCommand->IsValid())
+	{
+		WRITE_TRACE(DBG_FATAL, "Wrong public key authorization package was received: [%s]", \
+            p->buffers[0].getImpl());
+		m_service->sendSimpleResponseToClient(h, p, PRL_ERR_UNRECOGNIZED_REQUEST);
+		return;
+	}
+
+	QString username = pAuthorizeCommand->GetUserLoginName();
+	CRsaHelper rsa(CAuthHelper(username).getHomePath());
+
+	// Check public key is authorized
+	QString public_key = m_service->getUserHelper().decodePassword(pAuthorizeCommand->GetPassword(), h);
+	if (!rsa.isAuthorized(public_key))
+	{
+		m_service->sendSimpleResponseToClient(h, p, PRL_ERR_PUBLIC_KEY_NOT_AUTHORIZED);
+		return;
+	}
+
+	{
+		// Authorize connection
+		auto pClient = SmartPtr<CDspClient>(new CDspClient(h, username, 0));
+		bool res = m_service->getUserHelper().fillUserPreferences(h, p, pClient);
+		if (!res) {
+			// Error response is sent by UserHelper
+			return;
+		}
+		m_rwLock.lockForWrite();
+		if (m_clients.isEmpty()
+				/* Check to prevent lock HwInfo mutex before dispatcher init completed */
+				&& m_service->isFirstInitPhaseCompleted()
+			) {
+			m_service->getHwMonitorThread().forceCheckHwChanges();
+		}
+		m_clients[h] = pClient;
+		//Erase client from pre authorized queue if any
+		m_preAuthorizedSessions.remove(h);
+		m_rwLock.unlock();
+
+		WRITE_TRACE(DBG_FATAL, "Session with uuid[ %s ] was started (public key authorized).", QSTR2UTF8(h));
+	}
+
+	// Encrypt session uuid
+	auto enc_session_uuid = rsa.Encrypt(h, public_key);
+
+	if (enc_session_uuid.isFailed())
+	{
+		m_service->sendSimpleResponseToClient(h, p, enc_session_uuid.error().code());
+		return;
+	}
+	m_service->sendSimpleResponseToClient(h, p, PRL_ERR_SUCCESS, QStringList{enc_session_uuid.value()});
 }
 
 /*****************************************************************************/

@@ -54,8 +54,8 @@
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Std/SmartPtr.h>
 #include <prlcommon/PrlUuid/Uuid.h>
-#include "Libraries/PrlCommonUtils/CAuthHelper.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CAuthHelper.h>
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 

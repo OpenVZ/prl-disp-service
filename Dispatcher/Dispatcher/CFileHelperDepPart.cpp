@@ -58,7 +58,7 @@
 using namespace Virtuozzo;
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 static void NotifyCopyEvent(CDspTaskHelper * lpcTaskHelper, _PRL_EVENT_TYPE type, PRL_DEVICE_TYPE devType, int iDevNum)
 {

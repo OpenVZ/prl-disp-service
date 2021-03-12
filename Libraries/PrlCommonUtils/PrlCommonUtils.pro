@@ -14,8 +14,6 @@ SOURCES = MetaObjectUtils.cpp
 
 	HEADERS += \
 			CVmQuestionHelper.h \
-			CAuthHelper.h \
-			CFileHelper.h \
 			PrlQSettings.h \
 			CFirewallHelper.h \
 			UserFolderDefs.h \
@@ -24,8 +22,6 @@ SOURCES = MetaObjectUtils.cpp
 
 	SOURCES += \
 			CVmQuestionHelper.cpp \
-			CAuthHelper.cpp \
-			CFileHelper.cpp \
 			PrlQSettings.cpp \
 			CFirewallHelper.cpp \
 			CVmMigrateHelper.cpp \

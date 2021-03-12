@@ -40,11 +40,8 @@
 
 #include "Tests/CommonTestsUtils.h"
 
-#include "CFileHelperTest.h"
 #include "CDspStatisticsGuardTest.h"
-#include "CAuthHelperTest.h"
 #include "PrlCommonUtilsTest.h"
-#include "CAclHelperTest.h"
 #include "CGuestOsesHelperTest.h"
 #include "CTransponsterNwfilterTest.h"
 #ifdef _WIN_
@@ -60,11 +57,8 @@ int main(int argc, char *argv[])
 	TestConfig::readTestParameters();
 
 	int nRet = 0;
-	EXECUTE_TESTS_SUITE( CFileHelperTest )
 	EXECUTE_TESTS_SUITE( CDspStatisticsGuardTest )
-	EXECUTE_TESTS_SUITE( CAuthHelperTest )
 	EXECUTE_TESTS_SUITE( PrlCommonUtilsTest )
-	EXECUTE_TESTS_SUITE( CAclHelperTest )
 	EXECUTE_TESTS_SUITE( CGuestOsesHelperTest )
 #ifdef _WIN_
 	EXECUTE_TESTS_SUITE( CWifiHelperTest )

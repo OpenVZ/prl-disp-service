@@ -37,7 +37,7 @@
 #include <prlxmlmodel/VmConfig/CVmSoundOutputs.h>
 #include <prlxmlmodel/VmConfig/CVmHardDisk.h>
 #include <prlcommon/Logging/Logging.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/Interfaces/ApiDevNums.h>
 
 #include <QFile>

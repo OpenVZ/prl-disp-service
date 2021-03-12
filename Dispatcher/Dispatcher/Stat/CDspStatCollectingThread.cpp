@@ -58,7 +58,7 @@
 #include <boost/tuple/tuple.hpp>
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 #ifdef _WIN_
 	#include <process.h>

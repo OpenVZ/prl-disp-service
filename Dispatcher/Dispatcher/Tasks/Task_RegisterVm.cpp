@@ -65,7 +65,7 @@
 using namespace Virtuozzo;
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 const quint64 SIZE_64GB	= 64ULL*1024*1024*1024;		// 64 Gb
 const quint64 SIZE_32GB = 32ULL*1024*1024*1024;		// 32 Gb

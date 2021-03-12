@@ -35,7 +35,7 @@
 
 #include <QProcess>
 
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include "prlcommon/Interfaces/VirtuozzoQt.h"
 #include "prlcommon/Interfaces/VirtuozzoNamespace.h"
 #include "prlcommon/HostUtils/HostUtils.h"
@@ -48,7 +48,7 @@
 #include "Libraries/DispToDispProtocols/CVmBackupProto.h"
 #include "CDspService.h"
 #include "prlcommon/Std/PrlAssert.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "prlxmlmodel/BackupTree/VmItem.h"
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #include "CDspBackupDevice.h"

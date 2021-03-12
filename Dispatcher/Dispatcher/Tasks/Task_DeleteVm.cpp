@@ -57,7 +57,7 @@
 using namespace Virtuozzo;
 
 // By adding this interface we enable allocations tracing in the module
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 
 Task_DeleteVm::Task_DeleteVm (
 	SmartPtr<CDspClient>& client,

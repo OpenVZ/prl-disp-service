@@ -7,7 +7,6 @@ INCLUDEPATH *= $$PWD
 
 include($$LIBS_LEVEL/NonQtUtils/PrlNonQtUtils.pri)
 
-include($$LIBS_LEVEL/CAuth/CAuth.pri)
 win32 {
 	include($$LIBS_LEVEL/WmiWrap/WmiWrap.pri)
 	# TODO Check if these to libs are needed really

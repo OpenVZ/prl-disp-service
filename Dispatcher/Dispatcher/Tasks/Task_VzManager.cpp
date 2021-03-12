@@ -38,7 +38,7 @@
 #include "Dispatcher/Dispatcher/Tasks/Task_CloneVm.h"
 #include "Task_VzManager.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "Dispatcher/Dispatcher/Tasks/Task_UpdateCommonPrefs.h"
 #include "CDspVmStateSender.h"
 #include "CDspTemplateFacade.h"
