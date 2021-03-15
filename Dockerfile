@@ -20,6 +20,11 @@ RUN yum -y install yum-utils gdb && \
     yum -y update && \
     yes | yum-builddep "/tmp/source_package/`ls /tmp/source_package/`"
 
+RUN useradd prl_unit_test_user && \
+    useradd prl_unit_test_user2 && \
+    echo test | passwd prl_unit_test_user --stdin && \
+    echo test | passwd prl_unit_test_user2 --stdin
+
 WORKDIR /root/src
 
 CMD sh docker-build.sh debug && sh docker-build.sh test
