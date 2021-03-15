@@ -36,7 +36,7 @@
 #include <prlsdk/Virtuozzo.h>
 
 #include <prlcommon/Logging/Logging.h>
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #include "PrlHandleSmartPtrTest.h"
 #include "PrlApiTest.h"

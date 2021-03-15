@@ -49,7 +49,7 @@
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlCommonUtilsBase/CAuthHelper.h>
 
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 
 TestDspCmdUserGetProfile::TestDspCmdUserGetProfile(void)

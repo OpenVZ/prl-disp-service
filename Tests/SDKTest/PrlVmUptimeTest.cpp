@@ -33,7 +33,7 @@
 
 #include "PrlVmUptimeTest.h"
 #include "AutoHelpers.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include "SimpleServerWrapper.h"
 #include <prlcommon/Interfaces/VirtuozzoDomModel.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>

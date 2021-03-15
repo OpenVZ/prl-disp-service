@@ -6,13 +6,12 @@ INCLUDEPATH += /usr/share /usr/include/prlsdk
 include(QtLibraryTest.deps)
 
 HEADERS += QtCoreTest.h \
-	$$SRC_LEVEL/Tests/CommonTestsUtils.h
+	$$SRC_LEVEL/Tests/DispatcherTestsUtils.h
 
 SOURCES += Main.cpp \
 		QtCoreTest.cpp \
-	       $$SRC_LEVEL/Tests/CommonTestsUtils.cpp
 
-LIBS += -lprlcommon
+LIBS += -lprlcommon -llibprlTestsUtils
 
 # It is important to have "File Info" embedded in the
 # windows binaries - which means we need windows resource file

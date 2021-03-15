@@ -33,7 +33,7 @@
 
 #include "PrlUsbDevicesHotPlugTest.h"
 #include "SimpleServerWrapper.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #define CREATE_VM(create_with_devices)\
 	SimpleServerWrapper _connection( NULL );\

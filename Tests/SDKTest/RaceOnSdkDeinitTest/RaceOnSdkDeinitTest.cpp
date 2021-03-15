@@ -34,7 +34,7 @@
 #include "RaceOnSdkDeinitTest.h"
 
 #include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include <QThread>
 #include <QMutex>
 #include <QWaitCondition>

@@ -44,7 +44,7 @@
 #include "PrlAutoReportsTest.h"
 #include "SimpleServerWrapper.h"
 
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #include "AutoHelpers.h"
 

@@ -34,7 +34,7 @@
 
 #include <QCoreApplication>
 #include <QtTest/QtTest>
-#include <Tests/CommonTestsUtils.h>
+#include <Tests/DispatcherTestsUtils.h>
 // @@BEGIN_TEST_INCLUDES
 #include "CDsaWrapTest.h"
 // @@END_TEST_INCLUDES

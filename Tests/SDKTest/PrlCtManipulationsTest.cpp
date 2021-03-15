@@ -39,7 +39,7 @@
 #include "PrlCtManipulationsTest.h"
 #include "SimpleServerWrapper.h"
 
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include "Tests/SDKTest/AutoHelpers.h"
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/PrlUuid/Uuid.h>

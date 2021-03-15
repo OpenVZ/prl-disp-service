@@ -34,7 +34,7 @@
 #include "Libraries/DispToDispProtocols/CDispToDispCommonProto.h"
 #include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/Messaging/CVmEventParameterList.h>
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 using namespace Virtuozzo;
 

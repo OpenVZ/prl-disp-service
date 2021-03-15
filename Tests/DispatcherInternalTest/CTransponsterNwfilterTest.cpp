@@ -35,7 +35,7 @@
 
 #include <QtTest/QtTest>
 
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include "Libraries/Transponster/Reverse.h"
 #include "Libraries/Transponster/Reverse_p.h"
 

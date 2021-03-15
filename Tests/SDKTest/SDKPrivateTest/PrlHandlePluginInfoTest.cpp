@@ -34,7 +34,7 @@
 #include "PrlHandlePluginInfoTest.h"
 #include <prlcommon/Messaging/CVmEvent.h>
 #include "SDK/Handles/Disp/PrlHandlePluginInfo.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 
 void PrlHandlePluginInfoTest::init()

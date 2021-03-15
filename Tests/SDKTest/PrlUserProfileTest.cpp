@@ -35,7 +35,7 @@
 
 #include <prlxmlmodel/DispConfig/CDispUser.h>
 
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 
 void PrlUserProfileTest::initTestCase()

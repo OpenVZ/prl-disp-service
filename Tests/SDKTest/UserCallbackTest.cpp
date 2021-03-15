@@ -33,7 +33,7 @@
 #include <prlcommon/Logging/Logging.h>
 
 #include "UserCallbackTest.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #include <QFile>
 #include <QTextStream>

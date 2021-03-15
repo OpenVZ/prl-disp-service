@@ -35,7 +35,7 @@
 #include "SDK/Handles/Vm/PrlHandleVm.h"
 #include "SDK/Handles/Disp/PrlHandleServer.h"
 #include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #include <QFile>
 #include <QTextStream>

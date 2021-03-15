@@ -36,7 +36,7 @@
 #include "PrivateSituationsTest.h"
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <prlcommon/Logging/Logging.h>
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include <set>
 #include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/Messaging/CVmEventParameter.h>

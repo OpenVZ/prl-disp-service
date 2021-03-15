@@ -47,7 +47,7 @@
 
 #include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/PrlCommonUtilsBase/CAuthHelper.h>
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #include <prlcommon/Std/SmartPtr.h>
 

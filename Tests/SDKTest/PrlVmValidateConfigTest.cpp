@@ -30,7 +30,7 @@
 ///
 /////////////////////////////////////////////////////////////////////////////
 #include "PrlVmValidateConfigTest.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlxmlmodel/HostHardwareInfo/CHwGenericPciDevice.h>

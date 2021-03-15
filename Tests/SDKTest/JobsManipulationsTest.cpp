@@ -32,7 +32,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "JobsManipulationsTest.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include <prlcommon/Interfaces/VirtuozzoDomModel.h>
 #include <prlcommon/Interfaces/VirtuozzoTypes.h>
 #include <prlcommon/Messaging/CVmEvent.h>

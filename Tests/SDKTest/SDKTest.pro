@@ -21,7 +21,7 @@ HEADERS +=	HandlesManipulationsTest.h \
 						PrlAutoReportsTest.h \
 						PrlVmExecFunctionalityTest.h \
 						PrlExclusiveVmLockTest.h \
-						$$SRC_LEVEL/Tests/CommonTestsUtils.h \
+						$$SRC_LEVEL/Tests/DispatcherTestsUtils.h \
 						$$SRC_LEVEL/Tests/AclTestsUtils.h \
 						AutoHelpers.h \
 						PrlVmUptimeTest.h \
@@ -49,7 +49,6 @@ SOURCES +=	HandlesManipulationsTest.cpp \
 						PrlAutoReportsTest.cpp \
 						PrlVmExecFunctionalityTest.cpp \
 						PrlExclusiveVmLockTest.cpp \
-						$$SRC_LEVEL/Tests/CommonTestsUtils.cpp \
 						AutoHelpers.cpp \
 						PrlVmUptimeTest.cpp \
 						PrlNetworkShapingTest.cpp \

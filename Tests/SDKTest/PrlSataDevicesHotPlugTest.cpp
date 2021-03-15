@@ -33,7 +33,7 @@
 
 #include "PrlSataDevicesHotPlugTest.h"
 #include "SimpleServerWrapper.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 

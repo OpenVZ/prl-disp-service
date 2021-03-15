@@ -40,7 +40,7 @@
 #define H__AutoHelpers__H
 
 #include "SimpleServerWrapper.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <prlcommon/PrlUuid/Uuid.h>

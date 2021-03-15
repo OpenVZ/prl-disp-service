@@ -39,7 +39,7 @@
 
 #include <QtTest/QtTest>
 
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #include "SDK/Handles/PveControl.h"
 #include <prlcommon/Messaging/CVmEvent.h>

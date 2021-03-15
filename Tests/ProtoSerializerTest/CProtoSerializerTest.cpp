@@ -44,7 +44,7 @@
 #include <prlxmlmodel/HostHardwareInfo/CSystemStatistics.h>
 #include <prlxmlmodel/UserInformation/VirtuozzoUserInformation.h>
 #include <prlxmlmodel/NetworkConfig/CVirtuozzoNetworkConfig.h>
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 using namespace Virtuozzo;
 

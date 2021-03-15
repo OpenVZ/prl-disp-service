@@ -5,14 +5,13 @@ include(test.deps)
 
 HEADERS +=	../PrlIPPrivateNetworkTest.h \
 						../SimpleServerWrapper.h \
-						$$SRC_LEVEL/Tests/CommonTestsUtils.h \
+						$$SRC_LEVEL/Tests/DispatcherTestsUtils.h \
 						$$SRC_LEVEL/Tests/AclTestsUtils.h \
 						../AutoHelpers.h
 
 SOURCES +=	../PrlIPPrivateNetworkTest.cpp \
 						Main.cpp \
 						../SimpleServerWrapper.cpp \
-						$$SRC_LEVEL/Tests/CommonTestsUtils.cpp \
 						../AutoHelpers.cpp
 
 # It is important to have "File Info" embedded in the

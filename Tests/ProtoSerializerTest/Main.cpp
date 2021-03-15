@@ -37,7 +37,7 @@
 #include "CDispToDispProtoSerializerTest.h"
 #include "CVmMigrationProtoTest.h"
 
-#include "../CommonTestsUtils.h"
+#include "../DispatcherTestsUtils.h"
 
 int main(int argc, char *argv[])
 {

@@ -33,7 +33,7 @@
 
 #include "Build/Current.ver"
 #include "PrlVmExecFunctionalityTest.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include "SimpleServerWrapper.h"
 #include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/Messaging/CVmEventParameter.h>

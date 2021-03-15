@@ -32,7 +32,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "SimpleServerWrapper.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include <prlsdk/PrlApi.h>
 #include <prlcommon/Logging/Logging.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
