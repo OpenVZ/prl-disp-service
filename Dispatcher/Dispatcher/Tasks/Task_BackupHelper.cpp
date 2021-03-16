@@ -40,7 +40,7 @@
 #include "CDspClientManager.h"
 #include "Task_CloneVm.h"
 #include "Task_CloneVm_p.h"
-#include "Interfaces/Debug.h"
+#include <prlcommon/Interfaces/Debug.h>
 #include "prlcommon/Interfaces/VirtuozzoQt.h"
 #include "prlcommon/Interfaces/VirtuozzoNamespace.h"
 
@@ -51,7 +51,7 @@
 #include "CDspService.h"
 #include "prlcommon/Std/PrlAssert.h"
 #include "prlcommon/HostUtils/HostUtils.h"
-#include "Libraries/PrlCommonUtils/CFileHelper.h"
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "CDspVmStateSender.h"
 #include "CDspVmManager_p.h"
 #include "CDspVzHelper.h"
