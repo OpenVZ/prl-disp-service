@@ -8,5 +8,4 @@ win32: LIBS *= -lwinspool
 unix: {
 	LIBS *= -ldl
 }
-win32: include($$LIBS_LEVEL/HostUtils/HostUtils.pri)
 include($$LIBS_LEVEL/PrlNetworking/PrlNetworking.pri)

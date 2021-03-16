@@ -4,4 +4,3 @@ include(../../../Build/qmake/build_target.pri)
 
 include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
 include($$SRC_LEVEL/SDK/Wrappers/SdkWrap/SdkWrap.pri)
-include($$LIBS_LEVEL/Logging/Logging.pri)

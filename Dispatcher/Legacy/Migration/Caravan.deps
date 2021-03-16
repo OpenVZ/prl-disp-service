@@ -23,7 +23,5 @@ boost-without-mt {
 	LIBS += -lboost_filesystem -lboost_system
 }
 
-include($$LIBS_LEVEL/ProtoSerializer/ProtoSerializer.pri)
 include($$LIBS_LEVEL/DispToDispProtocols/DispToDispProtocols.pri)
-include($$LIBS_LEVEL/CAuth/CAuth.pri)
-
+include($$LIBS_LEVEL/VmFileList/VmFileList.pri)
