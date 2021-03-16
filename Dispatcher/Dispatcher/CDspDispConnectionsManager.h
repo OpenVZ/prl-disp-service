@@ -7,7 +7,7 @@
 /// @author sandro
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2021 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -82,31 +82,6 @@ private:
 		const SmartPtr<IOPackage>& p
 	);
 	/**
-	 * Checks performed before any authentication command
-	 * @param handle to dispatcher connection
-	 */
-	PRL_RESULT preAuthChecks(
-		const IOSender::Handle& h
-	);
-	/**
-	 * Processes dispatcher auth via password or challenge
-	 * @param handle to dispatcher connection
-	 * @param pointer to authorization package objects
-	 */
-	void processAuthorizeCmd(
-		const IOSender::Handle& h,
-		const SmartPtr<IOPackage>& p
-	);
-	/**
-	 * Processes dispatcher auth via public key
-	 * @param handle to dispatcher connection
-	 * @param pointer to authorization package object
-	 */
-	void processPubKeyAuthorizeCmd(
-		const IOSender::Handle& h,
-		const SmartPtr<IOPackage>& p
-	);
-	/**
 	 * Processes dispatcher connection logoff
 	 * @param pointer to dispatcher connection object
 	 * @param pointer to logoff request package object
@@ -126,8 +101,6 @@ private:
 	mutable QReadWriteLock m_rwLock;
 	/** VMs connections hash */
 	QHash< IOSender::Handle, SmartPtr<CDspDispConnection> > m_dispconns;
-	/** Temporary passwords for public key login */
-//	QHash< IOSender::Handle, QString > m_passwds;
 
 	CDspService* m_service;
 	Backup::Task::Launcher m_backup;

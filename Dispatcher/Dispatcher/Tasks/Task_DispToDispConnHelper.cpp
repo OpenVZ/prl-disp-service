@@ -7,7 +7,7 @@
 /// @author krasnov@
 ///
 /// Copyright (c) 2010-2017, Parallels International GmbH
-/// Copyright (c) 2017-2021 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -42,8 +42,6 @@
 #include "Task_DispToDispConnHelper.h"
 #include "CDspService.h"
 #include <prlcommon/Std/PrlAssert.h>
-#include <prlcommon/PrlCommonUtilsBase/CRsaHelper.h>
-#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 Task_DispToDispConnHelper::Task_DispToDispConnHelper(CVmEvent *pEvent)
 :m_pEvent(pEvent)
@@ -143,21 +141,16 @@ PRL_RESULT Task_DispToDispConnHelper::Connect(
 
 	CDispToDispCommandPtr pAuthorizeCmd;
 	if (sServerSessionUuid.isEmpty())
-		pAuthorizeCmd = CDispToDispProtoSerializer::CreateDispToDispAuthorizeCommand(sUser, sPassword, nFlags);
+		pAuthorizeCmd =	CDispToDispProtoSerializer::CreateDispToDispAuthorizeCommand(sUser, sPassword);
 	else
 		pAuthorizeCmd = CDispToDispProtoSerializer::CreateDispToDispAuthorizeCommand(sServerSessionUuid);
 
 	SmartPtr<IOPackage> pPackage =
 		DispatcherPackage::createInstance(pAuthorizeCmd->GetCommandId(), pAuthorizeCmd->GetCommand()->toString());
-	SmartPtr<IOPackage> pReply;
 
-	if ((nRetCode = SendReqAndWaitReply(pPackage, pReply)) != PRL_ERR_SUCCESS)
-		return nRetCode;
+	nRetCode = SendReqAndWaitReply(pPackage);
 
-	if (nFlags & PLLF_LOGIN_WITH_RSA_KEYS)
-		return ProcessPublicKeyAuth(pReply);
-
-	return PRL_ERR_SUCCESS;
+	return nRetCode;
 }
 
 void Task_DispToDispConnHelper::Disconnect()
@@ -290,30 +283,3 @@ PRL_RESULT Task_DispToDispConnHelper::SendReqAndWaitReply(
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Task_DispToDispConnHelper::ProcessPublicKeyAuth(const SmartPtr<IOPackage> &pReply)
-{
-	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(pReply);
-	CDispToDispResponseCommand *pResponseCommand =
-		CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispResponseCommand>(pCmd);
-	if (!pResponseCommand->IsValid())
-		return PRL_ERR_UNRECOGNIZED_REQUEST;
-
-	if (pResponseCommand->GetRetCode() != PRL_ERR_SUCCESS)
-		return pResponseCommand->GetRetCode();
-
-	QStringList params = pResponseCommand->GetParams();
-	if (params.size() != 1)
-		return PRL_ERR_UNRECOGNIZED_REQUEST;
-	QString encrypted_session_uuid = params.first();
-
-	CRsaHelper rsa(CFileHelper::homePath());
-	auto session_uuid = rsa.Decrypt(encrypted_session_uuid);
-	if (session_uuid.isFailed())
-		return session_uuid.error().code();
-
-	auto pAuthorizeCmd =
-		CDispToDispProtoSerializer::CreateDispToDispAuthorizeCommand(session_uuid.value());
-	auto pPackage =
-		DispatcherPackage::createInstance(pAuthorizeCmd->GetCommandId(), pAuthorizeCmd->GetCommand()->toString());
-	return SendReqAndWaitReply(pPackage);
-}
