@@ -34,7 +34,7 @@ SOURCES +=	\
 	TestDspCmdDirVmDelete.cpp\
 	TestDspCmdDirVmClone.cpp
 
-LIBS += -llibprlTestsUtils
+LIBS += -lprlTestsUtils
 
 # It is important to have "File Info" embedded in the
 # windows binaries - which means we need windows resource file

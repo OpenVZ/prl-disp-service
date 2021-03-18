@@ -29,7 +29,7 @@ linux-g++* {
 	}
 }
 
-LIBS += -lprlcommon -llibprlTestsUtils
+LIBS += -lprlcommon -lprlTestsUtils
 
 boost-with-mt {
 	LIBS += -lboost_filesystem-mt -lboost_system-mt
