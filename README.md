@@ -16,7 +16,7 @@ physical machine.
 
 ### How to build
 To build dispatcher
-```
+```bash
 ./Gen.py
 (cd Libraries/Transponster && qmake-qt4 && make debug)
 (cd Dispatcher && qmake-qt4 && make  -j<N> debug)
@@ -24,14 +24,24 @@ To build dispatcher
 where is \<N\> - a number of CPU cores on the build node + 2.
 
 To build tests:
-```
+```bash
 cd Tests
 qmake-qt4
 make
 ```
 
-To build in Docker container:
+Before running tests, create users `prl_unit_test_user` and `prl_unit_test_user2`.
+Both users shall have password `test`.
+
+```bash
+useradd prl_unit_test_user
+useradd prl_unit_test_user2
+echo test | passwd prl_unit_test_user --stdin
+echo test | passwd prl_unit_test_user2 --stdin
 ```
+
+To build in Docker container:
+```bash
 docker build -t prl-disp-service .
 docker run -v "$(pwd):/root/src" -it prl-disp-service
 ```

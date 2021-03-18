@@ -1,2 +1,3 @@
 # Ignore everything (sources are mounted as volume)
 **
+!Dockerfile
