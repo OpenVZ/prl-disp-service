@@ -11,7 +11,7 @@ HEADERS += QtCoreTest.h \
 SOURCES += Main.cpp \
 		QtCoreTest.cpp \
 
-LIBS += -lprlcommon -llibprlTestsUtils
+LIBS += -lprlcommon -lprlTestsUtils
 
 # It is important to have "File Info" embedded in the
 # windows binaries - which means we need windows resource file
