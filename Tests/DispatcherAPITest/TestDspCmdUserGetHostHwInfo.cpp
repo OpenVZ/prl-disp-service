@@ -44,7 +44,7 @@
 #include <prlcommon/Messaging/CVmEventParameter.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>
 
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 void TestDspCmdUserGetHostHwInfo::init() {
 	m_pHandler->Clear();

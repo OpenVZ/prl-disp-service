@@ -35,7 +35,7 @@
 #define SimpleServerWrapper_H
 
 #include <prlsdk/helpers/SdkWrap/SdkHandleWrap.h>
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 class SimpleServerWrapper
 {

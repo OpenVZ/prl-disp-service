@@ -31,7 +31,7 @@
 ///
 /////////////////////////////////////////////////////////////////////////////
 #include "PrlVirtualNetworkTest.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlxmlmodel/NetworkConfig/CVirtualNetwork.h>
 #include <prlxmlmodel/HostHardwareInfo/CHostHardwareInfo.h>

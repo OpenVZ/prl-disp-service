@@ -22,7 +22,7 @@
  * Schaffhausen, Switzerland.
  */
 
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #include "../PrlSrvManipulationsTest.h"
 

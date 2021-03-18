@@ -31,7 +31,7 @@
 ///
 /////////////////////////////////////////////////////////////////////////////
 #include "PrlVmManipulationsTest.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include "SimpleServerWrapper.h"
 #include "TestCallbackCommon.h"
 

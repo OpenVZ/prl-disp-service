@@ -32,7 +32,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #include "PrlApiTest.h"
 #include "SDK/Handles/Disp/PrlHandleServerJob.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <prlcommon/Interfaces/VirtuozzoDomModel.h>

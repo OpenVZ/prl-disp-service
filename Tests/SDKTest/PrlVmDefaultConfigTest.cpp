@@ -31,7 +31,7 @@
 ///
 /////////////////////////////////////////////////////////////////////////////
 #include "PrlVmDefaultConfigTest.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #include <prlcommon/Interfaces/VirtuozzoSdkPrivate.h>
 #include <prlcommon/Interfaces/ApiDevNums.h>

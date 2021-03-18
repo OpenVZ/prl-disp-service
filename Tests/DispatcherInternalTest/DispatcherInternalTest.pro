@@ -15,7 +15,7 @@ QMAKE_EXTRA_TARGETS += first copydata
 HEADERS += \
 	$$SRC_LEVEL/Dispatcher/Dispatcher/Stat/CDspStatisticsGuard.h\
 	$$SRC_LEVEL/Dispatcher/Dispatcher/Stat/CDspSystemInfo.h\
-	$$SRC_LEVEL/Tests/CommonTestsUtils.h\
+	$$SRC_LEVEL/Tests/DispatcherTestsUtils.h\
 	$$SRC_LEVEL/Tests/AclTestsUtils.h\
 	CDspStatisticsGuardTest.h\
 	PrlCommonUtilsTest.h \
@@ -28,7 +28,6 @@ HEADERS += \
 SOURCES += \
 	Main.cpp\
 	$$SRC_LEVEL/Dispatcher/Dispatcher/Stat/CDspStatisticsGuard.cpp\
-	$$SRC_LEVEL/Tests/CommonTestsUtils.cpp\
 	CDspStatisticsGuardTest.cpp\
 	PrlCommonUtilsTest.cpp \
 	CGuestOsesHelperTest.cpp \
@@ -56,7 +55,7 @@ linux-g++* {
 }
 
 LIBS += -L$$SRC_LEVEL/z-Build/Release -lprlcommon -lTransponster \ 
-		-lPrlNetworking -lCpuFeatures -lStatesStore
+		-lPrlNetworking -lCpuFeatures -lStatesStore -llibprlTestsUtils
 
 boost-with-mt {
 	LIBS += -lboost_filesystem-mt -lboost_system-mt

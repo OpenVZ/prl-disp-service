@@ -12,7 +12,7 @@ HEADERS +=	PrlHandleSmartPtrTest.h \
 			PrlQuestionsListTest.h \
 			MigrationFlagsMacrosesTest.h \
 			PrlHandlePluginInfoTest.h \
-			$$SRC_LEVEL/Tests/CommonTestsUtils.h
+			$$SRC_LEVEL/Tests/DispatcherTestsUtils.h
 
 SOURCES +=	PrlHandleSmartPtrTest.cpp \
 			PrlApiTest.cpp \
@@ -24,7 +24,6 @@ SOURCES +=	PrlHandleSmartPtrTest.cpp \
 			MigrationFlagsMacrosesTest.cpp \
 			PrlHandlePluginInfoTest.cpp \
 			Main.cpp \
-			$$SRC_LEVEL/Tests/CommonTestsUtils.cpp
 
 include($$SRC_LEVEL/SDK/Handles/SDKSources.pri)
 

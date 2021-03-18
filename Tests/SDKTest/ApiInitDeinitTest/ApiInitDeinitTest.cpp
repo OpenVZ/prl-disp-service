@@ -35,7 +35,7 @@
 #include "ApiInitDeinitTest.h"
 
 #include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 void ApiInitDeinitTest::test()
 {

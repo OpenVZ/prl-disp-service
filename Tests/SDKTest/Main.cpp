@@ -37,7 +37,7 @@
 #include "Main.h"
 
 #include <prlcommon/Logging/Logging.h>
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #include "HandlesManipulationsTest.h"
 #include "PrlSrvManipulationsTest.h"

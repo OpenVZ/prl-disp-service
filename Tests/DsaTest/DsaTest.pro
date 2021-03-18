@@ -11,9 +11,8 @@ TESTS_CPP =  CDsaWrapTest.cpp
 
 HEADERS += \
 	$$TESTS_H \
-	$$SRC_LEVEL/Tests/CommonTestsUtils.h
+	$$SRC_LEVEL/Tests/DispatcherTestsUtils.h
 
 SOURCES += \
 	$$TESTS_CPP \
 	main.cpp \
-	$$SRC_LEVEL/Tests/CommonTestsUtils.cpp

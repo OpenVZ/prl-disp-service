@@ -40,7 +40,7 @@
 
 #include "Main.h"
 
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #include "TestDspCmdUserLogin.h"
 #include "TestDspCmdDirGetVmList.h"

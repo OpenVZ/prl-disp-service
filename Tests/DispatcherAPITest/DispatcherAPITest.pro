@@ -6,7 +6,7 @@ include(DispatcherAPITest.deps)
 HEADERS += \
 	TestDispatcherBase.h\
 	$$SRC_LEVEL/Tests/CMockPveEventsHandler.h\
-	$$SRC_LEVEL/Tests/CommonTestsUtils.h\
+	$$SRC_LEVEL/Tests/DispatcherTestsUtils.h\
 	$$SRC_LEVEL/SDK/Handles/PveControl.h\
 	TestDspCmdUserLogin.h\
 	TestDspCmdDirGetVmList.h\
@@ -22,7 +22,6 @@ HEADERS += \
 SOURCES +=	\
 	TestDispatcherBase.cpp\
 	$$SRC_LEVEL/Tests/CMockPveEventsHandler.cpp\
-	$$SRC_LEVEL/Tests/CommonTestsUtils.cpp\
 	$$SRC_LEVEL/SDK/Handles/PveControl.cpp\
 	Main.cpp\
 	TestDspCmdUserLogin.cpp\
@@ -34,6 +33,8 @@ SOURCES +=	\
 	TestDspCmdDirVmCreate.cpp\
 	TestDspCmdDirVmDelete.cpp\
 	TestDspCmdDirVmClone.cpp
+
+LIBS += -llibprlTestsUtils
 
 # It is important to have "File Info" embedded in the
 # windows binaries - which means we need windows resource file

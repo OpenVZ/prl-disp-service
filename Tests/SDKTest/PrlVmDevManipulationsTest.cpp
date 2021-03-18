@@ -45,7 +45,7 @@
 #include <QDir>
 #include <QHostAddress>
 
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include "Tests/SDKTest/AutoHelpers.h"
 
 #define READ_VM_CONFIG_INTO_BUF(sFileName)\

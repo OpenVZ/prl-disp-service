@@ -38,7 +38,7 @@
 #include <QCoreApplication>
 #include <QtTest/QtTest>
 
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #include "CDspStatisticsGuardTest.h"
 #include "PrlCommonUtilsTest.h"

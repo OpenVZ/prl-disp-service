@@ -36,7 +36,7 @@
 #include <QDir>
 #include <QTime>
 
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include "Tests/AclTestsUtils.h"
 #include "Tests/SDKTest/AutoHelpers.h"
 #include "TestCallbackCommon.h"

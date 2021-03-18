@@ -52,7 +52,7 @@
 #include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 
 
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 TestDispatcherBase::TestDispatcherBase()
 :m_pPveControl(0), m_pHandler(new CMockPveEventsHandler())

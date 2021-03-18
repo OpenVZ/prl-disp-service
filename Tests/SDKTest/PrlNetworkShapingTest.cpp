@@ -31,11 +31,11 @@
 ///
 /////////////////////////////////////////////////////////////////////////////
 #include "PrlNetworkShapingTest.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include <prlcommon/Interfaces/VirtuozzoQt.h>
 #include <prlxmlmodel/NetworkConfig/CNetworkClass.h>
 #include <prlxmlmodel/NetworkConfig/CNetworkShaping.h>
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include "Libraries/PrlNetworking/PrlNetLibrary.h"
 
 

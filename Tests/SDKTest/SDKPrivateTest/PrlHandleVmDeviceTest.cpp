@@ -34,7 +34,7 @@
 #include "SDK/Handles/Vm/PrlHandleVmDevice.h"
 #include <prlxmlmodel/VmConfig/CVmFloppyDisk.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 PrlHandleVmDeviceTest::PrlHandleVmDeviceTest()
 : m_ServerHandle(PRL_INVALID_HANDLE), m_VmHandle(PRL_INVALID_HANDLE),

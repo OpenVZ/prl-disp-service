@@ -33,7 +33,7 @@
 
 #include "PrlApiBasicsTest.h"
 #include "SDK/Wrappers/SdkWrap/SdkHandleWrap.h"
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/Messaging/CVmEvent.h>
 

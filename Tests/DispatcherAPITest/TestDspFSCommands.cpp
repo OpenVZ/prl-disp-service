@@ -51,7 +51,7 @@
 #include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 namespace {
 #ifdef _WIN_

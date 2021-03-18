@@ -42,7 +42,7 @@
 #include <prlxmlmodel/VirtuozzoObjects/CXmlModelHelper.h>
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <prlcommon/Std/SmartPtr.h>
-#include "Tests/CommonTestsUtils.h"
+#include "Tests/DispatcherTestsUtils.h"
 
 #define FILL_HDD_PROPS(hdd)\
 	QString sDeviceName = Uuid::createUuid().toString();\
