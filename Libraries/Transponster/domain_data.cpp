@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2021 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -1022,6 +1022,29 @@ bool Traits<Domain::Xml::PWriteBytesSec>::parse(const QString& src_, Domain::Xml
 QString Traits<Domain::Xml::PWriteBytesSec>::generate(Domain::Xml::PWriteBytesSec::value_type src_)
 {
 	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PVzRelative
+
+bool Traits<Domain::Xml::PVzRelative>::parse(const QString& src_, Domain::Xml::PVzRelative::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toDouble(&output);
+	return output;
+}
+
+QString Traits<Domain::Xml::PVzRelative>::generate(Domain::Xml::PVzRelative::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Domain::Xml::PVzRelative>::validate(Domain::Xml::PVzRelative::value_type value_)
+{
+	if (1 < value_)
+		return false;
+
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

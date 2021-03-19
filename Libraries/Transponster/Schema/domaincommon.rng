@@ -907,6 +907,12 @@
             <attribute name="vz-auto">
               <ref name="virYesNo"/>
             </attribute>
+            <attribute name="vz-relative">
+              <data type="double">
+                <param name="minExclusive">0</param>
+                <param name="maxInclusive">1</param>
+              </data>
+            </attribute>
             <ref name='scaledInteger'/>
           </choice>
         </element>

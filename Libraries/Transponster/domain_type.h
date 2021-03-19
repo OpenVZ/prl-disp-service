@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2021 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -2197,7 +2197,7 @@ namespace Domain
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Attribute<Domain::Xml::EVirYesNo, Name::Strict<5194> >, ScaledInteger > > VMinGuaranteeImpl;
+typedef Choice<mpl::vector<Attribute<Domain::Xml::EVirYesNo, Name::Strict<5194> >, Attribute<Domain::Xml::PVzRelative, Name::Strict<5682> >, ScaledInteger > > VMinGuaranteeImpl;
 typedef VMinGuaranteeImpl::value_type VMinGuarantee;
 
 } // namespace Xml

@@ -1809,9 +1809,8 @@ Result Editor::setMemGuarantee(const CVmMemory& memory_)
 	}
 	else
 	{
-		quint64 g = memory_.getRamSize();
-		g = (g << 10) * memory_.getMemGuarantee() / 100;
-		param.add(VIR_DOMAIN_MEMORY_MIN_GUARANTEE, g);
+		param.add(VIR_DOMAIN_MEMORY_MIN_GUARANTEE_VZ_RELATIVE,
+				memory_.getMemGuarantee() / 100.0);
 	}
 
 	Parameters::Result_type p = param.extract();

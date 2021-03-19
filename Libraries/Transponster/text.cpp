@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2020 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2021 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -5704,7 +5704,9 @@ static QString g_text[] = {
 	QString("ipset-name-type5676"),
 	QString("data5677"),
 	QString("ipset-name-type5678"),
-	QString("anonymous5679")
+	QString("anonymous5679"),
+	QString(""),
+	QString("vz-relative")
 };
 
 const QString& getText(quint32 index_)
