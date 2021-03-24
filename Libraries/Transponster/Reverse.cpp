@@ -1981,12 +1981,17 @@ PRL_RESULT Builder::setBlank()
 	if (PVT_VM != m_input.getVmType())
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
-	Libvirt::Domain::Xml::Os2 os;
+	const mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type& o =
+		boost::get<mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type>
+			(m_result->getOs());
+	Libvirt::Domain::Xml::Os2 os(Libvirt::Domain::Xml::Os2(o.getValue()));
 	mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
 	if (getStartupOptions(os) || Resources(m_input).getChipset(os))
+	{
 		vos.setValue(os);
+		m_result->setOs(vos);
+	}
 
-	m_result->setOs(vos);
 	return PRL_ERR_SUCCESS;
 }
 
