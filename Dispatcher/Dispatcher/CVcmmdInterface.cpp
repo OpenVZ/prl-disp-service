@@ -144,7 +144,7 @@ void Marshal::load(Model& dst_)
 			dst_.setGuarantee(Model::guarantee_type(g,
 				PRL_MEMGUARANTEE_AUTO));
 			break;
-		case VCMMD_MEMGUARANTEE_PERCENTS:
+		case VCMMD_MEMGUARANTEE_BYTES:
 			dst_.setGuarantee(Model::guarantee_type(g,
 				PRL_MEMGUARANTEE_PERCENTS));
 		}
@@ -181,7 +181,7 @@ void Marshal::save(const Model& ve_)
 			default:
 				vcmmd_ve_config_append(m_dataStore,
 					VCMMD_VE_CONFIG_GUARANTEE_TYPE,
-					VCMMD_MEMGUARANTEE_PERCENTS);
+					VCMMD_MEMGUARANTEE_BYTES);
 			}
 		}
 	}
