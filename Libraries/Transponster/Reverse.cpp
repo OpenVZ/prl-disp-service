@@ -1981,14 +1981,20 @@ PRL_RESULT Builder::setBlank()
 	if (PVT_VM != m_input.getVmType())
 		return PRL_ERR_BAD_VM_CONFIG_FILE_SPECIFIED;
 
-	const mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type& o =
-		boost::get<mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type>
-			(m_result->getOs());
-	Libvirt::Domain::Xml::Os2 os(Libvirt::Domain::Xml::Os2(o.getValue()));
-	mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
-	if (getStartupOptions(os) || Resources(m_input).getChipset(os))
+	std::unique_ptr<Libvirt::Domain::Xml::Os2> os;
+	if (m_result->getOs().which() == 1)
 	{
-		vos.setValue(os);
+		const mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type& o =
+			boost::get<mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type>
+				(m_result->getOs());
+		os.reset(new Libvirt::Domain::Xml::Os2(o.getValue()));
+	}
+	else
+		os.reset(new Libvirt::Domain::Xml::Os2);
+	if (getStartupOptions(*os) || Resources(m_input).getChipset(*os))
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
+		vos.setValue(*os);
 		m_result->setOs(vos);
 	}
 
