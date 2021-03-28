@@ -144,6 +144,18 @@ public:
 							/*OUT*/QString & userId,
 							/*IN*/bool bSecure );
 
+	/**
+	 * Fills user preferences and adds it in logged users hash
+	 * @param pointer to procedure initiator object
+	 * @param pointer to processing user instance
+	 * @param processing command type
+	 * @param remote hostname from which user was logon
+	 * @return true if success, false otherwise
+	 */
+	bool fillUserPreferences ( const IOSender::Handle&,
+							   const SmartPtr<IOPackage>&,
+							   SmartPtr<CDspClient>& );
+
 public:
 	/////////////////////////////////////
 	//
@@ -163,6 +175,9 @@ public:
 	SmartPtr<IOPackage> makeLoginResponsePacket( const SmartPtr<CDspClient>& pSession
 		, const SmartPtr<IOPackage>& pkg );
 
+	// decode password
+	QString decodePassword(const QString& password, const IOSender::Handle &h);
+
 private:
 	/**
 	 * @brief Check whether advanced authorization required over trusted channel connection.
@@ -175,18 +190,6 @@ private:
 
 	// Setup user's defaults
 	bool setupUserDefaults ( CDispUser* p_user, CAuthHelper& pAuthHelper );
-
-	/**
-	 * Fills user preferences and adds it in logged users hash
-	 * @param pointer to procedure initiator object
-	 * @param pointer to processing user instance
-	 * @param processing command type
-	 * @param remote hostname from which user was logon
-	 * @return true if success, false otherwise
-	 */
-	bool fillUserPreferences ( const IOSender::Handle&,
-							   const SmartPtr<IOPackage>&,
-							   SmartPtr<CDspClient>& );
 
 	/**
 	 * Returns user information list (see XML Model class UserInfo)
@@ -210,9 +213,6 @@ private:
 	// load from dispatcher qsettings user defined data and adds it to CDispUserSettings object
 	PRL_RESULT addUserDefinedProxySecure( SmartPtr<CDispUserSettings> pData,
 									const QString & strUserId );
-
-	// decode password
-	QString decodePassword(const QString& password, const IOSender::Handle &h);
 
 
 #ifdef SENTILLION_VTHERE_PLAYER
