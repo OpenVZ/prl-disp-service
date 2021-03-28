@@ -122,7 +122,8 @@ public:
 	/** Sends simple response event to IO client */
 	IOSendJob::Handle sendSimpleResponseToClient ( const IOSender::Handle&,
 												   const SmartPtr<IOPackage>&,
-												   PRL_RESULT );
+												   PRL_RESULT nRetCode,
+												   const QStringList& lstParams = QStringList() );
 
 	/**
 	 * Sends simple response event to dispatcher client
@@ -134,7 +135,8 @@ public:
 	IOSendJob::Handle sendSimpleResponseToDispClient (
 		const IOSender::Handle &h,
 		const SmartPtr<IOPackage> &pRequestPkg,
-		PRL_RESULT nRetCode
+		PRL_RESULT nRetCode,
+		QStringList lstParams = QStringList()
 	);
 
 	/**

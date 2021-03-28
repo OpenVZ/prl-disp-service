@@ -564,13 +564,14 @@ void CDspService::enableConfigsCrashSafeMech()
 IOSendJob::Handle CDspService::sendSimpleResponseToClient (
 	const IOSender::Handle& h,
 	const SmartPtr<IOPackage>& p,
-	PRL_RESULT rc )
+	PRL_RESULT nRetCode,
+	const QStringList& lstParams )
 {
 	if ( m_ioServerPool->clientSenderType(h) != IOSender::Client )
 		return IOSendJob::Handle();
 
 	CProtoCommandPtr pResponse =
-		CProtoSerializer::CreateDspWsResponseCommand( p, rc );
+		CProtoSerializer::CreateDspWsResponseCommand( p, nRetCode, lstParams );
 	SmartPtr<IOPackage> response =
 		DispatcherPackage::createInstance( PVE::DspWsResponse, pResponse, p );
 	return convey(m_ioServerPool->sendPackage( h, response ), *m_ioServerPool);
@@ -579,14 +580,15 @@ IOSendJob::Handle CDspService::sendSimpleResponseToClient (
 IOSendJob::Handle CDspService::sendSimpleResponseToDispClient (
 	const IOSender::Handle &h,
 	const SmartPtr<IOPackage> &pRequestPkg,
-	PRL_RESULT nRetCode
+	PRL_RESULT nRetCode,
+	QStringList lstParams
 	)
 {
 	if ( m_ioServerPool->clientSenderType(h) != IOSender::Dispatcher )
 		return IOSendJob::Handle();
 
 	CDispToDispCommandPtr pResponse =
-		CDispToDispProtoSerializer::CreateDispToDispResponseCommand( nRetCode, pRequestPkg );
+		CDispToDispProtoSerializer::CreateDispToDispResponseCommand( nRetCode, pRequestPkg, lstParams );
 	SmartPtr<IOPackage> response =
 		DispatcherPackage::createInstance( DispToDispResponseCmd, pResponse, pRequestPkg );
 	return convey(m_ioServerPool->sendPackage( h, response ), *m_ioServerPool);
