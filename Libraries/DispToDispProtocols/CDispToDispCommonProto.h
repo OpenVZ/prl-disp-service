@@ -92,7 +92,7 @@ class CDispToDispProtoSerializer
 	 * @param password
 	 */
 	static CDispToDispCommandPtr CreateDispToDispAuthorizeCommand(
-		const QString &sUserName, const QString &sPassword
+		const QString &sUserName, const QString &sPassword, quint32 nFlags = 0
 	);
 
 	/**
@@ -428,7 +428,7 @@ public:
 	 * @param password
 	 */
 	CDispToDispAuthorizeCommand(
-		const QString &sUserName, const QString &sPassword
+		const QString &sUserName, const QString &sPassword, quint32 nFlags = 0
 	);
 	~CDispToDispAuthorizeCommand();
 

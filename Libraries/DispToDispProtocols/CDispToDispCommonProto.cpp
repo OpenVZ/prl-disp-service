@@ -148,11 +148,11 @@ CDispToDispCommandPtr CDispToDispProtoSerializer::CreateDispToDispAuthorizeComma
 }
 
 CDispToDispCommandPtr CDispToDispProtoSerializer::CreateDispToDispAuthorizeCommand(
-		const QString &sUserName, const QString &sPassword
+		const QString &sUserName, const QString &sPassword, quint32 nFlags
 	)
 {
 	return CDispToDispCommandPtr(new CDispToDispAuthorizeCommand(
-									sUserName, sPassword
+									sUserName, sPassword, nFlags
 									));
 }
 
@@ -459,9 +459,9 @@ CDispToDispAuthorizeCommand::CDispToDispAuthorizeCommand(
 }
 
 CDispToDispAuthorizeCommand::CDispToDispAuthorizeCommand(
-		const QString &sUserName, const QString &sPassword
+		const QString &sUserName, const QString &sPassword, quint32 nFlags
 	)
-: CDispToDispCommand(DispToDispAuthorizeCmd)
+: CDispToDispCommand(DispToDispAuthorizeCmd, false, nFlags)
 {
 	SetStringParamValue( sUserName, EVT_PARAM_DISP_TO_DISP_AUTHORIZE_CMD_USER_NAME );
 	SetStringParamValue( sPassword, EVT_PARAM_DISP_TO_DISP_AUTHORIZE_CMD_PASSWORD );
