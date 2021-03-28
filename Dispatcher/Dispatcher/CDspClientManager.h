@@ -196,6 +196,34 @@ private:
 	bool CaptureLogonClient(const IOSender::Handle& h);
 	void ReleaseLogonClient(const IOSender::Handle& h);
 
+	/**
+ * Checks performed before any authentication command
+ * @param handle to dispatcher connection
+ */
+	PRL_RESULT preAuthChecks(
+		const IOSender::Handle& h,
+		bool restore = false
+	);
+	/**
+	 * Processes dispatcher auth via password or challenge
+	 * @param handle to dispatcher connection
+	 * @param pointer to authorization package objects
+	 */
+	void processAuthorizeCmd(
+		const IOSender::Handle& h,
+		const SmartPtr<IOPackage>& p
+	);
+	/**
+	 * Processes dispatcher auth via public key
+	 * @param handle to dispatcher connection
+	 * @param pointer to authorization package object
+	 */
+	void processPubKeyAuthorizeCmd(
+		const IOSender::Handle& h,
+		const SmartPtr<IOPackage>& p
+	);
+
+
 	typedef QSet< IOSender::Handle >	handle_set;
 	handle_set	m_setLogonClients;
 	handle_set  m_preAuthorizedSessions;
