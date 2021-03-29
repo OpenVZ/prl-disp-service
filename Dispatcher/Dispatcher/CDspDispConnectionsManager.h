@@ -82,6 +82,31 @@ private:
 		const SmartPtr<IOPackage>& p
 	);
 	/**
+ * Checks performed before any authentication command
+ * @param handle to dispatcher connection
+ */
+	PRL_RESULT preAuthChecks(
+		const IOSender::Handle& h
+	);
+	/**
+	 * Processes dispatcher auth via password or challenge
+	 * @param handle to dispatcher connection
+	 * @param pointer to authorization package objects
+	 */
+	void processAuthorizeCmd(
+		const IOSender::Handle& h,
+		const SmartPtr<IOPackage>& p
+	);
+	/**
+	 * Processes dispatcher auth via public key
+	 * @param handle to dispatcher connection
+	 * @param pointer to authorization package object
+	 */
+	void processPubKeyAuthorizeCmd(
+		const IOSender::Handle& h,
+		const SmartPtr<IOPackage>& p
+	);
+	/**
 	 * Processes dispatcher connection logoff
 	 * @param pointer to dispatcher connection object
 	 * @param pointer to logoff request package object
