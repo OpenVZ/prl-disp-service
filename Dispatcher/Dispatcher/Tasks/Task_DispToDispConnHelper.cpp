@@ -42,6 +42,8 @@
 #include "Task_DispToDispConnHelper.h"
 #include "CDspService.h"
 #include <prlcommon/Std/PrlAssert.h>
+#include <prlcommon/PrlCommonUtilsBase/CRsaHelper.hpp>
+#include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 
 Task_DispToDispConnHelper::Task_DispToDispConnHelper(CVmEvent *pEvent)
 :m_pEvent(pEvent)
@@ -141,16 +143,20 @@ PRL_RESULT Task_DispToDispConnHelper::Connect(
 
 	CDispToDispCommandPtr pAuthorizeCmd;
 	if (sServerSessionUuid.isEmpty())
-		pAuthorizeCmd =	CDispToDispProtoSerializer::CreateDispToDispAuthorizeCommand(sUser, sPassword);
+		pAuthorizeCmd =	CDispToDispProtoSerializer::CreateDispToDispAuthorizeCommand(sUser, sPassword, nFlags);
 	else
 		pAuthorizeCmd = CDispToDispProtoSerializer::CreateDispToDispAuthorizeCommand(sServerSessionUuid);
 
 	SmartPtr<IOPackage> pPackage =
 		DispatcherPackage::createInstance(pAuthorizeCmd->GetCommandId(), pAuthorizeCmd->GetCommand()->toString());
+	SmartPtr<IOPackage> pReply;
 
-	nRetCode = SendReqAndWaitReply(pPackage);
+	if ((nRetCode = SendReqAndWaitReply(pPackage, pReply)) != PRL_ERR_SUCCESS)
+		return nRetCode;
+	if (nFlags & PLLF_LOGIN_WITH_RSA_KEYS)
+		return ProcessPublicKeyAuth(pReply);
 
-	return nRetCode;
+	return PRL_ERR_SUCCESS;
 }
 
 void Task_DispToDispConnHelper::Disconnect()
@@ -283,3 +289,30 @@ PRL_RESULT Task_DispToDispConnHelper::SendReqAndWaitReply(
 	return PRL_ERR_SUCCESS;
 }
 
+PRL_RESULT Task_DispToDispConnHelper::ProcessPublicKeyAuth(const SmartPtr<IOPackage> &pReply)
+{
+	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(pReply);
+	CDispToDispResponseCommand *pResponseCommand =
+		CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispResponseCommand>(pCmd);
+	if (!pResponseCommand->IsValid())
+		return PRL_ERR_UNRECOGNIZED_REQUEST;
+
+	if (pResponseCommand->GetRetCode() != PRL_ERR_SUCCESS)
+		return pResponseCommand->GetRetCode();
+
+	QStringList params = pResponseCommand->GetParams();
+	if (params.size() < 1)
+		return PRL_ERR_UNRECOGNIZED_REQUEST;
+	QString encrypted_session_uuid = params.first();
+
+	CRsaHelper rsa(CFileHelper::homePath());
+	auto session_uuid = rsa.Decrypt(encrypted_session_uuid);
+	if (session_uuid.isFailed())
+		return session_uuid.error().code();
+
+	auto pAuthorizeCmd =
+		CDispToDispProtoSerializer::CreateDispToDispAuthorizeCommand(session_uuid.value());
+	auto pPackage =
+		DispatcherPackage::createInstance(pAuthorizeCmd->GetCommandId(), pAuthorizeCmd->GetCommand()->toString());
+	return SendReqAndWaitReply(pPackage);
+}
