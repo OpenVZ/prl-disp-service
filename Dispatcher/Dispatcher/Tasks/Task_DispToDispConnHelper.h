@@ -78,6 +78,8 @@ protected:
 	SmartPtr<IOClient> m_pIoClient;
 	CVmEvent *m_pEvent;
 	quint32 m_nTimeout;
+private:
+	PRL_RESULT ProcessPublicKeyAuth(const SmartPtr<IOPackage> &pReply);
 };
 
 #endif //__Task_DispToDispConnHelper_H_

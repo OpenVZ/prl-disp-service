@@ -52,6 +52,7 @@
 #include "prlcommon/Std/PrlAssert.h"
 #include "prlcommon/HostUtils/HostUtils.h"
 #include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
+#include <prlcommon/PrlCommonUtilsBase/CRsaHelper.hpp>
 #include "CDspVmStateSender.h"
 #include "CDspVmManager_p.h"
 #include "CDspVzHelper.h"
@@ -1574,6 +1575,9 @@ PRL_RESULT Task_BackupMixin::connect()
 
 		CDispBackupSourcePreferences *pBackupSource = dispPref->getBackupSourcePreferences();
 
+		sLogin = pBackupSource->getLogin();
+		sPw = pBackupSource->getPassword();
+
 		if (m_sServerSessionUuid.isEmpty())
 		{
 			if (pBackupSource->getDefaultBackupServer().isEmpty())
@@ -1586,17 +1590,21 @@ PRL_RESULT Task_BackupMixin::connect()
 			}
 			else
 			{
-				if (pBackupSource->getLogin().isEmpty() || !pBackupSource->isUsePassword())
-				{
+				if (sLogin.isEmpty())
 					return PRL_ERR_BACKUP_REQUIRE_LOGIN_PASSWORD;
-				}
 				m_sServerHostname = pBackupSource->getDefaultBackupServer();
 				m_nServerPort = CDspService::getDefaultListenPort();
+
+				if (sPw.isEmpty())
+				{
+					auto pubKeyResult = CRsaHelper().getOpenSshPublicKey();
+					if (pubKeyResult.isFailed())
+						return pubKeyResult.error().code();
+					sPw = pubKeyResult.value();
+					m_nFlags |= PLLF_LOGIN_WITH_RSA_KEYS;
+				}
 			}
 		}
-
-		sLogin = pBackupSource->getLogin();
-		sPw = pBackupSource->getPassword();
 	}
 
 	return Task_DispToDispConnHelper::Connect(
