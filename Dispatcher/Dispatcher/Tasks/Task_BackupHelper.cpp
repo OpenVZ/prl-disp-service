@@ -1568,6 +1568,7 @@ PRL_RESULT Task_BackupMixin::connect()
 
 	QString sLogin;
 	QString sPw;
+	auto nLoginFlags = m_nFlags & PACF_MASK;
 
 	{
 		CDspLockedPointer<CDispCommonPreferences> dispPref = CDspService::instance()->
@@ -1601,7 +1602,7 @@ PRL_RESULT Task_BackupMixin::connect()
 					if (pubKeyResult.isFailed())
 						return pubKeyResult.error().code();
 					sPw = pubKeyResult.value();
-					m_nFlags |= PLLF_LOGIN_WITH_RSA_KEYS;
+					nLoginFlags |= PLLF_LOGIN_WITH_RSA_KEYS;
 				}
 			}
 		}
@@ -1613,7 +1614,7 @@ PRL_RESULT Task_BackupMixin::connect()
 			m_sServerSessionUuid,
 			sLogin,
 			sPw,
-			m_nFlags);
+			nLoginFlags);
 }
 
 BackupItem* Task_BackupMixin::getLastBaseBackup(const QString &sVmUuid,
