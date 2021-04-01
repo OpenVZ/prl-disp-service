@@ -1988,6 +1988,7 @@ PRL_RESULT Builder::setBlank()
 			boost::get<mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type>
 				(m_result->getOs());
 		os.reset(new Libvirt::Domain::Xml::Os2(o.getValue()));
+		os->setBootList(QList<Libvirt::Domain::Xml::EDev>());
 	}
 	else
 		os.reset(new Libvirt::Domain::Xml::Os2);
