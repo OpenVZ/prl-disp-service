@@ -277,7 +277,7 @@ PRL_RESULT Task_MigrateCtSource::prepareTask()
 	}
 
 	nRetCode = Connect(
-		m_sServerHostname, m_nServerPort, m_sServerSessionUuid, QString(), QString(), m_nMigrationFlags);
+		m_sServerHostname, m_nServerPort, m_sServerSessionUuid, QString(), QString(), m_nMigrationFlags & PACF_MASK);
 	if (PRL_FAILED(nRetCode))
 		goto exit;
 

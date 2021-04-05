@@ -1334,7 +1334,8 @@ PRL_RESULT Task_MigrateVmSource::prepareTask()
 		{
 			m_cHostInfo.fromString(CDspService::instance()->getHostInfo()->data()->toString());
 			nRetCode = Connect(
-				m_sServerHostname, m_nServerPort, m_sServerSessionUuid, QString(), QString(), m_nMigrationFlags);
+				m_sServerHostname, m_nServerPort, m_sServerSessionUuid, QString(), QString(),
+				m_nMigrationFlags & PACF_MASK);
 		}
 		else
 		{
