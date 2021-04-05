@@ -123,7 +123,7 @@ PRL_RESULT Task_CopyCtTemplateSource::prepareTask()
 	}
 
 	nRetCode = Connect(
-		m_sServerHostname, m_nServerPort, m_sServerSessionUuid, QString(), QString(), m_nFlags);
+		m_sServerHostname, m_nServerPort, m_sServerSessionUuid, QString(), QString(), m_nFlags & PACF_MASK);
 	if (PRL_FAILED(nRetCode))
 		goto exit;
 
