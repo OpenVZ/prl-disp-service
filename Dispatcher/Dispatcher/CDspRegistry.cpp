@@ -335,7 +335,7 @@ Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 		return new ::Vm::Guest::Connector(this->getDirectory(), *this, incarnation_);
 	};
 	::Vm::State::Machine::Running r(boost::msm::back::states_ <<
-		::Vm::State::Started(getConfigEditor(), f));
+		::Vm::State::Started(getConfigEditor(), f), std::ref(*this));
 
 	set_states(boost::msm::back::states_ << r);
 
