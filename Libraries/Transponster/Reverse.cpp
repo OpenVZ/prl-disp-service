@@ -3233,7 +3233,7 @@ Reverse::prepareIp(const QString& value)
 		return boost::none;
 
 	mpl::at_c<Libvirt::Filter::Xml::VAddrIP::types, 1>::type ip_holder;
-	ip_holder.setValue(value);
+	ip_holder.setValue(value.split("/").first());
 	return Libvirt::Filter::Xml::VAddrIP(ip_holder);
 }
 
@@ -3244,8 +3244,24 @@ Reverse::prepareIpv6(const QString& value)
 		return boost::none;
 
 	mpl::at_c<Libvirt::Filter::Xml::VAddrIPv6::types, 1>::type ip_holder;
-	ip_holder.setValue(value);
+	ip_holder.setValue(value.split("/").first());
 	return Libvirt::Filter::Xml::VAddrIPv6(ip_holder);
+}
+
+boost::optional<Libvirt::Filter::Xml::VAddrMask>
+Reverse::prepareIpMask(int value)
+{
+	mpl::at_c<Libvirt::Filter::Xml::VAddrMask::types, 1>::type ip_holder;
+	ip_holder.setValue(value);
+	return Libvirt::Filter::Xml::VAddrMask(ip_holder);
+}
+
+boost::optional<Libvirt::Filter::Xml::VAddrMaskv6>
+Reverse::prepareIpv6Mask(int value)
+{
+	mpl::at_c<Libvirt::Filter::Xml::VAddrMaskv6::types, 1>::type ip_holder;
+	ip_holder.setValue(value);
+	return Libvirt::Filter::Xml::VAddrMaskv6(ip_holder);
 }
 
 boost::optional <Libvirt::Filter::Xml::VUint16range>
@@ -3296,7 +3312,10 @@ Reverse::prepareRule(const CVmNetFirewallRule &basic_rule,
 	// using libvirt regex to validate IPv6
 	// local_ip and remote_ip should be of same type, so making
 	// decision based on local_ip
-	bool isIPv6 = Libvirt::Validatable<mpl::at_c<Libvirt::Filter::Xml::VAddrIPv6::types, 1>::type::inner_type>::validate(local_ip);
+	bool isIPv6 = !local_ip.isEmpty() &&
+		Libvirt::Validatable<mpl::at_c<Libvirt::Filter::Xml::VAddrIPv6::types, 1>::type::inner_type>::validate(
+		local_ip.split("/").first()
+		);
 	bool isBoth = local_ip.isEmpty() && remote_ip.isEmpty();
 
 	Libvirt::Filter::Xml::CommonPortAttributes port_attributes = preparePortAttributes(
@@ -3716,6 +3735,11 @@ Reverse::prepareIpAttributes(const QString &local_ip,
 	ip_attributes.setSrcipaddr(prepareIp(local_ip));
 	ip_attributes.setDstipaddr(prepareIp(remote_ip));
 
+	if (local_ip.contains("/"))
+		ip_attributes.setSrcipmask(prepareIpMask(QHostAddress::parseSubnet(local_ip).second));
+	if (remote_ip.contains("/"))
+		ip_attributes.setDstipmask(prepareIpMask(QHostAddress::parseSubnet(remote_ip).second));
+
 	return ip_attributes;
 }
 
@@ -3726,6 +3750,11 @@ Libvirt::Filter::Xml::CommonIpv6AttributesP1
 
 	ip_attributes.setSrcipaddr(prepareIpv6(local_ip));
 	ip_attributes.setDstipaddr(prepareIpv6(remote_ip));
+
+	if (local_ip.contains("/"))
+		ip_attributes.setSrcipmask(prepareIpv6Mask(QHostAddress::parseSubnet(local_ip).second));
+	if (remote_ip.contains("/"))
+		ip_attributes.setDstipmask(prepareIpv6Mask(QHostAddress::parseSubnet(remote_ip).second));
 
 	return ip_attributes;
 }

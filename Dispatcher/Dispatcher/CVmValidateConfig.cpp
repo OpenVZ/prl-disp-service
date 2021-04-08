@@ -2381,9 +2381,13 @@ void CVmValidateConfig::CheckFirewall(const CVmGenericNetworkAdapter& pNetAdapte
 				QAbstractSocket::IPv4Protocol,
 				QAbstractSocket::IPv6Protocol
 			};
-			if (!local_ip.isEmpty() && !ip_protos.contains(QHostAddress(local_ip).protocol()))
+			auto local_ip_parsed = local_ip.contains("/") ?
+				QHostAddress::parseSubnet(local_ip).first : QHostAddress(local_ip);
+			auto remote_ip_parsed = remote_ip.contains("/") ?
+				QHostAddress::parseSubnet(remote_ip).first : QHostAddress(remote_ip);
+			if (!local_ip.isEmpty() && !ip_protos.contains(local_ip_parsed.protocol()))
 				pushError(PRL_ERR_VMCONF_NETWORK_INVALID_IP_ADDRESS, rule->getLocalNetAddress_id());
-			if (!remote_ip.isEmpty() && !ip_protos.contains(QHostAddress(remote_ip).protocol()))
+			if (!remote_ip.isEmpty() && !ip_protos.contains(remote_ip_parsed.protocol()))
 				pushError(PRL_ERR_VMCONF_NETWORK_INVALID_IP_ADDRESS, rule->getRemoteNetAddress_id());
 
 			if (rule->getLocalPort() != 0 && !port_protos.contains(proto))

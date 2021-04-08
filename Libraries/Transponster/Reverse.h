@@ -485,6 +485,12 @@ private:
 	static boost::optional <Libvirt::Filter::Xml::VAddrIPv6>
 	prepareIpv6(const QString &value);
 
+	static boost::optional <Libvirt::Filter::Xml::VAddrMask>
+	prepareIpMask(int value);
+
+	static boost::optional <Libvirt::Filter::Xml::VAddrMaskv6>
+	prepareIpv6Mask(int value);
+
 	static boost::optional <Libvirt::Filter::Xml::VUint16range>
 	preparePort(unsigned int value);
 
