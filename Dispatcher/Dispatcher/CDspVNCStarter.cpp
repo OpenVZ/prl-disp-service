@@ -75,6 +75,7 @@ namespace
 {
 const char PRL_KEY_TO_STORE_VNC_SSL_PRIVATE_KEY[] = "{FF71877B-B0B2-4EB3-9061-56BC43ED2713}";
 const char PRL_KEY_TO_STORE_VNC_SSL_CERTIFICATE[] = "{76473A08-BE1D-4930-9900-FAA313314E8E}";
+const char PRL_KEY_TO_STORE_VNC_SSL_STUNNEL_FMT[] = "stunnelConfigFormat";
 } // namespace
 
 namespace Vnc
@@ -122,8 +123,8 @@ QStringList Server::do_(const QStringList& aux_) const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Stunnel
 
-Stunnel::Stunnel(const QByteArray& key_, const QByteArray& certificate_):
-	m_key(key_), m_certificate(certificate_)
+Stunnel::Stunnel(const QByteArray& key_, const QByteArray& certificate_, const QString& fmt_):
+	m_key(key_), m_certificate(certificate_), m_fmt(fmt_)
 {
 }
 
@@ -172,8 +173,9 @@ Scope::range_type Scope::getAutoRange() const
 boost::optional<Api::Stunnel> Scope::getEncryption() const
 {
 	QByteArray c, k;
-	if (Vnc::Encryption(*(m_service->getQSettings().getPtr())).state(k, c))
-		return Api::Stunnel(k, c);
+	QString p;
+	if (Vnc::Encryption(*(m_service->getQSettings().getPtr())).state(k, c, p))
+		return Api::Stunnel(k, c, p);
 
 	return boost::none;
 }
@@ -776,7 +778,7 @@ bool Encryption::enabled() const
 	    && m_storage->contains(PRL_KEY_TO_STORE_VNC_SSL_CERTIFICATE);
 }
 
-bool Encryption::state(QByteArray& key_, QByteArray& certificate_) const
+bool Encryption::state(QByteArray& key_, QByteArray& certificate_, QString& fmt_) const
 {
 	if (NULL == m_storage)
 		return false;
@@ -785,8 +787,11 @@ bool Encryption::state(QByteArray& key_, QByteArray& certificate_) const
 	if (!(k.isValid() && c.isValid()))
 		return false;
 
+	QVariant f = m_storage->value(PRL_KEY_TO_STORE_VNC_SSL_STUNNEL_FMT);
+
 	key_ = k.toByteArray();
 	certificate_ = c.toByteArray();
+	fmt_ = f.toString();
 	return true;
 }
 
@@ -981,10 +986,23 @@ PRL_RESULT Stunnel::do_(QProcess& process_)
 		WRITE_TRACE(DBG_FATAL, "Error: can't start the stunnel");
 		return PRL_ERR_FAILED_TO_START_VNC_SERVER;
 	}
-	process_.write(QSTR2UTF8(QString("accept=%1\ndebug=0\nforeground=yes\n"
+
+	QString config;
+	if (m_api.fmt().isEmpty()) {
+		/* Use default stunnel config format */
+		config = QString("accept=%1\ndebug=0\nforeground=yes\n"
 			"[vncserver]\nclient=no\naccept=%1\nconnect=%2\n"
-			"cert=%3\nkey=%4\n").arg(m_accept).arg(m_connect)
-			.arg(c.fileName()).arg(p.fileName())));
+			"sslVersion=TLSv1.2\ncert=%3\nkey=%4\n").arg(m_accept)
+			.arg(m_connect).arg(c.fileName()).arg(p.fileName());
+	}
+	else
+	{
+		config = m_api.fmt().arg(m_accept).arg(m_connect)
+			.arg(c.fileName()).arg(p.fileName());
+		WRITE_TRACE(DBG_WARNING, "Used custom stunnel config: %s",
+			QSTR2UTF8(config));
+	}
+	process_.write(QSTR2UTF8(config));
 	process_.waitForBytesWritten();
 	process_.closeWriteChannel();
 	if (process_.waitForFinished(WAIT_TO_EXIT_VNC_SERVER_AFTER_START))
@@ -1157,10 +1175,11 @@ PRL_RESULT CDspVNCStarter::Start (
 	std::auto_ptr<Vnc::Starter::Unit> x(new Vnc::Starter::Raw(a, *this));
 	{
 		QByteArray c, k;
-		if (Vnc::Encryption(*(CDspService::instance()->getQSettings().getPtr())).state(k, c))
+		QString p;
+		if (Vnc::Encryption(*(CDspService::instance()->getQSettings().getPtr())).state(k, c, p))
 		{
 			a.hostname(QHostAddress(QHostAddress::LocalHost));
-			Vnc::Api::Stunnel b(k, c);
+			Vnc::Api::Stunnel b(k, c, p);
 			x.reset(new Vnc::Starter::Secure(a, b, *this));
 		}
 	}

@@ -157,7 +157,7 @@ struct Encryption
 	explicit Encryption(QSettings& storage_);
 
 	bool enabled() const;
-	bool state(QByteArray& key_, QByteArray& certificate_) const;
+	bool state(QByteArray& key_, QByteArray& certificate_, QString& fmt_) const;
 	PRL_RESULT setKey(const QString& value_);
 	PRL_RESULT setCertificate(const QString& value_);
 private:
