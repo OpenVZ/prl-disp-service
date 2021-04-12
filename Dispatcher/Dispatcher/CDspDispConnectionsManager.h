@@ -72,19 +72,9 @@ public:
 
 private:
 	/**
-	 * Authorizes dispatcher connection
-	 * @param handle to dispatcher connection
-	 * @param pointer to authorization package object
-	 * @returns pointer to instantiated and authorized dispatcher connection object (null if authorization was failed)
-	 */
-	SmartPtr<CDspDispConnection> AuthorizeDispatcherConnection(
-		const IOSender::Handle& h,
-		const SmartPtr<IOPackage>& p
-	);
-	/**
- * Checks performed before any authentication command
- * @param handle to dispatcher connection
- */
+	* Checks performed before any authentication command
+	* @param handle to dispatcher connection
+	*/
 	PRL_RESULT preAuthChecks(
 		const IOSender::Handle& h
 	);
@@ -122,6 +112,41 @@ private:
 	void DeleteDispConnection( const IOSender::Handle& h );
 
 private:
+	/**
+	 * Verifies that client has provided correct session uuid.
+	 * If session uuid is correct, sets AuthorizationInProgress flag to False
+	 * @param handle to dispatcher connection
+	 * @param pointer to authorization package object
+	 */
+	PRL_RESULT VerifyDispClientIdentity(
+		const IOSender::Handle& h,
+		CDispToDispAuthorizeCommand *pAuthorizeCommand
+	);
+
+	/**
+	 * Verifies that client has provided correct session uuid.
+	 * If session uuid is correct, sets AuthorizationInProgress flag to False
+	 * @param handle to dispatcher connection
+	 * @param pointer to authorization package object
+	 * @param session uuid associated with client session
+	 * @return DispConnection object on success, error on failure
+	 */
+	Prl::Expected<SmartPtr<CDspDispConnection>, Error::Simple> RestoreDispConnectionFromUserSession(
+		const IOSender::Handle& h,
+		CDispToDispAuthorizeCommand *pAuthorizeCommand
+	);
+
+	/**
+	 * Authorize dispatcher via login & password (without session uuid)
+	 * @param handle to dispatcher connection
+	 * @param pointer to authorization package object
+	 * @return DispConnection object on success, error on failure
+	 */
+	Prl::Expected<SmartPtr<CDspDispConnection>, Error::Simple> CreateDispSession(
+		const IOSender::Handle& h,
+		const SmartPtr<IOPackage>& p
+	);
+
 	/** VMs clients hash access synchronization object */
 	mutable QReadWriteLock m_rwLock;
 	/** VMs connections hash */

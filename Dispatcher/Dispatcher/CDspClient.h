@@ -215,7 +215,7 @@ public:
 	void setAdminAuthWasPassed(bool bAuth);
 	bool isAdminAuthWasPassed() const;
 
-	void setAuthorizationInProgress(bool bPubKeyAuthInProcess);
+	void setAuthorizationInProgress(bool value);
 	bool isAuthorizationInProgress() const;
 
 	const SmartPtr<SessionInfo > getSessionInfo() const { return m_pSessionInfo; }

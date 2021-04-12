@@ -387,9 +387,9 @@ bool CDspClient::isAdminAuthWasPassed() const
 	return m_bAdminAuthWasPassed;
 }
 
-void CDspClient::setAuthorizationInProgress(bool bPubKeyAuthInProcess)
+void CDspClient::setAuthorizationInProgress(bool value)
 {
-	m_bAuthorizationInProgress = bPubKeyAuthInProcess;
+	m_bAuthorizationInProgress = value;
 }
 
 bool CDspClient::isAuthorizationInProgress() const

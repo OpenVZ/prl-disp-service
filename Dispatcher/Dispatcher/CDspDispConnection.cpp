@@ -105,9 +105,9 @@ void CDspDispConnection::handlePackage(const SmartPtr<IOPackage> p)
 	emit onPackageReceived(m_clientHandle, p);
 }
 
-void CDspDispConnection::setAuthorizationInProgress(bool bPubKeyAuthInProcess)
+void CDspDispConnection::setAuthorizationInProgress(bool value)
 {
-	m_bAuthorizationInProgress = bPubKeyAuthInProcess;
+	m_bAuthorizationInProgress = value;
 }
 
 bool CDspDispConnection::isAuthorizationInProgress() const

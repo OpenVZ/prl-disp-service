@@ -116,7 +116,7 @@ public:
 	 */
 	void handlePackage(const SmartPtr<IOPackage>);
 
-	void setAuthorizationInProgress(bool bPubKeyAuthInProcess);
+	void setAuthorizationInProgress(bool value);
 	bool isAuthorizationInProgress() const;
 
 signals:
