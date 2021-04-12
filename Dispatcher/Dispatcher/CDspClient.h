@@ -215,6 +215,9 @@ public:
 	void setAdminAuthWasPassed(bool bAuth);
 	bool isAdminAuthWasPassed() const;
 
+	void setAuthorizationInProgress(bool bPubKeyAuthInProcess);
+	bool isAuthorizationInProgress() const;
+
 	const SmartPtr<SessionInfo > getSessionInfo() const { return m_pSessionInfo; }
 
 private:
@@ -244,6 +247,10 @@ private:
 	bool	m_bNonInteractive;
 	bool	m_bConfirmationEnabled; // #436109
 	bool	m_bAdminAuthWasPassed;
+	/**
+ 	* Is client on the first stage of public key authorization
+ 	*/
+	bool m_bAuthorizationInProgress{false};
 
 	quint32 m_nFlags;
 

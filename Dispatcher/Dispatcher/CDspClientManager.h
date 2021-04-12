@@ -197,12 +197,11 @@ private:
 	void ReleaseLogonClient(const IOSender::Handle& h);
 
 	/**
- * Checks performed before any authentication command
- * @param handle to dispatcher connection
- */
+ 	* Checks performed before any authentication command
+ 	* @param handle to dispatcher connection
+ 	*/
 	PRL_RESULT preAuthChecks(
-		const IOSender::Handle& h,
-		bool restore = false
+		const IOSender::Handle& h
 	);
 	/**
 	 * Processes dispatcher auth via password or challenge

@@ -35,8 +35,9 @@
 #include "CDspDispConnection.h"
 #include "CDspService.h"
 
-CDspDispConnection::CDspDispConnection ( const IOSender::Handle &h, const SmartPtr<CDspClient> &pUserSession )
-: m_clientHandle(h), m_pUserSession(pUserSession)
+CDspDispConnection::CDspDispConnection ( const IOSender::Handle &h, const SmartPtr<CDspClient> &pUserSession,
+										 bool isAuthorizationInProgress /*=false*/ )
+: m_clientHandle(h), m_pUserSession(pUserSession), m_bAuthorizationInProgress(isAuthorizationInProgress)
 {
 }
 
@@ -104,3 +105,12 @@ void CDspDispConnection::handlePackage(const SmartPtr<IOPackage> p)
 	emit onPackageReceived(m_clientHandle, p);
 }
 
+void CDspDispConnection::setAuthorizationInProgress(bool bPubKeyAuthInProcess)
+{
+	m_bAuthorizationInProgress = bPubKeyAuthInProcess;
+}
+
+bool CDspDispConnection::isAuthorizationInProgress() const
+{
+	return m_bAuthorizationInProgress;
+}

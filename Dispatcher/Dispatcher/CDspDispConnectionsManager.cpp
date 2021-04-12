@@ -193,7 +193,7 @@ void CDspDispConnectionsManager::handleToDispatcherPackage ( const IOSender::Han
 
 	// Package should be authorized!
 	m_rwLock.lockForRead();
-	bool cliExists = m_dispconns.contains(h);
+	bool cliExists = m_dispconns.contains(h) && !m_dispconns[h]->isAuthorizationInProgress();
 
 	// Check authorization
 	if ( ! cliExists ) {
@@ -318,7 +318,7 @@ PRL_RESULT CDspDispConnectionsManager::preAuthChecks(
 	}
 
 	m_rwLock.lockForRead();
-	bool cliExists = m_dispconns.contains(h);
+	bool cliExists = m_dispconns.contains(h) && !m_dispconns[h]->isAuthorizationInProgress();
 	m_rwLock.unlock();
 
 	if (cliExists)
@@ -343,6 +343,36 @@ void CDspDispConnectionsManager::processAuthorizeCmd(
 		m_service->sendSimpleResponseToDispClient(h, p, ret);
 		return;
 	}
+	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(p);
+	CDispToDispAuthorizeCommand *pAuthorizeCommand =
+		CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispAuthorizeCommand>(pCmd);
+
+	if (!pAuthorizeCommand->IsValid())
+	{
+		WRITE_TRACE(DBG_FATAL, "Wrong key authorization package was received: [%s]", \
+            p->buffers[0].getImpl());
+		m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_UNRECOGNIZED_REQUEST);
+		return;
+	}
+
+	m_rwLock.lockForWrite();
+	if (m_dispconns.contains(h) && m_dispconns[h]->isAuthorizationInProgress())
+	{
+		bool host_verified = (h == pAuthorizeCommand->GetUserSessionUuid());
+		if (host_verified)
+		{
+			m_dispconns[h]->setAuthorizationInProcess(false);
+			m_rwLock.unlock();
+			m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_SUCCESS);
+		}
+		else
+		{
+			m_rwLock.unlock();
+			m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_AUTHENTICATION_FAILED);
+		}
+		return;
+	}
+	m_rwLock.unlock();
 
 	SmartPtr<CDspDispConnection> pDispConnection =
 		AuthorizeDispatcherConnection(h, p);
@@ -422,7 +452,7 @@ void CDspDispConnectionsManager::processPubKeyAuthorizeCmd(
 			m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_DISP2DISP_SESSION_ALREADY_AUTHORIZED);
 			return;
 		}
-		m_dispconns[h] = SmartPtr<CDspDispConnection>(new CDspDispConnection(h, pClient));
+		m_dispconns[h] = SmartPtr<CDspDispConnection>(new CDspDispConnection(h, pClient, /*m_bAuthorizationInProgress=*/true));
 		m_rwLock.unlock();
 	}
 

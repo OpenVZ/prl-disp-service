@@ -267,7 +267,7 @@ void CDspClientManager::handleToDispatcherPackage (
 		case PVE::DspCmdUserEasyLoginLocal:
 			{
 				m_rwLock.lockForRead();
-				bool cliExists = m_clients.contains(h);
+				bool cliExists = m_clients.contains(h) && !m_clients[h]->isAuthorizationInProgress();
 				m_rwLock.unlock();
 
 				if ( cliExists )
@@ -321,7 +321,7 @@ void CDspClientManager::handleToDispatcherPackage (
 
 	// Package should be authorized!
 	m_rwLock.lockForRead();
-	bool cliExists = m_clients.contains(h);
+	bool cliExists = m_clients.contains(h) && !m_clients[h]->isAuthorizationInProgress();
 	bool inPreAuthorizedHash = m_preAuthorizedSessions.contains(h);
 
 	// Check authorization
@@ -801,10 +801,7 @@ bool CDspClientManager::isPreAuthorized(const IOSender::Handle& h)
 	return m_preAuthorizedSessions.contains(h);
 }
 
-PRL_RESULT CDspClientManager::preAuthChecks(
-	const IOSender::Handle& h,
-	bool restore
-)
+PRL_RESULT CDspClientManager::preAuthChecks(const IOSender::Handle& h)
 {
 	if (m_service->isServerStopping())
 	{
@@ -813,10 +810,10 @@ PRL_RESULT CDspClientManager::preAuthChecks(
 	}
 
 	m_rwLock.lockForRead();
-	bool cliExists = m_clients.contains(h);
+	bool cliExists = m_clients.contains(h) && !m_clients[h]->isAuthorizationInProgress();
 	m_rwLock.unlock();
 
-	if (cliExists && !restore)
+	if (cliExists)
 		return PRL_ERR_USER_IS_ALREADY_LOGGED;
 
 	if (!CaptureLogonClient(h))
@@ -843,7 +840,7 @@ void CDspClientManager::processAuthorizeCmd(
 
 	CProtoCommandDspCmdUserLogin *loginCmd =
 		CProtoSerializer::CastToProtoCommand<CProtoCommandDspCmdUserLogin>(pCmd);
-	if ((ret = preAuthChecks(h, !loginCmd->GetPrevSessionUuid().isEmpty() )) != PRL_ERR_SUCCESS)
+	if ((ret = preAuthChecks(h)) != PRL_ERR_SUCCESS)
 	{
 		m_service->sendSimpleResponseToClient(h, p, ret);
 		return;
@@ -855,7 +852,9 @@ void CDspClientManager::processAuthorizeCmd(
 		pClient = getUserSession(loginCmd->GetPrevSessionUuid());
 	bool bWasSessionRestored = pClient.isValid();
 	bool bWasPreAuthorized = false;
-	if (!bWasSessionRestored)
+	if (bWasSessionRestored)
+		pClient->setAuthorizationInProgress(false);
+	else
 		pClient = m_service->getUserHelper().processUserLogin(h, p, bWasPreAuthorized);
 	if (pClient.isValid())
 	{
@@ -904,7 +903,7 @@ void CDspClientManager::processPubKeyAuthorizeCmd
 	}
 	BOOST_SCOPE_EXIT_END;
 	PRL_RESULT ret;
-	if ((ret = preAuthChecks(h, /*restore=*/false)) != PRL_ERR_SUCCESS)
+	if ((ret = preAuthChecks(h)) != PRL_ERR_SUCCESS)
 	{
 		m_service->sendSimpleResponseToClient(h, p, ret);
 		return;
@@ -953,6 +952,7 @@ void CDspClientManager::processPubKeyAuthorizeCmd
 			) {
 			m_service->getHwMonitorThread().forceCheckHwChanges();
 		}
+		pClient->setAuthorizationInProgress(true);
 		m_clients[h] = pClient;
 		//Erase client from pre authorized queue if any
 		m_preAuthorizedSessions.remove(h);
