@@ -50,7 +50,8 @@ public:
 	 * @param handle to dipatcher connection
 	 * @param pointer to the user session that was used to dispatcher connection authorization
 	 */
-	CDspDispConnection ( const IOSender::Handle &h, const SmartPtr<CDspClient> &pUserSession );
+	CDspDispConnection ( const IOSender::Handle &h, const SmartPtr<CDspClient> &pUserSession,
+					     bool m_isAuthorizationInProgress = false );
 
 	/**
 	 * Authorizes dispatcher session by specified session id of already
@@ -114,6 +115,10 @@ public:
 	 * To emit onPackageReceived signal
 	 */
 	void handlePackage(const SmartPtr<IOPackage>);
+
+	void setAuthorizationInProgress(bool value);
+	bool isAuthorizationInProgress() const;
+
 signals:
 	/**
 	 * Emits when server has been received a package
@@ -128,6 +133,10 @@ private:
 	 * Pointer to corresponding user session which using to provide all operations
 	 */
 	SmartPtr<CDspClient> m_pUserSession;
+	/**
+	 * Is client on the first stage of public key authorization
+	 */
+	bool m_bAuthorizationInProgress;
 };
 
 #endif //CDspDispConnection_H

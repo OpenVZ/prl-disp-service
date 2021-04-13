@@ -193,7 +193,7 @@ void CDspDispConnectionsManager::handleToDispatcherPackage ( const IOSender::Han
 
 	// Package should be authorized!
 	m_rwLock.lockForRead();
-	bool cliExists = m_dispconns.contains(h);
+	bool cliExists = m_dispconns.contains(h) && !m_dispconns[h]->isAuthorizationInProgress();
 
 	// Check authorization
 	if ( ! cliExists ) {
@@ -257,56 +257,6 @@ void CDspDispConnectionsManager::handleToDispatcherPackage ( const IOSender::Han
 	}
 }
 
-SmartPtr<CDspDispConnection> CDspDispConnectionsManager::AuthorizeDispatcherConnection(
-	const IOSender::Handle& h,
-	const SmartPtr<IOPackage>& p
-)
-{
-	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(p);
-	if ( ! pCmd->IsValid() )
-	{
-		m_service->sendSimpleResponseToDispClient( h, p, PRL_ERR_FAILURE );
-		WRITE_TRACE(DBG_FATAL, "Wrong authorization package was received: [%s]",\
-			p->buffers[0].getImpl());
-		return SmartPtr<CDspDispConnection>(NULL);
-	}
-	CDispToDispAuthorizeCommand *pAuthorizeCommand =
-		CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispAuthorizeCommand>(pCmd);
-	SmartPtr<CDspClient> pUserSession;
-	if (pAuthorizeCommand->NeedAuthBySessionUuid())
-	{
-		 pUserSession =
-			m_service->getClientManager().getUserSession(pAuthorizeCommand->GetUserSessionUuid());
-		if (! pUserSession.isValid())
-			WRITE_TRACE(DBG_FATAL, "Dispatcher session wasn't authorized with '%s' session UUID",\
-				qPrintable(pAuthorizeCommand->GetUserSessionUuid()));
-
-	}else {
-		//if session uuid is not defined, athorize via login & password (without session uuid)
-		pUserSession = m_service->getUserHelper().processDispacherLogin(h, p);
-
-		if (!pUserSession.isValid())
-			WRITE_TRACE(DBG_FATAL, "Dispatcher session wasn't authorized for user '%s'",\
-				qPrintable(pAuthorizeCommand->GetUserName()));
-	}
-
-	if (! pUserSession.isValid() )
-	{
-		m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_DISP2DISP_WRONG_USER_SESSION_UUID);
-		return SmartPtr<CDspDispConnection>(NULL);
-	}
-
-
-	if (pAuthorizeCommand->NeedAuthBySessionUuid())
-		WRITE_TRACE(DBG_FATAL, "Dispatcher session was successfully authorized with '%s' session UUID",\
-			qPrintable(pAuthorizeCommand->GetUserSessionUuid()));
-	else
-		WRITE_TRACE(DBG_FATAL, "Dispatcher session was successfully authorized for '%s' user",\
-			qPrintable(pAuthorizeCommand->GetUserName()));
-
-	return SmartPtr<CDspDispConnection>(new CDspDispConnection(h, pUserSession));
-}
-
 PRL_RESULT CDspDispConnectionsManager::preAuthChecks(
 	const IOSender::Handle& h
 )
@@ -318,7 +268,7 @@ PRL_RESULT CDspDispConnectionsManager::preAuthChecks(
 	}
 
 	m_rwLock.lockForRead();
-	bool cliExists = m_dispconns.contains(h);
+	bool cliExists = m_dispconns.contains(h) && !m_dispconns[h]->isAuthorizationInProgress();
 	m_rwLock.unlock();
 
 	if (cliExists)
@@ -343,27 +293,52 @@ void CDspDispConnectionsManager::processAuthorizeCmd(
 		m_service->sendSimpleResponseToDispClient(h, p, ret);
 		return;
 	}
+	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(p);
+	CDispToDispAuthorizeCommand *pAuthorizeCommand =
+		CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispAuthorizeCommand>(pCmd);
 
-	SmartPtr<CDspDispConnection> pDispConnection =
-		AuthorizeDispatcherConnection(h, p);
-	if (!pDispConnection)
+	if (!pAuthorizeCommand->IsValid())
 	{
-		// Error response should be sent by AuthorizeDispatcherConnection()
-		//" method, so do nothing, just return!
+		WRITE_TRACE(DBG_FATAL, "Wrong key authorization package was received: [%s]", \
+            p->buffers[0].getImpl());
+		m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_UNRECOGNIZED_REQUEST);
 		return;
 	}
 
-	m_rwLock.lockForWrite();
-	/* We have to recheck connection because lock was dropped. */
-	if (m_dispconns.contains(h))
+	bool is_auth_in_progress;
 	{
-		m_rwLock.unlock();
-		m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_DISP2DISP_SESSION_ALREADY_AUTHORIZED);
+		QReadLocker locker(&m_rwLock);
+		is_auth_in_progress = m_dispconns.contains(h) && m_dispconns[h]->isAuthorizationInProgress();
+	}
+
+	if (is_auth_in_progress)
+	{
+		m_service->sendSimpleResponseToDispClient(h, p, VerifyDispClientIdentity(h, pAuthorizeCommand));
 		return;
 	}
 
-	m_dispconns[h] = pDispConnection;
-	m_rwLock.unlock();
+	Prl::Expected<SmartPtr<CDspDispConnection>, Error::Simple> pDispConnection;
+	if (pAuthorizeCommand->NeedAuthBySessionUuid())
+		pDispConnection = RestoreDispConnectionFromUserSession(h, pAuthorizeCommand);
+	else
+		pDispConnection = CreateDispSession(h, p);
+
+	if (pDispConnection.isFailed())
+	{
+		m_service->sendSimpleResponseToDispClient(h, p, pDispConnection.error().code());
+		return;
+	}
+
+	{
+		QWriteLocker locker(&m_rwLock);
+		/* We have to recheck connection because lock was dropped. */
+		if (m_dispconns.contains(h))
+		{
+			m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_DISP2DISP_SESSION_ALREADY_AUTHORIZED);
+			return;
+		}
+		m_dispconns[h] = pDispConnection.value();
+	}
 	m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_SUCCESS);
 }
 
@@ -422,7 +397,7 @@ void CDspDispConnectionsManager::processPubKeyAuthorizeCmd(
 			m_service->sendSimpleResponseToDispClient(h, p, PRL_ERR_DISP2DISP_SESSION_ALREADY_AUTHORIZED);
 			return;
 		}
-		m_dispconns[h] = SmartPtr<CDspDispConnection>(new CDspDispConnection(h, pClient));
+		m_dispconns[h] = SmartPtr<CDspDispConnection>(new CDspDispConnection(h, pClient, /*m_bAuthorizationInProgress=*/true));
 		m_rwLock.unlock();
 	}
 
@@ -444,4 +419,54 @@ void CDspDispConnectionsManager::ProcessDispConnectionLogoff(
 	IOSendJob::Handle hJob = pDispConnection->sendSimpleResponse( p, PRL_ERR_SUCCESS );
 	m_service->getIOServer().waitForSend(hJob);
 	DeleteDispConnection(pDispConnection->GetConnectionHandle());
+}
+
+PRL_RESULT CDspDispConnectionsManager::VerifyDispClientIdentity(
+	const IOSender::Handle& h,
+	CDispToDispAuthorizeCommand *pAuthorizeCommand
+)
+{
+	if (h != pAuthorizeCommand->GetUserSessionUuid())
+		return PRL_ERR_AUTHENTICATION_FAILED;
+	QWriteLocker locker(&m_rwLock);
+	m_dispconns[h]->setAuthorizationInProgress(false);
+	return PRL_ERR_SUCCESS;
+}
+
+Prl::Expected<SmartPtr<CDspDispConnection>, Error::Simple> CDspDispConnectionsManager::RestoreDispConnectionFromUserSession(
+	const IOSender::Handle& h,
+	CDispToDispAuthorizeCommand *pAuthorizeCommand
+)
+{
+	auto pUserSession =
+		m_service->getClientManager().getUserSession(pAuthorizeCommand->GetUserSessionUuid());
+	if (!pUserSession.isValid())
+	{
+		WRITE_TRACE(DBG_FATAL, "Dispatcher session wasn't authorized with '%s' session UUID", \
+            qPrintable(pAuthorizeCommand->GetUserSessionUuid()));
+		return Error::Simple(PRL_ERR_DISP2DISP_WRONG_USER_SESSION_UUID);
+	}
+	WRITE_TRACE(DBG_FATAL, "Dispatcher session was successfully authorized with '%s' session UUID",\
+			qPrintable(pAuthorizeCommand->GetUserSessionUuid()));
+	return SmartPtr<CDspDispConnection>(new CDspDispConnection(h, pUserSession));
+}
+
+Prl::Expected<SmartPtr<CDspDispConnection>, Error::Simple> CDspDispConnectionsManager::CreateDispSession(
+	const IOSender::Handle& h,
+	const SmartPtr<IOPackage>& p
+)
+{
+	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(p);
+	CDispToDispAuthorizeCommand *pAuthorizeCommand =
+		CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispAuthorizeCommand>(pCmd);
+	auto pUserSession = m_service->getUserHelper().processDispacherLogin(h, p);
+	if (!pUserSession.isValid())
+	{
+		WRITE_TRACE(DBG_FATAL, "Dispatcher session wasn't authorized for user '%s'", \
+            qPrintable(pAuthorizeCommand->GetUserName()));
+		return Error::Simple(PRL_ERR_DISP2DISP_WRONG_USER_SESSION_UUID);
+	}
+	WRITE_TRACE(DBG_FATAL, "Dispatcher session was successfully authorized for '%s' user",\
+			qPrintable(pAuthorizeCommand->GetUserName()));
+	return SmartPtr<CDspDispConnection>(new CDspDispConnection(h, pUserSession));
 }

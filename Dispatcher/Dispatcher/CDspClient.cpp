@@ -387,4 +387,14 @@ bool CDspClient::isAdminAuthWasPassed() const
 	return m_bAdminAuthWasPassed;
 }
 
+void CDspClient::setAuthorizationInProgress(bool value)
+{
+	m_bAuthorizationInProgress = value;
+}
+
+bool CDspClient::isAuthorizationInProgress() const
+{
+	return m_bAuthorizationInProgress;
+}
+
 /*****************************************************************************/
