@@ -103,15 +103,20 @@ private:
 
 struct Stunnel
 {
-	Stunnel(const QByteArray& key_, const QByteArray& certificate_);
+	Stunnel(const QByteArray& key_, const QByteArray& certificate_, const QString& fmt_);
 
 	PRL_RESULT key(QTemporaryFile& dst_) const;
 	PRL_RESULT certificate(QTemporaryFile& dst_) const;
+	const QString& fmt() const
+	{
+		return m_fmt;
+	}
 private:
 	static PRL_RESULT prepare(QTemporaryFile& dst_, const QByteArray data_);
 
 	QByteArray m_key;
 	QByteArray m_certificate;
+	QString m_fmt;
 };
 
 } // namespace Api
