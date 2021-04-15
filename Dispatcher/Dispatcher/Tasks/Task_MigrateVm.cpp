@@ -1845,16 +1845,21 @@ PRL_RESULT Task_MigrateVmSource::CheckVmMigrationPreconditions()
 	if (m_lstCheckPrecondsErrors.size())
 		return PRL_ERR_VM_MIGRATE_CHECKING_PRECONDITIONS_FAILED;
 
-	int snapNum = 0;
 
-	if (PRL_FAILED(nRetCode = CDspVmSnapshotStoreHelper().countSnapshotsForVM(m_sVmUuid, snapNum)))
-		return nRetCode;
+	if (!m_pVmConfig->getVmSettings()->getVmCommonOptions()->isTemplate())
+	{
+		int snapNum = 0;
 
-	if (snapNum > 0){
-		WRITE_TRACE(DBG_FATAL, "Unable to migrate the virtual environment, because it has snapshots.");
-		return PRL_ERR_VM_MIGRATE_SNAPSHOT_DETECTED;
+		if (PRL_FAILED(nRetCode = CDspVmSnapshotStoreHelper().countSnapshotsForVM(m_sVmUuid, snapNum)))
+			return nRetCode;
+
+		if (snapNum > 0)
+		{
+			WRITE_TRACE(DBG_FATAL, "Unable to migrate the virtual environment, because it has snapshots.");
+			return PRL_ERR_VM_MIGRATE_SNAPSHOT_DETECTED;
+		}
 	}
-	
+
 	// Get size of VM directory
 	PRL_UINT64 nRequiresDiskSpace;
 	nRetCode = CSimpleFileHelper::GetDirSize(m_sVmHomePath, &nRequiresDiskSpace);
