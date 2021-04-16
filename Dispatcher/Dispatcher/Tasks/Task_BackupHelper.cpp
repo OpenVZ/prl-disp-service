@@ -961,8 +961,6 @@ PRL_RESULT Nbd::start(const Image& image_, quint32 flags_)
 	if (!(flags_ & PBT_UNCOMPRESSED))
 	{
 		p.push_back(VirtualDisk::Policy::Qcow2::compressed_type(true));
-		// Compressed data is not aligned. Enable cache for speedup
-		p.push_back(VirtualDisk::Policy::Qcow2::cached_type(true));
 	}
 	if (!m_exportName.isEmpty())
 		p.push_back(VirtualDisk::Policy::Qcow2::exportName_type(m_exportName));
