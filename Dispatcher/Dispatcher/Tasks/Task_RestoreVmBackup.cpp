@@ -149,6 +149,7 @@ PRL_RESULT Archive::connect(const QString& address_, quint32 protocol_,
 	if (BACKUP_PROTO_V5 <= protocol_)
 		b->setExportName(QFileInfo(address_).fileName());
 
+	b->setCached(true);
 	PRL_RESULT output = b->start(i, task_.getFlags());
 	if (PRL_SUCCEEDED(output))
 		m_bin = b;

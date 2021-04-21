@@ -129,8 +129,12 @@ struct Nbd
 	{
 		m_exportName = value_;
 	}
-
+	void setCached(bool value_)
+	{
+		m_cached = value_;
+	}
 private:
+	bool m_cached = false;
 	QString m_url, m_exportName;
 	VirtualDisk::Qcow2 m_nbd;
 };
