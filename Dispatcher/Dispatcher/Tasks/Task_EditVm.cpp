@@ -43,6 +43,7 @@
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 #include "Libraries/StatesUtils/StatesHelper.h"
 #include "Libraries/CpuFeatures/CCpuHelper.h"
+#include <Libraries/Transponster/Reverse.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>
 #include <prlxmlmodel/VirtuozzoObjects/CXmlModelHelper.h>
@@ -3016,19 +3017,71 @@ Vm::Action* Memory::operator()(const Request& input_) const
 	bool ram_changed = false;
 	if (n->getRamSize() != o->getRamSize())
 	{
-		Action* a(f.craftRuntime(boost::bind(&vm::Editor::setMemory,
-							_1, n->getRamSize())));
-		a->setNext(output);
-		output = a;
-		ram_changed = true;
+		Action* a = NULL;
+		CVmConfiguration conf;
+		vm::Unit u = Libvirt::Kit.vms().at(input_.getFinal()
+			.getVmIdentification()->getVmUuid());
+		Libvirt::Result r = u.getConfig(conf, true);
+		quint64 maxMemory = u.getMaxMemory() >> 10; // in mbytes
+		if (r.isFailed() || !maxMemory)
+		{
+			WRITE_TRACE(DBG_FATAL, "Unable to get VM runtime configuration (%d,%d)",
+				r.error().code(), maxMemory);
+			return output;
+		}
+
+		if (n->getRamSize() > maxMemory)
+		{
+			// We must use active configuration from libvirt
+			// because only it has exact state of hotplug
+			CVmMemory* lv = conf.getVmHardwareList()->getMemory();
+			if (lv->isEnableHotplug())
+			{
+				// Create a new memory DIMM for hotplug
+				const qint64 multiple = 1 << 10; // Round up DIMM size to gbyte
+				const qint64 size = (((n->getRamSize() - maxMemory) +
+					multiple - 1) / multiple) * multiple;
+				const Transponster::Vm::Reverse::Dimm dimm(0, size << 10); // in kbytes
+				WRITE_TRACE(DBG_WARNING, "Add to VM %s new DIMM of memory, size %dm",
+					QSTR2UTF8(input_.getFinal().getVmIdentification()->getVmUuid()), size);
+
+				output = f.craftRuntime(boost::bind(
+					&vm::Editor::plug<Transponster::Vm::Reverse::Dimm>,
+					_1, dimm));
+			}
+			else
+			{
+				a = new Edit::Vm::Runtime::NotApplied(input_);
+			}
+		}
+
+		if (!a)
+		{
+			a = f.craftRuntime(boost::bind(&vm::Editor::setMemory,
+				_1, n->getRamSize()));
+			ram_changed = true;
+		}
+
+		if (output)
+			output->getTail().setNext(a);
+		else
+		{
+			a->setNext(output);
+			output = a;
+		}
 	}
 
 	if (ram_changed || n->getMemGuaranteeType() != o->getMemGuaranteeType() ||
 		n->getMemGuarantee() != o->getMemGuarantee())
 	{
 		Action* a(f.craftRuntime(boost::bind(&vm::Editor::setMemGuarantee, _1, n)));
-		a->setNext(output);
-		output = a;
+		if (output)
+			output->getTail().setNext(a);
+		else
+		{
+			a->setNext(output);
+			output = a;
+		}
 	}
 
 	return output;

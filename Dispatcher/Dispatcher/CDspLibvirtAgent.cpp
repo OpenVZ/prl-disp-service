@@ -644,6 +644,14 @@ Result Unit::setMemoryStatsPeriod(qint64 seconds_)
 		seconds_, VIR_DOMAIN_AFFECT_CONFIG | VIR_DOMAIN_AFFECT_LIVE));
 }
 
+qint64 Unit::getMaxMemory()
+{
+	// This isn't value of <maxMemory> from libvirt xml config!
+	// This is current value of <memory> from libvirt xml config,
+	// it's a real memory size inside of VM.
+	return virDomainGetMaxMemory(getDomain().data());
+}
+
 Snapshot::List Unit::getSnapshot() const
 {
 	return Snapshot::List(getDomain());

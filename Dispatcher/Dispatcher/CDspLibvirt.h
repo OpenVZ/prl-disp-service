@@ -783,6 +783,8 @@ struct Unit: private Limb::Abstract
 	Result completeConfig(CVmConfiguration& config_);
 	Result setMemoryStatsPeriod(qint64 seconds_);
 
+	qint64 getMaxMemory();
+
 	List up() const;
 	Guest getGuest() const;
 	Snapshot::List getSnapshot() const;
