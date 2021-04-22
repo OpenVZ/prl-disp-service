@@ -274,9 +274,9 @@ void CDspClientManager::handleToDispatcherPackage (
 					m_service->sendSimpleResponseToClient(h, p, PRL_ERR_USER_IS_ALREADY_LOGGED);
 				else
 				{
-					if (!CaptureLogonClient(h))
+					LogonClientSetGuard clientLogonGuard(this, h);
+					if (!clientLogonGuard)
 					{
-						WRITE_TRACE(DBG_FATAL, "Client logon actions reached up limit!");
 						m_service->
 							sendSimpleResponseToClient( h, p, PRL_ERR_DISP_LOGON_ACTIONS_REACHED_UP_LIMIT);
 						return;
@@ -311,8 +311,6 @@ void CDspClientManager::handleToDispatcherPackage (
 						// Error response should be sent by user helper,
 						// so do nothing!
 					}
-
-					ReleaseLogonClient(h);
 				}
 
 				return;
@@ -767,34 +765,6 @@ QList< IOSendJob::Handle > CDspClientManager::sendPackageToClientList(
 	return jobs;
 }
 
-bool CDspClientManager::CaptureLogonClient(const IOSender::Handle& h)
-{
-	// NB. client uid is always -1 for network sockets. thus we
-	// can rely on that fact and perform simpler test.
-	boost::optional<quint32> u = m_service->getIOServer().clientUid(h);
-	if (u && u.get() == 0)
-		return true;
-
-	unsigned int nLimit = m_service->getDispConfigGuard()
-		.getDispWorkSpacePrefs()->getLimits()->getMaxLogonActions();
-
-	QWriteLocker locker( &m_rwLock );
-
-	if (m_setLogonClients.size() >= (int )nLimit)
-	{
-		return false;
-	}
-
-	m_setLogonClients.insert(h);
-	return true;
-}
-
-void CDspClientManager::ReleaseLogonClient(const IOSender::Handle& h)
-{
-	QWriteLocker locker( &m_rwLock );
-	m_setLogonClients.remove(h);
-}
-
 bool CDspClientManager::isPreAuthorized(const IOSender::Handle& h)
 {
 	QReadLocker locker( &m_rwLock );
@@ -809,17 +779,12 @@ PRL_RESULT CDspClientManager::preAuthChecks(const IOSender::Handle& h)
 		return PRL_ERR_DISP_SHUTDOWN_IN_PROCESS;
 	}
 
-	m_rwLock.lockForRead();
-	bool cliExists = m_clients.contains(h) && !m_clients[h]->isAuthorizationInProgress();
-	m_rwLock.unlock();
 
-	if (cliExists)
-		return PRL_ERR_USER_IS_ALREADY_LOGGED;
-
-	if (!CaptureLogonClient(h))
 	{
-		WRITE_TRACE(DBG_FATAL, "Client logon actions reached up limit!");
-		return PRL_ERR_DISP_LOGON_ACTIONS_REACHED_UP_LIMIT;
+		QReadLocker locker(&m_rwLock);
+		bool cliExists = m_clients.contains(h) && !m_clients[h]->isAuthorizationInProgress();
+		if (cliExists)
+			return PRL_ERR_USER_IS_ALREADY_LOGGED;
 	}
 
 	return PRL_ERR_SUCCESS;
@@ -843,6 +808,14 @@ void CDspClientManager::processAuthorizeCmd(
 	if ((ret = preAuthChecks(h)) != PRL_ERR_SUCCESS)
 	{
 		m_service->sendSimpleResponseToClient(h, p, ret);
+		return;
+	}
+
+	LogonClientSetGuard clientLogonGuard(this, h);
+	if (!clientLogonGuard)
+	{
+		m_service->
+			sendSimpleResponseToClient(h, p, PRL_ERR_DISP_LOGON_ACTIONS_REACHED_UP_LIMIT);
 		return;
 	}
 
@@ -887,8 +860,6 @@ void CDspClientManager::processAuthorizeCmd(
 		// Error response should be sent by user helper,
 		// so do nothing!
 	}
-
-	ReleaseLogonClient(h);
 }
 
 void CDspClientManager::processPubKeyAuthorizeCmd
@@ -906,6 +877,14 @@ void CDspClientManager::processPubKeyAuthorizeCmd
 	if ((ret = preAuthChecks(h)) != PRL_ERR_SUCCESS)
 	{
 		m_service->sendSimpleResponseToClient(h, p, ret);
+		return;
+	}
+
+	LogonClientSetGuard clientLogonGuard(this, h);
+	if (!clientLogonGuard)
+	{
+		m_service->
+			sendSimpleResponseToClient(h, p, PRL_ERR_DISP_LOGON_ACTIONS_REACHED_UP_LIMIT);
 		return;
 	}
 
@@ -970,6 +949,66 @@ void CDspClientManager::processPubKeyAuthorizeCmd
 		return;
 	}
 	m_service->sendSimpleResponseToClient(h, p, PRL_ERR_SUCCESS, QStringList{enc_session_uuid.value()});
+}
+
+CDspClientManager::LogonClientSetGuard::LogonClientSetGuard(CDspClientManager* client_manager, IOSender::Handle handle) :
+	m_clientManager(client_manager), m_handle(handle)
+{
+	if (isTrustedHandle(handle))
+		m_isSuccess = true;
+	else if (isLogonActionsLimitReached())
+	{
+		WRITE_TRACE(DBG_FATAL, "Client logon actions reached up limit!");
+		m_isSuccess = false;
+	}
+	else
+	{
+		Capture();
+		m_isSuccess = true;
+	}
+}
+
+CDspClientManager::LogonClientSetGuard::~LogonClientSetGuard()
+{
+	Release();
+}
+
+void CDspClientManager::LogonClientSetGuard::Capture()
+{
+	QWriteLocker locker(&m_clientManager->m_rwLock);
+	m_clientManager->m_setLogonClients.insert(m_handle);
+}
+
+void CDspClientManager::LogonClientSetGuard::Release()
+{
+	QWriteLocker locker(&m_clientManager->m_rwLock);
+	m_clientManager->m_setLogonClients.remove(m_handle);
+}
+
+CDspClientManager::LogonClientSetGuard::operator bool() const
+{
+	return m_isSuccess;
+}
+
+bool CDspClientManager::LogonClientSetGuard::isTrustedHandle(const IOSender::Handle& h) const
+{
+	// NB. client uid is always -1 for network sockets. thus we
+	// can rely on that fact and perform simpler test.
+	boost::optional<quint32> u = m_clientManager->m_service->getIOServer().clientUid(h);
+	return u && u.get() == 0;
+}
+
+bool CDspClientManager::LogonClientSetGuard::isLogonActionsLimitReached() const
+{
+	int limit = getMaxLogonActions();
+	QReadLocker locker(&m_clientManager->m_rwLock);
+	return m_clientManager->m_setLogonClients.size() >= limit;
+}
+
+int CDspClientManager::LogonClientSetGuard::getMaxLogonActions() const
+{
+	return m_clientManager->m_service->getDispConfigGuard()
+		.getDispWorkSpacePrefs()->getLimits()->getMaxLogonActions();
 }
 
 /*****************************************************************************/
