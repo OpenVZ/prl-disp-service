@@ -193,8 +193,35 @@ private:
 	mutable QReadWriteLock m_rwLock;
 	DspLogicGuard m_logicGuard;
 
-	bool CaptureLogonClient(const IOSender::Handle& h);
-	void ReleaseLogonClient(const IOSender::Handle& h);
+	class LogonClientSetGuard
+	{
+	public:
+		LogonClientSetGuard() = delete;
+
+		LogonClientSetGuard(const LogonClientSetGuard&) = delete;
+
+		LogonClientSetGuard(LogonClientSetGuard&&) = delete;
+
+		LogonClientSetGuard(CDspClientManager* client_manager, IOSender::Handle handle);
+
+		~LogonClientSetGuard();
+
+		operator bool() const;
+	private:
+		bool isTrustedHandle(const IOSender::Handle& handle) const;
+
+		bool isLogonActionsLimitReached() const;
+
+		int getMaxLogonActions() const;
+
+		void Capture();
+
+		void Release();
+
+		CDspClientManager* m_clientManager;
+		IOSender::Handle m_handle;
+		bool m_isSuccess;
+	};
 
 	/**
  	* Checks performed before any authentication command
