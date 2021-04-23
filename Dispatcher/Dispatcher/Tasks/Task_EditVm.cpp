@@ -3025,7 +3025,7 @@ Vm::Action* Memory::operator()(const Request& input_) const
 		quint64 maxMemory = u.getMaxMemory() >> 10; // in mbytes
 		if (r.isFailed() || !maxMemory)
 		{
-			WRITE_TRACE(DBG_FATAL, "Unable to get VM runtime configuration (%d,%d)",
+			WRITE_TRACE(DBG_FATAL, "Unable to get VM runtime configuration (%d,%llu)",
 				r.error().code(), maxMemory);
 			return output;
 		}
@@ -3042,7 +3042,7 @@ Vm::Action* Memory::operator()(const Request& input_) const
 				const qint64 size = (((n->getRamSize() - maxMemory) +
 					multiple - 1) / multiple) * multiple;
 				const Transponster::Vm::Reverse::Dimm dimm(0, size << 10); // in kbytes
-				WRITE_TRACE(DBG_WARNING, "Add to VM %s new DIMM of memory, size %dm",
+				WRITE_TRACE(DBG_WARNING, "Add to VM %s new DIMM of memory, size %lldm",
 					QSTR2UTF8(input_.getFinal().getVmIdentification()->getVmUuid()), size);
 
 				output = f.craftRuntime(boost::bind(
