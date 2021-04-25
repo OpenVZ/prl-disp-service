@@ -1992,7 +1992,11 @@ PRL_RESULT Builder::setBlank()
 	}
 	else
 		os.reset(new Libvirt::Domain::Xml::Os2);
-	if (getStartupOptions(*os) || Resources(m_input).getChipset(*os))
+
+	const bool a =  getStartupOptions(*os);
+	const bool b =  Resources(m_input).getChipset(*os);
+
+	if (a || b)
 	{
 		mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
 		vos.setValue(*os);
