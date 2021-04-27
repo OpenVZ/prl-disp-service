@@ -3017,9 +3017,12 @@ void CDspVmDirHelper::resetAdvancedParamsFromVmConfig( SmartPtr<CVmConfiguration
 		remDisplay->setWebSocketPortNumber(0);
 		break;
 	case PRD_AUTO:
-		remDisplay->setHostName(QHostAddress(QHostAddress::Any).toString());
-		remDisplay->setPortNumber(0);
-		remDisplay->setWebSocketPortNumber(0);
+		if (remDisplay->getHostName() != QHostAddress(QHostAddress::LocalHost).toString())
+		{
+			remDisplay->setHostName(QHostAddress(QHostAddress::Any).toString());
+			remDisplay->setPortNumber(0);
+			remDisplay->setWebSocketPortNumber(0);
+		}
 	case PRD_MANUAL:
 		remDisplay->setEncrypted(Vnc::Encryption
 			(*CDspService::instance()->getQSettings().getPtr())

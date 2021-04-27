@@ -634,6 +634,25 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 		// Finish EVT_PARAM_VMCFG_CPU_FEATURES_MASK
 		//////////////////////////////////////////////////////////////////////////
 
+		//////////////////////////////////////////////////////////////////////////
+		// EVT_PARAM_VMCFG_REMOTE_DISPLAY_PORT
+		//////////////////////////////////////////////////////////////////////////
+		if( CVmEventParameter* pParam = evtFromVm.getEventParameter( EVT_PARAM_VMCFG_REMOTE_DISPLAY_PORT ))
+		{
+			bool OnOffRemotePort =  pParam->getParamValue().toInt();
+
+			if ( !OnOffRemotePort )
+			{
+				pVmConfig->getVmSettings()->getVmRemoteDisplay()->setMode();
+
+				flgConfigChanged = true;
+				flgApplyConfig = true;
+			}
+		}
+		//////////////////////////////////////////////////////////////////////////
+		// Finish EVT_PARAM_VMCFG_REMOTE_DISPLAY_PORT
+		//////////////////////////////////////////////////////////////////////////
+
 		if( ! flgConfigChanged )
 		{
 			if( flgNoChangeAllowed )

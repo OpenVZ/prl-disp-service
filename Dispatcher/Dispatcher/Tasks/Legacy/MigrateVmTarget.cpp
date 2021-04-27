@@ -54,6 +54,7 @@
 #include <prlcommon/IOService/IOCommunication/IOServerPool.h>
 #include "Tasks/Task_ManagePrlNetService.h"
 #include "Tasks/Task_BackgroundJob.h"
+#include "Tasks/Task_EditVm.h"
 #include "CDspService.h"
 #include "Libraries/PrlCommonUtils/CVmMigrateHelper.h"
 #include "Libraries/StatesUtils/StatesHelper.h"
@@ -96,7 +97,8 @@ MigrateVmTarget::MigrateVmTarget(
 	  m_nFlags(0),
 	  m_nSteps(0),
 	  m_nBundlePermissions(0),
-	  m_nConfigPermissions(0)
+	  m_nConfigPermissions(0),
+	  m_tempVncEnabled(false)
 {
 	CVmMigrateCheckPreconditionsCommand* pCheckCmd =
 		CDispToDispProtoSerializer::CastToDispToDispCommand<CVmMigrateCheckPreconditionsCommand>(pCmd);
@@ -572,6 +574,17 @@ void MigrateVmTarget::finalizeTask()
 
 		CDspService::instance()->getIOServer().waitForSend(hJob, m_nTimeout);
 	}
+
+	if (m_tempVncEnabled)
+	{
+		disableTempVncServer();
+		saveVmConfig();
+
+		CVmEvent e;
+		e.addEventParameter(new CVmEventParameter(PVE::String,"0", EVT_PARAM_VMCFG_REMOTE_DISPLAY_PORT));
+
+		Task_EditVm::atomicEditVmConfigByVm(m_sVmDirUuid, m_sVmUuid, e, CDspClient::makeServiceUser(m_sVmDirUuid));
+	}
 }
 
 PRL_RESULT MigrateVmTarget::migrateStoppedVm()
@@ -640,6 +653,10 @@ PRL_RESULT MigrateVmTarget::migrateRunningVm()
 	Legacy::Vm::result_type res;
 	if ((res = Legacy::Vm::Converter().convertHardware(m_pVmConfig)).isFailed())
 		return CDspTaskFailure(*this)(*res.error());
+
+	CVmRemoteDisplay* ptr_remote = m_pVmConfig->getVmSettings()->getVmRemoteDisplay();
+	if (nullptr == ptr_remote || ptr_remote->getMode() == PRD_DISABLED)
+		enableTempVncServer();
 
 	if (!(m_nReservedFlags & PVM_DONT_COPY_VM) && !(m_nReservedFlags & PVM_ISCSI_STORAGE))
 		if (PRL_FAILED(nRetCode = saveVmConfig()))
@@ -1235,6 +1252,23 @@ void MigrateVmTarget::checkBinary()
 		.arg(path),
 		EVT_PARAM_MESSAGE_PARAM_0));
 	m_lstCheckPrecondsErrors.append(cEvent.toString());
+}
+
+void MigrateVmTarget::enableTempVncServer() noexcept
+{
+	CVmRemoteDisplay* vnc_ptr = new CVmRemoteDisplay();
+	vnc_ptr->setPortNumber();
+	vnc_ptr->setHostName(QHostAddress(QHostAddress::LocalHost).toString());
+	vnc_ptr->setMode(PRD_AUTO);
+
+	m_pVmConfig->getVmSettings()->setVmRemoteDisplay(vnc_ptr);
+	m_tempVncEnabled = true;
+}
+
+void MigrateVmTarget::disableTempVncServer()
+{
+	m_pVmConfig->getVmSettings()->getVmRemoteDisplay()->setHostName();
+	m_pVmConfig->getVmSettings()->getVmRemoteDisplay()->setMode();
 }
 
 } // namespace Task

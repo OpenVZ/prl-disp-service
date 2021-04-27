@@ -100,6 +100,9 @@ private:
 	PRL_RESULT registerHaClusterResource();
 	void unregisterHaClusterResource();
 	PRL_RESULT resurrectVm();
+
+	void enableTempVncServer() noexcept;
+	void disableTempVncServer();
 private:
 	Registry::Public& m_registry;
 	const QObject* m_pParent;
@@ -150,6 +153,7 @@ private:
 
 	SmartPtr<CVmDirectory::TemporaryCatalogueItem> m_pVmInfo;
 	QSharedPointer<QTcpServer> m_vnc;
+	bool m_tempVncEnabled;
 
 private slots:
 	void clientDisconnected(IOSender::Handle h);
