@@ -1660,22 +1660,30 @@ const QString CpuFeaturesMask::getNestedVtName() const
 
 void CpuFeaturesMask::getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &cpu)
 {
-	CpuFeatures* u = vt_.getCpuFeatures();
 	QSet<QString> features = CCpuHelper::getDisabledFeatures(*m_input);
 	/* FIXME arat feature will be implemented in Update3. It should be disabled
 	 to keep libvirt migration work. It is not working in update1 QEMU.
 	 #PSBM-52808 #PSBM-51001 #PSBM-52852 #PSBM-65816 */
 	features.insert("arat");
-	if (!m_input->getVmHardwareList()->getCpu()->isVirtualizedHV())
-	{
-		features.insert(getNestedVtName());
-	}
 
 	QList<Libvirt::Domain::Xml::Feature> l;
+	CpuFeatures* u = vt_.getCpuFeatures();
 	if (NULL != u)
 	{
-		features.unite(u->getDisabled().toSet());
-		foreach(const QString& name, u->getRequired())
+		QSet<QString> d = u->getDisabled().toSet();
+		QSet<QString> r = u->getRequired().toSet();
+		QString v = getNestedVtName();
+
+		if (!m_input->getVmHardwareList()->getCpu()->isVirtualizedHV())
+			features.insert(v);
+		else if (!d.contains(v))
+		{
+			r.insert(v);
+			features.remove(v);
+		}
+
+		features.unite(d);
+		foreach(const QString& name, r)
 		{
 			if (features.contains(name))
 				continue;
