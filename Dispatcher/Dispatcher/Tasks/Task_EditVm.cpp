@@ -1959,13 +1959,6 @@ PRL_RESULT Task_EditVm::editVm()
 		updateNetworkSettings(pVmConfigNew, pVmConfigOld);
 
 		//////////////////////////////////////////////////////////////////////////
-		// Notify users that VM configuration was changed
-		//////////////////////////////////////////////////////////////////////////
-
-		// Generate "VM changed" event
-		DspVm::vdh().sendVmConfigChangedEvent(ident, getRequestPackage());
-
-		//////////////////////////////////////////////////////////////////////////
 		// configure Vz specific parameters
 		/////////////////////////////////////////////////////////////////////////
 		configureVzParameters(pVmConfigNew, pVmConfigOld);
@@ -2031,6 +2024,13 @@ PRL_RESULT Task_EditVm::editVm()
 				ident.second, ident.first);
 		}
 	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// Notify users that VM configuration was changed
+	//////////////////////////////////////////////////////////////////////////
+
+	// Generate "VM changed" event
+	DspVm::vdh().sendVmConfigChangedEvent(ident, getRequestPackage());
 
 	// If everything is OK, clenaup unused filters
 #ifdef _LIBVIRT_
