@@ -729,6 +729,7 @@ PRL_RESULT CDspShellHelper::checkAccessForHostCommonInfoEdit(SmartPtr<CDspClient
 
 		// addinfo #8036
 		if ( ! pUser->getAuthHelper().isLocalAdministrator()
+			&& ! pUser->getAuthHelper().IsSelfProcessOwner()
 			&& ! dispUser->getUserAccess()->canChangeServerSettings()
 			)
 		{
