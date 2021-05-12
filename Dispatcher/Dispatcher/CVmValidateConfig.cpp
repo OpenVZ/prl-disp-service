@@ -2368,7 +2368,7 @@ void CVmValidateConfig::CheckFirewall(const CVmGenericNetworkAdapter& pNetAdapte
 			static const QList<QString> allowed_protos{"", "tcp", "udp", "icmp"};
 			static const QList<QString> port_protos{"tcp", "udp"};
 
-			if (!allowed_protos.contains(rule->getProtocol()))
+			if (!allowed_protos.contains(proto))
 				pushError(PRL_ERR_VMCONF_NETWORK_UNSUPPORTED_PROTOCOL, rule->getProtocol_id());
 
 			static unsigned int S_MAX_PORT = 65535;
