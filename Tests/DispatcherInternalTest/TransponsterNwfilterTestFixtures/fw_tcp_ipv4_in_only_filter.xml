@@ -3,7 +3,7 @@
   <all state="ESTABLISHED,RELATED"/>
  </rule>
  <rule direction="in" action="drop" priority="1">
-  <tcp dstipaddr="192.168.0.101" srcipaddr="192.168.0.100"/>
+  <tcp dstipaddr="192.168.0.100" srcipaddr="192.168.0.101"/>
  </rule>
  <rule direction="out" action="return" priority="2">
   <all state="ESTABLISHED,RELATED"/>

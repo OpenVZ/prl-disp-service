@@ -3,7 +3,7 @@
   <all state="ESTABLISHED,RELATED"/>
  </rule>
  <rule direction="in" action="drop" priority="1">
-  <tcp-ipv6 dstportstart="2222" dstipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334" srcportend="22" srcportstart="22" dstportend="2222" srcipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334"/>
+  <tcp-ipv6 dstportstart="22" dstipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334" srcportend="2222" srcportstart="2222" dstportend="22" srcipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334"/>
  </rule>
  <rule direction="out" action="return" priority="2">
   <all state="ESTABLISHED,RELATED"/>
