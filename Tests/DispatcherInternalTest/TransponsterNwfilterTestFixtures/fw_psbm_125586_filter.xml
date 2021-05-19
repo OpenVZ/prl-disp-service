@@ -12,55 +12,69 @@
   <all state="ESTABLISHED,RELATED"/>
  </rule>
  <rule direction="in" action="return" priority="1">
-  <tcp srcportend="80" srcportstart="80"/>
-  <tcp-ipv6 srcportend="80" srcportstart="80"/>
+  <tcp-ipv6 dstportstart="80" dstportend="80"/>
  </rule>
  <rule direction="in" action="return" priority="2">
-  <tcp srcportend="443" srcportstart="443"/>
-  <tcp-ipv6 srcportend="443" srcportstart="443"/>
+  <tcp dstportstart="80" dstportend="80"/>
  </rule>
  <rule direction="in" action="return" priority="3">
-  <tcp srcportend="22" srcportstart="22"/>
-  <tcp-ipv6 srcportend="22" srcportstart="22"/>
+  <tcp-ipv6 dstportstart="443" dstportend="443"/>
  </rule>
  <rule direction="in" action="return" priority="4">
-  <tcp srcportend="8443" srcportstart="8443"/>
-  <tcp-ipv6 srcportend="8443" srcportstart="8443"/>
+  <tcp dstportstart="443" dstportend="443"/>
  </rule>
  <rule direction="in" action="return" priority="5">
-  <tcp srcportend="8447" srcportstart="8447"/>
-  <tcp-ipv6 srcportend="8447" srcportstart="8447"/>
+  <tcp-ipv6 dstportstart="22" dstportend="22"/>
  </rule>
  <rule direction="in" action="return" priority="6">
-  <tcp/>
-  <tcp-ipv6/>
+  <tcp dstportstart="22" dstportend="22"/>
  </rule>
  <rule direction="in" action="return" priority="7">
-  <icmp/>
-  <icmpv6/>
+  <tcp-ipv6 dstportstart="8443" dstportend="8443"/>
  </rule>
  <rule direction="in" action="return" priority="8">
-  <icmp dstipaddr="192.168.0.101" srcipaddr="192.168.0.100"/>
+  <tcp dstportstart="8443" dstportend="8443"/>
  </rule>
  <rule direction="in" action="return" priority="9">
-  <icmpv6 dstipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7335" srcipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334"/>
+  <tcp-ipv6 dstportstart="8447" dstportend="8447"/>
  </rule>
  <rule direction="in" action="return" priority="10">
-  <icmpv6 type="133"/>
+  <tcp dstportstart="8447" dstportend="8447"/>
  </rule>
  <rule direction="in" action="return" priority="11">
-  <icmpv6 type="134"/>
+  <tcp-ipv6/>
  </rule>
  <rule direction="in" action="return" priority="12">
-  <icmpv6 type="135"/>
+  <tcp/>
  </rule>
  <rule direction="in" action="return" priority="13">
+  <icmpv6/>
+ </rule>
+ <rule direction="in" action="return" priority="14">
+  <icmp/>
+ </rule>
+ <rule direction="in" action="return" priority="15">
+  <icmp dstipaddr="192.168.0.100" srcipaddr="192.168.0.101"/>
+ </rule>
+ <rule direction="in" action="return" priority="16">
+  <icmpv6 dstipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334" srcipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7335"/>
+ </rule>
+ <rule direction="in" action="return" priority="17">
+  <icmpv6 type="133"/>
+ </rule>
+ <rule direction="in" action="return" priority="18">
+  <icmpv6 type="134"/>
+ </rule>
+ <rule direction="in" action="return" priority="19">
+  <icmpv6 type="135"/>
+ </rule>
+ <rule direction="in" action="return" priority="20">
   <icmpv6 type="136"/>
  </rule>
- <rule direction="in" action="drop" priority="14">
+ <rule direction="in" action="drop" priority="21">
   <all/>
  </rule>
- <rule direction="out" action="return" priority="15">
+ <rule direction="out" action="return" priority="22">
   <all state="ESTABLISHED,RELATED"/>
  </rule>
 </filter>
