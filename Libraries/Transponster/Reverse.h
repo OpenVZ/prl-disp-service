@@ -497,7 +497,7 @@ private:
 	static Libvirt::Filter::Xml::VUint8range
 	prepareIcmpType(unsigned int value);
 
-	static Libvirt::Filter::Xml::VChoice5120
+	static QList<Libvirt::Filter::Xml::VChoice5120>
 	prepareRule(const CVmNetFirewallRule &basic_rule,
 				Libvirt::Filter::Xml::EDirectionType direction,
 				Libvirt::Filter::Xml::EActionType action,
@@ -558,13 +558,16 @@ private:
 	prepareAll(const Libvirt::Filter::Xml::CommonIpAttributesP2 &ips);
 
 	static Libvirt::Filter::Xml::CommonIpAttributesP1
-	prepareIpAttributes(const QString &local_ip, const QString &remote_ip);
+	prepareIpAttributes(const QString &local_ip, const QString &remote_ip,
+                        const Libvirt::Filter::Xml::EDirectionType& direction);
 
 	static Libvirt::Filter::Xml::CommonIpv6AttributesP1
-	prepareIpv6Attributes(const QString &local_ip, const QString &remote_ip);
+	prepareIpv6Attributes(const QString &local_ip, const QString &remote_ip,
+                          const Libvirt::Filter::Xml::EDirectionType& direction);
 
 	static Libvirt::Filter::Xml::CommonPortAttributes
-	preparePortAttributes(uint local_port, uint remote_port);
+	preparePortAttributes(uint local_port, uint remote_port,
+                          const Libvirt::Filter::Xml::EDirectionType& direction);
 };
 } // namespace Filter
 } // namespace Transponster

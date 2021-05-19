@@ -3288,7 +3288,7 @@ Reverse::prepareIcmpType(unsigned int value)
 	return Libvirt::Filter::Xml::VUint8range(type_holder);
 }
 
-Libvirt::Filter::Xml::VChoice5120
+QList<Libvirt::Filter::Xml::VChoice5120>
 Reverse::prepareRule(const CVmNetFirewallRule &basic_rule,
 							Libvirt::Filter::Xml::EDirectionType direction,
 							Libvirt::Filter::Xml::EActionType action,
@@ -3304,14 +3304,9 @@ Reverse::prepareRule(const CVmNetFirewallRule &basic_rule,
 	static QString S_UDP = "udp";
 	static QString S_ICMP = "icmp";
 
-	Libvirt::Filter::Xml::Rule rule;
 	Libvirt::Filter::Xml::RuleNodeAttributes rule_attributes;
-
-	rule_attributes.setPriority(priority);
 	rule_attributes.setDirection(direction);
 	rule_attributes.setAction(action);
-
-	rule.setRuleNodeAttributes(rule_attributes);
 
 	// using libvirt regex to validate IPv6
 	// local_ip and remote_ip should be of same type, so making
@@ -3323,12 +3318,16 @@ Reverse::prepareRule(const CVmNetFirewallRule &basic_rule,
 	bool isBoth = local_ip.isEmpty() && remote_ip.isEmpty();
 
 	Libvirt::Filter::Xml::CommonPortAttributes port_attributes = preparePortAttributes(
-				local_port, remote_port);
+				local_port, remote_port, direction);
 
+	QList<Libvirt::Filter::Xml::VChoice5120> rule_holders;
+	mpl::at_c<Libvirt::Filter::Xml::VChoice5120::types, 1>::type rule_holder;
 	if (isIPv6 || isBoth)
 	{
+		Libvirt::Filter::Xml::Rule rule;
 		Libvirt::Filter::Xml::CommonIpv6AttributesP1 ip_attributes = prepareIpv6Attributes(
-			local_ip, remote_ip);
+			local_ip, remote_ip, direction);
+
 		if (proto == S_TCP)
 			rule.setTcpIpv6List(prepareTcpIpv6(ip_attributes, port_attributes));
 		else if (proto == S_UDP)
@@ -3337,12 +3336,18 @@ Reverse::prepareRule(const CVmNetFirewallRule &basic_rule,
 			rule.setIcmpv6List(prepareIcmpv6(ip_attributes, boost::optional<unsigned int>()));
 		else if (proto.isEmpty())
 			rule.setAllIpv6List(prepareAllIpv6(ip_attributes));
+
+		rule_attributes.setPriority(priority++);
+		rule.setRuleNodeAttributes(rule_attributes);
+		rule_holder.setValue(rule);
+		rule_holders.append(rule_holder);
 	}
 
 	if (!isIPv6 || isBoth)
 	{
+		Libvirt::Filter::Xml::Rule rule;
 		Libvirt::Filter::Xml::CommonIpAttributesP1 ip_attributes = prepareIpAttributes(
-				local_ip, remote_ip);
+				local_ip, remote_ip, direction);
 
 		if (proto == S_TCP)
 			rule.setTcpList(prepareTcp(ip_attributes, port_attributes));
@@ -3352,11 +3357,14 @@ Reverse::prepareRule(const CVmNetFirewallRule &basic_rule,
 			rule.setIcmpList(prepareIcmp(ip_attributes, boost::optional<unsigned int>()));
 		else if (proto.isEmpty())
 			rule.setAllList(prepareAll(ip_attributes));
+
+		rule_attributes.setPriority(priority++);
+		rule.setRuleNodeAttributes(rule_attributes);
+		rule_holder.setValue(rule);
+		rule_holders.append(rule_holder);
 	}
 
-	mpl::at_c<Libvirt::Filter::Xml::VChoice5120::types, 1>::type rule_holder;
-	rule_holder.setValue(rule);
-	return Libvirt::Filter::Xml::VChoice5120(rule_holder);
+	return rule_holders;
 }
 
 Libvirt::Filter::Xml::EActionType
@@ -3732,47 +3740,60 @@ QList <Libvirt::Filter::Xml::AllIpv6>
 
 Libvirt::Filter::Xml::CommonIpAttributesP1
 Reverse::prepareIpAttributes(const QString &local_ip,
-								   const QString &remote_ip)
+							 const QString &remote_ip,
+							 const Libvirt::Filter::Xml::EDirectionType &direction
+							 )
 {
 	Libvirt::Filter::Xml::CommonIpAttributesP1 ip_attributes;
 
-	ip_attributes.setSrcipaddr(prepareIp(local_ip));
-	ip_attributes.setDstipaddr(prepareIp(remote_ip));
+	auto source_ip = direction == Libvirt::Filter::Xml::EDirectionTypeIn ? remote_ip : local_ip;
+	auto destination_ip = direction == Libvirt::Filter::Xml::EDirectionTypeIn ? local_ip : remote_ip;
+
+	ip_attributes.setSrcipaddr(prepareIp(source_ip));
+	ip_attributes.setDstipaddr(prepareIp(destination_ip));
 
 	if (local_ip.contains("/"))
-		ip_attributes.setSrcipmask(prepareIpMask(QHostAddress::parseSubnet(local_ip).second));
+		ip_attributes.setSrcipmask(prepareIpMask(QHostAddress::parseSubnet(source_ip).second));
 	if (remote_ip.contains("/"))
-		ip_attributes.setDstipmask(prepareIpMask(QHostAddress::parseSubnet(remote_ip).second));
+		ip_attributes.setDstipmask(prepareIpMask(QHostAddress::parseSubnet(destination_ip).second));
 
 	return ip_attributes;
 }
 
 Libvirt::Filter::Xml::CommonIpv6AttributesP1
-	Reverse::prepareIpv6Attributes(const QString &local_ip, const QString &remote_ip)
+	Reverse::prepareIpv6Attributes(const QString &local_ip, const QString &remote_ip,
+								   const Libvirt::Filter::Xml::EDirectionType &direction)
 {
 	Libvirt::Filter::Xml::CommonIpv6AttributesP1 ip_attributes;
 
-	ip_attributes.setSrcipaddr(prepareIpv6(local_ip));
-	ip_attributes.setDstipaddr(prepareIpv6(remote_ip));
+	auto source_ip = direction == Libvirt::Filter::Xml::EDirectionTypeIn ? remote_ip : local_ip;
+	auto destination_ip = direction == Libvirt::Filter::Xml::EDirectionTypeIn ? local_ip : remote_ip;
+
+	ip_attributes.setSrcipaddr(prepareIpv6(source_ip));
+	ip_attributes.setDstipaddr(prepareIpv6(destination_ip));
 
 	if (local_ip.contains("/"))
-		ip_attributes.setSrcipmask(prepareIpv6Mask(QHostAddress::parseSubnet(local_ip).second));
+		ip_attributes.setSrcipmask(prepareIpv6Mask(QHostAddress::parseSubnet(source_ip).second));
 	if (remote_ip.contains("/"))
-		ip_attributes.setDstipmask(prepareIpv6Mask(QHostAddress::parseSubnet(remote_ip).second));
+		ip_attributes.setDstipmask(prepareIpv6Mask(QHostAddress::parseSubnet(destination_ip).second));
 
 	return ip_attributes;
 }
 
 Libvirt::Filter::Xml::CommonPortAttributes
-Reverse::preparePortAttributes(uint local_port, uint remote_port)
+Reverse::preparePortAttributes(uint local_port, uint remote_port,
+							   const Libvirt::Filter::Xml::EDirectionType &direction)
 {
 	Libvirt::Filter::Xml::CommonPortAttributes port_attributes;
 
-	port_attributes.setSrcportstart(preparePort(local_port));
-	port_attributes.setSrcportend(preparePort(local_port));
+	auto source_port = direction == Libvirt::Filter::Xml::EDirectionTypeIn ? remote_port : local_port;
+	auto destination_port = direction == Libvirt::Filter::Xml::EDirectionTypeIn ? local_port : remote_port;
 
-	port_attributes.setDstportstart(preparePort(remote_port));
-	port_attributes.setDstportend(preparePort(remote_port));
+	port_attributes.setSrcportstart(preparePort(source_port));
+	port_attributes.setSrcportend(preparePort(source_port));
+
+	port_attributes.setDstportstart(preparePort(destination_port));
+	port_attributes.setDstportend(preparePort(destination_port));
 
 	return port_attributes;
 }
