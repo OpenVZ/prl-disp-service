@@ -2027,7 +2027,10 @@ bool Builder::getStartupOptions(Libvirt::Domain::Xml::Os2& os_) const
 	}
 	CVmStartupBios* b = m_input.getVmSettings()->getVmStartupOptions()->getBios();
 	//EFI boot support
-	if (b != NULL && b->isEfiEnabled())
+	if (b == NULL)
+		return changed;
+
+	if (b->isEfiEnabled())
 	{
 		Libvirt::Domain::Xml::Loader l;
 		l.setReadonly(Libvirt::Domain::Xml::EReadonlyYes);
@@ -2046,9 +2049,13 @@ bool Builder::getStartupOptions(Libvirt::Domain::Xml::Os2& os_) const
 			n.setFormat(Libvirt::Domain::Xml::EFormatQcow2);
 			os_.setNvram(n);
 		}
-		changed = true;
+	} else {
+		os_.setLoader(boost::optional <Libvirt::Domain::Xml::Loader>());
+		if (b->getNVRAM().isEmpty())
+			os_.setNvram(boost::optional <Libvirt::Domain::Xml::Nvram>());
 	}
-	return changed;
+
+	return true;
 }
 
 PRL_RESULT Builder::setSettings()
