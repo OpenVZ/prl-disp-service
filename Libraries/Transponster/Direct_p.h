@@ -100,8 +100,9 @@ enum class Chipset_type: unsigned
 	rhel7 = 3
 };
 
-constexpr quint32 minRhel7Version = 3;
-constexpr quint32 minVz7Version = 4;
+// all supported machine types
+static const std::map<Chipset_type, quint32> supportedVersions{
+{Chipset_type::i440fx, 4}, {Chipset_type::Q35, 0}, {Chipset_type::rhel7, 3}};
 
 typedef QPair<Chipset_type, quint32> model_type;
 //			 <chipset_type, machine_type/version>
