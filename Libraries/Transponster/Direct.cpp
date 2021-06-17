@@ -1413,8 +1413,6 @@ PRL_RESULT Vm::setResources(const VtInfo& vt_)
 	if (m_input->getClock())
 		r.setClock(m_input->getClock().get());
 
-	r.setChipset(m_input->getOs());
-
 	return PRL_ERR_SUCCESS;
 }
 
