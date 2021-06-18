@@ -169,15 +169,12 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Domain& dst_)
 	
 	using namespace Transponster::Chipset;
 	
-	if (model.first != Chipset::Chipset_type::UNKNOWN)
+	if (model.first != Chipset::Chipset_type::UNKNOWN &&
+			model.second >= supportedVersions.at(model.first))
 	{
-		if ((model.first == Chipset_type::rhel7 && model.second >= minRhel7Version)
-				|| model.second >= minVz7Version)
-		{
 			Libvirt::Domain::Xml::Vmcoreinfo i;
 			i.setState(Libvirt::Domain::Xml::EVirOnOffOn);
 			f->setVmcoreinfo(i);
-		}
 	}
 
 	dst_.setFeatures(f);
@@ -2283,10 +2280,8 @@ PRL_RESULT Vm::setDevices()
 			boost::apply_visitor(Visitor::Chipset(), m_result->getOs()));
 	
 	using namespace Transponster::Chipset;
-	
-	if ((model.first == Chipset::Chipset_type::i440fx ||
-			model.first == Chipset::Chipset_type::Q35) &&
-		model.second >= minVz7Version)
+
+	if (model.second >= supportedVersions.at(model.first))
 	{
 		Libvirt::Domain::Xml::Cid c;
 		c.setAuto(Libvirt::Domain::Xml::EVirYesNoYes);

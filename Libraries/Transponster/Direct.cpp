@@ -1111,7 +1111,7 @@ QString i440fx::serialize(model_type::second_type version_) const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Q35
 
-const QString Q35::s_PREFIX("pc-q35-vz7.");
+const QString Q35::s_PREFIX("pc-q35-vz8.");
 
 Prl::Expected<model_type, PRL_RESULT>
 	Q35::deserialize(const QString& text_) const
@@ -1120,16 +1120,14 @@ Prl::Expected<model_type, PRL_RESULT>
 		Generic<Q35, Chipset_type::Q35>::deserialize(text_);
 	if (x.isFailed())
 		return x;
-	if (7 > x.value().second)
-		return PRL_ERR_INVALID_ARG;
 
-	return model_type(x.value().first, x.value().second - 6);
+	return model_type(x.value().first, x.value().second);
 
 }
 
 QString Q35::serialize(model_type::second_type version_) const
 {
-	return Generic<Q35, Chipset_type::Q35>::serialize(version_ + 6);
+	return Generic<Q35, Chipset_type::Q35>::serialize(version_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1176,7 +1174,7 @@ QString Marshal::serialize(const model_type& object_) const
 	{
 	case Chipset_type::i440fx: 
 		return i440fx().serialize(object_.second);
-	case Chipset_type::Q35: 
+	case Chipset_type::Q35:
 		return Q35().serialize(object_.second);
 	case Chipset_type::rhel7:
 		return rhel7{}.serialize(object_.second);
@@ -1414,8 +1412,6 @@ PRL_RESULT Vm::setResources(const VtInfo& vt_)
 
 	if (m_input->getClock())
 		r.setClock(m_input->getClock().get());
-
-	r.setChipset(m_input->getOs());
 
 	return PRL_ERR_SUCCESS;
 }
