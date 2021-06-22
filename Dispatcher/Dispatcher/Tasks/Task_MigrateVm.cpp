@@ -675,8 +675,7 @@ Unit* Hatchery::operator()(const agent_type& agent_, const CVmConfiguration& tar
 		o.setQemuState(m_ports->first);
 
 	Plan P(Separatist(*config), *m_task);
-	if (!P.getDisks().isEmpty() || !P.getSharedDisks().isEmpty())
-		m_ports ? o.setQemuDisk(P.getDisks(), m_ports->second) : o.setQemuDisk(P.getDisks());
+	m_ports ? o.setQemuDisk(P.getDisks(), m_ports->second) : o.setQemuDisk(P.getDisks());
 
 	quint64 bw = m_task->getDegree();
 	if (bw > 0)
