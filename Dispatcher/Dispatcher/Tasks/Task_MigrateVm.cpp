@@ -1003,6 +1003,7 @@ bool Frontend::setup(const char* method_)
 		WRITE_TRACE(DBG_FATAL, "can't listen");
 		return false;
 	}
+	WRITE_TRACE(DBG_DEBUG, "Listen at localhost: %d", s->serverPort());
 	m_listenerMap[method_] = s;
 	return true;
 }
