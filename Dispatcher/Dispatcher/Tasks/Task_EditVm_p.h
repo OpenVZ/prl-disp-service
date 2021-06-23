@@ -441,7 +441,7 @@ template <class T>
 struct Action: Vm::Action, private Layout
 {
 	Action(const T& data_, const CVmConfiguration& config_):
-		Layout(config_), m_data(data_)
+		Layout(config_), m_data(data_), m_config(config_)
 	{
 	}
 
@@ -450,6 +450,7 @@ struct Action: Vm::Action, private Layout
 
 private:
 	T m_data;
+	CVmConfiguration m_config;
 };
 
 } // namespace Create

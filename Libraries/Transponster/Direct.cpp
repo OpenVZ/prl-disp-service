@@ -1158,9 +1158,6 @@ model_type Marshal::deserialize_(const QString& text_) const
 {
 	model_type m = deserialize_(text_);
 	::Chipset output;
-	
-	typedef std::underlying_type<Chipset_type>::type chipInternal_t;
-	
 	output.setType(static_cast<chipInternal_t>(m.first));
 	output.setVersion(m.second);
 	output.setAlias(text_);

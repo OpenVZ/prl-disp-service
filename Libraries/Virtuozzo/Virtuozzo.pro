@@ -16,7 +16,8 @@ HEADERS +=		\
 	CVzTemplateHelper.h	\
 	CVzNetworkShaping.h \
 	CVzPrivateNetwork.h \
-	UuidMap.h
+	UuidMap.h \
+	OvmfHelper.h
 
 SOURCES =		\
 	CVzHelper.cpp	\
@@ -24,7 +25,8 @@ SOURCES =		\
 	CVzNetworkShaping.cpp \
 	CVzPrivateNetwork.cpp \
 	UuidMap.cpp \
-	CVzPloop.cpp
+	CVzPloop.cpp \
+	OvmfHelper.cpp
 
 contains(DYN_VZLIB, TRUE) {
 	DEFINES += _DYN_VZLIB_

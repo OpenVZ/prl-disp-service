@@ -5,7 +5,8 @@ include(CpuFeatures.pri)
 
 # Input
 HEADERS +=                      \
-	CCpuHelper.h
+	CCpuHelper.h \
+	ChipsetHelper.h
 
 SOURCES +=                      \
 	CCpuHelper.cpp

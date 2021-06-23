@@ -40,6 +40,7 @@
 #include <prlcommon/PrlUuid/Uuid.h>
 #include <Libraries/PrlNetworking/PrlNetLibrary.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <Libraries/CpuFeatures/ChipsetHelper.h>
 
 namespace Transponster
 {
@@ -91,14 +92,6 @@ private:
 
 namespace Chipset
 {
-
-enum class Chipset_type: unsigned
-{
-	UNKNOWN = 0,
-	i440fx = 1,
-	Q35 = 2,
-	rhel7 = 3
-};
 
 // all supported machine types
 static const std::map<Chipset_type, quint32> supportedVersions{

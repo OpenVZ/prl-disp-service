@@ -33,6 +33,7 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <Libraries/PrlNetworking/netconfig.h>
 #include <Libraries/CpuFeatures/CCpuHelper.h>
+#include <Libraries/Virtuozzo/OvmfHelper.h>
 
 namespace Transponster
 {
@@ -169,7 +170,7 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Domain& dst_)
 	
 	using namespace Transponster::Chipset;
 	
-	if (model.first != Chipset::Chipset_type::UNKNOWN &&
+	if (model.first != Chipset_type::UNKNOWN &&
 			model.second >= supportedVersions.at(model.first))
 	{
 			Libvirt::Domain::Xml::Vmcoreinfo i;
@@ -2033,9 +2034,11 @@ bool Builder::getStartupOptions(Libvirt::Domain::Xml::Os2& os_) const
 		l.setReadonly(Libvirt::Domain::Xml::EReadonlyYes);
 		l.setType(Libvirt::Domain::Xml::EType2Pflash);
 
-		// package OVMF.x86_64
-		l.setOwnValue(QString("/usr/share/OVMF/OVMF_CODE.fd"));
+		unsigned int c = m_input.getVmHardwareList()->getChipset()->getType();
 
+		QString firmware = OVMF::getFirmware(static_cast<Chipset_type>(c));
+
+		l.setOwnValue(firmware);
 		os_.setLoader(l);
 
 		QString x = b->getNVRAM();

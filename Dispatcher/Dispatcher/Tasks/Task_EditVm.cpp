@@ -44,6 +44,7 @@
 #include "Libraries/StatesUtils/StatesHelper.h"
 #include "Libraries/CpuFeatures/CCpuHelper.h"
 #include <Libraries/Transponster/Reverse.h>
+#include <Libraries/Virtuozzo/OvmfHelper.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>
 #include <prlxmlmodel/VirtuozzoObjects/CXmlModelHelper.h>
@@ -2806,8 +2807,11 @@ PRL_RESULT Action<CVmStartupBios>::execute()
 	if (QFile::exists(file))
 		return PRL_ERR_SUCCESS;
 
-	if (0 != QProcess::execute("qemu-img", QStringList() << "convert"
-		<< "-O" << "qcow2" << "/usr/share/OVMF/OVMF_VARS.fd" << file))
+	const unsigned int c = m_config.getVmHardwareList()->getChipset()->getType();
+
+	QString templ = OVMF::getTemplate(static_cast<Chipset_type>(c));
+
+	if (0 != QProcess::execute("qemu-img", QStringList() << "convert"<< "-O" << "qcow2" << templ << file))
 	{
 		WRITE_TRACE(DBG_FATAL, "Unable to create NVRAM image with '%s'", qPrintable(file));
 		return PRL_ERR_NVRAM_FILE_COPY;
@@ -2824,8 +2828,11 @@ bool Action<CVmStartupBios>::execute(CDspTaskFailure& feedback_)
 	if (PRL_SUCCEEDED(r))
 		return Vm::Action::execute(feedback_);
 
-	feedback_.setCode(r)("/usr/share/OVMF/OVMF_VARS.fd",
-		this->getItemPath(m_data.getNVRAM()));
+	const unsigned int c = m_config.getVmHardwareList()->getChipset()->getType();
+
+	QString templ = OVMF::getTemplate(static_cast<Chipset_type>(c));
+
+	feedback_.setCode(r)(templ, this->getItemPath(m_data.getNVRAM()));
 	return false;
 }
 
