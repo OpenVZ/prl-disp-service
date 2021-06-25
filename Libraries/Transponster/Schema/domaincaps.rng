@@ -99,6 +99,9 @@
         <value>host-passthrough</value>
       </attribute>
       <ref name='supported'/>
+      <optional>
+        <ref name='enum'/>
+      </optional>
     </element>
   </define>
 
@@ -155,6 +158,9 @@
       <optional>
         <ref name='hostdev'/>
       </optional>
+      <optional>
+        <ref name='rng'/>
+      </optional>
     </element>
   </define>
 
@@ -186,6 +192,13 @@
     </element>
   </define>
 
+  <define name='rng'>
+    <element name='rng'>
+      <ref name='supported'/>
+      <ref name='enum'/>
+    </element>
+  </define>
+
   <define name='features'>
     <element name='features'>
       <optional>
@@ -196,6 +209,12 @@
       </optional>
       <optional>
         <ref name='vmgenid'/>
+      </optional>
+      <optional>
+        <ref name='backingStoreInput'/>
+      </optional>
+      <optional>
+        <ref name='backup'/>
       </optional>
       <optional>
         <ref name='seev'/>
@@ -218,6 +237,18 @@
 
   <define name='vmgenid'>
     <element name='genid'>
+      <ref name='supported'/>
+    </element>
+  </define>
+
+  <define name='backingStoreInput'>
+    <element name='backingStoreInput'>
+      <ref name='supported'/>
+    </element>
+  </define>
+
+  <define name='backup'>
+    <element name='backup'>
       <ref name='supported'/>
     </element>
   </define>

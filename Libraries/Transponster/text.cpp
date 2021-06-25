@@ -5706,7 +5706,10 @@ static QString g_text[] = {
 	QString("ipset-name-type5678"),
 	QString("anonymous5679"),
 	QString(""),
-	QString("vz-relative")
+	QString("vz-relative"),
+	QString("backingStoreInput"),
+	QString(""),
+	QString("min_guarantee5683")
 };
 
 const QString& getText(quint32 index_)

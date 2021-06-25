@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2021 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -221,6 +221,70 @@ int Traits<Capability::Xml::Os>::generate(const Capability::Xml::Os& src_, QDomE
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Mode
+
+namespace Capability
+{
+namespace Xml
+{
+Mode::Mode(): m_supported()
+{
+}
+
+bool Mode::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Mode, Name::Strict<379> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Mode::save(QDomElement& dst_) const
+{
+	Element<Mode, Name::Strict<379> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Mode::save(QDomDocument& dst_) const
+{
+	Element<Mode, Name::Strict<379> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Capability
+
+int Traits<Capability::Xml::Mode>::parse(Capability::Xml::Mode& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setSupported(m.get<1>().getValue());
+		dst_.setEnumList(m.get<2>().getValue());
+	}
+	return output;
+}
+
+int Traits<Capability::Xml::Mode>::generate(const Capability::Xml::Mode& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getSupported(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getEnumList(), m.get<2>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Model
 
 namespace Capability
@@ -398,21 +462,21 @@ int Traits<Capability::Xml::Anonymous4935>::generate(const Capability::Xml::Anon
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Mode
+// struct Mode1
 
 namespace Capability
 {
 namespace Xml
 {
-Mode::Mode(): m_supported()
+Mode1::Mode1(): m_supported()
 {
 }
 
-bool Mode::load(const QDomElement& src_)
+bool Mode1::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Mode, Name::Strict<379> > m;
+	Element<Mode1, Name::Strict<379> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -420,16 +484,16 @@ bool Mode::load(const QDomElement& src_)
 	return true;
 }
 
-bool Mode::save(QDomElement& dst_) const
+bool Mode1::save(QDomElement& dst_) const
 {
-	Element<Mode, Name::Strict<379> > m;
+	Element<Mode1, Name::Strict<379> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
-bool Mode::save(QDomDocument& dst_) const
+bool Mode1::save(QDomDocument& dst_) const
 {
-	Element<Mode, Name::Strict<379> > m;
+	Element<Mode1, Name::Strict<379> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -438,7 +502,7 @@ bool Mode::save(QDomDocument& dst_) const
 } // namespace Xml
 } // namespace Capability
 
-int Traits<Capability::Xml::Mode>::parse(Capability::Xml::Mode& dst_, QStack<QDomElement>& stack_)
+int Traits<Capability::Xml::Mode1>::parse(Capability::Xml::Mode1& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -450,7 +514,7 @@ int Traits<Capability::Xml::Mode>::parse(Capability::Xml::Mode& dst_, QStack<QDo
 	return output;
 }
 
-int Traits<Capability::Xml::Mode>::generate(const Capability::Xml::Mode& src_, QDomElement& dst_)
+int Traits<Capability::Xml::Mode1>::generate(const Capability::Xml::Mode1& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSupported(), m.get<1>()))
@@ -526,21 +590,21 @@ int Traits<Capability::Xml::Model1>::generate(const Capability::Xml::Model1& src
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Mode1
+// struct Mode2
 
 namespace Capability
 {
 namespace Xml
 {
-Mode1::Mode1(): m_supported()
+Mode2::Mode2(): m_supported()
 {
 }
 
-bool Mode1::load(const QDomElement& src_)
+bool Mode2::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Mode1, Name::Strict<379> > m;
+	Element<Mode2, Name::Strict<379> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -548,16 +612,16 @@ bool Mode1::load(const QDomElement& src_)
 	return true;
 }
 
-bool Mode1::save(QDomElement& dst_) const
+bool Mode2::save(QDomElement& dst_) const
 {
-	Element<Mode1, Name::Strict<379> > m;
+	Element<Mode2, Name::Strict<379> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
-bool Mode1::save(QDomDocument& dst_) const
+bool Mode2::save(QDomDocument& dst_) const
 {
-	Element<Mode1, Name::Strict<379> > m;
+	Element<Mode2, Name::Strict<379> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -566,7 +630,7 @@ bool Mode1::save(QDomDocument& dst_) const
 } // namespace Xml
 } // namespace Capability
 
-int Traits<Capability::Xml::Mode1>::parse(Capability::Xml::Mode1& dst_, QStack<QDomElement>& stack_)
+int Traits<Capability::Xml::Mode2>::parse(Capability::Xml::Mode2& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -578,7 +642,7 @@ int Traits<Capability::Xml::Mode1>::parse(Capability::Xml::Mode1& dst_, QStack<Q
 	return output;
 }
 
-int Traits<Capability::Xml::Mode1>::generate(const Capability::Xml::Mode1& src_, QDomElement& dst_)
+int Traits<Capability::Xml::Mode2>::generate(const Capability::Xml::Mode2& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSupported(), m.get<1>()))
@@ -596,10 +660,6 @@ namespace Capability
 {
 namespace Xml
 {
-Cpu::Cpu(): m_mode()
-{
-}
-
 bool Cpu::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
@@ -913,6 +973,70 @@ int Traits<Capability::Xml::Hostdev>::generate(const Capability::Xml::Hostdev& s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Rng
+
+namespace Capability
+{
+namespace Xml
+{
+Rng::Rng(): m_supported()
+{
+}
+
+bool Rng::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Rng, Name::Strict<981> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Rng::save(QDomElement& dst_) const
+{
+	Element<Rng, Name::Strict<981> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Rng::save(QDomDocument& dst_) const
+{
+	Element<Rng, Name::Strict<981> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Capability
+
+int Traits<Capability::Xml::Rng>::parse(Capability::Xml::Rng& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setSupported(m.get<0>().getValue());
+		dst_.setEnumList(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Capability::Xml::Rng>::generate(const Capability::Xml::Rng& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getSupported(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getEnumList(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Devices
 
 namespace Capability
@@ -959,6 +1083,7 @@ int Traits<Capability::Xml::Devices>::parse(Capability::Xml::Devices& dst_, QSta
 		dst_.setGraphics(m.get<1>().getValue());
 		dst_.setVideo(m.get<2>().getValue());
 		dst_.setHostdev(m.get<3>().getValue());
+		dst_.setRng(m.get<4>().getValue());
 	}
 	return output;
 }
@@ -973,6 +1098,8 @@ int Traits<Capability::Xml::Devices>::generate(const Capability::Xml::Devices& s
 	if (0 > Details::Marshal::assign(src_.getVideo(), m.get<2>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getHostdev(), m.get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getRng(), m.get<4>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1203,7 +1330,9 @@ int Traits<Capability::Xml::Features>::parse(Capability::Xml::Features& dst_, QS
 		dst_.setGic(m.get<0>().getValue());
 		dst_.setVmcoreinfo(m.get<1>().getValue());
 		dst_.setGenid(m.get<2>().getValue());
-		dst_.setSev(m.get<3>().getValue());
+		dst_.setBackingStoreInput(m.get<3>().getValue());
+		dst_.setBackup(m.get<4>().getValue());
+		dst_.setSev(m.get<5>().getValue());
 	}
 	return output;
 }
@@ -1217,7 +1346,11 @@ int Traits<Capability::Xml::Features>::generate(const Capability::Xml::Features&
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getGenid(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getSev(), m.get<3>()))
+	if (0 > Details::Marshal::assign(src_.getBackingStoreInput(), m.get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getBackup(), m.get<4>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getSev(), m.get<5>()))
 		return -1;
 
 	return m.produce(dst_);
