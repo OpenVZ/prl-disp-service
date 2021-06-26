@@ -5,5 +5,6 @@ include(../../Build/qmake/build_target.pri)
 include($$LIBS_LEVEL/PrlCommonUtils/PrlCommonUtils.pri)
 win32: include($$LIBS_LEVEL/WifiHelper/WifiHelper.pri)
 include($$LIBS_LEVEL/ProblemReportUtils/ProblemReportUtils.pri)
+include($$LIBS_LEVEL/Virtuozzo/Virtuozzo.pri)
 
 LIBS += -lprl_xml_model

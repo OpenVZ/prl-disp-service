@@ -55,7 +55,8 @@ linux-g++* {
 }
 
 LIBS += -L$$SRC_LEVEL/z-Build/Release -lprlcommon -lTransponster \ 
-		-lPrlNetworking -lCpuFeatures -lStatesStore -lprlTestsUtils
+		-lPrlNetworking -lCpuFeatures -lStatesStore -lprlTestsUtils \
+		-lvirtuozzo
 
 boost-with-mt {
 	LIBS += -lboost_filesystem-mt -lboost_system-mt
