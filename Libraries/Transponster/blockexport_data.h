@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2021 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -1460,6 +1460,88 @@ struct Validatable<Blockexport::Xml::PMachine>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PCbitpos
+
+namespace Blockexport
+{
+namespace Xml
+{
+struct PCbitpos
+{
+	typedef quint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Blockexport
+
+template<>
+struct Traits<Blockexport::Xml::PCbitpos>
+{
+	static bool parse(const QString& src_, Blockexport::Xml::PCbitpos::value_type& dst_);
+
+	static QString generate(Blockexport::Xml::PCbitpos::value_type src_);
+
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PReducedPhysBits
+
+namespace Blockexport
+{
+namespace Xml
+{
+struct PReducedPhysBits
+{
+	typedef quint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Blockexport
+
+template<>
+struct Traits<Blockexport::Xml::PReducedPhysBits>
+{
+	static bool parse(const QString& src_, Blockexport::Xml::PReducedPhysBits::value_type& dst_);
+
+	static QString generate(Blockexport::Xml::PReducedPhysBits::value_type src_);
+
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PDhCert
+
+namespace Blockexport
+{
+namespace Xml
+{
+struct PDhCert
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Blockexport
+
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PSession
+
+namespace Blockexport
+{
+namespace Xml
+{
+struct PSession
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Blockexport
+
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 namespace Blockexport
@@ -1558,6 +1640,37 @@ struct Traits<Blockexport::Xml::PWriteBytesSec>
 
 };
 
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PVzRelative
+
+namespace Blockexport
+{
+namespace Xml
+{
+struct PVzRelative
+{
+	typedef double value_type;
+};
+
+} // namespace Xml
+} // namespace Blockexport
+
+template<>
+struct Traits<Blockexport::Xml::PVzRelative>
+{
+	static bool parse(const QString& src_, Blockexport::Xml::PVzRelative::value_type& dst_);
+
+	static QString generate(Blockexport::Xml::PVzRelative::value_type src_);
+
+};
+
+template<>
+struct Validatable<Blockexport::Xml::PVzRelative>: mpl::true_
+{
+	static bool validate(Blockexport::Xml::PVzRelative::value_type value_);
+
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct PVendor

@@ -2330,7 +2330,9 @@ void Vm::setFeatures()
 		hv.setRelaxed(Libvirt::Domain::Xml::EVirOnOffOn);
 		hv.setVapic(Libvirt::Domain::Xml::EVirOnOffOn);
 		hv.setVpindex(Libvirt::Domain::Xml::EVirOnOffOn);
-		hv.setStimer(Libvirt::Domain::Xml::EVirOnOffOn);
+		Libvirt::Domain::Xml::Stimer st;
+		st.setState(Libvirt::Domain::Xml::EVirOnOffOn);
+		hv.setStimer(st);
 		hv.setReset(Libvirt::Domain::Xml::EVirOnOffOn);
 		hv.setRuntime(Libvirt::Domain::Xml::EVirOnOffOn);
 		hv.setSynic(Libvirt::Domain::Xml::EVirOnOffOn);

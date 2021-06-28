@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2021 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -1460,6 +1460,88 @@ struct Validatable<Snapshot::Xml::PMachine>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PCbitpos
+
+namespace Snapshot
+{
+namespace Xml
+{
+struct PCbitpos
+{
+	typedef quint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Snapshot
+
+template<>
+struct Traits<Snapshot::Xml::PCbitpos>
+{
+	static bool parse(const QString& src_, Snapshot::Xml::PCbitpos::value_type& dst_);
+
+	static QString generate(Snapshot::Xml::PCbitpos::value_type src_);
+
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PReducedPhysBits
+
+namespace Snapshot
+{
+namespace Xml
+{
+struct PReducedPhysBits
+{
+	typedef quint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Snapshot
+
+template<>
+struct Traits<Snapshot::Xml::PReducedPhysBits>
+{
+	static bool parse(const QString& src_, Snapshot::Xml::PReducedPhysBits::value_type& dst_);
+
+	static QString generate(Snapshot::Xml::PReducedPhysBits::value_type src_);
+
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PDhCert
+
+namespace Snapshot
+{
+namespace Xml
+{
+struct PDhCert
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Snapshot
+
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PSession
+
+namespace Snapshot
+{
+namespace Xml
+{
+struct PSession
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Snapshot
+
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 namespace Snapshot
@@ -1558,6 +1640,37 @@ struct Traits<Snapshot::Xml::PWriteBytesSec>
 
 };
 
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PVzRelative
+
+namespace Snapshot
+{
+namespace Xml
+{
+struct PVzRelative
+{
+	typedef double value_type;
+};
+
+} // namespace Xml
+} // namespace Snapshot
+
+template<>
+struct Traits<Snapshot::Xml::PVzRelative>
+{
+	static bool parse(const QString& src_, Snapshot::Xml::PVzRelative::value_type& dst_);
+
+	static QString generate(Snapshot::Xml::PVzRelative::value_type src_);
+
+};
+
+template<>
+struct Validatable<Snapshot::Xml::PVzRelative>: mpl::true_
+{
+	static bool validate(Snapshot::Xml::PVzRelative::value_type value_);
+
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct PVendor

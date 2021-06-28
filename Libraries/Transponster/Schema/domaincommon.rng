@@ -5218,7 +5218,7 @@
         </optional>
         <optional>
           <element name="stimer">
-            <ref name="featurestate"/>
+            <ref name="stimer"/>
           </element>
         </optional>
         <optional>
@@ -5238,8 +5238,47 @@
             </optional>
           </element>
         </optional>
+        <optional>
+          <element name="frequencies">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="reenlightenment">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="tlbflush">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="ipi">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="evmcs">
+            <ref name="featurestate"/>
+          </element>
+        </optional>
       </interleave>
     </element>
+  </define>
+
+  <!-- Hyper-V stimer features -->
+  <define name="stimer">
+    <interleave>
+      <optional>
+        <ref name="featurestate"/>
+      </optional>
+      <optional>
+        <element name="direct">
+          <ref name="featurestate"/>
+        </element>
+      </optional>
+    </interleave>
   </define>
 
   <!-- Optional KVM features -->

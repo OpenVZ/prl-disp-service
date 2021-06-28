@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2021 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -935,6 +935,36 @@ bool Validatable<Blocksnapshot::Xml::PMachine>::validate(const Blocksnapshot::Xm
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PCbitpos
+
+bool Traits<Blocksnapshot::Xml::PCbitpos>::parse(const QString& src_, Blocksnapshot::Xml::PCbitpos::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toUInt(&output);
+	return output;
+}
+
+QString Traits<Blocksnapshot::Xml::PCbitpos>::generate(Blocksnapshot::Xml::PCbitpos::value_type src_)
+{
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PReducedPhysBits
+
+bool Traits<Blocksnapshot::Xml::PReducedPhysBits>::parse(const QString& src_, Blocksnapshot::Xml::PReducedPhysBits::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toUInt(&output);
+	return output;
+}
+
+QString Traits<Blocksnapshot::Xml::PReducedPhysBits>::generate(Blocksnapshot::Xml::PReducedPhysBits::value_type src_)
+{
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 bool Traits<Blocksnapshot::Xml::PReadIopsSec>::parse(const QString& src_, Blocksnapshot::Xml::PReadIopsSec::value_type& dst_)
@@ -992,6 +1022,29 @@ bool Traits<Blocksnapshot::Xml::PWriteBytesSec>::parse(const QString& src_, Bloc
 QString Traits<Blocksnapshot::Xml::PWriteBytesSec>::generate(Blocksnapshot::Xml::PWriteBytesSec::value_type src_)
 {
 	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PVzRelative
+
+bool Traits<Blocksnapshot::Xml::PVzRelative>::parse(const QString& src_, Blocksnapshot::Xml::PVzRelative::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toDouble(&output);
+	return output;
+}
+
+QString Traits<Blocksnapshot::Xml::PVzRelative>::generate(Blocksnapshot::Xml::PVzRelative::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Blocksnapshot::Xml::PVzRelative>::validate(Blocksnapshot::Xml::PVzRelative::value_type value_)
+{
+	if (1 < value_)
+		return false;
+
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

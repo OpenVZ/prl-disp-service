@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2021 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -935,6 +935,36 @@ bool Validatable<Snapshot::Xml::PMachine>::validate(const Snapshot::Xml::PMachin
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PCbitpos
+
+bool Traits<Snapshot::Xml::PCbitpos>::parse(const QString& src_, Snapshot::Xml::PCbitpos::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toUInt(&output);
+	return output;
+}
+
+QString Traits<Snapshot::Xml::PCbitpos>::generate(Snapshot::Xml::PCbitpos::value_type src_)
+{
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PReducedPhysBits
+
+bool Traits<Snapshot::Xml::PReducedPhysBits>::parse(const QString& src_, Snapshot::Xml::PReducedPhysBits::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toUInt(&output);
+	return output;
+}
+
+QString Traits<Snapshot::Xml::PReducedPhysBits>::generate(Snapshot::Xml::PReducedPhysBits::value_type src_)
+{
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 bool Traits<Snapshot::Xml::PReadIopsSec>::parse(const QString& src_, Snapshot::Xml::PReadIopsSec::value_type& dst_)
@@ -992,6 +1022,29 @@ bool Traits<Snapshot::Xml::PWriteBytesSec>::parse(const QString& src_, Snapshot:
 QString Traits<Snapshot::Xml::PWriteBytesSec>::generate(Snapshot::Xml::PWriteBytesSec::value_type src_)
 {
 	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PVzRelative
+
+bool Traits<Snapshot::Xml::PVzRelative>::parse(const QString& src_, Snapshot::Xml::PVzRelative::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toDouble(&output);
+	return output;
+}
+
+QString Traits<Snapshot::Xml::PVzRelative>::generate(Snapshot::Xml::PVzRelative::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Snapshot::Xml::PVzRelative>::validate(Snapshot::Xml::PVzRelative::value_type value_)
+{
+	if (1 < value_)
+		return false;
+
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
