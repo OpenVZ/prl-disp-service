@@ -5709,7 +5709,19 @@ static QString g_text[] = {
 	QString("vz-relative"),
 	QString("backingStoreInput"),
 	QString(""),
-	QString("min_guarantee5683")
+	QString("min_guarantee5683"),
+	QString(""),
+	QString("frequencies"),
+	QString("reenlightenment"),
+	QString("tlbflush"),
+	QString("ipi"),
+	QString("evmcs"),
+	QString("min_guarantee5691"),
+	QString("min_guarantee5692"),
+	QString("min_guarantee5693"),
+	QString("min_guarantee5694"),
+	QString("min_guarantee5695"),
+	QString("min_guarantee5696")
 };
 
 const QString& getText(quint32 index_)

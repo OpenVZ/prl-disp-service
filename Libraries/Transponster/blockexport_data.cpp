@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2021 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -935,6 +935,36 @@ bool Validatable<Blockexport::Xml::PMachine>::validate(const Blockexport::Xml::P
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PCbitpos
+
+bool Traits<Blockexport::Xml::PCbitpos>::parse(const QString& src_, Blockexport::Xml::PCbitpos::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toUInt(&output);
+	return output;
+}
+
+QString Traits<Blockexport::Xml::PCbitpos>::generate(Blockexport::Xml::PCbitpos::value_type src_)
+{
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PReducedPhysBits
+
+bool Traits<Blockexport::Xml::PReducedPhysBits>::parse(const QString& src_, Blockexport::Xml::PReducedPhysBits::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toUInt(&output);
+	return output;
+}
+
+QString Traits<Blockexport::Xml::PReducedPhysBits>::generate(Blockexport::Xml::PReducedPhysBits::value_type src_)
+{
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 bool Traits<Blockexport::Xml::PReadIopsSec>::parse(const QString& src_, Blockexport::Xml::PReadIopsSec::value_type& dst_)
@@ -992,6 +1022,29 @@ bool Traits<Blockexport::Xml::PWriteBytesSec>::parse(const QString& src_, Blocke
 QString Traits<Blockexport::Xml::PWriteBytesSec>::generate(Blockexport::Xml::PWriteBytesSec::value_type src_)
 {
 	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PVzRelative
+
+bool Traits<Blockexport::Xml::PVzRelative>::parse(const QString& src_, Blockexport::Xml::PVzRelative::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toDouble(&output);
+	return output;
+}
+
+QString Traits<Blockexport::Xml::PVzRelative>::generate(Blockexport::Xml::PVzRelative::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Blockexport::Xml::PVzRelative>::validate(Blockexport::Xml::PVzRelative::value_type value_)
+{
+	if (1 < value_)
+		return false;
+
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

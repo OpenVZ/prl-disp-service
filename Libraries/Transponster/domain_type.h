@@ -2680,6 +2680,43 @@ private:
 } // namespace Domain
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Stimer
+
+namespace Domain
+{
+namespace Xml
+{
+struct Stimer
+{
+	const boost::optional<EVirOnOff >& getState() const
+	{
+		return m_state;
+	}
+	void setState(const boost::optional<EVirOnOff >& value_)
+	{
+		m_state = value_;
+	}
+	const boost::optional<EVirOnOff >& getDirect() const
+	{
+		return m_direct;
+	}
+	void setDirect(const boost::optional<EVirOnOff >& value_)
+	{
+		m_direct = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	boost::optional<EVirOnOff > m_state;
+	boost::optional<EVirOnOff > m_direct;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
 // struct VendorId
 
 namespace Domain
@@ -2775,11 +2812,11 @@ struct Hyperv
 	{
 		m_synic = value_;
 	}
-	const boost::optional<EVirOnOff >& getStimer() const
+	const boost::optional<Stimer >& getStimer() const
 	{
 		return m_stimer;
 	}
-	void setStimer(const boost::optional<EVirOnOff >& value_)
+	void setStimer(const boost::optional<Stimer >& value_)
 	{
 		m_stimer = value_;
 	}
@@ -2799,6 +2836,46 @@ struct Hyperv
 	{
 		m_vendorId = value_;
 	}
+	const boost::optional<EVirOnOff >& getFrequencies() const
+	{
+		return m_frequencies;
+	}
+	void setFrequencies(const boost::optional<EVirOnOff >& value_)
+	{
+		m_frequencies = value_;
+	}
+	const boost::optional<EVirOnOff >& getReenlightenment() const
+	{
+		return m_reenlightenment;
+	}
+	void setReenlightenment(const boost::optional<EVirOnOff >& value_)
+	{
+		m_reenlightenment = value_;
+	}
+	const boost::optional<EVirOnOff >& getTlbflush() const
+	{
+		return m_tlbflush;
+	}
+	void setTlbflush(const boost::optional<EVirOnOff >& value_)
+	{
+		m_tlbflush = value_;
+	}
+	const boost::optional<EVirOnOff >& getIpi() const
+	{
+		return m_ipi;
+	}
+	void setIpi(const boost::optional<EVirOnOff >& value_)
+	{
+		m_ipi = value_;
+	}
+	const boost::optional<EVirOnOff >& getEvmcs() const
+	{
+		return m_evmcs;
+	}
+	void setEvmcs(const boost::optional<EVirOnOff >& value_)
+	{
+		m_evmcs = value_;
+	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
 	bool save(QDomDocument& ) const;
@@ -2810,9 +2887,14 @@ private:
 	boost::optional<EVirOnOff > m_vpindex;
 	boost::optional<EVirOnOff > m_runtime;
 	boost::optional<EVirOnOff > m_synic;
-	boost::optional<EVirOnOff > m_stimer;
+	boost::optional<Stimer > m_stimer;
 	boost::optional<EVirOnOff > m_reset;
 	boost::optional<VendorId > m_vendorId;
+	boost::optional<EVirOnOff > m_frequencies;
+	boost::optional<EVirOnOff > m_reenlightenment;
+	boost::optional<EVirOnOff > m_tlbflush;
+	boost::optional<EVirOnOff > m_ipi;
+	boost::optional<EVirOnOff > m_evmcs;
 };
 
 } // namespace Xml
@@ -14306,6 +14388,18 @@ struct Traits<Domain::Xml::Spinlocks>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Stimer traits
+
+template<>
+struct Traits<Domain::Xml::Stimer>
+{
+	typedef Unordered<mpl::vector<Optional<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<525> > > > > marshal_type;
+
+	static int parse(Domain::Xml::Stimer& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Stimer& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct VendorId traits
 
 template<>
@@ -14323,7 +14417,7 @@ struct Traits<Domain::Xml::VendorId>
 template<>
 struct Traits<Domain::Xml::Hyperv>
 {
-	typedef Unordered<mpl::vector<Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<1112> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<1113> > >, Optional<Element<Domain::Xml::Spinlocks, Name::Strict<1114> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<1116> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<1117> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<1118> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<1119> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<395> > >, Optional<Element<Domain::Xml::VendorId, Name::Strict<1020> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<1112> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<1113> > >, Optional<Element<Domain::Xml::Spinlocks, Name::Strict<1114> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<1116> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<1117> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<1118> > >, Optional<Element<Domain::Xml::Stimer, Name::Strict<1119> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<395> > >, Optional<Element<Domain::Xml::VendorId, Name::Strict<1020> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<5687> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<5688> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<5689> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<5690> > >, Optional<Element<Attribute<Domain::Xml::EVirOnOff, Name::Strict<126> >, Name::Strict<5691> > > > > marshal_type;
 
 	static int parse(Domain::Xml::Hyperv& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Hyperv& , QDomElement& );

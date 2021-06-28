@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2021 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -1460,6 +1460,88 @@ struct Validatable<Blocksnapshot::Xml::PMachine>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PCbitpos
+
+namespace Blocksnapshot
+{
+namespace Xml
+{
+struct PCbitpos
+{
+	typedef quint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Blocksnapshot
+
+template<>
+struct Traits<Blocksnapshot::Xml::PCbitpos>
+{
+	static bool parse(const QString& src_, Blocksnapshot::Xml::PCbitpos::value_type& dst_);
+
+	static QString generate(Blocksnapshot::Xml::PCbitpos::value_type src_);
+
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PReducedPhysBits
+
+namespace Blocksnapshot
+{
+namespace Xml
+{
+struct PReducedPhysBits
+{
+	typedef quint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Blocksnapshot
+
+template<>
+struct Traits<Blocksnapshot::Xml::PReducedPhysBits>
+{
+	static bool parse(const QString& src_, Blocksnapshot::Xml::PReducedPhysBits::value_type& dst_);
+
+	static QString generate(Blocksnapshot::Xml::PReducedPhysBits::value_type src_);
+
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PDhCert
+
+namespace Blocksnapshot
+{
+namespace Xml
+{
+struct PDhCert
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Blocksnapshot
+
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PSession
+
+namespace Blocksnapshot
+{
+namespace Xml
+{
+struct PSession
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Blocksnapshot
+
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 namespace Blocksnapshot
@@ -1558,6 +1640,37 @@ struct Traits<Blocksnapshot::Xml::PWriteBytesSec>
 
 };
 
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PVzRelative
+
+namespace Blocksnapshot
+{
+namespace Xml
+{
+struct PVzRelative
+{
+	typedef double value_type;
+};
+
+} // namespace Xml
+} // namespace Blocksnapshot
+
+template<>
+struct Traits<Blocksnapshot::Xml::PVzRelative>
+{
+	static bool parse(const QString& src_, Blocksnapshot::Xml::PVzRelative::value_type& dst_);
+
+	static QString generate(Blocksnapshot::Xml::PVzRelative::value_type src_);
+
+};
+
+template<>
+struct Validatable<Blocksnapshot::Xml::PVzRelative>: mpl::true_
+{
+	static bool validate(Blocksnapshot::Xml::PVzRelative::value_type value_);
+
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct PVendor

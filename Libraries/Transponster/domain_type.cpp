@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2021 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -3173,6 +3173,66 @@ int Traits<Domain::Xml::Spinlocks>::generate(const Domain::Xml::Spinlocks& src_,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Stimer
+
+namespace Domain
+{
+namespace Xml
+{
+bool Stimer::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Stimer, Name::Strict<1119> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Stimer::save(QDomElement& dst_) const
+{
+	Element<Stimer, Name::Strict<1119> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Stimer::save(QDomDocument& dst_) const
+{
+	Element<Stimer, Name::Strict<1119> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Domain
+
+int Traits<Domain::Xml::Stimer>::parse(Domain::Xml::Stimer& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setState(m.get<0>().getValue());
+		dst_.setDirect(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::Stimer>::generate(const Domain::Xml::Stimer& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getState(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getDirect(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct VendorId
 
 namespace Domain
@@ -3288,6 +3348,11 @@ int Traits<Domain::Xml::Hyperv>::parse(Domain::Xml::Hyperv& dst_, QStack<QDomEle
 		dst_.setStimer(m.get<6>().getValue());
 		dst_.setReset(m.get<7>().getValue());
 		dst_.setVendorId(m.get<8>().getValue());
+		dst_.setFrequencies(m.get<9>().getValue());
+		dst_.setReenlightenment(m.get<10>().getValue());
+		dst_.setTlbflush(m.get<11>().getValue());
+		dst_.setIpi(m.get<12>().getValue());
+		dst_.setEvmcs(m.get<13>().getValue());
 	}
 	return output;
 }
@@ -3312,6 +3377,16 @@ int Traits<Domain::Xml::Hyperv>::generate(const Domain::Xml::Hyperv& src_, QDomE
 	if (0 > Details::Marshal::assign(src_.getReset(), m.get<7>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getVendorId(), m.get<8>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getFrequencies(), m.get<9>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getReenlightenment(), m.get<10>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getTlbflush(), m.get<11>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getIpi(), m.get<12>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getEvmcs(), m.get<13>()))
 		return -1;
 
 	return m.produce(dst_);
