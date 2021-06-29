@@ -429,6 +429,13 @@ PRL_RESULT Task_MigrateCtTarget::run_body()
 		   pNewConfig == pConfig and apply_env_config() will not update config file */
 		CVzHelper::update_ctid_map(m_sCtUuid, m_cVmConfig.getVmIdentification()->getCtId());
 		get_op_helper().update_env_uuid(pNewConfig, pConfig);
+
+	// Remove original entry (it is expected to appear due to vz event) to avoid duplicates
+	if (PRL_FAILED(CDspService::instance()->getVmDirHelper().deleteVmDirectoryItem(
+			CDspService::instance()->getVmDirManager().getVzDirectoryUuid(),
+			pConfig->getVmIdentification()->getVmUuid())))
+		WRITE_TRACE(DBG_FATAL, "Can't delete CT %s entry from VmDirectory by error %#x, %s",
+			QSTR2UTF8(pConfig->getVmIdentification()->getVmUuid()), nRetCode, PRL_RESULT_TO_STRING(nRetCode) );
 	}
 
 	// insert new item in user's VM Directory
