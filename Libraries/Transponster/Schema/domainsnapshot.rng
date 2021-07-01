@@ -84,6 +84,13 @@
           </choice>
         </optional>
         <optional>
+          <element name='inactiveDomain'>
+            <zeroOrMore>
+              <ref name='customElement'/>
+            </zeroOrMore>
+          </element>
+        </optional>
+        <optional>
           <element name='x-persistent'>
             <!-- Nested grammar ensures that any of our overrides of
                  storagecommon/domaincommon defines do not conflict

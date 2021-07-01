@@ -461,6 +461,14 @@ struct Domainsnapshot
 	{
 		m_choice4011 = value_;
 	}
+	const boost::optional<QList<QDomElement > >& getInactiveDomain() const
+	{
+		return m_inactiveDomain;
+	}
+	void setInactiveDomain(const boost::optional<QList<QDomElement > >& value_)
+	{
+		m_inactiveDomain = value_;
+	}
 	const boost::optional<Domain::Xml::Domain >& getXPersistent() const
 	{
 		return m_xPersistent;
@@ -498,6 +506,7 @@ private:
 	boost::optional<QList<Disk > > m_disks;
 	boost::optional<EActive > m_active;
 	boost::optional<VChoice4011 > m_choice4011;
+	boost::optional<QList<QDomElement > > m_inactiveDomain;
 	boost::optional<Domain::Xml::Domain > m_xPersistent;
 	boost::optional<QString > m_parent;
 	boost::optional<QList<QDomElement > > m_cookie;
@@ -620,7 +629,7 @@ struct Traits<Snapshot::Xml::Disk>
 template<>
 struct Traits<Snapshot::Xml::Domainsnapshot>
 {
-	typedef Unordered<mpl::vector<Optional<Element<Text<QString >, Name::Strict<107> > >, Optional<Element<Text<QString >, Name::Strict<216> > >, Optional<Element<Text<Snapshot::Xml::EState >, Name::Strict<126> > >, Optional<Element<Text<QString >, Name::Strict<1584> > >, Optional<Element<Snapshot::Xml::VMemoryImpl, Name::Strict<326> > >, Optional<Element<ZeroOrMore<Element<Snapshot::Xml::Disk, Name::Strict<472> > >, Name::Strict<1587> > >, Optional<Element<Text<Snapshot::Xml::EActive >, Name::Strict<1342> > >, Optional<Snapshot::Xml::VChoice4011Impl >, Optional<Element<Element<Domain::Xml::Domain, Name::Strict<1> >, Name::Strict<4295> > >, Optional<Element<Element<Text<QString >, Name::Strict<107> >, Name::Strict<116> > >, Optional<Element<ZeroOrMore<Pod >, Name::Strict<1817> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Optional<Element<Text<QString >, Name::Strict<107> > >, Optional<Element<Text<QString >, Name::Strict<216> > >, Optional<Element<Text<Snapshot::Xml::EState >, Name::Strict<126> > >, Optional<Element<Text<QString >, Name::Strict<1584> > >, Optional<Element<Snapshot::Xml::VMemoryImpl, Name::Strict<326> > >, Optional<Element<ZeroOrMore<Element<Snapshot::Xml::Disk, Name::Strict<472> > >, Name::Strict<1587> > >, Optional<Element<Text<Snapshot::Xml::EActive >, Name::Strict<1342> > >, Optional<Snapshot::Xml::VChoice4011Impl >, Optional<Element<ZeroOrMore<Pod >, Name::Strict<5699> > >, Optional<Element<Element<Domain::Xml::Domain, Name::Strict<1> >, Name::Strict<4295> > >, Optional<Element<Element<Text<QString >, Name::Strict<107> >, Name::Strict<116> > >, Optional<Element<ZeroOrMore<Pod >, Name::Strict<1817> > > > > marshal_type;
 
 	static int parse(Snapshot::Xml::Domainsnapshot& , QStack<QDomElement>& );
 	static int generate(const Snapshot::Xml::Domainsnapshot& , QDomElement& );
