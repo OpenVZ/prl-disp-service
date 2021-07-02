@@ -1050,7 +1050,6 @@ struct CommandLine
 
 	CommandLine& seed(const boost::optional<Libvirt::Domain::Xml::Commandline>& original_);
 	CommandLine& addDebug();
-	CommandLine& addLogging();
 	CommandLine& stripDebugcon();
 	CommandLine& workaroundEfi2008R2();
 	Libvirt::Domain::Xml::Commandline takeResult();

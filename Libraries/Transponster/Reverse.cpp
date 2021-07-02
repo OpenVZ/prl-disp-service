@@ -455,14 +455,6 @@ CommandLine& CommandLine::addDebug()
 	return *this;
 }
 
-CommandLine& CommandLine::addLogging()
-{
-	if (!m_result.contains("-d"))
-		m_result << "-d" << "guest_errors,unimp";
-
-	return *this;
-}
-
 void CommandLine::stripParameter(int at_)
 {
 	if (-1 < at_ && at_ < m_result.size())
@@ -2249,7 +2241,7 @@ PRL_RESULT Vm::setBlank()
 	m_result->setOnCrash(Libvirt::Domain::Xml::ECrashOptionsPreserve);
 	setFeatures();
 	m_result->setCommandline(CommandLine(m_input).addDebug()
-		.addLogging().workaroundEfi2008R2().takeResult());
+		.workaroundEfi2008R2().takeResult());
 	return PRL_ERR_SUCCESS;
 }
 
