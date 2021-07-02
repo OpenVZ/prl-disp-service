@@ -3311,10 +3311,16 @@ Reverse::prepareRule(const CVmNetFirewallRule &basic_rule,
 	// using libvirt regex to validate IPv6
 	// local_ip and remote_ip should be of same type, so making
 	// decision based on local_ip
-	bool isIPv6 = !local_ip.isEmpty() &&
-		Libvirt::Validatable<mpl::at_c<Libvirt::Filter::Xml::VAddrIPv6::types, 1>::type::inner_type>::validate(
-		local_ip.split("/").first()
-		);
+	
+	QStringList ips;
+	ips << local_ip << remote_ip;
+	bool isIPv6 = false;
+	foreach(const QString ip, ips)
+	{
+		isIPv6 |= !ip.isEmpty() &&
+			Libvirt::Validatable<mpl::at_c<Libvirt::Filter::Xml::VAddrIPv6::types, 1>::type::inner_type>::validate(
+					ip.split("/").first());
+	}
 	bool isBoth = local_ip.isEmpty() && remote_ip.isEmpty();
 
 	Libvirt::Filter::Xml::CommonPortAttributes port_attributes = preparePortAttributes(
