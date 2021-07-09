@@ -1131,50 +1131,6 @@ const QList<CVmFloppyDisk* >& Survey::getList() const
 }
 
 } // namespace Unattended
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Reconfiguration
-
-void Reconfiguration::react(QString directory_, QString uuid_)
-{
-	PRL_RESULT x;
-	SmartPtr<CVmConfiguration> y = m_service->getVmDirHelper()
-		.getVmConfigByUuid(directory_, uuid_, x);
-	if (!y.isValid())
-		return;
-
-	Unattended::Survey s(*y);
-	quint32 t = s.getGuestType();
-	if (!IS_WINDOWS(t))
-		return;
-
-	QString i = VirtuozzoDirs::getWindowsUnattendedFloppy(t);
-	if (i.isEmpty())
-		return;
-
-	if (!QFileInfo(i).exists())
-		return;
-
-	if (NULL != s.find(i))
-		return;
-
-	CVmFloppyDisk d;
-	d.setEnabled(PVE::DeviceEnabled);
-	d.setConnected(PVE::DeviceConnected);
-	d.setEmulatedType(PVE::FloppyDiskImage);
-	d.setSystemName(i);
-	d.setUserFriendlyName(i);
-	d.setItemId(s.getNextItemId());
-	d.setIndex(s.getNextIndex());
-	d.setStackIndex(s.getNextStackIndex());
-
-	CVmEvent e;
-	e.addEventParameter(new CVmEventParameter(PVE::String,
-		d.toString(), EVT_PARAM_VMCFG_NEW_DEVICE_CONFIG));
-	Task_EditVm::atomicEditVmConfigByVm(directory_, uuid_,
-		e, CDspClient::makeServiceUser(directory_));
-}
-
 } // namespace Registration
 } // namespace Vm
 

@@ -599,26 +599,6 @@ private:
 };
 
 } // namespace Unattended
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Reconfiguration
-
-struct Reconfiguration: QObject
-{
-	Q_OBJECT
-
-public:
-	explicit Reconfiguration(CDspService& service_): m_service(&service_)
-	{
-	}
-
-public slots:
-	void react(QString directory_, QString uuid_);
-
-private:
-	CDspService* m_service;
-};
-
 } // namespace Registration
 } // namespace Vm
 

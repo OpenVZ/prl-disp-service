@@ -155,9 +155,14 @@ struct Flavor<CVmHardDisk>
 	static const Libvirt::Domain::Xml::EDevice kind;
 	static const emulated_type real = PVE::RealHardDisk;
 	static const emulated_type image = PVE::HardDiskImage;
-	static const bool readonly = false;
 	static const boost::none_t snapshot;
 
+
+
+	static bool isReadOnly(const CVmHardDisk *disk_)
+	{
+		return disk_->getInterfaceType() == PMS_USB_DEVICE;
+	}
 	static const char* getTarget()
 	{
 		return "hd";
@@ -168,7 +173,8 @@ struct Flavor<CVmHardDisk>
 	}
 	static bool isRaw(const CVmHardDisk *disk_)
 	{
-		return disk_->getDiskType() == PHD_RAW_HARD_DISK;
+		return disk_->getInterfaceType() == PMS_USB_DEVICE ||
+				disk_->getDiskType() == PHD_RAW_HARD_DISK;
 	}
 	static Libvirt::Domain::Xml::VStorageFormat getDriverFormatQcow()
 	{
@@ -203,9 +209,13 @@ struct Flavor<CVmOpticalDisk>
 	static const Libvirt::Domain::Xml::EDevice kind;
 	static const emulated_type real = PVE::RealCdRom;
 	static const emulated_type image = PVE::CdRomImage;
-	static const bool readonly = true;
 	static const Libvirt::Domain::Xml::ESnapshot snapshot;
 
+
+	static bool isReadOnly(const CVmOpticalDisk *)
+	{
+		return true;
+	}
 	static const char* getTarget()
 	{
 		return "sd";
@@ -245,9 +255,13 @@ struct Flavor<CVmFloppyDisk>
 	static const Libvirt::Domain::Xml::EDevice kind;
 	static const emulated_type real = PVE::RealFloppyDisk;
 	static const emulated_type image = PVE::FloppyDiskImage;
-	static const bool readonly = true;
 	static const Libvirt::Domain::Xml::ESnapshot snapshot;
 
+
+	static bool isReadOnly(const CVmFloppyDisk *)
+	{
+		return true;
+	}
 	static const char* getTarget()
 	{
 		return "fd";
@@ -298,6 +312,8 @@ struct Model
 			return "hd";
 		case PMS_VIRTIO_BLOCK_DEVICE:
 			return "vd";
+		case PMS_USB_DEVICE:
+			return "sd";
 		default:
 			return "xx";
 		}
@@ -347,6 +363,11 @@ struct Model
 	{
 		return Flavor<T>::isRaw(getDataSource());
 	}
+
+	bool isReadOnly() const
+	{
+		return Flavor<T>::isReadOnly(getDataSource());
+	}
 	boost::optional<Libvirt::Domain::Xml::EBus> getBus() const
 	{
 		switch (m_dataSource->getInterfaceType())
@@ -359,6 +380,8 @@ struct Model
 			return Libvirt::Domain::Xml::EBusSata;
 		case PMS_VIRTIO_BLOCK_DEVICE:
 			return Libvirt::Domain::Xml::EBusVirtio;
+		case PMS_USB_DEVICE:
+			return Libvirt::Domain::Xml::EBusUsb;
 		default:
 			return boost::optional<Libvirt::Domain::Xml::EBus>();
 		}
@@ -466,7 +489,8 @@ void Ordinary<T>::setFlags()
 	// boot
 	m_result.setBoot(m_boot);
 	// readonly
-	m_result.setReadonly(Flavor<T>::readonly);
+
+	m_result.setReadonly(getModel().isReadOnly());
 	// snapshot
 	if (Flavor<T>::image == getModel().getEmulatedType())
 		m_result.setSnapshot(Flavor<T>::snapshot);

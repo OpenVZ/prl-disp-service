@@ -277,6 +277,9 @@ struct Clustered
 			case Libvirt::Domain::Xml::EBusVirtio:
 				getDevice().setInterfaceType(PMS_VIRTIO_BLOCK_DEVICE);
 				break;
+			case Libvirt::Domain::Xml::EBusUsb:
+				getDevice().setInterfaceType(PMS_USB_DEVICE);
+				break;
 			default:
 				return false;
 			}

@@ -1468,13 +1468,8 @@ void CDspService::initVmStateSender()
 	CDspVmStateSender* x = new CDspVmStateSender();
 	Vm::Proclamation* a = new Vm::Proclamation(getClientManager());
 	a->setParent(x);
-	Vm::Registration::Reconfiguration* b = new Vm::Registration::Reconfiguration(*this);
-	b->setParent(x);
 	CDspVmGuestPersonality* c = new CDspVmGuestPersonality();
 	c->setParent(x);
-	f = b->connect(x, SIGNAL(signalVmCreated(QString, QString)),
-		SLOT(react(QString, QString)), Qt::DirectConnection);
-	PRL_ASSERT(f);
 
 	f = a->connect(x, SIGNAL(signalVmRegistered(QString, QString, QString, bool)),
 		SLOT(reactRegistered(QString, QString, QString, bool)), Qt::DirectConnection);
