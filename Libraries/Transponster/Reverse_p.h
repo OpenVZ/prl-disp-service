@@ -295,7 +295,7 @@ struct Model
 		case PMS_SCSI_DEVICE:
 			return "sd";
 		case PMS_SATA_DEVICE:
-			return "sd";
+			return "hd";
 		case PMS_VIRTIO_BLOCK_DEVICE:
 			return "vd";
 		default:
