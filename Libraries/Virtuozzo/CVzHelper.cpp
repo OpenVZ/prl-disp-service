@@ -1798,7 +1798,9 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 	CVmNetworkRates *pRates = pConfig->getVmSettings()->getGlobalNetwork()->getNetworkRates();
 	CVmNetworkRates *pOldRates = pOldConfig->getVmSettings()->getGlobalNetwork()->getNetworkRates();
 	bChanged = !(pRates->toString() == pOldRates->toString());
-	if (bChanged) {
+	if (bChanged && pRates->m_lstNetworkRates.isEmpty())
+		vzctl2_env_add_rate(new_param, NULL);
+	else if (bChanged) {
 		foreach( CVmNetworkRate *pRate, pRates->m_lstNetworkRates) {
 			struct vzctl_rate_param param;
 			vzctl_rate_iterator it;
@@ -1820,13 +1822,9 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 		}
 		// Use new ratebound
 		vzctl2_env_set_ratebound(new_param, (pRates->isRateBound() ? 1 : 0));
-	} else {
+	} else if (pRates->isRateBound() !=  pOldRates->isRateBound())
 		// RATEBOUND
-		bool isRatebound = pRates->isRateBound();
-		bool isOldratebound = pOldRates->isRateBound();
-		if (isRatebound != isOldratebound)
-			vzctl2_env_set_ratebound(new_param, (isRatebound ? 1 : 0));
-	}
+		vzctl2_env_set_ratebound(new_param, (pRates->isRateBound() ? 1 : 0));
 
 	CVmGenericNetworkAdapter *pVenet = get_venet_device(pConfig);
 	CVmGenericNetworkAdapter *pOldVenet = get_venet_device(pOldConfig);
