@@ -15,7 +15,7 @@ if [[ $MODE != "debug" ]] && [[ $MODE != "release" ]] && [[ $MODE != "test" ]]; 
 fi
 
 if [[ $MODE == "debug" ]] || [[ $MODE == "release" ]]; then
-    python Gen.py
+    ./Gen.py
     (cd Libraries/Transponster && qmake-qt4 && make $MODE)
     (cd Dispatcher && qmake-qt4 && make  -j`nproc` $MODE)
 fi
