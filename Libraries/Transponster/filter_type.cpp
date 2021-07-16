@@ -935,6 +935,7 @@ int Traits<Filter::Xml::CommonIpAttributesP1>::parse(Filter::Xml::CommonIpAttrib
 		dst_.setSrcipmask(m.get<1>().getValue());
 		dst_.setDstipaddr(m.get<2>().getValue());
 		dst_.setDstipmask(m.get<3>().getValue());
+		dst_.setState(m.get<4>().getValue());
 	}
 	return output;
 }
@@ -949,6 +950,8 @@ int Traits<Filter::Xml::CommonIpAttributesP1>::generate(const Filter::Xml::Commo
 	if (0 > Details::Marshal::assign(src_.getDstipaddr(), m.get<2>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getDstipmask(), m.get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getState(), m.get<4>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1116,6 +1119,7 @@ int Traits<Filter::Xml::CommonIpv6AttributesP1>::parse(Filter::Xml::CommonIpv6At
 		dst_.setSrcipmask(m.get<1>().getValue());
 		dst_.setDstipaddr(m.get<2>().getValue());
 		dst_.setDstipmask(m.get<3>().getValue());
+		dst_.setState(m.get<4>().getValue());
 	}
 	return output;
 }
@@ -1130,6 +1134,8 @@ int Traits<Filter::Xml::CommonIpv6AttributesP1>::generate(const Filter::Xml::Com
 	if (0 > Details::Marshal::assign(src_.getDstipaddr(), m.get<2>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getDstipmask(), m.get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getState(), m.get<4>()))
 		return -1;
 
 	return m.produce(dst_);

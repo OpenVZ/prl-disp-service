@@ -3455,24 +3455,25 @@ Reverse::prepareFirewall(const CVmNetFirewall &firewall)
 	return result;
 }
 
-Libvirt::Filter::Xml::VChoice5120 Reverse::prepareAllowEstablished(Libvirt::Filter::Xml::EDirectionType direction, int priority) {
-	Libvirt::Filter::Xml::Rule rule;
+QList<Libvirt::Filter::Xml::VChoice5120> Reverse::prepareAllowEstablished(Libvirt::Filter::Xml::EDirectionType direction, int priority) {
+	QList<Libvirt::Filter::Xml::VChoice5120> result;
+	Libvirt::Filter::Xml::CommonPortAttributes port_attributes;
 	Libvirt::Filter::Xml::RuleNodeAttributes rule_attributes;
 
 	rule_attributes.setPriority(priority++);
 	rule_attributes.setDirection(direction);
 	rule_attributes.setAction(Libvirt::Filter::Xml::EActionTypeReturn);
 
-	rule.setRuleNodeAttributes(rule_attributes);
-
-	Libvirt::Filter::Xml::CommonIpAttributesP2 ip_attributes;
+	Libvirt::Filter::Xml::CommonIpAttributesP1 ip_attributes;
 	ip_attributes.setState(boost::optional<QString>(QString("ESTABLISHED,RELATED")));
-	rule.setAllList(prepareAll(ip_attributes));
+	result.append(prepareIpRule("", ip_attributes, port_attributes, rule_attributes));
 
-	mpl::at_c<Libvirt::Filter::Xml::VChoice5120::types, 1>::type rule_holder;
-	rule_holder.setValue(rule);
-	
-	return Libvirt::Filter::Xml::VChoice5120(rule_holder);
+	rule_attributes.setPriority(priority++);
+	Libvirt::Filter::Xml::CommonIpv6AttributesP1 ip6_attributes;
+	ip6_attributes.setState(boost::optional<QString>(QString("ESTABLISHED,RELATED")));
+	result.append(prepareIpv6Rule("", ip6_attributes, port_attributes, rule_attributes));
+
+	return result;
 }
 
 QList<Libvirt::Filter::Xml::VChoice5120> Reverse::prepareDefaultDeny(Libvirt::Filter::Xml::EDirectionType direction, int priority)
