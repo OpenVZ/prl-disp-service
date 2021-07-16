@@ -471,7 +471,7 @@ protected:
 	QScopedPointer <Libvirt::Filter::Xml::Filter> m_result;
 
 private:
-	static Libvirt::Filter::Xml::VChoice5120
+	static QList <Libvirt::Filter::Xml::VChoice5120>
 	prepareAllowEstablished(Libvirt::Filter::Xml::EDirectionType direction_type,
 						   int priority);
 
