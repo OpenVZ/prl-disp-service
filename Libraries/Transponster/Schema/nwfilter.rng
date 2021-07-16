@@ -442,6 +442,11 @@
           <ref name="addrMask"/>
         </attribute>
       </optional>
+      <optional>
+        <attribute name="state">
+          <ref name="stateflags-type"/>
+        </attribute>
+      </optional>
     </interleave>
   </define>
 
@@ -513,6 +518,11 @@
       <optional>
         <attribute name="dstipmask">
           <ref name="addrMaskv6"/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="state">
+          <ref name="stateflags-type"/>
         </attribute>
       </optional>
     </interleave>
