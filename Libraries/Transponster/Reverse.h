@@ -497,6 +497,18 @@ private:
 	static Libvirt::Filter::Xml::VUint8range
 	prepareIcmpType(unsigned int value);
 
+	static Libvirt::Filter::Xml::VChoice5120
+	prepareIpRule(const QString& proto,
+			Libvirt::Filter::Xml::CommonIpAttributesP1 ip_attributes,
+			Libvirt::Filter::Xml::CommonPortAttributes port_attributes,
+			Libvirt::Filter::Xml::RuleNodeAttributes rule_attributes);
+
+	static Libvirt::Filter::Xml::VChoice5120
+	prepareIpv6Rule(const QString& proto,
+			Libvirt::Filter::Xml::CommonIpv6AttributesP1 ip_attributes,
+			Libvirt::Filter::Xml::CommonPortAttributes port_attributes,
+			Libvirt::Filter::Xml::RuleNodeAttributes rule_attributes);
+
 	static QList<Libvirt::Filter::Xml::VChoice5120>
 	prepareRule(const CVmNetFirewallRule &basic_rule,
 				Libvirt::Filter::Xml::EDirectionType direction,
