@@ -961,8 +961,10 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 			case VZCTL_MEM_GUARANTEE_AUTO:
 				pMem->setMemGuaranteeType(PRL_MEMGUARANTEE_AUTO);
 				break;
-			case VZCTL_MEM_GUARANTEE_BYTES:
-				g.value = pMem->getRamSize() ? g.value * 100 / (pMem->getRamSize() << 20) : 0;
+			case VZCTL_MEM_GUARANTEE_BYTES: {
+				unsigned long bytes = (unsigned long) pMem->getRamSize() << 20;
+				g.value = pMem->getRamSize() ? g.value * 100 / (bytes ? bytes : LONG_MAX) : 0;
+			}
 			default:
 				pMem->setMemGuaranteeType(PRL_MEMGUARANTEE_PERCENTS);
 			}
