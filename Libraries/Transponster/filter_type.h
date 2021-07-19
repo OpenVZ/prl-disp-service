@@ -956,6 +956,14 @@ struct CommonIpAttributesP1
 	{
 		m_dstipmask = value_;
 	}
+	const boost::optional<PStateflagsType::value_type >& getState() const
+	{
+		return m_state;
+	}
+	void setState(const boost::optional<PStateflagsType::value_type >& value_)
+	{
+		m_state = value_;
+	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
 
@@ -964,6 +972,7 @@ private:
 	boost::optional<VAddrMask > m_srcipmask;
 	boost::optional<VAddrIP > m_dstipaddr;
 	boost::optional<VAddrMask > m_dstipmask;
+	boost::optional<PStateflagsType::value_type > m_state;
 };
 
 } // namespace Xml
@@ -1146,6 +1155,14 @@ struct CommonIpv6AttributesP1
 	{
 		m_dstipmask = value_;
 	}
+	const boost::optional<PStateflagsType::value_type >& getState() const
+	{
+		return m_state;
+	}
+	void setState(const boost::optional<PStateflagsType::value_type >& value_)
+	{
+		m_state = value_;
+	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
 
@@ -1154,6 +1171,7 @@ private:
 	boost::optional<VAddrMaskv6 > m_srcipmask;
 	boost::optional<VAddrIPv6 > m_dstipaddr;
 	boost::optional<VAddrMaskv6 > m_dstipmask;
+	boost::optional<PStateflagsType::value_type > m_state;
 };
 
 } // namespace Xml
@@ -3112,7 +3130,7 @@ struct Traits<Filter::Xml::Rarp>
 template<>
 struct Traits<Filter::Xml::CommonIpAttributesP1>
 {
-	typedef Unordered<mpl::vector<Optional<Attribute<Filter::Xml::VAddrIP, Name::Strict<5314> > >, Optional<Attribute<Filter::Xml::VAddrMask, Name::Strict<5316> > >, Optional<Attribute<Filter::Xml::VAddrIP, Name::Strict<5318> > >, Optional<Attribute<Filter::Xml::VAddrMask, Name::Strict<5319> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Optional<Attribute<Filter::Xml::VAddrIP, Name::Strict<5314> > >, Optional<Attribute<Filter::Xml::VAddrMask, Name::Strict<5316> > >, Optional<Attribute<Filter::Xml::VAddrIP, Name::Strict<5318> > >, Optional<Attribute<Filter::Xml::VAddrMask, Name::Strict<5319> > >, Optional<Attribute<Filter::Xml::PStateflagsType, Name::Strict<126> > > > > marshal_type;
 
 	static int parse(Filter::Xml::CommonIpAttributesP1& , QStack<QDomElement>& );
 	static int generate(const Filter::Xml::CommonIpAttributesP1& , QDomElement& );
@@ -3148,7 +3166,7 @@ struct Traits<Filter::Xml::Ip>
 template<>
 struct Traits<Filter::Xml::CommonIpv6AttributesP1>
 {
-	typedef Unordered<mpl::vector<Optional<Attribute<Filter::Xml::VAddrIPv6, Name::Strict<5314> > >, Optional<Attribute<Filter::Xml::VAddrMaskv6, Name::Strict<5316> > >, Optional<Attribute<Filter::Xml::VAddrIPv6, Name::Strict<5318> > >, Optional<Attribute<Filter::Xml::VAddrMaskv6, Name::Strict<5319> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Optional<Attribute<Filter::Xml::VAddrIPv6, Name::Strict<5314> > >, Optional<Attribute<Filter::Xml::VAddrMaskv6, Name::Strict<5316> > >, Optional<Attribute<Filter::Xml::VAddrIPv6, Name::Strict<5318> > >, Optional<Attribute<Filter::Xml::VAddrMaskv6, Name::Strict<5319> > >, Optional<Attribute<Filter::Xml::PStateflagsType, Name::Strict<126> > > > > marshal_type;
 
 	static int parse(Filter::Xml::CommonIpv6AttributesP1& , QStack<QDomElement>& );
 	static int generate(const Filter::Xml::CommonIpv6AttributesP1& , QDomElement& );
