@@ -514,23 +514,6 @@ PRL_RESULT CFirewallHelper::ExecuteBridgeTables()
 
 	WRITE_TRACE(DBG_WARNING, "Start setting IP anti-spoof rules...");
 
-	/* Try to make an atomic update of bridge tables */
-	QTemporaryFile qfTempFile;
-	if (qfTempFile.open()) {
-		qfTempFile.close();
-		QString qsAtomicCmd = BRIDGE_TABLES " --atomic-file " +
-					qfTempFile.fileName();
-		QString qsAtomicSaveCmd = qsAtomicCmd + " --atomic-save";
-		QString qsAtomicCommitCmd = qsAtomicCmd + " --atomic-commit";
-		m_lstCleanupBridgeRules.replaceInStrings(BRIDGE_TABLES, qsAtomicCmd);
-		m_lstCleanupBridgeRules.prepend(qsAtomicSaveCmd);
-		if (!m_lstBridgeRules.isEmpty()) {
-			m_lstBridgeRules.replaceInStrings(BRIDGE_TABLES, qsAtomicCmd);
-			m_lstBridgeRules.append(qsAtomicCommitCmd);
-		} else
-			m_lstCleanupBridgeRules.append(qsAtomicCommitCmd);
-	}
-
 	res = ExecuteRules(m_lstCleanupBridgeRules, m_lstBridgeRules);
 
 	WRITE_TRACE(DBG_WARNING, "Finished setting IP anti-spoof rules: %s", QSTR2UTF8(m_qsErrorMessage));
