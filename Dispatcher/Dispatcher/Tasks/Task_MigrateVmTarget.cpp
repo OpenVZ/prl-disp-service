@@ -966,7 +966,7 @@ void Frontend::create(const CVmHardDisk& event_)
 	}
 	QStringList a;
 	a << "create" << "-f" << "qcow2";
-	a << "-o" << "cluster_size=1M,lazy_refcounts=on,extended_l2=on";
+	a << "-o" << "cluster_size=1M,lazy_refcounts=on";
 	a << event_.getSystemName();
 	a << QString::number(event_.getSize()).append("M");
 
