@@ -16,7 +16,6 @@ use File::Spec;
 use XML::LibXML;
 use Data::Dumper;
 use File::Basename;
-use UNIVERSAL qw(isa);
 
 package Strings;
 use Carp qw<longmess>;
@@ -1605,7 +1604,6 @@ sub expand($)
 
 package Ng::Optional;
 use Data::Dumper;
-use UNIVERSAL qw(isa);
 sub new($$)
 {
         return bless $_[1], ref($_[0]) || $_[0];
@@ -2238,7 +2236,6 @@ sub generate($)
 
 package Ng::Element;
 use Data::Dumper;
-use UNIVERSAL qw(isa);
 
 sub new($$)
 {
@@ -3061,10 +3058,10 @@ sub generate
 		my $d = $defines{$t};
 		foreach my $x (@{$d->{children}})
 		{
-			if (isa $x, 'Ng::Ref')
+			if (UNIVERSAL::isa($x, 'Ng::Ref'))
 			{
 			}
-			elsif (isa $x, 'Ng::Element')
+			elsif (UNIVERSAL::isa($x, 'Ng::Element'))
 			{
 				$x->generate();
 	#			map {print $_, $/} $x->{block}{type}->getTraits();
