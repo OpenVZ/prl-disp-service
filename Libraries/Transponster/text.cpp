@@ -5724,7 +5724,9 @@ static QString g_text[] = {
 	QString("min_guarantee5696"),
 	QString(""),
 	QString("inactiveDomain"),
-	QString("")
+	QString(""),
+	QString("pcie-pci-bridge"),
+	QString("pcie-to-pci-bridge")
 };
 
 const QString& getText(quint32 index_)

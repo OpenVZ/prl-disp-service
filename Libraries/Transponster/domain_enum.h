@@ -623,6 +623,7 @@ enum EName4
 	EName4SpaprPciHostBridge,
 	EName4PciBridge,
 	EName4I82801b11Bridge,
+	EName4PciePciBridge,
 	EName4Ioh3420,
 	EName4PcieRootPort,
 	EName4X3130Upstream,
@@ -641,6 +642,7 @@ enum EModel3
 {
 	EModel3PciBridge,
 	EModel3DmiToPciBridge,
+	EModel3PcieToPciBridge,
 	EModel3PcieRootPort,
 	EModel3PcieSwitchUpstreamPort,
 	EModel3PcieSwitchDownstreamPort,
