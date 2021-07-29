@@ -325,6 +325,8 @@ void CFirewallHelper::AddBridgeRules(CVmGenericNetworkAdapter* pAdapter, const Q
 	qsRule = BRIDGE_TABLES " -A INPUT -i " + veth_name + " -j " + chain_name;
 	m_lstBridgeRules += qsRule;
 
+	m_lstBridgeRules += (QString)(BRIDGE_TABLES " -A " + chain_name + " -p ARP -j ACCEPT");
+
 	/* prepare MAC=IP pairs for the device */
 	QString qsAmongSrcValue;
 	foreach (QString ip_mask, pAdapter->getNetAddresses()) {
@@ -350,8 +352,6 @@ void CFirewallHelper::AddBridgeRules(CVmGenericNetworkAdapter* pAdapter, const Q
 	if (pAdapter->isConfigureWithDhcp()) {
 		m_lstBridgeRules += (QString)(BRIDGE_TABLES " -A " +
 							chain_name + " -p ip4 -j ACCEPT");
-		m_lstBridgeRules += (QString)(BRIDGE_TABLES " -A " +
-							chain_name + " -p ARP -j ACCEPT");
 	} else if (pAdapter->isConfigureWithDhcpIPv6()) {
 		m_lstBridgeRules += (QString)(BRIDGE_TABLES " -A " +
 							chain_name + " -p ip6 -j ACCEPT");
