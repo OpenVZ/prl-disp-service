@@ -1,8 +1,8 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import os
 import sys
-import ConfigParser
+import configparser
 import time
 import subprocess
 
@@ -10,7 +10,7 @@ file_path = os.path.split(os.path.abspath(__file__))[0]
 if file_path == '':
 	file_path = os.path.abspath(os.path.getcwd())
 
-cfg = ConfigParser.ConfigParser()
+cfg = configparser.ConfigParser()
 cfg.readfp(open('Build/Build.cfg'))
 
 fd = open('Makefile.version')
@@ -24,21 +24,21 @@ fd.close()
 noct = False
 
 incPath = '/usr/include'
-if os.environ.has_key("LOCAL_DEPS_INCLUDE"):
+if "LOCAL_DEPS_INCLUDE" in os.environ:
     incPath = os.environ["LOCAL_DEPS_INCLUDE"]
 
 if not os.path.exists( incPath + '/vzctl/libvzctl.h' ):
-	print 'Warning: libvzctl-devel packages is not installed'
+	print('Warning: libvzctl-devel packages is not installed')
 	noct = True
 
 if not os.path.exists( incPath + '/ploop/libploop.h' ):
-	print 'Warning: ploop-devel packages is not installed'
+	print('Warning: ploop-devel packages is not installed')
 	noct = True
 
 try:
 	fd = open('Build/Build.pri', 'w')
 except IOErrore:
-	print 'Failed to open "Build/Build.pri"'
+	print('Failed to open "Build/Build.pri"')
 	sys.exit(1)
 
 fd.write("DEFINES += PRL_PROD_SERVER=1\n")
