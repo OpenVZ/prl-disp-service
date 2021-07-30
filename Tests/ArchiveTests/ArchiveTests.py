@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import os
 import fnmatch
@@ -23,7 +23,7 @@ def get_path_files( path, exclude_paths = [], relative = '' ):
         for xf in exclude_paths:
             if os.path.abspath(xf) == os.path.abspath( os.path.join( path, name ) ):
                 if enable_archive_debug:
-                    print 'Ignored %s ' % os.path.join( path, name )
+                    print('Ignored %s ' % os.path.join( path, name ))
                 valid = 0
                 break
 
@@ -65,7 +65,7 @@ def archive_path( path, arch, exclude_paths = [], exclude_files = [], include_ex
 
         percent = indx * 100 / size
         if prev_percent != percent and percent % 5 == 0:
-            print '%u%% ' % percent,
+            print('%u%% ' % percent),
             prev_percent = percent
             sys.stdout.flush()
         indx += 1
@@ -80,12 +80,12 @@ def archive_path( path, arch, exclude_paths = [], exclude_files = [], include_ex
         for excf in exclude_files:
             if file_name.endswith( excf ):
                 if enable_archive_debug:
-                    print 'Ignored %s ...' % file_name
+                    print('Ignored %s ...' % file_name)
                 need_ignore = 1
 
         if (not include_ext is None) and (not ext in include_ext):
             if enable_archive_debug:
-                print 'Ignored %s ...' % file_name
+                print('Ignored %s ...' % file_name)
             need_ignore = 1
 
         if len(include_only) > 0:
@@ -95,7 +95,7 @@ def archive_path( path, arch, exclude_paths = [], exclude_files = [], include_ex
                     match = 1
             if not match:
                 if enable_archive_debug:
-                    print 'Ignored %s ...' % file_name
+                    print('Ignored %s ...' % file_name)
                 need_ignore = 1
 
         if file_name in include_anyway:
@@ -103,7 +103,7 @@ def archive_path( path, arch, exclude_paths = [], exclude_files = [], include_ex
 
         if not need_ignore:
             if enable_archive_debug:
-                print 'Archiving %s ...' % file_name
+                print('Archiving %s ...' % file_name)
             if os.path.islink(file_path):
                 # magic with magic numbers for symlinks:
                 # http://www.mail-archive.com/python-list@python.org/msg34223.html
@@ -111,7 +111,7 @@ def archive_path( path, arch, exclude_paths = [], exclude_files = [], include_ex
                 attr = zipfile.ZipInfo()
                 attr.filename = file_name
                 attr.create_system = 3
-                attr.external_attr = 2716663808L
+                attr.external_attr = 2716663808
                 archive.writestr(attr, os.readlink(file_path))
             else:
                 #  zipfile.ZIP_DEFLATED - means compression
@@ -125,14 +125,14 @@ def archive_path( path, arch, exclude_paths = [], exclude_files = [], include_ex
             file_path = os.path.split(file_name)[0]
             if current_folder != file_path:
                 if current_size > 512 * 1024: # printing information about folders > 512KB
-                    print 'Archived "%s" ... size %2.2fkb' % (current_folder, current_size / 1024)
+                    print('Archived "%s" ... size %2.2fkb' % (current_folder, current_size / 1024))
                 current_folder = file_path
                 current_size = 0
             current_size += os.path.getsize(file_name)
 
     print
     if enable_archive_debug:
-        print 'Archive %s created !' % arch
+        print('Archive %s created !' % arch)
 
 
 def pack_tests(version):
@@ -150,8 +150,8 @@ def pack_tests(version):
                 shutil.copy(os.path.join(root, filename), '../../z-Build/%s' % version)
         archive_path('../../z-Build/%s' % version, tests_archive, include_only=include_only)
         archive_path('../_Python', python_tests_archive)
-    except Exception, e:
-        print e
+    except Exception as e:
+        print(e)
         raise RuntimeError('Failed to make archive with unit tests.')
 
 if len(sys.argv) < 2:
