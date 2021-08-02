@@ -7770,6 +7770,63 @@ int Traits<Domain::Xml::Virtualport>::generate(const Domain::Xml::Virtualport& s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct VzDhcp
+
+namespace Domain
+{
+namespace Xml
+{
+bool VzDhcp::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<VzDhcp, Name::Strict<5704> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool VzDhcp::save(QDomElement& dst_) const
+{
+	Element<VzDhcp, Name::Strict<5704> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool VzDhcp::save(QDomDocument& dst_) const
+{
+	Element<VzDhcp, Name::Strict<5704> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Domain
+
+int Traits<Domain::Xml::VzDhcp>::parse(Domain::Xml::VzDhcp& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setFamily(m.get<0>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::VzDhcp>::generate(const Domain::Xml::VzDhcp& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getFamily(), m.get<0>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Guest
 
 namespace Domain
@@ -8640,6 +8697,86 @@ int Traits<Domain::Xml::Interface658>::parse(Domain::Xml::Interface658& dst_, QS
 		dst_.setSource(m.get<1>().get<0>().getValue());
 		dst_.setVirtualPortProfile(m.get<1>().get<1>().getValue());
 		dst_.setLink(m.get<1>().get<2>().getValue());
+		dst_.setVzDhcpList(m.get<1>().get<3>().getValue());
+		dst_.setTarget(m.get<1>().get<4>().getValue());
+		dst_.setGuest(m.get<1>().get<5>().getValue());
+		dst_.setMac(m.get<1>().get<6>().getValue());
+		dst_.setIpList(m.get<1>().get<7>().getValue());
+		dst_.setScript(m.get<1>().get<8>().getValue());
+		dst_.setModel(m.get<1>().get<9>().getValue());
+		dst_.setBackend(m.get<1>().get<10>().getValue());
+		dst_.setDriver(m.get<1>().get<11>().getValue());
+		dst_.setAlias(m.get<1>().get<12>().getValue());
+		dst_.setAddress(m.get<1>().get<13>().getValue());
+		dst_.setFilterref(m.get<1>().get<14>().getValue());
+		dst_.setTune(m.get<1>().get<15>().getValue());
+		dst_.setBoot(m.get<1>().get<16>().getValue());
+		dst_.setRom(m.get<1>().get<17>().getValue());
+		dst_.setBandwidth(m.get<1>().get<18>().getValue());
+		dst_.setVlan(m.get<1>().get<19>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::Interface658>::generate(const Domain::Xml::Interface658& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getSource(), m.get<1>().get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVirtualPortProfile(), m.get<1>().get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getLink(), m.get<1>().get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVzDhcpList(), m.get<1>().get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<1>().get<4>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getGuest(), m.get<1>().get<5>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getMac(), m.get<1>().get<6>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<1>().get<7>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getScript(), m.get<1>().get<8>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getModel(), m.get<1>().get<9>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getBackend(), m.get<1>().get<10>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>().get<11>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<1>().get<12>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>().get<13>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getFilterref(), m.get<1>().get<14>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getTune(), m.get<1>().get<15>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getBoot(), m.get<1>().get<16>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getRom(), m.get<1>().get<17>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<1>().get<18>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<1>().get<19>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Interface660
+
+int Traits<Domain::Xml::Interface660>::parse(Domain::Xml::Interface660& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setSource(m.get<1>().get<0>().getValue());
+		dst_.setLink(m.get<1>().get<1>().getValue());
+		dst_.setVzDhcpList(m.get<1>().get<2>().getValue());
 		dst_.setTarget(m.get<1>().get<3>().getValue());
 		dst_.setGuest(m.get<1>().get<4>().getValue());
 		dst_.setMac(m.get<1>().get<5>().getValue());
@@ -8660,14 +8797,14 @@ int Traits<Domain::Xml::Interface658>::parse(Domain::Xml::Interface658& dst_, QS
 	return output;
 }
 
-int Traits<Domain::Xml::Interface658>::generate(const Domain::Xml::Interface658& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Interface660>::generate(const Domain::Xml::Interface660& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSource(), m.get<1>().get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getVirtualPortProfile(), m.get<1>().get<1>()))
+	if (0 > Details::Marshal::assign(src_.getLink(), m.get<1>().get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getLink(), m.get<1>().get<2>()))
+	if (0 > Details::Marshal::assign(src_.getVzDhcpList(), m.get<1>().get<2>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<1>().get<3>()))
 		return -1;
@@ -8700,80 +8837,6 @@ int Traits<Domain::Xml::Interface658>::generate(const Domain::Xml::Interface658&
 	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<1>().get<17>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<1>().get<18>()))
-		return -1;
-
-	return m.produce(dst_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Interface660
-
-int Traits<Domain::Xml::Interface660>::parse(Domain::Xml::Interface660& dst_, QStack<QDomElement>& stack_)
-{
-	marshal_type m;
-	int output = m.consume(stack_);
-	if (0 <= output)
-	{
-		dst_.setSource(m.get<1>().get<0>().getValue());
-		dst_.setLink(m.get<1>().get<1>().getValue());
-		dst_.setTarget(m.get<1>().get<2>().getValue());
-		dst_.setGuest(m.get<1>().get<3>().getValue());
-		dst_.setMac(m.get<1>().get<4>().getValue());
-		dst_.setIpList(m.get<1>().get<5>().getValue());
-		dst_.setScript(m.get<1>().get<6>().getValue());
-		dst_.setModel(m.get<1>().get<7>().getValue());
-		dst_.setBackend(m.get<1>().get<8>().getValue());
-		dst_.setDriver(m.get<1>().get<9>().getValue());
-		dst_.setAlias(m.get<1>().get<10>().getValue());
-		dst_.setAddress(m.get<1>().get<11>().getValue());
-		dst_.setFilterref(m.get<1>().get<12>().getValue());
-		dst_.setTune(m.get<1>().get<13>().getValue());
-		dst_.setBoot(m.get<1>().get<14>().getValue());
-		dst_.setRom(m.get<1>().get<15>().getValue());
-		dst_.setBandwidth(m.get<1>().get<16>().getValue());
-		dst_.setVlan(m.get<1>().get<17>().getValue());
-	}
-	return output;
-}
-
-int Traits<Domain::Xml::Interface660>::generate(const Domain::Xml::Interface660& src_, QDomElement& dst_)
-{
-	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getSource(), m.get<1>().get<0>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getLink(), m.get<1>().get<1>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<1>().get<2>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getGuest(), m.get<1>().get<3>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getMac(), m.get<1>().get<4>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<1>().get<5>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getScript(), m.get<1>().get<6>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getModel(), m.get<1>().get<7>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getBackend(), m.get<1>().get<8>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>().get<9>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<1>().get<10>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>().get<11>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getFilterref(), m.get<1>().get<12>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getTune(), m.get<1>().get<13>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getBoot(), m.get<1>().get<14>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getRom(), m.get<1>().get<15>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<1>().get<16>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<1>().get<17>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -8857,22 +8920,23 @@ int Traits<Domain::Xml::Interface664>::parse(Domain::Xml::Interface664& dst_, QS
 	{
 		dst_.setSource(m.get<1>().get<0>().getValue());
 		dst_.setLink(m.get<1>().get<1>().getValue());
-		dst_.setTarget(m.get<1>().get<2>().getValue());
-		dst_.setGuest(m.get<1>().get<3>().getValue());
-		dst_.setMac(m.get<1>().get<4>().getValue());
-		dst_.setIpList(m.get<1>().get<5>().getValue());
-		dst_.setScript(m.get<1>().get<6>().getValue());
-		dst_.setModel(m.get<1>().get<7>().getValue());
-		dst_.setBackend(m.get<1>().get<8>().getValue());
-		dst_.setDriver(m.get<1>().get<9>().getValue());
-		dst_.setAlias(m.get<1>().get<10>().getValue());
-		dst_.setAddress(m.get<1>().get<11>().getValue());
-		dst_.setFilterref(m.get<1>().get<12>().getValue());
-		dst_.setTune(m.get<1>().get<13>().getValue());
-		dst_.setBoot(m.get<1>().get<14>().getValue());
-		dst_.setRom(m.get<1>().get<15>().getValue());
-		dst_.setBandwidth(m.get<1>().get<16>().getValue());
-		dst_.setVlan(m.get<1>().get<17>().getValue());
+		dst_.setVzDhcpList(m.get<1>().get<2>().getValue());
+		dst_.setTarget(m.get<1>().get<3>().getValue());
+		dst_.setGuest(m.get<1>().get<4>().getValue());
+		dst_.setMac(m.get<1>().get<5>().getValue());
+		dst_.setIpList(m.get<1>().get<6>().getValue());
+		dst_.setScript(m.get<1>().get<7>().getValue());
+		dst_.setModel(m.get<1>().get<8>().getValue());
+		dst_.setBackend(m.get<1>().get<9>().getValue());
+		dst_.setDriver(m.get<1>().get<10>().getValue());
+		dst_.setAlias(m.get<1>().get<11>().getValue());
+		dst_.setAddress(m.get<1>().get<12>().getValue());
+		dst_.setFilterref(m.get<1>().get<13>().getValue());
+		dst_.setTune(m.get<1>().get<14>().getValue());
+		dst_.setBoot(m.get<1>().get<15>().getValue());
+		dst_.setRom(m.get<1>().get<16>().getValue());
+		dst_.setBandwidth(m.get<1>().get<17>().getValue());
+		dst_.setVlan(m.get<1>().get<18>().getValue());
 	}
 	return output;
 }
@@ -8884,37 +8948,39 @@ int Traits<Domain::Xml::Interface664>::generate(const Domain::Xml::Interface664&
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getLink(), m.get<1>().get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<1>().get<2>()))
+	if (0 > Details::Marshal::assign(src_.getVzDhcpList(), m.get<1>().get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getGuest(), m.get<1>().get<3>()))
+	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<1>().get<3>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getMac(), m.get<1>().get<4>()))
+	if (0 > Details::Marshal::assign(src_.getGuest(), m.get<1>().get<4>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<1>().get<5>()))
+	if (0 > Details::Marshal::assign(src_.getMac(), m.get<1>().get<5>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getScript(), m.get<1>().get<6>()))
+	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<1>().get<6>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getModel(), m.get<1>().get<7>()))
+	if (0 > Details::Marshal::assign(src_.getScript(), m.get<1>().get<7>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBackend(), m.get<1>().get<8>()))
+	if (0 > Details::Marshal::assign(src_.getModel(), m.get<1>().get<8>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>().get<9>()))
+	if (0 > Details::Marshal::assign(src_.getBackend(), m.get<1>().get<9>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<1>().get<10>()))
+	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>().get<10>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>().get<11>()))
+	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<1>().get<11>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getFilterref(), m.get<1>().get<12>()))
+	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>().get<12>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTune(), m.get<1>().get<13>()))
+	if (0 > Details::Marshal::assign(src_.getFilterref(), m.get<1>().get<13>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBoot(), m.get<1>().get<14>()))
+	if (0 > Details::Marshal::assign(src_.getTune(), m.get<1>().get<14>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getRom(), m.get<1>().get<15>()))
+	if (0 > Details::Marshal::assign(src_.getBoot(), m.get<1>().get<15>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<1>().get<16>()))
+	if (0 > Details::Marshal::assign(src_.getRom(), m.get<1>().get<16>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<1>().get<17>()))
+	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<1>().get<17>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<1>().get<18>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -8992,22 +9058,23 @@ int Traits<Domain::Xml::Interface665>::parse(Domain::Xml::Interface665& dst_, QS
 		dst_.setSource(m.get<1>().get<0>().getValue());
 		dst_.setVirtualPortProfile(m.get<1>().get<1>().getValue());
 		dst_.setLink(m.get<1>().get<2>().getValue());
-		dst_.setTarget(m.get<1>().get<3>().getValue());
-		dst_.setGuest(m.get<1>().get<4>().getValue());
-		dst_.setMac(m.get<1>().get<5>().getValue());
-		dst_.setIpList(m.get<1>().get<6>().getValue());
-		dst_.setScript(m.get<1>().get<7>().getValue());
-		dst_.setModel(m.get<1>().get<8>().getValue());
-		dst_.setBackend(m.get<1>().get<9>().getValue());
-		dst_.setDriver(m.get<1>().get<10>().getValue());
-		dst_.setAlias(m.get<1>().get<11>().getValue());
-		dst_.setAddress(m.get<1>().get<12>().getValue());
-		dst_.setFilterref(m.get<1>().get<13>().getValue());
-		dst_.setTune(m.get<1>().get<14>().getValue());
-		dst_.setBoot(m.get<1>().get<15>().getValue());
-		dst_.setRom(m.get<1>().get<16>().getValue());
-		dst_.setBandwidth(m.get<1>().get<17>().getValue());
-		dst_.setVlan(m.get<1>().get<18>().getValue());
+		dst_.setVzDhcpList(m.get<1>().get<3>().getValue());
+		dst_.setTarget(m.get<1>().get<4>().getValue());
+		dst_.setGuest(m.get<1>().get<5>().getValue());
+		dst_.setMac(m.get<1>().get<6>().getValue());
+		dst_.setIpList(m.get<1>().get<7>().getValue());
+		dst_.setScript(m.get<1>().get<8>().getValue());
+		dst_.setModel(m.get<1>().get<9>().getValue());
+		dst_.setBackend(m.get<1>().get<10>().getValue());
+		dst_.setDriver(m.get<1>().get<11>().getValue());
+		dst_.setAlias(m.get<1>().get<12>().getValue());
+		dst_.setAddress(m.get<1>().get<13>().getValue());
+		dst_.setFilterref(m.get<1>().get<14>().getValue());
+		dst_.setTune(m.get<1>().get<15>().getValue());
+		dst_.setBoot(m.get<1>().get<16>().getValue());
+		dst_.setRom(m.get<1>().get<17>().getValue());
+		dst_.setBandwidth(m.get<1>().get<18>().getValue());
+		dst_.setVlan(m.get<1>().get<19>().getValue());
 	}
 	return output;
 }
@@ -9021,37 +9088,39 @@ int Traits<Domain::Xml::Interface665>::generate(const Domain::Xml::Interface665&
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getLink(), m.get<1>().get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<1>().get<3>()))
+	if (0 > Details::Marshal::assign(src_.getVzDhcpList(), m.get<1>().get<3>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getGuest(), m.get<1>().get<4>()))
+	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<1>().get<4>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getMac(), m.get<1>().get<5>()))
+	if (0 > Details::Marshal::assign(src_.getGuest(), m.get<1>().get<5>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<1>().get<6>()))
+	if (0 > Details::Marshal::assign(src_.getMac(), m.get<1>().get<6>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getScript(), m.get<1>().get<7>()))
+	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<1>().get<7>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getModel(), m.get<1>().get<8>()))
+	if (0 > Details::Marshal::assign(src_.getScript(), m.get<1>().get<8>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBackend(), m.get<1>().get<9>()))
+	if (0 > Details::Marshal::assign(src_.getModel(), m.get<1>().get<9>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>().get<10>()))
+	if (0 > Details::Marshal::assign(src_.getBackend(), m.get<1>().get<10>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<1>().get<11>()))
+	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>().get<11>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>().get<12>()))
+	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<1>().get<12>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getFilterref(), m.get<1>().get<13>()))
+	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>().get<13>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTune(), m.get<1>().get<14>()))
+	if (0 > Details::Marshal::assign(src_.getFilterref(), m.get<1>().get<14>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBoot(), m.get<1>().get<15>()))
+	if (0 > Details::Marshal::assign(src_.getTune(), m.get<1>().get<15>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getRom(), m.get<1>().get<16>()))
+	if (0 > Details::Marshal::assign(src_.getBoot(), m.get<1>().get<16>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<1>().get<17>()))
+	if (0 > Details::Marshal::assign(src_.getRom(), m.get<1>().get<17>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<1>().get<18>()))
+	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<1>().get<18>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<1>().get<19>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -9129,22 +9198,23 @@ int Traits<Domain::Xml::Interface667>::parse(Domain::Xml::Interface667& dst_, QS
 		dst_.setSource(m.get<1>().get<0>().getValue());
 		dst_.setVirtualPortProfile(m.get<1>().get<1>().getValue());
 		dst_.setLink(m.get<1>().get<2>().getValue());
-		dst_.setTarget(m.get<1>().get<3>().getValue());
-		dst_.setGuest(m.get<1>().get<4>().getValue());
-		dst_.setMac(m.get<1>().get<5>().getValue());
-		dst_.setIpList(m.get<1>().get<6>().getValue());
-		dst_.setScript(m.get<1>().get<7>().getValue());
-		dst_.setModel(m.get<1>().get<8>().getValue());
-		dst_.setBackend(m.get<1>().get<9>().getValue());
-		dst_.setDriver(m.get<1>().get<10>().getValue());
-		dst_.setAlias(m.get<1>().get<11>().getValue());
-		dst_.setAddress(m.get<1>().get<12>().getValue());
-		dst_.setFilterref(m.get<1>().get<13>().getValue());
-		dst_.setTune(m.get<1>().get<14>().getValue());
-		dst_.setBoot(m.get<1>().get<15>().getValue());
-		dst_.setRom(m.get<1>().get<16>().getValue());
-		dst_.setBandwidth(m.get<1>().get<17>().getValue());
-		dst_.setVlan(m.get<1>().get<18>().getValue());
+		dst_.setVzDhcpList(m.get<1>().get<3>().getValue());
+		dst_.setTarget(m.get<1>().get<4>().getValue());
+		dst_.setGuest(m.get<1>().get<5>().getValue());
+		dst_.setMac(m.get<1>().get<6>().getValue());
+		dst_.setIpList(m.get<1>().get<7>().getValue());
+		dst_.setScript(m.get<1>().get<8>().getValue());
+		dst_.setModel(m.get<1>().get<9>().getValue());
+		dst_.setBackend(m.get<1>().get<10>().getValue());
+		dst_.setDriver(m.get<1>().get<11>().getValue());
+		dst_.setAlias(m.get<1>().get<12>().getValue());
+		dst_.setAddress(m.get<1>().get<13>().getValue());
+		dst_.setFilterref(m.get<1>().get<14>().getValue());
+		dst_.setTune(m.get<1>().get<15>().getValue());
+		dst_.setBoot(m.get<1>().get<16>().getValue());
+		dst_.setRom(m.get<1>().get<17>().getValue());
+		dst_.setBandwidth(m.get<1>().get<18>().getValue());
+		dst_.setVlan(m.get<1>().get<19>().getValue());
 	}
 	return output;
 }
@@ -9158,37 +9228,39 @@ int Traits<Domain::Xml::Interface667>::generate(const Domain::Xml::Interface667&
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getLink(), m.get<1>().get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<1>().get<3>()))
+	if (0 > Details::Marshal::assign(src_.getVzDhcpList(), m.get<1>().get<3>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getGuest(), m.get<1>().get<4>()))
+	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<1>().get<4>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getMac(), m.get<1>().get<5>()))
+	if (0 > Details::Marshal::assign(src_.getGuest(), m.get<1>().get<5>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<1>().get<6>()))
+	if (0 > Details::Marshal::assign(src_.getMac(), m.get<1>().get<6>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getScript(), m.get<1>().get<7>()))
+	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<1>().get<7>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getModel(), m.get<1>().get<8>()))
+	if (0 > Details::Marshal::assign(src_.getScript(), m.get<1>().get<8>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBackend(), m.get<1>().get<9>()))
+	if (0 > Details::Marshal::assign(src_.getModel(), m.get<1>().get<9>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>().get<10>()))
+	if (0 > Details::Marshal::assign(src_.getBackend(), m.get<1>().get<10>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<1>().get<11>()))
+	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>().get<11>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>().get<12>()))
+	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<1>().get<12>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getFilterref(), m.get<1>().get<13>()))
+	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>().get<13>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTune(), m.get<1>().get<14>()))
+	if (0 > Details::Marshal::assign(src_.getFilterref(), m.get<1>().get<14>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBoot(), m.get<1>().get<15>()))
+	if (0 > Details::Marshal::assign(src_.getTune(), m.get<1>().get<15>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getRom(), m.get<1>().get<16>()))
+	if (0 > Details::Marshal::assign(src_.getBoot(), m.get<1>().get<16>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<1>().get<17>()))
+	if (0 > Details::Marshal::assign(src_.getRom(), m.get<1>().get<17>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<1>().get<18>()))
+	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<1>().get<18>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<1>().get<19>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -9225,22 +9297,23 @@ int Traits<Domain::Xml::InterfaceOptions>::parse(Domain::Xml::InterfaceOptions& 
 	if (0 <= output)
 	{
 		dst_.setLink(m.get<0>().getValue());
-		dst_.setTarget(m.get<1>().getValue());
-		dst_.setGuest(m.get<2>().getValue());
-		dst_.setMac(m.get<3>().getValue());
-		dst_.setIpList(m.get<4>().getValue());
-		dst_.setScript(m.get<5>().getValue());
-		dst_.setModel(m.get<6>().getValue());
-		dst_.setBackend(m.get<7>().getValue());
-		dst_.setDriver(m.get<8>().getValue());
-		dst_.setAlias(m.get<9>().getValue());
-		dst_.setAddress(m.get<10>().getValue());
-		dst_.setFilterref(m.get<11>().getValue());
-		dst_.setTune(m.get<12>().getValue());
-		dst_.setBoot(m.get<13>().getValue());
-		dst_.setRom(m.get<14>().getValue());
-		dst_.setBandwidth(m.get<15>().getValue());
-		dst_.setVlan(m.get<16>().getValue());
+		dst_.setVzDhcpList(m.get<1>().getValue());
+		dst_.setTarget(m.get<2>().getValue());
+		dst_.setGuest(m.get<3>().getValue());
+		dst_.setMac(m.get<4>().getValue());
+		dst_.setIpList(m.get<5>().getValue());
+		dst_.setScript(m.get<6>().getValue());
+		dst_.setModel(m.get<7>().getValue());
+		dst_.setBackend(m.get<8>().getValue());
+		dst_.setDriver(m.get<9>().getValue());
+		dst_.setAlias(m.get<10>().getValue());
+		dst_.setAddress(m.get<11>().getValue());
+		dst_.setFilterref(m.get<12>().getValue());
+		dst_.setTune(m.get<13>().getValue());
+		dst_.setBoot(m.get<14>().getValue());
+		dst_.setRom(m.get<15>().getValue());
+		dst_.setBandwidth(m.get<16>().getValue());
+		dst_.setVlan(m.get<17>().getValue());
 	}
 	return output;
 }
@@ -9250,37 +9323,39 @@ int Traits<Domain::Xml::InterfaceOptions>::generate(const Domain::Xml::Interface
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getLink(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getVzDhcpList(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getGuest(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getMac(), m.get<3>()))
+	if (0 > Details::Marshal::assign(src_.getGuest(), m.get<3>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<4>()))
+	if (0 > Details::Marshal::assign(src_.getMac(), m.get<4>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getScript(), m.get<5>()))
+	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<5>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getModel(), m.get<6>()))
+	if (0 > Details::Marshal::assign(src_.getScript(), m.get<6>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBackend(), m.get<7>()))
+	if (0 > Details::Marshal::assign(src_.getModel(), m.get<7>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<8>()))
+	if (0 > Details::Marshal::assign(src_.getBackend(), m.get<8>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<9>()))
+	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<9>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<10>()))
+	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<10>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getFilterref(), m.get<11>()))
+	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<11>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTune(), m.get<12>()))
+	if (0 > Details::Marshal::assign(src_.getFilterref(), m.get<12>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBoot(), m.get<13>()))
+	if (0 > Details::Marshal::assign(src_.getTune(), m.get<13>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getRom(), m.get<14>()))
+	if (0 > Details::Marshal::assign(src_.getBoot(), m.get<14>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<15>()))
+	if (0 > Details::Marshal::assign(src_.getRom(), m.get<15>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<16>()))
+	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<16>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<17>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -9297,22 +9372,23 @@ int Traits<Domain::Xml::Interface670>::parse(Domain::Xml::Interface670& dst_, QS
 	{
 		dst_.setSource(m.get<1>().get<0>().getValue());
 		dst_.setLink(m.get<1>().get<1>().getValue());
-		dst_.setTarget(m.get<1>().get<2>().getValue());
-		dst_.setGuest(m.get<1>().get<3>().getValue());
-		dst_.setMac(m.get<1>().get<4>().getValue());
-		dst_.setIpList(m.get<1>().get<5>().getValue());
-		dst_.setScript(m.get<1>().get<6>().getValue());
-		dst_.setModel(m.get<1>().get<7>().getValue());
-		dst_.setBackend(m.get<1>().get<8>().getValue());
-		dst_.setDriver(m.get<1>().get<9>().getValue());
-		dst_.setAlias(m.get<1>().get<10>().getValue());
-		dst_.setAddress(m.get<1>().get<11>().getValue());
-		dst_.setFilterref(m.get<1>().get<12>().getValue());
-		dst_.setTune(m.get<1>().get<13>().getValue());
-		dst_.setBoot(m.get<1>().get<14>().getValue());
-		dst_.setRom(m.get<1>().get<15>().getValue());
-		dst_.setBandwidth(m.get<1>().get<16>().getValue());
-		dst_.setVlan(m.get<1>().get<17>().getValue());
+		dst_.setVzDhcpList(m.get<1>().get<2>().getValue());
+		dst_.setTarget(m.get<1>().get<3>().getValue());
+		dst_.setGuest(m.get<1>().get<4>().getValue());
+		dst_.setMac(m.get<1>().get<5>().getValue());
+		dst_.setIpList(m.get<1>().get<6>().getValue());
+		dst_.setScript(m.get<1>().get<7>().getValue());
+		dst_.setModel(m.get<1>().get<8>().getValue());
+		dst_.setBackend(m.get<1>().get<9>().getValue());
+		dst_.setDriver(m.get<1>().get<10>().getValue());
+		dst_.setAlias(m.get<1>().get<11>().getValue());
+		dst_.setAddress(m.get<1>().get<12>().getValue());
+		dst_.setFilterref(m.get<1>().get<13>().getValue());
+		dst_.setTune(m.get<1>().get<14>().getValue());
+		dst_.setBoot(m.get<1>().get<15>().getValue());
+		dst_.setRom(m.get<1>().get<16>().getValue());
+		dst_.setBandwidth(m.get<1>().get<17>().getValue());
+		dst_.setVlan(m.get<1>().get<18>().getValue());
 	}
 	return output;
 }
@@ -9324,37 +9400,39 @@ int Traits<Domain::Xml::Interface670>::generate(const Domain::Xml::Interface670&
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getLink(), m.get<1>().get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<1>().get<2>()))
+	if (0 > Details::Marshal::assign(src_.getVzDhcpList(), m.get<1>().get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getGuest(), m.get<1>().get<3>()))
+	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<1>().get<3>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getMac(), m.get<1>().get<4>()))
+	if (0 > Details::Marshal::assign(src_.getGuest(), m.get<1>().get<4>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<1>().get<5>()))
+	if (0 > Details::Marshal::assign(src_.getMac(), m.get<1>().get<5>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getScript(), m.get<1>().get<6>()))
+	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<1>().get<6>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getModel(), m.get<1>().get<7>()))
+	if (0 > Details::Marshal::assign(src_.getScript(), m.get<1>().get<7>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBackend(), m.get<1>().get<8>()))
+	if (0 > Details::Marshal::assign(src_.getModel(), m.get<1>().get<8>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>().get<9>()))
+	if (0 > Details::Marshal::assign(src_.getBackend(), m.get<1>().get<9>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<1>().get<10>()))
+	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<1>().get<10>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>().get<11>()))
+	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<1>().get<11>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getFilterref(), m.get<1>().get<12>()))
+	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>().get<12>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTune(), m.get<1>().get<13>()))
+	if (0 > Details::Marshal::assign(src_.getFilterref(), m.get<1>().get<13>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBoot(), m.get<1>().get<14>()))
+	if (0 > Details::Marshal::assign(src_.getTune(), m.get<1>().get<14>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getRom(), m.get<1>().get<15>()))
+	if (0 > Details::Marshal::assign(src_.getBoot(), m.get<1>().get<15>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<1>().get<16>()))
+	if (0 > Details::Marshal::assign(src_.getRom(), m.get<1>().get<16>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<1>().get<17>()))
+	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<1>().get<17>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<1>().get<18>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -9787,22 +9865,23 @@ int Traits<Domain::Xml::Interface686>::parse(Domain::Xml::Interface686& dst_, QS
 		dst_.setSource(m.get<2>().get<0>().getValue());
 		dst_.setVirtualPortProfile(m.get<2>().get<1>().getValue());
 		dst_.setLink(m.get<2>().get<2>().getValue());
-		dst_.setTarget(m.get<2>().get<3>().getValue());
-		dst_.setGuest(m.get<2>().get<4>().getValue());
-		dst_.setMac(m.get<2>().get<5>().getValue());
-		dst_.setIpList(m.get<2>().get<6>().getValue());
-		dst_.setScript(m.get<2>().get<7>().getValue());
-		dst_.setModel(m.get<2>().get<8>().getValue());
-		dst_.setBackend(m.get<2>().get<9>().getValue());
-		dst_.setDriver(m.get<2>().get<10>().getValue());
-		dst_.setAlias(m.get<2>().get<11>().getValue());
-		dst_.setAddress(m.get<2>().get<12>().getValue());
-		dst_.setFilterref(m.get<2>().get<13>().getValue());
-		dst_.setTune(m.get<2>().get<14>().getValue());
-		dst_.setBoot(m.get<2>().get<15>().getValue());
-		dst_.setRom(m.get<2>().get<16>().getValue());
-		dst_.setBandwidth(m.get<2>().get<17>().getValue());
-		dst_.setVlan(m.get<2>().get<18>().getValue());
+		dst_.setVzDhcpList(m.get<2>().get<3>().getValue());
+		dst_.setTarget(m.get<2>().get<4>().getValue());
+		dst_.setGuest(m.get<2>().get<5>().getValue());
+		dst_.setMac(m.get<2>().get<6>().getValue());
+		dst_.setIpList(m.get<2>().get<7>().getValue());
+		dst_.setScript(m.get<2>().get<8>().getValue());
+		dst_.setModel(m.get<2>().get<9>().getValue());
+		dst_.setBackend(m.get<2>().get<10>().getValue());
+		dst_.setDriver(m.get<2>().get<11>().getValue());
+		dst_.setAlias(m.get<2>().get<12>().getValue());
+		dst_.setAddress(m.get<2>().get<13>().getValue());
+		dst_.setFilterref(m.get<2>().get<14>().getValue());
+		dst_.setTune(m.get<2>().get<15>().getValue());
+		dst_.setBoot(m.get<2>().get<16>().getValue());
+		dst_.setRom(m.get<2>().get<17>().getValue());
+		dst_.setBandwidth(m.get<2>().get<18>().getValue());
+		dst_.setVlan(m.get<2>().get<19>().getValue());
 	}
 	return output;
 }
@@ -9818,37 +9897,39 @@ int Traits<Domain::Xml::Interface686>::generate(const Domain::Xml::Interface686&
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getLink(), m.get<2>().get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<2>().get<3>()))
+	if (0 > Details::Marshal::assign(src_.getVzDhcpList(), m.get<2>().get<3>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getGuest(), m.get<2>().get<4>()))
+	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<2>().get<4>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getMac(), m.get<2>().get<5>()))
+	if (0 > Details::Marshal::assign(src_.getGuest(), m.get<2>().get<5>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<2>().get<6>()))
+	if (0 > Details::Marshal::assign(src_.getMac(), m.get<2>().get<6>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getScript(), m.get<2>().get<7>()))
+	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<2>().get<7>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getModel(), m.get<2>().get<8>()))
+	if (0 > Details::Marshal::assign(src_.getScript(), m.get<2>().get<8>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBackend(), m.get<2>().get<9>()))
+	if (0 > Details::Marshal::assign(src_.getModel(), m.get<2>().get<9>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<2>().get<10>()))
+	if (0 > Details::Marshal::assign(src_.getBackend(), m.get<2>().get<10>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<2>().get<11>()))
+	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<2>().get<11>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<2>().get<12>()))
+	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<2>().get<12>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getFilterref(), m.get<2>().get<13>()))
+	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<2>().get<13>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTune(), m.get<2>().get<14>()))
+	if (0 > Details::Marshal::assign(src_.getFilterref(), m.get<2>().get<14>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBoot(), m.get<2>().get<15>()))
+	if (0 > Details::Marshal::assign(src_.getTune(), m.get<2>().get<15>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getRom(), m.get<2>().get<16>()))
+	if (0 > Details::Marshal::assign(src_.getBoot(), m.get<2>().get<16>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<2>().get<17>()))
+	if (0 > Details::Marshal::assign(src_.getRom(), m.get<2>().get<17>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<2>().get<18>()))
+	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<2>().get<18>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<2>().get<19>()))
 		return -1;
 
 	return m.produce(dst_);

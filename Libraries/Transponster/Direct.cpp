@@ -419,6 +419,23 @@ void Builder::setBandwidth(const boost::optional<Libvirt::Domain::Xml::Bandwidth
 	}
 }
 
+void Builder::setDhcp(const boost::optional<QList<Libvirt::Domain::Xml::VzDhcp >>& value_)
+{
+	m_result.setConfigureWithDhcp(false);
+	m_result.setConfigureWithDhcpIPv6(false);
+
+	if (value_)
+	{
+		for (const auto& dhcp : value_.get())
+		{
+			if (!dhcp.getFamily().is_initialized() || dhcp.getFamily().get() == "ipv4")
+				m_result.setConfigureWithDhcp(true);
+			else if (dhcp.getFamily().get() == "ipv6")
+				m_result.setConfigureWithDhcpIPv6(true);
+		}
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct VirtualProfile
 
@@ -455,6 +472,7 @@ CVmGenericNetworkAdapter& Unit::prepare(const T& variant_) const
 	b.setIps(variant_.getIpList());
 	b.setConnected(variant_.getLink());
 	b.setBandwidth(variant_.getBandwidth());
+	b.setDhcp(variant_.getVzDhcpList());
 
 	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter(b.getResult()));
 	m_clip->getBootSlot(variant_.getBoot())

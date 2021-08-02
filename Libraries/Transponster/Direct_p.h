@@ -482,7 +482,8 @@ struct Builder
 	void setIps(const QList<Libvirt::Domain::Xml::Ip>& value_);
 	void setConnected(const boost::optional<Libvirt::Domain::Xml::EState >& value_);
 	void setBandwidth(const boost::optional<Libvirt::Domain::Xml::Bandwidth>& value_);
-	
+	void setDhcp(const boost::optional<QList<Libvirt::Domain::Xml::VzDhcp>>& value_);
+
 	const CVmGenericNetworkAdapter& getResult() const
 	{
 		return m_result;

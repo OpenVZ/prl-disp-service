@@ -2556,6 +2556,9 @@
         </element>
       </optional>
       <optional>
+        <ref name="vz-dhcp"/>
+      </optional>
+      <optional>
         <element name="target">
           <attribute name="dev">
             <ref name="deviceName"/>
@@ -5801,5 +5804,17 @@
         </attribute>
       </optional>
     </element>
+  </define>
+
+  <define name="vz-dhcp">
+    <zeroOrMore>
+      <element name="vz-dhcp">
+        <optional>
+          <attribute name="family">
+            <ref name="addr-family"/>
+          </attribute>
+        </optional>
+      </element>
+    </zeroOrMore>
   </define>
 </grammar>
