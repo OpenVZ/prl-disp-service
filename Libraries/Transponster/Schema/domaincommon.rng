@@ -53,6 +53,9 @@
         <ref name="features"/>
         <ref name="events"/>
         <optional>
+          <ref name="vz-dns"/>
+        </optional>
+        <optional>
           <ref name="pm"/>
         </optional>
         <optional>
@@ -5803,6 +5806,26 @@
           <ref name="virYesNo"/>
         </attribute>
       </optional>
+    </element>
+  </define>
+
+  <define name="vz-dns">
+    <element name="vz-dns">
+      <optional>
+        <element name="hostname">
+          <ref name="dnsName"/>
+        </element>
+      </optional>
+      <zeroOrMore>
+        <element name="server">
+          <ref name="ipAddr"/>
+        </element>
+      </zeroOrMore>
+      <zeroOrMore>
+        <element name="search">
+          <ref name="dnsName"/>
+        </element>
+      </zeroOrMore>
     </element>
   </define>
 

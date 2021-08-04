@@ -4070,6 +4070,69 @@ int Traits<Domain::Xml::Features>::generate(const Domain::Xml::Features& src_, Q
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct VzDns
+
+namespace Domain
+{
+namespace Xml
+{
+bool VzDns::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<VzDns, Name::Strict<5706> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool VzDns::save(QDomElement& dst_) const
+{
+	Element<VzDns, Name::Strict<5706> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool VzDns::save(QDomDocument& dst_) const
+{
+	Element<VzDns, Name::Strict<5706> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Domain
+
+int Traits<Domain::Xml::VzDns>::parse(Domain::Xml::VzDns& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setHostname(m.get<0>().getValue());
+		dst_.setServerList(m.get<1>().getValue());
+		dst_.setSearchList(m.get<2>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::VzDns>::generate(const Domain::Xml::VzDns& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getHostname(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getServerList(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getSearchList(), m.get<2>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct SuspendToMem
 
 namespace Domain
@@ -13901,14 +13964,15 @@ int Traits<Domain::Xml::Domain>::parse(Domain::Xml::Domain& dst_, QStack<QDomEle
 		dst_.setOnPoweroff(m.get<2>().get<21>().getValue());
 		dst_.setOnCrash(m.get<2>().get<22>().getValue());
 		dst_.setOnLockfailure(m.get<2>().get<23>().getValue());
-		dst_.setPm(m.get<2>().get<24>().getValue());
-		dst_.setPerf(m.get<2>().get<25>().getValue());
-		dst_.setIdmap(m.get<2>().get<26>().getValue());
-		dst_.setDevices(m.get<2>().get<27>().getValue());
-		dst_.setSeclabelList(m.get<2>().get<28>().getValue());
-		dst_.setCommandline(m.get<2>().get<29>().getValue());
-		dst_.setKeywrap(m.get<2>().get<30>().getValue());
-		dst_.setLaunchSecurity(m.get<2>().get<31>().getValue());
+		dst_.setVzDns(m.get<2>().get<24>().getValue());
+		dst_.setPm(m.get<2>().get<25>().getValue());
+		dst_.setPerf(m.get<2>().get<26>().getValue());
+		dst_.setIdmap(m.get<2>().get<27>().getValue());
+		dst_.setDevices(m.get<2>().get<28>().getValue());
+		dst_.setSeclabelList(m.get<2>().get<29>().getValue());
+		dst_.setCommandline(m.get<2>().get<30>().getValue());
+		dst_.setKeywrap(m.get<2>().get<31>().getValue());
+		dst_.setLaunchSecurity(m.get<2>().get<32>().getValue());
 	}
 	return output;
 }
@@ -13968,21 +14032,23 @@ int Traits<Domain::Xml::Domain>::generate(const Domain::Xml::Domain& src_, QDomE
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getOnLockfailure(), m.get<2>().get<23>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getPm(), m.get<2>().get<24>()))
+	if (0 > Details::Marshal::assign(src_.getVzDns(), m.get<2>().get<24>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getPerf(), m.get<2>().get<25>()))
+	if (0 > Details::Marshal::assign(src_.getPm(), m.get<2>().get<25>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getIdmap(), m.get<2>().get<26>()))
+	if (0 > Details::Marshal::assign(src_.getPerf(), m.get<2>().get<26>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getDevices(), m.get<2>().get<27>()))
+	if (0 > Details::Marshal::assign(src_.getIdmap(), m.get<2>().get<27>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getSeclabelList(), m.get<2>().get<28>()))
+	if (0 > Details::Marshal::assign(src_.getDevices(), m.get<2>().get<28>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getCommandline(), m.get<2>().get<29>()))
+	if (0 > Details::Marshal::assign(src_.getSeclabelList(), m.get<2>().get<29>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getKeywrap(), m.get<2>().get<30>()))
+	if (0 > Details::Marshal::assign(src_.getCommandline(), m.get<2>().get<30>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getLaunchSecurity(), m.get<2>().get<31>()))
+	if (0 > Details::Marshal::assign(src_.getKeywrap(), m.get<2>().get<31>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getLaunchSecurity(), m.get<2>().get<32>()))
 		return -1;
 
 	return m.produce(dst_);

@@ -1377,6 +1377,32 @@ PRL_RESULT Vm::setSettings()
 	u->setXhcEnabled(false);
 	s->setUsbController(u);
 
+	if(m_input->getVzDns())
+	{
+		Libvirt::Domain::Xml::VzDns dns = m_input->getVzDns().get();
+		CVmGlobalNetwork* glob_ptr = new CVmGlobalNetwork;
+
+		if (dns.getHostname())
+			glob_ptr->setHostName(dns.getHostname().get());
+
+		glob_ptr->setSearchDomains(dns.getSearchList());
+
+		QList<Libvirt::Domain::Xml::VIpAddr> serverList = dns.getServerList();
+		QList<QString> ipList;
+
+		for (const auto& ip : serverList)
+		{
+			QString temp_ip = Libvirt::Traits<Libvirt::Domain::Xml::VIpAddr>
+					::generate(ip);
+
+			ipList.push_back(temp_ip);
+		}
+
+		glob_ptr->setDnsIPAddresses(ipList);
+
+		s->setGlobalNetwork(glob_ptr);
+	}
+
 	m_result->setVmSettings(s);
 	return PRL_ERR_SUCCESS;
 }

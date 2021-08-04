@@ -5728,7 +5728,10 @@ static QString g_text[] = {
 	QString("pcie-pci-bridge"),
 	QString("pcie-to-pci-bridge"),
 	QString(""),
-	QString("vz-dhcp")
+	QString("vz-dhcp"),
+	QString(""),
+	QString("vz-dns"),
+	QString("search")
 };
 
 const QString& getText(quint32 index_)
