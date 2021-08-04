@@ -164,8 +164,12 @@ PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 			WRITE_TRACE(DBG_FATAL, "HDD list was changed since last base backup,"
 						" will to create full backup instead of incremental");
 		}
-		if (BACKUP_PROTO_V4 <= m_nRemoteVersion)
-			f = !m_bitmaps.contains(m_sBackupUuid);
+		if (BACKUP_PROTO_V4 <= m_nRemoteVersion) {
+			if ((f = !m_bitmaps.contains(m_sBackupUuid)))
+				WRITE_TRACE(DBG_FATAL, "Unable to find full backup uuid %s in the active bitmap"
+						", will create a full backup instead of incremental",
+						qPrintable(m_sBackupUuid));
+		}
 	} while(false);
 	if (f) {
 		m_nFlags &= ~PBT_INCREMENTAL;
