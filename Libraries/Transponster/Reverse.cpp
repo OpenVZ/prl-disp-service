@@ -2410,7 +2410,8 @@ PRL_RESULT Mixer::setResources(const VtInfo& info_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Fixer
 
-Fixer::Fixer(const CVmConfiguration& input_, char* xml_): Builder(input_)
+Fixer::Fixer(const CVmConfiguration& input_, char* xml_, bool inactive_):
+	Builder(input_), m_inactive(inactive_)
 {
 	shape(xml_, m_result);
 }
@@ -2482,7 +2483,8 @@ PRL_RESULT Fixer::setDevices()
 
 PRL_RESULT Fixer::setResources(const VtInfo&)
 {
-	m_result->setCurrentMemory(boost::none);
+	if (!m_inactive)
+		m_result->setCurrentMemory(boost::none);
 	return PRL_ERR_SUCCESS;
 }
 
