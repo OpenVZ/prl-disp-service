@@ -422,7 +422,8 @@ Prl::Expected<QString, Error::Simple> Config::fixup(const CVmConfiguration& valu
 	if (i.isFailed())
 		return i.error();
 
-	Transponster::Vm::Reverse::Fixer u(value_, read_());
+	Transponster::Vm::Reverse::Fixer u(value_, read_(),
+						m_flags & VIR_DOMAIN_XML_INACTIVE);
 	PRL_RESULT res = Transponster::Director::domain(u, i.value());
 	if (PRL_FAILED(res))
 		return Error::Simple(res);
