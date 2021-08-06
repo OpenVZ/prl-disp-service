@@ -248,7 +248,7 @@ struct Mixer: Builder
 
 struct Fixer: Builder
 {
-	Fixer(const CVmConfiguration& input_, char* xml_);
+	Fixer(const CVmConfiguration& input_, char* xml_, bool inactive_);
 
 	PRL_RESULT setBlank();
 	PRL_RESULT setIdentification();
@@ -258,6 +258,9 @@ struct Fixer: Builder
 	}
 	PRL_RESULT setResources(const VtInfo&);
 	PRL_RESULT setDevices();
+
+private:	
+	bool m_inactive;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
