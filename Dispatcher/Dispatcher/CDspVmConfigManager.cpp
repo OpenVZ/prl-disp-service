@@ -400,15 +400,6 @@ void RuntimeOptions::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 		(new CVmRunTimeOptions(old_.getVmSettings()->getVmRuntimeOptions()));
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// struct GlobalNetwork
-
-void GlobalNetwork::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
-{
-	new_.getVmSettings()->setGlobalNetwork(
-		(new CVmGlobalNetwork(old_.getVmSettings()->getGlobalNetwork())));
-}
-
 namespace Cpu
 {
 
@@ -498,7 +489,7 @@ void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 	QList<CVmGenericNetworkAdapter*>& l = new_.getVmHardwareList()->m_lstNetworkAdapters;
 	QList<CVmGenericNetworkAdapter*>& o = old_.getVmHardwareList()->m_lstNetworkAdapters;
 
-	foreach(CVmGenericNetworkAdapter* a, l)
+	for(CVmGenericNetworkAdapter* a : l)
 	{
 		CVmGenericNetworkAdapter* x = CXmlModelHelper::GetDeviceByIndex(o, a->getIndex());
 		if (NULL == x)
@@ -507,8 +498,6 @@ void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 		a->setAutoApply(x->isAutoApply());
 		a->setDefaultGateway(x->getDefaultGateway());
 		a->setDefaultGatewayIPv6(x->getDefaultGatewayIPv6());
-		a->setConfigureWithDhcp(x->isConfigureWithDhcp());
-		a->setConfigureWithDhcpIPv6(x->isConfigureWithDhcpIPv6());
 		a->setDnsIPAddresses(x->getDnsIPAddresses());
 		a->setSearchDomains(x->getSearchDomains());
 		a->setHostMacAddress(x->getHostMacAddress());

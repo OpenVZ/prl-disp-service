@@ -875,6 +875,29 @@ QString View::getHostMac() const
 	return normalizeMac(m_network.getHostMacAddress());
 }
 
+boost::optional<QList<Libvirt::Domain::Xml::VzDhcp > > View::getDhcpList() const
+{
+	QList<Libvirt::Domain::Xml::VzDhcp> dhcp;
+
+	if (m_network.isConfigureWithDhcp())
+	{
+		Libvirt::Domain::Xml::VzDhcp vzd;
+		vzd.setFamily(QString("ipv4"));
+
+		dhcp.push_back(vzd);
+	}
+
+	if (m_network.isConfigureWithDhcpIPv6())
+	{
+		Libvirt::Domain::Xml::VzDhcp vzd;
+		vzd.setFamily(QString("ipv6"));
+
+		dhcp.push_back(vzd);
+	}
+
+	return dhcp;
+}
+
 QString View::getFilterName() const
 {
 	return NetFilter(*(m_network.getPktFilter())).getFilterRef();
@@ -1037,6 +1060,7 @@ Libvirt::Domain::Xml::VInterface Adapter<N>::operator()
 	i.setFilterref(view.getFilterref());
 	i.setBandwidth(view.getBandwidth());
 	i.setBoot(boot_);
+	i.setVzDhcpList(view.getDhcpList());
 
 	access_type output;
 	output.setValue(i);
@@ -2070,6 +2094,9 @@ PRL_RESULT Builder::setSettings()
 	Libvirt::Domain::Xml::Blkiotune b;
 	b.setWeight(HostUtils::convertIoprioToWeight(r->getIoPriority()));
 	m_result->setBlkiotune(b);
+
+	setDns();
+
 	return PRL_ERR_SUCCESS;
 }
 
@@ -2204,6 +2231,33 @@ PRL_RESULT Builder::setIdentification()
 	m_result->setIds(x);
 
 	return PRL_ERR_SUCCESS;
+}
+
+void Builder::setDns()
+{
+	Libvirt::Domain::Xml::VzDns dns;
+
+	CVmSettings* s = m_input.getVmSettings();
+
+	if (NULL == s)
+		return;
+
+	QList<QString> dnsIps = s->getGlobalNetwork()->getDnsIPAddresses();
+
+	QList<Libvirt::Domain::Xml::VIpAddr> server_list;
+
+	for (const auto& str : dnsIps)
+	{
+		Libvirt::Domain::Xml::VIpAddr dst;
+
+		if (Libvirt::Traits<Libvirt::Domain::Xml::VIpAddr>::parse(str,dst))
+			server_list.push_back(dst);
+	}
+
+	dns.setServerList(server_list);
+	dns.setSearchList(s->getGlobalNetwork()->getSearchDomains());
+	dns.setHostname(s->getGlobalNetwork()->getHostName());
+	m_result->setVzDns(dns);
 }
 
 QString Builder::getResult()

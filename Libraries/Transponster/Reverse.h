@@ -203,6 +203,7 @@ struct Builder
 	PRL_RESULT setDevices();
 	PRL_RESULT setResources(const VtInfo& vt_);
 
+	void setDns();
 	QString getResult();
 
 protected:

@@ -662,6 +662,7 @@ struct View
 	boost::optional<Libvirt::Domain::Xml::VVirtualPortProfile> getVVirtualPortProfile() const;
 	QStringList getIpv4() const;
 	QStringList getIpv6() const;
+	boost::optional<QList<Libvirt::Domain::Xml::VzDhcp > > getDhcpList() const;
 
 private:
 	static QString normalizeMac(const QString &mac_);
