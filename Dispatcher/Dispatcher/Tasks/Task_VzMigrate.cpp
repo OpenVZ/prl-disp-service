@@ -303,9 +303,6 @@ void Task_VzMigrate::readOutFromVzMigrate()
 	ssize_t rc;
 
 	while (1) {
-		if (operationIsCancelled())
-			return;
-
 		errno = 0;
 		rc = ::read(m_nFd[PRL_CT_MIGRATE_OUT_FD], pBuffer + nSize, (size_t)(sizeof(pBuffer) - 1 - nSize));
 		if (rc > 0) {
@@ -327,6 +324,7 @@ void Task_VzMigrate::readOutFromVzMigrate()
 			return;
 		} else {
 			WRITE_TRACE(DBG_FATAL, "read() : %m");
+			Migrate::Ct::close_fd(m_nFd[PRL_CT_MIGRATE_OUT_FD]);
 			return;
 		}
 	}
@@ -525,25 +523,9 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 	/* will send all packages as response to pParentPackage package */
 	m_pPackage = IOPackage::createInstance(CtMigrateCmd, 2, pParentPackage, false);
 
-	int options = WNOHANG;
+	volatile bool fin = false;
+	int timeout = -1;
 	do {
-		{
-			QMutexLocker l(&m_terminateVzMigrateMutex);
-			if (m_pid <= 0)
-				return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-			pid = ::waitpid(m_pid, &status, options);
-			if (pid < 0) {
-				if (errno == EINTR)
-					continue;
-				m_pid = -1;
-				WRITE_TRACE(DBG_FATAL, "waitpid() : %m");
-				return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
-			} else if (pid == m_pid) {
-				m_pid = -1;
-				break;
-			}
-		}
-
 		int nFd = 0;
 		foreach (int fd, m_nFd) {
 			if (fd == -1)
@@ -554,12 +536,28 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 			nFd++;
 		}
 
-		if (nFd == 0) {
-			options = 0;
-			continue;
+		{
+			QMutexLocker l(&m_terminateVzMigrateMutex);
+			if (m_pid <= 0)
+				return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
+			pid = ::waitpid(m_pid, &status, nFd == 0 ? 0 : WNOHANG);
+			if (pid < 0) {
+				if (errno == EINTR)
+					continue;
+				m_pid = -1;
+				WRITE_TRACE(DBG_FATAL, "waitpid() : %m");
+				return PRL_ERR_CT_MIGRATE_INTERNAL_ERROR;
+			} else if (pid == m_pid) {
+				m_pid = -1;
+				if (nFd == 0)
+					break;
+				// flush the streams
+				fin = true;
+				timeout = 1000;
+			}
 		}
 
-		rc = ::poll(fds, nFd, -1);
+		rc = ::poll(fds, nFd, timeout);
 		if (rc == -1) {
 			/* will ignore poll() error and wait child exit */
 			continue;
@@ -590,7 +588,7 @@ PRL_RESULT Task_VzMigrate::execVzMigrate(
 				return nRetCode;
 			}
 		}
-	} while(true);
+	} while(!fin);
 
 	terminateHandleDispPackageTask();
 
