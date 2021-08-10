@@ -56,6 +56,10 @@ class CHwUsbDevice;
 
 namespace Transponster
 {
+
+bool getDistroStr(unsigned int osType, unsigned int osNumber, QString *libosinfoId);
+QDomElement generateLibosinfoXml(const QString& libosinfoId);
+
 namespace Vm
 {
 namespace Reverse
@@ -199,6 +203,7 @@ struct Builder
 	explicit Builder(const CVmConfiguration& input_);
 
 	PRL_RESULT setBlank();
+	void       setOsInfo(const CVmCommonOptions* opts);
 	PRL_RESULT setSettings();
 	PRL_RESULT setDevices();
 	PRL_RESULT setResources(const VtInfo& vt_);

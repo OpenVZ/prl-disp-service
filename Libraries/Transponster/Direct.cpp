@@ -32,6 +32,20 @@
 
 namespace Transponster
 {
+
+bool getDistroIDs(const QString libosinfoId, unsigned int *osType, unsigned int *osNumber)
+{
+	unsigned int i;
+	for (i = 0; i < sizeof(dist_map)/sizeof(*dist_map); ++i) {
+		if (libosinfoId.startsWith(dist_map[i].uri)) {
+			*osType = dist_map[i].type;
+			*osNumber = dist_map[i].ver;
+			return true;
+		}
+	}
+	return false;
+}
+
 namespace Direct
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -1344,6 +1358,43 @@ PRL_RESULT Vm::setIdentification()
 	return PRL_ERR_SUCCESS;
 }
 
+	// Translate libosinfo URI into osType and osVersion
+void Vm::setOsInfo(CVmCommonOptions* opts)
+{
+	// Skip if domain xml does not have metadata
+	if (!m_input->getMetadata())
+		return;
+
+	// Metadata is presented as a list of unrelated QDomElements, we need to iterate
+	QList<QDomElement > metadata = m_input->getMetadata().get();
+	for (QDomElement domEl : metadata) {
+		QDomNodeList searchRes = domEl.elementsByTagNameNS(LIBOSINFO_URI, "os");
+		if (searchRes.count() != 1)
+			continue;
+
+		QDomElement foundEl = searchRes.at(0).toElement();
+		if (!foundEl.hasAttribute("id")) {
+			WRITE_TRACE(DBG_DEBUG, "Found libosinfo:os without id attribute for VM %s",
+				qPrintable(Libvirt::Traits<Libvirt::Domain::Xml::VUUID>::generate(m_input->getIds().getUuid().get())));
+			continue;
+		}
+
+		QString osId = foundEl.attribute("id");
+		unsigned int osType, osVersion;
+		if (!getDistroIDs(osId, &osType, &osVersion)) {
+			// In case of unrecognizable OS lets set OTHER type
+			WRITE_TRACE(DBG_DEBUG, "Unable to convert libosinfo for VM %s URI: %s",
+				qPrintable(Libvirt::Traits<Libvirt::Domain::Xml::VUUID>::generate(m_input->getIds().getUuid().get())), qPrintable(osId));
+			osType = PVS_GUEST_TYPE_OTHER;
+			osVersion = PVS_GUEST_VER_OTH_OTHER;
+		}
+
+		opts->setOsType(osType);
+		opts->setOsVersion(osVersion);
+		return;
+	}
+}
+
 PRL_RESULT Vm::setSettings()
 {
 	if (m_result.isNull())
@@ -1354,6 +1405,8 @@ PRL_RESULT Vm::setSettings()
 	s->setVmCommonOptions(o);
 	if (m_input->getDescription())
 		o->setVmDescription(m_input->getDescription().get());
+
+	setOsInfo(o);
 
 	CVmRunTimeOptions* r(new CVmRunTimeOptions());
 	s->setVmRuntimeOptions(r);

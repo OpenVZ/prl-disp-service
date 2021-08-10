@@ -41,6 +41,55 @@
 #include <Libraries/PrlNetworking/PrlNetLibrary.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
 #include <Libraries/CpuFeatures/ChipsetHelper.h>
+#include <prlsdk/PrlOses.h>
+
+#define LIBOSINFO_URI "http://libosinfo.org/xmlns/libvirt/domain/1.0"
+
+struct OsDistribution {
+	QString uri;
+	unsigned int type;
+	unsigned int ver;
+};
+
+static OsDistribution dist_map[] = {
+	{"http://microsoft.com/win/xp", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_XP},
+	{"http://microsoft.com/win/vista", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_VISTA},
+	{"http://microsoft.com/win/8.1", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_WINDOWS8_1},
+	{"http://microsoft.com/win/8", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_WINDOWS8},
+	{"http://microsoft.com/win/7", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_WINDOWS7},
+	{"http://microsoft.com/win/2k8", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_2008},
+	{"http://microsoft.com/win/2k3", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_2003},
+	{"http://microsoft.com/win/2k22", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_2022},
+	{"http://microsoft.com/win/2k19", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_2019},
+	{"http://microsoft.com/win/2k16", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_2016},
+	{"http://microsoft.com/win/2k12", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_2012},
+	{"http://microsoft.com/win/2k", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_2K},
+	{"http://microsoft.com/win/10", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_WINDOWS10},
+	{"http://microsoft.com/win", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_OTHER},
+	{"http://virtuozzo.com/vzlinux/7", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_VZLINUX_7},
+	{"http://virtuozzo.com/vzlinux/8", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_VZLINUX_8},
+	{"http://virtuozzo.com/vzlinux", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_VZLINUX},
+	{"http://cloudlinux.com/cloudlinux/8", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_CLOUDLINUX},
+	{"http://cloudlinux.com/cloudlinux/7", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_CLOUDLINUX_7},
+	{"http://centos.org/centos/8", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_CENTOS_8},
+	{"http://centos.org/centos/7", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_CENTOS_7},
+	{"http://centos.org/centos", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_CENTOS},
+	{"http://ubuntu.com/ubuntu", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_UBUNTU},
+	{"http://debian.org/debian", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_DEBIAN},
+	{"http://redhat.com/rhel/8", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_REDHAT_8},
+	{"http://redhat.com/rhel/7", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_REDHAT_7},
+	{"http://redhat.com/rhel", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_REDHAT},
+	{"http://suse.com/sles/12", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_SLES12},
+	{"http://suse.com/sles/11", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_SLES11},
+	{"http://oracle.com/solaris", PVS_GUEST_TYPE_SOLARIS, PVS_GUEST_VER_SOL_OTHER},
+	{"http://opensuse.org/opensuse", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_OPENSUSE},
+	{"http://novell.com/netware", PVS_GUEST_TYPE_NETWARE, PVS_GUEST_VER_NET_OTHER},
+	{"http://microsoft.com/msdos", PVS_GUEST_TYPE_MSDOS, PVS_GUEST_VER_DOS_OTHER},
+	{"http://mandriva.com/mandriva", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_MANDRAKE},
+	{"http://mageia.org/mageia", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_MAGEIA},
+	{"http://freebsd.org/freebsd", PVS_GUEST_TYPE_FREEBSD, PVS_GUEST_VER_BSD_OTHER},
+	{"http://fedoraproject.org/fedora", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_FEDORA},
+};
 
 namespace Transponster
 {
