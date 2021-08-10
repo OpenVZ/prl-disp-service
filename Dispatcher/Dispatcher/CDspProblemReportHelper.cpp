@@ -978,6 +978,7 @@ void CDspProblemReportHelper::FillProblemReportData
 		// Collect rotated prl-disp and phaul logs
 		fullLogsFilter.append("prl-disp.log?*");
 		fullLogsFilter.append("phaul*.log?*");
+		fullLogsFilter.append("vzctl.log?*");
 
 		QDir varLogDir("/var/log/");
 		QFileInfoList fullLogsFileList = varLogDir.entryInfoList(fullLogsFilter,
