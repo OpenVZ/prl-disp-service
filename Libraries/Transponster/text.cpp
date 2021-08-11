@@ -5731,7 +5731,10 @@ static QString g_text[] = {
 	QString("vz-dhcp"),
 	QString(""),
 	QString("vz-dns"),
-	QString("search")
+	QString("search"),
+	QString(""),
+	QString("choice5707"),
+	QString("variant5707")
 };
 
 const QString& getText(quint32 index_)

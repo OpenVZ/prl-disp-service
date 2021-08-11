@@ -436,6 +436,27 @@ void Builder::setDhcp(const boost::optional<QList<Libvirt::Domain::Xml::VzDhcp >
 	}
 }
 
+void Builder::setGateway(const QList<Libvirt::Domain::Xml::Route> &value_)
+{
+	QList<QString> ips;
+
+	for(const auto& route :value_)
+	{
+		if (route.getFamily().is_initialized() && route.getFamily().get() == "ipv4")
+		{
+			QString gate4 = Libvirt::Traits<Libvirt::Domain::Xml::VIpAddr>::generate(route.getGateway());
+
+			m_result.setDefaultGateway(gate4);
+		}
+		else if (route.getFamily().is_initialized() && route.getFamily().get() == "ipv6")
+		{
+			QString gate6 = Libvirt::Traits<Libvirt::Domain::Xml::VIpAddr>::generate(route.getGateway());
+
+			m_result.setDefaultGatewayIPv6(gate6);
+		}
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct VirtualProfile
 
@@ -473,6 +494,7 @@ CVmGenericNetworkAdapter& Unit::prepare(const T& variant_) const
 	b.setConnected(variant_.getLink());
 	b.setBandwidth(variant_.getBandwidth());
 	b.setDhcp(variant_.getVzDhcpList());
+	b.setGateway(variant_.getRouteList());
 
 	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter(b.getResult()));
 	m_clip->getBootSlot(variant_.getBoot())
@@ -1763,14 +1785,14 @@ Vm::Vm(char* xml_)
 	if (snapshot.isNull())
 		return;
 
-	if (!snapshot->getChoice4011())
+	if (!snapshot->getChoice5120())
 		return;
 
-	if (1 == snapshot->getChoice4011()->which())
+	if (1 == snapshot->getChoice5120()->which())
 	{
 		const Libvirt::Domain::Xml::Domain& d =
-			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice4011::types, 1>::type>
-				(snapshot->getChoice4011().get()).getValue();
+			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice5120::types, 1>::type>
+				(snapshot->getChoice5120().get()).getValue();
 		m_input.reset(new Libvirt::Domain::Xml::Domain(d));
 	}
 }

@@ -496,8 +496,6 @@ void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 			continue;
 
 		a->setAutoApply(x->isAutoApply());
-		a->setDefaultGateway(x->getDefaultGateway());
-		a->setDefaultGatewayIPv6(x->getDefaultGatewayIPv6());
 		a->setDnsIPAddresses(x->getDnsIPAddresses());
 		a->setSearchDomains(x->getSearchDomains());
 		a->setHostMacAddress(x->getHostMacAddress());
