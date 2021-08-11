@@ -945,6 +945,7 @@ void CDspProblemReportHelper::FillProblemReportData
 	addSystemLog(cReport, QFileInfo("/var/log/cpufeatures.log"));
 	addSystemLog(cReport, QFileInfo("/var/log/ploop.log"));
 	addSystemLog(cReport, QFileInfo("/var/log/pcompact.log"));
+	addSystemLog(cReport, QFileInfo("/var/log/vzctl.log"));
 	if (nType == PVT_VM)
 	{
 		cReport.appendSystemLog(
