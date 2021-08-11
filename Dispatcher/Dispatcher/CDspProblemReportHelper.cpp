@@ -980,6 +980,7 @@ void CDspProblemReportHelper::FillProblemReportData
 		fullLogsFilter.append("prl-disp.log?*");
 		fullLogsFilter.append("phaul*.log?*");
 		fullLogsFilter.append("vzctl.log?*");
+		fullLogsFilter.append("ploop.log?*");
 
 		QDir varLogDir("/var/log/");
 		QFileInfoList fullLogsFileList = varLogDir.entryInfoList(fullLogsFilter,
