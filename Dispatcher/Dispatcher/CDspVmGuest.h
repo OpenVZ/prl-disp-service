@@ -64,15 +64,12 @@ public:
 	}
 
 	static void setToolsVersion(CVmConfiguration& c_, const QString& v_);
-	static void configureNetwork(CVmConfiguration& c_, QString& uuid,
-			QScopedPointer<Libvirt::Instrument::Agent::Vm::Exec::Request>& r);
 	static Libvirt::Result runProgram(
 		Libvirt::Instrument::Agent::Vm::Guest guest_,
 		const QString& uuid_,
 		const Libvirt::Instrument::Agent::Vm::Exec::Request&);
 
 	void setToolsVersionSlot(const QString v_);
-	void configureNetworkSlot(const QString v_);
 
 private:
 	Config::Edit::Atomic m_editor;

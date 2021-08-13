@@ -56,7 +56,6 @@ class Actor: public QObject
 
 public slots:
 	virtual void setToolsVersionSlot(const QString v_) = 0;
-	virtual void configureNetworkSlot(const QString v_) = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

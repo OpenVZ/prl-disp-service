@@ -54,36 +54,9 @@ void Actor::setToolsVersion(CVmConfiguration& c_, const QString& v_)
 		c_.getVmSettings()->getVmTools()->setAgentVersion(v_);
 }
 
-void Actor::configureNetwork(CVmConfiguration& c_, QString& uuid,
-	QScopedPointer<Libvirt::Instrument::Agent::Vm::Exec::Request>& r)
-{
-	Network::Difference::Vm v(c_);
-	int type = c_.getVmSettings()->getVmCommonOptions()->getOsType();
-	QStringList cmd = v.calculate(CVmConfiguration(), type);
-
-	WRITE_TRACE(DBG_INFO, "configureNetwork %s", qPrintable(cmd.join(" ")));
-	if (!cmd.isEmpty()) {
-		QString c = cmd.takeFirst();
-		r.reset(new Libvirt::Instrument::Agent::Vm::Exec::Request(c, cmd));
-		if (type == PVS_GUEST_TYPE_WINDOWS)
-			r->setRunInShell();
-		uuid = c_.getVmIdentification()->getVmUuid();
-	}
-}
-
 void Actor::setToolsVersionSlot(const QString v_)
 {
 	m_editor(boost::bind(&setToolsVersion, _1, boost::cref(v_)));
-}
-
-void Actor::configureNetworkSlot(const QString v_)
-{
-	Q_UNUSED(v_);
-	QString uuid;
-	QScopedPointer<Libvirt::Instrument::Agent::Vm::Exec::Request> req;
-	m_editor(boost::bind(&configureNetwork, _1, boost::ref(uuid), boost::ref(req)));
-	if (!req.isNull())
-		 runProgram(Libvirt::Kit.vms().at(uuid).getGuest(), uuid, *req);
 }
 
 Libvirt::Result Actor::runProgram(
@@ -240,13 +213,7 @@ void Connector::operator()()
 	a->setParent(p);
 	a->connect(p, SIGNAL(guestToolsStarted(const QString)),
 		SLOT(setToolsVersionSlot(const QString)), Qt::DirectConnection);
-	if (!m_network.isNull())
-	{
-		m_network->setParent(p);
-		m_network->connect(p, SIGNAL(guestToolsStarted(const QString)),
-			SLOT(configureNetworkSlot(const QString)), Qt::DirectConnection);
-		m_network.take();
-	}
+
 	// usually guest agent is ready within 2..3 seconds after event
 	// starting watcher earlier results in connect error logged
 	p->setRetries(m_retries);
