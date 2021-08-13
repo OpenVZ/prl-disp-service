@@ -48,6 +48,8 @@
 
 namespace Transponster
 {
+bool getDistroIDs(const QString libosinfoId, unsigned int *osType, unsigned int *osNumber);
+
 namespace Direct
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -128,6 +130,7 @@ struct Vm
 
 	PRL_RESULT setBlank();
 	PRL_RESULT setIdentification();
+	void       setOsInfo(CVmCommonOptions* opts);
 	PRL_RESULT setSettings();
 	PRL_RESULT setDevices();
 	PRL_RESULT setResources(const VtInfo& vt_);

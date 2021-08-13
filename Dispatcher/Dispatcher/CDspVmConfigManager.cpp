@@ -362,27 +362,6 @@ void State::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 } // namespace Patch
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct OsInfo
-
-void OsInfo::do_(CVmConfiguration& new_, const CVmConfiguration& old_) 
-{
-	// DEBUG LOGS FOR #PSBM-44712
-	if (old_.getVmSettings() != NULL && old_.getVmSettings()->getVmCommonOptions() != NULL)
-	{
-		WRITE_TRACE(DBG_DEBUG, "#PSBM-44712 OsType: %d, OsVersion: %d",
-			old_.getVmSettings()->getVmCommonOptions()->getOsType(),
-			old_.getVmSettings()->getVmCommonOptions()->getOsVersion());
-	}
-	else
-		WRITE_TRACE(DBG_DEBUG, "#PSBM-44712 NO OS INFO");
-
-	new_.getVmSettings()->getVmCommonOptions()->setOsType
-		(old_.getVmSettings()->getVmCommonOptions()->getOsType());
-	new_.getVmSettings()->getVmCommonOptions()->setOsVersion
-		(old_.getVmSettings()->getVmCommonOptions()->getOsVersion());
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct BackupDirectory
 
 void BackupDirectory::do_(CVmConfiguration& new_, const CVmConfiguration& old_)

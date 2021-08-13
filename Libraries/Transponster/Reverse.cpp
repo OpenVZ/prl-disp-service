@@ -37,6 +37,29 @@
 
 namespace Transponster
 {
+
+bool getDistroStr(unsigned int osType, unsigned int osNumber, QString *libosinfoId)
+{
+	unsigned int i;
+	for (i = 0; i < sizeof(dist_map)/sizeof(*dist_map); ++i) {
+		if (dist_map[i].type == osType && dist_map[i].ver == osNumber) {
+			*libosinfoId = dist_map[i].uri;
+			return true;
+		}
+	}
+	return false;
+}
+
+QDomElement generateLibosinfoXml(const QString& libosinfoId)
+{
+	QDomDocument doc;
+	QDomElement domParent = doc.createElementNS(LIBOSINFO_URI, "libosinfo:libosinfo");
+	QDomElement domChild = doc.createElement("libosinfo:os");
+	domChild.setAttribute("id", libosinfoId);
+	domParent.appendChild(domChild);
+	return domParent;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Resources
 
@@ -2125,6 +2148,41 @@ bool Builder::getStartupOptions(Libvirt::Domain::Xml::Os2& os_) const
 	return true;
 }
 
+void Builder::setOsInfo(const CVmCommonOptions* opts)
+{
+	unsigned int osType = opts->getOsType();
+	unsigned int osVersion = opts->getOsVersion();
+
+	// Skip translation if osType or osVersion are 0
+	if (osType == 0 || osVersion == 0 || IS_OTHER(osVersion))
+		return;
+
+	// If metadata is uninitialized we'll effectively skip the search
+	QList<QDomElement > metadata;
+	if (m_result->getMetadata())
+		metadata = m_result->getMetadata().get();
+
+	// Look for libosinfo:os in metadata
+	for (QDomElement domEl : metadata) {
+		QDomNodeList searchRes = domEl.elementsByTagNameNS(LIBOSINFO_URI, "os");
+		// Skip translation if libosinfo:os is already present in metadata
+		if (searchRes.count() > 0)
+			return;
+	}
+
+	// Lookup libosinfo URI in the os map
+	QString libosinfoId;
+	if (!getDistroStr(osType, osVersion, &libosinfoId)) {
+		WRITE_TRACE(DBG_FATAL, "Unable to detect libosinfo URI for osType %u osVersion %u for VM %s",
+			osType, osVersion, qPrintable(m_input.getVmIdentification()->getVmUuid()));
+		return;
+	}
+
+	// Generate QDomElement, append it to metadata, set metadata
+	metadata.append(generateLibosinfoXml(libosinfoId));
+	m_result->setMetadata(metadata);
+}
+
 PRL_RESULT Builder::setSettings()
 {
 	if (m_result.isNull())
@@ -2140,6 +2198,9 @@ PRL_RESULT Builder::setSettings()
 
 	QString d = o->getVmDescription();
 	m_result->setDescription(d);
+
+	// Translate osVersion into libosinfo URI
+	setOsInfo(o);
 
 	CVmRunTimeOptions* r(s->getVmRuntimeOptions());
 	if (NULL == r)
