@@ -2,13 +2,19 @@
  <rule direction="in" action="return" priority="0">
   <all state="ESTABLISHED,RELATED"/>
  </rule>
- <rule direction="in" action="drop" priority="1">
+ <rule direction="in" action="return" priority="1">
+  <all-ipv6 state="ESTABLISHED,RELATED"/>
+ </rule>
+ <rule direction="in" action="drop" priority="2">
   <tcp-ipv6 dstportstart="22" dstipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334" srcportend="2222" srcportstart="2222" dstportend="22" srcipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334"/>
  </rule>
- <rule direction="out" action="return" priority="2">
+ <rule direction="out" action="return" priority="3">
   <all state="ESTABLISHED,RELATED"/>
  </rule>
- <rule direction="out" action="drop" priority="3">
+ <rule direction="out" action="return" priority="4">
+  <all-ipv6 state="ESTABLISHED,RELATED"/>
+ </rule>
+ <rule direction="out" action="drop" priority="5">
   <tcp-ipv6 dstportstart="2323" dstipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334" srcportend="23" srcportstart="23" dstportend="2323" srcipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334"/>
  </rule>
 </filter>
