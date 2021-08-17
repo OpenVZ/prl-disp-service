@@ -2,10 +2,16 @@
  <rule direction="in" action="return" priority="0">
   <all state="ESTABLISHED,RELATED"/>
  </rule>
- <rule direction="out" action="return" priority="1">
+ <rule direction="in" action="return" priority="1">
+  <all-ipv6 state="ESTABLISHED,RELATED"/>
+ </rule>
+ <rule direction="out" action="return" priority="2">
   <all state="ESTABLISHED,RELATED"/>
  </rule>
- <rule direction="out" action="drop" priority="2">
+ <rule direction="out" action="return" priority="3">
+  <all-ipv6 state="ESTABLISHED,RELATED"/>
+ </rule>
+ <rule direction="out" action="drop" priority="4">
   <tcp dstipaddr="192.168.0.101" srcipaddr="192.168.0.100"/>
  </rule>
 </filter>

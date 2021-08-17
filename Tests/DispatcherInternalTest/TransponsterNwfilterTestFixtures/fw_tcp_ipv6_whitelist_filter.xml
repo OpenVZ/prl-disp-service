@@ -3,42 +3,54 @@
   <all state="ESTABLISHED,RELATED"/>
  </rule>
  <rule direction="in" action="return" priority="1">
-  <tcp-ipv6 dstipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334" srcipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334"/>
+  <all-ipv6 state="ESTABLISHED,RELATED"/>
  </rule>
  <rule direction="in" action="return" priority="2">
-  <icmpv6 type="133"/>
- </rule>
- <rule direction="in" action="return" priority="3">
-  <icmpv6 type="134"/>
- </rule>
- <rule direction="in" action="return" priority="4">
-  <icmpv6 type="135"/>
- </rule>
- <rule direction="in" action="return" priority="5">
-  <icmpv6 type="136"/>
- </rule>
- <rule direction="in" action="drop" priority="6">
-  <all/>
- </rule>
- <rule direction="out" action="return" priority="7">
-  <all state="ESTABLISHED,RELATED"/>
- </rule>
- <rule direction="out" action="return" priority="8">
   <tcp-ipv6 dstipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334" srcipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334"/>
  </rule>
- <rule direction="out" action="return" priority="9">
+ <rule direction="in" action="return" priority="3">
   <icmpv6 type="133"/>
  </rule>
- <rule direction="out" action="return" priority="10">
+ <rule direction="in" action="return" priority="4">
   <icmpv6 type="134"/>
  </rule>
- <rule direction="out" action="return" priority="11">
+ <rule direction="in" action="return" priority="5">
   <icmpv6 type="135"/>
  </rule>
- <rule direction="out" action="return" priority="12">
+ <rule direction="in" action="return" priority="6">
   <icmpv6 type="136"/>
  </rule>
- <rule direction="out" action="drop" priority="13">
+ <rule direction="in" action="drop" priority="7">
   <all/>
+ </rule>
+ <rule direction="in" action="drop" priority="8">
+  <all-ipv6/>
+ </rule>
+ <rule direction="out" action="return" priority="9">
+  <all state="ESTABLISHED,RELATED"/>
+ </rule>
+ <rule direction="out" action="return" priority="10">
+  <all-ipv6 state="ESTABLISHED,RELATED"/>
+ </rule>
+ <rule direction="out" action="return" priority="11">
+  <tcp-ipv6 dstipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334" srcipaddr="2001:0db8:85a3:0000:0000:8a2e:0370:7334"/>
+ </rule>
+ <rule direction="out" action="return" priority="12">
+  <icmpv6 type="133"/>
+ </rule>
+ <rule direction="out" action="return" priority="13">
+  <icmpv6 type="134"/>
+ </rule>
+ <rule direction="out" action="return" priority="14">
+  <icmpv6 type="135"/>
+ </rule>
+ <rule direction="out" action="return" priority="15">
+  <icmpv6 type="136"/>
+ </rule>
+ <rule direction="out" action="drop" priority="16">
+  <all/>
+ </rule>
+ <rule direction="out" action="drop" priority="17">
+  <all-ipv6/>
  </rule>
 </filter>

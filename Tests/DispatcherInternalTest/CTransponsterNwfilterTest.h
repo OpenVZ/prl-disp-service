@@ -41,6 +41,10 @@ class CTransponsterNwfilterTest : public QObject
 {
    Q_OBJECT
 
+	static const QString S_FIXTURE_PATH;
+	static const QString S_FILTER_PATH;
+	static const QString S_FILTERREF_PATH;
+	
 private slots:
 	void init();
 	void cleanup();

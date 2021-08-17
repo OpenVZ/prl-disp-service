@@ -39,12 +39,12 @@
 #include "Libraries/Transponster/Reverse.h"
 #include "Libraries/Transponster/Reverse_p.h"
 
+const QString CTransponsterNwfilterTest::S_FIXTURE_PATH = "./TransponsterNwfilterTestFixtures/%1.xml";
+const QString CTransponsterNwfilterTest::S_FILTER_PATH = "./TransponsterNwfilterTestFixtures/%1_filter.xml";
+const QString CTransponsterNwfilterTest::S_FILTERREF_PATH = "./TransponsterNwfilterTestFixtures/%1_filterref.xml";
+	
 void CTransponsterNwfilterTest::init()
 {
-	static const QString S_FIXTURE_PATH = "./TransponsterNwfilterTestFixtures/%1.xml";
-	static const QString S_FILTER_PATH = "./TransponsterNwfilterTestFixtures/%1_filter.xml";
-	static const QString S_FILTERREF_PATH = "./TransponsterNwfilterTestFixtures/%1_filterref.xml";
-	
 	m_FixtureNames.clear();
 	m_FixtureNames.append("fw_disabled");
 	m_FixtureNames.append("fw_disabled_with_pktfilters");
@@ -96,7 +96,15 @@ void CTransponsterNwfilterTest::TestFilter()
 void CTransponsterNwfilterTest::TestSingleFixtureFilter(uint id)
 {
 	Transponster::Filter::Reverse u(*m_pAdapters[id]);
-	QCOMPARE(u.getResult().toUtf8(), m_Filters[id]);
+	QString r = u.getResult();
+	if (!QTest::qCompare(r.toUtf8(), m_Filters[id],
+		QSTR2UTF8(S_FIXTURE_PATH.arg(m_FixtureNames[id])),
+		QSTR2UTF8(S_FILTER_PATH.arg(m_FixtureNames[id])),
+		__FILE__, __LINE__))
+	{
+		WRITE_TRACE(DBG_INFO, "result = %s", QSTR2UTF8(r));
+		WRITE_TRACE(DBG_INFO, "expected = %s", m_Filters[id].constData());
+	}
 }
 
 using Libvirt::Domain::Xml::FilterrefNodeAttributes;
