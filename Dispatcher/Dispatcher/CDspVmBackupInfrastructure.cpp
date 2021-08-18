@@ -1419,6 +1419,7 @@ bool Model::canFreeze() const
 			osVer != PVS_GUEST_VER_WIN_WINDOWS8 &&
 			osVer != PVS_GUEST_VER_WIN_WINDOWS8_1 &&
 			osVer != PVS_GUEST_VER_WIN_WINDOWS10 &&
+			osVer != PVS_GUEST_VER_WIN_WINDOWS11 &&
 			osVer != PVS_GUEST_VER_WIN_2012 &&
 			osVer != PVS_GUEST_VER_WIN_2016 &&
 			osVer != PVS_GUEST_VER_WIN_2019	&&
