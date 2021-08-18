@@ -65,6 +65,7 @@ static OsDistribution dist_map[] = {
 	{"http://microsoft.com/win/2k12", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_2012},
 	{"http://microsoft.com/win/2k", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_2K},
 	{"http://microsoft.com/win/10", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_WINDOWS10},
+	{"http://microsoft.com/win/11", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_WINDOWS11},
 	{"http://microsoft.com/win", PVS_GUEST_TYPE_WINDOWS, PVS_GUEST_VER_WIN_OTHER},
 	{"http://virtuozzo.com/vzlinux/7", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_VZLINUX_7},
 	{"http://virtuozzo.com/vzlinux/8", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_VZLINUX_8},
