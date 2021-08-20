@@ -46,6 +46,21 @@ bool getDistroIDs(const QString libosinfoId, unsigned int *osType, unsigned int 
 	return false;
 }
 
+boost::optional<QDomElement> getMetaNsElement(const QList<QDomElement>& metadata,
+							const QString& nsURI,
+							const QString& localName)
+{
+	for (const QDomElement& domEl : metadata)
+	{
+		QDomNodeList currentNodeList = domEl.elementsByTagNameNS(nsURI, localName);
+
+		if (!currentNodeList.isEmpty())
+			return currentNodeList.at(0).toElement();
+	}
+
+	return boost::none;
+}
+
 namespace Direct
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -161,6 +176,10 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 
 	d->setItemId(m_hardware->m_lstHardDisks.size());
 	d->setIndex(m_hardware->m_lstHardDisks.size());
+
+	if (disk_.getTarget().getRemovable().is_initialized())
+		d->setRemovable(disk_.getTarget().getRemovable().get() == Libvirt::Domain::Xml::EVirOnOffOn);
+
 	QString dev = disk_.getTarget().getDev();
 	d->setStackIndex(Virtuozzo::fromBase26(dev.remove(0, 2)));
 	boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> m = m_clip->getControllerModel(disk_);
@@ -1417,6 +1436,28 @@ void Vm::setOsInfo(CVmCommonOptions* opts)
 	}
 }
 
+void Vm::setAutoUpdate(CVmTools* t) noexcept
+{
+	if (!m_input->getMetadata().is_initialized())
+		return;
+
+	// Set default value
+	t->getAutoUpdate()->setEnabled(true);
+
+	// Considered metadata part
+	//<metadata>
+	//	...
+	//	<vz:vz xmlns:vz="http://www.virtuozzo.com/vhs">
+	//		<vz:guest_tools autoupdate="yes"/>
+	//	</vz:vz>
+	//</metadata>
+
+	boost::optional<QDomElement> foundEl = getMetaNsElement(m_input->getMetadata().get(), VHS_URI, "guest_tools");
+
+	if (foundEl.is_initialized() && foundEl.get().attribute("autoupdate") == "no")
+		t->getAutoUpdate()->setEnabled(false);
+}
+
 PRL_RESULT Vm::setSettings()
 {
 	if (m_result.isNull())
@@ -1429,6 +1470,11 @@ PRL_RESULT Vm::setSettings()
 		o->setVmDescription(m_input->getDescription().get());
 
 	setOsInfo(o);
+
+	CVmTools* t = new CVmTools();
+	s->setVmTools(t);
+
+	setAutoUpdate(t);
 
 	CVmRunTimeOptions* r(new CVmRunTimeOptions());
 	s->setVmRuntimeOptions(r);
