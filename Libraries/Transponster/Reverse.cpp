@@ -739,6 +739,19 @@ void Hdd::setDriver()
 	getResult().setDriver(d);
 }
 
+void Hdd::setTarget()
+{
+	Ordinary<CVmHardDisk>::setTarget();
+
+	if (m_hdd.isRemovable())
+	{
+		Libvirt::Domain::Xml::Target t;
+		t = getResult().getTarget();
+		t.setRemovable(Libvirt::Domain::Xml::EVirOnOffOn);
+		getResult().setTarget(t);
+	}
+}
+
 } // namespace Builder
 
 } // namespace Clustered
