@@ -587,6 +587,7 @@ struct Hdd: Ordinary<CVmHardDisk>
 	void setDisk();
 	void setBackingChain();
 	void setDriver();
+	void setTarget();
 
 private:
 	const CVmHardDisk& m_hdd;

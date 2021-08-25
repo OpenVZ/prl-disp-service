@@ -147,6 +147,10 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 
 	d->setItemId(m_hardware->m_lstHardDisks.size());
 	d->setIndex(m_hardware->m_lstHardDisks.size());
+
+	if (disk_.getTarget().getRemovable().is_initialized())
+		d->setRemovable(disk_.getTarget().getRemovable().get() == Libvirt::Domain::Xml::EVirOnOffOn);
+
 	QString dev = disk_.getTarget().getDev();
 	d->setStackIndex(Virtuozzo::fromBase26(dev.remove(0, 2)));
 	boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> m = m_clip->getControllerModel(disk_);
