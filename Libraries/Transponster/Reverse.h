@@ -57,9 +57,6 @@ class CHwUsbDevice;
 namespace Transponster
 {
 
-bool getDistroStr(unsigned int osType, unsigned int osNumber, QString *libosinfoId);
-QDomElement generateLibosinfoXml(const QString& libosinfoId);
-
 namespace Vm
 {
 namespace Reverse
@@ -204,6 +201,7 @@ struct Builder
 
 	PRL_RESULT setBlank();
 	void       setOsInfo(const CVmCommonOptions* opts);
+	void       setAutoUpdate();
 	PRL_RESULT setSettings();
 	PRL_RESULT setDevices();
 	PRL_RESULT setResources(const VtInfo& vt_);
@@ -322,6 +320,17 @@ private:
 };
 
 } // namespace Usb
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Metadata
+
+struct Metadata
+{
+	static bool getDistroStr(unsigned int osType, unsigned int osNumber, QString *libosinfoId);
+	static QDomElement generateLibosinfoXml(const QString& libosinfoId);
+	static QDomElement generateAutoUpdateChild(const QString& autoupdate_val);
+};
+
 } // namespace Reverse
 } // namespace Vm
 

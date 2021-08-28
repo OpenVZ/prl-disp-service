@@ -38,28 +38,6 @@
 namespace Transponster
 {
 
-bool getDistroStr(unsigned int osType, unsigned int osNumber, QString *libosinfoId)
-{
-	unsigned int i;
-	for (i = 0; i < sizeof(dist_map)/sizeof(*dist_map); ++i) {
-		if (dist_map[i].type == osType && dist_map[i].ver == osNumber) {
-			*libosinfoId = dist_map[i].uri;
-			return true;
-		}
-	}
-	return false;
-}
-
-QDomElement generateLibosinfoXml(const QString& libosinfoId)
-{
-	QDomDocument doc;
-	QDomElement domParent = doc.createElementNS(LIBOSINFO_URI, "libosinfo:libosinfo");
-	QDomElement domChild = doc.createElement("libosinfo:os");
-	domChild.setAttribute("id", libosinfoId);
-	domParent.appendChild(domChild);
-	return domParent;
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // struct Resources
 
@@ -2185,14 +2163,62 @@ void Builder::setOsInfo(const CVmCommonOptions* opts)
 
 	// Lookup libosinfo URI in the os map
 	QString libosinfoId;
-	if (!getDistroStr(osType, osVersion, &libosinfoId)) {
+	if (!Reverse::Metadata::getDistroStr(osType, osVersion, &libosinfoId)) {
 		WRITE_TRACE(DBG_FATAL, "Unable to detect libosinfo URI for osType %u osVersion %u for VM %s",
 			osType, osVersion, qPrintable(m_input.getVmIdentification()->getVmUuid()));
 		return;
 	}
 
 	// Generate QDomElement, append it to metadata, set metadata
-	metadata.append(generateLibosinfoXml(libosinfoId));
+	metadata.append(Reverse::Metadata::generateLibosinfoXml(libosinfoId));
+	m_result->setMetadata(metadata);
+}
+
+void Builder::setAutoUpdate()
+{
+	// Considered metadata part
+	//<metadata>
+	//	<vz:vz xmlns:vz="http://www.virtuozzo.com/vhs">
+	//		<vz:guest_tools autoupdate="yes"/>
+	//	</vz:vz>
+	//</metadata>
+
+	bool is_enabled =
+			m_input.getVmSettings()->getVmTools()->getAutoUpdate()->isEnabled();
+
+	QString currentAutoUpd = is_enabled ? "yes" : "no";
+
+	QList<QDomElement> metadata;
+
+	if (m_result->getMetadata().is_initialized())
+		metadata = m_result->getMetadata().get();
+
+	bool detected = false;
+
+	for (QDomElement& dom : metadata)
+	{
+		if (dom.tagName() == "vz" && dom.namespaceURI() == VHS_URI)
+		{
+			QDomNodeList foundList = dom.elementsByTagName("guest_tools");
+
+			if (!foundList.isEmpty())
+				foundList.at(0).toElement().setAttribute("autoupdate", currentAutoUpd);
+			else
+				dom.appendChild(Reverse::Metadata::generateAutoUpdateChild(currentAutoUpd));
+
+			detected = true;
+			break;
+		}
+	}
+
+	if (!detected)
+	{
+		QDomElement domParent = QDomDocument().createElementNS(VHS_URI, "vz:vz");
+		domParent.appendChild(Reverse::Metadata::generateAutoUpdateChild(currentAutoUpd));
+
+		metadata.append(domParent);
+	}
+
 	m_result->setMetadata(metadata);
 }
 
@@ -2214,6 +2240,7 @@ PRL_RESULT Builder::setSettings()
 
 	// Translate osVersion into libosinfo URI
 	setOsInfo(o);
+	setAutoUpdate();
 
 	CVmRunTimeOptions* r(s->getVmRuntimeOptions());
 	if (NULL == r)
@@ -4011,4 +4038,37 @@ Reverse::preparePortAttributes(uint local_port, uint remote_port,
 	return port_attributes;
 }
 } // namespace Filter
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Metadata
+bool Vm::Reverse::Metadata::getDistroStr(unsigned int osType, unsigned int osNumber, QString *libosinfoId)
+{
+	unsigned int i;
+	for (i = 0; i < sizeof(dist_map)/sizeof(*dist_map); ++i) {
+		if (dist_map[i].type == osType && dist_map[i].ver == osNumber) {
+			*libosinfoId = dist_map[i].uri;
+			return true;
+		}
+	}
+	return false;
+}
+
+QDomElement Vm::Reverse::Metadata::generateLibosinfoXml(const QString& libosinfoId)
+{
+	QDomDocument doc;
+	QDomElement domParent = doc.createElementNS(LIBOSINFO_URI, "libosinfo:libosinfo");
+	QDomElement domChild = doc.createElement("libosinfo:os");
+	domChild.setAttribute("id", libosinfoId);
+	domParent.appendChild(domChild);
+	return domParent;
+}
+
+QDomElement Vm::Reverse::Metadata::generateAutoUpdateChild(const QString &autoupdate_val)
+{
+	QDomDocument doc;
+	QDomElement domChild = doc.createElementNS(VHS_URI,  "vz:guest_tools");
+	domChild.setAttribute("autoupdate", autoupdate_val);
+	return domChild;
+}
+
 } // namespace Transponster

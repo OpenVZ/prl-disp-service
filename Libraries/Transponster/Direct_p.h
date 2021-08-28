@@ -45,6 +45,8 @@
 
 #define LIBOSINFO_URI "http://libosinfo.org/xmlns/libvirt/domain/1.0"
 
+const QString VHS_URI = "http://www.virtuozzo.com/vhs";
+
 struct OsDistribution {
 	QString uri;
 	unsigned int type;

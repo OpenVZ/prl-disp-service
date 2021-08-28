@@ -131,6 +131,7 @@ struct Vm
 	PRL_RESULT setBlank();
 	PRL_RESULT setIdentification();
 	void       setOsInfo(CVmCommonOptions* opts);
+	void       setAutoUpdate(CVmTools* t) noexcept;
 	PRL_RESULT setSettings();
 	PRL_RESULT setDevices();
 	PRL_RESULT setResources(const VtInfo& vt_);
