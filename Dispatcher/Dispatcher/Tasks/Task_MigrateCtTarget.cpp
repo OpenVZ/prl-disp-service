@@ -165,6 +165,8 @@ PRL_RESULT Task_MigrateCtTarget::prepareTask()
 		m_sCtUuid = Uuid::createUuid().toString();
 		if (Uuid::isUuid(m_sCtOrigId) && m_sCtNewId.isEmpty())
 			m_sCtNewId = m_sCtUuid;
+		else if (!m_sCtNewId.isEmpty() && Uuid::isUuid(m_sCtNewId))
+			m_sCtUuid = Uuid(m_sCtNewId).toString();
 	} else
 		m_sCtUuid = m_sCtOrigUuid;
 	m_sSrcCtUuid = m_cVmConfig.getVmIdentification()->getVmUuid();
