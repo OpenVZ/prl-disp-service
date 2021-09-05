@@ -21,5 +21,9 @@ LimitNOFILE=102400
 OOMScoreAdjust=-500
 StandardError=null
 
+#Limit page cache to 512MB
+ExecStartPre=-/usr/bin/cgcreate -g memory:/system.slice/prl-disp.service
+ExecStartPre=/usr/bin/cgset -r memory.cache.limit_in_bytes=536870912 "system.slice/prl-disp.service"
+
 [Install]
 WantedBy=multi-user.target
