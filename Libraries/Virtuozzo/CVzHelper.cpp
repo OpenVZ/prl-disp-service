@@ -3338,7 +3338,7 @@ int CVzHelper::get_env_disk_stat(const SmartPtr<CVmConfiguration>& config,
 		f.total = stats.total << 10; // Kb to bytes
 		f.free = stats.free << 10; // Kb to bytes
 		f.index = hdd.getIndex();
-		f.device = QString(stats.device);
+		f.device = QString(stats.part);
 		f.type = QString("ext4"); // fixme: hardcoded
 		f.mountpoint = hdd.getMountPoint();
 		f_tmp.append(f);
