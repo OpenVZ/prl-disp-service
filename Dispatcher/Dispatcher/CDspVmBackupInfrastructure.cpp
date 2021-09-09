@@ -1544,6 +1544,10 @@ componentList_type Model::getVmTibs() const
 	foreach (CVmHardDisk* h, m_object.getImages())
 	{
 		QString n = h->getSystemName();
+		// PSBM-133444
+		// Remove trailing slashes from path
+		while (!n.isEmpty() && n.endsWith('/'))
+		    n.chop(1);
 		QFileInfo t(m_store, getTibName(n, w));
 		output << qMakePair(Object::Component(*h, n, m_home),
 			QUrl::fromLocalFile(t.absoluteFilePath()));
