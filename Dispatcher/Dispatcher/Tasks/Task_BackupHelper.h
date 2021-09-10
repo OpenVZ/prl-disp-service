@@ -314,6 +314,11 @@ struct Task_BackupMixin: Task_DispToDispConnHelper, protected Backup::AClient, T
 		return *m_task;
 	}
 
+	const QString& getVmHomePath() const
+	{
+		return m_sVmHomePath;
+	}
+
 	QString patch(QUrl url_) const;
 
 	Chain * prepareABackupChain(const QStringList& args_, const QString &sNotificationVmUuid,

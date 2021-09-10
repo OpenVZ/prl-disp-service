@@ -53,6 +53,7 @@
 #include "prlcommon/HostUtils/HostUtils.h"
 #include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/PrlCommonUtilsBase/CRsaHelper.hpp>
+#include <prlsdk/PrlEnums.h>
 #include "CDspVmStateSender.h"
 #include "CDspVmManager_p.h"
 #include "CDspVzHelper.h"
@@ -530,10 +531,26 @@ QStringList Vm::craftProlog(Task_BackupMixin& context_)
 {
 	QStringList a;
 	a << QString((context_.getFlags() & PBT_INCREMENTAL) ? "append" : "create");
-	QString d = CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()->
-		getBackupSourcePreferences()->getTmpDir();
-	if (!(context_.getFlags() & PBT_DIRECT_DELTA) && !d.isEmpty())
-		a << "--cached" << "--backup-dir" << d;
+
+	CDispBackupSourcePreferences* BackupPref =
+			CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()->
+		getBackupSourcePreferences();
+
+	if (BackupPref->getBackupMode() != nullptr)
+	{
+		PRL_VM_BACKUP_MODE current_mode = BackupPref->getBackupMode()->getMode();
+
+		if (!(context_.getFlags() & PBT_DIRECT_DELTA) && current_mode == PBM_PUSH_REVERSED_DELTA)
+		{
+			QString d = BackupPref->getTmpDir();
+
+			if (d.isEmpty())
+				d = context_.getVmHomePath();
+
+			a << "--cached" << "--backup-dir" << d;
+		}
+	}
+
 	return a << "-n" << context_.getProduct()->getObject()
 		.getConfig()->getVmIdentification()->getVmName();
 }
