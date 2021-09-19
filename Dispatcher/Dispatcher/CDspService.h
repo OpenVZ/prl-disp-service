@@ -350,6 +350,7 @@ private:
 	bool initHostInfo ();
 	bool setupDispEnv ();
 	bool initDispConfig ();
+	void initBackupMode();
 	bool initVmDirCatalogue ();
 	bool checkConfigsIntegrity ();
 	void initHypervisor();

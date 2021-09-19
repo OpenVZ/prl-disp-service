@@ -1659,6 +1659,8 @@ bool CDspService::initAllConfigs()
 		if( ! initDispConfig() )
 			throw 0;
 
+		initBackupMode();
+
 		if ( ! initVmDirCatalogue() )
 			throw 0;
 
@@ -1966,6 +1968,24 @@ bool CDspService::isDispMajorVersionChanged()
 	PRL_ASSERT( currVersion.size() >= 2 );
 	return (oldVersion.size() < 2) ||
 			(oldVersion[0] != currVersion[0]) || (oldVersion[1] != currVersion[1]);
+}
+
+void CDspService::initBackupMode()
+{
+	CDispBackupSourcePreferences* backupPref = getDispConfigGuard().getDispCommonPrefs()
+			->getBackupSourcePreferences();
+
+	if (backupPref->getBackupMode() == nullptr)
+	{
+		CDispBackupMode* modeParamPtr = new CDispBackupMode;
+
+		if (backupPref->getTmpDir().isEmpty())
+			modeParamPtr->setMode(PBM_PUSH);
+		else
+			modeParamPtr->setMode(PBM_PUSH_REVERSED_DELTA);
+
+		backupPref->setBackupMode(modeParamPtr);
+	}
 }
 
 bool CDspService::initVmDirCatalogue ()
