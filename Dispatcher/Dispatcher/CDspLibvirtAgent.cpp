@@ -1124,7 +1124,7 @@ Guest::execute(const QString& cmd, bool isHmp)
 	if (0 != virDomainQemuMonitorCommand(m_domain.data(),
 			cmd.toUtf8().constData(),
 			&s,
-			isHmp ? VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP : 0))
+			isHmp ? (unsigned int)VIR_DOMAIN_QEMU_MONITOR_COMMAND_HMP : 0))
 	{
 		return Failure(PRL_ERR_FAILURE);
 	}
