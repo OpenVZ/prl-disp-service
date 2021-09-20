@@ -56,6 +56,8 @@
 
 #include <QUrl>
 
+#include <fcntl.h>
+
 
 using namespace Virtuozzo;
 
@@ -186,6 +188,23 @@ PRL_RESULT Task_UpdateCommonPrefs::run_body()
 			CDspService::instance()->getVmManager().changeLogLevelForActiveVMs( getClient(), bVerboseLogEnabled );
 		}
 
+		if (m_pNewCommonPrefs->getBackupSourcePreferences()->getTmpDir() != m_pOldCommonPrefs->getBackupSourcePreferences()->getTmpDir())
+		{
+			int fd = open(m_pNewCommonPrefs->getBackupSourcePreferences()->getTmpDir().toStdString().c_str(),
+						  O_TMPFILE | O_RDWR | O_EXCL | O_DIRECT);
+
+			if (fd == -1)
+			{
+				if (errno == EACCES)
+					throw PRL_ERR_DIRECTORY_ACCESS_DENIED;
+				else if (errno == ENOENT)
+					throw PRL_ERR_DIRECTORY_DOES_NOT_EXIST;
+				else
+					throw PRL_ERR_BACKUP_O_DIRECT_CANNOT_BE_ENABLED_IN_DIR;
+			}
+
+			close(fd);
+		}
 
 		ret = saveCommonPrefs();
 		if (PRL_FAILED(ret))
