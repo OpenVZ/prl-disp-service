@@ -169,7 +169,7 @@ struct Flavor<CVmHardDisk>
 	}
 	static const char* getProductTemplate()
 	{
-		return "Vz HARDDISK%1";
+		return "Virtuozzo HDD%1";
 	}
 	static bool isRaw(const CVmHardDisk *disk_)
 	{
@@ -222,7 +222,7 @@ struct Flavor<CVmOpticalDisk>
 	}
 	static const char* getProductTemplate()
 	{
-		return "Vz CD-ROM%1";
+		return "Virtuozzo CDROM%1";
 	}
 	static bool isRaw(const CVmOpticalDisk *)
 	{
@@ -268,7 +268,7 @@ struct Flavor<CVmFloppyDisk>
 	}
 	static const char* getProductTemplate()
 	{
-		return "Vz FLOPPY%1";
+		return "Virtuozzo FDD%1";
 	}
 	static bool isRaw(const CVmFloppyDisk*)
 	{
