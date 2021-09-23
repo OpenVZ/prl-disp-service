@@ -191,7 +191,7 @@ PRL_RESULT Task_UpdateCommonPrefs::run_body()
 		if (m_pNewCommonPrefs->getBackupSourcePreferences()->getTmpDir() != m_pOldCommonPrefs->getBackupSourcePreferences()->getTmpDir())
 		{
 			int fd = open(m_pNewCommonPrefs->getBackupSourcePreferences()->getTmpDir().toStdString().c_str(),
-						  O_TMPFILE | O_RDWR | O_EXCL | O_DIRECT);
+						  O_TMPFILE | O_RDWR | O_EXCL | O_DIRECT, S_IRUSR | S_IWUSR);
 
 			if (fd == -1)
 			{
