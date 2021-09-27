@@ -1145,7 +1145,7 @@ PRL_RESULT CVmFileListCopyTarget::RecvFileRequest(const SmartPtr<IOPackage> &p)
 		m_Event.setEventCode(PRL_ERR_FILECOPY_CANT_OPEN_FILE);
 		m_Event.addEventParameter(new CVmEventParameter(
 			PVE::String,
-			path,
+			path + ", " + file->error(),
 			EVT_PARAM_MESSAGE_PARAM_0));
 		SendError(p);
 
