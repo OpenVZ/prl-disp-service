@@ -1436,6 +1436,10 @@ PRL_RESULT Task_EditVm::editVm()
 					CVmHardware* pHardware_old = pVmConfigOld->getVmHardwareList();
 					CVmHardware* pHardware_new = pVmConfigNew->getVmHardwareList();
 
+					// PSBM-128392
+					if (pHardware_old->getCpu()->getSockets() != pHardware_new->getCpu()->getSockets())
+						flgExclusiveHardwareChangedWasRegistered = true;
+
 					for (uint nType = PDE_GENERIC_DEVICE; nType < PDE_MAX; nType++ )
 					{
 						// bug #PSBM-5339
