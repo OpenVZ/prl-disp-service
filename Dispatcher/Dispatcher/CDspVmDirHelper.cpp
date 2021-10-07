@@ -1022,7 +1022,7 @@ SmartPtr<CVmConfiguration> CDspVmDirHelper::CreateVmConfigFromDirItem(
 	pConfig->getVmIdentification()->setServerUuid(sServerUuid);
 	pConfig->getVmIdentification()->setHomePath(pDirItem->getVmHome());
 	pConfig->getVmIdentification()->setCtId(pDirItem->getVmType() == PVT_CT ?
-			pDirItem->getCtId(),
+			pDirItem->getCtId() :
 			QString::number(Uuid::toVzid(pDirItem->getVmUuid())));
 	pConfig->setVmType(pDirItem->getVmType());
 	/* FIXME wrong value is possible:
