@@ -92,6 +92,7 @@ static OsDistribution dist_map[] = {
 	{"http://mageia.org/mageia", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_MAGEIA},
 	{"http://freebsd.org/freebsd", PVS_GUEST_TYPE_FREEBSD, PVS_GUEST_VER_BSD_OTHER},
 	{"http://fedoraproject.org/fedora", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_FEDORA},
+	{"http://libosinfo.org/linux/2016", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_OTHER}
 };
 
 namespace Transponster
