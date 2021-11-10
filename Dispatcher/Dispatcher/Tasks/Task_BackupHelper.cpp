@@ -181,11 +181,11 @@ void Unit::reactFinish(int code_, QProcess::ExitStatus status_)
 	QString x;
 	QMutexLocker g(&m_mutex);
 	std::swap(x, m_program);
+	QString y = m_driver->readAllStandardError();
 	if (QProcess::CrashExit == status_)
-		WRITE_TRACE(DBG_FATAL, "%s have crashed", QSTR2UTF8(x));
+		WRITE_TRACE(DBG_FATAL, "%s have crashed, error: %s ", qPrintable(x), qPrintable(y));
 	else if (0 != code_)
 	{
-		QString y = m_driver->readAllStandardError();
 		WRITE_TRACE(DBG_FATAL, "%s exited with code %d, error: %s", QSTR2UTF8(x),
 			code_, QSTR2UTF8(y));
 		if (!m_callback.empty())
