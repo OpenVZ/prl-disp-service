@@ -53,6 +53,7 @@
 #include <prlxmlmodel/BackupActivity/SnapshotComponent.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 #include <prlxmlmodel/HostHardwareInfo/CHwGenericPciDevice.h>
+#include <libvirt/libvirt.h>
 
 struct _virDomain;
 typedef struct _virDomain virDomain;
@@ -748,6 +749,9 @@ struct Editor: private Limb::Abstract
 	Result setNodeMask(const QString& mask_);
 	Result setMemory(quint64 memory_);
 	Result setMemGuarantee(const CVmMemory& memory_);
+	Result setDns(const QList<QString>& dnsList);
+	Result setSearchDomains(const QList<QString> &searchDomainList);
+	Result setHostname(const QString& q);
 
 	template<class T>
 	Result plug(const T& device_);
@@ -764,6 +768,10 @@ private:
 	Result setBlockIoTune(const CVmHardDisk& disk_, const char* param_, quint32 limit_);
 
 	quint32 m_flags;
+
+	Result fillNetworkTypedParam(virTypedParameterPtr& typedParam, int& nparams,
+								 int& maxparams, const QList<QString>& paramList,
+								 const std::string& param_name);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

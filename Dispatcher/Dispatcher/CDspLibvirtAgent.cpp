@@ -1766,6 +1766,103 @@ Result Editor::setCpuUnits(quint32 units_)
 	return r;
 }
 
+Result Editor::fillNetworkTypedParam(virTypedParameterPtr& typedParam, int& nparams,
+							 int& maxparams, const QList<QString>& paramList,
+							 const std::string &param_name)
+{
+	for (const auto& p : paramList)
+	{
+		auto lambda_fill_dns = [&p, &nparams, &maxparams, param_name](virTypedParameterPtr* typedParamPtr)
+		{
+			return virTypedParamsAddString(typedParamPtr, &nparams, &maxparams,
+										   param_name.c_str(), p.toStdString().c_str());
+		};
+
+		if (do_(&typedParam, lambda_fill_dns).isFailed())
+		{
+			WRITE_TRACE(DBG_FATAL, "virTypedParamsAddString finished with error when setting parameter=%s", p.toStdString().c_str() );
+			return Failure{PRL_ERR_FAILURE};
+		}
+	}
+
+
+	return Result{};
+}
+
+
+Result Editor::setDns(const QList<QString>& dnsList)
+{
+	virTypedParameterPtr typedParam(nullptr);
+
+	int nparams = 0;
+	int maxparams = 0;
+
+	Result res = fillNetworkTypedParam(typedParam, nparams, maxparams,
+									   dnsList, VIR_DOMAIN_GUEST_NET_DNS_SERVER);
+
+	if (res.isFailed())
+		return res;
+
+	auto lambda_set = [&typedParam, nparams](virDomainPtr domain)
+	{
+		return virDomainSetGuestNetworkParametersVz(domain, typedParam, nparams, VIR_DOMAIN_AFFECT_CURRENT);;
+	};
+
+	Result r(do_(getDomain().data(), lambda_set));
+
+	virTypedParamsFree(typedParam,nparams);
+
+	return r;
+}
+
+Result Editor::setSearchDomains(const QList<QString>& searchDomainList)
+{
+	virTypedParameterPtr typedParam(nullptr);
+
+	int nparams = 0;
+	int maxparams = 0;
+
+	Result res = fillNetworkTypedParam(typedParam, nparams, maxparams,
+									   searchDomainList,VIR_DOMAIN_GUEST_NET_SEARCH_DOMAIN);
+	if (res.isFailed())
+		return res;
+
+	auto lambda_set = [&typedParam, nparams](virDomainPtr domain)
+	{
+		return virDomainSetGuestNetworkParametersVz(domain, typedParam, nparams, VIR_DOMAIN_AFFECT_CURRENT);;
+	};
+
+	Result r(do_(getDomain().data(), lambda_set));
+
+	virTypedParamsFree(typedParam,nparams);
+
+	return r;
+}
+
+Result Editor::setHostname(const QString &hostname)
+{
+	virTypedParameterPtr typedParam(nullptr);
+
+	int nparams = 0;
+	int maxparams = 0;
+
+	Result res = fillNetworkTypedParam(typedParam, nparams, maxparams,
+										{hostname}, VIR_DOMAIN_GUEST_NET_HOSTNAME);
+	if (res.isFailed())
+		return res;
+
+	auto lambda_set = [&typedParam, nparams](virDomainPtr domain)
+	{
+		return virDomainSetGuestNetworkParametersVz(domain, typedParam, nparams, VIR_DOMAIN_AFFECT_CURRENT);
+	};
+
+	Result r(do_(getDomain().data(), lambda_set));
+
+	virTypedParamsFree(typedParam,nparams);
+
+	return r;
+}
+
 Result Editor::setCpuCount(quint32 units_)
 {
 	return do_(getDomain().data(), boost::bind(&virDomainSetVcpus, _1, units_));

@@ -555,6 +555,19 @@ struct Factory
 
 } // namespace Network
 
+
+namespace NetworkParams
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+
+struct Factory
+{
+	Action* operator()(const Request& input_) const;
+};
+
+} // namespace NetworkParams
+
 namespace Cpu
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -682,7 +695,7 @@ typedef boost::mpl::vector<ChangeableMedia<CVmOpticalDisk>, ChangeableMedia<CVmF
 		Adapter,
 		Hotplug::Factory<CVmSerialPort>, Hotplug::Factory<CVmHardDisk>,
 		Hotplug::Factory<CVmGenericNetworkAdapter>, Disk, Blkiotune,
-		Memory, Cpu::Factory> probeList_type;
+		Memory, Cpu::Factory, NetworkParams::Factory> probeList_type;
 
 struct Driver: Gear<Driver, probeList_type>
 {

@@ -3200,6 +3200,64 @@ Vm::Action* Factory::craftLimit(const Request& input_) const
 
 } // namespace Cpu
 
+namespace NetworkParams
+{
+///////////////////////////////////////////////////////////////////////////////
+// struct Factory
+Vm::Action* Factory::operator()(const Request& input_) const
+{
+	Action* output = nullptr;
+
+	CVmGlobalNetwork* oldNet = input_.getStart().getVmSettings()->getGlobalNetwork();
+
+	CVmGlobalNetwork* newNet = input_.getFinal().getVmSettings()->getGlobalNetwork();
+
+	Forge f(input_);
+
+	if (oldNet->getDnsIPAddresses() != newNet->getDnsIPAddresses())
+	{
+		QList<QString> dnsList = newNet->getDnsIPAddresses();
+
+		output = f.craftRuntime([dnsList](Libvirt::Instrument::Agent::Vm::Editor& e)
+		{
+		  return e.setDns(dnsList);
+		});
+	}
+
+	if (oldNet->getSearchDomains() != newNet->getSearchDomains())
+	{
+		QList<QString> searchList = newNet->getSearchDomains();
+
+		// Do not ignore searchdomain value, send it through #PSBM-122697
+		if (searchList.isEmpty())
+			searchList.append("");
+
+		Action* a(f.craftRuntime([searchList](Libvirt::Instrument::Agent::Vm::Editor&e)
+		{
+					  return e.setSearchDomains(searchList);
+		}));
+
+		a->setNext(output);
+		output = a;
+	}
+
+	if (oldNet->getHostName() != newNet->getHostName())
+	{
+		QString hostname(newNet->getHostName());
+
+		Action* a(f.craftRuntime([hostname](Libvirt::Instrument::Agent::Vm::Editor&e)
+		{
+			return e.setHostname(hostname);
+		}));
+
+		a->setNext(output);
+		output = a;
+	}
+
+	return output;
+}
+} // namespace NetworkParams
+
 namespace Hotplug
 {
 namespace Traits
