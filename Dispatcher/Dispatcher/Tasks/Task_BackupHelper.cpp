@@ -1237,8 +1237,10 @@ SmartPtr<IOPackage> Client::doPull(SmartPtr<char> buffer_, qint64 cb_)
 	// read block size.
 	qint32 nSize = 0;
 	PRL_RESULT e = m_process->read((char *)&nSize, sizeof(nSize));
-	if (PRL_FAILED(e))
+	if (PRL_FAILED(e)) {
+		WRITE_TRACE(DBG_FATAL, "Read block size failed 0x%08x", e);
 		return SmartPtr<IOPackage>();
+	}
 	// read data.
 	if (cb_ < nSize)
 	{
@@ -1246,8 +1248,10 @@ SmartPtr<IOPackage> Client::doPull(SmartPtr<char> buffer_, qint64 cb_)
 		return SmartPtr<IOPackage>();
 	}
 	e = m_process->read(buffer_.getImpl(), nSize);
-	if (PRL_FAILED(e))
+	if (PRL_FAILED(e)) {
+		WRITE_TRACE(DBG_FATAL, "Read data failed 0x%08x", e);
 		return SmartPtr<IOPackage>();
+	}
 
 	SmartPtr<IOPackage> output;
 	try
@@ -1276,11 +1280,7 @@ SmartPtr<IOPackage> Client::pull(quint32 version_, SmartPtr<char> buffer_, qint6
 	if (PRL_ERR_UNINITIALIZED == e)
 		WRITE_TRACE(DBG_INFO, "BACKUP_PROTO client version %u", version_);
 
-	SmartPtr<IOPackage> output = doPull(buffer_, cb_);
-	if (NULL == output.getImpl())
-		m_process->kill();
-
-	return output;
+	return doPull(buffer_, cb_);
 }
 
 PRL_RESULT Client::result(bool cancelled_, CVmEvent* event_)
@@ -1869,20 +1869,27 @@ PRL_RESULT Task_BackupMixin::startABackupClient(const QString& sVmName_, const Q
 	a << "--timeout" << QString::number(m_nBackupTimeout);
 	Client x(m_cABackupClient = new Backup::Process::Unit(boost::bind<void>(
 		Backup::Process::Flop(sVmName_, *m_task), _1, _2, _3)), a);
+	PRL_RESULT e = PRL_ERR_SUCCESS;
 	while (b->no())
 	{
 		SmartPtr<IOPackage> q = x.pull(m_nRemoteVersion, m_pBuffer, m_nBufSize);
-		if (NULL == q.getImpl())
-			break;
-        	if (PRL_FAILED(y->do_(q, *m_cABackupClient)))
-		{
-			m_cABackupClient->kill();
+		if (NULL == q.getImpl()) {
+			e = PRL_ERR_BACKUP_INTERNAL_ERROR;
 			break;
 		}
+		e = y->do_(q, *m_cABackupClient);
+		if (PRL_FAILED(e))
+			break;
 	}
 	PRL_RESULT output = x.result(m_bKillCalled, m_task->getLastError());
-	if (!m_bKillCalled && !isConnected())
+	if (!m_bKillCalled && !isConnected()) {
+		WRITE_TRACE(DBG_FATAL, "Backup client IO no connection");
 		output = PRL_ERR_IO_NO_CONNECTION;
+	}
+	if (PRL_SUCCEEDED(output) && PRL_FAILED(e)) {
+		WRITE_TRACE(DBG_FATAL, "Backup client terminated successfully, but server error was 0x%08X", e);
+		output = e;
+	}
 
 	m_bKillCalled = false;
 	m_cABackupClient = NULL;
