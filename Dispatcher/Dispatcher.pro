@@ -5,7 +5,7 @@ contains(USE_PRECOMPILED_HEADERS, 1) {
 	win32:PRECOMPILED_HEADER = Precomp.h
 }
 
-QT += network core xml dbus xmlpatterns
+QT += network core xml dbus xmlpatterns http
 QT -= gui
 
 linux-g++* {
