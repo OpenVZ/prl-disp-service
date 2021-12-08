@@ -92,8 +92,8 @@ Task_CreateProblemReport::Task_CreateProblemReport(SmartPtr<CDspClient> &pUser,
     m_starter->moveToThread(this);
 
     bool bConnected = true;
-    bConnected &= QObject::connect(
-        m_starter.getImpl(), SIGNAL(timeout()), this, SLOT(onStartReportSending()));
+	bConnected &= static_cast<bool>(QObject::connect(
+		m_starter.getImpl(), SIGNAL(timeout()), this, SLOT(onStartReportSending())));
     Q_ASSERT(bConnected);
 }
 
@@ -135,12 +135,12 @@ PRL_RESULT Task_CreateProblemReport::processReportSending()
     m_pPRSender->initProblemReport(pPR);
 
     bool bConnected = true;
-    bConnected &= QObject::connect(m_pPRSender.getImpl(), SIGNAL(complete(PRL_RESULT, QStringList)),
-                                  this, SLOT(onSendingCompleted(PRL_RESULT, QStringList)));
+	bConnected &= static_cast<bool>(QObject::connect(m_pPRSender.getImpl(), SIGNAL(complete(PRL_RESULT, QStringList)),
+								  this, SLOT(onSendingCompleted(PRL_RESULT, QStringList))));
     Q_ASSERT(bConnected);
-    bConnected &= QObject::connect(m_pPRSender.getImpl(),
+	bConnected &= static_cast<bool>(QObject::connect(m_pPRSender.getImpl(),
             SIGNAL(proxyAuthenticationRequired(const QNetworkProxy&, QAuthenticator*)), this,
-            SLOT(onProxyAuthenticationRequired(const QNetworkProxy&, QAuthenticator*)));
+			SLOT(onProxyAuthenticationRequired(const QNetworkProxy&, QAuthenticator*))));
     Q_ASSERT(bConnected);
 
     // Setting up the first event when we get into event loop

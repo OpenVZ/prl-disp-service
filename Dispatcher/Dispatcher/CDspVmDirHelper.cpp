@@ -489,10 +489,10 @@ bool Native::isReconciled(const Newcomer& newcomer_) const
 {
 	boost::logic::tribool b;
 	if (!boost::logic::indeterminate(b = Unit::isReconciled(newcomer_)))
-		return b;
+		return static_cast<bool>(b);
 
 	if (!boost::logic::indeterminate(b = newcomer_.isReconciled(*this)))
-		return b;
+		return static_cast<bool>(b);
 
 	PVE::IDispatcherCommands x = newcomer_.getCommand();
 	switch (getCommand())
