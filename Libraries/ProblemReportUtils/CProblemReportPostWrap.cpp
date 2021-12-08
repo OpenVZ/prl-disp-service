@@ -29,7 +29,7 @@
 #include <QtCore/QUrl>
 #include <QtCore/QPointer>
 #include <QtCore/QStringList>
-#include <QtCore/QtConcurrentRun>
+#include <QtConcurrent/QtConcurrent>
 #include <QtNetwork/QNetworkProxy>
 #include <QtNetwork/QAuthenticator>
 #include <QtNetwork/QNetworkRequest>

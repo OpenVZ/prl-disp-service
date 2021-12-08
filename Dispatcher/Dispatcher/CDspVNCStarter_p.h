@@ -43,6 +43,7 @@
 #include <boost/mpl/at.hpp>
 #include <CDspVmConfigManager.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <QtConcurrent/QtConcurrent>
 
 class CDspVNCStarter;
 

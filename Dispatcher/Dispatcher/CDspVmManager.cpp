@@ -72,6 +72,7 @@
 #include <boost/phoenix/statement.hpp>
 #include <boost/phoenix/core/argument.hpp>
 #include "Libraries/CpuFeatures/CCpuHelper.h"
+#include <QtConcurrent/QtConcurrent>
 
 #ifdef _WIN_
 	#include <process.h>

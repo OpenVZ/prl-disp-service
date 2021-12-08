@@ -47,6 +47,7 @@
 #include "CDspDispConnection.h"
 #include "CDspVm.h"
 #include "Libraries/VmFileList/CVmFileListCopy.h"
+#include <QtConcurrent/QtConcurrent>
 
 enum _PRL_VM_MIGRATE_STEP {
 	MIGRATE_UNREGISTER_VM_WATCH	= (1 << 0),

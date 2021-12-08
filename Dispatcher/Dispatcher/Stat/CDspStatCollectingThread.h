@@ -43,6 +43,7 @@
 #include <prlcommon/Std/SmartPtr.h>
 #include "CDspVmStateSender.h"
 #include "CDspVm.h"
+#include <QtConcurrent/QtConcurrent>
 
 namespace Stat
 {

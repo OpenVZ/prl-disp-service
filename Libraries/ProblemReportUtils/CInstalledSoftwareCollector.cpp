@@ -34,7 +34,7 @@
 #include <QTimer>
 #include <QString>
 #include <QDir>
-#include <QtConcurrentRun>
+#include <QtConcurrent/QtConcurrent>
 #include <QFutureWatcher>
 #include <QFuture>
 
@@ -323,7 +323,8 @@ bool CInstalledSoftwareCollectorPrivate::startCollecting()
 	// for first valid command from list
 	foreach( const QString& command, g_LIST_SHELL_COMMANDS_GET_INSTALLED_LIST )
 	{
-		m_shelProcess = executeShellCommandASync( command, this );
+		m_shelProcess = QSharedPointer<QProcess>{executeShellCommandASync( command, this )};
+
 		if ( m_shelProcess.data() )
 		{
 			bool connected = connect( m_shelProcess.data(), SIGNAL(finished(int,QProcess::ExitStatus)),
