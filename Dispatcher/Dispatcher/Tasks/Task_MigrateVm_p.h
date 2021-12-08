@@ -49,6 +49,7 @@
 #include <prlcommon/Messaging/CVmEvent.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Interfaces/VirtuozzoDispToDispProto.h>
+#include <memory>
 
 namespace Migrate
 {
@@ -683,7 +684,7 @@ struct Flavor: Format
 		if (!bin_.isValid() || !bin_->getBuffer(1, t, b, z))
 			return boost::none;
 
-		return QString::fromAscii(b.getImpl(), z);
+		return QString::fromUtf8(b.getImpl(), z);
 	}
 	bin_type assemble(const spice_type& spice_, const char* data_, qint64 size_) const
 	{
@@ -1086,7 +1087,7 @@ private:
 };
 
 typedef boost::phoenix::expression::value<Pouring>::type writing_type;
-typedef boost::variant<Reading, Pouring, Success, writing_type> state_type;
+typedef boost::variant<Reading, Pouring, Success, std::shared_ptr<writing_type>> state_type;
 typedef Prl::Expected<state_type, Flop::Event> target_type;
 
 ///////////////////////////////////////////////////////////////////////////////

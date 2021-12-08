@@ -292,7 +292,8 @@ target_type Receipt::operator()
 target_type Accounting::operator()
 	(boost::mpl::at_c<state_type::types, 3>::type value_) const
 {
-	Pouring x = value_();
+	Pouring x = (*value_)();
+
 	x.account(m_amount);
 	if (0 < x.getRemaining())
 		return state_type(x);
@@ -307,8 +308,11 @@ target_type Dispatch::operator()
 	(boost::mpl::at_c<state_type::types, 1>::type value_) const
 {
 	Prl::Expected<void, Flop::Event> x = value_();
-	return x.isFailed() ? target_type(x.error()) :
-		target_type(state_type(boost::phoenix::val(value_)));
+
+	if (x.isFailed())
+		return target_type(x.error());
+	else
+		return target_type(state_type(std::make_shared<writing_type>(boost::phoenix::val(value_))));
 }
 
 target_type Dispatch::operator()
