@@ -257,10 +257,10 @@ static PRL_RESULT setAdapterIpAddress(const QString& adapterName,
 	const QHostAddress & ipAddress, const QHostAddress & netMask )
 {
 	if (ipAddress.protocol() == QAbstractSocket::IPv6Protocol)
-		return setIPv6Address(adapterName.toAscii(),
+		return setIPv6Address(adapterName.toUtf8(),
 			ipAddress.toIPv6Address(), netMask.toIPv6Address());
 
-	return setIPv4Address(adapterName.toAscii(), ipAddress.toIPv4Address(),
+	return setIPv4Address(adapterName.toUtf8(), ipAddress.toIPv4Address(),
 			netMask.toIPv4Address());
 }
 

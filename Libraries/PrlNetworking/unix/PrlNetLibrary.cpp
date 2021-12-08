@@ -214,7 +214,7 @@ PRL_RESULT PrlNet::enablePrlAdapter( int adapterIndex, bool bEnable )
 	int set_flags = bEnable ? IFF_UP : 0;
 	int clear_flags = bEnable ? 0 : IFF_UP;
 
-	if( !PrlNet::setIfFlags(adapter->_name.toAscii(), set_flags, clear_flags) )
+	if( !PrlNet::setIfFlags(adapter->_name.toUtf8(), set_flags, clear_flags) )
 	{
 		MODULE_STORE_SYSTEM_ERROR();
 
@@ -330,7 +330,7 @@ PRL_RESULT PrlNet::VZSyncConfig(CVirtuozzoNetworkConfig *pConfig, bool *pbConfig
 			WRITE_TRACE(DBG_FATAL, "Failed to create"
 						" Container's network %s, error 0x%08x."
 						" Network will be deleted.",
-						pNetwork->getNetworkID().toAscii().constData(),
+						pNetwork->getNetworkID().toUtf8().constData(),
 						prlResult);
 			/* VMs and CTs networks should be synced */
 			PrlNet::DeleteVirtualNetwork(pConfig, pNetwork);
@@ -434,7 +434,7 @@ bool setupBridge(const QString& bridge, const QString& iface, int command)
 {
 	struct ifreq ifr;
 
-	int ifindex = if_nametoindex(iface.toAscii().data());
+	int ifindex = if_nametoindex(iface.toUtf8().data());
 	if (ifindex == 0)
 		return false;
 
@@ -443,7 +443,7 @@ bool setupBridge(const QString& bridge, const QString& iface, int command)
 		return false;
 
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, bridge.toAscii().data(), sizeof(ifr.ifr_name) - 1);
+	strncpy(ifr.ifr_name, bridge.toUtf8().data(), sizeof(ifr.ifr_name) - 1);
 	ifr.ifr_ifindex = ifindex;
 	if (::ioctl(sock, command, &ifr) < 0)
 	{

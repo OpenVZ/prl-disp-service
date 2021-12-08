@@ -205,7 +205,7 @@ bool CDspPid::attach()
 			, QSTR2UTF8(m_file.fileName()), strerror(errno));
 	}
 #endif // _WIN_
-	if (-1 == m_file.write(d.toAscii()))
+	if (-1 == m_file.write(d.toUtf8()))
 	{
 		WRITE_TRACE(DBG_FATAL, "Cannot write the process ID into the pid file");
 		goto error;

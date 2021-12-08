@@ -897,8 +897,8 @@ PRL_RESULT PrlNet::GetAdapterForNetwork(
 
 		WRITE_TRACE(DBG_FATAL,
 			"Adapter for virtual network %s with MacAddress %s(VLAN=0x%04x) doesn't exist.",
-			pNetwork->getNetworkID().toAscii().constData(),
-			pNetwork->getBoundCardMac().toAscii().constData(),
+			pNetwork->getNetworkID().toUtf8().constData(),
+			pNetwork->getBoundCardMac().toUtf8().constData(),
 			(unsigned int)pNetwork->getVLANTag() );
 
 		return 	PRL_NET_VMDEVICE_VIRTUAL_NETWORK_NO_ADAPTER;
@@ -910,7 +910,7 @@ PRL_RESULT PrlNet::GetAdapterForNetwork(
 		if (NULL == pHostOnlyParams)
 		{
 			WRITE_TRACE(DBG_FATAL, "Host only network params for virtual network %s are not configured.",
-				pNetwork->getNetworkID().toAscii().constData());
+				pNetwork->getNetworkID().toUtf8().constData());
 			return PRL_NET_VMDEVICE_VIRTUAL_NETWORK_CONFIG_ERROR;
 		}
 
@@ -918,7 +918,7 @@ PRL_RESULT PrlNet::GetAdapterForNetwork(
 		if (pAdapter == NULL)
 		{
 			WRITE_TRACE(DBG_FATAL, "Prl Adapter for network %s are not configured.",
-				pNetwork->getNetworkID().toAscii().constData());
+				pNetwork->getNetworkID().toUtf8().constData());
 			return PRL_NET_VMDEVICE_VIRTUAL_NETWORK_CONFIG_ERROR;
 		}
 
@@ -937,7 +937,7 @@ PRL_RESULT PrlNet::GetAdapterForNetwork(
 
 		WRITE_TRACE(DBG_FATAL, "Prl Adapter (%d) for virtual network %s doesn't exist or it is disabled.",
 			(int)GET_PRL_ADAPTER_NUMBER(nAdapterIndex),
-			pNetwork->getNetworkID().toAscii().constData() );
+			pNetwork->getNetworkID().toUtf8().constData() );
 
 		return 	PRL_NET_VMDEVICE_VIRTUAL_NETWORK_NO_ADAPTER;
 	}
@@ -963,13 +963,13 @@ PRL_RESULT PrlNet::GetAdapterForVM(
 			networkID);
 		if ( !pNetwork )
 		{
-			WRITE_TRACE(DBG_FATAL, "Virtual network %s is not configured.", networkID.toAscii().constData());
+			WRITE_TRACE(DBG_FATAL, "Virtual network %s is not configured.", networkID.toUtf8().constData());
 			return PRL_NET_VMDEVICE_VIRTUAL_NETWORK_NOT_EXIST;
 		}
 
 		if (!pNetwork->isEnabled())
 		{
-			WRITE_TRACE(DBG_FATAL, "Virtual network %s is disabled.", networkID.toAscii().constData());
+			WRITE_TRACE(DBG_FATAL, "Virtual network %s is disabled.", networkID.toUtf8().constData());
 			return PRL_NET_VMDEVICE_VIRTUAL_NETWORK_DISABLED;
 		}
 

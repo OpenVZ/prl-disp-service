@@ -871,8 +871,8 @@ void CDspShellHelper::attachToLostTask(
 
 		result = PRL_ERR_SUCCESS;
 		WRITE_TRACE(DBG_FATAL, "Task with uuid=%s was reassigned to new session from prev_session %s"
-			,taskUuid.toAscii().constData()
-			,pUser->getPrevSessionUuid().toAscii().constData());
+			,taskUuid.toUtf8().constData()
+			,pUser->getPrevSessionUuid().toUtf8().constData());
 	}
 	catch ( PRL_RESULT err )
 	{

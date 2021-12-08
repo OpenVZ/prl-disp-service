@@ -911,7 +911,7 @@ GetPrlAdapterGuid(int adapterIndex, QString &adapterGuid)
 		if ( GET_PRL_ADAPTER_NUMBER(it->_nAdapter) == GET_PRL_ADAPTER_NUMBER(adapterIndex)
 			&& it->_adapterGuid.length() > 8 )
 		{
-			adapterGuid = it->_adapterGuid.toAscii().constData() + 8; // skip "\DEVICE\" prefix
+			adapterGuid = it->_adapterGuid.toUtf8().constData() + 8; // skip "\DEVICE\" prefix
 			return PRL_ERR_SUCCESS;
 		}
 	}
@@ -1086,7 +1086,7 @@ static PRL_RESULT setPrlAdapterIPv4Address(
 		return PRL_ERR_FAILURE;
 	}
 
-	DWORD dwErr = SetAdapterIpAddress(adapterGuid.toAscii(), 0, htonl(ipAddress), htonl(netMask), 0);
+	DWORD dwErr = SetAdapterIpAddress(adapterGuid.toUtf8(), 0, htonl(ipAddress), htonl(netMask), 0);
 	if ( 0 != dwErr )
 	{
 		s_LastSystemError = dwErr;

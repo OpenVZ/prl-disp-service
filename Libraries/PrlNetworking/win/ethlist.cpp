@@ -99,9 +99,9 @@ static int GetVNicNumber(const QString &adapterName)
 	unsigned char s = '#';
 	while( adapterName.at(pos) != 0 )
 	{
-		if( isdigit( adapterName.at(pos).toAscii() ) )
+		if( isdigit( adapterName.at(pos).toUtf8() ) )
 		{
-			s = adapterName.at(pos).toAscii();
+			s = adapterName.at(pos).toUtf8();
 			break;
 		}
 		pos++;

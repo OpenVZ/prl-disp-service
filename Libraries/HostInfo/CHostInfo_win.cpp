@@ -692,7 +692,7 @@ void CDspHostInfo::GetRasterizer()
 		return;
 	}
 
-	QString tmp = QString::fromAscii(rsProc.readAllStandardOutput());
+	QString tmp = QString::fromUtf8(rsProc.readAllStandardOutput());
 	WRITE_TRACE(DBG_FATAL, "Rasterizer own info: %s", qPrintable(tmp));
 
 	pRS->setDescription(tmp);

@@ -172,7 +172,7 @@ void CDspStatCollector::GetProcsStatInfo(SmartPtr<CProcsStatInfo> pProcsStatInfo
 		}
 
 		pProcStatInfo->m_nId = pid;
-		pProcStatInfo->m_sCommandName = QString::fromAscii(name);
+		pProcStatInfo->m_sCommandName = QString::fromUtf8(name);
 		pProcStatInfo->m_nUserTime = quint64(user) * 1000 / HZ;
 		pProcStatInfo->m_nSystemTime = quint64(system) * 1000 / HZ;
 		pProcStatInfo->m_nTotalTime = pProcStatInfo->m_nUserTime + pProcStatInfo->m_nSystemTime;
