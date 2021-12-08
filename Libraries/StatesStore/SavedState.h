@@ -56,6 +56,8 @@ public:
 	/// Class destructor
 	~CSavedState();
 
+	CSavedState& operator=(const CSavedState&) = default;
+
 	/**
 	 * Get guid of checkpoint record
 	 */

@@ -53,6 +53,7 @@ class Cache : public CacheBase< T>
 				QString toString() const;
 				bool operator==(const FileTimestamp& ts) const;
 				bool operator!=(const FileTimestamp& ts) const;
+				FileTimestamp& operator=(const FileTimestamp& changeTime) = default;
 			private:
 				// QDateTime implementation has low precession ( time without millisecs (on linux ) )
 				// It should be improved
@@ -64,6 +65,7 @@ class Cache : public CacheBase< T>
 				SmartPtr<T> pConfig;
 				FileTimestamp dtChangeTime;
 				mutable PRL_UINT64 lastAccess;
+				ConfigInfo& operator=(const ConfigInfo& configInfo) = default;
 
 				// FIXME: Need check also for Config ModificationTime - in PSBM on PCS we have disabled ConfigWatcher.
 			};

@@ -202,6 +202,7 @@ public:
 	 * @return result of XML parsing
 	 */
 	SnapshotParser::SnapshotReturnCode ReadXml(QDomElement* first_element);
+	CSavedStateTree& operator=(const CSavedStateTree&) = default;
 
 private:
 
