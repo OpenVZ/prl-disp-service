@@ -1564,7 +1564,9 @@ template<class T>
 struct Subject
 {
 	typedef Object object_type;
-	typedef typename T::value_type snapshot_type;
+
+	typedef typename boost::pointee<typename T::result_type>::type snapshot_type;
+
 	typedef Activity::Vm::Unit<snapshot_type> activity_type;
 
 	Subject(T flavor_, Reference& reference_):
