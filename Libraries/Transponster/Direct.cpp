@@ -29,6 +29,7 @@
 #include "NetFilter.h"
 #include <prlsdk/PrlOses.h>
 #include <prlcommon/HostUtils/HostUtils.h>
+#include <boost/bind/placeholders.hpp>
 
 namespace Transponster
 {
@@ -503,7 +504,7 @@ void VirtualProfile::operator()(const mpl::at_c<Libvirt::Domain::Xml::VVirtualPo
 		if (p.get().getInterfaceid())
 		{
 			Visitor::Uuid<Libvirt::Domain::Xml::VUUID> u
-				(boost::bind(&CVmNetVirtualPortType::setInterfaceId, v, _1));
+				(boost::bind(&CVmNetVirtualPortType::setInterfaceId, v, boost::placeholders::_1));
 			boost::apply_visitor(u, p.get().getInterfaceid().get());
 		}
 		if (p.get().getProfileid())
@@ -644,7 +645,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::
 	{
 		const QList<CVmUsbDevice*>& u = h->m_lstUsbDevices;
 		if (std::find_if(u.begin(), u.end(),
-			boost::bind(&CVmUsbDevice::getUsbType, _1) == PUDT_OTHER)
+			boost::bind(&CVmUsbDevice::getUsbType, boost::placeholders::_1) == PUDT_OTHER)
 			== u.end())
 		{
 			CVmUsbDevice* d = new(CVmUsbDevice);
@@ -988,8 +989,8 @@ void DiskForm::setDiskSource(const QList<T*> list_, uint index_) const
 	if (!c(m_disk))
 		return;
 
-	typename QList<T*>::const_iterator item = std::find_if(list_.constBegin(), list_.constEnd(),
-		boost::bind(&Traits<T>::examine, _1, index_, c.getResult()->getInterfaceType()));
+	auto item = std::find_if(list_.constBegin(), list_.constEnd(),
+			boost::bind(&Traits<T>::examine, boost::placeholders::_1, index_, c.getResult()->getInterfaceType()));
 
 	if (item == list_.constEnd())
 		return;
@@ -1392,7 +1393,7 @@ PRL_RESULT Vm::setIdentification()
 	if (m_input->getIds().getUuid())
 	{
 		Visitor::Uuid<Libvirt::Domain::Xml::VUUID> v
-			(boost::bind(&CVmIdentification::setVmUuid, &*i, _1));
+			(boost::bind(&CVmIdentification::setVmUuid, &*i, boost::placeholders::_1));
 		boost::apply_visitor(v, m_input->getIds().getUuid().get());
 	}
 	m_result->setVmIdentification(i);
@@ -1602,7 +1603,7 @@ PRL_RESULT Direct::setUuid()
 	if (m_input->getUuid())
 	{
 		Visitor::Uuid<Libvirt::Network::Xml::VUUID> v
-			(boost::bind(&CVirtualNetwork::setUuid, &m_result, _1));
+			(boost::bind(&CVirtualNetwork::setUuid, &m_result, boost::placeholders::_1));
 		boost::apply_visitor(v, m_input->getUuid().get());
 	}
 	return PRL_ERR_SUCCESS;
@@ -1961,8 +1962,9 @@ Boot::Slot Clip::getBootSlot(const order_type& order_)
 		d->inUseStatus = true;
 		QList<device_type* >::iterator it =
 			std::lower_bound(m_bootList->begin(), m_bootList->end(), d,
-				boost::bind(&device_type::getBootingNumber, _1) < order_.get() &&
-				boost::bind(&device_type::isInUse, _1));
+				boost::bind(&device_type::getBootingNumber, boost::placeholders::_1) < order_.get() &&
+				boost::bind(&device_type::isInUse, boost::placeholders::_1));
+
 		m_bootList->insert(it, d);
 	}
 	else

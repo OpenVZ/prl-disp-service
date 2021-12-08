@@ -377,7 +377,7 @@ result_type Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	// conversion so pointer works properly in VNC.
 	const QList<CVmUsbDevice*>& usbList = pVmHardware->m_lstUsbDevices;
 	if (std::find_if(usbList.begin(), usbList.end(),
-		boost::bind(&CVmUsbDevice::getUsbType, _1) == PUDT_OTHER)
+		boost::bind(&CVmUsbDevice::getUsbType, boost::placeholders::_1) == PUDT_OTHER)
 		== usbList.end())
 	{
 		CVmUsbDevice* usbDev = new(CVmUsbDevice);

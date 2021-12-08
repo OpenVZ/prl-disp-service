@@ -3159,8 +3159,8 @@ Reverse::Reverse(const QList<device_type* >& list_)
 {
 	unsigned o = 0;
 	std::list<device_type* > x = list_.toStdList();
-	x.sort(boost::bind(&device_type::getBootingNumber, _1) <
-		boost::bind(&device_type::getBootingNumber, _2));
+	x.sort(boost::bind(&device_type::getBootingNumber, boost::placeholders::_1) <
+		boost::bind(&device_type::getBootingNumber, boost::placeholders::_2));
 	foreach(device_type* d, x)
 	{
 		if (!d->isInUse())
@@ -3258,7 +3258,7 @@ boost::optional<Libvirt::Snapshot::Xml::Disk> External::operator()(const CVmHard
 Reverse::Reverse(const QString& uuid_, const QString& description_,
 	const CVmConfiguration& input_): m_uuid(uuid_),
 	m_description(description_), m_hardware(input_.getVmHardwareList()),
-	m_policy(boost::bind(Internal(), _1))
+	m_policy(boost::bind(Internal(), boost::placeholders::_1))
 {
 	CVmIdentification* i = input_.getVmIdentification();
 	if (NULL == i)
