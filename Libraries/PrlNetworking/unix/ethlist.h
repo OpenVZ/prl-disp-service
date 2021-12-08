@@ -54,6 +54,7 @@ struct EthIface
 			 unsigned int bcastIpAddr, const unsigned char macAddr[6],
 			 unsigned short vlanTag, int nAdapter, int nType);
 	EthIface( const EthIface& eth );
+	EthIface& operator=(const EthIface&) = default;
 };
 
 
