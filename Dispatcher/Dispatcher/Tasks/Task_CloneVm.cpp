@@ -199,8 +199,8 @@ PRL_RESULT Toolkit::getSpaceAvailable(QString path_, quint64& dst_) const
 
 bool Toolkit::equal(const QString& one_, const QString& another_)
 {
-	return	QDir::convertSeparators(QDir::cleanPath(one_)) ==
-		QDir::convertSeparators(QDir::cleanPath(another_));
+	return	QDir::toNativeSeparators(QDir::cleanPath(one_)) ==
+		QDir::toNativeSeparators(QDir::cleanPath(another_));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
