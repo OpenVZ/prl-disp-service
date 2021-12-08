@@ -606,7 +606,7 @@ void GetDefaultVMCpuFeaturesMask(
 
 static const char *StrNameFEATURES(UINT bit)
 {
-	switch(1<<bit){
+	switch(1u<<bit){
 	BIT_NAME(FPU);
 	BIT_NAME(VME);
 	BIT_NAME(DE);
@@ -644,7 +644,7 @@ static const char *StrNameFEATURES(UINT bit)
 
 static const char *StrNameEXT_FEATURES(UINT bit)
 {
-	switch(1<<bit){
+	switch(1u<<bit){
 	BIT_NAME(SSE3);
 	BIT_NAME(PCLMULQDQ);
 	BIT_NAME(DTE64);
@@ -681,7 +681,7 @@ static const char *StrNameEXT_FEATURES(UINT bit)
 
 static const char *StrName80000001_ECX(UINT bit)
 {
-	switch(1<<bit){
+	switch(1u<<bit){
 	BIT_NAME(LAHF_64);
 	BIT_NAME(SVM);
 	BIT_NAME(ABM);
@@ -695,7 +695,7 @@ static const char *StrName80000001_ECX(UINT bit)
 
 static const char *StrName80000001_EDX(UINT bit)
 {
-	switch(1<<bit){
+	switch(1u<<bit){
 	BIT_NAME(SYSCALL);
 	BIT_NAME(NX);
 	BIT_NAME(FFXSR);
@@ -729,7 +729,7 @@ static const char *StrName80000001_EDX(UINT bit)
 
 static const char *StrName80000007_EDX(UINT bit)
 {
-	switch(1<<bit){
+	switch(1u<<bit){
 	BIT_NAME(TSC_INVARIANT);
 	default:
 		return "UNK";
@@ -739,7 +739,7 @@ static const char *StrName80000007_EDX(UINT bit)
 
 static const char *StrName00000007_EBX(UINT bit)
 {
-	switch(1<<bit){
+	switch(1u<<bit){
 	BIT_NAME(RDFSGSBASE);
 	BIT_NAME(ADJTSC);
 	BIT_NAME(BMI1);
@@ -762,7 +762,7 @@ static const char *StrName00000007_EBX(UINT bit)
 
 static const char *StrName00000007_EDX(UINT bit)
 {
-	switch(1<<bit){
+	switch(1u<<bit){
 	BIT_NAME(SPEC_CTRL);
 	BIT_NAME(STIBP);
 	BIT_NAME(ARCH_CAPABILITIES);
@@ -775,7 +775,7 @@ static const char *StrName00000007_EDX(UINT bit)
 
 static const char *StrName0000000D_EAX(UINT bit)
 {
-	switch(1<<bit){
+	switch(1u<<bit){
 		BIT_NAME(SAVEOPT);
 	default:
 		return "UNK";
@@ -785,7 +785,7 @@ static const char *StrName0000000D_EAX(UINT bit)
 
 static const char *StrNamePowerManagement_ECX(UINT bit)
 {
-	switch(1<<bit){
+	switch(1u<<bit){
 	BIT_NAME(APERF_MPERF);
 	BIT_NAME(PERFBIAS);
 	default:
