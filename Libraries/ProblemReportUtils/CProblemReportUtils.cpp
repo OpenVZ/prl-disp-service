@@ -48,8 +48,7 @@
 #include <prlcommon/Std/PrlAssert.h>
 #include "CProblemReportUtils.h"
 
-#include <QHttp>
-#include <QtNetwork/QHttpRequestHeader>
+#include <qt5/QtHttp/QHttp>
 
 #include "CInstalledSoftwareCollector.h"
 #include <prlxmlmodel/DispConfig/CDispatcherConfig.h>
