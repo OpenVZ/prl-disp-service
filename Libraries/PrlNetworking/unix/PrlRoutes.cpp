@@ -36,7 +36,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <sys/sysctl.h>
+#include <linux/sysctl.h>
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <net/if_arp.h>
