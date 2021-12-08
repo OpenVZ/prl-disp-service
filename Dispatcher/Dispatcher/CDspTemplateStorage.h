@@ -40,6 +40,7 @@
 #include <prlcommon/PrlCommonUtilsBase/CAuthHelper.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <memory>
 
 namespace Template
 {
@@ -235,8 +236,8 @@ struct Abstract
 {
 	typedef Lock::Catalog::result_type guard_type;
 	typedef ::Instrument::Command::Batch log_type;
-	typedef boost::shared_ptr<Entry::Action::Both> bothAction_type;
-	typedef boost::shared_ptr<Entry::Action::Read> readAction_type;
+	typedef std::shared_ptr<Entry::Action::Both> bothAction_type;
+	typedef std::shared_ptr<Entry::Action::Read> readAction_type;
 
 	explicit Abstract(const guard_type& guard_): m_guard(guard_)
 	{
