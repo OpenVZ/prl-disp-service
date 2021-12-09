@@ -2564,8 +2564,8 @@ void CDspStatCollectingThread::NotifyHostStatisticsSubscribers()
 	pStatisticsUpdatedEvent->addEventParameter(pBinaryEventParam);
 
 	SmartPtr<IOPackage> p(create_binary_package(*pStatisticsUpdatedEvent.getImpl())) ;
-    if (!p.isValid())
-        return  ;
+	if (!p.isValid())
+		return  ;
 	foreach(SmartPtr<CDspClient> pUser, *g_pHostStatisticsSubscribers)
 		pUser->sendPackage(p);
 }
