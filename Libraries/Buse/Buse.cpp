@@ -174,7 +174,7 @@ PRL_RESULT Entry::get(const QString& file, QString& value)
 	}
 
 	const int chunk = 4096;
-	QByteArray buf(chunk, 0);
+	std::vector<char> buf(chunk);
 	ssize_t count, off = 0;
 	while (true) {
 		do {
@@ -194,7 +194,7 @@ PRL_RESULT Entry::get(const QString& file, QString& value)
 		buf.resize(buf.size() + chunk);
 	}
 	::close(fd);
-	value = QString::fromUtf8(buf.constData());
+	value = QString::fromUtf8(buf.data());
 	WRITE_TRACE(DBG_DEBUG, "successfully read value '%s' from '%s'",
 		QSTR2UTF8(value), QSTR2UTF8(path));
 	return PRL_ERR_SUCCESS;

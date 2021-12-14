@@ -569,7 +569,7 @@ bool CSavedStateStore::IsEmpty()
  */
 void CSavedStateStore::ClearTreeChild(CSavedStateTree *node)
 {
-	if ( (!node) && (node->GetChildCount() == 0) )
+	if (node == nullptr || node->GetChildCount() == 0)
 		return;
 
 	for (int i = 0; i < node->GetChildCount(); i++)
