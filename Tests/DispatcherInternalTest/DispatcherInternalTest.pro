@@ -1,5 +1,4 @@
-CONFIG += qtestlib
-QT = xml network core
+QT = xml network core http testlib
 
 INCLUDEPATH += /usr/share /usr/include/prlsdk
 DEFINES += BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS BOOST_MPL_LIMIT_VECTOR_SIZE=40 BOOST_SPIRIT_THREADSAFE
