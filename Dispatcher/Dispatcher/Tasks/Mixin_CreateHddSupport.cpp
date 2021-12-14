@@ -68,8 +68,7 @@ bool HddCallbackHelperFunc ( int iDone,
 
 	if (!pHddCreateHelper )
 	{
-		WRITE_TRACE(DBG_FATAL, "bad object type");
-		pHddCreateHelper->setHddErrorCode( PRL_ERR_UNEXPECTED );
+		WRITE_TRACE(DBG_FATAL, "HddCallbackHelper got nullptr");
 		return false;
 	}
 
