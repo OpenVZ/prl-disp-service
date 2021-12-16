@@ -1217,9 +1217,9 @@ struct Client: boost::noncopyable
 	Client(Backup::Process::Unit* process_, const QStringList& args_);
 
 	PRL_RESULT result(bool cancelled_, CVmEvent* event_);
-	SmartPtr<IOPackage> pull(quint32 version_, SmartPtr<char> buffer_, qint64 cb_);
+	Prl::Expected<SmartPtr<IOPackage>, PRL_RESULT> pull(quint32 version_, SmartPtr<char> buffer_, qint64 cb_);
 private:
-	SmartPtr<IOPackage> doPull(SmartPtr<char> buffer_, qint64 cb_);
+	Prl::Expected<SmartPtr<IOPackage>, PRL_RESULT>  doPull(SmartPtr<char> buffer_, qint64 cb_);
 
 	PRL_RESULT m_start;
 	QStringList m_argv;
@@ -1232,25 +1232,26 @@ Client::Client(Backup::Process::Unit* process_, const QStringList& argv_):
 {
 }
 
-SmartPtr<IOPackage> Client::doPull(SmartPtr<char> buffer_, qint64 cb_)
+Prl::Expected<SmartPtr<IOPackage>, PRL_RESULT> Client::doPull(SmartPtr<char> buffer_, qint64 cb_)
 {
 	// read block size.
 	qint32 nSize = 0;
 	PRL_RESULT e = m_process->read((char *)&nSize, sizeof(nSize));
-	if (PRL_FAILED(e)) {
+	if (PRL_FAILED(e))
+	{
 		WRITE_TRACE(DBG_FATAL, "Read block size failed 0x%08x", e);
-		return SmartPtr<IOPackage>();
+		return e;
 	}
 	// read data.
 	if (cb_ < nSize)
 	{
 		WRITE_TRACE(DBG_FATAL, "Too small read buffer: %ld, requres: %ld", (long)cb_, (long)nSize);
-		return SmartPtr<IOPackage>();
+		return PRL_ERR_UNEXPECTED;
 	}
 	e = m_process->read(buffer_.getImpl(), nSize);
 	if (PRL_FAILED(e)) {
 		WRITE_TRACE(DBG_FATAL, "Read data failed 0x%08x", e);
-		return SmartPtr<IOPackage>();
+		return e;
 	}
 
 	SmartPtr<IOPackage> output;
@@ -1269,14 +1270,14 @@ SmartPtr<IOPackage> Client::doPull(SmartPtr<char> buffer_, qint64 cb_)
 	return output;
 }
 
-SmartPtr<IOPackage> Client::pull(quint32 version_, SmartPtr<char> buffer_, qint64 cb_)
+Prl::Expected<SmartPtr<IOPackage>, PRL_RESULT> Client::pull(quint32 version_, SmartPtr<char> buffer_, qint64 cb_)
 {
 	PRL_RESULT e = m_start;
 	if (PRL_ERR_UNINITIALIZED == e)
 		m_start = m_process->start(m_argv, version_);
 
 	if (PRL_FAILED(m_start))
-		return SmartPtr<IOPackage>();
+		return m_start;
 	if (PRL_ERR_UNINITIALIZED == e)
 		WRITE_TRACE(DBG_INFO, "BACKUP_PROTO client version %u", version_);
 
@@ -1872,12 +1873,19 @@ PRL_RESULT Task_BackupMixin::startABackupClient(const QString& sVmName_, const Q
 	PRL_RESULT e = PRL_ERR_SUCCESS;
 	while (b->no())
 	{
-		SmartPtr<IOPackage> q = x.pull(m_nRemoteVersion, m_pBuffer, m_nBufSize);
-		if (NULL == q.getImpl()) {
+		Prl::Expected<SmartPtr<IOPackage>, PRL_RESULT> q = x.pull(m_nRemoteVersion, m_pBuffer, m_nBufSize);
+		if (q.isFailed())
+		{
+			e = q.error();
+			if (e == PRL_ERR_UNINITIALIZED)
+				e = PRL_ERR_SUCCESS;
+			break;
+		}
+		if (NULL == q.value().getImpl()) {
 			e = PRL_ERR_BACKUP_INTERNAL_ERROR;
 			break;
 		}
-		e = y->do_(q, *m_cABackupClient);
+		e = y->do_(q.value(), *m_cABackupClient);
 		if (PRL_FAILED(e))
 			break;
 	}
