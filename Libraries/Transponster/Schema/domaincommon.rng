@@ -5,6 +5,7 @@
   <include href='storagecommon.rng'/>
   <include href='networkcommon.rng'/>
   <include href="cputypes.rng"/>
+  <include href="nwfilter_params.rng"/>
 
   <!--
     description and title element, may be placed anywhere under the root
@@ -4868,22 +4869,6 @@
       </attribute>
       <empty/>
     </element>
-  </define>
-
-  <define name="filterref-node-attributes">
-    <attribute name="filter">
-      <data type="NCName"/>
-    </attribute>
-    <zeroOrMore>
-      <element name="parameter">
-        <attribute name="name">
-          <ref name="filter-param-name"/>
-        </attribute>
-        <attribute name="value">
-          <ref name="filter-param-value"/>
-        </attribute>
-      </element>
-    </zeroOrMore>
   </define>
 
   <define name="deviceBoot">
