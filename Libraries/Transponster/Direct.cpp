@@ -1988,8 +1988,9 @@ boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> Clip::getControllerModel(const Lib
 		return m;
 	foreach(const Libvirt::Domain::Xml::Controller& c, *m_controllerList)
 	{
-		if (a.getController().get() != QString::number(c.getIndex()))
-			continue;
+		if (!c.getIndex() || a.getController().get() != QString::number(c.getIndex().get()))
+				continue;
+
 		boost::apply_visitor(Visitor::Controller::Scsi(m), c.getChoice5117());
 		if (m)
 			break;

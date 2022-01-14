@@ -4147,13 +4147,13 @@ struct Validatable<Snapshot::Xml::PData4806>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7431
+// struct PData8005
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7431
+struct PData8005
 {
 	typedef qint32 value_type;
 };
@@ -4162,29 +4162,29 @@ struct PData7431
 } // namespace Snapshot
 
 template<>
-struct Traits<Snapshot::Xml::PData7431>
+struct Traits<Snapshot::Xml::PData8005>
 {
-	static bool parse(const QString& src_, Snapshot::Xml::PData7431::value_type& dst_);
+	static bool parse(const QString& src_, Snapshot::Xml::PData8005::value_type& dst_);
 
-	static QString generate(Snapshot::Xml::PData7431::value_type src_);
+	static QString generate(Snapshot::Xml::PData8005::value_type src_);
 
 };
 
 template<>
-struct Validatable<Snapshot::Xml::PData7431>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8005>: mpl::true_
 {
-	static bool validate(Snapshot::Xml::PData7431::value_type value_);
+	static bool validate(Snapshot::Xml::PData8005::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7433
+// struct PData8134
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7433
+struct PData8134
 {
 	typedef QString value_type;
 };
@@ -4193,20 +4193,20 @@ struct PData7433
 } // namespace Snapshot
 
 template<>
-struct Validatable<Snapshot::Xml::PData7433>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8134>: mpl::true_
 {
-	static bool validate(const Snapshot::Xml::PData7433::value_type& value_);
+	static bool validate(const Snapshot::Xml::PData8134::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7435
+// struct PData8136
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7435
+struct PData8136
 {
 	typedef qint32 value_type;
 };
@@ -4215,29 +4215,29 @@ struct PData7435
 } // namespace Snapshot
 
 template<>
-struct Traits<Snapshot::Xml::PData7435>
+struct Traits<Snapshot::Xml::PData8136>
 {
-	static bool parse(const QString& src_, Snapshot::Xml::PData7435::value_type& dst_);
+	static bool parse(const QString& src_, Snapshot::Xml::PData8136::value_type& dst_);
 
-	static QString generate(Snapshot::Xml::PData7435::value_type src_);
+	static QString generate(Snapshot::Xml::PData8136::value_type src_);
 
 };
 
 template<>
-struct Validatable<Snapshot::Xml::PData7435>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8136>: mpl::true_
 {
-	static bool validate(Snapshot::Xml::PData7435::value_type value_);
+	static bool validate(Snapshot::Xml::PData8136::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7437
+// struct PData8138
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7437
+struct PData8138
 {
 	typedef QString value_type;
 };
@@ -4246,20 +4246,20 @@ struct PData7437
 } // namespace Snapshot
 
 template<>
-struct Validatable<Snapshot::Xml::PData7437>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8138>: mpl::true_
 {
-	static bool validate(const Snapshot::Xml::PData7437::value_type& value_);
+	static bool validate(const Snapshot::Xml::PData8138::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7439
+// struct PData8140
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7439
+struct PData8140
 {
 	typedef qint32 value_type;
 };
@@ -4268,29 +4268,29 @@ struct PData7439
 } // namespace Snapshot
 
 template<>
-struct Traits<Snapshot::Xml::PData7439>
+struct Traits<Snapshot::Xml::PData8140>
 {
-	static bool parse(const QString& src_, Snapshot::Xml::PData7439::value_type& dst_);
+	static bool parse(const QString& src_, Snapshot::Xml::PData8140::value_type& dst_);
 
-	static QString generate(Snapshot::Xml::PData7439::value_type src_);
+	static QString generate(Snapshot::Xml::PData8140::value_type src_);
 
 };
 
 template<>
-struct Validatable<Snapshot::Xml::PData7439>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8140>: mpl::true_
 {
-	static bool validate(Snapshot::Xml::PData7439::value_type value_);
+	static bool validate(Snapshot::Xml::PData8140::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7441
+// struct PData8142
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7441
+struct PData8142
 {
 	typedef QString value_type;
 };
@@ -4299,20 +4299,20 @@ struct PData7441
 } // namespace Snapshot
 
 template<>
-struct Validatable<Snapshot::Xml::PData7441>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8142>: mpl::true_
 {
-	static bool validate(const Snapshot::Xml::PData7441::value_type& value_);
+	static bool validate(const Snapshot::Xml::PData8142::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7443
+// struct PData8144
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7443
+struct PData8144
 {
 	typedef qint32 value_type;
 };
@@ -4321,29 +4321,29 @@ struct PData7443
 } // namespace Snapshot
 
 template<>
-struct Traits<Snapshot::Xml::PData7443>
+struct Traits<Snapshot::Xml::PData8144>
 {
-	static bool parse(const QString& src_, Snapshot::Xml::PData7443::value_type& dst_);
+	static bool parse(const QString& src_, Snapshot::Xml::PData8144::value_type& dst_);
 
-	static QString generate(Snapshot::Xml::PData7443::value_type src_);
+	static QString generate(Snapshot::Xml::PData8144::value_type src_);
 
 };
 
 template<>
-struct Validatable<Snapshot::Xml::PData7443>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8144>: mpl::true_
 {
-	static bool validate(Snapshot::Xml::PData7443::value_type value_);
+	static bool validate(Snapshot::Xml::PData8144::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7445
+// struct PData8146
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7445
+struct PData8146
 {
 	typedef QString value_type;
 };
@@ -4352,20 +4352,20 @@ struct PData7445
 } // namespace Snapshot
 
 template<>
-struct Validatable<Snapshot::Xml::PData7445>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8146>: mpl::true_
 {
-	static bool validate(const Snapshot::Xml::PData7445::value_type& value_);
+	static bool validate(const Snapshot::Xml::PData8146::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7447
+// struct PData8148
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7447
+struct PData8148
 {
 	typedef qint32 value_type;
 };
@@ -4374,29 +4374,29 @@ struct PData7447
 } // namespace Snapshot
 
 template<>
-struct Traits<Snapshot::Xml::PData7447>
+struct Traits<Snapshot::Xml::PData8148>
 {
-	static bool parse(const QString& src_, Snapshot::Xml::PData7447::value_type& dst_);
+	static bool parse(const QString& src_, Snapshot::Xml::PData8148::value_type& dst_);
 
-	static QString generate(Snapshot::Xml::PData7447::value_type src_);
+	static QString generate(Snapshot::Xml::PData8148::value_type src_);
 
 };
 
 template<>
-struct Validatable<Snapshot::Xml::PData7447>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8148>: mpl::true_
 {
-	static bool validate(Snapshot::Xml::PData7447::value_type value_);
+	static bool validate(Snapshot::Xml::PData8148::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7449
+// struct PData8150
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7449
+struct PData8150
 {
 	typedef QString value_type;
 };
@@ -4405,20 +4405,20 @@ struct PData7449
 } // namespace Snapshot
 
 template<>
-struct Validatable<Snapshot::Xml::PData7449>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8150>: mpl::true_
 {
-	static bool validate(const Snapshot::Xml::PData7449::value_type& value_);
+	static bool validate(const Snapshot::Xml::PData8150::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7451
+// struct PData8152
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7451
+struct PData8152
 {
 	typedef quint32 value_type;
 };
@@ -4427,23 +4427,23 @@ struct PData7451
 } // namespace Snapshot
 
 template<>
-struct Traits<Snapshot::Xml::PData7451>
+struct Traits<Snapshot::Xml::PData8152>
 {
-	static bool parse(const QString& src_, Snapshot::Xml::PData7451::value_type& dst_);
+	static bool parse(const QString& src_, Snapshot::Xml::PData8152::value_type& dst_);
 
-	static QString generate(Snapshot::Xml::PData7451::value_type src_);
+	static QString generate(Snapshot::Xml::PData8152::value_type src_);
 
 };
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7453
+// struct PData8154
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7453
+struct PData8154
 {
 	typedef QString value_type;
 };
@@ -4452,20 +4452,20 @@ struct PData7453
 } // namespace Snapshot
 
 template<>
-struct Validatable<Snapshot::Xml::PData7453>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8154>: mpl::true_
 {
-	static bool validate(const Snapshot::Xml::PData7453::value_type& value_);
+	static bool validate(const Snapshot::Xml::PData8154::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7455
+// struct PData8156
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7455
+struct PData8156
 {
 	typedef QString value_type;
 };
@@ -4474,20 +4474,20 @@ struct PData7455
 } // namespace Snapshot
 
 template<>
-struct Validatable<Snapshot::Xml::PData7455>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8156>: mpl::true_
 {
-	static bool validate(const Snapshot::Xml::PData7455::value_type& value_);
+	static bool validate(const Snapshot::Xml::PData8156::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7465
+// struct PData8166
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7465
+struct PData8166
 {
 	typedef QString value_type;
 };
@@ -4496,20 +4496,20 @@ struct PData7465
 } // namespace Snapshot
 
 template<>
-struct Validatable<Snapshot::Xml::PData7465>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8166>: mpl::true_
 {
-	static bool validate(const Snapshot::Xml::PData7465::value_type& value_);
+	static bool validate(const Snapshot::Xml::PData8166::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7467
+// struct PData8168
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7467
+struct PData8168
 {
 	typedef QString value_type;
 };
@@ -4518,20 +4518,20 @@ struct PData7467
 } // namespace Snapshot
 
 template<>
-struct Validatable<Snapshot::Xml::PData7467>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8168>: mpl::true_
 {
-	static bool validate(const Snapshot::Xml::PData7467::value_type& value_);
+	static bool validate(const Snapshot::Xml::PData8168::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7469
+// struct PData8170
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7469
+struct PData8170
 {
 	typedef qint32 value_type;
 };
@@ -4540,29 +4540,29 @@ struct PData7469
 } // namespace Snapshot
 
 template<>
-struct Traits<Snapshot::Xml::PData7469>
+struct Traits<Snapshot::Xml::PData8170>
 {
-	static bool parse(const QString& src_, Snapshot::Xml::PData7469::value_type& dst_);
+	static bool parse(const QString& src_, Snapshot::Xml::PData8170::value_type& dst_);
 
-	static QString generate(Snapshot::Xml::PData7469::value_type src_);
+	static QString generate(Snapshot::Xml::PData8170::value_type src_);
 
 };
 
 template<>
-struct Validatable<Snapshot::Xml::PData7469>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8170>: mpl::true_
 {
-	static bool validate(Snapshot::Xml::PData7469::value_type value_);
+	static bool validate(Snapshot::Xml::PData8170::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7471
+// struct PData8172
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7471
+struct PData8172
 {
 	typedef QString value_type;
 };
@@ -4571,20 +4571,20 @@ struct PData7471
 } // namespace Snapshot
 
 template<>
-struct Validatable<Snapshot::Xml::PData7471>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8172>: mpl::true_
 {
-	static bool validate(const Snapshot::Xml::PData7471::value_type& value_);
+	static bool validate(const Snapshot::Xml::PData8172::value_type& value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData7473
+// struct PData8174
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData7473
+struct PData8174
 {
 	typedef qint32 value_type;
 };
@@ -4593,18 +4593,18 @@ struct PData7473
 } // namespace Snapshot
 
 template<>
-struct Traits<Snapshot::Xml::PData7473>
+struct Traits<Snapshot::Xml::PData8174>
 {
-	static bool parse(const QString& src_, Snapshot::Xml::PData7473::value_type& dst_);
+	static bool parse(const QString& src_, Snapshot::Xml::PData8174::value_type& dst_);
 
-	static QString generate(Snapshot::Xml::PData7473::value_type src_);
+	static QString generate(Snapshot::Xml::PData8174::value_type src_);
 
 };
 
 template<>
-struct Validatable<Snapshot::Xml::PData7473>: mpl::true_
+struct Validatable<Snapshot::Xml::PData8174>: mpl::true_
 {
-	static bool validate(Snapshot::Xml::PData7473::value_type value_);
+	static bool validate(Snapshot::Xml::PData8174::value_type value_);
 
 };
 
@@ -4637,7 +4637,7 @@ namespace Snapshot
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<PData7453, PData7455 > > VUUIDImpl;
+typedef Choice<mpl::vector<PData8154, PData8156 > > VUUIDImpl;
 typedef VUUIDImpl::value_type VUUID;
 
 } // namespace Xml

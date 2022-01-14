@@ -638,6 +638,11 @@ enum EModel
 	EModelIbmvscsi,
 	EModelVirtioScsi,
 	EModelLsisas1078,
+	EModelVirtioTransitional,
+	EModelVirtioNonTransitional,
+	EModelNcr53c90,
+	EModelDc390,
+	EModelAm53c974,
 	EModelHvScsi
 };
 
@@ -659,6 +664,13 @@ enum EModel1
 	EModel1QemuXhci
 };
 
+enum EModel2
+{
+	EModel2Piix3,
+	EModel2Piix4,
+	EModel2Ich6
+};
+
 enum EName4
 {
 	EName4SpaprPciHostBridge,
@@ -673,22 +685,29 @@ enum EName4
 	EName4PxbPcie
 };
 
-enum EModel2
-{
-	EModel2PciRoot,
-	EModel2PcieRoot
-};
-
 enum EModel3
 {
-	EModel3PciBridge,
-	EModel3DmiToPciBridge,
-	EModel3PcieToPciBridge,
-	EModel3PcieRootPort,
-	EModel3PcieSwitchUpstreamPort,
-	EModel3PcieSwitchDownstreamPort,
-	EModel3PciExpanderBus,
-	EModel3PcieExpanderBus
+	EModel3PciRoot,
+	EModel3PcieRoot
+};
+
+enum EModel4
+{
+	EModel4PciBridge,
+	EModel4DmiToPciBridge,
+	EModel4PcieToPciBridge,
+	EModel4PcieRootPort,
+	EModel4PcieSwitchUpstreamPort,
+	EModel4PcieSwitchDownstreamPort,
+	EModel4PciExpanderBus,
+	EModel4PcieExpanderBus
+};
+
+enum EModel5
+{
+	EModel5Virtio,
+	EModel5VirtioTransitional,
+	EModel5VirtioNonTransitional
 };
 
 enum EType8
@@ -773,15 +792,15 @@ enum EBus1
 	EBus1Xen
 };
 
-enum EModel4
+enum EModel6
 {
-	EModel4Sb16,
-	EModel4Es1370,
-	EModel4Pcspk,
-	EModel4Ac97,
-	EModel4Ich6,
-	EModel4Ich9,
-	EModel4Usb
+	EModel6Sb16,
+	EModel6Es1370,
+	EModel6Pcspk,
+	EModel6Ac97,
+	EModel6Ich6,
+	EModel6Ich9,
+	EModel6Usb
 };
 
 enum EType12
@@ -968,15 +987,15 @@ enum EBus2
 	EBus2Usb
 };
 
-enum EModel5
+enum EModel7
 {
-	EModel5Virtio
+	EModel7Virtio
 };
 
-enum EModel6
+enum EModel8
 {
-	EModel6TpmTis,
-	EModel6TpmCrb
+	EModel8TpmTis,
+	EModel8TpmCrb
 };
 
 enum EVersion
@@ -985,15 +1004,15 @@ enum EVersion
 	EVersion20
 };
 
-enum EModel7
+enum EModel9
 {
-	EModel7Dimm
+	EModel9Dimm
 };
 
-enum EModel8
+enum EModel10
 {
-	EModel8I6300esb,
-	EModel8Ib700
+	EModel10I6300esb,
+	EModel10Ib700
 };
 
 enum EAction
@@ -1006,18 +1025,18 @@ enum EAction
 	EActionDump
 };
 
-enum EModel9
+enum EModel11
 {
-	EModel9Virtio,
-	EModel9Xen,
-	EModel9None
+	EModel11Virtio,
+	EModel11Xen,
+	EModel11None
 };
 
-enum EModel10
+enum EModel12
 {
-	EModel10Isa,
-	EModel10Pseries,
-	EModel10Hyperv
+	EModel12Isa,
+	EModel12Pseries,
+	EModel12Hyperv
 };
 
 enum EName10

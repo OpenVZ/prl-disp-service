@@ -1909,23 +1909,28 @@
   </define>
   <define name="controller">
     <element name="controller">
-      <attribute name="index">
-        <ref name="unsignedInt"/>
-      </attribute>
+      <optional>
+        <attribute name="index">
+          <ref name="unsignedInt"/>
+        </attribute>
+      </optional>
       <interleave>
         <optional>
           <ref name="alias"/>
         </optional>
         <optional>
+          <ref name="acpi"/>
+        </optional>
+        <optional>
           <ref name="address"/>
         </optional>
         <choice>
-          <!-- fdc/ide/sata/ccid have only the common attributes -->
+          <!-- fdc/sata/ccid have only the common attributes -->
           <group>
             <attribute name="type">
               <choice>
                 <value>fdc</value>
-                <value>ide</value>
+				<value>ide</value> <!-- FIXME: comapt  lv 6.x -->
                 <value>sata</value>
                 <value>ccid</value>
               </choice>
@@ -1947,12 +1952,18 @@
                   <value>ibmvscsi</value>
                   <value>virtio-scsi</value>
                   <value>lsisas1078</value>
+                  <value>virtio-transitional</value>
+                  <value>virtio-non-transitional</value>
+                  <value>ncr53c90</value>
+                  <value>dc390</value>
+                  <value>am53c974</value>
                   <value>hv-scsi</value>
                 </choice>
               </attribute>
             </optional>
           </group>
-          <!-- usb has an optional attribute "model", and optional subelement "master" -->
+          <!-- usb has an optional attribute "model",
+               and optional subelements "master" and "ports" -->
           <group>
             <attribute name="type">
               <value>usb</value>
@@ -1980,6 +1991,32 @@
             <optional>
               <ref name="usbmaster"/>
             </optional>
+            <optional>
+              <attribute name="ports">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+          </group>
+          <!-- ide has an optional attribute "model" -->
+          <group>
+            <attribute name="type">
+              <value>ide</value>
+            </attribute>
+            <optional>
+              <attribute name="model">
+                <choice>
+                  <value>piix3</value>
+                  <value>piix4</value>
+                  <value>ich6</value>
+                </choice>
+              </attribute>
+            </optional>
+          </group>
+          <!-- isa -->
+          <group>
+            <attribute name="type">
+              <value>isa</value>
+            </attribute>
           </group>
           <!-- pci has an optional attribute "model" -->
           <group>
@@ -1990,24 +2027,24 @@
               <element name="model">
                 <attribute name="name">
                   <choice>
-                    <!-- implementations of 'pci-root' -->
+                    <!-- implementations of "pci-root" -->
                     <value>spapr-pci-host-bridge</value>
-                    <!-- implementations of 'pci-bridge' -->
+                    <!-- implementations of "pci-bridge" -->
                     <value>pci-bridge</value>
-                    <!-- implementations of 'dmi-to-pci-bridge' -->
+                    <!-- implementations of "dmi-to-pci-bridge" -->
                     <value>i82801b11-bridge</value>
-                    <!-- implementations of 'pcie-to-pci-bridge' -->
+                    <!-- implementations of "pcie-to-pci-bridge" -->
                     <value>pcie-pci-bridge</value>
-                    <!-- implementations of 'pcie-root-port' -->
+                    <!-- implementations of "pcie-root-port" -->
                     <value>ioh3420</value>
                     <value>pcie-root-port</value>
-                    <!-- implementations of 'pcie-switch-upstream-port' -->
+                    <!-- implementations of "pcie-switch-upstream-port" -->
                     <value>x3130-upstream</value>
-                    <!-- implementations of 'pcie-switch-downstream-port' -->
+                    <!-- implementations of "pcie-switch-downstream-port" -->
                     <value>xio3130-downstream</value>
-                    <!-- implementations of 'pci-expander-bus' -->
+                    <!-- implementations of "pci-expander-bus" -->
                     <value>pxb</value>
-                    <!-- implementations of 'pcie-expander-bus' -->
+                    <!-- implementations of "pcie-expander-bus" -->
                     <value>pxb-pcie</value>
                   </choice>
                 </attribute>
@@ -2017,33 +2054,38 @@
             <optional>
               <element name="target">
                 <optional>
-                  <attribute name='chassisNr'>
-                    <ref name='uint8'/>
+                  <attribute name="chassisNr">
+                    <ref name="uint8"/>
                   </attribute>
                 </optional>
                 <optional>
                   <attribute name="chassis">
-                    <ref name='uint8'/>
+                    <ref name="uint8"/>
                   </attribute>
                 </optional>
                 <optional>
                   <attribute name="port">
-                    <ref name='uint8'/>
+                    <ref name="uint8"/>
                   </attribute>
                 </optional>
                 <optional>
-                  <attribute name='busNr'>
-                    <ref name='uint8'/>
+                  <attribute name="busNr">
+                    <ref name="uint8"/>
                   </attribute>
                 </optional>
                 <optional>
-                  <attribute name='index'>
-                    <ref name='uint8'/>
+                  <attribute name="index">
+                    <ref name="uint8"/>
                   </attribute>
                 </optional>
                 <optional>
-                  <element name='node'>
-                    <ref name='unsignedInt'/>
+                  <attribute name="hotplug">
+                    <ref name="virOnOff"/>
+                  </attribute>
+                </optional>
+                <optional>
+                  <element name="node">
+                    <ref name="unsignedInt"/>
                   </element>
                 </optional>
               </element>
@@ -2085,12 +2127,37 @@
               <value>virtio-serial</value>
             </attribute>
             <optional>
+              <attribute name="model">
+                <choice>
+                  <value>virtio</value>
+                  <value>virtio-transitional</value>
+                  <value>virtio-non-transitional</value>
+                </choice>
+              </attribute>
+            </optional>
+            <optional>
               <attribute name="ports">
                 <ref name="unsignedInt"/>
               </attribute>
             </optional>
             <optional>
               <attribute name="vectors">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+          </group>
+          <!-- xenbus has an optional attribute "maxGrantFrames" -->
+          <group>
+            <attribute name="type">
+              <value>xenbus</value>
+            </attribute>
+            <optional>
+              <attribute name="maxGrantFrames">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+            <optional>
+              <attribute name="maxEventChannels">
                 <ref name="unsignedInt"/>
               </attribute>
             </optional>
@@ -2119,11 +2186,13 @@
             <optional>
               <ref name="driverIOThread"/>
             </optional>
+            <ref name="virtioOptions"/>
           </element>
         </optional>
       </interleave>
     </element>
   </define>
+
   <define name="filesystem">
     <element name="filesystem">
       <choice>
@@ -4780,6 +4849,16 @@
     </element>
   </define>
 
+  <define name="acpi">
+    <element name="acpi">
+      <optional>
+        <attribute name="index">
+          <ref name="unsignedInt"/>
+        </attribute>
+      </optional>
+    </element>
+  </define>
+
   <define name="memorydev">
     <element name="memory">
       <attribute name="model">
@@ -4889,6 +4968,24 @@
       </optional>
       <empty/>
     </element>
+  </define>
+
+  <define name="virtioOptions">
+    <optional>
+      <attribute name="iommu">
+        <ref name="virOnOff"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="ats">
+        <ref name="virOnOff"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="packed">
+        <ref name="virOnOff"/>
+      </attribute>
+    </optional>
   </define>
 
   <define name="usbmaster">
