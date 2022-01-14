@@ -121,7 +121,7 @@ namespace Device
 {
 
 struct List;
-typedef QList<Libvirt::Domain::Xml::VChoice985 > deviceList_type;
+typedef QList<Libvirt::Domain::Xml::VChoice7097 > deviceList_type;
 typedef Boot::Reverse::order_type boot_type;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -659,7 +659,7 @@ struct View
 	QStringList getMacList() const;
 	boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> getPredefinedFilterref() const;
 	boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes> getFilterref() const;
-	boost::optional<Libvirt::Domain::Xml::Bandwidth > getBandwidth() const;
+	boost::optional<Libvirt::Domain::Xml::Bandwidth1 > getBandwidth() const;
 	boost::optional<Libvirt::Domain::Xml::VVirtualPortProfile> getVVirtualPortProfile() const;
 	QStringList getIpv4() const;
 	QStringList getIpv6() const;
@@ -740,9 +740,9 @@ namespace Controller
 
 struct Factory
 {
-	typedef Libvirt::Domain::Xml::VChoice985 result_type;
+	typedef Libvirt::Domain::Xml::VChoice7097 result_type;
 	Libvirt::Domain::Xml::Controller craft
-		(const Libvirt::Domain::Xml::VChoice625& bus_, quint16 index_);
+		(const Libvirt::Domain::Xml::VChoice5117& bus_, quint16 index_);
 	result_type wrap(const Libvirt::Domain::Xml::Controller& object_);
 };
 
@@ -752,7 +752,7 @@ struct Factory
 class Moldy: Factory
 {
 public: 
-	result_type operator()(Libvirt::Domain::Xml::EType6 bus_, quint16 index_);
+	result_type operator()(Libvirt::Domain::Xml::EType7 bus_, quint16 index_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -780,7 +780,7 @@ namespace Scsi
 
 struct Arrangement
 {
-	typedef boost::function<Libvirt::Domain::Xml::VChoice985 (quint16)>
+	typedef boost::function<Libvirt::Domain::Xml::VChoice7097 (quint16)>
 		factory_type;
 
 	explicit Arrangement(const factory_type& factory_):
@@ -966,7 +966,7 @@ private:
 	}
 
 	void craftController(Libvirt::Domain::Xml::EModel1 model_);
-	void add(Libvirt::Domain::Xml::EType10 type_);
+	void add(Libvirt::Domain::Xml::EType11 type_);
 
 	const CVmUsbController* m_settings;
 	deviceList_type m_deviceList;
@@ -986,11 +986,11 @@ struct Indicator: boost::static_visitor<bool>
 		return false;
 	}
 
-	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 7>::type& variant_) const
+	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 7>::type& variant_) const
 	{
-		return boost::apply_visitor(*this, variant_.getValue().getChoice917());
+		return boost::apply_visitor(*this, variant_.getValue().getChoice7065());
 	}
-	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice917::types, 0>::type& variant_) const
+	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7065::types, 0>::type& variant_) const
 	{
 		return boost::apply_visitor(*this, variant_.getValue().getHostdevsubsys());
 	}
@@ -999,7 +999,7 @@ struct Indicator: boost::static_visitor<bool>
 		return boost::apply_visitor(*this, variant_.getValue().getSource().getSource());
 	}
 	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VSource1::types, 0>::type& variant_) const;
-	bool operator()(Libvirt::Domain::Xml::VChoice985& device_) const
+	bool operator()(Libvirt::Domain::Xml::VChoice7097& device_) const
 	{
 		return boost::apply_visitor(*this, device_);
 	}
