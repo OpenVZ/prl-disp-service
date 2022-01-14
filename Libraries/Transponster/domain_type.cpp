@@ -7119,6 +7119,19 @@ namespace Domain
 {
 namespace Xml
 {
+const VDiskBackingChainBin* BackingStore::getDiskBackingChain() const
+{
+	if (m_diskBackingChain.empty())
+		return NULL;
+
+	return boost::any_cast<VDiskBackingChainBin >(&m_diskBackingChain);
+}
+
+void BackingStore::setDiskBackingChain(const VDiskBackingChainBin& value_)
+{
+	m_diskBackingChain = value_;
+}
+
 bool BackingStore::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
