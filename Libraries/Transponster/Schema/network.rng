@@ -6,8 +6,8 @@
     <ref name="network"/>
   </start>
 
-  <include href='basictypes.rng'/>
-  <include href='networkcommon.rng'/>
+  <include href="basictypes.rng"/>
+  <include href="networkcommon.rng"/>
 
   <define name="network">
 
@@ -24,6 +24,11 @@
           <ref name="virYesNo"/>
         </attribute>
       </optional>
+      <optional>
+        <attribute name="trustGuestRxFilters">
+          <ref name="virYesNo"/>
+        </attribute>
+      </optional>
       <interleave>
 
         <!-- The name of the network, used to refer to it through the API
@@ -31,6 +36,11 @@
         <element name="name">
           <text/>
         </element>
+
+        <!-- <metadata> element -->
+        <optional>
+          <ref name="metadata"/>
+        </optional>
 
         <!-- <uuid> element -->
         <optional>
@@ -49,6 +59,12 @@
             </optional>
 
             <optional>
+              <attribute name="zone">
+                <ref name="zoneName"/>
+              </attribute>
+            </optional>
+
+            <optional>
               <attribute name="stp">
                 <ref name="virOnOff"/>
               </attribute>
@@ -60,7 +76,18 @@
               </attribute>
             </optional>
 
+            <optional>
+              <attribute name="macTableManager">
+                <ref name="macTableManager"/>
+              </attribute>
+            </optional>
+
           </element>
+        </optional>
+
+        <!-- <mtu> element -->
+        <optional>
+          <ref name="mtu"/>
         </optional>
 
         <!-- <mac> element -->
@@ -87,6 +114,7 @@
                 <choice>
                   <value>nat</value>
                   <value>route</value>
+                  <value>open</value>
                   <value>bridge</value>
                   <value>passthrough</value>
                   <value>private</value>
@@ -105,9 +133,9 @@
               <choice>
                 <group>
                   <zeroOrMore>
-                    <element name='interface'>
-                      <attribute name='dev'>
-                        <ref name='deviceName'/>
+                    <element name="interface">
+                      <attribute name="dev">
+                        <ref name="deviceName"/>
                       </attribute>
                       <optional>
                         <attribute name="connections">
@@ -119,8 +147,8 @@
                 </group>
                 <group>
                   <zeroOrMore>
-                    <element name='address'>
-                      <attribute name='type'>
+                    <element name="address">
+                      <attribute name="type">
                         <value>pci</value>
                       </attribute>
                       <ref name="pciaddress"/>
@@ -134,9 +162,9 @@
                 </group>
               </choice>
               <optional>
-                <element name='pf'>
-                  <attribute name='dev'>
-                    <ref name='deviceName'/>
+                <element name="pf">
+                  <attribute name="dev">
+                    <ref name="deviceName"/>
                   </attribute>
                 </element>
               </optional>
@@ -152,25 +180,30 @@
                 </element>
               </optional>
               <optional>
-                <element name='nat'>
+                <element name="nat">
+                  <optional>
+                    <attribute name="ipv6">
+                      <ref name="virYesNo"/>
+                    </attribute>
+                  </optional>
                   <interleave>
                     <optional>
-                      <element name='address'>
-                        <attribute name='start'>
-                          <ref name='ipv4Addr'/>
+                      <element name="address">
+                        <attribute name="start">
+                          <ref name="ipv4Addr"/>
                         </attribute>
-                        <attribute name='end'>
-                          <ref name='ipv4Addr'/>
+                        <attribute name="end">
+                          <ref name="ipv4Addr"/>
                         </attribute>
                       </element>
                     </optional>
                     <optional>
-                      <element name='port'>
-                        <attribute name='start'>
-                          <ref name='port'/>
+                      <element name="port">
+                        <attribute name="start">
+                          <ref name="port"/>
                         </attribute>
-                        <attribute name='end'>
-                          <ref name='port'/>
+                        <attribute name="end">
+                          <ref name="port"/>
                         </attribute>
                       </element>
                     </optional>
@@ -197,6 +230,11 @@
                 <ref name="virYesNo"/>
               </attribute>
             </optional>
+            <optional>
+              <attribute name="trustGuestRxFilters">
+                <ref name="virYesNo"/>
+              </attribute>
+            </optional>
             <interleave>
               <optional>
                 <ref name="virtualPortProfile"/>
@@ -204,9 +242,9 @@
               <optional>
                 <ref name="bandwidth"/>
               </optional>
-            <optional>
-              <ref name="vlan"/>
-            </optional>
+              <optional>
+                <ref name="vlan"/>
+              </optional>
             </interleave>
           </element>
         </zeroOrMore>
@@ -215,6 +253,9 @@
         <optional>
           <element name="domain">
             <attribute name="name"><ref name="dnsName"/></attribute>
+            <optional>
+              <attribute name="localOnly"><ref name="virYesNo"/></attribute>
+            </optional>
           </element>
         </optional>
 
@@ -235,7 +276,13 @@
             <interleave>
               <zeroOrMore>
                 <element name="forwarder">
-                  <attribute name="addr"><ref name="ipAddr"/></attribute>
+                  <optional>
+                    <attribute name="addr"><ref name="ipAddr"/></attribute>
+                  </optional>
+                  <optional>
+                    <attribute name="domain"><ref name="dnsName"/></attribute>
+                  </optional>
+                  <empty/>
                 </element>
               </zeroOrMore>
               <zeroOrMore>
@@ -252,13 +299,21 @@
                   </attribute>
                   <optional>
                     <attribute name="domain"><ref name="dnsName"/></attribute>
+                  </optional>
+                  <optional>
                     <attribute name="target"><text/></attribute>
+                  </optional>
+                  <optional>
                     <attribute name="port">
                       <ref name="unsignedShort"/>
                     </attribute>
+                  </optional>
+                  <optional>
                     <attribute name="priority">
                       <ref name="unsignedShort"/>
                     </attribute>
+                  </optional>
+                  <optional>
                     <attribute name="weight">
                       <ref name="unsignedShort"/>
                     </attribute>
@@ -280,7 +335,10 @@
           <ref name="bandwidth"/>
         </optional>
         <optional>
-         <ref name="vlan"/>
+          <ref name="vlan"/>
+        </optional>
+        <optional>
+          <ref name="portOptions"/>
         </optional>
 
         <!-- <ip> element -->
@@ -301,71 +359,91 @@
               <attribute name="family"><ref name="addr-family"/></attribute>
             </optional>
             <optional>
-              <element name="tftp">
-                <attribute name="root"><text/></attribute>
-              </element>
+              <attribute name="localPtr"><ref name="virYesNo"/></attribute>
             </optional>
-            <optional>
-              <!-- Define the range(s) of IP addresses that the DHCP
-                   server should hand out -->
-              <element name="dhcp">
-                <zeroOrMore>
-                  <element name="range">
-                    <attribute name="start"><ref name="ipAddr"/></attribute>
-                    <attribute name="end"><ref name="ipAddr"/></attribute>
-                  </element>
-                </zeroOrMore>
-                <zeroOrMore>
-                  <element name="host">
-                    <choice>
-                      <group>
+            <interleave>
+              <optional>
+                <element name="tftp">
+                  <attribute name="root"><text/></attribute>
+                </element>
+              </optional>
+              <optional>
+                <!-- Define the range(s) of IP addresses that the DHCP
+                     server should hand out -->
+                <element name="dhcp">
+                  <interleave>
+                    <zeroOrMore>
+                      <element name="range">
+                        <attribute name="start"><ref name="ipAddr"/></attribute>
+                        <attribute name="end"><ref name="ipAddr"/></attribute>
+                        <interleave>
+                          <optional>
+                            <element name="lease">
+                              <attribute name="expiry"><ref name="unsignedLong"/></attribute>
+                              <optional>
+                                <attribute name="unit"><ref name="leaseUnit"/></attribute>
+                              </optional>
+                            </element>
+                          </optional>
+                        </interleave>
+                      </element>
+                    </zeroOrMore>
+                    <zeroOrMore>
+                      <element name="host">
                         <choice>
-                          <attribute name="mac"><ref name="uniMacAddr"/></attribute>
-                          <attribute name="id"><ref name="DUID"/></attribute>
-                        </choice>
-                        <optional>
+                          <group>
+                            <choice>
+                              <attribute name="mac"><ref name="uniMacAddr"/></attribute>
+                              <attribute name="id"><ref name="DUID"/></attribute>
+                            </choice>
+                            <optional>
+                              <attribute name="name"><text/></attribute>
+                            </optional>
+                          </group>
                           <attribute name="name"><text/></attribute>
-                        </optional>
-                      </group>
-                      <attribute name="name"><text/></attribute>
-                    </choice>
-                    <attribute name="ip"><ref name="ipAddr"/></attribute>
-                  </element>
-                </zeroOrMore>
-                <optional>
-                  <element name="bootp">
-                    <attribute name="file"><ref name="filePath"/></attribute>
+                        </choice>
+                        <attribute name="ip"><ref name="ipAddr"/></attribute>
+                        <interleave>
+                          <optional>
+                            <element name="lease">
+                              <attribute name="expiry"><ref name="unsignedLong"/></attribute>
+                              <optional>
+                                <attribute name="unit"><ref name="leaseUnit"/></attribute>
+                              </optional>
+                            </element>
+                          </optional>
+                        </interleave>
+                      </element>
+                    </zeroOrMore>
                     <optional>
-                      <attribute name="server"><ref name="dnsName"/></attribute>
+                      <element name="bootp">
+                        <attribute name="file"><ref name="filePath"/></attribute>
+                        <optional>
+                          <attribute name="server"><ref name="dnsName"/></attribute>
+                        </optional>
+                      </element>
                     </optional>
-                  </element>
-                </optional>
-              </element>
-            </optional>
+                  </interleave>
+                </element>
+              </optional>
+            </interleave>
           </element>
         </zeroOrMore>
         <!-- <route> element -->
         <zeroOrMore>
-          <!-- The (static) route element specifies a network address and gateway
-               address to access that network. Both the network address and
-               the gateway address must be specified. -->
-          <element name="route">
-            <optional>
-              <attribute name="family"><ref name="addr-family"/></attribute>
-            </optional>
-            <attribute name="address"><ref name="ipAddr"/></attribute>
-            <optional>
-              <choice>
-                <attribute name="netmask"><ref name="ipv4Addr"/></attribute>
-                <attribute name="prefix"><ref name="ipPrefix"/></attribute>
-              </choice>
-            </optional>
-            <attribute name="gateway"><ref name="ipAddr"/></attribute>
-            <optional>
-              <attribute name="metric"><ref name="unsignedInt"/></attribute>
-            </optional>
-          </element>
+          <ref name="route"/>
         </zeroOrMore>
+
+      <!-- <dnsmasq:options> -->
+      <optional>
+        <element name="options" ns="http://libvirt.org/schemas/network/dnsmasq/1.0">
+          <zeroOrMore>
+            <element name="option">
+              <attribute name="value"/>
+            </element>
+          </zeroOrMore>
+        </element>
+      </optional>
       </interleave>
     </element>
   </define>

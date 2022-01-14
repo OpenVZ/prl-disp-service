@@ -19,17 +19,17 @@
             <element name="parameters">
               <optional>
                 <attribute name="managerid">
-                  <ref name="uint8range"/>
+                  <ref name="uint8"/>
                 </attribute>
               </optional>
               <optional>
                 <attribute name="typeid">
-                  <ref name="uint24range"/>
+                  <ref name="uint24"/>
                 </attribute>
               </optional>
               <optional>
                 <attribute name="typeidversion">
-                  <ref name="uint8range"/>
+                  <ref name="uint8"/>
                 </attribute>
               </optional>
               <optional>
@@ -79,23 +79,35 @@
         </element>
       </group>
       <group>
+        <element name="virtualport">
+          <attribute name="type">
+            <value>midonet</value>
+          </attribute>
+          <element name="parameters">
+            <attribute name="interfaceid">
+              <ref name="UUID"/>
+            </attribute>
+          </element>
+        </element>
+      </group>
+      <group>
         <!-- use this when no type attribute is present -->
         <element name="virtualport">
           <optional>
             <element name="parameters">
               <optional>
                 <attribute name="managerid">
-                  <ref name="uint8range"/>
+                  <ref name="uint8"/>
                 </attribute>
               </optional>
               <optional>
                 <attribute name="typeid">
-                  <ref name="uint24range"/>
+                  <ref name="uint24"/>
                 </attribute>
               </optional>
               <optional>
                 <attribute name="typeidversion">
-                  <ref name="uint8range"/>
+                  <ref name="uint8"/>
                 </attribute>
               </optional>
               <optional>
@@ -122,6 +134,11 @@
 
   <define name="bandwidth">
     <element name="bandwidth">
+      <optional>
+        <attribute name="classID">
+          <ref name="positiveInteger"/>
+        </attribute>
+      </optional>
       <interleave>
         <optional>
           <element name="inbound">
@@ -140,9 +157,11 @@
   </define>
 
   <define name="bandwidth-attributes">
-    <attribute name="average">
-      <ref name="speed"/>
-    </attribute>
+    <optional>
+      <attribute name="average">
+        <ref name="speed"/>
+      </attribute>
+    </optional>
     <optional>
       <attribute name="peak">
         <ref name="speed"/>
@@ -154,7 +173,7 @@
       </attribute>
     </optional>
     <optional>
-      <attribute name='burst'>
+      <attribute name="burst">
         <ref name="BurstSize"/>
       </attribute>
     </optional>
@@ -173,19 +192,19 @@
     </data>
   </define>
 
-  <define name='unsignedShort'>
-    <data type='integer'>
+  <define name="unsignedShort">
+    <data type="integer">
       <param name="minInclusive">0</param>
       <param name="maxInclusive">65535</param>
     </data>
   </define>
-  <define name='protocol'>
-    <data type='string'>
-      <param name='pattern'>(tcp)|(udp)</param>
+  <define name="protocol">
+    <data type="string">
+      <param name="pattern">(tcp)|(udp)</param>
     </data>
   </define>
-  <define name='addr-family'>
-    <data type='string'>
+  <define name="addr-family">
+    <data type="string">
       <param name="pattern">(ipv4)|(ipv6)</param>
     </data>
   </define>
@@ -218,11 +237,33 @@
     </element>
   </define>
 
-  <define name='port'>
-    <data type='integer'>
-      <param name='minInclusive'>1</param>
-      <param name='maxInclusive'>65535</param>
+  <define name="port">
+    <data type="integer">
+      <param name="minInclusive">1</param>
+      <param name="maxInclusive">65535</param>
     </data>
+  </define>
+
+  <!-- The (static) route element specifies a network address and gateway
+       address to access that network. Both the network address and
+       the gateway address must be specified. -->
+  <define name="route">
+    <element name="route">
+      <optional>
+        <attribute name="family"><ref name="addr-family"/></attribute>
+      </optional>
+      <attribute name="address"><ref name="ipAddr"/></attribute>
+      <optional>
+        <choice>
+          <attribute name="netmask"><ref name="ipv4Addr"/></attribute>
+          <attribute name="prefix"><ref name="ipPrefix"/></attribute>
+        </choice>
+      </optional>
+      <attribute name="gateway"><ref name="ipAddr"/></attribute>
+      <optional>
+        <attribute name="metric"><ref name="unsignedInt"/></attribute>
+      </optional>
+    </element>
   </define>
 
   <define name="macTableManager">
@@ -231,4 +272,23 @@
       <value>libvirt</value>
     </choice>
   </define>
+
+  <define name="mtu">
+    <element name="mtu">
+      <attribute name="size">
+        <ref name="unsignedShort"/>
+      </attribute>
+    </element>
+  </define>
+
+  <define name="portOptions">
+    <element name="port">
+      <optional>
+        <attribute name="isolated">
+          <ref name="virYesNo"/>
+        </attribute>
+      </optional>
+    </element>
+  </define>
+
 </grammar>
