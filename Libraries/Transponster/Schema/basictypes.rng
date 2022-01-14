@@ -2,20 +2,20 @@
 <!-- network-related definitions used in multiple grammars -->
 <grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
 
-  <!-- Our unsignedInt doesn"t allow a leading "+" in its lexical form -->
+  <!-- Our unsignedInt doesn't allow a leading "+" in its lexical form -->
   <define name="unsignedInt">
     <data type="unsignedInt">
       <param name="pattern">[0-9]+</param>
     </data>
   </define>
-  <define name='unsignedLong'>
-    <data type='unsignedLong'>
-      <param name='pattern'>[0-9]+</param>
+  <define name="unsignedLong">
+    <data type="unsignedLong">
+      <param name="pattern">[0-9]+</param>
     </data>
   </define>
 
-  <define name='hexuint'>
-    <data type='string'>
+  <define name="hexuint">
+    <data type="string">
       <param name="pattern">(0x)?[0-9a-f]+</param>
     </data>
   </define>
@@ -26,9 +26,9 @@
     </data>
   </define>
 
-  <define name='octalMode'>
+  <define name="octalMode">
     <data type="unsignedInt">
-      <param name='pattern'>[0-7]+</param>
+      <param name="pattern">[0-7]+</param>
     </data>
   </define>
 
@@ -54,6 +54,17 @@
       </data>
     </choice>
   </define>
+  <define name="uint16">
+    <choice>
+      <data type="string">
+        <param name="pattern">(0x)?[0-9a-fA-F]{1,4}</param>
+      </data>
+      <data type="int">
+        <param name="minInclusive">0</param>
+        <param name="maxInclusive">65535</param>
+      </data>
+    </choice>
+  </define>
   <define name="uint24range">
     <choice>
       <data type="string">
@@ -62,6 +73,28 @@
       <data type="int">
         <param name="minInclusive">0</param>
         <param name="maxInclusive">16777215</param>
+      </data>
+    </choice>
+  </define>
+  <define name="uint24">
+    <choice>
+      <data type="string">
+        <param name="pattern">0x[0-9a-fA-F]{1,6}</param>
+      </data>
+      <data type="int">
+        <param name="minInclusive">0</param>
+        <param name="maxInclusive">16777215</param>
+      </data>
+    </choice>
+  </define>
+  <define name="uint32">
+    <choice>
+      <data type="string">
+        <param name="pattern">(0x)?[0-9a-fA-F]{1,8}</param>
+      </data>
+      <data type="unsignedInt">
+        <param name="minInclusive">0</param>
+        <param name="maxInclusive">4294967295</param>
       </data>
     </choice>
   </define>
@@ -77,25 +110,54 @@
     </choice>
   </define>
 
+  <define name="numaDistanceValue">
+    <data type="unsignedInt">
+      <param name="minInclusive">10</param>
+      <param name="maxInclusive">255</param>
+    </data>
+  </define>
+
   <define name="pciaddress">
     <optional>
       <attribute name="domain">
         <ref name="pciDomain"/>
       </attribute>
     </optional>
-    <attribute name="bus">
-      <ref name="pciBus"/>
-    </attribute>
-    <attribute name="slot">
-      <ref name="pciSlot"/>
-    </attribute>
-    <attribute name="function">
-      <ref name="pciFunc"/>
-    </attribute>
+    <optional>
+      <attribute name="bus">
+        <ref name="pciBus"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="slot">
+        <ref name="pciSlot"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="function">
+        <ref name="pciFunc"/>
+      </attribute>
+    </optional>
     <optional>
       <attribute name="multifunction">
         <ref name="virOnOff"/>
       </attribute>
+    </optional>
+  </define>
+  <define name="zpciaddress">
+    <optional>
+      <element name="zpci">
+        <optional>
+          <attribute name="uid">
+            <ref name="uint16"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="fid">
+            <ref name="uint32"/>
+          </attribute>
+        </optional>
+      </element>
     </optional>
   </define>
 
@@ -126,8 +188,8 @@
   <!--interface on a device (system).  The duid is often used by servers  -->
   <!--such as dnsmasq to assign a specific IP address (and optionally a   -->
   <!--name to an interface.  The applicable standards are RFC3315 and     -->
-  <!--RFC6355.  These standards actualy require the duid to be fixed for  -->
-  <!--the hardward device and applicable to all network interfaces on     -->
+  <!--RFC6355.  These standards actually require the duid to be fixed for -->
+  <!--the hardware device and applicable to all network interfaces on     -->
   <!--that device.  It is not clear that any software currently enforces  -->
   <!--this requirement although it could be implemented manually.         -->
   <!--====================================================================-->
@@ -191,7 +253,7 @@
   <define name="ipv6Addr">
     <data type="string">
       <!-- To understand this better, take apart the toplevel "|"s -->
-<param name="pattern">(([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}(((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9])))|(([0-9A-Fa-f]{1,4}:){0,5}:(((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9])))|(::([0-9A-Fa-f]{1,4}:){0,5}(((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9])))|([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,7}:|::)</param>
+<param name="pattern">(([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}(((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9])))|(([0-9A-Fa-f]{1,4}:){0,5}:(((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9])))|(::([0-9A-Fa-f]{1,4}:){0,5}(((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9]))\.){3}((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9])))|([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,7}:)|(::)</param>
     </data>
   </define>
 
@@ -221,6 +283,19 @@
     </choice>
   </define>
 
+  <!-- objectName represents any generic string for naming objects like domain -->
+  <define name="objectNameWithSlash">
+    <data type="string">
+      <param name="pattern">[^\n]+</param>
+    </data>
+  </define>
+
+  <define name="objectName">
+    <data type="string">
+      <param name="pattern">[^/\n]+</param>
+    </data>
+  </define>
+
   <define name="genericName">
     <data type="string">
       <param name="pattern">[a-zA-Z0-9_\+\-]+</param>
@@ -239,68 +314,88 @@
     </data>
   </define>
 
+  <define name="zoneName">
+    <data type="string">
+      <param name="pattern">[a-zA-Z0-9_\-]+</param>
+    </data>
+  </define>
+
   <define name="filePath">
     <data type="string">
-      <param name="pattern">[a-zA-Z0-9_\.\+\-\\&amp;&quot;{}&apos;&lt;&gt;/%:&#x20;()]+</param>
+      <param name="pattern">.+</param>
     </data>
   </define>
 
   <define name="dirPath">
     <data type="string">
-      <param name="pattern">[a-zA-Z0-9_\.\+\-\\&amp;&quot;{}&apos;&lt;&gt;/%:&#x20;()]+</param>
+      <param name="pattern">.+</param>
     </data>
   </define>
 
   <define name="absFilePath">
     <data type="string">
-      <param name="pattern">/[a-zA-Z0-9_\.\+\-\\&amp;&quot;{}&apos;&lt;&gt;/%,:&#x20;()]+</param>
+      <param name="pattern">(/|[a-zA-Z]:\\).+</param>
+    </data>
+  </define>
+
+  <define name="vmwarePath">
+    <data type="string">
+      <param name="pattern">\[[^\]]+\] .+</param>
     </data>
   </define>
 
   <define name="absDirPath">
     <data type="string">
-      <param name="pattern">/[a-zA-Z0-9_\.\+\-\\&amp;&quot;{}&apos;&lt;&gt;/%:&#x20;()]*</param>
+      <param name="pattern">/.*</param>
     </data>
   </define>
 
-  <define name='unit'>
-    <data type='string'>
-      <param name='pattern'>([bB]([yY][tT][eE][sS]?)?)|([kKmMgGtTpPeE]([iI]?[bB])?)</param>
+  <define name="unit">
+    <data type="string">
+      <param name="pattern">([bB]([yY][tT][eE][sS]?)?)|([kKmMgGtTpPeE]([iI]?[bB])?)</param>
     </data>
   </define>
-  <define name='scaledInteger'>
+  <define name="scaledInteger">
     <optional>
-      <attribute name='unit'>
-        <ref name='unit'/>
+      <attribute name="unit">
+        <ref name="unit"/>
       </attribute>
     </optional>
-    <ref name='unsignedLong'/>
+    <ref name="unsignedLong"/>
   </define>
 
   <define name="pciDomain">
-    <data type="string">
-      <param name="pattern">(0x)?[0-9a-fA-F]{1,4}</param>
-    </data>
+    <ref name="uint32"/>
   </define>
   <define name="pciBus">
-    <data type="string">
-      <param name="pattern">(0x)?[0-9a-fA-F]{1,2}</param>
-    </data>
+    <ref name="uint8"/>
   </define>
   <define name="pciSlot">
-    <data type="string">
-      <param name="pattern">(0x)?[0-1]?[0-9a-fA-F]</param>
-    </data>
+    <choice>
+      <data type="string">
+        <param name="pattern">(0x)?[0-1]?[0-9a-fA-F]</param>
+      </data>
+      <data type="int">
+        <param name="minInclusive">0</param>
+        <param name="maxInclusive">31</param>
+      </data>
+    </choice>
   </define>
   <define name="pciFunc">
-    <data type="string">
-      <param name="pattern">(0x)?[0-7]</param>
-    </data>
+    <choice>
+      <data type="string">
+        <param name="pattern">(0x)?[0-7]</param>
+      </data>
+      <data type="int">
+        <param name="minInclusive">0</param>
+        <param name="maxInclusive">7</param>
+      </data>
+    </choice>
   </define>
 
-  <define name='wwn'>
-    <data type='string'>
-      <param name='pattern'>(0x)?[0-9a-fA-F]{16}</param>
+  <define name="wwn">
+    <data type="string">
+      <param name="pattern">(0x)?[0-9a-fA-F]{16}</param>
     </data>
   </define>
 
@@ -334,15 +429,16 @@
       </data>
     </choice>
   </define>
+
   <define name="cpuset">
     <data type="string">
       <param name="pattern">([0-9]+(-[0-9]+)?|\^[0-9]+)(,([0-9]+(-[0-9]+)?|\^[0-9]+))*</param>
     </data>
   </define>
 
-  <define name='volName'>
+  <define name="volName">
     <!-- directory pools allow almost any file name as a volume name -->
-    <data type='string'>
+    <data type="string">
       <param name="pattern">[^/]+</param>
       <except>
         <choice>
@@ -353,10 +449,11 @@
     </data>
   </define>
 
-  <define name='archnames'>
+  <define name="archnames">
     <choice>
       <value>aarch64</value>
       <value>alpha</value>
+      <value>armv6l</value>
       <value>armv7l</value>
       <value>cris</value>
       <value>i686</value>
@@ -374,7 +471,10 @@
       <value>parisc64</value>
       <value>ppc</value>
       <value>ppc64</value>
+      <value>ppc64le</value>
       <value>ppcemb</value>
+      <value>riscv32</value>
+      <value>riscv64</value>
       <value>s390</value>
       <value>s390x</value>
       <value>sh4</value>
@@ -395,20 +495,20 @@
     </data>
   </define>
 
-  <define name='sourceinfoadapter'>
-    <element name='adapter'>
+  <define name="sourceinfoadapter">
+    <element name="adapter">
       <choice>
         <group>
-          <!-- To keep back-compat, 'type' is not mandatory for
+          <!-- To keep back-compat, "type" is not mandatory for
            scsi_host adapter -->
           <optional>
-            <attribute name='type'>
+            <attribute name="type">
               <value>scsi_host</value>
             </attribute>
           </optional>
           <choice>
             <group>
-              <attribute name='name'>
+              <attribute name="name">
                 <text/>
               </attribute>
             </group>
@@ -416,8 +516,8 @@
               <interleave>
                 <element name="parentaddr">
                   <optional>
-                    <attribute name='unique_id'>
-                      <ref name='positiveInteger'/>
+                    <attribute name="unique_id">
+                      <ref name="positiveInteger"/>
                     </attribute>
                   </optional>
                   <element name="address">
@@ -429,19 +529,39 @@
           </choice>
         </group>
         <group>
-          <attribute name='type'>
+          <attribute name="type">
             <value>fc_host</value>
           </attribute>
           <optional>
-            <attribute name='parent'>
+            <attribute name="parent">
               <text/>
             </attribute>
           </optional>
-          <attribute name='wwnn'>
-            <ref name='wwn'/>
+          <optional>
+            <attribute name="managed">
+              <ref name="virYesNo"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="parent_wwnn">
+              <ref name="wwn"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="parent_wwpn">
+              <ref name="wwn"/>
+            </attribute>
+          </optional>
+          <optional>
+            <attribute name="parent_fabric_wwn">
+              <ref name="wwn"/>
+            </attribute>
+          </optional>
+          <attribute name="wwnn">
+            <ref name="wwn"/>
           </attribute>
-          <attribute name='wwpn'>
-            <ref name='wwn'/>
+          <attribute name="wwpn">
+            <ref name="wwn"/>
           </attribute>
         </group>
       </choice>
@@ -526,6 +646,14 @@
         </choice>
       </zeroOrMore>
     </element>
+  </define>
+
+  <define name="leaseUnit">
+    <choice>
+      <value>seconds</value>
+      <value>minutes</value>
+      <value>hours</value>
+    </choice>
   </define>
 
 </grammar>
