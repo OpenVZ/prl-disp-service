@@ -8695,7 +8695,17 @@ static QString g_text[] = {
 	QString("variant8667"),
 	QString("choice8668"),
 	QString("data8669"),
-	QString("")
+	QString(""),
+	QString("vgaconf"),
+	QString("vzct"),
+	QString("gop"),
+	QString("ramfb"),
+	QString("vgamem"),
+	QString("vram64"),
+	QString("rendernode"),
+	QString("resolution"),
+	QString("x"),
+	QString("y")
 };
 
 const QString& getText(quint32 index_)

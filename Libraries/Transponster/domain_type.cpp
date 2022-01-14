@@ -7119,19 +7119,6 @@ namespace Domain
 {
 namespace Xml
 {
-	const VDiskBackingChainBin* BackingStore::getDiskBackingChain() const
-	{
-		if (m_diskBackingChain.empty())
-			return NULL;
-
-		return boost::any_cast<VDiskBackingChainBin >(&m_diskBackingChain);
-	}
-
-	void BackingStore::setDiskBackingChain(const VDiskBackingChainBin& value_)
-	{
-		m_diskBackingChain = value_;
-	}
-
 bool BackingStore::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
@@ -12151,6 +12138,98 @@ int Traits<Domain::Xml::Graphics7042>::generate(const Domain::Xml::Graphics7042&
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Driver4
+
+namespace Domain
+{
+namespace Xml
+{
+bool Driver4::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Driver4, Name::Strict<546> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Driver4::save(QDomElement& dst_) const
+{
+	Element<Driver4, Name::Strict<546> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Driver4::save(QDomDocument& dst_) const
+{
+	Element<Driver4, Name::Strict<546> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Domain
+
+int Traits<Domain::Xml::Driver4>::parse(Domain::Xml::Driver4& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setVirtioOptions(m.get<0>().getValue());
+		dst_.setName(m.get<1>().getValue());
+		dst_.setVgaconf(m.get<2>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::Driver4>::generate(const Domain::Xml::Driver4& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getVirtioOptions(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getName(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVgaconf(), m.get<2>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Model7046
+
+int Traits<Domain::Xml::Model7046>::parse(Domain::Xml::Model7046& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setRam(m.get<1>().getValue());
+		dst_.setVgamem(m.get<2>().getValue());
+		dst_.setVram64(m.get<3>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::Model7046>::generate(const Domain::Xml::Model7046& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getRam(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVgamem(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVram64(), m.get<3>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Acceleration
 
 namespace Domain
@@ -12195,6 +12274,7 @@ int Traits<Domain::Xml::Acceleration>::parse(Domain::Xml::Acceleration& dst_, QS
 	{
 		dst_.setAccel3d(m.get<0>().getValue());
 		dst_.setAccel2d(m.get<1>().getValue());
+		dst_.setRendernode(m.get<2>().getValue());
 	}
 	return output;
 }
@@ -12205,6 +12285,72 @@ int Traits<Domain::Xml::Acceleration>::generate(const Domain::Xml::Acceleration&
 	if (0 > Details::Marshal::assign(src_.getAccel3d(), m.get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getAccel2d(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getRendernode(), m.get<2>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Resolution
+
+namespace Domain
+{
+namespace Xml
+{
+Resolution::Resolution(): m_x(), m_y()
+{
+}
+
+bool Resolution::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Resolution, Name::Strict<8679> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Resolution::save(QDomElement& dst_) const
+{
+	Element<Resolution, Name::Strict<8679> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Resolution::save(QDomDocument& dst_) const
+{
+	Element<Resolution, Name::Strict<8679> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Domain
+
+int Traits<Domain::Xml::Resolution>::parse(Domain::Xml::Resolution& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setX(m.get<0>().getValue());
+		dst_.setY(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Domain::Xml::Resolution>::generate(const Domain::Xml::Resolution& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getX(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getY(), m.get<1>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -12258,6 +12404,7 @@ int Traits<Domain::Xml::Model1>::parse(Domain::Xml::Model1& dst_, QStack<QDomEle
 		dst_.setHeads(m.get<2>().getValue());
 		dst_.setPrimary(m.get<3>().getValue());
 		dst_.setAcceleration(m.get<4>().getValue());
+		dst_.setResolution(m.get<5>().getValue());
 	}
 	return output;
 }
@@ -12274,6 +12421,8 @@ int Traits<Domain::Xml::Model1>::generate(const Domain::Xml::Model1& src_, QDomE
 	if (0 > Details::Marshal::assign(src_.getPrimary(), m.get<3>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getAcceleration(), m.get<4>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getResolution(), m.get<5>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -12322,9 +12471,11 @@ int Traits<Domain::Xml::Video>::parse(Domain::Xml::Video& dst_, QStack<QDomEleme
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setModel(m.get<0>().getValue());
-		dst_.setAlias(m.get<1>().getValue());
-		dst_.setAddress(m.get<2>().getValue());
+		dst_.setDriver(m.get<0>().getValue());
+		dst_.setModel(m.get<1>().getValue());
+		dst_.setAlias(m.get<2>().getValue());
+		dst_.setAcpi(m.get<3>().getValue());
+		dst_.setAddress(m.get<4>().getValue());
 	}
 	return output;
 }
@@ -12332,11 +12483,15 @@ int Traits<Domain::Xml::Video>::parse(Domain::Xml::Video& dst_, QStack<QDomEleme
 int Traits<Domain::Xml::Video>::generate(const Domain::Xml::Video& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getModel(), m.get<0>()))
+	if (0 > Details::Marshal::assign(src_.getDriver(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getModel(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getAlias(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getAcpi(), m.get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<4>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -14270,17 +14425,17 @@ int Traits<Domain::Xml::Domainblockexport_>::generate(const Domain::Xml::Domainb
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Driver4
+// struct Driver5
 
 namespace Domain
 {
 namespace Xml
 {
-bool Driver4::load(const QDomElement& src_)
+bool Driver5::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Driver4, Name::Strict<546> > m;
+	Element<Driver5, Name::Strict<546> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -14288,16 +14443,16 @@ bool Driver4::load(const QDomElement& src_)
 	return true;
 }
 
-bool Driver4::save(QDomElement& dst_) const
+bool Driver5::save(QDomElement& dst_) const
 {
-	Element<Driver4, Name::Strict<546> > m;
+	Element<Driver5, Name::Strict<546> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
-bool Driver4::save(QDomDocument& dst_) const
+bool Driver5::save(QDomDocument& dst_) const
 {
-	Element<Driver4, Name::Strict<546> > m;
+	Element<Driver5, Name::Strict<546> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -14306,7 +14461,7 @@ bool Driver4::save(QDomDocument& dst_) const
 } // namespace Xml
 } // namespace Domain
 
-int Traits<Domain::Xml::Driver4>::parse(Domain::Xml::Driver4& dst_, QStack<QDomElement>& stack_)
+int Traits<Domain::Xml::Driver5>::parse(Domain::Xml::Driver5& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -14320,7 +14475,7 @@ int Traits<Domain::Xml::Driver4>::parse(Domain::Xml::Driver4& dst_, QStack<QDomE
 	return output;
 }
 
-int Traits<Domain::Xml::Driver4>::generate(const Domain::Xml::Driver4& src_, QDomElement& dst_)
+int Traits<Domain::Xml::Driver5>::generate(const Domain::Xml::Driver5& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getIntremap(), m.get<0>()))

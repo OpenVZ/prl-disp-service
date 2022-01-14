@@ -914,13 +914,32 @@ enum EMode10
 	EMode10Client
 };
 
+enum EName9
+{
+	EName9Qemu,
+	EName9Vhostuser
+};
+
+enum EVgaconf
+{
+	EVgaconfIo,
+	EVgaconfOn,
+	EVgaconfOff
+};
+
 enum EType13
 {
 	EType13Vga,
 	EType13Cirrus,
 	EType13Vmvga,
 	EType13Xen,
-	EType13Vbox
+	EType13Vbox,
+	EType13Virtio,
+	EType13Vzct,
+	EType13Gop,
+	EType13None,
+	EType13Bochs,
+	EType13Ramfb
 };
 
 enum EQemucdevSrcTypeChoice
@@ -966,15 +985,15 @@ enum EType16
 	EType16UsbSerial
 };
 
-enum EName9
+enum EName10
 {
-	EName9IsaSerial,
-	EName9UsbSerial,
-	EName9PciSerial,
-	EName9SpaprVty,
-	EName9Pl011,
-	EName9Sclpconsole,
-	EName9Sclplmconsole
+	EName10IsaSerial,
+	EName10UsbSerial,
+	EName10PciSerial,
+	EName10SpaprVty,
+	EName10Pl011,
+	EName10Sclpconsole,
+	EName10Sclplmconsole
 };
 
 enum EType17
@@ -1039,10 +1058,10 @@ enum EModel12
 	EModel12Hyperv
 };
 
-enum EName10
+enum EName11
 {
-	EName10Aes,
-	EName10Dea
+	EName11Aes,
+	EName11Dea
 };
 
 

@@ -1143,6 +1143,23 @@ Enum<Domain::Xml::EMode10>::data_type Enum<Domain::Xml::EMode10>::getData()
 }
 
 template<>
+Enum<Domain::Xml::EName9>::data_type Enum<Domain::Xml::EName9>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EName9Qemu, "qemu"))
+			(data_type::value_type(Domain::Xml::EName9Vhostuser, "vhostuser"));
+}
+
+template<>
+Enum<Domain::Xml::EVgaconf>::data_type Enum<Domain::Xml::EVgaconf>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EVgaconfIo, "io"))
+			(data_type::value_type(Domain::Xml::EVgaconfOn, "on"))
+			(data_type::value_type(Domain::Xml::EVgaconfOff, "off"));
+}
+
+template<>
 Enum<Domain::Xml::EType13>::data_type Enum<Domain::Xml::EType13>::getData()
 {
 	return ba::list_of<data_type::relation>
@@ -1150,7 +1167,13 @@ Enum<Domain::Xml::EType13>::data_type Enum<Domain::Xml::EType13>::getData()
 			(data_type::value_type(Domain::Xml::EType13Cirrus, "cirrus"))
 			(data_type::value_type(Domain::Xml::EType13Vmvga, "vmvga"))
 			(data_type::value_type(Domain::Xml::EType13Xen, "xen"))
-			(data_type::value_type(Domain::Xml::EType13Vbox, "vbox"));
+			(data_type::value_type(Domain::Xml::EType13Vbox, "vbox"))
+			(data_type::value_type(Domain::Xml::EType13Virtio, "virtio"))
+			(data_type::value_type(Domain::Xml::EType13Vzct, "vzct"))
+			(data_type::value_type(Domain::Xml::EType13Gop, "gop"))
+			(data_type::value_type(Domain::Xml::EType13None, "none"))
+			(data_type::value_type(Domain::Xml::EType13Bochs, "bochs"))
+			(data_type::value_type(Domain::Xml::EType13Ramfb, "ramfb"));
 }
 
 template<>
@@ -1205,16 +1228,16 @@ Enum<Domain::Xml::EType16>::data_type Enum<Domain::Xml::EType16>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EName9>::data_type Enum<Domain::Xml::EName9>::getData()
+Enum<Domain::Xml::EName10>::data_type Enum<Domain::Xml::EName10>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EName9IsaSerial, "isa-serial"))
-			(data_type::value_type(Domain::Xml::EName9UsbSerial, "usb-serial"))
-			(data_type::value_type(Domain::Xml::EName9PciSerial, "pci-serial"))
-			(data_type::value_type(Domain::Xml::EName9SpaprVty, "spapr-vty"))
-			(data_type::value_type(Domain::Xml::EName9Pl011, "pl011"))
-			(data_type::value_type(Domain::Xml::EName9Sclpconsole, "sclpconsole"))
-			(data_type::value_type(Domain::Xml::EName9Sclplmconsole, "sclplmconsole"));
+			(data_type::value_type(Domain::Xml::EName10IsaSerial, "isa-serial"))
+			(data_type::value_type(Domain::Xml::EName10UsbSerial, "usb-serial"))
+			(data_type::value_type(Domain::Xml::EName10PciSerial, "pci-serial"))
+			(data_type::value_type(Domain::Xml::EName10SpaprVty, "spapr-vty"))
+			(data_type::value_type(Domain::Xml::EName10Pl011, "pl011"))
+			(data_type::value_type(Domain::Xml::EName10Sclpconsole, "sclpconsole"))
+			(data_type::value_type(Domain::Xml::EName10Sclplmconsole, "sclplmconsole"));
 }
 
 template<>
@@ -1300,11 +1323,11 @@ Enum<Domain::Xml::EModel12>::data_type Enum<Domain::Xml::EModel12>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EName10>::data_type Enum<Domain::Xml::EName10>::getData()
+Enum<Domain::Xml::EName11>::data_type Enum<Domain::Xml::EName11>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EName10Aes, "aes"))
-			(data_type::value_type(Domain::Xml::EName10Dea, "dea"));
+			(data_type::value_type(Domain::Xml::EName11Aes, "aes"))
+			(data_type::value_type(Domain::Xml::EName11Dea, "dea"));
 }
 
 } // namespace Libvirt
