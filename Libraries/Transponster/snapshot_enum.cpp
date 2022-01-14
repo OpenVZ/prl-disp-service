@@ -32,7 +32,6 @@ template<>
 Enum<Snapshot::Xml::EState>::data_type Enum<Snapshot::Xml::EState>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Snapshot::Xml::EStateNostate, "nostate"))
 			(data_type::value_type(Snapshot::Xml::EStateRunning, "running"))
 			(data_type::value_type(Snapshot::Xml::EStateBlocked, "blocked"))
 			(data_type::value_type(Snapshot::Xml::EStatePaused, "paused"))
@@ -57,6 +56,15 @@ Enum<Snapshot::Xml::EStartupPolicy>::data_type Enum<Snapshot::Xml::EStartupPolic
 			(data_type::value_type(Snapshot::Xml::EStartupPolicyMandatory, "mandatory"))
 			(data_type::value_type(Snapshot::Xml::EStartupPolicyRequisite, "requisite"))
 			(data_type::value_type(Snapshot::Xml::EStartupPolicyOptional, "optional"));
+}
+
+template<>
+Enum<Snapshot::Xml::EFormat>::data_type Enum<Snapshot::Xml::EFormat>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Snapshot::Xml::EFormatDefault, "default"))
+			(data_type::value_type(Snapshot::Xml::EFormatQcow, "qcow"))
+			(data_type::value_type(Snapshot::Xml::EFormatLuks, "luks"));
 }
 
 template<>

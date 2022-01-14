@@ -45,11 +45,20 @@ Enum<Network::Xml::EVirOnOff>::data_type Enum<Network::Xml::EVirOnOff>::getData(
 }
 
 template<>
+Enum<Network::Xml::EMacTableManager>::data_type Enum<Network::Xml::EMacTableManager>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Network::Xml::EMacTableManagerKernel, "kernel"))
+			(data_type::value_type(Network::Xml::EMacTableManagerLibvirt, "libvirt"));
+}
+
+template<>
 Enum<Network::Xml::EMode>::data_type Enum<Network::Xml::EMode>::getData()
 {
 	return ba::list_of<data_type::relation>
 			(data_type::value_type(Network::Xml::EModeNat, "nat"))
 			(data_type::value_type(Network::Xml::EModeRoute, "route"))
+			(data_type::value_type(Network::Xml::EModeOpen, "open"))
 			(data_type::value_type(Network::Xml::EModeBridge, "bridge"))
 			(data_type::value_type(Network::Xml::EModePassthrough, "passthrough"))
 			(data_type::value_type(Network::Xml::EModePrivate, "private"))
@@ -71,6 +80,15 @@ Enum<Network::Xml::ENativeMode>::data_type Enum<Network::Xml::ENativeMode>::getD
 	return ba::list_of<data_type::relation>
 			(data_type::value_type(Network::Xml::ENativeModeTagged, "tagged"))
 			(data_type::value_type(Network::Xml::ENativeModeUntagged, "untagged"));
+}
+
+template<>
+Enum<Network::Xml::ELeaseUnit>::data_type Enum<Network::Xml::ELeaseUnit>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Network::Xml::ELeaseUnitSeconds, "seconds"))
+			(data_type::value_type(Network::Xml::ELeaseUnitMinutes, "minutes"))
+			(data_type::value_type(Network::Xml::ELeaseUnitHours, "hours"));
 }
 
 } // namespace Libvirt

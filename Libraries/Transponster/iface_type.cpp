@@ -397,9 +397,9 @@ int Traits<Iface::Xml::Protocol1>::generate(const Iface::Xml::Protocol1& src_, Q
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct InterfaceAddressing2466
+// struct InterfaceAddressing7159
 
-int Traits<Iface::Xml::InterfaceAddressing2466>::parse(Iface::Xml::InterfaceAddressing2466& dst_, QStack<QDomElement>& stack_)
+int Traits<Iface::Xml::InterfaceAddressing7159>::parse(Iface::Xml::InterfaceAddressing7159& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -411,7 +411,7 @@ int Traits<Iface::Xml::InterfaceAddressing2466>::parse(Iface::Xml::InterfaceAddr
 	return output;
 }
 
-int Traits<Iface::Xml::InterfaceAddressing2466>::generate(const Iface::Xml::InterfaceAddressing2466& src_, QDomElement& dst_)
+int Traits<Iface::Xml::InterfaceAddressing7159>::generate(const Iface::Xml::InterfaceAddressing7159& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getProtocol(), m.get<0>()))
@@ -423,9 +423,9 @@ int Traits<Iface::Xml::InterfaceAddressing2466>::generate(const Iface::Xml::Inte
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct InterfaceAddressing2467
+// struct InterfaceAddressing7160
 
-int Traits<Iface::Xml::InterfaceAddressing2467>::parse(Iface::Xml::InterfaceAddressing2467& dst_, QStack<QDomElement>& stack_)
+int Traits<Iface::Xml::InterfaceAddressing7160>::parse(Iface::Xml::InterfaceAddressing7160& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -437,7 +437,7 @@ int Traits<Iface::Xml::InterfaceAddressing2467>::parse(Iface::Xml::InterfaceAddr
 	return output;
 }
 
-int Traits<Iface::Xml::InterfaceAddressing2467>::generate(const Iface::Xml::InterfaceAddressing2467& src_, QDomElement& dst_)
+int Traits<Iface::Xml::InterfaceAddressing7160>::generate(const Iface::Xml::InterfaceAddressing7160& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getProtocol(), m.get<0>()))
@@ -455,10 +455,6 @@ namespace Iface
 {
 namespace Xml
 {
-Interface::Interface(): m_start()
-{
-}
-
 bool Interface::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
@@ -986,7 +982,7 @@ int Traits<Iface::Xml::Bond>::parse(Iface::Xml::Bond& dst_, QStack<QDomElement>&
 	if (0 <= output)
 	{
 		dst_.setMode(m.get<0>().getValue());
-		dst_.setChoice2465(m.get<1>().get<0>().getValue());
+		dst_.setChoice7158(m.get<1>().get<0>().getValue());
 		dst_.setInterfaceList(m.get<1>().get<1>().getValue());
 	}
 	return output;
@@ -997,7 +993,7 @@ int Traits<Iface::Xml::Bond>::generate(const Iface::Xml::Bond& src_, QDomElement
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getMode(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice2465(), m.get<1>().get<0>()))
+	if (0 > Details::Marshal::assign(src_.getChoice7158(), m.get<1>().get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getInterfaceList(), m.get<1>().get<1>()))
 		return -1;
@@ -1110,7 +1106,7 @@ int Traits<Iface::Xml::Bridge>::parse(Iface::Xml::Bridge& dst_, QStack<QDomEleme
 	{
 		dst_.setStp(m.get<0>().getValue());
 		dst_.setDelay(m.get<1>().getValue());
-		dst_.setChoice2462List(m.get<2>().getValue());
+		dst_.setChoice7155List(m.get<2>().getValue());
 	}
 	return output;
 }
@@ -1122,7 +1118,7 @@ int Traits<Iface::Xml::Bridge>::generate(const Iface::Xml::Bridge& src_, QDomEle
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getDelay(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice2462List(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getChoice7155List(), m.get<2>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1135,10 +1131,6 @@ namespace Iface
 {
 namespace Xml
 {
-Interface3::Interface3(): m_start()
-{
-}
-
 bool Interface3::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
@@ -1208,10 +1200,6 @@ namespace Iface
 {
 namespace Xml
 {
-Interface4::Interface4(): m_start()
-{
-}
-
 bool Interface4::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;

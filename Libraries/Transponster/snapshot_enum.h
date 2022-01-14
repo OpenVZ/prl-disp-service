@@ -34,7 +34,6 @@ namespace Xml
 {
 enum EState
 {
-	EStateNostate,
 	EStateRunning,
 	EStateBlocked,
 	EStatePaused,
@@ -55,6 +54,13 @@ enum EStartupPolicy
 	EStartupPolicyMandatory,
 	EStartupPolicyRequisite,
 	EStartupPolicyOptional
+};
+
+enum EFormat
+{
+	EFormatDefault,
+	EFormatQcow,
+	EFormatLuks
 };
 
 enum EStorageFormatBacking

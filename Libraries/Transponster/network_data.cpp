@@ -112,9 +112,9 @@ QString Traits<Network::Xml::POctalMode>::generate(Network::Xml::POctalMode::val
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData3974
+// struct PData4775
 
-bool Validatable<Network::Xml::PData3974>::validate(const Network::Xml::PData3974::value_type& value_)
+bool Validatable<Network::Xml::PData4775>::validate(const Network::Xml::PData4775::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,2}");
 	if (!q.exactMatch(value_))
@@ -192,6 +192,44 @@ bool Validatable<Network::Xml::PData2364>::validate(Network::Xml::PData2364::val
 
 bool Validatable<Network::Xml::PData2366>::validate(const Network::Xml::PData2366::value_type& value_)
 {
+	QRegExp q("(0x)?[0-9a-fA-F]{1,4}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData7120
+
+bool Traits<Network::Xml::PData7120>::parse(const QString& src_, Network::Xml::PData7120::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toInt(&output);
+	return output;
+}
+
+QString Traits<Network::Xml::PData7120>::generate(Network::Xml::PData7120::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Network::Xml::PData7120>::validate(Network::Xml::PData7120::value_type value_)
+{
+	if (0 > value_)
+		return false;
+
+	if (65535 < value_)
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData7122
+
+bool Validatable<Network::Xml::PData7122>::validate(const Network::Xml::PData7122::value_type& value_)
+{
 	QRegExp q("0x[0-9a-fA-F]{1,6}");
 	if (!q.exactMatch(value_))
 		return false;
@@ -230,6 +268,71 @@ bool Validatable<Network::Xml::PData2368>::validate(Network::Xml::PData2368::val
 
 bool Validatable<Network::Xml::PData2370>::validate(const Network::Xml::PData2370::value_type& value_)
 {
+	QRegExp q("0x[0-9a-fA-F]{1,6}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData7124
+
+bool Traits<Network::Xml::PData7124>::parse(const QString& src_, Network::Xml::PData7124::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toInt(&output);
+	return output;
+}
+
+QString Traits<Network::Xml::PData7124>::generate(Network::Xml::PData7124::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Network::Xml::PData7124>::validate(Network::Xml::PData7124::value_type value_)
+{
+	if (0 > value_)
+		return false;
+
+	if (16777215 < value_)
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData7126
+
+bool Validatable<Network::Xml::PData7126>::validate(const Network::Xml::PData7126::value_type& value_)
+{
+	QRegExp q("(0x)?[0-9a-fA-F]{1,8}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData7128
+
+bool Traits<Network::Xml::PData7128>::parse(const QString& src_, Network::Xml::PData7128::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toUInt(&output);
+	return output;
+}
+
+QString Traits<Network::Xml::PData7128>::generate(Network::Xml::PData7128::value_type src_)
+{
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData7130
+
+bool Validatable<Network::Xml::PData7130>::validate(const Network::Xml::PData7130::value_type& value_)
+{
 	QRegExp q("[a-fA-F0-9]{32}");
 	if (!q.exactMatch(value_))
 		return false;
@@ -244,6 +347,32 @@ bool Validatable<Network::Xml::PData2372>::validate(const Network::Xml::PData237
 {
 	QRegExp q("[a-fA-F0-9]{8}\\-([a-fA-F0-9]{4}\\-){3}[a-fA-F0-9]{12}");
 	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PNumaDistanceValue
+
+bool Traits<Network::Xml::PNumaDistanceValue>::parse(const QString& src_, Network::Xml::PNumaDistanceValue::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toUInt(&output);
+	return output;
+}
+
+QString Traits<Network::Xml::PNumaDistanceValue>::generate(Network::Xml::PNumaDistanceValue::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Network::Xml::PNumaDistanceValue>::validate(Network::Xml::PNumaDistanceValue::value_type value_)
+{
+	if (10 > value_)
+		return false;
+
+	if (255 < value_)
 		return false;
 
 	return true;
@@ -350,7 +479,7 @@ bool Validatable<Network::Xml::PIpv4Addr>::validate(const Network::Xml::PIpv4Add
 
 bool Validatable<Network::Xml::PIpv6Addr>::validate(const Network::Xml::PIpv6Addr::value_type& value_)
 {
-	QRegExp q("(([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}(((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9]))\\.){3}((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9])))|(([0-9A-Fa-f]{1,4}:){0,5}:(((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9]))\\.){3}((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9])))|(::([0-9A-Fa-f]{1,4}:){0,5}(((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9]))\\.){3}((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9])))|([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,7}:|::)");
+	QRegExp q("(([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}(((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9]))\\.){3}((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9])))|(([0-9A-Fa-f]{1,4}:){0,5}:(((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9]))\\.){3}((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9])))|(::([0-9A-Fa-f]{1,4}:){0,5}(((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9]))\\.){3}((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([1-9][0-9])|([0-9])))|([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,7}:)|(::)");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -404,6 +533,30 @@ bool Validatable<Network::Xml::PIpv6Prefix>::validate(Network::Xml::PIpv6Prefix:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PObjectNameWithSlash
+
+bool Validatable<Network::Xml::PObjectNameWithSlash>::validate(const Network::Xml::PObjectNameWithSlash::value_type& value_)
+{
+	QRegExp q("[^\\n]+");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PObjectName
+
+bool Validatable<Network::Xml::PObjectName>::validate(const Network::Xml::PObjectName::value_type& value_)
+{
+	QRegExp q("[^/\\n]+");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PGenericName
 
 bool Validatable<Network::Xml::PGenericName>::validate(const Network::Xml::PGenericName::value_type& value_)
@@ -440,11 +593,23 @@ bool Validatable<Network::Xml::PDeviceName>::validate(const Network::Xml::PDevic
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PZoneName
+
+bool Validatable<Network::Xml::PZoneName>::validate(const Network::Xml::PZoneName::value_type& value_)
+{
+	QRegExp q("[a-zA-Z0-9_\\-]+");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PFilePath
 
 bool Validatable<Network::Xml::PFilePath>::validate(const Network::Xml::PFilePath::value_type& value_)
 {
-	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ()]+");
+	QRegExp q(".+");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -456,7 +621,7 @@ bool Validatable<Network::Xml::PFilePath>::validate(const Network::Xml::PFilePat
 
 bool Validatable<Network::Xml::PDirPath>::validate(const Network::Xml::PDirPath::value_type& value_)
 {
-	QRegExp q("[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ()]+");
+	QRegExp q(".+");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -468,7 +633,19 @@ bool Validatable<Network::Xml::PDirPath>::validate(const Network::Xml::PDirPath:
 
 bool Validatable<Network::Xml::PAbsFilePath>::validate(const Network::Xml::PAbsFilePath::value_type& value_)
 {
-	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%,: ()]+");
+	QRegExp q("(/|[a-zA-Z]:\\\\).+");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PVmwarePath
+
+bool Validatable<Network::Xml::PVmwarePath>::validate(const Network::Xml::PVmwarePath::value_type& value_)
+{
+	QRegExp q("\\[[^\\]]+\\] .+");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -480,7 +657,7 @@ bool Validatable<Network::Xml::PAbsFilePath>::validate(const Network::Xml::PAbsF
 
 bool Validatable<Network::Xml::PAbsDirPath>::validate(const Network::Xml::PAbsDirPath::value_type& value_)
 {
-	QRegExp q("/[a-zA-Z0-9_\\.\\+\\-\\\\&\"{}'<>/%: ()]*");
+	QRegExp q("/.*");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -935,7 +1112,7 @@ bool Traits<Network::Xml::VUUID>::parse(const QString& src_, Network::Xml::VUUID
 {
 	int x;
 	mpl::at_c<Network::Xml::VUUID::types, 0>::type a0;
-	x = Marshal<Network::Xml::PData2370>::setString(src_, a0);
+	x = Marshal<Network::Xml::PData7130>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
@@ -957,7 +1134,7 @@ QString Traits<Network::Xml::VUUID>::generate(const Network::Xml::VUUID& src_)
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Network::Xml::PData2370>::getString(boost::get<mpl::at_c<Network::Xml::VUUID::types, 0>::type>(src_));
+		return Marshal<Network::Xml::PData7130>::getString(boost::get<mpl::at_c<Network::Xml::VUUID::types, 0>::type>(src_));
 	case 1:
 		return Marshal<Network::Xml::PData2372>::getString(boost::get<mpl::at_c<Network::Xml::VUUID::types, 1>::type>(src_));
 	}
@@ -965,20 +1142,20 @@ QString Traits<Network::Xml::VUUID>::generate(const Network::Xml::VUUID& src_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VUint8range
+// struct VUint8
 
-bool Traits<Network::Xml::VUint8range>::parse(const QString& src_, Network::Xml::VUint8range& dst_)
+bool Traits<Network::Xml::VUint8>::parse(const QString& src_, Network::Xml::VUint8& dst_)
 {
 	int x;
-	mpl::at_c<Network::Xml::VUint8range::types, 0>::type a0;
-	x = Marshal<Network::Xml::PData2362>::setString(src_, a0);
+	mpl::at_c<Network::Xml::VUint8::types, 0>::type a0;
+	x = Marshal<Network::Xml::PData4775>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
 		return true;
 	}
-	mpl::at_c<Network::Xml::VUint8range::types, 1>::type a1;
-	x = Marshal<Network::Xml::PData2364>::setString(src_, a1);
+	mpl::at_c<Network::Xml::VUint8::types, 1>::type a1;
+	x = Marshal<Network::Xml::PData2360>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
@@ -988,33 +1165,33 @@ bool Traits<Network::Xml::VUint8range>::parse(const QString& src_, Network::Xml:
 	return false;
 }
 
-QString Traits<Network::Xml::VUint8range>::generate(const Network::Xml::VUint8range& src_)
+QString Traits<Network::Xml::VUint8>::generate(const Network::Xml::VUint8& src_)
 {
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Network::Xml::PData2362>::getString(boost::get<mpl::at_c<Network::Xml::VUint8range::types, 0>::type>(src_));
+		return Marshal<Network::Xml::PData4775>::getString(boost::get<mpl::at_c<Network::Xml::VUint8::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Network::Xml::PData2364>::getString(boost::get<mpl::at_c<Network::Xml::VUint8range::types, 1>::type>(src_));
+		return Marshal<Network::Xml::PData2360>::getString(boost::get<mpl::at_c<Network::Xml::VUint8::types, 1>::type>(src_));
 	}
 	return QString();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VUint24range
+// struct VUint24
 
-bool Traits<Network::Xml::VUint24range>::parse(const QString& src_, Network::Xml::VUint24range& dst_)
+bool Traits<Network::Xml::VUint24>::parse(const QString& src_, Network::Xml::VUint24& dst_)
 {
 	int x;
-	mpl::at_c<Network::Xml::VUint24range::types, 0>::type a0;
-	x = Marshal<Network::Xml::PData2366>::setString(src_, a0);
+	mpl::at_c<Network::Xml::VUint24::types, 0>::type a0;
+	x = Marshal<Network::Xml::PData2370>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
 		return true;
 	}
-	mpl::at_c<Network::Xml::VUint24range::types, 1>::type a1;
-	x = Marshal<Network::Xml::PData2368>::setString(src_, a1);
+	mpl::at_c<Network::Xml::VUint24::types, 1>::type a1;
+	x = Marshal<Network::Xml::PData7124>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
@@ -1024,14 +1201,14 @@ bool Traits<Network::Xml::VUint24range>::parse(const QString& src_, Network::Xml
 	return false;
 }
 
-QString Traits<Network::Xml::VUint24range>::generate(const Network::Xml::VUint24range& src_)
+QString Traits<Network::Xml::VUint24>::generate(const Network::Xml::VUint24& src_)
 {
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Network::Xml::PData2366>::getString(boost::get<mpl::at_c<Network::Xml::VUint24range::types, 0>::type>(src_));
+		return Marshal<Network::Xml::PData2370>::getString(boost::get<mpl::at_c<Network::Xml::VUint24::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Network::Xml::PData2368>::getString(boost::get<mpl::at_c<Network::Xml::VUint24range::types, 1>::type>(src_));
+		return Marshal<Network::Xml::PData7124>::getString(boost::get<mpl::at_c<Network::Xml::VUint24::types, 1>::type>(src_));
 	}
 	return QString();
 }

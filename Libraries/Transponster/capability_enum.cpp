@@ -64,4 +64,12 @@ Enum<Capability::Xml::EUsable>::data_type Enum<Capability::Xml::EUsable>::getDat
 			(data_type::value_type(Capability::Xml::EUsableUnknown, "unknown"));
 }
 
+template<>
+Enum<Capability::Xml::EDeprecated>::data_type Enum<Capability::Xml::EDeprecated>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Capability::Xml::EDeprecatedYes, "yes"))
+			(data_type::value_type(Capability::Xml::EDeprecatedNo, "no"));
+}
+
 } // namespace Libvirt

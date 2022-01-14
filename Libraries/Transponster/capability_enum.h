@@ -60,6 +60,12 @@ enum EUsable
 	EUsableUnknown
 };
 
+enum EDeprecated
+{
+	EDeprecatedYes,
+	EDeprecatedNo
+};
+
 
 } // namespace Xml
 } // namespace Capability

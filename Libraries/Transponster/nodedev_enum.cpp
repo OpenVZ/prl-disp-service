@@ -37,6 +37,15 @@ Enum<Nodedev::Xml::EType>::data_type Enum<Nodedev::Xml::EType>::getData()
 }
 
 template<>
+Enum<Nodedev::Xml::EDeviceAPI>::data_type Enum<Nodedev::Xml::EDeviceAPI>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Nodedev::Xml::EDeviceAPIVfioPci, "vfio-pci"))
+			(data_type::value_type(Nodedev::Xml::EDeviceAPIVfioCcw, "vfio-ccw"))
+			(data_type::value_type(Nodedev::Xml::EDeviceAPIVfioAp, "vfio-ap"));
+}
+
+template<>
 Enum<Nodedev::Xml::EValidity>::data_type Enum<Nodedev::Xml::EValidity>::getData()
 {
 	return ba::list_of<data_type::relation>

@@ -38,6 +38,13 @@ enum EType
 	ETypeCardbusBridge
 };
 
+enum EDeviceAPI
+{
+	EDeviceAPIVfioPci,
+	EDeviceAPIVfioCcw,
+	EDeviceAPIVfioAp
+};
+
 enum EValidity
 {
 	EValidityCap,

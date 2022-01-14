@@ -44,10 +44,17 @@ enum EVirOnOff
 	EVirOnOffOff
 };
 
+enum EMacTableManager
+{
+	EMacTableManagerKernel,
+	EMacTableManagerLibvirt
+};
+
 enum EMode
 {
 	EModeNat,
 	EModeRoute,
+	EModeOpen,
 	EModeBridge,
 	EModePassthrough,
 	EModePrivate,
@@ -65,6 +72,13 @@ enum ENativeMode
 {
 	ENativeModeTagged,
 	ENativeModeUntagged
+};
+
+enum ELeaseUnit
+{
+	ELeaseUnitSeconds,
+	ELeaseUnitMinutes,
+	ELeaseUnitHours
 };
 
 

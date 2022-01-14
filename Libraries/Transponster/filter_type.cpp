@@ -2806,7 +2806,7 @@ int Traits<Filter::Xml::Filter>::parse(Filter::Xml::Filter& dst_, QStack<QDomEle
 	{
 		dst_.setFilterNodeAttributes(m.get<0>().getValue());
 		dst_.setUuid(m.get<1>().getValue());
-		dst_.setChoice5707List(m.get<2>().getValue());
+		dst_.setChoice8004List(m.get<2>().getValue());
 	}
 	return output;
 }
@@ -2818,7 +2818,7 @@ int Traits<Filter::Xml::Filter>::generate(const Filter::Xml::Filter& src_, QDomE
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getUuid(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice5707List(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getChoice8004List(), m.get<2>()))
 		return -1;
 
 	return m.produce(dst_);

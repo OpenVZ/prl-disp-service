@@ -27,9 +27,9 @@
 namespace Libvirt
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Parent3756
+// struct Parent7916
 
-int Traits<Nodedev::Xml::Parent3756>::parse(Nodedev::Xml::Parent3756& dst_, QStack<QDomElement>& stack_)
+int Traits<Nodedev::Xml::Parent7916>::parse(Nodedev::Xml::Parent7916& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -41,7 +41,7 @@ int Traits<Nodedev::Xml::Parent3756>::parse(Nodedev::Xml::Parent3756& dst_, QSta
 	return output;
 }
 
-int Traits<Nodedev::Xml::Parent3756>::generate(const Nodedev::Xml::Parent3756& src_, QDomElement& dst_)
+int Traits<Nodedev::Xml::Parent7916>::generate(const Nodedev::Xml::Parent7916& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getWwnn(), m.get<0>()))
@@ -463,7 +463,7 @@ namespace Nodedev
 {
 namespace Xml
 {
-Type::Type(): m_availableInstances()
+Type::Type(): m_deviceAPI(), m_availableInstances()
 {
 }
 
@@ -505,6 +505,7 @@ int Traits<Nodedev::Xml::Type>::parse(Nodedev::Xml::Type& dst_, QStack<QDomEleme
 	{
 		dst_.setId(m.get<0>().getValue());
 		dst_.setName(m.get<1>().getValue());
+		dst_.setDeviceAPI(m.get<2>().getValue());
 		dst_.setAvailableInstances(m.get<3>().getValue());
 	}
 	return output;
@@ -516,6 +517,8 @@ int Traits<Nodedev::Xml::Type>::generate(const Nodedev::Xml::Type& src_, QDomEle
 	if (0 > Details::Marshal::assign(src_.getId(), m.get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getName(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getDeviceAPI(), m.get<2>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getAvailableInstances(), m.get<3>()))
 		return -1;
@@ -1060,30 +1063,30 @@ int Traits<Nodedev::Xml::Link1>::generate(const Nodedev::Xml::Link1& src_, QDomE
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability3781
+// struct Capability7950
 
-int Traits<Nodedev::Xml::Capability3781>::parse(Nodedev::Xml::Capability3781& , QStack<QDomElement>& stack_)
+int Traits<Nodedev::Xml::Capability7950>::parse(Nodedev::Xml::Capability7950& , QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	return m.consume(stack_);
 }
 
-int Traits<Nodedev::Xml::Capability3781>::generate(const Nodedev::Xml::Capability3781& , QDomElement& dst_)
+int Traits<Nodedev::Xml::Capability7950>::generate(const Nodedev::Xml::Capability7950& , QDomElement& dst_)
 {
 	marshal_type m;
 	return m.produce(dst_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability3782
+// struct Capability7951
 
-int Traits<Nodedev::Xml::Capability3782>::parse(Nodedev::Xml::Capability3782& , QStack<QDomElement>& stack_)
+int Traits<Nodedev::Xml::Capability7951>::parse(Nodedev::Xml::Capability7951& , QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	return m.consume(stack_);
 }
 
-int Traits<Nodedev::Xml::Capability3782>::generate(const Nodedev::Xml::Capability3782& , QDomElement& dst_)
+int Traits<Nodedev::Xml::Capability7951>::generate(const Nodedev::Xml::Capability7951& , QDomElement& dst_)
 {
 	marshal_type m;
 	return m.produce(dst_);
@@ -1366,6 +1369,57 @@ int Traits<Nodedev::Xml::Capscsi>::generate(const Nodedev::Xml::Capscsi& src_, Q
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Anonymous5139
+
+namespace Nodedev
+{
+namespace Xml
+{
+Anonymous5139::Anonymous5139(): m_logicalBlockSize(), m_numBlocks()
+{
+}
+
+bool Anonymous5139::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	k.push(src_.firstChildElement());
+	return 0 <= Traits<Anonymous5139>::parse(*this, k);
+}
+
+bool Anonymous5139::save(QDomElement& dst_) const
+{
+	return 0 <= Traits<Anonymous5139>::generate(*this, dst_);
+}
+
+
+} // namespace Xml
+} // namespace Nodedev
+
+int Traits<Nodedev::Xml::Anonymous5139>::parse(Nodedev::Xml::Anonymous5139& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setLogicalBlockSize(m.get<0>().getValue());
+		dst_.setNumBlocks(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Nodedev::Xml::Anonymous5139>::generate(const Nodedev::Xml::Anonymous5139& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getLogicalBlockSize(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getNumBlocks(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Capability1
 
 namespace Nodedev
@@ -1415,6 +1469,7 @@ int Traits<Nodedev::Xml::Capability1>::parse(Nodedev::Xml::Capability1& dst_, QS
 		dst_.setMediaAvailable(m.get<1>().getValue());
 		dst_.setMediaSize(m.get<2>().getValue());
 		dst_.setMediaLabel(m.get<3>().getValue());
+		dst_.setAnonymous5139(m.get<4>().getValue());
 	}
 	return output;
 }
@@ -1427,6 +1482,46 @@ int Traits<Nodedev::Xml::Capability1>::generate(const Nodedev::Xml::Capability1&
 	if (0 > Details::Marshal::assign(src_.getMediaSize(), m.get<2>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getMediaLabel(), m.get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getAnonymous5139(), m.get<4>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Capstoragefixed
+
+namespace Nodedev
+{
+namespace Xml
+{
+Capstoragefixed::Capstoragefixed(): m_size()
+{
+}
+
+
+} // namespace Xml
+} // namespace Nodedev
+
+int Traits<Nodedev::Xml::Capstoragefixed>::parse(Nodedev::Xml::Capstoragefixed& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setSize(m.get<0>().getValue());
+		dst_.setAnonymous5139(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Nodedev::Xml::Capstoragefixed>::generate(const Nodedev::Xml::Capstoragefixed& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getSize(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getAnonymous5139(), m.get<1>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1474,19 +1569,67 @@ int Traits<Nodedev::Xml::Capstorage>::generate(const Nodedev::Xml::Capstorage& s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capmdev
+// struct Attr
 
 namespace Nodedev
 {
 namespace Xml
 {
-Capmdev::Capmdev(): m_iommuGroup()
+bool Attr::load(const QDomElement& src_)
 {
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Attr, Name::Strict<6884> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Attr::save(QDomElement& dst_) const
+{
+	Element<Attr, Name::Strict<6884> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Attr::save(QDomDocument& dst_) const
+{
+	Element<Attr, Name::Strict<6884> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
 }
 
 
 } // namespace Xml
 } // namespace Nodedev
+
+int Traits<Nodedev::Xml::Attr>::parse(Nodedev::Xml::Attr& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setName(m.get<0>().getValue());
+		dst_.setValue(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Nodedev::Xml::Attr>::generate(const Nodedev::Xml::Attr& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getName(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getValue(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Capmdev
 
 int Traits<Nodedev::Xml::Capmdev>::parse(Nodedev::Xml::Capmdev& dst_, QStack<QDomElement>& stack_)
 {
@@ -1496,6 +1639,8 @@ int Traits<Nodedev::Xml::Capmdev>::parse(Nodedev::Xml::Capmdev& dst_, QStack<QDo
 	{
 		dst_.setType(m.get<1>().getValue());
 		dst_.setIommuGroup(m.get<2>().getValue());
+		dst_.setUuid(m.get<3>().getValue());
+		dst_.setAttrList(m.get<4>().getValue());
 	}
 	return output;
 }
@@ -1506,6 +1651,10 @@ int Traits<Nodedev::Xml::Capmdev>::generate(const Nodedev::Xml::Capmdev& src_, Q
 	if (0 > Details::Marshal::assign(src_.getType(), m.get<1>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getIommuGroup(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getUuid(), m.get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getAttrList(), m.get<4>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1535,6 +1684,64 @@ int Traits<Nodedev::Xml::Capccwdev>::generate(const Nodedev::Xml::Capccwdev& src
 	if (0 > Details::Marshal::assign(src_.getSsid(), m.get<2>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getDevno(), m.get<3>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Capcssdev
+
+int Traits<Nodedev::Xml::Capcssdev>::parse(Nodedev::Xml::Capcssdev& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setCssid(m.get<1>().getValue());
+		dst_.setSsid(m.get<2>().getValue());
+		dst_.setDevno(m.get<3>().getValue());
+		dst_.setCapability(m.get<4>().getValue());
+	}
+	return output;
+}
+
+int Traits<Nodedev::Xml::Capcssdev>::generate(const Nodedev::Xml::Capcssdev& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getCssid(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getSsid(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getDevno(), m.get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getCapability(), m.get<4>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Capapqueue
+
+int Traits<Nodedev::Xml::Capapqueue>::parse(Nodedev::Xml::Capapqueue& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setApAdapter(m.get<1>().getValue());
+		dst_.setApDomain(m.get<2>().getValue());
+	}
+	return output;
+}
+
+int Traits<Nodedev::Xml::Capapqueue>::generate(const Nodedev::Xml::Capapqueue& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getApAdapter(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getApDomain(), m.get<2>()))
 		return -1;
 
 	return m.produce(dst_);

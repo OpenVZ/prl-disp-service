@@ -70,8 +70,10 @@ int Traits<Network::Xml::Bridge>::parse(Network::Xml::Bridge& dst_, QStack<QDomE
 	if (0 <= output)
 	{
 		dst_.setName(m.get<0>().getValue());
-		dst_.setStp(m.get<1>().getValue());
-		dst_.setDelay(m.get<2>().getValue());
+		dst_.setZone(m.get<1>().getValue());
+		dst_.setStp(m.get<2>().getValue());
+		dst_.setDelay(m.get<3>().getValue());
+		dst_.setMacTableManager(m.get<4>().getValue());
 	}
 	return output;
 }
@@ -81,9 +83,13 @@ int Traits<Network::Xml::Bridge>::generate(const Network::Xml::Bridge& src_, QDo
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getName(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getStp(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getZone(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getDelay(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getStp(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getDelay(), m.get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getMacTableManager(), m.get<4>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -432,8 +438,9 @@ int Traits<Network::Xml::Nat>::parse(Network::Xml::Nat& dst_, QStack<QDomElement
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setAddress(m.get<0>().getValue());
-		dst_.setPort(m.get<1>().getValue());
+		dst_.setIpv6(m.get<0>().getValue());
+		dst_.setAddress(m.get<1>().get<0>().getValue());
+		dst_.setPort(m.get<1>().get<1>().getValue());
 	}
 	return output;
 }
@@ -441,9 +448,11 @@ int Traits<Network::Xml::Nat>::parse(Network::Xml::Nat& dst_, QStack<QDomElement
 int Traits<Network::Xml::Nat>::generate(const Network::Xml::Nat& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<0>()))
+	if (0 > Details::Marshal::assign(src_.getIpv6(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getPort(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>().get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getPort(), m.get<1>().get<1>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -495,7 +504,7 @@ int Traits<Network::Xml::Forward>::parse(Network::Xml::Forward& dst_, QStack<QDo
 		dst_.setDev(m.get<0>().getValue());
 		dst_.setMode(m.get<1>().getValue());
 		dst_.setManaged(m.get<2>().getValue());
-		dst_.setChoice2398(m.get<3>().get<0>().getValue());
+		dst_.setChoice2401(m.get<3>().get<0>().getValue());
 		dst_.setPf(m.get<3>().get<1>().getValue());
 		dst_.setDriver(m.get<3>().get<2>().getValue());
 		dst_.setNat(m.get<3>().get<3>().getValue());
@@ -512,7 +521,7 @@ int Traits<Network::Xml::Forward>::generate(const Network::Xml::Forward& src_, Q
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getManaged(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice2398(), m.get<3>().get<0>()))
+	if (0 > Details::Marshal::assign(src_.getChoice2401(), m.get<3>().get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getPf(), m.get<3>().get<1>()))
 		return -1;
@@ -843,10 +852,6 @@ namespace Network
 {
 namespace Xml
 {
-BandwidthAttributes::BandwidthAttributes(): m_average()
-{
-}
-
 bool BandwidthAttributes::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
@@ -949,8 +954,9 @@ int Traits<Network::Xml::Bandwidth>::parse(Network::Xml::Bandwidth& dst_, QStack
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setInbound(m.get<0>().getValue());
-		dst_.setOutbound(m.get<1>().getValue());
+		dst_.setClassID(m.get<0>().getValue());
+		dst_.setInbound(m.get<1>().get<0>().getValue());
+		dst_.setOutbound(m.get<1>().get<1>().getValue());
 	}
 	return output;
 }
@@ -958,9 +964,11 @@ int Traits<Network::Xml::Bandwidth>::parse(Network::Xml::Bandwidth& dst_, QStack
 int Traits<Network::Xml::Bandwidth>::generate(const Network::Xml::Bandwidth& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getInbound(), m.get<0>()))
+	if (0 > Details::Marshal::assign(src_.getClassID(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getOutbound(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getInbound(), m.get<1>().get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getOutbound(), m.get<1>().get<1>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1075,9 +1083,10 @@ int Traits<Network::Xml::Portgroup>::parse(Network::Xml::Portgroup& dst_, QStack
 	{
 		dst_.setName(m.get<0>().getValue());
 		dst_.setDefault(m.get<1>().getValue());
-		dst_.setVirtualPortProfile(m.get<2>().get<0>().getValue());
-		dst_.setBandwidth(m.get<2>().get<1>().getValue());
-		dst_.setVlan(m.get<2>().get<2>().getValue());
+		dst_.setTrustGuestRxFilters(m.get<2>().getValue());
+		dst_.setVirtualPortProfile(m.get<3>().get<0>().getValue());
+		dst_.setBandwidth(m.get<3>().get<1>().getValue());
+		dst_.setVlan(m.get<3>().get<2>().getValue());
 	}
 	return output;
 }
@@ -1089,11 +1098,133 @@ int Traits<Network::Xml::Portgroup>::generate(const Network::Xml::Portgroup& src
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getDefault(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getVirtualPortProfile(), m.get<2>().get<0>()))
+	if (0 > Details::Marshal::assign(src_.getTrustGuestRxFilters(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<2>().get<1>()))
+	if (0 > Details::Marshal::assign(src_.getVirtualPortProfile(), m.get<3>().get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<2>().get<2>()))
+	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<3>().get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<3>().get<2>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Domain
+
+namespace Network
+{
+namespace Xml
+{
+bool Domain::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Domain, Name::Strict<1> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Domain::save(QDomElement& dst_) const
+{
+	Element<Domain, Name::Strict<1> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Domain::save(QDomDocument& dst_) const
+{
+	Element<Domain, Name::Strict<1> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Network
+
+int Traits<Network::Xml::Domain>::parse(Network::Xml::Domain& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setName(m.get<0>().getValue());
+		dst_.setLocalOnly(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Network::Xml::Domain>::generate(const Network::Xml::Domain& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getName(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getLocalOnly(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Forwarder
+
+namespace Network
+{
+namespace Xml
+{
+bool Forwarder::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Forwarder, Name::Strict<1239> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Forwarder::save(QDomElement& dst_) const
+{
+	Element<Forwarder, Name::Strict<1239> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Forwarder::save(QDomDocument& dst_) const
+{
+	Element<Forwarder, Name::Strict<1239> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Network
+
+int Traits<Network::Xml::Forwarder>::parse(Network::Xml::Forwarder& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setAddr(m.get<0>().getValue());
+		dst_.setDomain(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Network::Xml::Forwarder>::generate(const Network::Xml::Forwarder& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getAddr(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getDomain(), m.get<1>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1160,66 +1291,6 @@ int Traits<Network::Xml::Txt>::generate(const Network::Xml::Txt& src_, QDomEleme
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous2410
-
-namespace Network
-{
-namespace Xml
-{
-Anonymous2410::Anonymous2410(): m_port(), m_priority(), m_weight()
-{
-}
-
-bool Anonymous2410::load(const QDomElement& src_)
-{
-	QStack<QDomElement> k;
-	k.push(src_);
-	k.push(src_.firstChildElement());
-	return 0 <= Traits<Anonymous2410>::parse(*this, k);
-}
-
-bool Anonymous2410::save(QDomElement& dst_) const
-{
-	return 0 <= Traits<Anonymous2410>::generate(*this, dst_);
-}
-
-
-} // namespace Xml
-} // namespace Network
-
-int Traits<Network::Xml::Anonymous2410>::parse(Network::Xml::Anonymous2410& dst_, QStack<QDomElement>& stack_)
-{
-	marshal_type m;
-	int output = m.consume(stack_);
-	if (0 <= output)
-	{
-		dst_.setDomain(m.get<0>().getValue());
-		dst_.setTarget(m.get<1>().getValue());
-		dst_.setPort(m.get<2>().getValue());
-		dst_.setPriority(m.get<3>().getValue());
-		dst_.setWeight(m.get<4>().getValue());
-	}
-	return output;
-}
-
-int Traits<Network::Xml::Anonymous2410>::generate(const Network::Xml::Anonymous2410& src_, QDomElement& dst_)
-{
-	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getDomain(), m.get<0>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<1>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getPort(), m.get<2>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getPriority(), m.get<3>()))
-		return -1;
-	if (0 > Details::Marshal::assign(src_.getWeight(), m.get<4>()))
-		return -1;
-
-	return m.produce(dst_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Srv
 
 namespace Network
@@ -1264,7 +1335,11 @@ int Traits<Network::Xml::Srv>::parse(Network::Xml::Srv& dst_, QStack<QDomElement
 	{
 		dst_.setService(m.get<0>().getValue());
 		dst_.setProtocol(m.get<1>().getValue());
-		dst_.setAnonymous2410(m.get<2>().getValue());
+		dst_.setDomain(m.get<2>().getValue());
+		dst_.setTarget(m.get<3>().getValue());
+		dst_.setPort(m.get<4>().getValue());
+		dst_.setPriority(m.get<5>().getValue());
+		dst_.setWeight(m.get<6>().getValue());
 	}
 	return output;
 }
@@ -1276,7 +1351,15 @@ int Traits<Network::Xml::Srv>::generate(const Network::Xml::Srv& src_, QDomEleme
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getProtocol(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getAnonymous2410(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getDomain(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getPort(), m.get<4>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getPriority(), m.get<5>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getWeight(), m.get<6>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1415,6 +1498,127 @@ int Traits<Network::Xml::Dns>::generate(const Network::Xml::Dns& src_, QDomEleme
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Port1
+
+namespace Network
+{
+namespace Xml
+{
+bool Port1::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Port1, Name::Strict<212> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Port1::save(QDomElement& dst_) const
+{
+	Element<Port1, Name::Strict<212> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Port1::save(QDomDocument& dst_) const
+{
+	Element<Port1, Name::Strict<212> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Network
+
+int Traits<Network::Xml::Port1>::parse(Network::Xml::Port1& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setIsolated(m.get<0>().getValue());
+	}
+	return output;
+}
+
+int Traits<Network::Xml::Port1>::generate(const Network::Xml::Port1& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getIsolated(), m.get<0>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Lease
+
+namespace Network
+{
+namespace Xml
+{
+Lease::Lease(): m_expiry()
+{
+}
+
+bool Lease::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Lease, Name::Strict<465> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Lease::save(QDomElement& dst_) const
+{
+	Element<Lease, Name::Strict<465> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Lease::save(QDomDocument& dst_) const
+{
+	Element<Lease, Name::Strict<465> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Network
+
+int Traits<Network::Xml::Lease>::parse(Network::Xml::Lease& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setExpiry(m.get<0>().getValue());
+		dst_.setUnit(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Network::Xml::Lease>::generate(const Network::Xml::Lease& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getExpiry(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getUnit(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Range
 
 namespace Network
@@ -1459,6 +1663,7 @@ int Traits<Network::Xml::Range>::parse(Network::Xml::Range& dst_, QStack<QDomEle
 	{
 		dst_.setStart(m.get<0>().getValue());
 		dst_.setEnd(m.get<1>().getValue());
+		dst_.setLease(m.get<2>().getValue());
 	}
 	return output;
 }
@@ -1469,6 +1674,8 @@ int Traits<Network::Xml::Range>::generate(const Network::Xml::Range& src_, QDomE
 	if (0 > Details::Marshal::assign(src_.getStart(), m.get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getEnd(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getLease(), m.get<2>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1483,7 +1690,7 @@ int Traits<Network::Xml::Host2405>::parse(Network::Xml::Host2405& dst_, QStack<Q
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setChoice2404(m.get<0>().getValue());
+		dst_.setChoice7134(m.get<0>().getValue());
 		dst_.setName(m.get<1>().getValue());
 	}
 	return output;
@@ -1492,9 +1699,73 @@ int Traits<Network::Xml::Host2405>::parse(Network::Xml::Host2405& dst_, QStack<Q
 int Traits<Network::Xml::Host2405>::generate(const Network::Xml::Host2405& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getChoice2404(), m.get<0>()))
+	if (0 > Details::Marshal::assign(src_.getChoice7134(), m.get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getName(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Lease1
+
+namespace Network
+{
+namespace Xml
+{
+Lease1::Lease1(): m_expiry()
+{
+}
+
+bool Lease1::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Lease1, Name::Strict<465> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Lease1::save(QDomElement& dst_) const
+{
+	Element<Lease1, Name::Strict<465> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Lease1::save(QDomDocument& dst_) const
+{
+	Element<Lease1, Name::Strict<465> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Network
+
+int Traits<Network::Xml::Lease1>::parse(Network::Xml::Lease1& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setExpiry(m.get<0>().getValue());
+		dst_.setUnit(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Network::Xml::Lease1>::generate(const Network::Xml::Lease1& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getExpiry(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getUnit(), m.get<1>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1545,6 +1816,7 @@ int Traits<Network::Xml::Host1>::parse(Network::Xml::Host1& dst_, QStack<QDomEle
 	{
 		dst_.setHost(m.get<0>().getValue());
 		dst_.setIp(m.get<1>().getValue());
+		dst_.setLease(m.get<2>().getValue());
 	}
 	return output;
 }
@@ -1555,6 +1827,8 @@ int Traits<Network::Xml::Host1>::generate(const Network::Xml::Host1& src_, QDomE
 	if (0 > Details::Marshal::assign(src_.getHost(), m.get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getIp(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getLease(), m.get<2>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1727,10 +2001,11 @@ int Traits<Network::Xml::Ip>::parse(Network::Xml::Ip& dst_, QStack<QDomElement>&
 	if (0 <= output)
 	{
 		dst_.setAddress(m.get<0>().getValue());
-		dst_.setChoice2401(m.get<1>().getValue());
+		dst_.setChoice2404(m.get<1>().getValue());
 		dst_.setFamily(m.get<2>().getValue());
-		dst_.setTftp(m.get<3>().getValue());
-		dst_.setDhcp(m.get<4>().getValue());
+		dst_.setLocalPtr(m.get<3>().getValue());
+		dst_.setTftp(m.get<4>().get<0>().getValue());
+		dst_.setDhcp(m.get<4>().get<1>().getValue());
 	}
 	return output;
 }
@@ -1740,13 +2015,15 @@ int Traits<Network::Xml::Ip>::generate(const Network::Xml::Ip& src_, QDomElement
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice2401(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getChoice2404(), m.get<1>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getFamily(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTftp(), m.get<3>()))
+	if (0 > Details::Marshal::assign(src_.getLocalPtr(), m.get<3>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getDhcp(), m.get<4>()))
+	if (0 > Details::Marshal::assign(src_.getTftp(), m.get<4>().get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getDhcp(), m.get<4>().get<1>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1797,7 +2074,7 @@ int Traits<Network::Xml::Route>::parse(Network::Xml::Route& dst_, QStack<QDomEle
 	{
 		dst_.setFamily(m.get<0>().getValue());
 		dst_.setAddress(m.get<1>().getValue());
-		dst_.setChoice2409(m.get<2>().getValue());
+		dst_.setChoice2398(m.get<2>().getValue());
 		dst_.setGateway(m.get<3>().getValue());
 		dst_.setMetric(m.get<4>().getValue());
 	}
@@ -1811,7 +2088,7 @@ int Traits<Network::Xml::Route>::generate(const Network::Xml::Route& src_, QDomE
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getAddress(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice2409(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getChoice2398(), m.get<2>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getGateway(), m.get<3>()))
 		return -1;
@@ -1866,19 +2143,24 @@ int Traits<Network::Xml::Network>::parse(Network::Xml::Network& dst_, QStack<QDo
 	{
 		dst_.setConnections(m.get<0>().getValue());
 		dst_.setIpv6(m.get<1>().getValue());
-		dst_.setName(m.get<2>().get<0>().getValue());
-		dst_.setUuid(m.get<2>().get<1>().getValue());
-		dst_.setBridge(m.get<2>().get<2>().getValue());
-		dst_.setMac(m.get<2>().get<3>().getValue());
-		dst_.setForward(m.get<2>().get<4>().getValue());
-		dst_.setVirtualPortProfile(m.get<2>().get<5>().getValue());
-		dst_.setPortgroupList(m.get<2>().get<6>().getValue());
-		dst_.setDomain(m.get<2>().get<7>().getValue());
-		dst_.setDns(m.get<2>().get<8>().getValue());
-		dst_.setBandwidth(m.get<2>().get<9>().getValue());
-		dst_.setVlan(m.get<2>().get<10>().getValue());
-		dst_.setIpList(m.get<2>().get<11>().getValue());
-		dst_.setRouteList(m.get<2>().get<12>().getValue());
+		dst_.setTrustGuestRxFilters(m.get<2>().getValue());
+		dst_.setName(m.get<3>().get<0>().getValue());
+		dst_.setMetadata(m.get<3>().get<1>().getValue());
+		dst_.setUuid(m.get<3>().get<2>().getValue());
+		dst_.setBridge(m.get<3>().get<3>().getValue());
+		dst_.setMtu(m.get<3>().get<4>().getValue());
+		dst_.setMac(m.get<3>().get<5>().getValue());
+		dst_.setForward(m.get<3>().get<6>().getValue());
+		dst_.setVirtualPortProfile(m.get<3>().get<7>().getValue());
+		dst_.setPortgroupList(m.get<3>().get<8>().getValue());
+		dst_.setDomain(m.get<3>().get<9>().getValue());
+		dst_.setDns(m.get<3>().get<10>().getValue());
+		dst_.setBandwidth(m.get<3>().get<11>().getValue());
+		dst_.setVlan(m.get<3>().get<12>().getValue());
+		dst_.setPort(m.get<3>().get<13>().getValue());
+		dst_.setIpList(m.get<3>().get<14>().getValue());
+		dst_.setRouteList(m.get<3>().get<15>().getValue());
+		dst_.setOptions(m.get<3>().get<16>().getValue());
 	}
 	return output;
 }
@@ -1890,31 +2172,41 @@ int Traits<Network::Xml::Network>::generate(const Network::Xml::Network& src_, Q
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getIpv6(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getName(), m.get<2>().get<0>()))
+	if (0 > Details::Marshal::assign(src_.getTrustGuestRxFilters(), m.get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getUuid(), m.get<2>().get<1>()))
+	if (0 > Details::Marshal::assign(src_.getName(), m.get<3>().get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBridge(), m.get<2>().get<2>()))
+	if (0 > Details::Marshal::assign(src_.getMetadata(), m.get<3>().get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getMac(), m.get<2>().get<3>()))
+	if (0 > Details::Marshal::assign(src_.getUuid(), m.get<3>().get<2>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getForward(), m.get<2>().get<4>()))
+	if (0 > Details::Marshal::assign(src_.getBridge(), m.get<3>().get<3>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getVirtualPortProfile(), m.get<2>().get<5>()))
+	if (0 > Details::Marshal::assign(src_.getMtu(), m.get<3>().get<4>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getPortgroupList(), m.get<2>().get<6>()))
+	if (0 > Details::Marshal::assign(src_.getMac(), m.get<3>().get<5>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getDomain(), m.get<2>().get<7>()))
+	if (0 > Details::Marshal::assign(src_.getForward(), m.get<3>().get<6>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getDns(), m.get<2>().get<8>()))
+	if (0 > Details::Marshal::assign(src_.getVirtualPortProfile(), m.get<3>().get<7>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<2>().get<9>()))
+	if (0 > Details::Marshal::assign(src_.getPortgroupList(), m.get<3>().get<8>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<2>().get<10>()))
+	if (0 > Details::Marshal::assign(src_.getDomain(), m.get<3>().get<9>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<2>().get<11>()))
+	if (0 > Details::Marshal::assign(src_.getDns(), m.get<3>().get<10>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getRouteList(), m.get<2>().get<12>()))
+	if (0 > Details::Marshal::assign(src_.getBandwidth(), m.get<3>().get<11>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVlan(), m.get<3>().get<12>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getPort(), m.get<3>().get<13>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getIpList(), m.get<3>().get<14>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getRouteList(), m.get<3>().get<15>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getOptions(), m.get<3>().get<16>()))
 		return -1;
 
 	return m.produce(dst_);
