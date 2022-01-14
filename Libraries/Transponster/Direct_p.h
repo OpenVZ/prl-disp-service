@@ -534,7 +534,7 @@ struct Builder
 	void setFilter(const boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes>& value_);
 	void setIps(const QList<Libvirt::Domain::Xml::Ip>& value_);
 	void setConnected(const boost::optional<Libvirt::Domain::Xml::EState >& value_);
-	void setBandwidth(const boost::optional<Libvirt::Domain::Xml::Bandwidth>& value_);
+	void setBandwidth(const boost::optional<Libvirt::Domain::Xml::Bandwidth1>& value_);
 	void setDhcp(const boost::optional<QList<Libvirt::Domain::Xml::VzDhcp>>& value_);
 	void setGateway(const QList<Libvirt::Domain::Xml::Route>& value_);
 
@@ -639,19 +639,19 @@ struct Device: boost::static_visitor<PRL_RESULT>
 	{
 		return PRL_ERR_SUCCESS;
 	}
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 0>::type& disk_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 1>::type& controller_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 4>::type& interface_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 5>::type& input_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 6>::type& sound_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 7>::type& pci_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 8>::type& graphics_) const
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 0>::type& disk_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 1>::type& controller_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 4>::type& interface_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 5>::type& input_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 6>::type& sound_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 7>::type& pci_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 8>::type& graphics_) const
 	{
 		return boost::apply_visitor(Graphics(*m_vm), graphics_.getValue()); 
 	}
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 9>::type& video_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 11>::type& parallel_) const;
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 12>::type& serial_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 9>::type& video_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 11>::type& parallel_) const;
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 12>::type& serial_) const;
 
 private:
 	Clip* m_clip;
@@ -775,7 +775,7 @@ struct Nodedev: boost::static_visitor<void>
 	}
 
 	result_type operator()(const mpl::at_c<Libvirt::Domain::Xml::VHostdevsubsys::types, 0>::type& alternative_) const;
-	result_type operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice917::types, 0>::type& alternative_) const
+	result_type operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7065::types, 0>::type& alternative_) const
 	{
 		return boost::apply_visitor(*this, alternative_.getValue().getHostdevsubsys());
 	}
@@ -803,7 +803,7 @@ struct Collect: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 1>::type& controller_) const
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 1>::type& controller_) const
 	{
 		m_output->append(controller_.getValue());
 	}
@@ -826,7 +826,7 @@ struct Scsi: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice625::types, 1>::type& model_) const
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5117::types, 1>::type& model_) const
 	{
 		if (!model_.getValue())
 			return;
@@ -872,7 +872,7 @@ struct Usb: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice625::types, 2>::type& usb_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5117::types, 2>::type& usb_) const;
 private:
 	CVmUsbController *m_settings;
 	CVmHardware *m_hardware;
@@ -982,11 +982,11 @@ struct Mask: boost::static_visitor<void>
 	void operator()(const T& ) const
 	{
 	}
-	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice2401::types, 0>::type& addr_) const
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice2398::types, 0>::type& addr_) const
 	{
 		m_result->setIPNetMask(QHostAddress(addr_.getValue()));
 	}
-	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice2401::types, 1>::type& prefix_) const
+	void operator()(const mpl::at_c<Libvirt::Network::Xml::VChoice2398::types, 1>::type& prefix_) const
 	{
 		boost::apply_visitor(*this, prefix_.getValue());
 	}
@@ -1081,7 +1081,7 @@ struct Master: boost::static_visitor<bool>
 	{
 		return false;
 	}
-	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice2462::types, 0>::type& ethernet_) const
+	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice7155::types, 0>::type& ethernet_) const
 	{
 		m_result->setDeviceName(ethernet_.getValue().getName());
 		if (ethernet_.getValue().getMac())
@@ -1091,7 +1091,7 @@ struct Master: boost::static_visitor<bool>
 		}
 		return true;
 	}
-	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice2462::types, 1>::type& vlan_) const
+	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice7155::types, 1>::type& vlan_) const
 	{
 		Libvirt::Iface::Xml::VlanInterfaceCommon c = vlan_.getValue().getVlanInterfaceCommon();
 		if (c.getName())
@@ -1101,7 +1101,7 @@ struct Master: boost::static_visitor<bool>
 		m_result->setVLANTag(v.getTag());
 		return true;
 	}
-	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice2462::types, 2>::type& bond_) const
+	bool operator()(const mpl::at_c<Libvirt::Iface::Xml::VChoice7155::types, 2>::type& bond_) const
 	{
 		Libvirt::Iface::Xml::BondInterfaceCommon c = bond_.getValue().getBondInterfaceCommon();
 		m_result->setDeviceName(c.getName());
@@ -1132,7 +1132,7 @@ struct Bios: boost::static_visitor<void>
 	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type& os_) const
 	{
 		const Libvirt::Domain::Xml::Loader* l = os_.getValue().getLoader().get_ptr();
-		if (l && l->getType() && l->getType().get() == Libvirt::Domain::Xml::EType2Pflash)
+		if (l && l->getType() && l->getType().get() == Libvirt::Domain::Xml::EType4Pflash)
 			m_bios->setEfiEnabled(true);
 
 		const Libvirt::Domain::Xml::Nvram* n = os_.getValue().getNvram().get_ptr();
@@ -1177,7 +1177,7 @@ namespace Fixup
 
 struct DiskForm: boost::static_visitor<PRL_RESULT>
 {
-	DiskForm(CVmHardware* hardware_, QList<Libvirt::Domain::Xml::VChoice985>* list_,
+	DiskForm(CVmHardware* hardware_, QList<Libvirt::Domain::Xml::VChoice7097>* list_,
 			const Libvirt::Domain::Xml::Disk& disk_)
 		: m_hardware(hardware_), m_list(list_), m_disk(disk_)
 	{
@@ -1191,7 +1191,7 @@ struct DiskForm: boost::static_visitor<PRL_RESULT>
 
 private:
 	CVmHardware* m_hardware;
-	QList<Libvirt::Domain::Xml::VChoice985>* m_list;
+	QList<Libvirt::Domain::Xml::VChoice7097>* m_list;
 	mutable Libvirt::Domain::Xml::Disk m_disk;
 };
 
@@ -1200,7 +1200,7 @@ private:
 
 struct Device: boost::static_visitor<PRL_RESULT>
 {
-	Device(const CVmHardware& hardware_, QList<Libvirt::Domain::Xml::VChoice985>& list_)
+	Device(const CVmHardware& hardware_, QList<Libvirt::Domain::Xml::VChoice7097>& list_)
 		: m_hardware(hardware_), m_list(&list_)
 	{
 	}
@@ -1211,12 +1211,12 @@ struct Device: boost::static_visitor<PRL_RESULT>
 		*m_list << device_;
 		return PRL_ERR_SUCCESS;
 	}
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 0>::type& disk_);
-	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 12>::type& serial_);
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 0>::type& disk_);
+	PRL_RESULT operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 12>::type& serial_);
 
 private:
 	CVmHardware m_hardware;
-	QList<Libvirt::Domain::Xml::VChoice985>* m_list;
+	QList<Libvirt::Domain::Xml::VChoice7097>* m_list;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1275,60 +1275,60 @@ struct Device: boost::static_visitor<void>
 		m_result << device_;
 	}
 	// disk
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 0>::type&)
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 0>::type&)
 	{
 	}
 	// controller
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 1>::type&)
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 1>::type&)
 	{
 	}
 	// interface
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 4>::type&)
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 4>::type&)
 	{
 	}
 	// input
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 5>::type&)
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 5>::type&)
 	{
 	}
 	// sound
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 6>::type&)
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 6>::type&)
 	{
 	}
 	// hostdev
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 7>::type& passthrough_)
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 7>::type& passthrough_)
 	{
 		const boost::optional<QString>& a = passthrough_.getValue().getAlias();
 		if (!a || !Transponster::Device::Alias().feature(a.get()))
 			m_result << passthrough_;
 	}
 	// graphic
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 8>::type&)
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 8>::type&)
 	{
 	}
 	// video
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 9>::type&)
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 9>::type&)
 	{
 	}
 	// parallel
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 11>::type&)
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 11>::type&)
 	{
 	}
 	// serial
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 12>::type&)
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 12>::type&)
 	{
 	}
 	// channel
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 13>::type&)
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 13>::type&)
 	{
 	}
 
-	const QList<Libvirt::Domain::Xml::VChoice985>& getResult() const
+	const QList<Libvirt::Domain::Xml::VChoice7097>& getResult() const
 	{
 		return m_result;
 	}
 
 private:
-	QList<Libvirt::Domain::Xml::VChoice985> m_result;
+	QList<Libvirt::Domain::Xml::VChoice7097> m_result;
 };      
 
 namespace Os
@@ -1336,9 +1336,9 @@ namespace Os
 ///////////////////////////////////////////////////////////////////////////////
 // struct Type
 
-struct Type: boost::static_visitor<Libvirt::Domain::Xml::VChoice305>
+struct Type: boost::static_visitor<Libvirt::Domain::Xml::VChoice5114>
 {
-	typedef mpl::at_c<Libvirt::Domain::Xml::VChoice305::types, 0>::type chosen_type;
+	typedef mpl::at_c<Libvirt::Domain::Xml::VChoice5114::types, 0>::type chosen_type;
 
 	template<class T, class U>
 	result_type operator()(const T&, const U& new_) const
@@ -1372,7 +1372,7 @@ struct Unit: boost::static_visitor<Libvirt::Domain::Xml::VOs>
 		Libvirt::Domain::Xml::Os2 a = old_.getValue();
 		Libvirt::Domain::Xml::Os2 b = new_.getValue();
 
-		typedef boost::optional<Libvirt::Domain::Xml::VChoice305> type_type;
+		typedef boost::optional<Libvirt::Domain::Xml::VChoice5114> type_type;
 		type_type x = a.getType(), y = b.getType();
 		if (x)
 		{
@@ -1443,7 +1443,7 @@ struct Chipset: boost::static_visitor<QString>
 	{
 		return QString();
 	}
-	QString operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice305::types, 0>::type& hvm_) const
+	QString operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5114::types, 0>::type& hvm_) const
 	{
 		return hvm_.getValue().getMachine() ? hvm_.getValue().getMachine().get() : QString();
 	}
@@ -1477,7 +1477,7 @@ struct Image: boost::static_visitor<bool>
 	{
 		return false;
 	}
-	result_type operator()(const boost::mpl::at_c<xml::VChoice985::types, 0>::type& disk_) const;
+	result_type operator()(const boost::mpl::at_c<xml::VChoice7097::types, 0>::type& disk_) const;
 	result_type operator()(const boost::mpl::at_c<xml::VDisk::types, 0>::type& disk_) const;
 
 private:

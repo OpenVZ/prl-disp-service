@@ -258,7 +258,7 @@ PRL_RESULT Cdrom::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 
 PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics::types, 1>::type& vnc_) const
 {
-	if (0 != vnc_.getValue().getChoice727().which())
+	if (0 != vnc_.getValue().getChoice5120().which())
 		return PRL_ERR_UNIMPLEMENTED;
 
 	QScopedPointer<CVmRemoteDisplay> v(new CVmRemoteDisplay());
@@ -266,9 +266,9 @@ PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics:
 	{
 		v->setPassword(vnc_.getValue().getPasswd().get());
 	}
-	const mpl::at_c<Libvirt::Domain::Xml::VChoice727::types, 0>::type* s =
-		boost::get<mpl::at_c<Libvirt::Domain::Xml::VChoice727::types, 0>::type>
-			(&vnc_.getValue().getChoice727());
+	const mpl::at_c<Libvirt::Domain::Xml::VChoice5120::types, 0>::type* s =
+		boost::get<mpl::at_c<Libvirt::Domain::Xml::VChoice5120::types, 0>::type>
+			(&vnc_.getValue().getChoice5120());
 	if (s->getValue().getListen())
 	{
 		v->setHostName(s->getValue().getListen().get());
@@ -415,7 +415,7 @@ void Builder::setConnected(const boost::optional<Libvirt::Domain::Xml::EState >&
 		m_result.setConnected(PVE::DeviceDisconnected);
 }
 
-void Builder::setBandwidth(const boost::optional<Libvirt::Domain::Xml::Bandwidth>& value_)
+void Builder::setBandwidth(const boost::optional<Libvirt::Domain::Xml::Bandwidth1>& value_)
 {
 	if (value_)
 	{
@@ -429,7 +429,8 @@ void Builder::setBandwidth(const boost::optional<Libvirt::Domain::Xml::Bandwidth
 		if (i)
 		{
 			CVmNetBandwidthInbound *a = new CVmNetBandwidthInbound();
-			a->setAverage(i.get().getAverage());
+			if (i.get().getAverage())
+				a->setAverage(i.get().getAverage().get());
 			if (i.get().getPeak())
 				a->setPeak(i.get().getPeak().get());
 			if (i.get().getBurst())
@@ -442,7 +443,8 @@ void Builder::setBandwidth(const boost::optional<Libvirt::Domain::Xml::Bandwidth
 		if (o)
 		{
 			CVmNetBandwidthOutbound *a = new CVmNetBandwidthOutbound();
-			a->setAverage(o.get().getAverage());
+			if (o.get().getAverage())
+				a->setAverage(o.get().getAverage().get());
 			if (o.get().getPeak())
 				a->setPeak(o.get().getPeak().get());
 			if (o.get().getBurst())
@@ -621,7 +623,7 @@ PRL_RESULT DiskForm::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::typ
 ///////////////////////////////////////////////////////////////////////////////
 // struct Device
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 4>::type& interface_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 4>::type& interface_) const
 {
 	CVmHardware* h = m_vm->getVmHardwareList();
 	if (NULL == h)
@@ -630,7 +632,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::
 	return boost::apply_visitor(Network::Unit(*h, *m_clip), interface_.getValue());
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 5>::type& input_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 5>::type& input_) const
 {
 	CVmHardware* h = m_vm->getVmHardwareList();
 	if (NULL == h)
@@ -660,7 +662,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 6>::type& sound_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 6>::type& sound_) const
 {
 	CVmHardware* h = m_vm->getVmHardwareList();
 	if (NULL == h)
@@ -676,7 +678,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 7>::type& pci_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 7>::type& pci_) const
 {
 	CVmHardware* h = m_vm->getVmHardwareList();
 	if (NULL == h)
@@ -686,11 +688,11 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::
 	if (pci_.getValue().getAlias())
 		a = pci_.getValue().getAlias().get();
 
-	boost::apply_visitor(Visitor::Nodedev(a, *h), pci_.getValue().getChoice917());
+	boost::apply_visitor(Visitor::Nodedev(a, *h), pci_.getValue().getChoice7065());
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 11>::type& parallel_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 11>::type& parallel_) const
 {
 	CVmHardware* h = m_vm->getVmHardwareList();
 	if (NULL == h)
@@ -709,7 +711,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 12>::type& serial_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 12>::type& serial_) const
 {
 	CVmHardware* h = m_vm->getVmHardwareList();
 	if (NULL == h)
@@ -776,7 +778,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 0>::type& disk_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 0>::type& disk_) const
 {
 	CVmHardware* h(m_vm->getVmHardwareList());
 	if (!h)
@@ -784,7 +786,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::
 	return boost::apply_visitor(DiskForm(*h, *m_clip, disk_.getValue()), disk_.getValue().getDisk());
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 9>::type& video_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 9>::type& video_) const
 {
 	CVmHardware* h = m_vm->getVmHardwareList();
 	if (NULL == h)
@@ -810,9 +812,9 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 1>::type& controller_) const
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 1>::type& controller_) const
 {
-	if (controller_.getValue().getChoice625().which() != 2)
+	if (controller_.getValue().getChoice5117().which() != 2)
 		return PRL_ERR_SUCCESS;
 	if (m_vm->getVmSettings() == NULL)
 		return PRL_ERR_UNEXPECTED;
@@ -823,7 +825,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::
 	if (NULL == h)
 		return PRL_ERR_UNEXPECTED;
 	boost::apply_visitor(Visitor::Controller::Usb(*u, *h),
-		controller_.getValue().getChoice625());
+		controller_.getValue().getChoice5117());
 	return PRL_ERR_SUCCESS;
 }
 
@@ -855,7 +857,7 @@ void Adjustment::operator()(const mpl::at_c<Libvirt::Domain::Xml::VClock::types,
 {
 	mpl::at_c<Libvirt::Domain::Xml::VAdjustment::types, 1>::type value;
 	value.setValue(QString::number(m_offset));
-	Libvirt::Domain::Xml::Clock395 c = fixed_.getValue();
+	Libvirt::Domain::Xml::Clock6991 c = fixed_.getValue();
 	c.setOffset(Libvirt::Domain::Xml::EOffsetUtc);
 	c.setAdjustment(Libvirt::Domain::Xml::VAdjustment(value));
 	mpl::at_c<Libvirt::Domain::Xml::VClock::types, 0>::type v;
@@ -865,7 +867,7 @@ void Adjustment::operator()(const mpl::at_c<Libvirt::Domain::Xml::VClock::types,
 
 void Adjustment::operator()(const mpl::at_c<Libvirt::Domain::Xml::VClock::types, 2>::type& variable_) const
 {
-	Libvirt::Domain::Xml::Clock401 c = variable_.getValue();
+	Libvirt::Domain::Xml::Clock6993 c = variable_.getValue();
 	c.setBasis(Libvirt::Domain::Xml::EBasisUtc);
 	c.setAdjustment(QString::number(m_offset));
 	mpl::at_c<Libvirt::Domain::Xml::VClock::types, 2>::type v;
@@ -898,7 +900,7 @@ namespace Controller
 ///////////////////////////////////////////////////////////////////////////////
 // struct Usb
 
-void Usb::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice625::types, 2>::type& usb_) const
+void Usb::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5117::types, 2>::type& usb_) const
 {
 	boost::optional<Libvirt::Domain::Xml::EModel1> m = usb_.getValue().getModel();
 	if (!m)
@@ -1022,9 +1024,9 @@ PRL_RESULT DiskForm::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::typ
 		setDiskSource(m_hardware->m_lstFloppyDisks, i);
 		break;
 	}
-	mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 0>::type y;
+	mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 0>::type y;
 	y.setValue(m_disk);
-	*m_list << Libvirt::Domain::Xml::VChoice985(y);
+	*m_list << Libvirt::Domain::Xml::VChoice7097(y);
 	return PRL_ERR_SUCCESS;
 }
 
@@ -1039,13 +1041,13 @@ PRL_RESULT DiskForm::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::typ
 ///////////////////////////////////////////////////////////////////////////////
 // struct Device
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 12>::type&)
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 12>::type&)
 {
 	//drop all serial devices
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice985::types, 0>::type& disk_)
+PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 0>::type& disk_)
 {
 	return boost::apply_visitor(DiskForm(&m_hardware, m_list, disk_.getValue()), disk_.getValue().getDisk());
 }
@@ -1076,7 +1078,7 @@ void Timer::operator()(const mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 0>::
 	mpl::at_c<Libvirt::Domain::Xml::VTickpolicy::types, 0>::type p;
 	p.setValue(Libvirt::Domain::Xml::ETickpolicyDiscard);
 
-	Libvirt::Domain::Xml::Timer420 tt;
+	Libvirt::Domain::Xml::Timer6996 tt;
 	tt.setTickpolicy(Libvirt::Domain::Xml::VTickpolicy(p));
 	tt.setName(Libvirt::Domain::Xml::EName1Pit);
 
@@ -1110,7 +1112,7 @@ namespace Export
 // struct Image
 
 Image::result_type Image::operator()
-	(const boost::mpl::at_c<xml::VChoice985::types, 0>::type& disk_) const
+	(const boost::mpl::at_c<xml::VChoice7097::types, 0>::type& disk_) const
 {
 	if (!boost::apply_visitor(*this, disk_.getValue().getDisk()))
 		return false;
@@ -1308,7 +1310,7 @@ PRL_RESULT Cpu::setNode()
 	if (!m && !m->getMode())
 		return PRL_ERR_SUCCESS;
 
-	if (m->getMode().get() == Libvirt::Domain::Xml::EMode3Strict)
+	if (m->getMode().get() == Libvirt::Domain::Xml::EMode4Strict)
 	{
 		m_result->setNodeMask(boost::apply_visitor(
 			Visitor::Numatune::Memory(), m->getMemory()));
@@ -1538,12 +1540,12 @@ PRL_RESULT Vm::setDevices()
 	if (NULL != d)
 	{
 		Visitor::Controller::Collect::output_type x;
-		foreach (const Libvirt::Domain::Xml::VChoice985& v, d->getChoice985List())
+		foreach (const Libvirt::Domain::Xml::VChoice7097& v, d->getChoice7097List())
 		{
 			boost::apply_visitor(Visitor::Controller::Collect(x), v);
 		}
 		Clip c(*m_result->getVmSettings()->getVmStartupOptions(), x);
-		foreach (const Libvirt::Domain::Xml::VChoice985& v, d->getChoice985List())
+		foreach (const Libvirt::Domain::Xml::VChoice7097& v, d->getChoice7097List())
 		{
 			boost::apply_visitor(Visitor::Device(*m_result, c), v);
 		}
@@ -1678,7 +1680,7 @@ PRL_RESULT Direct::setHostOnly()
 			boost::apply_visitor(Visitor::Address::Ip(*h), a.get());
 
 		boost::optional<QString> f = p.getFamily();
-		boost::optional<Libvirt::Network::Xml::VChoice2401> m = p.getChoice2401();
+		boost::optional<Libvirt::Network::Xml::VChoice2404> m = p.getChoice2404();
 		if (f && m)
 			boost::apply_visitor(Visitor::Address::Mask(*h, *f), m.get());
 
@@ -1786,8 +1788,8 @@ PRL_RESULT Direct::setMaster()
 	if (m_input.isNull())
 		return PRL_ERR_READ_XML_CONTENT;
  
-	foreach (const Libvirt::Iface::Xml::VChoice2462& a,
-		m_input->getBridge().getChoice2462List())
+	foreach (const Libvirt::Iface::Xml::VChoice7155& a,
+		m_input->getBridge().getChoice7155List())
 	{
 		if (boost::apply_visitor(Visitor::Bridge::Master(m_master), a))
 			return PRL_ERR_SUCCESS;
@@ -1885,14 +1887,14 @@ Vm::Vm(char* xml_)
 	if (snapshot.isNull())
 		return;
 
-	if (!snapshot->getChoice5120())
+	if (!snapshot->getChoice7295())
 		return;
 
-	if (1 == snapshot->getChoice5120()->which())
+	if (1 == snapshot->getChoice7295()->which())
 	{
 		const Libvirt::Domain::Xml::Domain& d =
-			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice5120::types, 1>::type>
-				(snapshot->getChoice5120().get()).getValue();
+			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice7295::types, 1>::type>
+				(snapshot->getChoice7295().get()).getValue();
 		m_input.reset(new Libvirt::Domain::Xml::Domain(d));
 	}
 }
@@ -1917,7 +1919,7 @@ PRL_RESULT View::operator()(const object_type& object_)
 		t.setPort(x.getAddress().getPort().get());
 
 	Visitor::Export::map_type m;
-	foreach (const xml::VChoice985& d, object_.getDevices()->getChoice985List())
+	foreach (const xml::VChoice7097& d, object_.getDevices()->getChoice7097List())
 	{
 		boost::apply_visitor(Visitor::Export::Image(m), d);
 	}
@@ -1988,7 +1990,7 @@ boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> Clip::getControllerModel(const Lib
 	{
 		if (a.getController().get() != QString::number(c.getIndex()))
 			continue;
-		boost::apply_visitor(Visitor::Controller::Scsi(m), c.getChoice625());
+		boost::apply_visitor(Visitor::Controller::Scsi(m), c.getChoice5117());
 		if (m)
 			break;
 	}
@@ -2076,7 +2078,7 @@ CpuFeatures* Capabilities::getCpuFeatures() const
 
 	QList<QString> d, r;
 	foreach (const Libvirt::Capability::Xml::Feature& f,
-		getValue().getCpu()->getMode2().getAnonymous4935()->getFeatureList())
+		getValue().getCpu()->getMode3().getAnonymous4936()->getFeatureList())
 	{
 		switch (f.getPolicy())
 		{
@@ -2097,15 +2099,15 @@ CpuFeatures* Capabilities::getCpuFeatures() const
 
 QString Capabilities::getCpuModel() const
 {
-	return getValue().getCpu()->getMode2().getAnonymous4935()
+	return getValue().getCpu()->getMode3().getAnonymous4936()
 		->getModel().getOwnValue();
 }
 
 bool Capabilities::isValid() const
 {
 	return getValue().getCpu() &&
-		getValue().getCpu()->getMode2().getSupported() == Libvirt::Capability::Xml::EVirYesNoYes &&
-		getValue().getCpu()->getMode2().getAnonymous4935();
+		getValue().getCpu()->getMode3().getSupported() == Libvirt::Capability::Xml::EVirYesNoYes &&
+		getValue().getCpu()->getMode3().getAnonymous4936();
 }
 
 } // namespace Host
