@@ -188,10 +188,11 @@ PRL_RESULT Task_UpdateCommonPrefs::run_body()
 			CDspService::instance()->getVmManager().changeLogLevelForActiveVMs( getClient(), bVerboseLogEnabled );
 		}
 
-		const QString & newTmpDir = m_pNewCommonPrefs->getBackupSourcePreferences()->getTmpDir();
-		if (newTmpDir != m_pOldCommonPrefs->getBackupSourcePreferences()->getTmpDir() && !newTmpDir.isEmpty())
+		const auto& newPref = m_pNewCommonPrefs->getBackupSourcePreferences();
+		if (newPref->getTmpDir() != m_pOldCommonPrefs->getBackupSourcePreferences()->getTmpDir()
+				&& !newPref->getTmpDir().isEmpty())
 		{
-			int fd = open(newTmpDir.toStdString().c_str(),
+			int fd = open(newPref->getTmpDir().toStdString().c_str(),
 						  O_TMPFILE | O_RDWR | O_EXCL | O_DIRECT, S_IRUSR | S_IWUSR);
 
 			if (fd == -1)
@@ -205,6 +206,14 @@ PRL_RESULT Task_UpdateCommonPrefs::run_body()
 			}
 
 			close(fd);
+
+			if (newPref->getBackupMode()->getMode() == PBM_PUSH)
+			{
+				newPref->getBackupMode()->setMode(PBM_PUSH_REVERSED_DELTA);
+				WRITE_TRACE(DBG_WARNING, "Backup mode switched to push-with-reverse-delta.");
+			}
+
+			WRITE_TRACE(DBG_WARNING, "New backup tmpdir: %s", QSTR2UTF8(newPref->getTmpDir()));
 		}
 
 		ret = saveCommonPrefs();
