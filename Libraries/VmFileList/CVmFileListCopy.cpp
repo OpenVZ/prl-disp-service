@@ -1140,7 +1140,14 @@ PRL_RESULT CVmFileListCopyTarget::RecvFileRequest(const SmartPtr<IOPackage> &p)
 	if (!file->open(m_bOverwriteMode ?
 			QIODevice::WriteOnly|QIODevice::Truncate :
 			QIODevice::WriteOnly)) {
-		WRITE_TRACE(DBG_FATAL, "Can't open file: [%s]", QSTR2UTF8(path));
+		WRITE_TRACE(DBG_FATAL, "Can't open file: [%s]; overwrite mode: %s; error: %s (%d)",
+				QSTR2UTF8(path), m_bOverwriteMode ? "True" : "False",
+				QSTR2UTF8(file->errorString()), file->error());
+
+		WRITE_TRACE(DBG_FATAL, "Backup directory contents:");
+		QDirIterator dit(m_sWorkPath, QDir::AllEntries | QDir::NoDot | QDir::NoDotDot, QDirIterator::Subdirectories);
+		while (dit.hasNext())
+			WRITE_TRACE(DBG_FATAL, "\t[%s]", QSTR2UTF8(dit.next()));
 
 		m_Event.setEventCode(PRL_ERR_FILECOPY_CANT_OPEN_FILE);
 		m_Event.addEventParameter(new CVmEventParameter(
