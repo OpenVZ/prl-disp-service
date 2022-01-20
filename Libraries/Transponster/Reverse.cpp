@@ -434,6 +434,26 @@ CommandLine& CommandLine::seed(const boost::optional<Libvirt::Domain::Xml::Comma
 	return *this;
 }
 
+CommandLine& CommandLine::addVncParameters()
+{
+	CVmSettings* s = m_source->getVmSettings();
+	if (NULL == s)
+		return *this;
+
+	CVmRemoteDisplay* pVNC = s->getVmRemoteDisplay();
+	if (NULL == pVNC)
+		return *this;
+
+	stripVncParameters();
+
+	if (pVNC->getMode() != PRD_DISABLED)
+	{
+		m_result << "-chardev" << "qemu-vdagent,id=vdagent,clipboard=on";
+		m_result << "-device" << "virtserialport,chardev=vdagent,name=com.redhat.spice.0";
+	}
+	return *this;
+}
+
 CommandLine& CommandLine::addDebug()
 {
 	if (DBG_DEBUG > __log_level)
@@ -462,6 +482,14 @@ void CommandLine::stripParameter(int at_)
 		m_result.removeAt(at_+1);
 		m_result.removeAt(at_);
 	}
+}
+
+void CommandLine::stripVncParameters()
+{
+	// remove "-chardev qemu-vdagent,id=vdagent,clipboard=on" from commandline
+	// remove "-device virtserialport,chardev=vdagent,name=com.redhat.spice.0" from commandline
+	stripParameter(m_result.indexOf("-chardev"));
+	stripParameter(m_result.indexOf("-device"));
 }
 
 CommandLine& CommandLine::stripDebugcon()
@@ -2240,7 +2268,7 @@ PRL_RESULT Vm::setBlank()
 
 	m_result->setOnCrash(Libvirt::Domain::Xml::ECrashOptionsPreserve);
 	setFeatures();
-	m_result->setCommandline(CommandLine(m_input).addDebug()
+	m_result->setCommandline(CommandLine(m_input).addDebug().addVncParameters()
 		.workaroundEfi2008R2().takeResult());
 	return PRL_ERR_SUCCESS;
 }
@@ -2353,7 +2381,8 @@ PRL_RESULT Mixer::setBlank()
 	Libvirt::Domain::Xml::VOs b = m_result->getOs();
 	PRL_RESULT r = Builder::setBlank();
 	m_result->setCommandline(CommandLine(m_input).seed(m_result->getCommandline())
-		.addDebug().workaroundEfi2008R2().takeResult());
+		.addDebug().addVncParameters().workaroundEfi2008R2().takeResult());
+
 	m_result->setOs(boost::apply_visitor(Visitor::Mixer::Os::Unit(), b, m_result->getOs()));
 	return r;
 }
@@ -2439,7 +2468,7 @@ PRL_RESULT Fixer::setBlank()
 	if (c)
 	{
 		m_result->setCommandline(CommandLine(m_input).seed(c)
-			.stripDebugcon().addDebug().takeResult());
+			.stripDebugcon().addDebug().addVncParameters().takeResult());
 	}
 
 	return PRL_ERR_SUCCESS;

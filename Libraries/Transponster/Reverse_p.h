@@ -1051,11 +1051,13 @@ struct CommandLine
 	CommandLine& seed(const boost::optional<Libvirt::Domain::Xml::Commandline>& original_);
 	CommandLine& addDebug();
 	CommandLine& stripDebugcon();
+	CommandLine& addVncParameters();
 	CommandLine& workaroundEfi2008R2();
 	Libvirt::Domain::Xml::Commandline takeResult();
 
 private:
 	void stripParameter(int at_);
+	void stripVncParameters();
 
 	QList<QString> m_result;
 	const CVmConfiguration* m_source;
