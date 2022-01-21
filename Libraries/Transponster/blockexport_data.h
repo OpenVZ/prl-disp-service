@@ -283,13 +283,13 @@ struct Validatable<Blockexport::Xml::PData2424>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8681
+// struct PData8748
 
 namespace Blockexport
 {
 namespace Xml
 {
-struct PData8681
+struct PData8748
 {
 	typedef qint32 value_type;
 };
@@ -298,29 +298,29 @@ struct PData8681
 } // namespace Blockexport
 
 template<>
-struct Traits<Blockexport::Xml::PData8681>
+struct Traits<Blockexport::Xml::PData8748>
 {
-	static bool parse(const QString& src_, Blockexport::Xml::PData8681::value_type& dst_);
+	static bool parse(const QString& src_, Blockexport::Xml::PData8748::value_type& dst_);
 
-	static QString generate(Blockexport::Xml::PData8681::value_type src_);
+	static QString generate(Blockexport::Xml::PData8748::value_type src_);
 
 };
 
 template<>
-struct Validatable<Blockexport::Xml::PData8681>: mpl::true_
+struct Validatable<Blockexport::Xml::PData8748>: mpl::true_
 {
-	static bool validate(Blockexport::Xml::PData8681::value_type value_);
+	static bool validate(Blockexport::Xml::PData8748::value_type value_);
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData86811
+// struct PData8750
 
 namespace Blockexport
 {
 namespace Xml
 {
-struct PData86811
+struct PData8750
 {
 	typedef QString value_type;
 };
@@ -329,9 +329,9 @@ struct PData86811
 } // namespace Blockexport
 
 template<>
-struct Validatable<Blockexport::Xml::PData86811>: mpl::true_
+struct Validatable<Blockexport::Xml::PData8750>: mpl::true_
 {
-	static bool validate(const Blockexport::Xml::PData86811::value_type& value_);
+	static bool validate(const Blockexport::Xml::PData8750::value_type& value_);
 
 };
 
@@ -389,13 +389,66 @@ struct Validatable<Blockexport::Xml::PData2428>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData86812
+// struct PData8752
 
 namespace Blockexport
 {
 namespace Xml
 {
-struct PData86812
+struct PData8752
+{
+	typedef qint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Blockexport
+
+template<>
+struct Traits<Blockexport::Xml::PData8752>
+{
+	static bool parse(const QString& src_, Blockexport::Xml::PData8752::value_type& dst_);
+
+	static QString generate(Blockexport::Xml::PData8752::value_type src_);
+
+};
+
+template<>
+struct Validatable<Blockexport::Xml::PData8752>: mpl::true_
+{
+	static bool validate(Blockexport::Xml::PData8752::value_type value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData8754
+
+namespace Blockexport
+{
+namespace Xml
+{
+struct PData8754
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Blockexport
+
+template<>
+struct Validatable<Blockexport::Xml::PData8754>: mpl::true_
+{
+	static bool validate(const Blockexport::Xml::PData8754::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData8756
+
+namespace Blockexport
+{
+namespace Xml
+{
+struct PData8756
 {
 	typedef quint32 value_type;
 };
@@ -404,14 +457,36 @@ struct PData86812
 } // namespace Blockexport
 
 template<>
-struct Traits<Blockexport::Xml::PData86812>
+struct Traits<Blockexport::Xml::PData8756>
 {
-	static bool parse(const QString& src_, Blockexport::Xml::PData86812::value_type& dst_);
+	static bool parse(const QString& src_, Blockexport::Xml::PData8756::value_type& dst_);
 
-	static QString generate(Blockexport::Xml::PData86812::value_type src_);
+	static QString generate(Blockexport::Xml::PData8756::value_type src_);
 
 };
 
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData8758
+
+namespace Blockexport
+{
+namespace Xml
+{
+struct PData8758
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Blockexport
+
+template<>
+struct Validatable<Blockexport::Xml::PData8758>: mpl::true_
+{
+	static bool validate(const Blockexport::Xml::PData8758::value_type& value_);
+
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct PData2430

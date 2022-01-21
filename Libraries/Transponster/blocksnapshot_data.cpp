@@ -112,9 +112,9 @@ QString Traits<Blocksnapshot::Xml::POctalMode>::generate(Blocksnapshot::Xml::POc
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8681
+// struct PData8898
 
-bool Validatable<Blocksnapshot::Xml::PData8681>::validate(const Blocksnapshot::Xml::PData8681::value_type& value_)
+bool Validatable<Blocksnapshot::Xml::PData8898>::validate(const Blocksnapshot::Xml::PData8898::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,2}");
 	if (!q.exactMatch(value_))
@@ -200,26 +200,38 @@ bool Validatable<Blocksnapshot::Xml::PData4944>::validate(const Blocksnapshot::X
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData86811
+// struct PData8900
 
-bool Traits<Blocksnapshot::Xml::PData86811>::parse(const QString& src_, Blocksnapshot::Xml::PData86811::value_type& dst_)
+bool Traits<Blocksnapshot::Xml::PData8900>::parse(const QString& src_, Blocksnapshot::Xml::PData8900::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Blocksnapshot::Xml::PData86811>::generate(Blocksnapshot::Xml::PData86811::value_type src_)
+QString Traits<Blocksnapshot::Xml::PData8900>::generate(Blocksnapshot::Xml::PData8900::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Blocksnapshot::Xml::PData86811>::validate(Blocksnapshot::Xml::PData86811::value_type value_)
+bool Validatable<Blocksnapshot::Xml::PData8900>::validate(Blocksnapshot::Xml::PData8900::value_type value_)
 {
 	if (0 > value_)
 		return false;
 
 	if (65535 < value_)
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData8902
+
+bool Validatable<Blocksnapshot::Xml::PData8902>::validate(const Blocksnapshot::Xml::PData8902::value_type& value_)
+{
+	QRegExp q("0x[0-9a-fA-F]{1,6}");
+	if (!q.exactMatch(value_))
 		return false;
 
 	return true;
@@ -264,18 +276,68 @@ bool Validatable<Blocksnapshot::Xml::PData4948>::validate(const Blocksnapshot::X
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData86812
+// struct PData8904
 
-bool Traits<Blocksnapshot::Xml::PData86812>::parse(const QString& src_, Blocksnapshot::Xml::PData86812::value_type& dst_)
+bool Traits<Blocksnapshot::Xml::PData8904>::parse(const QString& src_, Blocksnapshot::Xml::PData8904::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toInt(&output);
+	return output;
+}
+
+QString Traits<Blocksnapshot::Xml::PData8904>::generate(Blocksnapshot::Xml::PData8904::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Blocksnapshot::Xml::PData8904>::validate(Blocksnapshot::Xml::PData8904::value_type value_)
+{
+	if (0 > value_)
+		return false;
+
+	if (16777215 < value_)
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData8906
+
+bool Validatable<Blocksnapshot::Xml::PData8906>::validate(const Blocksnapshot::Xml::PData8906::value_type& value_)
+{
+	QRegExp q("(0x)?[0-9a-fA-F]{1,8}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData8908
+
+bool Traits<Blocksnapshot::Xml::PData8908>::parse(const QString& src_, Blocksnapshot::Xml::PData8908::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toUInt(&output);
 	return output;
 }
 
-QString Traits<Blocksnapshot::Xml::PData86812>::generate(Blocksnapshot::Xml::PData86812::value_type src_)
+QString Traits<Blocksnapshot::Xml::PData8908>::generate(Blocksnapshot::Xml::PData8908::value_type src_)
 {
 	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData8910
+
+bool Validatable<Blocksnapshot::Xml::PData8910>::validate(const Blocksnapshot::Xml::PData8910::value_type& value_)
+{
+	QRegExp q("[a-fA-F0-9]{32}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

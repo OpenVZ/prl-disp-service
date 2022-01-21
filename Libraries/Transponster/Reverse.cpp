@@ -3239,15 +3239,15 @@ boost::optional<Libvirt::Snapshot::Xml::Disk> External::operator()(const CVmHard
 	Libvirt::Snapshot::Xml::Disk x;
 	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 	Libvirt::Snapshot::Xml::Source s;
-	Libvirt::Snapshot::Xml::Variant8681 o;
-	mpl::at_c<Libvirt::Snapshot::Xml::VChoice8681::types, 0>::type p;
+	Libvirt::Snapshot::Xml::Variant8131 o;
+	mpl::at_c<Libvirt::Snapshot::Xml::VChoice8731::types, 0>::type p;
 	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 2>::type q;
 
 	a.setValue(Device::Clustered::Model<CVmHardDisk>(disk_).getTargetName());
 	s.setFile(disk_.getSystemName() + "." + m_snapshot);
 	o.setSource(s);
 	p.setValue(o);
-	q.setValue(Libvirt::Snapshot::Xml::VChoice8681(p));
+	q.setValue(Libvirt::Snapshot::Xml::VChoice8731(p));
 
 	x.setName(Libvirt::Snapshot::Xml::VName(a));
 	x.setDisk(Libvirt::Snapshot::Xml::VDisk(q));
@@ -3378,9 +3378,9 @@ PRL_RESULT Request::operator()(const object_type& object_)
 		n.setValue(d.get<1>());
 		y.setName(n);
 
-		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice8681::types, 1>::type c;
+		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice8894::types, 1>::type c;
 		c.setValue(Libvirt::Blockexport::Xml::EVirYesNoYes);
-		y.setChoice8681(Libvirt::Blockexport::Xml::VChoice8681(c));
+		y.setChoice8894(Libvirt::Blockexport::Xml::VChoice8894(c));
 
 		x << y;
 	}

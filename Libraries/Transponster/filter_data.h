@@ -155,13 +155,13 @@ struct Traits<Filter::Xml::POctalMode>
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8681
+// struct PData8983
 
 namespace Filter
 {
 namespace Xml
 {
-struct PData8681
+struct PData8983
 {
 	typedef QString value_type;
 };
@@ -170,9 +170,9 @@ struct PData8681
 } // namespace Filter
 
 template<>
-struct Validatable<Filter::Xml::PData8681>: mpl::true_
+struct Validatable<Filter::Xml::PData8983>: mpl::true_
 {
-	static bool validate(const Filter::Xml::PData8681::value_type& value_);
+	static bool validate(const Filter::Xml::PData8983::value_type& value_);
 
 };
 
@@ -283,13 +283,13 @@ struct Validatable<Filter::Xml::PData5147>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData86811
+// struct PData8985
 
 namespace Filter
 {
 namespace Xml
 {
-struct PData86811
+struct PData8985
 {
 	typedef qint32 value_type;
 };
@@ -298,18 +298,40 @@ struct PData86811
 } // namespace Filter
 
 template<>
-struct Traits<Filter::Xml::PData86811>
+struct Traits<Filter::Xml::PData8985>
 {
-	static bool parse(const QString& src_, Filter::Xml::PData86811::value_type& dst_);
+	static bool parse(const QString& src_, Filter::Xml::PData8985::value_type& dst_);
 
-	static QString generate(Filter::Xml::PData86811::value_type src_);
+	static QString generate(Filter::Xml::PData8985::value_type src_);
 
 };
 
 template<>
-struct Validatable<Filter::Xml::PData86811>: mpl::true_
+struct Validatable<Filter::Xml::PData8985>: mpl::true_
 {
-	static bool validate(Filter::Xml::PData86811::value_type value_);
+	static bool validate(Filter::Xml::PData8985::value_type value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData8987
+
+namespace Filter
+{
+namespace Xml
+{
+struct PData8987
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Filter
+
+template<>
+struct Validatable<Filter::Xml::PData8987>: mpl::true_
+{
+	static bool validate(const Filter::Xml::PData8987::value_type& value_);
 
 };
 
@@ -367,13 +389,66 @@ struct Validatable<Filter::Xml::PData5151>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData86812
+// struct PData8989
 
 namespace Filter
 {
 namespace Xml
 {
-struct PData86812
+struct PData8989
+{
+	typedef qint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Filter
+
+template<>
+struct Traits<Filter::Xml::PData8989>
+{
+	static bool parse(const QString& src_, Filter::Xml::PData8989::value_type& dst_);
+
+	static QString generate(Filter::Xml::PData8989::value_type src_);
+
+};
+
+template<>
+struct Validatable<Filter::Xml::PData8989>: mpl::true_
+{
+	static bool validate(Filter::Xml::PData8989::value_type value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData8991
+
+namespace Filter
+{
+namespace Xml
+{
+struct PData8991
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Filter
+
+template<>
+struct Validatable<Filter::Xml::PData8991>: mpl::true_
+{
+	static bool validate(const Filter::Xml::PData8991::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData8993
+
+namespace Filter
+{
+namespace Xml
+{
+struct PData8993
 {
 	typedef quint32 value_type;
 };
@@ -382,14 +457,36 @@ struct PData86812
 } // namespace Filter
 
 template<>
-struct Traits<Filter::Xml::PData86812>
+struct Traits<Filter::Xml::PData8993>
 {
-	static bool parse(const QString& src_, Filter::Xml::PData86812::value_type& dst_);
+	static bool parse(const QString& src_, Filter::Xml::PData8993::value_type& dst_);
 
-	static QString generate(Filter::Xml::PData86812::value_type src_);
+	static QString generate(Filter::Xml::PData8993::value_type src_);
 
 };
 
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData8995
+
+namespace Filter
+{
+namespace Xml
+{
+struct PData8995
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Filter
+
+template<>
+struct Validatable<Filter::Xml::PData8995>: mpl::true_
+{
+	static bool validate(const Filter::Xml::PData8995::value_type& value_);
+
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct PData5153
@@ -1364,6 +1461,28 @@ struct PName
 
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PData8996
+
+namespace Filter
+{
+namespace Xml
+{
+struct PData8996
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Filter
+
+template<>
+struct Validatable<Filter::Xml::PData8996>: mpl::true_
+{
+	static bool validate(const Filter::Xml::PData8996::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PData5606
 
 namespace Filter
@@ -2278,7 +2397,7 @@ namespace Filter
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<EChain, PData8681, PData5606, PData5608, PData5610, PData5612, PData5614, PData5616 > > VChainImpl;
+typedef Choice<mpl::vector<EChain, PData8996, PData5606, PData5608, PData5610, PData5612, PData5614, PData5616 > > VChainImpl;
 typedef VChainImpl::value_type VChain;
 
 } // namespace Xml
@@ -2300,7 +2419,7 @@ namespace Filter
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<PData8681, PData5153 > > VUUIDImpl;
+typedef Choice<mpl::vector<PData8995, PData5153 > > VUUIDImpl;
 typedef VUUIDImpl::value_type VUUID;
 
 } // namespace Xml

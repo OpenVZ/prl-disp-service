@@ -84,22 +84,21 @@
           </choice>
         </optional>
         <optional>
-          <choice>
-            <element name='x-persistent'>
-              <!-- Nested grammar ensures that any of our overrides of
-                   storagecommon/domaincommon defines do not conflict
-                   with any domain.rng overrides.  -->
-              <grammar>
-                <include href='domain.rng'/>
-              </grammar>
-            </element>
+          <element name='x-persistent'>
             <!-- Nested grammar ensures that any of our overrides of
                  storagecommon/domaincommon defines do not conflict
                  with any domain.rng overrides.  -->
-                  <element name='inactiveDomain'>
-                    <ref name='customElement'/>
-                  </element>
-          </choice>
+            <grammar>
+              <include href='domain.rng'/>
+            </grammar>
+          </element>
+        </optional>
+        <optional>
+          <element name='inactiveDomain'>
+            <zeroOrMore>
+              <ref name='customElement'/>
+            </zeroOrMore>
+          </element>
         </optional>
         <optional>
           <element name="parent">
