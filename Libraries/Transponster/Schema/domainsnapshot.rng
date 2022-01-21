@@ -96,15 +96,9 @@
             <!-- Nested grammar ensures that any of our overrides of
                  storagecommon/domaincommon defines do not conflict
                  with any domain.rng overrides.  -->
-            <grammar>
-              <include href='domain.rng'>
-                <start>
                   <element name='inactiveDomain'>
-                    <ref name="domain"/>
+                    <ref name='customElement'/>
                   </element>
-                </start>
-              </include>
-            </grammar>
           </choice>
         </optional>
         <optional>

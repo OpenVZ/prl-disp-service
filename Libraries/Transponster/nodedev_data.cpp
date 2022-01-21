@@ -112,33 +112,33 @@ QString Traits<Nodedev::Xml::POctalMode>::generate(Nodedev::Xml::POctalMode::val
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PData3970
+
+bool Validatable<Nodedev::Xml::PData3970>::validate(const Nodedev::Xml::PData3970::value_type& value_)
+{
+	QRegExp q("0x[0-9a-fA-F]{1,2}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PData4066
 
-bool Validatable<Nodedev::Xml::PData4066>::validate(const Nodedev::Xml::PData4066::value_type& value_)
-{
-	QRegExp q("0x[0-9a-fA-F]{1,2}");
-	if (!q.exactMatch(value_))
-		return false;
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// struct PData8570
-
-bool Traits<Nodedev::Xml::PData8570>::parse(const QString& src_, Nodedev::Xml::PData8570::value_type& dst_)
+bool Traits<Nodedev::Xml::PData4066>::parse(const QString& src_, Nodedev::Xml::PData4066::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Nodedev::Xml::PData8570>::generate(Nodedev::Xml::PData8570::value_type src_)
+QString Traits<Nodedev::Xml::PData4066>::generate(Nodedev::Xml::PData4066::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Nodedev::Xml::PData8570>::validate(Nodedev::Xml::PData8570::value_type value_)
+bool Validatable<Nodedev::Xml::PData4066>::validate(Nodedev::Xml::PData4066::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -150,9 +150,9 @@ bool Validatable<Nodedev::Xml::PData8570>::validate(Nodedev::Xml::PData8570::val
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8572
+// struct PData8134
 
-bool Validatable<Nodedev::Xml::PData8572>::validate(const Nodedev::Xml::PData8572::value_type& value_)
+bool Validatable<Nodedev::Xml::PData8134>::validate(const Nodedev::Xml::PData8134::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,2}");
 	if (!q.exactMatch(value_))
@@ -162,21 +162,21 @@ bool Validatable<Nodedev::Xml::PData8572>::validate(const Nodedev::Xml::PData857
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8574
+// struct PData8136
 
-bool Traits<Nodedev::Xml::PData8574>::parse(const QString& src_, Nodedev::Xml::PData8574::value_type& dst_)
+bool Traits<Nodedev::Xml::PData8136>::parse(const QString& src_, Nodedev::Xml::PData8136::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Nodedev::Xml::PData8574>::generate(Nodedev::Xml::PData8574::value_type src_)
+QString Traits<Nodedev::Xml::PData8136>::generate(Nodedev::Xml::PData8136::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Nodedev::Xml::PData8574>::validate(Nodedev::Xml::PData8574::value_type value_)
+bool Validatable<Nodedev::Xml::PData8136>::validate(Nodedev::Xml::PData8136::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -188,9 +188,9 @@ bool Validatable<Nodedev::Xml::PData8574>::validate(Nodedev::Xml::PData8574::val
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8576
+// struct PData8138
 
-bool Validatable<Nodedev::Xml::PData8576>::validate(const Nodedev::Xml::PData8576::value_type& value_)
+bool Validatable<Nodedev::Xml::PData8138>::validate(const Nodedev::Xml::PData8138::value_type& value_)
 {
 	QRegExp q("(0x)?[0-9a-fA-F]{1,4}");
 	if (!q.exactMatch(value_))
@@ -200,21 +200,21 @@ bool Validatable<Nodedev::Xml::PData8576>::validate(const Nodedev::Xml::PData857
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8578
+// struct PData8140
 
-bool Traits<Nodedev::Xml::PData8578>::parse(const QString& src_, Nodedev::Xml::PData8578::value_type& dst_)
+bool Traits<Nodedev::Xml::PData8140>::parse(const QString& src_, Nodedev::Xml::PData8140::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Nodedev::Xml::PData8578>::generate(Nodedev::Xml::PData8578::value_type src_)
+QString Traits<Nodedev::Xml::PData8140>::generate(Nodedev::Xml::PData8140::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Nodedev::Xml::PData8578>::validate(Nodedev::Xml::PData8578::value_type value_)
+bool Validatable<Nodedev::Xml::PData8140>::validate(Nodedev::Xml::PData8140::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -226,9 +226,9 @@ bool Validatable<Nodedev::Xml::PData8578>::validate(Nodedev::Xml::PData8578::val
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8580
+// struct PData8142
 
-bool Validatable<Nodedev::Xml::PData8580>::validate(const Nodedev::Xml::PData8580::value_type& value_)
+bool Validatable<Nodedev::Xml::PData8142>::validate(const Nodedev::Xml::PData8142::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,6}");
 	if (!q.exactMatch(value_))
@@ -238,21 +238,21 @@ bool Validatable<Nodedev::Xml::PData8580>::validate(const Nodedev::Xml::PData858
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8582
+// struct PData8144
 
-bool Traits<Nodedev::Xml::PData8582>::parse(const QString& src_, Nodedev::Xml::PData8582::value_type& dst_)
+bool Traits<Nodedev::Xml::PData8144>::parse(const QString& src_, Nodedev::Xml::PData8144::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Nodedev::Xml::PData8582>::generate(Nodedev::Xml::PData8582::value_type src_)
+QString Traits<Nodedev::Xml::PData8144>::generate(Nodedev::Xml::PData8144::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Nodedev::Xml::PData8582>::validate(Nodedev::Xml::PData8582::value_type value_)
+bool Validatable<Nodedev::Xml::PData8144>::validate(Nodedev::Xml::PData8144::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -264,9 +264,9 @@ bool Validatable<Nodedev::Xml::PData8582>::validate(Nodedev::Xml::PData8582::val
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8584
+// struct PData8146
 
-bool Validatable<Nodedev::Xml::PData8584>::validate(const Nodedev::Xml::PData8584::value_type& value_)
+bool Validatable<Nodedev::Xml::PData8146>::validate(const Nodedev::Xml::PData8146::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,6}");
 	if (!q.exactMatch(value_))
@@ -276,21 +276,21 @@ bool Validatable<Nodedev::Xml::PData8584>::validate(const Nodedev::Xml::PData858
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8586
+// struct PData8148
 
-bool Traits<Nodedev::Xml::PData8586>::parse(const QString& src_, Nodedev::Xml::PData8586::value_type& dst_)
+bool Traits<Nodedev::Xml::PData8148>::parse(const QString& src_, Nodedev::Xml::PData8148::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Nodedev::Xml::PData8586>::generate(Nodedev::Xml::PData8586::value_type src_)
+QString Traits<Nodedev::Xml::PData8148>::generate(Nodedev::Xml::PData8148::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Nodedev::Xml::PData8586>::validate(Nodedev::Xml::PData8586::value_type value_)
+bool Validatable<Nodedev::Xml::PData8148>::validate(Nodedev::Xml::PData8148::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -302,9 +302,9 @@ bool Validatable<Nodedev::Xml::PData8586>::validate(Nodedev::Xml::PData8586::val
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8588
+// struct PData8150
 
-bool Validatable<Nodedev::Xml::PData8588>::validate(const Nodedev::Xml::PData8588::value_type& value_)
+bool Validatable<Nodedev::Xml::PData8150>::validate(const Nodedev::Xml::PData8150::value_type& value_)
 {
 	QRegExp q("(0x)?[0-9a-fA-F]{1,8}");
 	if (!q.exactMatch(value_))
@@ -314,24 +314,24 @@ bool Validatable<Nodedev::Xml::PData8588>::validate(const Nodedev::Xml::PData858
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8590
+// struct PData8152
 
-bool Traits<Nodedev::Xml::PData8590>::parse(const QString& src_, Nodedev::Xml::PData8590::value_type& dst_)
+bool Traits<Nodedev::Xml::PData8152>::parse(const QString& src_, Nodedev::Xml::PData8152::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toUInt(&output);
 	return output;
 }
 
-QString Traits<Nodedev::Xml::PData8590>::generate(Nodedev::Xml::PData8590::value_type src_)
+QString Traits<Nodedev::Xml::PData8152>::generate(Nodedev::Xml::PData8152::value_type src_)
 {
 	return QString::number(src_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8592
+// struct PData8154
 
-bool Validatable<Nodedev::Xml::PData8592>::validate(const Nodedev::Xml::PData8592::value_type& value_)
+bool Validatable<Nodedev::Xml::PData8154>::validate(const Nodedev::Xml::PData8154::value_type& value_)
 {
 	QRegExp q("[a-fA-F0-9]{32}");
 	if (!q.exactMatch(value_))
@@ -341,9 +341,9 @@ bool Validatable<Nodedev::Xml::PData8592>::validate(const Nodedev::Xml::PData859
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8594
+// struct PData8156
 
-bool Validatable<Nodedev::Xml::PData8594>::validate(const Nodedev::Xml::PData8594::value_type& value_)
+bool Validatable<Nodedev::Xml::PData8156>::validate(const Nodedev::Xml::PData8156::value_type& value_)
 {
 	QRegExp q("[a-fA-F0-9]{8}\\-([a-fA-F0-9]{4}\\-){3}[a-fA-F0-9]{12}");
 	if (!q.exactMatch(value_))
@@ -737,9 +737,9 @@ bool Validatable<Nodedev::Xml::PWwn>::validate(const Nodedev::Xml::PWwn::value_t
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8604
+// struct PData8166
 
-bool Validatable<Nodedev::Xml::PData8604>::validate(const Nodedev::Xml::PData8604::value_type& value_)
+bool Validatable<Nodedev::Xml::PData8166>::validate(const Nodedev::Xml::PData8166::value_type& value_)
 {
 	QRegExp q("0x[0-9a-eA-E][0-9a-fA-F]?");
 	if (!q.exactMatch(value_))
@@ -989,9 +989,9 @@ bool Validatable<Nodedev::Xml::PPath>::validate(const Nodedev::Xml::PPath::value
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8638
+// struct PData8681
 
-bool Validatable<Nodedev::Xml::PData8638>::validate(const Nodedev::Xml::PData8638::value_type& value_)
+bool Validatable<Nodedev::Xml::PData8681>::validate(const Nodedev::Xml::PData8681::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,4}");
 	if (!q.exactMatch(value_))
@@ -1001,21 +1001,21 @@ bool Validatable<Nodedev::Xml::PData8638>::validate(const Nodedev::Xml::PData863
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8640
+// struct PData86811
 
-bool Traits<Nodedev::Xml::PData8640>::parse(const QString& src_, Nodedev::Xml::PData8640::value_type& dst_)
+bool Traits<Nodedev::Xml::PData86811>::parse(const QString& src_, Nodedev::Xml::PData86811::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Nodedev::Xml::PData8640>::generate(Nodedev::Xml::PData8640::value_type src_)
+QString Traits<Nodedev::Xml::PData86811>::generate(Nodedev::Xml::PData86811::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Nodedev::Xml::PData8640>::validate(Nodedev::Xml::PData8640::value_type value_)
+bool Validatable<Nodedev::Xml::PData86811>::validate(Nodedev::Xml::PData86811::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -1033,14 +1033,14 @@ bool Traits<Nodedev::Xml::VUUID>::parse(const QString& src_, Nodedev::Xml::VUUID
 {
 	int x;
 	mpl::at_c<Nodedev::Xml::VUUID::types, 0>::type a0;
-	x = Marshal<Nodedev::Xml::PData8592>::setString(src_, a0);
+	x = Marshal<Nodedev::Xml::PData8154>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
 		return true;
 	}
 	mpl::at_c<Nodedev::Xml::VUUID::types, 1>::type a1;
-	x = Marshal<Nodedev::Xml::PData8594>::setString(src_, a1);
+	x = Marshal<Nodedev::Xml::PData8156>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
@@ -1055,9 +1055,9 @@ QString Traits<Nodedev::Xml::VUUID>::generate(const Nodedev::Xml::VUUID& src_)
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Nodedev::Xml::PData8592>::getString(boost::get<mpl::at_c<Nodedev::Xml::VUUID::types, 0>::type>(src_));
+		return Marshal<Nodedev::Xml::PData8154>::getString(boost::get<mpl::at_c<Nodedev::Xml::VUUID::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Nodedev::Xml::PData8594>::getString(boost::get<mpl::at_c<Nodedev::Xml::VUUID::types, 1>::type>(src_));
+		return Marshal<Nodedev::Xml::PData8156>::getString(boost::get<mpl::at_c<Nodedev::Xml::VUUID::types, 1>::type>(src_));
 	}
 	return QString();
 }
@@ -1069,7 +1069,7 @@ bool Traits<Nodedev::Xml::VCcwCssidRange>::parse(const QString& src_, Nodedev::X
 {
 	int x;
 	mpl::at_c<Nodedev::Xml::VCcwCssidRange::types, 0>::type a0;
-	x = Marshal<Nodedev::Xml::PData8604>::setString(src_, a0);
+	x = Marshal<Nodedev::Xml::PData8166>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
@@ -1098,7 +1098,7 @@ QString Traits<Nodedev::Xml::VCcwCssidRange>::generate(const Nodedev::Xml::VCcwC
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Nodedev::Xml::PData8604>::getString(boost::get<mpl::at_c<Nodedev::Xml::VCcwCssidRange::types, 0>::type>(src_));
+		return Marshal<Nodedev::Xml::PData8166>::getString(boost::get<mpl::at_c<Nodedev::Xml::VCcwCssidRange::types, 0>::type>(src_));
 	case 1:
 		return Marshal<Nodedev::Xml::PData4068>::getString(boost::get<mpl::at_c<Nodedev::Xml::VCcwCssidRange::types, 1>::type>(src_));
 	case 2:
@@ -1150,14 +1150,14 @@ bool Traits<Nodedev::Xml::VUint8>::parse(const QString& src_, Nodedev::Xml::VUin
 {
 	int x;
 	mpl::at_c<Nodedev::Xml::VUint8::types, 0>::type a0;
-	x = Marshal<Nodedev::Xml::PData4066>::setString(src_, a0);
+	x = Marshal<Nodedev::Xml::PData3970>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
 		return true;
 	}
 	mpl::at_c<Nodedev::Xml::VUint8::types, 1>::type a1;
-	x = Marshal<Nodedev::Xml::PData8570>::setString(src_, a1);
+	x = Marshal<Nodedev::Xml::PData4066>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
@@ -1172,9 +1172,9 @@ QString Traits<Nodedev::Xml::VUint8>::generate(const Nodedev::Xml::VUint8& src_)
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Nodedev::Xml::PData4066>::getString(boost::get<mpl::at_c<Nodedev::Xml::VUint8::types, 0>::type>(src_));
+		return Marshal<Nodedev::Xml::PData3970>::getString(boost::get<mpl::at_c<Nodedev::Xml::VUint8::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Nodedev::Xml::PData8570>::getString(boost::get<mpl::at_c<Nodedev::Xml::VUint8::types, 1>::type>(src_));
+		return Marshal<Nodedev::Xml::PData4066>::getString(boost::get<mpl::at_c<Nodedev::Xml::VUint8::types, 1>::type>(src_));
 	}
 	return QString();
 }
@@ -1186,14 +1186,14 @@ bool Traits<Nodedev::Xml::VApDomainRange>::parse(const QString& src_, Nodedev::X
 {
 	int x;
 	mpl::at_c<Nodedev::Xml::VApDomainRange::types, 0>::type a0;
-	x = Marshal<Nodedev::Xml::PData8638>::setString(src_, a0);
+	x = Marshal<Nodedev::Xml::PData8681>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
 		return true;
 	}
 	mpl::at_c<Nodedev::Xml::VApDomainRange::types, 1>::type a1;
-	x = Marshal<Nodedev::Xml::PData8640>::setString(src_, a1);
+	x = Marshal<Nodedev::Xml::PData86811>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
@@ -1208,9 +1208,9 @@ QString Traits<Nodedev::Xml::VApDomainRange>::generate(const Nodedev::Xml::VApDo
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Nodedev::Xml::PData8638>::getString(boost::get<mpl::at_c<Nodedev::Xml::VApDomainRange::types, 0>::type>(src_));
+		return Marshal<Nodedev::Xml::PData8681>::getString(boost::get<mpl::at_c<Nodedev::Xml::VApDomainRange::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Nodedev::Xml::PData8640>::getString(boost::get<mpl::at_c<Nodedev::Xml::VApDomainRange::types, 1>::type>(src_));
+		return Marshal<Nodedev::Xml::PData86811>::getString(boost::get<mpl::at_c<Nodedev::Xml::VApDomainRange::types, 1>::type>(src_));
 	}
 	return QString();
 }

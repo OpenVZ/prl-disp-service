@@ -3202,7 +3202,7 @@ QList<Libvirt::Snapshot::Xml::Disk> getAbsentee(const QList<T* >& list_)
 		mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 		a.setValue(Device::Clustered::Model<T>(*d).getTargetName());
 		mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 0>::type b;
-		b.setValue(Libvirt::Snapshot::Xml::Disk8356());
+		b.setValue(Libvirt::Snapshot::Xml::Disk4374());
 		Libvirt::Snapshot::Xml::Disk x;
 		x.setName(Libvirt::Snapshot::Xml::VName(a));
 		x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
@@ -3222,7 +3222,7 @@ boost::optional<Libvirt::Snapshot::Xml::Disk> Internal::operator()(const CVmHard
 	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 	a.setValue(Device::Clustered::Model<CVmHardDisk>(disk_).getTargetName());
 	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 1>::type b;
-	b.setValue(Libvirt::Snapshot::Xml::Disk8357());
+	b.setValue(Libvirt::Snapshot::Xml::Disk4375());
 	x.setName(Libvirt::Snapshot::Xml::VName(a));
 	x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
 	return x;
@@ -3239,15 +3239,15 @@ boost::optional<Libvirt::Snapshot::Xml::Disk> External::operator()(const CVmHard
 	Libvirt::Snapshot::Xml::Disk x;
 	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 	Libvirt::Snapshot::Xml::Source s;
-	Libvirt::Snapshot::Xml::Variant8352 o;
-	mpl::at_c<Libvirt::Snapshot::Xml::VChoice8355::types, 0>::type p;
+	Libvirt::Snapshot::Xml::Variant8681 o;
+	mpl::at_c<Libvirt::Snapshot::Xml::VChoice8681::types, 0>::type p;
 	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 2>::type q;
 
 	a.setValue(Device::Clustered::Model<CVmHardDisk>(disk_).getTargetName());
 	s.setFile(disk_.getSystemName() + "." + m_snapshot);
 	o.setSource(s);
 	p.setValue(o);
-	q.setValue(Libvirt::Snapshot::Xml::VChoice8355(p));
+	q.setValue(Libvirt::Snapshot::Xml::VChoice8681(p));
 
 	x.setName(Libvirt::Snapshot::Xml::VName(a));
 	x.setDisk(Libvirt::Snapshot::Xml::VDisk(q));
@@ -3378,9 +3378,9 @@ PRL_RESULT Request::operator()(const object_type& object_)
 		n.setValue(d.get<1>());
 		y.setName(n);
 
-		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice3969::types, 1>::type c;
+		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice8681::types, 1>::type c;
 		c.setValue(Libvirt::Blockexport::Xml::EVirYesNoYes);
-		y.setChoice3969(Libvirt::Blockexport::Xml::VChoice3969(c));
+		y.setChoice8681(Libvirt::Blockexport::Xml::VChoice8681(c));
 
 		x << y;
 	}
@@ -3404,7 +3404,7 @@ Reverse::Reverse(const CVmGenericNetworkAdapter &adapter) : m_adapter(adapter), 
 	attributes.setName(getVzfilterName(adapter));
 	m_result->setFilterNodeAttributes(attributes);
 
-	QList <Libvirt::Filter::Xml::VChoice8668> contents;
+	QList <Libvirt::Filter::Xml::VChoice8178> contents;
 
 	contents.append(prepareNetFilters(adapter));
 
@@ -3412,7 +3412,7 @@ Reverse::Reverse(const CVmGenericNetworkAdapter &adapter) : m_adapter(adapter), 
 	if (basic_firewall && basic_firewall->isEnabled())
 		contents.append(prepareFirewall(*basic_firewall));
 
-	m_result->setChoice8668List(contents);
+	m_result->setChoice8178List(contents);
 }
 
 QString Reverse::getVzfilterName(const CVmGenericNetworkAdapter &adapter)
@@ -3501,7 +3501,7 @@ static QString S_TCP = "tcp";
 static QString S_UDP = "udp";
 static QString S_ICMP = "icmp";
 
-Libvirt::Filter::Xml::VChoice8668
+Libvirt::Filter::Xml::VChoice8178
 Reverse::prepareIpRule(const QString& proto,
 			Libvirt::Filter::Xml::CommonIpAttributesP1 ip_attributes,
 			Libvirt::Filter::Xml::CommonPortAttributes port_attributes,
@@ -3520,13 +3520,13 @@ Reverse::prepareIpRule(const QString& proto,
 
 	rule.setRuleNodeAttributes(rule_attributes);
 
-	mpl::at_c<Libvirt::Filter::Xml::VChoice8668::types, 1>::type rule_holder;
+	mpl::at_c<Libvirt::Filter::Xml::VChoice8178::types, 1>::type rule_holder;
 	rule_holder.setValue(rule);
 
 	return rule_holder;
 }
 
-Libvirt::Filter::Xml::VChoice8668
+Libvirt::Filter::Xml::VChoice8178
 Reverse::prepareIpv6Rule(const QString& proto,
 			Libvirt::Filter::Xml::CommonIpv6AttributesP1 ip_attributes,
 			Libvirt::Filter::Xml::CommonPortAttributes port_attributes,
@@ -3545,13 +3545,13 @@ Reverse::prepareIpv6Rule(const QString& proto,
 
 	rule.setRuleNodeAttributes(rule_attributes);
 
-	mpl::at_c<Libvirt::Filter::Xml::VChoice8668::types, 1>::type rule_holder;
+	mpl::at_c<Libvirt::Filter::Xml::VChoice8178::types, 1>::type rule_holder;
 	rule_holder.setValue(rule);
 
 	return rule_holder;
 }
 
-QList<Libvirt::Filter::Xml::VChoice8668>
+QList<Libvirt::Filter::Xml::VChoice8178>
 Reverse::prepareRule(const CVmNetFirewallRule &basic_rule,
 							Libvirt::Filter::Xml::EDirectionType direction,
 							Libvirt::Filter::Xml::EActionType action,
@@ -3586,7 +3586,7 @@ Reverse::prepareRule(const CVmNetFirewallRule &basic_rule,
 	Libvirt::Filter::Xml::CommonPortAttributes port_attributes = preparePortAttributes(
 				local_port, remote_port, direction);
 
-	QList<Libvirt::Filter::Xml::VChoice8668> rule_holders;
+	QList<Libvirt::Filter::Xml::VChoice8178> rule_holders;
 	if (isIPv6 || isBoth)
 	{
 		Libvirt::Filter::Xml::CommonIpv6AttributesP1 ip_attributes = prepareIpv6Attributes(
@@ -3624,10 +3624,10 @@ Reverse::prepareAction(PRL_FIREWALL_POLICY policy)
 	}
 }
 
-QList <Libvirt::Filter::Xml::VChoice8668>
+QList <Libvirt::Filter::Xml::VChoice8178>
 Reverse::prepareFirewall(const CVmNetFirewall &firewall)
 {
-	QList <Libvirt::Filter::Xml::VChoice8668> result;
+	QList <Libvirt::Filter::Xml::VChoice8178> result;
 	QList <CVmNetFirewallDirection*> directions;
 	QList <Libvirt::Filter::Xml::EDirectionType> direction_types;
 	if (firewall.getIncoming() && firewall.getIncoming()->getDirection())
@@ -3664,8 +3664,8 @@ Reverse::prepareFirewall(const CVmNetFirewall &firewall)
 	return result;
 }
 
-QList<Libvirt::Filter::Xml::VChoice8668> Reverse::prepareAllowEstablished(Libvirt::Filter::Xml::EDirectionType direction, int priority) {
-	QList<Libvirt::Filter::Xml::VChoice8668> result;
+QList<Libvirt::Filter::Xml::VChoice8178> Reverse::prepareAllowEstablished(Libvirt::Filter::Xml::EDirectionType direction, int priority) {
+	QList<Libvirt::Filter::Xml::VChoice8178> result;
 	Libvirt::Filter::Xml::CommonPortAttributes port_attributes;
 	Libvirt::Filter::Xml::RuleNodeAttributes rule_attributes;
 
@@ -3685,9 +3685,9 @@ QList<Libvirt::Filter::Xml::VChoice8668> Reverse::prepareAllowEstablished(Libvir
 	return result;
 }
 
-QList<Libvirt::Filter::Xml::VChoice8668> Reverse::prepareDefaultDeny(Libvirt::Filter::Xml::EDirectionType direction, int priority)
+QList<Libvirt::Filter::Xml::VChoice8178> Reverse::prepareDefaultDeny(Libvirt::Filter::Xml::EDirectionType direction, int priority)
 {
-	QList<Libvirt::Filter::Xml::VChoice8668> result;
+	QList<Libvirt::Filter::Xml::VChoice8178> result;
 	QList<uint> nd_messages_ids;
 	nd_messages_ids.append(133);
 	nd_messages_ids.append(134);
@@ -3708,10 +3708,10 @@ QList<Libvirt::Filter::Xml::VChoice8668> Reverse::prepareDefaultDeny(Libvirt::Fi
 		rule.setIcmpv6List(prepareIcmpv6(Libvirt::Filter::Xml::CommonIpv6AttributesP1(),
 						   				 nd_message_id));
 
-		mpl::at_c<Libvirt::Filter::Xml::VChoice8668::types, 1>::type rule_holder;
+		mpl::at_c<Libvirt::Filter::Xml::VChoice8178::types, 1>::type rule_holder;
 		rule_holder.setValue(rule);
 		
-		result.append(Libvirt::Filter::Xml::VChoice8668(rule_holder));
+		result.append(Libvirt::Filter::Xml::VChoice8178(rule_holder));
 	}
 
 
@@ -3732,7 +3732,7 @@ QList<Libvirt::Filter::Xml::VChoice8668> Reverse::prepareDefaultDeny(Libvirt::Fi
 	return result;
 }
 
-boost::optional<Libvirt::Filter::Xml::VChoice8668>
+boost::optional<Libvirt::Filter::Xml::VChoice8178>
 Reverse::prepareIpSpoofing(const CVmGenericNetworkAdapter &adapter)
 {
 	static QString S_NO_IP_SPOOFING = "no-ip-spoofing";
@@ -3752,12 +3752,12 @@ Reverse::prepareIpSpoofing(const CVmGenericNetworkAdapter &adapter)
 		plist.append(p);
 	}
 	filterref.setParameterList(plist);
-	mpl::at_c<Libvirt::Filter::Xml::VChoice8668::types, 0>::type filterref_holder;
+	mpl::at_c<Libvirt::Filter::Xml::VChoice8178::types, 0>::type filterref_holder;
 	filterref_holder.setValue(filterref);
-	return Libvirt::Filter::Xml::VChoice8668(filterref_holder);
+	return Libvirt::Filter::Xml::VChoice8178(filterref_holder);
 }
 
-boost::optional<Libvirt::Filter::Xml::VChoice8668>
+boost::optional<Libvirt::Filter::Xml::VChoice8178>
 Reverse::prepareIpv6Spoofing(const CVmGenericNetworkAdapter &adapter)
 {
 	static QString S_NO_IPV6_SPOOFING = "no-ipv6-spoofing";
@@ -3777,12 +3777,12 @@ Reverse::prepareIpv6Spoofing(const CVmGenericNetworkAdapter &adapter)
 		plist.append(p);
 	}
 	filterref.setParameterList(plist);
-	mpl::at_c<Libvirt::Filter::Xml::VChoice8668::types, 0>::type filterref_holder;
+	mpl::at_c<Libvirt::Filter::Xml::VChoice8178::types, 0>::type filterref_holder;
 	filterref_holder.setValue(filterref);
-	return Libvirt::Filter::Xml::VChoice8668(filterref_holder);
+	return Libvirt::Filter::Xml::VChoice8178(filterref_holder);
 }
 
-boost::optional<Libvirt::Filter::Xml::VChoice8668>
+boost::optional<Libvirt::Filter::Xml::VChoice8178>
 Reverse::prepareMacSpoofing(const CVmGenericNetworkAdapter &adapter)
 {
 	static QString S_NO_MAC_SPOOFING = "no-mac-spoofing";
@@ -3803,12 +3803,12 @@ Reverse::prepareMacSpoofing(const CVmGenericNetworkAdapter &adapter)
 		plist << p;
 	}
 	filterref.setParameterList(plist);
-	mpl::at_c<Libvirt::Filter::Xml::VChoice8668::types, 0>::type filterref_holder;
+	mpl::at_c<Libvirt::Filter::Xml::VChoice8178::types, 0>::type filterref_holder;
 	filterref_holder.setValue(filterref);
-	return Libvirt::Filter::Xml::VChoice8668(filterref_holder);
+	return Libvirt::Filter::Xml::VChoice8178(filterref_holder);
 }
 
-boost::optional<Libvirt::Filter::Xml::VChoice8668>
+boost::optional<Libvirt::Filter::Xml::VChoice8178>
 Reverse::preparePromisc(const CVmGenericNetworkAdapter &adapter)
 {
 	static QString S_NO_PROMISC = "no-promisc";
@@ -3826,18 +3826,18 @@ Reverse::preparePromisc(const CVmGenericNetworkAdapter &adapter)
 	p.setValue(view.getMac());
 	plist.append(p);
 	filterref.setParameterList(plist);
-	mpl::at_c<Libvirt::Filter::Xml::VChoice8668::types, 0>::type filterref_holder;
+	mpl::at_c<Libvirt::Filter::Xml::VChoice8178::types, 0>::type filterref_holder;
 	filterref_holder.setValue(filterref);
-	return Libvirt::Filter::Xml::VChoice8668(filterref_holder);
+	return Libvirt::Filter::Xml::VChoice8178(filterref_holder);
 }
 
 
-QList <Libvirt::Filter::Xml::VChoice8668>
+QList <Libvirt::Filter::Xml::VChoice8178>
 Reverse::prepareNetFilters(const CVmGenericNetworkAdapter &adapter)
 {
-	QList <Libvirt::Filter::Xml::VChoice8668> result;
+	QList <Libvirt::Filter::Xml::VChoice8178> result;
 	
-	boost::optional<Libvirt::Filter::Xml::VChoice8668> c;
+	boost::optional<Libvirt::Filter::Xml::VChoice8178> c;
 	if (c = prepareIpSpoofing(adapter))
 		result.append(c.get());
 	if (c = prepareIpv6Spoofing(adapter)) 

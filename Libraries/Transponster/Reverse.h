@@ -489,11 +489,11 @@ protected:
 	QScopedPointer <Libvirt::Filter::Xml::Filter> m_result;
 
 private:
-	static QList <Libvirt::Filter::Xml::VChoice8668>
+	static QList <Libvirt::Filter::Xml::VChoice8178>
 	prepareAllowEstablished(Libvirt::Filter::Xml::EDirectionType direction_type,
 						   int priority);
 
-	static QList <Libvirt::Filter::Xml::VChoice8668>
+	static QList <Libvirt::Filter::Xml::VChoice8178>
 	prepareDefaultDeny(Libvirt::Filter::Xml::EDirectionType direction_type,
 					   int priority);
 
@@ -515,19 +515,19 @@ private:
 	static Libvirt::Filter::Xml::VUint8range
 	prepareIcmpType(unsigned int value);
 
-	static Libvirt::Filter::Xml::VChoice8668
+	static Libvirt::Filter::Xml::VChoice8178
 	prepareIpRule(const QString& proto,
 			Libvirt::Filter::Xml::CommonIpAttributesP1 ip_attributes,
 			Libvirt::Filter::Xml::CommonPortAttributes port_attributes,
 			Libvirt::Filter::Xml::RuleNodeAttributes rule_attributes);
 
-	static Libvirt::Filter::Xml::VChoice8668
+	static Libvirt::Filter::Xml::VChoice8178
 	prepareIpv6Rule(const QString& proto,
 			Libvirt::Filter::Xml::CommonIpv6AttributesP1 ip_attributes,
 			Libvirt::Filter::Xml::CommonPortAttributes port_attributes,
 			Libvirt::Filter::Xml::RuleNodeAttributes rule_attributes);
 
-	static QList<Libvirt::Filter::Xml::VChoice8668>
+	static QList<Libvirt::Filter::Xml::VChoice8178>
 	prepareRule(const CVmNetFirewallRule &basic_rule,
 				Libvirt::Filter::Xml::EDirectionType direction,
 				Libvirt::Filter::Xml::EActionType action,
@@ -536,22 +536,22 @@ private:
 	static Libvirt::Filter::Xml::EActionType
 	prepareAction(PRL_FIREWALL_POLICY policy);
 
-	static QList <Libvirt::Filter::Xml::VChoice8668>
+	static QList <Libvirt::Filter::Xml::VChoice8178>
 	prepareFirewall(const CVmNetFirewall &value);
 
-	static boost::optional<Libvirt::Filter::Xml::VChoice8668>
+	static boost::optional<Libvirt::Filter::Xml::VChoice8178>
 	prepareIpSpoofing(const CVmGenericNetworkAdapter &adapter);
 
-	static boost::optional<Libvirt::Filter::Xml::VChoice8668>
+	static boost::optional<Libvirt::Filter::Xml::VChoice8178>
 	prepareIpv6Spoofing(const CVmGenericNetworkAdapter &adapter);
 
-	static boost::optional<Libvirt::Filter::Xml::VChoice8668>
+	static boost::optional<Libvirt::Filter::Xml::VChoice8178>
 	prepareMacSpoofing(const CVmGenericNetworkAdapter &adapter);
 
-	static boost::optional<Libvirt::Filter::Xml::VChoice8668>
+	static boost::optional<Libvirt::Filter::Xml::VChoice8178>
 	preparePromisc(const CVmGenericNetworkAdapter &adapter);
 
-	static QList <Libvirt::Filter::Xml::VChoice8668>
+	static QList <Libvirt::Filter::Xml::VChoice8178>
 	prepareNetFilters(const CVmGenericNetworkAdapter &adapter);
 
 	static QList <Libvirt::Filter::Xml::Tcp>
