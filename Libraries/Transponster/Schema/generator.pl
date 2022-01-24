@@ -51,7 +51,7 @@ LICENSE
 our @history_;
 our @historyCursors = (1);
 
-sub reverse($$)
+sub reverse
 {
 	my ($z, $n) = @_;
 	return undef unless defined($n) && $n gt '';
@@ -78,7 +78,7 @@ sub reverse($$)
 	return $output;
 }
 
-sub generate($$)
+sub generate
 {
 	my $n = $_[1];
 	foreach my $c (@historyCursors)
@@ -89,13 +89,13 @@ sub generate($$)
 	}
 }
 
-sub lookup($$)
+sub lookup
 {
 	print Dumper(longmess()) unless defined $_[1];
 	return $data[$_[1]];
 }
 
-sub getDefinition($)
+sub getDefinition
 {
 	my @output;
 	push @output, 'static QString g_text[] = {';
@@ -112,7 +112,7 @@ sub getDefinition($)
 	return @output;
 }
 
-sub prime($$)
+sub prime
 {
 	my $file = $_[1];
 	open(FD, '<', $file) or die "Cannot open file $file: $!$/";
@@ -138,37 +138,37 @@ sub prime($$)
 
 package Namespace;
 
-sub new($$)
+sub new
 {
 	my ($z, $t) = @_;
         return bless {title => lc($t)}, $z;
 }
 
-sub macro($$)
+sub macro
 {
 	my $self = shift;
 	return "__@{[uc($self->{title})]}_@{[uc($_[0])]}_H__";
 }
 
-sub qualify($$)
+sub qualify
 {
 	my $self = shift;
 	return "@{[ucfirst($self->{title})]}::Xml::$_[0]";
 }
 
-sub cpp($$)
+sub cpp
 {
 	my $self = shift;
 	return "$self->{title}_$_[0].cpp";
 }
 
-sub header($$)
+sub header
 {
 	my $self = shift;
 	return "$self->{title}_$_[0].h";
 }
 
-sub envelope($@)
+sub envelope
 {
 	my $self = shift;
 	my @output;
@@ -219,33 +219,33 @@ sub build_
 	return $output;
 }
 
-sub getNamespace($)
+sub getNamespace
 {
 	return $namespace;
 }
 
-sub buildComplexType($$$$)
+sub buildComplexType
 {
 	my ($z, $a, $b, $c) = @_;
 
 	return build_(main::getCppNameString($a), \@types, 'Ng::ComplexType', $b, $c);
 }
 
-sub beginVariant($$;@)
+sub beginVariant
 {
 	my ($z, $n, @a) = @_;
 
 	return build_('V'.main::getCppNameString($n), \@types, 'Ng::Variant', @a);
 }
 
-sub endComplexVariant($$)
+sub endComplexVariant
 {
 	my ($z, $v) = @_;
 	@types = grep {refaddr($_) != refaddr($v)} @types;
 	push @types, $v;
 }
 
-sub endDataVariant($$)
+sub endDataVariant
 {
 	my ($z, $v) = @_;
 	my $p = $v->getPattern();
@@ -264,14 +264,14 @@ sub endDataVariant($$)
 	push @datas, $v;
 }
 
-sub buildEnum($$$)
+sub buildEnum
 {
 	my ($z, $n, $v) = @_;
 
 	return build_('E'.main::getCppNameString($n), \@enums, 'Ng::Enum', $v);
 }
 
-sub buildData($$;$$$)
+sub buildData
 {
 	my ($z, $n, $a, $p, $e) = @_;
 	return Ng::Pod->new($n) unless ref($p) eq 'HASH';
@@ -288,7 +288,7 @@ sub buildData($$;$$$)
 	return build_($k, \@datas, sub {return Ng::Pod->new($n, $_[0], $p, $e); });
 }
 
-sub produceEnums($)
+sub produceEnums
 {
 	my $h;
 	open $h, ">@{[$namespace->header('enum')]}" or die "Cannot open file: $!";
@@ -330,7 +330,7 @@ FOOTER
 	close $h;
 }
 
-sub produceDatas($)
+sub produceDatas
 {
 	my $h;
 	open $h, ">@{[$namespace->header('data')]}" or die "Cannot open file: $!";
@@ -390,7 +390,7 @@ FOOTER
 	close $h;
 }
 
-sub produceTypes($)
+sub produceTypes
 {
 	my $h;
 	open $h, ">@{[$namespace->cpp('type')]}" or die "Cannot open file: $!";
@@ -464,7 +464,7 @@ FOOTER
 	close $h;
 }
 
-sub produceTexts($)
+sub produceTexts
 {
 	open my $h, '>text.cpp' or die "Cannot open file: $!";
 	print $h <<HEADER;
@@ -476,7 +476,7 @@ HEADER
 	close $h;
 }
 
-sub isForwardType($$$)
+sub isForwardType
 {
 	my ($z, $t, $q) = @_;
 	my @x = grep({$t->getName() eq $types[$_]->getName()} 0 .. $#types) or return 0;
@@ -484,7 +484,7 @@ sub isForwardType($$$)
 		grep {$q->getName() eq $types[$_]->getName()} $x[0] .. $#types);
 }
 
-sub setup($$)
+sub setup
 {
 	%registry = ();
 	@datas = ();
@@ -494,7 +494,7 @@ sub setup($$)
 	$namespace = Namespace->new($_[1]);
 }
 
-sub addDependency($$)
+sub addDependency
 {
 	my $x = $_[1];
 	my $t = $x->getNamespace()->header('type');
@@ -503,7 +503,7 @@ sub addDependency($$)
 
 package PlainDecorator;
 
-sub getValueType($$;$)
+sub getValueType
 {
 	my ($clazz, $type, $namespace) = @_;
 	return $type->getValueType($namespace) if ref($type);
@@ -511,25 +511,25 @@ sub getValueType($$;$)
 	return $namespace ? $namespace->qualify($type) : $type;
 }
 
-sub getParamType($$;$)
+sub getParamType
 {
 	my ($clazz, $type, $namespace) = @_;
 	return $clazz->getValueType($type, $namespace);
 }
 
-sub getResultType($$;$)
+sub getResultType
 {
 	my ($clazz, $type, $namespace) = @_;
 	return $clazz->getValueType($type, $namespace);
 }
 
-sub getDefaultInitializer($$)
+sub getDefaultInitializer
 {
 	my ($clazz, $member) = @_;
 	return "@{[$member->{variable}]}()";
 }
 
-sub getParser($)
+sub getParser
 {
 	my @output;
 	push @output, "bool output = false;";
@@ -539,58 +539,58 @@ sub getParser($)
 	return @output;
 }
 
-sub getGenerator()
+sub getGenerator
 {
 	return ("return QString::number(src_);");
 }
 
 package ComplexDecorator;
 
-sub getValueType($$;$)
+sub getValueType
 {
 	my ($clazz, $type, $namespace) = @_;
 	return PlainDecorator->getValueType($type, $namespace);
 }
 
-sub getDecorated($$)
+sub getDecorated
 {
 	my ($clazz, $name) = @_;
 	return "const ${name}&";
 }
 
-sub getParamType($$;$)
+sub getParamType
 {
 	my ($clazz, $type, $namespace) = @_;
 	return $clazz->getDecorated($clazz->getValueType($type, $namespace));
 }
 
-sub getResultType($$;$)
+sub getResultType
 {
 	my ($clazz, $type, $namespace) = @_;
 	return $clazz->getDecorated($clazz->getValueType($type, $namespace));
 }
 
-sub getDefaultInitializer($$)
+sub getDefaultInitializer
 {
 	return undef;
 }
 
 package OptionalDecorator;
 
-sub getBoostType($$;$)
+sub getBoostType
 {
 	my ($clazz, $type, $namespace) = @_;
 	return "boost::optional<@{[PlainDecorator->getValueType($type, $namespace)]} >";
 }
 
-sub getBoolean($)
+sub getBoolean
 {
 	my ($type, $v) = @_;
 	$v = ComplexDecorator->getValueType($type);
 	return 'bool' eq $v ? $v : undef;
 }
 
-sub getValueType($$;$)
+sub getValueType
 {
 	my ($clazz, $type, $namespace) = @_;
 	return $type->getValueType($namespace) if ref($type) && $type->getDecorator() eq __PACKAGE__;
@@ -598,7 +598,7 @@ sub getValueType($$;$)
 	return getBoolean($type) || $clazz->getBoostType($type, $namespace);
 }
 
-sub getParamType($$;$)
+sub getParamType
 {
 	my ($clazz, $type, $namespace) = @_;
 	return $type->getParamType($namespace) if ref($type) && $type->getDecorator() eq __PACKAGE__;
@@ -606,7 +606,7 @@ sub getParamType($$;$)
 	return getBoolean($type) || ComplexDecorator->getDecorated($clazz->getBoostType($type, $namespace));
 }
 
-sub getResultType($$;$)
+sub getResultType
 {
 	my ($clazz, $type, $namespace) = @_;
 	return $type->getResultType($namespace) if ref($type) && $type->getDecorator() eq __PACKAGE__;
@@ -614,7 +614,7 @@ sub getResultType($$;$)
 	return getBoolean($type) || ComplexDecorator->getDecorated($clazz->getBoostType($type, $namespace));
 }
 
-sub getDefaultInitializer($$)
+sub getDefaultInitializer
 {
 	my ($clazz, $member) = @_;
 	getBoolean($member->{cppType}) or return undef;
@@ -624,31 +624,31 @@ sub getDefaultInitializer($$)
 
 package QListDecorator;
 
-sub getDecorated($$)
+sub getDecorated
 {
 	my ($clazz, $name) = @_;
 	return "QList<${name} >";
 }
 
-sub getValueType($$;$)
+sub getValueType
 {
 	my ($clazz, $type, $namespace) = @_;
 	return $clazz->getDecorated(PlainDecorator->getValueType($type, $namespace));
 }
 
-sub getParamType($$;$)
+sub getParamType
 {
 	my ($clazz, $type, $namespace) = @_;
 	return ComplexDecorator->getDecorated($clazz->getValueType($type, $namespace));
 }
 
-sub getResultType($$;$)
+sub getResultType
 {
 	my ($clazz, $type, $namespace) = @_;
 	return ComplexDecorator->getDecorated($clazz->getValueType($type, $namespace));
 }
 
-sub getDefaultInitializer($$)
+sub getDefaultInitializer
 {
 	return undef;
 }
@@ -656,7 +656,7 @@ sub getDefaultInitializer($$)
 package IncompleteTypeDecorator;
 use Data::Dumper;
 
-sub getReader($$$)
+sub getReader
 {
 	my ($clazz, $type, $any) = @_;
 	my @output;
@@ -667,19 +667,19 @@ sub getReader($$$)
 	return @output;
 }
 
-sub getWritter($$$)
+sub getWritter
 {
 	my ($clazz, $any, $value) = @_;
 	return ("${any} = ${value};");
 }
 
-sub getValueType($$;)
+sub getValueType
 {
 	my ($clazz, $type) = @_;
 	return "boost::any";
 }
 
-sub getParamType($$;$)
+sub getParamType
 {
 	my ($clazz, $type, $namespace) = @_;
 	return $type->getParamType($namespace) if ref($type);
@@ -688,14 +688,14 @@ sub getParamType($$;$)
 	return ComplexDecorator->getDecorated($x);
 }
 
-sub getResultType($$;$)
+sub getResultType
 {
 	my ($clazz, $type, $namespace) = @_;
 	my $x = ref($type) ? $type->getValueType($namespace) : $namespace ? $namespace->qualify($type) : $type;
 	return "const ${x}*";
 }
 
-sub getDefaultInitializer($$)
+sub getDefaultInitializer
 {
 	my ($clazz, $member) = @_;
 	return undef;
@@ -703,12 +703,12 @@ sub getDefaultInitializer($$)
 
 package ValueType;
 
-sub new($$$)
+sub new
 {
 	return bless {type => $_[1], decorator => $_[2]}, $_[0];
 }
 
-sub getName($)
+sub getName
 {
 	my $self = shift;
 	return $self->{type}->getValueType() if ref($self->{type});
@@ -716,25 +716,25 @@ sub getName($)
 	return $self->{type};
 }
 
-sub getDecorator($)
+sub getDecorator
 {
 	my $self = shift;
 	return $self->{decorator};
 }
 
-sub getValueType($;$)
+sub getValueType
 {
 	my ($self, $namspace) = @_;
 	return $self->getDecorator()->getValueType($self->{type}, $namspace);
 }
 
-sub getParamType($;$)
+sub getParamType
 {
 	my ($self, $namspace) = @_;
 	return $self->getDecorator()->getParamType($self->{type}, $namspace);
 }
 
-sub getResultType($;$)
+sub getResultType
 {
 	my ($self, $namspace) = @_;
 	return $self->getDecorator()->getResultType($self->{type}, $namspace);
@@ -742,19 +742,19 @@ sub getResultType($;$)
 
 package Ng::DataType;
 
-sub new($$;$)
+sub new
 {
 	my ($z, $n, $c) = @_;
         return bless {cppType => $c || $n, name => $n}, $z; 
 }
 
-sub getName($)
+sub getName
 {
 	my $self = shift;
 	return $self->{name};
 }
 
-sub getQualifiedName($)
+sub getQualifiedName
 {
 	my $self = shift;
 	my $x = $self->getName();
@@ -763,19 +763,19 @@ sub getQualifiedName($)
 	return $self->getNamespace()->qualify($x);
 }
 
-sub getCppType($)
+sub getCppType
 {
 	my $self = shift;
 	return $self->{cppType};
 }
 
-sub getNamespace($)
+sub getNamespace
 {
 	my $self = shift;
 	return $self->{cppNamespace};
 }
 
-sub setNamespace($$)
+sub setNamespace
 {
 	my $self = shift;
 	$self->{cppNamespace} = shift;
@@ -783,13 +783,13 @@ sub setNamespace($$)
 
 package Ng::Constant;
 
-sub new($$)
+sub new
 {
 	my ($z, $v) = @_;
         return bless {value => $v}, $z;
 }
 
-sub getName($)
+sub getName
 {
 	my $self = shift;
 	return 'mpl::int_<'.$self->{value}.'>';
@@ -826,7 +826,7 @@ our %marshals = ('dateTime' => {parse => sub { return getParseDateTime(); }, gen
 		'double' => {parse => sub { return PlainDecorator::getParser('toDouble'); }, generate => sub { return PlainDecorator::getGenerator(); }},
 		'unsignedLong' => {parse => sub { return PlainDecorator::getParser('toULong'); }, generate => sub { return PlainDecorator::getGenerator(); }});
 
-sub getParseDateTime($)
+sub getParseDateTime
 {
 	my @output;
 	push @output, "dst_ = QDateTime::fromString(src_);";
@@ -836,7 +836,7 @@ sub getParseDateTime($)
 }
 
 ## name, alias, params{}, excepts[]
-sub new($$;$$$)
+sub new
 {
 	my ($z, $n, $a, $p, $e) = @_;
 	my $x = $builtin{$n};
@@ -925,7 +925,7 @@ sub validator_($)
 	return exists $self->{validator};
 }
 
-sub getDeclaration($)
+sub getDeclaration
 {
 	my $self = shift;
 	my @output;
@@ -958,7 +958,7 @@ sub getDeclaration($)
 	return @output;
 }
 
-sub getDefinition($$)
+sub getDefinition
 {
 	my $self = shift;
 	my @output;
@@ -993,7 +993,7 @@ package Ng::Enum;
 use Data::Dumper;
 our @ISA = qw(Ng::DataType);
 
-sub new($$$)
+sub new
 {
 	my ($z, $n, $v) = @_;
 	die "an ARRAY reference is required!" unless ref($v) eq 'ARRAY';
@@ -1009,7 +1009,7 @@ sub new($$$)
 	return bless $output, $z;
 }
 
-sub getTraits($)
+sub getTraits
 {
 	my $self = shift;
 	my @output;
@@ -1024,7 +1024,7 @@ sub getTraits($)
 	return @output;
 }
 
-sub getDefinition($)
+sub getDefinition
 {
 	my $self = shift;
 	my @output;
@@ -1039,13 +1039,13 @@ sub getDefinition($)
 
 package Ng::Alias;
 
-sub new($$$)
+sub new
 {
 	my ($z, $t, $n) = @_;
 	return bless {target => $t, name => $n}, ref($z) || $z;
 }
 
-sub getDeclaration($)
+sub getDeclaration
 {
 	my $self = shift;
 	return join(' ', ('typedef', $self->{target}, $self->{name})).';';
@@ -1054,7 +1054,7 @@ sub getDeclaration($)
 package Ng::Variant::Typedef;
 our @ISA = qw(Ng::DataType);
 
-sub alias($$$)
+sub alias
 {
 	my ($z, $t, $a) = @_;
 	my $r = $a->getCppType()->getValueType();
@@ -1065,7 +1065,7 @@ sub alias($$$)
 	return bless $output, ref($z) || $z;
 }
 
-sub body($$)
+sub body
 {
 	my ($z, $v) = @_;
 	my $n = $v->getCppType()->getValueType();
@@ -1080,7 +1080,7 @@ sub body($$)
 	return bless $output, ref($z) || $z;
 }
 
-sub getDeclaration($)
+sub getDeclaration
 {
 	my $self = shift;
 	my @output;
@@ -1092,7 +1092,7 @@ sub getDeclaration($)
 	return @output;
 }
 
-sub getDefinition($)
+sub getDefinition
 {
 	my $self = shift;
 	return ();
@@ -1100,13 +1100,13 @@ sub getDefinition($)
 
 package Ng::Variant::Traits;
 
-sub new($)
+sub new
 {
 	my $z = shift;
 	return bless {}, ref($z) || $z;
 }
 
-sub getDeclaration($$)
+sub getDeclaration
 {
 	my ($self, $variant) = @_;
 	my @output;
@@ -1123,7 +1123,7 @@ sub getDeclaration($$)
 	return @output;
 }
 
-sub getDefinition($$)
+sub getDefinition
 {
 	my ($self, $variant) = @_;
 	my ($i, @output) = 0;
@@ -1170,7 +1170,7 @@ sub getDefinition($$)
 package Ng::Variant;
 our @ISA = qw(Ng::DataType);
 
-sub new($$;@)
+sub new
 {
 	my ($z, $x, @a) = @_;
 	my $output = $z->SUPER::new($x, ValueType->new($x, 'ComplexDecorator'));
@@ -1178,25 +1178,25 @@ sub new($$;@)
         return bless $output, $z, 
 }
 
-sub setTraits($$)
+sub setTraits
 {
 	my ($self, $traits) = @_;
 	$self->{traits} = $traits;
 }
 
-sub addAlternative($$)
+sub addAlternative
 {
 	my ($self, $a) = @_;
 	push @{$self->{alternatives}}, $a;
 }
 
-sub getAlternatives($)
+sub getAlternatives
 {
 	my $self = shift;
 	return @{$self->{alternatives}};
 }
 
-sub getPattern($)
+sub getPattern
 {
 	my $self = shift;
 	my (@v, @output);
@@ -1214,27 +1214,27 @@ sub getPattern($)
 	return "Choice<mpl::vector<@{[join ', ', @v]} > >";
 }
 
-sub setForwardDeclaration($)
+sub setForwardDeclaration
 {
 	my $self = shift;
 	$self->{forward} = Ng::Forward->new($self->getCppType());
 	$self->{forward}->setNamespace($self->getNamespace());
 }
 
-sub getForward($)
+sub getForward
 {
 	my $self = shift;
 	return () unless $self->{forward};
 	return ($self->{forward}->getDeclaration());
 }
 
-sub getTraits($)
+sub getTraits
 {
 	my $self = shift;
 	return ();
 }
 
-sub getDefinition($)
+sub getDefinition
 {
 	my $self = shift;
 	return $self->{traits}->getDefinition($self) if $self->{traits};
@@ -1242,7 +1242,7 @@ sub getDefinition($)
 	return ();
 }
 
-sub getDeclaration($)
+sub getDeclaration
 {
 	my $self = shift;
 	my $n = $self->getNamespace();
@@ -1269,7 +1269,7 @@ package Ng::ComplexType;
 use Data::Dumper;
 our @ISA = qw(Ng::DataType);
 
-sub new($$$$)
+sub new
 {
 	my ($z, $n, $m, $k) = @_;
 	my $output = $z->SUPER::new($n, ValueType->new($n, 'ComplexDecorator'));
@@ -1329,13 +1329,13 @@ sub initializers_($)
 	return $self->initializers_();
 }
 
-sub setSerializer($$)
+sub setSerializer
 {
 	my ($self, $value) = @_;
 	$self->{serializer} = $value;
 }
 
-sub getDeclaration($)
+sub getDeclaration
 {
 	my $self = shift;
 	my (@output, $n);
@@ -1392,7 +1392,7 @@ sub getDeclaration($)
 	return @output;
 }
 
-sub getTraits($)
+sub getTraits
 {
 	my $self = shift;
 	my @output;
@@ -1407,7 +1407,7 @@ sub getTraits($)
 	return @output;
 }
 
-sub getDefinition($)
+sub getDefinition
 {
 	my $self = shift;
 	my (@b, @w);
@@ -1523,7 +1523,7 @@ sub getDefinition($)
 package Ng::Forward;
 our @ISA = qw(Ng::DataType);
 
-sub new($$)
+sub new
 {
 	my ($z, $t) = @_;
 	my $n = $t->getValueType();
@@ -1532,13 +1532,13 @@ sub new($$)
 	return bless $output, $z;
 }
 
-sub getDeclaration($)
+sub getDeclaration
 {
 	my $self = shift;
 	return $self->getNamespace()->envelope("struct @{[$self->getCppType()->getValueType()]};");
 }
 
-sub getDefinition($)
+sub getDefinition
 {
 	my $self = shift;
 	my @output;
@@ -1549,7 +1549,7 @@ sub getDefinition($)
 	return @output;
 }
 
-sub getRecipient($$$)
+sub getRecipient
 {
 	my ($self, $v, $s) = @_;
 	my @output;
@@ -1558,7 +1558,7 @@ sub getRecipient($$$)
 	return @output;
 }
 
-sub getDonor($$)
+sub getDonor
 {
 	my ($self, $v, $s) = @_;
 	my @output;
@@ -1570,24 +1570,24 @@ sub getDonor($$)
 }
 
 package Ng::Ref;
-sub new($$)
+sub new
 {
         return bless {target => Strings->reverse($_[1])}, ref($_[0]) || $_[0];
 }
 
-sub getTarget($)
+sub getTarget
 {
 	my $self = shift;
 	return $main::defines{Strings->lookup($self->{target})};
 }
 
-sub getDataType($)
+sub getDataType
 {
 	my $self = shift;
 	return $self->getTarget()->getDataType();
 }
 
-sub expand($)
+sub expand
 {
 	my $self = shift;
 	my @output = @{$self->getTarget()->{children}};
@@ -1604,12 +1604,12 @@ sub expand($)
 
 package Ng::Optional;
 use Data::Dumper;
-sub new($$)
+sub new
 {
         return bless $_[1], ref($_[0]) || $_[0];
 }
 
-sub generate($)
+sub generate
 {
 	my $self = shift;
 	return if exists $self->{inline};
@@ -1632,7 +1632,7 @@ sub generate($)
 #	die "An optional without a body is detected!" unless $self->{inline};
 }
 
-sub getMember($)
+sub getMember
 {
 	my ($self) = @_;
 	my %output = %{$self->{inline}->getMember()};
@@ -1640,14 +1640,14 @@ sub getMember($)
 	return \%output;
 }
 
-sub getMarshal($;$)
+sub getMarshal
 {
 	my ($self, $namespace) = @_;
 	my $m = $self->{inline}->getMarshal($namespace);
 	return {name => '', cppType => 'Optional<'.$m->{cppType}.' >'};
 }
 
-sub getDataType($)
+sub getDataType
 {
 	my $self = shift;
 	return $self->{inline}->getDataType();
@@ -1656,27 +1656,27 @@ sub getDataType($)
 package Ng::Fragment;
 use Data::Dumper;
 
-sub new($$)
+sub new
 {
 	my ($z, $t) = @_;
 	$t->setSerializer(Ng::Serializer::Fragment->new($t));
         return bless {type => $t}, ref($z) || $z;
 }
 
-sub getTypeName($;$)
+sub getTypeName
 {
 	my ($self, $namespace) = @_;
 	my $n = $self->getDataType()->{name};
 	return $namespace ? $namespace->qualify($n) : $n;
 }
 
-sub getMember($)
+sub getMember
 {
 	my $self = shift;
 	return {name => $self->getTypeName(), cppType => $self->getDataType()->getCppType()};
 }
 
-sub getMarshal($;$)
+sub getMarshal
 {
 	my ($self, $namespace) = @_;
 	unless ($self->getTypeName())
@@ -1687,7 +1687,7 @@ sub getMarshal($;$)
 	return {name => '', cppType => 'Fragment<'.$self->getTypeName($namespace).' >'};
 }
 
-sub getDataType($)
+sub getDataType
 {
 	my $self = shift;
 	return $self->{type};
@@ -1696,21 +1696,21 @@ sub getDataType($)
 package Ng::OrMore;
 use Data::Dumper;
 
-sub one($$)
+sub one
 {
         my $output = bless $_[1], ref($_[0]) || $_[0];
 	$output->{marshal} = 'OneOrMore';
 	return $output;
 }
 
-sub zero($$)
+sub zero
 {
         my $output = bless $_[1], ref($_[0]) || $_[0];
 	$output->{marshal} = 'ZeroOrMore';
 	return $output;
 }
 
-sub generate($)
+sub generate
 {
 	my $self = shift;
 	return if exists $self->{inline};
@@ -1728,13 +1728,13 @@ sub generate($)
 	die "A list without a body is detected!" unless $self->{inline};
 }
 
-sub getDataType($)
+sub getDataType
 {
 	my $self = shift;
 	return $self->{inline}->getDataType();
 }
 
-sub getMember($)
+sub getMember
 {
 	my $self = shift;
 	my $m = $self->{inline}->getMember();
@@ -1742,7 +1742,7 @@ sub getMember($)
 	return {name => $m->{name}.'List', cppType => $t};
 }
 
-sub getMarshal($;$)
+sub getMarshal
 {
 	my ($self, $namespace) = @_;
 	my $m = $self->{inline}->getMarshal($namespace);
@@ -1752,19 +1752,19 @@ sub getMarshal($;$)
 package Ng::Group;
 use Data::Dumper;
 
-sub ordered($$)
+sub ordered
 {
 	my $output = {marshal => 'Ordered', children => $_[1]};
         return bless $output, ref($_[0]) || $_[0];
 }
 
-sub unordered($$)
+sub unordered
 {
 	my $output = {marshal => 'Unordered', children => $_[1]};
         return bless $output, ref($_[0]) || $_[0];
 }
 
-sub generate($)
+sub generate
 {
 	my $self = shift;
 	if (exists $self->{generated})
@@ -1801,7 +1801,7 @@ sub generate($)
 	return wantarray() ? @a : undef;
 }
 
-sub getMarshal($;$)
+sub getMarshal
 {
 	my ($self, $namespace) = @_;
 	unless (exists $self->{marshals})
@@ -1847,7 +1847,7 @@ sub getMarshal($;$)
 	return {name => '', cppType => $self->{marshal}.'<mpl::vector<'.$m.' > >'};
 }
 
-sub flatten($)
+sub flatten
 {
 	my ($self, $i, @output) = (@_, 0);
 	my @x;
@@ -1897,12 +1897,12 @@ sub flatten($)
 
 package Ng::Attribute;
 use Data::Dumper;
-sub new($$)
+sub new
 {
         return bless $_[1], ref($_[0]) || $_[0];
 }
 
-sub generate($)
+sub generate
 {
 	my $self = shift;
 	return if exists $self->{type};
@@ -1939,13 +1939,13 @@ sub generate($)
 	}
 }
 
-sub getDataType($)
+sub getDataType
 {
 	my $self = shift;
 	return $self->{type};
 }
 
-sub getMember($)
+sub getMember
 {
 	my $self = shift;
 	my $t = $self->{type};
@@ -1954,7 +1954,7 @@ sub getMember($)
 	return {name => main::getCppNameString($self->{name}), cppType => $t->getCppType()};
 }
 
-sub getMarshal($;$)
+sub getMarshal
 {
 	my ($self, $namespace, $t) = @_;
 	if ($self->{type}->can('getQualifiedName'))
@@ -1973,16 +1973,16 @@ sub getMarshal($;$)
 }
 
 package Ng::Empty;
-sub new($$)
+sub new
 {
 	return bless {}, ref($_[0]) || $_[0]; 
 }
 
-sub generate($)
+sub generate
 {
 }
 
-sub getMarshal($)
+sub getMarshal
 {
 	my $self = shift;
 	return {name => '', cppType => 'Empty'};
@@ -1990,25 +1990,25 @@ sub getMarshal($)
 
 package Ng::Text;
 
-sub new($$)
+sub new
 {
 #	my $n = main::getCppNameString(Strings->generate('ownValue'));
 	my $n = main::getCppNameString(Strings->reverse('ownValue'));
 	return bless {type => $_[1], name => $n}, ref($_[0]) || $_[0]; 
 }
 
-sub generate($)
+sub generate
 {
 }
 
-sub getMember($)
+sub getMember
 {
 	my $self = shift;
 	return undef unless $self->{type}->can('getCppType');
 	return {name => $self->{name}, cppType => $self->{type}->getCppType()};
 }
 
-sub getMarshal($)
+sub getMarshal
 {
 	my $self = shift;
 	my $t = $self->{type};
@@ -2016,7 +2016,7 @@ sub getMarshal($)
 	return {name => '', cppType => "Text<${n} >"};
 }
 
-sub getDataType($)
+sub getDataType
 {
 	my $self = shift;
 	return $self->{type};
@@ -2024,30 +2024,30 @@ sub getDataType($)
 
 package Ng::Cocoon;
 
-sub new($$)
+sub new
 {
 	my $output = bless $_[1], ref($_[0]) || $_[0];
 	$output->{type} = Ng::DataType->new('QDomElement');
 	return $output;
 }
 
-sub generate($)
+sub generate
 {
 }
 
-sub getMember($)
+sub getMember
 {
 	my $self = shift;
 	return {name => '', cppType => 'QDomElement'};
 }
 
-sub getMarshal($)
+sub getMarshal
 {
 	my $self = shift;
 	return {name => '', cppType => "Pod"};
 }
 
-sub getDataType($)
+sub getDataType
 {
 	my $self = shift;
 	return $self->{type};
@@ -2056,7 +2056,7 @@ sub getDataType($)
 package Ng::Block;
 use Data::Dumper;
 
-sub new($$$;$)
+sub new
 {
 	die "An ARRAY reference is required!" unless ref($_[2]) eq 'ARRAY';
 	my $output = {name => $_[1], children => $_[2]};
@@ -2066,13 +2066,13 @@ sub new($$$;$)
 	return bless $output, ref($_[0]) || $_[0]; 
 }
 
-sub setInlineOdinOptional($$)
+sub setInlineOdinOptional
 {
 	my $self = shift;
 	$self->{inlineOdinOptional} = shift;
 }
 
-sub getBody($)
+sub getBody
 {
 	my $self = shift;
 	my @z = @{$self->{children}};
@@ -2107,7 +2107,7 @@ sub getBody($)
 	return ();
 }
 
-sub getData($)
+sub getData
 {
 	my $self = shift;
 	return $self->{pod} if exists $self->{pod};
@@ -2124,7 +2124,7 @@ sub getData($)
 	return shift @z;
 }
 
-sub getDataType($)
+sub getDataType
 {
 	my $self = shift;
 	my ($d, $t, $i);
@@ -2135,13 +2135,13 @@ sub getDataType($)
 	return $i->can('getDataType') ? $i->getDataType() : undef;
 }
 
-sub getType($)
+sub getType
 {
 	my $self = shift;
 	return $self->{type};
 }
 
-sub getInline($)
+sub getInline
 {
 	my $self = shift;
 	return $self->{inline} if exists $self->{inline};
@@ -2150,13 +2150,13 @@ sub getInline($)
 	return undef;
 }
 
-sub getInlineGroup()
+sub getInlineGroup
 {
 	my $self = shift;
 	return exists($self->{group}) ? $self->{group} : undef;
 }
 
-sub generate($)
+sub generate
 {
 	my $self = shift;
 	return if exists $self->{generated};
@@ -2237,12 +2237,12 @@ sub generate($)
 package Ng::Element;
 use Data::Dumper;
 
-sub new($$)
+sub new
 {
         return bless $_[1], ref($_[0]) || $_[0];
 }
 
-sub getNameTag($)
+sub getNameTag
 {
 	my $self = shift;
 	if (exists $self->{ns})
@@ -2252,7 +2252,7 @@ sub getNameTag($)
 	return 'Name::Strict<'.$self->{name}.'>';
 }
 
-sub generate($)
+sub generate
 {
 	my $self = shift;
 	return if exists $self->{block};
@@ -2268,7 +2268,7 @@ sub generate($)
 	$self->{block} = $b;
 }
 
-sub getMember($)
+sub getMember
 {
 	my $self = shift;
 	my $b = $self->{block};
@@ -2298,7 +2298,7 @@ sub getMember($)
 	return $output;
 }
 
-sub getMarshal($;$)
+sub getMarshal
 {
 	my ($self, $namespace) = @_;
 	my ($b, $t) = $self->{block};
@@ -2325,7 +2325,7 @@ sub getMarshal($;$)
 	return {name => '', cppType => 'Element<'.$t.', '.$self->getNameTag().' >'};
 }
 
-sub getDataType($)
+sub getDataType
 {
 	my $self = shift;
 	return $self->{block}->getDataType();
@@ -2334,13 +2334,13 @@ sub getDataType($)
 package Ng::Choice;
 use Data::Dumper;
 
-sub new($$$$)
+sub new
 {
 	my ($z, $n, $v, $b) = @_;
         return bless {name => $n, values => $v, blocks => $b}, ref($z) || $z;
 }
 
-sub generate($)
+sub generate
 {
 	my $self = shift;
 	return if exists $self->{generated};
@@ -2414,13 +2414,13 @@ sub generate($)
 	}
 }
 
-sub getData($)
+sub getData
 {
 	my $self = shift;
 	return $self->{data};
 }
 
-sub getEnum($)
+sub getEnum
 {
 	my $self = shift;
 	return $self->{enum} if exists $self->{enum};
@@ -2428,7 +2428,7 @@ sub getEnum($)
 	return undef;
 }
 
-sub getDataType($)
+sub getDataType
 {
 	my $self = shift;
 	return $self->{variants} if exists $self->{variants};
@@ -2436,7 +2436,7 @@ sub getDataType($)
 	return $self->getEnum();
 }
 
-sub getMember($)
+sub getMember
 {
 	my $self = shift;
 	my $t = $self->getDataType();
@@ -2448,7 +2448,7 @@ sub getMember($)
 	return {name => main::getCppNameString($self->{name}), cppType => $t->getCppType()};
 }
 
-sub getMarshal($;$)
+sub getMarshal
 {
 	my ($self, $namespace) = @_;
 	if (exists $self->{variants})
@@ -2460,14 +2460,14 @@ sub getMarshal($;$)
 
 package Ng::Serializer::Element;
 
-sub new($$)
+sub new
 {
 	my ($z, $t, $n) = @_;
 	my $output = {name => $n, type => $t->{name}};
 	return bless $output, ref($z) || $z;
 }
 
-sub getLoader($$)
+sub getLoader
 {
 	my ($self, $src) = @_;
 	my @output;
@@ -2482,7 +2482,7 @@ sub getLoader($$)
 	return @output;
 }
 
-sub getSaviour($$)
+sub getSaviour
 {
 	my ($self, $dst) = @_;
 	my @output;
@@ -2492,7 +2492,7 @@ sub getSaviour($$)
 	return @output;
 }
 
-sub getTopSaviour($$)
+sub getTopSaviour
 {
 	my ($self, $dst) = @_;
 	my @output;
@@ -2504,14 +2504,14 @@ sub getTopSaviour($$)
 
 package Ng::Serializer::Fragment;
 
-sub new($$)
+sub new
 {
 	my ($z, $t) = @_;
 	my $output = {type => $t->{name}};
 	return bless $output, ref($z) || $z;
 }
 
-sub getLoader($$)
+sub getLoader
 {
 	my ($self, $src) = @_;
 	my @output;
@@ -2522,7 +2522,7 @@ sub getLoader($$)
 	return @output;
 }
 
-sub getSaviour($$)
+sub getSaviour
 {
 	my ($self, $dst) = @_;
 	return ("return 0 <= Traits<$self->{type}>::generate(*this, ${dst});");
@@ -2538,7 +2538,7 @@ our %types;
 our @names;
 our %includes;
 
-sub parse($)
+sub parse
 {
 	my ($p, $n) = @_;
 	for ($n = $p->firstChild(); $n; $n = $n->nextSibling())
@@ -2555,38 +2555,38 @@ sub parse($)
 	}
 }
 
-sub getNs($)
+sub getNs
 {
 	my $a = $_[0]->getAttributeNode('ns');
 	return undef unless $a;
 	return $a->value;
 }
 
-sub getName($)
+sub getName
 {
 	my $a = $_[0]->getAttributeNode('name');
 	return undef unless $a;
 	return $a->value;
 }
 
-sub getCppNameString($)
+sub getCppNameString
 {
 	my $output = ucfirst(Strings->lookup(shift));
 	$output =~ s![/_.-]+(\w)!uc($1)!ge;
 	return $output;
 }
 
-sub parseRef($)
+sub parseRef
 {
 	return Ng::Ref->new(getName($_[0]));
 }
 
-sub parseValue($)
+sub parseValue
 {
 	return Strings->reverse($_[0]->textContent());
 }
 
-sub parseData($$)
+sub parseData
 {
 	my ($p, $a, $n) = @_;
 	my ($t, $f, $x) = ($p->getAttributeNode('type')->value, {}, []);
@@ -2604,7 +2604,7 @@ sub parseData($$)
 	return Factory->buildData($t, getCppNameString(Strings->reverse($a)), $f, $x);
 }
 
-sub parseAttributeChoice($$)
+sub parseAttributeChoice
 {
 	my ($p, $a, $n) = @_;
 	my $t = {values => [], refs => [], data => []};
@@ -2631,12 +2631,12 @@ sub parseAttributeChoice($$)
 	}
 }
 
-sub parseText($)
+sub parseText
 {
 	return Factory->buildData('token');
 }
 
-sub parseAttribute($)
+sub parseAttribute
 {
 	my ($p, $n) = @_;
 	my $a = getName($p);
@@ -2674,7 +2674,7 @@ sub parseAttribute($)
 	return Ng::Attribute->new($output);
 }
 
-sub parseAttributableFragment($)
+sub parseAttributableFragment
 {
 	my ($p, $n) = @_;
 	my $output = {	children => [],
@@ -2712,7 +2712,7 @@ sub parseAttributableFragment($)
 	return $output;
 }
 
-sub parseFragment($)
+sub parseFragment
 {
 	my ($p, $n) = @_;
 	my $output = {	children => [],
@@ -2746,22 +2746,22 @@ sub parseFragment($)
 	return $output;
 }
 
-sub parseOptional($)
+sub parseOptional
 {
 	return Ng::Optional->new(parseAttributableFragment($_[0]));
 }
 
-sub parseZeroOrMore($)
+sub parseZeroOrMore
 {
 	return Ng::OrMore->zero(parseFragment($_[0]));
 }
 
-sub parseOneOrMore($)
+sub parseOneOrMore
 {
 	return Ng::OrMore->one(parseFragment($_[0]));
 }
 
-sub parseOrdered($)
+sub parseOrdered
 {
 	my $b = parseAttributableFragment($_[0])->{children};
 	unless (1 < scalar(@$b))
@@ -2771,7 +2771,7 @@ sub parseOrdered($)
 	return Ng::Group->ordered($b);
 }
 
-sub parseUnordered($)
+sub parseUnordered
 {
 	my $b = parseAttributableFragment($_[0])->{children};
 	return $b->[0] if scalar(@$b) == 1;
@@ -2779,7 +2779,7 @@ sub parseUnordered($)
 	return Ng::Group->unordered($b);
 }
 
-sub parseGrammar($)
+sub parseGrammar
 {
 	my ($p, $n) = @_;
 	for ($n = $p->firstChild(); $n; $n = $n->nextSibling())
@@ -2797,7 +2797,7 @@ sub parseGrammar($)
 	return undef;
 }
 
-sub parseChoice($;$)
+sub parseChoice
 {
 	my ($p, $k, $n, @b, @v) = @_;
 	my $a = Strings->lookup($k) if $k && $k > 0;
@@ -2927,7 +2927,7 @@ sub parseChoice($;$)
 	die "Unexpected!!!!111";
 }
 
-sub parseElement($)
+sub parseElement
 {
 	my ($p, $n) = @_;
 	my $s = getNs($p);
@@ -2981,7 +2981,7 @@ sub parseElement($)
 	return $b ? Ng::Cocoon->new($output) : Ng::Element->new($output);
 }
 
-sub parseDefine($)
+sub parseDefine
 {
 	my ($p, $n) = @_;
 	my $a = getName($p);
@@ -3042,7 +3042,7 @@ sub parseInclude_($)
 	}
 }
 
-sub parseInclude($)
+sub parseInclude
 {
 	my $e = shift;
 	my $h = $e->getAttributeNode('href');
@@ -3088,12 +3088,14 @@ if (-1 == index($av[0], ':'))
 foreach my $x (@av)
 {
 	my ($rng, $tags, $name) = split /:/, $x;
+	print "Start working on ".$rng."\n";
 	Factory->setup($name);
 	$first = File::Spec->rel2abs($rng);
 	my $d = $parser->parse_file($rng);
+	print "Start parsing ".$rng."\n";
 	parse($d->documentElement());
 	my @g = split /\s*,\s*/, $tags;
-print STDERR $/, $/, $/, $/;
+	print "Start generator for ".$rng."\n";
 	generate(@g);
 	$includes{$rng} = [map {$_->generate(); $_} @defines{@g}];
 }
