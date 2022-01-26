@@ -502,6 +502,8 @@ struct Driver: QObject
 	Q_INVOKABLE void stop(Liquidator* liquidator_);
 	Q_INVOKABLE void start(Launch::Script* script_);
 
+	void cleanup();
+
 public slots:
 	void abort();
 	void adopt(Tunnel* orphan_);

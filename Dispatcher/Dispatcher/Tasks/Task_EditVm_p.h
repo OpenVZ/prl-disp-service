@@ -498,6 +498,14 @@ struct Adapter
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct RemoteDesktop
+
+struct RemoteDesktop
+{
+	Action* operator()(const Request& input_) const;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Factory
 
 struct Disk
@@ -682,7 +690,7 @@ typedef boost::mpl::vector<ChangeableMedia<CVmOpticalDisk>, ChangeableMedia<CVmF
 		Adapter, Network::Factory,
 		Hotplug::Factory<CVmSerialPort>, Hotplug::Factory<CVmHardDisk>,
 		Hotplug::Factory<CVmGenericNetworkAdapter>, Disk, Blkiotune,
-		Memory, Cpu::Factory> probeList_type;
+		Memory, Cpu::Factory, RemoteDesktop> probeList_type;
 
 struct Driver: Gear<Driver, probeList_type>
 {

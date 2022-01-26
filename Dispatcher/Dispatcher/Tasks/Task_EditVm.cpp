@@ -1827,13 +1827,14 @@ PRL_RESULT Task_EditVm::editVm()
 				case PRD_DISABLED:
 					bNeedVNCStart = true;
 					break;
+				//MANUAL mode allows to change VNC port in RUNNING VM. 
+				//MANUAL and AUTO modes do not allow to change Hostname and Password for VNC
 				case PRD_MANUAL:
-					bNeedVNCStart = bNeedVNCStop = (oldRemDisplay.getPortNumber() != newRemDisplay->getPortNumber());
 				case PRD_AUTO:
 					bNeedVNCStart = bNeedVNCStop = bNeedVNCStop ||
 						oldRemDisplay.getHostName() != newRemDisplay->getHostName() ||
 						oldRemDisplay.getPassword() != newRemDisplay->getPassword();
-				}       
+				}
 			}
 
 			if (nState != VMS_STOPPED)
@@ -1928,27 +1929,6 @@ PRL_RESULT Task_EditVm::editVm()
 			CStatesHelper::SetSuspendParameterForAllDisks(pVmConfigNew.getImpl(),0);
 			DspVm::vdh().getMultiEditDispatcher()->registerCommit(vm_uuid, getClient()->getClientHandle());
 		}
-
-		do {
-			SmartPtr< CDspVm > pVm = CDspVm::GetVmInstanceByUuid(ident);
-			if ( ! pVm )
-				break;
-
-			// XXX
-			// we create this fake package which will be sent
-			// to every client only for dispatcher stability purposes!
-			// Dispatcher does not check null pointers, does not check
-			// validness of data, does not check anything and can be
-			// crashed at any time (ask sergeyt@ about this default
-			// dispatcher behaviour), to omit this behaviour we should
-			// make this ugly cheat.
-			SmartPtr<IOPackage> fakePkg =
-					IOPackage::createInstance( IOSender::UnknownType, 0 );
-			if (bNeedVNCStop)
-				pVm->stopVNCServer(getClient(), fakePkg, false, false);
-			if (bNeedVNCStart)
-				pVm->startVNCServer(getClient(), fakePkg, false, true);
-		} while (0);
 
 #ifdef _LIBVIRT_
 		Edit::Vm::driver_type(*this)(pVmConfigOld, pVmConfigNew);
@@ -2915,6 +2895,41 @@ Action* ChangeableMedia<T>::operator()(const Request& input_) const
 		a->setNext(output);
 		output = a;
 	}
+	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct RemoteDesktop
+Action* RemoteDesktop::operator()(const Request& input_) const
+{
+	Forge f(input_);
+	Action* output = NULL;
+
+	CVmRemoteDisplay* oldVnc = input_.getStart().getVmSettings()->getVmRemoteDisplay();
+	CVmRemoteDisplay* newVnc = input_.getFinal().getVmSettings()->getVmRemoteDisplay();
+
+	//check changes, it should be only change of port number
+	{
+		if (!oldVnc || !newVnc)
+			return output;
+
+		if (newVnc->getMode() != PRD_MANUAL)
+			return output;
+
+		if (newVnc->getPortNumber() == oldVnc->getPortNumber())
+			return output;
+
+		if (oldVnc->getPassword() != newVnc->getPassword() || oldVnc->getHostName() != newVnc->getHostName())
+			return output;
+	}
+
+	Action* a(f.craftRuntime(boost::bind(&vm::Editor::updateVncPort, _1, newVnc)));
+	a->setNext(output);
+	output = a;
+	
+	//send signal about updated QEMU scheme for FRONTEND
+	Libvirt::Kit.vms().at(input_.getObject().first).getMaintenance().emitQemuUpdated();
+
 	return output;
 }
 

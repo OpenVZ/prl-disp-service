@@ -1771,6 +1771,16 @@ Result Editor::setCpuCount(quint32 units_)
 	return do_(getDomain().data(), boost::bind(&virDomainSetVcpus, _1, units_));
 }
 
+Result Editor::updateVncPort(const CVmRemoteDisplay* vnc_)
+{
+	Prl::Expected<QString, ::Error::Simple> t = Transponster::Vm::Reverse::RemoteDisplayUpdater::updateVncXml(vnc_);
+	if (t.isFailed())
+		return t.error();
+
+	return do_(getDomain().data(), boost::bind(virDomainUpdateDeviceFlags, _1,
+		qPrintable(t.value()), m_flags | VIR_DOMAIN_DEVICE_MODIFY_FORCE));
+}
+
 Result Editor::setCpuMask(quint32 ncpus_, const QString& mask_)
 {
 	unsigned long cpumap[64];

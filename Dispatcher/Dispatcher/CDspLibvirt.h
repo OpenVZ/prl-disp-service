@@ -748,6 +748,7 @@ struct Editor: private Limb::Abstract
 	Result setNodeMask(const QString& mask_);
 	Result setMemory(quint64 memory_);
 	Result setMemGuarantee(const CVmMemory& memory_);
+	Result updateVncPort(const CVmRemoteDisplay* vnc_);
 
 	template<class T>
 	Result plug(const T& device_);

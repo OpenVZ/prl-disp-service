@@ -550,6 +550,13 @@ void Driver::adopt(Tunnel* orphan_)
 		m_liquidator->connect(orphan_, SIGNAL(ripped()), SLOT(execute()));
 }
 
+void Driver::cleanup()
+{
+	//disconnect Tunnel if it is active, case for updating VNC port
+	if (NULL != m_active)
+		m_active->reactDisconnect();
+}
+
 void Driver::evict()
 {
 	if (NULL == m_active)
@@ -669,6 +676,11 @@ void Frontend::setup(CVmConfiguration& object_, const CVmConfiguration& runtime_
 
 	range_type d;
 	CVmRemoteDisplay* b = Traits::purify(&runtime_);
+
+	//if socat is already running, we must stop it before we start the new one
+	if (m_rfb != NULL)
+		m_rfb->cleanup();
+
 	if (PRD_AUTO == a->getMode())
 	{
 		Scope::range_type x = Scope(*m_service).getAutoRange();

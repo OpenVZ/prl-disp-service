@@ -183,6 +183,16 @@ struct Device<CVmGenericNetworkAdapter>
 		getUpdateXml(const CVmGenericNetworkAdapter& model_);
 };
 
+struct RemoteDisplayUpdater
+{
+typedef	mpl::at_c<Libvirt::Domain::Xml::VGraphics::types, 1>::type	vnc_type;
+
+	static vnc_type prepareVncXML(const CVmRemoteDisplay* vnc_);
+
+	static Prl::Expected<QString, ::Error::Simple>
+		updateVncXml(const CVmRemoteDisplay* vnc_);
+};
+
 template<>
 struct Device<CHwUsbDevice>
 {
