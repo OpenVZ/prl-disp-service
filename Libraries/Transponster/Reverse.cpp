@@ -1422,24 +1422,8 @@ void List::add(const CVmRemoteDisplay* vnc_)
 	if (NULL == vnc_ || vnc_->getMode() == PRD_DISABLED)
 		return;
 
-	Libvirt::Domain::Xml::Variant5118 v;
-	v.setPort(vnc_->getPortNumber());
-	// Websocket port auto-allocation must be explicit.
-	v.setWebsocket(-1);
-	v.setListen(QHostAddress(QHostAddress::LocalHostIPv6).toString());
-	if (PRD_AUTO == vnc_->getMode())
-		v.setAutoport(Libvirt::Domain::Xml::EVirYesNoYes);
-
-	mpl::at_c<Libvirt::Domain::Xml::VChoice5120::types, 0>::type y;
-	y.setValue(v);
-	Libvirt::Domain::Xml::Graphics7039 g;
-	g.setChoice5120(Libvirt::Domain::Xml::VChoice5120(y));
-	QString p = vnc_->getPassword();
-	if (!p.isEmpty())
-		g.setPasswd(p);
-
-	mpl::at_c<Libvirt::Domain::Xml::VGraphics::types, 1>::type z;
-	z.setValue(g);
+	Transponster::Vm::Reverse::RemoteDisplayUpdater::vnc_xml_model z =
+		Transponster::Vm::Reverse::RemoteDisplayUpdater::prepareVncXML(vnc_);
 	add<8>(Libvirt::Domain::Xml::VGraphics(z));
 }
 
@@ -1986,6 +1970,42 @@ Prl::Expected<QString, ::Error::Simple>
 	Device<CVmGenericNetworkAdapter>::getUpdateXml(const CVmGenericNetworkAdapter& model_)
 {
 	return getPlugXml(model_);
+}
+
+RemoteDisplayUpdater::vnc_type RemoteDisplayUpdater::prepareVncXML(const CVmRemoteDisplay* vnc_)
+{
+	vnc_type z;
+
+	Libvirt::Domain::Xml::Variant5118 v;
+	v.setPort(vnc_->getPortNumber());
+	// Websocket port auto-allocation must be explicit.
+	v.setWebsocket(-1);
+	v.setListen(QHostAddress(QHostAddress::LocalHostIPv6).toString());
+	if (PRD_AUTO == vnc_->getMode())
+		v.setAutoport(Libvirt::Domain::Xml::EVirYesNoYes);
+
+	mpl::at_c<Libvirt::Domain::Xml::VChoice5120::types, 0>::type y;
+	y.setValue(v);
+	Libvirt::Domain::Xml::Graphics7039 g;
+	g.setChoice5120(Libvirt::Domain::Xml::VChoice5120(y));
+	QString p = vnc_->getPassword();
+	if (!p.isEmpty())
+		g.setPasswd(p);
+
+	z.setValue(g);
+	return z;
+}
+
+//update VNC port for running VM for manual mode
+Prl::Expected<QString, ::Error::Simple> RemoteDisplayUpdater::updateVncXml(const CVmRemoteDisplay* vnc_)
+{
+	vnc_type z = prepareVncXML(vnc_);
+
+	mpl::at_c<Extract<Libvirt::Domain::Xml::VChoice7097Impl>::type, 8>::type e;
+	e.setValue(z);
+	QDomDocument x;
+	e.produce(x);
+	return x.toString();
 }
 
 Libvirt::Domain::Xml::Hostdev

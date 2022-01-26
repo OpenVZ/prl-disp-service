@@ -752,6 +752,7 @@ struct Editor: private Limb::Abstract
 	Result setDns(const QList<QString>& dnsList);
 	Result setSearchDomains(const QList<QString> &searchDomainList);
 	Result setHostname(const QString& q);
+	Result updateVncPort(const CVmRemoteDisplay* vnc_);
 
 	template<class T>
 	Result plug(const T& device_);
