@@ -1,15 +1,15 @@
 <filter name="vz-filter-C437720DFB3C">
  <filterref filter="no-ip-spoofing">
-  <parameter value="10.0.186.100" name="IP"/>
+  <parameter name="IP" value="10.0.186.100"/>
  </filterref>
  <filterref filter="no-ipv6-spoofing">
-  <parameter value="fe80::20c:29ff:fe01:fb08" name="IPV6"/>
+  <parameter name="IPV6" value="fe80::20c:29ff:fe01:fb08"/>
  </filterref>
  <filterref filter="no-mac-spoofing">
-  <parameter value="C4:37:72:0D:FB:3C" name="MAC"/>
+  <parameter name="MAC" value="C4:37:72:0D:FB:3C"/>
  </filterref>
  <filterref filter="no-promisc">
-  <parameter value="C4:37:72:0D:FB:3C" name="MAC"/>
+  <parameter name="MAC" value="C4:37:72:0D:FB:3C"/>
  </filterref>
  <rule direction="in" action="return" priority="0">
   <all state="ESTABLISHED,RELATED"/>

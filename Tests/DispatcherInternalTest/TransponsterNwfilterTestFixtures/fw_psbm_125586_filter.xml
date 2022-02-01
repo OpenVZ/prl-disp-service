@@ -1,12 +1,12 @@
 <filter name="vz-filter-C43772C4F014">
  <filterref filter="no-ip-spoofing">
-  <parameter value="10.26.47.129" name="IP"/>
+  <parameter name="IP" value="10.26.47.129"/>
  </filterref>
  <filterref filter="no-mac-spoofing">
-  <parameter value="C4:37:72:C4:F0:14" name="MAC"/>
+  <parameter name="MAC" value="C4:37:72:C4:F0:14"/>
  </filterref>
  <filterref filter="no-promisc">
-  <parameter value="C4:37:72:C4:F0:14" name="MAC"/>
+  <parameter name="MAC" value="C4:37:72:C4:F0:14"/>
  </filterref>
  <rule direction="in" action="return" priority="0">
   <all state="ESTABLISHED,RELATED"/>
