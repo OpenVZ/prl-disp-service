@@ -851,6 +851,32 @@ private:
 
 struct List
 {
+	enum XML_DEVICES_ORDER
+	{
+		DISK			=		0,
+		CONTROLLER		=		1,
+		LEASE			=		2,
+		FILESYSTEM		=		3,
+		INTERFACE		=		4,
+		INPUT			=		5,
+		SOUND			=		6,
+		HOSTDEV			=		7,
+		GRAPHIC			=		8,
+		VIDEO			=		9,
+		CONSOLE			=		10,
+		PARALLEL		=		11,
+		SERIAL			=		12,
+		CHANNEL			=		13,
+		SMARTCARD		=		14,
+		HUB				=		15,
+		REDIRDEV		=		16,
+		REDIRFILTER		=		17,
+		RNG				=		18,
+		TPM				=		19,
+		MEMORYDEV		=		20,
+		LAST_ELEMENT	=		MEMORYDEV,
+	};
+
 	const deviceList_type& getDeviceList() const
 	{
 		return m_deviceList;
