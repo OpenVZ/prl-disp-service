@@ -1303,7 +1303,7 @@ void List::addGuestChannel(const QString &path_)
 	mpl::at_c<Libvirt::Domain::Xml::VChoice894::types, 1>::type x;
 	x.setValue(path_);
 	c.setChoice894(x);
-	add<13>(c);
+	add<CHANNEL>(c);
 }
 
 QString List::getEmulator() const
@@ -1327,7 +1327,7 @@ void List::add(const CVmParallelPort* port_)
 	b.setSourceList(QList<Libvirt::Domain::Xml::Source15 >() << a);
 	Libvirt::Domain::Xml::Qemucdev p;
 	p.setQemucdevSrcDef(b);
-	add<11>(p);
+	add<PARALLEL>(p);
 }
 
 void List::add(const CVmSerialPort* port_)
@@ -1338,7 +1338,7 @@ void List::add(const CVmSerialPort* port_)
 	Prl::Expected<Libvirt::Domain::Xml::Qemucdev, ::Error::Simple> p =
 		Vm::Reverse::Device<CVmSerialPort>::getLibvirtXml(*port_);
 	if (p.isSucceed())
-		add<12>(p.value());
+		add<SERIAL>(p.value());
 }
 
 void List::add(const CVmSoundDevice* sound_)
@@ -1347,7 +1347,7 @@ void List::add(const CVmSoundDevice* sound_)
 	{
 		Libvirt::Domain::Xml::Sound s;
 		s.setAlias(sound_->getUserFriendlyName());
-		add<6>(s);
+		add<SOUND>(s);
 	}
 }
 
@@ -1356,9 +1356,9 @@ void List::add(const CVmRemoteDisplay* vnc_)
 	if (NULL == vnc_ || vnc_->getMode() == PRD_DISABLED)
 		return;
 
-	Transponster::Vm::Reverse::RemoteDisplayUpdater::vnc_xml_model z =
+	Transponster::Vm::Reverse::RemoteDisplayUpdater::vnc_type z =
 		Transponster::Vm::Reverse::RemoteDisplayUpdater::prepareVncXML(vnc_);
-	add<8>(Libvirt::Domain::Xml::VGraphics(z));
+	add<GRAPHIC>(Libvirt::Domain::Xml::VGraphics(z));
 }
 
 void List::add(const CVmVideo* video_)
@@ -1381,17 +1381,17 @@ void List::add(const CVmVideo* video_)
 
 	Libvirt::Domain::Xml::Video v;
 	v.setModel(m);
-	add<9>(v);
+	add<VIDEO>(v);
 }
 
 void List::add(const Libvirt::Domain::Xml::Disk& disk_)
 {
-	add<0>(disk_);
+	add<DISK>(disk_);
 }
 
 void List::add(const Libvirt::Domain::Xml::VInterface& adapter_)
 {
-	add<4>(adapter_);
+	add<INTERFACE>(adapter_);
 }
 
 void List::add(const CVmGenericPciDevice* pci_)
@@ -1428,7 +1428,7 @@ void List::add(const CVmGenericPciDevice* pci_)
 	i.setChoice917(h);
 	i.setAlias(Alias()(*pci_));
 
-	add<7>(i);
+	add<HOSTDEV>(i);
 }
 
 namespace Usb
@@ -1893,7 +1893,8 @@ Prl::Expected<QString, ::Error::Simple>
 	if (a.isFailed())
 		return a.error();
 
-	mpl::at_c<Extract<Libvirt::Domain::Xml::VChoice985Impl>::type, 4>::type e;
+	mpl::at_c<Extract<Libvirt::Domain::Xml::VChoice985Impl>::type,
+	Transponster::Device::List::XML_DEVICES_ORDER::INTERFACE >::type e;
 	e.setValue(a.value());
 	QDomDocument x;
 	e.produce(x);
@@ -1935,7 +1936,8 @@ Prl::Expected<QString, ::Error::Simple> RemoteDisplayUpdater::updateVncXml(const
 {
 	vnc_type z = prepareVncXML(vnc_);
 
-	mpl::at_c<Extract<Libvirt::Domain::Xml::VChoice985Impl>::type, 8>::type e;
+	mpl::at_c<Extract<Libvirt::Domain::Xml::VChoice985Impl>::type,
+	Transponster::Device::List::XML_DEVICES_ORDER::GRAPHIC >::type e;
 	e.setValue(z);
 	QDomDocument x;
 	e.produce(x);
