@@ -2908,17 +2908,16 @@ Action* RemoteDesktop::operator()(const Request& input_) const
 	CVmRemoteDisplay* oldVnc = input_.getStart().getVmSettings()->getVmRemoteDisplay();
 	CVmRemoteDisplay* newVnc = input_.getFinal().getVmSettings()->getVmRemoteDisplay();
 
-	//check changes, it should be only change of port number
+	//check changes
 	{
 		if (!oldVnc || !newVnc)
 			return output;
 
-		if (newVnc->getMode() != PRD_MANUAL)
-			return output;
-
+		//same port - do nothing
 		if (newVnc->getPortNumber() == oldVnc->getPortNumber())
 			return output;
 
+		//change HostName and Password are not allowed
 		if (oldVnc->getPassword() != newVnc->getPassword() || oldVnc->getHostName() != newVnc->getHostName())
 			return output;
 	}
