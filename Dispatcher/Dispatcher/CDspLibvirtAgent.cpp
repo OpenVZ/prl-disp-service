@@ -3543,7 +3543,9 @@ Prl::Expected<Bridge, ::Error::Simple> Backend::findByMasterMacAndVlan(const QSt
 
 	foreach (const Bridge& b, m_all.value())
 	{
-		if (b.getMaster().getMacAddress() == mac_ &&
+		QString fixed_mac = b.getMaster().getMacAddress().remove(':');
+
+		if (fixed_mac == mac_ &&
 			b.getMaster().getVLANTag() == tag_)
 			return b;
 	}
