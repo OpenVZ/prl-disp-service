@@ -434,8 +434,14 @@ CommandLine& CommandLine::seed(const boost::optional<Libvirt::Domain::Xml::Comma
 	return *this;
 }
 
-CommandLine& CommandLine::addVncParameters()
+
+CommandLine& CommandLine::addVncParameters(const bool enableClipboard)
 {
+	stripVncParameters();
+
+	if (!enableClipboard)
+		return *this;
+
 	CVmSettings* s = m_source->getVmSettings();
 	if (NULL == s)
 		return *this;
@@ -443,8 +449,6 @@ CommandLine& CommandLine::addVncParameters()
 	CVmRemoteDisplay* pVNC = s->getVmRemoteDisplay();
 	if (NULL == pVNC)
 		return *this;
-
-	stripVncParameters();
 
 	if (pVNC->getMode() != PRD_DISABLED)
 	{
@@ -1996,7 +2000,7 @@ QString Device<CHwUsbDevice>::getAlias(const CHwUsbDevice& model_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Builder
 
-Builder::Builder(const CVmConfiguration& input_): m_input(input_)
+Builder::Builder(const CVmConfiguration& input_, const DspConfig& dspConfig_): m_input(input_), m_dspConfig(dspConfig_)
 {
 	QString x;
 	CVmHardware* h;
@@ -2273,7 +2277,7 @@ QString Builder::getResult()
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
-Vm::Vm(const CVmConfiguration& input_): Builder(input_)
+Vm::Vm(const CVmConfiguration& input_, const DspConfig& dspConfig_): Builder(input_, dspConfig_)
 {
 	if (PVT_VM != m_input.getVmType())
 		return;
@@ -2290,7 +2294,7 @@ PRL_RESULT Vm::setBlank()
 
 	m_result->setOnCrash(Libvirt::Domain::Xml::ECrashOptionsPreserve);
 	setFeatures();
-	m_result->setCommandline(CommandLine(m_input).addDebug().addVncParameters()
+	m_result->setCommandline(CommandLine(m_input).addDebug().addVncParameters(m_dspConfig.isClipboardEnabled())
 		.workaroundEfi2008R2().takeResult());
 	return PRL_ERR_SUCCESS;
 }
@@ -2390,7 +2394,8 @@ void Vm::setFeatures()
 ///////////////////////////////////////////////////////////////////////////////
 // struct Mixer
 
-Mixer::Mixer(const CVmConfiguration& input_, char* xml_): Builder(input_)
+Mixer::Mixer(const CVmConfiguration& input_, char* xml_, const DspConfig& dspConfig_):
+		Builder(input_, dspConfig_)
 {
 	shape(xml_, m_result);
 }
@@ -2403,7 +2408,7 @@ PRL_RESULT Mixer::setBlank()
 	Libvirt::Domain::Xml::VOs b = m_result->getOs();
 	PRL_RESULT r = Builder::setBlank();
 	m_result->setCommandline(CommandLine(m_input).seed(m_result->getCommandline())
-		.addDebug().addVncParameters().workaroundEfi2008R2().takeResult());
+		.addDebug().addVncParameters(m_dspConfig.isClipboardEnabled()).workaroundEfi2008R2().takeResult());
 
 	m_result->setOs(boost::apply_visitor(Visitor::Mixer::Os::Unit(), b, m_result->getOs()));
 	return r;
@@ -2468,8 +2473,8 @@ PRL_RESULT Mixer::setResources(const VtInfo& info_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Fixer
 
-Fixer::Fixer(const CVmConfiguration& input_, char* xml_, bool inactive_):
-	Builder(input_), m_inactive(inactive_)
+Fixer::Fixer(const CVmConfiguration& input_, char* xml_, bool inactive_, const DspConfig& dspConfig_):
+	Builder(input_, dspConfig_), m_inactive(inactive_)
 {
 	shape(xml_, m_result);
 }
@@ -2490,7 +2495,7 @@ PRL_RESULT Fixer::setBlank()
 	if (c)
 	{
 		m_result->setCommandline(CommandLine(m_input).seed(c)
-			.stripDebugcon().addDebug().addVncParameters().takeResult());
+			.stripDebugcon().addDebug().addVncParameters(m_dspConfig.isClipboardEnabled()).takeResult());
 	}
 
 	return PRL_ERR_SUCCESS;

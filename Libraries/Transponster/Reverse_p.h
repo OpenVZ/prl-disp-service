@@ -1077,7 +1077,7 @@ struct CommandLine
 	CommandLine& seed(const boost::optional<Libvirt::Domain::Xml::Commandline>& original_);
 	CommandLine& addDebug();
 	CommandLine& stripDebugcon();
-	CommandLine& addVncParameters();
+	CommandLine& addVncParameters(const bool enableClipboard);
 	CommandLine& workaroundEfi2008R2();
 	Libvirt::Domain::Xml::Commandline takeResult();
 

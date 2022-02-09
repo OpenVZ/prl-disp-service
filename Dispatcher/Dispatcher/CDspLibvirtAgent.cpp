@@ -2019,7 +2019,8 @@ Grub::result_type Grub::wrap(const decorated_type& decorated_) const
 	if (i.isFailed())
 		return i.error();
 
-	Transponster::Vm::Reverse::Vm u(*m_image);
+	Transponster::Vm::Reverse::Vm u(*m_image,
+			Transponster::Vm::Reverse::DspConfig(Config::getDispRemoteDisplayPrefClipboard()));
 	if (PRL_FAILED(Transponster::Director::domain(u, i.value())))
 		return Error::Simple(PRL_ERR_BAD_VM_DIR_CONFIG_FILE_SPECIFIED);
 

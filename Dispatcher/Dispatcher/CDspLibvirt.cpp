@@ -402,13 +402,27 @@ Result Config::convert(CVmConfiguration& dst_) const
 	return Result();
 }
 
+bool Config::getDispRemoteDisplayPrefClipboard()
+{
+	bool b_rdClipboard = false;
+
+	CDispRemoteDisplayPreferences* rdConfig =
+			CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()->getRemoteDisplayPreferences();
+
+	if (rdConfig)
+		b_rdClipboard = rdConfig->isEnableClipboard();
+
+	return b_rdClipboard;
+}
+
 Prl::Expected<QString, Error::Simple> Config::mixup(const CVmConfiguration& value_) const
 {
 	Prl::Expected<VtInfo, Error::Simple> i = Host(m_link).getVt();
 	if (i.isFailed())
 		return i.error();
 
-	Transponster::Vm::Reverse::Mixer u(value_, read_());
+	Transponster::Vm::Reverse::Mixer u(value_, read_(),
+			Transponster::Vm::Reverse::DspConfig(getDispRemoteDisplayPrefClipboard()));
 	PRL_RESULT res = Transponster::Director::domain(u, i.value());
 	if (PRL_FAILED(res))
 		return Error::Simple(res);
@@ -423,7 +437,8 @@ Prl::Expected<QString, Error::Simple> Config::fixup(const CVmConfiguration& valu
 		return i.error();
 
 	Transponster::Vm::Reverse::Fixer u(value_, read_(),
-						m_flags & VIR_DOMAIN_XML_INACTIVE);
+						m_flags & VIR_DOMAIN_XML_INACTIVE,
+						Transponster::Vm::Reverse::DspConfig(getDispRemoteDisplayPrefClipboard()));
 	PRL_RESULT res = Transponster::Director::domain(u, i.value());
 	if (PRL_FAILED(res))
 		return Error::Simple(res);

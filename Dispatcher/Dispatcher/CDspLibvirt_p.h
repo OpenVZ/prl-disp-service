@@ -901,6 +901,7 @@ struct Config
 	Prl::Expected<QString, Error::Simple> mixup(const CVmConfiguration& value_) const;
 	Prl::Expected<QString, Error::Simple> fixup(const CVmConfiguration& value_) const;
 	Result alter(const boost::function<PRL_RESULT (::Libvirt::Domain::Xml::Domain& ) >& transformer_);
+	static bool getDispRemoteDisplayPrefClipboard();
 
 private:
 	char* read_() const;

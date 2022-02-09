@@ -202,11 +202,25 @@ struct Device<CHwUsbDevice>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct DspConfig
+//some configurations from Dispatcher for configuring XML Domain
+//enhance if it will be required
+struct DspConfig
+{
+	explicit DspConfig() : m_bEnableClipboard(false) {};
+	explicit DspConfig(const bool enableClipboard) : m_bEnableClipboard(enableClipboard) {};
+
+	bool isClipboardEnabled() { return m_bEnableClipboard;}
+	bool m_bEnableClipboard;
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Builder
 
 struct Builder
 {
-	explicit Builder(const CVmConfiguration& input_);
+	explicit Builder(const CVmConfiguration& input_, const DspConfig& dspConfig_);
 
 	PRL_RESULT setBlank();
 	PRL_RESULT setSettings();
@@ -220,6 +234,7 @@ protected:
 
 	CVmConfiguration m_input;
 	QScopedPointer<Libvirt::Domain::Xml::Domain> m_result;
+	DspConfig m_dspConfig;
 
 private:
 	bool getStartupOptions(Libvirt::Domain::Xml::Os2& os_) const;
@@ -230,7 +245,7 @@ private:
 
 struct Vm: Builder
 {
-	explicit Vm(const CVmConfiguration& input_);
+	explicit Vm(const CVmConfiguration& input_, const DspConfig& dspConfig_);
 
 	PRL_RESULT setBlank();
 	PRL_RESULT setDevices();
@@ -245,7 +260,7 @@ private:
 
 struct Mixer: Builder
 {
-	Mixer(const CVmConfiguration& input_, char* xml_);
+	Mixer(const CVmConfiguration& input_, char* xml_, const DspConfig& dspConfig_);
 
 	PRL_RESULT setBlank();
 	PRL_RESULT setDevices();
@@ -258,7 +273,7 @@ struct Mixer: Builder
 
 struct Fixer: Builder
 {
-	Fixer(const CVmConfiguration& input_, char* xml_, bool inactive_);
+	Fixer(const CVmConfiguration& input_, char* xml_, bool inactive_, const DspConfig& dspConfig_);
 
 	PRL_RESULT setBlank();
 	PRL_RESULT setIdentification();
