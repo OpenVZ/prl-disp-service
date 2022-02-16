@@ -3213,6 +3213,19 @@ namespace Snapshot
 namespace
 {
 template<class T>
+Libvirt::Snapshot::Xml::Disk getAbsentee(const T* &item_)
+{
+	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
+	a.setValue(Device::Clustered::Model<T>(*item_).getTargetName());
+	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 0>::type b;
+	b.setValue(Libvirt::Snapshot::Xml::Disk4374());
+	Libvirt::Snapshot::Xml::Disk x;
+	x.setName(Libvirt::Snapshot::Xml::VName(a));
+	x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
+	return x;
+}
+
+template<class T>
 QList<Libvirt::Snapshot::Xml::Disk> getAbsentee(const QList<T* >& list_)
 {
 	QList<Libvirt::Snapshot::Xml::Disk> output;
@@ -3220,15 +3233,7 @@ QList<Libvirt::Snapshot::Xml::Disk> getAbsentee(const QList<T* >& list_)
 	{
 		if (!d->getEnabled())
 			continue;
-
-		mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
-		a.setValue(Device::Clustered::Model<T>(*d).getTargetName());
-		mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 0>::type b;
-		b.setValue(Libvirt::Snapshot::Xml::Disk4374());
-		Libvirt::Snapshot::Xml::Disk x;
-		x.setName(Libvirt::Snapshot::Xml::VName(a));
-		x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
-		output << x;
+		output << getAbsentee(d);
 	}
 	return output;
 }
@@ -3311,6 +3316,12 @@ PRL_RESULT Reverse::setInstructions()
 	{
 		if (!d->getEnabled() || d->getEmulatedType() != PVE::HardDiskImage)
 			continue;
+
+		if (Device::Clustered::Flavor<CVmHardDisk>::isRaw(d))
+		{
+			e << getAbsentee(d);
+			continue;
+		}
 
 		boost::optional<Libvirt::Snapshot::Xml::Disk> r = m_policy(*d);
 
