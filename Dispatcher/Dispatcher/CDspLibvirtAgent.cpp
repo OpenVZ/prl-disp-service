@@ -49,6 +49,7 @@
 #include <vzctl/libvzctl.h>
 
 Q_GLOBAL_STATIC(QMutex, getBoostJsonLock);
+Q_GLOBAL_STATIC(QMutex, getNWFilter);
 
 namespace Libvirt
 {
@@ -3307,6 +3308,9 @@ bool Unit::operator==(const Unit &other) const
 
 Result List::define(const CVmGenericNetworkAdapter &adapter_)
 {
+	//this function creates a new filter if it is absent and it is not thread safe
+	QMutexLocker locker(getNWFilter());
+
 	if (m_link.isNull())
 		return Result(Error::Simple(PRL_ERR_CANT_CONNECT_TO_DISPATCHER));
 
@@ -3316,23 +3320,24 @@ Result List::define(const CVmGenericNetworkAdapter &adapter_)
 	virNWFilterPtr existing_filter = virNWFilterLookupByName(m_link.data(),
 															 qPrintable(filter_name));
 
-	WRITE_TRACE(DBG_DEBUG, "Checking nwfilter %s presence: possible libvirt not found error, it is OK.",
-				qPrintable(filter_name));
+	WRITE_TRACE(DBG_DEBUG, "Checking nwfilter %s presence: %s.", qPrintable(filter_name), existing_filter ? "present" : "absent");
 	if (NULL != existing_filter)
 	{
-		WRITE_TRACE(DBG_DEBUG, "Nwfilter exists: getting uuid.");
-		char existing_filter_uuid[VIR_UUID_STRING_BUFLEN];
+		//update UUID for filter in case it is present
+		static char existing_filter_uuid[VIR_UUID_STRING_BUFLEN];
 		virNWFilterGetUUIDString(existing_filter, existing_filter_uuid);
 		u.setUuid(existing_filter_uuid);
 		virNWFilterFree(existing_filter);
-	} else
-		WRITE_TRACE(DBG_DEBUG, "Nwfilter not found, it will be defined shortly.");
+	}
 
-	virNWFilterPtr n = virNWFilterDefineXML(m_link.data(),
-											qPrintable(u.getResult()));
+	virNWFilterPtr n = virNWFilterDefineXML(m_link.data(), qPrintable(u.getResult()));
 	if (NULL == n)
 		return Failure(PRL_ERR_VM_APPLY_FILTER_CONFIG_FAILED);
 
+	//Free the nwfilter object. The running instance is kept alive
+	virNWFilterFree(n);
+
+	WRITE_TRACE(DBG_DEBUG, "The nwfilter %s was %s.", qPrintable(filter_name), existing_filter ? "configured":"created");
 	return Result();
 }
 
