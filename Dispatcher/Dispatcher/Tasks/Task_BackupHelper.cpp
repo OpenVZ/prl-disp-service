@@ -615,7 +615,7 @@ QStringList Builder::craft(T subject_) const
 	foreach (const Product::component_type& t, m_context->getProduct()->getVmTibs())
 	{
 		a << "--image" <<
-			subject_.craftImage(t, m_map[t.second.toLocalFile()].toString());
+			subject_.craftImage(t, m_map[t.second.toLocalFile()].toString(QUrl::DecodeReserved));
 	}
 	return a << subject_.craftEpilog(*m_context);
 }
