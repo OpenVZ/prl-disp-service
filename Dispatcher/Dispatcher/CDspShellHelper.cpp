@@ -246,6 +246,18 @@ void CDspShellHelper::sendHostHardwareInfo (
 	pUser->sendPackage( response );
 }
 
+// Sends information about support CPUID override feature
+void CDspShellHelper::isCpuMaskingSupport (
+	SmartPtr<CDspClient>& pUser,
+	const SmartPtr<IOPackage>& p )
+{
+	CProtoCommandPtr pResponse = CProtoSerializer::CreateDspWsResponseCommand( p,
+			CCpuHelper::getCpuMaskingSupport() ? PRL_ERR_SUCCESS : PRL_ERR_FILE_NOT_FOUND );
+	SmartPtr<IOPackage> response =
+		DispatcherPackage::createInstance( PVE::DspWsResponse, pResponse, p );
+	pUser->sendPackage( response );
+}
+
 // Sends directory entries
 void CDspShellHelper::sendDirectoryEntries (
     SmartPtr<CDspClient>& pUser,

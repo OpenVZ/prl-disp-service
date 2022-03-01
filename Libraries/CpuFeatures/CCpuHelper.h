@@ -39,6 +39,7 @@ struct CCpuHelper {
 
 	CCpuHelper();
 
+	static bool getCpuMaskingSupport();
 	static CDispCpuPreferences *get_cpu_mask();
 	static PRL_RESULT maskUpdate(CDispCpuPreferences new_mask);
 	static bool update(CVmConfiguration &conf);

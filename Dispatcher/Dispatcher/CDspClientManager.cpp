@@ -693,6 +693,9 @@ void CDspClientManager::handleToDispatcherPackage (
 		return (void)client->sendSimpleResponse(p, PRL_ERR_UNIMPLEMENTED);
 	case PVE::DspCmdGetVcmmdConfig:
 		return (void)m_service->getShellServiceHelper().sendVcmmdConfig(client, p);
+	case PVE::DspCmdGetCpuMaskSupport:
+		return (void)m_service->getShellServiceHelper().isCpuMaskingSupport(client, p);
+
 	} //switch( p->header.type )
 	///////////////////////////////////////////////
 
