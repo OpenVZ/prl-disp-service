@@ -775,6 +775,22 @@ PRL_RESULT CCpuHelper::execFeaturesCmd(const QString &cmdline)
 	return HostUtils::RunCmdLineUtilityEx(cmdline, process, 60 * 1000)(handler).getRetCode();
 }
 
+bool CCpuHelper::getCpuMaskingSupport()
+{
+	bool result = false;
+	QString out;
+	QString cmd = QString("%1 %2").arg(CPUFEATURES_BINARY).arg("info");
+
+	if (!checkBinaryExists(CPUFEATURES_BINARY) || !HostUtils::RunCmdLineUtility(cmd, out, 60 * 1000))
+		return result;
+
+	if (!out.isEmpty() && out.contains("fault_support=yes"))
+		result = true;
+
+	WRITE_TRACE(DBG_DEBUG, "Run '%s info' command. CPUID override %s supported by HW.", CPUFEATURES_BINARY, result ? "is" : "is not");
+	return result;
+}
+
 CDispCpuPreferences *CCpuHelper::get_cpu_mask()
 {
 	QScopedPointer<CDispCpuPreferences> mask(new CDispCpuPreferences);

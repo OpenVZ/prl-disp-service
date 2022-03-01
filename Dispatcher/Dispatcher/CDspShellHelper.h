@@ -75,6 +75,10 @@ public:
 	void sendHostHardwareInfo ( const SmartPtr<CDspClient>&,
 								const SmartPtr<IOPackage>&);
 
+	// Sends cpu features information about CPU Masking feature (CPUID override)
+	void isCpuMaskingSupport ( SmartPtr<CDspClient>&,
+								const SmartPtr<IOPackage>& );
+
 	// Sends directory entries
 	void sendDirectoryEntries ( SmartPtr<CDspClient>&,
 								const SmartPtr<IOPackage>& );
