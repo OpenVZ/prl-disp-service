@@ -749,7 +749,7 @@ PRL_RESULT Resource::setURL(const QUrl& url)
 	/* backup://[server:port]/{BACKUP_UUID}.pit/diskname */
 	/* empty "server:port" stands for localhost */
 	if (!url.isValid()) {
-		WRITE_TRACE(DBG_FATAL, "invalid storage URL '%s'", QSTR2UTF8(url.toString()));
+		WRITE_TRACE(DBG_FATAL, "invalid storage URL '%s'", QSTR2UTF8(url.toString(QUrl::DecodeReserved)));
 		return PRL_ERR_ATTACH_BACKUP_INVALID_STORAGE_URL;
 	}
 	if (url.scheme() != "backup") {
@@ -769,7 +769,7 @@ PRL_RESULT Resource::setURL(const QUrl& url)
 	QStringList path = url.path().split("/", QString::SkipEmptyParts);
 	if (path.size() != 2) {
 		WRITE_TRACE(DBG_FATAL, "invalid path to a backup in storage URL '%s'",
-			QSTR2UTF8(url.toString()));
+			QSTR2UTF8(url.toString(QUrl::DecodeReserved)));
 		return PRL_ERR_ATTACH_BACKUP_INVALID_STORAGE_URL;
 	}
 	m_backupId = path[0];

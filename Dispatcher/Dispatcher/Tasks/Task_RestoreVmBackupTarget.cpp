@@ -1178,7 +1178,7 @@ Prl::Expected<QString, PRL_RESULT> Stream::addStrand(const QString& value_)
 		if (x.isFailed())
 			return x.error();
 
-		output = x.value().toString();
+		output = x.value().toString(QUrl::DecodeReserved);
 	}
 	return output;
 }

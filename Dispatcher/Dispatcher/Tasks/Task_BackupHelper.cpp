@@ -997,7 +997,7 @@ PRL_RESULT Nbd::start(const Image& image_, quint32 flags_)
 	if (!m_exportName.isEmpty())
 		u.setPath(m_exportName);
 
-	m_url = u.toString();
+	m_url = u.toString(QUrl::DecodeReserved);
 	WRITE_TRACE(DBG_DEBUG, "NBD server is started at %s", QSTR2UTF8(m_url));
 	return PRL_ERR_SUCCESS;
 }
@@ -1974,7 +1974,7 @@ QString Task_BackupMixin::patch(QUrl url_) const
 		// replace INADDR_ANY by a real remote server hostname
 		url_.setHost(m_sServerHostname);
 	}
-	return url_.toString();
+	return url_.toString(QUrl::DecodeReserved);
 }
 
 Backup::Metadata::Lock& Task_BackupMixin::getMetadataLock()

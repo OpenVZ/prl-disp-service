@@ -140,7 +140,7 @@ PRL_RESULT Archive::connect(const QString& address_, quint32 protocol_,
 	if (FILE == (FILE & task_.getInternalFlags()) &&
 		protocol_ >= BACKUP_PROTO_V5)
 	{
-		m_bin = QUrl::fromLocalFile(address_).toString();
+		m_bin = QUrl::fromLocalFile(address_).toString(QUrl::DecodeReserved);
 		return PRL_ERR_SUCCESS;
 	}
 
