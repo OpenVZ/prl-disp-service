@@ -715,40 +715,34 @@ PRL_RESULT Task_VzManager::changeVNCServerState(SmartPtr<CVmConfiguration> pOldC
 	PRL_RESULT res = PRL_ERR_SUCCESS;
 	tribool_type run;
 
-	// Start VNC
-	if (oldD->getMode() != newD->getMode()) {
+
+	// Start/stop VNC if was changed
+	if ( oldD->getMode() != newD->getMode() /*changed mode*/ ||
+			(newD->getMode() != PRD_DISABLED /*same mode but changed parameters*/ &&
+				(oldD->getHostName() != newD->getHostName() ||
+				(newD->getMode() == PRD_MANUAL && oldD->getPortNumber() != newD->getPortNumber()) ||
+				oldD->getPassword() != newD->getPassword())
+			)
+		)
+	{
+		//apply changes only for running CT
 		run = CVzHelper::is_env_running(sUuid);
 		if (boost::logic::indeterminate(run))
 			return PRL_ERR_OPERATION_FAILED;
 		if (!run)
 			return PRL_ERR_SUCCESS;
 
-		if (newD->getMode() == PRD_DISABLED) {
+		if (oldD->getMode() != PRD_DISABLED)
+		{
 			res = stop_vnc_server(sUuid, false);
 			if (res == PRL_ERR_VNC_SERVER_NOT_STARTED)
 				res = PRL_ERR_SUCCESS;
-		} else {
-			res = start_vnc_server(sUuid, false);
+			if (PRL_FAILED(res))
+				return res;
 		}
-	}
-	// VNC config has been changed
-	else if (newD->getMode() != PRD_DISABLED &&
-		  (oldD->getHostName() != newD->getHostName() ||
-		  (newD->getMode() == PRD_MANUAL &&
-			oldD->getPortNumber() != newD->getPortNumber()) ||
-		   oldD->getPassword() != newD->getPassword())) {
-		run = CVzHelper::is_env_running(sUuid);
-		if (boost::logic::indeterminate(run))
-			return PRL_ERR_OPERATION_FAILED;
-		if (!run)
-			return PRL_ERR_SUCCESS;
 
-		res = stop_vnc_server(sUuid, false);
-		if (res == PRL_ERR_VNC_SERVER_NOT_STARTED)
-			res = PRL_ERR_SUCCESS;
-		if (PRL_FAILED(res))
-			return res;
-		res = start_vnc_server(sUuid, false);
+		if (newD->getMode() != PRD_DISABLED)
+			res = start_vnc_server(sUuid, false);
 	}
 	return res;
 }
