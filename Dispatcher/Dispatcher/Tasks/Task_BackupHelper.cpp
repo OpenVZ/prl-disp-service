@@ -994,8 +994,16 @@ PRL_RESULT Nbd::start(const Image& image_, quint32 flags_)
 	u.setScheme("nbd");
 	u.setHost(s.serverAddress().toString());
 	u.setPort(s.serverPort());
-	if (!m_exportName.isEmpty())
-		u.setPath(m_exportName);
+	if (!m_exportName.isEmpty()){
+		// Qt4 QUrl creates absolute paths from relative paths in setPath method.
+		// Qt5 distinguishes relative and absolute paths in setPath method. QUrl generate
+		// error with enum AuthorityPresentAndPathIsRelative in QUrl validation in case relative path setting.
+		// For considered enum QUrl::errorString() method returns
+		// "Path component is relative and authority is present" and QUrl is no valid. QUrl::toString method
+		// returns empty string for not valid QUrl.
+		// For the sake of compatibility we'll turn relative path into absolute, which is consistent with qt4 behavior
+		u.setPath("/" + m_exportName);
+	}
 
 	m_url = u.toString();
 	WRITE_TRACE(DBG_DEBUG, "NBD server is started at %s", QSTR2UTF8(m_url));
