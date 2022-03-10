@@ -1187,7 +1187,7 @@ QString i440fx::serialize(model_type::second_type version_) const
 ///////////////////////////////////////////////////////////////////////////////
 // struct Q35
 
-const QString Q35::s_PREFIX("pc-q35-vz8.");
+const QString Q35::s_PREFIX("pc-q35-vz9.");
 
 Prl::Expected<model_type, PRL_RESULT>
 	Q35::deserialize(const QString& text_) const
