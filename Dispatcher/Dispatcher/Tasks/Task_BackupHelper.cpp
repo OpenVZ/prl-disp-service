@@ -973,6 +973,20 @@ PRL_RESULT Nbd::start(const Image& image_, quint32 flags_)
 		WRITE_TRACE(DBG_FATAL, "Failed to reserve port for NBD server!");
 		return PRL_ERR_BACKUP_INTERNAL_ERROR;
 	}
+
+	// Check if backup target is an NFS share
+	// Enforce cached mode for NFS to avoid performance issues
+	QFileInfo imagePath(image_.getPath());
+	QDir imageDir = imagePath.absoluteDir();
+
+	if (!imageDir.exists()) {
+		WRITE_TRACE(DBG_FATAL, "Failed to get backup directory");
+		return PRL_ERR_BACKUP_CANNOT_CREATE_DIRECTORY;
+	}
+
+	if (HostUtils::GetFSType(imageDir.absolutePath()) == PRL_FS_NFS)
+		m_cached = true;
+
 	VirtualDisk::qcow2PolicyList_type p(1,
 				VirtualDisk::Policy::Qcow2::fd_type(s.socketDescriptor()));
 	if (!(flags_ & PBT_UNCOMPRESSED))
