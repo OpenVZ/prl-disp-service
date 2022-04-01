@@ -2662,6 +2662,9 @@
         <ref name="vz-dhcp"/>
       </optional>
       <optional>
+        <ref name="vz-dns-net"/>
+      </optional>
+      <optional>
         <element name="target">
           <attribute name="dev">
             <ref name="deviceName"/>
@@ -5857,6 +5860,21 @@
         </optional>
       </element>
     </zeroOrMore>
+  </define>
+
+  <define name="vz-dns-net">
+    <element name="vz-dns">
+      <zeroOrMore>
+        <element name="server">
+          <ref name="ipAddr"/>
+        </element>
+      </zeroOrMore>
+      <zeroOrMore>
+        <element name="search">
+          <ref name="dnsName"/>
+        </element>
+      </zeroOrMore>
+    </element>
   </define>
 
   <define name='route'>

@@ -537,6 +537,7 @@ struct Builder
 	void setBandwidth(const boost::optional<Libvirt::Domain::Xml::Bandwidth1>& value_);
 	void setDhcp(const boost::optional<QList<Libvirt::Domain::Xml::VzDhcp>>& value_);
 	void setGateway(const QList<Libvirt::Domain::Xml::Route>& value_);
+	void setDns(const boost::optional<Libvirt::Domain::Xml::VzDns1>& dns_);
 
 	const CVmGenericNetworkAdapter& getResult() const
 	{

@@ -914,6 +914,22 @@ boost::optional<QList<Libvirt::Domain::Xml::VzDhcp > > View::getDhcpList() const
 	return dhcp;
 }
 
+boost::optional<Libvirt::Domain::Xml::VzDns1> View::getDns() const{
+	QList<Libvirt::Domain::Xml::VIpAddr> server_list;
+
+	for (const auto& serverIps : m_network.getDnsIPAddresses()){
+		Libvirt::Domain::Xml::VIpAddr dst;
+		if (Libvirt::Traits<Libvirt::Domain::Xml::VIpAddr>::parse(serverIps,dst))
+			server_list.push_back(dst);
+	}
+
+	Libvirt::Domain::Xml::VzDns1 result;
+	result.setServerList(server_list);
+	result.setSearchList(m_network.getSearchDomains());
+
+	return result;
+}
+
 QList<Libvirt::Domain::Xml::Route> View::getRouteList() const
 {
 	QList<Libvirt::Domain::Xml::Route> routes;
@@ -1131,6 +1147,7 @@ Libvirt::Domain::Xml::VInterface Adapter<N>::operator()
 	i.setBoot(boot_);
 	i.setVzDhcpList(view.getDhcpList());
 	i.setRouteList(view.getRouteList());
+	i.setVzDns(view.getDns());
 
 	access_type output;
 	output.setValue(i);
