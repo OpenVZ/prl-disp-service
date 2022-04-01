@@ -493,6 +493,19 @@ void Builder::setGateway(const QList<Libvirt::Domain::Xml::Route> &value_)
 	}
 }
 
+void Builder::setDns(const boost::optional<Libvirt::Domain::Xml::VzDns1>& dns_) {
+    if (dns_.is_initialized()){
+        QList<QString> ipList;
+        for (const auto& servers : dns_.get().getServerList()){
+            ipList.push_back(Libvirt::Traits<Libvirt::Domain::Xml::VIpAddr>
+                             ::generate(servers));
+        }
+
+        m_result.setDnsIPAddresses(ipList);
+        m_result.setSearchDomains(dns_.get().getSearchList());
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct VirtualProfile
 
@@ -531,6 +544,7 @@ CVmGenericNetworkAdapter& Unit::prepare(const T& variant_) const
 	b.setBandwidth(variant_.getBandwidth());
 	b.setDhcp(variant_.getVzDhcpList());
 	b.setGateway(variant_.getRouteList());
+	b.setDns(variant_.getVzDns());
 
 	QScopedPointer<CVmGenericNetworkAdapter> a(new CVmGenericNetworkAdapter(b.getResult()));
 	m_clip->getBootSlot(variant_.getBoot())

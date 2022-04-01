@@ -664,6 +664,7 @@ struct View
 	QStringList getIpv4() const;
 	QStringList getIpv6() const;
 	boost::optional<QList<Libvirt::Domain::Xml::VzDhcp > > getDhcpList() const;
+	boost::optional<Libvirt::Domain::Xml::VzDns1> getDns() const;
 	QList<Libvirt::Domain::Xml::Route > getRouteList() const;
 
 private:

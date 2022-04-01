@@ -475,8 +475,6 @@ void NetworkDevices::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 			continue;
 
 		a->setAutoApply(x->isAutoApply());
-		a->setDnsIPAddresses(x->getDnsIPAddresses());
-		a->setSearchDomains(x->getSearchDomains());
 		a->setHostMacAddress(x->getHostMacAddress());
 		// If vz-filter is enabled, we preserve old PktFilter config
 		if (a->getPktFilter()->getFilterRef().isEmpty())
