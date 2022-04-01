@@ -9021,7 +9021,9 @@ static QString g_text[] = {
 	QString("data8993"),
 	QString("uint328994"),
 	QString("data8995"),
-	QString("data8996")
+	QString("data8996"),
+	QString(""),
+	QString("vz-dns-net")
 };
 
 const QString& getText(quint32 index_)
